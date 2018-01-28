@@ -1,7 +1,7 @@
 body, blockquote, p {
 	font: normal normal 13px Trebuchet MS, sans-serif, helvetica;
-	color: #eee;
-	background: #111;
+	color: #cccccc;
+	background: #292929;
 }
 html body {
 	min-width: 0;
@@ -10,19 +10,19 @@ html body {
 }
 a:link {color: white; text-decoration: none;}
 a:visited {color: white;}
-a:hover {color: #a03020;}
+a:hover {color: #a84030;}
 .cnt * a:link {border-bottom: 1px dotted white;}
 strike {color: #888;}
 h1 {font-size: 16pt; Font-Weight: bold;}
-h2 {font-size: 14pt; color: #a03020; Font-Weight: bold; width: 100%;
+h2 {font-size: 14pt; color: #a84030; Font-Weight: bold; width: 100%;
 	border-bottom: 1px solid #c09060;}
-h3 {font-size: 12pt; color: #a03020; Font-Weight: bold;}
-h4 {font-size: 10pt; color: #a03020; Font-Weight: bold;}
+h3 {font-size: 12pt; color: #a84030; Font-Weight: bold;}
+h4 {font-size: 10pt; color: #a84030; Font-Weight: bold;}
 h5 {font-size: 10pt; Font-Weight: bold;}
 tt {font-family: "courier new", monospace, courier; color: darkgreen;}
 pre {font: normal 10pt "courier new", monospace, console;
 	background-color: #202020  ; padding: 16px;}
-legend {font-weight: bold; color: white;}
+legend {font-weight: bold; color: #cccccc;}
 .toc1 {margin-left: 1cm; font-size: 12pt; font-weight: bold; text-decoration: none;}
 .toc2 {margin-left: 2cm; font-size: 10pt; font-weight: bold; text-decoration: none;}
 .toc3 {margin-left: 3cm; font-size: 10pt; text-decoration: none;}

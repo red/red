@@ -40,21 +40,7 @@ get-path: context [
 
 
 	;--- Actions ---
-	
-	make: func [
-		proto 	 [red-value!]
-		spec	 [red-value!]
-		return:	 [red-get-path!]
-		/local
-			path [red-get-path!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "get-path/make"]]
 
-		path: as red-get-path! block/make proto spec
-		path/header: TYPE_GET_PATH
-		path
-	]
-	
 	form: func [
 		p		[red-get-path!]
 		buffer	[red-string!]
@@ -85,33 +71,21 @@ get-path: context [
 		path/mold as red-path! p buffer only? all? flat? arg part - 1 0
 	]
 	
-	compare: func [
-		value1	   [red-block!]							;-- first operand
-		value2	   [red-block!]							;-- second operand
-		op		   [integer!]							;-- type of comparison
-		return:	   [integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "get-path/compare"]]
-
-		if TYPE_OF(value2) <> TYPE_GET_PATH [RETURN_COMPARE_OTHER]
-		block/compare-each value1 value2 op
-	]
-	
 	init: does [
 		datatype/register [
 			TYPE_GET_PATH
 			TYPE_PATH
 			"get-path!"
 			;-- General actions --
-			:make
+			INHERIT_ACTION	;make
 			null			;random
 			INHERIT_ACTION	;reflect
-			null			;to
+			INHERIT_ACTION	;to
 			:form
 			:mold
 			INHERIT_ACTION	;eval-path
 			null			;set-path
-			:compare
+			INHERIT_ACTION	;compare
 			;-- Scalar actions --
 			null			;absolute
 			null			;add

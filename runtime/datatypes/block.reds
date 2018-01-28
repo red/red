@@ -166,6 +166,8 @@ block: context [
 		]
 		
 		if all [deep? not empty?][
+			value: target/offset
+			tail: value + size
 			while [value < tail][
 				type: TYPE_OF(value)
 				if any [
@@ -182,7 +184,7 @@ block: context [
 					]
 				][
 					result: clone as red-block! value yes any?
-					result/header: type
+					result/header: value/header
 					copy-cell as red-value! result value
 					stack/pop 1
 				]
@@ -315,12 +317,14 @@ block: context [
 		]
 		none-value
 	]
-	
+
 	make-at: func [
 		blk		[red-block!]
 		size	[integer!]
 		return: [red-block!]
 	][
+		if size < 0 [size: 1]
+		
 		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
 		blk/head: 	0
 		blk/node: 	alloc-cells size
@@ -376,8 +380,6 @@ block: context [
 	push-only*: func [
 		size	[integer!]
 		return: [red-block!]
-		/local
-			blk [red-block!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/push-only*"]]
 
@@ -467,11 +469,16 @@ block: context [
 			res	   [integer!]
 			n	   [integer!]
 			len	   [integer!]
+			same?  [logic!]
 	][
-		if all [
+		same?: all [
 			blk1/node = blk2/node
 			blk1/head = blk2/head
-			any [op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
+		]
+		if op = COMP_SAME [return either same? [0][-1]]
+		if all [
+			same?
+			any [op = COMP_STRICT_EQUAL_WORD op = COMP_EQUAL op = COMP_FIND op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
 		][return 0]
 
 		s1: GET_BUFFER(blk1)
@@ -481,7 +488,7 @@ block: context [
 
 		if size1 <> size2 [										;-- shortcut exit for different sizes
 			if any [
-				op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL
+				op = COMP_STRICT_EQUAL_WORD op = COMP_EQUAL op = COMP_FIND op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL
 			][return 1]
 		]
 
@@ -530,28 +537,69 @@ block: context [
 	;--- Actions ---
 	
 	make: func [
-		proto 	 [red-value!]
-		spec	 [red-value!]
-		return:	 [red-block!]
+		proto	[red-block!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-block!]
 		/local
-			blk  [red-block!]
 			size [integer!]
 			int	 [red-integer!]
+			fl	 [red-float!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/make"]]
 
-		size: 1
 		switch TYPE_OF(spec) [
-			TYPE_INTEGER [
-				int: as red-integer! spec
-				size: int/value
+			TYPE_INTEGER
+			TYPE_FLOAT [
+				size: GET_SIZE_FROM(spec)
+				if zero? size [size: 1]
+				make-at proto size
+				proto/header: type
+				proto
 			]
-			default [--NOT_IMPLEMENTED--]
+			TYPE_ANY_PATH
+			TYPE_ANY_LIST [
+				proto: clone as red-block! spec no no
+				proto/header: type
+				proto
+			]
+			TYPE_OBJECT [object/reflect as red-object! spec words/body]
+			TYPE_MAP	[map/reflect as red-hash! spec words/body]
+			TYPE_VECTOR [vector/to-block as red-vector! spec proto]
+			default [
+				fire [TO_ERROR(script bad-make-arg) datatype/push type spec]
+				null
+			]
 		]
-		if zero? size [size: 1]
-		make-at as red-block! stack/push* size
 	]
-	
+
+	to: func [
+		proto	[red-block!]
+		spec	[red-value!]
+		type	[integer!]
+		return: [red-block!]
+		/local
+			str [red-string!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "block/to"]]
+
+		switch TYPE_OF(spec) [
+			TYPE_OBJECT [object/reflect as red-object! spec words/body]
+			TYPE_MAP	[map/reflect as red-hash! spec words/body]
+			TYPE_VECTOR [vector/to-block as red-vector! spec proto]
+			TYPE_STRING [
+				str: as red-string! spec
+				#call [system/lexer/transcode str none no]
+			]
+			TYPE_TYPESET [typeset/to-block as red-typeset! spec proto]
+			TYPE_ANY_PATH
+			TYPE_ANY_LIST [proto: clone as red-block! spec no no]
+			default [rs-append make-at proto 1 spec]
+		]
+		proto/header: type
+		proto
+	]
+
 	form: func [
 		blk		  [red-block!]
 		buffer	  [red-string!]
@@ -653,6 +701,7 @@ block: context [
 			int  [red-integer!]
 			set? [logic!]
 			type [integer!]
+			s	 [series!]
 	][
 		set?: value <> null
 		type: TYPE_OF(element)
@@ -662,24 +711,29 @@ block: context [
 				_series/poke as red-series! parent int/value value null
 				value
 			][
+				s: GET_BUFFER(parent)
+				if s/flags and flag-series-owned <> 0 [
+					copy-cell as red-value! parent as red-value! object/path-parent
+				]
 				_series/pick as red-series! parent int/value null
 			]
 		][
 			either set? [
-				element: find parent element null no case? no null null no no no no
+				element: find parent element null no case? no no null null no no no no
 				if TYPE_OF(element) = TYPE_NONE [
 					fire [TO_ERROR(script bad-path-set) path element]
 				]
 				actions/poke as red-series! element 2 value null
 				value
 			][
-				either all [
-					TYPE_OF(parent) = TYPE_BLOCK
-					type = TYPE_WORD
-				][
+				s: GET_BUFFER(parent)
+				if s/flags and flag-series-owned <> 0 [
+					copy-cell as red-value! parent as red-value! object/path-parent
+				]
+				either type = TYPE_WORD [
 					select-word parent as red-word! element case?
 				][
-					value: select parent element null yes case? no null null no no
+					value: select parent element null yes case? no no null null no no
 					stack/pop 1							;-- remove FIND result from stack
 					value
 				]
@@ -695,6 +749,7 @@ block: context [
 		part		[red-value!]
 		only?		[logic!]
 		case?		[logic!]
+		same?	 	[logic!]
 		any?		[logic!]
 		with-arg	[red-string!]
 		skip		[red-integer!]
@@ -709,7 +764,6 @@ block: context [
 			slot	[red-value!]
 			slot2	[red-value!]
 			end		[red-value!]
-			end2	[red-value!]
 			result	[red-value!]
 			int		[red-integer!]
 			b		[red-block!]
@@ -777,7 +831,7 @@ block: context [
 		]
 		
 		type: TYPE_OF(value)
-		any-blk?: ANY_BLOCK?(type)
+		any-blk?: either all [same? hash?][no][ANY_BLOCK_STRICT?(type)]
 
 		either any [
 			match?
@@ -789,7 +843,6 @@ block: context [
 					b: as red-block! value
 					s2: GET_BUFFER(b)
 					value: s2/offset + b/head
-					end2: s2/tail
 					(as-integer s2/tail - s2/offset) >> 4 - b/head
 				][0]
 			]
@@ -815,7 +868,8 @@ block: context [
 					end: either part? [part + 1][s/tail]	;-- + 1 => compensate for the '>= test
 				]
 			]
-			op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL] ;-- warning: /case <> STRICT...
+			op: either case? [COMP_STRICT_EQUAL][COMP_FIND] ;-- warning: /case <> STRICT...
+			if same? [op: COMP_SAME]
 			reverse?: any [reverse? last?]					;-- reduce both flags to one
 			
 			type: either type = TYPE_DATATYPE [
@@ -826,8 +880,14 @@ block: context [
 			until [
 				either zero? values [
 					found?: either positive? type [
-						dt: as red-datatype! slot
-						type = dt/value						;-- simple type comparison
+						dt: as red-datatype! slot 
+						any [
+							TYPE_OF(slot) = type			;-- simple type comparison
+							all [
+								TYPE_OF(slot) = TYPE_DATATYPE
+								dt/value = type				;-- attempt matching a datatype! value
+							]
+						]
 					][
 						actions/compare slot value op		;-- atomic comparison
 					]
@@ -888,6 +948,7 @@ block: context [
 		part	 [red-value!]
 		only?	 [logic!]
 		case?	 [logic!]
+		same?	 [logic!]
 		any?	 [logic!]
 		with-arg [red-string!]
 		skip	 [red-integer!]
@@ -902,19 +963,12 @@ block: context [
 			type   [integer!]
 			offset [integer!]
 	][
-		result: find blk value part only? case? any? with-arg skip last? reverse? no no
+		result: find blk value part only? case? same? any? with-arg skip last? reverse? no no
 		
 		if TYPE_OF(result) <> TYPE_NONE [
 			offset: either only? [1][					;-- values > 0 => series comparison mode
 				type: TYPE_OF(value)
-				either any [							;@@ replace with ANY_BLOCK?
-					type = TYPE_BLOCK
-					type = TYPE_PAREN
-					type = TYPE_PATH
-					type = TYPE_GET_PATH
-					type = TYPE_SET_PATH
-					type = TYPE_LIT_PATH
-				][
+				either ANY_BLOCK_STRICT?(type) [
 					b: as red-block! value
 					s: GET_BUFFER(b)
 					(as-integer s/tail - s/offset) >> 4 - b/head
@@ -940,13 +994,33 @@ block: context [
 		case?	[logic!]
 		return:	[red-value!]
 		/local
-			s	   [series!]
-			p	   [red-value!]
-			result [red-block!]
+			slot  [red-value!]
+			s	  [series!]
+			hash? [logic!]
+			hash  [red-hash!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/put"]]
 
-		eval-path blk field value as red-value! none-value case?
+		hash?: TYPE_OF(blk) = TYPE_HASH
+		hash: as red-hash! blk
+		blk: as red-block! find blk field null no case? no no null null no no no no
+		
+		either TYPE_OF(blk) = TYPE_NONE [
+			copy-cell field ALLOC_TAIL(blk)
+			value: copy-cell value ALLOC_TAIL(blk)
+			if hash? [
+				_hashtable/put hash/table value - 1
+				_hashtable/put hash/table value
+			]
+		][
+			s: GET_BUFFER(blk)
+			slot: s/offset + blk/head + 1
+			if slot >= s/tail [slot: alloc-tail s]
+			copy-cell value slot
+			if hash? [_hashtable/put hash/table slot]
+			ownership/check as red-value! blk words/_put slot blk/head + 1 1
+		]
+		value
 	]
 
 	compare-value: func [								;-- Compare function return integer!
@@ -989,41 +1063,43 @@ block: context [
 			bool [red-logic!]
 			int  [red-integer!]
 			d    [red-float!]
+			f	 [red-function!]
 			all? [logic!]
 			num  [integer!]
 			blk1 [red-block!]
 			blk2 [red-block!]
+			v1	 [red-value!]
+			v2	 [red-value!]
 			s1   [series!]
 			s2   [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/compare-call"]]
 
-		stack/mark-func words/_body						;@@ find something more adequate
+		f: as red-function! fun
+		stack/mark-func words/_body	f/ctx				;@@ find something more adequate
+
+		either flags and sort-reverse-mask = 0 [
+			v2: stack/push value2
+			v1: stack/push value1
+		][
+			v1: stack/push value1
+			v2: stack/push value2
+		]
 
 		all?: flags and sort-all-mask = sort-all-mask
-		if all? [
-			num: flags >>> 2
-			blk1: make-at as red-block! ALLOC_TAIL(root) num
-			blk2: make-at as red-block! ALLOC_TAIL(root) num
+		num: flags >>> 2
+		if all [all? num > 0][
+			blk1: make-at as red-block! v1 1
+			blk2: make-at as red-block! v2 1
 			s1: GET_BUFFER(blk1)
 			s2: GET_BUFFER(blk2)
-			copy-memory as byte-ptr! s1/offset as byte-ptr! value1 num << 4
-			copy-memory as byte-ptr! s2/offset as byte-ptr! value2 num << 4
-			s1/tail: s1/tail + num
-			s2/tail: s2/tail + num
-			value1: as red-value! blk1
-			value2: as red-value! blk2
+			s1/offset: value1
+			s2/offset: value2
+			s1/tail: value1 + num
+			s2/tail: value2 + num
 		]
 
-		flags: flags and sort-reverse-mask
-		either zero? flags [
-			stack/push value2
-			stack/push value1
-		][
-			stack/push value1
-			stack/push value2
-		]
-		_function/call as red-function! fun global-ctx	;FIXME: hardcoded origin context
+		_function/call f global-ctx						;FIXME: hardcoded origin context
 		stack/unwind
 		stack/pop 1
 
@@ -1035,7 +1111,7 @@ block: context [
 			]
 			TYPE_INTEGER [
 				int: as red-integer! res
-				negate int/value
+				0 - int/value
 			]
 			TYPE_FLOAT [
 				d: as red-float! res
@@ -1069,7 +1145,6 @@ block: context [
 			step	[integer!]
 			int		[red-integer!]
 			blk2	[red-block!]
-			fun		[red-function!]
 			op		[integer!]
 			flags	[integer!]
 			offset	[integer!]
@@ -1101,7 +1176,7 @@ block: context [
 			if len2 < len [
 				len: len2
 				if negative? len2 [
-					len2: negate len2
+					len2: 0 - len2
 					blk/head: blk/head - len2
 					len: either negative? blk/head [blk/head: 0 0][len2]
 					head: head - len
@@ -1147,10 +1222,6 @@ block: context [
 					]
 					flags: offset - 1 << 1 or flags
 				]
-				TYPE_BLOCK [
-					blk2: as red-block! part
-					;TBD handles block! value
-				]
 				default [
 					ERR_INVALID_REFINEMENT_ARG((refinement/load "compare") comparator)
 				]
@@ -1183,7 +1254,6 @@ block: context [
 			hash	[red-hash!]
 			table	[node!]
 			int		[red-integer!]
-			p		[int-ptr!]
 			b		[red-block!]
 			s		[series!]
 			h		[integer!]
@@ -1193,7 +1263,6 @@ block: context [
 			slots	[integer!]
 			index	[integer!]
 			values?	[logic!]
-			head?	[logic!]
 			tail?	[logic!]
 			hash?	[logic!]
 	][
@@ -1254,7 +1323,6 @@ block: context [
 			blk/head: (as-integer s/tail - s/offset) >> size? cell!
 		]
 		h: blk/head
-		head?: zero? h
 		tail?: any [(s/offset + h = s/tail) append?]
 		slots: part * cnt
 		index: either append? [(as-integer s/tail - s/offset) >> 4][h]
@@ -1297,6 +1365,7 @@ block: context [
 					copy-cell value ALLOC_TAIL(blk)
 				][
 					copy-cell value head
+					head: head + 1
 				]
 			]
 			cnt: cnt - 1
@@ -1518,7 +1587,7 @@ block: context [
 			invert? [logic!]
 			both?	[logic!]
 			find?	[logic!]
-			skip?	[logic!]
+			append?	[logic!]
 			blk?	[logic!]
 			hash?	[logic!]
 	][
@@ -1540,7 +1609,8 @@ block: context [
 		blk1: as red-block! stack/arguments
 		blk2: blk1 + 1
 		len: rs-length? blk1
-		len: len + either op = OP_UNION [rs-length? blk2][0]
+		if op = OP_UNION [len: len + rs-length? blk2]
+		if zero? len [len: 1]
 		new: make-at as red-block! stack/push* len
 		table: _hashtable/init len new HASH_TABLE_HASH 1
 		n: 2
@@ -1569,16 +1639,16 @@ block: context [
 			]
 
 			while [value < tail] [			;-- iterate over first series
-				skip?: yes
+				append?: no
 				if check? [
-					find?: null <> _hashtable/get hash value 0 1 case? no no
+					find?: null <> _hashtable/get hash value 0 step case? no no
 					if invert? [find?: not find?]
 				]
 				if all [
 					find?
-					null = _hashtable/get table value 0 1 case? no no
+					null = _hashtable/get table value 0 step case? no no
 				][
-					skip?: no
+					append?: yes
 					_hashtable/put table rs-append new value
 				]
 
@@ -1588,7 +1658,7 @@ block: context [
 					all [value < tail i < step]
 				][
 					i: i + 1
-					unless skip? [
+					if append? [
 						key: rs-append new value
 						if hash? [_hashtable/put table key]
 					]
@@ -1626,7 +1696,7 @@ block: context [
 			:make
 			INHERIT_ACTION	;random
 			INHERIT_ACTION	;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			:eval-path

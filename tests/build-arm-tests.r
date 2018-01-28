@@ -91,4 +91,4 @@ if system/version/4 <> 3 [
 ;; tidy up
 system/options/quiet: store-quiet-mode
 
-print ["Red/System ARM tests built in" arm-dir]  
+print ["Red ARM tests built in" arm-dir]  

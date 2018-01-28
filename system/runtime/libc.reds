@@ -50,13 +50,16 @@ Red/System [
 		quit:		 "exit" [
 			status		[integer!]
 		]
+		fflush:		 "fflush" [
+			fd			[integer!]
+			return:		[integer!]
+		]
 		putchar: 	 "putchar" [
 			char		[byte!]
 		]
-		printf: 	 "printf"  [[variadic]]
-		
-		sprintf:	 "sprintf" [[variadic]]
-		
+		printf: 	 "printf"	[[variadic]]
+		sprintf:	 "sprintf"	[[variadic] return: [integer!]]
+		swprintf:	 "swprintf"	[[variadic] return: [integer!]]
 		strtod:		 "strtod"  [
 			str			[byte-ptr!]
 			endptr		[byte-ptr!]
@@ -102,9 +105,9 @@ Red/System [
 			radians		[float!]
 			return:		[float!]
 		]
-		atan2:       "atan2" [
-			y           [float!]
-			x           [float!]
+		atan2:		"atan2" [
+			y			[float!]
+			x			[float!]
 			return:		[float!]
 		]
 		ldexp:		"ldexp" [
@@ -117,11 +120,11 @@ Red/System [
 			exponent	[int-ptr!]
 			return:		[float!]
 		]
-		log10:		"log10" [
+		log-10:		"log10" [
 			value		[float!]
 			return:		[float!]
 		]
-		log:		"log" [
+		log-2:		"log" [
 			value		[float!]
 			return:		[float!]
 		]
@@ -166,9 +169,19 @@ Red/System [
 		i
 	]
 
-	prin-float: func [f [float!] return: [float!]][
+	prin-float: func [f [float!] return: [float!] /local s p e?][
 		either f - (floor f) = 0.0 [
-			printf ["%g.0" f]
+			s: "                        "				;-- 23 + 1 for NUL
+			sprintf [s "%g.0" f]
+			assert s/1 <> null-byte
+			p: s
+			e?: no
+			while [p/1 <> null-byte][
+				if p/1 = #"e" [e?: yes]
+				p: p + 1
+			]
+			if e? [p: p - 2 p/1: null-byte]
+			prin s
 		][
 			printf ["%.16g" f]
 		]

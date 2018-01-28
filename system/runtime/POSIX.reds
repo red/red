@@ -127,15 +127,19 @@ posix-startup-ctx: context [
 	]
 ]
 
-#if OS <> 'MacOSX [								;-- OS X has it's own start code
+#if OS <> 'macOS [								;-- macOS has it's own start code
 	#switch type [
 		dll [
 			***-dll-entry-point: func [
 				[cdecl]
 			][
-				***-main
-				posix-startup-ctx/init
-				on-load
+				#either red-pass? = no [		;-- only for pure R/S DLLs
+					***-boot-rs
+					on-load
+					***-main
+				][
+					on-load
+				]
 			]
 		]
 		exe [

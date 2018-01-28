@@ -14,7 +14,5 @@ Red [
 #include %help.red
 #include %engine.red
 
-if system/platform = 'Windows [
-	system/console/init-console "Red Console"
-]
+system/console/init "Red Console"
 system/console/launch

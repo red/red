@@ -15,12 +15,11 @@ file-list-interp: copy []
 all-tests: read/lines %all-tests.txt
 foreach test all-tests [
 	append file-list-comp copy test
-	replace test "auto-tests/" ""
 	unless any [
 		find test "routine"
 		find test "evaluation"
 	][
-		append file-list-interp join "auto-tests/interp-" test
+		append file-list-interp join "auto-tests/interp-" second split-path to file! test
 	]
 ]
 

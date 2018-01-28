@@ -37,6 +37,14 @@ __stack!: alias struct! [
 	align	[int-ptr!]
 ]
 
+__image!: alias struct! [
+	base	  [int-ptr!]					;-- base image address in memory
+	code	  [integer!]					;-- code segment offset
+	code-size [integer!]					;-- code segment size
+	data	  [integer!]					;-- data segment offset
+	data-size [integer!]					;-- data segment size
+]
+
 FPU-exceptions-mask!: alias struct! [		;-- standard exception mask (true => mask exception)
 	precision	[logic!]
 	underflow	[logic!]
@@ -72,6 +80,7 @@ FPU-exceptions-mask!: alias struct! [		;-- standard exception mask (true => mask
 			ebp			[integer!]
 			esi			[integer!]
 			edi			[integer!]
+			overflow?	[logic!]
 		]
 	]
 	ARM [	
@@ -108,12 +117,13 @@ FPU-exceptions-mask!: alias struct! [		;-- standard exception mask (true => mask
 			r13			[integer!]
 			r14			[integer!]
 			r15			[integer!]
+			overflow?	[logic!]
 		]
 
 	]
 ]
 
-system: declare struct! [					;-- store runtime accessible system values
+system!: alias struct! [					;-- store runtime accessible system values
 	args-count	[integer!]					;-- command-line arguments count (do not move member)
 	args-list	[str-array!]				;-- command-line arguments array pointer (do not move member)
 	env-vars 	[str-array!]				;-- environment variables array pointer (always null for Windows)
@@ -126,4 +136,23 @@ system: declare struct! [					;-- store runtime accessible system values
 	thrown		[integer!]					;-- last THROWn value
 	boot-data	[byte-ptr!]					;-- Redbin encoded boot data (only for Red programs)
 	debug		[__stack!]					;-- stack info for debugging (set on runtime error only, internal use)
+	image		[__image!]					;-- executable image memory layout info
 ]
+
+#either any [libRedRT? = yes dev-mode? = no red-pass? = no][
+	system: declare system!
+	#if all [libRedRT? = yes dev-mode? = yes][#export [system]]	;-- exclude it from libRed
+][
+	#import [LIBREDRT-file stdcall [system: "system" [system!]]]
+]
+
+***-exec-image: declare __image!
+system/image: ***-exec-image
+
+***-set-image-base: func [[cdecl] /local p][	;-- defered code generation so system/image is defined
+	p: #switch target [IA-32 [system/cpu/ebx] ARM [system/cpu/r9]]
+	system/image/base: as int-ptr! p - system/image/code
+]
+
+;-- This MUST be the be first call in the runtime
+***-set-image-base 

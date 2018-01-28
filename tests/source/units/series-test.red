@@ -102,6 +102,8 @@ Red [
  	 --assert #"^(00)" = first next "a^(00)b" 
   --test-- "series-next-13"
  	 --assert 1 = first next #{000102} 
+  --test-- "series-next-14"
+ 	 --assert 1 = first next make hash! [0 1 2 3]
 ===end-group===
 
 ===start-group=== "back"
@@ -136,12 +138,12 @@ Red [
 ===start-group=== "tail"
   --test-- "series-tail-1"
   	--assert 5 = first back tail [1 2 3 4 5]
-  --test-- "seried-tail-2" 
+  --test-- "series-tail-2" 
   	--assert none = pick tail [1 2 3 4 5] 1
   --test-- "series-tail-3"
   	hs-ser-1: make hash! [1 2 3 4 5]
   	--assert 5 = first back tail hs-ser-1
-  --test-- "seried-tail-4"
+  --test-- "series-tail-4"
   	hs-ser-2: make hash! [1 2 3 4 5]
   	--assert none = pick tail hs-ser-2 1
   --test-- "series-tail-5"
@@ -310,10 +312,11 @@ Red [
 	--test-- "series-select-21"
 		ss21-h: make hash! [1x2 0 3x4 1]
 		--assert 0 = select ss21-h 1x2
-		
+
 	--test-- "series-select-22"
-		ss21-b: [1x2 0 3x4 1]
-		--assert 0 = select ss21-b 1x2
+		ss22-b: [1x2 0 3x4 1]
+		--assert 0 = select ss22-b 1x2
+
 		
 ===end-group===
 
@@ -395,9 +398,25 @@ Red [
   --test-- "series-append-26"
   --assert #{6162} = append/part #{} #{616263} 2
   --assert #{6162} = append/part #{} "abc" 2
-  --assert #{C3A962} = append/part #{} "ébc" 2
+  --assert #{C3A9} = append/part #{} "ébc" 2
   --assert #{C3A96263} = append #{} "ébc"
 
+===end-group===
+
+===start-group=== "series-put"
+  --test-- "series-put-1"
+    sp-1: [a 1 b 2]
+    put sp-1 'b 3
+  --assert sp-1 = [a 1 b 3]
+  --test-- "series-put-2"
+    sp-2: make hash! [a 1 b 2]
+    put sp-2 'b 3
+  --assert sp-2 = make hash! [a 1 b 3]
+  --test-- "series-put-3"
+    sp-3: make hash! [a 1]
+    put sp-3 'b 2
+    put sp-3 'b 3
+  --assert sp-3 = make hash! [a 1 b 3]
 ===end-group===
 
 ===start-group=== "series-equal"
@@ -426,6 +445,18 @@ Red [
 
   --test-- "series-equal-7"
   --assert #{01} = next #{0001}
+
+  --test-- "series-equal-8"
+  --assert (make hash! []) = make hash! []
+
+  --test-- "series-equal-9"
+  --assert (make hash! [a 2 b 4]) = make hash! [a 2 b 4]
+
+  --test-- "series-equal-10"
+    se10-h: make hash! []
+    append se10-h [a 2 b 4]
+  --assert se10-h = make hash! [a 2 b 4]
+
   
 ===end-group===
 
@@ -744,6 +775,16 @@ Red [
 	--test-- "series-find-103"
 		--assert equal? make hash! [3x4 1] find make hash! [1x2 0 3x4 1] 3x4
 
+	--test-- "series-find-104"
+		sf-104: make hash! []
+		append sf-104 [a 1 b 2]
+		--assert (make hash! [b 2]) = find sf-104 'b
+
+	--test-- "series-find-105"
+		sf-105: make hash! []
+		put sf-105 'a 1
+		--assert (make hash! [a 1]) = find sf-105 'a
+
 		
 ===end-group===
 
@@ -960,6 +1001,7 @@ Red [
 		--assert "Xbab" = replace "abab" #"a" #"X"
 		--assert "XbXb" = replace/all "abab" #"a" #"X"
 		--assert "Xab" = replace "abab" "ab" "X"
+		--assert "abab" = replace/all "abab" #"a" #"a"
 
 	--test-- "replace-bin"
 		--assert #{FF0201} = replace #{010201} #{01} #{FF}
@@ -967,6 +1009,9 @@ Red [
 		--assert #{FF03}   = replace #{010203} #{0102} #{FF}
 		--assert #{FFFFFF03} = replace #{010203} #{0102} #{FFFFFF}
 
+	--test-- "replace-bitset-issue-#3132"
+		--assert "s" = replace/all "test" charset [#"t" #"e"] ""
+	
 ===end-group===
 
 ===start-group=== "max/min"			;-- have some overlap with lesser tests
@@ -1478,6 +1523,9 @@ Red [
 		str: change "1234" [a b]
 		--assert "34" = str
 		--assert "ab34" = head str
+	--test-- "change-str-7"
+		str: "我ab/cd"
+		--assert "-cd" = back change/part skip str 3 "-" skip str 4
 
 	--test-- "change-bin-1"
 		bin: #{12345678}
@@ -1699,14 +1747,13 @@ Red [
 
 ===start-group=== "series-unicode"
 
-	--test-- "suc1"
-		;--assert equal? "爊倍弊褊不瀍阊吊谍樊服复漍焊蔊昊瘊㬊阍"
-		;				read %tests/fixtures/chinese-characters.txt
+	;--test-- "suc1"
+	;	--assert equal? "爊倍弊褊不瀍阊吊谍樊服复漍焊蔊昊瘊㬊阍"
+	;					read %tests/fixtures/chinese-characters.txt
 						
-	--test-- "suc2"
-		;--assert equal? ["爊倍弊褊不瀍阊吊谍樊服复漍焊蔊昊瘊㬊阍"]
-		;				read/lines %tests/fixtures/chinese-characters.txt
+	;--test-- "suc2"
+	;	--assert equal? ["爊倍弊褊不瀍阊吊谍樊服复漍焊蔊昊瘊㬊阍"]
+	;					read/lines %tests/fixtures/chinese-characters.txt
 ===end-group===
 
 ~~~end-file~~~
-

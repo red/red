@@ -22,9 +22,10 @@ event: context [
 	;-- Actions --
 	
 	make: func [
-		proto	 [red-value!]
-		spec	 [red-value!]
-		return:	 [red-point!]
+		proto	[red-value!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-point!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "event/make"]]
 
@@ -37,8 +38,6 @@ event: context [
 		arg		[red-value!]
 		part 	[integer!]
 		return: [integer!]
-		/local
-			formed [c-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "event/form"]]
 		
@@ -75,7 +74,9 @@ event: context [
 		type: TYPE_OF(arg2)
 		if type <> TYPE_EVENT [RETURN_COMPARE_OTHER]
 		switch op [
-			COMP_EQUAL 
+			COMP_EQUAL
+			COMP_FIND
+			COMP_SAME
 			COMP_STRICT_EQUAL
 			COMP_NOT_EQUAL [res: as-integer type <> TYPE_EVENT]
 			COMP_SORT

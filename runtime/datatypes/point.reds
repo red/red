@@ -16,9 +16,10 @@ point: context [
 	;-- Actions --
 	
 	make: func [
-		proto	 [red-value!]
-		spec	 [red-value!]
-		return:	 [red-point!]
+		proto	[red-value!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-point!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "point/make"]]
 

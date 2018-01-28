@@ -26,6 +26,7 @@ ext-classes:		as ext-class! allocate max-ext-styles * size? ext-class!
 ext-cls-tail:		ext-classes							;-- tail pointer
 ext-parent-proc?:	no
 OldFaceWndProc:		0
+OldEditWndProc:		0
 
 find-class: func [
 	name	[red-word!]
@@ -106,11 +107,10 @@ make-super-class: func [
 	system?	[logic!]
 	return: [integer!]
 	/local
-		wcex [WNDCLASSEX]
+		wcex [WNDCLASSEX value]
 		old	 [integer!]
 		inst [handle!]
 ][
-	wcex: declare WNDCLASSEX
 	inst: either system? [null][hInstance]
 
 	if 0 = GetClassInfoEx inst base wcex [
@@ -136,19 +136,56 @@ FaceWndProc: func [
 	return: [integer!]
 ][
 	switch msg [
-		WM_LBUTTONDOWN	 [SetCapture hWnd]
-		WM_LBUTTONUP	 [ReleaseCapture]
+		WM_LBUTTONDOWN	 [SetCapture hWnd return 0]
+		WM_LBUTTONUP	 [ReleaseCapture return 0]
+		WM_NCHITTEST	 [return 1]						;-- HTCLIENT
 		default [0]
 	]
 	CallWindowProc as wndproc-cb! OldFaceWndProc hWnd msg wParam lParam
 ]
 
+AreaWndProc: func [
+	hWnd	[handle!]
+	msg		[integer!]
+	wParam	[integer!]
+	lParam	[integer!]
+	return: [integer!]
+	/local
+		s	[byte-ptr!]
+][
+	switch msg [
+		WM_PASTE [
+			if OpenClipboard null [
+				s: as byte-ptr! GetClipboardData CF_UNICODETEXT
+				unless null? s [extend-area-limit hWnd lstrlen s]
+				CloseClipboard
+			]
+		]
+		WM_CHAR [
+			either zero? (ES_MULTILINE and GetWindowLong hWnd GWL_STYLE) [ ;field
+				;-- stop beep when pressing enter in field
+				if wParam = 0Dh	[ return 0 ];-- VK_RETURN
+			][
+				;-- stop beep when pressing CTRL+A in area and select all
+				;based on: https://stackoverflow.com/a/25355868/494472
+				if wParam = 1 [
+					SendMessage hwnd EM_SETSEL 0 -1 ;-- select all
+					return 1;
+				]
+			]
+		]
+		default [0]
+	]
+	CallWindowProc as wndproc-cb! OldEditWndProc hWnd msg wParam lParam
+]
+
 register-classes: func [
 	hInstance [handle!]
 	/local
-		wcex  [WNDCLASSEX]
+		wcex  [WNDCLASSEX value]
+		cur	  [handle!]
 ][
-	wcex: declare WNDCLASSEX
+	cur: LoadCursor null IDC_ARROW
 
 	wcex/cbSize: 		size? WNDCLASSEX
 	wcex/style:			CS_HREDRAW or CS_VREDRAW or CS_DBLCLKS
@@ -157,62 +194,68 @@ register-classes: func [
 	wcex/cbWndExtra:	wc-extra						;-- reserve extra memory for face! slot
 	wcex/hInstance:		hInstance
 	wcex/hIcon:			LoadIcon hInstance as c-string! 1
-	wcex/hCursor:		LoadCursor null IDC_ARROW
+	wcex/hCursor:		cur
 	wcex/hbrBackground:	COLOR_3DFACE + 1
 	wcex/lpszMenuName:	null
 	wcex/lpszClassName: #u16 "RedWindow"
 	wcex/hIconSm:		0
+	RegisterClassEx		wcex
 
-	RegisterClassEx wcex
+	;wcex/hbrBackground: COLOR_WINDOW + 1
+	wcex/lpszClassName: #u16 "RedPanel"
+	RegisterClassEx		wcex
 
-	wcex/style:			CS_HREDRAW or CS_VREDRAW or CS_DBLCLKS
 	wcex/lpfnWndProc:	:BaseWndProc
-	wcex/cbClsExtra:	0
-	wcex/cbWndExtra:	wc-extra						;-- reserve extra memory for face! slot
-	wcex/hInstance:		hInstance
-	wcex/hIcon:			null
-	wcex/hCursor:		LoadCursor null IDC_ARROW
-	wcex/hbrBackground:	COLOR_3DFACE + 1
-	wcex/lpszMenuName:	null
 	wcex/lpszClassName: #u16 "RedBase"
+	RegisterClassEx		wcex
 
-	RegisterClassEx wcex
-
-	wcex/style:			CS_HREDRAW or CS_VREDRAW or CS_DBLCLKS
 	wcex/lpfnWndProc:	:BaseInternalWndProc
-	wcex/cbClsExtra:	0
-	wcex/cbWndExtra:	wc-extra						;-- reserve extra memory for face! slot
-	wcex/hInstance:		hInstance
-	wcex/hIcon:			null
-	wcex/hCursor:		LoadCursor null IDC_ARROW
-	wcex/hbrBackground:	COLOR_3DFACE + 1
-	wcex/lpszMenuName:	null
 	wcex/lpszClassName: #u16 "RedBaseInternal"
+	RegisterClassEx		wcex
 
-	RegisterClassEx wcex
-
-	wcex/style:			CS_HREDRAW or CS_VREDRAW or CS_DBLCLKS
 	wcex/lpfnWndProc:	:CameraWndProc
-	wcex/cbWndExtra:	wc-extra						;-- reserve extra memory for face! slot
-	wcex/hInstance:		hInstance
 	wcex/hbrBackground:	COLOR_BACKGROUND + 1
 	wcex/lpszClassName: #u16 "RedCamera"
-
-	RegisterClassEx wcex
+	RegisterClassEx		wcex
 
 	;-- superclass existing classes to add 16 extra bytes
 	make-super-class #u16 "RedButton"	#u16 "BUTTON"			 0 yes
-	make-super-class #u16 "RedField"	#u16 "EDIT"				 0 yes
 	make-super-class #u16 "RedCombo"	#u16 "ComboBox"			 0 yes
 	make-super-class #u16 "RedListBox"	#u16 "ListBox"			 0 yes
 	make-super-class #u16 "RedProgress" #u16 "msctls_progress32" 0 yes
 	make-super-class #u16 "RedSlider"	#u16 "msctls_trackbar32" 0 yes
 	make-super-class #u16 "RedTabpanel"	#u16 "SysTabControl32"	 0 yes
-	make-super-class #u16 "RedPanel"	#u16 "RedWindow"		 0 no
 
 	OldFaceWndProc: make-super-class
 		#u16 "RedFace"
 		#u16 "STATIC"
 		as-integer :FaceWndProc
 		yes
+
+	OldEditWndProc: make-super-class
+		#u16 "RedArea"
+		#u16 "EDIT"
+		as-integer :AreaWndProc
+		yes
+	make-super-class #u16 "RedField" #u16 "RedArea" 0 no
+]
+
+unregister-classes: func [
+	hInstance [handle!]
+][
+	UnregisterClass #u16 "RedWindow"		hInstance
+	UnregisterClass #u16 "RedBase"			hInstance
+	UnregisterClass #u16 "RedBaseInternal"	hInstance
+	UnregisterClass #u16 "RedCamera"		hInstance
+	UnregisterClass #u16 "RedButton"		hInstance
+	UnregisterClass #u16 "RedField"			hInstance
+	UnregisterClass #u16 "RedCombo"			hInstance
+	UnregisterClass #u16 "RedListBox"		hInstance
+	UnregisterClass #u16 "RedProgress"		hInstance
+	UnregisterClass #u16 "RedSlider"		hInstance
+	UnregisterClass #u16 "RedTabpanel"		hInstance
+	UnregisterClass #u16 "RedPanel"			hInstance
+	UnregisterClass #u16 "RedFace"			hInstance
+	UnregisterClass #u16 "RedArea"			hInstance
+	;@@ unregister custom classes too!
 ]

@@ -40,9 +40,9 @@ unless exists? build-root-dir [
 	files: switch OS [
 		3 [[%jli.dll %aapt.exe %keytool.exe %zipalign.exe]]	;-- Windows
 		4 [[%aapt %zipalign]]								;-- Linux
-		2 [[%aapt %zipalign]]								;-- OSX
+		2 [[%aapt %zipalign]]								;-- macOS
 	]
-	sys: select [3 %win/ 4 %linux/ 2 %osx/] OS
+	sys: select [3 %win/ 4 %linux/ 2 %macOS/] OS
 	
 	foreach file files [
 		prin rejoin [tab file "..."]

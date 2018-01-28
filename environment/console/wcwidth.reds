@@ -98,22 +98,25 @@ wcwidth?: func [
 
 	if in-table? cp combining-table size? combining-table [return 0]
 
-	if all [
-		cp >= 1100h
-		any [
-			cp <= 115Fh									;-- Hangul Jamo init. consonants
-			cp = 2329h
-			cp = 232Ah
-			all [cp >= 2E80h cp <= A4CFh cp <> 303Fh]	;-- CJK ... Yi
-			all [cp >= AC00h cp <= D7A3h]				;-- Hangul Syllables
-			all [cp >= F900h cp <= FAFFh]				;-- CJK Compatibility Ideographs
-			all [cp >= FE10h cp <= FE19h]				;-- Vertical forms
-			all [cp >= FE30h cp <= FE6Fh]				;-- CJK Compatibility Forms
-			all [cp >= FF00h cp <= FF60h]				;-- Fullwidth Forms
-			all [cp >= FFE0h cp <= FFE6h]
-			all [cp >= 00020000h cp <= 0002FFFDh]
-			all [cp >= 00030000h cp <= 0003FFFDh]
+	if any [
+		all [
+			cp >= 1100h
+			any [
+				cp <= 115Fh									;-- Hangul Jamo init. consonants
+				cp = 2329h
+				cp = 232Ah
+				all [cp >= 2E80h cp <= A4CFh cp <> 303Fh]	;-- CJK ... Yi
+				all [cp >= AC00h cp <= D7A3h]				;-- Hangul Syllables
+				all [cp >= F900h cp <= FAFFh]				;-- CJK Compatibility Ideographs
+				all [cp >= FE10h cp <= FE19h]				;-- Vertical forms
+				all [cp >= FE30h cp <= FE6Fh]				;-- CJK Compatibility Forms
+				all [cp >= FF00h cp <= FF60h]				;-- Fullwidth Forms
+				all [cp >= FFE0h cp <= FFE6h]
+				all [cp >= 00020000h cp <= 0002FFFDh]
+				all [cp >= 00030000h cp <= 0003FFFDh]
+			]
 		]
+		cp = 0D0Ah
 	][return 2]
 	1
 ]

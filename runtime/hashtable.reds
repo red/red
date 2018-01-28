@@ -43,11 +43,13 @@ Red/System [
 	x << r or (x >>> (32 - r))
 ]
 
+hash-secret: 0
+
 hash-string: func [
 	str		[red-string!]
 	case?	[logic!]
 	return: [integer!]
-	/local series s unit p p4 k1 h1 tail len head
+	/local s unit p p4 k1 h1 tail len head
 ][
 	s: GET_BUFFER(str)
 	unit: GET_UNIT(s)
@@ -55,7 +57,7 @@ hash-string: func [
 	p: (as byte-ptr! s/offset) + (head << (log-b unit))
 	tail: as byte-ptr! s/tail
 	len: (as-integer tail - p) >> (log-b unit) << 2
-	h1: 42								;-- seed
+	h1: hash-secret						;-- seed
 
 	;-- body
 	while [p < tail][
@@ -95,11 +97,11 @@ murmur3-x86-32: func [
 
 	data: key
 	nblocks: len / 4
-	h1: 42								;-- seed
+	h1: hash-secret						;-- seed
 
 	;-- body
 	blocks: as int-ptr! (data + (nblocks * 4))
-	i: negate nblocks
+	i: 0 - nblocks
 	while [negative? i][
 		p: blocks + i
 		k1: p/value						;@@ do endian-swapping if needed
@@ -163,34 +165,6 @@ _hashtable: context [
 		n + 1
 	]
 
-	hash-value?: func [
-		key		[red-value!]
-		return:	[logic!]
-	][
-		switch TYPE_OF(key) [
-			TYPE_WORD
-			TYPE_SYMBOL
-			TYPE_STRING
-			TYPE_INTEGER
-			TYPE_FILE
-			TYPE_URL
-			TYPE_CHAR
-			TYPE_FLOAT
-			TYPE_SET_WORD
-			TYPE_LIT_WORD
-			TYPE_GET_WORD
-			TYPE_REFINEMENT
-			TYPE_ISSUE
-			TYPE_POINT
-			TYPE_DATATYPE
-			TYPE_PAIR
-			TYPE_PERCENT
-			TYPE_BINARY
-			TYPE_TUPLE [true]
-			default    [false]
-		]
-	]
-
 	hash-value: func [
 		key		[red-value!]
 		case?	[logic!]
@@ -201,14 +175,17 @@ _hashtable: context [
 			TYPE_SYMBOL
 			TYPE_STRING
 			TYPE_FILE
-			TYPE_URL   [
+			TYPE_URL
+			TYPE_TAG
+			TYPE_EMAIL [
 				hash-string as red-string! key case?
 			]
 			TYPE_CHAR
 			TYPE_INTEGER [key/data2]
 			TYPE_FLOAT
 			TYPE_PAIR
-			TYPE_PERCENT [
+			TYPE_PERCENT
+			TYPE_TIME [
 				murmur3-x86-32 (as byte-ptr! key) + 8 8
 			]
 			TYPE_WORD
@@ -222,11 +199,13 @@ _hashtable: context [
 				hash-string sym case?
 			]
 			TYPE_BINARY [
-				s: GET_BUFFER(symbols)
+				sym: as red-string! key
+				s: GET_BUFFER(sym)
 				murmur3-x86-32
-					(as byte-ptr! s/offset) + key/data1
-					(as-integer s/tail - s/offset) - key/data1
+					(as byte-ptr! s/offset) + sym/head
+					(as-integer s/tail - s/offset) - sym/head
 			]
+			TYPE_DATE
 			TYPE_POINT
 			TYPE_TYPESET [
 				murmur3-x86-32 (as byte-ptr! key) + 4 12
@@ -234,12 +213,12 @@ _hashtable: context [
 			TYPE_TUPLE [
 				murmur3-x86-32 (as byte-ptr! key) + 4 TUPLE_SIZE?(key)
 			]
+			TYPE_OBJECT
 			TYPE_DATATYPE
 			TYPE_LOGIC [key/data1]
-			TYPE_ACTION
-			TYPE_NATIVE
-			TYPE_OP [key/data3]
-			default [0]
+			default [								;-- for any-block!: use head and node
+				murmur3-x86-32 (as byte-ptr! key) + 4 8
+			]
 		]
 	]
 
@@ -247,7 +226,7 @@ _hashtable: context [
 		node	[node!]
 		head	[integer!]
 		skip	[integer!]
-		/local s h i end value key val
+		/local s h i end value key
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -262,9 +241,8 @@ _hashtable: context [
 			either h/type = HASH_TABLE_MAP [
 				key: get node value 0 0 yes no no
 				either key = null [
-					if null = put node value [
-						fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(value)]
-					]
+					map/preprocess-key value
+					put node value
 				][
 					copy-cell value + 1 key + 1
 					move-memory 
@@ -288,7 +266,7 @@ _hashtable: context [
 		type	[integer!]
 		vsize	[integer!]
 		return: [node!]
-		/local node s ss h f-buckets fsize i value skip end
+		/local node s ss h f-buckets fsize value skip
 	][
 		node: alloc-bytes-filled size? hashtable! #"^(00)"
 		s: as series! node/value
@@ -297,12 +275,12 @@ _hashtable: context [
 		if type = HASH_TABLE_INTEGER [h/indexes: as node! vsize << 4 + 4]
 
 		if size < 32 [size: 32]
-		fsize: integer/to-float size
+		fsize: as-float size
 		f-buckets: fsize / _HT_HASH_UPPER
 		skip: either type = HASH_TABLE_MAP [2][1]
-		h/n-buckets: round-up float/to-integer f-buckets
-		f-buckets: integer/to-float h/n-buckets
-		h/upper-bound: float/to-integer f-buckets * _HT_HASH_UPPER
+		h/n-buckets: round-up as-integer f-buckets
+		f-buckets: as-float h/n-buckets
+		h/upper-bound: as-integer f-buckets * _HT_HASH_UPPER
 		h/flags: alloc-bytes-filled h/n-buckets >> 2 #"^(AA)"
 		h/keys: alloc-bytes h/n-buckets * size? int-ptr!
 
@@ -311,8 +289,6 @@ _hashtable: context [
 		][
 			h/blk: blk/node
 
-			s: GET_BUFFER(blk)
-			end: s/tail
 			if type = HASH_TABLE_HASH [
 				h/indexes: alloc-bytes-filled size * size? integer! #"^(FF)"
 				ss: as series! h/indexes/value
@@ -327,7 +303,7 @@ _hashtable: context [
 		node			[node!]
 		new-buckets		[integer!]
 		/local
-			s h x k v i j site last mask step keys vals hash n-buckets blk
+			s h k i j mask step keys hash n-buckets blk
 			new-size tmp break? flags new-flags new-flags-node ii sh f idx
 			int? int-key
 	][
@@ -342,8 +318,8 @@ _hashtable: context [
 		n-buckets: h/n-buckets
 		j: 0
 		new-buckets: round-up new-buckets
-		f: integer/to-float new-buckets
-		new-size: float/to-integer f * _HT_HASH_UPPER
+		f: as-float new-buckets
+		new-size: as-integer f * _HT_HASH_UPPER
 		if new-buckets < 4 [new-buckets: 4]
 		either h/size >= new-size [j: 1][
 			new-flags-node: alloc-bytes-filled new-buckets >> 2 #"^(AA)"
@@ -596,10 +572,6 @@ _hashtable: context [
 		s: as series! node/value
 		h: as hashtable! s/offset
 		type: h/type
-		if all [
-			type <> HASH_TABLE_SYMBOL
-			not hash-value? key
-		][return null]
 
 		if h/n-occupied >= h/upper-bound [			;-- update the hash table
 			idx: either h/n-buckets > (h/size << 1) [-1][1]
@@ -610,22 +582,6 @@ _hashtable: context [
 		s: as series! h/blk/value
 		idx: (as-integer (key - s/offset)) >> 4
 		blk: s/offset
-
-		if type = HASH_TABLE_MAP [
-			x: TYPE_OF(key)
-			switch x [
-				TYPE_WORD
-				TYPE_GET_WORD
-				TYPE_SET_WORD
-				TYPE_LIT_WORD
-				TYPE_REFINEMENT
-				TYPE_ISSUE	[key/header: TYPE_SET_WORD]		;-- map, convert any-word! to set-word!
-				TYPE_STRING
-				TYPE_FILE
-				TYPE_URL	[_series/copy as red-series! key as red-series! key null yes null]
-				default		[0]
-			]
-		]
 
 		s: as series! h/keys/value
 		keys: as int-ptr! s/offset
@@ -703,6 +659,61 @@ _hashtable: context [
 		key
 	]
 
+	get-next: func [
+		node	[node!]
+		key		[red-value!]
+		start	[int-ptr!]
+		end		[int-ptr!]
+		pace	[int-ptr!]
+		return: [red-value!]
+		/local
+			s h i flags last mask step keys hash ii sh blk idx k key-type n
+	][
+		s: as series! node/value
+		h: as hashtable! s/offset
+		assert h/n-buckets > 0
+
+		n: 0
+		key-type: TYPE_OF(key)
+		s: as series! h/blk/value
+		blk: s/offset
+
+		s: as series! h/keys/value
+		keys: as int-ptr! s/offset
+		s: as series! h/flags/value
+		flags: as int-ptr! s/offset
+		mask: h/n-buckets - 1
+		i: start/value
+		if i = -1 [
+			hash: hash-value key no
+			i: hash and mask
+			end/value: i + 1
+		]
+		_HT_CAL_FLAG_INDEX(i ii sh)
+		i: i + 1
+		last: end/value
+		step: pace/value
+		while [_BUCKET_IS_NOT_EMPTY(flags ii sh)][
+			k: blk + keys/i
+			if all [
+				_BUCKET_IS_HAS_KEY(flags ii sh)
+				TYPE_OF(k) = key-type
+				actions/compare k key COMP_EQUAL
+			][
+				start/value: i + step and mask
+				pace/value: step + 1
+				return k
+			]
+
+			i: i + step and mask
+			_HT_CAL_FLAG_INDEX(i ii sh)
+			i: i + 1
+			step: step + 1
+			if i = last [break]
+		]
+		null
+	]
+
 	get: func [
 		node	 [node!]
 		key		 [red-value!]
@@ -714,7 +725,7 @@ _hashtable: context [
 		return:  [red-value!]
 		/local
 			s h i flags last mask step keys hash ii sh blk set-header?
-			idx last-idx op find? reverse-head k type key-type saved-type
+			idx last-idx op find? k type key-type saved-type
 	][
 		op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
 		s: as series! node/value
@@ -815,7 +826,6 @@ _hashtable: context [
 			key: key + 1
 			key/header: TYPE_NONE
 		][										;-- hash!
-			unless hash-value? key [exit]
 			s: as series! h/flags/value
 			flags: as int-ptr! s/offset
 			s: as series! h/blk/value
@@ -852,7 +862,7 @@ _hashtable: context [
 		node	[node!]
 		head	[integer!]
 		size	[integer!]
-		/local s h flags n i ii sh indexes
+		/local s h flags i ii sh indexes
 	][
 		if zero? size [exit]
 		s: as series! node/value

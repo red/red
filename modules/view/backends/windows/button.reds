@@ -20,9 +20,7 @@ init-button: func [
 		beg		[red-image!]
 		size	[red-pair!]
 		blk		[red-block!]
-		str		[red-string!]
 		BIL		[BUTTON_IMAGELIST]
-		rect	[RECT_STRUCT]
 		width	[integer!]
 		height	[integer!]
 		num		[integer!]
@@ -30,14 +28,10 @@ init-button: func [
 		sz		[integer!]
 		bitmap	[integer!]
 		hlist	[integer!]
-		resize? [logic!]
 ][
 	BIL:  declare BUTTON_IMAGELIST
-	rect: declare RECT_STRUCT
 	imgs: as red-block! facets + FACE_OBJ_IMAGE
 	size: as red-pair! facets + FACE_OBJ_SIZE
-	str:  as red-string! facets + FACE_OBJ_TEXT
-	resize?: no
 
 	switch TYPE_OF(imgs) [
 		TYPE_IMAGE [
@@ -55,7 +49,6 @@ init-button: func [
 			img:  beg + 1
 			if all [num = 2 TYPE_OF(img) = TYPE_PAIR][
 				size: as red-pair! img
-				resize?: yes
 				num: 1
 			]
 			width: size/x
@@ -91,14 +84,14 @@ init-button: func [
 	SendMessage hWnd BCM_SETIMAGELIST 0 as-integer BIL
 ]
 
-update-button: func [
-	face  [red-object!]
-	value [red-value!]
-	sym   [integer!]
-	index [integer!]
-	part  [integer!]
-	/local
-		hWnd [handle!]
-][
-	hWnd: get-face-handle face
-]
+;update-button: func [				;-- TBD implement it
+;	face  [red-object!]
+;	value [red-value!]
+;	sym   [integer!]
+;	index [integer!]
+;	part  [integer!]
+;	/local
+;		hWnd [handle!]
+;][
+;	hWnd: get-face-handle face
+;]

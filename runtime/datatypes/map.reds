@@ -25,6 +25,26 @@ map: context [
 		size/value
 	]
 
+	preprocess-key: func [
+		key		[red-value!]
+	][
+		switch TYPE_OF(key) [
+			TYPE_WORD
+			TYPE_GET_WORD
+			TYPE_SET_WORD
+			TYPE_LIT_WORD [key/header: TYPE_SET_WORD]		;-- convert any-word! to set-word!
+			TYPE_BINARY
+			TYPE_STRING
+			TYPE_FILE
+			TYPE_URL
+			TYPE_TAG
+			TYPE_EMAIL	 [_series/copy as red-series! key as red-series! key null yes null]
+			TYPE_INTEGER TYPE_CHAR TYPE_FLOAT TYPE_DATE
+			TYPE_PERCENT TYPE_TUPLE TYPE_PAIR TYPE_TIME [0]
+			default		[fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(key)]]
+		]
+	]
+
 	serialize: func [
 		map		[red-hash!]
 		buffer	[red-string!]
@@ -70,7 +90,7 @@ map: context [
 					string/append-char GET_BUFFER(buffer) as-integer space
 					part: part - 1
 					
-					unless cycles/detect? value buffer :part mold? [
+					unless cycles/detect? next buffer :part mold? [
 						part: actions/mold next buffer only? all? flat? arg part tabs
 					]
 
@@ -100,14 +120,13 @@ map: context [
 			cell	[red-value!]
 			tail	[red-value!]
 			value	[red-value!]
-			int		[red-integer!]
 			s		[series!]
-			cnt		[integer!]
 			size	[integer!]
 			table	[node!]
 			key		[red-value!]
 			val		[red-value!]
 			psize	[int-ptr!]
+			kkey	[red-value! value]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/extend"]]
 
@@ -116,7 +135,7 @@ map: context [
 
 		s: GET_BUFFER(map)
 		size: as-integer s/tail + size - s/offset
-		if size > s/size [s: expand-series s size]
+		if size > s/size [expand-series s size]
 
 		s: GET_BUFFER(src)
 		cell: s/offset + src/head
@@ -132,12 +151,14 @@ map: context [
 					key <> null
 					TYPE_OF(val) <> TYPE_NONE
 				][
-					_hashtable/delete table key
+					_hashtable/delete  table key
 				]
 			][
 				either key = null [
+					copy-cell cell kkey
+					preprocess-key kkey
 					s: as series! map/node/value
-					key: copy-cell cell as cell! alloc-tail-unit s (size? cell!) << 1
+					key: copy-cell kkey as cell! alloc-tail-unit s (size? cell!) << 1
 					_hashtable/put table key
 				][
 					val: key + 1
@@ -182,37 +203,59 @@ map: context [
 	;--- Actions ---
 
 	make: func [
-		proto		[red-value!]
-		spec		[red-value!]
-		return:		[red-hash!]
+		proto	[red-hash!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-hash!]
 		/local
-			map		[red-hash!]
 			size	[integer!]
 			int		[red-integer!]
+			fl		[red-float!]
 			blk		[red-block!]
+			obj		[red-object!]
+			ctx		[red-context!]
+			syms	[red-value!]
+			vals	[red-value!]
+			tail	[red-value!]
+			value	[red-value!]
+			word	[red-word!]
+			s		[series!]
 			blk?	[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/make"]]
 
 		blk?: no
-		size: 1
 		switch TYPE_OF(spec) [
-			TYPE_INTEGER [
-				int: as red-integer! spec
-				size: int/value
+			TYPE_INTEGER
+			TYPE_FLOAT [
+				if type = -1 [					;-- called by TO
+					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_MAP spec]
+				]
+				size: GET_SIZE_FROM(spec)
 				if negative? size [fire [TO_ERROR(script out-of-range) spec]]
 			]
-			TYPE_BLOCK [
+			TYPE_ANY_LIST [
 				size: block/rs-length? as red-block! spec
 				if size % 2 <> 0 [fire [TO_ERROR(script invalid-arg) spec]]
 				blk?: yes
 			]
-			default [--NOT_IMPLEMENTED--]
+			TYPE_MAP [return copy as red-hash! spec proto null no null]
+			default [fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_MAP spec]]
 		]
+
 		if zero? size [size: 1]
 		blk: block/make-at as red-block! stack/push* size
 		if blk? [block/copy as red-block! spec blk null no null]
 		make-at as red-value! blk blk size
+	]
+
+	to: func [
+		proto		[red-hash!]
+		spec		[red-value!]
+		type		[integer!]
+		return:		[red-hash!]
+	][
+		make proto spec -1
 	]
 
 	reflect: func [
@@ -232,13 +275,14 @@ map: context [
 		blk/header: TYPE_BLOCK
 		blk/head: 	0
 
+		size: rs-length? map
 		s: GET_BUFFER(map)
 		value: s/offset
 		s-tail: s/tail
-		size: block/rs-length? as red-block! map
+		if zero? size [size: 1]
 		case [
 			field = words/words [
-				blk/node: alloc-cells size >> 1
+				blk/node: alloc-cells size
 				while [value < s-tail][
 					next: value + 1
 					unless TYPE_OF(next) = TYPE_NONE [
@@ -251,7 +295,7 @@ map: context [
 				]
 			]
 			field = words/values [
-				blk/node: alloc-cells size >> 1
+				blk/node: alloc-cells size
 				while [value < s-tail][
 					next: value + 1
 					unless TYPE_OF(next) = TYPE_NONE [
@@ -261,7 +305,7 @@ map: context [
 				]
 			]
 			field = words/body [
-				blk/node: alloc-cells size
+				blk/node: alloc-cells size * 2
 				while [value < s-tail][
 					next: value + 1
 					unless TYPE_OF(next) = TYPE_NONE [
@@ -300,14 +344,117 @@ map: context [
 		part	[integer!]
 		indent	[integer!]
 		return:	[integer!]
+		/local
+			prev [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/mold"]]
 
 		string/concatenate-literal buffer "#("
-		part: serialize map buffer only? all? flat? arg part - 2 yes indent + 1 yes
-		if indent > 0 [part: object/do-indent buffer indent part]
+		prev: part - 2
+		part: serialize map buffer no all? flat? arg prev yes indent + 1 yes
+		if all [part <> prev indent > 0][part: object/do-indent buffer indent part]
 		string/append-char GET_BUFFER(buffer) as-integer #")"
 		part - 1
+	]
+
+	compare-each: func [
+		blk1	   [red-hash!]							;-- first operand
+		blk2	   [red-hash!]							;-- second operand
+		op		   [integer!]							;-- type of comparison
+		return:	   [integer!]
+		/local
+			size1  [integer!]
+			size2  [integer!]
+			key1   [red-value!]
+			key2   [red-value!]
+			value1 [red-value!]
+			value2 [red-value!]
+			res	   [integer!]
+			n	   [integer!]
+			start  [integer!]
+			pace   [integer!]
+			end    [integer!]
+			same?  [logic!]
+			case?  [logic!]
+			table2 [node!]
+	][
+		same?: all [
+			blk1/node = blk2/node
+			blk1/head = blk2/head
+		]
+		if op = COMP_SAME [return either same? [0][-1]]
+		if all [
+			same?
+			any [op = COMP_EQUAL op = COMP_FIND op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
+		][return 0]
+
+		size1: rs-length? blk1
+		size2: rs-length? blk2
+
+		if size1 <> size2 [										;-- shortcut exit for different sizes
+			return either any [
+				op = COMP_EQUAL op = COMP_FIND op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL
+			][1][SIGN_COMPARE_RESULT(size1 size2)]
+		]
+
+		if zero? size1 [return 0]								;-- shortcut exit for empty map!
+
+		table2: blk2/table
+		key1: block/rs-head as red-block! blk1
+		key1: key1 - 2
+		n: 0
+
+		cycles/push blk1/node
+		either op = COMP_STRICT_EQUAL [
+			until [
+				until [												;-- next key
+					key1: key1 + 2
+					value1: key1 + 1
+					TYPE_OF(value1) <> TYPE_NONE
+				]
+				key2: _hashtable/get table2 key1 0 0 yes no no
+
+				res: either key2 = null [1][
+					value1: key1 + 1								;-- find the same key, then compare values
+					value2: key2 + 1
+					either cycles/find? value1 [
+						as-integer not natives/same? value1 value2
+					][
+						actions/compare-value value1 value2 op
+					]
+				]
+				n: n + 1
+				any [res <> 0 n = size1]
+			]
+		][
+			end: 0
+			until [
+				until [												;-- next key
+					key1: key1 + 2
+					value1: key1 + 1
+					TYPE_OF(value1) <> TYPE_NONE
+				]
+				start: -1
+				pace: 0
+				until [
+					key2: _hashtable/get-next table2 key1 :start :end :pace
+					either key2 <> null [
+						value1: key1 + 1
+						value2: key2 + 1
+						res: either cycles/find? value1 [
+							as-integer not natives/same? value1 value2
+						][
+							actions/compare-value value1 value2 COMP_EQUAL
+						]
+					][res: 1 break]
+					zero? res
+				]
+				n: n + 1
+				any [res <> 0 n = size1]
+			]
+		]
+		cycles/pop
+		res
 	]
 
 	compare: func [
@@ -323,11 +470,15 @@ map: context [
 		if type <> TYPE_MAP [RETURN_COMPARE_OTHER]
 		switch op [
 			COMP_EQUAL
+			COMP_FIND
+			COMP_SAME
 			COMP_STRICT_EQUAL
-			COMP_NOT_EQUAL
+			COMP_NOT_EQUAL [
+				res: compare-each map1 map2 op
+			]
 			COMP_SORT
 			COMP_CASE_SORT [
-				res: block/compare-each as red-block! map1 as red-block! map2 op
+				res: as-integer map1/node - map2/node
 			]
 			default [
 				res: -2
@@ -349,6 +500,7 @@ map: context [
 			val		[red-value!]
 			s		[series!]
 			size	[int-ptr!]
+			k		[red-value! value]
 	][
 		table: parent/table
 		key: _hashtable/get table element 0 0 case? no no
@@ -365,8 +517,10 @@ map: context [
 				value
 			][
 				either key = null [
+					copy-cell element k
+					preprocess-key k
 					s: as series! parent/node/value
-					key: copy-cell element as cell! alloc-tail-unit s (size? cell!) << 1
+					key: copy-cell k as cell! alloc-tail-unit s (size? cell!) << 1
 					_hashtable/put table key
 				][
 					val: key + 1
@@ -462,6 +616,7 @@ map: context [
 		part		[red-value!]
 		only?		[logic!]
 		case?		[logic!]
+		same?		[logic!]
 		any?		[logic!]
 		with-arg	[red-string!]
 		skip		[red-integer!]
@@ -475,6 +630,7 @@ map: context [
 			key   [red-value!]
 			val   [red-value!]
 	][
+		if same? [case?: yes]
 		table: map/table
 		key: _hashtable/get table value 0 0 case? no no
 		val: key + 1
@@ -489,6 +645,7 @@ map: context [
 		part	 [red-value!]
 		only?	 [logic!]
 		case?	 [logic!]
+		same?	 [logic!]
 		any?	 [logic!]
 		with-arg [red-string!]
 		skip	 [red-integer!]
@@ -499,6 +656,7 @@ map: context [
 			table [node!]
 			key   [red-value!]
 	][
+		if same? [case?: yes]
 		table: map/table
 		key: _hashtable/get table value 0 0 case? no no
 		either key = null [none-value][key + 1]
@@ -507,35 +665,43 @@ map: context [
 	;--- Misc actions ---
 
 	set-many: func [
-		map		[red-hash!]
 		blk		[red-block!]
+		map		[red-hash!]
+		size	[integer!]
 		/local
-			s		[series!]
-			slot	[red-value!]
-			value	[red-value!]
-			end		[red-value!]
-			s-tail	[red-value!]
+			w		[red-word!]
+			k		[red-value!]
+			v		[red-value!]
+			i		[integer!]
+			type	[integer!]
 	][
-		s: GET_BUFFER(blk)
-		value: s/offset
-		end: s/tail
-		s: GET_BUFFER(map)
-		slot: s/offset + 1
-		s-tail: s/tail
-		while [slot < s-tail][
-			if TYPE_OF(slot) <> TYPE_NONE [
-				either value < end [
-					either TYPE_OF(value) = TYPE_NONE [			;-- delete key entry
-						_hashtable/delete map/table slot - 1
+		i: 1
+		k: block/rs-head as red-block! map
+		w: as red-word! block/rs-head blk
+		while [i <= size][
+			either i % 2 = 0 [
+				_context/set w k
+			][
+				v: k + 1
+				unless TYPE_OF(v) = TYPE_NONE [
+					type: TYPE_OF(w)
+					unless any [
+						type = TYPE_WORD
+						type = TYPE_GET_WORD
+						type = TYPE_SET_WORD
+						type = TYPE_LIT_WORD
 					][
-						copy-cell value slot
+						fire [TO_ERROR(script invalid-arg) w]
 					]
-				][
-					_hashtable/delete map/table slot - 1
+					type: k/header
+					k/header: TYPE_WORD
+					_context/set w k
+					k/header: type
 				]
 			]
-			value: value + 1
-			slot: slot + 2
+			k: k + 1
+			w: w + 1
+			i: i + 1
 		]
 	]
 
@@ -564,7 +730,7 @@ map: context [
 			:make
 			null			;random
 			:reflect
-			null			;to
+			:to
 			:form
 			:mold
 			:eval-path

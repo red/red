@@ -40,24 +40,84 @@ path: context [
 		copy-cell as red-value! p stack/push*
 	]
 
+	make-at: func [
+		path	[red-path!]
+		size	[integer!]
+		return: [red-path!]
+	][
+		path/header: TYPE_PATH							;-- implicit reset of all header flags
+		path/head: 0
+		path/node: alloc-cells size
+		path/args: null
+		path
+	]
 
 	;--- Actions ---
 	
 	make: func [
-		proto 	 [red-value!]
-		spec	 [red-value!]
-		return:	 [red-path!]
+		proto 	[red-path!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-path!]
 		/local
 			path [red-path!]
+			int  [red-integer!]
+			fl	 [red-float!]
+			size [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "path/make"]]
 
-		path: as red-path! block/make proto spec
-		path/header: TYPE_PATH
-		path/args:	 null
-		path
+		switch TYPE_OF(spec) [
+			TYPE_INTEGER
+			TYPE_FLOAT 
+			TYPE_PERCENT [
+				size: either TYPE_OF(spec) = TYPE_INTEGER [
+					int: as red-integer! spec
+					int/value
+				][
+					fl: as red-float! spec
+					as-integer fl/value
+				]
+				if zero? size [size: 1]
+				make-at proto size
+				proto/header: type					;-- implicit reset of all header flags
+				proto
+			]
+			TYPE_ANY_LIST
+			TYPE_ANY_PATH [
+				proto: as red-path! block/to as red-block! proto spec type
+				proto/args: null
+				proto
+			]
+			default [
+				fire [TO_ERROR(script bad-make-arg) datatype/push type spec]
+				null
+			]
+		]
 	]
-	
+
+	to: func [
+		proto	[red-path!]
+		spec	[red-value!]
+		type	[integer!]
+		return: [red-path!]
+		/local
+			str [red-string!]
+	][
+		switch TYPE_OF(spec) [
+			TYPE_TYPESET
+			TYPE_OBJECT
+			TYPE_MAP
+			TYPE_VECTOR [block/rs-append as red-block! make-at proto 1 spec]
+			default [
+				proto: as red-path! block/to as red-block! proto spec type
+				proto/args: null
+			]
+		]
+		proto/header: type
+		proto
+	]
+
 	form: func [
 		path	  [red-path!]
 		buffer	  [red-string!]
@@ -126,18 +186,6 @@ path: context [
 		part
 	]
 	
-	compare: func [
-		value1	   [red-path!]							;-- first operand
-		value2	   [red-path!]							;-- second operand
-		op		   [integer!]							;-- type of comparison
-		return:	   [integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "path/compare"]]
-
-		if TYPE_OF(value2) <> TYPE_PATH [RETURN_COMPARE_OTHER]
-		block/compare-each as red-block! value1 as red-block! value2 op
-	]
-	
 	copy: func [
 		path    [red-path!]
 		new		[red-path!]
@@ -162,12 +210,12 @@ path: context [
 			:make
 			null			;random
 			INHERIT_ACTION	;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			INHERIT_ACTION	;eval-path
 			null			;set-path
-			:compare
+			INHERIT_ACTION	;compare
 			;-- Scalar actions --
 			null			;absolute
 			null			;add

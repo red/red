@@ -85,7 +85,12 @@ adjust-parent: func [									;-- prevent tabcontrol from having children
 	if tab-panel = symbol/resolve type/symbol [
 		SetParent hWnd GetParent parent
 		pos: as red-pair! values + FACE_OBJ_OFFSET
-		SetWindowPos hWnd null pos/x + x pos/y + y 0 0 SWP_NOSIZE or SWP_NOZORDER
+		SetWindowPos
+			hWnd
+			null
+			dpi-scale pos/x + x dpi-scale pos/y + y
+			0 0
+			SWP_NOSIZE or SWP_NOZORDER
 	]
 ]
 
@@ -95,7 +100,6 @@ insert-tab: func [
 	index [integer!]
 	/local
 		item [TCITEM]
-		rect [RECT_STRUCT]
 ][
 	item: declare TCITEM
 	item/mask: TCIF_TEXT
@@ -121,10 +125,8 @@ set-tabs: func [
 		str	 [red-string!]
 		tail [red-string!]
 		int	 [red-integer!]
-		item [TCITEM]
 		nb	 [integer!]
 ][
-	item: declare TCITEM
 	data: as red-block! facets + FACE_OBJ_DATA
 	nb: 0
 	
@@ -213,7 +215,7 @@ update-tab-contents: func [
 				while [obj < tail][
 					if TYPE_OF(obj) = TYPE_OBJECT [
 						hWnd: get-face-handle obj
-						values: get-face-values hWnd
+						values: get-node-facet obj/ctx 0
 						init-panel values parent
 						either type = FACE_OBJ_SIZE [
 							change-size
@@ -259,11 +261,13 @@ set-tab: func [
 		if idx <= len [
 			obj: as red-object! panels + idx
 			if TYPE_OF(obj) = TYPE_OBJECT [
-				bool: as red-logic! get-node-facet obj/ctx FACE_OBJ_VISIBLE?
-				bool/value: true
-				hWnd: get-face-handle obj
-				show-tab hWnd SW_SHOW
-				BringWindowToTop hWnd
+				hWnd: face-handle? obj
+				if hWnd <> null [
+					bool: as red-logic! get-node-facet obj/ctx FACE_OBJ_VISIBLE?
+					bool/value: true
+					show-tab hWnd SW_SHOW
+					BringWindowToTop hWnd
+				]
 			]
 		]
 		if all [
@@ -276,7 +280,8 @@ set-tab: func [
 			if TYPE_OF(obj) = TYPE_OBJECT [
 				bool: as red-logic! get-node-facet obj/ctx FACE_OBJ_VISIBLE?
 				bool/value: false
-				show-tab get-face-handle obj SW_HIDE
+				hWnd: face-handle? obj
+				if hWnd <> null [show-tab hWnd SW_HIDE]
 			]
 		]
 	]

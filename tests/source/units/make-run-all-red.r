@@ -35,7 +35,7 @@ move-file: func [
 		new-file
 		new-src
 ][
-	new-file: join %auto-tests/run-all/ file
+	new-file: join %auto-tests/run-all/ second split-path to file! file
 	src: read/lines to file! file
 	new-src: copy []
 	foreach line src [

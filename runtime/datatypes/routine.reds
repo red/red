@@ -50,6 +50,7 @@ routine: context [
 		body	 [red-block!]
 		code	 [integer!]
 		ret-type [integer!]
+		extern?	 [logic!]
 		return:	 [red-routine!]							;-- return function's local context
 		/local
 			cell   [red-routine!]
@@ -57,11 +58,13 @@ routine: context [
 			value  [red-value!]
 			args   [red-block!]
 			more   [series!]
+			flag   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "routine/push"]]
 
+		flag: either extern? [flag-extern-code][0]
 		cell: as red-routine! stack/push*
-		cell/header:   TYPE_ROUTINE						;-- implicit reset of all header flags
+		cell/header:   TYPE_ROUTINE or flag				;-- implicit reset of all header flags
 		cell/ret-type: ret-type
 		cell/spec:	   spec/node
 		cell/more:	   alloc-cells 4
@@ -111,21 +114,28 @@ routine: context [
 		indent	[integer!]
 		return: [integer!]
 		/local
-			s	[series!]
-			blk	[red-block!]
+			s	 [series!]
+			blk	 [red-block! value]
+			body [red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "routine/mold"]]
 
 		string/concatenate-literal buffer "routine "
 		
-		blk: as red-block! stack/push*
 		blk/header: TYPE_ROUTINE
 		blk/head: 0
 		blk/node: fun/spec
 		part: block/mold blk buffer only? all? flat? arg part - 8 indent	;-- spec
 		
 		s: as series! fun/more/value
-		block/mold as red-block! s/offset buffer only? all? flat? arg part indent ;-- body
+		body: s/offset
+		either TYPE_OF(body) = TYPE_BLOCK [
+			block/mold as red-block! body buffer only? all? flat? arg part indent ;-- body
+		][
+			string/append-char GET_BUFFER(buffer) as-integer #" "
+			part: part - 1
+			actions/mold body buffer only? all? flat? arg part indent ;-- body
+		]
 	]
 
 	compare: func [
@@ -143,6 +153,8 @@ routine: context [
 		if type <> TYPE_ROUTINE [RETURN_COMPARE_OTHER]
 		switch op [
 			COMP_EQUAL
+			COMP_SAME
+			COMP_FIND
 			COMP_STRICT_EQUAL
 			COMP_NOT_EQUAL
 			COMP_SORT

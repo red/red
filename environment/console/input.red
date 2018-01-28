@@ -17,7 +17,8 @@ Red [
 ;;@@ Temporary patch to allow inclusion in user code.
 unless system/console [
 	system/console: context [
-        history: make block! 200
+		history: make block! 200
+		size: 0x0
 	]
 ]
 ;; End patch
@@ -80,6 +81,7 @@ unless system/console [
 		columns:	-1
 		rows:		-1
 		output?:	yes
+		pasting?:	no
 
 		string/rs-make-at as cell! saved-line 1
 
@@ -115,7 +117,7 @@ unless system/console [
 				str2	[red-string!]
 				head	[integer!]
 		][
-			#call [default-input-completer str]
+			#call [red-complete-input str yes]
 			stack/top: stack/arguments + 1
 			result: as red-block! stack/top
 			num: block/rs-length? result
@@ -132,13 +134,17 @@ unless system/console [
 				line: input-line
 				string/rs-reset line
 
+				str2: as red-string! block/rs-head result
+				head: str2/head
+				str2/head: 0
 				either num = 1 [
-					str2: as red-string! block/rs-head result
-					head: str2/head
-					str2/head: 0
 					string/concatenate line str2 -1 0 yes no
 					line/head: head
 				][
+					string/rs-reset saved-line
+					string/concatenate saved-line str2 -1 0 yes no
+					saved-line/head: head
+					block/rs-next result				;-- skip first one
 					until [
 						string/concatenate line as red-string! block/rs-head result -1 0 yes no
 						string/append-char GET_BUFFER(line) 32
@@ -153,9 +159,7 @@ unless system/console [
 		]
 
 		add-history: func [
-			str			[red-string!]
-			/local
-				saved	[integer!]
+			str	[red-string!]
 		][
 			str/head: 0
 			unless zero? string/rs-length? str [
@@ -190,6 +194,65 @@ unless system/console [
 			pbuffer: buffer
 		]
 
+		process-ansi-sequence: func [
+			str 	[byte-ptr!]
+			tail	[byte-ptr!]
+			unit    [integer!]
+			print?	[logic!]
+			return: [integer!]
+			/local
+				cp      [integer!]
+				bytes   [integer!]
+				state   [integer!]
+		][
+			cp: string/get-char str unit
+			if all [
+				cp <> as-integer #"["
+				cp <> as-integer #"("
+			][return 0]
+
+			if print? [emit-red-char cp]
+			str: str + unit
+			bytes: unit
+			state: 1
+			while [all [state > 0 str < tail]] [
+				cp: string/get-char str unit
+				if print? [emit-red-char cp]
+				str: str + unit
+				bytes: bytes + unit
+				switch state [
+					1 [
+						unless any [
+							cp = as-integer #";"
+							all [cp >= as-integer #"0" cp <= as-integer #"9"]
+						][state: -1]
+					]
+					2 [
+						case [
+							all [cp >= as-integer #"0" cp <= as-integer #"9"][0]
+							cp = as-integer #";" [state: 3]
+							true [ state: -1 ]
+						]
+					]
+					3 [
+						case [
+							all [cp >= as-integer #"0" cp <= as-integer #"9"][state: 4]
+							cp = as-integer #";" [0] ;do nothing
+							true [ state: -1 ]
+						]
+					]
+					4 [
+						case [
+							all [cp >= as-integer #"0" cp <= as-integer #"9"][0]
+							cp = as-integer #";" [state: 1]
+							true [ state: -1 ]
+						]
+					]
+				]
+			]
+			bytes
+		]
+
 		emit-red-string: func [
 			str			[red-string!]
 			size		[integer!]
@@ -205,6 +268,7 @@ unless system/console [
 				cnt		[integer!]
 				x		[integer!]
 				w		[integer!]
+				sn		[integer!]
 		][
 			x:		0
 			w:		0
@@ -218,19 +282,35 @@ unless system/console [
 				tail: offset
 				offset: as byte-ptr! series/offset
 			]
+			sn: 0
 			until [
 				while [
 					all [offset < tail cnt < size]
 				][
-					cp: string/get-char offset unit
+					either zero? sn [
+						cp: string/get-char offset unit
+						if cp = 9 [			;-- convert a tab to 4 spaces
+							offset: offset - unit
+							cp: 32
+							sn: 3
+						]
+						emit-red-char cp
+						offset: offset + unit
+						if cp = as-integer #"^[" [
+							cnt: cnt - 1
+							offset: offset + process-ansi-sequence offset tail unit yes
+						]
+					][
+						emit-red-char cp
+						sn: sn - 1
+						if zero? sn [offset: offset + unit]
+					]
 					w: either all [0001F300h <= cp cp <= 0001F5FFh][2][wcwidth? cp]
 					cnt: switch w [
 						1  [cnt + 1]
 						2  [either size - cnt = 1 [x: 2 cnt + 3][cnt + 2]]	;-- reach screen edge, handle wide char
 						default [0]
 					]
-					emit-red-char cp
-					offset: offset + unit
 				]
 				bytes: bytes + cnt
 				size: columns - x
@@ -306,16 +386,14 @@ unless system/console [
 				output?: yes
 				c: fd-read
 				n: 0
-				
-				if c = KEY_TAB [
+
+				if all [c = KEY_TAB not pasting?][
 					n: complete-line line
 					if n > 1 [
 						string/rs-reset line
 						exit
 					]
-					if zero? n [
-						c: 32							;-- convert TAB to SPACE
-					]
+					if n = 1 [c: -1]
 				]
 
 				#if OS <> 'Windows [if c = 27 [c: check-special]]
@@ -417,7 +495,7 @@ unless system/console [
 						exit
 					]
 					default [
-						if c > 31 [
+						if any [c > 31 c = KEY_TAB][
 							#if OS = 'Windows [						;-- optimize for Windows
 								if all [D800h <= c c <= DF00h][		;-- USC-4
 									c: c and 03FFh << 10			;-- lead surrogate decoding
@@ -482,7 +560,7 @@ unless system/console [
 			copy-cell as red-value! line as red-value! input-line
 			copy-cell as red-value! hist as red-value! history
 
-			init line hist					;-- enter raw mode
+			init		;-- enter raw mode
 		]
 	]
 ]

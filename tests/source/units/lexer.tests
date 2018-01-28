@@ -1,0 +1,32 @@
+~~~start-file~~~ "lexer-auto"
+
+===start-group=== "Delimiter Lexer tests"
+
+	--test-- "lexer-delimiter-1"  --assert [""]			= load/all {""}
+	--test-- "lexer-delimiter-2"  --assert [""]			= load/all "{}"
+	--test-- "lexer-delimiter-3"  --assert ["{"]		= load/all {"^{"}
+	--test-- "lexer-delimiter-4"  --assert ["}"]		= load/all {"^}"}
+	--test-- "lexer-delimiter-5"  --assert ["{}"]		= load/all {"^{^}"}
+	--test-- "lexer-delimiter-6"  --assert [{^}^{}]		= load/all {"^}^{"}
+	--test-- "lexer-delimiter-7"  --assert ["^{^}^}"]	= load/all {"^{^}^}"}
+	--test-- "lexer-delimiter-8"  --assert [""]			= load/all {"^"}
+	--test-- "lexer-delimiter-9"  --assert [""]			= load/all "{}"
+	--test-- "lexer-delimiter-10" --assert ["{"]		= load/all "{^^{}"
+	--test-- "lexer-delimiter-11" --assert [{"}]		= load/all {{"}}
+	--test-- "lexer-delimiter-12" --assert ["^/"]		= load/all "{^/}^/"
+	--test-- "lexer-delimiter-13" --assert ["^/"]		= load/all "{^/}"
+	--test-- "lexer-delimiter-14" --assert ["^/"]		= load/all "{^/}"
+	--test-- "lexer-delimiter-15" --assert [{{"x"}}]	= load/all {{{"x"}}}
+	--test-- "lexer-delimiter-16" --assert ["{x}"]		= load/all {"{x}"}
+	--test-- "lexer-delimiter-17" --assert [{"x"}]		= load/all {{"x"}}
+	--test-- "lexer-delimiter-18" --assert ["x"]		= load/all {{x}}
+	
+===end-group===
+
+===start-group=== "lexer-time"
+
+;	--test-- "lexer-time-1" --assert [2147483645:59:59]	= load/all {2147483645:59:59}
+
+===end-group===
+
+~~~end-file~~~

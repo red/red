@@ -10,14 +10,6 @@ Red/System [
 	}
 ]
 
-#enum encoding! [
-	UTF-16LE:	-1
-	UTF-8:		 0
-	Latin1:		 1
-	UCS-2:		 2
-	UCS-4:		 4
-]
-
 unicode: context [
 	verbose: 0
 
@@ -31,6 +23,25 @@ unicode: context [
 	;	3Fh				; U+003F = question mark
 	;	BFh				; U+00BF = inverted question mark
 	;	DC00h + b1		; U+DCxx where xx = b1 (never a Unicode codepoint)
+
+	latin1-idx: [
+		0402h 0403h 201Ah 0453h 201Eh 2026h 2020h 2021h
+		20ACh 2030h 0409h 2039h 040Ah 040Ch 040Bh 040Fh
+		0452h 2018h 2019h 201Ch 201Dh 2022h 2013h 2014h
+		0098h 2122h 0459h 203Ah 045Ah 045Ch 045Bh 045Fh
+		00A0h 040Eh 045Eh 0408h 00A4h 0490h 00A6h 00A7h
+		0401h 00A9h 0404h 00ABh 00ACh 00ADh 00AEh 0407h
+		00B0h 00B1h 0406h 0456h 0491h 00B5h 00B6h 00B7h
+		0451h 2116h 0454h 00BBh 0458h 0405h 0455h 0457h
+		0410h 0411h 0412h 0413h 0414h 0415h 0416h 0417h
+		0418h 0419h 041Ah 041Bh 041Ch 041Dh 041Eh 041Fh
+		0420h 0421h 0422h 0423h 0424h 0425h 0426h 0427h
+		0428h 0429h 042Ah 042Bh 042Ch 042Dh 042Eh 042Fh
+		0430h 0431h 0432h 0433h 0434h 0435h 0436h 0437h
+		0438h 0439h 043Ah 043Bh 043Ch 043Dh 043Eh 043Fh
+		0440h 0441h 0442h 0443h 0444h 0445h 0446h 0447h
+		0448h 0449h 044Ah 044Bh 044Ch 044Dh 044Eh 044Fh
+	]
 
 	utf8-char-size?: func [
 		byte-1st	[integer!]
@@ -61,13 +72,13 @@ unicode: context [
 				buf/2: as-byte cp and 3Fh or 80h
 				2
 			]
-			cp < 0000FFFFh [
+			cp <= 0000FFFFh [
 				buf/1: as-byte cp >> 12 or E0h
 				buf/2: as-byte cp >> 6 and 3Fh or 80h
 				buf/3: as-byte cp	   and 3Fh or 80h
 				3
 			]
-			cp < 0010FFFFh [
+			cp <= 0010FFFFh [
 				buf/1: as-byte cp >> 18 or F0h
 				buf/2: as-byte cp >> 12 and 3Fh or 80h
 				buf/3: as-byte cp >> 6  and 3Fh or 80h
@@ -75,8 +86,7 @@ unicode: context [
 				4
 			]
 			true [
-				print "*** Error: to-utf8 codepoint overflow"
-				halt
+				fire [TO_ERROR(script invalid-char) char/push cp]
 				0
 			]
 		]
@@ -97,7 +107,7 @@ unicode: context [
 		return:  [c-string!]
 		/local
 			s	 [series!]
-			node [node!]
+			beg  [byte-ptr!]
 			buf	 [byte-ptr!]
 			p	 [byte-ptr!]
 			p4	 [int-ptr!]
@@ -113,10 +123,9 @@ unicode: context [
 		unless len/value = -1 [
 			if len/value < part [part: len/value]
 		]
-		node: alloc-bytes unit << 1 * (1 + part)	;@@ TBD: mark this buffer as protected!
-		s: 	  as series! node/value
-		buf:  as byte-ptr! s/offset
-		
+		buf: allocate unit << 1 * (1 + part)	;@@ TBD: mark this buffer as protected!
+		beg: buf
+
 		p:	  string/rs-head str
 		tail: p + (part << (unit >> 1))
 		
@@ -137,8 +146,8 @@ unicode: context [
 		]
 		buf/1: null-byte
 
-		len/value: as-integer buf - (as byte-ptr! s/offset)
-		as-c-string s/offset
+		len/value: as-integer buf - beg
+		as-c-string beg
 	]
 	
 	Latin1-to-UCS2: func [
@@ -154,7 +163,7 @@ unicode: context [
 
 		used: as-integer s/tail - s/offset
 		used: used << 1 
-		if used > s/size [								;-- ensure we have enough space
+		if used + 2 > s/size [							;-- ensure we have enough space
 			s: expand-series s used + 2					;-- reserve one more for edge cases
 		]
 		base: as byte-ptr! s/offset
@@ -393,7 +402,7 @@ unicode: context [
 			cp: decode-utf8-char src :used
 			if cp = -1 [								;-- premature exit if buffer incomplete
 				s/tail: as cell! either unit = UCS-4 [buf4][buf1]	;-- position s/tail at end of loaded characters (no NUL terminator)
-				remain/value: count						;-- return the number of unprocessed bytes
+				if remain <> null [remain/value: count]				;-- return the number of unprocessed bytes
 				return node
 			]
 
@@ -570,7 +579,11 @@ unicode: context [
 		unit: scan-utf16 src size
 		
 		either null? str [
-			node: alloc-series size unit 0
+			node: either size = 0 [
+				alloc-series 1 2 0						;-- create an empty string
+			][
+				alloc-series size unit 0
+			]
 			s: as series! node/value
 		][
 			node: str/node
@@ -602,10 +615,9 @@ unicode: context [
 						either all [src/1 = #"^M" src/2 = null-byte][
 							size: size - 1
 						][
-							p/value: src/1
-							p: p + 1
-							p/value: null-byte
-							p: p + 1
+							p/1: src/1
+							p/2: src/2
+							p: p + 2
 						]
 						src: src + 2
 						cnt: cnt - 1
@@ -694,8 +706,6 @@ unicode: context [
 		return: [c-string!]
 		/local
 			s	 [series!]
-			s2	 [series!]
-			node [node!]
 			src  [byte-ptr!]
 			dst  [byte-ptr!]
 			tail [byte-ptr!]
@@ -817,5 +827,93 @@ unicode: context [
 		]
 		str/cache
 	]
-	
+
+	load-latin1: func [
+		src		[c-string!]								;-- latin1 input buffer
+		size	[integer!]								;-- size of src in codepoints (excluding terminal NUL)
+		str		[red-string!]							;-- optional destination string
+		cr?		[logic!]								;-- yes => remove CR in CRLF sequences
+		return:	[node!]
+		/local
+			node [node!]
+			s	 [series!]
+			end  [byte-ptr!]
+			buf1 [byte-ptr!]
+			buf4 [int-ptr!]
+			cnt  [integer!]
+			unit [integer!]
+			cp	 [integer!]
+	][
+		if null? src [
+			assert not null? str
+			src: str/cache								;-- import latin1 string from cache
+		]
+
+		either null? str [
+			unit: Latin1
+			if zero? size [cnt: 3]
+			node: alloc-bytes cnt + 1
+			s: as series! node/value
+		][
+			node: str/node
+			s: GET_BUFFER(str)
+			unit: GET_UNIT(s)
+			if size > s/size [s: expand-series s size]
+		]
+
+		buf1: as byte-ptr! s/offset
+		buf4: as int-ptr! buf1
+		end:  buf1 + s/size
+		cnt:  size
+
+		while [cnt > 0][
+			cp: as-integer src/1
+			if cp > 7Fh [
+				cp: cp - 80h + 1
+				cp: latin1-idx/cp
+			]
+			if all [cr? cp = as-integer cr] [		;-- convert CRLF/CR to LF
+				if all [cnt > 1 src/2 = lf] [
+					src: src + 1
+					continue
+				]
+				cp: as-integer lf
+			]
+			switch unit [
+				Latin1 [
+					buf1/value: as-byte cp
+					buf1: buf1 + 1
+					assert buf1 <= end				;-- should not happen if we're good
+				]
+				UCS-2 [
+					if buf1 >= end [
+						s/tail: as cell! buf1
+						s: expand-series s s/size + (size >> 2)	;-- increase size by 50% 
+						buf1: as byte-ptr! s/tail
+						end: (as byte-ptr! s/offset) + s/size
+					]
+					buf1/1: as-byte cp
+					buf1/2: null-byte
+					buf1: buf1 + 2
+				]
+				UCS-4 [
+					if buf4 >= (as int-ptr! end) [
+						s/tail: as cell! buf4
+						s: expand-series s s/size + size ;-- increase size by 100% 
+						buf4: as int-ptr! s/tail
+						end: (as byte-ptr! s/offset) + s/size
+					]
+					buf4/value: cp
+					buf4: buf4 + 1
+				]
+			]
+			cnt: cnt - 1
+			src: src + 1
+			zero? cnt
+		] 												;-- end until
+		
+		s/tail: as cell! either unit = UCS-4 [buf4][buf1]
+		assert s/size >= as-integer (s/tail - s/offset)
+		node
+	]
 ]

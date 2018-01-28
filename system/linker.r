@@ -40,14 +40,15 @@ linker: context [
 		buffer: none								;-- output buffer
 	]
 	
-	throw-error: func [err [word! string! block!]][
+	throw-error: func [err [word! string! block!] /warn][
 		print [
-			"*** Linker Error:"
+			"*** Linker" pick ["Warning:" "Error:"] to-logic warn
 			either word? err [
 				join uppercase/part mold err 1 " error"
 			][reform err]
+			lf
 		]
-		system-dialect/compiler/quit-on-error
+		unless warn [system-dialect/compiler/quit-on-error]
 	]
 	
 	set-ptr: func [job [object!] name [word!] value [integer!] /local spec][
@@ -55,9 +56,41 @@ linker: context [
 		spec/<data>/2: value
 	]
 	
+	set-integer-at: func [job [object!] pos [integer!] value [integer!] /local spec][
+		change/part at job/sections/data/2 pos + 1 to-bin32 value 4
+	]
+	
 	set-integer: func [job [object!] name [word!] value [integer!] /local spec][
 		spec: find job/symbols name
 		change/part at job/sections/data/2 spec/2/2 + 1 to-bin32 value 4
+	]
+	
+	check-dup-symbols: func [job [object!] imports [block!] /local exports dup][
+		all [
+			exports: select job/sections 'export
+			not empty? dup: intersect imports exports/3
+			throw-error/warn [
+				"possibly conflicting import and export symbols:" dup
+			]
+		]
+	]
+	
+	set-image-info: func [
+		job			 [object!]
+		base-address [integer!]
+		code-offset	 [integer!]
+		code-size	 [integer!]
+		data-offset	 [integer!]
+		data-size	 [integer!]
+		/local
+			spec
+	][
+		spec: find job/symbols '***-exec-image
+		set-integer-at job spec/2/2 + 4  base-address	;-- + 4 => skip the struct pointer slot
+		set-integer-at job spec/2/2 + 8  code-offset
+		set-integer-at job spec/2/2 + 12  code-size
+		set-integer-at job spec/2/2 + 16 data-offset
+		set-integer-at job spec/2/2 + 20 data-size
 	]
 	
 	resolve-symbol-refs: func [
@@ -206,6 +239,7 @@ linker: context [
 			record/arity:	arity
 			record/args:	args-ptr
 			append buffer form-struct record
+			if job/verbosity >= 3 [print [to-hex record/address #":" name]]
 		]
 		data-buf: job/sections/data/2
 		set-ptr job '__debug-funcs length? data-buf		;-- patch __debug-funcs symbol to point to 1st record
@@ -249,7 +283,7 @@ linker: context [
 		if verbose >= 1 [print ["output file:" file]]
 		
 		if error? try [write/binary/direct file job/buffer][
-			throw-error ["locked or unreachable file:" file]
+			throw-error ["locked or unreachable file:" to-local-file file]
 		]
 		
 		if fun: in file-emitter 'on-file-written [

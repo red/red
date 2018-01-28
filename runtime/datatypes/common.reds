@@ -20,15 +20,24 @@ names!: alias struct! [
 	word	[red-word!]								;-- datatype name as word! value
 ]
 
-name-table:   declare names! 						;-- datatype names table
-action-table: declare int-ptr!						;-- actions jump table
+name-table:	  as names! 0	 						;-- datatype names table
+action-table: as int-ptr! 0							;-- actions jump table
 
+get-build-date: func [return: [c-string!]][			;-- used by red.r
+	#build-date
+]
 
 set-type: func [										;@@ convert to macro?
 	cell [cell!]
 	type [integer!]
 ][
 	cell/header: cell/header and type-mask or type
+]
+
+clear-newline: func [
+	cell [red-value!]
+][
+	cell/header: cell/header and flag-nl-mask
 ]
 
 alloc-at-tail: func [
@@ -107,6 +116,13 @@ get-root-node: func [
 	obj/ctx
 ]
 
+get-root-node2: func [									;-- alias used by libRedRT
+	idx		[integer!]
+	return: [node!]
+][
+	get-root-node idx
+]
+
 report: func [
 	type  [red-value!]
 	id    [red-value!]
@@ -115,7 +131,7 @@ report: func [
 	arg3  [red-value!]
 ][	
 	stack/mark-native words/_body
-	stack/set-last as red-value! error/create as red-word! type as red-word! id arg1 arg2 arg3
+	stack/set-last as red-value! error/create type id arg1 arg2 arg3
 	natives/print* no
 	stack/set-last unset-value
 	stack/unwind
@@ -145,7 +161,7 @@ fire: func [
 			unless zero? count [arg3: as red-value! list/5]
 		]
 	]
-	stack/throw-error error/create as red-word! list/1 as red-word! list/2 arg1 arg2 arg3
+	stack/throw-error error/create as red-value! list/1 as red-value! list/2 arg1 arg2 arg3
 ]
 
 throw-make: func [
@@ -218,43 +234,26 @@ set-int-path*: func [
 eval-path*: func [
 	parent  [red-value!]
 	element [red-value!]
-	/local
-		slot   [red-value!]
-		result [red-value!]
 ][
-	slot: stack/push*									;-- reserve stack slot 
-	result: actions/eval-path parent element null null no ;-- no value to set
-	copy-cell result slot								;-- set the stack as expected
-	stack/top: slot + 1									;-- erase intermediary stack allocations
+	stack/set-last actions/eval-path parent element null null no ;-- no value to set
 ]
 
 eval-path: func [
 	parent  [red-value!]
 	element [red-value!]
 	return: [red-value!]
-	/local
-		top	   [red-value!]
-		result [red-value!]
 ][
-	top: stack/top
-	result: actions/eval-path parent element null null no ;-- no value to set
-	stack/top: top
-	result
+	actions/eval-path parent element null null no 		;-- pass the value reference directly (no copying!)
 ]
 
 eval-int-path*: func [
-	parent  [red-value!]
-	index 	[integer!]
-	return: [red-value!]
+	parent	[red-value!]
+	index	[integer!]
 	/local
-		int	   [red-value!]
-		result [red-value!]
+		int	[red-value!]
 ][
 	int: as red-value! integer/push index
-	result: actions/eval-path parent int null null no	;-- no value to set
-	copy-cell result int								;-- set the stack as expected
-	stack/top: int + 1									;-- erase intermediary stack allocations
-	result
+	stack/set-last actions/eval-path parent int null null no ;-- no value to set
 ]
 
 eval-int-path: func [
@@ -262,13 +261,96 @@ eval-int-path: func [
 	index 	[integer!]
 	return: [red-value!]
 	/local
-		int	   [red-value!]
-		result [red-value!]
+		int	[red-value!]
 ][
 	int: as red-value! integer/push index
-	result: actions/eval-path parent int null null no	;-- no value to set
-	stack/top: int										;-- erase intermediary stack allocations
-	result
+	actions/eval-path parent int null null no			;-- pass the value reference directly (no copying!)
+]
+
+select-key*: func [										;-- called by compiler for SWITCH
+	sub?	[logic!]
+	fetch?	[logic!]
+	return: [red-value!]
+	/local
+		blk	  [red-block!]
+		key	  [red-value!]
+		value [red-value!]
+		tail  [red-value!]
+		s	  [series!]
+		step  [integer!]
+][
+	key: as red-value! stack/arguments
+	blk: as red-block! key + 1
+	assert TYPE_OF(blk) = TYPE_BLOCK
+	
+	unless TYPE_OF(key) = TYPE_BLOCK [
+		s: GET_BUFFER(blk)
+		value: s/offset + blk/head
+		tail:  s/tail
+		step:  either sub? [1][2]
+
+		while [value < tail][
+			if TYPE_OF(key) = TYPE_OF(value) [
+				if actions/compare key value COMP_EQUAL [
+					either fetch? [
+						value: value + 1
+						while [value < tail][
+							if TYPE_OF(value) = TYPE_BLOCK [break]
+							value: value + 1
+						]
+					][
+						value: either value + 1 < tail [value + 1][value]
+					]
+					either sub? [stack/push value][stack/set-last value]
+					return value
+				]
+			]
+			value: value + step
+		]
+	]
+	either sub? [as red-value! none/push][
+		value: stack/arguments
+		value/header: TYPE_NONE
+		value
+	]
+]
+
+load-value: func [
+	str		[red-string!]
+	return: [red-value!]
+	/local
+		blk	  [red-block!]
+		value [red-value!]
+][
+	#call [system/lexer/transcode/one/only str none no]
+
+	blk: as red-block! stack/arguments
+	assert TYPE_OF(blk) = TYPE_BLOCK
+
+	either zero? block/rs-length? blk [
+		value: as red-value! blk
+		value/header: TYPE_UNSET
+	][
+		value: block/rs-head blk
+	]
+	value
+]
+
+form-value: func [
+	arg		[red-value!]
+	part	[integer!]								;-- pass 0 for full string
+	return: [red-string!]
+	/local
+		buffer [red-string!]
+		limit  [integer!]
+][
+	buffer: string/rs-make-at stack/push* 16
+	limit: actions/form stack/arguments buffer arg part
+
+	if all [part >= 0 negative? limit][
+		string/truncate-from-tail GET_BUFFER(buffer) limit
+	]
+	buffer
 ]
 
 cycles: context [
@@ -321,9 +403,6 @@ cycles: context [
 		mold?	[logic!]
 		return: [logic!]
 		/local
-			obj	 [red-object!]
-			blk	 [red-block!]
-			node [node!]
 			s	 [c-string!]
 			size [integer!]
 	][
@@ -354,11 +433,12 @@ words: context [
 	spec:			-1
 	body:			-1
 	words:			-1
+	class:			-1
 	logic!:			-1
 	integer!:		-1
 	char!:			-1
-    float!:			-1
-    percent!:		-1
+	float!:			-1
+	percent!:		-1
 	any-type!:		-1
 	repeat:			-1
 	foreach:		-1
@@ -373,7 +453,7 @@ words: context [
 	
 	windows:		-1
 	syllable:		-1
-	macosx:			-1
+	macOS:			-1
 	linux:			-1
 	
 	any*:			-1
@@ -385,6 +465,7 @@ words: context [
 	opt:			-1
 	not*:			-1
 	quote:			-1
+	case*:			-1
 	reject:			-1
 	set:			-1
 	skip:			-1
@@ -402,6 +483,7 @@ words: context [
 	only:			-1
 	collect:		-1
 	keep:			-1
+	pick:			-1
 	ahead:			-1
 	after:			-1
 	x:				-1
@@ -439,11 +521,34 @@ words: context [
 	size:			-1
 	rgb:			-1
 	alpha:			-1
+	argb:			-1
+	
+	date:			-1
+	year:			-1
+	month:			-1
+	day:			-1
+	zone:			-1
+	week:			-1
+	isoweek:		-1
+	weekday:		-1
+	yearday:		-1
+	julian:			-1
+	time:			-1
+	hour:			-1
+	minute:			-1
+	second:			-1
+	timezone:		-1
+	
+	user:			-1
+	host:			-1
+	
+	system:			-1
+	system-global:	-1
 
 	_body:			as red-word! 0
 	_windows:		as red-word! 0
 	_syllable:		as red-word! 0
-	_macosx:		as red-word! 0
+	_macOS:			as red-word! 0
 	_linux:			as red-word! 0
 	
 	_push:			as red-word! 0
@@ -455,6 +560,10 @@ words: context [
 	_anon:			as red-word! 0
 	_body:			as red-word! 0
 	_end:			as red-word! 0
+	_not-found:		as red-word! 0
+	_add:			as red-word! 0
+	_subtract:		as red-word! 0
+	_divide:		as red-word! 0
 	
 	_to:			as red-word! 0
 	_thru:			as red-word! 0
@@ -476,6 +585,7 @@ words: context [
 	_quote: 		as red-word! 0
 	_collect: 		as red-word! 0
 	_set: 			as red-word! 0
+	_case:			as red-word! 0
 	
 	;-- modifying actions
 	_change:		as red-word! 0
@@ -501,6 +611,7 @@ words: context [
 	;-- modifying natives
 	_uppercase:		as red-word! 0
 	_lowercase:		as red-word! 0
+	_checksum:		as red-word! 0
 	
 	_on-parse-event: as red-word! 0
 	_on-change*:	 as red-word! 0
@@ -511,6 +622,9 @@ words: context [
 	_try:			as red-word! 0
 	_catch:			as red-word! 0
 	_name:			as red-word! 0
+	
+	_multiply:		as red-word! 0
+	_browse:		as red-word! 0
 	
 	errors: context [
 		throw:		as red-word! 0
@@ -527,6 +641,7 @@ words: context [
 		spec:			symbol/make "spec"
 		body:			symbol/make "body"
 		words:			symbol/make "words"
+		class:			symbol/make "class"
 		logic!:			symbol/make "logic!"
 		integer!:		symbol/make "integer!"
 		char!:			symbol/make "char!"
@@ -538,7 +653,7 @@ words: context [
 
 		windows:		symbol/make "Windows"
 		syllable:		symbol/make "Syllable"
-		macosx:			symbol/make "MacOSX"
+		macOS:			symbol/make "macOS"
 		linux:			symbol/make "Linux"
 		
 		repeat:			symbol/make "repeat"
@@ -555,6 +670,7 @@ words: context [
 		opt:			symbol/make "opt"
 		not*:			symbol/make "not"
 		quote:			symbol/make "quote"
+		case*:			symbol/make "case"
 		reject:			symbol/make "reject"
 		set:			symbol/make "set"
 		skip:			symbol/make "skip"
@@ -572,6 +688,7 @@ words: context [
 		only:			symbol/make "only"
 		collect:		symbol/make "collect"
 		keep:			symbol/make "keep"
+		pick:			symbol/make "pick"
 		ahead:			symbol/make "ahead"
 		after:			symbol/make "after"
 
@@ -615,10 +732,33 @@ words: context [
 		size:			symbol/make "size"
 		rgb:			symbol/make "rgb"
 		alpha:			symbol/make "alpha"
+		argb:			symbol/make "argb"
+		
+		date:			symbol/make "date"
+		year:			symbol/make "year"
+		month:			symbol/make "month"
+		day:			symbol/make "day"
+		zone:			symbol/make "zone"
+		isoweek:		symbol/make "isoweek"
+		week:			symbol/make "week"
+		weekday:		symbol/make "weekday"
+		yearday:		symbol/make "yearday"
+		julian:			symbol/make "julian"
+		time:			symbol/make "time"
+		hour:			symbol/make "hour"
+		minute:			symbol/make "minute"
+		second:			symbol/make "second"
+		timezone:		symbol/make "timezone"
+		
+		user:			symbol/make "user"
+		host:			symbol/make "host"
+		
+		system:			symbol/make "system"
+		system-global:	symbol/make "system-global"
 
 		_windows:		_context/add-global windows
 		_syllable:		_context/add-global syllable
-		_macosx:		_context/add-global macosx
+		_macOS:			_context/add-global macOS
 		_linux:			_context/add-global linux
 		
 		_to:			_context/add-global to
@@ -641,6 +781,7 @@ words: context [
 		_quote: 		_context/add-global quote
 		_collect: 		_context/add-global collect
 		_set: 			_context/add-global set
+		_case:			_context/add-global case*
 		
 		;-- modifying actions
 		_change:		word/load "change"
@@ -666,6 +807,7 @@ words: context [
 		;-- modifying natives
 		_uppercase:		word/load "uppercase"
 		_lowercase:		word/load "lowercase"
+		_checksum:		word/load "checksum"
 		
 		_push:			word/load "push"
 		_pop:			word/load "pop"
@@ -675,10 +817,14 @@ words: context [
 		_paren:			word/load "paren"
 		_anon:			word/load "<anon>"				;-- internal usage
 		_body:			word/load "<body>"				;-- internal usage
+		_not-found:		word/load "<not-found>"			;-- internal usage
 		_end:			_context/add-global end
+		_add:			word/load "add"
+		_subtract:		word/load "subtract"
+		_divide:		word/load "divide"
 		
-		_on-parse-event: word/load "on-parse-event"
-		_on-change*:	 word/load "on-change*"
+		_on-parse-event:  word/load "on-parse-event"
+		_on-change*:	  word/load "on-change*"
 		_on-deep-change*: word/load "on-deep-change*"
 		
 		_type:			word/load "type"
@@ -686,6 +832,9 @@ words: context [
 		_try:			word/load "try"
 		_catch:			word/load "catch"
 		_name:			word/load "name"
+		
+		_multiply:		word/load "multiply"
+		_browse:		word/load "browse"
 		
 		errors/throw:	 word/load "throw"
 		errors/note:	 word/load "note"
@@ -712,5 +861,13 @@ refinements: context [
 
 		_part:	refinement/load "part"
 		_skip:	refinement/load "skip"
+	]
+]
+
+issues: context [
+	ooo:	as red-word! 0
+	
+	build: does [
+		ooo: issue/load "ooo"
 	]
 ]

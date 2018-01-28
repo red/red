@@ -41,20 +41,6 @@ lit-path: context [
 
 	;--- Actions ---
 	
-	make: func [
-		proto 	 [red-value!]
-		spec	 [red-value!]
-		return:	 [red-lit-path!]
-		/local
-			path [red-lit-path!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "lit-path/make"]]
-
-		path: as red-lit-path! block/make proto spec
-		path/header: TYPE_LIT_PATH
-		path
-	]
-	
 	form: func [
 		p		[red-lit-path!]
 		buffer	[red-string!]
@@ -84,18 +70,6 @@ lit-path: context [
 		string/append-char GET_BUFFER(buffer) as-integer #"'"
 		path/mold as red-path! p buffer only? all? flat? arg part - 1 0
 	]
-	
-	compare: func [
-		value1	   [red-block!]							;-- first operand
-		value2	   [red-block!]							;-- second operand
-		op		   [integer!]							;-- type of comparison
-		return:	   [integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "lit-path/compare"]]
-
-		if TYPE_OF(value2) <> TYPE_LIT_PATH [RETURN_COMPARE_OTHER]
-		block/compare-each value1 value2 op
-	]
 
 	init: does [
 		datatype/register [
@@ -103,15 +77,15 @@ lit-path: context [
 			TYPE_PATH
 			"lit-path!"
 			;-- General actions --
-			:make
+			INHERIT_ACTION	;make
 			null			;random
 			INHERIT_ACTION	;reflect
-			null			;to
+			INHERIT_ACTION	;to
 			:form
 			:mold
 			INHERIT_ACTION	;eval-path
 			null			;set-path
-			:compare
+			INHERIT_ACTION	;compare
 			;-- Scalar actions --
 			null			;absolute
 			null			;add

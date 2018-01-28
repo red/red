@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %struct-test.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2017 Nenad Rakocevic. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
@@ -583,5 +583,863 @@ struct-local-foo2
 
 ===end-group===
 
+===start-group=== "Struct passed/returned by value"
+
+	tiny!:  alias struct! [b1 [byte!]]
+	small!: alias struct! [one [integer!] two [integer!]]
+	big!:   alias struct! [one [integer!] two [integer!] three [float!]]
+	huge!:  alias struct! [w1 [integer!] w2 [integer!] w3 [float!] w4 [integer!] w5 [integer!] w6 [float!]]
+	super!: alias struct! [f1 [float!] f2 [float!] f3 [float!] f4 [float!] f5 [float!] f6 [float!]]
+
+	nested1!: alias struct! [f1	[integer!] sub [tiny! value] f2	[integer!]]
+	nested2!: alias struct! [f1	[integer!] sub [small! value] f2 [integer!]]
+	nested3!: alias struct! [f1	[integer!] sub [big! value] f2 [integer!]]
+	nested4!: alias struct! [g1	[integer!] sub [huge! value] g2	[integer!]]
+	nested5!: alias struct! [g1	[integer!] sub [super! value] g2 [integer!]]
+	
+	#switch OS [
+		Windows  [#define STRUCTLIB-file "structlib.dll"]
+		macOS	 [#define STRUCTLIB-file "libstructlib.dylib"]
+		FreeBSD  [#define STRUCTLIB-file "libstruct.so"]
+		#default [#define STRUCTLIB-file "libstructlib.so"]
+	]
+
+	#import [
+		STRUCTLIB-file cdecl [
+			returnTiny:  "returnTiny"  [return: [tiny! value]]
+			returnSmall: "returnSmall" [return: [small! value]]
+			returnBig:	 "returnBig"   [return: [big! value]]
+			returnHuge:  "returnHuge"  [a [integer!] b [integer!] return: [huge! value]]
+			returnHuge2: "returnHuge2" [h [huge! value] a [integer!] b [integer!] return: [huge! value]]
+		]
+	]
+	s1: declare tiny!
+	s2: declare small!
+	s3: declare big!
+	s4: declare huge!
+
+	s1/b1: #"A"
+	
+	s2/one: 4
+	s2/two: 5
+
+	s3/one: 123
+	s3/two: 456
+	s3/three: 3.14
+
+	s4/w1: 1
+	s4/w2: 2
+	s4/w3: 3.0
+	s4/w4: 4
+	s4/w5: 5
+	s4/w6: 6.0
+
+	sbvf1: func [s [tiny! value] v [integer!]][
+		s/b1: #"x"
+		--assert s/b1 = #"x"
+		--assert v = 741
+		s
+	]
+
+	sbvf2: func [s [tiny! value] v [integer!] return: [tiny! value] /local tmp [tiny! value]][
+		--assert v = 123
+		tmp/b1: s/b1
+		--assert (as int-ptr! :tmp) = :tmp/b1
+		--assert tmp/b1 = s/b1
+		tmp
+	]
+
+	sbvf3: func [s [small! value] v [integer!] return: [small! value]][
+		s/one: 9
+		s/two: 10
+		--assert v = 852
+		--assert s/one = 9
+		--assert s/two = 10
+		s
+	]
+
+	sbvf4: func [s [small! value] v [integer!] return: [small! value] /local tmp [small! value]][
+		--assert v = 123
+		tmp/one: s/one + 1
+		tmp/two: s/two + 1
+		--assert (as int-ptr! :tmp) = :tmp/one
+		tmp
+	]
+
+	sbvf5: func [s [big! value] v [integer!] return: [big! value]][
+		s/one: 20
+		s/two: 30
+		s/three: 1.5
+		--assert v = 963
+		--assert s/one = 20
+		--assert s/two = 30
+		--assert s/three = 1.5
+		s
+	]
+
+	sbvf6: func [s [big! value] v [integer!] return: [big! value] /local tmp [big! value]][
+		--assert v = 123
+		tmp/one: s/one
+		tmp/two: s/two
+		tmp/three: s/three
+		--assert (as int-ptr! :tmp) = :tmp/one
+		tmp
+	]
+
+	sbvf7: func [s [huge! value] v [integer!] return: [huge! value]][
+		s/w1: 10
+		s/w2: 20
+		s/w3: 30.0
+		s/w4: 40
+		s/w5: 50
+		s/w6: 60.0		
+		--assert v = 159
+		--assert s/w1 = 10
+		--assert s/w2 = 20
+		--assert s/w3 = 30.0
+		--assert s/w4 = 40
+		--assert s/w5 = 50
+		--assert s/w6 = 60.0
+		s
+	]
+
+	--test-- "svb1"
+		sbvf1 s1 741
+		--assert s1/b1 = #"A"
+
+	--test-- "svb2"
+		sv1: declare tiny!
+		sv1: sbvf2 s1 123
+		--assert sv1/b1 = #"A"
+
+	--test-- "svb3"
+		sbvf3 s2 852
+		--assert s2/one = 4
+		--assert s2/two = 5
+
+	--test-- "svb4"
+		sv2: declare small!
+		sv2: sbvf4 s2 123
+		--assert sv2/one = 5
+		--assert sv2/two = 6
+
+	--test-- "svb5"
+		sbvf5 s3 963
+		--assert s3/one = 123
+		--assert s3/two = 456
+		--assert s3/three = 3.14
+
+	--test-- "svb6"
+		sv3: declare big!
+		sv3: sbvf6 s3 123
+		--assert sv3/one = 123
+		--assert sv3/two = 456
+		--assert sv3/three = 3.14
+		p-int: :sv3/two
+		--assert p-int/value = 456
+	
+	--test-- "svb7"
+		sbvf7 s4 159
+		--assert s4/w1 = 1
+		--assert s4/w2 = 2
+		--assert s4/w3 = 3.0
+		--assert s4/w4 = 4
+		--assert s4/w5 = 5
+		--assert s4/w6 = 6.0
+
+	--test-- "svb8"
+		n1!: alias struct! [g1 [integer!] s1 [tiny!] g2 [integer!]]
+		n1: declare n1!
+		n1/g1: 11111
+		n1/g2: 22222
+		n1/s1: declare tiny!
+
+		n1/s1: sbvf2 s1 123
+		--assert n1/s1/b1 = #"A"
+		--assert n1/g1 = 11111
+		--assert n1/g2 = 22222
+
+	--test-- "svb9"
+		n2!: alias struct! [g1 [integer!] s2 [small!] g2 [integer!]]
+		n2: declare n2!
+		n2/g1: 11111
+		n2/g2: 22222
+		n2/s2: declare small!
+
+		n2/s2: sbvf3 s2 852
+		--assert n2/s2/one = 9
+		--assert n2/s2/two = 10
+		--assert n1/g1 = 11111
+		--assert n1/g2 = 22222
+
+	--test-- "svb10"
+		n3!: alias struct! [g1 [integer!] s3 [big!] g2 [integer!]]
+		n3: declare n3!
+		n3/g1: 11111
+		n3/g2: 22222
+		n3/s3: declare big!
+
+		n3/s3: sbvf5 s3 963
+		--assert n3/s3/one = 20
+		--assert n3/s3/two = 30
+		--assert n3/s3/three = 1.5
+		--assert n1/g1 = 11111
+		--assert n1/g2 = 22222
+
+		--assert (as int-ptr! s3) <> :n3/s3
+		p-int: :n3/s3/one
+		--assert p-int/value = 20
+		pf: as pointer! [float!] :n3/s3/three
+		--assert pf/value = 1.5
+		
+	--test-- "svb11"
+		sv1: returnTiny
+		--assert sv1/b1 = #"z"
+	
+	--test-- "svb12"
+		sv2: returnSmall
+		--assert sv2/one = 111
+		--assert sv2/two = 222
+	
+	--test-- "svb13"
+		sv3: returnBig
+		--assert sv3/one = 111
+		--assert sv3/two = 222
+		--assert sv3/three = 3.14159
+	
+	--test-- "svb14"
+		sv4: declare huge!
+		sv4: returnHuge as-integer #"0" as-integer #"1"
+		--assert sv4/w1 = 48
+		--assert sv4/w2 = 49
+		--assert sv4/w3 = 3.5
+		--assert sv4/w4 = 444
+		--assert sv4/w5 = 555
+		--assert sv4/w6 = 6.789
+		
+	--test-- "svb15"
+		sv4: returnHuge2 sv4 as-integer #"0" as-integer #"1"
+		--assert sv4/w1 = 48
+		--assert sv4/w2 = 49
+		--assert sv4/w3 = 3.5
+		--assert sv4/w4 = 444
+		--assert sv4/w5 = 555
+		--assert sv4/w6 = 6.789
+	
+	--test-- "svb16"
+		nest1: declare nested1!
+
+		--assert 12 = size? nested1!
+
+		nest1/f1: 121212
+		nest1/f2: 343434
+		nest1/sub/b1: #"B"
+
+		--assert nest1/f1 = 121212
+		--assert nest1/f2 = 343434
+		--assert nest1/sub/b1 = #"B"
+		
+	--test-- "svb16.1"
+		nest1/sub: sbvf2 nest1/sub 123
+		--assert nest1/sub/b1 = #"B"
+		
+	--test-- "svb16.2"
+		nest1/sub: sbvf2 s1 123
+		--assert nest1/sub/b1 = #"A"
+		
+	--test-- "svb16.3"
+		nest1/sub: returnTiny
+		--assert nest1/sub/b1 = #"z"
+		--assert nest1/f1 = 121212
+		--assert nest1/f2 = 343434
+		
+	--test-- "svb17"
+		nest2: declare nested2!
+
+		--assert 16 = size? nested2!
+
+		nest2/f1: 121212
+		nest2/f2: 343434
+		nest2/sub/one: 147
+		nest2/sub/two: 258
+
+		--assert nest2/f1 = 121212
+		--assert nest2/f2 = 343434
+		--assert nest2/sub/one = 147
+		--assert nest2/sub/two = 258
+
+	--test-- "svb17.1"
+		nest2/sub: sbvf4 nest2/sub 123
+		--assert nest2/sub/one = 148
+		--assert nest2/sub/two = 259
+		
+	--test-- "svb17.2"
+		nest2/sub: sbvf4 s2 123
+		--assert nest2/sub/one = 5
+		--assert nest2/sub/two = 6
+		
+	--test-- "svb17.3"
+		nest2/sub: returnSmall
+		--assert nest2/sub/one = 111
+		--assert nest2/sub/two = 222
+		--assert nest2/f1 = 121212
+		--assert nest2/f2 = 343434
+	
+	--test-- "svb18"
+		nest3: declare nested3!
+		
+		--assert 24 = size? nested3!
+		
+		nest3/f1: 121212
+		nest3/f2: 343434
+		nest3/sub/one: 666
+		nest3/sub/two: 777
+		nest3/sub/three: 8.88
+				
+		--assert nest3/f1 = 121212
+		--assert nest3/f2 = 343434
+		--assert nest3/sub/one = 666
+		--assert nest3/sub/two = 777
+		--assert nest3/sub/three = 8.88
+		
+		--assert (as int-ptr! nest3) + 1 = :nest3/sub
+		--assert :nest3/sub     = :nest3/sub/one
+		--assert :nest3/sub + 1 = :nest3/sub/two
+		--assert :nest3/sub + 2 = :nest3/sub/three
+		--assert :nest3/sub + 4 = :nest3/f2
+
+	--test-- "svb18.1"
+		nest3/sub: sbvf6 nest3/sub 123
+		--assert nest3/sub/one = 666
+		--assert nest3/sub/two = 777
+		--assert nest3/sub/three = 8.88
+		p-int: :nest3/sub/two
+		--assert p-int/value = 777
+		
+	--test-- "svb18.2"
+		nest3/sub: sbvf6 s3 123
+		--assert nest3/sub/one = 123
+		--assert nest3/sub/two = 456
+		--assert nest3/sub/three = 3.14
+		p-int: :nest3/sub/two
+		--assert p-int/value = 456
+		
+	--test-- "svb18.3"
+		nest3/sub: returnBig
+		--assert nest3/sub/one = 111
+		--assert nest3/sub/two = 222
+		--assert nest3/sub/three = 3.14159
+		--assert nest3/f1 = 121212
+		--assert nest3/f2 = 343434
+
+	--test-- "svb19"
+		nest4: declare nested4!
+		
+		--assert 40 = size? nested4!
+		
+		nest4/g1: 121212
+		nest4/g2: 343434
+		nest4/sub/w1: 100
+		nest4/sub/w2: 200
+		nest4/sub/w3: 300.0
+		nest4/sub/w4: 400
+		nest4/sub/w5: 500
+		nest4/sub/w6: 600.0		
+				
+		--assert nest4/g1 = 121212
+		--assert nest4/g2 = 343434
+		--assert nest4/sub/w1 = 100
+		--assert nest4/sub/w2 = 200
+		--assert nest4/sub/w3 = 300.0
+		--assert nest4/sub/w4 = 400
+		--assert nest4/sub/w5 = 500
+		--assert nest4/sub/w6 = 600.0
+
+		--assert (as int-ptr! nest4) + 1 = :nest4/sub
+		--assert :nest4/sub     = :nest4/sub/w1
+		--assert :nest4/sub + 1 = :nest4/sub/w2
+		--assert :nest4/sub + 2 = :nest4/sub/w3
+		--assert :nest4/sub + 4 = :nest4/sub/w4
+		--assert :nest4/sub + 8 = :nest4/g2
+		
+	--test-- "svb19.1"
+		nest4/sub: returnHuge as-integer #"0" as-integer #"1"
+		--assert nest4/sub/w1 = 48
+		--assert nest4/sub/w2 = 49
+		--assert nest4/sub/w3 = 3.5
+		--assert nest4/sub/w4 = 444
+		--assert nest4/sub/w5 = 555
+		--assert nest4/sub/w6 = 6.789
+			
+	--test-- "svb19.2"
+		nest4/sub: returnHuge2 nest4/sub as-integer #"0" as-integer #"1"
+		--assert nest4/sub/w1 = 48
+		--assert nest4/sub/w2 = 49
+		--assert nest4/sub/w3 = 3.5
+		--assert nest4/sub/w4 = 444
+		--assert nest4/sub/w5 = 555
+		--assert nest4/sub/w6 = 6.789
+		--assert nest4/g1 = 121212
+		--assert nest4/g2 = 343434
+
+	--test-- "svb20"
+		nest5: declare nested5!
+		
+		--assert 56 = size? nested5!
+		
+		nest5/g1: 121212
+		nest5/g2: 343434
+		nest5/sub/f1: 1.0
+		nest5/sub/f2: 2.0
+		nest5/sub/f3: 3.0
+		nest5/sub/f4: 4.0
+		nest5/sub/f5: 5.0
+		nest5/sub/f6: 6.0		
+				
+		--assert nest5/g1 = 121212
+		--assert nest5/g2 = 343434
+		--assert nest5/sub/f1 = 1.0
+		--assert nest5/sub/f2 = 2.0
+		--assert nest5/sub/f3 = 3.0
+		--assert nest5/sub/f4 = 4.0
+		--assert nest5/sub/f5 = 5.0
+		--assert nest5/sub/f6 = 6.0
+
+		--assert (as int-ptr! nest5) + 1 = :nest5/sub
+		--assert :nest5/sub      = :nest5/sub/f1
+		--assert :nest5/sub + 2  = :nest5/sub/f2
+		--assert :nest5/sub + 4  = :nest5/sub/f3
+		--assert :nest5/sub + 12 = :nest5/g2
+
+
+	--test-- "svb50"
+		localsbvf: func [
+			/local 
+				sv1   [tiny! value]
+				sv2   [small! value]
+				sv3   [big! value] 
+				sv4   [huge! value]
+				p-int [int-ptr!]
+				n1 	  [n1!]
+				n2	  [n2!]
+				n3	  [n3!]
+				pf	  [pointer! [float!]]
+				nest1 [nested1! value]
+				nest2 [nested2! value]
+				nest3 [nested3! value]
+				nest4 [nested4! value]
+				nest5 [nested5! value]
+				nest6 [nested1!]
+				nest7 [nested2!]
+				nest8 [nested3!]
+		][
+			--test-- "loc-svb1"
+				sbvf1 s1 741
+				--assert s1/b1 = #"A"
+
+			--test-- "loc-svb2"
+				sv1: declare tiny!
+				sv1: sbvf2 s1 123
+				--assert sv1/b1 = #"A"
+
+			--test-- "loc-svb3"
+				sbvf3 s2 852
+				--assert s2/one = 4
+				--assert s2/two = 5
+
+			--test-- "loc-svb4"
+				sv2: declare small!
+				sv2: sbvf4 s2 123
+				--assert sv2/one = 5
+				--assert sv2/two = 6
+
+			--test-- "loc-svb5"
+				sbvf5 s3 963
+				--assert s3/one = 123
+				--assert s3/two = 456
+				--assert s3/three = 3.14
+
+			--test-- "loc-svb6"
+				sv3: declare big!
+				sv3: sbvf6 s3 123
+				--assert sv3/one = 123
+				--assert sv3/two = 456
+				--assert sv3/three = 3.14
+				p-int: :sv3/two
+				--assert p-int/value = 456
+
+			--test-- "loc-svb7"
+				sbvf7 s4 159
+				--assert s4/w1 = 1
+				--assert s4/w2 = 2
+				--assert s4/w3 = 3.0
+				--assert s4/w4 = 4
+				--assert s4/w5 = 5
+				--assert s4/w6 = 6.0
+
+			--test-- "loc-svb8"
+				n1: declare n1!
+				n1/g1: 11111
+				n1/g2: 22222
+				n1/s1: declare tiny!
+
+				n1/s1: sbvf2 s1 123
+				--assert n1/s1/b1 = #"A"
+				--assert n1/g1 = 11111
+				--assert n1/g2 = 22222
+
+			--test-- "loc-svb9"
+				n2: declare n2!
+				n2/g1: 11111
+				n2/g2: 22222
+				n2/s2: declare small!
+
+				n2/s2: sbvf3 s2 852
+				--assert n2/s2/one = 9
+				--assert n2/s2/two = 10
+				--assert n1/g1 = 11111
+				--assert n1/g2 = 22222
+
+			--test-- "loc-svb10"
+				n3: declare n3!
+				n3/g1: 11111
+				n3/g2: 22222
+				n3/s3: declare big!
+
+				n3/s3: sbvf5 s3 963
+				--assert n3/s3/one = 20
+				--assert n3/s3/two = 30
+				--assert n3/s3/three = 1.5
+				--assert n1/g1 = 11111
+				--assert n1/g2 = 22222
+
+				--assert (as int-ptr! s3) <> :n3/s3
+				p-int: :n3/s3/one
+				--assert p-int/value = 20
+				pf: as pointer! [float!] :n3/s3/three
+				--assert pf/value = 1.5
+				
+				
+			--test-- "loc-svb11"
+				sv1: returnTiny
+				--assert sv1/b1 = #"z"
+
+			--test-- "loc-svb12"
+				sv2: returnSmall
+				--assert sv2/one = 111
+				--assert sv2/two = 222
+
+			--test-- "loc-svb13"
+				sv3: returnBig
+				--assert sv3/one = 111
+				--assert sv3/two = 222
+				--assert sv3/three = 3.14159
+
+			--test-- "loc-svb14"
+				;sv4: declare huge!
+				sv4: returnHuge as-integer #"0" as-integer #"1"
+				--assert sv4/w1 = 48
+				--assert sv4/w2 = 49
+				--assert sv4/w3 = 3.5
+				--assert sv4/w4 = 444
+				--assert sv4/w5 = 555
+				--assert sv4/w6 = 6.789
+
+			--test-- "loc-svb15"
+				sv4: returnHuge2 sv4 as-integer #"0" as-integer #"1"
+				--assert sv4/w1 = 48
+				--assert sv4/w2 = 49
+				--assert sv4/w3 = 3.5
+				--assert sv4/w4 = 444
+				--assert sv4/w5 = 555
+				--assert sv4/w6 = 6.789
+
+			--test-- "loc-svb16"
+				--assert 12 = size? nested1!
+
+				nest1/f1: 121212
+				nest1/f2: 343434
+				nest1/sub/b1: #"B"
+
+				--assert nest1/f1 = 121212
+				--assert nest1/f2 = 343434
+				--assert nest1/sub/b1 = #"B"
+
+			--test-- "loc-svb16.1"
+				nest1/sub: sbvf2 nest1/sub 123
+				--assert nest1/sub/b1 = #"B"
+
+			--test-- "loc-svb16.2"
+				nest1/sub: sbvf2 s1 123
+				--assert nest1/sub/b1 = #"A"
+
+			--test-- "loc-svb16.3"
+				nest1/sub: returnTiny
+				--assert nest1/sub/b1 = #"z"
+				--assert nest1/f1 = 121212
+				--assert nest1/f2 = 343434
+
+			--test-- "loc-svb17"
+				--assert 16 = size? nested2!
+
+				nest2/f1: 121212
+				nest2/f2: 343434
+				nest2/sub/one: 147
+				nest2/sub/two: 258
+
+				--assert nest2/f1 = 121212
+				--assert nest2/f2 = 343434
+				--assert nest2/sub/one = 147
+				--assert nest2/sub/two = 258
+
+			--test-- "loc-svb17.1"
+				nest2/sub: sbvf4 nest2/sub 123
+				--assert nest2/sub/one = 148
+				--assert nest2/sub/two = 259
+
+			--test-- "loc-svb17.2"
+				nest2/sub: sbvf4 s2 123
+				--assert nest2/sub/one = 5
+				--assert nest2/sub/two = 6
+
+			--test-- "loc-svb17.3"
+				nest2/sub: returnSmall
+				--assert nest2/sub/one = 111
+				--assert nest2/sub/two = 222
+				--assert nest2/f1 = 121212
+				--assert nest2/f2 = 343434
+
+			--test-- "loc-svb18"
+				--assert 24 = size? nested3!
+
+				nest3/f1: 121212
+				nest3/f2: 343434
+				nest3/sub/one: 666
+				nest3/sub/two: 777
+				nest3/sub/three: 8.88
+
+				--assert nest3/f1 = 121212
+				--assert nest3/f2 = 343434
+				--assert nest3/sub/one = 666
+				--assert nest3/sub/two = 777
+				--assert nest3/sub/three = 8.88
+
+				--assert (as int-ptr! nest3) + 1 = :nest3/sub
+				--assert :nest3/sub     = :nest3/sub/one
+				--assert :nest3/sub + 1 = :nest3/sub/two
+				--assert :nest3/sub + 2 = :nest3/sub/three
+				--assert :nest3/sub + 4 = :nest3/f2
+
+			--test-- "loc-svb18.1"
+				nest3/sub: sbvf6 nest3/sub 123
+				--assert nest3/sub/one = 666
+				--assert nest3/sub/two = 777
+				--assert nest3/sub/three = 8.88
+				p-int: :nest3/sub/two
+				--assert p-int/value = 777
+
+			--test-- "loc-svb18.2"
+				nest3/sub: sbvf6 s3 123
+				--assert nest3/sub/one = 123
+				--assert nest3/sub/two = 456
+				--assert nest3/sub/three = 3.14
+				p-int: :nest3/sub/two
+				--assert p-int/value = 456
+
+			--test-- "loc-svb18.3"
+				nest3/sub: returnBig
+				--assert nest3/sub/one = 111
+				--assert nest3/sub/two = 222
+				--assert nest3/sub/three = 3.14159
+				--assert nest3/f1 = 121212
+				--assert nest3/f2 = 343434
+
+			--test-- "loc-svb19"
+				nest4: declare nested4!
+
+				--assert 40 = size? nested4!
+
+				nest4/g1: 121212
+				nest4/g2: 343434
+				nest4/sub/w1: 100
+				nest4/sub/w2: 200
+				nest4/sub/w3: 300.0
+				nest4/sub/w4: 400
+				nest4/sub/w5: 500
+				nest4/sub/w6: 600.0		
+
+				--assert nest4/g1 = 121212
+				--assert nest4/g2 = 343434
+				--assert nest4/sub/w1 = 100
+				--assert nest4/sub/w2 = 200
+				--assert nest4/sub/w3 = 300.0
+				--assert nest4/sub/w4 = 400
+				--assert nest4/sub/w5 = 500
+				--assert nest4/sub/w6 = 600.0
+
+				--assert (as int-ptr! nest4) + 1 = :nest4/sub
+				--assert :nest4/sub     = :nest4/sub/w1
+				--assert :nest4/sub + 1 = :nest4/sub/w2
+				--assert :nest4/sub + 2 = :nest4/sub/w3
+				--assert :nest4/sub + 4 = :nest4/sub/w4
+				--assert :nest4/sub + 8 = :nest4/g2
+
+			--test-- "loc-svb19.1"
+				nest4/sub: returnHuge as-integer #"0" as-integer #"1"
+				--assert nest4/sub/w1 = 48
+				--assert nest4/sub/w2 = 49
+				--assert nest4/sub/w3 = 3.5
+				--assert nest4/sub/w4 = 444
+				--assert nest4/sub/w5 = 555
+				--assert nest4/sub/w6 = 6.789
+
+			--test-- "loc-svb19.2"
+				nest4/sub: returnHuge2 nest4/sub as-integer #"0" as-integer #"1"
+				--assert nest4/sub/w1 = 48
+				--assert nest4/sub/w2 = 49
+				--assert nest4/sub/w3 = 3.5
+				--assert nest4/sub/w4 = 444
+				--assert nest4/sub/w5 = 555
+				--assert nest4/sub/w6 = 6.789
+				--assert nest4/g1 = 121212
+				--assert nest4/g2 = 343434
+
+			--test-- "loc-svb20"
+				--assert 56 = size? nested5!
+
+				nest5/g1: 121212
+				nest5/g2: 343434
+				nest5/sub/f1: 1.0
+				nest5/sub/f2: 2.0
+				nest5/sub/f3: 3.0
+				nest5/sub/f4: 4.0
+				nest5/sub/f5: 5.0
+				nest5/sub/f6: 6.0		
+
+				--assert nest5/g1 = 121212
+				--assert nest5/g2 = 343434
+				--assert nest5/sub/f1 = 1.0
+				--assert nest5/sub/f2 = 2.0
+				--assert nest5/sub/f3 = 3.0
+				--assert nest5/sub/f4 = 4.0
+				--assert nest5/sub/f5 = 5.0
+				--assert nest5/sub/f6 = 6.0
+
+				--assert (as int-ptr! nest5) + 1 = :nest5/sub
+				--assert :nest5/sub      = :nest5/sub/f1
+				--assert :nest5/sub + 2  = :nest5/sub/f2
+				--assert :nest5/sub + 4  = :nest5/sub/f3
+				--assert :nest5/sub + 12 = :nest5/g2
+				
+			--test-- "svb30"
+				nest1: declare nested1!
+
+				--assert 12 = size? nested1!
+
+				nest1/f1: 121212
+				nest1/f2: 343434
+				nest1/sub/b1: #"B"
+
+				--assert nest1/f1 = 121212
+				--assert nest1/f2 = 343434
+				--assert nest1/sub/b1 = #"B"
+
+			--test-- "svb30.1"
+				nest1/sub: sbvf2 nest1/sub 123
+				--assert nest1/sub/b1 = #"B"
+
+			--test-- "svb30.2"
+				nest1/sub: sbvf2 s1 123
+				--assert nest1/sub/b1 = #"A"
+
+			--test-- "svb30.3"
+				nest1/sub: returnTiny
+				--assert nest1/sub/b1 = #"z"
+				--assert nest1/f1 = 121212
+				--assert nest1/f2 = 343434
+
+			--test-- "svb31"
+				nest2: declare nested2!
+
+				--assert 16 = size? nested2!
+
+				nest2/f1: 121212
+				nest2/f2: 343434
+				nest2/sub/one: 147
+				nest2/sub/two: 258
+
+				--assert nest2/f1 = 121212
+				--assert nest2/f2 = 343434
+				--assert nest2/sub/one = 147
+				--assert nest2/sub/two = 258
+
+			--test-- "svb31.1"
+				nest2/sub: sbvf4 nest2/sub 123
+				--assert nest2/sub/one = 148
+				--assert nest2/sub/two = 259
+
+			--test-- "svb31.2"
+				nest2/sub: sbvf4 s2 123
+				--assert nest2/sub/one = 5
+				--assert nest2/sub/two = 6
+
+			--test-- "svb31.3"
+				nest2/sub: returnSmall
+				--assert nest2/sub/one = 111
+				--assert nest2/sub/two = 222
+				--assert nest2/f1 = 121212
+				--assert nest2/f2 = 343434
+
+			--test-- "svb32"
+				nest3: declare nested3!
+
+				--assert 24 = size? nested3!
+
+				nest3/f1: 121212
+				nest3/f2: 343434
+				nest3/sub/one: 666
+				nest3/sub/two: 777
+				nest3/sub/three: 8.88
+
+				--assert nest3/f1 = 121212
+				--assert nest3/f2 = 343434
+				--assert nest3/sub/one = 666
+				--assert nest3/sub/two = 777
+				--assert nest3/sub/three = 8.88
+
+				--assert (as int-ptr! nest3) + 1 = :nest3/sub
+				--assert :nest3/sub     = :nest3/sub/one
+				--assert :nest3/sub + 1 = :nest3/sub/two
+				--assert :nest3/sub + 2 = :nest3/sub/three
+				--assert :nest3/sub + 4 = :nest3/f2
+
+			--test-- "svb32.1"
+				nest3/sub: sbvf6 nest3/sub 123
+				--assert nest3/sub/one = 666
+				--assert nest3/sub/two = 777
+				--assert nest3/sub/three = 8.88
+				p-int: :nest3/sub/two
+				--assert p-int/value = 777
+
+			--test-- "svb32.2"
+				nest3/sub: sbvf6 s3 123
+				--assert nest3/sub/one = 123
+				--assert nest3/sub/two = 456
+				--assert nest3/sub/three = 3.14
+				p-int: :nest3/sub/two
+				--assert p-int/value = 456
+
+			--test-- "svb32.3"
+				nest3/sub: returnBig
+				--assert nest3/sub/one = 111
+				--assert nest3/sub/two = 222
+				--assert nest3/sub/three = 3.14159
+				--assert nest3/f1 = 121212
+				--assert nest3/f2 = 343434
+
+		]
+		localsbvf
+
+===end-group===
 
 ~~~end-file~~~

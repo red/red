@@ -28,6 +28,8 @@ stack: context [										;-- call stack
 		header [integer!]								;-- symbol ID of the calling function
 		prev   [red-value!]								;-- previous frame base
 		ctx	   [node!]									;-- context for function's name
+		fctx   [node!]
+		saved  [node!]
 	]
 	
 	arg-stk:		as red-block!	0					;-- argument stack (should never be relocated)
@@ -118,13 +120,44 @@ stack: context [										;-- call stack
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/mark"]]
 
-		if ctop = c-end [
+		if ctop >= c-end [
 			top: top - 4								;-- make space within the stack for error processing
 			fire [TO_ERROR(internal stack-overflow)]
 		]
 		ctop/header: type or (fun/symbol << 8)
 		ctop/prev:	 arguments
 		ctop/ctx:	 fun/ctx
+		ctop/fctx:	 null
+		ctop/saved:  null
+		ctop: ctop + 1
+		arguments: top								;-- top of stack becomes frame base
+
+		#if debug? = yes [if verbose > 1 [dump]]
+	]
+	
+	mark-func: func [
+		fun		 [red-word!]
+		ctx-name [node!]
+		/local
+			ctx	   [red-context!]
+			values [node!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "stack/mark-func"]]
+
+		if ctop >= c-end [
+			top: top - 4								;-- make space within the stack for error processing
+			fire [TO_ERROR(internal stack-overflow)]
+		]
+		values: either null? ctx-name [null][			;-- null only happens in some libRedRT cases
+			ctx: TO_CTX(ctx-name)
+			ctx/values
+		]
+
+		ctop/header: FRAME_FUNCTION or (fun/symbol << 8)
+		ctop/prev:	 arguments
+		ctop/ctx:	 fun/ctx
+		ctop/fctx:	 ctx-name
+		ctop/saved:  values
 		ctop: ctop + 1
 		arguments: top								;-- top of stack becomes frame base
 
@@ -137,8 +170,6 @@ stack: context [										;-- call stack
 
 	reset: func [
 		return:  [cell!]
-		/local
-			s	 [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/reset"]]
 		
@@ -148,8 +179,6 @@ stack: context [										;-- call stack
 	
 	keep: func [
 		return:  [cell!]
-		/local
-			s	 [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/keep"]]
 		
@@ -159,7 +188,6 @@ stack: context [										;-- call stack
 	]
 	
 	mark-native: 		MARK_STACK(FRAME_NATIVE)
-	mark-func:	 		MARK_STACK(FRAME_FUNCTION)
 	mark-try:	 		MARK_STACK(FRAME_TRY)
 	mark-try-all:		MARK_STACK(FRAME_TRY_ALL)
 	mark-catch:	 		MARK_STACK(FRAME_CATCH)
@@ -199,7 +227,7 @@ stack: context [										;-- call stack
 			]
 		]
 		where-ctop: null
-		word/at p/ctx sym
+		either p < cbottom [words/_not-found][word/at p/ctx sym]
 	]
 	
 	revert: does [
@@ -261,11 +289,20 @@ stack: context [										;-- call stack
 		inner? [logic!]									;-- YES: stay in inner frame
 		/local
 			type [integer!]
+			node [node!]
+			ctx	 [red-context!]
 	][
 		assert cbottom < ctop
 		until [
 			ctop: ctop - 1
 			type: CALL_STACK_MASK and ctop/header
+			if type = FRAME_FUNCTION [
+				node: ctop/fctx
+				if node <> null [
+					ctx: TO_CTX(node)
+					ctx/values: ctop/saved
+				]
+			]
 			any [
 				ctop <= cbottom
 				type = flags
@@ -303,12 +340,14 @@ stack: context [										;-- call stack
 	]
 	
 	trace: func [
+		level	[integer!]
 		int		[red-integer!]
 		buffer	[red-string!]
 		part	[integer!]
 		return: [integer!]
 		/local
 			value [red-value!]
+			fun	  [red-value!]
 			top	  [call-frame!]
 			base  [call-frame!]
 			sym	  [integer!]
@@ -323,15 +362,19 @@ stack: context [										;-- call stack
 			sym: base/header >> 8 and FFFFh
 			
 			if all [sym <> body-symbol sym <> anon-symbol][
-				if base > cbottom [
-					string/concatenate-literal buffer " "
-					part: part - 4
+				fun: _context/get-global sym
+				if any [level > 1 TYPE_OF(fun) = TYPE_FUNCTION][
+					part: word/form 
+						word/make-at sym value
+						buffer
+						null
+						part
+					
+					if base >= cbottom [
+						string/concatenate-literal buffer " "
+						part: part - 1
+					]
 				]
-				part: word/form 
-					word/make-at sym value
-					buffer
-					null
-					part
 			]
 			base: base + 1
 			base >= top									;-- defensive test
@@ -355,19 +398,13 @@ stack: context [										;-- call stack
 		err [red-object!]
 		/local
 			extra [red-value!]
-			saved [red-value!]
-			flags [integer!]
 			all?  [logic!]
 	][
 		if ctop > cbottom [
 			error/set-where err as red-value! get-call
 			set-stack err
-		
-			all?: (error/get-type err) = words/errors/throw/symbol
-			flags: either all? [FRAME_TRY_ALL][FRAME_TRY]
-
 			extra: top
-			unroll-frames flags no
+			unroll-frames FRAME_TRY no
 
 			ctop: ctop - 1
 			assert ctop >= cbottom
@@ -382,7 +419,7 @@ stack: context [										;-- call stack
 			natives/print* no
 			quit -2
 		]
-		stack/push as red-value! err
+		push as red-value! err
 		throw RED_THROWN_ERROR
 	]
 	
@@ -393,7 +430,6 @@ stack: context [										;-- call stack
 			result	  [red-value!]
 			save-top  [red-value!]
 			save-ctop [call-frame!]
-			p		  [call-frame!]
 	][
 		result:	   arguments
 		save-top:  top
@@ -401,27 +437,23 @@ stack: context [										;-- call stack
 		
 		;-- unwind the stack and determine the outcome of a break/continue exception
 		until [
-			ctop: ctop - 1
-			if any [
-				CALL_STACK_TYPE?(ctop FRAME_FUNCTION)
-				CALL_STACK_TYPE?(ctop FRAME_TRY_ALL)
-			][
+			if CALL_STACK_TYPE?(ctop FRAME_TRY_ALL) [
 				ctop: save-ctop
 				either cont? [fire [TO_ERROR(throw continue)]][fire [TO_ERROR(throw break)]]
 			]
+			ctop: ctop - 1
 			any [
 				ctop <= cbottom
 				CALL_STACK_TYPE?(ctop FRAME_LOOP)		;-- loop found, we are fine!
 			]
 		]
-		either ctop < cbottom [
+		either all [ctop <= cbottom NOT_CALL_STACK_TYPE?(ctop FRAME_LOOP)][
 			arguments: result
 			top:	   save-top	
 			ctop:	   save-ctop
 			either cont? [fire [TO_ERROR(throw continue)]][fire [TO_ERROR(throw break)]]
 		][
 			ctop: ctop + 1
-			p: ctop + 1									;-- + 1 for getting ctop/prev value
 			arguments: ctop/prev
 			top: arguments
 			either all [return? not cont?][set-last result][unset/push-last]
@@ -439,7 +471,6 @@ stack: context [										;-- call stack
 			result	  [red-value!]
 			save-top  [red-value!]
 			save-ctop [call-frame!]
-			p		  [call-frame!]
 	][
 		result:	   arguments
 		save-top:  top
@@ -454,17 +485,16 @@ stack: context [										;-- call stack
 			ctop: ctop - 1
 			any [
 				ctop <= cbottom
-				ctop/header and FLAG_IN_FUNC <> 0		;-- function body, we are fine!			
+				ctop/header and FLAG_IN_FUNC <> 0		;-- function body, we are fine!
 			]
 		]
-		either ctop < cbottom [
+		either all [ctop <= cbottom ctop/header and FLAG_IN_FUNC = 0][
 			arguments: result
 			top:	   save-top	
 			ctop:	   save-ctop
 			fire [TO_ERROR(throw return)]
 		][
 			ctop: ctop + 1
-			p: ctop + 1									;-- + 1 for getting ctop/prev value
 			arguments: ctop/prev
 			top: arguments
 			either return? [
@@ -483,7 +513,6 @@ stack: context [										;-- call stack
 			result	  [red-value!]
 			save-top  [red-value!]
 			save-ctop [call-frame!]
-			p		  [call-frame!]
 	][
 		result:	   arguments
 		save-top:  top
@@ -499,18 +528,17 @@ stack: context [										;-- call stack
 			]
 			ctop: ctop - 1
 			any [
-				ctop < cbottom
+				ctop <= cbottom
 				CALL_STACK_TYPE?(ctop FRAME_CATCH)		;-- CATCH call found, we are fine!
 			]
 		]
-		either ctop < cbottom [
+		either all [ctop <= cbottom NOT_CALL_STACK_TYPE?(ctop FRAME_CATCH)][
 			arguments: result
 			top:	   save-top	
 			ctop:	   save-ctop
 			fire [TO_ERROR(throw throw) result]
 		][
 			ctop: ctop + 1
-			p: ctop + 1									;-- + 1 for getting ctop/prev value
 			arguments: ctop/prev
 			top: arguments
 			push result
@@ -528,6 +556,7 @@ stack: context [										;-- call stack
 	
 	eval?: func [
 		ptr		[byte-ptr!]
+		parent? [logic!]
 		return: [logic!]
 		/local
 			cframe [call-frame!]
@@ -536,7 +565,7 @@ stack: context [										;-- call stack
 		until [
 			cframe: cframe - 1
 			if FLAG_INTERPRET and cframe/header = FLAG_INTERPRET [return yes]
-			cframe <= cbottom
+			any [parent? cframe <= cbottom]
 		]
 		no
 	]
@@ -560,7 +589,7 @@ stack: context [										;-- call stack
 		cell: top
 		top: top + 1
 		if top >= a-end [
-			top: top - 4								;-- make space within the stack for error processing
+			top: top - 5								;-- make space within the stack for error processing
 			fire [TO_ERROR(internal stack-overflow)]
 		]
 		cell
@@ -591,6 +620,10 @@ stack: context [										;-- call stack
 	][
 		value: top - 1
 		TYPE_OF(value)
+	]
+	
+	get-top: func [return: [red-value!]][
+		either top = bottom [top][top - 1]
 	]
 	
 	func?: func [

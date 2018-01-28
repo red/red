@@ -27,6 +27,12 @@ Red/System [
 #define SYSCALL_MUNMAP		91
 #define SYSCALL_MMAP		SYSCALL_MMAP2
 
+#define	EPERM				1			;-- Operation not permitted
+#define	ENOENT				2			;-- No such file or directory
+#define	EINTR				4			;-- Interrupted system call
+#define	EAGAIN				11			;-- Try again
+#define	ENOSYS				38			;-- Function not implemented
+
 platform: context [
 	
 	#either OS = 'Android [
@@ -45,6 +51,7 @@ platform: context [
 				property	[integer!]
 				return:		[integer!]
 			]
+			environ: "environ" [integer!]
 		]
 	]
 
@@ -88,9 +95,7 @@ platform: context [
 			-1									;-- portable value
 			0
 
-		if -1 = as-integer ptr [
-			raise-error RED_ERR_VMEM_OUT_OF_MEMORY as-integer system/pc
-		]
+		if -1 = as-integer ptr [throw OS_ERROR_VMEM_OUT_OF_MEMORY]
 		as int-ptr! ptr
 	]
 
@@ -100,8 +105,8 @@ platform: context [
 	free-virtual: func [
 		ptr [int-ptr!]							;-- address of memory region to release
 	][
-		if negative? munmap as byte-ptr! ptr ptr/value [
-			raise-error RED_ERR_VMEM_RELEASE_FAILED as-integer system/pc
+		if -1 = munmap as byte-ptr! ptr ptr/value [
+			throw OS_ERROR_VMEM_RELEASE_FAILED
 		]
 	]
 	

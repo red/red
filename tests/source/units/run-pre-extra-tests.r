@@ -11,6 +11,7 @@ REBOL [
 
 ===start-group=== "Red compiler unit tests"
 	--run-unit-test-quiet %source/compiler/lexer-test.r
+	--run-unit-test-quiet %source/units/auto-tests/lexer-auto-test.r
 ===end-group===
 
 ===start-group=== "Red runtime tests"
@@ -18,7 +19,7 @@ REBOL [
 ===end-group===
 
 ===start-group=== "Red Compiler tests"
-  	
+	--run-script-quiet %source/compiler/preprocessor-test.r
 ===end-group===
 
 ===start-group=== "Red Library tests"
