@@ -1812,7 +1812,7 @@ string: context [
 					either c1 < sz [
 						BS_TEST_BIT(pbits c1 found?)
 					][
-						found?: no
+						found?: as logic! sbits/flags and flag-bitset-not
 					]
 				][
 					found?: c1 = c2
