@@ -507,9 +507,9 @@ Declaring a struct! value is achieved by using the DECLARE STRUCT! sequence foll
  ]
  
  <member>   : a valid identifier
- <datatype> : integer! | byte! | pointer! [integer! | byte!] | logic! |
-              float! | float32! | c-string! | struct! [<members>] |
-              struct! [<members>] value | function! [<spec>]
+ <datatype> : integer! | byte! | logic! | float! | float32! | c-string! |
+              pointer! [integer! | byte! | float! | float64! | float32!] |
+              struct! [<members>] | struct! [<members>] value | function! [<spec>]
               
 The returned value of DECLARE STRUCT! is the memory address of the newly created struct! value.
 
