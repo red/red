@@ -3836,15 +3836,15 @@ The list of following symbols and keywords are reserved, they cannot be used as 
     ??			alias 		all
     and   		any			as
     assert		break		case
-    comment		context		continue
-    declare		either		exit
-    false		func		function
-    if			loop		not
-    null		or			pop
-    push		return		size?
-    switch		throw		true
-    until		use			while
-    with		xor
+    catch		comment		context
+    continue	declare		either
+    exit		false		func
+    function	if			loop
+    not			null		or
+    pop			push		return
+    size?		switch		throw
+    true		until		use
+    while		with		xor
     
 \note Bootstrap constraints
 Both -** (internal representation for >>>) and /// (internal representation for %) are required to workaround REBOL's lexical scanner limitations. Those symbols will be removed from the reserved keywords list once the bootstrap phase will end.
