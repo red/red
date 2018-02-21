@@ -2335,6 +2335,64 @@ natives: context [
 		stack/set-last s/offset + 1						;-- return back-reference
 	]
 
+	first+*: func [
+		/local
+			type  [integer!]
+			value [red-value!]
+			str   [red-string!]
+			s     [series!]
+			unit  [integer!]
+			char  [red-char!]
+			blk   [red-block!]
+	][
+		value: _context/get as red-word! stack/arguments
+		type: TYPE_OF(value)
+		switch type [
+			TYPE_STRING
+			TYPE_BINARY
+			TYPE_URL
+			TYPE_FILE [
+				str: as red-string! value
+				s: GET_BUFFER(str)
+				unit: GET_UNIT(s)
+
+				either (as byte-ptr! s/offset) + (str/head << (unit >> 1)) >= as byte-ptr! s/tail [
+					RETURN_NONE
+				][
+					char: as red-char! stack/arguments
+					char/header: either type = TYPE_BINARY [TYPE_INTEGER][TYPE_CHAR]
+					char/value: string/get-char 
+						(as byte-ptr! s/offset) + (str/head << (unit >> 1))
+						unit
+					str/head: str/head + 1
+					SET_RETURN(char)
+				]
+			]
+			TYPE_BLOCK
+			TYPE_PAREN
+			TYPE_PATH
+			TYPE_LIT_PATH
+			TYPE_SET_PATH
+			TYPE_GET_PATH [
+				blk: as red-block! value
+				s: GET_BUFFER(blk)
+				either s/offset + blk/head >= s/tail [
+					RETURN_NONE
+				][
+					stack/set-last as red-value! (s/offset + blk/head)
+					blk/head: blk/head + 1
+				]
+			]
+			default [
+ 				fire [
+ 					TO_ERROR(script invalid-type)
+ 					datatype/push TYPE_OF(value)
+ 				]
+ 			]
+		]
+	]
+	;--- Natives helper functions ---
+
 	set-env*: func [
 		check?	[logic!]
 		/local
@@ -3236,6 +3294,7 @@ natives: context [
 			:size?*
 			:browse*
 			:decompress*
+			:first+*
 		]
 	]
 

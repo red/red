@@ -883,3 +883,11 @@ decompress: make native! [[
 	]
 	#get-definition NAT_DECOMPRESS
 ]
+
+first+: make native! [[
+		"Return the FIRST of a series then increment the series index."
+		'word [word!] "Word must refer to a series"
+		return:		[any-type!]
+	]
+	#get-definition NAT_FIRST_PLUS
+]

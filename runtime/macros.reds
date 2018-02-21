@@ -243,6 +243,7 @@ Red/System [
 	NAT_SIZE?
 	NAT_BROWSE
 	NAT_DECOMPRESS
+	NAT_FIRST_PLUS
 ]
 
 #enum math-op! [
