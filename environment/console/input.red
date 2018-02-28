@@ -579,7 +579,7 @@ ask: function [
 ][
 	buffer: make string! 1
 	_set-buffer-history buffer head system/console/history
-	_read-input question
+	_read-input append question space
 	buffer
 ]
 
