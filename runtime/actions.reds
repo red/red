@@ -1583,7 +1583,26 @@ actions: context [
 	
 	open*: func [][]
 	open?*: func [][]
-	query*: func [][]
+
+	query*: func [][
+		stack/set-last query stack/arguments
+	]
+
+	query: func [
+		target  [red-value!]
+		return:	[red-value!]
+		/local
+			action-query
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/query"]]
+
+		action-query: as function! [
+			target  [red-value!]
+			return:	[red-value!]						;-- picked value from series
+		] get-action-ptr target ACT_QUERY
+
+		action-query target
+	]
 
 	read*: func [
 		part	[integer!]
@@ -1760,7 +1779,7 @@ actions: context [
 			:modify*
 			null			;open
 			null			;open?
-			null			;query
+			:query*
 			:read*
 			null			;rename
 			null			;update
