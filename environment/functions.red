@@ -720,7 +720,7 @@ split: function [
 	series [any-string!] dlm [string! char! bitset!] /local s
 ][
 	num: either string? dlm [length? dlm][1]
-	parse series [collect any [copy s [to dlm | to end] keep (s) num skip]]
+	parse series [collect any [copy s [to [dlm | end]] keep (s) num skip [end keep ("") | none] ]]
 ]
 
 dirize: func [
