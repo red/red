@@ -1064,7 +1064,7 @@ object: context [
 		#if debug? = yes [if verbose > 0 [print-line "object/mold"]]
 		
 		string/concatenate-literal buffer "make object! ["
-		part: serialize obj buffer only? all? flat? arg part - 14 yes indent + 1 yes
+		part: serialize obj buffer no all? flat? arg part - 14 yes indent + 1 yes
 		if indent > 0 [part: do-indent buffer indent part]
 		string/append-char GET_BUFFER(buffer) as-integer #"]"
 		part - 1
