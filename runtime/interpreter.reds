@@ -691,6 +691,7 @@ interpreter: context [
 					TYPE_ROUTINE
 					TYPE_FUNCTION [
 						pc: eval-code parent pc end sub? path item gparent
+						unless sub? [stack/set-last stack/top]
 						return pc
 					]
 					default [0]
