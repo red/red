@@ -673,9 +673,7 @@ interpreter: context [
 			switch TYPE_OF(value) [
 				TYPE_UNSET [fire [TO_ERROR(script no-value)	item]]
 				TYPE_PAREN [
-					stack/mark-interp-native words/_body ;@@ ~paren
-					eval as red-block! value yes		;-- eval paren content
-					stack/unwind
+					eval as red-block! value no		;-- eval paren content
 					value: stack/top - 1
 				]
 				default [0]								;-- compilation pass-thru
@@ -692,8 +690,7 @@ interpreter: context [
 					TYPE_NATIVE
 					TYPE_ROUTINE
 					TYPE_FUNCTION [
-						pc: eval-code parent pc end yes path item gparent
-						stack/set-last stack/top
+						pc: eval-code parent pc end sub? path item gparent
 						return pc
 					]
 					default [0]
