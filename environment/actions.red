@@ -537,7 +537,13 @@ delete: make action! [[
 ]
 ;open
 ;open?
-;query
+query: make action! [[
+		"Returns information about a file"
+		target [file!]
+	]
+	#get-definition ACT_QUERY
+]
+
 read: make action! [[
 		"Reads from a file, URL, or other port"
 		source	[file! url!]
