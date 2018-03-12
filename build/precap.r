@@ -12,6 +12,11 @@ REBOL [
 #include %../system/utils/encap-fs.r
 do #include-string %bin/sources.r
 
-build-date: #include %timestamp.r
+build-date: use [date][									;-- UTC date
+	date: now
+	date: date - date/zone
+	date/zone: none
+	date
+]
 
 do #include-string %../red.r

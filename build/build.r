@@ -31,7 +31,7 @@ encapper: 		%enpro
 bin:			%bin/
 cache-file:		%bin/sources.r
 red: 			%red
-ts-file:		%timestamp.r
+git-file:		%git.r
 
 either Windows? [
 	append red %.exe
@@ -49,7 +49,7 @@ log: func [msg [string! block!]][
 ;-- Clean previous generated files
 log "Cleaning files..."
 attempt [delete cache-file]
-attempt [delete %bin/red.exe]
+attempt [delete bin/:red]
 
 ;-- Create a working folder for the generated files
 unless exists? %bin/ [
@@ -57,12 +57,12 @@ unless exists? %bin/ [
 	make-dir bin
 ]
 
+;-- Try to get version data from git repository
+save git-file do %git-version.r
+
 ;-- Combines all required source files into one (%sources.r)
 log "Combining all source files together..."
 do %includes.r
-
-;-- Generating the temporary timestamp file
-write ts-file mold now
 
 ;-- Encapping the Rebol interpreter with Red sources
 log "Encapping..."
@@ -78,7 +78,7 @@ if Windows? [
 ]
 
 ;-- Remove temporary files
-attempt [delete ts-file]
+attempt [delete git-file]
 attempt [delete cache-file]
 
 log join "File output: build/bin/" form red
