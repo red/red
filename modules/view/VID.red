@@ -63,7 +63,6 @@ system/view/VID: context [
 	default-font: [
 		name	system/view/fonts/system
 		size	system/view/fonts/size
-		color	black
 	]
 	
 	throw-error: func [spec [block!]][

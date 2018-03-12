@@ -597,38 +597,49 @@ free-faces: func [
 set-defaults: func [
 	/local
 		hTheme	[handle!]
-		font	[tagLOGFONT value]
+		font	[tagLOGFONT]
+		ft		[tagLOGFONT value]
 		name	[c-string!]
 		res		[integer!]
 		len		[integer!]
+		metrics [tagNONCLIENTMETRICS value]
+		theme?	[logic!]
 ][
-	if IsThemeActive [
+	theme?: IsThemeActive
+	res: -1
+	either theme? [
 		hTheme: OpenThemeData null #u16 "Window"
 		if hTheme <> null [
-			res: GetThemeSysFont hTheme 805 font		;-- TMT_MSGBOXFONT
-			if zero? res [
-				name: as-c-string :font/lfFaceName
-				len: utf16-length? name
-				res: len + 1 * 2
-				default-font-name: as c-string! allocate res
-				copy-memory as byte-ptr! default-font-name as byte-ptr! name res
-				string/load-at
-					name
-					len
-					#get system/view/fonts/system
-					UTF-16LE
-				
-				integer/make-at 
-					#get system/view/fonts/size
-					0 - (font/lfHeight * 72 / log-pixels-y)
-					
-				default-font: CreateFontIndirect font
-			]
+			res: GetThemeSysFont hTheme 805 :ft		;-- TMT_MSGBOXFONT
+			font: :ft
 		]
-		CloseThemeData hTheme
+	][
+		metrics/cbSize: size? tagNONCLIENTMETRICS
+		res: as-integer SystemParametersInfo 29h size? tagNONCLIENTMETRICS as int-ptr! :metrics 0
+		font: as tagLOGFONT :metrics/lfMessageFont
 	]
+	if res >= 0 [
+		name: as-c-string :font/lfFaceName
+		len: utf16-length? name
+		res: len + 1 * 2
+		default-font-name: as c-string! allocate res
+		copy-memory as byte-ptr! default-font-name as byte-ptr! name res
+		string/load-at
+			name
+			len
+			#get system/view/fonts/system
+			UTF-16LE
+		
+		integer/make-at 
+			#get system/view/fonts/size
+			0 - (font/lfHeight * 72 / log-pixels-y)
+			
+		default-font: CreateFontIndirect font
+
+		if theme? [CloseThemeData hTheme]
+	]
+
 	if null? default-font [default-font: GetStockObject DEFAULT_GUI_FONT]
-	null
 ]
 
 enable-visual-styles: func [

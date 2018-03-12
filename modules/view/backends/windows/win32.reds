@@ -309,6 +309,7 @@ Red/System [
 #define WM_COPY				0301h
 #define WM_PASTE			0302h
 #define WM_CLEAR			0303h
+#define WM_THEMECHANGED		031Ah
 
 #define WM_CAP_DRIVER_CONNECT		040Ah
 #define WM_CAP_DRIVER_DISCONNECT	040Bh
@@ -867,6 +868,25 @@ tagLOGFONT: alias struct! [								;-- 92 bytes
 	lfFaceName6		[float!]
 	lfFaceName7		[float!]
 	lfFaceName8		[float!]
+]
+
+tagNONCLIENTMETRICS: alias struct! [
+	cbSize				[integer!]
+	iBorderWidth		[integer!]
+	iScrollWidth		[integer!]
+	iScrollHeight		[integer!]
+	iCaptionWidth		[integer!]
+	iCaptionHeight		[integer!]
+	lfCaptionFont		[tagLOGFONT value]
+	iSmCaptionWidth		[integer!]
+	iSmCaptionHeight	[integer!]
+	lfSmCaptionFont		[tagLOGFONT value]
+	iMenuWidth			[integer!]
+	iMenuHeight			[integer!]
+	lfMenuFont			[tagLOGFONT value]
+	lfStatusFont		[tagLOGFONT value]
+	lfMessageFont		[tagLOGFONT value]
+	iPaddedBorderWidth	[integer!]
 ]
 
 tagCHOOSEFONT: alias struct! [

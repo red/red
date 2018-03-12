@@ -1174,6 +1174,7 @@ WndProc: func [
 				SWP_NOZORDER or SWP_NOACTIVATE
 			RedrawWindow hWnd null null 4 or 1			;-- RDW_ERASE | RDW_INVALIDATE
 		]
+		WM_THEMECHANGED [set-defaults]
 		default [0]
 	]
 	if ext-parent-proc? [call-custom-proc hWnd msg wParam lParam]
