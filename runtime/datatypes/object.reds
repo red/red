@@ -162,8 +162,11 @@ object: context [
 			tail	[red-value!]
 			new		[red-value!]
 			old		[red-value!]
+			int		[red-integer!]
 			s		[series!]
 			i		[integer!]
+			idx-s	[integer!]
+			idx-d	[integer!]
 			type	[integer!]
 			on-set?	[logic!]
 	][
@@ -175,21 +178,35 @@ object: context [
 		on-set?: obj/on-set <> null
 		s: as series! ctx/symbols/value
 		word: as red-word! s/offset
+		
+		if on-set? [
+			s: as series! obj/on-set/value
+			int: as red-integer! s/offset
+			idx-s: int/value >>> 16
+			int: int + 1
+			idx-d: int/value >>> 16
+		]
 
 		either all [not only? any [type = TYPE_BLOCK type = TYPE_OBJECT]][
 			either type = TYPE_BLOCK [
 				blk: as red-block! value
-				i: 1
+				i: 0
 				while [values < tail][
-					new: _series/pick as red-series! blk i null
+					new: _series/pick as red-series! blk i + 1 null
 					unless all [some? TYPE_OF(new) = TYPE_NONE][
-						if on-set? [old: stack/push values]
-						copy-cell new values
-						if on-set? [fire-on-set obj word old new]
+						either on-set? [
+							if all [i <> idx-s i <> idx-d][	;-- do not overwrite event handlers
+								old: stack/push values
+								copy-cell new values
+								fire-on-set obj word old new
+							]
+						][
+							copy-cell new values
+						]
 					]
+					i: i + 1
 					word: word + 1
 					values: values + 1
-					i: i + 1
 				]
 			][
 				obj2: as red-object! value
@@ -201,9 +218,15 @@ object: context [
 					if i > -1 [
 						new: values2 + i
 						unless all [some? TYPE_OF(new) = TYPE_NONE][
-							if on-set? [old: stack/push values]
-							copy-cell new values
-							if on-set? [fire-on-set obj word old new]
+							either on-set? [
+								if all [i <> idx-s i <> idx-d][		;-- do not overwrite event handlers
+									old: stack/push values
+									copy-cell new values
+									fire-on-set obj word old new
+								]
+							][
+								copy-cell new values
+							]
 						]
 					]
 					word: word + 1
@@ -211,10 +234,18 @@ object: context [
 				]
 			]
 		][
+			i: 0
 			while [values < tail][
-				if on-set? [old: stack/push values]
-				copy-cell value values
-				if on-set? [fire-on-set obj word old new]
+				either on-set? [
+					if all [i <> idx-s i <> idx-d][		;-- do not overwrite event handlers
+						old: stack/push values
+						copy-cell value values
+						fire-on-set obj word old new
+					]
+				][
+					copy-cell value values
+				]
+				i: i + 1
 				word: word + 1
 				values: values + 1
 			]
