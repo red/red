@@ -1190,6 +1190,7 @@ process: func [
 		pt	   [tagPOINT]
 		hWnd   [handle!]
 		new	   [handle!]
+		saved  [handle!]
 		res	   [integer!]
 		x	   [integer!]
 		y	   [integer!]
@@ -1209,6 +1210,7 @@ process: func [
 			][
 				return EVT_DISPATCH						;-- filter out buggy mouse positions (thanks MS!)
 			]
+			saved: msg/hWnd
 			new: get-child-from-xy msg/hWnd x y
 			
 			evt?: all [hover-saved <> null hover-saved <> new]
@@ -1233,12 +1235,15 @@ process: func [
 				make-event msg 0 EVT_OVER
 			]
 			hover-saved: new
+			msg/hWnd: saved
 			EVT_DISPATCH
 		]
 		WM_MOUSELEAVE [
+			saved: msg/hWnd
 			msg/hWnd: hover-saved
 			make-event msg EVT_FLAG_AWAY EVT_OVER
 			hover-saved: null
+			msg/hWnd: saved
 			EVT_DISPATCH
 		]
 		WM_MOUSEWHELL [
