@@ -274,7 +274,6 @@ simple-io: context [
 					st_atime	[timespec! value]		;-- struct timespec inlined
 					st_mtime	[timespec! value]		;-- struct timespec inlined
 					st_ctime	[timespec! value]		;-- struct timespec inlined
-					ctv_msec	[integer!]
 					st_size		[integer!]
 					st_blocks	[integer!]
 					st_blksize	[integer!]
