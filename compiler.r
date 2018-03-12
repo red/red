@@ -4200,8 +4200,18 @@ red: context [
 				comp-expression
 				true
 			]
-			#build-date [
-				change pc now
+			#git [
+				change/only pc load-cache %build/git.r
+				comp-expression
+				true
+			]
+			#build-date [								;-- UTC date
+				change pc use [date][
+					date: now
+					date: date - date/zone
+					date/zone: none
+					date
+				]
 				comp-expression
 				true
 			]
