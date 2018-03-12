@@ -16,6 +16,9 @@ write %build/bin/sources.r set-cache [
 	%boot.red
 	%compiler.r
 	%lexer.r
+	%build/ [
+		%git.r
+	]
 	%environment/ [
 		%actions.red
 		%colors.red
