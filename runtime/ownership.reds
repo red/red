@@ -121,7 +121,7 @@ ownership: context [
 					]
 				]
 
-				if put? [	;-- process series if not already owned
+				if put? [								;-- process series if not already owned
 					slot: as red-value! _hashtable/put-key table as-integer series/node
 					copy-cell container slot
 					copy-cell as red-value! owner slot + 1
@@ -151,7 +151,13 @@ ownership: context [
 					word: as red-word! s/offset
 					
 					while [value < tail][
-						bind value owner word
+						obj: as red-object! value
+						if any [
+							TYPE_OF(value) <> TYPE_OBJECT
+							obj/ctx <> owner/ctx		;-- avoid infinite recursion (#3253)
+						][
+							bind value owner word
+						]
 						value: value + 1
 						word: word + 1
 					]
