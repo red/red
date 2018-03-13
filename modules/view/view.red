@@ -854,6 +854,36 @@ center-face: function [
 	face
 ]
 
+make-face: func [
+	style   [word!]  "A face type"
+	/spec 
+		blk [block!] "Spec block of face options expressed in VID"
+	/offset
+		xy  [pair!]  "Offset of the face"
+	/size
+		wh	[pair!]  "Size of the face"
+	/local 
+		svv face styles model opts css
+][
+	svv: system/view/VID
+	styles: svv/styles
+	unless model: select styles style [
+		cause-error 'script 'face-type reduce [style]
+	]
+	face: make face! copy/deep model/template
+	
+	if spec [
+		opts: svv/opts-proto
+		css: make block! 2
+		spec: svv/fetch-options face opts model blk css no
+		if model/init [do bind model/init 'face]
+		svv/process-reactors
+	]
+	if offset [face/offset: xy]
+	if size [face/size: wh]
+	face
+]
+
 dump-face: function [
 	"Display debugging info about a face and its children"
 	face [object!] "Face to analyze"

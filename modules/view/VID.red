@@ -65,6 +65,11 @@ system/view/VID: context [
 		size	system/view/fonts/size
 	]
 	
+	opts-proto: object [
+		type: offset: size: size-x: text: color: enabled?: visible?: selected: image: 
+		rate: font: flags: options: para: data: extra: actors: draw: now?: init: none
+	]
+	
 	throw-error: func [spec [block!]][
 		either system/view/silent? [
 			throw 'silent
@@ -491,10 +496,8 @@ system/view/VID: context [
 		
 		top-left: bound: cursor: origin: spacing: pick [0x0 10x10] tight
 		
-		opts: object [
-			type: offset: size: size-x: text: color: enabled?: visible?: selected: image: 
-			rate: font: flags: options: para: data: extra: actors: draw: now?: init: none
-		]
+		opts: copy opts-proto
+		
 		if empty? opt-words: [][append opt-words words-of opts] ;-- static cache
 		
 		re-align: [
