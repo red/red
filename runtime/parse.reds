@@ -1565,7 +1565,7 @@ parser: context [
 						sym = words/fail [				;-- FAIL
 							match?: no
 							PARSE_TRACE(_match)
-							state: ST_FIND_ALTERN
+							state: ST_POP_RULE
 						]
 						sym = words/ahead [				;-- AHEAD
 							min:   R_NONE
