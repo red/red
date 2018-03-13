@@ -83,8 +83,9 @@ clipboard: context [
 				val		[red-value!]
 		][
 			p: null
+			val: none-value
 			unless OpenClipboard 0 [
-				return none-value
+				return val
 			]
 
 			hMem: GetClipboardData CF_UNICODETEXT
