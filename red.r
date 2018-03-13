@@ -206,6 +206,14 @@ redc: context [
 			to-integer build-date/time
 		]
 	]
+	
+	get-lib-suffix: does [
+		case [
+			Windows? 			 [%.dll]
+			system/version/4 = 2 [%.dylib]
+			'else 				 [%.so]
+		]
+	]
 
 	load-filename: func [filename /local result] [
 		unless any [
@@ -371,11 +379,7 @@ redc: context [
 			script: %crush.reds
 			copy %crush
 		]
-		filename: append temp-dir/:basename case [
-			Windows? 			 [%.dll]
-			system/version/4 = 2 [%.dylib]
-			'else 				 [%.so]
-		]
+		filename: append temp-dir/:basename get-lib-suffix
 
 		if any [
 			not exists? filename
@@ -831,7 +835,7 @@ redc: context [
 		result
 	]
 
-	main: func [/with cmd [string!] /local src opts build-dir prefix result][
+	main: func [/with cmd [string!] /local src opts build-dir prefix result file][
 		set [src opts] parse-options cmd
 		unless src [do opts exit]						;-- run named command and terminates
 
@@ -849,6 +853,9 @@ redc: context [
 
 		;-- libRedRT updating mode
 		if opts/libRedRT-update? [
+			if exists? file: rejoin [get-output-path opts %libRedRT get-lib-suffix][
+				delete file
+			]
 			opts/dev-mode?: opts/link?: no
 			compile src opts
 			print ["libRedRT-extras.r file generated, recompiling..." lf]
