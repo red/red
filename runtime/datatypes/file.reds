@@ -125,10 +125,7 @@ file: context [
 			]
 			s: string/append-char s OS_DIR_SEP
 		][
-			if full? [
-				string/concatenate out get-current-dir -1 0 yes no
-				s: string/append-char GET_BUFFER(out) OS_DIR_SEP
-			]
+			if full? [string/concatenate out get-current-dir -1 0 yes no]
 		]
 
 		while [p < end][
