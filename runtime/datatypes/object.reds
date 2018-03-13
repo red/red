@@ -1009,6 +1009,7 @@ object: context [
 			value [red-value!]
 			word  [red-word!]
 			s	  [series!]
+			len	  [integer!]
 	][
 		blk: 		as red-block! stack/push*
 		blk/header: TYPE_BLOCK
@@ -1038,7 +1039,9 @@ object: context [
 			]
 			field = words/body [
 				blk/node: ctx/symbols
-				blk/node: alloc-cells block/rs-length? blk
+				len: block/rs-length? blk
+				if len = 0 [len: 1]
+				blk/node: alloc-cells len
 				
 				s: as series! ctx/symbols/value
 				syms: s/offset
