@@ -369,7 +369,7 @@ help-ctx: context [
 		form reduce [
 			either no-name [""] [as-arg-col mold param/name]
 			either type: select/skip param 'type 2 [mold/flat type][NO_DOC]
-			either param/desc [dot-str mold param/desc][NO_DOC]
+			either param/desc [mold dot-str param/desc][NO_DOC]
 		]
 	]
 	print-param: func [param [block!] /no-name][
