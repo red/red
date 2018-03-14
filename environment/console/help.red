@@ -408,7 +408,7 @@ help-ctx: context [
 		_print [
 			newline "DESCRIPTION:" newline
 			;reduce either fn-as-obj/desc [[DENT_1 any [fn-as-obj/desc NO_DOC] newline]][""]
-			reduce either fn-as-obj/desc [[DENT_1 dot-str fn-as-obj/desc newline]][""]
+			reduce either fn-as-obj/desc [[DENT_1 dot-str trim/lines copy fn-as-obj/desc newline]][""]
 			DENT_1 word-is-value-str/only word
 		]
 
