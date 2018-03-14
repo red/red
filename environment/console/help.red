@@ -134,8 +134,8 @@ help-ctx: context [
 		]
 	]
 
-	longest-word: func [words [block! object!]][
-		if all [object? words  empty? words: words-of words] [return ""]
+	longest-word: func [words [block! object! map!]][
+		if all [any [object? words  map? words] empty? words: words-of words] [return ""]
 		forall words [words/1: form words/1]
 		sort/compare words func [a b][(length? a) < (length? b)]
 		last words
@@ -434,6 +434,36 @@ help-ctx: context [
 		exit
 	]
 
+	show-map-help: function [
+		"Displays help information about a map."
+		word [word! path! map!]
+		/local value
+	][
+		if not map? word [
+			_print [uppercase form word "is a map! with the following words and values:"]
+		]
+		map: either map? word [word][get word]
+		if not map? map [
+			_print "show-map-help only works on words that refer to maps."
+			exit
+		]
+
+		word-col-wd: length? longest-word map
+
+		foreach map-word words-of map [
+			set/any 'value map/:map-word
+			_print [
+				DENT_1 pad form map-word word-col-wd DEF_SEP as-type-col :value DEF_SEP
+				; Yes, we're checking against our output buffer for every value, even
+				; though it will only trigger for this context (help-ctx) and the 
+				; output-buffer word in it. If we don't check, the output is messed up.
+				; We're in the process of updating output-buffer after all. It's either
+				; this or use a separate buffer. The joys of self reflection.
+				either same? :value output-buffer [""][form-value :value]
+			]
+		]
+	]
+
 	show-object-help: function [
 		"Displays help information about an object."
 		word [word! path! object!]
@@ -500,6 +530,7 @@ help-ctx: context [
 					any-function? :value [_print mold :value]
 					datatype? :value [show-datatype-help :value]
 					object? :value [show-object-help :value]
+					map? :value [show-map-help :value]
 					block? :value [_print [word-is-value-str/only :word DEF_SEP form-value :value]]
 					image? :value [
 						either in system 'view [view [image value]][
