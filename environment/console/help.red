@@ -500,6 +500,7 @@ help-ctx: context [
 					any-function? :value [_print mold :value]
 					datatype? :value [show-datatype-help :value]
 					object? :value [show-object-help :value]
+					block? :value [_print [word-is-value-str/only :word DEF_SEP form-value :value]]
 					image? :value [
 						either in system 'view [view [image value]][
 							_print form-value value
