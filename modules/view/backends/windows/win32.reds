@@ -1150,7 +1150,7 @@ XFORM!: alias struct! [
 			hdcSrc		[handle!]
 			pptSrc		[tagPOINT]
 			crKey		[integer!]
-			pblend		[integer!]
+			pblend		[tagBLENDFUNCTION]
 			dwFlags		[integer!]
 			return:		[logic!]
 		]

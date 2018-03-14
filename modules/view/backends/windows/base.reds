@@ -594,18 +594,17 @@ update-base-background: func [
 	color	[red-tuple!]
 	width	[integer!]
 	height	[integer!]
-	return: [logic!]				;-- true: has alpha channel
 	/local
 		clr		[integer!]
 		brush	[integer!]
 ][
 	clr: color/array1
 	clr: to-gdiplus-color clr
+	if clr >>> 24 = 255 [clr: FEFFFFFFh and clr]		;-- a trick to fix transparent issue
 	brush: 0
 	GdipCreateSolidFill clr :brush
 	GdipFillRectangleI graphic brush 0 0 width height
 	GdipDeleteBrush brush
-	either clr >>> 24 = 255 [false][true]
 ]
 
 update-base-text: func [
@@ -724,11 +723,9 @@ update-base: func [
 		size	[tagSIZE]
 		hBitmap [handle!]
 		hBackDC [handle!]
-		ptSrc	[tagPOINT]
-		ftn		[integer!]
-		bf		[tagBLENDFUNCTION]
+		ptSrc	[tagPOINT value]
+		bf		[tagBLENDFUNCTION value]
 		graphic [integer!]
-		alpha?	[logic!]
 		flags	[integer!]
 ][
 	if (get-face-flags hWnd) and FACET_FLAGS_D2D <> 0 [
@@ -752,22 +749,7 @@ update-base: func [
 	font:	as red-object! values + FACE_OBJ_FONT
 	para:	as red-object! values + FACE_OBJ_PARA
 	sz:		as red-pair!   values + FACE_OBJ_SIZE
-	ptSrc:  declare tagPOINT
-	alpha?: yes     
 	graphic: 0
-
-	unless transparent-base? color img [
-		SetWindowLong hWnd GWL_STYLE WS_CHILD or WS_CLIPSIBLINGS
-		SetWindowLong hWnd GWL_EXSTYLE 0
-		unless null? parent [
-			SetParent hWnd parent
-			change-offset hWnd as red-pair! values + FACE_OBJ_OFFSET base
-			SetActiveWindow parent
-		]
-		update-base hWnd parent ptDst values
-		ShowWindow hWnd SW_SHOW
-		exit
-	]
 
 	width: dpi-scale sz/x
 	height: dpi-scale sz/y
@@ -777,7 +759,7 @@ update-base: func [
 	GdipCreateFromHDC hBackDC :graphic
 
 	if TYPE_OF(color) = TYPE_TUPLE [				;-- update background
-		alpha?: update-base-background graphic color width height
+		update-base-background graphic color width height
 	]
 	GdipSetSmoothingMode graphic GDIPLUS_ANTIALIAS
 	update-base-image graphic img width height
@@ -787,14 +769,12 @@ update-base: func [
 	ptSrc/x: 0
 	ptSrc/y: 0
 	size: as tagSIZE :width
-	ftn: 0
-	bf: as tagBLENDFUNCTION :ftn
 	bf/BlendOp: as-byte 0
 	bf/BlendFlags: as-byte 0
 	bf/SourceConstantAlpha: as-byte 255
 	bf/AlphaFormat: as-byte 1
-	flags: either alpha? [2][4]
-	UpdateLayeredWindow hWnd hScreen ptDst size hBackDC ptSrc 0 as-integer :ftn flags
+	flags: 2
+	UpdateLayeredWindow hWnd null ptDst size hBackDC :ptSrc 0 :bf flags
 	GdipDeleteGraphics graphic
 	DeleteObject hBitmap
 	DeleteDC hBackDC
