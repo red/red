@@ -346,7 +346,13 @@ help-ctx: context [
 					;	Can't reflect on datatypes, as R3 could to some extent.
 					;	We would have to build our own typeset-match funcs to
 					;	show the type tree for it.
-					datatype? :val [col-1]
+					datatype? :val [
+						either system/catalog/accessors/:word [
+							[col-1 DOC_SEP mold system/catalog/accessors/:word]
+						][
+							[col-1]
+						]
+					]
 					any-function? :val [[col-1 DOC_SEP fmt-doc doc-string :val]]
 					'else [[col-1 DEF_SEP form-value :val]]
 				]
