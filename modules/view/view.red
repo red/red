@@ -248,7 +248,7 @@ on-face-deep-change*: function [owner word target action new index part state fo
 	]
 ]
 
-link-tabs-to-parent: function [face [object!]][
+link-tabs-to-parent: function [face [object!] /init][
 	if faces: face/pane [
 		visible?: face/visible?
 		forall faces [
@@ -256,6 +256,7 @@ link-tabs-to-parent: function [face [object!]][
 				faces/1/visible?: make logic! all [visible? face/selected = index? faces]
 			]
 			faces/1/parent: face
+			if init [show/with faces/1 face]
 		]
 	]
 ]
@@ -321,8 +322,8 @@ face!: object [				;-- keep in sync with facet! enum
 				"-- on-change event --" lf
 				tab "face :" type		lf
 				tab "word :" word		lf
-				tab "old  :" type? old	lf
-				tab "new  :" type? new
+				tab "old  :" type? :old	lf
+				tab "new  :" type? :new
 			]
 		]
 		if all [word <> 'state word <> 'extra][
@@ -334,11 +335,11 @@ face!: object [				;-- keep in sync with facet! enum
 				exit
 			]
 			if word = 'pane [
-				if all [type = 'window object? new new/type = 'window][
+				if all [type = 'window object? :new new/type = 'window][
 					cause-error 'script 'bad-window []
 				]
-				same-pane?: all [block? old block? new same? head old head new]
-				if all [not same-pane? block? old not empty? old][
+				same-pane?: all [block? :old block? :new same? head :old head :new]
+				if all [not same-pane? block? :old not empty? old][
 					modify old 'owned none				;-- stop object events
 					foreach f head old [
 						f/parent: none
@@ -347,11 +348,14 @@ face!: object [				;-- keep in sync with facet! enum
 						]
 					]
 				]
+				if all [not same-pane? type = 'tab-panel self/state][
+					link-tabs-to-parent/init self
+				]
 			]
-			if all [not same-pane? any [series? old object? old]][modify old 'owned none]
+			if all [not same-pane? any [series? :old object? :old]][modify old 'owned none]
 			
 			unless any [same-pane? find [font para edge actors extra] word][
-				if any [series? new object? new][modify new 'owned reduce [self word]]
+				if any [series? :new object? :new][modify new 'owned reduce [self word]]
 			]
 			if word = 'font  [link-sub-to-parent self 'font old new]
 			if word = 'para  [link-sub-to-parent self 'para old new]
@@ -882,6 +886,36 @@ center-face: function [
 	][
 		print "CENTER-FACE: face has no parent!"		;-- temporary check
 	]
+	face
+]
+
+make-face: func [
+	style   [word!]  "A face type"
+	/spec 
+		blk [block!] "Spec block of face options expressed in VID"
+	/offset
+		xy  [pair!]  "Offset of the face"
+	/size
+		wh	[pair!]  "Size of the face"
+	/local 
+		svv face styles model opts css
+][
+	svv: system/view/VID
+	styles: svv/styles
+	unless model: select styles style [
+		cause-error 'script 'face-type reduce [style]
+	]
+	face: make face! copy/deep model/template
+	
+	if spec [
+		opts: svv/opts-proto
+		css: make block! 2
+		spec: svv/fetch-options face opts model blk css no
+		if model/init [do bind model/init 'face]
+		svv/process-reactors
+	]
+	if offset [face/offset: xy]
+	if size [face/size: wh]
 	face
 ]
 

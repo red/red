@@ -406,9 +406,9 @@ _series: context [
 			int: as red-integer! part-arg
 			part: int/value
 			if part <= 0 [return as red-value! target]	;-- early exit if negative /part index
-			items: part
 			limit: (as-integer tail - src) >> log-b unit
 			if part > limit [part: limit]
+			items: part
 			part: part << (log-b unit)
 		]
 		
@@ -416,6 +416,9 @@ _series: context [
 		either origin/node = target/node [				;-- same series case
 			dst: (as byte-ptr! s/offset) + (target/head << (log-b unit))
 			if src = dst [return as red-value! target]	;-- early exit if no move is required
+			if all [dst > src dst <> tail part > (as-integer tail - dst)][
+				return as red-value! origin
+			]
 			if dst > tail [dst: tail]					;-- avoid overflows if part is too big
 			ownership/check as red-value! target words/_move null origin/head items
 
@@ -933,6 +936,7 @@ _series: context [
 			bytes	[integer!]
 			size	[integer!]
 			hash	[red-hash!]
+			part2	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "series/take"]]
 
@@ -944,6 +948,7 @@ _series: context [
 		s:    GET_BUFFER(ser)
 		unit: GET_UNIT(s)
 		part: 1
+		part2: 1
 
 		if OPTION?(part-arg) [
 			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
@@ -961,7 +966,13 @@ _series: context [
 					either last? [size - (ser2/head - ser/head)][ser2/head - ser/head]
 				]
 			]
+			part2: part
+			if negative? part [
+				size: ser/head
+				part: either last? [1][0 - part]
+			]
 			if part > size [part: size]
+			if zero? part [part: 1]
 		]
 
 		bytes:	part << (log-b unit)
@@ -974,37 +985,41 @@ _series: context [
 		ser2/extra:  either TYPE_OF(ser) = TYPE_VECTOR [ser/extra][0]
 		ser2/node:  node
 		ser2/head:  0
-		
-		ownership/check as red-value! ser words/_take null ser/head part
 
-		either positive? part [
-			tail: as byte-ptr! s/tail
-			offset: (as byte-ptr! s/offset) + (ser/head << (log-b unit))
+		ownership/check as red-value! ser words/_take null ser/head part2
+
+		offset: (as byte-ptr! s/offset) + (ser/head << (log-b unit))
+		tail: as byte-ptr! s/tail
+		either positive? part2 [
 			if last? [
 				offset: tail - bytes
 				s/tail: as cell! offset
 			]
-			copy-memory
-				as byte-ptr! buffer/offset
-				offset
-				bytes
-			buffer/tail: as cell! (as byte-ptr! buffer/offset) + bytes
+		][
+			if any [last? part > ser/head][return as red-value! ser2]
+			offset: offset - bytes
+		]
+		copy-memory
+			as byte-ptr! buffer/offset
+			offset
+			bytes
+		buffer/tail: as cell! (as byte-ptr! buffer/offset) + bytes
 
-			unless last? [
-				move-memory
-					offset
-					offset + bytes
-					as-integer tail - offset - bytes
-				s/tail: as cell! tail - bytes
-			]
-			if TYPE_OF(ser) = TYPE_HASH [
-				unit: either last? [size][ser/head + part]
-				hash: as red-hash! ser
-				_hashtable/refresh hash/table 0 - part unit size - unit yes
-				hash: as red-hash! ser2
-				hash/table: _hashtable/init part ser2 HASH_TABLE_HASH 1
-			]
-		][return as red-value! ser2]
+		unless last? [
+			move-memory
+				offset
+				offset + bytes
+				as-integer tail - offset - bytes
+			s/tail: as cell! tail - bytes
+		]
+
+		if TYPE_OF(ser) = TYPE_HASH [
+			unit: either last? [size][ser/head + part]
+			hash: as red-hash! ser
+			_hashtable/refresh hash/table 0 - part unit size - unit yes
+			hash: as red-hash! ser2
+			hash/table: _hashtable/init part ser2 HASH_TABLE_HASH 1
+		]
 		
 		ownership/check as red-value! ser words/_taken null ser/head 0
 		as red-value! ser2
@@ -1062,12 +1077,14 @@ _series: context [
 			unit	[integer!]
 			part	[integer!]
 			type	[integer!]
+			flag	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "series/copy"]]
 
 		type: TYPE_OF(ser)
 		s: GET_BUFFER(ser)
 		unit: GET_UNIT(s)
+		flag: ser/header and flag-new-line
 
 		offset: ser/head
 		part: (as-integer s/tail - s/offset) >> (log-b unit) - offset
@@ -1110,7 +1127,7 @@ _series: context [
 			buffer/tail: as cell! (as byte-ptr! buffer/offset) + part
 		]
 
-		new/header: type
+		new/header: type or flag
 		new/node:   node
 		new/head:   0
 		new/extra:  either type = TYPE_VECTOR [ser/extra][0]

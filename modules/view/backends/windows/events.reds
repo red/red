@@ -1288,6 +1288,7 @@ WndProc: func [
 			][update-window as red-block! values null]
 			RedrawWindow hWnd null null 4 or 1			;-- RDW_ERASE | RDW_INVALIDATE
 		]
+		WM_THEMECHANGED [set-defaults]
 		default [0]
 	]
 	if ext-parent-proc? [call-custom-proc hWnd msg wParam lParam]
@@ -1303,9 +1304,11 @@ process: func [
 		pt	   [tagPOINT]
 		hWnd   [handle!]
 		new	   [handle!]
+		saved  [handle!]
 		res	   [integer!]
 		x	   [integer!]
 		y	   [integer!]
+		track  [tagTRACKMOUSEEVENT value]
 		evt?   [logic!]
 ][
 	switch msg/msg [
@@ -1321,6 +1324,7 @@ process: func [
 			][
 				return EVT_DISPATCH						;-- filter out buggy mouse positions (thanks MS!)
 			]
+			saved: msg/hWnd
 			new: get-child-from-xy msg/hWnd x y
 			
 			evt?: all [hover-saved <> null hover-saved <> new]
@@ -1334,12 +1338,26 @@ process: func [
 				any [
 					evt?
 					(get-face-flags new) and FACET_FLAGS_ALL_OVER <> 0
+					null? hover-saved
 				]
 			][
+				track/cbSize: size? tagTRACKMOUSEEVENT
+				track/dwFlags: 2						;-- TME_LEAVE
+				track/hwndTrack: new
+				TrackMouseEvent :track
 				msg/hWnd: new
 				make-event msg 0 EVT_OVER
 			]
 			hover-saved: new
+			msg/hWnd: saved
+			EVT_DISPATCH
+		]
+		WM_MOUSELEAVE [
+			saved: msg/hWnd
+			msg/hWnd: hover-saved
+			make-event msg EVT_FLAG_AWAY EVT_OVER
+			hover-saved: null
+			msg/hWnd: saved
 			EVT_DISPATCH
 		]
 		WM_MOUSEWHELL [

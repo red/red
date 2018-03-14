@@ -369,6 +369,9 @@ system: context [
 		error: context [
 			code: type: id: arg1: arg2: arg3: near: where: stack: none
 		]
+		file-info: context [
+			name: size: date: type: none
+		]
 	]
 	
 	lexer:		none

@@ -42,11 +42,22 @@ simple-io: context [
 	#either OS = 'Windows [
 		stat!: alias struct! [val [integer!]]
 
+		FILETIME!: alias struct! [
+			dwLowDateTime       [integer!]
+			dwHighDateTime      [integer!]
+		]
+		SYSTEMTIME!: alias struct! [
+			data1               [integer!] ; year, month
+			data2               [integer!] ; DayOfWeek, day
+			data3               [integer!] ; hour, minute
+			data4               [integer!] ; second, ms
+		]
+
 		WIN32_FIND_DATA: alias struct! [
 			dwFileAttributes	[integer!]
-			ftCreationTime		[float!]
-			ftLastAccessTime	[float!]
-			ftLastWriteTime		[float!]
+			ftCreationTime		[FILETIME! value]
+			ftLastAccessTime	[FILETIME! value]
+			ftLastWriteTime		[FILETIME! value]
 			nFileSizeHigh		[integer!]
 			nFileSizeLow		[integer!]
 			dwReserved0			[integer!]
@@ -55,11 +66,27 @@ simple-io: context [
 			;cAlternateFileName	[c-string!]				;-- cAlternateFileName[ 14 ]
 		]
 
+		;- static helpers
+		systime:  as SYSTEMTIME! allocate size? SYSTEMTIME!
+		filedata: as WIN32_FIND_DATA allocate size? WIN32_FIND_DATA
+
+
 		#import [
 			"kernel32.dll" stdcall [
 				GetFileAttributesW: "GetFileAttributesW" [
 					path		[c-string!]
 					return:		[integer!]
+				]
+				GetFileAttributesExW: "GetFileAttributesExW" [
+					path        [c-string!]
+					info-level  [integer!]
+					info        [WIN32_FIND_DATA]
+					return:		[integer!]
+				]
+				FileTimeToSystemTime: "FileTimeToSystemTime" [
+					lpFileTime   [FILETIME!]
+					lpSystemTime [SYSTEMTIME!]
+					return:      [integer!]
 				]
 				CreateFileA: "CreateFileA" [			;-- temporary needed by Red/System
 					filename	[c-string!]
@@ -185,6 +212,22 @@ simple-io: context [
 			]
 		]
 	][
+		systemtime!: alias struct! [
+			sec    [integer!] ;seconds
+			min    [integer!] ;minutes
+			hour   [integer!] ;hours
+			mday   [integer!] ;day of the month
+			mon    [integer!] ;month
+			year   [integer!] ;year
+			wday   [integer!] ;day of the week
+			yday   [integer!] ;day in the year
+			isdst  [integer!] ;daylight saving time
+		]
+		timespec!: alias struct! [
+			sec    [integer!] ;Seconds
+			nsec   [integer!] ;Nanoseconds
+		]
+
 		#case [
 			OS = 'FreeBSD [
 				;-- http://fxr.watson.org/fxr/source/sys/stat.h?v=FREEBSD10
@@ -195,12 +238,9 @@ simple-io: context [
 					st_uid		[integer!]
 					st_gid		[integer!]
 					st_rdev		[integer!]
-					atv_sec		[integer!]				;-- struct timespec inlined
-					atv_msec	[integer!]
-					mtv_sec		[integer!]				;-- struct timespec inlined
-					mtv_msec	[integer!]
-					ctv_sec		[integer!]				;-- struct timespec inlined
-					ctv_msec	[integer!]
+					st_atime	[timespec! value]		;-- struct timespec inlined
+					st_mtime	[timespec! value]		;-- struct timespec inlined
+					st_ctime	[timespec! value]		;-- struct timespec inlined
 					st_size		[integer!]
 					st_size_h	[integer!]
 					st_blocks_l	[integer!]
@@ -231,12 +271,9 @@ simple-io: context [
 					st_uid		[integer!]
 					st_gid		[integer!]
 					st_rdev		[integer!]
-					atv_sec		[integer!]				;-- struct timespec inlined
-					atv_msec	[integer!]
-					mtv_sec		[integer!]				;-- struct timespec inlined
-					mtv_msec	[integer!]
-					ctv_sec		[integer!]				;-- struct timespec inlined
-					ctv_msec	[integer!]
+					st_atime	[timespec! value]		;-- struct timespec inlined
+					st_mtime	[timespec! value]		;-- struct timespec inlined
+					st_ctime	[timespec! value]		;-- struct timespec inlined
 					st_size		[integer!]
 					st_blocks	[integer!]
 					st_blksize	[integer!]
@@ -336,9 +373,9 @@ simple-io: context [
 					st_size		[integer!]
 					st_blksize	[integer!]
 					st_blocks	[integer!]
-					st_atime	[integer!]
-					st_mtime	[integer!]
-					st_ctime	[integer!]
+					st_atime	[timespec!]
+					st_mtime	[timespec!]
+					st_ctime	[timespec!]
 				]
 				#define DIRENT_NAME_OFFSET 8
 				dirent!: alias struct! [
@@ -369,12 +406,9 @@ simple-io: context [
 					st_blksize	  [integer!]
 					st_blocks_h	  [integer!]
 					st_blocks	  [integer!]
-					st_atime	  [integer!]
-					st_atime_nsec [integer!]
-					st_mtime	  [integer!]
-					st_mtime_nsec [integer!]
-					st_ctime	  [integer!]
-					st_ctime_nsec [integer!]
+					st_atime	  [timespec! value]
+					st_mtime	  [timespec! value]
+					st_ctime	  [timespec! value]
 					st_ino_h	  [integer!]
 					st_ino_l	  [integer!]
 					;...optional padding skipped
@@ -408,12 +442,9 @@ simple-io: context [
 					st_size		  [integer!]
 					st_blksize	  [integer!]
 					st_blocks	  [integer!]
-					st_atime	  [integer!]
-					st_atime_nsec [integer!]
-					st_mtime	  [integer!]
-					st_mtime_nsec [integer!]
-					st_ctime	  [integer!]
-					st_ctime_nsec [integer!]
+					st_atime	  [timespec! value]
+					st_mtime	  [timespec! value]
+					st_ctime	  [timespec! value]
 					st_ino_h	  [integer!]
 					st_ino_l	  [integer!]
 					;...optional padding skipped
@@ -549,6 +580,10 @@ simple-io: context [
 					str			[c-string!]
 					c			[byte!]
 					return:		[c-string!]
+				]
+				gmtime: "gmtime" [
+					time        [pointer! [integer!]]
+					return:     [systemtime!]
 				]
 			]
 		]
@@ -781,6 +816,17 @@ simple-io: context [
 
 		size: file-size? file
 
+		if zero? size [				;-- /proc filesystem give 0 size
+			buffer: allocate 4096
+			while [
+				len: read-data file buffer 4096
+				len > 0
+			][
+				size: size + len
+			]
+			free buffer
+		]
+
 		if size <= 0 [
 			close-file file
 			val: stack/push*
@@ -931,6 +977,49 @@ simple-io: context [
 		][
 			0 = _remove name
 		]
+	]
+
+	query: func[
+		filename [red-file!]
+		return:  [red-value!]
+		/local
+			name [c-string!]
+			dt   [red-date!]
+			time [float!]
+			s	 [stat! value]
+			fd   [integer!]
+			tm   [systemtime!]
+	][
+		name: file/to-OS-path filename
+		;o: object/copy #get system/standard/file-info
+		
+		#either OS = 'Windows [
+			if any [
+				1 <> GetFileAttributesExW name 0 filedata
+				1 <> FileTimeToSystemTime filedata/ftLastWriteTime systime
+			][
+				return none/push
+			]
+			dt: as red-date! stack/push*
+			date/set-all dt
+				(systime/data1 and FFFFh) ;year
+				(systime/data1 >> 16    ) ;month
+				(systime/data2 >> 16    ) ;day
+				(systime/data3 and FFFFh) ;hours
+				(systime/data3 >> 16    ) ;minutes
+				(systime/data4 and FFFFh) ;seconds
+				1000000 * (systime/data4 >> 16) ;ns - posix is using nanoseconds so lets use it too
+		][
+			fd: open-file file/to-OS-path filename RIO_READ yes
+			if fd < 0 [	return none/push ]
+			#either any [OS = 'macOS OS = 'FreeBSD OS = 'Android] [
+				_stat   fd s
+			][	_stat 3 fd s]
+			tm: gmtime as int-ptr! s/st_mtime
+			dt: as red-date! stack/push*
+			date/set-all dt (1900 + tm/year) (1 + tm/mon) tm/mday tm/hour tm/min tm/sec s/st_mtime/nsec
+		]
+		as red-value! dt
 	]
 
 	read-dir: func [
@@ -1118,7 +1207,7 @@ simple-io: context [
 			]
 			true [
 				len: 0
-				actions/mold as red-value! data buffer no yes no null 0 0
+				actions/mold as red-value! data buffer no no no null 0 0
 				buf: value-to-buffer as red-value! buffer part :len binary? null
 				string/rs-reset buffer
 			]

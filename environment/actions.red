@@ -512,14 +512,14 @@ take: make action! [[
 
 trim: make action! [[
 		"Removes space from a string or NONE from a block"
-		series	[string! block! hash!]
+		series	[series!]
 		/head	"Removes only from the head"
 		/tail	"Removes only from the tail"
 		/auto	"Auto indents lines relative to first line"
 		/lines	"Removes all line breaks and extra spaces"
 		/all	"Removes all whitespace"
 		/with	"Same as /all, but removes characters in 'str'"
-			str [char! string! integer!]
+			str [char! string! binary! integer!]
 	]
 	#get-definition ACT_TRIM
 ]
@@ -537,7 +537,13 @@ delete: make action! [[
 ]
 ;open
 ;open?
-;query
+query: make action! [[
+		"Returns information about a file"
+		target [file!]
+	]
+	#get-definition ACT_QUERY
+]
+
 read: make action! [[
 		"Reads from a file, URL, or other port"
 		source	[file! url!]

@@ -324,8 +324,7 @@ parser: context [
 					s:	   GET_BUFFER(bits)
 					pbits: as byte-ptr! s/offset
 					not?:  FLAG_NOT?(s)
-					size:  s/size << 3
-
+					size:  (as-integer s/tail - s/offset) << 3
 					until [
 						cp: switch unit [
 							Latin1 [as-integer p/value]
@@ -478,7 +477,7 @@ parser: context [
 		s:	   GET_BUFFER(bits)
 		pbits: as byte-ptr! s/offset
 		not?:  FLAG_NOT?(s)
-		size:  s/size << 3
+		size:  (as-integer s/tail - s/offset) << 3
 		
 		cnt: 	0
 		match?: yes
@@ -1566,7 +1565,7 @@ parser: context [
 						sym = words/fail [				;-- FAIL
 							match?: no
 							PARSE_TRACE(_match)
-							state: ST_FIND_ALTERN
+							state: ST_POP_RULE
 						]
 						sym = words/ahead [				;-- AHEAD
 							min:   R_NONE
@@ -1779,7 +1778,7 @@ parser: context [
 						sym = words/case* [				;-- CASE
 							cmd: cmd + 1
 							if any [cmd = tail TYPE_OF(cmd) <> TYPE_WORD][
-								PARSE_ERROR [TO_ERROR(script parse-end) words/case*]
+								PARSE_ERROR [TO_ERROR(script parse-end) words/_case]
 							]
 							max: comp-op
 							bool: as red-logic! _context/get as red-word! cmd

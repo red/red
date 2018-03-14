@@ -308,10 +308,12 @@ Red/System [
 #define WM_EXITSIZEMOVE		0232h
 #define WM_IME_SETCONTEXT	0281h
 #define WM_IME_NOTIFY		0282h
+#define WM_MOUSELEAVE		02A3h
 #define WM_DPICHANGED		02E0h
 #define WM_COPY				0301h
 #define WM_PASTE			0302h
 #define WM_CLEAR			0303h
+#define WM_THEMECHANGED		031Ah
 
 #define WM_CAP_DRIVER_CONNECT		040Ah
 #define WM_CAP_DRIVER_DISCONNECT	040Bh
@@ -615,6 +617,13 @@ tagTEXTMETRIC: alias struct! [
 	tmCharSet			[byte!]
 ]
 
+tagTRACKMOUSEEVENT: alias struct! [
+	cbSize		[integer!]
+	dwFlags		[integer!]
+	hwndTrack	[handle!]
+	dwHoverTime	[integer!]
+]
+
 tagNMHDR: alias struct! [
 	hWndFrom	 [handle!]
 	idFrom		 [integer!]
@@ -872,6 +881,25 @@ tagLOGFONT: alias struct! [								;-- 92 bytes
 	lfFaceName8		[float!]
 ]
 
+tagNONCLIENTMETRICS: alias struct! [
+	cbSize				[integer!]
+	iBorderWidth		[integer!]
+	iScrollWidth		[integer!]
+	iScrollHeight		[integer!]
+	iCaptionWidth		[integer!]
+	iCaptionHeight		[integer!]
+	lfCaptionFont		[tagLOGFONT value]
+	iSmCaptionWidth		[integer!]
+	iSmCaptionHeight	[integer!]
+	lfSmCaptionFont		[tagLOGFONT value]
+	iMenuWidth			[integer!]
+	iMenuHeight			[integer!]
+	lfMenuFont			[tagLOGFONT value]
+	lfStatusFont		[tagLOGFONT value]
+	lfMessageFont		[tagLOGFONT value]
+	iPaddedBorderWidth	[integer!]
+]
+
 tagCHOOSEFONT: alias struct! [
 	lStructSize		[integer!]
 	hwndOwner		[int-ptr!]
@@ -1012,6 +1040,10 @@ XFORM!: alias struct! [
 		]
 	]
 	"User32.dll" stdcall [
+		TrackMouseEvent: "TrackMouseEvent" [
+			EventTrack	[tagTRACKMOUSEEVENT]
+			return:		[logic!]
+		]
 		RedrawWindow: "RedrawWindow" [
 			hWnd		[handle!]
 			lprcUpdate	[RECT_STRUCT]
@@ -1129,7 +1161,7 @@ XFORM!: alias struct! [
 			hdcSrc		[handle!]
 			pptSrc		[tagPOINT]
 			crKey		[integer!]
-			pblend		[integer!]
+			pblend		[tagBLENDFUNCTION]
 			dwFlags		[integer!]
 			return:		[logic!]
 		]

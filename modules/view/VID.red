@@ -63,7 +63,11 @@ system/view/VID: context [
 	default-font: [
 		name	system/view/fonts/system
 		size	system/view/fonts/size
-		color	black
+	]
+	
+	opts-proto: object [
+		type: offset: size: size-x: text: color: enabled?: visible?: selected: image: 
+		rate: font: flags: options: para: data: extra: actors: draw: now?: init: none
 	]
 	
 	throw-error: func [spec [block!]][
@@ -74,16 +78,19 @@ system/view/VID: context [
 		]
 	]
 	
-	process-reactors: function [][		
-		foreach [f blk later?] reactors [
-			either f [
-				bind blk ctx: context [face: f]
-				either later? [react/later/with blk ctx][react/with blk ctx]
-			][
-				either later? [react/later blk][react blk]
+	process-reactors: function [/local res][
+		set 'res try/all [
+			foreach [f blk later?] reactors [
+				either f [
+					bind blk ctx: context [face: f]
+					either later? [react/later/with blk ctx][react/with blk ctx]
+				][
+					either later? [react/later blk][react blk]
+				]
 			]
 		]
-		clear reactors
+		clear reactors									;-- ensures clearing even if reaction fails
+		if error? :res [do res]
 	]
 	
 	calc-size: function [face [object!]][
@@ -338,6 +345,7 @@ system/view/VID: context [
 									panel	  [layout/parent/styles value face divides css]
 									group-box [layout/parent/styles value face divides css]
 									tab-panel [
+										unless parse value [some [string! block!]][throw-error spec]
 										face/pane: make block! (length? value) / 2
 										opts/data: extract value 2
 										max-sz: 0x0
@@ -488,10 +496,8 @@ system/view/VID: context [
 		
 		top-left: bound: cursor: origin: spacing: pick [0x0 10x10] tight
 		
-		opts: object [
-			type: offset: size: size-x: text: color: enabled?: visible?: selected: image: 
-			rate: font: flags: options: para: data: extra: actors: draw: now?: init: none
-		]
+		opts: copy opts-proto
+		
 		if empty? opt-words: [][append opt-words words-of opts] ;-- static cache
 		
 		re-align: [

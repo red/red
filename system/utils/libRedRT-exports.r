@@ -134,6 +134,7 @@
 	red/integer/get-any*
 	red/integer/get*
 	red/integer/get
+	red/integer/form-signed
 	red/logic/get
 	red/float/get
 
@@ -171,6 +172,7 @@
 	red/symbol/make
 
 	red/unicode/load-utf8
+	red/unicode/decode-utf8-char
 
 	red/object/unchanged?
 	red/object/unchanged2?
@@ -324,6 +326,9 @@
 	red/natives/wait*
 	red/natives/checksum*
 	red/natives/unset*
+	red/natives/new-line*
+	red/natives/new-line?*
+	red/natives/enbase*
 	red/natives/handle-thrown-error
 	red/natives/now*
 	red/natives/get-env*

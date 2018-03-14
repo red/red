@@ -220,7 +220,7 @@ replace: function [
 			]
 		][
 			while [pos: find pos :pattern][
-				pos: change pos value
+				pos: insert remove pos value
 			]
 		]
 	][
@@ -332,7 +332,7 @@ load: function [
 	/into "Put results in out block, instead of creating a new block"
 		out [block!] "Target block for results"
 	/as   "Specify the type of data; use NONE to load as code"
-		type [word! none!] "E.g. json, html, jpeg, png, etc"
+		type [word! none!] "E.g. bmp, gif, jpeg, png"
 ][
 	if as [
 		if word? type [
@@ -340,7 +340,7 @@ load: function [
 				if url? source [source: read/binary source]
 				return do [codec/decode source]
 			][
-				return none
+				cause-error 'script 'invalid-refine-arg [/as type]
 			]
 		]
 	]
@@ -403,16 +403,14 @@ save: function [
 	/all    "TBD: Save in serialized format"
 	/length "Save the length of the script content in the header"
 	/as     "Specify the format of data; use NONE to save as plain text"
-		format [word! none!] "E.g. json, html, jpeg, png, redbin etc"
+		format [word! none!] "E.g. bmp, gif, jpeg, png"
 ][
 	dst: either any [file? where url? where][where][none]
-	either as [
-		if word? format [
-			either codec: select system/codecs format [
-				data: do [codec/encode value dst]
-				if same? data dst [exit]	;-- if encode returns dst back, means it already save value to dst
-			][exit]
-		]
+	either system/words/all [as  word? format] [				;-- Be aware of [all as] word shadowing
+		either codec: select system/codecs format [
+			data: do [codec/encode value dst]
+			if same? data dst [exit]	;-- if encode returns dst back, means it already save value to dst
+		][cause-error 'script 'invalid-refine-arg [/as format]] ;-- throw error if format is not supported
 	][
 		if length [header: true header-data: any [header-data copy []]]
 		if header [
@@ -722,7 +720,7 @@ split: function [
 	series [any-string!] dlm [string! char! bitset!] /local s
 ][
 	num: either string? dlm [length? dlm][1]
-	parse series [collect any [copy s [to dlm | to end] keep (s) num skip]]
+	parse series [collect any [copy s [to [dlm | end]] keep (s) num skip [end keep ("") | none] ]]
 ]
 
 dirize: func [
@@ -826,6 +824,7 @@ path-thru: function [
 	unless so/thru-cache [make-dir/deep so/thru-cache: append copy so/cache %cache/]
 	
 	if pos: find/tail file: to-file url "//" [file: pos]
+	clear find pos charset "?#"
 	path: first split-path file: append copy so/thru-cache file
 	unless exists? path [make-dir/deep path]
 	file
@@ -858,7 +857,7 @@ load-thru: function [
 	url [url!]	"Remote file address"
 	/update		"Force a cache update"
 	/as			"Specify the type of data; use NONE to load as code"
-		type [word! none!] "E.g. json, html, jpeg, png, etc"
+		type [word! none!] "E.g. bmp, gif, jpeg, png"
 ][
 	path: path-thru url
 	if all [not update exists? path][url: path]

@@ -184,7 +184,7 @@ block: context [
 					]
 				][
 					result: clone as red-block! value yes any?
-					result/header: type
+					result/header: value/header
 					copy-cell as red-value! result value
 					stack/pop 1
 				]

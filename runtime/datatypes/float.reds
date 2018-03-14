@@ -550,7 +550,9 @@ float: context [
 				p: (as byte-ptr! s/offset) + (str/head << log-b unit)
 				len: (as-integer s/tail - p) >> log-b unit
 				
-				proto/value: tokenizer/scan-float p len unit :err
+				either len > 0 [
+					proto/value: tokenizer/scan-float p len unit :err
+				][err: -1]
 				if err <> 0 [fire [TO_ERROR(script bad-to-arg) datatype/push type spec]]
 			]
 			TYPE_BINARY [
