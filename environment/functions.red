@@ -806,8 +806,9 @@ do-file: func [file [file! url!] /local saved code new-path src][
 		new-path: first split-path clean-path file
 		change-dir new-path
 	]
-	set/any 'code do code
+	set/any 'code try/all code
 	if file? file [change-dir saved]
+	if error? :code [do :code]							;-- rethrow the error
 	:code
 ]
 
