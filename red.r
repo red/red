@@ -143,7 +143,7 @@ redc: context [
 			parse/all buf [[thru "[" | thru "Version" | thru "ver" | thru "v" | thru "indows"] to #"." pos:]
 			
 			win-version: any [
-				attempt [load copy/part back remove pos 2]
+				attempt [load copy/part back back remove pos 3]
 				0
 			]
 		]
