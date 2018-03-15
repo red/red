@@ -323,7 +323,7 @@ system/view/VID: context [
 							pair!	 [unless opts/size  [opts/size:  value]]
 							string!	 [unless opts/text  [opts/text:  value]]
 							logic!
-							percent! [unless opts/data  [opts/data:  value]]
+							percent! [unless opts/data  [opts/data:  value] yes]
 							image!	 [unless opts/image [opts/image: value]]
 							tuple!	 [
 								either opts/color [
