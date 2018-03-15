@@ -164,11 +164,13 @@ system/view/VID: context [
 	]
 	
 	resize-child-panels: function [tab [object!]][		;-- ensures child panels fit accurately in tab-panels
-		tp-size: tab/size
-		if pad: system/view/metrics/paddings/tab-panel [
-			tp-size: tp-size - as-pair pad/1/x + pad/1/y pad/2/x + pad/2/y
+		if block? tab/pane [
+			tp-size: tab/size
+			if pad: system/view/metrics/paddings/tab-panel [
+				tp-size: tp-size - as-pair pad/1/x + pad/1/y pad/2/x + pad/2/y
+			]
+			foreach pane tab/pane [pane/size: tp-size]
 		]
-		foreach pane tab/pane [pane/size: tp-size]
 	]
 	
 	process-draw: function [code [block!]][
