@@ -685,7 +685,8 @@ natives: context [
 			blk/head: 0										;-- head changed by reduce/into
 		]
 
-		actions/form* -1
+		if TYPE_OF(arg) <> TYPE_STRING [actions/form* -1]
+		
 		str: as red-string! stack/arguments
 		assert any [
 			TYPE_OF(str) = TYPE_STRING
