@@ -2717,7 +2717,18 @@ Red [
 		--assert parse "abc" [to [s: "bc"] 2 skip]
 		--assert parse "abc" [to [s: () "bc"] 2 skip]
 		--assert parse "abc" [to [s: (123) "bc"] 2 skip]
+		
+	--test-- "#3108"
+		--assert parse [1][some [to end]]
+		--assert parse [1][some [to [end]]]
 
+		partition3108: function [elems [block!] group [integer!]][
+			parse elems [
+				collect some [keep group skip | collect keep to end]
+			]
+		]
+		--assert [[1 2] [3 4] [5 6] [7 8] [9]] = partition3108 [1 2 3 4 5 6 7 8 9] 2
+		
 ===end-group===
     
 ~~~end-file~~~
