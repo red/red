@@ -21,20 +21,29 @@ Red/System [
 				#if debug? = yes [if verbose > 0 [log "infix detected!"]]
 				infix?: yes
 			][
-				if TYPE_OF(pc) = TYPE_WORD [
-					left: _context/get as red-word! pc
-				]
-				unless all [
+				lit?: all [								;-- is a literal argument is expected?
 					TYPE_OF(pc) = TYPE_WORD
-					any [
-						TYPE_OF(left) = TYPE_ACTION
-						TYPE_OF(left) = TYPE_NATIVE
-						TYPE_OF(left) = TYPE_FUNCTION
-					]
-					literal-first-arg? as red-native! left	;-- a literal argument is expected
-				][
+					literal-first-arg? as red-native! value
+				]
+				either lit? [
 					#if debug? = yes [if verbose > 0 [log "infix detected!"]]
 					infix?: yes
+				][
+					if TYPE_OF(pc) = TYPE_WORD [
+						left: _context/get as red-word! pc
+					]
+					unless all [
+						TYPE_OF(pc) = TYPE_WORD
+						any [									;-- left operand is a function call
+							TYPE_OF(left) = TYPE_ACTION
+							TYPE_OF(left) = TYPE_NATIVE
+							TYPE_OF(left) = TYPE_FUNCTION
+						]
+						literal-first-arg? as red-native! left	;-- a literal argument is expected
+					][
+						#if debug? = yes [if verbose > 0 [log "infix detected!"]]
+						infix?: yes
+					]
 				]
 			]
 			if infix? [
@@ -113,7 +122,8 @@ interpreter: context [
 		while [value < tail][
 			switch TYPE_OF(value) [
 				TYPE_WORD 		[return no]
-				TYPE_LIT_WORD	[return yes]
+				TYPE_LIT_WORD
+				TYPE_GET_WORD	[return yes]
 				default 		[0]
 			]
 			value: value + 1
@@ -327,6 +337,7 @@ interpreter: context [
 			bits	[byte-ptr!]
 			native? [logic!]
 			set?	[logic!]
+			lit?	[logic!]							;-- required by CHECK_INFIX macro
 			args	[node!]
 			node	[node!]
 			call-op
@@ -807,9 +818,11 @@ interpreter: context [
 			op	   [red-value!]
 			sym	   [integer!]
 			infix? [logic!]
+			lit?   [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line ["eval: fetching value of type " TYPE_OF(pc)]]]
 		
+		lit?: no
 		infix?: no
 		unless prefix? [
 			next: as red-word! pc + 1
@@ -883,7 +896,7 @@ interpreter: context [
 						print lf
 					]
 				]
-				value: _context/get as red-word! pc
+				value: either lit? [pc][_context/get as red-word! pc]
 				pc: pc + 1
 				
 				switch TYPE_OF(value) [
