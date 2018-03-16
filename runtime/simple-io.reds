@@ -1401,8 +1401,11 @@ simple-io: context [
 					blk		[red-block!]
 					len		[integer!]
 					proxy	[tagVARIANT value]
+					parr	[integer!]
+					buf		[byte-ptr!]
 			][
 				res: as red-value! none-value
+				parr: 0
 				len: -1
 				buf-ptr: 0
 				bstr-d: null
@@ -1432,9 +1435,20 @@ simple-io: context [
 						either null? data [
 							body/data1: VT_ERROR
 						][
-							body/data1: VT_BSTR
-							bstr-d: SysAllocString unicode/to-utf16-len as red-string! data :len no
-							body/data3: as-integer bstr-d
+							either TYPE_OF(data) = TYPE_BINARY [
+								buf: binary/rs-head as red-binary! data
+								len: binary/rs-length? as red-binary! data
+								parr: as-integer SafeArrayCreateVector VT_UI1 0 len
+								SafeArrayAccessData parr :buf-ptr
+								copy-memory as byte-ptr! buf-ptr buf len
+								SafeArrayUnaccessData parr
+								body/data1: VT_ARRAY or VT_UI1
+								body/data3: parr
+							][
+								body/data1: VT_BSTR
+								bstr-d: SysAllocString unicode/to-utf16-len as red-string! data :len no
+								body/data3: as-integer bstr-d
+							]
 						]
 					]
 				]
@@ -1487,6 +1501,8 @@ simple-io: context [
 				][
 					return res
 				]
+
+				unless zero? parr [SafeArrayDestroy parr]
 
 				if hr >= 0 [
 					if info? [

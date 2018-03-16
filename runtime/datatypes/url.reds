@@ -290,6 +290,7 @@ url: context [
 			data <> null
 			TYPE_OF(data) <> TYPE_BLOCK
 			TYPE_OF(data) <> TYPE_STRING
+			TYPE_OF(data) <> TYPE_BINARY
 		][
 			fire [TO_ERROR(script invalid-arg) data]
 		]
