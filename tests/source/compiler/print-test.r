@@ -27,7 +27,7 @@ REBOL [
     		;; issue #748
     		prin "*test6* "
     		txt: "Hello world"
-    		parse txt [ while any [ remove "l" | skip ] ]
+    		parse txt [ any [ remove "l" | skip ] ]
     		print txt
     		;; issue #796
     		prin "*test7* "

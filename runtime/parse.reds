@@ -931,7 +931,7 @@ parser: context [
 								]
 								if any [						 ;-- don't loop if any:
 									break?						 ;-- a BREAK or REJECT command was issued
-									end? 						 ;-- don't loop if no more input
+									all [end? int/value <> R_WHILE]	 ;-- don't loop if no more input
 								][
 									loop?: no
 									break?: no

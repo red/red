@@ -1868,7 +1868,7 @@ Red [
 		
 	--test-- "#748"
 		txt: "Hello world"
-		parse txt [ while any [ remove "l" | skip ] ]
+		parse txt [ while [any [ remove "l" | skip ] fail] ]
 		--assert txt = "Heo word"
 		--assert 8 = length? txt
 
