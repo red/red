@@ -1530,8 +1530,8 @@ parser: context [
 						sym = words/break* [			;-- BREAK
 							match?: yes
 							break?: yes
-							cmd:	cmd + 1
 							pop?:	yes
+							cmd:	cmd + 1				;-- ensures that a root rule is reaching tail, for tail breaks
 							PARSE_TRACE(_match)
 							state:	ST_POP_RULE
 						]
