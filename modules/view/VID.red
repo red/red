@@ -632,9 +632,16 @@ system/view/VID: context [
 					if same? css local-styles [local-styles: copy css]
 					name: to word! form name
 					value: copy style
+					
+					;-- clean-up template from unwanted live values
 					parse value/template: body-of face [
 						some [remove [set-word! [none! | function!]] | skip]
 					]
+					remove/part find value/template 'parent 2
+					if find [field text] face/type [
+						remove/part find value/template 'data 2
+					]
+					
 					if opts/init [
 						either value/init [append value/init opts/init][
 							reduce/into [to-set-word 'init opts/init] tail value
