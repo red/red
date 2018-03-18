@@ -257,7 +257,7 @@ charset: func [
 	make bitset! spec
 ]
 
-p-indent: make string! 30								;@@ to be put in an local context
+p-indent: make string! 30								;@@ to be put in a local context
 
 on-parse-event: func [
 	event	[word!]   "Trace events: push, pop, fetch, match, iterate, paren, end"
