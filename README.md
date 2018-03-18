@@ -192,6 +192,8 @@ To compile the Windows GUI console from source:
 Note: the `-c` argument is not necessary when launching the Red toolchain from sources, as the default action is to compile the input script (the toolchain in binary form default action is to run the input script through the interpreter).
 The `-r` argument is needed when compiling the Red console to make additional runtime functions available.
 
+Note: The red git repository does not include a .gitignore file. If you run the automated tests a number of files will be created that are not stored in the repository. Installing a copy of the sample [.gitignore](https://github.com/github/gitignore/Red.gitignore) file will ignore these generated files.
+
 Contributing
 -------------------------
 If you want to contribute code to the Red project be sure to read the [guidelines](https://github.com/red/red/wiki/Contributor-Guidelines) first.
