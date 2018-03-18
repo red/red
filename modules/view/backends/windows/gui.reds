@@ -1849,6 +1849,7 @@ change-data: func [
 		]
 		type = radio [
 			set-logic-state hWnd as red-logic! data no
+			SendMessage GetParent hWnd WM_COMMAND BN_UNPUSHED << 16 as-integer hWnd
 		]
 		type = tab-panel [
 			set-tabs hWnd get-face-values hWnd

@@ -327,6 +327,7 @@ Red/System [
 #define BM_SETIMAGE			F7h
 
 #define BN_CLICKED 			0
+#define BN_UNPUSHED         3
 
 #define BST_UNCHECKED		0
 #define BST_CHECKED			1

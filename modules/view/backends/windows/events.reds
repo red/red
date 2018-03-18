@@ -602,17 +602,18 @@ process-command-event: func [
 	child: as handle! lParam
 	unless null? current-msg [saved: current-msg/hWnd]
 	switch WIN32_HIWORD(wParam) [
+		BN_UNPUSHED
 		BN_CLICKED [
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
-			make-event current-msg 0 EVT_CLICK			;-- should be *after* get-facet call (Windows closing on click case)
+			if WIN32_HIWORD(wParam) = BN_CLICKED [
+				make-event current-msg 0 EVT_CLICK		;-- should be *after* get-facet call (Windows closing on click case)
+			]
 			if any [
 				type/symbol = check
 				type/symbol = radio
 			][
 				current-msg/hWnd: child					;-- force child handle
-				if get-logic-state current-msg [
-					make-event current-msg 0 EVT_CHANGE
-				]
+				make-event current-msg 0 EVT_CHANGE
 			]
 		]
 		EN_CHANGE [											;-- sent also by CreateWindow
