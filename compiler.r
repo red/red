@@ -4135,7 +4135,7 @@ red: context [
 		]
 	]
 
-	comp-directive: has [mark][
+	comp-directive: has [mark value][
 		switch pc/1 [
 			#include [
 				comp-include pc
