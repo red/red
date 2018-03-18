@@ -1187,6 +1187,8 @@ process: func [
 	msg		[tagMSG]
 	return: [integer!]
 	/local
+		type   [red-word!]
+		values [red-value!]
 		lParam [integer!]
 		pt	   [tagPOINT]
 		hWnd   [handle!]
@@ -1260,7 +1262,17 @@ process: func [
 			menu-ctx: null
 			make-event msg 0 EVT_LEFT_DOWN
 		]
-		WM_LBUTTONUP	[make-event msg 0 EVT_LEFT_UP]
+		WM_LBUTTONUP	[
+			values: get-facets msg 
+			type: as red-word! values + FACE_OBJ_TYPE
+			if any [
+				type/symbol = field
+				type/symbol = area
+			][
+				update-selection msg/hWnd values
+			]
+			make-event msg 0 EVT_LEFT_UP
+		]
 		WM_RBUTTONDOWN	[
 			if GetCapture <> null [return EVT_DISPATCH]
 			lParam: msg/lParam

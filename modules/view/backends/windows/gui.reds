@@ -490,6 +490,27 @@ update-caret: func [
 	change-offset hWnd as red-pair! values + FACE_OBJ_OFFSET caret
 ]
 
+update-selection: func [
+	hWnd	[handle!]
+	values	[red-value!]
+	/local
+		sel	  [red-pair!]
+		begin [integer!]
+		end   [integer!]
+][
+	begin: 0
+	end:   0
+	SendMessage hWnd EM_GETSEL as-integer :begin as-integer :end
+	sel: as red-pair! values + FACE_OBJ_SELECTED
+	either begin = end [
+		sel/header: TYPE_NONE
+	][
+		sel/header: TYPE_PAIR
+		sel/x: begin + 1								;-- one-based positionq
+		sel/y: end										;-- points past the last selected, so no need + 1
+	]
+]
+
 to-bgr: func [
 	node	[node!]
 	pos		[integer!]
