@@ -174,6 +174,10 @@ AreaWndProc: func [
 				]
 			]
 		]
+		WM_KEYUP
+		WM_LBUTTONUP	[
+			update-selection hWnd get-face-values hWnd
+		]
 		default [0]
 	]
 	CallWindowProc as wndproc-cb! OldEditWndProc hWnd msg wParam lParam
