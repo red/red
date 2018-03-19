@@ -1795,7 +1795,10 @@ change-selection: func [
 	values [red-value!]
 	/local
 		type   [red-word!]
+		sel	   [red-pair!]
 		sym	   [integer!]
+		begin  [integer!]
+		end	   [integer!]
 ][
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
@@ -1813,6 +1816,17 @@ change-selection: func [
 		]
 		any [sym = drop-list sym = drop-down][
 			SendMessage hWnd CB_SETCURSEL int/value - 1 0
+		]
+		any [sym = field sym = area][
+			sel: as red-pair! values + FACE_OBJ_SELECTED
+			either TYPE_OF(sel) = TYPE_NONE [
+				begin: 0
+				end:   0
+			][
+				begin: sel/x - 1
+				end: sel/y								;-- should point past the last selected char
+			]
+			SendMessage hWnd EM_SETSEL begin end
 		]
 		sym = tab-panel [
 			select-tab hWnd int/value - 1				;@@ requires range checking
