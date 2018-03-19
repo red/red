@@ -592,7 +592,7 @@ change-color: func [
 ][
 	t: TYPE_OF(color)
 	if all [t <> TYPE_NONE t <> TYPE_TUPLE][exit]
-	if transparent-color? color [
+	if all [type <> window transparent-color? color][
 		objc_msgSend [hWnd sel_getUid "setDrawsBackground:" no]
 		exit
 	]
@@ -619,7 +619,12 @@ change-color: func [
 			if t = TYPE_NONE [clr: objc_msgSend [objc_getClass "NSColor" sel_getUid "textBackgroundColor"]]
 		]
 		type = window [
-			if t = TYPE_NONE [clr: objc_msgSend [objc_getClass "NSColor" sel_getUid "windowBackgroundColor"]]
+			either t = TYPE_NONE [clr: objc_msgSend [objc_getClass "NSColor" sel_getUid "windowBackgroundColor"]][
+				if TUPLE_SIZE?(color) = 4 [
+					color/array1: color/array1 and 00FFFFFFh		;-- No transparency, compitable with Windows
+					;objc_msgSend [hWnd sel_getUid "setOpaque:" no]
+				]
+			]
 		]
 		true [
 			set?: no
