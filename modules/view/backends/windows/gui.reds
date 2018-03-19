@@ -1315,12 +1315,12 @@ OS-make-view: func [
 		sym = field [
 			class: #u16 "RedField"
 			flags: flags or WS_TABSTOP
-			unless para? [flags: flags or ES_LEFT or ES_AUTOHSCROLL]
+			unless para? [flags: flags or ES_LEFT or ES_AUTOHSCROLL or ES_NOHIDESEL]
 			if bits and FACET_FLAGS_NO_BORDER = 0 [ws-flags: WS_EX_CLIENTEDGE]
 		]
 		sym = area [
 			class: #u16 "RedArea"
-			unless para? [flags: flags or ES_LEFT or ES_AUTOHSCROLL or WS_HSCROLL]
+			unless para? [flags: flags or ES_LEFT or ES_AUTOHSCROLL or WS_HSCROLL or ES_NOHIDESEL]
 			flags: flags or ES_MULTILINE or ES_AUTOVSCROLL or WS_VSCROLL or WS_TABSTOP
 			if bits and FACET_FLAGS_NO_BORDER = 0 [ws-flags: WS_EX_CLIENTEDGE]
 		]
@@ -1709,6 +1709,25 @@ extend-area-limit: func [
 	]
 ]
 
+select-text: func [
+	hWnd   [handle!]
+	values [red-value!]
+	/local
+		sel	   [red-pair!]
+		begin  [integer!]
+		end	   [integer!]
+][
+	sel: as red-pair! values + FACE_OBJ_SELECTED
+	either TYPE_OF(sel) = TYPE_PAIR [
+		begin: sel/x - 1
+		end: sel/y										;-- should point past the last selected char
+	][
+		begin: 0
+		end:   0
+	]
+	SendMessage hWnd EM_SETSEL begin end
+]
+
 change-text: func [
 	hWnd	[handle!]
 	values	[red-value!]
@@ -1795,10 +1814,7 @@ change-selection: func [
 	values [red-value!]
 	/local
 		type   [red-word!]
-		sel	   [red-pair!]
 		sym	   [integer!]
-		begin  [integer!]
-		end	   [integer!]
 ][
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
@@ -1818,15 +1834,7 @@ change-selection: func [
 			SendMessage hWnd CB_SETCURSEL int/value - 1 0
 		]
 		any [sym = field sym = area][
-			sel: as red-pair! values + FACE_OBJ_SELECTED
-			either TYPE_OF(sel) = TYPE_NONE [
-				begin: 0
-				end:   0
-			][
-				begin: sel/x - 1
-				end: sel/y								;-- should point past the last selected char
-			]
-			SendMessage hWnd EM_SETSEL begin end
+			select-text hWnd values
 		]
 		sym = tab-panel [
 			select-tab hWnd int/value - 1				;@@ requires range checking

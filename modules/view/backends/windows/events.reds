@@ -638,6 +638,13 @@ process-command-event: func [
 					child
 					as red-object! values + FACE_OBJ_SELECTED
 			]
+			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
+			if any [
+				type/symbol = field
+				type/symbol = area
+			][	
+				select-text child get-face-values child
+			]
 			current-msg/hWnd: child
 			make-event current-msg 0 EVT_FOCUS
 		]
