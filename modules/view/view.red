@@ -1133,6 +1133,12 @@ insert-event-func [
 			resize resizing [system/reactivity/check/only event/face 'size]
 		]
 	]
+	if event/type = 'select [
+		face: event/face
+		if find [field area] face/type [
+			system/reactivity/check/only face 'selected
+		]
+	]
 	none
 ]
 

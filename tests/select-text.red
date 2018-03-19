@@ -6,6 +6,7 @@ view [
 	f: field "Hello World!"
 	a: area "This is a^/multi-line area widget^/where you can write long text" 
 	panel [
+		origin 0x0
 		below
 		style but: button 100
 		but "selected" [print [f/selected a/selected]]
@@ -20,6 +21,8 @@ view [
 			f/selected: 1x5
 			f/parent/selected: f
 		]
+		across
+		text "Field:" 30 text "" left react [face/data: f/selected] return
+		text "Area:"  30 text "" left react [face/data: a/selected]
 	]
-	;text "" react [face/data: f/selected]]
 ]
