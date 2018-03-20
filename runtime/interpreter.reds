@@ -344,7 +344,15 @@ interpreter: context [
 	][
 		stack/keep
 		pc: pc + 1										;-- skip operator
-		pc: eval-expression pc end yes yes no			;-- eval right operand
+		either all [									;-- is a literal argument is expected?
+			TYPE_OF(pc) = TYPE_WORD
+			literal-first-arg? as red-native! value
+		][
+			stack/push pc
+			pc: pc + 1
+		][
+			pc: eval-expression pc end yes yes no		;-- eval right operand
+		]
 		op: as red-op! value
 		fun: null
 		native?: op/header and flag-native-op <> 0
