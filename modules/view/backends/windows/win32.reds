@@ -2720,19 +2720,6 @@ XFORM!: alias struct! [
 			return:		[integer!]
 		]
 	]
-	"avicap32.dll" stdcall [
-		capCreateCaptureWindow: "capCreateCaptureWindowW" [
-			lpszName	[c-string!]
-			dwStyle		[integer!]
-			x			[integer!]		
-			y			[integer!]
-			nWidth		[integer!]
-			nHeight		[integer!]
-			hWnd		[handle!]
-			nID			[integer!]
-			return:		[integer!]
-		]
-	]
 	"comctl32.dll" stdcall [
 		InitCommonControlsEx: "InitCommonControlsEx" [
 			lpInitCtrls [tagINITCOMMONCONTROLSEX]

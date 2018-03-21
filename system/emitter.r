@@ -264,18 +264,17 @@ emitter: make-profilable context [
 				]
 				append ptr value
 			]
-			float! float64! [
-				pad-data-buf 8							;-- align 64-bit floats on 64-bit
-				ptr: tail data-buf
-				unless decimal? value [value: 0.0]
-				append ptr IEEE-754/to-binary64/rev value	;-- stored in little-endian
-			]
-			float32! [	
-				pad-data-buf target/default-align
+			float! float64! float32! [
+				pad-data-buf either type = 'float32! [target/default-align][8] ;-- align 64-bit floats on 64-bit
 				ptr: tail data-buf
 				value: compiler/unbox value
+				if integer? value [value: to decimal! value]
 				unless decimal? value [value: 0.0]
-				append ptr IEEE-754/to-binary32/rev value	;-- stored in little-endian
+				append ptr either type = 'float32! [
+					IEEE-754/to-binary32/rev value	;-- stored in little-endian
+				][
+					IEEE-754/to-binary64/rev value	;-- stored in little-endian
+				]
 			]
 			c-string! [
 				either string? value [

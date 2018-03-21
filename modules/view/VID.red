@@ -173,6 +173,21 @@ system/view/VID: context [
 		]
 	]
 	
+	clean-style: func [tmpl [block!] type [word!] /local para font][ ;-- clean-up template from unwanted live values
+		parse tmpl [
+			some [remove [set-word! [none! | function!]] | skip]
+		]
+		if all [para: tmpl/para para/parent][
+			tmpl/para: make para [parent: none]
+		]
+		if all [font: tmpl/font font/parent][
+			tmpl/font: make font [parent: state: none]
+		]
+		if find [field text] type [
+			remove/part find tmpl 'data 2
+		]
+	]
+	
 	process-draw: function [code [block!]][
 		parse code rule: [
 			any [
@@ -623,24 +638,16 @@ system/view/VID: context [
 				
 				face: make face! copy/deep style/template
 				if h: select system/view/metrics/def-heights face/type [face/size/y: h]
-				face/parent: panel
-				
+				unless styling? [face/parent: panel]
+
 				spec: fetch-options face opts style spec local-styles to-logic styling?
-				if style/init [do bind style/init 'face]
+				if all [style/init not styling?][do bind style/init 'face]
 				
 				either styling? [
 					if same? css local-styles [local-styles: copy css]
 					name: to word! form name
 					value: copy style
-					
-					;-- clean-up template from unwanted live values
-					parse value/template: body-of face [
-						some [remove [set-word! [none! | function!]] | skip]
-					]
-					remove/part find value/template 'parent 2
-					if find [field text] face/type [
-						remove/part find value/template 'data 2
-					]
+					clean-style value/template: body-of face face/type
 					
 					if opts/init [
 						either value/init [append value/init opts/init][
