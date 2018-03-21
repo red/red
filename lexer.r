@@ -626,15 +626,8 @@ lexer: context [
 	
 	any-value: [pos: any [literal-value | ws]]
 
-	header: [
-		pos: thru "Red" (rs?: no) opt ["/System" (rs?: yes stack/push 'Red/System)]
-		any-ws block-rule (stack/push value)
-		| (throw-error/with "Invalid Red program") end skip
-	]
-
 	program: [
-		pos: opt UTF-8-BOM
-		header
+		block-rule (if rs? [stack/push 'Red/System] stack/push value)
 		any-value
 		opt wrong-end
 	]
@@ -873,10 +866,25 @@ lexer: context [
 		replace/all copy/part s back e "%" "%25"
 	]
 	
+	identify-header: func [src /local p ws found?][
+		ws: charset " ^-^M^/"
+		rs?: no
+		pos: src
+		until [
+			unless pos: find/tail pos "Red" [throw-error/with "Invalid Red program"]
+			if all [pos find/match pos "/System"][rs?: yes pos: skip pos 7]
+			while [find/match ws pos/1][pos: next pos]
+			found?: pos/1 = #"["
+		]	
+		unless found? [throw-error/with "Invalid Red program2"]
+		pos
+	]
+	
 	process: func [src [string! binary!] /local blk][
 		old-line: line: 1
 		count?: yes
-		blk: stack/allocate block! 100				;-- root block
+		blk: stack/allocate block! 100				;-- root block		
+		src: identify-header src
 		
 		unless parse/all/case src program [throw-error]
 		stack/reset
