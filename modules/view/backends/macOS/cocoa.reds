@@ -197,6 +197,11 @@ NSSize!: alias struct! [
 	h		[float32!]
 ]
 
+NSRange!: alias struct! [
+	idx		[integer!]
+	len		[integer!]
+]
+
 CGPoint!: alias struct! [
 	x		[float32!]
 	y		[float32!]
@@ -318,6 +323,7 @@ tagSIZE: alias struct! [
 		]
 		objc_msgSend: "objc_msgSend" [[variadic] return: [integer!]]
 		objc_msgSend_pt: "objc_msgSend" [[variadic] return: [CGPoint! value]]
+		objc_msgSend_range: "objc_msgSend" [[variadic] return: [NSRange! value]]
 		objc_msgSendSuper: "objc_msgSendSuper" [[variadic] return: [integer!]]
 		objc_msgSend_f32: "objc_msgSend_fpret" [[variadic] return: [float32!]]
 		objc_msgSend_fpret: "objc_msgSend_fpret" [[variadic] return: [float!]]

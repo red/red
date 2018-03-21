@@ -936,11 +936,31 @@ change-selection: func [
 		idx [integer!]
 		sz	[integer!]
 		wnd [integer!]
+		sel [red-pair!]
+		win [integer!]
 ][
 	if type <> window [
 		idx: either TYPE_OF(int) = TYPE_INTEGER [int/value - 1][-1]
 	]
 	case [
+		any [type = field type = area][
+			sel: as red-pair! int
+			either TYPE_OF(sel) = TYPE_NONE [
+				idx: 0
+				sz:  0
+			][
+				idx: sel/x - 1
+				sz: sel/y - idx						;-- should point past the last selected char
+			]
+			either type = field [
+				win: objc_msgSend [NSApp sel_getUid "mainWindow"]
+				objc_msgSend [win sel_getUid "makeFirstResponder:" hWnd]
+				wnd: objc_msgSend [hWnd sel_getUid "currentEditor"]
+			][
+				wnd: objc_msgSend [hWnd sel_getUid "documentView"]
+			]
+			objc_msgSend [wnd sel_getUid "setSelectedRange:" idx sz]
+		]
 		type = camera [
 			either TYPE_OF(int) = TYPE_NONE [
 				toggle-preview hWnd false

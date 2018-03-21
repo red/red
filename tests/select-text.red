@@ -18,8 +18,8 @@ view [
 			a/selected: as-pair s: random len s + random len - s
 		]
 		but "select && edit" [
-			f/selected: 1x5
 			f/parent/selected: f
+			f/selected: 1x5
 		]
 		across
 		text "Field:" 30 text "" left react [face/data: f/selected] return

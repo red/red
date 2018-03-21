@@ -117,6 +117,8 @@ add-droplist-handler: func [class [integer!]][
 add-text-field-handler: func [class [integer!]][
 	class_addMethod class sel_getUid "textDidChange:" as-integer :text-did-change "v@:@"
 	class_addMethod class sel_getUid "textDidEndEditing:" as-integer :text-did-end-editing "v@:@"
+	;class_addMethod class sel_getUid "textViewDidChangeSelection:" as-integer :text-change-selection "v@:@"
+	class_addMethod class sel_getUid "textView:willChangeSelectionFromCharacterRange:toCharacterRange:" as-integer :text-will-selection "{_NSRange=ii}@:@{_NSRange=ii}{_NSRange=ii}"
 	class_addMethod class sel_getUid "becomeFirstResponder" as-integer :become-first-responder "B@:"
 	class_addMethod class sel_getUid "performKeyEquivalent:" as-integer :perform-key-equivalent "B@:@"
 ]
