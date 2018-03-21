@@ -266,10 +266,11 @@ OS-text-box-metrics: func [
 ]
 
 OS-text-box-layout: func [
-	box		[red-object!]
-	target	[int-ptr!]
-	catch?	[logic!]
-	return: [integer!]
+	box			[red-object!]
+	target		[int-ptr!]
+	nscolor		[integer!]	
+	catch?		[logic!]
+	return:		[integer!]
 	/local
 		values	[red-value!]
 		state	[red-block!]
@@ -365,6 +366,7 @@ OS-text-box-layout: func [
 		sel_getUid "initWithObjectsAndKeys:"
 		nsfont NSFontAttributeName
 		para NSParagraphStyleAttributeName
+		nscolor NSForegroundColorAttributeName
 		0
 	]
 	w: objc_msgSend [str sel_getUid "length"]

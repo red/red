@@ -694,7 +694,7 @@ system/view/platform: context [
 			bool: as red-logic! (block/rs-tail state) - 1
 			layout?: bool/value
 		]
-		if layout? [gui/OS-text-box-layout box null no]
+		if layout? [gui/OS-text-box-layout box null 0 no]
 		stack/set-last gui/OS-text-box-metrics state arg0 type
 	]
 

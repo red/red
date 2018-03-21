@@ -271,6 +271,7 @@ OS-text-box-metrics: func [
 OS-text-box-layout: func [
 	box		[red-object!]
 	target	[int-ptr!]
+	ft-clr	[integer!]
 	catch?	[logic!]
 	return: [this!]
 	/local

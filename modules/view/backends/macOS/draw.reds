@@ -679,7 +679,7 @@ draw-text-at: func [
 ]
 
 draw-text-box: func [
-	ctx		[handle!]
+	dc		[draw-ctx!]
 	pos		[red-pair!]
 	tbox	[red-object!]
 	catch?	[logic!]
@@ -695,6 +695,7 @@ draw-text-box: func [
 		y		[integer!]
 		x		[integer!]
 		pt		[CGPoint!]
+		clr		[integer!]
 ][
 	state: (as red-block! object/get-values tbox) + TBOX_OBJ_STATE
 
@@ -703,7 +704,10 @@ draw-text-box: func [
 		bool: as red-logic! (block/rs-tail state) - 1
 		layout?: bool/value
 	]
-	if layout? [OS-text-box-layout tbox null catch?]
+	if layout? [
+		clr: objc_msgSend [dc/font-attrs sel_getUid "objectForKey:" NSForegroundColorAttributeName]
+		OS-text-box-layout tbox null clr catch?
+	]
 
 	int: as red-integer! block/rs-head state
 	layout: int/value
@@ -732,7 +736,7 @@ OS-draw-text: func [
 	either TYPE_OF(text) = TYPE_STRING [
 		draw-text-at ctx text dc/font-attrs pos/x pos/y
 	][
-		draw-text-box ctx pos as red-object! text catch?
+		draw-text-box dc pos as red-object! text catch?
 	]
 	CG-set-color ctx dc/pen-color no				;-- drawing text will change pen color, so reset it
 	CG-set-color ctx dc/brush-color yes				;-- drawing text will change brush color, so reset it

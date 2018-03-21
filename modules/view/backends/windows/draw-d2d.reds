@@ -170,13 +170,13 @@ OS-draw-text-d2d: func [
 		layout: either TYPE_OF(state) = TYPE_BLOCK [
 			bool: as red-logic! (block/rs-tail state) - 1
 			either bool/value [
-				OS-text-box-layout as red-object! text ctx/brushes yes
+				OS-text-box-layout as red-object! text ctx/brushes 0 yes
 			][
 				int: as red-integer! block/rs-head state
 				as this! int/value
 			]
 		][
-			OS-text-box-layout as red-object! text ctx/brushes yes
+			OS-text-box-layout as red-object! text ctx/brushes 0 yes
 		]
 	][
 		0

@@ -108,10 +108,11 @@ OS-text-box-metrics: func [
 ]
 
 OS-text-box-layout: func [
-	box		[red-object!]
-	target	[int-ptr!]
-	catch?	[logic!]
-	return: [this!]
+	box			[red-object!]
+	target		[int-ptr!]
+	font-clr	[integer!]
+	catch?		[logic!]
+	return:		[this!]
 ][
 	
 ]
