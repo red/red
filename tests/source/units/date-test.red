@@ -4,7 +4,7 @@ Red [
 	File: 	 %date-test.red
 	Version: "0.1.0"
 	Tabs:	 4
-	Rights:  "Copyright (C) 2017 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2017-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
