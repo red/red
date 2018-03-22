@@ -886,12 +886,13 @@ natives: context [
 		check? [logic!]
 		into   [integer!]
 		/local
-			value [red-value!]
-			tail  [red-value!]
-			arg	  [red-value!]
-			type  [integer!]
-			into? [logic!]
-			blk?  [logic!]
+			value	[red-value!]
+			tail	[red-value!]
+			arg		[red-value!]
+			type	[integer!]
+			into?	[logic!]
+			blk?	[logic!]
+			append? [logic!]
 	][
 		#typecheck [reduce into]
 		arg: stack/arguments
@@ -906,16 +907,16 @@ natives: context [
 		stack/mark-native words/_body
 
 		either into? [
-			as red-block! stack/push arg + into
+			append?: block/rs-tail? as red-block! stack/push arg + into
 		][
 			if blk? [block/push-only* (as-integer tail - value) >> 4]
+			append?: yes
 		]
-
 		either blk? [
 			while [value < tail][
 				value: interpreter/eval-next value tail yes
 				clear-newline stack/arguments + 1
-				either into? [actions/insert* -1 0 -1][block/append*]
+				either append? [block/append*][actions/insert* -1 0 -1]
 				stack/keep									;-- preserve the reduced block on stack
 			]
 		][
@@ -931,7 +932,7 @@ natives: context [
 			][
 				interpreter/eval-expression arg arg + 1 no yes no ;-- for non block! values
 			]
-			if into? [actions/insert* -1 0 -1]
+			if into? [either append? [block/append*][actions/insert* -1 0 -1]]
 		]
 		stack/unwind-last
 	]
@@ -949,15 +950,18 @@ natives: context [
 			new	   [red-block!]
 			result [red-value!]
 			into?  [logic!]
+			append? [logic!]
 	][
 		value: block/rs-head blk
 		tail:  block/rs-tail blk
 		into?: all [root? OPTION?(into)]
 
 		new: either into? [
+			append?: block/rs-tail? into
 			into
 		][
-			block/push-only* (as-integer tail - value) >> 4	
+			append?: yes
+			block/push-only* (as-integer tail - value) >> 4
 		]
 		while [value < tail][
 			switch TYPE_OF(value) [
@@ -967,10 +971,10 @@ natives: context [
 					][
 						as red-block! value
 					]
-					either into? [
-						block/insert-value new as red-value! blk
-					][
+					either append? [
 						copy-cell as red-value! blk ALLOC_TAIL(new)
+					][
+						block/insert-value new as red-value! blk
 					]
 				]
 				TYPE_PAREN [
@@ -992,26 +996,26 @@ natives: context [
 								only? 
 								TYPE_OF(result) <> TYPE_BLOCK
 							][
-								either into? [
-									block/insert-value new result
-								][
+								either append? [
 									copy-cell result ALLOC_TAIL(new)
+								][
+									block/insert-value new result
 								]
 							][
-								either into? [
-									block/insert-block new as red-block! result
-								][
+								either append? [
 									block/rs-append-block new as red-block! result
+								][
+									block/insert-block new as red-block! result
 								]
 							]
 						]
 					]
 				]
 				default [
-					either into? [
-						block/insert-value new value
-					][
+					either append? [
 						copy-cell value ALLOC_TAIL(new)
+					][
+						block/insert-value new value
 					]
 				]
 			]
