@@ -2066,7 +2066,7 @@ simple-io: context [
 			][
 				mp: as red-hash! userdata
 				len: size * nmemb
-				if zero? strncmp as c-string! s "HTTP/1.1" 8 [return len]
+				if zero? strncmp as c-string! s "HTTP/1." 7 [return len]
 
 				p: s
 				while [s/1 <> null-byte][
@@ -2088,9 +2088,9 @@ simple-io: context [
 						]
 
 						p: s + 2
-						until [
+						forever [
 							s: s + 1
-							if s/1 = #"^M" [			;-- value
+							if any [s/1 = #"^M" s/1 = #"^/"] [	;-- value
 								res: as red-value! string/load as-c-string p as-integer s - p UTF-8
 								either new? [
 									map/put mp w res no
@@ -2098,8 +2098,8 @@ simple-io: context [
 									block/rs-append val res
 								]
 								p: s + 2
+								break
 							]
-							s/1 = #"^M"
 						]
 						stack/pop 2
 					]
