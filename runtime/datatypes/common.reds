@@ -627,7 +627,7 @@ words: context [
 	_browse:		as red-word! 0
 	
 	errors: context [
-		throw:		as red-word! 0
+		_throw:		as red-word! 0
 		note:		as red-word! 0
 		syntax:		as red-word! 0
 		script:		as red-word! 0

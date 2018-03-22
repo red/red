@@ -1161,7 +1161,7 @@ system-dialect: make-profilable context [
 		]
 		
 		check-keywords: func [name [word!]][
-			if find keywords name [
+			if find keywords-list  name [
 				throw-error ["attempt to redefine a protected keyword:" name]
 			]
 		]

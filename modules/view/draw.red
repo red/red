@@ -41,7 +41,7 @@ Red/System [
 		replace:        symbol/make "replace"
 		intersect:      symbol/make "intersect"
 		union:          symbol/make "union"
-		xor:            symbol/make "xor"
+		_xor:            symbol/make "xor"
 		exclude:        symbol/make "exclude"
 		complement:     symbol/make "complement"
 		rotate:			symbol/make "rotate"
@@ -874,7 +874,7 @@ Red/System [
 										type = replace
 										type = intersect
 										type = union
-										type = xor
+										type = _xor
 										type = exclude
 									][ 
 										clip-mode: type
