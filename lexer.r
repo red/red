@@ -876,7 +876,7 @@ lexer: context [
 			while [find/match ws pos/1][pos: next pos]
 			found?: pos/1 = #"["
 		]	
-		unless found? [throw-error/with "Invalid Red program2"]
+		unless found? [throw-error/with "Invalid Red program"]
 		pos
 	]
 	
