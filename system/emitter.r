@@ -321,8 +321,8 @@ emitter: make-profilable context [
 			]
 			array! [
 				type: first compiler/get-type value/1
+				if find [float! float64!] type [pad-data-buf 4] ;-- insert a 32-bit padding to ensure /0 points to the length slot
 				store-global length? value 'integer! none	;-- store array size first
-				if find [float! float64!] type [pad-data-buf 8]
 				ptr: tail data-buf							;-- ensures array pointer skips size info
 				f64?: no
 				foreach item value [						;-- mixed types, use 32/64-bit for each slot
