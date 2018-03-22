@@ -945,11 +945,11 @@ natives: context [
 		root?	[logic!]
 		return: [red-block!]
 		/local
-			value  [red-value!]
-			tail   [red-value!]
-			new	   [red-block!]
-			result [red-value!]
-			into?  [logic!]
+			value	[red-value!]
+			tail	[red-value!]
+			new		[red-block!]
+			result	[red-value!]
+			into?	[logic!]
 			append? [logic!]
 	][
 		value: block/rs-head blk
