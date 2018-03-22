@@ -134,8 +134,8 @@ help-ctx: context [
 		]
 	]
 
-	longest-word: func [words [block! object!]][
-		if all [object? words  empty? words: words-of words] [return ""]
+	longest-word: func [words [block! object! map!]][
+		if all [any [object? words  map? words] empty? words: words-of words] [return ""]
 		forall words [words/1: form words/1]
 		sort/compare words func [a b][(length? a) < (length? b)]
 		last words
@@ -346,7 +346,13 @@ help-ctx: context [
 					;	Can't reflect on datatypes, as R3 could to some extent.
 					;	We would have to build our own typeset-match funcs to
 					;	show the type tree for it.
-					datatype? :val [col-1]
+					datatype? :val [
+						either system/catalog/accessors/:word [
+							[col-1 DOC_SEP mold system/catalog/accessors/:word]
+						][
+							[col-1]
+						]
+					]
 					any-function? :val [[col-1 DOC_SEP fmt-doc doc-string :val]]
 					'else [[col-1 DEF_SEP form-value :val]]
 				]
@@ -363,7 +369,7 @@ help-ctx: context [
 		form reduce [
 			either no-name [""] [as-arg-col mold param/name]
 			either type: select/skip param 'type 2 [mold/flat type][NO_DOC]
-			either param/desc [dot-str mold param/desc][NO_DOC]
+			either param/desc [mold dot-str param/desc][NO_DOC]
 		]
 	]
 	print-param: func [param [block!] /no-name][
@@ -402,7 +408,7 @@ help-ctx: context [
 		_print [
 			newline "DESCRIPTION:" newline
 			;reduce either fn-as-obj/desc [[DENT_1 any [fn-as-obj/desc NO_DOC] newline]][""]
-			reduce either fn-as-obj/desc [[DENT_1 dot-str fn-as-obj/desc newline]][""]
+			reduce either fn-as-obj/desc [[DENT_1 dot-str trim/lines copy fn-as-obj/desc newline]][""]
 			DENT_1 word-is-value-str/only word
 		]
 
@@ -426,6 +432,36 @@ help-ctx: context [
 		]
 				
 		exit
+	]
+
+	show-map-help: function [
+		"Displays help information about a map."
+		word [word! path! map!]
+		/local value
+	][
+		if not map? word [
+			_print [uppercase form word "is a map! with the following words and values:"]
+		]
+		map: either map? word [word][get word]
+		if not map? map [
+			_print "show-map-help only works on words that refer to maps."
+			exit
+		]
+
+		word-col-wd: length? longest-word map
+
+		foreach map-word words-of map [
+			set/any 'value map/:map-word
+			_print [
+				DENT_1 pad form map-word word-col-wd DEF_SEP as-type-col :value DEF_SEP
+				; Yes, we're checking against our output buffer for every value, even
+				; though it will only trigger for this context (help-ctx) and the 
+				; output-buffer word in it. If we don't check, the output is messed up.
+				; We're in the process of updating output-buffer after all. It's either
+				; this or use a separate buffer. The joys of self reflection.
+				either same? :value output-buffer [""][form-value :value]
+			]
+		]
 	]
 
 	show-object-help: function [
@@ -494,6 +530,8 @@ help-ctx: context [
 					any-function? :value [_print mold :value]
 					datatype? :value [show-datatype-help :value]
 					object? :value [show-object-help :value]
+					map? :value [show-map-help :value]
+					block? :value [_print [word-is-value-str/only :word DEF_SEP form-value :value]]
 					image? :value [
 						either in system 'view [view [image value]][
 							_print form-value value
