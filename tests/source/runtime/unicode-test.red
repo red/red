@@ -2,7 +2,7 @@ Red [
 	Title:   "Red/System runtime tools test"
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 %unicode-test.red
-	Rights:  "Copyright (C) 2012-2015 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	Rights:  "Copyright (C) 2012-2015 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
