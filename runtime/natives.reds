@@ -138,7 +138,16 @@ natives: context [
 		
 		stack/mark-loop words/_body
 		while [
-			interpreter/eval cond yes
+			catch RED_THROWN_BREAK [interpreter/eval cond yes]
+			switch system/thrown [
+				RED_THROWN_BREAK
+				RED_THROWN_CONTINUE	[
+					system/thrown: 0
+					fire [TO_ERROR(throw while-cond)]
+				]
+				0 					[0]
+				default				[re-throw]
+			]
 			logic/true?
 		][
 			stack/reset

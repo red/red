@@ -75,6 +75,7 @@ system: context [
 				return:				"return or exit not in function"
 				throw:				["no catch for throw:" :arg1]
 				continue:			"no loop to continue"
+				while-cond:			"BREAK/CONTINUE cannot be used in WHILE condition block"
 			]
 			note: object [
 				code:				100
