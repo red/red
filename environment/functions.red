@@ -41,7 +41,7 @@ quit: func [
 	/return status	[integer!] "Return an exit status"
 ][
 	#if config/OS <> 'Windows [
-		if system/console [_terminate-console]
+		if system/console [do [_terminate-console]]
 	]
 	quit-return any [status 0]
 ]
