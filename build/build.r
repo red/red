@@ -31,6 +31,7 @@ encapper: 		%enpro
 bin:			%bin/
 cache-file:		%bin/sources.r
 red: 			%red
+ts-file:		%timestamp.r
 git-file:		%git.r
 
 either Windows? [
@@ -64,6 +65,14 @@ save git-file do %git-version.r
 log "Combining all source files together..."
 do %includes.r
 
+;-- Generating the temporary timestamp file
+write ts-file mold use [date][									;-- UTC date
+	date: now
+	date: date - date/zone
+	date/zone: none
+	date
+]
+
 ;-- Encapping the Rebol interpreter with Red sources
 log "Encapping..."
 call/wait reform [encapper "precap.r -o" bin/:red]
@@ -78,6 +87,7 @@ if Windows? [
 ]
 
 ;-- Remove temporary files
+attempt [delete ts-file]
 attempt [delete git-file]
 attempt [delete cache-file]
 
