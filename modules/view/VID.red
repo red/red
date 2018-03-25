@@ -425,7 +425,7 @@ system/view/VID: context [
 		
 		set/some face opts								;-- merge default+styles and user options
 		
-		if block? face/actors [face/actors: context face/actors]
+		if all [not styling? block? face/actors][face/actors: context face/actors]
 
 		;-- size adjustments --
 		all [											;-- account for hard paddings
