@@ -19,6 +19,7 @@ unless system/console [
 	system/console: context [
 		history: make block! 200
 		size: 0x0
+		terminate: make block! 0
 	]
 ]
 ;; End patch
