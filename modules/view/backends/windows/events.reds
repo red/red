@@ -613,7 +613,12 @@ process-command-event: func [
 				type/symbol = radio
 			][
 				current-msg/hWnd: child					;-- force child handle
-				make-event current-msg 0 EVT_CHANGE
+				if any [
+					type/symbol = radio
+					get-logic-state current-msg
+				][
+					make-event current-msg 0 EVT_CHANGE
+				]
 			]
 		]
 		EN_CHANGE [											;-- sent also by CreateWindow
