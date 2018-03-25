@@ -573,6 +573,13 @@ _read-input: routine [prompt [string!]][
 	terminal/edit prompt
 ]
 
+_terminate-console: routine [][
+	#if OS <> 'Windows [
+	#if gui-console? = no [
+		if terminal/init? [terminal/emit-string "^[[?2004l"]	;-- disable bracketed paste mode
+	]]
+]
+
 ask: function [
 	question [string!]
 	return:  [string!]

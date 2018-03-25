@@ -96,13 +96,6 @@ system/console: context [
 		]
 	]
 
-	terminate: routine [][
-		#if OS <> 'Windows [
-		#if gui-console? = no [
-			if terminal/init? [terminal/emit-string "^[[?2004l"]	;-- disable bracketed paste mode
-		]]
-	]
-
 	count-delimiters: function [
 		buffer	[string!]
 		/extern count
