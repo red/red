@@ -592,7 +592,10 @@ help-ctx: context [
 	set 'about function ["Print Red version information"][
 		print [
 			"Red for" system/platform
-			'version system/version
+			'version any [
+				all [system/build/git next system/build/git/tag]
+				system/version
+			]
 			'built system/build/date
 		]
 	]
