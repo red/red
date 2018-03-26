@@ -1,4 +1,4 @@
 ### Expected behavior
 ### Actual behavior
 ### Steps to reproduce the problem
-### Red version and build date, operating system with version.
+### Version, run `about` in Red Console and paste result here.
