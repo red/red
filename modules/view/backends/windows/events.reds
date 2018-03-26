@@ -591,6 +591,7 @@ process-command-event: func [
 		res	   [integer!]
 		saved  [handle!]
 		child  [handle!]
+		evt	   [integer!]
 ][
 	if all [zero? lParam wParam < 1000][				;-- heuristic to detect a menu selection (--)'
 		unless null? menu-handle [
@@ -603,8 +604,13 @@ process-command-event: func [
 
 	switch WIN32_HIWORD(wParam) [
 		BN_CLICKED [
-			current-msg/hWnd: child					;-- force child handle
-			make-event current-msg 0 EVT_CLICK		;-- should be *after* get-facet call (Windows closing on click case)
+			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
+			current-msg/hWnd: child						;-- force child handle
+			evt: either type/symbol <> check [EVT_CLICK][
+				get-logic-state current-msg
+				EVT_CHANGE
+			]
+			make-event current-msg 0 evt				;-- should be *after* get-facet call (Windows closing on click case)
 		]
 		BN_UNPUSHED [
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
