@@ -60,7 +60,12 @@ system/console: context [
 					remove back tail file
 				]
 				file: to-red-file file
-				either src: attempt [read file][
+				
+				either error? set/any 'src try [read file][
+					print src
+					src: none
+					;quit/return -1
+				][
 					system/options/script: file
 					remove system/options/args
 					args: system/script/args
@@ -69,9 +74,6 @@ system/console: context [
 						tail args
 					]
 					trim/head args
-				][
-					print ["*** Error: cannot access argument file:^/" file]
-					;quit/return -1
 				]
 				path: first split-path file
 				if path <> %./ [change-dir path]
