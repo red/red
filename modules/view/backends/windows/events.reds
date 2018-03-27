@@ -657,7 +657,7 @@ process-command-event: func [
 			make-event current-msg 0 EVT_UNFOCUS
 		]
 		CBN_SELCHANGE [
-			current-msg/hWnd: child			;-- force ListBox or Combobox handle
+			current-msg/hWnd: child						;-- force ListBox or Combobox handle
 			values: get-face-values child
 
 			type: as red-word! values + FACE_OBJ_TYPE
@@ -668,7 +668,7 @@ process-command-event: func [
 			if all [
 				TYPE_OF(int) = TYPE_INTEGER
 				idx + 1 = int/value
-			][exit]							;-- do not send event if select the same item
+			][exit]										;-- do not send event if select the same item
 			res: make-event current-msg idx EVT_SELECT
 			int/header: TYPE_INTEGER
 			int/value: idx + 1
@@ -678,7 +678,7 @@ process-command-event: func [
 			]
 		]
 		CBN_EDITCHANGE [
-			current-msg/hWnd: child			;-- force Combobox handle
+			current-msg/hWnd: child						;-- force Combobox handle
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
 			unless type/symbol = text-list [
 				make-event current-msg -1 EVT_CHANGE
