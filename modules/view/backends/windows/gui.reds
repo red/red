@@ -1932,12 +1932,7 @@ change-data: func [
 			si/fMask: SIF_POS or SIF_RANGE
 			GetScrollInfo hWnd SB_CTL :si
 			range: si/nMax - si/nMin
-probe "change-data"
-?? range
-?? flt
-probe si/nPos
 			si/nPos: si/nMin + as-integer (flt * as-float range)
-probe si/nPos			
 			SetScrollInfo hWnd SB_CTL :si true
 		]
 		all [
