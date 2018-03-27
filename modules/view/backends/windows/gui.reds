@@ -1064,6 +1064,31 @@ set-scroller-metrics: func [
 	sel/value: (as-float si/nPage) / range
 ]
 
+get-slider-pos: func [
+	msg	[tagMSG]
+	/local
+		values	[red-value!]
+		size	[red-pair!]
+		pos		[red-float!]
+		amount	[integer!]
+		divisor [integer!]
+][
+	values: get-facets msg
+	size:	as red-pair!	values + FACE_OBJ_SIZE
+	pos:	as red-float!	values + FACE_OBJ_DATA
+
+	if all [
+		TYPE_OF(pos) <> TYPE_FLOAT
+		TYPE_OF(pos) <> TYPE_PERCENT
+	][
+		percent/rs-make-at as red-value! pos 0.0
+	]
+	amount: as-integer SendMessage msg/hWnd TBM_GETPOS 0 0
+	divisor: size/x
+	if size/y > size/x [divisor: size/y amount: divisor - amount]
+	pos/value: (as-float amount) / as-float divisor
+]
+
 get-screen-size: func [
 	id		[integer!]									;@@ Not used yet
 	return: [red-pair!]

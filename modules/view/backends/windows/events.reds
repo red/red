@@ -1141,39 +1141,46 @@ WndProc: func [
 				make-event current-msg 0 EVT_SCROLL
 			][											;-- message from trackbar
 				handle: as handle! lParam
-				si/cbSize: size? tagSCROLLINFO
-				si/fMask: SIF_PAGE or SIF_POS or SIF_RANGE
-				GetScrollInfo handle SB_CTL :si
-				values: get-face-values handle
-				sel: as red-float! values + FACE_OBJ_SELECTED
-				st: as red-float! values + FACE_OBJ_EXT1
-				range: as-float si/nMax - si/nMin
-				flags: wParam and FFFFh
-				switch flags [
-					SB_LINEUP
-					SB_LINEDOWN   [
-						pos: as-integer range * st/value
-						if flags = SB_LINEUP [pos: 0 - pos]
-						pos: si/nPos + pos
-						if pos > si/nMax [pos: si/nMax]
-						if pos < si/nMin [pos: si/nMin]
-						si/nPos: pos
-					]
-					SB_PAGEUP
-					SB_PAGEDOWN	  [
-						pos: as-integer range * sel/value
-						if flags = SB_PAGEUP [pos: 0 - pos]
-						si/nPos: si/nPos + pos
-					]
-					SB_THUMBTRACK [si/nPos: WIN32_HIWORD(wParam)]
-					SB_ENDSCROLL  [return 0]
-					default		  [0]
-				]
-				SetScrollInfo handle SB_CTL :si true
-
 				if null? current-msg [init-current-msg]
 				current-msg/hWnd: handle				;-- thumbtrack handle
-				set-scroller-metrics current-msg :si
+
+				values: get-face-values handle
+				w-type: as red-word! values + FACE_OBJ_TYPE
+				type: symbol/resolve w-type/symbol
+				either type = slider [
+					get-slider-pos current-msg
+				][
+					si/cbSize: size? tagSCROLLINFO
+					si/fMask: SIF_PAGE or SIF_POS or SIF_RANGE
+					GetScrollInfo handle SB_CTL :si
+					values: get-face-values handle
+					sel: as red-float! values + FACE_OBJ_SELECTED
+					st: as red-float! values + FACE_OBJ_EXT1
+					range: as-float si/nMax - si/nMin
+					flags: wParam and FFFFh
+					switch flags [
+						SB_LINEUP
+						SB_LINEDOWN   [
+							pos: as-integer range * st/value
+							if flags = SB_LINEUP [pos: 0 - pos]
+							pos: si/nPos + pos
+							if pos > si/nMax [pos: si/nMax]
+							if pos < si/nMin [pos: si/nMin]
+							si/nPos: pos
+						]
+						SB_PAGEUP
+						SB_PAGEDOWN	  [
+							pos: as-integer range * sel/value
+							if flags = SB_PAGEUP [pos: 0 - pos]
+							si/nPos: si/nPos + pos
+						]
+						SB_THUMBTRACK [si/nPos: WIN32_HIWORD(wParam)]
+						SB_ENDSCROLL  [return 0]
+						default		  [0]
+					]
+					SetScrollInfo handle SB_CTL :si true
+					set-scroller-metrics current-msg :si
+				]
 				make-event current-msg 0 EVT_CHANGE
 			]
 			return 0
