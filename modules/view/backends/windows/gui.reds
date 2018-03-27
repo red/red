@@ -1026,7 +1026,7 @@ get-text: func [
 
 get-position-value: func [
 	pos		[red-float!]
-	maximun [integer!]
+	maximum [integer!]
 	return: [integer!]
 	/local
 		f	[float!]
@@ -1036,7 +1036,7 @@ get-position-value: func [
 		TYPE_OF(pos) = TYPE_FLOAT
 		TYPE_OF(pos) = TYPE_PERCENT
 	][
-		f: pos/value * as-float maximun
+		f: pos/value * as-float maximum
 	]
 	as-integer f
 ]
