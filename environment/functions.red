@@ -959,6 +959,15 @@ sqrt: func [
 	]
 ]
 
+to-local-date: func [
+	"Returns the date with local zone"
+	date [date!]
+	return: [date!]
+][
+	date/timezone: now/zone
+	date
+]
+
 ;--- Temporary definition, use at your own risks! ---
 rejoin: function [
 	"Reduces and joins a block of values."

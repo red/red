@@ -12,8 +12,9 @@ Red [
 
 system: context [
 	version: #version
-	build:	 context [
-		date:	#build-date
+	build: context [
+		date: to-local-date #build-date
+		git: do #git
 		config: context #build-config
 	]
 		

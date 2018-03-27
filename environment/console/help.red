@@ -589,10 +589,39 @@ help-ctx: context [
 		either buffer [output-buffer][print output-buffer]	; Note ref to output-buffer in context
 	]
 
+	os-version: func [
+		"Get OS version"
+		/local out
+	][
+		out: clear any [out make string! 128]
+		attempt [
+			switch system/platform [
+				Windows [
+					call/output {wmic os get Caption /value} out
+					parse out [thru "Microsoft Windows " copy out to lf]
+				]
+				macOS [call/output {sw_vers -productVersion} out]
+				Linux [
+					call/output {uname -mr} out
+					out: rejoin parse out [
+						collect [
+							keep to [#"-" | space] thru space
+							keep (slash) keep to end
+						]
+					]
+				]
+			]
+		]
+		trim/tail out
+	]
+
 	set 'about function ["Print Red version information"][
 		print [
-			"Red for" system/platform
-			'version system/version
+			"Red for" system/platform os-version
+			'version any [
+				all [system/build/git next system/build/git/tag]
+				system/version
+			]
 			'built system/build/date
 		]
 	]
