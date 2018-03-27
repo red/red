@@ -48,6 +48,14 @@ write %build/bin/sources.r set-cache [
 			%windows.reds
 			%win32.reds
 		]
+		%red-console/ [
+			%app.ico
+			%core.red
+			%highlight.red
+			%red-console.red
+			%settings.red
+			%tips.red
+		]
 	]
 	%runtime/ [
 		%actions.reds
@@ -76,6 +84,7 @@ write %build/bin/sources.r set-cache [
 		%crush.reds
 		%utils.reds
 		%call.reds
+		%print.reds
 		%datatypes/ [
 			%action.reds
 			%block.reds
@@ -139,9 +148,9 @@ write %build/bin/sources.r set-cache [
 			%COM.reds
 			%image-gdiplus.reds
 			%image-quartz.reds
-			%win32-cli.reds
-			%win32-gui.reds
 			%win32-ansi.reds
+			%win32-print.reds
+			
 		]
 	]
 	%modules/ [
