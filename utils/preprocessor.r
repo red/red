@@ -3,7 +3,7 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File: 	 %preprocessor.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2016 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2016-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 Red []													;-- make it usable by Red too.

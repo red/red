@@ -3,7 +3,7 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File: 	 %emitter.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
@@ -264,18 +264,17 @@ emitter: make-profilable context [
 				]
 				append ptr value
 			]
-			float! float64! [
-				pad-data-buf 8							;-- align 64-bit floats on 64-bit
-				ptr: tail data-buf
-				unless decimal? value [value: 0.0]
-				append ptr IEEE-754/to-binary64/rev value	;-- stored in little-endian
-			]
-			float32! [	
-				pad-data-buf target/default-align
+			float! float64! float32! [
+				pad-data-buf either type = 'float32! [target/default-align][8] ;-- align 64-bit floats on 64-bit
 				ptr: tail data-buf
 				value: compiler/unbox value
+				if integer? value [value: to decimal! value]
 				unless decimal? value [value: 0.0]
-				append ptr IEEE-754/to-binary32/rev value	;-- stored in little-endian
+				append ptr either type = 'float32! [
+					IEEE-754/to-binary32/rev value	;-- stored in little-endian
+				][
+					IEEE-754/to-binary64/rev value	;-- stored in little-endian
+				]
 			]
 			c-string! [
 				either string? value [
@@ -322,8 +321,8 @@ emitter: make-profilable context [
 			]
 			array! [
 				type: first compiler/get-type value/1
+				if find [float! float64!] type [pad-data-buf 4] ;-- insert a 32-bit padding to ensure /0 points to the length slot
 				store-global length? value 'integer! none	;-- store array size first
-				if find [float! float64!] type [pad-data-buf 8]
 				ptr: tail data-buf							;-- ensures array pointer skips size info
 				f64?: no
 				foreach item value [						;-- mixed types, use 32/64-bit for each slot

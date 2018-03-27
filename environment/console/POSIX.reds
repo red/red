@@ -3,7 +3,7 @@ Red/System [
 	Author: "Nenad Rakocevic, Xie Qingtian"
 	File: 	%POSIX.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2014-2015 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2014-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -184,6 +184,7 @@ winsize!: alias struct! [
 	]
 ]
 
+old-act:	declare sigaction!
 saved-term: declare termios!
 utf-char:	declare c-string!
 poller: 	declare pollfd!
@@ -450,7 +451,7 @@ init: func [
 	/local
 		term [termios!]
 		cc	 [byte-ptr!]
-		so	 [sigaction!]
+		so	 [sigaction! value]
 		mask [integer!]
 ][
 	console?: 1 = isatty stdin
@@ -458,12 +459,11 @@ init: func [
 	utf-char: as-c-string allocate 10
 	
 	if console? [
-		so: declare sigaction!						;-- install resizing signal trap
 		mask: (as-integer so) + 4
 		sigemptyset mask
 		so/sigaction: as-integer :on-resize
 		so/flags: 0
-		sigaction SIGWINCH so as sigaction! 0
+		sigaction SIGWINCH so old-act
 
 		term: declare termios!
 		tcgetattr stdin saved-term					;@@ check returned value
@@ -512,6 +512,7 @@ init: func [
 
 restore: does [
 	tcsetattr stdin TERM_TCSADRAIN saved-term
+	sigaction SIGWINCH old-act null
 	free buffer
 	free as byte-ptr! utf-char
 ]

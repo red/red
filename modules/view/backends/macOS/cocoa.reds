@@ -3,7 +3,7 @@ Red/System [
 	Author: "Qingtian Xie"
 	File: 	%cocoa.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2016 Qingtian Xie. All rights reserved."
+	Rights: "Copyright (C) 2016-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -199,6 +199,11 @@ NSSize!: alias struct! [
 	h		[float32!]
 ]
 
+NSRange!: alias struct! [
+	idx		[integer!]
+	len		[integer!]
+]
+
 CGPoint!: alias struct! [
 	x		[float32!]
 	y		[float32!]
@@ -320,6 +325,7 @@ tagSIZE: alias struct! [
 		]
 		objc_msgSend: "objc_msgSend" [[variadic] return: [integer!]]
 		objc_msgSend_pt: "objc_msgSend" [[variadic] return: [CGPoint! value]]
+		objc_msgSend_range: "objc_msgSend" [[variadic] return: [NSRange! value]]
 		objc_msgSendSuper: "objc_msgSendSuper" [[variadic] return: [integer!]]
 		objc_msgSend_f32: "objc_msgSend_fpret" [[variadic] return: [float32!]]
 		objc_msgSend_fpret: "objc_msgSend_fpret" [[variadic] return: [float!]]

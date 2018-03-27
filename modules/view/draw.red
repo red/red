@@ -3,7 +3,7 @@ Red/System [
 	Author: "Nenad Rakocevic"
 	File: 	%draw.red
 	Tabs: 	4
-	Rights: "Copyright (C) 2015 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -41,7 +41,7 @@ Red/System [
 		replace:        symbol/make "replace"
 		intersect:      symbol/make "intersect"
 		union:          symbol/make "union"
-		xor:            symbol/make "xor"
+		_xor:            symbol/make "xor"
 		exclude:        symbol/make "exclude"
 		complement:     symbol/make "complement"
 		rotate:			symbol/make "rotate"
@@ -874,7 +874,7 @@ Red/System [
 										type = replace
 										type = intersect
 										type = union
-										type = xor
+										type = _xor
 										type = exclude
 									][ 
 										clip-mode: type

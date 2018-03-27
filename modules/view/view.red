@@ -3,7 +3,7 @@ Red [
 	Author: "Nenad Rakocevic"
 	File: 	%view.red
 	Tabs: 	4
-	Rights: "Copyright (C) 2015 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -1168,6 +1168,12 @@ insert-event-func [
 		switch event/type [
 			move moving 	[system/reactivity/check/only event/face 'offset]
 			resize resizing [system/reactivity/check/only event/face 'size]
+		]
+	]
+	if event/type = 'select [
+		face: event/face
+		if find [field area] face/type [
+			system/reactivity/check/only face 'selected
 		]
 	]
 	none

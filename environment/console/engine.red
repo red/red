@@ -3,7 +3,7 @@ Red [
 	Author: ["Nenad Rakocevic" "Kaj de Vos"]
 	File: 	%engine.red
 	Tabs: 	4
-	Rights: "Copyright (C) 2012-2015 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2012-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -61,7 +61,12 @@ system/console: context [
 					remove back tail file
 				]
 				file: to-red-file file
-				either src: attempt [read file][
+				
+				either error? set/any 'src try [read file][
+					print src
+					src: none
+					;quit/return -1
+				][
 					system/options/script: file
 					remove system/options/args
 					args: system/script/args
@@ -70,9 +75,6 @@ system/console: context [
 						tail args
 					]
 					trim/head args
-				][
-					print ["*** Error: cannot access argument file:^/" file]
-					;quit/return -1
 				]
 				path: first split-path file
 				if path <> %./ [change-dir path]
@@ -95,13 +97,6 @@ system/console: context [
 		][
 			#if gui-console? = no [terminal/pasting?: no]
 		]
-	]
-
-	terminate: routine [][
-		#if OS <> 'Windows [
-		#if gui-console? = no [
-			if terminal/init? [terminal/emit-string "^[[?2004l"]	;-- disable bracketed paste mode
-		]]
 	]
 
 	count-delimiters: function [

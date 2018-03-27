@@ -3,7 +3,7 @@ REBOL [
 	Author:  "Xie Qingtian"
 	File: 	 %Mach-APP.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2013 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2013-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 

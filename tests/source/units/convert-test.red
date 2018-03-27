@@ -3,7 +3,7 @@ Red [
 	Author:  ["Oldes" "Peter W A Wood"]
 	File: 	 convert-test.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2017 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	Rights:  "Copyright (C) 2011-2017 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
 ]
 

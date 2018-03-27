@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %natives.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -138,7 +138,16 @@ natives: context [
 		
 		stack/mark-loop words/_body
 		while [
-			interpreter/eval cond yes
+			catch RED_THROWN_BREAK [interpreter/eval cond yes]
+			switch system/thrown [
+				RED_THROWN_BREAK
+				RED_THROWN_CONTINUE	[
+					system/thrown: 0
+					fire [TO_ERROR(throw while-cond)]
+				]
+				0 					[0]
+				default				[re-throw]
+			]
 			logic/true?
 		][
 			stack/reset
@@ -681,7 +690,8 @@ natives: context [
 			blk/head: 0										;-- head changed by reduce/into
 		]
 
-		actions/form* -1
+		if TYPE_OF(arg) <> TYPE_STRING [actions/form* -1]
+		
 		str: as red-string! stack/arguments
 		assert any [
 			TYPE_OF(str) = TYPE_STRING
@@ -855,12 +865,13 @@ natives: context [
 		check? [logic!]
 		into   [integer!]
 		/local
-			value [red-value!]
-			tail  [red-value!]
-			arg	  [red-value!]
-			type  [integer!]
-			into? [logic!]
-			blk?  [logic!]
+			value	[red-value!]
+			tail	[red-value!]
+			arg		[red-value!]
+			type	[integer!]
+			into?	[logic!]
+			blk?	[logic!]
+			append? [logic!]
 	][
 		#typecheck [reduce into]
 		arg: stack/arguments
@@ -875,16 +886,16 @@ natives: context [
 		stack/mark-native words/_body
 
 		either into? [
-			as red-block! stack/push arg + into
+			append?: block/rs-tail? as red-block! stack/push arg + into
 		][
 			if blk? [block/push-only* (as-integer tail - value) >> 4]
+			append?: yes
 		]
-
 		either blk? [
 			while [value < tail][
 				value: interpreter/eval-next value tail yes
 				clear-newline stack/arguments + 1
-				either into? [actions/insert* -1 0 -1][block/append*]
+				either append? [block/append*][actions/insert* -1 0 -1]
 				stack/keep									;-- preserve the reduced block on stack
 			]
 		][
@@ -900,7 +911,7 @@ natives: context [
 			][
 				interpreter/eval-expression arg arg + 1 no yes no ;-- for non block! values
 			]
-			if into? [actions/insert* -1 0 -1]
+			if into? [either append? [block/append*][actions/insert* -1 0 -1]]
 		]
 		stack/unwind-last
 	]
@@ -913,20 +924,23 @@ natives: context [
 		root?	[logic!]
 		return: [red-block!]
 		/local
-			value  [red-value!]
-			tail   [red-value!]
-			new	   [red-block!]
-			result [red-value!]
-			into?  [logic!]
+			value	[red-value!]
+			tail	[red-value!]
+			new		[red-block!]
+			result	[red-value!]
+			into?	[logic!]
+			append? [logic!]
 	][
 		value: block/rs-head blk
 		tail:  block/rs-tail blk
 		into?: all [root? OPTION?(into)]
 
 		new: either into? [
+			append?: block/rs-tail? into
 			into
 		][
-			block/push-only* (as-integer tail - value) >> 4	
+			append?: yes
+			block/push-only* (as-integer tail - value) >> 4
 		]
 		while [value < tail][
 			switch TYPE_OF(value) [
@@ -936,10 +950,10 @@ natives: context [
 					][
 						as red-block! value
 					]
-					either into? [
-						block/insert-value new as red-value! blk
-					][
+					either append? [
 						copy-cell as red-value! blk ALLOC_TAIL(new)
+					][
+						block/insert-value new as red-value! blk
 					]
 				]
 				TYPE_PAREN [
@@ -961,26 +975,26 @@ natives: context [
 								only? 
 								TYPE_OF(result) <> TYPE_BLOCK
 							][
-								either into? [
-									block/insert-value new result
-								][
+								either append? [
 									copy-cell result ALLOC_TAIL(new)
+								][
+									block/insert-value new result
 								]
 							][
-								either into? [
-									block/insert-block new as red-block! result
-								][
+								either append? [
 									block/rs-append-block new as red-block! result
+								][
+									block/insert-block new as red-block! result
 								]
 							]
 						]
 					]
 				]
 				default [
-					either into? [
-						block/insert-value new value
-					][
+					either append? [
 						copy-cell value ALLOC_TAIL(new)
+					][
+						block/insert-value new value
 					]
 				]
 			]

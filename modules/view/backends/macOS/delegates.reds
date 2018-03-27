@@ -3,7 +3,7 @@ Red/System [
 	Author: "Qingtian Xie"
 	File: 	%delegates.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2016 Qingtian Xie. All rights reserved."
+	Rights: "Copyright (C) 2016-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -624,6 +624,56 @@ text-did-change: func [
 	set-text self objc_msgSend [self sel_getUid "stringValue"]
 	if loop-started? [make-event self 0 EVT_CHANGE]
 	msg-send-super self cmd notif
+]
+
+;text-change-selection: func [
+;	[cdecl]
+;	self	[integer!]
+;	cmd		[integer!]
+;	notif	[integer!]
+;	/local
+;		win		[integer!]
+;		text	[integer!]
+;		range	[NSRange! value]
+;		sel		[red-pair!]
+;][
+	;win: objc_msgSend [NSApp sel_getUid "mainWindow"]
+	;text: objc_msgSend [win sel_getUid "fieldEditor:forObject:" yes self]
+	;text: objc_msgSend [self sel_getUid "currentEditor"]
+;	range: objc_msgSend_range [self sel_getUid "selectedRange"]
+
+;	sel: as red-pair! (get-face-values self) + FACE_OBJ_SELECTED
+;	either zero? range/len [sel/header: TYPE_NONE][
+;		sel/header: TYPE_PAIR
+;		sel/x: range/idx + 1
+;		sel/y: range/idx + range/len
+;	]
+
+;	make-event self 0 EVT_SELECT
+;]
+
+text-will-selection: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	view	[integer!]
+	idx1	[integer!]
+	len1	[integer!]
+	idx2	[integer!]
+	len2	[integer!]
+	/local
+		sel [red-pair!]
+][
+	sel: as red-pair! (get-face-values self) + FACE_OBJ_SELECTED
+	either zero? len2 [sel/header: TYPE_NONE][
+		sel/header: TYPE_PAIR
+		sel/x: idx2 + 1
+		sel/y: idx2 + len2
+	]
+
+	make-event self 0 EVT_SELECT
+	system/cpu/edx: len2
+	system/cpu/eax: idx2
 ]
 
 area-did-end-editing: func [

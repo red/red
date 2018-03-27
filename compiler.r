@@ -3,7 +3,7 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File: 	 %compiler.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
@@ -4135,7 +4135,7 @@ red: context [
 		]
 	]
 
-	comp-directive: has [mark][
+	comp-directive: has [mark value][
 		switch pc/1 [
 			#include [
 				comp-include pc

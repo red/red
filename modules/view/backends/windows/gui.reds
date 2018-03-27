@@ -3,7 +3,7 @@ Red/System [
 	Author: "Nenad Rakocevic, Xie Qingtian"
 	File: 	%gui.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2015 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -489,6 +489,27 @@ update-caret: func [
 	owner: as handle! GetWindowLong hWnd wc-offset - 24
 	CreateCaret owner null size/x size/y
 	change-offset hWnd as red-pair! values + FACE_OBJ_OFFSET caret
+]
+
+update-selection: func [
+	hWnd	[handle!]
+	values	[red-value!]
+	/local
+		sel	  [red-pair!]
+		begin [integer!]
+		end   [integer!]
+][
+	begin: 0
+	end:   0
+	SendMessage hWnd EM_GETSEL as-integer :begin as-integer :end
+	sel: as red-pair! values + FACE_OBJ_SELECTED
+	either begin = end [
+		sel/header: TYPE_NONE
+	][
+		sel/header: TYPE_PAIR
+		sel/x: begin + 1								;-- one-based positionq
+		sel/y: end										;-- points past the last selected, so no need + 1
+	]
 ]
 
 to-bgr: func [
@@ -1292,12 +1313,12 @@ OS-make-view: func [
 		sym = field [
 			class: #u16 "RedField"
 			flags: flags or WS_TABSTOP
-			unless para? [flags: flags or ES_LEFT or ES_AUTOHSCROLL]
+			unless para? [flags: flags or ES_LEFT or ES_AUTOHSCROLL or ES_NOHIDESEL]
 			if bits and FACET_FLAGS_NO_BORDER = 0 [ws-flags: WS_EX_CLIENTEDGE]
 		]
 		sym = area [
 			class: #u16 "RedArea"
-			unless para? [flags: flags or ES_LEFT or ES_AUTOHSCROLL or WS_HSCROLL]
+			unless para? [flags: flags or ES_LEFT or ES_AUTOHSCROLL or WS_HSCROLL or ES_NOHIDESEL]
 			flags: flags or ES_MULTILINE or ES_AUTOVSCROLL or WS_VSCROLL or WS_TABSTOP
 			if bits and FACET_FLAGS_NO_BORDER = 0 [ws-flags: WS_EX_CLIENTEDGE]
 		]
@@ -1715,6 +1736,25 @@ extend-area-limit: func [
 	]
 ]
 
+select-text: func [
+	hWnd   [handle!]
+	values [red-value!]
+	/local
+		sel	   [red-pair!]
+		begin  [integer!]
+		end	   [integer!]
+][
+	sel: as red-pair! values + FACE_OBJ_SELECTED
+	either TYPE_OF(sel) = TYPE_PAIR [
+		begin: sel/x - 1
+		end: sel/y										;-- should point past the last selected char
+	][
+		begin: 0
+		end:   0
+	]
+	SendMessage hWnd EM_SETSEL begin end
+]
+
 change-text: func [
 	hWnd	[handle!]
 	values	[red-value!]
@@ -1834,6 +1874,9 @@ change-selection: func [
 		any [sym = drop-list sym = drop-down][
 			SendMessage hWnd CB_SETCURSEL int/value - 1 0
 		]
+		any [sym = field sym = area][
+			select-text hWnd values
+		]
 		sym = tab-panel [
 			select-tab hWnd int/value - 1				;@@ requires range checking
 		]
@@ -1857,6 +1900,7 @@ change-data: func [
 		f		[red-float!]
 		str		[red-string!]
 		size	[red-pair!]
+		bool	[red-logic!]
 		range	[integer!]
 		flt		[float!]
 		caption [c-string!]
@@ -1908,6 +1952,10 @@ probe si/nPos
 		]
 		type = radio [
 			set-logic-state hWnd as red-logic! data no
+			bool: as red-logic! data
+			unless bool/value [
+				SendMessage GetParent hWnd WM_COMMAND BN_UNPUSHED << 16 as-integer hWnd
+			]
 		]
 		type = tab-panel [
 			set-tabs hWnd get-face-values hWnd
@@ -2291,16 +2339,7 @@ OS-update-facet: func [
 					type = drop-list
 					type = drop-down
 				][
-					if any [
-						index and 1 = 1
-						part  and 1 = 1
-					][
-						fire [TO_ERROR(script invalid-data-facet) value]
-					]
-					index: index / 2
-					part:   part / 2
 					if zero? part [exit]
-					
 					update-list face value sym new index part yes
 				]
 				type = tab-panel [

@@ -3,7 +3,7 @@ Red/System [
 	Author: "Xie Qingtian"
 	File: 	%direct2d.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2016 Qingtian Xie. All rights reserved."
+	Rights: "Copyright (C) 2016-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt

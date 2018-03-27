@@ -3,7 +3,7 @@ Red/System [
 	Author: "Qingtian Xie"
 	File: 	%classes.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2016 Qingtian Xie. All rights reserved."
+	Rights: "Copyright (C) 2016-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -117,6 +117,8 @@ add-droplist-handler: func [class [integer!]][
 add-text-field-handler: func [class [integer!]][
 	class_addMethod class sel_getUid "textDidChange:" as-integer :text-did-change "v@:@"
 	class_addMethod class sel_getUid "textDidEndEditing:" as-integer :text-did-end-editing "v@:@"
+	;class_addMethod class sel_getUid "textViewDidChangeSelection:" as-integer :text-change-selection "v@:@"
+	class_addMethod class sel_getUid "textView:willChangeSelectionFromCharacterRange:toCharacterRange:" as-integer :text-will-selection "{_NSRange=ii}@:@{_NSRange=ii}{_NSRange=ii}"
 	class_addMethod class sel_getUid "becomeFirstResponder" as-integer :become-first-responder "B@:"
 	class_addMethod class sel_getUid "performKeyEquivalent:" as-integer :perform-key-equivalent "B@:@"
 ]

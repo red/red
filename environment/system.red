@@ -3,7 +3,7 @@ Red [
 	Author:  "Nenad Rakocevic"
 	File: 	 %system.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -75,6 +75,7 @@ system: context [
 				return:				"return or exit not in function"
 				throw:				["no catch for throw:" :arg1]
 				continue:			"no loop to continue"
+				while-cond:			"BREAK/CONTINUE cannot be used in WHILE condition block"
 			]
 			note: object [
 				code:				100

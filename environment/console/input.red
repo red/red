@@ -3,7 +3,7 @@ Red [
 	Author: "Nenad Rakocevic"
 	File: 	%input.red
 	Tabs: 	4
-	Rights: "Copyright (C) 2014-2015 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2014-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -571,6 +571,13 @@ _set-buffer-history: routine [line [string!] hist [block!]][
 
 _read-input: routine [prompt [string!]][
 	terminal/edit prompt
+]
+
+_terminate-console: routine [][
+	#if OS <> 'Windows [
+	#if gui-console? = no [
+		if terminal/init? [terminal/emit-string "^[[?2004l"]	;-- disable bracketed paste mode
+	]]
 ]
 
 ask: function [

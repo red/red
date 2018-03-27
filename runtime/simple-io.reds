@@ -3,7 +3,7 @@ Red/System [
 	Author: "Nenad Rakocevic"
 	File: 	%simple-io.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2012-2015 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2012-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -1401,8 +1401,11 @@ simple-io: context [
 					blk		[red-block!]
 					len		[integer!]
 					proxy	[tagVARIANT value]
+					parr	[integer!]
+					buf		[byte-ptr!]
 			][
 				res: as red-value! none-value
+				parr: 0
 				len: -1
 				buf-ptr: 0
 				bstr-d: null
@@ -1432,9 +1435,20 @@ simple-io: context [
 						either null? data [
 							body/data1: VT_ERROR
 						][
-							body/data1: VT_BSTR
-							bstr-d: SysAllocString unicode/to-utf16-len as red-string! data :len no
-							body/data3: as-integer bstr-d
+							either TYPE_OF(data) = TYPE_BINARY [
+								buf: binary/rs-head as red-binary! data
+								len: binary/rs-length? as red-binary! data
+								parr: as-integer SafeArrayCreateVector VT_UI1 0 len
+								SafeArrayAccessData parr :buf-ptr
+								copy-memory as byte-ptr! buf-ptr buf len
+								SafeArrayUnaccessData parr
+								body/data1: VT_ARRAY or VT_UI1
+								body/data3: parr
+							][
+								body/data1: VT_BSTR
+								bstr-d: SysAllocString unicode/to-utf16-len as red-string! data :len no
+								body/data3: as-integer bstr-d
+							]
 						]
 					]
 				]
@@ -1487,6 +1501,8 @@ simple-io: context [
 				][
 					return res
 				]
+
+				unless zero? parr [SafeArrayDestroy parr]
 
 				if hr >= 0 [
 					if info? [
@@ -2050,7 +2066,7 @@ simple-io: context [
 			][
 				mp: as red-hash! userdata
 				len: size * nmemb
-				if zero? strncmp as c-string! s "HTTP/1.1" 8 [return len]
+				if zero? strncmp as c-string! s "HTTP/1." 7 [return len]
 
 				p: s
 				while [s/1 <> null-byte][
@@ -2072,9 +2088,9 @@ simple-io: context [
 						]
 
 						p: s + 2
-						until [
+						forever [
 							s: s + 1
-							if s/1 = #"^M" [			;-- value
+							if any [s/1 = #"^M" s/1 = #"^/"] [	;-- value
 								res: as red-value! string/load as-c-string p as-integer s - p UTF-8
 								either new? [
 									map/put mp w res no
@@ -2082,8 +2098,8 @@ simple-io: context [
 									block/rs-append val res
 								]
 								p: s + 2
+								break
 							]
-							s/1 = #"^M"
 						]
 						stack/pop 2
 					]

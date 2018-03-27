@@ -3,7 +3,7 @@ Red/System [
 	Author: "Nenad Rakocevic"
 	File: 	%classes.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2015 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -170,9 +170,15 @@ AreaWndProc: func [
 				;based on: https://stackoverflow.com/a/25355868/494472
 				if wParam = 1 [
 					SendMessage hwnd EM_SETSEL 0 -1 ;-- select all
-					return 1;
+					return 1
 				]
 			]
+		]
+		WM_KEYUP
+		WM_LBUTTONUP	[
+			update-selection hWnd get-face-values hWnd
+			current-msg/hWnd: hWnd
+			make-event current-msg 0 EVT_SELECT
 		]
 		default [0]
 	]

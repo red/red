@@ -3,7 +3,7 @@ Red [
 	Author:  "Nenad Rakocevic"
 	File: 	 %VID.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2014-2017 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2014-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
@@ -164,11 +164,28 @@ system/view/VID: context [
 	]
 	
 	resize-child-panels: function [tab [object!]][		;-- ensures child panels fit accurately in tab-panels
-		tp-size: tab/size
-		if pad: system/view/metrics/paddings/tab-panel [
-			tp-size: tp-size - as-pair pad/1/x + pad/1/y pad/2/x + pad/2/y
+		if block? tab/pane [
+			tp-size: tab/size
+			if pad: system/view/metrics/paddings/tab-panel [
+				tp-size: tp-size - as-pair pad/1/x + pad/1/y pad/2/x + pad/2/y
+			]
+			foreach pane tab/pane [pane/size: tp-size]
 		]
-		foreach pane tab/pane [pane/size: tp-size]
+	]
+	
+	clean-style: func [tmpl [block!] type [word!] /local para font][ ;-- clean-up template from unwanted live values
+		parse tmpl [
+			some [remove [set-word! [none! | function!]] | skip]
+		]
+		if all [para: tmpl/para para/parent][
+			tmpl/para: make para [parent: none]
+		]
+		if all [font: tmpl/font font/parent][
+			tmpl/font: make font [parent: state: none]
+		]
+		if find [field text] type [
+			remove/part find tmpl 'data 2
+		]
 	]
 	
 	process-draw: function [code [block!]][
@@ -321,7 +338,7 @@ system/view/VID: context [
 							pair!	 [unless opts/size  [opts/size:  value]]
 							string!	 [unless opts/text  [opts/text:  value]]
 							logic!
-							percent! [unless opts/data  [opts/data:  value]]
+							percent! [unless opts/data  [opts/data:  value] yes]
 							image!	 [unless opts/image [opts/image: value]]
 							tuple!	 [
 								either opts/color [
@@ -408,7 +425,7 @@ system/view/VID: context [
 		
 		set/some face opts								;-- merge default+styles and user options
 		
-		if block? face/actors [face/actors: context face/actors]
+		if all [not styling? block? face/actors][face/actors: context face/actors]
 
 		;-- size adjustments --
 		all [											;-- account for hard paddings
@@ -621,18 +638,17 @@ system/view/VID: context [
 				
 				face: make face! copy/deep style/template
 				if h: select system/view/metrics/def-heights face/type [face/size/y: h]
-				face/parent: panel
-				
+				unless styling? [face/parent: panel]
+
 				spec: fetch-options face opts style spec local-styles to-logic styling?
-				if style/init [do bind style/init 'face]
+				if all [style/init not styling?][do bind style/init 'face]
 				
 				either styling? [
 					if same? css local-styles [local-styles: copy css]
 					name: to word! form name
 					value: copy style
-					parse value/template: body-of face [
-						some [remove [set-word! [none! | function!]] | skip]
-					]
+					clean-style value/template: body-of face face/type
+					
 					if opts/init [
 						either value/init [append value/init opts/init][
 							reduce/into [to-set-word 'init opts/init] tail value

@@ -3,7 +3,7 @@ Red/System [
 	Author: "Nenad Rakocevic"
 	File: 	%events.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2015 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -591,6 +591,7 @@ process-command-event: func [
 		res	   [integer!]
 		saved  [handle!]
 		child  [handle!]
+		evt	   [integer!]
 ][
 	if all [zero? lParam wParam < 1000][				;-- heuristic to detect a menu selection (--)'
 		unless null? menu-handle [
@@ -598,21 +599,24 @@ process-command-event: func [
 			exit
 		]
 	]
-
 	child: as handle! lParam
 	unless null? current-msg [saved: current-msg/hWnd]
+
 	switch WIN32_HIWORD(wParam) [
 		BN_CLICKED [
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
-			make-event current-msg 0 EVT_CLICK			;-- should be *after* get-facet call (Windows closing on click case)
-			if any [
-				type/symbol = check
-				type/symbol = radio
-			][
+			current-msg/hWnd: child						;-- force child handle
+			evt: either type/symbol <> check [EVT_CLICK][
+				get-logic-state current-msg
+				EVT_CHANGE
+			]
+			make-event current-msg 0 evt				;-- should be *after* get-facet call (Windows closing on click case)
+		]
+		BN_UNPUSHED [
+			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
+			if type/symbol = radio [
 				current-msg/hWnd: child					;-- force child handle
-				if get-logic-state current-msg [
-					make-event current-msg 0 EVT_CHANGE
-				]
+				make-event current-msg 0 EVT_CHANGE
 			]
 		]
 		EN_CHANGE [											;-- sent also by CreateWindow
@@ -636,6 +640,13 @@ process-command-event: func [
 				make-at 
 					child
 					as red-object! values + FACE_OBJ_SELECTED
+			]
+			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
+			if any [
+				type/symbol = field
+				type/symbol = area
+			][	
+				select-text child get-face-values child
 			]
 			current-msg/hWnd: child
 			make-event current-msg 0 EVT_FOCUS

@@ -3,7 +3,7 @@ Red/System [
 	Author:	"Nenad Rakocevic"
 	File:	%draw.reds
 	Tabs:	4
-	Rights:	"Copyright (C) 2015 Nenad Rakocevic. All rights reserved."
+	Rights:	"Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -3182,12 +3182,12 @@ OS-set-clip: func [
 		clip-mode [integer!]
 ][
 	case [
-		mode = replace [ clip-mode: clip-replace ctx ]
-		mode = intersect [ clip-mode: clip-intersect ctx ]
-		mode = union [ clip-mode: clip-union ctx ]
-		mode = xor [ clip-mode: clip-xor ctx ]
-		mode = exclude [ clip-mode: clip-diff ctx]
-		true [ clip-mode: clip-replace ctx ]
+		mode = replace	 [clip-mode: clip-replace ctx]
+		mode = intersect [clip-mode: clip-intersect ctx]
+		mode = union	 [clip-mode: clip-union ctx]
+		mode = _xor		 [clip-mode: clip-xor ctx]
+		mode = exclude	 [clip-mode: clip-diff ctx]
+		true			 [clip-mode: clip-replace ctx]
 	]
 	either ctx/other/GDI+? [
 		either rect? [

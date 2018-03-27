@@ -3,7 +3,7 @@ Red/System [
 	Author: "Nenad Rakocevic"
 	File: 	%win32.red
 	Tabs: 	4
-	Rights: "Copyright (C) 2015 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -227,6 +227,7 @@ Red/System [
 #define BS_GROUPBOX			00000007h
 #define BS_AUTORADIOBUTTON	00000009h
 
+#define EM_GETSEL			000000B0h
 #define EM_SETSEL			000000B1h
 #define EM_SETLIMITTEXT		000000C5h
 #define EM_GETLIMITTEXT		000000D5h
@@ -236,6 +237,7 @@ Red/System [
 #define ES_MULTILINE		00000004h
 #define ES_AUTOVSCROLL		00000040h
 #define ES_AUTOHSCROLL		00000080h
+#define ES_NOHIDESEL		00000100h
 #define SS_LEFT				00000010h
 #define SS_SIMPLE			00000000h
 #define SS_NOTIFY			00000100h
@@ -331,6 +333,7 @@ Red/System [
 #define BM_SETIMAGE			F7h
 
 #define BN_CLICKED 			0
+#define BN_UNPUSHED         3
 
 #define BST_UNCHECKED		0
 #define BST_CHECKED			1
@@ -2725,19 +2728,6 @@ XFORM!: alias struct! [
 			nsWidth		[integer!]
 			nsHeight	[integer!]
 			ftn			[integer!]
-			return:		[integer!]
-		]
-	]
-	"avicap32.dll" stdcall [
-		capCreateCaptureWindow: "capCreateCaptureWindowW" [
-			lpszName	[c-string!]
-			dwStyle		[integer!]
-			x			[integer!]		
-			y			[integer!]
-			nWidth		[integer!]
-			nHeight		[integer!]
-			hWnd		[handle!]
-			nID			[integer!]
 			return:		[integer!]
 		]
 	]

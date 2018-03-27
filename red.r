@@ -3,7 +3,7 @@ REBOL [
 	Author:  "Nenad Rakocevic, Andreas Bolka"
 	File: 	 %red.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic, Andreas Bolka. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation, Andreas Bolka. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 	Usage:   {
 		do/args %red.r "path/source.red"
@@ -143,7 +143,7 @@ redc: context [
 			parse/all buf [[thru "[" | thru "Version" | thru "ver" | thru "v" | thru "indows"] to #"." pos:]
 			
 			win-version: any [
-				attempt [load copy/part back remove pos 2]
+				attempt [load copy/part back back remove pos 3]
 				0
 			]
 		]
@@ -354,7 +354,12 @@ redc: context [
 				opts/legacy: copy [no-touch]
 			]
 		]
-		if all [Windows? opts/OS = 'Windows not SSE3?][
+		all [
+			not SSE3?
+			any [
+				all [Windows? opts/OS = 'Windows]
+				all [system/version/4 = 4 opts/OS = 'Linux]
+			]
 			opts/cpu-version: 1.0
 		]
 		if system/version/4 = 2 [						;-- macOS version extraction

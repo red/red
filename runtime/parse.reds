@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %parse.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -931,7 +931,7 @@ parser: context [
 								]
 								if any [						 ;-- don't loop if any:
 									break?						 ;-- a BREAK or REJECT command was issued
-									end? 						 ;-- don't loop if no more input
+									all [end? int/value <> R_WHILE]	 ;-- don't loop if no more input
 								][
 									loop?: no
 									break?: no
@@ -961,7 +961,7 @@ parser: context [
 								either match? [
 									if int/value = R_TO [
 										input/head: p/input	;-- move input before the last match
-										end?: no
+										PARSE_CHECK_INPUT_EMPTY?
 									]
 								][
 									before: input/head
@@ -1530,8 +1530,8 @@ parser: context [
 						sym = words/break* [			;-- BREAK
 							match?: yes
 							break?: yes
-							cmd:	cmd + 1
 							pop?:	yes
+							cmd:	cmd + 1				;-- ensures that a root rule is reaching tail, for tail breaks
 							PARSE_TRACE(_match)
 							state:	ST_POP_RULE
 						]

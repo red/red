@@ -3,7 +3,7 @@ Red [
 	Author:  "Nenad Rakocevic"
 	File: 	 %functions.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -41,7 +41,7 @@ quit: func [
 	/return status	[integer!] "Return an exit status"
 ][
 	#if config/OS <> 'Windows [
-		if system/console [system/console/terminate]
+		if system/console [do [_terminate-console]]
 	]
 	quit-return any [status 0]
 ]
@@ -257,7 +257,7 @@ charset: func [
 	make bitset! spec
 ]
 
-p-indent: make string! 30								;@@ to be put in an local context
+p-indent: make string! 30								;@@ to be put in a local context
 
 on-parse-event: func [
 	event	[word!]   "Trace events: push, pop, fetch, match, iterate, paren, end"
@@ -806,8 +806,9 @@ do-file: func [file [file! url!] /local saved code new-path src][
 		new-path: first split-path clean-path file
 		change-dir new-path
 	]
-	set/any 'code do code
+	set/any 'code try/all code
 	if file? file [change-dir saved]
+	if error? :code [do :code]							;-- rethrow the error
 	:code
 ]
 

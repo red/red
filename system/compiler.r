@@ -3,7 +3,7 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File: 	 %compiler.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
@@ -1017,7 +1017,12 @@ system-dialect: make-profilable context [
 		]
 		
 		preprocess-array: func [list [block!]][
-			parse list [some [p: word! (check-enum-symbol p) | skip]]
+			parse list [
+				some [
+					p: word! (check-enum-symbol p) :p ['true | 'false] (p/1: do p/1)
+					| string! | char! | integer! | decimal!
+				] | (throw-error ["invalid literal array content:" mold list])
+			]
 			to paren! list
 		]
 		
@@ -1156,7 +1161,7 @@ system-dialect: make-profilable context [
 		]
 		
 		check-keywords: func [name [word!]][
-			if find keywords name [
+			if find keywords-list  name [
 				throw-error ["attempt to redefine a protected keyword:" name]
 			]
 		]
