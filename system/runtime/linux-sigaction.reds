@@ -20,7 +20,7 @@ Red/System [
 ][
 	sigaction!: alias struct! [
 		sigaction	[integer!]				;-- Warning: compiled as union on most UNIX
-		mask0		[integer!]				;-- glibc/Hurd insane inheritage...
+		mask		[integer!]				;-- glibc/Hurd insane inheritage...
 		mask1		[integer!]
 		mask2		[integer!]
 		mask3		[integer!]

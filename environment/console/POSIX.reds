@@ -452,18 +452,20 @@ init: func [
 		term [termios!]
 		cc	 [byte-ptr!]
 		so	 [sigaction! value]
-		mask [integer!]
 ][
 	console?: 1 = isatty stdin
 	relative-y: 0
 	utf-char: as-c-string allocate 10
 	
 	if console? [
-		mask: (as-integer so) + 4
-		sigemptyset mask
+		sigemptyset (as-integer :so) + 4
 		so/sigaction: as-integer :on-resize
 		so/flags: 0
-		sigaction SIGWINCH so old-act
+		#either OS = 'Linux [
+			sigaction SIGWINCH :so null
+		][
+			sigaction SIGWINCH :so old-act
+		]
 
 		term: declare termios!
 		tcgetattr stdin saved-term					;@@ check returned value
@@ -512,7 +514,7 @@ init: func [
 
 restore: does [
 	tcsetattr stdin TERM_TCSADRAIN saved-term
-	sigaction SIGWINCH old-act null
+	#if OS <> 'Linux [sigaction SIGWINCH old-act null]
 	free buffer
 	free as byte-ptr! utf-char
 ]
