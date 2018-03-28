@@ -409,12 +409,16 @@ cycles: context [
 		either find? value [
 			either mold? [
 				switch TYPE_OF(value) [
-					TYPE_BLOCK	[s: "[...]"				 size: 5 ]
-					TYPE_PAREN	[s: "(...)"				 size: 5 ]
-					TYPE_MAP	[s: "#(...)"			 size: 6 ]
-					TYPE_HASH	[s: "make hash! [...]"	 size: 16]
-					TYPE_OBJECT [s: "make object! [...]" size: 18]
-					default		[assert false]
+					TYPE_BLOCK	  [s: "[...]"			   size: 5 ]
+					TYPE_PAREN	  [s: "(...)"			   size: 5 ]
+					TYPE_MAP	  [s: "#(...)"			   size: 6 ]
+					TYPE_HASH	  [s: "make hash! [...]"   size: 16]
+					TYPE_OBJECT	  [s: "make object! [...]" size: 18]
+					TYPE_PATH
+					TYPE_GET_PATH 
+					TYPE_LIT_PATH
+					TYPE_GET_PATH [s: "..."				   size: 3 ]
+					default		  [assert false]
 				]
 			][
 				s: "..."
