@@ -268,7 +268,7 @@ context [
 		]
 
 		segment "rw"				[load	  	[r w]				page] [
-			section ".data"			[progbits 	[write alloc]		dword]
+			section ".data"			[progbits 	[write alloc]		word]
 			section ".data.rel.ro"	[progbits 	[write alloc]		word]
 			segment "dynamic"		[dynamic  	[r w]				word] [
 				section ".dynamic"	[dynamic  	[write alloc]		word]
