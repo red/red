@@ -406,6 +406,7 @@ object: context [
 		assert TYPE_OF(int) = TYPE_INTEGER
 		index: int/value >> 16
 		count: int/value and FFFFh
+		if index = -1 [exit]							;-- abort if no on-change* handler
 		
 		ctx: GET_CTX(obj) 
 		s: as series! ctx/values/value
