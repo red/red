@@ -1379,13 +1379,15 @@ block: context [
 				cell: cell + 1
 			]
 		]
-
+		ownership/check as red-value! blk words/_insert value index part
+		
 		either append? [blk/head: 0][
 			blk/head: h + slots
 			s: GET_BUFFER(blk)
-			assert s/offset + blk/head <= s/tail
+			if s/offset + blk/head > s/tail [			;-- check for past-end caused by object event
+				blk/head: (as-integer s/tail - s/offset) >> 4 ;-- adjust offset to series' tail
+			]
 		]
-		ownership/check as red-value! blk words/_insert value index part
 		as red-value! blk
 	]
 
