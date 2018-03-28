@@ -589,12 +589,18 @@ help-ctx: context [
 		either buffer [output-buffer][print output-buffer]	; Note ref to output-buffer in context
 	]
 
-	set 'about function ["Print Red version information"][
-		print [
-			"Red for" system/platform
-			'version system/version
-			'built system/build/date
+	set 'about func [
+		"Print Red version information"
+	][
+		prin [
+			'Red system/version
+			'for system/platform
+			'built to-UTC-date system/build/date
 		]
+		if system/build/git [
+			prin [ " commit" mold system/build/git/commit]
+		]
+		print lf
 	]
 
 ]
