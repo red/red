@@ -1380,13 +1380,12 @@ block: context [
 			]
 		]
 
-		ownership/check as red-value! blk words/_insert value index part
-
 		either append? [blk/head: 0][
 			blk/head: h + slots
 			s: GET_BUFFER(blk)
 			assert s/offset + blk/head <= s/tail
 		]
+		ownership/check as red-value! blk words/_insert value index part
 		as red-value! blk
 	]
 

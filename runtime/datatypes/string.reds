@@ -2226,7 +2226,6 @@ string: context [
 			cnt: cnt - 1
 		]
 		if part < 0 [part: 1]							;-- ownership/check needs part >= 0
-		ownership/check as red-value! str words/_insert value index part
 		
 		either append? [str/head: 0][
 			added: added * dup-n
@@ -2235,6 +2234,7 @@ string: context [
 			assert (as byte-ptr! s/offset) + (str/head << (log-b GET_UNIT(s))) <= as byte-ptr! s/tail
 		]
 		stack/pop 1										;-- pop the FORM slot
+		ownership/check as red-value! str words/_insert value index part
 		as red-value! str
 	]
 
