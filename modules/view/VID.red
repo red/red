@@ -634,9 +634,13 @@ system/view/VID: context [
 				][
 					throw-error spec
 				]
-				if style/template/type = 'window [throw-error spec]
+				st: style/template
+				if st/type = 'window [throw-error spec]
 				
-				face: make face! copy/deep style/template
+				if actors: st/actors [st/actors: none]	;-- avoid binding actors bodies to face object
+				face: make face! copy/deep st
+				if actors [face/actors: actors]
+				
 				if h: select system/view/metrics/def-heights face/type [face/size/y: h]
 				unless styling? [face/parent: panel]
 
