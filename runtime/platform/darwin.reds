@@ -22,6 +22,11 @@ Red/System [
 #define SYSCALL_MMAP		197
 #define SYSCALL_MUNMAP		73
 
+#define gestaltSystemVersion		1937339254			;-- "sysv"
+#define gestaltSystemVersionMajor	1937339185			;-- "sys1"
+#define gestaltSystemVersionMinor	1937339186			;-- "sys2"
+#define gestaltSystemVersionBugFix	1937339187			;-- "sys3"
+
 platform: context [ 
 
 	#include %POSIX.reds

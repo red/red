@@ -169,3 +169,208 @@ check-arg-type: func [
 		fire [TO_ERROR(script invalid-arg) arg]
 	]
 ]
+
+#switch OS [
+	Windows [
+	__get-OS-info: func [
+		/local
+			obj		[red-object!]
+			ctx		[red-context!]
+			val		[red-value! value]
+			ver		[OSVERSIONINFO value]
+			int		[red-integer!]
+			arch	[c-string!]
+			_64bit? [integer!]
+	][
+		obj: object/make-at as red-object! stack/push* 8
+		ctx: GET_CTX(obj)
+		_context/add-with ctx _context/add-global symbol/make "OS" as red-value! words/_windows
+
+		_64bit?: 0
+		platform/IsWow64Process platform/GetCurrentProcess :_64bit?
+		either zero? _64bit? [arch: "i686"][arch: "x86-64"]
+		word/make-at symbol/make arch val
+		_context/add-with ctx _context/add-global symbol/make "arch" val
+
+		ver/dwOSVersionInfoSize: size? OSVERSIONINFO
+		platform/GetVersionEx :ver
+		val/header: TYPE_TUPLE or (3 << 19)
+		val/data1: ver/dwMajorVersion
+			or (ver/dwMinorVersion << 8)
+			and 0000FFFFh
+		_context/add-with ctx _context/add-global symbol/make "version" val
+
+		int: as red-integer! :val
+		int/header: TYPE_INTEGER
+		int/value:  ver/dwBuildNumber
+		_context/add-with ctx _context/add-global symbol/make "build" val
+
+		int/value:  as-integer ver/wProductType
+		_context/add-with ctx _context/add-global symbol/make "product" val
+	]]
+	macOS [
+	#import [
+		"/System/Library/Frameworks/CoreServices.framework/CoreServices" cdecl [
+			Gestalt: "Gestalt" [
+				selector	[integer!]
+				response	[int-ptr!]
+				return:		[integer!]
+			]
+		]
+	]
+	__get-OS-info: func [
+		/local
+			obj		[red-object!]
+			ctx		[red-context!]
+			val		[red-value! value]
+			int		[red-integer!]
+			arch	[c-string!]
+			v		[integer!]
+			major	[integer!]
+			minor	[integer!]
+			bugfix	[integer!]
+	][
+		obj: object/make-at as red-object! stack/push* 8
+		ctx: GET_CTX(obj)
+		_context/add-with ctx _context/add-global symbol/make "OS" as red-value! words/_macOS
+
+		arch: "x86-64"
+		word/make-at symbol/make arch val
+		_context/add-with ctx _context/add-global symbol/make "arch" val
+
+		v: 0 major: 0 minor: 0 bugfix: 0
+		Gestalt gestaltSystemVersion :v
+		Gestalt gestaltSystemVersionMajor :major
+		Gestalt gestaltSystemVersionMinor :minor
+		Gestalt gestaltSystemVersionBugFix :bugfix
+
+		val/header: TYPE_TUPLE or (3 << 19)
+		val/data1: bugfix << 16 or (minor << 8) or major
+		_context/add-with ctx _context/add-global symbol/make "version" val
+
+		int: as red-integer! :val
+		int/header: TYPE_INTEGER
+		int/value:  v and FFFFh
+		_context/add-with ctx _context/add-global symbol/make "build" val
+
+		int/value:  0
+		_context/add-with ctx _context/add-global symbol/make "product" val
+	]]
+	#default [
+	utsname!: alias struct! [
+		_pad0	[float!]
+		_pad1	[float!]
+		_pad2	[float!]
+		_pad3	[float!]
+		_pad4	[float!]
+		_pad5	[float!]
+		_pad6	[float!]
+		_pad7	[float!]
+		_pad8	[float!]
+		_pad9	[float!]
+		_pad10	[float!]
+		_pad11	[float!]
+		_pad12	[float!]
+		_pad13	[float!]
+		_pad14	[float!]
+		_pad15	[float!]
+		_pad16	[float!]
+		_pad17	[float!]
+		_pad18	[float!]
+		_pad19	[float!]
+		_pad20	[float!]
+		_pad21	[float!]
+		_pad22	[float!]
+		_pad23	[float!]
+		_pad24	[float!]
+		_pad25	[float!]
+		_pad26	[float!]
+		_pad27	[float!]
+		_pad28	[float!]
+		_pad29	[float!]
+		_pad30	[float!]
+		_pad31	[float!]
+		_pad32	[float!]
+		_pad33	[float!]
+		_pad34	[float!]
+		_pad35	[float!]
+		_pad36	[float!]
+		_pad37	[float!]
+		_pad38	[float!]
+		_pad39	[float!]
+		_pad40	[float!]
+		_pad41	[float!]
+		_pad42	[float!]
+		_pad43	[float!]
+		_pad44	[float!]
+		_pad45	[float!]
+		_pad46	[float!]
+		_pad47	[float!]
+		_pad48	[float!]
+	]
+
+	#import [
+		LIBC-file cdecl [
+			uname: "uname" [
+				buf		[utsname!]
+				return: [integer!]
+			]
+			strchr: "strchr" [
+				str			[c-string!]
+				c			[byte!]
+				return:		[c-string!]
+			]
+		]
+	]
+
+	__get-OS-info: func [
+		/local
+			obj		[red-object!]
+			ctx		[red-context!]
+			val		[red-value! value]
+			int		[red-integer!]
+			buf		[utsname! value]
+			str		[c-string!]
+			p		[c-string!]
+			err		[integer!]
+			major	[integer!]
+			minor	[integer!]
+			bugfix	[integer!]
+	][
+		obj: object/make-at as red-object! stack/push* 8
+		ctx: GET_CTX(obj)
+
+		uname :buf
+		str: as c-string! buf
+		word/make-at symbol/make str val
+		_context/add-with ctx _context/add-global symbol/make "OS" val
+
+		word/make-at symbol/make str + (65 * 4) val
+		_context/add-with ctx _context/add-global symbol/make "arch" val
+
+		err: 0
+		str: str + (65 * 2)
+		p: strchr str #"."
+		major: tokenizer/scan-integer as byte-ptr! str as-integer p - str 1 :err
+
+		str: p + 1
+		p: strchr str #"."
+		minor: tokenizer/scan-integer as byte-ptr! str as-integer p - str 1 :err
+
+		str: p + 1
+		p: strchr str #"-"
+		bugfix: tokenizer/scan-integer as byte-ptr! str as-integer p - str 1 :err
+
+		val/header: TYPE_TUPLE or (3 << 19)
+		val/data1: bugfix << 16 or (minor << 8) or major
+		_context/add-with ctx _context/add-global symbol/make "version" val
+
+		str: (as c-string! :buf) + (65 * 3)
+		string/load-at str length? str val UTF-8
+		_context/add-with ctx _context/add-global symbol/make "build" val
+
+		str: (as c-string! :buf) + 65
+		string/load-at str length? str val UTF-8
+		_context/add-with ctx _context/add-global symbol/make "product" val
+	]]
+]

@@ -84,6 +84,52 @@ security-attributes!: alias struct! [
 	bInheritHandle		 [logic!]
 ]
 
+OSVERSIONINFO: alias struct! [
+	dwOSVersionInfoSize [integer!]
+	dwMajorVersion		[integer!]
+	dwMinorVersion		[integer!]
+	dwBuildNumber		[integer!]	
+	dwPlatformId		[integer!]
+	szCSDVersion		[byte-ptr!]						;-- array of 128 bytes
+	szCSDVersion0		[integer!]
+	szCSDVersion1		[float!]
+	szCSDVersion2		[float!]
+	szCSDVersion3		[float!]
+	szCSDVersion4		[float!]
+	szCSDVersion5		[float!]
+	szCSDVersion6		[float!]
+	szCSDVersion7		[float!]
+	szCSDVersion8		[float!]
+	szCSDVersion9		[float!]
+	szCSDVersion10		[float!]
+	szCSDVersion11		[float!]
+	szCSDVersion12		[float!]
+	szCSDVersion13		[float!]
+	szCSDVersion14		[float!]
+	szCSDVersion15		[float!]
+	szCSDVersion16		[float!]
+	szCSDVersion17		[float!]
+	szCSDVersion18		[float!]
+	szCSDVersion19		[float!]
+	szCSDVersion20		[float!]
+	szCSDVersion21		[float!]
+	szCSDVersion22		[float!]
+	szCSDVersion23		[float!]
+	szCSDVersion24		[float!]
+	szCSDVersion25		[float!]
+	szCSDVersion26		[float!]
+	szCSDVersion27		[float!]
+	szCSDVersion28		[float!]
+	szCSDVersion29		[float!]
+	szCSDVersion30		[float!]
+	szCSDVersion31		[float!]
+	wServicePack		[integer!]						;-- Major: 16, Minor: 16
+	wSuiteMask0			[byte!]
+	wSuiteMask1			[byte!]
+	wProductType		[byte!]
+	wReserved			[byte!]
+]
+
 platform: context [
 
 	#enum file-descriptors! [
@@ -308,6 +354,18 @@ platform: context [
 				pDistance	[int-ptr!]
 				dwMove		[integer!]
 				return:		[integer!]
+			]
+			IsWow64Process: "IsWow64Process" [
+				hProcess	[int-ptr!]
+				isWow64?	[int-ptr!]
+				return:		[logic!]
+			]
+			GetVersionEx: "GetVersionExW" [
+				lpVersionInfo [OSVERSIONINFO]
+				return:		[integer!]
+			]
+			GetCurrentProcess: "GetCurrentProcess" [
+				return:		[int-ptr!]
 			]
 		]
 		"gdiplus.dll" stdcall [

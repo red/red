@@ -594,7 +594,7 @@ help-ctx: context [
 	][
 		prin [
 			'Red system/version
-			'for system/platform
+			'for system/platform/OS
 			'built to-UTC-date system/build/date
 		]
 		if system/build/git [
