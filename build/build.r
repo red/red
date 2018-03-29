@@ -46,6 +46,10 @@ either Windows? [
 log: func [msg [string! block!]][
 	print reform msg
 ]
+;-- Prevent CALL bug in SDK 2.7.8 on Windows
+if system/version = 2.7.8.3.1 [
+	call/show ""
+]
 
 ;-- Clean previous generated files
 log "Cleaning files..."
