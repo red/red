@@ -76,7 +76,7 @@ display-about: function [][
 		txt bold "Red Programming Language" font [size: 15 color: white]
 		ver: txt font [size: 9 color: white]
 		at 153x86 image fstk-logo
-		at 0x160 small 360x20 "Copyright 2011-2017 - Fullstack Technologies"
+		at 0x160 small 360x20 "Copyright 2011-2018 - Red Foundation"
 		at 0x180 small 360x20 "and contributors."
 		at 0x230 link "http://red-lang.org" font-size 10 font-color white
 		at 0x260 link "http://github.com/red/red" font-size 10 font-color white
@@ -165,7 +165,7 @@ save-cfg: function [][
 	cfg/font-name: console/font/name
 	cfg/font-size: console/font/size
 	clear skip cfg/history 100
-	save/header cfg-path cfg [Purpose: "Red REPL Console Configuration File"]
+	save/header cfg-path cfg [Purpose: "Red Console Configuration File"]
 ]
 
 load-cfg: func [/local cfg-dir][
