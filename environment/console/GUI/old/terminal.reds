@@ -151,7 +151,7 @@ terminal: context [
 	stub-table: [0 0]
 	data-blk: declare red-value!
 
-	#include %wcwidth.reds
+	#include %../../CLI/wcwidth.reds
 
 	#either OS = 'Windows [
 		char-width?: func [

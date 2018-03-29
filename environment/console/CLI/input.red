@@ -23,7 +23,7 @@ unless system/console [
 ]
 ;; End patch
 
-#include %auto-complete.red
+#include %../auto-complete.red
 
 #system [
 	terminal: context [

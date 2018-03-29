@@ -1,7 +1,7 @@
 Red [
 	Title:	 "Red GUI Console"
 	Author:	 "Qingtian Xie"
-	File:	 %red-console.red
+	File:	 %gui-console.red
 	Tabs:	 4
 	Icon:	 %app.ico
 	Version: 0.0.1
@@ -33,9 +33,9 @@ Red [
 	]
 ]
 
-#include %../console/help.red
-#include %../console/engine.red
-#include %../console/auto-complete.red
+#include %../help.red
+#include %../engine.red
+#include %../auto-complete.red
 #include %highlight.red
 #include %tips.red
 

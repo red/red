@@ -40,24 +40,23 @@ write %build/bin/sources.r set-cache [
 		]
 		%console/ [
 			%auto-complete.red
-			%console.red
 			%engine.red
-			%gui-console.red
 			%help.red
-			%input.red
-			%wcwidth.reds
-			%POSIX.reds
-			%terminal.reds
-			%windows.reds
-			%win32.reds
-		]
-		%red-console/ [
-			%app.ico
-			%core.red
-			%highlight.red
-			%red-console.red
-			%settings.red
-			%tips.red
+			%CLI/ [
+				%console.red
+				%input.red
+				%POSIX.reds
+				%wcwidth.reds
+				%win32.reds
+			]
+			%GUI/ [
+				%app.ico
+				%core.red
+				%gui-console.red
+				%highlight.red
+				%settings.red
+				%tips.red
+			]
 		]
 	]
 	%runtime/ [

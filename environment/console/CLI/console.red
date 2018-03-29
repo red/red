@@ -11,8 +11,8 @@ Red [
 ]
 
 #include %input.red
-#include %help.red
-#include %engine.red
+#include %../help.red
+#include %../engine.red
 
 system/console/init "Red Console"
 system/console/launch

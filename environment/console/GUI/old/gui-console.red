@@ -15,9 +15,9 @@ Red [
 	}
 ]
 
-#include %help.red
-#include %engine.red
-#include %auto-complete.red
+#include %../../help.red
+#include %../../engine.red
+#include %../../auto-complete.red
 
 #system [
 	#include %terminal.reds
