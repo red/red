@@ -14,7 +14,7 @@ system: context [
 	version: #version
 	build: context [
 		date: to-local-date #build-date
-		git: none ;do #git
+		git: do #git
 		config: context #build-config
 	]
 		
