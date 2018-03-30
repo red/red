@@ -214,6 +214,7 @@ set-path*: func [
 	parent  [red-value!]
 	element [red-value!]
 ][
+	object/path-parent/header: TYPE_NONE
 	stack/set-last actions/eval-path parent element stack/arguments null no
 	object/path-parent/header: TYPE_NONE				;-- disables owner checking
 ]
@@ -222,6 +223,7 @@ set-int-path*: func [
 	parent  [red-value!]
 	index 	[integer!]
 ][
+	object/path-parent/header: TYPE_NONE
 	stack/set-last actions/eval-path
 		parent
 		as red-value! integer/push index
