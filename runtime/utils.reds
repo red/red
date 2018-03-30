@@ -344,30 +344,47 @@ check-arg-type: func [
 			val		[red-value! value]
 			int		[red-integer!]
 			buf		[utsname! value]
+			pbuf	[byte-ptr!]
 			str		[c-string!]
 			p		[c-string!]
 			err		[integer!]
 			major	[integer!]
 			minor	[integer!]
 			bugfix	[integer!]
+			file	[integer!]
+			len		[integer!]
 	][
 		obj: object/make-at as red-object! stack/push* 8
 		ctx: GET_CTX(obj)
 
 		uname :buf
 
-		str: (as c-string! :buf) + 65
+		file: simple-io/open-file "/etc/os-release" simple-io/RIO_READ no
+		either file > 0 [
+			len: simple-io/file-size? file
+			pbuf: allocate len
+			simple-io/read-data file pbuf len
+			simple-io/close-file file
+			str: simple-io/strstr as c-string! pbuf {PRETTY_NAME="}
+			str: str + 13
+			p: strchr str #"^""
+			p/1: null-byte
+		][
+			str: (as c-string! :buf) + 65
+		]
 		string/load-at str length? str val UTF-8
+		if file > 0 [free pbuf]
 		_context/add-with ctx _context/add-global symbol/make "name" val
 
-		word/make-at symbol/make str - 65 val
+		str: as c-string! :buf
+		word/make-at symbol/make str val
 		_context/add-with ctx _context/add-global symbol/make "OS" val
 
-		word/make-at symbol/make str + (65 * 3) val
+		word/make-at symbol/make str + (65 * 4) val
 		_context/add-with ctx _context/add-global symbol/make "arch" val
 
 		err: 0
-		str: str + 65
+		str: str + (65 * 2)
 		p: strchr str #"."
 		major: tokenizer/scan-integer as byte-ptr! str as-integer p - str 1 :err
 
