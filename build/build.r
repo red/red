@@ -90,9 +90,11 @@ if Windows? [
 	write/binary bin/:red buffer
 ]
 
+;-- Restore git file
+attempt [write git-file "none^/"]								;-- tests require it!
+
 ;-- Remove temporary files
 attempt [delete ts-file]
-attempt [delete git-file]
 attempt [delete cache-file]
 
 log join "File output: build/bin/" form red

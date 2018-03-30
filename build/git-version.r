@@ -23,15 +23,18 @@ context [
 		copy trim/tail out
 	]
 
-	set 'git-version does [
+	set 'git-version has [temp] [
 		attempt [
+			temp: parse git "describe --long" "-"
 			compose/deep [
 				context [
 					branch: (git "rev-parse --abbrev-ref HEAD")
+					tag: (to issue! temp/1)
+					ahead: (to integer! temp/2)
 					date: to-local-date to date! (
-						load git {log -1 --pretty=format:"%at"}
+						to integer! git {log -1 --pretty=format:"%at"}
 					)
-					commit: (to issue! git "rev-parse --short HEAD")
+					commit: (to issue! next temp/3)
 					message: (git "log -1 --pretty=%B")
 				]
 			]
