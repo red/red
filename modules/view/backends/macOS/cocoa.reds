@@ -16,11 +16,6 @@ Red/System [
 #define OBJC_ASSOCIATION_RETAIN		0301h
 #define OBJC_ASSOCIATION_COPY		0303h
 
-#define gestaltSystemVersion		1937339254			;-- "sysv"
-#define gestaltSystemVersionMajor	1937339185			;-- "sys1"
-#define gestaltSystemVersionMinor	1937339186			;-- "sys2"
-#define gestaltSystemVersionBugFix	1937339187			;-- "sys3"
-
 #define NSAnyEventMask				-1
 
 #define NSUtilityWindowMask         16

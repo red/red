@@ -84,6 +84,15 @@ pollfd!: alias struct! [
 			locale		[c-string!]
 			return:		[c-string!]
 		]
+		sysctl: "sysctl" [
+			name	[int-ptr!]
+			namelen [integer!]
+			oldp	[byte-ptr!]
+			oldlenp [int-ptr!]
+			newp	[byte-ptr!]
+			newlen	[integer!]
+			return: [integer!]
+		]
 		getcwd: "getcwd" [
 			buf		[byte-ptr!]
 			size	[integer!]

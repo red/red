@@ -49,7 +49,7 @@ Red [
 		append any [attempt [to-red-file get-env "HOME"] %/tmp] %/.red/
 	]
 
-	system/platform/product: OS-product-name
+	system/platform/name: OS-product-name
 ]
 
 ;-- command-line arguments processing

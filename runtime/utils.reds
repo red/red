@@ -184,6 +184,15 @@ check-arg-type: func [
 	][
 		obj: object/make-at as red-object! stack/push* 8
 		ctx: GET_CTX(obj)
+
+		ver/dwOSVersionInfoSize: size? OSVERSIONINFO
+		platform/GetVersionEx :ver
+
+		int: as red-integer! :val
+		int/header: TYPE_INTEGER
+		int/value:  as-integer ver/wProductType
+		_context/add-with ctx _context/add-global symbol/make "name" val
+
 		_context/add-with ctx _context/add-global symbol/make "OS" as red-value! words/_windows
 
 		_64bit?: 0
@@ -192,8 +201,6 @@ check-arg-type: func [
 		word/make-at symbol/make arch val
 		_context/add-with ctx _context/add-global symbol/make "arch" val
 
-		ver/dwOSVersionInfoSize: size? OSVERSIONINFO
-		platform/GetVersionEx :ver
 		val/header: TYPE_TUPLE or (3 << 19)
 		val/data1: ver/dwMajorVersion
 			or (ver/dwMinorVersion << 8)
@@ -204,9 +211,6 @@ check-arg-type: func [
 		int/header: TYPE_INTEGER
 		int/value:  ver/dwBuildNumber
 		_context/add-with ctx _context/add-global symbol/make "build" val
-
-		int/value:  as-integer ver/wProductType
-		_context/add-with ctx _context/add-global symbol/make "product" val
 	]]
 	macOS [
 	#import [
@@ -224,22 +228,29 @@ check-arg-type: func [
 			ctx		[red-context!]
 			val		[red-value! value]
 			int		[red-integer!]
+			str		[red-string!]
 			arch	[c-string!]
-			v		[integer!]
+			mib2	[integer!]
+			mib		[integer!]
+			len		[integer!]
 			major	[integer!]
 			minor	[integer!]
 			bugfix	[integer!]
+			s		[series!]
 	][
 		obj: object/make-at as red-object! stack/push* 8
 		ctx: GET_CTX(obj)
+
+		val/header: TYPE_NONE
+		_context/add-with ctx _context/add-global symbol/make "name" val
+
 		_context/add-with ctx _context/add-global symbol/make "OS" as red-value! words/_macOS
 
 		arch: "x86-64"
 		word/make-at symbol/make arch val
 		_context/add-with ctx _context/add-global symbol/make "arch" val
 
-		v: 0 major: 0 minor: 0 bugfix: 0
-		Gestalt gestaltSystemVersion :v
+		major: 0 minor: 0 bugfix: 0
 		Gestalt gestaltSystemVersionMajor :major
 		Gestalt gestaltSystemVersionMinor :minor
 		Gestalt gestaltSystemVersionBugFix :bugfix
@@ -248,13 +259,16 @@ check-arg-type: func [
 		val/data1: bugfix << 16 or (minor << 8) or major
 		_context/add-with ctx _context/add-global symbol/make "version" val
 
-		int: as red-integer! :val
-		int/header: TYPE_INTEGER
-		int/value:  v and FFFFh
-		_context/add-with ctx _context/add-global symbol/make "build" val
+		len: 0
+		mib: 1		;-- CTL_KERN
+		mib2: 65	;-- KERN_OSVERSION
+		platform/sysctl :mib 2 null :len null 0
 
-		int/value:  0
-		_context/add-with ctx _context/add-global symbol/make "product" val
+		str: string/make-at val len 1
+		s: GET_BUFFER(str)
+		platform/sysctl :mib 2 as byte-ptr! s/offset :len null 0
+		s/tail: as red-value! (as byte-ptr! s/offset) + len - 1
+		_context/add-with ctx _context/add-global symbol/make "build" val
 	]]
 	#default [
 	utsname!: alias struct! [
@@ -341,15 +355,19 @@ check-arg-type: func [
 		ctx: GET_CTX(obj)
 
 		uname :buf
-		str: as c-string! buf
-		word/make-at symbol/make str val
+
+		str: (as c-string! :buf) + 65
+		string/load-at str length? str val UTF-8
+		_context/add-with ctx _context/add-global symbol/make "name" val
+
+		word/make-at symbol/make str - 65 val
 		_context/add-with ctx _context/add-global symbol/make "OS" val
 
-		word/make-at symbol/make str + (65 * 4) val
+		word/make-at symbol/make str + (65 * 3) val
 		_context/add-with ctx _context/add-global symbol/make "arch" val
 
 		err: 0
-		str: str + (65 * 2)
+		str: str + 65
 		p: strchr str #"."
 		major: tokenizer/scan-integer as byte-ptr! str as-integer p - str 1 :err
 
@@ -368,9 +386,5 @@ check-arg-type: func [
 		str: (as c-string! :buf) + (65 * 3)
 		string/load-at str length? str val UTF-8
 		_context/add-with ctx _context/add-global symbol/make "build" val
-
-		str: (as c-string! :buf) + 65
-		string/load-at str length? str val UTF-8
-		_context/add-with ctx _context/add-global symbol/make "product" val
 	]]
 ]

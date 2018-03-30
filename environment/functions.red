@@ -980,7 +980,7 @@ to-local-date: func [
 OS-product-name: function [return: [string!]][
 	#switch config/OS [
 		Windows [
-			workstation?: system/platform/product = 1
+			workstation?: system/platform/name = 1
 			os-version: system/platform/version
 			rejoin ["Windows " switch os-version [
 				10.0.0	[pick ["10"			 "10 Server"	 ] workstation?]
@@ -1008,7 +1008,7 @@ OS-product-name: function [return: [string!]][
 				] os-version
 			]
 		]
-		#default [system/platform/product]
+		#default [system/platform/name]
 	]
 ]
 
