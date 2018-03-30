@@ -479,7 +479,7 @@ redc: context [
 				unicode?: yes
 				config-name: any [gui-target to word! default-target]
 				build-basename: filename
-				build-prefix: td
+				build-prefix: temp-dir
 				red-help?: yes							;-- include doc-strings
 				gui-console?: gui?
 				dev-mode?: no
@@ -491,7 +491,6 @@ redc: context [
 			result: red/compile script opts
 			system-dialect/compile/options/loaded script opts result
 
-			write/binary exe read/binary rejoin [temp-dir pick [%GUI/ %CLI/] gui? last split-path exe]
 			delete script
 			foreach f files  [delete temp-dir/:f]
 			foreach f files2 [delete td/:f]
