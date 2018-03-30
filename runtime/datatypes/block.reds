@@ -1015,9 +1015,11 @@ block: context [
 		][
 			s: GET_BUFFER(blk)
 			slot: s/offset + blk/head + 1
-			if slot >= s/tail [slot: alloc-tail s]
-			copy-cell value slot
-			if hash? [_hashtable/put hash/table slot]
+			if slot >= s/tail [slot: alloc-tail s slot/header: -1]
+			if 0 <> actions/compare-value slot value COMP_FIND [
+				copy-cell value slot
+				if hash? [_hashtable/put hash/table slot]
+			]
 			ownership/check as red-value! blk words/_put slot blk/head + 1 1
 		]
 		value
