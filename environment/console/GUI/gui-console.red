@@ -166,7 +166,7 @@ gui-console-ctx: context [
 				new-sz: face/size
 				console/size: new-sz
 				terminal/resize new-sz
-				system/console/size: new-sz
+				terminal/adjust-console-size new-sz
 				unless system/view/auto-sync? [show face]
 			]
 		]

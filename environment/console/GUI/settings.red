@@ -170,12 +170,10 @@ save-cfg: function [][
 
 load-cfg: func [/local cfg-dir][
 	system/view/auto-sync?: no
-	#either config/OS = 'Windows [
-		cfg-dir: append to-red-file get-env "APPDATA" %/Red-Console/
-	][
-		cfg-dir: append to-red-file get-env "HOME" %/.Red-Console/
-	]
-	unless exists? cfg-dir [make-dir cfg-dir]
+	cfg-dir: append copy system/options/cache
+			#either config/OS = 'Windows [%Red-Console/][%.Red-Console/]
+
+	unless exists? cfg-dir [make-dir/deep cfg-dir]
 	cfg-path: append cfg-dir %console-cfg.red
 	
 	cfg: either exists? cfg-path [skip load cfg-path 2][

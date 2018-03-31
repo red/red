@@ -33,6 +33,7 @@ object [
 
 	line-y:		0								;-- y offset of editing line
 	line-h:		0								;-- average line height
+	char-width: 0								;-- average char width
 	page-cnt:	0								;-- number of lines in one page
 	line-cnt:	0								;-- number of lines in total (include wrapped lines)
 	screen-cnt: 0								;-- number of lines on screen
@@ -131,7 +132,6 @@ object [
 		prin?: not lf?
 		if system/console/running? [
 			system/view/platform/redraw console
-			if 1 = length? windows [loop 3 [do-ask-loop/no-wait]]
 		]
 		()				;-- return unset!
 	]
@@ -229,13 +229,21 @@ object [
 		box/state: none					;TBD release resources in text-box!
 		box/font: font
 		max-lines: cfg/buffer-lines
-		box/text: "X"
-		box/tabs: tab-size * box/width?
+		box/text: "XX"
+		char-width: 1 + box/width? / 2
+		box/tabs: tab-size * char-width
 		line-h: box/line-height? 1
 		caret/size/y: line-h
 		if cfg/background [change theme/background cfg/background]
 		if font/color [change theme/foreground font/color]
+		adjust-console-size gui-console-ctx/console/size
 		update-theme
+	]
+
+	adjust-console-size: function [size [pair!]][
+		cols: size/x - pad-left / char-width
+		rows: size/y / line-h
+		system/console/size: as-pair cols rows
 	]
 
 	resize: func [new-size [pair!] /local y][
