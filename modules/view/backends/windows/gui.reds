@@ -1563,7 +1563,9 @@ OS-make-view: func [
 			change-text handle values sym
 		]
 		sym = rich-text [
-			SetWindowLong handle wc-offset - 12 flags or BASE_FACE_D2D or BASE_FACE_IME
+			SetWindowLong handle wc-offset - 4 0
+			SetWindowLong handle wc-offset - 24 0
+			SetWindowLong handle wc-offset - 12 BASE_FACE_D2D or BASE_FACE_IME
 		]
 		sym = window [
 			init-window handle bits

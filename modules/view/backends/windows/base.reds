@@ -32,6 +32,7 @@ init-base-face: func [
 	opts:	as red-block! values + FACE_OBJ_OPTIONS
 
 	SetWindowLong handle wc-offset - 4 0
+	SetWindowLong handle wc-offset - 12 0
 	SetWindowLong handle wc-offset - 16 parent
 	SetWindowLong handle wc-offset - 20 0
 	SetWindowLong handle wc-offset - 24 0

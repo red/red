@@ -994,10 +994,14 @@ set-tab-size: func [
 	fmt		[this!]
 	size	[red-integer!]
 	/local
+		t	[integer!]
 		tf	[IDWriteTextFormat]
 ][
-	tf: as IDWriteTextFormat fmt/vtbl
-	tf/SetIncrementalTabStop fmt get-float32 size
+	t: TYPE_OF(size)
+	if any [t = TYPE_INTEGER t = TYPE_FLOAT][
+		tf: as IDWriteTextFormat fmt/vtbl
+		tf/SetIncrementalTabStop fmt get-float32 size
+	]
 ]
 
 set-line-spacing: func [

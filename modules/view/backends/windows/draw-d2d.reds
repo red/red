@@ -165,14 +165,14 @@ OS-draw-text-d2d: func [
 
 	either TYPE_OF(text) = TYPE_OBJECT [				;-- text-box!
 		values: object/get-values as red-object! text
-		state: as red-block! values + TBOX_OBJ_STATE
+		state: as red-block! values + FACE_OBJ_STATE
 
 		layout: either TYPE_OF(state) = TYPE_BLOCK [
 			bool: as red-logic! (block/rs-tail state) - 1
 			either bool/value [
 				OS-text-box-layout as red-object! text ctx/brushes 0 yes
 			][
-				int: as red-integer! block/rs-head state
+				int: as red-integer! (block/rs-head state) + 4
 				as this! int/value
 			]
 		][

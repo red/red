@@ -110,18 +110,6 @@ system/view/platform: context [
 				PARA_OBJ_PARENT
 			]
 
-			#enum text-box-facet! [
-				TBOX_OBJ_TEXT
-				TBOX_OBJ_SIZE
-				TBOX_OBJ_FONT
-				TBOX_OBJ_PARA
-				TBOX_OBJ_SPACING
-				TBOX_OBJ_TABS
-				TBOX_OBJ_STYLES
-				TBOX_OBJ_TARGET
-				TBOX_OBJ_STATE
-			]
-
 			#enum scroller-facet! [
 				SCROLLER_OBJ_POS
 				SCROLLER_OBJ_PAGE
@@ -690,7 +678,7 @@ system/view/platform: context [
 			layout? [logic!]
 	][
 		layout?: yes
-		state: as red-block! (object/get-values box) + gui/TBOX_OBJ_STATE
+		state: as red-block! (object/get-values box) + gui/FACE_OBJ_STATE
 		if TYPE_OF(state) = TYPE_BLOCK [
 			bool: as red-logic! (block/rs-tail state) - 1
 			layout?: bool/value

@@ -204,7 +204,7 @@ OS-text-box-metrics: func [
 		values			[red-value!]
 		hr				[integer!]
 ][
-	int: as red-integer! block/rs-head state
+	int: as red-integer! (block/rs-head state) + 4
 	layout: as handle! int/value
 	left: 0
 	this: as this! layout
@@ -293,11 +293,7 @@ OS-text-box-layout: func [
 ][
 	values: object/get-values box
 	if null? target [
-		hWnd: null
-		obj: as red-object! values + TBOX_OBJ_TARGET
-		if TYPE_OF(obj) = TYPE_OBJECT [
-			hWnd: face-handle? obj
-		]
+		hWnd: face-handle? box
 		if null? hWnd [
 			if null? hidden-hwnd [
 				hidden-hwnd: CreateWindowEx WS_EX_TOOLWINDOW #u16 "RedBaseInternal" null WS_POPUP 0 0 2 2 null null hInstance null
@@ -310,9 +306,9 @@ OS-text-box-layout: func [
 	vec: as red-vector! target + 3
 	if TYPE_OF(vec) = TYPE_VECTOR [vector/rs-clear vec]
 
-	state: as red-block! values + TBOX_OBJ_STATE
+	state: as red-block! values + FACE_OBJ_STATE
 	either TYPE_OF(state) = TYPE_BLOCK [
-		int: as red-integer! block/rs-head state	;-- release previous text layout
+		int: as red-integer! (block/rs-head state) + 4	;-- release previous text layout
 		layout: as this! int/value
 		COM_SAFE_RELEASE(IUnk layout)
 		int: int + 1
@@ -320,28 +316,30 @@ OS-text-box-layout: func [
 		bool: as red-logic! int + 1
 		bool/value: false
 	][
-		fmt: as this! create-text-format as red-object! values + TBOX_OBJ_FONT
+		fmt: as this! create-text-format as red-object! values + FACE_OBJ_FONT
 		;set-line-spacing fmt
-		block/make-at state 4
+		block/make-at state 8
+		loop 4 [none/make-in state]
 		none/make-in state							;-- 1: text layout
 		handle/make-in state as-integer fmt			;-- 2: text format
 		logic/make-in state false
 	]
 
-	set-text-format fmt as red-object! values + TBOX_OBJ_PARA
-	set-tab-size fmt as red-integer! values + TBOX_OBJ_TABS
+	set-text-format fmt as red-object! values + FACE_OBJ_PARA
+	set-tab-size fmt as red-integer! values + FACE_OBJ_EXT1
 
-	str: as red-string! values + TBOX_OBJ_TEXT
-	size: as red-pair! values + TBOX_OBJ_SIZE
+	str: as red-string! values + FACE_OBJ_TEXT
+	size: as red-pair! values + FACE_OBJ_SIZE
 	either TYPE_OF(size) = TYPE_PAIR [
 		w: size/x h: size/y
 	][
 		w: 0 h: 0
 	]
-	layout: create-text-layout str fmt w h
-	handle/make-at block/rs-head state as-integer layout
 
-	styles: as red-block! values + TBOX_OBJ_STYLES
+	layout: create-text-layout str fmt w h
+	handle/make-at (block/rs-head state) + 4 as-integer layout
+
+	styles: as red-block! values + FACE_OBJ_DATA
 	if all [
 		TYPE_OF(styles) = TYPE_BLOCK
 		2 < block/rs-length? styles
