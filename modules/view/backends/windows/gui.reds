@@ -1392,6 +1392,9 @@ OS-make-view: func [
 				ws-flags: set-layered-option options win8+?
 			]
 		]
+		sym = rich-text [
+			class: #u16 "RedRichText"
+		]
 		sym = camera [
 			class: #u16 "RedCamera"
 		]
@@ -1558,6 +1561,9 @@ OS-make-view: func [
 		sym = area	 [
 			set-area-options handle options
 			change-text handle values sym
+		]
+		sym = rich-text [
+			SetWindowLong handle wc-offset - 12 flags or BASE_FACE_D2D or BASE_FACE_IME
 		]
 		sym = window [
 			init-window handle bits

@@ -47,9 +47,9 @@ gui-console-ctx: context [
 	scroller:	make scroller! []
 
 	console:	make face! [
-		type: 'base color: 0.0.128 offset: 0x0 size: 400x400
+		type: 'rich-text color: 0.0.128 offset: 0x0 size: 400x400
 		flags:   [scrollable all-over]
-		options: [cursor: I-beam rich-text?: yes]
+		options: [cursor: I-beam]
 		menu: [
 			"Copy^-Ctrl+C"		copy
 			"Paste^-Shift+Ins"	paste

@@ -255,6 +255,7 @@ system/view/platform: context [
 			camera:			symbol/make "camera"
 			caret:			symbol/make "caret"
 			scroller:		symbol/make "scroller"
+			rich-text:		symbol/make "rich-text"
 			rich-text?:		symbol/make "rich-text?"
 
 			---:			symbol/make "---"
