@@ -34,7 +34,7 @@ context [
 					date: to-local-date to date! (
 						to integer! git {log -1 --pretty=format:"%at"}
 					)
-					commit: (to issue! next temp/3)
+					commit: (to issue! git "rev-parse HEAD")
 					message: (git "log -1 --pretty=%B")
 				]
 			]
