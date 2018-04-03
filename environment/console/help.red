@@ -600,7 +600,7 @@ help-ctx: context [
 			print either git [
 				compose [
 					"-----------RED & PLATFORM VERSION-----------" lf
-					"GIT: [ branch:" mold git/branch "tag:" mold git/tag "ahead:" git/ahead
+					"RED: [ branch:" mold git/branch "tag:" mold git/tag "ahead:" git/ahead
 					"date:" to-UTC-date git/date "commit:" mold git/commit "]^/"
 					"PLATFORM: [ name:" mold plt/name "OS:" mold to lit-word! plt/OS
 					"arch:" mold to lit-word! plt/arch "version:" mold plt/version
