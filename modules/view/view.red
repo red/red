@@ -42,7 +42,7 @@ size-text: function [
 ]
 
 caret-to-offset: function [
-	"Given a text position,	returns	the	corresponding coordinate relative to the top-left of the layout	box"
+	"Given a text position, returns the corresponding coordinate relative to the top-left of the layout box"
 	face	[face!]
 	pos		[integer!]
 	return:	[pair!]
@@ -51,7 +51,7 @@ caret-to-offset: function [
 ]
 
 offset-to-caret: function [
-	"Given a coordinate, returns the corresponding text	position"
+	"Given a coordinate, returns the corresponding text position"
 	face	[face!]
 	pt		[pair!]
 	return:	[integer!]
@@ -61,7 +61,7 @@ offset-to-caret: function [
 
 rich-text: context [
 	line-height?: function [
-		"Given a text position,	returns	the	corresponding line's height"
+		"Given a text position, returns the corresponding line's height"
 		face	[face!]
 		pos		[integer!]
 		return:	[integer!]
@@ -70,7 +70,7 @@ rich-text: context [
 	]
 
 	line-count?: function [
-		"number	of lines (>	1 if line wrapped)"
+		"number of lines (> 1 if line wrapped)"
 		face	[face!]
 		return:	[integer!]
 	][
@@ -422,11 +422,8 @@ face!: object [				;-- keep in sync with facet! enum
 			]
 
 			system/reactivity/check/only self any [saved word]
-			
+
 			if state [
-				if all [type = 'rich-text not last state][
-					change back tail state true
-				]
 				;if word = 'type [cause-error 'script 'locked-word [type]]
 				state/2: state/2 or (1 << ((index? in self word) - 1))
 				if all [state/1 system/view/auto-sync?][show self]

@@ -218,9 +218,7 @@ update-tab-contents: func [
 						values: get-node-facet obj/ctx 0
 						init-panel values parent
 						either type = FACE_OBJ_SIZE [
-							change-size
-								hWnd
-								as red-pair! values + FACE_OBJ_SIZE panel
+							change-size hWnd values panel
 						][
 							pos: as red-pair! values + FACE_OBJ_OFFSET
 							adjust-parent hWnd parent pos/x pos/y

@@ -1035,7 +1035,7 @@ XFORM!: alias struct! [
 		GetProcAddress: "GetProcAddress" [
 			hModule		[handle!]
 			lpProcName	[c-string!]
-			return:		[integer!]
+			return:		[int-ptr!]
 		]
 		lstrlen: "lstrlenW" [
 			str			[byte-ptr!]

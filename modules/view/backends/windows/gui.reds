@@ -512,6 +512,18 @@ update-selection: func [
 	]
 ]
 
+update-rich-text: func [
+	hWnd	[handle!]
+	state	[red-block!]
+	return: [logic!]
+	/local
+		redraw [red-logic!]
+][
+	redraw: as red-logic! (block/rs-tail state) - 1
+	redraw/value: true
+	null? hWnd
+]
+
 to-bgr: func [
 	node	[node!]
 	pos		[integer!]
@@ -1590,9 +1602,10 @@ OS-make-view: func [
 
 change-size: func [
 	hWnd [handle!]
-	size [red-pair!]
+	vals [red-value!]
 	type [integer!]
 	/local
+		size	[red-pair!]
 		cx		[integer!]
 		cy		[integer!]
 		max		[integer!]
@@ -1603,6 +1616,7 @@ change-size: func [
 		sz-x	[integer!]
 		sz-y	[integer!]
 ][
+	size: as red-pair! vals + FACE_OBJ_SIZE
 	cx: 0
 	cy: 0
 	if type = window [window-border-info? hWnd null null :cx :cy]
@@ -1614,9 +1628,8 @@ change-size: func [
 	]
 
 	if layer? [
-		values: get-face-values hWnd
-		pos: as red-pair! values + FACE_OBJ_OFFSET
-		process-layered-region hWnd size pos as red-block! values + FACE_OBJ_PANE pos null layer?
+		pos: as red-pair! vals + FACE_OBJ_OFFSET
+		process-layered-region hWnd size pos as red-block! vals + FACE_OBJ_PANE pos null layer?
 	]
 
 	sz-x: dpi-scale size/x
@@ -1630,7 +1643,7 @@ change-size: func [
 
 	if layer? [
 		hWnd: as handle! GetWindowLong hWnd wc-offset - 20
-		if hWnd <> null [change-size hWnd size -1]
+		if hWnd <> null [change-size hWnd vals -1]
 	]
 	case [
 		any [type = slider type = progress][
@@ -2227,11 +2240,16 @@ OS-update-view: func [
 	int: int + 1
 	flags: int/value
 
+	if all [
+		type = rich-text
+		update-rich-text hWnd state
+	][exit]
+
 	if flags and FACET_FLAG_OFFSET <> 0 [
 		change-offset hWnd as red-pair! values + FACE_OBJ_OFFSET type
 	]
 	if flags and FACET_FLAG_SIZE <> 0 [
-		change-size hWnd as red-pair! values + FACE_OBJ_SIZE type
+		change-size hWnd values type
 	]
 	if flags and FACET_FLAG_TEXT <> 0 [
 		change-text hWnd values type
