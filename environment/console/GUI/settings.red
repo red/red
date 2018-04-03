@@ -81,7 +81,12 @@ display-about: function [][
 		at 0x230 link "http://red-lang.org" font-size 10 font-color white
 		at 0x260 link "http://github.com/red/red" font-size 10 font-color white
 		at 154x300 button "Close" [unview win/selected: console]
-		do [ver/text: form reduce ["Build" system/version #"-" system/build/date]]
+		do [ver/text: form reduce [
+				"Build" system/version #"-" any [
+					all [system/build/git system/build/git/date]
+					system/build/date
+				]
+		]]
 	]
 	center-face/with lay win
 	view/flags lay [modal no-title]
