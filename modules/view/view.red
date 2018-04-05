@@ -43,7 +43,7 @@ size-text: function [
 
 caret-to-offset: function [
 	"Given a text position, returns the corresponding coordinate relative to the top-left of the layout box"
-	face	[face!]
+	face	[object!]
 	pos		[integer!]
 	return:	[pair!]
 ][
@@ -52,7 +52,7 @@ caret-to-offset: function [
 
 offset-to-caret: function [
 	"Given a coordinate, returns the corresponding text position"
-	face	[face!]
+	face	[object!]
 	pt		[pair!]
 	return:	[integer!]
 ][
@@ -62,7 +62,7 @@ offset-to-caret: function [
 rich-text: context [
 	line-height?: function [
 		"Given a text position, returns the corresponding line's height"
-		face	[face!]
+		face	[object!]
 		pos		[integer!]
 		return:	[integer!]
 	][
@@ -71,7 +71,7 @@ rich-text: context [
 
 	line-count?: function [
 		"number of lines (> 1 if line wrapped)"
-		face	[face!]
+		face	[object!]
 		return:	[integer!]
 	][
 		system/view/platform/text-box-metrics face 0 4
