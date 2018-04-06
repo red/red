@@ -865,13 +865,15 @@ natives: context [
 		check? [logic!]
 		into   [integer!]
 		/local
-			value	[red-value!]
-			tail	[red-value!]
-			arg		[red-value!]
-			type	[integer!]
-			into?	[logic!]
-			blk?	[logic!]
-			append? [logic!]
+			value	 [red-value!]
+			tail	 [red-value!]
+			arg		 [red-value!]
+			target	 [red-block!]
+			type	 [integer!]
+			tail-pos [integer!]
+			into?	 [logic!]
+			blk?	 [logic!]
+			append?  [logic!]
 	][
 		#typecheck [reduce into]
 		arg: stack/arguments
@@ -886,7 +888,9 @@ natives: context [
 		stack/mark-native words/_body
 
 		either into? [
-			append?: block/rs-tail? as red-block! stack/push arg + into
+			target: as red-block! arg + into
+			tail-pos: block/rs-length? target
+			append?: block/rs-tail? as red-block! stack/push as red-value! target
 		][
 			if blk? [block/push-only* (as-integer tail - value) >> 4]
 			append?: yes
@@ -912,6 +916,14 @@ natives: context [
 				interpreter/eval-expression arg arg + 1 no yes no ;-- for non block! values
 			]
 			if into? [either append? [block/append*][actions/insert* -1 0 -1]]
+		]
+		if into? [
+			ownership/check 
+				stack/arguments
+				words/_insert
+				arg
+				tail-pos
+				(block/rs-length? target) - tail-pos
 		]
 		stack/unwind-last
 	]
