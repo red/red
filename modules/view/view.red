@@ -60,6 +60,8 @@ offset-to-caret: function [
 ]
 
 rich-text: context [
+	rtd: #include %RTD.red
+	
 	line-height?: function [
 		"Given a text position, returns the corresponding line's height"
 		face	[object!]

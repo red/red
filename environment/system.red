@@ -172,6 +172,8 @@ system: context [
 				not-event-type:		["VIEW - not a valid event type" :arg1]
 				invalid-facet-type:	["VIEW - invalid rate value:" :arg1]
 				vid-invalid-syntax:	["VID - invalid syntax at:" :arg1]
+				rtd-invalid-syntax: ["RTD - invalid syntax at:" :arg1]
+				rtd-no-match:		["RTD - opening/closing tag not matching for:" :arg1]
 				react-bad-func:		"REACT - /LINK option requires a function! as argument"
 				react-not-enough:	"REACT - reactive functions must accept at least 2 arguments"
 				react-no-match:		"REACT - objects block length must match reaction function arg count"
