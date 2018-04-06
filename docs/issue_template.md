@@ -1,4 +1,9 @@
 ### Expected behavior
 ### Actual behavior
 ### Steps to reproduce the problem
-### Version (run `about` in the Red Console and paste the result here) also add OS version.
+### Red and platform version
+```
+Run below code in Red Console and replace these 3 lines enclosed in ``` with the result:
+  any [attempt[about/debug] about]
+(add OS version if not in above command result)
+```
