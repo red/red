@@ -206,7 +206,7 @@ Make sure the changes pass all the existing tests, add relevant tests to the tes
 
         >> do %run-all.r
 
-Git integration with console builded from source
+Git integration with console built from source
 -------------------------
 If you want git version included in your Console built from source, use this command:
 ```Red
