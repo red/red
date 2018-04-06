@@ -206,9 +206,9 @@ Make sure the changes pass all the existing tests, add relevant tests to the tes
 
         >> do %run-all.r
 
-Git integration with console built from source
+Git integration with console built from sources
 -------------------------
-If you want git version included in your Console built from source, use this command:
+If you want git version included in your Red console built from sources, use this command:
 ```Red
 call/show ""                                              ;-- patch call bug on Windows
 save %build/git.r do %build/git-version.r                 ;-- lookup git version if available
