@@ -427,6 +427,7 @@ actions: context [
 			op <> COMP_EQUAL
 			op <> COMP_SAME
 			op <> COMP_STRICT_EQUAL
+			op <> COMP_STRICT_EQUAL_WORD
 			op <> COMP_NOT_EQUAL
 			op <> COMP_FIND
 		][
