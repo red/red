@@ -917,7 +917,7 @@ natives: context [
 			]
 			if into? [either append? [block/append*][actions/insert* -1 0 -1]]
 		]
-		if into? [
+		if all [into? append?][
 			ownership/check 
 				stack/arguments
 				words/_insert
