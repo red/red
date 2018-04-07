@@ -816,8 +816,7 @@ object [
 				true		[start-idx: 1]
 			]
 		]
-		append styles start-idx
-		append styles len
+		append styles as-pair start-idx len
 		append styles select-bg
 		if swap? [move/part skip selects 2 selects 2]
 	]
