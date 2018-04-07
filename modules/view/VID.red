@@ -408,6 +408,12 @@ system/view/VID: context [
 				oi/size
 			]
 		]
+		all [											;-- preprocess RTD inputs
+			face/type = 'rich-text
+			opts/data
+			rtd-layout/with opts/data face
+			opts/data: none
+		]
 
 		font: opts/font
 		if any [face-font: face/font font][
