@@ -871,7 +871,7 @@ make-face: func [
 	if spec [
 		opts: svv/opts-proto
 		css: make block! 2
-		spec: svv/fetch-options face opts model blk css no
+		spec: svv/fetch-options/no-skip face opts model blk css no
 		if model/init [do bind model/init 'face]
 		svv/process-reactors
 	]

@@ -265,6 +265,7 @@ system/view/VID: context [
 	
 	fetch-options: function [
 		face [object!] opts [object!] style [block!] spec [block!] css [block!] styling? [logic!]
+		/no-skip
 		/extern focal-face
 		return: [block!]
 	][
@@ -282,7 +283,8 @@ system/view/VID: context [
 		
 		;-- process style options --
 		until [
-			value: first spec: next spec
+			unless no-skip [spec: next spec]
+			value: first spec
 			match?: parse spec [[
 				  ['left | 'center | 'right]	 (opt?: add-flag opts 'para 'align value)
 				| ['top  | 'middle | 'bottom]	 (opt?: add-flag opts 'para 'v-align value)
