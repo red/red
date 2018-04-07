@@ -135,9 +135,10 @@ gui-console-ctx: context [
 				"Choose Font..."	choose-font
 				"Settings..."		settings
 			]
-			;"Plugins" [
-			;	"Add..."			add-plugin
-			;]
+			"Plugins" [
+				"Show"				plugins-show
+				"Manage..."			plugins-manage
+			]
 			"Help" [
 				"About"				about-msg
 			]
@@ -156,6 +157,8 @@ gui-console-ctx: context [
 						]
 					]
 					settings		[show-cfg-dialog]
+					plugins-show	[plugins/do-show face/menu/6]
+					plugins-manage	[plugins/do-manage]
 				]
 			]
 			on-close: func [face [object!] event [event!]][
@@ -197,6 +200,8 @@ gui-console-ctx: context [
 		add-gui-print
 		system/console/launch
 	]
+	
+	plugins: #include %plugins.red
 ]
 
 ask: function [
