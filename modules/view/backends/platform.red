@@ -678,7 +678,7 @@ system/view/platform: context [
 			layout? [logic!]
 	][
 		layout?: yes
-		state: as red-block! (object/get-values box) + gui/FACE_OBJ_STATE
+		state: as red-block! (object/get-values box) + gui/FACE_OBJ_EXT2
 		if TYPE_OF(state) = TYPE_BLOCK [
 			bool: as red-logic! (block/rs-tail state) - 1
 			layout?: bool/value

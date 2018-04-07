@@ -165,10 +165,6 @@ OS-draw-text-d2d: func [
 	/local
 		this	[this!]
 		rt		[ID2D1HwndRenderTarget]
-		values	[red-value!]
-		int		[red-integer!]
-		state	[red-block!]
-		bool	[red-logic!]
 		layout	[this!]
 ][
 	this: as this! ctx/dc

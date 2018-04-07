@@ -204,7 +204,7 @@ OS-text-box-metrics: func [
 		values			[red-value!]
 		hr				[integer!]
 ][
-	int: as red-integer! (block/rs-head state) + 4
+	int: as red-integer! block/rs-head state
 	layout: as handle! int/value
 	left: 0
 	this: as this! layout
@@ -288,17 +288,12 @@ OS-text-box-layout: func [
 		h		[integer!]
 		fmt		[this!]
 		layout	[this!]
-		state?	[logic!]
 ][
 	values: object/get-values box
-	state: as red-block! values + FACE_OBJ_STATE
-	state?: TYPE_OF(state) = TYPE_BLOCK
+	state: as red-block! values + FACE_OBJ_EXT2
 
-	either all [
-		state?
-		8 = block/rs-length? state
-	][
-		int: as red-integer! (block/rs-head state) + 4	;-- release previous text layout
+	either TYPE_OF(state) = TYPE_BLOCK [
+		int: as red-integer! block/rs-head state	;-- release previous text layout
 		layout: as this! int/value
 		COM_SAFE_RELEASE(IUnk layout)
 		int: int + 1
@@ -310,11 +305,7 @@ OS-text-box-layout: func [
 	][
 		fmt: as this! create-text-format as red-object! values + FACE_OBJ_FONT
 		;set-line-spacing fmt
-		unless state? [
-			block/make-at state 8
-			loop 2 [integer/make-in state 0]
-			loop 2 [none/make-in state]
-		]
+		block/make-at state 4
 		none/make-in state							;-- 1: text layout
 		handle/make-in state as-integer fmt			;-- 2: text format
 		handle/make-in state 0						;-- 3: target
@@ -330,7 +321,7 @@ OS-text-box-layout: func [
 			hWnd: hidden-hwnd
 		]
 		target: get-hwnd-render-target hWnd
-		handle/make-at (block/rs-head state) + 6 as-integer target
+		handle/make-at (block/rs-head state) + 2 as-integer target
 	]
 
 	vec: as red-vector! target + 3
@@ -348,7 +339,7 @@ OS-text-box-layout: func [
 	]
 
 	layout: create-text-layout str fmt w h
-	handle/make-at (block/rs-head state) + 4 as-integer layout
+	handle/make-at block/rs-head state as-integer layout
 
 	styles: as red-block! values + FACE_OBJ_DATA
 	if all [

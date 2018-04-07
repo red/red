@@ -47,7 +47,7 @@ object [
 	clipboard:	none							;-- data in clipboard for pasting
 	clip-buf:	make string! 20					;-- buffer for copy into clipboard
 	paste-cnt:	0
-	box:		make face! [type: 'rich-text tabs: none]
+	box:		make face! [type: 'rich-text tabs: none handles: none]
 
 	undo-stack: make block! 60
 	redo-stack: make block! 20
