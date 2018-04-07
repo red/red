@@ -16,6 +16,7 @@ Red/System [
 #define TBOX_METRICS_LINE_HEIGHT	2
 #define TBOX_METRICS_SIZE			3
 #define TBOX_METRICS_LINE_COUNT		4
+#define TBOX_METRICS_CHAR_INDEX?	5
 
 max-line-cnt:  0
 
@@ -207,7 +208,8 @@ OS-text-box-metrics: func [
 				pair/push as-integer x as-integer pt/y
 			]
 		]
-		TBOX_METRICS_INDEX? [
+		TBOX_METRICS_INDEX?
+		TBOX_METRICS_CHAR_INDEX? [
 			y: as float32! 0.0
 			pos: as red-pair! arg0
 			xx: 0
@@ -219,7 +221,7 @@ OS-text-box-metrics: func [
 				sel_getUid "characterIndexForPoint:inTextContainer:fractionOfDistanceBetweenInsertionPoints:"
 				pt/x pt/y tc :y
 			]
-			if y > as float32! 0.5 [idx: idx + 1]
+			if all [type = TBOX_METRICS_INDEX? y > as float32! 0.5][idx: idx + 1]
 			integer/push idx + 1
 		]
 		TBOX_METRICS_SIZE [

@@ -51,12 +51,21 @@ caret-to-offset: function [
 ]
 
 offset-to-caret: function [
-	"Given a coordinate, returns the corresponding text position"
+	"Given a coordinate, returns the corresponding caret position"
 	face	[object!]
 	pt		[pair!]
 	return:	[integer!]
 ][
 	system/view/platform/text-box-metrics face pt 1
+]
+
+offset-to-char: function [
+	"Given a coordinate, returns the corresponding character position"
+	face	[object!]
+	pt		[pair!]
+	return:	[integer!]
+][
+	system/view/platform/text-box-metrics face pt 5
 ]
 
 rich-text: context [

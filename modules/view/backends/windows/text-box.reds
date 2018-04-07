@@ -16,6 +16,7 @@ Red/System [
 #define TBOX_METRICS_LINE_HEIGHT	2
 #define TBOX_METRICS_SIZE			3
 #define TBOX_METRICS_LINE_COUNT		4
+#define TBOX_METRICS_CHAR_INDEX?	5
 
 hidden-hwnd:  as handle! 0
 line-metrics: as DWRITE_LINE_METRICS 0
@@ -219,7 +220,8 @@ OS-text-box-metrics: func [
 			if y < as float32! 0.0 [y: as float32! 0.0]
 			pair/push as-integer x + as float32! 0.5 as-integer y + as float32! 0.99
 		]
-		TBOX_METRICS_INDEX? [
+		TBOX_METRICS_INDEX?
+		TBOX_METRICS_CHAR_INDEX? [
 			pos: as red-pair! arg0
 			x: as float32! pos/x
 			y: as float32! pos/y
@@ -227,7 +229,7 @@ OS-text-box-metrics: func [
 			inside?: 0
 			hit: as DWRITE_HIT_TEST_METRICS :left
 			dl/HitTestPoint this x y :trailing? :inside? hit
-			if 0 <> trailing? [left: left + 1]
+			if all [type = TBOX_METRICS_INDEX? 0 <> trailing?][left: left + 1]
 			integer/push left + 1
 		]
 		TBOX_METRICS_LINE_HEIGHT [
