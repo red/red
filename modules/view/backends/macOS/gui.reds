@@ -1183,6 +1183,7 @@ init-base-face: func [
 	size	[red-pair!]
 	values	[red-value!]
 	bits	[integer!]
+	return: [integer!]
 	/local
 		color	[red-tuple!]
 		opts	[red-block!]
@@ -1219,19 +1220,13 @@ init-base-face: func [
 	if TYPE_OF(opts) = TYPE_BLOCK [
 		word: as red-word! block/rs-head opts
 		len: block/rs-length? opts
-		if len % 2 <> 0 [exit]
+		if len % 2 <> 0 [return obj]
 		while [len > 0][
 			sym: symbol/resolve word/symbol
 			case [
 				sym = caret [
 					object_setInstanceVariable obj IVAR_RED_DATA caret	;-- overwrite extra RED_DATA
 					change-offset obj as red-pair! values + FACE_OBJ_OFFSET base
-				]
-				sym = rich-text? [
-					show?: as red-logic! word + 1
-					if show?/value [
-						objc_setAssociatedObject obj RedRichTextKey obj OBJC_ASSOCIATION_ASSIGN
-					]
 				]
 				true [0]
 			]
@@ -1242,6 +1237,7 @@ init-base-face: func [
 
 	if TYPE_OF(menu) = TYPE_BLOCK [set-context-menu obj menu]
 	;if transparent-base? color [objc_msgSend [obj sel_getUid "setWantsLayer:" yes]]
+	obj
 ]
 
 make-area: func [
@@ -1505,6 +1501,18 @@ update-scroller: func [
 	]
 ]
 
+update-rich-text: func [
+	hWnd	[integer!]
+	state	[red-block!]
+	return: [logic!]
+	/local
+		redraw [red-logic!]
+][
+	redraw: as red-logic! (block/rs-tail state) - 1
+	redraw/value: true
+	zero? hWnd
+]
+
 set-hint-text: func [
 	hWnd		[integer!]
 	options		[red-block!]
@@ -1640,6 +1648,7 @@ OS-make-view: func [
 		caption [integer!]
 		len		[integer!]
 		obj		[integer!]
+		hWnd	[integer!]
 		rc		[NSRect!]
 		flt		[float!]
 ][
@@ -1687,6 +1696,7 @@ OS-make-view: func [
 		any [
 			sym = panel
 			sym = base
+			sym = rich-text
 		][
 			class: either bits and FACET_FLAGS_SCROLLABLE = 0 ["RedBase"]["RedScrollBase"]
 		]
@@ -1777,6 +1787,10 @@ OS-make-view: func [
 			sym = base
 		][
 			init-base-face face obj menu size values bits
+		]
+		sym = rich-text [
+			hWnd: init-base-face face obj menu size values bits
+			objc_setAssociatedObject hWnd RedRichTextKey hWnd OBJC_ASSOCIATION_ASSIGN
 		]
 		sym = tab-panel [
 			set-tabs obj values
@@ -1885,6 +1899,11 @@ OS-update-view: func [
 	hWnd: int/value
 	int: int + 1
 	flags: int/value
+
+	if all [
+		type = rich-text
+		update-rich-text hWnd state
+	][exit]
 
 	if flags and FACET_FLAG_OFFSET <> 0 [
 		change-offset hWnd as red-pair! values + FACE_OBJ_OFFSET type

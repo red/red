@@ -40,7 +40,10 @@ quit: func [
 	"Stops evaluation and exits the program"
 	/return status	[integer!] "Return an exit status"
 ][
-	#if config/OS <> 'Windows [
+	#if all [
+		config/OS <> 'Windows
+		not config/gui-console?
+	][
 		if system/console [do [_terminate-console]]
 	]
 	quit-return any [status 0]

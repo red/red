@@ -169,7 +169,7 @@ OS-text-box-metrics: func [
 		saved	[int-ptr!]
 		last?	[logic!]
 ][
-	int: as red-integer! block/rs-head state
+	int: as red-integer! (block/rs-head state) + 4
 	layout: int/value
 	int: int + 1
 	tc: int/value
@@ -234,10 +234,9 @@ OS-text-box-metrics: func [
 			push method push layout push frame
 			objc_msgSend_stret 6
 			system/stack/top: saved
-			int: as red-integer! arg0
-			x: either zero? int/value [frame/w][frame/h]
-			len: as-integer (x + as float32! 0.5)
-			integer/push len
+			pair/push
+				as-integer (frame/w + as float32! 0.5)
+				as-integer (frame/h + as float32! 0.5)
 		]
 		TBOX_METRICS_LINE_COUNT [
 			idx: objc_msgSend [layout sel_getUid "glyphRangeForTextContainer:" tc]
@@ -293,17 +292,20 @@ OS-text-box-layout: func [
 ][
 	values: object/get-values box
 
-	str: to-NSString as red-string! values + TBOX_OBJ_TEXT
-	state: as red-block! values + TBOX_OBJ_STATE
-	size: as red-pair! values + TBOX_OBJ_SIZE
-	nsfont: as-integer get-font null as red-object! values + TBOX_OBJ_FONT
+	str: to-NSString as red-string! values + FACE_OBJ_TEXT
+	state: as red-block! values + FACE_OBJ_STATE
+	size: as red-pair! values + FACE_OBJ_SIZE
+	nsfont: as-integer get-font null as red-object! values + FACE_OBJ_FONT
 	cached?: TYPE_OF(state) = TYPE_BLOCK
 
 	h: 7CF0BDC2h w: 7CF0BDC2h
 	sz: as NSSize! :h
 
-	either cached? [
-		int: as red-integer! block/rs-head state
+	either all [
+		cached?
+		9 = block/rs-length? state
+	][
+		int: as red-integer! (block/rs-head state) + 4
 		layout: int/value
 		int: int + 1 tc: int/value
 		int: int + 1 ts: int/value
@@ -337,7 +339,11 @@ OS-text-box-layout: func [
 		objc_msgSend [para sel_getUid "setTabStops:" objc_msgSend [objc_getClass "NSArray" sel_getUid "array"]]
 
 		h: 7CF0BDC2h
-		block/make-at state 5
+		unless cached? [
+			block/make-at state 9
+			loop 2 [integer/make-in state 0]
+			loop 2 [none/make-in state]
+		]
 		integer/make-in state layout
 		integer/make-in state tc
 		integer/make-in state ts
@@ -345,7 +351,7 @@ OS-text-box-layout: func [
 		logic/make-in state false
 	]
 
-	;@@ set para: as red-object! values + TBOX_OBJ_PARA
+	;@@ set para: as red-object! values + FACE_OBJ_PARA
 
 	if TYPE_OF(size) = TYPE_PAIR [
 		unless zero? size/x [sz/w: as float32! size/x]
@@ -373,7 +379,7 @@ OS-text-box-layout: func [
 	objc_msgSend [ts sel_getUid "setAttributes:range:" attrs 0 w]
 	objc_msgSend [attrs sel_release]
 
-	styles: as red-block! values + TBOX_OBJ_STYLES
+	styles: as red-block! values + FACE_OBJ_DATA
 	if all [
 		TYPE_OF(styles) = TYPE_BLOCK
 		2 < block/rs-length? styles
