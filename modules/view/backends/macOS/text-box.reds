@@ -169,7 +169,7 @@ OS-text-box-metrics: func [
 		saved	[int-ptr!]
 		last?	[logic!]
 ][
-	int: as red-integer! (block/rs-head state) + 4
+	int: as red-integer! block/rs-head state
 	layout: int/value
 	int: int + 1
 	tc: int/value
@@ -293,7 +293,7 @@ OS-text-box-layout: func [
 	values: object/get-values box
 
 	str: to-NSString as red-string! values + FACE_OBJ_TEXT
-	state: as red-block! values + FACE_OBJ_STATE
+	state: as red-block! values + FACE_OBJ_EXT2
 	size: as red-pair! values + FACE_OBJ_SIZE
 	nsfont: as-integer get-font null as red-object! values + FACE_OBJ_FONT
 	cached?: TYPE_OF(state) = TYPE_BLOCK
@@ -301,11 +301,8 @@ OS-text-box-layout: func [
 	h: 7CF0BDC2h w: 7CF0BDC2h
 	sz: as NSSize! :h
 
-	either all [
-		cached?
-		9 = block/rs-length? state
-	][
-		int: as red-integer! (block/rs-head state) + 4
+	either cached? [
+		int: as red-integer! block/rs-head state
 		layout: int/value
 		int: int + 1 tc: int/value
 		int: int + 1 ts: int/value
@@ -339,11 +336,7 @@ OS-text-box-layout: func [
 		objc_msgSend [para sel_getUid "setTabStops:" objc_msgSend [objc_getClass "NSArray" sel_getUid "array"]]
 
 		h: 7CF0BDC2h
-		unless cached? [
-			block/make-at state 9
-			loop 2 [integer/make-in state 0]
-			loop 2 [none/make-in state]
-		]
+		block/make-at state 5
 		integer/make-in state layout
 		integer/make-in state tc
 		integer/make-in state ts

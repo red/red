@@ -697,7 +697,7 @@ draw-text-box: func [
 		pt		[CGPoint!]
 		clr		[integer!]
 ][
-	state: (as red-block! object/get-values tbox) + FACE_OBJ_STATE
+	state: (as red-block! object/get-values tbox) + FACE_OBJ_EXT2
 
 	layout?: yes
 	if TYPE_OF(state) = TYPE_BLOCK [
@@ -709,7 +709,7 @@ draw-text-box: func [
 		OS-text-box-layout tbox null clr catch?
 	]
 
-	int: as red-integer! (block/rs-head state) + 4
+	int: as red-integer! block/rs-head state
 	layout: int/value
 	int: int + 1
 	tc: int/value

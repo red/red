@@ -425,10 +425,12 @@ face!: object [				;-- keep in sync with facet! enum
 
 			system/reactivity/check/only self any [saved word]
 
-			if state [
+			either state [
 				;if word = 'type [cause-error 'script 'locked-word [type]]
 				state/2: state/2 or (1 << ((index? in self word) - 1))
 				if all [state/1 system/view/auto-sync?][show self]
+			][
+				if type = 'rich-text [system/view/platform/update-view self]
 			]
 		]
 	]

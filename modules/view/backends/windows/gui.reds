@@ -513,15 +513,17 @@ update-selection: func [
 ]
 
 update-rich-text: func [
-	hWnd	[handle!]
 	state	[red-block!]
+	handles [red-block!]
 	return: [logic!]
 	/local
 		redraw [red-logic!]
 ][
-	redraw: as red-logic! (block/rs-tail state) - 1
-	redraw/value: true
-	null? hWnd
+	if TYPE_OF(handles) = TYPE_BLOCK [
+		redraw: as red-logic! (block/rs-tail handles) - 1
+		redraw/value: true
+	]
+	TYPE_OF(state) <> TYPE_BLOCK
 ]
 
 to-bgr: func [
@@ -2234,16 +2236,17 @@ OS-update-view: func [
 	state: as red-block! values + FACE_OBJ_STATE
 	word: as red-word! values + FACE_OBJ_TYPE
 	type: symbol/resolve word/symbol
+
+	if all [
+		type = rich-text
+		update-rich-text state as red-block! values + FACE_OBJ_EXT2
+	][exit]
+
 	s: GET_BUFFER(state)
 	int: as red-integer! s/offset
 	hWnd: as handle! int/value
 	int: int + 1
 	flags: int/value
-
-	if all [
-		type = rich-text
-		update-rich-text hWnd state
-	][exit]
 
 	if flags and FACET_FLAG_OFFSET <> 0 [
 		change-offset hWnd as red-pair! values + FACE_OBJ_OFFSET type
