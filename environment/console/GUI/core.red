@@ -47,7 +47,7 @@ object [
 	clipboard:	none							;-- data in clipboard for pasting
 	clip-buf:	make string! 20					;-- buffer for copy into clipboard
 	paste-cnt:	0
-	box:		make text-box! [target: console]
+	box:		make face! [type: 'rich-text tabs: none]
 
 	undo-stack: make block! 60
 	redo-stack: make block! 20
@@ -167,12 +167,13 @@ object [
 		]
 	]
 
-	calc-last-line: func [new? [logic!] /local n cnt h total][
+	calc-last-line: func [new? [logic!] /local n cnt h total sz][
 		n: length? lines
 		box/text: head last lines
 		total: line-cnt
-		h: box/height?
-		cnt: box/line-count?
+		sz: size-text box
+		h: sz/y
+		cnt: rich-text/line-count? box
 		either any [new? n > length? nlines][			;-- add a new line
 			append heights h
 			append nlines cnt
@@ -225,14 +226,14 @@ object [
 		console/color: background
 	]
 
-	update-cfg: func [font [object!] cfg [block!]][
-		box/state: none					;TBD release resources in text-box!
+	update-cfg: func [font [object!] cfg [block!] /local sz][
 		box/font: font
 		max-lines: cfg/buffer-lines
 		box/text: "XX"
-		char-width: 1 + box/width? / 2
+		sz: size-text box
+		char-width: 1 + sz/x / 2
 		box/tabs: tab-size * char-width
-		line-h: box/line-height? 1
+		line-h: rich-text/line-height? box 1
 		caret/size/y: line-h
 		if cfg/background [change theme/background cfg/background]
 		if font/color [change theme/foreground font/color]
@@ -285,7 +286,7 @@ object [
 			h: h + pick heights n
 			n: n + 1
 		]
-		offset: box/offset? pos + index? line
+		offset: caret-to-offset box pos + index? line
 		offset/x: offset/x + pad-left
 		offset/y: offset/y + h + scroll-y
 		if ask? [
@@ -317,7 +318,7 @@ object [
 		offset/x: offset/x - pad-left 
 		offset/y: y + start - h
 		append selects n
-		append selects box/index? offset
+		append selects offset-to-caret box offset
 	]
 
 	mouse-to-caret: func [event [event!] /local offset][
@@ -327,7 +328,7 @@ object [
 		offset/x: offset/x - pad-left
 		offset/y: offset/y - line-y
 		box/text: head line
-		pos: (box/index? offset) - (index? line)
+		pos: (offset-to-caret box offset) - (index? line)
 		if pos < 0 [pos: 0]
 		update-caret
 	]
@@ -821,7 +822,7 @@ object [
 		if swap? [move/part skip selects 2 selects 2]
 	]
 
-	paint: func [/local str cmds y n h cnt delta num end styles][
+	paint: func [/local str cmds y n sz h cnt delta num end styles][
 		if empty? lines [exit]
 		cmds: [pen color text 0x0 text-box]
 		cmds/2: foreground
@@ -831,7 +832,7 @@ object [
 		y: scroll-y
 		n: top
 		num: line-cnt
-		styles: box/styles
+		styles: box/data
 		foreach str at lines top [
 			box/text: head str
 			if color? [highlight/add-styles head str clear styles theme]
@@ -839,8 +840,9 @@ object [
 			cmds/4/y: y
 			system/view/platform/draw-face console cmds
 
-			h: box/height?
-			cnt: box/line-count?
+			sz: size-text box
+			h: sz/y
+			cnt: rich-text/line-count? box
 			poke heights n h
 			line-cnt: line-cnt + cnt - pick nlines n
 			poke nlines n cnt

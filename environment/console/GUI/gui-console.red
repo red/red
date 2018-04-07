@@ -97,7 +97,7 @@ gui-console-ctx: context [
 		init: func [/local box][
 			terminal/windows: system/view/screens/1/pane
 			box: terminal/box
-			box/styles: make block! 200
+			box/data: make block! 200
 			scroller: get-scroller self 'horizontal
 			scroller/visible?: no						;-- hide horizontal bar
 			scroller: get-scroller self 'vertical

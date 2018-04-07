@@ -1063,6 +1063,7 @@ Red/System [
 				start	[red-value!]
 				int1	[red-integer!]
 				int2	[red-integer!]
+				range	[red-pair!]
 				word	[red-word!]
 				sym		[integer!]
 				rgb		[integer!]
@@ -1107,14 +1108,6 @@ Red/System [
 								DRAW_FETCH_OPT_VALUE(TYPE_LIT_WORD)		;-- style: 'dash, 'wave
 								OS-text-box-border layout idx len start cmd
 							]
-							sym = _font-name [
-								DRAW_FETCH_VALUE(TYPE_STRING)
-								OS-text-box-font-name dc layout idx len as red-string! start
-							]
-							sym = _font-size [
-								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
-								OS-text-box-font-size dc layout idx len get-float as red-integer! start
-							]
 							true [throw-draw-error cmds cmd catch?]
 						]
 					]
@@ -1122,16 +1115,16 @@ Red/System [
 						rgb: get-color-int as red-tuple! cmd :alpha?
 						OS-text-box-color dc layout idx len rgb
 					]
-					TYPE_INTEGER [										;-- range
-						int1: as red-integer! cmd
-						int2: int1 + 1
-						cmd: cmd + 2
-						if any [TYPE_OF(int2) <> TYPE_INTEGER TYPE_OF(cmd) = TYPE_INTEGER][
-							throw-draw-error cmds cmd catch?
-						]
-						idx: int1/value - 1
-						len: int2/value
-						cmd: as red-value! int2
+					TYPE_PAIR [											;-- range
+						range: as red-pair! cmd
+						idx: range/x - 1
+						len: range/y
+					]
+					TYPE_STRING [										;-- font name
+						OS-text-box-font-name dc layout idx len as red-string! cmd
+					]
+					TYPE_INTEGER TYPE_FLOAT [							;-- font size
+						OS-text-box-font-size dc layout idx len get-float as red-integer! cmd
 					]
 					default [throw-draw-error cmds cmd catch?]
 				]

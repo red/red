@@ -257,12 +257,10 @@ OS-text-box-metrics: func [
 		default [
 			metrics: as DWRITE_TEXT_METRICS :left
 			hr: dl/GetMetrics this metrics
-			integer/push either type = TBOX_METRICS_SIZE [
-				int: as red-integer! arg0
-				x: either zero? int/value [metrics/width][metrics/height]
-				as-integer x
+			either type = TBOX_METRICS_SIZE [
+				pair/push as-integer metrics/width as-integer metrics/height
 			][
-				metrics/lineCount
+				integer/push metrics/lineCount
 			]
 		]
 	]
@@ -298,28 +296,29 @@ OS-text-box-layout: func [
 
 	either all [
 		state?
-		7 = block/rs-length? state
+		8 = block/rs-length? state
 	][
 		int: as red-integer! (block/rs-head state) + 4	;-- release previous text layout
 		layout: as this! int/value
 		COM_SAFE_RELEASE(IUnk layout)
 		int: int + 1
 		fmt: as this! int/value
+		int: int + 1
+		if null? target [target: as int-ptr! int/value]
 		bool: as red-logic! int + 1
 		bool/value: false
 	][
 		fmt: as this! create-text-format as red-object! values + FACE_OBJ_FONT
 		;set-line-spacing fmt
-		either state? [
-			loop 3 [none/make-in state]
-		][
+		unless state? [
 			block/make-at state 8
-			integer/make-in state 0
-			loop 3 [none/make-in state]
+			loop 2 [integer/make-in state 0]
+			loop 2 [none/make-in state]
 		]
 		none/make-in state							;-- 1: text layout
 		handle/make-in state as-integer fmt			;-- 2: text format
-		logic/make-in state false
+		handle/make-in state 0						;-- 3: target
+		logic/make-in state false					;-- 4: layout?
 	]
 
 	if null? target [
@@ -331,6 +330,7 @@ OS-text-box-layout: func [
 			hWnd: hidden-hwnd
 		]
 		target: get-hwnd-render-target hWnd
+		handle/make-at (block/rs-head state) + 6 as-integer target
 	]
 
 	vec: as red-vector! target + 3
