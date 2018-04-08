@@ -653,11 +653,11 @@ extract-boot-args: function [
 	;-- extract system/options/boot
 	either args/1 = dbl-quote [
 		until [args: next args args/1 <> dbl-quote]
-		system/options/boot: copy/part args pos: find args dbl-quote
+		system/options/boot: to-red-file copy/part args pos: find args dbl-quote
 		until [pos: next pos pos/1 <> dbl-quote]
 	][
 		pos: either pos: find/tail args space [back pos][tail args]
-		system/options/boot: copy/part args pos
+		system/options/boot: to-red-file copy/part args pos
 	]
 	;-- clean-up system/script/args
 	remove/part args: head args pos
