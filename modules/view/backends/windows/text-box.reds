@@ -346,7 +346,7 @@ OS-text-box-layout: func [
 	styles: as red-block! values + FACE_OBJ_DATA
 	if all [
 		TYPE_OF(styles) = TYPE_BLOCK
-		2 < block/rs-length? styles
+		1 < block/rs-length? styles
 	][
 		parse-text-styles target as handle! layout styles catch?
 	]
