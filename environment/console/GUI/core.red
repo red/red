@@ -742,6 +742,16 @@ object [
 		ctrl?: event/ctrl?
 		shift?: event/shift?
 		char: event/key
+		#if config/OS = 'macOS [
+		if find event/flags 'command [
+			char: switch char [
+				#"c" [#"^C"]
+				#"v" [#"^V"]
+				#"z" [#"^Z"]
+				#"y" [#"^Y"]
+				#default [char]
+			]
+		]]
 		switch/default char [
 			#"^M"	[exit-ask-loop]					;-- ENTER key
 			#"^H"	[delete-text ctrl?]
