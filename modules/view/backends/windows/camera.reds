@@ -308,7 +308,7 @@ select-camera: func [
 		cam [camera!]
 ][
 	cam: as camera! GetWindowLong handle wc-offset - 4
-	if idx >= cam/num [
+	if any [idx < 0 idx >= cam/num][
 		fire [TO_ERROR(access cannot-open) integer/push idx + 1]
 	]
 	teardown-graph cam
