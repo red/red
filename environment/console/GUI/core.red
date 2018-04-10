@@ -108,6 +108,7 @@ object [
 		unless console/state [exit]
 
 		if all [not lf? newline?][newline?: no add-line make string! 8]
+		if lf? [newline?: yes]
 		s: find str lf
 		either s [
 			cnt: 0
