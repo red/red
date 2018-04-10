@@ -220,6 +220,7 @@ free-handles: func [
 	either sym = window [
 		objc_msgSend [hWnd sel_getUid "close"]
 		win-cnt: win-cnt - 1
+		post-quit-msg
 	][
 		unless close-window? [objc_msgSend [hWnd sel_getUid "removeFromSuperview"]]
 	]
