@@ -511,10 +511,9 @@ object: context [
 			n [integer!]
 	][
 		n: tabs
-		until [
+		while [n > 0][
 			string/concatenate-literal buffer "    "
 			n: n - 1
-			zero? n
 		]
 		part - (4 * tabs)
 	]
