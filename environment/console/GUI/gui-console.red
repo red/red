@@ -228,6 +228,8 @@ ask: function [
 	line
 ]
 
+input: function [return: [string!]][ask ""]
+
 #system [
 	red-print-gui: func [
 		str		[red-string!]
