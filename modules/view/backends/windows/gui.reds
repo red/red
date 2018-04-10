@@ -588,9 +588,9 @@ free-faces: func [
 				if dc <> 0 [DeleteDC as handle! dc]			;-- delete cached dc
 			]
 			flags: get-flags as red-block! values + FACE_OBJ_FLAGS
-			if flags and FACET_FLAGS_MODAL <> 0 [
-				SetActiveWindow GetWindow handle GW_OWNER
-			]
+			;if flags and FACET_FLAGS_MODAL <> 0 [
+			;	SetActiveWindow GetWindow handle GW_OWNER
+			;]
 			dc: GetWindowLong handle wc-offset - 24
 			if dc <> 0 [
 				either (GetWindowLong handle wc-offset - 12) and BASE_FACE_IME <> 0 [
