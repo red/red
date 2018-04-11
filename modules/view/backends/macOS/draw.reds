@@ -685,7 +685,9 @@ draw-text-box: func [
 	catch?	[logic!]
 	/local
 		int		[red-integer!]
+		values	[red-value!]
 		state	[red-block!]
+		str		[red-string!]
 		bool	[red-logic!]
 		layout? [logic!]
 		layout	[integer!]
@@ -697,15 +699,20 @@ draw-text-box: func [
 		pt		[CGPoint!]
 		clr		[integer!]
 ][
-	state: (as red-block! object/get-values tbox) + TBOX_OBJ_STATE
+	values: object/get-values tbox
+	str: as red-string! values + FACE_OBJ_TEXT
+	if TYPE_OF(str) <> TYPE_STRING [exit]
 
+	state: as red-block! values + FACE_OBJ_EXT2
 	layout?: yes
 	if TYPE_OF(state) = TYPE_BLOCK [
 		bool: as red-logic! (block/rs-tail state) - 1
 		layout?: bool/value
 	]
 	if layout? [
-		clr: objc_msgSend [dc/font-attrs sel_getUid "objectForKey:" NSForegroundColorAttributeName]
+		clr: either null? dc [0][
+			objc_msgSend [dc/font-attrs sel_getUid "objectForKey:" NSForegroundColorAttributeName]
+		]
 		OS-text-box-layout tbox null clr catch?
 	]
 

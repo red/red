@@ -190,11 +190,9 @@ parser: context [
 		/local
 			type [integer!]
 	][
-		if comp-op = COMP_STRICT_EQUAL [
-			type: TYPE_OF(value)
-			if any [type = TYPE_LIT_WORD type = TYPE_LIT_PATH][
-				comp-op: COMP_STRICT_EQUAL_WORD
-			]
+		type: TYPE_OF(value)
+		if any [type = TYPE_LIT_WORD type = TYPE_LIT_PATH][
+			comp-op: COMP_STRICT_EQUAL_WORD
 		]
 		actions/compare value2 value comp-op
 	]

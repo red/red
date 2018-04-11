@@ -89,6 +89,20 @@ get-node-facet: func [
 	s/offset + facet
 ]
 
+get-face-obj: func [
+	view	[integer!]
+	return: [red-object!]
+	/local
+		face [red-object!]
+		ivar [integer!]
+][
+	face: declare red-object!
+	ivar: class_getInstanceVariable object_getClass view IVAR_RED_FACE
+	assert ivar <> 0
+	as red-object! copy-cell as cell! view + ivar_getOffset ivar as cell! face
+	face
+]
+
 get-face-flags: func [
 	face	[handle!]
 	return: [integer!]
@@ -1184,6 +1198,7 @@ init-base-face: func [
 	size	[red-pair!]
 	values	[red-value!]
 	bits	[integer!]
+	return: [integer!]
 	/local
 		color	[red-tuple!]
 		opts	[red-block!]
@@ -1220,19 +1235,13 @@ init-base-face: func [
 	if TYPE_OF(opts) = TYPE_BLOCK [
 		word: as red-word! block/rs-head opts
 		len: block/rs-length? opts
-		if len % 2 <> 0 [exit]
+		if len % 2 <> 0 [return obj]
 		while [len > 0][
 			sym: symbol/resolve word/symbol
 			case [
 				sym = caret [
 					object_setInstanceVariable obj IVAR_RED_DATA caret	;-- overwrite extra RED_DATA
 					change-offset obj as red-pair! values + FACE_OBJ_OFFSET base
-				]
-				sym = rich-text? [
-					show?: as red-logic! word + 1
-					if show?/value [
-						objc_setAssociatedObject obj RedRichTextKey obj OBJC_ASSOCIATION_ASSIGN
-					]
 				]
 				true [0]
 			]
@@ -1243,6 +1252,7 @@ init-base-face: func [
 
 	if TYPE_OF(menu) = TYPE_BLOCK [set-context-menu obj menu]
 	;if transparent-base? color [objc_msgSend [obj sel_getUid "setWantsLayer:" yes]]
+	obj
 ]
 
 make-area: func [
@@ -1506,6 +1516,20 @@ update-scroller: func [
 	]
 ]
 
+update-rich-text: func [
+	state	[red-block!]
+	handles [red-block!]
+	return: [logic!]
+	/local
+		redraw [red-logic!]
+][
+	if TYPE_OF(handles) = TYPE_BLOCK [
+		redraw: as red-logic! (block/rs-tail handles) - 1
+		redraw/value: true
+	]
+	TYPE_OF(state) <> TYPE_BLOCK
+]
+
 set-hint-text: func [
 	hWnd		[integer!]
 	options		[red-block!]
@@ -1641,6 +1665,7 @@ OS-make-view: func [
 		caption [integer!]
 		len		[integer!]
 		obj		[integer!]
+		hWnd	[integer!]
 		rc		[NSRect!]
 		flt		[float!]
 ][
@@ -1688,6 +1713,7 @@ OS-make-view: func [
 		any [
 			sym = panel
 			sym = base
+			sym = rich-text
 		][
 			class: either bits and FACET_FLAGS_SCROLLABLE = 0 ["RedBase"]["RedScrollBase"]
 		]
@@ -1778,6 +1804,10 @@ OS-make-view: func [
 			sym = base
 		][
 			init-base-face face obj menu size values bits
+		]
+		sym = rich-text [
+			hWnd: init-base-face face obj menu size values bits
+			objc_setAssociatedObject hWnd RedRichTextKey hWnd OBJC_ASSOCIATION_ASSIGN
 		]
 		sym = tab-panel [
 			set-tabs obj values
@@ -1881,6 +1911,12 @@ OS-update-view: func [
 	state: as red-block! values + FACE_OBJ_STATE
 	word: as red-word! values + FACE_OBJ_TYPE
 	type: symbol/resolve word/symbol
+
+	if all [
+		type = rich-text
+		update-rich-text state as red-block! values + FACE_OBJ_EXT2
+	][exit]
+
 	s: GET_BUFFER(state)
 	int: as red-integer! s/offset
 	hWnd: int/value

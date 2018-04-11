@@ -16,6 +16,7 @@ Red/System [
 #define TBOX_METRICS_LINE_HEIGHT	2
 #define TBOX_METRICS_SIZE			3
 #define TBOX_METRICS_LINE_COUNT		4
+#define TBOX_METRICS_CHAR_INDEX?	5
 
 hidden-hwnd:  as handle! 0
 line-metrics: as DWRITE_LINE_METRICS 0
@@ -219,7 +220,8 @@ OS-text-box-metrics: func [
 			if y < as float32! 0.0 [y: as float32! 0.0]
 			pair/push as-integer x + as float32! 0.5 as-integer y + as float32! 0.99
 		]
-		TBOX_METRICS_INDEX? [
+		TBOX_METRICS_INDEX?
+		TBOX_METRICS_CHAR_INDEX? [
 			pos: as red-pair! arg0
 			x: as float32! pos/x
 			y: as float32! pos/y
@@ -227,7 +229,7 @@ OS-text-box-metrics: func [
 			inside?: 0
 			hit: as DWRITE_HIT_TEST_METRICS :left
 			dl/HitTestPoint this x y :trailing? :inside? hit
-			if 0 <> trailing? [left: left + 1]
+			if all [type = TBOX_METRICS_INDEX? 0 <> trailing?][left: left + 1]
 			integer/push left + 1
 		]
 		TBOX_METRICS_LINE_HEIGHT [
@@ -257,12 +259,10 @@ OS-text-box-metrics: func [
 		default [
 			metrics: as DWRITE_TEXT_METRICS :left
 			hr: dl/GetMetrics this metrics
-			integer/push either type = TBOX_METRICS_SIZE [
-				int: as red-integer! arg0
-				x: either zero? int/value [metrics/width][metrics/height]
-				as-integer x
+			either type = TBOX_METRICS_SIZE [
+				pair/push as-integer metrics/width as-integer metrics/height
 			][
-				metrics/lineCount
+				integer/push metrics/lineCount
 			]
 		]
 	]
@@ -292,12 +292,30 @@ OS-text-box-layout: func [
 		layout	[this!]
 ][
 	values: object/get-values box
+	state: as red-block! values + FACE_OBJ_EXT2
+
+	either TYPE_OF(state) = TYPE_BLOCK [
+		int: as red-integer! block/rs-head state	;-- release previous text layout
+		layout: as this! int/value
+		COM_SAFE_RELEASE(IUnk layout)
+		int: int + 1
+		fmt: as this! int/value
+		int: int + 1
+		if null? target [target: as int-ptr! int/value]
+		bool: as red-logic! int + 1
+		bool/value: false
+	][
+		fmt: as this! create-text-format as red-object! values + FACE_OBJ_FONT
+		;set-line-spacing fmt
+		block/make-at state 4
+		none/make-in state							;-- 1: text layout
+		handle/make-in state as-integer fmt			;-- 2: text format
+		handle/make-in state 0						;-- 3: target
+		logic/make-in state false					;-- 4: layout?
+	]
+
 	if null? target [
-		hWnd: null
-		obj: as red-object! values + TBOX_OBJ_TARGET
-		if TYPE_OF(obj) = TYPE_OBJECT [
-			hWnd: face-handle? obj
-		]
+		hWnd: face-handle? box
 		if null? hWnd [
 			if null? hidden-hwnd [
 				hidden-hwnd: CreateWindowEx WS_EX_TOOLWINDOW #u16 "RedBaseInternal" null WS_POPUP 0 0 2 2 null null hInstance null
@@ -305,46 +323,30 @@ OS-text-box-layout: func [
 			hWnd: hidden-hwnd
 		]
 		target: get-hwnd-render-target hWnd
+		handle/make-at (block/rs-head state) + 2 as-integer target
 	]
 
 	vec: as red-vector! target + 3
 	if TYPE_OF(vec) = TYPE_VECTOR [vector/rs-clear vec]
 
-	state: as red-block! values + TBOX_OBJ_STATE
-	either TYPE_OF(state) = TYPE_BLOCK [
-		int: as red-integer! block/rs-head state	;-- release previous text layout
-		layout: as this! int/value
-		COM_SAFE_RELEASE(IUnk layout)
-		int: int + 1
-		fmt: as this! int/value
-		bool: as red-logic! int + 1
-		bool/value: false
-	][
-		fmt: as this! create-text-format as red-object! values + TBOX_OBJ_FONT
-		;set-line-spacing fmt
-		block/make-at state 4
-		none/make-in state							;-- 1: text layout
-		handle/make-in state as-integer fmt			;-- 2: text format
-		logic/make-in state false
-	]
+	set-text-format fmt as red-object! values + FACE_OBJ_PARA
+	set-tab-size fmt as red-integer! values + FACE_OBJ_EXT1
 
-	set-text-format fmt as red-object! values + TBOX_OBJ_PARA
-	set-tab-size fmt as red-integer! values + TBOX_OBJ_TABS
-
-	str: as red-string! values + TBOX_OBJ_TEXT
-	size: as red-pair! values + TBOX_OBJ_SIZE
+	str: as red-string! values + FACE_OBJ_TEXT
+	size: as red-pair! values + FACE_OBJ_SIZE
 	either TYPE_OF(size) = TYPE_PAIR [
 		w: size/x h: size/y
 	][
 		w: 0 h: 0
 	]
+
 	layout: create-text-layout str fmt w h
 	handle/make-at block/rs-head state as-integer layout
 
-	styles: as red-block! values + TBOX_OBJ_STYLES
+	styles: as red-block! values + FACE_OBJ_DATA
 	if all [
 		TYPE_OF(styles) = TYPE_BLOCK
-		2 < block/rs-length? styles
+		1 < block/rs-length? styles
 	][
 		parse-text-styles target as handle! layout styles catch?
 	]

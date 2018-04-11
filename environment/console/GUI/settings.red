@@ -184,7 +184,7 @@ load-cfg: func [/local cfg-dir][
 	cfg: either exists? cfg-path [skip load cfg-path 2][
 		compose [
 			win-pos:	  (win/offset)
-			win-size:	  (win/size)
+			win-size:	  640x480
 
 			font-name:	  (font/name)
 			font-size:	  11

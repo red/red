@@ -148,7 +148,7 @@ get-font: func [
 	/local
 		hFont [handle!]
 ][
-	if TYPE_OF(font) <> TYPE_OBJECT [return null]
+	if TYPE_OF(font) <> TYPE_OBJECT [return as handle! default-font]
 	hFont: get-font-handle font 0
 	if null? hFont [hFont: make-font face font]
 	hFont

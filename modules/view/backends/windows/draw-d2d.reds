@@ -31,6 +31,10 @@ draw-begin-d2d: func [
 		brushes [int-ptr!]
 		pbrush	[ID2D1SolidColorBrush]
 		d3d-clr [D3DCOLORVALUE]
+		values	[red-value!]
+		clr		[red-tuple!]
+		text	[red-string!]
+		pos		[red-pair! value]
 ][
 	target: get-hwnd-render-target hWnd
 
@@ -48,7 +52,9 @@ draw-begin-d2d: func [
 	m/_22: as float32! 1.0
 	rt/SetTransform this m						;-- set to identity matrix
 
-	bg-clr: to-bgr as node! GetWindowLong hWnd wc-offset + 4 FACE_OBJ_COLOR
+	values: get-face-values hWnd
+	clr: as red-tuple! values + FACE_OBJ_COLOR
+	bg-clr: either TYPE_OF(clr) = TYPE_TUPLE [clr/array1][-1]
 	if bg-clr <> -1 [							;-- paint background
 		rt/Clear this to-dx-color bg-clr null
 	]
@@ -64,6 +70,11 @@ draw-begin-d2d: func [
 		pbrush/SetColor this d3d-clr
 	]
 	ctx/pen: brush
+	text: as red-string! values + FACE_OBJ_TEXT
+	if TYPE_OF(text) = TYPE_STRING [
+		pos/x: 0 pos/y: 0
+		OS-draw-text-d2d ctx pos as red-string! get-face-obj hWnd yes
+	]
 ]
 
 clean-draw-d2d: func [
@@ -154,34 +165,16 @@ OS-draw-text-d2d: func [
 	/local
 		this	[this!]
 		rt		[ID2D1HwndRenderTarget]
-		values	[red-value!]
-		int		[red-integer!]
-		state	[red-block!]
-		bool	[red-logic!]
 		layout	[this!]
 ][
 	this: as this! ctx/dc
 	rt: as ID2D1HwndRenderTarget this/vtbl
 
-	either TYPE_OF(text) = TYPE_OBJECT [				;-- text-box!
-		values: object/get-values as red-object! text
-		state: as red-block! values + TBOX_OBJ_STATE
-
-		layout: either TYPE_OF(state) = TYPE_BLOCK [
-			bool: as red-logic! (block/rs-tail state) - 1
-			either bool/value [
-				OS-text-box-layout as red-object! text ctx/brushes 0 yes
-			][
-				int: as red-integer! block/rs-head state
-				as this! int/value
-			]
-		][
-			OS-text-box-layout as red-object! text ctx/brushes 0 yes
-		]
+	layout: either TYPE_OF(text) = TYPE_OBJECT [				;-- text-box!
+		OS-text-box-layout as red-object! text ctx/brushes 0 yes
 	][
-		0
+		null
 	]
-
 	txt-box-draw-background ctx/brushes pos layout
 	rt/DrawTextLayout this as float32! pos/x as float32! pos/y layout ctx/pen 0
 ]

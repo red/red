@@ -47,9 +47,9 @@ gui-console-ctx: context [
 	scroller:	make scroller! []
 
 	console:	make face! [
-		type: 'base color: 0.0.128 offset: 0x0 size: 400x400
+		type: 'rich-text color: 0.0.128 offset: 0x0 size: 400x400
 		flags:   [scrollable all-over]
-		options: [cursor: I-beam rich-text?: yes]
+		options: [cursor: I-beam]
 		menu: [
 			"Copy^-Ctrl+C"		copy
 			"Paste^-Shift+Ins"	paste
@@ -97,7 +97,7 @@ gui-console-ctx: context [
 		init: func [/local box][
 			terminal/windows: system/view/screens/1/pane
 			box: terminal/box
-			box/styles: make block! 200
+			box/data: make block! 200
 			scroller: get-scroller self 'horizontal
 			scroller/visible?: no						;-- hide horizontal bar
 			scroller: get-scroller self 'vertical
@@ -175,7 +175,7 @@ gui-console-ctx: context [
 
 	win: layout/tight [						;-- main window
 		title "Red Console"
-		size  640x480
+		size  200x200
 	]
 
 	add-gui-print: routine [][

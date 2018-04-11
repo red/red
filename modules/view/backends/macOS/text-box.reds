@@ -16,6 +16,7 @@ Red/System [
 #define TBOX_METRICS_LINE_HEIGHT	2
 #define TBOX_METRICS_SIZE			3
 #define TBOX_METRICS_LINE_COUNT		4
+#define TBOX_METRICS_CHAR_INDEX?	5
 
 max-line-cnt:  0
 
@@ -207,7 +208,8 @@ OS-text-box-metrics: func [
 				pair/push as-integer x as-integer pt/y
 			]
 		]
-		TBOX_METRICS_INDEX? [
+		TBOX_METRICS_INDEX?
+		TBOX_METRICS_CHAR_INDEX? [
 			y: as float32! 0.0
 			pos: as red-pair! arg0
 			xx: 0
@@ -219,7 +221,7 @@ OS-text-box-metrics: func [
 				sel_getUid "characterIndexForPoint:inTextContainer:fractionOfDistanceBetweenInsertionPoints:"
 				pt/x pt/y tc :y
 			]
-			if y > as float32! 0.5 [idx: idx + 1]
+			if all [type = TBOX_METRICS_INDEX? y > as float32! 0.5][idx: idx + 1]
 			integer/push idx + 1
 		]
 		TBOX_METRICS_SIZE [
@@ -234,10 +236,9 @@ OS-text-box-metrics: func [
 			push method push layout push frame
 			objc_msgSend_stret 6
 			system/stack/top: saved
-			int: as red-integer! arg0
-			x: either zero? int/value [frame/w][frame/h]
-			len: as-integer (x + as float32! 0.5)
-			integer/push len
+			pair/push
+				as-integer (frame/w + as float32! 0.5)
+				as-integer (frame/h + as float32! 0.5)
 		]
 		TBOX_METRICS_LINE_COUNT [
 			idx: objc_msgSend [layout sel_getUid "glyphRangeForTextContainer:" tc]
@@ -293,10 +294,10 @@ OS-text-box-layout: func [
 ][
 	values: object/get-values box
 
-	str: to-NSString as red-string! values + TBOX_OBJ_TEXT
-	state: as red-block! values + TBOX_OBJ_STATE
-	size: as red-pair! values + TBOX_OBJ_SIZE
-	nsfont: as-integer get-font null as red-object! values + TBOX_OBJ_FONT
+	str: to-NSString as red-string! values + FACE_OBJ_TEXT
+	state: as red-block! values + FACE_OBJ_EXT2
+	size: as red-pair! values + FACE_OBJ_SIZE
+	nsfont: as-integer get-font null as red-object! values + FACE_OBJ_FONT
 	cached?: TYPE_OF(state) = TYPE_BLOCK
 
 	h: 7CF0BDC2h w: 7CF0BDC2h
@@ -345,7 +346,7 @@ OS-text-box-layout: func [
 		logic/make-in state false
 	]
 
-	;@@ set para: as red-object! values + TBOX_OBJ_PARA
+	;@@ set para: as red-object! values + FACE_OBJ_PARA
 
 	if TYPE_OF(size) = TYPE_PAIR [
 		unless zero? size/x [sz/w: as float32! size/x]
@@ -373,10 +374,10 @@ OS-text-box-layout: func [
 	objc_msgSend [ts sel_getUid "setAttributes:range:" attrs 0 w]
 	objc_msgSend [attrs sel_release]
 
-	styles: as red-block! values + TBOX_OBJ_STYLES
+	styles: as red-block! values + FACE_OBJ_DATA
 	if all [
 		TYPE_OF(styles) = TYPE_BLOCK
-		2 < block/rs-length? styles
+		1 < block/rs-length? styles
 	][
 		parse-text-styles as handle! nsfont as handle! ts styles catch?
 	]

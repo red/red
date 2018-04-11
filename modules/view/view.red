@@ -34,7 +34,59 @@ size-text: function [
 		text [string!]		"Text to measure"
 	return:  [pair! none!]	"Return the text's size or NONE if failed"
 ][
-	system/view/platform/size-text face text
+	either face/type = 'rich-text [
+		system/view/platform/text-box-metrics face 0 3
+	][
+		system/view/platform/size-text face text
+	]
+]
+
+caret-to-offset: function [
+	"Given a text position, returns the corresponding coordinate relative to the top-left of the layout box"
+	face	[object!]
+	pos		[integer!]
+	return:	[pair!]
+][
+	system/view/platform/text-box-metrics face pos 0
+]
+
+offset-to-caret: function [
+	"Given a coordinate, returns the corresponding caret position"
+	face	[object!]
+	pt		[pair!]
+	return:	[integer!]
+][
+	system/view/platform/text-box-metrics face pt 1
+]
+
+offset-to-char: function [
+	"Given a coordinate, returns the corresponding character position"
+	face	[object!]
+	pt		[pair!]
+	return:	[integer!]
+][
+	system/view/platform/text-box-metrics face pt 5
+]
+
+rich-text: context [
+	rtd: #include %RTD.red
+	
+	line-height?: function [
+		"Given a text position, returns the corresponding line's height"
+		face	[object!]
+		pos		[integer!]
+		return:	[integer!]
+	][
+		system/view/platform/text-box-metrics face pos 2
+	]
+
+	line-count?: function [
+		"number of lines (> 1 if line wrapped)"
+		face	[object!]
+		return:	[integer!]
+	][
+		system/view/platform/text-box-metrics face 0 4
+	]
 ]
 
 metrics?: function [
@@ -113,6 +165,7 @@ debug-info?: func [face [object!] return: [logic!]][
 		not all [
 			value? 'gui-console-ctx
 			any [
+				same? face gui-console-ctx/terminal/box
 				same? face gui-console-ctx/console
 				same? face gui-console-ctx/win
 				same? face gui-console-ctx/caret
@@ -381,11 +434,13 @@ face!: object [				;-- keep in sync with facet! enum
 			]
 
 			system/reactivity/check/only self any [saved word]
-			
-			if state [
+
+			either state [
 				;if word = 'type [cause-error 'script 'locked-word [type]]
 				state/2: state/2 or (1 << ((index? in self word) - 1))
 				if all [state/1 system/view/auto-sync?][show self]
+			][
+				if type = 'rich-text [system/view/platform/update-view self]
 			]
 		]
 	]
@@ -481,88 +536,6 @@ scroller!: object [
 	on-change*: function [word old new][
 		if all [parent block? parent/state handle? parent/state/1][
 			system/view/platform/update-scroller self (index? in self word) - 1
-		]
-	]
-]
-
-;; Text Box is a graphic object that represents styled text.
-;; It provide support for drawing, cursor navigation, hit testing, 
-;; text wrapping, alignment, tab expansion, line breaking, etc.
-
-text-box!: object [
-	text:		none					;-- a string to draw (string!)
-	size:		none					;-- box size in pixels, infinite size if none (pair! none!)
-	font:		none					;-- font! object
-	para:		none					;-- para! object
-	;flow:		'left-to-right			;-- text flow direction: left-to-right, right-to-left, top-to-bottom and bottom-to-top
-	;reading:	'left-to-right			;-- reading direction: left-to-right, right-to-left, top-to-bottom and bottom-to-top
-	spacing:	none					;-- line spacing (integer!)
-	tabs:		none					;-- incremental tab size: the fixed distance between two adjacent tab stops (integer!)
-	styles:		none					;-- style list (block!), [start-pos length style1 style2 ...]
-	target:		none					;-- face!, image!, etc.
-	state:		none					;-- OS handles (internal used only)
-
-	;;
-	;; Query information from text box
-	;;
-	offset?: function [
-		"Given a text position, returns the corresponding coordinate relative to the top-left of the layout box"
-		pos		[integer!]
-		return:	[pair!]
-	][
-		system/view/platform/text-box-metrics self pos 0
-	]
-
-	index?: function [
-		"Given a coordinate, returns the corresponding text position"
-		pt		[pair!]
-		return: [integer!]
-	][
-		system/view/platform/text-box-metrics self pt 1
-	]
-
-	line-height?: function [
-		"Given a text position, returns the corresponding line's height"
-		pos 	[integer!]
-		return: [integer!]
-	][
-		system/view/platform/text-box-metrics self pos 2
-	]
-
-	width?: function [
-		"text width in pixel"
-		return: [integer!]
-	][
-		system/view/platform/text-box-metrics self 0 3
-	]
-
-	height?: function [
-		"text height in pixel"
-		return: [integer!]
-	][
-		system/view/platform/text-box-metrics self 1 3
-	]
-
-	line-count?: function [
-		"number of lines (> 1 if line wrapped)"
-		return: [integer!]
-	][
-		system/view/platform/text-box-metrics self 0 4
-	]
-
-	on-change*: func [word old new][
-		unless all [block? :old block? :new same? head :old head :new][
-			if any [series? :old object? :old][modify old 'owned none]
-			if any [series? :new object? :new][modify new 'owned reduce [self word]]
-		]
-		if all [state not last state][
-			change back tail state true
-		]
-	]
-
-	on-deep-change*: func [owner word target action new index part][
-		if all [state not last state][
-			change back tail state true
 		]
 	]
 ]
@@ -910,7 +883,7 @@ make-face: func [
 	if spec [
 		opts: svv/opts-proto
 		css: make block! 2
-		spec: svv/fetch-options face opts model blk css no
+		spec: svv/fetch-options/no-skip face opts model blk css no
 		if model/init [do bind model/init 'face]
 		svv/process-reactors
 	]

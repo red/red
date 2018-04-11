@@ -1475,7 +1475,10 @@ draw-rect: func [
 		draw	[red-block!]
 		clr		[red-tuple!]
 		size	[red-pair!]
+		type	[red-word!]
+		sym		[integer!]
 		bmp		[integer!]
+		pos		[red-pair! value]
 		v1010?	[logic!]
 		DC		[draw-ctx!]
 ][
@@ -1492,14 +1495,22 @@ draw-rect: func [
 	draw: as red-block! vals + FACE_OBJ_DRAW
 	clr:  as red-tuple! vals + FACE_OBJ_COLOR
 	size: as red-pair! vals + FACE_OBJ_SIZE
+	type: as red-word! vals + FACE_OBJ_TYPE
+	sym: symbol/resolve type/symbol
+
 	if TYPE_OF(clr) = TYPE_TUPLE [
 		paint-background ctx clr/array1 x y width height
 	]
 	if TYPE_OF(img) = TYPE_IMAGE [
 		CG-draw-image ctx OS-image/to-cgimage img 0 0 size/x size/y
 	]
-	if (object_getClass self) = objc_getClass "RedBase" [
-		render-text ctx vals as NSSize! (as int-ptr! self) + 8
+	case [
+		sym = base [render-text ctx vals as NSSize! (as int-ptr! self) + 8]
+		sym = rich-text [
+			pos/x: 0 pos/y: 0
+			draw-text-box null :pos get-face-obj self yes
+		]
+		true []
 	]
 
 	img: as red-image! (as int-ptr! self) + 8				;-- view's size
