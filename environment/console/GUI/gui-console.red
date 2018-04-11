@@ -175,7 +175,7 @@ gui-console-ctx: context [
 
 	win: layout/tight [						;-- main window
 		title "Red Console"
-		size  80x24
+		size  200x200
 	]
 
 	add-gui-print: routine [][

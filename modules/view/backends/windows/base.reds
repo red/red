@@ -66,12 +66,6 @@ init-base-face: func [
 					SetWindowLong handle wc-offset - 24 as-integer get-face-handle as red-object! word + 1
 					update-caret handle values
 				]
-				sym = rich-text? [
-					show?: as red-logic! word + 1
-					if show?/value [
-						SetWindowLong handle wc-offset - 12 flags or BASE_FACE_D2D or BASE_FACE_IME
-					]
-				]
 				true [0]
 			]
 			word: word + 2

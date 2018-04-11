@@ -909,7 +909,7 @@ update-window: func [
 			type: symbol/resolve word/symbol
 			case [
 				all [
-					type = base
+					type = rich-text
 					(GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D <> 0
 				][
 					d2d-release-target as int-ptr! GetWindowLong hWnd wc-offset - 24

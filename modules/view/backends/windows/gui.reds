@@ -596,7 +596,7 @@ free-faces: func [
 				free-graph cam
 			]
 		]
-		any [sym = window sym = panel sym = base][
+		any [sym = window sym = panel sym = base sym = rich-text][
 			if zero? (WS_EX_LAYERED and GetWindowLong handle GWL_EXSTYLE) [
 				dc: GetWindowLong handle wc-offset - 4
 				if dc <> 0 [DeleteDC as handle! dc]			;-- delete cached dc
@@ -1391,7 +1391,7 @@ OS-make-view: func [
 			class: #u16 "RedScroller"
 			if size/y > size/x [flags: flags or SBS_VERT]
 		]
-		sym = base [
+		any [sym = base sym = rich-text][
 			class: #u16 "RedBase"
 			alpha?: transparent-base?
 				as red-tuple! values + FACE_OBJ_COLOR
@@ -1405,9 +1405,6 @@ OS-make-view: func [
 			][
 				ws-flags: set-layered-option options win8+?
 			]
-		]
-		sym = rich-text [
-			class: #u16 "RedRichText"
 		]
 		sym = camera [
 			class: #u16 "RedCamera"
@@ -1577,8 +1574,7 @@ OS-make-view: func [
 			change-text handle values sym
 		]
 		sym = rich-text [
-			SetWindowLong handle wc-offset - 4 0
-			SetWindowLong handle wc-offset - 24 0
+			init-base-face handle parent values alpha?
 			SetWindowLong handle wc-offset - 12 BASE_FACE_D2D or BASE_FACE_IME
 		]
 		sym = window [

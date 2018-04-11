@@ -165,6 +165,7 @@ debug-info?: func [face [object!] return: [logic!]][
 		not all [
 			value? 'gui-console-ctx
 			any [
+				same? face gui-console-ctx/terminal/box
 				same? face gui-console-ctx/console
 				same? face gui-console-ctx/win
 				same? face gui-console-ctx/caret

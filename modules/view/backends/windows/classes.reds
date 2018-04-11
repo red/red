@@ -212,10 +212,6 @@ register-classes: func [
 	RegisterClassEx		wcex
 
 	wcex/lpfnWndProc:	:BaseWndProc
-	wcex/lpszClassName: #u16 "RedRichText"
-	RegisterClassEx		wcex
-
-	wcex/lpfnWndProc:	:BaseWndProc
 	wcex/lpszClassName: #u16 "RedBase"
 	RegisterClassEx		wcex
 
