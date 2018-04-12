@@ -111,10 +111,10 @@ context [
 			any [
 				pos: pair! (range: pos/1) to pair! pos:
 				any [
-					s: to range [to pair! | to end] e: (
+					s: to range skip [to pair! | to end] e: (
 						s: remove s
-						move/part s pos offset? s back e
-					)
+						e: next move/part s pos offset? s back e
+					) :e
 				]
 			]
 		]
