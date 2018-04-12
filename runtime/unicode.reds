@@ -645,6 +645,7 @@ unicode: context [
 						]
 						p4/value: c << 8 + src/1 and 03FFh or cp + 00010000h  ;-- trail surrogate decoding
 						p4: p4 + 1
+						size: size - 1
 					][
 						either all [cr? src/1 = #"^M" c = 0][
 							size: size - 1
