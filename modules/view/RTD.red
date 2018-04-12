@@ -141,7 +141,7 @@ context [
 		case [
 			only  [reduce [text out]]
 			with  [face/text: text face/data: out face]
-			'else [make-face/spec 'rich-text reduce [text 'data out]]
+			'else [face: make-face/spec 'rich-text reduce [text] face/data: out face]
 		]
 	]
 ]
