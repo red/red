@@ -1050,7 +1050,7 @@ create-text-layout: func [
 	len: -1
 	either TYPE_OF(text) = TYPE_STRING [
 		text/cache: dwrite-str-cache
-		str: unicode/to-utf16-len text :len yes
+		str: unicode/to-utf16-len text :len no
 		dwrite-str-cache: text/cache
 	][
 		str: ""
