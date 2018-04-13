@@ -729,13 +729,10 @@ context [
 		code-page: ep-mem-page
 		code-base: code-page * memory-align
 		
-		flags: to integer! defs/dll-flags/nx-compat
-		case/all [
-			job/type = 'dll	[flags: flags or to integer! defs/dll-flags/dynamic-base]
-			job/type = 'drv [flags: flags or to integer! defs/dll-flags/wdm-driver]
-		]
+		flags: (to integer! defs/dll-flags/nx-compat)
+			 or to integer! defs/dll-flags/dynamic-base
 		
-		if job/type = 'drv [flags: 0]						;@@temporary flags disabling
+		if job/type = 'drv [flags: flags or to integer! defs/dll-flags/wdm-driver]
 		
 		ep: switch/default job/type [
 			dll [
