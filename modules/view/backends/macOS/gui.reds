@@ -1729,6 +1729,10 @@ OS-make-view: func [
 			class: "RedBox"
 		]
 		sym = camera [class: "RedCamera"]
+		sym = usb-device [
+			class: "RedUSBDev"
+			show?/value: false
+		]
 		true [											;-- search in user-defined classes
 			fire [TO_ERROR(script face-type) type]
 		]
@@ -1861,6 +1865,9 @@ OS-make-view: func [
 		]
 		sym = camera [
 			init-camera obj rc data
+		]
+		sym = usb-device [
+			monitor-usb-devs as int-ptr! obj
 		]
 		true [0]
 	]

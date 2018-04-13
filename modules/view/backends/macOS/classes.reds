@@ -228,6 +228,104 @@ make-super-class: func [
 	objc_registerClassPair new-class
 ]
 
+;-- temporary code for monitoring USB devices
+
+get-int-property: func [
+	device 			[int-ptr!]
+	key				[c-string!]
+	return: 		[integer!]
+	/local
+		ref 		[int-ptr!]
+		value 		[integer!]
+][
+	value: 0
+	ref: IOHIDDeviceGetProperty device key
+	if ref <> null [
+		if (CFGetTypeID ref) = CFNumberGetTypeID [
+			CFNumberGetValue ref 3 :value
+		]
+	]
+	value
+]
+
+get-vendor-id: func [
+	device 			[int-ptr!]
+	return: 		[integer!]
+][
+	get-int-property device as c-string! CFString("VendorID")
+]
+
+get-product-id: func [
+	device 			[int-ptr!]
+	return: 		[integer!]
+][
+	get-int-property device as c-string! CFString("ProductID")
+]
+
+hid-device-get-info: func [
+	hwnd		[int-ptr!]
+	dev			[int-ptr!]
+	/local
+		data	[red-block!]
+		val		[red-value!]
+][
+	data: (as red-block! get-face-values as-integer hwnd) + FACE_OBJ_DATA
+	if TYPE_OF(data) <> TYPE_BLOCK [
+		block/make-at data 2
+		loop 2 [none/make-in data]
+	]
+	val: block/rs-head data
+	integer/make-at val get-vendor-id dev
+	integer/make-at val + 1 get-product-id dev
+]
+
+hid-device-add-callback: func [
+	[cdecl]
+	hwnd 		[int-ptr!]
+	result 		[integer!]
+	sender 		[int-ptr!]
+	dev			[int-ptr!]
+][
+	hid-device-get-info hwnd dev
+	make-event as-integer hwnd 0 EVT_LEFT_UP
+]
+
+hid-device-removal-callback: func [
+	[cdecl]
+	hwnd 		[int-ptr!]
+	result 		[integer!]
+	sender 		[int-ptr!]
+	dev			[int-ptr!]
+][
+	hid-device-get-info hwnd dev
+	make-event as-integer hwnd 0 EVT_LEFT_DOWN
+]
+
+red-hid-mgr: as int-ptr! 0
+
+monitor-usb-devs: func [
+	hwnd	[int-ptr!]
+][
+	red-hid-mgr: IOHIDManagerCreate null 0
+	if red-hid-mgr <> null [
+		IOHIDManagerSetDeviceMatching red-hid-mgr null
+		IOHIDManagerRegisterDeviceMatchingCallback
+			red-hid-mgr
+			as int-ptr! :hid-device-add-callback
+			hwnd
+		IOHIDManagerRegisterDeviceRemovalCallback
+			red-hid-mgr
+			as int-ptr! :hid-device-removal-callback
+			hwnd
+		IOHIDManagerScheduleWithRunLoop
+			red-hid-mgr 
+			CFRunLoopGetCurrent 
+			as int-ptr! kCFRunLoopDefaultMode	
+	]
+]
+
+;-- end temporary code for monitoring USB devices
+
 register-classes: does [
 	make-super-class "RedApplication"	"NSApplication"			as-integer :add-app-handler		0
 	make-super-class "RedAppDelegate"	"NSObject"				as-integer :add-app-delegate	0
@@ -252,4 +350,5 @@ register-classes: does [
 	make-super-class "RedBox"			"NSBox"					0	STORE_FACE_FLAG
 	make-super-class "RedProgress"		"NSProgressIndicator"	0	STORE_FACE_FLAG
 	make-super-class "RedLayoutManager" "NSLayoutManager"		as-integer :add-text-layout-handler 0
+	make-super-class "RedUSBDev"		"NSView"				0	STORE_FACE_FLAG		;-- temporary
 ]

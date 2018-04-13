@@ -337,11 +337,28 @@ tagSIZE: alias struct! [
 		]
 	]
 	"/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation" cdecl [
+		kCFRunLoopDefaultMode: "kCFRunLoopDefaultMode" [integer!]
 		CFAttributedStringCreate: "CFAttributedStringCreate" [
 			allocator	[integer!]
 			str			[integer!]
 			attributes	[integer!]
 			return:		[integer!]
+		]
+		CFGetTypeID: "CFGetTypeID" [
+			cf			[int-ptr!]
+			return:		[integer!]
+		]
+		CFNumberGetTypeID: "CFNumberGetTypeID" [
+			return:		[integer!]
+		]
+		CFNumberGetValue: "CFNumberGetValue" [
+			number		[int-ptr!]
+			theType		[integer!]
+			valuePtr	[int-ptr!]
+			return:		[logic!]
+		]
+		CFRunLoopGetCurrent: "CFRunLoopGetCurrent" [
+			return:		[int-ptr!]
 		]
 		;CFAttributedStringCreateMutable: "CFAttributedStringCreateMutable" [
 		;	allocator	[integer!]
@@ -412,6 +429,42 @@ tagSIZE: alias struct! [
 		NSStrikethroughStyleAttributeName: "NSStrikethroughStyleAttributeName" [integer!]
 		NSMarkedClauseSegmentAttributeName: "NSMarkedClauseSegmentAttributeName" [integer!]
 		NSGlyphInfoAttributeName: "NSGlyphInfoAttributeName" [integer!]
+	]
+	"/System/Library/Frameworks/IOKit.framework/IOKit" cdecl [
+		IOHIDDeviceGetProperty: "IOHIDDeviceGetProperty" [
+			key 			[int-ptr!]
+			device 			[c-string!] 
+			return: 		[int-ptr!]
+		]
+		IOHIDManagerCreate: "IOHIDManagerCreate" [
+			allocator 		[int-ptr!]
+			options			[integer!]
+			return: 		[int-ptr!]
+		]
+		IOHIDManagerSetDeviceMatching: "IOHIDManagerSetDeviceMatching" [
+			manager 		[int-ptr!]
+			matching		[int-ptr!]
+		]
+		IOHIDManagerScheduleWithRunLoop: "IOHIDManagerScheduleWithRunLoop" [
+			manager 		[int-ptr!]
+			runloop 		[int-ptr!]
+			runLoopMode		[int-ptr!]
+		]
+		IOHIDManagerClose: "IOHIDManagerClose" [
+			manager 		[int-ptr!]
+			options			[integer!]
+			return: 		[integer!]
+		]
+		IOHIDManagerRegisterDeviceMatchingCallback: "IOHIDManagerRegisterDeviceMatchingCallback" [
+			manager			[int-ptr!]
+			callback 		[int-ptr!]
+			context 		[int-ptr!]
+		]
+		IOHIDManagerRegisterDeviceRemovalCallback: "IOHIDManagerRegisterDeviceRemovalCallback" [
+			manager			[int-ptr!]
+			callback 		[int-ptr!]
+			context 		[int-ptr!]
+		]
 	]
 	"/System/Library/Frameworks/CoreServices.framework/CoreServices" cdecl [
 		Gestalt: "Gestalt" [
