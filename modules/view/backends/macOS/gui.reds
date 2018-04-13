@@ -830,7 +830,7 @@ change-enabled: func [
 			]
 		]
 		all [type <> base type <> window type <> panel][
-			objc_msgSend [obj sel_getUid "setEnabled:" enabled?]
+			objc_msgSend [hWnd sel_getUid "setEnabled:" enabled?]
 		]
 		true [0]
 	]
