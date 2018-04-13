@@ -598,14 +598,12 @@ help-ctx: context [
 		plt: system/platform
 		either debug [
 			print either git [
-				compose [
-					"-----------RED & PLATFORM VERSION-----------" lf
+				[
 					"RED: [ branch:" mold git/branch "tag:" mold git/tag "ahead:" git/ahead
 					"date:" to-UTC-date git/date "commit:" mold git/commit "]^/"
 					"PLATFORM: [ name:" mold plt/name "OS:" mold to lit-word! plt/OS
 					"arch:" mold to lit-word! plt/arch "version:" mold plt/version
 					"build:" mold plt/build "]^/"
-					"--------------------------------------------"
 				]
 			][
 				"Looks like this Red binary has been built from source.^/Please download latest build from our website:^/https://www.red-lang.org/download.html^/and try your code on it before submitting an issue."
