@@ -8,32 +8,23 @@ REBOL [
 ]
 
 context [
-	manifest-template: {
-		<assembly xmlns="urn:schemas-microsoft-com:asm.v1" xmlns:asmv3="urn:schemas-microsoft-com:asm.v3" manifestVersion="1.0">
-			<dependency>
-				<dependentAssembly>
-					<assemblyIdentity type="win32" name="Microsoft.Windows.Common-Controls" version="6.0.0.0" processorArchitecture="x86" publicKeyToken="6595b64144ccf1df" language="*"/>
-				</dependentAssembly>
-			</dependency>
-			<asmv3:trustInfo>
-				<security>
-					<requestedPrivileges>
-						<requestedExecutionLevel level="asInvoker" uiAccess="false"/>
-					</requestedPrivileges>
-				</security>
-			</asmv3:trustInfo>
-			<compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
-				<application>
-					<supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}"/>
-				</application>
-			</compatibility>
-			<asmv3:application>
-				<asmv3:windowsSettings>
-					<dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true/pm</dpiAware>
-					<dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">permonitorv2,permonitor</dpiAwareness>
-				</asmv3:windowsSettings>
-			</asmv3:application>
-		</assembly>
+	manifest-template: decompress #{
+		789C9553DD6BDB30107FEF5F21F43866CB4EE22C097621943D84AD6C90B13ECB
+		F23911B33E26C94EC3D8FF3EA9B1E3266D292360B83BDDFD3EEE7283504EAD05
+		513647F4281A690BDC1AB9B26C0F82DA4870669455B58B98122B6A45DCA5F8F4
+		3044DDF4DDE7538C0495BC06EB7E82B15CC902A771826F6F90C7AE4083AC40B2
+		E3533C26DCBA6775CA8F2C37A1C8DD11B9A386021FB89C4E309254F8E07E808F
+		1FB8ACD4C1C6774A0825A33B259D518DC5A81B38CCE324FC30D24631B05699B5
+		617BEE80B9D6F8598F8BB9AFB565C3D91738FE50BF203465CBAC9CCFD2D98CB1
+		3AAD6A8C1A2A772DDDF9860F98F41AC8EB22C67CAF367F7270E54C6BDD46D6AA
+		6FB7C05AE3150ECA0DFC6EBD7B507D37BCE30DECC0F6A567B5CF8FBECB79655F
+		A1830635E15B606A37B2F3D40D462D5FB3A0B3C0356D2C0C643DAB37E7E7E482
+		4A4E5EE39BFB4D6BEA78C99BB095776FE8E279B8A61E8B6AEDADA641C2C0CCB6
+		5A2BE3897DDBA24D55E03F0B48EA4F349D44655D4EA3590D8BA85CD22C9A2DEA
+		2A4B689AD125FD3BAEE17A644E2EC09FEFE0057A9F3F9CEE680BCE71B91B7CCF
+		2BCDD7076A6090BB774EAF08E915C767C5B10724DBFB0D992449461E2E87E15B
+		EF24102DFC61F4F3AEE74BBFB0FFC048E72F313418FF0FE04E996EF2710C46CC
+		807176EC4DD143EDCAA8903E9FF83FFC5370A94D040000
 	}
 	if all [
 		system/version/4 = 3
@@ -823,9 +814,16 @@ context [
 		sh/line-num-ptr:	0
 		sh/relocations-nb:	0							;-- @@ relevant only for OBJ files
 		sh/line-num-nb:		0
-		sh/flags:			to integer! select defs/s-type name		
-
-		change s: form-struct sh append uppercase form name null	
+		sh/flags:			to integer! select defs/s-type name
+		
+		name: select [
+			code	".text"
+			data  	".data"
+			import	".rdata"
+			rsrc	".rsrc"
+			idata	".idata"
+		] name
+		change s: form-struct sh append form name null
 		change spec s	
 	]
 
@@ -1166,7 +1164,7 @@ context [
 			(section-addr?/memory job 'data) - base-address
 			length? job/sections/data/2
 
-		foreach [name spec] job/sections [
+		foreach [name spec] job/sections [		
 			pad: pad-size? spec/2
 			append job/buffer spec/2
 			insert/dup tail job/buffer null pad
