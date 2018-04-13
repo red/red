@@ -59,6 +59,10 @@ set-font-color: func [color [tuple!] /local clr][
 ]
 
 display-about: function [][
+	;-- cloak URLs to avoid false positives from bad AV software
+	red-lang: to-string debase "aHR0cHM6Ly93d3cucmVkLWxhbmcub3Jn"
+	github:   to-string debase "aHR0cHM6Ly9naXRodWIuY29tL3JlZC9yZWQ="
+	
 	lay: layout/tight [
 		title "About"
 		size 360x330
@@ -78,8 +82,8 @@ display-about: function [][
 		at 153x86 image fstk-logo
 		at 0x160 small 360x20 "Copyright 2011-2018 - Red Foundation"
 		at 0x180 small 360x20 "and contributors."
-		at 0x230 link "http://red-lang.org" font-size 10 font-color white
-		at 0x260 link "http://github.com/red/red" font-size 10 font-color white
+		at 0x230 link red-lang font-size 10 font-color white
+		at 0x260 link github   font-size 10 font-color white
 		at 154x300 button "Close" [unview win/selected: console]
 		do [ver/text: form reduce [
 				"Build" system/version #"-" any [
