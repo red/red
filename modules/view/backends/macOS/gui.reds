@@ -1308,6 +1308,7 @@ make-text-list: func [
 	face		[red-object!]
 	container	[integer!]
 	rc			[NSRect!]
+	border?		[logic!]
 	/local
 		id		[integer!]
 		obj		[integer!]
@@ -1323,6 +1324,8 @@ make-text-list: func [
 	;CFRelease id
 	objc_msgSend [column sel_getUid "setWidth:" rc/w]
 
+	obj: either border? [NSBezelBorder][NSNoBorder]
+	objc_msgSend [container sel_getUid "setBorderType:" obj]
 	objc_msgSend [container sel_getUid "setAutohidesScrollers:" yes]
 	;objc_msgSend [container sel_getUid "setHasHorizontalScroller:" yes]
 	objc_msgSend [container sel_getUid "setHasVerticalScroller:" yes]
@@ -1789,7 +1792,7 @@ OS-make-view: func [
 			make-area face obj rc caption bits and FACET_FLAGS_NO_BORDER = 0
 		]
 		sym = text-list [
-			make-text-list face obj rc
+			make-text-list face obj rc bits and FACET_FLAGS_NO_BORDER = 0
 		]
 		any [sym = button sym = check sym = radio][
 			if sym <> button [
