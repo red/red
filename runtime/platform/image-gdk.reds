@@ -501,7 +501,7 @@ OS-image: context [
 		;clr: CGColorSpaceCreateDeviceRGB
 		; need to change rgba en argb
 		img: gdk_pixbuf_new 0 yes 8 w h;CGImageCreate w h 8 32 w * 4 clr 2004h data null true 0 ;-- kCGRenderingIntentDefault
-		copy-memory as byte-ptr! gdk_pixbuf_get_pixels img as byte-ptr! node/buffer w * h * 4
+		copy-memory  gdk_pixbuf_get_pixels img as byte-ptr! node/buffer w * h * 4
 		;CGDataProviderRelease data
 		;CGColorSpaceRelease clr
 		img

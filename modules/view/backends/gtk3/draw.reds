@@ -12,6 +12,8 @@ Red/System [
 
 #include %text-box.reds
 
+draw-state!: alias struct! [unused [integer!]]
+
 set-source-color: func [
 	cr			[handle!]
 	color		[integer!]

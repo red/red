@@ -1308,11 +1308,11 @@ OS-show-window: func [
 	gtk_widget_grab_focus as handle! hWnd
 
 	; @@ TEMPORARY: TO BE REMOVED BUT USEFUL NOW FOR COMPARING THE EFFECT OF ADJUST-SIZES IN RED TEST WITHOUT RECOMPILING CONSOLE
-	auto-adjust?: as red-logic! #get system/view/gtk-auto-adjust?
-	if all [TYPE_OF(auto-adjust?) = TYPE_LOGIC auto-adjust?/value] [
-		adjust-sizes as handle! hWnd
-		gtk_widget_queue_draw as handle! hWnd
-	]
+	;auto-adjust?: as red-logic! #get system/view/gtk-auto-adjust?
+	;if all [TYPE_OF(auto-adjust?) = TYPE_LOGIC auto-adjust?/value] [
+	;	adjust-sizes as handle! hWnd
+	;	gtk_widget_queue_draw as handle! hWnd
+	;]
 ]
 
 OS-make-view: func [
@@ -1350,13 +1350,12 @@ OS-make-view: func [
 		fvalue	  [float!]
 		vertical? [logic!]
 		rfvalue	  [red-float!]
-		rect 	  [RECT_STRUCT]
 ][
-	stack/mark-func words/_body
+	stack/mark-native words/_body
 
 	values: object/get-values face
 
-	_widget: as handle! 0; widget version with possible scrollview
+	_widget: as handle! 0 ; widget version with possible scrollview
 
 	type:	  as red-word!		values + FACE_OBJ_TYPE
 	str:	  as red-string!	values + FACE_OBJ_TEXT
@@ -1734,7 +1733,6 @@ OS-to-image: func [
 		hWnd 	[handle!]
 		dc		[handle!]
 		mdc		[handle!]
-		rect	[RECT_STRUCT]
 		width	[integer!]
 		height	[integer!]
 		bmp		[handle!]
