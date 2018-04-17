@@ -1098,10 +1098,11 @@ init-text-list: func [
 	widget	 [handle!]
 	data	 [red-block!]
 	/local
-		str		  [red-string!]
-		tail	  [red-string!]
-		val		  [c-string!]
-		len		  [integer!]
+		str		[red-string!]
+		tail	[red-string!]
+		val		[c-string!]
+		len		[integer!]
+		label	[handle!]
 ][
 	if any [
 		TYPE_OF(data) = TYPE_BLOCK
@@ -1117,7 +1118,9 @@ init-text-list: func [
 			if TYPE_OF(str) = TYPE_STRING [
 				len: -1
 				val: unicode/to-utf8 str :len
-				gtk_container_add widget gtk_label_new val
+				label: gtk_label_new val
+				gtk_widget_set_halign label 1		;-- GTK_ALIGN_START
+				gtk_container_add widget label
 			]
 			str: str + 1
 		]
@@ -1371,6 +1374,7 @@ OS-make-view: func [
 	para:	  as red-object!	values + FACE_OBJ_PARA
 	rate: 	  as red-value!		values + FACE_OBJ_RATE
 
+	bits: 	  get-flags as red-block! values + FACE_OBJ_FLAGS
 	sym: 	  symbol/resolve type/symbol
 
 	caption: either TYPE_OF(str) = TYPE_STRING [
@@ -1491,6 +1495,9 @@ OS-make-view: func [
 			init-text-list widget data
 			gtk_list_box_select_row widget gtk_list_box_get_row_at_index widget 0
 			_widget: gtk_scrolled_window_new null null
+			if bits and FACET_FLAGS_NO_BORDER = 0 [
+				gtk_scrolled_window_set_shadow_type _widget 3
+			]
 			gtk_container_add _widget widget
 			gobj_signal_connect(widget "selected-rows-changed" :text-list-selected-rows-changed face/ctx)
 		]

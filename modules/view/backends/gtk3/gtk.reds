@@ -530,6 +530,10 @@ cairo_font_extents_t!: alias struct! [
 		gtk_widget_show: "gtk_widget_show" [
 			widget		[handle!]
 		]
+		gtk_widget_set_halign: "gtk_widget_set_halign" [
+			widget		[handle!]
+			type		[integer!]
+		]
 		gtk_widget_set_visible: "gtk_widget_set_visible" [
 			widget		[handle!]
 			state 		[logic!]
@@ -668,6 +672,10 @@ cairo_font_extents_t!: alias struct! [
 			hadj		[handle!]
 			vadj		[handle!]
 			return:		[handle!]
+		]
+		gtk_scrolled_window_set_shadow_type: "gtk_scrolled_window_set_shadow_type" [
+			hwnd		[handle!]
+			type		[integer!]
 		]
 		gtk_button_new_with_label: "gtk_button_new_with_label" [
 			label		[c-string!]
