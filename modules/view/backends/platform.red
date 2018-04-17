@@ -513,6 +513,7 @@ system/view/platform: context [
 					#switch OS [
 						Windows  [#include %windows/gui.reds]
 						macOS    [#include %macOS/gui.reds]
+						Linux	 [#include %gtk3/gui.reds]
 						#default []					;-- Linux
 					]
 				]
@@ -566,7 +567,10 @@ system/view/platform: context [
 		pair: as red-pair! stack/arguments
 		pair/header: TYPE_PAIR
 		
-		gui/get-text-size text hFont pair
+		#switch OS [
+			Linux [gui/get-text-size text font pair]
+			#default [gui/get-text-size text hFont pair]
+		]
 	]
 	
 	on-change-facet: routine [
@@ -713,6 +717,7 @@ system/view/platform: context [
 				drop-down:		[0x3   2x3 regular 0x3 2x3 small 0x3 1x3 mini 0x2 1x3]
 				drop-list:		[0x3   2x3 regular 0x3 2x3 small 0x3 1x3 mini 0x2 1x3]
 			]
+			#default []
 		]]
 		extend system/view/metrics/paddings [#switch config/OS [
 			Windows [
@@ -731,6 +736,7 @@ system/view/platform: context [
 				group-box:		[0x8  4x18]
 				drop-list:		[14x26 0x0 regular 14x26 0x0 small 11x22 0x0 mini 11x22 0x0]
 			]
+			#default []
 		]]
 		extend system/view/metrics/def-heights [#switch config/OS [
 			Windows []
@@ -743,6 +749,7 @@ system/view/platform: context [
 				drop-list:	21
 				progress:	21
 			]
+			#default []
 		]]
 		
 		colors: system/view/metrics/colors
@@ -752,9 +759,9 @@ system/view/platform: context [
 				;colors/window							;-- set in gui/init from OS metrics
 				;colors/panel							;-- set in gui/init from OS metrics
 			]
-			macOS [
-			
-			]
+			macOS []
+			Linux []
+			#default []
 		]
 
 		append svs make face! [							;-- default screen
