@@ -100,7 +100,11 @@ object [
 	]
 
 	vprin: func [str [string!]][
-		append last lines str
+		either empty? lines [
+			append lines str
+		][
+			append last lines str
+		]
 		calc-top
 	]
 
