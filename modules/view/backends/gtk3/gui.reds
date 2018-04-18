@@ -259,19 +259,10 @@ free-handles: func [
 ][
 	;type: as red-word! values + FACE_OBJ_TYPE
 	;sym: symbol/resolve type/symbol
-	;print ["destroying " get-symbol-name sym lf]
-	;either null? hWnd [print ["null handle" lf]][
-		rate: values + FACE_OBJ_RATE
-		if TYPE_OF(rate) <> TYPE_NONE [change-rate hWnd none-value]
-		g_object_set_qdata hWnd red-face-id null
-		g_object_set_qdata hWnd _widget-id null
-		g_object_set_qdata hWnd gtk-fixed-id null
-		g_object_set_qdata hWnd red-timer-id null
 
-		;gtk_widget_destroy manages eveything for free from the gtk side!
-		gtk_widget_destroy hWnd
-	;]
-
+	rate: values + FACE_OBJ_RATE
+	if TYPE_OF(rate) <> TYPE_NONE [change-rate hWnd none-value]
+	gtk_widget_destroy hWnd
 	state: values + FACE_OBJ_STATE
 	state/header: TYPE_NONE
 ]
@@ -501,7 +492,7 @@ change-rate: func [
 	/local
 		int		[red-integer!]
 		tm		[red-time!]
-		ts		[float!]
+		ts		[integer!]
 		timer	[integer!]
 		data	[handle!]
 ][
@@ -509,28 +500,27 @@ change-rate: func [
 		data: g_object_get_qdata hWnd red-timer-id
 		timer: either null? data [0][as integer! data]
 
-		;print ["timer: " timer lf]
-		
 		if timer <> 0 [								;-- cancel a preexisting timeout
 			g_source_remove timer
+			g_object_set_qdata hWnd red-timer-id null
 		]
 
 		switch TYPE_OF(rate) [
 			TYPE_INTEGER [
 				int: as red-integer! rate
 				if int/value <= 0 [fire [TO_ERROR(script invalid-facet-type) rate]]
-				ts: 1.0 / as-float int/value
+				ts: 1000 / int/value
 			]
 			TYPE_TIME [
 				tm: as red-time! rate
 				if tm/time <= 0.0 [fire [TO_ERROR(script invalid-facet-type) rate]]
-				ts: tm/time / 1E9
+				ts: as-integer tm/time * 1000.0
 			]
 			TYPE_NONE [exit]
 			default	  [fire [TO_ERROR(script invalid-facet-type) rate]]
 		]
 
-		timer: g_timeout_add as integer! ts as integer! :red-timer-action hWnd
+		timer: g_timeout_add ts as integer! :red-timer-action hWnd
 		g_object_set_qdata hWnd red-timer-id as int-ptr! timer
 	]
 ]
@@ -853,12 +843,14 @@ change-data: func [
 	; 	type = tab-panel [
 	; 		set-tabs hWnd get-face-values hWnd
 	; 	]
-	; 	all [
-	; 		type = text-list
-	; 		TYPE_OF(data) = TYPE_BLOCK
-	; 	][
-	; 		objc_msgSend [objc_msgSend [hWnd sel_getUid "documentView"] sel_getUid "reloadData"]
-	; 	]
+		all [
+			type = text-list
+			TYPE_OF(data) = TYPE_BLOCK
+		][
+			gtk_container_foreach hWnd as-integer :remove-entry hWnd
+			init-text-list hWnd as red-block! data
+			gtk_widget_show_all hWnd
+		]
 		any [type = drop-list type = drop-down][
 			init-combo-box hWnd as red-block! data null type = drop-list
 		]
@@ -1093,6 +1085,13 @@ init-combo-box: func [
 	;]
 ]
 
+remove-entry: func [
+	[cdecl]
+	widget		[handle!]
+	container	[int-ptr!]
+][
+	gtk_container_remove container widget
+]
 
 init-text-list: func [
 	widget	 [handle!]
@@ -1493,7 +1492,7 @@ OS-make-view: func [
 		sym = text-list [
 			widget: gtk_list_box_new
 			init-text-list widget data
-			gtk_list_box_select_row widget gtk_list_box_get_row_at_index widget 0
+			;gtk_list_box_select_row widget gtk_list_box_get_row_at_index widget 0
 			_widget: gtk_scrolled_window_new null null
 			if bits and FACET_FLAGS_NO_BORDER = 0 [
 				gtk_scrolled_window_set_shadow_type _widget 3
@@ -1658,6 +1657,9 @@ OS-update-view: func [
 		;update-z-order hWnd as red-block! values + FACE_OBJ_PANE type
 		0
 	]
+	if flags and FACET_FLAG_RATE <> 0 [
+		change-rate widget values + FACE_OBJ_RATE
+	]
 	if flags and FACET_FLAG_FONT <> 0 [
 		change-font widget face as red-object! values + FACE_OBJ_FONT type
 	]
@@ -1694,12 +1696,8 @@ OS-destroy-view: func [
 	flags: get-flags as red-block! values + FACE_OBJ_FLAGS
 	if flags and FACET_FLAGS_MODAL <> 0 [
 		0
-		;;TBD
-		;SetActiveWindow GetWindow handle GW_OWNER
 	]
 
-	;; print ["DDDEEEEestroy" lf]
-	
 	free-handles handle values
 
 	obj: as red-object! values + FACE_OBJ_FONT

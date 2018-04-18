@@ -310,6 +310,7 @@ cairo_font_extents_t!: alias struct! [
 		]
 		g_source_remove: "g_source_remove" [
 			timer		[integer!]
+			return:		[logic!]
 		]
 		g_timeout_add: "g_timeout_add" [
 			ts 			[integer!]
@@ -600,6 +601,10 @@ cairo_font_extents_t!: alias struct! [
 			container	[handle!]
 			handler		[integer!]
 			data		[int-ptr!]
+		]
+		gtk_container_remove: "gtk_container_remove" [
+			container	[handle!]
+			widget		[handle!]
 		]
 		gtk_frame_new: "gtk_frame_new" [
 			label		[c-string!]

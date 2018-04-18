@@ -717,6 +717,16 @@ system/view/platform: context [
 				drop-down:		[0x3   2x3 regular 0x3 2x3 small 0x3 1x3 mini 0x2 1x3]
 				drop-list:		[0x3   2x3 regular 0x3 2x3 small 0x3 1x3 mini 0x2 1x3]
 			]
+			Linux [
+				button:			[2x2   2x3 regular 6x6 4x7 small 5x5 4x6 mini 1x1 0x1]
+				regular:		[6x6   4x7]
+				small:			[5x5   4x6]
+				mini:			[1x1   0x1]
+				group-box:		[3x3   0x4]
+				tab-panel:		[7x7  6x10]
+				drop-down:		[0x3   2x3 regular 0x3 2x3 small 0x3 1x3 mini 0x2 1x3]
+				drop-list:		[0x3   2x3 regular 0x3 2x3 small 0x3 1x3 mini 0x2 1x3]
+			]
 			#default []
 		]]
 		extend system/view/metrics/paddings [#switch config/OS [
@@ -728,6 +738,15 @@ system/view/platform: context [
 				button:			[8x8   0x0]
 			]
 			macOS [
+				button:			[11x11 0x0 regular 14x14 0x0 small 11x11 0x0 mini 11x11 0x0]
+				check:			[20x0  3x1]
+				radio:			[20x0  1x1]
+				text:			[3x3   0x0]
+				field:			[3x3   0x0]
+				group-box:		[0x8  4x18]
+				drop-list:		[14x26 0x0 regular 14x26 0x0 small 11x22 0x0 mini 11x22 0x0]
+			]
+			Linux [
 				button:			[11x11 0x0 regular 14x14 0x0 small 11x11 0x0 mini 11x11 0x0]
 				check:			[20x0  3x1]
 				radio:			[20x0  1x1]
@@ -748,6 +767,15 @@ system/view/platform: context [
 				drop-down:	21
 				drop-list:	21
 				progress:	21
+			]
+			Linux	[
+				check:		29
+				radio:		29
+				text:		22
+				field:		29
+				drop-down:	33
+				drop-list:	33
+				progress:	29
 			]
 			#default []
 		]]
