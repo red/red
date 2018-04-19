@@ -152,7 +152,12 @@ last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 
 	list
 ]
 
-context: func [spec [block!]][make object! spec]
+context: func [
+	"Makes a new object from an evaluated spec"
+	spec [block!]
+][
+	make object! spec
+]
 
 alter: func [
 	"If a value is not found in a series, append it; otherwise, remove it. Returns true if added"
