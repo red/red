@@ -602,10 +602,11 @@ square-root: make native! [[
 ]
 
 construct: make native! [[
+		"Makes a new object from an unevaluated spec; standard logic words are evaluated"
 		block [block!]
-		/with
-			object [object!]
-		/only
+		/with "Use a prototype object"
+			object [object!] "Prototype object"
+		/only "Don't evaluate standard logic words"
 	]
 	#get-definition NAT_CONSTRUCT
 ]
