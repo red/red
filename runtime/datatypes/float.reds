@@ -858,7 +858,11 @@ float: context [
 		if OPTION?(scale) [
 			if TYPE_OF(scale) = TYPE_INTEGER [
 				int: as red-integer! value
-				int/value: as-integer dec + 0.5
+				either dec < 0.0 [
+					int/value: as-integer dec - 0.5
+				][
+					int/value: as-integer dec + 0.5
+				]
 				int/header: TYPE_INTEGER
 				return integer/round value as red-integer! scale _even? down? half-down? floor? ceil? half-ceil?
 			]
