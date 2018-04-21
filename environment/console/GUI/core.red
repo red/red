@@ -172,13 +172,12 @@ object [
 		]
 	]
 
-	calc-last-line: func [new? [logic!] /local n cnt h total sz][
+	calc-last-line: func [new? [logic!] /local n cnt h total][
 		n: length? lines
 		box/text: head last lines
 		total: line-cnt
-		sz: size-text box
-		h: sz/y
 		cnt: rich-text/line-count? box
+		h: cnt * line-h
 		either any [new? n > length? nlines][			;-- add a new line
 			append heights h
 			append nlines cnt
@@ -193,7 +192,7 @@ object [
 		n
 	]
 
-	calc-top: func [/edit /new /local delta n][
+	calc-top: func [/new /local delta n][
 		n: calc-last-line new
 		if n < 0 [
 			delta: scroller/position + n
@@ -205,10 +204,7 @@ object [
 			screen-cnt: screen-cnt + n
 			if screen-cnt > page-cnt [screen-cnt: page-cnt]
 		]
-		n: line-cnt - page-cnt
-		if delta >= 0 [
-			either edit [reset-top][scroll-lines 0 - delta]
-		]
+		if delta >= 0 [reset-top]
 	]
 
 	reset-top: func [/force /local n][
@@ -217,10 +213,9 @@ object [
 			scroller/position <= n
 			all [full? force]
 		][
-			n: last nlines
 			top: length? lines
-			scroller/position: scroller/max-size - page-cnt - n + 2
-			scroll-lines page-cnt - n
+			scroller/position: scroller/max-size - page-cnt + 1
+			scroll-lines page-cnt - 1
 		]
 	]
 
@@ -465,7 +460,7 @@ object [
 		top: n
 	]
 
-	update-scroller: func [delta /reposition /local n end][
+	update-scroller: func [delta /local n end][
 		end: scroller/max-size - page-cnt + 1
 		if delta <> 0 [scroller/max-size: line-cnt - 1 + page-cnt]
 		if delta < 0 [
@@ -484,7 +479,7 @@ object [
 			ime-open?: yes
 		]
 		pos: ime-pos + length? text
-		calc-top/edit
+		calc-top
 		system/view/platform/redraw console
 	]
 
@@ -551,7 +546,7 @@ object [
 				insert history line
 				unless resume [system/view/platform/exit-event-loop]
 			]
-			calc-top/edit
+			calc-top
 			if empty? clipboard [
 				clear selects
 				clear redo-stack
@@ -793,7 +788,7 @@ object [
 		]
 		console/rate: 6
 		if caret/rate [caret/rate: none caret/color: caret-clr]
-		calc-top/edit
+		calc-top
 		system/view/platform/redraw console
 	]
 
@@ -836,7 +831,7 @@ object [
 		if swap? [move/part skip selects 2 selects 2]
 	]
 
-	paint: func [/local str cmds y n sz h cnt delta num end styles][
+	paint: func [/local str cmds y n h cnt delta num end styles][
 		if empty? lines [exit]
 		cmds: [pen color text 0x0 text-box]
 		cmds/2: foreground
@@ -854,9 +849,8 @@ object [
 			cmds/4/y: y
 			system/view/platform/draw-face console cmds
 
-			sz: size-text box
-			h: sz/y
 			cnt: rich-text/line-count? box
+			h: cnt * line-h
 			poke heights n h
 			line-cnt: line-cnt + cnt - pick nlines n
 			poke nlines n cnt
