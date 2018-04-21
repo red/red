@@ -152,6 +152,7 @@ OS-text-box-metrics: func [
 		tc		[integer!]
 		pos		[red-pair!]
 		int		[red-integer!]
+		str		[red-string!]
 		values	[red-value!]
 		y		[float32!]
 		x		[float32!]
@@ -179,10 +180,11 @@ OS-text-box-metrics: func [
 	as red-value! switch type [
 		TBOX_METRICS_OFFSET?
 		TBOX_METRICS_LINE_HEIGHT [
+			str: as red-string! int + 2
 			xx: 0 _x: 0
 			int: as red-integer! arg0
 			idx: int/value - 1
-			len: objc_msgSend [ts sel_getUid "length"]
+			len: string/rs-length? str
 			if idx < 0 [idx: 0]
 			last?: idx >= len
 			if last? [idx: len - 1]
@@ -309,7 +311,7 @@ OS-text-box-layout: func [
 		int: int + 1 tc: int/value
 		int: int + 1 ts: int/value
 		int: int + 1 para: int/value
-		bool: as red-logic! int + 1
+		bool: as red-logic! int + 2
 		bool/value: false
 	][
 		tc: objc_msgSend [
@@ -338,13 +340,16 @@ OS-text-box-layout: func [
 		objc_msgSend [para sel_getUid "setTabStops:" objc_msgSend [objc_getClass "NSArray" sel_getUid "array"]]
 
 		h: 7CF0BDC2h
-		block/make-at state 5
+		block/make-at state 6
 		integer/make-in state layout
 		integer/make-in state tc
 		integer/make-in state ts
 		integer/make-in state para
+		none/make-in state
 		logic/make-in state false
 	]
+
+	copy-cell values + FACE_OBJ_TEXT (block/rs-head state) + 4
 
 	;@@ set para: as red-object! values + FACE_OBJ_PARA
 
