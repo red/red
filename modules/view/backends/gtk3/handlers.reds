@@ -347,6 +347,9 @@ field-key-release-event: func [
 		res		[integer!]
 		key		[integer!]
 		flags	[integer!]
+		text	[c-string!]
+		face	[red-object!]
+		qdata	[handle!]
 ][
 	;print "key-release: "
 	;print [ "keyval: " event-key/keyval  " -> " gdk_keyval_name event-key/keyval  "(" event-key/keyval  " -> " gdk_keyval_to_lower event-key/keyval ") et state: " event-key/state lf]
@@ -357,11 +360,19 @@ field-key-release-event: func [
 	flags: 0 ;either char-key? as-byte key [0][80000000h]	;-- special key or not
 	flags: flags or check-extra-keys event-key/state
 
-	print ["key: " key " flags: " flags " key or flags: " key or flags lf]
+	;print ["key: " key " flags: " flags " key or flags: " key or flags lf]
 
 	res: make-event widget key or flags EVT_KEY_DOWN
 	if res <> EVT_NO_DISPATCH [
 	 	make-event widget key or flags EVT_KEY
+	]
+
+	text: gtk_entry_get_text widget
+	qdata: g_object_get_qdata widget red-face-id
+    unless null? qdata [
+        face: as red-object! qdata
+		set-text widget face/ctx text
+		make-event widget 0 EVT_CHANGE
 	]
 ]
 
