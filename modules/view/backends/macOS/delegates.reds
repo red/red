@@ -998,8 +998,7 @@ win-should-close: func [
 	return: [logic!]
 ][
 	make-event sender 0 EVT_CLOSE
-	post-quit-msg
-	no
+	yes
 ]
 
 win-will-close: func [
