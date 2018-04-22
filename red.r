@@ -439,7 +439,7 @@ redc: context [
 		gui? [logic!] /with file [string!]
 		/local 
 			opts result script filename exe console console-root files files2
-			source con-ui gui-target td
+			source con-ui gui-target td winxp? old-td
 	][
 		script: rejoin [temp-dir pick [%GUI/ %CLI/] gui? %gui-console.red]
 		filename: decorate-name pick [%gui-console %console] gui?
@@ -460,19 +460,6 @@ redc: context [
 					;"Linux"		Linux-GTK
 				] default-target
 			]
-			source: copy read-cache console/:con-ui
-			if all [any [Windows? macOS?] not gui?][insert find/tail source #"[" "Needs: 'View^/"]
-
-			files: [%auto-complete.red %engine.red %help.red]
-			foreach f files [write temp-dir/:f read-cache console-root/:f]
-			make-dir td: join temp-dir pick [%GUI/ %CLI/] gui?
-			files2: pick [
-				[%core.red %highlight.red %settings.red %tips.red]
-				[%input.red %wcwidth.reds %win32.reds %POSIX.reds]
-			] gui?
-			if gui? [write/binary td/app.ico read-binary-cache console/app.ico]
-			foreach f files2 [write td/:f read-cache console/:f]
-			write script source
 
 			opts: make system-dialect/options-class [	;-- minimal set of compilation options
 				link?: yes
@@ -486,7 +473,34 @@ redc: context [
 			]
 			opts: make opts select load-targets opts/config-name
 			add-legacy-flags opts
-			
+
+			if winxp?: all [Windows? gui? opts/legacy][	;-- GUI console on WinXP
+				append console %old/
+				script: temp-dir/GUI/old/gui-console.red
+			]
+
+			source: copy read-cache console/:con-ui
+			if all [any [Windows? macOS?] not gui?][insert find/tail source #"[" "Needs: 'View^/"]
+
+			files: [%auto-complete.red %engine.red %help.red]
+			foreach f files [write temp-dir/:f read-cache console-root/:f]
+			make-dir td: join temp-dir pick [%GUI/ %CLI/] gui?
+			either winxp? [
+				make-dir join temp-dir %CLI/
+				write temp-dir/CLI/wcwidth.reds read-cache console-root/CLI/wcwidth.reds
+				old-td: copy td
+				make-dir append td %old/
+				files2: [%terminal.reds %windows.reds]
+			][
+				files2: pick [
+					[%core.red %highlight.red %settings.red %tips.red]
+					[%input.red %wcwidth.reds %win32.reds %POSIX.reds]
+				] gui?
+				if gui? [write/binary td/app.ico read-binary-cache console/app.ico]
+			]
+			foreach f files2 [write td/:f read-cache console/:f]
+			write script source
+
 			print replace "Compiling Red $console..." "$" pick ["GUI " ""] gui?
 			result: red/compile script opts
 			system-dialect/compile/options/loaded script opts result
@@ -494,8 +508,12 @@ redc: context [
 			delete script
 			foreach f files  [delete temp-dir/:f]
 			foreach f files2 [delete td/:f]
-			if gui? [delete td/app.ico]
+			if all [not winxp? gui?][delete td/app.ico]
 			delete-dir td
+			if winxp? [
+				delete-dir old-td
+				delete-dir join temp-dir %CLI/
+			]
 
 			if all [Windows? not lib?][
 				print "Please run red.exe again to access the console."

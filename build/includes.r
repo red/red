@@ -50,6 +50,11 @@ write %build/bin/sources.r set-cache [
 				%win32.reds
 			]
 			%GUI/ [
+				%old/ [
+					%gui-console.red
+					%terminal.reds
+					%windows.reds
+				]
 				%app.ico
 				%core.red
 				%gui-console.red
