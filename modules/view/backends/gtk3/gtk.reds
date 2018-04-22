@@ -761,11 +761,20 @@ cairo_font_extents_t!: alias struct! [
 			entry		[handle!]
 			return:		[handle!]
 		]
+		gtk_entry_get_text: "gtk_entry_get_text" [
+			buffer		[handle!]
+			return: 	[c-string!]
+		]
+		gtk_entry_set_text: "gtk_entry_set_text" [
+			buffer		[handle!]
+			text		[c-string!]
+		]
 		gtk_entry_buffer_set_text: "gtk_entry_buffer_set_text" [
 			buffer		[handle!]
 			text		[c-string!]
 			len			[integer!]
 		]
+
 		gtk_scale_new_with_range: "gtk_scale_new_with_range" [
 			vertical?	[logic!]
 			min			[float!]
