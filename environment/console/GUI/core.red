@@ -276,7 +276,7 @@ object [
 			page-up		[scroller/page-size]
 			page-down	[0 - scroller/page-size]
 			track		[scroller/position - event/picked]
-			wheel		[event/picked]
+			wheel		[event/picked * 3]
 		][0]
 		if n <> 0 [
 			scroll-lines n

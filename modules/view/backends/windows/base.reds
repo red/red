@@ -222,7 +222,7 @@ clip-layered-window: func [
 		flags	[integer!]
 ][
 	flags: GetWindowLong hWnd wc-offset - 12
-	either any [
+	if any [
 		not zero? x
 		not zero? y
 		size/width <> new-width
@@ -237,6 +237,13 @@ clip-layered-window: func [
 			rgn: CreateRectRgn x y new-width new-height
 			SetWindowRgn child rgn false
 		]
+	]
+	if all [
+		BASE_FACE_CLIPPED and flags <> 0
+		zero? x
+		zero? y
+		size/width = new-width
+		size/height = new-height
 	][SetWindowLong hWnd wc-offset - 12 flags and FFFFFFFEh]
 ]
 
