@@ -703,7 +703,7 @@ draw-text-box: func [
 	str: as red-string! values + FACE_OBJ_TEXT
 	if TYPE_OF(str) <> TYPE_STRING [exit]
 
-	state: as red-block! values + FACE_OBJ_EXT2
+	state: as red-block! values + FACE_OBJ_EXT3
 	layout?: yes
 	if TYPE_OF(state) = TYPE_BLOCK [
 		bool: as red-logic! (block/rs-tail state) - 1

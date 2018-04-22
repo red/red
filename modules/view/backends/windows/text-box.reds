@@ -296,7 +296,7 @@ OS-text-box-layout: func [
 		layout	[this!]
 ][
 	values: object/get-values box
-	state: as red-block! values + FACE_OBJ_EXT2
+	state: as red-block! values + FACE_OBJ_EXT3
 
 	either TYPE_OF(state) = TYPE_BLOCK [
 		pval: block/rs-head state
@@ -311,7 +311,6 @@ OS-text-box-layout: func [
 		bool/value: false
 	][
 		fmt: as this! create-text-format as red-object! values + FACE_OBJ_FONT
-		;set-line-spacing fmt
 		block/make-at state 5
 		none/make-in state							;-- 1: text layout
 		handle/make-in state as-integer fmt			;-- 2: text format
@@ -338,6 +337,7 @@ OS-text-box-layout: func [
 
 	set-text-format fmt as red-object! values + FACE_OBJ_PARA
 	set-tab-size fmt as red-integer! values + FACE_OBJ_EXT1
+	set-line-spacing fmt as red-integer! values + FACE_OBJ_EXT2
 
 	str: as red-string! values + FACE_OBJ_TEXT
 	size: as red-pair! values + FACE_OBJ_SIZE

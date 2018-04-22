@@ -297,7 +297,7 @@ OS-text-box-layout: func [
 	values: object/get-values box
 
 	str: to-NSString as red-string! values + FACE_OBJ_TEXT
-	state: as red-block! values + FACE_OBJ_EXT2
+	state: as red-block! values + FACE_OBJ_EXT3
 	size: as red-pair! values + FACE_OBJ_SIZE
 	nsfont: as-integer get-font null as red-object! values + FACE_OBJ_FONT
 	cached?: TYPE_OF(state) = TYPE_BLOCK

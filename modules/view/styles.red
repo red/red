@@ -37,7 +37,10 @@ Red [
 	]
 	rich-text: [
 		default-actor: on-change
-		template: [type: 'rich-text size: 150x150 color: 255.255.255 tabs: none handles: none]
+		template: [
+			type: 'rich-text size: 150x150 color: 255.255.255
+			tabs: none line-spacing: 'default handles: none
+		]
 	]
 	check: [
 		default-actor: on-change

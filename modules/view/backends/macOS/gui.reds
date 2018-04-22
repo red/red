@@ -1924,7 +1924,7 @@ OS-update-view: func [
 
 	if all [
 		type = rich-text
-		update-rich-text state as red-block! values + FACE_OBJ_EXT2
+		update-rich-text state as red-block! values + FACE_OBJ_EXT3
 	][exit]
 
 	s: GET_BUFFER(state)

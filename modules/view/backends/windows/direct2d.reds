@@ -1006,7 +1006,9 @@ set-tab-size: func [
 
 set-line-spacing: func [
 	fmt		[this!]
+	int		[red-integer!]
 	/local
+		IUnk			[IUnknown]
 		dw				[IDWriteFactory]
 		lay				[integer!]
 		layout			[this!]
@@ -1020,17 +1022,21 @@ set-line-spacing: func [
 		tf				[IDWriteTextFormat]
 		dl				[IDWriteTextLayout]
 		lm				[DWRITE_LINE_METRICS]
+		type			[integer!]
 ][
+	type: TYPE_OF(int)
+	if all [type <> TYPE_INTEGER type <> TYPE_FLOAT][exit]
+
 	left: 73 lineCount: 0 lay: 0 
 	dw: as IDWriteFactory dwrite-factory/vtbl
 	dw/CreateTextLayout dwrite-factory as c-string! :left 1 fmt FLT_MAX FLT_MAX :lay
-
 	layout: as this! lay
 	dl: as IDWriteTextLayout layout/vtbl
 	lm: as DWRITE_LINE_METRICS :left
 	dl/GetLineMetrics layout lm 1 :lineCount
 	tf: as IDWriteTextFormat fmt/vtbl
-	tf/SetLineSpacing fmt 1 lm/height + as float32! 1.0 lm/baseline
+	tf/SetLineSpacing fmt 1 get-float32 int lm/baseline
+	COM_SAFE_RELEASE(IUnk layout)
 ]
 
 create-text-layout: func [

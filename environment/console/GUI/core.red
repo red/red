@@ -47,7 +47,12 @@ object [
 	clipboard:	none							;-- data in clipboard for pasting
 	clip-buf:	make string! 20					;-- buffer for copy into clipboard
 	paste-cnt:	0
-	box:		make face! [type: 'rich-text tabs: none handles: none]
+	box:		make face! [
+					type: 'rich-text
+					tabs: none
+					line-spacing: none
+					handles: none
+				]
 
 	undo-stack: make block! 60
 	redo-stack: make block! 20
@@ -214,6 +219,7 @@ object [
 			all [full? force]
 		][
 			top: length? lines
+			scroll-y: line-h - last heights
 			scroller/position: scroller/max-size - page-cnt + 1
 			scroll-lines page-cnt - 1
 		]
@@ -234,6 +240,7 @@ object [
 		char-width: 1 + sz/x / 2
 		box/tabs: tab-size * char-width
 		line-h: rich-text/line-height? box 1
+		box/line-spacing: line-h
 		caret/size/y: line-h
 		if cfg/background [change theme/background cfg/background]
 		if font/color [change theme/foreground font/color]
@@ -414,7 +421,7 @@ object [
 
 		if any [
 			all [offset = 1 delta > 0]
-			all [offset = end delta < 0]
+			all [zero? scroll-y offset = end delta < 0]
 		][exit]
 
 		offset: offset - delta
