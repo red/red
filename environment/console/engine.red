@@ -40,7 +40,7 @@ system/console: context [
 
 	gui?:	#system [logic/box #either gui-console? = yes [yes][no]]
 	
-	read-argument: function [][
+	read-argument: function [/local value][
 		if args: system/script/args [
 			--catch: "--catch"
 			if system/console/catch?: make logic! pos: find args --catch [
