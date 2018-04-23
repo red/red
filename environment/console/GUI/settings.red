@@ -155,6 +155,7 @@ apply-cfg: function [][
 		size:  cfg/font-size
 		color: cfg/font-color
 	]
+	gui-console-ctx/font: font
 	console/font: font
 	ft: copy font
 	ft/color: white
