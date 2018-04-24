@@ -32,7 +32,13 @@ create-main-menu: func [
 		apple-menu	[integer!]
 		srv-menu	[integer!]
 		app-item	[integer!]
+		s-app		[c-string!]
+		sel-add		[integer!]
 ][
+	s-app: strrchr system/args-list/item as-integer #"/"
+	s-app: s-app + 1
+	sel-add: sel_getUid "addItemWithTitle:action:keyEquivalent:"
+
 	empty-str: NSString("")
 	main-menu: objc_msgSend [objc_getClass "NSMenu" sel_getUid "alloc"]
 	main-menu: objc_msgSend [main-menu sel_getUid "initWithTitle:" NSString("NSAppleMenu")]
@@ -42,28 +48,21 @@ create-main-menu: func [
 	objc_msgSend [NSApp sel_getUid "setAppleMenu:" apple-menu]
 
 	title: NSString("About %@")
-	app-name: NSString("Me")					;@@ TBD change it to real app-name
+	app-name: NSString(s-app)
 	title: objc_msgSend [objc_getClass "NSString" sel_getUid "stringWithFormat:" title app-name]
 	item: objc_msgSend [
-		apple-menu sel_getUid "addItemWithTitle:action:keyEquivalent:"
-		title sel_getUid "orderFrontStandardAboutPanel:" empty-str
+		apple-menu sel-add title sel_getUid "orderFrontStandardAboutPanel:" empty-str
 	]
 	objc_msgSend [item sel_getUid "setTarget:" NSApp]
 	objc_msgSend [apple-menu sel_getUid "addItem:" objc_msgSend [objc_getClass "NSMenuItem" sel_getUid "separatorItem"]]
 
 	title: NSString("Preferences...")
-	item: objc_msgSend [
-		apple-menu sel_getUid "addItemWithTitle:action:keyEquivalent:"
-		title 0 NSString(",")
-	]
+	item: objc_msgSend [apple-menu sel-add title 0 NSString(",")]
 	objc_msgSend [item sel_getUid "setTag:" 42]
 	objc_msgSend [apple-menu sel_getUid "addItem:" objc_msgSend [objc_getClass "NSMenuItem" sel_getUid "separatorItem"]]
 
 	title: NSString("Services")
-	item: objc_msgSend [
-		apple-menu sel_getUid "addItemWithTitle:action:keyEquivalent:"
-		title 0 empty-str
-	]
+	item: objc_msgSend [apple-menu sel-add title 0 empty-str]
 	srv-menu: objc_msgSend [objc_getClass "NSMenu" sel_getUid "alloc"]
 	srv-menu: objc_msgSend [srv-menu sel_getUid "initWithTitle:" empty-str]
 	objc_msgSend [apple-menu sel_getUid "setSubmenu:forItem:" srv-menu item]
@@ -72,34 +71,26 @@ create-main-menu: func [
 	objc_msgSend [apple-menu sel_getUid "addItem:" objc_msgSend [objc_getClass "NSMenuItem" sel_getUid "separatorItem"]]
 
 	title: NSString("Hide %@")
-	app-name: NSString("Me")					;@@ TBD change it to real app-name
 	title: objc_msgSend [objc_getClass "NSString" sel_getUid "stringWithFormat:" title app-name]
-	item: objc_msgSend [
-		apple-menu sel_getUid "addItemWithTitle:action:keyEquivalent:"
-		title sel_getUid "hide:" NSString("h")
-	]
+	item: objc_msgSend [apple-menu sel-add title sel_getUid "hide:" NSString("h")]
 	objc_msgSend [item sel_getUid "setTarget:" NSApp]
 
 	title: NSString("Hide Others")
-	item: objc_msgSend [
-		apple-menu sel_getUid "addItemWithTitle:action:keyEquivalent:"
-		title sel_getUid "hideOtherApplications:" NSString("h")
-	]
+	item: objc_msgSend [apple-menu sel-add title sel_getUid "hideOtherApplications:" NSString("h")]
 	objc_msgSend [item sel_getUid "setKeyEquivalentModifierMask:" NSCommandKeyMask or NSAlternateKeyMask]
 	objc_msgSend [item sel_getUid "setTarget:" NSApp]
 
 	title: NSString("Show All")
-	item: objc_msgSend [
-		apple-menu sel_getUid "addItemWithTitle:action:keyEquivalent:"
-		title sel_getUid "unhideAllApplications:" empty-str
-	]
+	item: objc_msgSend [apple-menu sel-add title sel_getUid "unhideAllApplications:" empty-str]
 	objc_msgSend [item sel_getUid "setTarget:" NSApp]
 	objc_msgSend [apple-menu sel_getUid "addItem:" objc_msgSend [objc_getClass "NSMenuItem" sel_getUid "separatorItem"]]
 
-	app-item: objc_msgSend [
-		main-menu sel_getUid "addItemWithTitle:action:keyEquivalent:"
-		empty-str 0 empty-str
-	]
+	title: NSString("Quit %@")
+	title: objc_msgSend [objc_getClass "NSString" sel_getUid "stringWithFormat:" title app-name]
+	item: objc_msgSend [apple-menu sel-add title sel_getUid "terminate:" NSString("q")]
+	objc_msgSend [item sel_getUid "setTarget:" NSApp]
+
+	app-item: objc_msgSend [main-menu sel-add empty-str 0 empty-str]
 	objc_msgSend [main-menu sel_getUid "setSubmenu:forItem:" apple-menu app-item]
 	objc_msgSend [apple-menu sel_getUid "release"]
 	objc_msgSend [NSApp sel_getUid "setMainMenu:" main-menu]
