@@ -293,10 +293,12 @@ OS-text-box-layout: func [
 		w		[integer!]
 		h		[integer!]
 		fmt		[this!]
+		old-fmt	[this!]
 		layout	[this!]
 ][
 	values: object/get-values box
 	state: as red-block! values + FACE_OBJ_EXT3
+	fmt: as this! create-text-format as red-object! values + FACE_OBJ_FONT
 
 	either TYPE_OF(state) = TYPE_BLOCK [
 		pval: block/rs-head state
@@ -304,13 +306,16 @@ OS-text-box-layout: func [
 		layout: as this! int/value
 		COM_SAFE_RELEASE(IUnk layout)		;-- release previous text layout
 		int: int + 1
-		fmt: as this! int/value
+		old-fmt: as this! int/value
+		if old-fmt <> fmt [
+			COM_SAFE_RELEASE(IUnk old-fmt)
+			int/value: as-integer fmt
+		]
 		int: int + 1
 		if null? target [target: as int-ptr! int/value]
 		bool: as red-logic! int + 2
 		bool/value: false
 	][
-		fmt: as this! create-text-format as red-object! values + FACE_OBJ_FONT
 		block/make-at state 5
 		none/make-in state							;-- 1: text layout
 		handle/make-in state as-integer fmt			;-- 2: text format
