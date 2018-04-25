@@ -205,7 +205,7 @@ help-ctx: context [
 		if system/words/all [not opt  not all][
 			clear find blk refinement!
 		]
-		if not all [
+		unless all [
 			remove find blk to set-word! 'return
 			clear find blk /local
 		]
@@ -262,7 +262,7 @@ help-ctx: context [
 			;	the param type spec, but they are just words in Red func specs.
 			param-type=: [
 				set =val block! (emit 'type =val) (
-					if not any [
+					unless any [
 						parse reduce =val [some [datatype! | typeset!]]
 						parse =val ['function! block!]
 					][
@@ -358,7 +358,7 @@ help-ctx: context [
 				]
 			]
 		]
-		if not found-at-least-one? [
+		unless found-at-least-one? [
 			_print ["No" type "values were found in the global context."]
 		]
 	]
@@ -381,14 +381,14 @@ help-ctx: context [
 		word [word! path!]
 	][
 		fn: either any-function? :word [:word][get :word]
-		if not any-function? :fn [
+		unless any-function? :fn [
 			print "show-function-help only works on words that refer to functions."
 			exit
 		]
 
 		; Convert the func to an object with fields for spec values
 		fn-as-obj: parse-func-spec :fn
-		if not object? fn-as-obj [
+		unless object? fn-as-obj [
 			print "Func spec couldn't be parsed, may be malformed."
 			print mold :fn
 			exit
@@ -412,12 +412,12 @@ help-ctx: context [
 			DENT_1 word-is-value-str/only word
 		]
 
-		if not empty? fn-as-obj/params [
+		unless empty? fn-as-obj/params [
 			_print [newline "ARGUMENTS:"] 
 			foreach param fn-as-obj/params [_print [DENT_1 form-param param]]
 		]
 		
-		if not empty? fn-as-obj/refinements [
+		unless empty? fn-as-obj/refinements [
 			_print [newline "REFINEMENTS:"] 
 			foreach rec fn-as-obj/refinements [
 				_print [DENT_1 as-arg-col mold/only rec/name DOC_SEP either rec/desc [dot-str rec/desc][NO_DOC]]
@@ -425,7 +425,7 @@ help-ctx: context [
 			]
 		]
 
-		if not empty? fn-as-obj/returns [
+		unless empty? fn-as-obj/returns [
 			_print [newline "RETURNS:"]
 			if fn-as-obj/returns/desc [_print [DENT_1 dot-str fn-as-obj/returns/desc]]
 			_print [DENT_1 mold/flat fn-as-obj/returns/type]
@@ -439,11 +439,11 @@ help-ctx: context [
 		word [word! path! map!]
 		/local value
 	][
-		if not map? word [
+		if map? get word [
 			_print [uppercase form word "is a map! with the following words and values:"]
 		]
 		map: either map? word [word][get word]
-		if not map? map [
+		unless map? map [
 			_print "show-map-help only works on words that refer to maps."
 			exit
 		]
@@ -469,11 +469,11 @@ help-ctx: context [
 		word [word! path! object!]
 		/local value
 	][
-		if not object? word [
+		if object? get word [
 			_print [uppercase form word "is an object! with the following words and values:"]
 		]
 		obj: either object? word [word][get word]
-		if not object? obj [
+		unless object? obj [
 			_print "show-object-help only works on words that refer to objects."
 			exit
 		]
@@ -529,8 +529,8 @@ help-ctx: context [
 					all [any [word? :word path? :word] any-function? :value] [show-function-help :word]
 					any-function? :value [_print mold :value]
 					datatype? :value [show-datatype-help :value]
-					object? :value [show-object-help :value]
-					map? :value [show-map-help :value]
+					object? :value [show-object-help word]
+					map? :value [show-map-help word]
 					block? :value [_print [word-is-value-str/only :word DEF_SEP form-value :value]]
 					image? :value [
 						either in system 'view [view [image value]][
@@ -583,7 +583,7 @@ help-ctx: context [
 				_print [DENT_1 as-col-1 word  as-type-col :val  DEF_SEP  form-value :val]
 			]
 		]
-		if not found-at-least-one? [
+		unless found-at-least-one? [
 			_print "No matching values were found in the global context."
 		]
 		either buffer [output-buffer][print output-buffer]	; Note ref to output-buffer in context
