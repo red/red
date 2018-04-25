@@ -1914,8 +1914,9 @@ change-selection: func [
 			either TYPE_OF(int) = TYPE_NONE [
 				stop-camera hWnd
 			][
-				select-camera hWnd int/value - 1
-				toggle-preview hWnd true
+				if select-camera hWnd int/value - 1 [
+					toggle-preview hWnd true
+				]
 			]
 		]
 		sym = text-list [
