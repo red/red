@@ -229,6 +229,11 @@ tagSIZE: alias struct! [
 
 #import [
 	LIBC-file cdecl [
+		strrchr: "strrchr" [
+			str			[c-string!]
+			c			[integer!]
+			return:		[c-string!]
+		]
 		objc_getClass: "objc_getClass" [
 			class		[c-string!]
 			return:		[integer!]

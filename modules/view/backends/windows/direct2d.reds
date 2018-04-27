@@ -140,6 +140,14 @@ DrawLine*: alias function! [
 	style		[integer!]
 ]
 
+DrawRectangle*: alias function! [
+	this		[this!]
+	rect		[D2D_RECT_F]
+	brush		[integer!]
+	strokeWidth [float32!]
+	strokeStyle [integer!]
+]
+
 FillRectangle*: alias function! [
 	this		[this!]
 	rect		[D2D_RECT_F]
@@ -261,7 +269,7 @@ ID2D1HwndRenderTarget: alias struct! [
 	CreateLayer						[integer!]
 	CreateMesh						[integer!]
 	DrawLine						[DrawLine*]
-	DrawRectangle					[integer!]
+	DrawRectangle					[DrawRectangle*]
 	FillRectangle					[FillRectangle*]
 	DrawRoundedRectangle			[integer!]
 	FillRoundedRectangle			[integer!]
@@ -953,7 +961,7 @@ create-text-format: func [
 	format: 0
 	factory: as IDWriteFactory dwrite-factory/vtbl
 	factory/CreateTextFormat dwrite-factory name 0 weight style 5 size dw-locale-name :format
-	if save? [integer/make-at as red-value! h-font format]
+	if save? [handle/make-at as red-value! h-font format]
 	format
 ]
 

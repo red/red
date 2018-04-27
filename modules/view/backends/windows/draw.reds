@@ -1189,6 +1189,8 @@ OS-draw-fill-pen: func [
 ][
 	if all [off? ctx/brush? <> off?][exit]
 
+	if ctx/other/D2D? [OS-draw-fill-pen-d2d ctx color off? exit]
+
 	ctx/alpha-brush?: alpha?
 	ctx/other/GDI+?: any [alpha? ctx/other/anti-alias? ctx/alpha-pen?]
 
@@ -1267,6 +1269,10 @@ OS-draw-box: func [
 		radius	[red-integer!]
 		rad		[integer!]
 ][
+	if ctx/other/D2D? [
+		OS-draw-box-d2d ctx upper lower
+		exit
+	]
 	rad: either TYPE_OF(lower) = TYPE_INTEGER [
 		radius: as red-integer! lower
 		lower:  lower - 1

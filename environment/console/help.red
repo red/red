@@ -439,7 +439,7 @@ help-ctx: context [
 		word [word! path! map!]
 		/local value
 	][
-		if not map? word [
+		if map? get word [
 			_print [uppercase form word "is a map! with the following words and values:"]
 		]
 		map: either map? word [word][get word]
@@ -469,7 +469,7 @@ help-ctx: context [
 		word [word! path! object!]
 		/local value
 	][
-		if not object? word [
+		if object? get word [
 			_print [uppercase form word "is an object! with the following words and values:"]
 		]
 		obj: either object? word [word][get word]
@@ -529,8 +529,8 @@ help-ctx: context [
 					all [any [word? :word path? :word] any-function? :value] [show-function-help :word]
 					any-function? :value [_print mold :value]
 					datatype? :value [show-datatype-help :value]
-					object? :value [show-object-help :value]
-					map? :value [show-map-help :value]
+					object? :value [show-object-help word]
+					map? :value [show-map-help word]
 					block? :value [_print [word-is-value-str/only :word DEF_SEP form-value :value]]
 					image? :value [
 						either in system 'view [view [image value]][

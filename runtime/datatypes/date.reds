@@ -682,13 +682,15 @@ date: context [
 			dd	  [integer!]
 			tz	  [integer!]
 			s	  [float!]
+			d1	  [integer!]
 			time? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "date/random"]]
 
 		d: dt/date
+		d1: as integer! dt/time
 		either seed? [
-			_random/srand d
+			_random/srand d1
 			dt/header: TYPE_UNSET
 		][
 			time?: DATE_GET_TIME_FLAG(d)
