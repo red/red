@@ -171,6 +171,14 @@ Red [
 		--assert 9 = length? fa1-b
 		--assert 11 = first fa1-b
 
+	--test-- "forall-2 #2182"
+		fa-2-sym: 10
+		--assert error? try [forall fa-2-sym []]
+		fa-2-sym: 10.0
+		--assert error? try [forall fa-2-sym []]
+		fa-2-sym: 'how
+		--assert error? try [forall fa-2-sym []]
+
 ===end-group===
 
 ===start-group=== "specific issues"
