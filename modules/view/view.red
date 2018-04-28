@@ -277,6 +277,11 @@ on-face-deep-change*: function [owner word target action new index part state fo
 							all [owner/options owner/options/default]
 						]
 					]
+					if all [find [text-list drop-list drop-down] owner/type string? target][
+						target: head target
+						index: (index? find/same owner/data target) - 1
+						part: 1
+					]
 					system/view/platform/on-change-facet owner word target action new index part
 				]
 			]
