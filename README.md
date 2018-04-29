@@ -131,6 +131,10 @@ Cross-compilation targets:
 
 _Note_: Running the Red toolchain binary from a $PATH currently requires a wrapping shell script (see relevant tickets: [#543](https://github.com/red/red/issues/543) and [#1547](https://github.com/red/red/issues/1547)).
 
+Unofficial builds for previous Red versions can be found [here](https://rebolek.com/builds/tindex.html).
+
+***
+
 Running the Red REPL
 -----------------------
 
