@@ -244,7 +244,6 @@ system/view/platform: context [
 			caret:			symbol/make "caret"
 			scroller:		symbol/make "scroller"
 			rich-text:		symbol/make "rich-text"
-			usb-device:		symbol/make "usb-device"
 
 			---:			symbol/make "---"
 			done:			symbol/make "done"

@@ -959,17 +959,6 @@ tagBROWSEINFO: alias struct! [
 	iImage			[integer!]
 ]
 
-DEV_BROADCAST_DEVICEINTERFACE: alias struct! [
-	dbcc_size		[integer!]
-	dbcc_devicetype	[integer!]
-	dbcc_reserved	[integer!]
-	guid_data1		[integer!]
-	guid_data2		[integer!]
-	guid_data3		[integer!]
-	guid_data4		[integer!]
-	dbcc_name		[integer!]
-]
-
 DwmIsCompositionEnabled!: alias function! [
 	pfEnabled	[int-ptr!]
 	return:		[integer!]
@@ -1621,16 +1610,6 @@ XFORM!: alias struct! [
 			dc			[handle!]
 			flag		[integer!]
 			return:		[integer!]
-		]
-		RegisterDeviceNotification: "RegisterDeviceNotificationW" [
-			hRecipient	[handle!]
-			Filter		[int-ptr!]
-			Flags		[integer!]
-			return:		[handle!]
-		]
-		UnregisterDeviceNotification: "UnregisterDeviceNotification" [
-			handle		[handle!]
-			return:		[logic!]
 		]
 	]
 	"gdi32.dll" stdcall [
@@ -2849,17 +2828,6 @@ XFORM!: alias struct! [
 			memory			[byte-ptr!]
 			size			[integer!]
 			return:			[byte-ptr!]
-		]
-		wcstol: "wcstol" [
-			str		[byte-ptr!]
-			end		[byte-ptr!]
-			base	[integer!]
-			return: [integer!]
-		]
-		wcsstr: "wcsstr" [
-			str		[byte-ptr!]
-			search	[c-string!]
-			return: [byte-ptr!]
 		]
 	]
 ]

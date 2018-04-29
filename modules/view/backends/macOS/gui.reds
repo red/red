@@ -1671,6 +1671,7 @@ OS-make-view: func [
 		hWnd	[integer!]
 		rc		[NSRect!]
 		flt		[float!]
+		p		[ext-class!]
 ][
 	stack/mark-native words/_body
 
@@ -1690,6 +1691,7 @@ OS-make-view: func [
 
 	bits: 	  get-flags as red-block! values + FACE_OBJ_FLAGS
 	sym: 	  symbol/resolve type/symbol
+	p:		  null
 
 	case [
 		any [
@@ -1732,12 +1734,13 @@ OS-make-view: func [
 			class: "RedBox"
 		]
 		sym = camera [class: "RedCamera"]
-		sym = usb-device [
-			class: "RedUSBDev"
-			show?/value: false
-		]
 		true [											;-- search in user-defined classes
-			fire [TO_ERROR(script face-type) type]
+			p: find-class type
+			either null? p [
+				fire [TO_ERROR(script face-type) type]
+			][
+				class: p/class
+			]
 		]
 	]
 
@@ -1869,10 +1872,11 @@ OS-make-view: func [
 		sym = camera [
 			init-camera obj rc data
 		]
-		sym = usb-device [
-			monitor-usb-devs as int-ptr! obj
+		true [											;-- search in user-defined classes
+			if p <> null [
+				p/init-proc as int-ptr! obj values
+			]
 		]
-		true [0]
 	]
 
 	change-selection obj as red-integer! values + FACE_OBJ_SELECTED sym

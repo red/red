@@ -435,42 +435,6 @@ tagSIZE: alias struct! [
 		NSMarkedClauseSegmentAttributeName: "NSMarkedClauseSegmentAttributeName" [integer!]
 		NSGlyphInfoAttributeName: "NSGlyphInfoAttributeName" [integer!]
 	]
-	"/System/Library/Frameworks/IOKit.framework/IOKit" cdecl [
-		IOHIDDeviceGetProperty: "IOHIDDeviceGetProperty" [
-			key 			[int-ptr!]
-			device 			[c-string!] 
-			return: 		[int-ptr!]
-		]
-		IOHIDManagerCreate: "IOHIDManagerCreate" [
-			allocator 		[int-ptr!]
-			options			[integer!]
-			return: 		[int-ptr!]
-		]
-		IOHIDManagerSetDeviceMatching: "IOHIDManagerSetDeviceMatching" [
-			manager 		[int-ptr!]
-			matching		[int-ptr!]
-		]
-		IOHIDManagerScheduleWithRunLoop: "IOHIDManagerScheduleWithRunLoop" [
-			manager 		[int-ptr!]
-			runloop 		[int-ptr!]
-			runLoopMode		[int-ptr!]
-		]
-		IOHIDManagerClose: "IOHIDManagerClose" [
-			manager 		[int-ptr!]
-			options			[integer!]
-			return: 		[integer!]
-		]
-		IOHIDManagerRegisterDeviceMatchingCallback: "IOHIDManagerRegisterDeviceMatchingCallback" [
-			manager			[int-ptr!]
-			callback 		[int-ptr!]
-			context 		[int-ptr!]
-		]
-		IOHIDManagerRegisterDeviceRemovalCallback: "IOHIDManagerRegisterDeviceRemovalCallback" [
-			manager			[int-ptr!]
-			callback 		[int-ptr!]
-			context 		[int-ptr!]
-		]
-	]
 	"/System/Library/Frameworks/CoreServices.framework/CoreServices" cdecl [
 		Gestalt: "Gestalt" [
 			selector	[integer!]

@@ -228,103 +228,86 @@ make-super-class: func [
 	objc_registerClassPair new-class
 ]
 
-;-- temporary code for monitoring USB devices
+init-proc!: alias function! [
+	hWnd	[int-ptr!]
+	values	[red-value!]
+	return: [logic!]
+]
 
-get-int-property: func [
-	device 			[int-ptr!]
-	key				[c-string!]
-	return: 		[integer!]
+ext-class!: alias struct! [
+	symbol		 [integer!]								;-- symbol ID
+	class		 [c-string!]							;-- UTF-8 encoded
+	parent-class [c-string!]							;-- UTF-8 encoded
+	new-proc	 [integer!]								;-- optional custom event handler
+	init-proc	 [init-proc!]
+]
+
+max-ext-styles: 	20
+ext-classes:		as ext-class! allocate max-ext-styles * size? ext-class!
+ext-cls-tail:		ext-classes							;-- tail pointer
+
+find-class: func [
+	name	[red-word!]
+	return: [ext-class!]
 	/local
-		ref 		[int-ptr!]
-		value 		[integer!]
+		sym [integer!]
+		p	[ext-class!]
 ][
-	value: 0
-	ref: IOHIDDeviceGetProperty device key
-	if ref <> null [
-		if (CFGetTypeID ref) = CFNumberGetTypeID [
-			CFNumberGetValue ref 3 :value
-		]
+	sym: symbol/resolve name/symbol
+	p: ext-classes
+	while [p < ext-cls-tail][
+		if p/symbol = sym [return p]
+		p: p + 1
 	]
-	value
+	null
 ]
 
-get-vendor-id: func [
-	device 			[int-ptr!]
-	return: 		[integer!]
-][
-	get-int-property device as c-string! CFString("VendorID")
-]
-
-get-product-id: func [
-	device 			[int-ptr!]
-	return: 		[integer!]
-][
-	get-int-property device as c-string! CFString("ProductID")
-]
-
-hid-device-get-info: func [
-	hwnd		[int-ptr!]
-	dev			[int-ptr!]
+register-class: func [
+	[typed]
+	count	[integer!]
+	list	[typed-value!]
 	/local
-		data	[red-block!]
-		val		[red-value!]
+		p		[ext-class!]
+		flags	[integer!]
+		arg1 arg2 arg3 arg4 arg5 arg6
 ][
-	data: (as red-block! get-face-values as-integer hwnd) + FACE_OBJ_DATA
-	if TYPE_OF(data) <> TYPE_BLOCK [
-		block/make-at data 2
-		loop 2 [none/make-in data]
+	if count <> 6 [print-line "gui/register-class error: invalid spec block"]
+
+	arg1: list/value			;-- Red-level style name (c-string!)
+	list: list + 1
+	arg2: list/value			;-- new class name (c-string!)
+	list: list + 1
+	arg3: list/value			;-- parent class name (c-string!)
+	list: list + 1
+	arg4: list/value			;-- add-method! function (function!)
+	list: list + 1
+	arg5: list/value			;-- store extra data? (logic!)
+	list: list + 1
+	arg6: list/value			;-- init-view! function (function!)
+
+	if any [zero? arg2 zero? arg3][
+		print-line "gui/register-class error: class name cannot be null"
+		exit
 	]
-	val: block/rs-head data
-	integer/make-at val get-vendor-id dev
-	integer/make-at val + 1 get-product-id dev
+
+	flags: either zero? arg5 [STORE_FACE_FLAG][STORE_FACE_FLAG or EXTRA_DATA_FLAG]
+
+	make-super-class
+		as-c-string arg2
+		as-c-string arg3
+		arg4
+		flags
+
+	p: ext-cls-tail
+	ext-cls-tail: ext-cls-tail + 1
+	assert ext-classes + max-ext-styles > ext-cls-tail
+
+	p/symbol:		symbol/make as-c-string arg1
+	p/class:		as-c-string arg2
+	p/parent-class:	as-c-string arg3
+	p/new-proc:		arg4
+	p/init-proc:	as init-proc! arg6
 ]
-
-hid-device-add-callback: func [
-	[cdecl]
-	hwnd 		[int-ptr!]
-	result 		[integer!]
-	sender 		[int-ptr!]
-	dev			[int-ptr!]
-][
-	hid-device-get-info hwnd dev
-	make-event as-integer hwnd 0 EVT_LEFT_UP
-]
-
-hid-device-removal-callback: func [
-	[cdecl]
-	hwnd 		[int-ptr!]
-	result 		[integer!]
-	sender 		[int-ptr!]
-	dev			[int-ptr!]
-][
-	hid-device-get-info hwnd dev
-	make-event as-integer hwnd 0 EVT_LEFT_DOWN
-]
-
-red-hid-mgr: as int-ptr! 0
-
-monitor-usb-devs: func [
-	hwnd	[int-ptr!]
-][
-	red-hid-mgr: IOHIDManagerCreate null 0
-	if red-hid-mgr <> null [
-		IOHIDManagerSetDeviceMatching red-hid-mgr null
-		IOHIDManagerRegisterDeviceMatchingCallback
-			red-hid-mgr
-			as int-ptr! :hid-device-add-callback
-			hwnd
-		IOHIDManagerRegisterDeviceRemovalCallback
-			red-hid-mgr
-			as int-ptr! :hid-device-removal-callback
-			hwnd
-		IOHIDManagerScheduleWithRunLoop
-			red-hid-mgr 
-			CFRunLoopGetCurrent 
-			as int-ptr! kCFRunLoopDefaultMode	
-	]
-]
-
-;-- end temporary code for monitoring USB devices
 
 register-classes: does [
 	make-super-class "RedApplication"	"NSApplication"			as-integer :add-app-handler		0
@@ -350,5 +333,4 @@ register-classes: does [
 	make-super-class "RedBox"			"NSBox"					0	STORE_FACE_FLAG
 	make-super-class "RedProgress"		"NSProgressIndicator"	0	STORE_FACE_FLAG
 	make-super-class "RedLayoutManager" "NSLayoutManager"		as-integer :add-text-layout-handler 0
-	make-super-class "RedUSBDev"		"NSView"				0	STORE_FACE_FLAG		;-- temporary
 ]

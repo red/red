@@ -1439,11 +1439,6 @@ OS-make-view: func [
 			rc/right: rc/right - rc/left
 			rc/bottom: rc/bottom - rc/top
 		]
-		sym = usb-device [		;-- temporary
-			class: #u16 "RedUSBDev"
-			flags: WS_POPUP
-			ws-flags: WS_EX_TOOLWINDOW
-		]
 		true [											;-- search in user-defined classes
 			p: find-class type
 			either null? p [
