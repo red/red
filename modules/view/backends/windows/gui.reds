@@ -2023,6 +2023,9 @@ change-data: func [
 				as red-integer! values + FACE_OBJ_SELECTED
 				type = drop-list
 		]
+		type = rich-text [
+			InvalidateRect hWnd null 0
+		]
 		true [0]										;-- default, do nothing
 	]
 ]
@@ -2276,7 +2279,7 @@ OS-update-view: func [
 			get-flags as red-block! values + FACE_OBJ_FLAGS
 	]
 	if flags and FACET_FLAG_DRAW  <> 0 [
-		if any [type = base type = panel type = window][
+		if any [type = base type = panel type = window type = rich-text][
 			update-base hWnd null null values
 		]
 	]
