@@ -91,6 +91,7 @@ gui-console-ctx: context [
 					paste		[terminal/paste]
 					select-all	[terminal/select-all]
 				]
+				'done
 			]
 		]
 
@@ -112,6 +113,7 @@ gui-console-ctx: context [
 		actors: object [
 			on-time: func [face [object!] event [event!]][
 				face/color: either face/color = caret-clr [255.255.255.254][caret-clr]
+				'done
 			]
 		]
 	]
