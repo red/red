@@ -1025,8 +1025,10 @@ OS-product-name: function [return: [string!]][
 rejoin: function [
 	"Reduces and joins a block of values."
 	block [block!] "Values to reduce and join"
+	/only "Ignore NONE values"
 ][
 	if empty? block: reduce block [return block]
+	if only [block: trim block]
 	append either series? first block [copy first block] [
 		form first block
 	] next block
