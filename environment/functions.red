@@ -655,14 +655,12 @@ forskip: function [
 extract: function [
 	"Extracts a value from a series at regular intervals"
 	series	[series!]
-	width	[integer!]	 "Size of each entry (the skip)"
-	/index				 "Extract from an offset position"
-		pos [integer!]	 "The position" 
-	/into				 "Provide an output series instead of creating a new one"
-		output [series!] "Output series"
-	/local
-		val
-		value
+	width	[integer!]			 "Size of each entry (the skip)"
+	/index						 "Extract from an offset position"
+		pos [integer! block!]	 "The position/positions" 
+	/into						 "Provide an output series instead of creating a new one"
+		output [series!]		 "Output series"
+	/local val value
 ][
 	width: max 1 width
 	either block? pos [
