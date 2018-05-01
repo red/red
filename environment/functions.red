@@ -638,9 +638,7 @@ forskip: function [
 	'word [word!] {Word set to each position in series and changed as a result}
 	skip-num [integer!] "Number of values to skip each time"
 	body [block!] "Block to evaluate each time"
-	/local 
-		orig
-		result
+	/local orig result
 ][
 	if 0 > skip-num [skip-num: negate skip-num]
 	if skip-num = 0 [skip-num: 1]
