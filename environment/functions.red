@@ -633,6 +633,25 @@ make-dir: function [
 	path
 ]
 
+forskip: function [
+	"Evaluates a block for periodic values in a series."
+	'word [word!] {Word set to each position in series and changed as a result}
+	skip-num [integer!] "Number of values to skip each time"
+	body [block!] "Block to evaluate each time"
+	/local 
+		orig
+		result
+][
+	if 0 > skip-num [skip-num: negate skip-num]
+	if skip-num = 0 [skip-num: 1]
+	orig: get word
+	while [any [not tail? get word (set word orig false)]] [
+		set/any 'result do body
+		set word skip get word skip-num
+		get/any 'result
+	]
+]
+
 extract: function [
 	"Extracts a value from a series at regular intervals"
 	series	[series!]
