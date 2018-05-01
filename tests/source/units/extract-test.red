@@ -15,7 +15,8 @@ Red [
 	--test-- "forskip-1"
 	heroide: "heroide"
 	allstars: copy ""
-	--assert "****" = forskip heroide 2 [append allstars "*"]
+	forskip heroide 2 [append allstars "*"]
+	--assert "****" = allstars
 ===end-group===
 
 ===start-group=== "extract"
