@@ -641,16 +641,29 @@ extract: function [
 		pos [integer!]	 "The position" 
 	/into				 "Provide an output series instead of creating a new one"
 		output [series!] "Output series"
+	/local
+		val
+		value
 ][
 	width: max 1 width
-	if pos [series: at series pos]
-	unless into [output: make series (length? series) / width]
+	either block? pos [
+		value: copy "" 
+		unless into [output: copy ""]
+		forskip series width [forall pos [
+			if none? set/any 'val pick series pos/1 [set/any 'val value]
+			output: insert/only output get/any 'val
+			]
+		]
+	][
+		if pos [series: at series pos]
+		unless into [output: make series (length? series) / width]
 	
-	while [not tail? series][
-		append/only output series/1
-		series: skip series width
+		while [not tail? series][
+			append/only output series/1
+			series: skip series width
+		]
 	]
-	output
+	head output
 ]
 
 extract-boot-args: function [
