@@ -1138,6 +1138,8 @@ OS-draw-line: func [
 		nb		[integer!]
 		pair	[red-pair!]
 ][
+	if ctx/other/D2D? [OS-draw-line-d2d ctx point end exit]
+
 	pt: ctx/other/edges
 	pair:  point
 	nb:	   0
@@ -1207,6 +1209,8 @@ OS-draw-line-width: func [
 	/local
 		width-v [float32!]
 ][
+	if ctx/other/D2D? [OS-draw-line-width-d2d ctx width exit]
+
 	width-v: get-float32 as red-integer! width
 	if ctx/pen-width <> width-v [
 		ctx/pen-width: width-v

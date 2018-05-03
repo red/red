@@ -134,6 +134,44 @@ OS-draw-pen-d2d: func [
 	]
 ]
 
+OS-draw-line-width-d2d: func [
+	ctx			[draw-ctx!]
+	width		[red-value!]
+	/local
+		width-v [float32!]
+][
+	width-v: (get-float32 as red-integer! width)
+	if ctx/pen-width <> width-v [
+		ctx/pen-width: width-v
+	]
+]
+
+OS-draw-line-d2d: func [
+	ctx	   [draw-ctx!]
+	point  [red-pair!]
+	end	   [red-pair!]
+	/local
+		pt0		[red-pair!]
+		pt1		[red-pair!]
+		this	[this!]
+		rt		[ID2D1HwndRenderTarget]
+][
+	this: as this! ctx/dc
+	rt: as ID2D1HwndRenderTarget this/vtbl
+	pt0:  point
+
+	while [pt1: pt0 + 1 pt1 <= end][
+		rt/DrawLine
+			this
+			as float32! pt0/x as float32! pt0/y
+			as float32! pt1/x as float32! pt1/y
+			ctx/pen
+			ctx/pen-width
+			0
+		pt0: pt0 + 1
+	]
+]
+
 OS-draw-fill-pen-d2d: func [
 	ctx		[draw-ctx!]
 	color	[integer!]
