@@ -172,6 +172,15 @@ gui-console-ctx: context [
 				terminal/adjust-console-size new-sz
 				unless system/view/auto-sync? [show face]
 			]
+			on-focus: func [face [object!] event [event!]][
+				unless caret/visible? [caret/visible?: yes]
+				caret/rate: 2
+				terminal/update-caret
+			]
+			on-unfocus: func [face [object!] event [event!]][
+				if caret/visible? [caret/visible?: no]
+				caret/rate: none
+			]
 		]
 		tips/parent: win
 	]

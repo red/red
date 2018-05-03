@@ -1846,25 +1846,34 @@ change-enabled: func [
 		bool [red-logic!]
 ][
 	bool: as red-logic! values + FACE_OBJ_ENABLED?
-	either type = caret [
-		either bool/value [update-caret hWnd values][DestroyCaret]
-		change-visible hWnd bool/value caret
+	either all [
+		type = base
+		(BASE_FACE_CARET and GetWindowLong hWnd wc-offset - 12) <> 0
+	][
+		change-visible hWnd values bool/value base
 	][
 		EnableWindow hWnd bool/value
 	]
 ]
 
 change-visible: func [
-	hWnd  [handle!]
-	show? [logic!]
-	type  [integer!]
+	hWnd	[handle!]
+	values	[red-value!]
+	show?	[logic!]
+	type	[integer!]
 	/local
 		value [integer!]
 ][
+	if all [
+		type = base
+		(BASE_FACE_CARET and GetWindowLong hWnd wc-offset - 12) <> 0
+	][
+		either show? [update-caret hWnd values][DestroyCaret]
+	]
 	value: either show? [either type = base [SW_SHOWNA][SW_SHOW]][SW_HIDE]
 	ShowWindow hWnd value
 	unless win8+? [update-layered-window hWnd null null null -1]
-	
+
 	if type = group-box [
 		hWnd: as handle! GetWindowLong hWnd wc-offset - 4
 		ShowWindow hWnd value
@@ -2108,7 +2117,7 @@ change-parent: func [
 	unless tab-panel? [bool/value: parent <> null]
 
 	either null? parent [
-		change-visible hWnd no sym
+		change-visible hWnd values no sym
 		SetParent hWnd null
 	][
 		if tab-panel? [exit]
@@ -2266,7 +2275,7 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_VISIBLE? <> 0 [
 		bool: as red-logic! values + FACE_OBJ_VISIBLE?
-		change-visible hWnd bool/value type
+		change-visible hWnd values bool/value type
 	]
 	if flags and FACET_FLAG_SELECTED <> 0 [
 		int2: as red-integer! values + FACE_OBJ_SELECTED
