@@ -636,22 +636,22 @@ make-dir: function [
 extract: function [
 	"Extracts a value from a series at regular intervals"
 	series	[series!]
-	width	[integer!]	 "Size of each entry (the skip)"
-	/index				 "Extract from an offset position"
+	width	[integer!]			 "Size of each entry (the skip)"
+	/index						 "Extract from an offset position"
 		pos [integer! block!]	 "The position/positions" 
-	/into				 "Provide an output series instead of creating a new one"
-		output [series!] "Output series"
-	/local val value
+	/into						 "Provide an output series instead of creating a new one"
+		output [series!]		 "Output series"
+	/local part empty
 ][
 	width: max 1 width
 	either block? pos [
-		value: copy "" 
+		empty: copy "" 
 		unless into [output: copy ""]
 		while [not tail? series] [
 			do	[
 				forall pos [
-					if none? set/any 'val pick series pos/1 [set/any 'val value]
-					output: insert/only output get/any 'val
+					if none? set/any 'part pick series pos/1 [set/any 'part empty]
+					output: insert/only output get/any 'part
 				]
 			]
 			set 'series skip get 'series width
