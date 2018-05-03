@@ -175,7 +175,7 @@ gui-console-ctx: context [
 			on-focus: func [face [object!] event [event!]][
 				unless caret/visible? [caret/visible?: yes]
 				caret/rate: 2
-				terminal/update-caret
+				terminal/refresh
 			]
 			on-unfocus: func [face [object!] event [event!]][
 				if caret/visible? [caret/visible?: no]
@@ -191,7 +191,9 @@ gui-console-ctx: context [
 	]
 
 	add-gui-print: routine [][
-		dyn-print/add as int-ptr! :red-print-gui as int-ptr! :rs-print-gui
+		dyn-print/add as int-ptr! :red-print-gui #either debug? = yes [null][
+			as int-ptr! :rs-print-gui
+		]
 	]
 
 	launch: func [/local svs][
