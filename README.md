@@ -1,6 +1,8 @@
 [![Join the chat at https://gitter.im/red/red](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/red/red?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Travis build](https://travis-ci.org/red/red.svg?branch=master)](https://travis-ci.org/red/red)
-[![Build status](https://ci.appveyor.com/api/projects/status/mie736c6x4268boo/branch/master?svg=true)](https://ci.appveyor.com/project/red/red/branch/master)
+[![Windows build](https://bs.red-lang.org/windows.svg)](https://ci.appveyor.com/project/red/red/branch/master)
+[![macOS build](https://bs.red-lang.org/macos.svg)](https://travis-ci.org/red/red)
+[![Linux build](https://bs.red-lang.org/linux.svg)](https://travis-ci.org/red/red)
+[![ARM build](https://bs.red-lang.org/arm.svg)](https://travis-ci.org/red/red)
 
 Red Programming Language
 ------------------------
