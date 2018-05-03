@@ -11,14 +11,6 @@ Red [
 
 ~~~start-file~~~ "extract"
 
-===start-group=== "forskip"
-	--test-- "forskip-1"
-	heroide: "heroide"
-	allstars: copy ""
-	forskip heroide 2 [append allstars "*"]
-	--assert "****" = allstars
-===end-group===
-
 ===start-group=== "extract"
 	--test-- "extract-1"
 	--assert [1] = extract [1 2 3 4 5] 6
