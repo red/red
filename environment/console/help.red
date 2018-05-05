@@ -595,14 +595,14 @@ help-ctx: context [
 		/local git plt
 	][
 		git: system/build/git
-		plt: system/platform
+		plt: os-info
 		either debug [
 			print either git [
 				compose [
 					"-----------RED & PLATFORM VERSION-----------" lf
 					"RED: [ branch:" mold git/branch "tag:" mold git/tag "ahead:" git/ahead
 					"date:" to-UTC-date git/date "commit:" mold git/commit "]^/"
-					"PLATFORM: [ name:" mold plt/name "OS:" mold to lit-word! plt/OS
+					"PLATFORM: [ name:" mold plt/name "OS:" mold to lit-word! system/platform
 					"arch:" mold to lit-word! plt/arch "version:" mold plt/version
 					"build:" mold plt/build "]^/"
 					"--------------------------------------------"
@@ -613,7 +613,7 @@ help-ctx: context [
 		][
 			prin [
 				'Red system/version
-				'for plt/OS
+				'for system/platform
 				'built any [all [git git/date] system/build/date]
 			]
 			if git [

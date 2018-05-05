@@ -64,6 +64,10 @@ exists?: routine [path [file!] return: [logic!]][
 	simple-io/file-exists? file/to-OS-path path
 ]
 
+os-info: routine [][
+	__get-OS-info
+]
+
 as-color: routine [
 	r [integer!]
 	g [integer!]

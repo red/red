@@ -44,7 +44,7 @@ system/view/VID: context [
 			unless active? [exit]
 			actions: system/view/VID/GUI-rules/processors
 			
-			foreach list reduce [general select OS system/platform/OS user][
+			foreach list reduce [general select OS system/platform user][
 				foreach name list [
 					if debug? [print ["Applying rule:" name]]
 					name: get in processors name

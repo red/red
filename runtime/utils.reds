@@ -176,24 +176,50 @@ check-arg-type: func [
 		/local
 			obj		[red-object!]
 			ctx		[red-context!]
+			str		[red-string!]
 			val		[red-value! value]
 			ver		[OSVERSIONINFO value]
 			int		[red-integer!]
 			arch	[c-string!]
+			name	[c-string!]
 			_64bit? [integer!]
+			server? [logic!]
 	][
-		obj: object/make-at as red-object! stack/push* 8
+		obj: object/make-at as red-object! stack/arguments 8
 		ctx: GET_CTX(obj)
 
 		ver/dwOSVersionInfoSize: size? OSVERSIONINFO
+		ver/szCSDVersion: 0
 		platform/GetVersionEx :ver
 
-		int: as red-integer! :val
-		int/header: TYPE_INTEGER
-		int/value:  as-integer ver/wProductType
+		server?: ver/wProductType <> #"^(01)"
+		str: string/load-at "Windows " 8 val UTF-8
+		name: switch ver/dwMajorVersion [
+			5 [
+				switch ver/dwMinorVersion [
+					0 ["2000"]
+					1 ["XP"]
+					2 [either server? ["Server 2003 R2"]["Server 2003"]]
+				]
+			]
+			6 [
+				switch ver/dwMinorVersion [
+					0 [either server? ["Server 2008"]["Vista"]]
+					1 [either server? ["Server 2008 R1"]["7"]]
+					2 [either server? ["Server 2012"]["8"]]
+					3 [either server? ["Server 2012 R2"]["8.1"]]
+				]
+			]
+			default [	;-- Windows 10
+				either server? ["Windows Server 2016"]["10"]
+			]
+		]
+		string/concatenate-literal str name
+		if ver/szCSDVersion <> 0 [
+			string/append-char GET_BUFFER(str) as-integer #" "
+			string/concatenate-literal str as c-string! :ver/szCSDVersion
+		]
 		_context/add-with ctx _context/add-global symbol/make "name" val
-
-		_context/add-with ctx _context/add-global symbol/make "OS" as red-value! words/_windows
 
 		_64bit?: 0
 		platform/IsWow64Process platform/GetCurrentProcess :_64bit?
@@ -204,7 +230,7 @@ check-arg-type: func [
 		val/header: TYPE_TUPLE or (3 << 19)
 		val/data1: ver/dwMajorVersion
 			or (ver/dwMinorVersion << 8)
-			and 0000FFFFh
+			or (ver/wServicePack and FFFFh << 16)
 		_context/add-with ctx _context/add-global symbol/make "version" val
 
 		int: as red-integer! :val
@@ -230,6 +256,7 @@ check-arg-type: func [
 			int		[red-integer!]
 			str		[red-string!]
 			arch	[c-string!]
+			name	[c-string!]
 			mib2	[integer!]
 			mib		[integer!]
 			len		[integer!]
@@ -238,22 +265,36 @@ check-arg-type: func [
 			bugfix	[integer!]
 			s		[series!]
 	][
-		obj: object/make-at as red-object! stack/push* 8
+		obj: object/make-at as red-object! stack/arguments 8
 		ctx: GET_CTX(obj)
-
-		val/header: TYPE_NONE
-		_context/add-with ctx _context/add-global symbol/make "name" val
-
-		_context/add-with ctx _context/add-global symbol/make "OS" as red-value! words/_macOS
-
-		arch: "x86-64"
-		word/make-at symbol/make arch val
-		_context/add-with ctx _context/add-global symbol/make "arch" val
 
 		major: 0 minor: 0 bugfix: 0
 		Gestalt gestaltSystemVersionMajor :major
 		Gestalt gestaltSystemVersionMinor :minor
 		Gestalt gestaltSystemVersionBugFix :bugfix
+
+		str: string/load-at "macOS " 6 val UTF-8
+		name: switch major [
+			10 [
+				switch minor [
+					13 ["High Sierra"]
+					12 ["Sierra"]
+					11 ["El Capitan"]
+					10 ["Yosemite"]
+					 9 ["Mavericks"]
+					 8 ["Mountain Lion"]
+					 7 ["Lion"]
+					 default ["Unsupported Version"]
+				]
+			]
+			default ["Unrecognized"]
+		]
+		string/concatenate-literal str name
+		_context/add-with ctx _context/add-global symbol/make "name" val
+
+		arch: "x86-64"
+		word/make-at symbol/make arch val
+		_context/add-with ctx _context/add-global symbol/make "arch" val
 
 		val/header: TYPE_TUPLE or (3 << 19)
 		val/data1: bugfix << 16 or (minor << 8) or major
@@ -343,7 +384,6 @@ check-arg-type: func [
 			ctx		[red-context!]
 			val		[red-value! value]
 			int		[red-integer!]
-			buf		[utsname! value]
 			pbuf	[byte-ptr!]
 			str		[c-string!]
 			p		[c-string!]
@@ -353,11 +393,13 @@ check-arg-type: func [
 			bugfix	[integer!]
 			file	[integer!]
 			len		[integer!]
+			buf		[utsname!]
 	][
-		obj: object/make-at as red-object! stack/push* 8
+		obj: object/make-at as red-object! stack/arguments 8
 		ctx: GET_CTX(obj)
 
-		uname :buf
+		buf: as utsname! allocate size? utsname!
+		uname buf
 
 		file: simple-io/open-file "/etc/os-release" simple-io/RIO_READ no
 		either file > 0 [
@@ -370,16 +412,13 @@ check-arg-type: func [
 			p: strchr str #"^""
 			p/1: null-byte
 		][
-			str: (as c-string! :buf) + 65
+			str: (as c-string! buf) + 65
 		]
 		string/load-at str length? str val UTF-8
 		if file > 0 [free pbuf]
 		_context/add-with ctx _context/add-global symbol/make "name" val
 
-		str: as c-string! :buf
-		word/make-at symbol/make str val
-		_context/add-with ctx _context/add-global symbol/make "OS" val
-
+		str: as c-string! buf
 		word/make-at symbol/make str + (65 * 4) val
 		_context/add-with ctx _context/add-global symbol/make "arch" val
 
@@ -400,8 +439,10 @@ check-arg-type: func [
 		val/data1: bugfix << 16 or (minor << 8) or major
 		_context/add-with ctx _context/add-global symbol/make "version" val
 
-		str: (as c-string! :buf) + (65 * 3)
+		str: (as c-string! buf) + (65 * 3)
 		string/load-at str length? str val UTF-8
 		_context/add-with ctx _context/add-global symbol/make "build" val
+
+		free as byte-ptr! buf
 	]]
 ]

@@ -767,7 +767,7 @@ system/view/platform: context [
 		
 		set fonts:
 			bind [fixed sans-serif serif] system/view/fonts
-			switch system/platform/OS [
+			switch system/platform [
 				Windows [
 					either version/1 >= 6 [
 						["Consolas" "Arial" "Times"]

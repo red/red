@@ -986,41 +986,6 @@ to-local-date: func [
 	date
 ]
 
-OS-product-name: function [return: [string!]][
-	#switch config/OS [
-		Windows [
-			workstation?: system/platform/name = 1
-			os-version: system/platform/version
-			rejoin ["Windows " switch os-version [
-				10.0.0	[pick ["10"			 "10 Server"	 ] workstation?]
-				6.3.0	[pick ["8.1"		 "Server 2012 R2"] workstation?]
-				6.2.0	[pick ["8"			 "Server 2012"	 ] workstation?]
-				6.1.0	[pick ["7"			 "Server 2008 R1"] workstation?]
-				6.0.0	[pick ["Vista"		 "Server 2008"	 ] workstation?]
-				5.2.0	[pick ["Server 2003" "Server 2003 R2"] workstation?]
-				5.1.0	["XP"]
-				5.0.0	["2000"]
-			]]
-		]
-		macOS [
-			os-version: system/platform/version
-			rejoin [
-				"macOS " switch os-version and 255.255.0 [
-					10.13.0 ["High Sierra "]
-					10.12.0 ["Sierra "]
-					10.11.0	["El Capitan "]
-					10.10.0	["Yosemite "]
-					10.9.0	["Mavericks "]
-					10.8.0	["Mountain Lion "]
-					10.7.0	["Lion "]
-					10.6.0	["Snow Leopard "]
-				] os-version
-			]
-		]
-		#default [system/platform/name]
-	]
-]
-
 ;--- Temporary definition, use at your own risks! ---
 rejoin: function [
 	"Reduces and joins a block of values."
