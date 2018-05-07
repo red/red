@@ -85,7 +85,7 @@ clean-draw-d2d: func [
 		IUnk [IUnknown]
 		this [this!]
 ][
-	;;TBD release all brushes when D2DERR_RECREATE_TARGET or exit the process
+	;;release all brushes?
 ]
 
 draw-end-d2d: func [
@@ -108,6 +108,7 @@ draw-end-d2d: func [
 			d2d-release-target ctx/brushes
 			ctx/dc: null
 			SetWindowLong hWnd wc-offset - 24 0
+			InvalidateRect hWnd null 0
 		]
 		default [
 			0		;@@ TBD log error!!!
