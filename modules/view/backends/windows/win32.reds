@@ -1094,7 +1094,7 @@ XFORM!: alias struct! [
 		]
 		KillTimer: "KillTimer" [
 			hWnd		[handle!]
-			uIDEvent	[int-ptr!]
+			uIDEvent	[integer!]
 			return:		[logic!]
 		]
 		OpenClipboard: "OpenClipboard" [

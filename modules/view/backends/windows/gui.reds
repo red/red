@@ -2050,16 +2050,14 @@ change-rate: func [
 		TYPE_INTEGER [
 			int: as red-integer! rate
 			if int/value <= 0 [fire [TO_ERROR(script invalid-facet-type) rate]]
-			KillTimer hWnd null
-			SetTimer hWnd null 1000 / int/value :TimerProc
+			SetTimer hWnd 1 1000 / int/value :TimerProc
 		]
 		TYPE_TIME [
 			tm: as red-time! rate
 			if tm/time <= 0.0 [fire [TO_ERROR(script invalid-facet-type) rate]]
-			KillTimer hWnd null
-			SetTimer hWnd null as-integer tm/time * 1000.0 :TimerProc
+			SetTimer hWnd 1 as-integer tm/time * 1000.0 :TimerProc
 		]
-		TYPE_NONE [KillTimer hWnd null]
+		TYPE_NONE [KillTimer hWnd 1]
 		default	  [fire [TO_ERROR(script invalid-facet-type) rate]]
 	]
 ]
