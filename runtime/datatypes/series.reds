@@ -1075,6 +1075,7 @@ _series: context [
 			buffer	[series!]
 			node	[node!]
 			unit	[integer!]
+			part-r	[integer!]
 			part	[integer!]
 			type	[integer!]
 			flag	[integer!]
@@ -1087,7 +1088,12 @@ _series: context [
 		flag: ser/header and flag-new-line
 
 		offset: ser/head
-		part: (as-integer s/tail - s/offset) >> (log-b unit) - offset
+		part-r: (as-integer s/tail - s/offset) >> (log-b unit)
+		either part-r > offset [
+			part: part-r - offset
+		][
+			part: 0
+		]
 
 		if OPTION?(types) [--NOT_IMPLEMENTED--]
 
