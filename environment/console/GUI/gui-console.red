@@ -173,6 +173,7 @@ gui-console-ctx: context [
 				unless system/view/auto-sync? [show face]
 			]
 			on-focus: func [face [object!] event [event!]][
+				caret/color: caret-clr
 				unless caret/visible? [caret/visible?: yes]
 				caret/rate: 2
 				terminal/refresh
