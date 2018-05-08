@@ -1745,6 +1745,29 @@ Red [
 		--assert 3  = select hs 2
 ===end-group===
 
+===start-group=== "copy"
+
+	--test-- "series-copy-1"
+		a: "12345678"
+		b: skip a 6
+		c: tail a
+		d: skip a 2
+		remove/part a 4
+		--assert "5678" = a
+		--assert "" = b
+		--assert "" = copy b
+		--assert "" = c
+		--assert "" = copy c
+		--assert "78" = d
+		--assert "78" = copy d
+		--assert "78" = copy/part d b
+		clear a
+		--assert "" = d
+		--assert "" = copy d
+		--assert "" = copy/part d b
+
+===end-group===
+
 ===start-group=== "series-unicode"
 
 	;--test-- "suc1"
