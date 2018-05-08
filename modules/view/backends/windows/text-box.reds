@@ -17,6 +17,7 @@ Red/System [
 #define TBOX_METRICS_SIZE			3
 #define TBOX_METRICS_LINE_COUNT		4
 #define TBOX_METRICS_CHAR_INDEX?	5
+#define TBOX_METRICS_OFFSET_LOWER	6
 
 hidden-hwnd:  as handle! 0
 line-metrics: as DWRITE_LINE_METRICS 0
@@ -213,7 +214,8 @@ OS-text-box-metrics: func [
 	dl: as IDWriteTextLayout this/vtbl
 
 	as red-value! switch type [
-		TBOX_METRICS_OFFSET? [
+		TBOX_METRICS_OFFSET?
+		TBOX_METRICS_OFFSET_LOWER [
 			text: as red-string! int + 3
 			x: as float32! 0.0 y: as float32! 0.0
 			int: as red-integer! arg0
@@ -221,6 +223,10 @@ OS-text-box-metrics: func [
 			hit: as DWRITE_HIT_TEST_METRICS :left
 			dl/HitTestTextPosition this hr no :x :y hit
 			if y < as float32! 0.0 [y: as float32! 0.0]
+			if type = TBOX_METRICS_OFFSET_LOWER [
+				x: x + hit/width
+				y: y + hit/height
+			]
 			pair/push as-integer x + as float32! 0.5 as-integer y + as float32! 0.99
 		]
 		TBOX_METRICS_INDEX?

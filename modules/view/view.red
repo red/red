@@ -45,9 +45,11 @@ caret-to-offset: function [
 	"Given a text position, returns the corresponding coordinate relative to the top-left of the layout box"
 	face	[object!]
 	pos		[integer!]
+	/lower			"lower end offset of the caret"
 	return:	[pair!]
 ][
-	system/view/platform/text-box-metrics face pos 0
+	opt: either lower [6][0]
+	system/view/platform/text-box-metrics face pos opt
 ]
 
 offset-to-caret: function [
