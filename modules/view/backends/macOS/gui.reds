@@ -1178,7 +1178,7 @@ init-window: func [
 	objc_msgSend [window sel_getUid "setAcceptsMouseMovedEvents:" yes]
 	objc_msgSend [window sel_getUid "becomeFirstResponder"]
 	objc_msgSend [window sel_getUid "makeKeyAndOrderFront:" 0]
-	if main-win? [objc_msgSend [window sel_getUid "makeMainWindow"]]
+	;if main-win? [objc_msgSend [window sel_getUid "makeMainWindow"]]
 ]
 
 transparent-base?: func [
