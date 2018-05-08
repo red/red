@@ -1768,4 +1768,32 @@ Red [
 		c2-a: next c2-a
 		--assert not equal? c2-a c2-b
 
+	--test-- "copy-3"
+		a: "12345678"
+		b: skip a 6
+		c: tail a
+		d: skip a 2
+		remove/part a 4
+		--assert "5678" = a
+		--assert empty? b
+		--assert empty? copy b
+		--assert empty? c
+		--assert empty? copy c
+		--assert "78" = d
+		--assert "78" = copy d
+		--assert "78" = copy/part d b
+		--assert "78" = copy/part b d
+		clear a
+		--assert empty? d
+		--assert empty? copy d
+		--assert empty? copy/part d b
+
+	--test-- "copy-4"
+		a: "12345678"
+		b: skip a 6
+		--assert empty? copy/part a -4
+		--assert "3456" = copy/part b -4
+		--assert "123456" = copy/part b -10
+===end-group===
+
 ~~~end-file~~~

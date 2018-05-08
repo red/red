@@ -1075,10 +1075,10 @@ _series: context [
 			buffer	[series!]
 			node	[node!]
 			unit	[integer!]
-			part-r	[integer!]
 			part	[integer!]
 			type	[integer!]
 			flag	[integer!]
+			len		[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "series/copy"]]
 
@@ -1088,19 +1088,16 @@ _series: context [
 		flag: ser/header and flag-new-line
 
 		offset: ser/head
-		part-r: (as-integer s/tail - s/offset) >> (log-b unit)
-		either part-r > offset [
-			part: part-r - offset
-		][
-			part: 0
-		]
+		len: (as-integer s/tail - s/offset) >> (log-b unit)
+		part: len - offset
+		if part < 0 [part: 0]
 
 		if OPTION?(types) [--NOT_IMPLEMENTED--]
 
 		if OPTION?(part-arg) [
 			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
 				int: as red-integer! part-arg
-				either int/value > part [part][int/value]
+				int/value
 			][
 				ser2: as red-series! part-arg
 				unless all [
@@ -1111,12 +1108,16 @@ _series: context [
 				]
 				ser2/head - ser/head
 			]
+			if negative? part [
+				part: 0 - part
+				offset: offset - part
+				if negative? offset [offset: 0 part: ser/head]
+			]
 		]
-		if negative? part [
-			part: 0 - part
-			offset: offset - part
-			if negative? offset [offset: 0 part: ser/head]
-		]
+
+		if offset > len [part: 0 offset: len]
+		if offset + part > len [part: len - offset]
+
 		part:	part << (log-b unit)
 		node:	alloc-bytes part
 		buffer: as series! node/value
