@@ -1756,4 +1756,16 @@ Red [
 	;					read/lines %tests/fixtures/chinese-characters.txt
 ===end-group===
 
+===start-group=== "copy"
+	--test-- "copy-1"
+		c1-a: ["a" "b" "c"]
+		c1-b: copy c1-a
+		--assert equal? c1-a c1-b
+		--assert not same? c1-a c1-b
+	--test-- "copy-2"
+		c2-a: ["a" "b" "c"]
+		c2-b: copy a
+		c2-a: next c2-a
+		--assert not equal? c2-a c2-b
+
 ~~~end-file~~~
