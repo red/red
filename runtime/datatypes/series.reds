@@ -1071,11 +1071,14 @@ _series: context [
 			int		[red-integer!]
 			ser2	[red-series!]
 			offset	[integer!]
+			len		[integer!]
+			len2	[integer!]
 			s		[series!]
+			s2		[series!]
 			buffer	[series!]
 			node	[node!]
 			unit	[integer!]
-			part-r	[integer!]
+			unit2	[integer!]
 			part	[integer!]
 			type	[integer!]
 			flag	[integer!]
@@ -1087,13 +1090,10 @@ _series: context [
 		unit: GET_UNIT(s)
 		flag: ser/header and flag-new-line
 
+		len: (as-integer s/tail - s/offset) >> (log-b unit)
+		if len < ser/head [ser/head: len]
 		offset: ser/head
-		part-r: (as-integer s/tail - s/offset) >> (log-b unit)
-		either part-r > offset [
-			part: part-r - offset
-		][
-			part: 0
-		]
+		part: len - offset
 
 		if OPTION?(types) [--NOT_IMPLEMENTED--]
 
@@ -1109,6 +1109,11 @@ _series: context [
 				][
 					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
 				]
+				s2: GET_BUFFER(ser2)
+				unit2: GET_UNIT(s2)
+
+				len2: (as-integer s2/tail - s2/offset) >> (log-b unit2)
+				if len2 < ser2/head [ser2/head: len2]
 				ser2/head - ser/head
 			]
 		]
