@@ -1342,9 +1342,12 @@ Red [
 		--assert "    ^-1^/    2^-  ^/  c3  ^/  ^/^/" = trim/with copy mstr "ab"
 
 	--test-- "trim-str-9"
-		--assert "    ^-1^/    b2^-  ^/  c3  ^/  ^/^/" = trim/with copy mstr #"a"
+		--assert "a1ab2ac3" = trim/all { a ^-1^/ ab2^- ^/ ac3 ^/ ^/^/}
 
 	--test-- "trim-str-10"
+		--assert "    ^-1^/    b2^-  ^/  c3  ^/  ^/^/" = trim/with copy mstr #"a"
+
+	--test-- "trim-str-11"
 		--assert "    ^-1^/    b2^-  ^/  c3  ^/  ^/^/" = trim/with copy mstr 97
 
 	--test-- "trim-block-1"
