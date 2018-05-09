@@ -2294,6 +2294,10 @@ string: context [
 			with-chars	[int-ptr!]
 	][
 		with-chars: [9 10 13 32]						;-- default chars for /ALL [TAB LF CR SPACE]
+		with-chars/1: 9
+		with-chars/2: 10
+		with-chars/3: 13
+		with-chars/4: 32
 		wlen: 4
 		if OPTION?(with-arg) [
 			switch TYPE_OF(with-arg) [
