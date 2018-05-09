@@ -781,7 +781,7 @@ system/lexer: context [
 						| 1 2 digit e: (hour: make-number s e integer! mn: none) ;-- +/-h, +/-hh
 						opt [#":" s: 2 digit e: (mn: make-number s e integer!)]
 					]
-					(date/zone: make-hm either neg? [negate hour][hour] any [mn 0])
+					(zone: make-hm hour any [mn 0] date/zone: either neg? [negate zone][zone])
 				]
 			] sticky-word-rule (value: date)
 		]
