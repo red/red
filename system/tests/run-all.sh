@@ -12,7 +12,7 @@ for exe in *;
      echo "$report" >> quick-test.log
      case "$report" in 
      *'Number of Assertions Failed:    0'* ) echo "$exe passed             ";;
-     * ) echo "****** $exe failed *****";failures=1;
+     * ) echo "****** $exe failed *****";failures=1;;
      esac
   fi   
  done
