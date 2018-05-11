@@ -225,6 +225,21 @@ Red [
 
 ===end-group===
 
+===start-group=== "load date tests"
+
+	--test-- "load-date-1"	--assert 3-Mar-0000/13:44:24+09:45  = load "3-Mar-0000/13:44:24+09:45"
+	--test-- "load-date-2"	--assert 14-Jan-2046/9:34:48-12:15  = load "14-Jan-2046/9:34:48-12:15"
+	--test-- "load-date-3"	--assert 19-Nov-4262/9:41:12-01:30  = load "19-Nov-4262/9:41:12-01:30"
+	--test-- "load-date-4"	--assert 12-Feb-1864/3:26:00-14:30  = load "12-Feb-1864/3:26:00-14:30"
+	--test-- "load-date-5"	--assert 29-Jul-4351/8:14:00+09:30  = load "29-Jul-4351/8:14:00+09:30"
+	--test-- "load-date-6"	--assert 18-Dec-1884/22:30:48-07:00 = load "18-Dec-1884/22:30:48-07:00"
+	--test-- "load-date-7"	--assert 21-May-5509/0:14:24-03:00  = load "21-May-5509/0:14:24-03:00"
+	--test-- "load-date-8"	--assert 23-Apr-4622/4:22:48+05:30  = load "23-Apr-4622/4:22:48+05:30"
+	--test-- "load-date-9"	--assert 22-Feb-1583/16:36:48-14:45 = load "22-Feb-1583/16:36:48-14:45"
+	--test-- "load-date-10"	--assert 26-Feb-6712/17:07:12-10:00 = load "26-Feb-6712/17:07:12-10:00"
+
+===end-group===
+
 ===start-group=== "load next tests"
 
 	--test-- "load-next-1"
