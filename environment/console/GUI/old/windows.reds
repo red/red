@@ -507,7 +507,7 @@ ConsoleWndProc: func [
 				vt/select?: no
 				vt/s-end?: no
 				if scroll-count <> 0 [
-					KillTimer hWnd timer
+					KillTimer hWnd timer/value
 					scroll-count: 0
 				]
 				out: vt/out
@@ -543,7 +543,7 @@ ConsoleWndProc: func [
 					timer: SetTimer hWnd 1 10 null
 				][
 					if scroll-count <> 0 [
-						KillTimer hWnd timer
+						KillTimer hWnd timer/value
 						scroll-count: 0
 					]
 					if all [
