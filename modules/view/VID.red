@@ -107,7 +107,8 @@ system/view/VID: context [
 				if all [face/text face/type <> 'drop-list][
 					min-sz: max min-sz size-text face
 				]
-				min-sz + any [system/view/metrics/misc/scroller 0x0]
+				s: system/view/metrics/misc/scroller
+				either s [as-pair min-sz/x + s/x min-sz/y][min-sz]
 			]
 			all [face/type = 'area string? face/text not empty? face/text][
 				len: 0
@@ -315,6 +316,7 @@ system/view/VID: context [
 				| 'cursor	  (add-option opts compose [cursor: (pre-load fetch-argument cursor! spec)])
 				| 'init		  (opts/init: fetch-argument block! spec)
 				| 'with		  (do-with: fetch-argument block! spec)
+				| 'tight	  (if opts/text [tight?: yes])
 				| 'react	  (
 					if later?: spec/2 = 'later [spec: next spec]
 					repend reactors [face fetch-argument block! spec later?]
@@ -460,6 +462,8 @@ system/view/VID: context [
 				max sz min-sz
 			]
 		]
+		if tight? [face/size: calc-size face]
+		
 		all [											;-- account for hard margins
 			not styling?
 			mar: select system/view/metrics/margins face/type
