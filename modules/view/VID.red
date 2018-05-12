@@ -145,19 +145,19 @@ system/view/VID: context [
 					offset: offset + either dir = 'across [
 						switch align [
 							top	   [negate mar/2/x]
-							middle [to integer! round mar/2/x + mar/2/y / 2.0]
+							middle [to integer! round/floor mar/2/x + mar/2/y / 2.0]
 							bottom [mar/2/y]
 						]
 					][
 						switch align [
 							left   [negate mar/1/x]
-							center [to integer! round mar/1/x + mar/1/y / 2.0]
+							center [to integer! round/floor mar/1/x + mar/1/y / 2.0]
 							right  [mar/1/y]
 						]
 					]
 				]
 				if offset <> 0 [
-					if find [center middle] align [offset: to integer! round offset / 2.0]
+					if find [center middle] align [offset: to integer! round/floor offset / 2.0]
 					face/offset/:axis: face/offset/:axis + offset
 				]
 			]
