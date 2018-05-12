@@ -720,7 +720,8 @@ system/view/platform: context [
 				group-box:		[3x3  10x3]
 				tab-panel:		[1x3  25x0]
 				button:			[8x8   0x0]
-				drop-down:		[0x7  0x0]
+				drop-down:		[0x7   0x0]
+				drop-list:		[0x7   0x0]
 			]
 			macOS [
 				button:			[11x11 0x0 regular 14x14 0x0 small 11x11 0x0 mini 11x11 0x0]

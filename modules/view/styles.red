@@ -72,11 +72,11 @@ Red [
 	]
 	drop-list: [
 		default-actor: on-change
-		template: [type: 'drop-list size: 100x24]
+		template: [type: 'drop-list size: 100x23]
 	]
 	drop-down: [
 		default-actor: on-enter
-		template: [type: 'drop-down size: 100x24]
+		template: [type: 'drop-down size: 100x23]
 	]
 	panel: [
 		default-actor: on-down						;@@ something better?
