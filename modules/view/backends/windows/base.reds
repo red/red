@@ -523,6 +523,7 @@ BaseWndProc: func [
 					bitblt-memory-dc hWnd no
 				]
 			][
+				if null? current-msg [return -1]
 				system/thrown: 0
 				DC: declare draw-ctx!				;@@ should declare it on stack
 				draw-begin DC hWnd null no yes
