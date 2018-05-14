@@ -122,6 +122,7 @@ system: context [
 				bad-func-extern:	["invalid /extern value:" :arg1]
 				no-refine:			[:arg1 "has no refinement called" :arg2]
 				bad-refines:		"incompatible or invalid refinements"
+				too-many-refines:	"Too many refinements"
 				bad-refine:			["incompatible refinement:" :arg1]
 				word-first:			["path must start with a word:" :arg1]
 				empty-path:			"cannot evaluate an empty path value"
