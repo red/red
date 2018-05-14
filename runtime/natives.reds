@@ -57,6 +57,24 @@ natives: context [
 		]
 	]
 	
+	;-- used to check if native function has more than one refinement
+	unique-refinement?: func[
+		[variadic]
+		count [integer!] list [int-ptr!]
+		return: [logic!]
+		/local
+			num		[integer!]
+	][
+		num: 0
+		until [
+			if list/value > -1 [num: num + 1]
+			list: list + 1
+			count: count - 1
+			any [zero? count num > 1]
+		]
+		num <= 1
+	]
+
 	;--- Natives ----
 	
 	if*: func [check? [logic!]][
@@ -2433,6 +2451,9 @@ natives: context [
 			n	[integer!]
 	][
 		#typecheck [now year month day time zone _date weekday yearday precise utc]
+		if not unique-refinement? [year month day time zone _date weekday yearday precise utc][
+			fire [TO_ERROR(script too-many-refines)]
+		]
 
 		dt: as red-date! stack/arguments
 		dt/header: TYPE_DATE
