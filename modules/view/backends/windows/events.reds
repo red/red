@@ -1465,8 +1465,9 @@ do-events: func [
 ][
 	msg: declare tagMSG
 	msg?: no
-	exit-loop: 0
-	
+
+	unless no-wait? [exit-loop: 0]
+
 	while [
 		either no-wait? [
 			0 < PeekMessage msg null 0 0 1
