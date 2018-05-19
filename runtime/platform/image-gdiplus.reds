@@ -394,7 +394,6 @@ OS-image: context [
 		stride: bmp-src/stride
 		w: bmp-src/width
 		bytes: stride * lines
-		if pixels <> 0 [bytes: stride / pbytes - w + pixels * pbytes + bytes]
 		offset: offset / w * stride + (offset % w * pbytes)
 		copy-memory bmp-dst/scan0 bmp-src/scan0 + offset bytes
 		unlock-bitmap-fmt src as-integer bmp-src
@@ -616,11 +615,11 @@ OS-image: context [
 					if size/y < h [h: size/y]
 					GdipCloneBitmapAreaI x y w h format handle :bmp
 				][
-					either part < width [h: 0 w: part][
+					either part < width [h: 1 w: part][
 						h: part / width
-						w: part % width
+						w: width
 					]
-					if zero? part [w: 1]
+					if zero? part [w: 1 h: 1]
 					GdipCreateBitmapFromScan0 w h 0 format null :bmp
 					either zero? part [w: 0 h: 0][
 						copy bmp handle w h offset format
