@@ -569,9 +569,10 @@ map: context [
 		map		[red-hash!]
 		return:	[red-value!]
 		/local
-			s	[series!]
-			value [red-value!]
-			i     [integer!]
+			s		[series!]
+			value	[red-value!]
+			i		[integer!]
+			size	[int-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/clear"]]
 
@@ -584,6 +585,9 @@ map: context [
 			_hashtable/delete map/table value
 			i: i + 2
 		]
+		s: as series! map/table/value
+		size: as int-ptr! s/offset
+		size/value: 0
 		as red-value! map
 	]
 
