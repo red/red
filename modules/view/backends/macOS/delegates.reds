@@ -899,13 +899,6 @@ app-send-event: func [
 			check?: yes
 			window: process-mouse-tracking window event
 		]
-		NSApplicationDefined [
-			x: objc_msgSend [event sel_getUid "data1"]
-			if x = QuitMsgData [
-				objc_msgSend [NSApp sel_getUid "stop:" NSApp]
-				exit
-			]
-		]
 		default [0]
 	]
 
@@ -998,7 +991,7 @@ win-should-close: func [
 	return: [logic!]
 ][
 	make-event sender 0 EVT_CLOSE
-	yes
+	no
 ]
 
 win-will-close: func [
