@@ -240,8 +240,10 @@ get-event-offset: func [
 		event	[integer!]
 		offset	[red-pair!]
 		rc		[NSRect!]
+		frame	[NSRect! value]
 		y		[integer!]
 		x		[integer!]
+		v		[integer!]
 ][
 	type: evt/type
 	offset: as red-pair! stack/push*
@@ -272,9 +274,10 @@ get-event-offset: func [
 			type = EVT_SIZING
 			type = EVT_SIZE
 		][
-			rc: as NSRect! (as int-ptr! evt/msg) + 2
-			offset/x: as-integer rc/w
-			offset/y: as-integer rc/h
+			v: objc_msgSend [evt/msg sel_getUid "contentView"]
+			frame: objc_msgSend_rect [v sel_getUid "frame"]
+			offset/x: as-integer frame/w
+			offset/y: as-integer frame/h
 			as red-value! offset
 		]
 		any [

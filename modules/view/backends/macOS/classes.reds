@@ -139,6 +139,7 @@ add-table-view-handler: func [class [integer!]][
 	class_addMethod class sel_getUid "tableView:objectValueForTableColumn:row:" as-integer :object-for-table "@20@0:4@8@12l16"
 	class_addMethod class sel_getUid "tableViewSelectionDidChange:" as-integer :table-select-did-change "v@:@"
 	class_addMethod class sel_getUid "tableView:shouldEditTableColumn:row:" as-integer :table-cell-edit "B@:@@l"
+	class_addMethod class sel_getUid "red-menu-action:" as-integer :red-menu-action "v@:@"
 ]
 
 add-camera-handler: func [class [integer!]][

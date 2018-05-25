@@ -1034,12 +1034,12 @@ win-did-resize: func [
 		v	[integer!]
 		rc	[NSRect! value]
 ][
+	make-event self 0 EVT_SIZING
 	v: objc_msgSend [self sel_getUid "contentView"]
 	rc: objc_msgSend_rect [v sel_getUid "frame"]
 	sz: (as red-pair! get-face-values self) + FACE_OBJ_SIZE		;-- update face/size
 	sz/x: as-integer rc/w
 	sz/y: as-integer rc/h
-	make-event self 0 EVT_SIZING
 ]
 
 win-live-resize: func [
