@@ -1038,11 +1038,6 @@ WndProc: func [
 					][FACE_OBJ_SIZE]
 					if miniz? [return 0]
 
-					offset: as red-pair! values + type
-					offset/header: TYPE_PAIR
-					offset/x: WIN32_LOWORD(lParam) * 100 / dpi-factor
-					offset/y: WIN32_HIWORD(lParam) * 100 / dpi-factor
-
 					modal-loop-type: either msg = WM_MOVE [
 						SetWindowLong hWnd wc-offset - 8 lParam
 						EVT_MOVING
@@ -1050,6 +1045,11 @@ WndProc: func [
 					current-msg/hWnd: hWnd
 					current-msg/lParam: lParam
 					make-event current-msg 0 modal-loop-type
+
+					offset: as red-pair! values + type
+					offset/header: TYPE_PAIR
+					offset/x: WIN32_LOWORD(lParam) * 100 / dpi-factor
+					offset/y: WIN32_HIWORD(lParam) * 100 / dpi-factor
 
 					values: values + FACE_OBJ_STATE
 					if all [
