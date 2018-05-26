@@ -184,6 +184,19 @@ Red [
 
 ===end-group===
 
+===start-group=== "clear"
+
+	--test-- "map-clear-1"
+		m: #()
+		put m 'b 1
+		clear m
+		put m "b" 1
+		clear m
+		put m 'b 1
+		--assert #(b 1) = m
+
+===end-group=== 
+
 ===start-group=== "issues"
 
 	--test-- "issue-1835"
