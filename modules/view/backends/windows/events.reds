@@ -1341,7 +1341,6 @@ process: func [
 		x	   [integer!]
 		y	   [integer!]
 		track  [tagTRACKMOUSEEVENT value]
-		evt?   [logic!]
 ][
 	switch msg/msg [
 		WM_MOUSEMOVE [
@@ -1358,19 +1357,11 @@ process: func [
 			]
 			saved: msg/hWnd
 			new: get-child-from-xy msg/hWnd x y
-			
-			evt?: all [hover-saved <> null hover-saved <> new]
-			
-			if all [evt? IsWindowEnabled hover-saved] [
-				msg/hWnd: hover-saved
-				make-event msg EVT_FLAG_AWAY EVT_OVER
-			]
 			if all [
 				IsWindowEnabled new
 				any [
-					evt?
+					hover-saved <> new
 					(get-face-flags new) and FACET_FLAGS_ALL_OVER <> 0
-					null? hover-saved
 				]
 			][
 				track/cbSize: size? tagTRACKMOUSEEVENT
@@ -1385,11 +1376,8 @@ process: func [
 			EVT_DISPATCH
 		]
 		WM_MOUSELEAVE [
-			saved: msg/hWnd
-			msg/hWnd: hover-saved
 			make-event msg EVT_FLAG_AWAY EVT_OVER
-			hover-saved: null
-			msg/hWnd: saved
+			if msg/hWnd = hover-saved [hover-saved: null]
 			EVT_DISPATCH
 		]
 		WM_MOUSEWHELL [
