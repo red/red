@@ -1364,11 +1364,13 @@ process: func [
 					(get-face-flags new) and FACET_FLAGS_ALL_OVER <> 0
 				]
 			][
-				track/cbSize: size? tagTRACKMOUSEEVENT
-				track/dwFlags: 2						;-- TME_LEAVE
-				track/hwndTrack: new
-				TrackMouseEvent :track
-				msg/hWnd: new
+				if hover-saved <> new [
+					track/cbSize: size? tagTRACKMOUSEEVENT
+					track/dwFlags: 2					;-- TME_LEAVE
+					track/hwndTrack: new
+					TrackMouseEvent :track
+					msg/hWnd: new
+				]
 				make-event msg 0 EVT_OVER
 			]
 			hover-saved: new
