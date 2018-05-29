@@ -166,7 +166,7 @@ gui-console-ctx: context [
 				clear head system/view/screens/1/pane
 			]
 			on-resizing: function [face [object!] event [event!]][
-				new-sz: face/size
+				new-sz: event/offset
 				console/size: new-sz
 				terminal/resize new-sz
 				terminal/adjust-console-size new-sz
