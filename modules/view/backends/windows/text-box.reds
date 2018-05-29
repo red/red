@@ -308,19 +308,13 @@ OS-text-box-layout: func [
 
 	if null? target [
 		hWnd: face-handle? box
-		either null? hWnd [
+		if null? hWnd [
 			if null? hidden-hwnd [
 				hidden-hwnd: CreateWindowEx WS_EX_TOOLWINDOW #u16 "RedBaseInternal" null WS_POPUP 0 0 2 2 null null hInstance null
 			]
-			target: get-hwnd-render-target hidden-hwnd
-			if render-target-lost? as this! target/value [
-				d2d-release-target target
-				SetWindowLong hidden-hwnd wc-offset - 24 0
-				target: get-hwnd-render-target hidden-hwnd
-			]
-		][
-			target: get-hwnd-render-target hWnd
+			hWnd: hidden-hwnd
 		]
+		target: get-hwnd-render-target hWnd
 	]
 
 	either TYPE_OF(state) = TYPE_BLOCK [
