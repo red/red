@@ -306,6 +306,23 @@ OS-text-box-layout: func [
 	state: as red-block! values + FACE_OBJ_EXT3
 	fmt: as this! create-text-format as red-object! values + FACE_OBJ_FONT
 
+	if null? target [
+		hWnd: face-handle? box
+		either null? hWnd [
+			if null? hidden-hwnd [
+				hidden-hwnd: CreateWindowEx WS_EX_TOOLWINDOW #u16 "RedBaseInternal" null WS_POPUP 0 0 2 2 null null hInstance null
+			]
+			target: get-hwnd-render-target hidden-hwnd
+			if render-target-lost? as this! target/value [
+				d2d-release-target target
+				SetWindowLong hidden-hwnd wc-offset - 24 0
+				target: get-hwnd-render-target hidden-hwnd
+			]
+		][
+			target: get-hwnd-render-target hWnd
+		]
+	]
+
 	either TYPE_OF(state) = TYPE_BLOCK [
 		pval: block/rs-head state
 		int: as red-integer! pval
@@ -317,9 +334,7 @@ OS-text-box-layout: func [
 			COM_SAFE_RELEASE(IUnk old-fmt)
 			int/value: as-integer fmt
 		]
-		int: int + 1
-		if null? target [target: as int-ptr! int/value]
-		bool: as red-logic! int + 2
+		bool: as red-logic! int + 3
 		bool/value: false
 	][
 		block/make-at state 5
@@ -331,18 +346,7 @@ OS-text-box-layout: func [
 		pval: block/rs-head state
 	]
 
-	if null? target [
-		hWnd: face-handle? box
-		if null? hWnd [
-			if null? hidden-hwnd [
-				hidden-hwnd: CreateWindowEx WS_EX_TOOLWINDOW #u16 "RedBaseInternal" null WS_POPUP 0 0 2 2 null null hInstance null
-			]
-			hWnd: hidden-hwnd
-		]
-		target: get-hwnd-render-target hWnd
-		handle/make-at pval + 2 as-integer target
-	]
-
+	handle/make-at pval + 2 as-integer target
 	vec: as red-vector! target + 3
 	if TYPE_OF(vec) = TYPE_VECTOR [vector/rs-clear vec]
 
