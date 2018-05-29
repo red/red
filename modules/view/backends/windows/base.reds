@@ -515,6 +515,9 @@ BaseWndProc: func [
 		]
 		WM_PAINT
 		WM_DISPLAYCHANGE [
+			if (WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) <> 0 [
+				return 0
+			]
 			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
 			either TYPE_OF(draw) = TYPE_BLOCK [
 				either zero? GetWindowLong hWnd wc-offset - 4 [
