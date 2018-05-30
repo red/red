@@ -710,6 +710,9 @@ _series: context [
 
 		s: GET_BUFFER(ser)
 		size: (as-integer s/tail - s/offset) >> (log-b GET_UNIT(s)) - ser/head
+
+        if size <= 0 [return as red-value! ser]    ;-- early exit if nothing to clear
+
 		ownership/check as red-value! ser words/_clear null ser/head size
 		s/tail: as cell! (as byte-ptr! s/offset) + (ser/head << (log-b GET_UNIT(s)))
 		ownership/check as red-value! ser words/_cleared null ser/head 0
@@ -799,7 +802,7 @@ _series: context [
 		head: (as byte-ptr! s/offset) + (ser/head << (log-b unit))
 		tail: as byte-ptr! s/tail
 
-		if head = tail [return ser]						;-- early exit if nothing to remove
+		if head >= tail [return ser]						;-- early exit if nothing to remove
 
 		part: unit
 		items: 1

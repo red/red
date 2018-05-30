@@ -882,6 +882,15 @@ Red [
 		--assert "" = remove back tail a
 		--assert "str12" = head a
 
+	--test-- "remove-str-9 for issue-3369"
+		a: copy "12345678"
+        b: skip a 2
+        c: skip a 6
+        remove/part a 4
+        --assert "" = remove c
+        --assert "5678" = a
+        --assert "78" = b
+
 	--test-- "remove-bin-1"
 		b: #{00010203}
 		--assert #{010203} = remove b
@@ -946,6 +955,16 @@ Red [
 		--assert empty? clear #{0102}
 	--test-- "clear-12"
 		--assert #{01} = head clear next #{010203}
+
+	--test-- "clear-13 for issue-3369"
+		a: copy "12345678"
+        b: skip a 2
+        c: skip a 6
+        remove/part a 4
+        --assert "" = clear c
+        --assert "5678" = a
+        --assert "78" = b
+
 ===end-group===
 
 ===start-group=== "at"
