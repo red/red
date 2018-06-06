@@ -413,19 +413,21 @@ comment {
 		infix: function [a b][a * 10 + b]
 		***: make op! :infix
 		--assert 7 *** 3 = 73
+		
+#do [ if not value? 'interpreted? [
+		interpreted?: attempt [ system/state/interpreted? ]
+	]
+]
+#if not interpreted? [
+	infix2: routine [a [integer!] b [integer!]][integer/box a * 20 + b]
 
-;; Test commented as routine declaration cannot be handled in a code block anymore...
-;;
-;	unless system/state/interpreted? [			;-- routine creation not supported by interpreter
-;		infix2: routine [a [integer!] b [integer!]][integer/box a * 20 + b]
-;
-;		--test-- "infix-2"
-;			*+*: make op! :infix2
-;			--assert 5 *+* 6 = 106
-;
-;		--test-- "infix-3"
-;			--assert 5 *+* 6 *** 7 = 1067
-;	]
+	--test-- "infix-2"
+		*+*: make op! :infix2
+		--assert 5 *+* 6 = 106
+
+	--test-- "infix-3"
+		--assert 5 *+* 6 *** 7 = 1067
+]
 
 ===end-group===
 
