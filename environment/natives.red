@@ -322,6 +322,7 @@ stats: make native! [[
 ]
 
 bind: make native! [[
+		"Bind words to a context; returns rebound words"
 		word 	[block! any-word!]
 		context [any-word! any-object! function!]
 		/copy
@@ -339,6 +340,7 @@ in: make native! [[
 ]
 
 parse: make native! [[
+		"Process a series using dialected grammar rules"
 		input [binary! any-block! any-string!]
 		rules [block!]
 		/case

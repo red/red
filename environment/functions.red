@@ -10,12 +10,12 @@ Red [
 	}
 ]
 
-routine: func [spec [block!] body [block!]][
+routine: func ["Defines a function with a given Red spec and Red/System body" spec [block!] body [block!]][
 	cause-error 'internal 'routines []
 ]
 
 also: func [
-	"Returns the first value, but also evaluates the second."
+	"Returns the first value, but also evaluates the second"
 	value1 [any-type!]
 	value2 [any-type!]
 ][
@@ -34,7 +34,7 @@ attempt: func [
 	]
 ]
 
-comment: func ['value][]
+comment: func ["Consume but don't evaluate the next value" 'value][]
 
 quit: func [
 	"Stops evaluation and exits the program"
@@ -75,6 +75,7 @@ probe: func [
 ]
 
 quote: func [
+	"Return but don't evaluate the next value"
 	:value
 ][
 	:value
@@ -260,6 +261,7 @@ math: function [
 ]
 
 charset: func [
+	"Shortcut for `make bitset!`"
 	spec [block! integer! char! string!]
 ][
 	make bitset! spec
@@ -268,6 +270,7 @@ charset: func [
 p-indent: make string! 30								;@@ to be put in a local context
 
 on-parse-event: func [
+	"Standard parse/trace callback used by PARSE-TRACE"
 	event	[word!]   "Trace events: push, pop, fetch, match, iterate, paren, end"
 	match?	[logic!]  "Result of last matching operation"
 	rule	[block!]  "Current rule at current position"
@@ -521,9 +524,10 @@ modulo: func [
 	either any [a - r = a r + b = b][0][r]
 ]
 
-eval-set-path: func [value1][]
+eval-set-path: func ["Internal Use Only" value1][]
 
 to-red-file: func [
+	"Converts a local system file path to a Red file path"
 	path	[file! string!]
 	return: [file!]
 	/local colon? slash? len i c dst
@@ -564,9 +568,10 @@ to-red-file: func [
 	dst
 ]
 
-dir?: func [file [file! url!]][#"/" = last file]
+dir?: func ["Returns TRUE if the value looks like a directory spec" file [file! url!]][#"/" = last file]
 
 normalize-dir: function [
+	"Return the contents of the system clipboard"
 	dir [file! word! path!]
 ][
 	unless file? dir [dir: to file! mold dir]
@@ -803,7 +808,7 @@ split-path: func [
 	reduce [dir pos]
 ]
 
-do-file: func [file [file! url!] /local saved code new-path src][
+do-file: func ["Internal Use Only" file [file! url!] /local saved code new-path src][
 	saved: system/options/path
 	unless src: find/case read file "Red" [
 		cause-error 'syntax 'no-header reduce [file]
