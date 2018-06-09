@@ -215,6 +215,7 @@ gui-console-ctx: context [
 ]
 
 ask: function [
+	"Prompt the user for input"
 	question [string!]
 	return:  [string!]
 ][
@@ -243,7 +244,7 @@ ask: function [
 	line
 ]
 
-input: function [return: [string!]][ask ""]
+input: function ["Wait for console user input" return: [string!]][ask ""]
 
 #system [
 	red-print-gui: func [
