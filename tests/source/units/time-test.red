@@ -353,25 +353,25 @@ Red [
 
 ===start-group=== "max/min"
 
-;	--test-- "max1"
-;		--assert 1:0:0  = max  1:0:0 0:0:0
-;		--assert 0:0:0  = max -1:0:0 0:0:0
-;	--test-- "max2"
-;		--assert 0:1:0  = max  0:1:0 0:0:0
-;		--assert 0:0:0  = max -0:1:0 0:0:0
-;	--test-- "max3"
-;		--assert 0:0:1  = max  0:0:1 0:0:0
-;		--assert 0:0:0  = max -0:0:1 0:0:0
-;
-;	--test-- "min1"
-;		--assert  0:0:0 = min  1:0:0 0:0:0
-;		--assert -1:0:0 = min -1:0:0 0:0:0
-;	--test-- "min2"
-;		--assert  0:0:0 = min  0:1:0 0:0:0
-;		--assert -0:1:0 = min -0:1:0 0:0:0
-;	--test-- "min3"
-;		--assert  0:0:0 = min  0:0:1 0:0:0
-;		--assert -0:0:1 = min -0:0:1 0:0:0
+	--test-- "max1"
+		--assert 1:0:0  = max  1:0:0 0:0:0
+		--assert 0:0:0  = max -1:0:0 0:0:0
+	--test-- "max2"
+		--assert 0:1:0  = max  0:1:0 0:0:0
+		--assert 0:0:0  = max -0:1:0 0:0:0
+	--test-- "max3"
+		--assert 0:0:1  = max  0:0:1 0:0:0
+		--assert 0:0:0  = max -0:0:1 0:0:0
+
+	--test-- "min1"
+		--assert  0:0:0 = min  1:0:0 0:0:0
+		--assert -1:0:0 = min -1:0:0 0:0:0
+	--test-- "min2"
+		--assert  0:0:0 = min  0:1:0 0:0:0
+		--assert -0:1:0 = min -0:1:0 0:0:0
+	--test-- "min3"
+		--assert  0:0:0 = min  0:0:1 0:0:0
+		--assert -0:0:1 = min -0:0:1 0:0:0
 
 ===end-group===
 
