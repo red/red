@@ -522,7 +522,7 @@ redc: context [
 		]
 		exe: safe-to-local-file exe
 
-		either gui? [
+		either all [Windows? gui?] [
 			gui-sys-call exe any [all [file form-args file] ""]
 		][
 			if with [repend exe [" " form-args file]]
