@@ -14,6 +14,15 @@ routine: func [spec [block!] body [block!]][
 	cause-error 'internal 'routines []
 ]
 
+alert: func [msg [string! block!]][
+	view/flags compose [
+		title "Message"
+		below center
+		text 200 (msg) center
+		button "ok"
+	] 'modal
+]
+
 also: func [
 	"Returns the first value, but also evaluates the second."
 	value1 [any-type!]
