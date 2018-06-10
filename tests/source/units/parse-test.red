@@ -866,8 +866,7 @@ Red [
 	--test-- "str-14"	--assert not parse	"ab"		[[#"b" | "a"]]
 	--test-- "str-15"	--assert parse		"ab"		[["a" | #"b"][#"b" | "a"]]
 	
-	;--test-- "str-16"	--assert parse		"123"		[integer!]
-	
+	--test-- "str-16"	--assert error? try [ parse "123" [integer!] ]
 	
 	--test-- "str-20"
 		res: 0	

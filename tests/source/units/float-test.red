@@ -36,7 +36,7 @@ Red [
 		--assert 0.0 = cosine 90
 
 	--test-- "float-cosine-3"
-		--assert 0.0 = cosine/radians pi / 2
+		;--assert 0.0 = cosine/radians pi / 2
 
 	--test-- "float-sine-1"
 		--assertf~= 0.0 sine/radians pi 1E-13
@@ -369,11 +369,11 @@ Red [
 
 ===start-group=== "various regression tests from bugtracker"
 
-	;--test-- "issue #227 for Red/System"
-	;	t: 2.2
-	;	ss: make object! [v: [float!]]
-	;	ss/v: 2.0
-	;	--assertf~= t - ss/v 0.2 1E-10
+	--test-- "issue #227 for Red/System"
+		t: 2.2
+		ss: make object! [v: [float!]]
+		ss/v: 2.0
+		--assertf~= t - ss/v 0.2 1E-10
 
 	--test-- "issue #221"
 		x: -1.0
@@ -427,12 +427,13 @@ Red [
 	--test-- "special-equality-8"  --assert -1.#INF < 1.#INF
 	--test-- "special-equality-9"  --assert -0.0 = 0.0
 
-	; Issue #2001
-	;--test-- "special-equality-10"  --assert 1.#NaN = 1.#NaN			= false
-	;--test-- "special-equality-11"  --assert 1.#NaN <> 1.#NaN			= true
-	;--test-- "special-equality-12"  --assert [1 1.#NaN] = [1 1.#NaN]	= false
-	;--test-- "special-equality-13"  --assert 1.#INF = 1.#NaN			= false
-	;--test-- "special-equality-14"  --assert 1.23 = 1.#NaN				= false
+	;Issue #2001
+	--test-- "special-equality-10"  --assert 1.#NaN = 1.#NaN			= false
+	--test-- "special-equality-11"  --assert 1.#NaN <> 1.#NaN			= true
+	--test-- "special-equality-12"  --assert [1 1.#NaN] = [1 1.#NaN]	= false
+	--test-- "special-equality-13"  --assert 1.#INF = 1.#NaN			= false
+	--test-- "special-equality-14"  --assert 1.23 = 1.#NaN				= false
+	
 ===end-group===
 
 ===start-group=== "other math functions"
@@ -2559,10 +2560,10 @@ Red [
 	--test-- "float-divide 11"
 		i: 1.0
 		j: 0.0
-		;--assert strict-equal? 1.#INF 1.0 / 0.0
-		;--assert strict-equal? 1.#INF divide 1.0 0.0
-		;--assert strict-equal? 1.#INF i / j
-		;--assert strict-equal? 1.#INF divide i j
+		--assert strict-equal? 1.#INF 1.0 / 0.0
+		--assert strict-equal? 1.#INF divide 1.0 0.0
+		--assert strict-equal? 1.#INF i / j
+		--assert strict-equal? 1.#INF divide i j
 
 	--test-- "float-divide 12"
 		i: 1.0
@@ -2639,10 +2640,10 @@ Red [
 	--test-- "float-divide 21"
 		i: -1.0
 		j: 0.0
-		;--assert strict-equal? -1.#INF -1.0 / 0.0
-		;--assert strict-equal? -1.#INF divide -1.0 0.0
-		;--assert strict-equal? -1.#INF i / j
-		;--assert strict-equal? -1.#INF divide i j
+		--assert strict-equal? -1.#INF -1.0 / 0.0
+		--assert strict-equal? -1.#INF divide -1.0 0.0
+		--assert strict-equal? -1.#INF i / j
+		--assert strict-equal? -1.#INF divide i j
 
 	--test-- "float-divide 22"
 		i: -1.0
@@ -2719,10 +2720,10 @@ Red [
 	--test-- "float-divide 31"
 		i: 2.2250738585072014e-308
 		j: 0.0
-		;--assert strict-equal? 1.#INF 2.2250738585072014e-308 / 0.0
-		;--assert strict-equal? 1.#INF divide 2.2250738585072014e-308 0.0
-		;--assert strict-equal? 1.#INF i / j
-		;--assert strict-equal? 1.#INF divide i j
+		--assert strict-equal? 1.#INF 2.2250738585072014e-308 / 0.0
+		--assert strict-equal? 1.#INF divide 2.2250738585072014e-308 0.0
+		--assert strict-equal? 1.#INF i / j
+		--assert strict-equal? 1.#INF divide i j
 
 	--test-- "float-divide 32"
 		i: 2.2250738585072014e-308
@@ -2799,10 +2800,10 @@ Red [
 	--test-- "float-divide 41"
 		i: -2.2250738585072014e-308
 		j: 0.0
-		;--assert strict-equal? -1.#INF -2.2250738585072014e-308 / 0.0
-		;--assert strict-equal? -1.#INF divide -2.2250738585072014e-308 0.0
-		;--assert strict-equal? -1.#INF i / j
-		;--assert strict-equal? -1.#INF divide i j
+		--assert strict-equal? -1.#INF -2.2250738585072014e-308 / 0.0
+		--assert strict-equal? -1.#INF divide -2.2250738585072014e-308 0.0
+		--assert strict-equal? -1.#INF i / j
+		--assert strict-equal? -1.#INF divide i j
 
 	--test-- "float-divide 42"
 		i: -2.2250738585072014e-308
@@ -2879,10 +2880,10 @@ Red [
 	--test-- "float-divide 51"
 		i: 1.7976931348623157e+308
 		j: 0.0
-		;--assert strict-equal? 1.#INF 1.7976931348623157e+308 / 0.0
-		;--assert strict-equal? 1.#INF divide 1.7976931348623157e+308 0.0
-		;--assert strict-equal? 1.#INF i / j
-		;--assert strict-equal? 1.#INF divide i j
+		--assert strict-equal? 1.#INF 1.7976931348623157e+308 / 0.0
+		--assert strict-equal? 1.#INF divide 1.7976931348623157e+308 0.0
+		--assert strict-equal? 1.#INF i / j
+		--assert strict-equal? 1.#INF divide i j
 
 	--test-- "float-divide 52"
 		i: 1.7976931348623157e+308
@@ -2959,10 +2960,10 @@ Red [
 	--test-- "float-divide 61"
 		i: -1.7976931348623157e+308
 		j: 0.0
-		;--assert strict-equal? -1.#INF -1.7976931348623157e+308 / 0.0
-		;--assert strict-equal? -1.#INF divide -1.7976931348623157e+308 0.0
-		;--assert strict-equal? -1.#INF i / j
-		;--assert strict-equal? -1.#INF divide i j
+		--assert strict-equal? -1.#INF -1.7976931348623157e+308 / 0.0
+		--assert strict-equal? -1.#INF divide -1.7976931348623157e+308 0.0
+		--assert strict-equal? -1.#INF i / j
+		--assert strict-equal? -1.#INF divide i j
 
 	--test-- "float-divide 62"
 		i: -1.7976931348623157e+308
@@ -3039,10 +3040,10 @@ Red [
 	--test-- "float-divide 71"
 		i: 1.1
 		j: 0.0
-		;--assert strict-equal? 1.#INF 1.1 / 0.0
-		;--assert strict-equal? 1.#INF divide 1.1 0.0
-		;--assert strict-equal? 1.#INF i / j
-		;--assert strict-equal? 1.#INF divide i j
+		--assert strict-equal? 1.#INF 1.1 / 0.0
+		--assert strict-equal? 1.#INF divide 1.1 0.0
+		--assert strict-equal? 1.#INF i / j
+		--assert strict-equal? 1.#INF divide i j
 
 	--test-- "float-divide 72"
 		i: 1.1
@@ -3119,10 +3120,10 @@ Red [
 	--test-- "float-divide 81"
 		i: -1.1
 		j: 0.0
-		;--assert strict-equal? -1.#INF -1.1 / 0.0
-		;--assert strict-equal? -1.#INF divide -1.1 0.0
-		;--assert strict-equal? -1.#INF i / j
-		;--assert strict-equal? -1.#INF divide i j
+		--assert strict-equal? -1.#INF -1.1 / 0.0
+		--assert strict-equal? -1.#INF divide -1.1 0.0
+		--assert strict-equal? -1.#INF i / j
+		--assert strict-equal? -1.#INF divide i j
 
 	--test-- "float-divide 82"
 		i: -1.1
@@ -3199,10 +3200,10 @@ Red [
 	--test-- "float-divide 91"
 		i: 1.7976931348623157e+308
 		j: 0.0
-		;--assert strict-equal? 1.#INF 1.7976931348623157e+308 / 0.0
-		;--assert strict-equal? 1.#INF divide 1.7976931348623157e+308 0.0
-		;--assert strict-equal? 1.#INF i / j
-		;--assert strict-equal? 1.#INF divide i j
+		--assert strict-equal? 1.#INF 1.7976931348623157e+308 / 0.0
+		--assert strict-equal? 1.#INF divide 1.7976931348623157e+308 0.0
+		--assert strict-equal? 1.#INF i / j
+		--assert strict-equal? 1.#INF divide i j
 
 	--test-- "float-divide 92"
 		i: 1.7976931348623157e+308
@@ -3279,10 +3280,10 @@ Red [
 	--test-- "float-divide 101"
 		i: -1.7976931348623157e+308
 		j: 0.0
-		;--assert strict-equal? -1.#INF -1.7976931348623157e+308 / 0.0
-		;--assert strict-equal? -1.#INF divide -1.7976931348623157e+308 0.0
-		;--assert strict-equal? -1.#INF i / j
-		;--assert strict-equal? -1.#INF divide i j
+		--assert strict-equal? -1.#INF -1.7976931348623157e+308 / 0.0
+		--assert strict-equal? -1.#INF divide -1.7976931348623157e+308 0.0
+		--assert strict-equal? -1.#INF i / j
+		--assert strict-equal? -1.#INF divide i j
 
 	--test-- "float-divide 102"
 		i: -1.7976931348623157e+308

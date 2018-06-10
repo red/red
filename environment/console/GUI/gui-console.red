@@ -166,7 +166,7 @@ gui-console-ctx: context [
 				clear head system/view/screens/1/pane
 			]
 			on-resizing: function [face [object!] event [event!]][
-				new-sz: face/size
+				new-sz: event/offset
 				console/size: new-sz
 				terminal/resize new-sz
 				terminal/adjust-console-size new-sz
@@ -215,6 +215,7 @@ gui-console-ctx: context [
 ]
 
 ask: function [
+	"Prompt the user for input"
 	question [string!]
 	return:  [string!]
 ][
@@ -243,7 +244,7 @@ ask: function [
 	line
 ]
 
-input: function [return: [string!]][ask ""]
+input: function ["Wait for console user input" return: [string!]][ask ""]
 
 #system [
 	red-print-gui: func [

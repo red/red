@@ -899,13 +899,6 @@ app-send-event: func [
 			check?: yes
 			window: process-mouse-tracking window event
 		]
-		NSApplicationDefined [
-			x: objc_msgSend [event sel_getUid "data1"]
-			if x = QuitMsgData [
-				objc_msgSend [NSApp sel_getUid "stop:" NSApp]
-				exit
-			]
-		]
 		default [0]
 	]
 
@@ -998,7 +991,7 @@ win-should-close: func [
 	return: [logic!]
 ][
 	make-event sender 0 EVT_CLOSE
-	yes
+	no
 ]
 
 win-will-close: func [
@@ -1034,12 +1027,12 @@ win-did-resize: func [
 		v	[integer!]
 		rc	[NSRect! value]
 ][
+	make-event self 0 EVT_SIZING
 	v: objc_msgSend [self sel_getUid "contentView"]
 	rc: objc_msgSend_rect [v sel_getUid "frame"]
 	sz: (as red-pair! get-face-values self) + FACE_OBJ_SIZE		;-- update face/size
 	sz/x: as-integer rc/w
 	sz/y: as-integer rc/h
-	make-event self 0 EVT_SIZING
 ]
 
 win-live-resize: func [

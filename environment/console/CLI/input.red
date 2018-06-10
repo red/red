@@ -565,11 +565,11 @@ unless system/console [
 	]
 ]
 
-_set-buffer-history: routine [line [string!] hist [block!]][
+_set-buffer-history: routine ["Internal Use Only" line [string!] hist [block!]][
 	terminal/setup line hist
 ]
 
-_read-input: routine [prompt [string!]][
+_read-input: routine ["Internal Use Only" prompt [string!]][
 	terminal/edit prompt
 ]
 
@@ -581,6 +581,7 @@ _terminate-console: routine [][
 ]
 
 ask: function [
+	"Prompt the user for input"
 	question [string!]
 	return:  [string!]
 ][
@@ -590,4 +591,4 @@ ask: function [
 	buffer
 ]
 
-input: does [ask ""]
+input: func ["Wait for console user input"] [ask ""]

@@ -13,6 +13,7 @@ Red [
 has-common-part?: no
 
 common-substr: func [
+	"Internal Use Only"
 	blk		[block!]
 	/local a b
 ][
@@ -36,6 +37,7 @@ common-substr: func [
 ]
 
 red-complete-path: func [
+	"Internal Use Only"
 	str		 [string!]
 	console? [logic!]
 	/local s result word w1 ptr words first? sys-word w
@@ -87,6 +89,7 @@ red-complete-path: func [
 ]
 
 red-complete-file: func [
+	"Internal Use Only"
 	str		 [string!]
 	console? [logic!]
 	/local file result path word f files replace? change?
@@ -118,6 +121,7 @@ red-complete-file: func [
 ]
 
 red-complete-input: func [
+	"Internal Use Only"
 	str		 [string!]			;-- should be `tail str`
 	console? [logic!]
 	/local

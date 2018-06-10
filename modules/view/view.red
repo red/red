@@ -17,7 +17,7 @@ Red [
 
 #include %utils.red
 
-event?: routine [value [any-type!] return: [logic!]][TYPE_OF(value) = TYPE_EVENT]
+event?: routine ["Returns true if the value is this type" value [any-type!] return: [logic!]][TYPE_OF(value) = TYPE_EVENT]
 
 face?: function [
 	"Returns TRUE if the value is a face! object"
@@ -112,6 +112,7 @@ metrics?: function [
 ]
 
 set-flag: function [
+	"Sets a flag in a face object"
 	face  [object!]
 	facet [word!]
 	value [any-type!]
@@ -125,6 +126,7 @@ set-flag: function [
 ]
 
 find-flag?: routine [
+	"Checks a flag in a face object"
 	facet	[any-type!]
 	flag 	[word!]
 	/local
@@ -161,7 +163,7 @@ find-flag?: routine [
 	bool/value:	 found?
 ]
 
-debug-info?: func [face [object!] return: [logic!]][
+debug-info?: func ["Internal use only" face [object!] return: [logic!]][
 	all [
 		system/view/debug?
 		not all [
@@ -176,7 +178,7 @@ debug-info?: func [face [object!] return: [logic!]][
 	]
 ]
 
-on-face-deep-change*: function [owner word target action new index part state forced?][
+on-face-deep-change*: function ["Internal use only" owner word target action new index part state forced?][
 	if debug-info? owner [
 		print [
 			"-- on-deep-change event --" 		 lf
@@ -308,7 +310,7 @@ on-face-deep-change*: function [owner word target action new index part state fo
 	]
 ]
 
-link-tabs-to-parent: function [face [object!] /init][
+link-tabs-to-parent: function ["Internal Use Only" face [object!] /init][
 	if faces: face/pane [
 		visible?: face/visible?
 		forall faces [
@@ -321,7 +323,7 @@ link-tabs-to-parent: function [face [object!] /init][
 	]
 ]
 
-link-sub-to-parent: function [face [object!] type [word!] old new][
+link-sub-to-parent: function ["Internal Use Only" face [object!] type [word!] old new][
 	if object? new [
 		unless all [parent: in new 'parent block? get parent][
 			new/parent: make block! 4
@@ -336,7 +338,7 @@ link-sub-to-parent: function [face [object!] type [word!] old new][
 	]
 ]
 
-update-font-faces: function [parent [block! none!]][
+update-font-faces: function ["Internal Use Only" parent [block! none!]][
 	if block? parent [
 		foreach f parent [
 			if f/state [
@@ -678,12 +680,12 @@ do-events: function [
 	:result
 ]
 
-do-safe: func [code [block!] /local result][
+do-safe: func ["Internal Use Only" code [block!] /local result][
 	if error? set/any 'result try/all code [print :result]
 	get/any 'result
 ]
 
-do-actor: function [face [object!] event [event! none!] type [word!] /local result][
+do-actor: function ["Internal Use Only" face [object!] event [event! none!] type [word!] /local result][
 	if all [
 		object? face/actors
 		act: in face/actors name: select system/view/evt-names type
@@ -870,6 +872,7 @@ center-face: function [
 ]
 
 make-face: func [
+	"Make a face from a given style name or example face"
 	style   [word!]  "A face type"
 	/spec 
 		blk [block!] "Spec block of face options expressed in VID"

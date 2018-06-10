@@ -897,6 +897,15 @@ change-data: func [
 		caption [c-string!]
 		type	[integer!]
 		len		[integer!]
+		font	[red-object!]
+		ivar	[integer!]
+		nsstr	[integer!]
+		attr	[integer!]
+		max-w	[float32!]
+		view	[integer!]
+		sz		[NSSize! value]
+		rc		[NSRect!]
+		face	[red-object!]
 ][
 	data: as red-value! values + FACE_OBJ_DATA
 	word: as red-word! values + FACE_OBJ_TYPE
@@ -926,13 +935,52 @@ change-data: func [
 			set-logic-state hWnd as red-logic! data no
 		]
 		type = tab-panel [
-			set-tabs hWnd get-face-values hWnd
+			set-tabs hWnd values
 		]
 		all [
 			type = text-list
 			TYPE_OF(data) = TYPE_BLOCK
 		][
-			objc_msgSend [objc_msgSend [hWnd sel_getUid "documentView"] sel_getUid "reloadData"]
+			len: block/rs-length? as red-block! data
+			data: block/rs-head as red-block! data
+			font: as red-object! values + FACE_OBJ_FONT
+			ivar: class_getInstanceVariable object_getClass hWnd IVAR_RED_FACE
+			face: as red-object! hWnd + ivar_getOffset ivar
+			either TYPE_OF(font) = TYPE_OBJECT [
+				attr: make-font-attrs font face text-list
+			][
+				attr: objc_msgSend [objc_getClass "NSDictionary" sel_getUid "alloc"]
+				attr: objc_msgSend [
+					attr sel_getUid "initWithObjectsAndKeys:"
+					default-font NSFontAttributeName
+					0
+				]
+			]
+			max-w: as float32! 2.0
+			loop len [
+				if TYPE_OF(data) <> TYPE_STRING [continue]
+				nsstr: to-NSString as red-string! data
+				sz: objc_msgSend_sz [nsstr sel_getUid "sizeWithAttributes:" attr]
+				if sz/w > max-w [max-w: sz/w]
+				data: data + 1
+			]
+			objc_msgSend [attr sel_release]
+			size: as red-pair! values + FACE_OBJ_SIZE
+			view: objc_msgSend [hWnd sel_getUid "documentView"]
+			sz: objc_msgSend_sz [view sel_getUid "frameSize"]
+			rc: make-rect 0 0 as-integer sz/w size/y
+			either max-w > rc/w [
+				rc/w: max-w + as float32! 16.0
+				objc_msgSend [view sel_release]
+				make-text-list
+					face
+					hWnd
+					rc
+					as red-block! values + FACE_OBJ_MENU
+					NSNoBorder <> objc_msgSend [hWnd sel_getUid "borderType"]
+			][
+				objc_msgSend [view sel_getUid "reloadData"]
+			]
 		]
 		any [type = drop-list type = drop-down][
 			init-combo-box hWnd as red-block! data null type = drop-list
@@ -1308,7 +1356,9 @@ make-text-list: func [
 	face		[red-object!]
 	container	[integer!]
 	rc			[NSRect!]
+	menu		[red-block!]
 	border?		[logic!]
+	return:		[integer!]
 	/local
 		id		[integer!]
 		obj		[integer!]
@@ -1316,7 +1366,7 @@ make-text-list: func [
 ][
 	rc/x: as float32! 0.0
 	rc/y: as float32! 0.0
-	rc/w: rc/w - 16.0
+	rc/w: rc/w - as float32! 5.0
 
 	id: CFString("RedCol1")
 	column: objc_msgSend [objc_getClass "NSTableColumn" sel_getUid "alloc"]
@@ -1327,7 +1377,7 @@ make-text-list: func [
 	obj: either border? [NSBezelBorder][NSNoBorder]
 	objc_msgSend [container sel_getUid "setBorderType:" obj]
 	objc_msgSend [container sel_getUid "setAutohidesScrollers:" yes]
-	;objc_msgSend [container sel_getUid "setHasHorizontalScroller:" yes]
+	objc_msgSend [container sel_getUid "setHasHorizontalScroller:" yes]
 	objc_msgSend [container sel_getUid "setHasVerticalScroller:" yes]
 	;objc_msgSend [container sel_getUid "setAutoresizingMask:" NSViewWidthSizable or NSViewHeightSizable]
 
@@ -1340,6 +1390,8 @@ make-text-list: func [
 	]
 	store-face-to-obj obj id face
 
+	if TYPE_OF(menu) = TYPE_BLOCK [set-context-menu obj menu]
+
 	objc_msgSend [obj sel_getUid "setRowSizeStyle:" 0]
 	objc_msgSend [obj sel_getUid "setHeaderView:" 0]
 	objc_msgSend [obj sel_getUid "addTableColumn:" column]
@@ -1350,6 +1402,7 @@ make-text-list: func [
 	objc_msgSend [container sel_getUid "setDocumentView:" obj]
 	objc_msgSend [obj sel_getUid "release"]
 	objc_msgSend [column sel_getUid "release"]
+	obj
 ]
 
 update-combo-box: func [
@@ -1538,11 +1591,13 @@ set-hint-text: func [
 	options		[red-block!]
 	/local
 		text	[red-string!]
+		cell	[integer!]
 ][
 	if TYPE_OF(options) <> TYPE_BLOCK [exit]
 	text: as red-string! block/select-word options word/load "hint" no
 	if TYPE_OF(text) = TYPE_STRING [
-		objc_msgSend [hWnd sel_getUid "setPlaceholderString:" to-NSString text]
+		cell: objc_msgSend [hWnd sel_getUid "cell"]
+		objc_msgSend [cell sel_getUid "setPlaceholderString:" to-NSString text]
 	]
 ]
 
@@ -1795,7 +1850,7 @@ OS-make-view: func [
 			make-area face obj rc caption bits and FACET_FLAGS_NO_BORDER = 0
 		]
 		sym = text-list [
-			make-text-list face obj rc bits and FACET_FLAGS_NO_BORDER = 0
+			make-text-list face obj rc menu bits and FACET_FLAGS_NO_BORDER = 0
 		]
 		any [sym = button sym = check sym = radio][
 			if sym <> button [

@@ -1336,12 +1336,6 @@ XFORM!: alias struct! [
 			y			[integer!]
 			return:		[handle!]
 		]
-		RealChildWindowFromPoint: "RealChildWindowFromPoint" [
-			hwndParent	[handle!]
-			x			[integer!]
-			y			[integer!]
-			return:		[handle!]
-		]
 		ChildWindowFromPointEx: "ChildWindowFromPointEx" [
 			hwndParent	[handle!]
 			x			[integer!]

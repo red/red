@@ -240,8 +240,10 @@ get-event-offset: func [
 		event	[integer!]
 		offset	[red-pair!]
 		rc		[NSRect!]
+		frame	[NSRect! value]
 		y		[integer!]
 		x		[integer!]
+		v		[integer!]
 ][
 	type: evt/type
 	offset: as red-pair! stack/push*
@@ -272,9 +274,10 @@ get-event-offset: func [
 			type = EVT_SIZING
 			type = EVT_SIZE
 		][
-			rc: as NSRect! (as int-ptr! evt/msg) + 2
-			offset/x: as-integer rc/w
-			offset/y: as-integer rc/h
+			v: objc_msgSend [evt/msg sel_getUid "contentView"]
+			frame: objc_msgSend_rect [v sel_getUid "frame"]
+			offset/x: as-integer frame/w
+			offset/y: as-integer frame/h
 			as red-value! offset
 		]
 		any [
@@ -576,33 +579,43 @@ do-events: func [
 		msg?	[logic!]
 		pool	[integer!]
 		timeout [integer!]
-		event	[integer!]
+		event	[int-ptr!]
 ][
 	msg?: no
-	either no-wait? [
+	timeout: either no-wait? [0][
+		loop-started?: yes
+		objc_msgSend [NSApp sel_getUid "activateIgnoringOtherApps:" 1]
+		objc_msgSend [objc_getClass "NSDate" sel_getUid "distantFuture"]	
+	]
+
+	until [
 		pool: objc_msgSend [objc_getClass "NSAutoreleasePool" sel_getUid "alloc"]
 		objc_msgSend [pool sel_getUid "init"]
 
-		event: objc_msgSend [
+		event: as int-ptr! objc_msgSend [
 			NSApp sel_getUid "nextEventMatchingMask:untilDate:inMode:dequeue:"
 			NSAnyEventMask
-			0
+			timeout
 			NSDefaultRunLoopMode
 			true
 		]
-		if event <> 0 [
+		if event <> null [
 			msg?: yes
-			objc_msgSend [NSApp sel_getUid "sendEvent:" event]
+			either all [
+				event/2 = NSApplicationDefined
+				QuitMsgData = objc_msgSend [event sel_getUid "data1"]
+			][
+				no-wait?: yes
+			][
+				objc_msgSend [NSApp sel_getUid "sendEvent:" event]
+			]
 		]
 		objc_msgSend [pool sel_getUid "drain"]
-	][
-		loop-started?: yes
-		objc_msgSend [NSApp sel_getUid "activateIgnoringOtherApps:" 1]
-		objc_msgSend [NSApp sel_getUid "run"]
-		#if sub-system <> 'gui [
-			if zero? win-cnt [objc_msgSend [NSApp sel_getUid "deactivate"]]
-		]
-		msg?: yes
+		no-wait?
+	]
+
+	#if sub-system <> 'gui [
+		if zero? win-cnt [objc_msgSend [NSApp sel_getUid "deactivate"]]
 	]
 	msg?
 ]

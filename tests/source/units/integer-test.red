@@ -30,7 +30,7 @@ Red [
 	--test-- "pow4" --assertf~= -0.3333333333333333 (power -3 -1) 1E-13
 	--test-- "pow5" --assert -1  = power -1 3
 	--test-- "pow6" --assert 1	 = power -1 -4
-	;--test-- "pow7" --assert 0.0 = power 0 -1		;@@ return INF or 0.0
+	--test-- "pow7" --assert 1.#INF = power 0 -1
 ===end-group===
 
 ===start-group=== "max/min"
@@ -1668,10 +1668,10 @@ Red [
 	--test-- "-2147483648 % -1"
 		i: -2147483648
 		j: -1
-		;--assert error? try [-2147483648 % -1]
-		;--assert error? try [remainder -2147483648 -1]
-		;--assert error? try [i % j]
-		;--assert error? try [remainder i j]
+		--assert error? try [-2147483648 % -1]
+		--assert error? try [remainder -2147483648 -1]
+		--assert error? try [i % j]
+		--assert error? try [remainder i j]
 
 	--test-- "-2147483648 % 2147483647"
 		i: -2147483648
@@ -1952,18 +1952,18 @@ Red [
 	--test-- "0 // -2147483648"
 		i: 0
 		j: -2147483648
-		;--assert strict-equal? 0 0 // -2147483648
-		;--assert strict-equal? 0 modulo 0 -2147483648
-		;--assert strict-equal? 0 i // j
-		;--assert strict-equal? 0 modulo i j
+		--assert error? try [ 0 // -2147483648 ]
+		--assert error? try [ modulo 0 -2147483648 ]
+		--assert error? try [ i // j ]
+		--assert error? try [ modulo i j ]
 
 	--test-- "0 // 2147483647"
 		i: 0
 		j: 2147483647
-		;--assert strict-equal? 0 0 // 2147483647
-		;--assert strict-equal? 0 modulo 0 2147483647
-		;--assert strict-equal? 0 i // j
-		;--assert strict-equal? 0 modulo i j
+		--assert strict-equal? 0 0 // 2147483647
+		--assert strict-equal? 0 modulo 0 2147483647
+		--assert strict-equal? 0 i // j
+		--assert strict-equal? 0 modulo i j
 
 	--test-- "0 // -7"
 		i: 0

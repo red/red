@@ -26,8 +26,8 @@ Red [
 	--assert none = select [1 2 3 4] "1"
 	--test-- "select-7" 
 	--assert #"2" = select "12345" #"1"
-	;--test-- "select-8" 								;; unsupported case, it is unsure if it will be implemented or not
-	;--assert #"2" = select "12345" 1					;; keeping it here commented for further reference.
+	--test-- "select-8"
+	--assert none = select "12345" 1
 	--test-- "select-9" 
 	--assert #"2" = select "12345" "1"
 	--test-- "select-10" 

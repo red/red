@@ -101,7 +101,8 @@ write/append file-out {~~~end-file~~~^/}
 
 file-out: %auto-tests/run-all-interp.red
 write-test-header file-out
-write/append file-out {~~~start-file~~~ "run-all-interp"^/do [^/} 
+write/append file-out 
+	{~~~start-file~~~ "run-all-interp"^/ do [^/} 
 foreach file file-list-interp [
 	src: read/lines to file! file
 	until [										;; ignore header
@@ -114,6 +115,8 @@ foreach file file-list-interp [
 			find line "start-file~~~"
 			find line "end-file~~~" 
 		][
+			replace line {"Infix operators creation"}
+				{"Infix operators creation"^/ #do [interpreted?: true]^/}
 			write/append file-out join line lf
 		]
 	]		

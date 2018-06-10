@@ -1157,3 +1157,16 @@ render-text-d2d: func [
 		false
 	]
 ]
+
+render-target-lost?: func [
+	target	[this!]
+	return: [logic!]
+	/local
+		rt	 [ID2D1HwndRenderTarget]
+		hr	 [integer!]
+][
+	rt: as ID2D1HwndRenderTarget target/vtbl
+	rt/BeginDraw target
+	rt/Clear target to-dx-color 0 null
+	0 <> rt/EndDraw target null null
+]

@@ -708,7 +708,6 @@ OS-image: context [
 			dst-buf [byte-ptr!]
 			handle	[int-ptr!]
 	][
-		copy-cell as red-value! src as red-value! dst
 		inode: as img-node! (as series! src/node/value) + 1
 		handle: inode/handle
 		width: IMAGE_WIDTH(inode/size)
@@ -722,6 +721,7 @@ OS-image: context [
 
 		either all [zero? offset not part?][
 			inode/handle: CGImageCreateCopy handle
+			dst/size: src/size
 		][
 			either all [part? TYPE_OF(size) = TYPE_PAIR][
 				w: width - x
@@ -748,6 +748,7 @@ OS-image: context [
 			inode/size: h << 16 or w
 			dst/size: inode/size
 		]
+		dst/head: 0
 		dst
 	]
 ]

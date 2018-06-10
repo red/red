@@ -1038,11 +1038,6 @@ WndProc: func [
 					][FACE_OBJ_SIZE]
 					if miniz? [return 0]
 
-					offset: as red-pair! values + type
-					offset/header: TYPE_PAIR
-					offset/x: WIN32_LOWORD(lParam) * 100 / dpi-factor
-					offset/y: WIN32_HIWORD(lParam) * 100 / dpi-factor
-
 					modal-loop-type: either msg = WM_MOVE [
 						SetWindowLong hWnd wc-offset - 8 lParam
 						EVT_MOVING
@@ -1050,6 +1045,11 @@ WndProc: func [
 					current-msg/hWnd: hWnd
 					current-msg/lParam: lParam
 					make-event current-msg 0 modal-loop-type
+
+					offset: as red-pair! values + type
+					offset/header: TYPE_PAIR
+					offset/x: WIN32_LOWORD(lParam) * 100 / dpi-factor
+					offset/y: WIN32_HIWORD(lParam) * 100 / dpi-factor
 
 					values: values + FACE_OBJ_STATE
 					if all [
@@ -1341,7 +1341,6 @@ process: func [
 		x	   [integer!]
 		y	   [integer!]
 		track  [tagTRACKMOUSEEVENT value]
-		evt?   [logic!]
 ][
 	switch msg/msg [
 		WM_MOUSEMOVE [
@@ -1358,26 +1357,20 @@ process: func [
 			]
 			saved: msg/hWnd
 			new: get-child-from-xy msg/hWnd x y
-			
-			evt?: all [hover-saved <> null hover-saved <> new]
-			
-			if all [evt? IsWindowEnabled hover-saved] [
-				msg/hWnd: hover-saved
-				make-event msg EVT_FLAG_AWAY EVT_OVER
-			]
 			if all [
 				IsWindowEnabled new
 				any [
-					evt?
+					hover-saved <> new
 					(get-face-flags new) and FACET_FLAGS_ALL_OVER <> 0
-					null? hover-saved
 				]
 			][
-				track/cbSize: size? tagTRACKMOUSEEVENT
-				track/dwFlags: 2						;-- TME_LEAVE
-				track/hwndTrack: new
-				TrackMouseEvent :track
-				msg/hWnd: new
+				if hover-saved <> new [
+					track/cbSize: size? tagTRACKMOUSEEVENT
+					track/dwFlags: 2					;-- TME_LEAVE
+					track/hwndTrack: new
+					TrackMouseEvent :track
+					msg/hWnd: new
+				]
 				make-event msg 0 EVT_OVER
 			]
 			hover-saved: new
@@ -1385,11 +1378,8 @@ process: func [
 			EVT_DISPATCH
 		]
 		WM_MOUSELEAVE [
-			saved: msg/hWnd
-			msg/hWnd: hover-saved
 			make-event msg EVT_FLAG_AWAY EVT_OVER
-			hover-saved: null
-			msg/hWnd: saved
+			if msg/hWnd = hover-saved [hover-saved: null]
 			EVT_DISPATCH
 		]
 		WM_MOUSEWHELL [
