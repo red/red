@@ -580,7 +580,7 @@ to-red-file: func [
 dir?: func ["Returns TRUE if the value looks like a directory spec" file [file! url!]][#"/" = last file]
 
 normalize-dir: function [
-	"Return the contents of the system clipboard"
+	"Returns an absolute directory spec"
 	dir [file! word! path!]
 ][
 	unless file? dir [dir: to file! mold dir]
