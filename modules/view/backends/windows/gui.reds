@@ -620,6 +620,8 @@ free-faces: func [
 		]
 	]
 	either sym = window [
+		state: values + FACE_OBJ_SELECTED
+		state/header: TYPE_NONE
 		SetWindowLong handle wc-offset - 4 -1
 		PostMessage handle WM_CLOSE 0 0
 	][

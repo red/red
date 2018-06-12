@@ -600,7 +600,7 @@ process-command-event: func [
 		]
 	]
 	child: as handle! lParam
-	unless null? current-msg [saved: current-msg/hWnd]
+	either null? current-msg [init-current-msg][saved: current-msg/hWnd]
 
 	switch WIN32_HIWORD(wParam) [
 		BN_CLICKED [
@@ -685,7 +685,6 @@ process-command-event: func [
 			]
 		]
 		STN_CLICKED [
-			init-current-msg
 			current-msg/hWnd: child
 			make-event current-msg 0 EVT_LEFT_DOWN
 		]
