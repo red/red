@@ -851,6 +851,16 @@ Red [
 			26-Feb-6712/17:07:12-10:00
 		]
 
+	--test-- "misc-5"
+		res1: make block! 5
+		res2: make block! 5 
+		random/seed now 
+		res1: collect [loop 5 [keep random 10]]
+		wait 1
+		random/seed now 
+		res2: collect [loop 5 [keep random 10]]
+		--assert res1 <> res2 
+
 ===end-group===
 
 ~~~end-file~~~
