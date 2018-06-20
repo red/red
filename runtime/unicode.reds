@@ -910,6 +910,7 @@ unicode: context [
 						s: expand-series s s/size + (size >> 2)	;-- increase size by 50% 
 						buf1: as byte-ptr! s/tail
 						end: (as byte-ptr! s/offset) + s/size
+						src: as-c-string (as series! str/cache/value) + 1
 					]
 					buf1/1: as-byte cp
 					buf1/2: null-byte
@@ -921,6 +922,7 @@ unicode: context [
 						s: expand-series s s/size + size ;-- increase size by 100% 
 						buf4: as int-ptr! s/tail
 						end: (as byte-ptr! s/offset) + s/size
+						src: as-c-string (as series! str/cache/value) + 1
 					]
 					buf4/value: cp
 					buf4: buf4 + 1
