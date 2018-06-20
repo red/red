@@ -4680,6 +4680,7 @@ red: context [
 		append script declarations
 		pos: tail script
 		append script [
+			red/boot?: no
 			------------| "Functions"
 		]
 		append script output

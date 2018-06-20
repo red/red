@@ -183,6 +183,7 @@ system/view/platform: context [
 				PEN_LINE_CAP
 				PEN_LINE_JOIN
 			]
+			red/boot?: yes								;-- forces words allocation in root block
 			
 			facets: context [
 				type:		symbol/make "type"
@@ -371,6 +372,8 @@ system/view/platform: context [
 			_right-command:	word/load "right-command"
 			_caps-lock:		word/load "caps-lock"
 			_num-lock:		word/load "num-lock"
+			
+			red/boot?: no
 
 			get-event-type: func [
 				evt		[red-event!]

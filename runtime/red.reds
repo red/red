@@ -135,10 +135,12 @@ red: context [
 	stk-bottom: system/stack/top
 
 	verbosity:  0
+	boot?: 		no
 
 	;-- Booting... --
 	
 	init: does [
+		boot?: yes
 		dyn-print/init
 		platform/init
 		_random/init
