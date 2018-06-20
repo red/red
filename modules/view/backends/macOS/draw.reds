@@ -3,7 +3,7 @@ Red/System [
 	Author: "Qingtian Xie"
 	File: 	%draw.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2016 Qingtian Xie. All rights reserved."
+	Rights: "Copyright (C) 2016-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -22,6 +22,8 @@ edges: as CGPoint! allocate max-edges * (size? CGPoint!)	;-- polygone edges buff
 colors: as pointer! [float32!] allocate 5 * max-colors * (size? float32!)
 colors-pos: colors + (4 * max-colors)
 
+draw-state!: alias struct! [unused [integer!]]
+
 draw-begin: func [
 	ctx			[draw-ctx!]
 	CGCtx		[handle!]
@@ -38,12 +40,13 @@ draw-begin: func [
 	unless pattern? [
 		CGContextSaveGState CGCtx
 
-		if on-graphic? [							;-- draw on image!, flip the CTM
+		either on-graphic? [							;-- draw on image!, flip the CTM
 			rc: as NSRect! img
 			CGContextTranslateCTM CGCtx as float32! 0.0 rc/y
 			CGContextScaleCTM CGCtx as float32! 1.0 as float32! -1.0
+		][
+			CGContextTranslateCTM CGCtx as float32! 0.5 as float32! 0.5
 		]
-		CGContextTranslateCTM CGCtx as float32! 0.5 as float32! 0.5
 	]
 
 	ctx/raw:			CGCtx
@@ -58,7 +61,7 @@ draw-begin: func [
 	ctx/pen-color:		0						;-- default: black
 	ctx/pen-join:		miter
 	ctx/pen-cap:		flat
-	ctx/brush-color:	0
+	ctx/brush-color:	-1
 	ctx/grad-pen:		-1
 	ctx/pen?:			yes
 	ctx/brush?:			no
@@ -210,6 +213,7 @@ OS-draw-line-width: func [
 		width-v	[float32!]
 ][
 	width-v: get-float32 as red-integer! width
+	if width-v <= F32_0 [width-v: F32_1]
 	if dc/pen-width <> width-v [
 		dc/pen-width: width-v
 		CGContextSetLineWidth dc/raw width-v
@@ -675,13 +679,17 @@ draw-text-at: func [
 ]
 
 draw-text-box: func [
-	ctx		[handle!]
+	dc		[draw-ctx!]
 	pos		[red-pair!]
 	tbox	[red-object!]
 	catch?	[logic!]
 	/local
 		int		[red-integer!]
+		values	[red-value!]
 		state	[red-block!]
+		str		[red-string!]
+		bool	[red-logic!]
+		layout? [logic!]
 		layout	[integer!]
 		tc		[integer!]
 		idx		[integer!]
@@ -689,11 +697,23 @@ draw-text-box: func [
 		y		[integer!]
 		x		[integer!]
 		pt		[CGPoint!]
+		clr		[integer!]
 ][
-	state: (as red-block! object/get-values tbox) + TBOX_OBJ_STATE
+	values: object/get-values tbox
+	str: as red-string! values + FACE_OBJ_TEXT
+	if TYPE_OF(str) <> TYPE_STRING [exit]
 
-	if TYPE_OF(state) <> TYPE_BLOCK [
-		OS-text-box-layout tbox null catch?
+	state: as red-block! values + FACE_OBJ_EXT3
+	layout?: yes
+	if TYPE_OF(state) = TYPE_BLOCK [
+		bool: as red-logic! (block/rs-tail state) - 1
+		layout?: bool/value
+	]
+	if layout? [
+		clr: either null? dc [0][
+			objc_msgSend [dc/font-attrs sel_getUid "objectForKey:" NSForegroundColorAttributeName]
+		]
+		OS-text-box-layout tbox null clr catch?
 	]
 
 	int: as red-integer! block/rs-head state
@@ -723,8 +743,9 @@ OS-draw-text: func [
 	either TYPE_OF(text) = TYPE_STRING [
 		draw-text-at ctx text dc/font-attrs pos/x pos/y
 	][
-		draw-text-box ctx pos as red-object! text catch?
+		draw-text-box dc pos as red-object! text catch?
 	]
+	CG-set-color ctx dc/pen-color no				;-- drawing text will change pen color, so reset it
 	CG-set-color ctx dc/brush-color yes				;-- drawing text will change brush color, so reset it
 ]
 
@@ -1371,11 +1392,11 @@ OS-matrix-transform: func [
 	_OS-matrix-translate dc/raw translate/x translate/y
 ]
 
-OS-matrix-push: func [dc [draw-ctx!] state [int-ptr!]][
+OS-matrix-push: func [dc [draw-ctx!] state [draw-state!]][
 	CGContextSaveGState dc/raw
 ]
 
-OS-matrix-pop: func [dc [draw-ctx!] state [integer!]][
+OS-matrix-pop: func [dc [draw-ctx!] state [draw-state!]][
 	CGContextRestoreGState dc/raw
 	dc/pen-color:		0
 	dc/brush-color:		0

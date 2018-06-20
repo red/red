@@ -3,7 +3,7 @@ REBOL [
 	Author:   "Nenad Rakocevic"
 	File: 	  %IEEE-754.r
 	Tabs:	 4
-	Rights:   "Copyright (C) 2000-2011-2015 Eric Long, Nenad Rakocevic. All rights reserved."
+	Rights:   "Copyright (C) 2000-2011-2015 Eric Long,-2018 Red Foundation. All rights reserved."
 	License:  "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 	Comment:  {
 		64-bit split/to-native functions from http://www.nwlink.com/~ecotope1/reb/decimal.r

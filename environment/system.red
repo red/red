@@ -3,7 +3,7 @@ Red [
 	Author:  "Nenad Rakocevic"
 	File: 	 %system.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -12,8 +12,9 @@ Red [
 
 system: context [
 	version: #version
-	build:	 context [
-		date:	#build-date
+	build: context [
+		date: to-local-date #build-date
+		git: do #git
 		config: context #build-config
 	]
 		
@@ -34,7 +35,7 @@ system: context [
 		]
 		__make-sys-object
 	]
-	
+
 	platform: func ["Return a word identifying the operating system"][
 		#system [
 			#switch OS [
@@ -45,7 +46,7 @@ system: context [
 			]
 		]
 	]
-	
+
 	catalog: context [
 		datatypes:
 		actions:
@@ -75,6 +76,7 @@ system: context [
 				return:				"return or exit not in function"
 				throw:				["no catch for throw:" :arg1]
 				continue:			"no loop to continue"
+				while-cond:			"BREAK/CONTINUE cannot be used in WHILE condition block"
 			]
 			note: object [
 				code:				100
@@ -98,7 +100,7 @@ system: context [
 				no-value:			[:arg1 "has no value"]
 				need-value:			[:arg1 "needs a value"]
 				not-defined:		[:arg1 "word is not bound to a context"]
-				not-in-context:		[:arg1 "is not in the specified context"]
+				not-in-context:		["context for" :arg1 "is not available"]
 				no-arg:				[:arg1 "is missing its" :arg2 "argument"]
 				expect-arg:			[:arg1 "does not allow" :arg2 "for its" :arg3 "argument"]
 				expect-val:			["expected" :arg1 "not" :arg2]
@@ -153,6 +155,7 @@ system: context [
 				move-bad:			["Cannot MOVE elements from" :arg1 "to" :arg2]
 				too-long:			"Content too long"
 				invalid-char:		["Invalid char! value:" :arg1]
+				bad-loop-series:	["Loop series changed to invalid value:" :arg1]
 				;bad-decode:		"missing or unsupported encoding marker"
 				;already-used:		["alias word is already in use:" :arg1]
 				;wrong-denom:		[:arg1 "not same denomination as" :arg2]
@@ -178,6 +181,8 @@ system: context [
 				not-event-type:		["VIEW - not a valid event type" :arg1]
 				invalid-facet-type:	["VIEW - invalid rate value:" :arg1]
 				vid-invalid-syntax:	["VID - invalid syntax at:" :arg1]
+				rtd-invalid-syntax: ["RTD - invalid syntax at:" :arg1]
+				rtd-no-match:		["RTD - opening/closing tag not matching for:" :arg1]
 				react-bad-func:		"REACT - /LINK option requires a function! as argument"
 				react-not-enough:	"REACT - reactive functions must accept at least 2 arguments"
 				react-no-match:		"REACT - objects block length must match reaction function arg count"
@@ -251,7 +256,7 @@ system: context [
 				feature-na:			"feature not available"
 				not-done:			"reserved for future use (or not yet implemented)"
 				invalid-error:		["invalid error object field value:" :arg1]
-				routines:			"routines require compilation, from OS shell: `red -c <script.red>`"
+				routines:			"routines require compilation, from OS shell: `red -r <script.red>`"
 				red-system:			"contains Red/System code which requires compilation"
 			]
 		]
@@ -296,7 +301,7 @@ system: context [
 	options: context [
 		boot: 			none
 		home: 			none
-		path: 			what-dir
+		path: 			to-red-file get-current-dir
 		script: 		none
 		cache:			none
 		thru-cache:		none
@@ -367,6 +372,9 @@ system: context [
 		]
 		error: context [
 			code: type: id: arg1: arg2: arg3: near: where: stack: none
+		]
+		file-info: context [
+			name: size: date: type: none
 		]
 	]
 	

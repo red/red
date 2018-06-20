@@ -3,7 +3,7 @@ Red/System [
 	Author:	 "Nenad Rakocevic, Xie Qingtian"
 	File: 	 %date.reds
 	Tabs:	 4
-	Rights:	 "Copyright (C) 2017 Nenad Rakocevic. All rights reserved."
+	Rights:	 "Copyright (C) 2017-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -192,7 +192,7 @@ date: context [
 			f	[float!]
 	][
 		;@@ use int64 once we have it
-		f: 10000.0 * days
+		f: 10000.0 * as-float days
 		y: as-integer (f + 14780.0 / 3652425.0)
 
 		dd: days - (365 * y + (y / 4) - (y / 100) + (y / 400))
@@ -479,6 +479,31 @@ date: context [
 			dt/time: to-utc-time t v
 		]
 	]
+
+	set-all: func[
+		dt     [red-date!]
+		year   [integer!]
+		month  [integer!]
+		day    [integer!]
+		hour   [integer!]
+		minute [integer!]
+		second [integer!]
+		nsec   [integer!] 
+		/local d t
+	][
+		d: 0 t: 0.0
+		d: DATE_SET_YEAR(d year)
+		d: DATE_SET_MONTH(d month)
+		d: DATE_SET_DAY(d day)
+		d: DATE_SET_TIME_FLAG(d)
+		t:  (3600.0 * as float! hour)
+		  + (60.0   * as float! minute)
+		  + (         as float! second)
+		  + (1e-9   * as float! nsec)
+		dt/header: TYPE_DATE
+		dt/date: d
+		dt/time: t
+	]
 	
 	create: func [
 		proto 	[red-value!]							;-- overwrite this slot with result
@@ -585,6 +610,9 @@ date: context [
 						i: either all [cnt = 5 min <> 0][min][zone]
 						mn: 0
 					]
+					if all [cnt = 7 zone-t = 0.0 any [zone > 15 zone < -15]][
+						throw-error spec
+					]
 					neg?: either i < 0 [i: 0 - i yes][no]
 					zone: i << 2 and 7Fh or mn
 					if neg? [zone: DATE_SET_ZONE_NEG(zone)]
@@ -602,8 +630,8 @@ date: context [
 		dt/header: TYPE_DATE
 		dt/date: DATE_SET_YEAR(0 year)
 		set-month dt month
-		dt/date: days-to-date day + date-to-days dt/date zone cnt > 3
-		set-time dt ftime yes
+		dt/date: days-to-date day + date-to-days dt/date 0 cnt > 3
+		set-time dt ftime no
 		
 		unless norm? [
 			d: dt/date
@@ -623,6 +651,9 @@ date: context [
 				]]
 			][throw-error spec]
 		]
+		dt/date: DATE_SET_ZONE(dt/date zone)
+		set-time dt dt/time yes
+		
 		as red-value! dt
 	]
 
@@ -651,13 +682,15 @@ date: context [
 			dd	  [integer!]
 			tz	  [integer!]
 			s	  [float!]
+			d1	  [integer!]
 			time? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "date/random"]]
 
 		d: dt/date
+		d1: as integer! dt/time
 		either seed? [
-			_random/srand d
+			_random/srand d1
 			dt/header: TYPE_UNSET
 		][
 			time?: DATE_GET_TIME_FLAG(d)
@@ -966,8 +999,9 @@ date: context [
 		eq?: all [d1 = d2 t1 = t2]
 		
 		switch op [
-			COMP_SAME
 			COMP_EQUAL
+			COMP_FIND
+			COMP_SAME
 			COMP_NOT_EQUAL
 			COMP_STRICT_EQUAL [res: as-integer not eq?]
 			default [

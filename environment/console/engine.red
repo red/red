@@ -3,7 +3,7 @@ Red [
 	Author: ["Nenad Rakocevic" "Kaj de Vos"]
 	File: 	%engine.red
 	Tabs: 	4
-	Rights: "Copyright (C) 2012-2015 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2012-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -29,17 +29,18 @@ Red [
 
 system/console: context [
 
-	prompt: ">> "
-	result: "=="
-	history: make block! 200
-	size:	 0x0
-	catch?:	 no											;-- YES: force script to fallback into the console
-	count:	 [0 0 0]									;-- multiline counters for [squared curly parens]
-	ws:		 charset " ^/^M^-"
+	prompt:		">> "
+	result:		"=="
+	history:	make block! 200
+	size:		0x0
+	running?:	no
+	catch?:		no										;-- YES: force script to fallback into the console
+	count:		[0 0 0]									;-- multiline counters for [squared curly parens]
+	ws:			charset " ^/^M^-"
 
-	gui?: #system [logic/box #either gui-console? = yes [yes][no]]
+	gui?:	#system [logic/box #either gui-console? = yes [yes][no]]
 	
-	read-argument: function [][
+	read-argument: function [/local value][
 		if args: system/script/args [
 			--catch: "--catch"
 			if system/console/catch?: make logic! pos: find args --catch [
@@ -60,7 +61,12 @@ system/console: context [
 					remove back tail file
 				]
 				file: to-red-file file
-				either src: attempt [read file][
+				
+				either error? set/any 'src try [read file][
+					print src
+					src: none
+					;quit/return -1
+				][
 					system/options/script: file
 					remove system/options/args
 					args: system/script/args
@@ -69,9 +75,6 @@ system/console: context [
 						tail args
 					]
 					trim/head args
-				][
-					print ["*** Error: cannot access argument file:^/" file]
-					;quit/return -1
 				]
 				path: first split-path file
 				if path <> %./ [change-dir path]
@@ -94,13 +97,6 @@ system/console: context [
 		][
 			#if gui-console? = no [terminal/pasting?: no]
 		]
-	]
-
-	terminate: routine [][
-		#if OS <> 'Windows [
-		#if gui-console? = no [
-			if terminal/init? [terminal/emit-string "^[[?2004l"]	;-- disable bracketed paste mode
-		]]
 	]
 
 	count-delimiters: function [
@@ -133,6 +129,7 @@ system/console: context [
 	]
 	
 	try-do: func [code /local result return: [any-type!]][
+		running?: yes
 		set/any 'result try/all [
 			either 'halt-request = set/any 'result catch/name code 'console [
 				print "(halted)"						;-- return an unset value
@@ -140,6 +137,7 @@ system/console: context [
 				:result
 			]
 		]
+		running?: no
 		:result
 	]
 
@@ -163,12 +161,11 @@ system/console: context [
 		]
 	]
 
-	do-command: function [][
+	do-command: function [/local result err][
 		if error? code: try [load/all buffer][print code]
 
 		unless any [error? code tail? code][
 			set/any 'result try-do code
-			
 			case [
 				error? :result [
 					print [result lf]
@@ -186,7 +183,7 @@ system/console: context [
 					]
 				]
 			]
-			unless last-lf? [prin lf]
+			if all [not last-lf? not gui?][prin lf]
 		]
 		clear buffer
 	]
@@ -271,6 +268,41 @@ system/console: context [
 
 ;-- Console-oriented function definitions
 
+list-dir: function [
+	"Displays a list of files and directories from given folder or current one"
+	dir [any-type!]  "Folder to list"
+	/col			 "Forces the display in a given number of columns"
+		n [integer!] "Number of columns"
+][
+	unless value? 'dir [dir: %.]
+	
+	unless find [file! word! path!] type?/word :dir [
+		cause-error 'script 'expect-arg ['list-dir type? :dir 'dir]
+	]
+	list: read normalize-dir dir
+	limit: system/console/size/x - 13
+	max-sz: either n [
+		limit / n - n					;-- account for n extra spaces
+	][
+		n: max 1 limit / 22				;-- account for n extra spaces
+		22 - n
+	]
+
+	while [not tail? list][
+		loop n [
+			if max-sz <= length? name: list/1 [
+				name: append copy/part name max-sz - 4 "..."
+			]
+			prin tab
+			prin pad form name max-sz
+			prin " "
+			if tail? list: next list [exit]
+		]
+		prin lf
+	]
+	()
+]
+
 expand: func [
 	"Preprocess the argument block and display the output (console only)"
 	blk [block!] "Block to expand"
@@ -278,10 +310,10 @@ expand: func [
 	probe expand-directives/clean blk
 ]
 
-ls:		func ['dir [any-type!]][list-dir :dir]
-ll:		func ['dir [any-type!]][list-dir/col :dir 1]
-pwd:	does [prin mold system/options/path]
-halt:	does [throw/name 'halt-request 'console]
+ls:		func ["Display a directory listing, for the current dir if none is given" 'dir [any-type!]][list-dir :dir]
+ll:		func ["Display a single column directory listing, for the current dir if none is given" 'dir [any-type!]][list-dir/col :dir 1]
+pwd:	func ["Displays the active directory path (Print Working Dir)"][prin mold system/options/path]
+halt:	func ["Stops evaluation and returns to the input prompt"][throw/name 'halt-request 'console]
 
 cd:	function [
 	"Changes the active directory path"

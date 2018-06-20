@@ -6,7 +6,7 @@ Red [
 	Config:	 [type: 'dll libRed?: yes libRedRT?: yes export-ABI: 'cdecl]
 	Needs: 	 'View
 	Version: 1.0.0
-	Rights:  "Copyright (C) 2016 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2016-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -1208,7 +1208,7 @@ Red [
 			][
 				block/insert-value spec as red-value! extern-blk
 			]
-			_context/set name as red-value! routine/push spec null as-integer ptr 0 true
+			ring/store _context/set name as red-value! routine/push spec null as-integer ptr 0 true
 		]
 	]
 	

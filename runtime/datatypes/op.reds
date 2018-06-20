@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %op.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -192,6 +192,7 @@ op: context [
 			COMP_EQUAL
 			COMP_SAME
 			COMP_STRICT_EQUAL
+			COMP_FIND
 			COMP_NOT_EQUAL
 			COMP_SORT
 			COMP_CASE_SORT [

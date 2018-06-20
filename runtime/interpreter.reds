@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %interpreter.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -21,20 +21,29 @@ Red/System [
 				#if debug? = yes [if verbose > 0 [log "infix detected!"]]
 				infix?: yes
 			][
-				if TYPE_OF(pc) = TYPE_WORD [
-					left: _context/get as red-word! pc
-				]
-				unless all [
+				lit?: all [								;-- is a literal argument is expected?
 					TYPE_OF(pc) = TYPE_WORD
-					any [
-						TYPE_OF(left) = TYPE_ACTION
-						TYPE_OF(left) = TYPE_NATIVE
-						TYPE_OF(left) = TYPE_FUNCTION
-					]
-					literal-first-arg? as red-native! left	;-- a literal argument is expected
-				][
+					literal-first-arg? as red-native! value
+				]
+				either lit? [
 					#if debug? = yes [if verbose > 0 [log "infix detected!"]]
 					infix?: yes
+				][
+					if TYPE_OF(pc) = TYPE_WORD [
+						left: _context/get as red-word! pc
+					]
+					unless all [
+						TYPE_OF(pc) = TYPE_WORD
+						any [									;-- left operand is a function call
+							TYPE_OF(left) = TYPE_ACTION
+							TYPE_OF(left) = TYPE_NATIVE
+							TYPE_OF(left) = TYPE_FUNCTION
+						]
+						literal-first-arg? as red-native! left	;-- a literal argument is expected
+					][
+						#if debug? = yes [if verbose > 0 [log "infix detected!"]]
+						infix?: yes
+					]
 				]
 			]
 			if infix? [
@@ -113,7 +122,8 @@ interpreter: context [
 		while [value < tail][
 			switch TYPE_OF(value) [
 				TYPE_WORD 		[return no]
-				TYPE_LIT_WORD	[return yes]
+				TYPE_LIT_WORD
+				TYPE_GET_WORD	[return yes]
 				default 		[0]
 			]
 			value: value + 1
@@ -182,64 +192,103 @@ interpreter: context [
 		/local
 			native	[red-native!]
 			arg		[red-value!]
+			base	[red-value!]
 			bool	[red-logic!]
 			int		[red-integer!]
 			fl		[red-float!]
+			value	[red-value!]
+			tail	[red-value!]
+			dt		[red-datatype!]
+			w		[red-word!]
 			s		[series!]
 			ret		[integer!]
 			retf	[float!]
+			sym		[integer!]
 			count	[integer!]
 			cnt 	[integer!]
+			args	[integer!]
 			saved	[int-ptr!]
 			extern?	[logic!]
-			call callf
+			call callf callex
 	][
 		extern?: rt/header and flag-extern-code <> 0
-		
 		s: as series! rt/more/value
 		native: as red-native! s/offset + 2
-		call: as function! [return: [integer!]] native/code
-		count: (routine/get-arity rt) - 1				;-- zero-based stack access
+		args: routine/get-arity rt
+		count: args - 1				;-- zero-based stack access
 		
-		#if stack-align-16? = yes [						;@@ 64-bit alignment required on ARM
-			if extern? [
+		either extern? [
+			base: stack/arguments
+			;@@ cdecl is hardcoded in the caller, needs to be dynamic!
+			callex: as function! [[cdecl custom] return: [integer!]] native/code
+			stack/mark-native words/_body
+			
+			#if stack-align-16? = yes [
 				saved: system/stack/align
 				cnt: 4 - (count + 1 and 3)
 				while [cnt > 0][push 0 cnt: cnt - 1]
 			]
-		]
-		
-		while [count >= 0][
-			arg: stack/arguments + count
-			either extern? [
+			#if target = 'ARM [
+				saved: system/stack/align
+			]
+			while [count >= 0][
+				arg: base + count
 				#either libRed? = yes [
 					push red/ext-ring/store arg			;-- copy the exported values to libRed's buffer
 				][
 					push arg
 				]
+				count: count - 1
+			]
+			arg: as red-value! callex args
+			#either any [stack-align-16? = yes target = 'ARM][	;@@ 64-bit alignment required on ARM
+				system/stack/top: saved
 			][
-				switch TYPE_OF(arg) [					;@@ always unbox regardless of the spec block
-					TYPE_LOGIC	 [push logic/get arg]
-					TYPE_INTEGER [push integer/get arg]
-					TYPE_FLOAT	 [push float/get arg]
-					default		 [push arg]
+				pop args
+			]
+			stack/unwind
+			stack/set-last arg
+		][
+			call: as function! [return: [integer!]] native/code
+
+			s: as series! rt/spec/value
+			value: s/offset
+			tail:  s/tail
+			
+			until [										;-- scan forward for end of arguments
+				switch TYPE_OF(value) [
+					TYPE_SET_WORD
+					TYPE_REFINEMENT [break]
+					default			[0]
+				]
+				value: value + 1
+				value >= tail
+			]
+
+			while [count >= 0][							;-- push arguments in reverse order
+				value: value - 1
+				if TYPE_OF(value) =	TYPE_BLOCK [
+					w: as red-word! block/rs-head as red-block! value
+					assert TYPE_OF(w) = TYPE_WORD
+					sym: w/symbol
+					arg: stack/arguments + count
+					
+					if sym <> words/any-type! [			;-- type-checking argument
+						dt: as red-datatype! _context/get w
+						if TYPE_OF(arg) <> dt/value [
+							ERR_EXPECT_ARGUMENT(dt/value count)
+						]
+					]
+					case [
+						sym = words/logic!	 [push logic/get arg]
+						sym = words/integer! [push integer/get arg]
+						sym = words/float!	 [push float/get arg]
+						true		 		 [push arg]
+					]
+					count: count - 1
 				]
 			]
-			count: count - 1
-		]
-		case [
-			extern? [
-				stack/mark-native words/_body
-				arg: as red-value! call
-				stack/unwind
-				#either stack-align-16? = yes [			;@@ 64-bit alignment required on ARM
-					system/stack/top: saved
-				][
-					pop count + 1
-				]
-				stack/set-last arg
-			]
-			positive? rt/ret-type [
+			either positive? rt/ret-type [
 				switch rt/ret-type [
 					TYPE_LOGIC	[
 						ret: call
@@ -262,8 +311,7 @@ interpreter: context [
 					]
 					default [assert false]				;-- should never happen
 				]
-			]
-			true [call]
+			][call]
 		]
 	]
 	
@@ -289,13 +337,22 @@ interpreter: context [
 			bits	[byte-ptr!]
 			native? [logic!]
 			set?	[logic!]
+			lit?	[logic!]							;-- required by CHECK_INFIX macro
 			args	[node!]
 			node	[node!]
 			call-op
 	][
 		stack/keep
 		pc: pc + 1										;-- skip operator
-		pc: eval-expression pc end yes yes no			;-- eval right operand
+		either all [									;-- is a literal argument is expected?
+			TYPE_OF(pc) = TYPE_WORD
+			literal-first-arg? as red-native! value
+		][
+			stack/push pc
+			pc: pc + 1
+		][
+			pc: eval-expression pc end yes yes no		;-- eval right operand
+		]
 		op: as red-op! value
 		fun: null
 		native?: op/header and flag-native-op <> 0
@@ -635,9 +692,7 @@ interpreter: context [
 			switch TYPE_OF(value) [
 				TYPE_UNSET [fire [TO_ERROR(script no-value)	item]]
 				TYPE_PAREN [
-					stack/mark-interp-native words/_body ;@@ ~paren
-					eval as red-block! value yes		;-- eval paren content
-					stack/unwind
+					eval as red-block! value no		;-- eval paren content
 					value: stack/top - 1
 				]
 				default [0]								;-- compilation pass-thru
@@ -654,7 +709,8 @@ interpreter: context [
 					TYPE_NATIVE
 					TYPE_ROUTINE
 					TYPE_FUNCTION [
-						pc: eval-code parent pc end yes path item gparent
+						pc: eval-code parent pc end sub? path item gparent
+						unless sub? [stack/set-last stack/top]
 						return pc
 					]
 					default [0]
@@ -770,9 +826,11 @@ interpreter: context [
 			op	   [red-value!]
 			sym	   [integer!]
 			infix? [logic!]
+			lit?   [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line ["eval: fetching value of type " TYPE_OF(pc)]]]
 		
+		lit?: no
 		infix?: no
 		unless prefix? [
 			next: as red-word! pc + 1
@@ -846,7 +904,7 @@ interpreter: context [
 						print lf
 					]
 				]
-				value: _context/get as red-word! pc
+				value: either lit? [pc][_context/get as red-word! pc]
 				pc: pc + 1
 				
 				switch TYPE_OF(value) [

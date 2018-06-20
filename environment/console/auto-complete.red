@@ -3,7 +3,7 @@ Red [
 	Author: "Qingtian Xie"
 	File: 	%auto-complete.red
 	Tabs: 	4
-	Rights: "Copyright (C) 2015 Qingtian Xie. All rights reserved."
+	Rights: "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -13,6 +13,7 @@ Red [
 has-common-part?: no
 
 common-substr: func [
+	"Internal Use Only"
 	blk		[block!]
 	/local a b
 ][
@@ -36,6 +37,7 @@ common-substr: func [
 ]
 
 red-complete-path: func [
+	"Internal Use Only"
 	str		 [string!]
 	console? [logic!]
 	/local s result word w1 ptr words first? sys-word w
@@ -47,28 +49,26 @@ red-complete-path: func [
 		word: attempt [to word! copy/part str ptr]
 		if none? word [return result]
 		either first? [
-			if value? word [
-				w1: get word
-				first?: no
-			]
+			set/any 'w1 get/any word
+			first?: no
 		][
-			w1: get in w1 word
+			if w1: in :w1 word [set/any 'w1 get/any w1]
 		]
-		str: either object? w1 [next ptr][""]
+		str: either object? :w1 [next ptr][""]
 	]
 	case [
-		any [function? w1 action? w1 native? w1 routine? w1] [
+		any [function? :w1 action? :w1 native? :w1 routine? :w1] [
 			word: find/last/tail s #"/"
 			words: make block! 4
 			foreach w spec-of w1 [
 				if refinement? w [append words w]
 			]
 		]
-		object? w1 [
+		object? :w1 [
 			word: str
 			words: words-of w1
 		]
-		words: select system/catalog/accessors type?/word w1 [
+		words: select system/catalog/accessors type?/word :w1 [
 			word: find/last/tail s #"/"
 		]
 	]
@@ -89,6 +89,7 @@ red-complete-path: func [
 ]
 
 red-complete-file: func [
+	"Internal Use Only"
 	str		 [string!]
 	console? [logic!]
 	/local file result path word f files replace? change?
@@ -120,7 +121,8 @@ red-complete-file: func [
 ]
 
 red-complete-input: func [
-	str		 [string!]
+	"Internal Use Only"
+	str		 [string!]			;-- should be `tail str`
 	console? [logic!]
 	/local
 		word ptr result sys-word delim? len insert?

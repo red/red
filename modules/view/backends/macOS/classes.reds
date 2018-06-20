@@ -3,7 +3,7 @@ Red/System [
 	Author: "Qingtian Xie"
 	File: 	%classes.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2016 Qingtian Xie. All rights reserved."
+	Rights: "Copyright (C) 2016-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -31,6 +31,9 @@ add-base-handler: func [class [integer!]][
 	class_addMethod class sel_getUid "red-menu-action:" as-integer :red-menu-action "v@:@"
 	class_addMethod class sel_getUid "acceptsFirstResponder" as-integer :accepts-first-responder "B@:"
 	class_addMethod class sel_getUid "scrollWheel:" as-integer :scroll-wheel "@:@"
+	class_addMethod class sel_getUid "hitTest:" as-integer :hit-test "@@:{_NSPoint=ff}"
+	class_replaceMethod class sel_getUid "rightMouseDown:" as-integer :mouse-events-base "v@:@"
+	class_replaceMethod class sel_getUid "rightMouseUp:" as-integer :mouse-events-base "v@:@"
 
 	class_addMethod class sel_getUid "keyDown:" as-integer :key-down-base "v@:@"
 	class_addMethod class sel_getUid "insertText:" as-integer :insert-text "v@:@"
@@ -95,7 +98,6 @@ add-window-handler: func [class [integer!]][
 	class_addMethod class sel_getUid "windowDidEndLiveResize:" as-integer :win-live-resize "v12@0:4@8"
 	;class_addMethod class sel_getUid "windowWillResize:toSize:" as-integer :win-will-resize "{_NSSize=ff}20@0:4@8{_NSSize=ff}12"
 	class_addMethod class sel_getUid "red-menu-action:" as-integer :red-menu-action "v@:@"
-	class_addMethod class sel_getUid "sendEvent:" as-integer :win-send-event "@:@"
 	class_addMethod class sel_getUid "addSubview:" as-integer :win-add-subview "v12@0:4@8"
 	class_addMethod class sel_getUid "convertPoint:fromView:" as-integer :win-convert-point "{_NSPoint=ff}20@0:4{_NSPoint=ff}8@16"
 ]
@@ -115,6 +117,8 @@ add-droplist-handler: func [class [integer!]][
 add-text-field-handler: func [class [integer!]][
 	class_addMethod class sel_getUid "textDidChange:" as-integer :text-did-change "v@:@"
 	class_addMethod class sel_getUid "textDidEndEditing:" as-integer :text-did-end-editing "v@:@"
+	;class_addMethod class sel_getUid "textViewDidChangeSelection:" as-integer :text-change-selection "v@:@"
+	class_addMethod class sel_getUid "textView:willChangeSelectionFromCharacterRange:toCharacterRange:" as-integer :text-will-selection "{_NSRange=ii}@:@{_NSRange=ii}{_NSRange=ii}"
 	class_addMethod class sel_getUid "becomeFirstResponder" as-integer :become-first-responder "B@:"
 	class_addMethod class sel_getUid "performKeyEquivalent:" as-integer :perform-key-equivalent "B@:@"
 ]
@@ -135,6 +139,7 @@ add-table-view-handler: func [class [integer!]][
 	class_addMethod class sel_getUid "tableView:objectValueForTableColumn:row:" as-integer :object-for-table "@20@0:4@8@12l16"
 	class_addMethod class sel_getUid "tableViewSelectionDidChange:" as-integer :table-select-did-change "v@:@"
 	class_addMethod class sel_getUid "tableView:shouldEditTableColumn:row:" as-integer :table-cell-edit "B@:@@l"
+	class_addMethod class sel_getUid "red-menu-action:" as-integer :red-menu-action "v@:@"
 ]
 
 add-camera-handler: func [class [integer!]][
@@ -153,8 +158,14 @@ add-text-layout-handler: func [class [integer!]][
 	class_addMethod class sel_getUid "layoutManager:lineSpacingAfterGlyphAtIndex:withProposedLineFragmentRect:" as-integer :set-line-spacing "f@:@I{_NSRect=ffff}"
 ]
 
+add-app-handler: func [class [integer!]][
+	class_addMethod class sel_getUid "sendEvent:" as-integer :app-send-event "v@:@"
+	;class_addMethod class sel_getUid "stop:" as-integer :stop-app "v@:@"
+]
+
 add-app-delegate: func [class [integer!]][
 	;class_addMethod class sel_getUid "applicationWillFinishLaunching:" as-integer :will-finish "v12@0:4@8"
+	;class_addMethod class sel_getUid "dealloc" as-integer :dealloc-app "v@:"
 	class_addMethod class sel_getUid "applicationShouldTerminate:" as-integer :should-terminate "i12@0:4@8"
 	class_addMethod class sel_getUid "applicationShouldTerminateAfterLastWindowClosed:" as-integer :destroy-app "B12@0:4@8"
 ]
@@ -177,6 +188,7 @@ make-super-class: func [
 	/local
 		new-class	[integer!]
 		add-method	[add-method!]
+		protocol	[c-string!]
 ][
 	new-class: objc_allocateClassPair objc_getClass base new 0
 	if flags and EXTRA_DATA_FLAG <> 0 [
@@ -200,18 +212,106 @@ make-super-class: func [
 		class_addMethod new-class sel_getUid "resetCursorRects" as-integer :reset-cursor-rects "v@:"
 
 		class_addMethod new-class sel_getUid "keyUp:" as-integer :on-key-up "v@:@"
+		class_addMethod new-class sel_getUid "flagsChanged:" as-integer :on-flags-changed "v@:@"
 	]
 	unless zero? method [
 		add-method: as add-method! method
 		add-method new-class
 	]
-	if all [new/4 = #"B" new/5 = #"a" new/6 = #"s" new/7 = #"e"][
-		class_addProtocol new-class objc_getProtocol "NSTextInputClient"
+
+	protocol: case [
+		all [new/4 = #"B" new/5 = #"a" new/6 = #"s" new/7 = #"e"]["NSTextInputClient"]
+		all [new/4 = #"A" new/5 = #"p" new/6 = #"p" new/7 = #"D"]["NSApplicationDelegate"]
+		true [null]
 	]
+	if protocol <> null [class_addProtocol new-class objc_getProtocol protocol]
+
 	objc_registerClassPair new-class
 ]
 
+init-proc!: alias function! [
+	hWnd	[int-ptr!]
+	values	[red-value!]
+	return: [logic!]
+]
+
+ext-class!: alias struct! [
+	symbol		 [integer!]								;-- symbol ID
+	class		 [c-string!]							;-- UTF-8 encoded
+	parent-class [c-string!]							;-- UTF-8 encoded
+	new-proc	 [integer!]								;-- optional custom event handler
+	init-proc	 [init-proc!]
+]
+
+max-ext-styles: 	20
+ext-classes:		as ext-class! allocate max-ext-styles * size? ext-class!
+ext-cls-tail:		ext-classes							;-- tail pointer
+
+find-class: func [
+	name	[red-word!]
+	return: [ext-class!]
+	/local
+		sym [integer!]
+		p	[ext-class!]
+][
+	sym: symbol/resolve name/symbol
+	p: ext-classes
+	while [p < ext-cls-tail][
+		if p/symbol = sym [return p]
+		p: p + 1
+	]
+	null
+]
+
+register-class: func [
+	[typed]
+	count	[integer!]
+	list	[typed-value!]
+	/local
+		p		[ext-class!]
+		flags	[integer!]
+		arg1 arg2 arg3 arg4 arg5 arg6
+][
+	if count <> 6 [print-line "gui/register-class error: invalid spec block"]
+
+	arg1: list/value			;-- Red-level style name (c-string!)
+	list: list + 1
+	arg2: list/value			;-- new class name (c-string!)
+	list: list + 1
+	arg3: list/value			;-- parent class name (c-string!)
+	list: list + 1
+	arg4: list/value			;-- add-method! function (function!)
+	list: list + 1
+	arg5: list/value			;-- store extra data? (logic!)
+	list: list + 1
+	arg6: list/value			;-- init-view! function (function!)
+
+	if any [zero? arg2 zero? arg3][
+		print-line "gui/register-class error: class name cannot be null"
+		exit
+	]
+
+	flags: either zero? arg5 [STORE_FACE_FLAG][STORE_FACE_FLAG or EXTRA_DATA_FLAG]
+
+	make-super-class
+		as-c-string arg2
+		as-c-string arg3
+		arg4
+		flags
+
+	p: ext-cls-tail
+	ext-cls-tail: ext-cls-tail + 1
+	assert ext-classes + max-ext-styles > ext-cls-tail
+
+	p/symbol:		symbol/make as-c-string arg1
+	p/class:		as-c-string arg2
+	p/parent-class:	as-c-string arg3
+	p/new-proc:		arg4
+	p/init-proc:	as init-proc! arg6
+]
+
 register-classes: does [
+	make-super-class "RedApplication"	"NSApplication"			as-integer :add-app-handler		0
 	make-super-class "RedAppDelegate"	"NSObject"				as-integer :add-app-delegate	0
 	make-super-class "RedPanelDelegate"	"NSObject"				as-integer :add-panel-delegate	0
 	make-super-class "NSViewFlip"		"NSView"				as-integer :flip-coord			0

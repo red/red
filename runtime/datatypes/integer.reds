@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %integer.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -385,12 +385,14 @@ integer: context [
 		/local
 			int  [red-integer!]
 			fl	 [red-float!]
+			str	 [red-string!]
 			t	 [red-time!]
-			pad1 [integer!]
-			pad2 [integer!]
-			pad3 [integer!]
-			pad4 [integer!]
-			val	 [red-value!]
+			p	 [byte-ptr!]
+			err	 [integer!]
+			i	 [integer!]
+			unit [integer!]
+			len	 [integer!]
+			s	 [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/to"]]
 		
@@ -423,23 +425,17 @@ integer: context [
 				int/value: date/to-epoch as red-date! spec
 			]
 			TYPE_ANY_STRING [
-				pad4: 0
-				val: as red-value! :pad4
-				copy-cell spec val					;-- save spec, load-value will change it
-
-				proto: load-value as red-string! spec
-				
-				either TYPE_OF(proto) = TYPE_FLOAT [
-					fl: as red-float! proto
-					if overflow? fl [fire [TO_ERROR(script too-long)]]
-					int: as red-integer! proto
-					int/header: TYPE_INTEGER
-					int/value: as-integer fl/value
-				][
-					if TYPE_OF(proto) <> TYPE_INTEGER [ 
-						fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_INTEGER val]
-					]
+				err: 0
+				str: as red-string! spec
+				s: GET_BUFFER(str)
+				unit: GET_UNIT(s)
+				p: (as byte-ptr! s/offset) + (str/head << log-b unit)
+				len: (as-integer s/tail - p) >> log-b unit
+				i: tokenizer/scan-integer p len unit :err
+				if err <> 0 [
+					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_INTEGER spec]
 				]
+				int/value: i
 			]
 			default [fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_INTEGER spec]]
 		]
@@ -493,7 +489,7 @@ integer: context [
 		#if debug? = yes [if verbose > 0 [print-line "integer/compare"]]
 
 		if all [
-			op = COMP_STRICT_EQUAL
+			any [op = COMP_FIND op = COMP_STRICT_EQUAL]
 			TYPE_OF(value2) <> TYPE_INTEGER
 		][return 1]
 		
@@ -608,7 +604,9 @@ integer: context [
 			]
 			exp: exp >> 1
 			base: base * base
-			if system/cpu/overflow? [throw RED_INT_OVERFLOW]
+			if all [system/cpu/overflow? exp > 0][
+				throw RED_INT_OVERFLOW
+			]
 		]
 		res
 	]
@@ -619,10 +617,17 @@ integer: context [
 			base [red-integer!]
 			exp  [red-integer!]
 			f	 [red-float!]
+			type [integer!]
 			up?	 [logic!]
 	][
 		base: as red-integer! stack/arguments
 		exp: base + 1
+		type: TYPE_OF(exp)
+		
+		if all [type <> TYPE_INTEGER type <> TYPE_FLOAT][
+			ERR_EXPECT_ARGUMENT(type 1)
+		]
+		
 		up?: any [
 			TYPE_OF(exp) = TYPE_FLOAT
 			negative? exp/value

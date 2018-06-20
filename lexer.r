@@ -3,7 +3,7 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File: 	 %lexer.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
@@ -17,7 +17,6 @@ lexer: context [
 	
 	old-line: none
 	line: 	none									;-- source code lines counter
-	lines:	[]										;-- offsets of newlines marker in current block
 	count?: yes										;-- if TRUE, lines counter is enabled
 	cnt:	none									;-- counts nested {} in multi-line strings
 	pos:	none									;-- source input position (error reporting)
@@ -103,7 +102,7 @@ lexer: context [
 	not-email-char:	union not-file-char union ws-ASCII charset "<^/"
 	not-str-char:	#"^""
 	not-mstr-char:	#"}"
-	not-tag-1st:	complement union ws-ASCII charset "=><"
+	not-tag-1st:	complement union ws-ASCII charset "=><[](){};^""
 	not-tag-char:	complement charset ">"
 	tag-char:		charset "<>"
 	caret-char:		charset [#"^(40)" - #"^(5F)"]
@@ -559,8 +558,8 @@ lexer: context [
 	file-rule: [
 		pos: #"%" (type: file! stop: [not-file-char | ws-no-count]) [
 			#"{" (throw-error)
-			| line-string
-			| s: any UTF8-filtered-char e:
+			| line-string e: (value: encode-file s e)
+			| s: any UTF8-filtered-char e: (value: copy/part s e)
 		]
 	]
 
@@ -615,7 +614,7 @@ lexer: context [
 			| get-word-rule	  (stack/push to type value)
 			| refinement-rule (stack/push to refinement! copy/part s e)
 			| slash-rule	  (stack/push to word!		 copy/part s e)
-			| file-rule		  (stack/push load-file		 copy/part s e)
+			| file-rule		  (stack/push load-file value)
 			| char-rule		  (stack/push decode-UTF8-char value)
 			| block-rule	  (stack/push value)
 			| paren-rule	  (stack/push value)
@@ -627,15 +626,8 @@ lexer: context [
 	
 	any-value: [pos: any [literal-value | ws]]
 
-	header: [
-		pos: thru "Red" (rs?: no) opt ["/System" (rs?: yes stack/push 'Red/System)]
-		any-ws block-rule (stack/push value)
-		| (throw-error/with "Invalid Red program") end skip
-	]
-
 	program: [
-		pos: opt UTF-8-BOM
-		header
+		block-rule (if rs? [stack/push 'Red/System] stack/push value)
 		any-value
 		opt wrong-end
 	]
@@ -870,10 +862,29 @@ lexer: context [
 		to file! replace/all dehex s #"\" #"/"
 	]
 	
+	encode-file: func [s [string!] e [string!]][
+		replace/all copy/part s back e "%" "%25"
+	]
+	
+	identify-header: func [src /local p ws found?][
+		ws: charset " ^-^M^/"
+		rs?: no
+		pos: src
+		until [
+			unless pos: find/tail pos "Red" [throw-error/with "Invalid Red program"]
+			if all [pos find/match pos "/System"][rs?: yes pos: skip pos 7]
+			while [find/match ws pos/1][pos: next pos]
+			found?: pos/1 = #"["
+		]	
+		unless found? [throw-error/with "Invalid Red program"]
+		pos
+	]
+	
 	process: func [src [string! binary!] /local blk][
 		old-line: line: 1
 		count?: yes
-		blk: stack/allocate block! 100				;-- root block
+		blk: stack/allocate block! 100				;-- root block		
+		src: identify-header src
 		
 		unless parse/all/case src program [throw-error]
 		stack/reset

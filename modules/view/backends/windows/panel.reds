@@ -3,7 +3,7 @@ Red/System [
 	Author: "Nenad Rakocevic"
 	File: 	%panel.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2015 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -17,11 +17,11 @@ init-panel: func [
 		parent	  [red-object!]
 		type	  [red-word!]
 		pair	  [red-pair!]
-		win-rect  [RECT_STRUCT]
-		calc-rect [RECT_STRUCT]
+		win-rect  [RECT_STRUCT value]
+		calc-rect [RECT_STRUCT value]
+		x		  [integer!]
+		y		  [integer!]
 ][
-	win-rect:  declare RECT_STRUCT
-	calc-rect: declare RECT_STRUCT
 	parent: as red-object! values + FACE_OBJ_PARENT
 
 	if TYPE_OF(parent) = TYPE_OBJECT [
@@ -36,12 +36,26 @@ init-panel: func [
 			SendMessage phWnd TCM_ADJUSTRECT 0 as-integer calc-rect
 
 			pair: as red-pair! values + FACE_OBJ_OFFSET
-			pair/x: calc-rect/left - win-rect/left - 3
-			pair/y: calc-rect/top  - win-rect/top - 1
+			x: calc-rect/left - win-rect/left
+			y: calc-rect/top  - win-rect/top
+			either dpi-factor <> 100 [
+				pair/x: x * 100 / dpi-factor
+				pair/y: y * 100 / dpi-factor
+			][
+				pair/x: x - 3
+				pair/y: y - 1
+			]
 
 			pair: as red-pair! values + FACE_OBJ_SIZE
-			pair/x: calc-rect/right  - calc-rect/left + 4
-			pair/y: calc-rect/bottom - calc-rect/top + 3
+			x: calc-rect/right  - calc-rect/left
+			y: calc-rect/bottom - calc-rect/top
+			either dpi-factor <> 100 [
+				pair/x: x * 100 / dpi-factor
+				pair/y: y * 100 / dpi-factor
+			][
+				pair/x: x + 4
+				pair/y: y + 3
+			]
 		]
 	]
 ]

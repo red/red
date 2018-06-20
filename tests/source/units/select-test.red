@@ -3,7 +3,7 @@ Red [
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 %select-test.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
@@ -26,8 +26,8 @@ Red [
 	--assert none = select [1 2 3 4] "1"
 	--test-- "select-7" 
 	--assert #"2" = select "12345" #"1"
-	;--test-- "select-8" 								;; unsupported case, it is unsure if it will be implemented or not
-	;--assert #"2" = select "12345" 1					;; keeping it here commented for further reference.
+	--test-- "select-8"
+	--assert none = select "12345" 1
 	--test-- "select-9" 
 	--assert #"2" = select "12345" "1"
 	--test-- "select-10" 

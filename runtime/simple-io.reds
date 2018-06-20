@@ -3,7 +3,7 @@ Red/System [
 	Author: "Nenad Rakocevic"
 	File: 	%simple-io.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2012-2015 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2012-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -20,14 +20,44 @@ simple-io: context [
 		RIO_NEW:	16
 	]
 
+	strupr: func [
+		"ASCII only"
+		str		[c-string!]
+		return: [c-string!]
+		/local
+			s	[c-string!]
+			c	[byte!]
+	][
+		s: str
+		while [
+			c: s/1
+			c <> null-byte
+		][
+			if c >= #"a" [s/1: c - #" "]
+			s: s + 1
+		]
+		str
+	]
+
 	#either OS = 'Windows [
 		stat!: alias struct! [val [integer!]]
 
+		FILETIME!: alias struct! [
+			dwLowDateTime       [integer!]
+			dwHighDateTime      [integer!]
+		]
+		SYSTEMTIME!: alias struct! [
+			data1               [integer!] ; year, month
+			data2               [integer!] ; DayOfWeek, day
+			data3               [integer!] ; hour, minute
+			data4               [integer!] ; second, ms
+		]
+
 		WIN32_FIND_DATA: alias struct! [
 			dwFileAttributes	[integer!]
-			ftCreationTime		[float!]
-			ftLastAccessTime	[float!]
-			ftLastWriteTime		[float!]
+			ftCreationTime		[FILETIME! value]
+			ftLastAccessTime	[FILETIME! value]
+			ftLastWriteTime		[FILETIME! value]
 			nFileSizeHigh		[integer!]
 			nFileSizeLow		[integer!]
 			dwReserved0			[integer!]
@@ -36,11 +66,27 @@ simple-io: context [
 			;cAlternateFileName	[c-string!]				;-- cAlternateFileName[ 14 ]
 		]
 
+		;- static helpers
+		systime:  as SYSTEMTIME! allocate size? SYSTEMTIME!
+		filedata: as WIN32_FIND_DATA allocate size? WIN32_FIND_DATA
+
+
 		#import [
 			"kernel32.dll" stdcall [
 				GetFileAttributesW: "GetFileAttributesW" [
 					path		[c-string!]
 					return:		[integer!]
+				]
+				GetFileAttributesExW: "GetFileAttributesExW" [
+					path        [c-string!]
+					info-level  [integer!]
+					info        [WIN32_FIND_DATA]
+					return:		[integer!]
+				]
+				FileTimeToSystemTime: "FileTimeToSystemTime" [
+					lpFileTime   [FILETIME!]
+					lpSystemTime [SYSTEMTIME!]
+					return:      [integer!]
 				]
 				CreateFileA: "CreateFileA" [			;-- temporary needed by Red/System
 					filename	[c-string!]
@@ -158,8 +204,30 @@ simple-io: context [
 					return:		[integer!]
 				]
 			]
+			LIBC-file cdecl [
+				wcsupr: "_wcsupr" [
+					str		[c-string!]
+					return:	[c-string!]
+				]
+			]
 		]
 	][
+		systemtime!: alias struct! [
+			sec    [integer!] ;seconds
+			min    [integer!] ;minutes
+			hour   [integer!] ;hours
+			mday   [integer!] ;day of the month
+			mon    [integer!] ;month
+			year   [integer!] ;year
+			wday   [integer!] ;day of the week
+			yday   [integer!] ;day in the year
+			isdst  [integer!] ;daylight saving time
+		]
+		timespec!: alias struct! [
+			sec    [integer!] ;Seconds
+			nsec   [integer!] ;Nanoseconds
+		]
+
 		#case [
 			OS = 'FreeBSD [
 				;-- http://fxr.watson.org/fxr/source/sys/stat.h?v=FREEBSD10
@@ -170,12 +238,9 @@ simple-io: context [
 					st_uid		[integer!]
 					st_gid		[integer!]
 					st_rdev		[integer!]
-					atv_sec		[integer!]				;-- struct timespec inlined
-					atv_msec	[integer!]
-					mtv_sec		[integer!]				;-- struct timespec inlined
-					mtv_msec	[integer!]
-					ctv_sec		[integer!]				;-- struct timespec inlined
-					ctv_msec	[integer!]
+					st_atime	[timespec! value]		;-- struct timespec inlined
+					st_mtime	[timespec! value]		;-- struct timespec inlined
+					st_ctime	[timespec! value]		;-- struct timespec inlined
 					st_size		[integer!]
 					st_size_h	[integer!]
 					st_blocks_l	[integer!]
@@ -206,12 +271,9 @@ simple-io: context [
 					st_uid		[integer!]
 					st_gid		[integer!]
 					st_rdev		[integer!]
-					atv_sec		[integer!]				;-- struct timespec inlined
-					atv_msec	[integer!]
-					mtv_sec		[integer!]				;-- struct timespec inlined
-					mtv_msec	[integer!]
-					ctv_sec		[integer!]				;-- struct timespec inlined
-					ctv_msec	[integer!]
+					st_atime	[timespec! value]		;-- struct timespec inlined
+					st_mtime	[timespec! value]		;-- struct timespec inlined
+					st_ctime	[timespec! value]		;-- struct timespec inlined
 					st_size		[integer!]
 					st_blocks	[integer!]
 					st_blksize	[integer!]
@@ -311,9 +373,9 @@ simple-io: context [
 					st_size		[integer!]
 					st_blksize	[integer!]
 					st_blocks	[integer!]
-					st_atime	[integer!]
-					st_mtime	[integer!]
-					st_ctime	[integer!]
+					st_atime	[timespec!]
+					st_mtime	[timespec!]
+					st_ctime	[timespec!]
 				]
 				#define DIRENT_NAME_OFFSET 8
 				dirent!: alias struct! [
@@ -344,12 +406,9 @@ simple-io: context [
 					st_blksize	  [integer!]
 					st_blocks_h	  [integer!]
 					st_blocks	  [integer!]
-					st_atime	  [integer!]
-					st_atime_nsec [integer!]
-					st_mtime	  [integer!]
-					st_mtime_nsec [integer!]
-					st_ctime	  [integer!]
-					st_ctime_nsec [integer!]
+					st_atime	  [timespec! value]
+					st_mtime	  [timespec! value]
+					st_ctime	  [timespec! value]
 					st_ino_h	  [integer!]
 					st_ino_l	  [integer!]
 					;...optional padding skipped
@@ -383,12 +442,9 @@ simple-io: context [
 					st_size		  [integer!]
 					st_blksize	  [integer!]
 					st_blocks	  [integer!]
-					st_atime	  [integer!]
-					st_atime_nsec [integer!]
-					st_mtime	  [integer!]
-					st_mtime_nsec [integer!]
-					st_ctime	  [integer!]
-					st_ctime_nsec [integer!]
+					st_atime	  [timespec! value]
+					st_mtime	  [timespec! value]
+					st_ctime	  [timespec! value]
 					st_ino_h	  [integer!]
 					st_ino_l	  [integer!]
 					;...optional padding skipped
@@ -525,6 +581,10 @@ simple-io: context [
 					c			[byte!]
 					return:		[c-string!]
 				]
+				gmtime: "gmtime" [
+					time        [pointer! [integer!]]
+					return:     [systemtime!]
+				]
 			]
 		]
 	]
@@ -658,13 +718,13 @@ simple-io: context [
 		size	[integer!]
 		return:	[integer!]
 		/local
-			read-sz [integer!]
-			res		[integer!]
+			len [integer!]
+			res [integer!]
 	][
 		#either OS = 'Windows [
-			read-sz: -1
-			res: ReadFile file buffer size :read-sz null
-			res: either zero? res [-1][1]
+			len: 0
+			res: ReadFile file buffer size :len null
+			res: either zero? res [-1][len]
 		][
 			res: _read file buffer size
 		]
@@ -683,7 +743,7 @@ simple-io: context [
 		#either OS = 'Windows [
 			len: 0
 			ret: WriteFile file data size :len null
-			ret: either zero? ret [-1][1]
+			ret: either zero? ret [-1][len]
 		][
 			ret: _write file data size
 		]
@@ -755,6 +815,17 @@ simple-io: context [
 		if file < 0 [return none-value]
 
 		size: file-size? file
+
+		if zero? size [				;-- /proc filesystem give 0 size
+			buffer: allocate 4096
+			while [
+				len: read-data file buffer 4096
+				len > 0
+			][
+				size: size + len
+			]
+			free buffer
+		]
 
 		if size <= 0 [
 			close-file file
@@ -906,6 +977,49 @@ simple-io: context [
 		][
 			0 = _remove name
 		]
+	]
+
+	query: func[
+		filename [red-file!]
+		return:  [red-value!]
+		/local
+			name [c-string!]
+			dt   [red-date!]
+			time [float!]
+			s	 [stat! value]
+			fd   [integer!]
+			tm   [systemtime!]
+	][
+		name: file/to-OS-path filename
+		;o: object/copy #get system/standard/file-info
+		
+		#either OS = 'Windows [
+			if any [
+				1 <> GetFileAttributesExW name 0 filedata
+				1 <> FileTimeToSystemTime filedata/ftLastWriteTime systime
+			][
+				return none/push
+			]
+			dt: as red-date! stack/push*
+			date/set-all dt
+				(systime/data1 and FFFFh) ;year
+				(systime/data1 >> 16    ) ;month
+				(systime/data2 >> 16    ) ;day
+				(systime/data3 and FFFFh) ;hours
+				(systime/data3 >> 16    ) ;minutes
+				(systime/data4 and FFFFh) ;seconds
+				1000000 * (systime/data4 >> 16) ;ns - posix is using nanoseconds so lets use it too
+		][
+			fd: open-file file/to-OS-path filename RIO_READ yes
+			if fd < 0 [	return none/push ]
+			#either any [OS = 'macOS OS = 'FreeBSD OS = 'Android] [
+				_stat   fd s
+			][	_stat 3 fd s]
+			tm: gmtime as int-ptr! s/st_mtime
+			dt: as red-date! stack/push*
+			date/set-all dt (1900 + tm/year) (1 + tm/mon) tm/mday tm/hour tm/min tm/sec s/st_mtime/nsec
+		]
+		as red-value! dt
 	]
 
 	read-dir: func [
@@ -1093,7 +1207,7 @@ simple-io: context [
 			]
 			true [
 				len: 0
-				actions/mold as red-value! data buffer no yes no null 0 0
+				actions/mold as red-value! data buffer no no no null 0 0
 				buf: value-to-buffer as red-value! buffer part :len binary? null
 				string/rs-reset buffer
 			]
@@ -1277,6 +1391,7 @@ simple-io: context [
 					bstr-u	[byte-ptr!]
 					buf-ptr [integer!]
 					s		[series!]
+					str1	[red-string! value]
 					value	[red-value!]
 					tail	[red-value!]
 					l-bound [integer!]
@@ -1286,8 +1401,11 @@ simple-io: context [
 					blk		[red-block!]
 					len		[integer!]
 					proxy	[tagVARIANT value]
+					parr	[integer!]
+					buf		[byte-ptr!]
 			][
 				res: as red-value! none-value
+				parr: 0
 				len: -1
 				buf-ptr: 0
 				bstr-d: null
@@ -1296,26 +1414,43 @@ simple-io: context [
 				async/data1: VT_BOOL
 				async/data3: 0							;-- VARIANT_FALSE
 
-				switch method [
-					HTTP_GET [
+				case [
+					method = words/get [
 						action: #u16 "GET"
 						body/data1: VT_ERROR
 					]
-					HTTP_PUT [
-						action: #u16 "PUT"
-						--NOT_IMPLEMENTED--
+					method = words/head [
+						action: #u16 "HEAD"
+						body/data1: VT_ERROR
 					]
-					HTTP_POST [
-						action: #u16 "POST"
+					true [
+						either method = words/post [action: #u16 "POST"][
+							s: GET_BUFFER(symbols)
+							copy-cell s/offset + method - 1 as cell! str1
+							str1/header: TYPE_STRING
+							str1/head: 0
+							str1/cache: null
+							action: wcsupr unicode/to-utf16 str1
+						]
 						either null? data [
 							body/data1: VT_ERROR
 						][
-							body/data1: VT_BSTR
-							bstr-d: SysAllocString unicode/to-utf16-len as red-string! data :len no
-							body/data3: as-integer bstr-d
+							either TYPE_OF(data) = TYPE_BINARY [
+								buf: binary/rs-head as red-binary! data
+								len: binary/rs-length? as red-binary! data
+								parr: as-integer SafeArrayCreateVector VT_UI1 0 len
+								SafeArrayAccessData parr :buf-ptr
+								copy-memory as byte-ptr! buf-ptr buf len
+								SafeArrayUnaccessData parr
+								body/data1: VT_ARRAY or VT_UI1
+								body/data3: parr
+							][
+								body/data1: VT_BSTR
+								bstr-d: SysAllocString unicode/to-utf16-len as red-string! data :len no
+								body/data3: as-integer bstr-d
+							]
 						]
 					]
-					default [--NOT_IMPLEMENTED--]
 				]
 
 				IH: declare interface!
@@ -1367,6 +1502,8 @@ simple-io: context [
 					return res
 				]
 
+				unless zero? parr [SafeArrayDestroy parr]
+
 				if hr >= 0 [
 					if info? [
 						blk: block/push-only* 3
@@ -1380,7 +1517,7 @@ simple-io: context [
 							SysFreeString as byte-ptr! buf-ptr
 						]
 					]
-					if all [method = HTTP_POST bstr-d <> null][SysFreeString bstr-d]
+					if bstr-d <> null [SysFreeString bstr-d]
 					hr: http/ResponseBody IH/ptr :body
 				]
 
@@ -1693,16 +1830,28 @@ simple-io: context [
 					value		[red-value!]
 					tail		[red-value!]
 					s			[series!]
+					str1		[red-string! value]
 					bin			[red-binary!]
 					stream		[integer!]
 					response	[integer!]
 					blk			[red-block!]
+					post?		[logic!]
 			][
-				switch method [
-					HTTP_GET  [action: "GET"]
-					HTTP_PUT  [action: "PUT"]
-					HTTP_POST [action: "POST"]
-					default [--NOT_IMPLEMENTED--]
+				post?: yes
+				case [
+					method = words/get  [action: "GET" post?: no]
+					method = words/put  [action: "PUT"]
+					method = words/post [action: "POST"]
+					method = words/head [action: "HEAD" post?: no]
+					true [
+						len: -1
+						s: GET_BUFFER(symbols)
+						copy-cell s/offset + method - 1 as cell! str1
+						str1/header: TYPE_STRING
+						str1/head: 0
+						str1/cache: null
+						action: strupr unicode/to-utf8 str1 :len
+					]
 				]
 
 				body: 0
@@ -1717,7 +1866,7 @@ simple-io: context [
 
 				if zero? req [return as red-value! none-value]
 
-				if all [data <> null any [method = HTTP_POST method = HTTP_PUT]][
+				if all [data <> null post?][
 					datalen: -1
 					either TYPE_OF(data) = TYPE_STRING [
 						buf: as byte-ptr! unicode/to-utf8 as red-string! data :datalen
@@ -1725,8 +1874,10 @@ simple-io: context [
 						buf: binary/rs-head as red-binary! data
 						datalen: binary/rs-length? as red-binary! data
 					]
-					body: CFDataCreate 0 buf datalen
-					CFHTTPMessageSetBody req body
+					if datalen <> -1 [
+						body: CFDataCreate 0 buf datalen
+						CFHTTPMessageSetBody req body
+					]
 				]
 
 				stream: CFString("application/x-www-form-urlencoded; charset=utf-8")
@@ -1815,10 +1966,15 @@ simple-io: context [
 	
 			#define CURLOPT_URL				10002
 			#define CURLOPT_HTTPGET			80
+			#define CURLOPT_POST			47
+			#define CURLOPT_PUT				54
 			#define CURLOPT_POSTFIELDSIZE	60
 			#define CURLOPT_NOPROGRESS		43
+			#define CURLOPT_NOBODY			44
+			#define CURLOPT_UPLOAD			46
 			#define CURLOPT_FOLLOWLOCATION	52
 			#define CURLOPT_POSTFIELDS		10015
+			#define CURLOPT_CUSTOMREQUEST	10036
 			#define CURLOPT_WRITEDATA		10001
 			#define CURLOPT_HEADERDATA		10029
 			#define CURLOPT_HTTPHEADER		10023
@@ -1910,7 +2066,7 @@ simple-io: context [
 			][
 				mp: as red-hash! userdata
 				len: size * nmemb
-				if zero? strncmp as c-string! s "HTTP/1.1" 8 [return len]
+				if zero? strncmp as c-string! s "HTTP/1." 7 [return len]
 
 				p: s
 				while [s/1 <> null-byte][
@@ -1932,9 +2088,9 @@ simple-io: context [
 						]
 
 						p: s + 2
-						until [
+						forever [
 							s: s + 1
-							if s/1 = #"^M" [			;-- value
+							if any [s/1 = #"^M" s/1 = #"^/"] [	;-- value
 								res: as red-value! string/load as-c-string p as-integer s - p UTF-8
 								either new? [
 									map/put mp w res no
@@ -1942,8 +2098,8 @@ simple-io: context [
 									block/rs-append val res
 								]
 								p: s + 2
+								break
 							]
-							s/1 = #"^M"
 						]
 						stack/pop 2
 					]
@@ -1966,7 +2122,7 @@ simple-io: context [
 					curl	[integer!]
 					res		[integer!]
 					buf		[byte-ptr!]
-					action	[c-string!]
+					action	[integer!]
 					bin		[red-binary!]
 					value	[red-value!]
 					tail	[red-value!]
@@ -1975,12 +2131,14 @@ simple-io: context [
 					slist	[integer!]
 					mp		[red-hash!]
 					blk		[red-block!]
+					str1	[red-string! value]
+					act-str [c-string!]
 			][
-				switch method [
-					HTTP_GET  [action: "GET"]
-					;HTTP_PUT  [action: "PUT"]
-					HTTP_POST [action: "POST"]
-					default [--NOT_IMPLEMENTED--]
+				case [
+					method = words/get [action: CURLOPT_HTTPGET]
+					method = words/post [action: CURLOPT_POST]
+					method = words/head [action: CURLOPT_NOBODY]
+					true [action: CURLOPT_CUSTOMREQUEST]
 				]
 
 				curl_global_init CURL_GLOBAL_ALL
@@ -1993,9 +2151,21 @@ simple-io: context [
 				]
 
 				slist: 0
-				len: -1
 				bin: binary/make-at stack/push* 4096
-				
+
+				either action = CURLOPT_CUSTOMREQUEST [
+					len: -1
+					s: GET_BUFFER(symbols)
+					copy-cell s/offset + method - 1 as cell! str1
+					str1/header: TYPE_STRING
+					str1/head: 0
+					str1/cache: null
+					act-str: strupr unicode/to-utf8 str1 :len
+					curl_easy_setopt curl CURLOPT_CUSTOMREQUEST as-integer act-str
+				][
+					curl_easy_setopt curl action 1
+				]
+				len: -1
 				curl_easy_setopt curl CURLOPT_URL as-integer unicode/to-utf8 as red-string! url :len
 				curl_easy_setopt curl CURLOPT_NOPROGRESS 1
 				curl_easy_setopt curl CURLOPT_FOLLOWLOCATION 1
@@ -2029,22 +2199,17 @@ simple-io: context [
 					curl_easy_setopt curl CURLOPT_HTTPHEADER slist
 				]
 
-				case [
-					method = HTTP_GET [
-						curl_easy_setopt curl CURLOPT_HTTPGET 1
-					]
-					method = HTTP_POST [
-						if data <> null [
-							len: -1
-							either TYPE_OF(data) = TYPE_STRING [
-								buf: as byte-ptr! unicode/to-utf8 as red-string! data :len
-							][
-								buf: binary/rs-head as red-binary! data
-								len: binary/rs-length? as red-binary! data
-							]
-							curl_easy_setopt curl CURLOPT_POSTFIELDSIZE len
-							curl_easy_setopt curl CURLOPT_POSTFIELDS as-integer buf
+				if any [action = CURLOPT_POST action = CURLOPT_CUSTOMREQUEST] [
+					if data <> null [
+						len: -1
+						either TYPE_OF(data) = TYPE_STRING [
+							buf: as byte-ptr! unicode/to-utf8 as red-string! data :len
+						][
+							buf: binary/rs-head as red-binary! data
+							len: binary/rs-length? as red-binary! data
 						]
+						curl_easy_setopt curl CURLOPT_POSTFIELDSIZE len
+						curl_easy_setopt curl CURLOPT_POSTFIELDS as-integer buf
 					]
 				]
 				res: curl_easy_perform curl

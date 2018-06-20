@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %object.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -162,8 +162,11 @@ object: context [
 			tail	[red-value!]
 			new		[red-value!]
 			old		[red-value!]
+			int		[red-integer!]
 			s		[series!]
 			i		[integer!]
+			idx-s	[integer!]
+			idx-d	[integer!]
 			type	[integer!]
 			on-set?	[logic!]
 	][
@@ -175,21 +178,35 @@ object: context [
 		on-set?: obj/on-set <> null
 		s: as series! ctx/symbols/value
 		word: as red-word! s/offset
+		
+		if on-set? [
+			s: as series! obj/on-set/value
+			int: as red-integer! s/offset
+			idx-s: int/value >>> 16
+			int: int + 1
+			idx-d: int/value >>> 16
+		]
 
 		either all [not only? any [type = TYPE_BLOCK type = TYPE_OBJECT]][
 			either type = TYPE_BLOCK [
 				blk: as red-block! value
-				i: 1
+				i: 0
 				while [values < tail][
-					new: _series/pick as red-series! blk i null
+					new: _series/pick as red-series! blk i + 1 null
 					unless all [some? TYPE_OF(new) = TYPE_NONE][
-						if on-set? [old: stack/push values]
-						copy-cell new values
-						if on-set? [fire-on-set obj word old new]
+						either on-set? [
+							if all [i <> idx-s i <> idx-d][	;-- do not overwrite event handlers
+								old: stack/push values
+								copy-cell new values
+								fire-on-set obj word old new
+							]
+						][
+							copy-cell new values
+						]
 					]
+					i: i + 1
 					word: word + 1
 					values: values + 1
-					i: i + 1
 				]
 			][
 				obj2: as red-object! value
@@ -201,9 +218,15 @@ object: context [
 					if i > -1 [
 						new: values2 + i
 						unless all [some? TYPE_OF(new) = TYPE_NONE][
-							if on-set? [old: stack/push values]
-							copy-cell new values
-							if on-set? [fire-on-set obj word old new]
+							either on-set? [
+								if all [i <> idx-s i <> idx-d][		;-- do not overwrite event handlers
+									old: stack/push values
+									copy-cell new values
+									fire-on-set obj word old new
+								]
+							][
+								copy-cell new values
+							]
 						]
 					]
 					word: word + 1
@@ -211,10 +234,18 @@ object: context [
 				]
 			]
 		][
+			i: 0
 			while [values < tail][
-				if on-set? [old: stack/push values]
-				copy-cell value values
-				if on-set? [fire-on-set obj word old new]
+				either on-set? [
+					if all [i <> idx-s i <> idx-d][		;-- do not overwrite event handlers
+						old: stack/push values
+						copy-cell value values
+						fire-on-set obj word old new
+					]
+				][
+					copy-cell value values
+				]
+				i: i + 1
 				word: word + 1
 				values: values + 1
 			]
@@ -375,13 +406,14 @@ object: context [
 		assert TYPE_OF(int) = TYPE_INTEGER
 		index: int/value >> 16
 		count: int/value and FFFFh
+		if index = -1 [exit]							;-- abort if no on-change* handler
 		
 		ctx: GET_CTX(obj) 
 		s: as series! ctx/values/value
 		fun: as red-function! s/offset + index
 		if TYPE_OF(fun) <> TYPE_FUNCTION [fire [TO_ERROR(script invalid-arg) fun]]
 		
-		stack/mark-func words/_on-change*
+		stack/mark-func words/_on-change* fun/ctx
 		stack/push as red-value! word
 		stack/push old
 		stack/push new
@@ -423,7 +455,7 @@ object: context [
 		s: as series! ctx/values/value
 		fun: as red-function! s/offset + index
 		if TYPE_OF(fun) = TYPE_FUNCTION [
-			stack/mark-func words/_on-deep-change*
+			stack/mark-func words/_on-deep-change* fun/ctx
 			stack/push as red-value! owner
 			stack/push as red-value! word
 			stack/push target
@@ -479,10 +511,9 @@ object: context [
 			n [integer!]
 	][
 		n: tabs
-		until [
+		while [n > 0][
 			string/concatenate-literal buffer "    "
 			n: n - 1
-			zero? n
 		]
 		part - (4 * tabs)
 	]
@@ -735,7 +766,8 @@ object: context [
 		spec/node: fun/spec
 		
 		blk: block/clone as red-block! more yes yes
-		_context/bind blk ctx node yes					;-- rebind new body to object
+		_context/bind blk ctx node yes					;-- rebind new body to object's context
+		_context/bind blk GET_CTX(fun) null no			;-- rebind new body to function's context
 		_function/push spec blk	fun/ctx null null		;-- recreate function
 		copy-cell stack/top - 1	as red-value! fun		;-- overwrite function slot in object
 		stack/pop 2										;-- remove extra stack slots (block/clone and _function/push)
@@ -853,12 +885,11 @@ object: context [
 		s: as series! ctx/symbols/value
 		base: s/tail - s/offset
 		
-		s: as series! ctx/values/value
-		values: s/offset
-		
 		while [cell < tail][
 			if TYPE_OF(cell) = TYPE_SET_WORD [
 				id: _context/add ctx as red-word! cell
+				s: as series! ctx/values/value
+				values: s/offset
 
 				value: cell + 1							;-- fetch next value to assign
 				while [all [
@@ -906,7 +937,7 @@ object: context [
 			ctx	 [red-context!]
 	][
 		obj: as red-object! stack/push*
-		make-at obj 4								;-- arbitrary value
+		make-at obj 4									;-- arbitrary value
 		obj/class: get-new-id
 		obj/on-set: null
 		ctx: GET_CTX(obj)
@@ -978,6 +1009,7 @@ object: context [
 			value [red-value!]
 			word  [red-word!]
 			s	  [series!]
+			len	  [integer!]
 	][
 		blk: 		as red-block! stack/push*
 		blk/header: TYPE_BLOCK
@@ -1007,7 +1039,9 @@ object: context [
 			]
 			field = words/body [
 				blk/node: ctx/symbols
-				blk/node: alloc-cells block/rs-length? blk
+				len: block/rs-length? blk
+				if len = 0 [len: 1]
+				blk/node: alloc-cells len
 				
 				s: as series! ctx/symbols/value
 				syms: s/offset
@@ -1064,7 +1098,7 @@ object: context [
 		#if debug? = yes [if verbose > 0 [print-line "object/mold"]]
 		
 		string/concatenate-literal buffer "make object! ["
-		part: serialize obj buffer only? all? flat? arg part - 14 yes indent + 1 yes
+		part: serialize obj buffer no all? flat? arg part - 14 yes indent + 1 yes
 		if indent > 0 [part: do-indent buffer indent part]
 		string/append-char GET_BUFFER(buffer) as-integer #"]"
 		part - 1
@@ -1108,7 +1142,7 @@ object: context [
 		
 		either value <> null [
 			if on-set? [old: stack/push _context/get-in word ctx]
-			_context/set-in word value ctx
+			_context/set-in word value ctx no
 			if on-set? [fire-on-set parent as red-word! element old value]
 			res: value
 		][
@@ -1159,7 +1193,7 @@ object: context [
 		if op = COMP_SAME [return either obj1/ctx = obj2/ctx [0][-1]]
 		if all [
 			obj1/ctx = obj2/ctx
-			any [op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
+			any [op = COMP_EQUAL op = COMP_FIND op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
 		][return 0]
 
 		ctx1: GET_CTX(obj1)

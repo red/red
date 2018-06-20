@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %stack.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -28,6 +28,8 @@ stack: context [										;-- call stack
 		header [integer!]								;-- symbol ID of the calling function
 		prev   [red-value!]								;-- previous frame base
 		ctx	   [node!]									;-- context for function's name
+		fctx   [node!]
+		saved  [node!]
 	]
 	
 	args-series:	as series!		0
@@ -110,13 +112,44 @@ stack: context [										;-- call stack
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/mark"]]
 
-		if ctop = c-end [
+		if ctop >= c-end [
 			top: top - 4								;-- make space within the stack for error processing
 			fire [TO_ERROR(internal stack-overflow)]
 		]
 		ctop/header: type or (fun/symbol << 8)
 		ctop/prev:	 arguments
 		ctop/ctx:	 fun/ctx
+		ctop/fctx:	 null
+		ctop/saved:  null
+		ctop: ctop + 1
+		arguments: top								;-- top of stack becomes frame base
+
+		#if debug? = yes [if verbose > 1 [dump]]
+	]
+	
+	mark-func: func [
+		fun		 [red-word!]
+		ctx-name [node!]
+		/local
+			ctx	   [red-context!]
+			values [node!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "stack/mark-func"]]
+
+		if ctop >= c-end [
+			top: top - 4								;-- make space within the stack for error processing
+			fire [TO_ERROR(internal stack-overflow)]
+		]
+		values: either null? ctx-name [null][			;-- null only happens in some libRedRT cases
+			ctx: TO_CTX(ctx-name)
+			ctx/values
+		]
+
+		ctop/header: FRAME_FUNCTION or (fun/symbol << 8)
+		ctop/prev:	 arguments
+		ctop/ctx:	 fun/ctx
+		ctop/fctx:	 ctx-name
+		ctop/saved:  values
 		ctop: ctop + 1
 		arguments: top								;-- top of stack becomes frame base
 
@@ -147,7 +180,6 @@ stack: context [										;-- call stack
 	]
 	
 	mark-native: 		MARK_STACK(FRAME_NATIVE)
-	mark-func:	 		MARK_STACK(FRAME_FUNCTION)
 	mark-try:	 		MARK_STACK(FRAME_TRY)
 	mark-try-all:		MARK_STACK(FRAME_TRY_ALL)
 	mark-catch:	 		MARK_STACK(FRAME_CATCH)
@@ -249,11 +281,20 @@ stack: context [										;-- call stack
 		inner? [logic!]									;-- YES: stay in inner frame
 		/local
 			type [integer!]
+			node [node!]
+			ctx	 [red-context!]
 	][
 		assert cbottom < ctop
 		until [
 			ctop: ctop - 1
 			type: CALL_STACK_MASK and ctop/header
+			if type = FRAME_FUNCTION [
+				node: ctop/fctx
+				if node <> null [
+					ctx: TO_CTX(node)
+					ctx/values: ctop/saved
+				]
+			]
 			any [
 				ctop <= cbottom
 				type = flags
@@ -370,7 +411,7 @@ stack: context [										;-- call stack
 			natives/print* no
 			quit -2
 		]
-		stack/push as red-value! err
+		push as red-value! err
 		throw RED_THROWN_ERROR
 	]
 	
@@ -540,7 +581,7 @@ stack: context [										;-- call stack
 		cell: top
 		top: top + 1
 		if top >= a-end [
-			top: top - 4								;-- make space within the stack for error processing
+			top: top - 5								;-- make space within the stack for error processing
 			fire [TO_ERROR(internal stack-overflow)]
 		]
 		cell

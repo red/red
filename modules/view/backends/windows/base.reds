@@ -10,16 +10,13 @@ Red/System [
 	}
 ]
 
-#define BASE_FACE_CLIPPED 1
-#define BASE_FACE_CARET   2
-
 init-base-face: func [
 	handle		[handle!]
 	parent		[integer!]
 	values		[red-value!]
 	alpha?		[logic!]
 	/local
-		pt		[tagPOINT]
+		pt		[tagPOINT value]
 		offset	[red-pair!]
 		size	[red-pair!]
 		show?	[red-logic!]
@@ -28,7 +25,6 @@ init-base-face: func [
 		len		[integer!]
 		sym		[integer!]
 		flags	[integer!]
-		face [red-object!]
 ][
 	offset: as red-pair! values + FACE_OBJ_OFFSET
 	size:	as red-pair! values + FACE_OBJ_SIZE
@@ -36,15 +32,17 @@ init-base-face: func [
 	opts:	as red-block! values + FACE_OBJ_OPTIONS
 
 	SetWindowLong handle wc-offset - 4 0
+	SetWindowLong handle wc-offset - 12 0
 	SetWindowLong handle wc-offset - 16 parent
 	SetWindowLong handle wc-offset - 20 0
 	SetWindowLong handle wc-offset - 24 0
+	pt/x: dpi-scale offset/x
+	pt/y: dpi-scale offset/y
 	either alpha? [
-		pt: as tagPOINT (as int-ptr! offset) + 2
 		unless win8+? [
-			pt: position-base handle as handle! parent offset
+			position-base handle as handle! parent :pt
 		]
-		update-base handle as handle! parent pt values
+		update-base handle as handle! parent :pt values
 		if all [show?/value IsWindowVisible as handle! parent][
 			ShowWindow handle SW_SHOWNA
 		]
@@ -52,7 +50,7 @@ init-base-face: func [
 			process-layered-region handle size offset null offset null yes
 		]
 	][
-		SetWindowLong handle wc-offset - 12 offset/y << 16 or (offset/x and FFFFh)
+		SetWindowLong handle wc-offset - 8 WIN32_MAKE_LPARAM(pt/x pt/y)
 	]
 
 	if TYPE_OF(opts) = TYPE_BLOCK [
@@ -65,7 +63,6 @@ init-base-face: func [
 			case [
 				sym = caret [
 					SetWindowLong handle wc-offset - 12 flags or BASE_FACE_CARET
-					face: as red-object! word + 1
 					SetWindowLong handle wc-offset - 24 as-integer get-face-handle as red-object! word + 1
 					update-caret handle values
 				]
@@ -80,18 +77,10 @@ init-base-face: func [
 position-base: func [
 	base	[handle!]
 	parent	[handle!]
-	offset	[red-pair!]
-	return: [tagPOINT]
-	/local
-		pt	[tagPOINT]
+	pt		[tagPOINT]
 ][
-	pt: declare tagPOINT
-	pt/x: offset/x
-	pt/y: offset/y
 	ClientToScreen parent pt		;-- convert client offset to screen offset
-	SetWindowLong base wc-offset - 4 pt/x
-	SetWindowLong base wc-offset - 8 pt/y
-	pt
+	SetWindowLong base wc-offset - 8 WIN32_MAKE_LPARAM(pt/x pt/y)
 ]
 
 layered-win?: func [
@@ -143,7 +132,7 @@ render-base: func [
 	if all [
 		group-box <> type
 		window <> type
-		render-text values hDC :rc
+		render-text values hWnd hDC :rc
 	][
 		res: true
 	]
@@ -152,6 +141,7 @@ render-base: func [
 
 render-text: func [
 	values	[red-value!]
+	hWnd	[handle!]
 	hDC		[handle!]
 	rc		[RECT_STRUCT]
 	return: [logic!]
@@ -168,6 +158,7 @@ render-text: func [
 		res		[logic!]
 		len		[integer!]
 		str		[c-string!]
+		graphic	[integer!]
 ][
 	;unless winxp? [return render-text-d2d values hDC rc]
 	res: false
@@ -184,6 +175,14 @@ render-text: func [
 				TYPE_OF(color) = TYPE_TUPLE
 				color/array1 <> 0
 			][
+				if color/array1 >>> 24 > 0 [				;-- has alpha channel
+					graphic: 0
+					GdipCreateFromHDC hDC :graphic
+					GdipSetSmoothingMode graphic GDIPLUS_ANTIALIAS
+					update-base-text hWnd graphic hDC text font para rc/right - rc/left rc/bottom - rc/top
+					GdipDeleteGraphics graphic
+					return true
+				]
 				SetTextColor hDC color/array1 and 00FFFFFFh
 			]
 			state: as red-block! values + FONT_OBJ_STATE
@@ -212,7 +211,7 @@ render-text: func [
 
 clip-layered-window: func [
 	hWnd		[handle!]
-	size		[red-pair!]
+	size		[tagSIZE]
 	x			[integer!]
 	y			[integer!]
 	new-width	[integer!]
@@ -223,11 +222,11 @@ clip-layered-window: func [
 		flags	[integer!]
 ][
 	flags: GetWindowLong hWnd wc-offset - 12
-	either any [
+	if any [
 		not zero? x
 		not zero? y
-		size/x <> new-width
-		size/y <> new-height
+		size/width <> new-width
+		size/height <> new-height
 		BASE_FACE_CLIPPED and flags <> 0
 	][
 		SetWindowLong hWnd wc-offset - 12 flags or BASE_FACE_CLIPPED
@@ -238,6 +237,13 @@ clip-layered-window: func [
 			rgn: CreateRectRgn x y new-width new-height
 			SetWindowRgn child rgn false
 		]
+	]
+	if all [
+		BASE_FACE_CLIPPED and flags <> 0
+		zero? x
+		zero? y
+		size/width = new-width
+		size/height = new-height
 	][SetWindowLong hWnd wc-offset - 12 flags and FFFFFFFEh]
 ]
 
@@ -255,40 +261,44 @@ process-layered-region: func [
 		w	  [integer!]
 		h	  [integer!]
 		rc	  [RECT_STRUCT value]
+		sz	  [tagSIZE]
 		owner [handle!]
 		type  [red-word!]
 		value [red-value!]
 		face  [red-object!]
 		tail  [red-object!]
 ][
-	x: origin/x
-	y: origin/y
+	x: dpi-scale origin/x
+	y: dpi-scale origin/y
 	either null? rect [
 		rect: :rc
 		owner: as handle! GetWindowLong hWnd wc-offset - 16
 		assert owner <> null
 		GetClientRect owner rect
 	][
-		x: x + pos/x
-		y: y + pos/y
+		x: x + dpi-scale pos/x
+		y: y + dpi-scale pos/y
 	]
 
+	sz: as tagSIZE :rc
+	sz/width: dpi-scale size/x
+	sz/height: dpi-scale size/y
 	if layer? [
-		w: x + size/x - rect/right
-		w: either positive? w [size/x - w][size/x]
+		w: x + sz/width - rect/right
+		w: either positive? w [sz/width - w][sz/width]
 		either negative? x [
-			x: either x + size/x < 0 [size/x][0 - x]
+			x: either x + sz/width < 0 [sz/width][0 - x]
 		][
 			x: 0
 		]
-		h: y + size/y - rect/bottom
-		h: either positive? h [size/y - h][size/y]
+		h: y + sz/height - rect/bottom
+		h: either positive? h [sz/height - h][sz/height]
 		either negative? y [
-			y: either y + size/y < 0 [size/y][0 - y]
+			y: either y + sz/height < 0 [sz/height][0 - y]
 		][
 			y: 0
 		]
-		clip-layered-window hWnd size x y w h
+		clip-layered-window hWnd sz x y w h
 	]
 
 	if all [
@@ -329,8 +339,10 @@ update-layered-window: func [
 		face	[red-object!]
 		tail	[red-object!]
 		size	[red-pair!]
-		pt		[tagPOINT]
-		rect	[RECT_STRUCT]
+		x		[integer!]
+		y		[integer!]
+		rect	[RECT_STRUCT value]
+		sz		[tagSIZE]
 		border	[integer!]
 		width	[integer!]
 		height	[integer!]
@@ -366,26 +378,25 @@ update-layered-window: func [
 		(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) > 0
 	][
 		either offset <> null [
-			pt: declare tagPOINT
-			pt/x: offset/x + GetWindowLong hWnd wc-offset - 4
-			pt/y: offset/y + GetWindowLong hWnd wc-offset - 8
+			border: GetWindowLong hWnd wc-offset - 8
+			x: offset/x + WIN32_LOWORD(border)
+			y: offset/y + WIN32_HIWORD(border)
 			unless all [zero? offset/x zero? offset/y][
 				hdwp: DeferWindowPos
 					hdwp
 					hWnd
 					null
-					pt/x pt/y
+					x y
 					0 0
 					SWP_NOSIZE or SWP_NOZORDER or SWP_NOACTIVATE
-				SetWindowLong hWnd wc-offset - 4 pt/x
-				SetWindowLong hWnd wc-offset - 8 pt/y
+				SetWindowLong hWnd wc-offset - 8 WIN32_MAKE_LPARAM(x y)
 				hWnd: as handle! GetWindowLong hWnd wc-offset - 20
 				if hWnd <> null [
 					hdwp: DeferWindowPos
 						hdwp
 						hWnd
 						null
-						pt/x pt/y
+						x y
 						0 0
 						SWP_NOSIZE or SWP_NOZORDER or SWP_NOACTIVATE
 				]
@@ -395,20 +406,22 @@ update-layered-window: func [
 				winpos/flags and SWP_NOSIZE = 0				;-- sized
 				winpos/flags and 8000h = 0					;-- not maximize and minimize
 			][
-				rect: declare RECT_STRUCT
 				GetClientRect winpos/hWnd rect
 				border: winpos/cx - rect/right >> 1
 				size: as red-pair! values + FACE_OBJ_SIZE
-				width: size/x
-				height: size/y
-				if pt/x + size/x + border > (winpos/x + winpos/cx) [
-					width: size/x - (pt/x + size/x - (winpos/x + winpos/cx)) - border
+				sz: as tagSIZE :rect
+				sz/width: dpi-scale size/x
+				sz/height: dpi-scale size/y
+				width: sz/width
+				height: sz/height
+				if x + sz/width + border > (winpos/x + winpos/cx) [
+					width: sz/width - (x + sz/width - (winpos/x + winpos/cx)) - border
 				]
-				if pt/y + size/y + border > (winpos/y + winpos/cy) [
-					height: size/y - (pt/y + size/y - (winpos/y + winpos/cy)) - border
+				if y + sz/height + border > (winpos/y + winpos/cy) [
+					height: sz/height - (y + sz/height - (winpos/y + winpos/cy)) - border
 				]
 
-				clip-layered-window hWnd size 0 0 width height
+				clip-layered-window hWnd sz 0 0 width height
 			]
 		][
 			bool: as red-logic! values + FACE_OBJ_VISIBLE?
@@ -483,7 +496,7 @@ BaseWndProc: func [
 		WM_LBUTTONUP	 [ReleaseCapture return 0]
 		WM_ERASEBKGND	 [return 1]					;-- drawing in WM_PAINT to avoid flicker
 		WM_SIZE  [
-			either (get-face-flags hWnd) and FACET_FLAGS_D2D = 0 [
+			either (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D = 0 [
 				unless zero? GetWindowLong hWnd wc-offset + 4 [
 					update-base hWnd null null get-face-values hWnd
 				]
@@ -502,6 +515,9 @@ BaseWndProc: func [
 		]
 		WM_PAINT
 		WM_DISPLAYCHANGE [
+			if (WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) <> 0 [
+				return 0
+			]
 			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
 			either TYPE_OF(draw) = TYPE_BLOCK [
 				either zero? GetWindowLong hWnd wc-offset - 4 [
@@ -510,6 +526,7 @@ BaseWndProc: func [
 					bitblt-memory-dc hWnd no
 				]
 			][
+				if null? current-msg [return -1]
 				system/thrown: 0
 				DC: declare draw-ctx!				;@@ should declare it on stack
 				draw-begin DC hWnd null no yes
@@ -531,15 +548,38 @@ BaseWndProc: func [
 				return 0
 			]
 		]
+		WM_NCHITTEST [
+			w: DefWindowProc hWnd msg wParam lParam
+			flags: GetWindowLong hWnd wc-offset - 28
+			if flags <> 0 [							;-- has custom cursor
+				either w = 1 [						;-- client area
+					flags: flags or 80000000h
+				][
+					flags: flags and 7FFFFFFFh
+				]
+				SetWindowLong hWnd wc-offset - 28 flags
+			]
+			return w
+		]
 		0317h	;-- WM_PRINT
 		0318h [ ;-- WM_PRINTCLIENT
 			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
 			do-draw hWnd as red-image! wParam draw no no no yes
 			return 0
 		]
+		WM_SETCURSOR [
+			w: GetWindowLong as handle! wParam wc-offset - 28
+			if all [
+				w <> 0
+				w and 80000000h <> 0					;-- inside client area
+			][
+				SetCursor as handle! (w and 7FFFFFFFh)
+				return 1
+			]
+		]
 		default [0]
 	]
-	if (get-face-flags hWnd) and FACET_FLAGS_EDITABLE <> 0 [
+	if (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_IME <> 0 [
 		switch msg [
 			WM_IME_SETCONTEXT [
 				either zero? wParam [
@@ -584,18 +624,17 @@ update-base-background: func [
 	color	[red-tuple!]
 	width	[integer!]
 	height	[integer!]
-	return: [logic!]				;-- true: has alpha channel
 	/local
 		clr		[integer!]
 		brush	[integer!]
 ][
 	clr: color/array1
 	clr: to-gdiplus-color clr
+	if clr >>> 24 = 255 [clr: FEFFFFFFh and clr]		;-- a trick to fix transparent issue
 	brush: 0
 	GdipCreateSolidFill clr :brush
 	GdipFillRectangleI graphic brush 0 0 width height
 	GdipDeleteBrush brush
-	either clr >>> 24 = 255 [false][true]
 ]
 
 update-base-text: func [
@@ -709,19 +748,17 @@ update-base: func [
 		font	[red-object!]
 		para	[red-object!]
 		sz		[red-pair!]
-		width	[integer!]
 		height	[integer!]
+		width	[integer!]
+		size	[tagSIZE]
 		hBitmap [handle!]
 		hBackDC [handle!]
-		size	[tagSIZE]
-		ptSrc	[tagPOINT]
-		ftn		[integer!]
-		bf		[tagBLENDFUNCTION]
+		ptSrc	[tagPOINT value]
+		bf		[tagBLENDFUNCTION value]
 		graphic [integer!]
-		alpha?	[logic!]
 		flags	[integer!]
 ][
-	if (get-face-flags hWnd) and FACET_FLAGS_D2D <> 0 [
+	if (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D <> 0 [
 		InvalidateRect hWnd null 0
 		exit
 	]
@@ -742,32 +779,17 @@ update-base: func [
 	font:	as red-object! values + FACE_OBJ_FONT
 	para:	as red-object! values + FACE_OBJ_PARA
 	sz:		as red-pair!   values + FACE_OBJ_SIZE
-	ptSrc:  declare tagPOINT
-	alpha?: yes     
 	graphic: 0
 
-	unless transparent-base? color img [
-		SetWindowLong hWnd GWL_STYLE WS_CHILD or WS_CLIPSIBLINGS
-		SetWindowLong hWnd GWL_EXSTYLE 0
-		unless null? parent [
-			SetParent hWnd parent
-			change-offset hWnd as red-pair! values + FACE_OBJ_OFFSET base
-			SetActiveWindow parent
-		]
-		update-base hWnd parent ptDst values
-		ShowWindow hWnd SW_SHOW
-		exit
-	]
-
-	width: sz/x
-	height: sz/y
+	width: dpi-scale sz/x
+	height: dpi-scale sz/y
 	hBackDC: CreateCompatibleDC hScreen
 	hBitmap: CreateCompatibleBitmap hScreen width height
 	SelectObject hBackDC hBitmap
 	GdipCreateFromHDC hBackDC :graphic
 
 	if TYPE_OF(color) = TYPE_TUPLE [				;-- update background
-		alpha?: update-base-background graphic color width height
+		update-base-background graphic color width height
 	]
 	GdipSetSmoothingMode graphic GDIPLUS_ANTIALIAS
 	update-base-image graphic img width height
@@ -776,15 +798,13 @@ update-base: func [
 
 	ptSrc/x: 0
 	ptSrc/y: 0
-	size: as tagSIZE (as int-ptr! sz) + 2
-	ftn: 0
-	bf: as tagBLENDFUNCTION :ftn
+	size: as tagSIZE :width
 	bf/BlendOp: as-byte 0
 	bf/BlendFlags: as-byte 0
 	bf/SourceConstantAlpha: as-byte 255
 	bf/AlphaFormat: as-byte 1
-	flags: either alpha? [2][4]
-	UpdateLayeredWindow hWnd hScreen ptDst size hBackDC ptSrc 0 as-integer :ftn flags
+	flags: 2
+	UpdateLayeredWindow hWnd null ptDst size hBackDC :ptSrc 0 :bf flags
 	GdipDeleteGraphics graphic
 	DeleteObject hBitmap
 	DeleteDC hBackDC

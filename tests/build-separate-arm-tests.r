@@ -62,26 +62,16 @@ output: copy ""
 ;; make the file lists from all-tests.txt
 file-list: copy []
 all-tests: read/lines %source/units/all-tests.txt
-foreach test all-tests [
-	append file-list copy test
-	replace test "auto-tests/" ""
-	unless any [
-		find test "routine"
-		find test "evaluation"
-	][
-		append file-list join "auto-tests/interp-" test
-	]
-]
 
-foreach file file-list [
+foreach file all-tests [
     print ["Compiling" file] "..." 
-    test-file: join %source/units/ file
+    test-file: clean-path join %source/units/ file
     exe: replace file ".red" ""
     replace exe "auto-tests/" "auto-tests-"
-    exe: to-local-file join arm-dir exe
+    exe: to-local-file join arm-dir second split-path to file! exe
     cmd: join "" [  to-local-file system/options/boot " -sc "
         to-local-file clean-path %../red.r
-        " -t " target " -o " exe " "
+        " -r -t " target " -o " exe " "
     	to-local-file test-file	
     ]
     clear output

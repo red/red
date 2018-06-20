@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %pair.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -40,12 +40,7 @@ pair: context [
 				x: int/value
 				y: x
 			]
-			TYPE_FLOAT [
-				fl: as red-float! right
-				x: as-integer fl/value
-				y: x
-			]
-			TYPE_PERCENT [
+			TYPE_FLOAT TYPE_PERCENT [
 				fl: as red-float! right
 				f: fl/value
 				switch op [
@@ -308,7 +303,7 @@ pair: context [
 		#if debug? = yes [if verbose > 0 [print-line "pair/compare"]]
 
 		if TYPE_OF(right) <> TYPE_PAIR [
-			return either op = COMP_STRICT_EQUAL [1][RETURN_COMPARE_OTHER]
+			return either any [op = COMP_FIND op = COMP_STRICT_EQUAL][1][RETURN_COMPARE_OTHER]
 		]
 		diff: left/y - right/y
 		if zero? diff [diff: left/x - right/x]

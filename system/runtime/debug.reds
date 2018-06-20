@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %debug.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -39,6 +39,10 @@ __print-debug-line: func [
 ][
 	records: __debug-lines
 	base: as byte-ptr! records
+	
+	#if any [type <> 'exe PIC? = yes][
+		address: address - system/image/base
+	]
 
 	nb: __debug-lines-nb
 	while [records/address < address][		;-- search for the closest record
@@ -64,11 +68,14 @@ __print-debug-line: func [
 ;-------------------------------------------
 __print-debug-stack: func [
 	address [byte-ptr!]						;-- memory address where the runtime error happened
-	/local ret base records nb next end top frame s value lines pf [pointer! [float!]] unused
+	/local 
+		ret funcs records nb next end top frame s value lines pf [float-ptr!]
+		unused base
 ][
-	base:	as byte-ptr! __debug-funcs
+	funcs:	as byte-ptr! __debug-funcs
 	frame:	system/debug/frame
-	ret:	as int-ptr! address
+	base:	as-integer system/image/base
+	ret:	as int-ptr! #either any [type <> 'exe PIC? = yes][address - base][address]
 	top:	frame + 2
 	lines:	40								;-- max number of lines displayed
 	print-line "***"
@@ -94,12 +101,12 @@ __print-debug-stack: func [
 			zero? nb
 		]
 		unless zero? nb [
-			print ["***   stack: " as-c-string base + records/name]
+			print ["***   stack: " as-c-string funcs + records/name]
 			if records/args = as int-ptr! -1 [
 				print [lf lf]
 				exit						;-- exit if a "barrier" function is encountered (set by linker)
 			]
-			s: as-c-string base + records/args
+			s: as-c-string funcs + records/args
 
 			unless zero? records/arity [
 				loop records/arity [
@@ -111,7 +118,7 @@ __print-debug-stack: func [
 						type-byte!	   [prin-molded-byte as byte! value]
 						type-float32!  [print as float32! value]
 						type-float!	   [
-							pf: as pointer! [float!] top
+							pf: as float-ptr! top
 							unused: prin-float pf/value
 							top: top + 1
 						]
@@ -138,7 +145,7 @@ __print-debug-stack: func [
 		top: frame
 		frame: as int-ptr! top/value
 		top: top + 1
-		ret: as int-ptr! top/value
+		ret: as int-ptr! #either any [type <> 'exe PIC? = yes][top/value - base][top/value]
 		top: frame + 2
 		
 		any [zero? nb zero? lines]

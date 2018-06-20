@@ -3,7 +3,7 @@ Red [
 	Author: "Nenad Rakocevic, Xie Qingtian"
 	File: 	%platform.red
 	Tabs: 	4
-	Rights: "Copyright (C) 2015 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -38,6 +38,13 @@ system/view/platform: context [
 				FACE_OBJ_ACTORS
 				FACE_OBJ_EXTRA
 				FACE_OBJ_DRAW
+				FACE_OBJ_ONCHANGE
+				FACE_OBJ_ONDEEPCHANGE
+				FACE_OBJ_EXT1
+				FACE_OBJ_EXT2
+				FACE_OBJ_EXT3
+				FACE_OBJ_EXT4
+				FACE_OBJ_EXT5
 			]
 			
 			#enum facet-flag! [
@@ -69,10 +76,7 @@ system/view/platform: context [
 			#enum flags-flag! [
 				FACET_FLAGS_ALL_OVER:	00000001h
 
-				FACET_FLAGS_EDITABLE:	00040000h
-				FACET_FLAGS_SCROLLABLE:	00080000h
-
-				FACET_FLAGS_D2D:		00100000h
+				FACET_FLAGS_SCROLLABLE:	00040000h
 
 				FACET_FLAGS_POPUP:		01000000h
 				FACET_FLAGS_MODAL:		02000000h
@@ -104,22 +108,6 @@ system/view/platform: context [
 				PARA_OBJ_V-ALIGN
 				PARA_OBJ_WRAP?
 				PARA_OBJ_PARENT
-			]
-
-			#enum text-box-facet! [
-				TBOX_OBJ_TEXT
-				TBOX_OBJ_SIZE
-				TBOX_OBJ_FONT
-				TBOX_OBJ_PARA
-				TBOX_OBJ_SPACING
-				TBOX_OBJ_TABS
-				TBOX_OBJ_STYLES
-				TBOX_OBJ_STATE
-				TBOX_OBJ_TARGET
-				TBOX_OBJ_FIXED?
-				TBOX_OBJ_WIDTH
-				TBOX_OBJ_HEIGHT
-				TBOX_OBJ_LINE_COUNT
 			]
 
 			#enum scroller-facet! [
@@ -255,6 +243,7 @@ system/view/platform: context [
 			camera:			symbol/make "camera"
 			caret:			symbol/make "caret"
 			scroller:		symbol/make "scroller"
+			rich-text:		symbol/make "rich-text"
 
 			---:			symbol/make "---"
 			done:			symbol/make "done"
@@ -287,9 +276,7 @@ system/view/platform: context [
 			modal:			symbol/make "modal"
 			popup:			symbol/make "popup"
 			scrollable:		symbol/make "scrollable"
-			editable:		symbol/make "editable"
 
-			Direct2D:		symbol/make "Direct2D"
 			_accelerated:	symbol/make "accelerated"
 
 			_cursor:		symbol/make "cursor"
@@ -529,7 +516,7 @@ system/view/platform: context [
 					]
 				]
 				test [#include %test/gui.reds]
-				;GTK [#include %GTK/gui.reds]
+				GTK [#include %GTK/gui.reds]
 			]
 		]
 	]
@@ -648,6 +635,14 @@ system/view/platform: context [
 		bool/value:  gui/do-events no-wait?
 	]
 
+	exit-event-loop: routine [][
+		#switch OS [
+			Windows  [gui/PostQuitMessage 0]
+			macOS    [gui/post-quit-msg]
+			#default [0]
+		]
+	]
+
 	request-font: routine [font [object!] selected [object!] mono? [logic!]][
 		gui/OS-request-font font selected mono?
 	]
@@ -672,17 +667,22 @@ system/view/platform: context [
 		stack/set-last gui/OS-request-dir title dir filter keep? multi?
 	]
 
-	text-box-layout: routine [
-		box		[object!]
-	][
-		gui/OS-text-box-layout box null no
-	]
-
 	text-box-metrics: routine [
-		state	[block!]
+		box		[object!]
 		arg0	[any-type!]
 		type	[integer!]
+		/local
+			state	[red-block!]
+			bool	[red-logic!]
+			layout? [logic!]
 	][
+		layout?: yes
+		state: as red-block! (object/get-values box) + gui/FACE_OBJ_EXT3
+		if TYPE_OF(state) = TYPE_BLOCK [
+			bool: as red-logic! (block/rs-tail state) - 1
+			layout?: bool/value
+		]
+		if layout? [gui/OS-text-box-layout box null 0 no]
 		stack/set-last gui/OS-text-box-metrics state arg0 type
 	]
 
@@ -700,7 +700,6 @@ system/view/platform: context [
 			Windows [
 				button:			[1x1   1x1]				;-- LeftxRight TopxBottom
 				tab-panel:		[0x2   0x1]
-				text-list:		[0x0  0x15]
 				group-box:		[0x0   0x1]
 			]
 			macOS [
@@ -721,6 +720,8 @@ system/view/platform: context [
 				group-box:		[3x3  10x3]
 				tab-panel:		[1x3  25x0]
 				button:			[8x8   0x0]
+				drop-down:		[0x7   0x0]
+				drop-list:		[0x7   0x0]
 			]
 			macOS [
 				button:			[11x11 0x0 regular 14x14 0x0 small 11x11 0x0 mini 11x11 0x0]
@@ -732,18 +733,33 @@ system/view/platform: context [
 				drop-list:		[14x26 0x0 regular 14x26 0x0 small 11x22 0x0 mini 11x22 0x0]
 			]
 		]]
-		extend system/view/metrics/def-heights [#switch config/OS [
-			Windows []
-			macOS	[
-				check:		21
-				radio:		21
-				text:		18
-				field:		21
-				drop-down:	21
-				drop-list:	21
-				progress:	21
+		#switch config/OS [
+			Windows [
+				if version/1 <= 6 [						;-- for Win7 & XP
+					extend system/view/metrics/def-heights [
+						button:		23
+						text:		24
+						field:		24
+						check:		24
+						radio:		24
+						slider:		24
+						drop-down:	23
+						drop-list:	23
+					]
+				]
 			]
-		]]
+			macOS	[
+				extend system/view/metrics/def-heights [
+					check:		21
+					radio:		21
+					text:		18
+					field:		21
+					drop-down:	21
+					drop-list:	21
+					progress:	21
+				]
+			]
+		]
 		
 		colors: system/view/metrics/colors
 		#switch config/OS [

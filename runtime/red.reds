@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %red.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -32,6 +32,7 @@ red: context [
 	;-- Datatypes --
 	
 	#include %datatypes/structures.reds
+	#include %print.reds
 	#include %datatypes/common.reds
 	#include %unicode.reds
 	#include %case-folding.reds
@@ -116,11 +117,13 @@ red: context [
 	#include %crypto.reds
 	#include %stack.reds
 	#include %interpreter.reds
+	#include %tokenizer.reds
 	#include %simple-io.reds							;-- temporary file IO support
 	#include %clipboard.reds
 	#include %redbin.reds
 	#include %utils.reds
 	#include %call.reds
+	#include %inflate.reds
 	#include %collector.reds
 
 	_root:	 	declare red-block!						;-- statically alloc root cell for bootstrapping
@@ -136,6 +139,7 @@ red: context [
 	;-- Booting... --
 	
 	init: does [
+		dyn-print/init
 		platform/init
 		_random/init
 		init-mem										;@@ needs a local context

@@ -3,7 +3,7 @@ Red/System [
 	Author: "Nenad Rakocevic"
 	File: 	%draw.red
 	Tabs: 	4
-	Rights: "Copyright (C) 2015 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -41,7 +41,7 @@ Red/System [
 		replace:        symbol/make "replace"
 		intersect:      symbol/make "intersect"
 		union:          symbol/make "union"
-		xor:            symbol/make "xor"
+		_xor:            symbol/make "xor"
 		exclude:        symbol/make "exclude"
 		complement:     symbol/make "complement"
 		rotate:			symbol/make "rotate"
@@ -699,7 +699,7 @@ Red/System [
 				closed? [logic!]
 				grad?	[logic!]
 				rect?   [logic!]
-				state	[integer!]
+				state	[draw-state! value]
 				clip-mode	[integer!]
 				m-order		[integer!]
 				pen-clr		[integer!]
@@ -714,19 +714,8 @@ Red/System [
 			cmd:  block/rs-head cmds
 			tail: block/rs-tail cmds
 
-			state: 0
 			clip-mode: replace
 
-			#if OS = 'Windows [
-				pen-clr: DC/pen-color
-				brush-clr: DC/brush-color
-				pen-join: DC/pen-join
-				pen-cap: DC/pen-cap
-				pen?: DC/pen?
-				brush?: DC/brush?
-				a-pen?: DC/alpha-pen?
-				a-brush?: DC/alpha-brush?
-			]
 			while [cmd < tail][
 				switch TYPE_OF(cmd) [
 					TYPE_WORD [
@@ -885,7 +874,7 @@ Red/System [
 										type = replace
 										type = intersect
 										type = union
-										type = xor
+										type = _xor
 										type = exclude
 									][ 
 										clip-mode: type
@@ -898,7 +887,7 @@ Red/System [
 									OS-matrix-push DC :state
 									OS-set-clip DC as red-pair! start as red-pair! value rect? clip-mode
 									parse-draw DC as red-block! cmd catch?
-									OS-matrix-pop DC state
+									OS-matrix-pop DC :state
 								][
 									OS-set-clip DC as red-pair! start as red-pair! value rect? clip-mode
 								]
@@ -926,7 +915,7 @@ Red/System [
 									OS-matrix-push DC :state
 									OS-matrix-rotate DC sym as red-integer! start as red-pair! cmd - 1
 									parse-draw DC as red-block! cmd catch?
-									OS-matrix-pop DC state
+									OS-matrix-pop DC :state
 								][
 									OS-matrix-rotate DC sym as red-integer! start as red-pair! cmd
 								]
@@ -939,7 +928,7 @@ Red/System [
 									OS-matrix-push DC :state
 									OS-matrix-scale DC sym as red-integer! start as red-integer! cmd - 1
 									parse-draw DC as red-block! cmd catch?
-									OS-matrix-pop DC state
+									OS-matrix-pop DC :state
 								][
 									OS-matrix-scale DC sym as red-integer! start as red-integer! cmd
 								]
@@ -953,7 +942,7 @@ Red/System [
 									OS-matrix-push DC :state
 									OS-matrix-translate DC sym point/x point/y
 									parse-draw DC as red-block! cmd catch?
-									OS-matrix-pop DC state
+									OS-matrix-pop DC :state
 								][
 									OS-matrix-translate DC sym point/x point/y
 								]
@@ -967,7 +956,7 @@ Red/System [
 									OS-matrix-push DC :state
 									OS-matrix-skew DC sym as red-integer! start as red-integer! cmd - 1
 									parse-draw DC as red-block! cmd catch?
-									OS-matrix-pop DC state
+									OS-matrix-pop DC :state
 								][
 									OS-matrix-skew DC sym as red-integer! start as red-integer! cmd
 								]
@@ -989,7 +978,7 @@ Red/System [
 										as red-integer! value
 										as red-pair! cmd - 1
 									parse-draw DC as red-block! cmd catch?
-									OS-matrix-pop DC state
+									OS-matrix-pop DC :state
 								][
 									OS-matrix-transform
 										DC
@@ -1003,7 +992,7 @@ Red/System [
 								DRAW_FETCH_VALUE(TYPE_BLOCK)
 								OS-matrix-push DC :state
 								parse-draw DC as red-block! start catch?
-								OS-matrix-pop DC state
+								OS-matrix-pop DC :state
 							]
 							sym = matrix [
 								DRAW_FETCH_OPT_TRANSFORM
@@ -1032,12 +1021,6 @@ Red/System [
 				]
 				cmd: cmd + 1
 			]
-			#if OS = 'Windows [
-				DC/pen-join: pen-join
-				DC/pen-cap: pen-cap
-				OS-draw-pen DC pen-clr pen? a-pen?
-				OS-draw-fill-pen DC brush-clr brush? a-brush?
-			]
 		]
 
 		do-draw: func [
@@ -1055,7 +1038,7 @@ Red/System [
 				null? handle
 				any [TYPE_OF(cmds) <> TYPE_BLOCK zero? block/rs-length? cmds]
 			][exit]
-			
+
 			system/thrown: 0
 			draw-begin :DC handle img on-graphic? paint?
 			if TYPE_OF(cmds) = TYPE_BLOCK [
@@ -1080,6 +1063,7 @@ Red/System [
 				start	[red-value!]
 				int1	[red-integer!]
 				int2	[red-integer!]
+				range	[red-pair!]
 				word	[red-word!]
 				sym		[integer!]
 				rgb		[integer!]
@@ -1124,14 +1108,6 @@ Red/System [
 								DRAW_FETCH_OPT_VALUE(TYPE_LIT_WORD)		;-- style: 'dash, 'wave
 								OS-text-box-border layout idx len start cmd
 							]
-							sym = _font-name [
-								DRAW_FETCH_VALUE(TYPE_STRING)
-								OS-text-box-font-name dc layout idx len as red-string! start
-							]
-							sym = _font-size [
-								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
-								OS-text-box-font-size dc layout idx len get-float as red-integer! start
-							]
 							true [throw-draw-error cmds cmd catch?]
 						]
 					]
@@ -1139,16 +1115,16 @@ Red/System [
 						rgb: get-color-int as red-tuple! cmd :alpha?
 						OS-text-box-color dc layout idx len rgb
 					]
-					TYPE_INTEGER [										;-- range
-						int1: as red-integer! cmd
-						int2: int1 + 1
-						cmd: cmd + 2
-						if any [TYPE_OF(int2) <> TYPE_INTEGER TYPE_OF(cmd) = TYPE_INTEGER][
-							throw-draw-error cmds cmd catch?
-						]
-						idx: int1/value - 1
-						len: int2/value
-						cmd: as red-value! int2
+					TYPE_PAIR [											;-- range
+						range: as red-pair! cmd
+						idx: range/x - 1
+						len: range/y
+					]
+					TYPE_STRING [										;-- font name
+						OS-text-box-font-name dc layout idx len as red-string! cmd
+					]
+					TYPE_INTEGER TYPE_FLOAT [							;-- font size
+						OS-text-box-font-size dc layout idx len get-float as red-integer! cmd
 					]
 					default [throw-draw-error cmds cmd catch?]
 				]

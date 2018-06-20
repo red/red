@@ -3,12 +3,14 @@ Red/System [
 	Author:	"Nenad Rakocevic"
 	File:	%draw.reds
 	Tabs:	4
-	Rights:	"Copyright (C) 2015 Nenad Rakocevic. All rights reserved."
+	Rights:	"Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
+
+xform: declare XFORM!
 
 #define	SHAPE_OTHER				0
 #define	SHAPE_CURVE				1
@@ -50,6 +52,17 @@ Red/System [
 	free word
 ]
 
+draw-state!: alias struct! [
+	gstate		[integer!]
+	pen-clr		[integer!]
+	brush-clr	[integer!]
+	pen-join	[integer!]
+	pen-cap		[integer!]
+	pen?		[logic!]
+	brush?		[logic!]
+	a-pen?		[logic!]
+	a-brush?	[logic!]
+]
 
 alloc-context: func [
 	ctx				[draw-ctx!]
@@ -149,6 +162,7 @@ update-gdiplus-modes: func [ctx [draw-ctx!] ][
 update-gdiplus-brush: func [ctx [draw-ctx!] /local handle [integer!]][
 	handle: 0
 	ctx/gp-brush-type: BRUSH_TYPE_NORMAL
+	ctx/other/gradient-fill?: false
 	unless zero? ctx/gp-brush [
 		GdipDeleteBrush ctx/gp-brush
 		ctx/gp-brush: 0
@@ -161,6 +175,7 @@ update-gdiplus-brush: func [ctx [draw-ctx!] /local handle [integer!]][
 
 update-gdiplus-pen: func [ctx [draw-ctx!] /local handle [integer!]][
 	ctx/gp-pen-type: BRUSH_TYPE_NORMAL
+	ctx/other/gradient-pen?: false
 	either ctx/pen? [
 		if ctx/gp-pen-saved <> 0 [
 			ctx/gp-pen: ctx/gp-pen-saved
@@ -264,13 +279,14 @@ draw-begin: func [
 	return: 	[draw-ctx!]
 	/local
 		dc		 [handle!]
-		rect	 [RECT_STRUCT]
+		rect	 [RECT_STRUCT value]
 		width	 [integer!]
 		height	 [integer!]
 		hBitmap  [handle!]
 		hBackDC  [handle!]
 		graphics [integer!]
 		ptrn	 [red-image!]
+		ratio	 [float32!]
 ][
 	zero-memory as byte-ptr! ctx size? draw-ctx!
 	alloc-context ctx
@@ -301,7 +317,7 @@ draw-begin: func [
 	ctx/other/gradient-fill/transformed?:	false
 	ctx/other/gradient-pen?:				false
 	ctx/other/gradient-fill?:				false
-	ctx/other/D2D?:							(get-face-flags hWnd) and FACET_FLAGS_D2D <> 0
+	ctx/other/D2D?:							(GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D <> 0
 	ctx/other/GDI+?:						no
 	ctx/other/last-point?:					no
 	ctx/other/prev-shape/type:				SHAPE_OTHER
@@ -315,7 +331,6 @@ draw-begin: func [
 	ptrn:									as red-image! ctx/other/pattern-image-pen
 	ptrn/node:								null
 
-	rect: declare RECT_STRUCT
 	either null? hWnd [
 		ctx/on-image?: yes
 		either on-graphic? [
@@ -359,6 +374,14 @@ draw-begin: func [
 
 			graphics: 0
 			GdipCreateFromHDC dc :graphics
+			SelectObject dc GetStockObject NULL_BRUSH
+		]
+	]
+
+	if any [hWnd <> null on-graphic?][
+		if dpi-factor <> 100 [
+			ratio: (as float32! dpi-factor) / (as float32! 100.0)
+			GdipScaleWorldTransform graphics ratio ratio GDIPLUS_MATRIX_PREPEND
 		]
 	]
 
@@ -646,11 +669,11 @@ draw-short-curves: func [
 		pt: pt + 1
 		pt/x: ( 2 * ctx/other/path-last-point/x ) - control/x
 		pt/y: ( 2 * ctx/other/path-last-point/y ) - control/y
+		control/x: pt/x
+		control/y: pt/y
 		pt: pt + 1
 		pt/x: either rel? [ ctx/other/path-last-point/x + pair/x ][ pair/x ]
 		pt/y: either rel? [ ctx/other/path-last-point/y + pair/y ][ pair/y ]
-		control/x: pt/x
-		control/y: pt/y
 		pt: pt + 1
 		loop nr-points - 1 [ pair: pair + 1 ]
 		if pair <= end [
@@ -953,7 +976,6 @@ OS-draw-shape-arc: func [
 		center		[red-pair!]
 		m			[integer!]
 		path		[integer!]
-		xform		[XFORM!]
 		arc-dir		[integer!]
 		prev-dir	[integer!]
 		pt			[tagPOINT]
@@ -1053,7 +1075,6 @@ OS-draw-shape-arc: func [
 				arc-points/end-y: p2-y
 			]
 
-			xform: declare XFORM!
 			set-matrix xform 1.0 0.0 0.0 1.0 center-x * -1.0 center-y * -1.0
 			SetWorldTransform dc xform
 			set-matrix xform cos-val sin-val sin-val * -1.0 cos-val center-x center-y
@@ -1098,7 +1119,10 @@ OS-draw-anti-alias: func [
 		GdipSetTextRenderingHint ctx/graphics TextRenderingHintAntiAliasGridFit
 	][
 		ctx/other/GDI+?: no
-		if ctx/on-image? [ctx/other/anti-alias?: yes ctx/other/GDI+?: yes]			;-- always use GDI+ to draw on image
+		if any [ctx/on-image? dpi-factor <> 100][	;-- always use GDI+ to draw on image
+			ctx/other/anti-alias?: yes
+			ctx/other/GDI+?: yes
+		]
 		GdipSetSmoothingMode ctx/graphics GDIPLUS_HIGHSPPED
 		GdipSetTextRenderingHint ctx/graphics TextRenderingHintSystemDefault
 	]
@@ -1114,6 +1138,8 @@ OS-draw-line: func [
 		nb		[integer!]
 		pair	[red-pair!]
 ][
+	if ctx/other/D2D? [OS-draw-line-d2d ctx point end exit]
+
 	pt: ctx/other/edges
 	pair:  point
 	nb:	   0
@@ -1165,6 +1191,8 @@ OS-draw-fill-pen: func [
 ][
 	if all [off? ctx/brush? <> off?][exit]
 
+	if ctx/other/D2D? [OS-draw-fill-pen-d2d ctx color off? exit]
+
 	ctx/alpha-brush?: alpha?
 	ctx/other/GDI+?: any [alpha? ctx/other/anti-alias? ctx/alpha-pen?]
 
@@ -1181,6 +1209,8 @@ OS-draw-line-width: func [
 	/local
 		width-v [float32!]
 ][
+	if ctx/other/D2D? [OS-draw-line-width-d2d ctx width exit]
+
 	width-v: get-float32 as red-integer! width
 	if ctx/pen-width <> width-v [
 		ctx/pen-width: width-v
@@ -1243,6 +1273,10 @@ OS-draw-box: func [
 		radius	[red-integer!]
 		rad		[integer!]
 ][
+	if ctx/other/D2D? [
+		OS-draw-box-d2d ctx upper lower
+		exit
+	]
 	rad: either TYPE_OF(lower) = TYPE_INTEGER [
 		radius: as red-integer! lower
 		lower:  lower - 1
@@ -1574,18 +1608,19 @@ OS-draw-text: func [
 	][
 		tm: as tagTEXTMETRIC ctx/other/gradient-pen/colors
 		GetTextMetrics ctx/dc tm
-		y: pos/y
+		x: dpi-scale pos/x
+		y: dpi-scale pos/y
 		p: str
 		while [len > 0][
 			if all [p/1 = #"^/" p/2 = #"^@"][
-				ExtTextOut ctx/dc pos/x y ETO_CLIPPED null str (as-integer p - str) / 2 null
+				ExtTextOut ctx/dc x y ETO_CLIPPED null str (as-integer p - str) / 2 null
 				y: y + tm/tmHeight
 				str: p + 2
 			]
 			p: p + 2
 			len: len - 1
 		]
-		if p > str [ExtTextOut ctx/dc pos/x y ETO_CLIPPED null str (as-integer p - str) / 2 null]
+		if p > str [ExtTextOut ctx/dc x y ETO_CLIPPED null str (as-integer p - str) / 2 null]
 	]
 ]
 
@@ -3157,12 +3192,12 @@ OS-set-clip: func [
 		clip-mode [integer!]
 ][
 	case [
-		mode = replace [ clip-mode: clip-replace ctx ]
-		mode = intersect [ clip-mode: clip-intersect ctx ]
-		mode = union [ clip-mode: clip-union ctx ]
-		mode = xor [ clip-mode: clip-xor ctx ]
-		mode = exclude [ clip-mode: clip-diff ctx]
-		true [ clip-mode: clip-replace ctx ]
+		mode = replace	 [clip-mode: clip-replace ctx]
+		mode = intersect [clip-mode: clip-intersect ctx]
+		mode = union	 [clip-mode: clip-union ctx]
+		mode = _xor		 [clip-mode: clip-xor ctx]
+		mode = exclude	 [clip-mode: clip-diff ctx]
+		true			 [clip-mode: clip-replace ctx]
 	]
 	either ctx/other/GDI+? [
 		either rect? [
@@ -3357,13 +3392,27 @@ OS-matrix-transform: func [
 	]
 ]
 
-OS-matrix-push: func [ctx [draw-ctx!] state [int-ptr!] /local s][
+OS-matrix-push: func [ctx [draw-ctx!] state [draw-state!] /local s][
 	s: 0
 	GdipSaveGraphics ctx/graphics :s
-	state/value: s
+	state/gstate: s
+	state/pen-clr: ctx/pen-color
+	state/brush-clr: ctx/brush-color
+	state/pen-join: ctx/pen-join
+	state/pen-cap: ctx/pen-cap
+	state/pen?: ctx/pen?
+	state/brush?: ctx/brush?
+	state/a-pen?: ctx/alpha-pen?
+	state/a-brush?: ctx/alpha-brush?
 ]
 
-OS-matrix-pop: func [ctx [draw-ctx!] state [integer!]][GdipRestoreGraphics ctx/graphics state]
+OS-matrix-pop: func [ctx [draw-ctx!] state [draw-state!]][
+	GdipRestoreGraphics ctx/graphics state/gstate
+	ctx/pen-join: state/pen-join
+	ctx/pen-cap: state/pen-cap
+	OS-draw-pen ctx state/pen-clr not state/pen? state/a-pen?
+	OS-draw-fill-pen ctx state/brush-clr not state/brush? state/a-brush?
+]
 
 OS-matrix-reset: func [
 	ctx			[draw-ctx!]

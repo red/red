@@ -134,8 +134,8 @@ help-ctx: context [
 		]
 	]
 
-	longest-word: func [words [block! object!]][
-		if all [object? words  empty? words: words-of words] [return ""]
+	longest-word: func [words [block! object! map!]][
+		if all [any [object? words  map? words] empty? words: words-of words] [return ""]
 		forall words [words/1: form words/1]
 		sort/compare words func [a b][(length? a) < (length? b)]
 		last words
@@ -346,7 +346,13 @@ help-ctx: context [
 					;	Can't reflect on datatypes, as R3 could to some extent.
 					;	We would have to build our own typeset-match funcs to
 					;	show the type tree for it.
-					datatype? :val [col-1]
+					datatype? :val [
+						either system/catalog/accessors/:word [
+							[col-1 DOC_SEP mold system/catalog/accessors/:word]
+						][
+							[col-1]
+						]
+					]
 					any-function? :val [[col-1 DOC_SEP fmt-doc doc-string :val]]
 					'else [[col-1 DEF_SEP form-value :val]]
 				]
@@ -363,7 +369,7 @@ help-ctx: context [
 		form reduce [
 			either no-name [""] [as-arg-col mold param/name]
 			either type: select/skip param 'type 2 [mold/flat type][NO_DOC]
-			either param/desc [dot-str mold param/desc][NO_DOC]
+			either param/desc [mold dot-str param/desc][NO_DOC]
 		]
 	]
 	print-param: func [param [block!] /no-name][
@@ -402,7 +408,7 @@ help-ctx: context [
 		_print [
 			newline "DESCRIPTION:" newline
 			;reduce either fn-as-obj/desc [[DENT_1 any [fn-as-obj/desc NO_DOC] newline]][""]
-			reduce either fn-as-obj/desc [[DENT_1 dot-str fn-as-obj/desc newline]][""]
+			reduce either fn-as-obj/desc [[DENT_1 dot-str trim/lines copy fn-as-obj/desc newline]][""]
 			DENT_1 word-is-value-str/only word
 		]
 
@@ -428,12 +434,42 @@ help-ctx: context [
 		exit
 	]
 
+	show-map-help: function [
+		"Displays help information about a map."
+		word [word! path! map!]
+		/local value
+	][
+		if map? get word [
+			_print [uppercase form word "is a map! with the following words and values:"]
+		]
+		map: either map? word [word][get word]
+		if not map? map [
+			_print "show-map-help only works on words that refer to maps."
+			exit
+		]
+
+		word-col-wd: length? longest-word map
+
+		foreach map-word words-of map [
+			set/any 'value map/:map-word
+			_print [
+				DENT_1 pad form map-word word-col-wd DEF_SEP as-type-col :value DEF_SEP
+				; Yes, we're checking against our output buffer for every value, even
+				; though it will only trigger for this context (help-ctx) and the 
+				; output-buffer word in it. If we don't check, the output is messed up.
+				; We're in the process of updating output-buffer after all. It's either
+				; this or use a separate buffer. The joys of self reflection.
+				either same? :value output-buffer [""][form-value :value]
+			]
+		]
+	]
+
 	show-object-help: function [
 		"Displays help information about an object."
 		word [word! path! object!]
 		/local value
 	][
-		if not object? word [
+		if object? get word [
 			_print [uppercase form word "is an object! with the following words and values:"]
 		]
 		obj: either object? word [word][get word]
@@ -493,7 +529,9 @@ help-ctx: context [
 					all [any [word? :word path? :word] any-function? :value] [show-function-help :word]
 					any-function? :value [_print mold :value]
 					datatype? :value [show-datatype-help :value]
-					object? :value [show-object-help :value]
+					object? :value [show-object-help word]
+					map? :value [show-map-help word]
+					block? :value [_print [word-is-value-str/only :word DEF_SEP form-value :value]]
 					image? :value [
 						either in system 'view [view [image value]][
 							_print form-value value
@@ -512,15 +550,16 @@ help-ctx: context [
 	set 'source function [
 		"Print the source of a function"
 		'word [any-word! any-path!] "The name of the function"
+		/local val
 	][
-		val: get/any word
+		set/any 'val get/any word
 		print case [
 			function? :val [[append mold word #":" mold :val]]
 			routine? :val [[
 				";" uppercase mold :word "is a routine! value; its body is Red/System code.^/"
 				append mold word #":" mold :val
 			]]
-			'else [[uppercase mold word "is" a-an/pre mold type? :val "so source is not available."]]
+			'else [[uppercase mold word "is" a-an/pre mold type? :val "value, so source is not available."]]
 		]
 	]
 	
@@ -550,11 +589,37 @@ help-ctx: context [
 		either buffer [output-buffer][print output-buffer]	; Note ref to output-buffer in context
 	]
 
-	set 'about function ["Print Red version information"][
-		print [
-			"Red for" system/platform
-			'version system/version
-			'built system/build/date
+	set 'about func [
+		"Print Red version information"
+		/debug "Print full Red and OS version information suitable for submitting issues"
+		/local git plt
+	][
+		git: system/build/git
+		plt: os-info
+		either debug [
+			print either git [
+				compose [
+					"-----------RED & PLATFORM VERSION-----------" lf
+					"RED: [ branch:" mold git/branch "tag:" mold git/tag "ahead:" git/ahead
+					"date:" to-UTC-date git/date "commit:" mold git/commit "]^/"
+					"PLATFORM: [ name:" mold plt/name "OS:" mold to lit-word! system/platform
+					"arch:" mold to lit-word! plt/arch "version:" mold plt/version
+					"build:" mold plt/build "]^/"
+					"--------------------------------------------"
+				]
+			][
+				"Looks like this Red binary has been built from source.^/Please download latest build from our website:^/https://www.red-lang.org/download.html^/and try your code on it before submitting an issue."
+			]
+		][
+			prin [
+				'Red system/version
+				'for system/platform
+				'built any [all [git git/date] system/build/date]
+			]
+			if git [
+				prin [ " commit" copy/part mold system/build/git/commit 8]
+			]
+			print lf
 		]
 	]
 

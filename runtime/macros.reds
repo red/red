@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %macros.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -242,6 +242,7 @@ Red/System [
 	NAT_ZERO?
 	NAT_SIZE?
 	NAT_BROWSE
+	NAT_DECOMPRESS
 	NAT_RECYCLE
 ]
 
@@ -274,6 +275,8 @@ Red/System [
 	COMP_SORT
 	COMP_CASE_SORT
 	COMP_SAME
+	COMP_STRICT_EQUAL_WORD							;-- same as STRICT_EQUAL, but relaxed type matching for words
+	COMP_FIND
 ]
 
 #enum exceptions! [
@@ -374,6 +377,7 @@ Red/System [
 	any [
 		type = TYPE_BLOCK
 		type = TYPE_HASH
+		type = TYPE_VECTOR
 		type = TYPE_PAREN
 		type = TYPE_PATH
 		type = TYPE_LIT_PATH
@@ -436,6 +440,15 @@ Red/System [
 		type = TYPE_URL
 		type = TYPE_TAG
 		type = TYPE_EMAIL
+	]
+]
+
+#define ANY_WORD?(type) [
+	any [
+		type = TYPE_WORD
+		type = TYPE_SET_WORD
+		type = TYPE_GET_WORD
+		type = TYPE_LIT_WORD
 	]
 ]
 

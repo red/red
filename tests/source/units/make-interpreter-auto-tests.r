@@ -23,8 +23,7 @@ foreach test all-tests [
 		find test "evaluation" 
 	][
 		append file-list to file! test
-		replace test "auto-tests/" ""
-		append file-list join %auto-tests/interp- to string! test
+		append file-list join %auto-tests/interp- second split-path to file! test
 	]
 ]
 
@@ -56,7 +55,8 @@ read-write-test-body: func [
 ][
 	body: read file-in
 	body: find/tail body "../../quick-test/quick-test.red"
-	insert body join "#include %" [quick-test-path "^(0A) do ["]
+	insert body join "#include %" [
+		quick-test-path "^(0A) #do [interpreted?: true] ^(0A) do ["]
 	replace body {~~~start-file~~~ "} {~~~start-file~~~ "interp-}				 
 	write/append file-out body
 ]

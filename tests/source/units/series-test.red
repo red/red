@@ -3,7 +3,7 @@ Red [
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 %series-test.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
@@ -102,6 +102,8 @@ Red [
  	 --assert #"^(00)" = first next "a^(00)b" 
   --test-- "series-next-13"
  	 --assert 1 = first next #{000102} 
+  --test-- "series-next-14"
+ 	 --assert 1 = first next make hash! [0 1 2 3]
 ===end-group===
 
 ===start-group=== "back"
@@ -136,12 +138,12 @@ Red [
 ===start-group=== "tail"
   --test-- "series-tail-1"
   	--assert 5 = first back tail [1 2 3 4 5]
-  --test-- "seried-tail-2" 
+  --test-- "series-tail-2" 
   	--assert none = pick tail [1 2 3 4 5] 1
   --test-- "series-tail-3"
   	hs-ser-1: make hash! [1 2 3 4 5]
   	--assert 5 = first back tail hs-ser-1
-  --test-- "seried-tail-4"
+  --test-- "series-tail-4"
   	hs-ser-2: make hash! [1 2 3 4 5]
   	--assert none = pick tail hs-ser-2 1
   --test-- "series-tail-5"
@@ -310,10 +312,11 @@ Red [
 	--test-- "series-select-21"
 		ss21-h: make hash! [1x2 0 3x4 1]
 		--assert 0 = select ss21-h 1x2
-		
+
 	--test-- "series-select-22"
-		ss21-b: [1x2 0 3x4 1]
-		--assert 0 = select ss21-b 1x2
+		ss22-b: [1x2 0 3x4 1]
+		--assert 0 = select ss22-b 1x2
+
 		
 ===end-group===
 
@@ -400,6 +403,22 @@ Red [
 
 ===end-group===
 
+===start-group=== "series-put"
+  --test-- "series-put-1"
+    sp-1: [a 1 b 2]
+    put sp-1 'b 3
+  --assert sp-1 = [a 1 b 3]
+  --test-- "series-put-2"
+    sp-2: make hash! [a 1 b 2]
+    put sp-2 'b 3
+  --assert sp-2 = make hash! [a 1 b 3]
+  --test-- "series-put-3"
+    sp-3: make hash! [a 1]
+    put sp-3 'b 2
+    put sp-3 'b 3
+  --assert sp-3 = make hash! [a 1 b 3]
+===end-group===
+
 ===start-group=== "series-equal"
 
   --test-- "series-equal-1"
@@ -426,6 +445,18 @@ Red [
 
   --test-- "series-equal-7"
   --assert #{01} = next #{0001}
+
+  --test-- "series-equal-8"
+  --assert (make hash! []) = make hash! []
+
+  --test-- "series-equal-9"
+  --assert (make hash! [a 2 b 4]) = make hash! [a 2 b 4]
+
+  --test-- "series-equal-10"
+    se10-h: make hash! []
+    append se10-h [a 2 b 4]
+  --assert se10-h = make hash! [a 2 b 4]
+
   
 ===end-group===
 
@@ -744,6 +775,16 @@ Red [
 	--test-- "series-find-103"
 		--assert equal? make hash! [3x4 1] find make hash! [1x2 0 3x4 1] 3x4
 
+	--test-- "series-find-104"
+		sf-104: make hash! []
+		append sf-104 [a 1 b 2]
+		--assert (make hash! [b 2]) = find sf-104 'b
+
+	--test-- "series-find-105"
+		sf-105: make hash! []
+		put sf-105 'a 1
+		--assert (make hash! [a 1]) = find sf-105 'a
+
 		
 ===end-group===
 
@@ -968,6 +1009,9 @@ Red [
 		--assert #{FF03}   = replace #{010203} #{0102} #{FF}
 		--assert #{FFFFFF03} = replace #{010203} #{0102} #{FFFFFF}
 
+	--test-- "replace-bitset-issue-#3132"
+		--assert "s" = replace/all "test" charset [#"t" #"e"] ""
+	
 ===end-group===
 
 ===start-group=== "max/min"			;-- have some overlap with lesser tests
@@ -1298,9 +1342,12 @@ Red [
 		--assert "    ^-1^/    2^-  ^/  c3  ^/  ^/^/" = trim/with copy mstr "ab"
 
 	--test-- "trim-str-9"
-		--assert "    ^-1^/    b2^-  ^/  c3  ^/  ^/^/" = trim/with copy mstr #"a"
+		--assert "a1ab2ac3" = trim/all { a ^-1^/ ab2^- ^/ ac3 ^/ ^/^/}
 
 	--test-- "trim-str-10"
+		--assert "    ^-1^/    b2^-  ^/  c3  ^/  ^/^/" = trim/with copy mstr #"a"
+
+	--test-- "trim-str-11"
 		--assert "    ^-1^/    b2^-  ^/  c3  ^/  ^/^/" = trim/with copy mstr 97
 
 	--test-- "trim-block-1"
@@ -1701,15 +1748,44 @@ Red [
 		--assert 3  = select hs 2
 ===end-group===
 
-===start-group=== "series-unicode"
+===start-group=== "copy"
+	--test-- "copy-1"
+		c1-a: ["a" "b" "c"]
+		c1-b: copy c1-a
+		--assert equal? c1-a c1-b
+		--assert not same? c1-a c1-b
+	--test-- "copy-2"
+		c2-a: ["a" "b" "c"]
+		c2-b: copy a
+		c2-a: next c2-a
+		--assert not equal? c2-a c2-b
 
-	;--test-- "suc1"
-	;	--assert equal? "爊倍弊褊不瀍阊吊谍樊服复漍焊蔊昊瘊㬊阍"
-	;					read %tests/fixtures/chinese-characters.txt
-						
-	;--test-- "suc2"
-	;	--assert equal? ["爊倍弊褊不瀍阊吊谍樊服复漍焊蔊昊瘊㬊阍"]
-	;					read/lines %tests/fixtures/chinese-characters.txt
+	--test-- "copy-3"
+		a: "12345678"
+		b: skip a 6
+		c: tail a
+		d: skip a 2
+		remove/part a 4
+		--assert "5678" = a
+		--assert empty? b
+		--assert empty? copy b
+		--assert empty? c
+		--assert empty? copy c
+		--assert "78" = d
+		--assert "78" = copy d
+		--assert "78" = copy/part d b
+		--assert "78" = copy/part b d
+		clear a
+		--assert empty? d
+		--assert empty? copy d
+		--assert empty? copy/part d b
+
+	--test-- "copy-4"
+		a: "12345678"
+		b: skip a 6
+		--assert empty? copy/part a -4
+		--assert "3456" = copy/part b -4
+		--assert "123456" = copy/part b -10
 ===end-group===
 
 ~~~end-file~~~

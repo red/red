@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Qingtian Xie"
 	File: 	 %tuple.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -544,7 +544,7 @@ tuple: context [
 			index <= 0
 			index > size
 		][
-			fire [TO_ERROR(script out-of-range) boxed]
+			fire [TO_ERROR(script out-of-range) integer/push index] ;-- boxed can be null
 			null
 		][
 			as red-value! integer/push as-integer value/index

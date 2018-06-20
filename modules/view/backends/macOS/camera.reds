@@ -11,7 +11,7 @@ Red/System [
 		https://developer.apple.com/library/ios/samplecode/AVCam/Listings/AVCam_AAPLCameraViewController_m.html#//apple_ref/doc/uid/DTS40010112-AVCam_AAPLCameraViewController_m-DontLinkElementID_6
 		https://opensource.apple.com/source/libclosure/libclosure-38/BlockImplementation.txt
 	}
-	Rights: "Copyright (C) 2016 Qingtian Xie. All rights reserved."
+	Rights: "Copyright (C) 2016-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -139,6 +139,8 @@ still-image-handler: func [
 		values	[red-value!]
 		data	[integer!]
 ][
+	if error <> 0 [exit]		;-- error occur
+
 	values: as red-value! block/6
 	data: objc_msgSend [
 		objc_getClass "AVCaptureStillImageOutput"
@@ -153,26 +155,27 @@ still-image-handler: func [
 snap-camera: func [				;-- capture an image of current preview window
 	camera		[integer!]
 	/local
-		values		[integer!]
-		descriptor	[integer!]
-		invoke		[integer!]
-		reserved	[integer!]
-		flags		[integer!]
+		blk			[block_literal!]
 		isa			[integer!]
 		image		[integer!]
 		connection	[integer!]
 		layer		[integer!]
 		orientation [integer!]
+		sel			[integer!]
 ][
+	blk: declare block_literal!
+	isa: objc_getAssociatedObject camera RedCameraSessionKey
+	if zero? objc_msgSend [isa sel_getUid "isRunning"][exit]
+
 	objc_block_descriptor/reserved: 0
 	objc_block_descriptor/size: 4 * 6
 
-	isa: _NSConcreteStackBlock
-	flags: 1 << 29				;-- BLOCK_HAS_DESCRIPTOR, no copy and dispose helpers
-	reserved: 0
-	invoke: as-integer :still-image-handler
-	descriptor: as-integer objc_block_descriptor
-	values: as-integer get-face-values camera
+	blk/isa: _NSConcreteStackBlock
+	blk/flags: 1 << 29				;-- BLOCK_HAS_DESCRIPTOR, no copy and dispose helpers
+	blk/reserved: 0
+	blk/invoke: as int-ptr! :still-image-handler
+	blk/descriptor: as int-ptr! objc_block_descriptor
+	blk/value: as int-ptr! get-face-values camera
 	image: objc_getAssociatedObject camera RedCameraImageKey
 	connection: objc_msgSend [image sel_getUid "connectionWithMediaType:" AVMediaTypeVideo]
 
@@ -186,6 +189,8 @@ snap-camera: func [				;-- capture an image of current preview window
 		image
 		sel_getUid "captureStillImageAsynchronouslyFromConnection:completionHandler:"
 		connection
-		:isa
+		blk
 	]
+	sel: sel_getUid "isCapturingStillImage"
+	until [zero? objc_msgSend [image sel]]
 ]

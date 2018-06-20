@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %system.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -35,6 +35,14 @@ __stack!: alias struct! [
 	top		[int-ptr!]
 	frame	[int-ptr!]
 	align	[int-ptr!]
+]
+
+__image!: alias struct! [
+	base	  [int-ptr!]					;-- base image address in memory
+	code	  [integer!]					;-- code segment offset
+	code-size [integer!]					;-- code segment size
+	data	  [integer!]					;-- data segment offset
+	data-size [integer!]					;-- data segment size
 ]
 
 FPU-exceptions-mask!: alias struct! [		;-- standard exception mask (true => mask exception)
@@ -128,19 +136,23 @@ system!: alias struct! [					;-- store runtime accessible system values
 	thrown		[integer!]					;-- last THROWn value
 	boot-data	[byte-ptr!]					;-- Redbin encoded boot data (only for Red programs)
 	debug		[__stack!]					;-- stack info for debugging (set on runtime error only, internal use)
+	image		[__image!]					;-- executable image memory layout info
 ]
 
-#either libRedRT? = yes [
+#either any [libRedRT? = yes dev-mode? = no red-pass? = no][
 	system: declare system!
-	#if dev-mode? = yes [#export [system]]	;-- exclude it from libRed
+	#if all [libRedRT? = yes dev-mode? = yes][#export [system]]	;-- exclude it from libRed
 ][
-	#either dev-mode? = no [
-		system: declare system!
-	][
-		#either red-pass? = no [
-			system: declare system!
-		][
-			#import [LIBREDRT-file stdcall [system: "system" [system!]]]
-		]
-	]
+	#import [LIBREDRT-file stdcall [system: "system" [system!]]]
 ]
+
+***-exec-image: declare __image!
+system/image: ***-exec-image
+
+***-set-image-base: func [[cdecl] /local p][	;-- defered code generation so system/image is defined
+	p: #switch target [IA-32 [system/cpu/ebx] ARM [system/cpu/r9]]
+	system/image/base: as int-ptr! p - system/image/code
+]
+
+;-- This MUST be the be first call in the runtime
+***-set-image-base 

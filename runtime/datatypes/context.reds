@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %context.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -226,12 +226,17 @@ _context: context [
 	]
 
 	set-in: func [
-		word 		[red-word!]
-		value		[red-value!]
-		ctx			[red-context!]
-		return:		[red-value!]
+		word 	[red-word!]
+		value	[red-value!]
+		ctx		[red-context!]
+		event?	[logic!]								;-- TRUE: trigger object events
+		return:	[red-value!]
 		/local
 			values	[series!]
+			obj		[red-object!]
+			slot	[red-value!]
+			old		[red-value!]
+			s		[series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/set-in"]]
 		
@@ -246,7 +251,22 @@ _context: context [
 			copy-cell value (as red-value! ctx/values) + word/index
 		][
 			values: as series! ctx/values/value
-			copy-cell value values/offset + word/index
+			slot: values/offset + word/index
+			
+			if event? [
+				s: as series! ctx/self/value
+				obj: as red-object! s/offset + 1
+				
+				if all [TYPE_OF(obj) = TYPE_OBJECT obj/on-set <> null][
+					old: stack/push slot
+					word: as red-word! word
+					copy-cell value slot
+					object/fire-on-set obj word old value
+					stack/top: old - 1
+					return slot
+				]
+			]
+			copy-cell value slot
 		]
 	]
 	
@@ -260,7 +280,7 @@ _context: context [
 		#if debug? = yes [if verbose > 0 [print-line "_context/set"]]
 
 		node: word/ctx
-		set-in word value TO_CTX(node)
+		set-in word value TO_CTX(node) yes
 	]
 	
 	get-in: func [

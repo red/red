@@ -3,7 +3,7 @@ Red [
 	Author:  "Nenad Rakocevic"
 	File: 	 %actions.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -232,7 +232,7 @@ append: make action! [[
 			length [number! series!]
 		/only "Insert block types as single values (overrides /part)"
 		/dup  "Duplicate the inserted values"
-			count  [number!]
+			count  [integer!]
 		return:    [series! bitset!]
 	]
 	#get-definition ACT_APPEND
@@ -329,7 +329,7 @@ head?: make action! [[
 
 index?: make action! [[
 		"Returns the current index of series relative to the head, or of word in a context"
-		series	 [series! word!]
+		series	 [series! any-word!]
 		return:  [integer!]
 	]
 	#get-definition ACT_INDEX?
@@ -343,7 +343,7 @@ insert: make action! [[
 			length [number! series!]
 		/only "Insert block types as single values (overrides /part)"
 		/dup  "Duplicate the inserted values"
-			count  [number!]
+			count  [integer!]
 		return:    [series! bitset!]
 	]
 	#get-definition ACT_INSERT
@@ -398,7 +398,7 @@ poke: make action! [[
 put: make action! [[
 		"Replaces the value following a key, and returns the new value"
 		series	 [series! map! object!]
-		key 	 [scalar! any-string! any-word!]
+		key 	 [scalar! any-string! any-word! binary!]
 		value 	 [any-type!]
 		/case "Perform a case-sensitive search"
 		return:  [series! map! object!]
@@ -512,14 +512,14 @@ take: make action! [[
 
 trim: make action! [[
 		"Removes space from a string or NONE from a block"
-		series	[string! block! hash!]
+		series	[series!]
 		/head	"Removes only from the head"
 		/tail	"Removes only from the tail"
 		/auto	"Auto indents lines relative to first line"
 		/lines	"Removes all line breaks and extra spaces"
 		/all	"Removes all whitespace"
 		/with	"Same as /all, but removes characters in 'str'"
-			str [char! string! integer!]
+			str [char! string! binary! integer!]
 	]
 	#get-definition ACT_TRIM
 ]
@@ -537,7 +537,13 @@ delete: make action! [[
 ]
 ;open
 ;open?
-;query
+query: make action! [[
+		"Returns information about a file"
+		target [file!]
+	]
+	#get-definition ACT_QUERY
+]
+
 read: make action! [[
 		"Reads from a file, URL, or other port"
 		source	[file! url!]

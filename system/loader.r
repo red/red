@@ -3,7 +3,7 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File: 	 %loader.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
@@ -260,7 +260,7 @@ loader: make-profilable context [
 			set [s e] saved
 		]
 		condition: [
-			opt 'not ['find | 'any | 'all] [block! | word!] skip
+			opt 'not ['find block! skip | ['any | 'all] block!]
 			| set name word! set opr skip set value any-type!
 		]
 		

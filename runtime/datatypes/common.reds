@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %common.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -32,6 +32,12 @@ set-type: func [										;@@ convert to macro?
 	type [integer!]
 ][
 	cell/header: cell/header and type-mask or type
+]
+
+clear-newline: func [
+	cell [red-value!]
+][
+	cell/header: cell/header and flag-nl-mask
 ]
 
 alloc-at-tail: func [
@@ -402,12 +408,16 @@ cycles: context [
 		either find? value [
 			either mold? [
 				switch TYPE_OF(value) [
-					TYPE_BLOCK	[s: "[...]"				 size: 5 ]
-					TYPE_PAREN	[s: "(...)"				 size: 5 ]
-					TYPE_MAP	[s: "#(...)"			 size: 6 ]
-					TYPE_HASH	[s: "make hash! [...]"	 size: 16]
-					TYPE_OBJECT [s: "make object! [...]" size: 18]
-					default		[assert false]
+					TYPE_BLOCK	  [s: "[...]"			   size: 5 ]
+					TYPE_PAREN	  [s: "(...)"			   size: 5 ]
+					TYPE_MAP	  [s: "#(...)"			   size: 6 ]
+					TYPE_HASH	  [s: "make hash! [...]"   size: 16]
+					TYPE_OBJECT	  [s: "make object! [...]" size: 18]
+					TYPE_PATH
+					TYPE_GET_PATH 
+					TYPE_LIT_PATH
+					TYPE_GET_PATH [s: "..."				   size: 3 ]
+					default		  [assert false]
 				]
 			][
 				s: "..."
@@ -578,6 +588,7 @@ words: context [
 	_quote: 		as red-word! 0
 	_collect: 		as red-word! 0
 	_set: 			as red-word! 0
+	_case:			as red-word! 0
 	
 	;-- modifying actions
 	_change:		as red-word! 0
@@ -619,7 +630,7 @@ words: context [
 	_browse:		as red-word! 0
 	
 	errors: context [
-		throw:		as red-word! 0
+		_throw:		as red-word! 0
 		note:		as red-word! 0
 		syntax:		as red-word! 0
 		script:		as red-word! 0
@@ -773,6 +784,7 @@ words: context [
 		_quote: 		_context/add-global quote
 		_collect: 		_context/add-global collect
 		_set: 			_context/add-global set
+		_case:			_context/add-global case*
 		
 		;-- modifying actions
 		_change:		word/load "change"

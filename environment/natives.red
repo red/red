@@ -3,7 +3,7 @@ Red [
 	Author:  "Nenad Rakocevic"
 	File: 	 %natives.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -322,6 +322,7 @@ stats: make native! [[
 ]
 
 bind: make native! [[
+		"Bind words to a context; returns rebound words"
 		word 	[block! any-word!]
 		context [any-word! any-object! function!]
 		/copy
@@ -339,6 +340,7 @@ in: make native! [[
 ]
 
 parse: make native! [[
+		"Process a series using dialected grammar rules"
 		input [binary! any-block! any-string!]
 		rules [block!]
 		/case
@@ -602,10 +604,11 @@ square-root: make native! [[
 ]
 
 construct: make native! [[
+		"Makes a new object from an unevaluated spec; standard logic words are evaluated"
 		block [block!]
-		/with
-			object [object!]
-		/only
+		/with "Use a prototype object"
+			object [object!] "Prototype object"
+		/only "Don't evaluate standard logic words"
 	]
 	#get-definition NAT_CONSTRUCT
 ]
@@ -738,7 +741,7 @@ to-local-file: make native! [[
 wait: make native! [[
 		"Waits for a duration in seconds or specified time"
 		value [number! time! block! none!]
-		/all "Returns all in a block"
+		/all "Returns all events in a block"
 		;/only "Only check for ports given in the block to this function"
 	]
 	#get-definition NAT_WAIT
@@ -747,8 +750,8 @@ wait: make native! [[
 checksum: make native! [[
 		"Computes a checksum, CRC, hash, or HMAC"
 		data 	[binary! string! file!]
-		method	[word!]	"MD5 SHA1 SHA256 SHA384 SHA512 CRC32 TCP hash"
-		/with	"Extra value for HMAC key or hash table size; not compatible with TCP/CRC32 methods"
+		method	[word!]	"MD5 SHA1 SHA256 SHA384 SHA512 CRC32 TCP ADLER32 hash"
+		/with	"Extra value for HMAC key or hash table size; not compatible with TCP/CRC32/ADLER32 methods"
 			spec [any-string! binary! integer!] "String or binary for MD5/SHA* HMAC key, integer for hash table size"
 		return: [integer! binary!]
 	]
@@ -765,7 +768,7 @@ unset: make native! [[
 new-line: make native! [[
 		"Sets or clears the new-line marker within a list series"
 		position [any-list!] "Position to change marker (modified)"
-		value				 "Set TRUE for newline"
+		value	 [logic!]	 "Set TRUE for newline"
 		/all				 "Set/clear marker to end of series"
 		/skip				 "Set/clear marker periodically to the end of the series"
 			size [integer!]
@@ -869,10 +872,19 @@ size?: make native! [[
 ]
 
 browse: make native! [[
-		"Open web browser to a URL or file mananger to a local file."
-		url 	[url! file!]
+		"Open web browser to a URL or file mananger to a local file"
+		url		[url! file!]
 	]
 	#get-definition NAT_BROWSE
+]
+
+decompress: make native! [[
+		"Decompresses data. Data in GZIP format (RFC 1952) by default"
+		data		  [binary!]
+		/zlib	 size [integer!] "Data in ZLIB format (RFC 1950), uncompressed file size is required"
+		/deflate size [integer!] "Data in DEFLATE format (RFC 1951), uncompressed file size is required"
+	]
+	#get-definition NAT_DECOMPRESS
 ]
 
 recycle: make native! [[

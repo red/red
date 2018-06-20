@@ -3,7 +3,7 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File: 	 %preprocessor.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2016 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2016-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 Red []													;-- make it usable by Red too.
@@ -271,7 +271,7 @@ preprocessor: context [
 	expand: func [
 		code [block!] job [object! none!]
 		/clean
-		/local rule e pos cond value then else cases body keep? expr src saved
+		/local rule e pos cond value then else cases body keep? expr src saved file
 	][	
 		either clean [reset job][exec/config: job]
 
@@ -298,6 +298,18 @@ preprocessor: context [
 						]
 					]
 				)
+				| s: #include-binary [file! | string!] (
+					if active? [
+						either all [not Rebol system/state/interpreted?][
+							s/1: 'read/binary
+							if string? s/2 [s/2: to-red-file s/2]
+						][
+							file: either string? s/2 [to-rebol-file s/2][s/2]
+							file: clean-path join red/main-path file
+							change/part s read/binary file 2
+						]
+					]
+				)
 				| s: #if (set [cond e] eval next s s/1) :e [set then block! | (syntax-error s e)] e: (
 					if active? [either cond [change/part s then e][remove/part s e]]
 				) :s
@@ -308,7 +320,6 @@ preprocessor: context [
 				| s: #switch (set [cond e] eval next s s/1) :e [set cases block! | (syntax-error s e)] e: (
 					if active? [
 						body: any [select cases cond select cases #default]
-						unless block? body [syntax-error body next body]
 						either body [change/part s body e][remove/part s e]
 					]
 				) :s
@@ -316,7 +327,6 @@ preprocessor: context [
 					if active? [
 						until [
 							set [cond cases] eval cases s/1
-							unless block? cases [syntax-error cases next cases]
 							any [cond tail? cases: next cases]
 						]
 						either cond [change/part s cases/1 e][remove/part s e]

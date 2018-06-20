@@ -25,8 +25,11 @@
 
 ===start-group=== "lexer-time"
 
-;	--test-- "lexer-time-1" --assert [2147483645:59:59]	= load/all {2147483645:59:59}
-
+	;;red
+	--test-- "lexer-time-1" 
+		;;--assert [2147483645:59:59]	= load/all {2147483645:59:59}
+	;;der
+	
 ===end-group===
 
 ~~~end-file~~~

@@ -3,7 +3,7 @@ Red/System [
 	Author: "Nenad Rakocevic"
 	File: 	%tab-panel.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2015 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -85,7 +85,12 @@ adjust-parent: func [									;-- prevent tabcontrol from having children
 	if tab-panel = symbol/resolve type/symbol [
 		SetParent hWnd GetParent parent
 		pos: as red-pair! values + FACE_OBJ_OFFSET
-		SetWindowPos hWnd null pos/x + x pos/y + y 0 0 SWP_NOSIZE or SWP_NOZORDER
+		SetWindowPos
+			hWnd
+			null
+			dpi-scale pos/x + x dpi-scale pos/y + y
+			0 0
+			SWP_NOSIZE or SWP_NOZORDER
 	]
 ]
 
@@ -213,9 +218,7 @@ update-tab-contents: func [
 						values: get-node-facet obj/ctx 0
 						init-panel values parent
 						either type = FACE_OBJ_SIZE [
-							change-size
-								hWnd
-								as red-pair! values + FACE_OBJ_SIZE panel
+							change-size hWnd values panel
 						][
 							pos: as red-pair! values + FACE_OBJ_OFFSET
 							adjust-parent hWnd parent pos/x pos/y

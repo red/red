@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %routine.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2012-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2012-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -115,14 +115,13 @@ routine: context [
 		return: [integer!]
 		/local
 			s	 [series!]
-			blk	 [red-block!]
+			blk	 [red-block! value]
 			body [red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "routine/mold"]]
 
 		string/concatenate-literal buffer "routine "
 		
-		blk: as red-block! stack/push*
 		blk/header: TYPE_ROUTINE
 		blk/head: 0
 		blk/node: fun/spec
@@ -155,6 +154,7 @@ routine: context [
 		switch op [
 			COMP_EQUAL
 			COMP_SAME
+			COMP_FIND
 			COMP_STRICT_EQUAL
 			COMP_NOT_EQUAL
 			COMP_SORT

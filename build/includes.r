@@ -3,7 +3,7 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File: 	 %includes.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
@@ -16,6 +16,9 @@ write %build/bin/sources.r set-cache [
 	%boot.red
 	%compiler.r
 	%lexer.r
+	%build/ [
+		%git.r
+	]
 	%environment/ [
 		%actions.red
 		%colors.red
@@ -37,16 +40,28 @@ write %build/bin/sources.r set-cache [
 		]
 		%console/ [
 			%auto-complete.red
-			%console.red
 			%engine.red
-			%gui-console.red
 			%help.red
-			%input.red
-			%wcwidth.reds
-			%POSIX.reds
-			%terminal.reds
-			%windows.reds
-			%win32.reds
+			%CLI/ [
+				%console.red
+				%input.red
+				%POSIX.reds
+				%wcwidth.reds
+				%win32.reds
+			]
+			%GUI/ [
+				%old/ [
+					%gui-console.red
+					%terminal.reds
+					%windows.reds
+				]
+				%app.ico
+				%core.red
+				%gui-console.red
+				%highlight.red
+				%settings.red
+				%tips.red
+			]
 		]
 	]
 	%runtime/ [
@@ -56,6 +71,7 @@ write %build/bin/sources.r set-cache [
 		%definitions.reds
 		%case-folding.reds
 		%interpreter.reds
+		%inflate.reds
 		%macros.reds
 		%natives.reds
 		%parse.reds
@@ -68,12 +84,14 @@ write %build/bin/sources.r set-cache [
 		%ownership.reds
 		%stack.reds
 		%tools.reds
+		%tokenizer.reds
 		%unicode.reds
 		%simple-io.reds
 		%clipboard.reds
 		%crush.reds
 		%utils.reds
 		%call.reds
+		%print.reds
 		%datatypes/ [
 			%action.reds
 			%block.reds
@@ -137,9 +155,9 @@ write %build/bin/sources.r set-cache [
 			%COM.reds
 			%image-gdiplus.reds
 			%image-quartz.reds
-			%win32-cli.reds
-			%win32-gui.reds
 			%win32-ansi.reds
+			%win32-print.reds
+			
 		]
 	]
 	%modules/ [
@@ -149,6 +167,7 @@ write %build/bin/sources.r set-cache [
 			%rules.red
 			%styles.red
 			%utils.red
+			%RTD.red
 			%VID.red
 			%backends/ [
 				%keycodes.reds

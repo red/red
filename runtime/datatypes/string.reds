@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %string.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -18,9 +18,9 @@ string: context [
 	#define MAX_URL_CHARS 		7Fh
 
 	#enum modification-type! [
-		TYPE_APPEND
-		TYPE_INSERT
-		TYPE_OVERWRITE
+		MODE_APPEND
+		MODE_INSERT
+		MODE_OVERWRITE
 	]
 
 	#enum escape-type! [
@@ -67,6 +67,7 @@ string: context [
 
 	to-float: func [
 		s		[byte-ptr!]
+		e		[int-ptr!]
 		return: [float!]
 		/local
 			s0	[byte-ptr!]
@@ -83,7 +84,7 @@ string: context [
 				return float/QNaN
 			]
 		]
-		strtod s0 null
+		strtod s0 as byte-ptr! e
 	]
 
 	byte-to-hex: func [
@@ -686,7 +687,7 @@ string: context [
 		if op = COMP_SAME [return either same? [0][-1]]
 		if all [
 			same?
-			any [op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
+			any [op = COMP_EQUAL op = COMP_FIND op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
 		][return 0]
 
 		s1: GET_BUFFER(str1)
@@ -700,14 +701,14 @@ string: context [
 
 		either match? [
 			if zero? size2 [
-				return as-integer all [op <> COMP_EQUAL op <> COMP_STRICT_EQUAL]
+				return as-integer all [op <> COMP_EQUAL op = COMP_FIND op <> COMP_STRICT_EQUAL]
 			]
 		][
 			size1: (as-integer s1/tail - s1/offset) >> (log-b unit1) - head1
 
 			either size1 <> size2 [							;-- shortcut exit for different sizes
 				if any [
-					op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL
+					op = COMP_EQUAL op = COMP_FIND op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL
 				][return 1]
 
 				if size2 > size1 [
@@ -721,7 +722,7 @@ string: context [
 		p2:  (as byte-ptr! s2/offset) + (head2 << (log-b unit2))
 		lax?: all [op <> COMP_STRICT_EQUAL op <> COMP_CASE_SORT]
 
-		until [	
+		until [
 			switch unit1 [
 				Latin1 [c1: as-integer p1/1]
 				UCS-2  [c1: (as-integer p1/2) << 8 + p1/1]
@@ -865,12 +866,12 @@ string: context [
 	]
 
 	alter: func [
-		str1		[red-string!]						;-- string! to modify
-		str2		[red-string!]						;-- string! to modify to str1
-		part		[integer!]							;-- str2 characters to overwrite, -1 means all
-		offset		[integer!]							;-- offset from head in codepoints
-		keep?		[logic!]							;-- do not change str2 encoding
-		type		[integer!]							;-- type of modification: append,insert and overwrite
+		str1	[red-string!]							;-- string! to modify
+		str2	[red-string!]							;-- string! to modify to str1
+		part	[integer!]								;-- str2 characters to overwrite, -1 means all
+		offset	[integer!]								;-- offset from head in codepoints
+		keep?	[logic!]								;-- do not change str2 encoding
+		mode	[integer!]								;-- type of modification: append, insert or overwrite
 		/local
 			s1	  [series!]
 			s2	  [series!]
@@ -936,7 +937,7 @@ string: context [
 		size1: (as-integer s1/tail - s1/offset) + size
 		if s1/size < size1 [s1: expand-series s1 size1 * 2]
 
-		if type = TYPE_INSERT [
+		if mode = MODE_INSERT [
 			move-memory									;-- make space
 				(as byte-ptr! s1/offset) + h1 + offset + size
 				(as byte-ptr! s1/offset) + h1 + offset
@@ -944,7 +945,7 @@ string: context [
 		]
 
 		tail: as byte-ptr! s1/tail
-		p: either type = TYPE_APPEND [
+		p: either mode = MODE_APPEND [
 			tail
 		][
 			(as byte-ptr! s1/offset) + (offset << (log-b unit1)) + h1
@@ -958,7 +959,7 @@ string: context [
 					UCS-2  [cp: (as-integer p2/2) << 8 + p2/1]
 					UCS-4  [p4: as int-ptr! p2 cp: p4/1]
 				]
-				s1: either type = TYPE_APPEND [
+				s1: either mode = MODE_APPEND [
 					append-char s1 cp
 				][
 					poke-char s1 p cp
@@ -970,8 +971,8 @@ string: context [
 			copy-memory	p (as byte-ptr! s2/offset) + h2 size
 			p: p + size
 		]
-		if type = TYPE_INSERT [p: tail + size] 
-		if all [type = TYPE_OVERWRITE p < tail][p: tail]
+		if mode = MODE_INSERT [p: tail + size] 
+		if all [mode = MODE_OVERWRITE p < tail][p: tail]
 		s1/tail: as cell! p
 	]
 
@@ -982,7 +983,7 @@ string: context [
 		offset	  [integer!]							;-- offset from head in codepoints
 		keep?	  [logic!]								;-- do not change str2 encoding
 	][
-		alter str1 str2 part offset keep? TYPE_OVERWRITE
+		alter str1 str2 part offset keep? MODE_OVERWRITE
 	]
 	
 	concatenate: func [									;-- append str2 to str1
@@ -1100,7 +1101,88 @@ string: context [
 
 		as red-string! copy-cell as red-value! str stack/push*
 	]
-	
+
+	compare-call: func [								;-- Wrap red function!
+		value1   [byte-ptr!]
+		value2   [byte-ptr!]
+		fun		 [integer!]
+		flags	 [integer!]
+		return:  [integer!]
+		/local
+			res  [red-value!]
+			bool [red-logic!]
+			int  [red-integer!]
+			d    [red-float!]
+			f	 [red-function!]
+			all? [logic!]
+			num  [integer!]
+			str1 [red-string!]
+			str2 [red-string!]
+			v1	 [red-value!]
+			v2	 [red-value!]
+			s1   [series!]
+			s2   [series!]
+			unit [integer!]
+			c1	 [integer!]
+			c2	 [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "string/compare-call"]]
+
+		f: as red-function! fun
+		stack/mark-func words/_body	f/ctx				;@@ find something more adequate
+
+		unit: flags >>> 2 and 7
+		c1: get-char value1 unit
+		c2: get-char value2 unit
+
+		either flags and sort-reverse-mask = 0 [
+			v2: as red-value! char/push c2
+			v1: as red-value! char/push c1
+		][
+			v1: as red-value! char/push c1
+			v2: as red-value! char/push c2
+		]
+
+		all?: flags and sort-all-mask = sort-all-mask
+		num: flags >>> 5
+		if all [all? num > 0][
+			str1: make-at v1 1 unit
+			str2: make-at v2 1 unit
+			s1: GET_BUFFER(str1)
+			s2: GET_BUFFER(str2)
+			s1/offset: as red-value! value1
+			s2/offset: as red-value! value2
+			s1/tail: as red-value! (value1 + (num << (log-b unit)))
+			s2/tail: as red-value! (value2 + (num << (log-b unit)))
+		]
+
+		_function/call f global-ctx						;FIXME: hardcoded origin context
+		stack/unwind
+		stack/pop 1
+
+		res: stack/top
+		switch TYPE_OF(res) [
+			TYPE_LOGIC [
+				bool: as red-logic! res
+				either bool/value [1][-1]
+			]
+			TYPE_INTEGER [
+				int: as red-integer! res
+				0 - int/value
+			]
+			TYPE_FLOAT [
+				d: as red-float! res
+				case [
+					d/value > 0.0 [-1]
+					d/value < 0.0 [1]
+					true [0]
+				]
+			]
+			TYPE_NONE [-1]
+			default [1]
+		]
+	]
+
 	;-- Actions -- 
 	
 	make: func [
@@ -1568,6 +1650,7 @@ string: context [
 			c1		[integer!]
 			c2		[integer!]
 			step	[integer!]
+			sz		[integer!]
 			sbits	[series!]
 			pbits	[byte-ptr!]
 			pos		[byte-ptr!]								;-- required by BS_TEST_BIT
@@ -1605,6 +1688,7 @@ string: context [
 		if OPTION?(skip) [
 			assert TYPE_OF(skip) = TYPE_INTEGER
 			step: skip/value
+			if step < 1 [fire [TO_ERROR(script out-of-range) skip]]
 		]
 		if OPTION?(part) [
 			limit: either TYPE_OF(part) = TYPE_INTEGER [
@@ -1673,6 +1757,7 @@ string: context [
 				bits:  as red-bitset! value
 				sbits: GET_BUFFER(bits)
 				pbits: as byte-ptr! sbits/offset
+				sz: (as-integer sbits/tail - sbits/offset) << 3
 				bs?:   yes
 				case?: no
 			]
@@ -1724,7 +1809,11 @@ string: context [
 					c1: case-folding/folding-case c1 yes ;-- uppercase c1
 				]
 				either bs? [
-					BS_TEST_BIT(pbits c1 found?)
+					either c1 < sz [
+						BS_TEST_BIT(pbits c1 found?)
+					][
+						found?: as logic! sbits/flags and flag-bitset-not
+					]
 				][
 					found?: c1 = c2
 				]			
@@ -1888,7 +1977,7 @@ string: context [
 		str			[red-string!]
 		case?		[logic!]
 		skip		[red-integer!]
-		compare		[red-function!]
+		comparator	[red-function!]
 		part		[red-value!]
 		all?		[logic!]
 		reverse?	[logic!]
@@ -1908,6 +1997,7 @@ string: context [
 			op		[integer!]
 			flags	[integer!]
 			mult	[integer!]
+			offset	[integer!]
 	][
 		step: 1
 		s: GET_BUFFER(str)
@@ -1955,7 +2045,6 @@ string: context [
 			if step > 1 [len: len / step]
 		]
 
-		if unit = 6 [unit: 8]
 		cmp: either all [
 			TYPE_OF(str) = TYPE_VECTOR
 			(as-integer str/cache) = TYPE_FLOAT					;-- vec/type
@@ -1977,6 +2066,34 @@ string: context [
 			either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
 		]
 		flags: either reverse? [SORT_REVERSE][SORT_NORMAL]
+
+		if OPTION?(comparator) [
+			switch TYPE_OF(comparator) [
+				TYPE_FUNCTION [
+					flags: unit << 2 or flags
+					if all [all? OPTION?(skip)] [
+						flags: flags or sort-all-mask
+						flags: step << 5 or flags
+					]
+					cmp: as-integer :compare-call
+					op: as-integer comparator
+				]
+				TYPE_INTEGER [
+					int: as red-integer! comparator
+					offset: int/value
+					if any [offset < 1 offset > step][
+						fire [
+							TO_ERROR(script out-of-range)
+							comparator
+						]
+					]
+					flags: offset - 1 << 1 or flags
+				]
+				default [
+					ERR_INVALID_REFINEMENT_ARG((refinement/load "compare") comparator)
+				]
+			]
+		]
 		_sort/qsort buffer len unit * step op flags cmp
 		ownership/check as red-value! str words/_sort null str/head 0
 		str
@@ -2115,7 +2232,10 @@ string: context [
 			added: added * dup-n
 			str/head: str/head + added
 			s: GET_BUFFER(str)
-			assert (as byte-ptr! s/offset) + (str/head << (log-b GET_UNIT(s))) <= as byte-ptr! s/tail
+			part: log-b GET_UNIT(s)
+			if (as byte-ptr! s/offset) + (str/head << part) > as byte-ptr! s/tail [ ;-- check for past-end caused by object event
+				str/head: (as-integer s/tail - s/offset) >> part  ;-- adjust offset to series' tail
+			]
 		]
 		stack/pop 1										;-- pop the FORM slot
 		as red-value! str
@@ -2174,6 +2294,10 @@ string: context [
 			with-chars	[int-ptr!]
 	][
 		with-chars: [9 10 13 32]						;-- default chars for /ALL [TAB LF CR SPACE]
+		with-chars/1: 9
+		with-chars/2: 10
+		with-chars/3: 13
+		with-chars/4: 32
 		wlen: 4
 		if OPTION?(with-arg) [
 			switch TYPE_OF(with-arg) [

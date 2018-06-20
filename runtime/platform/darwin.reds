@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %darwin.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/red-system/runtime/BSL-License.txt
@@ -21,6 +21,11 @@ Red/System [
 
 #define SYSCALL_MMAP		197
 #define SYSCALL_MUNMAP		73
+
+#define gestaltSystemVersion		1937339254			;-- "sysv"
+#define gestaltSystemVersionMajor	1937339185			;-- "sys1"
+#define gestaltSystemVersionMinor	1937339186			;-- "sys2"
+#define gestaltSystemVersionBugFix	1937339187			;-- "sys3"
 
 platform: context [ 
 

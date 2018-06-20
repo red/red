@@ -3,7 +3,7 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File: 	 %compiler.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
@@ -65,6 +65,7 @@ red: context [
 	types-cache:   make hash!  100						;-- store compiled typesets [types array name...]
 	last-type:	   none
 	return-def:    to-set-word 'return					;-- return: keyword
+	encapped:	   make block! 1
 	s-counter:	   0									;-- series suffix counter
 	depth:		   0									;-- expression nesting level counter
 	max-depth:	   0
@@ -474,22 +475,32 @@ red: context [
 		blk
 	]
 
-	emit-open-frame: func [name [word!] /local symbol type][
+	emit-open-frame: func [name [word!] /with type ctx-name /local symbol][
 		symbol: either name = 'try-all ['try][name]
 		unless find symbols symbol [add-symbol symbol]
-		emit case [
+		either any [
+			type = 'function!
 			'function! = all [
+				not with
 				type: find functions name
 				first first next type
-			]['stack/mark-func]
-			find iterators name ['stack/mark-loop]
-			name = 'try			['stack/mark-try]
-			name = 'try-all		['stack/mark-try-all]
-			name = 'catch		['stack/mark-catch]
-			'else				['stack/mark-native]
+			]
+		][
+			emit 'stack/mark-func
+			emit prefix-exec symbol
+			emit get-func-ctx name ctx-name
+			insert-lf -3
+		][
+			emit case [
+				find iterators name ['stack/mark-loop]
+				name = 'try			['stack/mark-try]
+				name = 'try-all		['stack/mark-try-all]
+				name = 'catch		['stack/mark-catch]
+				'else				['stack/mark-native]
+			]
+			emit prefix-exec symbol
+			insert-lf -2
 		]
-		emit prefix-exec symbol
-		insert-lf -2
 	]
 	
 	emit-close-frame: func [/last][
@@ -710,6 +721,29 @@ red: context [
 		insert-lf -7
 	]
 	
+	get-func-ctx: func [name [word!] obj [word! none!] /local original alter entry][
+		original: name
+		if all [obj not find form name form obj][
+			name: to word! rejoin [obj "~" clean-lf-flag name]
+		]
+		all [
+			alter: get-prefix-func name
+			find-function decorate-func alter name
+			name: alter
+		]
+		all [alter: select-ssa name name: alter]
+		any [
+			all [
+				entry: any [
+					find shadow-funcs decorate-func name
+					find shadow-funcs decorate-func original
+				]
+				decorate-exec-ctx entry/3
+			]
+			'null
+		]
+	]
+	
 	get-counter: does [s-counter: s-counter + 1]
 	
 	clean-lf-deep: func [blk [block! paren!] /local pos][
@@ -870,7 +904,7 @@ red: context [
 	find-object: func [spec [word! object!] /by-name][
 		case [
 			by-name [find/skip objects spec 6]
-			'else	[none]
+			'else	[back find/skip next objects spec 6]
 		]
 	]
 	
@@ -936,6 +970,7 @@ red: context [
 		unless find [word! get-word! path!] type?/word expr [return none]
 		any [
 			attempt [do join obj-stack expr]
+			all [path? expr attempt [do head insert copy expr 'objects]]
 			all [
 				find [object! word!] type?/word expr
 				pos: find-object/by-name expr
@@ -965,7 +1000,7 @@ red: context [
 				if all [
 					not empty? ctx-stack
 					info: find-binding path/1
-					ctx: find objects info/1
+					ctx: find/skip skip objects 2 info/1 6
 				][
 					path: head insert copy path to word! form ctx/-2
 					set [found? fpath base] search-obj to path! path
@@ -1772,6 +1807,24 @@ red: context [
 		name
 	]
 	
+	rebind-body: func [
+		symbol [word!] entry [block!] ctx [object!]
+		/local rule pos self*
+	][
+		self*: in ctx 'self
+
+		;-- rebind the new body to the parent object's context
+		entry: bind/copy copy/part next entry 8 ctx
+		
+		if object? shadow: select shadow-funcs decorate-func/strict symbol [
+			;-- rebind the body to the function's context
+			bind entry/2 shadow
+			;-- rebind 'self words in body block to new object
+			parse entry/2 rule: [any [pos: 'self (pos/1: self*) | into rule | skip]]
+		]
+		entry
+	]
+	
 	inherit-functions: func [							 ;-- multiple inheritance case
 		new [object!] extend [object!]
 		/local symbol name entry
@@ -1786,7 +1839,7 @@ red: context [
 				]
 				either entry: find bodies symbol [		;-- not allowed for libRedRT client programs
 					append bodies name
-					append bodies bind/copy copy/part next entry 8 new
+					append bodies rebind-body symbol entry new	;-- merge the entry block
 				][
 					redirect-to literals [
 						emit compose [#define (decorate-func name) (decorate-func symbol)]
@@ -1804,7 +1857,7 @@ red: context [
 		/locals
 			words ctx spec name id func? obj original body pos entry symbol
 			body? ctx2 new blk list path on-set-info values w defer mark blk-idx
-			event pos2 loc-s loc-d shadow-path saved-pc saved set?
+			event pos2 loc-s loc-d shadow-path saved-pc saved set? rebind?
 	][
 		saved-pc: pc
 		either set-path? original: pc/-1 [
@@ -1968,7 +2021,7 @@ red: context [
 		if proto [
 			if body? [inherit-functions obj last proto]
 			emit reduce ['object/duplicate select objects last proto ctx 'true]
-			insert-lf -3
+			insert-lf -4
 		]
 		if all [not body? not passive][
 			inherit-functions obj new
@@ -2009,7 +2062,8 @@ red: context [
 		]
 		pos: none
 		
-		defer: reduce ['object/init-push ctx id]		;-- deferred emission
+		rebind?: to word! form to logic! proto
+		defer: reduce ['object/init-push ctx id rebind?] ;-- deferred emission
 		new-line defer yes
 		
 		;-- events definitions processing
@@ -2557,7 +2611,7 @@ red: context [
 		]
 		unless zero? locals-nb [						;-- init local words on stack
 			append init compose [
-				_function/init-locals (1 + locals-nb)
+				_function/init-locals (1 + locals-nb)	;-- +1 for /local refinement
 			]
 		]
 		name: decorate-symbol name
@@ -2801,6 +2855,7 @@ red: context [
 			process-routine-calls body ctx/1 spec select-object ctx/1
 		]
 		clear find spec*: copy spec /local
+		parse spec* [any [word! [pos: block! | (insert/only pos [any-type!])] | skip]]
 		spec-idx: redbin/emit-block spec*
 		body-idx: either job/red-store-bodies? [
 			reduce [redbin/emit-block body]
@@ -3363,7 +3418,7 @@ red: context [
 		/thru
 		/local 
 			item name compact? refs ref? cnt pos ctx mark list offset emit-no-ref
-			args option stop?
+			args option stop? original
 	][
 		either all [not thru spec/1 = 'intrinsic!][
 			switch any [all [path? call call/1] call] keywords
@@ -3372,16 +3427,17 @@ red: context [
 			refs: make block! 1							;-- refinements storage in compact mode
 			cnt: 0
 			
-			name: either path? call [call/1][call]
+			name: original: either path? call [call/1][call]
 			name: to word! clean-lf-flag name
-			either all [with not empty? locals-stack][	;-- only if in a function's body
+			either all [with not empty? locals-stack not compact?][	;-- only if in a function's body
 				emit reduce [							;-- special case for path-generated wrapper functions
 					'stack/mark-func 
 					decorate-exec-ctx decorate-symbol name
+					get-func-ctx original ctx-name
 				]
-				insert-lf -2
+				insert-lf -3
 			][
-				emit-open-frame name
+				emit-open-frame/with name spec/1 ctx-name
 			]
 			current-call: call							;-- for error reporting
 			pos: pc
@@ -3543,7 +3599,7 @@ red: context [
 		/native
 		/local 
 			name value ctx original obj obj-bound? deep? inherit? proto
-			defer mark start take-frame preset?
+			defer mark start take-frame preset? no-check?
 	][
 		name: original: pc/1
 		pc: next pc
@@ -3577,9 +3633,9 @@ red: context [
 			comp-set-make
 			exit
 		]
-		
-		if all [word? name not path? pc/1 word? pc/1 is-object? pc/1][
+		if all [word? name find [path! word!] type?/word pc/1 is-object? pc/1][
 			register-object/store pc/1 name
+			no-check?: yes
 		]
 		;-- General case: emit stack-oriented construction code --
 		emit-open-frame 'set
@@ -3616,7 +3672,7 @@ red: context [
 			][]
 			'else [
 				if start [emit start]
-				unless obj-bound? [check-redefined name original]
+				unless any [obj-bound? no-check?][check-redefined name original]
 				check-cloned-function name
 				comp-substitute-expression				;-- fetch a value (2nd argument)
 			]
@@ -3934,7 +3990,8 @@ red: context [
 		either global? [
 			emit 'red/stack/mark-func
 			emit decorate-exec-ctx decorate-symbol name
-			insert-lf -2
+			emit get-func-ctx name none
+			insert-lf -3
 		][
 			emit-open-frame name
 		]
@@ -4078,7 +4135,7 @@ red: context [
 		]
 	]
 
-	comp-directive: has [mark][
+	comp-directive: has [mark value][
 		switch pc/1 [
 			#include [
 				comp-include pc
@@ -4143,8 +4200,18 @@ red: context [
 				comp-expression
 				true
 			]
-			#build-date [
-				change pc now
+			#git [
+				change/only pc load-cache %build/git.r
+				comp-expression
+				true
+			]
+			#build-date [								;-- UTC date
+				change pc use [date][
+					date: now
+					date: date - date/zone
+					date/zone: none
+					date
+				]
 				comp-expression
 				true
 			]
@@ -4328,8 +4395,11 @@ red: context [
 		]
 	]
 	
-	register-object: func [obj [word!] name /store /local pos prev entry][
-		if pos: find-object/by-name obj [
+	register-object: func [obj [word! path!] name /store /local pos prev entry o][
+		if pos: any [
+			all [path? obj object? o: do head insert copy obj 'objects find-object o]
+			all [not path? obj find-object/by-name obj]
+		][
 			;if prev: find get-obj-base name name [prev/1: none] ;-- unbind word with previous object
 
 			insert entry: tail objects copy/part pos 6
@@ -4384,8 +4454,29 @@ red: context [
 		]
 	]
 	
-	comp-bodies: does [
+	encap-preprocess: func [code [block!] /local prolog rule p][
+		prolog: make block! 1
+		parse code rule: [
+			any [
+				p: set-word! 'routine block! block! (
+					insert/part tail prolog p 4
+					p: remove/part p 4
+				) :p
+				| p: [#system | #system-global] block! (
+					insert/part tail prolog p 2
+					p: remove/part p 2
+				) :p
+				| p: #include (pc: p comp-include/only p)
+				| p: [block! | paren!] :p into rule
+				| skip
+			]
+		]
+		reduce [prolog code]
+	]
+	
+	comp-bodies: has [pos][
 		obj-stack: to path! 'func-objs
+		pos: tail objects
 		
 		foreach [name spec body symbols locals-nb stack ssa ctx obj?] bodies [
 			locals-stack: stack
@@ -4398,6 +4489,7 @@ red: context [
 
 			comp-func-body name spec body copy symbols locals-nb ;-- copy avoids symbols corruption by decoration
 		]
+		clear pos
 		clear locals-stack
 		clear ssa-names
 		func-objs: none
@@ -4424,7 +4516,7 @@ red: context [
 	]
 	
 	comp-finish: does [
-		redbin/finish pick [[compress] []] to logic! redc/load-lib?
+		redbin/finish pick [[compress] []] to logic! all [redc/load-lib? job/redbin-compress?]
 	]
 	
 	comp-source: func [code [block!] /local user main saved mods][
@@ -4560,6 +4652,15 @@ red: context [
 		if all [job/dev-mode? not job/libRedRT?][
 			replace out <imports> libRedRT/get-include-file job
 		]
+		
+		if job/encap? [
+			code: encap-preprocess code
+			code: compose/deep [
+				(code/1)
+				do [(code/2)]
+			]
+		]
+		
 		set [user mods main] comp-source code
 		
 		;-- assemble all parts together in right order
@@ -4741,6 +4842,7 @@ red: context [
 				append literals defs/9
 				s-counter:		defs/10
 				needed: 		exclude needed defs/11	;-- exclude already compiled modules
+				shadow-funcs:	defs/12
 				make-keywords
 			]
 			either job/type = 'dll [comp-as-lib src][comp-as-exe src]

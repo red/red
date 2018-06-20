@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Qingtian Xie"
 	File:	 %image.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2015 Qingtian Xie. All rights reserved."
+	Rights:  "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -509,8 +509,8 @@ image: context [
 		
 		string/append-char GET_BUFFER(buffer) as-integer space
 		string/concatenate-literal buffer "#{"
-		part: part - 2	
-		if size > 30 [
+		part: part - 2
+		if all [not flat? size > 30][
 			string/append-char GET_BUFFER(buffer) as-integer lf
 			part: object/do-indent buffer indent part - 1
 		]
@@ -521,10 +521,12 @@ image: context [
 			string/concatenate-literal buffer string/byte-to-hex pixel and 00FF0000h >> 16
 			string/concatenate-literal buffer string/byte-to-hex pixel and FF00h >> 8
 			string/concatenate-literal buffer string/byte-to-hex pixel and FFh
-			count: count + 1
-			if count % 10 = 0 [
-				string/append-char GET_BUFFER(buffer) as-integer lf
-				part: object/do-indent buffer indent part - 1
+			unless flat? [
+				count: count + 1
+				if count % 10 = 0 [
+					string/append-char GET_BUFFER(buffer) as-integer lf
+					part: object/do-indent buffer indent part - 1
+				]
 			]
 			part: part - 6
 			if all [OPTION?(arg) part <= 0][
@@ -534,7 +536,7 @@ image: context [
 			if pixel >>> 24 <> 255 [alpha?: yes]
 			data: data + 1
 		]
-		if all [size > 30 count % 10 <> 0] [
+		if all [not flat? size > 30 count % 10 <> 0] [
 			string/append-char GET_BUFFER(buffer) as-integer lf
 			part: object/do-indent buffer indent part - 1
 		]
@@ -549,8 +551,10 @@ image: context [
 			while [data < end][
 				pixel: data/value
 				string/concatenate-literal buffer string/byte-to-hex 255 - (pixel >>> 24)
-				count: count + 1
-				if count % 10 = 0 [string/append-char GET_BUFFER(buffer) as-integer lf]
+				unless flat? [
+					count: count + 1
+					if count % 10 = 0 [string/append-char GET_BUFFER(buffer) as-integer lf]
+				]
 				part: part - 2
 				if all [OPTION?(arg) part <= 0][
 					OS-image/unlock-bitmap img bitmap
@@ -750,6 +754,7 @@ image: context [
 
 		switch op [
 			COMP_EQUAL
+			COMP_FIND
 			COMP_STRICT_EQUAL
 			COMP_NOT_EQUAL
 			COMP_SORT

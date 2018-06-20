@@ -3,7 +3,7 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File:	 %Mach-O.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
@@ -472,20 +472,22 @@ context [
 		linker/resolve-symbol-refs job cbuf dbuf code data pointer
 	]
 	
-	collect-data-reloc: func [job [object!] /local list syms spec][
+	collect-data-reloc: func [job [object!] /local list syms][
 		list: make block! 100
 		syms: job/symbols
-
+		
 		while [not tail? syms][
-			spec: syms/2
 			syms: skip syms 2
 			if all [
 				not tail? syms
 				syms/1 = <data>	
 				block? syms/2/4
-				syms/2/4/1 - 1 = spec/2
 			][
-				append list spec/2
+				append list either syms/2/4/1 - 1 = syms/-1/2 [
+					syms/-1/2							;-- pointer slot to value slot
+				][
+					syms/2/4/1 - 1						;-- literal pointer in array to c-string buffer
+				]
 			]
 		]
 		list
@@ -912,6 +914,14 @@ context [
 		
 		if dylink? [resolve-import-refs job]
 		resolve-data-refs job
+		
+		linker/set-image-info
+			job
+			base-address
+			first  get-segment-info '__TEXT
+			second get-segment-info '__TEXT
+			first  get-segment-info '__DATA
+			second get-segment-info '__DATA
 		
 		emit-page-aligned out job/sections/code/2
 		

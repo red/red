@@ -313,9 +313,40 @@ _hashtable: context [
 		node
 	]
 
-	resize: func [
+	resize-hash: func [
 		node			[node!]
 		new-buckets		[integer!]
+		/local
+			s			[series!]
+			h			[hashtable!]
+			n-buckets	[integer!]
+			new-size	[integer!]
+			f			[float!]
+	][
+		s: as series! node/value
+		h: as hashtable! s/offset
+
+		free-node h/keys
+		free-node h/flags
+
+		new-buckets: round-up new-buckets
+		f: as-float new-buckets
+		new-size: as-integer f * _HT_HASH_UPPER
+		if new-buckets < 4 [new-buckets: 4]
+
+		h/size: 0
+		h/n-occupied: 0
+		h/upper-bound: new-size
+		h/n-buckets: new-buckets
+		h/flags: alloc-bytes-filled new-buckets >> 2 #"^(AA)"
+		h/keys: alloc-bytes new-buckets * size? int-ptr!
+
+		put-all node 0 1
+	]
+
+	resize: func [
+		node		[node!]
+		new-buckets	[integer!]
 		/local
 			s h k i j mask step keys hash n-buckets blk
 			new-size tmp break? flags new-flags new-flags-node ii sh f idx
@@ -388,7 +419,7 @@ _hashtable: context [
 				j = n-buckets
 			]
 			;@@ if h/n-buckets > new-buckets []			;-- shrink the hash table
-			free-series memory/s-head h/flags
+			free-node h/flags
 			h/flags: new-flags-node
 			h/n-buckets: new-buckets
 			h/n-occupied: h/size
@@ -590,7 +621,11 @@ _hashtable: context [
 		if h/n-occupied >= h/upper-bound [			;-- update the hash table
 			idx: either h/n-buckets > (h/size << 1) [-1][1]
 			n-buckets: h/n-buckets + idx
-			resize node n-buckets
+			either type = HASH_TABLE_HASH [
+				resize-hash node n-buckets
+			][
+				resize node n-buckets
+			]
 		]
 
 		s: as series! h/blk/value
@@ -739,7 +774,7 @@ _hashtable: context [
 		return:  [red-value!]
 		/local
 			s h i flags last mask step keys hash ii sh blk set-header?
-			idx last-idx op find? k type key-type saved-type
+			idx last-idx op find? k type key-type saved-type hash?
 	][
 		op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
 		s: as series! node/value
@@ -747,6 +782,7 @@ _hashtable: context [
 		assert h/n-buckets > 0
 
 		type: h/type
+		hash?: type = HASH_TABLE_HASH
 		key-type: TYPE_OF(key)
 		set-header?: all [type = HASH_TABLE_MAP word/any-word? key-type]
 		if set-header? [
@@ -780,13 +816,13 @@ _hashtable: context [
 				_BUCKET_IS_NOT_EMPTY(flags ii sh)
 				any [
 					_BUCKET_IS_DEL(flags ii sh)
-					type = HASH_TABLE_HASH
+					hash?
 					TYPE_OF(k) <> key-type
 					not actions/compare k key op
 				]
 			]
 		][
-			if type = HASH_TABLE_HASH [
+			if hash? [
 				idx: keys/i and 7FFFFFFFh
 				k: blk + idx
 				if all [

@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %path.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -134,10 +134,13 @@ path: context [
 		s: GET_BUFFER(path)
 		i: path/head
 		value: s/offset + i
+		cycles/push path/node
 		
 		while [value < s/tail][
-			part: actions/form value buffer arg part
-			if all [OPTION?(arg) part <= 0][return part]
+			unless cycles/detect? value buffer :part no [
+				part: actions/form value buffer arg part
+			]
+			if all [OPTION?(arg) part <= 0][cycles/pop return part]
 			i: i + 1
 			
 			s: GET_BUFFER(path)
@@ -147,6 +150,7 @@ path: context [
 				part: part - 1
 			]
 		]
+		cycles/pop
 		part
 	]
 	
@@ -170,10 +174,13 @@ path: context [
 		s: GET_BUFFER(path)
 		i: path/head
 		value: s/offset + i
+		cycles/push path/node
 
 		while [value < s/tail][
-			part: actions/mold value buffer only? all? flat? arg part 0
-			if all [OPTION?(arg) part <= 0][return part]
+			unless cycles/detect? value buffer :part yes [
+			    part: actions/mold value buffer only? all? flat? arg part 0
+			]
+			if all [OPTION?(arg) part <= 0][cycles/pop return part]
 			i: i + 1
 
 			s: GET_BUFFER(path)
@@ -183,6 +190,7 @@ path: context [
 				part: part - 1
 			]
 		]
+		cycles/pop
 		part
 	]
 	

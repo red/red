@@ -3,7 +3,7 @@ Red/System [
 	Author: "Qingtian Xie"
 	File: 	%windows.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2015 Qingtian Xie. All rights reserved."
+	Rights: "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -15,7 +15,7 @@ Red/System [
 ps:				as tagPAINTSTRUCT 0
 hdc:			as handle! 0
 mdc:			as handle! 0
-timer:			as handle! 0
+timer-id:		1
 max-win-width:	0
 pad-left:		0
 caret-x:		0
@@ -507,7 +507,7 @@ ConsoleWndProc: func [
 				vt/select?: no
 				vt/s-end?: no
 				if scroll-count <> 0 [
-					KillTimer hWnd timer
+					KillTimer hWnd timer-id
 					scroll-count: 0
 				]
 				out: vt/out
@@ -540,10 +540,10 @@ ConsoleWndProc: func [
 					]
 				][
 					scroll-count: 0
-					timer: SetTimer hWnd 1 10 null
+					SetTimer hWnd timer-id 10 null
 				][
 					if scroll-count <> 0 [
-						KillTimer hWnd timer
+						KillTimer hWnd timer-id
 						scroll-count: 0
 					]
 					if all [

@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %get-word.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -145,7 +145,7 @@ get-word: context [
 			null			;find
 			null			;head
 			null			;head?
-			null			;index?
+			INHERIT_ACTION	;index?
 			null			;insert
 			null			;length?
 			null			;move

@@ -13,7 +13,7 @@ view [
 	button "World"
 	return
 
-	button "China"
+	button "China" [recycle probe stats]
 	text "Red Language" 100 right
 	field 120 on-enter [probe do face/text clear face/text]
 	return

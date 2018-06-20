@@ -3,7 +3,7 @@ Red/System [
 	Author: "Qingtian Xie"
 	File: 	%cocoa.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2016 Qingtian Xie. All rights reserved."
+	Rights: "Copyright (C) 2016-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -15,11 +15,6 @@ Red/System [
 #define OBJC_ASSOCIATION_ASSIGN		0
 #define OBJC_ASSOCIATION_RETAIN		0301h
 #define OBJC_ASSOCIATION_COPY		0303h
-
-#define gestaltSystemVersion		1937339254			;-- "sysv"
-#define gestaltSystemVersionMajor	1937339185			;-- "sys1"
-#define gestaltSystemVersionMinor	1937339186			;-- "sys2"
-#define gestaltSystemVersionBugFix	1937339187			;-- "sys3"
 
 #define NSAnyEventMask				-1
 
@@ -169,6 +164,10 @@ Red/System [
 #define RedCursorKey			4000FFFEh
 #define RedEnableKey			4000FFFFh
 
+#define RedRichTextKey			4000FFF1h
+
+#define QuitMsgData				12321
+
 #define OBJC_ALLOC(class) [objc_msgSend [objc_getClass class sel_alloc]]
 
 objc_super!: alias struct! [
@@ -195,6 +194,11 @@ NSSize!: alias struct! [
 	h		[float32!]
 ]
 
+NSRange!: alias struct! [
+	idx		[integer!]
+	len		[integer!]
+]
+
 CGPoint!: alias struct! [
 	x		[float32!]
 	y		[float32!]
@@ -215,7 +219,7 @@ RECT_STRUCT: alias struct! [
 
 tagPOINT: alias struct! [
 	x		[integer!]
-	y		[integer!]	
+	y		[integer!]
 ]
 
 tagSIZE: alias struct! [
@@ -225,6 +229,11 @@ tagSIZE: alias struct! [
 
 #import [
 	LIBC-file cdecl [
+		strrchr: "strrchr" [
+			str			[c-string!]
+			c			[integer!]
+			return:		[c-string!]
+		]
 		objc_getClass: "objc_getClass" [
 			class		[c-string!]
 			return:		[integer!]
@@ -315,6 +324,9 @@ tagSIZE: alias struct! [
 			return:		[integer!]
 		]
 		objc_msgSend: "objc_msgSend" [[variadic] return: [integer!]]
+		objc_msgSend_pt: "objc_msgSend" [[variadic] return: [CGPoint! value]]
+		objc_msgSend_sz: "objc_msgSend" [[variadic] return: [NSSize! value]]
+		objc_msgSend_range: "objc_msgSend" [[variadic] return: [NSRange! value]]
 		objc_msgSendSuper: "objc_msgSendSuper" [[variadic] return: [integer!]]
 		objc_msgSend_f32: "objc_msgSend_fpret" [[variadic] return: [float32!]]
 		objc_msgSend_fpret: "objc_msgSend_fpret" [[variadic] return: [float!]]
@@ -331,11 +343,28 @@ tagSIZE: alias struct! [
 		]
 	]
 	"/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation" cdecl [
+		kCFRunLoopDefaultMode: "kCFRunLoopDefaultMode" [integer!]
 		CFAttributedStringCreate: "CFAttributedStringCreate" [
 			allocator	[integer!]
 			str			[integer!]
 			attributes	[integer!]
 			return:		[integer!]
+		]
+		CFGetTypeID: "CFGetTypeID" [
+			cf			[int-ptr!]
+			return:		[integer!]
+		]
+		CFNumberGetTypeID: "CFNumberGetTypeID" [
+			return:		[integer!]
+		]
+		CFNumberGetValue: "CFNumberGetValue" [
+			number		[int-ptr!]
+			theType		[integer!]
+			valuePtr	[int-ptr!]
+			return:		[logic!]
+		]
+		CFRunLoopGetCurrent: "CFRunLoopGetCurrent" [
+			return:		[int-ptr!]
 		]
 		;CFAttributedStringCreateMutable: "CFAttributedStringCreateMutable" [
 		;	allocator	[integer!]
@@ -856,6 +885,15 @@ objc_block_descriptor: declare struct! [
 	size			[integer!]
 	copy_helper		[function! [dst [int-ptr!] src [int-ptr!]]]
 	dispose_helper	[function! [src [int-ptr!]]]
+]
+
+block_literal!: alias struct! [
+	isa			[integer!]
+	flags		[integer!]
+	reserved	[integer!]
+	invoke		[int-ptr!]
+	descriptor	[int-ptr!]
+	value		[int-ptr!]
 ]
 
 get-super-obj: func [

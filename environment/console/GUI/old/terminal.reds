@@ -3,7 +3,7 @@ Red/System [
 	Author: "Qingtian Xie"
 	File: 	%terminal.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2015 Qingtian Xie. All rights reserved."
+	Rights: "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -150,8 +150,9 @@ terminal: context [
 	v-terminal: 0
 	extra-table: [0]						;-- extra unicode check table for Windows
 	stub-table: [0 0]
+	data-blk: declare red-value!
 
-	#include %wcwidth.reds
+	#include %../../CLI/wcwidth.reds
 
 	#either OS = 'Windows [
 		char-width?: func [
@@ -618,14 +619,14 @@ terminal: context [
 		char-x	[integer!]
 		char-y	[integer!]
 		/local
-			out		[ring-buffer!]
+			out	[ring-buffer!]
 			buf		[red-value!]
 	][
 		buf: as red-value! allocate 4 * size? red-value!
 		out: as ring-buffer! allocate size? ring-buffer!
 		out/max: 10000
 		out/lines: as line-node! allocate out/max * size? line-node!
-		out/data: as red-string! string/rs-make-at ALLOC_TAIL(root) 10000
+		out/data: as red-string! string/rs-make-at data-blk 10000
 
 		vt/bg-color: 00FCFCFCh
 		vt/font-color: 00000000h
@@ -657,7 +658,7 @@ terminal: context [
 
 		reset-vt vt
 		OS-init vt
-		platform/gui-print: as-integer :vprint
+		dyn-print/add as int-ptr! :red-print as int-ptr! :rs-print
 	]
 
 	close: func [
@@ -1528,11 +1529,11 @@ terminal: context [
 		set-prompt vt question
 		refresh vt
 		either paste-from-clipboard vt yes [
-			loop 3 [gui/do-events yes]					;-- make console respontive
+			loop 3 [gui/do-events yes]					;-- make console responsive
 		][
 			vt/ask?: yes
 			update-caret vt
-			stack/mark-func words/_body
+			stack/mark-native words/_body
 			gui/do-events no
 			stack/unwind
 		]
@@ -1559,5 +1560,29 @@ terminal: context [
 			emit-c-string vt str str + 1 1 no yes
 		]
 		refresh vt
+	]
+
+	rs-print: func [
+		str		[byte-ptr!]
+		size	[integer!]
+		nl?		[logic!]
+	][
+		vprint str size Latin1 nl?
+	]
+
+	red-print: func [
+		str		[red-string!]
+		lf?		[logic!]
+		/local
+			series	[series!]
+			offset	[byte-ptr!]
+			size	[integer!]
+			unit	[integer!]
+	][
+		series: GET_BUFFER(str)
+		unit: GET_UNIT(series)
+		offset: (as byte-ptr! series/offset) + (str/head << (log-b unit))
+		size: as-integer (as byte-ptr! series/tail) - offset
+		vprint offset size unit lf?
 	]
 ]

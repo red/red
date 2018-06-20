@@ -3,7 +3,7 @@ Red/System [
 	Author: "Qingtian Xie"
 	File: 	%font.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2016 Qingtian Xie. All rights reserved."
+	Rights: "Copyright (C) 2016-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -148,7 +148,7 @@ get-font: func [
 	/local
 		hFont [handle!]
 ][
-	if TYPE_OF(font) <> TYPE_OBJECT [return null]
+	if TYPE_OF(font) <> TYPE_OBJECT [return as handle! default-font]
 	hFont: get-font-handle font 0
 	if null? hFont [hFont: make-font face font]
 	hFont
