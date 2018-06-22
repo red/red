@@ -96,7 +96,7 @@ third:	func ["Returns the third value in a series"  s [series! tuple! time!]] [p
 fourth:	func ["Returns the fourth value in a series" s [series! tuple!]] [pick s 4]
 fifth:	func ["Returns the fifth value in a series"  s [series! tuple!]] [pick s 5]
 
-last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 1]
+last: func ["Returns the last value in a series or tuple" s [series! tuple!]] [pick s length? s]
 
 #do keep [
 	list: make block! 50

@@ -127,6 +127,10 @@ Red [
 ===start-group=== "last tests"
 	--test-- "last-test-1" --assert #"e" = last "abcde"
 	--test-- "last-test-2" --assert 5 = last [1 2 3 4 5]
+	--test-- "last-test-3" --assert none = last []
+	--test-- "last-test-4" --assert 4 = last 1.2.3.4
+	--test-- "last-test-5" --assert 6 = last 9.8.7.6	; so last val doesn't match length
+	--test-- "last-test-6" --assert 7 = last [9 8 7]	; so last val doesn't match length
 ===end-group===
 
 ===start-group=== "context tests"
