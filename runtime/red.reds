@@ -205,14 +205,14 @@ red: context [
 		alloc-node-frame nodes-per-frame				;-- 10k nodes
 		alloc-series-frame								;-- first frame of 1MB
 
-		root:	 	block/make-in null 2000	
-		symbols: 	block/make-in root 2000
-		global-ctx: _context/create 2000 no no
+		root:	 	block/make-in null 4000	
 		arg-stk:	block/make-in root 1024
 		call-stk:	block/make-in root 512
+		symbols: 	block/make-in root 4000
+		global-ctx: _context/create 4000 no no
 
 		case-folding/init
-		symbol/table: _hashtable/init 2000 symbols HASH_TABLE_SYMBOL 1
+		symbol/table: _hashtable/init 4000 symbols HASH_TABLE_SYMBOL 1
 
 		datatype/make-words								;-- build datatype names as word! values
 		words/build										;-- create symbols used internally
