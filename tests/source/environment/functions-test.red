@@ -96,6 +96,7 @@ Red [
 	--test-- "first-test-3" --assert 1 = first 1.2.3.4.5
 	--test-- "first-test-4" --assert 1 = first 1x2
 	--test-- "first-test-5" --assert 12 = first 12:13:14.15
+	--test-- "first-test-6" --assert 1-Feb-2018 = first 1-Feb-2018/03:04:05-06:00
 ===end-group===
 
 ===start-group=== "second tests"
@@ -104,6 +105,7 @@ Red [
 	--test-- "second-test-3" --assert 2 = second 1.2.3.4.5
 	--test-- "second-test-4" --assert 2 = second 1x2
 	--test-- "second-test-5" --assert 13 = second 12:13:14.15
+	--test-- "second-test-6" --assert 2018 = second 1-Feb-2018/03:04:05-06:00
 ===end-group===
 
 ===start-group=== "third tests"
@@ -111,17 +113,20 @@ Red [
 	--test-- "third-test-2" --assert 3 = third [1 2 3 4 5]
 	--test-- "third-test-3" --assert 3 = third 1.2.3.4.5
 	--test-- "third-test-4" --assert 14 = third 12:13:14
+	--test-- "third-test-5" --assert 2 = third 1-Feb-2018/03:04:05-06:00
 ===end-group===
 
 ===start-group=== "fourth tests"
 	--test-- "fourth-test-1" --assert #"d" = fourth "abcde"
 	--test-- "fourth-test-2" --assert 4 = fourth [1 2 3 4 5]
 	--test-- "fourth-test-3" --assert 4 = fourth 1.2.3.4.5
+	--test-- "fourth-test-4" --assert 1 = fourth 1-Feb-2018/03:04:05-06:00
 ===end-group===
 
 ===start-group=== "fifth tests"
 	--test-- "fifth-test-1" --assert #"e" = fifth "abcde"
 	--test-- "fifth-test-2" --assert 5 = fifth [1 2 3 4 5]
+	--test-- "fifth-test-3" --assert -6:00 = fifth 1-Feb-2018/03:04:05-06:00
 ===end-group===
 
 ===start-group=== "last tests"
