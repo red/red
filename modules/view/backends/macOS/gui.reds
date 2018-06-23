@@ -2226,3 +2226,7 @@ OS-draw-face: func [
 	]
 	if system/thrown = RED_THROWN_ERROR [system/thrown: 0]
 ]
+
+OS-mark: does [
+	collector/keep win-array/node
+]

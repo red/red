@@ -201,6 +201,8 @@ collector: context [
 		keep case-folding/upper-to-lower/node
 		keep case-folding/lower-to-upper/node
 		
+		#if find modules 'View [exec/gui/OS-mark]
+		
 		;probe "sweeping..."
 		collect-frames
 		;probe "done!"
