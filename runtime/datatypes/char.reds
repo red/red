@@ -93,7 +93,7 @@ char: context [
 		switch TYPE_OF(spec) [
 			TYPE_INTEGER
 			TYPE_CHAR [
-				proto/value: spec/data2
+				proto/value: spec/data2 and 1114111 ;10FFFFh
 			]
 			TYPE_FLOAT
 			TYPE_PERCENT [
