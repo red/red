@@ -1648,7 +1648,7 @@ natives: context [
 		#typecheck [tangent radians]
 		f: degree-to-radians* radians TYPE_TANGENT
 		either (float/abs f/value) = (PI / 2.0) [
-			fire [TO_ERROR(math overflow)]
+			f/value: either f/value < 0.0 [-1.0 / 0.0][1.0 / 0.0]  ;@@ or define INF constants?
 		][
 			f/value: tan f/value
 		]
