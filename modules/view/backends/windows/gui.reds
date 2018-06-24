@@ -755,6 +755,10 @@ get-metrics: func [
 		no
 ]
 
+on-gc-mark: does [
+	collector/keep flags-blk/node
+]
+
 init: func [
 	/local
 		ver   [red-tuple!]
@@ -807,6 +811,8 @@ init: func [
 	int/value:  as-integer version-info/wProductType
 
 	get-metrics
+	
+	collector/register as int-ptr! :on-gc-mark
 ]
 
 cleanup: does [
@@ -2496,8 +2502,4 @@ OS-draw-face: func [
 		catch RED_THROWN_ERROR [parse-draw ctx cmds yes]
 	]
 	if system/thrown = RED_THROWN_ERROR [system/thrown: 0]
-]
-
-OS-mark: does [
-	collector/keep flags-blk/node
 ]

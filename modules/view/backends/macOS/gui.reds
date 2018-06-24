@@ -297,6 +297,10 @@ get-metrics: func [][
 		#get system/view/metrics/dpi
 ]
 
+on-gc-mark: does [
+	collector/keep win-array/node
+]
+
 init: func [
 	/local
 		screen	 [integer!]
@@ -361,6 +365,8 @@ init: func [
 	objc_msgSend [NSApp sel_getUid "setActivationPolicy:" 0]
 
 	get-metrics
+	
+	collector/register as int-ptr! :on-gc-mark
 ]
 
 set-logic-state: func [
@@ -2225,8 +2231,4 @@ OS-draw-face: func [
 		catch RED_THROWN_ERROR [parse-draw ctx cmds yes]
 	]
 	if system/thrown = RED_THROWN_ERROR [system/thrown: 0]
-]
-
-OS-mark: does [
-	collector/keep win-array/node
 ]

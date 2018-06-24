@@ -14,6 +14,10 @@ Red/System [
 collector: context [
 	verbose: 0
 	
+	ext-size: 100
+	ext-markers: as int-ptr! allocate ext-size * size? int-ptr!
+	ext-top: ext-markers
+	
 	keep: func [
 		node	[node!]
 		return: [logic!]								;-- TRUE if newly marked, FALSE if already done
@@ -186,7 +190,7 @@ collector: context [
 		]
 	]
 	
-	do-cycle: func [/local s [series!]][
+	do-cycle: func [/local s [series!] p [int-ptr!] cb][
 		;probe "marking..."
 		
 		mark-block root
@@ -201,11 +205,21 @@ collector: context [
 		keep case-folding/upper-to-lower/node
 		keep case-folding/lower-to-upper/node
 		
-		#if find modules 'View [exec/gui/OS-mark]
-		
+		p: ext-markers
+		while [p < ext-top][
+			cb: as function! [] p/value
+			cb
+			p: p + 1
+		]
 		;probe "sweeping..."
 		collect-frames
 		;probe "done!"
+	]
+	
+	register: func [cb [int-ptr!]][
+		assert (as-integer ext-top - ext-markers) >> 2 < ext-size
+		ext-top/value: as integer! cb
+		ext-top: ext-top + 1
 	]
 	
 ]
