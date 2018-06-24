@@ -150,7 +150,7 @@ terminal: context [
 	v-terminal: 0
 	extra-table: [0]						;-- extra unicode check table for Windows
 	stub-table: [0 0]
-	data-blk: declare red-value!
+	data-blk: declare red-string!
 
 	#include %../../CLI/wcwidth.reds
 
@@ -655,6 +655,8 @@ terminal: context [
 		copy-cell #get system/console/prompt buf
 		vt/prompt: as red-string! buf
 		vt/prompt-len: string/rs-length? vt/prompt
+
+		collector/register as int-ptr! :on-gc-mark
 
 		reset-vt vt
 		OS-init vt
@@ -1584,5 +1586,9 @@ terminal: context [
 		offset: (as byte-ptr! series/offset) + (str/head << (log-b unit))
 		size: as-integer (as byte-ptr! series/tail) - offset
 		vprint offset size unit lf?
+	]
+
+	on-gc-mark: does [
+		collector/keep data-blk/node
 	]
 ]
