@@ -192,6 +192,7 @@ gui-console-ctx: context [
 	]
 
 	add-gui-print: routine [][
+		gui-console-buffer: ALLOC_TAIL(root)
 		dyn-print/add as int-ptr! :red-print-gui #either debug? = yes [null][
 			as int-ptr! :rs-print-gui
 		]
@@ -247,6 +248,8 @@ ask: function [
 input: function ["Wait for console user input" return: [string!]][ask ""]
 
 #system [
+	gui-console-buffer: as red-value! 0
+
 	red-print-gui: func [
 		str		[red-string!]
 		lf?		[logic!]
@@ -261,7 +264,7 @@ input: function ["Wait for console user input" return: [string!]][ask ""]
 		/local
 			str [red-string!]
 	][
-		str: declare red-string!
+		str: as red-string! gui-console-buffer
 		if negative? size [size: length? cstr]
 		either TYPE_OF(str) = TYPE_STRING [
 			string/rs-reset str
