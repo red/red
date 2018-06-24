@@ -190,7 +190,7 @@ collector: context [
 		]
 	]
 	
-	do-cycle: func [/local s [series!] p [int-ptr!] cb][
+	do-cycle: func [/local s [series!] p [int-ptr!] obj [red-object!] w [red-word!] cb][
 		;probe "marking..."
 		
 		mark-block root
@@ -202,15 +202,37 @@ collector: context [
 		keep call-stk/node
 		mark-values stack/bottom stack/top - 1
 		
+		;probe "marking globals"
 		keep case-folding/upper-to-lower/node
 		keep case-folding/lower-to-upper/node
 		
+		obj: object/path-parent
+		if TYPE_OF(obj) = TYPE_OBJECT [
+			mark-context obj/ctx
+			if obj/on-set <> null [keep obj/on-set]
+		]
+		w: object/field-parent
+		if TYPE_OF(w) = TYPE_WORD [
+			if w/ctx <> null [
+				;print-symbol w
+				;print "^/"
+				either w/symbol = words/self [
+					;probe "self"
+					mark-block-node w/ctx
+				][
+					mark-context w/ctx
+				]
+			]
+		]
+		
+		;probe "marking globals from optional modules"
 		p: ext-markers
 		while [p < ext-top][
 			cb: as function! [] p/value
 			cb
 			p: p + 1
 		]
+		
 		;probe "sweeping..."
 		collect-frames
 		;probe "done!"

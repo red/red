@@ -107,6 +107,7 @@ symbol: context [
 
 		if positive? id [return id]
 		
+		collector/keep str/node
 		sym: as red-symbol! ALLOC_TAIL(symbols)	
 		sym/header: TYPE_SYMBOL							;-- implicit reset of all header flags
 		sym/node:   str/node

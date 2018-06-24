@@ -298,6 +298,7 @@ get-metrics: func [][
 ]
 
 on-gc-mark: does [
+	collector/keep flags-blk/node
 	collector/keep win-array/node
 ]
 

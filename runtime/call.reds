@@ -93,6 +93,11 @@ ext-process: context [
 		reading  [integer!]
 		writing  [integer!]
 	]
+	
+	init-global: does [
+		str-buffer: ALLOC_TAIL(root)
+		string/make-at str-buffer 1024 * 100 Latin1
+	]
 
 	insert-string: func [
 		str		 [red-string!]
@@ -146,7 +151,7 @@ ext-process: context [
 		win-error?: no				;@@ make it local variable
 		win-shell?: no				;@@ make it local variable
 
-		init: does []
+		init: does [init-global]
 
 		read-from-pipe: func [      "Read data from pipe fd into buffer"
 			fd	 [integer!]      "File descriptor"
@@ -388,6 +393,7 @@ ext-process: context [
 
 		init: does [
 			shell-name: platform/getenv "SHELL"
+			init-global
 		]
 
 		set-flags-fd: func [
