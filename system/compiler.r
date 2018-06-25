@@ -3926,12 +3926,7 @@ system-dialect: make-profilable context [
 			]
 			set-verbose-level 0
 			if opts/runtime? [comp-runtime-epilog]
-;probe new-line/all/skip to-block compiler/globals yes 2
-foreach [name type] compiler/globals [
-	if any [type/1 = 'struct! find mold type/1 "red/red-"][
-		print [name mold type]
-	]
-]
+
 			set-verbose-level opts/verbosity
 			compiler/finalize							;-- compile all functions
 			set-verbose-level 0
