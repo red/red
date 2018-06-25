@@ -364,7 +364,7 @@ free-node: func [
 	frame/top: frame/top + 1				;-- free node by pushing its address on stack
 	frame/top/value: as-integer node
 
-	assert frame/top < (frame/bottom + frame/nodes)	;-- top should not overflow
+	assert frame/top <= (frame/bottom + frame/nodes)	;-- top should not overflow
 ]
 
 ;-------------------------------------------
@@ -605,7 +605,8 @@ collect-frames: func [
 		frame: frame/next
 		frame = null
 	]
-	extract-stack-refs no
+	collect-bigs
+	;extract-stack-refs no
 ]
 
 #if debug? = yes [
@@ -949,6 +950,21 @@ copy-series: func [
 	node
 ]
 
+collect-bigs: func [
+	/local frame s
+][
+	frame: memory/b-head
+	while [frame <> null][
+		s: as series! (as byte-ptr! frame) + size? big-frame!
+		either s/flags and flag-gc-mark = 0 [
+			free-big as byte-ptr! s
+		][
+			s/flags: s/flags and not flag-gc-mark	;-- clear mark flag
+		]
+		frame: frame/next
+	]
+]
+
 ;-------------------------------------------
 ;-- Allocate a big series
 ;-------------------------------------------
@@ -994,7 +1010,7 @@ free-big: func [
 	frame: as big-frame! (buffer - size? big-frame!)  ;-- point to frame header
 	
 	either frame = memory/b-head [
-		memory/b-head: null
+		memory/b-head: frame/next
 	][
 		frm: memory/b-head					;-- search for frame position in list
 		while [frm/next <> frame][			;-- frm should point to one item behind frame on exit
