@@ -60,9 +60,10 @@ OS-text-box-background: func [
 		cache	[red-vector!]
 		brush	[integer!]
 ][
-	cache: as red-vector! dc + 3
-	if TYPE_OF(cache) <> TYPE_VECTOR [
-		vector/make-at as red-value! cache 128 TYPE_INTEGER 4
+	cache: as red-vector! dc/4
+	if null? cache [
+		cache: vector/make-at ALLOC_TAIL(root) 128 TYPE_INTEGER 4
+		dc/4: as-integer cache
 	]
 	brush: select-brush dc + 1 color
 	if zero? brush [
@@ -341,8 +342,8 @@ OS-text-box-layout: func [
 	]
 
 	handle/make-at pval + 2 as-integer target
-	vec: as red-vector! target + 3
-	if TYPE_OF(vec) = TYPE_VECTOR [vector/rs-clear vec]
+	vec: as red-vector! target/4
+	if vec <> null [vector/rs-clear vec]
 
 	set-text-format fmt as red-object! values + FACE_OBJ_PARA
 	set-tab-size fmt as red-integer! values + FACE_OBJ_EXT1
@@ -393,9 +394,9 @@ txt-box-draw-background: func [
 		left		[integer!]
 		rc			[D2D_RECT_F]
 ][
-	styles: as red-vector! target + 3
+	styles: as red-vector! target/4
 	if any [
-		TYPE_OF(styles) <> TYPE_VECTOR
+		null? styles
 		zero? vector/rs-length? styles
 	][exit]
 
