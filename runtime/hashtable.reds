@@ -164,7 +164,7 @@ _hashtable: context [
 		if h/type = HASH_TABLE_HASH [collector/keep h/indexes]
 		collector/keep h/flags
 		collector/keep h/keys
-		either h/type = HASH_TABLE_INTEGER [collector/keep h/blk][collector/mark-block-node h/blk]
+		if h/type = HASH_TABLE_INTEGER [collector/mark-block-node h/blk]
 	]
 
 	round-up: func [
@@ -287,7 +287,7 @@ _hashtable: context [
 		s: as series! node/value
 		h: as hashtable! s/offset
 		h/type: type
-		if type = HASH_TABLE_INTEGER [h/indexes: as node! vsize << 4 + 4]
+		if type = HASH_TABLE_INTEGER [h/indexes: as node! vsize + 1 << 4]
 
 		if size < 32 [size: 32]
 		fsize: as-float size
@@ -389,7 +389,7 @@ _hashtable: context [
 						step: 0
 						either int? [
 							int-key: as int-ptr! ((as byte-ptr! blk) + idx)
-							hash: int-key/value
+							hash: int-key/2
 						][
 							k: blk + (idx and 7FFFFFFFh)
 							hash: hash-value k no
@@ -433,7 +433,7 @@ _hashtable: context [
 		return: [red-value!]
 		/local
 			s h x i site last mask step keys hash n-buckets flags
-			ii sh blk idx del? k vsize blk-node len
+			ii sh blk idx del? k vsize blk-node len value
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -471,7 +471,7 @@ _hashtable: context [
 					_BUCKET_IS_NOT_EMPTY(flags ii sh)
 					any [
 						del?
-						k/value <> key
+						k/2 <> key
 					]
 				]
 			][
@@ -493,7 +493,7 @@ _hashtable: context [
 		case [
 			_BUCKET_IS_EMPTY(flags ii sh) [
 				k: as int-ptr! alloc-tail-unit blk-node vsize
-				k/value: key
+				k/2: key
 				keys/x: len
 				_BUCKET_SET_BOTH_FALSE(flags ii sh)
 				h/size: h/size + 1
@@ -501,13 +501,19 @@ _hashtable: context [
 			]
 			_BUCKET_IS_DEL(flags ii sh) [
 				k: as int-ptr! blk + keys/x
-				k/value: key
+				k/2: key
 				_BUCKET_SET_BOTH_FALSE(flags ii sh)
 				h/size: h/size + 1
 			]
 			true [k: as int-ptr! blk + keys/x]
 		]
-		as cell! k + 1
+		len: vsize >> 4
+		value: as cell! k
+		loop len [
+			value/header: TYPE_UNSET
+			value: value + 1
+		]
+		(as cell! k) + 1
 	]
 
 	delete-key: func [
@@ -541,7 +547,7 @@ _hashtable: context [
 				_BUCKET_IS_NOT_EMPTY(flags ii sh)
 				any [
 					_BUCKET_IS_DEL(flags ii sh)
-					k/value <> key
+					k/2 <> key
 				]
 			]
 		][
@@ -555,7 +561,7 @@ _hashtable: context [
 		either _BUCKET_IS_EITHER(flags ii sh) [null][
 			_BUCKET_SET_DEL_TRUE(flags ii sh)
 			h/size: h/size - 1
-			as cell! blk + keys/i + 4
+			(as cell! blk + keys/i) + 1
 		]
 	]
 
@@ -590,7 +596,7 @@ _hashtable: context [
 				_BUCKET_IS_NOT_EMPTY(flags ii sh)
 				any [
 					_BUCKET_IS_DEL(flags ii sh)
-					k/value <> key
+					k/2 <> key
 				]
 			]
 		][
@@ -602,7 +608,7 @@ _hashtable: context [
 		]
 
 		either _BUCKET_IS_EITHER(flags ii sh) [null][
-			as cell! blk + keys/i + 4
+			(as cell! blk + keys/i) + 1
 		]
 	]
 
