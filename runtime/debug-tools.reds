@@ -27,7 +27,7 @@ memory-info: func [
 	verbose [integer!]						;-- stat verbosity level (1, 2 or 3)
 	return:	[integer!]						;-- total bytes used (verbose = 1)
 	/local
-		n-frame s-frame b-frame free-nodes base list nodes series bigs used
+		n-frame s-frame b-frame free-nodes base list nodes series bigs used cell
 ][
 	assert all [1 <= verbose verbose <= 3]
 	used: 0
@@ -37,15 +37,16 @@ memory-info: func [
 	n-frame: memory/n-head
 
 	while [n-frame <> null][
-		free-nodes: (as-integer (n-frame/top - n-frame/bottom) + 1) / 4
+		free-nodes: (as-integer (n-frame/top - n-frame/bottom)) / 4
 		if verbose = 1 [
 			used: used + ((n-frame/nodes - free-nodes) * 4)
 		]
 		if verbose >= 2 [
 			list: block/make-in nodes 8
-			integer/make-in list n-frame/nodes - free-nodes
 			integer/make-in list free-nodes
+			integer/make-in list n-frame/nodes - free-nodes
 			integer/make-in list n-frame/nodes
+			list/header: list/header or flag-new-line
 		]
 		n-frame: n-frame/next
 	]
@@ -64,6 +65,7 @@ memory-info: func [
 			integer/make-in list as-integer s-frame/tail - as byte-ptr! s-frame/heap
 			integer/make-in list as-integer (as byte-ptr! s-frame/heap) - base
 			integer/make-in list as-integer s-frame/tail - base
+			list/header: list/header or flag-new-line
 		]
 		s-frame: s-frame/next
 	]
@@ -77,7 +79,8 @@ memory-info: func [
 			used: used + b-frame/size
 		]
 		if verbose >= 2 [
-			integer/make-in bigs b-frame/size
+			cell: integer/make-in bigs b-frame/size
+			cell/header: cell/header or flag-new-line
 		]
 		b-frame: b-frame/next
 	]
