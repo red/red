@@ -1134,6 +1134,7 @@ OS-draw-line: func [
 	point  [red-pair!]
 	end	   [red-pair!]
 	/local
+		start	[tagPOINT]
 		pt		[tagPOINT]
 		nb		[integer!]
 		pair	[red-pair!]
@@ -1141,6 +1142,7 @@ OS-draw-line: func [
 	if ctx/other/D2D? [OS-draw-line-d2d ctx point end exit]
 
 	pt: ctx/other/edges
+	start: pt
 	pair:  point
 	nb:	   0
 
@@ -1152,9 +1154,10 @@ OS-draw-line: func [
 		pair: pair + 1
 	]
 	either ctx/other/GDI+? [
-		GdipDrawLinesI ctx/graphics ctx/gp-pen ctx/other/edges nb
+		check-gradient-poly ctx start 2
+		GdipDrawLinesI ctx/graphics ctx/gp-pen start nb
 	][
-		Polyline ctx/dc ctx/other/edges nb
+		Polyline ctx/dc start nb
 	]
 ]
 
