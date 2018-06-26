@@ -382,6 +382,7 @@ draw-begin: func [
 		if dpi-factor <> 100 [
 			ratio: (as float32! dpi-factor) / (as float32! 100.0)
 			GdipScaleWorldTransform graphics ratio ratio GDIPLUS_MATRIX_PREPEND
+			ctx/scale-ratio: ratio
 		]
 	]
 
@@ -3437,6 +3438,9 @@ OS-matrix-reset: func [
 	][
 		;-- reset matrix for figure
 		GdipResetWorldTransform ctx/graphics
+	]
+	if ctx/scale-ratio <> as float32! 0.0 [
+		GdipScaleWorldTransform ctx/graphics ctx/scale-ratio ctx/scale-ratio GDIPLUS_MATRIX_PREPEND
 	]
 ]
 
