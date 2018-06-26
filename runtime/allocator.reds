@@ -372,28 +372,44 @@ free-node: func [
 ;-------------------------------------------
 alloc-series-frame: func [
 	return:	[series-frame!]					;-- newly initialized frame
-	/local size frame
+	/local size frame frm
 ][
 	size: memory/s-size
 	if size < memory/s-max [memory/s-size: size * 2]
 	
 	size: size + size? series-frame! 		;-- total required size for a series frame
 	frame: as series-frame! allocate-virtual size no ;-- RW only
-	
-	either null? memory/s-head [
-		memory/s-head: frame				;-- first item in the list
-		memory/s-tail: frame
-		memory/s-active: frame
-		frame/prev:  null
-	][
-		memory/s-tail/next: frame			;-- append new item at tail of the list
-		frame/prev: memory/s-tail			;-- link back to previous tail
-		memory/s-tail: frame				;-- now tail is the new item
-	]
-	
-	frame/next: null
 	frame/heap: as series-buffer! (as byte-ptr! frame) + size? series-frame!
 	frame/tail: (as byte-ptr! frame) + size	;-- point to last byte in frame
+	frame/next: null
+	frame/prev: null
+	
+	frm: memory/s-head
+	case [
+		null? memory/s-head [
+			memory/s-head: frame			;-- first item in the list
+			memory/s-tail: frame
+			memory/s-active: frame
+			frame/prev:  null
+		]
+		frame < frm [
+			frame/next: frm
+			frm/prev: frame
+			memory/s-head: frm
+		]
+		true [
+			while [all [frm/next <> null frm < frame]][frm: frm/next]
+			either all [frm/next = null frm < frame][
+				frm/next: frame				;-- append new item at tail of the list
+				frame/prev: frm				;-- link back to previous tail
+				memory/s-tail: frame		;-- now tail is the new item
+			][
+				frame/prev: frm/prev		;-- insert frame in the linked list
+				frame/next: frm
+				frm/prev: frame
+			]
+		]
+	]
 	frame
 ]
 
