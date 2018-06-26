@@ -279,6 +279,7 @@ get-text-size: func [
 	/local
 		saved [handle!]
 		size  [tagSIZE]
+		delta [integer!]
 ][
 	size: declare tagSIZE
 	if null? hFont [hFont: default-font]
@@ -292,8 +293,9 @@ get-text-size: func [
 
 	SelectObject hScreen saved
 	if pair <> null [
-		pair/x: size/width * 100 / dpi-factor
-		pair/y: size/height * 100 / dpi-factor
+		delta: either dpi-factor = 100 [0][1]
+		pair/x: size/width * 100 / dpi-factor + delta
+		pair/y: size/height * 100 / dpi-factor + delta
 	]
 	size
 ]

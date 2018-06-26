@@ -1253,7 +1253,6 @@ WndProc: func [
 				if color <> -1 [
 					SetBkColor as handle! wParam color
 					SetDCBrushColor as handle! wParam color
-					brush: GetStockObject DC_BRUSH
 				]
 				unless null? brush [
 					return as-integer brush
