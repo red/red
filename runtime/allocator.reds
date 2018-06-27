@@ -339,32 +339,23 @@ free-node: func [
 	node [int-ptr!]							;-- node to release
 	/local frame offset
 ][
-	assert not null? node
+	if null? node [exit]					;-- node has been reused by a new expanded series buffer
 	
-	frame: memory/n-active
-	offset: as-integer node - frame
-	
-	unless all [
-		positive? offset					;-- check if node address is part of active frame
-		offset < node-frame-size
-	][										;@@ following code not be needed if freed only by the GC...								
-		frame: memory/n-head				;-- search for right frame from head of the list
-		while [								; @@ could be optimized by searching backward/forward from active frame
-			offset: as-integer node - frame
-			not all [						;-- test if node address is part of that frame
-				positive? offset
-				offset < node-frame-size	; @@ check upper bound case
-			]
-		][
-			frame: frame/next
-			assert frame <> null			;-- should found the right one before the list end
+	frame: memory/n-head					;-- search for right frame from head of the list
+	while [									; @@ could be optimized by searching backward/forward from active frame
+		offset: as-integer node - frame
+		not all [							;-- test if node address is part of that frame
+			positive? offset
+			offset < node-frame-size		; @@ check upper bound case
 		]
+	][
+		frame: frame/next
+		assert frame <> null				;-- should found the right one before the list end
 	]
-	
+	node/value: 0
 	frame/top: frame/top + 1				;-- free node by pushing its address on stack
 	frame/top/value: as-integer node
-
-	assert frame/top <= (frame/bottom + frame/nodes)	;-- top should not overflow
+	assert frame/top < (frame/bottom + frame/nodes)	;-- top should not overflow
 ]
 
 ;-------------------------------------------
@@ -478,6 +469,7 @@ compact-series-frame: func [
 		delta [integer!]
 		size  [integer!]
 		tail? [logic!]
+		mark? [logic!]
 ][
 	tail: memory/stk-tail
 	s: as series! frame + 1					;-- point to first series buffer
@@ -487,13 +479,16 @@ compact-series-frame: func [
 
 	until [
 		tail?: no
-		if s/flags and flag-gc-mark = 0 [	;-- if live, search for a gap
+		if s/flags and flag-gc-mark = 0 [	;-- check if it starts with a gap
 			if dst = null [dst: as byte-ptr! s]
 			;probe ["search live from: " s]
+			free-node s/node
 			until [							;-- search for a live series
 				s: as series! (as byte-ptr! s + 1) + s/size
 				tail?: s >= heap
-				any [tail? s/flags and flag-gc-mark <> 0]
+				mark?: s/flags and flag-gc-mark <> 0
+				unless mark? [free-node s/node]
+				any [mark? tail?]
 			]
 			;probe ["live found at: " s]
 		]
@@ -901,6 +896,7 @@ expand-series: func [
 	new/flags:	series/flags
 	new/node:   series/node
 	new/tail:   as cell! (as byte-ptr! new/offset) + delta
+	series/node: null
 	
 	if big? [new/flags: new/flags or flag-series-big]	;@@ to be improved
 	

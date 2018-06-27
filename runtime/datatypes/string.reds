@@ -438,16 +438,18 @@ string: context [
 		cp		[integer!]								;-- codepoint
 		return: [series!]
 		/local
-			p	[byte-ptr!]
-			p4	[int-ptr!]
+			p	 [byte-ptr!]
+			p4	 [int-ptr!]
+			node [node!]
 	][
 		switch GET_UNIT(s) [
 			Latin1 [
 				case [
-					cp <= FFh [				
+					cp <= FFh [
+						node: s/node
 						p: alloc-tail-unit s 1
 						p/1: as-byte cp
-						s: GET_BUFFER(s)
+						s: as series! node/value
 					]
 					cp <= FFFFh [
 						p: as byte-ptr! s/offset
@@ -462,19 +464,21 @@ string: context [
 			]
 			UCS-2 [
 				either cp <= FFFFh [
+					node: s/node
 					p: alloc-tail-unit s 2
 					p/1: as-byte (cp and FFh)
 					p/2: as-byte (cp >> 8)
-					s: GET_BUFFER(s)
+					s: as series! node/value
 				][
 					s: unicode/UCS2-to-UCS4 s
 					s: append-char s cp
 				]
 			]
 			UCS-4 [
+				node: s/node
 				p4: as int-ptr! alloc-tail-unit s 4
 				p4/1: cp
-				s: GET_BUFFER(s)
+				s: as series! node/value
 			]
 		]
 		s										;-- refresh s address
