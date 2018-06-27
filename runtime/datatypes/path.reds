@@ -13,23 +13,6 @@ Red/System [
 path: context [
 	verbose: 0
 	
-	push*: func [
-		size	[integer!]
-		return: [red-path!]	
-		/local
-			p 	[red-path!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "path/push*"]]
-		
-		p: as red-path! ALLOC_TAIL(root)
-		p/header: TYPE_PATH								;-- implicit reset of all header flags
-		p/head:   0
-		p/node:   alloc-cells size
-		p/args:	  null
-		push p
-		p
-	]
-	
 	push: func [
 		p [red-path!]
 	][

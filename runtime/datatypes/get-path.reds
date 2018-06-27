@@ -13,22 +13,6 @@ Red/System [
 get-path: context [
 	verbose: 0
 	
-	push*: func [
-		size	[integer!]
-		return: [red-get-path!]	
-		/local
-			p 	[red-get-path!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "get-path/push*"]]
-		
-		p: as red-get-path! ALLOC_TAIL(root)
-		p/header: TYPE_GET_PATH							;-- implicit reset of all header flags
-		p/head:   0
-		p/node:   alloc-cells size
-		push p
-		p
-	]
-	
 	push: func [
 		p [red-block!]
 	][
