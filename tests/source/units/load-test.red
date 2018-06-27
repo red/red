@@ -72,6 +72,9 @@ Red [
 	;-- for issue #3435 (1.#INF and 1.#NaN values corrupts percentage value scanner)
 	--test-- "load-percent-1"	--assert "1.#NaN" = mold load "1.#nan"
 	--test-- "load-percent-2"	--assert 1% == load "1%"
+
+	;-- for issue #3449 (compile lexer reads percent! as an issue!)
+	--test-- "load-percent-3"	--assert -10% == load "-10%"
 	
 ===end-group===
 

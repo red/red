@@ -815,8 +815,10 @@ lexer: context [
 			#[datatype! decimal!][s: load-decimal s]
 			#[datatype! issue!  ][
 				if s = "-0.0" [s: "0-"]					;-- re-encoded for consistency
-				s: to issue! either #"%" = last s [s][join "." s]
-				if neg? [append s #"-"]
+				either #"%" = last s [s: to issue! s][
+					s: to issue! join "." s
+					if neg? [append s #"-"]
+				]
 			]
 		][
 			unless find [integer! decimal!] type?/word s: to integer! s [throw-error]
