@@ -302,5 +302,19 @@
 
 ===end-group===
 
+===start-group=== "bitset issues"
+
+	--test-- "issue #3443"
+		bs: make bitset! #{}
+		max: 135 idx: 0
+		until [
+			bs/:idx: true
+			idx: idx + 1
+			idx > max
+		]
+		--assert "make bitset! #{FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF}" = mold bs
+
+===end-group===
+
 ~~~end-file~~~
 

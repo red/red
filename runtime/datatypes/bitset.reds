@@ -56,7 +56,7 @@ bitset: context [
 			byte [byte!]
 	][
 		s: GET_BUFFER(bits)
-		if (s/size << 3) < index [
+		if (s/size << 3) <= index [
 			byte: either FLAG_NOT?(s) [#"^(FF)"][null-byte]
 			s: expand-series-filled s (index >> 3) + 1 byte
 		]
