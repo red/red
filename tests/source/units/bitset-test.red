@@ -306,11 +306,11 @@
 
 	--test-- "issue #3443"
 		bs: make bitset! #{}
-		max: 135 idx: 0
+		n: 135 idx: 0
 		until [
 			bs/:idx: true
 			idx: idx + 1
-			idx > max
+			idx > n
 		]
 		--assert "make bitset! #{FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF}" = mold bs
 
