@@ -364,19 +364,6 @@ block: context [
 		copy-cell as red-value! blk stack/push*
 	]
 	
-	push*: func [
-		size	[integer!]
-		return: [red-block!]	
-		/local
-			blk [red-block!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "block/push*"]]
-		
-		blk: make-at as red-block! ALLOC_TAIL(root) size
-		push blk
-		blk
-	]
-	
 	push-only*: func [
 		size	[integer!]
 		return: [red-block!]
