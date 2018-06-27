@@ -733,18 +733,33 @@ system/view/platform: context [
 				drop-list:		[14x26 0x0 regular 14x26 0x0 small 11x22 0x0 mini 11x22 0x0]
 			]
 		]]
-		extend system/view/metrics/def-heights [#switch config/OS [
-			Windows []
-			macOS	[
-				check:		21
-				radio:		21
-				text:		18
-				field:		21
-				drop-down:	21
-				drop-list:	21
-				progress:	21
+		#switch config/OS [
+			Windows [
+				if version/1 <= 6 [						;-- for Win7 & XP
+					extend system/view/metrics/def-heights [
+						button:		23
+						text:		24
+						field:		24
+						check:		24
+						radio:		24
+						slider:		24
+						drop-down:	23
+						drop-list:	23
+					]
+				]
 			]
-		]]
+			macOS	[
+				extend system/view/metrics/def-heights [
+					check:		21
+					radio:		21
+					text:		18
+					field:		21
+					drop-down:	21
+					drop-list:	21
+					progress:	21
+				]
+			]
+		]
 		
 		colors: system/view/metrics/colors
 		#switch config/OS [

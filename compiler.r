@@ -4516,7 +4516,7 @@ red: context [
 	]
 	
 	comp-finish: does [
-		redbin/finish pick [[compress] []] to logic! redc/load-lib?
+		redbin/finish pick [[compress] []] to logic! all [redc/load-lib? job/redbin-compress?]
 	]
 	
 	comp-source: func [code [block!] /local user main saved mods][

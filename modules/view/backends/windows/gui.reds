@@ -279,6 +279,7 @@ get-text-size: func [
 	/local
 		saved [handle!]
 		size  [tagSIZE]
+		delta [integer!]
 ][
 	size: declare tagSIZE
 	if null? hFont [hFont: default-font]
@@ -292,8 +293,9 @@ get-text-size: func [
 
 	SelectObject hScreen saved
 	if pair <> null [
-		pair/x: size/width * 100 / dpi-factor
-		pair/y: size/height * 100 / dpi-factor
+		delta: either dpi-factor = 100 [0][1]
+		pair/x: size/width * 100 / dpi-factor + delta
+		pair/y: size/height * 100 / dpi-factor + delta
 	]
 	size
 ]
@@ -620,6 +622,8 @@ free-faces: func [
 		]
 	]
 	either sym = window [
+		state: values + FACE_OBJ_SELECTED
+		state/header: TYPE_NONE
 		SetWindowLong handle wc-offset - 4 -1
 		PostMessage handle WM_CLOSE 0 0
 	][
@@ -1580,8 +1584,10 @@ OS-make-view: func [
 		]
 		sym = window [
 			init-window handle bits
-			with clipboard [
-				if null? main-hWnd [main-hWnd: handle]
+			#if sub-system = 'gui [
+				with clipboard [
+					if null? main-hWnd [main-hWnd: handle]
+				]
 			]
 			offset/x: off-x - rc/left * 100 / dpi-factor
 			offset/y: off-y - rc/top * 100 / dpi-factor

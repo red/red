@@ -60,6 +60,7 @@ gui-console-ctx: context [
 			on-time: func [face [object!] event [event!]][
 				caret/rate: 2
 				face/rate: none
+				'done
 			]
 			on-drawing: func [face [object!] event [event!]][
 				terminal/paint
@@ -215,6 +216,7 @@ gui-console-ctx: context [
 ]
 
 ask: function [
+	"Prompt the user for input"
 	question [string!]
 	return:  [string!]
 ][
@@ -243,7 +245,7 @@ ask: function [
 	line
 ]
 
-input: function [return: [string!]][ask ""]
+input: function ["Wait for console user input" return: [string!]][ask ""]
 
 #system [
 	red-print-gui: func [

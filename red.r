@@ -725,6 +725,7 @@ redc: context [
 				| "--dev"						(opts/dev-mode?: yes)
 				| "--no-runtime"				(opts/runtime?: no)		;@@ overridable by config!
 				| "--cli"						(gui?: no)
+				| "--no-compress"				(opts/redbin-compress?: no)
 				| "--catch"								;-- just pass-thru
 			]
 			set filename skip (src: load-filename filename)
