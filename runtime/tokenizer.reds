@@ -75,8 +75,6 @@ tokenizer: context [
 			tail [byte-ptr!]
 			cur	 [byte-ptr!]
 			s0	 [byte-ptr!]
-			end	 [integer!]
-			f	 [float!]
 	][
 		cur: as byte-ptr! "0000000000000000000000000000000"		;-- 32 bytes including NUL
 		tail: p + (len << (unit >> 1))
@@ -95,10 +93,7 @@ tokenizer: context [
 			p = tail
 		]
 		cur/1: #"^@"									;-- replace the byte with null so to-float can use it as end of input
-		end: 0
-		f: string/to-float s0 :end
-		if len > (end - as-integer s0) [error/value: -1]
-		f
+		string/to-float s0 len error
 	]
 
 	scan-tuple: func [
