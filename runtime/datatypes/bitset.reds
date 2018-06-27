@@ -387,6 +387,9 @@ bitset: context [
 					int: as red-integer! spec
 					int/value
 				]
+				if all [max < 0 op <> OP_TEST][
+					fire [TO_ERROR(script out-of-range) spec]
+				]
 				unless op = OP_MAX [
 					s: GET_BUFFER(bits)
 					not?: FLAG_NOT?(s)

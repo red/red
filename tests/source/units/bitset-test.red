@@ -20,6 +20,7 @@
 	--test-- "basic-5"	--assert "make bitset! #{40}" = mold charset #"^(01)"
 	--test-- "basic-6"	--assert "make bitset! #{000000000000FFC0}" = mold charset "0123456789"
 	--test-- "basic-7"	--assert "make bitset! #{F0}" = mold charset [0 1 2 3]
+	--test-- "basic-8"	--assert error? try [make bitset! [-1]]
 
 	--test-- "basic-8"	
 		--assert "make bitset! #{FF800000FFFF8000048900007FFFFFE0}"
