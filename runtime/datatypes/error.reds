@@ -102,7 +102,7 @@ error: context [
 			base [red-value!]
 			blk	 [red-block!]
 	][
-		blk: block/push* 2
+		blk: block/push-only* 2
 		block/rs-append blk cat
 		block/rs-append blk id
 	

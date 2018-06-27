@@ -601,7 +601,7 @@ _function: context [
 			s		[series!]
 			extern? [logic!]
 	][
-		list: block/push* 8
+		list: block/push-only* 8
 		ignore: block/clone spec no no
 		
 		value:  as red-value! refinements/extern		;-- process optional /extern

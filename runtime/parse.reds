@@ -1767,7 +1767,7 @@ parser: context [
 								blk: as red-block! _context/get w
 								max: either sym = words/after [-1][blk/head] ;-- save block cursor
 							][
-								block/push* 8
+								block/push-only* 8
 							]
 							min:   R_NONE
 							type:  R_COLLECT

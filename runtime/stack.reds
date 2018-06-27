@@ -345,7 +345,7 @@ stack: context [										;-- call stack
 			sym	  [integer!]
 	][
 		top: as call-frame! int/value
-		value: ALLOC_TAIL(root)
+		value: stack/push*
 		int: as red-integer! value
 		int/header: TYPE_INTEGER
 		base: cbottom

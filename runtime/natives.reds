@@ -1058,7 +1058,7 @@ natives: context [
 				integer/box memory/total
 			]
 			info >= 0 [
-				blk: block/push* 5
+				blk: block/push-only* 5
 				memory-info blk 2
 				stack/set-last as red-value! blk
 			]
