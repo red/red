@@ -890,10 +890,13 @@ _function: context [
 		
 		args: as red-block! alloc-tail more
 		args/header: TYPE_BLOCK
-		args/node:   null
+		args/head: 0
+		args/node: null
 		
 		native: as red-native! alloc-tail more
 		native/header: TYPE_NATIVE
+		native/args: null
+		native/spec: null
 		native/code: code
 		
 		value: alloc-tail more							;-- function! value self-reference (for op!)
