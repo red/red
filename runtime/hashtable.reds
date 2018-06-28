@@ -326,9 +326,6 @@ _hashtable: context [
 		s: as series! node/value
 		h: as hashtable! s/offset
 
-		free-node h/keys
-		free-node h/flags
-
 		new-buckets: round-up new-buckets
 		f: as-float new-buckets
 		new-size: as-integer f * _HT_HASH_UPPER
@@ -419,7 +416,6 @@ _hashtable: context [
 				j = n-buckets
 			]
 			;@@ if h/n-buckets > new-buckets []			;-- shrink the hash table
-			free-node h/flags
 			h/flags: new-flags-node
 			h/n-buckets: new-buckets
 			h/n-occupied: h/size
@@ -948,10 +944,6 @@ _hashtable: context [
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
-		free-node h/keys
-		free-node h/flags
-		if h/indexes <> null [free-node h/indexes]
-		free-node node
 	]
 
 	refresh: func [

@@ -483,12 +483,13 @@ compact-series-frame: func [
 			if dst = null [dst: as byte-ptr! s]
 			;probe ["search live from: " s]
 			free-node s/node
-			until [							;-- search for a live series
+			while [							;-- search for a live series
 				s: as series! (as byte-ptr! s + 1) + s/size
 				tail?: s >= heap
 				mark?: s/flags and flag-gc-mark <> 0
-				unless mark? [free-node s/node]
-				any [mark? tail?]
+				not any [mark? tail?]
+			][
+				free-node s/node
 			]
 			;probe ["live found at: " s]
 		]
