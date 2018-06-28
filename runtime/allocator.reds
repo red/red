@@ -319,16 +319,16 @@ alloc-node: func [
 	/local frame node
 ][
 	frame: memory/n-active					;-- take node from active node frame
-	node: as int-ptr! frame/top/value		;-- pop free node address from stack
-	frame/top: frame/top - 1
 	
 	if frame/top = frame/bottom [
-		; TBD: trigger a "light" GC pass from here and update memory/n-active
-		frame: alloc-node-frame nodes-per-frame	;-- allocate a new frame
-		memory/n-active: frame				;@@ to be removed once GC implemented
-		node: as int-ptr! frame/top/value	;-- pop free node address from stack
-		frame/top: frame/top - 1
+		frame: memory/n-head
+		while [all [frame <> null frame/top = frame/bottom]][frame: frame/next]
+		; TBD: trigger a "light" GC pass from here
+		if null? frame [frame: alloc-node-frame nodes-per-frame] ;-- allocate a new frame
+		memory/n-active: frame
 	]
+	node: as int-ptr! frame/top/value		;-- pop free node address from stack
+	frame/top: frame/top - 1
 	node
 ]
 
