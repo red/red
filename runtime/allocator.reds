@@ -528,6 +528,7 @@ compact-series-frame: func [
 	]
 	if dst <> null [						;-- no compaction occurred, all series were in use
 		frame/heap: as series! dst			;-- set new heap after last moved region
+		#if debug? = yes [markfill as int-ptr! frame/heap as int-ptr! frame/tail]
 	]
 	refs
 ]
@@ -608,10 +609,8 @@ collect-frames: func [
 	frame: memory/s-head
 	
 	until [
-		;probe "before"
 		#if debug? = yes [check-series frame]
 		refs: compact-series-frame frame refs
-		;probe "after"
 		#if debug? = yes [check-series frame]
 		
 		frame: frame/next
@@ -622,6 +621,18 @@ collect-frames: func [
 ]
 
 #if debug? = yes [
+
+	markfill: func [
+		p		[int-ptr!]
+		end		[int-ptr!]
+	][
+		assert p < end
+		until [
+			p/value: BADCAFE0h
+			p: p + 1
+			p = end
+		]
+	]
 
 	dump-frame: func [
 		frame [series-frame!]				;-- series frame to compact
