@@ -14,9 +14,57 @@ Red/System [
 collector: context [
 	verbose: 0
 	
+	active?: no
+	
 	ext-size: 100
 	ext-markers: as int-ptr! allocate ext-size * size? int-ptr!
 	ext-top: ext-markers
+	
+	in-range?: func [
+		p		[int-ptr!]
+		return: [logic!]
+		/local
+			frm  [node-frame!]
+			tail [byte-ptr!]
+	][
+		frm: memory/n-head
+		until [
+			tail: (as byte-ptr! frm) + (frm/nodes * 2 * (size? pointer!) + (size? node-frame!))
+			if all [(as int-ptr! frm + 1) < p p < as int-ptr! tail][return yes]
+			frm: frm/next
+			frm = null
+		]
+		no
+	]
+	
+	mark-stack-nodes: func [
+		/local
+			top	 [int-ptr!]
+			stk	 [int-ptr!]
+			p	 [int-ptr!]
+			s	 [series!]
+	][
+		top:  system/stack/top
+		stk:  stk-bottom
+		
+		until [
+			stk: stk - 1
+			p: as int-ptr! stk/value
+			if all [
+				p > as int-ptr! FFFFh			;-- filter out too low values
+				p < as int-ptr! FFFFF000h		;-- filter out too high values
+				not all [(as byte-ptr! stack/bottom) <= p p <= (as byte-ptr! stack/top)] ;-- stack region is fixed
+				in-range? p
+			][
+				;probe ["node pointer on stack: " p " : " as byte-ptr! p/value]
+				if keep p [
+					s: as series! p/value
+					if GET_UNIT(s) = 16 [mark-values s/offset s/tail]
+				]
+			]
+			stk = top
+		]
+	]
 	
 	keep: func [
 		node	[node!]
@@ -187,7 +235,7 @@ collector: context [
 	]
 	
 	do-cycle: func [/local s [series!] p [int-ptr!] obj [red-object!] w [red-word!] cb][
-		if boot? [exit]									;-- no GC during runtime boot
+		unless active? [exit]
 		;probe "marking..."
 		
 		mark-block root
@@ -229,6 +277,9 @@ collector: context [
 			cb
 			p: p + 1
 		]
+		
+		;probe marking nodes on native stack
+		mark-stack-nodes
 		
 		;probe "sweeping..."
 		collect-frames

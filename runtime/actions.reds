@@ -919,7 +919,7 @@ actions: context [
 			types	[red-value!]
 			return: [red-series!]
 		] get-action-ptr as red-value! series ACT_COPY
-					
+		
 		as red-value! action-copy series new part deep? types
 	]
 	

@@ -4681,6 +4681,7 @@ red: context [
 		pos: tail script
 		append script [
 			red/boot?: no
+			red/collector/active?: yes
 			------------| "Functions"
 		]
 		append script output

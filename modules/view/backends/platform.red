@@ -374,6 +374,7 @@ system/view/platform: context [
 			_num-lock:		word/load "num-lock"
 			
 			red/boot?: no
+			red/collector/active?: yes
 
 			get-event-type: func [
 				evt		[red-event!]
