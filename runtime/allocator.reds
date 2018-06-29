@@ -533,6 +533,21 @@ compact-series-frame: func [
 	refs
 ]
 
+in-range?: func [
+	p		[int-ptr!]
+	return: [logic!]
+	/local
+		frm [series-frame!]
+][
+	frm: memory/s-head
+	until [
+		if all [(as int-ptr! frm + 1) < p p < as int-ptr! frm/tail][return yes]
+		frm: frm/next
+		frm = null
+	]
+	no
+]
+
 compare-refs: func [[cdecl] a [int-ptr!] b [int-ptr!] return: [integer!]][
 	a/value - b/value
 ]
@@ -540,20 +555,12 @@ compare-refs: func [[cdecl] a [int-ptr!] b [int-ptr!] return: [integer!]][
 extract-stack-refs: func [
 	store? [logic!]
 	/local
-		frame [series-frame!]
-		low	  [int-ptr!]
-		high  [int-ptr!]
 		top	  [int-ptr!]
 		stk	  [int-ptr!]
 		p	  [int-ptr!]
 		refs  [int-ptr!]
 		tail  [int-ptr!]
 ][
-	frame: memory/s-head
-	while [frame/next <> null][frame: frame/next] ;@@ assumes frames addresses are in increasing order
-	
-	low:  as int-ptr! memory/s-head + 1
-	high: as int-ptr! frame/tail
 	top:  system/stack/top
 	stk:  stk-bottom
 	refs: memory/stk-refs
@@ -564,9 +571,11 @@ extract-stack-refs: func [
 		stk: stk - 1
 		p: as int-ptr! stk/value  
 		if all [
-			low <= p p <= high
-			not all [(as byte-ptr! stack/bottom) <= p p <= (as byte-ptr! stack/top)]
-		][
+			p > as int-ptr! FFFFh			;-- filter out too low values
+			p < as int-ptr! FFFFF000h		;-- filter out too high values
+			not all [(as byte-ptr! stack/bottom) <= p p <= (as byte-ptr! stack/top)] ;-- stack region is fixed
+			in-range? p
+		][	
 			;probe ["stack pointer: " p " : " as byte-ptr! p/value]
 			if store? [
 				either refs < tail [
