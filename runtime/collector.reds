@@ -187,10 +187,11 @@ collector: context [
 	]
 	
 	do-cycle: func [/local s [series!] p [int-ptr!] obj [red-object!] w [red-word!] cb][
+		if boot? [exit]									;-- no GC during runtime boot
 		;probe "marking..."
 		
 		mark-block root
-		_hashtable/mark symbol/table		;-- will mark symbols
+		_hashtable/mark symbol/table					;-- will mark symbols
 		_hashtable/mark ownership/table
 
 		;probe "marking stack"

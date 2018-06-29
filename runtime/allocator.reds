@@ -699,6 +699,18 @@ collect-frames: func [
 	]
 ]
 
+find-space: func [
+	size	[integer!]
+	return: [series-frame!]
+	/local
+		frame [series-frame!]
+][
+	frame: memory/s-head
+	while [all [frame <> null ((as byte-ptr! frame/heap) + size) >= frame/tail]][
+		frame: frame/next
+	]
+	frame
+]
 
 ;-------------------------------------------
 ;-- Allocate a series from the active series frame, return the series
@@ -721,25 +733,27 @@ alloc-series-buffer: func [
 	frame: memory/s-active
 	sz: size + size? series-buffer!			;-- add series header size
 	flag-big: 0
-
-	series: frame/heap
 	
-	either sz >= memory/s-max [
-		;print-line "Memory error: series too big!"
-		;throw RED_THROWN_ERROR
+	either sz >= memory/s-max [				;-- alloc a big frame if too big for series frames
 		series: as series-buffer! alloc-big sz
 		flag-big: flag-series-big
 	][
-		if ((as byte-ptr! series) + sz) >= frame/tail [
-			; TBD: trigger a GC pass from here and update memory/s-active
-			if sz >= memory/s-size [		;@@ temporary checks
-				memory/s-size: memory/s-max
+		if ((as byte-ptr! frame/heap) + sz) >= frame/tail [ ;-- search for a suitable frame
+			frame: find-space sz
+			if null? frame [
+				collector/do-cycle			;-- launch a GC pass
+				frame: find-space sz
+				if null? frame [
+					if sz >= memory/s-size [ ;@@ temporary checks
+						memory/s-size: memory/s-max
+					]
+					frame: alloc-series-frame
+				]
 			]
-			frame: alloc-series-frame
-			memory/s-active: frame			;@@ to be removed once GC implemented
-			series: frame/heap
+			memory/s-active: frame
 		]
-		assert sz < _16MB					;-- max series size allowed in a series frame @@
+		assert sz < memory/s-max			;-- max series size allowed in a series frame
+		series: frame/heap
 		frame/heap: as series-buffer! (as byte-ptr! frame/heap) + sz
 	]
 		
