@@ -369,31 +369,34 @@ _context: context [
 	]
 
 	create: func [
-		slots		[integer!]							;-- max number of words in the context
-		stack?		[logic!]							;-- TRUE: alloc values on stack, FALSE: alloc them from heap
-		self?		[logic!]
-		return:		[node!]
+		slots	[integer!]							;-- max number of words in the context
+		stack?	[logic!]							;-- TRUE: alloc values on stack, FALSE: alloc them from heap
+		self?	[logic!]
+		return:	[node!]
 		/local
-			cell 	[red-context!]
-			node	[node!]
+			cell [red-context!]
+			slot [red-value!]
+			node [node!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/create"]]
 		
 		if zero? slots [slots: 1]
 		node: alloc-cells 2
 		cell: as red-context! alloc-tail as series! node/value
-		cell/header: TYPE_CONTEXT						;-- implicit reset of all header flags	
+		cell/header: TYPE_UNSET							;-- implicit reset of all header flags	
 		cell/symbols: alloc-series slots 16 0			;-- force offset at head of buffer
 		cell/self: node
-		alloc-tail as series! node/value				;-- allocate a slot for obj/func back-reference
+		slot: alloc-tail as series! node/value			;-- allocate a slot for obj/func back-reference
+		slot/header: TYPE_UNSET
 		
 		if self? [cell/header: cell/header or flag-self-mask]
 
 		either stack? [
-			cell/header: TYPE_CONTEXT or flag-series-stk
 			cell/values: null							;-- will be set to stack frame dynamically
+			cell/header: TYPE_CONTEXT or flag-series-stk
 		][
 			cell/values: alloc-unset-cells slots
+			cell/header: TYPE_CONTEXT
 		]
 		node
 	]

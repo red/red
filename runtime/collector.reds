@@ -51,16 +51,16 @@ collector: context [
 			stk: stk - 1
 			p: as int-ptr! stk/value
 			if all [
+				(as-integer p) and 3 = 0		;-- check if it's a valid int-ptr!
 				p > as int-ptr! FFFFh			;-- filter out too low values
 				p < as int-ptr! FFFFF000h		;-- filter out too high values
 				not all [(as byte-ptr! stack/bottom) <= p p <= (as byte-ptr! stack/top)] ;-- stack region is fixed
 				in-range? p
+				keep p
 			][
 				;probe ["node pointer on stack: " p " : " as byte-ptr! p/value]
-				if keep p [
-					s: as series! p/value
-					if GET_UNIT(s) = 16 [mark-values s/offset s/tail]
-				]
+				s: as series! p/value
+				if GET_UNIT(s) = 16 [mark-values s/offset s/tail]
 			]
 			stk = top
 		]
@@ -106,6 +106,7 @@ collector: context [
 			fun		[red-function!]
 			routine [red-routine!]
 			native	[red-native!]
+			ctx		[red-context!]
 			s		[series!]
 	][
 		while [value < tail][
@@ -172,6 +173,13 @@ collector: context [
 					mark-context obj/ctx
 					if obj/on-set <> null [keep obj/on-set]
 				]
+				TYPE_CONTEXT [
+					;probe "context
+					ctx: as red-context! value
+					;keep ctx/self
+					mark-block-node ctx/symbols
+					unless ON_STACK?(ctx) [mark-block-node ctx/values]
+				]
 				TYPE_HASH
 				TYPE_MAP [
 					;probe "hash"
@@ -237,7 +245,7 @@ collector: context [
 	do-cycle: func [/local s [series!] p [int-ptr!] obj [red-object!] w [red-word!] cb][
 		unless active? [exit]
 		;probe "marking..."
-		
+probe ["root size: " block/rs-length? root]
 		mark-block root
 		_hashtable/mark symbol/table					;-- will mark symbols
 		_hashtable/mark ownership/table
