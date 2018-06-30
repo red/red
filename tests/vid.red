@@ -13,7 +13,7 @@ view [
 	button "World"
 	return
 
-	button "China" [bbb: make block! 1 loop 5000 [?? bbb append bbb make string! random 500] recycle probe stats]
+	button "China" [bbb: make block! 1 loop 5000 [append bbb make string! random 500] recycle probe stats]
 	text "Red Language" 100 right
 	field 120 on-enter [probe do face/text clear face/text]
 	return
