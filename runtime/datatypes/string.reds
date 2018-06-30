@@ -1048,7 +1048,7 @@ string: context [
 			str  [red-string!]
 	][
 		str: as red-string! either slot = null [stack/push*][slot]
-		str/header:	TYPE_STRING							;-- implicit reset of all header flags
+		str/header: TYPE_UNSET
 		str/head:	0
 		str/cache:	null
 		switch encoding [
@@ -1059,6 +1059,7 @@ string: context [
 				halt
 			]
 		]
+		str/header:	TYPE_STRING							;-- implicit reset of all header flags
 		str
 	]
 
@@ -1090,10 +1091,11 @@ string: context [
 			str	[red-string!]
 	][
 		str: as red-string! slot
-		str/header: TYPE_STRING
+		str/header: TYPE_UNSET
 		str/head:	0
 		str/node:	alloc-bytes size << (unit >> 1)
 		str/cache:	null
+		str/header: TYPE_STRING
 		str
 	]
 	
@@ -1207,10 +1209,11 @@ string: context [
 		][
 			size: GET_SIZE_FROM(spec)
 			if size < 0 [fire [TO_ERROR(script out-of-range) spec]]
-			proto/header: type								;-- implicit reset of all header flags
+			proto/header: TYPE_UNSET						;-- implicit reset of all header flags
 			proto/head: 0
 			proto/node: alloc-bytes size					;-- alloc enough space for at least a Latin1 string
 			proto/cache: null
+			proto/header: type								;-- implicit reset of all header flags
 			proto
 		][
 			either type = TYPE_BINARY [

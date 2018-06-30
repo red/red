@@ -1041,7 +1041,9 @@ object: context [
 				blk/node: ctx/symbols
 				len: block/rs-length? blk
 				if len = 0 [len: 1]
+				blk/header: TYPE_UNSET
 				blk/node: alloc-cells len
+				blk/header: TYPE_BLOCK
 				
 				s: as series! ctx/symbols/value
 				syms: s/offset

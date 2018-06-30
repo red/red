@@ -124,6 +124,7 @@ block: context [
 		return: [red-block!]
 		/local
 			new	   [red-block!]
+			node   [node!]
 			target [series!]
 			value  [red-value!]
 			tail   [red-value!]
@@ -151,10 +152,11 @@ block: context [
 		if empty? [size: 1]
 		
 		new: as red-block! stack/push*					;-- slot allocated on stack!
-		new/header: TYPE_BLOCK
+		new/header: TYPE_UNSET
 		new/head:   0
 		new/node:	alloc-cells size
 		new/extra:	0
+		new/header: TYPE_BLOCK
 		
 		unless empty? [
 			target: GET_BUFFER(new)
@@ -325,9 +327,11 @@ block: context [
 	][
 		if size < 0 [size: 1]
 		
-		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
+		blk/header: TYPE_UNSET
 		blk/head: 	0
 		blk/node: 	alloc-cells size
+		blk/extra:  0
+		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
 		blk
 	]
 

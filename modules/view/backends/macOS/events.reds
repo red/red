@@ -23,9 +23,10 @@ zoom-distance:	 0
 special-key: 	-1										;-- <> -1 if a non-displayable key is pressed
 
 flags-blk: declare red-block!							;-- static block value for event/flags
-flags-blk/header:	TYPE_BLOCK
+flags-blk/header:	TYPE_UNSET
 flags-blk/head:		0
 flags-blk/node:		alloc-cells 4
+flags-blk/header:	TYPE_BLOCK
 
 char-keys: [
 	1000C400h C0FF0080h E0FFFF7Fh 0000F7FFh 00000000h 3F000000h 1F000080h 00FC7F38h

@@ -272,7 +272,7 @@ map: context [
 			s	   [series!]
 	][
 		blk: 		as red-block! stack/push*
-		blk/header: TYPE_BLOCK
+		blk/header: TYPE_UNSET
 		blk/head: 	0
 
 		size: rs-length? map
@@ -319,6 +319,7 @@ map: context [
 				--NOT_IMPLEMENTED--						;@@ raise error
 			]
 		]
+		blk/header: TYPE_BLOCK
 		as red-block! stack/set-last as red-value! blk
 	]
 

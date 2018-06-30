@@ -270,9 +270,10 @@ input: function ["Wait for console user input" return: [string!]][ask ""]
 			string/rs-reset str
 			unicode/load-utf8-buffer cstr size GET_BUFFER(str) null yes
 		][
+			str/header: TYPE_UNSET
+			str/node: unicode/load-utf8-buffer cstr size null null yes
 			str/header: TYPE_STRING
 			str/head: 0
-			str/node: unicode/load-utf8-buffer cstr size null null yes
 			str/cache: null
 		]
 		red-print-gui str lf?

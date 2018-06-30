@@ -854,10 +854,11 @@ simple-io: context [
 		][
 			either lines? [lines-to-block buffer size][
 				str: as red-string! stack/push*
-				str/header: TYPE_STRING					;-- implicit reset of all header flags
+				str/header: TYPE_UNSET
 				str/head: 0
 				str/node: unicode/load-utf8-buffer as-c-string buffer size null null yes
 				str/cache: null							;-- @@ cache small strings?
+				str/header: TYPE_STRING					;-- implicit reset of all header flags
 				str
 			]
 		]
@@ -1951,8 +1952,9 @@ simple-io: context [
 					either lines? [
 						bin: as red-binary! lines-to-block buf len
 					][
-						bin/header: TYPE_STRING
+						bin/header: TYPE_UNSET
 						bin/node: unicode/load-utf8 as c-string! buf len
+						bin/header: TYPE_STRING
 					]
 				]
 				if info? [
@@ -2234,8 +2236,9 @@ simple-io: context [
 					either lines? [
 						bin: as red-binary! lines-to-block buf len
 					][
-						bin/header: TYPE_STRING
+						bin/header: TYPE_UNSET
 						bin/node: unicode/load-utf8 as c-string! buf len
+						bin/header: TYPE_STRING
 					]
 				]
 

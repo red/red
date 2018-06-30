@@ -907,6 +907,7 @@ expand-series: func [
 	return: [series-buffer!]				;-- return new series with new size
 	/local
 		new	  [series-buffer!]
+		node  [node!]
 		units [integer!]
 		delta [integer!]
 		big?  [logic!]
@@ -922,15 +923,17 @@ expand-series: func [
 	
 	if zero? new-sz [new-sz: series/size * 2]	;-- by default, alloc twice the old size
 
+	node: series/node
 	new: alloc-series-buffer new-sz / units units 0
+	series: as series-buffer! node/value
 	big?: new/flags and flag-series-big <> 0
 	
-	series/node/value: as-integer new		;-- link node to new series buffer
+	node/value: as-integer new		;-- link node to new series buffer
 	delta: as-integer series/tail - series/offset
 	
 	new/flags:	series/flags
-	new/node:   series/node
-	new/tail:   as cell! (as byte-ptr! new/offset) + delta
+	new/node:	node
+	new/tail:	as cell! (as byte-ptr! new/offset) + delta
 	series/node: null
 	
 	if big? [new/flags: new/flags or flag-series-big]	;@@ to be improved

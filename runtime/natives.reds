@@ -1453,14 +1453,14 @@ natives: context [
 
 		ret: as red-binary! data
 		ret/head: 0
-		ret/header: TYPE_STRING
+		ret/header: TYPE_NONE
 		ret/node: switch base [
 			64 [binary/encode-64 p len]
 			16 [binary/encode-16 p len]
 			2  [binary/encode-2  p len]
 			default [fire [TO_ERROR(script invalid-arg) int] null]
 		]
-		if ret/node = null [ret/header: TYPE_NONE]				;- RETURN_NONE
+		if ret/node <> null [ret/header: TYPE_STRING]	;-- ret/node = null, return NONE
 	]
 
 	negative?*: func [
