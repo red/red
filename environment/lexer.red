@@ -91,13 +91,13 @@ system/lexer: context [
 		
 		ret: as red-binary! stack/arguments
 		ret/head: 0
-		ret/header: TYPE_BINARY
+		ret/header: TYPE_NONE
 		ret/node: switch base [
 			16 [binary/decode-16 p len unit]
 			2  [binary/decode-2  p len unit]
 			64 [binary/decode-64 p len unit]
 		]
-		if ret/node = null [ret/header: TYPE_NONE]		;-- return NONE!
+		if ret/node <> null [ret/header: TYPE_BINARY]		;-- if null, return NONE!
 	]
 
 	make-tuple: routine [

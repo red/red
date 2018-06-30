@@ -955,6 +955,7 @@ interpreter: context [
 			TYPE_LIT_PATH [
 				value: stack/push pc
 				value/header: TYPE_PATH
+				value/data2: 0
 				pc: pc + 1
 			]
 			TYPE_OP [

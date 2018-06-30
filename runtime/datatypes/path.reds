@@ -28,10 +28,11 @@ path: context [
 		size	[integer!]
 		return: [red-path!]
 	][
-		path/header: TYPE_PATH							;-- implicit reset of all header flags
+		path/header: TYPE_UNSET
 		path/head: 0
 		path/node: alloc-cells size
 		path/args: null
+		path/header: TYPE_PATH							;-- implicit reset of all header flags
 		path
 	]
 

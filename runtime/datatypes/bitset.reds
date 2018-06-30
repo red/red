@@ -523,7 +523,7 @@ bitset: context [
 			byte [byte!]
 	][
 		bits: as red-bitset! stack/push*
-		bits/header: TYPE_BITSET						;-- implicit reset of all header flags
+		bits/header: TYPE_UNSET
 
 		switch TYPE_OF(spec) [
 			TYPE_BITSET [
@@ -582,6 +582,7 @@ bitset: context [
 				if not? [blk/head: blk/head - 1]			;-- restore series argument head
 			]
 		]
+		bits/header: TYPE_BITSET						;-- implicit reset of all header flags
 		bits
 	]
 	
@@ -800,8 +801,9 @@ bitset: context [
 		#if debug? = yes [if verbose > 0 [print-line "bitset/copy"]]
 		
 		s: GET_BUFFER(bits)
-		new/header: TYPE_BITSET
+		new/header: TYPE_UNSET
 		new/node:	copy-series s
+		new/header: TYPE_BITSET
 		new
 	]
 	

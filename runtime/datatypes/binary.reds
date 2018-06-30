@@ -219,11 +219,12 @@ binary: context [
 		unit: GET_UNIT(s)
 		
 		bin/head: 0
-		bin/header: TYPE_BINARY
+		bin/header: TYPE_UNSET
 		bin/node: decode-16 
 			(as byte-ptr! s/offset) + (str/head << (log-b unit))
 			string/rs-length? str
 			unit
+		bin/header: TYPE_BINARY
 		stack/pop 1
 		if null? bin/node [fire [TO_ERROR(script invalid-data) issue]]
 	]
@@ -701,9 +702,10 @@ binary: context [
 			bin	[red-binary!]
 	][
 		bin: as red-binary! slot
-		bin/header: TYPE_BINARY
+		bin/header: TYPE_UNSET
 		bin/head: 0
 		bin/node: alloc-bytes size
+		bin/header: TYPE_BINARY
 		bin
 	]
 

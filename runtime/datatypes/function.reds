@@ -870,10 +870,11 @@ _function: context [
 		#if debug? = yes [if verbose > 0 [print-line "_function/push"]]
 
 		fun: as red-function! stack/push*
-		fun/header:  TYPE_FUNCTION						;-- implicit reset of all header flags
+		fun/header:  TYPE_UNSET
 		fun/spec:	 spec/node
 		fun/ctx:	 either null? ctx [_context/make spec yes no][ctx]
 		fun/more:	 alloc-cells 5
+		fun/header:  TYPE_FUNCTION						;-- implicit reset of all header flags
 		
 		s: as series! fun/ctx/value
 		copy-cell as red-value! fun s/offset + 1		;-- set back-reference

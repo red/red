@@ -1415,14 +1415,14 @@ natives: context [
 
 		ret: as red-binary! data
 		ret/head: 0
-		ret/header: TYPE_BINARY
+		ret/header: TYPE_NONE
 		ret/node: switch base [
 			16 [binary/decode-16 p len unit]
 			2  [binary/decode-2  p len unit]
 			64 [binary/decode-64 p len unit]
 			default [fire [TO_ERROR(script invalid-arg) int] null]
 		]
-		if ret/node = null [ret/header: TYPE_NONE]				;- RETURN_NONE
+		if ret/node <> null [ret/header: TYPE_BINARY]			;- if null, RETURN_NONE
 	]
 
 	enbase*: func [

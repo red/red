@@ -560,9 +560,10 @@ OS-image: context [
 		len: stat/cbSize_low
 
 		bin: as red-binary! slot
-		bin/header: TYPE_BINARY
+		bin/header: TYPE_UNSET
 		bin/head: 0
 		bin/node: alloc-bytes len
+		bin/header: TYPE_BINARY
 		
 		s: GET_BUFFER(bin)
 		s/tail: as cell! (as byte-ptr! s/tail) + len

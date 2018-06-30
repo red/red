@@ -835,10 +835,11 @@ object: context [
 			s	[series!]
 	][
 		obj: as red-object! stack/push*
-		obj/header: TYPE_OBJECT
+		obj/header: TYPE_UNSET
 		obj/ctx:	ctx
 		obj/class:	class
 		obj/on-set: make-callback-node TO_CTX(ctx) idx-s loc-s idx-d loc-d
+		obj/header: TYPE_OBJECT
 		
 		s: as series! ctx/value
 		copy-cell as red-value! obj s/offset + 1		;-- set back-reference
@@ -852,10 +853,11 @@ object: context [
 		/local
 			s [series!]
 	][
-		obj/header: TYPE_OBJECT
+		obj/header: TYPE_UNSET
 		obj/ctx:	_context/create slots no yes
 		obj/class:	0
 		obj/on-set: null
+		obj/header: TYPE_OBJECT
 		
 		s: as series! obj/ctx/value
 		copy-cell as red-value! obj s/offset + 1		;-- set back-reference

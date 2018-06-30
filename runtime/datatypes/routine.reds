@@ -125,7 +125,7 @@ routine: context [
 
 		string/concatenate-literal buffer "routine "
 		
-		blk/header: TYPE_ROUTINE
+		blk/header: TYPE_BLOCK
 		blk/head: 0
 		blk/node: fun/spec
 		part: block/mold blk buffer only? all? flat? arg part - 8 indent	;-- spec
