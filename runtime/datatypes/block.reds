@@ -1313,7 +1313,7 @@ block: context [
 		
 		s: GET_BUFFER(blk)
 		if s/offset + blk/head > s/tail [				;-- Past-end index adjustment
-			blk/head: (as-integer s/tail - s/offset) >> size? cell!
+			blk/head: (as-integer s/tail - s/offset) >> 4
 		]
 		h: blk/head
 		tail?: any [(s/offset + h = s/tail) append?]

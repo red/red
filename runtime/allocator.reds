@@ -477,6 +477,9 @@ compact-series-frame: func [
 	src: null								;-- src will point to start of buffer region to move down
 	dst: null								;-- dst will point to start of free region
 
+	;assert heap > s
+	if heap = s [return refs]
+
 	until [
 		tail?: no
 		if s/flags and flag-gc-mark = 0 [	;-- check if it starts with a gap
@@ -682,7 +685,7 @@ collect-frames: func [
 		s: as series! frame + 1				;-- point to first series buffer
 		heap: frame/heap
 
-		until [
+		while [heap > s][
 			if any [
 				(as byte-ptr! s/offset) <> as byte-ptr! s + 1
 				(as byte-ptr! s/tail) < as byte-ptr! s
@@ -693,7 +696,6 @@ collect-frames: func [
 				halt
 			]
 			s: as series! (as byte-ptr! s + 1) + s/size
-			s >= heap
 		]
 
 	]

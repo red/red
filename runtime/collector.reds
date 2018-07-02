@@ -30,13 +30,15 @@ collector: context [
 		frm: memory/n-head
 		until [
 			tail: (as byte-ptr! frm) + (frm/nodes * 2 * (size? pointer!) + (size? node-frame!))
-			if all [(as int-ptr! frm + 1) < p p < as int-ptr! tail][return yes]
+			if all [(as int-ptr! frm + 1) + frm/nodes <= p p < as int-ptr! tail][
+				return yes
+			]
 			frm: frm/next
 			frm = null
 		]
 		no
 	]
-	
+
 	mark-stack-nodes: func [
 		/local
 			top	 [int-ptr!]

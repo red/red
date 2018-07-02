@@ -246,7 +246,7 @@ red-function!: alias struct! [
 	more	[node!]									;-- additional members storage block:
 	;	body	 [red-block!]						;-- 	function's body block
 	;	args	 [red-block!]						;-- 	list of typed arguments (including optional ones)
-	;	native   [node!]							;-- 	JIT-compiled body (binary!)
+	;	native   [red-native!]						;-- 	JIT-compiled body (binary!)
 	;   fun		 [red-function!]					;--		(optional) copy of parent function! value (used by op!)
 	;	obj		 [red-context!]						;--		context! pointer for methods
 ]
