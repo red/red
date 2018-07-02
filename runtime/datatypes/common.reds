@@ -113,6 +113,7 @@ get-root-node: func [
 		obj [red-object!]
 ][
 	obj: as red-object! get-root idx
+	assert TYPE_OF(obj) = TYPE_OBJECT
 	obj/ctx
 ]
 

@@ -891,8 +891,9 @@ _function: context [
 		
 		args: as red-block! alloc-tail more
 		args/header: TYPE_BLOCK
-		args/head: 0
-		args/node: null
+		args/head:	 0
+		args/node: 	 null
+		args/extra:	 0
 		
 		native: as red-native! alloc-tail more
 		native/header: TYPE_NATIVE

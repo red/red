@@ -762,8 +762,10 @@ object: context [
 			fire [TO_ERROR(script bad-func-def) fun]
 		]
 		spec: as red-block! stack/push*
-		spec/head: 0
-		spec/node: fun/spec
+		spec/header: TYPE_BLOCK
+		spec/head:	 0
+		spec/node:	 fun/spec
+		spec/extra:	 0
 		
 		blk: block/clone as red-block! more yes yes
 		_context/bind blk ctx node yes					;-- rebind new body to object's context

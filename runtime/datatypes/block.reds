@@ -156,7 +156,7 @@ block: context [
 		new/head:   0
 		new/node:	alloc-cells size
 		new/extra:	0
-		new/header: TYPE_BLOCK
+		new/header: TYPE_OF(blk)
 		
 		unless empty? [
 			target: GET_BUFFER(new)
