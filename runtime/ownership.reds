@@ -174,6 +174,7 @@ ownership: context [
 		/local
 			ctx	  [red-context!]
 	][
+		assert TYPE_OF(owner) = TYPE_OBJECT
 		bind container owner word
 		ctx: GET_CTX(owner)
 		ctx/header: ctx/header or flag-owner

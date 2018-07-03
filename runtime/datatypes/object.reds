@@ -969,6 +969,7 @@ object: context [
 		#if debug? = yes [if verbose > 0 [print-line "object/make"]]
 		
 		obj: as red-object! stack/push*
+		obj/header: TYPE_UNSET
 		
 		p-obj?: TYPE_OF(proto) = TYPE_OBJECT
 		
@@ -985,6 +986,7 @@ object: context [
 				obj/class: either extend ctx GET_CTX(obj2) obj [get-new-id][proto/class] ;@@ class-id is not transmitted for 'self!
 			]
 			TYPE_BLOCK [
+				obj/on-set: null						;-- avoid GC marking previous value
 				blk: as red-block! spec
 				new?: _context/collect-set-words ctx blk
 				_context/bind blk ctx save-self-object obj yes	;-- bind spec block
