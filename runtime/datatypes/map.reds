@@ -717,11 +717,15 @@ map: context [
 		deep?		[logic!]
 		types		[red-value!]
 		return:		[red-hash!]
+		/local
+			saved	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/copy"]]
+		saved: map/header
+		map/header: TYPE_BLOCK
 		new: as red-hash! block/clone as red-block! map deep? yes
 
-		new/header: TYPE_MAP
+		new/header: saved
 		new/table: 	_hashtable/copy map/table new/node
 		new
 	]

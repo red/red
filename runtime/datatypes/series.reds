@@ -87,7 +87,7 @@ _series: context [
 	]
 
 	;-- Actions --
-	
+
 	random: func [
 		ser		[red-series!]
 		seed?	[logic!]
@@ -96,11 +96,12 @@ _series: context [
 		return: [red-value!]
 		/local
 			char [red-char!]
-			vec [red-vector!]
+			vec  [red-vector!]
 			s	 [series!]
 			size [integer!]
 			unit [integer!]
 			len	 [integer!]
+			val  [red-value! value]
 			temp [byte-ptr!]
 			idx	 [byte-ptr!]
 			head [byte-ptr!]
@@ -139,7 +140,7 @@ _series: context [
 				]
 			][
 				len: size
-				temp: as byte-ptr! stack/push*
+				temp: as byte-ptr! :val
 				while [size > 0][
 					idx: head + (_random/rand % size << (log-b unit))
 					copy-memory temp head unit
@@ -148,7 +149,6 @@ _series: context [
 					head: head + unit
 					size: size - 1
 				]
-				stack/pop 1
 			]
 			ownership/check as red-value! ser words/_random null ser/head len
 		]
@@ -858,6 +858,7 @@ _series: context [
 			unit	[integer!]
 			head	[byte-ptr!]
 			tail	[byte-ptr!]
+			val		[red-value! value]
 			temp	[byte-ptr!]
 			int		[red-integer!]
 			ser2	[red-series!]
@@ -901,7 +902,7 @@ _series: context [
 		]
 		if all [positive? part head + part < tail] [tail: head + part]
 		tail: tail - unit								;-- point to last value
-		temp: as byte-ptr! stack/push*
+		temp: as byte-ptr! :val
 		while [head < tail][							;-- TODO: optimise it according to unit
 			copy-memory temp head unit
 			copy-memory head tail unit
@@ -915,7 +916,6 @@ _series: context [
 			head: head + unit
 			tail: tail - unit
 		]
-		stack/pop 1
 		ownership/check as red-value! ser words/_reverse null ser/head items
 		ser
 	]

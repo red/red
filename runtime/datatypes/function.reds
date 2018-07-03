@@ -873,7 +873,7 @@ _function: context [
 		fun/header:  TYPE_UNSET
 		fun/spec:	 spec/node
 		fun/ctx:	 either null? ctx [_context/make spec yes no][ctx]
-		fun/more:	 alloc-cells 5
+		fun/more:	 alloc-unset-cells 5
 		fun/header:  TYPE_FUNCTION						;-- implicit reset of all header flags
 		
 		s: as series! fun/ctx/value

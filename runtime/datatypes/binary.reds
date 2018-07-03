@@ -987,6 +987,7 @@ binary: context [
 					]
 				][
 					bin2: as red-binary! stack/push*
+					bin2/header: TYPE_UNSET
 					saved: stack/top
 
 					bin2: to bin2 cell TYPE_BINARY	;@@ TO will push value to stack
@@ -1060,6 +1061,7 @@ binary: context [
 			form-slot	[red-value!]
 	][
 		form-slot: stack/push*				;-- reserve space for FORMing incompatible values
+		form-slot/header: TYPE_UNSET
 		added: 0
 		bytes: 0
 

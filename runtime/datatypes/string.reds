@@ -2165,6 +2165,7 @@ string: context [
 		]
 		
 		form-slot: stack/push*							;-- reserve space for FORMing incompatible values
+		form-slot/header: TYPE_UNSET
 		
 		s: GET_BUFFER(str)
 		len: (as-integer s/tail - s/offset) >> (log-b GET_UNIT(s))
@@ -2559,6 +2560,7 @@ string: context [
 	][
 		s: GET_BUFFER(str)
 		form-slot: stack/push*				;-- reserve space for FORMing incompatible values
+		form-slot/header: TYPE_UNSET
 		added: 0
 
 		while [cell < limit][

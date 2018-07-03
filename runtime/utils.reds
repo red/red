@@ -177,7 +177,7 @@ check-arg-type: func [
 			obj		[red-object!]
 			ctx		[red-context!]
 			str		[red-string!]
-			val		[red-value! value]
+			val		[red-value!]
 			ver		[OSVERSIONINFO value]
 			int		[red-integer!]
 			arch	[c-string!]
@@ -185,7 +185,8 @@ check-arg-type: func [
 			_64bit? [integer!]
 			server? [logic!]
 	][
-		obj: object/make-at as red-object! stack/arguments 8
+		obj: object/make-at as red-object! stack/push* 8
+		val: stack/push*
 		ctx: GET_CTX(obj)
 
 		ver/dwOSVersionInfoSize: size? OSVERSIONINFO
@@ -237,6 +238,7 @@ check-arg-type: func [
 		int/header: TYPE_INTEGER
 		int/value:  ver/dwBuildNumber
 		_context/add-with ctx _context/add-global symbol/make "build" val
+		stack/pop 2
 	]]
 	macOS [
 	#import [
@@ -252,7 +254,7 @@ check-arg-type: func [
 		/local
 			obj		[red-object!]
 			ctx		[red-context!]
-			val		[red-value! value]
+			val		[red-value!]
 			int		[red-integer!]
 			str		[red-string!]
 			arch	[c-string!]
@@ -265,7 +267,8 @@ check-arg-type: func [
 			bugfix	[integer!]
 			s		[series!]
 	][
-		obj: object/make-at as red-object! stack/arguments 8
+		obj: object/make-at as red-object! stack/push* 8
+		val: stack/push*
 		ctx: GET_CTX(obj)
 
 		major: 0 minor: 0 bugfix: 0
@@ -310,6 +313,7 @@ check-arg-type: func [
 		platform/sysctl :mib 2 as byte-ptr! s/offset :len null 0
 		s/tail: as red-value! (as byte-ptr! s/offset) + len - 1
 		_context/add-with ctx _context/add-global symbol/make "build" val
+		stack/pop 2
 	]]
 	#default [
 	utsname!: alias struct! [
@@ -382,7 +386,7 @@ check-arg-type: func [
 		/local
 			obj		[red-object!]
 			ctx		[red-context!]
-			val		[red-value! value]
+			val		[red-value!]
 			int		[red-integer!]
 			pbuf	[byte-ptr!]
 			str		[c-string!]
@@ -395,7 +399,8 @@ check-arg-type: func [
 			len		[integer!]
 			buf		[utsname!]
 	][
-		obj: object/make-at as red-object! stack/arguments 8
+		obj: object/make-at as red-object! stack/push* 8
+		val: stack/push*
 		ctx: GET_CTX(obj)
 
 		buf: as utsname! allocate size? utsname!
@@ -443,6 +448,7 @@ check-arg-type: func [
 		string/load-at str length? str val UTF-8
 		_context/add-with ctx _context/add-global symbol/make "build" val
 
+		stack/pop 2
 		free as byte-ptr! buf
 	]]
 ]
