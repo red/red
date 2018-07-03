@@ -234,7 +234,7 @@ check-arg-type: func [
 			or (ver/wServicePack and FFFFh << 16)
 		_context/add-with ctx _context/add-global symbol/make "version" val
 
-		int: as red-integer! :val
+		int: as red-integer! val
 		int/header: TYPE_INTEGER
 		int/value:  ver/dwBuildNumber
 		_context/add-with ctx _context/add-global symbol/make "build" val
