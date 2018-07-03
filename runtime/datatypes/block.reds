@@ -1023,7 +1023,10 @@ block: context [
 		flags	 [integer!]
 		return:  [integer!]
 		/local
-			action-compare offset res temp
+			offset	[integer!]
+			res		[integer!]
+			temp	[red-value!]
+			action-compare
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/compare-value"]]
 
@@ -1081,7 +1084,7 @@ block: context [
 
 		all?: flags and sort-all-mask = sort-all-mask
 		num: flags >>> 2
-		if all [all? num > 0][
+		if all [all? num > 0][					;FIXME: Corrupted series!!!
 			blk1: make-at as red-block! v1 1
 			blk2: make-at as red-block! v2 1
 			s1: GET_BUFFER(blk1)
@@ -1092,9 +1095,16 @@ block: context [
 			s2/tail: value2 + num
 		]
 
-		_function/call f global-ctx						;FIXME: hardcoded origin context
+		_function/call f global-ctx				;FIXME: hardcoded origin context
 		stack/unwind
 		stack/pop 1
+
+		if all [all? num > 0][					;-- reset series!, make GC happy
+			s1/offset: as cell! (s1 + 1)
+			s1/tail: s1/offset
+			s2/offset: as cell! (s2 + 1)
+			s2/tail: s2/offset
+		]
 
 		res: stack/top
 		switch TYPE_OF(res) [
@@ -1220,11 +1230,13 @@ block: context [
 				]
 			]
 		]
+		collector/active?: no							;-- turn off GC
 		either stable? [
 			_sort/mergesort as byte-ptr! head len step * (size? red-value!) op flags cmp
 		][
 			_sort/qsort as byte-ptr! head len step * (size? red-value!) op flags cmp
 		]
+		collector/active?: yes
 		ownership/check as red-value! blk words/_sort null blk/head 0
 		blk
 	]

@@ -1361,7 +1361,6 @@ object: context [
 				value: value + 1
 			]
 		]
-		collector/active?: yes
 		new
 	]
 	
