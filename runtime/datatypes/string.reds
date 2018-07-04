@@ -2097,7 +2097,7 @@ string: context [
 					flags: offset - 1 << 1 or flags
 				]
 				default [
-					ERR_INVALID_REFINEMENT_ARG((refinement/load "compare") comparator)
+					ERR_INVALID_REFINEMENT_ARG(refinements/compare comparator)
 				]
 			]
 		]

@@ -2185,7 +2185,7 @@ natives: context [
 			_with >= 0
 			any [type = crypto/_crc32 type = crypto/_tcp type = crypto/_adler32]
 		][
-			ERR_INVALID_REFINEMENT_ARG((refinement/load "with") method)
+			ERR_INVALID_REFINEMENT_ARG(refinements/_with method)
 		]
 		
 		;-- TCP and CRC32 ignore [/with spec] entirely. For these methods
@@ -2201,7 +2201,7 @@ natives: context [
 				TYPE_STRING TYPE_BINARY [
 					if type = crypto/_hash [
 						;-- /with 'spec arg for 'hash method must be an integer.
-						ERR_INVALID_REFINEMENT_ARG((refinement/load "with") spec)
+						ERR_INVALID_REFINEMENT_ARG(refinements/_with spec)
 					]
 					;-- If we get here, the method returns an HMAC (MD5 or SHA*).
 					either TYPE_OF(spec) = TYPE_STRING [
@@ -2229,7 +2229,7 @@ natives: context [
 			]
 		][												;-- /with was not used
 			either type = crypto/_hash [
-				ERR_INVALID_REFINEMENT_ARG((refinement/load "with") method)
+				ERR_INVALID_REFINEMENT_ARG(refinements/_with method)
 			][
 				;-- If we get here, the method returns a digest (MD5 or SHA*). 
 				b: crypto/get-digest data len crypto/alg-from-symbol type
