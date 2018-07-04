@@ -955,21 +955,21 @@ interpreter: context [
 			TYPE_LIT_PATH [
 				value: stack/push pc
 				value/header: TYPE_PATH
-				value/data2: 0
+				value/data3: 0							;-- ensures args field is null
 				pc: pc + 1
 			]
 			TYPE_OP [
 				--NOT_IMPLEMENTED--						;-- op used in prefix mode
 			]
-			TYPE_ACTION							;@@ replace with TYPE_ANY_FUNCTION
+			TYPE_ACTION									;@@ replace with TYPE_ANY_FUNCTION
 			TYPE_NATIVE
 			TYPE_ROUTINE
 			TYPE_FUNCTION [
 				either passive? [
 					either sub? [
-						stack/push pc						;-- nested expression: push value
+						stack/push pc					;-- nested expression: push value
 					][
-						stack/set-last pc					;-- root expression: return value
+						stack/set-last pc				;-- root expression: return value
 					]
 					pc: pc + 1
 				][
