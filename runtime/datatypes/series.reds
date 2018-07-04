@@ -609,10 +609,11 @@ _series: context [
 
 			value: s/offset + head
 			either part? [
+				size: size - part
 				move-memory
 					as byte-ptr! value + items
 					as byte-ptr! value + part
-					size - part * size? cell!
+					size * size? cell!
 				s/tail: s/tail + added
 			][
 				if added > 0 [s/tail: s/tail + added]

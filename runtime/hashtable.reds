@@ -275,15 +275,53 @@ _hashtable: context [
 		]
 	]
 
+	_alloc-bytes: func [
+		size	[integer!]						;-- number of 16 bytes cells to preallocate
+		return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
+		/local
+			node [int-ptr!]
+			s	 [series!]
+	][
+		node: alloc-bytes size
+		s: as series! node/value
+		s/tail: as cell! (as byte-ptr! s/offset) + s/size
+		node
+	]
+
+	_alloc-bytes-filled: func [
+		size	[integer!]						;-- number of 16 bytes cells to preallocate
+		byte	[byte!]
+		return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
+		/local
+			node [node!]
+			s	 [series!]
+	][
+		node: alloc-bytes size
+		s: as series! node/value
+		s/tail: as cell! (as byte-ptr! s/offset) + s/size
+		fill 
+			as byte-ptr! s/offset
+			as byte-ptr! s/tail
+			byte
+		node
+	]
+
 	init: func [
 		size	[integer!]
 		blk		[red-block!]
 		type	[integer!]
 		vsize	[integer!]
 		return: [node!]
-		/local node s ss h f-buckets fsize value skip
+		/local
+			node		[node!]
+			s			[series!]
+			ss			[series!]
+			h			[hashtable!]
+			f-buckets	[float!]
+			fsize		[float!]
+			skip		[integer!]
 	][
-		node: alloc-bytes-filled size? hashtable! #"^(00)"
+		node: _alloc-bytes-filled size? hashtable! #"^(00)"
 		s: as series! node/value
 		h: as hashtable! s/offset
 		h/type: type
@@ -296,13 +334,11 @@ _hashtable: context [
 		h/n-buckets: round-up as-integer f-buckets
 		f-buckets: as-float h/n-buckets
 		h/upper-bound: as-integer f-buckets * _HT_HASH_UPPER
-		h/flags: alloc-bytes-filled h/n-buckets >> 2 #"^(AA)"
-		h/keys: alloc-bytes h/n-buckets * size? int-ptr!
+		h/flags: _alloc-bytes-filled h/n-buckets >> 2 #"^(AA)"
+		h/keys: _alloc-bytes h/n-buckets * size? int-ptr!
 
 		if type = HASH_TABLE_HASH [
-			h/indexes: alloc-bytes-filled size * size? integer! #"^(FF)"
-			ss: as series! h/indexes/value
-			ss/tail: as cell! (as byte-ptr! ss/offset) + ss/size
+			h/indexes: _alloc-bytes-filled size * size? integer! #"^(FF)"
 		]
 		either any [type = HASH_TABLE_INTEGER blk = null][
 			h/blk: alloc-cells size
@@ -335,8 +371,8 @@ _hashtable: context [
 		h/n-occupied: 0
 		h/upper-bound: new-size
 		h/n-buckets: new-buckets
-		h/flags: alloc-bytes-filled new-buckets >> 2 #"^(AA)"
-		h/keys: alloc-bytes new-buckets * size? int-ptr!
+		h/flags: _alloc-bytes-filled new-buckets >> 2 #"^(AA)"
+		h/keys: _alloc-bytes new-buckets * size? int-ptr!
 
 		put-all node 0 1
 	]
@@ -364,11 +400,12 @@ _hashtable: context [
 		new-size: as-integer f * _HT_HASH_UPPER
 		if new-buckets < 4 [new-buckets: 4]
 		either h/size >= new-size [j: 1][
-			new-flags-node: alloc-bytes-filled new-buckets >> 2 #"^(AA)"
+			new-flags-node: _alloc-bytes-filled new-buckets >> 2 #"^(AA)"
 			s: as series! new-flags-node/value
 			new-flags: as int-ptr! s/offset
 			if n-buckets < new-buckets [
-				expand-series as series! h/keys/value new-buckets * size? int-ptr!
+				s: expand-series as series! h/keys/value new-buckets * size? int-ptr!
+				s/tail: as cell! (as byte-ptr! s/offset) + s/size
 			]
 		]
 		if zero? j [
