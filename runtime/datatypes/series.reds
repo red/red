@@ -609,11 +609,10 @@ _series: context [
 
 			value: s/offset + head
 			either part? [
-				size: either neg? [size + part][size - part]
 				move-memory
 					as byte-ptr! value + items
 					as byte-ptr! value + part
-					size * size? cell!
+					size - part * size? cell!
 				s/tail: s/tail + added
 			][
 				if added > 0 [s/tail: s/tail + added]
@@ -635,7 +634,7 @@ _series: context [
 			]
 		][
 			tail: as byte-ptr! s/tail
-			src: (as byte-ptr! s/offset) + (ser/head << (log-b unit))
+			src: (as byte-ptr! s/offset) + (head << (log-b unit))
 			if part? [
 				added: part << (log-b unit)
 				move-memory src src + added (as-integer tail - src) - added
