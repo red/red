@@ -1299,8 +1299,10 @@ object: context [
 		slots:	size >> 4
 		
 		copy-cell as cell! obj as cell! new
+		new/header: TYPE_UNSET
 		new/ctx: _context/create slots no yes
 		new/class: obj/class
+		new/header: TYPE_OBJECT
 		nctx: GET_CTX(new)
 		
 		s: as series! new/ctx/value
