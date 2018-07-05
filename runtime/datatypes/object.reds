@@ -1279,7 +1279,6 @@ object: context [
 			tail  [red-value!]
 			src	  [series!]
 			dst	  [series!]
-			s	  [series!]
 			node  [node!]
 			size  [integer!]
 			slots [integer!]
@@ -1304,9 +1303,8 @@ object: context [
 		new/class: obj/class
 		new/header: TYPE_OBJECT
 		nctx: GET_CTX(new)
-		
-		s: as series! new/ctx/value
-		copy-cell as red-value! new s/offset + 1		;-- set back-reference
+
+		copy-cell as red-value! new as red-value! nctx + 1	;-- set back-reference
 
 		node: save-self-object new
 		
