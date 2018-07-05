@@ -2013,7 +2013,7 @@ red: context [
 
 		unless all [empty? locals-stack not iterator-pending?][	;-- in a function or iteration block
 			emit compose [
-				(to set-word! ctx) _context/clone get-root-node (blk-idx)	;-- rebuild context
+				(to set-word! ctx) _context/clone (blk-idx)	;-- rebuild context
 			]
 			insert-lf -3
 		]

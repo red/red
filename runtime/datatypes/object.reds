@@ -262,6 +262,7 @@ object: context [
 		node: alloc-cells 1								;-- hidden object value storage used by SELF
 		s: as series! node/value
 		copy-cell as red-value! obj s/offset
+		s/tail: s/offset + 1
 		node
 	]
 	
