@@ -255,7 +255,7 @@ probe ["root size: " block/rs-length? root]
 		;probe "marking stack"
 		keep arg-stk/node
 		keep call-stk/node
-		mark-values stack/bottom stack/top - 1
+		mark-values stack/bottom stack/top
 		
 		;probe "marking globals"
 		keep case-folding/upper-to-lower/node
