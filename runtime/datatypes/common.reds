@@ -44,7 +44,7 @@ alloc-at-tail: func [
 	blk		[red-block!]
 	return: [cell!]
 ][
-	assert any [blk <> root 4000 > block/rs-length? root]
+	assert any [blk <> root ***-root-size > block/rs-length? root]
 	alloc-tail as series! blk/node/value
 ]
 

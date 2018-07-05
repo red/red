@@ -4634,6 +4634,7 @@ red: context [
 			Red/System [origin: 'Red]
 
 			<imports>
+			***-root-size: <root-size>
 
 			with red [
 				root-base: redbin/boot-load system/boot-data yes
@@ -4642,6 +4643,7 @@ red: context [
 		]][[
 			Red/System [origin: 'Red]
 
+			***-root-size: <root-size>
 			red/init
 			
 			with red [
@@ -4697,6 +4699,7 @@ red: context [
 			process-calls/global sys-global				;-- lazy #call processing
 		]
 
+		change/only find out <root-size> redbin/index + 2000
 		change/only find last out <script> script		;-- inject compilation result in template
 		output: out
 		if verbose > 2 [?? output]
