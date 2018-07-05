@@ -16,6 +16,10 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
     -dlib, --dynamic-lib           : Generate a shared library from the source
                                      file.
 
+    -e, --encap                    : Compile in encap mode, so code is interpreted 
+                                     at runtime. Avoids compiler issues. Required
+                                     for some dynamic code.
+
     -h, --help                     : Output this help text.
 
     -o <file>, --output <file>     : Specify a non-default [path/][name] for
