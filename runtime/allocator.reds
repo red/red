@@ -518,7 +518,7 @@ compact-series-frame: func [
 				
 				if refs < tail [			;-- update pointers on native stack
 					while [all [refs < tail (as byte-ptr! refs/1) < src]][refs: refs + 2]
-					while [all [refs < tail (as byte-ptr! refs/1) < (src + size)]][
+					while [all [refs < tail (as byte-ptr! refs/1) <= (src + size)]][
 						ptr: as int-ptr! refs/2
 						ptr/value: ptr/value - delta
 						refs: refs + 2
@@ -544,7 +544,7 @@ in-range?: func [
 ][
 	frm: memory/s-head
 	until [
-		if all [(as int-ptr! frm + 1) < p p < as int-ptr! frm/tail][return yes]
+		if all [(as int-ptr! frm + 1) < p p <= as int-ptr! frm/tail][return yes]
 		frm: frm/next
 		frm = null
 	]
