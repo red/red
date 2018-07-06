@@ -74,18 +74,18 @@ unless system/console [
 		buffer:		declare byte-ptr!
 		pbuffer:	declare byte-ptr!
 		input-line: declare red-string!
-		saved-line:	declare red-string!
 		prompt:		declare	red-string!
 		history:	declare red-block!
+		saved-line:	as red-string! 0
 		buf-size:	128
 		columns:	-1
 		rows:		-1
 		output?:	yes
 		pasting?:	no
 
-		copy-cell
-			as red-value! string/rs-make-at ALLOC_TAIL(root) 1
-			as red-value! saved-line
+		init-globals: func [][
+			saved-line: string/rs-make-at ALLOC_TAIL(root) 1
+		]
 
 		widechar?: func [
 			str			[red-string!]
