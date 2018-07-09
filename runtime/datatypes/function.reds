@@ -746,6 +746,7 @@ _function: context [
 			end	   [red-value!]
 			next   [red-value!]
 			next2  [red-value!]
+			w      [red-word!]
 	][
 		value: block/rs-head spec
 		end:   block/rs-tail spec
@@ -771,10 +772,16 @@ _function: context [
 					]
 				]
 				TYPE_SET_WORD [
+					w: as red-word! value
+					if words/return* <> symbol/resolve w/symbol [
+						fire [TO_ERROR(script bad-func-def)	w]
+					]
 					next: value + 1
+					next2: next + 1
 					unless all [
 						next < end
 						TYPE_OF(next) = TYPE_BLOCK
+						next2 = end
 					][
 						fire [TO_ERROR(script bad-func-def) value]
 					]
