@@ -519,26 +519,27 @@ help-ctx: context [
 			all [word? :word  unset? get/any :word] [what/with/buffer word]
 
 			'else [
+				ref-given?: any [word? :word  path? :word]
 				; Now we know we're either going to reflect help for a func,
 				; find all values of a given datatype, probe a context, or
 				; show a value.
-				value: either any [word? :word  path? :word] [get/any :word][:word]
+				value: either ref-given? [get/any :word][:word]
 				; The order in which we check values is important, to get 
 				; the best output for a given type.
 				case [
-					all [any [word? :word path? :word] any-function? :value] [show-function-help :word]
+					all [ref-given?  any-function? :value] [show-function-help :word]
 					any-function? :value [_print mold :value]
 					datatype? :value [show-datatype-help :value]
 					object? :value [show-object-help word]
 					map? :value [show-map-help word]
-					block? :value [_print [word-is-value-str/only :word DEF_SEP form-value :value]]
+					all [ref-given?  block? :value] [_print [word-is-value-str/only :word DEF_SEP form-value :value]]
 					image? :value [
 						either in system 'view [view [image value]][
 							_print form-value value
 						]
 					]
 					all [path? :word  object? :value][show-object-help word]
-					any [word? :word  path? :word] [_print word-is-value-str word]
+					ref-given? [_print word-is-value-str word]
 					'else [_print value-is-type-str :word]
 				]
 			]
