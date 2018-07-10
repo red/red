@@ -771,7 +771,7 @@ _function: context [
 						value: value + 1
 					]
 				]
-				TYPE_SET_WORD [
+				TYPE_SET_WORD [							;-- only return: is allowed as a set-word!
 					w: as red-word! value
 					if words/return* <> symbol/resolve w/symbol [
 						fire [TO_ERROR(script bad-func-def)	w]
@@ -780,8 +780,11 @@ _function: context [
 					next2: next + 1
 					unless all [
 						next < end
-						TYPE_OF(next) = TYPE_BLOCK
-						next2 = end
+						TYPE_OF(next) = TYPE_BLOCK		;-- return: must have a type spec
+						any [							;-- This allows a return: spec before each refinement
+							next2 = end
+							TYPE_OF(next2) = TYPE_REFINEMENT
+						]
 					][
 						fire [TO_ERROR(script bad-func-def) value]
 					]

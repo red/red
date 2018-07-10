@@ -797,17 +797,19 @@ if system/state/interpreted? [                      ;-- not yet supported by com
         --assert function? func [a [integer!]][]
 	--test-- "fsv10"
         --assert function? func [a "doc a"][]
+	--test-- "fsv11"
+        --assert function? func [return: [integer!] /local a][]
+	--test-- "fsv12"
+        --assert function? func [a return: [integer!] /b][]	;-- Funky, but allowed right now
 
 	; DO is used here, because the compiler will correctly catch errors the interpreter doesn't.
-	--test-- "fsv11"
-        --assert error? try [do [func [a [integer!] returns: [integer!]][]]]
-	--test-- "fsv12"
-        --assert error? try [do [func [a [integer!] return:][]]]
 	--test-- "fsv13"
-        --assert error? try [do [func [a return: [integer!] b][]]]
+        --assert error? try [do [func [a [integer!] returns: [integer!]][]]]
 	--test-- "fsv14"
-        --assert error? try [do [func [a return: [integer!] /c][]]]
+        --assert error? try [do [func [a [integer!] return:][]]]
 	--test-- "fsv15"
+        --assert error? try [do [func [a return: [integer!] b][]]]
+	--test-- "fsv16"
         --assert error? try [do [func [a return: b][]]]
 
 
