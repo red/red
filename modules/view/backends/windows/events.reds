@@ -1003,8 +1003,8 @@ WndProc: func [
 			store-face-to-hWnd hWnd as red-object! p-int/value
 		]
 		WM_WINDOWPOSCHANGED [
-			if all [not win8+? type = window][
-				winpos: as tagWINDOWPOS lParam
+			winpos: as tagWINDOWPOS lParam
+			if all [not win8+? type = window winpos/x > -9999 winpos/y > -9999][
 				pt: screen-to-client hWnd winpos/x winpos/y
 				pos: GetWindowLong hWnd wc-offset - 8
 				pt/x: winpos/x - pt/x - WIN32_LOWORD(pos)
