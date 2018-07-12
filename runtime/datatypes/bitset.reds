@@ -574,6 +574,7 @@ bitset: context [
 				
 				size: process spec null OP_MAX no cmd		;-- 1st pass: determine size
 				bits/node: alloc-bytes-filled size byte
+				bits/header: TYPE_BITSET
 				if not? [
 					s: GET_BUFFER(bits)
 					s/flags: s/flags or flag-bitset-not
