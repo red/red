@@ -990,6 +990,7 @@ WndProc: func [
 		flt	   [float!]
 		flags  [integer!]
 		miniz? [logic!]
+		font?  [logic!]
 ][
 	type: either no-face? hWnd [panel][			;@@ remove this test, create a WndProc for panel?
 		values: get-face-values hWnd
@@ -1236,11 +1237,18 @@ WndProc: func [
 			handle: get-widget-handle current-msg
 			brush: null
 			if handle <> as handle! -1 [
+				font?: no
 				font: (as red-object! get-face-values handle) + FACE_OBJ_FONT
 				if TYPE_OF(font) = TYPE_OBJECT [
 					color: to-bgr font/ctx FONT_OBJ_COLOR
 					if color <> -1 [
+						font?: yes
 						SetTextColor as handle! wParam color
+					]
+				]
+				color: to-bgr as node! GetWindowLong handle wc-offset + 4 FACE_OBJ_COLOR
+				either color = -1 [
+					if font? [
 						brush: either msg = WM_CTLCOLORSTATIC [
 							SetBkMode as handle! wParam BK_TRANSPARENT
 							GetSysColorBrush COLOR_3DFACE
@@ -1248,15 +1256,12 @@ WndProc: func [
 							GetStockObject DC_BRUSH
 						]
 					]
-				]
-				color: to-bgr as node! GetWindowLong handle wc-offset + 4 FACE_OBJ_COLOR
-				if color <> -1 [
+				][
 					SetBkColor as handle! wParam color
-					SetDCBrushColor as handle! wParam color
+					unless font? [SetTextColor as handle! wParam GetSysColor COLOR_WINDOWTEXT]
+					brush: GetStockObject DC_BRUSH
 				]
-				unless null? brush [
-					return as-integer brush
-				]
+				if brush <> null [return as-integer brush]
 			]
 		]
 		WM_SETCURSOR [
