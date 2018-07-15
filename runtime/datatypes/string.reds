@@ -380,12 +380,12 @@ string: context [
 			p	[node!]
 			str	[red-string!]
 	][
-		p: alloc-series size 1 0
-		set-type slot TYPE_STRING						;@@ decide to use or not 'set-type...
 		str: as red-string! slot
+		str/header: TYPE_UNSET
+		str/node:  alloc-series size 1 0
 		str/head:  0
-		str/node:  p
 		str/cache: null
+		str/header: TYPE_STRING
 		str
 	]
 	

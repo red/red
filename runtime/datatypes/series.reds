@@ -1121,6 +1121,7 @@ _series: context [
 		if offset > len [part: 0 offset: len]
 		if offset + part > len [part: len - offset]
 
+		new/header: TYPE_UNSET
 		part:	part << (log-b unit)
 		node:	alloc-bytes part
 		buffer: as series! node/value

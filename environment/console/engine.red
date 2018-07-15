@@ -83,7 +83,7 @@ system/console: context [
 		]
 	]
 
-	init: routine [
+	init: routine [					;-- only used by CLI console
 		str [string!]
 		/local
 			ret
@@ -97,6 +97,7 @@ system/console: context [
 		][
 			#if gui-console? = no [terminal/pasting?: no]
 		]
+		#if gui-console? = no [terminal/init-globals]
 	]
 
 	count-delimiters: function [
