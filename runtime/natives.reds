@@ -2083,7 +2083,12 @@ natives: context [
 		off?   [integer!]
 	][
 		#typecheck [on? off?]
-		collector/do-cycle
+		
+		case [
+			on?  > -1 [collector/active?: yes]
+			off? > -1 [collector/active?: no]
+			true	  [collector/do-mark-sweep]
+		]
 		unset/push-last
 	]
 

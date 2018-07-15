@@ -249,8 +249,7 @@ collector: context [
 		]
 	]
 	
-	do-cycle: func [/local s [series!] p [int-ptr!] obj [red-object!] w [red-word!] cb][
-		unless active? [exit]
+	do-mark-sweep: func [/local s [series!] p [int-ptr!] obj [red-object!] w [red-word!] cb][
 		;probe "marking..."
 probe ["root size: " block/rs-length? root ", cycles: " stats/cycles]
 		mark-block root
@@ -301,6 +300,11 @@ probe ["root size: " block/rs-length? root ", cycles: " stats/cycles]
 		
 		stats/cycles: stats/cycles + 1
 		;probe "done!"
+	]
+	
+	do-cycle: does [
+		unless active? [exit]
+		do-mark-sweep
 	]
 	
 	register: func [cb [int-ptr!]][
