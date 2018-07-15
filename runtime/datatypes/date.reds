@@ -688,7 +688,7 @@ date: context [
 		#if debug? = yes [if verbose > 0 [print-line "date/random"]]
 
 		d: dt/date
-		d1: as integer! dt/time
+		d1: dt/date + as integer! dt/time
 		either seed? [
 			_random/srand d1
 			dt/header: TYPE_UNSET
