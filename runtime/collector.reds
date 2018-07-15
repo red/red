@@ -13,12 +13,17 @@ Red/System [
 
 collector: context [
 	verbose: 0
-	
 	active?: no
+	
+	stats: declare struct! [
+		cycles [integer!]
+	]
 	
 	ext-size: 100
 	ext-markers: as int-ptr! allocate ext-size * size? int-ptr!
 	ext-top: ext-markers
+	
+	stats/cycles: 0
 	
 	in-range?: func [
 		p		[int-ptr!]
@@ -247,7 +252,7 @@ collector: context [
 	do-cycle: func [/local s [series!] p [int-ptr!] obj [red-object!] w [red-word!] cb][
 		unless active? [exit]
 		;probe "marking..."
-probe ["root size: " block/rs-length? root]
+probe ["root size: " block/rs-length? root ", cycles: " stats/cycles]
 		mark-block root
 		_hashtable/mark symbol/table					;-- will mark symbols
 		_hashtable/mark ownership/table
@@ -293,6 +298,8 @@ probe ["root size: " block/rs-length? root]
 		
 		;probe "sweeping..."
 		collect-frames
+		
+		stats/cycles: stats/cycles + 1
 		;probe "done!"
 	]
 	
