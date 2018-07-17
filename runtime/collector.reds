@@ -25,6 +25,8 @@ collector: context [
 	
 	stats/cycles: 0
 	
+	indent: 0
+	
 	in-range?: func [
 		p		[int-ptr!]
 		return: [logic!]
@@ -114,9 +116,17 @@ collector: context [
 			routine [red-routine!]
 			native	[red-native!]
 			ctx		[red-context!]
-			s		[series!]
+			len		[integer!]
 	][
+		#if debug? = yes [if verbose > 1 [len: -1 indent: indent + 1]]
+		
 		while [value < tail][
+			#if debug? = yes [if verbose > 1 [
+				print "^/"
+				loop indent * 4 [print "  "]
+				print [TYPE_OF(value) ": "]
+			]]
+			
 			switch TYPE_OF(value) [
 				TYPE_WORD 
 				TYPE_GET_WORD
@@ -125,10 +135,8 @@ collector: context [
 				TYPE_REFINEMENT [
 					word: as red-word! value
 					if word/ctx <> null [
-						;print-symbol word
-						;print "^/"
+						#if debug? = yes [if verbose > 1 [print-symbol word]]
 						either word/symbol = words/self [
-							;probe "self"
 							mark-block-node word/ctx
 						][
 							mark-context word/ctx
@@ -143,7 +151,7 @@ collector: context [
 				TYPE_SET_PATH [
 					series: as red-series! value
 					if series/node <> null [			;-- can happen in routine
-						;probe ["any-block, type: " TYPE_OF(value)]
+						#if debug? = yes [if verbose > 1 [print ["len: " block/rs-length? as red-block! series]]]
 						mark-block as red-block! value
 
 						if TYPE_OF(value) = TYPE_PATH [
@@ -161,7 +169,7 @@ collector: context [
 				TYPE_FILE
 				TYPE_TAG 
 				TYPE_EMAIL [
-					;probe ["string, type: " TYPE_OF(value)]
+					#if debug? = yes [if verbose > 1 [print as-c-string string/rs-head as red-string! value]]
 					series: as red-series! value
 					keep series/node
 					if series/extra <> 0 [keep as node! series/extra]
@@ -175,13 +183,13 @@ collector: context [
 				]
 				TYPE_ERROR
 				TYPE_OBJECT [
-					;probe "object"
+					#if debug? = yes [if verbose > 1 [print "object"]]
 					obj: as red-object! value
 					mark-context obj/ctx
 					if obj/on-set <> null [keep obj/on-set]
 				]
 				TYPE_CONTEXT [
-					;probe "context
+					#if debug? = yes [if verbose > 1 [print "context"]]
 					ctx: as red-context! value
 					;keep ctx/self
 					mark-block-node ctx/symbols
@@ -189,7 +197,7 @@ collector: context [
 				]
 				TYPE_HASH
 				TYPE_MAP [
-					;probe "hash"
+					#if debug? = yes [if verbose > 1 [print "hash/map"]]
 					hash: as red-hash! value
 					mark-block-node hash/node
 					_hashtable/mark hash/table			;@@ check if previously marked
@@ -197,14 +205,14 @@ collector: context [
 				TYPE_FUNCTION [
 					fun: as red-function! value
 					mark-context fun/ctx
-					;probe "function"
+					#if debug? = yes [if verbose > 1 [print "function"]]
 					mark-block-node fun/spec
 					mark-block-node fun/more
 				]
 				TYPE_ROUTINE [
 					routine: as red-routine! value
 					;mark-block-node routine/symbols	;-- unused for now
-					;probe "routine"
+					#if debug? = yes [if verbose > 1 [print "routine"]]
 					mark-block-node routine/spec
 					mark-block-node routine/more
 				]
@@ -213,11 +221,11 @@ collector: context [
 				TYPE_OP [
 					native: as red-native! value
 					if native/args <> null [
-						;probe "native"
+						#if debug? = yes [if verbose > 1 [print "native"]]
 						mark-block-node native/args
 					]
 					if native/spec <> null [			;@@ should not happen!
-						;probe "native"
+						#if debug? = yes [if verbose > 1 [print "native"]]
 						mark-block-node native/spec
 					]
 				]
@@ -225,6 +233,7 @@ collector: context [
 			]
 			value: value + 1
 		]
+		#if debug? = yes [if verbose > 1 [indent: indent - 1]]
 	]
 	
 	mark-block-node: func [
