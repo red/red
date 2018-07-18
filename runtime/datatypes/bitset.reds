@@ -130,7 +130,7 @@ bitset: context [
 			string/append-char GET_BUFFER(buffer) as-integer c
 			
 			p: p + 1
-			part: part - 1
+			part: part - 2
 			if all [part? negative? part][return part]
 		]
 		part
@@ -634,10 +634,13 @@ bitset: context [
 		not?: FLAG_NOT?(s)
 		
 		string/concatenate-literal buffer "make bitset! "
-		if not? [string/concatenate-literal buffer "[not "]
+		part: part - 13
+		if not? [string/concatenate-literal buffer "[not " part: part - 5]
 		
 		string/concatenate-literal buffer "#{"
-		part: form-bytes bits buffer OPTION?(arg) part - 13 not?
+		part: part - 2
+		part: form-bytes bits buffer OPTION?(arg) part not?
+		if all [OPTION?(arg) part <= 0][return part]
 		string/append-char GET_BUFFER(buffer) as-integer #"}"
 		
 		either not? [
