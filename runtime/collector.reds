@@ -65,6 +65,7 @@ collector: context [
 				p < as int-ptr! FFFFF000h		;-- filter out too high values
 				not all [(as byte-ptr! stack/bottom) <= p p <= (as byte-ptr! stack/top)] ;-- stack region is fixed
 				in-range? p
+				p/value <> 0
 				keep p
 			][
 				;probe ["node pointer on stack: " p " : " as byte-ptr! p/value]
