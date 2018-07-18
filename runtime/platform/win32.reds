@@ -143,6 +143,11 @@ platform: context [
 		SuppressExternalCodecs		[integer!]
 	]
 
+	tagFILETIME: alias struct! [
+		dwLowDateTime	[integer!]
+		dwHighDateTime	[integer!]
+	]
+
 	tagSYSTEMTIME: alias struct! [
 		year-month	[integer!]
 		week-day	[integer!]
@@ -255,6 +260,14 @@ platform: context [
 			FreeEnvironmentStrings: "FreeEnvironmentStringsW" [
 				env			[c-string!]
 				return:		[logic!]
+			]
+			FileTimeToSystemTime: "FileTimeToSystemTime" [
+				filetime	[tagFILETIME]
+				systemtime	[tagSYSTEMTIME]
+				return:		[integer!]
+			]
+			GetSystemTimeAsFileTime: "GetSystemTimeAsFileTime" [
+				time			[tagFILETIME]
 			]
 			GetSystemTime: "GetSystemTime" [
 				time			[tagSYSTEMTIME]
@@ -481,20 +494,24 @@ platform: context [
 		return:  [float!]
 		/local
 			tm	[tagSYSTEMTIME value]
+			ftime	[tagFILETIME value]
 			h		[integer!]
 			m		[integer!]
 			sec		[integer!]
-			milli	[integer!]
+			nano	[integer!]
 			t		[float!]
 			mi		[float!]
 	][
-		GetSystemTime tm
+		GetSystemTimeAsFileTime ftime
+		FileTimeToSystemTime ftime tm
 		h: tm/hour-minute and FFFFh
 		m: tm/hour-minute >>> 16
 		sec: tm/second and FFFFh
-		milli: either precise? [tm/second >>> 16][0]
-		mi: as float! milli
-		mi: mi / 1000.0
+		nano: either precise? [
+			ftime/dwLowDateTime % 10'000'000 * 100
+		][0]
+		mi: as float! nano
+		mi: mi / 1e+9
 		t: as-float h * 3600 + (m * 60) + sec
 		t: t + mi
 		t
