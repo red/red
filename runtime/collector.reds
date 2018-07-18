@@ -259,22 +259,33 @@ collector: context [
 		]
 	]
 	
-	do-mark-sweep: func [/local s [series!] p [int-ptr!] obj [red-object!] w [red-word!] cb][
-		;probe "marking..."
+	do-mark-sweep: func [/local s [series!] p [int-ptr!] obj [red-object!] w [red-word!] cb file saved][
+		#if debug? = yes [if verbose > 1 [
+			#if OS = 'Windows [platform/dos-console?: no]
+			file: "                      "
+			sprintf [file "live-values-%d.log" stats/cycles]
+			saved: stdout
+			stdout: simple-io/open-file file simple-io/RIO_APPEND no
+		]]
+
+		#if debug? = yes [if verbose > 1 [probe "marking..."]]
 probe ["root size: " block/rs-length? root ", cycles: " stats/cycles]
 		mark-block root
+		#if debug? = yes [if verbose > 1 [probe "marking symbol table"]]
 		_hashtable/mark symbol/table					;-- will mark symbols
+		#if debug? = yes [if verbose > 1 [probe "marking ownership table"]]
 		_hashtable/mark ownership/table
 
-		;probe "marking stack"
+		#if debug? = yes [if verbose > 1 [probe "marking stack"]]
 		keep arg-stk/node
 		keep call-stk/node
 		mark-values stack/bottom stack/top
 		
-		;probe "marking globals"
+		#if debug? = yes [if verbose > 1 [probe "marking globals"]]
 		keep case-folding/upper-to-lower/node
 		keep case-folding/lower-to-upper/node
-		
+
+		#if debug? = yes [if verbose > 1 [probe "marking path parent"]]
 		obj: object/path-parent
 		if TYPE_OF(obj) = TYPE_OBJECT [
 			mark-context obj/ctx
@@ -294,7 +305,7 @@ probe ["root size: " block/rs-length? root ", cycles: " stats/cycles]
 			]
 		]
 		
-		;probe "marking globals from optional modules"
+		#if debug? = yes [if verbose > 1 [probe "marking globals from optional modules"]]
 		p: ext-markers
 		while [p < ext-top][
 			cb: as function! [] p/value
@@ -302,14 +313,20 @@ probe ["root size: " block/rs-length? root ", cycles: " stats/cycles]
 			p: p + 1
 		]
 		
-		;probe marking nodes on native stack
+		#if debug? = yes [if verbose > 1 [probe "marking nodes on native stack"]]
 		mark-stack-nodes
 		
-		;probe "sweeping..."
+		#if debug? = yes [if verbose > 1 [probe "sweeping..."]]
 		collect-frames
 		
 		stats/cycles: stats/cycles + 1
 		;probe "done!"
+
+		#if debug? = yes [if verbose > 1 [
+			simple-io/close-file stdout
+			stdout: saved
+			#if OS = 'Windows [platform/dos-console?: yes]
+		]]
 	]
 	
 	do-cycle: does [
