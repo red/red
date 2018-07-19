@@ -317,6 +317,7 @@ probe ["root size: " block/rs-length? root ", cycles: " stats/cycles]
 		mark-stack-nodes
 		
 		#if debug? = yes [if verbose > 1 [probe "sweeping..."]]
+		_hashtable/sweep ownership/table
 		collect-frames
 		
 		stats/cycles: stats/cycles + 1

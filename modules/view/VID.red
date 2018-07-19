@@ -563,7 +563,7 @@ system/view/VID: context [
 		
 		unless panel [
 			focal-face: none
-			panel: make face! system/view/VID/styles/window/template  ;-- absolute path to avoid clashing with /styles
+			panel: make face! copy system/view/VID/styles/window/template  ;-- absolute path to avoid clashing with /styles
 		]
 		either block? panel/pane [list: panel/pane][panel/pane: list]
 		

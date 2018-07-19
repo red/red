@@ -155,8 +155,11 @@ _hashtable: context [
 	mark: func [
 		table [node!]
 		/local
-			s [series!]
-			h [hashtable!]
+			s	 [series!]
+			h	 [hashtable!]
+			val	 [red-value!]
+			end	 [red-value!]
+			node [node!]
 	][
 		collector/keep table
 		s: as series! table/value
@@ -164,7 +167,37 @@ _hashtable: context [
 		if h/type = HASH_TABLE_HASH [collector/keep h/indexes]
 		collector/keep h/flags
 		collector/keep h/keys
-		if h/type = HASH_TABLE_INTEGER [collector/mark-block-node h/blk]
+		if h/type = HASH_TABLE_INTEGER [collector/keep h/blk]
+	]
+
+	sweep: func [
+		table [node!]
+		/local
+			s	 [series!]
+			h	 [hashtable!]
+			val	 [red-value!]
+			end	 [red-value!]
+			node [node!]
+	][
+		s: as series! table/value
+		h: as hashtable! s/offset
+
+		assert h/type = HASH_TABLE_INTEGER
+
+		s: as series! h/blk/value
+		val: s/offset
+		end: s/tail
+		while [val < end][
+			node: as node! val/data1
+			if node <> null [
+				s: as series! node/value
+				if s/flags and flag-gc-mark = 0 [
+					delete-key table as-integer node
+					val/data1: 0
+				]
+			]
+			val: val + 4
+		]
 	]
 
 	round-up: func [
