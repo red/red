@@ -177,6 +177,7 @@ _hashtable: context [
 			h	 [hashtable!]
 			val	 [red-value!]
 			end	 [red-value!]
+			obj  [red-object!]
 			node [node!]
 	][
 		s: as series! table/value
@@ -190,10 +191,18 @@ _hashtable: context [
 		while [val < end][
 			node: as node! val/data1
 			if node <> null [
+				obj: as red-object! val + 2
 				s: as series! node/value
-				if s/flags and flag-gc-mark = 0 [
+				either s/flags and flag-gc-mark = 0 [
 					delete-key table as-integer node
 					val/data1: 0
+				][	;-- check owner
+					obj: as red-object! val + 2
+					s: as series! obj/ctx/value
+					if s/flags and flag-gc-mark = 0 [
+						delete-key table as-integer node
+						val/data1: 0
+					]
 				]
 			]
 			val: val + 4

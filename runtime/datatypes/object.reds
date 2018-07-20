@@ -812,6 +812,7 @@ object: context [
 		loc-s [integer!]
 		idx-d [integer!]								;-- for on-deep-change* event
 		loc-d [integer!]
+		return: [node!]
 		/local
 			obj [red-object!]
 			s	[series!]
@@ -823,10 +824,12 @@ object: context [
 		
 		s: as series! ctx/value
 		copy-cell as red-value! obj s/offset + 1		;-- refresh back-reference
+		obj/on-set
 	]
 	
 	push: func [
 		ctx		[node!]
+		evt		[node!]
 		class	[integer!]
 		idx-s	[integer!]								;-- for on-change* event
 		loc-s	[integer!]
@@ -841,7 +844,7 @@ object: context [
 		obj/header: TYPE_UNSET
 		obj/ctx:	ctx
 		obj/class:	class
-		obj/on-set: make-callback-node TO_CTX(ctx) idx-s loc-s idx-d loc-d
+		obj/on-set: evt
 		obj/header: TYPE_OBJECT
 		
 		s: as series! ctx/value

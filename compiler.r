@@ -1857,7 +1857,7 @@ red: context [
 		/locals
 			words ctx spec name id func? obj original body pos entry symbol
 			body? ctx2 new blk list path on-set-info values w defer mark blk-idx
-			event pos2 loc-s loc-d shadow-path saved-pc saved set? rebind?
+			event pos2 loc-s loc-d shadow-path saved-pc saved set? rebind? evt-var
 	][
 		saved-pc: pc
 		either set-path? original: pc/-1 [
@@ -2099,8 +2099,15 @@ red: context [
 		if any [pos pos2][
 			unless pos  [pos:  -1]
 			unless pos2 [pos2: -1]
-			change/only on-set-info reduce [pos loc-s pos2 loc-d]	;-- cache values
-			repend defer ['object/init-events ctx pos loc-s pos2 loc-d]
+			evt-var: to-word join 'evt form id
+			redirect-to literals [
+				emit compose [
+					(to set-word! evt-var) as node! 0
+				]
+				insert-lf -4
+			]
+			change/only on-set-info reduce [pos loc-s pos2 loc-d evt-var]	;-- cache values
+			repend defer [to-set-word evt-var 'object/init-events ctx pos loc-s pos2 loc-d]
 			new-line skip defer 3 yes
 		]
 		
@@ -2902,7 +2909,7 @@ red: context [
 			obj: find objects obj
 			either obj/5 [
 				ctx: either empty? locals-stack [obj/2]['octx]
-				emit reduce ['object/push ctx obj/3 obj/5/1 obj/5/2 obj/5/3 obj/5/4] ;-- event(s) case
+				emit reduce ['object/push ctx obj/5/5 obj/3 obj/5/1 obj/5/2 obj/5/3 obj/5/4] ;-- event(s) case
 				insert-lf -7
 			][
 				emit reduce ['object/init-push obj/2 obj/3]
