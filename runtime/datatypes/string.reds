@@ -1295,8 +1295,6 @@ string: context [
 		p	  [byte-ptr!]
 		tail  [byte-ptr!]
 		unit  [integer!]
-		c-beg [int-ptr!]
-		c-end [int-ptr!]
 		quote [int-ptr!]
 		nl	  [int-ptr!]
 		/local
@@ -1310,14 +1308,39 @@ string: context [
 				UCS-4  [p4: as int-ptr! p p4/value]
 			]
 			switch cp [
-				#"{"    [c-beg/value: c-beg/value + 1]
-				#"}"    [c-end/value: c-end/value - 1]
 				#"^""   [quote/value: quote/value + 1]
 				#"^/"   [nl/value: 	  nl/value + 1]
 				default [0]
 			]
 			p: p + unit
 		]
+	]
+
+	find-right-brace: func [
+		p			[byte-ptr!]
+		tail		[byte-ptr!]
+		unit		[integer!]
+		return:		[logic!]
+		/local
+			cp		[integer!]
+			p4		[int-ptr!]
+			cnt		[integer!]
+	][
+		cnt: 0
+		while [p < tail][
+			cp: switch unit [
+				Latin1 [as-integer p/value]
+				UCS-2  [(as-integer p/2) << 8 + p/1]
+				UCS-4  [p4: as int-ptr! p p4/value]
+			]
+			switch cp [
+				#"{"    [cnt: cnt + 1]
+				#"}"    [cnt: cnt - 1 if cnt = 0 [return true]]
+				default [0]
+			]
+			p: p + unit
+		]
+		false
 	]
 	
 	append-escaped-char: func [
@@ -1378,7 +1401,7 @@ string: context [
 			head   [byte-ptr!]
 			tail   [byte-ptr!]
 			c-beg  [integer!]
-			c-end  [integer!]
+			conti? [logic!]
 			quote  [integer!]
 			nl	   [integer!]
 			open   [byte!]
@@ -1404,14 +1427,13 @@ string: context [
 		if tail > as byte-ptr! s/tail [tail: as byte-ptr! s/tail]
 
 		c-beg: 0
-		c-end: 0
+		conti?: true
 		quote: 0
 		nl:    0
-		sniff-chars p tail unit :c-beg :c-end :quote :nl
+		sniff-chars p tail unit :quote :nl
 
 		either any [
 			nl >= 3
-			all [c-beg > 0 c-end > 0 c-beg + c-end <> 0]
 			positive? quote
 			BRACES_THRESHOLD <= rs-length? str
 		][
@@ -1432,8 +1454,19 @@ string: context [
 			]
 			either open =  #"{" [
 				switch cp [
-					#"{" #"}" [
-						if c-beg + c-end <> 0 [append-char GET_BUFFER(buffer) as-integer #"^^"]
+					#"{" [
+						if all [conti? not find-right-brace p tail unit][
+							conti?: false
+						]
+						either conti? [c-beg: c-beg + 1][
+							append-char GET_BUFFER(buffer) as-integer #"^^"
+						]
+						append-char GET_BUFFER(buffer) cp
+					]
+					#"}" [
+						either c-beg > 0 [c-beg: c-beg - 1][
+							append-char GET_BUFFER(buffer) as-integer #"^^"
+						]
 						append-char GET_BUFFER(buffer) cp
 					]
 					#"^""	[append-char GET_BUFFER(buffer) cp]

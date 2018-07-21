@@ -21,6 +21,7 @@ append-test.red
 insert-test.red
 move-test.red
 make-test.red
+mold.red
 system-test.red
 parse-test.red
 bitset-test.red
