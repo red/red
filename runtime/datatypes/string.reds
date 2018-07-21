@@ -700,6 +700,7 @@ string: context [
 		unit2: GET_UNIT(s2)
 		head1: either TYPE_OF(str1) = TYPE_SYMBOL [0][str1/head]
 		head2: either TYPE_OF(str2) = TYPE_SYMBOL [0][str2/head]
+		size1: (as-integer s1/tail - s1/offset) >> (log-b unit1) - head1
 		size2: (as-integer s2/tail - s2/offset) >> (log-b unit2) - head2
 		end: as byte-ptr! s2/tail							;-- only one "end" is needed
 
@@ -708,12 +709,12 @@ string: context [
 				return as-integer all [op <> COMP_EQUAL op = COMP_FIND op <> COMP_STRICT_EQUAL]
 			]
 		][
-			size1: (as-integer s1/tail - s1/offset) >> (log-b unit1) - head1
-
 			either size1 <> size2 [							;-- shortcut exit for different sizes
 				if any [
 					op = COMP_EQUAL op = COMP_FIND op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL
 				][return 1]
+
+				if zero? size2 [return 1]					;-- edge case 1
 
 				if size2 > size1 [
 					end: end - (size2 - size1 << (log-b unit2))
@@ -722,6 +723,9 @@ string: context [
 				if zero? size1 [return 0]					;-- shortcut exit for empty strings
 			]
 		]
+
+		if zero? size1 [return -1]							;-- edge case 2
+
 		p1:  (as byte-ptr! s1/offset) + (head1 << (log-b unit1))
 		p2:  (as byte-ptr! s2/offset) + (head2 << (log-b unit2))
 		lax?: all [op <> COMP_STRICT_EQUAL op <> COMP_CASE_SORT]
