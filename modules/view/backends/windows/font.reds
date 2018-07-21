@@ -126,7 +126,8 @@ make-font: func [
 		int/value: as-integer hFont
 	]
 
-	if face <> null [
+	blk: as red-block! values + FONT_OBJ_PARENT
+	if all [face <> null TYPE_OF(blk) <> TYPE_BLOCK][
 		blk: block/make-at as red-block! values + FONT_OBJ_PARENT 4
 		block/rs-append blk as red-value! face
 	]
