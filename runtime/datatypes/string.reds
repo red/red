@@ -708,6 +708,7 @@ string: context [
 			if zero? size2 [
 				return as-integer all [op <> COMP_EQUAL op = COMP_FIND op <> COMP_STRICT_EQUAL]
 			]
+			if size2 > size1 [return 1]
 		][
 			either size1 <> size2 [							;-- shortcut exit for different sizes
 				if any [
