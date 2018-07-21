@@ -105,6 +105,7 @@ init-mem: does [
 	memory/s-max: 	_2MB
 	memory/s-size: 	memory/s-start
 	memory/stk-sz: 1000
+	memory/b-head:	null
 	memory/stk-refs: as int-ptr! allocate memory/stk-sz * 2 * size? int-ptr!
 ]
 
@@ -1008,12 +1009,12 @@ collect-bigs: func [
 	frame: memory/b-head
 	while [frame <> null][
 		s: as series! (as byte-ptr! frame) + size? big-frame!
+		frame: frame/next			;-- get next frame before free current frame
 		either s/flags and flag-gc-mark = 0 [
 			free-big as byte-ptr! s
 		][
 			s/flags: s/flags and not flag-gc-mark	;-- clear mark flag
 		]
-		frame: frame/next
 	]
 ]
 
