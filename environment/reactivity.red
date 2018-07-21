@@ -132,6 +132,28 @@ system/reactivity: context [
 		]
 	]
 	
+	set 'stop-reactor function [
+		face [object!]
+		/deep
+	][
+		list: relations
+		while [not tail? list][
+			either any [
+				same? list/1 face
+				all [
+					block? list/4
+					pos: find/same list/4 face
+					empty? head remove pos
+				]
+			][
+				remove/part list 4
+			][
+				list: skip list 4
+			]
+		]
+		if all [deep block? face/pane][foreach f face/pane [stop-reactor/deep f]]
+	]
+	
 	set 'clear-reactions function ["Removes all reactive relations"][clear relations]
 	
 	set 'dump-reactions function [

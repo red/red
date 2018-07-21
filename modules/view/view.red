@@ -217,6 +217,7 @@ on-face-deep-change*: function ["Internal use only" owner word target action new
 							loop part [
 								face: target/1
 								if face/type = 'window [
+									stop-reactor/deep face
 									modal?: find-flag? face/flags 'modal
 									system/view/platform/destroy-view face face/state/4
 
@@ -236,6 +237,7 @@ on-face-deep-change*: function ["Internal use only" owner word target action new
 							loop part [
 								face: target/1
 								face/parent: none
+								stop-reactor/deep face
 								system/view/platform/destroy-view face no
 								target: next target
 							]
@@ -405,6 +407,7 @@ face!: object [				;-- keep in sync with facet! enum
 					modify old 'owned none				;-- stop object events
 					foreach f head old [
 						f/parent: none
+						stop-reactor/deep f
 						if all [block? f/state handle? f/state/1][
 							system/view/platform/destroy-view f no
 						]
