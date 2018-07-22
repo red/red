@@ -627,8 +627,10 @@ block: context [
 			if value < tail [
 				buf:  GET_BUFFER(buffer)
 				unit: GET_UNIT(buf)
-				c: string/get-char (as byte-ptr! buf/tail) - unit unit
-				
+				c: either buf/offset = buf/tail [0][
+					string/get-char (as byte-ptr! buf/tail) - unit unit
+				]
+
 				unless any [
 					c = as-integer #"^/"
 					c = as-integer #"^M"
