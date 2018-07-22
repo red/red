@@ -30,6 +30,7 @@ integer-test.red
 float-test.red
 same-test.red
 words-of-test.red
+unset.red
 case-folding-test.red
 throw-test.red
 vector-test.red
