@@ -356,6 +356,9 @@ _hashtable: context [
 		return: [node!]
 		/local
 			node		[node!]
+			flags		[node!]
+			keys		[node!]
+			indexes		[node!]
 			s			[series!]
 			ss			[series!]
 			h			[hashtable!]
@@ -376,12 +379,16 @@ _hashtable: context [
 		h/n-buckets: round-up as-integer f-buckets
 		f-buckets: as-float h/n-buckets
 		h/upper-bound: as-integer f-buckets * _HT_HASH_UPPER
-		h/flags: _alloc-bytes-filled h/n-buckets >> 2 #"^(AA)"
-		h/keys: _alloc-bytes h/n-buckets * size? int-ptr!
+		flags: _alloc-bytes-filled h/n-buckets >> 2 #"^(AA)"
+		keys: _alloc-bytes h/n-buckets * size? int-ptr!
 
+		indexes: null
 		if type = HASH_TABLE_HASH [
-			h/indexes: _alloc-bytes-filled size * size? integer! #"^(FF)"
+			indexes: _alloc-bytes-filled size * size? integer! #"^(FF)"
+			h/indexes: indexes
 		]
+		h/flags: flags
+		h/keys: keys
 		either any [type = HASH_TABLE_INTEGER blk = null][
 			h/blk: alloc-cells size
 		][
@@ -400,6 +407,7 @@ _hashtable: context [
 			n-buckets	[integer!]
 			new-size	[integer!]
 			f			[float!]
+			flags		[node!]
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -413,7 +421,8 @@ _hashtable: context [
 		h/n-occupied: 0
 		h/upper-bound: new-size
 		h/n-buckets: new-buckets
-		h/flags: _alloc-bytes-filled new-buckets >> 2 #"^(AA)"
+		flags: _alloc-bytes-filled new-buckets >> 2 #"^(AA)"
+		h/flags: flags
 		h/keys: _alloc-bytes new-buckets * size? int-ptr!
 
 		put-all node 0 1

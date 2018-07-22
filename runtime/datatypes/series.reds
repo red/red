@@ -1021,7 +1021,9 @@ _series: context [
 			hash: as red-hash! ser
 			_hashtable/refresh hash/table 0 - part unit size - unit yes
 			hash: as red-hash! ser2
+			hash/header: TYPE_BLOCK		;-- set to TYPE_BLOCK so we don't mark hash/table
 			hash/table: _hashtable/init part ser2 HASH_TABLE_HASH 1
+			hash/header: TYPE_HASH
 		]
 		
 		ownership/check as red-value! ser words/_taken null ser/head 0
