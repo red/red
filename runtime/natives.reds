@@ -1608,9 +1608,7 @@ natives: context [
 		p: string/to-hex arg/value no
 		part: either OPTION?(limit) [8 - limit/value][0]
 		if negative? part [part: 0]
-		buf: issue/load p + part
-
-		stack/set-last as red-value! buf
+		issue/make-at stack/arguments p + part
 	]
 
 	sine*: func [

@@ -1629,6 +1629,7 @@ block: context [
 			TYPE_OF(blk2) = TYPE_HASH
 		]
 
+		collector/active?: no
 		until [
 			s: GET_BUFFER(blk1)
 			value: s/offset + blk1/head
@@ -1680,6 +1681,7 @@ block: context [
 			][n: 0]
 			zero? n
 		]
+		collector/active?: yes
 
 		either hash? [
 			hs: as red-hash! blk2
