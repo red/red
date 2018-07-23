@@ -1259,6 +1259,7 @@ WndProc: func [
 				][
 					SetBkColor as handle! wParam color
 					unless font? [SetTextColor as handle! wParam GetSysColor COLOR_WINDOWTEXT]
+					SetDCBrushColor as handle! wParam color
 					brush: GetStockObject DC_BRUSH
 				]
 				if brush <> null [return as-integer brush]
