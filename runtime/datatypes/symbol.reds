@@ -33,9 +33,9 @@ symbol: context [
 	][
 		aliased?: no
 
-		key: _hashtable/get table as red-value! str 0 1 yes no no
+		key: _hashtable/get table as red-value! str 0 1 COMP_STRICT_EQUAL no no
 		if key = null [
-			key: _hashtable/get table as red-value! str 0 1 no no no	
+			key: _hashtable/get table as red-value! str 0 1 COMP_EQUAL no no	
 			aliased?: yes
 		]
 

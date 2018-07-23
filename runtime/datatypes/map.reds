@@ -120,6 +120,7 @@ map: context [
 			cell	[red-value!]
 			tail	[red-value!]
 			value	[red-value!]
+			op		[integer!]
 			s		[series!]
 			size	[integer!]
 			table	[node!]
@@ -141,9 +142,10 @@ map: context [
 		cell: s/offset + src/head
 		tail: s/tail
 
+		op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
 		table: map/table
 		while [cell < tail][
-			key: _hashtable/get table cell 0 0 case? no no
+			key: _hashtable/get table cell 0 0 op no no
 			value: cell + 1
 			either TYPE_OF(value) = TYPE_NONE [			;-- delete key entry
 				val: key + 1
@@ -413,7 +415,7 @@ map: context [
 					value1: key1 + 1
 					TYPE_OF(value1) <> TYPE_NONE
 				]
-				key2: _hashtable/get table2 key1 0 0 yes no no
+				key2: _hashtable/get table2 key1 0 0 COMP_STRICT_EQUAL no no
 
 				res: either key2 = null [1][
 					value1: key1 + 1								;-- find the same key, then compare values
@@ -499,12 +501,14 @@ map: context [
 			table	[node!]
 			key		[red-value!]
 			val		[red-value!]
+			op		[integer!]
 			s		[series!]
 			size	[int-ptr!]
 			k		[red-value! value]
 	][
+		op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
 		table: parent/table
-		key: _hashtable/get table element 0 0 case? no no
+		key: _hashtable/get table element 0 0 op no no
 
 		either value <> null [						;-- set value
 			either TYPE_OF(value) = TYPE_NONE [		;-- delete key entry
@@ -634,10 +638,13 @@ map: context [
 			table [node!]
 			key   [red-value!]
 			val   [red-value!]
+			op	  [integer!]
 	][
-		if same? [case?: yes]
+		either same? [op: COMP_SAME][
+			op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
+		]
 		table: map/table
-		key: _hashtable/get table value 0 0 case? no no
+		key: _hashtable/get table value 0 0 op no no
 		val: key + 1
 		either any [key = null TYPE_OF(val) = TYPE_NONE][none-value][true-value]
 	]
@@ -660,10 +667,13 @@ map: context [
 		/local
 			table [node!]
 			key   [red-value!]
+			op	  [integer!]
 	][
-		if same? [case?: yes]
+		either same? [op: COMP_SAME][
+			op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
+		]
 		table: map/table
-		key: _hashtable/get table value 0 0 case? no no
+		key: _hashtable/get table value 0 0 op no no
 		either key = null [none-value][key + 1]
 	]
 

@@ -296,7 +296,7 @@ _hashtable: context [
 			value < end
 		][
 			either h/type = HASH_TABLE_MAP [
-				key: get node value 0 0 yes no no
+				key: get node value 0 0 COMP_STRICT_EQUAL no no
 				either key = null [
 					map/preprocess-key value
 					put node value
@@ -858,15 +858,33 @@ _hashtable: context [
 		key		 [red-value!]
 		head	 [integer!]
 		skip	 [integer!]
-		case?	 [logic!]
+		op		 [comparison-op!]
 		last?	 [logic!]
 		reverse? [logic!]
 		return:  [red-value!]
 		/local
-			s h i flags last mask step keys hash ii sh blk set-header?
-			idx last-idx op find? k type key-type saved-type hash?
+			s		[series!]
+			h		[hashtable!]
+			i		[integer!]
+			flags	[int-ptr!]
+			last	[integer!]
+			mask	[integer!]
+			step	[integer!]
+			keys	[int-ptr!]
+			hash	[integer!]
+			ii		[integer!]
+			sh		[integer!]
+			blk		[red-value!]
+			k		[red-value!]
+			idx		[integer!]
+			find?	[logic!]
+			hash?	[logic!]
+			type	[integer!]
+			key-type [integer!]
+			last-idx [integer!]
+			saved-type	[integer!]
+			set-header? [logic!]
 	][
-		op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
 		s: as series! node/value
 		h: as hashtable! s/offset
 		assert h/n-buckets > 0

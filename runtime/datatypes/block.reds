@@ -822,9 +822,11 @@ block: context [
 			]
 			part?: yes
 		]
-		
+
 		type: TYPE_OF(value)
 		any-blk?: either all [same? hash?][no][ANY_BLOCK_STRICT?(type)]
+		op: either case? [COMP_STRICT_EQUAL][COMP_FIND] ;-- warning: /case <> STRICT...
+		if same? [op: COMP_SAME]
 
 		either any [
 			match?
@@ -861,8 +863,7 @@ block: context [
 					end: either part? [part + 1][s/tail]	;-- + 1 => compensate for the '>= test
 				]
 			]
-			op: either case? [COMP_STRICT_EQUAL][COMP_FIND] ;-- warning: /case <> STRICT...
-			if same? [op: COMP_SAME]
+
 			reverse?: any [reverse? last?]					;-- reduce both flags to one
 			
 			type: either type = TYPE_DATATYPE [
@@ -920,7 +921,7 @@ block: context [
 				result/header: TYPE_NONE					;-- change the stack 1st argument to none.
 			]
 		][
-			key: _hashtable/get table value hash/head step case? last? reverse?
+			key: _hashtable/get table value hash/head step op last? reverse?
 			either any [
 				key = null
 				all [part? key > part]
@@ -1584,6 +1585,7 @@ block: context [
 			value	[red-value!]
 			tail	[red-value!]
 			key		[red-value!]
+			comp-op [integer!]
 			i		[integer!]
 			n		[integer!]
 			s		[series!]
@@ -1629,6 +1631,7 @@ block: context [
 			TYPE_OF(blk2) = TYPE_HASH
 		]
 
+		comp-op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
 		collector/active?: no
 		until [
 			s: GET_BUFFER(blk1)
@@ -1650,12 +1653,12 @@ block: context [
 			while [value < tail] [			;-- iterate over first series
 				append?: no
 				if check? [
-					find?: null <> _hashtable/get hash value 0 step case? no no
+					find?: null <> _hashtable/get hash value 0 step comp-op no no
 					if invert? [find?: not find?]
 				]
 				if all [
 					find?
-					null = _hashtable/get table value 0 step case? no no
+					null = _hashtable/get table value 0 step comp-op no no
 				][
 					append?: yes
 					_hashtable/put table rs-append new value
