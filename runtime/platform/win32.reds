@@ -201,6 +201,7 @@ platform: context [
 			VirtualFree: "VirtualFree" [
 				address 	[int-ptr!]
 				size		[integer!]
+				type		[integer!]
 				return:		[integer!]
 			]
 			AllocConsole: "AllocConsole" [return: [logic!]]
@@ -415,7 +416,7 @@ platform: context [
 	free-virtual: func [
 		ptr [int-ptr!]									;-- address of memory region to release
 	][
-		if negative? VirtualFree ptr ptr/value [
+		if zero? VirtualFree ptr 0 8000h [				;-- MEM_RELEASE: 0x8000
 			 throw OS_ERROR_VMEM_RELEASE_FAILED
 		]
 	]
