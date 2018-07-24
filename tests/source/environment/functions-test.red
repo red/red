@@ -404,7 +404,7 @@ Red [
 
 ===start-group=== "path-thru tests"
 	--test-- "path-thru test"
-		--assert not none? find (path-thru http://red-lang.com) "/cache/red-lang.com"
+		--assert not none? find (path-thru http://red-lang.com) "/cache/91/91DD75833FAA7FF66B9BD4638549782B"
 ===end-group===
 
 ===start-group=== "exists-thru? tests"
