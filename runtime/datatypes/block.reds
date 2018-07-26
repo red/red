@@ -335,6 +335,36 @@ block: context [
 		blk
 	]
 
+	make-fixed: func [
+		parent	[red-block!]
+		size 	[integer!]								;-- number of cells to pre-allocate
+		return:	[red-block!]
+		/local
+			blk [red-block!]
+	][
+		blk: either null? parent [
+			_root
+		][
+			assert any [
+				TYPE_OF(parent) = TYPE_BLOCK			;@@ replace with ANY_BLOCK
+				TYPE_OF(parent) = TYPE_PAREN
+				TYPE_OF(parent) = TYPE_PATH
+				TYPE_OF(parent) = TYPE_LIT_PATH
+				TYPE_OF(parent) = TYPE_SET_PATH
+				TYPE_OF(parent) = TYPE_GET_PATH
+			]
+			as red-block! ALLOC_TAIL(parent)
+		]
+
+		if size < 0 [size: 1]
+		blk/header: TYPE_UNSET
+		blk/head: 	0
+		blk/node: 	alloc-fixed-series size 16 0
+		blk/extra:  0
+		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
+		blk
+	]
+
 	make-in: func [
 		parent	[red-block!]
 		size 	[integer!]								;-- number of cells to pre-allocate

@@ -796,6 +796,40 @@ alloc-series: func [
 ]
 
 ;-------------------------------------------
+;-- Allocate a series using malloc, return the node
+;-------------------------------------------
+alloc-fixed-series: func [
+	usize	[integer!]						;-- number of elements to store
+	unit	[integer!]						;-- size of atomic elements stored
+	offset	[integer!]						;-- force a given offset for series buffer
+	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
+	/local
+		series	 [series-buffer!]
+		size	 [integer!]
+		sz		 [integer!]
+		node	 [int-ptr!]
+][
+;	#if debug? = yes [print-wide ["allocating series:" size unit offset lf]]
+	assert positive? usize
+	size: round-to usize * unit size? cell!	;-- size aligned to cell! size
+	sz: size + size? series-buffer!			;-- add series header size
+
+?? sz
+
+	series: as series-buffer! allocate sz
+	series/size: size
+	series/flags: unit or series-in-use or flag-ins-tail	
+	series/offset: as cell! (as byte-ptr! series + 1) + offset
+	series/tail: series/offset
+
+	node: alloc-node						;-- get a new node
+	series/node: node						;-- link back series to node
+	node/value: as-integer series
+dump4 series
+	node									;-- return the node pointer
+]
+
+;-------------------------------------------
 ;-- Wrapper on alloc-series for easy cells allocation
 ;-------------------------------------------
 alloc-cells: func [

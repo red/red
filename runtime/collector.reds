@@ -321,7 +321,7 @@ probe ["root size: " block/rs-length? root ", cycles: " stats/cycles]
 		collect-frames
 		
 		stats/cycles: stats/cycles + 1
-		;probe "done!"
+		probe "done!"
 
 		#if debug? = yes [if verbose > 1 [
 			simple-io/close-file stdout
