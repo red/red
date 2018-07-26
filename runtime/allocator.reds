@@ -398,6 +398,7 @@ alloc-series-frame: func [
 			][
 				frame/prev: frm/prev		;-- insert frame in the linked list
 				frame/next: frm
+				frm/prev/next: frame
 				frm/prev: frame
 			]
 		]

@@ -392,7 +392,7 @@ _context: context [
 		slot: alloc-tail as series! node/value			;-- allocate a slot for obj/func back-reference
 		slot/header: TYPE_UNSET
 		cell/header: TYPE_UNSET							;-- implicit reset of all header flags	
-		cell/symbols: alloc-series slots 16 0			;-- force offset at head of buffer
+		cell/symbols: alloc-cells slots					;-- force offset at head of buffer
 		cell/self: node
 
 		either stack? [
