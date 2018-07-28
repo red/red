@@ -814,18 +814,15 @@ alloc-fixed-series: func [
 	size: round-to usize * unit size? cell!	;-- size aligned to cell! size
 	sz: size + size? series-buffer!			;-- add series header size
 
-?? sz
-
 	series: as series-buffer! allocate sz
 	series/size: size
-	series/flags: unit or series-in-use or flag-ins-tail	
+	series/flags: unit or series-in-use or flag-series-fixed or flag-ins-tail
 	series/offset: as cell! (as byte-ptr! series + 1) + offset
 	series/tail: series/offset
 
 	node: alloc-node						;-- get a new node
 	series/node: node						;-- link back series to node
 	node/value: as-integer series
-dump4 series
 	node									;-- return the node pointer
 ]
 

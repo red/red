@@ -90,6 +90,14 @@ collector: context [
 		if new? [s/flags: flags or flag-gc-mark]
 		new?
 	]
+
+	unmark: func [
+		node	 [node!]
+		/local s [series!]
+	][
+		s: as series! node/value
+		s/flags: s/flags and not flag-gc-mark
+	]
 	
 	mark-context: func [
 		node [node!]
@@ -319,9 +327,14 @@ probe ["root size: " block/rs-length? root ", cycles: " stats/cycles]
 		#if debug? = yes [if verbose > 1 [probe "sweeping..."]]
 		_hashtable/sweep ownership/table
 		collect-frames
+
+		;-- unmark fixed series
+		unmark root/node
+		unmark arg-stk/node
+		unmark call-stk/node
 		
 		stats/cycles: stats/cycles + 1
-		probe "done!"
+		;probe "done!"
 
 		#if debug? = yes [if verbose > 1 [
 			simple-io/close-file stdout
