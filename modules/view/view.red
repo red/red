@@ -310,7 +310,11 @@ on-face-deep-change*: function ["Internal use only" owner word target action new
 	]
 ]
 
-link-tabs-to-parent: function ["Internal Use Only" face [object!] /init][
+link-tabs-to-parent: function [
+	"Internal Use Only"
+	face	[object!]
+	/init	"Force /show of first tab"
+][
 	if faces: face/pane [
 		visible?: face/visible?
 		forall faces [

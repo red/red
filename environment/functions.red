@@ -312,8 +312,8 @@ parse-trace: func [
 	"Wrapper for parse/trace using the default event processor"
 	input [series!]
 	rules [block!]
-	/case
-	/part
+	/case "Uses case-sensitive comparison"
+	/part "Limit to a length or position"
 		limit [integer!]
 	return: [logic! block!]
 ][
@@ -347,7 +347,7 @@ load: function [
 	/trap	"Load all values, returns [[values] position error]"
 	/next	"Load the next value only, updates source series word"
 		position [word!] "Word updated with new series position"
-	/part
+	/part	"Limit to a length or position"
 		length [integer! string!]
 	/into "Put results in out block, instead of creating a new block"
 		out [block!] "Target block for results"
@@ -497,11 +497,12 @@ cause-error: function [
 
 pad: func [
 	"Pad a FORMed value on right side with spaces"
-	str						"Value to pad, FORM it if not a string"
-	n		[integer!]		"Total size (in characters) of the new string"
-	/left					"Pad the string on left side"
-	/with c	[char!]			"Pad with char"
-	return:	[string!]		"Modified input string at head"
+	str					"Value to pad, FORM it if not a string"
+	n		[integer!]	"Total size (in characters) of the new string"
+	/left				"Pad the string on left side"
+	/with				"Pad with char"
+	c		[char!]
+	return:	[string!]	"Modified input string at head"
 ][
 	unless string? str [str: form str]
 	head insert/dup
