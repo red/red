@@ -338,7 +338,12 @@ help-ctx: context [
 		type [datatype!]
 		/local val
 	][
-		DOC_LIMIT: system/console/size/x - HELP_COL_1_SIZE - RT_MARGIN
+		DOC_LIMIT: either system/console [
+			max 0 system/console/size/x - HELP_COL_1_SIZE - RT_MARGIN
+		][
+			NON_CONSOLE_SIZE
+		]
+		;DOC_LIMIT: system/console/size/x - HELP_COL_1_SIZE - RT_MARGIN
 		fmt-doc: func [str][either str [ellipsize-at str DOC_LIMIT][""]]
 		found-at-least-one?: no
 		foreach word words-of system/words [

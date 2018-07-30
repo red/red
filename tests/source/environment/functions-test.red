@@ -478,4 +478,17 @@ Red [
 		--assert "24" = rejoin [1 + 1 2 * 2]
 ===end-group===
 
+===start-group=== "help-string tests"
+	--test-- "help-string"
+		--assert {1 is an integer! value.^/} = help-string 1
+		--assert {func ["Convert to string! value" value][to string! :value]^/} = help-string :to-string
+		--assert {No handle values were found in the global context.^/} = help-string handle!
+		;--assert "" = help-string 
+	--test-- "help-string-20"
+		; Note that the help string is just the last part
+		help-ctx/NON_CONSOLE_SIZE: 20
+		--assert {Reverses the ord...^/} = find help-string verse "Reverses"
+		
+===end-group===
+
 ~~~end-file~~~
