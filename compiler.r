@@ -4706,7 +4706,7 @@ red: context [
 			process-calls/global sys-global				;-- lazy #call processing
 		]
 
-		change/only find out <root-size> redbin/index + 2000
+		change/only find out <root-size> redbin/index + 3000
 		change/only find last out <script> script		;-- inject compilation result in template
 		output: out
 		if verbose > 2 [?? output]
