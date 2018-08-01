@@ -81,6 +81,7 @@ Red/System [
 #define COLOR_BACKGROUND	1
 #define COLOR_MENU			4
 #define COLOR_WINDOW		5
+#define COLOR_WINDOWTEXT	8
 #define COLOR_3DFACE		15
 
 #define CS_VREDRAW			1

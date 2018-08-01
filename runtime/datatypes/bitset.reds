@@ -56,7 +56,7 @@ bitset: context [
 			byte [byte!]
 	][
 		s: GET_BUFFER(bits)
-		if (s/size << 3) < index [
+		if (s/size << 3) <= index [
 			byte: either FLAG_NOT?(s) [#"^(FF)"][null-byte]
 			s: expand-series-filled s (index >> 3) + 1 byte
 		]
@@ -130,7 +130,7 @@ bitset: context [
 			string/append-char GET_BUFFER(buffer) as-integer c
 			
 			p: p + 1
-			part: part - 1
+			part: part - 2
 			if all [part? negative? part][return part]
 		]
 		part
@@ -387,6 +387,9 @@ bitset: context [
 					int: as red-integer! spec
 					int/value
 				]
+				if all [max < 0 op <> OP_TEST][
+					fire [TO_ERROR(script out-of-range) spec]
+				]
 				unless op = OP_MAX [
 					s: GET_BUFFER(bits)
 					not?: FLAG_NOT?(s)
@@ -633,10 +636,13 @@ bitset: context [
 		not?: FLAG_NOT?(s)
 		
 		string/concatenate-literal buffer "make bitset! "
-		if not? [string/concatenate-literal buffer "[not "]
+		part: part - 13
+		if not? [string/concatenate-literal buffer "[not " part: part - 5]
 		
 		string/concatenate-literal buffer "#{"
-		part: form-bytes bits buffer OPTION?(arg) part - 13 not?
+		part: part - 2
+		part: form-bytes bits buffer OPTION?(arg) part not?
+		if all [OPTION?(arg) part <= 0][return part]
 		string/append-char GET_BUFFER(buffer) as-integer #"}"
 		
 		either not? [

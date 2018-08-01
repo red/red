@@ -730,6 +730,9 @@ object [
 		clear nlines
 		clear heights
 		clear selects
+		scroller/page-size: page-cnt
+		scroller/max-size: page-cnt - 1
+		scroller/position: 0
 		add-line line
 	]
 

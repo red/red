@@ -851,6 +851,13 @@ Red [
 			26-Feb-6712/17:07:12-10:00
 		]
 
+	--test-- "misc-5"
+		d1: 2000-01-01/00:00:00
+		d2: 2000-01-02/00:00:00
+		d3: 2000-01-02/00:00:01
+		--assert do [random/seed d1 random 100] <> do [random/seed d2 random 100]
+		--assert do [random/seed d2 random 100] <> do [random/seed d3 random 100]
+
 ===end-group===
 
 ~~~end-file~~~

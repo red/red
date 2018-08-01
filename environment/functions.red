@@ -90,13 +90,13 @@ quote: func [
 	:value
 ]
 
-first:	func ["Returns the first value in a series"  s [series! tuple! pair! time!]] [pick s 1]	;@@ temporary definitions, should be natives ?
-second:	func ["Returns the second value in a series" s [series! tuple! pair! time!]] [pick s 2]
-third:	func ["Returns the third value in a series"  s [series! tuple! time!]] [pick s 3]
-fourth:	func ["Returns the fourth value in a series" s [series! tuple!]] [pick s 4]
-fifth:	func ["Returns the fifth value in a series"  s [series! tuple!]] [pick s 5]
+first:	func ["Returns the first value in a series"  s [series! tuple! pair! date! time!]] [pick s 1]	;@@ temporary definitions, should be natives ?
+second:	func ["Returns the second value in a series" s [series! tuple! pair! date! time!]] [pick s 2]
+third:	func ["Returns the third value in a series"  s [series! tuple! date! time!]] [pick s 3]
+fourth:	func ["Returns the fourth value in a series" s [series! tuple! date!]] [pick s 4]
+fifth:	func ["Returns the fifth value in a series"  s [series! tuple! date!]] [pick s 5]
 
-last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 1]
+last: func ["Returns the last value in a series" s [series! tuple!]] [pick s length? s]
 
 #do keep [
 	list: make block! 50
@@ -312,8 +312,8 @@ parse-trace: func [
 	"Wrapper for parse/trace using the default event processor"
 	input [series!]
 	rules [block!]
-	/case
-	/part
+	/case "Uses case-sensitive comparison"
+	/part "Limit to a length or position"
 		limit [integer!]
 	return: [logic! block!]
 ][
@@ -347,7 +347,7 @@ load: function [
 	/trap	"Load all values, returns [[values] position error]"
 	/next	"Load the next value only, updates source series word"
 		position [word!] "Word updated with new series position"
-	/part
+	/part	"Limit to a length or position"
 		length [integer! string!]
 	/into "Put results in out block, instead of creating a new block"
 		out [block!] "Target block for results"
@@ -497,11 +497,12 @@ cause-error: function [
 
 pad: func [
 	"Pad a FORMed value on right side with spaces"
-	str						"Value to pad, FORM it if not a string"
-	n		[integer!]		"Total size (in characters) of the new string"
-	/left					"Pad the string on left side"
-	/with c	[char!]			"Pad with char"
-	return:	[string!]		"Modified input string at head"
+	str					"Value to pad, FORM it if not a string"
+	n		[integer!]	"Total size (in characters) of the new string"
+	/left				"Pad the string on left side"
+	/with				"Pad with char"
+	c		[char!]
+	return:	[string!]	"Modified input string at head"
 ][
 	unless string? str [str: form str]
 	head insert/dup
@@ -845,12 +846,12 @@ path-thru: function [
 ][
 	so: system/options
 	unless so/thru-cache [make-dir/deep so/thru-cache: append copy so/cache %cache/]
-	
-	if pos: find/tail file: to-file url "//" [file: pos]
-	clear find pos charset "?#"
-	path: first split-path file: append copy so/thru-cache file
-	unless exists? path [make-dir/deep path]
-	file
+
+	hash: checksum form url 'MD5
+	file: head (remove back tail remove remove (form hash))
+	path: dirize append copy so/thru-cache copy/part file 2
+    unless exists? path [make-dir path] 
+	append path file
 ]
 
 exists-thru?: function [

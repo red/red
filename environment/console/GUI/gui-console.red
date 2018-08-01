@@ -60,6 +60,7 @@ gui-console-ctx: context [
 			on-time: func [face [object!] event [event!]][
 				caret/rate: 2
 				face/rate: none
+				'done
 			]
 			on-drawing: func [face [object!] event [event!]][
 				terminal/paint

@@ -2263,7 +2263,9 @@ natives: context [
 			tail: as red-word! block/rs-tail blk
 			
 			while [word < tail][
-				_context/set word unset-value
+				if TYPE_OF(word) = TYPE_WORD [
+					_context/set word unset-value
+				]
 				word: word + 1
 			]
 		]

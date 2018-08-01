@@ -59,9 +59,17 @@ do %source/units/run-all-init.r
 ;; compile the tests into to runnable/arm-tests/red
 output: copy ""
 
-;; make the file lists from all-tests.txt
+;; make the file lists from all-tests.txt & add auto-tests
 file-list: copy []
 all-tests: read/lines %source/units/all-tests.txt
+foreach file read %source/units/auto-tests/ [
+	if all [
+		%.red = suffix? file
+		none = find file "run-all"
+	] [
+		append all-tests  join %auto-tests/ file	
+	]
+]
 
 foreach file all-tests [
     print ["Compiling" file] "..." 

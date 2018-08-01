@@ -1053,7 +1053,7 @@ change-selection: func [
 		]
 		any [type = drop-list type = drop-down][
 			sz: -1 + objc_msgSend [hWnd sel_getUid "numberOfItems"]
-			if idx = -1 [		;-- deselect current item
+			if all [idx = -1 type = drop-down][		;-- deselect current item
 				idx: objc_msgSend [hWnd sel_getUid "indexOfSelectedItem"]
 				if idx <> -1 [
 					objc_msgSend [hWnd sel_getUid "deselectItemAtIndex:" idx]

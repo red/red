@@ -1138,12 +1138,17 @@ draw: function [
 	"Draws scalable vector graphics to an image"
 	image	[image! pair!]	"Image or size for an image"
 	cmd		[block!]		"Draw commands"
-	/transparent
+	/transparent			"Make a transparent image, if pair! spec is used"
 	return: [image!]
 ][
 	if pair? image [
-		image: either transparent [ make image! image 255.255.255.0 ][ make image! image ]
+		image: make image! either transparent [
+			reduce [image system/words/transparent]
+		][
+			image
+		]
 	]
+	
 	system/view/platform/draw-image image cmd
 	image
 ]

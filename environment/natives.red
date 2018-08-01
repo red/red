@@ -325,7 +325,7 @@ bind: make native! [[
 		"Bind words to a context; returns rebound words"
 		word 	[block! any-word!]
 		context [any-word! any-object! function!]
-		/copy
+		/copy	"Deep copy blocks before binding"
 		return: [block! any-word!]
 	]
 	#get-definition NAT_BIND
@@ -343,9 +343,9 @@ parse: make native! [[
 		"Process a series using dialected grammar rules"
 		input [binary! any-block! any-string!]
 		rules [block!]
-		/case
+		/case "Uses case-sensitive comparison"
 		;/strict
-		/part
+		/part "Limit to a length or position"
 			length [number! series!]
 		/trace
 			callback [function! [
@@ -514,8 +514,8 @@ tangent: make native! [[
 
 arcsine: make native! [[
 		"Returns the trigonometric arcsine (in degrees by default)"
-		angle	[number!]
-		/radians "Angle is specified in radians"
+		value	[number!]
+		/radians "Angle is returned in radians"
 		return: [float!]
 	]
 	#get-definition NAT_ARCSINE
@@ -523,8 +523,8 @@ arcsine: make native! [[
 
 arccosine: make native! [[
 		"Returns the trigonometric arccosine (in degrees by default)"
-		angle	[number!]
-		/radians "Angle is specified in radians"
+		value	[number!]
+		/radians "Angle is returned in radians"
 		return: [float!]
 	]
 	#get-definition NAT_ARCCOSINE
@@ -532,14 +532,14 @@ arccosine: make native! [[
 
 arctangent: make native! [[
 		"Returns the trigonometric arctangent (in degrees by default)"
-		angle	[number!]
-		/radians "Angle is specified in radians"
+		value	[number!]
+		/radians "Angle is returned in radians"
 		return: [float!]
 	]
 	#get-definition NAT_ARCTANGENT
 ]
 arctangent2: make native! [[
-		"Returns the angle of the point y/x in radians, when measured counterclockwise from a circle's x axis (where 0x0 represents the center of the circle). The return value is between -pi and +pi."
+		"Returns the smallest angle between the X axis and the point (x,y) (-pi to pi)"
 		y       [number!]
 		x       [number!]
 		return: [float!]
@@ -880,9 +880,11 @@ browse: make native! [[
 
 decompress: make native! [[
 		"Decompresses data. Data in GZIP format (RFC 1952) by default"
-		data		  [binary!]
-		/zlib	 size [integer!] "Data in ZLIB format (RFC 1950), uncompressed file size is required"
-		/deflate size [integer!] "Data in DEFLATE format (RFC 1951), uncompressed file size is required"
+		data		[binary!]
+		/zlib		"Data in ZLIB format (RFC 1950)"
+		size		[integer!] "Uncompressed data size"
+		/deflate	"Data in DEFLATE format (RFC 1951)"
+		size		[integer!] "Uncompressed data size"
 	]
 	#get-definition NAT_DECOMPRESS
 ]

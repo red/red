@@ -280,6 +280,7 @@ Red/System [
 		gp-matrix		[integer!]
 		gp-path			[integer!]
 		image-attr		[integer!]								;-- gdiplus image attributes
+		scale-ratio		[float32!]
 		pen?			[logic!]
 		brush?			[logic!]
 		on-image?		[logic!]								;-- drawing on image?

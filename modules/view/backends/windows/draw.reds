@@ -382,6 +382,7 @@ draw-begin: func [
 		if dpi-factor <> 100 [
 			ratio: (as float32! dpi-factor) / (as float32! 100.0)
 			GdipScaleWorldTransform graphics ratio ratio GDIPLUS_MATRIX_PREPEND
+			ctx/scale-ratio: ratio
 		]
 	]
 
@@ -1134,6 +1135,7 @@ OS-draw-line: func [
 	point  [red-pair!]
 	end	   [red-pair!]
 	/local
+		start	[tagPOINT]
 		pt		[tagPOINT]
 		nb		[integer!]
 		pair	[red-pair!]
@@ -1141,6 +1143,7 @@ OS-draw-line: func [
 	if ctx/other/D2D? [OS-draw-line-d2d ctx point end exit]
 
 	pt: ctx/other/edges
+	start: pt
 	pair:  point
 	nb:	   0
 
@@ -1152,9 +1155,10 @@ OS-draw-line: func [
 		pair: pair + 1
 	]
 	either ctx/other/GDI+? [
-		GdipDrawLinesI ctx/graphics ctx/gp-pen ctx/other/edges nb
+		check-gradient-poly ctx start 2
+		GdipDrawLinesI ctx/graphics ctx/gp-pen start nb
 	][
-		Polyline ctx/dc ctx/other/edges nb
+		Polyline ctx/dc start nb
 	]
 ]
 
@@ -1171,7 +1175,7 @@ OS-draw-pen: func [
 	ctx/alpha-pen?: alpha?
 	ctx/other/GDI+?: any [alpha? ctx/other/anti-alias? ctx/alpha-brush?]
 
-	if any [ctx/pen-color <> color ctx/pen? = off?][
+	if any [ctx/pen-color <> color ctx/pen? = off? ctx/other/gradient-pen?][
 		ctx/pen?: not off?
 		ctx/pen-color: color
 		either ctx/other/GDI+? [update-gdiplus-pen ctx][update-pen ctx]
@@ -1196,7 +1200,7 @@ OS-draw-fill-pen: func [
 	ctx/alpha-brush?: alpha?
 	ctx/other/GDI+?: any [alpha? ctx/other/anti-alias? ctx/alpha-pen?]
 
-	if any [ctx/brush-color <> color ctx/brush? = off?][
+	if any [ctx/brush-color <> color ctx/brush? = off? ctx/other/gradient-fill?][
 		ctx/brush?: not off?
 		ctx/brush-color: color
 		either ctx/other/GDI+? [update-gdiplus-brush ctx][update-brush ctx]
@@ -3434,6 +3438,9 @@ OS-matrix-reset: func [
 	][
 		;-- reset matrix for figure
 		GdipResetWorldTransform ctx/graphics
+	]
+	if ctx/scale-ratio <> as float32! 0.0 [
+		GdipScaleWorldTransform ctx/graphics ctx/scale-ratio ctx/scale-ratio GDIPLUS_MATRIX_PREPEND
 	]
 ]
 

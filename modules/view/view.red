@@ -312,7 +312,11 @@ on-face-deep-change*: function ["Internal use only" owner word target action new
 	]
 ]
 
-link-tabs-to-parent: function ["Internal Use Only" face [object!] /init][
+link-tabs-to-parent: function [
+	"Internal Use Only"
+	face	[object!]
+	/init	"Force /show of first tab"
+][
 	if faces: face/pane [
 		visible?: face/visible?
 		forall faces [
@@ -677,7 +681,7 @@ do-events: function [
 	return: [logic! word!] "Returned value from last event"
 	/local result
 ][
-	win: last system/view/screens/1/pane
+	win: last head system/view/screens/1/pane
 	unless win/state/4 [win/state/4: not no-wait]		;-- mark the window from which the event loop starts
 	set/any 'result system/view/platform/do-event-loop no-wait
 	:result

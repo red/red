@@ -124,6 +124,8 @@ button-mouse-down: func [
 		bound	[NSRect!]
 		rc		[NSRect!]
 ][
+	if 0 <> objc_getAssociatedObject self RedEnableKey [exit]	;-- button is disabled
+
 	inside?: yes
 	objc_msgSend [self sel_getUid "highlight:" inside?]
 	objc_setAssociatedObject self RedNSEventKey event OBJC_ASSOCIATION_ASSIGN

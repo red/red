@@ -95,7 +95,7 @@ platform: context [
 			-1									;-- portable value
 			0
 
-		if -1 = as-integer ptr [throw OS_ERROR_VMEM_OUT_OF_MEMORY]
+		if -12 = as-integer ptr [throw OS_ERROR_VMEM_OUT_OF_MEMORY]
 		as int-ptr! ptr
 	]
 

@@ -115,7 +115,7 @@ replace src "../../../../../" "../../../../"
 replace/all src {"libtest-} {"./libtest-}
 write arm-dir/dylib-auto-test.reds src
 compile-test arm-dir/dylib-auto-test.reds
-if exists? arm-dir/dylib-auto-test.reds [delete arm-dir/dylib-auto-test.reds]
+;if exists? arm-dir/dylib-auto-test.reds [delete arm-dir/dylib-auto-test.reds]
 
 ;; complie the test libs
 compile-test-dylibs target arm-dir

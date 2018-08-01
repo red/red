@@ -515,28 +515,27 @@ BaseWndProc: func [
 		]
 		WM_PAINT
 		WM_DISPLAYCHANGE [
-			if (WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) <> 0 [
+			if (WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) = 0 [
+				draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
+				either TYPE_OF(draw) = TYPE_BLOCK [
+					either zero? GetWindowLong hWnd wc-offset - 4 [
+						do-draw hWnd null draw no yes yes yes
+					][
+						bitblt-memory-dc hWnd no
+					]
+				][
+					if null? current-msg [return -1]
+					system/thrown: 0
+					DC: declare draw-ctx!				;@@ should declare it on stack
+					draw-begin DC hWnd null no yes
+					integer/make-at as red-value! draw as-integer DC
+					current-msg/hWnd: hWnd
+					make-event current-msg 0 EVT_DRAWING
+					draw/header: TYPE_NONE
+					draw-end DC hWnd no no yes
+				]
 				return 0
 			]
-			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
-			either TYPE_OF(draw) = TYPE_BLOCK [
-				either zero? GetWindowLong hWnd wc-offset - 4 [
-					do-draw hWnd null draw no yes yes yes
-				][
-					bitblt-memory-dc hWnd no
-				]
-			][
-				if null? current-msg [return -1]
-				system/thrown: 0
-				DC: declare draw-ctx!				;@@ should declare it on stack
-				draw-begin DC hWnd null no yes
-				integer/make-at as red-value! draw as-integer DC
-				current-msg/hWnd: hWnd
-				make-event current-msg 0 EVT_DRAWING
-				draw/header: TYPE_NONE
-				draw-end DC hWnd no no yes
-			]
-			return 0
 		]
 		WM_VSCROLL
 		WM_HSCROLL [

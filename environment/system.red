@@ -236,6 +236,14 @@ system: context [
 				;extension-init:	["extension cannot be initialized (check version):" :arg1]
 				;call-fail:			["external process failed:" :arg1]
 			]
+			reserved1: object [
+				code:				600
+				type:				"Reserved1 Error"
+			]
+			reserved2: object [
+				code:				700
+				type:				"Reserved2 Error"
+			]
 			user: object [
 				code:				800
 				type:				"User Error"

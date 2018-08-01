@@ -776,4 +776,43 @@ if system/state/interpreted? [                      ;-- not yet supported by com
         --assert (first [fwga4-o/i:]) = fwga-f fwga4-o/i:
 ===end-group===
 
+===start-group=== "function spec validation"
+	--test-- "fsv1"
+        --assert function? func [][]
+	--test-- "fsv2"
+        --assert function? func [a [integer!] "doc a" b [string!] "doc b" /c d [block!] "doc d" e return: [integer!]][]
+	--test-- "fsv3"
+        --assert function? func [a [integer!] "doc a" b [string!] "doc b" /c d [block!] "doc d" e][]
+	--test-- "fsv4"
+        --assert function? func [a [integer!] "doc a" b [string!] "doc b" /c d [block!] "doc d"][]
+	--test-- "fsv5"
+        --assert function? func [a [integer!] "doc a" b [string!] "doc b" /c d [block!]][]
+	--test-- "fsv6"
+        --assert function? func [a [integer!] "doc a" b [string!] "doc b" /c d][]
+	--test-- "fsv7"
+        --assert function? func [a [integer!] "doc a" b "doc b"][]
+	--test-- "fsv8"
+        --assert function? func [a [integer!] "doc a" b [string!]][]
+	--test-- "fsv9"
+        --assert function? func [a [integer!]][]
+	--test-- "fsv10"
+        --assert function? func [a "doc a"][]
+	--test-- "fsv11"
+        --assert function? func [return: [integer!] /local a][]
+	--test-- "fsv12"
+        --assert function? func [a return: [integer!] /b][]	;-- Funky, but allowed right now
+
+	; DO is used here, because the compiler will correctly catch errors the interpreter doesn't.
+	--test-- "fsv13"
+        --assert error? try [do [func [a [integer!] returns: [integer!]][]]]
+	--test-- "fsv14"
+        --assert error? try [do [func [a [integer!] return:][]]]
+	--test-- "fsv15"
+        --assert error? try [do [func [a return: [integer!] b][]]]
+	--test-- "fsv16"
+        --assert error? try [do [func [a return: b][]]]
+
+
+===end-group===
+
 ~~~end-file~~~
