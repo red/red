@@ -383,6 +383,7 @@ _context: context [
 			cell [red-context!]
 			slot [red-value!]
 			node [node!]
+			symbols [node!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/create"]]
 		
@@ -392,7 +393,7 @@ _context: context [
 		slot: alloc-tail as series! node/value			;-- allocate a slot for obj/func back-reference
 		slot/header: TYPE_UNSET
 		cell/header: TYPE_UNSET							;-- implicit reset of all header flags	
-		cell/symbols: alloc-cells slots					;-- force offset at head of buffer
+		symbols: alloc-cells slots						;@@ create the node! on native stack, so it can be marked by GC
 		cell/self: node
 
 		either stack? [
@@ -402,6 +403,7 @@ _context: context [
 			cell/values: alloc-unset-cells slots
 			cell/header: TYPE_CONTEXT
 		]
+		cell/symbols: symbols
 
 		if self? [cell/header: cell/header or flag-self-mask]
 		node
