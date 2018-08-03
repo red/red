@@ -982,7 +982,9 @@ object: context [
 		p-obj?: TYPE_OF(proto) = TYPE_OBJECT
 		
 		either p-obj? [
+			collector/active?: no
 			copy proto obj null yes null				;-- /deep
+			collector/active?: yes
 		][
 			make-at obj 4								;-- arbitrary value
 		]
