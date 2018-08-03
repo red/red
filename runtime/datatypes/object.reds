@@ -788,11 +788,15 @@ object: context [
 			ctx [red-context!]
 			obj	[red-object!]
 			s	[series!]
+			ss	[series!]
+			sz	[integer!]
 	][
 		ctx: TO_CTX(node)
 		s: as series! ctx/values/value
 		if s/offset = s/tail [
-			s/tail: s/offset + (s/size >> 4)			;-- (late) setting of 'values right tail pointer
+			ss: as series! ctx/symbols/value
+			sz: (as-integer (ss/tail - ss/offset)) >> 4
+			s/tail: s/offset + sz						;-- (late) setting of 'values right tail pointer
 		]
 		
 		obj: as red-object! stack/push*
