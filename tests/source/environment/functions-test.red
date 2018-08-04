@@ -8,6 +8,7 @@ Red [
 ]
 
 #include  %../../../quick-test/quick-test.red
+#include  %../../../environment/console/help.red
 
 ~~~start-file~~~ "functions"
 
