@@ -1030,7 +1030,18 @@ natives: context [
 			into?: into >= 0
 			stack/mark-native words/_body
 			if into? [as red-block! stack/push arg + into]
-			interpreter/eval-expression arg arg + 1 no yes no
+			switch TYPE_OF(arg) [
+				TYPE_FUNCTION
+				TYPE_NATIVE
+				TYPE_ACTION
+				TYPE_OP
+				TYPE_ROUTINE [
+					stack/set-last arg
+				]
+				default [
+					interpreter/eval-expression arg arg + 1 no yes no
+				]
+			]
 			if into? [actions/insert* -1 0 -1]
 			stack/unwind-last
 		][
