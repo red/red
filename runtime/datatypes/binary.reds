@@ -18,6 +18,7 @@ binary: context [
 			until [
 				p: p + unit
 				len: len - 1
+				if len <= 0 [c: -1 break]
 				c: string/get-char p unit
 				c = as-integer lf
 			]
@@ -508,6 +509,7 @@ binary: context [
 		until [
 			c: string/get-char p unit
 			BINARY_SKIP_COMMENT
+			if c = -1 [break]
 			if c > as-integer space [
 				case [
 					c = as-integer #"0" [accum: accum << 1]
@@ -553,6 +555,7 @@ binary: context [
 		until [
 			c: string/get-char p unit
 			BINARY_SKIP_COMMENT
+			if c = -1 [break]
 			c: c + 1
 			val: as-integer debase64/c
 			either val < 40h [
@@ -624,6 +627,7 @@ binary: context [
 		until [
 			c: 7Fh and string/get-char p unit
 			BINARY_SKIP_COMMENT
+			if c = -1 [break]
 			if c > as-integer space [
 				c: c + 1
 				hex: as-integer table/c
