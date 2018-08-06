@@ -1419,6 +1419,7 @@ natives: context [
 		ret/node: switch base [
 			16 [binary/decode-16 p len unit]
 			2  [binary/decode-2  p len unit]
+			58 [binary/decode-58 p len unit]
 			64 [binary/decode-64 p len unit]
 			default [fire [TO_ERROR(script invalid-arg) int] null]
 		]
@@ -1456,6 +1457,7 @@ natives: context [
 		ret/header: TYPE_STRING
 		ret/node: switch base [
 			64 [binary/encode-64 p len]
+			58 [binary/encode-58 p len]
 			16 [binary/encode-16 p len]
 			2  [binary/encode-2  p len]
 			default [fire [TO_ERROR(script invalid-arg) int] null]

@@ -715,7 +715,7 @@ debase: make native! [[
 		"Decodes binary-coded string (BASE-64 default) to binary value"
 		value [string!] "The string to decode"
 		/base "Binary base to use"
-			base-value [integer!] "The base to convert from: 64, 16, or 2"
+			base-value [integer!] "The base to convert from: 64, 58, 16, or 2"
 	]
 	#get-definition NAT_DEBASE
 ]
@@ -724,7 +724,7 @@ enbase: make native! [[
 		"Encodes a string into a binary-coded string (BASE-64 default)"
 		value [binary! string!] "If string, will be UTF8 encoded"
 		/base "Binary base to use"
-			base-value [integer!] "The base to convert from: 64, 16, or 2"
+			base-value [integer!] "The base to convert from: 64, 58, 16, or 2"
 	]
 	#get-definition NAT_ENBASE
 ]

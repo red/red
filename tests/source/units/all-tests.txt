@@ -43,6 +43,8 @@ convert-test.red
 checksum-test.red
 reactivity-test.red
 decompress-test.red
+debase-test.red
+enbase-test.red
 auto-tests/lexer-auto-test.red
 power-test.red
 ../environment/scalars-test.red
