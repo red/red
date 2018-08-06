@@ -30,6 +30,23 @@ Red [
 
 ===end-group===
 
+===start-group=== "debase 58"
+
+	--test-- "debase 58 1"
+		--assert strict-equal? "A simple string" to string! debase/base "2pgMs77CDKsWa7MuTCEMt" 58
+	--test-- "debase 58 2"
+		--assert strict-equal? "A multi-line\nstring" to string! debase/base "udEoBfTy3JKJJioNWAmmgSLsmbc" 58
+	--test-- "debase 58 3"
+		--assert strict-equal? "A simple string" to string! debase/base "2pgMs77CDKsWa7MuTCEMt;^/" 58
+	--test-- "debase 58 4"
+		--assert strict-equal? "A simple string" to string! debase/base "2pgMs77CD;i'm comment^/KsWa7MuTCEMt" 58
+	--test-- "debase 58 5"
+		--assert strict-equal? "A simple string" to string! debase/base "2pgMs77CDKsWa7MuTCEMt;" 58
+	--test-- "debase 58 6"
+		--assert strict-equal? #{000295EC35D638C16B25608B4E362A214A5692D2005677274F} debase/base "1EfxCKm257NbVJhJCVMzyhkvuJh1j6Zyx" 58
+
+===end-group===
+
 ===start-group=== "debase 16"
 
 	--test-- "debase 16 1"
