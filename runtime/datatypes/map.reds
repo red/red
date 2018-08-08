@@ -731,12 +731,10 @@ map: context [
 			saved	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/copy"]]
-		saved: map/header
-		map/header: TYPE_BLOCK
-		new: as red-hash! block/clone as red-block! map deep? yes
 
-		new/header: saved
+		new: as red-hash! block/clone as red-block! map deep? yes
 		new/table: 	_hashtable/copy map/table new/node
+		new/header: TYPE_MAP
 		new
 	]
 

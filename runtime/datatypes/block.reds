@@ -156,8 +156,8 @@ block: context [
 		new/head:   0
 		new/node:	alloc-cells size
 		new/extra:	0
-		new/header: TYPE_OF(blk)
-		
+		new/header:	TYPE_BLOCK
+
 		unless empty? [
 			target: GET_BUFFER(new)
 			copy-memory
@@ -193,6 +193,7 @@ block: context [
 				value: value + 1
 			]
 		]
+		new/header: TYPE_OF(blk)
 		new
 	]
 	
@@ -564,11 +565,10 @@ block: context [
 		return:	[red-block!]
 		/local
 			size [integer!]
-			int	 [red-integer!]
-			fl	 [red-float!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/make"]]
 
+		size: 0
 		switch TYPE_OF(spec) [
 			TYPE_INTEGER
 			TYPE_FLOAT [
@@ -1582,6 +1582,7 @@ block: context [
 
 		new: as red-block! _series/copy as red-series! blk as red-series! new arg deep? types
 		if deep? [
+			if TYPE_HASH = TYPE_OF(blk) [new/header: TYPE_BLOCK]
 			s: GET_BUFFER(new)
 			arg: s/offset
 			until [
