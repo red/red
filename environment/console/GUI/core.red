@@ -619,6 +619,9 @@ object [
 				str2: insert form next candidates system/console/prompt
 				poke lines length? lines str2
 				calc-top
+				clear head str
+				pos: (index? candidates/1) - p-idx
+				append str head candidates/1
 				add-line line
 			]
 		]
