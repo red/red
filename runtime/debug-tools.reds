@@ -29,6 +29,7 @@ memory-info: func [
 	/local
 		n-frame s-frame b-frame free-nodes base list nodes series bigs used cell
 ][
+	collector/active?: no
 	assert all [1 <= verbose verbose <= 3]
 	used: 0
 
@@ -84,7 +85,8 @@ memory-info: func [
 		]
 		b-frame: b-frame/next
 	]
-	
+	collector/active?: yes
+
 	used
 ]
 
