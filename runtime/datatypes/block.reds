@@ -565,6 +565,8 @@ block: context [
 		return:	[red-block!]
 		/local
 			size [integer!]
+			int  [red-integer!]
+			fl   [red-float!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/make"]]
 

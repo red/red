@@ -128,6 +128,7 @@ actions: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/make"]]
 		
+		dt: null
 		type: TYPE_OF(proto)
 		if type = TYPE_DATATYPE [
 			dt: as red-datatype! proto
@@ -888,10 +889,15 @@ actions: context [
 		deep	[integer!]
 		types	[integer!]
 		return:	[red-value!]
+		/local
+			new [red-value!]
 	][
+		new: stack/push*
+		assert new <> stack/arguments
+		new/header: TYPE_UNSET
 		stack/set-last copy
 			as red-series! stack/arguments
-			stack/push*
+			new
 			stack/arguments + part
 			as logic! deep + 1
 			stack/arguments + types
@@ -908,9 +914,7 @@ actions: context [
 			action-copy
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/copy"]]
-		
-		new/header: series/header
-			
+
 		action-copy: as function! [
 			series  [red-series!]
 			new		[red-value!]
