@@ -20,6 +20,8 @@ simple-io: context [
 		RIO_NEW:	16
 	]
 
+	read-buf: as byte-ptr! 0
+
 	strupr: func [
 		"ASCII only"
 		str		[c-string!]
@@ -817,14 +819,13 @@ simple-io: context [
 		size: file-size? file
 
 		if zero? size [				;-- /proc filesystem give 0 size
-			buffer: allocate 4096
+			if null? read-buf [read-buf: allocate 65536]
 			while [
-				len: read-data file buffer 4096
+				len: read-data file read-buf 65536
 				len > 0
 			][
 				size: size + len
 			]
-			free buffer
 		]
 
 		if size <= 0 [
@@ -847,7 +848,10 @@ simple-io: context [
 		len: read-data file buffer size
 		close-file file
 
-		if negative? len [return none-value]
+		if negative? len [
+			free buffer
+			return none-value
+		]
 
 		val: as red-value! either binary? [
 			binary/load buffer size
