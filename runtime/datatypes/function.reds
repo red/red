@@ -876,17 +876,19 @@ _function: context [
 			args   [red-block!]
 			more   [series!]
 			s	   [series!]
+			f-ctx  [node!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_function/push"]]
 
+		f-ctx: either null? ctx [_context/make spec yes no][ctx]
 		fun: as red-function! stack/push*
 		fun/header:  TYPE_UNSET
 		fun/spec:	 spec/node
-		fun/ctx:	 either null? ctx [_context/make spec yes no][ctx]
+		fun/ctx:	 f-ctx
 		fun/more:	 alloc-unset-cells 5
 		fun/header:  TYPE_FUNCTION						;-- implicit reset of all header flags
 		
-		s: as series! fun/ctx/value
+		s: as series! f-ctx/value
 		copy-cell as red-value! fun s/offset + 1		;-- set back-reference
 		
 		more: as series! fun/more/value
@@ -925,7 +927,7 @@ _function: context [
 		if all [null? ctx not null? body][
 			_context/bind body GET_CTX(fun) null no		;-- do not bind if predefined context (already done)
 		]
-		fun/ctx
+		f-ctx
 	]
 		
 	;-- Actions --
