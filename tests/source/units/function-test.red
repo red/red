@@ -353,15 +353,14 @@ Red [
   	--test-- "ri4 issue #461"
   		ri4-fn: func ['word] [mold :word]
  		--assert "+" = ri4-fn +
-comment {  	
+
   	--test-- "ri5 issue #420"
   		ri5-fn: function [][
   			g: func [] [true]
   			g
   		]
   		--assert ri5-fn
-}
- comment {   	
+
   	--test-- "ri6 issue #420"
   		ri6-fn: func [
   			/local
@@ -371,8 +370,7 @@ comment {
   			g
   		]
   	--assert ri6-fn
-}
-  	
+
   	--test-- "ri7 issue #420"
   		ri7-g: func [][true]
   		ri7-f: func [][ri7-g]
@@ -517,13 +515,12 @@ comment {
 ===end-group===
 
 ===start-group=== "functionfunction"
-comment { issue #420
+
 	--test-- "funfun1"
         ff1-i: 1
         ff1-f: function [][ff1-i: 2 f: func[][ff1-i] f]
         --assert 2 = ff1-f
- }                                              
-                                                
+
     --test-- "funfun2"
         ff2-i: 1
         ff2-f: function [][ff2-i: 2 ff2-i]
@@ -629,7 +626,7 @@ if system/state/interpreted? [                          ;-- not yet supported by
         --assert 1 = ff11-i
     ]
 ]        
-comment { 
+
     --test-- "funfun12"
         ff12-i: 1
         ff12-f: function [] [
@@ -672,7 +669,7 @@ comment {
         ]
         --assert 2 = ff15-f
         --assert 1 = ff15-i     
-}
+
                                                     
 if system/state/interpreted? [                      ;-- not yet supported by compiler
 	do [
