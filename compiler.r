@@ -4569,6 +4569,7 @@ red: context [
 				origin: 'Red
 			]
 			
+			***-root-size: <root-size>
 			with red [
 				exec: context [
 					<declarations>
@@ -4603,6 +4604,8 @@ red: context [
 		append defs declarations
 		pos: tail defs
 		append defs [
+			red/boot?: no
+			red/collector/active?: yes
 			------------| "Functions"
 		]
 		append defs output
@@ -4626,6 +4629,7 @@ red: context [
 		unless empty? sys-global [
 			process-calls/global sys-global				;-- lazy #call processing
 		]
+		change/only find out <root-size> redbin/index + 3000
 		
 		pos: third last out
 		change find pos <script> script
@@ -4688,9 +4692,10 @@ red: context [
 		]
 		append script declarations
 		pos: tail script
+		
+		unless job/dev-mode? [append script [red/collector/active?: yes]]
 		append script [
 			red/boot?: no
-			red/collector/active?: yes
 			------------| "Functions"
 		]
 		append script output

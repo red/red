@@ -373,5 +373,4 @@
 	red/none-value			cell!
 	red/true-value			cell!
 	red/false-value			cell!
-	red/collector/active?	logic!
 ]
