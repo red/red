@@ -651,21 +651,36 @@ make-dir: function [
 extract: function [
 	"Extracts a value from a series at regular intervals"
 	series	[series!]
-	width	[integer!]	 "Size of each entry (the skip)"
-	/index				 "Extract from an offset position"
-		pos [integer!]	 "The position" 
-	/into				 "Provide an output series instead of creating a new one"
-		output [series!] "Output series"
+	width	[integer!]			 "Size of each entry (the skip)"
+	/index						 "Extract from an offset position"
+		pos [integer! block!]	 "The position/positions" 
+	/into						 "Provide an output series instead of creating a new one"
+		output [series!]		 "Output series"
+	/local part empty
 ][
 	width: max 1 width
-	if pos [series: at series pos]
-	unless into [output: make series (length? series) / width]
+	either block? pos [
+		empty: copy "" 
+		unless into [output: copy ""]
+		while [not tail? series] [
+			do	[
+				forall pos [
+					if none? set/any 'part pick series pos/1 [set/any 'part empty]
+					output: insert/only output get/any 'part
+				]
+			]
+			set 'series skip get 'series width
+		]
+	][
+		if pos [series: at series pos]
+		unless into [output: make series (length? series) / width]
 	
-	while [not tail? series][
-		append/only output series/1
-		series: skip series width
+		while [not tail? series][
+			append/only output series/1
+			series: skip series width
+		]
 	]
-	output
+	head output
 ]
 
 extract-boot-args: function [
