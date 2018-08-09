@@ -71,6 +71,7 @@ write %build/bin/sources.r set-cache [
 		%definitions.reds
 		%case-folding-table.reds
 		%case-folding.reds
+		%collector.reds
 		%interpreter.reds
 		%inflate.reds
 		%macros.reds
