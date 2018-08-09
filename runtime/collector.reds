@@ -276,8 +276,11 @@ collector: context [
 			stdout: simple-io/open-file file simple-io/RIO_APPEND no
 		]]
 
-		#if debug? = yes [if verbose > 1 [probe "marking..."]]
-probe ["root size: " block/rs-length? root ", cycles: " stats/cycles]
+		#if debug? = yes [
+			probe ["root size: " block/rs-length? root ", cycles: " stats/cycles]
+			if verbose > 1 [probe "marking..."]
+		]
+
 		mark-block root
 		#if debug? = yes [if verbose > 1 [probe "marking symbol table"]]
 		_hashtable/mark symbol/table					;-- will mark symbols

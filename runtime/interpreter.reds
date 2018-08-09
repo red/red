@@ -787,7 +787,7 @@ interpreter: context [
 					s: as series! fun/more/value
 					int: as red-integer! s/offset + 4
 					either TYPE_OF(int) = TYPE_INTEGER [
-						ctx: as node! int/value
+						as node! int/value
 					][
 						name/ctx						;-- get a context from calling name
 					]
