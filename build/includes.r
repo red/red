@@ -67,33 +67,33 @@ write %build/bin/sources.r set-cache [
 	%runtime/ [
 		%actions.reds
 		%allocator.reds
-		%debug-tools.reds
-		%definitions.reds
+		%call.reds
 		%case-folding-table.reds
 		%case-folding.reds
+		%clipboard.reds
 		%collector.reds
-		%interpreter.reds
+		%crush.reds
+		%crypto.reds
+		%debug-tools.reds
+		%definitions.reds
+		%hashtable.reds
 		%inflate.reds
+		%interpreter.reds
 		%macros.reds
 		%natives.reds
+		%ownership.reds
 		%parse.reds
+		%print.reds
 		%random.reds
-		%crypto.reds
 		%red.reds
 		%redbin.reds
-		%sort.reds
-		%hashtable.reds
-		%ownership.reds
-		%stack.reds
-		%tools.reds
-		%tokenizer.reds
-		%unicode.reds
 		%simple-io.reds
-		%clipboard.reds
-		%crush.reds
+		%sort.reds
+		%stack.reds
+		%tokenizer.reds
+		%tools.reds
+		%unicode.reds
 		%utils.reds
-		%call.reds
-		%print.reds
 		%datatypes/ [
 			%action.reds
 			%block.reds
