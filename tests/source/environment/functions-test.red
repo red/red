@@ -8,7 +8,6 @@ Red [
 ]
 
 #include  %../../../quick-test/quick-test.red
-;#include  %../../../environment/console/help.red
 
 ~~~start-file~~~ "functions"
 
@@ -478,22 +477,5 @@ Red [
 	--test-- "sqrt test"
 		--assert "24" = rejoin [1 + 1 2 * 2]
 ===end-group===
-
-; help-string tests pass with quick-test, but full automated tests fail
-; when trying to include %help.red. May require -r or -u compilation.
-; #include with a relative path for it fails, but `help-string` also 
-; doesn't exist if an absolute path is used for the #include.
-;===start-group=== "help-string tests"
-;	--test-- "help-string"
-;		--assert {1 is an integer! value.^/} = help-string 1
-;		--assert {func ["Convert to string! value" value][to string! :value]^/} = help-string :to-string
-;		--assert {No handle values were found in the global context.^/} = help-string handle!
-;		;--assert "" = help-string 
-;	--test-- "help-string-20"
-;		; Note that the help string is just the last part
-;		help-ctx/NON_CONSOLE_SIZE: 20
-;		--assert {Reverses the ord...^/} = find help-string verse "Reverses"
-;		
-;===end-group===
 
 ~~~end-file~~~
