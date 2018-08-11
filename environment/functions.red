@@ -1012,6 +1012,24 @@ rejoin: function [
 	] next block
 ]
 
+sum: func [
+    "Returns the sum of all values in a block"
+    values [block!]
+	/local result
+][
+    result: 0
+    foreach value reduce values [result: result + value]
+    result
+]
+
+average: func [
+    "Returns the average of all values in a block"
+    block [block!]
+][
+    if empty? block [return none]
+    divide sum block to float! length? block
+]
+
 ;------------------------------------------
 ;-				Aliases					  -
 ;------------------------------------------

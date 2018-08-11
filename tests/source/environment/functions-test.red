@@ -478,4 +478,13 @@ Red [
 		--assert "24" = rejoin [1 + 1 2 * 2]
 ===end-group===
 
+===start-group=== "sum and average tests"
+	--test-- "sum tests"
+		--assert 0 = sum []
+		--assert 3 = sum [1 2]
+	--test-- "average tests"
+		--assert none = average []
+		--assert 1.5 = average [1 2]
+===end-group===
+
 ~~~end-file~~~
