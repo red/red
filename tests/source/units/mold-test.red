@@ -169,5 +169,26 @@ Red [
 
 ===end-group=== 
 
+===start-group=== "mold-all"
+	
+	--test-- "mold-true" --assert "true" = mold true
+
+	--test-- "mold-all-true" --assert "#[true]" = mold/all true
+
+	--test-- "mold-false" --assert "false" = mold false
+
+	--test-- "mold-all-false" --assert "#[false]" = mold/all false
+
+	--test-- "mold-none" --assert "none" = mold none
+
+	--test-- "mold-all-none" --assert "#[none]" = mold/all none
+
+	--test-- "mold-block" --assert "[true false none]" = mold [#[true] #[false] #[none]]
+
+	--test-- "mold-all-block"
+		--assert "[#[true] #[false] #[none]]" = mold/all [#[true] #[false] #[none]]
+
+===end-group=== 
+
 
 ~~~end-file~~~
