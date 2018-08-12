@@ -10,6 +10,9 @@ Red/System [
 	}
 ]
 
+#include %crypto/common.reds
+#include %crypto/ripemd160.reds
+
 crypto: context [
 
 	_tcp:		0
@@ -20,6 +23,7 @@ crypto: context [
 	_sha256:	0
 	_sha384:	0
 	_sha512:	0
+	_ripemd160:	0
 	_hash:		0
 	errno:		as int-ptr! 0
 	
@@ -32,6 +36,7 @@ crypto: context [
 		_sha256:	symbol/make "sha256"
 		_sha384:	symbol/make "sha384"
 		_sha512:	symbol/make "sha512"
+		_ripemd160:	symbol/make "ripemd160"
 		_hash:		symbol/make "hash"
 		#if OS <> 'Windows [errno: get-errno-ptr]
 	]
@@ -44,6 +49,7 @@ crypto: context [
 		ALG_SHA256
 		ALG_SHA384
 		ALG_SHA512
+		ALG_RIPEMD160
 		ALG_HASH
 	]
 
@@ -78,12 +84,13 @@ crypto: context [
 		return:	[integer!]
 	][
 		switch type [
-			ALG_MD5		[16]
-			ALG_SHA1    [20]
-			ALG_SHA256  [32]
-			ALG_SHA384  [48]
-			ALG_SHA512  [64]
-			default		[ 0]
+			ALG_MD5			[16]
+			ALG_SHA1		[20]
+			ALG_SHA256		[32]
+			ALG_SHA384		[48]
+			ALG_SHA512		[64]
+			ALG_RIPEMD160	[20]
+			default			[0]
 		]
 	]
 	
@@ -93,13 +100,14 @@ crypto: context [
 		return: [integer!]
 	][
 		case [
-			sym = _tcp    [ALG_CRC_IP]
-			sym = _crc32  [ALG_CRC32]
-			sym = _md5    [ALG_MD5]
-			sym = _sha1   [ALG_SHA1]
-			sym = _sha256 [ALG_SHA256]
-			sym = _sha384 [ALG_SHA384]
-			sym = _sha512 [ALG_SHA512]
+			sym = _tcp			[ALG_CRC_IP]
+			sym = _crc32		[ALG_CRC32]
+			sym = _md5			[ALG_MD5]
+			sym = _sha1			[ALG_SHA1]
+			sym = _sha256		[ALG_SHA256]
+			sym = _sha384		[ALG_SHA384]
+			sym = _sha512		[ALG_SHA512]
+			sym = _ripemd160	[ALG_RIPEMD160]
 		]	
 	]
 	
@@ -272,6 +280,7 @@ crypto: context [
 			sym = _sha256
 			sym = _sha384
 			sym = _sha512
+			sym = _ripemd160
 			sym = _hash
 		]
 	]
@@ -520,25 +529,31 @@ crypto: context [
 		][
 			; The hash buffer needs to be big enough to hold the longest result.
 			hash: allocate 64							;-- caller should free it
-			handle: 0
-			size: alg-digest-size type
-			type: switch type [							;-- Convert type from enum to Windows code
-				ALG_MD5     [CALG_MD5]
-				ALG_SHA1    [CALG_SHA1]
-				ALG_SHA256  [CALG_SHA_256]
-				ALG_SHA384  [CALG_SHA_384]
-				ALG_SHA512  [CALG_SHA_512]
-				default [
-					fire [TO_ERROR(script invalid-arg) type]
-					0	;-- Either need to leave out this default or make the compiler happy by not changing type's datatype.
+			either type = ALG_RIPEMD160 [
+				ripemd160/init
+				ripemd160/update data len
+				ripemd160/final hash
+			][
+				handle: 0
+				size: alg-digest-size type
+				type: switch type [							;-- Convert type from enum to Windows code
+					ALG_MD5     [CALG_MD5]
+					ALG_SHA1    [CALG_SHA1]
+					ALG_SHA256  [CALG_SHA_256]
+					ALG_SHA384  [CALG_SHA_384]
+					ALG_SHA512  [CALG_SHA_512]
+					default [
+						fire [TO_ERROR(script invalid-arg) type]
+						0	;-- Either need to leave out this default or make the compiler happy by not changing type's datatype.
+					]
 				]
+				
+				CryptCreateHash provider type null 0 :handle
+				CryptHashData handle data len 0
+				CryptGetHashParam handle HP_HASHVAL hash :size 0
+				CryptDestroyHash handle
+				;CryptReleaseContext provider 0				;@@ release it when exit Red
 			]
-			
-			CryptCreateHash provider type null 0 :handle
-			CryptHashData handle data len 0
-			CryptGetHashParam handle HP_HASHVAL hash :size 0
-			CryptDestroyHash handle
-			;CryptReleaseContext provider 0				;@@ release it when exit Red
 			hash
 		]
 	]
@@ -646,30 +661,36 @@ crypto: context [
 		][
 			; The hash buffer needs to be big enough to hold the longest result.
 			hash: allocate 64					;-- caller should free it
-			sa: allocate 88
-			set-memory sa #"^@" 88
-			sa/1: as-byte AF_ALG
-			copy-memory sa + 2 as byte-ptr! "hash" 4
-			alg: switch type [							;-- Convert type from enum to alg name
-				ALG_MD5     ["md5"]
-				ALG_SHA1    ["sha1"]
-				ALG_SHA256  ["sha256"]
-				ALG_SHA384  ["sha384"]
-				ALG_SHA512  ["sha512"]
-				default [
-					fire [TO_ERROR(script invalid-arg) type]
-					""	;-- Either need to leave out this default or make the compiler happy by not changing type's datatype.
+			either type = ALG_RIPEMD160 [
+				ripemd160/init
+				ripemd160/update data len
+				ripemd160/final hash
+			][
+				sa: allocate 88
+				set-memory sa #"^@" 88
+				sa/1: as-byte AF_ALG
+				copy-memory sa + 2 as byte-ptr! "hash" 4
+				alg: switch type [							;-- Convert type from enum to alg name
+					ALG_MD5     ["md5"]
+					ALG_SHA1    ["sha1"]
+					ALG_SHA256  ["sha256"]
+					ALG_SHA384  ["sha384"]
+					ALG_SHA512  ["sha512"]
+					default [
+						fire [TO_ERROR(script invalid-arg) type]
+						""	;-- Either need to leave out this default or make the compiler happy by not changing type's datatype.
+					]
 				]
+				copy-memory sa + 24 as byte-ptr! alg length? alg
+				fd: socket AF_ALG SOCK_SEQPACKET 0
+				sock-bind fd sa 88
+				opfd: accept fd null null
+				_write opfd as c-string! data len
+				_read opfd hash alg-digest-size type
+				_close opfd
+				_close fd
+				free sa
 			]
-			copy-memory sa + 24 as byte-ptr! alg length? alg
-			fd: socket AF_ALG SOCK_SEQPACKET 0
-			sock-bind fd sa 88
-			opfd: accept fd null null
-			_write opfd as c-string! data len
-			_read opfd hash alg-digest-size type
-			_close opfd
-			_close fd
-			free sa
 			hash
 		]
 	]
@@ -738,15 +759,21 @@ crypto: context [
 				hash	[byte-ptr!]
 		][
 			hash: allocate 64							;-- caller should free it
-			switch type [
-				ALG_MD5     [compute-md5 data len hash]
-				ALG_SHA1    [compute-sha1 data len hash]
-				ALG_SHA256  [compute-sha256 data len hash]
-				ALG_SHA384  [compute-sha384 data len hash]
-				ALG_SHA512  [compute-sha512 data len hash]
-				default [
-					fire [TO_ERROR(script invalid-arg) type]
-					0	;-- Either need to leave out this default or make the compiler happy by not changing type's datatype.
+			either type = ALG_RIPEMD160 [
+				ripemd160/init
+				ripemd160/update data len
+				ripemd160/final hash
+			][
+				switch type [
+					ALG_MD5     [compute-md5 data len hash]
+					ALG_SHA1    [compute-sha1 data len hash]
+					ALG_SHA256  [compute-sha256 data len hash]
+					ALG_SHA384  [compute-sha384 data len hash]
+					ALG_SHA512  [compute-sha512 data len hash]
+					default [
+						fire [TO_ERROR(script invalid-arg) type]
+						0	;-- Either need to leave out this default or make the compiler happy by not changing type's datatype.
+					]
 				]
 			]
 			hash
