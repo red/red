@@ -157,6 +157,11 @@ redbin: context [
 		copy-cell as red-value! obj s/offset + 1		;-- set back-reference
 		
 		ctx: TO_CTX(new)
+		unless stack? [
+			s: as series! ctx/values/value
+			s/tail: s/offset + slots
+		]
+
 		symbols: ctx/symbols
 		data: data + 2
 		i: 0
