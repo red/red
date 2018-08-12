@@ -217,7 +217,12 @@ logic: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "logic/mold"]]
 
-		form boolean buffer arg part
+		either all? [
+			string/concatenate-literal buffer either boolean/value ["#[true]"] ["#[false]"]
+			part - either boolean/value [7] [8]
+		] [
+			form boolean buffer arg part
+		]
 	]
 	
 	compare: func [
