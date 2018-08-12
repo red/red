@@ -380,10 +380,11 @@ _context: context [
 		self?	[logic!]
 		return:	[node!]
 		/local
-			cell [red-context!]
-			slot [red-value!]
-			node [node!]
-			symbols [node!]
+			cell	[red-context!]
+			slot	[red-value!]
+			node	[node!]
+			symbols	[node!]
+			s		[series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/create"]]
 		
@@ -401,6 +402,8 @@ _context: context [
 			cell/header: TYPE_CONTEXT or flag-series-stk
 		][
 			cell/values: alloc-unset-cells slots
+			s: as series! cell/values/value
+			s/tail: s/offset + slots					;-- set tail, so GC will mark values
 			cell/header: TYPE_CONTEXT
 		]
 		cell/symbols: symbols
