@@ -39,7 +39,6 @@ Red [
 		#process on
 	
 	--test-- "#do keep"
-		probe #do keep [1]
 		--assert 1 = #do keep [1]	
 	
 	--test-- "#do : issue #2924"
