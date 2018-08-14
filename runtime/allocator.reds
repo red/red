@@ -585,9 +585,9 @@ cross-compact-frame: func [
 	heap: frame/heap
 	src: null								;-- src will point to start of buffer region to move down
 	dst: null								;-- dst will point to start of free region
+	tail?: no
 
 	until [
-		tail?: no
 		if s/flags and flag-gc-mark = 0 [	;-- check if it starts with a gap
 			if dst = null [dst: as byte-ptr! s]
 			free-node s/node
@@ -611,7 +611,7 @@ cross-compact-frame: func [
 				s: as series! (as byte-ptr! s + 1) + s/size
 				tail?: s >= heap
 				any [
-					all [cross? size > free-sz]
+					all [cross? size >= free-sz]
 					s/flags and flag-gc-mark = 0
 					tail?
 				]
@@ -621,13 +621,14 @@ cross-compact-frame: func [
 			case [
 				any [
 					size <= free-sz
-					all [size2 > 0 size2 < free-sz]
+					all [size2 > 0 size2 <= free-sz]
 				][
 					if dst = null [dst: src]
 					if size > free-sz [
 						size: size2
 						s: ss
 						s/flags: s/flags or flag-gc-mark
+						tail?: no
 					]
 					free-sz: free-sz - size
 					delta: as-integer src - prev-dst
