@@ -419,6 +419,7 @@ _context: context [
 			symbols	[node!]
 			ctx		[red-context!]
 			cell	[red-value!]
+			end		[red-value!]
 			slot	[red-word!]
 			s		[series!]
 			type	[integer!]
@@ -430,9 +431,10 @@ _context: context [
 		
 		s: GET_BUFFER(spec)
 		cell: s/offset
+		end: s/tail
 		i: 0
 		
-		while [cell < s/tail][
+		while [cell < end][
 			type: TYPE_OF(cell)
 			if any [									;TBD: use typeset/any-word?
 				type = TYPE_WORD
@@ -449,6 +451,12 @@ _context: context [
 			]
 			cell: cell + 1
 		]
+
+		unless stack? [
+			s: as series! ctx/values/value
+			s/tail: s/offset + i
+		]
+
 		new
 	]
 	
