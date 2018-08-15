@@ -198,7 +198,7 @@ repend: func [
 	]
 ]
 
-replace: func [
+replace: function [
 	"Replaces values in a series, in place"
 	series [series!] "The series to be modified"
 	pattern "Specific value or parse rule pattern to match"
