@@ -198,20 +198,21 @@ repend: func [
 	]
 ]
 
-replace: function [
+replace: func [
 	"Replaces values in a series, in place"
 	series [series!] "The series to be modified"
 	pattern "Specific value or parse rule pattern to match"
 	value "New value, replaces pattern in the series"
-	/all  "Replace all occurrences, not just the first"
+	/all "Replace all occurrences, not just the first"
 	/deep "Replace pattern in all sub-lists as well"
+	/local p rule s e many? len pos
 ][
 	if system/words/all [deep any-list? series][
-		pattern: to block! either word? p: pattern [to lit-word! pattern][pattern]
+		pattern: to block! either word? pattern [to lit-word! pattern][pattern]
 		parse series rule: [
 			some [
 				s: pattern e: (
-					s: change/part s value e
+				s: change/part s value e
 					unless all [return series]
 				) :s
 				| ahead any-list! into rule | skip
@@ -222,29 +223,33 @@ replace: function [
 	if system/words/all [char? :pattern any-string? series][
 		pattern: form pattern
 	]
-	many?: any [
-		system/words/all [series? :pattern any-string? series]
-		binary? series
-		system/words/all [any-list? series any-list? :pattern]
-	]
-	len: either many? [length? pattern][1]
-	
-	either all [
-		pos: series
-		either many? [
-			while [pos: find pos pattern][
-				remove/part pos len
-				pos: insert pos value
-			]
-		][
-			while [pos: find pos :pattern][
-				pos: insert remove pos value
-			]
-		]
+	either system/words/all [any-string? :series block? :pattern] [
+		p: [to pattern change pattern (value)]
+		parse series either all [[some p]][p]
 	][
-		if pos: find series :pattern [
-			remove/part pos len
-			insert pos value
+		many?: any [
+			system/words/all [series? :pattern any-string? series]
+			binary? series
+			system/words/all [any-list? series any-list? :pattern]
+		] 
+		len: either many? [length? pattern][1]
+		either all [
+			pos: series
+			either many? [
+				while [pos: find pos pattern][
+					remove/part pos len
+					pos: insert pos value
+				]
+			] [
+				while [pos: find pos :pattern] [
+					pos: insert remove pos value
+				]
+			]
+		] [
+			if pos: find series :pattern [
+				remove/part pos len 
+				insert pos value
+			]
 		]
 	]
 	series
