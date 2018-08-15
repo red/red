@@ -10,6 +10,11 @@ Red/System [
 	}
 ]
 
+#enum collector-type! [
+	COLLECTOR_DEFAULT
+	COLLECTOR_RELEASE						;-- will release empty frames to OS
+]
+
 int-array!: alias struct! [ptr [int-ptr!]]
 
 ;-- cell header bits layout --
@@ -417,6 +422,7 @@ free-series-frame: func [
 	][
 		either null? frame/next [			;-- if frame = tail
 			memory/s-tail: frame/prev		;-- tail is now at one position back
+			frame/prev/next: null
 		][
 			frame/prev/next: frame/next		;-- link preceding frame to next frame
 			frame/next/prev: frame/prev		;-- link back next frame to preceding frame
@@ -538,6 +544,140 @@ compact-series-frame: func [
 	refs
 ]
 
+cross-compact-frame: func [
+	frame	[series-frame!]
+	refs	[int-ptr!]
+	return: [int-ptr!]
+	/local
+		prev	[series-frame!]
+		free-sz [integer!]
+		tail	[int-ptr!]
+		ptr		[int-ptr!]
+		s		[series!]
+		ss		[series!]
+		heap	[series!]
+		src		[byte-ptr!]
+		dst		[byte-ptr!]
+		prev-dst [byte-ptr!]
+		dst2	[byte-ptr!]
+		delta	[integer!]
+		size	[integer!]
+		size2	[integer!]
+		tail?	[logic!]
+		mark?	[logic!]
+		cross?	[logic!]
+		update? [logic!]
+][
+	prev: frame/prev
+	if null? prev [							;-- first frame
+		return compact-series-frame frame refs
+	]
+
+	prev-dst: as byte-ptr! prev/heap
+	free-sz: as-integer prev/tail - prev/heap
+	either free-sz > 52428 [cross?: yes][	;- 1MB * 5%
+		free-sz: 0
+		cross?: no
+	]
+
+	tail: memory/stk-tail
+	s: as series! frame + 1					;-- point to first series buffer
+	heap: frame/heap
+	src: null								;-- src will point to start of buffer region to move down
+	dst: null								;-- dst will point to start of free region
+	tail?: no
+
+	until [
+		if s/flags and flag-gc-mark = 0 [	;-- check if it starts with a gap
+			if dst = null [dst: as byte-ptr! s]
+			free-node s/node
+			while [							;-- search for a live series
+				s: as series! (as byte-ptr! s + 1) + s/size
+				tail?: s >= heap
+				mark?: s/flags and flag-gc-mark <> 0
+				not any [mark? tail?]
+			][
+				free-node s/node
+			]
+		]
+		unless tail? [
+			size: 0
+			src: as byte-ptr! s
+			until [							;-- search for a gap
+				s/flags: s/flags and not flag-gc-mark	;-- clear mark flag
+				size2: size
+				size: size + s/size + size? series-buffer!
+				ss: s						;-- save previous series pointer
+				s: as series! (as byte-ptr! s + 1) + s/size
+				tail?: s >= heap
+				any [
+					all [cross? size >= free-sz]
+					s/flags and flag-gc-mark = 0
+					tail?
+				]
+			]
+
+			update?: yes
+			case [
+				any [
+					size <= free-sz
+					all [size2 > 0 size2 <= free-sz]
+				][
+					if dst = null [dst: src]
+					if size > free-sz [
+						size: size2
+						s: ss
+						s/flags: s/flags or flag-gc-mark
+						tail?: no
+					]
+					free-sz: free-sz - size
+					delta: as-integer src - prev-dst
+					dst2: prev-dst
+					prev-dst: prev-dst + size
+				]
+				dst <> null [
+					assert dst < src			;-- regions are moved down in memory
+					assert src < as byte-ptr! s ;-- src should point at least at series - series/size
+
+					size: as-integer (as byte-ptr! s) - src
+					delta: as-integer src - dst
+					dst2: dst
+					dst: dst + size
+				]
+				true [
+					update?: no
+					cross?: no
+				]
+			]
+
+			if update? [
+				move-memory dst2 src size
+				update-series as series! dst2 delta size
+				if refs < tail [			;-- update pointers on native stack
+					while [all [refs < tail (as byte-ptr! refs/1) < src]][refs: refs + 2]
+					while [all [refs < tail (as byte-ptr! refs/1) <= (src + size)]][
+						ptr: as int-ptr! refs/2
+						ptr/value: ptr/value - delta
+						refs: refs + 2
+					]
+				]
+			]
+		]
+		tail?
+	]
+
+	prev/heap: as series! prev-dst
+	if dst <> null [						;-- no compaction occurred, all series were in use
+		frame/heap: as series! dst			;-- set new heap after last moved region
+		#if debug? = yes [markfill as int-ptr! frame/heap as int-ptr! frame/tail]
+	]
+	if dst = as byte-ptr! (frame + 1) [
+		;probe ["free series frame.......... " frame]
+		free-series-frame frame
+	]
+	refs
+]
+
 in-range?: func [
 	p		[int-ptr!]
 	return: [logic!]
@@ -614,25 +754,43 @@ extract-stack-refs: func [
 ]
 
 collect-frames: func [
+	type	  [integer!]
 	/local
 		frame [series-frame!]
 		refs  [int-ptr!]
+		next  [series-frame!]
 ][
+	next: null
+	refs: null
+	frame: memory/s-head
+
 	extract-stack-refs yes
 	refs: memory/stk-refs
-	frame: memory/s-head
-	
+
 	until [
-		#if debug? = yes [check-series frame]
-		refs: compact-series-frame frame refs
-		#if debug? = yes [check-series frame]
-		
-		frame: frame/next
+		;#if debug? = yes [check-series frame]
+
+		;@@ current frame may be released
+		;@@ rare case: the starting address of next frame may be identical to 
+		;@@ the tail of the last frame, add 1 to avoid moving
+		next: frame/next + 1
+
+		either type = COLLECTOR_RELEASE [
+			refs: cross-compact-frame frame refs
+		][
+			refs: compact-series-frame frame refs
+		]
+
+		frame: next - 1
 		frame = null
+
+		;#if debug? = yes [check-series frame]
 	]
 	collect-bigs
 	;extract-stack-refs no
 ]
+
+
 
 #if debug? = yes [
 
