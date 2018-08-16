@@ -670,11 +670,11 @@ draw-short-curves: func [
 		pt: pt + 1
 		pt/x: ( 2 * ctx/other/path-last-point/x ) - control/x
 		pt/y: ( 2 * ctx/other/path-last-point/y ) - control/y
-		control/x: pt/x
-		control/y: pt/y
 		pt: pt + 1
 		pt/x: either rel? [ ctx/other/path-last-point/x + pair/x ][ pair/x ]
 		pt/y: either rel? [ ctx/other/path-last-point/y + pair/y ][ pair/y ]
+		control/x: pt/x
+		control/y: pt/y
 		pt: pt + 1
 		loop nr-points - 1 [ pair: pair + 1 ]
 		if pair <= end [
