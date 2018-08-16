@@ -1582,6 +1582,7 @@ OS-draw-text: func [
 	pos		[red-pair!]
 	text	[red-string!]
 	catch?	[logic!]
+	return: [logic!]
 	/local
 		str		[c-string!]
 		p		[c-string!]
@@ -1596,8 +1597,10 @@ OS-draw-text: func [
 ][
 	if ctx/other/D2D? [
 		OS-draw-text-d2d ctx pos text catch?
-		exit
+		return true
 	]
+
+	if TYPE_OF(text) = TYPE_OBJECT [return false]
 
 	len: -1
 	str: unicode/to-utf16-len text :len no
@@ -1626,6 +1629,7 @@ OS-draw-text: func [
 		]
 		if p > str [ExtTextOut ctx/dc x y ETO_CLIPPED null str (as-integer p - str) / 2 null]
 	]
+	true
 ]
 
 OS-draw-arc: func [

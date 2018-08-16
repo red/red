@@ -775,7 +775,9 @@ Red/System [
 							sym = text [
 								DRAW_FETCH_VALUE(TYPE_PAIR)					;-- position
 								DRAW_FETCH_VALUE_2(TYPE_STRING TYPE_OBJECT) ;-- string! or text-box!
-								OS-draw-text DC as red-pair! start as red-string! cmd catch?
+								unless OS-draw-text DC as red-pair! start as red-string! cmd catch? [
+									throw-draw-error cmds cmd catch?
+								]
 							]
 							sym = _arc [
 								loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)]	;-- center/radius (of the circle/ellipse)
