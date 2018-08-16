@@ -242,7 +242,7 @@ ask: function [
 	vt/ask?: no
 	gui-console-ctx/caret/visible?: no
 	unless gui-console-ctx/console/state [line: "quit"]
-	line
+	copy line
 ]
 
 input: function ["Wait for console user input" return: [string!]][ask ""]
