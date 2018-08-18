@@ -24,7 +24,7 @@ Red [
 
 	--test-- "unset-word-3"
 		unset 'b
-		--assert error? try [b]
+		--assert error? try [get 'b]	;-- compiler will catch it if just: try [b]
 
 ===end-group===
 
