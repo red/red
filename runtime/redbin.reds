@@ -264,10 +264,11 @@ redbin: context [
 		size: data/3 << (log-b unit)					;-- optimized data/3 * unit
 
 		str: as red-string! ALLOC_TAIL(parent)
-		str/header: header and FFh						;-- implicit reset of all header flags
 		if nl? [str/header: str/header or flag-new-line]
+		str/header: TYPE_UNSET
 		str/head: 	data/2
 		str/node: 	alloc-bytes size
+		str/header: header and FFh						;-- implicit reset of all header flags
 		
 		data: data + 3
 		s: GET_BUFFER(str)
