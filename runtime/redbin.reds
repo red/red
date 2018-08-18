@@ -513,10 +513,13 @@ redbin: context [
 		root-base
 	]
 	
-	boot-load: func [payload [byte-ptr!] keep? [logic!] return: [red-value!] /local saved ret][
+	boot-load: func [payload [byte-ptr!] keep? [logic!] return: [red-value!] /local saved ret state][
+		state: collector/active?
+		collector/active?: no
 		if keep? [saved: root-base]
 		ret: decode payload root
 		if keep? [root-base: saved]
+		collector/active?: state
 		ret
 	]
 ]
