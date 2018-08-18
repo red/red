@@ -331,10 +331,10 @@ _context: context [
 	]
 	
 	clone: func [
-		id		[integer!]
+		slot	[red-block!]
 		return: [node!]
 		/local
-			slot	[red-object!]
+			obj		[red-object!]
 			node	[node!]
 			sym		[red-word!]
 			ctx		[red-context!]
@@ -343,9 +343,9 @@ _context: context [
 			dst		[series!]
 			slots	[integer!]
 	][
-		slot: as red-object! get-root id
-		node: slot/ctx
-	
+		assert TYPE_OF(slot) = TYPE_OBJECT
+		obj: as red-object! slot
+		node: obj/ctx
 		ctx: TO_CTX(node)
 		src: as series! ctx/symbols/value
 		slots: (as-integer (src/tail - src/offset)) >> 4
@@ -370,7 +370,7 @@ _context: context [
 			sym: sym + 1
 			slots: slots - 1
 		]
-		slot/ctx: new
+		obj/ctx: new
 		new
 	]
 
