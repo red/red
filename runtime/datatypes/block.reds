@@ -1186,6 +1186,7 @@ block: context [
 			op		[integer!]
 			flags	[integer!]
 			offset	[integer!]
+			saved	[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/sort"]]
 
@@ -1265,13 +1266,14 @@ block: context [
 				]
 			]
 		]
+		saved: collector/active?
 		collector/active?: no							;-- turn off GC
 		either stable? [
 			_sort/mergesort as byte-ptr! head len step * (size? red-value!) op flags cmp
 		][
 			_sort/qsort as byte-ptr! head len step * (size? red-value!) op flags cmp
 		]
-		collector/active?: yes
+		collector/active?: saved
 		ownership/check as red-value! blk words/_sort null blk/head 0
 		blk
 	]
@@ -1633,6 +1635,7 @@ block: context [
 			append?	[logic!]
 			blk?	[logic!]
 			hash?	[logic!]
+			saved	[logic!]
 	][
 		step: 1
 		if OPTION?(skip-arg) [
@@ -1665,6 +1668,7 @@ block: context [
 		]
 
 		comp-op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
+		saved: collector/active?
 		collector/active?: no
 		until [
 			s: GET_BUFFER(blk1)
@@ -1717,7 +1721,7 @@ block: context [
 			][n: 0]
 			zero? n
 		]
-		collector/active?: yes
+		collector/active?: saved
 
 		either hash? [
 			hs: as red-hash! blk2
