@@ -1013,21 +1013,21 @@ rejoin: function [
 ]
 
 sum: func [
-    "Returns the sum of all values in a block"
-    values [block!]
-	/local result
+	"Returns the sum of all values in a block"
+	values [block! vector! paren! hash!]
+	/local result value
 ][
-    result: 0
-    foreach value reduce values [result: result + value]
-    result
+	result: make any [values/1 0] 0
+	foreach value values [result: result + value]
+	result
 ]
 
 average: func [
-    "Returns the average of all values in a block"
-    block [block!]
+	"Returns the average of all values in a block"
+	block [block! vector! paren! hash!]
 ][
-    if empty? block [return none]
-    divide sum block to float! length? block
+	if empty? block [return none]
+	divide sum block to float! length? block
 ]
 
 ;------------------------------------------
