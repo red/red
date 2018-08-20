@@ -482,9 +482,13 @@ Red [
 	--test-- "sum tests"
 		--assert 0 = sum []
 		--assert 3 = sum [1 2]
+		--assert 1.5 = sum [1 30% 20%]
+		--assert 150% = sum [30% 20% 1]
 	--test-- "average tests"
 		--assert none = average []
 		--assert 1.5 = average [1 2]
+		--assert 25% = average [30% 20%]
+		--assert 0.5 = average [1 30% 20%]
 ===end-group===
 
 ~~~end-file~~~
