@@ -392,7 +392,7 @@ alloc-series-frame: func [
 		frame < frm [
 			frame/next: frm
 			frm/prev: frame
-			memory/s-head: frm
+			memory/s-head: frame
 		]
 		true [
 			while [all [frm/next <> null frm < frame]][frm: frm/next]
