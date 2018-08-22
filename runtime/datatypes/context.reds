@@ -88,10 +88,17 @@ _context: context [
 	add-global: func [
 		sym		[integer!]
 		return: [red-word!]
+		/local
+			w	[red-word!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/add-global"]]
 		
-		add-global-word sym no yes
+		w: add-global-word sym no yes
+		either red/boot? [
+			as red-word! copy-cell as red-value! w ALLOC_TAIL(root)
+		][
+			w
+		]
 	]
 	
 	add-global-word: func [
