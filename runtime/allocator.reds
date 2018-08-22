@@ -671,8 +671,7 @@ cross-compact-frame: func [
 		frame/heap: as series! dst			;-- set new heap after last moved region
 		#if debug? = yes [markfill as int-ptr! frame/heap as int-ptr! frame/tail]
 	]
-	if dst = as byte-ptr! (frame + 1) [
-		;probe ["free series frame.......... " frame]
+	if all [dst = as byte-ptr! (frame + 1) frame/next <> null][		;-- cache last one
 		free-series-frame frame
 	]
 	refs
