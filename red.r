@@ -436,7 +436,9 @@ redc: context [
 	]
 
 	run-console: func [
-		gui? [logic!] /with file [string!]
+		gui?	[logic!]
+		debug?	[logic!]
+		/with file [string!]
 		/local 
 			opts result script filename exe console console-root files files2
 			source con-ui gui-target td winxp? old-td
@@ -453,7 +455,7 @@ redc: context [
 			console-root: %environment/console/
 			console: join console-root pick [%GUI/ %CLI/] gui?
 			con-ui: pick [%gui-console.red %console.red] gui?
-			if gui? [
+			if all [gui? not debug?][
 				gui-target: select [
 					"Darwin"	macOS
 					"MSDOS"		Windows
@@ -473,6 +475,7 @@ redc: context [
 			]
 			opts: make opts select load-targets opts/config-name
 			add-legacy-flags opts
+			opts/debug?: debug?
 
 			if winxp?: all [Windows? gui? opts/legacy][	;-- GUI console on WinXP
 				append console %old/
@@ -803,7 +806,7 @@ redc: context [
 		unless src [
 			either encap? [
 				if load-lib? [build-compress-lib]
-				run-console gui?
+				run-console gui? opts/debug?
 			][
 				return reduce [none none]
 			]
@@ -811,7 +814,7 @@ redc: context [
 
 		if all [encap? none? output none? type][
 			if load-lib? [build-compress-lib]
-			run-console/with gui? filename
+			run-console/with gui? opts/debug? filename
 		]
 
 		if slash <> first src [							;-- if relative path
