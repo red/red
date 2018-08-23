@@ -193,7 +193,7 @@ error: context [
 				w: sym + cat
 				
 				if any [
-					int/value <= 0
+					int/value < 0
 					(sym + object/get-size errors) <= as red-value! w
 				][
 					fire [TO_ERROR(script out-of-range) spec]
