@@ -228,7 +228,7 @@ ask: function [
 	vt: gui-console-ctx/terminal
 	vt/line: line
 	vt/pos: 0
-	vt/add-line line
+	vt/add-line head line
 	vt/ask?: yes
 	vt/reset-top/force
 	vt/clear-stack
@@ -242,7 +242,7 @@ ask: function [
 	vt/ask?: no
 	gui-console-ctx/caret/visible?: no
 	unless gui-console-ctx/console/state [line: "quit"]
-	copy line
+	line
 ]
 
 input: function ["Wait for console user input" return: [string!]][ask ""]
