@@ -65,6 +65,15 @@ Red [
 		recycle
 		--assert rb6-mem <= stats
 		
+		--test-- "recycle-block-7"
+		rb7-b: copy [1 2 3 4 5 6 7 8 9 10]
+		loop 12 [append rb7-b rb7-b]
+		rb7-bbbbb: compose [bbbb [bbb [bb [b (copy rb7-b)]]]]
+		rb7-mem: stats
+		rb7-bbbbb/bbbb/bbb/bb/b: none
+		recycle
+		--assert stats <= rb7-mem
+		
 ===end-group===
 	
 ~~~end-file~~~
