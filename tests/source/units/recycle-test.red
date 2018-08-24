@@ -38,7 +38,7 @@ Red [
 		]
 		recycle
 		--assert stats <= rb3-mem
-			
+	
 	--test-- "recycle-block-4"
 		rb4-bb: copy [1 2 3 4 5 6 7 8 9 10]
 		loop 12 [append rb4-bb rb4-bb]
@@ -50,7 +50,7 @@ Red [
 			recycle
 		]
 		--assert stats <= rb4-mem
-		
+
 	--test-- "recycle-block-5"
 		rb5-m: #(b: [1 2 3 4 5 6 7 8 9 10])
 		rb5-mem: stats
@@ -75,5 +75,27 @@ Red [
 		--assert stats <= rb7-mem
 		
 ===end-group===
+
+===start-group=== "recycle map"
+
+	--test-- "recycle-map-1"
+		recycle
+		rm1-map: none
+		rm1-mem: stats
+		rm1-map: #(a: 1 b: 2 c: 3 d: 4)
+		rm1-map: none
+		recycle
+		--assert stats <= rm1-mem
+	--test-- "recycle-map-2"
+		rm2-map: none
+		recycle
+		rm2-mem: stats
+		rm2-map: make map! [ a: 1 b: [ 1 2 3 4 5 6 7 8 9 10 ] ]
+		rm2-map: none
+		recycle
+		--assert stats <= rm2-mem
+
+===end-group===
+
 	
 ~~~end-file~~~
