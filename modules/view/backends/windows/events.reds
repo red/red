@@ -1436,7 +1436,7 @@ process: func [
 		WM_SYSKEYUP
 		WM_KEYUP		[make-event msg 0 EVT_KEY_UP]
 		WM_SYSKEYDOWN	[make-event msg 0 EVT_KEY_DOWN]
-		WM_CHAR			[make-event msg 0 EVT_KEY]
+		WM_CHAR			[special-key: -1 make-event msg 0 EVT_KEY]
 		WM_LBUTTONDBLCLK [
 			menu-origin: null							;-- reset if user clicks on menu bar
 			menu-ctx: null
