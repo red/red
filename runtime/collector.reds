@@ -277,7 +277,7 @@ collector: context [
 		]]
 
 		#if debug? = yes [
-			probe ["root size: " block/rs-length? root ", cycles: " stats/cycles]
+			probe ["root size: " block/rs-length? root ", root max: " ***-root-size ", cycles: " stats/cycles]
 			if verbose > 1 [probe "marking..."]
 		]
 
