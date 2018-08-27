@@ -583,6 +583,8 @@ cross-compact-frame: func [
 	tail: memory/stk-tail
 	s: as series! frame + 1					;-- point to first series buffer
 	heap: frame/heap
+	if heap = s [return refs]
+
 	src: null								;-- src will point to start of buffer region to move down
 	dst: null								;-- dst will point to start of free region
 	tail?: no
