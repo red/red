@@ -4562,7 +4562,7 @@ red: context [
 		reduce [user mods main]
 	]
 	
-	comp-as-lib: func [code [block!] /local user main mark defs pos ext-ctx][
+	comp-as-lib: func [code [block!] /local user main mark defs pos ext-ctx slots][
 		out: copy/deep [
 			Red/System [
 				type:   'dll
@@ -4629,7 +4629,9 @@ red: context [
 		unless empty? sys-global [
 			process-calls/global sys-global				;-- lazy #call processing
 		]
-		change/only find out <root-size> redbin/index + 3000
+		slots: redbin/index + 3000
+		if job/dev-mode? [slots: slots + 100'000]		;-- Cannot know how many slot will be needed by the app
+		change/only find out <root-size> slots
 		
 		pos: third last out
 		change find pos <script> script
