@@ -4681,6 +4681,8 @@ red: context [
 		;-- assemble all parts together in right order
 		script: make block! 100'000
 		
+		if job/dev-mode? [append script [red/boot?: yes]] ;-- boot mode was reset by libRedRT
+		
 		append script [
 			------------| "Symbols"
 		]
