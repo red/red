@@ -16,7 +16,7 @@ Red [
 	--test-- "recycle-block-1"
 		recycle				
 		rb1-mem: stats
-		rb1-b: make block! 1e10
+		rb1-b: make block! [1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20] 
 		rb1-b: none
 		recycle
 		--assert stats <= rb1-mem
