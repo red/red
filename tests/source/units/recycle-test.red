@@ -133,6 +133,75 @@ Red [
 		
 		rm2-mem2: stats
 		--assert rm2-mem2 <= rm2-mem
+		
+	--test-- "recycle-map-3"
+		rm3-mem2: none
+		rm3-map2: none
+		rm3-map-1: make map! [ a: 1 b: [ 1 2 3 4 5 6 7 8 9 10 ] ]
+		rm3-map-2: copy rm3-map-1
+		rm3-map-3: copy rm3-map-1
+		rm3-map-4: copy rm3-map-1
+		recycle
+		rm3-mem: stats
+		
+		rm3-map: make map! [
+			a: rm3-map-1
+			b: rm3-map-2
+			c: rm3-map-3
+			d: rm3-map-4
+		]
+		rm3-map: none
+		recycle
+		
+		rm3-mem2: stats
+		--assert rm3-mem2 <= rm3-mem
+		
+	--test-- "recycle-map-4"
+		rm4-mem2: none
+		rm4-map2: none
+		rm4-map-1: make map! [ a: 1 b: [ 1 2 3 4 5 6 7 8 9 10 ] ]
+		rm4-map-2: copy rm4-map-1
+		rm4-map-3: copy rm4-map-1
+		rm4-map-4: copy rm4-map-1
+		recycle
+		rm4-mem: stats
+		
+		rm4-map: make map! compose [
+			a: (copy rm4-map-1)
+			b: (copy rm4-map-2)
+			c: (copy rm4-map-3)
+			d: (copy rm4-map-4)
+		]
+		rm4-map/a: none
+		rm4-map/b: none
+		rm4-map/c: none
+		rm4-map/d: none
+		recycle
+		
+		rm4-mem2: stats
+		--assert rm4-mem2 <= rm4-mem
+
+		--test-- "recycle-map-5"
+		rm5-mem2: none
+		rm5-map2: none
+		rm5-str: "12345678901234567890"
+		recycle
+		rm5-mem: stats
+		
+		rm5-map: make map! compose [
+			a: (copy rm5-str)
+			b: (copy rm5-str)
+			c: (copy rm5-str)
+			d: (copy rm5-str)
+		]
+		rm5-map/a: none
+		rm5-map/b: none
+		rm5-map/c: none
+		rm5-map/d: none
+		recycle
+		
+		rm5-mem2: stats
+		--assert rm5-mem2 <= rm5-mem
 
 ===end-group===
 
