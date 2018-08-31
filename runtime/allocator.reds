@@ -1117,6 +1117,8 @@ expand-series: func [
 	
 	if zero? new-sz [new-sz: series/size * 2]	;-- by default, alloc twice the old size
 
+	if new-sz <= 0 [fire [TO_ERROR(internal no-memory)]]
+
 	node: series/node
 	new: alloc-series-buffer new-sz / units units 0
 	series: as series-buffer! node/value
