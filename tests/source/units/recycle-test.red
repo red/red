@@ -19,7 +19,8 @@ Red [
 		rb1-b: make block! [1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20] 
 		rb1-b: none
 		recycle
-		--assert stats <= rb1-mem
+		rb1-mem2: stats
+		--assert rb1-mem-2 <= rb1-mem
 		
 	--test-- "recycle-block-2"
 		rb2-b: copy [1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20]
@@ -27,7 +28,8 @@ Red [
 		rb2-mem: stats
 		loop 2000 [rb2-b: copy rb2-b]
 		recycle
-		--assert stats <= rb2-mem
+		rb2-mem2: stats
+		--assert rb2-mem2 <= rb2-mem
 		
 	--test-- "recycle-block-3"
 		rb3-b: copy [1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20]
@@ -37,7 +39,8 @@ Red [
 			rb3-b: copy [1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20]
 		]
 		recycle
-		--assert stats <= rb3-mem
+		rb3-mem2: stats
+		--assert rb3-mem2 <= rb3-mem
 	
 	--test-- "recycle-block-4"
 		rb4-bb: copy [1 2 3 4 5 6 7 8 9 10]
@@ -49,7 +52,8 @@ Red [
 			rb4-b: copy rb4-bb
 			recycle
 		]
-		--assert stats <= rb4-mem
+		rb4-mem2: stats
+		--assert rb4-mem2 <= rb4-mem
 
 	--test-- "recycle-block-5"
 		rb5-m: #(b: [1 2 3 4 5 6 7 8 9 10])
@@ -57,7 +61,8 @@ Red [
 		rb5-mem: stats
 		loop 2000 [ rb5-m/b: copy [1 2 3 4 5 6 7 8 9 10] ]
 		recycle
-		--assert rb5-mem <= stats
+		rb5-mem2: stats
+		--assert rb5-mem2 <= rb5-mem
 	
 	--test-- "recycle-block-6"
 		rb6-o: make object! [ b: copy [1 2 3 4 5 6 7 8 9 10] ]
@@ -65,7 +70,8 @@ Red [
 		rb6-mem: stats
 		loop 2000 [ rb6-o/b: copy [1 2 3 4 5 6 7 8 9 20] ]
 		recycle
-		--assert rb6-mem <= stats
+		rb6-mem2: stats
+		--assert rb6-mem2 <= rb6-mem
 		
 		--test-- "recycle-block-7"
 		rb7-b: copy [1 2 3 4 5 6 7 8 9 10]
@@ -75,7 +81,8 @@ Red [
 		rb7-mem: stats
 		rb7-bbbbb/bbbb/bbb/bb/b: none
 		recycle
-		--assert stats <= rb7-mem
+		rb7-mem2: stats
+		--assert rb7-mem2 <= rb7-mem
 		
 ===end-group===
 
@@ -88,7 +95,8 @@ Red [
 		rm1-map: #(a: 1 b: 2 c: 3 d: 4)
 		rm1-map: none
 		recycle
-		--assert stats <= rm1-mem
+		rm1-mem2: stats
+		--assert rm1-mem2 <= rm1-mem
 	--test-- "recycle-map-2"
 		rm2-map: none
 		recycle
@@ -96,7 +104,8 @@ Red [
 		rm2-map: make map! [ a: 1 b: [ 1 2 3 4 5 6 7 8 9 10 ] ]
 		rm2-map: none
 		recycle
-		--assert stats <= rm2-mem
+		rm2-mem2: stats
+		--assert rm2-mem2 <= rm2-mem
 
 ===end-group===
 
