@@ -136,7 +136,7 @@ Red [
 		
 	--test-- "recycle-map-3"
 		rm3-mem2: none
-		rm3-map2: none
+		rm3-map: none
 		rm3-map-1: make map! [ a: 1 b: [ 1 2 3 4 5 6 7 8 9 10 ] ]
 		rm3-map-2: copy rm3-map-1
 		rm3-map-3: copy rm3-map-1
@@ -158,7 +158,7 @@ Red [
 		
 	--test-- "recycle-map-4"
 		rm4-mem2: none
-		rm4-map2: none
+		rm4-map: none
 		rm4-map-1: make map! [ a: 1 b: [ 1 2 3 4 5 6 7 8 9 10 ] ]
 		rm4-map-2: copy rm4-map-1
 		rm4-map-3: copy rm4-map-1
@@ -203,6 +203,73 @@ Red [
 		rm5-mem2: stats
 		--assert rm5-mem2 <= rm5-mem
 
+	--test-- "recycle-map-6"
+		rm6-mem2: none
+		rm6-map: none
+		rm6-str: "12345678901234567890"
+		loop 10 [ append rm6-str rm6-str ]
+		recycle
+		rm6-mem: stats
+		
+		rm6-map: make map! compose [
+			a: (copy rm6-str)
+			b: (copy rm6-str)
+			c: (copy rm6-str)
+			d: (copy rm6-str)
+			e: (copy rm6-str)
+			f: (copy rm6-str)
+			g: (copy rm6-str)
+			h: (copy rm6-str)
+			i: (copy rm6-str)
+			j: (copy rm6-str)
+			k: (copy rm6-str)
+			l: (copy rm6-str)
+		]
+		rm6-map/a: none
+		rm6-map/b: none
+		rm6-map/c: none
+		rm6-map/d: none
+		rm6-map/e: none
+		rm6-map/f: none
+		rm6-map/g: none
+		rm6-map/h: none
+		rm6-map/i: none
+		rm6-map/j: none
+		rm6-map/k: none
+		rm6-map/l: none
+		recycle
+		
+		rm6-mem2: stats
+		--assert rm6-mem2 <= rm6-mem
+		
+	--test-- "recycle-map-7"
+		rm7-mem2: none
+		rm7-map: none
+		rm7-str: "12345678901234567890"
+		loop 10 [ append rm7-str rm7-str ]
+		recycle
+		rm7-mem: stats
+		
+		rm7-map: make map! compose [
+			a: (copy rm6-str)
+			b: (copy rm6-str)
+			c: (copy rm6-str)
+			d: (copy rm6-str)
+			e: (copy rm6-str)
+			f: (copy rm6-str)
+			g: (copy rm6-str)
+			h: (copy rm6-str)
+			i: (copy rm6-str)
+			j: (copy rm6-str)
+			k: (copy rm6-str)
+			l: (copy rm6-str)
+		]
+		rm7-map: none
+		recycle
+		
+		rm7-mem2: stats
+		--assert rm7-mem2 <= rm7-mem
+		
 ===end-group===
 
 	
