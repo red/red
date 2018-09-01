@@ -554,6 +554,9 @@ emitter: make-profilable context [
 								target/emit-fpu-get/masks path/4
 							]
 						]
+						status [
+							target/emit-fpu-get/status
+						]
 						control-word [
 							either set? [
 								target/emit-fpu-set/cword value
