@@ -251,18 +251,18 @@ Red [
 		rm7-mem: stats
 		
 		rm7-map: make map! compose [
-			a: (copy rm6-str)
-			b: (copy rm6-str)
-			c: (copy rm6-str)
-			d: (copy rm6-str)
-			e: (copy rm6-str)
-			f: (copy rm6-str)
-			g: (copy rm6-str)
-			h: (copy rm6-str)
-			i: (copy rm6-str)
-			j: (copy rm6-str)
-			k: (copy rm6-str)
-			l: (copy rm6-str)
+			a: (copy rm7-str)
+			b: (copy rm7-str)
+			c: (copy rm7-str)
+			d: (copy rm7-str)
+			e: (copy rm7-str)
+			f: (copy rm7-str)
+			g: (copy rm7-str)
+			h: (copy rm7-str)
+			i: (copy rm7-str)
+			j: (copy rm7-str)
+			k: (copy rm7-str)
+			l: (copy rm7-str)
 		]
 		rm7-map: none
 		recycle
