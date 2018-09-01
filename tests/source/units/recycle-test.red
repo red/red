@@ -14,6 +14,7 @@ Red [
 ===start-group=== "recyle block"
 	
 	--test-- "recycle-block-1"
+		rb1-mem: none
 		rb1-mem2: none
 		recycle				
 		rb1-mem: stats
@@ -26,6 +27,7 @@ Red [
 		--assert rb1-mem2 <= rb1-mem
 		
 	--test-- "recycle-block-2"
+		rb2-mem: none
 		rb2-mem2: none
 		rb2-b: copy [1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20]
 		recycle
@@ -38,6 +40,7 @@ Red [
 		--assert rb2-mem2 <= rb2-mem
 		
 	--test-- "recycle-block-3"
+		rb3-mem: none
 		rb3-mem2: none
 		rb3-b: copy [1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20]
 		recycle
@@ -52,6 +55,7 @@ Red [
 		--assert rb3-mem2 <= rb3-mem
 	
 	--test-- "recycle-block-4"
+		rb4-mem: none
 		rb4-mem2: none
 		rb4-bb: copy [1 2 3 4 5 6 7 8 9 10]
 		loop 12 [append rb4-bb rb4-bb]
@@ -68,6 +72,7 @@ Red [
 		--assert rb4-mem2 <= rb4-mem
 
 	--test-- "recycle-block-5"
+		rb5-mem: none
 		rb5-mem2: none
 		rb5-m: #(b: [1 2 3 4 5 6 7 8 9 10])
 		recycle
@@ -80,6 +85,7 @@ Red [
 		--assert rb5-mem2 <= rb5-mem
 	
 	--test-- "recycle-block-6"
+		rb6-mem: none
 		rb6-mem2: none
 		rb6-o: make object! [ b: copy [1 2 3 4 5 6 7 8 9 10] ]
 		recycle
@@ -92,6 +98,7 @@ Red [
 		--assert rb6-mem2 <= rb6-mem
 		
 		--test-- "recycle-block-7"
+		rb7-mem: none
 		rb7-mem2: none
 		rb7-b: copy [1 2 3 4 5 6 7 8 9 10]
 		loop 12 [append rb7-b rb7-b]
@@ -105,11 +112,26 @@ Red [
 		rb7-mem2: stats
 		--assert rb7-mem2 <= rb7-mem
 		
+	--test-- "recycle-block-8"
+		rb8-mem: none
+		rb8-mem2: none
+		rb8-b: copy [1 2 3 4 5 6 7 8 9 10]
+		loop 12 [append rb8-b rb8-b]
+		recycle
+		rb8-mem: stats
+		
+		clear rb8-b
+		recycle
+		
+		rb8-mem2: stats
+		--assert rb8-mem2 <= rb8-mem
+		
 ===end-group===
 
 ===start-group=== "recycle map"
 
 	--test-- "recycle-map-1"
+		rm1-mem: none
 		rm1-mem2: none
 		rm1-map: none
 		recycle
@@ -122,6 +144,7 @@ Red [
 		rm1-mem2: stats
 		--assert rm1-mem2 <= rm1-mem
 	--test-- "recycle-map-2"
+		rm2-mem: none
 		rm2-mem2: none
 		rm2-map: none
 		recycle
@@ -135,6 +158,7 @@ Red [
 		--assert rm2-mem2 <= rm2-mem
 		
 	--test-- "recycle-map-3"
+		rm3-mem: none
 		rm3-mem2: none
 		rm3-map: none
 		rm3-map-1: make map! [ a: 1 b: [ 1 2 3 4 5 6 7 8 9 10 ] ]
@@ -157,6 +181,7 @@ Red [
 		--assert rm3-mem2 <= rm3-mem
 		
 	--test-- "recycle-map-4"
+		rm4-mem: none
 		rm4-mem2: none
 		rm4-map: none
 		rm4-map-1: make map! [ a: 1 b: [ 1 2 3 4 5 6 7 8 9 10 ] ]
@@ -182,6 +207,7 @@ Red [
 		--assert rm4-mem2 <= rm4-mem
 
 		--test-- "recycle-map-5"
+		rm5-mem: none
 		rm5-mem2: none
 		rm5-map2: none
 		rm5-str: "12345678901234567890"
@@ -204,6 +230,7 @@ Red [
 		--assert rm5-mem2 <= rm5-mem
 
 	--test-- "recycle-map-6"
+		rm6-mem: none
 		rm6-mem2: none
 		rm6-map: none
 		rm6-str: "12345678901234567890"
@@ -243,6 +270,7 @@ Red [
 		--assert rm6-mem2 <= rm6-mem
 		
 	--test-- "recycle-map-7"
+		rm7-mem: none
 		rm7-mem2: none
 		rm7-map: none
 		rm7-str: "12345678901234567890"
@@ -270,7 +298,131 @@ Red [
 		rm7-mem2: stats
 		--assert rm7-mem2 <= rm7-mem
 		
+	--test-- "recycle-map-8"
+		rm8-mem: none
+		rm8-mem2: none
+		rm8-map: none
+		rm8-str: "12345678901234567890"
+		loop 10 [ append rm8-str rm8-str ]
+		recycle
+		rm8-mem: stats
+		
+		rm8-map: make map! compose [
+			a: (copy rm8-str)
+			b: (copy rm8-str)
+			c: (copy rm8-str)
+			d: (copy rm8-str)
+			e: (copy rm8-str)
+			f: (copy rm8-str)
+			g: (copy rm8-str)
+			h: (copy rm8-str)
+			i: (copy rm8-str)
+			j: (copy rm8-str)
+			k: (copy rm8-str)
+			l: (copy rm8-str)
+		]
+		clear rm8-map/a
+		clear rm8-map/b
+		clear rm8-map/c
+		clear rm8-map/d
+		clear rm8-map/e
+		clear rm8-map/f
+		clear rm8-map/g
+		clear rm8-map/h
+		clear rm8-map/i
+		clear rm8-map/j
+		clear rm8-map/k
+		clear rm8-map/l
+		recycle
+		
+		rm8-mem2: stats
+		--assert rm8-mem2 <= rm8-mem
+		
+		
 ===end-group===
 
+===start-group=== "recycle hash"
+
+	--test-- "recycle-hash-1"
+		rh1-mem: none
+		rh1-mem2: none
+		rh1-hash: none
+		recycle
+		rh1-mem: stats
+		
+		rh1-hash: make hash! [1 2 3 4 5 6 7 8 9 10]
+		rh1-hash: none
+		recycle
+		
+		rh1-mem2: stats
+		--assert rh1-mem2 <= rh1-mem	
+
+	--test-- "recycle-hash-2"
+		rh2-mem: none
+		rh2-mem2: none
+		rh2-hash: none
+		rh2-blk: []
+		loop 20 [ append/only rh2-blk [1 2 3 4 5 6 7 8 9 10]]
+		recycle
+		rh2-mem: stats
+		
+		rh2-hash: make hash! compose [ a (copy rh2-blk) b (copy rh2-blk) ]
+		rh2-hash/a: none 
+		recycle
+		
+		rh2-mem2: stats
+		--assert rh2-mem2 <= rh2-mem
+		
+	--test-- "recycle-hash-3"
+		rh3-mem: none
+		rh3-mem2: none
+		rh3-hash: none
+		rh3-blk: []
+		loop 20 [ append/only rh3-blk [1 2 3 4 5 6 7 8 9 10]]
+		recycle
+		rh3-mem: stats
+		
+		rh3-hash: make hash! compose [ a (copy rh3-blk) b (copy rh3-blk) ]
+		rh3-hash/a: none
+		rh3-hash/b: none
+		recycle
+		
+		rh3-mem2: stats
+		--assert rh3-mem2 <= rh3-mem
+
+	--test-- "recycle-hash-4"
+		rh4-mem: none
+		rh4-mem2: none
+		rh4-hash: none
+		rh4-blk: []
+		loop 20 [ append/only rh4-blk [1 2 3 4 5 6 7 8 9 10]]
+		recycle
+		rh4-mem: stats
+		
+		rh4-hash: make hash! compose [ a (copy rh4-blk) b (copy rh4-blk) ]
+		rh4-hash: none
+		recycle
+		
+		rh4-mem2: stats
+		--assert rh4-mem2 <= rh4-mem
+		
+	--test-- "recycle-hash-5"
+		rh5-mem: none
+		rh5-mem2: none
+		rh5-hash: none
+		rh5-blk: []
+		loop 20 [ append/only rh5-blk [1 2 3 4 5 6 7 8 9 10]]
+		recycle
+		rh5-mem: stats
+		
+		rh5-hash: make hash! compose [ a (copy rh5-blk) b (copy rh5-blk) ]
+		clear rh5-hash/a
+		clear rh5-hash/b
+		recycle
+		
+		rh5-mem2: stats
+		--assert rh5-mem2 <= rh5-mem
+		
+===end-group===
 	
 ~~~end-file~~~
