@@ -4604,8 +4604,6 @@ red: context [
 		append defs declarations
 		pos: tail defs
 		append defs [
-			red/boot?: no
-			red/collector/active?: yes
 			------------| "Functions"
 		]
 		append defs output
@@ -4621,6 +4619,8 @@ red: context [
 		]
 		append script literals
 		append script [
+			red/boot?: no
+			red/collector/active?: yes
 			------------| "Main program"
 		]
 		append script main
