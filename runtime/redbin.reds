@@ -268,6 +268,7 @@ redbin: context [
 		str/header: TYPE_UNSET
 		str/head: 	data/2
 		str/node: 	alloc-bytes size
+		str/cache:	null
 		str/header: header and FFh						;-- implicit reset of all header flags
 		
 		data: data + 3
