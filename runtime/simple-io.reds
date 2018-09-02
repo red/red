@@ -1958,6 +1958,7 @@ simple-io: context [
 					][
 						bin/header: TYPE_UNSET
 						bin/node: unicode/load-utf8 as c-string! buf len
+						bin/_pad: 0
 						bin/header: TYPE_STRING
 					]
 				]
@@ -2242,6 +2243,7 @@ simple-io: context [
 					][
 						bin/header: TYPE_UNSET
 						bin/node: unicode/load-utf8 as c-string! buf len
+						bin/_pad: 0
 						bin/header: TYPE_STRING
 					]
 				]
