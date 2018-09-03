@@ -516,7 +516,7 @@ Red [
 		rv1-mem2: stats
 		--assert rv1-mem2 <= rv1-mem
 		
-		--test-- "recycle-vector-2"
+	--test-- "recycle-vector-2"
 		rv2-mem: none
 		rv2-mem2: none
 		rv2-vec: none
@@ -533,7 +533,7 @@ Red [
 		--assert rv2-mem2 <= rv2-mem
 	
 	
-		--test-- "recycle-vector-3"
+	--test-- "recycle-vector-3"
 		rv3-mem: none
 		rv3-mem2: none
 		rv3-vec: none
@@ -547,7 +547,7 @@ Red [
 		rv3-mem2: stats
 		--assert rv3-mem2 <= rv3-mem
 		
-		--test-- "recycle-vector-4"
+	--test-- "recycle-vector-4"
 		rv4-mem: none
 		rv4-mem2: none
 		rv4-vec: none
