@@ -72,19 +72,23 @@ symbol: context [
 			sym	[red-symbol!]
 			id	[integer!]
 			len [integer!]
+			h	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "symbol/make-alt"]]
 
 		len: -1											;-- convert all chars
+		h: str/header
 		str/header: TYPE_SYMBOL							;-- make hashtable happy
 		id: search str
+		str/header: h
 		if positive? id [return id]
 
 		sym: as red-symbol! ALLOC_TAIL(symbols)
-		sym/header: TYPE_SYMBOL							;-- implicit reset of all header flags
+		sym/header: TYPE_UNSET
 		sym/node:   str/node
 		sym/cache:  unicode/str-to-utf8 str :len no
 		sym/alias:  either zero? id [-1][0 - id]		;-- -1: no alias, abs(id)>0: alias id
+		sym/header: TYPE_SYMBOL							;-- implicit reset of all header flags
 		_hashtable/put table as red-value! sym
 		block/rs-length? symbols
 	]
@@ -109,10 +113,11 @@ symbol: context [
 		
 		collector/keep str/node
 		sym: as red-symbol! ALLOC_TAIL(symbols)	
-		sym/header: TYPE_SYMBOL							;-- implicit reset of all header flags
+		sym/header: TYPE_UNSET
 		sym/node:   str/node
 		sym/cache:  internalize s
 		sym/alias:  either zero? id [-1][0 - id]		;-- -1: no alias, abs(id)>0: alias id
+		sym/header: TYPE_SYMBOL							;-- implicit reset of all header flags
 		_hashtable/put table as red-value! sym
 		block/rs-length? symbols
 	]

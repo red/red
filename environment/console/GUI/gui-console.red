@@ -194,6 +194,7 @@ gui-console-ctx: context [
 
 	add-gui-print: routine [][
 		gui-console-buffer: ALLOC_TAIL(root)
+		gui-console-buffer/header: TYPE_UNSET
 		dyn-print/add as int-ptr! :red-print-gui #either debug? = yes [null][
 			as int-ptr! :rs-print-gui
 		]
