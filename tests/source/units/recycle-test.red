@@ -126,6 +126,48 @@ Red [
 		rb8-mem2: stats
 		--assert rb8-mem2 <= rb8-mem
 		
+	--test-- "recycle-block-9"
+		rb9-mem: none
+		rb9-mem2: none
+		rb9-b: []
+		loop 100 [append/only rb9-b copy [1 2 3 4 5 6 7 8 9 10]]
+		recycle
+		rb9-mem: stats
+		
+		remove/part rb9-b 50
+		recycle
+		
+		rb9-mem2: stats
+		--assert rb9-mem2 <= rb9-mem
+		
+	--test-- "recycle-block-10"
+		rb10-mem: none
+		rb10-mem2: none
+		rb10-b: []
+		loop 100 [append rb10-b [1 2 3 4 5 6 7 8 9 10]]
+		recycle
+		rb10-mem: stats
+		
+		remove/part rb10-b 500
+		recycle
+		
+		rb10-mem2: stats
+		--assert rb10-mem2 <= rb10-mem
+	
+	--test-- "recycle-block-11"
+		rb11-mem: none
+		rb11-mem2: none
+		rb11-b: []
+		loop 100 [append rb11-b [1 2 3 4 5 6 7 8 9 10]]
+		recycle
+		rb11-mem: stats
+		
+		remove/part skip rb11-b 500 500                 ;-- discard 2nd half
+		recycle
+		
+		rb11-mem2: stats
+		--assert rb11-mem2 <= rb11-mem
+		
 ===end-group===
 
 ===start-group=== "recycle map"
@@ -423,6 +465,102 @@ Red [
 		rh5-mem2: stats
 		--assert rh5-mem2 <= rh5-mem
 		
+	--test-- "recycle-hash-6"
+		rh6-mem: none
+		rh6-mem2: none
+		rh6-b: []
+		loop 100 [append rh6-b [1 2 3 4 5 6 7 8 9 10]]
+		rh6-hash: make hash! rh6-b
+		rh6-b: none
+		recycle
+		rh6-mem: stats
+		
+		remove/part rh6-hash 500
+		recycle
+		
+		rh6-mem2: stats
+		--assert rh6-mem2 <= rh6-mem
+	
+	--test-- "recycle-hash-7"
+		rh7-mem: none
+		rh7-mem2: none
+		rh7-b: []
+		loop 100 [append rh7-b [1 2 3 4 5 6 7 8 9 10]]
+		rh7-hash: make hash! rh7-b
+		clear rh7-b
+		recycle
+		rh7-mem: stats
+		
+		remove/part skip rh7-hash 500 500                 ;-- discard 2nd half
+		recycle
+		
+		rh7-mem2: stats
+		--assert rh7-mem2 <= rh7-mem
+
+		
+===end-group===
+
+===start-group=== "recycle vector"
+
+	--test-- "recycle-vector-1"
+		rv1-mem: none
+		rv1-mem2: none
+		rv1-vec: none
+		recycle
+		rv1-mem: stats
+		
+		rv1-vec: make vector! 1000000
+		rv1-vec: none
+		recycle
+		
+		rv1-mem2: stats
+		--assert rv1-mem2 <= rv1-mem
+		
+		--test-- "recycle-vector-2"
+		rv2-mem: none
+		rv2-mem2: none
+		rv2-vec: none
+		recycle
+		rv2-mem: stats
+		
+		loop 500 [
+			rv2-vec: make vector! 1000000
+			rv2-vec: none
+			recycle
+		]
+		
+		rv2-mem2: stats
+		--assert rv2-mem2 <= rv2-mem
+	
+	
+		--test-- "recycle-vector-3"
+		rv3-mem: none
+		rv3-mem2: none
+		rv3-vec: none
+		recycle
+		rv3-mem: stats
+		
+		rv3-vec: make vector! 1000000
+		remove/part rv3-vec 500000                ;-- discard first half
+		recycle
+		
+		rv3-mem2: stats
+		--assert rv3-mem2 <= rv3-mem
+		
+		--test-- "recycle-vector-4"
+		rv4-mem: none
+		rv4-mem2: none
+		rv4-vec: none
+		recycle
+		rv4-mem: stats
+		
+		rv4-vec: make vector! 1000000
+		remove/part skip rv4-vec 500000 500000    ;-- discard second half
+		recycle
+		
+		rv4-mem2: stats
+		--assert rv4-mem2 <= rv4-mem
+
 ===end-group===
 	
 ~~~end-file~~~
