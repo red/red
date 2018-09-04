@@ -574,8 +574,8 @@ block: context [
 		switch TYPE_OF(spec) [
 			TYPE_INTEGER
 			TYPE_FLOAT [
-				size: GET_SIZE_FROM(spec)
-				if zero? size [size: 1]
+				GET_INT_FROM(size spec)
+				if size <= 0 [size: 1]
 				make-at proto size
 				proto/header: type
 				proto

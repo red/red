@@ -682,7 +682,7 @@ vector: context [
 		
 		switch type [
 			TYPE_INTEGER
-			TYPE_FLOAT [type: TYPE_INTEGER size: GET_SIZE_FROM(spec)]
+			TYPE_FLOAT [type: TYPE_INTEGER GET_INT_FROM(size spec)]
 			TYPE_BLOCK [
 				size:  block/rs-length? as red-block! spec
 				either zero? size [

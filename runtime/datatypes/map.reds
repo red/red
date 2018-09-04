@@ -233,7 +233,7 @@ map: context [
 				if type = -1 [					;-- called by TO
 					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_MAP spec]
 				]
-				size: GET_SIZE_FROM(spec)
+				GET_INT_FROM(size spec)
 				if negative? size [fire [TO_ERROR(script out-of-range) spec]]
 			]
 			TYPE_ANY_LIST [

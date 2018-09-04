@@ -519,13 +519,18 @@ Red/System [
 	]
 ]
 
-#define GET_SIZE_FROM(spec) [
+#define GET_INT_FROM(n spec) [
 	either TYPE_OF(spec) = TYPE_FLOAT [
 		fl: as red-float! spec
-		as-integer fl/value
+		n: as-integer fl/value
+		#if target = 'IA-32 [
+			if system/fpu/status and FPU_EXCEPTION_INVALID_OP <> 0 [
+				fire [TO_ERROR(internal no-memory)]
+			]
+		]
 	][
 		int: as red-integer! spec
-		int/value
+		n: int/value
 	]
 ]
 
