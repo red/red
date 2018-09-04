@@ -427,6 +427,8 @@ make-profilable make target-class [
 			status [
 				emit #{31C0}						;--	XOR eax, eax
 				emit #{9BDFE0}						;-- FSTSW ax
+				emit #{6683E03F}					;-- AND ax, 3Fh			; select only exception flags
+				emit #{9BDBE2}						;-- FCLEX
 			]
 			options [
 				emit #{25}							;-- AND eax, <value>
