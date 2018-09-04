@@ -49,6 +49,8 @@ qt: make object! [
   append call* :call-show?
   append call* 'output
   
+  call* ""
+  
   ;; default binary compiler path
   bin-compiler: base-dir/build/bin/red
   
