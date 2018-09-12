@@ -822,7 +822,7 @@ now: make native! [[
 		/month		"Returns month only"
 		/day		"Returns day of the month only"
 		/time		"Returns time only"
-		/zone		"Returns time zone offset from UCT (GMT) only"
+		/zone		"Returns time zone offset from UTC (GMT) only"
 		/date		"Returns date only"
 		/weekday	"Returns day of the week as integer (Monday is day 1)"
 		/yearday	"Returns day of the year (Julian)"
