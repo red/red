@@ -562,5 +562,169 @@ Red [
 		--assert rv4-mem2 <= rv4-mem
 
 ===end-group===
-	
+
+===start-group=== "recycle object"
+
+	--test-- "recycle-object-1"
+		ro1-o: none
+		ro1-mem: none
+		ro1-mem2: none
+		recycle
+		ro1-mem: stats
+		
+		ro1-o: make object! [
+			a: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 ]
+			b: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 ]
+			c: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 ]
+			d: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 ]
+			e: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 ]
+		]
+		ro1-o: none
+		recycle
+		
+		ro1-mem2: stats
+		--assert ro1-mem2 <= ro1-mem
+		
+	--test-- "recycle-object-2"
+		ro2-o: none
+		ro2-mem: none
+		ro2-mem2: none
+		recycle
+		ro2-mem: stats
+		
+		ro2-o: make object! [
+			a: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 ]
+			b: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 ]
+			c: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 ]
+			d: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 ]
+			e: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 ]
+		]
+		clear ro2-o/a
+		clear ro2-o/b
+		clear ro2-o/c
+		clear ro2-o/d
+		clear ro2-o/e
+		recycle
+		
+		ro2-mem2: stats
+		--assert ro2-mem2 <= ro2-mem
+
+	--test-- "recycle-object-3"
+		ro3-o: none
+		ro3-mem: none
+		ro3-mem2: none
+		recycle
+		ro3-mem: stats
+		
+		ro3-o: make object! [
+			a: make object! [ a: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 ] ]
+			b: make object! [ b: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 ] ]
+			c: make object! [ c: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 ] ]
+			d: make object! [ d: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 ] ]
+			e: make object! [ e: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 ] ]
+		]
+		ro3-o/a/a: none
+		recycle
+		
+		ro3-mem2: stats
+		--assert ro3-mem2 <= ro3-mem
+
+	--test-- "recycle-object-4"
+		ro4-o: none
+		ro4-mem: none
+		ro4-mem2: none
+		recycle
+		ro4-mem: stats
+		
+		ro4-o: make object! [
+			a: make object! [
+				b: make object! [ 
+					c: make object! [
+						d: make object! [
+							e: make object! [ e: [ 1 2 3 4 5 6 7 8 9 10 ] ]
+						]
+					]
+				]
+			]
+		]
+		ro4-o/a/b/c/d/e/e: none
+		recycle
+		
+		ro4-mem2: stats
+		--assert ro4-mem2 <= ro4-mem
+
+	--test-- "recycle-object-5"
+		ro5-o: none
+		ro5-mem: none
+		ro5-mem2: none
+		recycle
+		ro5-mem: stats
+		
+		ro5-o: make object! [
+			a: make object! [
+			b: make object! [ 
+			c: make object! [
+			d: make object! [
+			e: make object! [
+			f: make object! [
+			g: make object! [
+			h: make object! [
+			i: make object! [
+			j: make object! [
+			k: make object! [ data: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 ] ]
+		] ] ] ] ] ] ] ] ] ] ]
+		ro5-o: none
+		recycle
+		
+		ro5-mem2: stats
+		--assert ro5-mem2 <= ro5-mem
+
+	--test-- "recycle-object-6"
+		ro6-o: none
+		ro6-mem: none
+		ro6-mem2: none
+		recycle
+		ro6-mem: stats
+		
+		ro6-o: make object! [
+			a: make object! [
+			b: make object! [ 
+			c: make object! [
+			d: make object! [
+			e: make object! [
+			f: make object! [
+			g: make object! [
+			h: make object! [
+			i: make object! [
+			j: make object! [
+			k: make object! [ data: 1 ]
+		] ] ] ] ] ] ] ] ] ] ]
+		ro6-o/a/b/c/d/e/f/g/h/i/j/k/data: none
+		
+		ro6-mem2: stats
+		--assert ro6-mem2 <= ro6-mem
+
+	--test-- "recycle-object-7"    					;-- really a check of 'stats
+		ro7-o1: none
+		ro7-o2: none
+		ro7-o3: none
+		ro7-o4: none
+		ro7-o5: none		
+		ro7-mem: none
+		ro7-mem2: none
+		recycle
+		ro7-mem: stats
+		
+		ro7-o1: make object! [ a: "1234567891011121314151617181920" ]
+		ro7-o2: make object! [ a: "1234567891011121314151617181920" ]
+		ro7-o3: make object! [ a: "1234567891011121314151617181920" ]
+		ro7-o4: make object! [ a: "1234567891011121314151617181920" ]
+		ro7-o5: make object! [ a: "1234567891011121314151617181920" ]
+		recycle
+		
+		ro7-mem2: stats
+		--assert ro7-mem2 > ro7-mem
+
+
+		
 ~~~end-file~~~
