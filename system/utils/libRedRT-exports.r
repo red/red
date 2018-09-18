@@ -199,6 +199,9 @@
 
 	red/object/unchanged?
 	red/object/unchanged2?
+	
+	red/image/acquire-buffer
+	red/image/release-buffer
 
 	red/natives/repeat-init*
 	red/natives/repeat-set
