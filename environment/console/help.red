@@ -3,13 +3,12 @@ Red [
 	Author:  ["Gregg Irwin" "Oldes"]
 	File: 	 %help.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2013-2017 All Mankind. All rights reserved."
+	Rights:  "Copyright (C) 2013-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
 	}
 	Notes: {
-		TBD: Emit to output buffer so help can be returned as a string.
 		TBD: Determine what useful funcs to export from help-ctx.
 	}
 ]
@@ -24,6 +23,7 @@ help-ctx: context [
 	RT_MARGIN: 5			; How close we can get to the right console margin before we trim
 	DENT_1: "    "			; So CLI and GUI consoles are consistent, WRT tab size
 	DENT_2: "        " 
+	NON_CONSOLE_SIZE: 120	; Where to truncate, if not running in a console
 	
 	;---------------------------------------------------------------------------
 	;-- Buffered output
@@ -92,7 +92,13 @@ help-ctx: context [
 	; The `max` check is there because the CLI console size is 0 on startup.
 	; It keeps the width from going negative if someone launches the CLI with
 	; a `help` call in their script on the command line.
-	VAL_FORM_LIMIT: does [max 0 system/console/size/x - HELP_TYPE_COL_SIZE - HELP_COL_1_SIZE - RT_MARGIN]
+	VAL_FORM_LIMIT: does [
+		either system/console [
+			max 0 system/console/size/x - HELP_TYPE_COL_SIZE - HELP_COL_1_SIZE - RT_MARGIN
+		][
+			NON_CONSOLE_SIZE
+		]
+	]
 	;!! This behaves differently when compiled. Interpreted, output for 'system
 	;!! is properly formatted and truncated. Compiled, it's very slow to return
 	;!! and system/words and system/codecs (e.g.) are emitted full length. The
@@ -332,7 +338,12 @@ help-ctx: context [
 		type [datatype!]
 		/local val
 	][
-		DOC_LIMIT: system/console/size/x - HELP_COL_1_SIZE - RT_MARGIN
+		DOC_LIMIT: either system/console [
+			max 0 system/console/size/x - HELP_COL_1_SIZE - RT_MARGIN
+		][
+			NON_CONSOLE_SIZE
+		]
+		;DOC_LIMIT: system/console/size/x - HELP_COL_1_SIZE - RT_MARGIN
 		fmt-doc: func [str][either str [ellipsize-at str DOC_LIMIT][""]]
 		found-at-least-one?: no
 		foreach word words-of system/words [

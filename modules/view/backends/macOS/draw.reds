@@ -736,6 +736,7 @@ OS-draw-text: func [
 	pos		[red-pair!]
 	text	[red-string!]
 	catch?	[logic!]
+	return: [logic!]
 	/local
 		ctx [handle!]
 ][
@@ -747,6 +748,7 @@ OS-draw-text: func [
 	]
 	CG-set-color ctx dc/pen-color no				;-- drawing text will change pen color, so reset it
 	CG-set-color ctx dc/brush-color yes				;-- drawing text will change brush color, so reset it
+	true
 ]
 
 _draw-arc: func [

@@ -2359,6 +2359,7 @@ string: context [
 					with-chars/1: int/value
 					wlen: 1
 				]
+				TYPE_BINARY
 				TYPE_STRING [
 					str2: as red-string! with-arg
 					s:    GET_BUFFER(str2)

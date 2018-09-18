@@ -230,7 +230,7 @@ ask: function [
 	vt: gui-console-ctx/terminal
 	vt/line: line
 	vt/pos: 0
-	vt/add-line line
+	vt/add-line head line
 	vt/ask?: yes
 	vt/reset-top/force
 	vt/clear-stack

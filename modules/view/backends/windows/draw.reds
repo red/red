@@ -670,11 +670,11 @@ draw-short-curves: func [
 		pt: pt + 1
 		pt/x: ( 2 * ctx/other/path-last-point/x ) - control/x
 		pt/y: ( 2 * ctx/other/path-last-point/y ) - control/y
-		control/x: pt/x
-		control/y: pt/y
 		pt: pt + 1
 		pt/x: either rel? [ ctx/other/path-last-point/x + pair/x ][ pair/x ]
 		pt/y: either rel? [ ctx/other/path-last-point/y + pair/y ][ pair/y ]
+		control/x: pt/x
+		control/y: pt/y
 		pt: pt + 1
 		loop nr-points - 1 [ pair: pair + 1 ]
 		if pair <= end [
@@ -1582,6 +1582,7 @@ OS-draw-text: func [
 	pos		[red-pair!]
 	text	[red-string!]
 	catch?	[logic!]
+	return: [logic!]
 	/local
 		str		[c-string!]
 		p		[c-string!]
@@ -1596,8 +1597,10 @@ OS-draw-text: func [
 ][
 	if ctx/other/D2D? [
 		OS-draw-text-d2d ctx pos text catch?
-		exit
+		return true
 	]
+
+	if TYPE_OF(text) = TYPE_OBJECT [return false]
 
 	len: -1
 	str: unicode/to-utf16-len text :len no
@@ -1626,6 +1629,7 @@ OS-draw-text: func [
 		]
 		if p > str [ExtTextOut ctx/dc x y ETO_CLIPPED null str (as-integer p - str) / 2 null]
 	]
+	true
 ]
 
 OS-draw-arc: func [

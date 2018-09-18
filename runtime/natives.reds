@@ -1030,7 +1030,18 @@ natives: context [
 			into?: into >= 0
 			stack/mark-native words/_body
 			if into? [as red-block! stack/push arg + into]
-			interpreter/eval-expression arg arg + 1 no yes no
+			switch TYPE_OF(arg) [
+				TYPE_FUNCTION
+				TYPE_NATIVE
+				TYPE_ACTION
+				TYPE_OP
+				TYPE_ROUTINE [
+					stack/set-last arg
+				]
+				default [
+					interpreter/eval-expression arg arg + 1 no yes no
+				]
+			]
 			if into? [actions/insert* -1 0 -1]
 			stack/unwind-last
 		][
@@ -1419,6 +1430,7 @@ natives: context [
 		ret/node: switch base [
 			16 [binary/decode-16 p len unit]
 			2  [binary/decode-2  p len unit]
+			58 [binary/decode-58 p len unit]
 			64 [binary/decode-64 p len unit]
 			default [fire [TO_ERROR(script invalid-arg) int] null]
 		]
@@ -1456,6 +1468,7 @@ natives: context [
 		ret/header: TYPE_NONE
 		ret/node: switch base [
 			64 [binary/encode-64 p len]
+			58 [binary/encode-58 p len]
 			16 [binary/encode-16 p len]
 			2  [binary/encode-2  p len]
 			default [fire [TO_ERROR(script invalid-arg) int] null]

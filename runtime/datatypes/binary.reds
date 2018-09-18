@@ -18,6 +18,7 @@ binary: context [
 			until [
 				p: p + unit
 				len: len - 1
+				if len <= 0 [c: -1 break]
 				c: string/get-char p unit
 				c = as-integer lf
 			]
@@ -44,6 +45,27 @@ binary: context [
 	]
 
 	enbase64: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+
+	debase58: [
+		#"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" ;-- 07h
+		#"^(40)" #"^(40)" #"^(40)" #"^(80)" #"^(40)" #"^(40)" #"^(80)" #"^(80)" ;-- 0Fh
+		#"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" ;-- 17h
+		#"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" ;-- 1Fh
+		#"^(40)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(40)" ;-- 27h
+		#"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" ;-- 2Fh
+		#"^(80)" #"^(00)" #"^(01)" #"^(02)" #"^(03)" #"^(04)" #"^(05)" #"^(06)" ;-- 37h
+		#"^(07)" #"^(08)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" ;-- 3Fh
+		#"^(80)" #"^(09)" #"^(0A)" #"^(0B)" #"^(0C)" #"^(0D)" #"^(0E)" #"^(0F)" ;-- 47h
+		#"^(10)" #"^(80)" #"^(11)" #"^(12)" #"^(13)" #"^(14)" #"^(15)" #"^(80)" ;-- 4Fh
+		#"^(16)" #"^(17)" #"^(18)" #"^(19)" #"^(1A)" #"^(1B)" #"^(1C)" #"^(1D)" ;-- 57h
+		#"^(1E)" #"^(1F)" #"^(20)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" ;-- 5Fh
+		#"^(80)" #"^(21)" #"^(22)" #"^(23)" #"^(24)" #"^(25)" #"^(26)" #"^(27)" ;-- 67h
+		#"^(28)" #"^(29)" #"^(2A)" #"^(2B)" #"^(80)" #"^(2C)" #"^(2D)" #"^(2E)" ;-- 6Fh
+		#"^(2F)" #"^(30)" #"^(31)" #"^(32)" #"^(33)" #"^(34)" #"^(35)" #"^(36)" ;-- 77h
+		#"^(37)" #"^(38)" #"^(39)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" ;-- 7Fh
+	]
+
+	enbase58: "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 
 	rs-length?: func [
 		bin 	[red-binary!]
@@ -431,6 +453,81 @@ binary: context [
 		node
 	]
 
+	encode-58: func [
+		p		[byte-ptr!]
+		len		[integer!]
+		return:	[node!]
+		/local
+			temp		[byte-ptr!]
+			node		[node!]
+			s			[series!]
+			bin			[byte-ptr!]
+			c			[integer!]
+			j			[integer!]
+			start		[integer!]
+			rem			[integer!]
+			rem2		[integer!]
+			div-loop	[integer!]
+			zero-cnt	[integer!]
+			dig256		[integer!]
+			tmp-div		[integer!]
+	][
+		temp: allocate len
+		copy-memory temp p len
+
+		node: alloc-bytes len * 2
+		s: as series! node/value
+		bin: as byte-ptr! s/offset
+
+		zero-cnt: 1
+		while [
+			all [
+				zero-cnt <= len
+				temp/zero-cnt = #"^(00)"
+			]
+		][
+			zero-cnt: zero-cnt + 1
+		]
+
+		j: len * 2 + 1
+		start: zero-cnt
+		while [start <= len] [
+			rem: 0
+			div-loop: start
+			while [div-loop <= len][
+				dig256: as-integer temp/div-loop
+				tmp-div: rem * 256 + dig256
+				temp/div-loop: as byte! (tmp-div / 58)
+				rem: tmp-div % 58
+				div-loop: div-loop + 1
+			]
+			if #"^(00)" = temp/start [start: start + 1]
+			j: j - 1
+			rem2: rem + 1
+			bin/j: enbase58/rem2
+		]
+
+		while [
+			all [
+				j <= (2 * len)
+				enbase58/1 = bin/j
+			]
+		][
+			j: j + 1
+		]
+		while [zero-cnt > 0][
+			zero-cnt: zero-cnt - 1
+			j: j - 1
+			bin/j: enbase58/1
+		]
+		len: len * 2 - j
+		move-memory bin bin + j len
+
+		free temp
+		s/tail: as red-value! (bin + len)
+		node
+	]
+
 	encode-64: func [
 		p		[byte-ptr!]
 		len		[integer!]
@@ -509,6 +606,7 @@ binary: context [
 		until [
 			c: string/get-char p unit
 			BINARY_SKIP_COMMENT
+			if c = -1 [break]
 			if c > as-integer space [
 				case [
 					c = as-integer #"0" [accum: accum << 1]
@@ -529,6 +627,94 @@ binary: context [
 		]
 		if positive? count [return null]
 		s/tail: as red-value! bin
+		node
+	]
+
+	decode-58: func [
+		p		[byte-ptr!]
+		len		[integer!]
+		unit	[integer!]
+		return:	[node!]
+		/local
+			temp		[byte-ptr!]
+			node		[node!]
+			s			[series!]
+			bin			[byte-ptr!]
+			c			[integer!]
+			val			[integer!]
+			nlen		[integer!]
+			j			[integer!]
+			start		[integer!]
+			rem			[integer!]
+			div-loop	[integer!]
+			zero-cnt	[integer!]
+			dig256		[integer!]
+			tmp-div		[integer!]
+	][
+		temp: allocate len
+
+		nlen: 0
+		until [
+			c: string/get-char p unit
+			BINARY_SKIP_COMMENT
+			if any [c = -1 c > 7Fh] [break]
+			c: c + 1
+			val: as-integer debase58/c
+			either val < 40h [
+				nlen: nlen + 1
+				temp/nlen: as byte! val
+			][if val = 80h [free temp return null]]
+
+			p: p + unit
+			len: len - 1
+			len <= 0
+		]
+
+		len: nlen
+		node: alloc-bytes len
+		s: as series! node/value
+		bin: as byte-ptr! s/offset
+
+		zero-cnt: 1
+		while [
+			all [
+				zero-cnt <= len
+				temp/zero-cnt = #"^(00)"
+			]
+		][
+			zero-cnt: zero-cnt + 1
+		]
+
+		j: len + 1
+		start: zero-cnt
+		while [start <= len] [
+			rem: 0
+			div-loop: start
+			while [div-loop <= len][
+				dig256: as-integer temp/div-loop
+				tmp-div: rem * 58 + dig256
+				temp/div-loop: as byte! (tmp-div / 256)
+				rem: tmp-div % 256
+				div-loop: div-loop + 1
+			]
+			if #"^(00)" = temp/start [start: start + 1]
+			j: j - 1
+			bin/j: as byte! rem
+		]
+
+		while [
+			all [
+				j <= len
+				#"^(00)" = bin/j
+			]
+		][
+			j: j + 1
+		]
+		len: len - j + zero-cnt
+		move-memory bin bin + j - zero-cnt len
+
+		free temp
+		s/tail: as red-value! (bin + len)
 		node
 	]
 
@@ -554,6 +740,7 @@ binary: context [
 		until [
 			c: string/get-char p unit
 			BINARY_SKIP_COMMENT
+			if c = -1 [break]
 			c: c + 1
 			val: as-integer debase64/c
 			either val < 40h [
@@ -625,6 +812,7 @@ binary: context [
 		until [
 			c: 7Fh and string/get-char p unit
 			BINARY_SKIP_COMMENT
+			if c = -1 [break]
 			if c > as-integer space [
 				c: c + 1
 				hex: as-integer table/c

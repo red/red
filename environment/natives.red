@@ -715,7 +715,7 @@ debase: make native! [[
 		"Decodes binary-coded string (BASE-64 default) to binary value"
 		value [string!] "The string to decode"
 		/base "Binary base to use"
-			base-value [integer!] "The base to convert from: 64, 16, or 2"
+			base-value [integer!] "The base to convert from: 64, 58, 16, or 2"
 	]
 	#get-definition NAT_DEBASE
 ]
@@ -724,7 +724,7 @@ enbase: make native! [[
 		"Encodes a string into a binary-coded string (BASE-64 default)"
 		value [binary! string!] "If string, will be UTF8 encoded"
 		/base "Binary base to use"
-			base-value [integer!] "The base to convert from: 64, 16, or 2"
+			base-value [integer!] "The base to convert from: 64, 58, 16, or 2"
 	]
 	#get-definition NAT_ENBASE
 ]
@@ -822,7 +822,7 @@ now: make native! [[
 		/month		"Returns month only"
 		/day		"Returns day of the month only"
 		/time		"Returns time only"
-		/zone		"Returns time zone offset from UCT (GMT) only"
+		/zone		"Returns time zone offset from UTC (GMT) only"
 		/date		"Returns date only"
 		/weekday	"Returns day of the week as integer (Monday is day 1)"
 		/yearday	"Returns day of the year (Julian)"

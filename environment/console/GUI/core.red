@@ -133,7 +133,7 @@ object [
 			either str/1 = lf [
 				add-line ""
 			][
-				either all [lf? not prin?][add-line copy str][vprin str]
+				either all [lf? not prin?][add-line str][vprin str]
 			]
 		][
 			either all [lf? not prin?][add-line str][vprin str]
@@ -616,7 +616,10 @@ object [
 				str2: insert form next candidates system/console/prompt
 				poke lines length? lines str2
 				calc-top
-				add-line line
+				clear head str
+				pos: (index? candidates/1) - p-idx
+				append str head candidates/1
+				add-line head line
 			]
 		]
 		clear selects
@@ -730,7 +733,7 @@ object [
 		scroller/page-size: page-cnt
 		scroller/max-size: page-cnt - 1
 		scroller/position: 0
-		add-line line
+		add-line head line
 	]
 
 	run-file: func [f [file!]][
@@ -850,8 +853,8 @@ object [
 		num: line-cnt
 		styles: box/data
 		foreach str at lines top [
-			box/text: head str
-			if color? [highlight/add-styles head str clear styles theme]
+			box/text: str
+			if color? [highlight/add-styles str clear styles theme]
 			mark-selects styles n
 			cmds/4/y: y
 			system/view/platform/draw-face console cmds

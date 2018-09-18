@@ -193,7 +193,7 @@ error: context [
 				w: sym + cat
 				
 				if any [
-					int/value <= 0
+					int/value < 0
 					(sym + object/get-size errors) <= as red-value! w
 				][
 					fire [TO_ERROR(script out-of-range) spec]
@@ -223,14 +223,14 @@ error: context [
 						
 						errors: (as red-object! object/get-values errors) + cat
 						value: value + 1
-						if value < block/rs-tail blk [
+						either value < block/rs-tail blk [
 							if TYPE_OF(value) <> TYPE_WORD [
 								fire [TO_ERROR(script invalid-arg) value]
 							]
 							cat2: object/rs-find errors value
 							if cat2 = -1 [fire [TO_ERROR(script invalid-spec-field) words/_id]]
 							copy-cell value base + field-id
-						]
+						][fire [TO_ERROR(script invalid-spec-field) words/_id]]
 					]
 					TYPE_SET_WORD [
 						_context/bind blk GET_CTX(new) new/ctx yes
