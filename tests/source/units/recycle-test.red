@@ -168,6 +168,21 @@ Red [
 		rb11-mem2: stats
 		--assert rb11-mem2 <= rb11-mem
 		
+	--test-- "recycle-block-12"
+		rb12-mem: none
+		rb12-mem2: none
+		rb12-b: []
+		rb12-s: "abcde"
+		recycle
+		rb12-mem: stats
+		
+		loop 100000 [ append rb12-b copy rb12-s ]
+		loop 100000 [ remove rb12-b ]
+		recycle
+		
+		rb12-mem2: stats
+		--assert rb12-mem2 <= rb12-mem
+		
 ===end-group===
 
 ===start-group=== "recycle map"
