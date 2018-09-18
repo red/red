@@ -31,13 +31,22 @@ Red/System [
 #define FPU_X87_PRECISION_DOUBLE	 2		;-- 64-bit float, 53-bit mantissa
 #define FPU_X87_PRECISION_DOUBLE_EXT 3		;-- 80-bit float, 64-bit mantissa
 
-;-- FPU values for system/fpu/status (cross-platform?)
-#define FPU_EXCEPTION_INVALID_OP	 1		;-- Invalid Operation
-#define FPU_EXCEPTION_DENORMAL_OP	 2		;-- Denormalized Operand
-#define FPU_EXCEPTION_ZERO_DIVIDE	 4		;-- Zero Divide
-#define FPU_EXCEPTION_OVERFLOW		 8		;-- Overflow
-#define FPU_EXCEPTION_UNDERFLOW		 16		;-- Underflow
-#define FPU_EXCEPTION_PRECISION		 32		;-- Precision
+;-- FPU values for system/fpu/status
+#either target = 'ARM [
+	#define FPU_EXCEPTION_INVALID_OP	 1		;-- Invalid Operation
+	#define FPU_EXCEPTION_ZERO_DIVIDE	 2		;-- Zero Divide
+	#define FPU_EXCEPTION_OVERFLOW		 4		;-- Overflow
+	#define FPU_EXCEPTION_UNDERFLOW		 8		;-- Underflow
+	#define FPU_EXCEPTION_PRECISION		 16		;-- Precision
+	#define FPU_EXCEPTION_DENORMAL_OP	 128	;-- Denormalized Operand
+][
+	#define FPU_EXCEPTION_INVALID_OP	 1		;-- Invalid Operation
+	#define FPU_EXCEPTION_DENORMAL_OP	 2		;-- Denormalized Operand
+	#define FPU_EXCEPTION_ZERO_DIVIDE	 4		;-- Zero Divide
+	#define FPU_EXCEPTION_OVERFLOW		 8		;-- Overflow
+	#define FPU_EXCEPTION_UNDERFLOW		 16		;-- Underflow
+	#define FPU_EXCEPTION_PRECISION		 32		;-- Precision
+]
 
 __stack!: alias struct! [
 	top		[int-ptr!]

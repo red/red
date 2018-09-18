@@ -1022,7 +1022,7 @@ make-profilable make target-class [
 				emit-load-imm32 3					;-- MOV r0, <FPU_TYPE_VFP>
 			]
 			status [
-				emit-i32 #{eef80a10}				;-- FMRX r0, FPEXC
+				emit-i32 #{E200005F}				;-- AND r0, 5Fh		; only exception bits
 			]
 			options [
 				set [value bit] switch/default option [
