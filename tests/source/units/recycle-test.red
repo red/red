@@ -511,7 +511,23 @@ Red [
 		
 		rh7-mem2: stats
 		--assert rh7-mem2 <= rh7-mem
-
+		
+	--test-- "recycle-hash-8"
+		rh8-mem: none
+		rh8-mem2: none
+		rh8-s: "abcde"
+		rh8-b: copy []
+		loop 1000 [ append rh8-b copy rh8-s ]
+		rh8-h: none
+		recycle
+		rh8-mem: stats
+		
+		rh8-h: make hash! rh8-b 
+		loop 1000 [ remove rh8-h ]
+		recycle
+		
+		rh8-mem2: stats
+		--assert rh8-mem2 <= rh8-mem
 		
 ===end-group===
 
