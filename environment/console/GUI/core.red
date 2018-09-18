@@ -37,7 +37,6 @@ object [
 	page-cnt:	0								;-- number of lines in one page
 	line-cnt:	0								;-- number of lines in total (include wrapped lines)
 	screen-cnt: 0								;-- number of lines on screen
-	delta-cnt:	0
 
 	history:	system/console/history
 	hist-idx:	0
@@ -156,8 +155,7 @@ object [
 
 	add-line: func [str [string!]][
 		either full? [
-			delta-cnt: first nlines
-			line-cnt: line-cnt - delta-cnt
+			line-cnt: line-cnt - first nlines
 			if top <> 1 [top: top - 1]
 			either max-lines + 1 = index? lines [
 				lines: reset-buffer lines
@@ -192,8 +190,7 @@ object [
 			line-cnt: line-cnt + cnt - pick nlines n
 			poke nlines n cnt
 		]
-		n: line-cnt - total - delta-cnt
-		delta-cnt: 0
+		n: line-cnt - total
 		n
 	]
 
@@ -216,7 +213,7 @@ object [
 		n: line-cnt - page-cnt
 		if any [
 			scroller/position <= n
-			all [full? force]
+			full?
 		][
 			top: length? lines
 			scroll-y: line-h - last heights
