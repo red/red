@@ -725,6 +725,38 @@ Red [
 		ro7-mem2: stats
 		--assert ro7-mem2 > ro7-mem
 
-
+	--test-- "recycle-object-8"
+		ro8-o: none
+		ro8-m: none
+		ro8-mem: none
+		ro8-mem1: none
+		recycle
+		ro8-mem: stats
 		
+		ro8-o: make object! [
+			ro8-m: #(m: "12345678901234567890")
+		]
+		ro8-o/ro8-m/m: none
+		recycle
+		
+		ro8-mem2: stats
+		--assert ro8-mem2 <= ro8-mem
+		
+	--test-- "recycle-object-9"
+		ro9-o: none
+		ro9-m: none
+		ro9-mem: none
+		ro9-mem1: none
+		recycle
+		ro9-mem: stats
+		
+		ro9-o: make object! [
+			ro9-m: #(m: #(m: #(m: #(m: #(m: #(m: "12345678901234567890"))))))
+		]
+		ro9-o/ro9-m/m/m/m/m/m/m: none
+		recycle
+		
+		ro9-mem2: stats
+		--assert ro9-mem2 <= ro9-mem
+
 ~~~end-file~~~
