@@ -312,6 +312,7 @@ OS-text-box-layout: func [
 		if null? hWnd [
 			if null? hidden-hwnd [
 				hidden-hwnd: CreateWindowEx WS_EX_TOOLWINDOW #u16 "RedBaseInternal" null WS_POPUP 0 0 2 2 null null hInstance null
+				store-face-to-hWnd hidden-hwnd box
 			]
 			hWnd: hidden-hwnd
 		]

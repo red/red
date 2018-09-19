@@ -912,8 +912,11 @@ update-window: func [
 					type = rich-text
 					(GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D <> 0
 				][
-					d2d-release-target as int-ptr! GetWindowLong hWnd wc-offset - 24
-					SetWindowLong hWnd wc-offset - 24 0
+					len: GetWindowLong hWnd wc-offset - 24
+					if len <> 0 [
+						d2d-release-target as int-ptr! len
+						SetWindowLong hWnd wc-offset - 24 0
+					]
 				]
 				type = group-box [
 					0
@@ -1323,6 +1326,13 @@ WndProc: func [
 				type = window
 				TYPE_OF(values) = TYPE_BLOCK
 			][update-window as red-block! values null]
+			if hidden-hwnd <> null [
+				values: (get-face-values hidden-hwnd) + FACE_OBJ_EXT3
+				values/header: TYPE_NONE
+				target: as int-ptr! GetWindowLong hidden-hwnd wc-offset - 24
+				if target <> null [d2d-release-target target]
+				SetWindowLong hidden-hwnd wc-offset - 24 0
+			]
 			RedrawWindow hWnd null null 4 or 1			;-- RDW_ERASE | RDW_INVALIDATE
 		]
 		WM_THEMECHANGED [set-defaults]
