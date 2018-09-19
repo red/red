@@ -240,11 +240,11 @@ Red [
 	--test-- "recycle-map-4"
 		rm4-mem: none
 		rm4-mem2: none
-		rm4-map: none
 		rm4-map-1: make map! [ a: 1 b: [ 1 2 3 4 5 6 7 8 9 10 ] ]
 		rm4-map-2: copy rm4-map-1
 		rm4-map-3: copy rm4-map-1
 		rm4-map-4: copy rm4-map-1
+		rm4-map: make map! compose [a: 1 b: 2 c: 3 d: 4]
 		recycle
 		rm4-mem: stats
 		
@@ -266,17 +266,15 @@ Red [
 		--test-- "recycle-map-5"
 		rm5-mem: none
 		rm5-mem2: none
-		rm5-map2: none
+		rm5-map: #(a: 1 b: 2 c: 3 d: 4)
 		rm5-str: "12345678901234567890"
 		recycle
 		rm5-mem: stats
 		
-		rm5-map: make map! compose [
-			a: (copy rm5-str)
-			b: (copy rm5-str)
-			c: (copy rm5-str)
-			d: (copy rm5-str)
-		]
+		rm5-map/a: (copy rm5-str)
+		rm5-map/b: (copy rm5-str)
+		rm5-map/c: (copy rm5-str)
+		rm5-map/d: (copy rm5-str)
 		rm5-map/a: none
 		rm5-map/b: none
 		rm5-map/c: none
@@ -289,26 +287,27 @@ Red [
 	--test-- "recycle-map-6"
 		rm6-mem: none
 		rm6-mem2: none
-		rm6-map: none
+		rm6-map: #(
+			a: 1 b: 2 c: 3 d: 4 e: 5 f: 6
+			g: 7 h: 8 i: 9 j: 10 k: 11 l: 12
+		)
 		rm6-str: "12345678901234567890"
 		loop 10 [ append rm6-str rm6-str ]
 		recycle
 		rm6-mem: stats
 		
-		rm6-map: make map! compose [
-			a: (copy rm6-str)
-			b: (copy rm6-str)
-			c: (copy rm6-str)
-			d: (copy rm6-str)
-			e: (copy rm6-str)
-			f: (copy rm6-str)
-			g: (copy rm6-str)
-			h: (copy rm6-str)
-			i: (copy rm6-str)
-			j: (copy rm6-str)
-			k: (copy rm6-str)
-			l: (copy rm6-str)
-		]
+		rm6-map/a: (copy rm6-str)
+		rm6-map/b: (copy rm6-str)
+		rm6-map/c: (copy rm6-str)
+		rm6-map/d: (copy rm6-str)
+		rm6-map/e: (copy rm6-str)
+		rm6-map/f: (copy rm6-str)
+		rm6-map/g: (copy rm6-str)
+		rm6-map/h: (copy rm6-str)
+		rm6-map/i: (copy rm6-str)
+		rm6-map/j: (copy rm6-str)
+		rm6-map/k: (copy rm6-str)
+		rm6-map/l: (copy rm6-str)
 		rm6-map/a: none
 		rm6-map/b: none
 		rm6-map/c: none
@@ -358,26 +357,27 @@ Red [
 	--test-- "recycle-map-8"
 		rm8-mem: none
 		rm8-mem2: none
-		rm8-map: none
+		rm8-map: #(
+			a: "" b: "" c: "" d: "" e: "" f: ""
+			g: "" h: "" i: "" j: "" k: "" l: ""
+		)
 		rm8-str: "12345678901234567890"
 		loop 10 [ append rm8-str rm8-str ]
 		recycle
 		rm8-mem: stats
 		
-		rm8-map: make map! compose [
-			a: (copy rm8-str)
-			b: (copy rm8-str)
-			c: (copy rm8-str)
-			d: (copy rm8-str)
-			e: (copy rm8-str)
-			f: (copy rm8-str)
-			g: (copy rm8-str)
-			h: (copy rm8-str)
-			i: (copy rm8-str)
-			j: (copy rm8-str)
-			k: (copy rm8-str)
-			l: (copy rm8-str)
-		]
+		rm8-map/a: (copy rm8-str)
+		rm8-map/b: (copy rm8-str)
+		rm8-map/c: (copy rm8-str)
+		rm8-map/d: (copy rm8-str)
+		rm8-map/e: (copy rm8-str)
+		rm8-map/f: (copy rm8-str)
+		rm8-map/g: (copy rm8-str)
+		rm8-map/h: (copy rm8-str)
+		rm8-map/i: (copy rm8-str)
+		rm8-map/j: (copy rm8-str)
+		rm8-map/k: (copy rm8-str)
+		rm8-map/l: (copy rm8-str)
 		clear rm8-map/a
 		clear rm8-map/b
 		clear rm8-map/c
@@ -417,14 +417,14 @@ Red [
 	--test-- "recycle-hash-2"
 		rh2-mem: none
 		rh2-mem2: none
-		rh2-hash: none
+		rh2-hash: make hash! [a 1]
 		rh2-blk: []
 		loop 20 [ append/only rh2-blk [1 2 3 4 5 6 7 8 9 10]]
 		recycle
 		rh2-mem: stats
 		
-		rh2-hash: make hash! compose [ a (copy rh2-blk) b (copy rh2-blk) ]
-		rh2-hash/a: none 
+		rh2-hash/a: copy rh2-blk 
+		rh2-hash/a: none
 		recycle
 		
 		rh2-mem2: stats
@@ -433,13 +433,14 @@ Red [
 	--test-- "recycle-hash-3"
 		rh3-mem: none
 		rh3-mem2: none
-		rh3-hash: none
+		rh3-hash: make hash! [a 1 b 2]
 		rh3-blk: []
 		loop 20 [ append/only rh3-blk [1 2 3 4 5 6 7 8 9 10]]
 		recycle
 		rh3-mem: stats
 		
-		rh3-hash: make hash! compose [ a (copy rh3-blk) b (copy rh3-blk) ]
+		rh3-hash/a: copy rh3-blk
+		rh3-hash/b: copy rh3-blk
 		rh3-hash/a: none
 		rh3-hash/b: none
 		recycle
@@ -466,13 +467,14 @@ Red [
 	--test-- "recycle-hash-5"
 		rh5-mem: none
 		rh5-mem2: none
-		rh5-hash: none
+		rh5-hash: make hash! [ a [] b [] ]
 		rh5-blk: []
-		loop 20 [ append/only rh5-blk [1 2 3 4 5 6 7 8 9 10]]
+		loop 20 [ append/only rh5-blk [1 2 3 4 5 6 7 8 9 10] ]
 		recycle
 		rh5-mem: stats
 		
-		rh5-hash: make hash! compose [ a (copy rh5-blk) b (copy rh5-blk) ]
+		rh5-hash/a: copy rh5-blk
+		rh5-hash/b: copy rh5-blk
 		clear rh5-hash/a
 		clear rh5-hash/b
 		recycle
@@ -484,7 +486,7 @@ Red [
 		rh6-mem: none
 		rh6-mem2: none
 		rh6-b: []
-		loop 100 [append rh6-b [1 2 3 4 5 6 7 8 9 10]]
+		loop 100 [ append rh6-b [1 2 3 4 5 6 7 8 9 10] ]
 		rh6-hash: make hash! rh6-b
 		rh6-b: none
 		recycle
@@ -518,11 +520,11 @@ Red [
 		rh8-s: "abcde"
 		rh8-b: copy []
 		loop 1000 [ append rh8-b copy rh8-s ]
-		rh8-h: none
+		rh8-h: make hash![]
 		recycle
 		rh8-mem: stats
 		
-		rh8-h: make hash! rh8-b 
+		append rh8-h copy rh8-b 
 		loop 1000 [ remove rh8-h ]
 		recycle
 		
@@ -567,25 +569,25 @@ Red [
 	--test-- "recycle-vector-3"
 		rv3-mem: none
 		rv3-mem2: none
-		rv3-vec: none
+		rv3-vec: make vector! 500000
 		recycle
 		rv3-mem: stats
 		
-		rv3-vec: make vector! 1000000
+		append rv3-vec to block! rv3-vec
 		remove/part rv3-vec 500000                ;-- discard first half
 		recycle
 		
 		rv3-mem2: stats
-		--assert rv3-mem2 <= rv3-mem
+		--assert rv3-mem2 < rv3-mem
 		
 	--test-- "recycle-vector-4"
 		rv4-mem: none
 		rv4-mem2: none
-		rv4-vec: none
+		rv4-vec: make vector! 500000
 		recycle
 		rv4-mem: stats
 		
-		rv4-vec: make vector! 1000000
+		append rv4-vec to block! rv4-vec
 		remove/part skip rv4-vec 500000 500000    ;-- discard second half
 		recycle
 		
