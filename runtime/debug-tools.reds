@@ -39,7 +39,7 @@ memory-info: func [
 	n-frame: memory/n-head
 
 	while [n-frame <> null][
-		free-nodes: (as-integer (n-frame/top - n-frame/bottom)) / 4
+		free-nodes: (as-integer (n-frame/top + 1 - n-frame/bottom)) / 4
 		if verbose = 1 [
 			used: used + ((n-frame/nodes - free-nodes) * 4)
 		]
@@ -222,7 +222,7 @@ memory-info: func [
 		while [n-frame <> null][
 			if verbose >= 2 [
 				print ["#" count + 1 ": "]
-				free-nodes: (as-integer (n-frame/top - n-frame/bottom) + 1) / 4
+				free-nodes: (as-integer (n-frame/top + 1 - n-frame/bottom)) / 4
 				frame-stats 
 					free-nodes
 					n-frame/nodes - free-nodes

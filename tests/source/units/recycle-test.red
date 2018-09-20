@@ -171,7 +171,7 @@ Red [
 	--test-- "recycle-block-12"
 		rb12-mem: none
 		rb12-mem2: none
-		rb12-b: []
+		rb12-b: make block! 100000
 		rb12-s: "abcde"
 		recycle
 		rb12-mem: stats

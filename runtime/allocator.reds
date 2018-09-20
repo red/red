@@ -326,9 +326,9 @@ alloc-node: func [
 ][
 	frame: memory/n-active					;-- take node from active node frame
 	
-	if frame/top = frame/bottom [
+	if frame/top < frame/bottom [
 		frame: memory/n-head
-		while [all [frame <> null frame/top = frame/bottom]][frame: frame/next]
+		while [all [frame <> null frame/top < frame/bottom]][frame: frame/next]
 		; TBD: trigger a "light" GC pass from here
 		if null? frame [frame: alloc-node-frame nodes-per-frame] ;-- allocate a new frame
 		memory/n-active: frame
