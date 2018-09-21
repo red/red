@@ -183,6 +183,22 @@ Red [
 		rb12-mem2: stats
 		--assert rb12-mem2 <= rb12-mem
 		
+	--test-- "Recycle-block-13"
+		rb13-mem: none
+		rb13-mem2: none
+		rb13-b: [[[[[[[[[[[[[[[[[[[[[s: none]]]]]]]]]]]]]]]]]]]]]]
+		rb13-s: "1234567890"
+		loop 10 [ append rb13-s rb13-s ]
+		recycle
+		rb13-mem: stats
+		
+		rb13-b/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/s: copy rb13-s
+		rb13-b/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/s: none
+		recycle
+		
+		rb13-mem2: stats
+		--assert rb13-mem2 <= rb13-mem
+		
 ===end-group===
 
 ===start-group=== "recycle map"
