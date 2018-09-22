@@ -529,10 +529,10 @@ Red [
 		
 		append rh8-h copy rh8-b 
 		loop 1000 [ remove rh8-h ]
+		rh8-h: none
 		recycle
 		
 		rh8-mem2: stats
-		--assert 0 = length? rh8-h
 		--assert rh8-mem2 <= rh8-mem
 		
 ===end-group===
