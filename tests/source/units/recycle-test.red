@@ -382,30 +382,19 @@ Red [
 		recycle
 		rm8-mem: stats
 		
-		rm8-map/a: (copy rm8-str)
-		rm8-map/b: (copy rm8-str)
-		rm8-map/c: (copy rm8-str)
-		rm8-map/d: (copy rm8-str)
-		rm8-map/e: (copy rm8-str)
-		rm8-map/f: (copy rm8-str)
-		rm8-map/g: (copy rm8-str)
-		rm8-map/h: (copy rm8-str)
-		rm8-map/i: (copy rm8-str)
-		rm8-map/j: (copy rm8-str)
-		rm8-map/k: (copy rm8-str)
-		rm8-map/l: (copy rm8-str)
-		clear rm8-map/a
-		clear rm8-map/b
-		clear rm8-map/c
-		clear rm8-map/d
-		clear rm8-map/e
-		clear rm8-map/f
-		clear rm8-map/g
-		clear rm8-map/h
-		clear rm8-map/i
-		clear rm8-map/j
-		clear rm8-map/k
-		clear rm8-map/l
+		rm8-map/a: rm8-str
+		rm8-map/b: rm8-str
+		rm8-map/c: rm8-str
+		rm8-map/d: rm8-str
+		rm8-map/e: rm8-str
+		rm8-map/f: rm8-str
+		rm8-map/g: rm8-str
+		rm8-map/h: rm8-str
+		rm8-map/i: rm8-str
+		rm8-map/j: rm8-str
+		rm8-map/k: rm8-str
+		rm8-map/l: rm8-str
+		rm8-str: none
 		recycle
 		
 		rm8-mem2: stats
@@ -489,10 +478,9 @@ Red [
 		recycle
 		rh5-mem: stats
 		
-		rh5-hash/a: copy rh5-blk
-		rh5-hash/b: copy rh5-blk
-		clear rh5-hash/a
-		clear rh5-hash/b
+		rh5-hash/a: rh5-blk
+		rh5-hash/b: rh5-blk
+		rh5-blk: copy []
 		recycle
 		
 		rh5-mem2: stats
@@ -545,6 +533,7 @@ Red [
 		recycle
 		
 		rh8-mem2: stats
+		--assert 0 = length? rh8-h
 		--assert rh8-mem2 <= rh8-mem
 		
 ===end-group===
