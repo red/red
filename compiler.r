@@ -1146,8 +1146,15 @@ red: context [
 		]
 	]
 	
-	check-redefined: func [name [word!] original [any-word!] /only /local pos entry][
-		if all [not only pos: find-function name original][
+	check-redefined: func [name [word!] original [any-word!] /only /local pos entry obj][
+		if all [
+			not only
+			pos: find-function name original
+			not all [									;-- if name is not bound to an object
+				rebol-gctx <> obj: bind? original
+				not find shadow-funcs obj
+			]
+		][
 			remove/part pos 2							;-- remove previous function definition
 		]
 		if all [
