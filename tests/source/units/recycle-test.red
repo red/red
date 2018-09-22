@@ -479,8 +479,7 @@ Red [
 		rh5-mem: stats
 		
 		rh5-hash/a: rh5-blk
-		rh5-hash/b: rh5-blk
-		rh5-blk: copy []
+		rh5-hash/b: none
 		recycle
 		
 		rh5-mem2: stats
