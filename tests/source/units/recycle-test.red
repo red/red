@@ -186,7 +186,7 @@ Red [
 	--test-- "Recycle-block-13"
 		rb13-mem: none
 		rb13-mem2: none
-		rb13-b: [[[[[[[[[[[[[[[[[[[[[s: none]]]]]]]]]]]]]]]]]]]]]]
+		rb13-b: [[[[[[[[[[[[[[[[[[[[[s: none]]]]]]]]]]]]]]]]]]]]]
 		rb13-s: "1234567890"
 		loop 10 [ append rb13-s rb13-s ]
 		recycle
