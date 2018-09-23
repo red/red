@@ -1204,6 +1204,7 @@ collect-bigs: func [
 		s: as series! (as byte-ptr! frame) + size? big-frame!
 		frame: frame/next			;-- get next frame before free current frame
 		either s/flags and flag-gc-mark = 0 [
+			free-node s/node
 			free-big as byte-ptr! s
 		][
 			s/flags: s/flags and not flag-gc-mark	;-- clear mark flag
