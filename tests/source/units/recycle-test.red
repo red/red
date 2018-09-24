@@ -11,7 +11,7 @@ Red [
 
 ~~~start-file~~~ "recycle test"
 
-===start-group=== "recyle block"
+===start-group=== "recycle block"
 	
 	--test-- "recycle-block-1"
 		rb1-mem: none
@@ -140,6 +140,7 @@ Red [
 		rb9-mem2: stats
 		--assert rb9-mem2 <= rb9-mem
 		
+comment {
 	--test-- "recycle-block-10"
 		rb10-mem: none
 		rb10-mem2: none
@@ -157,7 +158,7 @@ Red [
 	--test-- "recycle-block-11"
 		rb11-mem: none
 		rb11-mem2: none
-		rb11-b: []
+		rb11-b: make block! 1000
 		loop 100 [append rb11-b [1 2 3 4 5 6 7 8 9 10]]
 		recycle
 		rb11-mem: stats
@@ -167,7 +168,7 @@ Red [
 		
 		rb11-mem2: stats
 		--assert rb11-mem2 <= rb11-mem
-		
+}		
 	--test-- "recycle-block-12"
 		rb12-mem: none
 		rb12-mem2: none
@@ -377,7 +378,7 @@ Red [
 			a: "" b: "" c: "" d: "" e: "" f: ""
 			g: "" h: "" i: "" j: "" k: "" l: ""
 		)
-		rm8-str: "12345678901234567890"
+		rm8-str: append make string! 200 "12345678901234567890"
 		loop 10 [ append rm8-str rm8-str ]
 		recycle
 		rm8-mem: stats
@@ -473,7 +474,7 @@ Red [
 		rh5-mem: none
 		rh5-mem2: none
 		rh5-hash: make hash! [ a [] b [] ]
-		rh5-blk: []
+		rh5-blk: make block! 200
 		loop 20 [ append/only rh5-blk [1 2 3 4 5 6 7 8 9 10] ]
 		recycle
 		rh5-mem: stats
@@ -484,11 +485,11 @@ Red [
 		
 		rh5-mem2: stats
 		--assert rh5-mem2 <= rh5-mem
-		
+comment {		
 	--test-- "recycle-hash-6"
 		rh6-mem: none
 		rh6-mem2: none
-		rh6-b: []
+		rh6-b: make block! 200
 		loop 100 [ append rh6-b [1 2 3 4 5 6 7 8 9 10] ]
 		rh6-hash: make hash! rh6-b
 		rh6-b: none
@@ -504,7 +505,7 @@ Red [
 	--test-- "recycle-hash-7"
 		rh7-mem: none
 		rh7-mem2: none
-		rh7-b: []
+		rh7-b: make block! 200
 		loop 100 [append rh7-b [1 2 3 4 5 6 7 8 9 10]]
 		rh7-hash: make hash! rh7-b
 		clear rh7-b
@@ -516,14 +517,14 @@ Red [
 		
 		rh7-mem2: stats
 		--assert rh7-mem2 <= rh7-mem
-		
+}		
 	--test-- "recycle-hash-8"
 		rh8-mem: none
 		rh8-mem2: none
 		rh8-s: "abcde"
-		rh8-b: copy []
+		rh8-b: make block! 1000
 		loop 1000 [ append rh8-b copy rh8-s ]
-		rh8-h: make hash![]
+		rh8-h: make hash! []
 		recycle
 		rh8-mem: stats
 		
@@ -610,10 +611,11 @@ Red [
 		ro1-o: none
 		ro1-mem: none
 		ro1-mem2: none
+		copy ""
 		recycle
 		ro1-mem: stats
 		
-		ro1-o: make object! [
+		ro1-o: make object! copy [
 			a: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 ]
 			b: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 ]
 			c: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 ]
@@ -625,7 +627,7 @@ Red [
 		
 		ro1-mem2: stats
 		--assert ro1-mem2 <= ro1-mem
-		
+comment {		
 	--test-- "recycle-object-2"
 		ro2-o: none
 		ro2-mem: none
@@ -633,7 +635,7 @@ Red [
 		recycle
 		ro2-mem: stats
 		
-		ro2-o: make object! [
+		ro2-o: make object! copy [
 			a: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 ]
 			b: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 ]
 			c: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 ]
@@ -657,12 +659,12 @@ Red [
 		recycle
 		ro3-mem: stats
 		
-		ro3-o: make object! [
-			a: make object! [ a: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 ] ]
-			b: make object! [ b: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 ] ]
-			c: make object! [ c: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 ] ]
-			d: make object! [ d: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 ] ]
-			e: make object! [ e: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 ] ]
+		ro3-o: make object! copy [
+			a: make object! copy [ a: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 ] ]
+			b: make object! copy [ b: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 ] ]
+			c: make object! copy [ c: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 ] ]
+			d: make object! copy [ d: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 ] ]
+			e: make object! copy [ e: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 ] ]
 		]
 		ro3-o/a/a: none
 		recycle
@@ -677,12 +679,12 @@ Red [
 		recycle
 		ro4-mem: stats
 		
-		ro4-o: make object! [
-			a: make object! [
-				b: make object! [ 
-					c: make object! [
-						d: make object! [
-							e: make object! [ e: [ 1 2 3 4 5 6 7 8 9 10 ] ]
+		ro4-o: make object! copy [
+			a: make object! copy [
+				b: make object! copy [ 
+					c: make object! copy [
+						d: make object! copy [
+							e: make object! copy [ e: [ 1 2 3 4 5 6 7 8 9 10 ] ]
 						]
 					]
 				]
@@ -693,7 +695,7 @@ Red [
 		
 		ro4-mem2: stats
 		--assert ro4-mem2 <= ro4-mem
-
+}
 	--test-- "recycle-object-5"
 		ro5-o: none
 		ro5-mem: none
@@ -701,25 +703,25 @@ Red [
 		recycle
 		ro5-mem: stats
 		
-		ro5-o: make object! [
-			a: make object! [
-			b: make object! [ 
-			c: make object! [
-			d: make object! [
-			e: make object! [
-			f: make object! [
-			g: make object! [
-			h: make object! [
-			i: make object! [
-			j: make object! [
-			k: make object! [ data: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 ] ]
+		ro5-o: make object! copy [
+			a: make object! copy [
+			b: make object! copy [ 
+			c: make object! copy [
+			d: make object! copy [
+			e: make object! copy [
+			f: make object! copy [
+			g: make object! copy [
+			h: make object! copy [
+			i: make object! copy [
+			j: make object! copy [
+			k: make object! copy [ data: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 ] ]
 		] ] ] ] ] ] ] ] ] ] ]
 		ro5-o: none
 		recycle
 		
 		ro5-mem2: stats
 		--assert ro5-mem2 <= ro5-mem
-
+comment {
 	--test-- "recycle-object-6"
 		ro6-o: none
 		ro6-mem: none
@@ -727,24 +729,24 @@ Red [
 		recycle
 		ro6-mem: stats
 		
-		ro6-o: make object! [
-			a: make object! [
-			b: make object! [ 
-			c: make object! [
-			d: make object! [
-			e: make object! [
-			f: make object! [
-			g: make object! [
-			h: make object! [
-			i: make object! [
-			j: make object! [
-			k: make object! [ data: 1 ]
+		ro6-o: make object! copy [
+			a: make object! copy [
+			b: make object! copy [ 
+			c: make object! copy [
+			d: make object! copy [
+			e: make object! copy [
+			f: make object! copy [
+			g: make object! copy [
+			h: make object! copy [
+			i: make object! copy [
+			j: make object! copy [
+			k: make object! copy [ data: 1 ]
 		] ] ] ] ] ] ] ] ] ] ]
 		ro6-o/a/b/c/d/e/f/g/h/i/j/k/data: none
 		
 		ro6-mem2: stats
 		--assert ro6-mem2 <= ro6-mem
-
+}
 	--test-- "recycle-object-7"    					;-- really a check of 'stats
 		ro7-o1: none
 		ro7-o2: none
@@ -765,7 +767,7 @@ Red [
 		
 		ro7-mem2: stats
 		--assert ro7-mem2 > ro7-mem
-
+comment {
 	--test-- "recycle-object-8"
 		ro8-o: none
 		ro8-m: none
@@ -774,7 +776,7 @@ Red [
 		recycle
 		ro8-mem: stats
 		
-		ro8-o: make object! [
+		ro8-o: make object! copy [
 			ro8-m: #(m: "12345678901234567890")
 		]
 		ro8-o/ro8-m/m: none
@@ -791,7 +793,7 @@ Red [
 		recycle
 		ro9-mem: stats
 		
-		ro9-o: make object! [
+		ro9-o: make object! copy [
 			ro9-m: #(m: #(m: #(m: #(m: #(m: #(m: "12345678901234567890"))))))
 		]
 		ro9-o/ro9-m/m/m/m/m/m/m: none
@@ -799,5 +801,5 @@ Red [
 		
 		ro9-mem2: stats
 		--assert ro9-mem2 <= ro9-mem
-
+}
 ~~~end-file~~~
