@@ -129,8 +129,14 @@ libRedRT: context [
 	]
 	
 	process: func [job functions exports /local name list pos tmpl words lits file base-dir][
-		make-exports functions exports
-		if job/OS = 'Windows [append/only funcs 'red/image/push]
+		make-exports functions exports job
+		if job/OS <> 'Linux [
+			append funcs [
+				red/image/push
+				red/image/acquire-buffer
+				red/image/release-buffer
+			]
+		]
 		
 		clear imports
 		clear template
