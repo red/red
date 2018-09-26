@@ -527,12 +527,15 @@ BaseWndProc: func [
 					if null? current-msg [return -1]
 					system/thrown: 0
 					DC: declare draw-ctx!				;@@ should declare it on stack
-					draw-begin DC hWnd null no yes
-					integer/make-at as red-value! draw as-integer DC
-					current-msg/hWnd: hWnd
-					make-event current-msg 0 EVT_DRAWING
-					draw/header: TYPE_NONE
-					draw-end DC hWnd no no yes
+					catch RED_THROWN_ERROR [
+						draw-begin DC hWnd null no yes
+						integer/make-at as red-value! draw as-integer DC
+						current-msg/hWnd: hWnd
+						make-event current-msg 0 EVT_DRAWING
+						draw/header: TYPE_NONE
+						draw-end DC hWnd no no yes
+					]
+					system/thrown: 0
 				]
 				return 0
 			]
