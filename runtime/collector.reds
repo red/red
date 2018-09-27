@@ -237,6 +237,10 @@ collector: context [
 						#if debug? = yes [if verbose > 1 [print "native"]]
 						mark-block-node native/spec
 					]
+					if native/header and body-flag <> 0 [
+						#if debug? = yes [if verbose > 1 [print "op/code"]]
+						mark-block-node as node! native/code
+					]
 				]
 				default [0]
 			]
