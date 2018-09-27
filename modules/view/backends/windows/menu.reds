@@ -14,6 +14,8 @@ menu-selected:	-1										;-- last selected menu item ID
 menu-handle: 	as handle! 0							;-- last selected menu handle
 menu-origin:	as handle! 0							;-- window where context menu was opened from
 menu-ctx:		as handle! 0							;-- context menu handle
+menu-x:			0
+menu-y:			0
 
 
 build-menu: func [

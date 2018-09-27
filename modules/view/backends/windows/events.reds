@@ -160,6 +160,13 @@ get-event-offset: func [
 			offset/y: WIN32_HIWORD(value)
 			as red-value! offset
 		]
+		evt/type = EVT_MENU [
+			offset: as red-pair! stack/push*
+			offset/header: TYPE_PAIR
+			offset/x: menu-x
+			offset/y: menu-y
+			as red-value! offset
+		]
 		true [as red-value! none-value]
 	]
 ]
@@ -1414,17 +1421,17 @@ process: func [
 		WM_RBUTTONDOWN	[
 			if GetCapture <> null [return EVT_DISPATCH]
 			lParam: msg/lParam
+			menu-x: WIN32_LOWORD(lParam)
+			menu-y: WIN32_HIWORD(lParam)
 			pt: declare tagPOINT
-			pt/x: WIN32_LOWORD(lParam)
-			pt/y: WIN32_HIWORD(lParam)
+			pt/x: menu-x
+			pt/y: menu-y
 			ClientToScreen msg/hWnd pt
 			menu-origin: null
 			menu-ctx: null
-			either show-context-menu msg pt/x pt/y [
-				EVT_NO_DISPATCH
-			][
-				make-event msg 0 EVT_RIGHT_DOWN
-			]
+			res: make-event msg 0 EVT_RIGHT_DOWN
+			if show-context-menu msg pt/x pt/y [res: EVT_NO_DISPATCH]
+			res
 		]
 		WM_RBUTTONUP	[make-event msg 0 EVT_RIGHT_UP]
 		WM_MBUTTONDOWN	[make-event msg 0 EVT_MIDDLE_DOWN]
