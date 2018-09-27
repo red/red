@@ -579,6 +579,17 @@ BaseWndProc: func [
 				return 1
 			]
 		]
+		WM_MENUSELECT [
+			if wParam <> FFFF0000h [
+				menu-selected: WIN32_LOWORD(wParam)
+				menu-handle: as handle! lParam
+			]
+			return 0
+		]
+		WM_COMMAND [
+			process-command-event hWnd msg wParam lParam
+			return 0
+		]
 		default [0]
 	]
 	if (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_IME <> 0 [
