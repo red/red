@@ -506,7 +506,7 @@ Red [
 		rh7-mem: none
 		rh7-mem2: none
 		rh7-b: make block! 100
-		loop 100 [append/only rh7-b copy [1 2 3 4 5 6 7 8 9 10]]
+		loop 100 [ append/only rh7-b copy ["1 2 3 4 5 6 7 8 9 10"] ]
 		rh7-hash: make hash! rh7-b
 		clear rh7-b
 		recycle
