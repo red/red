@@ -125,6 +125,7 @@ collector: context [
 			routine [red-routine!]
 			native	[red-native!]
 			ctx		[red-context!]
+			image	[red-image!]
 			len		[integer!]
 	][
 		#if debug? = yes [if verbose > 1 [len: -1 indent: indent + 1]]
@@ -242,6 +243,11 @@ collector: context [
 						mark-block-node as node! native/code
 					]
 				]
+				#if OS = 'macOS [
+				TYPE_IMAGE [
+					image: as red-image! value
+					keep image/node
+				]]
 				default [0]
 			]
 			value: value + 1
