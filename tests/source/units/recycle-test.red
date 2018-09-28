@@ -159,7 +159,7 @@ Red [
 		rb11-mem: none
 		rb11-mem2: none
 		rb11-b: make block! 100
-		loop 100 [append/only copy rb11-b [1 2 3 4 5 6 7 8 9 10]]
+		loop 100 [append/only rb11-b copy [1 2 3 4 5 6 7 8 9 10]]
 		recycle
 		rb11-mem: stats
 		
