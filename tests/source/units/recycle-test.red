@@ -140,16 +140,16 @@ Red [
 		rb9-mem2: stats
 		--assert rb9-mem2 <= rb9-mem
 		
-comment {
+
 	--test-- "recycle-block-10"
 		rb10-mem: none
 		rb10-mem2: none
-		rb10-b: []
-		loop 100 [append rb10-b [1 2 3 4 5 6 7 8 9 10]]
+		rb10-b: make block! 100
+		loop 100 [ append rb10-b copy "12345678901234567890" ]
 		recycle
 		rb10-mem: stats
 		
-		remove/part rb10-b 500
+		remove/part rb10-b 50
 		recycle
 		
 		rb10-mem2: stats
@@ -158,17 +158,17 @@ comment {
 	--test-- "recycle-block-11"
 		rb11-mem: none
 		rb11-mem2: none
-		rb11-b: make block! 1000
-		loop 100 [append rb11-b [1 2 3 4 5 6 7 8 9 10]]
+		rb11-b: make block! 100
+		loop 100 [append/only copy rb11-b [1 2 3 4 5 6 7 8 9 10]]
 		recycle
 		rb11-mem: stats
 		
-		remove/part skip rb11-b 500 500                 ;-- discard 2nd half
+		remove/part skip rb11-b 50 50				;-- discard 2nd half
 		recycle
 		
 		rb11-mem2: stats
 		--assert rb11-mem2 <= rb11-mem
-}		
+		
 	--test-- "recycle-block-12"
 		rb12-mem: none
 		rb12-mem2: none
@@ -485,18 +485,18 @@ comment {
 		
 		rh5-mem2: stats
 		--assert rh5-mem2 <= rh5-mem
-comment {		
+		
 	--test-- "recycle-hash-6"
 		rh6-mem: none
 		rh6-mem2: none
-		rh6-b: make block! 200
-		loop 100 [ append rh6-b [1 2 3 4 5 6 7 8 9 10] ]
+		rh6-b: make block! 100
+		loop 100 [ append/only rh6-b copy [1 2 3 4 5 6 7 8 9 10] ]
 		rh6-hash: make hash! rh6-b
 		rh6-b: none
 		recycle
 		rh6-mem: stats
 		
-		remove/part rh6-hash 500
+		remove/part rh6-hash 50
 		recycle
 		
 		rh6-mem2: stats
@@ -505,8 +505,8 @@ comment {
 	--test-- "recycle-hash-7"
 		rh7-mem: none
 		rh7-mem2: none
-		rh7-b: make block! 200
-		loop 100 [append rh7-b [1 2 3 4 5 6 7 8 9 10]]
+		rh7-b: make block! 100
+		loop 100 [append/only rh7-b copy [1 2 3 4 5 6 7 8 9 10]]
 		rh7-hash: make hash! rh7-b
 		clear rh7-b
 		recycle
@@ -517,7 +517,7 @@ comment {
 		
 		rh7-mem2: stats
 		--assert rh7-mem2 <= rh7-mem
-}		
+		
 	--test-- "recycle-hash-8"
 		rh8-mem: none
 		rh8-mem2: none
@@ -627,7 +627,7 @@ comment {
 		
 		ro1-mem2: stats
 		--assert ro1-mem2 <= ro1-mem
-comment {		
+		
 	--test-- "recycle-object-2"
 		ro2-o: none
 		ro2-mem: none
@@ -636,11 +636,11 @@ comment {
 		ro2-mem: stats
 		
 		ro2-o: make object! copy [
-			a: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 ]
-			b: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 ]
-			c: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 ]
-			d: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 ]
-			e: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 ]
+			a: [ "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20" ]
+			b: [ "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20" ]
+			c: [ "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20" ]
+			d: [ "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20" ]
+			e: [ "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20" ]
 		]
 		clear ro2-o/a
 		clear ro2-o/b
@@ -653,19 +653,20 @@ comment {
 		--assert ro2-mem2 <= ro2-mem
 
 	--test-- "recycle-object-3"
-		ro3-o: none
 		ro3-mem: none
 		ro3-mem2: none
+		do [
+			ro3-o: make object! copy [
+				a: make object! copy [ a: [ "1 2 3 4 5 6 7 8 9 10 11 12 13" ] ]
+				b: make object! copy [ b: [ "1 2 3 4 5 6 7 8 9 10 11 12 13" ] ]
+				c: make object! copy [ c: [ "1 2 3 4 5 6 7 8 9 10 11 12 13" ] ]
+				d: make object! copy [ d: [ "1 2 3 4 5 6 7 8 9 10 11 12 13" ] ]
+				e: make object! copy [ e: [ "1 2 3 4 5 6 7 8 9 10 11 12 13" ] ]
+			]
+		]
 		recycle
 		ro3-mem: stats
 		
-		ro3-o: make object! copy [
-			a: make object! copy [ a: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 ] ]
-			b: make object! copy [ b: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 ] ]
-			c: make object! copy [ c: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 ] ]
-			d: make object! copy [ d: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 ] ]
-			e: make object! copy [ e: [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 ] ]
-		]
 		ro3-o/a/a: none
 		recycle
 		
@@ -673,29 +674,28 @@ comment {
 		--assert ro3-mem2 <= ro3-mem
 
 	--test-- "recycle-object-4"
-		ro4-o: none
 		ro4-mem: none
 		ro4-mem2: none
-		recycle
-		ro4-mem: stats
-		
 		ro4-o: make object! copy [
 			a: make object! copy [
 				b: make object! copy [ 
 					c: make object! copy [
 						d: make object! copy [
-							e: make object! copy [ e: [ 1 2 3 4 5 6 7 8 9 10 ] ]
+							e: make object! copy [ e: [ "1 2 3 4 5 6 7 8 9" ] ]
 						]
 					]
 				]
 			]
 		]
+		recycle
+		ro4-mem: stats
+		                                       
 		ro4-o/a/b/c/d/e/e: none
 		recycle
 		
 		ro4-mem2: stats
 		--assert ro4-mem2 <= ro4-mem
-}
+
 	--test-- "recycle-object-5"
 		ro5-o: none
 		ro5-mem: none
@@ -721,14 +721,10 @@ comment {
 		
 		ro5-mem2: stats
 		--assert ro5-mem2 <= ro5-mem
-comment {
+
 	--test-- "recycle-object-6"
-		ro6-o: none
 		ro6-mem: none
 		ro6-mem2: none
-		recycle
-		ro6-mem: stats
-		
 		ro6-o: make object! copy [
 			a: make object! copy [
 			b: make object! copy [ 
@@ -740,13 +736,17 @@ comment {
 			h: make object! copy [
 			i: make object! copy [
 			j: make object! copy [
-			k: make object! copy [ data: 1 ]
+			k: make object! copy [ data: "12345678901234567890" ]
 		] ] ] ] ] ] ] ] ] ] ]
+		recycle
+		ro6-mem: stats
+		
 		ro6-o/a/b/c/d/e/f/g/h/i/j/k/data: none
+		recycle
 		
 		ro6-mem2: stats
 		--assert ro6-mem2 <= ro6-mem
-}
+
 	--test-- "recycle-object-7"    					;-- really a check of 'stats
 		ro7-o1: none
 		ro7-o2: none
@@ -767,18 +767,16 @@ comment {
 		
 		ro7-mem2: stats
 		--assert ro7-mem2 > ro7-mem
-comment {
+
 	--test-- "recycle-object-8"
-		ro8-o: none
-		ro8-m: none
 		ro8-mem: none
-		ro8-mem1: none
-		recycle
-		ro8-mem: stats
-		
+		ro8-mem1: none		
 		ro8-o: make object! copy [
 			ro8-m: #(m: "12345678901234567890")
 		]
+		recycle
+		ro8-mem: stats
+
 		ro8-o/ro8-m/m: none
 		recycle
 		
@@ -790,16 +788,16 @@ comment {
 		ro9-m: none
 		ro9-mem: none
 		ro9-mem1: none
-		recycle
-		ro9-mem: stats
-		
 		ro9-o: make object! copy [
 			ro9-m: #(m: #(m: #(m: #(m: #(m: #(m: "12345678901234567890"))))))
 		]
+		recycle
+		ro9-mem: stats
+		
 		ro9-o/ro9-m/m/m/m/m/m/m: none
 		recycle
 		
 		ro9-mem2: stats
 		--assert ro9-mem2 <= ro9-mem
-}
+
 ~~~end-file~~~
