@@ -725,7 +725,7 @@ change-font: func [
 		storage: objc_msgSend [view sel_getUid "textStorage"]
 		objc_msgSend [
 			storage sel_getUid "setAttributes:range:"
-			attrs 0 objc_msgSend [storage sel_getUid "length"]
+			attrs 0 objc_msgSend [storage sel_length]
 		]
 		objc_msgSend [view sel_getUid "setTypingAttributes:" attrs]
 	][

@@ -328,7 +328,7 @@ on-key-down: func [
 			key: objc_msgSend [event sel_getUid "characters"]
 			if all [
 				key <> 0
-				0 < objc_msgSend [key sel_getUid "length"]
+				0 < objc_msgSend [key sel_length]
 			][
 				key: objc_msgSend [key sel_getUid "characterAtIndex:" 0]
 				make-event self key or flags EVT_KEY
@@ -585,7 +585,7 @@ set-text: func [
 		face [red-object!]
 		out	 [c-string!]
 ][
-	size: objc_msgSend [text sel_getUid "length"]
+	size: objc_msgSend [text sel_length]
 	if size >= 0 [
 		str: as red-string! (get-face-values obj) + FACE_OBJ_TEXT
 		if TYPE_OF(str) <> TYPE_STRING [
@@ -1267,7 +1267,7 @@ set-marked-text: func [
 	text: either attr-str? [objc_msgSend [str sel_getUid "string"]][str]
 	make-event self text EVT_IME
 	_marked-range-idx: idx1
-	_marked-range-len: objc_msgSend [text sel_getUid "length"]
+	_marked-range-len: objc_msgSend [text sel_length]
 	if zero? _marked-range-len [
 		objc_msgSend [self sel_getUid "unmarkText"]
 	]
@@ -1331,7 +1331,7 @@ insert-text-range: func [
 		str sel_getUid "isKindOfClass:" objc_getClass "NSAttributedString"
 	]
 	text: either attr-str? [objc_msgSend [str sel_getUid "string"]][str]
-	len: objc_msgSend [text sel_getUid "length"]
+	len: objc_msgSend [text sel_length]
 	idx: 0
 	while [idx < len][
 		key: objc_msgSend [text sel_getUid "characterAtIndex:" idx]

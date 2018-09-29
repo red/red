@@ -362,7 +362,7 @@ OS-text-box-layout: func [
 	objc_msgSend [ts sel_getUid "beginEditing"]
 
 	if cached? [
-		w: objc_msgSend [ts sel_getUid "length"]
+		w: objc_msgSend [ts sel_length]
 		objc_msgSend [ts sel_getUid "deleteCharactersInRange:" 0 w]
 		objc_msgSend [ts sel_getUid "replaceCharactersInRange:withString:" 0 0 str]
 	]
@@ -375,7 +375,7 @@ OS-text-box-layout: func [
 		nscolor NSForegroundColorAttributeName
 		0
 	]
-	w: objc_msgSend [str sel_getUid "length"]
+	w: objc_msgSend [str sel_length]
 	objc_msgSend [ts sel_getUid "setAttributes:range:" attrs 0 w]
 	objc_msgSend [attrs sel_release]
 
