@@ -992,6 +992,9 @@ change-data: func [
 		any [type = drop-list type = drop-down][
 			init-combo-box hWnd as red-block! data null type = drop-list
 		]
+		type = rich-text [
+			objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
+		]
 		true [0]										;-- default, do nothing
 	]
 ]
