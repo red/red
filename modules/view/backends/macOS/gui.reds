@@ -1547,7 +1547,7 @@ update-scroller: func [
 			objc_getClass "NSNumber" sel_getUid "numberWithUnsignedInt:"
 			values
 		]
-		objc_setAssociatedObject bar RedAttachedWidgetKey n OBJC_ASSOCIATION_ASSIGN
+		objc_setAssociatedObject bar RedAttachedWidgetKey n OBJC_ASSOCIATION_RETAIN
 	]
 
 	n: max - page
