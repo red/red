@@ -1056,6 +1056,7 @@ Red/System [
 			dc			[handle!]
 			layout		[handle!]			;-- text layout (opaque handle)
 			cmds		[red-block!]
+			max-len		[integer!]
 			catch?		[logic!]
 			/local
 				cmd		[red-value!]
@@ -1121,6 +1122,7 @@ Red/System [
 						range: as red-pair! cmd
 						idx: range/x - 1
 						len: range/y
+						if idx + len > max-len [len: max-len - idx]
 					]
 					TYPE_STRING [										;-- font name
 						OS-text-box-font-name dc layout idx len as red-string! cmd

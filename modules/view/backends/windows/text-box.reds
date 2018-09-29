@@ -367,7 +367,7 @@ OS-text-box-layout: func [
 		TYPE_OF(styles) = TYPE_BLOCK
 		1 < block/rs-length? styles
 	][
-		parse-text-styles target as handle! layout styles catch?
+		parse-text-styles target as handle! layout styles 7FFFFFFFh catch?
 	]
 	layout
 ]
