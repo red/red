@@ -1561,8 +1561,49 @@ actions: context [
 		action-trim series head? tail? auto? lines? all? with-arg
 	]
 
-	create*: func [][]
-	close*: func [][]
+	create*: func [
+		return:	[red-value!]
+	][
+		stack/set-last create stack/arguments
+	]
+	
+	create: func [
+		spec	[red-value!]
+		return: [red-value!]
+		/local
+			action-create
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/create"]]
+
+		action-create: as function! [
+			spec	[red-value!]
+			return: [red-value!]
+		] get-action-ptr spec ACT_CREATE
+
+		action-create spec
+	]
+	
+	close*: func [
+		return:	[red-value!]
+	][
+		stack/set-last close stack/arguments
+	]
+
+	close: func [
+		port	[red-value!]
+		return: [red-value!]
+		/local
+			action-close
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/close"]]
+
+		action-close: as function! [
+			port	[red-value!]
+			return: [red-value!]
+		] get-action-ptr port ACT_CLOSE
+
+		action-close port
+	]
 	
 	delete*: func [
 		return:	[red-value!]
@@ -1585,8 +1626,49 @@ actions: context [
 
 		action-delete file
 	]
+
+	open*: func [
+		new   [integer!]
+		read  [integer!]
+		write [integer!]
+		seek  [integer!]
+		allow [integer!]
+	][
+		stack/set-last open
+			stack/arguments
+			new   <> -1
+			read  <> -1
+			write <> -1
+			seek  <> -1
+			stack/arguments + allow
+	]
 	
-	open*: func [][]
+	open: func [
+		spec	[red-value!]
+		new?	[logic!]
+		read?	[logic!]
+		write?	[logic!]
+		seek?	[logic!]
+		allow	[red-value!]
+		return: [red-value!]
+		/local
+			action-open
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/open"]]
+
+		action-open: as function! [
+			spec	[red-value!]
+			new?	[logic!]
+			read?	[logic!]
+			write?	[logic!]
+			seek?	[logic!]
+			allow	[red-value!]
+			return:	[red-value!]						;-- picked value from series
+		] get-action-ptr spec ACT_OPEN
+
+		action-open spec new? read? write? seek? allow
+	]
+	
 	open?*: func [][]
 
 	query*: func [][
@@ -1778,11 +1860,11 @@ actions: context [
 			:take*
 			:trim*
 			;-- I/O actions --
-			null			;create
-			null			;close
+			:create*
+			:close*
 			:delete*
 			:modify*
-			null			;open
+			:open*
 			null			;open?
 			:query*
 			:read*

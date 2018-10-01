@@ -526,8 +526,19 @@ trim: make action! [[
 
 ;-- I/O actions --
 
-;create
-;close
+create: make action! [[
+		"Send port a create request"
+		port [port! file! url! block!]
+	]
+	#get-definition ACT_CREATE
+]
+
+close: make action! [[
+		"Closes a port"
+		port [port!]
+	]
+	#get-definition ACT_CLOSE
+]
 
 delete: make action! [[
 		"Deletes the specified file or empty folder"
@@ -535,7 +546,20 @@ delete: make action! [[
 	]
 	#get-definition ACT_DELETE
 ]
-;open
+
+open: make action! [[
+		"Opens a port; makes a new port from a specification if necessary"
+		port [port! file! url! block!]
+		/new "Create new file - if it exists, deletes it"
+		/read "Open for read access"
+		/write "Open for write access"
+		/seek "Optimize for random access"
+		/allow "Specificies right access attributes"
+			access [block!]
+	]
+	#get-definition ACT_OPEN
+]
+
 ;open?
 query: make action! [[
 		"Returns information about a file"
