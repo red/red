@@ -102,6 +102,7 @@ red: context [
 	#include %datatypes/email.reds
 	#include %datatypes/handle.reds
 	#include %datatypes/date.reds
+	#include %datatypes/port.reds
 	#if OS = 'Windows [#include %datatypes/image.reds]	;-- temporary
 	#if OS = 'macOS   [#include %datatypes/image.reds]	;-- temporary
 
@@ -146,8 +147,8 @@ red: context [
 		_random/init
 		init-mem										;@@ needs a local context
 		
-		name-table: as names! allocate 50 * size? names!	 ;-- datatype names table
-		action-table: as int-ptr! allocate 256 * 50 * size? pointer! ;-- actions jump table	
+		name-table: as names! allocate DATATYPES_NB * size? names!	 ;-- datatype names table
+		action-table: as int-ptr! allocate 256 * DATATYPES_NB * size? pointer! ;-- actions jump table	
 
 		datatype/init
 		unset/init
@@ -196,6 +197,7 @@ red: context [
 		email/init
 		handle/init
 		date/init
+		port/init
 		#if OS = 'Windows [image/init]					;-- temporary
 		#if OS = 'macOS   [image/init]					;-- temporary
 		
@@ -270,6 +272,7 @@ red: context [
 			email/verbose:		verbosity
 			handle/verbose:		verbosity
 			date/verbose:		verbosity
+			port/verbose:		verbosity
 			#if OS = 'Windows [image/verbose: verbosity]
 			#if OS = 'macOS   [image/verbose: verbosity]
 

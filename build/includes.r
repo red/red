@@ -128,6 +128,7 @@ write %build/bin/sources.r set-cache [
 			%pair.reds
 			%percent.reds
 			%point.reds
+			%port.reds
 			%refinement.reds
 			%routine.reds
 			%series.reds

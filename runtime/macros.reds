@@ -59,10 +59,10 @@ Red/System [
 	TYPE_EMAIL											;-- 2D		45
 	TYPE_HANDLE											;-- 2E		46
 	TYPE_DATE											;-- 2F		47
-	TYPE_IMAGE											;-- 30		48		;-- needs to be last
+	TYPE_PORT											;-- 30		48
+	TYPE_IMAGE											;-- 31		49		;-- needs to be last
 	TYPE_EVENT											
 	TYPE_CLOSURE
-	TYPE_PORT
 ]
 
 #enum actions! [
@@ -294,6 +294,13 @@ Red/System [
 	RED_THROWN_ERROR:				195939070		;-- #0BADCAFE (keep it positive)
 ]
 
+#enum object-classes! [
+	OBJ_CLASS_ERROR!:	1
+	OBJ_CLASS_PORT!
+	OBJ_CLASS_FACE!
+]
+
+#define DATATYPES_NB	51							;-- total number of built-in datatypes (including TYPE_VALUE)
 #define NATIVES_NB		110							;-- max number of natives (arbitrary set)
 #define ACTIONS_NB		62							;-- number of actions (exact number)
 #define INHERIT_ACTION	-1							;-- placeholder for letting parent's action pass through

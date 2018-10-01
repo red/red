@@ -378,6 +378,9 @@ system: context [
 		header: context [
 			title: name: type: version: date: file: author: needs: none
 		]
+		port: context [
+			spec: scheme: actor: awake: state: data: none
+		]
 		error: context [
 			code: type: id: arg1: arg2: arg3: near: where: stack: none
 		]

@@ -177,7 +177,7 @@ error: context [
 			null
 		
 		new/header: TYPE_ERROR							;-- implicit reset of all header flags
-		new/class:  0
+		new/class:  OBJ_CLASS_ERROR!
 		new/on-set: null
 		
 		base:	object/get-values new
