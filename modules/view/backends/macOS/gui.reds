@@ -978,7 +978,6 @@ change-data: func [
 			rc: make-rect 0 0 as-integer sz/w size/y
 			either max-w > rc/w [
 				rc/w: max-w + as float32! 16.0
-				objc_msgSend [view sel_release]
 				make-text-list
 					face
 					hWnd
