@@ -850,6 +850,16 @@ select-scheme: function ["Internal Use Only" p [port! object!]][
 	s
 ]
 
+register-scheme: func [
+	"Registers a new scheme"
+	name [word!]	"Scheme's name"
+	spec [object!]	"Actors functions"
+][
+	unless find/skip system/schemes name 2 [
+		reduce/into [name spec] system/schemes
+	]
+]
+
 ;clear-cache: function [/only url][
 ;
 ;]

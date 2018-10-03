@@ -592,6 +592,21 @@ words: context [
 	_set: 			as red-word! 0
 	_case:			as red-word! 0
 	
+	;-- navigating actions
+	_at:			as red-word! 0
+	_back:			as red-word! 0
+	_find:			as red-word! 0
+	_head:			as red-word! 0
+	_head?:			as red-word! 0
+	_index?:		as red-word! 0
+	_length?:		as red-word! 0
+	_next:			as red-word! 0
+	_pick:			as red-word! 0
+	_select:		as red-word! 0
+	_skip:			as red-word! 0
+	_tail:			as red-word! 0
+	_tail?:			as red-word! 0
+	
 	;-- modifying actions
 	_change:		as red-word! 0
 	_changed:		as red-word! 0
@@ -798,6 +813,21 @@ words: context [
 		_collect: 		_context/add-global collect
 		_set: 			_context/add-global set
 		_case:			_context/add-global case*
+		
+		;-- navigating actions
+		_at:			word/load "at"
+		_back:			word/load "back"
+		_find:			word/load "find"
+		_head:			word/load "head"
+		_head?:			word/load "head?"
+		_index?:		word/load "index?"
+		_length?:		word/load "length?"
+		_next:			word/load "next"
+		_pick:			word/load "pick"
+		_skip:			word/load "skip"
+		_select:		word/load "select"
+		_tail:			word/load "tail"
+		_tail?:			word/load "tail?"
 		
 		;-- modifying actions
 		_change:		word/load "change"

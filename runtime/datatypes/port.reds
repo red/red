@@ -61,6 +61,39 @@ port: context [
 		if TYPE_OF(actor) = TYPE_NONE [fire [TO_ERROR(access no-port-action) action]]
 		actor
 	]
+	
+	do-action: func [
+		action	[red-word!]
+		args	[integer!]
+		return:	[red-value!]
+		/local
+			port   [red-value!]
+			actors [red-object!]
+			actor  [red-function!]
+	][
+		port: stack/arguments
+		actors: get-actors as red-object! port action
+		actor: get-actor actors action
+		stack/mark-func action actors/ctx
+		stack/push port
+		if args > 1 [stack/push port + 1]
+		call-function actor actors/ctx
+	]
+	
+	do-action-port: func [
+		action	[red-word!]
+		port	[red-object!]
+		return: [red-value!]
+		/local
+			actors [red-object!]
+			actor  [red-function!]
+	][
+		actors: get-actors port action
+		actor: get-actor actors action
+		stack/mark-func action actors/ctx
+		stack/push as red-value! port
+		call-function actor actors/ctx
+	]
 
 	;-- actions --
 	
@@ -93,7 +126,7 @@ port: context [
 	]
 
 	form: func [
-		obj		[red-object!]
+		port	[red-object!]
 		buffer	[red-string!]
 		arg		[red-value!]
 		part 	[integer!]
@@ -101,11 +134,11 @@ port: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "port/form"]]
 
-		mold obj buffer no no no arg part 0
+		mold port buffer no no no arg part 0
 	]
 
 	mold: func [
-		obj		[red-object!]
+		port	[red-object!]
 		buffer	[red-string!]
 		only?	[logic!]
 		all?	[logic!]
@@ -118,58 +151,237 @@ port: context [
 		#if debug? = yes [if verbose > 0 [print-line "port/mold"]]
 
 		string/concatenate-literal buffer "make port! ["
-		part: object/serialize obj buffer only? all? flat? arg part - 12 yes indent + 1 yes
+		part: object/serialize port buffer only? all? flat? arg part - 12 yes indent + 1 yes
 		if indent > 0 [part: object/do-indent buffer indent part]
 		string/append-char GET_BUFFER(buffer) as-integer #"]"
 		part - 1
 	]
 	
-	create: func [
-		spec	[red-value!]
+	at: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "port/at"]]
+		do-action words/_at 2
+	]
+	
+	pick: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "port/pick"]]
+		do-action words/_pick 2
+	]
+	
+	skip: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "port/skip"]]
+		do-action words/_skip 2
+	]
+	
+	back: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "port/back"]]
+		do-action words/_back 1
+	]
+	
+	clear: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "port/clear"]]
+		do-action words/_clear 1
+	]
+
+	head: func [return:	[red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "port/head"]]
+		do-action words/_head 1
+	]
+	
+	head?: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "port/head?"]]
+		do-action words/_head? 1
+	]
+	
+	index?: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "port/index?"]]
+		do-action words/_index? 1
+	]
+	
+	length?: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "port/length?"]]
+		do-action words/_length? 1
+	]
+	
+	next: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "port/next"]]
+		do-action words/_next 1
+	]
+	
+	tail: func [return:	[red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "port/tail"]]
+		do-action words/_tail 1
+	]
+	
+	tail?: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "port/tail?"]]
+		do-action words/_tail? 1
+	]
+	
+	change: func [
+		port	[red-object!]
+		value	[red-value!]
+		part	[red-value!]
+		only?	[logic!]
+		dup		[red-value!]
+		/local
+			actors [red-object!]
+			actor  [red-function!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "port/change"]]
+			
+		actors: get-actors as red-object! port words/_change
+		actor: get-actor actors words/_change
+		stack/mark-func words/_change actors/ctx
+		stack/push as red-value! port
+		stack/push value
+		logic/push OPTION?(part)
+		either OPTION?(part) [stack/push part][none/push]
+		logic/push only?
+		logic/push OPTION?(dup)
+		either OPTION?(dup) [stack/push dup][none/push]
+		call-function actor actors/ctx
+	]
+	
+	find: func [
+		port	[red-object!]
+		value	[red-value!]
+		part	 [red-value!]
+		only?	 [logic!]
+		case?	 [logic!]
+		same?	 [logic!]
+		any?	 [logic!]
+		with-arg [red-string!]
+		skip	 [red-integer!]
+		last?	 [logic!]
+		reverse? [logic!]
+		tail?	 [logic!]
+		match?	 [logic!]
+		return:  [red-value!]
+		/local
+			actors [red-object!]
+			actor  [red-function!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "port/find"]]
+			
+		actors: get-actors as red-object! port words/_find
+		actor: get-actor actors words/_find
+		stack/mark-func words/_find actors/ctx
+		stack/push as red-value! port
+		stack/push value
+		logic/push OPTION?(part)
+		either OPTION?(part) [stack/push part][none/push]
+		logic/push only?
+		logic/push case?
+		logic/push same?
+		logic/push any?
+		logic/push OPTION?(with-arg)
+		either OPTION?(with-arg) [stack/push as red-value! with-arg][none/push]
+		logic/push OPTION?(skip)
+		either OPTION?(skip) [stack/push as red-value! skip][none/push]
+		logic/push last?
+		logic/push reverse?
+		logic/push tail?
+		logic/push match?
+		call-function actor actors/ctx
+	]
+	
+	insert: func [
+		port	[red-object!]
+		value	[red-value!]
+		part	[red-value!]
+		only?	[logic!]
+		dup		[red-value!]
+		append? [logic!]
+		return:	[red-value!]
+		/local
+			actors [red-object!]
+			actor  [red-function!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "port/insert"]]
+			
+		actors: get-actors as red-object! port words/_insert
+		actor: get-actor actors words/_insert
+		stack/mark-func words/_insert actors/ctx
+		stack/push as red-value! port
+		stack/push value
+		logic/push OPTION?(part)
+		either OPTION?(part) [stack/push part][none/push]
+		logic/push only?
+		logic/push OPTION?(dup)
+		either OPTION?(dup) [stack/push dup][none/push]
+		logic/push append?
+		call-function actor actors/ctx
+	]
+	
+	move: func [
+		port	[red-object!]
+		target	[red-value!]
+		part	[red-integer!]
+		return:	[red-value!]
+		/local
+			actors [red-object!]
+			actor  [red-function!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "port/move"]]
+			
+		actors: get-actors as red-object! port words/_move
+		actor: get-actor actors words/_move
+		stack/mark-func words/_move actors/ctx
+		stack/push as red-value! port
+		stack/push target
+		logic/push OPTION?(part)
+		either OPTION?(part) [stack/push as red-value! part][none/push]
+		call-function actor actors/ctx
+	]
+	
+	copy: func [
+		port	[red-object!]
+		new		[red-value!]
+		part	[red-value!]
+		deep?	[logic!]
+		types	[red-value!]
 		return: [red-value!]
 		/local
 			actors [red-object!]
 			actor  [red-function!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "port/create"]]
-		
-		actors: get-actors as red-object! spec words/_create
-		actor: get-actor actors words/_create
-		stack/mark-func words/_create actors/ctx
-		stack/push spec
+		#if debug? = yes [if verbose > 0 [print-line "port/copy"]]
+			
+		actors: get-actors as red-object! port words/_copy
+		actor: get-actor actors words/_copy
+		stack/mark-func words/_copy actors/ctx
+		stack/push as red-value! port
+		logic/push OPTION?(part)
+		either OPTION?(part) [stack/push part][none/push]
+		logic/push deep?
+		logic/push OPTION?(types)
+		either OPTION?(types) [stack/push types][none/push]
 		call-function actor actors/ctx
+		new
+	]
+	
+	create: func [
+		port	[red-object!]
+		return: [red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "port/create"]]
+		do-action-port words/_create port
 	]
 	
 	close: func [
 		port	[red-object!]
 		return: [red-value!]
-		/local
-			actors [red-object!]
-			actor  [red-function!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "port/close"]]
-
-		actors: get-actors port words/_close
-		actor: get-actor actors words/_close
-		stack/mark-func words/_close actors/ctx
-		stack/push as red-value! port
-		call-function actor actors/ctx
+		do-action-port words/_close port
 	]
 	
 	delete: func [
 		port	[red-object!]
 		return: [red-value!]
-		/local
-			actors [red-object!]
-			actor  [red-function!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "port/delete"]]
-
-		actors: get-actors port words/_delete
-		actor: get-actor actors words/_delete
-		stack/mark-func words/_delete actors/ctx
-		stack/push as red-value! port
-		call-function actor actors/ctx
+		do-action-port words/_delete port
 	]
 	
 	modify: func [
@@ -220,22 +432,57 @@ port: context [
 		call-function actor actors/ctx
 	]
 	
-	query: func [
+	poke: func [
 		port	[red-object!]
-		return: [red-value!]
+		index	[integer!]
+		data	[red-value!]
+		boxed	[red-value!]
+		return:	[red-value!]
 		/local
 			actors [red-object!]
 			actor  [red-function!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "port/query"]]
-
-		actors: get-actors port words/_query
-		actor: get-actor actors words/_query
-		stack/mark-func words/_query actors/ctx
+		#if debug? = yes [if verbose > 0 [print-line "port/poke"]]
+		
+		actors: get-actors port words/_poke
+		actor: get-actor actors words/_poke
+		stack/mark-func words/_poke actors/ctx
 		stack/push as red-value! port
+		stack/push boxed
+		stack/push data
 		call-function actor actors/ctx
-	]	
-			
+	]
+	
+	put: func [
+		port	[red-object!]
+		key		[red-value!]
+		value	[red-value!]
+		case?	[logic!]
+		return:	[red-value!]
+		/local
+			actors [red-object!]
+			actor  [red-function!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "port/put"]]
+
+		actors: get-actors port words/_put
+		actor: get-actor actors words/_put
+		stack/mark-func words/_put actors/ctx
+		stack/push as red-value! port
+		stack/push key
+		stack/push value
+		logic/push case?
+		call-function actor actors/ctx
+	]
+	
+	query: func [
+		port	[red-object!]
+		return: [red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "port/query"]]
+		do-action-port words/_query port
+	]
+	
 	read: func [
 		port	[red-object!]
 		part	[red-value!]
@@ -248,8 +495,50 @@ port: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "port/read"]]
 
-		;TBD
+		create port
+		open port no no no OPTION?(seek) none-value
+		;res: copy
+		close port
+		;res
 		as red-value! none-value
+	]
+	
+	remove: func [
+		port	[red-object!]
+		part	[red-value!]
+		return: [red-value!]
+		/local
+			actors [red-object!]
+			actor  [red-function!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "port/remove"]]
+			
+		actors: get-actors as red-object! port words/_remove
+		actor: get-actor actors words/_remove
+		stack/mark-func words/_remove actors/ctx
+		stack/push as red-value! port
+		logic/push OPTION?(part)
+		either OPTION?(part) [stack/push part][none/push]
+		call-function actor actors/ctx
+	]
+	
+	reverse: func [
+		port	[red-object!]
+		part	[red-value!]
+		return: [red-value!]
+		/local
+			actors [red-object!]
+			actor  [red-function!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "port/reverse"]]
+
+		actors: get-actors as red-object! port words/_reverse
+		actor: get-actor actors words/_reverse
+		stack/mark-func words/_reverse actors/ctx
+		stack/push as red-value! port
+		logic/push OPTION?(part)
+		either OPTION?(part) [stack/push part][none/push]
+		call-function actor actors/ctx
 	]
 	
 	rename: func [
@@ -269,21 +558,155 @@ port: context [
 		stack/push to
 		call-function actor actors/ctx
 	]
+
+	select: func [
+		port	 [red-object!]
+		value	 [red-value!]
+		part	 [red-value!]
+		only?	 [logic!]
+		case?	 [logic!]
+		same?	 [logic!]
+		any?	 [logic!]
+		with-arg [red-string!]
+		skip	 [red-integer!]
+		last?	 [logic!]
+		reverse? [logic!]
+		return:  [red-value!]
+		/local
+			actors [red-object!]
+			actor  [red-function!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "port/select"]]
+
+		actors: get-actors as red-object! port words/_select
+		actor: get-actor actors words/_select
+		stack/mark-func words/_select actors/ctx
+		stack/push as red-value! port
+		stack/push value
+		logic/push OPTION?(part)
+		either OPTION?(part) [stack/push part][none/push]
+		logic/push only?
+		logic/push case?
+		logic/push same?
+		logic/push any?
+		logic/push OPTION?(with-arg)
+		either OPTION?(with-arg) [stack/push as red-value! with-arg][none/push]
+		logic/push OPTION?(skip)
+		either OPTION?(skip) [stack/push as red-value! skip][none/push]
+		logic/push last?
+		logic/push reverse?
+		call-function actor actors/ctx
+	]
 	
-	update: func [
+	sort: func [
 		port	[red-object!]
+		case?    [logic!]
+		skip	 [red-integer!]
+		compare	 [red-function!]
+		part	 [red-value!]
+		all?	 [logic!]
+		reverse? [logic!]
+		stable?  [logic!]
+		return:  [red-value!]
+		/local
+			actors [red-object!]
+			actor  [red-function!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "port/sort"]]
+		
+		actors: get-actors as red-object! port words/_sort
+		actor: get-actor actors words/_sort
+		stack/mark-func words/_sort actors/ctx
+		stack/push as red-value! port
+		logic/push case?
+		logic/push OPTION?(skip)
+		either OPTION?(skip) [stack/push as red-value! skip][none/push]
+		logic/push OPTION?(compare)
+		either OPTION?(compare) [stack/push as red-value! compare][none/push]
+		logic/push OPTION?(part)
+		either OPTION?(part) [stack/push part][none/push]
+		logic/push all?
+		logic/push reverse?
+		logic/push stable?
+		call-function actor actors/ctx
+	]
+	
+	swap: func [
+		port	[red-object!]
+		series2	[red-value!]
 		return: [red-value!]
 		/local
 			actors [red-object!]
 			actor  [red-function!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "port/update"]]
-
-		actors: get-actors port words/_update
-		actor: get-actor actors words/_update
-		stack/mark-func words/_update actors/ctx
+		#if debug? = yes [if verbose > 0 [print-line "port/swap"]]
+		
+		actors: get-actors as red-object! port words/_sort
+		actor: get-actor actors words/_sort
+		stack/mark-func words/_sort actors/ctx
 		stack/push as red-value! port
+		stack/push series2
 		call-function actor actors/ctx
+	]
+	
+	take: func [
+		port	[red-object!]
+		part	[red-value!]
+		deep?	[logic!]
+		last?	[logic!]
+		return: [red-value!]
+		/local
+			actors [red-object!]
+			actor  [red-function!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "port/take"]]
+		
+		actors: get-actors as red-object! port words/_take
+		actor: get-actor actors words/_take
+		stack/mark-func words/_take actors/ctx
+		stack/push as red-value! port
+		logic/push OPTION?(part)
+		either OPTION?(part) [stack/push part][none/push]
+		logic/push deep?
+		logic/push last?
+		call-function actor actors/ctx
+	]
+	
+	trim: func [
+		port	 [red-object!]
+		head?	 [logic!]
+		tail?	 [logic!]
+		auto?	 [logic!]
+		lines?	 [logic!]
+		all?	 [logic!]
+		with-arg [red-value!]
+		return:  [red-value!]
+		/local
+			actors [red-object!]
+			actor  [red-function!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "port/trim"]]
+
+		actors: get-actors as red-object! port words/_trim
+		actor: get-actor actors words/_trim
+		stack/mark-func words/_trim actors/ctx
+		stack/push as red-value! port
+		logic/push head?
+		logic/push tail?
+		logic/push auto?
+		logic/push lines?
+		logic/push all?
+		logic/push OPTION?(with-arg)
+		either OPTION?(with-arg) [stack/push with-arg][none/push]
+		call-function actor actors/ctx
+	]
+	
+	update: func [
+		port	[red-object!]
+		return: [red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "port/update"]]
+		do-action-port words/_update port
 	]
 	
 	write: func [
@@ -339,32 +762,32 @@ port: context [
 			null			;xor~
 			;-- Series actions --
 			null			;append
-			null			;at
-			null			;back
-			null			;change
-			null			;clear
-			null			;copy
-			null			;find
-			null			;head
-			null			;head?
-			null			;index?
-			null			;insert
-			null			;length?
-			null			;move
-			null			;next
-			null			;pick
-			null			;poke
-			null			;put
-			null			;remove
-			null			;reverse
-			null			;select
-			null			;sort
-			null			;skip
-			null			;swap
-			null			;tail
-			null			;tail?
-			null			;take
-			null			;trim
+			:at
+			:back
+			:change
+			:clear
+			:copy
+			:find
+			:head
+			:head?
+			:index?
+			:insert
+			:length?
+			:move
+			:next
+			:pick
+			:poke
+			:put
+			:remove
+			:reverse
+			:select
+			:sort
+			:skip
+			:swap
+			:tail
+			:tail?
+			:take
+			:trim
 			;-- I/O actions --
 			:create
 			:close
