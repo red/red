@@ -631,6 +631,17 @@ words: context [
 	_multiply:		as red-word! 0
 	_browse:		as red-word! 0
 	
+	_open:			as red-word! 0
+	_create:		as red-word! 0
+	_close:			as red-word! 0
+	_delete:		as red-word! 0
+	_modify:		as red-word! 0
+	_query:			as red-word! 0
+	_read:			as red-word! 0
+	_rename:		as red-word! 0
+	_update:		as red-word! 0
+	_write:			as red-word! 0
+	
 	errors: context [
 		_throw:		as red-word! 0
 		note:		as red-word! 0
@@ -840,6 +851,18 @@ words: context [
 		
 		_multiply:		word/load "multiply"
 		_browse:		word/load "browse"
+		
+		;-- I/O actions
+		_open:			word/load "open"
+		_create:		word/load "create"
+		_close:			word/load "close"
+		_delete:		word/load "delete"
+		_modify:		word/load "modify"
+		_query:			word/load "query"
+		_read:			word/load "read"
+		_rename:		word/load "rename"
+		_update:		word/load "update"
+		_write:			word/load "write"
 		
 		errors/throw:	 word/load "throw"
 		errors/note:	 word/load "note"

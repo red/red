@@ -840,6 +840,16 @@ do-file: func ["Internal Use Only" file [file! url!] /local saved code new-path 
 	:code
 ]
 
+select-scheme: function ["Internal Use Only" p [port! object!]][
+	s: p/scheme
+	case [
+		any-word? s [s: p/scheme: select system/schemes s]
+		block? s 	[]
+	]	
+	unless object? s [cause-error 'access 'no-scheme reduce [p]]
+	s
+]
+
 ;clear-cache: function [/only url][
 ;
 ;]

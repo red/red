@@ -1738,8 +1738,51 @@ actions: context [
 		action-read src part seek binary? lines? info? as-arg
 	]
 
-	rename*: func [][]
-	update*: func [][]
+	rename*: func [
+		return:	[red-value!]
+	][
+		stack/set-last rename stack/arguments stack/arguments + 1
+	]
+
+	rename: func [
+		from	[red-value!]
+		to		[red-value!]
+		return: [red-value!]
+		/local
+			action-rename
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/rename"]]
+
+		action-rename: as function! [
+			from	[red-value!]
+			to		[red-value!]
+			return: [red-value!]
+		] get-action-ptr from ACT_RENAME
+
+		action-rename from to
+	]
+	
+	update*: func [
+		return:	[red-value!]
+	][
+		stack/set-last update stack/arguments
+	]
+
+	update: func [
+		port	[red-value!]
+		return: [red-value!]
+		/local
+			action-update
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/update"]]
+
+		action-update: as function! [
+			port	[red-value!]
+			return: [red-value!]
+		] get-action-ptr port ACT_UPDATE
+
+		action-update port
+	]
 
 	write*: func [
 		binary? [integer!]
