@@ -13,7 +13,7 @@ Red/System [
 port: context [
 	verbose: 0
 	
-	#enum field! [
+	#enum port-field! [
 		field-spec
 		field-scheme
 		field-actor
@@ -103,12 +103,32 @@ port: context [
 		type	[integer!]
 		return:	[red-object!]
 		/local
-			new		[red-object!]
+			new	   [red-object!]
+			parts  [red-object!]
+			base   [red-value!]
+			scheme [red-word!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "port/make"]]
 
-		new: as red-object! stack/push*
+		either TYPE_OF(spec) = TYPE_OBJECT [
+			parts: as red-object! copy-cell spec stack/push*
+		][
+			new: as red-object! stack/push*
+			object/copy
+				as red-object! #get system/standard/url-parts
+				as red-object! new
+				null
+				no
+				null
 
+			new/class:  0
+			new/on-set: null
+			parts: object/make new spec type
+		]
+		scheme: as red-word! object/get-values parts 0	;-- `scheme` field
+		if TYPE_OF(scheme) <> TYPE_WORD [fire [TO_ERROR(access no-scheme) spec]]
+
+		new: as red-object! stack/push*
 		object/copy
 			as red-object! #get system/standard/port
 			as red-object! new
@@ -116,12 +136,12 @@ port: context [
 			no
 			null
 
-		new/class:  0
-		new/on-set: null
-		
-		new: object/make new spec type
 		new/header: TYPE_PORT							;-- implicit reset of all header flags
 		new/class:  OBJ_CLASS_PORT!
+		
+		base: object/get-values new
+		copy-cell as red-value! parts  base + field-spec
+		copy-cell as red-value! scheme base + field-scheme
 		new
 	]
 

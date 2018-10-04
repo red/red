@@ -213,6 +213,32 @@ url: context [
 	]
 
 	;-- I/O actions
+	
+	open: func [
+		url		[red-url!]
+		new?	[logic!]
+		read?	[logic!]
+		write?	[logic!]
+		seek?	[logic!]
+		allow	[red-value!]
+		return:	[red-value!]
+		/local
+			p [red-object!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "url/open"]]
+
+		#call [url-parser/parse-url url]
+		p: as red-object! stack/arguments
+		
+		either TYPE_OF(p) = TYPE_OBJECT [
+			p: port/make none-value as red-value! p TYPE_NONE
+			port/open p new? read? write? seek? allow
+		][
+			0 ;TBD: error invalid url
+		]
+		as red-value! p
+	]
+	
 	read: func [
 		src		[red-value!]
 		part	[red-value!]
@@ -364,7 +390,7 @@ url: context [
 			null			;close
 			null			;delete
 			INHERIT_ACTION	;modify
-			null			;open
+			:open
 			null			;open?
 			null			;query
 			:read

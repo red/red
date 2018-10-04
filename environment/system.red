@@ -374,7 +374,7 @@ system: context [
 		]
 	]
 	
-	standard: context [
+	standard: context [									;-- do not change object fields number/order
 		header: object [
 			title: name: type: version: date: file: author: needs: none
 		]
