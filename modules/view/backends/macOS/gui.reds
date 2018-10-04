@@ -978,7 +978,6 @@ change-data: func [
 			rc: make-rect 0 0 as-integer sz/w size/y
 			either max-w > rc/w [
 				rc/w: max-w + as float32! 16.0
-				objc_msgSend [view sel_release]
 				make-text-list
 					face
 					hWnd
@@ -2143,16 +2142,7 @@ OS-update-facet: func [
 					type = drop-list
 					type = drop-down
 				][
-					if any [
-						index and 1 = 1
-						part  and 1 = 1
-					][
-						fire [TO_ERROR(script invalid-data-facet) value]
-					]
-					index: index / 2
-					part:   part / 2
 					if zero? part [exit]
-
 					update-combo-box face value sym new index part yes
 				]
 				type = tab-panel [

@@ -429,7 +429,8 @@ complement?: make native! [[
 
 dehex: make native! [[
 		"Converts URL-style hex encoded (%xx) strings"
-		value [string! file!]							;@@ replace with any-string!
+		value [any-string!]
+		return:	[string!] "Always return a string"
 	]
 	#get-definition NAT_DEHEX
 ]
