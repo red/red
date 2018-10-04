@@ -375,17 +375,20 @@ system: context [
 	]
 	
 	standard: context [
-		header: context [
+		header: object [
 			title: name: type: version: date: file: author: needs: none
 		]
-		port: context [
+		port: object [
 			spec: scheme: actor: awake: state: data: none
 		]
-		error: context [
+		error: object [
 			code: type: id: arg1: arg2: arg3: near: where: stack: none
 		]
-		file-info: context [
+		file-info: object [
 			name: size: date: type: none
+		]
+		url-parts: object [
+			scheme: user-info: host: port: path: target: query: fragment: none
 		]
 	]
 	
