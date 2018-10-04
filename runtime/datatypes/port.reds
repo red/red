@@ -121,7 +121,7 @@ port: context [
 		
 		new: object/make new spec type
 		new/header: TYPE_PORT							;-- implicit reset of all header flags
-		new/class:  0
+		new/class:  OBJ_CLASS_PORT!
 		new
 	]
 
