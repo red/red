@@ -774,9 +774,9 @@ context [
 		oh/sub-system:			select defs/sub-system job/sub-system
 		oh/dll-flags:			flags
 		oh/stack-res-size:		to integer! #{00100000}
-		oh/stack-com-size:		to integer! #{00001000}
+		oh/stack-com-size:		to integer! #{00005000}
 		oh/heap-res-size:		to integer! #{00100000}
-		oh/heap-com-size:		to integer! #{00001000}
+		oh/heap-com-size:		to integer! #{00100000}
 		oh/loader-flags:		0						;-- reserved, must be zero
 		oh/data-dir-nb:			16
 		;-- data directory

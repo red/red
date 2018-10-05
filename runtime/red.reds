@@ -206,8 +206,8 @@ red: context [
 		alloc-series-frame								;-- first frame of 1MB
 
 		root:		block/make-fixed null ***-root-size
-		arg-stk:	block/make-fixed root 1024
-		call-stk:	block/make-fixed root 512
+		arg-stk:	block/make-fixed root 2 * 2000
+		call-stk:	block/make-fixed root 20 * 2000
 		symbols: 	block/make-in root 4000
 		global-ctx: _context/create 4000 no no
 
