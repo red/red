@@ -59,7 +59,7 @@ gui-console-ctx: context [
 		actors: object [
 			on-time: func [face [object!] event [event!]][
 				caret/rate: 2
-				face/rate: none
+				terminal/on-time
 				'done
 			]
 			on-drawing: func [face [object!] event [event!]][
@@ -84,7 +84,7 @@ gui-console-ctx: context [
 				terminal/mouse-up event
 			]
 			on-over: func [face [object!] event [event!]][
-				terminal/mouse-move event
+				terminal/mouse-move event/offset
 			]
 			on-menu: func [face [object!] event [event!]][
 				switch event/picked [

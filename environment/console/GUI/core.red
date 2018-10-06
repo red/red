@@ -64,6 +64,9 @@ object [
 	select-bg:	none							;-- selected text background color
 	pad-left:	3
 
+	scrolling:	0
+	scroll-pos: 0
+
 	color?:		no
 	theme: #(
 		foreground	[0.0.0]
@@ -324,8 +327,7 @@ object [
 		append selects offset-to-caret box offset
 	]
 
-	mouse-to-caret: func [event [event!] /local offset][
-		offset: event/offset
+	mouse-to-caret: func [offset][
 		if any [offset/y < line-y offset/y > (line-y + last heights)][exit]
 
 		offset/x: offset/x - pad-left
@@ -342,34 +344,57 @@ object [
 		clear selects
 
 		offset-to-line event/offset
-		mouse-to-caret event
+		mouse-to-caret event/offset
 	]
 
 	mouse-up: func [event [event!]][
+		if scrolling <> 0 [console/rate: none]
 		if empty? lines [exit]
 		mouse-up?: yes
 		if 2 = length? selects [clear selects]
 		system/view/platform/redraw console
 	]
 
-	mouse-move: func [event [event!] /local offset y][
+	mouse-move: func [offset /local y][
 		if any [empty? lines mouse-up? empty? selects][exit]
 
-		clear skip selects 2
-		offset: event/offset
+		scrolling: 0
 		case [
 			offset/y < -10 [
 				scroll-lines 1
 				offset/y: 0
+				scrolling: 1
+				scroll-pos: offset
 			]
 			offset/y - box/size/y > 10 [
 				scroll-lines -1
 				offset/y: box/size
+				scrolling: -1
+				scroll-pos: offset
+			]
+			scrolling <> 0 [
+				console/rate: none
+				scrolling: 0
 			]
 		]
+		if scrolling <> 0 [console/rate: 10]
+
+		select-to-offset offset
+	]
+
+	select-to-offset: func [offset][
+		clear skip selects 2
 		offset-to-line offset
-		mouse-to-caret event
+		mouse-to-caret offset
 		system/view/platform/redraw console
+	]
+
+	on-time: func [][
+		either zero? scrolling [console/rate: none][
+			if any [empty? lines mouse-up? empty? selects][exit]
+			scroll-lines scrolling
+			select-to-offset scroll-pos
+		]
 	]
 
 	jump-word: func [left? [logic!] return: [integer!] /local start n][
