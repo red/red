@@ -303,20 +303,19 @@ object [
 		]
 	]
 
-	offset-to-line: func [offset [pair!] /local h y start end n][
-		;if offset/y > (line-y + last heights) [exit]
-
+	offset-to-line: func [offset [pair!] /local h y start end n max-n][
 		y: offset/y - scroll-y
 		end: line-y - scroll-y
 		h: 0
 		n: top
+		max-n: length? lines
 		until [
 			h: h + pick heights n
 			if y < h [break]
 			n: n + 1
-			h > end
+			any [n > max-n h > end]
 		]
-		if n > length? lines [n: length? lines]
+		if n > max-n [n: max-n]
 		box/text: head pick lines n
 		start: pick heights n
 		offset/x: offset/x - pad-left 
@@ -353,11 +352,22 @@ object [
 		system/view/platform/redraw console
 	]
 
-	mouse-move: func [event [event!]][
+	mouse-move: func [event [event!] /local offset y][
 		if any [empty? lines mouse-up? empty? selects][exit]
 
 		clear skip selects 2
-		offset-to-line event/offset
+		offset: event/offset
+		case [
+			offset/y < -10 [
+				scroll-lines 1
+				offset/y: 0
+			]
+			offset/y - box/size/y > 10 [
+				scroll-lines -1
+				offset/y: box/size
+			]
+		]
+		offset-to-line offset
 		mouse-to-caret event
 		system/view/platform/redraw console
 	]
