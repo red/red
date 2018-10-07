@@ -13,11 +13,11 @@ Red [
 select-scheme: function ["Internal Use Only" p [port! object!]][
 	s: p/scheme
 	case [
-		any-word? s [s: p/scheme: select system/schemes s]
+		any-word? s [s: select system/schemes s]
 		block? s 	[]
 	]	
-	unless object? s [cause-error 'access 'no-scheme reduce [p]]
-	s
+	unless object? s [cause-error 'access 'no-scheme [p/scheme]]
+	p/scheme: s
 ]
 
 register-scheme: func [
