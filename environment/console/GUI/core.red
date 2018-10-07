@@ -94,7 +94,7 @@ object [
 		caret/visible?: no
 		either escape [append line #"^["][
 			if all [not empty? line line <> first history][insert history line]
-			hist-idx: 0	
+			hist-idx: 0
 		]
 		prin?: no
 		newline?: yes
@@ -270,7 +270,7 @@ object [
 	scroll: func [event /local key n][
 		if empty? lines [exit]
 		key: event/key
-		n: switch/default key [ 
+		n: switch/default key [
 			up			[1]
 			down		[-1]
 			page-up		[scroller/page-size]
@@ -321,7 +321,7 @@ object [
 		if n > max-n [n: max-n]
 		box/text: head pick lines n
 		start: pick heights n
-		offset/x: offset/x - pad-left 
+		offset/x: offset/x - pad-left
 		offset/y: y + start - h
 		append selects n
 		append selects offset-to-caret box offset
@@ -648,7 +648,7 @@ object [
 				clear redo-stack
 			]
 			true [
-				str2: insert form next candidates system/console/prompt
+				str2: head insert form next candidates system/console/prompt
 				poke lines length? lines str2
 				calc-top
 				clear head str
