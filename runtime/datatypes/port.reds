@@ -377,7 +377,7 @@ port: context [
 		logic/push OPTION?(types)
 		either OPTION?(types) [stack/push types][none/push]
 		call-function actor actors/ctx
-		new
+		copy-cell stack/arguments new
 	]
 	
 	create: func [
