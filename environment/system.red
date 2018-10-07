@@ -388,7 +388,7 @@ system: context [
 			name: size: date: type: none
 		]
 		url-parts: object [
-			scheme: user-info: host: port: path: target: query: fragment: none
+			scheme: user-info: host: port: path: target: query: fragment: ref: none
 		]
 	]
 	

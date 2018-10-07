@@ -142,6 +142,7 @@ url-parser: object [
 				target:    second =path
 				query:     =query
 				fragment:  =fragment
+				ref: 	   url
 			]
 		][
 			if throw-error [make error! rejoin ["URL error: " url]]
