@@ -191,7 +191,6 @@ _hashtable: context [
 		while [val < end][
 			node: as node! val/data1
 			if node <> null [
-				obj: as red-object! val + 2
 				s: as series! node/value
 				either s/flags and flag-gc-mark = 0 [
 					delete-key table as-integer node
@@ -429,12 +428,32 @@ _hashtable: context [
 	]
 
 	resize: func [
-		node		[node!]
-		new-buckets	[integer!]
+		node			[node!]
+		new-buckets		[integer!]
 		/local
-			s h k i j mask step keys hash n-buckets blk
-			new-size tmp break? flags new-flags new-flags-node ii sh f idx
-			int? int-key
+			s			[series!]
+			h			[hashtable!]
+			k			[red-value!]
+			i			[integer!]
+			j			[integer!]
+			mask		[integer!]
+			step		[integer!]
+			keys		[int-ptr!]
+			hash		[integer!]
+			n-buckets	[integer!]
+			blk			[red-value!]
+			new-size	[integer!]
+			tmp			[integer!]
+			break?		[logic!]
+			flags		[int-ptr!]
+			new-flags	[int-ptr!]
+			ii			[integer!]
+			sh			[integer!]
+			f			[float!]
+			idx			[integer!]
+			int?		[logic!]
+			int-key		[int-ptr!]
+			new-flags-node [node!]
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
