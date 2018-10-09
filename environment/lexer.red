@@ -480,6 +480,7 @@ system/lexer: context [
 				]
 				| pos: [2 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
 					value: make-char pos e
+					if value > 10FFFFh [throw-error [char! skip pos -4]]
 				)
 			] #")"
 			| #"^^" [
