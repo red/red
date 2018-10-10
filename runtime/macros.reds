@@ -63,6 +63,7 @@ Red/System [
 	TYPE_EVENT											
 	TYPE_CLOSURE
 	TYPE_PORT
+	TYPE_TOTAL_COUNT									;-- keep tabs on number of datatypes.
 ]
 
 #enum actions! [
