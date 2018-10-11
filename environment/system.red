@@ -209,7 +209,7 @@ system: context [
 				;no-script:			["script not found:" :arg1]
 				;no-scheme-name:	["new scheme must have a name:" :arg1]
 				no-scheme:			["missing port scheme:" :arg1]
-				;invalid-spec:		["invalid spec or options:" :arg1]
+				invalid-spec:		["invalid spec or options:" :arg1]
 				;invalid-port:		["invalid port object (invalid field values)"]
 				;invalid-actor:		["invalid port actor (must be native or object)"]
 				;invalid-port-arg:	["invalid port argument:" arg1]
