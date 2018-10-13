@@ -893,6 +893,10 @@ red: context [
 		not empty? intersect expr-stack iterators
 	]
 	
+	join-obj-stack: func [item [word! path!]][
+		new-line/all join obj-stack item off
+	]
+	
 	get-obj-base: func [name [any-word!]][
 		either local-word? name [func-objs][objects]
 	]
@@ -969,7 +973,7 @@ red: context [
 	is-object?: func [expr /local pos][
 		unless find [word! get-word! path!] type?/word expr [return none]
 		any [
-			attempt [do join obj-stack expr]
+			attempt [do join-obj-stack expr]
 			all [path? expr attempt [do head insert copy expr 'objects]]
 			all [
 				find [object! word!] type?/word expr
@@ -2002,8 +2006,10 @@ red: context [
 				head insert saved 'objects
 			]
 		][
-			join obj-stack either path [to path! path][name] ;-- account for current object stack
+			join-obj-stack either path [to path! path][name] ;-- account for current object stack
 		]
+		shadow-path: new-line/all shadow-path no
+		
 		either path [
 			unless attempt [
 				do reduce [to set-path! shadow-path obj] ;-- set object in shadow tree
@@ -2058,6 +2064,7 @@ red: context [
 					obj-stack: append to path! 'objects any [path name] ;-- from root
 				][
 					append obj-stack any [path name]	;-- from current objects stack
+					new-line/all obj-stack off
 				]
 				pc: next pc
 				comp-next-block yes
@@ -4421,10 +4428,10 @@ red: context [
 			if store [
 				obj: entry/2
 				either set-path? name [
-					do reduce [to set-path! join obj-stack to path! name obj] ;-- set object in shadow tree
+					do reduce [to set-path! join-obj-stack to path! name obj] ;-- set object in shadow tree
 				][
 					unless tail? next obj-stack [		;-- set object in shadow tree (if sub-object)
-						do reduce [to set-path! join obj-stack name obj]
+						do reduce [to set-path! join-obj-stack name obj]
 					]
 				]
 			]
@@ -4450,10 +4457,10 @@ red: context [
 				if store [
 					obj: entry/2
 					either set-path? name [
-						do reduce [to set-path! join obj-stack to path! name obj] ;-- set object in shadow tree
+						do reduce [to set-path! join-obj-stack to path! name obj] ;-- set object in shadow tree
 					][
 						unless tail? next obj-stack [		;-- set object in shadow tree (if sub-object)
-							do reduce [to set-path! join obj-stack name obj]
+							do reduce [to set-path! join-obj-stack name obj]
 						]
 					]
 				]
