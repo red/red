@@ -1038,12 +1038,16 @@ red: context [
 		]
 	]
 	
-	system-words-path?: func [path [path! set-path!]][
+	system-words-path?: func [path [path! set-path!] /local get?][
 		if all [
 			2 < length? path
-			find/match path 'system/words 
+			any [
+				find/match path 'system/words
+				all [get?: get-word? path/1 path/1 = 'system path/2 = 'words]
+			]
 		][
 			remove/part path 2
+			if get? [path/1: to get-word! path/1]
 			either 1 = length? path [
 				switch type?/word pc/1: load mold path [
 					set-word!	[comp-set-word]
@@ -1185,16 +1189,28 @@ red: context [
 		name
 	]
 	
-	check-cloned-function: func [new [word!] /local name alter entry pos alias old type][
-		if all [
-			get-word? pc/1
-			name: to word! pc/1	
+	check-cloned-function: func [new [word!] original /local name alter entry pos alias old type path][
+		if any [
 			all [
-				alter: get-prefix-func name
-				entry: find functions alter
-				name: alter
+				get-word? pc/1
+				name: to word! pc/1	
+				all [
+					alter: get-prefix-func name
+					entry: find functions alter
+					name: alter
+				]
+			]
+			all [
+				path? path: pc/1
+				2 < length? path
+				all [get?: get-word? path/1 path/1 = 'system path/2 = 'words]
+				entry: find functions name: last path
 			]
 		][
+			all [
+				ctx: obj-func-call? original
+				new: decorate-obj-member new ctx
+			]
 			if alter: select-ssa name [
 				entry: find functions alter
 			]
@@ -3687,14 +3703,14 @@ red: context [
 				unless defer [insert mark start]		;-- restore beginning of frame
 			]
 			all [
-				any [word? pc/1 path? pc/1]
+				any [word? pc/1 all [path? pc/1 not get-word? pc/1/1]]
 				do take-frame
 				defer: dispatch-ctx-keywords/with original pc/1
 			][]
 			'else [
 				if start [emit start]
 				unless any [obj-bound? no-check?][check-redefined name original]
-				check-cloned-function name
+				check-cloned-function name original
 				comp-substitute-expression				;-- fetch a value (2nd argument)
 			]
 		]
@@ -3785,8 +3801,8 @@ red: context [
 					]
 				]
 			][
-				if alter: select-ssa name [entry: find functions alter]
-				
+				if all [alter: select-ssa name name: alter][entry: find functions alter]
+			
 				either ctx: any [
 					obj-func-call? original
 					pick entry/2 5
