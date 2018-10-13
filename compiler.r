@@ -1229,7 +1229,7 @@ red: context [
 		]
 	]
 	
-	check-new-func-name: func [path [path!] symbol [word!] ctx [word!] /local name][
+	check-new-func-name: func [symbol [word!] ctx [word!] /local name][
 		if any [
 			set-word? name: pc/-1
 			all [lit-word? name 'set = pc/-2]
@@ -3272,7 +3272,7 @@ red: context [
 			set [fpath symbol ctx] obj-func-path? path
 		][
 			either get? [
-				check-new-func-name path symbol ctx
+				check-new-func-name symbol ctx
 			][
 				pc: next pc
 				comp-call/with fpath functions/:symbol symbol ctx
