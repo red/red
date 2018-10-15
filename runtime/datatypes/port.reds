@@ -105,6 +105,7 @@ port: context [
 		/local
 			new	   [red-object!]
 			parts  [red-object!]
+			state  [red-object!]
 			base   [red-value!]
 			scheme [red-word!]
 	][
@@ -142,6 +143,13 @@ port: context [
 		base: object/get-values new
 		copy-cell as red-value! parts  base + field-spec
 		copy-cell as red-value! scheme base + field-scheme
+		object/copy
+			as red-object! #get system/standard/port-state
+			as red-object! base + field-state
+			null
+			no
+			null
+		
 		new
 	]
 
