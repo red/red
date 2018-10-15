@@ -391,7 +391,7 @@ system: context [
 			scheme: user-info: host: port: path: target: query: fragment: ref: none
 		]
 		port-state: object [
-			state: 'init sub: error: none close?: false info: none
+			state: 'init sub: error: none closed?: false info: none
 		]
 	]
 	
