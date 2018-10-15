@@ -1561,11 +1561,11 @@ simple-io: context [
 			]
 		]
 		macOS [
-			#either OS-version > 10.7 [
+			;#either OS-version > 10.7 [
 				#define CFNetwork.lib "/System/Library/Frameworks/CFNetwork.framework/CFNetwork"
-			][
-				#define CFNetwork.lib "/System/Library/Frameworks/CoreServices.framework/CoreServices" 
-			]
+			;][
+			;	#define CFNetwork.lib "/System/Library/Frameworks/CoreServices.framework/CoreServices" 
+			;]
 			#import [
 				LIBC-file cdecl [
 					objc_getClass: "objc_getClass" [
@@ -1623,6 +1623,9 @@ simple-io: context [
 					kCFBooleanTrue: "kCFBooleanTrue" [integer!]
 					kCFStreamPropertyHTTPShouldAutoredirect: "kCFStreamPropertyHTTPShouldAutoredirect" [integer!]
 					kCFStreamPropertyHTTPResponseHeader: "kCFStreamPropertyHTTPResponseHeader" [integer!]
+					kCFStreamSocketSecurityLevelTLSv1: "kCFStreamSocketSecurityLevelTLSv1" [integer!]
+					kCFStreamPropertySSLSettings: "kCFStreamPropertySSLSettings" [integer!]
+					kCFStreamSSLLevel: "kCFStreamSSLLevel" [integer!]
 					CFReadStreamOpen: "CFReadStreamOpen" [
 						stream		[integer!]
 						return:		[integer!]
@@ -1841,6 +1844,7 @@ simple-io: context [
 					response	[integer!]
 					blk			[red-block!]
 					post?		[logic!]
+					ssl			[integer!]
 			][
 				post?: yes
 				case [
@@ -1910,6 +1914,14 @@ simple-io: context [
 				if zero? stream [return none-value]
 
 				CFReadStreamSetProperty stream kCFStreamPropertyHTTPShouldAutoredirect kCFBooleanTrue
+				ssl: objc_msgSend [
+						objc_msgSend [objc_getClass "NSDictionary" sel_getUid "alloc"]
+						sel_getUid "initWithObjectsAndKeys:"
+						kCFStreamSocketSecurityLevelTLSv1 kCFStreamSSLLevel
+						0
+				]
+				CFReadStreamSetProperty stream kCFStreamPropertySSLSettings ssl
+
 				CFReadStreamOpen stream
 				buf: allocate 4096
 				bin: binary/make-at stack/push* 4096
