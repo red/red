@@ -387,7 +387,7 @@ string: context [
 		s: GET_BUFFER(str1)
 		unit: GET_UNIT(s)
 		
-		while [any [p < tail cstr/1 <> null-byte]][
+		while [all [p < tail cstr/1 <> null-byte]][
 			c: get-char p unit
 			if c > 255 [return no]
 			byte: as-byte c
