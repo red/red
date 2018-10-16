@@ -3253,7 +3253,10 @@ red: context [
 						]
 					][
 						if head? path [
-							if alter: select-ssa name [entry: find functions alter]
+							if all [alter: select-ssa name name: alter][
+								path/1: alter
+								entry: find functions alter
+							]
 							pc: next pc
 							either ctx: any [
 								obj-func-call? value
@@ -3282,7 +3285,6 @@ red: context [
 			]
 		]
 		self?: path/1 = 'self
-
 		if all [
 			not any [set? dynamic? find path integer!]
 			set [fpath symbol ctx] obj-func-path? path
