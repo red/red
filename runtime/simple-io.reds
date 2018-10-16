@@ -1624,6 +1624,7 @@ simple-io: context [
 					kCFStreamPropertyHTTPShouldAutoredirect: "kCFStreamPropertyHTTPShouldAutoredirect" [integer!]
 					kCFStreamPropertyHTTPResponseHeader: "kCFStreamPropertyHTTPResponseHeader" [integer!]
 					kCFStreamSocketSecurityLevelTLSv1: "kCFStreamSocketSecurityLevelTLSv1" [integer!]
+					kCFStreamSocketSecurityLevelTLSv1_2: "kCFStreamSocketSecurityLevelTLSv1_2" [integer!]
 					kCFStreamPropertySSLSettings: "kCFStreamPropertySSLSettings" [integer!]
 					kCFStreamSSLLevel: "kCFStreamSSLLevel" [integer!]
 					CFReadStreamOpen: "CFReadStreamOpen" [
@@ -1917,7 +1918,7 @@ simple-io: context [
 				ssl: objc_msgSend [
 						objc_msgSend [objc_getClass "NSDictionary" sel_getUid "alloc"]
 						sel_getUid "initWithObjectsAndKeys:"
-						kCFStreamSocketSecurityLevelTLSv1 kCFStreamSSLLevel
+						kCFStreamSocketSecurityLevelTLSv1_2 kCFStreamSSLLevel
 						0
 				]
 				CFReadStreamSetProperty stream kCFStreamPropertySSLSettings ssl
