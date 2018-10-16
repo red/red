@@ -281,7 +281,7 @@ url: context [
 	]
 
 	write: func [
-		dest	[red-value!]
+		dest	[red-url!]
 		data	[red-value!]
 		binary? [logic!]
 		lines?	[logic!]
@@ -296,52 +296,59 @@ url: context [
 			blk		[red-block!]
 			method	[red-word!]
 			header	[red-block!]
+			p		[red-object!]
 			action	[integer!]
 			sym		[integer!]
 	][
-		if any [
-			OPTION?(seek)
-			OPTION?(allow)
-			OPTION?(as-arg)
-		][
-			--NOT_IMPLEMENTED--
-		]
-
-		either TYPE_OF(data) = TYPE_BLOCK [
-			blk: as red-block! data
-			either 0 = block/rs-length? blk [
-				header: null
-				action: words/get
+		either string/rs-match as red-string! dest "http" [
+			if any [
+				OPTION?(seek)
+				OPTION?(allow)
+				OPTION?(as-arg)
 			][
-				method: as red-word! block/rs-head blk
-				if TYPE_OF(method) <> TYPE_WORD [
-					fire [TO_ERROR(script invalid-arg) method]
-				]
-				action: symbol/resolve method/symbol
-				either block/rs-next blk [null][
-					header: as red-block! block/rs-head blk
-					if TYPE_OF(header) <> TYPE_BLOCK [
-						fire [TO_ERROR(script invalid-arg) header]
-					]
-				]
-				data: as red-value! either block/rs-next blk [null][block/rs-head blk]
+				--NOT_IMPLEMENTED--
 			]
-		][
-			header: null
-			action: words/post
-		]
 
-		if all [
-			data <> null
-			TYPE_OF(data) <> TYPE_BLOCK
-			TYPE_OF(data) <> TYPE_STRING
-			TYPE_OF(data) <> TYPE_BINARY
+			either TYPE_OF(data) = TYPE_BLOCK [
+				blk: as red-block! data
+				either 0 = block/rs-length? blk [
+					header: null
+					action: words/get
+				][
+					method: as red-word! block/rs-head blk
+					if TYPE_OF(method) <> TYPE_WORD [
+						fire [TO_ERROR(script invalid-arg) method]
+					]
+					action: symbol/resolve method/symbol
+					either block/rs-next blk [null][
+						header: as red-block! block/rs-head blk
+						if TYPE_OF(header) <> TYPE_BLOCK [
+							fire [TO_ERROR(script invalid-arg) header]
+						]
+					]
+					data: as red-value! either block/rs-next blk [null][block/rs-head blk]
+				]
+			][
+				header: null
+				action: words/post
+			]
+
+			if all [
+				data <> null
+				TYPE_OF(data) <> TYPE_BLOCK
+				TYPE_OF(data) <> TYPE_STRING
+				TYPE_OF(data) <> TYPE_BINARY
+			][
+				fire [TO_ERROR(script invalid-arg) data]
+			]
+			part: simple-io/request-http action dest header data binary? lines? info?
+			if TYPE_OF(part) = TYPE_NONE [fire [TO_ERROR(access no-connect) dest]]
+			part
 		][
-			fire [TO_ERROR(script invalid-arg) data]
+			data: stack/push data
+			p: as red-object! to-port as red-url! dest no no no OPTION?(seek) none-value no
+			port/write p data binary? lines? info? append? part seek allow as-arg
 		]
-		part: simple-io/request-http action as red-url! dest header data binary? lines? info?
-		if TYPE_OF(part) = TYPE_NONE [fire [TO_ERROR(access no-connect) dest]]
-		part
 	]
 
 	init: does [

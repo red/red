@@ -801,6 +801,7 @@ port: context [
 		seek?: OPTION?(seek)
 		result: stack/push*
 		open port no no yes seek? none-value
+		insert port data part no none-value no
 		copy port result part no none-value
 		close port
 		result
