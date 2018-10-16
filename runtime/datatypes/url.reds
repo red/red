@@ -51,6 +51,30 @@ url: context [
 
 		copy-cell as red-value! url stack/push*
 	]
+	
+	to-port: func [
+		url		[red-url!]
+		new?	[logic!]
+		read?	[logic!]
+		write?	[logic!]
+		seek?	[logic!]
+		allow	[red-value!]
+		open?	[logic!]
+		return:	[red-value!]
+		/local
+			p [red-object!]
+	][
+		#call [url-parser/parse-url url]
+		p: as red-object! stack/arguments
+
+		either TYPE_OF(p) = TYPE_OBJECT [
+			p: port/make none-value as red-value! p TYPE_NONE
+			if open? [port/open p new? read? write? seek? allow]
+		][
+			0 ;TBD: error invalid url
+		]
+		as red-value! p
+	]
 
 	;-- Actions --
 	
@@ -222,21 +246,9 @@ url: context [
 		seek?	[logic!]
 		allow	[red-value!]
 		return:	[red-value!]
-		/local
-			p [red-object!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "url/open"]]
-
-		#call [url-parser/parse-url url]
-		p: as red-object! stack/arguments
-		
-		either TYPE_OF(p) = TYPE_OBJECT [
-			p: port/make none-value as red-value! p TYPE_NONE
-			port/open p new? read? write? seek? allow
-		][
-			0 ;TBD: error invalid url
-		]
-		as red-value! p
+		to-port url new? read? write? seek? allow yes
 	]
 	
 	read: func [
@@ -248,17 +260,24 @@ url: context [
 		info?	[logic!]
 		as-arg	[red-value!]
 		return:	[red-value!]
+		/local
+			p [red-object!]
 	][
-		if any [
-			OPTION?(part)
-			OPTION?(seek)
-			OPTION?(as-arg)
+		either string/rs-match as red-string! src "http" [
+			if any [
+				OPTION?(part)
+				OPTION?(seek)
+				OPTION?(as-arg)
+			][
+				--NOT_IMPLEMENTED--
+			]
+			part: simple-io/request-http words/get as red-url! src null null binary? lines? info?
+			if TYPE_OF(part) = TYPE_NONE [fire [TO_ERROR(access no-connect) src]]
+			part
 		][
-			--NOT_IMPLEMENTED--
+			p: as red-object! to-port as red-url! src no no no OPTION?(seek) none-value no
+			port/read p part seek binary? lines? info? as-arg
 		]
-		part: simple-io/request-http words/get as red-url! src null null binary? lines? info?
-		if TYPE_OF(part) = TYPE_NONE [fire [TO_ERROR(access no-connect) src]]
-		part
 	]
 
 	write: func [

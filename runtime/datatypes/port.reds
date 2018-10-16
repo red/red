@@ -541,17 +541,17 @@ port: context [
 		as-arg	[red-value!]
 		return:	[red-value!]
 		/local
-			seek? [logic!]
+			result [red-value!]
+			seek?  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "port/read"]]
-
+		
 		seek?: OPTION?(seek)
-		create port
+		result: stack/push*
 		open port no no no seek? none-value
-		;res: copy
+		copy port result part no none-value
 		close port
-		;res
-		as red-value! none-value
+		result
 	]
 	
 	remove: func [
@@ -792,11 +792,18 @@ port: context [
 		allow	[red-value!]
 		as-arg	[red-value!]
 		return:	[red-value!]
+		/local
+			result [red-value!]
+			seek?  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "port/write"]]
-
-		;TBD
-		as red-value! none-value
+		
+		seek?: OPTION?(seek)
+		result: stack/push*
+		open port no no yes seek? none-value
+		copy port result part no none-value
+		close port
+		result
 	]
 
 	init: does [
