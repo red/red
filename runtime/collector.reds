@@ -192,6 +192,7 @@ collector: context [
 					keep series/node
 				]
 				TYPE_ERROR
+				TYPE_PORT
 				TYPE_OBJECT [
 					#if debug? = yes [if verbose > 1 [print "object"]]
 					obj: as red-object! value
