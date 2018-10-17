@@ -147,8 +147,8 @@ red: context [
 		_random/init
 		init-mem										;@@ needs a local context
 		
-		name-table: as names! allocate DATATYPES_NB * size? names!	 ;-- datatype names table
-		action-table: as int-ptr! allocate 256 * DATATYPES_NB * size? pointer! ;-- actions jump table	
+		name-table: as names! allocate TYPE_TOTAL_COUNT * size? names!	 ;-- datatype names table
+		action-table: as int-ptr! allocate 256 * TYPE_TOTAL_COUNT * size? pointer! ;-- actions jump table	
 
 		datatype/init
 		unset/init

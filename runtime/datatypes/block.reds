@@ -1580,6 +1580,7 @@ block: context [
 		return:		[red-series!]
 		/local
 			s		[series!]
+			end		[red-value!]
 			type	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/copy"]]
@@ -1589,7 +1590,8 @@ block: context [
 			if TYPE_HASH = TYPE_OF(blk) [new/header: TYPE_BLOCK]
 			s: GET_BUFFER(new)
 			arg: s/offset
-			until [
+			end: s/tail
+			while [arg < end][
 				type: TYPE_OF(arg)
 				if ANY_SERIES?(type) [
 					actions/copy 
@@ -1600,7 +1602,6 @@ block: context [
 						null
 				]
 				arg: arg + 1
-				arg >= s/tail
 			]
 		]
 		

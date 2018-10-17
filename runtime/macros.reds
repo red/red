@@ -63,6 +63,7 @@ Red/System [
 	TYPE_IMAGE											;-- 31		49		;-- needs to be last
 	TYPE_EVENT											
 	TYPE_CLOSURE
+	TYPE_TOTAL_COUNT									;-- keep tabs on number of datatypes.
 ]
 
 #enum actions! [

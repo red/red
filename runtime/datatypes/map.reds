@@ -153,7 +153,7 @@ map: context [
 					key <> null
 					TYPE_OF(val) <> TYPE_NONE
 				][
-					_hashtable/delete  table key
+					_hashtable/delete table key
 				]
 			][
 				either key = null [
@@ -161,6 +161,8 @@ map: context [
 					preprocess-key kkey
 					s: as series! map/node/value
 					key: copy-cell kkey as cell! alloc-tail-unit s (size? cell!) << 1
+					val: key + 1
+					val/header: TYPE_UNSET
 					_hashtable/put table key
 				][
 					val: key + 1
@@ -214,14 +216,6 @@ map: context [
 			int		[red-integer!]
 			fl		[red-float!]
 			blk		[red-block!]
-			obj		[red-object!]
-			ctx		[red-context!]
-			syms	[red-value!]
-			vals	[red-value!]
-			tail	[red-value!]
-			value	[red-value!]
-			word	[red-word!]
-			s		[series!]
 			blk?	[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/make"]]
@@ -526,6 +520,8 @@ map: context [
 					preprocess-key k
 					s: as series! parent/node/value
 					key: copy-cell k as cell! alloc-tail-unit s (size? cell!) << 1
+					val: key + 1
+					val/header: TYPE_UNSET
 					_hashtable/put table key
 				][
 					val: key + 1

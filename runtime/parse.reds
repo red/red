@@ -1020,6 +1020,7 @@ parser: context [
 										]
 									]
 									value: stack/top	;-- refer last value from paren expression
+									stack/top: stack/top + 1
 									offset: p/input		;-- required by PARSE_PICK_INPUT
 									
 									if int/value = R_KEEP [
@@ -1064,6 +1065,7 @@ parser: context [
 											offset = input/head
 										]
 									]
+									stack/top: stack/top - 1
 								]
 							]
 							R_REMOVE [
