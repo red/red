@@ -152,6 +152,10 @@ __print-debug-stack: func [
 	]
 ]
 
+stack-trace: func [][
+	__print-debug-stack system/pc
+]
+
 ;-------------------------------------------
 ;-- Print an integer as hex number on screen, limited to n characters
 ;-------------------------------------------
