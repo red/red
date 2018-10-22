@@ -1024,6 +1024,7 @@ block: context [
 			s	  [series!]
 			hash? [logic!]
 			hash  [red-hash!]
+			put?  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/put"]]
 
@@ -1041,8 +1042,14 @@ block: context [
 		][
 			s: GET_BUFFER(blk)
 			slot: s/offset + blk/head + 1
-			if slot >= s/tail [slot: alloc-tail s slot/header: -1]
-			if 0 <> actions/compare-value slot value COMP_FIND [
+			either slot >= s/tail [
+				put?: yes
+				slot: alloc-tail s
+				slot/header: -1
+			][
+				put?: 0 <> actions/compare-value slot value COMP_FIND
+			]
+			if put? [
 				copy-cell value slot
 				if hash? [_hashtable/put hash/table slot]
 			]
