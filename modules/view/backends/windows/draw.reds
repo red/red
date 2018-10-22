@@ -1276,6 +1276,10 @@ OS-draw-box: func [
 		t		[integer!]
 		radius	[red-integer!]
 		rad		[integer!]
+		up-x	[integer!]
+		up-y	[integer!]
+		low-x	[integer!]
+		low-y	[integer!]
 ][
 	if ctx/other/D2D? [
 		OS-draw-box-d2d ctx upper lower
@@ -1304,26 +1308,27 @@ OS-draw-box: func [
 		]
 	][
 		either ctx/other/GDI+? [
-			if upper/x > lower/x [t: upper/x upper/x: lower/x lower/x: t]
-			if upper/y > lower/y [t: upper/y upper/y: lower/y lower/y: t]
+			up-x: upper/x up-y: upper/y low-x: lower/x low-y: lower/y
+			if up-x > low-x [t: up-x up-x: low-x low-x: t]
+			if up-y > low-y [t: up-y up-y: low-y low-y: t]
 			check-gradient-box ctx upper lower
 			check-texture-box ctx upper
 			unless zero? ctx/gp-brush [				;-- fill rect
 				GdipFillRectangleI
 					ctx/graphics
 					ctx/gp-brush
-					upper/x
-					upper/y
-					lower/x - upper/x
-					lower/y - upper/y
+					up-x
+					up-y
+					low-x - up-x
+					low-y - up-y
 			]
 			GdipDrawRectangleI
 				ctx/graphics
 				ctx/gp-pen
-				upper/x
-				upper/y
-				lower/x - upper/x
-				lower/y - upper/y
+				up-x
+				up-y
+				low-x - up-x
+				low-y - up-y
 		][
 			Rectangle ctx/dc upper/x upper/y lower/x lower/y
 		]
