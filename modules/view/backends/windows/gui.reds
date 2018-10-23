@@ -2302,7 +2302,7 @@ OS-update-view: func [
 		if type = field [
 			type: either flags and FACET_FLAGS_PASSWORD = 0 [0][25CFh]
 			SendMessage hWnd 204 type 0
-			InvalidateRect hWnd null 1
+			SetFocus hWnd
 		]
 	]
 	if flags and FACET_FLAG_DRAW  <> 0 [

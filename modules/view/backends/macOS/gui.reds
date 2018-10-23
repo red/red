@@ -423,6 +423,7 @@ get-flags: func [
 			sym = modal		 [flags: flags or FACET_FLAGS_MODAL]
 			sym = popup		 [flags: flags or FACET_FLAGS_POPUP]
 			sym = scrollable [flags: flags or FACET_FLAGS_SCROLLABLE]
+			sym = password	 [flags: flags or FACET_FLAGS_PASSWORD]
 			true			 [fire [TO_ERROR(script invalid-arg) word]]
 		]
 		word: word + 1
@@ -1723,6 +1724,7 @@ OS-make-view: func [
 		show?	[red-logic!]
 		open?	[red-logic!]
 		rate	[red-value!]
+		saved	[red-value!]
 		font	[red-object!]
 		flags	[integer!]
 		bits	[integer!]
@@ -1763,7 +1765,11 @@ OS-make-view: func [
 			sym = area
 		][class: "RedScrollView"]
 		sym = text [class: "RedTextField"]
-		sym = field [class: "RedTextField"]
+		sym = field [
+			class: either bits and FACET_FLAGS_PASSWORD = 0 ["RedTextField"][
+				"RedSecureField"
+			]
+		]
 		sym = button [
 			class: "RedButton"
 		]
@@ -1848,6 +1854,14 @@ OS-make-view: func [
 		sym = field [
 			if bits and FACET_FLAGS_NO_BORDER <> 0 [
 				objc_msgSend [obj sel_getUid "setBordered:" false]
+			]
+			if bits and FACET_FLAGS_PASSWORD <> 0 [
+				saved: values + FACE_OBJ_FLAGS
+				saved/header: TYPE_NONE
+				hWnd: OS-make-view face parent
+				saved/header: TYPE_WORD
+				objc_msgSend [hWnd sel_getUid "setHidden:" yes]
+				objc_setAssociatedObject obj RedSecureFieldKey hWnd OBJC_ASSOCIATION_ASSIGN
 			]
 			id: objc_msgSend [obj sel_getUid "cell"]
 			objc_msgSend [id sel_getUid "setWraps:" no]
@@ -1979,8 +1993,10 @@ OS-update-view: func [
 		bool	[red-logic!]
 		s		[series!]
 		hWnd	[integer!]
+		hWnd2	[integer!]
 		flags	[integer!]
 		type	[integer!]
+		nsstr	[integer!]
 ][
 	ctx: GET_CTX(face)
 	s: as series! ctx/values/value
@@ -2024,9 +2040,26 @@ OS-update-view: func [
 	if flags and FACET_FLAG_SELECTED <> 0 [
 		change-selection hWnd as red-integer! values + FACE_OBJ_SELECTED type
 	]
-	;if flags and FACET_FLAG_FLAGS <> 0 [
-	;	get-flags as red-block! values + FACE_OBJ_FLAGS
-	;]
+	if flags and FACET_FLAG_FLAGS <> 0 [
+		flags: get-flags as red-block! values + FACE_OBJ_FLAGS
+		if type = field [
+			hWnd2: objc_getAssociatedObject hWnd RedSecureFieldKey
+
+			if flags and FACET_FLAGS_PASSWORD <> 0 [
+				type: hWnd
+				hWnd: hWnd2
+				hWnd2: type
+			]
+			nsstr: objc_msgSend [hWnd sel_getUid "stringValue"]
+			objc_msgSend [hWnd sel_getUid "setHidden:" yes]
+			objc_msgSend [hWnd2 sel_getUid "setHidden:" no]
+			objc_msgSend [hWnd2 sel_getUid "setStringValue:" nsstr]
+			objc_msgSend [hWnd2 sel_getUid "becomeFirstResponder"]
+			type: objc_msgSend [nsstr sel_getUid "length"]
+			hWnd: objc_msgSend [hWnd2 sel_getUid "currentEditor"]
+			objc_msgSend [hWnd sel_getUid "setSelectedRange:" type 0]
+		]
+	]
 	if flags and FACET_FLAG_DRAW  <> 0 [
 		objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
 	]
