@@ -965,6 +965,7 @@ get-flags: func [
 			sym = modal		 [flags: flags or FACET_FLAGS_MODAL]
 			sym = popup		 [flags: flags or FACET_FLAGS_POPUP]
 			sym = scrollable [flags: flags or FACET_FLAGS_SCROLLABLE]
+			sym = password	 [flags: flags or FACET_FLAGS_PASSWORD]
 			true			 [fire [TO_ERROR(script invalid-arg) word]]
 		]
 		word: word + 1
@@ -1362,6 +1363,7 @@ OS-make-view: func [
 		sym = field [
 			class: #u16 "RedField"
 			flags: flags or WS_TABSTOP
+			if bits and FACET_FLAGS_PASSWORD <> 0 [flags: flags or ES_PASSWORD]
 			unless para? [flags: flags or ES_LEFT or ES_AUTOHSCROLL or ES_NOHIDESEL]
 			if bits and FACET_FLAGS_NO_BORDER = 0 [ws-flags: ws-flags or WS_EX_CLIENTEDGE]
 		]
@@ -2292,10 +2294,16 @@ OS-update-view: func [
 		change-selection hWnd int2 values
 	]
 	if flags and FACET_FLAG_FLAGS <> 0 [
+		flags: get-flags as red-block! values + FACE_OBJ_FLAGS
 		SetWindowLong
 			hWnd
 			wc-offset + 16
-			get-flags as red-block! values + FACE_OBJ_FLAGS
+			flags
+		if type = field [
+			type: either flags and FACET_FLAGS_PASSWORD = 0 [0][25CFh]
+			SendMessage hWnd 204 type 0
+			InvalidateRect hWnd null 1
+		]
 	]
 	if flags and FACET_FLAG_DRAW  <> 0 [
 		if any [type = base type = panel type = window type = rich-text][
