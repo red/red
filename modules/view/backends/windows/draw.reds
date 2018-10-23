@@ -1248,24 +1248,66 @@ gdiplus-roundrect-path: func [
 ]
 
 gdiplus-draw-roundbox: func [
-	ctx			[draw-ctx!]
+	graphics	[integer!]
 	x			[integer!]
 	y			[integer!]
 	width		[integer!]
 	height		[integer!]
 	radius		[integer!]
-	fill?		[logic!]
+	pen			[integer!]
+	brush		[integer!]
 	/local
 		path	[integer!]
 ][
 	path: 0
 	GdipCreatePath GDIPLUS_FILLMODE_ALTERNATE :path
 	gdiplus-roundrect-path path x y width height radius
-	if fill? [
-		GdipFillPath ctx/graphics ctx/gp-brush path
+	if brush <> 0 [
+		GdipFillPath graphics brush path
 	]
-	GdipDrawPath ctx/graphics ctx/gp-pen path
+	GdipDrawPath graphics pen path
 	GdipDeletePath path
+]
+
+gdiplus-draw-box: func [
+	graphics	[integer!]
+	x			[integer!]
+	y			[integer!]
+	width		[integer!]
+	height		[integer!]
+	radius		[integer!]
+	pen			[integer!]
+	brush		[integer!]
+][
+	if radius > 0 [
+		gdiplus-draw-roundbox
+			graphics
+			x
+			y
+			width
+			height
+			radius
+			pen
+			brush
+		exit
+	]
+	if brush <> 0 [				;-- fill rect
+		GdipFillRectangleI
+			graphics
+			brush
+			x
+			y
+			width
+			height
+	]
+
+	GdipDrawRectangleI
+		graphics
+		pen
+		x
+		y
+		width
+		height
 ]
 
 OS-draw-box: func [
@@ -1302,14 +1344,15 @@ OS-draw-box: func [
 		either ctx/other/GDI+? [
 			check-gradient-box ctx upper lower
 			check-texture-box ctx upper
-			gdiplus-draw-roundbox
-				ctx
+			gdiplus-draw-box
+				ctx/graphics
 				up-x
 				up-y
 				width
 				height
 				rad
-				ctx/brush?
+				ctx/gp-pen
+				either ctx/brush? [ctx/gp-brush][0]
 		][
 			RoundRect ctx/dc up-x up-y low-x low-y rad rad
 		]
@@ -1319,24 +1362,17 @@ OS-draw-box: func [
 			if up-y > low-y [t: up-y up-y: low-y low-y: t]
 			check-gradient-box ctx upper lower
 			check-texture-box ctx upper
-			unless zero? ctx/gp-brush [				;-- fill rect
-				GdipFillRectangleI
-					ctx/graphics
-					ctx/gp-brush
-					up-x
-					up-y
-					low-x - up-x
-					low-y - up-y
-			]
-			GdipDrawRectangleI
+			gdiplus-draw-box
 				ctx/graphics
-				ctx/gp-pen
 				up-x
 				up-y
 				low-x - up-x
 				low-y - up-y
+				rad
+				ctx/gp-pen
+				either ctx/brush? [ctx/gp-brush][0]
 		][
-			Rectangle ctx/dc upper/x upper/y lower/x lower/y
+			Rectangle ctx/dc up-x up-y low-x low-y
 		]
 	]
 ]
