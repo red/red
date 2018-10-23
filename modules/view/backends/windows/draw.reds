@@ -1280,6 +1280,8 @@ OS-draw-box: func [
 		up-y	[integer!]
 		low-x	[integer!]
 		low-y	[integer!]
+		width	[integer!]
+		height	[integer!]
 ][
 	if ctx/other/D2D? [
 		OS-draw-box-d2d ctx upper lower
@@ -1290,25 +1292,29 @@ OS-draw-box: func [
 		lower:  lower - 1
 		radius/value
 	][0]
+	up-x: upper/x up-y: upper/y low-x: lower/x low-y: lower/y
 	either positive? rad [
 		rad: rad * 2
+		width: low-x - up-x
+		height: low-y - up-y
+		t: either width > height [height][width]
+		rad: either rad > t [t][rad]
 		either ctx/other/GDI+? [
 			check-gradient-box ctx upper lower
 			check-texture-box ctx upper
 			gdiplus-draw-roundbox
 				ctx
-				upper/x
-				upper/y
-				lower/x - upper/x
-				lower/y - upper/y
+				up-x
+				up-y
+				width
+				height
 				rad
 				ctx/brush?
 		][
-			RoundRect ctx/dc upper/x upper/y lower/x lower/y rad rad
+			RoundRect ctx/dc up-x up-y low-x low-y rad rad
 		]
 	][
 		either ctx/other/GDI+? [
-			up-x: upper/x up-y: upper/y low-x: lower/x low-y: lower/y
 			if up-x > low-x [t: up-x up-x: low-x low-x: t]
 			if up-y > low-y [t: up-y up-y: low-y low-y: t]
 			check-gradient-box ctx upper lower
