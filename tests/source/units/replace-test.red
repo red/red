@@ -73,5 +73,31 @@ Red [
 
 ===end-group===
 
-~~~end-file~~~
+===start-group=== "replace/case"
 
+	--test-- "replace/case-1"	--assert "axbAab" = replace/case "aAbAab" "A" "x"
+	--test-- "replace/case-2"	--assert "axbxab" = replace/case/all "aAbAab" "A" "x"
+	--test-- "replace/case-3"	--assert "a-babAA-" = replace/case/all "aAbbabAAAa" ["Ab" | "Aa"] "-"
+	--test-- "replace/case-4"	--assert "axbAab" = replace/case "aAbAab" ["A"] does ["x"]
+	--test-- "replace/case-5"	--assert "axbxab" = replace/case/all "aAbAab" ["A"] does ["x"]
+	--test-- "replace/case-6"	--assert %file.txt = replace/case %file.TXT.txt %.TXT ""
+	--test-- "replace/case-7"	--assert %file.txt = replace/case/all %file.TXT.txt.TXT %.TXT ""
+	--test-- "replace/case-8"	--assert <tag xyXx> = replace/case <tag xXXx> "X" "y"
+	--test-- "replace/case-9"	--assert <tag xyyx> = replace/case/all <tag xXXx> "X" "y"
+	--test-- "replace/case-10"	--assert 'a/X/o/X = replace/case 'a/X/x/X 'x 'o
+	--test-- "replace/case-12"	--assert 'a/o/x/o = replace/case/all 'a/X/x/X 'X 'o
+	--test-- "replace/case-13"	--assert ["a" "B" "x"] = replace/case/all ["a" "B" "a" "b"] ["a" "b"] "x"
+	--test-- "replace/case-14"	--assert (make hash! [x a b [a B]]) = replace/case make hash! [a B a b [a B]] [a B] 'x
+	--test-- "replace/case-15"	--assert (quote :x/b/A/x/B) = replace/case/all quote :a/b/A/a/B [a] 'x
+	--test-- "replace/case-16"	--assert (quote (x A x)) = replace/case/all quote (a A a) 'a 'x
+
+===end-group===
+
+===start-group=== "replace/case/deep"
+
+	--test-- "replace/case/deep-1"	--assert [x A x B [x A x B]] = replace/case/deep/all [a A b B [a A b B]] ['a | 'b] 'x
+	--test-- "replace/case/deep-2"	--assert (quote (x A x B (x A x B))) = replace/case/deep/all quote (a A b B (a A b B)) ['a | 'b] 'x
+
+===end-group===
+
+~~~end-file~~~
