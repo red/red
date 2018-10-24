@@ -14,7 +14,7 @@ Red/System [
 
 #define DRAW_FLOAT_MAX		[as float32! 3.4e38]
 #define F32_0				[as float32! 0.0]
-#define F32_1				[as float32! 1.0]	
+#define F32_1				[as float32! 1.0]
 
 max-colors: 256												;-- max number of colors for gradient
 max-edges: 1000												;-- max number of edges for a polygon
@@ -209,7 +209,7 @@ OS-draw-fill-pen: func [
 OS-draw-line-width: func [
 	dc	  [draw-ctx!]
 	width [red-value!]
-	/local 
+	/local
 		width-v	[float32!]
 ][
 	width-v: get-float32 as red-integer! width
@@ -358,6 +358,9 @@ OS-draw-box: func [
 		ym		[float32!]
 		y1		[float32!]
 		y2		[float32!]
+		width	[integer!]
+		height	[integer!]
+		irad	[integer!]
 ][
 	ctx: dc/raw
 	radius: null
@@ -376,7 +379,11 @@ OS-draw-box: func [
 	ym: y1 + (y2 - y1 / as float32! 2.0)
 
 	either radius <> null [
-		rad: as float32! radius/value
+		width: lower/x - upper/x
+		height: lower/y - upper/y
+		t: either width > height [height][width]
+		irad: either radius/value * 2 > t [t / 2][radius/value]
+		rad: as float32! irad
 		CGContextMoveToPoint ctx x1 ym
 		CGContextAddArcToPoint ctx x1 y1 xm y1 rad
 		CGContextAddArcToPoint ctx x2 y1 x2 ym rad
@@ -456,15 +463,15 @@ OS-draw-polygon: func [
 	point: edges
 	pair:  start
 	nb:	   0
-	
+
 	while [all [pair <= end nb < max-edges]][
 		point/x: as float32! pair/x
 		point/y: as float32! pair/y
 		nb: nb + 1
 		point: point + 1
-		pair: pair + 1	
+		pair: pair + 1
 	]
-	;if nb = max-edges [fire error]	
+	;if nb = max-edges [fire error]
 	point/x: as float32! start/x						;-- close the polygon
 	point/y: as float32! start/y
 
@@ -941,7 +948,7 @@ OS-draw-line-join: func [
 		CGContextSetLineJoin dc/raw mode
 	]
 ]
-	
+
 OS-draw-line-cap: func [
 	dc	  [draw-ctx!]
 	style [integer!]
@@ -1171,7 +1178,7 @@ OS-draw-grad-pen-old: func [
 		color/2: (as float32! val >> 8 and FFh) / 255.0
 		color/3: (as float32! val >> 16 and FFh) / 255.0
 		color/4: (as float32! 255 - (val >>> 24)) / 255.0
-		next: head + 1 
+		next: head + 1
 		if TYPE_OF(next) = TYPE_FLOAT [head: next f: as red-float! head p: as float32! f/value]
 		pos/value: p
 		if next <> head [p: p + delta]
@@ -1640,7 +1647,7 @@ draw-curve: func [
 			;-- The control point is assumed to be the reflection of the control point
 			;-- on the previous command relative to the current point
 			p1x: dx * 2.0 - dc/control-x
-			p1y: dy * 2.0 - dc/control-y		
+			p1y: dy * 2.0 - dc/control-y
 		][
 			;-- if previous command is not curve/curv/qcurve/qcurv, use current point
 			p1x: dx
@@ -1951,4 +1958,3 @@ OS-draw-brush-pattern: func [
 		dc/grad-pen: -1
 	]
 ]
-
