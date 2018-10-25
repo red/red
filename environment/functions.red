@@ -209,9 +209,9 @@ replace: function [
 	/local p rule s e many? len pos do-parse do-find
 ][
 	do-parse: pick [parse/case parse] case
-    if system/words/all [deep any-list? series] [
-        pattern: to block! either word? pattern [to lit-word! pattern] [pattern]
-        do compose [
+	if system/words/all [deep any-list? series] [
+		pattern: to block! either word? pattern [to lit-word! pattern] [pattern]
+		do compose [
 			(do-parse) series rule: [
 				some [
 					s: pattern e: (
@@ -221,43 +221,43 @@ replace: function [
 					| ahead any-list! into rule | skip
 				]
 			]
-        ]
-        return series
-    ]
-    if system/words/all [char? :pattern any-string? series] [
-        pattern: form pattern
-    ]
-    either system/words/all [any-string? :series block? :pattern] [
-        p: [to pattern change pattern (value)]
-        do reduce [do-parse series either all [[some p]] [p]]
-    ] [
-        many?: any [
-            system/words/all [series? :pattern any-string? series]
-            binary? series
-            system/words/all [any-list? series any-list? :pattern]
-        ]
-        len: either many? [length? pattern] [1]
+		]
+		return series
+	]
+	if system/words/all [char? :pattern any-string? series] [
+		pattern: form pattern
+	]
+	either system/words/all [any-string? :series block? :pattern] [
+		p: [to pattern change pattern (value)]
+		do compose [(do-parse) series either all [[some p]] [p]]
+	] [
+		many?: any [
+			system/words/all [series? :pattern any-string? series]
+			binary? series
+			system/words/all [any-list? series any-list? :pattern]
+		]
+		len: either many? [length? pattern] [1]
 		do-find: pick [find/case find] case
-        either all [
-            pos: series
-            either many? [
-                while [pos: do reduce [do-find pos pattern]] [
-                    remove/part pos len
-                    pos: insert pos value
-                ]
-            ] [
-                while [pos: do reduce [do-find pos :pattern]] [
-                    pos: insert remove pos value
-                ]
-            ]
-        ] [
-            if pos: do reduce [do-find series :pattern] [
-                remove/part pos len
-                insert pos value
-            ]
-        ]
-    ]
-    series
+		either all [
+			pos: series
+			either many? [
+				while [pos: do compose [(do-find) pos pattern]] [
+					remove/part pos len
+					pos: insert pos value
+				]
+			] [
+				while [pos: do compose [(do-find) pos :pattern]] [
+					pos: insert remove pos value
+				]
+			]
+		] [
+			if pos: do compose [(do-find) series :pattern] [
+				remove/part pos len
+				insert pos value
+			]
+		]
+	]
+	series
 ]
 
 math: function [
@@ -860,7 +860,7 @@ path-thru: function [
 	hash: checksum form url 'MD5
 	file: head (remove back tail remove remove (form hash))
 	path: dirize append copy so/thru-cache copy/part file 2
-    unless exists? path [make-dir path] 
+	unless exists? path [make-dir path] 
 	append path file
 ]
 
