@@ -511,6 +511,10 @@ integer: context [
 				value1/value: left
 				return res
 			]
+			TYPE_BIGINT TYPE_HEX [
+				right: bigint/compare-int as red-bigint! value2 left
+				left: 0
+			]
 			default [RETURN_COMPARE_OTHER]
 		]
 		SIGN_COMPARE_RESULT(left right)

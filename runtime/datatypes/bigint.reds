@@ -28,17 +28,17 @@ bigint: context [
 
 	#define MULADDC_INIT [
 		s0: 0 s1: 0 b0: 0 b1: 0 r0: 0 r1: 0 rx: 0 ry: 0
-		b0: (b << biLH) >>> biLH
-		b1: b >>> biLH
+		b0: b and FFFFh
+		b1: b >>> 16
 	]
 	#define MULADDC_CORE [
-		s0: (s/1 << biLH) >>> biLH
-		s1: s/1 >>> biLH		s: s + 1
+		s0: s/1 and FFFFh
+		s1: s/1 >>> 16		s: s + 1
 		rx: s0 * b1 			r0: s0 * b0
 		ry: s1 * b0 			r1: s1 * b1
-		r1: r1 + (rx >>> biLH)
-		r1: r1 + (ry >>> biLH)
-		rx: rx << biLH 			ry: ry << biLH
+		r1: r1 + (rx >>> 16)
+		r1: r1 + (ry >>> 16)
+		rx: rx << 16 			ry: ry << 16
 		r0: r0 + rx 			r1: r1 + as integer! (uint-less r0 rx)
 		r0: r0 + ry 			r1: r1 + as integer! (uint-less r0 ry)
 		r0: r0 + c 				r1: r1 + as integer! (uint-less r0 c)
@@ -262,7 +262,6 @@ bigint: context [
 			s	 	[series!]
 			i		[integer!]
 			j		[integer!]
-			k		[integer!]
 			c		[integer!]
 			saved	[integer!]
 			bytes	[integer!]
@@ -296,30 +295,23 @@ bigint: context [
 			s: GET_BUFFER(big)
 			pp: as int-ptr! s/offset
 			s: GET_BUFFER(buffer)
-			k: 0
 			while [i > 0][
 				j: ciL
 				while [j > 0][
 					c: (pp/i >>> ((j - 1) << 3)) and FFh
 					h: string/byte-to-hex c
-					if i = n [			;-- first unit
+					if i = n [			;-- first unit, remove leading zero
 						either c = 0 [
 							j: j - 1
 							continue
 						][
-							if h/1 = #"0" [h: h + 1 part: part + 1]
+							if all [bytes = 0 h/1 = #"0"][h: h + 1 part: part + 1]
 						]
 					]
 					part: part - 2
 					string/concatenate-literal buffer h
 
 					bytes: bytes + 1
-					if bytes % 32 = 0 [
-						string/append-char s as-integer lf
-						part: part - 1
-					]
-
-					k: 1
 					j: j - 1
 				]
 				i: i - 1
@@ -340,6 +332,7 @@ bigint: context [
 				p/value: as byte! pp/value + 30h
 			]
 			n: n - (as-integer p - buf)
+			if zero? n [n: 1 p: p - 1 p/value: #"0"]
 			buf: as byte-ptr! s/tail
 			move-memory buf p n
 			s/tail: as cell! (buf + n)
@@ -366,6 +359,7 @@ bigint: context [
 		assert any [
 			TYPE_OF(right) = TYPE_INTEGER
 			TYPE_OF(right) = TYPE_BIGINT
+			TYPE_OF(right) = TYPE_HEX
 		]
 
 		big: as red-bigint! stack/push*
@@ -393,7 +387,7 @@ bigint: context [
 					]
 				]
 			]
-			TYPE_BIGINT [
+			TYPE_BIGINT TYPE_HEX [
 				switch type [
 					OP_ADD [
 						add-big left right big
@@ -412,6 +406,7 @@ bigint: context [
 						mod-big big left right
 					]
 				]
+				big/header: TYPE_OF(left)
 			]
 		]
 		SET_RETURN(big)
@@ -1389,28 +1384,30 @@ bigint: context [
 	]
 
 	compare: func [
-		value1    [red-bigint!]						;-- first operand
-		value2    [red-bigint!]						;-- second operand
-		op	      [integer!]						;-- type of comparison
-		return:   [integer!]
+		value1		[red-bigint!]						;-- first operand
+		value2		[red-bigint!]						;-- second operand
+		op			[integer!]						;-- type of comparison
+		return:		[integer!]
 		/local
-			res	  [integer!]
+			res		[integer!]
+			int		[red-integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bigint/compare"]]
 
 		if all [
-			op = COMP_STRICT_EQUAL
+			any [op = COMP_FIND op = COMP_STRICT_EQUAL]
 			TYPE_OF(value1) <> TYPE_OF(value2)
 		][return 1]
-
-		switch op [
-			COMP_EQUAL		[res: compare-big value1 value2]
-			COMP_NOT_EQUAL 	[res: not compare-big value1 value2]
-			default [
-				res: SIGN_COMPARE_RESULT(value1 value2)
+		
+		switch TYPE_OF(value2) [
+			TYPE_BIGINT TYPE_HEX [res: compare-big value1 value2]
+			TYPE_INTEGER TYPE_CHAR [
+				int: as red-integer! value2
+				res: compare-int value1 int/value
 			]
+			default [RETURN_COMPARE_OTHER]
 		]
-		res
+		SIGN_COMPARE_RESULT(res 0)
 	]
 
 	copy-big: func [
