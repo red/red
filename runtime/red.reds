@@ -103,6 +103,8 @@ red: context [
 	#include %datatypes/handle.reds
 	#include %datatypes/date.reds
 	#include %datatypes/port.reds
+	#include %datatypes/bigint.reds
+	#include %datatypes/hex.reds
 	#if OS = 'Windows [#include %datatypes/image.reds]	;-- temporary
 	#if OS = 'macOS   [#include %datatypes/image.reds]	;-- temporary
 
@@ -147,8 +149,8 @@ red: context [
 		_random/init
 		init-mem										;@@ needs a local context
 		
-		name-table: as names! allocate TYPE_TOTAL_COUNT * size? names!	 ;-- datatype names table
-		action-table: as int-ptr! allocate 256 * TYPE_TOTAL_COUNT * size? pointer! ;-- actions jump table	
+		name-table: as names! allocate TYPE_TOTAL_COUNT * size? names!				;-- datatype names table
+		action-table: as int-ptr! allocate 256 * TYPE_TOTAL_COUNT * size? pointer!	;-- actions jump table	
 
 		datatype/init
 		unset/init
@@ -198,6 +200,8 @@ red: context [
 		handle/init
 		date/init
 		port/init
+		bigint/init
+		hex/init
 		#if OS = 'Windows [image/init]					;-- temporary
 		#if OS = 'macOS   [image/init]					;-- temporary
 		
@@ -213,6 +217,7 @@ red: context [
 		symbols: 	block/make-in root 4000
 		global-ctx: _context/create 4000 no no
 
+		bigint/init-caches
 		case-folding/init
 		symbol/table: _hashtable/init 4000 symbols HASH_TABLE_SYMBOL 1
 
@@ -273,6 +278,8 @@ red: context [
 			handle/verbose:		verbosity
 			date/verbose:		verbosity
 			port/verbose:		verbosity
+			bigint/verbose:		verbosity
+			hex/verbose:		verbosity
 			#if OS = 'Windows [image/verbose: verbosity]
 			#if OS = 'macOS   [image/verbose: verbosity]
 

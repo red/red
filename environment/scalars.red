@@ -34,7 +34,7 @@ Rebol: false											;-- makes loading Rebol scripts easier
 
 internal!:		make typeset! [unset!]
 external!:		make typeset! [#if find config/modules 'view [event!]]
-number!:		make typeset! [integer! float! percent!]
+number!:		make typeset! [integer! float! percent! bigint! hex!]
 scalar!:		union number! make typeset! [char! pair! tuple! time! date!]
 any-word!:		make typeset! [word! set-word! get-word! lit-word!] ;-- any bindable word
 all-word!:		union any-word! make typeset! [refinement! issue!]	;-- all types of word nature

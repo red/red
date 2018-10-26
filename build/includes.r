@@ -98,6 +98,7 @@ write %build/bin/sources.r set-cache [
 		%datatypes/ [
 			%action.reds
 			%block.reds
+			%bigint.reds
 			%bitset.reds
 			%binary.reds
 			%char.reds
@@ -113,6 +114,7 @@ write %build/bin/sources.r set-cache [
 			%get-path.reds
 			%get-word.reds
 			%hash.reds
+			%hex.reds
 			%image.reds
 			%integer.reds
 			%issue.reds

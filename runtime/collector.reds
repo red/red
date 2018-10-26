@@ -186,7 +186,9 @@ collector: context [
 				]
 				TYPE_BINARY
 				TYPE_VECTOR
-				TYPE_BITSET [
+				TYPE_BITSET
+				TYPE_BIGINT
+				TYPE_HEX [
 					;probe ["bitset, type: " TYPE_OF(value)]
 					series: as red-series! value
 					keep series/node

@@ -1482,6 +1482,7 @@ natives: context [
 		/local
 			num [red-integer!]
 			f	[red-float!]
+			big [red-bigint!]
 			res [red-logic!]
 	][
 		#typecheck -negative?-							;-- `negative?` would be replaced by lexer
@@ -1495,6 +1496,10 @@ natives: context [
 				f: as red-float! res
 				res/value: f/value < 0.0
 			]
+			TYPE_BIGINT [
+				big: as red-bigint! res
+				res/value: big/sign = -1
+			]
 			default [ERR_EXPECT_ARGUMENT((TYPE_OF(res)) 1)]
 		]
 		res/header: TYPE_LOGIC
@@ -1507,6 +1512,7 @@ natives: context [
 		/local
 			num [red-integer!]
 			f	[red-float!]
+			big [red-bigint!]
 			res [red-logic!]
 	][
 		#typecheck -positive?-							;-- `positive?` would be replaced by lexer
@@ -1520,6 +1526,10 @@ natives: context [
 				f: as red-float! res
 				res/value: f/value > 0.0
 			]
+			TYPE_BIGINT [
+				big: as red-bigint! res
+				res/value: big/sign = 1
+			]
 			default [ERR_EXPECT_ARGUMENT((TYPE_OF(res)) 1)]
 		]
 		res/header: TYPE_LOGIC
@@ -1532,6 +1542,7 @@ natives: context [
 		/local
 			i   [red-integer!]
 			f	[red-float!]
+			big [red-bigint!]
 			res [red-value!]
 			ret [integer!]
 	][
@@ -1554,6 +1565,10 @@ natives: context [
 					f/value < 0.0 [-1]
 					f/value = 0.0 [ 0]
 				]
+			]
+			TYPE_BIGINT [
+				big: as red-bigint! stack/arguments
+				ret: either bigint/zero-big? big [0][big/sign]
 			]
 			default [ERR_EXPECT_ARGUMENT((TYPE_OF(res)) 1)]
 		]

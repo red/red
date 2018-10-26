@@ -100,6 +100,23 @@ system/lexer: context [
 		if ret/node <> null [ret/header: TYPE_BINARY]		;-- if null, return NONE!
 	]
 
+	make-hex: routine [
+		start  [string!]
+		end    [string!]
+		/local
+			s	 [series!]
+			p	 [byte-ptr!]
+			len  [integer!]
+			unit [integer!]
+	][
+		s:  GET_BUFFER(start)
+		unit: GET_UNIT(s)
+		p:	  string/rs-head start
+		len:  end/head - start/head
+
+		hex/load-str stack/arguments p len unit
+	]
+
 	make-tuple: routine [
 		start  [string!]
 		end	   [string!]
@@ -794,6 +811,11 @@ system/lexer: context [
 			(type: integer!)
 		]
 
+		big-hex-rule: [
+			"0x" s: 11 hexa-char any hexa-char e: ahead [integer-end | ws-no-count | end]
+			(type: hex!)
+		]
+
 		integer-rule: [
 			float-special (value: make-number s e type)	;-- escape path for NaN, INFs
 			| (neg?: no) integer-number-rule
@@ -922,6 +944,7 @@ system/lexer: context [
 				| binary-rule		if (value: make-binary s e base) (store stack value)
 				| email-rule		(store stack do make-file)
 				| date-rule			if (value) (store stack value)
+				| big-hex-rule		if (value: make-hex s e) (store stack value)
 				| integer-rule		if (value) (store stack value)
 				| float-rule		if (value: make-float s e type) (store stack value)
 				| tag-rule			(store stack do make-string)
