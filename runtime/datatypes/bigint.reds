@@ -494,9 +494,10 @@ bigint: context [
 		;-- set to zero
 		p: as int-ptr! s/offset + big/size
 		ex_len: len - big/size
-		loop ex_len [
+		while [ex_len > 0][
 			p/1: 0
 			p: p + 1
+			ex_len: ex_len - 1
 		]
 		big/size: len
 	]
@@ -1004,7 +1005,6 @@ bigint: context [
 
 		either null? B [B: Y][
 			copy B Y
-			Y/sign: 1
 		]
 
 		if 0 = compare-int B 0 [
@@ -1019,15 +1019,18 @@ bigint: context [
 			make-at as red-value! R A/size
 		]
 		copy A R
+		R/sign: 1
 
 		either null? Q [
 			Q: _Q
-			Q/size: 0
-			grow Q A/size + 2
 			if (absolute-compare A B) < 0 [
-				Q/size: 1
+				Q/size: 0
+				grow Q 1
 				return true
 			]
+			n: A/size + 2
+			Q/size: 0
+			grow Q n
 		][
 			if (absolute-compare A B) < 0 [
 				load-int Q 0 1
@@ -1036,11 +1039,11 @@ bigint: context [
 			make-at as red-value! Q A/size + 2
 			Q/size: A/size + 2
 		]
+		Q/sign: A/sign * B/sign
 
-		R/sign: 1
-
+		Y/sign: 1
 		k: (bitlen Y) % biL
-		
+
 		either k < (biL - 1) [
 			k: biL - 1 - k
 			left-shift R k
@@ -1125,10 +1128,8 @@ bigint: context [
 			]
 			i: i - 1
 		]
-		
+
 		shrink Q
-		Q/sign: A/sign * B/sign
-		
 		right-shift R k
 		R/sign: A/sign
 		shrink R
