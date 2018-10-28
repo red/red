@@ -324,7 +324,7 @@ bigint: context [
 			p: buf + n
 			copy big Q
 			Q/sign: 1
-			while [0 < compare-int Q 0][
+			while [0 < compare-zero Q][
 				div-int Q 10 null null
 				ss: GET_BUFFER(R)
 				pp: as int-ptr! ss/offset
@@ -406,9 +406,9 @@ bigint: context [
 						mod-big big left right
 					]
 				]
-				big/header: TYPE_OF(left)
 			]
 		]
+		big/header: TYPE_OF(left)
 		SET_RETURN(big)
 	]
 
@@ -672,15 +672,10 @@ bigint: context [
 			p1		[int-ptr!]
 			p2		[int-ptr!]
 	][
+		assert all [big1/size > 0 big2/size > 0]
+
 		s1: GET_BUFFER(big1)
 		s2: GET_BUFFER(big2)
-
-		if all [
-			big1/size = 0
-			big2/size = 0
-		][
-			return 0
-		]
 
 		if big1/size > big2/size [return 1]
 		if big2/size > big1/size [return -1]
@@ -1007,7 +1002,7 @@ bigint: context [
 			copy B Y
 		]
 
-		if 0 = compare-int B 0 [
+		if 0 = compare-zero B [
 			fire [TO_ERROR(math zero-divide)]
 			return false
 		]
@@ -1118,7 +1113,7 @@ bigint: context [
 			sub-big R T1 null
 			s: GET_BUFFER(R)
 			px: as int-ptr! s/offset
-			if (compare-int R 0) < 0 [
+			if (compare-zero R) < 0 [
 				copy Y T1		
 				left-shift T1 (biL * (tmp - 1))
 				add-big R T1 null
@@ -1134,7 +1129,7 @@ bigint: context [
 		R/sign: A/sign
 		shrink R
 
-		if (compare-int R 0) = 0 [
+		if (compare-zero R) = 0 [
 			R/sign: 1
 		]
 		return true
@@ -1165,7 +1160,7 @@ bigint: context [
 		return:	 	[logic!]
 	][
 		;-- temp error
-		if (compare-int B 0) < 0 [
+		if (compare-zero B) < 0 [
 			fire [TO_ERROR(math zero-divide)]
 			0								;-- pass the compiler's type-checking
 			return false
@@ -1173,7 +1168,7 @@ bigint: context [
 
 		div-big A B null R
 		
-		if (compare-int R 0) < 0 [
+		if (compare-zero R) < 0 [
 			add-big R B R
 		]
 		
@@ -1245,25 +1240,16 @@ bigint: context [
 		big1	 	[red-bigint!]
 		big2	 	[red-bigint!]
 		return:	 	[integer!]
+		/local
+			sign1	[integer!]
 	][
-		if all [
-			big1/sign = 1
-			big2/sign = -1
-		][
-			return 1
-		]
-
-		if all [
-			big2/sign = 1
-			big1/sign = -1
-		][
-			return -1
-		]
-
-		either big1/sign = 1 [
-			return absolute-compare big1 big2
-		][
-			return absolute-compare big2 big1
+		sign1: big1/sign
+		either sign1 <> big2/sign [sign1][
+			either sign1 = 1 [
+				absolute-compare big1 big2
+			][
+				absolute-compare big2 big1
+			]
 		]
 	]
 
@@ -1275,13 +1261,30 @@ bigint: context [
 			s		[series!]
 			p		[int-ptr!]
 	][
+		s: GET_BUFFER(_Y)
+		p: as int-ptr! s/offset
+		p/1: int
+		_Y/size: 1
+		_Y/sign: either int >= 0 [1][-1]
+		compare-big big _Y
+	]
+
+	compare-zero: func [
+		big		[red-bigint!]
+		return: [integer!]
+		/local
+			s		[series!]
+			p		[int-ptr!]
+	][
 		assert big/size > 0
 
 		s: GET_BUFFER(big)
 		p: as int-ptr! s/offset
 
 		either big/sign = -1 [-1][
-			either big/size = 1 [p/1 - int][1]
+			either big/size = 1 [
+				either p/1 = 0 [0][1]
+			][1]
 		]
 	]
 
@@ -1408,7 +1411,7 @@ bigint: context [
 			]
 			default [RETURN_COMPARE_OTHER]
 		]
-		SIGN_COMPARE_RESULT(res 0)
+		res
 	]
 
 	copy-big: func [
