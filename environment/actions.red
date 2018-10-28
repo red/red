@@ -189,9 +189,9 @@ odd?: make action! [[
 
 and~: make action! [[
 		"Returns the first value ANDed with the second"
-		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
-		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
-		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
+		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! hex! bigint!]
+		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! hex! bigint!]
+		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! hex! bigint!]
 	]
 	#get-definition ACT_AND~
 ]
@@ -206,18 +206,18 @@ complement: make action! [[
 
 or~: make action! [[
 		"Returns the first value ORed with the second"
-		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
-		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
-		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
+		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! hex! bigint!]
+		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! hex! bigint!]
+		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! hex! bigint!]
 	]
 	#get-definition ACT_OR~
 ]
 
 xor~: make action! [[
 		"Returns the first value exclusive ORed with the second"
-		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
-		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
-		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
+		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! hex! bigint!]
+		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! hex! bigint!]
+		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector! hex! bigint!]
 	]
 	#get-definition ACT_XOR~
 ]

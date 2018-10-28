@@ -385,6 +385,7 @@ bigint: context [
 						mod-int :ret left n
 						load-int big ret 1
 					]
+					default [do-bitwise-int left n big type]
 				]
 			]
 			TYPE_BIGINT TYPE_HEX [
@@ -405,11 +406,68 @@ bigint: context [
 					OP_REM [
 						mod-big big left right
 					]
+					default [do-bitwise-big left right big type]
 				]
 			]
 		]
 		big/header: TYPE_OF(left)
 		SET_RETURN(big)
+	]
+
+	do-bitwise-big: func [
+		left		[red-bigint!]
+		right		[red-bigint!]
+		big			[red-bigint!]
+		op			[math-op!]
+		/local
+			max-size [integer!]
+			s		 [series!]
+			p1		 [int-ptr!]
+			p2		 [int-ptr!]
+			i		 [integer!]
+			temp	 [red-bigint!]
+	][
+		assert left/sign = right/sign
+
+		if left/size < right/size [
+			temp: right
+			right: left
+			left: temp
+		]
+		max-size: left/size
+
+		either null? big [big: right][
+			make-at as red-value! big max-size
+			copy right big
+		]
+		big/size: max-size
+
+		s: GET_BUFFER(left)
+		p1: as int-ptr! s/offset
+		s: GET_BUFFER(big)
+		p2: as int-ptr! s/offset
+
+		i: 1
+		while [i <= max-size][
+			p2/i: switch op [
+				OP_AND	[p1/i and p2/i]
+				OP_OR	[p1/i or p2/i]
+				OP_XOR	[p1/i xor p2/i]
+			]
+			i: i + 1
+		]
+		shrink big
+	]
+
+	do-bitwise-int: func [
+		left	[red-bigint!]
+		int		[integer!]
+		big		[red-bigint!]
+		op		[math-op!]
+	][
+		load-uint big int 1
+		big/sign: left/sign
+		do-bitwise-big left big null op
 	]
 
 	make-at: func [
@@ -552,6 +610,20 @@ bigint: context [
 			big/sign: -1
 			0 - int
 		]
+	]
+
+	load-uint: func [
+		big		[red-bigint!]
+		int		[integer!]
+		sz		[integer!]				;-- buffer size
+		/local
+			s	[series!]
+			p	[int-ptr!]
+	][
+		make-at as red-value! big sz
+		s: GET_BUFFER(big)
+		p: as int-ptr! s/offset
+		p/1: int
 	]
 
 	absolute-add: func [
@@ -1459,6 +1531,21 @@ bigint: context [
 		as red-value! do-math OP_SUB
 	]
 
+	and~: func [return:	[red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "bigint/and~"]]
+		as red-value! do-math OP_AND
+	]
+
+	or~: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "bigint/or~"]]
+		as red-value! do-math OP_OR
+	]
+
+	xor~: func [return:	[red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "bigint/xor~"]]
+		as red-value! do-math OP_XOR
+	]
+
 	even?: func [
 		big		[red-bigint!]
 		return: [logic!]
@@ -1557,10 +1644,10 @@ bigint: context [
 			:even?
 			:odd?
 			;-- Bitwise actions --
-			null			;and~
+			:and~
 			null			;complement
-			null			;or~
-			null			;xor~
+			:or~
+			:xor~
 			;-- Series actions --
 			null			;append
 			null			;at
