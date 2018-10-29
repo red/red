@@ -788,6 +788,7 @@ block: context [
 			s2		[series!]
 			slot	[red-value!]
 			slot2	[red-value!]
+			beg		[red-value!]
 			end		[red-value!]
 			result	[red-value!]
 			int		[red-integer!]
@@ -816,10 +817,11 @@ block: context [
 		]
 
 		s: GET_BUFFER(blk)
+		beg: s/offset + blk/head
 
 		if any [							;-- early exit if blk is empty or at tail
 			s/offset = s/tail
-			all [not reverse? s/offset + blk/head >= s/tail]
+			all [not reverse? beg >= s/tail]
 		][
 			result/header: TYPE_NONE
 			return result
@@ -841,7 +843,7 @@ block: context [
 					result/header: TYPE_NONE
 					return result
 				]
-				s/offset + int/value - 1				;-- int argument is 1-based
+				beg + int/value - 1						;-- int argument is 1-based
 			][
 				b: as red-block! part
 				unless all [
@@ -883,7 +885,7 @@ block: context [
 				]
 				reverse? [
 					step: 0 - step
-					slot: either part? [part][s/offset + blk/head - 1]
+					slot: either part? [part][beg - 1]
 					end: s/offset
 					if slot < end [							;-- early exit if blk/head = 0
 						result/header: TYPE_NONE
@@ -891,7 +893,7 @@ block: context [
 					]
 				]
 				true [
-					slot: s/offset + blk/head
+					slot: beg
 					end: either part? [part + 1][s/tail]	;-- + 1 => compensate for the '>= test
 				]
 			]
