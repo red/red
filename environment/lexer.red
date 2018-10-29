@@ -480,7 +480,6 @@ system/lexer: context [
 				]
 				| pos: [2 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
 					value: make-char pos e
-					if value > 10FFFFh [throw-error [char! skip pos -4]]
 				)
 			] #")"
 			| #"^^" [
@@ -930,7 +929,7 @@ system/lexer: context [
 				| get-word-rule
 				| refinement-rule
 				| file-rule			(store stack value: do process)
-				| char-rule			(store stack value)
+				| char-rule			(if value > 10FFFFh [throw-error [char! skip pos -6]] store stack value)
 				| map-rule
 				| paren-rule
 				| escaped-rule		(store stack value)
