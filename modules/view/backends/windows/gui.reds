@@ -1831,7 +1831,7 @@ change-text: func [
 	text: null
 	switch TYPE_OF(str) [
 		TYPE_STRING [
-			text: unicode/to-utf16 str yes
+			text: unicode/to-utf16 str
 			len: string/rs-length? str
 		]
 		TYPE_NONE	[
