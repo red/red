@@ -815,6 +815,9 @@ parser: context [
 		fun-locs:  0
 		state:    ST_PUSH_BLOCK
 
+		s: GET_BUFFER(series)
+		if s/offset = s/tail [collector/active?: no]
+
 		if OPTION?(fun) [fun-locs: _function/count-locals fun/spec 0]
 		
 		saved?: save-stack
@@ -1843,7 +1846,10 @@ parser: context [
 			state = ST_EXIT
 		]
 		reset saved?
-		
+
+		s: GET_BUFFER(series)
+		if s/offset = s/tail [collector/active?: yes]
+
 		either collect? [
 			base + 1
 		][
