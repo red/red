@@ -1823,16 +1823,15 @@ change-text: func [
 		str  [red-string!]
 		len  [integer!]
 ][
-	case [
-		type = base [
-			update-base hWnd null null values
-			exit
-		]
-		type = rich-text [
-			InvalidateRect hWnd null 0
-			exit
-		]
+	if type = base [
+		update-base hWnd null null values
+		exit
 	]
+	if type = rich-text [
+		InvalidateRect hWnd null 0
+		exit
+	]
+
 	str: as red-string! values + FACE_OBJ_TEXT
 	text: null
 	switch TYPE_OF(str) [
