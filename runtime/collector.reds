@@ -192,6 +192,7 @@ collector: context [
 					keep series/node
 				]
 				TYPE_ERROR
+				TYPE_PORT
 				TYPE_OBJECT [
 					#if debug? = yes [if verbose > 1 [print "object"]]
 					obj: as red-object! value
@@ -288,6 +289,7 @@ collector: context [
 
 		#if debug? = yes [
 			probe ["root size: " block/rs-length? root ", root max: " ***-root-size ", cycles: " stats/cycles]
+			if verbose > 2 [stack-trace]
 			if verbose > 1 [probe "marking..."]
 		]
 

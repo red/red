@@ -27,6 +27,7 @@ write %build/bin/sources.r set-cache [
 		%functions.red
 		%lexer.red
 		%natives.red
+		%networking.red
 		%operators.red
 		%reactivity.red
 		%routines.red
@@ -128,6 +129,7 @@ write %build/bin/sources.r set-cache [
 			%pair.reds
 			%percent.reds
 			%point.reds
+			%port.reds
 			%refinement.reds
 			%routine.reds
 			%series.reds

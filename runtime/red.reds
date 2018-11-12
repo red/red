@@ -277,7 +277,7 @@ red: context [
 			email/verbose:		verbosity
 			handle/verbose:		verbosity
 			date/verbose:		verbosity
-			port/verbose: 		verbosity
+			port/verbose:		verbosity
 			#if OS = 'Windows [image/verbose: verbosity]
 			#if OS = 'macOS   [image/verbose: verbosity]
 

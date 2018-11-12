@@ -208,12 +208,12 @@ system: context [
 				;not-connected:		["port is not connected:" :arg1]
 				;no-script:			["script not found:" :arg1]
 				;no-scheme-name:	["new scheme must have a name:" :arg1]
-				;no-scheme:			["missing port scheme:" :arg1]
-				;invalid-spec:		["invalid spec or options:" :arg1]
+				no-scheme:			["missing port scheme:" :arg1]
+				invalid-spec:		["invalid spec or options:" :arg1]
 				;invalid-port:		["invalid port object (invalid field values)"]
 				;invalid-actor:		["invalid port actor (must be native or object)"]
 				;invalid-port-arg:	["invalid port argument:" arg1]
-				;no-port-action:	["this port does not support:" :arg1]
+				no-port-action:		["this port does not support:" :arg1]
 				;protocol:			["protocol error:" :arg1]
 				;invalid-check:		["invalid checksum (tampered file):" :arg1]
 				;write-error:		["write failed:" :arg1 "reason:" :arg2]
@@ -282,7 +282,7 @@ system: context [
 	
 	modules: make block! 8
 	codecs:  make block! 8
-	schemes: context []
+	schemes: make block! 10
 	ports:	 context []
 	
 	locale: context [
@@ -374,15 +374,24 @@ system: context [
 		]
 	]
 	
-	standard: context [
-		header: context [
+	standard: context [									;-- do not change object fields number/order
+		header: object [
 			title: name: type: version: date: file: author: needs: none
 		]
-		error: context [
+		port: object [
+			spec: scheme: actor: awake: state: data: none
+		]
+		error: object [
 			code: type: id: arg1: arg2: arg3: near: where: stack: none
 		]
-		file-info: context [
+		file-info: object [
 			name: size: date: type: none
+		]
+		url-parts: object [
+			scheme: user-info: host: port: path: target: query: fragment: ref: none
+		]
+		port-state: object [
+			state: 'init sub: error: none closed?: false info: none
 		]
 	]
 	

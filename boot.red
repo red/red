@@ -31,6 +31,7 @@ Red [
 	#include %environment/codecs/gif.red
 
 	#include %environment/reactivity.red				;-- requires SET intrinsic
+	#include %environment/networking.red
 	#include %utils/preprocessor.r
 
 	;-- temporary code --
