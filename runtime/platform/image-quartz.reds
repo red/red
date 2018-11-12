@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Qingtian Xie"
 	File: 	 %image-quartz.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2016 Qingtian Xie. All rights reserved."
+	Rights:  "Copyright (C) 2016-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
@@ -135,6 +135,18 @@ OS-image: context [
 				intent		[integer!]
 				return:		[integer!]
 			]
+			CGImageCreateCopy: "CGImageCreateCopy" [
+				image		[int-ptr!]
+				return:		[int-ptr!]
+			]
+			CGImageCreateWithImageInRect: "CGImageCreateWithImageInRect" [
+				image		[int-ptr!]
+				x			[float32!]
+				y			[float32!]
+				w			[float32!]
+				h			[float32!]
+				return:		[int-ptr!]
+			]
 			CGDataProviderCreateWithData: "CGDataProviderCreateWithData" [
 				info		[int-ptr!]
 				data		[int-ptr!]
@@ -221,7 +233,7 @@ OS-image: context [
 		inode: as img-node! (as series! img/node/value) + 1
 		if zero? inode/flags [
 			inode/flags: IMG_NODE_HAS_BUFFER
-			inode/buffer: OS-image/data-to-image inode/handle yes yes
+			inode/buffer: data-to-image inode/handle yes yes
 		]
 		if write? [inode/flags: inode/flags or IMG_NODE_MODIFIED]
 		as integer! inode
@@ -255,7 +267,7 @@ OS-image: context [
 		node: as img-node! (as series! bitmap/value) + 1
 		if zero? node/flags [
 			node/flags: IMG_NODE_HAS_BUFFER
-			node/buffer: OS-image/data-to-image node/handle yes yes
+			node/buffer: data-to-image node/handle yes yes
 		]
 		buf: node/buffer + index
 		buf/value
@@ -273,7 +285,7 @@ OS-image: context [
 		node: as img-node! (as series! bitmap/value) + 1
 		if zero? node/flags [
 			node/flags: IMG_NODE_HAS_BUFFER
-			node/buffer: OS-image/data-to-image node/handle yes yes
+			node/buffer: data-to-image node/handle yes yes
 		]
 		node/flags: node/flags or IMG_NODE_MODIFIED
 		buf: node/buffer + index
@@ -685,10 +697,58 @@ OS-image: context [
 		return: [red-image!]
 		/local
 			inode	[img-node!]
+			width	[integer!]
+			height	[integer!]
+			offset	[integer!]
+			x		[integer!]
+			y		[integer!]
+			h		[integer!]
+			w		[integer!]
+			src-buf [byte-ptr!]
+			dst-buf [byte-ptr!]
+			handle	[int-ptr!]
 	][
-		copy-cell as red-value! src as red-value! dst
+		inode: as img-node! (as series! src/node/value) + 1
+		handle: inode/handle
+		width: IMAGE_WIDTH(inode/size)
+		height: IMAGE_HEIGHT(inode/size)
+		offset: src/head
+		x: offset % width
+		y: offset / width
+
+		dst/node: make-node handle null 0 width height
 		inode: as img-node! (as series! dst/node/value) + 1
-		inode/flags: IMG_NODE_MODIFIED
+
+		either all [zero? offset not part?][
+			inode/handle: CGImageCreateCopy handle
+			dst/size: src/size
+		][
+			either all [part? TYPE_OF(size) = TYPE_PAIR][
+				w: width - x
+				h: height - y
+				if size/x < w [w: size/x]
+				if size/y < h [h: size/y]
+				inode/handle: CGImageCreateWithImageInRect
+					handle as float32! x as float32! y as float32! w as float32! h
+			][
+				either part < width [h: 1 w: part][
+					h: part / width
+					w: width
+				]
+				if zero? part [w: 1 h: 1]
+				either zero? part [w: 0 h: 0][
+					inode/flags: IMG_NODE_MODIFIED or IMG_NODE_HAS_BUFFER
+					src-buf: as byte-ptr! data-to-image handle yes yes
+					dst-buf: allocate w * h * 4
+					copy-memory dst-buf src-buf w * h * 4 offset * 4
+					inode/handle: null
+					inode/buffer: as int-ptr! dst-buf
+				]
+			]
+			inode/size: h << 16 or w
+			dst/size: inode/size
+		]
+		dst/head: 0
 		dst
 	]
 ]

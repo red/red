@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %parse.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -190,11 +190,9 @@ parser: context [
 		/local
 			type [integer!]
 	][
-		if comp-op = COMP_STRICT_EQUAL [
-			type: TYPE_OF(value)
-			if any [type = TYPE_LIT_WORD type = TYPE_LIT_PATH][
-				comp-op: COMP_STRICT_EQUAL_WORD
-			]
+		type: TYPE_OF(value)
+		if any [type = TYPE_LIT_WORD type = TYPE_LIT_PATH][
+			comp-op: COMP_STRICT_EQUAL_WORD
 		]
 		actions/compare value2 value comp-op
 	]
@@ -324,8 +322,7 @@ parser: context [
 					s:	   GET_BUFFER(bits)
 					pbits: as byte-ptr! s/offset
 					not?:  FLAG_NOT?(s)
-					size:  s/size << 3
-
+					size:  (as-integer s/tail - s/offset) << 3
 					until [
 						cp: switch unit [
 							Latin1 [as-integer p/value]
@@ -478,7 +475,7 @@ parser: context [
 		s:	   GET_BUFFER(bits)
 		pbits: as byte-ptr! s/offset
 		not?:  FLAG_NOT?(s)
-		size:  s/size << 3
+		size:  (as-integer s/tail - s/offset) << 3
 		
 		cnt: 	0
 		match?: yes
@@ -818,10 +815,14 @@ parser: context [
 		fun-locs:  0
 		state:    ST_PUSH_BLOCK
 
+		s: GET_BUFFER(series)
+		if s/offset = s/tail [collector/active?: no]
+
 		if OPTION?(fun) [fun-locs: _function/count-locals fun/spec 0]
 		
 		saved?: save-stack
 		base: stack/push*								;-- slot on stack for COPY/SET operations (until OPTION?() is fixed)
+		base/header: TYPE_UNSET
 		input: as red-series! block/rs-append series as red-value! input ;-- input now points to the series stack entry
 		cmd: (block/rs-head rule) - 1					;-- decrement to compensate for starting increment
 		tail: block/rs-tail rule						;TBD: protect current rule block from changes
@@ -932,7 +933,7 @@ parser: context [
 								]
 								if any [						 ;-- don't loop if any:
 									break?						 ;-- a BREAK or REJECT command was issued
-									end? 						 ;-- don't loop if no more input
+									all [end? int/value <> R_WHILE]	 ;-- don't loop if no more input
 								][
 									loop?: no
 									break?: no
@@ -962,7 +963,7 @@ parser: context [
 								either match? [
 									if int/value = R_TO [
 										input/head: p/input	;-- move input before the last match
-										end?: no
+										PARSE_CHECK_INPUT_EMPTY?
 									]
 								][
 									before: input/head
@@ -1022,6 +1023,7 @@ parser: context [
 										]
 									]
 									value: stack/top	;-- refer last value from paren expression
+									stack/top: stack/top + 1
 									offset: p/input		;-- required by PARSE_PICK_INPUT
 									
 									if int/value = R_KEEP [
@@ -1066,6 +1068,7 @@ parser: context [
 											offset = input/head
 										]
 									]
+									stack/top: stack/top - 1
 								]
 							]
 							R_REMOVE [
@@ -1531,8 +1534,8 @@ parser: context [
 						sym = words/break* [			;-- BREAK
 							match?: yes
 							break?: yes
-							cmd:	cmd + 1
 							pop?:	yes
+							cmd:	cmd + 1				;-- ensures that a root rule is reaching tail, for tail breaks
 							PARSE_TRACE(_match)
 							state:	ST_POP_RULE
 						]
@@ -1566,7 +1569,7 @@ parser: context [
 						sym = words/fail [				;-- FAIL
 							match?: no
 							PARSE_TRACE(_match)
-							state: ST_FIND_ALTERN
+							state: ST_POP_RULE
 						]
 						sym = words/ahead [				;-- AHEAD
 							min:   R_NONE
@@ -1770,7 +1773,7 @@ parser: context [
 								blk: as red-block! _context/get w
 								max: either sym = words/after [-1][blk/head] ;-- save block cursor
 							][
-								block/push* 8
+								block/push-only* 8
 							]
 							min:   R_NONE
 							type:  R_COLLECT
@@ -1779,7 +1782,7 @@ parser: context [
 						sym = words/case* [				;-- CASE
 							cmd: cmd + 1
 							if any [cmd = tail TYPE_OF(cmd) <> TYPE_WORD][
-								PARSE_ERROR [TO_ERROR(script parse-end) words/case*]
+								PARSE_ERROR [TO_ERROR(script parse-end) words/_case]
 							]
 							max: comp-op
 							bool: as red-logic! _context/get as red-word! cmd
@@ -1843,7 +1846,10 @@ parser: context [
 			state = ST_EXIT
 		]
 		reset saved?
-		
+
+		s: GET_BUFFER(series)
+		if s/offset = s/tail [collector/active?: yes]
+
 		either collect? [
 			base + 1
 		][

@@ -3,7 +3,7 @@ Red [
 	Author:  "Nenad Rakocevic"
 	File: 	 %boot.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -44,7 +44,7 @@ Red [
 	system/version: load system/version
 	
 	system/options/cache: either system/platform = 'Windows [
-		append to-red-file get-env "ALLUSERSPROFILE" %/Red/
+		append to-red-file get-env "APPDATA" %/Red/
 	][
 		append any [attempt [to-red-file get-env "HOME"] %/tmp] %/.red/
 	]

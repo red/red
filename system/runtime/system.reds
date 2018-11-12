@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %system.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -30,6 +30,23 @@ Red/System [
 #define FPU_X87_PRECISION_SINGLE	 0		;-- 32-bit float, 24-bit mantissa
 #define FPU_X87_PRECISION_DOUBLE	 2		;-- 64-bit float, 53-bit mantissa
 #define FPU_X87_PRECISION_DOUBLE_EXT 3		;-- 80-bit float, 64-bit mantissa
+
+;-- FPU values for system/fpu/status
+#either target = 'ARM [
+	#define FPU_EXCEPTION_INVALID_OP	 1		;-- Invalid Operation
+	#define FPU_EXCEPTION_ZERO_DIVIDE	 2		;-- Zero Divide
+	#define FPU_EXCEPTION_OVERFLOW		 4		;-- Overflow
+	#define FPU_EXCEPTION_UNDERFLOW		 8		;-- Underflow
+	#define FPU_EXCEPTION_PRECISION		 16		;-- Precision
+	#define FPU_EXCEPTION_DENORMAL_OP	 128	;-- Denormalized Operand
+][
+	#define FPU_EXCEPTION_INVALID_OP	 1		;-- Invalid Operation
+	#define FPU_EXCEPTION_DENORMAL_OP	 2		;-- Denormalized Operand
+	#define FPU_EXCEPTION_ZERO_DIVIDE	 4		;-- Zero Divide
+	#define FPU_EXCEPTION_OVERFLOW		 8		;-- Overflow
+	#define FPU_EXCEPTION_UNDERFLOW		 16		;-- Underflow
+	#define FPU_EXCEPTION_PRECISION		 32		;-- Precision
+]
 
 __stack!: alias struct! [
 	top		[int-ptr!]
@@ -65,6 +82,7 @@ FPU-exceptions-mask!: alias struct! [		;-- standard exception mask (true => mask
 			type		 [integer!]
 			option		 [x87-option!]
 			mask		 [FPU-exceptions-mask!]
+			status		 [integer!]
 			control-word [integer!]			;-- direct access to whole control word
 			epsilon		 [integer!]			;-- Ulp threshold for almost-equal op (not used yet)
 			update		 [integer!]			;-- action simulated using a read-only member
@@ -94,6 +112,7 @@ FPU-exceptions-mask!: alias struct! [		;-- standard exception mask (true => mask
 			type		 [integer!]
 			option		 [VFP-option!]
 			mask		 [FPU-exceptions-mask!]
+			status		 [integer!]
 			control-word [integer!]			;-- direct access to whole control word
 			epsilon		 [integer!]			;-- Ulp threshold for almost-equal op (not used yet)
 			update		 [integer!]			;-- action simulated using a read-only member

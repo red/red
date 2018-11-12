@@ -14,7 +14,10 @@ Red/System [
 #define TBOX_METRICS_OFFSET?		0
 #define TBOX_METRICS_INDEX?			1
 #define TBOX_METRICS_LINE_HEIGHT	2
-#define TBOX_METRICS_METRICS		3
+#define TBOX_METRICS_SIZE			3
+#define TBOX_METRICS_LINE_COUNT		4
+#define TBOX_METRICS_CHAR_INDEX?	5
+#define TBOX_METRICS_OFFSET_LOWER	6
 
 hidden-hwnd:  as handle! 0
 line-metrics: as DWRITE_LINE_METRICS 0
@@ -57,9 +60,10 @@ OS-text-box-background: func [
 		cache	[red-vector!]
 		brush	[integer!]
 ][
-	cache: as red-vector! dc + 3
-	if TYPE_OF(cache) <> TYPE_VECTOR [
-		vector/make-at as red-value! cache 128 TYPE_INTEGER 4
+	cache: as red-vector! dc/4
+	if null? cache [
+		cache: vector/make-at ALLOC_TAIL(root) 128 TYPE_INTEGER 4
+		dc/4: as-integer cache
 	]
 	brush: select-brush dc + 1 color
 	if zero? brush [
@@ -169,7 +173,7 @@ OS-text-box-font-size: func [
 ][
 	this: as this! layout
 	dl: as IDWriteTextLayout this/vtbl
-	dl/SetFontSize this ConvertPointSizeToDIP(size) pos len
+	dl/SetFontSize this as float32! 94.0 * size / 72.0 pos len
 ]
 
 OS-text-box-metrics: func [
@@ -199,6 +203,7 @@ OS-text-box-metrics: func [
 		inside?			[integer!]
 		blk				[red-block!]
 		int				[red-integer!]
+		text			[red-string!]
 		pos				[red-pair!]
 		values			[red-value!]
 		hr				[integer!]
@@ -210,16 +215,23 @@ OS-text-box-metrics: func [
 	dl: as IDWriteTextLayout this/vtbl
 
 	as red-value! switch type [
-		TBOX_METRICS_OFFSET? [
+		TBOX_METRICS_OFFSET?
+		TBOX_METRICS_OFFSET_LOWER [
+			text: as red-string! int + 3
 			x: as float32! 0.0 y: as float32! 0.0
-			;int: as red-integer! arg0
-			hr: as-integer arg0
+			int: as red-integer! arg0
+			hr: adjust-index text int/value - 1
 			hit: as DWRITE_HIT_TEST_METRICS :left
-			dl/HitTestTextPosition this hr - 1 no :x :y hit
+			dl/HitTestTextPosition this hr no :x :y hit
 			if y < as float32! 0.0 [y: as float32! 0.0]
-			pair/push as-integer x + as float32! 0.5 as-integer y
+			if type = TBOX_METRICS_OFFSET_LOWER [
+				x: x + hit/width
+				y: y + hit/height
+			]
+			pair/push as-integer x + as float32! 0.5 as-integer y + as float32! 0.99
 		]
-		TBOX_METRICS_INDEX? [
+		TBOX_METRICS_INDEX?
+		TBOX_METRICS_CHAR_INDEX? [
 			pos: as red-pair! arg0
 			x: as float32! pos/x
 			y: as float32! pos/y
@@ -227,7 +239,7 @@ OS-text-box-metrics: func [
 			inside?: 0
 			hit: as DWRITE_HIT_TEST_METRICS :left
 			dl/HitTestPoint this x y :trailing? :inside? hit
-			if 0 <> trailing? [left: left + 1]
+			if all [type = TBOX_METRICS_INDEX? 0 <> trailing?][left: left + 1]
 			integer/push left + 1
 		]
 		TBOX_METRICS_LINE_HEIGHT [
@@ -242,7 +254,8 @@ OS-text-box-metrics: func [
 			lineCount: 0
 			dl/GetLineMetrics this line-metrics max-line-cnt :lineCount
 			lm: line-metrics
-			hr: as-integer arg0
+			int: as red-integer! arg0
+			hr: int/value
 			while [
 				hr: hr - lm/length
 				lineCount: lineCount - 1
@@ -250,16 +263,17 @@ OS-text-box-metrics: func [
 			][
 				lm: lm + 1
 			]
-			integer/push as-integer lm/height
+			y: lm/height
+			integer/push as-integer y + as float32! 0.99
 		]
 		default [
 			metrics: as DWRITE_TEXT_METRICS :left
 			hr: dl/GetMetrics this metrics
-
-			values: object/get-values as red-object! arg0
-			integer/make-at values + TBOX_OBJ_WIDTH as-integer metrics/width
-			integer/make-at values + TBOX_OBJ_HEIGHT as-integer metrics/height
-			integer/make-at values + TBOX_OBJ_LINE_COUNT metrics/lineCount
+			either type = TBOX_METRICS_SIZE [
+				pair/push as-integer metrics/width as-integer metrics/height
+			][
+				integer/push metrics/lineCount
+			]
 		]
 	]
 ]
@@ -267,6 +281,7 @@ OS-text-box-metrics: func [
 OS-text-box-layout: func [
 	box		[red-object!]
 	target	[int-ptr!]
+	ft-clr	[integer!]
 	catch?	[logic!]
 	return: [this!]
 	/local
@@ -276,69 +291,83 @@ OS-text-box-layout: func [
 		str		[red-string!]
 		size	[red-pair!]
 		int		[red-integer!]
-		fixed?	[red-logic!]
+		bool	[red-logic!]
 		state	[red-block!]
 		styles	[red-block!]
+		pval	[red-value!]
 		vec		[red-vector!]
 		obj		[red-object!]
 		w		[integer!]
 		h		[integer!]
 		fmt		[this!]
+		old-fmt	[this!]
 		layout	[this!]
 ][
 	values: object/get-values box
+	state: as red-block! values + FACE_OBJ_EXT3
+	fmt: as this! create-text-format as red-object! values + FACE_OBJ_FONT
+
 	if null? target [
-		hWnd: null
-		obj: as red-object! values + TBOX_OBJ_TARGET
-		if TYPE_OF(obj) = TYPE_OBJECT [
-			hWnd: face-handle? obj
-		]
+		hWnd: face-handle? box
 		if null? hWnd [
 			if null? hidden-hwnd [
 				hidden-hwnd: CreateWindowEx WS_EX_TOOLWINDOW #u16 "RedBaseInternal" null WS_POPUP 0 0 2 2 null null hInstance null
+				store-face-to-hWnd hidden-hwnd box
 			]
 			hWnd: hidden-hwnd
 		]
 		target: get-hwnd-render-target hWnd
 	]
 
-	vec: as red-vector! target + 3
-	if TYPE_OF(vec) = TYPE_VECTOR [vector/rs-clear vec]
-
-	state: as red-block! values + TBOX_OBJ_STATE
 	either TYPE_OF(state) = TYPE_BLOCK [
-		int: as red-integer! block/rs-head state	;-- release previous text layout
+		pval: block/rs-head state
+		int: as red-integer! pval
 		layout: as this! int/value
-		COM_SAFE_RELEASE(IUnk layout)
+		COM_SAFE_RELEASE(IUnk layout)		;-- release previous text layout
 		int: int + 1
-		fmt: as this! int/value
+		old-fmt: as this! int/value
+		if old-fmt <> fmt [
+			COM_SAFE_RELEASE(IUnk old-fmt)
+			int/value: as-integer fmt
+		]
+		bool: as red-logic! int + 3
+		bool/value: false
 	][
-		fixed?: as red-logic! values + TBOX_OBJ_FIXED?
-		fmt: as this! create-text-format as red-object! values + TBOX_OBJ_FONT
-		if fixed?/value [set-line-spacing fmt]
-		block/make-at state 2
+		block/make-at state 5
 		none/make-in state							;-- 1: text layout
-		integer/make-in state as-integer fmt		;-- 2: text format
+		handle/make-in state as-integer fmt			;-- 2: text format
+		handle/make-in state 0						;-- 3: target
+		none/make-in state							;-- 4: text
+		logic/make-in state false					;-- 5: layout?
+		pval: block/rs-head state
 	]
 
-	set-text-format fmt as red-object! values + TBOX_OBJ_PARA
+	handle/make-at pval + 2 as-integer target
+	vec: as red-vector! target/4
+	if vec <> null [vector/rs-clear vec]
 
-	str: as red-string! values + TBOX_OBJ_TEXT
-	size: as red-pair! values + TBOX_OBJ_SIZE
+	set-text-format fmt as red-object! values + FACE_OBJ_PARA
+	set-tab-size fmt as red-integer! values + FACE_OBJ_EXT1
+	set-line-spacing fmt as red-integer! values + FACE_OBJ_EXT2
+
+	str: as red-string! values + FACE_OBJ_TEXT
+	size: as red-pair! values + FACE_OBJ_SIZE
 	either TYPE_OF(size) = TYPE_PAIR [
 		w: size/x h: size/y
 	][
 		w: 0 h: 0
 	]
-	layout: create-text-layout str fmt w h
-	integer/make-at block/rs-head state as-integer layout
 
-	styles: as red-block! values + TBOX_OBJ_STYLES
+	copy-cell as red-value! str pval + 3			;-- save text
+	layout: create-text-layout str fmt w h
+	handle/make-at pval as-integer layout
+
+	styles: as red-block! values + FACE_OBJ_DATA
 	if all [
 		TYPE_OF(styles) = TYPE_BLOCK
-		2 < block/rs-length? styles
+		1 < block/rs-length? styles
 	][
-		parse-text-styles target as handle! layout styles catch?
+		parse-text-styles target as handle! layout styles 7FFFFFFFh catch?
 	]
 	layout
 ]
@@ -366,9 +395,9 @@ txt-box-draw-background: func [
 		left		[integer!]
 		rc			[D2D_RECT_F]
 ][
-	styles: as red-vector! target + 3
+	styles: as red-vector! target/4
 	if any [
-		TYPE_OF(styles) <> TYPE_VECTOR
+		null? styles
 		zero? vector/rs-length? styles
 	][exit]
 
@@ -400,7 +429,7 @@ txt-box-draw-background: func [
 			left: as-integer hit/left + as float32! 0.5
 			top: as-integer hit/top + as float32! 0.5
 			width: as-integer hit/width + as float32! 0.5
-			height: as-integer hit/height + as float32! 0.5
+			height: as-integer hit/height + as float32! 0.99
 			rc/right: as float32! left + width
 			rc/bottom: as float32! top + height
 			rc/top: as float32! top
@@ -411,4 +440,31 @@ txt-box-draw-background: func [
 		p: p + 3
 	]
 	vector/rs-clear styles
+]
+
+adjust-index: func [
+	str		[red-string!]
+	idx		[integer!]
+	return: [integer!]
+	/local
+		s		[series!]
+		unit	[integer!]
+		head	[byte-ptr!]
+		tail	[byte-ptr!]
+		i		[integer!]
+		c		[integer!]
+][
+	s: GET_BUFFER(str)
+	unit: GET_UNIT(s)
+	if unit = UCS-4 [
+		head: (as byte-ptr! s/offset) + (str/head << 2)
+		tail: head + (idx * 4)
+		i: 0
+		while [head < tail][
+			c: string/get-char head unit
+			if c >= 00010000h [idx: idx + 1]
+			head: head + unit
+		]
+	]
+	idx
 ]

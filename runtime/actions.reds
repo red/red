@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %actions.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -128,6 +128,7 @@ actions: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/make"]]
 		
+		dt: null
 		type: TYPE_OF(proto)
 		if type = TYPE_DATATYPE [
 			dt: as red-datatype! proto
@@ -427,6 +428,7 @@ actions: context [
 			op <> COMP_EQUAL
 			op <> COMP_SAME
 			op <> COMP_STRICT_EQUAL
+			op <> COMP_STRICT_EQUAL_WORD
 			op <> COMP_NOT_EQUAL
 			op <> COMP_FIND
 		][
@@ -887,10 +889,15 @@ actions: context [
 		deep	[integer!]
 		types	[integer!]
 		return:	[red-value!]
+		/local
+			new [red-value!]
 	][
+		new: stack/push*
+		assert new <> stack/arguments
+		new/header: TYPE_UNSET
 		stack/set-last copy
 			as red-series! stack/arguments
-			stack/push*
+			new
 			stack/arguments + part
 			as logic! deep + 1
 			stack/arguments + types
@@ -907,9 +914,7 @@ actions: context [
 			action-copy
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/copy"]]
-		
-		new/header: series/header
-			
+
 		action-copy: as function! [
 			series  [red-series!]
 			new		[red-value!]
@@ -918,7 +923,7 @@ actions: context [
 			types	[red-value!]
 			return: [red-series!]
 		] get-action-ptr as red-value! series ACT_COPY
-					
+		
 		as red-value! action-copy series new part deep? types
 	]
 	
@@ -1625,7 +1630,26 @@ actions: context [
 	]
 
 	open?*: func [][]
-	query*: func [][]
+
+	query*: func [][
+		stack/set-last query stack/arguments
+	]
+
+	query: func [
+		target  [red-value!]
+		return:	[red-value!]
+		/local
+			action-query
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/query"]]
+
+		action-query: as function! [
+			target  [red-value!]
+			return:	[red-value!]						;-- picked value from series
+		] get-action-ptr target ACT_QUERY
+
+		action-query target
+	]
 
 	read*: func [
 		part	[integer!]
@@ -1802,7 +1826,7 @@ actions: context [
 			:modify*
 			:open*
 			null			;open?
-			null			;query
+			:query*
 			:read*
 			null			;rename
 			null			;update

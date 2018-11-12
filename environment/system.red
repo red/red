@@ -3,7 +3,7 @@ Red [
 	Author:  "Nenad Rakocevic"
 	File: 	 %system.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -12,8 +12,9 @@ Red [
 
 system: context [
 	version: #version
-	build:	 context [
-		date:	#build-date
+	build: context [
+		date: to-local-date #build-date
+		git: do #git
 		config: context #build-config
 	]
 		
@@ -34,7 +35,7 @@ system: context [
 		]
 		__make-sys-object
 	]
-	
+
 	platform: func ["Return a word identifying the operating system"][
 		#system [
 			#switch OS [
@@ -45,7 +46,7 @@ system: context [
 			]
 		]
 	]
-	
+
 	catalog: context [
 		datatypes:
 		actions:
@@ -75,6 +76,7 @@ system: context [
 				return:				"return or exit not in function"
 				throw:				["no catch for throw:" :arg1]
 				continue:			"no loop to continue"
+				while-cond:			"BREAK/CONTINUE cannot be used in WHILE condition block"
 			]
 			note: object [
 				code:				100
@@ -179,6 +181,8 @@ system: context [
 				not-event-type:		["VIEW - not a valid event type" :arg1]
 				invalid-facet-type:	["VIEW - invalid rate value:" :arg1]
 				vid-invalid-syntax:	["VID - invalid syntax at:" :arg1]
+				rtd-invalid-syntax: ["RTD - invalid syntax at:" :arg1]
+				rtd-no-match:		["RTD - opening/closing tag not matching for:" :arg1]
 				react-bad-func:		"REACT - /LINK option requires a function! as argument"
 				react-not-enough:	"REACT - reactive functions must accept at least 2 arguments"
 				react-no-match:		"REACT - objects block length must match reaction function arg count"
@@ -231,6 +235,14 @@ system: context [
 				;bad-extension:		["invalid extension format:" :arg1]
 				;extension-init:	["extension cannot be initialized (check version):" :arg1]
 				;call-fail:			["external process failed:" :arg1]
+			]
+			reserved1: object [
+				code:				600
+				type:				"Reserved1 Error"
+			]
+			reserved2: object [
+				code:				700
+				type:				"Reserved2 Error"
 			]
 			user: object [
 				code:				800
@@ -368,6 +380,9 @@ system: context [
 		]
 		error: context [
 			code: type: id: arg1: arg2: arg3: near: where: stack: none
+		]
+		file-info: context [
+			name: size: date: type: none
 		]
 	]
 	

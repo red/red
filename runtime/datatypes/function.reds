@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %function.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2012-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2012-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -601,7 +601,7 @@ _function: context [
 			s		[series!]
 			extern? [logic!]
 	][
-		list: block/push* 8
+		list: block/push-only* 8
 		ignore: block/clone spec no no
 		
 		value:  as red-value! refinements/extern		;-- process optional /extern
@@ -746,6 +746,7 @@ _function: context [
 			end	   [red-value!]
 			next   [red-value!]
 			next2  [red-value!]
+			w      [red-word!]
 	][
 		value: block/rs-head spec
 		end:   block/rs-tail spec
@@ -770,11 +771,20 @@ _function: context [
 						value: value + 1
 					]
 				]
-				TYPE_SET_WORD [
+				TYPE_SET_WORD [							;-- only return: is allowed as a set-word!
+					w: as red-word! value
+					if words/return* <> symbol/resolve w/symbol [
+						fire [TO_ERROR(script bad-func-def)	w]
+					]
 					next: value + 1
+					next2: next + 1
 					unless all [
 						next < end
-						TYPE_OF(next) = TYPE_BLOCK
+						TYPE_OF(next) = TYPE_BLOCK		;-- return: must have a type spec
+						any [							;-- This allows a return: spec before each refinement
+							next2 = end
+							TYPE_OF(next2) = TYPE_REFINEMENT
+						]
 					][
 						fire [TO_ERROR(script bad-func-def) value]
 					]
@@ -866,16 +876,19 @@ _function: context [
 			args   [red-block!]
 			more   [series!]
 			s	   [series!]
+			f-ctx  [node!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_function/push"]]
 
+		f-ctx: either null? ctx [_context/make spec yes no][ctx]
 		fun: as red-function! stack/push*
-		fun/header:  TYPE_FUNCTION						;-- implicit reset of all header flags
+		fun/header:  TYPE_UNSET
 		fun/spec:	 spec/node
-		fun/ctx:	 either null? ctx [_context/make spec yes no][ctx]
-		fun/more:	 alloc-cells 5
+		fun/ctx:	 f-ctx
+		fun/more:	 alloc-unset-cells 5
+		fun/header:  TYPE_FUNCTION						;-- implicit reset of all header flags
 		
-		s: as series! fun/ctx/value
+		s: as series! f-ctx/value
 		copy-cell as red-value! fun s/offset + 1		;-- set back-reference
 		
 		more: as series! fun/more/value
@@ -890,10 +903,14 @@ _function: context [
 		
 		args: as red-block! alloc-tail more
 		args/header: TYPE_BLOCK
-		args/node:   null
+		args/head:	 0
+		args/node: 	 null
+		args/extra:	 0
 		
 		native: as red-native! alloc-tail more
 		native/header: TYPE_NATIVE
+		native/args: null
+		native/spec: null
 		native/code: code
 		
 		value: alloc-tail more							;-- function! value self-reference (for op!)
@@ -910,7 +927,7 @@ _function: context [
 		if all [null? ctx not null? body][
 			_context/bind body GET_CTX(fun) null no		;-- do not bind if predefined context (already done)
 		]
-		fun/ctx
+		f-ctx
 	]
 		
 	;-- Actions --

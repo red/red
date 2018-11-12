@@ -3,7 +3,7 @@ Red/System [
 	Author: "Nenad Rakocevic"
 	File: 	%tab-panel.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2015 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -218,9 +218,7 @@ update-tab-contents: func [
 						values: get-node-facet obj/ctx 0
 						init-panel values parent
 						either type = FACE_OBJ_SIZE [
-							change-size
-								hWnd
-								as red-pair! values + FACE_OBJ_SIZE panel
+							change-size hWnd values panel
 						][
 							pos: as red-pair! values + FACE_OBJ_OFFSET
 							adjust-parent hWnd parent pos/x pos/y

@@ -3,19 +3,28 @@ Red [
 	Author:  "Nenad Rakocevic"
 	File: 	 %functions.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
-routine: func [spec [block!] body [block!]][
+routine: func ["Defines a function with a given Red spec and Red/System body" spec [block!] body [block!]][
 	cause-error 'internal 'routines []
 ]
 
+alert: func [msg [string! block!]][
+	view/flags compose [
+		title "Message"
+		below center
+		text 200 (msg) center
+		button "ok"
+	] 'modal
+]
+
 also: func [
-	"Returns the first value, but also evaluates the second."
+	"Returns the first value, but also evaluates the second"
 	value1 [any-type!]
 	value2 [any-type!]
 ][
@@ -34,14 +43,17 @@ attempt: func [
 	]
 ]
 
-comment: func ['value][]
+comment: func ["Consume but don't evaluate the next value" 'value][]
 
 quit: func [
 	"Stops evaluation and exits the program"
 	/return status	[integer!] "Return an exit status"
 ][
-	#if config/OS <> 'Windows [
-		if system/console [system/console/terminate]
+	#if all [
+		config/OS <> 'Windows
+		not config/gui-console?
+	][
+		if system/console [do [_terminate-console]]
 	]
 	quit-return any [status 0]
 ]
@@ -72,18 +84,19 @@ probe: func [
 ]
 
 quote: func [
+	"Return but don't evaluate the next value"
 	:value
 ][
 	:value
 ]
 
-first:	func ["Returns the first value in a series"  s [series! tuple! pair! time!]] [pick s 1]	;@@ temporary definitions, should be natives ?
-second:	func ["Returns the second value in a series" s [series! tuple! pair! time!]] [pick s 2]
-third:	func ["Returns the third value in a series"  s [series! tuple! time!]] [pick s 3]
-fourth:	func ["Returns the fourth value in a series" s [series! tuple!]] [pick s 4]
-fifth:	func ["Returns the fifth value in a series"  s [series! tuple!]] [pick s 5]
+first:	func ["Returns the first value in a series"  s [series! tuple! pair! date! time!]] [pick s 1]	;@@ temporary definitions, should be natives ?
+second:	func ["Returns the second value in a series" s [series! tuple! pair! date! time!]] [pick s 2]
+third:	func ["Returns the third value in a series"  s [series! tuple! date! time!]] [pick s 3]
+fourth:	func ["Returns the fourth value in a series" s [series! tuple! date!]] [pick s 4]
+fifth:	func ["Returns the fifth value in a series"  s [series! tuple! date!]] [pick s 5]
 
-last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 1]
+last: func ["Returns the last value in a series" s [series! tuple!]] [pick s length? s]
 
 #do keep [
 	list: make block! 50
@@ -149,7 +162,12 @@ last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 
 	list
 ]
 
-context: func [spec [block!]][make object! spec]
+context: func [
+	"Makes a new object from an evaluated spec"
+	spec [block!]
+][
+	make object! spec
+]
 
 alter: func [
 	"If a value is not found in a series, append it; otherwise, remove it. Returns true if added"
@@ -185,48 +203,58 @@ replace: function [
 	series [series!] "The series to be modified"
 	pattern "Specific value or parse rule pattern to match"
 	value "New value, replaces pattern in the series"
-	/all  "Replace all occurrences, not just the first"
+	/all "Replace all occurrences, not just the first"
 	/deep "Replace pattern in all sub-lists as well"
+	/case "Case-sensitive replacement"
+	/local p rule s e many? len pos do-parse do-find
 ][
-	if system/words/all [deep any-list? series][
-		pattern: to block! either word? p: pattern [to lit-word! pattern][pattern]
-		parse series rule: [
-			some [
-				s: pattern e: (
-					s: change/part s value e
-					unless all [return series]
-				) :s
-				| ahead any-list! into rule | skip
+	do-parse: pick [parse/case parse] case
+	if system/words/all [deep any-list? series] [
+		pattern: to block! either word? pattern [to lit-word! pattern] [pattern]
+		do compose [
+			(do-parse) series rule: [
+				some [
+					s: pattern e: (
+						s: change/part s value e
+						unless all [return series]
+					) :s
+					| ahead any-list! into rule | skip
+				]
 			]
 		]
 		return series
 	]
-	if system/words/all [char? :pattern any-string? series][
+	if system/words/all [char? :pattern any-string? series] [
 		pattern: form pattern
 	]
-	many?: any [
-		system/words/all [series? :pattern any-string? series]
-		binary? series
-		system/words/all [any-list? series any-list? :pattern]
-	]
-	len: either many? [length? pattern][1]
-	
-	either all [
-		pos: series
-		either many? [
-			while [pos: find pos pattern][
-				remove/part pos len
-				pos: insert pos value
-			]
-		][
-			while [pos: find pos :pattern][
-				pos: insert remove pos value
-			]
+	either system/words/all [any-string? :series block? :pattern] [
+		p: [to pattern change pattern (value)]
+		do compose [(do-parse) series either all [[some p]] [p]]
+	] [
+		many?: any [
+			system/words/all [series? :pattern any-string? series]
+			binary? series
+			system/words/all [any-list? series any-list? :pattern]
 		]
-	][
-		if pos: find series :pattern [
-			remove/part pos len
-			insert pos value
+		len: either many? [length? pattern] [1]
+		do-find: pick [find/case find] case
+		either all [
+			pos: series
+			either many? [
+				while [pos: do compose [(do-find) pos pattern]] [
+					remove/part pos len
+					pos: insert pos value
+				]
+			] [
+				while [pos: do compose [(do-find) pos :pattern]] [
+					pos: insert remove pos value
+				]
+			]
+		] [
+			if pos: do compose [(do-find) series :pattern] [
+				remove/part pos len
+				insert pos value
+			]
 		]
 	]
 	series
@@ -252,14 +280,16 @@ math: function [
 ]
 
 charset: func [
+	"Shortcut for `make bitset!`"
 	spec [block! integer! char! string!]
 ][
 	make bitset! spec
 ]
 
-p-indent: make string! 30								;@@ to be put in an local context
+p-indent: make string! 30								;@@ to be put in a local context
 
 on-parse-event: func [
+	"Standard parse/trace callback used by PARSE-TRACE"
 	event	[word!]   "Trace events: push, pop, fetch, match, iterate, paren, end"
 	match?	[logic!]  "Result of last matching operation"
 	rule	[block!]  "Current rule at current position"
@@ -292,8 +322,8 @@ parse-trace: func [
 	"Wrapper for parse/trace using the default event processor"
 	input [series!]
 	rules [block!]
-	/case
-	/part
+	/case "Uses case-sensitive comparison"
+	/part "Limit to a length or position"
 		limit [integer!]
 	return: [logic! block!]
 ][
@@ -327,12 +357,12 @@ load: function [
 	/trap	"Load all values, returns [[values] position error]"
 	/next	"Load the next value only, updates source series word"
 		position [word!] "Word updated with new series position"
-	/part
+	/part	"Limit to a length or position"
 		length [integer! string!]
 	/into "Put results in out block, instead of creating a new block"
 		out [block!] "Target block for results"
 	/as   "Specify the type of data; use NONE to load as code"
-		type [word! none!] "E.g. json, html, jpeg, png, etc"
+		type [word! none!] "E.g. bmp, gif, jpeg, png"
 ][
 	if as [
 		if word? type [
@@ -340,7 +370,7 @@ load: function [
 				if url? source [source: read/binary source]
 				return do [codec/decode source]
 			][
-				return none
+				cause-error 'script 'invalid-refine-arg [/as type]
 			]
 		]
 	]
@@ -403,16 +433,14 @@ save: function [
 	/all    "TBD: Save in serialized format"
 	/length "Save the length of the script content in the header"
 	/as     "Specify the format of data; use NONE to save as plain text"
-		format [word! none!] "E.g. json, html, jpeg, png, redbin etc"
+		format [word! none!] "E.g. bmp, gif, jpeg, png"
 ][
 	dst: either any [file? where url? where][where][none]
-	either as [
-		if word? format [
-			either codec: select system/codecs format [
-				data: do [codec/encode value dst]
-				if same? data dst [exit]	;-- if encode returns dst back, means it already save value to dst
-			][exit]
-		]
+	either system/words/all [as  word? format] [				;-- Be aware of [all as] word shadowing
+		either codec: select system/codecs format [
+			data: do [codec/encode value dst]
+			if same? data dst [exit]	;-- if encode returns dst back, means it already save value to dst
+		][cause-error 'script 'invalid-refine-arg [/as format]] ;-- throw error if format is not supported
 	][
 		if length [header: true header-data: any [header-data copy []]]
 		if header [
@@ -479,11 +507,12 @@ cause-error: function [
 
 pad: func [
 	"Pad a FORMed value on right side with spaces"
-	str						"Value to pad, FORM it if not a string"
-	n		[integer!]		"Total size (in characters) of the new string"
-	/left					"Pad the string on left side"
-	/with c	[char!]			"Pad with char"
-	return:	[string!]		"Modified input string at head"
+	str					"Value to pad, FORM it if not a string"
+	n		[integer!]	"Total size (in characters) of the new string"
+	/left				"Pad the string on left side"
+	/with				"Pad with char"
+	c		[char!]
+	return:	[string!]	"Modified input string at head"
 ][
 	unless string? str [str: form str]
 	head insert/dup
@@ -515,9 +544,10 @@ modulo: func [
 	either any [a - r = a r + b = b][0][r]
 ]
 
-eval-set-path: func [value1][]
+eval-set-path: func ["Internal Use Only" value1][]
 
 to-red-file: func [
+	"Converts a local system file path to a Red file path"
 	path	[file! string!]
 	return: [file!]
 	/local colon? slash? len i c dst
@@ -527,7 +557,7 @@ to-red-file: func [
 	dst: make file! len
 	if zero? len [return dst]
 	i: 1
-	either system/platform = 'Windows [
+	#either config/OS = 'Windows [
 		until [
 			c: pick path i
 			i: i + 1
@@ -558,9 +588,10 @@ to-red-file: func [
 	dst
 ]
 
-dir?: func [file [file! url!]][#"/" = last file]
+dir?: func ["Returns TRUE if the value looks like a directory spec" file [file! url!]][#"/" = last file]
 
 normalize-dir: function [
+	"Returns an absolute directory spec"
 	dir [file! word! path!]
 ][
 	unless file? dir [dir: to file! mold dir]
@@ -655,11 +686,11 @@ extract-boot-args: function [
 	;-- extract system/options/boot
 	either args/1 = dbl-quote [
 		until [args: next args args/1 <> dbl-quote]
-		system/options/boot: copy/part args pos: find args dbl-quote
+		system/options/boot: to-red-file copy/part args pos: find args dbl-quote
 		until [pos: next pos pos/1 <> dbl-quote]
 	][
 		pos: either pos: find/tail args space [back pos][tail args]
-		system/options/boot: copy/part args pos
+		system/options/boot: to-red-file copy/part args pos
 	]
 	;-- clean-up system/script/args
 	remove/part args: head args pos
@@ -722,7 +753,7 @@ split: function [
 	series [any-string!] dlm [string! char! bitset!] /local s
 ][
 	num: either string? dlm [length? dlm][1]
-	parse series [collect any [copy s [to dlm | to end] keep (s) num skip]]
+	parse series [collect any [copy s [to [dlm | end]] keep (s) num skip [end keep ("") | none] ]]
 ]
 
 dirize: func [
@@ -797,7 +828,7 @@ split-path: func [
 	reduce [dir pos]
 ]
 
-do-file: func [file [file! url!] /local saved code new-path src][
+do-file: func ["Internal Use Only" file [file! url!] /local saved code new-path src][
 	saved: system/options/path
 	unless src: find/case read file "Red" [
 		cause-error 'syntax 'no-header reduce [file]
@@ -808,8 +839,9 @@ do-file: func [file [file! url!] /local saved code new-path src][
 		new-path: first split-path clean-path file
 		change-dir new-path
 	]
-	set/any 'code do code
+	set/any 'code try/all code
 	if file? file [change-dir saved]
+	if error? :code [do :code]							;-- rethrow the error
 	:code
 ]
 
@@ -824,12 +856,12 @@ path-thru: function [
 ][
 	so: system/options
 	unless so/thru-cache [make-dir/deep so/thru-cache: append copy so/cache %cache/]
-	
-	if pos: find/tail file: to-file url "//" [file: pos]
-	clear find pos charset "?#"
-	path: first split-path file: append copy so/thru-cache file
-	unless exists? path [make-dir/deep path]
-	file
+
+	hash: checksum form url 'MD5
+	file: head (remove back tail remove remove (form hash))
+	path: dirize append copy so/thru-cache copy/part file 2
+	unless exists? path [make-dir path] 
+	append path file
 ]
 
 exists-thru?: function [
@@ -849,7 +881,8 @@ read-thru: function [
 	either all [not update exists? path] [
 		data: either binary [read/binary path][read path]
 	][
-		write/binary path data: either binary [read/binary url][read url]
+		data: either binary [read/binary url][read url]
+		attempt [write/binary path data]
 	]
 	data
 ]
@@ -859,12 +892,12 @@ load-thru: function [
 	url [url!]	"Remote file address"
 	/update		"Force a cache update"
 	/as			"Specify the type of data; use NONE to load as code"
-		type [word! none!] "E.g. json, html, jpeg, png, etc"
+		type [word! none!] "E.g. bmp, gif, jpeg, png"
 ][
 	path: path-thru url
 	if all [not update exists? path][url: path]
 	file: either as [load/as url type][load url]
-	if url? url [either as [save/as path file type][save path file]]
+	if url? url [attempt [either as [save/as path file type][save path file]]]
 	file
 ]
 
@@ -960,6 +993,24 @@ sqrt: func [
 	]
 ]
 
+to-UTC-date: func [
+	"Returns the date with UTC zone"
+	date [date!]
+	return: [date!]
+][
+	date/timezone: 0
+	date
+]
+
+to-local-date: func [
+	"Returns the date with local zone"
+	date [date!]
+	return: [date!]
+][
+	date/timezone: now/zone
+	date
+]
+
 ;--- Temporary definition, use at your own risks! ---
 rejoin: function [
 	"Reduces and joins a block of values."
@@ -969,6 +1020,24 @@ rejoin: function [
 	append either series? first block [copy first block] [
 		form first block
 	] next block
+]
+
+sum: func [
+	"Returns the sum of all values in a block"
+	values [block! vector! paren! hash!]
+	/local result value
+][
+	result: make any [values/1 0] 0
+	foreach value values [result: result + value]
+	result
+]
+
+average: func [
+	"Returns the average of all values in a block"
+	block [block! vector! paren! hash!]
+][
+	if empty? block [return none]
+	divide sum block to float! length? block
 ]
 
 ;------------------------------------------

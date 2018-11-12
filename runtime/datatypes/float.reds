@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic, Oldes, Qingtian Xie"
 	File: 	 %float.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -550,7 +550,9 @@ float: context [
 				p: (as byte-ptr! s/offset) + (str/head << log-b unit)
 				len: (as-integer s/tail - p) >> log-b unit
 				
-				proto/value: tokenizer/scan-float p len unit :err
+				either len > 0 [
+					proto/value: tokenizer/scan-float p len unit :err
+				][err: -1]
 				if err <> 0 [fire [TO_ERROR(script bad-to-arg) datatype/push type spec]]
 			]
 			TYPE_BINARY [
@@ -856,7 +858,11 @@ float: context [
 		if OPTION?(scale) [
 			if TYPE_OF(scale) = TYPE_INTEGER [
 				int: as red-integer! value
-				int/value: as-integer dec + 0.5
+				either dec < 0.0 [
+					int/value: as-integer dec - 0.5
+				][
+					int/value: as-integer dec + 0.5
+				]
 				int/header: TYPE_INTEGER
 				return integer/round value as red-integer! scale _even? down? half-down? floor? ceil? half-ceil?
 			]

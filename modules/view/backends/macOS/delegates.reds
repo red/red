@@ -3,7 +3,7 @@ Red/System [
 	Author: "Qingtian Xie"
 	File: 	%delegates.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2016 Qingtian Xie. All rights reserved."
+	Rights: "Copyright (C) 2016-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -124,6 +124,8 @@ button-mouse-down: func [
 		bound	[NSRect!]
 		rc		[NSRect!]
 ][
+	if 0 <> objc_getAssociatedObject self RedEnableKey [exit]	;-- button is disabled
+
 	inside?: yes
 	objc_msgSend [self sel_getUid "highlight:" inside?]
 	objc_setAssociatedObject self RedNSEventKey event OBJC_ASSOCIATION_ASSIGN
@@ -319,14 +321,14 @@ on-key-down: func [
 		either special-key = -1 [						;-- special key
 			make-event self key or flags EVT_KEY
 		][
-			if key = 8 [								;-- backspace
+			if any [key = 8 key = 9][								;-- backspace
 				make-event self key or flags EVT_KEY
 				exit
 			]
 			key: objc_msgSend [event sel_getUid "characters"]
 			if all [
 				key <> 0
-				0 < objc_msgSend [key sel_getUid "length"]
+				0 < objc_msgSend [key sel_length]
 			][
 				key: objc_msgSend [key sel_getUid "characterAtIndex:" 0]
 				make-event self key or flags EVT_KEY
@@ -340,11 +342,8 @@ key-down-base: func [
 	self	[integer!]
 	cmd		[integer!]
 	event	[integer!]
-	/local
-		flags		[integer!]
 ][
-	flags: get-flags (as red-block! get-face-values self) + FACE_OBJ_FLAGS
-	either flags and FACET_FLAGS_EDITABLE = 0 [
+	either zero? objc_getAssociatedObject self RedRichTextKey [
 		on-key-down self event
 	][
 		objc_msgSend [
@@ -586,7 +585,7 @@ set-text: func [
 		face [red-object!]
 		out	 [c-string!]
 ][
-	size: objc_msgSend [text sel_getUid "length"]
+	size: objc_msgSend [text sel_length]
 	if size >= 0 [
 		str: as red-string! (get-face-values obj) + FACE_OBJ_TEXT
 		if TYPE_OF(str) <> TYPE_STRING [
@@ -627,6 +626,56 @@ text-did-change: func [
 	set-text self objc_msgSend [self sel_getUid "stringValue"]
 	if loop-started? [make-event self 0 EVT_CHANGE]
 	msg-send-super self cmd notif
+]
+
+;text-change-selection: func [
+;	[cdecl]
+;	self	[integer!]
+;	cmd		[integer!]
+;	notif	[integer!]
+;	/local
+;		win		[integer!]
+;		text	[integer!]
+;		range	[NSRange! value]
+;		sel		[red-pair!]
+;][
+	;win: objc_msgSend [NSApp sel_getUid "mainWindow"]
+	;text: objc_msgSend [win sel_getUid "fieldEditor:forObject:" yes self]
+	;text: objc_msgSend [self sel_getUid "currentEditor"]
+;	range: objc_msgSend_range [self sel_getUid "selectedRange"]
+
+;	sel: as red-pair! (get-face-values self) + FACE_OBJ_SELECTED
+;	either zero? range/len [sel/header: TYPE_NONE][
+;		sel/header: TYPE_PAIR
+;		sel/x: range/idx + 1
+;		sel/y: range/idx + range/len
+;	]
+
+;	make-event self 0 EVT_SELECT
+;]
+
+text-will-selection: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	view	[integer!]
+	idx1	[integer!]
+	len1	[integer!]
+	idx2	[integer!]
+	len2	[integer!]
+	/local
+		sel [red-pair!]
+][
+	sel: as red-pair! (get-face-values self) + FACE_OBJ_SELECTED
+	either zero? len2 [sel/header: TYPE_NONE][
+		sel/header: TYPE_PAIR
+		sel/x: idx2 + 1
+		sel/y: idx2 + len2
+	]
+
+	make-event self 0 EVT_SELECT
+	system/cpu/edx: len2
+	system/cpu/eax: idx2
 ]
 
 area-did-end-editing: func [
@@ -852,13 +901,6 @@ app-send-event: func [
 			check?: yes
 			window: process-mouse-tracking window event
 		]
-		NSApplicationDefined [
-			x: objc_msgSend [event sel_getUid "data1"]
-			if x = QuitMsgData [
-				objc_msgSend [NSApp sel_getUid "stop:" NSApp]
-				exit
-			]
-		]
 		default [0]
 	]
 
@@ -987,12 +1029,12 @@ win-did-resize: func [
 		v	[integer!]
 		rc	[NSRect! value]
 ][
+	make-event self 0 EVT_SIZING
 	v: objc_msgSend [self sel_getUid "contentView"]
 	rc: objc_msgSend_rect [v sel_getUid "frame"]
 	sz: (as red-pair! get-face-values self) + FACE_OBJ_SIZE		;-- update face/size
 	sz/x: as-integer rc/w
 	sz/y: as-integer rc/h
-	make-event self 0 EVT_SIZING
 ]
 
 win-live-resize: func [
@@ -1225,7 +1267,7 @@ set-marked-text: func [
 	text: either attr-str? [objc_msgSend [str sel_getUid "string"]][str]
 	make-event self text EVT_IME
 	_marked-range-idx: idx1
-	_marked-range-len: objc_msgSend [text sel_getUid "length"]
+	_marked-range-len: objc_msgSend [text sel_length]
 	if zero? _marked-range-len [
 		objc_msgSend [self sel_getUid "unmarkText"]
 	]
@@ -1289,7 +1331,7 @@ insert-text-range: func [
 		str sel_getUid "isKindOfClass:" objc_getClass "NSAttributedString"
 	]
 	text: either attr-str? [objc_msgSend [str sel_getUid "string"]][str]
-	len: objc_msgSend [text sel_getUid "length"]
+	len: objc_msgSend [text sel_length]
 	idx: 0
 	while [idx < len][
 		key: objc_msgSend [text sel_getUid "characterAtIndex:" idx]
@@ -1427,7 +1469,10 @@ draw-rect: func [
 		draw	[red-block!]
 		clr		[red-tuple!]
 		size	[red-pair!]
+		type	[red-word!]
+		sym		[integer!]
 		bmp		[integer!]
+		pos		[red-pair! value]
 		v1010?	[logic!]
 		DC		[draw-ctx!]
 ][
@@ -1444,14 +1489,22 @@ draw-rect: func [
 	draw: as red-block! vals + FACE_OBJ_DRAW
 	clr:  as red-tuple! vals + FACE_OBJ_COLOR
 	size: as red-pair! vals + FACE_OBJ_SIZE
+	type: as red-word! vals + FACE_OBJ_TYPE
+	sym: symbol/resolve type/symbol
+
 	if TYPE_OF(clr) = TYPE_TUPLE [
 		paint-background ctx clr/array1 x y width height
 	]
 	if TYPE_OF(img) = TYPE_IMAGE [
 		CG-draw-image ctx OS-image/to-cgimage img 0 0 size/x size/y
 	]
-	if (object_getClass self) = objc_getClass "RedBase" [
-		render-text ctx vals as NSSize! (as int-ptr! self) + 8
+	case [
+		sym = base [render-text ctx vals as NSSize! (as int-ptr! self) + 8]
+		sym = rich-text [
+			pos/x: 0 pos/y: 0
+			draw-text-box null :pos get-face-obj self yes
+		]
+		true []
 	]
 
 	img: as red-image! (as int-ptr! self) + 8				;-- view's size

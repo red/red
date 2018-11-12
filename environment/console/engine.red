@@ -3,7 +3,7 @@ Red [
 	Author: ["Nenad Rakocevic" "Kaj de Vos"]
 	File: 	%engine.red
 	Tabs: 	4
-	Rights: "Copyright (C) 2012-2015 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2012-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -29,17 +29,18 @@ Red [
 
 system/console: context [
 
-	prompt: ">> "
-	result: "=="
-	history: make block! 200
-	size:	 0x0
-	catch?:	 no											;-- YES: force script to fallback into the console
-	count:	 [0 0 0]									;-- multiline counters for [squared curly parens]
-	ws:		 charset " ^/^M^-"
+	prompt:		">> "
+	result:		"=="
+	history:	make block! 200
+	size:		0x0
+	running?:	no
+	catch?:		no										;-- YES: force script to fallback into the console
+	count:		[0 0 0]									;-- multiline counters for [squared curly parens]
+	ws:			charset " ^/^M^-"
 
-	gui?: #system [logic/box #either gui-console? = yes [yes][no]]
+	gui?:	#system [logic/box #either gui-console? = yes [yes][no]]
 	
-	read-argument: function [][
+	read-argument: function [/local value][
 		if args: system/script/args [
 			--catch: "--catch"
 			if system/console/catch?: make logic! pos: find args --catch [
@@ -60,7 +61,12 @@ system/console: context [
 					remove back tail file
 				]
 				file: to-red-file file
-				either src: attempt [read file][
+				
+				either error? set/any 'src try [read file][
+					print src
+					src: none
+					;quit/return -1
+				][
 					system/options/script: file
 					remove system/options/args
 					args: system/script/args
@@ -69,9 +75,6 @@ system/console: context [
 						tail args
 					]
 					trim/head args
-				][
-					print ["*** Error: cannot access argument file:^/" file]
-					;quit/return -1
 				]
 				path: first split-path file
 				if path <> %./ [change-dir path]
@@ -80,7 +83,7 @@ system/console: context [
 		]
 	]
 
-	init: routine [
+	init: routine [					;-- only used by CLI console
 		str [string!]
 		/local
 			ret
@@ -94,13 +97,7 @@ system/console: context [
 		][
 			#if gui-console? = no [terminal/pasting?: no]
 		]
-	]
-
-	terminate: routine [][
-		#if OS <> 'Windows [
-		#if gui-console? = no [
-			if terminal/init? [terminal/emit-string "^[[?2004l"]	;-- disable bracketed paste mode
-		]]
+		#if gui-console? = no [terminal/init-globals]
 	]
 
 	count-delimiters: function [
@@ -133,6 +130,7 @@ system/console: context [
 	]
 	
 	try-do: func [code /local result return: [any-type!]][
+		running?: yes
 		set/any 'result try/all [
 			either 'halt-request = set/any 'result catch/name code 'console [
 				print "(halted)"						;-- return an unset value
@@ -140,6 +138,7 @@ system/console: context [
 				:result
 			]
 		]
+		running?: no
 		:result
 	]
 
@@ -168,7 +167,6 @@ system/console: context [
 
 		unless any [error? code tail? code][
 			set/any 'result try-do code
-			
 			case [
 				error? :result [
 					print [result lf]
@@ -176,7 +174,7 @@ system/console: context [
 				not unset? :result [
 					if error? set/any 'err try [		;-- catch eventual MOLD errors
 						limit: size/x - 13
-						if limit = length? result: mold/part :result limit [ ;-- optimized for width = 72
+						if limit <= length? result: mold/part :result limit [ ;-- optimized for width = 72
 							clear back tail result
 							append result "..."
 						]
@@ -186,7 +184,7 @@ system/console: context [
 					]
 				]
 			]
-			unless last-lf? [prin lf]
+			if all [not last-lf? not gui?][prin lf]
 		]
 		clear buffer
 	]
@@ -313,10 +311,10 @@ expand: func [
 	probe expand-directives/clean blk
 ]
 
-ls:		func ['dir [any-type!]][list-dir :dir]
-ll:		func ['dir [any-type!]][list-dir/col :dir 1]
-pwd:	does [prin mold system/options/path]
-halt:	does [throw/name 'halt-request 'console]
+ls:		func ["Display a directory listing, for the current dir if none is given" 'dir [any-type!]][list-dir :dir]
+ll:		func ["Display a single column directory listing, for the current dir if none is given" 'dir [any-type!]][list-dir/col :dir 1]
+pwd:	func ["Displays the active directory path (Print Working Dir)"][prin mold system/options/path]
+halt:	func ["Stops evaluation and returns to the input prompt"][throw/name 'halt-request 'console]
 
 cd:	function [
 	"Changes the active directory path"

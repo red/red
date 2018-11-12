@@ -3,7 +3,7 @@ Red/System [
 	Author: "Nenad Rakocevic"
 	File: 	%font.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2015 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -126,7 +126,8 @@ make-font: func [
 		int/value: as-integer hFont
 	]
 
-	if face <> null [
+	blk: as red-block! values + FONT_OBJ_PARENT
+	if all [face <> null TYPE_OF(blk) <> TYPE_BLOCK][
 		blk: block/make-at as red-block! values + FONT_OBJ_PARENT 4
 		block/rs-append blk as red-value! face
 	]
@@ -198,15 +199,15 @@ free-font: func [
 		this  [this!]
 		obj   [IUnknown]
 ][
+	unless winxp? [
+		this: as this! get-font-handle font 1
+		COM_SAFE_RELEASE(obj this)
+	]
 	hFont: get-font-handle font 0
 	if hFont <> null [
 		DeleteObject hFont
 		state: as red-block! (object/get-values font) + FONT_OBJ_STATE
 		state/header: TYPE_NONE
-	]
-	unless winxp? [
-		this: as this! get-font-handle font 1
-		COM_SAFE_RELEASE(obj this)
 	]
 ]
 
@@ -270,10 +271,11 @@ OS-request-font: func [
 		size: lstrlen as byte-ptr! name
 		values: object/get-values font
 		str: as red-string! values + FONT_OBJ_NAME
-		str/header:	TYPE_STRING							;-- implicit reset of all header flags
+		str/header: TYPE_UNSET
 		str/head:	0
 		str/cache:	null
 		str/node:	unicode/load-utf16 name size null no
+		str/header:	TYPE_STRING							;-- implicit reset of all header flags
 		integer/make-at values + FONT_OBJ_SIZE cf/iPointSize / 10
 
 		style: as red-block! values + FONT_OBJ_STYLE

@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %file.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2013-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2013-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/red-system/runtime/BSL-License.txt
@@ -125,10 +125,7 @@ file: context [
 			]
 			s: string/append-char s OS_DIR_SEP
 		][
-			if full? [
-				string/concatenate out get-current-dir -1 0 yes no
-				s: string/append-char GET_BUFFER(out) OS_DIR_SEP
-			]
+			if full? [string/concatenate out get-current-dir -1 0 yes no]
 		]
 
 		while [p < end][
@@ -268,6 +265,13 @@ file: context [
 	][
 		as red-value! logic/box io/delete as red-file! file
 	]
+
+	query: func [
+		file	[red-value!]
+		return: [red-value!]
+	][
+		as red-value! io/query as red-file! file
+	]
 	
 	read: func [
 		src		[red-value!]
@@ -373,7 +377,7 @@ file: context [
 			INHERIT_ACTION	;modify
 			:open
 			null			;open?
-			null			;query
+			:query
 			:read
 			null			;rename
 			null			;update

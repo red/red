@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Qingtian Xie"
 	File:	 %map.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2014-2015 Qingtian Xie. All rights reserved."
+	Rights:  "Copyright (C) 2014-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -120,6 +120,7 @@ map: context [
 			cell	[red-value!]
 			tail	[red-value!]
 			value	[red-value!]
+			op		[integer!]
 			s		[series!]
 			size	[integer!]
 			table	[node!]
@@ -141,9 +142,10 @@ map: context [
 		cell: s/offset + src/head
 		tail: s/tail
 
+		op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
 		table: map/table
 		while [cell < tail][
-			key: _hashtable/get table cell 0 0 case? no no
+			key: _hashtable/get table cell 0 0 op no no
 			value: cell + 1
 			either TYPE_OF(value) = TYPE_NONE [			;-- delete key entry
 				val: key + 1
@@ -151,7 +153,7 @@ map: context [
 					key <> null
 					TYPE_OF(val) <> TYPE_NONE
 				][
-					_hashtable/delete  table key
+					_hashtable/delete table key
 				]
 			][
 				either key = null [
@@ -159,6 +161,8 @@ map: context [
 					preprocess-key kkey
 					s: as series! map/node/value
 					key: copy-cell kkey as cell! alloc-tail-unit s (size? cell!) << 1
+					val: key + 1
+					val/header: TYPE_UNSET
 					_hashtable/put table key
 				][
 					val: key + 1
@@ -212,14 +216,6 @@ map: context [
 			int		[red-integer!]
 			fl		[red-float!]
 			blk		[red-block!]
-			obj		[red-object!]
-			ctx		[red-context!]
-			syms	[red-value!]
-			vals	[red-value!]
-			tail	[red-value!]
-			value	[red-value!]
-			word	[red-word!]
-			s		[series!]
 			blk?	[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/make"]]
@@ -231,7 +227,7 @@ map: context [
 				if type = -1 [					;-- called by TO
 					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_MAP spec]
 				]
-				size: GET_SIZE_FROM(spec)
+				GET_INT_FROM(size spec)
 				if negative? size [fire [TO_ERROR(script out-of-range) spec]]
 			]
 			TYPE_ANY_LIST [
@@ -272,7 +268,7 @@ map: context [
 			s	   [series!]
 	][
 		blk: 		as red-block! stack/push*
-		blk/header: TYPE_BLOCK
+		blk/header: TYPE_UNSET
 		blk/head: 	0
 
 		size: rs-length? map
@@ -319,6 +315,7 @@ map: context [
 				--NOT_IMPLEMENTED--						;@@ raise error
 			]
 		]
+		blk/header: TYPE_BLOCK
 		as red-block! stack/set-last as red-value! blk
 	]
 
@@ -412,7 +409,7 @@ map: context [
 					value1: key1 + 1
 					TYPE_OF(value1) <> TYPE_NONE
 				]
-				key2: _hashtable/get table2 key1 0 0 yes no no
+				key2: _hashtable/get table2 key1 0 0 COMP_STRICT_EQUAL no no
 
 				res: either key2 = null [1][
 					value1: key1 + 1								;-- find the same key, then compare values
@@ -498,12 +495,14 @@ map: context [
 			table	[node!]
 			key		[red-value!]
 			val		[red-value!]
+			op		[integer!]
 			s		[series!]
 			size	[int-ptr!]
 			k		[red-value! value]
 	][
+		op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
 		table: parent/table
-		key: _hashtable/get table element 0 0 case? no no
+		key: _hashtable/get table element 0 0 op no no
 
 		either value <> null [						;-- set value
 			either TYPE_OF(value) = TYPE_NONE [		;-- delete key entry
@@ -521,6 +520,8 @@ map: context [
 					preprocess-key k
 					s: as series! parent/node/value
 					key: copy-cell k as cell! alloc-tail-unit s (size? cell!) << 1
+					val: key + 1
+					val/header: TYPE_UNSET
 					_hashtable/put table key
 				][
 					val: key + 1
@@ -569,9 +570,10 @@ map: context [
 		map		[red-hash!]
 		return:	[red-value!]
 		/local
-			s	[series!]
-			value [red-value!]
-			i     [integer!]
+			s		[series!]
+			value	[red-value!]
+			i		[integer!]
+			size	[int-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/clear"]]
 
@@ -584,6 +586,9 @@ map: context [
 			_hashtable/delete map/table value
 			i: i + 2
 		]
+		s: as series! map/table/value
+		size: as int-ptr! s/offset
+		size/value: 0
 		as red-value! map
 	]
 
@@ -629,10 +634,13 @@ map: context [
 			table [node!]
 			key   [red-value!]
 			val   [red-value!]
+			op	  [integer!]
 	][
-		if same? [case?: yes]
+		either same? [op: COMP_SAME][
+			op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
+		]
 		table: map/table
-		key: _hashtable/get table value 0 0 case? no no
+		key: _hashtable/get table value 0 0 op no no
 		val: key + 1
 		either any [key = null TYPE_OF(val) = TYPE_NONE][none-value][true-value]
 	]
@@ -655,10 +663,13 @@ map: context [
 		/local
 			table [node!]
 			key   [red-value!]
+			op	  [integer!]
 	][
-		if same? [case?: yes]
+		either same? [op: COMP_SAME][
+			op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
+		]
 		table: map/table
-		key: _hashtable/get table value 0 0 case? no no
+		key: _hashtable/get table value 0 0 op no no
 		either key = null [none-value][key + 1]
 	]
 
@@ -712,12 +723,14 @@ map: context [
 		deep?		[logic!]
 		types		[red-value!]
 		return:		[red-hash!]
+		/local
+			saved	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/copy"]]
-		new: as red-hash! block/clone as red-block! map deep? yes
 
-		new/header: TYPE_MAP
+		new: as red-hash! block/clone as red-block! map deep? yes
 		new/table: 	_hashtable/copy map/table new/node
+		new/header: TYPE_MAP
 		new
 	]
 

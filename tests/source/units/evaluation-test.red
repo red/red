@@ -3,7 +3,7 @@ Red [
 	Author:  "Nenad Rakocevic"
 	File: 	 %evaluation-test.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
@@ -302,6 +302,20 @@ Red [
 		b: 2
 		--assert [2] = head compose/into b []
 		--assert ["a"] = head compose/into "a" []
+		
+	; non-block args (non-evaluating)
+	--test-- "compose-24"
+		--assert :add = compose :add					; action
+		--assert :+ = compose :+						; op
+		--assert :sine = compose :sine					; native
+		--assert :sin = compose :sin					; function
+		--assert :as-ipv4 = compose :as-ipv4			; routine
+
+	; non-block args (evaluating)
+	--test-- "compose-25"
+		--assert 2 = compose (1 + 1)
+		--assert tuple? compose 'system/version
+		
 
 ===end-group===
 

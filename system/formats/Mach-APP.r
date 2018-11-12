@@ -3,7 +3,7 @@ REBOL [
 	Author:  "Xie Qingtian"
 	File: 	 %Mach-APP.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2013 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2013-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
@@ -52,6 +52,31 @@ packager: context [
 		]
 	]
 
+	copy-icon: func [
+		main-file [file!]
+		res-dir	  [file!]
+		/local root src s e icon
+	][
+		src: read main-file
+		if all [
+			s: find src "icon"
+			e: find s "^/"
+		][
+			icon: second load copy/part s e
+			root: first split-path main-file
+			icon: join root icon
+			if s: find/last icon #"." [clear s]
+			append icon %.icns
+		]
+
+		if all [
+			icon
+			none? attempt [copy-file icon res-dir/AppIcon.icns]
+		][
+			copy-file %system/assets/macOS/Resources/AppIcon.icns res-dir/AppIcon.icns
+		]
+	]
+
 	process: func [
 		opts [object!] src [file!] file [file!]
 		/local 
@@ -76,7 +101,7 @@ packager: context [
 
 		copy-file/keep file bin-dir/:name
 		delete file
-		copy-file %system/assets/macOS/Resources/AppIcon.icns res-dir/AppIcon.icns
+		copy-icon src res-dir
 
 		plist: read-cache %system/assets/macOS/Info.plist
 		replace/all/case plist "$Red-App-Name$" name

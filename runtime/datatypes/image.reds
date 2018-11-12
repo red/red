@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Qingtian Xie"
 	File:	 %image.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2015 Qingtian Xie. All rights reserved."
+	Rights:  "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -25,7 +25,7 @@ image: context [
 		bitmap/value: OS-image/lock-bitmap img yes
 		OS-image/get-data bitmap/value :stride
 	]
-	
+
 	release-buffer: func [
 		img		  [red-image!]
 		bitmap	  [integer!]
@@ -36,7 +36,7 @@ image: context [
 			ownership/check as red-value! img words/_poke as red-value! img -1 -1
 		]
 	]
-	
+
 	rs-pick: func [
 		img		[red-image!]
 		offset	[integer!]
@@ -99,7 +99,7 @@ image: context [
 		img/header: TYPE_IMAGE							;-- implicit reset of all header flags
 		img
 	]
-	
+
 	resize: func [
 		img		[red-image!]
 		width	[integer!]
@@ -124,7 +124,7 @@ image: context [
 		img [red-image!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "image/push"]]
-		
+
 		copy-cell as red-value! img stack/push*
 	]
 
@@ -142,11 +142,11 @@ image: context [
 		init-image img hr
 		img
 	]
-	
+
 	delete: func [img [red-image!]][
 		OS-image/delete img
 	]
-	
+
 	encode: func [
 		image	[red-image!]
 		dst		[red-value!]
@@ -329,18 +329,27 @@ image: context [
 			max		[integer!]
 			idx		[integer!]
 			w		[integer!]
+			h		[integer!]
 			x		[integer!]
 			y		[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "image/at"]]
 
 		w: IMAGE_WIDTH(img/size)
+		h: IMAGE_HEIGHT(img/size)
 		either TYPE_OF(index) = TYPE_INTEGER [
 			idx: index/value
 		][											;-- pair!
 			pair: as red-pair! index
 			x: pair/x
 			y: pair/y
+			if out-range <> null [
+				either base = 1 [
+					if any [x > w x <= 0 y > h y <= 0][out-range/value: 1]
+				][
+					if any [x >= w x < 0 y >= h y < 0][out-range/value: 1]
+				]
+			]
 
 			if all [base = 1 y > 0][y: y - 1]
 			idx: y * w + x
@@ -349,8 +358,8 @@ image: context [
 		if all [base = 1 idx <= 0][base: base - 1]
 		offset: img/head + idx - base
 		if negative? offset [offset: 0 idx: 0]
-		max: w * IMAGE_HEIGHT(img/size)
-		if offset > max [offset: max idx: 0]
+		max: w * h
+		if offset >= max [offset: max idx: 0]
 		if all [out-range <> null zero? idx][out-range/value: 1]
 		offset
 	]
@@ -393,7 +402,7 @@ image: context [
 		rgb:   null
 		alpha: null
 		color: null
-		
+
 		switch TYPE_OF(spec) [
 			TYPE_PAIR [
 				pair: as red-pair! spec
@@ -506,25 +515,27 @@ image: context [
 		end: data + (width * height)
 		data: data + img/head
 		size: as-integer end - data
-		
+
 		string/append-char GET_BUFFER(buffer) as-integer space
 		string/concatenate-literal buffer "#{"
-		part: part - 2	
-		if size > 30 [
+		part: part - 2
+		if all [not flat? size > 30][
 			string/append-char GET_BUFFER(buffer) as-integer lf
 			part: object/do-indent buffer indent part - 1
 		]
-		
+
 		count: 0
 		while [data < end][
 			pixel: data/value
 			string/concatenate-literal buffer string/byte-to-hex pixel and 00FF0000h >> 16
 			string/concatenate-literal buffer string/byte-to-hex pixel and FF00h >> 8
 			string/concatenate-literal buffer string/byte-to-hex pixel and FFh
-			count: count + 1
-			if count % 10 = 0 [
-				string/append-char GET_BUFFER(buffer) as-integer lf
-				part: object/do-indent buffer indent part - 1
+			unless flat? [
+				count: count + 1
+				if count % 10 = 0 [
+					string/append-char GET_BUFFER(buffer) as-integer lf
+					part: object/do-indent buffer indent part - 1
+				]
 			]
 			part: part - 6
 			if all [OPTION?(arg) part <= 0][
@@ -534,7 +545,7 @@ image: context [
 			if pixel >>> 24 <> 255 [alpha?: yes]
 			data: data + 1
 		]
-		if all [size > 30 count % 10 <> 0] [
+		if all [not flat? size > 30 count % 10 <> 0] [
 			string/append-char GET_BUFFER(buffer) as-integer lf
 			part: object/do-indent buffer indent part - 1
 		]
@@ -549,8 +560,10 @@ image: context [
 			while [data < end][
 				pixel: data/value
 				string/concatenate-literal buffer string/byte-to-hex 255 - (pixel >>> 24)
-				count: count + 1
-				if count % 10 = 0 [string/append-char GET_BUFFER(buffer) as-integer lf]
+				unless flat? [
+					count: count + 1
+					if count % 10 = 0 [string/append-char GET_BUFFER(buffer) as-integer lf]
+				]
 				part: part - 2
 				if all [OPTION?(arg) part <= 0][
 					OS-image/unlock-bitmap img bitmap

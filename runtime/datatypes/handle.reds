@@ -3,7 +3,7 @@ Red/System [
 	Author:	 "Nenad Rakocevic, Oldes"
 	File: 	 %handle.reds
 	Tabs:	 4
-	Rights:	 "Copyright (C) 2011-2017 Nenad Rakocevic. All rights reserved."
+	Rights:	 "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -35,6 +35,19 @@ handle: context [
 		#if debug? = yes [if verbose > 0 [print-line "handle/make-in"]]
 		
 		h: as red-handle! ALLOC_TAIL(parent)
+		h/header: TYPE_HANDLE
+		h/value: value
+		h
+	]
+
+	make-at: func [
+		slot	[red-value!]
+		value	[integer!]
+		return:	[red-handle!]
+		/local
+			h	[red-handle!]
+	][
+		h: as red-handle! slot
 		h/header: TYPE_HANDLE
 		h/value: value
 		h

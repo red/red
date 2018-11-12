@@ -64,11 +64,22 @@ WSAPROTOCOL_INFOW: alias struct! [
 
 stat!: alias struct! [val [integer!]]
 
+FILETIME!: alias struct! [
+	dwLowDateTime		[integer!]
+	dwHighDateTime		[integer!]
+]
+SYSTEMTIME!: alias struct! [
+	data1				[integer!] ; year, month
+	data2				[integer!] ; DayOfWeek, day
+	data3				[integer!] ; hour, minute
+	data4				[integer!] ; second, ms
+]
+
 WIN32_FIND_DATA: alias struct! [
 	dwFileAttributes	[integer!]
-	ftCreationTime		[float!]
-	ftLastAccessTime	[float!]
-	ftLastWriteTime		[float!]
+	ftCreationTime		[FILETIME! value]
+	ftLastAccessTime	[FILETIME! value]
+	ftLastWriteTime		[FILETIME! value]
 	nFileSizeHigh		[integer!]
 	nFileSizeLow		[integer!]
 	dwReserved0			[integer!]
@@ -93,6 +104,17 @@ AcceptEx!: alias function! [
 	"kernel32.dll" stdcall [
 		GetFileAttributesW: "GetFileAttributesW" [
 			path		[c-string!]
+			return:		[integer!]
+		]
+		GetFileAttributesExW: "GetFileAttributesExW" [
+			path		[c-string!]
+			info-level  [integer!]
+			info		[WIN32_FIND_DATA]
+			return:		[integer!]
+		]
+		FileTimeToSystemTime: "FileTimeToSystemTime" [
+			lpFileTime	[FILETIME!]
+			lpSystemTime [SYSTEMTIME!]
 			return:		[integer!]
 		]
 		CreateFileA: "CreateFileA" [			;-- temporary needed by Red/System

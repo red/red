@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Oldes"
 	File: 	 %win32-ansi.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2017 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/dockimbel/Red/blob/master/red-system/runtime/BSL-License.txt

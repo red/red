@@ -3,7 +3,7 @@ Red [
 	Author: "Qingtian Xie"
 	File: 	%auto-complete.red
 	Tabs: 	4
-	Rights: "Copyright (C) 2015 Qingtian Xie. All rights reserved."
+	Rights: "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -13,6 +13,7 @@ Red [
 has-common-part?: no
 
 common-substr: func [
+	"Internal Use Only"
 	blk		[block!]
 	/local a b
 ][
@@ -36,6 +37,7 @@ common-substr: func [
 ]
 
 red-complete-path: func [
+	"Internal Use Only"
 	str		 [string!]
 	console? [logic!]
 	/local s result word w1 ptr words first? sys-word w
@@ -87,6 +89,7 @@ red-complete-path: func [
 ]
 
 red-complete-file: func [
+	"Internal Use Only"
 	str		 [string!]
 	console? [logic!]
 	/local file result path word f files replace? change?
@@ -118,7 +121,8 @@ red-complete-file: func [
 ]
 
 red-complete-input: func [
-	str		 [string!]
+	"Internal Use Only"
+	str		 [string!]			;-- should be `tail str`
 	console? [logic!]
 	/local
 		word ptr result sys-word delim? len insert?

@@ -3,7 +3,7 @@ Red/System [
 	Author: "Nenad Rakocevic"
 	File: 	%win32.red
 	Tabs: 	4
-	Rights: "Copyright (C) 2015 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -81,6 +81,7 @@ Red/System [
 #define COLOR_BACKGROUND	1
 #define COLOR_MENU			4
 #define COLOR_WINDOW		5
+#define COLOR_WINDOWTEXT	8
 #define COLOR_3DFACE		15
 
 #define CS_VREDRAW			1
@@ -205,7 +206,10 @@ Red/System [
 #define SIF_PAGE			0002h
 #define SIF_POS				0004h
 #define SIF_DISABLENOSCROLL	0008h
+
+#define SBS_VERT			1
 #define SB_VERT				1
+#define SB_CTL				2
 
 #define SB_LINEUP			0
 #define SB_LINEDOWN			1
@@ -214,6 +218,7 @@ Red/System [
 #define SB_THUMBTRACK		5
 #define SB_TOP				6
 #define SB_BOTTOM			7
+#define SB_ENDSCROLL		8
 
 #define BS_PUSHBUTTON		00000000h
 #define BS_DEFPUSHBUTTON	00000001h
@@ -223,6 +228,7 @@ Red/System [
 #define BS_GROUPBOX			00000007h
 #define BS_AUTORADIOBUTTON	00000009h
 
+#define EM_GETSEL			000000B0h
 #define EM_SETSEL			000000B1h
 #define EM_SETLIMITTEXT		000000C5h
 #define EM_GETLIMITTEXT		000000D5h
@@ -230,8 +236,10 @@ Red/System [
 #define ES_CENTER			00000001h
 #define ES_RIGHT			00000003h
 #define ES_MULTILINE		00000004h
+#define ES_PASSWORD			00000020h
 #define ES_AUTOVSCROLL		00000040h
 #define ES_AUTOHSCROLL		00000080h
+#define ES_NOHIDESEL		00000100h
 #define SS_LEFT				00000010h
 #define SS_SIMPLE			00000000h
 #define SS_NOTIFY			00000100h
@@ -304,10 +312,12 @@ Red/System [
 #define WM_EXITSIZEMOVE		0232h
 #define WM_IME_SETCONTEXT	0281h
 #define WM_IME_NOTIFY		0282h
+#define WM_MOUSELEAVE		02A3h
 #define WM_DPICHANGED		02E0h
 #define WM_COPY				0301h
 #define WM_PASTE			0302h
 #define WM_CLEAR			0303h
+#define WM_THEMECHANGED		031Ah
 
 #define WM_CAP_DRIVER_CONNECT		040Ah
 #define WM_CAP_DRIVER_DISCONNECT	040Bh
@@ -325,6 +335,7 @@ Red/System [
 #define BM_SETIMAGE			F7h
 
 #define BN_CLICKED 			0
+#define BN_UNPUSHED         3
 
 #define BST_UNCHECKED		0
 #define BST_CHECKED			1
@@ -511,6 +522,8 @@ Red/System [
 #define WIN32_LOWORD(param) (param and FFFFh << 16 >> 16)	;-- trick to force sign extension
 #define WIN32_HIWORD(param) (param >> 16)
 
+#define WIN32_MAKE_LPARAM(low high) [high << 16 or (low and FFFFh)]
+
 #define IS_EXTENDED_KEY		01000000h
 
 #define ANSI_FIXED_FONT		11
@@ -542,6 +555,11 @@ Red/System [
 #define WRAP_MODE_TILE_FLIP_Y   2
 #define WRAP_MODE_TILE_FLIP_XY  3
 #define WRAP_MODE_CLAMP         4
+
+#define BASE_FACE_CLIPPED	1
+#define BASE_FACE_CARET		2
+#define BASE_FACE_D2D		4
+#define BASE_FACE_IME		8
 
 BUTTON_IMAGELIST: alias struct! [
 	handle		[integer!]
@@ -602,6 +620,13 @@ tagTEXTMETRIC: alias struct! [
 	tmStruckOut			[byte!]
 	tmPitchAndFamily	[byte!]
 	tmCharSet			[byte!]
+]
+
+tagTRACKMOUSEEVENT: alias struct! [
+	cbSize		[integer!]
+	dwFlags		[integer!]
+	hwndTrack	[handle!]
+	dwHoverTime	[integer!]
 ]
 
 tagNMHDR: alias struct! [
@@ -861,6 +886,25 @@ tagLOGFONT: alias struct! [								;-- 92 bytes
 	lfFaceName8		[float!]
 ]
 
+tagNONCLIENTMETRICS: alias struct! [
+	cbSize				[integer!]
+	iBorderWidth		[integer!]
+	iScrollWidth		[integer!]
+	iScrollHeight		[integer!]
+	iCaptionWidth		[integer!]
+	iCaptionHeight		[integer!]
+	lfCaptionFont		[tagLOGFONT value]
+	iSmCaptionWidth		[integer!]
+	iSmCaptionHeight	[integer!]
+	lfSmCaptionFont		[tagLOGFONT value]
+	iMenuWidth			[integer!]
+	iMenuHeight			[integer!]
+	lfMenuFont			[tagLOGFONT value]
+	lfStatusFont		[tagLOGFONT value]
+	lfMessageFont		[tagLOGFONT value]
+	iPaddedBorderWidth	[integer!]
+]
+
 tagCHOOSEFONT: alias struct! [
 	lStructSize		[integer!]
 	hwndOwner		[int-ptr!]
@@ -993,7 +1037,7 @@ XFORM!: alias struct! [
 		GetProcAddress: "GetProcAddress" [
 			hModule		[handle!]
 			lpProcName	[c-string!]
-			return:		[integer!]
+			return:		[int-ptr!]
 		]
 		lstrlen: "lstrlenW" [
 			str			[byte-ptr!]
@@ -1001,6 +1045,10 @@ XFORM!: alias struct! [
 		]
 	]
 	"User32.dll" stdcall [
+		TrackMouseEvent: "TrackMouseEvent" [
+			EventTrack	[tagTRACKMOUSEEVENT]
+			return:		[logic!]
+		]
 		RedrawWindow: "RedrawWindow" [
 			hWnd		[handle!]
 			lprcUpdate	[RECT_STRUCT]
@@ -1048,7 +1096,7 @@ XFORM!: alias struct! [
 		]
 		KillTimer: "KillTimer" [
 			hWnd		[handle!]
-			uIDEvent	[int-ptr!]
+			uIDEvent	[integer!]
 			return:		[logic!]
 		]
 		OpenClipboard: "OpenClipboard" [
@@ -1118,7 +1166,7 @@ XFORM!: alias struct! [
 			hdcSrc		[handle!]
 			pptSrc		[tagPOINT]
 			crKey		[integer!]
-			pblend		[integer!]
+			pblend		[tagBLENDFUNCTION]
 			dwFlags		[integer!]
 			return:		[logic!]
 		]
@@ -1286,12 +1334,6 @@ XFORM!: alias struct! [
 			return:		[handle!]
 		]
 		WindowFromPoint: "WindowFromPoint" [
-			x			[integer!]
-			y			[integer!]
-			return:		[handle!]
-		]
-		RealChildWindowFromPoint: "RealChildWindowFromPoint" [
-			hwndParent	[handle!]
 			x			[integer!]
 			y			[integer!]
 			return:		[handle!]
@@ -2685,19 +2727,6 @@ XFORM!: alias struct! [
 			return:		[integer!]
 		]
 	]
-	"avicap32.dll" stdcall [
-		capCreateCaptureWindow: "capCreateCaptureWindowW" [
-			lpszName	[c-string!]
-			dwStyle		[integer!]
-			x			[integer!]		
-			y			[integer!]
-			nWidth		[integer!]
-			nHeight		[integer!]
-			hWnd		[handle!]
-			nID			[integer!]
-			return:		[integer!]
-		]
-	]
 	"comctl32.dll" stdcall [
 		InitCommonControlsEx: "InitCommonControlsEx" [
 			lpInitCtrls [tagINITCOMMONCONTROLSEX]
@@ -2798,7 +2827,6 @@ XFORM!: alias struct! [
 		]
 	]
 ]
-
 
 #case [
 	any [not legacy not find legacy 'no-touch] [

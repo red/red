@@ -3,7 +3,7 @@ Red/System [
 	Author: "Qingtian Xie"
 	File: 	%terminal.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2015 Qingtian Xie. All rights reserved."
+	Rights: "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -94,6 +94,7 @@ terminal: context [
 		s-t-idx [integer!]					;-- offset of the last selected line
 		limit	[integer!]
 		full?	[logic!]					;-- buffer is full or not
+		offset	[integer!]
 		data	[red-string!]
 		end		[red-value!]
 	]
@@ -149,9 +150,8 @@ terminal: context [
 	v-terminal: 0
 	extra-table: [0]						;-- extra unicode check table for Windows
 	stub-table: [0 0]
-	data-blk: declare red-value!
 
-	#include %wcwidth.reds
+	#include %../../CLI/wcwidth.reds
 
 	#either OS = 'Windows [
 		char-width?: func [
@@ -329,7 +329,7 @@ terminal: context [
 				delta: n - node/nlines
 				node/nlines: n
 				out/last: cursor
-				out/end: buf/tail
+				out/offset: (as-integer buf/tail - buf/offset) >> 4
 				either count = max [
 					full?: yes
 					buf/tail: buf/offset
@@ -619,11 +619,13 @@ terminal: context [
 		char-y	[integer!]
 		/local
 			out	[ring-buffer!]
+			buf		[red-value!]
 	][
+		buf: as red-value! allocate 4 * size? red-value!
 		out: as ring-buffer! allocate size? ring-buffer!
 		out/max: 10000
 		out/lines: as line-node! allocate out/max * size? line-node!
-		out/data: as red-string! string/rs-make-at data-blk 10000
+		out/data: as red-string! string/rs-make-at ALLOC_TAIL(root) 10000
 
 		vt/bg-color: 00FCFCFCh
 		vt/font-color: 00000000h
@@ -632,9 +634,14 @@ terminal: context [
 		vt/win-h: win-y
 		update-font vt char-x char-y
 		vt/out: out
-		vt/in: as red-string! #get system/console/line
-		vt/buffer: as red-string! #get system/console/buffer
-		vt/history: as red-block! #get system/console/history
+		copy-cell #get system/console/line buf
+		vt/in: as red-string! buf
+		buf: buf + 1
+		copy-cell #get system/console/buffer buf
+		vt/buffer: as red-string! buf
+		buf: buf + 1
+		copy-cell #get system/console/history buf
+		vt/history: as red-block! buf
 		vt/history-max: 200
 		vt/history-pos: 0
 		vt/history-beg: 1
@@ -643,12 +650,14 @@ terminal: context [
 		vt/caret?: no
 		vt/ask?: no
 		vt/input?: no
-		vt/prompt: as red-string! #get system/console/prompt
+		buf: buf + 1
+		copy-cell #get system/console/prompt buf
+		vt/prompt: as red-string! buf
 		vt/prompt-len: string/rs-length? vt/prompt
 
 		reset-vt vt
 		OS-init vt
-		platform/gui-print: as-integer :vprint
+		dyn-print/add as int-ptr! :red-print as int-ptr! :rs-print
 	]
 
 	close: func [
@@ -659,6 +668,7 @@ terminal: context [
 		unless null? vt [
 			OS-close vt
 			ring: vt/out
+			free as byte-ptr! vt/in
 			free as byte-ptr! ring/lines
 			free as byte-ptr! ring
 			free as byte-ptr! vt
@@ -971,9 +981,9 @@ terminal: context [
 			if any [len > n len = -1][len: n]
 		]
 		s: GET_BUFFER(str)
-		if out <> null [s/tail: out/end]
+		if out <> null [s/tail: s/offset + out/offset]
 		s/tail: as cell! (as byte-ptr! s/tail) - (len << (GET_UNIT(s) >> 1))
-		if out <> null [out/end: s/tail]
+		if out <> null [out/offset: (as-integer s/tail - s/offset) >> 4]
 	]
 
 	complete-line: func [
@@ -1518,7 +1528,7 @@ terminal: context [
 		set-prompt vt question
 		refresh vt
 		either paste-from-clipboard vt yes [
-			loop 3 [gui/do-events yes]					;-- make console respontive
+			loop 3 [gui/do-events yes]					;-- make console responsive
 		][
 			vt/ask?: yes
 			update-caret vt
@@ -1549,5 +1559,29 @@ terminal: context [
 			emit-c-string vt str str + 1 1 no yes
 		]
 		refresh vt
+	]
+
+	rs-print: func [
+		str		[byte-ptr!]
+		size	[integer!]
+		nl?		[logic!]
+	][
+		vprint str size Latin1 nl?
+	]
+
+	red-print: func [
+		str		[red-string!]
+		lf?		[logic!]
+		/local
+			series	[series!]
+			offset	[byte-ptr!]
+			size	[integer!]
+			unit	[integer!]
+	][
+		series: GET_BUFFER(str)
+		unit: GET_UNIT(series)
+		offset: (as byte-ptr! series/offset) + (str/head << (log-b unit))
+		size: as-integer (as byte-ptr! series/tail) - offset
+		vprint offset size unit lf?
 	]
 ]

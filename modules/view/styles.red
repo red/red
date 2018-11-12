@@ -3,7 +3,7 @@ Red [
 	Author:  "Nenad Rakocevic"
 	File: 	 %styles.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
@@ -21,27 +21,34 @@ Red [
 	]
 	button: [
 		default-actor: on-click
-		template: [type: 'button size: 60x23]
+		template: [type: 'button size: 60x25]
 	]
 	text: [
 		default-actor: on-down
-		template: [type: 'text size: 80x24]
+		template: [type: 'text size: 80x25]
 	]
 	field: [
 		default-actor: on-enter
-		template: [type: 'field size: 80x24]
+		template: [type: 'field size: 80x25]
 	]
 	area: [
 		default-actor: on-change
 		template: [type: 'area size: 150x150]
 	]
+	rich-text: [
+		default-actor: on-change
+		template: [
+			type: 'rich-text size: 150x150 color: 255.255.255
+			tabs: none line-spacing: 'default handles: none
+		]
+	]
 	check: [
 		default-actor: on-change
-		template: [type: 'check size: 80x24]
+		template: [type: 'check size: 80x25]
 	]
 	radio: [
 		default-actor: on-change
-		template: [type: 'radio size: 80x24]
+		template: [type: 'radio size: 80x25]
 	]
 	progress: [
 		default-actor: on-change
@@ -49,7 +56,11 @@ Red [
 	]
 	slider: [
 		default-actor: on-change
-		template: [type: 'slider size: 150x24 data: 0%]
+		template: [type: 'slider size: 150x25 data: 0%]
+	]
+	scroller: [
+		default-actor: on-change
+		template: [type: 'scroller size: 150x20 data: 0.0 steps: 0.1]
 	]
 	camera: [
 		default-actor: on-down
@@ -61,11 +72,11 @@ Red [
 	]
 	drop-list: [
 		default-actor: on-change
-		template: [type: 'drop-list size: 100x24]
+		template: [type: 'drop-list size: 100x25]
 	]
 	drop-down: [
 		default-actor: on-enter
-		template: [type: 'drop-down size: 100x24]
+		template: [type: 'drop-down size: 100x25]
 	]
 	panel: [
 		default-actor: on-down						;@@ something better?

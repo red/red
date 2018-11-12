@@ -3,7 +3,7 @@ Red/System [
 	Author:	 "Nenad Rakocevic, Xie Qingtian"
 	File: 	 %date.reds
 	Tabs:	 4
-	Rights:	 "Copyright (C) 2017 Nenad Rakocevic. All rights reserved."
+	Rights:	 "Copyright (C) 2017-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -479,6 +479,31 @@ date: context [
 			dt/time: to-utc-time t v
 		]
 	]
+
+	set-all: func[
+		dt     [red-date!]
+		year   [integer!]
+		month  [integer!]
+		day    [integer!]
+		hour   [integer!]
+		minute [integer!]
+		second [integer!]
+		nsec   [integer!] 
+		/local d t
+	][
+		d: 0 t: 0.0
+		d: DATE_SET_YEAR(d year)
+		d: DATE_SET_MONTH(d month)
+		d: DATE_SET_DAY(d day)
+		d: DATE_SET_TIME_FLAG(d)
+		t:  (3600.0 * as float! hour)
+		  + (60.0   * as float! minute)
+		  + (         as float! second)
+		  + (1e-9   * as float! nsec)
+		dt/header: TYPE_DATE
+		dt/date: d
+		dt/time: t
+	]
 	
 	create: func [
 		proto 	[red-value!]							;-- overwrite this slot with result
@@ -657,13 +682,15 @@ date: context [
 			dd	  [integer!]
 			tz	  [integer!]
 			s	  [float!]
+			d1	  [integer!]
 			time? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "date/random"]]
 
 		d: dt/date
+		d1: dt/date + as integer! dt/time
 		either seed? [
-			_random/srand d
+			_random/srand d1
 			dt/header: TYPE_UNSET
 		][
 			time?: DATE_GET_TIME_FLAG(d)

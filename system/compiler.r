@@ -3,7 +3,7 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File: 	 %compiler.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
@@ -65,6 +65,7 @@ system-dialect: make-profilable context [
 		red-strict-check?:	yes							;-- no => defers undefined word errors reporting at run-time
 		red-tracing?:		yes							;-- no => do not compile tracing code
 		red-help?:			no							;-- yes => keep doc-strings from boot.red
+		redbin-compress?:	yes							;-- yes => compress Redbin payload using custom CRUSH algorithm
 		legacy:				none						;-- block of optional OS legacy features flags
 		gui-console?:		no							;-- yes => redirect printing to gui console (temporary)
 		libRed?: 			no
@@ -1017,7 +1018,12 @@ system-dialect: make-profilable context [
 		]
 		
 		preprocess-array: func [list [block!]][
-			parse list [some [p: word! (check-enum-symbol p) | skip]]
+			parse list [
+				some [
+					p: word! (check-enum-symbol p) :p ['true | 'false] (p/1: do p/1)
+					| string! | char! | integer! | decimal!
+				] | (throw-error ["invalid literal array content:" mold list])
+			]
 			to paren! list
 		]
 		
@@ -1156,7 +1162,7 @@ system-dialect: make-profilable context [
 		]
 		
 		check-keywords: func [name [word!]][
-			if find keywords name [
+			if find keywords-list  name [
 				throw-error ["attempt to redefine a protected keyword:" name]
 			]
 		]
@@ -1790,7 +1796,7 @@ system-dialect: make-profilable context [
 				#verbose   [set-verbose-level pc/2 pc: skip pc 2 none]
 				#u16	   [process-u16 	  pc]
 				#user-code [user-code?: not user-code? pc: next pc]
-				#build-date[change pc mold now]
+				#build-date[change pc mold use [d][d: now d: d - d/zone d/zone: none d]]	;-- UTC
 				#script	   [							;-- internal compiler directive
 					unless pc/2 = 'in-memory [
 						compiler/script: secure-clean-path pc/2	;-- set the origin of following code
@@ -3920,7 +3926,7 @@ system-dialect: make-profilable context [
 			]
 			set-verbose-level 0
 			if opts/runtime? [comp-runtime-epilog]
-			
+
 			set-verbose-level opts/verbosity
 			compiler/finalize							;-- compile all functions
 			set-verbose-level 0

@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %lit-path.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -12,22 +12,6 @@ Red/System [
 
 lit-path: context [
 	verbose: 0
-	
-	push*: func [
-		size	[integer!]
-		return: [red-lit-path!]	
-		/local
-			p 	[red-lit-path!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "lit-path/push*"]]
-		
-		p: as red-lit-path! ALLOC_TAIL(root)
-		p/header: TYPE_LIT_PATH							;-- implicit reset of all header flags
-		p/head:   0
-		p/node:   alloc-cells size
-		push p
-		p
-	]
 	
 	push: func [
 		p [red-block!]

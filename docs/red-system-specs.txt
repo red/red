@@ -507,9 +507,9 @@ Declaring a struct! value is achieved by using the DECLARE STRUCT! sequence foll
  ]
  
  <member>   : a valid identifier
- <datatype> : integer! | byte! | pointer! [integer! | byte!] | logic! |
-              float! | float32! | c-string! | struct! [<members>] |
-              struct! [<members>] value | function! [<spec>]
+ <datatype> : integer! | byte! | logic! | float! | float32! | c-string! |
+              pointer! [integer! | byte! | float! | float64! | float32!] |
+              struct! [<members>] | struct! [<members>] value | function! [<spec>]
               
 The returned value of DECLARE STRUCT! is the memory address of the newly created struct! value.
 
@@ -3836,15 +3836,15 @@ The list of following symbols and keywords are reserved, they cannot be used as 
     ??			alias 		all
     and   		any			as
     assert		break		case
-    comment		context		continue
-    declare		either		exit
-    false		func		function
-    if			loop		not
-    null		or			pop
-    push		return		size?
-    switch		throw		true
-    until		use			while
-    with		xor
+    catch		comment		context
+    continue	declare		either
+    exit		false		func
+    function	if			loop
+    not			null		or
+    pop			push		return
+    size?		switch		throw
+    true		until		use
+    while		with		xor
     
 \note Bootstrap constraints
 Both -** (internal representation for >>>) and /// (internal representation for %) are required to workaround REBOL's lexical scanner limitations. Those symbols will be removed from the reserved keywords list once the bootstrap phase will end.

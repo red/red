@@ -3,7 +3,7 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File: 	 %libRedRT.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
@@ -129,8 +129,14 @@ libRedRT: context [
 	]
 	
 	process: func [job functions exports /local name list pos tmpl words lits file base-dir][
-		make-exports functions exports
-		if job/OS = 'Windows [append/only funcs 'red/image/push]
+		make-exports functions exports job
+		if job/OS <> 'Linux [
+			append funcs [
+				red/image/push
+				red/image/acquire-buffer
+				red/image/release-buffer
+			]
+		]
 		
 		clear imports
 		clear template

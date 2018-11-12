@@ -93,6 +93,11 @@ ext-process: context [
 		reading  [integer!]
 		writing  [integer!]
 	]
+	
+	init-global: does [
+		str-buffer: ALLOC_TAIL(root)
+		string/make-at str-buffer 1024 * 100 Latin1
+	]
 
 	insert-string: func [
 		str		 [red-string!]
@@ -146,7 +151,7 @@ ext-process: context [
 		win-error?: no				;@@ make it local variable
 		win-shell?: no				;@@ make it local variable
 
-		init: does []
+		init: does [init-global]
 
 		read-from-pipe: func [      "Read data from pipe fd into buffer"
 			fd	 [integer!]      "File descriptor"
@@ -211,17 +216,18 @@ ext-process: context [
 				err-read   [integer!]
 				err-write  [integer!]
 				dev-null   [integer!]
-				sa p-inf s-inf len success error str
+				sa         [security-attributes! value]
+				p-inf      [process-info! value]
+				s-inf      [startup-info! value]
+				len        [integer!]
+				success    [integer!]
 		][
 			win-error?: no
 			win-shell?: shell?
-			s-inf: declare startup-info!
-			p-inf: declare process-info!
-			sa: declare security-attributes!
-			sa/nLength: size? sa
+			sa/nLength: size? security-attributes!
 			sa/lpSecurityDescriptor: 0
 			sa/bInheritHandle: true
-			
+
 			out-read:  0								;-- Pipes
 			out-write: 0
 			in-read:   0
@@ -230,7 +236,8 @@ ext-process: context [
 			err-write: 0
 			
 			inherit: false
-			s-inf/cb: size? s-inf
+			set-memory as byte-ptr! :s-inf null-byte size? startup-info!
+			s-inf/cb: size? startup-info!
 			s-inf/dwFlags: 0
 			s-inf/hStdInput:  GetStdHandle STD_INPUT_HANDLE
 			s-inf/hStdOutput: GetStdHandle STD_OUTPUT_HANDLE
@@ -304,7 +311,7 @@ ext-process: context [
 					s-inf/hStdError: dev-null
 				]
 			]
-			if any [ (in-buf <> null) (out-buf <> null) (err-buf <> null) ][
+			if any [in-buf <> null out-buf <> null err-buf <> null][
 				waitend?: true
 				inherit: true
 				s-inf/dwFlags: STARTF_USESTDHANDLES
@@ -326,7 +333,7 @@ ext-process: context [
 			][
 				cmdstr: cmd
 			]
-			unless CreateProcessW null cmdstr null null inherit 0 null null s-inf p-inf [
+			unless CreateProcessW null cmdstr null null inherit 0 null null :s-inf :p-inf [
 				either 2 = GetLastError [		;-- ERROR_FILE_NOT_FOUND
 					len: (1 + lstrlen as byte-ptr! cmd) * 2
 					cmdstr: make-c-string (14 + len)
@@ -335,7 +342,7 @@ ext-process: context [
 					shell?: yes							;-- force /shell mode and try again
 					win-shell?: yes
 					
-					unless CreateProcessW null cmdstr null null inherit 0 null null s-inf p-inf [
+					unless CreateProcessW null cmdstr null null inherit 0 null null :s-inf :p-inf [
 						__red-call-print-error [ "Error Red/System call : CreateProcess : ^"" cmd "^" Error : " GetLastError]
 						if shell? [free as byte-ptr! cmdstr]
 						return -1
@@ -386,6 +393,7 @@ ext-process: context [
 
 		init: does [
 			shell-name: platform/getenv "SHELL"
+			init-global
 		]
 
 		set-flags-fd: func [
@@ -739,11 +747,7 @@ ext-process: context [
 	
 		PLATFORM_TO_CSTR(cstr cmd len)	
 		pid: OS-call cstr wait? show? console? shell? inp out err
-	
-		if all [in-str <> null TYPE_OF(in-str) = TYPE_STRING inp/count > 0][
-			free inp/buffer
-		]
-	
+
 		if all [redirout <> null out/count <> -1][
 			insert-string redirout out shell? console?
 			free out/buffer

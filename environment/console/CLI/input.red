@@ -3,7 +3,7 @@ Red [
 	Author: "Nenad Rakocevic"
 	File: 	%input.red
 	Tabs: 	4
-	Rights: "Copyright (C) 2014-2015 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2014-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -23,7 +23,7 @@ unless system/console [
 ]
 ;; End patch
 
-#include %auto-complete.red
+#include %../auto-complete.red
 
 #system [
 	terminal: context [
@@ -74,16 +74,18 @@ unless system/console [
 		buffer:		declare byte-ptr!
 		pbuffer:	declare byte-ptr!
 		input-line: declare red-string!
-		saved-line:	declare red-string!
 		prompt:		declare	red-string!
 		history:	declare red-block!
+		saved-line:	as red-string! 0
 		buf-size:	128
 		columns:	-1
 		rows:		-1
 		output?:	yes
 		pasting?:	no
 
-		string/rs-make-at as cell! saved-line 1
+		init-globals: func [][
+			saved-line: string/rs-make-at ALLOC_TAIL(root) 1
+		]
 
 		widechar?: func [
 			str			[red-string!]
@@ -565,15 +567,23 @@ unless system/console [
 	]
 ]
 
-_set-buffer-history: routine [line [string!] hist [block!]][
+_set-buffer-history: routine ["Internal Use Only" line [string!] hist [block!]][
 	terminal/setup line hist
 ]
 
-_read-input: routine [prompt [string!]][
+_read-input: routine ["Internal Use Only" prompt [string!]][
 	terminal/edit prompt
 ]
 
+_terminate-console: routine [][
+	#if OS <> 'Windows [
+	#if gui-console? = no [
+		if terminal/init? [terminal/emit-string "^[[?2004l"]	;-- disable bracketed paste mode
+	]]
+]
+
 ask: function [
+	"Prompt the user for input"
 	question [string!]
 	return:  [string!]
 ][
@@ -583,4 +593,4 @@ ask: function [
 	buffer
 ]
 
-input: does [ask ""]
+input: func ["Wait for console user input"] [ask ""]

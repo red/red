@@ -3,7 +3,7 @@ Red [
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 %switch-test.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015, Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015, Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
@@ -210,21 +210,20 @@ Red [
 
 ===end-group===
 
-;===start-group=== "switch-all"			;; not sure if it will be implemented.
-;	
-;	--test-- "switch-all-1"
-;	comment { /all not yet implemented 
-;		sa1-i: 1
-;		sa1-j: 0
-;		switch/all sa1-i [
-;			0	[sa1-j: sa1-j + 1]
-;			1	[sa1-j: sa1-j + 2]
-;			2	[sa1-j: sa1-j + 4]
-;		]
-;	    --assert sa1-j = 6 
-;	Following assert to highlight switch/all not yet implemented
-;	}
-;===end-group===
+===start-group=== "switch-all"			;; not sure if it will be implemented.
+	comment {
+	--test-- "switch-all-1" 
+		sa1-i: 1
+		sa1-j: 0
+		switch/all sa1-i [
+			0	[sa1-j: sa1-j + 1]
+			1	[sa1-j: sa1-j + 2]
+			2	[sa1-j: sa1-j + 4]
+		]
+	    --assert sa1-j = 6 
+	}
+	
+===end-group===
 
 ===start-group=== "switch-multi"		;; not sure if it will be implemented. 
 
@@ -234,8 +233,7 @@ Red [
         switch sm1-i [
             1 2	[sm1-j: 1]
         ]
-        ; Following assert needs to be activated when support for multiple values gets implemented
-        ;--assert sm1-j = 1
+        --assert sm1-j = 1
         
 ===end-group===
 

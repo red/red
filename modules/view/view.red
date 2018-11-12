@@ -3,7 +3,7 @@ Red [
 	Author: "Nenad Rakocevic"
 	File: 	%view.red
 	Tabs: 	4
-	Rights: "Copyright (C) 2015 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -17,7 +17,7 @@ Red [
 
 #include %utils.red
 
-event?: routine [value [any-type!] return: [logic!]][TYPE_OF(value) = TYPE_EVENT]
+event?: routine ["Returns true if the value is this type" value [any-type!] return: [logic!]][TYPE_OF(value) = TYPE_EVENT]
 
 face?: function [
 	"Returns TRUE if the value is a face! object"
@@ -34,7 +34,61 @@ size-text: function [
 		text [string!]		"Text to measure"
 	return:  [pair! none!]	"Return the text's size or NONE if failed"
 ][
-	system/view/platform/size-text face text
+	either face/type = 'rich-text [
+		system/view/platform/text-box-metrics face 0 3
+	][
+		system/view/platform/size-text face text
+	]
+]
+
+caret-to-offset: function [
+	"Given a text position, returns the corresponding coordinate relative to the top-left of the layout box"
+	face	[object!]
+	pos		[integer!]
+	/lower			"lower end offset of the caret"
+	return:	[pair!]
+][
+	opt: either lower [6][0]
+	system/view/platform/text-box-metrics face pos opt
+]
+
+offset-to-caret: function [
+	"Given a coordinate, returns the corresponding caret position"
+	face	[object!]
+	pt		[pair!]
+	return:	[integer!]
+][
+	system/view/platform/text-box-metrics face pt 1
+]
+
+offset-to-char: function [
+	"Given a coordinate, returns the corresponding character position"
+	face	[object!]
+	pt		[pair!]
+	return:	[integer!]
+][
+	system/view/platform/text-box-metrics face pt 5
+]
+
+rich-text: context [
+	rtd: #include %RTD.red
+	
+	line-height?: function [
+		"Given a text position, returns the corresponding line's height"
+		face	[object!]
+		pos		[integer!]
+		return:	[integer!]
+	][
+		system/view/platform/text-box-metrics face pos 2
+	]
+
+	line-count?: function [
+		"number of lines (> 1 if line wrapped)"
+		face	[object!]
+		return:	[integer!]
+	][
+		system/view/platform/text-box-metrics face 0 4
+	]
 ]
 
 metrics?: function [
@@ -58,6 +112,7 @@ metrics?: function [
 ]
 
 set-flag: function [
+	"Sets a flag in a face object"
 	face  [object!]
 	facet [word!]
 	value [any-type!]
@@ -71,6 +126,7 @@ set-flag: function [
 ]
 
 find-flag?: routine [
+	"Checks a flag in a face object"
 	facet	[any-type!]
 	flag 	[word!]
 	/local
@@ -107,8 +163,23 @@ find-flag?: routine [
 	bool/value:	 found?
 ]
 
-on-face-deep-change*: function [owner word target action new index part state forced?][
-	if system/view/debug? [
+debug-info?: func ["Internal use only" face [object!] return: [logic!]][
+	all [
+		system/view/debug?
+		not all [
+			value? 'gui-console-ctx
+			any [
+				same? face gui-console-ctx/terminal/box
+				same? face gui-console-ctx/console
+				same? face gui-console-ctx/win
+				same? face gui-console-ctx/caret
+			]
+		]
+	]
+]
+
+on-face-deep-change*: function ["Internal use only" owner word target action new index part state forced?][
+	if debug-info? owner [
 		print [
 			"-- on-deep-change event --" 		 lf
 			tab "owner      :" owner/type		 lf
@@ -146,6 +217,7 @@ on-face-deep-change*: function [owner word target action new index part state fo
 							loop part [
 								face: target/1
 								if face/type = 'window [
+									stop-reactor/deep face
 									modal?: find-flag? face/flags 'modal
 									system/view/platform/destroy-view face face/state/4
 
@@ -165,6 +237,7 @@ on-face-deep-change*: function [owner word target action new index part state fo
 							loop part [
 								face: target/1
 								face/parent: none
+								stop-reactor/deep face
 								system/view/platform/destroy-view face no
 								target: next target
 							]
@@ -210,6 +283,11 @@ on-face-deep-change*: function [owner word target action new index part state fo
 							all [owner/options owner/options/default]
 						]
 					]
+					if all [find [text-list drop-list drop-down] owner/type string? target][
+						target: head target
+						index: (index? find/same owner/data target) - 1
+						part: 1
+					]
 					system/view/platform/on-change-facet owner word target action new index part
 				]
 			]
@@ -234,7 +312,11 @@ on-face-deep-change*: function [owner word target action new index part state fo
 	]
 ]
 
-link-tabs-to-parent: function [face [object!]][
+link-tabs-to-parent: function [
+	"Internal Use Only"
+	face	[object!]
+	/init	"Force /show of first tab"
+][
 	if faces: face/pane [
 		visible?: face/visible?
 		forall faces [
@@ -242,11 +324,12 @@ link-tabs-to-parent: function [face [object!]][
 				faces/1/visible?: make logic! all [visible? face/selected = index? faces]
 			]
 			faces/1/parent: face
+			if init [show/with faces/1 face]
 		]
 	]
 ]
 
-link-sub-to-parent: function [face [object!] type [word!] old new][
+link-sub-to-parent: function ["Internal Use Only" face [object!] type [word!] old new][
 	if object? new [
 		unless all [parent: in new 'parent block? get parent][
 			new/parent: make block! 4
@@ -261,7 +344,7 @@ link-sub-to-parent: function [face [object!] type [word!] old new][
 	]
 ]
 
-update-font-faces: function [parent [block! none!]][
+update-font-faces: function ["Internal Use Only" parent [block! none!]][
 	if block? parent [
 		foreach f parent [
 			if f/state [
@@ -302,13 +385,13 @@ face!: object [				;-- keep in sync with facet! enum
 	draw:		none
 	
 	on-change*: function [word old new][
-		if system/view/debug? [
+		if debug-info? self [
 			print [
 				"-- on-change event --" lf
 				tab "face :" type		lf
 				tab "word :" word		lf
-				tab "old  :" type? old	lf
-				tab "new  :" type? new
+				tab "old  :" type? :old	lf
+				tab "new  :" type? :new
 			]
 		]
 		if all [word <> 'state word <> 'extra][
@@ -320,7 +403,7 @@ face!: object [				;-- keep in sync with facet! enum
 				exit
 			]
 			if word = 'pane [
-				if all [type = 'window object? new new/type = 'window][
+				if all [type = 'window object? :new new/type = 'window][
 					cause-error 'script 'bad-window []
 				]
 				same-pane?: all [block? :old block? :new same? head :old head :new]
@@ -328,16 +411,20 @@ face!: object [				;-- keep in sync with facet! enum
 					modify old 'owned none				;-- stop object events
 					foreach f head old [
 						f/parent: none
+						stop-reactor/deep f
 						if all [block? f/state handle? f/state/1][
 							system/view/platform/destroy-view f no
 						]
 					]
 				]
+				if all [not same-pane? type = 'tab-panel self/state][
+					link-tabs-to-parent/init self
+				]
 			]
 			if all [not same-pane? any [series? :old object? :old]][modify old 'owned none]
 			
 			unless any [same-pane? find [font para edge actors extra] word][
-				if any [series? new object? new][modify new 'owned reduce [self word]]
+				if any [series? :new object? :new][modify new 'owned reduce [self word]]
 			]
 			if word = 'font  [link-sub-to-parent self 'font old new]
 			if word = 'para  [link-sub-to-parent self 'para old new]
@@ -363,11 +450,13 @@ face!: object [				;-- keep in sync with facet! enum
 			]
 
 			system/reactivity/check/only self any [saved word]
-			
-			if state [
+
+			either state [
 				;if word = 'type [cause-error 'script 'locked-word [type]]
 				state/2: state/2 or (1 << ((index? in self word) - 1))
 				if all [state/1 system/view/auto-sync?][show self]
+			][
+				if type = 'rich-text [system/view/platform/update-view self]
 			]
 		]
 	]
@@ -461,70 +550,9 @@ scroller!: object [
 	parent:		none
 
 	on-change*: function [word old new][
-		if system/view/debug? [
-			print [
-				"-- scroller on-change event --" lf
-				tab "word :" word			 lf
-				tab "old  :" type? :old		 lf
-				tab "new  :" type? :new
-			]
-		]
 		if all [parent block? parent/state handle? parent/state/1][
 			system/view/platform/update-scroller self (index? in self word) - 1
 		]
-	]
-]
-
-;; Text Box is a graphic object that represents styled text.
-;; It provide support for drawing, cursor navigation, hit testing, 
-;; text wrapping, alignment, tab expansion, line breaking, etc.
-
-text-box!: object [
-	text:		none					;-- a string to draw (string!)
-	size:		none					;-- box size in pixels, infinite size if none (pair! none!)
-	font:		none					;-- font! object
-	para:		none					;-- para! object
-	;flow:		'left-to-right			;-- text flow direction: left-to-right, right-to-left, top-to-bottom and bottom-to-top
-	;reading:	'left-to-right			;-- reading direction: left-to-right, right-to-left, top-to-bottom and bottom-to-top
-	spacing:	none					;-- line spacing (integer!)
-	tabs:		none					;-- tab list (block!)
-	styles:		none					;-- style list (block!), [start-pos length style1 style2 ...]
-	state:		none					;-- OS handles
-	target:		none					;-- face!, image!, etc.
-	fixed?:		no						;-- fixed line height
-
-	;-- read only properties
-	width:		none					;-- actual width
-	height:		none					;-- actual height
-	line-count: none
-
-	offset?: function [
-		"Given a text position, returns the corresponding coordinate relative to the top-left of the layout box"
-		pos		[integer!]
-		return:	[pair!]
-	][
-		system/view/platform/text-box-metrics self/state pos 0
-	]
-
-	index?: function [
-		"Given a coordinate, returns the corresponding text position"
-		pt		[pair!]
-		return: [integer!]
-	][
-		system/view/platform/text-box-metrics self/state pt 1
-	]
-
-	line-height: function [
-		"Given a text position, returns the corresponding line's height"
-		pos 	[integer!]
-		return: [integer!]
-	][
-		system/view/platform/text-box-metrics self/state pos 2
-	]
-
-	layout: func [][
-		system/view/platform/text-box-layout self
-		system/view/platform/text-box-metrics self/state self 3
 	]
 ]
 
@@ -653,24 +681,24 @@ do-events: function [
 	return: [logic! word!] "Returned value from last event"
 	/local result
 ][
-	win: last system/view/screens/1/pane
+	win: last head system/view/screens/1/pane
 	unless win/state/4 [win/state/4: not no-wait]		;-- mark the window from which the event loop starts
 	set/any 'result system/view/platform/do-event-loop no-wait
 	:result
 ]
 
-do-safe: func [code [block!] /local result][
+do-safe: func ["Internal Use Only" code [block!] /local result][
 	if error? set/any 'result try/all code [print :result]
 	get/any 'result
 ]
 
-do-actor: function [face [object!] event [event! none!] type [word!] /local result][
+do-actor: function ["Internal Use Only" face [object!] event [event! none!] type [word!] /local result][
 	if all [
 		object? face/actors
 		act: in face/actors name: select system/view/evt-names type
 		act: get act
 	][
-		if system/view/debug? [print ["calling actor:" name]]
+		if debug-info? face [print ["calling actor:" name]]
 		
 		set/any 'result do-safe [do [act face event]]	;-- compiler can't call act, hence DO
 	]
@@ -691,7 +719,7 @@ show: function [
 		]
 		exit
 	]
-	if system/view/debug? [print ["show:" face/type " with?:" with]]
+	if debug-info? face [print ["show:" face/type " with?:" with]]
 	
 	either all [face/state face/state/1][
 		pending: face/state/3
@@ -840,13 +868,44 @@ center-face: function [
 		pos: parent/size - face/size / 2
 		case [
 			x	  [face/offset/x: pos/x]
-			y	  [face/offset/y: pos/y]
+			y	  [face/offset/x: pos/y]
 			'else [face/offset: pos]
 		]
 		if face/type = 'window [face/offset: face/offset + parent/offset]
 	][
 		print "CENTER-FACE: face has no parent!"		;-- temporary check
 	]
+	face
+]
+
+make-face: func [
+	"Make a face from a given style name or example face"
+	style   [word!]  "A face type"
+	/spec 
+		blk [block!] "Spec block of face options expressed in VID"
+	/offset
+		xy  [pair!]  "Offset of the face"
+	/size
+		wh	[pair!]  "Size of the face"
+	/local 
+		svv face styles model opts css
+][
+	svv: system/view/VID
+	styles: svv/styles
+	unless model: select styles style [
+		cause-error 'script 'face-type reduce [style]
+	]
+	face: make face! copy/deep model/template
+	
+	if spec [
+		opts: svv/opts-proto
+		css: make block! 2
+		spec: svv/fetch-options/no-skip face opts model blk css no
+		if model/init [do bind model/init 'face]
+		svv/process-reactors
+	]
+	if offset [face/offset: xy]
+	if size [face/size: wh]
 	face
 ]
 
@@ -874,9 +933,9 @@ get-scroller: function [
 ][
 	make scroller! [
 		position: 1
-		page: 10
-		minimum: 1
-		maximum: 100
+		page: 1
+		min-size:	1			;-- minimum value
+		max-size:	1			;-- maximum value
 		parent: face
 		vertical?: orientation = 'vertical
 	]
@@ -1031,6 +1090,7 @@ insert-event-func [
 			any [
 				event/face = gui-console-ctx/console
 				event/face = gui-console-ctx/win
+				event/face = gui-console-ctx/caret
 			]
 		]
 	][
@@ -1080,6 +1140,7 @@ insert-event-func [
 	if find [change enter unfocus] event/type [
 		face: event/face
 		facet: switch/default face/type [
+			scroller	['data]
 			slider		['data]
 			check		['data]
 			radio		['data]
@@ -1097,6 +1158,12 @@ insert-event-func [
 		switch event/type [
 			move moving 	[system/reactivity/check/only event/face 'offset]
 			resize resizing [system/reactivity/check/only event/face 'size]
+		]
+	]
+	if event/type = 'select [
+		face: event/face
+		if find [field area] face/type [
+			system/reactivity/check/only face 'selected
 		]
 	]
 	none

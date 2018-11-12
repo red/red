@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %symbol.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -12,7 +12,7 @@ Red/System [
 
 symbol: context [
 	verbose: 0
-	table: declare node!
+	table: as node! 0
 	
 	is-any-type?: func [
 		word	[red-word!]
@@ -33,9 +33,9 @@ symbol: context [
 	][
 		aliased?: no
 
-		key: _hashtable/get table as red-value! str 0 1 yes no no
+		key: _hashtable/get table as red-value! str 0 1 COMP_STRICT_EQUAL no no
 		if key = null [
-			key: _hashtable/get table as red-value! str 0 1 no no no	
+			key: _hashtable/get table as red-value! str 0 1 COMP_EQUAL no no	
 			aliased?: yes
 		]
 
@@ -47,22 +47,22 @@ symbol: context [
 		id
 	]
 	
-	duplicate: func [
+	internalize: func [
 		src		 [c-string!]
-		return:  [c-string!]
+		return:  [node!]
 		/local
 			node [node!]
 			dst  [c-string!]
 			s	 [series!]
 			len	 [integer!]
 	][
-		len: length? src
-		node: alloc-bytes len							;@@ TBD: mark this buffer as protected!
+		len: 1 + length? src
+		node: alloc-bytes len 							;@@ TBD: mark this buffer as protected!
 		s: as series! node/value
 		dst: as c-string! s/offset
 		
 		copy-memory as byte-ptr! dst as byte-ptr! src len
-		dst
+		node
 	]
 	
 	make-alt: func [
@@ -72,19 +72,23 @@ symbol: context [
 			sym	[red-symbol!]
 			id	[integer!]
 			len [integer!]
+			h	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "symbol/make-alt"]]
 
 		len: -1											;-- convert all chars
+		h: str/header
 		str/header: TYPE_SYMBOL							;-- make hashtable happy
 		id: search str
+		str/header: h
 		if positive? id [return id]
 
 		sym: as red-symbol! ALLOC_TAIL(symbols)
-		sym/header: TYPE_SYMBOL							;-- implicit reset of all header flags
+		sym/header: TYPE_UNSET
 		sym/node:   str/node
-		sym/cache:  unicode/to-utf8 str :len
+		sym/cache:  unicode/str-to-utf8 str :len no
 		sym/alias:  either zero? id [-1][0 - id]		;-- -1: no alias, abs(id)>0: alias id
+		sym/header: TYPE_SYMBOL							;-- implicit reset of all header flags
 		_hashtable/put table as red-value! sym
 		block/rs-length? symbols
 	]
@@ -107,11 +111,13 @@ symbol: context [
 
 		if positive? id [return id]
 		
+		collector/keep str/node
 		sym: as red-symbol! ALLOC_TAIL(symbols)	
-		sym/header: TYPE_SYMBOL							;-- implicit reset of all header flags
+		sym/header: TYPE_UNSET
 		sym/node:   str/node
-		sym/cache:  duplicate s
+		sym/cache:  internalize s
 		sym/alias:  either zero? id [-1][0 - id]		;-- -1: no alias, abs(id)>0: alias id
+		sym/header: TYPE_SYMBOL							;-- implicit reset of all header flags
 		_hashtable/put table as red-value! sym
 		block/rs-length? symbols
 	]

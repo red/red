@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %set-path.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -12,22 +12,6 @@ Red/System [
 
 set-path: context [
 	verbose: 0
-	
-	push*: func [
-		size	[integer!]
-		return: [red-set-path!]	
-		/local
-			p 	[red-set-path!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "set-path/push*"]]
-		
-		p: as red-set-path! ALLOC_TAIL(root)
-		p/header: TYPE_SET_PATH							;-- implicit reset of all header flags
-		p/head:   0
-		p/node:   alloc-cells size
-		push p
-		p
-	]
 	
 	push: func [
 		p [red-block!]

@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %win32.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/red-system/runtime/BSL-License.txt
@@ -87,6 +87,51 @@ security-attributes!: alias struct! [
 	bInheritHandle		 [logic!]
 ]
 
+OSVERSIONINFO: alias struct! [
+	dwOSVersionInfoSize [integer!]
+	dwMajorVersion		[integer!]
+	dwMinorVersion		[integer!]
+	dwBuildNumber		[integer!]	
+	dwPlatformId		[integer!]
+	szCSDVersion		[integer!]						;-- array of 128 bytes
+	szCSDVersion0		[integer!]
+	szCSDVersion1		[integer!]
+	szCSDVersion2		[integer!]
+	szCSDVersion3		[integer!]
+	szCSDVersion4		[integer!]
+	szCSDVersion5		[integer!]
+	szCSDVersion6		[integer!]
+	szCSDVersion7		[integer!]
+	szCSDVersion8		[integer!]
+	szCSDVersion9		[integer!]
+	szCSDVersion10		[integer!]
+	szCSDVersion11		[integer!]
+	szCSDVersion12		[integer!]
+	szCSDVersion13		[integer!]
+	szCSDVersion14		[integer!]
+	szCSDVersion15		[integer!]
+	szCSDVersion16		[integer!]
+	szCSDVersion17		[integer!]
+	szCSDVersion18		[integer!]
+	szCSDVersion19		[integer!]
+	szCSDVersion20		[integer!]
+	szCSDVersion21		[integer!]
+	szCSDVersion22		[integer!]
+	szCSDVersion23		[integer!]
+	szCSDVersion24		[integer!]
+	szCSDVersion25		[integer!]
+	szCSDVersion26		[integer!]
+	szCSDVersion27		[integer!]
+	szCSDVersion28		[integer!]
+	szCSDVersion29		[integer!]
+	szCSDVersion30		[integer!]
+	wServicePack		[integer!]						;-- Major: 16, Minor: 16
+	wSuiteMask0			[byte!]
+	wSuiteMask1			[byte!]
+	wProductType		[byte!]
+	wReserved			[byte!]
+]
+
 GdiplusStartupInput!: alias struct! [
 	GdiplusVersion				[integer!]
 	DebugEventCallback			[integer!]
@@ -139,13 +184,6 @@ tagSYSTEM_INFO: alias struct! [
 
 #import [
 	LIBC-file cdecl [
-		;putwchar: "putwchar" [
-		;	wchar		[integer!]					;-- wchar is 16-bit on Windows
-		;]
-		wprintf: "wprintf" [
-			[variadic]
-			return: 	[integer!]
-		]
 		_setmode: "_setmode" [
 			handle		[integer!]
 			mode		[integer!]
@@ -168,6 +206,7 @@ tagSYSTEM_INFO: alias struct! [
 		VirtualFree: "VirtualFree" [
 			address 	[int-ptr!]
 			size		[integer!]
+			type		[integer!]
 			return:		[integer!]
 		]
 		AllocConsole: "AllocConsole" [return: [logic!]]
@@ -324,6 +363,18 @@ tagSYSTEM_INFO: alias struct! [
 		GetNativeSystemInfo: "GetNativeSystemInfo" [
 			lpSystemInfo	[tagSYSTEM_INFO]
 		]
+		IsWow64Process: "IsWow64Process" [
+			hProcess	[int-ptr!]
+			isWow64?	[int-ptr!]
+			return:		[logic!]
+		]
+		GetVersionEx: "GetVersionExA" [
+			lpVersionInfo [OSVERSIONINFO]
+			return:		[integer!]
+		]
+		GetCurrentProcess: "GetCurrentProcess" [
+			return:		[int-ptr!]
+		]
 	]
 	"gdiplus.dll" stdcall [
 		GdiplusStartup: "GdiplusStartup" [
@@ -361,15 +412,7 @@ platform: context [
 	gdiplus-token: 0
 	page-size: 4096
 
-	#either sub-system = 'gui [
-		#either gui-console? = yes [
-			#include %win32-gui.reds
-		][
-			#include %win32-cli.reds
-		]
-	][
-		#include %win32-cli.reds
-	]
+	#include %win32-print.reds
 
 	;-------------------------------------------
 	;-- Allocate paged virtual memory region from OS
@@ -393,7 +436,7 @@ platform: context [
 	free-virtual: func [
 		ptr [int-ptr!]									;-- address of memory region to release
 	][
-		if negative? VirtualFree ptr ptr/value [
+		if zero? VirtualFree ptr 0 8000h [				;-- MEM_RELEASE: 0x8000
 			 throw OS_ERROR_VMEM_RELEASE_FAILED
 		]
 	]

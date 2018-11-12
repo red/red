@@ -4,7 +4,7 @@ Red/System [
 	File: 	 %float-test.reds
 	Version: 0.1.0
 	Tabs:	 4
-	Rights:  "Copyright (C) 2012-2015 Peter W A Wood, Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2012-2015 Peter W A Wood,-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 

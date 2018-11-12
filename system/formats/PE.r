@@ -3,40 +3,29 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File: 	 %PE.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
 context [
-	manifest-template: {
-		<assembly xmlns="urn:schemas-microsoft-com:asm.v1" xmlns:asmv3="urn:schemas-microsoft-com:asm.v3" manifestVersion="1.0">
-			<dependency>
-				<dependentAssembly>
-					<assemblyIdentity type="win32" name="Microsoft.Windows.Common-Controls" version="6.0.0.0" processorArchitecture="x86" publicKeyToken="6595b64144ccf1df" language="*"/>
-				</dependentAssembly>
-			</dependency>
-			<asmv3:trustInfo>
-				<security>
-					<requestedPrivileges>
-						<requestedExecutionLevel level="asInvoker" uiAccess="false"/>
-					</requestedPrivileges>
-				</security>
-			</asmv3:trustInfo>
-			<compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
-				<application>
-					<supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}"/>
-					<supportedOS Id="{1f676c76-80e1-4239-95bb-83d0f6d0da78}"/>
-					<supportedOS Id="{4a2f28e3-53b9-4441-ba9c-d69d4a4a6e38}"/>
-					<supportedOS Id="{35138b9a-5d96-4fbd-8e2d-a2440225f93a}"/>
-				</application>
-			</compatibility>
-			<asmv3:application>
-				<asmv3:windowsSettings>
-					<dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true/pm</dpiAware>
-					<dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">permonitorv2,permonitor</dpiAwareness>
-				</asmv3:windowsSettings>
-			</asmv3:application>
-		</assembly>
+	manifest-template: decompress #{
+		789C95534B8BDB3010BEF757081D4BFDB6533BD80B61E921B44B0B29DDB32C8F
+		13515B7225D94928FBDF2BD9F166DD74594AC030339AF91E33C98952D096CD19
+		9DDA86AB02F792AF153D404B94D3322A8512B576A868D744B5EE10E0E9A18D86
+		E8CDE711462DE1AC06A57F80544CF00207AE8FEFDEA1BC820E78059C9E4D740D
+		F5E6C2C866513EF3DBDA12D367A4CF1D14F8C8781462C4496B828719D87D64BC
+		1247E5DE8BB615DCB9175C4BD1288C86197DE5FAF68751270505A584DC487A60
+		1AA8EEA599754A57A6D6970DA39FE1FC5DFC04DB946449B98A8338A6B40EAA1A
+		A386F07D4FF6A6E13DF646FEDEBF045CB3A3CA7C746DAD65AFF496D7626C5440
+		7B69944D7A25FCEA8D5B507D936C600DEC418D8517954F27D3A18D9A2F304083
+		1AFB2D30515B3E18BA12A39E6DA8D556E09A340A268286CB2BB373EF0585DCBB
+		E5989B7D7644B3923576036F5ECAE2B9BD991185749D319558E2131FD5779D90
+		86CED71DDA5605FE9D825F7F2441E894751939710DA953662471E2B4AE129F04
+		09C9C8D3ACE6A63B26611DA610394954664E1CC78153928C3AD52AAB62129315
+		44E9D3BCAC2599DC5B50BE6EEA2FCE97EC71BAB21D68CDF87EDA4F5E756C7324
+		12667B0E5A776BCFBB38E43E3BE41A286FF7B0F542DF4FBCC7E5287C677C07AF
+		6BCDE15CE62DA773B3D6FF400856B7081D48F3DF605AC821FC700DAE8816E3E2
+		D22B72E7CAC21E9B7C3EFC3F23437BB958040000
 	}
 	if all [
 		system/version/4 = 3
@@ -741,13 +730,10 @@ context [
 		code-page: ep-mem-page
 		code-base: code-page * memory-align
 		
-		flags: to integer! defs/dll-flags/nx-compat
-		case/all [
-			job/type = 'dll	[flags: flags or to integer! defs/dll-flags/dynamic-base]
-			job/type = 'drv [flags: flags or to integer! defs/dll-flags/wdm-driver]
-		]
+		flags: (to integer! defs/dll-flags/nx-compat)
+			 or to integer! defs/dll-flags/dynamic-base
 		
-		if job/type = 'drv [flags: 0]						;@@temporary flags disabling
+		if job/type = 'drv [flags: flags or to integer! defs/dll-flags/wdm-driver]
 		
 		ep: switch/default job/type [
 			dll [
@@ -789,9 +775,9 @@ context [
 		oh/sub-system:			select defs/sub-system job/sub-system
 		oh/dll-flags:			flags
 		oh/stack-res-size:		to integer! #{00100000}
-		oh/stack-com-size:		to integer! #{00001000}
+		oh/stack-com-size:		to integer! #{00005000}
 		oh/heap-res-size:		to integer! #{00100000}
-		oh/heap-com-size:		to integer! #{00001000}
+		oh/heap-com-size:		to integer! #{00100000}
 		oh/loader-flags:		0						;-- reserved, must be zero
 		oh/data-dir-nb:			16
 		;-- data directory
@@ -826,9 +812,16 @@ context [
 		sh/line-num-ptr:	0
 		sh/relocations-nb:	0							;-- @@ relevant only for OBJ files
 		sh/line-num-nb:		0
-		sh/flags:			to integer! select defs/s-type name		
-
-		change s: form-struct sh append uppercase form name null	
+		sh/flags:			to integer! select defs/s-type name
+		
+		name: select [
+			code	".text"
+			data  	".data"
+			import	".rdata"
+			rsrc	".rsrc"
+			idata	".idata"
+		] name
+		change s: form-struct sh append form name null
 		change spec s	
 	]
 
@@ -1169,7 +1162,7 @@ context [
 			(section-addr?/memory job 'data) - base-address
 			length? job/sections/data/2
 
-		foreach [name spec] job/sections [
+		foreach [name spec] job/sections [		
 			pad: pad-size? spec/2
 			append job/buffer spec/2
 			insert/dup tail job/buffer null pad

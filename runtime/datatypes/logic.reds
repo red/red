@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %logic.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -217,7 +217,12 @@ logic: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "logic/mold"]]
 
-		form boolean buffer arg part
+		either all? [
+			string/concatenate-literal buffer either boolean/value ["#[true]"] ["#[false]"]
+			part - either boolean/value [7] [8]
+		] [
+			form boolean buffer arg part
+		]
 	]
 	
 	compare: func [

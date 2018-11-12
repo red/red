@@ -3,7 +3,7 @@ Red [
 	Author:  ["Oldes" "Peter W A Wood"]
 	File: 	 convert-test.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2017 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	Rights:  "Copyright (C) 2011-2017 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
 ]
 
@@ -49,7 +49,9 @@ Red [
 	--test-- "to-string!-paren!-2"		--assert "12" = to string! first [(1 2)]
 	--test-- "to-string!-tag!"		--assert "a" = to string! <a>
 	--test-- "to-string!-time!"		--assert "10:00:00" = to string! 10:00
-;	 --test-- "to-string!-date!"		--assert "16-Jun-2014/14:34:59+2:00" = to string! 16-Jun-2014/14:34:59+2:00
+	--test-- "to-string!-date!"		
+		--assert equal? "16-Jun-2014/14:34:59+02:00"
+						to string! 16-Jun-2014/14:34:59+2:00
 	--test-- "to-string!-email!"		--assert "foo@boo" = to string! foo@boo
 	--test-- "to-string!-bitset!"		--assert "make bitset! #{00}" = to string! make bitset! #{00}
 	
@@ -165,7 +167,7 @@ Red [
 	--test-- "to-word!-refinement!"		--assert 'refinement = to word! /refinement
 	--test-- "to-word!-issue!"		--assert 'FF00 = to word! #FF00
 	;; #2619
-	;--test-- "to-word-1"			--assert error? try [to word! to issue! #"1"]
+	--test-- "to-word-1"			--assert error? try [to word! to issue! #"1"]
 ===end-group===
 ===start-group=== "to-refinement!"
 	--test-- "to-refinement!-char!"
@@ -259,9 +261,9 @@ Red [
 	--test-- "to-path!-time!"
 		--assert path? to path! 10:00
 		--assert 10:00 = first to path! 10:00
-;	   --test-- "to-path!-date!"
-;		   --assert path? to path! 16-Jun-2014/14:34:59+2:00
-;		   --assert "16-Jun-2014/14:34:59+2:00" = form to path! 16-Jun-2014/14:34:59+2:00
+	   --test-- "to-path!-date!"
+		   --assert path? to path! 16-Jun-2014/14:34:59+2:00
+		   --assert "16-Jun-2014/14:34:59+02:00" = form to path! 16-Jun-2014/14:34:59+2:00
 	--test-- "to-path!-email!"
 		--assert path? to path! foo@boo
 		--assert foo@boo = first to path! foo@boo
@@ -343,9 +345,9 @@ Red [
 	--test-- "to-url!-time!"
 		--assert url? to url! 10:00
 		--assert "10:00:00" = form to url! 10:00
-;	   --test-- "to-url!-date!"
-;		   --assert url? to url! 16-Jun-2014/14:34:59+2:00
-;		   --assert "16-Jun-2014/14:34:59+2:00" = form to url! 16-Jun-2014/14:34:59+2:00
+	   --test-- "to-url!-date!"
+		   --assert url? to url! 16-Jun-2014/14:34:59+2:00
+		   --assert "16-Jun-2014/14:34:59+02:00" = form to url! 16-Jun-2014/14:34:59+2:00
 	--test-- "to-url!-email!"
 		--assert url? to url! foo@boo
 		--assert "foo@boo" = form to url! foo@boo
@@ -404,8 +406,8 @@ Red [
 		--assert %a = to file! <a>
 	--test-- "to-file!-time!"
 		--assert "10:00:00" = form to file! 10:00
-;	   --test-- "to-file!-date!"
-;		   --assert %16-Jun-2014/14:34:59+2:00 = to file! 16-Jun-2014/14:34:59+2:00
+	   --test-- "to-file!-date!"
+		   --assert %"16-Jun-2014/14:34:59+02:00" = to file! 16-Jun-2014/14:34:59+2:00
 	--test-- "to-file!-email!"
 		--assert "foo@boo" = form to file! foo@boo
 	--test-- "to-file!-bitset!"
@@ -419,9 +421,9 @@ Red [
 	--test-- "to-issue!-issue!"			--assert #FF00 = to issue! #FF00
 	--test-- "to-issue!-1"				--assert #1 = to issue! #"1"
 	;; #2619
-	;--test-- "to-issue!-2"				--assert #1 = to issue! "1"
-	;--test-- "to-issue!-3"				--assert #1 = to issue! 1
-	;--test-- "to-issue!-4"				--assert #1-big-issue = to issue! "1-big-issue" 
+	--test-- "to-issue!-2"				--assert #1 = to issue! "1"
+	--test-- "to-issue!-3"				--assert error? try [ to issue! 1 ]
+	--test-- "to-issue!-4"				--assert #1-big-issue = to issue! "1-big-issue" 
 		
 ===end-group===
 ===start-group=== "to-binary!"
@@ -515,8 +517,8 @@ Red [
 		--assert [<a>] = to block! <a>
 	--test-- "to-block!-time!"
 		--assert [10:00] = to block! 10:00
-;	--test-- "to-block!-date!"
-;		--assert [16-Jun-2014/14:34:59+2:00] = to block! 16-Jun-2014/14:34:59+2:00
+	--test-- "to-block!-date!"
+		--assert [16-Jun-2014/14:34:59+2:00] = to block! 16-Jun-2014/14:34:59+2:00
 	--test-- "to-block!-email!"
 		--assert [foo@boo] = to block! foo@boo
 	--test-- "to-block!-bitset!"
@@ -593,8 +595,8 @@ Red [
 		--assert (first [(<a>)]) = to paren! <a>
 	--test-- "to-paren!-time!"
 		--assert (first [(10:00)]) = to paren! 10:00
-;	   --test-- "to-paren!-date!"
-;		   --assert (first [(16-Jun-2014/14:34:59+2:00)]) = to paren! 16-Jun-2014/14:34:59+2:00
+	   --test-- "to-paren!-date!"
+		   --assert (first [(16-Jun-2014/14:34:59+2:00)]) = to paren! 16-Jun-2014/14:34:59+2:00
 	--test-- "to-paren!-email!"
 		--assert (first [(foo@boo)]) = to paren! foo@boo
 	--test-- "to-paren!-bitset!"
@@ -650,8 +652,8 @@ Red [
 		   --assert <12> = to tag! first [(1 2)]
 	   --test-- "to-tag!-tag!"
 		   --assert <a> = to tag! <a>
-	   ;--test-- "to-tag!-date!"
-	   ;	--assert <16-Jun-2014/14:34:59+2:00> = to tag! 16-Jun-2014/14:34:59+2:00
+	   --test-- "to-tag!-date!"
+	   	--assert <16-Jun-2014/14:34:59+02:00> = to tag! 16-Jun-2014/14:34:59+2:00
 	   --test-- "to-tag!-email!"
 		   --assert <foo@boo> = to tag! foo@boo
 	   --test-- "to-tag!-bitset!"
@@ -678,82 +680,110 @@ Red [
 		   --assert 10:00 = to time! 10:00
 ===end-group===
 ===start-group=== "to-date!"
-;	   --test-- "to-date!-block!"
-;		   --assert 1-Feb-0003 = to date! [1 2 3]
-;	   --test-- "to-date!-date!"
-;		   --assert 16-Jun-2014/14:34:59+2:00 = to date! 16-Jun-2014/14:34:59+2:00
+	   --test-- "to-date!-block!"
+		   --assert 1-Feb-0003 = to date! [1 2 3]
+	   --test-- "to-date!-date!"
+		   --assert 16-Jun-2014/14:34:59+2:00 = to date! 16-Jun-2014/14:34:59+2:00
 ===end-group===
 ===start-group=== "to-email!"
-;	--test-- "to-email!-char!"
-;		   --assert a = to email! #"a"
-;	   --test-- "to-email!-string!"
-;		   --assert foo = to email! "foo"
-;	   --test-- "to-email!-integer!"
-;		   --assert 123 = to email! 123
-;	   --test-- "to-email!-integer!"
-;		   --assert 256 = to email! 256
-;	   --test-- "to-email!-float!"
-;		   --assert 1.5 = to email! 1.5
-;	   --test-- "to-email!-integer!"
-;		   --assert -1 = to email! -1
-;	   --test-- "to-email!-float!"
-;		   --assert -1.5 = to email! -1.5
-;	   --test-- "to-email!-pair!"
-;		   --assert 1x2 = to email! 1x2
-;	   --test-- "to-email!-word!"
-;		   --assert word = to email! word
-;	   --test-- "to-email!-refinement!"
-;		   --assert /refinement = to email! /refinement
-;	   --test-- "to-email!-path!"
-;		   --assert path/foo = to email! path/foo
-;	   --test-- "to-email!-url!"
-;		   --assert http://red-lang.org = to email! http://red-lang.org
-;	   --test-- "to-email!-file!"
-;		   --assert /file/ = to email! %/file/
-;	   --test-- "to-email!-issue!"
-;		   --assert #FF00 = to email! #FF00
-;	   --test-- "to-email!-binary!"
-;		   --assert  = to email! #{}
-;	   --test-- "to-email!-binary!"
-;		   --assert abc = to email! #{616263}
-;	   --test-- "to-email!-block!"
-;		   --assert  = to email! []
-;	   --test-- "to-email!-block!"
-;		   --assert 12 = to email! [1 2]
-;	   --test-- "to-email!-block!"
-;		   --assert 123 = to email! [1 2 3]
-;	   --test-- "to-email!-block!"
-;		   --assert ab = to email! ["a" "b"]
-;	   --test-- "to-email!-tuple!"
-;		   --assert 1.1.1 = to email! 1.1.1
-;	   --test-- "to-email!-paren!"
-;		   --assert  = to email! first [()]
-;	   --test-- "to-email!-paren!"
-;		   --assert 12 = to email! first [(1 2)]
-;	   --test-- "to-email!-tag!"
-;		   --assert a = to email! <a>
-;	   --test-- "to-email!-time!"
-;		   --assert 10:00 = to email! 10:00
-;	   --test-- "to-email!-date!"
-;		   --assert 16-Jun-2014/14:34:59+2:00 = to email! 16-Jun-2014/14:34:59+2:00
-;	   --test-- "to-email!-email!"
-;		   --assert foo@boo = to email! foo@boo
-;	   --test-- "to-email!-bitset!"
-;		   --assert make%20bitset!%20#%7B00%7D = to email! make bitset! #{00}
+	--test-- "to-email!-char!"
+		--assert equal? head remove next a@ 
+						to email! #"a"
+	--test-- "to-email!-string!"
+		--assert equal? head remove skip foo@ 3
+						to email! "foo"
+	--test-- "to-email!-integer!-1"
+		--assert equal? head remove back tail 123@
+						to email! 123
+	--test-- "to-email!-integer!-2"
+		--assert equal? head remove back tail 256@
+						to email! 256
+	--test-- "to-email!-float!"
+		--assert equal? head remove back tail 1.5@
+						to email! 1.5
+	--test-- "to-email!-integer!-3"
+		--assert equal? head remove back tail -1@
+						to email! -1
+	--test-- "to-email!-float!-2"
+		--assert equal? head remove back tail -1.5@
+						to email! -1.5
+	--test-- "to-email!-pair!"
+		--assert equal? head remove back tail 1x2@
+						to email! 1x2
+	--test-- "to-email!-word!"
+		--assert equal? head remove back tail word@ 
+						to email! 'word
+	--test-- "to-email!-refinement!"
+		--assert equal? head remove back tail /refinement@
+						to email! /refinement
+	--test-- "to-email!-path!"
+		--assert equal? head remove back tail path/foo@ 
+						to email! first [path/foo]
+	--test-- "to-email!-url!"
+		--assert equal? head remove back tail http://red-lang.org@ 
+						to email! http://red-lang.org
+	--test-- "to-email!-file!"
+		tef-email: append %/file/ #"@"
+		--assert equal? head remove back tail tef-email
+						to email! %/file/
+	--test-- "to-email!-issue!"
+		--assert equal? head remove back tail "FF00@"
+						to email! #FF00
+	--test-- "to-email!-binary!-1"
+		--assert 0 = length? to email! #{}
+	--test-- "to-email!-binary!-2"
+		teb2-mail: load append #{616263} @	
+		--assert equal? head remove back tail teb2-mail
+						to email! #{616263}
+	--test-- "to-email!-block!-1"
+		--assert 0 = length? to email! []
+	--test-- "to-email!-block!-2"
+		--assert equal? head remove back tail 12@
+						to email! [1 2]
+	--test-- "to-email!-block!-3"
+		--assert equal? head remove back tail 123@
+						to email! [1 2 3]
+	--test-- "to-email!-block!-4"
+		--assert equal? head remove back tail ab@
+						to email! ["a" "b"]
+	--test-- "to-email!-block-5"
+		--assert equal? testing@red-lang.org 
+						to email! [testing @ red-lang.org]
+	--test-- "to-email!-tuple!"
+		--assert equal? to email! "1.1.1" to email! 1.1.1
+	--test-- "to-email!-paren!-1"
+		--assert 0 = length? to email! first [()]
+	--test-- "to-email!-paren!"
+		--assert equal? head remove back tail 12@
+						to email! first [(1 2)]
+	--test-- "to-email!-tag!"
+		--assert equal? head remove back tail a@
+						to email! <a>
+	--test-- "to-email!-time!"
+		--assert equal? to email! "10:00:00"
+						to email! 10:00
+	--test-- "to-email!-date!"
+   		--assert equal? to email! "16-Jun-2014/14:34:59+02:00"
+   						to email! 16-Jun-2014/14:34:59+2:00
+   	--test-- "to-email!-email!"
+   		--assert equal? foo@boo to email! foo@boo
+   	--test-- "to-email!-bitset!"
+   		--assert equal? head remove back tail make%20bitset!%20#%7B00%7D@
+   						to email! make bitset! #{00}
 ===end-group===
 ===start-group=== "to-bitset!"
 	--test-- "to-bitset!-char!"
 		--assert (make bitset! #{00000000000000000000000040}) = to bitset! #"a"
 	--test-- "to-bitset!-string!"
 		--assert (make bitset! #{0000000000000000000000000201}) = to bitset! "foo"
-	;--test-- "to-bitset!-integer!"
-	;	--assert (make bitset! #{00000000000000000000000000000000}) = to bitset! 123
-	;--test-- "to-bitset!-integer!"
-	;	--assert (make bitset! #{0000000000000000000000000000000000000000000000000000000000000000}) = to bitset! 256
-	;--test-- "to-bitset!-url!"
-	;	--assert (make bitset! #{0000000000070020000000004D8BA8}) = to bitset! http://red-lang.org
-	;--test-- "to-bitset!-file!"
-	;	--assert (make bitset! #{0000000000010000000000000648}) = to bitset! %/file/
+	--test-- "to-bitset!-integer!"
+		--assert error? try [ to bitset! 123 ]
+	--test-- "to-bitset!-integer!"
+		--assert error? try [ to bitset! 256 ]
+	--test-- "to-bitset!-url!"
+		--assert error? try [ to bitset! http://red-lang.org ]
+	--test-- "to-bitset!-file!"
+		--assert error? try [ to bitset! %/file/ ]
 	--test-- "to-bitset!-binary!"
 		--assert (make bitset! #{}) = to bitset! #{}
 	--test-- "to-bitset!-binary!"
@@ -766,10 +796,10 @@ Red [
 		--assert (make bitset! #{70}) = to bitset! [1 2 3]
 	--test-- "to-bitset!-block!"
 		--assert (make bitset! #{00000000000000000000000060}) = to bitset! ["a" "b"]
-	   ;--test-- "to-bitset!-tag!"
-	   ;	   --assert (make bitset! #{00000000000000000000000040}) = to bitset! <a>
-	   ;--test-- "to-bitset!-email!"
-	   ;	   --assert (make bitset! #{0000000000000000800000002201}) = to bitset! foo@boo
+	--test-- "to-bitset!-tag!"
+		--assert error? try [ to bitset! <a> ]
+	--test-- "to-bitset!-email!"
+		--assert error? try [ to bitset! foo@boo ]
 ===end-group===
 
 

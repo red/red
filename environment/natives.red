@@ -3,7 +3,7 @@ Red [
 	Author:  "Nenad Rakocevic"
 	File: 	 %natives.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -322,9 +322,10 @@ stats: make native! [[
 ]
 
 bind: make native! [[
+		"Bind words to a context; returns rebound words"
 		word 	[block! any-word!]
 		context [any-word! any-object! function!]
-		/copy
+		/copy	"Deep copy blocks before binding"
 		return: [block! any-word!]
 	]
 	#get-definition NAT_BIND
@@ -339,11 +340,12 @@ in: make native! [[
 ]
 
 parse: make native! [[
+		"Process a series using dialected grammar rules"
 		input [binary! any-block! any-string!]
 		rules [block!]
-		/case
+		/case "Uses case-sensitive comparison"
 		;/strict
-		/part
+		/part "Limit to a length or position"
 			length [number! series!]
 		/trace
 			callback [function! [
@@ -427,7 +429,8 @@ complement?: make native! [[
 
 dehex: make native! [[
 		"Converts URL-style hex encoded (%xx) strings"
-		value [string! file!]							;@@ replace with any-string!
+		value [any-string!]
+		return:	[string!] "Always return a string"
 	]
 	#get-definition NAT_DEHEX
 ]
@@ -512,8 +515,8 @@ tangent: make native! [[
 
 arcsine: make native! [[
 		"Returns the trigonometric arcsine (in degrees by default)"
-		angle	[number!]
-		/radians "Angle is specified in radians"
+		value	[number!]
+		/radians "Angle is returned in radians"
 		return: [float!]
 	]
 	#get-definition NAT_ARCSINE
@@ -521,8 +524,8 @@ arcsine: make native! [[
 
 arccosine: make native! [[
 		"Returns the trigonometric arccosine (in degrees by default)"
-		angle	[number!]
-		/radians "Angle is specified in radians"
+		value	[number!]
+		/radians "Angle is returned in radians"
 		return: [float!]
 	]
 	#get-definition NAT_ARCCOSINE
@@ -530,14 +533,14 @@ arccosine: make native! [[
 
 arctangent: make native! [[
 		"Returns the trigonometric arctangent (in degrees by default)"
-		angle	[number!]
-		/radians "Angle is specified in radians"
+		value	[number!]
+		/radians "Angle is returned in radians"
 		return: [float!]
 	]
 	#get-definition NAT_ARCTANGENT
 ]
 arctangent2: make native! [[
-		"Returns the angle of the point y/x in radians, when measured counterclockwise from a circle's x axis (where 0x0 represents the center of the circle). The return value is between -pi and +pi."
+		"Returns the smallest angle between the X axis and the point (x,y) (-pi to pi)"
 		y       [number!]
 		x       [number!]
 		return: [float!]
@@ -602,10 +605,11 @@ square-root: make native! [[
 ]
 
 construct: make native! [[
+		"Makes a new object from an unevaluated spec; standard logic words are evaluated"
 		block [block!]
-		/with
-			object [object!]
-		/only
+		/with "Use a prototype object"
+			object [object!] "Prototype object"
+		/only "Don't evaluate standard logic words"
 	]
 	#get-definition NAT_CONSTRUCT
 ]
@@ -712,7 +716,7 @@ debase: make native! [[
 		"Decodes binary-coded string (BASE-64 default) to binary value"
 		value [string!] "The string to decode"
 		/base "Binary base to use"
-			base-value [integer!] "The base to convert from: 64, 16, or 2"
+			base-value [integer!] "The base to convert from: 64, 58, 16, or 2"
 	]
 	#get-definition NAT_DEBASE
 ]
@@ -721,7 +725,7 @@ enbase: make native! [[
 		"Encodes a string into a binary-coded string (BASE-64 default)"
 		value [binary! string!] "If string, will be UTF8 encoded"
 		/base "Binary base to use"
-			base-value [integer!] "The base to convert from: 64, 16, or 2"
+			base-value [integer!] "The base to convert from: 64, 58, 16, or 2"
 	]
 	#get-definition NAT_ENBASE
 ]
@@ -738,7 +742,7 @@ to-local-file: make native! [[
 wait: make native! [[
 		"Waits for a duration in seconds or specified time"
 		value [number! time! block! none!]
-		/all "Returns all in a block"
+		/all "Returns all events in a block"
 		;/only "Only check for ports given in the block to this function"
 	]
 	#get-definition NAT_WAIT
@@ -819,7 +823,7 @@ now: make native! [[
 		/month		"Returns month only"
 		/day		"Returns day of the month only"
 		/time		"Returns time only"
-		/zone		"Returns time zone offset from UCT (GMT) only"
+		/zone		"Returns time zone offset from UTC (GMT) only"
 		/date		"Returns date only"
 		/weekday	"Returns day of the week as integer (Monday is day 1)"
 		/yearday	"Returns day of the year (Julian)"
@@ -877,9 +881,18 @@ browse: make native! [[
 
 decompress: make native! [[
 		"Decompresses data. Data in GZIP format (RFC 1952) by default"
-		data		  [binary!]
-		/zlib	 size [integer!] "Data in ZLIB format (RFC 1950), uncompressed file size is required"
-		/deflate size [integer!] "Data in DEFLATE format (RFC 1951), uncompressed file size is required"
+		data		[binary!]
+		/zlib		"Data in ZLIB format (RFC 1950)"
+		size		[integer!] "Uncompressed data size"
+		/deflate	"Data in DEFLATE format (RFC 1951)"
+		size		[integer!] "Uncompressed data size"
 	]
 	#get-definition NAT_DECOMPRESS
+]
+
+recycle: make native! [[
+		/on
+		/off
+	]
+	#get-definition NAT_RECYCLE
 ]

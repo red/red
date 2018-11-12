@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %char.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -93,6 +93,9 @@ char: context [
 		switch TYPE_OF(spec) [
 			TYPE_INTEGER
 			TYPE_CHAR [
+				if ANY [spec/data2 > 0010FFFFh spec/data2 < 0] [
+					fire [TO_ERROR(script out-of-range) spec]
+				]
 				proto/value: spec/data2
 			]
 			TYPE_FLOAT

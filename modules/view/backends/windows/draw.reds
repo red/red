@@ -3,7 +3,7 @@ Red/System [
 	Author:	"Nenad Rakocevic"
 	File:	%draw.reds
 	Tabs:	4
-	Rights:	"Copyright (C) 2015 Nenad Rakocevic. All rights reserved."
+	Rights:	"Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -317,7 +317,7 @@ draw-begin: func [
 	ctx/other/gradient-fill/transformed?:	false
 	ctx/other/gradient-pen?:				false
 	ctx/other/gradient-fill?:				false
-	ctx/other/D2D?:							(get-face-flags hWnd) and FACET_FLAGS_D2D <> 0
+	ctx/other/D2D?:							(GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D <> 0
 	ctx/other/GDI+?:						no
 	ctx/other/last-point?:					no
 	ctx/other/prev-shape/type:				SHAPE_OTHER
@@ -382,6 +382,7 @@ draw-begin: func [
 		if dpi-factor <> 100 [
 			ratio: (as float32! dpi-factor) / (as float32! 100.0)
 			GdipScaleWorldTransform graphics ratio ratio GDIPLUS_MATRIX_PREPEND
+			ctx/scale-ratio: ratio
 		]
 	]
 
@@ -1134,11 +1135,15 @@ OS-draw-line: func [
 	point  [red-pair!]
 	end	   [red-pair!]
 	/local
+		start	[tagPOINT]
 		pt		[tagPOINT]
 		nb		[integer!]
 		pair	[red-pair!]
 ][
+	if ctx/other/D2D? [OS-draw-line-d2d ctx point end exit]
+
 	pt: ctx/other/edges
+	start: pt
 	pair:  point
 	nb:	   0
 
@@ -1150,9 +1155,10 @@ OS-draw-line: func [
 		pair: pair + 1
 	]
 	either ctx/other/GDI+? [
-		GdipDrawLinesI ctx/graphics ctx/gp-pen ctx/other/edges nb
+		check-gradient-poly ctx start 2
+		GdipDrawLinesI ctx/graphics ctx/gp-pen start nb
 	][
-		Polyline ctx/dc ctx/other/edges nb
+		Polyline ctx/dc start nb
 	]
 ]
 
@@ -1169,7 +1175,7 @@ OS-draw-pen: func [
 	ctx/alpha-pen?: alpha?
 	ctx/other/GDI+?: any [alpha? ctx/other/anti-alias? ctx/alpha-brush?]
 
-	if any [ctx/pen-color <> color ctx/pen? = off?][
+	if any [ctx/pen-color <> color ctx/pen? = off? ctx/other/gradient-pen?][
 		ctx/pen?: not off?
 		ctx/pen-color: color
 		either ctx/other/GDI+? [update-gdiplus-pen ctx][update-pen ctx]
@@ -1189,10 +1195,12 @@ OS-draw-fill-pen: func [
 ][
 	if all [off? ctx/brush? <> off?][exit]
 
+	if ctx/other/D2D? [OS-draw-fill-pen-d2d ctx color off? exit]
+
 	ctx/alpha-brush?: alpha?
 	ctx/other/GDI+?: any [alpha? ctx/other/anti-alias? ctx/alpha-pen?]
 
-	if any [ctx/brush-color <> color ctx/brush? = off?][
+	if any [ctx/brush-color <> color ctx/brush? = off? ctx/other/gradient-fill?][
 		ctx/brush?: not off?
 		ctx/brush-color: color
 		either ctx/other/GDI+? [update-gdiplus-brush ctx][update-brush ctx]
@@ -1205,6 +1213,8 @@ OS-draw-line-width: func [
 	/local
 		width-v [float32!]
 ][
+	if ctx/other/D2D? [OS-draw-line-width-d2d ctx width exit]
+
 	width-v: get-float32 as red-integer! width
 	if ctx/pen-width <> width-v [
 		ctx/pen-width: width-v
@@ -1238,24 +1248,66 @@ gdiplus-roundrect-path: func [
 ]
 
 gdiplus-draw-roundbox: func [
-	ctx			[draw-ctx!]
+	graphics	[integer!]
 	x			[integer!]
 	y			[integer!]
 	width		[integer!]
 	height		[integer!]
 	radius		[integer!]
-	fill?		[logic!]
+	pen			[integer!]
+	brush		[integer!]
 	/local
 		path	[integer!]
 ][
 	path: 0
 	GdipCreatePath GDIPLUS_FILLMODE_ALTERNATE :path
 	gdiplus-roundrect-path path x y width height radius
-	if fill? [
-		GdipFillPath ctx/graphics ctx/gp-brush path
+	if brush <> 0 [
+		GdipFillPath graphics brush path
 	]
-	GdipDrawPath ctx/graphics ctx/gp-pen path
+	GdipDrawPath graphics pen path
 	GdipDeletePath path
+]
+
+gdiplus-draw-box: func [
+	graphics	[integer!]
+	x			[integer!]
+	y			[integer!]
+	width		[integer!]
+	height		[integer!]
+	radius		[integer!]
+	pen			[integer!]
+	brush		[integer!]
+][
+	if radius > 0 [
+		gdiplus-draw-roundbox
+			graphics
+			x
+			y
+			width
+			height
+			radius
+			pen
+			brush
+		exit
+	]
+	if brush <> 0 [				;-- fill rect
+		GdipFillRectangleI
+			graphics
+			brush
+			x
+			y
+			width
+			height
+	]
+
+	GdipDrawRectangleI
+		graphics
+		pen
+		x
+		y
+		width
+		height
 ]
 
 OS-draw-box: func [
@@ -1266,52 +1318,61 @@ OS-draw-box: func [
 		t		[integer!]
 		radius	[red-integer!]
 		rad		[integer!]
+		up-x	[integer!]
+		up-y	[integer!]
+		low-x	[integer!]
+		low-y	[integer!]
+		width	[integer!]
+		height	[integer!]
 ][
+	if ctx/other/D2D? [
+		OS-draw-box-d2d ctx upper lower
+		exit
+	]
 	rad: either TYPE_OF(lower) = TYPE_INTEGER [
 		radius: as red-integer! lower
 		lower:  lower - 1
 		radius/value
 	][0]
+	up-x: upper/x up-y: upper/y low-x: lower/x low-y: lower/y
 	either positive? rad [
 		rad: rad * 2
+		width: low-x - up-x
+		height: low-y - up-y
+		t: either width > height [height][width]
+		rad: either rad > t [t][rad]
 		either ctx/other/GDI+? [
 			check-gradient-box ctx upper lower
 			check-texture-box ctx upper
-			gdiplus-draw-roundbox
-				ctx
-				upper/x
-				upper/y
-				lower/x - upper/x
-				lower/y - upper/y
+			gdiplus-draw-box
+				ctx/graphics
+				up-x
+				up-y
+				width
+				height
 				rad
-				ctx/brush?
+				ctx/gp-pen
+				either ctx/brush? [ctx/gp-brush][0]
 		][
-			RoundRect ctx/dc upper/x upper/y lower/x lower/y rad rad
+			RoundRect ctx/dc up-x up-y low-x low-y rad rad
 		]
 	][
 		either ctx/other/GDI+? [
-			if upper/x > lower/x [t: upper/x upper/x: lower/x lower/x: t]
-			if upper/y > lower/y [t: upper/y upper/y: lower/y lower/y: t]
+			if up-x > low-x [t: up-x up-x: low-x low-x: t]
+			if up-y > low-y [t: up-y up-y: low-y low-y: t]
 			check-gradient-box ctx upper lower
 			check-texture-box ctx upper
-			unless zero? ctx/gp-brush [				;-- fill rect
-				GdipFillRectangleI
-					ctx/graphics
-					ctx/gp-brush
-					upper/x
-					upper/y
-					lower/x - upper/x
-					lower/y - upper/y
-			]
-			GdipDrawRectangleI
+			gdiplus-draw-box
 				ctx/graphics
+				up-x
+				up-y
+				low-x - up-x
+				low-y - up-y
+				rad
 				ctx/gp-pen
-				upper/x
-				upper/y
-				lower/x - upper/x
-				lower/y - upper/y
+				either ctx/brush? [ctx/gp-brush][0]
 		][
-			Rectangle ctx/dc upper/x upper/y lower/x lower/y
+			Rectangle ctx/dc up-x up-y low-x low-y
 		]
 	]
 ]
@@ -1568,6 +1629,7 @@ OS-draw-text: func [
 	pos		[red-pair!]
 	text	[red-string!]
 	catch?	[logic!]
+	return: [logic!]
 	/local
 		str		[c-string!]
 		p		[c-string!]
@@ -1582,8 +1644,10 @@ OS-draw-text: func [
 ][
 	if ctx/other/D2D? [
 		OS-draw-text-d2d ctx pos text catch?
-		exit
+		return true
 	]
+
+	if TYPE_OF(text) = TYPE_OBJECT [return false]
 
 	len: -1
 	str: unicode/to-utf16-len text :len no
@@ -1612,6 +1676,7 @@ OS-draw-text: func [
 		]
 		if p > str [ExtTextOut ctx/dc x y ETO_CLIPPED null str (as-integer p - str) / 2 null]
 	]
+	true
 ]
 
 OS-draw-arc: func [
@@ -1889,7 +1954,7 @@ OS-draw-image: func [
 	]
 	GdipDrawImageRectRectI
 		ctx/graphics as-integer image/node
-		x y width height src-x src-y w h
+		x y width + 1 height + 1 src-x src-y w h
 		GDIPLUS_UNIT_PIXEL attr 0 0
 ]
 
@@ -3182,12 +3247,12 @@ OS-set-clip: func [
 		clip-mode [integer!]
 ][
 	case [
-		mode = replace [ clip-mode: clip-replace ctx ]
-		mode = intersect [ clip-mode: clip-intersect ctx ]
-		mode = union [ clip-mode: clip-union ctx ]
-		mode = xor [ clip-mode: clip-xor ctx ]
-		mode = exclude [ clip-mode: clip-diff ctx]
-		true [ clip-mode: clip-replace ctx ]
+		mode = replace	 [clip-mode: clip-replace ctx]
+		mode = intersect [clip-mode: clip-intersect ctx]
+		mode = union	 [clip-mode: clip-union ctx]
+		mode = _xor		 [clip-mode: clip-xor ctx]
+		mode = exclude	 [clip-mode: clip-diff ctx]
+		true			 [clip-mode: clip-replace ctx]
 	]
 	either ctx/other/GDI+? [
 		either rect? [
@@ -3424,6 +3489,9 @@ OS-matrix-reset: func [
 	][
 		;-- reset matrix for figure
 		GdipResetWorldTransform ctx/graphics
+	]
+	if ctx/scale-ratio <> as float32! 0.0 [
+		GdipScaleWorldTransform ctx/graphics ctx/scale-ratio ctx/scale-ratio GDIPLUS_MATRIX_PREPEND
 	]
 ]
 

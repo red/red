@@ -34,4 +34,15 @@ Red [
 		--assert none <> find (to string! pe-2) "*** Script Error"
 ===end-group===
 
+===start-group=== "power integer"
+	--test-- "power-integer-1"	--assert integer? power 2 16
+	--test-- "power-integer-2"	--assert integer? power 2 15
+	--test-- "power-integer-3"	--assert integer? power 3 15
+	--test-- "power-integer-4"	--assert integer? power 16 4
+	--test-- "power-integer-5"	--assert integer? power 7 8
+	--test-- "power-integer-6"	--assert integer? power 11 8
+	--test-- "power-integer-7"	--assert integer? power 23 4
+	--test-- "power-integer-8"	--assert integer? power 216 2
+===end-group===
+
 ~~~end-file~~~

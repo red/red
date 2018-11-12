@@ -3,7 +3,7 @@ Red [
 	Author:  "Nenad Rakocevic"
 	File: 	 %lexer.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2014-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2014-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -91,13 +91,13 @@ system/lexer: context [
 		
 		ret: as red-binary! stack/arguments
 		ret/head: 0
-		ret/header: TYPE_BINARY
+		ret/header: TYPE_NONE
 		ret/node: switch base [
 			16 [binary/decode-16 p len unit]
 			2  [binary/decode-2  p len unit]
 			64 [binary/decode-64 p len unit]
 		]
-		if ret/node = null [ret/header: TYPE_NONE]		;-- return NONE!
+		if ret/node <> null [ret/header: TYPE_BINARY]		;-- if null, return NONE!
 	]
 
 	make-tuple: routine [
@@ -625,7 +625,7 @@ system/lexer: context [
 				]
 			]
 			opt [#":" (type: set-path! set-path back tail stack)][
-				ahead [path-end | ws | end] | (throw-error [type path])
+				ahead [path-end | ws-no-count | end] | (throw-error [type path])
 			]
 			(pop stack)
 		]
@@ -781,7 +781,7 @@ system/lexer: context [
 						| 1 2 digit e: (hour: make-number s e integer! mn: none) ;-- +/-h, +/-hh
 						opt [#":" s: 2 digit e: (mn: make-number s e integer!)]
 					]
-					(date/zone: make-hm either neg? [negate hour][hour] any [mn 0])
+					(zone: make-hm hour any [mn 0] date/zone: either neg? [negate zone][zone])
 				]
 			] sticky-word-rule (value: date)
 		]
@@ -929,7 +929,7 @@ system/lexer: context [
 				| get-word-rule
 				| refinement-rule
 				| file-rule			(store stack value: do process)
-				| char-rule			(store stack value)
+				| char-rule			(if value > 10FFFFh [throw-error [char! skip pos -6]] store stack value)
 				| map-rule
 				| paren-rule
 				| escaped-rule		(store stack value)

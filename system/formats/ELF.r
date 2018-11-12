@@ -3,7 +3,7 @@ REBOL [
 	Author:  "Andreas Bolka, Nenad Rakocevic"
 	File:	 %ELF.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Andreas Bolka, Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Andreas Bolka,-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
@@ -268,7 +268,7 @@ context [
 		]
 
 		segment "rw"				[load	  	[r w]				page] [
-			section ".data"			[progbits 	[write alloc]		dword]
+			section ".data"			[progbits 	[write alloc]		word]
 			section ".data.rel.ro"	[progbits 	[write alloc]		word]
 			segment "dynamic"		[dynamic  	[r w]				word] [
 				section ".dynamic"	[dynamic  	[write alloc]		word]

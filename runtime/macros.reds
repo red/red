@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %macros.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -63,6 +63,7 @@ Red/System [
 	TYPE_IMAGE											;-- 31		49		;-- needs to be last
 	TYPE_EVENT											
 	TYPE_CLOSURE
+	TYPE_TOTAL_COUNT									;-- keep tabs on number of datatypes.
 ]
 
 #enum actions! [
@@ -243,6 +244,7 @@ Red/System [
 	NAT_SIZE?
 	NAT_BROWSE
 	NAT_DECOMPRESS
+	NAT_RECYCLE
 ]
 
 #enum math-op! [
@@ -376,6 +378,7 @@ Red/System [
 	any [
 		type = TYPE_BLOCK
 		type = TYPE_HASH
+		type = TYPE_VECTOR
 		type = TYPE_PAREN
 		type = TYPE_PATH
 		type = TYPE_LIT_PATH
@@ -517,13 +520,18 @@ Red/System [
 	]
 ]
 
-#define GET_SIZE_FROM(spec) [
+#define GET_INT_FROM(n spec) [
 	either TYPE_OF(spec) = TYPE_FLOAT [
 		fl: as red-float! spec
-		as-integer fl/value
+		n: as-integer fl/value
+		#if target = 'IA-32 [
+			if system/fpu/status and FPU_EXCEPTION_INVALID_OP <> 0 [
+				fire [TO_ERROR(internal no-memory)]
+			]
+		]
 	][
 		int: as red-integer! spec
-		int/value
+		n: int/value
 	]
 ]
 

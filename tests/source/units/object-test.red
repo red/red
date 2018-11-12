@@ -4,7 +4,7 @@ Red [
 	File: 	 %object-test.red
 	Version: "0.1.0"
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
@@ -275,8 +275,9 @@ Red [
 			;o14: make object! [
 			;o15: make object! [
 				i: 1
-			]]]]]]]]]]]]
+			]]]]]]]]]]]];]]
 		]
+		;--assert no5-o1/o2/o3/o4/o5/o6/o7/o8/o9/o10/o11/o12/o13/o14/o15/i = 1 
 		--assert no5-o1/o2/o3/o4/o5/o6/o7/o8/o9/o10/o11/o12/o13/i = 1
 		
 	--test-- "no6 issue #928"
@@ -2262,6 +2263,11 @@ Red [
 		b: make a [e: 2]
 		--assert 1 = do a/d
 		--assert 2 = do b/d
+		
+	--test-- "issue #3516"
+		iss-3516-c: context [ f: func [a] [] ]
+		;; COMMENTED OUT
+		;;--assert not error? try [ iss-3516-t: iss-3516-c/f [] ]
 
 ===end-group===
 

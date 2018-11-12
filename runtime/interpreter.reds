@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %interpreter.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -21,20 +21,29 @@ Red/System [
 				#if debug? = yes [if verbose > 0 [log "infix detected!"]]
 				infix?: yes
 			][
-				if TYPE_OF(pc) = TYPE_WORD [
-					left: _context/get as red-word! pc
-				]
-				unless all [
+				lit?: all [								;-- is a literal argument is expected?
 					TYPE_OF(pc) = TYPE_WORD
-					any [
-						TYPE_OF(left) = TYPE_ACTION
-						TYPE_OF(left) = TYPE_NATIVE
-						TYPE_OF(left) = TYPE_FUNCTION
-					]
-					literal-first-arg? as red-native! left	;-- a literal argument is expected
-				][
+					literal-first-arg? as red-native! value
+				]
+				either lit? [
 					#if debug? = yes [if verbose > 0 [log "infix detected!"]]
 					infix?: yes
+				][
+					if TYPE_OF(pc) = TYPE_WORD [
+						left: _context/get as red-word! pc
+					]
+					unless all [
+						TYPE_OF(pc) = TYPE_WORD
+						any [									;-- left operand is a function call
+							TYPE_OF(left) = TYPE_ACTION
+							TYPE_OF(left) = TYPE_NATIVE
+							TYPE_OF(left) = TYPE_FUNCTION
+						]
+						literal-first-arg? as red-native! left	;-- a literal argument is expected
+					][
+						#if debug? = yes [if verbose > 0 [log "infix detected!"]]
+						infix?: yes
+					]
 				]
 			]
 			if infix? [
@@ -113,7 +122,8 @@ interpreter: context [
 		while [value < tail][
 			switch TYPE_OF(value) [
 				TYPE_WORD 		[return no]
-				TYPE_LIT_WORD	[return yes]
+				TYPE_LIT_WORD
+				TYPE_GET_WORD	[return yes]
 				default 		[0]
 			]
 			value: value + 1
@@ -327,13 +337,22 @@ interpreter: context [
 			bits	[byte-ptr!]
 			native? [logic!]
 			set?	[logic!]
+			lit?	[logic!]							;-- required by CHECK_INFIX macro
 			args	[node!]
 			node	[node!]
 			call-op
 	][
 		stack/keep
 		pc: pc + 1										;-- skip operator
-		pc: eval-expression pc end yes yes no			;-- eval right operand
+		either all [									;-- is a literal argument is expected?
+			TYPE_OF(pc) = TYPE_WORD
+			literal-first-arg? as red-native! value
+		][
+			stack/push pc
+			pc: pc + 1
+		][
+			pc: eval-expression pc end yes yes no		;-- eval right operand
+		]
 		op: as red-op! value
 		fun: null
 		native?: op/header and flag-native-op <> 0
@@ -673,9 +692,7 @@ interpreter: context [
 			switch TYPE_OF(value) [
 				TYPE_UNSET [fire [TO_ERROR(script no-value)	item]]
 				TYPE_PAREN [
-					stack/mark-interp-native words/_body ;@@ ~paren
-					eval as red-block! value yes		;-- eval paren content
-					stack/unwind
+					eval as red-block! value no		;-- eval paren content
 					value: stack/top - 1
 				]
 				default [0]								;-- compilation pass-thru
@@ -692,8 +709,8 @@ interpreter: context [
 					TYPE_NATIVE
 					TYPE_ROUTINE
 					TYPE_FUNCTION [
-						pc: eval-code parent pc end yes path item gparent
-						stack/set-last stack/top
+						pc: eval-code parent pc end sub? path item gparent
+						unless sub? [stack/set-last stack/top]
 						return pc
 					]
 					default [0]
@@ -770,7 +787,7 @@ interpreter: context [
 					s: as series! fun/more/value
 					int: as red-integer! s/offset + 4
 					either TYPE_OF(int) = TYPE_INTEGER [
-						ctx: as node! int/value
+						as node! int/value
 					][
 						name/ctx						;-- get a context from calling name
 					]
@@ -809,9 +826,11 @@ interpreter: context [
 			op	   [red-value!]
 			sym	   [integer!]
 			infix? [logic!]
+			lit?   [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line ["eval: fetching value of type " TYPE_OF(pc)]]]
 		
+		lit?: no
 		infix?: no
 		unless prefix? [
 			next: as red-word! pc + 1
@@ -885,7 +904,7 @@ interpreter: context [
 						print lf
 					]
 				]
-				value: _context/get as red-word! pc
+				value: either lit? [pc][_context/get as red-word! pc]
 				pc: pc + 1
 				
 				switch TYPE_OF(value) [
@@ -936,20 +955,21 @@ interpreter: context [
 			TYPE_LIT_PATH [
 				value: stack/push pc
 				value/header: TYPE_PATH
+				value/data3: 0							;-- ensures args field is null
 				pc: pc + 1
 			]
 			TYPE_OP [
 				--NOT_IMPLEMENTED--						;-- op used in prefix mode
 			]
-			TYPE_ACTION							;@@ replace with TYPE_ANY_FUNCTION
+			TYPE_ACTION									;@@ replace with TYPE_ANY_FUNCTION
 			TYPE_NATIVE
 			TYPE_ROUTINE
 			TYPE_FUNCTION [
 				either passive? [
 					either sub? [
-						stack/push pc						;-- nested expression: push value
+						stack/push pc					;-- nested expression: push value
 					][
-						stack/set-last pc					;-- root expression: return value
+						stack/set-last pc				;-- root expression: return value
 					]
 					pc: pc + 1
 				][

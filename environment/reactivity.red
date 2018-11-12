@@ -3,7 +3,7 @@ Red [
 	Author: "Nenad Rakocevic"
 	File: 	%reactivity.red
 	Tabs: 	4
-	Rights: "Copyright (C) 2016 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2016-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -130,6 +130,28 @@ system/reactivity: context [
 				pos: skip pos 4
 			]
 		]
+	]
+	
+	set 'stop-reactor function [
+		face [object!]
+		/deep
+	][
+		list: relations
+		while [not tail? list][
+			either any [
+				same? list/1 face
+				all [
+					block? list/4
+					pos: find/same list/4 face
+					empty? head remove pos
+				]
+			][
+				remove/part list 4
+			][
+				list: skip list 4
+			]
+		]
+		if all [deep block? face/pane][foreach f face/pane [stop-reactor/deep f]]
 	]
 	
 	set 'clear-reactions function ["Removes all reactive relations"][clear relations]

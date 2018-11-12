@@ -4,7 +4,7 @@ Red [
 	File: 	 %char-test.red
 	Version: "0.2.0"
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
@@ -76,6 +76,12 @@ Red [
 	--test-- "xor1" --assert #"^(01)" xor #"^(10)" = #"^(11)"
 	--test-- "xor2" --assert #"^(11)" xor #"^(10)" = #"^(01)"
 	--test-- "xor3" --assert #"^(01)" xor #"^(1F)" = #"^(1E)"
+===end-group===
+
+===start-group=== "invalid unicode codepoints"
+	--test-- "110000h"			--assert error? try [do [to-char 110000h]]
+	--test-- "negative-char1"	--assert error? try [do [to-char -1]]
+	--test-- "negative-char2"	--assert error? try [do [to-char 80000000h]]
 ===end-group===
 
 ~~~end-file~~~

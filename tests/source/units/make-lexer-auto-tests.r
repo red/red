@@ -52,6 +52,7 @@ replace/all the-tests "--assert [" "--assert [[] "
 replace/all the-tests {lexer/process "} {lexer/process "Red []}
 replace/all the-tests "lexer/process {" "lexer/process {Red []"
 append rebol-tests the-tests
+remove/part find rebol-tests ";red" find/tail rebol-tests ";der"  
 write red-file-out red-tests
 write rebol-file-out rebol-tests
 print what-dir

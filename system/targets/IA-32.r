@@ -3,7 +3,7 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File: 	 %IA-32.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
@@ -407,9 +407,10 @@ make-profilable make target-class [
 		/options option [word!]
 		/masks mask [word!]
 		/cword
+		/status
 		/local value bit 
 	][
-		unless type [
+		unless any [type status][
 			either PIC? [
 				emit #{8B83}						;-- MOV eax, [ebx+disp]	 ; PIC
 			][
@@ -422,7 +423,13 @@ make-profilable make target-class [
 				; hardcoded value for now (FPU_X87)
 				emit #{31C0}						;--	XOR eax, eax
 				emit #{40}							;--	INC eax				; eax: 1
-			]								
+			]
+			status [
+				emit #{31C0}						;--	XOR eax, eax
+				emit #{9BDFE0}						;-- FSTSW ax
+				emit #{6683E03F}					;-- AND ax, 3Fh			; select only exception flags
+				emit #{9BDBE2}						;-- FCLEX
+			]
 			options [
 				emit #{25}							;-- AND eax, <value>
 				set [value bit] switch/default option [
@@ -449,7 +456,7 @@ make-profilable make target-class [
 			]
 			;cword []								;-- control word is already in eax
 		]
-		unless any [type cword][					;-- align result on right side
+		unless any [type cword status][				;-- align result on right side
 			emit #{C1E8}							;-- SHR eax, <bit>
 			emit to-bin8 bit
 		]

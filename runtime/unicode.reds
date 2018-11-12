@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic, Rudolf W. Meijer"
 	File: 	 %unicode.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -23,6 +23,25 @@ unicode: context [
 	;	3Fh				; U+003F = question mark
 	;	BFh				; U+00BF = inverted question mark
 	;	DC00h + b1		; U+DCxx where xx = b1 (never a Unicode codepoint)
+
+	latin1-idx: [
+		0402h 0403h 201Ah 0453h 201Eh 2026h 2020h 2021h
+		20ACh 2030h 0409h 2039h 040Ah 040Ch 040Bh 040Fh
+		0452h 2018h 2019h 201Ch 201Dh 2022h 2013h 2014h
+		0098h 2122h 0459h 203Ah 045Ah 045Ch 045Bh 045Fh
+		00A0h 040Eh 045Eh 0408h 00A4h 0490h 00A6h 00A7h
+		0401h 00A9h 0404h 00ABh 00ACh 00ADh 00AEh 0407h
+		00B0h 00B1h 0406h 0456h 0491h 00B5h 00B6h 00B7h
+		0451h 2116h 0454h 00BBh 0458h 0405h 0455h 0457h
+		0410h 0411h 0412h 0413h 0414h 0415h 0416h 0417h
+		0418h 0419h 041Ah 041Bh 041Ch 041Dh 041Eh 041Fh
+		0420h 0421h 0422h 0423h 0424h 0425h 0426h 0427h
+		0428h 0429h 042Ah 042Bh 042Ch 042Dh 042Eh 042Fh
+		0430h 0431h 0432h 0433h 0434h 0435h 0436h 0437h
+		0438h 0439h 043Ah 043Bh 043Ch 043Dh 043Eh 043Fh
+		0440h 0441h 0442h 0443h 0444h 0445h 0446h 0447h
+		0448h 0449h 044Ah 044Bh 044Ch 044Dh 044Eh 044Fh
+	]
 
 	utf8-char-size?: func [
 		byte-1st	[integer!]
@@ -77,17 +96,34 @@ unicode: context [
 		str		 [red-string!]
 		len		 [int-ptr!]			;-- len/value = -1 convert all chars
 		return:  [c-string!]
+		/local
+			node [node!]
 	][
-		io-to-utf8 str len no
+		node: str-to-utf8 str len no
+		as-c-string (as series! node/value) + 1
 	]
-
+	
 	io-to-utf8: func [
 		str		 [red-string!]
 		len		 [int-ptr!]			;-- len/value = -1 convert all chars
 		convert? [logic!]			;-- convert line terminators to OS specific
 		return:  [c-string!]
 		/local
+			node [node!]		
+	][
+		node: str-to-utf8 str len convert?
+		as-c-string (as series! node/value) + 1
+	]
+
+	str-to-utf8: func [
+		str		 [red-string!]
+		len		 [int-ptr!]			;-- len/value = -1 convert all chars
+		convert? [logic!]			;-- convert line terminators to OS specific
+		return:  [node!]
+		/local
 			s	 [series!]
+			ser	 [series!]
+			node [node!]
 			beg  [byte-ptr!]
 			buf	 [byte-ptr!]
 			p	 [byte-ptr!]
@@ -104,7 +140,9 @@ unicode: context [
 		unless len/value = -1 [
 			if len/value < part [part: len/value]
 		]
-		buf: allocate unit << 1 * (1 + part)	;@@ TBD: mark this buffer as protected!
+		node: alloc-bytes unit << 1 * (1 + part)
+		ser: as series! node/value
+		buf: as byte-ptr! ser + 1
 		beg: buf
 
 		p:	  string/rs-head str
@@ -128,7 +166,7 @@ unicode: context [
 		buf/1: null-byte
 
 		len/value: as-integer buf - beg
-		as-c-string beg
+		node
 	]
 	
 	Latin1-to-UCS2: func [
@@ -555,7 +593,7 @@ unicode: context [
 	][
 		if null? src [
 			assert not null? str
-			src: str/cache								;-- import UTF-16 string from cache
+			src: as-c-string (as series! str/cache/value) + 1 ;-- import UTF-16 string from cache
 		]
 		unit: scan-utf16 src size
 		
@@ -626,6 +664,7 @@ unicode: context [
 						]
 						p4/value: c << 8 + src/1 and 03FFh or cp + 00010000h  ;-- trail surrogate decoding
 						p4: p4 + 1
+						size: size - 1
 					][
 						either all [cr? src/1 = #"^M" c = 0][
 							size: size - 1
@@ -687,6 +726,7 @@ unicode: context [
 		return: [c-string!]
 		/local
 			s	 [series!]
+			head [byte-ptr!]
 			src  [byte-ptr!]
 			dst  [byte-ptr!]
 			tail [byte-ptr!]
@@ -706,8 +746,8 @@ unicode: context [
 		src: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
 		tail: src + (part << (unit >> 1))
 
-		get-cache str size + count-extras src tail unit
-		dst:  as byte-ptr! str/cache
+		head: as byte-ptr! get-cache str size + count-extras src tail unit
+		dst: head
 
 		switch unit [
 			Latin1 [
@@ -783,10 +823,10 @@ unicode: context [
 		len/value: part
 		
 		#if debug? = yes [
-			s: (as series! str/cache) - 1
-			assert (as byte-ptr! str/cache) + s/size > dst	;-- detect buffer overflow
+			s: as series! str/cache/value
+			assert head + s/size > dst					;-- detect buffer overflow
 		]
-		str/cache
+		as-c-string head
 	]
 	
 	get-cache: func [
@@ -798,15 +838,103 @@ unicode: context [
 			s	 [series!]
 	][
 		either null? str/cache [
-			node: alloc-bytes size
-			s: as series! node/value
-			str/cache: as-c-string s/offset
+			str/cache: alloc-bytes size
+			s: as series! str/cache/value
 		][
-			s: (as series! str/cache) - 1
+			s: as series! str/cache/value
 			if s/size < size [s: expand-series s size]
-			str/cache: as-c-string s + 1
 		]
-		str/cache
+		as-c-string s + 1
 	]
-	
+
+	load-latin1: func [
+		src		[c-string!]								;-- latin1 input buffer
+		size	[integer!]								;-- size of src in codepoints (excluding terminal NUL)
+		str		[red-string!]							;-- optional destination string
+		cr?		[logic!]								;-- yes => remove CR in CRLF sequences
+		return:	[node!]
+		/local
+			node [node!]
+			s	 [series!]
+			end  [byte-ptr!]
+			buf1 [byte-ptr!]
+			buf4 [int-ptr!]
+			cnt  [integer!]
+			unit [integer!]
+			cp	 [integer!]
+	][
+		if null? src [
+			assert not null? str
+			src: as-c-string (as series! str/cache/value) + 1 ;-- import latin1 string from cache
+		]
+
+		either null? str [
+			unit: Latin1
+			if zero? size [cnt: 3]
+			node: alloc-bytes cnt + 1
+			s: as series! node/value
+		][
+			node: str/node
+			s: GET_BUFFER(str)
+			unit: GET_UNIT(s)
+			if size > s/size [s: expand-series s size]
+		]
+
+		buf1: as byte-ptr! s/offset
+		buf4: as int-ptr! buf1
+		end:  buf1 + s/size
+		cnt:  size
+
+		while [cnt > 0][
+			cp: as-integer src/1
+			if cp > 7Fh [
+				cp: cp - 80h + 1
+				cp: latin1-idx/cp
+			]
+			if all [cr? cp = as-integer cr] [		;-- convert CRLF/CR to LF
+				if all [cnt > 1 src/2 = lf] [
+					src: src + 1
+					continue
+				]
+				cp: as-integer lf
+			]
+			switch unit [
+				Latin1 [
+					buf1/value: as-byte cp
+					buf1: buf1 + 1
+					assert buf1 <= end				;-- should not happen if we're good
+				]
+				UCS-2 [
+					if buf1 >= end [
+						s/tail: as cell! buf1
+						s: expand-series s s/size + (size >> 2)	;-- increase size by 50% 
+						buf1: as byte-ptr! s/tail
+						end: (as byte-ptr! s/offset) + s/size
+						src: as-c-string (as series! str/cache/value) + 1
+					]
+					buf1/1: as-byte cp
+					buf1/2: null-byte
+					buf1: buf1 + 2
+				]
+				UCS-4 [
+					if buf4 >= (as int-ptr! end) [
+						s/tail: as cell! buf4
+						s: expand-series s s/size + size ;-- increase size by 100% 
+						buf4: as int-ptr! s/tail
+						end: (as byte-ptr! s/offset) + s/size
+						src: as-c-string (as series! str/cache/value) + 1
+					]
+					buf4/value: cp
+					buf4: buf4 + 1
+				]
+			]
+			cnt: cnt - 1
+			src: src + 1
+			zero? cnt
+		] 												;-- end until
+		
+		s/tail: as cell! either unit = UCS-4 [buf4][buf1]
+		assert s/size >= as-integer (s/tail - s/offset)
+		node
+	]
 ]

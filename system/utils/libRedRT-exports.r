@@ -44,6 +44,7 @@
 	red/stack/revert
 	red/stack/adjust-post-try
 	red/stack/pop
+	red/stack/set-last
 
 	red/interpreter/eval-path
 
@@ -134,12 +135,35 @@
 	red/integer/get-any*
 	red/integer/get*
 	red/integer/get
+	red/integer/form-signed
 	red/logic/get
 	red/float/get
 
 	red/integer/box
 	red/logic/box
 	red/float/box
+	
+	red/vector/rs-head
+	red/vector/rs-tail
+	red/vector/rs-tail?
+	red/vector/rs-length?
+	red/vector/rs-skip
+	red/vector/rs-next
+	red/vector/rs-clear
+	red/vector/rs-append
+	red/vector/rs-append-int
+	red/vector/rs-overwrite
+	red/vector/rs-insert
+	red/vector/get-value
+	red/vector/get-value-int
+	red/vector/get-value-float
+	red/vector/set-value
+	
+	red/binary/rs-head
+	red/binary/rs-tail
+	red/binary/rs-length?
+	
+	red/handle/box
 
 	red/_function/init-locals
 
@@ -171,6 +195,7 @@
 	red/symbol/make
 
 	red/unicode/load-utf8
+	red/unicode/decode-utf8-char
 
 	red/object/unchanged?
 	red/object/unchanged2?
@@ -236,11 +261,19 @@
 	red/actions/tail?*
 	red/actions/take*
 	red/actions/trim*
-	red/actions/modify*
-	red/actions/read*
-	red/actions/write*
-	red/actions/delete*
 
+	red/actions/create*
+	red/actions/close*
+	red/actions/delete*
+	red/actions/modify*
+	red/actions/open*
+	;red/actions/open?*
+	red/actions/query*
+	red/actions/read*
+	red/actions/rename*
+	red/actions/update*
+	red/actions/write*
+	
 	red/natives/if*
 	red/natives/unless*
 	red/natives/either*
@@ -324,6 +357,9 @@
 	red/natives/wait*
 	red/natives/checksum*
 	red/natives/unset*
+	red/natives/new-line*
+	red/natives/new-line?*
+	red/natives/enbase*
 	red/natives/handle-thrown-error
 	red/natives/now*
 	red/natives/get-env*
@@ -337,6 +373,7 @@
 	red/natives/browse*
 	red/natives/context?*
 	red/natives/decompress*
+	red/natives/recycle*
 ][
 	red/stack/arguments		cell!
 	red/stack/top			cell!
@@ -345,4 +382,5 @@
 	red/none-value			cell!
 	red/true-value			cell!
 	red/false-value			cell!
+	red/boot?				logic!
 ]

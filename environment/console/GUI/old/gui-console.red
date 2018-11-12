@@ -15,15 +15,16 @@ Red [
 	}
 ]
 
-#include %help.red
-#include %engine.red
-#include %auto-complete.red
+#include %../../help.red
+#include %../../engine.red
+#include %../../auto-complete.red
 
 #system [
 	#include %terminal.reds
 ]
 
 ask: routine [
+	"Prompt the user for input"
 	question [string!]
 	return:  [string!]
 ][
@@ -35,7 +36,7 @@ ask: routine [
 		null
 ]
 
-input: does [ask ""]
+input: function ["Wait for console user input"][ask ""]
 
 gui-console-ctx: context [
 	cfg-path:	 none
@@ -225,6 +226,8 @@ gui-console-ctx: context [
 			]
 		]
 	]
+
+	caret: none
 
 	win: make face! [
 		type: 'window offset: 640x400 size: 640x400 visible?: no

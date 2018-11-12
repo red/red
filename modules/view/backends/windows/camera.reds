@@ -3,7 +3,7 @@ Red/System [
 	Author: "Xie Qingtian"
 	File: 	%camera.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2015 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -129,6 +129,7 @@ camera!: alias struct! [
 	dev6		[this!]
 	dev7		[this!]
 	dev8		[this!]
+	num			[integer!]
 ]
 
 init-camera: func [
@@ -141,16 +142,19 @@ init-camera: func [
 		val [integer!] 
 ][
 	cam: as camera! allocate size? camera!				;@@ need to be freed
+	zero-memory as byte-ptr! cam size? camera!
 	val: collect-camera cam data
-	either zero? val [free as byte-ptr! cam][
-		init-graph cam 0
-		build-preview-graph cam hWnd
-		toggle-preview hWnd open?
+	if zero? val [
+		free as byte-ptr! cam
+		SetWindowLong hWnd wc-offset - 4 0
+		exit
 	]
+
 	SetWindowLong hWnd wc-offset - 4 val
 	if TYPE_OF(sel) = TYPE_INTEGER [
-		select-camera hWnd sel/value - 1
-		toggle-preview hWnd true
+		if select-camera hWnd sel/value - 1 [
+			toggle-preview hWnd true
+		]
 	]
 ]
 
@@ -299,14 +303,22 @@ toggle-preview: func [
 select-camera: func [
 	handle	[handle!]
 	idx		[integer!]
+	return: [logic!]
 	/local
 		cam [camera!]
 ][
 	cam: as camera! GetWindowLong handle wc-offset - 4
+	if any [idx < 0 idx >= cam/num][
+		fire [TO_ERROR(access cannot-open) integer/push idx + 1]
+	]
 	teardown-graph cam
 	free-graph cam
 	init-graph cam idx
-	build-preview-graph cam handle
+	either zero? build-preview-graph cam handle [true][
+		teardown-graph cam
+		free-graph cam
+		false
+	]
 ]
 
 collect-camera: func [
@@ -329,6 +341,7 @@ collect-camera: func [
 		size	[integer!]
 		dev-ptr [int-ptr!]
 		fetched [integer!]
+		cnt		[integer!]
 ][
 	IDev:  declare interface!
 	IEnum: declare interface!
@@ -352,6 +365,7 @@ collect-camera: func [
 	var/data1: 8 << 16									;-- var.vt = VT_BSTR
 	dev-ptr: (as int-ptr! cam) + 4
 	fetched: 0
+	cnt: 0
 
 	hr: em/Next IEnum/ptr 1 IM :fetched
 	either zero? hr [block/make-at data 2][return 0]
@@ -368,6 +382,7 @@ collect-camera: func [
 				unicode/load-utf16 as c-string! var/data3 size str no
 				dev-ptr/value: as-integer IM/ptr
 				dev-ptr: dev-ptr + 1
+				cnt: cnt + 1
 				moniker/AddRef IM/ptr
 			]
 			bag/Release IBag/ptr
@@ -376,6 +391,7 @@ collect-camera: func [
 		hr: em/Next IEnum/ptr 1 IM :fetched
 		hr <> 0
 	]
+	cam/num: cnt
 	em/Release IEnum/ptr
 	as-integer cam
 ]
