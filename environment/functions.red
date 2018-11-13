@@ -18,8 +18,12 @@ alert: func [msg [string! block!]][
 	view/flags compose [
 		title "Message"
 		below center
-		text 200 (msg) center
-		button "ok"
+		text 200 (form reduce msg) center
+		button focus "OK" [unview] on-key [
+			switch event/key [
+				#"^M" #"^[" #" " #"^O" [unview]
+			]
+		]
 	] 'modal
 ]
 
