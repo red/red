@@ -25,6 +25,8 @@ help-ctx: context [
 	DENT_2: "        " 
 	NON_CONSOLE_SIZE: 120	; Where to truncate, if not running in a console
 	
+	parse-func-spec: none	; capture from inner context
+	
 	;---------------------------------------------------------------------------
 	;-- Buffered output
 	
