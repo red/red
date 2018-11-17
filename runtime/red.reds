@@ -53,9 +53,9 @@ red: context [
 	;-- ]
 	;--------------------------------------------
 	#switch OS [
-		Windows  [#include %platform/image-gdiplus.reds]
+		Windows  [#include %image-gdiplus.reds]
 		Syllable []
-		macOS	 [#include %platform/image-quartz.reds]
+		macOS	 [#include %image-quartz.reds]
 		FreeBSD  []
 		#default []
 	]

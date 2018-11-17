@@ -11,11 +11,8 @@ Red/System [
 ]
 
 io: context [
-	#either OS = 'Windows [										;-- loading OS-specific bindings
-		#include %platform/io/win32.reds
-	][
-		#include %platform/io/POSIX.reds
-	]
+
+	#if OS <> 'Windows [#include %platform/io/POSIX.reds]
 
 	#enum red-io-mode! [
 		RIO_READ:	1
@@ -439,50 +436,57 @@ io: context [
 		]
 	]
 
+#either OS = 'Windows [
 	query: func[
 		filename [red-file!]
 		return:  [red-value!]
 		/local
 			name [c-string!]
 			dt   [red-date!]
-			time [float!]
-			s	 [stat! value]
-			fd   [integer!]
-			tm   [systemtime!]
 			filedata [WIN32_FIND_DATA value]
 			systime	 [systemtime! value]
 	][
 		name: file/to-OS-path filename
-		;o: object/copy #get system/standard/file-info
-		
-		#either OS = 'Windows [
-			if any [
-				1 <> GetFileAttributesExW name 0 :filedata
-				1 <> FileTimeToSystemTime filedata/ftLastWriteTime :systime
-			][
-				return none/push
-			]
-			dt: as red-date! stack/push*
-			date/set-all dt
-				(systime/data1 and FFFFh) ;year
-				(systime/data1 >> 16    ) ;month
-				(systime/data2 >> 16    ) ;day
-				(systime/data3 and FFFFh) ;hours
-				(systime/data3 >> 16    ) ;minutes
-				(systime/data4 and FFFFh) ;seconds
-				1000000 * (systime/data4 >> 16) ;ns - posix is using nanoseconds so lets use it too
+		if any [
+			1 <> GetFileAttributesExW name 0 :filedata
+			1 <> FileTimeToSystemTime filedata/ftLastWriteTime :systime
 		][
-			fd: open-file file/to-OS-path filename RIO_READ yes
-			if fd < 0 [	return none/push ]
-			#either any [OS = 'macOS OS = 'FreeBSD OS = 'Android] [
-				_stat   fd s
-			][	_stat 3 fd s]
-			tm: gmtime as int-ptr! s/st_mtime
-			dt: as red-date! stack/push*
-			date/set-all dt (1900 + tm/year) (1 + tm/mon) tm/mday tm/hour tm/min tm/sec s/st_mtime/nsec
+			return none/push
 		]
+		dt: as red-date! stack/push*
+		date/set-all dt
+			(systime/data1 and FFFFh) ;year
+			(systime/data1 >> 16    ) ;month
+			(systime/data2 >> 16    ) ;day
+			(systime/data3 and FFFFh) ;hours
+			(systime/data3 >> 16    ) ;minutes
+			(systime/data4 and FFFFh) ;seconds
+			1000000 * (systime/data4 >> 16) ;ns - posix is using nanoseconds so lets use it too
 		as red-value! dt
 	]
+][
+	query: func[
+		filename [red-file!]
+		return:  [red-value!]
+		/local
+			name [c-string!]
+			dt   [red-date!]
+			s	 [stat! value]
+			fd   [integer!]
+			tm   [systemtime!]
+	][
+		name: file/to-OS-path filename
+		fd: open-file file/to-OS-path filename RIO_READ yes
+		if fd < 0 [	return none/push ]
+		#either any [OS = 'macOS OS = 'FreeBSD OS = 'Android] [
+			_stat   fd s
+		][	_stat 3 fd s]
+		tm: gmtime :s/st_mtime
+		dt: as red-date! stack/push*
+		date/set-all dt (1900 + tm/year) (1 + tm/mon) tm/mday tm/hour tm/min tm/sec s/st_mtime/nsec
+		as red-value! dt
+	]
+]
 
 	read-dir: func [
 		filename	[red-file!]

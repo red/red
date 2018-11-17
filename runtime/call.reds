@@ -80,7 +80,7 @@ ext-process: context [
 			len: len + 1
 			str/len: #"^/"
 			#switch OS [								;-- Write to stderr, no error check
-				Windows  [ WriteFile GetStdHandle STD_ERROR_HANDLE str len :len null ]
+				Windows  [ WriteFile GetStdHandle STD_ERROR_HANDLE as byte-ptr! str len :len null ]
 				#default [ platform/io-write stderr as byte-ptr! str len ]
 			]
 			free as byte-ptr! str
@@ -359,7 +359,7 @@ ext-process: context [
 			if in-buf <> null [
 				CloseHandle as handle! in-read
 				len: in-buf/count
-				success: WriteFile in-write as-c-string in-buf/buffer len :len null
+				success: WriteFile in-write in-buf/buffer len :len null
 				if zero? success [
 					__red-call-print-error [ "Error Red/System call : write into pipe failed : " GetLastError]
 				]

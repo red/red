@@ -10,6 +10,23 @@ Red/System [
 	}
 ]
 
+systemtime!: alias struct! [
+	sec		[integer!] ;seconds
+	min		[integer!] ;minutes
+	hour	[integer!] ;hours
+	mday	[integer!] ;day of the month
+	mon		[integer!] ;month
+	year	[integer!] ;year
+	wday	[integer!] ;day of the week
+	yday	[integer!] ;day in the year
+	isdst	[integer!] ;daylight saving time
+]
+
+timespec!: alias struct! [
+	sec		[integer!] ;Seconds
+	nsec	[integer!] ;Nanoseconds
+]
+
 #case [
 	OS = 'FreeBSD [
 		;-- http://fxr.watson.org/fxr/source/sys/stat.h?v=FREEBSD10
@@ -20,12 +37,9 @@ Red/System [
 			st_uid		[integer!]
 			st_gid		[integer!]
 			st_rdev		[integer!]
-			atv_sec		[integer!]				;-- struct timespec inlined
-			atv_msec	[integer!]
-			mtv_sec		[integer!]				;-- struct timespec inlined
-			mtv_msec	[integer!]
-			ctv_sec		[integer!]				;-- struct timespec inlined
-			ctv_msec	[integer!]
+			st_atime	[timespec! value]		;-- struct timespec inlined
+			st_mtime	[timespec! value]		;-- struct timespec inlined
+			st_ctime	[timespec! value]		;-- struct timespec inlined
 			st_size		[integer!]
 			st_size_h	[integer!]
 			st_blocks_l	[integer!]
@@ -56,12 +70,9 @@ Red/System [
 			st_uid		[integer!]
 			st_gid		[integer!]
 			st_rdev		[integer!]
-			atv_sec		[integer!]				;-- struct timespec inlined
-			atv_msec	[integer!]
-			mtv_sec		[integer!]				;-- struct timespec inlined
-			mtv_msec	[integer!]
-			ctv_sec		[integer!]				;-- struct timespec inlined
-			ctv_msec	[integer!]
+			st_atime	[timespec! value]		;-- struct timespec inlined
+			st_mtime	[timespec! value]		;-- struct timespec inlined
+			st_ctime	[timespec! value]		;-- struct timespec inlined
 			st_size		[integer!]
 			st_blocks	[integer!]
 			st_blksize	[integer!]
@@ -161,9 +172,9 @@ Red/System [
 			st_size		[integer!]
 			st_blksize	[integer!]
 			st_blocks	[integer!]
-			st_atime	[integer!]
-			st_mtime	[integer!]
-			st_ctime	[integer!]
+			st_atime	[timespec!]
+			st_mtime	[timespec!]
+			st_ctime	[timespec!]
 		]
 		#define DIRENT_NAME_OFFSET 8
 		dirent!: alias struct! [
@@ -194,12 +205,9 @@ Red/System [
 			st_blksize	  [integer!]
 			st_blocks_h	  [integer!]
 			st_blocks	  [integer!]
-			st_atime	  [integer!]
-			st_atime_nsec [integer!]
-			st_mtime	  [integer!]
-			st_mtime_nsec [integer!]
-			st_ctime	  [integer!]
-			st_ctime_nsec [integer!]
+			st_atime	  [timespec! value]
+			st_mtime	  [timespec! value]
+			st_ctime	  [timespec! value]
 			st_ino_h	  [integer!]
 			st_ino_l	  [integer!]
 			;...optional padding skipped
@@ -233,12 +241,9 @@ Red/System [
 			st_size		  [integer!]
 			st_blksize	  [integer!]
 			st_blocks	  [integer!]
-			st_atime	  [integer!]
-			st_atime_nsec [integer!]
-			st_mtime	  [integer!]
-			st_mtime_nsec [integer!]
-			st_ctime	  [integer!]
-			st_ctime_nsec [integer!]
+			st_atime	  [timespec! value]
+			st_mtime	  [timespec! value]
+			st_ctime	  [timespec! value]
 			st_ino_h	  [integer!]
 			st_ino_l	  [integer!]
 			;...optional padding skipped
@@ -282,6 +287,7 @@ Red/System [
 			]
 		]
 	]
+
 ]
 
 #either OS = 'macOS [
@@ -308,69 +314,6 @@ Red/System [
 		]
 	]
 ]
-
-timespec!: alias struct! [
-	tv_sec	[integer!]
-	tv_nsec [integer!]
-]
-
-#case [
-	any [OS = 'macOS OS = 'FreeBSD] [
-		kevent!: alias struct! [
-			ident		[int-ptr!]		;-- identifier for this event
-			;filter		[int16!]		;-- filter for event
-			;flags		[int16!]		;-- general flags
-			fflags		[integer!]		;-- filter-specific flags
-			data		[int-ptr!]		;-- filter-specific data
-			udata		[int-ptr!]		;-- opaque user data identifier
-		]
-		#import [
-			LIBC-file cdecl [
-				kqueue: "kqueue" [
-					return: [integer!]
-				]
-				kevent: "kevent" [
-					kq		[integer!]
-					clist	[kevent!]
-					nchange [integer!]
-					evlist	[kevent!]
-					nevents [integer!]
-					timeout [timespec!]
-				]
-			]
-		]
-	]
-	true [
-		epoll_event!: alias struct! [
-			events		[integer!]
-			ptr			[int-ptr!]
-			data		[integer!]
-		]
-		#import [
-			LIBC-file cdecl [
-				epoll_create: "epoll_create" [
-					size	[integer!]
-					return: [integer!]
-				]
-				epoll_ctl: "epoll_ctl" [
-					epfd	[integer!]
-					op		[integer!]
-					fd		[integer!]
-					event	[epoll_event!]
-					return: [integer!]
-				]
-				epoll_wait: "epoll_wait" [
-					epfd	[integer!]
-					events	[epoll_event!]
-					maxev	[integer!]
-					timeout [integer!]
-					return: [integer!]
-				]
-			]
-		]
-	]
-]
-
 #import [
 	LIBC-file cdecl [
 		_access: "access" [
@@ -436,6 +379,10 @@ timespec!: alias struct! [
 			str			[c-string!]
 			c			[byte!]
 			return:		[c-string!]
+		]
+		gmtime: "gmtime" [
+			time		[pointer! [integer!]]
+			return:		[systemtime!]
 		]
 	]
 ]

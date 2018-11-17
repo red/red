@@ -375,7 +375,7 @@ file: context [
 			null			;close
 			:delete
 			INHERIT_ACTION	;modify
-			:open
+			INHERIT_ACTION	;open
 			null			;open?
 			:query
 			:read

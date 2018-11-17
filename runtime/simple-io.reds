@@ -1008,7 +1008,7 @@ io: context [
 			#either any [OS = 'macOS OS = 'FreeBSD OS = 'Android] [
 				_stat   fd s
 			][	_stat 3 fd s]
-			tm: gmtime as int-ptr! s/st_mtime
+			tm: gmtime :s/st_mtime
 			dt: as red-date! stack/push*
 			date/set-all dt (1900 + tm/year) (1 + tm/mon) tm/mday tm/hour tm/min tm/sec s/st_mtime/nsec
 		]

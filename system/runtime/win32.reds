@@ -36,7 +36,7 @@ Red/System [
 	
 	prin: func [s [c-string!] return: [c-string!] /local written][
 		written: declare struct! [value [integer!]]
-		WriteFile stdout s length? s written 0
+		WriteFile stdout as byte-ptr! s length? s written 0
 		s
 	]
 ]

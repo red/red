@@ -27,6 +27,9 @@ Red/System [
 #define gestaltSystemVersionMinor	1937339186			;-- "sys2"
 #define gestaltSystemVersionBugFix	1937339187			;-- "sys3"
 
+#define	_SC_NPROCESSORS_CONF	57
+#define	_SC_NPROCESSORS_ONLN	58
+
 platform: context [ 
 
 	#include %POSIX.reds
