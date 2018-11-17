@@ -122,8 +122,7 @@ red-complete-ctx: context [
 		result
 	]
 
-	red-complete-input: func [
-		"Internal Use Only"
+	complete-input: func [
 		str		 [string!]			;-- should be `tail str`
 		console? [logic!]
 		/local
@@ -194,4 +193,6 @@ red-complete-ctx: context [
 		]
 		result
 	]
+
+	set 'red-complete-input :complete-input			;-- alias for VS Code plug
 ]

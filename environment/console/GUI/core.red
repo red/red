@@ -634,7 +634,7 @@ object [
 			p-idx candidates str2
 	][
 		p-idx: index? str
-		candidates: red-complete-ctx/red-complete-input skip str pos yes
+		candidates: red-complete-ctx/complete-input skip str pos yes
 		case [
 			empty? candidates [
 				insert skip str pos char
