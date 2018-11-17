@@ -332,7 +332,7 @@ system/lexer: context [
 			not-file-char not-str-char not-mstr-char caret-char
 			non-printable-char integer-end ws-ASCII ws-U+2k control-char
 			four half non-zero path-end base base64-char slash-end not-url-char
-			email-end pair-end file-end err
+			email-end pair-end file-end err date-sep time-sep not-tag-1st
 	][
 		cs:		[- - - - - - - - - - - - - - - - - - - - - - - - - - - - -] ;-- memoized bitsets
 		stack:	clear []
