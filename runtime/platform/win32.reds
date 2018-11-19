@@ -43,6 +43,8 @@ Red/System [
 #define WAIT_TIMEOUT					258
 #define WAIT_OBJECT_0					0
 
+#define INVALID_HANDLE					[as int-ptr! -1]
+
 #enum spawn-mode [
 	P_WAIT:		0
 	P_NOWAIT:	1
@@ -54,6 +56,13 @@ Red/System [
 timeval!: alias struct! [
 	tv_sec	[integer!]
 	tv_usec [integer!]
+]
+
+sockaddr!: alias struct! [				;-- 16 bytes
+	sa_family	[integer!]
+	sa_data		[integer!]
+	sa_data1	[integer!]
+	sa_data2	[integer!]
 ]
 
 SECURITY_ATTRIBUTES: alias struct! [
@@ -72,7 +81,7 @@ OVERLAPPED: alias struct! [
 
 OVERLAPPED_ENTRY: alias struct! [
 	lpCompletionKey				[int-ptr!]
-	lpOverlapped				[OVERLAPPED]
+	lpOverlapped				[int-ptr!]
 	Internal					[int-ptr!]
 	dwNumberOfBytesTransferred	[integer!]
 ]
@@ -134,18 +143,6 @@ WIN32_FIND_DATA: alias struct! [
 	dwReserved1			[integer!]
 	;cFileName			[byte-ptr!]				;-- WCHAR  cFileName[ 260 ]
 	;cAlternateFileName	[c-string!]				;-- cAlternateFileName[ 14 ]
-]
-
-AcceptEx!: alias function! [
-	sListenSocket			[int-ptr!]
-	sAcceptSocket			[int-ptr!]
-	lpOutputBuffer			[byte-ptr!]
-	dwReceiveDataLength		[integer!]
-	dwLocalAddressLength	[integer!]
-	dwRemoteAddressLength	[integer!]
-	lpdwBytesReceived		[int-ptr!]
-	lpOverlapped			[OVERLAPPED]
-	return:					[logic!]
 ]
 
 process-info!: alias struct! [
@@ -575,20 +572,29 @@ tagSYSTEM_INFO: alias struct! [
 			lpCompletionKey		[int-ptr!]
 			lpOverlapped		[OVERLAPPED]
 			dwMilliseconds		[integer!]
-			return:				[logic!]
+			return:				[integer!]
+		]
+		GetQueuedCompletionStatusEx: "GetQueuedCompletionStatusEx" [
+			CompletionPort		[int-ptr!]
+			entries				[OVERLAPPED_ENTRY]
+			ulCount				[integer!]
+			entriesRemoved		[int-ptr!]
+			dwMilliseconds		[integer!]
+			alertable			[logic!]
+			return:				[integer!]
 		]
 		PostQueuedCompletionStatus: "PostQueuedCompletionStatus" [
 			CompletionPort		[int-ptr!]
 			nTransferred		[integer!]
 			dwCompletionKey		[int-ptr!]
 			lpOverlapped		[OVERLAPPED]
-			return:				[logic!]
+			return:				[integer!]
 		]
 	]
 	"ws2_32.dll" stdcall [
 		WSAStartup: "WSAStartup" [
 			version		[integer!]
-			lpWSAData	[WSADATA]
+			lpWSAData	[int-ptr!]
 			return:		[integer!]
 		]
 		WSASocketW: "WSASocketW" [
@@ -598,10 +604,10 @@ tagSYSTEM_INFO: alias struct! [
 			lpProtocolInfo	[WSAPROTOCOL_INFOW]
 			g				[integer!]
 			dwFlags			[integer!]
-			return:			[int-ptr!]
+			return:			[integer!]
 		]
 		WSASend: "WSASend" [
-			s					[int-ptr!]
+			s					[integer!]
 			lpBuffers			[byte-ptr!]
 			dwBufferCount		[integer!]
 			lpNumberOfBytesSent	[int-ptr!]
@@ -629,6 +635,23 @@ tagSYSTEM_INFO: alias struct! [
 			fWaitAll			[logic!]
 			dwTimeout			[integer!]
 			fAlertable			[logic!]
+			return:				[integer!]
+		]
+		WSAIoctl: "WSAIoctl" [
+			s					[integer!]
+			dwIoControlCode		[integer!]
+			lpvInBuffer			[int-ptr!]
+			cbInBuffer			[integer!]
+			lpvOutBuffer		[int-ptr!]
+			cbOutBuffer			[integer!]
+			lpcbBytesReturned	[int-ptr!]
+			lpOverlapped		[OVERLAPPED]
+			lpCompletionRoutine	[int-ptr!]
+			return:				[integer!]
+		]
+		closesocket: "closesocket" [
+			s			[integer!]
+			return:		[integer!]
 		]
 	]
 	"gdiplus.dll" stdcall [
@@ -654,6 +677,65 @@ tagSYSTEM_INFO: alias struct! [
 		]
 	]
 ]
+
+AcceptEx!: alias function! [
+	sListenSocket			[integer!]
+	sAcceptSocket			[integer!]
+	lpOutputBuffer			[byte-ptr!]
+	dwReceiveDataLength		[integer!]
+	dwLocalAddressLength	[integer!]
+	dwRemoteAddressLength	[integer!]
+	lpdwBytesReceived		[int-ptr!]
+	lpOverlapped			[OVERLAPPED]
+	return:					[logic!]
+]
+
+ConnectEx!: alias function! [
+	s						[integer!]
+	name					[sockaddr!]
+	namelen					[integer!]
+	lpSendBuffer			[byte-ptr!]
+	dwSendDataLength		[integer!]
+	lpdwBytesSent			[int-ptr!]
+	lpOverlapped			[OVERLAPPED]
+	return:					[logic!]
+]
+
+DisconnectEx!: alias function! [
+	hSocket					[integer!]
+	lpOverlapped			[OVERLAPPED]
+	dwFlags					[integer!]
+	reserved				[integer!]
+	return:					[logic!]
+]
+
+TransmitFile!: alias function! [
+	hSocket					[integer!]
+	hFile					[int-ptr!]
+	nNumberOfBytesToWrite	[integer!]
+	nNumberOfBytesPerSend	[integer!]
+	lpOverlapped			[OVERLAPPED]
+	lpTransmitBuffers		[int-ptr!]
+	dwReserved				[integer!]
+	return:					[logic!]
+]
+
+GetAcceptExSockaddrs!: alias function! [
+	lpOutputBuffer			[byte-ptr!]
+	dwReceiveDataLength		[integer!]
+	dwLocalAddressLength	[integer!]
+	dwRemoteAddressLength	[integer!]
+	LocalSockaddr			[int-ptr!]
+	LocalSockaddrLength		[int-ptr!]
+	RemoteSockaddr			[int-ptr!]
+	RemoteSockaddrLength	[int-ptr!]
+]
+
+AcceptEx:				0
+ConnectEx:				0
+DisconnectEx:			0
+TransmitFile:			0
+GetAcceptExSockaddrs:	0
 
 platform: context [
 
@@ -824,7 +906,13 @@ platform: context [
 	;-------------------------------------------
 	;-- Do platform-specific initialization tasks
 	;-------------------------------------------
-	init: func [/local h [int-ptr!]] [
+	init: func [
+		/local
+			h	[int-ptr!]
+			wsa	[int-ptr!]
+			fd	[integer!]
+			n	[integer!]
+	][
 		init-gdiplus
 		#either libRed? = no [
 			CoInitializeEx 0 COINIT_APARTMENTTHREADED
@@ -840,5 +928,28 @@ platform: context [
 			_setmode _fileno h + 8 _O_U16TEXT				;@@ stdout, throw an error on failure
 			_setmode _fileno h + 16 _O_U16TEXT				;@@ stderr, throw an error on failure
 		]
+
+		wsa: system/stack/allocate 100			;-- 400 bytes for 32bit System
+		WSAStartup 2 << 8 or 2 wsa
+
+		fd: WSASocketW 2 1 6 null 0 1
+
+		n: 0
+		h: [B5367DF1h 11CFCBACh 8000CA95h 92A1485Fh]
+		WSAIoctl fd C8000006h h 16 :AcceptEx size? int-ptr! :n null null
+
+		h: [B5367DF0h 11CFCBACh 8000CA95h 92A1485Fh]
+		WSAIoctl fd C8000006h h 16 :TransmitFile size? int-ptr! :n null null
+
+		h: [B5367DF2h 11CFCBACh 8000CA95h 92A1485Fh]
+		WSAIoctl fd C8000006h h 16 :GetAcceptExSockaddrs size? int-ptr! :n null null
+
+		h: [25A207B9h 4660DDF3h E576E98Eh 3E06748Ch]
+		WSAIoctl fd C8000006h h 16 :ConnectEx size? int-ptr! :n null null
+
+		h: [7FDA2E11h 436F8630h 36F531A0h 57C1EEA6h]
+		WSAIoctl fd C8000006h h 16 :DisconnectEx size? int-ptr! :n null null
+
+		closesocket fd
 	]
 ]

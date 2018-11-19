@@ -30,6 +30,79 @@ Red/System [
 #define	_SC_NPROCESSORS_CONF	57
 #define	_SC_NPROCESSORS_ONLN	58
 
+stat!: alias struct! [
+	st_dev		[integer!]
+	st_ino		[integer!]
+	st_modelink	[integer!]				;-- st_mode & st_link are both 16bit fields
+	st_uid		[integer!]
+	st_gid		[integer!]
+	st_rdev		[integer!]
+	st_atime	[timespec! value]		;-- struct timespec inlined
+	st_mtime	[timespec! value]		;-- struct timespec inlined
+	st_ctime	[timespec! value]		;-- struct timespec inlined
+	st_size		[integer!]
+	st_blocks	[integer!]
+	st_blksize	[integer!]
+	st_flags	[integer!]
+	st_gen		[integer!]
+	st_lspare	[integer!]
+	st_qspare_1 [integer!]				;-- int64
+	st_qspare_2 [integer!]
+	st_qspare_3 [integer!]				;-- int64
+	st_qspare_4 [integer!]
+]
+;;-- #if __DARWIN_64_BIT_INO_T
+;stat!: alias struct! [				;-- __DARWIN_STRUCT_STAT64
+;	st_dev		[integer!]
+;	st_modelink	[integer!]			;-- st_mode & st_link are both 16bit fields
+;	st_ino_1	[integer!]			;-- int64
+;	st_ino_2	[integer!]
+;	st_uid		[integer!]
+;	st_gid		[integer!]
+;	st_rdev		[integer!]
+;	atv_sec		[integer!]
+;	atv_msec	[integer!]
+;	mtv_sec		[integer!]
+;	mtv_msec	[integer!]
+;	ctv_sec		[integer!]
+;	ctv_msec	[integer!]
+;	birth_sec	[integer!]
+;	birth_msec	[integer!]
+;	st_size_1	[integer!]			;-- int64
+;	st_size		[integer!]
+;	st_blocks_1	[integer!]			;-- int64
+;	st_blocks_2	[integer!]
+;	st_blksize	[integer!]
+;	st_flags	[integer!]
+;	st_gen		[integer!]
+;	st_lspare	[integer!]
+;	st_qspare_1 [integer!]			;-- int64
+;	st_qspare_2 [integer!]
+;	st_qspare_3 [integer!]			;-- int64
+;	st_qspare_4 [integer!]
+;]
+;#define DIRENT_NAME_OFFSET	21
+;dirent!: alias struct! [
+;	d_ino		[integer!]
+;	_d_ino_		[integer!]
+;	d_seekoff	[integer!]
+;	_d_seekoff_	[integer!]
+;	d_reclen	[integer!]				;-- d_reclen & d_namlen
+;	;d_namlen	[integer!]
+;	d_type		[byte!]
+;	;d_name		[byte! [1024]]
+;]
+;;-- #endif
+
+dirent!: alias struct! [
+	d_ino		[integer!]
+	d_reclen	[byte!]
+	_d_reclen_	[byte!]
+	d_type		[byte!]
+	d_namlen	[byte!]
+	;d_name		[byte! [256]]
+]
+
 platform: context [ 
 
 	#include %POSIX.reds

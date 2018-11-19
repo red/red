@@ -36,6 +36,108 @@ Red/System [
 #define	EAGAIN				11			;-- Try again
 #define	ENOSYS				38			;-- Function not implemented
 
+#case [
+	all [legacy find legacy 'stat32] [
+		stat!: alias struct! [
+			st_dev		[integer!]
+			st_ino		[integer!]
+			st_mode		[integer!]
+			st_nlink	[integer!]
+			st_uid		[integer!]
+			st_gid		[integer!]
+			st_rdev		[integer!]
+			st_size		[integer!]
+			st_blksize	[integer!]
+			st_blocks	[integer!]
+			st_atime	[timespec!]
+			st_mtime	[timespec!]
+			st_ctime	[timespec!]
+		]
+		#define DIRENT_NAME_OFFSET 8
+		dirent!: alias struct! [
+			d_ino		[integer!]
+			d_reclen	[byte!]
+			_d_reclen_	[byte!]
+			d_type		[byte!]
+			d_namlen	[byte!]
+			;d_name		[byte! [256]]
+		]
+	]
+	OS = 'Android [ ; else
+		;https://android.googlesource.com/platform/bionic.git/+/master/libc/include/sys/stat.h
+		stat!: alias struct! [					;-- stat64 struct
+			st_dev_h	  [integer!]
+			st_dev_l	  [integer!]
+			pad0		  [integer!]
+			__st_ino	  [integer!]
+			st_mode		  [integer!]
+			st_nlink	  [integer!]
+			st_uid		  [integer!]
+			st_gid		  [integer!]
+			st_rdev_h	  [integer!]
+			st_rdev_l	  [integer!]
+			pad1		  [integer!]
+			st_size_h	  [integer!]
+			st_size	  [integer!]
+			st_blksize	  [integer!]
+			st_blocks_h	  [integer!]
+			st_blocks	  [integer!]
+			st_atime	  [timespec! value]
+			st_mtime	  [timespec! value]
+			st_ctime	  [timespec! value]
+			st_ino_h	  [integer!]
+			st_ino_l	  [integer!]
+			;...optional padding skipped
+		]
+		#define DIRENT_NAME_OFFSET	19
+		dirent!: alias struct! [
+			d_ino		[integer!]
+			_d_ino_		[integer!]
+			d_off		[integer!]
+			_d_off_		[integer!]
+			d_reclen	[byte!]
+			_d_reclen_	[byte!]
+			d_type		[byte!]
+			;d_name		[byte! [256]]
+		]
+	]
+	true [ ; else
+		;-- http://lxr.free-electrons.com/source/arch/x86/include/uapi/asm/stat.h
+		stat!: alias struct! [					;-- stat64 struct
+			st_dev_l	  [integer!]
+			st_dev_h	  [integer!]
+			pad0		  [integer!]
+			__st_ino	  [integer!]
+			st_mode		  [integer!]
+			st_nlink	  [integer!]
+			st_uid		  [integer!]
+			st_gid		  [integer!]
+			st_rdev_l	  [integer!]
+			st_rdev_h	  [integer!]
+			pad1		  [integer!]
+			st_size		  [integer!]
+			st_blksize	  [integer!]
+			st_blocks	  [integer!]
+			st_atime	  [timespec! value]
+			st_mtime	  [timespec! value]
+			st_ctime	  [timespec! value]
+			st_ino_h	  [integer!]
+			st_ino_l	  [integer!]
+			;...optional padding skipped
+		]
+
+		#define DIRENT_NAME_OFFSET 11
+		dirent!: alias struct! [
+			d_ino			[integer!]
+			d_off			[integer!]
+			d_reclen		[byte!]
+			d_reclen_pad	[byte!]
+			d_type			[byte!]
+			;d_name			[byte! [256]]
+		]
+	]
+]
+
 platform: context [
 	
 	#either OS = 'Android [

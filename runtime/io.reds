@@ -12,7 +12,7 @@ Red/System [
 
 io: context [
 
-	#if OS <> 'Windows [#include %platform/io/POSIX.reds]
+	#if OS <> 'Windows [#include %platform/POSIX/definitions.reds]
 
 	#enum red-io-mode! [
 		RIO_READ:	1

@@ -22,6 +22,28 @@ Red/System [
 #define SYSCALL_MMAP		222
 #define SYSCALL_MUNMAP		223
 
+;-- http://glibc.sourcearchive.com/documentation/2.7-18lenny7/glibc-2_87_2bits_2stat_8h_source.html
+stat!: alias struct! [
+	st_mode		[integer!]
+	st_ino		[integer!]
+	st_dev		[integer!]
+	st_nlink	[integer!]
+	st_uid		[integer!]
+	st_gid		[integer!]
+	filler1		[integer!]				;-- not in spec above...
+	filler2		[integer!]				;-- not in spec above...
+	st_size		[integer!]
+	;...incomplete...
+]
+#define DIRENT_NAME_OFFSET 8
+dirent!: alias struct! [
+	d_ino		[integer!]
+	d_reclen	[byte!]
+	_d_reclen_	[byte!]
+	d_type		[byte!]
+	d_namlen	[byte!]
+	;d_name		[byte! [256]]
+]
 
 platform: context [
 	

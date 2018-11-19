@@ -141,6 +141,13 @@ Red/System [
 	]
 ]
 
+alloc0: func [
+	size		[integer!]
+	return:		[byte-ptr!]
+][
+	set-memory allocate size null-byte size
+]
+
 #either unicode? = yes [
 
 	#define prin			[red/platform/prin*]
