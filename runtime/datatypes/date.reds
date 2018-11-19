@@ -964,7 +964,7 @@ date: context [
 				]
 				default [assert false]
 			]
-			object/check-owner as red-value! dt
+			;object/check-owner as red-value! dt		;-- disable it for now as it may causes crash, issue #3411
 			value
 		][
 			value: push-field dt field
