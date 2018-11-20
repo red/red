@@ -130,7 +130,7 @@ libRedRT: context [
 	
 	process: func [job functions exports /local name list pos tmpl words lits file base-dir][
 		make-exports functions exports job
-		if job/OS <> 'Linux [
+		if find [Windows macOS] job/OS [
 			append funcs [
 				red/image/push
 				red/image/acquire-buffer
