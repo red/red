@@ -58,9 +58,9 @@ timeval!: alias struct! [
 	tv_usec [integer!]
 ]
 
-sockaddr!: alias struct! [				;-- 16 bytes
-	sa_family	[integer!]
-	sa_data		[integer!]
+sockaddr_in!: alias struct! [				;-- 16 bytes
+	sin_family	[integer!]					;-- family and port
+	sin_addr	[integer!]
 	sa_data1	[integer!]
 	sa_data2	[integer!]
 ]
@@ -653,6 +653,26 @@ tagSYSTEM_INFO: alias struct! [
 			s			[integer!]
 			return:		[integer!]
 		]
+		ioctlsocket: "ioctlsocket" [
+			s			[integer!]
+			cmd			[integer!]
+			argp		[int-ptr!]
+			return:		[integer!]
+		]
+		htons: "htons" [
+			hostshort	[integer!]
+			return:		[integer!]
+		]
+		inet_addr: "inet_addr" [
+			cp			[c-string!]
+			return:		[integer!]
+		]
+		bind: "bind" [
+			s			[integer!]
+			addr		[int-ptr!]
+			namelen		[integer!]
+			return:		[integer!]
+		]
 	]
 	"gdiplus.dll" stdcall [
 		GdiplusStartup: "GdiplusStartup" [
@@ -692,7 +712,7 @@ AcceptEx!: alias function! [
 
 ConnectEx!: alias function! [
 	s						[integer!]
-	name					[sockaddr!]
+	name					[int-ptr!]
 	namelen					[integer!]
 	lpSendBuffer			[byte-ptr!]
 	dwSendDataLength		[integer!]
