@@ -424,7 +424,10 @@ face!: object [				;-- keep in sync with facet! enum
 			if all [not same-pane? any [series? :old object? :old]][modify old 'owned none]
 			
 			unless any [same-pane? find [font para edge actors extra] word][
-				if any [series? :new object? :new][modify new 'owned reduce [self word]]
+				if any [series? :new object? :new][
+					modify new 'owned none				;@@ `new` may be owned by another container
+					modify new 'owned reduce [self word]
+				]
 			]
 			if word = 'font  [link-sub-to-parent self 'font old new]
 			if word = 'para  [link-sub-to-parent self 'para old new]
