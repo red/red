@@ -656,6 +656,7 @@ image: context [
 		either out-range = 1 [
 			fire [TO_ERROR(script out-of-range) boxed]
 		][
+			unless TYPE_TUPLE = TYPE_OF(data) [fire [TO_ERROR(script invalid-arg) data]]
 			color: as red-tuple! data
 			p: (as byte-ptr! color) + 4
 			r: as-integer p/1
