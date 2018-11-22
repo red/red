@@ -43,9 +43,10 @@ socket: context [
 			saddr/sin_addr: 0
 			saddr/sa_data1: 0
 			saddr/sa_data2: 0
-			if 0 <> bind sock :saddr size? saddr [
+			if 0 <> _bind sock as int-ptr! :saddr size? saddr [
 				probe "bind fail"
 			]
+			listen sock 1024
 			-1
 		][							;-- IPv6
 			0
@@ -53,16 +54,34 @@ socket: context [
 	]
 
 	accept: func [
-		sock	[integer!]
+		red-port [red-port!]
+		sock	 [integer!]
+		acpt	 [integer!]
 		/local
+			n	 [integer!]
 			data [iocp-data!]
+			AcceptEx [AcceptEx!]
 	][
 		data: as iocp-data! sockdata/get sock
 		if null? data [
 			data: iocp/create-data sock
-			sockdata/insert sock data
+			sockdata/insert sock as int-ptr! data
 		]
-		iocp/bind 
+		copy-cell as cell! red-port as cell! :data/cell
+		iocp/bind g-poller data
+
+		set-memory as byte-ptr! data null-byte size? OVERLAPPED!
+		if null? data/buffer [		;-- make address buffer
+			data/buffer: alloc0 128
+		]
+
+		n: 0
+		data/accept: acpt
+		AcceptEx: as AcceptEx! AcceptEx-func
+		if AcceptEx sock acpt data/buffer 0 128 128 :n as int-ptr! data [
+			probe "Accept done"
+			
+		]
 	]
 
 	connect: func [

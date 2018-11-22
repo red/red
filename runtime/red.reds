@@ -16,14 +16,16 @@ red: context [
 	#include %definitions.reds
 	#include %macros.reds
 	#include %tools.reds
+	#include %allocator.reds
+	#include %datatypes/structures.reds
 
 	#include %platform/definitions.reds
 	#include %sockdata.reds
 	#switch OS [										;-- loading OS-specific bindings
 		Windows  [
 			#include %platform/win32.reds
-			;#include %platform/windows/poller.reds
-			;#include %platform/windows/socket.reds
+			#include %platform/windows/poller.reds
+			#include %platform/windows/socket.reds
 		]
 		Syllable [#include %platform/syllable.reds]
 		macOS	 [#include %platform/darwin.reds]
@@ -31,17 +33,15 @@ red: context [
 		#default [#include %platform/linux.reds]
 	]
 
-	#include %allocator.reds
 	#include %crush.reds
 	#include %cpu.reds
 	#include %atomic.reds
 	#include %semaphore.reds
 	#include %spinlock.reds
 	#include %threads.reds
-	
+
 	;-- Datatypes --
-	
-	#include %datatypes/structures.reds
+
 	#include %print.reds
 	#include %datatypes/common.reds
 	#include %linked-list.reds
@@ -65,7 +65,8 @@ red: context [
 		FreeBSD  []
 		#default []
 	]
-	
+
+	#include %datatypes/structures.reds
 	#include %datatypes/datatype.reds
 	#include %datatypes/unset.reds
 	#include %datatypes/none.reds

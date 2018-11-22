@@ -71,7 +71,7 @@ SECURITY_ATTRIBUTES: alias struct! [
 	bInheritHandle 		 [integer!]
 ]
 
-OVERLAPPED: alias struct! [
+OVERLAPPED!: alias struct! [
 	Internal		[int-ptr!]
 	InternalHigh	[int-ptr!]
 	Offset			[integer!]				;-- or Pointer [int-ptr!]
@@ -79,14 +79,14 @@ OVERLAPPED: alias struct! [
 	hEvent			[int-ptr!]
 ]
 
-OVERLAPPED_ENTRY: alias struct! [
+OVERLAPPED_ENTRY!: alias struct! [
 	lpCompletionKey				[int-ptr!]
 	lpOverlapped				[int-ptr!]
 	Internal					[int-ptr!]
 	dwNumberOfBytesTransferred	[integer!]
 ]
 
-WSADATA: alias struct! [					;-- varies from 32bit to 64bit, for 32bit: 400 bytes
+WSADATA!: alias struct! [					;-- varies from 32bit to 64bit, for 32bit: 400 bytes
 	wVersion		[integer!]
 	;wHighVersion
 	szDescription	[c-string!]
@@ -570,13 +570,13 @@ tagSYSTEM_INFO: alias struct! [
 			CompletionPort		[int-ptr!]
 			lpNumberOfBytes		[int-ptr!]
 			lpCompletionKey		[int-ptr!]
-			lpOverlapped		[OVERLAPPED]
+			lpOverlapped		[OVERLAPPED!]
 			dwMilliseconds		[integer!]
 			return:				[integer!]
 		]
 		GetQueuedCompletionStatusEx: "GetQueuedCompletionStatusEx" [
 			CompletionPort		[int-ptr!]
-			entries				[OVERLAPPED_ENTRY]
+			entries				[OVERLAPPED_ENTRY!]
 			ulCount				[integer!]
 			entriesRemoved		[int-ptr!]
 			dwMilliseconds		[integer!]
@@ -587,7 +587,7 @@ tagSYSTEM_INFO: alias struct! [
 			CompletionPort		[int-ptr!]
 			nTransferred		[integer!]
 			dwCompletionKey		[int-ptr!]
-			lpOverlapped		[OVERLAPPED]
+			lpOverlapped		[OVERLAPPED!]
 			return:				[integer!]
 		]
 	]
@@ -612,7 +612,7 @@ tagSYSTEM_INFO: alias struct! [
 			dwBufferCount		[integer!]
 			lpNumberOfBytesSent	[int-ptr!]
 			dwFlags				[integer!]
-			lpOverlapped		[OVERLAPPED]
+			lpOverlapped		[OVERLAPPED!]
 			lpCompletionRoutin	[int-ptr!]
 			return:				[integer!]
 		]
@@ -624,7 +624,7 @@ tagSYSTEM_INFO: alias struct! [
 			pHints				[int-ptr!]
 			ppResult			[int-ptr!]
 			timeout				[timeval!]
-			lpOverlapped		[OVERLAPPED]
+			lpOverlapped		[OVERLAPPED!]
 			lpCompletionRoutine	[int-ptr!]
 			lpNameHandle		[int-ptr!]
 			return:				[integer!]
@@ -645,7 +645,7 @@ tagSYSTEM_INFO: alias struct! [
 			lpvOutBuffer		[int-ptr!]
 			cbOutBuffer			[integer!]
 			lpcbBytesReturned	[int-ptr!]
-			lpOverlapped		[OVERLAPPED]
+			lpOverlapped		[OVERLAPPED!]
 			lpCompletionRoutine	[int-ptr!]
 			return:				[integer!]
 		]
@@ -667,10 +667,15 @@ tagSYSTEM_INFO: alias struct! [
 			cp			[c-string!]
 			return:		[integer!]
 		]
-		bind: "bind" [
+		_bind: "bind" [
 			s			[integer!]
 			addr		[int-ptr!]
 			namelen		[integer!]
+			return:		[integer!]
+		]
+		listen: "listen" [
+			s			[integer!]
+			backlog		[integer!]
 			return:		[integer!]
 		]
 	]
@@ -706,7 +711,7 @@ AcceptEx!: alias function! [
 	dwLocalAddressLength	[integer!]
 	dwRemoteAddressLength	[integer!]
 	lpdwBytesReceived		[int-ptr!]
-	lpOverlapped			[OVERLAPPED]
+	lpOverlapped			[int-ptr!]
 	return:					[logic!]
 ]
 
@@ -717,13 +722,13 @@ ConnectEx!: alias function! [
 	lpSendBuffer			[byte-ptr!]
 	dwSendDataLength		[integer!]
 	lpdwBytesSent			[int-ptr!]
-	lpOverlapped			[OVERLAPPED]
+	lpOverlapped			[int-ptr!]
 	return:					[logic!]
 ]
 
 DisconnectEx!: alias function! [
 	hSocket					[integer!]
-	lpOverlapped			[OVERLAPPED]
+	lpOverlapped			[OVERLAPPED!]
 	dwFlags					[integer!]
 	reserved				[integer!]
 	return:					[logic!]
@@ -734,7 +739,7 @@ TransmitFile!: alias function! [
 	hFile					[int-ptr!]
 	nNumberOfBytesToWrite	[integer!]
 	nNumberOfBytesPerSend	[integer!]
-	lpOverlapped			[OVERLAPPED]
+	lpOverlapped			[OVERLAPPED!]
 	lpTransmitBuffers		[int-ptr!]
 	dwReserved				[integer!]
 	return:					[logic!]
@@ -751,11 +756,11 @@ GetAcceptExSockaddrs!: alias function! [
 	RemoteSockaddrLength	[int-ptr!]
 ]
 
-AcceptEx:				0
-ConnectEx:				0
-DisconnectEx:			0
-TransmitFile:			0
-GetAcceptExSockaddrs:	0
+AcceptEx-func:				0
+ConnectEx-func:				0
+DisconnectEx-func:			0
+TransmitFile-func:			0
+GetAcceptExSockaddrs-func:	0
 
 platform: context [
 
@@ -956,19 +961,19 @@ platform: context [
 
 		n: 0
 		h: [B5367DF1h 11CFCBACh 8000CA95h 92A1485Fh]
-		WSAIoctl fd C8000006h h 16 :AcceptEx size? int-ptr! :n null null
+		WSAIoctl fd C8000006h h 16 :AcceptEx-func size? int-ptr! :n null null
 
 		h: [B5367DF0h 11CFCBACh 8000CA95h 92A1485Fh]
-		WSAIoctl fd C8000006h h 16 :TransmitFile size? int-ptr! :n null null
+		WSAIoctl fd C8000006h h 16 :TransmitFile-func size? int-ptr! :n null null
 
 		h: [B5367DF2h 11CFCBACh 8000CA95h 92A1485Fh]
-		WSAIoctl fd C8000006h h 16 :GetAcceptExSockaddrs size? int-ptr! :n null null
+		WSAIoctl fd C8000006h h 16 :GetAcceptExSockaddrs-func size? int-ptr! :n null null
 
 		h: [25A207B9h 4660DDF3h E576E98Eh 3E06748Ch]
-		WSAIoctl fd C8000006h h 16 :ConnectEx size? int-ptr! :n null null
+		WSAIoctl fd C8000006h h 16 :ConnectEx-func size? int-ptr! :n null null
 
 		h: [7FDA2E11h 436F8630h 36F531A0h 57C1EEA6h]
-		WSAIoctl fd C8000006h h 16 :DisconnectEx size? int-ptr! :n null null
+		WSAIoctl fd C8000006h h 16 :DisconnectEx-func size? int-ptr! :n null null
 
 		closesocket fd
 	]

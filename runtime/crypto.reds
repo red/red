@@ -478,13 +478,6 @@ crypto: context [
 					return:		[logic!]
 				]
 			]
-			#if debug? = yes [
-				"kernel32.dll" stdcall [
-					GetLastError: "GetLastError" [
-						return:		[integer!]
-					]
-				]
-			]
 		]
 
 		;#define PROV_RSA_FULL 			1                       ;-- Doesn't provide beyond SHA1

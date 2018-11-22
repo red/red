@@ -10,12 +10,24 @@ Red/System [
 	}
 ]
 
+g-poller: as int-ptr! 0
+
+#enum iocp-op-code! [
+	IOCP_OP_NONE
+	IOCP_OP_ACCEPT
+	IOCP_OP_CONN
+	IOCP_OP_READ
+	IOCP_OP_WRITE
+	IOCP_OP_READ_UDP
+	IOCP_OP_WRITE_UDP
+]
+
 iocp-data!: alias struct! [
-	ovlap	[OVERLAPPED value]		;-- the overlapped struct
-	cell	[red-value! value]		;-- the port! cell
+	ovlap	[OVERLAPPED! value]		;-- the overlapped struct
+	cell	[cell! value]			;-- the port! cell
 	port	[int-ptr!]				;-- the bound iocp port
-	sock	[int-ptr!]				;-- the socket
-	accept	[int-ptr!]				;-- the accept socket
+	sock	[integer!]				;-- the socket
+	accept	[integer!]				;-- the accept socket
 	buffer	[byte-ptr!]				;-- buffer for iocp poller
 	code	[integer!]				;-- operation code @@ change to uint8
 	state	[integer!]				;-- @@ change to unit8
@@ -24,7 +36,7 @@ iocp-data!: alias struct! [
 poller!: alias struct! [
 	maxn	[integer!]
 	port	[int-ptr!]
-	events	[OVERLAPPED_ENTRY]
+	events	[OVERLAPPED_ENTRY!]
 	evt-cnt [integer!]
 ]
 
@@ -36,7 +48,7 @@ iocp: context [
 			data [iocp-data!]
 	][
 		;@@ TBD get iocp-data from the cache first
-		data: alloc0 size? iocp-data!
+		data: as iocp-data! alloc0 size? iocp-data!
 		data/sock: sock
 		data
 	]
@@ -45,19 +57,19 @@ iocp: context [
 		p		[int-ptr!]
 		data	[iocp-data!]
 		/local
-			pp		[poller!]
-			port	[integer!]
+			poller	[poller!]
+			port	[int-ptr!]
 	][
-		pp: as poller! p
-		port: CreateIoCompletionPort data/sock pp/port null 0
-		if port <> pp/port [
+		poller: as poller! p
+		port: CreateIoCompletionPort as int-ptr! data/sock poller/port null 0
+		if port <> poller/port [
 			probe "iocp bind error"
 		]
 		data/port: port
 	]
 ]
 
-poller: context [
+poll: context [
 	init: func [
 		return: [int-ptr!]
 		/local
@@ -103,7 +115,7 @@ poller: context [
 
 	
 
-	poll: func [
+	start: func [
 		ref			[int-ptr!]
 		poller-func	[int-ptr!]
 		timeout		[integer!]
@@ -114,17 +126,17 @@ poller: context [
 			cnt		[integer!]
 			err		[integer!]
 			i		[integer!]
-			e		[OVERLAPPED_ENTRY]
+			e		[OVERLAPPED_ENTRY!]
 			data	[iocp-data!]
 	][
 		p: as poller! ref
 		if null? p/events [
 			p/evt-cnt: 512
-			p/events: as OVERLAPPED_ENTRY allocate p/evt-cnt * size? OVERLAPPED_ENTRY
+			p/events: as OVERLAPPED_ENTRY! allocate p/evt-cnt * size? OVERLAPPED_ENTRY!
 		]
 
 		cnt: 0
-		res: GetQueuedCompletionStatusEx p/port p/events p/evt-cnt :cnt timeout
+		res: GetQueuedCompletionStatusEx p/port p/events p/evt-cnt :cnt timeout no
 
 		err: GetLastError
 		if all [res <> 0 err = WAIT_TIMEOUT][return 0]
@@ -140,5 +152,6 @@ poller: context [
 			
 			i: i + 1
 		]
+		0
 	]
 ]
