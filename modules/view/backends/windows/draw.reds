@@ -1954,7 +1954,7 @@ OS-draw-image: func [
 	]
 	GdipDrawImageRectRectI
 		ctx/graphics as-integer image/node
-		x y width + 1 height + 1 src-x src-y w h
+		x y width height src-x src-y w h
 		GDIPLUS_UNIT_PIXEL attr 0 0
 ]
 
