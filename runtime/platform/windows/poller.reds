@@ -113,11 +113,8 @@ poll: context [
 
 	modify: func [][]
 
-	
-
-	start: func [
+	wait: func [
 		ref			[int-ptr!]
-		poller-func	[int-ptr!]
 		timeout		[integer!]
 		return:		[integer!]
 		/local
@@ -129,7 +126,7 @@ poll: context [
 			e		[OVERLAPPED_ENTRY!]
 			data	[iocp-data!]
 	][
-		p: as poller! ref
+		p: as poller! either null? ref [g-poller][ref]
 		if null? p/events [
 			p/evt-cnt: 512
 			p/events: as OVERLAPPED_ENTRY! allocate p/evt-cnt * size? OVERLAPPED_ENTRY!
@@ -141,7 +138,7 @@ poll: context [
 		err: GetLastError
 		if all [res <> 0 err = WAIT_TIMEOUT][return 0]
 
-		if cnt = p/evt-cnt [			;-- extend events buffer
+		if cnt = p/evt-cnt [			;-- TBD: extend events buffer
 			0
 		]
 
@@ -149,7 +146,10 @@ poll: context [
 		while [i < cnt][
 			e: p/events + i
 			data: as iocp-data! e/lpOverlapped
-			
+			switch data/code [
+				IOCP_OP_ACCEPT []
+				default [probe ["operation " data/code]]
+			]
 			i: i + 1
 		]
 		0

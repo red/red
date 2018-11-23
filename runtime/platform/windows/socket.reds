@@ -12,6 +12,32 @@ Red/System [
 
 #define AF_INET6	23
 
+store-iocp-data: func [
+	data		[iocp-data!]
+	red-port	[red-object!]
+	/local
+		values	 [red-value!]
+		state	 [red-object!]	 
+][
+	values: object/get-values red-port
+	state: as red-object! values + port/field-state
+	integer/make-at (object/get-values state) + 1 as-integer data
+]
+
+create-red-port: func [
+	sock		[integer!]
+	return:		[red-object!]
+	/local
+		p		[red-object!]
+		data	[iocp-data!]
+][
+	data: iocp/create-data sock
+	sockdata/insert sock as int-ptr! data
+	p: port/make none-value stack/push* TYPE_NONE
+	store-iocp-data data p
+	p
+]
+
 socket: context [
 
 	create: func [
@@ -47,19 +73,19 @@ socket: context [
 				probe "bind fail"
 			]
 			listen sock 1024
-			-1
+			0
 		][							;-- IPv6
 			0
 		]
 	]
 
 	accept: func [
-		red-port [red-port!]
+		red-port [red-object!]
 		sock	 [integer!]
 		acpt	 [integer!]
 		/local
-			n	 [integer!]
-			data [iocp-data!]
+			n		 [integer!]
+			data	 [iocp-data!]
 			AcceptEx [AcceptEx!]
 	][
 		data: as iocp-data! sockdata/get sock
@@ -67,6 +93,9 @@ socket: context [
 			data: iocp/create-data sock
 			sockdata/insert sock as int-ptr! data
 		]
+
+		store-iocp-data data red-port
+
 		copy-cell as cell! red-port as cell! :data/cell
 		iocp/bind g-poller data
 
@@ -76,12 +105,24 @@ socket: context [
 		]
 
 		n: 0
+		data/code: IOCP_OP_ACCEPT
 		data/accept: acpt
 		AcceptEx: as AcceptEx! AcceptEx-func
-		if AcceptEx sock acpt data/buffer 0 128 128 :n as int-ptr! data [
-			probe "Accept done"
-			
+		unless AcceptEx sock acpt data/buffer 0 128 128 :n as int-ptr! data [
+			;-- not ready yet, check it later in poll
+			exit
 		]
+		probe "Accept ok"
+
+		;-- do not post the completion notification as we're processing it now
+		SetFileCompletionNotificationModes as int-ptr! acpt 1
+
+		n: 1
+		ioctlsocket acpt FIONBIO :n
+		n: 1
+		setsockopt acpt IPPROTO_TCP 1 as c-string! :n size? n		;-- TCP_NODELAY: 1
+
+		
 	]
 
 	connect: func [

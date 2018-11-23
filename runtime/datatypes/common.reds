@@ -543,7 +543,8 @@ words: context [
 	minute:			-1
 	second:			-1
 	timezone:		-1
-	
+
+	port: 			-1
 	user:			-1
 	host:			-1
 	
@@ -656,6 +657,8 @@ words: context [
 	_rename:		as red-word! 0
 	_update:		as red-word! 0
 	_write:			as red-word! 0
+	_wrote:			as red-word! 0
+	_accept:		as red-word! 0
 	
 	errors: context [
 		_throw:		as red-word! 0
@@ -781,6 +784,7 @@ words: context [
 		second:			symbol/make "second"
 		timezone:		symbol/make "timezone"
 		
+		port:			symbol/make "port"
 		user:			symbol/make "user"
 		host:			symbol/make "host"
 		
@@ -893,6 +897,8 @@ words: context [
 		_rename:		word/load "rename"
 		_update:		word/load "update"
 		_write:			word/load "write"
+		_wrote:			word/load "wrote"
+		_accept:		word/load "accept"
 		
 		errors/throw:	 word/load "throw"
 		errors/note:	 word/load "note"

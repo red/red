@@ -11,7 +11,7 @@ Red [
 ]
 
 tcp-client: routine [
-	p		[port!]
+	p		[object!]
 	host	[string!]
 	port	[integer!]
 ][
@@ -20,7 +20,7 @@ tcp-client: routine [
 ]
 
 tcp-server: routine [
-	p		[port!]
+	p		[object!]
 	port	[integer!]
 	/local
 		fd	[integer!]
@@ -34,14 +34,14 @@ tcp-server: routine [
 ]
 
 write-socket: routine [
-	p		[port!]
+	p		[object!]
 	data	[string!]
 ][
 	0
 ]
 
 read-socket: routine [
-	p		[port!]
+	p		[object!]
 ][
 	0
 ]
@@ -58,7 +58,7 @@ tcp-scheme: context [
 	]
 
 	;--- Port actions ---
-	open: func [port [port!] /local spec][
+	open: func [port [object!] /local spec][
 		probe "open port"
 		spec: port/spec
 		either spec/host [
@@ -72,7 +72,7 @@ tcp-scheme: context [
 
 	copy: func [port][read-socket port]
 
-	close: func [port [port!]][
+	close: func [port [object!]][
 		;TBD ;-- wait until IO finishes or timeout
 		port/state/closed?: yes
 		port/state/info: none

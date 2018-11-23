@@ -228,18 +228,18 @@ file: context [
 		write?	[logic!]
 		seek?	[logic!]
 		allow	[red-block!]
-		return:	[red-port!]
+		return:	[red-object!]
 		/local
 			fpath	[red-file!]
-			p		[red-port!]
+			p		[red-object!]
 			h		[integer!]
 			mode	[integer!]
 	][
 		fpath: as red-file! spec
-		p: as red-port! stack/push*
-		p/header: TYPE_PORT
+		p: as red-object! stack/push*
+		p/header: TYPE_NONE
 		
-		if io/dir? fpath [p/handle: -1 return p]
+		if io/dir? fpath [return p]
 
 		mode: 0
 		either new? [mode: io/RIO_NEW][
@@ -255,7 +255,6 @@ file: context [
 		h: io/open-file file/to-OS-path fpath mode yes
 		if h = -1 [fire [TO_ERROR(access cannot-open) fpath]]
 
-		p/handle: h
 		p
 	]
 

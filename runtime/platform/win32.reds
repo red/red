@@ -43,6 +43,8 @@ Red/System [
 #define WAIT_TIMEOUT					258
 #define WAIT_OBJECT_0					0
 
+#define FIONBIO							8004667Eh
+
 #define INVALID_HANDLE					[as int-ptr! -1]
 
 #enum spawn-mode [
@@ -590,6 +592,11 @@ tagSYSTEM_INFO: alias struct! [
 			lpOverlapped		[OVERLAPPED!]
 			return:				[integer!]
 		]
+		SetFileCompletionNotificationModes: "SetFileCompletionNotificationModes" [
+			handle				[int-ptr!]
+			flags				[integer!]
+			return:				[logic!]
+		]
 	]
 	"ws2_32.dll" stdcall [
 		WSAStartup: "WSAStartup" [
@@ -676,6 +683,14 @@ tagSYSTEM_INFO: alias struct! [
 		listen: "listen" [
 			s			[integer!]
 			backlog		[integer!]
+			return:		[integer!]
+		]
+		setsockopt: "setsockopt" [
+			s			[integer!]
+			level		[integer!]
+			optname		[integer!]
+			optval		[c-string!]
+			optlen		[integer!]
 			return:		[integer!]
 		]
 	]

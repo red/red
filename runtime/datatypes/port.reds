@@ -21,7 +21,26 @@ port: context [
 		field-state
 		field-data
 	]
-	
+
+	get-event-type: func [
+		evt		[red-event!]
+		return: [red-value!]
+	][
+		as red-value! switch evt/type [
+			IO_EVT_ACCEPT	[words/_accept]
+			IO_EVT_READ		[words/_read]
+			IO_EVT_WROTE	[words/_wrote]
+			IO_EVT_CLOSE	[words/_close]
+		]
+	]
+
+	get-event-port: func [
+		evt		[red-event!]
+		return: [red-value!]
+	][
+		as red-value! evt/msg
+	]
+
 	call-function: func [
 		actor   [red-function!]
 		ctx	    [node!]

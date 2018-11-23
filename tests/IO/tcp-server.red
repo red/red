@@ -43,12 +43,12 @@ new-client: func [port /local data] [
 server: open tcp://:8000
 
 server/awake: func [event] [
-    if event/type = 'accept [new-client first event/port]
+    if event/type = 'accept [new-client event/port]
     false
 ]
 
 print "TCP server: waiting for client to connect"
-wait [server 300]
+wait server
 print "done"
 close server
 ]

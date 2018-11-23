@@ -25,6 +25,14 @@ Red/System [
 
 #define AF_INET			2				;-- internetwork: UDP, TCP, etc.
 
+#enum io-event-type! [
+	IO_EVT_NONE
+	IO_EVT_ACCEPT
+	IO_EVT_READ
+	IO_EVT_WROTE
+	IO_EVT_CLOSE
+]
+
 #import [
 	LIBC-file cdecl [
 		realloc: "realloc" [			"Resize and return allocated memory."
