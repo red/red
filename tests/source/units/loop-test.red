@@ -186,8 +186,9 @@ Red [
 
 	--test-- "invalid foreach-1 (issue #3380)"
 		--assert not error? try [foreach [x] [] [2]]
-		--assert error? try [foreach [] [1] [2]]
-		--assert error? try [foreach [] [] [2]]
+		;-- `do` is required because the compiler won't accept an empty block:
+		--assert error? try [do [foreach [] [1] [2]]]
+		--assert error? try [do [foreach [] [] [2]]]
 		--assert error? try [foreach (tail [1]) [1] [2]]
 
 ===end-group===
