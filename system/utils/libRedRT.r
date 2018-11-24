@@ -129,7 +129,6 @@ libRedRT: context [
 	]
 	
 	process: func [job functions exports /local name list pos tmpl words lits file base-dir][
-		make-exports functions exports job
 		if find [Windows macOS] job/OS [
 			append funcs [
 				red/image/push
@@ -137,7 +136,8 @@ libRedRT: context [
 				red/image/release-buffer
 			]
 		]
-		
+		make-exports functions exports job
+
 		clear imports
 		clear template
 		append template "^/red: context "
