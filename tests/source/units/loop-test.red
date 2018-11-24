@@ -36,6 +36,11 @@ Red [
     br5-i: 0
     repeat br5-counter 0 [br5-i: br5-i + 1]
   --assert 0 = br5-i
+
+  --test-- "br6"
+    br6-i: 0
+    repeat br6-counter -1 [br6-i: br6-i + 1]
+  --assert 0 = br6-i
   
 ===end-group===
 
@@ -170,6 +175,20 @@ Red [
 		--assert 9 = fa1-count
 		--assert 9 = length? fa1-b
 		--assert 11 = first fa1-b
+
+===end-group===
+
+
+===start-group=== "invalid usage"
+
+	--test-- "invalid until-1"
+		--assert error? try [until []]
+
+	--test-- "invalid foreach-1 (issue #3380)"
+		--assert not error? try [foreach [x] [] [2]]
+		--assert error? try [foreach [] [1] [2]]
+		--assert error? try [foreach [] [] [2]]
+		--assert error? try [foreach (tail [1]) [1] [2]]
 
 ===end-group===
 
