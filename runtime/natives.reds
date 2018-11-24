@@ -297,6 +297,7 @@ natives: context [
 		
 		either TYPE_OF(value) = TYPE_BLOCK [
 			size: block/rs-length? as red-block! value
+			if 0 >= size [fire [TO_ERROR(script invalid-arg) value]]
 			
 			while [foreach-next-block size][			;-- foreach [..]
 				stack/reset
@@ -3002,7 +3003,7 @@ natives: context [
 		]
 		assert TYPE_OF(blk) = TYPE_BLOCK
 
-		result: loop? series
+		result: (loop? series) and (0 < size)
 		if result [
 			switch type [
 				TYPE_STRING
