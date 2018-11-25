@@ -10,29 +10,6 @@ Red [
 	}
 ]
 
-tcp-client: routine [
-	p		[object!]
-	host	[string!]
-	port	[integer!]
-][
-	if null? g-poller [g-poller: poll/init]
-	0
-]
-
-tcp-server: routine [
-	p		[object!]
-	port	[integer!]
-	/local
-		fd	[integer!]
-		acp [integer!]
-][
-	if null? g-poller [g-poller: poll/init]
-	fd: socket/create AF_INET SOCK_STREAM IPPROTO_TCP
-	socket/bind fd port AF_INET
-	acp: socket/create AF_INET SOCK_STREAM IPPROTO_TCP
-	socket/accept p fd acp
-]
-
 write-socket: routine [
 	p		[object!]
 	data	[string!]
@@ -58,21 +35,15 @@ tcp-scheme: context [
 	]
 
 	;--- Port actions ---
-	open: func [port [object!] /local spec][
+	open: func [port [port!] /local spec][
 		probe "open port"
-		spec: port/spec
-		either spec/host [
-			tcp-client port spec/host spec/port
-		][
-			tcp-server port spec/port
-		]
 	]
 
 	insert: func [port data][write-socket port data]
 
 	copy: func [port][read-socket port]
 
-	close: func [port [object!]][
+	close: func [port [port!]][
 		;TBD ;-- wait until IO finishes or timeout
 		port/state/closed?: yes
 		port/state/info: none

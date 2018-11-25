@@ -659,6 +659,8 @@ words: context [
 	_write:			as red-word! 0
 	_wrote:			as red-word! 0
 	_accept:		as red-word! 0
+	_connect:		as red-word! 0
+	_awake:			as red-word! 0
 	
 	errors: context [
 		_throw:		as red-word! 0
@@ -899,6 +901,8 @@ words: context [
 		_write:			word/load "write"
 		_wrote:			word/load "wrote"
 		_accept:		word/load "accept"
+		_connect:		word/load "connect"
+		_awake:			word/load "awake"
 		
 		errors/throw:	 word/load "throw"
 		errors/note:	 word/load "note"

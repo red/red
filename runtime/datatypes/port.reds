@@ -28,6 +28,7 @@ port: context [
 	][
 		as red-value! switch evt/type [
 			IO_EVT_ACCEPT	[words/_accept]
+			IO_EVT_CONNECT	[words/_connect]
 			IO_EVT_READ		[words/_read]
 			IO_EVT_WROTE	[words/_wrote]
 			IO_EVT_CLOSE	[words/_close]

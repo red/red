@@ -125,6 +125,7 @@ poll: context [
 			i		[integer!]
 			e		[OVERLAPPED_ENTRY!]
 			data	[iocp-data!]
+			red-port [red-object!]
 	][
 		p: as poller! either null? ref [g-poller][ref]
 		if null? p/events [
@@ -146,8 +147,10 @@ poll: context [
 		while [i < cnt][
 			e: p/events + i
 			data: as iocp-data! e/lpOverlapped
+			red-port: as red-object! :data/cell
 			switch data/code [
-				IOCP_OP_ACCEPT []
+				IOCP_OP_ACCEPT [call-awake red-port create-red-port data/accept IO_EVT_ACCEPT]
+				IOCP_OP_CONN [call-awake red-port red-port IO_EVT_CONNECT]
 				default [probe ["operation " data/code]]
 			]
 			i: i + 1

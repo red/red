@@ -2143,6 +2143,7 @@ natives: context [
 				time: as-integer (val/value * #either OS = 'Windows [1E3][1E6])
 			]
 			TYPE_PORT [
+				start-red-port as red-object! val
 				poll/wait null -1
 				val/header: TYPE_NONE
 				exit
