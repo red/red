@@ -1872,11 +1872,13 @@ natives: context [
 		/local
 			err	[red-object!]
 			id  [integer!]
+			type [integer!]
 	][
 		err: as red-object! stack/get-top
 		assert TYPE_OF(err) = TYPE_ERROR
-		id: error/get-type err
-		either id = words/errors/throw/symbol [			;-- check if error is of type THROW
+		id: error/get-id err
+		type: error/get-type err
+		either all [id = type id = words/errors/throw/symbol] [			;-- check if error is of type THROW
 			re-throw 									;-- let the error pass through
 		][
 			stack/adjust-post-try
