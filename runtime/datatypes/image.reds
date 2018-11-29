@@ -287,7 +287,10 @@ image: context [
 					int: as red-integer! bin
 					color: int/value
 				]
-				default [fire [TO_ERROR(script invalid-arg) bin]]
+				default [
+					OS-image/unlock-bitmap img bitmap
+					fire [TO_ERROR(script invalid-arg) bin]
+				]
 			]
 			either method = EXTRACT_ARGB [
 				mask: 255 - (color >>> 24) << 24
