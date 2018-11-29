@@ -62,13 +62,13 @@ display-about: function [][
 	;-- cloak URLs to avoid false positives from bad AV software
 	red-lang: to-string debase "aHR0cHM6Ly93d3cucmVkLWxhbmcub3Jn"
 	github:   to-string debase "aHR0cHM6Ly9naXRodWIuY29tL3JlZC9yZWQ="
-	
+
 	lay: layout/tight [
 		title "About"
 		size 360x330
 		backdrop 58.58.60
 
-		style text:  text 360 center 58.58.60 
+		style text:  text 360 center 58.58.60
 		style txt:   text font-color white
 		style small: txt  font [size: 9 color: white]
 		style link:  text cursor 'hand all-over
@@ -106,14 +106,14 @@ show-cfg-dialog: function [][
 			set-font-color cfg-forecolor/data: face/color
 		]
 		style hex-field: field 90 center font [name: font/name]
-		
+
 		group-box "Background color" [
 			bbox #000000 bbox #002b36 bbox #073642 bbox #293955
 			bbox #eee8d5 bbox #fdf6e3 bbox #ffffff
 			cfg-backcolor: hex-field
 		]
 		return
-		
+
 		group-box "Font color" [
 			fbox #b98000 fbox #cb4b16 fbox #dc322f fbox #d33682
 			fbox #6c71c4 fbox #268bd2 fbox #2aa198
@@ -123,10 +123,10 @@ show-cfg-dialog: function [][
 			fbox #839496 fbox #93a1a1 fbox #ffffff
 		]
 		return
-		
-		pad 150x10 text "Buffer Lines" 80 
+
+		pad 150x10 text "Buffer Lines" 80
 		pad -17x0 cfg-buffers: hex-field right return
-		
+
 		pad 90x20
 		button "OK" [
 			if cfg/buffer-lines <> cfg-buffers/data [
@@ -178,15 +178,20 @@ save-cfg: function [][
 	save/header cfg-path cfg [Purpose: "Red Console Configuration File"]
 ]
 
-load-cfg: func [/local cfg-dir][
+load-cfg: func [/local cfg-dir cfg-content][
 	system/view/auto-sync?: no
 	cfg-dir: append copy system/options/cache
 			#either config/OS = 'Windows [%Red-Console/][%.Red-Console/]
 
 	unless exists? cfg-dir [make-dir/deep cfg-dir]
 	cfg-path: append cfg-dir %console-cfg.red
-	
-	cfg: either exists? cfg-path [skip load cfg-path 2][
+
+	cfg: either all [
+		exists? cfg-path
+		attempt [select cfg-content: load cfg-path 'Red]
+	][
+		skip cfg-content 2
+	][
 		compose [
 			win-pos:	  (win/offset)
 			win-size:	  640x480
