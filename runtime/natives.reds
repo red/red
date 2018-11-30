@@ -3003,7 +3003,7 @@ natives: context [
 		]
 		assert TYPE_OF(blk) = TYPE_BLOCK
 
-		result: (loop? series) and (0 < size)
+		result: all [loop? series  size > 0]
 		if result [
 			switch type [
 				TYPE_STRING
