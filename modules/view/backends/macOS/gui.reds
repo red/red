@@ -179,8 +179,8 @@ get-text-size: func [
 	y: system/cpu/edx								;-- string height on screen
 	rc: as NSRect! :x
 
-	size/width: as-integer rc/x
-	size/height: as-integer rc/y
+	size/width: as-integer ceil rc/x
+	size/height: as-integer ceil rc/y
 	if pair <> null [
 		pair/x: size/width
 		pair/y: size/height
