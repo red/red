@@ -68,15 +68,26 @@ store-iocp-data: func [
 	data		[iocp-data!]
 	red-port	[red-object!]
 	/local
-		values	 [red-value!]
-		state	 [red-object!]	 
+		state	[red-object!]
 ][
-	values: object/get-values red-port
-	state: as red-object! values + port/field-state
+	state: as red-object! (object/get-values red-port) + port/field-state
 	integer/make-at (object/get-values state) + 1 as-integer data
 ]
 
+get-iocp-data: func [
+	red-port	[red-object!]
+	return:		[iocp-data!]
+	/local
+		state	[red-object!]
+		int		[red-integer!]
+][
+	state: as red-object! (object/get-values red-port) + port/field-state
+	int: as red-integer! (object/get-values state) + 1
+	as iocp-data! int/value
+]
+
 create-red-port: func [
+	proto		[red-object!]
 	sock		[integer!]
 	return:		[red-object!]
 	/local
@@ -85,7 +96,9 @@ create-red-port: func [
 ][
 	data: iocp/create-data sock
 	sockdata/insert sock as int-ptr! data
-	p: port/make none-value stack/push* TYPE_NONE
+	p: port/make none-value object/get-values proto TYPE_NONE
+	block/rs-append red-port-buffer as cell! p
+	copy-cell as cell! p as cell! :data/cell
 	store-iocp-data data p
 	p
 ]
@@ -104,9 +117,12 @@ call-awake: func [
 	event/header: TYPE_EVENT
 	event/type: op
 	event/msg: as byte-ptr! msg
+probe ["call-awake 1 " stack/top " " stack/arguments]
 	stack/mark-func words/_awake awake/ctx
-	stack/push as red-value! event
+	stack/push as red-value! :event
 	port/call-function awake awake/ctx
+	stack/reset
+probe ["call-awake 2 " stack/top " " stack/arguments]
 ]
 
 socket: context [
@@ -190,7 +206,7 @@ socket: context [
 		n: 1
 		setsockopt acpt IPPROTO_TCP 1 as c-string! :n size? n		;-- TCP_NODELAY: 1
 
-		call-awake red-port create-red-port acpt IOCP_OP_ACCEPT
+		call-awake red-port create-red-port red-port acpt IOCP_OP_ACCEPT
 	]
 
 	connect: func [
@@ -217,8 +233,7 @@ socket: context [
 		set-memory as byte-ptr! data null-byte size? OVERLAPPED!
 
 		either type = AF_INET [		;-- IPv4
-			port: htons port
-			saddr/sin_family: port << 16 or type
+			saddr/sin_family: type
 			saddr/sin_addr: 0
 			saddr/sa_data1: 0
 			saddr/sa_data2: 0
@@ -231,6 +246,8 @@ socket: context [
 
 		data/code: IOCP_OP_CONN
 		n: 0
+		port: htons port
+		saddr/sin_family: port << 16 or type
 		saddr/sin_addr: inet_addr addr
 		ConnectEx: as ConnectEx! ConnectEx-func
 		unless ConnectEx sock as int-ptr! :saddr size? saddr null 0 :n as int-ptr! data [
@@ -242,5 +259,71 @@ socket: context [
 		;-- do not post the completion notification as we're processing it now
 		SetFileCompletionNotificationModes as int-ptr! sock 1
 		call-awake red-port red-port IOCP_OP_ACCEPT
+	]
+
+	write: func [
+		red-port	[red-object!]
+		data		[red-value!]
+		/local
+			bin		[red-binary!]
+			pbuf	[WSABUF! value]
+			iodata	[iocp-data!]
+			n		[integer!]
+	][
+		iodata: get-iocp-data red-port
+		iocp/bind g-poller iodata
+
+		switch TYPE_OF(data) [
+			TYPE_BINARY [
+				bin: as red-binary! data
+				pbuf/len: binary/rs-length? bin
+				pbuf/buf: binary/rs-head bin
+			]
+			TYPE_STRING [0]
+			default [0]
+		]
+
+		iodata/code: IOCP_OP_WRITE
+		n: 0
+		if 0 <> WSASend iodata/sock :pbuf 1 :n 0 as OVERLAPPED! iodata null [
+			exit
+		]
+
+		probe "Socket Write OK"
+	]
+
+	read: func [
+		red-port	[red-object!]
+		/local
+			iodata	[iocp-data!]
+			pbuf	[WSABUF!]
+			n		[integer!]
+			flags	[integer!]
+	][
+probe "sock/read"
+		iodata: get-iocp-data red-port
+		pbuf: as WSABUF! :iodata/buflen
+		if null? pbuf/buf [
+			pbuf/len: 4096
+			pbuf/buf: allocate 4096
+		]
+		iocp/bind g-poller iodata
+
+		iodata/code: IOCP_OP_READ
+		n: 0
+		flags: 0
+		if 0 <> WSARecv iodata/sock pbuf 1 :n :flags as OVERLAPPED! iodata null [
+			exit
+		]
+		probe "Socket read OK"
+	]
+
+	close: func [
+		red-port	[red-object!]
+		/local
+			iodata	[iocp-data!]
+	][
+		iodata: get-iocp-data red-port
+		closesocket iodata/sock
 	]
 ]

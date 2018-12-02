@@ -28,6 +28,7 @@ iocp-data!: alias struct! [
 	port	[int-ptr!]				;-- the bound iocp port
 	sock	[integer!]				;-- the socket
 	accept	[integer!]				;-- the accept socket
+	buflen	[integer!]				;-- buffer length
 	buffer	[byte-ptr!]				;-- buffer for iocp poller
 	code	[integer!]				;-- operation code @@ change to uint8
 	state	[integer!]				;-- @@ change to unit8
@@ -42,14 +43,14 @@ poller!: alias struct! [
 
 iocp: context [
 	create-data: func [
-		sock	[integer!]
+		socket	[integer!]
 		return: [iocp-data!]
 		/local
 			data [iocp-data!]
 	][
 		;@@ TBD get iocp-data from the cache first
 		data: as iocp-data! alloc0 size? iocp-data!
-		data/sock: sock
+		data/sock: socket
 		data
 	]
 
@@ -61,11 +62,13 @@ iocp: context [
 			port	[int-ptr!]
 	][
 		poller: as poller! p
-		port: CreateIoCompletionPort as int-ptr! data/sock poller/port null 0
-		if port <> poller/port [
-			probe "iocp bind error"
+		if null? data/port [
+			port: CreateIoCompletionPort as int-ptr! data/sock poller/port null 0
+			if port <> poller/port [
+				probe "iocp bind error"
+			]
+			data/port: port
 		]
-		data/port: port
 	]
 ]
 
@@ -126,34 +129,49 @@ poll: context [
 			e		[OVERLAPPED_ENTRY!]
 			data	[iocp-data!]
 			red-port [red-object!]
+			bin		[red-binary!]
 	][
-		p: as poller! either null? ref [g-poller][ref]
-		if null? p/events [
-			p/evt-cnt: 512
-			p/events: as OVERLAPPED_ENTRY! allocate p/evt-cnt * size? OVERLAPPED_ENTRY!
-		]
+		#if debug? = yes [print-line "poll/wait"]
 
-		cnt: 0
-		res: GetQueuedCompletionStatusEx p/port p/events p/evt-cnt :cnt timeout no
-
-		err: GetLastError
-		if all [res <> 0 err = WAIT_TIMEOUT][return 0]
-
-		if cnt = p/evt-cnt [			;-- TBD: extend events buffer
-			0
-		]
-
-		i: 0
-		while [i < cnt][
-			e: p/events + i
-			data: as iocp-data! e/lpOverlapped
-			red-port: as red-object! :data/cell
-			switch data/code [
-				IOCP_OP_ACCEPT [call-awake red-port create-red-port data/accept IO_EVT_ACCEPT]
-				IOCP_OP_CONN [call-awake red-port red-port IO_EVT_CONNECT]
-				default [probe ["operation " data/code]]
+		forever [
+			p: as poller! either null? ref [g-poller][ref]
+			if null? p/events [
+				p/evt-cnt: 512
+				p/events: as OVERLAPPED_ENTRY! allocate p/evt-cnt * size? OVERLAPPED_ENTRY!
 			]
-			i: i + 1
+	probe "get status"
+			cnt: 0
+			res: GetQueuedCompletionStatusEx p/port p/events p/evt-cnt :cnt timeout no
+	?? res
+			err: GetLastError
+	?? err
+			if all [res <> 0 err = WAIT_TIMEOUT][return 0]
+	probe [cnt " " p/evt-cnt]
+
+			if cnt = p/evt-cnt [			;-- TBD: extend events buffer
+				0
+			]
+
+			i: 0
+			while [i < cnt][
+				e: p/events + i
+				data: as iocp-data! e/lpOverlapped
+				red-port: as red-object! :data/cell
+	probe ["code: " data/code " " e/dwNumberOfBytesTransferred]
+				switch data/code [
+					IOCP_OP_ACCEPT	[call-awake red-port create-red-port red-port data/accept IO_EVT_ACCEPT]
+					IOCP_OP_CONN	[call-awake red-port red-port IO_EVT_CONNECT]
+					IOCP_OP_READ	[
+						bin: binary/load data/buffer e/dwNumberOfBytesTransferred
+						copy-cell as cell! bin (object/get-values red-port) + port/field-data
+						stack/pop 1
+						call-awake red-port red-port IO_EVT_READ
+					]
+					IOCP_OP_WRITE	[call-awake red-port red-port IO_EVT_WROTE]
+					default [probe ["operation " data/code]]
+				]
+				i: i + 1
+			]
 		]
 		0
 	]

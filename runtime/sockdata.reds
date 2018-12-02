@@ -10,12 +10,15 @@ Red/System [
 	}
 ]
 
+red-port-buffer: as red-block! 0
+
 sockdata: context [
 
 	data: as int-ptr! 0
 	maxn: 0
 
 	init: func [][
+		red-port-buffer: block/make-in root 8
 		maxn: 256
 		data: as int-ptr! alloc0 maxn * size? int-ptr!
 	]
@@ -26,6 +29,7 @@ sockdata: context [
 		/local
 			idx [integer!]
 	][
+		probe ["sockdata/insert " sock " " data]
 		if null? data [init]
 		idx: sock + 1
 		if idx > maxn [

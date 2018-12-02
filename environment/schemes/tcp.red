@@ -12,15 +12,21 @@ Red [
 
 write-socket: routine [
 	p		[object!]
-	data	[string!]
+	data	[any-type!]
 ][
-	0
+	socket/write p data
 ]
 
 read-socket: routine [
 	p		[object!]
 ][
-	0
+	socket/read p
+]
+
+close-socket: routine [
+	p		[object!]
+][
+	socket/close p
 ]
 
 tcp-scheme: context [
@@ -39,14 +45,19 @@ tcp-scheme: context [
 		probe "open port"
 	]
 
-	insert: func [port data][write-socket port data]
+	insert: func [
+		port [port!]
+		data [binary! string!]
+	][
+		write-socket port data
+	]
 
-	copy: func [port][read-socket port]
+	copy: func [port [port!]][read-socket port]
 
 	close: func [port [port!]][
-		;TBD ;-- wait until IO finishes or timeout
 		port/state/closed?: yes
 		port/state/info: none
+		close-socket port
 	]
 ]
 

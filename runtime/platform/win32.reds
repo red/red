@@ -147,6 +147,11 @@ WIN32_FIND_DATA: alias struct! [
 	;cAlternateFileName	[c-string!]				;-- cAlternateFileName[ 14 ]
 ]
 
+WSABUF!: alias struct! [
+	len			[integer!]
+	buf			[byte-ptr!]
+]
+
 process-info!: alias struct! [
 	hProcess	[integer!]
 	hThread		[integer!]
@@ -615,10 +620,20 @@ tagSYSTEM_INFO: alias struct! [
 		]
 		WSASend: "WSASend" [
 			s					[integer!]
-			lpBuffers			[byte-ptr!]
+			lpBuffers			[WSABUF!]
 			dwBufferCount		[integer!]
 			lpNumberOfBytesSent	[int-ptr!]
 			dwFlags				[integer!]
+			lpOverlapped		[OVERLAPPED!]
+			lpCompletionRoutin	[int-ptr!]
+			return:				[integer!]
+		]
+		WSARecv: "WSARecv" [
+			s					[integer!]
+			lpBuffers			[WSABUF!]
+			dwBufferCount		[integer!]
+			lpNumberOfBytesSent	[int-ptr!]
+			dwFlags				[int-ptr!]
 			lpOverlapped		[OVERLAPPED!]
 			lpCompletionRoutin	[int-ptr!]
 			return:				[integer!]
