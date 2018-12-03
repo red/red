@@ -48,6 +48,7 @@ debase-test.red
 enbase-test.red
 try-test.red
 draw-test.red
+replace-test.red
 auto-tests/lexer-auto-test.red
 power-test.red
 ../environment/scalars-test.red
