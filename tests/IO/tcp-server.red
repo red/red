@@ -3,6 +3,7 @@ Red [
 ]
 
 do [
+
 debug: :print
 ;debug: :comment
 
@@ -49,5 +50,6 @@ print "TCP server: waiting for client to connect"
 wait server
 print "done"
 close server
+
 ]
 

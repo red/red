@@ -128,8 +128,10 @@ poll: context [
 			i		[integer!]
 			e		[OVERLAPPED_ENTRY!]
 			data	[iocp-data!]
-			red-port [red-object!]
 			bin		[red-binary!]
+			msg		[red-object!]
+			type	[integer!]
+			red-port [red-object!]
 	][
 		#if debug? = yes [print-line "poll/wait"]
 
@@ -139,14 +141,11 @@ poll: context [
 				p/evt-cnt: 512
 				p/events: as OVERLAPPED_ENTRY! allocate p/evt-cnt * size? OVERLAPPED_ENTRY!
 			]
-	probe "get status"
+
 			cnt: 0
 			res: GetQueuedCompletionStatusEx p/port p/events p/evt-cnt :cnt timeout no
-	?? res
 			err: GetLastError
-	?? err
 			if all [res <> 0 err = WAIT_TIMEOUT][return 0]
-	probe [cnt " " p/evt-cnt]
 
 			if cnt = p/evt-cnt [			;-- TBD: extend events buffer
 				0
@@ -157,19 +156,25 @@ poll: context [
 				e: p/events + i
 				data: as iocp-data! e/lpOverlapped
 				red-port: as red-object! :data/cell
-	probe ["code: " data/code " " e/dwNumberOfBytesTransferred]
+				msg: red-port
 				switch data/code [
-					IOCP_OP_ACCEPT	[call-awake red-port create-red-port red-port data/accept IO_EVT_ACCEPT]
-					IOCP_OP_CONN	[call-awake red-port red-port IO_EVT_CONNECT]
+					IOCP_OP_ACCEPT	[
+						msg: create-red-port red-port data/accept
+						type: IO_EVT_ACCEPT
+					]
+					IOCP_OP_CONN	[type: IO_EVT_CONNECT]
 					IOCP_OP_READ	[
 						bin: binary/load data/buffer e/dwNumberOfBytesTransferred
 						copy-cell as cell! bin (object/get-values red-port) + port/field-data
 						stack/pop 1
-						call-awake red-port red-port IO_EVT_READ
+						type: IO_EVT_READ
 					]
-					IOCP_OP_WRITE	[call-awake red-port red-port IO_EVT_WROTE]
-					default [probe ["operation " data/code]]
+					IOCP_OP_WRITE	[type: IO_EVT_WROTE]
+					IOCP_OP_READ_UDP	[0]
+					IOCP_OP_WRITE_UDP	[0]
+					default			[probe ["wrong iocp code: " data/code]]
 				]
+				call-awake red-port msg type
 				i: i + 1
 			]
 		]

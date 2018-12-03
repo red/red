@@ -117,12 +117,10 @@ call-awake: func [
 	event/header: TYPE_EVENT
 	event/type: op
 	event/msg: as byte-ptr! msg
-probe ["call-awake 1 " stack/top " " stack/arguments]
 	stack/mark-func words/_awake awake/ctx
 	stack/push as red-value! :event
 	port/call-function awake awake/ctx
 	stack/reset
-probe ["call-awake 2 " stack/top " " stack/arguments]
 ]
 
 socket: context [
@@ -206,7 +204,7 @@ socket: context [
 		n: 1
 		setsockopt acpt IPPROTO_TCP 1 as c-string! :n size? n		;-- TCP_NODELAY: 1
 
-		call-awake red-port create-red-port red-port acpt IOCP_OP_ACCEPT
+		call-awake red-port create-red-port red-port acpt IO_EVT_CONNECT
 	]
 
 	connect: func [
@@ -258,7 +256,7 @@ socket: context [
 
 		;-- do not post the completion notification as we're processing it now
 		SetFileCompletionNotificationModes as int-ptr! sock 1
-		call-awake red-port red-port IOCP_OP_ACCEPT
+		call-awake red-port red-port IO_EVT_ACCEPT
 	]
 
 	write: func [
@@ -300,12 +298,11 @@ socket: context [
 			n		[integer!]
 			flags	[integer!]
 	][
-probe "sock/read"
 		iodata: get-iocp-data red-port
 		pbuf: as WSABUF! :iodata/buflen
 		if null? pbuf/buf [
-			pbuf/len: 4096
-			pbuf/buf: allocate 4096
+			pbuf/len: 1024 * 1024
+			pbuf/buf: allocate 1024 * 1024
 		]
 		iocp/bind g-poller iodata
 
@@ -324,6 +321,10 @@ probe "sock/read"
 			iodata	[iocp-data!]
 	][
 		iodata: get-iocp-data red-port
+		if iodata/buffer <> null [
+			free iodata/buffer
+			iodata/buffer: null
+		]
 		closesocket iodata/sock
 	]
 ]
