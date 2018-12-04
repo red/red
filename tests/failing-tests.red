@@ -69,63 +69,6 @@ Red [
 
 ~~~end-file~~~
 
-~~~start-file~~~ "append"
-
-===start-group=== "append/dup"
-	
-;; this test is premature before the introduction of a garbage collector
-	
-	--test-- "append/dup5"
-		--assert false
-	comment {
-	--assert not error? try [
-		ad5-s: copy " "
-		append/dup ad5-s #" " 2147483647
-		--assert 2147483647 = length? ad5-s
-	]
-	}
-===end-group===
-
-;; these tests are premature before the introduction of a garbage collector
-===start-group=== "big strings" 
-	--test-- "bg1"
-		--assert false
-	comment {
-		bg1-s: copy ""
-		loop 2147483647 [
-			append bg1-s #"a"
-		]
-	--assert 2147483647 = length? bg1-s
-		clear bg1-s
-	
-	--test-- "bg2"
-		bg2-s: copy ""
-		loop 2147483647 [
-			append bg2-s #"é"
-		]
-	--assert 2147483647 = length? bg2-s
-		clear bg2-s
-	
-	--test-- "bg3"
-		bg3-s: copy ""
-		loop 2147483647 [
-			append bg3-s #"✐"
-		]
-	--assert 2147483647 = length? bg3-s
-		clear bg3-s
-	
-		--test-- "bg4"
-		bg4-s: copy ""
-		loop 2147483647 [
-			append bg4-s #"^(2710)"
-		]
-	--assert 2147483647 = length? bg4-s
-		clear bg4-s
-	}	
-===end-group===
-
-~~~end-file~~~
-
 ~~~start-file~~~ "integer"
 
 ===start-group=== "modulo"
