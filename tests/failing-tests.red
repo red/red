@@ -361,4 +361,14 @@ Red [
 
 ~~~end-file~~~
 
+~~~start-file~~~ "replace"
+
+===start-group=== "replace/case"
+
+	--test-- "replace/case-15"	--assert (quote :x/b/A/x/B) = replace/case/all quote :a/b/A/a/B [a] 'x
+
+===end-group===
+
+~~~end-file~~~
+
 ***end-run***
