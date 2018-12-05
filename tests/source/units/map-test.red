@@ -216,7 +216,17 @@ Red [
 		--assert 2 = select/case m 'A
 
 	--test-- "issue-1834"
-	--assert #(a: 3) = extend/case extend/case make map! [a 1] [a 2] [a 3]
+		--assert #(a: 3) = extend/case extend/case make map! [a 1] [a 2] [a 3]
+
+	--test-- "issue-2196"
+		m: #()
+		repeat k 70 [m/:k: {x} m/:k: none]
+		--assert empty? keys-of m
+
+	--test-- "issue-2234"
+		m: #(a 1 b 2)
+		m/a: none
+		--assert [b] = keys-of m
 
 ===end-group===
 

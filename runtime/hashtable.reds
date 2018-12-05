@@ -1012,8 +1012,8 @@ _hashtable: context [
 			i: indexes/i - 1
 			_HT_CAL_FLAG_INDEX(i ii sh)
 			_BUCKET_SET_DEL_TRUE(flags ii sh)
+			h/size: h/size - 1
 		]
-		h/size: h/size - 1
 	]
 
 	copy: func [
