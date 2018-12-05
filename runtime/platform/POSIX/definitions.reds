@@ -1,7 +1,7 @@
 Red/System [
 	Title:   "POSIX I/O API imported functions definitions"
 	Author:  "Xie Qingtian"
-	File: 	 %POSIX.reds
+	File: 	 %definitions.reds
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2017 Nenad Rakocevic. All rights reserved."
 	License: {
@@ -81,6 +81,63 @@ timespec!: alias struct! [
 	]
 ]
 
+#case [
+	any [OS = 'macOS OS = 'FreeBSD] [
+		kevent!: alias struct! [
+			ident		[int-ptr!]		;-- identifier for this event
+			;filter		[int16!]		;-- filter for event
+			;flags		[int16!]		;-- general flags
+			fflags		[integer!]		;-- filter-specific flags
+			data		[int-ptr!]		;-- filter-specific data
+			udata		[int-ptr!]		;-- opaque user data identifier
+		]
+		#import [
+			LIBC-file cdecl [
+				kqueue: "kqueue" [
+					return: [integer!]
+				]
+				kevent: "kevent" [
+					kq		[integer!]
+					clist	[kevent!]
+					nchange [integer!]
+					evlist	[kevent!]
+					nevents [integer!]
+					timeout [timespec!]
+				]
+			]
+		]
+	]
+	true [
+		epoll_event!: alias struct! [
+			events		[integer!]
+			ptr			[int-ptr!]
+			pad			[integer!]
+		]
+		#import [
+			LIBC-file cdecl [
+				epoll_create: "epoll_create" [
+					size	[integer!]
+					return: [integer!]
+				]
+				epoll_ctl: "epoll_ctl" [
+					epfd	[integer!]
+					op		[integer!]
+					fd		[integer!]
+					event	[epoll_event!]
+					return: [integer!]
+				]
+				epoll_wait: "epoll_wait" [
+					epfd	[integer!]
+					events	[epoll_event!]
+					maxev	[integer!]
+					timeout [integer!]
+					return: [integer!]
+				]
+			]
+		]
+	]
+]
+
 #import [
 	LIBC-file cdecl [
 		_access: "access" [
@@ -150,6 +207,39 @@ timespec!: alias struct! [
 		gmtime: "gmtime" [
 			time		[pointer! [integer!]]
 			return:		[systemtime!]
+		]
+		_socket: "socket" [
+			family		[integer!]
+			type		[integer!]
+			protocl		[integer!]
+			return:		[integer!]
+		]
+		_bind: "bind" [
+			fd			[integer!]
+			addr		[byte-ptr!]
+			addrlen		[integer!]
+			return:		[integer!]
+		]
+		_accept: "accept" [
+			fd			[integer!]
+			addr		[byte-ptr!]
+			addrlen		[int-ptr!]
+			return:		[integer!]
+		]
+		fcntl: "fcntl" [
+			[variadic]
+			; fd           [integer!]    "File descriptor"
+			; cmd          [integer!]    "Command"
+			; ...                        "Optional arguments"
+			return:        [integer!]
+		]
+		htons: "htons" [
+			hostshort	[integer!]
+			return:		[integer!]
+		]
+		inet_addr: "inet_addr" [
+			cp			[c-string!]
+			return:		[integer!]
 		]
 	]
 ]

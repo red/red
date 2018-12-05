@@ -21,6 +21,7 @@ red: context [
 
 	#include %platform/definitions.reds
 	#include %sockdata.reds
+	#include %platform/IO.reds
 	#switch OS [										;-- loading OS-specific bindings
 		Windows  [
 			#include %platform/win32.reds

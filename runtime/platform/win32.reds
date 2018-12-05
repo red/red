@@ -60,13 +60,6 @@ timeval!: alias struct! [
 	tv_usec [integer!]
 ]
 
-sockaddr_in!: alias struct! [				;-- 16 bytes
-	sin_family	[integer!]					;-- family and port
-	sin_addr	[integer!]
-	sa_data1	[integer!]
-	sa_data2	[integer!]
-]
-
 SECURITY_ATTRIBUTES: alias struct! [
 	nLength 			 [integer!]
 	lpSecurityDescriptor [int-ptr!]

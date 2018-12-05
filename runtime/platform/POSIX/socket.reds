@@ -1,5 +1,5 @@
 Red/System [
-	Title:	"Socket implementation on Windows"
+	Title:	"Socket implementation on POSIX"
 	Author: "Xie Qingtian"
 	File: 	%socket.reds
 	Tabs: 	4
@@ -8,47 +8,6 @@ Red/System [
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
-]
-
-#define AF_INET6	23
-
-store-iocp-data: func [
-	data		[iocp-data!]
-	red-port	[red-object!]
-	/local
-		state	[red-object!]
-][
-	state: as red-object! (object/get-values red-port) + port/field-state
-	integer/make-at (object/get-values state) + 1 as-integer data
-]
-
-get-iocp-data: func [
-	red-port	[red-object!]
-	return:		[iocp-data!]
-	/local
-		state	[red-object!]
-		int		[red-integer!]
-][
-	state: as red-object! (object/get-values red-port) + port/field-state
-	int: as red-integer! (object/get-values state) + 1
-	as iocp-data! int/value
-]
-
-create-red-port: func [
-	proto		[red-object!]
-	sock		[integer!]
-	return:		[red-object!]
-	/local
-		p		[red-object!]
-		data	[iocp-data!]
-][
-	data: iocp/create-data sock
-	sockdata/insert sock as int-ptr! data
-	p: port/make none-value object/get-values proto TYPE_NONE
-	block/rs-append red-port-buffer as cell! p
-	copy-cell as cell! p as cell! :data/cell
-	store-iocp-data data p
-	p
 ]
 
 socket: context [
@@ -60,8 +19,11 @@ socket: context [
 		return:		[integer!]
 		/local
 			fd		[integer!]
+			flag	[integer!]
 	][
-		fd: WSASocketW family type protocal null 0 1		;-- OVERLAPPED
+		fd: _socket family type protocal
+		flag: fcntl [fd F_GETFL 0]
+		fcntl [fd F_SETFL flag or O_NONBLOCK]
 		assert fd >= 0
 		fd
 	]
