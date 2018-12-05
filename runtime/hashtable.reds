@@ -733,6 +733,7 @@ _hashtable: context [
 			either type = HASH_TABLE_HASH [
 				resize-hash node n-buckets
 			][
+				if type = HASH_TABLE_MAP [n-buckets: h/n-buckets + 1]
 				resize node n-buckets
 			]
 		]
@@ -1012,8 +1013,8 @@ _hashtable: context [
 			i: indexes/i - 1
 			_HT_CAL_FLAG_INDEX(i ii sh)
 			_BUCKET_SET_DEL_TRUE(flags ii sh)
-			h/size: h/size - 1
 		]
+		h/size: h/size - 1
 	]
 
 	copy: func [
