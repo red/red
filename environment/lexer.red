@@ -27,23 +27,23 @@ system/lexer: context [
 		spec/1: type
 		cause-error 'syntax any [all [missing 'missing] 'invalid] spec
 	]
-	
+
 	make-hm: routine [h [integer!] m [integer!]][
 		time/box (as-float h) * 3600.0 + ((as-float m) * 60.0)
 	]
-	
+
 	make-msf: routine [m [integer!] s [float!]][
 		time/box ((as-float m) * 60.0) + s
 	]
-	
+
 	make-hms: routine [h [integer!] m [integer!] s [integer!]][
 		time/box (as-float h) * 3600.0 + ((as-float m) * 60.0) + (as-float s)
 	]
-	
+
 	make-hmsf: routine [h [integer!] m [integer!] s [float!]][
 		time/box (as-float h) * 3600.0 + ((as-float m) * 60.0) + s
 	]
-	
+
 	make-time: function [
 		pos		[string!]
 		hours	[integer! none!]
@@ -88,7 +88,7 @@ system/lexer: context [
 		unit: GET_UNIT(s)
 		p:	  string/rs-head start
 		len:  end/head - start/head
-		
+
 		ret: as red-binary! stack/arguments
 		ret/head: 0
 		ret/header: TYPE_NONE
@@ -118,7 +118,7 @@ system/lexer: context [
 		len:  end/head - start/head
 		ret:  stack/arguments
 		err:  0
-		
+
 		tokenizer/scan-tuple p len unit	:err ret
 		assert err = 0									;-- pre-checked validity
 		ret
@@ -147,12 +147,12 @@ system/lexer: context [
 		err:  0
 
 		i: tokenizer/scan-integer p len unit :err
-		
+
 		if err <> 0 [
 			type/value: TYPE_FLOAT
 			make-float start end type			;-- fallback to float! loading
 			exit
-		]			
+		]
 		integer/box i
 	]
 
@@ -173,9 +173,9 @@ system/lexer: context [
 		p:	  string/rs-head start
 		len:  end/head - start/head
 		err:  0
-		
+
 		f: tokenizer/scan-float p len unit :err
-		
+
 		either type/value = TYPE_FLOAT [float/box f][percent/box f / 100.0]
 	]
 
@@ -310,20 +310,20 @@ system/lexer: context [
 		blk: as red-block! series
 		s: GET_BUFFER(blk)
 		cell: s/offset + blk/head
-		
+
 		while [cell < s/tail][
 			cell/header: cell/header or flag-new-line
 			cell: cell + 1
 		]
 	]
-	
+
 	transcode: function [
 		src	 [string!]
 		dst	 [block! none!]
 		trap [logic!]
 		/one
 		/only											;-- force returning the loaded value (with /one)
-		/part	
+		/part
 			length [integer! string!]
 		return: [block!]
 		/local
@@ -346,7 +346,6 @@ system/lexer: context [
 			parse/case/part s [
 				any [
 					escaped-char (append new value)
-					| #"^^"								;-- trash single caret chars
 					| set c skip (append new c)
 				]
 			] len
@@ -361,7 +360,7 @@ system/lexer: context [
 			if type = file! [parse new [any [s: #"\" change s #"/" | skip]]]
 			new
 		]
-		
+
 		month-rule: [(m: none)]							;-- dynamically filled
 		mon-rule:   [(m: none)]							;-- dynamically filled
 
@@ -371,7 +370,7 @@ system/lexer: context [
 				cs/2:  charset "ABCDEF"						;-- hexa-upper
 				cs/3:  charset "abcdef"						;-- hexa-lower
 				cs/4:  union cs/1 cs/2						;-- hexa
-				cs/5:  union cs/4 cs/3						;-- hexa-char	
+				cs/5:  union cs/4 cs/3						;-- hexa-char
 				cs/6:  charset {/\^^,[](){}"#%$@:;}			;-- not-word-char
 				cs/7:  union union cs/6 cs/1 charset {'}	;-- not-word-1st
 				cs/8:  charset {[](){}"@:;}					;-- not-file-char
@@ -439,7 +438,7 @@ system/lexer: context [
 		ws: [
 			#"^/" (
 				if count? [
-					line: line + 1 
+					line: line + 1
 					;append/only lines to block! stack/tail?
 				]
 			)
@@ -493,6 +492,7 @@ system/lexer: context [
 					| #"^""	(value: #"^"")
 				]
 				| pos: caret-char (value: pos/1 - 64)
+				| (value: #"^^")
 			]
 		]
 
@@ -522,7 +522,7 @@ system/lexer: context [
 		nested-curly-braces: [
 			(cnt: 1)
 			any [
-				counted-newline 
+				counted-newline
 				| "^^{"
 				| "^^}"
 				| #"{" (cnt: cnt + 1)
@@ -537,13 +537,13 @@ system/lexer: context [
 		]
 
 		string-rule: [(type: string!) line-string | multiline-string]
-		
+
 		tag-rule: [
 			#"<" not [not-tag-1st | ws] (type: tag!)
 			 s: some [#"^"" thru #"^"" | #"'" thru #"'" | e: #">" break | skip]
 			(if e/1 <> #">" [throw-error [tag! back s]])
 		]
-		
+
 		email-rule: [
 			s: some [ahead email-end break | skip] #"@"
 			any [ahead email-end break | skip] e:
@@ -629,11 +629,11 @@ system/lexer: context [
 			]
 			(pop stack)
 		]
-		
+
 		special-words: [
 			#"%" [ws-no-count | ahead file-end | end] (value: "%")	;-- special case for remainder op!
 			| #"/" ahead [slash-end | #"/" | ws-no-count | control-char | end][
-				#"/" 
+				#"/"
 				ahead [slash-end | ws-no-count | control-char | end] (value: "//")
 				| (value: "/")
 			]
@@ -680,7 +680,7 @@ system/lexer: context [
 				to-word stack copy/part s e type
 			)
 		]
-		
+
 
 		refinement-rule: [
 			#"/" [
@@ -690,7 +690,7 @@ system/lexer: context [
 			]
 			(to-word stack copy/part s e type)
 		]
-		
+
 		sticky-word-rule: [								;-- protect from sticky words typos
 			ahead [integer-end | ws-no-count | end | (throw-error [type s])]
 		]
@@ -699,7 +699,7 @@ system/lexer: context [
 		tuple-value-rule: [byte 2 11 [#"." byte] e: (type: tuple!)]
 
 		tuple-rule: [tuple-value-rule sticky-word-rule]
-		
+
 		time-rule: [
 			s: positive-integer-rule [
 				float-number-rule (value: make-time pos none value make-number s e type neg?) ;-- mm:ss.dd
@@ -710,7 +710,7 @@ system/lexer: context [
 				]
 			] (type: time!)
 		]
-		
+
 		day-year-rule: [
 			s: opt #"-" 3 4 digit e: (year: make-number s e integer!)
 			| 1 2 digit e: (
@@ -718,7 +718,7 @@ system/lexer: context [
 				either day [year: value + pick [2000 1900] 50 > value][day: value]
 			)
 		]
-		
+
 		date-rule: [
 			ahead [opt #"-" 1 4 digit date-sep | 8 digit #"T"][ ;-- quick lookhead
 				s: 8 digit ee: #"T" (							;-- yyyymmddT
@@ -785,7 +785,7 @@ system/lexer: context [
 				]
 			] sticky-word-rule (value: date)
 		]
-		
+
 		positive-integer-rule: [digit any digit e: (type: integer!)]
 
 		integer-number-rule: [
@@ -827,7 +827,7 @@ system/lexer: context [
 			opt [#"%" (type: percent!)]
 			sticky-word-rule
 		]
-		
+
 		map-rule: [
 			"#(" (append/only stack make block! 100)
 			any-value
@@ -856,7 +856,7 @@ system/lexer: context [
 				append/only stack make paren! 4
 				if line > old-line [old-line: line new-line back tail stack]
 			)
-			any-value 
+			any-value
 			#")" (
 				pop stack
 				old-line: line
@@ -936,7 +936,7 @@ system/lexer: context [
 				| issue-rule
 			](
 				if line > old-line [
-					old-line: line 
+					old-line: line
 					new-line back tail last stack
 				]
 			)
@@ -947,7 +947,7 @@ system/lexer: context [
 		red-rules: [any-value any ws opt wrong-end]
 
 		if pre-load [do [pre-load src length]]
-		
+
 		set/any 'err try [
 			unless either part [
 				parse/case/part src red-rules length
@@ -956,7 +956,7 @@ system/lexer: context [
 			][
 				throw-error ['value pos]
 			]
-		]	
+		]
 		either trap [
 			reduce [stack/1 pos :err]
 		][
