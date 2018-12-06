@@ -52,3 +52,4 @@ auto-tests/lexer-auto-test.red
 power-test.red
 ../environment/scalars-test.red
 ../environment/functions-test.red
+stress-test.red
