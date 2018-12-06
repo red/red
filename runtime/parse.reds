@@ -798,6 +798,7 @@ parser: context [
 			only?	 [logic!]
 			done?	 [logic!]
 			saved?	 [logic!]
+			gc-saved [logic!]
 	][
 		match?:	  yes
 		end?:	  no
@@ -816,7 +817,7 @@ parser: context [
 		state:    ST_PUSH_BLOCK
 
 		s: GET_BUFFER(series)
-		if s/offset = s/tail [collector/active?: no]
+		if s/offset = s/tail [gc-saved: collector/active? collector/active?: no]
 
 		if OPTION?(fun) [fun-locs: _function/count-locals fun/spec 0]
 		
@@ -1848,7 +1849,7 @@ parser: context [
 		reset saved?
 
 		s: GET_BUFFER(series)
-		if s/offset = s/tail [collector/active?: yes]
+		if s/offset = s/tail [collector/active?: gc-saved]
 
 		either collect? [
 			base + 1

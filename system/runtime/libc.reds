@@ -19,6 +19,11 @@ Red/System [
 		free:		 "free" [
 			block		[byte-ptr!]
 		]
+		realloc:	"realloc" [		"Resize and return allocated memory."
+			memory			[byte-ptr!]
+			size			[integer!]
+			return:			[byte-ptr!]
+		]
 		set-memory:	 "memset" [
 			target		[byte-ptr!]
 			filler		[byte!]
