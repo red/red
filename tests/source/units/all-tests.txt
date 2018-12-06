@@ -53,3 +53,4 @@ power-test.red
 ../environment/scalars-test.red
 ../environment/functions-test.red
 stress-test.red
+regression-test-red.red
