@@ -838,6 +838,7 @@ lexer: context [
 		parse/all/case copy/part s e [
 			any [
 				escaped-char   (insert tail new value)
+				| #"^^"
 				| s: filter e: (insert/part tail new s e)
 			]										;-- exit on matching " or }
 		]
