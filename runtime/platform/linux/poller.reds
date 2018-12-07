@@ -12,64 +12,21 @@ Red/System [
 
 g-poller: as int-ptr! 0
 
-#enum iocp-op-code! [
-	IOCP_OP_NONE
-	IOCP_OP_ACCEPT
-	IOCP_OP_CONN
-	IOCP_OP_READ
-	IOCP_OP_WRITE
-	IOCP_OP_READ_UDP
-	IOCP_OP_WRITE_UDP
-]
-
-iocp-data!: alias struct! [
-	ovlap	[OVERLAPPED! value]		;-- the overlapped struct
-	cell	[cell! value]			;-- the port! cell
-	port	[int-ptr!]				;-- the bound iocp port
-	sock	[integer!]				;-- the socket
-	accept	[integer!]				;-- the accept socket
-	buflen	[integer!]				;-- buffer length
-	buffer	[byte-ptr!]				;-- buffer for iocp poller
-	code	[integer!]				;-- operation code @@ change to uint8
-	state	[integer!]				;-- @@ change to unit8
+#enum sock-op-code! [
+	SOCK_OP_NONE
+	SOCK_OP_ACCEPT
+	SOCK_OP_CONN
+	SOCK_OP_READ
+	SOCK_OP_WRITE
+	SOCK_OP_READ_UDP
+	SOCK_OP_WRITE_UDP
 ]
 
 poller!: alias struct! [
 	maxn	[integer!]
-	port	[int-ptr!]
-	events	[OVERLAPPED_ENTRY!]
-	evt-cnt [integer!]
-]
-
-iocp: context [
-	create-data: func [
-		socket	[integer!]
-		return: [iocp-data!]
-		/local
-			data [iocp-data!]
-	][
-		;@@ TBD get iocp-data from the cache first
-		data: as iocp-data! alloc0 size? iocp-data!
-		data/sock: socket
-		data
-	]
-
-	bind: func [
-		p		[int-ptr!]
-		data	[iocp-data!]
-		/local
-			poller	[poller!]
-			port	[int-ptr!]
-	][
-		poller: as poller! p
-		if null? data/port [
-			port: CreateIoCompletionPort as int-ptr! data/sock poller/port null 0
-			if port <> poller/port [
-				probe "iocp bind error"
-			]
-			data/port: port
-		]
-	]
+	epfd	[integer!]				;-- the epoll fd
+	events	[epoll_event!]			;-- the events
+	nevents [integer!]				;-- the events count
 ]
 
 poll: context [
@@ -80,8 +37,8 @@ poll: context [
 	][
 		p: as poller! alloc0 size? poller!
 		p/maxn: 65536
-		p/port: CreateIoCompletionPort INVALID_HANDLE null null 0
-		assert p/port <> INVALID_HANDLE
+		p/epfd: epoll_create1 00080000h
+		assert p/epfd > 0
 
 		sockdata/init
 
@@ -94,7 +51,7 @@ poll: context [
 			p	[poller!]
 	][
 		p: as poller! ref
-		CloseHandle p/port
+		_close p/epfd
 		if p/events <> null [
 			free as byte-ptr! p/events
 		]
@@ -103,13 +60,16 @@ poll: context [
 
 	kill: func [][]
 
-	insert: func [
+	add: func [
 		ref		[int-ptr!]
 		sock	[int-ptr!]
 		events	[integer!]
 		data	[int-ptr!]
+		/local
+			p	[poller!]
 	][
-		
+		p: as poller! ref
+		epoll_ctl sock 
 	]
 
 	remove: func [][]

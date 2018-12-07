@@ -10,8 +10,6 @@ Red/System [
 	}
 ]
 
-g-poller: as int-ptr! 0
-
 #enum iocp-op-code! [
 	IOCP_OP_NONE
 	IOCP_OP_ACCEPT
@@ -22,7 +20,7 @@ g-poller: as int-ptr! 0
 	IOCP_OP_WRITE_UDP
 ]
 
-iocp-data!: alias struct! [
+sockdata!: alias struct! [
 	ovlap	[OVERLAPPED! value]		;-- the overlapped struct
 	cell	[cell! value]			;-- the port! cell
 	port	[int-ptr!]				;-- the bound iocp port
@@ -44,19 +42,19 @@ poller!: alias struct! [
 iocp: context [
 	create-data: func [
 		socket	[integer!]
-		return: [iocp-data!]
+		return: [sockdata!]
 		/local
-			data [iocp-data!]
+			data [sockdata!]
 	][
 		;@@ TBD get iocp-data from the cache first
-		data: as iocp-data! alloc0 size? iocp-data!
+		data: as sockdata! alloc0 size? sockdata!
 		data/sock: socket
 		data
 	]
 
 	bind: func [
 		p		[int-ptr!]
-		data	[iocp-data!]
+		data	[sockdata!]
 		/local
 			poller	[poller!]
 			port	[int-ptr!]
@@ -127,7 +125,7 @@ poll: context [
 			err		[integer!]
 			i		[integer!]
 			e		[OVERLAPPED_ENTRY!]
-			data	[iocp-data!]
+			data	[sockdata!]
 			bin		[red-binary!]
 			msg		[red-object!]
 			type	[integer!]
@@ -154,7 +152,7 @@ poll: context [
 			i: 0
 			while [i < cnt][
 				e: p/events + i
-				data: as iocp-data! e/lpOverlapped
+				data: as sockdata! e/lpOverlapped
 				red-port: as red-object! :data/cell
 				msg: red-port
 				switch data/code [

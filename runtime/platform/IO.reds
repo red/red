@@ -10,6 +10,8 @@ Red/System [
 	}
 ]
 
+g-poller: as int-ptr! 0
+
 sockaddr_in!: alias struct! [				;-- 16 bytes
 	sin_family	[integer!]					;-- family and port
 	sin_addr	[integer!]
@@ -18,6 +20,28 @@ sockaddr_in!: alias struct! [				;-- 16 bytes
 ]
 
 #if OS <> 'Windows [#include %POSIX/definitions.reds]
+
+store-socket-data: func [
+	data		[int-ptr!]
+	red-port	[red-object!]
+	/local
+		state	[red-object!]
+][
+	state: as red-object! (object/get-values red-port) + port/field-state
+	integer/make-at (object/get-values state) + 1 as-integer data
+]
+
+get-socket-data: func [
+	red-port	[red-object!]
+	return:		[int-ptr!]
+	/local
+		state	[red-object!]
+		int		[red-integer!]
+][
+	state: as red-object! (object/get-values red-port) + port/field-state
+	int: as red-integer! (object/get-values state) + 1
+	as int-ptr! int/value
+]
 
 tcp-client: func [
 	p		[red-object!]

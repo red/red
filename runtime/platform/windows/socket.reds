@@ -12,42 +12,20 @@ Red/System [
 
 #define AF_INET6	23
 
-store-iocp-data: func [
-	data		[iocp-data!]
-	red-port	[red-object!]
-	/local
-		state	[red-object!]
-][
-	state: as red-object! (object/get-values red-port) + port/field-state
-	integer/make-at (object/get-values state) + 1 as-integer data
-]
-
-get-iocp-data: func [
-	red-port	[red-object!]
-	return:		[iocp-data!]
-	/local
-		state	[red-object!]
-		int		[red-integer!]
-][
-	state: as red-object! (object/get-values red-port) + port/field-state
-	int: as red-integer! (object/get-values state) + 1
-	as iocp-data! int/value
-]
-
 create-red-port: func [
 	proto		[red-object!]
 	sock		[integer!]
 	return:		[red-object!]
 	/local
 		p		[red-object!]
-		data	[iocp-data!]
+		data	[sockdata!]
 ][
 	data: iocp/create-data sock
 	sockdata/insert sock as int-ptr! data
 	p: port/make none-value object/get-values proto TYPE_NONE
 	block/rs-append red-port-buffer as cell! p
 	copy-cell as cell! p as cell! :data/cell
-	store-iocp-data data p
+	store-socket-data as int-ptr! data p
 	p
 ]
 
@@ -97,16 +75,16 @@ socket: context [
 		acpt	 [integer!]
 		/local
 			n		 [integer!]
-			data	 [iocp-data!]
+			data	 [sockdata!]
 			AcceptEx [AcceptEx!]
 	][
-		data: as iocp-data! sockdata/get sock
+		data: as sockdata! sockdata/get sock
 		if null? data [
 			data: iocp/create-data sock
 			sockdata/insert sock as int-ptr! data
 		]
 		copy-cell as cell! red-port as cell! :data/cell
-		store-iocp-data data red-port
+		store-socket-data as int-ptr! data red-port
 		iocp/bind g-poller data
 
 		set-memory as byte-ptr! data null-byte size? OVERLAPPED!
@@ -143,17 +121,17 @@ socket: context [
 		type		[integer!]
 		/local
 			n		[integer!]
-			data	[iocp-data!]
+			data	[sockdata!]
 			saddr	[sockaddr_in! value]
 			ConnectEx [ConnectEx!]
 	][
-		data: as iocp-data! sockdata/get sock
+		data: as sockdata! sockdata/get sock
 		if null? data [
 			data: iocp/create-data sock
 			sockdata/insert sock as int-ptr! data
 		]
 		copy-cell as cell! red-port as cell! :data/cell
-		store-iocp-data data red-port
+		store-socket-data as int-ptr! data red-port
 		iocp/bind g-poller data
 
 		set-memory as byte-ptr! data null-byte size? OVERLAPPED!
@@ -193,10 +171,10 @@ socket: context [
 		/local
 			bin		[red-binary!]
 			pbuf	[WSABUF! value]
-			iodata	[iocp-data!]
+			iodata	[sockdata!]
 			n		[integer!]
 	][
-		iodata: get-iocp-data red-port
+		iodata: as sockdata! get-socket-data red-port
 		iocp/bind g-poller iodata
 
 		switch TYPE_OF(data) [
@@ -221,12 +199,12 @@ socket: context [
 	read: func [
 		red-port	[red-object!]
 		/local
-			iodata	[iocp-data!]
+			iodata	[sockdata!]
 			pbuf	[WSABUF!]
 			n		[integer!]
 			flags	[integer!]
 	][
-		iodata: get-iocp-data red-port
+		iodata: as sockdata! get-socket-data red-port
 		pbuf: as WSABUF! :iodata/buflen
 		if null? pbuf/buf [
 			pbuf/len: 1024 * 1024
@@ -246,9 +224,9 @@ socket: context [
 	close: func [
 		red-port	[red-object!]
 		/local
-			iodata	[iocp-data!]
+			iodata	[sockdata!]
 	][
-		iodata: get-iocp-data red-port
+		iodata: as sockdata! get-socket-data red-port
 		if iodata/buffer <> null [
 			free iodata/buffer
 			iodata/buffer: null

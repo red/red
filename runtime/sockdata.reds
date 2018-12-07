@@ -60,6 +60,7 @@ sockdata: context [
 
 	destroy: func [][
 		free as byte-ptr! data
+		data: null
 		maxn: 0
 	]
 ]

@@ -115,8 +115,8 @@ timespec!: alias struct! [
 		]
 		#import [
 			LIBC-file cdecl [
-				epoll_create: "epoll_create" [
-					size	[integer!]
+				epoll_create1: "epoll_create1" [
+					flags	[integer!]
 					return: [integer!]
 				]
 				epoll_ctl: "epoll_ctl" [
