@@ -844,13 +844,14 @@ Red [
 		f: func[os][os] 
 		--assert equal? 1 f 1
 		unset 'os
+		; FIXME: only -t Linux compiler complains about equal? 1 os=unset
 		f: has [os][os: 1] 
 		--assert equal? 1 f
-		--assert error? try [equal? 1 os]
+		--assert error? do [try [equal? 1 os]]
 		unset 'os
 		f: has [os][os: 1 os] 
 		--assert equal? 1 f
-		--assert error? try [equal? 1 os]
+		--assert error? do [try [equal? 1 os]]
 		f: does [os: 1] 
 		--assert equal? 1 f
 		f: does [os: 1 os] 
@@ -1726,10 +1727,12 @@ Red [
 		; GUI
 
 	--test-- "#1501"
-		c: 0
-		foreach i make image! 100x100 [c: c + 1]
-		--assert equal? 10'000 c
-		unset 'c
+		#if all [value? 'image! datatype? :image!] [			; requires View
+			c: 0
+			foreach i make image! 100x100 [c: c + 1]
+			--assert equal? 10'000 c
+			unset 'c
+		]
 
 	; --test-- "#1502"
 		; GUI
@@ -2507,9 +2510,11 @@ b}
 		unset [sum2077 r]
 
 	--test-- "#2079"
-		i: make image! 2x2
-		--assert not error? try [foreach p i [p]]
-		unset 'i
+		#if all [value? 'image! datatype? :image!] [			; requires View
+			i: make image! 2x2
+			--assert not error? try [foreach p i [p]]
+			unset 'i
+		]
 
 	; --test-- "#2081"
 		; GUI
