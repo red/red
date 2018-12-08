@@ -1727,7 +1727,7 @@ Red [
 		; GUI
 
 	--test-- "#1501"
-		#if all [value? 'image! datatype? :image!] [			; requires View
+		if all [value? 'image! datatype? :image!] [			; requires View
 			c: 0
 			foreach i make image! 100x100 [c: c + 1]
 			--assert equal? 10'000 c
@@ -2510,7 +2510,7 @@ b}
 		unset [sum2077 r]
 
 	--test-- "#2079"
-		#if all [value? 'image! datatype? :image!] [			; requires View
+		if all [value? 'image! datatype? :image!] [			; requires View
 			i: make image! 2x2
 			--assert not error? try [foreach p i [p]]
 			unset 'i
