@@ -138,8 +138,8 @@ Red [
 		--assert error? try [load {#"""}]
 
 	--test-- "#306"
-		s: mold []
-		--assert equal? #"[" s/1
+		s306: mold []
+		--assert equal? #"[" s306/1
 
 	--test-- "#308"
 		; NOTE: using just `foo` won't compile -- see #2207
@@ -171,9 +171,9 @@ Red [
 		; not sure what is the buggy behaviour, there’s no example
 
 	--test-- "#331"
-		foo: func [] ["ERR"]
-		foo: func [] ["ok"]
-		--assert equal? "ok" foo
+		foo331: func [] ["ERR"]
+		foo331: func [] ["ok"]
+		--assert equal? "ok" foo331
 
 	; --test-- "#340"
 		; TODO
@@ -182,8 +182,8 @@ Red [
 		; TODO
 
 	--test-- "#345"
-		spec: spec-of :set
-		--assert (index? find spec 'value) < ((index? find spec /any))
+		spec345: spec-of :set
+		--assert (index? find spec345 'value) < ((index? find spec345 /any))
 
 	--test-- "#356"
 		--assert not error? try [if true []]
@@ -205,8 +205,8 @@ Red [
 		; TODO: #include problem
 
 	--test-- "#384"
-		f: func [/refine] [refine]
-		--assert not f
+		f384: func [/refine] [refine]
+		--assert not f384
 
 	; --test-- "#385"
 		; TODO
@@ -232,65 +232,65 @@ Red [
 		--assert not error? try [do [append [] 1]]
 
 	--test-- "#399"
-		x: 1
+		x399: 1
 
-		f: function [
+		f399: function [
 		][
-			x: 2
-			b: [x]
+			x399: 2
+			b: [x399]
 			do b
 		]
-		--assert equal? 2 f
+		--assert equal? 2 f399
 
 	--test-- "#400"
-		r: none
-		t: none
-		r: all [
+		r400: none
+		t400: none
+		r400: all [
 			any [
 				true
-				t: "*"
+				t400: "*"
 				true
 			]	
 		]
-		--assert none? t		; `any` short-circuits on 1st true
-		--assert true? r
-		r: none
-		t: none
+		--assert none? t400		; `any` short-circuits on 1st true
+		--assert true? r400
+		r400: none
+		t400: none
 		--assert true? all [
 			any [
 				false
-				t: "*"
+				t400: "*"
 				true
 			]
-			r: "!"
+			r400: "!"
 		]
-		--assert equal? t "*"
-		--assert equal? r "!"
-		r: none
-		t: none
+		--assert equal? t400 "*"
+		--assert equal? r400 "!"
+		r400: none
+		t400: none
 		--assert true? all [
 			any [
 				none
-				t: "*"
+				t400: "*"
 				true
 			]
-			r: "!"
+			r400: "!"
 		]
-		--assert equal? t "*"
-		--assert equal? r "!"
-		unset [r t]
+		--assert equal? t400 "*"
+		--assert equal? r400 "!"
+		unset [r400 t400]
 
 	--test-- "#401"
-		y: none ; prevent " undefined word y" compiler error
-		set 'x 'y
+		y401: none ; prevent " undefined word y401" compiler error
+		set 'x 'y401
 		set x 1
-		--assert equal? 1 y
+		--assert equal? 1 y401
 		do [set x 1]
-		--assert equal? 1 y
-		unset [x y]
+		--assert equal? 1 y401
+		unset [x y401]
 
 	--test-- "#403"
-		f: func [
+		f403: func [
 			a       [block!]
 			return: [block!]
 			/local  b x
@@ -298,39 +298,39 @@ Red [
 			b: copy []
 
 			either block? x: a/1 [
-				append/only b  f x
+				append/only b  f403 x
 			][
 				append b x
 			]
 			b
 		]
-		--assert equal? [1] f [1]
-		--assert equal? [[2]] f [[2]]
-		--assert equal? [[[3]]] f [[[3]]]
-		unset 'f
+		--assert equal? [1] f403 [1]
+		--assert equal? [[2]] f403 [[2]]
+		--assert equal? [[[3]]] f403 [[[3]]]
+		unset 'f403
 
 	--test-- "#404"
-		x: 'y
-		y: 1
-		--assert equal? 'y x
-		--assert equal? 'y get 'x
-		--assert equal? 1 get x
-		--assert equal? 1 do [get x]
+		x404: 'y404
+		y404: 1
+		--assert equal? 'y404 x404
+		--assert equal? 'y404 get 'x404
+		--assert equal? 1 get x404
+		--assert equal? 1 do [get x404]
 
 	--test-- "#409"
-		g: func [
+		g409: func [
 			b [block!]
 		] [
 			reduce [b do b]
 		]
-		f: func [
+		f409: func [
 			"!"
 			x
 			/r
 		] [
-			g [x]
+			g409 [x]
 		]
-		--assert equal? [[x] "!"] f "!"
+		--assert equal? [[x] "!"] f409 "!"
 
 	; --test-- "#411"
 		; TODO
@@ -339,12 +339,12 @@ Red [
 		; TODO: should check compilation time
 
 	--test-- "#416"
-		b: [none]
-		f: func [p q] [
+		b416: [none]
+		f416: func [p q] [
 			reduce [p q]
 		]
-		--assert equal? [1 none] do [f 1 b/1]
-		unset [b f]
+		--assert equal? [1 none] do [f416 1 b416/1]
+		unset [b416 f416]
 
 	; --test-- "#418"
 		; see #420
@@ -362,17 +362,17 @@ Red [
 		; compiler behaviour
 
 	--test-- "#427"
-		out: copy ""
-		f: func [
+		out427: copy ""
+		f427: func [
 			/local count
 		] [
 			repeat count 5 [
-				append out count
+				append out427 count
 			]
 		]
-		f
-		--assert equal? "12345" out
-		unset 'out
+		f427
+		--assert equal? "12345" out427
+		unset 'out427
 
 	--test-- "#429"
 		--assert equal? {#"^^-"} mold tab
@@ -382,38 +382,38 @@ Red [
 		--assert equal? " a  a " form [[""] [a] [] [a] [[[]]]]
 
 	--test-- "#431"
-		--assert error? try [val: print ""]
-		unset 'val
+		--assert error? try [val431: print ""]
+		unset 'val431
 
 	; --test-- "#432"
 		; TODO
 
 	--test-- "#443"
 		unset [i j]
-		f: function [] [out: copy [] foreach [i j] [1 2 3 4] [append out i] out]
-		--assert equal? [1 3] f
-		--assert equal? [/local out i j] spec-of :f
+		f443: function [] [out: copy [] foreach [i j] [1 2 3 4] [append out i] out]
+		--assert equal? [1 3] f443
+		--assert equal? [/local out i j] spec-of :f443
 		--assert error? try [do [i]]
 		--assert error? try [do [j]]
-		unset [f out]
+		unset [f443 out]
 
 	--test-- "#449"
-		s: copy ""
-		--assert equal? "1111111111" append/dup s #"1" 10
-		--assert equal? "1111111111" s
-		--assert equal? 10 length? s
-		unset 's
+		s449: copy ""
+		--assert equal? "1111111111" append/dup s449 #"1" 10
+		--assert equal? "1111111111" s449
+		--assert equal? 10 length? s449
+		unset 's449
 
 	--test-- "#455"
-		types: copy [] 
+		types455: copy [] 
 		foreach word words-of system/words [
 			all [
 				value? word 
-				append types type? get word
+				append types455 type? get word
 			]
 		]
-		--assert 1 < length? unique types
-		unset 'types
+		--assert 1 < length? unique types455
+		unset 'types455
 
 	--test-- "#457"
 		--assert equal? "b" find/tail "a/b" #"/"
@@ -430,13 +430,13 @@ Red [
 		--assert equal? "78" find/last/tail "123456378" #"3"
 
 	--test-- "#465"
-		s: make string! 0
-		append s #"B"
-		--assert equal? "B" s
-		append s #"C"
-		--assert equal? "BC" s
-		append s #"D"
-		--assert equal? "BCD" s
+		s465: make string! 0
+		append s465 #"B"
+		--assert equal? "B" s465
+		append s465 #"C"
+		--assert equal? "BC" s465
+		append s465 #"D"
+		--assert equal? "BCD" s465
 
 	; --test-- "#484"
 		; TODO
@@ -486,16 +486,16 @@ Red [
 		--assert none? x
 
 	--test-- "#511"
-		b: [x 0]
-		i: 'x
-		b/:i: 1
-		--assert equal? [x 1] b
-		unset [b i]
+		b511: [x 0]
+		i511: 'x
+		b511/:i511: 1
+		--assert equal? [x 1] b511
+		unset [b511 i511]
 
 	--test-- "#512"
-		x: 0
-		--assert zero? case [yes x]
-		unset 'x
+		x512: 0
+		--assert zero? case [yes x512]
+		unset 'x512
 
 	--test-- "#513"
 		--assert equal? {#"^^^^"} mold #"^^"
@@ -522,10 +522,10 @@ Red [
 		--assert not error? try [{{x}}]
 
 	--test-- "#524"
-		s: "^(1234)B"
-		--assert equal? "B" find s "B"
-		--assert equal? "B" find s next "AB"
-		unset 's
+		s524: "^(1234)B"
+		--assert equal? "B" find s524 "B"
+		--assert equal? "B" find s524 next "AB"
+		unset 's524
 
 	--test-- "#525"
 		--assert not error? try [load {^/}]
@@ -556,20 +556,20 @@ Red [
 		; TODO: #include path problem
 
 	--test-- "#558"
-		o: copy ""
-		foreach x 'a/b/c [append o x]
-		--assert equal? o "abc"
-		o: copy ""
-		foreach x quote (i + 1) [append o x]
-		--assert equal? o "i+1"
-		unset 'o
+		o558: copy ""
+		foreach x 'a/b/c [append o558 x]
+		--assert equal? o558 "abc"
+		o558: copy ""
+		foreach x quote (i + 1) [append o558 x]
+		--assert equal? o558 "i+1"
+		unset 'o558
 
 	--test-- "#559"
-		--assert equal? load "x/y:" quote x/y:
-		--assert equal? load "x:" quote x:
+		--assert equal? load "x559/y:" quote x559/y:
+		--assert equal? load "x559:" quote x559:
 
 	--test-- "#560"
-		fx: function [
+		fx560: function [
 			value
 			out	[string!]
 		][
@@ -577,7 +577,7 @@ Red [
 				string: copy ""
 
 				foreach x value [
-					fx x tail string
+					fx560 x tail string
 				]
 				insert insert insert out  0 string #"]"
 				out
@@ -587,20 +587,20 @@ Red [
 			]
 		]
 
-		fx [a [b c d]]
-		s: ""
-		--assert equal? "01:a,01:b,1:c,1:d,]]" s
-		unset [fx s]
+		fx560 [a [b c d]]
+		s560: ""
+		--assert equal? "01:a,01:b,1:c,1:d,]]" s560
+		unset [fx560 s560]
 
 	--test-- "#562"
 		--assert not parse "+" [any [#"+" if (no)]]
 
 	--test-- "#569"
-		size: 1
-		--assert equal? ["1"] parse "1" [collect [keep copy value size skip]]
-		size: 2
-		--assert equal? ["12"] parse "12" [collect [keep copy value size skip]]
-		unset 'size
+		size569: 1
+		--assert equal? ["1"] parse "1" [collect [keep copy value size569 skip]]
+		size569: 2
+		--assert equal? ["12"] parse "12" [collect [keep copy value size569 skip]]
+		unset 'size569
 
 	--test-- "#570"
 		--assert not strict-equal? 'a 'A
@@ -624,10 +624,10 @@ Red [
 		; console behaviour
 
 	--test-- "#586"
-		t: reduce [block!]
-		--assert equal? reduce [block!] find t block!
-		--assert equal? reduce [block!] find t type? []
-		unset 't
+		t586: reduce [block!]
+		--assert equal? reduce [block!] find t586 block!
+		--assert equal? reduce [block!] find t586 type? []
+		unset 't586
 
 	--test-- "#592"
 		--assert file? %x
@@ -639,23 +639,23 @@ Red [
 		--assert equal? [#"1"] parse "12" [collect [keep skip]]
 
 	--test-- "#594"
-		count: 0
-		letter: charset [#"a" - #"z" #"A" - #"Z"]
-		rule: [
+		count594: 0
+		letter594: charset [#"a" - #"z" #"A" - #"Z"]
+		rule594: [
 			some [
-				"end" end (count: count + 1)
-			|	letter
+				"end" end (count594: count594 + 1)
+			|	letter594
 			]
 		]
-		--assert parse "blahendslkjsfdend" rule
-		--assert 1 = count
-		unset [count letter rule]
+		--assert parse "blahendslkjsfdend" rule594
+		--assert 1 = count594
+		unset [count594 letter594 rule594]
 
 	--test-- "#596"
-		list: ""
-		parse "a" [collect into list some [keep skip]]
-		--assert equal? "a" head list
-		unset 'list
+		list596: ""
+		parse "a" [collect into list596 some [keep skip]]
+		--assert equal? "a" head list596
+		unset 'list596
 
 	--test-- "#598"
 		--assert equal? [""] parse "" [collect [(s: "") collect into s [] keep (s)]]
@@ -668,9 +668,9 @@ Red [
 		--assert equal? "<?>" head insert "" ["<?>"]
 
 	--test-- "#601"
-		b: [] parse "!" [collect into b [keep 0 skip]]
-		--assert empty? head b
-		unset 'b
+		b601: [] parse "!" [collect into b601 [keep 0 skip]]
+		--assert empty? head b601
+		unset 'b601
 
 	--test-- "#604"
 		--assert equal? "_" form "_"
@@ -685,25 +685,25 @@ Red [
 
 	--test-- "#616"
 		; NOTE: 'f must be function (as defined elswhere in this tests), 
-		; 		otherwise tests can’t be compiled, so we use 'fis here instead
-		;		same with g->gis
-		e: copy ""
-		fis: [b_c c_d]
-		append e fis
-		--assert equal? "b_cc_d" e
-		a: copy ""
-		c: [glp_set_prob_name glp_get_prob_name]
-		append a c
-		--assert equal? "glp_set_prob_nameglp_get_prob_name" a
-		b: copy ""
-		d: load "glp_set_prob_name glp_get_prob_name"
-		append b d
-		--assert equal? "glp_set_prob_nameglp_get_prob_name" b
-		gis: copy ""
-		h: [bc cd]
-		append gis h
-		--assert equal? "bccd" gis
-		unset [a b c d e fis gis h]
+		; 		otherwise tests can’t be compiled, so we use 'fis616 here instead
+		;		same with g->gis616
+		e616: copy ""
+		fis616: [b_c c_d]
+		append e616 fis616
+		--assert equal? "b_cc_d" e616
+		a616: copy ""
+		c616: [glp_set_prob_name glp_get_prob_name]
+		append a616 c616
+		--assert equal? "glp_set_prob_nameglp_get_prob_name" a616
+		b616: copy ""
+		d616: load "glp_set_prob_name glp_get_prob_name"
+		append b616 d616
+		--assert equal? "glp_set_prob_nameglp_get_prob_name" b616
+		gis616: copy ""
+		h616: [bc cd]
+		append gis616 h616
+		--assert equal? "bccd" gis616
+		unset [a616 b616 c616 d616 e616 fis616 gis616 h616]
 
 	--test-- "#625"
 		--assert equal? #"^(1F)" first "^(1f)"
@@ -725,7 +725,7 @@ Red [
 		]
 
 	--test-- "#646"
-		--assert not error? try [foreach x [] []]
+		--assert not error? try [foreach x646 [] []]
 
 	--test-- "#647"
 		--assert error? try [load "type? quote '1" ]
@@ -770,16 +770,16 @@ Red [
 		; console behaviour
 
 	--test-- "#699"
-		letter: charset "ABCDEF"
-		--assert parse "FFh" [2 8 letter #"h"]
+		letter699: charset "ABCDEF"
+		--assert parse "FFh" [2 8 letter699 #"h"]
 
 	--test-- "#702"
 		--assert not error? try [
-			command: [
+			command702: [
 				if-defined | if-not-defined | define | function | comment
 			]
 		]
-		unset 'command
+		unset 'command702
 
 	; --test-- "#704"
 		; console behaviour
@@ -798,10 +798,10 @@ Red [
 		;--assert not error? try [74789 * 849032]
 
 	--test-- "#714"
-		a: load/all "a"
-		b: load/all "b"
-		--assert equal? [a] a
-		--assert equal? [b] b
+		a714: load/all "a714"
+		b714: load/all "b714"
+		--assert equal? [a714] a714
+		--assert equal? [b714] b714
 
 	--test-- "#715"
 		--assert equal? "blahblah2" append "blah" "blah^2"
@@ -819,47 +819,47 @@ Red [
 		--assert equal? load {{^(line)}} "^/"
 
 	--test-- "#727"
-		x: 0
-		rule: [(x: 1)]
-		parse "a" [collect rule]
-		--assert equal? 1 x
-		unset 'x
+		x727: 0
+		rule727: [(x727: 1)]
+		parse "a" [collect rule727]
+		--assert equal? 1 x727
+		unset 'x727
 
 	--test-- "#757"
-		--assert not error? try [x: "^(FF)"]
-		unset 'x
+		--assert not error? try [x757: "^(FF)"]
+		unset 'x757
 
 	--test-- "#764"
 		; NOTE: some test cannot be compiled, because compiler refuses them
-		f: function[][os: 1] 
-		--assert equal? 1 f
-		f: function[][os: 1 os]
-		--assert equal? 1 f
-		f: function[os][os] 
-		--assert equal? 1 f 1
-		f:func[][os: 1] 
-		--assert equal? 1 f
-		f: func[][os: 1 os] 
-		--assert equal? 1 f
-		f: func[os][os] 
-		--assert equal? 1 f 1
-		unset 'os
+		f764: function[][os764: 1] 
+		--assert equal? 1 f764
+		f764: function[][os764: 1 os764]
+		--assert equal? 1 f764
+		f764: function[os764][os764] 
+		--assert equal? 1 f764 1
+		f764:func[][os764: 1] 
+		--assert equal? 1 f764
+		f764: func[][os764: 1 os764] 
+		--assert equal? 1 f764
+		f764: func[os764][os764] 
+		--assert equal? 1 f764 1
+		unset 'os764
 		; FIXME: only -t Linux compiler complains about equal? 1 os=unset
-		f: has [os][os: 1] 
-		--assert equal? 1 f
-		--assert error? do [try [equal? 1 os]]
-		unset 'os
-		f: has [os][os: 1 os] 
-		--assert equal? 1 f
-		--assert error? do [try [equal? 1 os]]
-		f: does [os: 1] 
-		--assert equal? 1 f
-		f: does [os: 1 os] 
-		--assert equal? 1 f
-		unset [f os]
+		f764: has [os764][os764: 1] 
+		--assert equal? 1 f764
+		--assert error? do [try [equal? 1 os764]]
+		unset 'os764
+		f764: has [os764][os764: 1 os764] 
+		--assert equal? 1 f764
+		--assert error? do [try [equal? 1 os764]]
+		f764: does [os764: 1] 
+		--assert equal? 1 f764
+		f764: does [os764: 1 os764] 
+		--assert equal? 1 f764
+		unset [f764 os764]
 
 	--test-- "#770"
-		f: function [][
+		f770: function [][
 			blk: [1 2 3 4 5]
 			foreach i blk [
 				case [
@@ -867,54 +867,54 @@ Red [
 				]
 			]
 		]
-		g: function [][if f [return 1]]
-		--assert equal? 1 g
-		f: function [][
+		g770: function [][if f770 [return 1]]
+		--assert equal? 1 g770
+		f770: function [][
 			case [
 				2 > 1 [return true]
 			]
 		]
-		g: function [][if f [return 1]]
-		--assert equal? 1 g
-		f: function [][if true [return true]]
-		g: function [][if f [return 1]]
-		--assert equal? 1 g
-		g: function [][if true [return 1]]
-		--assert equal? 1 g
-		f: function [][true ]
-		g: function [][if f [return 1]]
-		--assert equal? 1 g
-		f: function [][if true [return true]]
-		g: function [][if (f) [return 1]]
-		--assert equal? 1 g
-		f: function [][if true [return true]]
-		g: function [][if not not f [return 1]]
-		--assert equal? 1 g
-		f: function [][if true [return 'X]]
-		g: function [][if f [return 1]]
-		--assert equal? 1 g
-		unset [f g]
+		g770: function [][if f770 [return 1]]
+		--assert equal? 1 g770
+		f770: function [][if true [return true]]
+		g770: function [][if f770 [return 1]]
+		--assert equal? 1 g770
+		g770: function [][if true [return 1]]
+		--assert equal? 1 g770
+		f770: function [][true ]
+		g770: function [][if f770 [return 1]]
+		--assert equal? 1 g770
+		f770: function [][if true [return true]]
+		g770: function [][if (f770) [return 1]]
+		--assert equal? 1 g770
+		f770: function [][if true [return true]]
+		g770: function [][if not not f770 [return 1]]
+		--assert equal? 1 g770
+		f770: function [][if true [return 'X]]
+		g770: function [][if f770 [return 1]]
+		--assert equal? 1 g770
+		unset [f770 g770]
 
 	; --test-- "#776"
 		; console behaviour
 
 	--test-- "#785"
-		nd: charset [not #"0" - #"9"]
-		zero: charset #"0"
-		nd-zero: union nd zero
-		--assert not find nd #"0"
-		--assert not find nd #"1"
-		--assert find nd #"B"
-		--assert find nd #"}"
-		--assert find zero #"0"
-		--assert not find zero #"1"
-		--assert not find zero #"B"
-		--assert not find zero #"}"
-		--assert find nd-zero #"0"
-		--assert not find nd-zero #"1"
-		--assert find nd-zero #"B"
-		--assert find nd-zero #"}"
-		unset [nd zero nd-zero]
+		nd785: charset [not #"0" - #"9"]
+		zero785: charset #"0"
+		nd-zero785: union nd785 zero785
+		--assert not find nd785 #"0"
+		--assert not find nd785 #"1"
+		--assert find nd785 #"B"
+		--assert find nd785 #"}"
+		--assert find zero785 #"0"
+		--assert not find zero785 #"1"
+		--assert not find zero785 #"B"
+		--assert not find zero785 #"}"
+		--assert find nd-zero785 #"0"
+		--assert not find nd-zero785 #"1"
+		--assert find nd-zero785 #"B"
+		--assert find nd-zero785 #"}"
+		unset [nd785 zero785 nd-zero785]
 
 	--test-- "#787"
 		--assert equal? ["a"] head reduce/into "a" []
@@ -924,19 +924,19 @@ Red [
 		--assert not error? try [load "-2147483648"]
 
 	--test-- "#791"
-		blk: [2 #[none] 64 #[none]]
-		result: copy []
-		parse blk [
-			collect into result [
+		blk791: [2 #[none] 64 #[none]]
+		result791: copy []
+		parse blk791 [
+			collect into result791 [
 				any [
 					set s integer! keep (s) | skip
 				]
 			]
 		]
-		--assert equal? [2 64] result
-		--assert not tail? result
-		--assert equal? [2 64] head result
-		unset [blk result]
+		--assert equal? [2 64] result791
+		--assert not tail? result791
+		--assert equal? [2 64] head result791
+		unset [blk791 result791]
 
 	; --test-- "#796"
 		; console behaviour
@@ -954,20 +954,20 @@ Red [
 		; TODO: need more info
 
 	--test-- "#825"
-		the-text: "outside"
-		the-fun: function [] [the-text: "Hello, World!" print the-text]
-		--assert equal? spec-of :the-fun [/local the-text]
-		the-fun: func [] [the-text: "Hello, World!" print the-text]
-		--assert equal? spec-of :the-fun []
-		the-fun: function [/extern the-text] [the-text: "Hello, World!" print the-text]
-		--assert equal? spec-of :the-fun []
-		the-fun: func [/local the-text] [the-text: "Hello, World!" print the-text]
-		--assert equal? spec-of :the-fun [/local the-text]
-		the-fun: func [extern the-text] [the-text: "Hello, World!" print the-text]
-		--assert equal? spec-of :the-fun [extern the-text]
-		the-fun: func [local the-text] [the-text: "Hello, World!" print the-text]
-		--assert equal? spec-of :the-fun [local the-text]
-		unset [the-text the-fun]
+		the-text825: "outside"
+		the-fun825: function [] [the-text825: "Hello, World!" print the-text825]
+		--assert equal? spec-of :the-fun825 [/local the-text825]
+		the-fun825: func [] [the-text825: "Hello, World!" print the-text825]
+		--assert equal? spec-of :the-fun825 []
+		the-fun825: function [/extern the-text825] [the-text825: "Hello, World!" print the-text825]
+		--assert equal? spec-of :the-fun825 []
+		the-fun825: func [/local the-text825] [the-text825: "Hello, World!" print the-text825]
+		--assert equal? spec-of :the-fun825 [/local the-text825]
+		the-fun825: func [extern the-text825] [the-text825: "Hello, World!" print the-text825]
+		--assert equal? spec-of :the-fun825 [extern the-text825]
+		the-fun825: func [local the-text825] [the-text825: "Hello, World!" print the-text825]
+		--assert equal? spec-of :the-fun825 [local the-text825]
+		unset [the-text825 the-fun825]
 
 	; --test-- "#831"
 	; 	FIXME: not fixed yet, crashes compiler, see #2207
@@ -984,19 +984,19 @@ Red [
 		--assert equal? -1.0203 -1.0203
 
 	--test-- "#853"
-		the-text: "outside"
-		the-fun: function [
-			/extern the-text
+		the-text853: "outside"
+		the-fun853: function [
+			/extern the-text853
 		] [
-			the-text: "Hello, World!"  
-			the-text
+			the-text853: "Hello, World!"  
+			the-text853
 		]
-		--assert equal? the-fun "Hello, World!"
-		--assert equal? the-text "Hello, World!"
-		unset [the-text the-fun]
+		--assert equal? the-fun853 "Hello, World!"
+		--assert equal? the-text853 "Hello, World!"
+		unset [the-text853 the-fun853]
 
 	--test-- "#854"
-		f1: function [/r1 v1 v2 /r2 v3][
+		f854: function [/r1 v1 v2 /r2 v3][
 			out: copy {}
 			either r1 [
 				append out reduce [v1 v2]
@@ -1006,17 +1006,17 @@ Red [
 			either r2 [append out v3][append out "I'm not v3."]
 			out
 		]
-		--assert equal? f1 "We're not v1 or v2.I'm not v3."
+		--assert equal? f854 "We're not v1 or v2.I'm not v3."
 		--assert equal?
-			f1/r1 "I'm v1!" "I'm v2!"
+			f854/r1 "I'm v1!" "I'm v2!"
 			"I'm v1!I'm v2!I'm not v3."
 		--assert equal? 
-			f1/r1/r2 "I'm v1!" "I'm v2!" "I'm v3!"
+			f854/r1/r2 "I'm v1!" "I'm v2!" "I'm v3!"
 			"I'm v1!I'm v2!I'm v3!"
 		--assert equal? 
-			f1/r2/r1 "I'm v3!" "I'm v1!" "I'm v2!"
+			f854/r2/r1 "I'm v3!" "I'm v1!" "I'm v2!"
 			"I'm v1!I'm v2!I'm v3!"
-		unset 'f1
+		unset 'f854
 
 	--test-- "#856"
 		--assert equal? [a bčř 10] load "a bčř 10"
@@ -1028,15 +1028,15 @@ Red [
 		--assert word? first first [:a/b]
 
 	--test-- "#873"
-		parse s: "" [insert (#0)]
-		--assert equal? "0" head s
-		unset 's
+		parse s873: "" [insert (#0)]
+		--assert equal? "0" head s873
+		unset 's873
 
 	--test-- "#876"
 		--assert error? try [
-			foreach w words-of system/words [
-				if w = 'xx [
-					print [w tab type? get w]
+			foreach w876 words-of system/words [
+				if w876 = 'xx [
+					print [w876 tab type? get w876]
 				]
 			]
 		]
@@ -1048,7 +1048,7 @@ Red [
 		--assert error? try [load {p: [a/b:/c]}]
 
 	--test-- "#913"
-		person: make object! [
+		person913: make object! [
 			name: none
 			new: func [ n ][
 				make self [
@@ -1057,51 +1057,51 @@ Red [
 			]
 		]
 
-		Bob: person/new "Bob"
-		--assert equal? "Bob" Bob/name
-		unset [person Bob]
+		Bob913: person913/new "Bob913"
+		--assert equal? "Bob913" Bob913/name
+		unset [person913 Bob913]
 
 	--test-- "#919"
-		o: context [
+		o919: context [
 			a: 0
 			set 'f does [a: 1]
 		]
 		equal? f object [a: 1]
-		unset 'o
+		unset 'o919
 
 	--test-- "#920"
-		f: func [o [object!]] [
-			o/a: 1
+		f920: func [o920 [object!]] [
+			o920/a: 1
 		]
-		--assert equal? 1 f object [a: 0]
-		o: object [a: 0]
-		--assert equal? 1 f o
-		unset [f o]
+		--assert equal? 1 f920 object [a: 0]
+		o920: object [a: 0]
+		--assert equal? 1 f920 o920
+		unset [f920 o920]
 
 	--test-- "#927"
-		f: does [
+		f927: does [
 			object [
 				a: 1
 				g: does [a]
 			]
 		]
 
-		--assert object? obj: f
+		--assert object? obj927: f927
 
 		; FIXME: current known compiler limitation is that it treats `g` as `:g` when `g` is a function!
 		; using `do` as a temporary workaround for now
-		--assert do [1 = obj/g]
+		--assert do [1 = obj927/g]
 
-		obj: object [
+		obj927: object [
 			a: 1
-			f: does [a]
+			f927: does [a]
 		]
-		--assert equal? 1 obj/a
-		--assert equal? 1 obj/f
-		unset [f obj]
+		--assert equal? 1 obj927/a
+		--assert equal? 1 obj927/f927
+		unset [f927 obj927]
 
 	--test-- "#928"
-		o: object [
+		o928: object [
 			a: 1
 
 			c: context [
@@ -1110,67 +1110,67 @@ Red [
 				f: does [a]
 			]
 		]
-		--assert not error? try [o/c/f]
-		--assert equal? 1 o/c/f
-		unset 'o
+		--assert not error? try [o928/c/f]
+		--assert equal? 1 o928/c/f
+		unset 'o928
 
 	--test-- "#929"
-		out: copy ""
-		c: context [
+		out929: copy ""
+		c929: context [
 			f: does [
-				append out "*"
+				append out929 "*"
 			]
 			g: does [
 				do [f]
-				append out "!"
+				append out929 "!"
 				f
 			]
 		]
-		--assert equal? "*!*" c/g
-		unset [out c]
+		--assert equal? "*!*" c929/g
+		unset [out929 c929]
 
 	--test-- "#931"
-		p1: context [
+		p1-931: context [
 			a: 1
 			f: does [a]
 		]
 
-		p2: context [
+		p2-931: context [
 			a: 2
 		]
 
-		ch: make p1 p2
-		--assert equal? 2 ch/f
-		unset [p1 p2 ch]
+		ch931: make p1-931 p2-931
+		--assert equal? 2 ch931/f
+		unset [p1-931 p2-931 ch931]
 
 	--test-- "#932"
-		p1: context [
+		p1-932: context [
 			a: 1
 			f: does [a]
 		]
-		p2: context [
+		p2-932: context [
 			a: 2
 			f: does [100]
 		]
-		ch: make p1 p2
-		--assert equal? 100 ch/f
-		unset [p1 p2 ch]
+		ch932: make p1-932 p2-932
+		--assert equal? 100 ch932/f
+		unset [p1-932 p2-932 ch932]
 
 	--test-- "#939"
-		b: [#"x" #"y"]
-		--assert not error? try [b/(#"x")]
-		--assert equal? #"y" b/(#"x")
-		unset 'b
+		b939: [#"x" #"y"]
+		--assert not error? try [b939/(#"x")]
+		--assert equal? #"y" b939/(#"x")
+		unset 'b939
 
 	; --test-- "#943"
 		a943: none
 		b943: none
-	 	bar: func [/with a [block!] b][
+	 	bar943: func [/with a [block!] b][
 	 		a943: a 
 	 		b943: b
 	 	]
-	 	--assert error? try [bar/with 5 6]
-	 	bar/with [5] 6
+	 	--assert error? try [bar943/with 5 6]
+	 	bar943/with [5] 6
 	 	--assert a943 = [5]
 	 	--assert b943 = 6
 
@@ -1179,52 +1179,52 @@ Red [
 
 	--test-- "#971"
 		unset 'f
-		c: context [
+		c971: context [
 			set 'f does []
 		]
 		--assert not unset? 'f
-		unset [c f]
+		unset [c971 f]
 
 	--test-- "#973"
-		a: func [] [
+		a973: func [] [
 			repeat i 2 [i]
 		]
-		b: copy []
-		repeat j 2 [append b a]
-		--assert equal? [2 2] b
-		unset [a b]
+		b973: copy []
+		repeat j 2 [append b973 a973]
+		--assert equal? [2 2] b973
+		unset [a973 b973]
 
 	--test-- "#974"
 		--assert not error? try [random 3]
 
 	--test-- "#980"
-		c: context [
-			set 'f does []
+		c980: context [
+			set 'f980 does []
 		]
-		--assert not error? try [f]
-		unset [c f]
+		--assert not error? try [f980]
+		unset [c980 f980]
 
 	--test-- "#981"
-		b: [a: none]
-		--assert equal? object b context b
-		unset 'b
+		b981: [a: none]
+		--assert equal? object b981 context b981
+		unset 'b981
 
 	--test-- "#983"
-		f: func [
+		f983: func [
 			o
 		] [
 			switch o/x [
 				0 []
 			]
 		]
-		--assert unset? f object [x: 0]
-		unset 'f
+		--assert unset? f983 object [x: 0]
+		unset 'f983
 
 	; --test-- "#988"
 		; TODO: platform specific compilation problem
 
 	--test-- "#990"
-		f: func [
+		f990: func [
 			o [object!]
 		] [
 			switch type?/word o/x [
@@ -1233,11 +1233,11 @@ Red [
 				]
 			]
 		]
-		--assert equal? 'integer f object [x: 0]
-		unset 'f
+		--assert equal? 'integer f990 object [x: 0]
+		unset 'f990
 
 	--test-- "#993"
-		f: func [
+		f993: func [
 			o [object!]
 			/local a
 		] [
@@ -1247,8 +1247,8 @@ Red [
 				]
 			]
 		]
-		--assert not error? try [f object [x: 0]]
-		unset 'f
+		--assert not error? try [f993 object [x: 0]]
+		unset 'f993
 
 	; --test-- "#994"
 		; TODO: caused by Rebol GC bug
@@ -1256,17 +1256,21 @@ Red [
 	; --test-- "#995"
 		; TODO: architecture specific problem
 
+	unset 'true?
+
 ===end-group===
 
 
 ===start-group=== "issues #1001 - #2000"
 
+	true?: func [value] [not not value]
+
 	--test-- "#1001"
-		o: context [a: 1 b: "x"]
+		o1001: context [a: 1 b: "x"]
 		--assert equal? 
 			[integer! string!] 
-			collect [foreach w words-of o [keep type?/word get w]]
-		unset 'o
+			collect [foreach w words-of o1001 [keep type?/word get w]]
+		unset 'o1001
 
 	; --test-- "#1005"
 		; precompiled binary error
@@ -1299,15 +1303,14 @@ Red [
 ;		--assert not error? try [help]
 
 	 --test-- "#1074"
-	 	do [
-		 	unset 'd
-		 	--assert error? try [d]
-		 	x: [d 1]
-		 	--assert equal? 1 select x 'd
-		 	--assert error? try [select x d]
-		 	--assert error? try [d]
-		 	unset 'x
-	 	]
+	 	d1074: none
+	 	unset 'd1074
+	 	--assert error? try [d1074]
+	 	x1074: [d1074 1]
+	 	--assert equal? 1 select x1074 'd1074
+	 	--assert error? try [select x1074 d1074]
+	 	--assert error? try [d1074]
+	 	unset 'x1074
 
 	; --test-- "#1079"
 		; TODO: console behaviour
@@ -1347,10 +1350,10 @@ Red [
 	;--test-- "#1090"		;-- requires compilation
 
 	--test-- "#1093"
-		str: none ; othrwise compiler would complain that STR has no value
-		parse "abcde" ["xyz" | copy str to end]
-		--assert equal? "abcde" str
-		unset 'str
+		str1093: none ; othrwise compiler would complain that STR has no value
+		parse "abcde" ["xyz" | copy str1093 to end]
+		--assert equal? "abcde" str1093
+		unset 'str1093
 
 	; --test-- "#1098"
 		; console behaviour
@@ -1359,29 +1362,29 @@ Red [
 		; TODO
 
 	--test-- "#1113"
-		a: "abcz"  
-		b: 5 
-		--assert none? a/5 
-		--assert none? a/:b
-		--assert error? try [a/b]
-		unset [a b]
+		a1113: "abcz"  
+		b1113: 5 
+		--assert none? a1113/5 
+		--assert none? a1113/:b1113
+		--assert error? try [a1113/b1113]
+		unset [a1113 b1113]
 
 	; --test-- "#1115"
 		; console behaviour
 
 	--test-- "#1116"
-		o: object [
+		o1116: object [
 			sin*: :sin
 			set 'sin1116 does [
-				; FIXME: current known compiler limitation is that it treats `o/sin*` as `o/:sin*`
+				; FIXME: current known compiler limitation is that it treats `o1116/sin*` as `o1116/:sin*`
 				; using `do` as a temporary workaround for now
 				do [sin* none]
 			]
 		]
-		e: try [sin1116]
+		e1116: try [sin1116]
 		--assert true? all [
-			error? e
-			not equal? '<anon> e/arg3
+			error? e1116
+			not equal? '<anon> e1116/arg3
 		]
 
 	--test-- "#1119"
@@ -1403,30 +1406,30 @@ Red [
 		; console behaviour
 
 	--test-- "#1136"
-		e: try [load {a: func [][set 'b: 1]}]
+		e1136: try [load {a: func [][set 'b: 1]}]
 		--assert not not all [
-			equal? e/type 'syntax
-			equal? e/id 'invalid
-			equal? e/arg1 lit-word!
+			equal? e1136/type 'syntax
+			equal? e1136/id 'invalid
+			equal? e1136/arg1 lit-word!
 		]
 
 	--test-- "#1143"
 		--assert not error? try [
 			do [
-				a: object [
+				a1143: object [
 					b: object [
 						c: 1
 					]
 					d: does [
-						make a [b: none]
+						make a1143 [b: none]
 						probe b/c
 					]
 				]
-				a/d
+				a1143/d
 			]
 		]
-		--assert equal? 1 z: do [
-			a: object [
+		--assert equal? 1 z1143: do [
+			a1143: object [
 				b: object [
 					c: 1
 				]
@@ -1434,17 +1437,18 @@ Red [
 					probe b/c
 				]
 			]
-			e: copy/deep a
+			e: copy/deep a1143
 			f: make e [b: none]
-			a/d
+			a1143/d
 		]
 
-	--test-- "#1144"
-		f: function [][
-			op: :form
-			append op 1 2
-		]
-		--assert not error? try [a]
+	; --test-- "#1144"
+	;	; FIXME: still open
+	; 	f1144: function [][
+	; 		op: :form
+	; 		append op 1 2
+	; 	]
+	; 	--assert not error? try [f1144]
 
 	; --test-- "#1146"
 		; console behaviour
@@ -1453,53 +1457,53 @@ Red [
 		; console behaviour
 
 	--test-- "#1148"
-		try-func: func [v [block!]][error? try v]
-		--assert try-func [unset-word]
+		try-func1148: func [v [block!]][error? try v]
+		--assert try-func1148 [unset-word]
 
 	; --test-- "#1153"
 		; TODO
 
 	--test-- "#1154"
-	f: function [
+	f1154: function [
 		/s string [string!]
 		/i integer [integer!]
 	][]
-	--assert not error? try [do [f/i/s 1 "a"]]
+	--assert not error? try [do [f1154/i/s 1 "a"]]
 
 	--test-- "#1158"
-		ret: copy []
-		v: make vector! [1 2 3 4 5 6 7 8 9]
-		foreach [v1 v2 v3] v [repend ret [v1 v2 V3]]
-		--assert equal? [1 2 3 4 5 6 7 8 9] ret
-		unset [v ret]
+		ret1158: copy []
+		v1158: make vector! [1 2 3 4 5 6 7 8 9]
+		foreach [v1 v2 v3] v1158 [repend ret1158 [v1 v2 V3]]
+		--assert equal? [1 2 3 4 5 6 7 8 9] ret1158
+		unset [v1158 ret1158]
 
 	--test-- "#1160"
-		abc: 2
-		--assert not error? try [print [ABC]]
+		abc1160: 2
+		--assert not error? try [print [ABC1160]]
 
 	--test-- "#1163"
-		f: function [
+		f1163: function [
 			/l
 		][
 			b: []
 			if l [return b]
 			append b 1
 		]
-		--assert not error? try [foreach a f/l [print a]]
-		f: does [return [1]]
-		--assert not error? foreach a f [print a]
-		unset [b f] ; cleanup
+		--assert not error? try [foreach a1163 f1163/l [print a1163]]
+		f1163: does [return [1]]
+		--assert not error? foreach a1163 f1163 [print a1163]
+		unset 'f1163
 
 	; --test-- "#1164"
 		; console behaviour
 
 	--test-- "#1167"
-		ret: copy []
+		ret1167: copy []
 		--assert block? case/all [
- 			1 < 2 [append ret 1]
-    		true [append ret 2]
+ 			1 < 2 [append ret1167 1]
+    		true [append ret1167 2]
 		]
-		--assert equal? [1 2] ret
+		--assert equal? [1 2] ret1167
 
 	; --test-- "#1169"
 		; console behaviour
@@ -1508,18 +1512,18 @@ Red [
 		; console behaviour
 
 	--test-- "#1199"
-		test: func [input [block!] /local exp-res reason] [
+		test1199: func [input [block!] /local exp-res reason] [
 			exp-res: get input/expect
 		]
-		--assert not error? try [test ["" expect true]]
+		--assert not error? try [test1199 ["" expect true]]
 
 	--test-- "#1206"
-		m: #(a 1 b 2)
-		m/a: none
-		m/a: none
-		--assert equal? m #(b 2)
-		--assert equal? [b] keys-of m
-		--assert equal? [2] values-of m
+		m1206: #(a 1 b 2)
+		m1206/a: none
+		m1206/a: none
+		--assert equal? m1206 #(b 2)
+		--assert equal? [b] keys-of m1206
+		--assert equal? [2] values-of m1206
 
 	--test-- "#1209"
 		; should test for freeze
@@ -1532,8 +1536,8 @@ Red [
 		--assert error? try [load "p: [a/b:/c]"]
 
 	--test-- "#1222"
-		o: make object! [a: 1 b: 7 c: 13]
-		--assert error? try [o/("c")]
+		o1222: make object! [a: 1 b: 7 c: 13]
+		--assert error? try [o1222/("c")]
 
 	; --test-- "#1232"
 		; TODO
@@ -1544,9 +1548,9 @@ Red [
 ;		--assert equal? 'case e/arg2
 
 	--test-- "#1243"
-		b: ["A" "a" "b" "B"]
-		d: ["E" "e" "b" "B"]
-		--assert equal? ["A" "a" "b" "B" "E" "e"] union/skip b d 2
+		b1243: ["A" "a" "b1243" "B"]
+		d1243: ["E" "e" "b1243" "B"]
+		--assert equal? ["A" "a" "b1243" "B" "E" "e"] union/skip b1243 d1243 2
 
 	; --test-- "#1245"
 		; TODO
@@ -1561,9 +1565,9 @@ Red [
 		--assert equal? -1x-2 negate 1x2
 
 	--test-- "#1275"
-		o: context [f: does [self]]
-		x: o/f
-		--assert same? o x
+		o1275: context [f: does [self]]
+		x1275: o1275/f
+		--assert same? o1275 x1275
 
 	; --test-- "#1281"
 		; TODO
@@ -1575,9 +1579,9 @@ Red [
 		; GUI
 
 	--test-- "#1307"
-		h: make hash! [1x2 0 3x4 1]
-		--assert equal? 0 select h 1x2
-		--assert equal? make hash! [3x4 1] find h 3x4
+		h1307: make hash! [1x2 0 3x4 1]
+		--assert equal? 0 select h1307 1x2
+		--assert equal? make hash! [3x4 1] find h1307 3x4
 
 	--test-- "#1329"
 		--assert not error? try [and~ #{01} #{FF}]
@@ -1599,25 +1603,25 @@ Red [
 		--assert error? try [read %""]
 
 	--test-- "#1396"
-		e: try [load {(5+2)}]
+		e1396: try [load {(5+2)}]
 		--assert all [
-			equal? e/id 'invalid
-			equal? e/arg1 integer!
+			equal? e1396/id 'invalid
+			equal? e1396/arg1 integer!
 		]
-		e: try [load {[5+2]}]
+		e1396: try [load {[5+2]}]
 		--assert all [
-			equal? e/id 'invalid
-			equal? e/arg1 integer!
+			equal? e1396/id 'invalid
+			equal? e1396/arg1 integer!
 		]
 
 	--test-- "#1416"
-		a: "1234" 
-		b: skip a 2 
-		copy/part b a
+		a1416: "1234" 
+		b1416: skip a1416 2 
+		copy/part b1416 a1416
 		
-		a: skip "1234" 2
-		--assert equal? "12" copy/part a -2
-		unset [a b]
+		a1416: skip "1234" 2
+		--assert equal? "12" copy/part a1416 -2
+		unset [a1416 b1416]
 
 	--test-- "#1417"
 		--assert not error? try [-5 // 3]
@@ -1633,7 +1637,7 @@ Red [
 		--assert not 1.0 == 1
 
 	--test-- "#1420"
-		--assert not error? try [o: make object! compose [a: (add 1 1)]]
+		--assert not error? try [o1420: make object! compose [a: (add 1 1)]]
 
 	; --test-- "#1422"
 		; GUI
@@ -1708,9 +1712,9 @@ Red [
 
 	--test-- "#1490"
 		; should check for crash
-		o: make object! [f: 5]
-		--assert error? try [do load {set [o/f] 10}]
-		unset 'o
+		o1490: make object! [f: 5]
+		--assert error? try [do load {set [o1490/f] 10}]
+		unset 'o1490
 
 	; --test-- "#1493"
 		; GUI
@@ -1719,31 +1723,32 @@ Red [
 		; GUI
 
 	--test-- "#1499"
-		unset 'b
-		--assert error? try [get 'b]
-		--assert unset? get/any 'b
+		b1499: none
+		unset 'b1499
+		--assert error? try [get 'b1499]
+		--assert unset? get/any 'b1499
 
 	; --test-- "#1500"
 		; GUI
 
 	--test-- "#1501"
 		if all [value? 'image! datatype? :image!] [			; requires View
-			c: 0
-			foreach i make image! 100x100 [c: c + 1]
-			--assert equal? 10'000 c
-			unset 'c
+			c1501: 0
+			foreach i1501 make image! 100x100 [c1501: c1501 + 1]
+			--assert equal? 10'000 c1501
+			unset 'c1501
 		]
 
 	; --test-- "#1502"
 		; GUI
 
 	--test-- "#1509"
-		ctx: object [
+		ctx1509: object [
 			f: func [val /ref][val] 
 			t: does [f/ref 1]
 		]
-		not error? try [ctx/t]
-		unset 'ctx
+		not error? try [ctx1509/t]
+		unset 'ctx1509
 
 	--test-- "#1515"
 		--assert not error? try [1.222090944E+33 // -2147483648.0] ; expected 0
@@ -1773,9 +1778,9 @@ Red [
 		; GUI
 
 	--test-- "#1542"
-		fl: to float! 7
-		--assert 7 = to integer! fl
-		unset 'fl
+		fl1542: to float! 7
+		--assert 7 = to integer! fl1542
+		unset 'fl1542
 
 	; --test-- "#1551"
 		; GUI
@@ -1829,10 +1834,10 @@ Red [
 		; GUI console behaviour
 
 	--test-- "#1590"
-		str: "1.1.1"
-		find/part str "1." 2
-		--assert equal? "1.1" str: skip str 2
-		unset 'str
+		str1590: "1.1.1"
+		find/part str1590 "1." 2
+		--assert equal? "1.1" str1590: skip str1590 2
+		unset 'str1590
 		
 	; --test-- "#1591"
 		; console behaviour
@@ -1910,9 +1915,9 @@ Red [
 		; GUI
 
 	--test-- "#1680"
-		f: func [] [keys-of #(1 2) none]
-		--assert not error? try [f]
-		unset 'f
+		f1680: func [] [keys-of #(1 2) none]
+		--assert not error? try [f1680]
+		unset 'f1680
 
 	; --test-- "#1683"
 		; GUI
@@ -1951,40 +1956,40 @@ Red [
 		; FIXME: example throws error: eval-command has no value
 
 	--test-- "#1741"
-		--assert not error? try [foreach a [1 2 3 4][break]]
-		--assert not error? try [repeat n 4 [break]]
+		--assert not error? try [foreach a1741 [1 2 3 4][break]]
+		--assert not error? try [repeat n1741 4 [break]]
 
 	; --test-- "#1745"
 		; GUI
 
 	--test-- "#1746"
 		; should check for crash
-		s: make object! [m: func [][] b: func [arg] [compose/deep [(arg)]]]
-		s2: make s []
-		--assert equal? [1] s/b 1
-		unset [s s2]
+		s1746: make object! [m: func [][] b: func [arg] [compose/deep [(arg)]]]
+		s2: make s1746 []
+		--assert equal? [1] s1746/b 1
+		unset [s1746 s2]
 
 	--test-- "#1750"
-		e: try [load "2#{FF}"]
+		e1750: try [load "2#{FF}"]
 		--assert all [
-			equal? e/type 'syntax
-			equal? e/id 'invalid
-			equal? e/arg1 binary!
+			equal? e1750/type 'syntax
+			equal? e1750/id 'invalid
+			equal? e1750/arg1 binary!
 		]
-		e: try [load "64#{AA}"]
+		e1750: try [load "64#{AA}"]
 		--assert all [
-			equal? e/type 'syntax
-			equal? e/id 'invalid
-			equal? e/arg1 binary!
+			equal? e1750/type 'syntax
+			equal? e1750/id 'invalid
+			equal? e1750/arg1 binary!
 		]
-		e: try [load "4#{0}"]
+		e1750: try [load "4#{0}"]
 		--assert all [
-			equal? e/type 'syntax
-			equal? e/id 'invalid
-			equal? e/arg1 integer!
+			equal? e1750/type 'syntax
+			equal? e1750/id 'invalid
+			equal? e1750/arg1 integer!
 		]
 		not error? try [load "16#{AA}"]
-		unset 'e
+		unset 'e1750
 
 	; --test-- "#1751"
 		; TODO: R/S
@@ -2166,24 +2171,24 @@ Red [
 			head insert/dup "abcde" #"X" 3
 
 	--test-- "#1807"
-		m: #(a: 1)
-		a: m/a
-		--assert not error? try [probe a]
-		--assert not error? try [print type? a]
-		--assert not error? try [?? a]
-		unset [a m]
+		m1807: #(a1807: 1)
+		a1807: m1807/a1807
+		--assert not error? try [probe a1807]
+		--assert not error? try [print type? a1807]
+		--assert not error? try [?? a1807]
+		unset [a1807 m1807]
 
 	; --test-- "#1809"
 		; GUI
 
 	--test-- "#1814"
-		t: 1.4.3
-		--assert equal? 1 min min t/1 t/2 t/3
-		--assert equal? 4 max max t/1 t/2 t/3
-		--assert equal? 49 50 - t/1
-		--assert equal? 21 20 + t/1
-		--assert equal? 21 t/1 + 20
-		unset 't
+		t1814: 1.4.3
+		--assert equal? 1 min min t1814/1 t1814/2 t1814/3
+		--assert equal? 4 max max t1814/1 t1814/2 t1814/3
+		--assert equal? 49 50 - t1814/1
+		--assert equal? 21 20 + t1814/1
+		--assert equal? 21 t1814/1 + 20
+		unset 't1814
 
 	; --test-- "#1816"
 		; GUI
@@ -2203,15 +2208,15 @@ Red [
 		--assert equal? #(a: 3) extend/case extend/case make map! [a 1] [a 2] [a 3]
 
 	--test-- "#1835"
-		m: make map! [a 1 A 2]
-		--assert equal? 2 select/case m 'A
-		--assert equal? 1 select/case m 'a
+		m1835: make map! [a 1 A1835 2]
+		--assert equal? 2 select/case m1835 'A1835
+		--assert equal? 1 select/case m1835 'a
 		--assert equal?
 			make map! [a: 1 a 2]
 			make map! [a 1 a: 2]
-		m: make map! [a 1 A 2 a: 3 :a 4]
-		--assert equal? m #(a: 4 A: 2)
-		unset 'm
+		m1835: make map! [a 1 A1835 2 a: 3 :a 4]
+		--assert equal? m1835 #(a: 4 A1835: 2)
+		unset 'm1835
 
 	; --test-- "#1838"
 		; GUI
@@ -2230,7 +2235,7 @@ Red [
 
 	--test-- "#1867"
 		; TODO: original error should result in endless loop. how to check it?
-		rule: [
+		rule1867: [
 			any [
 				to "[" 
 				start-mark: 
@@ -2242,9 +2247,9 @@ Red [
 				(insert/only remove/part start-mark end-mark content)
 			]
 		]
-		x: [1 2 "[" a b "]" 3 4]
-		--assert parse x rule
-		unset [rule x]
+		x1867: [1 2 "[" a b "]" 3 4]
+		--assert parse x1867 rule1867
+		unset [rule1867 x1867]
 
 	; --test-- "#1869"
 		; GUI
@@ -2262,30 +2267,31 @@ Red [
 		; Rebol GC bug
 
 	--test-- "#1881"
+		a1881: none
 		--assert not error? try [
-			rule: [ 
+			rule1881: [ 
 				any [
-					mark: set a [ any-word! ] (
+					mark1881: set a1881 [ any-word! ] (
 						if [ ][ ]
-					) | into rule | skip
+					) | into rule1881 | skip
 				] 
 			]
 		]
-		unset [rule mark]
+		unset [rule1881 mark1881]
 
 	--test-- "#1882"
-		a: "X"
-		digit: charset "0123456789"
-		content: "a&&1&&2&&3m"
-		block: copy [] 
-		parse content [
-			collect into block any [
-				remove keep ["&&" some digit] insert (a) 
+		a1882: "X"
+		digit1882: charset "0123456789"
+		content1882: "a&&1&&2&&3m"
+		block1882: copy [] 
+		parse content1882 [
+			collect into block1882 any [
+				remove keep ["&&" some digit1882] insert (a1882) 
 			|	skip
 			]
 		]
-		--assert equal? content "aXXXm"
-		unset [a digit content block]
+		--assert equal? content1882 "aXXXm"
+		unset [a1882 digit1882 content1882 block1882]
 
 	; --test-- "#1883"
 		; GUI
@@ -2294,11 +2300,11 @@ Red [
 		; GUI
 
 	--test-- "#1887"
-		s: {a
+		s1887: {a
 b}
-		--assert equal? {a^/b} s
-		--assert not equal? {a^M^/b} s
-		unset 's
+		--assert equal? {a^/b} s1887
+		--assert not equal? {a^M^/b} s1887
+		unset 's1887
 
 	; --test-- "#1889"
 		; GUI
@@ -2314,21 +2320,21 @@ b}
 		; GUI
 
 	--test-- "#1905"
-		x: [a b c 4 d e f]
-		move/part x skip x 3 2
-		--assert equal? x [c 4 a b d e f]
-		unset 'x
+		x1905: [a b c 4 d e f]
+		move/part x1905 skip x1905 3 2
+		--assert equal? x1905 [c 4 a b d e f]
+		unset 'x1905
 
 	; --test-- "#1910"
 		; GUI
 
 	--test-- "#1911"
-		m: make map! []
-		k: "a"
-		put m k 1
-		k: "b"
-		--assert error? try [set m k]
-		unset [m k]
+		m1911: make map! []
+		k1911: "a"
+		put m1911 k1911 1
+		k1911: "b"
+		--assert error? try [set m1911 k1911]
+		unset [m1911 k1911]
 
 	; --test-- "#1916"
 		; GUI
@@ -2340,10 +2346,10 @@ b}
 		; GUI
 
 	--test-- "#1923"
-		a: [1 2 3] 
-		forall a [if a/1 = 2 [break]]
-		--assert equal? a [2 3]
-		unset 'a
+		a1923: [1 2 3] 
+		forall a1923 [if a1923/1 = 2 [break]]
+		--assert equal? a1923 [2 3]
+		unset 'a1923
 
 	; --test-- "#1925"
 		; OPEN
@@ -2369,9 +2375,10 @@ b}
 		; GUI console behaviour
 
 	--test-- "#1939"
-		unset 'a
-		--assert error? try [parse blk: [1][change integer! a]]
-		unset 'blk
+		a1939: none
+		unset 'a1939
+		--assert error? try [parse blk1939: [1][change integer! a1939]]
+		unset 'blk1939
 
 	; --test-- "#1942"
 		; GUI
@@ -2402,38 +2409,43 @@ b}
 		; GUI
 
 	--test-- "#1993"
-		unset [a range]
-		range: [0 0] 
-		a: range/1: 1
-		--assert equal? [1 0] range
-		unset [a range]
+		unset [a1993 range1993]
+		range1993: [0 0] 
+		a1993: range1993/1: 1
+		--assert equal? [1 0] range1993
+		unset [a1993 range1993]
 
 	 --test-- "#1995"
-	 	unset 'a
-	 	--assert error? try [load/next "(]" 'a]
+	 	a1995: none
+	 	unset 'a1995
+	 	--assert error? try [load/next "(]" 'a1995]
 
 	--test-- "#1996"
-		blk: [a b #x #y 2 3]
-		put blk 2 4
-		--assert equal? [a b #x #y 2 4] blk
-		unset 'blk
+		blk1996: [a b #x #y 2 3]
+		put blk1996 2 4
+		--assert equal? [a b #x #y 2 4] blk1996
+		unset 'blk1996
 
 	; --test-- "#1999"
 		; Test exists in suite
+
+	unset 'true?
 
 ===end-group===
 
 
 ===start-group=== "regressions #2001 - #3000"
 
+	true?: func [value] [not not value]
+
 	; --test-- "#2003"
 		; GUI console
 
 	--test-- "#2012"
 		random/seed 1
-		t: random 0:0:1
-		--assert equal? 0:00:00.0 round t
-		unset 't
+		t2012: random 0:0:1
+		--assert equal? 0:00:00.0 round t2012
+		unset 't2012
 
 	--test-- "#2014"
 		--assert equal? 1:00:00 / 0:0:1 3600.0
@@ -2442,7 +2454,7 @@ b}
 		--assert error? try [0:0:2 ** 5]
 
 	--test-- "#2021"
-		--assert error? try [set 'vv first reduce [()]]
+		--assert error? try [set 'vv2021 first reduce [()]]
 	
 	--test-- "#2024"
 		; not sure if spawning lots of files is a good idea for a general test script
@@ -2476,11 +2488,11 @@ b}
 	--test-- "#2068"
 ;		TODO: need more info, what is maximal length of tuple?
 ;			it is still buggy when compiled
-		x: 1.2.3.4.5.6.7.8.9.10
-		--assert equal? x 1.2.3.4.5.6.7.8.9.10
-		x: 1.2.3.4.5.6.7.8.9.10.11.12
-		--assert equal? x 1.2.3.4.5.6.7.8.9.10.11.12
-		unset 'x
+		x2068: 1.2.3.4.5.6.7.8.9.10
+		--assert equal? x2068 1.2.3.4.5.6.7.8.9.10
+		x2068: 1.2.3.4.5.6.7.8.9.10.11.12
+		--assert equal? x2068 1.2.3.4.5.6.7.8.9.10.11.12
+		unset 'x2068
 
 	--test-- "#2069"
 		--assert equal? "abc1abc2abc3" unique/skip "abc1abc2abc3" 3
@@ -2488,14 +2500,18 @@ b}
 	; --test-- "#2070"
 		; GUI
 
-	--test-- "#2072"
-		m: make map! 10
-		a: [1 2 3]
-		m/a: a
-		save %file m
-		n: load %file
-		--assert equal? m n
-		unset [a m n]
+	; --test-- "#2072"
+		; not sure if spawning lots of files is a good idea for a general test script
+		; FIXME: perhaps there should be a dedicated script for this
+		; commenting this out for now 			-- hiiamboris
+
+		; m: make map! 10
+		; a: [1 2 3]
+		; m/a: a
+		; save %file m
+		; n: load %file
+		; --assert equal? m n
+		; unset [a m n]
 
 	--test-- "#2077"
 		; NOTE: shouldn't override the `sum` func, or next tests using it may fail
@@ -2504,29 +2520,29 @@ b}
 			foreach i list [total: i + total]
 			total
 		]
-		r: make reactor! [l: [3 4 5 6] total: is [sum2077 l]]
-		r/l: append copy r/l 5
-		--assert not error? try [append r/l 5]
-		unset [sum2077 r]
+		r2077: make reactor! [l: [3 4 5 6] total: is [sum2077 l]]
+		r2077/l: append copy r2077/l 5
+		--assert not error? try [append r2077/l 5]
+		unset [sum2077 r2077]
 
 	--test-- "#2079"
 		if all [value? 'image! datatype? :image!] [			; requires View
-			i: make image! 2x2
-			--assert not error? try [foreach p i [p]]
-			unset 'i
+			i2079: make image! 2x2
+			--assert not error? try [foreach p2079 i2079 [p2079]]
+			unset 'i2079
 		]
 
 	; --test-- "#2081"
 		; GUI
 
 	--test-- "#2083"
-		a: make reactor! [x: 1 y: is [x + 1] z: is [y + 1]]
-		a/x: 4
-		--assert equal? 6 a/z
-		unset 'a
+		a2083: make reactor! [x: 1 y: is [x + 1] z: is [y + 1]]
+		a2083/x: 4
+		--assert equal? 6 a2083/z
+		unset 'a2083
 
 	--test-- "#2085"
-		--assert error? try [d: make reactor! [x: is [y + 1] y: is [x + 3]]]
+		--assert error? try [d2085: make reactor! [x: is [y + 1] y: is [x + 3]]]
 
 	; --test-- "#2096"
 		; TODO
@@ -2598,27 +2614,27 @@ b}
 		; OPEN
 
 	--test-- "#2136"
-		blk: copy []
-		insert/dup blk 0 3
-		insert/dup blk 1 2
-		--assert equal? blk [1 1 0 0 0]
-		unset 'blk
+		blk2136: copy []
+		insert/dup blk2136 0 3
+		insert/dup blk2136 1 2
+		--assert equal? blk2136 [1 1 0 0 0]
+		unset 'blk2136
 
 	--test-- "#2138"
-		b: [1 2 3 4 5]
-		forall b [i: b/1: form b/1]
-		--assert equal? b ["1" "2" "3" "4" "5"]
-		unset [b i]
+		b2138: [1 2 3 4 5]
+		forall b2138 [i: b2138/1: form b2138/1]
+		--assert equal? b2138 ["1" "2" "3" "4" "5"]
+		unset [b2138 i]
 
 	--test-- "#2139"
 		--assert equal? 1% 1% * 1
 
 	--test-- "#2146"
-		test: make hash! [a: 10]
-		--assert equal? 10 test/a
-		test: make hash! [a: 10 a 20]
-		--assert equal? 10 test/a
-		unset 'test
+		test2146: make hash! [a: 10]
+		--assert equal? 10 test2146/a
+		test2146: make hash! [a: 10 a 20]
+		--assert equal? 10 test2146/a
+		unset 'test2146
 
 	; --test-- "#2147"
 		; GUI
@@ -2644,20 +2660,21 @@ b}
 		; TODO: get some example, description is not good enough
 
 	--test-- "#2166"
-		x: 2147483648
-		--assert not equal? x -2147483648
-		--assert equal? x 2147483648.0
-		unset 'x
+		x2166: 2147483648
+		--assert not equal? x2166 -2147483648
+		--assert equal? x2166 2147483648.0
+		unset 'x2166
 
 	; --test-- "#2170"
 		; GUI
 
 	--test-- "#2171"
-		quote1: func ['val] [val]
-		unset 'test
-		--assert error? try [quote1 ()]
-		--assert error? try [quote1 (test)]
-		unset 'quote1
+		quote2171: func ['val] [val]
+		test2171: none
+		unset 'test2171
+		--assert error? try [quote2171 ()]
+		--assert error? try [quote2171 (test2171)]
+		unset 'quote2171
 
 	--test-- "#2173"
 		--assert not parse [] [return]
@@ -2678,24 +2695,24 @@ b}
 		--assert error? try [load {64#{aaa }}]
 
 	--test-- "#2195"
-		e: try [load "system/options/"]
-		--assert equal? "system/options/" e/arg2
-		unset 'e
+		e2195: try [load "system/options/"]
+		--assert equal? "system/options/" e2195/arg2
+		unset 'e2195
 
 	--test-- "#2196"
-		m: #()
+		m2196: #()
 		repeat k 70 [
-			m/:k: {x}
-			m/:k: none
+			m2196/:k: {x}
+			m2196/:k: none
 		]
-		--assert empty? keys-of m
-		unset 'm
+		--assert empty? keys-of m2196
+		unset 'm2196
 
 	--test-- "#2209"
-		m: #(a 1 b 2)
-		m/a: none
-		--assert equal? #(b: 2) m
-		unset 'm
+		m2209: #(a 1 b 2)
+		m2209/a: none
+		--assert equal? #(b: 2) m2209
+		unset 'm2209
 
 	; --test-- "#2223"
 		; GUI
@@ -2705,20 +2722,22 @@ b}
 		--assert equal? ["1" "2" ""] split "1^/2^/" #"^/"
 
 	--test-- "#2234"
-		m: #(a 1 b 2)
-		m/a: none
-		--assert not empty? keys-of m
-		--assert not empty? values-of m
-		m: #(a 1 b 2 c 3 d 4 e 5 f 6 g 7 h 8)
-		m/b: none
-		--assert equal? [a c d e f g h] keys-of m
-		--assert equal? [1 3 4 5 6 7 8] values-of m
+		m2234: #(a 1 b 2)
+		m2234/a: none
+		--assert not empty? keys-of m2234
+		--assert not empty? values-of m2234
+		m2234: #(a 1 b 2 c 3 d 4 e 5 f 6 g 7 h 8)
+		m2234/b: none
+		--assert equal? [a c d e f g h] keys-of m2234
+		--assert equal? [1 3 4 5 6 7 8] values-of m2234
 
 	--test-- "#2250"
 		--assert equal? [2:00:00] difference [1:00] [2:00 1:00]
 
 	--test-- "#2253"
 		--assert not error? try [3151391351465.995 // 1.0]
+
+	unset 'true?
 
 ===end-group===
 
