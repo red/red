@@ -241,6 +241,8 @@ libRedRT: context [
 		]
 		append imports [
 			words: context [
+				red/boot?: yes							;-- ensures words are in fixed memory area
+				
 				_body:		red/word/load "<body>"
 				_anon:		red/word/load "<anon>"
 				_remove:	red/word/load "remove"
@@ -269,6 +271,8 @@ libRedRT: context [
 				aux-down?:	red/symbol/make "aux-down?"
 				ctrl?:		red/symbol/make "ctrl?"
 				shift?:	 	red/symbol/make "shift?"
+				
+				red/boot?: no
 			]
 		]
 		
