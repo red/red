@@ -259,29 +259,34 @@ map: context [
 		field	[integer!]
 		return:	[red-block!]
 		/local
-			blk    [red-block!]
-			s-tail [red-value!]
-			value  [red-value!]
-			next   [red-value!]
-			new   [red-value!]
-			size   [integer!]
-			s	   [series!]
+			blk		[red-block!]
+			s-tail	[red-value!]
+			value	[red-value!]
+			next	[red-value!]
+			new		[red-value!]
+			size	[integer!]
+			total	[integer!]
+			cnt		[integer!]
+			s		[series!]
 	][
 		blk: 		as red-block! stack/push*
 		blk/header: TYPE_UNSET
 		blk/head: 	0
 
-		size: rs-length? map
+		total: rs-length? map
+		size: total
 		s: GET_BUFFER(map)
 		value: s/offset
 		s-tail: s/tail
 		if zero? size [size: 1]
+		cnt: 0
 		case [
 			field = words/words [
 				blk/node: alloc-cells size
-				while [value < s-tail][
+				while [all [value < s-tail cnt < total]][
 					next: value + 1
 					unless TYPE_OF(next) = TYPE_NONE [
+						cnt: cnt + 1
 						new: block/rs-append blk value
 						if TYPE_OF(value) = TYPE_SET_WORD [
 							new/header: TYPE_WORD
@@ -292,9 +297,10 @@ map: context [
 			]
 			field = words/values [
 				blk/node: alloc-cells size
-				while [value < s-tail][
+				while [all [value < s-tail cnt < total]][
 					next: value + 1
 					unless TYPE_OF(next) = TYPE_NONE [
+						cnt: cnt + 1
 						block/rs-append blk next
 					]
 					value: value + 2
@@ -302,9 +308,10 @@ map: context [
 			]
 			field = words/body [
 				blk/node: alloc-cells size * 2
-				while [value < s-tail][
+				while [all [value < s-tail cnt < total]][
 					next: value + 1
 					unless TYPE_OF(next) = TYPE_NONE [
+						cnt: cnt + 1
 						block/rs-append blk value
 						block/rs-append blk next
 					]
