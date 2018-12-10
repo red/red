@@ -262,8 +262,8 @@ context [
 				insert/part tail buffer cmd/pipe-buffer cmd/bytes-read/int
 
 				change/dup cmd/pipe-buffer null cmd/pipe-size
-				remain: remain - cmd/bytes-read/int 
-				zero? remain 
+				remain: remain - cmd/bytes-read/int
+				remain <= 0
 			]
 		]
 	]
