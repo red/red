@@ -916,12 +916,14 @@ binary: context [
 			slot [red-value!]
 			bin  [red-binary!]
 			s	 [series!]
+			p	 [byte-ptr!]
 	][
 		slot: either null = blk [stack/push*][ALLOC_TAIL(blk)]
 		bin: make-at slot size
 		
 		s: GET_BUFFER(bin)
-		copy-memory as byte-ptr! s/offset src size
+		p: as byte-ptr! s/offset
+		copy-memory p src size
 		s/tail: as cell! (as byte-ptr! s/tail) + size
 		bin
 	]
