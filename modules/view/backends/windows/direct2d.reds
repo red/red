@@ -1064,6 +1064,7 @@ create-text-layout: func [
 		dwrite-str-cache: text/cache
 	][
 		str: ""
+		len: 0
 	]
 	lay: 0
 	w: either zero? width  [FLT_MAX][as float32! width]

@@ -46,7 +46,11 @@ decompress-test.red
 recycle-test.red
 debase-test.red
 enbase-test.red
+try-test.red
+draw-test.red
+replace-test.red
 auto-tests/lexer-auto-test.red
 power-test.red
 ../environment/scalars-test.red
 ../environment/functions-test.red
+stress-test.red

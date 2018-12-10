@@ -1669,13 +1669,14 @@ block: context [
 		if zero? len [len: 1]
 		new: make-at as red-block! stack/push* len
 		table: _hashtable/init len new HASH_TABLE_HASH 1
+		hs: as red-hash! new
+		hs/header: TYPE_HASH
+		hs/table: table
 		n: 2
 		hash: null
 		blk?: yes
-		hash?: any [
-			TYPE_OF(blk1) = TYPE_HASH
-			TYPE_OF(blk2) = TYPE_HASH
-		]
+		hash?: TYPE_OF(blk1) = TYPE_HASH
+		if all [not hash? op <> OP_UNIQUE][hash?: TYPE_OF(blk2) = TYPE_HASH]
 
 		comp-op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
 		saved: collector/active?

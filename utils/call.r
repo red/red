@@ -252,18 +252,19 @@ context [
 		]
 	]
 	
-	read-pipe: func [buffer pipe /local remain][
+	read-pipe: func [buffer pipe][
 		if zero? PeekNamedPipe pipe/int 0 0 0 cmd/bytes-avail 0 [throw 1]
 
-		unless zero? remain: cmd/bytes-avail/int [ 
+		unless zero? cmd/bytes-avail/int [ 
 			until [
 				if zero? ReadFile pipe/int cmd/pipe-buffer cmd/pipe-size cmd/bytes-read 0 [throw 2]
 
 				insert/part tail buffer cmd/pipe-buffer cmd/bytes-read/int
 
 				change/dup cmd/pipe-buffer null cmd/pipe-size
-				remain: remain - cmd/bytes-read/int 
-				zero? remain 
+				
+				if zero? PeekNamedPipe pipe/int 0 0 0 cmd/bytes-avail 0 [throw 1]
+				zero? cmd/bytes-avail/int
 			]
 		]
 	]

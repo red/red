@@ -287,7 +287,10 @@ image: context [
 					int: as red-integer! bin
 					color: int/value
 				]
-				default [fire [TO_ERROR(script invalid-arg) bin]]
+				default [
+					OS-image/unlock-bitmap img bitmap
+					fire [TO_ERROR(script invalid-arg) bin]
+				]
 			]
 			either method = EXTRACT_ARGB [
 				mask: 255 - (color >>> 24) << 24
@@ -656,6 +659,7 @@ image: context [
 		either out-range = 1 [
 			fire [TO_ERROR(script out-of-range) boxed]
 		][
+			unless TYPE_TUPLE = TYPE_OF(data) [fire [TO_ERROR(script invalid-arg) data]]
 			color: as red-tuple! data
 			p: (as byte-ptr! color) + 4
 			r: as-integer p/1

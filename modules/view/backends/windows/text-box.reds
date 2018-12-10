@@ -220,7 +220,7 @@ OS-text-box-metrics: func [
 			text: as red-string! int + 3
 			x: as float32! 0.0 y: as float32! 0.0
 			int: as red-integer! arg0
-			hr: adjust-index text int/value - 1
+			hr: either TYPE_OF(text) <> TYPE_STRING [0][adjust-index text int/value - 1]
 			hit: as DWRITE_HIT_TEST_METRICS :left
 			dl/HitTestTextPosition this hr no :x :y hit
 			if y < as float32! 0.0 [y: as float32! 0.0]
@@ -454,6 +454,7 @@ adjust-index: func [
 		i		[integer!]
 		c		[integer!]
 ][
+	assert TYPE_OF(str) = TYPE_STRING
 	s: GET_BUFFER(str)
 	unit: GET_UNIT(s)
 	if unit = UCS-4 [
