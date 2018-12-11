@@ -122,8 +122,6 @@ unicode: context [
 		return:  [node!]
 		/local
 			s	 [series!]
-			ser	 [series!]
-			node [node!]
 			beg  [byte-ptr!]
 			buf	 [byte-ptr!]
 			p	 [byte-ptr!]
@@ -140,9 +138,7 @@ unicode: context [
 		unless len/value = -1 [
 			if len/value < part [part: len/value]
 		]
-		node: alloc-bytes unit << 1 * (1 + part)
-		ser: as series! node/value
-		buf: as byte-ptr! ser + 1
+		buf: as byte-ptr! get-cache str unit << 1 * (1 + part)
 		beg: buf
 
 		p:	  string/rs-head str
@@ -166,7 +162,7 @@ unicode: context [
 		buf/1: null-byte
 
 		len/value: as-integer buf - beg
-		node
+		str/cache
 	]
 	
 	Latin1-to-UCS2: func [
