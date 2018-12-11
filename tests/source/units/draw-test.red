@@ -13,7 +13,8 @@ Red [
 
 ; relies upon the View subsystem (not yet available on some platforms)
 ; and the image! datatype currently provided by the View
-#if all [system/view value? 'image! datatype? image!] [
+; FIXME: linux compiler can't swallow this, using `do`
+do [if all [system/view value? 'image! datatype? get 'image!] [
 
 ===start-group=== "draw image (#3607)"
 
@@ -50,6 +51,6 @@ Red [
 
 ;-- TODO: test more commands once the coordinate system mess is dealt with
 
-]
+]]
 
 ~~~end-file~~~
