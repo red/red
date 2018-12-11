@@ -1772,6 +1772,10 @@ parser: context [
 							]
 							either into? [
 								blk: as red-block! _context/get w
+								type: TYPE_OF(blk)
+								unless ANY_SERIES?(type) [
+									PARSE_ERROR [TO_ERROR(script parse-into-bad)]
+								]
 								max: either sym = words/after [-1][blk/head] ;-- save block cursor
 							][
 								block/push-only* 8
