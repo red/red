@@ -11,6 +11,9 @@ Red [
 
 ~~~start-file~~~ "image"
 
+; FIXME: linux compiler can't swallow this, using do
+do [if all [system/view value? 'image! datatype? get 'image!] [
+
 img: make image! 2x2
 ===start-group=== "image range(integer index)"
 	--test-- "image range(integer index) 1"
@@ -108,5 +111,6 @@ img: make image! 2x2
 		--assert 255.255.255.0 = img/1
 ===end-group===
 
+]]
 
 ~~~end-file~~~
