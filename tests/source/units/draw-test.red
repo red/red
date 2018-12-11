@@ -13,7 +13,7 @@ Red [
 
 ; relies upon the View subsystem (not yet available on some platforms)
 ; and the image! datatype currently provided by the View
-if all [system/view value? 'image! datatype? image!] [
+#if all [system/view value? 'image! datatype? image!] [
 
 ===start-group=== "draw image (#3607)"
 
