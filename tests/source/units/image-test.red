@@ -111,6 +111,20 @@ img: make image! 2x2
 		--assert 255.255.255.0 = img/1
 ===end-group===
 
+===start-group=== "image issues"
+	--test-- "image issue 3651"
+		img: make image! 2x2
+		clrs: [255.0.0.0 0.255.0.0 0.0.255.0 255.255.255.0]
+		img/1: clrs/1
+		img/2: clrs/2
+		img/3: clrs/3
+		idx: 1
+		foreach clr img [
+			--assert clr = pick clrs idx
+			idx: idx + 1
+		]
+===end-group===
+
 ]]
 
 ~~~end-file~~~
