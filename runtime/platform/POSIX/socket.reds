@@ -122,37 +122,23 @@ socket: context [
 		]
 		copy-cell as cell! red-port as cell! :data/cell
 		store-socket-data as int-ptr! data red-port
-		iocp/bind g-poller data
-
-		set-memory as byte-ptr! data null-byte size? OVERLAPPED!
 
 		either type = AF_INET [		;-- IPv4
-			saddr/sin_family: type
-			saddr/sin_addr: 0
+			port: htons port
+			saddr/sin_family: port << 16 or type
+			saddr/sin_addr: inet_addr addr
 			saddr/sa_data1: 0
 			saddr/sa_data2: 0
-			if 0 <> _bind sock as int-ptr! :saddr size? saddr [
-				probe "bind fail in connect"
-			]
 		][
 			0
 		]
 
-		data/code: IOCP_OP_CONN
-		n: 0
-		port: htons port
-		saddr/sin_family: port << 16 or type
-		saddr/sin_addr: inet_addr addr
-		ConnectEx: as ConnectEx! ConnectEx-func
-		unless ConnectEx sock as int-ptr! :saddr size? saddr null 0 :n as int-ptr! data [
-			exit
+		data/code: SOCK_OP_CONN
+		either zero? connect sock as int-ptr! :saddr size? saddr [	;-- succeed
+			probe "connect OK"
+		][
+			poll/add g-poller sock EPOLLOUT data
 		]
-
-		probe "Connect ok"
-
-		;-- do not post the completion notification as we're processing it now
-		SetFileCompletionNotificationModes as int-ptr! sock 1
-		call-awake red-port red-port IO_EVT_ACCEPT
 	]
 
 	write: func [
@@ -164,8 +150,7 @@ socket: context [
 			iodata	[sockdata!]
 			n		[integer!]
 	][
-		iodata: get-iocp-data red-port
-		iocp/bind g-poller iodata
+		iodata: get-socket-data red-port
 
 		switch TYPE_OF(data) [
 			TYPE_BINARY [

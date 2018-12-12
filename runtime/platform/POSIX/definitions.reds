@@ -226,6 +226,12 @@ timespec!: alias struct! [
 			addrlen		[int-ptr!]
 			return:		[integer!]
 		]
+		_connect: "connect" [
+			fd			[integer!]
+			addr		[int-ptr!]
+			addrlen		[integer!]
+			return:		[integer!]
+		]
 		fcntl: "fcntl" [
 			[variadic]
 			; fd           [integer!]    "File descriptor"
