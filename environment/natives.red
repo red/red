@@ -741,7 +741,7 @@ to-local-file: make native! [[
 
 wait: make native! [[
 		"Waits for a duration in seconds or specified time"
-		value [number! time! block! none!]
+		value [number! time! none!]
 		/all "Returns all events in a block"
 		;/only "Only check for ports given in the block to this function"
 	]

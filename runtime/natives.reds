@@ -2145,6 +2145,9 @@ natives: context [
 			TYPE_TIME [
 				time: as-integer (val/value * #either OS = 'Windows [1E3][1E6])
 			]
+			TYPE_NONE [
+				time: 0
+			]
 			default [fire [TO_ERROR(script invalid-arg) val]]
 		]
 		val/header: TYPE_NONE
