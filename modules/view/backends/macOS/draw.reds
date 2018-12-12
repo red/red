@@ -42,6 +42,7 @@ draw-begin: func [
 
 		either on-graphic? [							;-- draw on image!, flip the CTM
 			rc: as NSRect! img
+			ctx/rect-y: rc/y
 			CGContextTranslateCTM CGCtx as float32! 0.0 rc/y
 			CGContextScaleCTM CGCtx as float32! 1.0 as float32! -1.0
 		][
@@ -69,6 +70,7 @@ draw-begin: func [
 	ctx/colorspace:		CGColorSpaceCreateDeviceRGB
 	ctx/last-pt-x:		as float32! 0.0
 	ctx/last-pt-y:		as float32! 0.0
+	ctx/on-image?:		on-graphic?
 
 	ctx/font-attrs: objc_msgSend [				;-- default font attributes
 		objc_msgSend [objc_getClass "NSDictionary" sel_getUid "alloc"]
@@ -1417,7 +1419,11 @@ OS-matrix-reset: func [
 	/local
 		m [CGAffineTransform! value]
 ][
-	m: CGAffineTransformMake F32_1 F32_0 F32_0 F32_1 as float32! 0.5 as float32! 0.5
+	either dc/on-image? [
+		m: CGAffineTransformMake F32_1 F32_0 F32_0 as float32! -1.0 F32_0 dc/rect-y
+	][
+		m: CGAffineTransformMake F32_1 F32_0 F32_0 F32_1 as float32! 0.5 as float32! 0.5
+	]
 	CGContextSetCTM dc/raw m
 ]
 
