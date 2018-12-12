@@ -12,22 +12,16 @@ Red/System [
 
 g-poller: as int-ptr! 0
 
-#enum sock-op-code! [
-	SOCK_OP_NONE
-	SOCK_OP_ACCEPT
-	SOCK_OP_CONN
-	SOCK_OP_READ
-	SOCK_OP_WRITE
-	SOCK_OP_READ_UDP
-	SOCK_OP_WRITE_UDP
-]
-
 poller!: alias struct! [
 	maxn	[integer!]
 	epfd	[integer!]				;-- the epoll fd
 	events	[epoll_event!]			;-- the events
 	nevents [integer!]				;-- the events count
 ]
+
+#define EPOLL_CTL_ADD 1
+#define EPOLL_CTL_DEL 2
+#define EPOLL_CTL_MOD 3
 
 poll: context [
 	init: func [
@@ -60,21 +54,50 @@ poll: context [
 
 	kill: func [][]
 
-	add: func [
+	_modify: func [
 		ref		[int-ptr!]
-		sock	[int-ptr!]
-		events	[integer!]
+		sock	[integer!]
+		evts	[integer!]
 		data	[int-ptr!]
+		op		[integer!]
 		/local
 			p	[poller!]
+			ev	[epoll_event! value]
 	][
 		p: as poller! ref
-		epoll_ctl sock 
+		ev/ptr: data
+		ev/events: evts
+		if 0 <> epoll_ctl p/epfd op sock :ev [
+			probe ["epoll_ctl error! fd: " sock " op: " op]
+		]
 	]
 
-	remove: func [][]
+	add: func [
+		ref		[int-ptr!]
+		sock	[integer!]
+		events	[integer!]
+		data	[int-ptr!]
+	][
+		_modify ref sock events data EPOLL_CTL_ADD
+	]
 
-	modify: func [][]
+	remove: func [
+		ref		[int-ptr!]
+		sock	[integer!]
+		events	[integer!]
+		data	[int-ptr!]
+	][
+		_modify ref sock events data EPOLL_CTL_DEL
+	]
+
+	modify: func [
+		ref		[int-ptr!]
+		sock	[integer!]
+		events	[integer!]
+		data	[int-ptr!]
+	][
+		_modify ref sock events data EPOLL_CTL_MOD
+	]
 
 	wait: func [
 		ref			[int-ptr!]

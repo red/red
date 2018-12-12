@@ -10,7 +10,17 @@ Red/System [
 	}
 ]
 
-socket-data!: alias struct! [
+#enum sock-op-code! [
+	SOCK_OP_NONE
+	SOCK_OP_ACCEPT
+	SOCK_OP_CONN
+	SOCK_OP_READ
+	SOCK_OP_WRITE
+	SOCK_OP_READ_UDP
+	SOCK_OP_WRITE_UDP
+]
+
+sockdata!: alias struct! [
 	cell	[cell! value]			;-- the port! cell
 	sock	[integer!]				;-- the socket
 	buflen	[integer!]				;-- buffer length
@@ -23,12 +33,12 @@ socket: context [
 
 	create-data: func [
 		socket	[integer!]
-		return: [socket-data!]
+		return: [sockdata!]
 		/local
-			data [socket-data!]
+			data [sockdata!]
 	][
 		;@@ TBD get iocp-data from the cache first
-		data: as socket-data! alloc0 size? socket-data!
+		data: as sockdata! alloc0 size? sockdata!
 		data/sock: socket
 		data
 	]
@@ -79,10 +89,9 @@ socket: context [
 		sock	 [integer!]
 		acpt	 [integer!]
 		/local
-			n	[integer!]
-			evt	[epoll_event! value]
+			data [sockdata!]
 	][
-		data: as iocp-data! sockdata/get sock
+		data: as sockdata! sockdata/get sock
 		if null? data [
 			data: create-data sock
 			sockdata/insert sock as int-ptr! data
@@ -90,10 +99,8 @@ socket: context [
 		copy-cell as cell! red-port as cell! :data/cell
 		store-socket-data as int-ptr! data red-port
 
-		evt/events: EPOLLIN | EPOLLET
-		poll/add g-poller EPOLL_CTL_ADD sock 
-		n: 0
-		data/code: IOCP_OP_ACCEPT
+		data/code: SOCK_OP_ACCEPT
+		poll/add g-poller sock EPOLLIN | EPOLLET data
 	]
 
 	connect: func [
@@ -104,17 +111,17 @@ socket: context [
 		type		[integer!]
 		/local
 			n		[integer!]
-			data	[iocp-data!]
+			data	[sockdata!]
 			saddr	[sockaddr_in! value]
 			ConnectEx [ConnectEx!]
 	][
-		data: as iocp-data! sockdata/get sock
+		data: as sockdata! sockdata/get sock
 		if null? data [
-			data: iocp/create-data sock
+			data: create-data sock
 			sockdata/insert sock as int-ptr! data
 		]
 		copy-cell as cell! red-port as cell! :data/cell
-		store-iocp-data data red-port
+		store-socket-data as int-ptr! data red-port
 		iocp/bind g-poller data
 
 		set-memory as byte-ptr! data null-byte size? OVERLAPPED!
@@ -154,7 +161,7 @@ socket: context [
 		/local
 			bin		[red-binary!]
 			pbuf	[WSABUF! value]
-			iodata	[iocp-data!]
+			iodata	[sockdata!]
 			n		[integer!]
 	][
 		iodata: get-iocp-data red-port
@@ -182,7 +189,7 @@ socket: context [
 	read: func [
 		red-port	[red-object!]
 		/local
-			iodata	[iocp-data!]
+			iodata	[sockdata!]
 			pbuf	[WSABUF!]
 			n		[integer!]
 			flags	[integer!]
@@ -207,9 +214,9 @@ socket: context [
 	close: func [
 		red-port	[red-object!]
 		/local
-			iodata	[iocp-data!]
+			iodata	[sockdata!]
 	][
-		iodata: get-iocp-data red-port
+		iodata: get-socket-data red-port
 		if iodata/buffer <> null [
 			free iodata/buffer
 			iodata/buffer: null
