@@ -12,6 +12,7 @@ count: 0
 
 process-data: func [port /local len] [
 	;debug ["port data:" port/data]
+	probe "process-data enter"
     unless empty? port/data [
         len: length? port/data
         debug ["--- packet:" length? port/data "of" len]
@@ -21,6 +22,7 @@ process-data: func [port /local len] [
         total: total + len + 4
         print [count round (total / 1024 / 1024) "MB"]
     ]
+	probe "process-data exit"
 ]
 
 new-event: func [event] [

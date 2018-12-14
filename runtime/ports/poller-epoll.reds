@@ -153,11 +153,13 @@ probe ["code: " data/code]
 					SOCK_OP_ACCEPT	[
 						n: size? sockaddr_in!
 						acpt: _accept data/sock as byte-ptr! :saddr :n
+						?? acpt
 						if acpt = -1 [
 							err: errno/value
 							i: i + 1
 							continue
 						]
+						socket/set-nonblocking acpt
 						msg: create-red-port red-port acpt
 						type: IO_EVT_ACCEPT
 					]
@@ -167,7 +169,11 @@ probe ["code: " data/code]
 						i: i + 1
 						continue
 					]
-					SOCK_OP_WRITE		[type: IO_EVT_WROTE]
+					SOCK_OP_WRITE	[
+						socket/write red-port data/buffer
+						i: i + 1
+						continue
+					]
 					SOCK_OP_READ_UDP	[0]
 					SOCK_OP_WRITE_UDP	[0]
 					default				[probe ["wrong socket code: " data/code]]

@@ -24,8 +24,7 @@ sockdata!: alias struct! [
 	cell	[cell! value]			;-- the port! cell
 	sock	[integer!]				;-- the socket
 	offset	[integer!]				;-- offset of the buffer
-	buflen	[integer!]				;-- buffer length
-	buffer	[node!]
+	buffer	[cell! value]			;-- send buffer
 	code	[integer!]				;-- operation code @@ change to uint8
 	state	[integer!]				;-- @@ change to unit8
 ]
@@ -45,6 +44,16 @@ socket: context [
 		data: as sockdata! alloc0 size? sockdata!
 		data/sock: socket
 		data
+	]
+
+	set-nonblocking: func [
+		fd			[integer!]
+		return:		[integer!]
+		/local
+			flag	[integer!]
+	][
+		flag: fcntl [fd F_GETFL 0]
+		either -1 = fcntl [fd F_SETFL flag or O_NONBLOCK] [-1][0]
 	]
 
 	create: func [
@@ -108,6 +117,7 @@ socket: context [
 		store-socket-data as int-ptr! data red-port
 
 		data/code: SOCK_OP_ACCEPT
+		data/state: EPOLLIN
 		poll/add g-poller sock EPOLLIN or EPOLLET as int-ptr! data
 	]
 
@@ -144,9 +154,11 @@ socket: context [
 
 		data/code: SOCK_OP_CONN
 		either zero? _connect sock as int-ptr! :saddr size? saddr [	;-- succeed
+			call-awake red-port red-port IO_EVT_CONNECT
 			probe "connect OK"
 		][
-			poll/add g-poller sock EPOLLOUT as int-ptr! data
+			data/state: EPOLLOUT
+			poll/add g-poller sock EPOLLOUT or EPOLLET as int-ptr! data
 		]
 	]
 
@@ -167,18 +179,34 @@ socket: context [
 				bin: as red-binary! data
 				len: binary/rs-length? bin
 				pbuf: binary/rs-head bin
+				len: len - iodata/offset
+				pbuf: pbuf + iodata/offset
 			]
 			TYPE_STRING [0]
 			default [0]
 		]
 
+		copy-cell data as cell! :iodata/buffer
+
 		iodata/code: SOCK_OP_WRITE
 		n: _send iodata/sock pbuf len 0
+probe ["xxxxxxxxxxxxxxxxxx " n " " len]
 		either n = len [
+			iodata/buffer/header: 0
+			iodata/offset: 0
 			call-awake red-port red-port IO_EVT_WROTE
 		][
-			probe ["write wait: " n]
-			0 ;poll/add g-poller so
+			if n > 0 [iodata/offset: iodata/offset + n]
+
+			either zero? iodata/state [
+				iodata/state: EPOLLOUT
+				poll/add g-poller iodata/sock EPOLLOUT or EPOLLET as int-ptr! iodata
+			][
+				if iodata/state and EPOLLOUT = 0 [
+					iodata/state: iodata/state or EPOLLOUT
+					poll/modify g-poller iodata/sock iodata/state or EPOLLET as int-ptr! iodata
+				]
+			]
 		]
 	]
 
@@ -198,7 +226,15 @@ socket: context [
 			stack/pop 1
 			call-awake red-port red-port IO_EVT_READ
 		][
-			probe "Socket read OK"		
+			either zero? iodata/state [
+				iodata/state: EPOLLIN
+				poll/add g-poller iodata/sock EPOLLIN or EPOLLET as int-ptr! iodata
+			][
+				if iodata/state and EPOLLIN = 0 [
+					iodata/state: iodata/state or EPOLLIN
+					poll/modify g-poller iodata/sock iodata/state or EPOLLET as int-ptr! iodata
+				]
+			]	
 		]
 	]
 
