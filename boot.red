@@ -39,7 +39,7 @@ Red [
 
 	;-- temporary code --
 	#if not find [Windows macOS] config/OS [
-		unset [event! image!]
+		unset [image!]
 		image?: func ["Returns true if the value is this type" value [any-type!]][false]
 	]
 	

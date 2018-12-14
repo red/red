@@ -12,21 +12,16 @@ Red/System [
 
 #define AF_INET6	23
 
-create-red-port: func [
-	proto		[red-object!]
-	sock		[integer!]
-	return:		[red-object!]
-	/local
-		p		[red-object!]
-		data	[sockdata!]
-][
-	data: iocp/create-data sock
-	sockdata/insert sock as int-ptr! data
-	p: port/make none-value object/get-values proto TYPE_NONE
-	block/rs-append red-port-buffer as cell! p
-	copy-cell as cell! p as cell! :data/cell
-	store-socket-data as int-ptr! data p
-	p
+sockdata!: alias struct! [
+	ovlap	[OVERLAPPED! value]		;-- the overlapped struct
+	cell	[cell! value]			;-- the port! cell
+	port	[int-ptr!]				;-- the bound iocp port
+	sock	[integer!]				;-- the socket
+	accept	[integer!]				;-- the accept socket
+	buflen	[integer!]				;-- buffer length
+	buffer	[byte-ptr!]				;-- buffer for iocp poller
+	code	[integer!]				;-- operation code @@ change to uint8
+	state	[integer!]				;-- @@ change to unit8
 ]
 
 socket: context [
@@ -80,7 +75,7 @@ socket: context [
 	][
 		data: as sockdata! sockdata/get sock
 		if null? data [
-			data: iocp/create-data sock
+			data: create-socket-data sock
 			sockdata/insert sock as int-ptr! data
 		]
 		copy-cell as cell! red-port as cell! :data/cell
@@ -89,7 +84,7 @@ socket: context [
 
 		set-memory as byte-ptr! data null-byte size? OVERLAPPED!
 		if null? data/buffer [		;-- make address buffer
-			data/buffer: alloc0 128
+			data/buffer: alloc0 256
 		]
 
 		n: 0
@@ -127,7 +122,7 @@ socket: context [
 	][
 		data: as sockdata! sockdata/get sock
 		if null? data [
-			data: iocp/create-data sock
+			data: create-socket-data sock
 			sockdata/insert sock as int-ptr! data
 		]
 		copy-cell as cell! red-port as cell! :data/cell

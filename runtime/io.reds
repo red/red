@@ -12,8 +12,6 @@ Red/System [
 
 io: context [
 
-	#if OS <> 'Windows [#include %platform/POSIX/definitions.reds]
-
 	#enum red-io-mode! [
 		RIO_READ:	1
 		RIO_WRITE:	2
@@ -473,7 +471,7 @@ io: context [
 			dt   [red-date!]
 			s	 [stat! value]
 			fd   [integer!]
-			tm   [systemtime!]
+			tm   [tm!]
 	][
 		name: file/to-OS-path filename
 		fd: open-file file/to-OS-path filename RIO_READ yes

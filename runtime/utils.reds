@@ -435,7 +435,7 @@ check-arg-type: func [
 			pbuf: allocate len
 			io/read-data file pbuf len
 			io/close-file file
-			str: io/strstr as c-string! pbuf {PRETTY_NAME="}
+			str: strstr as c-string! pbuf {PRETTY_NAME="}
 			str: str + 13
 			p: strchr str #"^""
 			p/1: null-byte

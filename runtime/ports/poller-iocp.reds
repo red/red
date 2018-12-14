@@ -20,18 +20,6 @@ Red/System [
 	IOCP_OP_WRITE_UDP
 ]
 
-sockdata!: alias struct! [
-	ovlap	[OVERLAPPED! value]		;-- the overlapped struct
-	cell	[cell! value]			;-- the port! cell
-	port	[int-ptr!]				;-- the bound iocp port
-	sock	[integer!]				;-- the socket
-	accept	[integer!]				;-- the accept socket
-	buflen	[integer!]				;-- buffer length
-	buffer	[byte-ptr!]				;-- buffer for iocp poller
-	code	[integer!]				;-- operation code @@ change to uint8
-	state	[integer!]				;-- @@ change to unit8
-]
-
 poller!: alias struct! [
 	maxn	[integer!]
 	port	[int-ptr!]
@@ -40,17 +28,6 @@ poller!: alias struct! [
 ]
 
 iocp: context [
-	create-data: func [
-		socket	[integer!]
-		return: [sockdata!]
-		/local
-			data [sockdata!]
-	][
-		;@@ TBD get iocp-data from the cache first
-		data: as sockdata! alloc0 size? sockdata!
-		data/sock: socket
-		data
-	]
 
 	bind: func [
 		p		[int-ptr!]

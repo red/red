@@ -19,22 +19,21 @@ poller!: alias struct! [
 	nevents [integer!]				;-- the events count
 ]
 
-#define EPOLL_CTL_ADD 1
-#define EPOLL_CTL_DEL 2
-#define EPOLL_CTL_MOD 3
-
 poll: context [
+
 	init: func [
 		return: [int-ptr!]
 		/local
 			p	[poller!]
 	][
+		errno: get-errno-ptr
 		p: as poller! alloc0 size? poller!
 		p/maxn: 65536
 		p/epfd: epoll_create1 00080000h
 		assert p/epfd > 0
 
 		sockdata/init
+		sock-readbuf: allocate 1024 * 1024
 
 		as int-ptr! p
 	]
@@ -99,21 +98,32 @@ poll: context [
 		_modify ref sock events data EPOLL_CTL_MOD
 	]
 
+	update: func [
+		ref		[int-ptr!]
+		sock	[integer!]
+		events	[integer!]
+		data	[int-ptr!]
+	][
+		
+	]
+
 	wait: func [
 		ref			[int-ptr!]
 		timeout		[integer!]
 		return:		[integer!]
 		/local
 			p		[poller!]
-			res		[integer!]
 			cnt		[integer!]
-			err		[integer!]
 			i		[integer!]
-			e		[OVERLAPPED_ENTRY!]
-			data	[iocp-data!]
+			e		[epoll_event!]
+			data	[sockdata!]
 			bin		[red-binary!]
 			msg		[red-object!]
+			n		[integer!]
+			acpt	[integer!]
 			type	[integer!]
+			saddr	[sockaddr_in! value]
+			err		[integer!]
 			red-port [red-object!]
 	][
 		#if debug? = yes [print-line "poll/wait"]
@@ -121,41 +131,46 @@ poll: context [
 		forever [
 			p: as poller! either null? ref [g-poller][ref]
 			if null? p/events [
-				p/evt-cnt: 512
-				p/events: as OVERLAPPED_ENTRY! allocate p/evt-cnt * size? OVERLAPPED_ENTRY!
+				p/nevents: 512
+				p/events: as epoll_event! allocate p/nevents * size? epoll_event!
 			]
 
-			cnt: 0
-			res: GetQueuedCompletionStatusEx p/port p/events p/evt-cnt :cnt timeout no
-			err: GetLastError
-			if all [res <> 0 err = WAIT_TIMEOUT][return 0]
+			cnt: epoll_wait p/epfd p/events p/nevents timeout
+			if all [cnt < 0 errno/value = EINTR][return 0]
 
-			if cnt = p/evt-cnt [			;-- TBD: extend events buffer
+			if cnt = p/nevents [		;-- TBD: extend events buffer
 				0
 			]
-
+?? cnt
 			i: 0
 			while [i < cnt][
 				e: p/events + i
-				data: as iocp-data! e/lpOverlapped
+				data: as sockdata! e/ptr
 				red-port: as red-object! :data/cell
 				msg: red-port
+probe ["code: " data/code]
 				switch data/code [
-					IOCP_OP_ACCEPT	[
-						msg: create-red-port red-port data/accept
+					SOCK_OP_ACCEPT	[
+						n: size? sockaddr_in!
+						acpt: _accept data/sock as byte-ptr! :saddr :n
+						if acpt = -1 [
+							err: errno/value
+							i: i + 1
+							continue
+						]
+						msg: create-red-port red-port acpt
 						type: IO_EVT_ACCEPT
 					]
-					IOCP_OP_CONN	[type: IO_EVT_CONNECT]
-					IOCP_OP_READ	[
-						bin: binary/load data/buffer e/dwNumberOfBytesTransferred
-						copy-cell as cell! bin (object/get-values red-port) + port/field-data
-						stack/pop 1
-						type: IO_EVT_READ
+					SOCK_OP_CONN	[type: IO_EVT_CONNECT]
+					SOCK_OP_READ	[
+						socket/read red-port
+						i: i + 1
+						continue
 					]
-					IOCP_OP_WRITE	[type: IO_EVT_WROTE]
-					IOCP_OP_READ_UDP	[0]
-					IOCP_OP_WRITE_UDP	[0]
-					default			[probe ["wrong iocp code: " data/code]]
+					SOCK_OP_WRITE		[type: IO_EVT_WROTE]
+					SOCK_OP_READ_UDP	[0]
+					SOCK_OP_WRITE_UDP	[0]
+					default				[probe ["wrong socket code: " data/code]]
 				]
 				call-awake red-port msg type
 				i: i + 1

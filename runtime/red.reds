@@ -17,17 +17,10 @@ red: context [
 	#include %macros.reds
 	#include %tools.reds
 	#include %allocator.reds
-	#include %datatypes/structures.reds
 
 	#include %platform/definitions.reds
-	#include %sockdata.reds
-	#include %platform/IO.reds
 	#switch OS [										;-- loading OS-specific bindings
-		Windows  [
-			#include %platform/win32.reds
-			#include %platform/windows/poller.reds
-			#include %platform/windows/socket.reds
-		]
+		Windows  [#include %platform/win32.reds]
 		Syllable [#include %platform/syllable.reds]
 		macOS	 [#include %platform/darwin.reds]
 		FreeBSD  [#include %platform/freebsd.reds]
@@ -43,6 +36,7 @@ red: context [
 
 	;-- Datatypes --
 
+	#include %datatypes/structures.reds
 	#include %print.reds
 	#include %datatypes/common.reds
 	#include %linked-list.reds
@@ -60,14 +54,13 @@ red: context [
 	;-- ]
 	;--------------------------------------------
 	#switch OS [
-		Windows  [#include %image-gdiplus.reds]
+		Windows  [#include %platform/image-gdiplus.reds]
 		Syllable []
-		macOS	 [#include %image-quartz.reds]
+		macOS	 [#include %platform/image-quartz.reds]
 		FreeBSD  []
 		#default []
 	]
 
-	#include %datatypes/structures.reds
 	#include %datatypes/datatype.reds
 	#include %datatypes/unset.reds
 	#include %datatypes/none.reds
@@ -140,6 +133,7 @@ red: context [
 	#include %call.reds
 	#include %inflate.reds
 	#include %collector.reds
+	#include %ports/port.reds
 
 	_root:	 	declare red-block!						;-- statically alloc root cell for bootstrapping
 	root:	 	as red-block! 0							;-- root block

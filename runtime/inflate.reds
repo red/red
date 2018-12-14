@@ -477,7 +477,7 @@ deflate: context [
 
 
 	;--inflate an uncompressed block of data
-	inflate-uncompressed-block: func[
+	inflate-uncompressed-block: func [
 		d 			[DATA! ]
 		return: 	[integer!]
 		/local

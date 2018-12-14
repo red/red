@@ -457,7 +457,7 @@ io: context [
 				#import [
 					LIBC-file cdecl [
 						;-- https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/10.6/man2/stat.2.html?useVersion=10.6
-						_stat:	"fstat" [
+							_stat:	"fstat" [
 							file		[integer!]
 							restrict	[stat!]
 							return:		[integer!]

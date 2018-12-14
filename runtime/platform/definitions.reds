@@ -10,7 +10,7 @@ Red/System [
 	}
 ]
 
-;-- Cross platform definitions
+;=== Cross platform definitions ===
 
 #define SOCK_STREAM		1				;-- stream socket
 #define SOCK_DGRAM		2				;-- datagram socket
@@ -25,13 +25,11 @@ Red/System [
 
 #define AF_INET			2				;-- internetwork: UDP, TCP, etc.
 
-#enum io-event-type! [
-	IO_EVT_NONE
-	IO_EVT_ACCEPT
-	IO_EVT_CONNECT
-	IO_EVT_READ
-	IO_EVT_WROTE
-	IO_EVT_CLOSE
+sockaddr_in!: alias struct! [			;-- 16 bytes
+	sin_family	[integer!]				;-- family and port
+	sin_addr	[integer!]
+	sa_data1	[integer!]
+	sa_data2	[integer!]
 ]
 
 #import [
@@ -42,4 +40,12 @@ Red/System [
 			return:			[byte-ptr!]
 		]
 	]
+]
+
+;=== platform specific definitions ===
+
+#either OS = 'Windows [
+	#include %definitions/windows.reds
+][			;-- POSIX
+	#include %definitions/POSIX.reds
 ]

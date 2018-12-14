@@ -380,25 +380,6 @@ crypto: context [
 		]
 	]
 
-	#case [
-		any [OS = 'FreeBSD OS = 'macOS] [
-			#import [
-			LIBC-file cdecl [
-				get-errno-ptr: "__error" [
-					return: [int-ptr!]
-				]
-			]]
-		]
-		true [
-			#import [
-			LIBC-file cdecl [
-				get-errno-ptr: "__errno_location" [
-					return: [int-ptr!]
-				]
-			]]
-		]
-	]
-
 	urandom: func [
 		buffer	[byte-ptr!]							;-- buffer to receive data
 		size	[integer!]							;-- size of the buffer
@@ -575,7 +556,6 @@ crypto: context [
 		#define GRND_NONBLOCK			1
 		#define GRND_RANDOM				2
 		#define AF_ALG 					38
-		#define SOCK_SEQPACKET 			5
 
 		has_getrandom?: yes						;-- need linux kernel 3.17 or newer
 

@@ -23,13 +23,17 @@ Red/System [
 sockdata!: alias struct! [
 	cell	[cell! value]			;-- the port! cell
 	sock	[integer!]				;-- the socket
+	offset	[integer!]				;-- offset of the buffer
 	buflen	[integer!]				;-- buffer length
-	buffer	[byte-ptr!]				;-- buffer for iocp poller
+	buffer	[node!]
 	code	[integer!]				;-- operation code @@ change to uint8
 	state	[integer!]				;-- @@ change to unit8
 ]
 
+sock-readbuf: as byte-ptr! 0
+
 socket: context [
+	verbose: 1
 
 	create-data: func [
 		socket	[integer!]
@@ -68,16 +72,18 @@ socket: context [
 			saddr	[sockaddr_in! value]
 			p		[integer!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "socket/bind"]]
+
 		either type = AF_INET [		;-- IPv4
 			p: htons port
 			saddr/sin_family: p << 16 or type
 			saddr/sin_addr: 0
 			saddr/sa_data1: 0
 			saddr/sa_data2: 0
-			if 0 <> _bind sock as int-ptr! :saddr size? saddr [
+			if 0 <> _bind sock as byte-ptr! :saddr size? saddr [
 				probe "bind fail"
 			]
-			listen sock 1024
+			_listen sock 1024
 			0
 		][							;-- IPv6
 			0
@@ -91,6 +97,8 @@ socket: context [
 		/local
 			data [sockdata!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "socket/accept"]]
+
 		data: as sockdata! sockdata/get sock
 		if null? data [
 			data: create-data sock
@@ -100,7 +108,7 @@ socket: context [
 		store-socket-data as int-ptr! data red-port
 
 		data/code: SOCK_OP_ACCEPT
-		poll/add g-poller sock EPOLLIN | EPOLLET data
+		poll/add g-poller sock EPOLLIN or EPOLLET as int-ptr! data
 	]
 
 	connect: func [
@@ -113,8 +121,9 @@ socket: context [
 			n		[integer!]
 			data	[sockdata!]
 			saddr	[sockaddr_in! value]
-			ConnectEx [ConnectEx!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "socket/connect"]]
+
 		data: as sockdata! sockdata/get sock
 		if null? data [
 			data: create-data sock
@@ -134,10 +143,10 @@ socket: context [
 		]
 
 		data/code: SOCK_OP_CONN
-		either zero? connect sock as int-ptr! :saddr size? saddr [	;-- succeed
+		either zero? _connect sock as int-ptr! :saddr size? saddr [	;-- succeed
 			probe "connect OK"
 		][
-			poll/add g-poller sock EPOLLOUT data
+			poll/add g-poller sock EPOLLOUT as int-ptr! data
 		]
 	]
 
@@ -146,54 +155,51 @@ socket: context [
 		data		[red-value!]
 		/local
 			bin		[red-binary!]
-			pbuf	[WSABUF! value]
+			pbuf	[byte-ptr!]
+			len		[integer!]
 			iodata	[sockdata!]
 			n		[integer!]
 	][
-		iodata: get-socket-data red-port
+		iodata: as sockdata! get-socket-data red-port
 
 		switch TYPE_OF(data) [
 			TYPE_BINARY [
 				bin: as red-binary! data
-				pbuf/len: binary/rs-length? bin
-				pbuf/buf: binary/rs-head bin
+				len: binary/rs-length? bin
+				pbuf: binary/rs-head bin
 			]
 			TYPE_STRING [0]
 			default [0]
 		]
 
-		iodata/code: IOCP_OP_WRITE
-		n: 0
-		if 0 <> WSASend iodata/sock :pbuf 1 :n 0 as OVERLAPPED! iodata null [
-			exit
+		iodata/code: SOCK_OP_WRITE
+		n: _send iodata/sock pbuf len 0
+		either n = len [
+			call-awake red-port red-port IO_EVT_WROTE
+		][
+			probe ["write wait: " n]
+			0 ;poll/add g-poller so
 		]
-
-		probe "Socket Write OK"
 	]
 
 	read: func [
 		red-port	[red-object!]
 		/local
 			iodata	[sockdata!]
-			pbuf	[WSABUF!]
 			n		[integer!]
-			flags	[integer!]
+			bin		[red-binary!]
 	][
-		iodata: get-iocp-data red-port
-		pbuf: as WSABUF! :iodata/buflen
-		if null? pbuf/buf [
-			pbuf/len: 1024 * 1024
-			pbuf/buf: allocate 1024 * 1024
+		iodata: as sockdata! get-socket-data red-port
+		iodata/code: SOCK_OP_READ
+		n: _recv iodata/sock sock-readbuf 1024 * 1024 0
+		either n >= 0 [
+			bin: binary/load sock-readbuf n
+			copy-cell as cell! bin (object/get-values red-port) + port/field-data
+			stack/pop 1
+			call-awake red-port red-port IO_EVT_READ
+		][
+			probe "Socket read OK"		
 		]
-		iocp/bind g-poller iodata
-
-		iodata/code: IOCP_OP_READ
-		n: 0
-		flags: 0
-		if 0 <> WSARecv iodata/sock pbuf 1 :n :flags as OVERLAPPED! iodata null [
-			exit
-		]
-		probe "Socket read OK"
 	]
 
 	close: func [
@@ -201,11 +207,7 @@ socket: context [
 		/local
 			iodata	[sockdata!]
 	][
-		iodata: get-socket-data red-port
-		if iodata/buffer <> null [
-			free iodata/buffer
-			iodata/buffer: null
-		]
-		closesocket iodata/sock
+		iodata: as sockdata! get-socket-data red-port
+		_close iodata/sock
 	]
 ]

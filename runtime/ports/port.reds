@@ -1,7 +1,7 @@
 Red/System [
 	Title:	"Functions for I/O"
 	Author: "Xie Qingtian"
-	File: 	%IO.reds
+	File: 	%ports.reds
 	Tabs: 	4
 	Rights: "Copyright (C) 2018 Red Foundation. All rights reserved."
 	License: {
@@ -12,14 +12,54 @@ Red/System [
 
 g-poller: as int-ptr! 0
 
-sockaddr_in!: alias struct! [				;-- 16 bytes
-	sin_family	[integer!]					;-- family and port
-	sin_addr	[integer!]
-	sa_data1	[integer!]
-	sa_data2	[integer!]
+#include %sockdata.reds
+
+#either OS = 'Windows [
+	#include %socket-win32.reds
+	#include %poller-iocp.reds
+][
+	#include %socket-posix.reds
+	#case [
+		any [OS = 'macOS OS = 'FreeBSD][
+			#include %poller-kqueue.reds
+		]
+		any [OS = 'Linux OS = 'Android][
+			#include %poller-epoll.reds
+		]
+		true [
+			#include %poller-poll.reds
+		]
+	]
 ]
 
-#if OS <> 'Windows [#include %POSIX/definitions.reds]
+create-socket-data: func [
+	socket	[integer!]
+	return: [sockdata!]
+	/local
+		data [sockdata!]
+][
+	;@@ TBD get sockdata from the cache first
+	data: as sockdata! alloc0 size? sockdata!
+	data/sock: socket
+	data
+]
+
+create-red-port: func [
+	proto		[red-object!]
+	sock		[integer!]
+	return:		[red-object!]
+	/local
+		p		[red-object!]
+		data	[sockdata!]
+][
+	data: create-socket-data sock
+	sockdata/insert sock as int-ptr! data
+	p: port/make none-value object/get-values proto TYPE_NONE
+	block/rs-append red-port-buffer as cell! p
+	copy-cell as cell! p as cell! :data/cell
+	store-socket-data as int-ptr! data p
+	p
+]
 
 store-socket-data: func [
 	data		[int-ptr!]
@@ -68,7 +108,9 @@ tcp-server: func [
 		acp [integer!]
 ][
 	if null? g-poller [g-poller: poll/init]
+?? g-poller
 	fd: socket/create AF_INET SOCK_STREAM IPPROTO_TCP
+?? fd
 	socket/bind fd port/value AF_INET
 	#either OS = 'Windows [
 		acp: socket/create AF_INET SOCK_STREAM IPPROTO_TCP
@@ -118,3 +160,4 @@ call-awake: func [
 	port/call-function awake awake/ctx
 	stack/reset
 ]
+

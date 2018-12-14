@@ -81,7 +81,7 @@ ext-process: context [
 			str/len: #"^/"
 			#switch OS [								;-- Write to stderr, no error check
 				Windows  [ WriteFile GetStdHandle STD_ERROR_HANDLE as byte-ptr! str len :len null ]
-				#default [ platform/io-write stderr as byte-ptr! str len ]
+				#default [ _write stderr as byte-ptr! str len ]
 			]
 			free as byte-ptr! str
 		]
@@ -392,7 +392,7 @@ ext-process: context [
 		shell-name: as c-string! 0
 
 		init: does [
-			shell-name: platform/getenv "SHELL"
+			shell-name: getenv "SHELL"
 			init-global
 		]
 
@@ -401,10 +401,10 @@ ext-process: context [
 			/local
 				flags [integer!]
 		][
-			flags: platform/fcntl [fd F_GETFD 0]
-			platform/fcntl [fd F_SETFD flags or 1]		;-- FD_CLOEXEC
-			flags: platform/fcntl [fd F_GETFL 0]
-			platform/fcntl [fd F_SETFL flags or O_NONBLOCK]
+			flags: fcntl [fd F_GETFD 0]
+			fcntl [fd F_SETFD flags or 1]		;-- FD_CLOEXEC
+			flags: fcntl [fd F_GETFL 0]
+			fcntl [fd F_SETFL flags or O_NONBLOCK]
 		]
 
 		OS-call: func [                "Executes a shell command, IO redirections to buffers."
@@ -428,7 +428,7 @@ ext-process: context [
 			if in? [
 				input-len: 0
 				fd-in: declare f-desc!
-				if (platform/pipe as int-ptr! fd-in) = -1 [		;-- Create a pipe for child's input
+				if (_pipe as int-ptr! fd-in) = -1 [		;-- Create a pipe for child's input
 					__red-call-print-error [ error-pipe "stdin" ]
 					return -1
 				]
@@ -437,7 +437,7 @@ ext-process: context [
 				out-len: 0
 				out-size: READ-BUFFER-SIZE
 				fd-out: declare f-desc!
-				if (platform/pipe as int-ptr! fd-out) = -1 [		;-- Create a pipe for child's output
+				if (_pipe as int-ptr! fd-out) = -1 [		;-- Create a pipe for child's output
 					__red-call-print-error [ error-pipe "stdout" ]
 					return -1
 				]
@@ -446,74 +446,74 @@ ext-process: context [
 				err-len: 0
 				err-size: READ-BUFFER-SIZE
 				fd-err: declare f-desc!
-				if (platform/pipe as int-ptr! fd-err) = -1 [		;-- Create a pipe for child's error
+				if (_pipe as int-ptr! fd-err) = -1 [		;-- Create a pipe for child's error
 					__red-call-print-error [ error-pipe "stderr" ]
 					return -1
 				]
 			]
 
-			pid: platform/fork
+			pid: _fork
 			if pid = 0 [								;-- Child process
 				if in-buf <> null [                     ;-- redirect stdin to the pipe
 					either in-buf/count = -1 [			;-- file
-						nfds: platform/io-open as c-string! in-buf/buffer O_RDONLY
+						nfds: _open2 as c-string! in-buf/buffer O_RDONLY
 						if nfds < 0 [quit -1]
-						platform/dup2 nfds stdin
-						platform/io-close nfds
+						dup2 nfds stdin
+						_close nfds
 					][
-						platform/io-close fd-in/writing
-						err: platform/dup2 fd-in/reading stdin
+						_close fd-in/writing
+						err: dup2 fd-in/reading stdin
 						if err = -1 [ __red-call-print-error [ error-dup2 "stdin" ]]
-						platform/io-close fd-in/reading
+						_close fd-in/reading
 					]
 				]
 				either out-buf <> null [				;-- redirect stdout to the pipe
 					either out-buf/count = -1 [
-						nfds: platform/_open
+						nfds: _open
 							as c-string! out-buf/buffer
 							O_BINARY or O_WRONLY or O_CREAT or O_APPEND
 							438							;-- 0666
 						if nfds < 0 [quit -1]
-						platform/dup2 nfds stdout
-						platform/io-close nfds
+						dup2 nfds stdout
+						_close nfds
 					][
-						platform/io-close fd-out/reading
-						err: platform/dup2 fd-out/writing stdout
+						_close fd-out/reading
+						err: dup2 fd-out/writing stdout
 						if err = -1 [ __red-call-print-error [ error-dup2 "stdout" ]]
-						platform/io-close fd-out/writing
+						_close fd-out/writing
 					]
 				][
 					if not console? [					;-- redirect stdout to /dev/null.
-						dev-null: platform/io-open "/dev/null" O_WRONLY
-						err: platform/dup2 dev-null stdout
+						dev-null: _open2 "/dev/null" O_WRONLY
+						err: dup2 dev-null stdout
 						if err = -1 [ __red-call-print-error [ error-dup2 "stdout to null" ]]
-						platform/io-close dev-null
+						_close dev-null
 					]
 				]
 				either err-buf <> null [				;-- redirect stderr to the pipe
 					either err-buf/count = -1 [
-						nfds: platform/_open
+						nfds: _open
 							as c-string! err-buf/buffer
 							O_BINARY or O_WRONLY or O_CREAT or O_APPEND
 							438							;-- 0666
 						if nfds < 0 [quit -1]
-						platform/dup2 nfds stderr
-						platform/io-close nfds
+						dup2 nfds stderr
+						_close nfds
 					][
-						platform/io-close fd-err/reading
-						err: platform/dup2 fd-err/writing stderr
+						_close fd-err/reading
+						err: dup2 fd-err/writing stderr
 						if err = -1 [ __red-call-print-error [ error-dup2 "stderr" ]]
-						platform/io-close fd-err/writing
+						_close fd-err/writing
 					]
 				][
 					if not console? [					;-- redirect stderr to /dev/null.
-						dev-null: platform/io-open "/dev/null" O_WRONLY
-						err: platform/dup2 dev-null stderr
+						dev-null: _open2 "/dev/null" O_WRONLY
+						err: dup2 dev-null stderr
 						if err = -1 [ __red-call-print-error [ error-dup2 "stderr to null" ]]
-						platform/io-close dev-null
+						_close dev-null
 					]
 				]
-				if all [(in-buf = null) (not console?)] [platform/io-close stdin]	;-- no redirection, stdin closed
+				if all [(in-buf = null) (not console?)] [_close stdin]	;-- no redirection, stdin closed
 				
 				either shell? [
 					args: as str-array! allocate 4 * size? c-string!
@@ -522,12 +522,12 @@ ext-process: context [
 					args/item: cmd			args: args + 1
 					args/item: null
 					args: args - 3						;-- reset args pointer
-					platform/execvp shell-name args		;-- Process is launched here, execvp with str-array parameters
+					execvp shell-name args		;-- Process is launched here, execvp with str-array parameters
 				][
-					wexp: declare red/platform/wordexp-type! ;-- Create wordexp struct
-					status: platform/wordexp cmd wexp WRDE_SHOWERR	;-- Parse cmd into str-array
+					wexp: declare wordexp-type! ;-- Create wordexp struct
+					status: wordexp cmd wexp WRDE_SHOWERR	;-- Parse cmd into str-array
 					either status = 0 [					;-- Parsing ok
-						platform/execvp wexp/we_wordv/item wexp/we_wordv ;-- Process is launched here, execvp with str-array parameters
+						execvp wexp/we_wordv/item wexp/we_wordv ;-- Process is launched here, execvp with str-array parameters
 					][									;-- Parsing nok
 						__red-call-print-error [ "Error Red/System call, wordexp parsing command : " cmd ]
 
@@ -545,14 +545,14 @@ ext-process: context [
 			]
 			if pid > 0 [								;-- Parent process
 				nfds: 0
-				pfds: as red/platform/pollfd! allocate 3 * size? red/platform/pollfd!
+				pfds: as pollfd! allocate 3 * size? pollfd!
 				if in? [
 					waitend?: true
 					fds: pfds + nfds
 					fds/fd: fd-in/writing
 					set-flags-fd fds/fd
 					fds/events: POLLOUT
-					platform/io-close fd-in/reading
+					_close fd-in/reading
 					nfds: nfds + 1
 				]
 				if out? [								;- Create buffer for output
@@ -563,7 +563,7 @@ ext-process: context [
 					fds/fd: fd-out/reading
 					set-flags-fd fds/fd
 					fds/events: POLLIN
-					platform/io-close fd-out/writing
+					_close fd-out/writing
 					nfds: nfds + 1
 				]
 				if err? [								;- Create buffer for error
@@ -574,27 +574,27 @@ ext-process: context [
 					fds/fd: fd-err/reading
 					set-flags-fd fds/fd
 					fds/events: POLLIN
-					platform/io-close fd-err/writing
+					_close fd-err/writing
 					nfds: nfds + 1
 				]
 				n: nfds
 				while [n > 0][
-					i: platform/waitpid pid :status 1			;-- WNOHANG: 1
+					i: waitpid pid :status 1			;-- WNOHANG: 1
 					if i = -1 [break]
 					if i = pid [
 						if out-buf <> null [
-							nbytes: platform/io-read fd-out/reading out-buf/buffer + out-len out-size - out-len
+							nbytes: _read fd-out/reading out-buf/buffer + out-len out-size - out-len
 							if nbytes > 0 [out-len: out-len + nbytes]
-							platform/io-close fd-out/reading
+							_close fd-out/reading
 						]
 						if err-buf <> null [
-							nbytes: platform/io-read fd-err/reading err-buf/buffer + err-len err-size - err-len
+							nbytes: _read fd-err/reading err-buf/buffer + err-len err-size - err-len
 							if nbytes > 0 [err-len: err-len + nbytes]
-							platform/io-close fd-err/reading
+							_close fd-err/reading
 						]
 						break
 					]
-					if 0 > platform/poll pfds nfds -1 [n: 0]
+					if 0 > _poll pfds nfds -1 [n: 0]
 
 					i: 0
 					while [all [i < nfds n > 0]][
@@ -603,16 +603,16 @@ ext-process: context [
 						revents: fds/events >>> 16
 						case [
 							revents and POLLERR <> 0 [
-								platform/io-close fds/fd
+								_close fds/fd
 								fds/fd: -1
 								n: n - 1
 							]
 							revents and POLLOUT <> 0 [
-								nbytes: platform/io-write fds/fd in-buf/buffer + input-len in-buf/count - input-len
+								nbytes: _write fds/fd in-buf/buffer + input-len in-buf/count - input-len
 								if nbytes <= 0 [n: 0 nbytes: in-buf/count]
 								input-len: input-len + nbytes
 								if input-len >= in-buf/count [
-									platform/io-close fds/fd
+									_close fds/fd
 									fds/fd: -1
 									n: n - 1
 								]
@@ -633,10 +633,10 @@ ext-process: context [
 								]
 								until [
 									to-read: size/value - offset/value
-									nbytes: platform/io-read fds/fd pbuf/buffer + offset/value to-read    ;-- read pipe, store into buffer
+									nbytes: _read fds/fd pbuf/buffer + offset/value to-read    ;-- read pipe, store into buffer
 									if nbytes < 0 [break]
 									if nbytes = 0 [
-										platform/io-close fds/fd
+										_close fds/fd
 										fds/fd: -1
 										n: n - 1
 									]
@@ -650,7 +650,7 @@ ext-process: context [
 								]
 								pbuf/count: offset/value
 							]
-							revents and POLLHUP <> 0 [platform/io-close fds/fd fds/fd: -1 n: n - 1]
+							revents and POLLHUP <> 0 [_close fds/fd fds/fd: -1 n: n - 1]
 							revents and POLLNVAL <> 0 [n: -1]
 							true [0]
 						]
@@ -659,7 +659,7 @@ ext-process: context [
 
 				if console? [waitend?: yes]
 				if waitend? [
-					platform/waitpid pid :status 0		;-- Wait child process terminate
+					waitpid pid :status 0		;-- Wait child process terminate
 					either (status and 00FFh) <> 0 [	;-- a signal occured. Low byte contains stop code
 						pid: -1
 					][
