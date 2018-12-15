@@ -21,7 +21,7 @@ Red/System [
 				#if debug? = yes [if verbose > 0 [log "infix detected!"]]
 				infix?: yes
 			][
-				lit?: all [								;-- is a literal argument is expected?
+				lit?: all [								;-- is a literal argument expected?
 					TYPE_OF(pc) = TYPE_WORD
 					literal-first-arg? as red-native! value
 				]

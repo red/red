@@ -136,7 +136,7 @@ re-throw: func [/local id [integer!]][
 #if type = 'exe [
 	#switch target [						;-- do not raise exceptions as we use some C functions may cause exception
 		IA-32 [
-			system/fpu/control-word: 037Fh
+			system/fpu/control-word: 027Fh
 			system/fpu/update
 		]
 		ARM [
