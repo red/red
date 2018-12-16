@@ -190,11 +190,12 @@ socket: context [
 
 		iodata/code: SOCK_OP_WRITE
 		n: _send iodata/sock pbuf len 0
-probe ["xxxxxxxxxxxxxxxxxx " n " " len]
 		either n = len [
 			iodata/buffer/header: 0
 			iodata/offset: 0
-			call-awake red-port red-port IO_EVT_WROTE
+			;call-awake red-port red-port IO_EVT_WROTE
+			poll/push-ready g-poller iodata
+			poll/pulse g-poller
 		][
 			if n > 0 [iodata/offset: iodata/offset + n]
 
@@ -224,7 +225,9 @@ probe ["xxxxxxxxxxxxxxxxxx " n " " len]
 			bin: binary/load sock-readbuf n
 			copy-cell as cell! bin (object/get-values red-port) + port/field-data
 			stack/pop 1
-			call-awake red-port red-port IO_EVT_READ
+			;call-awake red-port red-port IO_EVT_READ
+			poll/push-ready g-poller iodata
+			poll/pulse g-poller
 		][
 			either zero? iodata/state [
 				iodata/state: EPOLLIN

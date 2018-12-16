@@ -13,10 +13,13 @@ Red/System [
 g-poller: as int-ptr! 0
 
 poller!: alias struct! [
-	maxn	[integer!]
-	epfd	[integer!]				;-- the epoll fd
-	events	[epoll_event!]			;-- the events
-	nevents [integer!]				;-- the events count
+	maxn		[integer!]
+	epfd		[integer!]				;-- the epoll fd
+	events		[epoll_event!]			;-- the events
+	nevents		[integer!]				;-- the events count
+	pair-1		[integer!]
+	pair-2		[integer!]
+	ready-socks	[deque!]				;-- a queue for ready socket
 ]
 
 poll: context [
@@ -25,12 +28,24 @@ poll: context [
 		return: [int-ptr!]
 		/local
 			p	[poller!]
+			ptr [sockdata!]
 	][
 		errno: get-errno-ptr
 		p: as poller! alloc0 size? poller!
 		p/maxn: 65536
 		p/epfd: epoll_create1 00080000h
 		assert p/epfd > 0
+
+		p/ready-socks: deque/create 1024
+
+		if -1 = socketpair 1 SOCK_STREAM 0 :p/pair-1 [
+			probe "!!! create pair fail !!!"
+		]
+		socket/set-nonblocking p/pair-1
+		socket/set-nonblocking p/pair-2
+
+		ptr: socket/create-data p/pair-2
+		add as int-ptr! p p/pair-2 EPOLLIN or EPOLLET as int-ptr! ptr
 
 		sockdata/init
 		sock-readbuf: allocate 1024 * 1024
@@ -107,12 +122,32 @@ poll: context [
 		
 	]
 
+	push-ready: func [
+		ref		[int-ptr!]
+		sdata	[sockdata!]
+		/local
+			p	[poller!]
+	][
+		p: as poller! ref
+		deque/push p/ready-socks as int-ptr! sdata
+	]
+
+	pulse: func [
+		ref		[int-ptr!]
+		/local
+			p	[poller!]
+	][
+		p: as poller! ref
+		_send p/pair-1 as byte-ptr! "p" 1 0
+	]
+
 	wait: func [
 		ref			[int-ptr!]
 		timeout		[integer!]
 		return:		[integer!]
 		/local
 			p		[poller!]
+			queue	[deque!]
 			cnt		[integer!]
 			i		[integer!]
 			e		[epoll_event!]
@@ -128,13 +163,15 @@ poll: context [
 	][
 		#if debug? = yes [print-line "poll/wait"]
 
-		forever [
-			p: as poller! either null? ref [g-poller][ref]
-			if null? p/events [
-				p/nevents: 512
-				p/events: as epoll_event! allocate p/nevents * size? epoll_event!
-			]
+		err: 0
+		p: as poller! either null? ref [g-poller][ref]
+		if null? p/events [
+			p/nevents: 512
+			p/events: as epoll_event! allocate p/nevents * size? epoll_event!
+		]
+		queue: p/ready-socks
 
+		forever [
 			cnt: epoll_wait p/epfd p/events p/nevents timeout
 			if all [cnt < 0 errno/value = EINTR][return 0]
 
@@ -150,6 +187,25 @@ poll: context [
 				msg: red-port
 probe ["code: " data/code]
 				switch data/code [
+					SOCK_OP_NONE	[				;-- impluse event
+						_recv data/sock sock-readbuf 1024 * 1024 0
+						n: 0
+						while [queue/size > 0][
+							n: n + 1
+							data: as sockdata! deque/take queue
+							red-port: as red-object! :data/cell
+							switch data/code [
+								SOCK_OP_READ  [type: IO_EVT_READ]
+								SOCK_OP_WRITE [type: IO_EVT_WROTE]
+								SOCK_OP_READ_UDP	[0]
+								SOCK_OP_WRITE_UDP	[0]
+								default				[probe ["wrong socket code: " data/code]]
+							]
+							call-awake red-port red-port type
+						]
+						i: i + 1
+						continue
+					]
 					SOCK_OP_ACCEPT	[
 						n: size? sockaddr_in!
 						acpt: _accept data/sock as byte-ptr! :saddr :n

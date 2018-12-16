@@ -272,6 +272,13 @@ pollfd!: alias struct! [
 			file		[integer!]
 			return:		[integer!]
 		]
+		socketpair: "socketpair" [
+			domain		[integer!]
+			type		[integer!]
+			protocl		[integer!]
+			sv			[int-ptr!]
+			return:		[integer!]
+		]
 		_remove: "remove" [
 			pathname	[c-string!]
 			return: 	[integer!]

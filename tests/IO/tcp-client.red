@@ -27,7 +27,7 @@ client/awake: func [event /local port] [
     port: event/port
     switch event/type [
         lookup [open port]
-        connect [?? b insert port b]
+        connect [insert port b]
         read [
 	        probe "client read done"
 	        probe port/data

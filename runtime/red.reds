@@ -40,6 +40,7 @@ red: context [
 	#include %print.reds
 	#include %datatypes/common.reds
 	#include %linked-list.reds
+	#include %deque.reds
 	#include %unicode.reds
 	#include %case-folding.reds
 	#include %sort.reds
