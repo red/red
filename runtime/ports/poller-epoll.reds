@@ -10,8 +10,6 @@ Red/System [
 	}
 ]
 
-g-poller: as int-ptr! 0
-
 poller!: alias struct! [
 	maxn		[integer!]
 	epfd		[integer!]				;-- the epoll fd
@@ -59,6 +57,8 @@ poll: context [
 			p	[poller!]
 	][
 		p: as poller! ref
+		_close p/pair-1
+		_close p/pair-2
 		_close p/epfd
 		if p/events <> null [
 			free as byte-ptr! p/events
@@ -66,7 +66,14 @@ poll: context [
 		free as byte-ptr! p
 	]
 
-	kill: func [][]
+	kill: func [
+		ref		[int-ptr!]
+		/local
+			p	[poller!]
+	][
+		p: as poller! ref
+		_send p/pair-1 as byte-ptr! "k" 1 0
+	]
 
 	_modify: func [
 		ref		[int-ptr!]

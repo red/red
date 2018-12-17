@@ -403,8 +403,49 @@ errno: as int-ptr! 0
 
 #case [
 	any [OS = 'macOS OS = 'FreeBSD] [
+
+		#define EVFILT_READ		-1
+		#define EVFILT_WRITE	-2
+		#define EVFILT_PROC		-5		;-- attached to struct proc
+		#define EVFILT_SIGNAL	-6		;-- attached to struct proc
+		#define EVFILT_TIMER	-7		;-- timers
+		#define EVFILT_MACHPORT	-8		;-- Mach portsets
+		#define EVFILT_FS		-9		;-- Filesystem events
+		#define EVFILT_USER		-10		;-- User events
+		#define EVFILT_VM		-12		;-- Virtual memory events
+		#define EVFILT_SYSCOUNT	14
+
+		;/* actions */
+		#define EV_ADD			01h		;-- add event to kq (implies enable)
+		#define EV_DELETE		02h		;-- delete event from kq
+		#define EV_ENABLE		04h		;-- enable event
+		#define EV_DISABLE		08h		;-- disable event (not reported)
+		#define EV_RECEIPT		40h		;-- force EV_ERROR on success, data == 0
+
+		;/* flags */
+		#define EV_ONESHOT		10h		;-- only report one occurrence
+		#define EV_CLEAR		20h		;-- clear event state after reporting
+		#define EV_DISPATCH		80h		;-- disable event after reporting
+
+		#define EV_SYSFLAGS		F000h	;-- reserved by system
+		#define EV_FLAG0		1000h	;-- filter-specific flag
+		#define EV_FLAG1		2000h	;-- filter-specific flag
+
+		;/* returned values */
+		#define EV_EOF			8000h	;-- EOF detected
+		#define EV_ERROR		4000h	;-- error, data contains errno
+
+		#define EV_SET(kevp a b c d e f) [
+			kevp/ident: as int-ptr! a
+			kevp/filter: c << 16 or b
+			kevp/fflags: d
+			kevp/data: e
+			kevp/udata: as int-ptr! f
+		]
+
 		kevent!: alias struct! [
 			ident		[int-ptr!]		;-- identifier for this event
+			filter		[integer!]
 			;filter		[int16!]		;-- filter for event
 			;flags		[int16!]		;-- general flags
 			fflags		[integer!]		;-- filter-specific flags
@@ -416,10 +457,10 @@ errno: as int-ptr! 0
 				get-errno-ptr: "__error" [
 					return: [int-ptr!]
 				]
-				kqueue: "kqueue" [
+				_kqueue: "kqueue" [
 					return: [integer!]
 				]
-				kevent: "kevent" [
+				_kevent: "kevent" [
 					kq		[integer!]
 					clist	[kevent!]
 					nchange [integer!]
