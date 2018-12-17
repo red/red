@@ -412,6 +412,10 @@ tuple: context [
 		either type = TYPE_INTEGER [
 			int: as red-integer! element
 			either value <> null [
+				type: TYPE_OF(value)
+				if type <> TYPE_INTEGER [
+					fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(value)]
+				]
 				poke parent int/value value null
 				value
 			][
