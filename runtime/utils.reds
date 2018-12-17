@@ -280,6 +280,7 @@ check-arg-type: func [
 		name: switch major [
 			10 [
 				switch minor [
+					14 ["Mojave"]
 					13 ["High Sierra"]
 					12 ["Sierra"]
 					11 ["El Capitan"]

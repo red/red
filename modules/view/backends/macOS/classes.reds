@@ -321,6 +321,7 @@ register-classes: does [
 	make-super-class "RedButton"		"NSButton"				as-integer :add-button-handler	STORE_FACE_FLAG
 	make-super-class "RedSlider"		"NSSlider"				as-integer :add-slider-handler	STORE_FACE_FLAG
 	make-super-class "RedTextField"		"NSTextField"			as-integer :add-text-field-handler STORE_FACE_FLAG
+	make-super-class "RedSecureField"	"NSSecureTextField"		as-integer :add-text-field-handler STORE_FACE_FLAG
 	make-super-class "RedTextView"		"NSTextView"			as-integer :add-area-handler STORE_FACE_FLAG
 	make-super-class "RedComboBox"		"NSComboBox"			as-integer :add-combo-box-handler STORE_FACE_FLAG
 	make-super-class "RedPopUpButton"	"NSPopUpButton"			as-integer :add-droplist-handler STORE_FACE_FLAG

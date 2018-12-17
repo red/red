@@ -157,6 +157,7 @@ Red/System [
 #define RedCameraDevicesKey		4000FFF2h
 #define RedCameraDevInputKey	4000FFF3h
 #define RedCameraImageKey		4000FFF4h
+#define RedSecureFieldKey		4000FFF5h
 #define RedTimerKey				4000FFFAh
 #define RedFieldEditorKey		4000FFFBh
 #define RedAllOverFlagKey		4000FFFCh

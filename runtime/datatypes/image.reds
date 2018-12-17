@@ -25,7 +25,7 @@ image: context [
 		bitmap/value: OS-image/lock-bitmap img yes
 		OS-image/get-data bitmap/value :stride
 	]
-	
+
 	release-buffer: func [
 		img		  [red-image!]
 		bitmap	  [integer!]
@@ -36,7 +36,7 @@ image: context [
 			ownership/check as red-value! img words/_poke as red-value! img -1 -1
 		]
 	]
-	
+
 	rs-pick: func [
 		img		[red-image!]
 		offset	[integer!]
@@ -99,7 +99,7 @@ image: context [
 		img/header: TYPE_IMAGE							;-- implicit reset of all header flags
 		img
 	]
-	
+
 	resize: func [
 		img		[red-image!]
 		width	[integer!]
@@ -124,7 +124,7 @@ image: context [
 		img [red-image!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "image/push"]]
-		
+
 		copy-cell as red-value! img stack/push*
 	]
 
@@ -142,11 +142,11 @@ image: context [
 		init-image img hr
 		img
 	]
-	
+
 	delete: func [img [red-image!]][
 		OS-image/delete img
 	]
-	
+
 	encode: func [
 		image	[red-image!]
 		dst		[red-value!]
@@ -287,7 +287,10 @@ image: context [
 					int: as red-integer! bin
 					color: int/value
 				]
-				default [fire [TO_ERROR(script invalid-arg) bin]]
+				default [
+					OS-image/unlock-bitmap img bitmap
+					fire [TO_ERROR(script invalid-arg) bin]
+				]
 			]
 			either method = EXTRACT_ARGB [
 				mask: 255 - (color >>> 24) << 24
@@ -329,18 +332,27 @@ image: context [
 			max		[integer!]
 			idx		[integer!]
 			w		[integer!]
+			h		[integer!]
 			x		[integer!]
 			y		[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "image/at"]]
 
 		w: IMAGE_WIDTH(img/size)
+		h: IMAGE_HEIGHT(img/size)
 		either TYPE_OF(index) = TYPE_INTEGER [
 			idx: index/value
 		][											;-- pair!
 			pair: as red-pair! index
 			x: pair/x
 			y: pair/y
+			if out-range <> null [
+				either base = 1 [
+					if any [x > w x <= 0 y > h y <= 0][out-range/value: 1]
+				][
+					if any [x >= w x < 0 y >= h y < 0][out-range/value: 1]
+				]
+			]
 
 			if all [base = 1 y > 0][y: y - 1]
 			idx: y * w + x
@@ -349,8 +361,8 @@ image: context [
 		if all [base = 1 idx <= 0][base: base - 1]
 		offset: img/head + idx - base
 		if negative? offset [offset: 0 idx: 0]
-		max: w * IMAGE_HEIGHT(img/size)
-		if offset > max [offset: max idx: 0]
+		max: w * h
+		if offset >= max [offset: max idx: 0]
 		if all [out-range <> null zero? idx][out-range/value: 1]
 		offset
 	]
@@ -393,7 +405,7 @@ image: context [
 		rgb:   null
 		alpha: null
 		color: null
-		
+
 		switch TYPE_OF(spec) [
 			TYPE_PAIR [
 				pair: as red-pair! spec
@@ -506,7 +518,7 @@ image: context [
 		end: data + (width * height)
 		data: data + img/head
 		size: as-integer end - data
-		
+
 		string/append-char GET_BUFFER(buffer) as-integer space
 		string/concatenate-literal buffer "#{"
 		part: part - 2
@@ -514,7 +526,7 @@ image: context [
 			string/append-char GET_BUFFER(buffer) as-integer lf
 			part: object/do-indent buffer indent part - 1
 		]
-		
+
 		count: 0
 		while [data < end][
 			pixel: data/value
@@ -620,7 +632,7 @@ image: context [
 		#if debug? = yes [if verbose > 0 [print-line "image/pick"]]
 
 		out-range: 0
-		offset: either null? boxed [index - 1][get-position img as red-integer! boxed 1 :out-range]
+		offset: either null? boxed [img/head + index - 1][get-position img as red-integer! boxed 1 :out-range]
 		as red-value! either out-range = 1 [none-value][rs-pick img offset]
 	]
 
@@ -647,6 +659,7 @@ image: context [
 		either out-range = 1 [
 			fire [TO_ERROR(script out-of-range) boxed]
 		][
+			unless TYPE_TUPLE = TYPE_OF(data) [fire [TO_ERROR(script invalid-arg) data]]
 			color: as red-tuple! data
 			p: (as byte-ptr! color) + 4
 			r: as-integer p/1

@@ -788,6 +788,7 @@ block: context [
 			s2		[series!]
 			slot	[red-value!]
 			slot2	[red-value!]
+			beg		[red-value!]
 			end		[red-value!]
 			result	[red-value!]
 			int		[red-integer!]
@@ -816,10 +817,11 @@ block: context [
 		]
 
 		s: GET_BUFFER(blk)
+		beg: s/offset + blk/head
 
 		if any [							;-- early exit if blk is empty or at tail
 			s/offset = s/tail
-			all [not reverse? s/offset + blk/head >= s/tail]
+			all [not reverse? beg >= s/tail]
 		][
 			result/header: TYPE_NONE
 			return result
@@ -841,7 +843,7 @@ block: context [
 					result/header: TYPE_NONE
 					return result
 				]
-				s/offset + int/value - 1				;-- int argument is 1-based
+				beg + int/value - 1						;-- int argument is 1-based
 			][
 				b: as red-block! part
 				unless all [
@@ -883,7 +885,7 @@ block: context [
 				]
 				reverse? [
 					step: 0 - step
-					slot: either part? [part][s/offset + blk/head - 1]
+					slot: either part? [part][beg - 1]
 					end: s/offset
 					if slot < end [							;-- early exit if blk/head = 0
 						result/header: TYPE_NONE
@@ -891,7 +893,7 @@ block: context [
 					]
 				]
 				true [
-					slot: s/offset + blk/head
+					slot: beg
 					end: either part? [part + 1][s/tail]	;-- + 1 => compensate for the '>= test
 				]
 			]
@@ -1024,6 +1026,7 @@ block: context [
 			s	  [series!]
 			hash? [logic!]
 			hash  [red-hash!]
+			put?  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/put"]]
 
@@ -1041,8 +1044,14 @@ block: context [
 		][
 			s: GET_BUFFER(blk)
 			slot: s/offset + blk/head + 1
-			if slot >= s/tail [slot: alloc-tail s slot/header: -1]
-			if 0 <> actions/compare-value slot value COMP_FIND [
+			either slot >= s/tail [
+				put?: yes
+				slot: alloc-tail s
+				slot/header: -1
+			][
+				put?: 0 <> actions/compare-value slot value COMP_FIND
+			]
+			if put? [
 				copy-cell value slot
 				if hash? [_hashtable/put hash/table slot]
 			]
@@ -1580,6 +1589,7 @@ block: context [
 		return:		[red-series!]
 		/local
 			s		[series!]
+			end		[red-value!]
 			type	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/copy"]]
@@ -1589,7 +1599,8 @@ block: context [
 			if TYPE_HASH = TYPE_OF(blk) [new/header: TYPE_BLOCK]
 			s: GET_BUFFER(new)
 			arg: s/offset
-			until [
+			end: s/tail
+			while [arg < end][
 				type: TYPE_OF(arg)
 				if ANY_SERIES?(type) [
 					actions/copy 
@@ -1600,7 +1611,6 @@ block: context [
 						null
 				]
 				arg: arg + 1
-				arg >= s/tail
 			]
 		]
 		
@@ -1659,13 +1669,14 @@ block: context [
 		if zero? len [len: 1]
 		new: make-at as red-block! stack/push* len
 		table: _hashtable/init len new HASH_TABLE_HASH 1
+		hs: as red-hash! new
+		hs/header: TYPE_HASH
+		hs/table: table
 		n: 2
 		hash: null
 		blk?: yes
-		hash?: any [
-			TYPE_OF(blk1) = TYPE_HASH
-			TYPE_OF(blk2) = TYPE_HASH
-		]
+		hash?: TYPE_OF(blk1) = TYPE_HASH
+		if all [not hash? op <> OP_UNIQUE][hash?: TYPE_OF(blk2) = TYPE_HASH]
 
 		comp-op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
 		saved: collector/active?

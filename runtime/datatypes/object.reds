@@ -970,6 +970,8 @@ object: context [
 			obj		[red-object!]
 			obj2	[red-object!]
 			ctx		[red-context!]
+			self	[node!]
+			s		[series!]
 			blk		[red-block!]
 			p-obj?  [logic!]
 			new?	[logic!]
@@ -997,13 +999,16 @@ object: context [
 				obj/on-set: null						;-- avoid GC marking previous value
 				blk: as red-block! spec
 				new?: _context/collect-set-words ctx blk
-				_context/bind blk ctx save-self-object obj yes	;-- bind spec block
+				self: save-self-object obj
+				_context/bind blk ctx self yes	;-- bind spec block
 				if p-obj? [duplicate proto/ctx obj/ctx no]		;-- clone and rebind proto's series
 				interpreter/eval blk no
 				
 				obj/class: either any [new? not p-obj?][get-new-id][proto/class]
 				obj/on-set: on-set-defined? ctx
 				if on-deep? obj [ownership/set-owner as red-value! obj obj null]
+				s: as series! self/value
+				copy-cell as red-value! obj s/offset
 			]
 			default [fire [TO_ERROR(syntax malconstruct) spec]]
 		]

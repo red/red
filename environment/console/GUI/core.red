@@ -64,6 +64,9 @@ object [
 	select-bg:	none							;-- selected text background color
 	pad-left:	3
 
+	scrolling:	0
+	scroll-pos: 0
+
 	color?:		no
 	theme: #(
 		foreground	[0.0.0]
@@ -91,7 +94,7 @@ object [
 		caret/visible?: no
 		either escape [append line #"^["][
 			if all [not empty? line line <> first history][insert history line]
-			hist-idx: 0	
+			hist-idx: 0
 		]
 		prin?: no
 		newline?: yes
@@ -267,7 +270,7 @@ object [
 	scroll: func [event /local key n][
 		if empty? lines [exit]
 		key: event/key
-		n: switch/default key [ 
+		n: switch/default key [
 			up			[1]
 			down		[-1]
 			page-up		[scroller/page-size]
@@ -303,30 +306,28 @@ object [
 		]
 	]
 
-	offset-to-line: func [offset [pair!] /local h y start end n][
-		;if offset/y > (line-y + last heights) [exit]
-
+	offset-to-line: func [offset [pair!] /local h y start end n max-n][
 		y: offset/y - scroll-y
 		end: line-y - scroll-y
 		h: 0
 		n: top
+		max-n: length? lines
 		until [
 			h: h + pick heights n
 			if y < h [break]
 			n: n + 1
-			h > end
+			any [n > max-n h > end]
 		]
-		if n > length? lines [n: length? lines]
+		if n > max-n [n: max-n]
 		box/text: head pick lines n
 		start: pick heights n
-		offset/x: offset/x - pad-left 
+		offset/x: offset/x - pad-left
 		offset/y: y + start - h
 		append selects n
 		append selects offset-to-caret box offset
 	]
 
-	mouse-to-caret: func [event [event!] /local offset][
-		offset: event/offset
+	mouse-to-caret: func [offset][
 		if any [offset/y < line-y offset/y > (line-y + last heights)][exit]
 
 		offset/x: offset/x - pad-left
@@ -343,23 +344,57 @@ object [
 		clear selects
 
 		offset-to-line event/offset
-		mouse-to-caret event
+		mouse-to-caret event/offset
 	]
 
 	mouse-up: func [event [event!]][
+		if scrolling <> 0 [console/rate: none]
 		if empty? lines [exit]
 		mouse-up?: yes
 		if 2 = length? selects [clear selects]
 		system/view/platform/redraw console
 	]
 
-	mouse-move: func [event [event!]][
+	mouse-move: func [offset /local y][
 		if any [empty? lines mouse-up? empty? selects][exit]
 
+		scrolling: 0
+		case [
+			offset/y < -10 [
+				scroll-lines 1
+				offset/y: 0
+				scrolling: 1
+				scroll-pos: offset
+			]
+			offset/y - box/size/y > 10 [
+				scroll-lines -1
+				offset/y: box/size
+				scrolling: -1
+				scroll-pos: offset
+			]
+			scrolling <> 0 [
+				console/rate: none
+				scrolling: 0
+			]
+		]
+		if scrolling <> 0 [console/rate: 10]
+
+		select-to-offset offset
+	]
+
+	select-to-offset: func [offset][
 		clear skip selects 2
-		offset-to-line event/offset
-		mouse-to-caret event
+		offset-to-line offset
+		mouse-to-caret offset
 		system/view/platform/redraw console
+	]
+
+	on-time: func [][
+		either zero? scrolling [console/rate: none][
+			if any [empty? lines mouse-up? empty? selects][exit]
+			scroll-lines scrolling
+			select-to-offset scroll-pos
+		]
 	]
 
 	jump-word: func [left? [logic!] return: [integer!] /local start n][
@@ -599,7 +634,7 @@ object [
 			p-idx candidates str2
 	][
 		p-idx: index? str
-		candidates: red-complete-input skip str pos yes
+		candidates: red-complete-ctx/complete-input skip str pos yes
 		case [
 			empty? candidates [
 				insert skip str pos char
@@ -613,7 +648,7 @@ object [
 				clear redo-stack
 			]
 			true [
-				str2: insert form next candidates system/console/prompt
+				str2: head insert form next candidates system/console/prompt
 				poke lines length? lines str2
 				calc-top
 				clear head str

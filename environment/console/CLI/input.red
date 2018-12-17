@@ -119,7 +119,7 @@ unless system/console [
 				str2	[red-string!]
 				head	[integer!]
 		][
-			#call [red-complete-input str yes]
+			#call [red-complete-ctx/complete-input str yes]
 			stack/top: stack/arguments + 1
 			result: as red-block! stack/top
 			num: block/rs-length? result

@@ -1008,7 +1008,7 @@ terminal: context [
 			stack/arguments
 
 		line/head: vt/cursor - vt/prompt-len
-		#call [red-complete-input line yes]
+		#call [red-complete-ctx/complete-input line yes]
 		result: as red-block! stack/arguments
 		num: block/rs-length? result
 

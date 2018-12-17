@@ -417,6 +417,11 @@ Red [
     put sp-3 'b 2
     put sp-3 'b 3
   --assert sp-3 = make hash! [a 1 b 3]
+
+  --test-- "series-put-issue 3567"
+	v: [a 1 c]
+	put v 'c 3
+	--assert v = [a 1 c 3]
 ===end-group===
 
 ===start-group=== "series-equal"

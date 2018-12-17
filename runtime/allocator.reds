@@ -105,13 +105,13 @@ memory: declare struct! [					; TBD: instanciate this structure per OS thread
 
 
 init-mem: does [
-	memory/total: 	0
-	memory/s-start: _1MB
-	memory/s-max: 	_2MB
-	memory/s-size: 	memory/s-start
-	memory/stk-sz: 1000
-	memory/b-head:	null
-	memory/stk-refs: as int-ptr! allocate memory/stk-sz * 2 * size? int-ptr!
+	memory/total:		0
+	memory/s-start:		_1MB
+	memory/s-max:		_2MB
+	memory/s-size:		memory/s-start
+	memory/stk-sz:		1000
+	memory/b-head:		null
+	memory/stk-refs:	as int-ptr! allocate memory/stk-sz * 2 * size? int-ptr!
 ]
 
 ;; (1) Series frames size will grow from 1MB up to 2MB (arbitrary selected). This
@@ -710,7 +710,7 @@ extract-stack-refs: func [
 	top:  system/stack/top
 	stk:  stk-bottom
 	refs: memory/stk-refs
-	tail: refs + (memory/stk-sz * 8)
+	tail: refs + (memory/stk-sz * 2)
 	
 	;probe ["native stack slots: " (as-integer stk - top) >> 2]
 	until [
@@ -724,13 +724,18 @@ extract-stack-refs: func [
 		][	
 			;probe ["stack pointer: " p " : " as byte-ptr! p/value]
 			if store? [
-				either refs < tail [
-					refs/1: as-integer p	;-- pointer inside a frame
-					refs/2: as-integer stk	;-- pointer address on stack
-					refs: refs + 2
-				][
-					probe "*** Error: stack pointers buffer overflow!"
+				if refs = tail [
+					;@@ for cases like issue #3628, should find a better way to handle it
+					refs: memory/stk-refs
+					memory/stk-sz: memory/stk-sz + 1000
+					refs: as int-ptr! realloc as byte-ptr! refs memory/stk-sz * 2 * size? int-ptr!
+					memory/stk-refs: refs
+					tail: refs + (memory/stk-sz * 2)
+					refs: tail - 2000
 				]
+				refs/1: as-integer p	;-- pointer inside a frame				
+				refs/2: as-integer stk	;-- pointer address on stack
+				refs: refs + 2
 			]
 		]
 		stk = top

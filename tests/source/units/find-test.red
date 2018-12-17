@@ -301,7 +301,7 @@ Red [
 	--test-- "find/reverse-3"
 		--assert [3 3 2 1] = find/reverse tail [1 2 3 3 2 1] [3 3]
 	--test-- "find/reverse-4"
-		--assert "3321" = find/reverse back back back tail "123321" "33"
+		--assert "3321" = find/reverse back back tail "123321" "33"
 	--test-- "find/reverse-5"
 		--assert "3321" = find/reverse back back back tail"123321" "3"
 	--test-- "find/reverse-6"
@@ -333,6 +333,13 @@ Red [
 		--assert [1] = find [a 1] integer!
 	--test-- "find datatype! -2"
 		--assert none = find [a] integer!
+===end-group===
+
+===start-group=== "find/reverse/match"
+	--test-- "find/reverse/match-1"
+		--assert "" = find/reverse/match tail "abc" "abc"
+	--test-- "find/reverse/match-2"
+		--assert none = find/reverse/match tail "abcx" "abc"
 ===end-group===
 
 ~~~end-file~~~

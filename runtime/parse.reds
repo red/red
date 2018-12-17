@@ -798,6 +798,7 @@ parser: context [
 			only?	 [logic!]
 			done?	 [logic!]
 			saved?	 [logic!]
+			gc-saved [logic!]
 	][
 		match?:	  yes
 		end?:	  no
@@ -814,6 +815,9 @@ parser: context [
 		cnt-col:   0
 		fun-locs:  0
 		state:    ST_PUSH_BLOCK
+
+		s: GET_BUFFER(series)
+		if s/offset = s/tail [gc-saved: collector/active? collector/active?: no]
 
 		if OPTION?(fun) [fun-locs: _function/count-locals fun/spec 0]
 		
@@ -1020,6 +1024,7 @@ parser: context [
 										]
 									]
 									value: stack/top	;-- refer last value from paren expression
+									stack/top: stack/top + 1
 									offset: p/input		;-- required by PARSE_PICK_INPUT
 									
 									if int/value = R_KEEP [
@@ -1064,6 +1069,7 @@ parser: context [
 											offset = input/head
 										]
 									]
+									stack/top: stack/top - 1
 								]
 							]
 							R_REMOVE [
@@ -1766,6 +1772,10 @@ parser: context [
 							]
 							either into? [
 								blk: as red-block! _context/get w
+								type: TYPE_OF(blk)
+								unless ANY_SERIES?(type) [
+									PARSE_ERROR [TO_ERROR(script parse-into-bad)]
+								]
 								max: either sym = words/after [-1][blk/head] ;-- save block cursor
 							][
 								block/push-only* 8
@@ -1841,7 +1851,10 @@ parser: context [
 			state = ST_EXIT
 		]
 		reset saved?
-		
+
+		s: GET_BUFFER(series)
+		if s/offset = s/tail [collector/active?: gc-saved]
+
 		either collect? [
 			base + 1
 		][

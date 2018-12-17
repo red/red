@@ -1248,24 +1248,66 @@ gdiplus-roundrect-path: func [
 ]
 
 gdiplus-draw-roundbox: func [
-	ctx			[draw-ctx!]
+	graphics	[integer!]
 	x			[integer!]
 	y			[integer!]
 	width		[integer!]
 	height		[integer!]
 	radius		[integer!]
-	fill?		[logic!]
+	pen			[integer!]
+	brush		[integer!]
 	/local
 		path	[integer!]
 ][
 	path: 0
 	GdipCreatePath GDIPLUS_FILLMODE_ALTERNATE :path
 	gdiplus-roundrect-path path x y width height radius
-	if fill? [
-		GdipFillPath ctx/graphics ctx/gp-brush path
+	if brush <> 0 [
+		GdipFillPath graphics brush path
 	]
-	GdipDrawPath ctx/graphics ctx/gp-pen path
+	GdipDrawPath graphics pen path
 	GdipDeletePath path
+]
+
+gdiplus-draw-box: func [
+	graphics	[integer!]
+	x			[integer!]
+	y			[integer!]
+	width		[integer!]
+	height		[integer!]
+	radius		[integer!]
+	pen			[integer!]
+	brush		[integer!]
+][
+	if radius > 0 [
+		gdiplus-draw-roundbox
+			graphics
+			x
+			y
+			width
+			height
+			radius
+			pen
+			brush
+		exit
+	]
+	if brush <> 0 [				;-- fill rect
+		GdipFillRectangleI
+			graphics
+			brush
+			x
+			y
+			width
+			height
+	]
+
+	GdipDrawRectangleI
+		graphics
+		pen
+		x
+		y
+		width
+		height
 ]
 
 OS-draw-box: func [
@@ -1276,6 +1318,12 @@ OS-draw-box: func [
 		t		[integer!]
 		radius	[red-integer!]
 		rad		[integer!]
+		up-x	[integer!]
+		up-y	[integer!]
+		low-x	[integer!]
+		low-y	[integer!]
+		width	[integer!]
+		height	[integer!]
 ][
 	if ctx/other/D2D? [
 		OS-draw-box-d2d ctx upper lower
@@ -1286,46 +1334,45 @@ OS-draw-box: func [
 		lower:  lower - 1
 		radius/value
 	][0]
+	up-x: upper/x up-y: upper/y low-x: lower/x low-y: lower/y
 	either positive? rad [
 		rad: rad * 2
+		width: low-x - up-x
+		height: low-y - up-y
+		t: either width > height [height][width]
+		rad: either rad > t [t][rad]
 		either ctx/other/GDI+? [
 			check-gradient-box ctx upper lower
 			check-texture-box ctx upper
-			gdiplus-draw-roundbox
-				ctx
-				upper/x
-				upper/y
-				lower/x - upper/x
-				lower/y - upper/y
+			gdiplus-draw-box
+				ctx/graphics
+				up-x
+				up-y
+				width
+				height
 				rad
-				ctx/brush?
+				ctx/gp-pen
+				either ctx/brush? [ctx/gp-brush][0]
 		][
-			RoundRect ctx/dc upper/x upper/y lower/x lower/y rad rad
+			RoundRect ctx/dc up-x up-y low-x low-y rad rad
 		]
 	][
 		either ctx/other/GDI+? [
-			if upper/x > lower/x [t: upper/x upper/x: lower/x lower/x: t]
-			if upper/y > lower/y [t: upper/y upper/y: lower/y lower/y: t]
+			if up-x > low-x [t: up-x up-x: low-x low-x: t]
+			if up-y > low-y [t: up-y up-y: low-y low-y: t]
 			check-gradient-box ctx upper lower
 			check-texture-box ctx upper
-			unless zero? ctx/gp-brush [				;-- fill rect
-				GdipFillRectangleI
-					ctx/graphics
-					ctx/gp-brush
-					upper/x
-					upper/y
-					lower/x - upper/x
-					lower/y - upper/y
-			]
-			GdipDrawRectangleI
+			gdiplus-draw-box
 				ctx/graphics
+				up-x
+				up-y
+				low-x - up-x
+				low-y - up-y
+				rad
 				ctx/gp-pen
-				upper/x
-				upper/y
-				lower/x - upper/x
-				lower/y - upper/y
+				either ctx/brush? [ctx/gp-brush][0]
 		][
-			Rectangle ctx/dc upper/x upper/y lower/x lower/y
+			Rectangle ctx/dc up-x up-y low-x low-y
 		]
 	]
 ]

@@ -249,7 +249,7 @@ help-ctx: context [
 			]
 		;!!
 		
-		set 'parse-func-spec function [
+		parse-func-spec: function [
 			"Parses a function spec and returns an object model of it."
 			spec [block! any-function!]
 			/local =val		; set with parse, so function won't collect it
@@ -398,7 +398,7 @@ help-ctx: context [
 		]
 
 		; Convert the func to an object with fields for spec values
-		fn-as-obj: parse-func-spec :fn
+		fn-as-obj: func-spec-ctx/parse-func-spec :fn
 		if not object? fn-as-obj [
 			print "Func spec couldn't be parsed, may be malformed."
 			print mold :fn

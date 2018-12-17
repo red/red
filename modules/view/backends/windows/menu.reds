@@ -50,7 +50,7 @@ build-menu: func [
 				item/fMask:	MIIM_STRING or MIIM_ID or MIIM_DATA
 				next: value + 1
 
-				if next < tail [
+				either next < tail [
 					switch TYPE_OF(next) [
 						TYPE_BLOCK [
 							item/hSubMenu: build-menu as red-block! next CreatePopupMenu
@@ -60,11 +60,12 @@ build-menu: func [
 						TYPE_WORD [
 							w: as red-word! next
 							item/dwItemData: w/symbol
-							item/fMask:	item/fMask or MIIM_DATA
 							value: value + 1
 						]
-						default [0]
+						default [item/dwItemData: -1]
 					]
+				][
+					item/dwItemData: -1
 				]
 				item/cch: string/rs-length? str
 				item/dwTypeData: unicode/to-utf16 str

@@ -224,7 +224,11 @@ do %../../../lexer.r
 	--test-- "lexer-36"
 	src: {Red [] .123E2}
 	--assert "12.3" = mold second lexer/process src
-	  
+
+	--test-- "lexer-37"
+		src: {Red [] "blah^2"}
+		--assert [[] "blah2"] = lexer/process src
+
 ===end-group===
 	
 ~~~end-file~~~

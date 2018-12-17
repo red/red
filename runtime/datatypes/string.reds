@@ -1686,6 +1686,7 @@ string: context [
 			buffer	[byte-ptr!]
 			pattern	[byte-ptr!]
 			end		[byte-ptr!]
+			end1	[byte-ptr!]
 			end2	[byte-ptr!]
 			result	[red-value!]
 			int		[red-integer!]
@@ -1702,10 +1703,11 @@ string: context [
 			c2		[integer!]
 			step	[integer!]
 			sz		[integer!]
+			sz2		[integer!]
 			sbits	[series!]
 			pbits	[byte-ptr!]
 			pos		[byte-ptr!]								;-- required by BS_TEST_BIT
-			limit	[byte-ptr!]
+			limit	[integer!]
 			part?	[logic!]
 			bs?		[logic!]
 			type	[integer!]
@@ -1748,7 +1750,7 @@ string: context [
 					result/header: TYPE_NONE
 					return result
 				]
-				buffer + (int/value - 1 << (unit >> 1)) ;-- int argument is 1-based
+				int/value << (unit >> 1)
 			][
 				str2: as red-string! part
 				unless all [
@@ -1757,27 +1759,27 @@ string: context [
 				][
 					ERR_INVALID_REFINEMENT_ARG(refinements/_part part)
 				]
-				buffer + (str2/head << (unit >> 1))
+				str2/head - str/head << (unit >> 1)
 			]
 			part?: yes
 		]
 		case [
 			last? [
 				step: 0 - step
-				buffer: either part? [limit][(as byte-ptr! s/tail) - unit]
-				end: as byte-ptr! s/offset
+				end: either part? [buffer - limit + unit][buffer]
+				buffer: (as byte-ptr! s/tail) - unit
 			]
 			reverse? [
 				step: 0 - step
-				buffer: either part? [limit][(as byte-ptr! s/offset) + (str/head - 1 << (unit >> 1))]
-				end: as byte-ptr! s/offset
+				buffer: (as byte-ptr! s/offset) + (str/head - 1 << (unit >> 1))
+				end: either part? [buffer - limit + unit][as byte-ptr! s/offset]
 				if buffer < end [							;-- early exit if str/head = 0
 					result/header: TYPE_NONE
 					return result
 				]
 			]
 			true [
-				end: either part? [limit + unit][as byte-ptr! s/tail] ;-- + unit => compensate for the '>= test
+				end: either part? [buffer + limit][as byte-ptr! s/tail] ;-- + unit => compensate for the '>= test
 			]
 		]
 
@@ -1830,6 +1832,7 @@ string: context [
 				unit2: GET_UNIT(s2)
 				pattern: (as byte-ptr! s2/offset) + (head2 << (unit2 >> 1))
 				end2:    (as byte-ptr! s2/tail)
+				sz2: (as-integer end2 - pattern) >> (unit2 >> 1)
 			]
 			default [
 				either all [
@@ -1876,6 +1879,13 @@ string: context [
 				]
 			][
 				p1: buffer
+				end1: end
+				if reverse? [
+					sz: (as-integer p1 - end) >> (unit >> 1) + 1
+					if sz < sz2 [found?: no break] 
+					p1: p1 - (sz2 - 1 << (unit >> 1))
+					end1: buffer + unit
+				]
 				p2: pattern
 				until [									;-- series comparison
 					either unit = unit2 [
@@ -1918,20 +1928,19 @@ string: context [
 					any [
 						not found?						;-- no match
 						p2 >= end2						;-- searched string tail reached
-						all [reverse? p1 <= end]		;-- search buffer exhausted at head
-						all [not reverse? p1 >= end]	;-- search buffer exhausted at tail
+						p1 >= end1						;-- search buffer exhausted at tail
 					]
 				]
 				if all [
 					found?
 					p2 < end2							;-- search string tail not reached
-					any [								;-- search buffer exhausted
-						all [reverse? p1 <= end]
-						all [not reverse? p1 >= end]
-					]
+					p1 >= end1							;-- search buffer exhausted
 				][found?: no] 							;-- partial match case, make it fail
 
-				if all [found? any [match? tail?]][buffer: p1]
+				if found? [
+					if reverse? [buffer: end1 - (sz2 << (unit >> 1))]
+					if any [match? tail?] [buffer: p1]
+				]
 			]
 			buffer: buffer + step
 			any [

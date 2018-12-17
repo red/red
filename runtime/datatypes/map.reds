@@ -153,7 +153,7 @@ map: context [
 					key <> null
 					TYPE_OF(val) <> TYPE_NONE
 				][
-					_hashtable/delete  table key
+					_hashtable/delete table key
 				]
 			][
 				either key = null [
@@ -161,6 +161,8 @@ map: context [
 					preprocess-key kkey
 					s: as series! map/node/value
 					key: copy-cell kkey as cell! alloc-tail-unit s (size? cell!) << 1
+					val: key + 1
+					val/header: TYPE_UNSET
 					_hashtable/put table key
 				][
 					val: key + 1
@@ -214,14 +216,6 @@ map: context [
 			int		[red-integer!]
 			fl		[red-float!]
 			blk		[red-block!]
-			obj		[red-object!]
-			ctx		[red-context!]
-			syms	[red-value!]
-			vals	[red-value!]
-			tail	[red-value!]
-			value	[red-value!]
-			word	[red-word!]
-			s		[series!]
 			blk?	[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/make"]]
@@ -265,29 +259,34 @@ map: context [
 		field	[integer!]
 		return:	[red-block!]
 		/local
-			blk    [red-block!]
-			s-tail [red-value!]
-			value  [red-value!]
-			next   [red-value!]
-			new   [red-value!]
-			size   [integer!]
-			s	   [series!]
+			blk		[red-block!]
+			s-tail	[red-value!]
+			value	[red-value!]
+			next	[red-value!]
+			new		[red-value!]
+			size	[integer!]
+			total	[integer!]
+			cnt		[integer!]
+			s		[series!]
 	][
 		blk: 		as red-block! stack/push*
 		blk/header: TYPE_UNSET
 		blk/head: 	0
 
-		size: rs-length? map
+		total: rs-length? map
+		size: total
 		s: GET_BUFFER(map)
 		value: s/offset
 		s-tail: s/tail
 		if zero? size [size: 1]
+		cnt: 0
 		case [
 			field = words/words [
 				blk/node: alloc-cells size
-				while [value < s-tail][
+				while [all [value < s-tail cnt < total]][
 					next: value + 1
 					unless TYPE_OF(next) = TYPE_NONE [
+						cnt: cnt + 1
 						new: block/rs-append blk value
 						if TYPE_OF(value) = TYPE_SET_WORD [
 							new/header: TYPE_WORD
@@ -298,9 +297,10 @@ map: context [
 			]
 			field = words/values [
 				blk/node: alloc-cells size
-				while [value < s-tail][
+				while [all [value < s-tail cnt < total]][
 					next: value + 1
 					unless TYPE_OF(next) = TYPE_NONE [
+						cnt: cnt + 1
 						block/rs-append blk next
 					]
 					value: value + 2
@@ -308,9 +308,10 @@ map: context [
 			]
 			field = words/body [
 				blk/node: alloc-cells size * 2
-				while [value < s-tail][
+				while [all [value < s-tail cnt < total]][
 					next: value + 1
 					unless TYPE_OF(next) = TYPE_NONE [
+						cnt: cnt + 1
 						block/rs-append blk value
 						block/rs-append blk next
 					]
@@ -526,6 +527,8 @@ map: context [
 					preprocess-key k
 					s: as series! parent/node/value
 					key: copy-cell k as cell! alloc-tail-unit s (size? cell!) << 1
+					val: key + 1
+					val/header: TYPE_UNSET
 					_hashtable/put table key
 				][
 					val: key + 1
@@ -733,7 +736,8 @@ map: context [
 		#if debug? = yes [if verbose > 0 [print-line "map/copy"]]
 
 		new: as red-hash! block/clone as red-block! map deep? yes
-		new/table: 	_hashtable/copy map/table new/node
+		new/table:  map/table	;-- set it to old table, _hashtable/copy below may trigger GC
+		new/table:  _hashtable/copy map/table new/node
 		new/header: TYPE_MAP
 		new
 	]

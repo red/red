@@ -150,6 +150,7 @@ write %build/bin/sources.r set-cache [
 		%platform/ [
 			%android.reds
 			%darwin.reds
+			%freebsd.reds
 			%linux.reds
 			%POSIX.reds
 			%syllable.reds
@@ -159,7 +160,6 @@ write %build/bin/sources.r set-cache [
 			%image-quartz.reds
 			%win32-ansi.reds
 			%win32-print.reds
-			
 		]
 	]
 	%modules/ [

@@ -261,11 +261,19 @@
 	red/actions/tail?*
 	red/actions/take*
 	red/actions/trim*
-	red/actions/modify*
-	red/actions/read*
-	red/actions/write*
-	red/actions/delete*
 
+	red/actions/create*
+	red/actions/close*
+	red/actions/delete*
+	red/actions/modify*
+	red/actions/open*
+	;red/actions/open?*
+	red/actions/query*
+	red/actions/read*
+	red/actions/rename*
+	red/actions/update*
+	red/actions/write*
+	
 	red/natives/if*
 	red/natives/unless*
 	red/natives/either*

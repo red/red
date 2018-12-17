@@ -279,7 +279,6 @@ get-text-size: func [
 	/local
 		saved [handle!]
 		size  [tagSIZE]
-		delta [integer!]
 ][
 	size: declare tagSIZE
 	if null? hFont [hFont: default-font]
@@ -293,9 +292,9 @@ get-text-size: func [
 
 	SelectObject hScreen saved
 	if pair <> null [
-		delta: either dpi-factor = 100 [0][1]
-		pair/x: size/width * 100 / dpi-factor + delta
-		pair/y: size/height * 100 / dpi-factor + delta
+		;-- round to integer ceiling:
+		pair/x: size/width  * 100 + dpi-factor - 1 / dpi-factor
+		pair/y: size/height * 100 + dpi-factor - 1 / dpi-factor
 	]
 	size
 ]
@@ -965,6 +964,7 @@ get-flags: func [
 			sym = modal		 [flags: flags or FACET_FLAGS_MODAL]
 			sym = popup		 [flags: flags or FACET_FLAGS_POPUP]
 			sym = scrollable [flags: flags or FACET_FLAGS_SCROLLABLE]
+			sym = password	 [flags: flags or FACET_FLAGS_PASSWORD]
 			true			 [fire [TO_ERROR(script invalid-arg) word]]
 		]
 		word: word + 1
@@ -1362,6 +1362,7 @@ OS-make-view: func [
 		sym = field [
 			class: #u16 "RedField"
 			flags: flags or WS_TABSTOP
+			if bits and FACET_FLAGS_PASSWORD <> 0 [flags: flags or ES_PASSWORD]
 			unless para? [flags: flags or ES_LEFT or ES_AUTOHSCROLL or ES_NOHIDESEL]
 			if bits and FACET_FLAGS_NO_BORDER = 0 [ws-flags: ws-flags or WS_EX_CLIENTEDGE]
 		]
@@ -1825,11 +1826,16 @@ change-text: func [
 		update-base hWnd null null values
 		exit
 	]
+	if type = rich-text [
+		InvalidateRect hWnd null 0
+		exit
+	]
+
 	str: as red-string! values + FACE_OBJ_TEXT
 	text: null
 	switch TYPE_OF(str) [
 		TYPE_STRING [
-			text: unicode/to-utf16 str yes
+			text: unicode/to-utf16 str
 			len: string/rs-length? str
 		]
 		TYPE_NONE	[
@@ -2292,10 +2298,16 @@ OS-update-view: func [
 		change-selection hWnd int2 values
 	]
 	if flags and FACET_FLAG_FLAGS <> 0 [
+		flags: get-flags as red-block! values + FACE_OBJ_FLAGS
 		SetWindowLong
 			hWnd
 			wc-offset + 16
-			get-flags as red-block! values + FACE_OBJ_FLAGS
+			flags
+		if type = field [
+			type: either flags and FACET_FLAGS_PASSWORD = 0 [0][25CFh]
+			SendMessage hWnd 204 type 0
+			SetFocus hWnd
+		]
 	]
 	if flags and FACET_FLAG_DRAW  <> 0 [
 		if any [type = base type = panel type = window type = rich-text][

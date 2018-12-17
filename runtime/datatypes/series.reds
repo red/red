@@ -536,6 +536,7 @@ _series: context [
 			neg?	[logic!]
 			part?	[logic!]
 			blk?	[logic!]
+			self?	[logic!]
 			added	[integer!]
 			n		[integer!]
 			cnt		[integer!]
@@ -547,27 +548,29 @@ _series: context [
 			if cnt < 1 [return ser]
 		]
 
-		neg?: no
+		neg?: no self?: no
 		s:    GET_BUFFER(ser)
 		unit: GET_UNIT(s)
+		unit: log-b unit
 		head: ser/head
-		size: (as-integer s/tail - s/offset) >> (log-b unit)
+		size: (as-integer s/tail - s/offset) >> unit
 
 		type: TYPE_OF(ser)
 		blk?: ANY_BLOCK?(type)
 
+		ser2: as red-series! value
 		values?: either all [only? blk?][no][
 			n: TYPE_OF(value)
+			self?: all [type = n ser/node = ser2/node]	;-- ser and value are the same series
 			ANY_BLOCK?(n)
 		]
 
-		items: either values? [
-			ser2: as red-series! value
+		items: either any [self? values?][
 			s2: GET_BUFFER(ser2)
-			cell:  s2/offset + ser2/head
-			block/rs-length? ser2
+			cell: as cell! (as byte-ptr! s2/offset) + (ser2/head << unit)
+			get-length ser2 no
 		][
-			cell:  value
+			cell: value
 			1
 		]
 		limit: cell + items
@@ -598,27 +601,29 @@ _series: context [
 			if part > size [part: size]
 		][size: size - head]
 
-		either blk? [
+		either any [blk? self?][
 			n: either part? [part][items * cnt]
 			if n > size [n: size]
 			ownership/check as red-value! ser words/_change null head n
 
 			added: either part? [items - part][items - size]
-			n: as-integer s/tail + added - s/offset
+			added: added << unit
+			n: (as-integer (s/tail - s/offset)) + added
 			if n > s/size [s: expand-series s n * 2]
 
-			value: s/offset + head
+			src: (as byte-ptr! s/offset) + (head << unit)
+			tail: as byte-ptr! s/tail
 			either part? [
 				size: size - part
 				move-memory
-					as byte-ptr! value + items
-					as byte-ptr! value + part
-					size * size? cell!
-				s/tail: s/tail + added
+					src + (items << unit)
+					src + (part << unit)
+					size << unit
+				s/tail: as cell! tail + added
 			][
-				if added > 0 [s/tail: s/tail + added]
+				if added > 0 [s/tail: as cell! tail + added]
 			]
-			copy-memory as byte-ptr! value as byte-ptr! cell items * size? cell!
+			copy-memory src as byte-ptr! cell items << unit
 
 			if type = TYPE_HASH [
 				n: items * cnt
@@ -635,9 +640,9 @@ _series: context [
 			]
 		][
 			tail: as byte-ptr! s/tail
-			src: (as byte-ptr! s/offset) + (head << (log-b unit))
+			src: (as byte-ptr! s/offset) + (head << unit)
 			if part? [
-				added: part << (log-b unit)
+				added: part << unit
 				move-memory src src + added (as-integer tail - src) - added
 				s/tail: as cell! tail - added
 			]
