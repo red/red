@@ -561,7 +561,7 @@ help-ctx: context [
 	
 	set 'source function [
 		"Print the source of a function"
-		'word [any-word! any-path!] "The name of the function"
+		'word [word! path!] "The name of the function"
 		/local val
 	][
 		set/any 'val get/any word
