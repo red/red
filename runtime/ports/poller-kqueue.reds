@@ -43,6 +43,7 @@ poll: context [
 		socket/set-nonblocking p/pair-2
 
 		ptr: socket/create-data p/pair-2
+probe ["init pair: " p/pair-1 " " p/pair-2]
 		add as int-ptr! p p/pair-2 EPOLLIN or EPOLLET as int-ptr! ptr
 
 		sockdata/init
@@ -59,7 +60,7 @@ poll: context [
 		p: as poller! ref
 		_close p/pair-1
 		_close p/pair-2
-		_close p/epfd
+		_close p/kqfd
 		if p/events <> null [
 			free as byte-ptr! p/events
 		]
@@ -72,10 +73,14 @@ poll: context [
 		cnt		[integer!]
 		/local
 			p	[poller!]
+			res [integer!]
 	][
 		p: as poller! ref
-		if 0 > _kevent p/kqfd evs cnt null 0 null [
-			probe ["change kevent failed, errno: ", errno/value]
+		probe ["kqfd " p/kqfd]
+		res: _kevent p/kqfd evs cnt null 0 null
+		?? res
+		if 0 > res [
+			probe ["change kevent failed, errno: " errno/value]
 		]
 	]
 
@@ -96,16 +101,17 @@ poll: context [
 
 		e: as kevent! :e1
 		n: 0
+probe ["add sock: " sock]
 		if events and EPOLLIN <> 0 [
 			EV_SET(e sock EVFILT_READ ev 0 null data)
 			n: n + 1
 			e: e + 1
 		]
 		if events and EPOLLOUT <> 0 [
-			EVT_SET(e sock EVFILT_WRITE ev 0 null data)
+			EV_SET(e sock EVFILT_WRITE ev 0 null data)
 			n: n + 1
 		]
-		_modify ref e n
+		_modify ref :e1 n
 	]
 
 	remove: func [
@@ -123,6 +129,7 @@ poll: context [
 		events	[integer!]
 		data	[int-ptr!]
 	][
+		probe "kqueue/modify"
 		add ref sock events data
 	]
 
@@ -143,6 +150,7 @@ poll: context [
 	][
 		p: as poller! ref
 		deque/push p/ready-socks as int-ptr! sdata
+		;if zero? sdata/state [deque/push p/ready-socks as int-ptr! sdata]
 	]
 
 	pulse: func [
@@ -172,6 +180,8 @@ poll: context [
 			type	[integer!]
 			saddr	[sockaddr_in! value]
 			err		[integer!]
+			_tm		[timespec! value]
+			tm		[timespec!]
 			red-port [red-object!]
 	][
 		#if debug? = yes [print-line "poll/wait"]
@@ -184,9 +194,17 @@ poll: context [
 		]
 		queue: p/ready-socks
 
+		either timeout < 0 [
+			tm: null
+		][
+			tm: :_tm
+			tm/sec: timeout / 1000
+			tm/nsec: timeout % 1000 * 1000000
+		]
+
 		forever [
-			cnt: _kevent p/kqfd null 0 p/events p/nevents timeout
-			if all [cnt < 0 errno/value = EINTR][return 0]
+			cnt: _kevent p/kqfd null 0 p/events p/nevents tm
+			if cnt < 0 [return 0]
 
 			if cnt = p/nevents [		;-- TBD: extend events buffer
 				0
@@ -195,10 +213,10 @@ poll: context [
 			i: 0
 			while [i < cnt][
 				e: p/events + i
-				data: as sockdata! e/ptr
+				data: as sockdata! e/udata
 				red-port: as red-object! :data/cell
 				msg: red-port
-probe ["code: " data/code]
+probe ["code: " data/code " " as-integer e/ident " " e/filter and FFFFh " " e/filter >>> 16 ]
 				switch data/code [
 					SOCK_OP_NONE	[				;-- impluse event
 						_recv data/sock sock-readbuf 1024 * 1024 0
@@ -209,7 +227,7 @@ probe ["code: " data/code]
 							red-port: as red-object! :data/cell
 							switch data/code [
 								SOCK_OP_READ  [type: IO_EVT_READ]
-								SOCK_OP_WRITE [type: IO_EVT_WROTE]
+								SOCK_OP_WROTE [type: IO_EVT_WROTE]
 								SOCK_OP_READ_UDP	[0]
 								SOCK_OP_WRITE_UDP	[0]
 								default				[probe ["wrong socket code: " data/code]]
@@ -245,11 +263,16 @@ probe ["code: " data/code]
 					]
 					SOCK_OP_READ_UDP	[0]
 					SOCK_OP_WRITE_UDP	[0]
+					SOCK_OP_WROTE		[
+						i: i + 1
+						continue
+					]
 					default				[probe ["wrong socket code: " data/code]]
 				]
 				call-awake red-port msg type
 				i: i + 1
 			]
 		]
+		0
 	]
 ]

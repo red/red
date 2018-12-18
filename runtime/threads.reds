@@ -151,8 +151,14 @@ thread: context [
 		_pad9	[integer!]
 	]
 
+	#either OS = 'macOS [
+		#define LIBPTHREAD-file "libpthread.dylib"
+	][
+		#define LIBPTHREAD-file "libpthread.so.0"
+	]
+
 	#import [
-		"libpthread.so.0" cdecl [
+		LIBPTHREAD-file cdecl [
 			pthread_attr_init: "pthread_attr_init" [
 				attr		[pthread_attr_t]
 				return:		[integer!]

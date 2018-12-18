@@ -75,6 +75,21 @@ pollfd!: alias struct! [
 #define POLLHUP		0010h
 #define POLLNVAL	0020h
 
+#define EPOLLIN			01h
+#define EPOLLPRI		02h
+#define EPOLLOUT		04h
+#define EPOLLRDNORM		40h
+#define EPOLLRDBAND		80h
+#define EPOLLWRNORM		0100h
+#define EPOLLWRBAND		0200h
+#define EPOLLMSG		0400h
+#define EPOLLERR		08h
+#define EPOLLHUP		10h
+#define EPOLLRDHUP		2000h
+#define EPOLLWAKEUP		20000000h
+#define EPOLLONESHOT	40000000h
+#define EPOLLET			80000000h
+
 ; Values for the second argument to fcntl
 #define F_DUPFD		0
 #define F_GETFD		1
@@ -106,6 +121,10 @@ pollfd!: alias struct! [
 			category	[integer!]
 			locale		[c-string!]
 			return:		[c-string!]
+		]
+		sysconf: "sysconf" [
+			property	[integer!]
+			return:		[integer!]
 		]
 		sysctl: "sysctl" [
 			name	[int-ptr!]
@@ -404,15 +423,15 @@ errno: as int-ptr! 0
 #case [
 	any [OS = 'macOS OS = 'FreeBSD] [
 
-		#define EVFILT_READ		-1
-		#define EVFILT_WRITE	-2
-		#define EVFILT_PROC		-5		;-- attached to struct proc
-		#define EVFILT_SIGNAL	-6		;-- attached to struct proc
-		#define EVFILT_TIMER	-7		;-- timers
-		#define EVFILT_MACHPORT	-8		;-- Mach portsets
-		#define EVFILT_FS		-9		;-- Filesystem events
-		#define EVFILT_USER		-10		;-- User events
-		#define EVFILT_VM		-12		;-- Virtual memory events
+		#define EVFILT_READ		65535	;-- -1 << 16 >>> 16 (int16!)
+		#define EVFILT_WRITE	65534
+		#define EVFILT_PROC		65531	;-- attached to struct proc
+		#define EVFILT_SIGNAL	65530	;-- attached to struct proc
+		#define EVFILT_TIMER	65529	;-- timers
+		#define EVFILT_MACHPORT	65528	;-- Mach portsets
+		#define EVFILT_FS		65527	;-- Filesystem events
+		#define EVFILT_USER		65526	;-- User events
+		#define EVFILT_VM		65524	;-- Virtual memory events
 		#define EVFILT_SYSCOUNT	14
 
 		;/* actions */
@@ -440,7 +459,7 @@ errno: as int-ptr! 0
 			kevp/filter: c << 16 or b
 			kevp/fflags: d
 			kevp/data: e
-			kevp/udata: as int-ptr! f
+			kevp/udata: f
 		]
 
 		kevent!: alias struct! [
@@ -467,6 +486,7 @@ errno: as int-ptr! 0
 					evlist	[kevent!]
 					nevents [integer!]
 					timeout [timespec!]
+					return: [integer!]
 				]
 			]
 		]

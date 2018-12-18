@@ -18,6 +18,7 @@ Red/System [
 	SOCK_OP_WRITE
 	SOCK_OP_READ_UDP
 	SOCK_OP_WRITE_UDP
+	SOCK_OP_WROTE
 ]
 
 sockdata!: alias struct! [
@@ -66,9 +67,9 @@ socket: context [
 			flag	[integer!]
 	][
 		fd: _socket family type protocal
+		assert fd >= 0
 		flag: fcntl [fd F_GETFL 0]
 		fcntl [fd F_SETFL flag or O_NONBLOCK]
-		assert fd >= 0
 		fd
 	]
 
@@ -190,15 +191,15 @@ socket: context [
 
 		iodata/code: SOCK_OP_WRITE
 		n: _send iodata/sock pbuf len 0
+probe ["send " n " " len]
 		either n = len [
+			iodata/code: SOCK_OP_WROTE
 			iodata/buffer/header: 0
 			iodata/offset: 0
 			;call-awake red-port red-port IO_EVT_WROTE
 			poll/push-ready g-poller iodata
 			poll/pulse g-poller
 		][
-			if n > 0 [iodata/offset: iodata/offset + n]
-
 			either zero? iodata/state [
 				iodata/state: EPOLLOUT
 				poll/add g-poller iodata/sock EPOLLOUT or EPOLLET as int-ptr! iodata
@@ -207,6 +208,10 @@ socket: context [
 					iodata/state: iodata/state or EPOLLOUT
 					poll/modify g-poller iodata/sock iodata/state or EPOLLET as int-ptr! iodata
 				]
+			]
+			if n > 0 [
+				iodata/offset: iodata/offset + n
+				write red-port data
 			]
 		]
 	]
@@ -221,6 +226,7 @@ socket: context [
 		iodata: as sockdata! get-socket-data red-port
 		iodata/code: SOCK_OP_READ
 		n: _recv iodata/sock sock-readbuf 1024 * 1024 0
+probe ["read " n " "]
 		either n >= 0 [
 			bin: binary/load sock-readbuf n
 			copy-cell as cell! bin (object/get-values red-port) + port/field-data

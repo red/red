@@ -16,10 +16,6 @@ platform: context [
 
 	#import  [
 		LIBC-file cdecl [
-			sysconf: "sysconf" [
-				property	[integer!]
-				return:		[integer!]
-			]
 			_NSGetEnviron: "_NSGetEnviron" [
 				return: 	[int-ptr!]
 			]

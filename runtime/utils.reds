@@ -177,8 +177,8 @@ Red/System [
 		/local
 			n	 [integer!]
 	][
-		n: platform/sysconf _SC_NPROCESSORS_ONLN
-		if zero? n [n: platform/sysconf _SC_NPROCESSORS_CONF]
+		n: sysconf _SC_NPROCESSORS_ONLN
+		if zero? n [n: sysconf _SC_NPROCESSORS_CONF]
 		if zero? n [n: 1]
 		n
 	]
@@ -329,11 +329,11 @@ check-arg-type: func [
 		len: 0
 		mib: 1		;-- CTL_KERN
 		mib2: 65	;-- KERN_OSVERSION
-		platform/sysctl :mib 2 null :len null 0
+		sysctl :mib 2 null :len null 0
 
 		str: string/make-at val len 1
 		s: GET_BUFFER(str)
-		platform/sysctl :mib 2 as byte-ptr! s/offset :len null 0
+		sysctl :mib 2 as byte-ptr! s/offset :len null 0
 		s/tail: as red-value! (as byte-ptr! s/offset) + len - 1
 		_context/add-with ctx _context/add-global symbol/make "build" val
 		stack/pop 2

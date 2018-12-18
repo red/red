@@ -24,10 +24,6 @@ platform: context [
 
 	#import  [
 		LIBC-file cdecl [
-			sysconf: "sysconf" [
-				property	[integer!]
-				return:		[integer!]
-			]
 			environ: "environ" [integer!]
 		]
 	]

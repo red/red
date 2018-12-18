@@ -40,21 +40,6 @@ Red/System [
 #define EPOLL_CTL_DEL	2
 #define EPOLL_CTL_MOD	3
 
-#define EPOLLIN			01h
-#define EPOLLPRI		02h
-#define EPOLLOUT		04h
-#define EPOLLRDNORM		40h
-#define EPOLLRDBAND		80h
-#define EPOLLWRNORM		0100h
-#define EPOLLWRBAND		0200h
-#define EPOLLMSG		0400h
-#define EPOLLERR		08h
-#define EPOLLHUP		10h
-#define EPOLLRDHUP		2000h
-#define EPOLLWAKEUP		20000000h
-#define EPOLLONESHOT	40000000h
-#define EPOLLET			80000000h
-
 #case [
 	all [legacy find legacy 'stat32] [
 		stat!: alias struct! [
