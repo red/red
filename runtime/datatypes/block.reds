@@ -440,17 +440,15 @@ block: context [
 				return part
 			]
 			depth: depth + 1
-			unless cycles/detect? value buffer :part yes [
-				unless flat? [
-					if value/header and flag-new-line <> 0 [ ;-- new-line marker
-						unless lf? [lf?: on indent: indent + 1]
-						string/append-char GET_BUFFER(buffer) as-integer lf
-						loop indent [string/concatenate-literal buffer "    "]
-						part: part - (indent * 4 + 1) 		;-- account for lf
-					]
+			unless flat? [
+				if value/header and flag-new-line <> 0 [ ;-- new-line marker
+					unless lf? [lf?: on indent: indent + 1]
+					string/append-char GET_BUFFER(buffer) as-integer lf
+					loop indent [string/concatenate-literal buffer "    "]
+					part: part - (indent * 4 + 1) 		;-- account for lf
 				]
-				part: actions/mold value buffer only? all? flat? arg part indent
 			]
+			part: actions/mold value buffer only? all? flat? arg part indent
 			if positive? depth [
 				string/append-char GET_BUFFER(buffer) as-integer space
 				part: part - 1
@@ -639,6 +637,8 @@ block: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/form"]]
 
+		if cycles/detect? as red-value! blk buffer :part no [return part]
+		
 		s: GET_BUFFER(blk)
 		value: s/offset + blk/head
 		tail: s/tail
@@ -651,9 +651,7 @@ block: context [
 				cycles/pop
 				return part
 			]
-			unless cycles/detect? value buffer :part no [
-				part: actions/form value buffer arg part
-			]
+			part: actions/form value buffer arg part
 			value: value + 1
 			
 			if value < tail [
@@ -689,6 +687,8 @@ block: context [
 		return:	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/mold"]]
+		
+		if cycles/detect? as red-value! blk buffer :part yes [return part]
 		
 		unless only? [
 			string/append-char GET_BUFFER(buffer) as-integer #"["

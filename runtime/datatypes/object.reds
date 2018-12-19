@@ -584,9 +584,7 @@ object: context [
 					string/append-char GET_BUFFER(buffer) as-integer #"'" ;-- create a literal word
 					part: part - 1
 				]
-				unless cycles/detect? value buffer :part mold? [
-					part: actions/mold value buffer only? all? flat? arg part tabs
-				]
+				part: actions/mold value buffer only? all? flat? arg part tabs
 
 				if any [indent? sym + 1 < s-tail][			;-- no final LF when FORMed
 					string/append-char GET_BUFFER(buffer) as-integer blank
@@ -1102,6 +1100,7 @@ object: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/form"]]
 
+		if cycles/detect? as red-value! obj buffer :part no [return part]
 		serialize obj buffer no no no arg part no 0 no
 	]
 	
@@ -1117,6 +1116,8 @@ object: context [
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/mold"]]
+		
+		if cycles/detect? as red-value! obj buffer :part yes [return part]
 		
 		string/concatenate-literal buffer "make object! ["
 		part: serialize obj buffer no all? flat? arg part - 14 yes indent + 1 yes

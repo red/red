@@ -406,19 +406,10 @@ cycles: context [
 		/local
 			s	 [c-string!]
 			size [integer!]
-			type [integer!]
 	][
-		type: TYPE_OF(value)
-		unless any [
-			type = TYPE_OBJECT
-			type = TYPE_MAP
-			ANY_BLOCK?(type)
-		][
-			return no
-		]
 		either find? value [
 			either mold? [
-				switch type [
+				switch TYPE_OF(value) [
 					TYPE_BLOCK	  [s: "[...]"			   size: 5 ]
 					TYPE_PAREN	  [s: "(...)"			   size: 5 ]
 					TYPE_MAP	  [s: "#(...)"			   size: 6 ]

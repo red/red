@@ -90,9 +90,7 @@ map: context [
 					string/append-char GET_BUFFER(buffer) as-integer space
 					part: part - 1
 					
-					unless cycles/detect? next buffer :part mold? [
-						part: actions/mold next buffer only? all? flat? arg part tabs
-					]
+					part: actions/mold next buffer only? all? flat? arg part tabs
 
 					if any [indent? next + 1 < s-tail][			;-- no final LF when FORMed
 						string/append-char GET_BUFFER(buffer) as-integer blank
@@ -335,6 +333,7 @@ map: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/form"]]
 
+		if cycles/detect? as red-value! map buffer :part no [return part]
 		serialize map buffer no no no arg part no 0 no
 	]
 
@@ -353,6 +352,8 @@ map: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/mold"]]
 
+		if cycles/detect? as red-value! map buffer :part yes [return part]
+		
 		string/concatenate-literal buffer "#("
 		prev: part - 2
 		part: serialize map buffer no all? flat? arg prev yes indent + 1 yes
