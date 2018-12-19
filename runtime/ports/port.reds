@@ -80,7 +80,7 @@ get-socket-data: func [
 ][
 	state: as red-object! (object/get-values red-port) + port/field-state
 	int: as red-integer! (object/get-values state) + 1
-	as int-ptr! int/value
+	either TYPE_OF(int) = TYPE_NONE [null][as int-ptr! int/value]
 ]
 
 tcp-client: func [
@@ -108,9 +108,7 @@ tcp-server: func [
 		acp [integer!]
 ][
 	if null? g-poller [g-poller: poll/init]
-?? g-poller
 	fd: socket/create AF_INET SOCK_STREAM IPPROTO_TCP
-?? fd
 	socket/bind fd port/value AF_INET
 	#either OS = 'Windows [
 		acp: socket/create AF_INET SOCK_STREAM IPPROTO_TCP
@@ -125,11 +123,18 @@ start-red-port: func [
 	/local
 		values	[red-value!]
 		spec	[red-object!]
+		state	[red-object!]
+		closed?	[red-logic!]
 		host	[red-string!]
 		p		[red-integer!]
 		scheme	[red-word!]
 ][
-	spec:	as red-object! (object/get-values red-port) + port/field-spec
+	values: object/get-values red-port
+	state: as red-object! values + port/field-state
+	p: as red-integer! (object/get-values state) + 1
+	if TYPE_OF(p) <> TYPE_NONE [exit]
+
+	spec:	as red-object! values + port/field-spec
 	values: object/get-values spec
 	scheme: as red-word! values				;-- TBD: check scheme
 	host:	as red-string! values + 2

@@ -19,6 +19,7 @@ Red/System [
 	SOCK_OP_READ_UDP
 	SOCK_OP_WRITE_UDP
 	SOCK_OP_WROTE
+	SOCK_OP_CLOSE
 ]
 
 sockdata!: alias struct! [
@@ -155,7 +156,9 @@ socket: context [
 
 		data/code: SOCK_OP_CONN
 		either zero? _connect sock as int-ptr! :saddr size? saddr [	;-- succeed
-			call-awake red-port red-port IO_EVT_CONNECT
+			;call-awake red-port red-port IO_EVT_WROTE
+			poll/push-ready g-poller data
+			poll/pulse g-poller
 			probe "connect OK"
 		][
 			data/state: EPOLLOUT
@@ -253,6 +256,10 @@ probe ["read " n " "]
 			iodata	[sockdata!]
 	][
 		iodata: as sockdata! get-socket-data red-port
-		_close iodata/sock
+		if iodata <> null [
+			iodata/code: SOCK_OP_CLOSE
+			poll/push-ready g-poller iodata
+			poll/pulse g-poller
+		]
 	]
 ]

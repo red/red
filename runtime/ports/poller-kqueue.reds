@@ -119,8 +119,27 @@ probe ["add sock: " sock]
 		sock	[integer!]
 		events	[integer!]
 		data	[int-ptr!]
+		/local
+			e2	[kevent! value]
+			e1	[kevent! value]
+			e	[kevent!]
+			ev	[integer!]
+			n	[integer!]
 	][
-		0
+		ev: EV_DELETE
+		e: as kevent! :e1
+		n: 0
+probe ["remove sock: " sock]
+		if events and EPOLLIN <> 0 [
+			EV_SET(e sock EVFILT_READ ev 0 null null)
+			n: n + 1
+			e: e + 1
+		]
+		if events and EPOLLOUT <> 0 [
+			EV_SET(e sock EVFILT_WRITE ev 0 null null)
+			n: n + 1
+		]
+		_modify ref :e1 n
 	]
 
 	modify: func [
@@ -175,6 +194,8 @@ probe ["add sock: " sock]
 			data	[sockdata!]
 			bin		[red-binary!]
 			msg		[red-object!]
+			ret		[red-logic!]
+			close?	[logic!]
 			n		[integer!]
 			acpt	[integer!]
 			type	[integer!]
@@ -203,6 +224,7 @@ probe ["add sock: " sock]
 		]
 
 		forever [
+			close?: no
 			cnt: _kevent p/kqfd null 0 p/events p/nevents tm
 			if cnt < 0 [return 0]
 
@@ -226,13 +248,24 @@ probe ["code: " data/code " " as-integer e/ident " " e/filter and FFFFh " " e/fi
 							data: as sockdata! deque/take queue
 							red-port: as red-object! :data/cell
 							switch data/code [
+								SOCK_OP_CONN  [type: IO_EVT_CONNECT]
 								SOCK_OP_READ  [type: IO_EVT_READ]
 								SOCK_OP_WROTE [type: IO_EVT_WROTE]
 								SOCK_OP_READ_UDP	[0]
 								SOCK_OP_WRITE_UDP	[0]
+								SOCK_OP_CLOSE [
+									sockdata/remove data/sock
+									remove g-poller data/sock 0 null
+									_close data/sock
+									free as byte-ptr! data
+									type: IO_EVT_CLOSE
+									close?: yes
+								]
 								default				[probe ["wrong socket code: " data/code]]
 							]
 							call-awake red-port red-port type
+							ret: as red-logic! stack/arguments
+							if ret/value [close?: yes]
 						]
 						i: i + 1
 						continue
@@ -270,8 +303,11 @@ probe ["code: " data/code " " as-integer e/ident " " e/filter and FFFFh " " e/fi
 					default				[probe ["wrong socket code: " data/code]]
 				]
 				call-awake red-port msg type
+				ret: as red-logic! stack/arguments
+				if ret/value [close?: yes]
 				i: i + 1
 			]
+			if close? [return 1]
 		]
 		0
 	]

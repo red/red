@@ -43,21 +43,29 @@ tcp-scheme: context [
 	;--- Port actions ---
 	open: func [port [port!] /local spec][
 		probe "open port"
+		port/state/closed?: false
 	]
 
 	insert: func [
 		port [port!]
 		data [binary! string!]
 	][
-		write-socket port data
+		unless port/state/closed? [write-socket port data]
 	]
 
-	copy: func [port [port!]][read-socket port]
+	copy: func [port [port!]][
+		unless port/state/closed? [
+			read-socket port
+		]
+	]
 
 	close: func [port [port!]][
-		port/state/closed?: yes
-		port/state/info: none
-		close-socket port
+		unless port/state/closed? [
+			close-socket port
+			port/state/closed?: yes
+			port/state/info: none
+			port/state/sub: none
+		]
 	]
 ]
 

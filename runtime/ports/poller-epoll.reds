@@ -161,12 +161,14 @@ poll: context [
 			data	[sockdata!]
 			bin		[red-binary!]
 			msg		[red-object!]
+			ret		[red-logic!]
 			n		[integer!]
 			acpt	[integer!]
 			type	[integer!]
 			saddr	[sockaddr_in! value]
 			err		[integer!]
 			red-port [red-object!]
+			close?	[logic!]
 	][
 		#if debug? = yes [print-line "poll/wait"]
 
@@ -179,6 +181,7 @@ poll: context [
 		queue: p/ready-socks
 
 		forever [
+			close?: no
 			cnt: epoll_wait p/epfd p/events p/nevents timeout
 			if all [cnt < 0 errno/value = EINTR][return 0]
 
@@ -202,13 +205,24 @@ probe ["code: " data/code]
 							data: as sockdata! deque/take queue
 							red-port: as red-object! :data/cell
 							switch data/code [
+								SOCK_OP_CONN  [type: IO_EVT_CONNECT]
 								SOCK_OP_READ  [type: IO_EVT_READ]
-								SOCK_OP_WRITE [type: IO_EVT_WROTE]
+								SOCK_OP_WROTE [type: IO_EVT_WROTE]
 								SOCK_OP_READ_UDP	[0]
 								SOCK_OP_WRITE_UDP	[0]
+								SOCK_OP_CLOSE [
+									sockdata/remove data/sock
+									remove g-poller data/sock 0 null
+									_close data/sock
+									free as byte-ptr! data
+									type: IO_EVT_CLOSE
+									close?: yes
+								]
 								default				[probe ["wrong socket code: " data/code]]
 							]
 							call-awake red-port red-port type
+							ret: as red-logic! stack/arguments
+							if ret/value [close?: yes]
 						]
 						i: i + 1
 						continue
@@ -242,8 +256,11 @@ probe ["code: " data/code]
 					default				[probe ["wrong socket code: " data/code]]
 				]
 				call-awake red-port msg type
+				ret: as red-logic! stack/arguments
+				if ret/value [close?: yes]
 				i: i + 1
 			]
+			if close? [return 1]
 		]
 		0
 	]
