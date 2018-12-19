@@ -2740,8 +2740,11 @@ b}
 
 	--test-- "#2253"
 		--assert not error? try [3151391351465.995 // 1.0]
+		unset 'true?
 
-	unset 'true?
+	--test-- "#3603"
+		bu: reduce [()]
+		--assert bu = back change block: [] do/next block 'rest
 
 ===end-group===
 
