@@ -747,4 +747,15 @@ Red [
 		--assert strict-equal? a b
 ===end-group===
 
+===start-group=== "cycles"
+
+	--test-- "cycle-blk-1"
+		blk1: [1]
+		append/only blk1 blk1
+		blk2: [1]
+		append/only blk2 blk2
+		--assert blk1 = blk2
+
+===end-group===
+	
 ~~~end-file~~~
