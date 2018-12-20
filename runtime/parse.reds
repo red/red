@@ -290,6 +290,7 @@ parser: context [
 			res	   [integer!]
 			set?   [logic!]								;-- required by BS_TEST_BIT
 			not?   [logic!]
+			bin?   [logic!]
 			match? [logic!]
 	][
 		s: GET_BUFFER(rules)
@@ -347,10 +348,11 @@ parser: context [
 				TYPE_TAG
 				TYPE_EMAIL
 				TYPE_BINARY [
-					if all [type = TYPE_BINARY TYPE_OF(token) <> TYPE_BINARY][
+					bin?: type = TYPE_BINARY
+					type: TYPE_OF(token)
+					if all [bin? type <> TYPE_BINARY not ANY_STRING?(type)][
 						PARSE_ERROR [TO_ERROR(script parse-rule) token]
 					]
-					type: TYPE_OF(token)
 					size: string/rs-length? as red-string! token
 					if type = TYPE_TAG [size: size + 2]
 					if (string/rs-length? as red-string! input) < size [return no]
