@@ -365,11 +365,16 @@ cycles: context [
 		top: top + 1
 		if top = end [fire [TO_ERROR(internal too-deep)]]
 	]
-	
+
 	pop: does [
 		if top > stack [top: top - 1]
 	]
-	
+
+	pop-n: func [n [integer!]][
+		assert top - n >= stack
+		top: top - n
+	]
+
 	find?: func [
 		value	[red-value!]
 		return: [logic!]

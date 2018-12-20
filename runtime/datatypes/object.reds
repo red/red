@@ -1213,10 +1213,11 @@ object: context [
 		if TYPE_OF(obj2) <> TYPE_OBJECT [RETURN_COMPARE_OTHER]
 
 		if op = COMP_SAME [return either obj1/ctx = obj2/ctx [0][-1]]
-		if all [
-			obj1/ctx = obj2/ctx
-			any [op = COMP_EQUAL op = COMP_FIND op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
-		][return 0]
+		if obj1/ctx = obj2/ctx [return 0]
+
+		if cycles/find? as red-value! obj1 [
+			return either cycles/find? as red-value! obj2 [0][-1]
+		]
 
 		ctx1: GET_CTX(obj1)
 		s: as series! ctx1/symbols/value
@@ -1232,11 +1233,6 @@ object: context [
 		]	
 		if sym1 = tail [return 0]						;-- empty objects case
 		
-		if cycles/find? as red-value! obj1 [
-			res: as-integer natives/same? as red-value! obj1 as red-value! obj2
-			if res = 0 [return res]
-		]
-		
 		sym2: as red-word! s/offset
 		s: as series! ctx1/values/value
 		value1: s/offset
@@ -1244,12 +1240,13 @@ object: context [
 		value2: s/offset
 		
 		cycles/push obj1/ctx
+		cycles/push obj2/ctx
 		
 		until [
 			s1: symbol/resolve sym1/symbol
 			s2: symbol/resolve sym2/symbol
 			if s1 <> s2 [
-				cycles/pop
+				cycles/pop-n 2
 				return SIGN_COMPARE_RESULT(s1 s2)
 			]
 			type1: TYPE_OF(value1)
@@ -1268,7 +1265,7 @@ object: context [
 				value1: value1 + 1
 				value2: value2 + 1
 			][
-				cycles/pop
+				cycles/pop-n 2
 				return SIGN_COMPARE_RESULT(type1 type2)
 			]
 			any [
@@ -1276,7 +1273,7 @@ object: context [
 				sym1 >= tail
 			]
 		]
-		cycles/pop
+		cycles/pop-n 2
 		res
 	]
 	

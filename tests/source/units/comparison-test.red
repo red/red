@@ -756,6 +756,27 @@ Red [
 		append/only blk2 blk2
 		--assert blk1 = blk2
 
+	--test-- "cycle-blk-2"
+		blk1: [1]
+		append/only blk1 blk1
+		blk2: [1]
+		append/only blk2 blk1
+		--assert blk1 = blk2
+
+	--test-- "cycle-blk-3"
+		blk1: [1]
+		append/only blk1 blk1
+		blk2: [1 [1 2]]
+		--assert blk1 <> blk2
+
+	--test-- "cycle-blk-4"
+		blk1: [1]
+		append/only blk1 blk1
+		append blk1 1
+		blk2: [1]
+		append/only blk2 blk2
+		append blk2 2
+		--assert blk1 <> blk2
 ===end-group===
 	
 ~~~end-file~~~

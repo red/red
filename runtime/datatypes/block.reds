@@ -496,10 +496,10 @@ block: context [
 			blk1/head = blk2/head
 		]
 		if op = COMP_SAME [return either same? [0][-1]]
-		if all [
-			same?
-			any [op = COMP_STRICT_EQUAL_WORD op = COMP_EQUAL op = COMP_FIND op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
-		][return 0]
+		if same? [return 0]
+		if cycles/find? as red-value! blk1 [
+			return either cycles/find? as red-value! blk2 [0][-1]
+		]
 
 		s1: GET_BUFFER(blk1)
 		s2: GET_BUFFER(blk2)
@@ -514,17 +514,13 @@ block: context [
 
 		if zero? size1 [return 0]								;-- shortcut exit for empty blocks
 
-		if cycles/find? as red-value! blk1 [
-			res: as-integer natives/same? as red-value! blk1 as red-value! blk2
-			if res = 0 [return res]
-		]
-					
 		value1: s1/offset + blk1/head
 		value2: s2/offset + blk2/head
 		len: either size1 < size2 [size1][size2]
 		n: 0
 
 		cycles/push blk1/node
+		cycles/push blk2/node
 		
 		until [
 			type1: TYPE_OF(value1)
@@ -541,7 +537,7 @@ block: context [
 				value1: value1 + 1
 				value2: value2 + 1
 			][
-				cycles/pop
+				cycles/pop-n 2
 				return SIGN_COMPARE_RESULT(type1 type2)
 			]
 			n: n + 1
@@ -550,7 +546,7 @@ block: context [
 				n = len
 			]
 		]
-		cycles/pop
+		cycles/pop-n 2
 		if zero? res [res: SIGN_COMPARE_RESULT(size1 size2)]
 		res
 	]

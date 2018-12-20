@@ -388,10 +388,10 @@ map: context [
 			blk1/head = blk2/head
 		]
 		if op = COMP_SAME [return either same? [0][-1]]
-		if all [
-			same?
-			any [op = COMP_EQUAL op = COMP_FIND op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
-		][return 0]
+		if same? [return 0]
+		if cycles/find? as red-value! blk1 [
+			return either cycles/find? as red-value! blk2 [0][-1]
+		]
 
 		size1: rs-length? blk1
 		size2: rs-length? blk2
@@ -403,11 +403,6 @@ map: context [
 		]
 
 		if zero? size1 [return 0]								;-- shortcut exit for empty map!
-
-		if cycles/find? as red-value! blk1 [
-			res: as-integer natives/same? as red-value! blk1 as red-value! blk2
-			if res = 0 [return res]
-		]
 					
 		table2: blk2/table
 		key1: block/rs-head as red-block! blk1
@@ -415,6 +410,7 @@ map: context [
 		n: 0
 
 		cycles/push blk1/node
+		cycles/push blk2/node
 		either op = COMP_STRICT_EQUAL [
 			until [
 				until [												;-- next key
@@ -455,7 +451,7 @@ map: context [
 				any [res <> 0 n = size1]
 			]
 		]
-		cycles/pop
+		cycles/pop-n 2
 		res
 	]
 
