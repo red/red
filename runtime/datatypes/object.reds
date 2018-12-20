@@ -1232,6 +1232,11 @@ object: context [
 		]	
 		if sym1 = tail [return 0]						;-- empty objects case
 		
+		if cycles/find? as red-value! obj1 [
+			res: as-integer natives/same? as red-value! obj1 as red-value! obj2
+			if res = 0 [return res]
+		]
+		
 		sym2: as red-word! s/offset
 		s: as series! ctx1/values/value
 		value1: s/offset
@@ -1257,11 +1262,7 @@ object: context [
 					any [type2 = TYPE_INTEGER type2 = TYPE_FLOAT]
 				]
 			][
-				either cycles/find? value1 [
-					res: as-integer not natives/same? value1 value2
-				][
-					res: actions/compare-value value1 value2 op
-				]
+				res: actions/compare-value value1 value2 op
 				sym1: sym1 + 1
 				sym2: sym2 + 1
 				value1: value1 + 1

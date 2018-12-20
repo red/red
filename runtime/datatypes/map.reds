@@ -404,6 +404,11 @@ map: context [
 
 		if zero? size1 [return 0]								;-- shortcut exit for empty map!
 
+		if cycles/find? as red-value! blk1 [
+			res: as-integer natives/same? as red-value! blk1 as red-value! blk2
+			if res = 0 [return res]
+		]
+					
 		table2: blk2/table
 		key1: block/rs-head as red-block! blk1
 		key1: key1 - 2
@@ -422,11 +427,7 @@ map: context [
 				res: either key2 = null [1][
 					value1: key1 + 1								;-- find the same key, then compare values
 					value2: key2 + 1
-					either cycles/find? value1 [
-						as-integer not natives/same? value1 value2
-					][
-						actions/compare-value value1 value2 op
-					]
+					actions/compare-value value1 value2 op
 				]
 				n: n + 1
 				any [res <> 0 n = size1]
@@ -446,11 +447,7 @@ map: context [
 					either key2 <> null [
 						value1: key1 + 1
 						value2: key2 + 1
-						res: either cycles/find? value1 [
-							as-integer not natives/same? value1 value2
-						][
-							actions/compare-value value1 value2 COMP_EQUAL
-						]
+						res: actions/compare-value value1 value2 COMP_EQUAL
 					][res: 1 break]
 					zero? res
 				]

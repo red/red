@@ -514,6 +514,11 @@ block: context [
 
 		if zero? size1 [return 0]								;-- shortcut exit for empty blocks
 
+		if cycles/find? as red-value! blk1 [
+			res: as-integer natives/same? as red-value! blk1 as red-value! blk2
+			if res = 0 [return res]
+		]
+					
 		value1: s1/offset + blk1/head
 		value2: s2/offset + blk2/head
 		len: either size1 < size2 [size1][size2]
@@ -532,11 +537,7 @@ block: context [
 					any [type2 = TYPE_INTEGER type2 = TYPE_FLOAT]
 				]
 			][
-				either cycles/find? value1 [
-					res: as-integer not natives/same? value1 value2
-				][
-					res: actions/compare-value value1 value2 op
-				]
+				res: actions/compare-value value1 value2 op
 				value1: value1 + 1
 				value2: value2 + 1
 			][
