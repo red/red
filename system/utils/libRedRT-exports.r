@@ -375,6 +375,8 @@
 	red/natives/decompress*
 	red/natives/recycle*
 ][
+	red/object/path-parent	cell!
+	red/object/field-parent	cell!
 	red/stack/arguments		cell!
 	red/stack/top			cell!
 	red/stack/bottom		cell!
