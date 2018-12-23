@@ -389,8 +389,8 @@ map: context [
 		]
 		if op = COMP_SAME [return either same? [0][-1]]
 		if same? [return 0]
-		if cycles/find? as red-value! blk1 [
-			return either cycles/find? as red-value! blk2 [0][-1]
+		if cycles/find? blk1/node [
+			return either cycles/find? blk2/node [0][-1]
 		]
 
 		size1: rs-length? blk1

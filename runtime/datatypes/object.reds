@@ -1215,8 +1215,8 @@ object: context [
 		if op = COMP_SAME [return either obj1/ctx = obj2/ctx [0][-1]]
 		if obj1/ctx = obj2/ctx [return 0]
 
-		if cycles/find? as red-value! obj1 [
-			return either cycles/find? as red-value! obj2 [0][-1]
+		if cycles/find? obj1/ctx [
+			return either cycles/find? obj2/ctx [0][-1]
 		]
 
 		ctx1: GET_CTX(obj1)

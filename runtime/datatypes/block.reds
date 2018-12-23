@@ -497,8 +497,8 @@ block: context [
 		]
 		if op = COMP_SAME [return either same? [0][-1]]
 		if same? [return 0]
-		if cycles/find? as red-value! blk1 [
-			return either cycles/find? as red-value! blk2 [0][-1]
+		if cycles/find? blk1/node [
+			return either cycles/find? blk2/node [0][-1]
 		]
 
 		s1: GET_BUFFER(blk1)
@@ -1587,13 +1587,17 @@ block: context [
 		/local
 			s		[series!]
 			end		[red-value!]
+			node	[node!]
 			type	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/copy"]]
 
+		node: blk/node									;-- save node before slot is copied
 		new: as red-block! _series/copy as red-series! blk as red-series! new arg deep? types
 		if deep? [
+			if cycles/find? node [cycles/reset fire [TO_ERROR(internal no-cycle)]]
 			if TYPE_HASH = TYPE_OF(blk) [new/header: TYPE_BLOCK]
+			cycles/push blk/node
 			s: GET_BUFFER(new)
 			arg: s/offset
 			end: s/tail
@@ -1609,6 +1613,7 @@ block: context [
 				]
 				arg: arg + 1
 			]
+			cycles/pop
 		]
 		
 		as red-series! new
