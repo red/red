@@ -493,6 +493,8 @@ _context: context [
 			end	  [red-value!]
 			w	  [red-word!]
 	][
+		if cycles/find? body/node [return body]
+		cycles/push body/node
 		value: block/rs-head body
 		end:   block/rs-tail body
 
@@ -508,7 +510,7 @@ _context: context [
 						self?
 						TYPE_OF(value) = TYPE_WORD
 						w/symbol = words/self
-					][			
+					][
 						w/ctx: obj						;-- make SELF refer to the original object
 						w/index: -1						;-- make it fail if resolved out of context
 					][
@@ -522,6 +524,7 @@ _context: context [
 			]
 			value: value + 1
 		]
+		cycles/pop
 		body
 	]
 	
