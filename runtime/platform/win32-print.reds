@@ -59,7 +59,7 @@ write-file: func [
 	/local n [integer!]
 ][
 	n: 0
-	WriteFile stdout as c-string! pbuffer chars :n 0
+	WriteFile stdout pbuffer chars :n 0
 	buffer: pbuffer
 ]
 
@@ -301,7 +301,7 @@ prin*: func [
 	][
 		n: length? s
 		c: 0
-		WriteFile stdout s n :c 0
+		WriteFile stdout as byte-ptr! s n :c 0
 	]
 	dyn-print/rs-print s n no
 	s

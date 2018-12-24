@@ -60,10 +60,6 @@ clipboard: context [
 					hMem		[integer!]
 					return:		[integer!]
 				]
-				lstrlen: "lstrlenW" [
-					str			[byte-ptr!]
-					return:		[integer!]
-				]
 			]
 		]
 

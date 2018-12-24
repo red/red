@@ -41,556 +41,6 @@ simple-io: context [
 		str
 	]
 
-	#either OS = 'Windows [
-		stat!: alias struct! [val [integer!]]
-
-		FILETIME!: alias struct! [
-			dwLowDateTime       [integer!]
-			dwHighDateTime      [integer!]
-		]
-		SYSTEMTIME!: alias struct! [
-			data1               [integer!] ; year, month
-			data2               [integer!] ; DayOfWeek, day
-			data3               [integer!] ; hour, minute
-			data4               [integer!] ; second, ms
-		]
-
-		WIN32_FIND_DATA: alias struct! [
-			dwFileAttributes	[integer!]
-			ftCreationTime		[FILETIME! value]
-			ftLastAccessTime	[FILETIME! value]
-			ftLastWriteTime		[FILETIME! value]
-			nFileSizeHigh		[integer!]
-			nFileSizeLow		[integer!]
-			dwReserved0			[integer!]
-			dwReserved1			[integer!]
-			;cFileName			[byte-ptr!]				;-- WCHAR  cFileName[ 260 ]
-			;cAlternateFileName	[c-string!]				;-- cAlternateFileName[ 14 ]
-		]
-
-		;- static helpers
-		systime:  as SYSTEMTIME! allocate size? SYSTEMTIME!
-		filedata: as WIN32_FIND_DATA allocate size? WIN32_FIND_DATA
-
-
-		#import [
-			"kernel32.dll" stdcall [
-				GetFileAttributesW: "GetFileAttributesW" [
-					path		[c-string!]
-					return:		[integer!]
-				]
-				GetFileAttributesExW: "GetFileAttributesExW" [
-					path        [c-string!]
-					info-level  [integer!]
-					info        [WIN32_FIND_DATA]
-					return:		[integer!]
-				]
-				FileTimeToSystemTime: "FileTimeToSystemTime" [
-					lpFileTime   [FILETIME!]
-					lpSystemTime [SYSTEMTIME!]
-					return:      [integer!]
-				]
-				CreateFileA: "CreateFileA" [			;-- temporary needed by Red/System
-					filename	[c-string!]
-					access		[integer!]
-					share		[integer!]
-					security	[int-ptr!]
-					disposition	[integer!]
-					flags		[integer!]
-					template	[int-ptr!]
-					return:		[integer!]
-				]
-				CreateFileW: "CreateFileW" [
-					filename	[c-string!]
-					access		[integer!]
-					share		[integer!]
-					security	[int-ptr!]
-					disposition	[integer!]
-					flags		[integer!]
-					template	[int-ptr!]
-					return:		[integer!]
-				]
-				CreateDirectory: "CreateDirectoryW" [
-					pathname	[c-string!]
-					sa			[int-ptr!]
-					return:		[logic!]
-				]
-				ReadFile:	"ReadFile" [
-					file		[integer!]
-					buffer		[byte-ptr!]
-					bytes		[integer!]
-					read		[int-ptr!]
-					overlapped	[int-ptr!]
-					return:		[integer!]
-				]
-				WriteFile:	"WriteFile" [
-					file		[integer!]
-					buffer		[byte-ptr!]
-					bytes		[integer!]
-					written		[int-ptr!]
-					overlapped	[int-ptr!]
-					return:		[integer!]
-				]
-				DeleteFile: "DeleteFileW" [
-					filename	[c-string!]
-					return:		[integer!]
-				]
-				RemoveDirectory: "RemoveDirectoryW" [
-					filename	[c-string!]
-					return:		[integer!]
-				]
-				FindFirstFile: "FindFirstFileW" [
-					filename	[c-string!]
-					filedata	[WIN32_FIND_DATA]
-					return:		[integer!]
-				]
-				FindNextFile: "FindNextFileW" [
-					file		[integer!]
-					filedata	[WIN32_FIND_DATA]
-					return:		[integer!]
-				]
-				FindClose: "FindClose" [
-					file		[integer!]
-					return:		[integer!]
-				]
-				GetFileSize: "GetFileSize" [
-					file		[integer!]
-					high-size	[integer!]
-					return:		[integer!]
-				]
-				CloseHandle:	"CloseHandle" [
-					obj			[integer!]
-					return:		[logic!]
-				]
-				SetFilePointer: "SetFilePointer" [
-					file		[integer!]
-					distance	[integer!]
-					pDistance	[int-ptr!]
-					dwMove		[integer!]
-					return:		[integer!]
-				]
-				SetEndOfFile: "SetEndOfFile" [
-					file		[integer!]
-					return:		[integer!]
-				]
-				lstrlen: "lstrlenW" [
-					str			[byte-ptr!]
-					return:		[integer!]
-				]
-				WideCharToMultiByte: "WideCharToMultiByte" [
-					CodePage			[integer!]
-					dwFlags				[integer!]
-					lpWideCharStr		[c-string!]
-					cchWideChar			[integer!]
-					lpMultiByteStr		[byte-ptr!]
-					cbMultiByte			[integer!]
-					lpDefaultChar		[c-string!]
-					lpUsedDefaultChar	[integer!]
-					return:				[integer!]
-				]
-				GetLogicalDriveStrings: "GetLogicalDriveStringsW" [
-					buf-len		[integer!]
-					buffer		[byte-ptr!]
-					return:		[integer!]
-				]
-			]
-			"user32.dll" stdcall [
-				SendMessage: "SendMessageW" [
-					hWnd		[integer!]
-					msg			[integer!]
-					wParam		[integer!]
-					lParam		[integer!]
-					return: 	[integer!]
-				]
-				GetForegroundWindow: "GetForegroundWindow" [
-					return:		[integer!]
-				]
-			]
-			LIBC-file cdecl [
-				wcsupr: "_wcsupr" [
-					str		[c-string!]
-					return:	[c-string!]
-				]
-			]
-		]
-	][
-		systemtime!: alias struct! [
-			sec    [integer!] ;seconds
-			min    [integer!] ;minutes
-			hour   [integer!] ;hours
-			mday   [integer!] ;day of the month
-			mon    [integer!] ;month
-			year   [integer!] ;year
-			wday   [integer!] ;day of the week
-			yday   [integer!] ;day in the year
-			isdst  [integer!] ;daylight saving time
-		]
-		timespec!: alias struct! [
-			sec    [integer!] ;Seconds
-			nsec   [integer!] ;Nanoseconds
-		]
-
-		#case [
-			OS = 'FreeBSD [
-				;-- http://fxr.watson.org/fxr/source/sys/stat.h?v=FREEBSD10
-				stat!: alias struct! [
-					st_dev		[integer!]
-					st_ino		[integer!]
-					st_modelink	[integer!]				;-- st_mode & st_link are both 16bit fields
-					st_uid		[integer!]
-					st_gid		[integer!]
-					st_rdev		[integer!]
-					st_atime	[timespec! value]		;-- struct timespec inlined
-					st_mtime	[timespec! value]		;-- struct timespec inlined
-					st_ctime	[timespec! value]		;-- struct timespec inlined
-					st_size		[integer!]
-					st_size_h	[integer!]
-					st_blocks_l	[integer!]
-					st_blocks_h	[integer!]
-					st_blksize	[integer!]
-					st_flags	[integer!]
-					st_gen		[integer!]
-					st_lspare	[integer!]
-					btm_sec     [integer!]
-					btm_msec    [integer!]				;-- struct timespec inlined
-					pad0		[integer!]
-					pad1		[integer!]
-				]
-				dirent!: alias struct! [				;@@ the same as macOS
-					d_ino		[integer!]
-					d_reclen	[byte!]
-					_d_reclen_	[byte!]
-					d_type		[byte!]
-					d_namlen	[byte!]
-					;d_name		[byte! [256]]
-				]
-			]
-			OS = 'macOS [
-				stat!: alias struct! [
-					st_dev		[integer!]
-					st_ino		[integer!]
-					st_modelink	[integer!]				;-- st_mode & st_link are both 16bit fields
-					st_uid		[integer!]
-					st_gid		[integer!]
-					st_rdev		[integer!]
-					st_atime	[timespec! value]		;-- struct timespec inlined
-					st_mtime	[timespec! value]		;-- struct timespec inlined
-					st_ctime	[timespec! value]		;-- struct timespec inlined
-					st_size		[integer!]
-					st_blocks	[integer!]
-					st_blksize	[integer!]
-					st_flags	[integer!]
-					st_gen		[integer!]
-					st_lspare	[integer!]
-					st_qspare_1 [integer!]				;-- int64
-					st_qspare_2 [integer!]
-					st_qspare_3 [integer!]				;-- int64
-					st_qspare_4 [integer!]
-				]
-				;;-- #if __DARWIN_64_BIT_INO_T
-				;stat!: alias struct! [				;-- __DARWIN_STRUCT_STAT64
-				;	st_dev		[integer!]
-				;	st_modelink	[integer!]			;-- st_mode & st_link are both 16bit fields
-				;	st_ino_1	[integer!]			;-- int64
-				;	st_ino_2	[integer!]
-				;	st_uid		[integer!]
-				;	st_gid		[integer!]
-				;	st_rdev		[integer!]
-				;	atv_sec		[integer!]
-				;	atv_msec	[integer!]
-				;	mtv_sec		[integer!]
-				;	mtv_msec	[integer!]
-				;	ctv_sec		[integer!]
-				;	ctv_msec	[integer!]
-				;	birth_sec	[integer!]
-				;	birth_msec	[integer!]
-				;	st_size_1	[integer!]			;-- int64
-				;	st_size		[integer!]
-				;	st_blocks_1	[integer!]			;-- int64
-				;	st_blocks_2	[integer!]
-				;	st_blksize	[integer!]
-				;	st_flags	[integer!]
-				;	st_gen		[integer!]
-				;	st_lspare	[integer!]
-				;	st_qspare_1 [integer!]			;-- int64
-				;	st_qspare_2 [integer!]
-				;	st_qspare_3 [integer!]			;-- int64
-				;	st_qspare_4 [integer!]
-				;]
-				;#define DIRENT_NAME_OFFSET	21
-				;dirent!: alias struct! [
-				;	d_ino		[integer!]
-				;	_d_ino_		[integer!]
-				;	d_seekoff	[integer!]
-				;	_d_seekoff_	[integer!]
-				;	d_reclen	[integer!]				;-- d_reclen & d_namlen
-				;	;d_namlen	[integer!]
-				;	d_type		[byte!]
-				;	;d_name		[byte! [1024]]
-				;]
-				;;-- #endif
-
-				dirent!: alias struct! [
-					d_ino		[integer!]
-					d_reclen	[byte!]
-					_d_reclen_	[byte!]
-					d_type		[byte!]
-					d_namlen	[byte!]
-					;d_name		[byte! [256]]
-				]
-			]
-			OS = 'Syllable [
-				;-- http://glibc.sourcearchive.com/documentation/2.7-18lenny7/glibc-2_87_2bits_2stat_8h_source.html
-				stat!: alias struct! [
-					st_mode		[integer!]
-					st_ino		[integer!]
-					st_dev		[integer!]
-					st_nlink	[integer!]
-					st_uid		[integer!]
-					st_gid		[integer!]
-					filler1		[integer!]				;-- not in spec above...
-					filler2		[integer!]				;-- not in spec above...
-					st_size		[integer!]
-					;...incomplete...
-				]
-				#define DIRENT_NAME_OFFSET 8
-				dirent!: alias struct! [
-					d_ino		[integer!]
-					d_reclen	[byte!]
-					_d_reclen_	[byte!]
-					d_type		[byte!]
-					d_namlen	[byte!]
-					;d_name		[byte! [256]]
-				]
-			]
-			all [legacy find legacy 'stat32] [
-				stat!: alias struct! [
-					st_dev		[integer!]
-					st_ino		[integer!]
-					st_mode		[integer!]
-					st_nlink	[integer!]
-					st_uid		[integer!]
-					st_gid		[integer!]
-					st_rdev		[integer!]
-					st_size		[integer!]
-					st_blksize	[integer!]
-					st_blocks	[integer!]
-					st_atime	[timespec!]
-					st_mtime	[timespec!]
-					st_ctime	[timespec!]
-				]
-				#define DIRENT_NAME_OFFSET 8
-				dirent!: alias struct! [
-					d_ino		[integer!]
-					d_reclen	[byte!]
-					_d_reclen_	[byte!]
-					d_type		[byte!]
-					d_namlen	[byte!]
-					;d_name		[byte! [256]]
-				]
-			]
-			OS = 'Android [ ; else
-				;https://android.googlesource.com/platform/bionic.git/+/master/libc/include/sys/stat.h
-				stat!: alias struct! [					;-- stat64 struct
-					st_dev_h	  [integer!]
-					st_dev_l	  [integer!]
-					pad0		  [integer!]
-					__st_ino	  [integer!]
-					st_mode		  [integer!]
-					st_nlink	  [integer!]
-					st_uid		  [integer!]
-					st_gid		  [integer!]
-					st_rdev_h	  [integer!]
-					st_rdev_l	  [integer!]
-					pad1		  [integer!]
-					st_size_h	  [integer!]
-					st_size	  [integer!]
-					st_blksize	  [integer!]
-					st_blocks_h	  [integer!]
-					st_blocks	  [integer!]
-					st_atime	  [timespec! value]
-					st_mtime	  [timespec! value]
-					st_ctime	  [timespec! value]
-					st_ino_h	  [integer!]
-					st_ino_l	  [integer!]
-					;...optional padding skipped
-				]
-				#define DIRENT_NAME_OFFSET	19
-				dirent!: alias struct! [
-					d_ino		[integer!]
-					_d_ino_		[integer!]
-					d_off		[integer!]
-					_d_off_		[integer!]
-					d_reclen	[byte!]
-					_d_reclen_	[byte!]
-					d_type		[byte!]
-					;d_name		[byte! [256]]
-				]
-			]
-			true [ ; else
-				;-- http://lxr.free-electrons.com/source/arch/x86/include/uapi/asm/stat.h
-				stat!: alias struct! [					;-- stat64 struct
-					st_dev_l	  [integer!]
-					st_dev_h	  [integer!]
-					pad0		  [integer!]
-					__st_ino	  [integer!]
-					st_mode		  [integer!]
-					st_nlink	  [integer!]
-					st_uid		  [integer!]
-					st_gid		  [integer!]
-					st_rdev_l	  [integer!]
-					st_rdev_h	  [integer!]
-					pad1		  [integer!]
-					st_size		  [integer!]
-					st_blksize	  [integer!]
-					st_blocks	  [integer!]
-					st_atime	  [timespec! value]
-					st_mtime	  [timespec! value]
-					st_ctime	  [timespec! value]
-					st_ino_h	  [integer!]
-					st_ino_l	  [integer!]
-					;...optional padding skipped
-				]
-
-				#define DIRENT_NAME_OFFSET 11
-				dirent!: alias struct! [
-					d_ino			[integer!]
-					d_off			[integer!]
-					d_reclen		[byte!]
-					d_reclen_pad	[byte!]
-					d_type			[byte!]
-					;d_name			[byte! [256]]
-				]
-			]
-		]
-
-		#case [
-			any [OS = 'macOS OS = 'FreeBSD OS = 'Android] [
-				#import [
-					LIBC-file cdecl [
-						;-- https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/10.6/man2/stat.2.html?useVersion=10.6
-						_stat:	"fstat" [
-							file		[integer!]
-							restrict	[stat!]
-							return:		[integer!]
-						]
-					]
-				]
-			]
-			true [
-				#import [
-					LIBC-file cdecl [
-						;-- http://refspecs.linuxbase.org/LSB_3.0.0/LSB-Core-generic/LSB-Core-generic/baselib-xstat-1.html
-						_stat:	"__fxstat" [
-							version		[integer!]
-							file		[integer!]
-							restrict	[stat!]
-							return:		[integer!]
-						]
-					]
-				]
-			]
-
-		]
-
-		#either OS = 'macOS [
-			#import [
-				LIBC-file cdecl [
-					lseek: "lseek" [
-						file		[integer!]
-						offset-lo	[integer!]
-						offset-hi	[integer!]
-						whence		[integer!]
-						return:		[integer!]
-					]
-				]
-			]
-		][
-			#import [
-				LIBC-file cdecl [
-					lseek: "lseek" [
-						file		[integer!]
-						offset		[integer!]
-						whence		[integer!]
-						return:		[integer!]
-					]
-				]
-			]
-		]
-		#import [
-			LIBC-file cdecl [
-				_access: "access" [
-					filename	[c-string!]
-					mode		[integer!]
-					return:		[integer!]
-				]
-				_open:	"open" [
-					filename	[c-string!]
-					flags		[integer!]
-					mode		[integer!]
-					return:		[integer!]
-				]
-				_read:	"read" [
-					file		[integer!]
-					buffer		[byte-ptr!]
-					bytes		[integer!]
-					return:		[integer!]
-				]
-				_write:	"write" [
-					file		[integer!]
-					buffer		[byte-ptr!]
-					bytes		[integer!]
-					return:		[integer!]
-				]
-				_close:	"close" [
-					file		[integer!]
-					return:		[integer!]
-				]
-				mkdir: "mkdir" [
-					pathname	[c-string!]
-					mode		[integer!]
-					return:		[integer!]
-				]
-				opendir: "opendir" [
-					filename	[c-string!]
-					return:		[integer!]
-				]
-				readdir: "readdir" [
-					file		[integer!]
-					return:		[dirent!]
-				]
-				closedir: "closedir" [
-					file		[integer!]
-					return:		[integer!]
-				]
-				_remove: "remove" [
-					pathname	[c-string!]
-					return: 	[integer!]
-				]
-				strncmp: "strncmp" [
-					str1		[c-string!]
-					str2		[c-string!]
-					num			[integer!]
-					return:		[integer!]
-				]
-				strstr: "strstr" [
-					str			[c-string!]
-					substr		[c-string!]
-					return:		[c-string!]
-				]
-				strchr: "strchr" [
-					str			[c-string!]
-					c			[byte!]
-					return:		[c-string!]
-				]
-				gmtime: "gmtime" [
-					time        [pointer! [integer!]]
-					return:     [systemtime!]
-				]
-			]
-		]
-	]
-
 	make-dir: func [
 		path	[c-string!]
 		return: [logic!]
@@ -757,7 +207,7 @@ simple-io: context [
 		return:	[logic!]
 	][
 		#either OS = 'Windows [
-			CloseHandle file
+			CloseHandle as handle! file
 		][
 			zero? _close file
 		]
@@ -985,48 +435,57 @@ simple-io: context [
 		]
 	]
 
+#either OS = 'Windows [
 	query: func[
 		filename [red-file!]
 		return:  [red-value!]
 		/local
 			name [c-string!]
 			dt   [red-date!]
-			time [float!]
-			s	 [stat! value]
-			fd   [integer!]
-			tm   [systemtime!]
+			filedata [WIN32_FIND_DATA value]
+			systime	 [tagSYSTEMTIME value]
 	][
 		name: file/to-OS-path filename
-		;o: object/copy #get system/standard/file-info
-		
-		#either OS = 'Windows [
-			if any [
-				1 <> GetFileAttributesExW name 0 filedata
-				1 <> FileTimeToSystemTime filedata/ftLastWriteTime systime
-			][
-				return none/push
-			]
-			dt: as red-date! stack/push*
-			date/set-all dt
-				(systime/data1 and FFFFh) ;year
-				(systime/data1 >> 16    ) ;month
-				(systime/data2 >> 16    ) ;day
-				(systime/data3 and FFFFh) ;hours
-				(systime/data3 >> 16    ) ;minutes
-				(systime/data4 and FFFFh) ;seconds
-				1000000 * (systime/data4 >> 16) ;ns - posix is using nanoseconds so lets use it too
+		if any [
+			1 <> GetFileAttributesExW name 0 :filedata
+			1 <> FileTimeToSystemTime filedata/ftLastWriteTime :systime
 		][
-			fd: open-file file/to-OS-path filename RIO_READ yes
-			if fd < 0 [	return none/push ]
-			#either any [OS = 'macOS OS = 'FreeBSD OS = 'Android] [
-				_stat   fd s
-			][	_stat 3 fd s]
-			tm: gmtime as int-ptr! s/st_mtime
-			dt: as red-date! stack/push*
-			date/set-all dt (1900 + tm/year) (1 + tm/mon) tm/mday tm/hour tm/min tm/sec s/st_mtime/nsec
+			return none/push
 		]
+		dt: as red-date! stack/push*
+		date/set-all dt
+			(systime/year-month and FFFFh)	;year
+			(systime/year-month >> 16)		;month
+			(systime/week-day >> 16)		;day
+			(systime/hour-minute and FFFFh)	;hours
+			(systime/hour-minute >> 16)		;minutes
+			(systime/second and FFFFh)		;seconds
+			1000000 * (systime/second >> 16) ;ns - posix is using nanoseconds so lets use it too
 		as red-value! dt
 	]
+][
+	query: func[
+		filename [red-file!]
+		return:  [red-value!]
+		/local
+			name [c-string!]
+			dt   [red-date!]
+			s	 [stat! value]
+			fd   [integer!]
+			tm   [tm!]
+	][
+		name: file/to-OS-path filename
+		fd: open-file file/to-OS-path filename RIO_READ yes
+		if fd < 0 [	return none/push ]
+		#either any [OS = 'macOS OS = 'FreeBSD OS = 'Android] [
+			_stat   fd s
+		][	_stat 3 fd s]
+		tm: gmtime :s/st_mtime
+		dt: as red-date! stack/push*
+		date/set-all dt (1900 + tm/year) (1 + tm/mon) tm/mday tm/hour tm/min tm/sec s/st_mtime/nsec
+		as red-value! dt
+	]
+]
 
 	read-dir: func [
 		filename	[red-file!]

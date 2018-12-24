@@ -10,29 +10,6 @@ Red/System [
 	}
 ]
 
-#define MMAP_PROT_RW		03h				;-- PROT_READ | PROT_WRITE
-#define MMAP_PROT_RWX		07h				;-- PROT_READ | PROT_WRITE | PROT_EXEC
-
-#define MMAP_MAP_SHARED     01h
-#define MMAP_MAP_PRIVATE    02h
-#define MMAP_MAP_ANONYMOUS  20h
-
-#either OS = 'Android [
-	#define SC_PAGE_SIZE	28h
-][
-	#define SC_PAGE_SIZE	1Eh
-]
-
-#define SYSCALL_MMAP2		192
-#define SYSCALL_MUNMAP		91
-#define SYSCALL_MMAP		SYSCALL_MMAP2
-
-#define	EPERM				1			;-- Operation not permitted
-#define	ENOENT				2			;-- No such file or directory
-#define	EINTR				4			;-- Interrupted system call
-#define	EAGAIN				11			;-- Try again
-#define	ENOSYS				38			;-- Function not implemented
-
 platform: context [
 	
 	#either OS = 'Android [
@@ -47,10 +24,6 @@ platform: context [
 
 	#import  [
 		LIBC-file cdecl [
-			sysconf: "sysconf" [
-				property	[integer!]
-				return:		[integer!]
-			]
 			environ: "environ" [integer!]
 		]
 	]

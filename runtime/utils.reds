@@ -17,8 +17,8 @@ Red/System [
 		/local
 			args [byte-ptr!]
 	][
-		args: platform/GetCommandLine
-		as red-value! string/load as-c-string args platform/lstrlen args UTF-16LE
+		args: GetCommandLine
+		as red-value! string/load as-c-string args lstrlen args UTF-16LE
 	]
 
 	list-env: func [
@@ -30,7 +30,7 @@ Red/System [
 			blk		[red-block!]
 			len		[integer!]
 	][
-		env: platform/GetEnvironmentStrings
+		env: GetEnvironmentStrings
 		blk: null
 		len: 0
 
@@ -42,7 +42,7 @@ Red/System [
 				if all [len <> 0 str/1 = #"=" str/2 = #"^@"][
 					string/load-in p len blk UTF-16LE
 					p: str + 2
-					len: platform/lstrlen as byte-ptr! p
+					len: lstrlen as byte-ptr! p
 					string/load-in p len blk UTF-16LE
 					str: p + (len * 2)
 					if all [str/3 = #"^@" str/4 = #"^@"][break]
@@ -53,9 +53,21 @@ Red/System [
 				len: len + 1
 			]
 			len: block/rs-length? blk
-			platform/FreeEnvironmentStrings env
+			FreeEnvironmentStrings env
 		]
 		as red-value! map/make-at as red-value! blk blk len
+	]
+
+	processor-count: func [
+		return: [integer!]
+		/local
+			info [tagSYSTEM_INFO value]
+			n	 [integer!]
+	][
+		set-memory as byte-ptr! :info null-byte size? tagSYSTEM_INFO
+		GetNativeSystemInfo :info
+		n: info/dwNumberOfProcessors
+		either zero? n [1][n]
 	]
 ][
 	get-cmdline-args: func [
@@ -147,6 +159,17 @@ Red/System [
 		]
 		as red-value! map/make-at as red-value! blk blk len
 	]
+
+	processor-count: func [
+		return: [integer!]
+		/local
+			n	 [integer!]
+	][
+		n: sysconf _SC_NPROCESSORS_ONLN
+		if zero? n [n: sysconf _SC_NPROCESSORS_CONF]
+		if zero? n [n: 1]
+		n
+	]
 ]
 
 check-arg-type: func [
@@ -179,7 +202,7 @@ check-arg-type: func [
 
 		ver/dwOSVersionInfoSize: size? OSVERSIONINFO
 		ver/szCSDVersion: 0
-		platform/GetVersionEx :ver
+		GetVersionEx :ver
 
 		server?: ver/wProductType <> #"^(01)"
 		str: string/load-at "Windows " 8 val UTF-8
@@ -211,7 +234,7 @@ check-arg-type: func [
 		_context/add-with ctx _context/add-global symbol/make "name" val
 
 		_64bit?: 0
-		platform/IsWow64Process platform/GetCurrentProcess :_64bit?
+		IsWow64Process GetCurrentProcess :_64bit?
 		either zero? _64bit? [arch: "i686"][arch: "x86-64"]
 		word/make-at symbol/make arch val
 		_context/add-with ctx _context/add-global symbol/make "arch" val
@@ -295,11 +318,11 @@ check-arg-type: func [
 		len: 0
 		mib: 1		;-- CTL_KERN
 		mib2: 65	;-- KERN_OSVERSION
-		platform/sysctl :mib 2 null :len null 0
+		sysctl :mib 2 null :len null 0
 
 		str: string/make-at val len 1
 		s: GET_BUFFER(str)
-		platform/sysctl :mib 2 as byte-ptr! s/offset :len null 0
+		sysctl :mib 2 as byte-ptr! s/offset :len null 0
 		s/tail: as red-value! (as byte-ptr! s/offset) + len - 1
 		_context/add-with ctx _context/add-global symbol/make "build" val
 		stack/pop 2
@@ -401,7 +424,7 @@ check-arg-type: func [
 			pbuf: allocate len
 			simple-io/read-data file pbuf len
 			simple-io/close-file file
-			str: simple-io/strstr as c-string! pbuf {PRETTY_NAME="}
+			str: strstr as c-string! pbuf {PRETTY_NAME="}
 			str: str + 13
 			p: strchr str #"^""
 			p/1: null-byte

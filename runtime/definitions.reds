@@ -56,6 +56,9 @@ Red/System [
 #define series!				series-buffer! 
 #define handle!				[pointer! [integer!]]
 
+;== platform-specific definitions ==
+
+#include %platform/definitions.reds
 
 ;=== Unicode support definitions ===
 
@@ -74,6 +77,8 @@ Red/System [
 	EXTRACT_RGB
 	EXTRACT_ARGB
 ]
+
+;== Draw Context definitions ==
 
 #if OS = 'macOS [
 	CGAffineTransform!: alias struct! [
@@ -127,85 +132,7 @@ Red/System [
 	]
 ]
 
-#either OS = 'Windows [
-
-	#define GENERIC_WRITE			40000000h
-	#define GENERIC_READ 			80000000h
-	#define FILE_SHARE_READ			00000001h
-	#define FILE_SHARE_WRITE		00000002h
-	#define FILE_SHARE_DELETE		00000004h
-	#define CREATE_NEW				00000001h
-	#define CREATE_ALWAYS			00000002h
-	#define OPEN_EXISTING			00000003h
-	#define OPEN_ALWAYS				00000004h
-	#define TRUNCATE_EXISTING		00000005h
-	#define FILE_ATTRIBUTE_NORMAL	00000080h
-	#define FILE_ATTRIBUTE_DIRECTORY  00000010h
-	#define FILE_FLAG_SEQUENTIAL_SCAN 08000000h
-	
-	#define STD_INPUT_HANDLE		-10
-	#define STD_OUTPUT_HANDLE		-11
-	#define STD_ERROR_HANDLE		-12
-
-	#define SET_FILE_BEGIN			0
-	#define SET_FILE_CURRENT		1
-	#define SET_FILE_END			2
-
-	#define MAX_FILE_REQ_BUF		4000h			;-- 16 KB
-	#define OFN_HIDEREADONLY		0004h
-	#define OFN_EXPLORER			00080000h
-	#define OFN_ALLOWMULTISELECT	00000200h
-
-	#define WIN32_FIND_DATA_SIZE	592
-
-	#define BIF_RETURNONLYFSDIRS	1
-	#define BIF_USENEWUI			50h
-	#define BIF_SHAREABLE			8000h
-
-	#define BFFM_INITIALIZED		1
-	#define BFFM_SELCHANGED			2
-	#define BFFM_SETSELECTION		1127
-
-	#enum brush-type! [
-		BRUSH_TYPE_NORMAL
-		BRUSH_TYPE_TEXTURE
-	]
-
-	tagPAINTSTRUCT: alias struct! [
-		hdc			 [handle!]
-		fErase		 [integer!]
-		left		 [integer!]
-		top			 [integer!]
-		right		 [integer!]
-		bottom		 [integer!]
-		fRestore	 [integer!]
-		fIncUpdate	 [integer!]
-		rgbReserved1 [integer!]
-		rgbReserved2 [integer!]
-		rgbReserved3 [integer!]
-		rgbReserved4 [integer!]
-		rgbReserved5 [integer!]
-		rgbReserved6 [integer!]
-		rgbReserved7 [integer!]
-		rgbReserved8 [integer!]
-	]
-	
-	POINT_2F: alias struct! [
-		x		[float32!]
-		y		[float32!]
-	]
-
-	PATHDATA: alias struct! [
-		count       [integer!]
-		points      [POINT_2F]
-		types       [byte-ptr!]
-	]
-
-	tagPOINT: alias struct! [
-		x		[integer!]
-		y		[integer!]	
-	]
-
+#if OS = 'Windows [
 	gradient!: alias struct! [
 		extra           [integer!]                              ;-- used when pen width > 1
 		path-data       [PATHDATA]                              ;-- preallocated for performance reasons
@@ -290,42 +217,6 @@ Red/System [
 		font-color?		[logic!]
 		other 			[other!]
 	]
-][
-	#define O_RDONLY	0
-	#define O_WRONLY	1
-	#define O_RDWR		2
-	#define O_BINARY	0
-
-	#define S_IREAD		256
-	#define S_IWRITE    128
-	#define S_IRGRP		32
-	#define S_IWGRP		16
-	#define S_IROTH		4
-
-	#define	DT_DIR		#"^(04)"
-	
-	#case [
-		any [OS = 'FreeBSD OS = 'macOS] [
-			#define O_CREAT		0200h
-			#define O_TRUNC		0400h
-			#define O_EXCL		0800h
-			#define O_APPEND	8
-			#define	O_NONBLOCK	4
-			#define	O_CLOEXEC	01000000h
-			
-			#define DIRENT_NAME_OFFSET 8
-		]
-		true [
-			#define O_CREAT		64
-			#define O_EXCL		128
-			#define O_TRUNC		512
-			#define O_APPEND	1024
-			#define	O_NONBLOCK	2048
-			#define	O_CLOEXEC	524288
-		]
-	]
-	
-	#define BFFM_SETEXPANDED		1130
 ]
 
 ;=== Image definitions ===

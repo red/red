@@ -156,6 +156,18 @@ write %build/bin/sources.r set-cache [
 			%date.reds
 		]
 		%platform/ [
+			%definitions/ [
+				%COM.reds
+				%darwin.reds
+				%freebsd.reds
+				%linux.reds
+				%POSIX.reds
+				%syllable.reds
+				%windows.reds
+			]
+			%definitions.reds
+			%image-gdiplus.reds
+			%image-quartz.reds
 			%android.reds
 			%darwin.reds
 			%freebsd.reds
@@ -163,9 +175,6 @@ write %build/bin/sources.r set-cache [
 			%POSIX.reds
 			%syllable.reds
 			%win32.reds
-			%COM.reds
-			%image-gdiplus.reds
-			%image-quartz.reds
 			%win32-ansi.reds
 			%win32-print.reds
 		]

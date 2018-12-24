@@ -10,124 +10,11 @@ Red/System [
 	}
 ]
 
-#include %COM.reds
-
-#define VA_COMMIT_RESERVE	3000h						;-- MEM_COMMIT | MEM_RESERVE
-#define VA_PAGE_RW			04h							;-- PAGE_READWRITE
-#define VA_PAGE_RWX			40h							;-- PAGE_EXECUTE_READWRITE
-
-#define _O_TEXT        	 	4000h  						;-- file mode is text (translated)
-#define _O_BINARY       	8000h  						;-- file mode is binary (untranslated)
-#define _O_WTEXT        	00010000h 					;-- file mode is UTF16 (translated)
-#define _O_U16TEXT      	00020000h 					;-- file mode is UTF16 no BOM (translated)
-#define _O_U8TEXT       	00040000h 					;-- file mode is UTF8  no BOM (translated)
-
-
-#define FORMAT_MESSAGE_ALLOCATE_BUFFER    00000100h
-#define FORMAT_MESSAGE_IGNORE_INSERTS     00000200h
-#define FORMAT_MESSAGE_FROM_STRING        00000400h
-#define FORMAT_MESSAGE_FROM_HMODULE       00000800h
-#define FORMAT_MESSAGE_FROM_SYSTEM        00001000h
-
-#define WEOF				FFFFh
-
-#define INFINITE				FFFFFFFFh
-#define HANDLE_FLAG_INHERIT		00000001h
-#define STARTF_USESTDHANDLES	00000100h
-#define STARTF_USESHOWWINDOW	00000001h
-
-#define ERROR_BROKEN_PIPE 109
-
-#define IS_TEXT_UNICODE_UNICODE_MASK 	000Fh
-
-#enum spawn-mode [
-	P_WAIT:		0
-	P_NOWAIT:	1
-	P_OVERLAY:	2
-	P_NOWAITO:	3
-	P_DETACH:	4
-]
-
-process-info!: alias struct! [
-	hProcess	[integer!]
-	hThread		[integer!]
-	dwProcessId	[integer!]
-	dwThreadId	[integer!]
-]
-
-startup-info!: alias struct! [
-	cb				[integer!]
-	lpReserved		[c-string!]
-	lpDesktop		[c-string!]
-	lpTitle			[c-string!]
-	dwX				[integer!]
-	dwY				[integer!]
-	dwXSize			[integer!]
-	dwYSize			[integer!]
-	dwXCountChars	[integer!]
-	dwYCountChars	[integer!]
-	dwFillAttribute	[integer!]
-	dwFlags			[integer!]
-	wShowWindow-a	[byte!]           ; 16 bits integer needed here for windows WORD type
-	wShowWindow-b	[byte!]
-	cbReserved2-a	[byte!]
-	cbReserved2-b	[byte!]
-	lpReserved2		[byte-ptr!]
-	hStdInput		[integer!]
-	hStdOutput		[integer!]
-	hStdError		[integer!]
-]
-
-security-attributes!: alias struct! [
-	nLength				 [integer!]
-	lpSecurityDescriptor [integer!]
-	bInheritHandle		 [logic!]
-]
-
-OSVERSIONINFO: alias struct! [
-	dwOSVersionInfoSize [integer!]
-	dwMajorVersion		[integer!]
-	dwMinorVersion		[integer!]
-	dwBuildNumber		[integer!]	
-	dwPlatformId		[integer!]
-	szCSDVersion		[integer!]						;-- array of 128 bytes
-	szCSDVersion0		[integer!]
-	szCSDVersion1		[integer!]
-	szCSDVersion2		[integer!]
-	szCSDVersion3		[integer!]
-	szCSDVersion4		[integer!]
-	szCSDVersion5		[integer!]
-	szCSDVersion6		[integer!]
-	szCSDVersion7		[integer!]
-	szCSDVersion8		[integer!]
-	szCSDVersion9		[integer!]
-	szCSDVersion10		[integer!]
-	szCSDVersion11		[integer!]
-	szCSDVersion12		[integer!]
-	szCSDVersion13		[integer!]
-	szCSDVersion14		[integer!]
-	szCSDVersion15		[integer!]
-	szCSDVersion16		[integer!]
-	szCSDVersion17		[integer!]
-	szCSDVersion18		[integer!]
-	szCSDVersion19		[integer!]
-	szCSDVersion20		[integer!]
-	szCSDVersion21		[integer!]
-	szCSDVersion22		[integer!]
-	szCSDVersion23		[integer!]
-	szCSDVersion24		[integer!]
-	szCSDVersion25		[integer!]
-	szCSDVersion26		[integer!]
-	szCSDVersion27		[integer!]
-	szCSDVersion28		[integer!]
-	szCSDVersion29		[integer!]
-	szCSDVersion30		[integer!]
-	wServicePack		[integer!]						;-- Major: 16, Minor: 16
-	wSuiteMask0			[byte!]
-	wSuiteMask1			[byte!]
-	wProductType		[byte!]
-	wReserved			[byte!]
-]
+AcceptEx-func:				0
+ConnectEx-func:				0
+DisconnectEx-func:			0
+TransmitFile-func:			0
+GetAcceptExSockaddrs-func:	0
 
 platform: context [
 
@@ -136,274 +23,8 @@ platform: context [
 		fd-stderr: 2									;@@ hardcoded, safe?
 	]
 
-	GdiplusStartupInput!: alias struct! [
-		GdiplusVersion				[integer!]
-		DebugEventCallback			[integer!]
-		SuppressBackgroundThread	[integer!]
-		SuppressExternalCodecs		[integer!]
-	]
-
-	tagFILETIME: alias struct! [
-		dwLowDateTime	[integer!]
-		dwHighDateTime	[integer!]
-	]
-
-	tagSYSTEMTIME: alias struct! [
-		year-month	[integer!]
-		week-day	[integer!]
-		hour-minute	[integer!]
-		second		[integer!]
-	]
-
-	tagTIME_ZONE_INFORMATION: alias struct! [
-		Bias				[integer!]
-		StandardName1		[float!]			;-- StandardName: 64 bytes
-		StandardName2		[float!]
-		StandardName3		[float!]
-		StandardName4		[float!]
-		StandardName5		[float!]
-		StandardName6		[float!]
-		StandardName7		[float!]
-		StandardName8		[float!]
-		StandardDate		[tagSYSTEMTIME value]
-		StandardBias		[integer!]
-		DaylightName1		[float!]			;-- DaylightName: 64 bytes
-		DaylightName2		[float!]
-		DaylightName3		[float!]
-		DaylightName4		[float!]
-		DaylightName5		[float!]
-		DaylightName6		[float!]
-		DaylightName7		[float!]
-		DaylightName8		[float!]
-		DaylightDate		[tagSYSTEMTIME value]
-		DaylightBias		[integer!]
-	]
-
 	gdiplus-token: 0
 	page-size: 4096
-
-	#import [
-		LIBC-file cdecl [
-			_setmode: "_setmode" [
-				handle		[integer!]
-				mode		[integer!]
-				return:		[integer!]
-			]
-			_fileno: "_fileno" [
-				file		[int-ptr!]
-				return:		[integer!]
-			]
-			__iob_func: "__iob_func" [return: [int-ptr!]]
-		]
-		"kernel32.dll" stdcall [
-			VirtualAlloc: "VirtualAlloc" [
-				address		[byte-ptr!]
-				size		[integer!]
-				type		[integer!]
-				protection	[integer!]
-				return:		[int-ptr!]
-			]
-			VirtualFree: "VirtualFree" [
-				address 	[int-ptr!]
-				size		[integer!]
-				type		[integer!]
-				return:		[integer!]
-			]
-			AllocConsole: "AllocConsole" [return: [logic!]]
-			FreeConsole: "FreeConsole" [return: [logic!]]
-			WriteConsole: 	 "WriteConsoleW" [
-				consoleOutput	[integer!]
-				buffer			[byte-ptr!]
-				charsToWrite	[integer!]
-				numberOfChars	[int-ptr!]
-				_reserved		[int-ptr!]
-				return:			[integer!]
-			]
-			WriteFile: "WriteFile" [
-				handle			[integer!]
-				buffer			[c-string!]
-				len				[integer!]
-				written			[int-ptr!]
-				overlapped		[integer!]
-				return:			[integer!]
-			]
-			GetConsoleMode:	"GetConsoleMode" [
-				handle			[integer!]
-				mode			[int-ptr!]
-				return:			[integer!]
-			]
-			GetCurrentDirectory: "GetCurrentDirectoryW" [
-				buf-len			[integer!]
-				buffer			[byte-ptr!]
-				return:			[integer!]
-			]
-			SetCurrentDirectory: "SetCurrentDirectoryW" [
-				lpPathName		[c-string!]
-				return:			[logic!]
-			]
-			GetCommandLine: "GetCommandLineW" [
-				return:			[byte-ptr!]
-			]
-			GetEnvironmentStrings: "GetEnvironmentStringsW" [
-				return:		[c-string!]
-			]
-			GetEnvironmentVariable: "GetEnvironmentVariableW" [
-				name		[c-string!]
-				value		[c-string!]
-				valsize		[integer!]
-				return:		[integer!]
-			]
-			SetEnvironmentVariable: "SetEnvironmentVariableW" [
-				name		[c-string!]
-				value		[c-string!]
-				return:		[logic!]
-			]
-			FreeEnvironmentStrings: "FreeEnvironmentStringsW" [
-				env			[c-string!]
-				return:		[logic!]
-			]
-			FileTimeToSystemTime: "FileTimeToSystemTime" [
-				filetime	[tagFILETIME]
-				systemtime	[tagSYSTEMTIME]
-				return:		[integer!]
-			]
-			GetSystemTimeAsFileTime: "GetSystemTimeAsFileTime" [
-				time			[tagFILETIME]
-			]
-			GetSystemTime: "GetSystemTime" [
-				time			[tagSYSTEMTIME]
-			]
-			GetLocalTime: "GetLocalTime" [
-				time			[tagSYSTEMTIME]
-			]
-			GetTimeZoneInformation: "GetTimeZoneInformation" [
-				tz				[tagTIME_ZONE_INFORMATION]
-				return:			[integer!]
-			]
-			Sleep: "Sleep" [
-				dwMilliseconds	[integer!]
-			]
-			lstrlen: "lstrlenW" [
-				str			[byte-ptr!]
-				return:		[integer!]
-			]
-			CreateProcessW: "CreateProcessW" [
-				lpApplicationName       [c-string!]
-				lpCommandLine           [c-string!]
-				lpProcessAttributes     [integer!]
-				lpThreadAttributes      [integer!]
-				bInheritHandles         [logic!]
-				dwCreationFlags         [integer!]
-				lpEnvironment           [integer!]
-				lpCurrentDirectory      [c-string!]
-				lpStartupInfo           [startup-info!]
-				lpProcessInformation    [process-info!]
-				return:                 [logic!]
-			]
-			WaitForSingleObject: "WaitForSingleObject" [
-				hHandle                 [integer!]
-				dwMilliseconds          [integer!]
-				return:                 [integer!]
-			]
-			GetExitCodeProcess: "GetExitCodeProcess" [
-				hProcess				[integer!]
-				lpExitCode				[int-ptr!]
-				return:                 [logic!]
-			]
-			CreatePipe: "CreatePipe" [
-				hReadPipe               [int-ptr!]
-				hWritePipe              [int-ptr!]
-				lpPipeAttributes        [security-attributes!]
-				nSize                   [integer!]
-				return:                 [logic!]
-			]
-			CreateFileW: "CreateFileW" [
-				lpFileName				[c-string!]
-				dwDesiredAccess			[integer!]
-				dwShareMode				[integer!]
-				lpSecurityAttributes	[security-attributes!]
-				dwCreationDisposition	[integer!]
-				dwFlagsAndAttributes	[integer!]
-				hTemplateFile			[integer!]
-				return:					[integer!]
-			]
-			CloseHandle: "CloseHandle" [
-				hObject                 [integer!]
-				return:                 [logic!]
-			]
-			GetStdHandle: "GetStdHandle" [
-				nStdHandle				[integer!]
-				return:					[integer!]
-			]
-			ReadFile: "ReadFile" [
-				hFile                   [integer!]
-				lpBuffer                [byte-ptr!]
-				nNumberOfBytesToRead    [integer!]
-				lpNumberOfBytesRead     [int-ptr!]
-				lpOverlapped            [integer!]
-				return:                 [logic!]
-			]
-			SetHandleInformation: "SetHandleInformation" [
-				hObject					[integer!]
-				dwMask					[integer!]
-				dwFlags					[integer!]
-				return:					[logic!]
-			]
-			GetLastError: "GetLastError" [
-				return:                 [integer!]
-			]
-			MultiByteToWideChar: "MultiByteToWideChar" [
-				CodePage				[integer!]
-				dwFlags					[integer!]
-				lpMultiByteStr			[byte-ptr!]
-				cbMultiByte				[integer!]
-				lpWideCharStr			[byte-ptr!]
-				cchWideChar				[integer!]
-				return:					[integer!]
-			]
-			SetFilePointer: "SetFilePointer" [
-				file		[integer!]
-				distance	[integer!]
-				pDistance	[int-ptr!]
-				dwMove		[integer!]
-				return:		[integer!]
-			]
-			IsWow64Process: "IsWow64Process" [
-				hProcess	[int-ptr!]
-				isWow64?	[int-ptr!]
-				return:		[logic!]
-			]
-			GetVersionEx: "GetVersionExA" [
-				lpVersionInfo [OSVERSIONINFO]
-				return:		[integer!]
-			]
-			GetCurrentProcess: "GetCurrentProcess" [
-				return:		[int-ptr!]
-			]
-		]
-		"gdiplus.dll" stdcall [
-			GdiplusStartup: "GdiplusStartup" [
-				token		[int-ptr!]
-				input		[integer!]
-				output		[integer!]
-				return:		[integer!]
-			]
-			GdiplusShutdown: "GdiplusShutdown" [
-				token		[integer!]
-			]
-		]
-		"shell32.dll" stdcall [
-			ShellExecute: "ShellExecuteW" [
-				hwnd		 [integer!]
-				lpOperation	 [c-string!]
-				lpFile		 [c-string!]
-				lpParameters [integer!]
-				lpDirectory	 [integer!]
-				nShowCmd	 [integer!]
-				return:		 [integer!]
-			]
-		]
-	]
 
 	#include %win32-print.reds
 
@@ -583,7 +204,13 @@ platform: context [
 	;-------------------------------------------
 	;-- Do platform-specific initialization tasks
 	;-------------------------------------------
-	init: func [/local h [int-ptr!]] [
+	init: func [
+		/local
+			h	[int-ptr!]
+			wsa	[int-ptr!]
+			fd	[integer!]
+			n	[integer!]
+	][
 		init-gdiplus
 		#either libRed? = no [
 			CoInitializeEx 0 COINIT_APARTMENTTHREADED
@@ -599,5 +226,28 @@ platform: context [
 			_setmode _fileno h + 8 _O_U16TEXT				;@@ stdout, throw an error on failure
 			_setmode _fileno h + 16 _O_U16TEXT				;@@ stderr, throw an error on failure
 		]
+
+		wsa: system/stack/allocate 100			;-- 400 bytes for 32bit System
+		WSAStartup 2 << 8 or 2 wsa
+
+		fd: WSASocketW 2 1 6 null 0 1
+
+		n: 0
+		h: [B5367DF1h 11CFCBACh 8000CA95h 92A1485Fh]
+		WSAIoctl fd C8000006h h 16 :AcceptEx-func size? int-ptr! :n null null
+
+		h: [B5367DF0h 11CFCBACh 8000CA95h 92A1485Fh]
+		WSAIoctl fd C8000006h h 16 :TransmitFile-func size? int-ptr! :n null null
+
+		h: [B5367DF2h 11CFCBACh 8000CA95h 92A1485Fh]
+		WSAIoctl fd C8000006h h 16 :GetAcceptExSockaddrs-func size? int-ptr! :n null null
+
+		h: [25A207B9h 4660DDF3h E576E98Eh 3E06748Ch]
+		WSAIoctl fd C8000006h h 16 :ConnectEx-func size? int-ptr! :n null null
+
+		h: [7FDA2E11h 436F8630h 36F531A0h 57C1EEA6h]
+		WSAIoctl fd C8000006h h 16 :DisconnectEx-func size? int-ptr! :n null null
+
+		closesocket fd
 	]
 ]
