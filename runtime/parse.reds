@@ -1479,7 +1479,7 @@ parser: context [
 					sym: symbol/resolve w/symbol
 					#if debug? = yes [
 						sym*: symbol/get sym
-						if verbose > 0 [print-line ["parse: " sym*/cache]]
+						if verbose > 0 [print "parse: " print-symbol w print lf]
 					]
 					case [
 						sym = words/pipe [				;-- |
