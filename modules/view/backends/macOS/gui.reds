@@ -151,6 +151,7 @@ get-child-from-xy: func [
 ]
 
 get-text-size: func [
+	face 	[red-object!]		; TODO: implement face-dependent measurement for Mac
 	str		[red-string!]
 	hFont	[handle!]
 	pair	[red-pair!]

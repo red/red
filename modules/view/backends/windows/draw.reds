@@ -138,11 +138,8 @@ update-gdiplus-font-color: func [ctx [draw-ctx!] color [integer!] /local brush [
 			ctx/gp-font-brush: 0
 		]
 		ctx/font-color: color
-		;-- work around for drawing text on transparent background
-		;-- http://stackoverflow.com/questions/5647322/gdi-font-rendering-especially-in-layered-windows
-		if color >>> 24 = 0 [color: 1 << 24 or color]
 		brush: 0
-		GdipCreateSolidFill to-gdiplus-color color :brush
+		GdipCreateSolidFill to-gdiplus-color-fixed color :brush
 		ctx/gp-font-brush: brush
 	]
 ]
@@ -479,8 +476,22 @@ to-gdiplus-color: func [
 	red: color and FFh << 16
 	green: color and FF00h
 	blue: color >> 16 and FFh
-	alpha: (255 - (color >>> 24)) << 24
+	alpha: FF000000h and not color
 	red or green or blue or alpha
+]
+
+;-- see https://stackoverflow.com/questions/4258295/aero-how-to-draw-solid-opaque-colors-on-glass
+;   and https://stackoverflow.com/questions/5647322/gdi-font-rendering-especially-in-layered-windows
+;   GDI+ is often buggy when alpha=255 (fully opaque)
+to-gdiplus-color-fixed: func [
+	color	[integer!]
+	return: [integer!]
+	/local
+		r   [integer!]
+][
+	r: to-gdiplus-color color
+	if r >>> 24 = FFh [r: r xor 01000000h]
+	r
 ]
 
 radian-to-degrees: func [

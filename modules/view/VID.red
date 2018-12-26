@@ -711,7 +711,7 @@ system/view/VID: context [
 							face/offset/:axis: list/:index/offset/:axis
 						]
 					]
-					unless any [face/color panel/type = 'tab-panel][
+					unless any [face/color panel/type = 'tab-panel face/type = 'text][
 						face/color: system/view/metrics/colors/(face/type)
 					]
 					
