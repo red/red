@@ -254,16 +254,22 @@ block: context [
 		return: [red-block!]
 		/local
 			arg	[red-block!]
+			val [red-value!]
+			hs	[red-hash!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/append*"]]
 
 		arg: as red-block! stack/arguments
 		;assert TYPE_OF(arg) = TYPE_BLOCK				;@@ disabled until we have ANY_BLOCK check
 
-		copy-cell
+		val: copy-cell
 			as cell! arg + 1
 			ALLOC_TAIL(arg)
-			
+
+		if TYPE_OF(arg) = TYPE_HASH [
+			hs: as red-hash! arg
+			_hashtable/put hs/table val
+		]
 		arg
 	]
 	
@@ -440,17 +446,15 @@ block: context [
 				return part
 			]
 			depth: depth + 1
-			unless cycles/detect? value buffer :part yes [
-				unless flat? [
-					if value/header and flag-new-line <> 0 [ ;-- new-line marker
-						unless lf? [lf?: on indent: indent + 1]
-						string/append-char GET_BUFFER(buffer) as-integer lf
-						loop indent [string/concatenate-literal buffer "    "]
-						part: part - (indent * 4 + 1) 		;-- account for lf
-					]
+			unless flat? [
+				if value/header and flag-new-line <> 0 [ ;-- new-line marker
+					unless lf? [lf?: on indent: indent + 1]
+					string/append-char GET_BUFFER(buffer) as-integer lf
+					loop indent [string/concatenate-literal buffer "    "]
+					part: part - (indent * 4 + 1) 		;-- account for lf
 				]
-				part: actions/mold value buffer only? all? flat? arg part indent
 			]
+			part: actions/mold value buffer only? all? flat? arg part indent
 			if positive? depth [
 				string/append-char GET_BUFFER(buffer) as-integer space
 				part: part - 1
@@ -498,10 +502,10 @@ block: context [
 			blk1/head = blk2/head
 		]
 		if op = COMP_SAME [return either same? [0][-1]]
-		if all [
-			same?
-			any [op = COMP_STRICT_EQUAL_WORD op = COMP_EQUAL op = COMP_FIND op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
-		][return 0]
+		if same? [return 0]
+		if cycles/find? blk1/node [
+			return either cycles/find? blk2/node [0][-1]
+		]
 
 		s1: GET_BUFFER(blk1)
 		s2: GET_BUFFER(blk2)
@@ -522,6 +526,7 @@ block: context [
 		n: 0
 
 		cycles/push blk1/node
+		cycles/push blk2/node
 		
 		until [
 			type1: TYPE_OF(value1)
@@ -534,15 +539,11 @@ block: context [
 					any [type2 = TYPE_INTEGER type2 = TYPE_FLOAT]
 				]
 			][
-				either cycles/find? value1 [
-					res: as-integer not natives/same? value1 value2
-				][
-					res: actions/compare-value value1 value2 op
-				]
+				res: actions/compare-value value1 value2 op
 				value1: value1 + 1
 				value2: value2 + 1
 			][
-				cycles/pop
+				cycles/pop-n 2
 				return SIGN_COMPARE_RESULT(type1 type2)
 			]
 			n: n + 1
@@ -551,7 +552,7 @@ block: context [
 				n = len
 			]
 		]
-		cycles/pop
+		cycles/pop-n 2
 		if zero? res [res: SIGN_COMPARE_RESULT(size1 size2)]
 		res
 	]
@@ -639,6 +640,8 @@ block: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/form"]]
 
+		if cycles/detect? as red-value! blk buffer :part no [return part]
+		
 		s: GET_BUFFER(blk)
 		value: s/offset + blk/head
 		tail: s/tail
@@ -651,9 +654,7 @@ block: context [
 				cycles/pop
 				return part
 			]
-			unless cycles/detect? value buffer :part no [
-				part: actions/form value buffer arg part
-			]
+			part: actions/form value buffer arg part
 			value: value + 1
 			
 			if value < tail [
@@ -689,6 +690,8 @@ block: context [
 		return:	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/mold"]]
+		
+		if cycles/detect? as red-value! blk buffer :part yes [return part]
 		
 		unless only? [
 			string/append-char GET_BUFFER(buffer) as-integer #"["
@@ -1590,13 +1593,17 @@ block: context [
 		/local
 			s		[series!]
 			end		[red-value!]
+			node	[node!]
 			type	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/copy"]]
 
+		node: blk/node									;-- save node before slot is copied
 		new: as red-block! _series/copy as red-series! blk as red-series! new arg deep? types
 		if deep? [
+			if cycles/find? node [cycles/reset fire [TO_ERROR(internal no-cycle)]]
 			if TYPE_HASH = TYPE_OF(blk) [new/header: TYPE_BLOCK]
+			cycles/push blk/node
 			s: GET_BUFFER(new)
 			arg: s/offset
 			end: s/tail
@@ -1612,6 +1619,7 @@ block: context [
 				]
 				arg: arg + 1
 			]
+			cycles/pop
 		]
 		
 		as red-series! new
@@ -1669,13 +1677,14 @@ block: context [
 		if zero? len [len: 1]
 		new: make-at as red-block! stack/push* len
 		table: _hashtable/init len new HASH_TABLE_HASH 1
+		hs: as red-hash! new
+		hs/header: TYPE_HASH
+		hs/table: table
 		n: 2
 		hash: null
 		blk?: yes
-		hash?: any [
-			TYPE_OF(blk1) = TYPE_HASH
-			TYPE_OF(blk2) = TYPE_HASH
-		]
+		hash?: TYPE_OF(blk1) = TYPE_HASH
+		if all [not hash? op <> OP_UNIQUE][hash?: TYPE_OF(blk2) = TYPE_HASH]
 
 		comp-op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
 		saved: collector/active?

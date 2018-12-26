@@ -298,7 +298,10 @@ get-event-picked: func [
 				int
 			]
 		]
-		EVT_MENU   [word/push* evt/flags and FFFFh]
+		EVT_MENU   [
+			idx: evt/flags and FFFFh
+			either idx = 65535 [none/push][word/push* idx]
+		]
 		EVT_SCROLL [
 			integer/push get-track-pos msg/hWnd msg/msg = WM_VSCROLL
 		]

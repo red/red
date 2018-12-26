@@ -413,6 +413,7 @@ tuple: context [
 			int: as red-integer! element
 			either value <> null [
 				poke parent int/value value null
+				object/check-owner as red-value! parent
 				value
 			][
 				pick parent int/value null
@@ -589,7 +590,6 @@ tuple: context [
 				value/index: as byte! v
 			]
 		]
-		object/check-owner as red-value! tp
 		as red-value! data
 	]
 
@@ -631,7 +631,6 @@ tuple: context [
 			n: n + 1
 			size: size - 1
 		]
-		object/check-owner as red-value! tuple
 		as red-value! tuple
 	]
 

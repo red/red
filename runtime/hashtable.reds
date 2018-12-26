@@ -733,6 +733,7 @@ _hashtable: context [
 			either type = HASH_TABLE_HASH [
 				resize-hash node n-buckets
 			][
+				if type = HASH_TABLE_MAP [n-buckets: h/n-buckets + 1]
 				resize node n-buckets
 			]
 		]

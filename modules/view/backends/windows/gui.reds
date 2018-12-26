@@ -2481,8 +2481,8 @@ OS-to-image: func [
 	screen?: screen = sym
 	either screen? [
 		size: as red-pair! get-node-facet face/ctx FACE_OBJ_SIZE
-		width: size/x
-		height: size/y
+		width: dpi-scale size/x
+		height: dpi-scale size/y
 		rc/left: 0
 		rc/top: 0
 		dc: hScreen

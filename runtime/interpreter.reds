@@ -21,7 +21,7 @@ Red/System [
 				#if debug? = yes [if verbose > 0 [log "infix detected!"]]
 				infix?: yes
 			][
-				lit?: all [								;-- is a literal argument is expected?
+				lit?: all [								;-- is a literal argument expected?
 					TYPE_OF(pc) = TYPE_WORD
 					literal-first-arg? as red-native! value
 				]
@@ -684,19 +684,15 @@ interpreter: context [
 		while [item < tail][
 			#if debug? = yes [if verbose > 0 [print-line ["eval: path parent: " TYPE_OF(parent)]]]
 			
-			value: either TYPE_OF(item) = TYPE_GET_WORD [
-				_context/get as red-word! item
-			][
-				item
-			]
-			switch TYPE_OF(value) [
-				TYPE_UNSET [fire [TO_ERROR(script no-value)	item]]
-				TYPE_PAREN [
-					eval as red-block! value no		;-- eval paren content
-					value: stack/top - 1
+			value: switch TYPE_OF(item) [ 
+				TYPE_GET_WORD [_context/get as red-word! item]
+				TYPE_PAREN 	  [
+					eval as red-block! item no			;-- eval paren content
+					stack/top - 1
 				]
-				default [0]								;-- compilation pass-thru
+				default [item]
 			]
+			if TYPE_OF(value) = TYPE_UNSET [fire [TO_ERROR(script no-value) item]]
 			#if debug? = yes [if verbose > 0 [print-line ["eval: path item: " TYPE_OF(value)]]]
 			
 			gparent: parent								;-- save grand-parent reference

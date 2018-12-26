@@ -88,7 +88,7 @@ Red [
 	--test-- "replace/case-12"	--assert 'a/o/x/o = replace/case/all 'a/X/x/X 'X 'o
 	--test-- "replace/case-13"	--assert ["a" "B" "x"] = replace/case/all ["a" "B" "a" "b"] ["a" "b"] "x"
 	--test-- "replace/case-14"	--assert (make hash! [x a b [a B]]) = replace/case make hash! [a B a b [a B]] [a B] 'x
-	--test-- "replace/case-15"	--assert (quote :x/b/A/x/B) = replace/case/all quote :a/b/A/a/B [a] 'x
+;	--test-- "replace/case-15"	--assert (quote :x/b/A/x/B) = replace/case/all quote :a/b/A/a/B [a] 'x
 	--test-- "replace/case-16"	--assert (quote (x A x)) = replace/case/all quote (a A a) 'a 'x
 
 ===end-group===

@@ -632,7 +632,7 @@ image: context [
 		#if debug? = yes [if verbose > 0 [print-line "image/pick"]]
 
 		out-range: 0
-		offset: either null? boxed [index - 1][get-position img as red-integer! boxed 1 :out-range]
+		offset: either null? boxed [img/head + index - 1][get-position img as red-integer! boxed 1 :out-range]
 		as red-value! either out-range = 1 [none-value][rs-pick img offset]
 	]
 

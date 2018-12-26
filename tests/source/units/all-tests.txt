@@ -43,11 +43,16 @@ convert-test.red
 checksum-test.red
 reactivity-test.red
 decompress-test.red
-recycle-test.red
 debase-test.red
 enbase-test.red
 try-test.red
+draw-test.red
+image-test.red
+replace-test.red
 auto-tests/lexer-auto-test.red
 power-test.red
 ../environment/scalars-test.red
 ../environment/functions-test.red
+stress-test.red
+regression-test-red.red
+recycle-test.red

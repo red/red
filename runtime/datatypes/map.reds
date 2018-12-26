@@ -90,9 +90,7 @@ map: context [
 					string/append-char GET_BUFFER(buffer) as-integer space
 					part: part - 1
 					
-					unless cycles/detect? next buffer :part mold? [
-						part: actions/mold next buffer only? all? flat? arg part tabs
-					]
+					part: actions/mold next buffer only? all? flat? arg part tabs
 
 					if any [indent? next + 1 < s-tail][			;-- no final LF when FORMed
 						string/append-char GET_BUFFER(buffer) as-integer blank
@@ -259,29 +257,34 @@ map: context [
 		field	[integer!]
 		return:	[red-block!]
 		/local
-			blk    [red-block!]
-			s-tail [red-value!]
-			value  [red-value!]
-			next   [red-value!]
-			new   [red-value!]
-			size   [integer!]
-			s	   [series!]
+			blk		[red-block!]
+			s-tail	[red-value!]
+			value	[red-value!]
+			next	[red-value!]
+			new		[red-value!]
+			size	[integer!]
+			total	[integer!]
+			cnt		[integer!]
+			s		[series!]
 	][
 		blk: 		as red-block! stack/push*
 		blk/header: TYPE_UNSET
 		blk/head: 	0
 
-		size: rs-length? map
+		total: rs-length? map
+		size: total
 		s: GET_BUFFER(map)
 		value: s/offset
 		s-tail: s/tail
 		if zero? size [size: 1]
+		cnt: 0
 		case [
 			field = words/words [
 				blk/node: alloc-cells size
-				while [value < s-tail][
+				while [all [value < s-tail cnt < total]][
 					next: value + 1
 					unless TYPE_OF(next) = TYPE_NONE [
+						cnt: cnt + 1
 						new: block/rs-append blk value
 						if TYPE_OF(value) = TYPE_SET_WORD [
 							new/header: TYPE_WORD
@@ -292,9 +295,10 @@ map: context [
 			]
 			field = words/values [
 				blk/node: alloc-cells size
-				while [value < s-tail][
+				while [all [value < s-tail cnt < total]][
 					next: value + 1
 					unless TYPE_OF(next) = TYPE_NONE [
+						cnt: cnt + 1
 						block/rs-append blk next
 					]
 					value: value + 2
@@ -302,9 +306,10 @@ map: context [
 			]
 			field = words/body [
 				blk/node: alloc-cells size * 2
-				while [value < s-tail][
+				while [all [value < s-tail cnt < total]][
 					next: value + 1
 					unless TYPE_OF(next) = TYPE_NONE [
+						cnt: cnt + 1
 						block/rs-append blk value
 						block/rs-append blk next
 					]
@@ -328,6 +333,7 @@ map: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/form"]]
 
+		if cycles/detect? as red-value! map buffer :part no [return part]
 		serialize map buffer no no no arg part no 0 no
 	]
 
@@ -346,6 +352,8 @@ map: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/mold"]]
 
+		if cycles/detect? as red-value! map buffer :part yes [return part]
+		
 		string/concatenate-literal buffer "#("
 		prev: part - 2
 		part: serialize map buffer no all? flat? arg prev yes indent + 1 yes
@@ -380,10 +388,10 @@ map: context [
 			blk1/head = blk2/head
 		]
 		if op = COMP_SAME [return either same? [0][-1]]
-		if all [
-			same?
-			any [op = COMP_EQUAL op = COMP_FIND op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
-		][return 0]
+		if same? [return 0]
+		if cycles/find? blk1/node [
+			return either cycles/find? blk2/node [0][-1]
+		]
 
 		size1: rs-length? blk1
 		size2: rs-length? blk2
@@ -395,13 +403,14 @@ map: context [
 		]
 
 		if zero? size1 [return 0]								;-- shortcut exit for empty map!
-
+					
 		table2: blk2/table
 		key1: block/rs-head as red-block! blk1
 		key1: key1 - 2
 		n: 0
 
 		cycles/push blk1/node
+		cycles/push blk2/node
 		either op = COMP_STRICT_EQUAL [
 			until [
 				until [												;-- next key
@@ -414,11 +423,7 @@ map: context [
 				res: either key2 = null [1][
 					value1: key1 + 1								;-- find the same key, then compare values
 					value2: key2 + 1
-					either cycles/find? value1 [
-						as-integer not natives/same? value1 value2
-					][
-						actions/compare-value value1 value2 op
-					]
+					actions/compare-value value1 value2 op
 				]
 				n: n + 1
 				any [res <> 0 n = size1]
@@ -438,11 +443,7 @@ map: context [
 					either key2 <> null [
 						value1: key1 + 1
 						value2: key2 + 1
-						res: either cycles/find? value1 [
-							as-integer not natives/same? value1 value2
-						][
-							actions/compare-value value1 value2 COMP_EQUAL
-						]
+						res: actions/compare-value value1 value2 COMP_EQUAL
 					][res: 1 break]
 					zero? res
 				]
@@ -450,7 +451,7 @@ map: context [
 				any [res <> 0 n = size1]
 			]
 		]
-		cycles/pop
+		cycles/pop-n 2
 		res
 	]
 
