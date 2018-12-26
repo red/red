@@ -254,16 +254,22 @@ block: context [
 		return: [red-block!]
 		/local
 			arg	[red-block!]
+			val [red-value!]
+			hs	[red-hash!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/append*"]]
 
 		arg: as red-block! stack/arguments
 		;assert TYPE_OF(arg) = TYPE_BLOCK				;@@ disabled until we have ANY_BLOCK check
 
-		copy-cell
+		val: copy-cell
 			as cell! arg + 1
 			ALLOC_TAIL(arg)
-			
+
+		if TYPE_OF(arg) = TYPE_HASH [
+			hs: as red-hash! arg
+			_hashtable/put hs/table val
+		]
 		arg
 	]
 	
