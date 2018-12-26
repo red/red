@@ -13,7 +13,7 @@ Red [
 ; TODO: `size-text` tests, for different faces
 
 
-#include %../quick-test/quick-test.red
+#include %../../../quick-test/quick-test.red
 
 
 ~~~start-file~~~ "base-self-test"
