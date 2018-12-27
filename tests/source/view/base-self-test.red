@@ -47,7 +47,7 @@ bst-show-delay: 0:0:5
 
 
 ;-- capturing framerate
-bst-w7?: all ['Windows = system/platform  6 = first get bind 'version os-info]
+bst-w7?: all ['Windows = system/platform  find/match get bind 'name os-info "Windows 7"]
 bst-rate: either bst-w7? [67][2] 	 	;-- works fast w/o bugs on W7 only
 
 
