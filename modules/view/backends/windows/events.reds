@@ -711,6 +711,7 @@ paint-background: func [
 	/local
 		rect 	[RECT_STRUCT value]
 		brush	[integer!]
+		hBrush 	[handle!]
 		color 	[red-tuple!]
 		gdiclr 	[integer!]
 		graphic	[integer!]
@@ -718,18 +719,36 @@ paint-background: func [
 ][
 	values: get-face-values hWnd
 	color: as red-tuple! values + FACE_OBJ_COLOR
-	gdiclr: either TYPE_OF(color) = TYPE_TUPLE [color/array1][GetSysColor COLOR_3DFACE]
-	gdiclr: to-gdiplus-color-fixed gdiclr
-	brush: 0
-	GdipCreateSolidFill gdiclr :brush
 
-	graphic: 0
-	GdipCreateFromHDC hDC :graphic
-	GetClientRect hWnd rect
-	;-- GDI+ alpha aware fill is required for W7 layered windows capture via OS-to-image
-	GdipFillRectangleI graphic brush 0 0 rect/right - rect/left rect/bottom - rect/top
-	GdipDeleteBrush brush
+	either win8+? [
+		;-- use plain old GDI fill when it's possible
+		either TYPE_OF(color) = TYPE_TUPLE [
+			hBrush: CreateSolidBrush color/array1 and 00FFFFFFh
+		][
+			if (GetWindowLong hWnd GWL_STYLE) and WS_CHILD <> 0 [return false]
+			hBrush: GetSysColorBrush COLOR_3DFACE
+		]
+		GetClientRect hWnd rect
+		FillRect hDC rect hBrush
+		if TYPE_OF(color) = TYPE_TUPLE [DeleteObject hBrush]
+	][
+		;-- GDI+ alpha aware fill is required for W7 layered windows capture via OS-to-image
+		either TYPE_OF(color) = TYPE_TUPLE [
+			gdiclr: color/array1
+		][
+			if (GetWindowLong hWnd GWL_STYLE) and WS_CHILD <> 0 [return false]
+			gdiclr: GetSysColor COLOR_3DFACE
+		]
+		gdiclr: to-gdiplus-color-fixed gdiclr
+		brush: 0
+		GdipCreateSolidFill gdiclr :brush
 
+		graphic: 0
+		GdipCreateFromHDC hDC :graphic
+		GetClientRect hWnd rect
+		GdipFillRectangleI graphic brush 0 0 rect/right - rect/left rect/bottom - rect/top
+		GdipDeleteBrush brush
+	]
 	true
 ]
 

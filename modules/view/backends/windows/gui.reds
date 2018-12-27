@@ -296,8 +296,8 @@ get-text-size: func [
 
 	if null? hFont [hFont: default-font]
 	saved: SelectObject hwnd hFont
-	GetClientRect hWnd :rc
-	render-text values hwnd dc :rc str :bbox
+	GetClientRect hWnd rc
+	render-text values hwnd dc rc str bbox
 
 	SelectObject hwnd saved
 	ReleaseDC hwnd dc
@@ -2461,7 +2461,7 @@ OS-to-image: func [
 		hWnd 	[handle!]
 		dc		[handle!]
 		mdc		[handle!]
-		rc		[RECT_STRUCT]
+		rc		[RECT_STRUCT value]
 		width	[integer!]
 		height	[integer!]
 		bmp		[handle!]
@@ -2470,12 +2470,10 @@ OS-to-image: func [
 		word	[red-word!]
 		size	[red-pair!]
 		screen? [logic!]
-		bo		[tagPOINT] 		;-- base offset
+		bo		[tagPOINT value] 		;-- base offset
 		sym 	[integer!]
 ][
 	hWnd: null
-	rc: declare RECT_STRUCT
-	bo: declare tagPOINT
 	word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
 	sym: symbol/resolve word/symbol
 	screen?: screen = sym
