@@ -28,7 +28,8 @@ context [
 		| integer!
 		| string!
 	]
-	style: [
+	style!: make typeset! [word! tag! tuple! path!]
+	style: [ahead style! [
 		  ['b | 'bold      | <b>] (push 'b)	[nested | rtd [/b | /bold 	   | </b>]] (pop 'b)
 		| ['i | 'italic    | <i>] (push 'i)	[nested | rtd [/i | /italic	   | </i>]] (pop 'i)
 		| ['u | 'underline | <u>] (push 'u)	[nested | rtd [/u | /underline | </u>]] (pop 'u)
@@ -48,8 +49,8 @@ context [
 			]
 		  ]
 		  nested (pop-all mark)
-	]
-	rtd: [some [pos: style | s: string! (append text s/1 s-idx: tail-idx?)]]
+	]]
+	rtd: [some [pos: style | s: [string! | char!] (append text s/1 s-idx: tail-idx?)]]
 
 	;--- Functions ---
 
@@ -58,10 +59,9 @@ context [
 	push-color: func [c [tuple!]][reduce/into [s-idx '_ c] tail color-stk]
 
 	pop-color: has [entry pos][
-		close-colors
-		entry: back back tail color-stk	
-		append out as-pair entry/1 tail-idx? - entry/1 entry/3
-		clear skip tail color-stk -3
+		entry: skip tail color-stk -3
+		repend out [as-pair entry/1 tail-idx? - entry/1 entry/3]
+		clear entry
 	]
 
 	close-colors: has [pos][
@@ -104,6 +104,7 @@ context [
 			pop last stack
 			either first? [first?: no][remove skip tail out -2]
 		]
+		if v [pop-color]
 	]
 
 	optimize: function [][								;-- combine same ranges together
