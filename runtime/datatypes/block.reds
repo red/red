@@ -883,12 +883,12 @@ block: context [
 			case [
 				last? [
 					step: 0 - step
-					slot: either part? [part][s/tail - 1]
+					slot: either part? [part][either values > 0 [s/tail - values][s/tail - 1]]
 					end: s/offset
 				]
 				reverse? [
 					step: 0 - step
-					slot: either part? [part][beg - 1]
+					slot: either part? [part][either values > 0 [beg - values][beg - 1]]
 					end: s/offset
 					if slot < end [							;-- early exit if blk/head = 0
 						result/header: TYPE_NONE
