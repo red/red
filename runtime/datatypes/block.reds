@@ -948,9 +948,14 @@ block: context [
 					all [not reverse? slot >= end]			;-- tail of block series reached
 				]
 			]
-			unless all [tail? not reverse?][slot: slot - step]	;-- point before/after found value
-			if all [tail? reverse?][slot: slot - step]			;-- additional step for tailed reversed search
-		
+			either tail? [
+				either values > 0 [slot: slot - step + values][
+					if reverse? [slot: slot - step + 1]
+				]
+			][
+				slot: slot - step							;-- compensate for extra step in loop
+			]
+			
 			either found? [
 				blk: as red-block! result
 				blk/head: (as-integer slot - s/offset) >> 4	;-- just change the head position on stack
