@@ -570,7 +570,6 @@ words: context [
 	_iterate:		as red-word! 0
 	_paren:			as red-word! 0
 	_anon:			as red-word! 0
-	_body:			as red-word! 0
 	_end:			as red-word! 0
 	_not-found:		as red-word! 0
 	_add:			as red-word! 0
