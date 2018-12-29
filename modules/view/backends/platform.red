@@ -571,7 +571,7 @@ system/view/platform: context [
 		pair: as red-pair! stack/arguments
 		pair/header: TYPE_PAIR
 		
-		gui/get-text-size text hFont pair
+		gui/get-text-size face text hFont pair
 	]
 	
 	on-change-facet: routine [

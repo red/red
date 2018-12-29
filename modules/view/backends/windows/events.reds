@@ -709,21 +709,46 @@ paint-background: func [
 	hDC		[handle!]
 	return: [logic!]
 	/local
-		rect   [RECT_STRUCT value]
-		hBrush [handle!]
-		color  [integer!]
+		rect 	[RECT_STRUCT value]
+		brush	[integer!]
+		hBrush 	[handle!]
+		color 	[red-tuple!]
+		gdiclr 	[integer!]
+		graphic	[integer!]
+		values 	[red-value!]
 ][
-	color: to-bgr as node! GetWindowLong hWnd wc-offset + 4 FACE_OBJ_COLOR
-	either color = -1 [
-		either (GetWindowLong hWnd GWL_STYLE) and WS_CHILD = 0 [
+	values: get-face-values hWnd
+	color: as red-tuple! values + FACE_OBJ_COLOR
+
+	either win8+? [
+		;-- use plain old GDI fill when it's possible
+		either TYPE_OF(color) = TYPE_TUPLE [
+			hBrush: CreateSolidBrush color/array1 and 00FFFFFFh
+		][
+			if (GetWindowLong hWnd GWL_STYLE) and WS_CHILD <> 0 [return false]
 			hBrush: GetSysColorBrush COLOR_3DFACE
-		][return false]
+		]
+		GetClientRect hWnd rect
+		FillRect hDC rect hBrush
+		if TYPE_OF(color) = TYPE_TUPLE [DeleteObject hBrush]
 	][
-		hBrush: CreateSolidBrush color
+		;-- GDI+ alpha aware fill is required for W7 layered windows capture via OS-to-image
+		either TYPE_OF(color) = TYPE_TUPLE [
+			gdiclr: color/array1
+		][
+			if (GetWindowLong hWnd GWL_STYLE) and WS_CHILD <> 0 [return false]
+			gdiclr: GetSysColor COLOR_3DFACE
+		]
+		gdiclr: to-gdiplus-color-fixed gdiclr
+		brush: 0
+		GdipCreateSolidFill gdiclr :brush
+
+		graphic: 0
+		GdipCreateFromHDC hDC :graphic
+		GetClientRect hWnd rect
+		GdipFillRectangleI graphic brush 0 0 rect/right - rect/left rect/bottom - rect/top
+		GdipDeleteBrush brush
 	]
-	GetClientRect hWnd rect
-	FillRect hDC rect hBrush
-	DeleteObject hBrush
 	true
 ]
 
@@ -792,6 +817,9 @@ process-custom-draw: func [
 bitblt-memory-dc: func [
 	hWnd	[handle!]
 	alpha?	[logic!]
+	dc		[handle!]
+	dstx	[integer!]
+	dsty	[integer!]
 	/local
 		rect	[RECT_STRUCT value]
 		width	[integer!]
@@ -799,9 +827,9 @@ bitblt-memory-dc: func [
 		hBackDC [handle!]
 		ftn		[integer!]
 		bf		[tagBLENDFUNCTION]
-		dc		[handle!]
+		paint? 	[logic!]
 ][
-	dc: BeginPaint hWnd paint
+	if dc = null [dc: BeginPaint hWnd paint  paint?: yes]
 	hBackDC: as handle! GetWindowLong hWnd wc-offset - 4
 	GetClientRect hWnd rect
 	width: rect/right - rect/left
@@ -813,11 +841,11 @@ bitblt-memory-dc: func [
 		bf/BlendFlags: as-byte 0
 		bf/SourceConstantAlpha: as-byte 255
 		bf/AlphaFormat: as-byte 1
-		AlphaBlend dc 0 0 width height hBackDC 0 0 width height ftn
+		AlphaBlend dc dstx dsty width height hBackDC 0 0 width height ftn
 	][
-		BitBlt dc 0 0 width height hBackDC 0 0 SRCCOPY
+		BitBlt dc dstx dsty width height hBackDC 0 0 SRCCOPY
 	]
-	EndPaint hWnd paint
+	if paint? [EndPaint hWnd paint]
 ]
 
 screen-to-client: func [
@@ -1238,7 +1266,7 @@ WndProc: func [
 				either zero? GetWindowLong hWnd wc-offset - 4 [
 					do-draw hWnd null draw no yes yes yes
 				][
-					bitblt-memory-dc hWnd no
+					bitblt-memory-dc hWnd no null 0 0
 				]
 				return 0
 			]

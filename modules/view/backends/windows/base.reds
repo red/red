@@ -132,7 +132,7 @@ render-base: func [
 	if all [
 		group-box <> type
 		window <> type
-		render-text values hWnd hDC :rc
+		render-text values hWnd hDC :rc null null
 	][
 		res: true
 	]
@@ -144,67 +144,28 @@ render-text: func [
 	hWnd	[handle!]
 	hDC		[handle!]
 	rc		[RECT_STRUCT]
+	text	[red-string!]
+	bbox 	[RECT_STRUCT_FLOAT32] 		; renders if = null, measures otherwise
 	return: [logic!]
 	/local
-		text	[red-string!]
 		font	[red-object!]
 		para	[red-object!]
-		color	[red-tuple!]
-		state	[red-block!]
-		handle	[red-handle!]
-		hFont	[handle!]
-		old		[integer!]
-		flags	[integer!]
 		res		[logic!]
-		len		[integer!]
-		str		[c-string!]
 		graphic	[integer!]
 ][
 	;unless winxp? [return render-text-d2d values hDC rc]
 	res: false
-	text: as red-string! values + FACE_OBJ_TEXT
+	if text = null [text: as red-string! values + FACE_OBJ_TEXT]
 	para: as red-object! values + FACE_OBJ_PARA
 	if TYPE_OF(text) = TYPE_STRING [
 		font: as red-object! values + FACE_OBJ_FONT
-		hFont: default-font
-		
-		if TYPE_OF(font) = TYPE_OBJECT [
-			values: object/get-values font
-			color: as red-tuple! values + FONT_OBJ_COLOR
-			if all [
-				TYPE_OF(color) = TYPE_TUPLE
-				color/array1 <> 0
-			][
-				if color/array1 >>> 24 > 0 [				;-- has alpha channel
-					graphic: 0
-					GdipCreateFromHDC hDC :graphic
-					GdipSetSmoothingMode graphic GDIPLUS_ANTIALIAS
-					update-base-text hWnd graphic hDC text font para rc/right - rc/left rc/bottom - rc/top
-					GdipDeleteGraphics graphic
-					return true
-				]
-				SetTextColor hDC color/array1 and 00FFFFFFh
-			]
-			state: as red-block! values + FONT_OBJ_STATE
-			if TYPE_OF(state) = TYPE_BLOCK [
-				handle: as red-handle! block/rs-head state
-				if TYPE_OF(handle) = TYPE_HANDLE [
-					hFont: as handle! handle/value
-				]
-			]
-		]
-		SelectObject hDC hFont
-		flags: either TYPE_OF(para) = TYPE_OBJECT [
-			get-para-flags base para
-		][
-			DT_SINGLELINE or DT_CENTER or DT_VCENTER
-		]
-		flags: flags or 0800h		;-- DT_NOPREFIX
-		old: SetBkMode hDC 1
-		len: -1
-		str: unicode/to-utf16-len text :len yes
-		res: 0 <> DrawText hDC str len rc flags
-		SetBkMode hDC old
+		graphic: 0
+		GdipCreateFromHDC hDC :graphic
+		; GdipSetSmoothingMode graphic GDIPLUS_ANTIALIAS
+		; using GDI+ text rendering instead of GDI, see #2503 and #3465
+		update-base-text hWnd graphic hDC text font para rc/right - rc/left rc/bottom - rc/top bbox
+		GdipDeleteGraphics graphic
+		res: true
 	]
 	res
 ]
@@ -454,11 +415,10 @@ BaseInternalWndProc: func [
 		WM_MOUSEACTIVATE [return 3]							;-- do not make it activated when click it
 		WM_NCHITTEST	 [return -1]
 		WM_ERASEBKGND	 [
-			hBrush: CreateSolidBrush 1
+			hBrush: GetSysColorBrush COLOR_3DFACE
 			rect: declare RECT_STRUCT
 			GetClientRect hWnd rect
 			FillRect as handle! wParam rect hBrush
-			DeleteObject hBrush
 			return 1
 		]
 		default [0]
@@ -513,6 +473,8 @@ BaseWndProc: func [
 			]
 			return 0
 		]
+		0317h	;-- WM_PRINT 			;-- these messages are not actually being used
+		0318h	;-- WM_PRINTCLIENT 		; see https://stackoverflow.com/a/44062144
 		WM_PAINT
 		WM_DISPLAYCHANGE [
 			if (WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) = 0 [
@@ -521,7 +483,7 @@ BaseWndProc: func [
 					either zero? GetWindowLong hWnd wc-offset - 4 [
 						do-draw hWnd null draw no yes yes yes
 					][
-						bitblt-memory-dc hWnd no
+						bitblt-memory-dc hWnd no null 0 0
 					]
 				][
 					if null? current-msg [return -1]
@@ -562,12 +524,6 @@ BaseWndProc: func [
 				SetWindowLong hWnd wc-offset - 28 flags
 			]
 			return w
-		]
-		0317h	;-- WM_PRINT
-		0318h [ ;-- WM_PRINTCLIENT
-			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
-			do-draw hWnd as red-image! wParam draw no no no yes
-			return 0
 		]
 		WM_SETCURSOR [
 			w: GetWindowLong as handle! wParam wc-offset - 28
@@ -641,9 +597,7 @@ update-base-background: func [
 		clr		[integer!]
 		brush	[integer!]
 ][
-	clr: color/array1
-	clr: to-gdiplus-color clr
-	if clr >>> 24 = 255 [clr: FEFFFFFFh and clr]		;-- a trick to fix transparent issue
+	clr: to-gdiplus-color-fixed color/array1
 	brush: 0
 	GdipCreateSolidFill clr :brush
 	GdipFillRectangleI graphic brush 0 0 width height
@@ -659,8 +613,10 @@ update-base-text: func [
 	para	[red-object!]
 	width	[integer!]
 	height	[integer!]
+	bbox	[RECT_STRUCT_FLOAT32]		;-- renders if = null, measures otherwise
 	/local
 		format	[integer!]
+		fflags 	[integer!]
 		hFont	[integer!]
 		hBrush	[integer!]
 		flags	[integer!]
@@ -672,17 +628,22 @@ update-base-text: func [
 		color	[red-tuple!]
 		state	[red-block!]
 		rect	[RECT_STRUCT_FLOAT32 value]
+		gdiclr 	[integer!]
+		default-color 	[logic!]
 ][
 	if TYPE_OF(text) <> TYPE_STRING [exit]
 
 	;GdipSetCompositingMode graphic 0				;-- over mode
 	;GdipSetCompositingQuality graphic 2			;-- high quality
 	;GdipSetPixelOffsetMode graphic 2				;-- high quality
+	;-- ClearType looks BAD on alpha-enabled background
+	; GdipSetTextRenderingHint graphic TextRenderingHintClearTypeGridFit
 	GdipSetTextRenderingHint graphic TextRenderingHintAntiAliasGridFit
 
 	format: 0
 	hBrush: 0
 	clr: 0
+	default-color: yes
 	hFont: as-integer default-font
 
 	if TYPE_OF(font) = TYPE_OBJECT [
@@ -698,30 +659,25 @@ update-base-text: func [
 		][
 			hFont: as-integer make-font get-face-obj hWnd font
 		]
-		if TYPE_OF(color) = TYPE_TUPLE [clr: color/array1]
+		if TYPE_OF(color) = TYPE_TUPLE [
+			clr: color/array1
+			default-color: no
+		]
 	]
 	SelectObject dc as handle! hFont
 
 	flags: either TYPE_OF(para) = TYPE_OBJECT [
 		get-para-flags base para
 	][
-		1 or 4
+		5 							;-- 1 = center + 4 = middle
 	]
-	case [
-		flags and 1 <> 0 [h-align: 1]
-		flags and 2 <> 0 [h-align: 2]
-		true			 [h-align: 0]
-	]
-	case [
-		flags and 4 <> 0 [v-align: 1]
-		flags and 8 <> 0 [v-align: 2]
-		true			 [v-align: 0]
-	]
+	h-align: flags and 3 			;-- 0,1,2 = left,center,right
+	v-align: flags >>> 2 and 3		;-- 0,4,8 = top,middle,bottom
 
 	GdipCreateFontFromDC as-integer dc :hFont
-	GdipCreateSolidFill to-gdiplus-color clr :hBrush
 
-	GdipCreateStringFormat 80000000h 0 :format
+	fflags: either flags and DT_WORDBREAK = 0 [1000h][0]	;-- 1000h = nowrap
+	GdipCreateStringFormat fflags or 80000000h 0 :format 	;-- 1 << 31 = GDI passthrough
 	GdipSetStringFormatAlign format h-align
 	GdipSetStringFormatLineAlign format v-align
 
@@ -730,10 +686,18 @@ update-base-text: func [
 	rect/width: as float32! width
 	rect/height: as float32! height
 
-	GdipDrawString graphic unicode/to-utf16 text -1 hFont :rect format hBrush
+	either bbox = null [
+		if default-color [clr: GetSysColor COLOR_WINDOWTEXT]
+		gdiclr: to-gdiplus-color-fixed clr
+		GdipCreateSolidFill gdiclr :hBrush
+		GdipDrawString graphic unicode/to-utf16 text -1 hFont :rect format hBrush
+		GdipDeleteBrush hBrush
+	][
+		rect/height: as float32! 1e6	;-- allow some room for rendering, otherwise stops at height
+		GdipMeasureString graphic unicode/to-utf16 text -1 hFont :rect format bbox null null
+	]
 
 	GdipDeleteStringFormat format
-	GdipDeleteBrush hBrush
 	GdipDeleteFont hFont
 ]
 
@@ -744,7 +708,10 @@ transparent-base?: func [
 ][
 	either all [
 		TYPE_OF(color) = TYPE_TUPLE
-		TUPLE_SIZE?(color) = 3
+		any [
+			TUPLE_SIZE?(color) = 3 
+			color/array1 and FF000000h = 0
+		]
 	][false][true]
 ]
 
@@ -806,7 +773,7 @@ update-base: func [
 	]
 	GdipSetSmoothingMode graphic GDIPLUS_ANTIALIAS
 	update-base-image graphic img width height
-	update-base-text hWnd graphic hBackDC text font para width height
+	update-base-text hWnd graphic hBackDC text font para width height null
 	do-draw null as red-image! graphic cmds yes no no yes
 
 	ptSrc/x: 0
@@ -818,7 +785,71 @@ update-base: func [
 	bf/AlphaFormat: as-byte 1
 	flags: 2
 	UpdateLayeredWindow hWnd null ptDst size hBackDC :ptSrc 0 :bf flags
+
 	GdipDeleteGraphics graphic
 	DeleteObject hBitmap
 	DeleteDC hBackDC
 ]
+
+
+;-- blends the image of every encountered visible layered window into the DC
+imprint-layers-deep: func [
+	dc 			[handle!]
+	hwnd 		[handle!]
+	bx			[integer!]		;-- "base" offset: where on the DC this window will appear
+	by			[integer!]
+	values 		[red-value!]
+	/local
+	type 		[red-word!]
+	sym 		[integer!]
+	draw		[red-block!]
+	pane 		[red-block!]
+	visible? 	[red-logic!]
+	child 		[red-object!]
+	tail 		[red-object!]
+	state 		[red-block!]
+	cofs 		[red-pair!]		;-- "child" offset - it's position inside the parent
+	chwnd 		[handle!]
+	cvalues		[red-value!]
+][
+	if null = values [values: get-face-values hwnd]
+
+	;-- imprint hwnd
+	type: as red-word! values + FACE_OBJ_TYPE
+	sym: symbol/resolve type/symbol
+	if all [sym = base  layered-win? hwnd][
+		draw: as red-block! values + FACE_OBJ_DRAW
+		either all [bx = 0 by = 0] [
+			;-- paint directly to DC
+			do-draw hwnd as red-image! dc draw no no no yes
+		][
+			do-draw hwnd null draw no yes no yes 		;-- paint into RAM
+			bitblt-memory-dc hwnd yes dc bx by 			;-- blend back
+		]
+	]
+
+	;-- imprint hwnd's children if any
+	pane: as red-block! values + FACE_OBJ_PANE
+	if TYPE_OF(pane) = TYPE_BLOCK [
+		visible?: as red-logic! values + FACE_OBJ_VISIBLE?
+		if visible?/value [
+			child:	as red-object! block/rs-head pane
+			tail:	as red-object! block/rs-tail pane
+			while [child < tail][
+				state: as red-block! get-node-facet child/ctx FACE_OBJ_STATE
+				if TYPE_OF(state) = TYPE_BLOCK [
+					chwnd: get-face-handle child
+					cvalues: get-face-values chwnd
+					cofs: as red-pair! cvalues + FACE_OBJ_OFFSET
+					imprint-layers-deep
+						dc chwnd
+						bx + dpi-scale cofs/x
+						by + dpi-scale cofs/y
+						cvalues
+				]
+				child: child + 1
+			]
+		]
+	]
+]
+

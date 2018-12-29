@@ -272,30 +272,44 @@ get-gesture-info: func [
 ]
 
 get-text-size: func [
+	face 	[red-object!]
 	str		[red-string!]
 	hFont	[handle!]
 	pair	[red-pair!]
 	return: [tagSIZE]
 	/local
-		saved [handle!]
-		size  [tagSIZE]
+		saved 	[handle!]
+		values 	[red-value!]
+		hwnd 	[handle!]
+		dc 		[handle!]
+		size 	[tagSIZE]
+		rc 		[RECT_STRUCT value]
+		bbox 	[RECT_STRUCT_FLOAT32 value]
 ][
 	size: declare tagSIZE
-	if null? hFont [hFont: default-font]
-	saved: SelectObject hScreen hFont
-	
-	GetTextExtentPoint32
-		hScreen
-		unicode/to-utf16 str
-		string/rs-length? str
-		size
 
-	SelectObject hScreen saved
+	;-- possibly null if hwnd wasn't stored in `state` yet (upon face creation)
+	;  in this case hwnd=0 is of the screen, while `para` can still be applied from the face/ctx
+	hwnd: face-handle? face
+	values: object/get-values face
+	dc: GetWindowDC hwnd
+
+	if null? hFont [hFont: default-font]
+	saved: SelectObject hwnd hFont
+	GetClientRect hWnd rc
+	render-text values hwnd dc rc str bbox
+
+	SelectObject hwnd saved
+	ReleaseDC hwnd dc
+	
+	size/width:  as integer! ceil as float! bbox/width
+	size/height: as integer! ceil as float! bbox/height
+
 	if pair <> null [
-		;-- round to integer ceiling:
-		pair/x: size/width  * 100 + dpi-factor - 1 / dpi-factor
-		pair/y: size/height * 100 + dpi-factor - 1 / dpi-factor
+		pair/x: as integer! ceil as float! bbox/width  * 100 / dpi-factor
+		pair/y: as integer! ceil as float! bbox/height * 100 / dpi-factor
 	]
+
 	size
 ]
 
@@ -745,14 +759,20 @@ get-metrics: func [
 		
 	map/put 
 		as red-hash! #get system/view/metrics/colors
+		as red-value! _text as red-value! tuple/push
+			3 (GetSysColor COLOR_WINDOWTEXT) 0 0
+		no
+		
+	map/put 
+		as red-hash! #get system/view/metrics/colors
 		as red-value! _window as red-value! tuple/push
-			3 (GetSysColor 5) 0 0							;-- COLOR_WINDOW
+			3 (GetSysColor COLOR_WINDOW) 0 0
 		no
 		
 	map/put 
 		as red-hash! #get system/view/metrics/colors
 		as red-value! _panel as red-value! tuple/push
-			3 (GetSysColor 15) 0 0							;-- COLOR_3DFACE
+			3 (GetSysColor COLOR_3DFACE) 0 0
 		no
 ]
 
@@ -1185,7 +1205,7 @@ evolve-base-face: func [
 				hInstance
 				null
 
-			SetLayeredWindowAttributes handle 1 0 1
+			SetLayeredWindowAttributes handle 1 0 2
 			SetWindowLong handle wc-offset - 20 0
 			if visible/value [ShowWindow handle SW_SHOWNA]
 			SetWindowLong hWnd wc-offset - 20 as-integer handle
@@ -2433,6 +2453,7 @@ OS-update-facet: func [
 	]
 ]
 
+
 OS-to-image: func [
 	face	[red-object!]
 	return: [red-image!]
@@ -2440,38 +2461,35 @@ OS-to-image: func [
 		hWnd 	[handle!]
 		dc		[handle!]
 		mdc		[handle!]
-		x		[integer!]
-		y		[integer!]
-		h		[integer!]
-		w		[integer!]
-		rect	[RECT_STRUCT]
+		rc		[RECT_STRUCT value]
 		width	[integer!]
 		height	[integer!]
 		bmp		[handle!]
 		bitmap	[integer!]
-		flags	[integer!]
 		img		[red-image!]
 		word	[red-word!]
 		size	[red-pair!]
 		screen? [logic!]
+		bo		[tagPOINT value] 		;-- base offset
+		sym 	[integer!]
 ][
-	hWnd: null w: 0
-	rect: as RECT_STRUCT :w
+	hWnd: null
 	word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
-	screen?: screen = symbol/resolve word/symbol
+	sym: symbol/resolve word/symbol
+	screen?: screen = sym
 	either screen? [
 		size: as red-pair! get-node-facet face/ctx FACE_OBJ_SIZE
 		width: dpi-scale size/x
 		height: dpi-scale size/y
-		rect/left: 0
-		rect/top: 0
+		rc/left: 0
+		rc/top: 0
 		dc: hScreen
 	][
 		hWnd: face-handle? face
 		if null? hWnd [return as red-image! none-value]
-		GetWindowRect hWnd rect
-		width: rect/right - rect/left
-		height: rect/bottom - rect/top
+		GetWindowRect hWnd rc
+		width: rc/right - rc/left
+		height: rc/bottom - rc/top
 		dc: GetDC hWnd
 	]
 
@@ -2480,11 +2498,22 @@ OS-to-image: func [
 	SelectObject mdc bmp
 
 	either screen? [
-		BitBlt mdc 0 0 width height hScreen rect/left rect/top SRCCOPY
+		BitBlt mdc 0 0 width height hScreen rc/left rc/top SRCCOPY
 	][
-		flags: either win8+? [2][0]
-		if zero? PrintWindow hWnd mdc flags [			;-- fails
-			SendMessage hWnd 0317h as-integer mdc 62	;-- WM_PRINT
+		either win8+? [
+			PrintWindow hWnd mdc 2
+		][
+			bo/x: 0  bo/y: 0
+			;-- when printing whole windows, account for nonclient area size:
+			if window = sym [
+				ClientToScreen hWnd bo
+				bo/x: bo/x - rc/left
+				bo/y: bo/y - rc/top
+			]
+
+			; see https://stackoverflow.com/a/44062144 and #3465 as to why PrintWindow shouldn't be used alone
+			PrintWindow hWnd mdc 0 		;-- print everything that's printable
+			imprint-layers-deep mdc hWnd bo/x bo/y null
 		]
 	]
 
