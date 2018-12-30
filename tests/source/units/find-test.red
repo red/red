@@ -337,7 +337,7 @@ Red [
 
 ===start-group=== "find/reverse/match"
 	--test-- "find/reverse/match-1"
-		--assert "" = find/reverse/match tail "abc" "abc"
+		--assert none = find/reverse/match tail "abc" "abc"
 	--test-- "find/reverse/match-2"
 		--assert none = find/reverse/match tail "abcx" "abc"
 ===end-group===
