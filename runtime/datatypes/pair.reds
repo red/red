@@ -141,8 +141,7 @@ pair: context [
 				int: as red-integer! spec
 				push int/value int/value
 			]
-			TYPE_FLOAT
-			TYPE_PERCENT [
+			TYPE_FLOAT [
 				fl: as red-float! spec
 				x: as-integer fl/value
 				push x x
