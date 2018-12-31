@@ -13,7 +13,7 @@ Red [
 context [
 	stack: make block! 10
 	color-stk: make block! 5
-	out: text: s-idx: mark: s: pos: v: none
+	out: text: s-idx: mark: s: pos: v: l: col: none
 
 	;--- Parsing rules ---
 
@@ -42,10 +42,10 @@ context [
 		| color (push-color v) opt [nested (pop-color)]
 		| ahead path!
 		  into [
-			(mark: tail stack) some [					;@@ implement any-single
+			(col: none mark: tail stack) some [					;@@ implement any-single
 				(v: none)
 				s: ['b | 'i | 'u | 's | word! if (tuple? attempt [v: get s/1])]
-				(either v [push-color v][push s/1])
+				(either v [col: yes push-color v][push s/1])
 			]
 		  ]
 		  nested (pop-all mark)
@@ -61,6 +61,7 @@ context [
 	pop-color: has [entry pos][
 		entry: skip tail color-stk -3
 		repend out [as-pair entry/1 tail-idx? - entry/1 entry/3]
+		new-line skip tail out -2 on
 		clear entry
 	]
 
@@ -100,11 +101,11 @@ context [
 
 	pop-all: function [mark [block!]][
 		first?: yes
+		if col [pop-color]
 		while [mark <> tail stack][
 			pop last stack
 			either first? [first?: no][remove skip tail out -2]
 		]
-		if v [pop-color]
 	]
 
 	optimize: function [][								;-- combine same ranges together
@@ -114,7 +115,7 @@ context [
 				any [
 					to range s: skip [to pair! | to end] e: (
 						s: remove s
-						e: next move/part s pos offset? s back e
+						e: skip move/part s pos l: offset? s back e l
 					) :e
 				]
 			]
