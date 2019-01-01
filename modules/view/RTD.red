@@ -123,7 +123,7 @@ context [
 						case [
 							any [
 								pos/1/1 > cur/1/1
-								all [pos/1/1 = cur/1/1 pos/1/2 > pos/1/2]
+								all [pos/1/1 = cur/1/1 pos/1/2 < cur/1/2]
 							][
 								mov: yes 
 								pos1: :pos
