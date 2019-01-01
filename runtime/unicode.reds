@@ -457,7 +457,7 @@ unicode: context [
 							s:    Latin1-to-UCS4 s		;-- upgrade to UCS-4
 							buf4: as int-ptr! s/tail
 							end:  (as byte-ptr! s/offset) + s/size
-if cp = -1159942176 [print "cp is already wrong" halt]
+
 							buf4/value: cp
 							buf4: buf4 + 1
 						]
