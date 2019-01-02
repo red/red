@@ -944,8 +944,8 @@ tan: func [
 ]
 
 acos: func [
-	"Returns the trigonometric arccosine"
-	angle [float!] "Angle in radians"
+	"Returns the trigonometric arccosine (in radians in range [0,pi])"
+	cosine [float!] "in range [-1,1]"
 ][
 	#system [
 		stack/arguments: stack/arguments - 1
@@ -954,8 +954,8 @@ acos: func [
 ]
 
 asin: func [
-	"Returns the trigonometric arcsine"
-	angle [float!] "Angle in radians"
+	"Returns the trigonometric arcsine (in radians in range [-pi/2,pi/2])"
+	sine [float!] "in range [-1,1]"
 ][
 	#system [
 		stack/arguments: stack/arguments - 1
@@ -964,8 +964,8 @@ asin: func [
 ]
 
 atan: func [
-	"Returns the trigonometric arctangent"
-	angle [float!] "Angle in radians"
+	"Returns the trigonometric arctangent (in radians in range [-inf,+inf])"
+	tangent [float!] "in range [-inf,+inf]"
 ][
 	#system [
 		stack/arguments: stack/arguments - 1
