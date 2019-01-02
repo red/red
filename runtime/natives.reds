@@ -1693,6 +1693,7 @@ natives: context [
 
 	arctangent2*: func [
 		check? [logic!]
+		radians [integer!]
 		/local
 			f	[red-float!]
 			n	[red-integer!]
@@ -1716,6 +1717,7 @@ natives: context [
 			x: f/value
 		]
 		f/value: atan2 y x
+		if radians < 0 [f/value: 180.0 / PI * f/value]			;-- to degrees
 		stack/set-last as red-value! f
 	]
 

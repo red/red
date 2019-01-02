@@ -514,8 +514,8 @@ tangent: make native! [[
 ]
 
 arcsine: make native! [[
-		"Returns the trigonometric arcsine (in degrees by default)"
-		value	[number!]
+		"Returns the trigonometric arcsine (in degrees by default in range [-90,90])"
+		sine	[number!] "in range [-1,1]"
 		/radians "Angle is returned in radians"
 		return: [float!]
 	]
@@ -523,8 +523,8 @@ arcsine: make native! [[
 ]
 
 arccosine: make native! [[
-		"Returns the trigonometric arccosine (in degrees by default)"
-		value	[number!]
+		"Returns the trigonometric arccosine (in degrees by default in range [0,180])"
+		cosine	[number!] "in range [-1,1]"
 		/radians "Angle is returned in radians"
 		return: [float!]
 	]
@@ -532,17 +532,18 @@ arccosine: make native! [[
 ]
 
 arctangent: make native! [[
-		"Returns the trigonometric arctangent (in degrees by default)"
-		value	[number!]
+		"Returns the trigonometric arctangent (in degrees by default in range [-90,90])"
+		tangent	[number!] "in range [-inf,+inf]"
 		/radians "Angle is returned in radians"
 		return: [float!]
 	]
 	#get-definition NAT_ARCTANGENT
 ]
 arctangent2: make native! [[
-		"Returns the smallest angle between the X axis and the point (x,y) (-pi to pi)"
+		"Returns the smallest angle between the vectors (1,0) and (x,y) in degrees by default (-180,180]"
 		y       [number!]
 		x       [number!]
+		/radians "Angle is returned in radians (-pi,pi]"
 		return: [float!]
 	]
 	#get-definition NAT_ARCTANGENT2
