@@ -964,7 +964,7 @@ asin: func [
 ]
 
 atan: func [
-	"Returns the trigonometric arctangent (in radians in range [-inf,+inf])"
+	"Returns the trigonometric arctangent (in radians in range [-pi/2,+pi/2])"
 	tangent [float!] "in range [-inf,+inf]"
 ][
 	#system [
@@ -974,7 +974,7 @@ atan: func [
 ]
 
 atan2: func [
-	"Returns the angle of the point y/x in radians"
+	"Returns the smallest angle between the vectors (1,0) and (x,y) in range (-pi,pi]"
 	y		[number!]
 	x		[number!]
 	return:	[float!]
