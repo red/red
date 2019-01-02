@@ -13,7 +13,7 @@ Red [
 context [
 	stack: make block! 10
 	color-stk: make block! 5
-	out: text: s-idx: mark: s: pos: v: l: col: none
+	out: text: s-idx: mark: s: pos: v: l: col: cur: pos1: none
 
 	;--- Parsing rules ---
 
@@ -66,13 +66,13 @@ context [
 	]
 
 	close-colors: has [pos][
-		pos: color-stk
-		while [pos: find/tail pos '_][
-			pos/-1: tail-idx?
-			append out as-pair pos/-2 tail-idx? - pos/-2
-			append out pos/1
-			new-line skip tail out -2 on
-			pos: remove/part skip pos -2 3
+		pos: tail color-stk
+		while [pos: find/reverse pos '_][
+			pos/1: tail-idx?
+			insert out as-pair pos/-1 tail-idx? - pos/-1
+			insert next out pos/2
+			new-line skip out 2 on
+			pos: remove/part skip pos -1 3
 		]
 	]
 
@@ -111,13 +111,35 @@ context [
 	optimize: function [][								;-- combine same ranges together
 		parse out [
 			any [
-				pos: pair! (range: pos/1) to pair! pos:
+				cur: pos: pair! (range: pos/1) [to pair! e: pos: | to end e:]
 				any [
 					to range s: skip [to pair! | to end] e: (
 						s: remove s
 						e: skip move/part s pos l: offset? s back e l
 					) :e
-				]
+				]( 
+					pos: :cur mov: no
+					while [pos: find/reverse pos pair!][
+						case [
+							any [
+								pos/1/1 > cur/1/1
+								all [pos/1/1 = cur/1/1 pos/1/2 < cur/1/2]
+							][
+								mov: yes 
+								pos1: :pos
+								if head? pos1 [
+									move/part cur pos1 offset? cur e
+									break
+								]
+							]
+							mov [
+								move/part cur pos1 offset? cur e
+								break
+							]
+							'else [break]
+						]
+					]
+				)
 			]
 		]
 	]
