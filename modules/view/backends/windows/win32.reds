@@ -46,6 +46,7 @@ Red/System [
 
 #define DT_CENTER				0001h
 #define DT_VCENTER				0004h
+#define DT_BOTTOM 				0008h
 #define DT_WORDBREAK			0010h
 #define DT_SINGLELINE			0020h
 #define DT_EXPANDTABS			0040h
@@ -491,6 +492,7 @@ Red/System [
 
 #define TextRenderingHintSystemDefault		0
 #define TextRenderingHintAntiAliasGridFit	3
+#define TextRenderingHintClearTypeGridFit	5
 
 #define SRCCOPY					00CC0020h
 
@@ -1184,6 +1186,10 @@ XFORM!: alias struct! [
 			return:		[integer!]
 		]
 		GetDC: "GetDC" [
+			hWnd		[handle!]
+			return:		[handle!]
+		]
+		GetWindowDC: "GetWindowDC" [
 			hWnd		[handle!]
 			return:		[handle!]
 		]
@@ -2617,6 +2623,18 @@ XFORM!: alias struct! [
 			layoutRect	[RECT_STRUCT_FLOAT32]
 			format		[integer!]
 			brush		[integer!]
+			return:		[integer!]
+		]
+		GdipMeasureString: "GdipMeasureString" [
+			graphics	[integer!]
+			text		[c-string!]
+			lenght		[integer!]
+			font		[integer!]
+			layoutRect	[RECT_STRUCT_FLOAT32]
+			format		[integer!]
+			boundingBox	[RECT_STRUCT_FLOAT32]
+			codepointsFitted	[pointer! [integer!]]
+			linesFilled	[pointer! [integer!]]
 			return:		[integer!]
 		]
 		GdipDrawBeziersI: "GdipDrawBeziersI" [

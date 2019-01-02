@@ -195,7 +195,7 @@ repend: func [
 	value
 	/only "Appends a block value as a block"
 ][
-	head either any [only not any-list? series][
+	head either any [only not any-block? series][
 		insert/only tail series reduce :value
 	][
 		reduce/into :value tail series					;-- avoids wasting an intermediary block
@@ -944,8 +944,8 @@ tan: func [
 ]
 
 acos: func [
-	"Returns the trigonometric arccosine"
-	angle [float!] "Angle in radians"
+	"Returns the trigonometric arccosine (in radians in range [0,pi])"
+	cosine [float!] "in range [-1,1]"
 ][
 	#system [
 		stack/arguments: stack/arguments - 1
@@ -954,8 +954,8 @@ acos: func [
 ]
 
 asin: func [
-	"Returns the trigonometric arcsine"
-	angle [float!] "Angle in radians"
+	"Returns the trigonometric arcsine (in radians in range [-pi/2,pi/2])"
+	sine [float!] "in range [-1,1]"
 ][
 	#system [
 		stack/arguments: stack/arguments - 1
@@ -964,8 +964,8 @@ asin: func [
 ]
 
 atan: func [
-	"Returns the trigonometric arctangent"
-	angle [float!] "Angle in radians"
+	"Returns the trigonometric arctangent (in radians in range [-pi/2,+pi/2])"
+	tangent [float!] "in range [-inf,+inf]"
 ][
 	#system [
 		stack/arguments: stack/arguments - 1
@@ -974,7 +974,7 @@ atan: func [
 ]
 
 atan2: func [
-	"Returns the angle of the point y/x in radians"
+	"Returns the smallest angle between the vectors (1,0) and (x,y) in range (-pi,pi]"
 	y		[number!]
 	x		[number!]
 	return:	[float!]

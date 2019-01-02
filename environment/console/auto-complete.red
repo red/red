@@ -27,7 +27,7 @@ red-complete-ctx: context [
 				all [
 					not tail? a
 					not tail? b
-					(first a) = first b		;@@ cannot use a/1 as 'a may be a file!
+					find/match a first b
 				]
 			][
 				a: next a

@@ -365,29 +365,26 @@ cycles: context [
 		top: top + 1
 		if top = end [fire [TO_ERROR(internal too-deep)]]
 	]
-	
+
 	pop: does [
 		if top > stack [top: top - 1]
 	]
+
+	pop-n: func [n [integer!]][
+		assert top - n >= stack
+		top: top - n
+	]
+	
+	reset: does [top: stack]
 	
 	find?: func [
-		value	[red-value!]
+		node	[node!]
 		return: [logic!]
 		/local
-			obj	 [red-object!]
-			blk	 [red-block!]
-			node [node!]
 			p	 [node!]
 	][
 		if top = stack [return no]
-		
-		node: either TYPE_OF(value) = TYPE_OBJECT [
-			obj: as red-object! value
-			obj/ctx
-		][
-			blk: as red-block! value
-			blk/node
-		]
+
 		p: stack
 		until [
 			if node = as node! p/value [return yes]
@@ -404,21 +401,22 @@ cycles: context [
 		mold?	[logic!]
 		return: [logic!]
 		/local
+			obj	 [red-object!]
+			blk	 [red-block!]
 			s	 [c-string!]
+			node [node!]
 			size [integer!]
-			type [integer!]
 	][
-		type: TYPE_OF(value)
-		unless any [
-			type = TYPE_OBJECT
-			type = TYPE_MAP
-			ANY_BLOCK?(type)
+		node: either TYPE_OF(value) = TYPE_OBJECT [
+			obj: as red-object! value
+			obj/ctx
 		][
-			return no
+			blk: as red-block! value
+			blk/node
 		]
-		either find? value [
+		either find? node [
 			either mold? [
-				switch type [
+				switch TYPE_OF(value) [
 					TYPE_BLOCK	  [s: "[...]"			   size: 5 ]
 					TYPE_PAREN	  [s: "(...)"			   size: 5 ]
 					TYPE_MAP	  [s: "#(...)"			   size: 6 ]
@@ -572,7 +570,6 @@ words: context [
 	_iterate:		as red-word! 0
 	_paren:			as red-word! 0
 	_anon:			as red-word! 0
-	_body:			as red-word! 0
 	_end:			as red-word! 0
 	_not-found:		as red-word! 0
 	_add:			as red-word! 0
