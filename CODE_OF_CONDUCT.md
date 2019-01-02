@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-We strive to provide a friendly, safe, and welcoming environment for all, generate positive experiences, and make the world a beter place. 
+We strive to provide a friendly, safe, and welcoming environment for all, generate positive experiences, and make the world a better place. 
 
 ## 2. Goal of this Document
 
