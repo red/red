@@ -13,7 +13,8 @@ Red [
 context [
 	stack: make block! 10
 	color-stk: make block! 5
-	out: text: s-idx: mark: s: pos: v: l: col: cur: pos1: none
+	out: text: s-idx: mark: s: pos: v: l: cur: pos1: none
+	col: 0
 
 	;--- Parsing rules ---
 
@@ -42,10 +43,10 @@ context [
 		| color (push-color v) opt [nested (pop-color)]
 		| ahead path!
 		  into [
-			(col: none mark: tail stack) some [					;@@ implement any-single
+			(mark: tail stack) some [					;@@ implement any-single
 				(v: none)
 				s: ['b | 'i | 'u | 's | word! if (tuple? attempt [v: get s/1])]
-				(either v [col: yes push-color v][push s/1])
+				(either v [col: col + 1 push-color v][push s/1])
 			]
 		  ]
 		  nested (pop-all mark)
@@ -71,7 +72,7 @@ context [
 			pos/1: tail-idx?
 			insert out as-pair pos/-1 tail-idx? - pos/-1
 			insert next out pos/2
-			new-line skip out 2 on
+			new-line out on
 			pos: remove/part skip pos -1 3
 		]
 	]
@@ -99,9 +100,9 @@ context [
 		][cause-error 'script 'rtd-no-match reduce [style]]
 	]
 
-	pop-all: function [mark [block!]][
+	pop-all: function [mark [block!] /extern col][
 		first?: yes
-		if col [pop-color]
+		repeat i col [pop-color] col: 0
 		while [mark <> tail stack][
 			pop last stack
 			either first? [first?: no][remove skip tail out -2]
@@ -111,10 +112,11 @@ context [
 	optimize: function [][								;-- combine same ranges together
 		parse out [
 			any [
-				cur: pos: pair! (range: pos/1) [to pair! e: pos: | to end e:]
+				cur: pos: pair! (range: pos/1) [to pair! pos: pos1: | to end] e:
 				any [
 					to range s: skip [to pair! | to end] e: (
 						s: remove s
+						either tuple? s/1 [pos: next cur][pos: pos1]
 						e: skip move/part s pos l: offset? s back e l
 					) :e
 				]( 
