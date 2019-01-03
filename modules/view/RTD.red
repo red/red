@@ -13,7 +13,8 @@ Red [
 context [
 	stack: make block! 10
 	color-stk: make block! 5
-	out: text: s-idx: mark: s: pos: v: none
+	out: text: s-idx: mark: s: pos: v: l: cur: pos1: none
+	col: 0
 
 	;--- Parsing rules ---
 
@@ -28,7 +29,8 @@ context [
 		| integer!
 		| string!
 	]
-	style: [
+	style!: make typeset! [word! tag! tuple! path!]
+	style: [ahead style! [
 		  ['b | 'bold      | <b>] (push 'b)	[nested | rtd [/b | /bold 	   | </b>]] (pop 'b)
 		| ['i | 'italic    | <i>] (push 'i)	[nested | rtd [/i | /italic	   | </i>]] (pop 'i)
 		| ['u | 'underline | <u>] (push 'u)	[nested | rtd [/u | /underline | </u>]] (pop 'u)
@@ -44,12 +46,12 @@ context [
 			(mark: tail stack) some [					;@@ implement any-single
 				(v: none)
 				s: ['b | 'i | 'u | 's | word! if (tuple? attempt [v: get s/1])]
-				(either v [push-color v][push s/1])
+				(either v [col: col + 1 push-color v][push s/1])
 			]
 		  ]
 		  nested (pop-all mark)
-	]
-	rtd: [some [pos: style | s: string! (append text s/1 s-idx: tail-idx?)]]
+	]]
+	rtd: [some [pos: style | s: [string! | char!] (append text s/1 s-idx: tail-idx?)]]
 
 	;--- Functions ---
 
@@ -58,20 +60,20 @@ context [
 	push-color: func [c [tuple!]][reduce/into [s-idx '_ c] tail color-stk]
 
 	pop-color: has [entry pos][
-		close-colors
-		entry: back back tail color-stk	
-		append out as-pair entry/1 tail-idx? - entry/1 entry/3
-		clear skip tail color-stk -3
+		entry: skip tail color-stk -3
+		repend out [as-pair entry/1 tail-idx? - entry/1 entry/3]
+		new-line skip tail out -2 on
+		clear entry
 	]
 
 	close-colors: has [pos][
-		pos: color-stk
-		while [pos: find/tail pos '_][
-			pos/-1: tail-idx?
-			append out as-pair pos/-2 tail-idx? - pos/-2
-			append out pos/1
-			new-line skip tail out -2 on
-			pos: remove/part skip pos -2 3
+		pos: tail color-stk
+		while [pos: find/reverse pos '_][
+			pos/1: tail-idx?
+			insert out as-pair pos/-1 tail-idx? - pos/-1
+			insert next out pos/2
+			new-line out on
+			pos: remove/part skip pos -1 3
 		]
 	]
 
@@ -98,8 +100,9 @@ context [
 		][cause-error 'script 'rtd-no-match reduce [style]]
 	]
 
-	pop-all: function [mark [block!]][
+	pop-all: function [mark [block!] /extern col][
 		first?: yes
+		repeat i col [pop-color] col: 0
 		while [mark <> tail stack][
 			pop last stack
 			either first? [first?: no][remove skip tail out -2]
@@ -109,13 +112,36 @@ context [
 	optimize: function [][								;-- combine same ranges together
 		parse out [
 			any [
-				pos: pair! (range: pos/1) to pair! pos:
+				cur: pos: pair! (range: pos/1) [to pair! pos: pos1: | to end] e:
 				any [
 					to range s: skip [to pair! | to end] e: (
 						s: remove s
-						e: next move/part s pos offset? s back e
+						either tuple? s/1 [pos: next cur][pos: pos1]
+						e: skip move/part s pos l: offset? s back e l
 					) :e
-				]
+				]( 
+					pos: :cur mov: no
+					while [pos: find/reverse pos pair!][
+						case [
+							any [
+								pos/1/1 > cur/1/1
+								all [pos/1/1 = cur/1/1 pos/1/2 < cur/1/2]
+							][
+								mov: yes 
+								pos1: :pos
+								if head? pos1 [
+									move/part cur pos1 offset? cur e
+									break
+								]
+							]
+							mov [
+								move/part cur pos1 offset? cur e
+								break
+							]
+							'else [break]
+						]
+					]
+				)
 			]
 		]
 	]

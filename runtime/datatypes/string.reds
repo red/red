@@ -1773,7 +1773,7 @@ string: context [
 				step: 0 - step
 				buffer: (as byte-ptr! s/offset) + (str/head - 1 << (unit >> 1))
 				end: either part? [buffer - limit + unit][as byte-ptr! s/offset]
-				if buffer < end [							;-- early exit if str/head = 0
+				if any [buffer < end match?][			;-- early exit if str/head = 0
 					result/header: TYPE_NONE
 					return result
 				]

@@ -368,7 +368,7 @@ object [
 			]
 			offset/y - box/size/y > 10 [
 				scroll-lines -1
-				offset/y: box/size
+				offset/y: box/size/y
 				scrolling: -1
 				scroll-pos: offset
 			]

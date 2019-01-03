@@ -432,6 +432,11 @@ system/view/VID: context [
 				if none? face-font/:field [face-font/:field: get value]
 			]
 		]
+		if all [block? face/actors block? actors: opts/actors][
+			foreach [name f s b] face/actors [
+				unless find actors name [repend actors [name f s b]]
+			]
+		]
 		
 		set/some face opts								;-- merge default+styles and user options
 		
@@ -711,7 +716,7 @@ system/view/VID: context [
 							face/offset/:axis: list/:index/offset/:axis
 						]
 					]
-					unless any [face/color panel/type = 'tab-panel][
+					unless any [face/color panel/type = 'tab-panel face/type = 'text][
 						face/color: system/view/metrics/colors/(face/type)
 					]
 					

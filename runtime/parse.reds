@@ -290,6 +290,7 @@ parser: context [
 			res	   [integer!]
 			set?   [logic!]								;-- required by BS_TEST_BIT
 			not?   [logic!]
+			bin?   [logic!]
 			match? [logic!]
 	][
 		s: GET_BUFFER(rules)
@@ -347,10 +348,11 @@ parser: context [
 				TYPE_TAG
 				TYPE_EMAIL
 				TYPE_BINARY [
-					if all [type = TYPE_BINARY TYPE_OF(token) <> TYPE_BINARY][
+					bin?: type = TYPE_BINARY
+					type: TYPE_OF(token)
+					if all [bin? type <> TYPE_BINARY not ANY_STRING?(type)][
 						PARSE_ERROR [TO_ERROR(script parse-rule) token]
 					]
-					type: TYPE_OF(token)
 					size: string/rs-length? as red-string! token
 					if type = TYPE_TAG [size: size + 2]
 					if (string/rs-length? as red-string! input) < size [return no]
@@ -521,6 +523,7 @@ parser: context [
 			len	   [integer!]
 			cnt	   [integer!]
 			type   [integer!]
+			type2  [integer!]
 			match? [logic!]
 			end?   [logic!]
 			s	   [series!]
@@ -531,6 +534,7 @@ parser: context [
 		cnt: 	0
 		match?: yes
 		type: 	TYPE_OF(input)
+		type2:	TYPE_OF(token)
 		
 		either any [									;TBD: replace with ANY_STRING
 			type = TYPE_STRING
@@ -544,6 +548,20 @@ parser: context [
 				match?: loop-bitset input as red-bitset! token min max counter part
 				cnt: counter/value
 			][
+				len: either any [type2 = TYPE_CHAR type2 = TYPE_BITSET][1][
+					assert any [
+						type2 = TYPE_STRING
+						type2 = TYPE_FILE
+						type2 = TYPE_URL
+						type2 = TYPE_TAG
+						type2 = TYPE_EMAIL
+						type2 = TYPE_BINARY
+					]
+					string/rs-length? as red-string! token
+				]
+				if zero? len [return yes]
+				if type2 = TYPE_TAG [len: len + 2]
+				
 				until [									;-- ANY-STRING input matching
 					match?: either type = TYPE_BINARY [
 						binary/match? as red-binary! input token comp-op
@@ -551,7 +569,7 @@ parser: context [
 						string/match? as red-string! input token comp-op
 					]
 					end?: any [
-						all [match? advance as red-string! input token]	;-- consume matched input
+						all [match? _series/rs-skip input len]	;-- consume matched input
 						all [positive? part input/head >= part]
 					]
 					cnt: cnt + 1
@@ -1461,7 +1479,7 @@ parser: context [
 					sym: symbol/resolve w/symbol
 					#if debug? = yes [
 						sym*: symbol/get sym
-						if verbose > 0 [print-line ["parse: " sym*/cache]]
+						if verbose > 0 [print "parse: " print-symbol w print lf]
 					]
 					case [
 						sym = words/pipe [				;-- |

@@ -265,9 +265,14 @@ binary: context [
 			p1		[byte-ptr!]
 			p2		[byte-ptr!]
 			end		[byte-ptr!]
+			type	[integer!]
 			same?	[logic!]
 	][
-		if TYPE_OF(bin2) <> TYPE_BINARY [RETURN_COMPARE_OTHER]
+		type: TYPE_OF(bin2)
+		if all [
+			type <> TYPE_BINARY
+			not ANY_STRING?(type)
+		][RETURN_COMPARE_OTHER]
 
 		same?: all [
 			bin1/node = bin2/node
@@ -356,7 +361,8 @@ binary: context [
 			char [red-char!]
 	][
 		switch TYPE_OF(value) [
-			TYPE_BINARY [
+			TYPE_BINARY
+			TYPE_ANY_STRING [
 				0 = equal? bin as red-binary! value op yes
 			]
 			TYPE_CHAR [

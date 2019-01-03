@@ -170,6 +170,7 @@ unicode: context [
 		return:	 [series!]
 		/local
 			used [integer!]
+			new	 [integer!]
 			base [byte-ptr!]
 			src  [byte-ptr!]
 			dst  [byte-ptr!]
@@ -177,10 +178,10 @@ unicode: context [
 		#if debug? = yes [if verbose > 0 [print-line "unicode/Latin1-to-UCS2"]]
 
 		used: as-integer s/tail - s/offset
-		used: used << 1 
-		if used + 2 > s/size [							;-- ensure we have enough space
-			s: expand-series s used + 2					;-- reserve one more for edge cases
-		]
+		used: used << 1
+		new: used + 2								;-- reserve one more for edge cases
+		if new > s/size [s: expand-series s new]	;-- ensure we have enough space
+		
 		base: as byte-ptr! s/offset
 		src:  as byte-ptr! s/tail						;-- start from end
 		dst:  (as byte-ptr! s/offset) + used
@@ -201,6 +202,7 @@ unicode: context [
 		return:	 [series!]
 		/local
 			used [integer!]
+			new	 [integer!]
 			base [byte-ptr!]
 			src  [byte-ptr!]
 			dst  [int-ptr!]
@@ -209,9 +211,9 @@ unicode: context [
 
 		used: as-integer s/tail - s/offset
 		used: used << 2
-		if used > s/size [								;-- ensure we have enough space
-			s: expand-series s used + 4					;-- reserve one more for edge cases
-		]
+		new: used + 4								;-- reserve one more for edge cases
+		if new > s/size [s: expand-series s new]	;-- ensure we have enough space
+		
 		base: as byte-ptr! s/offset
 		src:  as byte-ptr! s/tail						;-- start from end
 		dst:  as int-ptr! (as byte-ptr! s/offset) + used
@@ -231,6 +233,7 @@ unicode: context [
 		return:	 [series!]
 		/local
 			used [integer!]
+			new	 [integer!]
 			base [byte-ptr!]
 			src  [byte-ptr!]
 			dst  [int-ptr!]
@@ -239,9 +242,9 @@ unicode: context [
 
 		used: as-integer s/tail - s/offset	
 		used: used << 1
-		if used > s/size [								;-- ensure we have enough space
-			s: expand-series s used + 4
-		]
+		new: used + 4								;-- reserve one more for edge cases
+		if new > s/size [s: expand-series s new]	;-- ensure we have enough space
+		
 		base: as byte-ptr! s/offset
 		src:  as byte-ptr! s/tail						;-- start from end
 		dst:  as int-ptr! (as byte-ptr! s/offset) + used

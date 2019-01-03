@@ -901,13 +901,13 @@ make-face: func [
 	]
 	face: make face! copy/deep model/template
 	
-	if spec [
-		opts: svv/opts-proto
-		css: make block! 2
-		spec: svv/fetch-options/no-skip face opts model blk css no
-		if model/init [do bind model/init 'face]
-		svv/process-reactors
-	]
+	unless spec [blk: []]
+	opts: svv/opts-proto
+	css: make block! 2
+	spec: svv/fetch-options/no-skip face opts model blk css no
+	if model/init [do bind model/init 'face]
+	svv/process-reactors
+
 	if offset [face/offset: xy]
 	if size [face/size: wh]
 	face
