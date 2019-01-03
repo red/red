@@ -918,7 +918,6 @@ Red [
 
 	--test-- "#787"
 		--assert equal? ["a"] head reduce/into "a" []
-		--assert equal? ["a"] head compose/into "a" []
 
 	--test-- "#789"
 		--assert not error? try [load "-2147483648"]
