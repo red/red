@@ -228,7 +228,7 @@ replace: function [
 		]
 		return series
 	]
-	if system/words/all [char? :pattern any-string? series] [
+	if system/words/all [any [char? :pattern tag? :pattern] any-string? series] [
 		pattern: form pattern
 	]
 	either system/words/all [any-string? :series block? :pattern] [

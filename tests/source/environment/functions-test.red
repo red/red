@@ -207,6 +207,8 @@ Red [
 		--assert "abcc" = replace/all "abxx" "x" "c"
 		--assert [1 9 [2 3 4]] = replace [1 2 [2 3 4]] 2 9
 		--assert [1 9 [2 3 4]] = replace/all [1 2 [2 3 4]] 2 9
+		--assert "aaa bbb ccc" = replace "aaa <tag> ccc" <tag> "bbb"
+		--assert "aaa <bbb> ccc" = replace "aaa <tag> ccc" <tag> <bbb>
 		;--assert [1 9 [9 3 4]] = replace/deep [1 2 [2 3 4]] 2 9
 
 ===end-group===
