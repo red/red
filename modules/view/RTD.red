@@ -13,8 +13,8 @@ Red [
 context [
 	stack: make block! 10
 	color-stk: make block! 5
-	out: text: s-idx: mark: s: pos: v: l: cur: pos1: none
-	col: 0
+	out: text: s-idx: s: pos: v: l: cur: pos1: none
+	mark: copy [] col: 0 cols: copy []
 
 	;--- Parsing rules ---
 
@@ -43,13 +43,13 @@ context [
 		| color (push-color v) opt [nested (pop-color)]
 		| ahead path!
 		  into [
-			(mark: tail stack) some [					;@@ implement any-single
+			(col: 0 insert/only mark tail stack) some [					;@@ implement any-single
 				(v: none)
 				s: ['b | 'i | 'u | 's | word! if (tuple? attempt [v: get s/1])]
 				(either v [col: col + 1 push-color v][push s/1])
-			]
+			](insert cols col)
 		  ]
-		  nested (pop-all mark)
+		  nested (pop-all take mark)
 	]]
 	rtd: [some [pos: style | s: [string! | char!] (append text s/1 s-idx: tail-idx?)]]
 
@@ -102,7 +102,7 @@ context [
 
 	pop-all: function [mark [block!] /extern col][
 		first?: yes
-		repeat i col [pop-color] col: 0
+		unless empty? cols [repeat i take cols [pop-color]]
 		while [mark <> tail stack][
 			pop last stack
 			either first? [first?: no][remove skip tail out -2]
