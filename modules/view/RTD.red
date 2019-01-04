@@ -14,7 +14,7 @@ context [
 	stack: make block! 10
 	color-stk: make block! 5
 	out: text: s-idx: s: pos: v: l: cur: pos1: none
-	mark: copy [] col: 0 cols: copy []
+	mark: make block! 5 col: 0 cols: make block! 5
 
 	;--- Parsing rules ---
 
