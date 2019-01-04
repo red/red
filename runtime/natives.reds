@@ -1027,24 +1027,8 @@ natives: context [
 	][
 		#typecheck [compose deep only into]
 		arg: stack/arguments
-		either TYPE_OF(arg) <> TYPE_BLOCK [					;-- pass-thru for non block! values
-			into?: into >= 0
-			stack/mark-native words/_body
-			if into? [as red-block! stack/push arg + into]
-			switch TYPE_OF(arg) [
-				TYPE_FUNCTION
-				TYPE_NATIVE
-				TYPE_ACTION
-				TYPE_OP
-				TYPE_ROUTINE [
-					stack/set-last arg
-				]
-				default [
-					interpreter/eval-expression arg arg + 1 no yes no
-				]
-			]
-			if into? [actions/insert* -1 0 -1]
-			stack/unwind-last
+		either TYPE_OF(arg) <> TYPE_BLOCK [
+			fire [TO_ERROR(script expect-val) datatype/push TYPE_BLOCK datatype/push TYPE_OF(arg)]
 		][
 			stack/set-last
 				as red-value! compose-block

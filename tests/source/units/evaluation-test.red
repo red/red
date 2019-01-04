@@ -298,25 +298,6 @@ Red [
 	--assert [2] = compose/into [no 7 8 9 (2 * 10) ([5 6])] b
 	--assert [1 no 7 8 9 20 5 6 2] = head b
 
-	--test-- "compose-23"
-		b: 2
-		--assert [2] = head compose/into b []
-		--assert ["a"] = head compose/into "a" []
-		
-	; non-block args (non-evaluating)
-	--test-- "compose-24"
-		--assert :add = compose :add					; action
-		--assert :+ = compose :+						; op
-		--assert :sine = compose :sine					; native
-		--assert :sin = compose :sin					; function
-		--assert :as-ipv4 = compose :as-ipv4			; routine
-
-	; non-block args (evaluating)
-	--test-- "compose-25"
-		--assert 2 = compose (1 + 1)
-		--assert tuple? compose 'system/version
-		
-
 ===end-group===
 
 ===start-group=== "unset value passing"
