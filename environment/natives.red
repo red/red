@@ -403,7 +403,7 @@ difference: make native! [[
 		/case "Use case-sensitive comparison"
 		/skip "Treat the series as fixed size records"
 			size [integer!]
-		return: [block! hash! string! bitset! typeset!]
+		return: [block! hash! string! bitset! typeset! time!]
 	]
 	#get-definition NAT_DIFFERENCE
 ]
