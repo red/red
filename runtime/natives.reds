@@ -2286,6 +2286,7 @@ natives: context [
 			bool [red-logic!]
 			s	 [series!]
 			step [integer!]
+			i	 [integer!]
 			nl?  [logic!]
 	][
 		#typecheck [new-line _all skip]
@@ -2306,13 +2307,15 @@ natives: context [
 				step: int/value
 			]
 			tail: s/tail
+			i: 0
 			while [cell < tail][
-				cell/header: either nl? [
-					cell/header or flag-new-line
-				][
+				cell/header: either nl? xor any [step = 1 zero? (i % step)][
 					cell/header and flag-nl-mask
+				][
+					cell/header or flag-new-line
 				]
-				cell: cell + step
+				cell: cell + 1
+				i: i + 1
 			]
 		][
 			cell/header: either nl? [
