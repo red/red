@@ -278,7 +278,7 @@ time: context [
 			]
 			default [error?: yes]
 		]
-		if error? [fire [TO_ERROR(script invalid-path) stack/arguments element]]
+		if error? [fire [TO_ERROR(script invalid-path) path element]]
 		
 		either value <> null [
 			switch field [
