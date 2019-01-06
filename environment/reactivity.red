@@ -58,7 +58,7 @@ system/reactivity: context [
 			if error? set/any 'result try/all code [
 				print :result
 				prin "*** Near: "
-				probe code
+				print mold/part/flat code 80
 				result: none
 			]
 			get/any 'result
