@@ -1104,8 +1104,10 @@ binary: context [
 			src		  [red-block!]
 			cell	  [red-value!]
 			limit	  [red-value!]
+			beg		  [red-value!]
 			int		  [red-integer!]
 			char	  [red-char!]
+			buffer	  [red-binary!]
 			bin2	  [red-binary!]
 			saved	  [red-value!]
 			data	  [byte-ptr!]
@@ -1117,8 +1119,6 @@ binary: context [
 			part	  [integer!]
 			len		  [integer!]
 			added	  [integer!]
-			bytes	  [integer!]
-			rest	  [integer!]
 			tail?	  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/insert"]]
@@ -1156,60 +1156,72 @@ binary: context [
 			append?
 		]
 
-		while [not zero? cnt][							;-- /dup support
-			either TYPE_OF(value) = TYPE_BLOCK [		;@@ replace it with: typeset/any-block?
-				src: as red-block! value
-				s2: GET_BUFFER(src)
-				cell:  s2/offset + src/head
-				limit: cell + block/rs-length? src
+		either TYPE_OF(value) = TYPE_BLOCK [		;@@ replace it with: typeset/any-block?
+			src: as red-block! value
+			s2: GET_BUFFER(src)
+			cell:  s2/offset + src/head
+			limit: cell + block/rs-length? src
+			if cell = limit [return as red-value! bin]
+		][
+			cell:  value
+			limit: value + 1
+		]
+
+		len: 0
+		added: 0
+		beg: cell
+		buffer: as red-binary! stack/push*
+		buffer/header: TYPE_UNSET
+		while [cell < limit][					;-- may has multiple values
+			either TYPE_OF(cell) = TYPE_INTEGER [
+				int: as red-integer! cell
+				either int/value <= FFh [
+					int-value: int/value
+					data: as byte-ptr! :int-value
+					len: 1
+				][
+					fire [TO_ERROR(script out-of-range) cell]
+				]
+				if cell = beg [make-at as red-value! buffer cnt]
+				rs-append buffer data 1
 			][
-				cell:  value
-				limit: value + 1
-			]
-			bytes: 0
-			added: 0
-			len: 0
-			while [all [cell < limit added <> part]][	;-- multiple values case
-				either TYPE_OF(cell) = TYPE_INTEGER [
-					int: as red-integer! cell
-					either int/value <= FFh [
-						int-value: int/value
-						data: as byte-ptr! :int-value
-						len: 1
-					][
-						fire [TO_ERROR(script out-of-range) cell]
-					]
-				][
-					bin2: as red-binary! stack/push*
-					bin2/header: TYPE_UNSET
-					saved: stack/top
+				saved: stack/top
+				bin2: as red-binary! stack/push*
+				bin2/header: TYPE_UNSET
 
-					bin2: to bin2 cell TYPE_BINARY	;@@ TO will push value to stack
+				bin2: to bin2 cell TYPE_BINARY	;@@ TO will push value to stack
+
+				len: rs-length? bin2
+				either cell = beg [
+					copy-cell as cell! bin2 as cell! buffer
+				][
 					data: rs-head bin2
-					len: rs-length? bin2
-
-					stack/top: saved
+					rs-append buffer data len
 				]
-
-				either positive? part [			;-- /part support
-					rest: part - added
-					if rest > len [rest: len]
-					added: added + rest
-				][rest: len]
-
-				either tail? [
-					rs-append bin data rest
-				][
-					rs-insert bin bytes data rest
-				]
-				bytes: bytes + rest
-				cell: cell + 1
+				stack/top: saved
 			]
+
+			if all [positive? part added + len > part][	;-- /part support
+				len: part - added
+			]
+			added: added + len
+			cell: cell + 1
+		]
+
+		data: rs-head buffer
+		len: added
+		added: 0
+		while [not zero? cnt][					;-- /dup support
+			either tail? [
+				rs-append bin data len
+			][
+				rs-insert bin added data len
+			]
+			added: added + len
 			cnt: cnt - 1
 		]
 		unless append? [
-			bytes: bytes * dup-n
-			bin/head: bin/head + bytes
+			bin/head: bin/head + added
 			s: GET_BUFFER(bin)
 			assert (as byte-ptr! s/offset) + (bin/head << (log-b GET_UNIT(s))) <= as byte-ptr! s/tail
 		]

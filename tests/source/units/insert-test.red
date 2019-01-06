@@ -303,6 +303,9 @@ Red [
 	--test-- "iri4 - issue #599"
 	--assert "<56a<56aI" = head insert/part/dup "I" ["<" #"5" #"6" a x] 4 2
 
+	--test-- "iri5 - issue #3705"
+	--assert 5000 = length? head insert/dup #{} #{20} 5000
+
 ===end-group===
 
 ~~~end-file~~~
