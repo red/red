@@ -157,6 +157,7 @@ Red/System [
 #define RedCameraDevicesKey		4000FFF2h
 #define RedCameraDevInputKey	4000FFF3h
 #define RedCameraImageKey		4000FFF4h
+#define RedSecureFieldKey		4000FFF5h
 #define RedTimerKey				4000FFFAh
 #define RedFieldEditorKey		4000FFFBh
 #define RedAllOverFlagKey		4000FFFCh
@@ -229,6 +230,11 @@ tagSIZE: alias struct! [
 
 #import [
 	LIBC-file cdecl [
+		strrchr: "strrchr" [
+			str			[c-string!]
+			c			[integer!]
+			return:		[c-string!]
+		]
 		objc_getClass: "objc_getClass" [
 			class		[c-string!]
 			return:		[integer!]
@@ -320,6 +326,7 @@ tagSIZE: alias struct! [
 		]
 		objc_msgSend: "objc_msgSend" [[variadic] return: [integer!]]
 		objc_msgSend_pt: "objc_msgSend" [[variadic] return: [CGPoint! value]]
+		objc_msgSend_sz: "objc_msgSend" [[variadic] return: [NSSize! value]]
 		objc_msgSend_range: "objc_msgSend" [[variadic] return: [NSRange! value]]
 		objc_msgSendSuper: "objc_msgSendSuper" [[variadic] return: [integer!]]
 		objc_msgSend_f32: "objc_msgSend_fpret" [[variadic] return: [float32!]]
@@ -429,42 +436,6 @@ tagSIZE: alias struct! [
 		NSStrikethroughStyleAttributeName: "NSStrikethroughStyleAttributeName" [integer!]
 		NSMarkedClauseSegmentAttributeName: "NSMarkedClauseSegmentAttributeName" [integer!]
 		NSGlyphInfoAttributeName: "NSGlyphInfoAttributeName" [integer!]
-	]
-	"/System/Library/Frameworks/IOKit.framework/IOKit" cdecl [
-		IOHIDDeviceGetProperty: "IOHIDDeviceGetProperty" [
-			key 			[int-ptr!]
-			device 			[c-string!] 
-			return: 		[int-ptr!]
-		]
-		IOHIDManagerCreate: "IOHIDManagerCreate" [
-			allocator 		[int-ptr!]
-			options			[integer!]
-			return: 		[int-ptr!]
-		]
-		IOHIDManagerSetDeviceMatching: "IOHIDManagerSetDeviceMatching" [
-			manager 		[int-ptr!]
-			matching		[int-ptr!]
-		]
-		IOHIDManagerScheduleWithRunLoop: "IOHIDManagerScheduleWithRunLoop" [
-			manager 		[int-ptr!]
-			runloop 		[int-ptr!]
-			runLoopMode		[int-ptr!]
-		]
-		IOHIDManagerClose: "IOHIDManagerClose" [
-			manager 		[int-ptr!]
-			options			[integer!]
-			return: 		[integer!]
-		]
-		IOHIDManagerRegisterDeviceMatchingCallback: "IOHIDManagerRegisterDeviceMatchingCallback" [
-			manager			[int-ptr!]
-			callback 		[int-ptr!]
-			context 		[int-ptr!]
-		]
-		IOHIDManagerRegisterDeviceRemovalCallback: "IOHIDManagerRegisterDeviceRemovalCallback" [
-			manager			[int-ptr!]
-			callback 		[int-ptr!]
-			context 		[int-ptr!]
-		]
 	]
 	"/System/Library/Frameworks/CoreServices.framework/CoreServices" cdecl [
 		Gestalt: "Gestalt" [

@@ -128,13 +128,16 @@ ownership: context [
 					copy-cell as red-value! word  slot + 2
 				]
 				if ANY_BLOCK?(type) [
+					if cycles/find? series/node [exit]
 					value: s/offset + series/head
 					tail:  s/tail
+					cycles/push series/node
 					
 					while [value < tail][
 						bind value owner word
 						value: value + 1
 					]
+					cycles/pop
 				]
 			]
 			type = TYPE_OBJECT [
@@ -142,10 +145,12 @@ ownership: context [
 				ctx: GET_CTX(obj)
 				
 				if ctx/header and flag-owner = 0 [		;-- stop if another owner is met
+					if cycles/find? ctx/values [exit]
 					s: as series! ctx/values/value
 					
 					value: s/offset
 					tail:  s/tail
+					cycles/push ctx/values
 					
 					s: as series! ctx/symbols/value
 					word: as red-word! s/offset
@@ -161,6 +166,7 @@ ownership: context [
 						value: value + 1
 						word: word + 1
 					]
+					cycles/pop
 				]
 			]
 			true [0]
@@ -174,6 +180,7 @@ ownership: context [
 		/local
 			ctx	  [red-context!]
 	][
+		assert TYPE_OF(owner) = TYPE_OBJECT
 		bind container owner word
 		ctx: GET_CTX(owner)
 		ctx/header: ctx/header or flag-owner

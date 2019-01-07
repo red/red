@@ -59,7 +59,8 @@ gui-console-ctx: context [
 		actors: object [
 			on-time: func [face [object!] event [event!]][
 				caret/rate: 2
-				face/rate: none
+				terminal/on-time
+				'done
 			]
 			on-drawing: func [face [object!] event [event!]][
 				terminal/paint
@@ -83,7 +84,7 @@ gui-console-ctx: context [
 				terminal/mouse-up event
 			]
 			on-over: func [face [object!] event [event!]][
-				terminal/mouse-move event
+				terminal/mouse-move event/offset
 			]
 			on-menu: func [face [object!] event [event!]][
 				switch event/picked [
@@ -91,6 +92,7 @@ gui-console-ctx: context [
 					paste		[terminal/paste]
 					select-all	[terminal/select-all]
 				]
+				'done
 			]
 		]
 
@@ -112,6 +114,7 @@ gui-console-ctx: context [
 		actors: object [
 			on-time: func [face [object!] event [event!]][
 				face/color: either face/color = caret-clr [255.255.255.254][caret-clr]
+				'done
 			]
 		]
 	]
@@ -124,7 +127,8 @@ gui-console-ctx: context [
 	show-caret: func [][unless caret/visible? [caret/visible?: yes]]
 
 	setup-faces: does [
-		append win/pane reduce [console tips caret]
+		console/pane: reduce [caret]
+		append win/pane reduce [console tips]
 		win/menu: [
 			"File" [
 				"Run..."			run-file
@@ -163,11 +167,21 @@ gui-console-ctx: context [
 				clear head system/view/screens/1/pane
 			]
 			on-resizing: function [face [object!] event [event!]][
-				new-sz: face/size
+				new-sz: event/offset
 				console/size: new-sz
 				terminal/resize new-sz
 				terminal/adjust-console-size new-sz
 				unless system/view/auto-sync? [show face]
+			]
+			on-focus: func [face [object!] event [event!]][
+				caret/color: caret-clr
+				unless caret/visible? [caret/visible?: yes]
+				caret/rate: 2
+				terminal/refresh
+			]
+			on-unfocus: func [face [object!] event [event!]][
+				if caret/visible? [caret/visible?: no]
+				caret/rate: none
 			]
 		]
 		tips/parent: win
@@ -179,7 +193,11 @@ gui-console-ctx: context [
 	]
 
 	add-gui-print: routine [][
-		dyn-print/add as int-ptr! :red-print-gui as int-ptr! :rs-print-gui
+		gui-console-buffer: ALLOC_TAIL(root)
+		gui-console-buffer/header: TYPE_UNSET
+		dyn-print/add as int-ptr! :red-print-gui #either debug? = yes [null][
+			as int-ptr! :rs-print-gui
+		]
 	]
 
 	launch: func [/local svs][
@@ -200,6 +218,7 @@ gui-console-ctx: context [
 ]
 
 ask: function [
+	"Prompt the user for input"
 	question [string!]
 	return:  [string!]
 ][
@@ -211,7 +230,7 @@ ask: function [
 	vt: gui-console-ctx/terminal
 	vt/line: line
 	vt/pos: 0
-	vt/add-line line
+	vt/add-line head line
 	vt/ask?: yes
 	vt/reset-top/force
 	vt/clear-stack
@@ -228,9 +247,11 @@ ask: function [
 	line
 ]
 
-input: function [return: [string!]][ask ""]
+input: function ["Wait for console user input" return: [string!]][ask ""]
 
 #system [
+	gui-console-buffer: as red-value! 0
+
 	red-print-gui: func [
 		str		[red-string!]
 		lf?		[logic!]
@@ -245,15 +266,16 @@ input: function [return: [string!]][ask ""]
 		/local
 			str [red-string!]
 	][
-		str: declare red-string!
+		str: as red-string! gui-console-buffer
 		if negative? size [size: length? cstr]
 		either TYPE_OF(str) = TYPE_STRING [
 			string/rs-reset str
 			unicode/load-utf8-buffer cstr size GET_BUFFER(str) null yes
 		][
+			str/header: TYPE_UNSET
+			str/node: unicode/load-utf8-buffer cstr size null null yes
 			str/header: TYPE_STRING
 			str/head: 0
-			str/node: unicode/load-utf8-buffer cstr size null null yes
 			str/cache: null
 		]
 		red-print-gui str lf?

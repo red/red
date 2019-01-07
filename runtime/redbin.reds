@@ -157,6 +157,11 @@ redbin: context [
 		copy-cell as red-value! obj s/offset + 1		;-- set back-reference
 		
 		ctx: TO_CTX(new)
+		unless stack? [
+			s: as series! ctx/values/value
+			s/tail: s/offset + slots
+		]
+
 		symbols: ctx/symbols
 		data: data + 2
 		i: 0
@@ -259,10 +264,12 @@ redbin: context [
 		size: data/3 << (log-b unit)					;-- optimized data/3 * unit
 
 		str: as red-string! ALLOC_TAIL(parent)
-		str/header: header and FFh						;-- implicit reset of all header flags
 		if nl? [str/header: str/header or flag-new-line]
+		str/header: TYPE_UNSET
 		str/head: 	data/2
 		str/node: 	alloc-bytes size
+		str/cache:	null
+		str/header: header and FFh						;-- implicit reset of all header flags
 		
 		data: data + 3
 		s: GET_BUFFER(str)
@@ -508,10 +515,13 @@ redbin: context [
 		root-base
 	]
 	
-	boot-load: func [payload [byte-ptr!] keep? [logic!] return: [red-value!] /local saved ret][
+	boot-load: func [payload [byte-ptr!] keep? [logic!] return: [red-value!] /local saved ret state][
+		state: collector/active?
+		collector/active?: no
 		if keep? [saved: root-base]
 		ret: decode payload root
 		if keep? [root-base: saved]
+		collector/active?: state
 		ret
 	]
 ]

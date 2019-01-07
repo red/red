@@ -77,6 +77,7 @@ system/view/platform: context [
 				FACET_FLAGS_ALL_OVER:	00000001h
 
 				FACET_FLAGS_SCROLLABLE:	00040000h
+				FACET_FLAGS_PASSWORD:	00080000h
 
 				FACET_FLAGS_POPUP:		01000000h
 				FACET_FLAGS_MODAL:		02000000h
@@ -183,6 +184,7 @@ system/view/platform: context [
 				PEN_LINE_CAP
 				PEN_LINE_JOIN
 			]
+			red/boot?: yes								;-- forces words allocation in root block
 			
 			facets: context [
 				type:		symbol/make "type"
@@ -244,7 +246,6 @@ system/view/platform: context [
 			caret:			symbol/make "caret"
 			scroller:		symbol/make "scroller"
 			rich-text:		symbol/make "rich-text"
-			usb-device:		symbol/make "usb-device"
 
 			---:			symbol/make "---"
 			done:			symbol/make "done"
@@ -277,6 +278,7 @@ system/view/platform: context [
 			modal:			symbol/make "modal"
 			popup:			symbol/make "popup"
 			scrollable:		symbol/make "scrollable"
+			password:		symbol/make "password"
 
 			_accelerated:	symbol/make "accelerated"
 
@@ -372,6 +374,9 @@ system/view/platform: context [
 			_right-command:	word/load "right-command"
 			_caps-lock:		word/load "caps-lock"
 			_num-lock:		word/load "num-lock"
+			
+			red/boot?: no
+			red/collector/active?: yes
 
 			get-event-type: func [
 				evt		[red-event!]
@@ -682,7 +687,7 @@ system/view/platform: context [
 			layout? [logic!]
 	][
 		layout?: yes
-		state: as red-block! (object/get-values box) + gui/FACE_OBJ_EXT2
+		state: as red-block! (object/get-values box) + gui/FACE_OBJ_EXT3
 		if TYPE_OF(state) = TYPE_BLOCK [
 			bool: as red-logic! (block/rs-tail state) - 1
 			layout?: bool/value
@@ -736,6 +741,8 @@ system/view/platform: context [
 				group-box:		[3x3  10x3]
 				tab-panel:		[1x3  25x0]
 				button:			[8x8   0x0]
+				drop-down:		[0x7   0x0]
+				drop-list:		[0x7   0x0]
 			]
 			macOS [
 				button:			[11x11 0x0 regular 14x14 0x0 small 11x11 0x0 mini 11x11 0x0]
@@ -757,16 +764,31 @@ system/view/platform: context [
 			]
 			#default []
 		]]
-		extend system/view/metrics/def-heights [#switch config/OS [
-			Windows []
+		#switch config/OS [
+			Windows [
+				if version/1 <= 6 [						;-- for Win7 & XP
+					extend system/view/metrics/def-heights [
+						button:		23
+						text:		24
+						field:		24
+						check:		24
+						radio:		24
+						slider:		24
+						drop-down:	23
+						drop-list:	23
+					]
+				]
+			]
 			macOS	[
-				check:		21
-				radio:		21
-				text:		18
-				field:		21
-				drop-down:	21
-				drop-list:	21
-				progress:	21
+				extend system/view/metrics/def-heights [
+					check:		21
+					radio:		21
+					text:		18
+					field:		21
+					drop-down:	21
+					drop-list:	21
+					progress:	21
+				]
 			]
 			Linux	[
 				check:		29
@@ -802,7 +824,7 @@ system/view/platform: context [
 		
 		set fonts:
 			bind [fixed sans-serif serif] system/view/fonts
-			switch system/platform/OS [
+			switch system/platform [
 				Windows [
 					either version/1 >= 6 [
 						["Consolas" "Arial" "Times"]

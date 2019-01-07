@@ -298,11 +298,6 @@ Red [
 	--assert [2] = compose/into [no 7 8 9 (2 * 10) ([5 6])] b
 	--assert [1 no 7 8 9 20 5 6 2] = head b
 
-	--test-- "compose-23"
-		b: 2
-		--assert [2] = head compose/into b []
-		--assert ["a"] = head compose/into "a" []
-
 ===end-group===
 
 ===start-group=== "unset value passing"

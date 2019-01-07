@@ -26,9 +26,10 @@ zoom-distance:	 0
 special-key: 	-1										;-- <> -1 if a non-displayable key is pressed
 
 flags-blk: declare red-block!							;-- static block value for event/flags
-flags-blk/header:	TYPE_BLOCK
+flags-blk/header:	TYPE_UNSET
 flags-blk/head:		0
 flags-blk/node:		alloc-cells 4
+flags-blk/header:	TYPE_BLOCK
 
 char-keys: [
 	1000C400h C0FF0080h E0FFFF7Fh 0000F7FFh 00000000h 3F000000h 1F000080h 00FC7F38h
@@ -157,6 +158,13 @@ get-event-offset: func [
 
 			offset/x: WIN32_LOWORD(value)
 			offset/y: WIN32_HIWORD(value)
+			as red-value! offset
+		]
+		evt/type = EVT_MENU [
+			offset: as red-pair! stack/push*
+			offset/header: TYPE_PAIR
+			offset/x: menu-x
+			offset/y: menu-y
 			as red-value! offset
 		]
 		true [as red-value! none-value]
@@ -290,7 +298,10 @@ get-event-picked: func [
 				int
 			]
 		]
-		EVT_MENU   [word/push* evt/flags and FFFFh]
+		EVT_MENU   [
+			idx: evt/flags and FFFFh
+			either idx = 65535 [none/push][word/push* idx]
+		]
 		EVT_SCROLL [
 			integer/push get-track-pos msg/hWnd msg/msg = WM_VSCROLL
 		]
@@ -600,7 +611,7 @@ process-command-event: func [
 		]
 	]
 	child: as handle! lParam
-	unless null? current-msg [saved: current-msg/hWnd]
+	either null? current-msg [init-current-msg][saved: current-msg/hWnd]
 
 	switch WIN32_HIWORD(wParam) [
 		BN_CLICKED [
@@ -685,7 +696,6 @@ process-command-event: func [
 			]
 		]
 		STN_CLICKED [
-			init-current-msg
 			current-msg/hWnd: child
 			make-event current-msg 0 EVT_LEFT_DOWN
 		]
@@ -699,21 +709,46 @@ paint-background: func [
 	hDC		[handle!]
 	return: [logic!]
 	/local
-		rect   [RECT_STRUCT value]
-		hBrush [handle!]
-		color  [integer!]
+		rect 	[RECT_STRUCT value]
+		brush	[integer!]
+		hBrush 	[handle!]
+		color 	[red-tuple!]
+		gdiclr 	[integer!]
+		graphic	[integer!]
+		values 	[red-value!]
 ][
-	color: to-bgr as node! GetWindowLong hWnd wc-offset + 4 FACE_OBJ_COLOR
-	either color = -1 [
-		either (GetWindowLong hWnd GWL_STYLE) and WS_CHILD = 0 [
+	values: get-face-values hWnd
+	color: as red-tuple! values + FACE_OBJ_COLOR
+
+	either win8+? [
+		;-- use plain old GDI fill when it's possible
+		either TYPE_OF(color) = TYPE_TUPLE [
+			hBrush: CreateSolidBrush color/array1 and 00FFFFFFh
+		][
+			if (GetWindowLong hWnd GWL_STYLE) and WS_CHILD <> 0 [return false]
 			hBrush: GetSysColorBrush COLOR_3DFACE
-		][return false]
+		]
+		GetClientRect hWnd rect
+		FillRect hDC rect hBrush
+		if TYPE_OF(color) = TYPE_TUPLE [DeleteObject hBrush]
 	][
-		hBrush: CreateSolidBrush color
+		;-- GDI+ alpha aware fill is required for W7 layered windows capture via OS-to-image
+		either TYPE_OF(color) = TYPE_TUPLE [
+			gdiclr: color/array1
+		][
+			if (GetWindowLong hWnd GWL_STYLE) and WS_CHILD <> 0 [return false]
+			gdiclr: GetSysColor COLOR_3DFACE
+		]
+		gdiclr: to-gdiplus-color-fixed gdiclr
+		brush: 0
+		GdipCreateSolidFill gdiclr :brush
+
+		graphic: 0
+		GdipCreateFromHDC hDC :graphic
+		GetClientRect hWnd rect
+		GdipFillRectangleI graphic brush 0 0 rect/right - rect/left rect/bottom - rect/top
+		GdipDeleteBrush brush
 	]
-	GetClientRect hWnd rect
-	FillRect hDC rect hBrush
-	DeleteObject hBrush
 	true
 ]
 
@@ -782,6 +817,9 @@ process-custom-draw: func [
 bitblt-memory-dc: func [
 	hWnd	[handle!]
 	alpha?	[logic!]
+	dc		[handle!]
+	dstx	[integer!]
+	dsty	[integer!]
 	/local
 		rect	[RECT_STRUCT value]
 		width	[integer!]
@@ -789,9 +827,9 @@ bitblt-memory-dc: func [
 		hBackDC [handle!]
 		ftn		[integer!]
 		bf		[tagBLENDFUNCTION]
-		dc		[handle!]
+		paint? 	[logic!]
 ][
-	dc: BeginPaint hWnd paint
+	if dc = null [dc: BeginPaint hWnd paint  paint?: yes]
 	hBackDC: as handle! GetWindowLong hWnd wc-offset - 4
 	GetClientRect hWnd rect
 	width: rect/right - rect/left
@@ -803,11 +841,11 @@ bitblt-memory-dc: func [
 		bf/BlendFlags: as-byte 0
 		bf/SourceConstantAlpha: as-byte 255
 		bf/AlphaFormat: as-byte 1
-		AlphaBlend dc 0 0 width height hBackDC 0 0 width height ftn
+		AlphaBlend dc dstx dsty width height hBackDC 0 0 width height ftn
 	][
-		BitBlt dc 0 0 width height hBackDC 0 0 SRCCOPY
+		BitBlt dc dstx dsty width height hBackDC 0 0 SRCCOPY
 	]
-	EndPaint hWnd paint
+	if paint? [EndPaint hWnd paint]
 ]
 
 screen-to-client: func [
@@ -912,8 +950,11 @@ update-window: func [
 					type = rich-text
 					(GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D <> 0
 				][
-					d2d-release-target as int-ptr! GetWindowLong hWnd wc-offset - 24
-					SetWindowLong hWnd wc-offset - 24 0
+					len: GetWindowLong hWnd wc-offset - 24
+					if len <> 0 [
+						d2d-release-target as int-ptr! len
+						SetWindowLong hWnd wc-offset - 24 0
+					]
 				]
 				type = group-box [
 					0
@@ -991,6 +1032,7 @@ WndProc: func [
 		flt	   [float!]
 		flags  [integer!]
 		miniz? [logic!]
+		font?  [logic!]
 ][
 	type: either no-face? hWnd [panel][			;@@ remove this test, create a WndProc for panel?
 		values: get-face-values hWnd
@@ -1003,8 +1045,8 @@ WndProc: func [
 			store-face-to-hWnd hWnd as red-object! p-int/value
 		]
 		WM_WINDOWPOSCHANGED [
-			if all [not win8+? type = window][
-				winpos: as tagWINDOWPOS lParam
+			winpos: as tagWINDOWPOS lParam
+			if all [not win8+? type = window winpos/x > -9999 winpos/y > -9999][
 				pt: screen-to-client hWnd winpos/x winpos/y
 				pos: GetWindowLong hWnd wc-offset - 8
 				pt/x: winpos/x - pt/x - WIN32_LOWORD(pos)
@@ -1038,11 +1080,6 @@ WndProc: func [
 					][FACE_OBJ_SIZE]
 					if miniz? [return 0]
 
-					offset: as red-pair! values + type
-					offset/header: TYPE_PAIR
-					offset/x: WIN32_LOWORD(lParam) * 100 / dpi-factor
-					offset/y: WIN32_HIWORD(lParam) * 100 / dpi-factor
-
 					modal-loop-type: either msg = WM_MOVE [
 						SetWindowLong hWnd wc-offset - 8 lParam
 						EVT_MOVING
@@ -1050,6 +1087,11 @@ WndProc: func [
 					current-msg/hWnd: hWnd
 					current-msg/lParam: lParam
 					make-event current-msg 0 modal-loop-type
+
+					offset: as red-pair! values + type
+					offset/header: TYPE_PAIR
+					offset/x: WIN32_LOWORD(lParam) * 100 / dpi-factor
+					offset/y: WIN32_HIWORD(lParam) * 100 / dpi-factor
 
 					values: values + FACE_OBJ_STATE
 					if all [
@@ -1093,7 +1135,21 @@ WndProc: func [
 			]
 		]
 		WM_ACTIVATE [
-			if all [type = window WIN32_LOWORD(wParam) <> 0][set-selected-focus hWnd return 0]
+			if type = window [
+				either WIN32_LOWORD(wParam) <> 0 [
+					if current-msg <> null [
+						current-msg/hWnd: hWnd
+						make-event current-msg 0 EVT_FOCUS
+					]
+					set-selected-focus hWnd
+					return 0
+				][
+					if current-msg <> null [
+						current-msg/hWnd: hWnd
+						make-event current-msg 0 EVT_UNFOCUS
+					]
+				]
+			]
 		]
 		WM_GESTURE [
 			handle: hWnd
@@ -1210,7 +1266,7 @@ WndProc: func [
 				either zero? GetWindowLong hWnd wc-offset - 4 [
 					do-draw hWnd null draw no yes yes yes
 				][
-					bitblt-memory-dc hWnd no
+					bitblt-memory-dc hWnd no null 0 0
 				]
 				return 0
 			]
@@ -1223,11 +1279,18 @@ WndProc: func [
 			handle: get-widget-handle current-msg
 			brush: null
 			if handle <> as handle! -1 [
+				font?: no
 				font: (as red-object! get-face-values handle) + FACE_OBJ_FONT
 				if TYPE_OF(font) = TYPE_OBJECT [
 					color: to-bgr font/ctx FONT_OBJ_COLOR
 					if color <> -1 [
+						font?: yes
 						SetTextColor as handle! wParam color
+					]
+				]
+				color: to-bgr as node! GetWindowLong handle wc-offset + 4 FACE_OBJ_COLOR
+				either color = -1 [
+					if font? [
 						brush: either msg = WM_CTLCOLORSTATIC [
 							SetBkMode as handle! wParam BK_TRANSPARENT
 							GetSysColorBrush COLOR_3DFACE
@@ -1235,16 +1298,13 @@ WndProc: func [
 							GetStockObject DC_BRUSH
 						]
 					]
-				]
-				color: to-bgr as node! GetWindowLong handle wc-offset + 4 FACE_OBJ_COLOR
-				if color <> -1 [
+				][
 					SetBkColor as handle! wParam color
+					unless font? [SetTextColor as handle! wParam GetSysColor COLOR_WINDOWTEXT]
 					SetDCBrushColor as handle! wParam color
 					brush: GetStockObject DC_BRUSH
 				]
-				unless null? brush [
-					return as-integer brush
-				]
+				if brush <> null [return as-integer brush]
 			]
 		]
 		WM_SETCURSOR [
@@ -1304,6 +1364,13 @@ WndProc: func [
 				type = window
 				TYPE_OF(values) = TYPE_BLOCK
 			][update-window as red-block! values null]
+			if hidden-hwnd <> null [
+				values: (get-face-values hidden-hwnd) + FACE_OBJ_EXT3
+				values/header: TYPE_NONE
+				target: as int-ptr! GetWindowLong hidden-hwnd wc-offset - 24
+				if target <> null [d2d-release-target target]
+				SetWindowLong hidden-hwnd wc-offset - 24 0
+			]
 			RedrawWindow hWnd null null 4 or 1			;-- RDW_ERASE | RDW_INVALIDATE
 		]
 		WM_THEMECHANGED [set-defaults]
@@ -1327,7 +1394,6 @@ process: func [
 		x	   [integer!]
 		y	   [integer!]
 		track  [tagTRACKMOUSEEVENT value]
-		evt?   [logic!]
 ][
 	switch msg/msg [
 		WM_MOUSEMOVE [
@@ -1344,26 +1410,20 @@ process: func [
 			]
 			saved: msg/hWnd
 			new: get-child-from-xy msg/hWnd x y
-			
-			evt?: all [hover-saved <> null hover-saved <> new]
-			
-			if all [evt? IsWindowEnabled hover-saved] [
-				msg/hWnd: hover-saved
-				make-event msg EVT_FLAG_AWAY EVT_OVER
-			]
 			if all [
 				IsWindowEnabled new
 				any [
-					evt?
+					hover-saved <> new
 					(get-face-flags new) and FACET_FLAGS_ALL_OVER <> 0
-					null? hover-saved
 				]
 			][
-				track/cbSize: size? tagTRACKMOUSEEVENT
-				track/dwFlags: 2						;-- TME_LEAVE
-				track/hwndTrack: new
-				TrackMouseEvent :track
-				msg/hWnd: new
+				if hover-saved <> new [
+					track/cbSize: size? tagTRACKMOUSEEVENT
+					track/dwFlags: 2					;-- TME_LEAVE
+					track/hwndTrack: new
+					TrackMouseEvent :track
+					msg/hWnd: new
+				]
 				make-event msg 0 EVT_OVER
 			]
 			hover-saved: new
@@ -1371,11 +1431,8 @@ process: func [
 			EVT_DISPATCH
 		]
 		WM_MOUSELEAVE [
-			saved: msg/hWnd
-			msg/hWnd: hover-saved
 			make-event msg EVT_FLAG_AWAY EVT_OVER
-			hover-saved: null
-			msg/hWnd: saved
+			if msg/hWnd = hover-saved [hover-saved: null]
 			EVT_DISPATCH
 		]
 		WM_MOUSEWHELL [
@@ -1395,17 +1452,17 @@ process: func [
 		WM_RBUTTONDOWN	[
 			if GetCapture <> null [return EVT_DISPATCH]
 			lParam: msg/lParam
+			menu-x: WIN32_LOWORD(lParam)
+			menu-y: WIN32_HIWORD(lParam)
 			pt: declare tagPOINT
-			pt/x: WIN32_LOWORD(lParam)
-			pt/y: WIN32_HIWORD(lParam)
+			pt/x: menu-x
+			pt/y: menu-y
 			ClientToScreen msg/hWnd pt
 			menu-origin: null
 			menu-ctx: null
-			either show-context-menu msg pt/x pt/y [
-				EVT_NO_DISPATCH
-			][
-				make-event msg 0 EVT_RIGHT_DOWN
-			]
+			res: make-event msg 0 EVT_RIGHT_DOWN
+			if show-context-menu msg pt/x pt/y [res: EVT_NO_DISPATCH]
+			res
 		]
 		WM_RBUTTONUP	[make-event msg 0 EVT_RIGHT_UP]
 		WM_MBUTTONDOWN	[make-event msg 0 EVT_MIDDLE_DOWN]
@@ -1428,7 +1485,7 @@ process: func [
 		WM_SYSKEYUP
 		WM_KEYUP		[make-event msg 0 EVT_KEY_UP]
 		WM_SYSKEYDOWN	[make-event msg 0 EVT_KEY_DOWN]
-		WM_CHAR			[make-event msg 0 EVT_KEY]
+		WM_CHAR			[special-key: -1 make-event msg 0 EVT_KEY]
 		WM_LBUTTONDBLCLK [
 			menu-origin: null							;-- reset if user clicks on menu bar
 			menu-ctx: null
@@ -1451,8 +1508,9 @@ do-events: func [
 ][
 	msg: declare tagMSG
 	msg?: no
-	exit-loop: 0
-	
+
+	unless no-wait? [exit-loop: 0]
+
 	while [
 		either no-wait? [
 			0 < PeekMessage msg null 0 0 1

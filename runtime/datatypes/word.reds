@@ -30,8 +30,15 @@ word: context [
 	load: func [
 		str 	[c-string!]
 		return:	[red-word!]
+		/local
+			w	[red-word!]
 	][
-		_context/add-global-word symbol/make str yes yes
+		w: _context/add-global-word symbol/make str yes yes
+		either red/boot? [
+			as red-word! copy-cell as red-value! w ALLOC_TAIL(root)
+		][
+			w
+		]
 	]
 	
 	make-at: func [

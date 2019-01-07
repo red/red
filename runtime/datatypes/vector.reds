@@ -635,10 +635,11 @@ vector: context [
 			s	[series!]
 	][
 		vec: as red-vector! slot
-		vec/header: TYPE_VECTOR							;-- implicit reset of all header flags
+		vec/header: TYPE_UNSET
 		vec/head: 	0
 		vec/node: 	alloc-bytes size * unit
 		vec/type:	type
+		vec/header: TYPE_VECTOR							;-- implicit reset of all header flags
 		
 		s: GET_BUFFER(vec)
 		s/flags: s/flags and flag-unit-mask or unit
@@ -681,7 +682,7 @@ vector: context [
 		
 		switch type [
 			TYPE_INTEGER
-			TYPE_FLOAT [type: TYPE_INTEGER size: GET_SIZE_FROM(spec)]
+			TYPE_FLOAT [type: TYPE_INTEGER GET_INT_FROM(size spec)]
 			TYPE_BLOCK [
 				size:  block/rs-length? as red-block! spec
 				either zero? size [

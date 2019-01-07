@@ -14,7 +14,7 @@ d2d-factory:	as this! 0
 dwrite-factory: as this! 0
 dw-locale-name: as c-string! 0
 
-dwrite-str-cache: as c-string! 0
+dwrite-str-cache: as node! 0
 
 #define D2D_MAX_BRUSHES 64
 
@@ -140,6 +140,14 @@ DrawLine*: alias function! [
 	style		[integer!]
 ]
 
+DrawRectangle*: alias function! [
+	this		[this!]
+	rect		[D2D_RECT_F]
+	brush		[integer!]
+	strokeWidth [float32!]
+	strokeStyle [integer!]
+]
+
 FillRectangle*: alias function! [
 	this		[this!]
 	rect		[D2D_RECT_F]
@@ -261,7 +269,7 @@ ID2D1HwndRenderTarget: alias struct! [
 	CreateLayer						[integer!]
 	CreateMesh						[integer!]
 	DrawLine						[DrawLine*]
-	DrawRectangle					[integer!]
+	DrawRectangle					[DrawRectangle*]
 	FillRectangle					[FillRectangle*]
 	DrawRoundedRectangle			[integer!]
 	FillRoundedRectangle			[integer!]
@@ -701,8 +709,6 @@ put-brush: func [
 
 DX-init: func [
 	/local
-		node				[node!]
-		s					[series!]
 		hr					[integer!]
 		factory 			[integer!]
 		dll					[handle!]
@@ -730,9 +736,7 @@ DX-init: func [
 	hr: DWriteCreateFactory 0 IID_IDWriteFactory :factory		;-- DWRITE_FACTORY_TYPE_SHARED: 0
 	assert zero? hr
 	dwrite-factory: as this! factory
-	node: alloc-bytes 1024
-	s: as series! node/value
-	dwrite-str-cache: as-c-string s/offset
+	dwrite-str-cache: alloc-bytes 1024
 ]
 
 DX-cleanup: func [/local unk [IUnknown]][
@@ -827,7 +831,7 @@ get-hwnd-render-target: func [
 ][
 	target: as int-ptr! GetWindowLong hWnd wc-offset - 24
 	if null? target [
-		target: as int-ptr! allocate 8 * size? int-ptr!
+		target: as int-ptr! allocate 4 * size? int-ptr!
 		target/1: as-integer create-hwnd-render-target hWnd
 		target/2: as-integer allocate D2D_MAX_BRUSHES * 2 * size? int-ptr!
 		target/3: 0
@@ -953,7 +957,7 @@ create-text-format: func [
 	format: 0
 	factory: as IDWriteFactory dwrite-factory/vtbl
 	factory/CreateTextFormat dwrite-factory name 0 weight style 5 size dw-locale-name :format
-	if save? [integer/make-at as red-value! h-font format]
+	if save? [handle/make-at as red-value! h-font format]
 	format
 ]
 
@@ -1006,7 +1010,9 @@ set-tab-size: func [
 
 set-line-spacing: func [
 	fmt		[this!]
+	int		[red-integer!]
 	/local
+		IUnk			[IUnknown]
 		dw				[IDWriteFactory]
 		lay				[integer!]
 		layout			[this!]
@@ -1020,17 +1026,21 @@ set-line-spacing: func [
 		tf				[IDWriteTextFormat]
 		dl				[IDWriteTextLayout]
 		lm				[DWRITE_LINE_METRICS]
+		type			[integer!]
 ][
+	type: TYPE_OF(int)
+	if all [type <> TYPE_INTEGER type <> TYPE_FLOAT][exit]
+
 	left: 73 lineCount: 0 lay: 0 
 	dw: as IDWriteFactory dwrite-factory/vtbl
 	dw/CreateTextLayout dwrite-factory as c-string! :left 1 fmt FLT_MAX FLT_MAX :lay
-
 	layout: as this! lay
 	dl: as IDWriteTextLayout layout/vtbl
 	lm: as DWRITE_LINE_METRICS :left
 	dl/GetLineMetrics layout lm 1 :lineCount
 	tf: as IDWriteTextFormat fmt/vtbl
-	tf/SetLineSpacing fmt 1 lm/height + as float32! 1.0 lm/baseline
+	tf/SetLineSpacing fmt 1 get-float32 int lm/baseline
+	COM_SAFE_RELEASE(IUnk layout)
 ]
 
 create-text-layout: func [
@@ -1054,6 +1064,7 @@ create-text-layout: func [
 		dwrite-str-cache: text/cache
 	][
 		str: ""
+		len: 0
 	]
 	lay: 0
 	w: either zero? width  [FLT_MAX][as float32! width]
@@ -1142,4 +1153,17 @@ render-text-d2d: func [
 	][
 		false
 	]
+]
+
+render-target-lost?: func [
+	target	[this!]
+	return: [logic!]
+	/local
+		rt	 [ID2D1HwndRenderTarget]
+		hr	 [integer!]
+][
+	rt: as ID2D1HwndRenderTarget target/vtbl
+	rt/BeginDraw target
+	rt/Clear target to-dx-color 0 null
+	0 <> rt/EndDraw target null null
 ]

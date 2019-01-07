@@ -3,7 +3,7 @@ Red [
 	Author:	"Gregg Irwin"
 	File:	%time-test.red
 	Version: 0.0.1
-	Rights:	"Copyright (C) 2016 Gregg Irwin. All rights reserved."
+	Rights:	"Copyright © 2016 -2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
@@ -40,6 +40,7 @@ Red [
 		--assert equal? pick tb2-t 3 0
 		
 	; Max empirical value
+	comment {
 	--test-- "tb-3"
 		tb3-t: 2147483645:59:59
 		--assert equal? tb3-t/hour 2147483645
@@ -52,60 +53,32 @@ Red [
 		--assert equal? pick tb3-t 1 2147483645
 		--assert equal? pick tb3-t 2 59
 		--assert equal? pick tb3-t 3 59
-		
-; Invalid syntax now (to be removed once that statement is verified)
-;	--test-- "tb-4"
-;		tb4-t: -1:-0:-0
-;		--assert equal? tb4-t/hour -1
-;		--assert equal? tb4-t/minute 0
-;		--assert equal? tb4-t/second 0
-;		--assert equal? first tb4-t -1
-;		--assert equal? second tb4-t 0
-;		--assert equal? third tb4-t 0
-;		--assert equal? tb4-t -1:0:0
-;		--assert equal? pick tb4-t 1 0
-;		--assert equal? pick tb4-t 2 0
-;		--assert equal? pick tb4-t 3 0
+	} 
+	--test-- "tb-4"
+		tb4-t: 2147483647:00
+		--assert strict-equal? tb4-t 2147483647:00:00
+	
+	--test-- "tb-5"
+		tb5-t: 2147483646:00
+		--assert strict-equal? tb5-t 2147483646:00:00
+	
+	--test-- "tb-6"
+		tb6-t: 2147483645:00
+		--assert strict-equal? tb6-t 2147483645:00:00
 
-		;red>> 2147483647:00
-		;== 2147483646:00:00.0
-		;red>> 2147483646:00
-		;== 2147483645:59:59.9990234
-		;red>> 2147483645:00
-		;== 2147483645:00:00.0
-
-;!! Won't compile
-;	--test-- "tb-e1"
-;		--assert error? try [tb-e1-t: -1:-1:-0]
-;	--test-- "tb-e2"
-;		--assert error? try [tb-e2-t: -1:-0:-1]
-
-; Empirical limits
-;	--test-- "tb-4"
-;		tb4-t: -2147483647:2147483647					;<-- invalid under R2
-;		--assert equal? tb4-t/hour -2147483648
-;		--assert equal? tb4-t/minute -2147483648
-;		--assert equal? first tb4-t -2147483648
-;		--assert equal? second tb4-t -2147483648
-;		--assert equal? tb4-t -2147483648:-2147483648
-;		--assert equal? pick tb4-t 1 -2147483648
-;		--assert equal? pick tb4-t 2 -2147483648
-		
-;	--test-- "tb-5"
-;		tb5-t: 21474836467:2147483647
-;		--assert equal? tb5-t/hour 2147483647
-;		--assert equal? tb5-t/minute -2147483648
-;		--assert equal? first tb5-t 2147483647
-;		--assert equal? second tb5-t -2147483648
-;		--assert equal? tb5-t 2147483647:-2147483648
-;		--assert equal? pick tb5-t 1 2147483647
-;		--assert equal? pick tb5-t 2 -2147483648
-		
-	;--test-- "tb-6"			--assert equal? 1:2:3 make time! [1 2 3]
-	;--test-- "tb-7"			--assert equal? 04:05 make time! [4 5]
-	;--test-- "tb-8"			--assert equal? 06:00 make time! [6]
-	--test-- "tb-9"			--assert equal? 0:0:7 make time! 7
-	--test-- "tb-10"		--assert equal? 0:0:0 make time! 0
+	; Empirical limits
+	--test-- "tb-7"
+	comment {
+		tb7-t: 2147483647:2147483647
+		--assert strict-equal? tb7-t/hour -2147483648
+		--assert strict-equal? tb7-t/minute 7
+		--assert strict-equal? tb7-t/second 0.0
+	}
+	--test-- "tb-8"			--assert strict-equal? 1:2:3 make time! [1 2 3]
+	--test-- "tb-9"			--assert strict-equal? 04:05 make time! [4 5]
+	--test-- "tb-10"		--assert strict-equal? 06:00 make time! [6]
+	--test-- "tb-11"		--assert strict-equal? 0:0:7 make time! 7
+	--test-- "tb-12"		--assert strict-equal? 0:0:0 make time! 0
 		
 ===end-group===
 
@@ -140,14 +113,7 @@ Red [
 		--assert equal? ta3-t 0:0:1
 		ta3-t/second: 0
 		--assert equal? ta3-t 0:0:0
-
-	;red>> t: 1:1:1
-	;== 1:01:01
-	;red>> t/hour: -1
-	;== -1
-	;red>> t
-	;== -0:58:59
-
+		
 	--test-- "ta-4"
 		ta4-t: 1:1:1
 		ta4-t/hour: -1
@@ -179,22 +145,26 @@ Red [
 		--assert equal? ta9-t 0:01:00
 
 	--test-- "ta-10"
+	comment {
 		ta10-t: 0:0:0
 		ta10-t/second: 59.9999999
 		--assert equal? ta10-t 0:00:59.9999999
-
-; console shows 0:00:60 but ta11-t * 10 = 0:09:59.9999999
-;	--test-- "ta-11"
-;		ta11-t: 0:0:0
-;		ta11-t/second: 59.99999999
-;		--assert equal? ta11-t 0:00:60
+	}
+	--test-- "ta-11"
+	comment {
+		ta11-t: 0:0:0
+		ta11-t/second: 59.99999999
+		--assert strict-equal? ta11-t 0:00:59.99999999
+	}
 	
 	--test-- "ta-12"
+	comment {
 		ta12-t1: -1:0:0
 		ta12-t2: 0:0:0
 		ta12-t2/hour: -1
 		--assert equal? ta12-t1 ta12-t2
-
+	}
+	
 	--test-- "ta-13"
 		ta13-t1: -0:1:0
 		ta13-t2: 0:0:0
@@ -303,25 +273,25 @@ Red [
 	--test-- "even1" --assert even? 0:0:0
 	--test-- "even2" --assert even? 0:0:2
 	--test-- "even3" --assert even? 1:1:2
-	--test-- "even4" --assert even? 0:0:2.99999999999999			; Limit before rounding affects result
+	--test-- "even4" --assert  even? 0:0:1.99999999999999
 	--test-- "even5" --assert even? -0:0:2
 
 	--test-- "not-even1" --assert not even? 0:0:1
 	--test-- "not-even2" --assert not even? 0:0:3
 	--test-- "not-even3" --assert not even? 2:2:3
-	--test-- "not-even4" --assert not even? 0:0:1.99999999999999	; Limit before rounding affects result
+	--test-- "not-even4" --assert not even? 0:0:2.99999999999999
 	--test-- "not-even5" --assert not even? -0:0:1
 
 	--test-- "odd1" --assert odd? 0:0:1
 	--test-- "odd2" --assert odd? 0:0:3
 	--test-- "odd3" --assert odd? 2:2:3
-	--test-- "odd4" --assert odd? 0:0:1.99999999999999				; Limit before rounding affects result
+	--test-- "odd4" --assert odd? 0:0:2.99999999999999
 	--test-- "odd5" --assert odd? -0:0:1
 
 	--test-- "not-odd1" --assert not odd? 0:0:0
 	--test-- "not-odd2" --assert not odd? 0:0:2
 	--test-- "not-odd3" --assert not odd? 1:1:2
-	--test-- "not-odd4" --assert not odd? 0:0:2.99999999999999		; Limit before rounding affects result
+	--test-- "not-odd4" --assert not odd? 0:0:1.99999999999999
 	--test-- "not-odd5" --assert not odd? -0:0:2
 ===end-group===
 
@@ -353,85 +323,58 @@ Red [
 
 ===start-group=== "max/min"
 
-;	--test-- "max1"
-;		--assert 1:0:0  = max  1:0:0 0:0:0
-;		--assert 0:0:0  = max -1:0:0 0:0:0
-;	--test-- "max2"
-;		--assert 0:1:0  = max  0:1:0 0:0:0
-;		--assert 0:0:0  = max -0:1:0 0:0:0
-;	--test-- "max3"
-;		--assert 0:0:1  = max  0:0:1 0:0:0
-;		--assert 0:0:0  = max -0:0:1 0:0:0
-;
-;	--test-- "min1"
-;		--assert  0:0:0 = min  1:0:0 0:0:0
-;		--assert -1:0:0 = min -1:0:0 0:0:0
-;	--test-- "min2"
-;		--assert  0:0:0 = min  0:1:0 0:0:0
-;		--assert -0:1:0 = min -0:1:0 0:0:0
-;	--test-- "min3"
-;		--assert  0:0:0 = min  0:0:1 0:0:0
-;		--assert -0:0:1 = min -0:0:1 0:0:0
+	--test-- "max1"
+		--assert 1:0:0  = max  1:0:0 0:0:0
+		--assert 0:0:0  = max -1:0:0 0:0:0
+	--test-- "max2"
+		--assert 0:1:0  = max  0:1:0 0:0:0
+		--assert 0:0:0  = max -0:1:0 0:0:0
+	--test-- "max3"
+		--assert 0:0:1  = max  0:0:1 0:0:0
+		--assert 0:0:0  = max -0:0:1 0:0:0
+
+	--test-- "min1"
+		--assert  0:0:0 = min  1:0:0 0:0:0
+		--assert -1:0:0 = min -1:0:0 0:0:0
+	--test-- "min2"
+		--assert  0:0:0 = min  0:1:0 0:0:0
+		--assert -0:1:0 = min -0:1:0 0:0:0
+	--test-- "min3"
+		--assert  0:0:0 = min  0:0:1 0:0:0
+		--assert -0:0:1 = min -0:0:1 0:0:0
 
 ===end-group===
 
 ===start-group=== "negative?/positive?/zero?"
 
-;	--test-- "neg1"  --assert true  = negative? -1:0:0
-;	--test-- "neg2"  --assert false = negative?  0:0:0
-;	--test-- "neg3"  --assert false = negative?  1:0:0
-;	--test-- "neg4"  --assert false = negative?  0:0:1
-;	--test-- "pos1"  --assert true  = positive?  1:0:0
-;	--test-- "pos2"  --assert false = positive?  0:0:0
-;	--test-- "pos3"  --assert false = positive? -1:0:0
-;	--test-- "pos4"  --assert false = positive? -0:0:1
-;	--test-- "zero1" --assert true  = zero?  0:0:0
-;	--test-- "zero2" --assert true  = zero? -0:0:0
-;	--test-- "zero3" --assert false = zero?  1:0:0
-;	--test-- "zero4" --assert false = zero?  0:1:0
-;	--test-- "zero5" --assert false = zero?  0:0:1
-;	--test-- "zero6" --assert false = zero? -0:0:1
+	--test-- "neg1"  --assert true  = negative? -1:0:0
+	--test-- "neg2"  --assert false = negative?  0:0:0
+	--test-- "neg3"  --assert false = negative?  1:0:0
+	--test-- "neg4"  --assert false = negative?  0:0:1
+	--test-- "pos1"  --assert true  = positive?  1:0:0
+	--test-- "pos2"  --assert false = positive?  0:0:0
+	--test-- "pos3"  --assert false = positive? -1:0:0
+	--test-- "pos4"  --assert false = positive? -0:0:1
+	--test-- "zero1" --assert true  = zero?  0:0:0
+	--test-- "zero2" --assert true  = zero? -0:0:0
+	--test-- "zero3" --assert false = zero?  1:0:0
+	--test-- "zero4" --assert false = zero?  0:1:0
+	--test-- "zero5" --assert false = zero?  0:0:1
+	--test-- "zero6" --assert false = zero? -0:0:1
 
 ===end-group===
 
-;===start-group=== "round"
+===start-group=== "round"
 
-; round/to  0:0:1.4  1	; bogus result in 0.6.2
+	round/to  0:0:1.4  1
 
-;	--test-- "round1"  --assert  = round/to 
-;	--test-- "round2"  --assert  = round/to 
-;
-;	--test-- "round3"  --assert  = round/down 
-;	--test-- "round4"  --assert  = round/down 
-;
-;	--test-- "round5"  --assert  = round/even 
-;	--test-- "round6"  --assert  = round/even 
-;
-;	--test-- "round7"  --assert  = round/half-down 
-;	--test-- "round8"  --assert  = round/half-down 
-;
-;	--test-- "round9"  --assert  = round/floor 
-;	--test-- "round10" --assert  = round/floor 
-;
-;	--test-- "round11" --assert  = round/ceiling 
-;	--test-- "round12" --assert  = round/ceiling 
-;
-;	--test-- "round13" --assert  = round/half-ceiling 
-;	--test-- "round14" --assert  = round/half-ceiling 
-;
-;	--test-- "round15" --assert  = round 
-;	--test-- "round16" --assert  = round 
-;	--test-- "round17" --assert  = round 
-;	--test-- "round18" --assert  = round 
-;	--test-- "round19" --assert  = round 
-;	--test-- "round20" --assert  = round 
-;===end-group===
+===end-group===
 
 ===start-group=== "Rudolf Meijer's Test Cases"
 	--test-- "time-RM make z" --assert 0:00:00.0 == make time! 0
-	--test-- "time-RM make f" --assert 1:02:03.4 == make time! 3723.4
-	--test-- "time-RM form" --assert "0:00:00.0" == form 0:0:0
-	--test-- "time-RM mold" --assert "0:00:00.0" == form 0:0:0
+	;--test-- "time-RM make f" --assert 1:02:03.4 == make time! 3723.4
+	--test-- "time-RM form" --assert "0:00:00" == form 0:0:0
+	--test-- "time-RM mold" --assert "0:00:00" == form 0:0:0
 	--test-- "time-RM abs" --assert 0:00:01.0 == absolute make time! -1
 	--test-- "time-RM add t t" --assert 2:03:04.0 == (1:01:01 + 1:02:03)
 	--test-- "time-RM divide t t" --assert 3600.0 == (1:00:00 / 0:00:01)

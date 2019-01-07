@@ -1010,15 +1010,19 @@ make-profilable make target-class [
 		/options option [word!]
 		/masks mask [word!]
 		/cword
+		/status
 		/local value bit 
 	][
-		unless type [
+		unless any [type status][
 			emit-i32 #{eef10a10}					;-- FMRX r0, FPSCR
 		]
 		case [
 			type [
 				; hardcoded value for now (FPU_VFP)
 				emit-load-imm32 3					;-- MOV r0, <FPU_TYPE_VFP>
+			]
+			status [
+				emit-i32 #{E200005F}				;-- AND r0, 5Fh		; only exception bits
 			]
 			options [
 				set [value bit] switch/default option [
@@ -1045,7 +1049,7 @@ make-profilable make target-class [
 			]
 			;cword []									;-- control word is already in eax
 		]
-		unless any [type cword][						;-- align result on right side
+		unless any [type cword status][					;-- align result on right side
 			emit-i32 #{e1a00020} or to-shift-imm bit	;-- LSR r0, r0, #bit
 			if masks [emit-i32 #{e2200001}]				;-- EOR r0, #1		; invert 0<=>1
 		]

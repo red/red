@@ -36,7 +36,16 @@ system: context [
 		__make-sys-object
 	]
 
-	platform: #system [__get-OS-info]
+	platform: func ["Return a word identifying the operating system"][
+		#system [
+			#switch OS [
+				Windows  [SET_RETURN(words/_windows)]
+				Syllable [SET_RETURN(words/_syllable)]
+				macOS	 [SET_RETURN(words/_macOS)]
+				#default [SET_RETURN(words/_linux)]
+			]
+		]
+	]
 
 	catalog: context [
 		datatypes:
@@ -227,6 +236,14 @@ system: context [
 				;extension-init:	["extension cannot be initialized (check version):" :arg1]
 				;call-fail:			["external process failed:" :arg1]
 			]
+			reserved1: object [
+				code:				600
+				type:				"Reserved1 Error"
+			]
+			reserved2: object [
+				code:				700
+				type:				"Reserved2 Error"
+			]
 			user: object [
 				code:				800
 				type:				"User Error"
@@ -244,6 +261,7 @@ system: context [
 				;limit-hit:			["internal limit reached:" :arg1]
 				;bad-sys-func:		["invalid or missing system function:" :arg1]
 				too-deep:			"block or paren series is too deep to display"
+				no-cycle:			"circular reference not allowed"
 				feature-na:			"feature not available"
 				not-done:			"reserved for future use (or not yet implemented)"
 				invalid-error:		["invalid error object field value:" :arg1]

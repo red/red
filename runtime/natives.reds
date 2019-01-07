@@ -297,6 +297,7 @@ natives: context [
 		
 		either TYPE_OF(value) = TYPE_BLOCK [
 			size: block/rs-length? as red-block! value
+			if 0 >= size [fire [TO_ERROR(script invalid-arg) value]]
 			
 			while [foreach-next-block size][			;-- foreach [..]
 				stack/reset
@@ -1026,13 +1027,8 @@ natives: context [
 	][
 		#typecheck [compose deep only into]
 		arg: stack/arguments
-		either TYPE_OF(arg) <> TYPE_BLOCK [					;-- pass-thru for non block! values
-			into?: into >= 0
-			stack/mark-native words/_body
-			if into? [as red-block! stack/push arg + into]
-			interpreter/eval-expression arg arg + 1 no yes no
-			if into? [actions/insert* -1 0 -1]
-			stack/unwind-last
+		either TYPE_OF(arg) <> TYPE_BLOCK [
+			fire [TO_ERROR(script expect-val) datatype/push TYPE_BLOCK datatype/push TYPE_OF(arg)]
 		][
 			stack/set-last
 				as red-value! compose-block
@@ -1058,12 +1054,12 @@ natives: context [
 				integer/box memory/total
 			]
 			info >= 0 [
-				blk: block/push* 5
+				blk: block/push-only* 5
 				memory-info blk 2
 				stack/set-last as red-value! blk
 			]
 			true [
-				integer/box memory/total
+				integer/box memory-info null 1
 			]
 		]
 	]
@@ -1415,14 +1411,15 @@ natives: context [
 
 		ret: as red-binary! data
 		ret/head: 0
-		ret/header: TYPE_BINARY
+		ret/header: TYPE_NONE
 		ret/node: switch base [
 			16 [binary/decode-16 p len unit]
 			2  [binary/decode-2  p len unit]
+			58 [binary/decode-58 p len unit]
 			64 [binary/decode-64 p len unit]
 			default [fire [TO_ERROR(script invalid-arg) int] null]
 		]
-		if ret/node = null [ret/header: TYPE_NONE]				;- RETURN_NONE
+		if ret/node <> null [ret/header: TYPE_BINARY]			;- if null, RETURN_NONE
 	]
 
 	enbase*: func [
@@ -1453,14 +1450,15 @@ natives: context [
 
 		ret: as red-binary! data
 		ret/head: 0
-		ret/header: TYPE_STRING
+		ret/header: TYPE_NONE
 		ret/node: switch base [
 			64 [binary/encode-64 p len]
+			58 [binary/encode-58 p len]
 			16 [binary/encode-16 p len]
 			2  [binary/encode-2  p len]
 			default [fire [TO_ERROR(script invalid-arg) int] null]
 		]
-		if ret/node = null [ret/header: TYPE_NONE]				;- RETURN_NONE
+		if ret/node <> null [ret/header: TYPE_STRING]	;-- ret/node = null, return NONE
 	]
 
 	negative?*: func [
@@ -1608,9 +1606,7 @@ natives: context [
 		p: string/to-hex arg/value no
 		part: either OPTION?(limit) [8 - limit/value][0]
 		if negative? part [part: 0]
-		buf: issue/load p + part
-
-		stack/set-last as red-value! buf
+		issue/make-at stack/arguments p + part
 	]
 
 	sine*: func [
@@ -1681,6 +1677,7 @@ natives: context [
 
 	arctangent2*: func [
 		check? [logic!]
+		radians [integer!]
 		/local
 			f	[red-float!]
 			n	[red-integer!]
@@ -1704,6 +1701,7 @@ natives: context [
 			x: f/value
 		]
 		f/value: atan2 y x
+		if radians < 0 [f/value: 180.0 / PI * f/value]			;-- to degrees
 		stack/set-last as red-value! f
 	]
 
@@ -1861,11 +1859,13 @@ natives: context [
 		/local
 			err	[red-object!]
 			id  [integer!]
+			type [integer!]
 	][
 		err: as red-object! stack/get-top
 		assert TYPE_OF(err) = TYPE_ERROR
-		id: error/get-type err
-		either id = words/errors/throw/symbol [			;-- check if error is of type THROW
+		id: error/get-id err
+		type: error/get-type err
+		either all [id = type id = words/errors/throw/symbol] [			;-- check if error is of type THROW
 			re-throw 									;-- let the error pass through
 		][
 			stack/adjust-post-try
@@ -2076,6 +2076,21 @@ natives: context [
 			TYPE_OBJECT [--NOT_IMPLEMENTED--]
 		]
 	]
+	
+	recycle*: func [
+		check? [logic!]
+		on?    [integer!]
+		off?   [integer!]
+	][
+		#typecheck [on? off?]
+		
+		case [
+			on?  > -1 [collector/active?: yes]
+			off? > -1 [collector/active?: no]
+			true	  [collector/do-mark-sweep]
+		]
+		unset/push-last
+	]
 
 	to-local-file*: func [
 		check? [logic!]
@@ -2175,7 +2190,7 @@ natives: context [
 			_with >= 0
 			any [type = crypto/_crc32 type = crypto/_tcp type = crypto/_adler32]
 		][
-			ERR_INVALID_REFINEMENT_ARG((refinement/load "with") method)
+			ERR_INVALID_REFINEMENT_ARG(refinements/_with method)
 		]
 		
 		;-- TCP and CRC32 ignore [/with spec] entirely. For these methods
@@ -2191,7 +2206,7 @@ natives: context [
 				TYPE_STRING TYPE_BINARY [
 					if type = crypto/_hash [
 						;-- /with 'spec arg for 'hash method must be an integer.
-						ERR_INVALID_REFINEMENT_ARG((refinement/load "with") spec)
+						ERR_INVALID_REFINEMENT_ARG(refinements/_with spec)
 					]
 					;-- If we get here, the method returns an HMAC (MD5 or SHA*).
 					either TYPE_OF(spec) = TYPE_STRING [
@@ -2219,7 +2234,7 @@ natives: context [
 			]
 		][												;-- /with was not used
 			either type = crypto/_hash [
-				ERR_INVALID_REFINEMENT_ARG((refinement/load "with") method)
+				ERR_INVALID_REFINEMENT_ARG(refinements/_with method)
 			][
 				;-- If we get here, the method returns a digest (MD5 or SHA*). 
 				b: crypto/get-digest data len crypto/alg-from-symbol type
@@ -2250,7 +2265,9 @@ natives: context [
 			tail: as red-word! block/rs-tail blk
 			
 			while [word < tail][
-				_context/set word unset-value
+				if TYPE_OF(word) = TYPE_WORD [
+					_context/set word unset-value
+				]
 				word: word + 1
 			]
 		]
@@ -2269,6 +2286,7 @@ natives: context [
 			bool [red-logic!]
 			s	 [series!]
 			step [integer!]
+			i	 [integer!]
 			nl?  [logic!]
 	][
 		#typecheck [new-line _all skip]
@@ -2289,13 +2307,15 @@ natives: context [
 				step: int/value
 			]
 			tail: s/tail
+			i: 0
 			while [cell < tail][
-				cell/header: either nl? [
-					cell/header or flag-new-line
-				][
+				cell/header: either nl? xor any [step = 1 zero? (i % step)][
 					cell/header and flag-nl-mask
+				][
+					cell/header or flag-new-line
 				]
-				cell: cell + step
+				cell: cell + 1
+				i: i + 1
 			]
 		][
 			cell/header: either nl? [
@@ -2974,7 +2994,7 @@ natives: context [
 		]
 		assert TYPE_OF(blk) = TYPE_BLOCK
 
-		result: loop? series
+		result: all [loop? series  size > 0]
 		if result [
 			switch type [
 				TYPE_STRING
@@ -3232,6 +3252,7 @@ natives: context [
 			:size?*
 			:browse*
 			:decompress*
+			:recycle*
 		]
 	]
 

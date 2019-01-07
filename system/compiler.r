@@ -65,6 +65,7 @@ system-dialect: make-profilable context [
 		red-strict-check?:	yes							;-- no => defers undefined word errors reporting at run-time
 		red-tracing?:		yes							;-- no => do not compile tracing code
 		red-help?:			no							;-- yes => keep doc-strings from boot.red
+		redbin-compress?:	yes							;-- yes => compress Redbin payload using custom CRUSH algorithm
 		legacy:				none						;-- block of optional OS legacy features flags
 		gui-console?:		no							;-- yes => redirect printing to gui console (temporary)
 		libRed?: 			no
@@ -3925,7 +3926,7 @@ system-dialect: make-profilable context [
 			]
 			set-verbose-level 0
 			if opts/runtime? [comp-runtime-epilog]
-			
+
 			set-verbose-level opts/verbosity
 			compiler/finalize							;-- compile all functions
 			set-verbose-level 0

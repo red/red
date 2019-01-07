@@ -10,12 +10,25 @@ Red [
 	}
 ]
 
-routine: func [spec [block!] body [block!]][
+routine: func ["Defines a function with a given Red spec and Red/System body" spec [block!] body [block!]][
 	cause-error 'internal 'routines []
 ]
 
+alert: func [msg [string! block!]][
+	view/flags compose [
+		title "Message"
+		below center
+		text 200 (form reduce msg) center
+		button focus "OK" [unview] on-key [
+			switch event/key [
+				#"^M" #"^[" #" " #"^O" [unview]
+			]
+		]
+	] 'modal
+]
+
 also: func [
-	"Returns the first value, but also evaluates the second."
+	"Returns the first value, but also evaluates the second"
 	value1 [any-type!]
 	value2 [any-type!]
 ][
@@ -34,7 +47,7 @@ attempt: func [
 	]
 ]
 
-comment: func ['value][]
+comment: func ["Consume but don't evaluate the next value" 'value][]
 
 quit: func [
 	"Stops evaluation and exits the program"
@@ -75,18 +88,19 @@ probe: func [
 ]
 
 quote: func [
+	"Return but don't evaluate the next value"
 	:value
 ][
 	:value
 ]
 
-first:	func ["Returns the first value in a series"  s [series! tuple! pair! time!]] [pick s 1]	;@@ temporary definitions, should be natives ?
-second:	func ["Returns the second value in a series" s [series! tuple! pair! time!]] [pick s 2]
-third:	func ["Returns the third value in a series"  s [series! tuple! time!]] [pick s 3]
-fourth:	func ["Returns the fourth value in a series" s [series! tuple!]] [pick s 4]
-fifth:	func ["Returns the fifth value in a series"  s [series! tuple!]] [pick s 5]
+first:	func ["Returns the first value in a series"  s [series! tuple! pair! date! time!]] [pick s 1]	;@@ temporary definitions, should be natives ?
+second:	func ["Returns the second value in a series" s [series! tuple! pair! date! time!]] [pick s 2]
+third:	func ["Returns the third value in a series"  s [series! tuple! date! time!]] [pick s 3]
+fourth:	func ["Returns the fourth value in a series" s [series! tuple! date!]] [pick s 4]
+fifth:	func ["Returns the fifth value in a series"  s [series! tuple! date!]] [pick s 5]
 
-last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 1]
+last: func ["Returns the last value in a series" s [series! tuple!]] [pick s length? s]
 
 #do keep [
 	list: make block! 50
@@ -152,7 +166,12 @@ last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 
 	list
 ]
 
-context: func [spec [block!]][make object! spec]
+context: func [
+	"Makes a new object from an evaluated spec"
+	spec [block!]
+][
+	make object! spec
+]
 
 alter: func [
 	"If a value is not found in a series, append it; otherwise, remove it. Returns true if added"
@@ -176,7 +195,7 @@ repend: func [
 	value
 	/only "Appends a block value as a block"
 ][
-	head either any [only not any-list? series][
+	head either any [only not any-block? series][
 		insert/only tail series reduce :value
 	][
 		reduce/into :value tail series					;-- avoids wasting an intermediary block
@@ -188,48 +207,58 @@ replace: function [
 	series [series!] "The series to be modified"
 	pattern "Specific value or parse rule pattern to match"
 	value "New value, replaces pattern in the series"
-	/all  "Replace all occurrences, not just the first"
+	/all "Replace all occurrences, not just the first"
 	/deep "Replace pattern in all sub-lists as well"
+	/case "Case-sensitive replacement"
+	/local p rule s e many? len pos do-parse do-find
 ][
-	if system/words/all [deep any-list? series][
-		pattern: to block! either word? p: pattern [to lit-word! pattern][pattern]
-		parse series rule: [
-			some [
-				s: pattern e: (
-					s: change/part s value e
-					unless all [return series]
-				) :s
-				| ahead any-list! into rule | skip
+	do-parse: pick [parse/case parse] case
+	if system/words/all [deep any-list? series] [
+		pattern: to block! either word? pattern [to lit-word! pattern] [pattern]
+		do compose [
+			(do-parse) series rule: [
+				some [
+					s: pattern e: (
+						s: change/part s value e
+						unless all [return series]
+					) :s
+					| ahead any-list! into rule | skip
+				]
 			]
 		]
 		return series
 	]
-	if system/words/all [char? :pattern any-string? series][
+	if system/words/all [any [char? :pattern tag? :pattern] any-string? series] [
 		pattern: form pattern
 	]
-	many?: any [
-		system/words/all [series? :pattern any-string? series]
-		binary? series
-		system/words/all [any-list? series any-list? :pattern]
-	]
-	len: either many? [length? pattern][1]
-	
-	either all [
-		pos: series
-		either many? [
-			while [pos: find pos pattern][
-				remove/part pos len
-				pos: insert pos value
-			]
-		][
-			while [pos: find pos :pattern][
-				pos: insert remove pos value
-			]
+	either system/words/all [any-string? :series block? :pattern] [
+		p: [to pattern change pattern (value)]
+		do compose [(do-parse) series either all [[some p]] [p]]
+	] [
+		many?: any [
+			system/words/all [series? :pattern any-string? series]
+			binary? series
+			system/words/all [any-list? series any-list? :pattern]
 		]
-	][
-		if pos: find series :pattern [
-			remove/part pos len
-			insert pos value
+		len: either many? [length? pattern] [1]
+		do-find: pick [find/case find] case
+		either all [
+			pos: series
+			either many? [
+				while [pos: do compose [(do-find) pos pattern]] [
+					remove/part pos len
+					pos: insert pos value
+				]
+			] [
+				while [pos: do compose [(do-find) pos :pattern]] [
+					pos: insert remove pos value
+				]
+			]
+		] [
+			if pos: do compose [(do-find) series :pattern] [
+				remove/part pos len
+				insert pos value
+			]
 		]
 	]
 	series
@@ -255,6 +284,7 @@ math: function [
 ]
 
 charset: func [
+	"Shortcut for `make bitset!`"
 	spec [block! integer! char! string!]
 ][
 	make bitset! spec
@@ -263,6 +293,7 @@ charset: func [
 p-indent: make string! 30								;@@ to be put in a local context
 
 on-parse-event: func [
+	"Standard parse/trace callback used by PARSE-TRACE"
 	event	[word!]   "Trace events: push, pop, fetch, match, iterate, paren, end"
 	match?	[logic!]  "Result of last matching operation"
 	rule	[block!]  "Current rule at current position"
@@ -295,8 +326,8 @@ parse-trace: func [
 	"Wrapper for parse/trace using the default event processor"
 	input [series!]
 	rules [block!]
-	/case
-	/part
+	/case "Uses case-sensitive comparison"
+	/part "Limit to a length or position"
 		limit [integer!]
 	return: [logic! block!]
 ][
@@ -330,7 +361,7 @@ load: function [
 	/trap	"Load all values, returns [[values] position error]"
 	/next	"Load the next value only, updates source series word"
 		position [word!] "Word updated with new series position"
-	/part
+	/part	"Limit to a length or position"
 		length [integer! string!]
 	/into "Put results in out block, instead of creating a new block"
 		out [block!] "Target block for results"
@@ -480,11 +511,12 @@ cause-error: function [
 
 pad: func [
 	"Pad a FORMed value on right side with spaces"
-	str						"Value to pad, FORM it if not a string"
-	n		[integer!]		"Total size (in characters) of the new string"
-	/left					"Pad the string on left side"
-	/with c	[char!]			"Pad with char"
-	return:	[string!]		"Modified input string at head"
+	str					"Value to pad, FORM it if not a string"
+	n		[integer!]	"Total size (in characters) of the new string"
+	/left				"Pad the string on left side"
+	/with				"Pad with char"
+	c		[char!]
+	return:	[string!]	"Modified input string at head"
 ][
 	unless string? str [str: form str]
 	head insert/dup
@@ -516,9 +548,10 @@ modulo: func [
 	either any [a - r = a r + b = b][0][r]
 ]
 
-eval-set-path: func [value1][]
+eval-set-path: func ["Internal Use Only" value1][]
 
 to-red-file: func [
+	"Converts a local system file path to a Red file path"
 	path	[file! string!]
 	return: [file!]
 	/local colon? slash? len i c dst
@@ -559,9 +592,10 @@ to-red-file: func [
 	dst
 ]
 
-dir?: func [file [file! url!]][#"/" = last file]
+dir?: func ["Returns TRUE if the value looks like a directory spec" file [file! url!]][#"/" = last file]
 
 normalize-dir: function [
+	"Returns an absolute directory spec"
 	dir [file! word! path!]
 ][
 	unless file? dir [dir: to file! mold dir]
@@ -798,7 +832,7 @@ split-path: func [
 	reduce [dir pos]
 ]
 
-do-file: func [file [file! url!] /local saved code new-path src][
+do-file: func ["Internal Use Only" file [file! url!] /local saved code new-path src][
 	saved: system/options/path
 	unless src: find/case read file "Red" [
 		cause-error 'syntax 'no-header reduce [file]
@@ -826,12 +860,12 @@ path-thru: function [
 ][
 	so: system/options
 	unless so/thru-cache [make-dir/deep so/thru-cache: append copy so/cache %cache/]
-	
-	if pos: find/tail file: to-file url "//" [file: pos]
-	clear find pos charset "?#"
-	path: first split-path file: append copy so/thru-cache file
-	unless exists? path [make-dir/deep path]
-	file
+
+	hash: checksum form url 'MD5
+	file: head (remove back tail remove remove (form hash))
+	path: dirize append copy so/thru-cache copy/part file 2
+	unless exists? path [make-dir path] 
+	append path file
 ]
 
 exists-thru?: function [
@@ -851,7 +885,8 @@ read-thru: function [
 	either all [not update exists? path] [
 		data: either binary [read/binary path][read path]
 	][
-		write/binary path data: either binary [read/binary url][read url]
+		data: either binary [read/binary url][read url]
+		attempt [write/binary path data]
 	]
 	data
 ]
@@ -866,7 +901,7 @@ load-thru: function [
 	path: path-thru url
 	if all [not update exists? path][url: path]
 	file: either as [load/as url type][load url]
-	if url? url [either as [save/as path file type][save path file]]
+	if url? url [attempt [either as [save/as path file type][save path file]]]
 	file
 ]
 
@@ -909,8 +944,8 @@ tan: func [
 ]
 
 acos: func [
-	"Returns the trigonometric arccosine"
-	angle [float!] "Angle in radians"
+	"Returns the trigonometric arccosine (in radians in range [0,pi])"
+	cosine [float!] "in range [-1,1]"
 ][
 	#system [
 		stack/arguments: stack/arguments - 1
@@ -919,8 +954,8 @@ acos: func [
 ]
 
 asin: func [
-	"Returns the trigonometric arcsine"
-	angle [float!] "Angle in radians"
+	"Returns the trigonometric arcsine (in radians in range [-pi/2,pi/2])"
+	sine [float!] "in range [-1,1]"
 ][
 	#system [
 		stack/arguments: stack/arguments - 1
@@ -929,8 +964,8 @@ asin: func [
 ]
 
 atan: func [
-	"Returns the trigonometric arctangent"
-	angle [float!] "Angle in radians"
+	"Returns the trigonometric arctangent (in radians in range [-pi/2,+pi/2])"
+	tangent [float!] "in range [-inf,+inf]"
 ][
 	#system [
 		stack/arguments: stack/arguments - 1
@@ -939,7 +974,7 @@ atan: func [
 ]
 
 atan2: func [
-	"Returns the angle of the point y/x in radians"
+	"Returns the smallest angle between the vectors (1,0) and (x,y) in range (-pi,pi]"
 	y		[number!]
 	x		[number!]
 	return:	[float!]
@@ -980,41 +1015,6 @@ to-local-date: func [
 	date
 ]
 
-OS-product-name: function [return: [string!]][
-	#switch config/OS [
-		Windows [
-			workstation?: system/platform/name = 1
-			os-version: system/platform/version
-			rejoin ["Windows " switch os-version [
-				10.0.0	[pick ["10"			 "10 Server"	 ] workstation?]
-				6.3.0	[pick ["8.1"		 "Server 2012 R2"] workstation?]
-				6.2.0	[pick ["8"			 "Server 2012"	 ] workstation?]
-				6.1.0	[pick ["7"			 "Server 2008 R1"] workstation?]
-				6.0.0	[pick ["Vista"		 "Server 2008"	 ] workstation?]
-				5.2.0	[pick ["Server 2003" "Server 2003 R2"] workstation?]
-				5.1.0	["XP"]
-				5.0.0	["2000"]
-			]]
-		]
-		macOS [
-			os-version: system/platform/version
-			rejoin [
-				"macOS " switch os-version and 255.255.0 [
-					10.13.0 ["High Sierra "]
-					10.12.0 ["Sierra "]
-					10.11.0	["El Capitan "]
-					10.10.0	["Yosemite "]
-					10.9.0	["Mavericks "]
-					10.8.0	["Mountain Lion "]
-					10.7.0	["Lion "]
-					10.6.0	["Snow Leopard "]
-				] os-version
-			]
-		]
-		#default [system/platform/name]
-	]
-]
-
 ;--- Temporary definition, use at your own risks! ---
 rejoin: function [
 	"Reduces and joins a block of values."
@@ -1024,6 +1024,24 @@ rejoin: function [
 	append either series? first block [copy first block] [
 		form first block
 	] next block
+]
+
+sum: func [
+	"Returns the sum of all values in a block"
+	values [block! vector! paren! hash!]
+	/local result value
+][
+	result: make any [values/1 0] 0
+	foreach value values [result: result + value]
+	result
+]
+
+average: func [
+	"Returns the average of all values in a block"
+	block [block! vector! paren! hash!]
+][
+	if empty? block [return none]
+	divide sum block to float! length? block
 ]
 
 ;------------------------------------------

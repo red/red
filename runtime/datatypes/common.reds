@@ -44,6 +44,7 @@ alloc-at-tail: func [
 	blk		[red-block!]
 	return: [cell!]
 ][
+	assert any [blk <> root ***-root-size > block/rs-length? root]
 	alloc-tail as series! blk/node/value
 ]
 
@@ -53,7 +54,6 @@ alloc-tail: func [
 	/local 
 		cell [red-value!]
 ][
-	
 	if (as byte-ptr! s/tail) = ((as byte-ptr! s + 1) + s/size) [
 		s: expand-series s 0
 	]
@@ -113,6 +113,7 @@ get-root-node: func [
 		obj [red-object!]
 ][
 	obj: as red-object! get-root idx
+	assert TYPE_OF(obj) = TYPE_OBJECT
 	obj/ctx
 ]
 
@@ -364,29 +365,26 @@ cycles: context [
 		top: top + 1
 		if top = end [fire [TO_ERROR(internal too-deep)]]
 	]
-	
+
 	pop: does [
 		if top > stack [top: top - 1]
 	]
+
+	pop-n: func [n [integer!]][
+		assert top - n >= stack
+		top: top - n
+	]
+	
+	reset: does [top: stack]
 	
 	find?: func [
-		value	[red-value!]
+		node	[node!]
 		return: [logic!]
 		/local
-			obj	 [red-object!]
-			blk	 [red-block!]
-			node [node!]
 			p	 [node!]
 	][
 		if top = stack [return no]
-		
-		node: either TYPE_OF(value) = TYPE_OBJECT [
-			obj: as red-object! value
-			obj/ctx
-		][
-			blk: as red-block! value
-			blk/node
-		]
+
 		p: stack
 		until [
 			if node = as node! p/value [return yes]
@@ -403,10 +401,20 @@ cycles: context [
 		mold?	[logic!]
 		return: [logic!]
 		/local
+			obj	 [red-object!]
+			blk	 [red-block!]
 			s	 [c-string!]
+			node [node!]
 			size [integer!]
 	][
-		either find? value [
+		node: either TYPE_OF(value) = TYPE_OBJECT [
+			obj: as red-object! value
+			obj/ctx
+		][
+			blk: as red-block! value
+			blk/node
+		]
+		either find? node [
 			either mold? [
 				switch TYPE_OF(value) [
 					TYPE_BLOCK	  [s: "[...]"			   size: 5 ]
@@ -562,7 +570,6 @@ words: context [
 	_iterate:		as red-word! 0
 	_paren:			as red-word! 0
 	_anon:			as red-word! 0
-	_body:			as red-word! 0
 	_end:			as red-word! 0
 	_not-found:		as red-word! 0
 	_add:			as red-word! 0
@@ -855,16 +862,20 @@ words: context [
 refinements: context [
 	local: 		as red-refinement! 0
 	extern: 	as red-refinement! 0
+	compare:	as red-refinement! 0
 
 	_part:		as red-refinement! 0
 	_skip:		as red-refinement! 0
+	_with:		as red-refinement! 0
 
 	build: does [
-		local:	refinement/load "local"
-		extern:	refinement/load "extern"
+		local:		refinement/load "local"
+		extern:		refinement/load "extern"
+		compare:	refinement/load "compare"
 
-		_part:	refinement/load "part"
-		_skip:	refinement/load "skip"
+		_part:		refinement/load "part"
+		_skip:		refinement/load "skip"
+		_with:		refinement/load "with"
 	]
 ]
 

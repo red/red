@@ -125,6 +125,9 @@ free-faces: func [
 	state/header: TYPE_NONE
 ]
 
+on-gc-mark: does [
+	collector/keep flags-blk/node
+]
 
 init: func [
 	/local
@@ -143,6 +146,8 @@ init: func [
 	int: as red-integer! #get system/view/platform/product
 	int/header: TYPE_INTEGER
 	int/value:  1
+	
+	collector/register as int-ptr! :on-gc-mark
 ]
 
 
@@ -154,6 +159,7 @@ get-screen-size: func [
 ]
 
 get-text-size: func [
+	face 	[red-object!]
 	text	[red-string!]
 	hFont	[handle!]
 	p		[red-pair!]

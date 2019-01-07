@@ -290,6 +290,7 @@ parser: context [
 			res	   [integer!]
 			set?   [logic!]								;-- required by BS_TEST_BIT
 			not?   [logic!]
+			bin?   [logic!]
 			match? [logic!]
 	][
 		s: GET_BUFFER(rules)
@@ -347,10 +348,11 @@ parser: context [
 				TYPE_TAG
 				TYPE_EMAIL
 				TYPE_BINARY [
-					if all [type = TYPE_BINARY TYPE_OF(token) <> TYPE_BINARY][
+					bin?: type = TYPE_BINARY
+					type: TYPE_OF(token)
+					if all [bin? type <> TYPE_BINARY not ANY_STRING?(type)][
 						PARSE_ERROR [TO_ERROR(script parse-rule) token]
 					]
-					type: TYPE_OF(token)
 					size: string/rs-length? as red-string! token
 					if type = TYPE_TAG [size: size + 2]
 					if (string/rs-length? as red-string! input) < size [return no]
@@ -521,6 +523,7 @@ parser: context [
 			len	   [integer!]
 			cnt	   [integer!]
 			type   [integer!]
+			type2  [integer!]
 			match? [logic!]
 			end?   [logic!]
 			s	   [series!]
@@ -531,6 +534,7 @@ parser: context [
 		cnt: 	0
 		match?: yes
 		type: 	TYPE_OF(input)
+		type2:	TYPE_OF(token)
 		
 		either any [									;TBD: replace with ANY_STRING
 			type = TYPE_STRING
@@ -544,6 +548,20 @@ parser: context [
 				match?: loop-bitset input as red-bitset! token min max counter part
 				cnt: counter/value
 			][
+				len: either any [type2 = TYPE_CHAR type2 = TYPE_BITSET][1][
+					assert any [
+						type2 = TYPE_STRING
+						type2 = TYPE_FILE
+						type2 = TYPE_URL
+						type2 = TYPE_TAG
+						type2 = TYPE_EMAIL
+						type2 = TYPE_BINARY
+					]
+					string/rs-length? as red-string! token
+				]
+				if zero? len [return yes]
+				if type2 = TYPE_TAG [len: len + 2]
+				
 				until [									;-- ANY-STRING input matching
 					match?: either type = TYPE_BINARY [
 						binary/match? as red-binary! input token comp-op
@@ -551,7 +569,7 @@ parser: context [
 						string/match? as red-string! input token comp-op
 					]
 					end?: any [
-						all [match? advance as red-string! input token]	;-- consume matched input
+						all [match? _series/rs-skip input len]	;-- consume matched input
 						all [positive? part input/head >= part]
 					]
 					cnt: cnt + 1
@@ -798,6 +816,7 @@ parser: context [
 			only?	 [logic!]
 			done?	 [logic!]
 			saved?	 [logic!]
+			gc-saved [logic!]
 	][
 		match?:	  yes
 		end?:	  no
@@ -815,10 +834,14 @@ parser: context [
 		fun-locs:  0
 		state:    ST_PUSH_BLOCK
 
+		s: GET_BUFFER(series)
+		if s/offset = s/tail [gc-saved: collector/active? collector/active?: no]
+
 		if OPTION?(fun) [fun-locs: _function/count-locals fun/spec 0]
 		
 		saved?: save-stack
 		base: stack/push*								;-- slot on stack for COPY/SET operations (until OPTION?() is fixed)
+		base/header: TYPE_UNSET
 		input: as red-series! block/rs-append series as red-value! input ;-- input now points to the series stack entry
 		cmd: (block/rs-head rule) - 1					;-- decrement to compensate for starting increment
 		tail: block/rs-tail rule						;TBD: protect current rule block from changes
@@ -1019,6 +1042,7 @@ parser: context [
 										]
 									]
 									value: stack/top	;-- refer last value from paren expression
+									stack/top: stack/top + 1
 									offset: p/input		;-- required by PARSE_PICK_INPUT
 									
 									if int/value = R_KEEP [
@@ -1063,6 +1087,7 @@ parser: context [
 											offset = input/head
 										]
 									]
+									stack/top: stack/top - 1
 								]
 							]
 							R_REMOVE [
@@ -1454,7 +1479,7 @@ parser: context [
 					sym: symbol/resolve w/symbol
 					#if debug? = yes [
 						sym*: symbol/get sym
-						if verbose > 0 [print-line ["parse: " sym*/cache]]
+						if verbose > 0 [print "parse: " print-symbol w print lf]
 					]
 					case [
 						sym = words/pipe [				;-- |
@@ -1765,9 +1790,13 @@ parser: context [
 							]
 							either into? [
 								blk: as red-block! _context/get w
+								type: TYPE_OF(blk)
+								unless ANY_SERIES?(type) [
+									PARSE_ERROR [TO_ERROR(script parse-into-bad)]
+								]
 								max: either sym = words/after [-1][blk/head] ;-- save block cursor
 							][
-								block/push* 8
+								block/push-only* 8
 							]
 							min:   R_NONE
 							type:  R_COLLECT
@@ -1840,7 +1869,10 @@ parser: context [
 			state = ST_EXIT
 		]
 		reset saved?
-		
+
+		s: GET_BUFFER(series)
+		if s/offset = s/tail [collector/active?: gc-saved]
+
 		either collect? [
 			base + 1
 		][

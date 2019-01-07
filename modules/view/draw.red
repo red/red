@@ -775,7 +775,9 @@ Red/System [
 							sym = text [
 								DRAW_FETCH_VALUE(TYPE_PAIR)					;-- position
 								DRAW_FETCH_VALUE_2(TYPE_STRING TYPE_OBJECT) ;-- string! or text-box!
-								OS-draw-text DC as red-pair! start as red-string! cmd catch?
+								unless OS-draw-text DC as red-pair! start as red-string! cmd catch? [
+									throw-draw-error cmds cmd catch?
+								]
 							]
 							sym = _arc [
 								loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)]	;-- center/radius (of the circle/ellipse)
@@ -1054,6 +1056,7 @@ Red/System [
 			dc			[handle!]
 			layout		[handle!]			;-- text layout (opaque handle)
 			cmds		[red-block!]
+			max-len		[integer!]
 			catch?		[logic!]
 			/local
 				cmd		[red-value!]
@@ -1119,6 +1122,7 @@ Red/System [
 						range: as red-pair! cmd
 						idx: range/x - 1
 						len: range/y
+						if idx + len > max-len [len: max-len - idx]
 					]
 					TYPE_STRING [										;-- font name
 						OS-text-box-font-name dc layout idx len as red-string! cmd
@@ -1138,12 +1142,17 @@ draw: function [
 	"Draws scalable vector graphics to an image"
 	image	[image! pair!]	"Image or size for an image"
 	cmd		[block!]		"Draw commands"
-	/transparent
+	/transparent			"Make a transparent image, if pair! spec is used"
 	return: [image!]
 ][
 	if pair? image [
-		image: either transparent [ make image! image 255.255.255.0 ][ make image! image ]
+		image: make image! either transparent [
+			reduce [image system/words/transparent]
+		][
+			image
+		]
 	]
+	
 	system/view/platform/draw-image image cmd
 	image
 ]
