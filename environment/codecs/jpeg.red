@@ -23,7 +23,7 @@ put system/codecs 'jpeg context [
 	]
 
 	decode: routine [data [any-type!]][
-		#if not find [Android Linux FreeBSD Syllabe] OS [
+		#if not find [Android FreeBSD Syllabe] OS [
 			stack/set-last as cell! image/decode data
 		]
 	]

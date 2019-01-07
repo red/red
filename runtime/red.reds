@@ -51,6 +51,7 @@ red: context [
 		Windows  [#include %platform/image-gdiplus.reds]
 		Syllable []
 		macOS	 [#include %platform/image-quartz.reds]
+		Linux	 [#include %platform/image-gdk.reds] ; GTK backend
 		FreeBSD  []
 		#default []
 	]
@@ -104,6 +105,7 @@ red: context [
 	#include %datatypes/date.reds
 	#if OS = 'Windows [#include %datatypes/image.reds]	;-- temporary
 	#if OS = 'macOS   [#include %datatypes/image.reds]	;-- temporary
+	#if OS = 'Linux   [#include %datatypes/image.reds]	;-- temporary (GTK backend)
 
 	;-- Debugging helpers --
 	
@@ -198,6 +200,7 @@ red: context [
 		date/init
 		#if OS = 'Windows [image/init]					;-- temporary
 		#if OS = 'macOS   [image/init]					;-- temporary
+		#if OS = 'Linux   [image/init]					;-- temporary (GTK backend)
 		
 		actions/init
 		
@@ -272,6 +275,7 @@ red: context [
 			date/verbose:		verbosity
 			#if OS = 'Windows [image/verbose: verbosity]
 			#if OS = 'macOS   [image/verbose: verbosity]
+			#if OS = 'Linux   [image/verbose: verbosity] ; (GTK backend)
 
 			actions/verbose:	verbosity
 			natives/verbose:	verbosity

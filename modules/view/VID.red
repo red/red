@@ -22,6 +22,7 @@ system/view/VID: context [
 			#switch config/OS [
 				Windows [#include %backends/windows/rules.red]
 				macOS	[#include %backends/macOS/rules.red]
+				Linux	[#include %backends/gtk3/rules.red]
 			]
 		]
 		
@@ -33,6 +34,11 @@ system/view/VID: context [
 				OK-Cancel
 			]
 			macOS [
+				adjust-buttons
+				capitalize
+				Cancel-OK
+			]
+			Linux [
 				adjust-buttons
 				capitalize
 				Cancel-OK
