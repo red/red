@@ -574,7 +574,7 @@ system/view/platform: context [
 		
 		#switch OS [
 			Linux [gui/get-text-size text font pair]
-			#default [gui/get-text-size text hFont pair]
+			#default [gui/get-text-size face text hFont pair]
 		]
 	]
 	
@@ -791,16 +791,18 @@ system/view/platform: context [
 				]
 			]
 			Linux	[
-				check:		29
-				radio:		29
-				text:		22
-				field:		29
-				drop-down:	33
-				drop-list:	33
-				progress:	29
+				extend system/view/metrics/def-heights [
+					check:		29
+					radio:		29
+					text:		22
+					field:		29
+					drop-down:	33
+					drop-list:	33
+					progress:	29
+				]
 			]
 			#default []
-		]]
+		]
 		
 		colors: system/view/metrics/colors
 		#switch config/OS [
