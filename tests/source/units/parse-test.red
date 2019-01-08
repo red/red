@@ -866,8 +866,7 @@ Red [
 	--test-- "str-14"	--assert not parse	"ab"		[[#"b" | "a"]]
 	--test-- "str-15"	--assert parse		"ab"		[["a" | #"b"][#"b" | "a"]]
 	
-	;--test-- "str-16"	--assert parse		"123"		[integer!]
-	
+	--test-- "str-16"	--assert error? try [ parse "123" [integer!] ]
 	
 	--test-- "str-20"
 		res: 0	
@@ -1803,12 +1802,12 @@ Red [
 		--assert not parse 	"aabbc"		nanbnc
 
 	--test-- "str-cplx5"
-		split: function [series [string!] dlm [string! char!] /local value][
+		split-test5: function [series [string!] dlm [string! char!] /local value][
 		  rule: complement charset dlm
 		  parse series [collect [any [keep copy value some rule | skip]]]
 		]
-		--assert ["Hello" "bright" "world!"]  = split "Hello bright world!" space
-		--assert ["Hell" "bright" "w" "rld!"] = split "Hello bright world!" " o"
+		--assert ["Hello" "bright" "world!"]  = split-test5 "Hello bright world!" space
+		--assert ["Hell" "bright" "w" "rld!"] = split-test5 "Hello bright world!" " o"
 
 ===end-group===
 

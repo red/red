@@ -17,7 +17,7 @@ Red [
 
 #include %utils.red
 
-event?: routine [value [any-type!] return: [logic!]][TYPE_OF(value) = TYPE_EVENT]
+event?: routine ["Returns true if the value is this type" value [any-type!] return: [logic!]][TYPE_OF(value) = TYPE_EVENT]
 
 face?: function [
 	"Returns TRUE if the value is a face! object"
@@ -45,9 +45,11 @@ caret-to-offset: function [
 	"Given a text position, returns the corresponding coordinate relative to the top-left of the layout box"
 	face	[object!]
 	pos		[integer!]
+	/lower			"lower end offset of the caret"
 	return:	[pair!]
 ][
-	system/view/platform/text-box-metrics face pos 0
+	opt: either lower [6][0]
+	system/view/platform/text-box-metrics face pos opt
 ]
 
 offset-to-caret: function [
@@ -110,6 +112,7 @@ metrics?: function [
 ]
 
 set-flag: function [
+	"Sets a flag in a face object"
 	face  [object!]
 	facet [word!]
 	value [any-type!]
@@ -123,6 +126,7 @@ set-flag: function [
 ]
 
 find-flag?: routine [
+	"Checks a flag in a face object"
 	facet	[any-type!]
 	flag 	[word!]
 	/local
@@ -159,7 +163,7 @@ find-flag?: routine [
 	bool/value:	 found?
 ]
 
-debug-info?: func [face [object!] return: [logic!]][
+debug-info?: func ["Internal use only" face [object!] return: [logic!]][
 	all [
 		system/view/debug?
 		not all [
@@ -174,7 +178,7 @@ debug-info?: func [face [object!] return: [logic!]][
 	]
 ]
 
-on-face-deep-change*: function [owner word target action new index part state forced?][
+on-face-deep-change*: function ["Internal use only" owner word target action new index part state forced?][
 	if debug-info? owner [
 		print [
 			"-- on-deep-change event --" 		 lf
@@ -213,6 +217,7 @@ on-face-deep-change*: function [owner word target action new index part state fo
 							loop part [
 								face: target/1
 								if face/type = 'window [
+									stop-reactor/deep face
 									modal?: find-flag? face/flags 'modal
 									system/view/platform/destroy-view face face/state/4
 
@@ -232,6 +237,7 @@ on-face-deep-change*: function [owner word target action new index part state fo
 							loop part [
 								face: target/1
 								face/parent: none
+								stop-reactor/deep face
 								system/view/platform/destroy-view face no
 								target: next target
 							]
@@ -277,6 +283,11 @@ on-face-deep-change*: function [owner word target action new index part state fo
 							all [owner/options owner/options/default]
 						]
 					]
+					if all [find [text-list drop-list drop-down] owner/type string? target][
+						target: head target
+						index: (index? find/same owner/data target) - 1
+						part: 1
+					]
 					system/view/platform/on-change-facet owner word target action new index part
 				]
 			]
@@ -301,7 +312,11 @@ on-face-deep-change*: function [owner word target action new index part state fo
 	]
 ]
 
-link-tabs-to-parent: function [face [object!] /init][
+link-tabs-to-parent: function [
+	"Internal Use Only"
+	face	[object!]
+	/init	"Force /show of first tab"
+][
 	if faces: face/pane [
 		visible?: face/visible?
 		forall faces [
@@ -314,7 +329,7 @@ link-tabs-to-parent: function [face [object!] /init][
 	]
 ]
 
-link-sub-to-parent: function [face [object!] type [word!] old new][
+link-sub-to-parent: function ["Internal Use Only" face [object!] type [word!] old new][
 	if object? new [
 		unless all [parent: in new 'parent block? get parent][
 			new/parent: make block! 4
@@ -329,7 +344,7 @@ link-sub-to-parent: function [face [object!] type [word!] old new][
 	]
 ]
 
-update-font-faces: function [parent [block! none!]][
+update-font-faces: function ["Internal Use Only" parent [block! none!]][
 	if block? parent [
 		foreach f parent [
 			if f/state [
@@ -396,6 +411,7 @@ face!: object [				;-- keep in sync with facet! enum
 					modify old 'owned none				;-- stop object events
 					foreach f head old [
 						f/parent: none
+						stop-reactor/deep f
 						if all [block? f/state handle? f/state/1][
 							system/view/platform/destroy-view f no
 						]
@@ -408,7 +424,10 @@ face!: object [				;-- keep in sync with facet! enum
 			if all [not same-pane? any [series? :old object? :old]][modify old 'owned none]
 			
 			unless any [same-pane? find [font para edge actors extra] word][
-				if any [series? :new object? :new][modify new 'owned reduce [self word]]
+				if any [series? :new object? :new][
+					modify new 'owned none				;@@ `new` may be owned by another container
+					modify new 'owned reduce [self word]
+				]
 			]
 			if word = 'font  [link-sub-to-parent self 'font old new]
 			if word = 'para  [link-sub-to-parent self 'para old new]
@@ -665,18 +684,19 @@ do-events: function [
 	return: [logic! word!] "Returned value from last event"
 	/local result
 ][
-	win: last system/view/screens/1/pane
-	unless win/state/4 [win/state/4: not no-wait]		;-- mark the window from which the event loop starts
-	set/any 'result system/view/platform/do-event-loop no-wait
-	:result
+	if win: last head system/view/screens/1/pane [
+		unless win/state/4 [win/state/4: not no-wait]		;-- mark the window from which the event loop starts
+		set/any 'result system/view/platform/do-event-loop no-wait
+		:result
+	]
 ]
 
-do-safe: func [code [block!] /local result][
+do-safe: func ["Internal Use Only" code [block!] /local result][
 	if error? set/any 'result try/all code [print :result]
 	get/any 'result
 ]
 
-do-actor: function [face [object!] event [event! none!] type [word!] /local result][
+do-actor: function ["Internal Use Only" face [object!] event [event! none!] type [word!] /local result][
 	if all [
 		object? face/actors
 		act: in face/actors name: select system/view/evt-names type
@@ -863,6 +883,7 @@ center-face: function [
 ]
 
 make-face: func [
+	"Make a face from a given style name or example face"
 	style   [word!]  "A face type"
 	/spec 
 		blk [block!] "Spec block of face options expressed in VID"
@@ -880,13 +901,13 @@ make-face: func [
 	]
 	face: make face! copy/deep model/template
 	
-	if spec [
-		opts: svv/opts-proto
-		css: make block! 2
-		spec: svv/fetch-options/no-skip face opts model blk css no
-		if model/init [do bind model/init 'face]
-		svv/process-reactors
-	]
+	unless spec [blk: []]
+	opts: svv/opts-proto
+	css: make block! 2
+	spec: svv/fetch-options/no-skip face opts model blk css no
+	if model/init [do bind model/init 'face]
+	svv/process-reactors
+
 	if offset [face/offset: xy]
 	if size [face/size: wh]
 	face

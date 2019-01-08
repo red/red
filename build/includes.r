@@ -50,6 +50,11 @@ write %build/bin/sources.r set-cache [
 				%win32.reds
 			]
 			%GUI/ [
+				%old/ [
+					%gui-console.red
+					%terminal.reds
+					%windows.reds
+				]
 				%app.ico
 				%core.red
 				%gui-console.red
@@ -62,31 +67,33 @@ write %build/bin/sources.r set-cache [
 	%runtime/ [
 		%actions.reds
 		%allocator.reds
+		%call.reds
+		%case-folding-table.reds
+		%case-folding.reds
+		%clipboard.reds
+		%collector.reds
+		%crush.reds
+		%crypto.reds
 		%debug-tools.reds
 		%definitions.reds
-		%case-folding.reds
-		%interpreter.reds
+		%hashtable.reds
 		%inflate.reds
+		%interpreter.reds
 		%macros.reds
 		%natives.reds
+		%ownership.reds
 		%parse.reds
+		%print.reds
 		%random.reds
-		%crypto.reds
 		%red.reds
 		%redbin.reds
-		%sort.reds
-		%hashtable.reds
-		%ownership.reds
-		%stack.reds
-		%tools.reds
-		%tokenizer.reds
-		%unicode.reds
 		%simple-io.reds
-		%clipboard.reds
-		%crush.reds
+		%sort.reds
+		%stack.reds
+		%tokenizer.reds
+		%tools.reds
+		%unicode.reds
 		%utils.reds
-		%call.reds
-		%print.reds
 		%datatypes/ [
 			%action.reds
 			%block.reds
@@ -143,6 +150,7 @@ write %build/bin/sources.r set-cache [
 		%platform/ [
 			%android.reds
 			%darwin.reds
+			%freebsd.reds
 			%linux.reds
 			%POSIX.reds
 			%syllable.reds
@@ -153,7 +161,6 @@ write %build/bin/sources.r set-cache [
 			%image-gdk.reds
 			%win32-ansi.reds
 			%win32-print.reds
-			
 		]
 	]
 	%modules/ [

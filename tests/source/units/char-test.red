@@ -78,4 +78,10 @@ Red [
 	--test-- "xor3" --assert #"^(01)" xor #"^(1F)" = #"^(1E)"
 ===end-group===
 
+===start-group=== "invalid unicode codepoints"
+	--test-- "110000h"			--assert error? try [do [to-char 110000h]]
+	--test-- "negative-char1"	--assert error? try [do [to-char -1]]
+	--test-- "negative-char2"	--assert error? try [do [to-char 80000000h]]
+===end-group===
+
 ~~~end-file~~~

@@ -232,7 +232,7 @@ append: make action! [[
 			length [number! series!]
 		/only "Insert block types as single values (overrides /part)"
 		/dup  "Duplicate the inserted values"
-			count  [number!]
+			count  [integer!]
 		return:    [series! bitset!]
 	]
 	#get-definition ACT_APPEND
@@ -343,7 +343,7 @@ insert: make action! [[
 			length [number! series!]
 		/only "Insert block types as single values (overrides /part)"
 		/dup  "Duplicate the inserted values"
-			count  [number!]
+			count  [integer!]
 		return:    [series! bitset!]
 	]
 	#get-definition ACT_INSERT

@@ -55,7 +55,8 @@ read-write-test-body: func [
 ][
 	body: read file-in
 	body: find/tail body "../../quick-test/quick-test.red"
-	insert body join "#include %" [quick-test-path "^(0A) do ["]
+	insert body join "#include %" [
+		quick-test-path "^(0A) #do [interpreted?: true] ^(0A) do ["]
 	replace body {~~~start-file~~~ "} {~~~start-file~~~ "interp-}				 
 	write/append file-out body
 ]

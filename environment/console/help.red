@@ -3,13 +3,12 @@ Red [
 	Author:  ["Gregg Irwin" "Oldes"]
 	File: 	 %help.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2013-2017 All Mankind. All rights reserved."
+	Rights:  "Copyright (C) 2013-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
 	}
 	Notes: {
-		TBD: Emit to output buffer so help can be returned as a string.
 		TBD: Determine what useful funcs to export from help-ctx.
 	}
 ]
@@ -24,6 +23,7 @@ help-ctx: context [
 	RT_MARGIN: 5			; How close we can get to the right console margin before we trim
 	DENT_1: "    "			; So CLI and GUI consoles are consistent, WRT tab size
 	DENT_2: "        " 
+	NON_CONSOLE_SIZE: 120	; Where to truncate, if not running in a console
 	
 	;---------------------------------------------------------------------------
 	;-- Buffered output
@@ -92,7 +92,13 @@ help-ctx: context [
 	; The `max` check is there because the CLI console size is 0 on startup.
 	; It keeps the width from going negative if someone launches the CLI with
 	; a `help` call in their script on the command line.
-	VAL_FORM_LIMIT: does [max 0 system/console/size/x - HELP_TYPE_COL_SIZE - HELP_COL_1_SIZE - RT_MARGIN]
+	VAL_FORM_LIMIT: does [
+		either system/console [
+			max 0 system/console/size/x - HELP_TYPE_COL_SIZE - HELP_COL_1_SIZE - RT_MARGIN
+		][
+			NON_CONSOLE_SIZE
+		]
+	]
 	;!! This behaves differently when compiled. Interpreted, output for 'system
 	;!! is properly formatted and truncated. Compiled, it's very slow to return
 	;!! and system/words and system/codecs (e.g.) are emitted full length. The
@@ -243,7 +249,7 @@ help-ctx: context [
 			]
 		;!!
 		
-		set 'parse-func-spec function [
+		parse-func-spec: function [
 			"Parses a function spec and returns an object model of it."
 			spec [block! any-function!]
 			/local =val		; set with parse, so function won't collect it
@@ -332,7 +338,12 @@ help-ctx: context [
 		type [datatype!]
 		/local val
 	][
-		DOC_LIMIT: system/console/size/x - HELP_COL_1_SIZE - RT_MARGIN
+		DOC_LIMIT: either system/console [
+			max 0 system/console/size/x - HELP_COL_1_SIZE - RT_MARGIN
+		][
+			NON_CONSOLE_SIZE
+		]
+		;DOC_LIMIT: system/console/size/x - HELP_COL_1_SIZE - RT_MARGIN
 		fmt-doc: func [str][either str [ellipsize-at str DOC_LIMIT][""]]
 		found-at-least-one?: no
 		foreach word words-of system/words [
@@ -387,7 +398,7 @@ help-ctx: context [
 		]
 
 		; Convert the func to an object with fields for spec values
-		fn-as-obj: parse-func-spec :fn
+		fn-as-obj: func-spec-ctx/parse-func-spec :fn
 		if not object? fn-as-obj [
 			print "Func spec couldn't be parsed, may be malformed."
 			print mold :fn
@@ -439,7 +450,7 @@ help-ctx: context [
 		word [word! path! map!]
 		/local value
 	][
-		if not map? word [
+		if map? get word [
 			_print [uppercase form word "is a map! with the following words and values:"]
 		]
 		map: either map? word [word][get word]
@@ -469,7 +480,7 @@ help-ctx: context [
 		word [word! path! object!]
 		/local value
 	][
-		if not object? word [
+		if object? get word [
 			_print [uppercase form word "is an object! with the following words and values:"]
 		]
 		obj: either object? word [word][get word]
@@ -519,26 +530,27 @@ help-ctx: context [
 			all [word? :word  unset? get/any :word] [what/with/buffer word]
 
 			'else [
+				ref-given?: any [word? :word  path? :word]
 				; Now we know we're either going to reflect help for a func,
 				; find all values of a given datatype, probe a context, or
 				; show a value.
-				value: either any [word? :word  path? :word] [get/any :word][:word]
+				value: either ref-given? [get/any :word][:word]
 				; The order in which we check values is important, to get 
 				; the best output for a given type.
 				case [
-					all [any [word? :word path? :word] any-function? :value] [show-function-help :word]
+					all [ref-given?  any-function? :value] [show-function-help :word]
 					any-function? :value [_print mold :value]
 					datatype? :value [show-datatype-help :value]
-					object? :value [show-object-help :value]
-					map? :value [show-map-help :value]
-					block? :value [_print [word-is-value-str/only :word DEF_SEP form-value :value]]
+					object? :value [show-object-help word]
+					map? :value [show-map-help word]
+					all [ref-given?  block? :value] [_print [word-is-value-str/only :word DEF_SEP form-value :value]]
 					image? :value [
 						either in system 'view [view [image value]][
 							_print form-value value
 						]
 					]
 					all [path? :word  object? :value][show-object-help word]
-					any [word? :word  path? :word] [_print word-is-value-str word]
+					ref-given? [_print word-is-value-str word]
 					'else [_print value-is-type-str :word]
 				]
 			]
@@ -549,7 +561,7 @@ help-ctx: context [
 	
 	set 'source function [
 		"Print the source of a function"
-		'word [any-word! any-path!] "The name of the function"
+		'word [word! path!] "The name of the function"
 		/local val
 	][
 		set/any 'val get/any word
@@ -595,14 +607,14 @@ help-ctx: context [
 		/local git plt
 	][
 		git: system/build/git
-		plt: system/platform
+		plt: os-info
 		either debug [
 			print either git [
 				compose [
 					"-----------RED & PLATFORM VERSION-----------" lf
 					"RED: [ branch:" mold git/branch "tag:" mold git/tag "ahead:" git/ahead
 					"date:" to-UTC-date git/date "commit:" mold git/commit "]^/"
-					"PLATFORM: [ name:" mold plt/name "OS:" mold to lit-word! plt/OS
+					"PLATFORM: [ name:" mold plt/name "OS:" mold to lit-word! system/platform
 					"arch:" mold to lit-word! plt/arch "version:" mold plt/version
 					"build:" mold plt/build "]^/"
 					"--------------------------------------------"
@@ -613,7 +625,7 @@ help-ctx: context [
 		][
 			prin [
 				'Red system/version
-				'for plt/OS
+				'for system/platform
 				'built any [all [git git/date] system/build/date]
 			]
 			if git [

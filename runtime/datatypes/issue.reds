@@ -32,9 +32,28 @@ issue: context [
 		str 	[c-string!]
 		return:	[red-word!]
 	][
-		load-in str root
+		either red/boot? [
+			load-in str root
+		][
+			make-at stack/push* str
+		]
 	]
-	
+
+	make-at: func [
+		slot	[red-value!]
+		str		[c-string!]
+		return: [red-word!]
+		/local
+			cell [red-word!]
+	][
+		cell: as red-word! slot
+		cell/header: TYPE_ISSUE							;-- implicit reset of all header flags
+		cell/ctx: 	 global-ctx
+		cell/symbol: symbol/make str yes
+		cell/index:  -1
+		cell
+	]
+
 	push: func [
 		w  [red-word!]
 	][

@@ -394,7 +394,6 @@ OS-image: context [
 		stride: bmp-src/stride
 		w: bmp-src/width
 		bytes: stride * lines
-		if pixels <> 0 [bytes: stride / pbytes - w + pixels * pbytes + bytes]
 		offset: offset / w * stride + (offset % w * pbytes)
 		copy-memory bmp-dst/scan0 bmp-src/scan0 + offset bytes
 		unlock-bitmap-fmt src as-integer bmp-src
@@ -561,9 +560,10 @@ OS-image: context [
 		len: stat/cbSize_low
 
 		bin: as red-binary! slot
-		bin/header: TYPE_BINARY
+		bin/header: TYPE_UNSET
 		bin/head: 0
 		bin/node: alloc-bytes len
+		bin/header: TYPE_BINARY
 		
 		s: GET_BUFFER(bin)
 		s/tail: as cell! (as byte-ptr! s/tail) + len
@@ -595,39 +595,37 @@ OS-image: context [
 			format	[integer!]
 	][
 		bmp: 0
-		if part <> 0 [
-			width: IMAGE_WIDTH(src/size)
-			height: IMAGE_HEIGHT(src/size)
-			offset: src/head
-			x: offset % width
-			y: offset / width
-			handle: as-integer src/node
+		width: IMAGE_WIDTH(src/size)
+		height: IMAGE_HEIGHT(src/size)
+		offset: src/head
+		x: offset % width
+		y: offset / width
+		handle: as-integer src/node
 
-			either all [zero? offset not part?][
-				GdipCloneImage handle :bmp
-				dst/size: src/size
+		either all [zero? offset not part?][
+			GdipCloneImage handle :bmp
+			dst/size: src/size
+		][
+			format: 0
+			GdipGetImagePixelFormat handle :format
+			either all [part? TYPE_OF(size) = TYPE_PAIR][
+				w: width - x
+				h: height - y
+				if size/x < w [w: size/x]
+				if size/y < h [h: size/y]
+				GdipCloneBitmapAreaI x y w h format handle :bmp
 			][
-				format: 0
-				GdipGetImagePixelFormat handle :format
-				either all [part? TYPE_OF(size) = TYPE_PAIR][
-					w: width - x
-					h: height - y
-					if size/x < w [w: size/x]
-					if size/y < h [h: size/y]
-					GdipCloneBitmapAreaI x y w h format handle :bmp
-				][
-					either part < width [h: 0 w: part][
-						h: part / width
-						w: part % width
-					]
-					if zero? part [w: 1]
-					GdipCreateBitmapFromScan0 w h 0 format null :bmp
-					either zero? part [w: 0 h: 0][
-						copy bmp handle w h offset format
-					]
+				either part < width [h: 1 w: part][
+					h: part / width
+					w: width
 				]
-				dst/size: h << 16 or w
+				if zero? part [w: 1 h: 1]
+				GdipCreateBitmapFromScan0 w h 0 format null :bmp
+				either zero? part [w: 0 h: 0][
+					copy bmp handle w h offset format
+				]
 			]
+			dst/size: h << 16 or w
 		]
 
 		dst/header: TYPE_IMAGE

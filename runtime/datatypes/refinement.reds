@@ -33,6 +33,7 @@ refinement: context [
 		/local
 			ref [red-refinement!]
 	][
+		assert red/boot?
 		ref: as red-refinement! ALLOC_TAIL(root) 
 		ref/header: TYPE_REFINEMENT					;-- implicit reset of all header flags
 		ref/symbol: symbol/make str

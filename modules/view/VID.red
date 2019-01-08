@@ -46,7 +46,7 @@ system/view/VID: context [
 			unless active? [exit]
 			actions: system/view/VID/GUI-rules/processors
 			
-			foreach list reduce [general select OS system/platform/OS user][
+			foreach list reduce [general select OS system/platform user][
 				foreach name list [
 					if debug? [print ["Applying rule:" name]]
 					name: get in processors name
@@ -109,7 +109,8 @@ system/view/VID: context [
 				if all [face/text face/type <> 'drop-list][
 					min-sz: max min-sz size-text face
 				]
-				min-sz + any [system/view/metrics/misc/scroller 0x0]
+				s: system/view/metrics/misc/scroller
+				either s [as-pair min-sz/x + s/x min-sz/y][min-sz]
 			]
 			all [face/type = 'area string? face/text not empty? face/text][
 				len: 0
@@ -146,19 +147,19 @@ system/view/VID: context [
 					offset: offset + either dir = 'across [
 						switch align [
 							top	   [negate mar/2/x]
-							middle [to integer! round mar/2/x + mar/2/y / 2.0]
+							middle [to integer! round/floor mar/2/x + mar/2/y / 2.0]
 							bottom [mar/2/y]
 						]
 					][
 						switch align [
 							left   [negate mar/1/x]
-							center [to integer! round mar/1/x + mar/1/y / 2.0]
+							center [to integer! round/floor mar/1/x + mar/1/y / 2.0]
 							right  [mar/1/y]
 						]
 					]
 				]
 				if offset <> 0 [
-					if find [center middle] align [offset: to integer! round offset / 2.0]
+					if find [center middle] align [offset: to integer! round/floor offset / 2.0]
 					face/offset/:axis: face/offset/:axis + offset
 				]
 			]
@@ -317,6 +318,7 @@ system/view/VID: context [
 				| 'cursor	  (add-option opts compose [cursor: (pre-load fetch-argument cursor! spec)])
 				| 'init		  (opts/init: fetch-argument block! spec)
 				| 'with		  (do-with: fetch-argument block! spec)
+				| 'tight	  (if opts/text [tight?: yes])
 				| 'react	  (
 					if later?: spec/2 = 'later [spec: next spec]
 					repend reactors [face fetch-argument block! spec later?]
@@ -432,6 +434,11 @@ system/view/VID: context [
 				if none? face-font/:field [face-font/:field: get value]
 			]
 		]
+		if all [block? face/actors block? actors: opts/actors][
+			foreach [name f s b] face/actors [
+				unless find actors name [repend actors [name f s b]]
+			]
+		]
 		
 		set/some face opts								;-- merge default+styles and user options
 		
@@ -462,6 +469,8 @@ system/view/VID: context [
 				max sz min-sz
 			]
 		]
+		if tight? [face/size: calc-size face]
+		
 		all [											;-- account for hard margins
 			not styling?
 			mar: select system/view/metrics/margins face/type
@@ -561,7 +570,7 @@ system/view/VID: context [
 		
 		unless panel [
 			focal-face: none
-			panel: make face! system/view/VID/styles/window/template  ;-- absolute path to avoid clashing with /styles
+			panel: make face! copy system/view/VID/styles/window/template  ;-- absolute path to avoid clashing with /styles
 		]
 		either block? panel/pane [list: panel/pane][panel/pane: list]
 		
@@ -709,7 +718,7 @@ system/view/VID: context [
 							face/offset/:axis: list/:index/offset/:axis
 						]
 					]
-					unless any [face/color panel/type = 'tab-panel][
+					unless any [face/color panel/type = 'tab-panel face/type = 'text][
 						face/color: system/view/metrics/colors/(face/type)
 					]
 					

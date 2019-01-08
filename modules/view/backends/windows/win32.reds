@@ -46,6 +46,7 @@ Red/System [
 
 #define DT_CENTER				0001h
 #define DT_VCENTER				0004h
+#define DT_BOTTOM 				0008h
 #define DT_WORDBREAK			0010h
 #define DT_SINGLELINE			0020h
 #define DT_EXPANDTABS			0040h
@@ -81,6 +82,7 @@ Red/System [
 #define COLOR_BACKGROUND	1
 #define COLOR_MENU			4
 #define COLOR_WINDOW		5
+#define COLOR_WINDOWTEXT	8
 #define COLOR_3DFACE		15
 
 #define CS_VREDRAW			1
@@ -235,6 +237,7 @@ Red/System [
 #define ES_CENTER			00000001h
 #define ES_RIGHT			00000003h
 #define ES_MULTILINE		00000004h
+#define ES_PASSWORD			00000020h
 #define ES_AUTOVSCROLL		00000040h
 #define ES_AUTOHSCROLL		00000080h
 #define ES_NOHIDESEL		00000100h
@@ -489,6 +492,7 @@ Red/System [
 
 #define TextRenderingHintSystemDefault		0
 #define TextRenderingHintAntiAliasGridFit	3
+#define TextRenderingHintClearTypeGridFit	5
 
 #define SRCCOPY					00CC0020h
 
@@ -959,17 +963,6 @@ tagBROWSEINFO: alias struct! [
 	iImage			[integer!]
 ]
 
-DEV_BROADCAST_DEVICEINTERFACE: alias struct! [
-	dbcc_size		[integer!]
-	dbcc_devicetype	[integer!]
-	dbcc_reserved	[integer!]
-	guid_data1		[integer!]
-	guid_data2		[integer!]
-	guid_data3		[integer!]
-	guid_data4		[integer!]
-	dbcc_name		[integer!]
-]
-
 DwmIsCompositionEnabled!: alias function! [
 	pfEnabled	[int-ptr!]
 	return:		[integer!]
@@ -1105,7 +1098,7 @@ XFORM!: alias struct! [
 		]
 		KillTimer: "KillTimer" [
 			hWnd		[handle!]
-			uIDEvent	[int-ptr!]
+			uIDEvent	[integer!]
 			return:		[logic!]
 		]
 		OpenClipboard: "OpenClipboard" [
@@ -1193,6 +1186,10 @@ XFORM!: alias struct! [
 			return:		[integer!]
 		]
 		GetDC: "GetDC" [
+			hWnd		[handle!]
+			return:		[handle!]
+		]
+		GetWindowDC: "GetWindowDC" [
 			hWnd		[handle!]
 			return:		[handle!]
 		]
@@ -1343,12 +1340,6 @@ XFORM!: alias struct! [
 			return:		[handle!]
 		]
 		WindowFromPoint: "WindowFromPoint" [
-			x			[integer!]
-			y			[integer!]
-			return:		[handle!]
-		]
-		RealChildWindowFromPoint: "RealChildWindowFromPoint" [
-			hwndParent	[handle!]
 			x			[integer!]
 			y			[integer!]
 			return:		[handle!]
@@ -1621,16 +1612,6 @@ XFORM!: alias struct! [
 			dc			[handle!]
 			flag		[integer!]
 			return:		[integer!]
-		]
-		RegisterDeviceNotification: "RegisterDeviceNotificationW" [
-			hRecipient	[handle!]
-			Filter		[int-ptr!]
-			Flags		[integer!]
-			return:		[handle!]
-		]
-		UnregisterDeviceNotification: "UnregisterDeviceNotification" [
-			handle		[handle!]
-			return:		[logic!]
 		]
 	]
 	"gdi32.dll" stdcall [
@@ -2644,6 +2625,18 @@ XFORM!: alias struct! [
 			brush		[integer!]
 			return:		[integer!]
 		]
+		GdipMeasureString: "GdipMeasureString" [
+			graphics	[integer!]
+			text		[c-string!]
+			lenght		[integer!]
+			font		[integer!]
+			layoutRect	[RECT_STRUCT_FLOAT32]
+			format		[integer!]
+			boundingBox	[RECT_STRUCT_FLOAT32]
+			codepointsFitted	[pointer! [integer!]]
+			linesFilled	[pointer! [integer!]]
+			return:		[integer!]
+		]
 		GdipDrawBeziersI: "GdipDrawBeziersI" [
 			graphics	[integer!]
 			pen			[integer!]
@@ -2849,17 +2842,6 @@ XFORM!: alias struct! [
 			memory			[byte-ptr!]
 			size			[integer!]
 			return:			[byte-ptr!]
-		]
-		wcstol: "wcstol" [
-			str		[byte-ptr!]
-			end		[byte-ptr!]
-			base	[integer!]
-			return: [integer!]
-		]
-		wcsstr: "wcsstr" [
-			str		[byte-ptr!]
-			search	[c-string!]
-			return: [byte-ptr!]
 		]
 	]
 ]

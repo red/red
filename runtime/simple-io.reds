@@ -20,6 +20,8 @@ simple-io: context [
 		RIO_NEW:	16
 	]
 
+	read-buf: as byte-ptr! 0
+
 	strupr: func [
 		"ASCII only"
 		str		[c-string!]
@@ -817,14 +819,13 @@ simple-io: context [
 		size: file-size? file
 
 		if zero? size [				;-- /proc filesystem give 0 size
-			buffer: allocate 4096
+			if null? read-buf [read-buf: allocate 65536]
 			while [
-				len: read-data file buffer 4096
+				len: read-data file read-buf 65536
 				len > 0
 			][
 				size: size + len
 			]
-			free buffer
 		]
 
 		if size <= 0 [
@@ -847,17 +848,21 @@ simple-io: context [
 		len: read-data file buffer size
 		close-file file
 
-		if negative? len [return none-value]
+		if negative? len [
+			free buffer
+			return none-value
+		]
 
 		val: as red-value! either binary? [
 			binary/load buffer size
 		][
 			either lines? [lines-to-block buffer size][
 				str: as red-string! stack/push*
-				str/header: TYPE_STRING					;-- implicit reset of all header flags
+				str/header: TYPE_UNSET
 				str/head: 0
 				str/node: unicode/load-utf8-buffer as-c-string buffer size null null yes
 				str/cache: null							;-- @@ cache small strings?
+				str/header: TYPE_STRING					;-- implicit reset of all header flags
 				str
 			]
 		]
@@ -1269,983 +1274,670 @@ simple-io: context [
 		type
 	]
 
-	#switch OS [
-		Windows [
-			IID_IWinHttpRequest:			[06F29373h 4B545C5Ah F16E25B0h 0EBF8ABFh]
-			IID_IStream:					[0000000Ch 00000000h 0000000Ch 46000000h]
-			
-			IWinHttpRequest: alias struct! [
-				QueryInterface			[QueryInterface!]
-				AddRef					[AddRef!]
-				Release					[Release!]
-				GetTypeInfoCount		[integer!]
-				GetTypeInfo				[integer!]
-				GetIDsOfNames			[integer!]
-				Invoke					[integer!]
-				SetProxy				[function! [this [this!] setting [integer!] server [integer!] server2 [integer!] server3 [integer!] server4 [integer!] bypass [integer!] bypass2 [integer!] bypass3 [integer!] bypass4 [integer!] return: [integer!]]]
-				SetCredentials			[integer!]
-				Open					[function! [this [this!] method [byte-ptr!] url [byte-ptr!] async1 [integer!] async2 [integer!] async3 [integer!] async4 [integer!] return: [integer!]]]
-				SetRequestHeader		[function! [this [this!] header [byte-ptr!] value [byte-ptr!] return: [integer!]]]
-				GetResponseHeader		[function! [this [this!] header [byte-ptr!] value [int-ptr!] return: [integer!]]]
-				GetAllResponseHeaders	[function! [this [this!] header [int-ptr!] return: [integer!]]]
-				Send					[function! [this [this!] body1 [integer!] body2 [integer!] body3 [integer!] body4 [integer!] return: [integer!]]]
-				Status					[function! [this [this!] status [int-ptr!] return: [integer!]]]
-				StatusText				[integer!]
-				ResponseText			[function! [this [this!] body [int-ptr!] return: [integer!]]]
-				ResponseBody			[function! [this [this!] body [tagVARIANT] return: [integer!]]]
-				ResponseStream			[integer!]
-				GetOption				[integer!]
-				PutOption				[integer!]
-				WaitForResponse			[integer!]
-				Abort					[integer!]
-				SetTimeouts				[integer!]
-				SetClientCertificate	[integer!]
-				SetAutoLogonPolicy		[integer!]
-			]
-
-			BSTR-length?: func [s [integer!] return: [integer!] /local len [int-ptr!]][
-				len: as int-ptr! s - 4
-				len/value >> 1
-			]
-
-			process-headers: func [
-				headers	[c-string!]
-				return: [red-hash!]
-				/local
-					len  [integer!]
-					s	 [byte-ptr!]
-					ss	 [byte-ptr!]
-					p	 [byte-ptr!]
-					mp	 [red-hash!]
-					w	 [red-value!]
-					res  [red-value!]
-					val  [red-block!]
-					new? [logic!]
-			][
-				len: WideCharToMultiByte CP_UTF8 0 headers -1 null 0 null 0
-				s: allocate len
-				ss: s
-				WideCharToMultiByte CP_UTF8 0 headers -1 s len null 0
-
-				mp: map/make-at stack/push* null 20
-				p: s
-				while [s/1 <> null-byte][
-					if s/1 = #":" [						;-- key, maybe have duplicated key
-						new?: no
-						s/1: null-byte
-						w: as red-value! word/push* symbol/make as-c-string p
-						res: map/eval-path mp w null null no
-						either TYPE_OF(res) = TYPE_NONE [
-							new?: yes
-						][
-							if TYPE_OF(res) <> TYPE_BLOCK [
-								val: block/push-only* 4
-								block/rs-append val res
-								copy-cell as cell! val res
-								stack/pop 1
-							]
-							val: as red-block! res
-						]
-
-						p: s + 2
-						until [
-							s: s + 1
-							if s/1 = #"^M" [			;-- value
-								res: as red-value! string/load as-c-string p as-integer s - p UTF-8
-								either new? [
-									map/put mp w res no
-								][
-									block/rs-append val res
-								]
-								p: s + 2
-							]
-							s/1 = #"^M"
-						]
-						stack/pop 2
-					]
-					s: s + 1
-				]
-				free ss
-				mp
-			]
-
-			request-http: func [
-				method	[integer!]
-				url		[red-url!]
-				header	[red-block!]
-				data	[red-value!]
-				binary? [logic!]
-				lines?	[logic!]
-				info?	[logic!]
-				return: [red-value!]
-				/local
-					action	[c-string!]
-					hr 		[integer!]
-					clsid	[tagGUID value]
-					async 	[tagVARIANT value]
-					body 	[tagVARIANT value]
-					IH		[interface!]
-					http	[IWinHttpRequest]
-					bstr-d	[byte-ptr!]
-					bstr-m	[byte-ptr!]
-					bstr-u	[byte-ptr!]
-					buf-ptr [integer!]
-					s		[series!]
-					str1	[red-string! value]
-					value	[red-value!]
-					tail	[red-value!]
-					l-bound [integer!]
-					u-bound [integer!]
-					array	[integer!]
-					res		[red-value!]
-					blk		[red-block!]
-					len		[integer!]
-					proxy	[tagVARIANT value]
-					parr	[integer!]
-					buf		[byte-ptr!]
-			][
-				res: as red-value! none-value
-				parr: 0
-				len: -1
-				buf-ptr: 0
-				bstr-d: null
-				VariantInit :async
-				VariantInit :body
-				async/data1: VT_BOOL
-				async/data3: 0							;-- VARIANT_FALSE
-
-				case [
-					method = words/get [
-						action: #u16 "GET"
-						body/data1: VT_ERROR
-					]
-					method = words/head [
-						action: #u16 "HEAD"
-						body/data1: VT_ERROR
-					]
-					true [
-						either method = words/post [action: #u16 "POST"][
-							s: GET_BUFFER(symbols)
-							copy-cell s/offset + method - 1 as cell! str1
-							str1/header: TYPE_STRING
-							str1/head: 0
-							str1/cache: null
-							action: wcsupr unicode/to-utf16 str1
-						]
-						either null? data [
-							body/data1: VT_ERROR
-						][
-							either TYPE_OF(data) = TYPE_BINARY [
-								buf: binary/rs-head as red-binary! data
-								len: binary/rs-length? as red-binary! data
-								parr: as-integer SafeArrayCreateVector VT_UI1 0 len
-								SafeArrayAccessData parr :buf-ptr
-								copy-memory as byte-ptr! buf-ptr buf len
-								SafeArrayUnaccessData parr
-								body/data1: VT_ARRAY or VT_UI1
-								body/data3: parr
-							][
-								body/data1: VT_BSTR
-								bstr-d: SysAllocString unicode/to-utf16-len as red-string! data :len no
-								body/data3: as-integer bstr-d
-							]
-						]
-					]
-				]
-
-				IH: declare interface!
-				http: null
-
-				hr: CLSIDFromProgID #u16 "WinHttp.WinHttpRequest.5.1" :clsid
-
-				if hr >= 0 [
-					hr: CoCreateInstance as int-ptr! :clsid 0 CLSCTX_INPROC_SERVER IID_IWinHttpRequest IH
-				]
-
-				if hr >= 0 [
-					http: as IWinHttpRequest IH/ptr/vtbl
-					;VariantInit :proxy
-					;proxy/data1: VT_BSTR
-					;proxy/data3: as-integer SysAllocString #u16 "127.0.0.1:1235"
-					;http/SetProxy IH/ptr 2 proxy/data1 proxy/data2 proxy/data3 proxy/data4 0 0 0 0
-					bstr-m: SysAllocString action
-					bstr-u: SysAllocString unicode/to-utf16 as red-string! url
-					hr: http/Open IH/ptr bstr-m bstr-u async/data1 async/data2 async/data3 async/data4
-					SysFreeString bstr-m
-					SysFreeString bstr-u
-				]
-
-				either hr >= 0 [
-					either header <> null [
-						s: GET_BUFFER(header)
-						value: s/offset + header/head
-						tail:  s/tail
-
-						while [value < tail][
-							bstr-u: SysAllocString unicode/to-utf16 word/as-string as red-word! value
-							value: value + 1
-							bstr-m: SysAllocString unicode/to-utf16 as red-string! value
-							value: value + 1
-							http/SetRequestHeader IH/ptr bstr-u bstr-m
-							SysFreeString bstr-m
-							SysFreeString bstr-u
-						]
-					][
-						bstr-u: SysAllocString #u16 "Content-Type"
-						bstr-m: SysAllocString #u16 "application/x-www-form-urlencoded"
-						http/SetRequestHeader IH/ptr bstr-u bstr-m
-						SysFreeString bstr-m
-						SysFreeString bstr-u
-					]
-					hr: http/Send IH/ptr body/data1 body/data2 body/data3 body/data4
-				][
-					return res
-				]
-
-				unless zero? parr [SafeArrayDestroy parr]
-
-				if hr >= 0 [
-					if info? [
-						blk: block/push-only* 3
-						hr: http/Status IH/ptr :len
-						if hr >= 0 [
-							integer/make-in blk len
-							hr: http/GetAllResponseHeaders IH/ptr :buf-ptr
-						]
-						if hr >= 0 [
-							block/rs-append blk as red-value! process-headers as c-string! buf-ptr
-							SysFreeString as byte-ptr! buf-ptr
-						]
-					]
-					if bstr-d <> null [SysFreeString bstr-d]
-					hr: http/ResponseBody IH/ptr :body
-				]
-
-				if hr >= 0 [				
-					array: body/data3
-					if all [
-						VT_ARRAY or VT_UI1 = body/data1
-						1 = SafeArrayGetDim array
-					][
-						l-bound: 0
-						u-bound: 0
-						SafeArrayGetLBound array 1 :l-bound
-						SafeArrayGetUBound array 1 :u-bound
-						SafeArrayAccessData array :buf-ptr
-						len: u-bound - l-bound + 1
-						res: as red-value! either binary? [
-							binary/load as byte-ptr! buf-ptr len
-						][
-							either lines? [
-								lines-to-block as byte-ptr! buf-ptr len
-							][
-								string/load as c-string! buf-ptr len UTF-8
-							]
-						]
-						SafeArrayUnaccessData array
-					]
-					if body/data1 and VT_ARRAY > 0 [SafeArrayDestroy array]
-					if info? [
-						block/rs-append blk res
-						res: as red-value! blk
-					]
-				]
-
-				if http <> null [http/Release IH/ptr]
-				res
-			]
+	#either OS = 'Windows [
+		IID_IWinHttpRequest:			[06F29373h 4B545C5Ah F16E25B0h 0EBF8ABFh]
+		IID_IStream:					[0000000Ch 00000000h 0000000Ch 46000000h]
+		
+		IWinHttpRequest: alias struct! [
+			QueryInterface			[QueryInterface!]
+			AddRef					[AddRef!]
+			Release					[Release!]
+			GetTypeInfoCount		[integer!]
+			GetTypeInfo				[integer!]
+			GetIDsOfNames			[integer!]
+			Invoke					[integer!]
+			SetProxy				[function! [this [this!] setting [integer!] server [integer!] server2 [integer!] server3 [integer!] server4 [integer!] bypass [integer!] bypass2 [integer!] bypass3 [integer!] bypass4 [integer!] return: [integer!]]]
+			SetCredentials			[integer!]
+			Open					[function! [this [this!] method [byte-ptr!] url [byte-ptr!] async1 [integer!] async2 [integer!] async3 [integer!] async4 [integer!] return: [integer!]]]
+			SetRequestHeader		[function! [this [this!] header [byte-ptr!] value [byte-ptr!] return: [integer!]]]
+			GetResponseHeader		[function! [this [this!] header [byte-ptr!] value [int-ptr!] return: [integer!]]]
+			GetAllResponseHeaders	[function! [this [this!] header [int-ptr!] return: [integer!]]]
+			Send					[function! [this [this!] body1 [integer!] body2 [integer!] body3 [integer!] body4 [integer!] return: [integer!]]]
+			Status					[function! [this [this!] status [int-ptr!] return: [integer!]]]
+			StatusText				[integer!]
+			ResponseText			[function! [this [this!] body [int-ptr!] return: [integer!]]]
+			ResponseBody			[function! [this [this!] body [tagVARIANT] return: [integer!]]]
+			ResponseStream			[integer!]
+			GetOption				[integer!]
+			PutOption				[integer!]
+			WaitForResponse			[integer!]
+			Abort					[integer!]
+			SetTimeouts				[integer!]
+			SetClientCertificate	[integer!]
+			SetAutoLogonPolicy		[integer!]
 		]
-		macOS [
-			#either OS-version > 10.7 [
-				#define CFNetwork.lib "/System/Library/Frameworks/CFNetwork.framework/CFNetwork"
-			][
-				#define CFNetwork.lib "/System/Library/Frameworks/CoreServices.framework/CoreServices" 
-			]
-			#import [
-				LIBC-file cdecl [
-					objc_getClass: "objc_getClass" [
-						class		[c-string!]
-						return:		[integer!]
-					]
-					sel_getUid: "sel_getUid" [
-						name		[c-string!]
-						return:		[integer!]
-					]
-					objc_msgSend: "objc_msgSend" [[variadic] return: [integer!]]
-				]
-				CFNetwork.lib cdecl [
-					__CFStringMakeConstantString: "__CFStringMakeConstantString" [
-						cStr		[c-string!]
-						return:		[integer!]
-					]
-					CFURLCreateWithString: "CFURLCreateWithString" [
-						allocator	[integer!]
-						url			[integer!]
-						baseUrl		[integer!]
-						return:		[integer!]
-					]
-					CFHTTPMessageCreateRequest: "CFHTTPMessageCreateRequest" [
-						allocator	[integer!]
-						method		[integer!]
-						url			[integer!]
-						version		[integer!]
-						return:		[integer!]
-					]
-					CFHTTPMessageGetResponseStatusCode: "CFHTTPMessageGetResponseStatusCode" [
-						response	[integer!]
-						return:		[integer!]
-					]
-					CFHTTPMessageCopyAllHeaderFields: "CFHTTPMessageCopyAllHeaderFields" [
-						response	[integer!]
-						return:		[integer!]
-					]
-					CFHTTPMessageSetBody: "CFHTTPMessageSetBody" [
-						msg			[integer!]
-						data		[integer!]
-					]
-					CFHTTPMessageSetHeaderFieldValue: "CFHTTPMessageSetHeaderFieldValue" [
-						msg			[integer!]
-						header		[integer!]
-						value		[integer!]
-					]
-					CFReadStreamCreateForHTTPRequest: "CFReadStreamCreateForHTTPRequest" [
-						allocator	[integer!]
-						request		[integer!]
-						return:		[integer!]
-					]
-				]
-				"/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation" cdecl [
-					kCFBooleanTrue: "kCFBooleanTrue" [integer!]
-					kCFStreamPropertyHTTPShouldAutoredirect: "kCFStreamPropertyHTTPShouldAutoredirect" [integer!]
-					kCFStreamPropertyHTTPResponseHeader: "kCFStreamPropertyHTTPResponseHeader" [integer!]
-					CFReadStreamOpen: "CFReadStreamOpen" [
-						stream		[integer!]
-						return:		[integer!]
-					]
-					CFReadStreamRead: "CFReadStreamRead" [
-						stream		[integer!]
-						buffer		[byte-ptr!]
-						size		[integer!]
-						return:		[integer!]
-					]
-					CFReadStreamClose: "CFReadStreamClose" [
-						stream		[integer!]
-					]
-					CFDataCreate: "CFDataCreate" [
-						allocator	[integer!]
-						data		[byte-ptr!]
-						length		[integer!]
-						return:		[integer!]
-					]
-					CFStringCreateWithCString: "CFStringCreateWithCString" [
-						allocator	[integer!]
-						cStr		[c-string!]
-						encoding	[integer!]
-						return:		[integer!]
-					]
-					CFURLCreateStringByAddingPercentEscapes: "CFURLCreateStringByAddingPercentEscapes" [
-						allocator	[integer!]
-						cf-str		[integer!]
-						unescaped	[integer!]
-						escaped		[integer!]
-						encoding	[integer!]
-						return:		[integer!]
-					]
-					CFURLCreateWithFileSystemPath: "CFURLCreateWithFileSystemPath" [
-						allocator	[integer!]
-						filePath	[integer!]
-						pathStyle	[integer!]
-						isDir		[logic!]
-						return:		[integer!]
-					]
-					CFReadStreamSetProperty: "CFReadStreamSetProperty" [
-						stream		[integer!]
-						name		[integer!]
-						value		[integer!]
-						return:		[integer!]
-					]
-					CFReadStreamCopyProperty: "CFReadStreamCopyProperty" [
-						stream		[integer!]
-						property	[integer!]
-						return:		[integer!]
-					]
-					CFDictionaryGetCount: "CFDictionaryGetCount" [
-						dict		[integer!]
-						return:		[integer!]
-					]
-					CFDictionaryGetKeysAndValues: "CFDictionaryGetKeysAndValues" [
-						dict		[integer!]
-						keys		[int-ptr!]
-						values		[int-ptr!]
-					]
-					CFStringGetCStringPtr: "CFStringGetCStringPtr" [
-						str			[integer!]
-						encoding	[integer!]
-						return:		[c-string!]
-					]
-					CFRelease: "CFRelease" [
-						cf			[integer!]
-					]
-				]
-			]
 
-			#define kCFStringEncodingUTF8		08000100h
-			#define kCFStringEncodingMacRoman	0
+		BSTR-length?: func [s [integer!] return: [integer!] /local len [int-ptr!]][
+			len: as int-ptr! s - 4
+			len/value >> 1
+		]
 
-			#define CFSTR(cStr)		[__CFStringMakeConstantString cStr]
-			#define CFString(cStr)	[CFStringCreateWithCString 0 cStr kCFStringEncodingUTF8]
+		process-headers: func [
+			headers	[c-string!]
+			return: [red-hash!]
+			/local
+				len  [integer!]
+				s	 [byte-ptr!]
+				ss	 [byte-ptr!]
+				p	 [byte-ptr!]
+				mp	 [red-hash!]
+				w	 [red-value!]
+				res  [red-value!]
+				val  [red-block!]
+				new? [logic!]
+		][
+			len: WideCharToMultiByte CP_UTF8 0 headers -1 null 0 null 0
+			s: allocate len
+			ss: s
+			WideCharToMultiByte CP_UTF8 0 headers -1 s len null 0
 
-			to-NSString: func [str [red-string!] return: [integer!] /local len][
-				len: -1
-				objc_msgSend [
-					objc_getClass "NSString"
-					sel_getUid "stringWithUTF8String:"
-					unicode/to-utf8 str :len
-				]
-			]
-
-			to-NSURL: func [
-				str		[red-string!]
-				file?	[logic!]						;-- local file path or url?
-				return: [integer!]
-				/local
-					nsstr	[integer!]
-					url		[integer!]
-					path	[integer!]
-			][
-				nsstr: to-NSString str
-				either file? [
-					path: objc_msgSend [nsstr sel_getUid "stringByExpandingTildeInPath"]
-					;@@ release path ? Does it already autoreleased?
-					path: CFURLCreateWithFileSystemPath 0 path 0 false
-				][
-					url: CFURLCreateStringByAddingPercentEscapes 0 nsstr 0 0 kCFStringEncodingUTF8
-					path: CFURLCreateWithString 0 url 0
-					CFRelease url
-				]
-				path
-			]
-
-			split-set-cookie: func [
-				s		[c-string!]
-				return: [red-value!]
-				/local
-					blk		[red-block!]
-					p		[c-string!]
-					p1		[c-string!]
-					p2		[c-string!]
-			][
-				blk: block/push-only* 2
-				until [
-					p: s
-					until [s: s + 1 s/1 = #";"]			;-- skip name and value 
-					s: s + 2
-					p1: strstr s "expires="				;-- only `expires` contains #"," among all the cookie attributes
-					p2: strchr s #","
-					either p2 = null [
-						p2: strchr s null-byte
-						s: p2
+			mp: map/make-at stack/push* null 20
+			p: s
+			while [s/1 <> null-byte][
+				if s/1 = #":" [						;-- key, maybe have duplicated key
+					new?: no
+					s/1: null-byte
+					w: as red-value! word/push* symbol/make as-c-string p
+					res: map/eval-path mp w null null no
+					either TYPE_OF(res) = TYPE_NONE [
+						new?: yes
 					][
-						s: p1 + 20
-						if s > p2 [p2: strchr s #","]
-						either null? p2 [				;-- end of the string
-							p2: strchr s null-byte
-							s: p2
-						][
-							s: p2 + 2
+						if TYPE_OF(res) <> TYPE_BLOCK [
+							val: block/push-only* 4
+							block/rs-append val res
+							copy-cell as cell! val res
+							stack/pop 1
 						]
-					]
-					string/load-in p as-integer p2 - p blk UTF-8
-					s/1 = null-byte
-				]
-				either 1 = block/rs-length? blk [block/rs-head blk][as red-value! blk]
-			]
-
-			dict-to-map: func [
-				dict	[integer!]
-				return: [red-hash!]
-				/local
-					i		[integer!]
-					keys	[int-ptr!]
-					vals	[int-ptr!]
-					sz		[integer!]
-					mp		[red-hash!]
-					k		[c-string!]
-					v		[c-string!]
-					w		[red-value!]
-					res		[red-value!]
-					sel_str [integer!]
-			][
-				sz: CFDictionaryGetCount dict
-				mp: map/make-at stack/push* null sz << 1
-				keys: as int-ptr! allocate sz << 2
-				vals: as int-ptr! allocate sz << 2
-				CFDictionaryGetKeysAndValues dict keys vals
-				sel_str: sel_getUid "UTF8String"
-
-				i: 0
-				while [i < sz][
-					i: i + 1
-					k: CFStringGetCStringPtr keys/i kCFStringEncodingMacRoman
-					v: CFStringGetCStringPtr vals/i kCFStringEncodingMacRoman
-					if k = null [k: as c-string! objc_msgSend [keys/i sel_str]]	;-- fallback when CFStringGetCStringPtr failed
-					if v = null [v: as c-string! objc_msgSend [vals/i sel_str]]
-
-					w: as red-value! word/push* symbol/make k
-					res: either zero? strncmp k "Set-Cookie" 10 [
-						split-set-cookie v
-					][
-						as red-value! string/load v length? v UTF-8
+						val: as red-block! res
 					]
 
-					map/put mp w res no
+					p: s + 2
+					until [
+						s: s + 1
+						if s/1 = #"^M" [			;-- value
+							res: as red-value! string/load as-c-string p as-integer s - p UTF-8
+							either new? [
+								map/put mp w res no
+							][
+								block/rs-append val res
+							]
+							p: s + 2
+						]
+						s/1 = #"^M"
+					]
 					stack/pop 2
 				]
-				free as byte-ptr! keys
-				free as byte-ptr! vals
-				mp
+				s: s + 1
 			]
+			free ss
+			mp
+		]
 
-			request-http: func [
-				method	[integer!]
-				url		[red-url!]
-				header	[red-block!]
-				data	[red-value!]
-				binary? [logic!]
-				lines?	[logic!]
-				info?	[logic!]
-				return: [red-value!]
-				/local
-					len			[integer!]
-					action		[c-string!]
-					raw-url		[integer!]
-					escaped-url [integer!]
-					cf-url		[integer!]
-					req			[integer!]
-					body		[integer!]
-					buf			[byte-ptr!]
-					datalen		[integer!]
-					cf-key		[integer!]
-					cf-val		[integer!]
-					value		[red-value!]
-					tail		[red-value!]
-					s			[series!]
-					str1		[red-string! value]
-					bin			[red-binary!]
-					stream		[integer!]
-					response	[integer!]
-					blk			[red-block!]
-					post?		[logic!]
-			][
-				post?: yes
-				case [
-					method = words/get  [action: "GET" post?: no]
-					method = words/put  [action: "PUT"]
-					method = words/post [action: "POST"]
-					method = words/head [action: "HEAD" post?: no]
-					true [
-						len: -1
+		request-http: func [
+			method	[integer!]
+			url		[red-url!]
+			header	[red-block!]
+			data	[red-value!]
+			binary? [logic!]
+			lines?	[logic!]
+			info?	[logic!]
+			return: [red-value!]
+			/local
+				action	[c-string!]
+				hr 		[integer!]
+				clsid	[tagGUID value]
+				async 	[tagVARIANT value]
+				body 	[tagVARIANT value]
+				IH		[interface!]
+				http	[IWinHttpRequest]
+				bstr-d	[byte-ptr!]
+				bstr-m	[byte-ptr!]
+				bstr-u	[byte-ptr!]
+				buf-ptr [integer!]
+				s		[series!]
+				str1	[red-string! value]
+				value	[red-value!]
+				tail	[red-value!]
+				l-bound [integer!]
+				u-bound [integer!]
+				array	[integer!]
+				res		[red-value!]
+				blk		[red-block!]
+				len		[integer!]
+				proxy	[tagVARIANT value]
+				parr	[integer!]
+				buf		[byte-ptr!]
+		][
+			res: as red-value! none-value
+			parr: 0
+			len: -1
+			buf-ptr: 0
+			bstr-d: null
+			VariantInit :async
+			VariantInit :body
+			async/data1: VT_BOOL
+			async/data3: 0							;-- VARIANT_FALSE
+
+			case [
+				method = words/get [
+					action: #u16 "GET"
+					body/data1: VT_ERROR
+				]
+				method = words/head [
+					action: #u16 "HEAD"
+					body/data1: VT_ERROR
+				]
+				true [
+					either method = words/post [action: #u16 "POST"][
 						s: GET_BUFFER(symbols)
 						copy-cell s/offset + method - 1 as cell! str1
 						str1/header: TYPE_STRING
 						str1/head: 0
 						str1/cache: null
-						action: strupr unicode/to-utf8 str1 :len
+						action: wcsupr unicode/to-utf16 str1
 					]
-				]
-
-				body: 0
-				len: -1
-				raw-url: CFString((unicode/to-utf8 as red-string! url :len))
-				escaped-url: CFURLCreateStringByAddingPercentEscapes 0 raw-url 0 0 kCFStringEncodingUTF8
-				cf-url: CFURLCreateWithString 0 escaped-url 0
-
-				req: CFHTTPMessageCreateRequest 0 CFSTR(action) cf-url CFSTR("HTTP/1.1")
-				CFRelease raw-url
-				CFRelease escaped-url
-
-				if zero? req [return as red-value! none-value]
-
-				if all [data <> null post?][
-					datalen: -1
-					either TYPE_OF(data) = TYPE_STRING [
-						buf: as byte-ptr! unicode/to-utf8 as red-string! data :datalen
+					either null? data [
+						body/data1: VT_ERROR
 					][
-						buf: binary/rs-head as red-binary! data
-						datalen: binary/rs-length? as red-binary! data
-					]
-					if datalen <> -1 [
-						body: CFDataCreate 0 buf datalen
-						CFHTTPMessageSetBody req body
-					]
-				]
-
-				stream: CFString("application/x-www-form-urlencoded; charset=utf-8")
-				CFHTTPMessageSetHeaderFieldValue req CFSTR("Content-Type") stream
-				if header <> null [
-					s: GET_BUFFER(header)
-					value: s/offset + header/head
-					tail:  s/tail
-
-					while [value < tail][
-						len: -1
-						cf-key: CFString((unicode/to-utf8 word/as-string as red-word! value :len))
-						value: value + 1
-						len: -1
-						cf-val: CFString((unicode/to-utf8 as red-string! value :len))
-						value: value + 1
-						CFHTTPMessageSetHeaderFieldValue req cf-key cf-val
-						CFRelease cf-val
-						CFRelease cf-key
-					]
-				]
-				CFRelease stream
-
-				stream: CFReadStreamCreateForHTTPRequest 0 req
-				if zero? stream [return none-value]
-
-				CFReadStreamSetProperty stream kCFStreamPropertyHTTPShouldAutoredirect kCFBooleanTrue
-				CFReadStreamOpen stream
-				buf: allocate 4096
-				bin: binary/make-at stack/push* 4096
-				until [
-					len: CFReadStreamRead stream buf 4096
-					either len > 0 [
-						binary/rs-append bin buf len
-					][
-						if negative? len [
-							free buf
-							CFReadStreamClose stream
-							unless zero? body [CFRelease body]
-							CFRelease cf-url
-							CFRelease req
-							CFRelease stream
-							return none-value
-						]
-					]
-					len <= 0
-				]
-
-				free buf
-
-				if info? [
-					blk: block/push-only* 3
-					response: CFReadStreamCopyProperty stream kCFStreamPropertyHTTPResponseHeader
-					len: CFHTTPMessageGetResponseStatusCode response
-					integer/make-in blk len
-					len: CFHTTPMessageCopyAllHeaderFields response
-					block/rs-append blk as red-value! dict-to-map len
-					CFRelease response
-					CFRelease len
-				]
-				
-				CFReadStreamClose stream
-				unless zero? body [CFRelease body]
-				CFRelease cf-url
-				CFRelease req
-				CFRelease stream
-
-				unless binary? [
-					buf: binary/rs-head bin
-					len: binary/rs-length? bin
-					either lines? [
-						bin: as red-binary! lines-to-block buf len
-					][
-						bin/header: TYPE_STRING
-						bin/node: unicode/load-utf8 as c-string! buf len
-					]
-				]
-				if info? [
-					block/rs-append blk as red-value! bin
-					bin: as red-binary! blk
-				]
-				as red-value! bin
-			]
-		]
-		#default [
-	
-			#define CURLOPT_URL				10002
-			#define CURLOPT_HTTPGET			80
-			#define CURLOPT_POST			47
-			#define CURLOPT_PUT				54
-			#define CURLOPT_POSTFIELDSIZE	60
-			#define CURLOPT_NOPROGRESS		43
-			#define CURLOPT_NOBODY			44
-			#define CURLOPT_UPLOAD			46
-			#define CURLOPT_FOLLOWLOCATION	52
-			#define CURLOPT_POSTFIELDS		10015
-			#define CURLOPT_CUSTOMREQUEST	10036
-			#define CURLOPT_WRITEDATA		10001
-			#define CURLOPT_HEADERDATA		10029
-			#define CURLOPT_HTTPHEADER		10023
-			#define CURLOPT_WRITEFUNCTION	20011
-			#define CURLOPT_HEADERFUNCTION	20079
-
-			#define CURLE_OK				0
-			#define CURL_GLOBAL_ALL 		3
-
-			#define CURLINFO_RESPONSE_CODE	00200002h
-
-			;-- use libcurl, may need to install it on some distros
-			#import [
-				"libcurl.so.4" cdecl [
-					curl_global_init: "curl_global_init" [
-						flags	[integer!]
-						return: [integer!]
-					]
-					curl_easy_init: "curl_easy_init" [
-						return: [integer!]
-					]
-					curl_easy_setopt: "curl_easy_setopt" [
-						curl	[integer!]
-						option	[integer!]
-						param	[integer!]
-						return: [integer!]
-					]
-					curl_easy_getinfo: "curl_easy_getinfo" [
-						curl	[integer!]
-						option	[integer!]
-						param	[int-ptr!]
-						return: [integer!]
-					]
-					curl_slist_append: "curl_slist_append" [
-						slist	[integer!]
-						pragma	[c-string!]
-						return:	[integer!]
-					]
-					curl_slist_free_all: "curl_slist_free_all" [
-						slist	[integer!]
-					]
-					curl_easy_perform: "curl_easy_perform" [
-						handle	[integer!]
-						return: [integer!]
-					]
-					curl_easy_strerror: "curl_easy_strerror" [
-						error	[integer!]
-						return: [c-string!]
-					]
-					curl_easy_cleanup: "curl_easy_cleanup" [
-						handle	[integer!]
-					]
-					curl_global_cleanup: "curl_global_cleanup" []
-				]
-			]
-
-			get-http-response: func [
-				[cdecl]
-				data	 [byte-ptr!]
-				size	 [integer!]
-				nmemb	 [integer!]
-				userdata [byte-ptr!]
-				return:	 [integer!]
-				/local
-					bin  [red-binary!]
-					len  [integer!]
-			][
-				bin: as red-binary! userdata
-				len: size * nmemb
-				binary/rs-append bin data len
-				len
-			]
-
-			get-http-header: func [
-				[cdecl]
-				s		 [byte-ptr!]
-				size	 [integer!]
-				nmemb	 [integer!]
-				userdata [byte-ptr!]
-				return:	 [integer!]
-				/local
-					p	 [byte-ptr!]
-					mp	 [red-hash!]
-					len  [integer!]
-					w	 [red-value!]
-					res  [red-value!]
-					val  [red-block!]
-					new? [logic!]
-			][
-				mp: as red-hash! userdata
-				len: size * nmemb
-				if zero? strncmp as c-string! s "HTTP/1." 7 [return len]
-
-				p: s
-				while [s/1 <> null-byte][
-					if s/1 = #":" [						;-- key, maybe have duplicated key
-						new?: no
-						s/1: null-byte
-						w: as red-value! word/push* symbol/make as-c-string p
-						res: map/eval-path mp w null null no
-						either TYPE_OF(res) = TYPE_NONE [
-							new?: yes
-						][
-							if TYPE_OF(res) <> TYPE_BLOCK [
-								val: block/push-only* 4
-								block/rs-append val res
-								copy-cell as cell! val res
-								stack/pop 1
-							]
-							val: as red-block! res
-						]
-
-						p: s + 2
-						forever [
-							s: s + 1
-							if any [s/1 = #"^M" s/1 = #"^/"] [	;-- value
-								res: as red-value! string/load as-c-string p as-integer s - p UTF-8
-								either new? [
-									map/put mp w res no
-								][
-									block/rs-append val res
-								]
-								p: s + 2
-								break
-							]
-						]
-						stack/pop 2
-					]
-					s: s + 1
-				]
-				len				
-			]
-
-			request-http: func [
-				method	[integer!]
-				url		[red-url!]
-				header	[red-block!]
-				data	[red-value!]
-				binary? [logic!]
-				lines?	[logic!]
-				info?	[logic!]
-				return: [red-value!]
-				/local
-					len		[integer!]
-					curl	[integer!]
-					res		[integer!]
-					buf		[byte-ptr!]
-					action	[integer!]
-					bin		[red-binary!]
-					value	[red-value!]
-					tail	[red-value!]
-					s		[series!]
-					str		[red-string!]
-					slist	[integer!]
-					mp		[red-hash!]
-					blk		[red-block!]
-					str1	[red-string! value]
-					act-str [c-string!]
-			][
-				case [
-					method = words/get [action: CURLOPT_HTTPGET]
-					method = words/post [action: CURLOPT_POST]
-					method = words/head [action: CURLOPT_NOBODY]
-					true [action: CURLOPT_CUSTOMREQUEST]
-				]
-
-				curl_global_init CURL_GLOBAL_ALL
-				curl: curl_easy_init
-
-				if zero? curl [
-					probe "ERROR: libcurl init failed."
-					curl_global_cleanup
-					return none-value
-				]
-
-				slist: 0
-				bin: binary/make-at stack/push* 4096
-
-				either action = CURLOPT_CUSTOMREQUEST [
-					len: -1
-					s: GET_BUFFER(symbols)
-					copy-cell s/offset + method - 1 as cell! str1
-					str1/header: TYPE_STRING
-					str1/head: 0
-					str1/cache: null
-					act-str: strupr unicode/to-utf8 str1 :len
-					curl_easy_setopt curl CURLOPT_CUSTOMREQUEST as-integer act-str
-				][
-					curl_easy_setopt curl action 1
-				]
-				len: -1
-				curl_easy_setopt curl CURLOPT_URL as-integer unicode/to-utf8 as red-string! url :len
-				curl_easy_setopt curl CURLOPT_NOPROGRESS 1
-				curl_easy_setopt curl CURLOPT_FOLLOWLOCATION 1
-				
-				curl_easy_setopt curl CURLOPT_WRITEFUNCTION as-integer :get-http-response
-				curl_easy_setopt curl CURLOPT_WRITEDATA as-integer bin
-
-				if info? [
-					blk: block/push-only* 3
-					mp: map/make-at stack/push* null 20
-					curl_easy_setopt curl CURLOPT_HEADERDATA as-integer mp
-					curl_easy_setopt curl CURLOPT_HEADERFUNCTION as-integer :get-http-header
-				]
-
-				if header <> null [
-					s: GET_BUFFER(header)
-					value: s/offset + header/head
-					tail:  s/tail
-
-					while [value < tail][
-						str: word/as-string as red-word! value	;-- cast word! to string!
-						_series/copy as red-series! str as red-series! str null yes null
-						string/append-char GET_BUFFER(str) as-integer #":"
-						string/append-char GET_BUFFER(str) as-integer #" "
-						value: value + 1
-						string/concatenate str as red-string! value -1 0 yes no
-						len: -1
-						slist: curl_slist_append slist unicode/to-utf8 str :len
-						value: value + 1
-					]
-					curl_easy_setopt curl CURLOPT_HTTPHEADER slist
-				]
-
-				if any [action = CURLOPT_POST action = CURLOPT_CUSTOMREQUEST] [
-					if data <> null [
-						len: -1
-						either TYPE_OF(data) = TYPE_STRING [
-							buf: as byte-ptr! unicode/to-utf8 as red-string! data :len
-						][
+						either TYPE_OF(data) = TYPE_BINARY [
 							buf: binary/rs-head as red-binary! data
 							len: binary/rs-length? as red-binary! data
+							parr: as-integer SafeArrayCreateVector VT_UI1 0 len
+							SafeArrayAccessData parr :buf-ptr
+							copy-memory as byte-ptr! buf-ptr buf len
+							SafeArrayUnaccessData parr
+							body/data1: VT_ARRAY or VT_UI1
+							body/data3: parr
+						][
+							body/data1: VT_BSTR
+							bstr-d: SysAllocString unicode/to-utf16-len as red-string! data :len no
+							body/data3: as-integer bstr-d
 						]
-						curl_easy_setopt curl CURLOPT_POSTFIELDSIZE len
-						curl_easy_setopt curl CURLOPT_POSTFIELDS as-integer buf
 					]
 				]
-				res: curl_easy_perform curl
-
-				if info? [
-					curl_easy_getinfo curl CURLINFO_RESPONSE_CODE :len
-					integer/make-in blk len
-				]
-
-				unless zero? slist [curl_slist_free_all slist]
-				curl_easy_cleanup curl
-				curl_global_cleanup
-
-				if res <> CURLE_OK [
-					print-line ["ERROR: " curl_easy_strerror res]
-					return none-value
-				]
-
-				unless binary? [
-					buf: binary/rs-head bin
-					len: binary/rs-length? bin
-					either lines? [
-						bin: as red-binary! lines-to-block buf len
-					][
-						bin/header: TYPE_STRING
-						bin/node: unicode/load-utf8 as c-string! buf len
-					]
-				]
-
-				if info? [
-					block/rs-append blk as red-value! mp
-					block/rs-append blk as red-value! bin
-					bin: as red-binary! blk
-				]
-				as red-value! bin
 			]
+
+			IH: declare interface!
+			http: null
+
+			hr: CLSIDFromProgID #u16 "WinHttp.WinHttpRequest.5.1" :clsid
+
+			if hr >= 0 [
+				hr: CoCreateInstance as int-ptr! :clsid 0 CLSCTX_INPROC_SERVER IID_IWinHttpRequest IH
+			]
+
+			if hr >= 0 [
+				http: as IWinHttpRequest IH/ptr/vtbl
+				;VariantInit :proxy
+				;proxy/data1: VT_BSTR
+				;proxy/data3: as-integer SysAllocString #u16 "127.0.0.1:1235"
+				;http/SetProxy IH/ptr 2 proxy/data1 proxy/data2 proxy/data3 proxy/data4 0 0 0 0
+				bstr-m: SysAllocString action
+				bstr-u: SysAllocString unicode/to-utf16 as red-string! url
+				hr: http/Open IH/ptr bstr-m bstr-u async/data1 async/data2 async/data3 async/data4
+				SysFreeString bstr-m
+				SysFreeString bstr-u
+			]
+
+			either hr >= 0 [
+				either header <> null [
+					s: GET_BUFFER(header)
+					value: s/offset + header/head
+					tail:  s/tail
+
+					while [value < tail][
+						bstr-u: SysAllocString unicode/to-utf16 word/as-string as red-word! value
+						value: value + 1
+						bstr-m: SysAllocString unicode/to-utf16 as red-string! value
+						value: value + 1
+						http/SetRequestHeader IH/ptr bstr-u bstr-m
+						SysFreeString bstr-m
+						SysFreeString bstr-u
+					]
+				][
+					bstr-u: SysAllocString #u16 "Content-Type"
+					bstr-m: SysAllocString #u16 "application/x-www-form-urlencoded"
+					http/SetRequestHeader IH/ptr bstr-u bstr-m
+					SysFreeString bstr-m
+					SysFreeString bstr-u
+				]
+				hr: http/Send IH/ptr body/data1 body/data2 body/data3 body/data4
+			][
+				return res
+			]
+
+			unless zero? parr [SafeArrayDestroy parr]
+
+			if hr >= 0 [
+				if info? [
+					blk: block/push-only* 3
+					hr: http/Status IH/ptr :len
+					if hr >= 0 [
+						integer/make-in blk len
+						hr: http/GetAllResponseHeaders IH/ptr :buf-ptr
+					]
+					if hr >= 0 [
+						block/rs-append blk as red-value! process-headers as c-string! buf-ptr
+						SysFreeString as byte-ptr! buf-ptr
+					]
+				]
+				if bstr-d <> null [SysFreeString bstr-d]
+				hr: http/ResponseBody IH/ptr :body
+			]
+
+			if hr >= 0 [				
+				array: body/data3
+				if all [
+					VT_ARRAY or VT_UI1 = body/data1
+					1 = SafeArrayGetDim array
+				][
+					l-bound: 0
+					u-bound: 0
+					SafeArrayGetLBound array 1 :l-bound
+					SafeArrayGetUBound array 1 :u-bound
+					SafeArrayAccessData array :buf-ptr
+					len: u-bound - l-bound + 1
+					res: as red-value! either binary? [
+						binary/load as byte-ptr! buf-ptr len
+					][
+						either lines? [
+							lines-to-block as byte-ptr! buf-ptr len
+						][
+							string/load as c-string! buf-ptr len UTF-8
+						]
+					]
+					SafeArrayUnaccessData array
+				]
+				if body/data1 and VT_ARRAY > 0 [SafeArrayDestroy array]
+				if info? [
+					block/rs-append blk res
+					res: as red-value! blk
+				]
+			]
+
+			if http <> null [http/Release IH/ptr]
+			res
+		]
+	][
+		#either OS = 'macOS [
+		#define libcurl-file "libcurl.dylib"
+		#import [
+			LIBC-file cdecl [
+				objc_getClass: "objc_getClass" [
+					class		[c-string!]
+					return:		[integer!]
+				]
+				sel_getUid: "sel_getUid" [
+					name		[c-string!]
+					return:		[integer!]
+				]
+				objc_msgSend: "objc_msgSend" [[variadic] return: [integer!]]
+			]
+			"/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation" cdecl [
+				kCFBooleanTrue: "kCFBooleanTrue" [integer!]
+				CFStringCreateWithCString: "CFStringCreateWithCString" [
+					allocator	[integer!]
+					cStr		[c-string!]
+					encoding	[integer!]
+					return:		[integer!]
+				]
+				CFURLCreateStringByAddingPercentEscapes: "CFURLCreateStringByAddingPercentEscapes" [
+					allocator	[integer!]
+					cf-str		[integer!]
+					unescaped	[integer!]
+					escaped		[integer!]
+					encoding	[integer!]
+					return:		[integer!]
+				]
+				CFURLCreateWithFileSystemPath: "CFURLCreateWithFileSystemPath" [
+					allocator	[integer!]
+					filePath	[integer!]
+					pathStyle	[integer!]
+					isDir		[logic!]
+					return:		[integer!]
+				]
+				CFURLCreateWithString: "CFURLCreateWithString" [
+					allocator	[integer!]
+					url			[integer!]
+					baseUrl		[integer!]
+					return:		[integer!]
+				]
+				CFRelease: "CFRelease" [
+					cf			[integer!]
+				]
+			]
+		]
+
+		#define kCFStringEncodingUTF8		08000100h
+		#define kCFStringEncodingMacRoman	0
+
+		#define CFSTR(cStr)		[__CFStringMakeConstantString cStr]
+		#define CFString(cStr)	[CFStringCreateWithCString 0 cStr kCFStringEncodingUTF8]
+
+		to-NSString: func [str [red-string!] return: [integer!] /local len][
+			len: -1
+			objc_msgSend [
+				objc_getClass "NSString"
+				sel_getUid "stringWithUTF8String:"
+				unicode/to-utf8 str :len
+			]
+		]
+
+		to-NSURL: func [
+			str		[red-string!]
+			file?	[logic!]						;-- local file path or url?
+			return: [integer!]
+			/local
+				nsstr	[integer!]
+				url		[integer!]
+				path	[integer!]
+		][
+			nsstr: to-NSString str
+			either file? [
+				path: objc_msgSend [nsstr sel_getUid "stringByExpandingTildeInPath"]
+				;@@ release path ? Does it already autoreleased?
+				path: CFURLCreateWithFileSystemPath 0 path 0 false
+			][
+				url: CFURLCreateStringByAddingPercentEscapes 0 nsstr 0 0 kCFStringEncodingUTF8
+				path: CFURLCreateWithString 0 url 0
+				CFRelease url
+			]
+			path
+		]][#define libcurl-file "libcurl.so.4"]
+
+		#define CURLOPT_URL				10002
+		#define CURLOPT_HTTPGET			80
+		#define CURLOPT_POST			47
+		#define CURLOPT_PUT				54
+		#define CURLOPT_POSTFIELDSIZE	60
+		#define CURLOPT_NOPROGRESS		43
+		#define CURLOPT_NOBODY			44
+		#define CURLOPT_UPLOAD			46
+		#define CURLOPT_FOLLOWLOCATION	52
+		#define CURLOPT_POSTFIELDS		10015
+		#define CURLOPT_CUSTOMREQUEST	10036
+		#define CURLOPT_WRITEDATA		10001
+		#define CURLOPT_HEADERDATA		10029
+		#define CURLOPT_HTTPHEADER		10023
+		#define CURLOPT_WRITEFUNCTION	20011
+		#define CURLOPT_HEADERFUNCTION	20079
+
+		#define CURLE_OK				0
+		#define CURL_GLOBAL_ALL 		3
+
+		#define CURLINFO_RESPONSE_CODE	00200002h
+
+		;-- use libcurl, may need to install it on some distros
+		#import [
+			libcurl-file cdecl [
+				curl_global_init: "curl_global_init" [
+					flags	[integer!]
+					return: [integer!]
+				]
+				curl_easy_init: "curl_easy_init" [
+					return: [integer!]
+				]
+				curl_easy_setopt: "curl_easy_setopt" [
+					curl	[integer!]
+					option	[integer!]
+					param	[integer!]
+					return: [integer!]
+				]
+				curl_easy_getinfo: "curl_easy_getinfo" [
+					curl	[integer!]
+					option	[integer!]
+					param	[int-ptr!]
+					return: [integer!]
+				]
+				curl_slist_append: "curl_slist_append" [
+					slist	[integer!]
+					pragma	[c-string!]
+					return:	[integer!]
+				]
+				curl_slist_free_all: "curl_slist_free_all" [
+					slist	[integer!]
+				]
+				curl_easy_perform: "curl_easy_perform" [
+					handle	[integer!]
+					return: [integer!]
+				]
+				curl_easy_strerror: "curl_easy_strerror" [
+					error	[integer!]
+					return: [c-string!]
+				]
+				curl_easy_cleanup: "curl_easy_cleanup" [
+					handle	[integer!]
+				]
+				curl_global_cleanup: "curl_global_cleanup" []
+			]
+		]
+
+		get-http-response: func [
+			[cdecl]
+			data	 [byte-ptr!]
+			size	 [integer!]
+			nmemb	 [integer!]
+			userdata [byte-ptr!]
+			return:	 [integer!]
+			/local
+				bin  [red-binary!]
+				len  [integer!]
+		][
+			bin: as red-binary! userdata
+			len: size * nmemb
+			binary/rs-append bin data len
+			len
+		]
+
+		get-http-header: func [
+			[cdecl]
+			s		 [byte-ptr!]
+			size	 [integer!]
+			nmemb	 [integer!]
+			userdata [byte-ptr!]
+			return:	 [integer!]
+			/local
+				p	 [byte-ptr!]
+				mp	 [red-hash!]
+				len  [integer!]
+				w	 [red-value!]
+				res  [red-value!]
+				val  [red-block!]
+				new? [logic!]
+		][
+			mp: as red-hash! userdata
+			len: size * nmemb
+			if zero? strncmp as c-string! s "HTTP/1." 7 [return len]
+
+			p: s
+			while [s/1 <> null-byte][
+				if s/1 = #":" [						;-- key, maybe have duplicated key
+					new?: no
+					s/1: null-byte
+					w: as red-value! word/push* symbol/make as-c-string p
+					res: map/eval-path mp w null null no
+					either TYPE_OF(res) = TYPE_NONE [
+						new?: yes
+					][
+						if TYPE_OF(res) <> TYPE_BLOCK [
+							val: block/push-only* 4
+							block/rs-append val res
+							copy-cell as cell! val res
+							stack/pop 1
+						]
+						val: as red-block! res
+					]
+
+					p: s + 2
+					forever [
+						s: s + 1
+						if any [s/1 = #"^M" s/1 = #"^/"] [	;-- value
+							res: as red-value! string/load as-c-string p as-integer s - p UTF-8
+							either new? [
+								map/put mp w res no
+							][
+								block/rs-append val res
+							]
+							p: s + 2
+							break
+						]
+					]
+					stack/pop 2
+				]
+				s: s + 1
+			]
+			len				
+		]
+
+		request-http: func [
+			method	[integer!]
+			url		[red-url!]
+			header	[red-block!]
+			data	[red-value!]
+			binary? [logic!]
+			lines?	[logic!]
+			info?	[logic!]
+			return: [red-value!]
+			/local
+				len		[integer!]
+				curl	[integer!]
+				res		[integer!]
+				buf		[byte-ptr!]
+				action	[integer!]
+				bin		[red-binary!]
+				value	[red-value!]
+				tail	[red-value!]
+				s		[series!]
+				str		[red-string!]
+				slist	[integer!]
+				mp		[red-hash!]
+				blk		[red-block!]
+				str1	[red-string! value]
+				act-str [c-string!]
+				saved	[int-ptr!]
+		][
+			case [
+				method = words/get [action: CURLOPT_HTTPGET]
+				method = words/post [action: CURLOPT_POST]
+				method = words/head [action: CURLOPT_NOBODY]
+				true [action: CURLOPT_CUSTOMREQUEST]
+			]
+
+			curl_global_init CURL_GLOBAL_ALL
+			curl: curl_easy_init
+
+			if zero? curl [
+				probe "ERROR: libcurl init failed."
+				curl_global_cleanup
+				return none-value
+			]
+
+			slist: 0
+			bin: binary/make-at stack/push* 4096
+
+			either action = CURLOPT_CUSTOMREQUEST [
+				len: -1
+				s: GET_BUFFER(symbols)
+				copy-cell s/offset + method - 1 as cell! str1
+				str1/header: TYPE_STRING
+				str1/head: 0
+				str1/cache: null
+				act-str: strupr unicode/to-utf8 str1 :len
+				curl_easy_setopt curl CURLOPT_CUSTOMREQUEST as-integer act-str
+			][
+				curl_easy_setopt curl action 1
+			]
+			len: -1
+			curl_easy_setopt curl CURLOPT_URL as-integer unicode/to-utf8 as red-string! url :len
+			curl_easy_setopt curl CURLOPT_NOPROGRESS 1
+			curl_easy_setopt curl CURLOPT_FOLLOWLOCATION 1
+			
+			curl_easy_setopt curl CURLOPT_WRITEFUNCTION as-integer :get-http-response
+			curl_easy_setopt curl CURLOPT_WRITEDATA as-integer bin
+
+			if info? [
+				blk: block/push-only* 3
+				mp: map/make-at stack/push* null 20
+				curl_easy_setopt curl CURLOPT_HEADERDATA as-integer mp
+				curl_easy_setopt curl CURLOPT_HEADERFUNCTION as-integer :get-http-header
+			]
+
+			if header <> null [
+				s: GET_BUFFER(header)
+				value: s/offset + header/head
+				tail:  s/tail
+
+				while [value < tail][
+					str: word/as-string as red-word! value	;-- cast word! to string!
+					_series/copy as red-series! str as red-series! str null yes null
+					string/append-char GET_BUFFER(str) as-integer #":"
+					string/append-char GET_BUFFER(str) as-integer #" "
+					value: value + 1
+					string/concatenate str as red-string! value -1 0 yes no
+					len: -1
+					slist: curl_slist_append slist unicode/to-utf8 str :len
+					value: value + 1
+				]
+				curl_easy_setopt curl CURLOPT_HTTPHEADER slist
+			]
+
+			if any [action = CURLOPT_POST action = CURLOPT_CUSTOMREQUEST] [
+				if data <> null [
+					len: -1
+					either TYPE_OF(data) = TYPE_STRING [
+						buf: as byte-ptr! unicode/to-utf8 as red-string! data :len
+					][
+						buf: binary/rs-head as red-binary! data
+						len: binary/rs-length? as red-binary! data
+					]
+					curl_easy_setopt curl CURLOPT_POSTFIELDSIZE len
+					curl_easy_setopt curl CURLOPT_POSTFIELDS as-integer buf
+				]
+			]
+
+			curl_easy_setopt curl 64 0
+
+			saved: system/stack/align
+			push 0 push 0 push 0
+			res: curl_easy_perform curl
+			system/stack/top: saved
+
+			if info? [
+				curl_easy_getinfo curl CURLINFO_RESPONSE_CODE :len
+				integer/make-in blk len
+			]
+
+			unless zero? slist [curl_slist_free_all slist]
+			saved: system/stack/align
+			push 0 push 0 push 0
+			curl_easy_cleanup curl
+			system/stack/top: saved
+			curl_global_cleanup
+
+			if res <> CURLE_OK [
+				print-line ["ERROR: " curl_easy_strerror res]
+				return none-value
+			]
+
+			unless binary? [
+				buf: binary/rs-head bin
+				len: binary/rs-length? bin
+				either lines? [
+					bin: as red-binary! lines-to-block buf len
+				][
+					bin/header: TYPE_UNSET
+					bin/node: unicode/load-utf8 as c-string! buf len
+					bin/_pad: 0
+					bin/header: TYPE_STRING
+				]
+			]
+
+			if info? [
+				block/rs-append blk as red-value! mp
+				block/rs-append blk as red-value! bin
+				bin: as red-binary! blk
+			]
+			as red-value! bin
 		]
 	]
 ]

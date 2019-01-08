@@ -13,23 +13,6 @@ Red/System [
 path: context [
 	verbose: 0
 	
-	push*: func [
-		size	[integer!]
-		return: [red-path!]	
-		/local
-			p 	[red-path!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "path/push*"]]
-		
-		p: as red-path! ALLOC_TAIL(root)
-		p/header: TYPE_PATH								;-- implicit reset of all header flags
-		p/head:   0
-		p/node:   alloc-cells size
-		p/args:	  null
-		push p
-		p
-	]
-	
 	push: func [
 		p [red-path!]
 	][
@@ -45,10 +28,11 @@ path: context [
 		size	[integer!]
 		return: [red-path!]
 	][
-		path/header: TYPE_PATH							;-- implicit reset of all header flags
+		path/header: TYPE_UNSET
 		path/head: 0
 		path/node: alloc-cells size
 		path/args: null
+		path/header: TYPE_PATH							;-- implicit reset of all header flags
 		path
 	]
 
@@ -131,15 +115,15 @@ path: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "path/form"]]
 		
+		if cycles/detect? as red-value! path buffer :part no [return part]
+		
 		s: GET_BUFFER(path)
 		i: path/head
 		value: s/offset + i
 		cycles/push path/node
 		
 		while [value < s/tail][
-			unless cycles/detect? value buffer :part no [
-				part: actions/form value buffer arg part
-			]
+			part: actions/form value buffer arg part
 			if all [OPTION?(arg) part <= 0][cycles/pop return part]
 			i: i + 1
 			
@@ -171,15 +155,15 @@ path: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "path/mold"]]
 	
+		if cycles/detect? as red-value! path buffer :part yes [return part]
+	
 		s: GET_BUFFER(path)
 		i: path/head
 		value: s/offset + i
 		cycles/push path/node
 
 		while [value < s/tail][
-			unless cycles/detect? value buffer :part yes [
-			    part: actions/mold value buffer only? all? flat? arg part 0
-			]
+			part: actions/mold value buffer only? all? flat? arg part 0
 			if all [OPTION?(arg) part <= 0][cycles/pop return part]
 			i: i + 1
 

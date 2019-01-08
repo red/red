@@ -1,6 +1,8 @@
 [![Join the chat at https://gitter.im/red/red](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/red/red?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Travis build](https://travis-ci.org/red/red.svg?branch=master)](https://travis-ci.org/red/red)
-[![Build status](https://ci.appveyor.com/api/projects/status/mie736c6x4268boo/branch/master?svg=true)](https://ci.appveyor.com/project/red/red/branch/master)
+[![Windows build](https://bs.red-lang.org/windows.svg)](https://ci.appveyor.com/project/red/red/branch/master)
+[![macOS build](https://bs.red-lang.org/macos.svg)](https://travis-ci.org/red/red)
+[![Linux build](https://bs.red-lang.org/linux.svg)](https://travis-ci.org/red/red)
+[![ARM build](https://bs.red-lang.org/arm.svg)](https://travis-ci.org/red/red)
 
 Red Programming Language
 ------------------------
@@ -67,6 +69,10 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
 
     -dlib, --dynamic-lib           : Generate a shared library from the source
                                      file.
+
+    -e, --encap                    : Compile in encap mode, so code is interpreted 
+                                     at runtime. Avoids compiler issues. Required
+                                     for some dynamic code.
 
     -h, --help                     : Output this help text.
 
@@ -196,7 +202,7 @@ Note: The red git repository does not include a .gitignore file. If you run the 
 
 Contributing
 -------------------------
-If you want to contribute code to the Red project be sure to read the [guidelines](https://github.com/red/red/wiki/Contributor-Guidelines) first.
+If you want to contribute code to the Red project be sure to read the [guidelines](https://github.com/red/red/wiki/%5BDOC%5D-Contributor-Guidelines) first.
 
 It is usually a good idea to inform the Red team about what changes you are going to make in order to ensure that someone is not already working on the same thing. You can reach us through the [mailing-list](https://groups.google.com/forum/?hl=en#!forum/red-lang) or our [chat room](https://gitter.im/red/red).
 
@@ -205,6 +211,16 @@ Satisfied with the results of your change and want to issue a pull request on Gi
 Make sure the changes pass all the existing tests, add relevant tests to the test-suite and please test on as many platforms as you can. You can run all the tests using (from Rebol console, at repository root):
 
         >> do %run-all.r
+
+Git integration with console built from sources
+-------------------------
+If you want git version included in your Red console built from sources, use this command:
+```Red
+call/show ""                                              ;-- patch call bug on Windows
+save %build/git.r do %build/git-version.r                 ;-- lookup git version if available
+do/args %red.r "-r %environment/console/CLI/console.red"  ;-- build Console
+write %build/git.r "none^/"                               ;-- restore git repo status
+```
 
 Anti-virus false positive
 -------------------------

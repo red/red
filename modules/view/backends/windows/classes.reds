@@ -185,66 +185,6 @@ AreaWndProc: func [
 	CallWindowProc as wndproc-cb! OldEditWndProc hWnd msg wParam lParam
 ]
 
-USBDevWndProc: func [
-	hWnd	[handle!]
-	msg		[integer!]
-	wParam	[integer!]
-	lParam	[integer!]
-	return: [integer!]
-	/local
-		filter	[DEV_BROADCAST_DEVICEINTERFACE value]
-		info	[DEV_BROADCAST_DEVICEINTERFACE]
-		len		[integer!]
-		data	[red-block!]
-		val		[red-value!]
-		evt		[integer!]
-		str		[byte-ptr!]
-		p		[byte-ptr!]
-		p2		[byte-ptr!]
-][
-	switch msg [
-		WM_CREATE [
-			zero-memory as byte-ptr! :filter size? DEV_BROADCAST_DEVICEINTERFACE
-			filter/dbcc_size: size? DEV_BROADCAST_DEVICEINTERFACE
-			filter/dbcc_devicetype: 5		;-- DBT_DEVTYP_DEVICEINTERFACE
-			filter/guid_data1: 4D1E55B2h
-			filter/guid_data2: 11CFF16Fh
-			filter/guid_data3: 1100CB88h
-			filter/guid_data4: 30000011h
-			SetWindowLong hWnd wc-offset - 8 as-integer RegisterDeviceNotification hWnd as int-ptr! :filter 0
-			return 0
-		]
-		0219h [						;-- WM_DEVICECHANGE
-			if any [
-				wParam = 8000h		;-- DBT_DEVICEARRIVAL
-				wParam = 8004h		;-- DBT_DEVICEREMOVECOMPLETE
-			][
-				info: as DEV_BROADCAST_DEVICEINTERFACE lParam
-				str: as byte-ptr! :info/dbcc_name
-				data: as red-block! (get-face-values hWnd) + FACE_OBJ_DATA
-				if TYPE_OF(data) <> TYPE_BLOCK [
-					block/make-at data 2
-					loop 2 [none/make-in data]
-				]
-				val: block/rs-head data
-				p: wcsstr str #u16 "VID_"
-				p2: wcsstr p + 16 #u16 "PID_"
-				integer/make-at val wcstol p + 8 p + 16 16
-				integer/make-at val + 1 wcstol p2 + 8 p2 + 16 16
-				current-msg/hWnd: hWnd
-				evt: either wParam = 8000h [EVT_LEFT_UP][EVT_LEFT_DOWN]
-				make-event current-msg 0 evt
-			]
-		]
-		WM_DESTROY [
-			UnregisterDeviceNotification as handle! GetWindowLong hWnd wc-offset - 8
-			return 0
-		]
-		default [0]
-	]
-	DefWindowProc hWnd msg wParam lParam
-]
-
 register-classes: func [
 	hInstance [handle!]
 	/local
@@ -282,10 +222,6 @@ register-classes: func [
 	wcex/lpfnWndProc:	:CameraWndProc
 	wcex/hbrBackground:	COLOR_BACKGROUND + 1
 	wcex/lpszClassName: #u16 "RedCamera"
-	RegisterClassEx		wcex
-
-	wcex/lpfnWndProc:	:USBDevWndProc
-	wcex/lpszClassName: #u16 "RedUSBDev"
 	RegisterClassEx		wcex
 
 	;-- superclass existing classes to add 16 extra bytes
@@ -328,6 +264,5 @@ unregister-classes: func [
 	UnregisterClass #u16 "RedPanel"			hInstance
 	UnregisterClass #u16 "RedFace"			hInstance
 	UnregisterClass #u16 "RedArea"			hInstance
-	UnregisterClass #u16 "RedUSBDev"		hInstance
 	;@@ unregister custom classes too!
 ]

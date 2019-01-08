@@ -21,7 +21,7 @@ Red/System [
 				#if debug? = yes [if verbose > 0 [log "infix detected!"]]
 				infix?: yes
 			][
-				lit?: all [								;-- is a literal argument is expected?
+				lit?: all [								;-- is a literal argument expected?
 					TYPE_OF(pc) = TYPE_WORD
 					literal-first-arg? as red-native! value
 				]
@@ -684,19 +684,15 @@ interpreter: context [
 		while [item < tail][
 			#if debug? = yes [if verbose > 0 [print-line ["eval: path parent: " TYPE_OF(parent)]]]
 			
-			value: either TYPE_OF(item) = TYPE_GET_WORD [
-				_context/get as red-word! item
-			][
-				item
-			]
-			switch TYPE_OF(value) [
-				TYPE_UNSET [fire [TO_ERROR(script no-value)	item]]
-				TYPE_PAREN [
-					eval as red-block! value no		;-- eval paren content
-					value: stack/top - 1
+			value: switch TYPE_OF(item) [ 
+				TYPE_GET_WORD [_context/get as red-word! item]
+				TYPE_PAREN 	  [
+					eval as red-block! item no			;-- eval paren content
+					stack/top - 1
 				]
-				default [0]								;-- compilation pass-thru
+				default [item]
 			]
+			if TYPE_OF(value) = TYPE_UNSET [fire [TO_ERROR(script no-value) item]]
 			#if debug? = yes [if verbose > 0 [print-line ["eval: path item: " TYPE_OF(value)]]]
 			
 			gparent: parent								;-- save grand-parent reference
@@ -787,7 +783,7 @@ interpreter: context [
 					s: as series! fun/more/value
 					int: as red-integer! s/offset + 4
 					either TYPE_OF(int) = TYPE_INTEGER [
-						ctx: as node! int/value
+						as node! int/value
 					][
 						name/ctx						;-- get a context from calling name
 					]
@@ -955,20 +951,21 @@ interpreter: context [
 			TYPE_LIT_PATH [
 				value: stack/push pc
 				value/header: TYPE_PATH
+				value/data3: 0							;-- ensures args field is null
 				pc: pc + 1
 			]
 			TYPE_OP [
 				--NOT_IMPLEMENTED--						;-- op used in prefix mode
 			]
-			TYPE_ACTION							;@@ replace with TYPE_ANY_FUNCTION
+			TYPE_ACTION									;@@ replace with TYPE_ANY_FUNCTION
 			TYPE_NATIVE
 			TYPE_ROUTINE
 			TYPE_FUNCTION [
 				either passive? [
 					either sub? [
-						stack/push pc						;-- nested expression: push value
+						stack/push pc					;-- nested expression: push value
 					][
-						stack/set-last pc					;-- root expression: return value
+						stack/set-last pc				;-- root expression: return value
 					]
 					pc: pc + 1
 				][

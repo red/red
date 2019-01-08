@@ -63,6 +63,7 @@ Red/System [
 	TYPE_EVENT											
 	TYPE_CLOSURE
 	TYPE_PORT
+	TYPE_TOTAL_COUNT									;-- keep tabs on number of datatypes.
 ]
 
 #enum actions! [
@@ -243,6 +244,7 @@ Red/System [
 	NAT_SIZE?
 	NAT_BROWSE
 	NAT_DECOMPRESS
+	NAT_RECYCLE
 ]
 
 #enum math-op! [
@@ -518,13 +520,18 @@ Red/System [
 	]
 ]
 
-#define GET_SIZE_FROM(spec) [
+#define GET_INT_FROM(n spec) [
 	either TYPE_OF(spec) = TYPE_FLOAT [
 		fl: as red-float! spec
-		as-integer fl/value
+		n: as-integer fl/value
+		#if target = 'IA-32 [
+			if system/fpu/status and FPU_EXCEPTION_INVALID_OP <> 0 [
+				fire [TO_ERROR(internal no-memory)]
+			]
+		]
 	][
 		int: as red-integer! spec
-		int/value
+		n: int/value
 	]
 ]
 

@@ -152,6 +152,7 @@ OS-text-box-metrics: func [
 		tc		[integer!]
 		pos		[red-pair!]
 		int		[red-integer!]
+		str		[red-string!]
 		values	[red-value!]
 		y		[float32!]
 		x		[float32!]
@@ -179,10 +180,11 @@ OS-text-box-metrics: func [
 	as red-value! switch type [
 		TBOX_METRICS_OFFSET?
 		TBOX_METRICS_LINE_HEIGHT [
+			str: as red-string! int + 2
 			xx: 0 _x: 0
 			int: as red-integer! arg0
 			idx: int/value - 1
-			len: objc_msgSend [ts sel_getUid "length"]
+			len: string/rs-length? str
 			if idx < 0 [idx: 0]
 			last?: idx >= len
 			if last? [idx: len - 1]
@@ -295,7 +297,7 @@ OS-text-box-layout: func [
 	values: object/get-values box
 
 	str: to-NSString as red-string! values + FACE_OBJ_TEXT
-	state: as red-block! values + FACE_OBJ_EXT2
+	state: as red-block! values + FACE_OBJ_EXT3
 	size: as red-pair! values + FACE_OBJ_SIZE
 	nsfont: as-integer get-font null as red-object! values + FACE_OBJ_FONT
 	cached?: TYPE_OF(state) = TYPE_BLOCK
@@ -309,7 +311,7 @@ OS-text-box-layout: func [
 		int: int + 1 tc: int/value
 		int: int + 1 ts: int/value
 		int: int + 1 para: int/value
-		bool: as red-logic! int + 1
+		bool: as red-logic! int + 2
 		bool/value: false
 	][
 		tc: objc_msgSend [
@@ -338,13 +340,16 @@ OS-text-box-layout: func [
 		objc_msgSend [para sel_getUid "setTabStops:" objc_msgSend [objc_getClass "NSArray" sel_getUid "array"]]
 
 		h: 7CF0BDC2h
-		block/make-at state 5
+		block/make-at state 6
 		integer/make-in state layout
 		integer/make-in state tc
 		integer/make-in state ts
 		integer/make-in state para
+		none/make-in state
 		logic/make-in state false
 	]
+
+	copy-cell values + FACE_OBJ_TEXT (block/rs-head state) + 4
 
 	;@@ set para: as red-object! values + FACE_OBJ_PARA
 
@@ -357,7 +362,7 @@ OS-text-box-layout: func [
 	objc_msgSend [ts sel_getUid "beginEditing"]
 
 	if cached? [
-		w: objc_msgSend [ts sel_getUid "length"]
+		w: objc_msgSend [ts sel_length]
 		objc_msgSend [ts sel_getUid "deleteCharactersInRange:" 0 w]
 		objc_msgSend [ts sel_getUid "replaceCharactersInRange:withString:" 0 0 str]
 	]
@@ -370,7 +375,7 @@ OS-text-box-layout: func [
 		nscolor NSForegroundColorAttributeName
 		0
 	]
-	w: objc_msgSend [str sel_getUid "length"]
+	w: objc_msgSend [str sel_length]
 	objc_msgSend [ts sel_getUid "setAttributes:range:" attrs 0 w]
 	objc_msgSend [attrs sel_release]
 
@@ -379,7 +384,7 @@ OS-text-box-layout: func [
 		TYPE_OF(styles) = TYPE_BLOCK
 		1 < block/rs-length? styles
 	][
-		parse-text-styles as handle! nsfont as handle! ts styles catch?
+		parse-text-styles as handle! nsfont as handle! ts styles w catch?
 	]
 
 	objc_msgSend [ts sel_getUid "endEditing"]

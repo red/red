@@ -261,11 +261,19 @@
 	red/actions/tail?*
 	red/actions/take*
 	red/actions/trim*
-	red/actions/modify*
-	red/actions/read*
-	red/actions/write*
-	red/actions/delete*
 
+	red/actions/create*
+	red/actions/close*
+	red/actions/delete*
+	red/actions/modify*
+	red/actions/open*
+	;red/actions/open?*
+	red/actions/query*
+	red/actions/read*
+	red/actions/rename*
+	red/actions/update*
+	red/actions/write*
+	
 	red/natives/if*
 	red/natives/unless*
 	red/natives/either*
@@ -365,7 +373,10 @@
 	red/natives/browse*
 	red/natives/context?*
 	red/natives/decompress*
+	red/natives/recycle*
 ][
+	red/object/path-parent	cell!
+	red/object/field-parent	cell!
 	red/stack/arguments		cell!
 	red/stack/top			cell!
 	red/stack/bottom		cell!
@@ -373,4 +384,5 @@
 	red/none-value			cell!
 	red/true-value			cell!
 	red/false-value			cell!
+	red/boot?				logic!
 ]

@@ -472,6 +472,8 @@ OS-draw-text: func [
 	dc		[draw-ctx!]
 	pos		[red-pair!]
 	text	[red-string!]
+	catch?	[logic!]
+	return: [logic!]
 	/local
 		ctx		[handle!]
 		len     [integer!]
@@ -489,6 +491,7 @@ OS-draw-text: func [
 	do-paint dc
 
 	set-source-color dc/raw dc/pen-color	;-- backup pen color
+	yes
 ]
 
 OS-draw-arc: func [

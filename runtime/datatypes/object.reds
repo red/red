@@ -262,6 +262,7 @@ object: context [
 		node: alloc-cells 1								;-- hidden object value storage used by SELF
 		s: as series! node/value
 		copy-cell as red-value! obj s/offset
+		s/tail: s/offset + 1
 		node
 	]
 	
@@ -583,9 +584,7 @@ object: context [
 					string/append-char GET_BUFFER(buffer) as-integer #"'" ;-- create a literal word
 					part: part - 1
 				]
-				unless cycles/detect? value buffer :part mold? [
-					part: actions/mold value buffer only? all? flat? arg part tabs
-				]
+				part: actions/mold value buffer only? all? flat? arg part tabs
 
 				if any [indent? sym + 1 < s-tail][			;-- no final LF when FORMed
 					string/append-char GET_BUFFER(buffer) as-integer blank
@@ -762,8 +761,10 @@ object: context [
 			fire [TO_ERROR(script bad-func-def) fun]
 		]
 		spec: as red-block! stack/push*
-		spec/head: 0
-		spec/node: fun/spec
+		spec/header: TYPE_BLOCK
+		spec/head:	 0
+		spec/node:	 fun/spec
+		spec/extra:	 0
 		
 		blk: block/clone as red-block! more yes yes
 		_context/bind blk ctx node yes					;-- rebind new body to object's context
@@ -785,11 +786,15 @@ object: context [
 			ctx [red-context!]
 			obj	[red-object!]
 			s	[series!]
+			ss	[series!]
+			sz	[integer!]
 	][
 		ctx: TO_CTX(node)
 		s: as series! ctx/values/value
 		if s/offset = s/tail [
-			s/tail: s/offset + (s/size >> 4)			;-- (late) setting of 'values right tail pointer
+			ss: as series! ctx/symbols/value
+			sz: (as-integer (ss/tail - ss/offset)) >> 4
+			s/tail: s/offset + sz						;-- (late) setting of 'values right tail pointer
 		]
 		
 		obj: as red-object! stack/push*
@@ -809,6 +814,7 @@ object: context [
 		loc-s [integer!]
 		idx-d [integer!]								;-- for on-deep-change* event
 		loc-d [integer!]
+		return: [node!]
 		/local
 			obj [red-object!]
 			s	[series!]
@@ -820,10 +826,12 @@ object: context [
 		
 		s: as series! ctx/value
 		copy-cell as red-value! obj s/offset + 1		;-- refresh back-reference
+		obj/on-set
 	]
 	
 	push: func [
 		ctx		[node!]
+		evt		[node!]
 		class	[integer!]
 		idx-s	[integer!]								;-- for on-change* event
 		loc-s	[integer!]
@@ -835,10 +843,11 @@ object: context [
 			s	[series!]
 	][
 		obj: as red-object! stack/push*
-		obj/header: TYPE_OBJECT
+		obj/header: TYPE_UNSET
 		obj/ctx:	ctx
 		obj/class:	class
-		obj/on-set: make-callback-node TO_CTX(ctx) idx-s loc-s idx-d loc-d
+		obj/on-set: evt
+		obj/header: TYPE_OBJECT
 		
 		s: as series! ctx/value
 		copy-cell as red-value! obj s/offset + 1		;-- set back-reference
@@ -852,10 +861,11 @@ object: context [
 		/local
 			s [series!]
 	][
-		obj/header: TYPE_OBJECT
+		obj/header: TYPE_UNSET
 		obj/ctx:	_context/create slots no yes
 		obj/class:	0
 		obj/on-set: null
+		obj/header: TYPE_OBJECT
 		
 		s: as series! obj/ctx/value
 		copy-cell as red-value! obj s/offset + 1		;-- set back-reference
@@ -958,6 +968,8 @@ object: context [
 			obj		[red-object!]
 			obj2	[red-object!]
 			ctx		[red-context!]
+			self	[node!]
+			s		[series!]
 			blk		[red-block!]
 			p-obj?  [logic!]
 			new?	[logic!]
@@ -965,6 +977,7 @@ object: context [
 		#if debug? = yes [if verbose > 0 [print-line "object/make"]]
 		
 		obj: as red-object! stack/push*
+		obj/header: TYPE_UNSET
 		
 		p-obj?: TYPE_OF(proto) = TYPE_OBJECT
 		
@@ -981,15 +994,19 @@ object: context [
 				obj/class: either extend ctx GET_CTX(obj2) obj [get-new-id][proto/class] ;@@ class-id is not transmitted for 'self!
 			]
 			TYPE_BLOCK [
+				obj/on-set: null						;-- avoid GC marking previous value
 				blk: as red-block! spec
 				new?: _context/collect-set-words ctx blk
-				_context/bind blk ctx save-self-object obj yes	;-- bind spec block
+				self: save-self-object obj
+				_context/bind blk ctx self yes	;-- bind spec block
 				if p-obj? [duplicate proto/ctx obj/ctx no]		;-- clone and rebind proto's series
 				interpreter/eval blk no
 				
 				obj/class: either any [new? not p-obj?][get-new-id][proto/class]
 				obj/on-set: on-set-defined? ctx
 				if on-deep? obj [ownership/set-owner as red-value! obj obj null]
+				s: as series! self/value
+				copy-cell as red-value! obj s/offset
 			]
 			default [fire [TO_ERROR(syntax malconstruct) spec]]
 		]
@@ -1041,7 +1058,9 @@ object: context [
 				blk/node: ctx/symbols
 				len: block/rs-length? blk
 				if len = 0 [len: 1]
+				blk/header: TYPE_UNSET
 				blk/node: alloc-cells len
+				blk/header: TYPE_BLOCK
 				
 				s: as series! ctx/symbols/value
 				syms: s/offset
@@ -1081,6 +1100,7 @@ object: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/form"]]
 
+		if cycles/detect? as red-value! obj buffer :part no [return part]
 		serialize obj buffer no no no arg part no 0 no
 	]
 	
@@ -1096,6 +1116,8 @@ object: context [
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/mold"]]
+		
+		if cycles/detect? as red-value! obj buffer :part yes [return part]
 		
 		string/concatenate-literal buffer "make object! ["
 		part: serialize obj buffer no all? flat? arg part - 14 yes indent + 1 yes
@@ -1191,10 +1213,11 @@ object: context [
 		if TYPE_OF(obj2) <> TYPE_OBJECT [RETURN_COMPARE_OTHER]
 
 		if op = COMP_SAME [return either obj1/ctx = obj2/ctx [0][-1]]
-		if all [
-			obj1/ctx = obj2/ctx
-			any [op = COMP_EQUAL op = COMP_FIND op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
-		][return 0]
+		if obj1/ctx = obj2/ctx [return 0]
+
+		if cycles/find? obj1/ctx [
+			return either cycles/find? obj2/ctx [0][-1]
+		]
 
 		ctx1: GET_CTX(obj1)
 		s: as series! ctx1/symbols/value
@@ -1217,12 +1240,13 @@ object: context [
 		value2: s/offset
 		
 		cycles/push obj1/ctx
+		cycles/push obj2/ctx
 		
 		until [
 			s1: symbol/resolve sym1/symbol
 			s2: symbol/resolve sym2/symbol
 			if s1 <> s2 [
-				cycles/pop
+				cycles/pop-n 2
 				return SIGN_COMPARE_RESULT(s1 s2)
 			]
 			type1: TYPE_OF(value1)
@@ -1235,17 +1259,13 @@ object: context [
 					any [type2 = TYPE_INTEGER type2 = TYPE_FLOAT]
 				]
 			][
-				either cycles/find? value1 [
-					res: as-integer not natives/same? value1 value2
-				][
-					res: actions/compare-value value1 value2 op
-				]
+				res: actions/compare-value value1 value2 op
 				sym1: sym1 + 1
 				sym2: sym2 + 1
 				value1: value1 + 1
 				value2: value2 + 1
 			][
-				cycles/pop
+				cycles/pop-n 2
 				return SIGN_COMPARE_RESULT(type1 type2)
 			]
 			any [
@@ -1253,7 +1273,7 @@ object: context [
 				sym1 >= tail
 			]
 		]
-		cycles/pop
+		cycles/pop-n 2
 		res
 	]
 	
@@ -1271,7 +1291,6 @@ object: context [
 			tail  [red-value!]
 			src	  [series!]
 			dst	  [series!]
-			s	  [series!]
 			node  [node!]
 			size  [integer!]
 			slots [integer!]
@@ -1291,12 +1310,13 @@ object: context [
 		slots:	size >> 4
 		
 		copy-cell as cell! obj as cell! new
+		new/header: TYPE_UNSET
 		new/ctx: _context/create slots no yes
 		new/class: obj/class
+		new/header: TYPE_OBJECT
 		nctx: GET_CTX(new)
-		
-		s: as series! new/ctx/value
-		copy-cell as red-value! new s/offset + 1		;-- set back-reference
+
+		copy-cell as red-value! new as red-value! nctx + 1	;-- set back-reference
 
 		node: save-self-object new
 		
