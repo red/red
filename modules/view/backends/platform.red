@@ -518,6 +518,7 @@ system/view/platform: context [
 					#switch OS [
 						Windows  [#include %windows/gui.reds]
 						macOS    [#include %macOS/gui.reds]
+						; GTK backend (is it in conflict with %GTK/gui.reds)
 						Linux	 [#include %gtk3/gui.reds]
 						#default []					;-- Linux
 					]
@@ -572,8 +573,9 @@ system/view/platform: context [
 		pair: as red-pair! stack/arguments
 		pair/header: TYPE_PAIR
 		
+		;GTK branch: gui/get-text-size face text hFont pair
 		#switch OS [
-			Linux [gui/get-text-size text font pair]
+			Linux [gui/get-text-size face text font pair]
 			#default [gui/get-text-size face text hFont pair]
 		]
 	]
@@ -649,6 +651,8 @@ system/view/platform: context [
 		#switch OS [
 			Windows  [gui/PostQuitMessage 0]
 			macOS    [gui/post-quit-msg]
+			; GTK Backend 
+			;TODO Linux [gui/post-quit-message]
 			#default [0]
 		]
 	]
@@ -722,6 +726,7 @@ system/view/platform: context [
 				drop-down:		[0x3   2x3 regular 0x3 2x3 small 0x3 1x3 mini 0x2 1x3]
 				drop-list:		[0x3   2x3 regular 0x3 2x3 small 0x3 1x3 mini 0x2 1x3]
 			]
+			; GTK branch (similar to macOS from now)
 			Linux [
 				button:			[2x2   2x3 regular 6x6 4x7 small 5x5 4x6 mini 1x1 0x1]
 				regular:		[6x6   4x7]
@@ -732,7 +737,6 @@ system/view/platform: context [
 				drop-down:		[0x3   2x3 regular 0x3 2x3 small 0x3 1x3 mini 0x2 1x3]
 				drop-list:		[0x3   2x3 regular 0x3 2x3 small 0x3 1x3 mini 0x2 1x3]
 			]
-			#default []
 		]]
 		extend system/view/metrics/paddings [#switch config/OS [
 			Windows [
@@ -753,6 +757,7 @@ system/view/platform: context [
 				group-box:		[0x8  4x18]
 				drop-list:		[14x26 0x0 regular 14x26 0x0 small 11x22 0x0 mini 11x22 0x0]
 			]
+			; GTK backend (similar to macOS from now)
 			Linux [
 				button:			[11x11 0x0 regular 14x14 0x0 small 11x11 0x0 mini 11x11 0x0]
 				check:			[20x0  3x1]
@@ -762,7 +767,6 @@ system/view/platform: context [
 				group-box:		[0x8  4x18]
 				drop-list:		[14x26 0x0 regular 14x26 0x0 small 11x22 0x0 mini 11x22 0x0]
 			]
-			#default []
 		]]
 		#switch config/OS [
 			Windows [
@@ -790,18 +794,18 @@ system/view/platform: context [
 					progress:	21
 				]
 			]
+			; GTK Backend (similar to macOS from now)
 			Linux	[
 				extend system/view/metrics/def-heights [
-					check:		29
-					radio:		29
-					text:		22
-					field:		29
-					drop-down:	33
-					drop-list:	33
-					progress:	29
+					check:		21
+					radio:		21
+					text:		18
+					field:		21
+					drop-down:	21
+					drop-list:	21
+					progress:	21
 				]
 			]
-			#default []
 		]
 		
 		colors: system/view/metrics/colors
@@ -811,9 +815,13 @@ system/view/platform: context [
 				;colors/window							;-- set in gui/init from OS metrics
 				;colors/panel							;-- set in gui/init from OS metrics
 			]
-			macOS []
-			Linux []
-			#default []
+			macOS [
+			
+			]
+			; GTK Backends
+			Linux [
+
+			]
 		]
 
 		append svs make face! [							;-- default screen

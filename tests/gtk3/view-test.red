@@ -5,7 +5,6 @@ Red [
 
 system/view/debug?: no
 live?: system/view/auto-sync?: no
-system/view/gtk-auto-adjust?: yes
 
 workstation?: system/view/platform/product = 1
 os-version: system/view/platform/version

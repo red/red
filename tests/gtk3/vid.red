@@ -5,7 +5,6 @@ Red [
 	Needs:	 'View
 ]
 system/view/debug?: no ;yes
-system/view/gtk-auto-adjust?: yes
 
 view [
 	title "VID test"
