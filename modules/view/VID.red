@@ -39,8 +39,6 @@ system/view/VID: context [
 				Cancel-OK
 			]
 			Linux [
-				adjust-buttons
-				capitalize
 				Cancel-OK
 			]
 		]
