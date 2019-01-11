@@ -22,7 +22,7 @@ system/view/VID: context [
 			#switch config/OS [
 				Windows [#include %backends/windows/rules.red]
 				macOS	[#include %backends/macOS/rules.red]
-				Linux	[]
+				Linux	[#include %backends/gtk3/rules.red]
 			]
 		]
 		
@@ -38,7 +38,9 @@ system/view/VID: context [
 				capitalize
 				Cancel-OK
 			]
-			Linux []
+			Linux [
+				Cancel-OK
+			]
 		]
 		user: []
 		

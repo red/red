@@ -3,13 +3,12 @@ Red [
 	Needs: 'View
 ]
 
-system/view/debug?: no
+system/view/debug?: yes
 live?: system/view/auto-sync?: no
-system/view/gtk-auto-adjust?: yes
 
 workstation?: system/view/platform/product = 1
 os-version: system/view/platform/version
-
+recycle/off
 
 #switch config/OS [
 	Windows [
@@ -605,15 +604,15 @@ win/pane: reduce [
 			]
 		]
 	]
-	; make face! [
-	; 	type: 'radio text: "radio 2" offset: 300x230 size: 90x24
-	; 	data: on
-	; 	actors: object [
-	; 		on-change: func [face [object!] event [event!]][
-	; 			print "radio 2 set"
-	; 		]
-	; 	]
-	; ]
+	make face! [
+		type: 'radio text: "radio 2" offset: 300x230 size: 90x24
+		data: on
+		actors: object [
+			on-change: func [face [object!] event [event!]][
+				print "radio 2 set"
+			]
+		]
+	]
 	make face! [
 		type: 'base offset: 280x10 size: 100x100
 		options: [drag-on: 'down]
@@ -905,3 +904,5 @@ dump-face win
 view/flags win [resize]
 system/view/debug?: no
 system/view/auto-sync?: yes
+
+recycle/on
