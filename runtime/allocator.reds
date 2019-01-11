@@ -606,6 +606,10 @@ cross-compact-frame: func [
 			size: 0
 			src: as byte-ptr! s
 			until [							;-- search for a gap
+				if s/flags and flag-series-fixed <> 0 [ ;-- stop compacting when there is a fixed series
+					prev/heap: as series! prev-dst
+					return refs
+				]
 				s/flags: s/flags and not flag-gc-mark	;-- clear mark flag
 				size2: size
 				size: size + s/size + size? series-buffer!
