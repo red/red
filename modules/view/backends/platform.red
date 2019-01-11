@@ -794,17 +794,7 @@ system/view/platform: context [
 					progress:	21
 				]
 			]
-			; GTK Backend (similar to macOS from now)
-			Linux	[
-				extend system/view/metrics/def-heights [
-					check:		21
-					radio:		21
-					text:		18
-					field:		21
-					drop-down:	21
-					drop-list:	21
-					progress:	21
-				]
+ 			Linux	[
 			]
 		]
 		
