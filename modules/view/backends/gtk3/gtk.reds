@@ -407,6 +407,13 @@ cairo_font_extents_t!: alias struct! [
 			error		[int-ptr!]
 			return:		[logic!]
 		]
+		g_application_activate: "g_application_activate" [
+			app			[handle!]
+		]
+		g_application_id_is_valid: "g_application_id_is_valid" [
+			id			[c-string!]
+			return: 	[logic!]
+		]
 		g_settings_sync: "g_settings_sync" []
 	;; ]
 	;; LIBGTK-file cdecl [
@@ -418,9 +425,6 @@ cairo_font_extents_t!: alias struct! [
 		gtk_application_get_windows: "gtk_application_get_windows" [
 			app			[handle!]
 			return:		[int-ptr!]
-		]
-		g_application_activate: "g_application_activate" [
-			app			[handle!]
 		]
 		gtk_application_get_active_window: "gtk_application_get_active_window" [
 			app			[handle!]
