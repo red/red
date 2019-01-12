@@ -56,7 +56,8 @@ pango-context:	as handle! 0
 gtk-font:		"Sans 10"
 
 ; Do not KNOW about this one 
-main-window:	as handle! 0
+;;;main-window:	as handle! 0
+
 ; Temporary, will be removed...
 last-widget:	as handle! 0
 
@@ -361,7 +362,8 @@ debug-show-children: func [
 ]
 
 init: func [][
-	GTKApp: gtk_application_new RED_GTK_APP_ID 0
+	if g_application_id_is_valid RED_GTK_APP_ID [
+	GTKApp: gtk_application_new RED_GTK_APP_ID 32
 	gobj_signal_connect(GTKApp "window-removed" :window-removed-event :exit-loop)
 
 	GTKApp-Ctx: g_main_context_default
@@ -377,6 +379,7 @@ init: func [][
 	screen-size-y: gdk_screen_height
 
 	style-init
+	]
 ]
 
 get-symbol-name: function [
@@ -1304,8 +1307,8 @@ OS-refresh-window: func [hWnd [integer!]][
 
 OS-show-window: func [
 	hWnd	[integer!]
-	/local
-		auto-adjust?	[red-logic!]
+	; /local
+	; 	auto-adjust?	[red-logic!]
 ][
 	gtk_widget_show_all as handle! hWnd
 	gtk_widget_grab_focus as handle! hWnd
@@ -1384,6 +1387,8 @@ OS-make-view: func [
 		null
 	]
 
+	print ["OS-make-view " get-symbol-name sym lf]
+
 	case [
 		sym = check [
 			widget: gtk_check_button_new_with_label caption
@@ -1415,9 +1420,14 @@ OS-make-view: func [
 			gobj_signal_connect(widget "draw" :base-draw face/ctx)
 		]
 		sym = window [
-			widget: gtk_application_window_new GTKApp
+			;;;print ["win " GTKApp lf]
+			;widget: gtk_application_window_new GTKApp
+			widget: gtk_window_new 0
+			;;;print ["win1 " widget lf]
+			gtk_application_add_window GTKApp widget
+			;;;print ["win2 " lf]
 			; @@ DEBUG: temporary code
-			main-window: widget
+			;;;main-window: widget
 			unless null? caption [gtk_window_set_title widget caption]
 			gtk_window_set_default_size widget size/x size/y
 			gtk_container_add widget gtk_fixed_new
@@ -1524,7 +1534,8 @@ OS-make-view: func [
 	make-font-provider widget
 	if sym <> base [change-font widget face font sym]
 
-	;print [ "New widget " get-symbol-name sym "->" widget lf]
+	;
+	print [ "New widget " get-symbol-name sym "->" widget lf]
 	
 	if all [
 		sym <> window
