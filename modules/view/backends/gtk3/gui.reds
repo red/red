@@ -362,8 +362,7 @@ debug-show-children: func [
 ]
 
 init: func [][
-	if g_application_id_is_valid RED_GTK_APP_ID [
-	GTKApp: gtk_application_new RED_GTK_APP_ID 32
+	GTKApp: gtk_application_new RED_GTK_APP_ID G_APPLICATION_NON_UNIQUE
 	gobj_signal_connect(GTKApp "window-removed" :window-removed-event :exit-loop)
 
 	GTKApp-Ctx: g_main_context_default
@@ -379,7 +378,6 @@ init: func [][
 	screen-size-y: gdk_screen_height
 
 	style-init
-	]
 ]
 
 get-symbol-name: function [
