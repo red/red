@@ -362,7 +362,12 @@ debug-show-children: func [
 ]
 
 init: func [][
+<<<<<<< HEAD
 	GTKApp: gtk_application_new RED_GTK_APP_ID G_APPLICATION_NON_UNIQUE
+=======
+	if g_application_id_is_valid RED_GTK_APP_ID [
+	GTKApp: gtk_application_new RED_GTK_APP_ID 32
+>>>>>>> 4c4098c9... fix GApplicationFlags of GTKApp to have multiple instances of gtk apps
 	gobj_signal_connect(GTKApp "window-removed" :window-removed-event :exit-loop)
 
 	GTKApp-Ctx: g_main_context_default
@@ -378,6 +383,7 @@ init: func [][
 	screen-size-y: gdk_screen_height
 
 	style-init
+	]
 ]
 
 get-symbol-name: function [
