@@ -460,7 +460,7 @@ OS-image: context [
 						b: as-integer rgb/3
 						rgb: rgb + 3
 					]
-					scan0/pos: r << 16 or (g << 8) or b or (a << 24)
+					scan0/pos: r  or (g << 8) or (b << 16) or (a << 24)
 					x: x + 1
 				]
 				y: y + 1

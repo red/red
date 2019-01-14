@@ -706,14 +706,14 @@ win/pane: reduce [
 		type: 'drop-list offset: 480x402 size: 160x32
 		actors: object [
 			on-create: func [face [object!]][
-				face/data: cam/data
+				;face/data: cam/data
 			]
 			on-change: func [face [object!] event [event!]][
 				print ["changed:" face/selected]
-				unless cam/selected = face/selected [
-					cam/selected: face/selected
-				]
-				unless live? [show cam]
+				;unless cam/selected = face/selected [
+				;	cam/selected: face/selected
+				;]
+				;unless live? [show cam]
 			]
 		]
 	]
@@ -721,12 +721,12 @@ win/pane: reduce [
 		type: 'button text: "Start/Stop" offset: 400x400 size: 70x24
 		actors: object [
 			on-click: func [face [object!] event [event!]][
-				either cam/selected [
-					cam/selected: none
-				][
-					cam/selected: cam-list/selected
-				]
-				unless live? [show cam]
+				; either cam/selected [
+				; 	cam/selected: none
+				; ][
+				; 	cam/selected: cam-list/selected
+				; ]
+				; unless live? [show cam]
 			]
 		]
 	]
