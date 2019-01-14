@@ -17,12 +17,12 @@ red: context [
 	#include %macros.reds
 	#include %tools.reds
 	
-	#switch OS [										;-- loading OS-specific bindings
-		Windows  [#include %platform/win32.reds]
-		Syllable [#include %platform/syllable.reds]
-		macOS	 [#include %platform/darwin.reds]
-		FreeBSD  [#include %platform/freebsd.reds]
-		#default [#include %platform/linux.reds]
+	#switch OS [										;-- OS-specific initialize function
+		Windows  [#include %platform/windows/win32.reds]
+		Syllable [#include %platform/Syllable/syllable.reds]
+		macOS	 [#include %platform/darwin/darwin.reds]
+		FreeBSD  [#include %platform/freebsd/freebsd.reds]
+		#default [#include %platform/linux/linux.reds]	;-- Linux or Android
 	]
 	
 	;#include %threads.reds
@@ -48,13 +48,13 @@ red: context [
 	;-- ]
 	;--------------------------------------------
 	#switch OS [
-		Windows  [#include %platform/image-gdiplus.reds]
+		Windows  [#include %platform/windows/image-gdiplus.reds]
 		Syllable []
-		macOS	 [#include %platform/image-quartz.reds]
+		macOS	 [#include %platform/darwin/image-quartz.reds]
 		FreeBSD  []
 		#default []
 	]
-	
+
 	#include %datatypes/datatype.reds
 	#include %datatypes/unset.reds
 	#include %datatypes/none.reds
