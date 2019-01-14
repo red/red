@@ -96,6 +96,12 @@ Linux [									; Linux default target
 	type:		'exe
 	dynamic-linker: "/lib/ld-linux.so.2"
 ]
+Linux-Musl [									; Linux default target
+	OS:			'Linux
+	format: 	'ELF
+	type:		'exe
+	dynamic-linker: "/lib/ld-musl-i386.so.1"
+]
 Linux-Old [
 	OS:			'Linux
 	format: 	'ELF
