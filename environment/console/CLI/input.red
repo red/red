@@ -526,11 +526,12 @@ unless system/console [
 		]
 
 		stdin-readline: func [
+			in-line  [red-string!]
 			/local
 				c	 [integer!]
 				s	 [series!]
 		][
-			s: GET_BUFFER(input-line)
+			s: GET_BUFFER(in-line)
 			while [true][
 				#either OS = 'Windows [
 					c: stdin-read
@@ -551,7 +552,7 @@ unless system/console [
 				restore
 				print-line ""
 			][
-				stdin-readline
+				stdin-readline input-line
 			]
 		]
 
@@ -594,3 +595,30 @@ ask: function [
 ]
 
 input: func ["Wait for console user input"] [ask ""]
+
+input-stdin: routine [
+	"Temporary function, internal use only"
+	/local
+		line	[red-value!]
+		saved	[integer!]
+		mode	[integer!]
+][
+	line: stack/arguments
+	string/rs-make-at line 256
+	terminal/stdin-readline as red-string! line
+]
+
+read-stdin: routine [
+	"Temporary function, internal use only"
+	buffer	[binary!]
+	buflen	[integer!]
+	/local
+		sz	[integer!]
+		s	[series!]
+][
+	sz: simple-io/read-data stdin binary/rs-head buffer buflen
+	if sz > 0 [
+		s: GET_BUFFER(buffer)
+		s/tail: as cell! (as byte-ptr! s/tail) + sz
+	]
+]

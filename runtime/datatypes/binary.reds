@@ -965,11 +965,11 @@ binary: context [
 		]
 
 		if any [tail? not head?] [
-			until [
+			while [
+				all [head < tail head/value = null-byte]
+			][
 				tail: tail - 1
-				any [head = tail tail/value <> null-byte]
 			]
-			tail: tail + 1
 		]
 
 		if cur <> head [

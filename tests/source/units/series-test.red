@@ -1358,6 +1358,8 @@ Red [
 	--test-- "trim-block-1"
 		--assert [1 2] = trim [#[none] 1 #[none] 2 #[none]]
 
+	--test-- "trim-bin-1"
+		--assert #{} = trim #{00}
 ===end-group===
 
 ===start-group=== "sort"

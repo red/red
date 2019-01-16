@@ -152,7 +152,7 @@ screenbuf-info!: alias struct! [	;-- size? screenbuf-info! = 22
 input-rec: declare input-record!
 base-y:	 	 0
 saved-con:	 0
-utf-char: as byte-ptr! 0
+utf-char: allocate 10
 
 #define FIRST_WORD(int) (int and FFFFh)
 #define SECOND_WORD(int) (int >>> 16)
@@ -320,18 +320,15 @@ init: func [
 ][
 	console?: null <> GetConsoleWindow
 
-	either console? [
+	if console? [
 		GetConsoleMode stdin :saved-con
 		mode: saved-con and (not ENABLE_PROCESSED_INPUT)	;-- turn off PROCESSED_INPUT, so we can handle control-c
 		mode: mode or ENABLE_QUICK_EDIT_MODE or ENABLE_WINDOW_INPUT	;-- use the mouse to select and edit text
 		SetConsoleMode stdin mode
 		buffer: allocate buf-size
-	][
-		utf-char: allocate 10
 	]
 ]
 
 restore: does [
 	SetConsoleMode stdin saved-con free buffer
-	unless console? [free utf-char]
 ]
