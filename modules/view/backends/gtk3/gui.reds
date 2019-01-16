@@ -819,6 +819,8 @@ change-data: func [
 	word: as red-word! values + FACE_OBJ_TYPE
 	type: word/symbol
 
+	;;DEBUG: print ["change-data: " get-symbol-name type lf]
+
 	case [
 		all [
 			type = progress
@@ -849,6 +851,7 @@ change-data: func [
 			type = text-list
 			TYPE_OF(data) = TYPE_BLOCK
 		][
+			;;DEBUG: print ["text-list updated" lf]
 			gtk_container_foreach hWnd as-integer :remove-entry hWnd
 			init-text-list hWnd as red-block! data
 			gtk_widget_show_all hWnd
@@ -1385,7 +1388,7 @@ OS-make-view: func [
 		null
 	]
 
-	print ["OS-make-view " get-symbol-name sym lf]
+	;;DEBUG: print ["OS-make-view " get-symbol-name sym lf]
 
 	case [
 		sym = check [
@@ -1532,8 +1535,7 @@ OS-make-view: func [
 	make-font-provider widget
 	if sym <> base [change-font widget face font sym]
 
-	;
-	print [ "New widget " get-symbol-name sym "->" widget lf]
+	;;DEBUG: print [ "New widget " get-symbol-name sym "->" widget lf]
 	
 	if all [
 		sym <> window
@@ -1702,7 +1704,6 @@ OS-destroy-view: func [
 ][
 	handle: face-handle? face
 	values: object/get-values face
-	FACE_OBJ_STATE
 	flags: get-flags as red-block! values + FACE_OBJ_FLAGS
 	if flags and FACET_FLAGS_MODAL <> 0 [
 		0
@@ -1735,8 +1736,25 @@ OS-update-facet: func [
 	sym: symbol/resolve facet/symbol
 
 	case [
-		sym = facets/pane [0]
-		sym = facets/data [0]
+		;sym = facets/pane [0]
+		sym = facets/data [
+			word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
+			type: symbol/resolve word/symbol
+			sym: action/symbol
+			case [
+				; any [
+				; 	type = drop-list
+				; 	type = drop-down
+				; ][
+				; 	if zero? part [exit]
+				; 	update-combo-box face value sym new index part yes
+				; ]
+				; type = tab-panel [
+				; 	update-tabs face value sym new index part
+				; ]
+				true [OS-update-view face]
+			]
+		]
 		true [OS-update-view face]
 	]
 ]
