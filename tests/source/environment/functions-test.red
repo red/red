@@ -270,6 +270,13 @@ Red [
 		cause-error-func-1: function [] [cause-error 'math 'zero-divide []]
 		cause-error-result-1: try [cause-error-func-1]
 			--assert error? cause-error-result-1
+	--test-- "cause-error string"
+		cause-error-func-2: function [] [cause-error 'user 'type "String Error Msg"]
+		cause-error-result-2: try [cause-error-func-2]
+			--assert error? cause-error-result-2
+			--assert cause-error-result-2/type = 'user
+			--assert cause-error-result-2/id = 'type
+			--assert cause-error-result-2/arg1 = "String Error Msg"
 ===end-group===
 
 ===start-group=== "pad tests"
