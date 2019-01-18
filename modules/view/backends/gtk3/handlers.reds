@@ -271,6 +271,15 @@ range-value-changed: func [
 	;]
 ]
 
+text-button-press-event: func [
+	[cdecl]
+	_widget	[handle!]
+	evt 	[handle!]
+	widget	[handle!]
+][
+	make-event widget 0 EVT_LEFT_DOWN
+]
+
 combo-selection-changed: func [
 	[cdecl]
 	widget	[handle!]
