@@ -236,6 +236,23 @@ window-removed-event: func [
 	count/value: count/value - 1
 ]
 
+window-size-allocate: func [
+	[cdecl]
+	widget	[handle!]
+	rect	[tagRECT]
+	/local
+		sz	 [red-pair!]
+][
+	;;DEBUG: print [ "window-size-allocate " rect/width "x" rect/height lf]
+	sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE		;-- update face/size
+	sz/x: rect/width
+	sz/y: rect/height
+	;motion/x_new: rect/width
+	;motion/y_new: rect/height
+	make-event widget 0 EVT_SIZING
+	;; DEBUG: print [ "window-size-allocate end" lf]
+]
+
 range-value-changed: func [
 	[cdecl]
 	range	[handle!]
