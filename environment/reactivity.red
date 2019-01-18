@@ -67,7 +67,8 @@ system/reactivity: context [
 		]
 	]
 	
-	eval-reaction: function [reactor [object!] reaction [block! function!] target][
+	eval-reaction: func [reactor [object!] reaction [block! function!] target /local stack'][
+		stack': tail stack
 		append stack reactor
 		append/only stack :reaction
 		
@@ -76,6 +77,8 @@ system/reactivity: context [
 		][
 			eval/safe any [all [block? :reaction reaction] target]
 		]
+
+		clear stack'
 	]
 	
 	pending?: function [reactor [object!] reaction [block! function!] type [word!]][
@@ -111,7 +114,6 @@ system/reactivity: context [
 								q: tail remove/part q 3	;-- new reactions could have been queued
 							]
 						]
-						clear stack
 						clear source
 					][
 						unless all [
