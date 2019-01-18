@@ -1451,6 +1451,7 @@ OS-make-view: func [
 			widget: gtk_label_new caption
 			_widget: gtk_event_box_new null null
 			gtk_container_add _widget widget
+			gobj_signal_connect(_widget "button-press-event" :text-button-press-event widget)
 		]
 		sym = field [
 			widget: gtk_entry_new
