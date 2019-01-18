@@ -527,48 +527,6 @@ change-rate: func [
 	]
 ]
 
-change-size: func [
-	hWnd [handle!]
-	size [red-pair!]
-	type [integer!]
-	/local
-		h		[integer!]
-		w		[integer!]
-		y		[integer!]
-		x		[integer!]
-		;rc		[NSRect!]
-		;frame	[NSRect!]
-		saved	[int-ptr!]
-		method	[integer!]
-][
-	;; print-line "change-size"
-	; rc: make-rect size/x size/y 0 0
-	; if all [type = button size/y > 32][
-	; 	objc_msgSend [hWnd sel_getUid "setBezelStyle:" NSRegularSquareBezelStyle]
-	; ]
-	; either type = window [
-	; 	x: 0
-	; 	frame: as NSRect! :x
-	; 	method: sel_getUid "frame"
-	; 	saved: system/stack/align
-	; 	push 0
-	; 	push method push hWnd push frame
-	; 	objc_msgSend_stret 3
-	; 	system/stack/top: saved
-	; 	frame/y: frame/y + frame/h - rc/y
-	; 	objc_msgSend [hWnd sel_getUid "setFrame:display:animate:" frame/x frame/y rc/x rc/y yes yes]
-	; ][
-	; 	objc_msgSend [hWnd sel_getUid "setFrameSize:" rc/x rc/y]
-	; 	objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
-	; 	object_getInstanceVariable hWnd IVAR_RED_DATA :type
-	; 	if type = caret [
-	; 		caret-w: rc/x
-	; 		caret-h: rc/y
-	; 	]
-	; ]
-	0
-]
-
 change-image: func [
 	hWnd	[handle!]
 	image	[red-image!]
@@ -710,7 +668,9 @@ change-offset: func [
 	type [integer!]
 	/local
 		container 	[handle!]
+		_widget		[handle!]
 ][
+	;; DEBUG: print ["change-offset type: " get-symbol-name get-widget-symbol hWnd lf]
 	either type = window [
 	; 	rc/y: as float32! screen-size-y - pos/y
 	; 	objc_msgSend [hWnd sel_getUid "setFrameTopLeftPoint:" rc/x rc/y]
@@ -718,7 +678,30 @@ change-offset: func [
 	][
 		;OS-refresh-window as integer! main-window
 		container: either null? hWnd [null][g_object_get_qdata hWnd gtk-fixed-id]
-		unless null? container [gtk_fixed_move container hWnd pos/x pos/y]
+		;; DEBUG: print ["change-offset by" pos lf]
+		; _widget: either type = text [
+		; 	g_object_get_qdata hWnd _widget-id
+		; ][hWnd]
+		_widget: g_object_get_qdata hWnd _widget-id
+		_widget: either null? _widget [hWnd][_widget]
+		unless null? container [gtk_fixed_move container _widget pos/x pos/y]
+	]
+]
+
+change-size: func [
+	hWnd [handle!]
+	size [red-pair!]
+	type [integer!]
+	/local
+		_widget	[handle!]
+][
+	;; DEBUG: print ["change-size" get-symbol-name get-widget-symbol hWnd size lf]
+	either type = window [
+		gtk_window_set_default_size hWnd size/x size/y
+	 ][
+		_widget: g_object_get_qdata hWnd _widget-id
+		_widget: either null? _widget [hWnd][_widget]
+		gtk_widget_set_size_request _widget size/x size/y
 	]
 ]
 
@@ -1188,20 +1171,23 @@ connect-mouse-events: function [
 	actors	[red-object!]
 	type	[integer!]
 	/local
-		widget [handle!]
+		_widget [handle!]
 ][
 	if all [
 		not null? actors/ctx
 		(object/rs-find actors  as red-value!  _on-over) <> -1
 	][
-		widget: either type = text [
+		_widget: either type = text [
 			g_object_get_qdata hWnd _widget-id
 		][hWnd]
-		
+		; OR (NOT YET TESTED but if needed for widget with _widget)
+		; _widget: g_object_get_qdata hWnd _widget-id
+		; _widget: either null? _widget [hWnd][_widget]
+
 		;print [ "Mouse events " get-symbol-name type "->" widget lf]
-		gtk_widget_add_events widget GDK_ENTER_NOTIFY_MASK or GDK_LEAVE_NOTIFY_MASK
-		gobj_signal_connect(widget "enter-notify-event" :widget-enter-notify-event face/ctx)
-		gobj_signal_connect(widget "leave-notify-event" :widget-leave-notify-event face/ctx)		
+		gtk_widget_add_events _widget GDK_ENTER_NOTIFY_MASK or GDK_LEAVE_NOTIFY_MASK
+		gobj_signal_connect(_widget "enter-notify-event" :widget-enter-notify-event face/ctx)
+		gobj_signal_connect(_widget "leave-notify-event" :widget-leave-notify-event face/ctx)		
 	] 
 ]
 
@@ -1434,6 +1420,7 @@ OS-make-view: func [
 			gtk_container_add widget gtk_fixed_new
 			gtk_window_move widget offset/x offset/y
 			gobj_signal_connect(widget "delete-event" :window-delete-event null)
+			gobj_signal_connect(widget "size-allocate" :window-size-allocate null)
 		]
 		sym = slider [
 			vertical?: size/y > size/x
@@ -1565,7 +1552,7 @@ OS-make-view: func [
 				container:  as handle! either p-sym = panel [parent][buffer: gtk_container_get_children as handle! parent buffer/value]
 				;save gtk_fixed container for adjustment since size/x and size/y are not the real sizes in gtk and need to be updated in a second pass
 				g_object_set_qdata widget gtk-fixed-id container
-
+				if sym = text [g_object_set_qdata _widget gtk-fixed-id container]
 				gtk_widget_set_size_request _widget size/x size/y
 				gtk_fixed_put container _widget offset/x offset/y
 			]
