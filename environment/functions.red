@@ -498,17 +498,17 @@ save: function [
 ]
 
 cause-error: func [
-	{Causes an immediate error throw, with the provided information} 
+	"Causes an immediate error throw, with the provided information"
 	err-type [word!] 
 	err-id [word!] 
 	args [block! string!] 
 ][
 	args: compose [(:args )]
 	do make error! [
-		type: err-type 
-		id: err-id 
-		arg1: first args 
-		arg2: second args 
+		type: err-type
+		id: err-id
+		arg1: first args
+		arg2: second args
 		arg3: third args
 	]
 ]
