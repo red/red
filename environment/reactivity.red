@@ -104,12 +104,14 @@ system/reactivity: context [
 						q: tail queue
 						until [
 							q: skip q': q -4
-							unless q/4 [ 				;-- reaction was not executed yet?
+							either q/4 [ 				;-- was already executed?
+								clear q 				;-- allow requeueing of it
+							][
 								eval-reaction q/1 :q/2 q/3
-								either tail? q' [
-									clear q
+								either tail? q' [ 		;-- queue wasn't extended
+									clear q 			;-- allow requeueing
 								][
-									q/4: yes
+									q/4: yes 			;-- mark as executed
 									q: tail queue 		;-- jump to recently queued reactions
 								]
 							]
