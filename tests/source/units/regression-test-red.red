@@ -2435,7 +2435,7 @@ b}
 ===end-group===
 
 
-===start-group=== "regressions #2001 - #3000"
+===start-group=== "regressions #2001+"
 
 	true?: func [value] [not not value]
 
@@ -2742,8 +2742,29 @@ b}
 		unset 'true?
 
 	--test-- "#3603"
-		bu: reduce [()]
-		--assert bu = back change block: [] do/next block 'rest
+		bu3603: reduce [()]
+		rest3603: none
+		--assert bu3603 = back change block3603: [] do/next block3603 'rest3603
+
+	--test-- "#3739"
+		reactor3739: func [spec] [make deep-reactor! spec]
+		s3739: reactor3739 [started: no]
+		a3739: reactor3739 [x: none]
+		b3739: reactor3739 [x: none y: none]
+		success3739: no
+		react [
+			if s3739/started [
+				a3739/x: copy "NEW-VALUE!"
+				b3739/y: copy "junk"
+			]
+		]
+		react [ if b3739/x <> a3739/x [ b3739/x: copy a3739/x ] ]
+		react [ if all [b3739/x = "NEW-VALUE!" b3739/y = "junk"] [success3739: yes] ]
+		s3739/started: yes
+
+		--assert success3739
+		unset [s3739 a3739 b3739 success3739 reactor3739]
+
 
 ===end-group===
 
