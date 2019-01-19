@@ -91,11 +91,15 @@ get-event-offset: func [
 		][
 			widget: as handle! evt/msg
 			;;print ["event-offset type: " get-symbol-name get-widget-symbol widget lf]
-			sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE
 			offset: as red-pair! stack/push*
 			offset/header: TYPE_PAIR
-			offset/x: sz/x
-			offset/y: sz/y
+			; sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE
+			; offset/x: sz/x
+			; offset/y: sz/y
+			
+			offset/x: gtk_widget_get_allocated_width widget
+			offset/y: gtk_widget_get_allocated_height widget
+
 			;;print ["event-offset: " offset/x "x" offset/y lf]
 			as red-value! offset
 		]

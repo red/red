@@ -2,6 +2,7 @@ Red [
 	Title:	"Tests for draw dialect"
 	Author: "Fyodor Shchukin"
 	File:	%draw.red
+	Needs:	View
 	Tabs:	4
 ]
 
@@ -163,10 +164,16 @@ l: layout [
 
 	base 50x60 100.70.70 draw [
 		font font-label	
-		text 5x45 "fill gradient"
-
-		fill-pen linear red green blue
+		text 5x45 "linear gradient"
+		fill-pen linear 4x4 0 40 0 1.0 1.0 red green blue
 		box 10x10 40x40
+	]
+
+	base 50x60 100.70.70 draw [
+		font font-label	
+		text 5x45 "radial gradient"
+		fill-pen radial 25x25 0 15  0 1.0 1.0 red green blue 
+    	box 10x10 40x40
 	]
 
 	base 50x60 100.70.70 draw [
@@ -183,6 +190,11 @@ l: layout [
 		line 30x40 35x20 40x40
 	]
 
+	return
+
+	base 230x2 0.0.0 return
+	; . . .
+
 	base 50x60 100.70.70 draw [
 		font font-label	
 		text 5x45 "line cap"
@@ -196,14 +208,6 @@ l: layout [
 		line-cap round
 		line 35x15 35x35
 	]
-
-	return
-
-	; . . .
-
-	base 230x2 0.0.0
-
-	return
 
 	base 50x60 70.70.100 draw [
 		font font-label
@@ -240,6 +244,7 @@ l: layout [
 		translate 10x10
 		box 10x10 30x30
 	]
+
 ]
 
 font-label: make font! [
