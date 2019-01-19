@@ -672,8 +672,6 @@ change-offset: func [
 ][
 	;; DEBUG: print ["change-offset type: " get-symbol-name get-widget-symbol hWnd lf]
 	either type = window [
-	; 	rc/y: as float32! screen-size-y - pos/y
-	; 	objc_msgSend [hWnd sel_getUid "setFrameTopLeftPoint:" rc/x rc/y]
 		0
 	][
 		;OS-refresh-window as integer! main-window
@@ -684,7 +682,10 @@ change-offset: func [
 		; ][hWnd]
 		_widget: g_object_get_qdata hWnd _widget-id
 		_widget: either null? _widget [hWnd][_widget]
-		unless null? container [gtk_fixed_move container _widget pos/x pos/y]
+		unless null? container [
+			gtk_fixed_move container _widget pos/x pos/y
+			gtk_widget_queue_draw _widget
+		]
 	]
 ]
 
@@ -702,6 +703,7 @@ change-size: func [
 		_widget: g_object_get_qdata hWnd _widget-id
 		_widget: either null? _widget [hWnd][_widget]
 		gtk_widget_set_size_request _widget size/x size/y
+		gtk_widget_queue_draw _widget
 	]
 ]
 

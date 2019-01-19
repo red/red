@@ -99,6 +99,8 @@ make-font: func [
 
 	css: add-to-string css "%s}" null
 
+	;; DEBUG: print ["make font -> css: " css lf]
+
 	hFont: as handle! css
 
 	blk: as red-block! values + FONT_OBJ_STATE

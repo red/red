@@ -196,7 +196,7 @@ base-draw: func [
 	]
 
 	if TYPE_OF(img) = TYPE_IMAGE [
-		GDK-draw-image cr OS-image/to-pixbuf img 0 0
+		GDK-draw-image cr as handle! OS-image/to-pixbuf img 0 0 0 0
 	]
 
 	render-text cr vals
@@ -244,12 +244,10 @@ window-size-allocate: func [
 		sz	 [red-pair!]
 ][
 	;;DEBUG: print [ "window-size-allocate " rect/width "x" rect/height lf]
+	make-event widget 0 EVT_SIZING
 	sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE		;-- update face/size
 	sz/x: rect/width
 	sz/y: rect/height
-	;motion/x_new: rect/width
-	;motion/y_new: rect/height
-	make-event widget 0 EVT_SIZING
 	;; DEBUG: print [ "window-size-allocate end" lf]
 ]
 
