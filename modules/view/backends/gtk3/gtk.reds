@@ -1,6 +1,6 @@
 Red/System [
 	Title:	"GTK3 imports"
-	Author: "Qingtian Xie"
+	Author: "Qingtian Xie, RCqls"
 	File: 	%gtk.reds
 	Tabs: 	4
 	Rights: "Copyright (C) 2016 Qingtian Xie. All rights reserved."

@@ -1,6 +1,6 @@
 Red/System [
 	Title:	"GTK3 GUI backend"
-	Author: "Qingtian Xie"
+	Author: "Qingtian Xie, RCqls"
 	File: 	%gui.reds
 	Tabs: 	4
 	Rights: "Copyright (C) 2015 Qingtian Xie. All rights reserved."
@@ -14,7 +14,6 @@ Red/System [
 #include %gtk.reds
 #include %events.reds
 
-#include %style.reds
 #include %font.reds
 #include %para.reds
 #include %draw.reds
@@ -377,7 +376,7 @@ init: func [][
 	screen-size-x: gdk_screen_width
 	screen-size-y: gdk_screen_height
 
-	style-init
+	;style-init
 ]
 
 get-symbol-name: function [

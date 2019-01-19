@@ -219,7 +219,6 @@ write %build/bin/sources.r set-cache [
 					%gui.reds
 					%draw.reds
 					%handlers.reds
-					%style.reds
 					%events.reds
 					%gtk.reds
 					%para.reds

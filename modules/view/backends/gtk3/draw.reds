@@ -1,6 +1,6 @@
 Red/System [
 	Title:	"Cairo Draw dialect backend"
-	Author: "Qingtian Xie"
+	Author: "Qingtian Xie, Honix, RCqls"
 	File: 	%draw.reds
 	Tabs: 	4
 	Rights: "Copyright (C) 2016 Qingtian Xie. All rights reserved."

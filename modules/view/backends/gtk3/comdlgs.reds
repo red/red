@@ -1,6 +1,6 @@
 Red/System [
 	Title:	"Common Dialogs"
-	Author: "Xie Qingtian"
+	Author: "Xie Qingtian, RCqls"
 	File: 	%comdlgs.reds
 	Tabs: 	4
 	Rights: "Copyright (C) 2016 Xie Qingtian. All rights reserved."

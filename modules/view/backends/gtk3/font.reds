@@ -1,6 +1,6 @@
 Red/System [
 	Title:	"GTK3 fonts management"
-	Author: "Qingtian Xie"
+	Author: "Qingtian Xie, Thiago Dourado de Andrade, RCqls"
 	File: 	%font.reds
 	Tabs: 	4
 	Rights: "Copyright (C) 2016 Qingtian Xie. All rights reserved."
@@ -8,6 +8,54 @@ Red/System [
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
+]
+
+#define GTK_STYLE_PROVIDER_PRIORITY_APPLICATION 600
+
+add-to-string: func [
+	string  [c-string!]
+	format  [c-string!]
+	value   [handle!]
+	return: [c-string!]
+	/local
+		temp [c-string!]
+][
+	temp: g_strdup_printf [format string value]
+	g_free as handle! string
+	temp
+]
+
+to-css-rgba: func [
+	color   [red-tuple!]								;-- needs to be a valid color tuple
+	return: [c-string!]									;-- rgba(r, g, b, a) format - Should be cleaned with g_free
+	/local
+		size  [integer!]
+		r     [integer!]
+		g     [integer!]
+		b     [integer!]
+		a     [float!]
+		rgba  [c-string!]
+		alpha [c-string!]
+][
+	size: TUPLE_SIZE?(color)
+
+	r: color/array1 and FFh
+	g: (color/array1 >> 8) and FFh
+	b: (color/array1 >> 16) and FFh
+	a: 1.0
+
+	if size = 4 [
+		a: (as-float 255 - color/array1 >>> 24) / 255.0
+	]
+
+	alpha: as c-string! allocate G_ASCII_DTOSTR_BUF_SIZE
+	g_ascii_dtostr alpha G_ASCII_DTOSTR_BUF_SIZE a
+
+	rgba: g_strdup_printf ["rgba(%d, %d, %d, %s)" r g b alpha]
+
+	free as byte-ptr! alpha
+
+	rgba
 ]
 
 ;; The idea: font-handle (which is required in view.red) is the css string which is (the only object) not related to the widget
