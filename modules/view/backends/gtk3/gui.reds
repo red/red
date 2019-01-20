@@ -29,6 +29,7 @@ red-face-id:	0
 _widget-id:		1
 gtk-fixed-id:	2
 red-timer-id:	3
+css-id:			4
 
 gtk-style-id:	0
 
@@ -185,7 +186,7 @@ get-child-from-xy: func [
 get-text-size: func [
 	face    [red-object!]
 	str		[red-string!]
-	font	[red-object!]
+	hFont	[handle!]
 	pair	[red-pair!]
 	return: [tagSIZE]
 	/local
@@ -195,7 +196,6 @@ get-text-size: func [
 		height	[integer!]
 		pl		[handle!]
 		size	[tagSIZE]
-		fd		[handle!]
 		df		[c-string!]
 ][
 	if null? pango-context [pango-context: gdk_pango_context_get]
@@ -210,21 +210,10 @@ get-text-size: func [
 
 	width: 0 height: 0
 
-	; @@ TO REMOVE since font-description manages directly none value for font
-	;fd: either TYPE_OF(font) = TYPE_NONE [ 
-	;	pango_font_description_from_string gtk-font
-	;][
-	;	font-description font
-	;]
-
-	; The lines above replaced with
-	fd: font-description font
-
 	pl: pango_layout_new pango-context
 	pango_layout_set_text pl text -1
-	pango_layout_set_font_description pl fd
+	pango_layout_set_font_description pl hFont
 	pango_layout_get_pixel_size pl :width :height
-	pango_font_description_free fd
 	g_object_unref pl
 
 	size/width: width
@@ -698,7 +687,10 @@ change-font: func [
 
 	provider: get-font-provider hWnd
 
-	css: as c-string! make-font face font
+	make-font face font
+
+	css: ""
+	css: css-font face font
 
 	;; DEBUG: print ["change-font ccs: " css lf]
 
