@@ -53,6 +53,7 @@ _on-over:		word/load "on-over"
 
 pango-context:	as handle! 0
 gtk-font:		"Sans 10"
+default-font:	0
 
 ; Do not KNOW about this one 
 ;;;main-window:	as handle! 0
@@ -223,7 +224,9 @@ get-text-size: func [
 	pango_layout_set_text pl text -1
 	pango_layout_set_font_description pl fd
 	pango_layout_get_pixel_size pl :width :height
-	
+	pango_font_description_free fd
+	g_object_unref pl
+
 	size/width: width
 	size/height: height
 	;print ["text: " text " w: " width " h: " height lf]
@@ -654,6 +657,8 @@ change-font: func [
 	provider: get-font-provider hWnd
 
 	css: as c-string! make-font face font
+
+	;; DEBUG: print ["change-font ccs: " css lf]
 
 	gtk_css_provider_load_from_data provider css -1 null
 

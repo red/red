@@ -611,6 +611,10 @@ cairo_font_extents_t!: alias struct! [
 			widget 	[handle!]
 			mask 	[integer!]
 		]
+		gtk_widget_override_font: "gtk_widget_override_font" [
+			widget	[handle!]
+			fd		[handle!] 
+		]
 		gtk_container_add: "gtk_container_add" [
 			container	[handle!]
 			widget		[handle!]

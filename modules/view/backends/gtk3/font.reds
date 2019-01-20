@@ -10,6 +10,7 @@ Red/System [
 	}
 ]
 
+;; First style development provided by Thiago Dourado de Andrade
 #define GTK_STYLE_PROVIDER_PRIORITY_APPLICATION 600
 
 add-to-string: func [
@@ -58,6 +59,7 @@ to-css-rgba: func [
 	rgba
 ]
 
+
 ;; The idea: font-handle (which is required in view.red) is the css string which is (the only object) not related to the widget
 
 make-font: func [
@@ -66,91 +68,20 @@ make-font: func [
 	return: [handle!]
 	/local
 		values   [red-value!]
-		style    [red-word!]
 		blk      [red-block!]
-		len      [integer!]
-		sym      [integer!]
-		str      [red-string!]
-		name     [c-string!]
-		size     [red-integer!]
 		css      [c-string!]
-		color    [red-tuple!]
-		bgcolor  [red-tuple!]
-		rgba     [c-string!]
 		hFont    [handle!]
 		int      [red-integer!]
 ][
-	values: object/get-values font
-
-	;name:
-	str: 	as red-string!	values + FONT_OBJ_NAME
-	size:	as red-integer!	values + FONT_OBJ_SIZE
-	style:	as red-word!	values + FONT_OBJ_STYLE
-	;angle:
-	color:	as red-tuple!	values + FONT_OBJ_COLOR
-	;anti-alias?:
-
 	; release first
 	hFont: get-font-handle font
-	unless null? hFont [g_free hFont]
+	unless null? hFont [free-font-handle hFont]
 
-	css:	g_strdup_printf ["* {"]
-
-	unless null? face [
-		bgcolor: as red-tuple!	(object/get-values face) + FACE_OBJ_COLOR
-		if TYPE_OF(bgcolor) = TYPE_TUPLE [
-			rgba: to-css-rgba bgcolor
-			css: add-to-string css "%s background-color: %s;" as handle! rgba
-			g_free as handle! rgba
-		]
-	]
-
-	if TYPE_OF(str) = TYPE_STRING [
-		len: -1
-		name: unicode/to-utf8 str :len
-		css: g_strdup_printf [{%s font-family: "%s";} css name]
-	]
-
-	if TYPE_OF(size) = TYPE_INTEGER [
-		css: add-to-string css "%s font-size: %dpt;" as handle! size/value
-	]
-
-	len: switch TYPE_OF(style) [
-		TYPE_BLOCK [
-			blk: as red-block! style
-			style: as red-word! block/rs-head blk
-			block/rs-length? blk
-		]
-		TYPE_WORD	[1]
-		default		[0]
-	]
-
-	unless zero? len [
-		loop len [
-			sym: symbol/resolve style/symbol
-			case [
-				sym = _bold      ["bold" css: g_strdup_printf ["%s font-weight: bold;" css]]
-				sym = _italic    ["italic" css: g_strdup_printf ["%s font-style: italic;" css]]
-				sym = _underline ["underline" css: g_strdup_printf ["%s text-decoration-line: underline;" css]]
-				sym = _strike    ["strike" css: g_strdup_printf ["%s text-decoration-line: line-through;" css]]
-				true             [""]
-			]
-			style: style + 1
-		]
-	]
-
-	if TYPE_OF(color) = TYPE_TUPLE [
-		rgba: to-css-rgba color
-		css: add-to-string css "%s color: %s;" as handle! rgba
-		g_free as handle! rgba
-	]
-
-	css: add-to-string css "%s}" null
-
-	;; DEBUG: print ["make font -> css: " css lf]
-
+	css: css-font face font
 	hFont: as handle! css
 
+	values: object/get-values font
+			
 	blk: as red-block! values + FONT_OBJ_STATE
 	either TYPE_OF(blk) <> TYPE_BLOCK [
 		block/make-at blk 2
@@ -210,6 +141,12 @@ get-font-handle: func [
 	null
 ]
 
+free-font-handle: func [
+	hFont [handle!]
+][
+	g_free hFont
+]
+
 free-font: func [
 	font [red-object!]
 	/local
@@ -221,6 +158,7 @@ free-font: func [
 		state: as red-block! (object/get-values font) + FONT_OBJ_STATE
 		state/header: TYPE_NONE
 	]
+	free-font-handle hFont
 ]
 
 update-font: func [
@@ -322,6 +260,91 @@ font-description: func [
 	fd
 ]
 
+css-font: func [
+	face	[red-object!]
+	font	[red-object!]
+	return: [c-string!]
+	/local
+		values   [red-value!]
+		blk      [red-block!]
+		style    [red-word!]
+		len      [integer!]
+		sym      [integer!]
+		str      [red-string!]
+		name     [c-string!]
+		size     [red-integer!]
+		css      [c-string!]
+		color    [red-tuple!]
+		bgcolor  [red-tuple!]
+		rgba     [c-string!]
+][
+	values: object/get-values font
+
+	;name:
+	str: 	as red-string!	values + FONT_OBJ_NAME
+	size:	as red-integer!	values + FONT_OBJ_SIZE
+	style:	as red-word!	values + FONT_OBJ_STYLE
+	;angle:
+	color:	as red-tuple!	values + FONT_OBJ_COLOR
+	;anti-alias?:
+
+	css:	g_strdup_printf ["* {"]
+
+	unless null? face [
+		bgcolor: as red-tuple!	(object/get-values face) + FACE_OBJ_COLOR
+		if TYPE_OF(bgcolor) = TYPE_TUPLE [
+			rgba: to-css-rgba bgcolor
+			css: add-to-string css "%s background-color: %s;" as handle! rgba
+			g_free as handle! rgba
+		]
+	]
+
+	if TYPE_OF(str) = TYPE_STRING [
+		len: -1
+		name: unicode/to-utf8 str :len
+		css: g_strdup_printf [{%s font-family: "%s";} css name]
+	]
+
+	if TYPE_OF(size) = TYPE_INTEGER [
+		css: add-to-string css "%s font-size: %dpt;" as handle! size/value
+	]
+
+	len: switch TYPE_OF(style) [
+		TYPE_BLOCK [
+			blk: as red-block! style
+			style: as red-word! block/rs-head blk
+			block/rs-length? blk
+		]
+		TYPE_WORD	[1]
+		default		[0]
+	]
+
+	unless zero? len [
+		loop len [
+			sym: symbol/resolve style/symbol
+			case [
+				sym = _bold      ["bold" css: g_strdup_printf ["%s font-weight: bold; " css]]
+				sym = _italic    ["italic" css: g_strdup_printf ["%s font-style: italic;" css]]
+				sym = _underline ["underline" css: g_strdup_printf ["%s text-decoration: underline;" css]]
+				sym = _strike    ["strike" css: g_strdup_printf ["%s text-decoration: line-through;" css]]
+				true             [""]
+			]
+			style: style + 1
+		]
+	]
+
+	if TYPE_OF(color) = TYPE_TUPLE [
+		rgba: to-css-rgba color
+		css: add-to-string css "%s color: %s;" as handle! rgba
+		g_free as handle! rgba
+	]
+
+	css: add-to-string css "%s}" null
+
+	;; DEBUG: print ["make font -> css: " css lf]
+	
+	css
+]
 
 ; Stuff maybe to REMOVE related to cairo without any success
 ; #enum cairo_font_slant_t! [
