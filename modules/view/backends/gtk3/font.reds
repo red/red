@@ -71,30 +71,23 @@ make-font: func [
 		blk		[red-block!]
 		css		[c-string!]
 		hFont	[handle!]
-		int		[red-integer!]
-		style	[handle!]
-		widget	[handle!]
 ][
-	; release first
-	hFont: get-font-handle font
-	unless null? hFont [free-font-handle hFont]
-
+	; no more deal with different styles but only font via pango_font_description (excluding color, underline, strike)
 	hFont: font-description font
 
-	;style:	gtk_widget_get_style_context widget
-	;gtk_style_context_get [style "font" hFont null]
+	set-font-handle font hFont
 
 	values: object/get-values font
 			
-	blk: as red-block! values + FONT_OBJ_STATE
-	either TYPE_OF(blk) <> TYPE_BLOCK [
-		block/make-at blk 2
-		handle/make-in blk as-integer hFont
-	][
-		int: as red-integer! block/rs-head blk
-		int/header: TYPE_HANDLE
-		int/value: as-integer hFont
-	]
+	; blk: as red-block! values + FONT_OBJ_STATE
+	; either TYPE_OF(blk) <> TYPE_BLOCK [
+	; 	block/make-at blk 2
+	; 	handle/make-in blk as-integer hFont
+	; ][
+	; 	int: as red-integer! block/rs-head blk
+	; 	int/header: TYPE_HANDLE
+	; 	int/value: as-integer hFont
+	; ]
 
 	if face <> null [
 		blk: block/make-at as red-block! values + FONT_OBJ_PARENT 4
@@ -103,30 +96,6 @@ make-font: func [
 
 	hFont
 ]
-
-; Here, style provider is used as font provider
-make-font-provider: func [
-	widget	[handle!]
-	/local
-		style	 [handle!]
-		provider [handle!]
-][
-	provider:	gtk_css_provider_new
-	style:		gtk_widget_get_style_context widget
-
-	gtk_style_context_add_provider style provider GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
-
-	g_object_set_qdata widget gtk-style-id provider
-]
-
-get-font-provider: func [
-	widget  [handle!]
-	return: [handle!]
-][
-	g_object_get_qdata widget gtk-style-id
-] 
-
-
 
 get-font-handle: func [
 	font	[red-object!]
@@ -143,6 +112,26 @@ get-font-handle: func [
 		]
 	]
 	null
+]
+
+;; CAREFUL! This solution does not work...  
+get-font-handle-from-face-handle: func [
+	hWnd	[handle!]
+	return:	[handle!]
+	/local
+		hFont	[handle!]
+		style	[handle!]
+][
+	style:	gtk_widget_get_style_context hWnd
+
+	;; Two ways: the second one's would be deprecated
+	;; Solution 1
+	hFont: pango_font_description_new
+	gtk_style_context_get [style "font" hFont null]
+	;; Solution 2 (supposed to be deprecated)
+	;hFont: gtk_style_context_get_font style 0
+	
+	hFont
 ]
 
 free-font-handle: func [
@@ -163,6 +152,34 @@ free-font: func [
 		state/header: TYPE_NONE
 	]
 	free-font-handle hFont
+]
+
+set-font-handle: func [
+	font [red-object!]
+	hFont 	[handle!]
+	/local
+		values	[red-value!]
+		blk		[red-block!]
+		state 	[red-block!]
+		int		[red-integer!]
+		hFontP	[handle!]
+][
+	; release previous hFont first
+	hFontP: get-font-handle font
+	unless null? hFontP [free-font-handle hFontP]
+
+	values: object/get-values font
+			
+	blk: as red-block! values + FONT_OBJ_STATE
+	either TYPE_OF(blk) <> TYPE_BLOCK [
+		block/make-at blk 2
+		handle/make-in blk as-integer hFont
+	][
+		int: as red-integer! block/rs-head blk
+		int/header: TYPE_HANDLE
+		int/value: as-integer hFont
+	]
+
 ]
 
 update-font: func [
@@ -264,7 +281,30 @@ font-description: func [
 	fd
 ]
 
-css-font: func [
+;; Styles initiated by Thiago Dourado de Andrade (used in change-font)
+; Here, style provider is used as font provider
+make-styles-provider: func [
+	widget	[handle!]
+	/local
+		style	 [handle!]
+		provider [handle!]
+][
+	provider:	gtk_css_provider_new
+	style:		gtk_widget_get_style_context widget
+
+	gtk_style_context_add_provider style provider GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
+
+	g_object_set_qdata widget gtk-style-id provider
+]
+
+get-styles-provider: func [
+	widget  [handle!]
+	return: [handle!]
+][
+	g_object_get_qdata widget gtk-style-id
+]
+
+css-styles: func [
 	face	[red-object!]
 	font	[red-object!]
 	return: [c-string!]
@@ -293,15 +333,6 @@ css-font: func [
 	;anti-alias?:
 
 	css:	g_strdup_printf ["* {"]
-
-	unless null? face [
-		bgcolor: as red-tuple!	(object/get-values face) + FACE_OBJ_COLOR
-		if TYPE_OF(bgcolor) = TYPE_TUPLE [
-			rgba: to-css-rgba bgcolor
-			css: add-to-string css "%s background-color: %s;" as handle! rgba
-			g_free as handle! rgba
-		]
-	]
 
 	if TYPE_OF(str) = TYPE_STRING [
 		len: -1
@@ -343,9 +374,19 @@ css-font: func [
 		g_free as handle! rgba
 	]
 
+	;; Further styles from face
+	unless null? face [
+		bgcolor: as red-tuple!	(object/get-values face) + FACE_OBJ_COLOR
+		if TYPE_OF(bgcolor) = TYPE_TUPLE [
+			rgba: to-css-rgba bgcolor
+			css: add-to-string css "%s background-color: %s;" as handle! rgba
+			g_free as handle! rgba
+		]
+	]
+
 	css: add-to-string css "%s}" null
 
-	;; DEBUG: print ["make font -> css: " css lf]
+	;; DEBUG: print ["css-styles -> css: " css lf]
 	
 	css
 ]
