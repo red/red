@@ -572,12 +572,7 @@ system/view/platform: context [
 		]
 		pair: as red-pair! stack/arguments
 		pair/header: TYPE_PAIR
-		
-		;GTK branch: gui/get-text-size face text hFont pair
-		#switch OS [
-			Linux [gui/get-text-size face text font pair]
-			#default [gui/get-text-size face text hFont pair]
-		]
+		gui/get-text-size face text hFont pair
 	]
 	
 	on-change-facet: routine [

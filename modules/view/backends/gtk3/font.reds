@@ -67,18 +67,22 @@ make-font: func [
 	font	[red-object!]
 	return: [handle!]
 	/local
-		values   [red-value!]
-		blk      [red-block!]
-		css      [c-string!]
-		hFont    [handle!]
-		int      [red-integer!]
+		values	[red-value!]
+		blk		[red-block!]
+		css		[c-string!]
+		hFont	[handle!]
+		int		[red-integer!]
+		style	[handle!]
+		widget	[handle!]
 ][
 	; release first
 	hFont: get-font-handle font
 	unless null? hFont [free-font-handle hFont]
 
-	css: css-font face font
-	hFont: as handle! css
+	hFont: font-description font
+
+	;style:	gtk_widget_get_style_context widget
+	;gtk_style_context_get [style "font" hFont null]
 
 	values: object/get-values font
 			
@@ -144,7 +148,7 @@ get-font-handle: func [
 free-font-handle: func [
 	hFont [handle!]
 ][
-	g_free hFont
+	pango_font_description_free hFont
 ]
 
 free-font: func [
