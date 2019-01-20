@@ -682,19 +682,26 @@ change-font: func [
 	/local
 		css		 [c-string!]
 		provider [handle!]
+		hFont	[handle!]
 ][
 	if TYPE_OF(font) <> TYPE_OBJECT [return no]
 
-	provider: get-font-provider hWnd
+	provider: get-styles-provider hWnd
 
-	make-font face font
-
+	;; update the style (including font color) gtk_css_provider is much more easier to apply than older interface to manage all the styles
 	css: ""
-	css: css-font face font
+	css: css-styles face font
 
 	;; DEBUG: print ["change-font ccs: " css lf]
 
 	gtk_css_provider_load_from_data provider css -1 null
+
+	;; Update the pango_font_description hFont (directly used by get-text-size)
+	;; Instead of recreating hFont from font and face with: 
+	;; make-font face font
+	;; get it directly from gtk_style_context fetch from widget handle hWnd after application of css-styles 
+	hFont: get-font-handle-from-face-handle hWnd
+	set-font-handle font hFont
 
 	yes
 ]
@@ -1527,8 +1534,10 @@ OS-make-view: func [
 	; save the previous group-radio state as a global variable
 	group-radio: either sym = radio [widget][as handle! 0] 
 
-	make-font-provider widget
-	if sym <> base [change-font widget face font sym]
+	make-styles-provider widget
+	if sym <> base [
+		change-font widget face font sym
+	]
 
 	;;DEBUG: print [ "New widget " get-symbol-name sym "->" widget lf]
 	

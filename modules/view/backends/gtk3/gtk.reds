@@ -952,6 +952,11 @@ cairo_font_extents_t!: alias struct! [
 		gtk_style_context_get: "gtk_style_context_get" [
 			[variadic]
 		]
+		gtk_style_context_get_font: "gtk_style_context_get_font" [
+			context		[handle!]
+			type		[integer!]
+			return:		[handle!]
+		]
 		gtk_widget_get_style_context: "gtk_widget_get_style_context" [
 			widget		[handle!]
 			return:		[handle!]
@@ -983,6 +988,10 @@ cairo_font_extents_t!: alias struct! [
 		pango_font_description_from_string: "pango_font_description_from_string" [
 			str			[c-string!]
 			return:		[handle!]
+		]
+		pango_font_description_to_string: "pango_font_description_from_string" [
+			fontdesc	[handle!]
+			return:		[c-string!]
 		]
 		pango_font_description_set_family: "pango_font_description_set_family" [
 			fontdesc 	[handle!]
