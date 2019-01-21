@@ -107,27 +107,6 @@ get-font-handle: func [
 	null
 ]
 
-;; CAREFUL! This solution does not work...  
-get-font-handle-from-face-handle: func [
-	hWnd	[handle!]
-	return:	[handle!]
-	/local
-		hFont	[handle!]
-		style	[handle!]
-][
-	;; DOES NOT WORK! TOO BAD!
-	style:	gtk_widget_get_style_context hWnd
-
-	;; Two ways: the second one's would be deprecated
-	;; Solution 1
-	;;hFont: as handle! 0
-	;;gtk_style_context_get [style "font" hFont null]
-	;; Solution 2 (supposed to be deprecated)
-	;hFont: gtk_style_context_get_font style 0
-	;hFont
-	as handle! 0
-]
-
 free-font-handle: func [
 	hFont [handle!]
 ][

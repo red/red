@@ -210,8 +210,6 @@ get-text-size: func [
 
 	width: 0 height: 0
 
-	;; DEBUG: print ["get-text-size " hFont lf]
-
 	pl: pango_layout_new pango-context
 	pango_layout_set_text pl text -1
 	pango_layout_set_font_description pl hFont
@@ -220,7 +218,7 @@ get-text-size: func [
 
 	size/width: width
 	size/height: height
-	;; DEBUG: print ["get-text-size: " text " w: " width " h: " height lf]
+	
 	if pair <> null [
 		pair/x: size/width
 		pair/y: size/height
@@ -700,12 +698,7 @@ change-font: func [
 
 	;; Update the pango_font_description hFont (directly used by get-text-size)
 	make-font face font
-
-	;; The solution below does not work: instead of recreating hFont (make-font face font),   
-	;; get it directly from gtk_style_context fetch from widget handle hWnd after application of css-styles 
-	; hFont: get-font-handle-from-face-handle hWnd
-	; set-font-handle font hFont
-
+	
 	yes
 ]
 
