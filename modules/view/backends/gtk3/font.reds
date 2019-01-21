@@ -78,27 +78,20 @@ make-font: func [
 	set-font-handle font hFont
 
 	values: object/get-values font
-			
-	; blk: as red-block! values + FONT_OBJ_STATE
-	; either TYPE_OF(blk) <> TYPE_BLOCK [
-	; 	block/make-at blk 2
-	; 	handle/make-in blk as-integer hFont
-	; ][
-	; 	int: as red-integer! block/rs-head blk
-	; 	int/header: TYPE_HANDLE
-	; 	int/value: as-integer hFont
-	; ]
 
 	if face <> null [
 		blk: block/make-at as red-block! values + FONT_OBJ_PARENT 4
 		block/rs-append blk as red-value! face
 	]
 
+	;; DEBUG: print ["font-description: " hFont lf]
+
 	hFont
 ]
 
 get-font-handle: func [
 	font	[red-object!]
+	idx		[integer!]
 	return: [handle!]
 	/local
 		state  [red-block!]
@@ -107,7 +100,7 @@ get-font-handle: func [
 	state: as red-block! (object/get-values font) + FONT_OBJ_STATE
 	if TYPE_OF(state) = TYPE_BLOCK [
 		int: as red-integer! block/rs-head state
-		if TYPE_OF(int) = TYPE_INTEGER [
+		if TYPE_OF(int) = TYPE_HANDLE [
 			return as handle! int/value
 		]
 	]
@@ -122,16 +115,17 @@ get-font-handle-from-face-handle: func [
 		hFont	[handle!]
 		style	[handle!]
 ][
+	;; DOES NOT WORK! TOO BAD!
 	style:	gtk_widget_get_style_context hWnd
 
 	;; Two ways: the second one's would be deprecated
 	;; Solution 1
-	hFont: pango_font_description_new
-	gtk_style_context_get [style "font" hFont null]
+	;;hFont: as handle! 0
+	;;gtk_style_context_get [style "font" hFont null]
 	;; Solution 2 (supposed to be deprecated)
 	;hFont: gtk_style_context_get_font style 0
-	
-	hFont
+	;hFont
+	as handle! 0
 ]
 
 free-font-handle: func [
@@ -146,7 +140,7 @@ free-font: func [
 		state [red-block!]
 		hFont [handle!]
 ][
-	hFont: get-font-handle font
+	hFont: get-font-handle font 0
 	if hFont <> null [
 		state: as red-block! (object/get-values font) + FONT_OBJ_STATE
 		state/header: TYPE_NONE
@@ -165,8 +159,10 @@ set-font-handle: func [
 		hFontP	[handle!]
 ][
 	; release previous hFont first
-	hFontP: get-font-handle font
-	unless null? hFontP [free-font-handle hFontP]
+	hFontP: get-font-handle font 0
+	unless null? hFontP [
+		free-font-handle hFontP
+	]
 
 	values: object/get-values font
 			
@@ -245,6 +241,7 @@ font-description: func [
 	pango_font_description_set_family fd name
 
 	fsize: either TYPE_OF(size) = TYPE_INTEGER [size/value][16]
+	;; DEBUG: print ["font-description: fsize -> " fsize lf]
 	pango_font_description_set_size fd fsize * PANGO_SCALE
 
 	len: switch TYPE_OF(style) [
