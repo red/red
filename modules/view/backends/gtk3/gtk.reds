@@ -1052,6 +1052,11 @@ cairo_font_extents_t!: alias struct! [
 		gdk_pango_context_get: "gdk_pango_context_get" [
 			return:		[handle!]
 		]
+
+		gtk_widget_get_pango_context: "gtk_widget_get_pango_context" [
+			return:		[handle!]
+		]
+		
 		gtk_settings_get_default: "gtk_settings_get_default" [
 			return: 	[handle!]
 		]

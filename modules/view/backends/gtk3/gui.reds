@@ -197,6 +197,8 @@ get-text-size: func [
 		pl		[handle!]
 		size	[tagSIZE]
 		df		[c-string!]
+		pc 		[handle!]
+		widget	[handle!]
 ][
 	if null? pango-context [pango-context: gdk_pango_context_get]
 	size: declare tagSIZE
@@ -210,7 +212,11 @@ get-text-size: func [
 
 	width: 0 height: 0
 
-	pl: pango_layout_new pango-context
+	;; get pango_context
+	widget: face-handle? face
+	pc: gtk_widget_get_pango_context widget
+
+	pl: pango_layout_new pc ;seems more natural than pango-context
 	pango_layout_set_text pl text -1
 	pango_layout_set_font_description pl hFont
 	pango_layout_get_pixel_size pl :width :height
