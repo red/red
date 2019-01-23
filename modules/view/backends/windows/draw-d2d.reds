@@ -59,17 +59,13 @@ draw-begin-d2d: func [
 		rt/Clear this to-dx-color bg-clr null
 	]
 
-	brush: select-brush target + 1 ctx/pen-color
 	d3d-clr: to-dx-color ctx/pen-color null
-	either zero? brush [
-		rt/CreateSolidColorBrush this d3d-clr null :brush
-		put-brush target + 1 ctx/pen-color brush
-	][
-		this: as this! brush
-		pbrush: as ID2D1SolidColorBrush this/vtbl
-		pbrush/SetColor this d3d-clr
-	]
+	brush: 0
+	rt/CreateSolidColorBrush this d3d-clr null :brush
 	ctx/pen: brush
+
+	brush: 0
+	rt/CreateSolidColorBrush this d3d-clr null :brush
 	ctx/brush: brush
 
 	text: as red-string! values + FACE_OBJ_TEXT
@@ -85,7 +81,8 @@ clean-draw-d2d: func [
 		IUnk [IUnknown]
 		this [this!]
 ][
-	;;release all brushes?
+	COM_SAFE_RELEASE_OBJ(IUnk ctx/pen)
+	COM_SAFE_RELEASE_OBJ(IUnk ctx/brush)
 ]
 
 draw-end-d2d: func [
