@@ -213,7 +213,8 @@ base-draw: func [
 		; draw-end DC ctx no no no
 		0
 	]
-	;print ["base-draw " widget lf]
+	;; DEBUG: print ["base-draw " widget lf]
+
 	false
 ]
 
