@@ -10,6 +10,47 @@ Red/System [
 	}
 ]
 
+change-para: func [
+	hWnd	[handle!]
+	face	[red-object!]
+	para	[red-object!]
+	font	[red-object!]
+	type	[integer!]
+	return: [logic!]
+	/local
+		flags [integer!]
+		cell  [integer!]
+][
+	if TYPE_OF(para) <> TYPE_OBJECT [return no]
+
+	case [
+		any [type = base type = panel][
+			;;objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
+		]
+		any [
+			type = button
+			type = check
+			type = radio
+			type = field
+			type = text
+		][
+			either TYPE_OF(font) = TYPE_OBJECT [
+				change-font hWnd face font type
+			][
+				flags: get-para-flags type para
+				;;objc_msgSend [hWnd sel_getUid "setAlignment:" flags and 3]
+			]
+		]
+		true [0]
+	]
+	if any [type = field type = text][
+		;;cell: objc_msgSend [hWnd sel_getUid "cell"]
+		;;objc_msgSend [cell sel_getUid "setWraps:" flags and 20h <> 0]
+		0
+	]
+	yes
+]
+
 update-para: func [
 	face	[red-object!]
 	flags	[integer!]
@@ -22,33 +63,36 @@ update-para: func [
 		hWnd   [handle!]
 		sym	   [integer!]
 		style  [integer!]
-		mask   [integer!]
+		;; COMMENTED SINCE UNUSED!
+		;; mask   [integer!]
 ][
 	values: object/get-values face
 	type:	as red-word! values + FACE_OBJ_TYPE
-	sym:	symbol/resolve type/symbol
-	para: 	as red-object! values + FACE_OBJ_PARA
+	;; COMMENTED SINCE UNUSED!
+	; sym:	symbol/resolve type/symbol
+	; para: 	as red-object! values + FACE_OBJ_PARA
 	
 	unless TYPE_OF(type) = TYPE_WORD [exit]				;@@ make it an error message
 	
-	case [
-		sym = base [mask: not 002Fh]
-		any [
-			sym = button
-			sym = check
-			sym = radio
-		][
-			mask: not 00000F00h
-		]
-		any [
-			sym = field
-			sym = area
-			sym = text
-		][
-			mask: not 00004003h
-		]
-		true [0]
-	]
+	;; COMMENTED SINCE UNUSED!
+	; case [
+	; 	sym = base [mask: not 002Fh]
+	; 	any [
+	; 		sym = button
+	; 		sym = check
+	; 		sym = radio
+	; 	][
+	; 		mask: not 00000F00h
+	; 	]
+	; 	any [
+	; 		sym = field
+	; 		sym = area
+	; 		sym = text
+	; 	][
+	; 		mask: not 00004003h
+	; 	]
+	; 	true [0]
+	; ]
 	
 	state: as red-block! values + FACE_OBJ_STATE
 	if TYPE_OF(state) = TYPE_BLOCK [

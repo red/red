@@ -1417,14 +1417,13 @@ OS-make-view: func [
 			gobj_signal_connect(widget "draw" :base-draw face/ctx)
 		]
 		sym = window [
-			;;;print ["win " GTKApp lf]
+			;; DEBUG: print ["win " GTKApp lf]
 			;widget: gtk_application_window_new GTKApp
 			widget: gtk_window_new 0
-			;;;print ["win1 " widget lf]
+			;; DEBUG: print ["win1 " widget lf]
 			gtk_application_add_window GTKApp widget
-			;;;print ["win2 " lf]
-			; @@ DEBUG: temporary code
-			;;;main-window: widget
+			;; DEBUG: print ["win2 " lf]
+			;; DEBUG (temporary code): main-window: widget
 			unless null? caption [gtk_window_set_title widget caption]
 			gtk_window_set_default_size widget size/x size/y
 			gtk_container_add widget gtk_fixed_new
@@ -1441,7 +1440,6 @@ OS-make-view: func [
 			gtk_range_set_value widget as float! value
 			gtk_scale_set_has_origin widget no
 			gtk_scale_set_draw_value widget no
-			; insert value-changed handler
 			gobj_signal_connect(widget "value-changed" :range-value-changed face/ctx)
 		]
 		sym = text [
@@ -1530,11 +1528,6 @@ OS-make-view: func [
 	; save the previous group-radio state as a global variable
 	group-radio: either sym = radio [widget][as handle! 0] 
 
-	make-styles-provider widget
-	if sym <> base [
-		change-font widget face font sym
-	]
-
 	;;DEBUG: print [ "New widget " get-symbol-name sym "->" widget lf]
 	
 	if all [
@@ -1580,12 +1573,16 @@ OS-make-view: func [
 	if sym = text [store-face-to-obj _widget face]
 
 	; change-selection widget as red-integer! values + FACE_OBJ_SELECTED sym
-	; change-para widget face as red-object! values + FACE_OBJ_PARA font sym
+	change-para widget face as red-object! values + FACE_OBJ_PARA font sym
 
 	unless show?/value [change-visible widget no sym]
 	unless open?/value [change-enabled widget no sym]
+	
+	make-styles-provider widget
+		if sym <> base [
+			change-font widget face font sym
+		]
 
-	; change-font widget face font sym
 	if TYPE_OF(rate) <> TYPE_NONE [change-rate widget rate]
 	; if sym <> base [change-color widget as red-tuple! values + FACE_OBJ_COLOR sym]
 
@@ -1675,10 +1672,14 @@ OS-update-view: func [
 	if flags and FACET_FLAG_FONT <> 0 [
 		change-font widget face as red-object! values + FACE_OBJ_FONT type
 	]
-	;if flags and FACET_FLAG_PARA <> 0 [
-	;	update-para face 0
-	;	InvalidateRect widget null 1
-	;]
+	if flags and FACET_FLAG_PARA <> 0 [
+	change-para
+			widget
+			face
+			as red-object! values + FACE_OBJ_PARA
+			as red-object! values + FACE_OBJ_FONT
+			type
+	]
 	;if flags and FACET_FLAG_MENU <> 0 [
 	;	menu: as red-block! values + FACE_OBJ_MENU
 	;	if menu-bar? menu window [
