@@ -415,7 +415,7 @@ object [
 
 	select-all: func [][
 		if empty? lines [exit]
-		reduce/into [1 1 line-cnt 1 + length? head line] clear selects
+		reduce/into [1 1 length? nlines 1 + length? head line] clear selects
 		system/view/platform/redraw console
 	]
 
