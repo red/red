@@ -861,16 +861,17 @@ block: context [
 		]
 
 		type: TYPE_OF(value)
+		if type = TYPE_OBJECT [hash?: no]				;-- use block search
 		any-blk?: either all [same? hash?][no][ANY_BLOCK_STRICT?(type)]
 		op: either case? [COMP_STRICT_EQUAL][COMP_FIND] ;-- warning: /case <> STRICT...
 		if same? [op: COMP_SAME]
 
 		either any [
 			match?
-			any-blk?									;@@ temporary, because we don't hash block!
+			any-blk?									;@@ we don't hash block!
 			not hash?
 		][
-			values: either only? [0][						;-- values > 0 => series comparison mode
+			values: either only? [0][					;-- values > 0 => series comparison mode
 				either any-blk? [
 					b: as red-block! value
 					s2: GET_BUFFER(b)
@@ -878,7 +879,7 @@ block: context [
 					(as-integer s2/tail - s2/offset) >> 4 - b/head
 				][0]
 			]
-			if negative? values [values: 0]					;-- empty value series case
+			if negative? values [values: 0]				;-- empty value series case
 
 			case [
 				last? [
