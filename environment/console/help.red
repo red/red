@@ -252,6 +252,7 @@ help-ctx: context [
 		parse-func-spec: function [
 			"Parses a function spec and returns an object model of it."
 			spec [block! any-function!]
+			/noprint		"don't print wangings"
 			/local =val		; set with parse, so function won't collect it
 		][
 			clear stack
@@ -272,7 +273,9 @@ help-ctx: context [
 						parse reduce =val [some [datatype! | typeset!]]
 						parse =val ['function! block!]
 					][
-						print ["Looks like we have a bad type spec:" mold =val]
+						unless noprint [
+							print ["Looks like we have a bad type spec:" mold =val]
+						]
 					]
 				)
 			]
@@ -284,7 +287,9 @@ help-ctx: context [
 			ref-desc=:   :param-desc=
 			ref-param=:  [param-name= param-attr= (tmp: pop  append/only cur-frame/params tmp)]
 			refinement=: [ref-name= opt ref-desc= any ref-param= (append/only res/refinements pop)]
-			locals=:     [/local copy =val any word! (res/locals: =val)]
+			local-name=: [set =val word! (push-param-frame  emit 'name =val)]
+			local-param=: [local-name= param-attr= (append/only res/locals new-line/all pop off)]
+			locals=:     [/local any local-param=]
 			returns=: [
 				quote return: (push-param-frame  emit 'name 'return)
 				param-type= opt param-desc=
