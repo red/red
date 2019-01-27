@@ -1875,6 +1875,7 @@ OS-make-view: func [
 		]
 		sym = text-list [
 			make-text-list face obj rc menu bits and FACET_FLAGS_NO_BORDER = 0
+			integer/make-at values + FACE_OBJ_SELECTED 0
 		]
 		any [sym = button sym = check sym = radio][
 			if sym <> button [
