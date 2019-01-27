@@ -25,11 +25,13 @@ Red/System [
 GTKApp:			as handle! 0
 GTKApp-Ctx: 	0
 exit-loop:		0
+
 red-face-id:	0
 _widget-id:		1
 gtk-fixed-id:	2
 red-timer-id:	3
 css-id:			4
+size-id:		5
 
 gtk-style-id:	0
 
@@ -865,12 +867,12 @@ change-selection: func [
 		idx [integer!]
 		sz	[integer!]
 		wnd [integer!]
+		item [handle!]
 ][
-	; if type <> window [
-	; 	idx: either TYPE_OF(int) = TYPE_INTEGER [int/value - 1][-1]
-	; 	if idx < 0 [exit]								;-- @@ should unselect the items ?
-	; ]
-	; case [
+	if type <> window [
+		idx: either TYPE_OF(int) = TYPE_INTEGER [int/value - 1][-1]
+	]
+	case [
 	; 	type = camera [
 	; 		either TYPE_OF(int) = TYPE_NONE [
 	; 			toggle-preview hWnd false
@@ -879,33 +881,24 @@ change-selection: func [
 	; 			toggle-preview hWnd true
 	; 		]
 	; 	]
-	; 	type = text-list [
-	; 		hWnd: objc_msgSend [hWnd sel_getUid "documentView"]
-	; 		sz: -1 + objc_msgSend [hWnd sel_getUid "numberOfRows"]
-	; 		if any [sz < 0 sz < idx][exit]
-	; 		idx: objc_msgSend [objc_getClass "NSIndexSet" sel_getUid "indexSetWithIndex:" idx]
-	; 		objc_msgSend [
-	; 			hWnd sel_getUid "selectRowIndexes:byExtendingSelection:" idx no
-	; 		]
-	; 		objc_msgSend [idx sel_getUid "release"]
-	; 	]
-	; 	any [type = drop-list type = drop-down][
-	; 		sz: -1 + objc_msgSend [hWnd sel_getUid "numberOfItems"]
-	; 		if any [sz < 0 sz < idx][exit]
-	; 		objc_msgSend [hWnd sel_getUid "selectItemAtIndex:" idx]
-	; 		idx: objc_msgSend [hWnd sel_getUid "objectValueOfSelectedItem"]
-	; 		objc_msgSend [hWnd sel_getUid "setObjectValue:" idx]
-	; 	]
-	; 	type = tab-panel [select-tab hWnd int]
+		type = text-list [
+			item: gtk_list_box_get_row_at_index hWnd idx
+			gtk_list_box_select_row hWnd item
+		]
+		any [type = drop-list type = drop-down][
+			gtk_combo_box_set_active hWnd idx
+		]
+	 	type = tab-panel [
+			gtk_notebook_set_current_page hWnd idx
+		]
 	; 	type = window [
 	; 		wnd: either TYPE_OF(int) = TYPE_OBJECT [
 	; 			as-integer face-handle? as red-object! int
 	; 		][0]
 	; 		objc_msgSend [hWnd sel_getUid "makeFirstResponder:" wnd]
 	; 	]
-	; 	true [0]										;-- default, do nothing
-	; ]
-	0
+	 	true [0]										;-- default, do nothing
+	]
 ]
 
 set-selected-focus: func [
@@ -1047,6 +1040,7 @@ init-combo-box: func [
 		tail [red-string!]
 		len  [integer!]
 		val  [c-string!]
+		size [integer!]
 ][
 	if any [
 		TYPE_OF(data) = TYPE_BLOCK
@@ -1055,6 +1049,9 @@ init-combo-box: func [
 	][
 		str:  as red-string! block/rs-head data
 		tail: as red-string! block/rs-tail data
+
+		size: block/rs-length? data
+		print ["combo-size: " size lf]
 
 		;remove all items
 		gtk_combo_box_text_remove_all combo
@@ -1067,7 +1064,7 @@ init-combo-box: func [
 				val: unicode/to-utf8 str :len
 				gtk_combo_box_text_append_text combo val
 			]
-			str: str + 1
+			str: str + 1 
 		]
 	]
 
@@ -1642,10 +1639,10 @@ OS-update-view: func [
 		bool: as red-logic! values + FACE_OBJ_VISIBLE?
 		change-visible widget bool/value type
 	]
-	;if flags and FACET_FLAG_SELECTED <> 0 [
-	;	int2: as red-integer! values + FACE_OBJ_SELECTED
-	;	change-selection widget int2 values
-	;]
+	if flags and FACET_FLAG_SELECTED <> 0 [
+		int2: as red-integer! values + FACE_OBJ_SELECTED
+		change-selection widget int2 type
+	]
 	;if flags and FACET_FLAG_FLAGS <> 0 [
 	;	SetWindowLong
 	;		widget

@@ -926,6 +926,11 @@ cairo_font_extents_t!: alias struct! [
 			return: 	[integer!]
 		]
 
+		gtk_notebook_set_current_page: "gtk_notebook_set_current_page" [
+			nb			[handle!]
+			index 		[integer!]
+		]
+
 		gtk_notebook_get_nth_page: "gtk_notebook_get_nth_page" [
 			nb			[handle!]
 			index	 	[integer!]
