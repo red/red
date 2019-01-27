@@ -91,7 +91,6 @@ button-toggled: func [
 	make-event button 0 EVT_CHANGE
 ]
 
-
 render-text: func [
 	cr		[handle!]
 	values	[red-value!]
@@ -451,7 +450,7 @@ widget-enter-notify-event: func [
 	ctx 	[node!]
 	return: [logic!]
 ][
-	;print [ "ENTER: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
+	;; DEBUG: print [ "ENTER: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
 	make-event widget 0 EVT_OVER
 	no
 ]
@@ -463,7 +462,7 @@ widget-leave-notify-event: func [
 	ctx 	[node!]
 	return: [logic!]
 ][
-	;print [ "LEAVE: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
+	;; DEBUG: print [ "LEAVE: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
 	make-event widget EVT_FLAG_AWAY EVT_OVER
 	no
 ]
@@ -483,7 +482,7 @@ widget-motion-notify-event: func [
 		; s 		[series!]
 
 ][
-	;print [ "MOTION: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
+	;; DEBUG: print [ "MOTION: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
 	either motion/state [
 		if 0 = (motion/cpt % motion/sensitiv) [
 			x:  event/x_root - motion/x_root
@@ -508,7 +507,7 @@ widget-button-press-event: func [
 	/local
 		offset 	[red-pair!]
 ][
-	; print [ "BUTTON-PRESS: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
+	;; DEBUG: print [ "BUTTON-PRESS: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
 	motion/state: yes
 	motion/cpt: 0
 	motion/x_root: event/x_root
@@ -525,8 +524,25 @@ widget-button-release-event: func [
 	event	[GdkEventButton!]
 	ctx 	[node!]
 	return: [logic!]
+	/local
+		type	[red-word!]
+		sym		[integer!]
+		state	[logic!]
 ][
 	; print [ "BUTTON-RELEASE: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
+	
+	; Special treatment for check and radio buttons (TODO: button)
+	type: as red-word! get-node-facet ctx FACE_OBJ_TYPE
+	sym:	symbol/resolve type/symbol
+	
+	if all [
+		any [sym = check sym = radio]
+		motion/cpt = 0					; IMPORTANT: change state only if no dragging! 
+	][
+		state: gtk_toggle_button_get_active widget
+		gtk_toggle_button_set_active widget either sym = check [not state][yes]
+	]
+
 	motion/state: no
 	make-event widget 0 EVT_LEFT_UP
 	yes

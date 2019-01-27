@@ -315,6 +315,10 @@ cairo_font_extents_t!: alias struct! [
 			flags		[integer!]
 			return:		[integer!]
 		]
+		g_signal_emit_by_name: "g_signal_emit_by_name" [
+			instance	[int-ptr!]
+			signal		[c-string!]
+		]
 		g_object_unref: "g_object_unref" [
 			object		[int-ptr!]
 		]
@@ -754,6 +758,13 @@ cairo_font_extents_t!: alias struct! [
 		gtk_toggle_button_set_active: "gtk_toggle_button_set_active" [
 			button		[handle!]
 			active?		[logic!]
+		]
+		gtk_toggle_button_toggled: "gtk_toggle_button_toggled" [
+			button		[handle!]
+		]
+		gtk_radio_button_get_group: "gtk_radio_button_get_group" [
+			radio 		[handle!]
+			return:		[handle!]
 		]
 		gtk_drawing_area_new: "gtk_drawing_area_new" [
 			return:		[handle!]

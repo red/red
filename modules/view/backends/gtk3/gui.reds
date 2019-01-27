@@ -1194,7 +1194,7 @@ connect-mouse-events: function [
 		; _widget: g_object_get_qdata hWnd _widget-id
 		; _widget: either null? _widget [hWnd][_widget]
 
-		;print [ "Mouse events " get-symbol-name type "->" widget lf]
+		;; DEBUG: print [ "Mouse events " get-symbol-name type "->" widget lf]
 		gtk_widget_add_events _widget GDK_ENTER_NOTIFY_MASK or GDK_LEAVE_NOTIFY_MASK
 		gobj_signal_connect(_widget "enter-notify-event" :widget-enter-notify-event face/ctx)
 		gobj_signal_connect(_widget "leave-notify-event" :widget-leave-notify-event face/ctx)		
@@ -1396,13 +1396,14 @@ OS-make-view: func [
 		]
 		sym = radio [
 			widget: either null? group-radio [
+				;; DEBUG: print ["radio created: " caption lf]
 				gtk_radio_button_new_with_label null caption
 			][
+				;; DEBUG: print ["radio group-radio created: " caption lf]
 				gtk_radio_button_new_with_label_from_widget group-radio caption
 			]
 			set-logic-state widget as red-logic! data no
 			;@@ Line below removed because it generates an error and there is no click event for radio 
-			;gobj_signal_connect(widget "clicked" :button-clicked null)
 			gobj_signal_connect(widget "toggled" :button-toggled face/ctx)
 		]
 		sym = button [
