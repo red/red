@@ -67,21 +67,39 @@ get-event-offset: func [
 	evt		[red-event!]
 	return: [red-value!]
 	/local
-		offset [red-pair!]
-		value  [integer!]
+		widget	[handle!]
+		sz 		[red-pair!]
+		offset	[red-pair!]
+		value	[integer!]
 ][
 	case [
 		any [
 			evt/type <= EVT_OVER
 			evt/type = EVT_MOVING
-			evt/type = EVT_SIZING
 			evt/type = EVT_MOVE
-			evt/type = EVT_SIZE
 		][
 			offset: as red-pair! stack/push*
 			offset/header: TYPE_PAIR
 			offset/x: motion/x_new
 			offset/y: motion/y_new
+			;;print ["event-offset: " offset/x "x" offset/y lf]
+			as red-value! offset
+		]
+		any [
+			evt/type = EVT_SIZING
+			evt/type = EVT_SIZE
+		][
+			widget: as handle! evt/msg
+			;;print ["event-offset type: " get-symbol-name get-widget-symbol widget lf]
+			offset: as red-pair! stack/push*
+			offset/header: TYPE_PAIR
+			; sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE
+			; offset/x: sz/x
+			; offset/y: sz/y
+			
+			offset/x: gtk_widget_get_allocated_width widget
+			offset/y: gtk_widget_get_allocated_height widget
+
 			;;print ["event-offset: " offset/x "x" offset/y lf]
 			as red-value! offset
 		]

@@ -608,53 +608,22 @@ OS-draw-line-cap: func [
 	]
 ]
 
-; OS-draw-image: func [
-; 	dc			[draw-ctx!]
-; 	image		[red-image!]
-; 	start		[red-pair!]
-; 	end			[red-pair!]
-; 	key-color	[red-tuple!]
-; 	border?		[logic!]
-; 	crop1		[red-pair!]
-; 	pattern		[red-word!]
-; 	/local
-; 		x		[integer!]
-; 		y		[integer!]
-; 		width	[integer!]
-; 		height	[integer!]
-; ][
-; 0
-; ]
-
-
 GDK-draw-image: func [
-	dc			[handle!]
-	image		[integer!]
+	cr			[handle!]
+	image		[handle!]
 	x			[integer!]
 	y			[integer!]
-	; width		[integer!]
-	; height		[integer!]
-	;/local
-	;	rc		[NSRect!]
-	;	ty		[float32!]
+	width		[integer!]
+	height		[integer!]
+	/local
+		img		[handle!]
 ][
-	; rc: make-rect x y width height
-	; ty: rc/y + rc/h
-	; ;-- flip coords
-	; ;; drawing an image or PDF by calling Core Graphics functions directly,
-	; ;; we must flip the CTM.
-	; ;; http://stackoverflow.com/questions/506622/cgcontextdrawimage-draws-image-upside-down-when-passed-uiimage-cgimage
-	; CGContextTranslateCTM dc as float32! 0.0 ty
-	; CGContextScaleCTM dc as float32! 1.0 as float32! -1.0
-
-	; CGContextDrawImage dc rc/x as float32! 0.0 rc/w rc/h image
-
-	; ;-- flip back
-	; CGContextScaleCTM dc as float32! 1.0 as float32! -1.0
-	; CGContextTranslateCTM dc as float32! 0.0 (as float32! 0.0) - ty
-	gdk_cairo_set_source_pixbuf dc as handle! image x y
-	cairo_paint dc
-	;0
+	img: either width = 0 [image][gdk_pixbuf_scale_simple image width height 2]
+	;; DEBUG: print ["GDK-draw-image: " x "x" y lf]
+	cairo_translate cr as-float x as-float y
+	gdk_cairo_set_source_pixbuf cr img 0 0
+	cairo_paint cr
+	cairo_translate cr as-float (0 - x) as-float (0 - y)
 ]
 
 OS-draw-image: func [
@@ -693,6 +662,8 @@ OS-draw-image: func [
 		true [0]							;@@ TBD four control points
 	]
 
+	;; DEBUG: print ["OS-draw-image: " x "x" y " " width "x" height lf]
+
 	img: OS-image/to-pixbuf image
 	if crop1 <> null [
 		crop2: crop1 + 1
@@ -706,7 +677,7 @@ OS-draw-image: func [
 		;gdk_pixbuf_scale as handle! img as handle! sub-img 0 0 width height 0.0 0.0 1.0 1.0 0 ; to correct parameters!!!
 	]
 
-	GDK-draw-image dc/raw img x y
+	GDK-draw-image dc/raw as handle! img x y width height
 	if crop1 <> null [g_object_unref as handle! sub-img]
 ]
 
@@ -836,8 +807,8 @@ OS-matrix-scale: func [
 		cr [handle!]
 ][
 	cr: dc/raw
-	cairo_scale cr as-float sx/value
-				   as-float sy/value
+	cairo_scale cr as float! get-float32 sx
+				   as float! get-float32 sy
 ]
 
 OS-matrix-translate: func [

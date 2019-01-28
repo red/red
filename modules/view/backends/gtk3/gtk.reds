@@ -583,6 +583,14 @@ cairo_font_extents_t!: alias struct! [
 			widget		[handle!]
 			alloc		[handle!]
 		]
+		gtk_widget_get_allocated_width: "gtk_widget_get_allocated_width" [
+			widget		[handle!]
+			return: 	[integer!]
+		]
+		gtk_widget_get_allocated_height: "gtk_widget_get_allocated_height" [
+			widget		[handle!]
+			return: 	[integer!]
+		]
 		gtk_widget_set_can_focus: "gtk_widget_set_can_focus" [
 			widget		[handle!]
 			focus		[logic!]

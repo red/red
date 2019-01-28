@@ -196,7 +196,7 @@ base-draw: func [
 	]
 
 	if TYPE_OF(img) = TYPE_IMAGE [
-		GDK-draw-image cr OS-image/to-pixbuf img 0 0
+		GDK-draw-image cr as handle! OS-image/to-pixbuf img 0 0 0 0
 	]
 
 	render-text cr vals
@@ -236,6 +236,21 @@ window-removed-event: func [
 	count/value: count/value - 1
 ]
 
+window-size-allocate: func [
+	[cdecl]
+	widget	[handle!]
+	rect	[tagRECT]
+	/local
+		sz	 [red-pair!]
+][
+	;;DEBUG: print [ "window-size-allocate " rect/width "x" rect/height lf]
+	make-event widget 0 EVT_SIZING
+	sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE		;-- update face/size
+	sz/x: rect/width
+	sz/y: rect/height
+	;; DEBUG: print [ "window-size-allocate end" lf]
+]
+
 range-value-changed: func [
 	[cdecl]
 	range	[handle!]
@@ -269,6 +284,15 @@ range-value-changed: func [
 	pos/value: val / max
 	make-event range 0 EVT_CHANGE
 	;]
+]
+
+text-button-press-event: func [
+	[cdecl]
+	_widget	[handle!]
+	evt 	[handle!]
+	widget	[handle!]
+][
+	make-event widget 0 EVT_LEFT_DOWN
 ]
 
 combo-selection-changed: func [
