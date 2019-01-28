@@ -1,6 +1,6 @@
 Red/System [
 	Title:	"GTK3 GUI backend"
-	Author: "Qingtian Xie"
+	Author: "Qingtian Xie, RCqls, Thiago Dourado de Andrade"
 	File: 	%gui.reds
 	Tabs: 	4
 	Rights: "Copyright (C) 2015 Qingtian Xie. All rights reserved."
@@ -14,7 +14,6 @@ Red/System [
 #include %gtk.reds
 #include %events.reds
 
-#include %style.reds
 #include %font.reds
 #include %para.reds
 #include %draw.reds
@@ -30,6 +29,7 @@ red-face-id:	0
 _widget-id:		1
 gtk-fixed-id:	2
 red-timer-id:	3
+css-id:			4
 
 gtk-style-id:	0
 
@@ -54,6 +54,7 @@ _on-over:		word/load "on-over"
 
 pango-context:	as handle! 0
 gtk-font:		"Sans 10"
+default-font:	0
 
 ; Do not KNOW about this one 
 ;;;main-window:	as handle! 0
@@ -185,7 +186,7 @@ get-child-from-xy: func [
 get-text-size: func [
 	face    [red-object!]
 	str		[red-string!]
-	font	[red-object!]
+	hFont	[handle!]
 	pair	[red-pair!]
 	return: [tagSIZE]
 	/local
@@ -195,7 +196,6 @@ get-text-size: func [
 		height	[integer!]
 		pl		[handle!]
 		size	[tagSIZE]
-		fd		[handle!]
 		df		[c-string!]
 ][
 	if null? pango-context [pango-context: gdk_pango_context_get]
@@ -210,24 +210,15 @@ get-text-size: func [
 
 	width: 0 height: 0
 
-	; @@ TO REMOVE since font-description manages directly none value for font
-	;fd: either TYPE_OF(font) = TYPE_NONE [ 
-	;	pango_font_description_from_string gtk-font
-	;][
-	;	font-description font
-	;]
-
-	; The lines above replaced with
-	fd: font-description font
-
 	pl: pango_layout_new pango-context
 	pango_layout_set_text pl text -1
-	pango_layout_set_font_description pl fd
+	pango_layout_set_font_description pl hFont
 	pango_layout_get_pixel_size pl :width :height
-	
+	g_object_unref pl
+
 	size/width: width
 	size/height: height
-	;print ["text: " text " w: " width " h: " height lf]
+	
 	if pair <> null [
 		pair/x: size/width
 		pair/y: size/height
@@ -377,7 +368,6 @@ init: func [][
 	screen-size-x: gdk_screen_width
 	screen-size-y: gdk_screen_height
 
-	style-init
 ]
 
 get-symbol-name: function [
@@ -650,15 +640,23 @@ change-font: func [
 	/local
 		css		 [c-string!]
 		provider [handle!]
+		hFont	[handle!]
 ][
 	if TYPE_OF(font) <> TYPE_OBJECT [return no]
 
-	provider: get-font-provider hWnd
+	provider: get-styles-provider hWnd
 
-	css: as c-string! make-font face font
+	;; update the style (including font color) gtk_css_provider is much more easier to apply than older interface to manage all the styles
+	css: ""
+	css: css-styles face font
+
+	;; DEBUG: print ["change-font ccs: " css lf]
 
 	gtk_css_provider_load_from_data provider css -1 null
 
+	;; Update the pango_font_description hFont (directly used by get-text-size)
+	make-font face font
+	
 	yes
 ]
 
@@ -1522,8 +1520,10 @@ OS-make-view: func [
 	; save the previous group-radio state as a global variable
 	group-radio: either sym = radio [widget][as handle! 0] 
 
-	make-font-provider widget
-	if sym <> base [change-font widget face font sym]
+	make-styles-provider widget
+	if sym <> base [
+		change-font widget face font sym
+	]
 
 	;;DEBUG: print [ "New widget " get-symbol-name sym "->" widget lf]
 	
