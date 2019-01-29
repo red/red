@@ -82,7 +82,7 @@ get-event-offset: func [
 			offset/header: TYPE_PAIR
 			offset/x: motion/x_new
 			offset/y: motion/y_new
-			;;print ["event-offset: " offset/x "x" offset/y lf]
+			;; DEBUG: print ["event-offset: " offset/x "x" offset/y lf]
 			as red-value! offset
 		]
 		any [
@@ -90,7 +90,7 @@ get-event-offset: func [
 			evt/type = EVT_SIZE
 		][
 			widget: as handle! evt/msg
-			;;print ["event-offset type: " get-symbol-name get-widget-symbol widget lf]
+			;; DEBUG: print ["event-offset type: " get-symbol-name get-widget-symbol widget lf]
 			offset: as red-pair! stack/push*
 			offset/header: TYPE_PAIR
 			; sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE
@@ -100,7 +100,7 @@ get-event-offset: func [
 			offset/x: gtk_widget_get_allocated_width widget
 			offset/y: gtk_widget_get_allocated_height widget
 
-			;;print ["event-offset: " offset/x "x" offset/y lf]
+			;; DEBUG: print ["event-offset: " offset/x "x" offset/y lf]
 			as red-value! offset
 		]
 		any [

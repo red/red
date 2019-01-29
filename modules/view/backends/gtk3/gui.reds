@@ -1227,9 +1227,9 @@ parse-common-opts: func [
 			case [
 				sym = _drag-on [
 					gtk_widget_add_events hWnd GDK_BUTTON_PRESS_MASK or GDK_BUTTON1_MOTION_MASK or GDK_BUTTON_RELEASE_MASK ;or GDK_ENTER_NOTIFY_MASK 
-					gobj_signal_connect(hWnd "motion-notify-event" :widget-motion-notify-event face/ctx)
-					gobj_signal_connect(hWnd "button-press-event" :widget-button-press-event face/ctx)
-					gobj_signal_connect(hWnd "button-release-event" :widget-button-release-event face/ctx)
+					gobj_signal_connect(hWnd "motion-notify-event" :drag-widget-motion-notify-event face/ctx)
+					gobj_signal_connect(hWnd "button-press-event" :drag-widget-button-press-event face/ctx)
+					gobj_signal_connect(hWnd "button-release-event" :drag-widget-button-release-event face/ctx)
 				]
 				; sym = _cursor [
 				; 	w: word + 1
@@ -1413,6 +1413,10 @@ OS-make-view: func [
 		sym = base [
 			widget: gtk_drawing_area_new
 			gobj_signal_connect(widget "draw" :base-draw face/ctx)
+			gtk_widget_add_events widget GDK_BUTTON_PRESS_MASK or GDK_BUTTON1_MOTION_MASK or GDK_BUTTON_RELEASE_MASK
+			gobj_signal_connect(widget "button-press-event" :mouse-button-press-event face/ctx)
+			gobj_signal_connect(widget "button-release-event" :mouse-button-release-event face/ctx)
+			gobj_signal_connect(widget "motion-notify-event" :mouse-motion-notify-event face/ctx)
 		]
 		sym = window [
 			;; DEBUG: print ["win " GTKApp lf]
@@ -1773,30 +1777,33 @@ OS-to-image: func [
 		word	[red-word!]
 		type	[integer!]
 		size	[red-pair!]
-		screen? [logic!]
 		ret		[red-image!]
 ][
 	word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
-	screen?: screen = symbol/resolve word/symbol
-	either screen? [
-		; get pixbuf from screen_root_window
-		bmp: as handle! 0;gdk_pixbuf_get_from_window gdk_screen_get_root_window gdk_screen_get_default 0 0 screen-size-x screen-size-y; CGWindowListCreateImage 0 0 7F800000h 7F800000h 1 0 0		;-- INF
-		ret: image/init-image as red-image! stack/push* OS-image/load-pixbuf bmp
-	][
-		;view: as-integer face-handle? face
-		;either zero? view [ret: as red-image! none-value][
-		;	sz: as red-pair! (object/get-values face) + FACE_OBJ_SIZE
-		;	rc: make-rect 0 0 sz/x sz/y
-			; data: objc_msgSend [view sel_getUid "dataWithPDFInsideRect:" rc/x rc/y rc/w rc/h]
-			; img: objc_msgSend [
-			; 	objc_msgSend [objc_getClass "NSImage" sel_alloc]
-			; 	sel_getUid "initWithData:" data
-			; ]
-			bmp: as handle! 0; objc_msgSend [img sel_getUid "CGImageForProposedRect:context:hints:" 0 0 0]
+	type: symbol/resolve word/symbol
+	 
+	case [ 
+		type = screen [
+			; get pixbuf from screen_root_window	 
+			bmp: as handle! 0;gdk_pixbuf_get_from_window gdk_screen_get_root_window gdk_screen_get_default 0 0 screen-size-x screen-size-y; CGWindowListCreateImage 0 0 7F800000h 7F800000h 1 0 0		;-- INF
 			ret: image/init-image as red-image! stack/push* OS-image/load-pixbuf bmp
-			; objc_msgSend [bmp sel_getUid "retain"]
-			; objc_msgSend [img sel_release]
-		;]
+		]
+		true [
+			hWnd: face-handle? face
+			either null? hWnd [ret: as red-image! none-value][
+				size: as red-pair! (object/get-values face) + FACE_OBJ_SIZE
+				; rc: make-rect 0 0 sz/x sz/y
+				; data: objc_msgSend [view sel_getUid "dataWithPDFInsideRect:" rc/x rc/y rc/w rc/h]
+				; img: objc_msgSend [
+				; 	objc_msgSend [objc_getClass "NSImage" sel_alloc]
+				; 	sel_getUid "initWithData:" data
+				; ]
+				bmp: as handle! 0; objc_msgSend [img sel_getUid "CGImageForProposedRect:context:hints:" 0 0 0]
+				ret: image/init-image as red-image! stack/push* OS-image/load-pixbuf bmp
+				; objc_msgSend [bmp sel_getUid "retain"]
+				; objc_msgSend [img sel_release]
+			]
+		]
 	]
 	ret
 ]

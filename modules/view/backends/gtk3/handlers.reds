@@ -467,7 +467,7 @@ widget-leave-notify-event: func [
 	no
 ]
 
-widget-motion-notify-event: func [
+drag-widget-motion-notify-event: func [
 	[cdecl]
 	widget 	[handle!] 
 	event	[GdkEventMotion!]
@@ -482,7 +482,7 @@ widget-motion-notify-event: func [
 		; s 		[series!]
 
 ][
-	;; DEBUG: print [ "MOTION: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
+	;; Drag -> DEBUG: print [ "MOTION: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
 	either motion/state [
 		if 0 = (motion/cpt % motion/sensitiv) [
 			x:  event/x_root - motion/x_root
@@ -498,7 +498,7 @@ widget-motion-notify-event: func [
 	][no]
 ]
 
-widget-button-press-event: func [
+drag-widget-button-press-event: func [
 	[cdecl]
 	widget 	[handle!] 
 	event	[GdkEventButton!]
@@ -507,7 +507,7 @@ widget-button-press-event: func [
 	/local
 		offset 	[red-pair!]
 ][
-	;; DEBUG: print [ "BUTTON-PRESS: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
+	;; Drag -> DEBUG: print [ "BUTTON-PRESS: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
 	motion/state: yes
 	motion/cpt: 0
 	motion/x_root: event/x_root
@@ -518,7 +518,7 @@ widget-button-press-event: func [
 	yes
 ]
 
-widget-button-release-event: func [
+drag-widget-button-release-event: func [
 	[cdecl]
 	widget 	[handle!] 
 	event	[GdkEventButton!]
@@ -529,7 +529,7 @@ widget-button-release-event: func [
 		sym		[integer!]
 		state	[logic!]
 ][
-	; print [ "BUTTON-RELEASE: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
+	; print [ "Drag -> BUTTON-RELEASE: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
 	
 	; Special treatment for check and radio buttons (TODO: button)
 	type: as red-word! get-node-facet ctx FACE_OBJ_TYPE
@@ -545,5 +545,65 @@ widget-button-release-event: func [
 
 	motion/state: no
 	make-event widget 0 EVT_LEFT_UP
+	yes
+]
+
+mouse-button-press-event: func [
+	[cdecl]
+	widget 	[handle!] 
+	event	[GdkEventButton!]
+	ctx 	[node!]
+	return: [logic!]
+][
+	;; DEBUG: print [ "mouse -> BUTTON-PRESS: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
+	; motion/state: yes
+	; motion/cpt: 0
+	motion/x_root: event/x_root
+	motion/y_root: event/y_root
+	motion/x_new: as-integer event/x
+	motion/y_new: as-integer event/y
+	make-event widget 0 EVT_LEFT_DOWN
+	yes
+]
+
+mouse-button-release-event: func [
+	[cdecl]
+	widget 	[handle!] 
+	event	[GdkEventButton!]
+	ctx 	[node!]
+	return: [logic!]
+][
+	;; DEBUG: print [ "mouse -> BUTTON-RELEASE: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
+	motion/state: yes
+	motion/cpt: 0
+	motion/x_root: event/x_root
+	motion/y_root: event/y_root
+	motion/x_new: as-integer event/x
+	motion/y_new: as-integer event/y
+	make-event widget 0 EVT_LEFT_UP
+	yes
+]
+
+mouse-motion-notify-event: func [
+	[cdecl]
+	widget 	[handle!] 
+	event	[GdkEventMotion!]
+	ctx 	[node!]
+	return: [logic!]
+	/local
+		offset 	[red-pair!]
+		x 		[float!]
+		y 		[float!]
+		; state 	[red-block!]
+		; int 	[red-integer!]
+		; s 		[series!]
+
+][
+	;; DEBUG: print [ "mouse -> MOTION: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
+	motion/x_new: as-integer event/x
+	motion/y_new: as-integer event/y
+	motion/x_root: event/x_root
+	motion/y_root: event/y_root
+	make-event widget 0 EVT_OVER	 
 	yes
 ]
