@@ -534,6 +534,11 @@ cairo_font_extents_t!: alias struct! [
 			window		[handle!]
 			setting		[logic!]
 		]
+		gtk_window_get_size: "gtk_window_get_size" [
+			window		[handle!]
+			width		[handle!]
+			height		[handle!]
+		]
 		gtk_widget_queue_draw: "gtk_widget_queue_draw" [
 			widget		[handle!]
 		]

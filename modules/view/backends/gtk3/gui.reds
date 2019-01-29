@@ -1293,7 +1293,7 @@ parse-common-opts: func [
 OS-redraw: func [hWnd [integer!]][gtk_widget_queue_draw as handle! hWnd]
 
 OS-refresh-window: func [hWnd [integer!]][
-	;print-line "REFFRREEEESSSSHHHHH" 
+	;; DEBUG: print-line "OS-refresh-window" 
 	;debug-show-children main-window no
 	;gtk_widget_queue_draw main-window
 	OS-show-window hWnd
@@ -1304,6 +1304,7 @@ OS-show-window: func [
 	; /local
 	; 	auto-adjust?	[red-logic!]
 ][
+	;; DEBUG: print ["OS-show-window" lf]
 	gtk_widget_show_all as handle! hWnd
 	gtk_widget_grab_focus as handle! hWnd
 
@@ -1609,6 +1610,7 @@ OS-update-view: func [
 		flags	[integer!]
 		type	[integer!]
 ][
+	;; DEBUG: print ["OS-update-view" lf]
 	ctx: GET_CTX(face)
 	s: as series! ctx/values/value
 	values: s/offset
@@ -1630,7 +1632,7 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_TEXT <> 0 [
 		change-text widget values face type
-		gtk_widget_queue_draw widget
+		;gtk_widget_queue_draw widget
 	]
 	if flags and FACET_FLAG_DATA <> 0 [
 		change-data	widget values
@@ -1654,14 +1656,14 @@ OS-update-view: func [
 	;		get-flags as red-block! values + FACE_OBJ_FLAGS
 	;]
 	if flags and FACET_FLAG_DRAW  <> 0 [
-		gtk_widget_queue_draw widget
+		;gtk_widget_queue_draw widget
+		0
 	]
 	if flags and FACET_FLAG_COLOR <> 0 [
 		if type = base [
 	;		update-base widget null null values
-			gtk_widget_queue_draw widget
-	;	][
-	;		InvalidateRect widget null 1
+			;gtk_widget_queue_draw widget
+			0
 		]
 	]
 	if all [flags and FACET_FLAG_PANE <> 0 type <> tab-panel][
@@ -1675,7 +1677,7 @@ OS-update-view: func [
 		change-font widget face as red-object! values + FACE_OBJ_FONT type
 	]
 	if flags and FACET_FLAG_PARA <> 0 [
-	change-para
+		change-para
 			widget
 			face
 			as red-object! values + FACE_OBJ_PARA
@@ -1692,6 +1694,9 @@ OS-update-view: func [
 	;if flags and FACET_FLAG_IMAGE <> 0 [
 	;	change-image widget values type
 	;]
+
+	;; update-view at least ask for this
+	gtk_widget_queue_draw widget
 
 	int/value: 0										;-- reset flags
 ]
@@ -1781,6 +1786,9 @@ OS-to-image: func [
 ][
 	word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
 	type: symbol/resolve word/symbol
+
+	;; DEBUG: 
+	print ["OS-to-image:" get-symbol-name type lf]
 	 
 	case [ 
 		type = screen [
