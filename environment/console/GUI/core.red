@@ -139,7 +139,7 @@ object [
 				either all [lf? not prin?][add-line copy str][vprin str]
 			]
 		][
-			either all [lf? not prin?][add-line str][vprin str]
+			either all [lf? not prin?][add-line copy str][vprin str]
 		]
 		prin?: not lf?
 		if system/console/running? [
