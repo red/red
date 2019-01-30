@@ -262,11 +262,14 @@ free-handles: func [
 		state  [red-value!]
 		sym	   [integer!]
 ][
-	;type: as red-word! values + FACE_OBJ_TYPE
-	;sym: symbol/resolve type/symbol
+	;; DEBUG: uncomment the 3 lines
+	; type: as red-word! values + FACE_OBJ_TYPE
+	; sym: symbol/resolve type/symbol
+	; print ["free-handles: " get-symbol-name sym lf]
 
 	rate: values + FACE_OBJ_RATE
-	if TYPE_OF(rate) <> TYPE_NONE [change-rate hWnd none-value]
+	;if TYPE_OF(rate) <> TYPE_NONE [change-rate hWnd none-value]
+	remove-all-timers hWnd
 	gtk_widget_destroy hWnd
 	state: values + FACE_OBJ_STATE
 	state/header: TYPE_NONE
@@ -296,7 +299,7 @@ debug-show-children: func [
 		debug		[logic!]
 		cpt 		[integer!]
 ][
-	; to remove when saitsfactory enough development
+	; to remove when satisfactory enough development
 	debug: yes
 
 	values: get-face-values hWnd
@@ -490,6 +493,73 @@ adjust-sizes: func [
 	free as byte-ptr! rect
 ]
 
+
+
+remove-widget-timer: func [
+	hWnd [handle!]
+	/local
+		timer	[integer!]
+		data	[handle!]
+][
+	unless null? hWnd [
+		data: g_object_get_qdata hWnd red-timer-id
+		timer: either null? data [0][as integer! data]
+
+		;; DEBUG: print ["remove-widget-timer " timer lf]
+
+		if timer <> 0 [								;-- cancel a preexisting timeout
+			g_source_remove timer
+			timer: 0
+			g_object_set_qdata hWnd red-timer-id as int-ptr! timer
+		]
+	]
+]
+
+add-widget-timer: func [
+	hWnd 	[handle!]
+	ts 		[integer!]
+	/local
+		timer	[integer!]
+		data	[handle!]
+][
+	timer: g_timeout_add ts as integer! :red-timer-action hWnd
+	g_object_set_qdata hWnd red-timer-id as int-ptr! timer
+]
+
+; Debug function to show children tree
+remove-all-timers: func [
+	hWnd 	[handle!]
+	/local
+		widget		[handle!]
+		pane 		[red-block!]
+		type		[red-word!]
+		sym			[integer!]
+		face 		[red-object!]
+		tail 		[red-object!]
+		values		[red-value!]
+		rate 		[red-value!]
+][
+	values: get-face-values hWnd
+	type: 	as red-word! values + FACE_OBJ_TYPE
+	pane: 	as red-block! values + FACE_OBJ_PANE
+	rate:	 values + FACE_OBJ_RATE
+	
+	if TYPE_OF(rate) <> TYPE_NONE [change-rate hWnd none-value]
+
+	sym: 	symbol/resolve type/symbol
+	
+	if all [TYPE_OF(pane) = TYPE_BLOCK 0 <> block/rs-length? pane] [
+		face: as red-object! block/rs-head pane
+		tail: as red-object! block/rs-tail pane
+		
+		while [face < tail][
+			widget: face-handle? face 
+			unless null? widget [remove-all-timers widget]
+			face: face + 1
+		]
+	]
+]
+
 change-rate: func [
 	hWnd [handle!]
 	rate [red-value!]
@@ -501,13 +571,7 @@ change-rate: func [
 		data	[handle!]
 ][
 	unless null? hWnd [
-		data: g_object_get_qdata hWnd red-timer-id
-		timer: either null? data [0][as integer! data]
-
-		if timer <> 0 [								;-- cancel a preexisting timeout
-			g_source_remove timer
-			g_object_set_qdata hWnd red-timer-id null
-		]
+		remove-widget-timer hWnd
 
 		switch TYPE_OF(rate) [
 			TYPE_INTEGER [
@@ -524,8 +588,7 @@ change-rate: func [
 			default	  [fire [TO_ERROR(script invalid-facet-type) rate]]
 		]
 
-		timer: g_timeout_add ts as integer! :red-timer-action hWnd
-		g_object_set_qdata hWnd red-timer-id as int-ptr! timer
+		add-widget-timer hWnd ts
 	]
 ]
 
@@ -684,17 +747,20 @@ change-offset: func [
 	either type = window [
 		0
 	][
-		;OS-refresh-window as integer! main-window
-		container: either null? hWnd [null][g_object_get_qdata hWnd gtk-fixed-id]
-		;; DEBUG: print ["change-offset by" pos lf]
-		; _widget: either type = text [
-		; 	g_object_get_qdata hWnd _widget-id
-		; ][hWnd]
-		_widget: g_object_get_qdata hWnd _widget-id
-		_widget: either null? _widget [hWnd][_widget]
-		unless null? container [
-			gtk_fixed_move container _widget pos/x pos/y
-			gtk_widget_queue_draw _widget
+		unless null? hWnd [
+			;OS-refresh-window as integer! main-window
+			container: either null? hWnd [null][g_object_get_qdata hWnd gtk-fixed-id]
+			;; DEBUG: print ["change-offset by" pos lf]
+			; _widget: either type = text [
+			; 	g_object_get_qdata hWnd _widget-id
+			; ][hWnd]
+			
+			_widget: g_object_get_qdata hWnd _widget-id
+			_widget: either null? _widget [hWnd][_widget]
+			unless null? container [
+				gtk_fixed_move container _widget pos/x pos/y
+				gtk_widget_queue_draw _widget
+			]
 		]
 	]
 ]
@@ -710,10 +776,12 @@ change-size: func [
 	either type = window [
 		gtk_window_set_default_size hWnd size/x size/y
 	 ][
-		_widget: g_object_get_qdata hWnd _widget-id
-		_widget: either null? _widget [hWnd][_widget]
-		gtk_widget_set_size_request _widget size/x size/y
-		gtk_widget_queue_draw _widget
+		 unless null? hWnd [
+			_widget: g_object_get_qdata hWnd _widget-id
+			_widget: either null? _widget [hWnd][_widget]
+			gtk_widget_set_size_request _widget size/x size/y
+			unless null? _widget [gtk_widget_queue_draw _widget]
+		]
 	]
 ]
 
@@ -756,7 +824,8 @@ change-text: func [
 		str    [red-string!]
 		buffer [handle!]
 ][
-	if type = base [
+	if null? hWnd [exit]
+	if  type = base [
 		gtk_widget_queue_draw hWnd
 		exit
 	]
@@ -1181,6 +1250,7 @@ connect-mouse-events: function [
 		_widget [handle!]
 ][
 	if all [
+		not null? hWnd
 		not null? actors/ctx
 		(object/rs-find actors  as red-value!  _on-over) <> -1
 	][
@@ -1290,7 +1360,11 @@ parse-common-opts: func [
 	; ]
 ]
 
-OS-redraw: func [hWnd [integer!]][gtk_widget_queue_draw as handle! hWnd]
+OS-redraw: func [
+	hWnd [integer!]
+][
+	unless null? as handle! hWnd [gtk_widget_queue_draw as handle! hWnd]
+]
 
 OS-refresh-window: func [hWnd [integer!]][
 	;; DEBUG: print-line "OS-refresh-window" 
@@ -1305,6 +1379,7 @@ OS-show-window: func [
 	; 	auto-adjust?	[red-logic!]
 ][
 	;; DEBUG: print ["OS-show-window" lf]
+	if null? as handle! hWnd [exit]
 	gtk_widget_show_all as handle! hWnd
 	gtk_widget_grab_focus as handle! hWnd
 
@@ -1432,6 +1507,7 @@ OS-make-view: func [
 			gtk_container_add widget gtk_fixed_new
 			gtk_window_move widget offset/x offset/y
 			gobj_signal_connect(widget "delete-event" :window-delete-event null)
+			;gobj_signal_connect(widget "destroy" :window-destroy null)
 			gobj_signal_connect(widget "size-allocate" :window-size-allocate null)
 		]
 		sym = slider [
@@ -1621,6 +1697,8 @@ OS-update-view: func [
 	s: GET_BUFFER(state)
 	int: as red-integer! s/offset
 	widget: as handle! int/value
+	if null? widget [exit]
+	
 	int: int + 1
 	flags: int/value
 
@@ -1710,8 +1788,10 @@ OS-destroy-view: func [
 		obj	   [red-object!]
 		flags  [integer!]
 ][
+	;; DEBUG: print ["OS-destroy-view" lf]  
 	handle: face-handle? face
 	values: object/get-values face
+
 	flags: get-flags as red-block! values + FACE_OBJ_FLAGS
 	if flags and FACET_FLAGS_MODAL <> 0 [
 		0
@@ -1725,6 +1805,8 @@ OS-destroy-view: func [
 	obj: as red-object! values + FACE_OBJ_PARA
 	;if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj PARA_OBJ_PARENT]
 	
+	;; DEBUG: print ["BYE!" lf]
+	halt
 ]
 
 OS-update-facet: func [

@@ -220,11 +220,19 @@ base-draw: func [
 window-delete-event: func [
 	[cdecl]
 	widget	[handle!]
-	event	[handle!]
-	exit-lp	[int-ptr!]
 	return: [logic!]
 ][
+	;; DEBUG: print ["window-delete-event" lf]
+	make-event widget 0 EVT_CLOSE
 	false
+]
+
+window-destroy: func [
+	[cdecl]
+	widget	[handle!]
+][
+	;; DEBUG: print ["window-destroy" lf]
+	make-event widget 0 EVT_CLOSE
 ]
 
 window-removed-event: func [
