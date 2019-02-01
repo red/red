@@ -382,3 +382,26 @@ translate-key: func [
 	;debug: print [" key: " key " F1" RED_VK_F1 lf]
 	key
 ]
+
+;; TODO: Copied from macOS and seems to be useful for several windows
+close-pending-windows: func [/local n [integer!] p [int-ptr!]][
+	n: vector/rs-length? win-array
+	if zero? n [exit]
+
+	p: as int-ptr! vector/rs-head win-array
+	while [n > 0][
+		free-handles p/value yes
+		p: p + 1
+		n: n - 1
+	]
+	vector/rs-clear win-array
+	close-window?: no
+]
+
+post-quit-msg: func [
+	/local
+		e	[integer!]
+		tm	[float!]
+][
+	0
+]

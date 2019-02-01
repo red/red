@@ -26,6 +26,10 @@ GTKApp:			as handle! 0
 GTKApp-Ctx: 	0
 exit-loop:		0
 
+close-window?:	no
+win-array:		declare red-vector!
+win-cnt:		0
+
 red-face-id:	0
 _widget-id:		1
 gtk-fixed-id:	2
@@ -254,23 +258,51 @@ to-bgr: func [
 ]
 
 free-handles: func [
-	hWnd [handle!]
-	values [red-value!]
+	hWnd	[integer!]
+	force?	[logic!]
 	/local
+		values [red-value!]
 		type   [red-word!]
-		rate   [red-value!]
+		face   [red-object!]
+		tail   [red-object!]
+		pane   [red-block!]
 		state  [red-value!]
+		rate   [red-value!]
 		sym	   [integer!]
+		handle [handle!]
 ][
-	;; DEBUG: uncomment the 3 lines
-	; type: as red-word! values + FACE_OBJ_TYPE
-	; sym: symbol/resolve type/symbol
-	; print ["free-handles: " get-symbol-name sym lf]
+	values: get-face-values as handle! hWnd
+	type: as red-word! values + FACE_OBJ_TYPE
+	sym: symbol/resolve type/symbol
+
+	if all [sym = window not force?][
+		close-window?: yes
+		vector/rs-append-int win-array hWnd
+		exit
+	]
 
 	rate: values + FACE_OBJ_RATE
-	;if TYPE_OF(rate) <> TYPE_NONE [change-rate hWnd none-value]
-	remove-all-timers hWnd
-	gtk_widget_destroy hWnd
+	if TYPE_OF(rate) <> TYPE_NONE [change-rate as handle! hWnd none-value]
+
+	pane: as red-block! values + FACE_OBJ_PANE
+	if TYPE_OF(pane) = TYPE_BLOCK [
+		face: as red-object! block/rs-head pane
+		tail: as red-object! block/rs-tail pane
+		while [face < tail][
+			handle: face-handle? face
+			unless null? handle [free-handles as-integer handle force?]
+			face: face + 1
+		]
+	]
+
+	either sym = window [
+		gtk_widget_destroy as handle! hWnd
+		win-cnt: win-cnt - 1
+		post-quit-msg
+	][
+		unless close-window? [gtk_widget_destroy as handle! hWnd]
+	]
+
 	state: values + FACE_OBJ_STATE
 	state/header: TYPE_NONE
 ]
@@ -367,6 +399,11 @@ debug-show-children: func [
 	free as byte-ptr! rect
 ]
 
+on-gc-mark: does [
+	collector/keep flags-blk/node
+	collector/keep win-array/node
+]
+
 init: func [][
 	GTKApp: gtk_application_new RED_GTK_APP_ID G_APPLICATION_NON_UNIQUE
 	gobj_signal_connect(GTKApp "window-removed" :window-removed-event :exit-loop)
@@ -377,12 +414,15 @@ init: func [][
 	]
 	g_application_register GTKApp null null
 
+	vector/make-at as red-value! win-array 8 TYPE_INTEGER 4
+
 	red-face-id: g_quark_from_string "red-face-id"
 	gtk-style-id: g_quark_from_string "gtk-style-id"
 
 	screen-size-x: gdk_screen_width
 	screen-size-y: gdk_screen_height
 
+	collector/register as int-ptr! :on-gc-mark
 ]
 
 get-symbol-name: function [
@@ -505,8 +545,6 @@ remove-widget-timer: func [
 		data: g_object_get_qdata hWnd red-timer-id
 		timer: either null? data [0][as integer! data]
 
-		;; DEBUG: print ["remove-widget-timer " timer lf]
-
 		if timer <> 0 [								;-- cancel a preexisting timeout
 			g_source_remove timer
 			timer: 0
@@ -524,6 +562,13 @@ add-widget-timer: func [
 ][
 	timer: g_timeout_add ts as integer! :red-timer-action hWnd
 	g_object_set_qdata hWnd red-timer-id as int-ptr! timer
+]
+
+get-widget-timer: func [
+	hWnd 	[handle!]
+	return: [int-ptr!]
+][
+	either null? hWnd [as int-ptr! 0][g_object_get_qdata hWnd red-timer-id]
 ]
 
 ; Debug function to show children tree
@@ -544,7 +589,7 @@ remove-all-timers: func [
 	pane: 	as red-block! values + FACE_OBJ_PANE
 	rate:	 values + FACE_OBJ_RATE
 	
-	if TYPE_OF(rate) <> TYPE_NONE [change-rate hWnd none-value]
+	change-rate hWnd none-value
 
 	sym: 	symbol/resolve type/symbol
 	
@@ -584,7 +629,11 @@ change-rate: func [
 				if tm/time <= 0.0 [fire [TO_ERROR(script invalid-facet-type) rate]]
 				ts: as-integer tm/time * 1000.0
 			]
-			TYPE_NONE [exit]
+			TYPE_NONE [
+				;; DEBUG: 
+				print ["change-rate: removed timer for widget " hWnd lf]
+				exit
+			]
 			default	  [fire [TO_ERROR(script invalid-facet-type) rate]]
 		]
 
@@ -1039,6 +1088,8 @@ get-flags: func [
 			sym = no-buttons [flags: flags or FACET_FLAGS_NO_BTNS]
 			sym = modal		 [flags: flags or FACET_FLAGS_MODAL]
 			sym = popup		 [flags: flags or FACET_FLAGS_POPUP]
+			sym = scrollable [flags: flags or FACET_FLAGS_SCROLLABLE]
+			sym = password	 [flags: flags or FACET_FLAGS_PASSWORD]
 			true			 [fire [TO_ERROR(script invalid-arg) word]]
 		]
 		word: word + 1
@@ -1240,6 +1291,22 @@ update-scroller: func [
 	;	SetScrollInfo hWnd as-integer vertical?/value as tagSCROLLINFO :cbSize yes
 	;]
 ]
+
+
+update-rich-text: func [
+	state	[red-block!]
+	handles [red-block!]
+	return: [logic!]
+	/local
+		redraw [red-logic!]
+][
+	if TYPE_OF(handles) = TYPE_BLOCK [
+		redraw: as red-logic! (block/rs-tail handles) - 1
+		redraw/value: true
+	]
+	TYPE_OF(state) <> TYPE_BLOCK
+]
+
 
 connect-mouse-events: function [
 	hWnd 	[handle!]
@@ -1497,6 +1564,7 @@ OS-make-view: func [
 		sym = window [
 			;; DEBUG: print ["win " GTKApp lf]
 			;widget: gtk_application_window_new GTKApp
+			win-cnt: win-cnt + 1
 			widget: gtk_window_new 0
 			;; DEBUG: print ["win1 " widget lf]
 			gtk_application_add_window GTKApp widget
@@ -1694,6 +1762,12 @@ OS-update-view: func [
 	state: as red-block! values + FACE_OBJ_STATE
 	word: as red-word! values + FACE_OBJ_TYPE
 	type: symbol/resolve word/symbol
+
+	if all [
+		type = rich-text
+		update-rich-text state as red-block! values + FACE_OBJ_EXT3
+	][exit]
+
 	s: GET_BUFFER(state)
 	int: as red-integer! s/offset
 	widget: as handle! int/value
@@ -1797,16 +1871,17 @@ OS-destroy-view: func [
 		0
 	]
 
-	free-handles handle values
-
 	obj: as red-object! values + FACE_OBJ_FONT
 	;if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj FONT_OBJ_PARENT]
 	
 	obj: as red-object! values + FACE_OBJ_PARA
 	;if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj PARA_OBJ_PARENT]
 	
+	;;g_main_context_release GTKApp-Ctx
 	;; DEBUG: print ["BYE!" lf]
-	halt
+	;;halt
+
+	free-handles as-integer handle no
 ]
 
 OS-update-facet: func [
