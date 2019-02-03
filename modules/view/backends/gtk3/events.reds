@@ -136,7 +136,8 @@ get-event-key: func [
 			code: evt/flags
 			special?: code and 80000000h <> 0
 			code: code and FFFFh
-			;debug: print ["code " code lf]
+			;; DEBUG: 
+			print ["key-code=" code " flags=" evt/flags " special?=" special? lf]
 			if special? [
 				res: as red-value! switch code [
 					RED_VK_PRIOR	[_page-up]
@@ -368,18 +369,27 @@ translate-key: func [
 ][
 	;debug: print ["keycode: " keycode]
 	keycode: gdk_keyval_to_upper keycode
-	;debug: print [" keycode2: " keycode]
+	;; DEBUG: 
+	print [" translate-key: keycode: " keycode lf]
 	special?: no
 	key: case [
-		all[keycode >= 30h keycode <= 5Ah][keycode]; RED_VK_0 to RED_VK_Z
-		all[keycode >= FFBEh keycode <= FFC8h][special?: yes keycode + RED_VK_F1 - FFBEh];RED_VK_F1 to RED_VK_F11
-		keycode = FFBFh [special?: yes RED_VK_F12]
+		all[keycode >= 20h keycode <= 5Ah][keycode]; RED_VK_SPACE to RED_VK_Z 
+		all[keycode >= A0h keycode <= FFh][keycode];
+		all[keycode >= FFBEh keycode <= FFD5h][special?: yes keycode + RED_VK_F1 - FFBEh]		;RED_VK_F1 to RED_VK_F24
+		all[keycode >= FF51h keycode <= FF54h][special?: yes keycode + RED_VK_LEFT - FF51h]		;RED_VK_LEFT to RED_VK_DOWN
+		all[keycode >= FF55h keycode <= FF57h][special?: yes keycode + RED_VK_PRIOR - FF51h]	;RED_VK_PRIOR to RED_VK_END
 		keycode = FF0Dh	[special?: yes RED_VK_RETURN]
+		keycode = FF1Bh [special?: yes RED_VK_ESCAPE]
+		keycode = FF50h [special?: yes RED_VK_HOME]
+		keycode = FFE5h [special?: yes RED_VK_NUMLOCK]
+		keycode = FF08h [special?: yes RED_VK_BACK]
+		keycode = FF09h [special?: yes RED_VK_TAB]
 		;@@ To complete!
 		true [RED_VK_UNKNOWN]
 	]
 	if special? [key: key or 80000000h]
-	;debug: print [" key: " key " F1" RED_VK_F1 lf]
+	;; DEBUG: 
+	print [" key: " key " special?=" special?  lf]
 	key
 ]
 

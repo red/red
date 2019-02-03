@@ -177,28 +177,43 @@ base-draw: func [
 	ctx		[node!]
 	return: [logic!]
 	/local
-		vals [red-value!]
-		draw [red-block!]
-		clr  [red-tuple!]
-		img  [red-image!]
+		vals 	[red-value!]
+		draw 	[red-block!]
+		clr  	[red-tuple!]
+		img  	[red-image!]
+		size	[red-pair!]
+		type	[red-word!]
+		sym		[integer!]
+		pos		[red-pair! value]
 ][
+	;; DEBUG: print ["base-draw " widget lf]
+
 	vals: get-node-values ctx
+	img:  as red-image! vals + FACE_OBJ_IMAGE
 	draw: as red-block! vals + FACE_OBJ_DRAW
 	clr:  as red-tuple! vals + FACE_OBJ_COLOR
-	img:  as red-image! vals + FACE_OBJ_IMAGE
+	size: as red-pair! vals + FACE_OBJ_SIZE
+	type: as red-word! vals + FACE_OBJ_TYPE
+	sym: symbol/resolve type/symbol
 	
 	if TYPE_OF(clr) = TYPE_TUPLE [
-		;0
 		;print ["color" (clr/array1 and 00FFFFFFh) lf]
 		set-source-color cr clr/array1
 		cairo_paint cr								;-- paint background
 	]
 
 	if TYPE_OF(img) = TYPE_IMAGE [
-		GDK-draw-image cr as handle! OS-image/to-pixbuf img 0 0 0 0
+		GDK-draw-image cr as handle! OS-image/to-pixbuf img 0 0 size/x size/y
 	]
 
-	render-text cr vals
+	case [
+		sym = base [render-text cr vals]
+		sym = rich-text [
+			pos/x: 0 pos/y: 0
+			;; TODO: draw-text-box null :pos get-face-obj self yes
+		]
+		true []
+	]
 	
 	either TYPE_OF(draw) = TYPE_BLOCK [
 		do-draw cr null draw no yes yes yes
@@ -207,10 +222,9 @@ base-draw: func [
 		; DC: declare draw-ctx!								;@@ should declare it on stack
 		; draw-begin DC ctx img no no
 		; integer/make-at as red-value! draw as-integer DC
-		; make-event self 0 EVT_DRAWING
+		make-event widget 0 EVT_DRAWING
 		; draw/header: TYPE_NONE
 		; draw-end DC ctx no no no
-		0
 	]
 	;; DEBUG: print ["base-draw " widget lf]
 
@@ -256,7 +270,8 @@ window-size-allocate: func [
 	sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE		;-- update face/size
 	sz/x: rect/width
 	sz/y: rect/height
-	;; DEBUG: print [ "window-size-allocate end" lf]
+	;; DEBUG: 
+	print [ "window-size-allocate end " sz lf]
 ]
 
 range-value-changed: func [
@@ -446,9 +461,18 @@ red-timer-action: func [
 	[cdecl]
 	self	[handle!]
 	return: [logic!]
+	/local
+		timer	[int-ptr!]
 ][
-	make-event self 0 EVT_TIME
-	yes
+	; timer: get-widget-timer self
+	; either null? timer [
+	 	make-event self 0 EVT_TIME
+	 	yes
+	; ][
+	; 	print ["timer for widget " self " will stop!" lf]
+	; 	remove-widget-timer self
+	; 	no ; this removes the timer
+	; ]
 ]	
 
 widget-enter-notify-event: func [
@@ -614,4 +638,60 @@ mouse-motion-notify-event: func [
 	motion/y_root: event/y_root
 	make-event widget 0 EVT_OVER	 
 	yes
+]
+
+key-press-event: func [
+	[cdecl]
+	widget		[handle!]
+	event-key	[GdkEventKey!]
+	ctx			[node!]
+	;return:		[logic!]
+	/local
+		res		[integer!]
+		key		[integer!]
+		flags	[integer!]
+		text	[c-string!]
+][
+
+	;; DEBUG: print ["key-press-event: " event-key/keyval lf]
+
+	if event-key/keyval > FFFFh [exit];return yes]
+	key: translate-key event-key/keyval
+	flags: 0 ;either char-key? as-byte key [0][80000000h]	;-- special key or not
+	flags: flags or check-extra-keys event-key/state
+
+
+	res: make-event widget key or flags EVT_KEY_DOWN
+	either res = EVT_NO_DISPATCH [yes][
+	 	make-event widget key or flags EVT_KEY
+		no
+	]
+]
+
+key-release-event: func [
+	[cdecl]
+	widget		[handle!]
+	event-key	[GdkEventKey!]
+	ctx			[node!]
+	;return:		[logic!]
+	/local
+		res		[integer!]
+		key		[integer!]
+		flags	[integer!]
+		text	[c-string!]
+][
+	;; DEBUG: print ["key-release-event: " event-key/keyval lf]
+
+	if event-key/keyval > FFFFh [exit];return yes]
+	key: translate-key event-key/keyval
+	flags: 0 ;either char-key? as-byte key [0][80000000h]	;-- special key or not
+	flags: flags or check-extra-keys event-key/state
+
+
+	res: make-event widget key or flags EVT_KEY_UP
+	either res = EVT_NO_DISPATCH [yes][
+	 	make-event widget key or flags EVT_KEY
+		no
+	]
+	
 ]

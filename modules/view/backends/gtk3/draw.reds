@@ -468,30 +468,149 @@ OS-draw-font: func [
 	]
 ]
 
+draw-text-at: func [
+	dc		[draw-ctx!]
+	text	[red-string!]
+	color	[integer!]
+	x		[integer!]
+	y		[integer!]
+	/local
+		len     [integer!]
+		str		[c-string!]
+		ctx 	[handle!]
+		;attr	[integer!]
+		;line	[integer!]
+][
+	; m: make-CGMatrix 1 0 0 -1 x y
+	; str: to-CFString text
+	; attr: CFAttributedStringCreate 0 str attrs
+	; line: CTLineCreateWithAttributedString attr
+
+	; delta: objc_msgSend_f32 [
+	; 	objc_msgSend [attrs sel_getUid "objectForKey:" NSFontAttributeName]
+	; 	sel_getUid "ascender"
+	; ]
+	; m/ty: m/ty + delta
+	; CGContextSetTextMatrix ctx m/a m/b m/c m/d m/tx m/ty
+	; CTLineDraw line ctx
+
+	; CFRelease str
+	; CFRelease attr
+	; CFRelease line
+
+	ctx: dc/raw
+
+	len: -1
+	str: unicode/to-utf8 text :len
+	cairo_move_to ctx as-float x
+					  (as-float y) + font-size
+
+	set-source-color ctx color
+	cairo_show_text ctx str
+
+	do-paint dc
+
+]
+
+
+draw-text-box: func [
+	dc		[draw-ctx!]
+	pos		[red-pair!]
+	tbox	[red-object!]
+	catch?	[logic!]
+	/local
+		int		[red-integer!]
+		values	[red-value!]
+		state	[red-block!]
+		str		[red-string!]
+		bool	[red-logic!]
+		layout? [logic!]
+		layout	[integer!]
+		tc		[integer!]
+		idx		[integer!]
+		len		[integer!]
+		y		[integer!]
+		x		[integer!]
+		;pt		[CGPoint!]
+		clr		[integer!]
+][
+	values: object/get-values tbox
+	str: as red-string! values + FACE_OBJ_TEXT
+	if TYPE_OF(str) <> TYPE_STRING [exit]
+
+	state: as red-block! values + FACE_OBJ_EXT3
+	layout?: yes
+	if TYPE_OF(state) = TYPE_BLOCK [
+		bool: as red-logic! (block/rs-tail state) - 1
+		layout?: bool/value
+	]
+	if layout? [
+		clr: either null? dc [0][
+			;;TODO: objc_msgSend [dc/font-attrs sel_getUid "objectForKey:" NSForegroundColorAttributeName]
+			0
+		]
+		OS-text-box-layout tbox null clr catch?
+	]
+
+	int: as red-integer! block/rs-head state
+	layout: int/value
+	int: int + 1
+	tc: int/value
+
+	; idx: objc_msgSend [layout sel_getUid "glyphRangeForTextContainer:" tc]
+	; len: system/cpu/edx
+	; x: 0
+	; pt: as CGPoint! :x
+	; pt/x: as float32! pos/x
+	; pt/y: as float32! pos/y
+	; objc_msgSend [layout sel_getUid "drawBackgroundForGlyphRange:atPoint:" idx len pt/x pt/y]
+	; objc_msgSend [layout sel_getUid "drawGlyphsForGlyphRange:atPoint:" idx len pt/x pt/y]
+]
+
+
+; OLD TO REMOVE: OS-draw-text: func [
+; 	dc		[draw-ctx!]
+; 	pos		[red-pair!]
+; 	text	[red-string!]
+; 	catch?	[logic!]
+; 	return: [logic!]
+; 	/local
+; 		ctx		[handle!]
+; 		len     [integer!]
+; 		str		[c-string!]
+; ][
+; 	ctx: dc/raw
+
+; 	len: -1
+; 	str: unicode/to-utf8 text :len
+; 	cairo_move_to ctx as-float pos/x
+; 					  (as-float pos/y) + font-size
+
+; 	set-source-color dc/raw dc/font-color
+; 	cairo_show_text ctx str
+
+; 	do-paint dc
+
+; 	set-source-color dc/raw dc/pen-color	;-- backup pen color
+; 	yes
+; ]
+
 OS-draw-text: func [
 	dc		[draw-ctx!]
 	pos		[red-pair!]
 	text	[red-string!]
 	catch?	[logic!]
 	return: [logic!]
-	/local
-		ctx		[handle!]
-		len     [integer!]
-		str		[c-string!]
 ][
-	ctx: dc/raw
-	len: -1
-	str: unicode/to-utf8 text :len
-	cairo_move_to ctx as-float pos/x
-					  (as-float pos/y) + font-size
-
-	set-source-color dc/raw dc/font-color
-	cairo_show_text ctx str
-
-	do-paint dc
+	either TYPE_OF(text) = TYPE_STRING [
+		draw-text-at dc text dc/font-color pos/x pos/y
+	][
+		draw-text-box dc pos as red-object! text catch?
+	]
 
 	set-source-color dc/raw dc/pen-color	;-- backup pen color
-	yes
+	; brush
+	true
 ]
 
 OS-draw-arc: func [

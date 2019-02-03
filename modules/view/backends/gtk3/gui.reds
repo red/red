@@ -446,6 +446,7 @@ get-symbol-name: function [
 		sym = text-list ["text-list"]
 		sym = drop-list ["drop-list"]
 		sym = drop-down ["drop-down"]
+		sym = rich-text ["rich-text"]
 		true ["other widget"]
 	]
 ]
@@ -792,7 +793,8 @@ change-offset: func [
 		container 	[handle!]
 		_widget		[handle!]
 ][
-	;; DEBUG: print ["change-offset type: " get-symbol-name get-widget-symbol hWnd lf]
+	;; DEBUG: 
+	print ["change-offset type: " get-symbol-name get-widget-symbol hWnd lf]
 	either type = window [
 		0
 	][
@@ -1556,10 +1558,26 @@ OS-make-view: func [
 		sym = base [
 			widget: gtk_drawing_area_new
 			gobj_signal_connect(widget "draw" :base-draw face/ctx)
-			gtk_widget_add_events widget GDK_BUTTON_PRESS_MASK or GDK_BUTTON1_MOTION_MASK or GDK_BUTTON_RELEASE_MASK
+			gtk_widget_add_events widget GDK_BUTTON_PRESS_MASK or GDK_BUTTON1_MOTION_MASK or GDK_BUTTON_RELEASE_MASK or GDK_KEY_PRESS_MASK or GDK_KEY_RELEASE_MASK
 			gobj_signal_connect(widget "button-press-event" :mouse-button-press-event face/ctx)
 			gobj_signal_connect(widget "button-release-event" :mouse-button-release-event face/ctx)
 			gobj_signal_connect(widget "motion-notify-event" :mouse-motion-notify-event face/ctx)
+
+			gtk_widget_set_can_focus widget yes
+			gobj_signal_connect(widget "key-press-event" :key-press-event face/ctx)
+			gobj_signal_connect(widget "key-release-event" :key-release-event face/ctx)
+		]
+		sym = rich-text [
+			widget: gtk_drawing_area_new
+			gobj_signal_connect(widget "draw" :base-draw face/ctx)
+			gtk_widget_add_events widget GDK_BUTTON_PRESS_MASK or GDK_BUTTON1_MOTION_MASK or GDK_BUTTON_RELEASE_MASK or GDK_KEY_PRESS_MASK or GDK_KEY_RELEASE_MASK
+			gobj_signal_connect(widget "button-press-event" :mouse-button-press-event face/ctx)
+			gobj_signal_connect(widget "button-release-event" :mouse-button-release-event face/ctx)
+			gobj_signal_connect(widget "motion-notify-event" :mouse-motion-notify-event face/ctx)
+
+			gtk_widget_set_can_focus widget yes
+			gobj_signal_connect(widget "key-press-event" :key-press-event face/ctx)
+			gobj_signal_connect(widget "key-release-event" :key-release-event face/ctx)
 		]
 		sym = window [
 			;; DEBUG: print ["win " GTKApp lf]
@@ -1601,6 +1619,7 @@ OS-make-view: func [
 			unless null? caption [gtk_entry_buffer_set_text buffer caption -1]
 			gobj_signal_connect(widget "key-release-event" :field-key-release-event face/ctx)
 			;Do not work: gobj_signal_connect(widget "key-press-event" :field-key-press-event face/ctx)
+			
 			gtk_widget_set_can_focus widget yes
 			;This depends on version >= 3.2
 			;gtk_widget_set_focus_on_click widget yes
