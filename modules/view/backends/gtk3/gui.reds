@@ -631,8 +631,7 @@ change-rate: func [
 				ts: as-integer tm/time * 1000.0
 			]
 			TYPE_NONE [
-				;; DEBUG: 
-				print ["change-rate: removed timer for widget " hWnd lf]
+				;; DEBUG: print ["change-rate: removed timer for widget " hWnd lf]
 				exit
 			]
 			default	  [fire [TO_ERROR(script invalid-facet-type) rate]]
@@ -793,8 +792,7 @@ change-offset: func [
 		container 	[handle!]
 		_widget		[handle!]
 ][
-	;; DEBUG: 
-	print ["change-offset type: " get-symbol-name get-widget-symbol hWnd lf]
+	;; DEBUG: print ["change-offset type: " get-symbol-name get-widget-symbol hWnd lf]
 	either type = window [
 		0
 	][

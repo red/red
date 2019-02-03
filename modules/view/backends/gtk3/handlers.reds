@@ -270,8 +270,7 @@ window-size-allocate: func [
 	sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE		;-- update face/size
 	sz/x: rect/width
 	sz/y: rect/height
-	;; DEBUG: 
-	print [ "window-size-allocate end " sz lf]
+	;; DEBUG: print [ "window-size-allocate end " sz lf]
 ]
 
 range-value-changed: func [

@@ -136,8 +136,7 @@ get-event-key: func [
 			code: evt/flags
 			special?: code and 80000000h <> 0
 			code: code and FFFFh
-			;; DEBUG: 
-			print ["key-code=" code " flags=" evt/flags " special?=" special? lf]
+			;; DEBUG: print ["key-code=" code " flags=" evt/flags " special?=" special? lf]
 			if special? [
 				res: as red-value! switch code [
 					RED_VK_PRIOR	[_page-up]
@@ -369,8 +368,7 @@ translate-key: func [
 ][
 	;debug: print ["keycode: " keycode]
 	keycode: gdk_keyval_to_upper keycode
-	;; DEBUG: 
-	print [" translate-key: keycode: " keycode lf]
+	;; DEBUG: print [" translate-key: keycode: " keycode lf]
 	special?: no
 	key: case [
 		all[keycode >= 20h keycode <= 5Ah][keycode]; RED_VK_SPACE to RED_VK_Z 
@@ -388,8 +386,7 @@ translate-key: func [
 		true [RED_VK_UNKNOWN]
 	]
 	if special? [key: key or 80000000h]
-	;; DEBUG: 
-	print [" key: " key " special?=" special?  lf]
+	;; DEBUG: print [" key: " key " special?=" special?  lf]
 	key
 ]
 

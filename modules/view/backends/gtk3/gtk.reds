@@ -1088,6 +1088,13 @@ cairo_font_extents_t!: alias struct! [
 			x			[float!]
 			y			[float!]
 		]
+
+		cairo_rel_line_to: "cairo_rel_line_to" [
+			cr			[handle!]
+			dx			[float!]
+			dy			[float!]
+		]
+
 		cairo_curve_to: "cairo_curve_to" [
 			cr			[handle!]
 			x1			[float!]
@@ -1097,11 +1104,29 @@ cairo_font_extents_t!: alias struct! [
 			x3			[float!]
 			y3			[float!]
 		]
+
+		cairo_rel_curve_to: "cairo_curve_to" [
+			cr			[handle!]
+			dx1			[float!]
+			dy1			[float!]
+			dx2			[float!]
+			dy2			[float!]
+			dx3			[float!]
+			dy3			[float!]
+		]
+
 		cairo_move_to: "cairo_move_to" [
 			cr			[handle!]
 			x			[float!]
 			y			[float!]
 		]
+
+		cairo_rel_move_to: "cairo_rel_move_to" [
+			cr			[handle!]
+			dx			[float!]
+			dy			[float!]
+		]
+
 		cairo_arc: "cairo_arc" [
 			cr			[handle!]
 			xc			[float!]
@@ -1117,11 +1142,23 @@ cairo_font_extents_t!: alias struct! [
 			w			[float!]
 			h			[float!]
 		]
+		cairo_new_path: "cairo_new_path" [
+			cr			[handle!]
+		]
 		cairo_new_sub_path: "cairo_new_sub_path" [
 			cr			[handle!]
 		]
 		cairo_close_path: "cairo_close_path" [
 			cr			[handle!]
+		]
+		cairo_get_current_point: "cairo_get_current_point" [
+			cr			[handle!]
+			x			[float-ptr!]
+			y			[float-ptr!]
+		]
+		cairo_has_current_point: "cairo_has_current_point" [
+			cr			[handle!]
+			return:		[integer!]
 		]
 		cairo_stroke: "cairo_stroke" [
 			cr			[handle!]

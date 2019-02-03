@@ -1025,25 +1025,25 @@ OS-set-clip: func [
 	upper	[red-pair!]
 	lower	[red-pair!]
 ][
+	0
 ]
 
 ;-- shape sub command --
 
 OS-draw-shape-beginpath: func [
 	dc			[draw-ctx!]
-	/local
-		path	[integer!]
 ][
-
+	cairo_new_sub_path dc/raw 
+	
 ]
 
 OS-draw-shape-endpath: func [
 	dc			[draw-ctx!]
 	close?		[logic!]
 	return:		[logic!]
-	/local
-		alpha	[byte!]
 ][
+	if close? [cairo_close_path dc/raw]
+	do-paint dc
 	true
 ]
 
@@ -1051,8 +1051,18 @@ OS-draw-shape-moveto: func [
 	dc		[draw-ctx!]
 	coord	[red-pair!]
 	rel?	[logic!]
+	/local
+		x		[float!]
+		y		[float!]
 ][
-	
+	x: as-float coord/x
+	y: as-float coord/y
+	either rel? [
+		cairo_rel_move_to dc/raw x y
+	][
+		cairo_move_to dc/raw x y
+	]
+	dc/shape-curve?: no
 ]
 
 OS-draw-shape-line: func [
@@ -1060,8 +1070,22 @@ OS-draw-shape-line: func [
 	start		[red-pair!]
 	end			[red-pair!]
 	rel?		[logic!]
+	/local
+		x		[float!]
+		y		[float!]
 ][
-
+	until [
+		x: as-float start/x
+		y: as-float start/y
+		either rel? [
+			cairo_rel_line_to dc/raw x y
+		][
+			cairo_line_to dc/raw x y
+		]
+		start: start + 1
+		start > end
+	]
+	dc/shape-curve?: no
 ]
 
 OS-draw-shape-axis: func [
@@ -1069,9 +1093,23 @@ OS-draw-shape-axis: func [
 	start		[red-value!]
 	end			[red-value!]
 	rel?		[logic!]
-	hline		[logic!]
+	hline?		[logic!]
+	/local
+		len 	[float!]
+		last-x	[float!]
+		last-y	[float!]
 ][
-	
+	last-x: 0.0 last-y: 0.0
+	if 1 = cairo_has_current_point dc/raw[
+		cairo_get_current_point dc/raw :last-x :last-y
+	]
+	len: get-float as red-integer! start
+	either hline? [
+		cairo_line_to dc/raw either rel? [last-x + len][len] last-y
+	][
+		cairo_line_to dc/raw last-x either rel? [last-y + len][len]
+	]
+	dc/shape-curve?: no
 ]
 
 OS-draw-shape-curve: func [
