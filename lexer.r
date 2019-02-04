@@ -426,7 +426,7 @@ lexer: context [
 	]
 
 	decimal-special: [
-		s: "-0.0" | (neg?: no) opt [#"-" (neg?: yes)] "1.#" s: [
+		s: "-0.0" integer-end | (neg?: no) opt [#"-" (neg?: yes)] "1.#" s: [
 			[[#"N" | #"n"] [#"a" | #"A"] [#"N" | #"n"]]
 			| [[#"I" | #"i"] [#"N" | #"n"] [#"F" | #"f"]]
 		]
