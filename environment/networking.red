@@ -30,25 +30,16 @@ register-scheme: func [
 	]
 ]
 
-url-parser: object [
-	; title:  "RFC3986 URL parser"
-	; file:   https://gist.github.com/greggirwin/207149d46441cd48a1426e60926a7d25
-	; author: "@greggirwin"
-	; date:   03-Oct-2018
-	; notes:  {
-	;		Reference: https://tools.ietf.org/html/rfc3986#page-16
-	;		
-	;		Most rule names are taken from the RFC, with the goal of
-	;		making it easy to compare to the reference. Some rules
-	;		are simplified in this version (e.g. IP address literals).
-	;		
-	;		Where pct-encoded rules are listed in the RFC, they are
-	;		omitted from parse rules here, as the input is dehexed
-	;		before being parsed.
-	;		
-	;		Relative URI path references are not yet supported.
-	;	}
+comment {
+	Reference: https://tools.ietf.org/html/rfc3986#page-16
 
+	Most rule names are taken from the RFC, with the goal of
+	making it easy to compare to the reference. Some rules
+	are simplified in this version (e.g. IP address literals).
+
+	Relative URI path references are not yet supported.
+}
+url-parser: object [
 	;-- Parse Variables
 	=scheme: =user-info: =host: =port: =path: =query: =fragment: none
 	vars: [=scheme =user-info =host =port =path =query =fragment]
@@ -57,6 +48,7 @@ url-parser: object [
 	alpha:       charset [#"a" - #"z" #"A" - #"Z"]
 	digit:       charset "0123456789"
 	alpha-num:   union alpha digit
+	hex-digit:   union digit charset [#"a" - #"f" #"A" - #"F"]
 
 	;-- URL Character Sets
 	
@@ -66,6 +58,7 @@ url-parser: object [
 	sub-delims:  charset "!$&'()*+,;="
 	reserved:    [gen-delims | sub-delims]
 	unreserved:  compose [alpha | digit | (charset "-._~")]
+	pct-encoded: [#"%" 2 hex-digit]
 
 	; Helper func for extending alpha-num
 	alpha-num+: func [more [string!]][union alpha-num charset more]
@@ -73,7 +66,7 @@ url-parser: object [
 	scheme-char: alpha-num+ "+-."
 	
 	;-- URL Grammar
-	url-rules:   [scheme-part hier-part opt query opt fragment]
+	url-rules:   [scheme-part hier-part opt query opt fragment]	; mark: (print mark) 
 	scheme-part: [copy =scheme [alpha some scheme-char] #":"]
 	hier-part:   ["//" authority path-abempty | path-absolute | path-rootless | path-empty]
 
@@ -83,15 +76,23 @@ url-parser: object [
 	authority:   [opt user-info  host  opt [":" port]]
 
 	; "user:password" format for user-info is deprecated.
-	user-info:   [copy =user-info [any [unreserved | sub-delims | #":"] #"@"]]
+	user-info:	[
+					;mark: (print mold mark)
+					copy =user-info [any [unreserved | pct-encoded | sub-delims | #":"] #"@"]
+					;(print mold =user-info)
+					(take/last =user-info)
+				]
 
 	; Host is not detailed per the RFC yet. It covers IPv6 addresses, which go in
 	; square brackets, making them a non-loadable URL in Red. They can also contain
-	; colons, which makes finding the port marker more involved.
-	IP-literal:  [copy =IP-literal ["[" thru "]"]] ; simplified from [IPv6address | IPvFuture]
+	; colons, which makes finding the port marker more involved. 
+	; The percent encoded options for brackets here are a bit of a hack as well, 
+	; because Red encodes them in URLs, even in the IP literal segment.
+	IP-literal:  [copy =IP-literal [[#"[" | "%5B"] thru [#"]" | "%5D"]]] ; simplified from [IPv6address | IPvFuture]
 	host:        [
 					IP-literal (=host: =IP-literal) 
-					| copy =host any [unreserved | sub-delims]
+					| copy =host any [unreserved | pct-encoded | sub-delims]
+					;(print ["host:" mold =host])
 				 ]
 	port:        [copy =port [1 5 digit]]
 
@@ -110,9 +111,9 @@ url-parser: object [
 	any-segments:  [any [#"/" segment]]
 	segment:       [any pchar]
 	segment-nz:    [some pchar]
-	segment-nz-nc: [some [unreserved | sub-delims | #"@"]]	; non-zero-length segment with no colon
+	segment-nz-nc: [some [unreserved | pct-encoded | sub-delims | #"@"]]	; non-zero-length segment with no colon
 	
-	pchar:        [unreserved | sub-delims | #":" | #"@"]	; path characters
+	pchar:        [unreserved | pct-encoded | sub-delims | #":" | #"@"]	; path characters
 
 	query:        ["?" copy =query any [pchar | slash | #"?"]]
 	fragment:     ["#" copy =fragment any [pchar | slash | #"?"]]
@@ -126,26 +127,35 @@ url-parser: object [
 		/extern vars =path =host
 	][  
 		set vars none	; clear object level parse variables
-		either parse dehex url url-rules [
-			if empty? =host [=host: none]
+		; We can't dehex before parsing, or invalid chars will show up which
+		; don't match the rules. Even forming the url messes it up. Only
+		; MOLD preserves the percent encoding.
+		;print ['input mold url]
+		either parse mold url url-rules [
+			;if empty? =host [=host: none]
+			;if empty? =user-info [=user-info: none]
 			=path: either all [=path not empty? =path][
-				split-path to file! =path
+				split-path to file! dehex =path
 			][
 				[#[none] #[none]]
 			]
-			make system/standard/url-parts [
+			;set 'dbg =path
+			;print ['scheme mold =scheme type? =scheme]
+			object [
 				scheme:    to word! =scheme
-				user-info: =user-info
-				host:      =host
+				user-info: if =user-info [dehex =user-info]
+				host:      if =host [dehex =host]
 				port:      if =port [to integer! =port]
 				path:      first =path
 				target:    second =path
-				query:     =query
-				fragment:  =fragment
+				query:     if =query [dehex =query]
+				fragment:  if =fragment [dehex =fragment]
 				ref: 	   url
 			]
 		][
-			if throw-error [make error! rejoin ["URL error: " url]]
+			if throw-error [
+				make error! rejoin ["URL error: " url]
+			]
 		]
 	]
 
@@ -155,5 +165,53 @@ url-parser: object [
 		url [url! string!]
 	][
 		parse-url url
+	]
+
+	; Note that we are careful to preserve the distinction between a component
+	; that is undefined, meaning that its separator was not present in the 
+	; reference, and a component that is empty, meaning that the separator was
+	; present and was immediately followed by the next component separator or
+	; the end of the reference.
+	set 'encode-url function [url-obj [object!] "What you'd get from decode-url"][
+		;result: make url! 256			; pre-allocate for reasonably sized-urls?
+		result: clear url-buffer://
+
+		if url-obj/scheme [
+			append result url-obj/scheme
+			append result #":"
+		]
+
+		; authority: user-info, host opt port
+		if url-obj/host [
+			append result "//"
+			if url-obj/user-info [
+				append result url-obj/user-info
+				append result #"@"
+			]
+			append result url-obj/host
+			if url-obj/port [
+				append result #":"
+				append result url-obj/port
+			]
+		]
+
+		if all [url-obj/path  url-obj/path <> %./] [
+			append result url-obj/path
+		]
+		if url-obj/target [
+			append result url-obj/target
+		]
+
+		if url-obj/query [
+			append result #"?"
+			append result url-obj/query
+		]
+
+		if url-obj/fragment [
+			append result #"#"
+			append result url-obj/fragment
+		]
+
+		result
 	]
 ]
