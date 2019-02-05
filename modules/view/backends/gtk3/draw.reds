@@ -910,11 +910,15 @@ OS-matrix-rotate: func [
 ][
 	cr: dc/raw
 	rad: PI / 180.0 * get-float angle
-	cairo_translate cr as float! center/x 
+	if angle <> as red-integer! center [
+		cairo_translate cr as float! center/x 
 					   as float! center/y
+	]
 	cairo_rotate cr rad
-	cairo_translate cr as float! (0 - center/x) 
-					   as float! (0 - center/y)
+	if angle <> as red-integer! center [
+		cairo_translate cr as float! (0 - center/x) 
+					as float! (0 - center/y)
+	]
 ]
 
 OS-matrix-scale: func [
@@ -1032,9 +1036,7 @@ OS-set-clip: func [
 
 OS-draw-shape-beginpath: func [
 	dc			[draw-ctx!]
-][
-	cairo_save dc/raw
-	cairo_new_path dc/raw 
+][ 
 ]
 
 OS-draw-shape-endpath: func [
@@ -1044,7 +1046,6 @@ OS-draw-shape-endpath: func [
 ][
 	if close? [cairo_close_path dc/raw]
 	do-paint dc
-	cairo_restore dc/raw
 	true
 ]
 
