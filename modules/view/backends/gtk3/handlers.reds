@@ -246,6 +246,7 @@ window-destroy: func [
 	widget	[handle!]
 ][
 	;; DEBUG: print ["window-destroy" lf]
+	;;remove-all-timers widget
 	make-event widget 0 EVT_CLOSE
 ]
 
@@ -465,9 +466,11 @@ red-timer-action: func [
 ][
 	; timer: get-widget-timer self
 	; either null? timer [
+	;either null? main-window [no]
+	;[
 	 	make-event self 0 EVT_TIME
 	 	yes
-	; ][
+	;];[
 	; 	print ["timer for widget " self " will stop!" lf]
 	; 	remove-widget-timer self
 	; 	no ; this removes the timer

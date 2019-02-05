@@ -319,6 +319,14 @@ cairo_font_extents_t!: alias struct! [
 			instance	[int-ptr!]
 			signal		[c-string!]
 		]
+		g_object_ref: "g_object_ref" [
+			object		[int-ptr!]
+			return:		[int-ptr!]
+		]
+		g_object_ref_sink: "g_object_ref_sink" [
+			object		[int-ptr!]
+			return:		[int-ptr!]
+		]
 		g_object_unref: "g_object_unref" [
 			object		[int-ptr!]
 		]

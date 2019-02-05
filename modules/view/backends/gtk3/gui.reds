@@ -63,7 +63,8 @@ gtk-font:		"Sans 10"
 default-font:	0
 
 ; Do not KNOW about this one 
-;;;main-window:	as handle! 0
+;;;
+main-window:	as handle! 0
 
 ; Temporary, will be removed...
 last-widget:	as handle! 0
@@ -296,11 +297,15 @@ free-handles: func [
 	]
 
 	either sym = window [
+		;;g_object_unref as handle! hWnd
 		gtk_widget_destroy as handle! hWnd
 		win-cnt: win-cnt - 1
 		post-quit-msg
 	][
-		unless close-window? [gtk_widget_destroy as handle! hWnd]
+		unless close-window? [
+			;g_object_unref as handle! hWnd
+			gtk_widget_destroy as handle! hWnd
+		]
 	]
 
 	state: values + FACE_OBJ_STATE
@@ -561,6 +566,7 @@ add-widget-timer: func [
 		timer	[integer!]
 		data	[handle!]
 ][
+	;;g_object_ref_sink main-window
 	timer: g_timeout_add ts as integer! :red-timer-action hWnd
 	g_object_set_qdata hWnd red-timer-id as int-ptr! timer
 ]
@@ -572,7 +578,6 @@ get-widget-timer: func [
 	either null? hWnd [as int-ptr! 0][g_object_get_qdata hWnd red-timer-id]
 ]
 
-; Debug function to show children tree
 remove-all-timers: func [
 	hWnd 	[handle!]
 	/local
@@ -1585,13 +1590,14 @@ OS-make-view: func [
 			;; DEBUG: print ["win1 " widget lf]
 			gtk_application_add_window GTKApp widget
 			;; DEBUG: print ["win2 " lf]
-			;; DEBUG (temporary code): main-window: widget
+			;; DEBUG (temporary code): 
+			main-window: widget
 			unless null? caption [gtk_window_set_title widget caption]
 			gtk_window_set_default_size widget size/x size/y
 			gtk_container_add widget gtk_fixed_new
 			gtk_window_move widget offset/x offset/y
 			gobj_signal_connect(widget "delete-event" :window-delete-event null)
-			;gobj_signal_connect(widget "destroy" :window-destroy null)
+;			gobj_signal_connect(widget "destroy" :window-destroy null)
 			gobj_signal_connect(widget "size-allocate" :window-size-allocate null)
 		]
 		sym = slider [
@@ -1897,6 +1903,7 @@ OS-destroy-view: func [
 	;;g_main_context_release GTKApp-Ctx
 	;; DEBUG: print ["BYE!" lf]
 	;;halt
+
 
 	free-handles as-integer handle no
 ]
