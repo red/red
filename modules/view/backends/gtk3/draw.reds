@@ -29,8 +29,8 @@ set-source-color: func [
 	g: g / 255.0
 	b: as-float color >> 16 and FFh
 	b: b / 255.0
-	a: as-float 255 - (color >>> 24)
-	a: a / 255.0
+	a: as-float color >> 24 and FFh
+	a: 1.0 - (a / 255.0)
 	cairo_set_source_rgba cr r g b a
 ]
 
@@ -1033,8 +1033,8 @@ OS-set-clip: func [
 OS-draw-shape-beginpath: func [
 	dc			[draw-ctx!]
 ][
-	cairo_new_sub_path dc/raw 
-	
+	cairo_save dc/raw
+	cairo_new_path dc/raw 
 ]
 
 OS-draw-shape-endpath: func [
@@ -1044,6 +1044,7 @@ OS-draw-shape-endpath: func [
 ][
 	if close? [cairo_close_path dc/raw]
 	do-paint dc
+	cairo_restore dc/raw
 	true
 ]
 
@@ -1227,9 +1228,115 @@ OS-draw-shape-arc: func [
 	sweep?	[logic!]
 	large?	[logic!]
 	rel?	[logic!]
+	/local
+		ctx			[handle!]
+		item		[red-integer!]
+		last-x		[float!]
+		last-y		[float!]
+		center-x	[float32!]
+		center-y	[float32!]
+		cx			[float32!]
+		cy			[float32!]
+		cf			[float32!]
+		angle-len	[float32!]
+		radius-x	[float32!]
+		radius-y	[float32!]
+		theta		[float32!]
+		X1			[float32!]
+		Y1			[float32!]
+		p1-x		[float32!]
+		p1-y		[float32!]
+		p2-x		[float32!]
+		p2-y		[float32!]
+		cos-val		[float32!]
+		sin-val		[float32!]
+		rx2			[float32!]
+		ry2			[float32!]
+		dx			[float32!]
+		dy			[float32!]
+		sqrt-val	[float32!]
+		sign		[float32!]
+		rad-check	[float32!]
+		pi2			[float32!]
 ][
-	;cairo_arc dc/raw 
-	
+	last-x: 0.0 last-y: 0.0
+	if 1 = cairo_has_current_point dc/raw[
+		cairo_get_current_point dc/raw :last-x :last-y
+	]
+	p1-x: as float32! last-x p1-y: as float32! last-y
+	p2-x: either rel? [ p1-x + as float32! end/x ][ as float32! end/x ]
+	p2-y: either rel? [ p1-y + as float32! end/y ][ as float32! end/y ]
+	item: as red-integer! end + 1
+	radius-x: fabsf get-float32 item
+	item: item + 1
+	radius-y: fabsf get-float32 item
+	item: item + 1
+	pi2: as float32! 2.0 * PI
+	theta: get-float32 item
+	theta: theta * as float32! (PI / 180.0)
+	theta: theta % pi2
+
+	;-- calculate center
+	dx: (p1-x - p2-x) / as float32! 2.0
+	dy: (p1-y - p2-y) / as float32! 2.0
+	cos-val: cosf theta
+	sin-val: sinf theta
+	X1: (cos-val * dx) + (sin-val * dy)
+	Y1: (cos-val * dy) - (sin-val * dx)
+	rx2: radius-x * radius-x
+	ry2: radius-y * radius-y
+	rad-check: ((X1 * X1) / rx2) + ((Y1 * Y1) / ry2)
+	if rad-check > as float32! 1.0 [
+		radius-x: radius-x * sqrtf rad-check
+		radius-y: radius-y * sqrtf rad-check
+		rx2: radius-x * radius-x
+		ry2: radius-y * radius-y
+	]
+	either large? = sweep? [sign: as float32! -1.0 ][sign: as float32! 1.0 ]
+	sqrt-val: ((rx2 * ry2) - (rx2 * Y1 * Y1) - (ry2 * X1 * X1)) / ((rx2 * Y1 * Y1) + (ry2 * X1 * X1))
+	either sqrt-val < as float32! 0.0 [cf: as float32! 0.0 ][ cf: sign * sqrtf sqrt-val ]
+	cx: cf * (radius-x * Y1 / radius-y)
+	cy: cf * (radius-y * X1 / radius-x) * (as float32! -1.0)
+	center-x: (cos-val * cx) - (sin-val * cy) + ((p1-x + p2-x) / as float32! 2.0)
+	center-y: (sin-val * cx) + (cos-val * cy) + ((p1-y + p2-y) / as float32! 2.0)
+
+
+	;-- transform our ellipse into the unit circle
+	; m: CGAffineTransformMakeScale (as float! 1.0) / radius-x (as float! 1.0) / radius-y
+	; m: CGAffineTransformRotate m (as float! 0.0) - theta
+	; m: CGAffineTransformTranslate m (as float! 0.0) - center-x (as float! 0.0) - center-y
+
+	; pt1/x: p1-x pt1/y: p1-y
+	; pt2/x: p2-x pt2/y: p2-y
+	; pt1: CGPointApplyAffineTransform pt1 m
+	; pt2: CGPointApplyAffineTransform pt2 m
+
+	;-- calculate angles
+	cx: atan2f p1-y p1-x
+	cy: atan2f p2-y p2-x
+	angle-len: cy - cx
+	either sweep? [
+		if angle-len < as float32! 0.0 [
+			angle-len: angle-len + pi2
+		]
+	][
+		if angle-len > as float32! 0.0 [
+			angle-len: angle-len - pi2
+		]
+	]
+
+	;-- construct the inverse transform
+	; m: CGAffineTransformMakeTranslation center-x center-y
+	; m: CGAffineTransformRotate m theta
+	; m: CGAffineTransformScale m radius-x radius-y
+	; CGPathAddRelativeArc ctx/path :m as float32! 0.0 as float32! 0.0 as float32! 1.0 cx angle-len
+	ctx: dc/raw
+	cairo_save ctx
+	cairo_new_sub_path ctx
+	cairo_translate ctx as float! center-x as float! center-y
+	cairo_scale     ctx as float! radius-x as float! radius-y
+	cairo_arc ctx 0.0 0.0 1.0 as float! cx as float! cy
+	cairo_restore ctx
 ]
 
 OS-draw-shape-close: func [

@@ -1871,7 +1871,7 @@ OS-update-view: func [
 	;]
 
 	;; update-view at least ask for this
-	gtk_widget_queue_draw widget
+	unless null? main-window [gtk_widget_queue_draw widget]
 
 	int/value: 0										;-- reset flags
 ]
