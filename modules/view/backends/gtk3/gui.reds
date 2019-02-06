@@ -37,6 +37,7 @@ red-timer-id:	3
 css-id:			4
 size-id:		5
 
+
 gtk-style-id:	0
 
 group-radio:	as handle! 0
@@ -1330,6 +1331,7 @@ connect-mouse-events: function [
 		; _widget: either null? _widget [hWnd][_widget]
 
 		;; DEBUG: print [ "Mouse events " get-symbol-name type "->" widget lf]
+
 		gtk_widget_add_events _widget GDK_ENTER_NOTIFY_MASK or GDK_LEAVE_NOTIFY_MASK
 		gobj_signal_connect(_widget "enter-notify-event" :widget-enter-notify-event face/ctx)
 		gobj_signal_connect(_widget "leave-notify-event" :widget-leave-notify-event face/ctx)		
@@ -1593,7 +1595,7 @@ OS-make-view: func [
 			gtk_container_add widget gtk_fixed_new
 			gtk_window_move widget offset/x offset/y
 			gobj_signal_connect(widget "delete-event" :window-delete-event null)
-;			gobj_signal_connect(widget "destroy" :window-destroy null)
+      ;gobj_signal_connect(widget "destroy" :window-destroy null)
 			gtk_widget_add_events widget GDK_STRUCTURE_MASK
 			gobj_signal_connect(widget "configure-event" :window-configure-event null)
 			;gobj_signal_connect(widget "size-allocate" :window-size-allocate null)
@@ -1888,7 +1890,6 @@ OS-destroy-view: func [
 	;; DEBUG: print ["OS-destroy-view" lf]  
 	handle: face-handle? face
 	values: object/get-values face
-
 	flags: get-flags as red-block! values + FACE_OBJ_FLAGS
 	if flags and FACET_FLAGS_MODAL <> 0 [
 		0
