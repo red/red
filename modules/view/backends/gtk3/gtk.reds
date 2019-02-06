@@ -108,6 +108,16 @@ GdkEventCrossing!: alias struct! [
   state 		[integer!]
 ]
 
+GdkEventConfigure!: alias struct! [
+  type			[integer!]
+  window		[handle!]
+  send_event	[byte!]
+  x				[integer!]
+  y				[integer!]	
+  width			[integer!]
+  height		[integer!]
+]
+
 #enum GGApplicationFlags! [
   G_APPLICATION_FLAGS_NONE: 0
   G_APPLICATION_IS_SERVICE: 1
@@ -314,6 +324,18 @@ cairo_font_extents_t!: alias struct! [
 			notify		[int-ptr!]
 			flags		[integer!]
 			return:		[integer!]
+		]
+		g_signal_emit_by_name: "g_signal_emit_by_name" [
+			instance	[int-ptr!]
+			signal		[c-string!]
+		]
+		g_object_ref: "g_object_ref" [
+			object		[int-ptr!]
+			return:		[int-ptr!]
+		]
+		g_object_ref_sink: "g_object_ref_sink" [
+			object		[int-ptr!]
+			return:		[int-ptr!]
 		]
 		g_object_unref: "g_object_unref" [
 			object		[int-ptr!]
@@ -530,10 +552,21 @@ cairo_font_extents_t!: alias struct! [
 			window		[handle!]
 			setting		[logic!]
 		]
+		gtk_window_get_size: "gtk_window_get_size" [
+			window		[handle!]
+			width		[handle!]
+			height		[handle!]
+		]
 		gtk_widget_queue_draw: "gtk_widget_queue_draw" [
 			widget		[handle!]
 		]
+		gtk_widget_queue_resize: "gtk_widget_queue_resize" [
+			widget		[handle!]
+		]
 		gtk_widget_queue_resize_no_redraw: "gtk_widget_queue_resize_no_redraw" [
+			widget		[handle!]
+		]
+		gtk_widget_queue_allocate: "gtk_widget_queue_allocate" [
 			widget		[handle!]
 		]
 		gtk_widget_show_all: "gtk_widget_show_all" [
@@ -755,6 +788,13 @@ cairo_font_extents_t!: alias struct! [
 			button		[handle!]
 			active?		[logic!]
 		]
+		gtk_toggle_button_toggled: "gtk_toggle_button_toggled" [
+			button		[handle!]
+		]
+		gtk_radio_button_get_group: "gtk_radio_button_get_group" [
+			radio 		[handle!]
+			return:		[handle!]
+		]
 		gtk_drawing_area_new: "gtk_drawing_area_new" [
 			return:		[handle!]
 		]
@@ -915,6 +955,11 @@ cairo_font_extents_t!: alias struct! [
 			return: 	[integer!]
 		]
 
+		gtk_notebook_set_current_page: "gtk_notebook_set_current_page" [
+			nb			[handle!]
+			index 		[integer!]
+		]
+
 		gtk_notebook_get_nth_page: "gtk_notebook_get_nth_page" [
 			nb			[handle!]
 			index	 	[integer!]
@@ -1052,6 +1097,11 @@ cairo_font_extents_t!: alias struct! [
 		gdk_pango_context_get: "gdk_pango_context_get" [
 			return:		[handle!]
 		]
+
+		gtk_widget_get_pango_context: "gtk_widget_get_pango_context" [
+			return:		[handle!]
+		]
+		
 		gtk_settings_get_default: "gtk_settings_get_default" [
 			return: 	[handle!]
 		]
@@ -1062,6 +1112,13 @@ cairo_font_extents_t!: alias struct! [
 			x			[float!]
 			y			[float!]
 		]
+
+		cairo_rel_line_to: "cairo_rel_line_to" [
+			cr			[handle!]
+			dx			[float!]
+			dy			[float!]
+		]
+
 		cairo_curve_to: "cairo_curve_to" [
 			cr			[handle!]
 			x1			[float!]
@@ -1071,11 +1128,29 @@ cairo_font_extents_t!: alias struct! [
 			x3			[float!]
 			y3			[float!]
 		]
+
+		cairo_rel_curve_to: "cairo_curve_to" [
+			cr			[handle!]
+			dx1			[float!]
+			dy1			[float!]
+			dx2			[float!]
+			dy2			[float!]
+			dx3			[float!]
+			dy3			[float!]
+		]
+
 		cairo_move_to: "cairo_move_to" [
 			cr			[handle!]
 			x			[float!]
 			y			[float!]
 		]
+
+		cairo_rel_move_to: "cairo_rel_move_to" [
+			cr			[handle!]
+			dx			[float!]
+			dy			[float!]
+		]
+
 		cairo_arc: "cairo_arc" [
 			cr			[handle!]
 			xc			[float!]
@@ -1091,11 +1166,23 @@ cairo_font_extents_t!: alias struct! [
 			w			[float!]
 			h			[float!]
 		]
+		cairo_new_path: "cairo_new_path" [
+			cr			[handle!]
+		]
 		cairo_new_sub_path: "cairo_new_sub_path" [
 			cr			[handle!]
 		]
 		cairo_close_path: "cairo_close_path" [
 			cr			[handle!]
+		]
+		cairo_get_current_point: "cairo_get_current_point" [
+			cr			[handle!]
+			x			[float-ptr!]
+			y			[float-ptr!]
+		]
+		cairo_has_current_point: "cairo_has_current_point" [
+			cr			[handle!]
+			return:		[integer!]
 		]
 		cairo_stroke: "cairo_stroke" [
 			cr			[handle!]

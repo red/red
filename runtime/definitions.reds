@@ -88,7 +88,8 @@ Red/System [
 		pen?			[logic!]
 		brush?			[logic!]
 		pattern			[int-ptr!]
-		on-image?		[logic!]					;-- drawing on image?
+		on-image?		[logic!]
+		shape-curve?	[logic!]					;-- drawing on image?
 	]
 ]
 

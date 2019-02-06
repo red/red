@@ -131,7 +131,7 @@ OS-image: context [
 		IMAGE_HEIGHT(inode/size)
 	]
 
-	lock-bitmap: func [						;-- do nothing on Quartz backend
+	lock-bitmap: func [
 		img			[red-image!]
 		write?		[logic!]
 		return:		[integer!]
@@ -147,7 +147,7 @@ OS-image: context [
 		as integer! inode
 	]
 
-	unlock-bitmap: func [					;-- do nothing on Quartz backend
+	unlock-bitmap: func [					;-- do nothing on GDK backend
 		img			[red-image!]
 		data		[integer!]
 	][]
@@ -159,6 +159,7 @@ OS-image: context [
 		/local
 			node	[img-node!]
 	][
+		;; DEBUG: print ["OS-image/get-data" lf]
 		node: as img-node! handle
 		stride/value: IMAGE_WIDTH(node/size) * 4
 		node/buffer
@@ -334,7 +335,7 @@ OS-image: context [
 		/local
 			h	[int-ptr!]
 	][
-		;; print ["load-binary" lf]
+		;; DEBUG: print ["load-binary" lf]
 
 		h: data-to-image as int-ptr! data len no no
 		make-node h null 0 gdk_pixbuf_get_width h gdk_pixbuf_get_height h
@@ -344,7 +345,7 @@ OS-image: context [
 		h		[int-ptr!]
 		return:	[node!]
 	][
-		;; print ["load-pixbuf" lf]
+		;; DEBUG: print ["load-pixbuf" lf]
 		make-node h null 0 gdk_pixbuf_get_width h gdk_pixbuf_get_height h
 		;as node! 0
 	]
@@ -356,8 +357,8 @@ OS-image: context [
 			path 	[c-string!]
 			h		[int-ptr!]
 	][
-		path: file/to-OS-path src
-		;; print [ "load-image: " path lf]
+		path: file/to-OS-path src ; DOES NOT WORK as in macOS: simple-io/to-NSURL src yes
+		;; DEBUG: print [ "load-image: " path lf]
 		h: gdk_pixbuf_new_from_file path null
 		;; print ["handle: " h ", wxh: " gdk_pixbuf_get_width h "x" gdk_pixbuf_get_height h]
 		make-node h null 0 gdk_pixbuf_get_width h gdk_pixbuf_get_height h
@@ -445,7 +446,7 @@ OS-image: context [
 			scan0		[int-ptr!]
 			pos			[integer!]
 	][
-		;; print ["make-image" lf]
+		;; DEBUG: print ["make-image" lf]
 		scan0: as int-ptr! allocate width * height * 4
 		y: 0
 		either null? color [
@@ -467,8 +468,8 @@ OS-image: context [
 			]
 		][
 			r: color/array1
-			a: either TUPLE_SIZE?(color) = 3 [255][255 - (r >>> 24)]
-			r: r >> 16 and FFh or (r and FF00h) or (r and FFh << 16) or (a << 24)
+			a: either TUPLE_SIZE?(color) = 3 [255][255 - (r  and FFh)]
+			r: (r >> 24 and FFh) or ((r >> 16 and FFh) << 8) or ((r >> 8 and FFh) << 16) or (a << 24)
 			while [y < height][
 				x: 0
 				while [x < width][
