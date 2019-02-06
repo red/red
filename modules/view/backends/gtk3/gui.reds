@@ -1904,7 +1904,8 @@ OS-destroy-view: func [
 	;; DEBUG: 
 
 	remove-all-timers handle
-	print ["BYE! win: " win-cnt " (" handle ")" lf]
+	
+	;; DEBUG: print ["BYE! win: " win-cnt " (" handle ")" lf]
 
 	gtk_window_close main-window
 
