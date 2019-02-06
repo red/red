@@ -108,6 +108,16 @@ GdkEventCrossing!: alias struct! [
   state 		[integer!]
 ]
 
+GdkEventConfigure!: alias struct! [
+  type			[integer!]
+  window		[handle!]
+  send_event	[byte!]
+  x				[integer!]
+  y				[integer!]	
+  width			[integer!]
+  height		[integer!]
+]
+
 #enum GGApplicationFlags! [
   G_APPLICATION_FLAGS_NONE: 0
   G_APPLICATION_IS_SERVICE: 1
@@ -550,7 +560,13 @@ cairo_font_extents_t!: alias struct! [
 		gtk_widget_queue_draw: "gtk_widget_queue_draw" [
 			widget		[handle!]
 		]
+		gtk_widget_queue_resize: "gtk_widget_queue_resize" [
+			widget		[handle!]
+		]
 		gtk_widget_queue_resize_no_redraw: "gtk_widget_queue_resize_no_redraw" [
+			widget		[handle!]
+		]
+		gtk_widget_queue_allocate: "gtk_widget_queue_allocate" [
 			widget		[handle!]
 		]
 		gtk_widget_show_all: "gtk_widget_show_all" [

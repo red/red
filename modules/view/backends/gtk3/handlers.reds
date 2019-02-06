@@ -259,6 +259,24 @@ window-removed-event: func [
 	count/value: count/value - 1
 ]
 
+window-configure-event: func [
+	[cdecl]
+	widget	[handle!]
+	event	[GdkEventConfigure!]
+	/local
+		sz	 [red-pair!]
+][
+	;;DEBUG: print [ "window-resizing " event/x "x" event/y " " event/width "x" event/height lf]
+	sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE		;-- update face/size
+	if 5 < (((event/width - sz/x) * (event/width - sz/x)) + ((event/height - sz/y) * (event/height - sz/y))) [
+		sz/x: event/width
+		sz/y: event/height
+		make-event widget 0 EVT_SIZING
+		yes
+	][no]
+]
+
+
 window-size-allocate: func [
 	[cdecl]
 	widget	[handle!]
@@ -266,7 +284,8 @@ window-size-allocate: func [
 	/local
 		sz	 [red-pair!]
 ][
-	;;DEBUG: print [ "window-size-allocate " rect/width "x" rect/height lf]
+	;;DEBUG: 
+	print [ "window-size-allocate " rect/width "x" rect/height lf]
 	make-event widget 0 EVT_SIZING
 	sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE		;-- update face/size
 	sz/x: rect/width
