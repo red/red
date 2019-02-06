@@ -25,11 +25,18 @@ Red/System [
 GTKApp:			as handle! 0
 GTKApp-Ctx: 	0
 exit-loop:		0
+
+close-window?:	no
+win-array:		declare red-vector!
+win-cnt:		0
+
 red-face-id:	0
 _widget-id:		1
 gtk-fixed-id:	2
 red-timer-id:	3
 css-id:			4
+size-id:		5
+
 
 gtk-style-id:	0
 
@@ -57,7 +64,8 @@ gtk-font:		"Sans 10"
 default-font:	0
 
 ; Do not KNOW about this one 
-;;;main-window:	as handle! 0
+;;;
+main-window:	as handle! 0
 
 ; Temporary, will be removed...
 last-widget:	as handle! 0
@@ -197,6 +205,8 @@ get-text-size: func [
 		pl		[handle!]
 		size	[tagSIZE]
 		df		[c-string!]
+		pc 		[handle!]
+		widget	[handle!]
 ][
 	if null? pango-context [pango-context: gdk_pango_context_get]
 	size: declare tagSIZE
@@ -210,7 +220,15 @@ get-text-size: func [
 
 	width: 0 height: 0
 
-	pl: pango_layout_new pango-context
+	;;; get pango_context
+	;  from widget first
+	widget: face-handle? face
+	pc: gtk_widget_get_pango_context widget
+	pl: pango_layout_new pc ;seems more natural than pango-context
+	; globally otherwise
+	if null? pl [pl: pango_layout_new pango-context]
+	 
+
 	pango_layout_set_text pl text -1
 	pango_layout_set_font_description pl hFont
 	pango_layout_get_pixel_size pl :width :height
@@ -242,20 +260,47 @@ to-bgr: func [
 ]
 
 free-handles: func [
-	hWnd [handle!]
-	values [red-value!]
+	hWnd	[integer!]
+	force?	[logic!]
 	/local
+		values [red-value!]
 		type   [red-word!]
-		rate   [red-value!]
+		face   [red-object!]
+		tail   [red-object!]
+		pane   [red-block!]
 		state  [red-value!]
+		rate   [red-value!]
 		sym	   [integer!]
+		handle [handle!]
 ][
-	;type: as red-word! values + FACE_OBJ_TYPE
-	;sym: symbol/resolve type/symbol
+	values: get-face-values as handle! hWnd
+	type: as red-word! values + FACE_OBJ_TYPE
+	sym: symbol/resolve type/symbol
+
+	if all [sym = window not force?][
+		close-window?: yes
+		vector/rs-append-int win-array hWnd
+	]
 
 	rate: values + FACE_OBJ_RATE
-	if TYPE_OF(rate) <> TYPE_NONE [change-rate hWnd none-value]
-	gtk_widget_destroy hWnd
+	if TYPE_OF(rate) <> TYPE_NONE [change-rate as handle! hWnd none-value]
+
+	pane: as red-block! values + FACE_OBJ_PANE
+	if TYPE_OF(pane) = TYPE_BLOCK [
+		face: as red-object! block/rs-head pane
+		tail: as red-object! block/rs-tail pane
+		while [face < tail][
+			handle: face-handle? face
+			unless null? handle [free-handles as-integer handle force?]
+			face: face + 1
+		]
+	]
+
+	if sym = window [
+		win-cnt: win-cnt - 1
+		post-quit-msg
+	]
+
 	state: values + FACE_OBJ_STATE
 	state/header: TYPE_NONE
 ]
@@ -284,7 +329,7 @@ debug-show-children: func [
 		debug		[logic!]
 		cpt 		[integer!]
 ][
-	; to remove when saitsfactory enough development
+	; to remove when satisfactory enough development
 	debug: yes
 
 	values: get-face-values hWnd
@@ -352,6 +397,11 @@ debug-show-children: func [
 	free as byte-ptr! rect
 ]
 
+on-gc-mark: does [
+	collector/keep flags-blk/node
+	collector/keep win-array/node
+]
+
 init: func [][
 	GTKApp: gtk_application_new RED_GTK_APP_ID G_APPLICATION_NON_UNIQUE
 	gobj_signal_connect(GTKApp "window-removed" :window-removed-event :exit-loop)
@@ -362,12 +412,15 @@ init: func [][
 	]
 	g_application_register GTKApp null null
 
+	vector/make-at as red-value! win-array 8 TYPE_INTEGER 4
+
 	red-face-id: g_quark_from_string "red-face-id"
 	gtk-style-id: g_quark_from_string "gtk-style-id"
 
 	screen-size-x: gdk_screen_width
 	screen-size-y: gdk_screen_height
 
+	collector/register as int-ptr! :on-gc-mark
 ]
 
 get-symbol-name: function [
@@ -391,6 +444,7 @@ get-symbol-name: function [
 		sym = text-list ["text-list"]
 		sym = drop-list ["drop-list"]
 		sym = drop-down ["drop-down"]
+		sym = rich-text ["rich-text"]
 		true ["other widget"]
 	]
 ]
@@ -478,6 +532,79 @@ adjust-sizes: func [
 	free as byte-ptr! rect
 ]
 
+
+
+remove-widget-timer: func [
+	hWnd [handle!]
+	/local
+		timer	[integer!]
+		data	[handle!]
+][
+	unless null? hWnd [
+		data: g_object_get_qdata hWnd red-timer-id
+		timer: either null? data [0][as integer! data]
+
+		if timer <> 0 [								;-- cancel a preexisting timeout
+			g_source_remove timer
+			timer: 0
+			g_object_set_qdata hWnd red-timer-id as int-ptr! timer
+		]
+	]
+]
+
+add-widget-timer: func [
+	hWnd 	[handle!]
+	ts 		[integer!]
+	/local
+		timer	[integer!]
+		data	[handle!]
+][
+	;;g_object_ref_sink main-window
+	timer: g_timeout_add ts as integer! :red-timer-action hWnd
+	g_object_set_qdata hWnd red-timer-id as int-ptr! timer
+]
+
+get-widget-timer: func [
+	hWnd 	[handle!]
+	return: [int-ptr!]
+][
+	either null? hWnd [as int-ptr! 0][g_object_get_qdata hWnd red-timer-id]
+]
+
+remove-all-timers: func [
+	hWnd 	[handle!]
+	/local
+		widget		[handle!]
+		pane 		[red-block!]
+		type		[red-word!]
+		sym			[integer!]
+		face 		[red-object!]
+		tail 		[red-object!]
+		values		[red-value!]
+		rate 		[red-value!]
+][
+	remove-widget-timer hWnd
+	values: get-face-values hWnd
+	type: 	as red-word! values + FACE_OBJ_TYPE
+	pane: 	as red-block! values + FACE_OBJ_PANE
+	rate:	 values + FACE_OBJ_RATE
+	
+	change-rate hWnd none-value
+
+	sym: 	symbol/resolve type/symbol
+	
+	if all [TYPE_OF(pane) = TYPE_BLOCK 0 <> block/rs-length? pane] [
+		face: as red-object! block/rs-head pane
+		tail: as red-object! block/rs-tail pane
+		
+		while [face < tail][
+			widget: face-handle? face 
+			unless null? widget [remove-all-timers widget]
+			face: face + 1
+		]
+	]
+]
+
 change-rate: func [
 	hWnd [handle!]
 	rate [red-value!]
@@ -489,13 +616,7 @@ change-rate: func [
 		data	[handle!]
 ][
 	unless null? hWnd [
-		data: g_object_get_qdata hWnd red-timer-id
-		timer: either null? data [0][as integer! data]
-
-		if timer <> 0 [								;-- cancel a preexisting timeout
-			g_source_remove timer
-			g_object_set_qdata hWnd red-timer-id null
-		]
+		remove-widget-timer hWnd
 
 		switch TYPE_OF(rate) [
 			TYPE_INTEGER [
@@ -508,12 +629,14 @@ change-rate: func [
 				if tm/time <= 0.0 [fire [TO_ERROR(script invalid-facet-type) rate]]
 				ts: as-integer tm/time * 1000.0
 			]
-			TYPE_NONE [exit]
+			TYPE_NONE [
+				;; DEBUG: print ["change-rate: removed timer for widget " hWnd lf]
+				exit
+			]
 			default	  [fire [TO_ERROR(script invalid-facet-type) rate]]
 		]
 
-		timer: g_timeout_add ts as integer! :red-timer-action hWnd
-		g_object_set_qdata hWnd red-timer-id as int-ptr! timer
+		add-widget-timer hWnd ts
 	]
 ]
 
@@ -672,17 +795,20 @@ change-offset: func [
 	either type = window [
 		0
 	][
-		;OS-refresh-window as integer! main-window
-		container: either null? hWnd [null][g_object_get_qdata hWnd gtk-fixed-id]
-		;; DEBUG: print ["change-offset by" pos lf]
-		; _widget: either type = text [
-		; 	g_object_get_qdata hWnd _widget-id
-		; ][hWnd]
-		_widget: g_object_get_qdata hWnd _widget-id
-		_widget: either null? _widget [hWnd][_widget]
-		unless null? container [
-			gtk_fixed_move container _widget pos/x pos/y
-			gtk_widget_queue_draw _widget
+		unless null? hWnd [
+			;OS-refresh-window as integer! main-window
+			container: either null? hWnd [null][g_object_get_qdata hWnd gtk-fixed-id]
+			;; DEBUG: print ["change-offset by" pos lf]
+			; _widget: either type = text [
+			; 	g_object_get_qdata hWnd _widget-id
+			; ][hWnd]
+			
+			_widget: g_object_get_qdata hWnd _widget-id
+			_widget: either null? _widget [hWnd][_widget]
+			unless null? container [
+				gtk_fixed_move container _widget pos/x pos/y
+				gtk_widget_queue_draw _widget
+			]
 		]
 	]
 ]
@@ -695,14 +821,19 @@ change-size: func [
 		_widget	[handle!]
 ][
 	;; DEBUG: print ["change-size" get-symbol-name get-widget-symbol hWnd size lf]
+	
 	either type = window [
 		gtk_window_set_default_size hWnd size/x size/y
-	 ][
-		_widget: g_object_get_qdata hWnd _widget-id
-		_widget: either null? _widget [hWnd][_widget]
-		gtk_widget_set_size_request _widget size/x size/y
-		gtk_widget_queue_draw _widget
+		gtk_widget_queue_draw hWnd
+	][
+		 unless null? hWnd [
+			_widget: g_object_get_qdata hWnd _widget-id
+			_widget: either null? _widget [hWnd][_widget]
+			gtk_widget_set_size_request _widget size/x size/y
+			unless null? _widget [gtk_widget_queue_resize _widget]
+		]
 	]
+
 ]
 
 change-visible: func [
@@ -744,7 +875,8 @@ change-text: func [
 		str    [red-string!]
 		buffer [handle!]
 ][
-	if type = base [
+	if null? hWnd [exit]
+	if  type = base [
 		gtk_widget_queue_draw hWnd
 		exit
 	]
@@ -855,12 +987,12 @@ change-selection: func [
 		idx [integer!]
 		sz	[integer!]
 		wnd [integer!]
+		item [handle!]
 ][
-	; if type <> window [
-	; 	idx: either TYPE_OF(int) = TYPE_INTEGER [int/value - 1][-1]
-	; 	if idx < 0 [exit]								;-- @@ should unselect the items ?
-	; ]
-	; case [
+	if type <> window [
+		idx: either TYPE_OF(int) = TYPE_INTEGER [int/value - 1][-1]
+	]
+	case [
 	; 	type = camera [
 	; 		either TYPE_OF(int) = TYPE_NONE [
 	; 			toggle-preview hWnd false
@@ -869,33 +1001,24 @@ change-selection: func [
 	; 			toggle-preview hWnd true
 	; 		]
 	; 	]
-	; 	type = text-list [
-	; 		hWnd: objc_msgSend [hWnd sel_getUid "documentView"]
-	; 		sz: -1 + objc_msgSend [hWnd sel_getUid "numberOfRows"]
-	; 		if any [sz < 0 sz < idx][exit]
-	; 		idx: objc_msgSend [objc_getClass "NSIndexSet" sel_getUid "indexSetWithIndex:" idx]
-	; 		objc_msgSend [
-	; 			hWnd sel_getUid "selectRowIndexes:byExtendingSelection:" idx no
-	; 		]
-	; 		objc_msgSend [idx sel_getUid "release"]
-	; 	]
-	; 	any [type = drop-list type = drop-down][
-	; 		sz: -1 + objc_msgSend [hWnd sel_getUid "numberOfItems"]
-	; 		if any [sz < 0 sz < idx][exit]
-	; 		objc_msgSend [hWnd sel_getUid "selectItemAtIndex:" idx]
-	; 		idx: objc_msgSend [hWnd sel_getUid "objectValueOfSelectedItem"]
-	; 		objc_msgSend [hWnd sel_getUid "setObjectValue:" idx]
-	; 	]
-	; 	type = tab-panel [select-tab hWnd int]
+		type = text-list [
+			item: gtk_list_box_get_row_at_index hWnd idx
+			gtk_list_box_select_row hWnd item
+		]
+		any [type = drop-list type = drop-down][
+			gtk_combo_box_set_active hWnd idx
+		]
+	 	type = tab-panel [
+			gtk_notebook_set_current_page hWnd idx
+		]
 	; 	type = window [
 	; 		wnd: either TYPE_OF(int) = TYPE_OBJECT [
 	; 			as-integer face-handle? as red-object! int
 	; 		][0]
 	; 		objc_msgSend [hWnd sel_getUid "makeFirstResponder:" wnd]
 	; 	]
-	; 	true [0]										;-- default, do nothing
-	; ]
-	0
+	 	true [0]										;-- default, do nothing
+	]
 ]
 
 set-selected-focus: func [
@@ -967,6 +1090,8 @@ get-flags: func [
 			sym = no-buttons [flags: flags or FACET_FLAGS_NO_BTNS]
 			sym = modal		 [flags: flags or FACET_FLAGS_MODAL]
 			sym = popup		 [flags: flags or FACET_FLAGS_POPUP]
+			sym = scrollable [flags: flags or FACET_FLAGS_SCROLLABLE]
+			sym = password	 [flags: flags or FACET_FLAGS_PASSWORD]
 			true			 [fire [TO_ERROR(script invalid-arg) word]]
 		]
 		word: word + 1
@@ -1037,6 +1162,7 @@ init-combo-box: func [
 		tail [red-string!]
 		len  [integer!]
 		val  [c-string!]
+		size [integer!]
 ][
 	if any [
 		TYPE_OF(data) = TYPE_BLOCK
@@ -1045,6 +1171,9 @@ init-combo-box: func [
 	][
 		str:  as red-string! block/rs-head data
 		tail: as red-string! block/rs-tail data
+
+		size: block/rs-length? data
+		print ["combo-size: " size lf]
 
 		;remove all items
 		gtk_combo_box_text_remove_all combo
@@ -1057,7 +1186,7 @@ init-combo-box: func [
 				val: unicode/to-utf8 str :len
 				gtk_combo_box_text_append_text combo val
 			]
-			str: str + 1
+			str: str + 1 
 		]
 	]
 
@@ -1165,6 +1294,22 @@ update-scroller: func [
 	;]
 ]
 
+
+update-rich-text: func [
+	state	[red-block!]
+	handles [red-block!]
+	return: [logic!]
+	/local
+		redraw [red-logic!]
+][
+	if TYPE_OF(handles) = TYPE_BLOCK [
+		redraw: as red-logic! (block/rs-tail handles) - 1
+		redraw/value: true
+	]
+	TYPE_OF(state) <> TYPE_BLOCK
+]
+
+
 connect-mouse-events: function [
 	hWnd 	[handle!]
 	face 	[red-object!]
@@ -1174,6 +1319,7 @@ connect-mouse-events: function [
 		_widget [handle!]
 ][
 	if all [
+		not null? hWnd
 		not null? actors/ctx
 		(object/rs-find actors  as red-value!  _on-over) <> -1
 	][
@@ -1184,7 +1330,8 @@ connect-mouse-events: function [
 		; _widget: g_object_get_qdata hWnd _widget-id
 		; _widget: either null? _widget [hWnd][_widget]
 
-		;print [ "Mouse events " get-symbol-name type "->" widget lf]
+		;; DEBUG: print [ "Mouse events " get-symbol-name type "->" widget lf]
+
 		gtk_widget_add_events _widget GDK_ENTER_NOTIFY_MASK or GDK_LEAVE_NOTIFY_MASK
 		gobj_signal_connect(_widget "enter-notify-event" :widget-enter-notify-event face/ctx)
 		gobj_signal_connect(_widget "leave-notify-event" :widget-leave-notify-event face/ctx)		
@@ -1220,9 +1367,9 @@ parse-common-opts: func [
 			case [
 				sym = _drag-on [
 					gtk_widget_add_events hWnd GDK_BUTTON_PRESS_MASK or GDK_BUTTON1_MOTION_MASK or GDK_BUTTON_RELEASE_MASK ;or GDK_ENTER_NOTIFY_MASK 
-					gobj_signal_connect(hWnd "motion-notify-event" :widget-motion-notify-event face/ctx)
-					gobj_signal_connect(hWnd "button-press-event" :widget-button-press-event face/ctx)
-					gobj_signal_connect(hWnd "button-release-event" :widget-button-release-event face/ctx)
+					gobj_signal_connect(hWnd "motion-notify-event" :drag-widget-motion-notify-event face/ctx)
+					gobj_signal_connect(hWnd "button-press-event" :drag-widget-button-press-event face/ctx)
+					gobj_signal_connect(hWnd "button-release-event" :drag-widget-button-release-event face/ctx)
 				]
 				; sym = _cursor [
 				; 	w: word + 1
@@ -1283,10 +1430,14 @@ parse-common-opts: func [
 	; ]
 ]
 
-OS-redraw: func [hWnd [integer!]][gtk_widget_queue_draw as handle! hWnd]
+OS-redraw: func [
+	hWnd [integer!]
+][
+	unless null? as handle! hWnd [gtk_widget_queue_draw as handle! hWnd]
+]
 
 OS-refresh-window: func [hWnd [integer!]][
-	;print-line "REFFRREEEESSSSHHHHH" 
+	;; DEBUG: print-line "OS-refresh-window" 
 	;debug-show-children main-window no
 	;gtk_widget_queue_draw main-window
 	OS-show-window hWnd
@@ -1297,6 +1448,8 @@ OS-show-window: func [
 	; /local
 	; 	auto-adjust?	[red-logic!]
 ][
+	;; DEBUG: print ["OS-show-window" lf]
+	if null? as handle! hWnd [exit]
 	gtk_widget_show_all as handle! hWnd
 	gtk_widget_grab_focus as handle! hWnd
 
@@ -1386,13 +1539,14 @@ OS-make-view: func [
 		]
 		sym = radio [
 			widget: either null? group-radio [
+				;; DEBUG: print ["radio created: " caption lf]
 				gtk_radio_button_new_with_label null caption
 			][
+				;; DEBUG: print ["radio group-radio created: " caption lf]
 				gtk_radio_button_new_with_label_from_widget group-radio caption
 			]
 			set-logic-state widget as red-logic! data no
 			;@@ Line below removed because it generates an error and there is no click event for radio 
-			;gobj_signal_connect(widget "clicked" :button-clicked null)
 			gobj_signal_connect(widget "toggled" :button-toggled face/ctx)
 		]
 		sym = button [
@@ -1405,22 +1559,46 @@ OS-make-view: func [
 		sym = base [
 			widget: gtk_drawing_area_new
 			gobj_signal_connect(widget "draw" :base-draw face/ctx)
+			gtk_widget_add_events widget GDK_BUTTON_PRESS_MASK or GDK_BUTTON1_MOTION_MASK or GDK_BUTTON_RELEASE_MASK or GDK_KEY_PRESS_MASK or GDK_KEY_RELEASE_MASK
+			gobj_signal_connect(widget "button-press-event" :mouse-button-press-event face/ctx)
+			gobj_signal_connect(widget "button-release-event" :mouse-button-release-event face/ctx)
+			gobj_signal_connect(widget "motion-notify-event" :mouse-motion-notify-event face/ctx)
+
+			gtk_widget_set_can_focus widget yes
+			gobj_signal_connect(widget "key-press-event" :key-press-event face/ctx)
+			gobj_signal_connect(widget "key-release-event" :key-release-event face/ctx)
+		]
+		sym = rich-text [
+			widget: gtk_drawing_area_new
+			gobj_signal_connect(widget "draw" :base-draw face/ctx)
+			gtk_widget_add_events widget GDK_BUTTON_PRESS_MASK or GDK_BUTTON1_MOTION_MASK or GDK_BUTTON_RELEASE_MASK or GDK_KEY_PRESS_MASK or GDK_KEY_RELEASE_MASK
+			gobj_signal_connect(widget "button-press-event" :mouse-button-press-event face/ctx)
+			gobj_signal_connect(widget "button-release-event" :mouse-button-release-event face/ctx)
+			gobj_signal_connect(widget "motion-notify-event" :mouse-motion-notify-event face/ctx)
+
+			gtk_widget_set_can_focus widget yes
+			gobj_signal_connect(widget "key-press-event" :key-press-event face/ctx)
+			gobj_signal_connect(widget "key-release-event" :key-release-event face/ctx)
 		]
 		sym = window [
-			;;;print ["win " GTKApp lf]
+			;; DEBUG: print ["win " GTKApp lf]
 			;widget: gtk_application_window_new GTKApp
+			win-cnt: win-cnt + 1
 			widget: gtk_window_new 0
-			;;;print ["win1 " widget lf]
+			;; DEBUG: print ["win1 " widget lf]
 			gtk_application_add_window GTKApp widget
-			;;;print ["win2 " lf]
-			; @@ DEBUG: temporary code
-			;;;main-window: widget
+			;; DEBUG: print ["win2 " lf]
+			;; DEBUG (temporary code): 
+			main-window: widget
 			unless null? caption [gtk_window_set_title widget caption]
 			gtk_window_set_default_size widget size/x size/y
 			gtk_container_add widget gtk_fixed_new
 			gtk_window_move widget offset/x offset/y
 			gobj_signal_connect(widget "delete-event" :window-delete-event null)
-			gobj_signal_connect(widget "size-allocate" :window-size-allocate null)
+      ;gobj_signal_connect(widget "destroy" :window-destroy null)
+			gtk_widget_add_events widget GDK_STRUCTURE_MASK
+			gobj_signal_connect(widget "configure-event" :window-configure-event null)
+			;gobj_signal_connect(widget "size-allocate" :window-size-allocate null)
 		]
 		sym = slider [
 			vertical?: size/y > size/x
@@ -1431,7 +1609,6 @@ OS-make-view: func [
 			gtk_range_set_value widget as float! value
 			gtk_scale_set_has_origin widget no
 			gtk_scale_set_draw_value widget no
-			; insert value-changed handler
 			gobj_signal_connect(widget "value-changed" :range-value-changed face/ctx)
 		]
 		sym = text [
@@ -1446,6 +1623,7 @@ OS-make-view: func [
 			unless null? caption [gtk_entry_buffer_set_text buffer caption -1]
 			gobj_signal_connect(widget "key-release-event" :field-key-release-event face/ctx)
 			;Do not work: gobj_signal_connect(widget "key-press-event" :field-key-press-event face/ctx)
+			
 			gtk_widget_set_can_focus widget yes
 			;This depends on version >= 3.2
 			;gtk_widget_set_focus_on_click widget yes
@@ -1520,11 +1698,6 @@ OS-make-view: func [
 	; save the previous group-radio state as a global variable
 	group-radio: either sym = radio [widget][as handle! 0] 
 
-	make-styles-provider widget
-	if sym <> base [
-		change-font widget face font sym
-	]
-
 	;;DEBUG: print [ "New widget " get-symbol-name sym "->" widget lf]
 	
 	if all [
@@ -1570,12 +1743,16 @@ OS-make-view: func [
 	if sym = text [store-face-to-obj _widget face]
 
 	; change-selection widget as red-integer! values + FACE_OBJ_SELECTED sym
-	; change-para widget face as red-object! values + FACE_OBJ_PARA font sym
+	change-para widget face as red-object! values + FACE_OBJ_PARA font sym
 
 	unless show?/value [change-visible widget no sym]
 	unless open?/value [change-enabled widget no sym]
+	
+	make-styles-provider widget
+		if sym <> base [
+			change-font widget face font sym
+		]
 
-	; change-font widget face font sym
 	if TYPE_OF(rate) <> TYPE_NONE [change-rate widget rate]
 	; if sym <> base [change-color widget as red-tuple! values + FACE_OBJ_COLOR sym]
 
@@ -1600,6 +1777,7 @@ OS-update-view: func [
 		flags	[integer!]
 		type	[integer!]
 ][
+	;; DEBUG: print ["OS-update-view" lf]
 	ctx: GET_CTX(face)
 	s: as series! ctx/values/value
 	values: s/offset
@@ -1607,9 +1785,17 @@ OS-update-view: func [
 	state: as red-block! values + FACE_OBJ_STATE
 	word: as red-word! values + FACE_OBJ_TYPE
 	type: symbol/resolve word/symbol
+
+	if all [
+		type = rich-text
+		update-rich-text state as red-block! values + FACE_OBJ_EXT3
+	][exit]
+
 	s: GET_BUFFER(state)
 	int: as red-integer! s/offset
 	widget: as handle! int/value
+	if null? widget [exit]
+	
 	int: int + 1
 	flags: int/value
 
@@ -1621,7 +1807,7 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_TEXT <> 0 [
 		change-text widget values face type
-		gtk_widget_queue_draw widget
+		;gtk_widget_queue_draw widget
 	]
 	if flags and FACET_FLAG_DATA <> 0 [
 		change-data	widget values
@@ -1634,10 +1820,10 @@ OS-update-view: func [
 		bool: as red-logic! values + FACE_OBJ_VISIBLE?
 		change-visible widget bool/value type
 	]
-	;if flags and FACET_FLAG_SELECTED <> 0 [
-	;	int2: as red-integer! values + FACE_OBJ_SELECTED
-	;	change-selection widget int2 values
-	;]
+	if flags and FACET_FLAG_SELECTED <> 0 [
+		int2: as red-integer! values + FACE_OBJ_SELECTED
+		change-selection widget int2 type
+	]
 	;if flags and FACET_FLAG_FLAGS <> 0 [
 	;	SetWindowLong
 	;		widget
@@ -1645,14 +1831,14 @@ OS-update-view: func [
 	;		get-flags as red-block! values + FACE_OBJ_FLAGS
 	;]
 	if flags and FACET_FLAG_DRAW  <> 0 [
-		gtk_widget_queue_draw widget
+		;gtk_widget_queue_draw widget
+		0
 	]
 	if flags and FACET_FLAG_COLOR <> 0 [
 		if type = base [
 	;		update-base widget null null values
-			gtk_widget_queue_draw widget
-	;	][
-	;		InvalidateRect widget null 1
+			;gtk_widget_queue_draw widget
+			0
 		]
 	]
 	if all [flags and FACET_FLAG_PANE <> 0 type <> tab-panel][
@@ -1665,10 +1851,14 @@ OS-update-view: func [
 	if flags and FACET_FLAG_FONT <> 0 [
 		change-font widget face as red-object! values + FACE_OBJ_FONT type
 	]
-	;if flags and FACET_FLAG_PARA <> 0 [
-	;	update-para face 0
-	;	InvalidateRect widget null 1
-	;]
+	if flags and FACET_FLAG_PARA <> 0 [
+		change-para
+			widget
+			face
+			as red-object! values + FACE_OBJ_PARA
+			as red-object! values + FACE_OBJ_FONT
+			type
+	]
 	;if flags and FACET_FLAG_MENU <> 0 [
 	;	menu: as red-block! values + FACE_OBJ_MENU
 	;	if menu-bar? menu window [
@@ -1678,6 +1868,11 @@ OS-update-view: func [
 	;]
 	;if flags and FACET_FLAG_IMAGE <> 0 [
 	;	change-image widget values type
+	;]
+
+	;; update-view at least ask for this
+	;if main-window = widget [
+		gtk_widget_queue_draw widget
 	;]
 
 	int/value: 0										;-- reset flags
@@ -1692,6 +1887,7 @@ OS-destroy-view: func [
 		obj	   [red-object!]
 		flags  [integer!]
 ][
+	;; DEBUG: print ["OS-destroy-view" lf]  
 	handle: face-handle? face
 	values: object/get-values face
 	flags: get-flags as red-block! values + FACE_OBJ_FLAGS
@@ -1699,14 +1895,23 @@ OS-destroy-view: func [
 		0
 	]
 
-	free-handles handle values
-
 	obj: as red-object! values + FACE_OBJ_FONT
 	;if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj FONT_OBJ_PARENT]
 	
 	obj: as red-object! values + FACE_OBJ_PARA
 	;if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj PARA_OBJ_PARENT]
 	
+	;;g_main_context_release GTKApp-Ctx
+	;; DEBUG: 
+
+	remove-all-timers handle
+	
+	;; DEBUG: print ["BYE! win: " win-cnt " (" handle ")" lf]
+
+	gtk_window_close main-window
+
+	free-handles as-integer handle no
+
 ]
 
 OS-update-facet: func [
@@ -1764,30 +1969,36 @@ OS-to-image: func [
 		word	[red-word!]
 		type	[integer!]
 		size	[red-pair!]
-		screen? [logic!]
 		ret		[red-image!]
 ][
 	word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
-	screen?: screen = symbol/resolve word/symbol
-	either screen? [
-		; get pixbuf from screen_root_window
-		bmp: as handle! 0;gdk_pixbuf_get_from_window gdk_screen_get_root_window gdk_screen_get_default 0 0 screen-size-x screen-size-y; CGWindowListCreateImage 0 0 7F800000h 7F800000h 1 0 0		;-- INF
-		ret: image/init-image as red-image! stack/push* OS-image/load-pixbuf bmp
-	][
-		;view: as-integer face-handle? face
-		;either zero? view [ret: as red-image! none-value][
-		;	sz: as red-pair! (object/get-values face) + FACE_OBJ_SIZE
-		;	rc: make-rect 0 0 sz/x sz/y
-			; data: objc_msgSend [view sel_getUid "dataWithPDFInsideRect:" rc/x rc/y rc/w rc/h]
-			; img: objc_msgSend [
-			; 	objc_msgSend [objc_getClass "NSImage" sel_alloc]
-			; 	sel_getUid "initWithData:" data
-			; ]
-			bmp: as handle! 0; objc_msgSend [img sel_getUid "CGImageForProposedRect:context:hints:" 0 0 0]
+	type: symbol/resolve word/symbol
+
+	;; DEBUG: 
+	print ["OS-to-image:" get-symbol-name type lf]
+	 
+	case [ 
+		type = screen [
+			; get pixbuf from screen_root_window	 
+			bmp: as handle! 0;gdk_pixbuf_get_from_window gdk_screen_get_root_window gdk_screen_get_default 0 0 screen-size-x screen-size-y; CGWindowListCreateImage 0 0 7F800000h 7F800000h 1 0 0		;-- INF
 			ret: image/init-image as red-image! stack/push* OS-image/load-pixbuf bmp
-			; objc_msgSend [bmp sel_getUid "retain"]
-			; objc_msgSend [img sel_release]
-		;]
+		]
+		true [
+			hWnd: face-handle? face
+			either null? hWnd [ret: as red-image! none-value][
+				size: as red-pair! (object/get-values face) + FACE_OBJ_SIZE
+				; rc: make-rect 0 0 sz/x sz/y
+				; data: objc_msgSend [view sel_getUid "dataWithPDFInsideRect:" rc/x rc/y rc/w rc/h]
+				; img: objc_msgSend [
+				; 	objc_msgSend [objc_getClass "NSImage" sel_alloc]
+				; 	sel_getUid "initWithData:" data
+				; ]
+				bmp: as handle! 0; objc_msgSend [img sel_getUid "CGImageForProposedRect:context:hints:" 0 0 0]
+				ret: image/init-image as red-image! stack/push* OS-image/load-pixbuf bmp
+				; objc_msgSend [bmp sel_getUid "retain"]
+				; objc_msgSend [img sel_release]
+			]
+		]
 	]
 	ret
 ]

@@ -1952,6 +1952,8 @@ The following math operations apply on integer or float values. When the operati
 
  value1 / value2
  
+Note: a rumtime exception will be raised (division by zero) on `-2147483648 / -1` as the result cannot be represented on 32-bit.
+ 
 <b>Remainder</b>: %
 
  value1 % value2

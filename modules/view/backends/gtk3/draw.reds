@@ -29,8 +29,8 @@ set-source-color: func [
 	g: g / 255.0
 	b: as-float color >> 16 and FFh
 	b: b / 255.0
-	a: as-float 255 - (color >>> 24)
-	a: a / 255.0
+	a: as-float color >> 24 and FFh
+	a: 1.0 - (a / 255.0)
 	cairo_set_source_rgba cr r g b a
 ]
 
@@ -468,30 +468,149 @@ OS-draw-font: func [
 	]
 ]
 
+draw-text-at: func [
+	dc		[draw-ctx!]
+	text	[red-string!]
+	color	[integer!]
+	x		[integer!]
+	y		[integer!]
+	/local
+		len     [integer!]
+		str		[c-string!]
+		ctx 	[handle!]
+		;attr	[integer!]
+		;line	[integer!]
+][
+	; m: make-CGMatrix 1 0 0 -1 x y
+	; str: to-CFString text
+	; attr: CFAttributedStringCreate 0 str attrs
+	; line: CTLineCreateWithAttributedString attr
+
+	; delta: objc_msgSend_f32 [
+	; 	objc_msgSend [attrs sel_getUid "objectForKey:" NSFontAttributeName]
+	; 	sel_getUid "ascender"
+	; ]
+	; m/ty: m/ty + delta
+	; CGContextSetTextMatrix ctx m/a m/b m/c m/d m/tx m/ty
+	; CTLineDraw line ctx
+
+	; CFRelease str
+	; CFRelease attr
+	; CFRelease line
+
+	ctx: dc/raw
+
+	len: -1
+	str: unicode/to-utf8 text :len
+	cairo_move_to ctx as-float x
+					  (as-float y) + font-size
+
+	set-source-color ctx color
+	cairo_show_text ctx str
+
+	do-paint dc
+
+]
+
+
+draw-text-box: func [
+	dc		[draw-ctx!]
+	pos		[red-pair!]
+	tbox	[red-object!]
+	catch?	[logic!]
+	/local
+		int		[red-integer!]
+		values	[red-value!]
+		state	[red-block!]
+		str		[red-string!]
+		bool	[red-logic!]
+		layout? [logic!]
+		layout	[integer!]
+		tc		[integer!]
+		idx		[integer!]
+		len		[integer!]
+		y		[integer!]
+		x		[integer!]
+		;pt		[CGPoint!]
+		clr		[integer!]
+][
+	values: object/get-values tbox
+	str: as red-string! values + FACE_OBJ_TEXT
+	if TYPE_OF(str) <> TYPE_STRING [exit]
+
+	state: as red-block! values + FACE_OBJ_EXT3
+	layout?: yes
+	if TYPE_OF(state) = TYPE_BLOCK [
+		bool: as red-logic! (block/rs-tail state) - 1
+		layout?: bool/value
+	]
+	if layout? [
+		clr: either null? dc [0][
+			;;TODO: objc_msgSend [dc/font-attrs sel_getUid "objectForKey:" NSForegroundColorAttributeName]
+			0
+		]
+		OS-text-box-layout tbox null clr catch?
+	]
+
+	int: as red-integer! block/rs-head state
+	layout: int/value
+	int: int + 1
+	tc: int/value
+
+	; idx: objc_msgSend [layout sel_getUid "glyphRangeForTextContainer:" tc]
+	; len: system/cpu/edx
+	; x: 0
+	; pt: as CGPoint! :x
+	; pt/x: as float32! pos/x
+	; pt/y: as float32! pos/y
+	; objc_msgSend [layout sel_getUid "drawBackgroundForGlyphRange:atPoint:" idx len pt/x pt/y]
+	; objc_msgSend [layout sel_getUid "drawGlyphsForGlyphRange:atPoint:" idx len pt/x pt/y]
+]
+
+
+; OLD TO REMOVE: OS-draw-text: func [
+; 	dc		[draw-ctx!]
+; 	pos		[red-pair!]
+; 	text	[red-string!]
+; 	catch?	[logic!]
+; 	return: [logic!]
+; 	/local
+; 		ctx		[handle!]
+; 		len     [integer!]
+; 		str		[c-string!]
+; ][
+; 	ctx: dc/raw
+
+; 	len: -1
+; 	str: unicode/to-utf8 text :len
+; 	cairo_move_to ctx as-float pos/x
+; 					  (as-float pos/y) + font-size
+
+; 	set-source-color dc/raw dc/font-color
+; 	cairo_show_text ctx str
+
+; 	do-paint dc
+
+; 	set-source-color dc/raw dc/pen-color	;-- backup pen color
+; 	yes
+; ]
+
 OS-draw-text: func [
 	dc		[draw-ctx!]
 	pos		[red-pair!]
 	text	[red-string!]
 	catch?	[logic!]
 	return: [logic!]
-	/local
-		ctx		[handle!]
-		len     [integer!]
-		str		[c-string!]
 ][
-	ctx: dc/raw
-	len: -1
-	str: unicode/to-utf8 text :len
-	cairo_move_to ctx as-float pos/x
-					  (as-float pos/y) + font-size
-
-	set-source-color dc/raw dc/font-color
-	cairo_show_text ctx str
-
-	do-paint dc
+	either TYPE_OF(text) = TYPE_STRING [
+		draw-text-at dc text dc/font-color pos/x pos/y
+	][
+		draw-text-box dc pos as red-object! text catch?
+	]
 
 	set-source-color dc/raw dc/pen-color	;-- backup pen color
-	yes
+	; brush
+	true
 ]
 
 OS-draw-arc: func [
@@ -791,11 +910,15 @@ OS-matrix-rotate: func [
 ][
 	cr: dc/raw
 	rad: PI / 180.0 * get-float angle
-	cairo_translate cr as float! center/x 
+	if angle <> as red-integer! center [
+		cairo_translate cr as float! center/x 
 					   as float! center/y
+	]
 	cairo_rotate cr rad
-	cairo_translate cr as float! (0 - center/x) 
-					   as float! (0 - center/y)
+	if angle <> as red-integer! center [
+		cairo_translate cr as float! (0 - center/x) 
+					as float! (0 - center/y)
+	]
 ]
 
 OS-matrix-scale: func [
@@ -906,25 +1029,23 @@ OS-set-clip: func [
 	upper	[red-pair!]
 	lower	[red-pair!]
 ][
+	0
 ]
 
 ;-- shape sub command --
 
 OS-draw-shape-beginpath: func [
 	dc			[draw-ctx!]
-	/local
-		path	[integer!]
-][
-
+][ 
 ]
 
 OS-draw-shape-endpath: func [
 	dc			[draw-ctx!]
 	close?		[logic!]
 	return:		[logic!]
-	/local
-		alpha	[byte!]
 ][
+	if close? [cairo_close_path dc/raw]
+	do-paint dc
 	true
 ]
 
@@ -932,8 +1053,18 @@ OS-draw-shape-moveto: func [
 	dc		[draw-ctx!]
 	coord	[red-pair!]
 	rel?	[logic!]
+	/local
+		x		[float!]
+		y		[float!]
 ][
-	
+	x: as-float coord/x
+	y: as-float coord/y
+	either rel? [
+		cairo_rel_move_to dc/raw x y
+	][
+		cairo_move_to dc/raw x y
+	]
+	dc/shape-curve?: no
 ]
 
 OS-draw-shape-line: func [
@@ -941,8 +1072,22 @@ OS-draw-shape-line: func [
 	start		[red-pair!]
 	end			[red-pair!]
 	rel?		[logic!]
+	/local
+		x		[float!]
+		y		[float!]
 ][
-
+	until [
+		x: as-float start/x
+		y: as-float start/y
+		either rel? [
+			cairo_rel_line_to dc/raw x y
+		][
+			cairo_line_to dc/raw x y
+		]
+		start: start + 1
+		start > end
+	]
+	dc/shape-curve?: no
 ]
 
 OS-draw-shape-axis: func [
@@ -950,10 +1095,97 @@ OS-draw-shape-axis: func [
 	start		[red-value!]
 	end			[red-value!]
 	rel?		[logic!]
-	hline		[logic!]
+	hline?		[logic!]
+	/local
+		len 	[float!]
+		last-x	[float!]
+		last-y	[float!]
 ][
-	
+	last-x: 0.0 last-y: 0.0
+	if 1 = cairo_has_current_point dc/raw[
+		cairo_get_current_point dc/raw :last-x :last-y
+	]
+	len: get-float as red-integer! start
+	either hline? [
+		cairo_line_to dc/raw either rel? [last-x + len][len] last-y
+	][
+		cairo_line_to dc/raw last-x either rel? [last-y + len][len]
+	]
+	dc/shape-curve?: no
 ]
+
+draw-curve: func [
+	dc		[draw-ctx!]
+	start	[red-pair!]
+	end		[red-pair!]
+	rel?	[logic!]
+	short?	[logic!]
+	num		[integer!]				;--	number of points
+	/local
+		dx		[float!]
+		dy		[float!]
+		p3y		[float!]
+		p3x		[float!]
+		p2y		[float!]
+		p2x		[float!]
+		p1y		[float!]
+		p1x		[float!]
+		pf		[float-ptr!]
+		pt		[red-pair!]
+][
+	pt: start + 1
+	p1x: as-float start/x
+	p1y: as-float start/y
+	p2x: as-float pt/x
+	p2y: as-float pt/y
+	if num = 3 [					;-- cubic Bézier
+		pt: start + 2
+		p3x: as-float pt/x
+		p3y: as-float pt/y
+	]
+
+	; dx: dc/last-pt-x
+	; dy: dc/last-pt-y
+	; if rel? [
+	; 	pf: :p1x
+	; 	loop num [
+	; 		pf/1: pf/1 + dx			;-- x
+	; 		pf/2: pf/2 + dy			;-- y
+	; 		pf: pf + 2
+	; 	]
+	; ]
+
+	; if short? [
+	; 	either dc/shape-curve? [
+	; 		;-- The control point is assumed to be the reflection of the control point
+	; 		;-- on the previous command relative to the current point
+	; 		p1x: dx * 2.0 - dc/control-x
+	; 		p1y: dy * 2.0 - dc/control-y
+	; 	][
+	; 		;-- if previous command is not curve/curv/qcurve/qcurv, use current point
+	; 		p1x: dx
+	; 		p1y: dy
+	; 	]
+	; ]
+
+	dc/shape-curve?: yes
+	either num = 3 [				;-- cubic Bézier
+		either rel? [cairo_rel_curve_to dc/raw p1x p1y p2x p2y p3x p3y] 
+		[cairo_curve_to dc/raw p1x p1y p2x p2y p3x p3y]
+		; dc/control-x: p2x
+		; dc/control-y: p2y
+		; dc/last-pt-x: p3x
+		; dc/last-pt-y: p3y
+	][								;-- quadratic Bézier
+		;CGPathAddQuadCurveToPoint dc/path null p1x p1y p2x p2y
+		; dc/control-x: p1x
+		; dc/control-y: p1y
+		; dc/last-pt-x: p2x
+		; dc/last-pt-y: p2y
+		0
+	]
+]
+
 
 OS-draw-shape-curve: func [
 	dc		[draw-ctx!]
@@ -961,6 +1193,7 @@ OS-draw-shape-curve: func [
 	end		[red-pair!]
 	rel?	[logic!]
 ][
+	draw-curve dc start end rel? no 3
 ]
 
 OS-draw-shape-qcurve: func [
@@ -969,7 +1202,7 @@ OS-draw-shape-qcurve: func [
 	end		[red-pair!]
 	rel?	[logic!]
 ][
-	;draw-curves dc start end rel? 2
+	draw-curve dc start end rel? no 2
 ]
 
 OS-draw-shape-curv: func [
@@ -978,7 +1211,7 @@ OS-draw-shape-curv: func [
 	end		[red-pair!]
 	rel?	[logic!]
 ][
-	;draw-short-curves dc start end rel? 2
+	draw-curve dc start - 1 end rel? yes 3
 ]
 
 OS-draw-shape-qcurv: func [
@@ -987,7 +1220,7 @@ OS-draw-shape-qcurv: func [
 	end		[red-pair!]
 	rel?	[logic!]
 ][
-	;draw-short-curves dc start end rel? 1
+		draw-curve dc start - 1 end rel? yes 2
 ]
 
 OS-draw-shape-arc: func [
@@ -996,13 +1229,120 @@ OS-draw-shape-arc: func [
 	sweep?	[logic!]
 	large?	[logic!]
 	rel?	[logic!]
+	/local
+		ctx			[handle!]
+		item		[red-integer!]
+		last-x		[float!]
+		last-y		[float!]
+		center-x	[float32!]
+		center-y	[float32!]
+		cx			[float32!]
+		cy			[float32!]
+		cf			[float32!]
+		angle-len	[float32!]
+		radius-x	[float32!]
+		radius-y	[float32!]
+		theta		[float32!]
+		X1			[float32!]
+		Y1			[float32!]
+		p1-x		[float32!]
+		p1-y		[float32!]
+		p2-x		[float32!]
+		p2-y		[float32!]
+		cos-val		[float32!]
+		sin-val		[float32!]
+		rx2			[float32!]
+		ry2			[float32!]
+		dx			[float32!]
+		dy			[float32!]
+		sqrt-val	[float32!]
+		sign		[float32!]
+		rad-check	[float32!]
+		pi2			[float32!]
 ][
-	
+	last-x: 0.0 last-y: 0.0
+	if 1 = cairo_has_current_point dc/raw[
+		cairo_get_current_point dc/raw :last-x :last-y
+	]
+	p1-x: as float32! last-x p1-y: as float32! last-y
+	p2-x: either rel? [ p1-x + as float32! end/x ][ as float32! end/x ]
+	p2-y: either rel? [ p1-y + as float32! end/y ][ as float32! end/y ]
+	item: as red-integer! end + 1
+	radius-x: fabsf get-float32 item
+	item: item + 1
+	radius-y: fabsf get-float32 item
+	item: item + 1
+	pi2: as float32! 2.0 * PI
+	theta: get-float32 item
+	theta: theta * as float32! (PI / 180.0)
+	theta: theta % pi2
+
+	;-- calculate center
+	dx: (p1-x - p2-x) / as float32! 2.0
+	dy: (p1-y - p2-y) / as float32! 2.0
+	cos-val: cosf theta
+	sin-val: sinf theta
+	X1: (cos-val * dx) + (sin-val * dy)
+	Y1: (cos-val * dy) - (sin-val * dx)
+	rx2: radius-x * radius-x
+	ry2: radius-y * radius-y
+	rad-check: ((X1 * X1) / rx2) + ((Y1 * Y1) / ry2)
+	if rad-check > as float32! 1.0 [
+		radius-x: radius-x * sqrtf rad-check
+		radius-y: radius-y * sqrtf rad-check
+		rx2: radius-x * radius-x
+		ry2: radius-y * radius-y
+	]
+	either large? = sweep? [sign: as float32! -1.0 ][sign: as float32! 1.0 ]
+	sqrt-val: ((rx2 * ry2) - (rx2 * Y1 * Y1) - (ry2 * X1 * X1)) / ((rx2 * Y1 * Y1) + (ry2 * X1 * X1))
+	either sqrt-val < as float32! 0.0 [cf: as float32! 0.0 ][ cf: sign * sqrtf sqrt-val ]
+	cx: cf * (radius-x * Y1 / radius-y)
+	cy: cf * (radius-y * X1 / radius-x) * (as float32! -1.0)
+	center-x: (cos-val * cx) - (sin-val * cy) + ((p1-x + p2-x) / as float32! 2.0)
+	center-y: (sin-val * cx) + (cos-val * cy) + ((p1-y + p2-y) / as float32! 2.0)
+
+
+	;-- transform our ellipse into the unit circle
+	; m: CGAffineTransformMakeScale (as float! 1.0) / radius-x (as float! 1.0) / radius-y
+	; m: CGAffineTransformRotate m (as float! 0.0) - theta
+	; m: CGAffineTransformTranslate m (as float! 0.0) - center-x (as float! 0.0) - center-y
+
+	; pt1/x: p1-x pt1/y: p1-y
+	; pt2/x: p2-x pt2/y: p2-y
+	; pt1: CGPointApplyAffineTransform pt1 m
+	; pt2: CGPointApplyAffineTransform pt2 m
+
+	;-- calculate angles
+	cx: atan2f p1-y p1-x
+	cy: atan2f p2-y p2-x
+	angle-len: cy - cx
+	either sweep? [
+		if angle-len < as float32! 0.0 [
+			angle-len: angle-len + pi2
+		]
+	][
+		if angle-len > as float32! 0.0 [
+			angle-len: angle-len - pi2
+		]
+	]
+
+	;-- construct the inverse transform
+	; m: CGAffineTransformMakeTranslation center-x center-y
+	; m: CGAffineTransformRotate m theta
+	; m: CGAffineTransformScale m radius-x radius-y
+	; CGPathAddRelativeArc ctx/path :m as float32! 0.0 as float32! 0.0 as float32! 1.0 cx angle-len
+	ctx: dc/raw
+	cairo_save ctx
+	cairo_new_sub_path ctx
+	cairo_translate ctx as float! center-x as float! center-y
+	cairo_scale     ctx as float! radius-x as float! radius-y
+	cairo_arc ctx 0.0 0.0 1.0 as float! cx as float! cy
+	cairo_restore ctx
 ]
 
 OS-draw-shape-close: func [
-	ctx		[draw-ctx!]
-][]
+	dc		[draw-ctx!]
+][cairo_close_path dc/raw ]
 
 OS-draw-brush-bitmap: func [
 	ctx		[draw-ctx!]

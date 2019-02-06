@@ -186,8 +186,25 @@ OS-text-box-layout: func [
 	ft-clr	[integer!]
 	catch?	[logic!]
 	return: [integer!]
+	/local
+		values	[red-value!]
+		state	[red-block!]
+		int		[red-integer!]
+		styles	[red-block!]
+		size	[red-pair!]
+		bool	[red-logic!]
+		layout	[integer!]
+		ts		[integer!]
+		tc		[integer!]
+		str		[integer!]
+		w		[integer!]
+		h		[integer!]
+		nsfont	[integer!]
+		clr		[integer!]
+		para	[integer!]
+		cached?	[logic!]
 ][
-	;values: object/get-values box
+	values: object/get-values box
 	;if null? target [
 	;	hWnd: get-face-handle as red-object! values + TBOX_OBJ_TARGET
 	;	target: get-hwnd-render-target hWnd
