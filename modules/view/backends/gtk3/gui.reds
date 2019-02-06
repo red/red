@@ -1591,6 +1591,7 @@ OS-make-view: func [
 			gtk_window_move widget offset/x offset/y
 			gobj_signal_connect(widget "delete-event" :window-delete-event null)
 ;			gobj_signal_connect(widget "destroy" :window-destroy null)
+			;gobj_signal_connect(widget "configure-event" :window-configure-event null)
 			gobj_signal_connect(widget "size-allocate" :window-size-allocate null)
 		]
 		sym = slider [
@@ -1902,8 +1903,6 @@ OS-destroy-view: func [
 	gtk_window_close main-window
 
 	free-handles as-integer handle no
-
-	g_application_quit GTKApp
 
 ]
 
