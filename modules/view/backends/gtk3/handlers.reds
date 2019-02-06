@@ -238,17 +238,17 @@ window-delete-event: func [
 ][
 	;; DEBUG: print ["window-delete-event" lf]
 	make-event widget 0 EVT_CLOSE
-	false
+	no
 ]
 
-window-destroy: func [
-	[cdecl]
-	widget	[handle!]
-][
-	;; DEBUG: print ["window-destroy" lf]
-	;;remove-all-timers widget
-	make-event widget 0 EVT_CLOSE
-]
+; window-destroy: func [
+; 	[cdecl]
+; 	widget	[handle!]
+; ][
+; 	;; DEBUG: print ["window-destroy" lf]
+; 	;;remove-all-timers widget
+; 	make-event widget 0 EVT_CLOSE
+; ]
 
 window-removed-event: func [
 	[cdecl]

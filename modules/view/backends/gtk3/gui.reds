@@ -279,7 +279,6 @@ free-handles: func [
 	if all [sym = window not force?][
 		close-window?: yes
 		vector/rs-append-int win-array hWnd
-		exit
 	]
 
 	rate: values + FACE_OBJ_RATE
@@ -296,16 +295,9 @@ free-handles: func [
 		]
 	]
 
-	either sym = window [
-		;;g_object_unref as handle! hWnd
-		gtk_widget_destroy as handle! hWnd
+	if sym = window [
 		win-cnt: win-cnt - 1
 		post-quit-msg
-	][
-		unless close-window? [
-			;g_object_unref as handle! hWnd
-			gtk_widget_destroy as handle! hWnd
-		]
 	]
 
 	state: values + FACE_OBJ_STATE
@@ -590,6 +582,7 @@ remove-all-timers: func [
 		values		[red-value!]
 		rate 		[red-value!]
 ][
+	remove-widget-timer hWnd
 	values: get-face-values hWnd
 	type: 	as red-word! values + FACE_OBJ_TYPE
 	pane: 	as red-block! values + FACE_OBJ_PANE
@@ -1901,11 +1894,17 @@ OS-destroy-view: func [
 	;if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj PARA_OBJ_PARENT]
 	
 	;;g_main_context_release GTKApp-Ctx
-	;; DEBUG: print ["BYE!" lf]
-	;;halt
+	;; DEBUG: 
 
+	remove-all-timers handle
+	print ["BYE! win: " win-cnt " (" handle ")" lf]
+
+	gtk_window_close main-window
 
 	free-handles as-integer handle no
+
+	g_application_quit GTKApp
+
 ]
 
 OS-update-facet: func [
