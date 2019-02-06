@@ -468,8 +468,8 @@ OS-image: context [
 			]
 		][
 			r: color/array1
-			a: either TUPLE_SIZE?(color) = 3 [255][255 - (r >>> 24)]
-			r: r >> 16 and FFh or (r and FF00h) or (r and FFh << 16) or (a << 24)
+			a: either TUPLE_SIZE?(color) = 3 [255][255 - (r  and FFh)]
+			r: (r >> 24 and FFh) or ((r >> 16 and FFh) << 8) or ((r >> 8 and FFh) << 16) or (a << 24)
 			while [y < height][
 				x: 0
 				while [x < width][
