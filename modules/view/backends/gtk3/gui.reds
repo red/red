@@ -1591,8 +1591,9 @@ OS-make-view: func [
 			gtk_window_move widget offset/x offset/y
 			gobj_signal_connect(widget "delete-event" :window-delete-event null)
 ;			gobj_signal_connect(widget "destroy" :window-destroy null)
-			;gobj_signal_connect(widget "configure-event" :window-configure-event null)
-			gobj_signal_connect(widget "size-allocate" :window-size-allocate null)
+			gtk_widget_add_events widget GDK_STRUCTURE_MASK
+			gobj_signal_connect(widget "configure-event" :window-configure-event null)
+			;gobj_signal_connect(widget "size-allocate" :window-size-allocate null)
 		]
 		sym = slider [
 			vertical?: size/y > size/x
@@ -1865,7 +1866,7 @@ OS-update-view: func [
 	;]
 
 	;; update-view at least ask for this
-	unless null? main-window [gtk_widget_queue_draw widget]
+	if all[ not null? main-window main-window = widget]  [gtk_widget_queue_draw widget]
 
 	int/value: 0										;-- reset flags
 ]
