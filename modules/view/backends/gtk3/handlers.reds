@@ -266,12 +266,19 @@ window-configure-event: func [
 	/local
 		sz	 [red-pair!]
 ][
+
+
 	;;DEBUG: print [ "window-resizing " event/x "x" event/y " " event/width "x" event/height lf]
 	sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE		;-- update face/size
-	if 5 < (((event/width - sz/x) * (event/width - sz/x)) + ((event/height - sz/y) * (event/height - sz/y))) [
-		sz/x: event/width
-		sz/y: event/height
-		make-event widget 0 EVT_SIZING
+	either any [event/width <> sz/x event/height <> sz/y] [
+		;if 0 = (motion/cpt % motion/sensitiv) [
+			motion/x_new: event/width 
+			motion/y_new: event/height
+			motion/x_root: as float! event/x
+			motion/y_root: as float! event/y 
+			make-event widget 0 EVT_SIZING
+		;]
+		;motion/cpt: motion/cpt + 1
 		yes
 	][no]
 ]
@@ -284,8 +291,7 @@ window-size-allocate: func [
 	/local
 		sz	 [red-pair!]
 ][
-	;;DEBUG: 
-	print [ "window-size-allocate " rect/width "x" rect/height lf]
+	;;DEBUG: print [ "window-size-allocate " rect/width "x" rect/height lf]
 	make-event widget 0 EVT_SIZING
 	sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE		;-- update face/size
 	sz/x: rect/width
@@ -608,7 +614,8 @@ mouse-button-press-event: func [
 	ctx 	[node!]
 	return: [logic!]
 ][
-	;; DEBUG: print [ "mouse -> BUTTON-PRESS: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
+	;; DEBUG: 
+	print [ "mouse -> BUTTON-PRESS: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
 	; motion/state: yes
 	; motion/cpt: 0
 	motion/x_root: event/x_root

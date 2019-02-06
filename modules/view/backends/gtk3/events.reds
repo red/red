@@ -89,21 +89,26 @@ get-event-offset: func [
 			evt/type = EVT_SIZING
 			evt/type = EVT_SIZE
 		][
-			widget: as handle! evt/msg
 			;; DEBUG: print ["event-offset type: " get-symbol-name get-widget-symbol widget lf]
 			offset: as red-pair! stack/push*
 			offset/header: TYPE_PAIR
-			
-			
-			sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE
-			offset/x: sz/x
-			offset/y: sz/y
-			
-			; offset/x: gtk_widget_get_allocated_width widget
-			; offset/y: gtk_widget_get_allocated_height widget
 
-			;; DEBUG: print ["event-offset: " offset/x "x" offset/y lf]
-			as red-value! offset
+			widget: as handle! evt/msg
+			sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE
+			sz/x: motion/x_new
+			sz/y: motion/y_new
+			
+			; print ["OFFSET is SIZE ? " sz " vs " offset lf] ; => NO!
+			; alternative 1:
+ 			; sz/x: (as integer! motion/x_root) - offset/x
+			; sz/y: (as integer! motion/y_root)  - offset/y 
+
+			; alternative 2:
+			; sz/x: gtk_widget_get_allocated_width widget
+			; sz/y: gtk_widget_get_allocated_height widget
+
+			;; DEBUG: print ["event-size: " sz/x "x" sz/y " vs " offset/x "x" offset/y lf]
+			as red-value! sz
 		]
 		any [
 			evt/type = EVT_ZOOM

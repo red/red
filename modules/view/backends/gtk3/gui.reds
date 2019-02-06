@@ -820,16 +820,19 @@ change-size: func [
 		_widget	[handle!]
 ][
 	;; DEBUG: print ["change-size" get-symbol-name get-widget-symbol hWnd size lf]
+	
 	either type = window [
 		gtk_window_set_default_size hWnd size/x size/y
-	 ][
+		gtk_widget_queue_draw hWnd
+	][
 		 unless null? hWnd [
 			_widget: g_object_get_qdata hWnd _widget-id
 			_widget: either null? _widget [hWnd][_widget]
 			gtk_widget_set_size_request _widget size/x size/y
-			unless null? _widget [gtk_widget_queue_draw _widget]
+			unless null? _widget [gtk_widget_queue_resize _widget]
 		]
 	]
+
 ]
 
 change-visible: func [
@@ -1866,7 +1869,9 @@ OS-update-view: func [
 	;]
 
 	;; update-view at least ask for this
-	if all[ not null? main-window main-window = widget]  [gtk_widget_queue_draw widget]
+	;if main-window = widget [
+		gtk_widget_queue_draw widget
+	;]
 
 	int/value: 0										;-- reset flags
 ]
