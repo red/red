@@ -222,21 +222,23 @@ get-text-size: func [
 
 	;;; get pango_context
 	;  from widget first
-	widget: face-handle? face
-	pc: as handle! 0 pl: as handle! 0
-	if null? widget [
-		pc: gtk_widget_get_pango_context widget
-		unless null? pc [pl: pango_layout_new pc ];seems more natural than pango-context
-	]
+	; widget: face-handle? face
+	; pc: as handle! 0 pl: as handle! 0
+	; unless null? widget [
+	; 	pc: gtk_widget_get_pango_context widget
+	; 	unless null? pc [pl: pango_layout_new pc ];seems more natural than pango-context
+	; ]
 	; globally otherwise
-	if null? pl [pl: pango_layout_new pango-context]
+	;if null? pl [
+		pl: pango_layout_new pango-context
+	;]
 	 
 
 	pango_layout_set_text pl text -1
 	pango_layout_set_font_description pl hFont
 	pango_layout_get_pixel_size pl :width :height
 	g_object_unref pl
-	unless null? pc [g_object_unref pc]
+;	unless null? pc [g_object_unref pc]
 
 	size/width: width
 	size/height: height
