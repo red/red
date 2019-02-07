@@ -196,15 +196,19 @@ OS-text-box-layout: func [
 		layout	[integer!]
 		ts		[integer!]
 		tc		[integer!]
-		str		[integer!]
 		w		[integer!]
 		h		[integer!]
-		nsfont	[integer!]
-		clr		[integer!]
 		para	[integer!]
 		cached?	[logic!]
+
+		font	[handle!]
+		clr		[integer!]
+		text	[red-string!]
+		len     [integer!]
+		str		[c-string!]
 ][
 	values: object/get-values box
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;if null? target [
 	;	hWnd: get-face-handle as red-object! values + TBOX_OBJ_TARGET
 	;	target: get-hwnd-render-target hWnd
@@ -246,5 +250,102 @@ OS-text-box-layout: func [
 	;	parse-text-styles target as handle! layout styles catch?
 	;]
 	;layout
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+	text: as red-string! values + FACE_OBJ_TEXT
+	len: -1
+	str: unicode/to-utf8 text :len
+	state: as red-block! values + FACE_OBJ_EXT3
+	size: as red-pair! values + FACE_OBJ_SIZE
+	font: get-font null as red-object! values + FACE_OBJ_FONT
+	cached?: TYPE_OF(state) = TYPE_BLOCK
+
+	; h: 7CF0BDC2h w: 7CF0BDC2h
+	; sz: as NSSize! :h
+
+	; either cached? [
+	; 	int: as red-integer! block/rs-head state
+	; 	layout: int/value
+	; 	int: int + 1 tc: int/value
+	; 	int: int + 1 ts: int/value
+	; 	int: int + 1 para: int/value
+	; 	bool: as red-logic! int + 2
+	; 	bool/value: false
+	; ][
+	; 	tc: objc_msgSend [
+	; 		objc_msgSend [objc_getClass "NSTextContainer" sel_alloc]
+	; 		sel_getUid "initWithSize:" 7CF0BDC2h 7CF0BDC2h
+	; 	]
+	; 	objc_msgSend [tc sel_getUid "setLineFragmentPadding:" 0]
+
+	; 	ts: objc_msgSend [
+	; 		objc_msgSend [objc_getClass "NSTextStorage" sel_alloc]
+	; 		sel_getUid "initWithString:" str
+	; 	]
+
+	; 	layout: objc_msgSend [objc_msgSend [objc_getClass "RedLayoutManager" sel_alloc] sel_init]
+	; 	objc_msgSend [layout sel_getUid "addTextContainer:" tc]
+	; 	objc_msgSend [tc sel_release]
+	; 	objc_msgSend [ts sel_getUid "addLayoutManager:" layout]
+	; 	objc_msgSend [layout sel_release]
+	; 	objc_msgSend [layout sel_getUid "setDelegate:" layout]
+	; 	objc_setAssociatedObject layout RedAttachedWidgetKey nsfont OBJC_ASSOCIATION_ASSIGN
+
+	; 	para: objc_msgSend [objc_getClass "NSParagraphStyle" sel_getUid "defaultParagraphStyle"]
+	; 	para: objc_msgSend [para sel_getUid "mutableCopy"]
+	; 	h: objc_msgSend [nsfont sel_getUid "advancementForGlyph:" 32]			;-- #" "
+	; 	objc_msgSend [para sel_getUid "setDefaultTabInterval:" sz/w * (as float32! 4.0)]
+	; 	objc_msgSend [para sel_getUid "setTabStops:" objc_msgSend [objc_getClass "NSArray" sel_getUid "array"]]
+
+	; 	h: 7CF0BDC2h
+	; 	block/make-at state 6
+	; 	integer/make-in state layout
+	; 	integer/make-in state tc
+	; 	integer/make-in state ts
+	; 	integer/make-in state para
+	; 	none/make-in state
+	; 	logic/make-in state false
+	; ]
+
+	; copy-cell values + FACE_OBJ_TEXT (block/rs-head state) + 4
+
+	; ;@@ set para: as red-object! values + FACE_OBJ_PARA
+
+	; if TYPE_OF(size) = TYPE_PAIR [
+	; 	unless zero? size/x [sz/w: as float32! size/x]
+	; 	unless zero? size/y [sz/h: as float32! size/y]
+	; ]
+	; objc_msgSend [tc sel_getUid "setSize:" sz/w sz/h]
+
+	; objc_msgSend [ts sel_getUid "beginEditing"]
+
+	; if cached? [
+	; 	w: objc_msgSend [ts sel_length]
+	; 	objc_msgSend [ts sel_getUid "deleteCharactersInRange:" 0 w]
+	; 	objc_msgSend [ts sel_getUid "replaceCharactersInRange:withString:" 0 0 str]
+	; ]
+
+	; attrs: objc_msgSend [
+	; 	objc_msgSend [objc_getClass "NSDictionary" sel_getUid "alloc"]
+	; 	sel_getUid "initWithObjectsAndKeys:"
+	; 	nsfont NSFontAttributeName
+	; 	para NSParagraphStyleAttributeName
+	; 	nscolor NSForegroundColorAttributeName
+	; 	0
+	; ]
+	; w: objc_msgSend [str sel_length]
+	; objc_msgSend [ts sel_getUid "setAttributes:range:" attrs 0 w]
+	; objc_msgSend [attrs sel_release]
+
+	; styles: as red-block! values + FACE_OBJ_DATA
+	; if all [
+	; 	TYPE_OF(styles) = TYPE_BLOCK
+	; 	1 < block/rs-length? styles
+	; ][
+	; 	parse-text-styles as handle! nsfont as handle! ts styles w catch?
+	; ]
+
+	; objc_msgSend [ts sel_getUid "endEditing"]
+	; layout
 	0
 ]

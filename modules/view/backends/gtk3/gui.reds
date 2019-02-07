@@ -61,7 +61,7 @@ _on-over:		word/load "on-over"
 
 pango-context:	as handle! 0
 gtk-font:		"Sans 10"
-default-font:	0
+default-font:	as handle! 0
 
 ; Do not KNOW about this one 
 ;;;
@@ -425,6 +425,8 @@ init: func [][
 
 	screen-size-x: gdk_screen_width
 	screen-size-y: gdk_screen_height
+
+	default-font: pango_font_description_from_string gtk-font
 
 	collector/register as int-ptr! :on-gc-mark
 ]
