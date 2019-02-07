@@ -73,10 +73,11 @@ make-font: func [
 		hFont	[handle!]
 ][
 	; no more deal with different styles but only font via pango_font_description (excluding color, underline, strike)
+	;; DEBUG: print ["make-font face " face " " font lf]
 	hFont: font-description font
-
+	;; DEBUG: print ["make-font font-description: " hFont lf]
 	set-font-handle font hFont
-
+	;; DEBUG: print ["make-font  set-font-handle: " font " " hFont lf]
 	values: object/get-values font
 
 	if face <> null [
@@ -84,7 +85,7 @@ make-font: func [
 		block/rs-append blk as red-value! face
 	]
 
-	;; DEBUG: print ["font-description: " hFont lf]
+	;; DEBUG: print ["make-font end font-description: " hFont lf]
 
 	hFont
 ]
@@ -110,7 +111,9 @@ get-font-handle: func [
 free-font-handle: func [
 	hFont [handle!]
 ][
+	;; DEBUG: print ["free-font-handle " hFont lf]
 	pango_font_description_free hFont
+	;; DEBUG: print ["free-font-handle end " hFont lf]
 ]
 
 free-font: func [
@@ -120,11 +123,11 @@ free-font: func [
 		hFont [handle!]
 ][
 	hFont: get-font-handle font 0
-	if hFont <> null [
+	unless null? hFont [
 		state: as red-block! (object/get-values font) + FONT_OBJ_STATE
 		state/header: TYPE_NONE
+		free-font-handle hFont
 	]
-	free-font-handle hFont
 ]
 
 set-font-handle: func [
@@ -138,7 +141,9 @@ set-font-handle: func [
 		hFontP	[handle!]
 ][
 	; release previous hFont first
+	;; DEBUG: print ["set-font-handle " font " " hFont lf]
 	hFontP: get-font-handle font 0
+	;; DEBUG: print ["set-font-handle get " hFontP lf]
 	unless null? hFontP [
 		free-font-handle hFontP
 	]
@@ -161,13 +166,13 @@ update-font: func [
 	font [red-object!]
 	flag [integer!]
 ][
+	;; DEBUG: print ["update-font " font lf]
 	switch flag [
 		FONT_OBJ_NAME
 		FONT_OBJ_SIZE
 		FONT_OBJ_STYLE
 		FONT_OBJ_ANGLE
 		FONT_OBJ_ANTI-ALIAS? [
-			free-font font
 			make-font null font
 		]
 		default [0]
@@ -254,6 +259,10 @@ font-description: func [
 	pango_font_description_set_stretch fd PANGO_STRETCH_NORMAL
 	pango_font_description_set_variant fd PANGO_VARIANT_NORMAL
 	
+	;; DOES NOT WORK AS EXPECTED: 
+	;; css: pango_font_description_to_string fd
+	;; print ["font description css: " css lf]
+
 	fd
 ]
 
