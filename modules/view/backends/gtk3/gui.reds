@@ -222,17 +222,23 @@ get-text-size: func [
 
 	;;; get pango_context
 	;  from widget first
-	widget: face-handle? face
-	pc: gtk_widget_get_pango_context widget
-	pl: pango_layout_new pc ;seems more natural than pango-context
+	; widget: face-handle? face
+	; pc: as handle! 0 pl: as handle! 0
+	; unless null? widget [
+	; 	pc: gtk_widget_get_pango_context widget
+	; 	unless null? pc [pl: pango_layout_new pc ];seems more natural than pango-context
+	; ]
 	; globally otherwise
-	if null? pl [pl: pango_layout_new pango-context]
+	;if null? pl [
+		pl: pango_layout_new pango-context
+	;]
 	 
 
 	pango_layout_set_text pl text -1
 	pango_layout_set_font_description pl hFont
 	pango_layout_get_pixel_size pl :width :height
 	g_object_unref pl
+;	unless null? pc [g_object_unref pc]
 
 	size/width: width
 	size/height: height
@@ -1595,10 +1601,9 @@ OS-make-view: func [
 			gtk_container_add widget gtk_fixed_new
 			gtk_window_move widget offset/x offset/y
 			gobj_signal_connect(widget "delete-event" :window-delete-event null)
-      ;gobj_signal_connect(widget "destroy" :window-destroy null)
-			gtk_widget_add_events widget GDK_STRUCTURE_MASK
-			gobj_signal_connect(widget "configure-event" :window-configure-event null)
-			;gobj_signal_connect(widget "size-allocate" :window-size-allocate null)
+			;BUG (make `vid.red` failing):gtk_widget_add_events widget GDK_STRUCTURE_MASK
+			;gobj_signal_connect(widget "configure-event" :window-configure-event null)
+			gobj_signal_connect(widget "size-allocate" :window-size-allocate null)
 		]
 		sym = slider [
 			vertical?: size/y > size/x

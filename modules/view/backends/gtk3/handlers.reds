@@ -259,29 +259,28 @@ window-removed-event: func [
 	count/value: count/value - 1
 ]
 
-window-configure-event: func [
-	[cdecl]
-	widget	[handle!]
-	event	[GdkEventConfigure!]
-	/local
-		sz	 [red-pair!]
-][
-
-
-	;;DEBUG: print [ "window-resizing " event/x "x" event/y " " event/width "x" event/height lf]
-	sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE		;-- update face/size
-	either any [event/width <> sz/x event/height <> sz/y] [
-		;if 0 = (motion/cpt % motion/sensitiv) [
-			motion/x_new: event/width 
-			motion/y_new: event/height
-			motion/x_root: as float! event/x
-			motion/y_root: as float! event/y 
-			make-event widget 0 EVT_SIZING
-		;]
-		;motion/cpt: motion/cpt + 1
-		yes
-	][no]
-]
+;; BUG: `vid.red` fails... back with window-size-allocate handler for resizing
+; window-configure-event: func [
+; 	[cdecl]
+; 	widget	[handle!]
+; 	event	[GdkEventConfigure!]
+; 	/local
+; 		sz	 [red-pair!]
+; ][
+; 	;;DEBUG: print [ "window-resizing " event/x "x" event/y " " event/width "x" event/height lf]
+; 	sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE		;-- update face/size
+; 	either any [event/width <> sz/x event/height <> sz/y] [
+; 		;if 0 = (motion/cpt % motion/sensitiv) [
+; 			motion/x_new: event/width 
+; 			motion/y_new: event/height
+; 			motion/x_root: as float! event/x
+; 			motion/y_root: as float! event/y 
+; 			make-event widget 0 EVT_SIZING
+; 		;]
+; 		;motion/cpt: motion/cpt + 1
+; 		yes
+; 	][no]
+; ]
 
 
 window-size-allocate: func [
@@ -291,12 +290,14 @@ window-size-allocate: func [
 	/local
 		sz	 [red-pair!]
 ][
-	;;DEBUG: print [ "window-size-allocate " rect/width "x" rect/height lf]
-	make-event widget 0 EVT_SIZING
 	sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE		;-- update face/size
-	sz/x: rect/width
-	sz/y: rect/height
-	;; DEBUG: print [ "window-size-allocate end " sz lf]
+	if any [rect/width <> sz/x rect/height <> sz/y] [
+			motion/x_new: rect/width 
+			motion/y_new: rect/height
+			motion/x_root: as float! rect/x
+			motion/y_root: as float! rect/y 
+			make-event widget 0 EVT_SIZING
+	] 
 ]
 
 range-value-changed: func [
