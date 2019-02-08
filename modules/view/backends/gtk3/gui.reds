@@ -26,8 +26,8 @@ GTKApp:			as handle! 0
 GTKApp-Ctx: 	0
 exit-loop:		0
 
-close-window?:	no
-win-array:		declare red-vector!
+;;;close-window?:	no
+;;;win-array:		declare red-vector!
 win-cnt:		0
 
 red-face-id:	0
@@ -283,10 +283,10 @@ free-handles: func [
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
 
-	if all [sym = window not force?][
-		close-window?: yes
-		vector/rs-append-int win-array hWnd
-	]
+	;;;if all [sym = window not force?][
+	;;;	close-window?: yes
+	;;;	vector/rs-append-int win-array hWnd
+	;;;]
 
 	rate: values + FACE_OBJ_RATE
 	if TYPE_OF(rate) <> TYPE_NONE [change-rate as handle! hWnd none-value]
@@ -403,10 +403,10 @@ debug-show-children: func [
 	free as byte-ptr! rect
 ]
 
-on-gc-mark: does [
-	collector/keep flags-blk/node
-	collector/keep win-array/node
-]
+; on-gc-mark: does [
+; 	collector/keep flags-blk/node
+; 	collector/keep win-array/node
+; ]
 
 init: func [][
 	GTKApp: gtk_application_new RED_GTK_APP_ID G_APPLICATION_NON_UNIQUE
@@ -418,7 +418,7 @@ init: func [][
 	]
 	g_application_register GTKApp null null
 
-	vector/make-at as red-value! win-array 8 TYPE_INTEGER 4
+	;;;vector/make-at as red-value! win-array 8 TYPE_INTEGER 4
 
 	red-face-id: g_quark_from_string "red-face-id"
 	gtk-style-id: g_quark_from_string "gtk-style-id"
@@ -428,7 +428,7 @@ init: func [][
 
 	default-font: pango_font_description_from_string gtk-font
 
-	collector/register as int-ptr! :on-gc-mark
+	;;;collector/register as int-ptr! :on-gc-mark
 ]
 
 get-symbol-name: function [
