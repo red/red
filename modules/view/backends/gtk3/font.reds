@@ -108,6 +108,19 @@ get-font-handle: func [
 	null
 ]
 
+get-font: func [
+	face	[red-object!]
+	font	[red-object!]
+	return: [handle!]
+	/local
+		hFont [handle!]
+][
+	if TYPE_OF(font) <> TYPE_OBJECT [return default-font]
+	hFont: get-font-handle font 0
+	if null? hFont [hFont: make-font face font]
+	hFont
+]
+
 free-font-handle: func [
 	hFont [handle!]
 ][
@@ -203,9 +216,7 @@ font-description: func [
 
 ][
 	; default font if font is none. TODO: better than gtk-font would be to get the default font system or from red side
-	if TYPE_OF(font) = TYPE_NONE [
-		return pango_font_description_from_string gtk-font
-	]
+	if TYPE_OF(font) = TYPE_NONE [return default-font]
 	values: object/get-values font
 	;name:
 	str: 	as red-string!	values + FONT_OBJ_NAME
