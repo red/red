@@ -50,11 +50,11 @@ do %source/units/run-pre-extra-tests.r
 do %source/units/run-post-extra-tests.r
 
 ===start-group=== "Red Compiler Regression Tests"
-	do %source/compiler/regression-test-redc-1.r
-	do %source/compiler/regression-test-redc-2.r
-	do %source/compiler/regression-test-redc-3.r
-	do %source/compiler/regression-test-redc-4.r
-	do %source/compiler/regression-test-redc-5.r
+	--run-script-quiet %source/compiler/regression-test-redc-1.r
+	--run-script-quiet %source/compiler/regression-test-redc-2.r
+	--run-script-quiet %source/compiler/regression-test-redc-3.r
+	--run-script-quiet %source/compiler/regression-test-redc-4.r
+	--run-script-quiet %source/compiler/regression-test-redc-5.r
 ===end-group===
 
 ===start-group=== "View Engine Tests"

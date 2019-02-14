@@ -25,8 +25,8 @@ REBOL [
 	compilation-error: func [value] [found? find qt/comp-output join "*** Compilation Error: " value]
 	syntax-error: func [value] [found? find qt/comp-output join "*** Syntax Error: " value]
 	script-error: func [value] [found? find qt/comp-output join "*** Script Error: " value]
-	-test-: :--test--
-	--test--: func [value] [probe value -test- value]
+	; -test-: :--test--
+	; --test--: func [value] [probe value -test- value]
 
 	--test-- "#274"
 		--compile-and-run-this-red {
