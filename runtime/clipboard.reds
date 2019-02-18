@@ -87,7 +87,7 @@ clipboard: context [
 			p: null
 			val: as red-value! none-value
 
-			unless OpenClipboard main-hWnd [return val]
+			unless OpenClipboard main-hWnd [return false-value]
 
 			hMem: GetClipboardData CF_UNICODETEXT
 			if hMem <> 0 [
@@ -105,6 +105,7 @@ clipboard: context [
 			data		[red-value!]
 			return:		[logic!]
 			/local
+				res		[integer!]
 				len		[integer!]
 				hMem	[integer!]
 				p		[byte-ptr!]
@@ -126,9 +127,9 @@ clipboard: context [
 				default		[0]
 			]
 
-			SetClipboardData CF_UNICODETEXT hMem
+			res: SetClipboardData CF_UNICODETEXT hMem
 			CloseClipboard
-			true
+			as logic! res
 		]
 	]
 	macOS [
