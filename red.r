@@ -438,7 +438,7 @@ redc: context [
 	run-console: func [
 		gui?	   [logic!]
 		debug?	 [logic!]
-		nol?     [logic!] 								;-- no launch
+		quiet?     [logic!] 							
 		/with file [string!]
 		/local 
 			opts result script filename exe console console-root files files2
@@ -526,7 +526,7 @@ redc: context [
 		]
 		exe: safe-to-local-file exe
 
-        if not nol? [
+        if not quiet? [
 			either gui? [
 				gui-sys-call exe any [all [file form-args file] ""]
 			][
@@ -733,7 +733,7 @@ redc: context [
 				| "--cli"						(gui?: no)
 				| "--no-compress"				(opts/redbin-compress?: no)
 				| "--catch"						;-- just pass-thru
-				| ["-nol" | "--no-launch"]   	(nol?: yes)
+				| "--quiet"   	                (quiet?: yes)
 			]
 			set filename skip (src: load-filename filename)
 		]		
@@ -810,7 +810,7 @@ redc: context [
 		unless src [
 			either encap? [
 				if load-lib? [build-compress-lib]
-				run-console gui? opts/debug? nol?
+				run-console gui? opts/debug? quiet?
 			][
 				return reduce [none none]
 			]
