@@ -748,6 +748,7 @@ OS-image: context [
 			inode/size: h << 16 or w
 			dst/size: inode/size
 		]
+		dst/header: TYPE_IMAGE
 		dst/head: 0
 		dst
 	]
