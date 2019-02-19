@@ -332,9 +332,9 @@ system/lexer: context [
 			not-file-char not-str-char not-mstr-char caret-char
 			non-printable-char integer-end ws-ASCII ws-U+2k control-char
 			four half non-zero path-end base base64-char slash-end not-url-char
-			email-end pair-end file-end err date-sep time-sep not-tag-1st
+			email-end pair-end file-end err date-sep time-sep not-tag-1st right-bracket
 	][
-		cs:		[- - - - - - - - - - - - - - - - - - - - - - - - - - - - -] ;-- memoized bitsets
+		cs:		[- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -] ;-- memoized bitsets
 		stack:	clear []
 		count?:	yes										;-- if TRUE, lines counter is enabled
 		old-line: line: 1
@@ -404,6 +404,7 @@ system/lexer: context [
 				cs/27: charset "/-"							;-- date-sep
 				cs/28: charset "/T"							;-- time-sep
 				cs/29: charset "=><[](){};^""				;-- not-tag-1st
+				cs/30: charset ")]}"						;-- right-bracket
 
 				list: system/locale/months
 				while [not tail? list][
@@ -423,7 +424,7 @@ system/lexer: context [
 			not-file-char not-str-char not-mstr-char caret-char
 			non-printable-char integer-end ws-ASCII ws-U+2k control-char
 			four half non-zero path-end base64-char slash-end not-url-char email-end
-			pair-end file-end date-sep time-sep not-tag-1st
+			pair-end file-end date-sep time-sep not-tag-1st right-bracket
 		] cs
 
 		byte: [
@@ -911,6 +912,19 @@ system/lexer: context [
 			ending
 		]
 
+		wrong-begin: [
+			right-bracket
+			(
+				value: switch pos/1 [
+					#")" [#"("]
+					#"]" [#"["]
+					#"}" [#"{"]
+				]
+				pos: next pos
+				throw-error/missing [value back pos]
+			)
+		]
+
 		literal-value: [
 			pos: (e: none) s: [
 				 string-rule		(store stack do make-string)
@@ -942,8 +956,8 @@ system/lexer: context [
 			)
 		]
 
-		one-value: [any ws pos: opt literal-value pos: to end opt wrong-end]
-		any-value: [pos: any [some ws | literal-value]]
+		one-value: [any ws pos: opt wrong-begin pos: opt literal-value pos: to end opt wrong-end]
+		any-value: [pos: any [wrong-begin | some ws | literal-value]]
 		red-rules: [any-value any ws opt wrong-end]
 
 		if pre-load [do [pre-load src length]]
