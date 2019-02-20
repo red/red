@@ -526,7 +526,7 @@ redc: context [
 		]
 		exe: safe-to-local-file exe
 
-        if not quiet? [
+        unless quiet? [
 			either gui? [
 				gui-sys-call exe any [all [file form-args file] ""]
 			][
@@ -686,7 +686,7 @@ redc: context [
 	parse-options: func [
 		args [string! none!]
 		/local src opts output target verbose filename config config-name base-path type
-		mode target? gui? cmd spec cmds ws ssp
+		mode target? gui? cmd spec cmds ws ssp quiet?
 	][
 		unless args [
 			if encap? [fetch-cmdline]					;-- Fetch real command-line in UTF8 format
@@ -700,7 +700,8 @@ redc: context [
 			libRedRT-update?: no
 		]
 		gui?: Windows?									;-- use GUI console by default on Windows
-
+        quiet?: no
+		
 		unless empty? args [
 			if cmd: select [
 				"clear" do-clear
