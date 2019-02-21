@@ -942,7 +942,7 @@ system/lexer: context [
 			)
 		]
 
-		one-value: [any ws pos: opt literal-value pos: to end opt wrong-end]
+		one-value: [any ws pos: literal-value pos: to end opt wrong-end]
 		any-value: [pos: any [some ws | literal-value]]
 		red-rules: [any-value any ws opt wrong-end]
 
@@ -954,7 +954,18 @@ system/lexer: context [
 			][
 				parse/case src either one [one-value][red-rules]
 			][
-				throw-error ['value pos]
+				unless tail? pos [
+					if find ")]}" pos/1 [
+						value: switch pos/1 [
+							#")"	[#"("]
+							#"]"	[#"["]
+							#"}"	[#"{"]
+						]
+						pos: next pos
+						throw-error/missing [value back pos]
+					]
+					throw-error ['value pos]
+				]
 			]
 		]	
 		either trap [
