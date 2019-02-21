@@ -526,7 +526,7 @@ redc: context [
 		]
 		exe: safe-to-local-file exe
 
-    unless quiet? [
+    	unless quiet? [
 			either gui? [
 				gui-sys-call exe any [all [file form-args file] ""]
 			][
