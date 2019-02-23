@@ -493,4 +493,10 @@ Red [
 		--assert 0.5 = average [1 30% 20%]
 ===end-group===
 
+===start-group=== "last? tests"
+	--test-- "last? test"
+		--assert false = last? []
+		--assert true = last? [1]
+===end-group===
+
 ~~~end-file~~~
