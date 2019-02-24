@@ -494,9 +494,24 @@ Red [
 ===end-group===
 
 ===start-group=== "last? tests"
-	--test-- "last? test"
-		--assert false = last? []
+	--test-- "last? true tests"
+		--assert error? try [last? 2]
 		--assert true = last? [1]
+		--assert true = last? "1"
+		--assert true = last? make hash! [1]
+		--assert true = last? make vector! [1]
+		--assert true = last? #{01}
+	--test-- "last? false tests"
+		--assert false = last? []
+		--assert false = last? [1 2]
+		--assert false = last? ""
+		--assert false = last? "12"
+		--assert false = last? make hash! []
+		--assert false = last? make hash! [1 2]
+		--assert false = last? make vector! []
+		--assert false = last? make vector! [1 2]
+		--assert false = last? #{0102}
+		--assert false = last? #{}
 ===end-group===
 
 ~~~end-file~~~
