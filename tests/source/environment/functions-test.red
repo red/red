@@ -459,11 +459,6 @@ Red [
 		--assertf~= atan 1.0 0.7853981 0.0001
 ===end-group===
 
-===start-group=== "atan tests"
-	--test-- "atan test"
-		--assertf~= atan 1.0 0.7853981 0.0001
-===end-group===
-
 ===start-group=== "atan2 tests"
 	--test-- "atan2 test"
 		--assertf~= (atan2 10 1) 1.4711276 0.0001
@@ -475,8 +470,8 @@ Red [
 		--assert 2.0 = sqrt 4
 ===end-group===
 
-===start-group=== "sqrt tests"
-	--test-- "sqrt test"
+===start-group=== "rejoin tests"
+	--test-- "rejoin test"
 		--assert "24" = rejoin [1 + 1 2 * 2]
 ===end-group===
 
