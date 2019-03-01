@@ -63,11 +63,15 @@ quit: func [
 ]
 
 empty?: func [
-	"Returns true if a series is at its tail"
-	series	[series! none!]
+	"Returns true if a series is at its tail or a map! is empty"
+	series	[series! none! map!]
 	return:	[logic!]
 ][
-	either series = none [true][tail? series]
+	case [
+		series? series [tail? series]
+		map? series [series = #()]
+		none? series [true]
+	]
 ]
 
 ??: func [

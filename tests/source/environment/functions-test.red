@@ -55,6 +55,14 @@ Red [
 	--test-- "empty-6" --assert false = empty? "a"
 	--test-- "empty-7" --assert false = empty? [red blue]
 	--test-- "empty-8" --assert false = empty? %functions-test.red
+	--test-- "empty-9"
+		--assert true = empty? #()
+	--test-- "empty-10"
+		--assert false = empty? #(a: 1)
+	--test-- "empty-11"
+		m: #(a: 1)
+		m/a: none
+		--assert true = empty? m
 
 ===end-group===
 
