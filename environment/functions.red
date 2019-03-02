@@ -1044,7 +1044,7 @@ average: func [
 	divide sum block to float! length? block
 ]
 
-last?: func [
+single?: last?: func [
 	"Returns TRUE if the series length is 1"
 	series [series!]
 ] [
