@@ -1048,6 +1048,13 @@ average: func [
 	divide sum block to float! length? block
 ]
 
+single?: last?: func [
+	"Returns TRUE if the series length is 1"
+	series [series!]
+] [
+	1 = length? series
+]
+
 ;------------------------------------------
 ;-				Aliases					  -
 ;------------------------------------------
