@@ -57,7 +57,7 @@ system/reactivity: context [
 		obj [object!]
 		word [default!]
 		reaction [block! function!]
-		targets [set-word! block! none!]
+		targets [set-word! block! object! none!]
 		/local new-rel
 	][
 		new-rel: reduce [obj :word :reaction targets]
