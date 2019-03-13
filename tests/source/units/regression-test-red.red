@@ -214,6 +214,7 @@ Red [
 	--test-- "#388"
 		--assert equal? word! type? 'a
 
+	comment { print should be mocked for this test
 	--test-- "#389"
 		--assert equal? 
 			"default"
@@ -224,6 +225,7 @@ Red [
 			][
 				"default"
 			]
+	}
 
 	--test-- "#395"
 		--assert switch 'yes [yes [true]]
@@ -381,10 +383,12 @@ Red [
 		--assert equal? "  x" form ["" [] x]
 		--assert equal? " a  a " form [[""] [a] [] [a] [[[]]]]
 
+	comment { print should be mocked for this test
 	--test-- "#431"
 		--assert error? try [val431: print ""]
 		unset 'val431
-
+	}
+	
 	; --test-- "#432"
 		; TODO
 
@@ -1031,6 +1035,8 @@ Red [
 		--assert equal? "0" head s873
 		unset 's873
 
+	comment { it should not be necessary to use print in this test
+	
 	--test-- "#876"
 		--assert error? try [
 			foreach w876 words-of system/words [
@@ -1039,7 +1045,8 @@ Red [
 				]
 			]
 		]
-
+	}
+	
 	; --test-- "#893"
 		; console precompilation problem
 
@@ -1235,6 +1242,7 @@ Red [
 		--assert equal? 'integer f990 object [x: 0]
 		unset 'f990
 
+	comment { It should not be necessary to use  print in this test
 	--test-- "#993"
 		f993: func [
 			o [object!]
@@ -1248,6 +1256,7 @@ Red [
 		]
 		--assert not error? try [f993 object [x: 0]]
 		unset 'f993
+	}
 
 	; --test-- "#994"
 		; TODO: caused by Rebol GC bug
@@ -1412,6 +1421,7 @@ Red [
 			equal? e1136/arg1 lit-word!
 		]
 
+	comment { probe should be mocked for this test
 	--test-- "#1143"
 		--assert not error? try [
 			do [
@@ -1440,7 +1450,7 @@ Red [
 			f: make e [b: none]
 			a1143/d
 		]
-
+	}
 	; --test-- "#1144"
 	;	; FIXME: still open
 	; 	f1144: function [][
@@ -1476,10 +1486,13 @@ Red [
 		--assert equal? [1 2 3 4 5 6 7 8 9] ret1158
 		unset [v1158 ret1158]
 
+	comment { print should be mocked or patched for this test
 	--test-- "#1160"
 		abc1160: 2
 		--assert not error? try [print [ABC1160]]
+	}
 
+	comment { print should be mocked or patched for this test
 	--test-- "#1163"
 		f1163: function [
 			/l
@@ -1492,6 +1505,7 @@ Red [
 		f1163: does [return [1]]
 		--assert not error? foreach a1163 f1163 [print a1163]
 		unset 'f1163
+	}
 
 	; --test-- "#1164"
 		; console behaviour
@@ -1860,10 +1874,11 @@ Red [
 
 	; --test-- "#1607"
 		; TODO: random crash?
-
+	comment { This test needs to capture the output from parse-trae
 	--test-- "#1609"
 		not error? try [parse-trace "12345678" ["1" to end]]
-
+	}
+		
 	--test-- "#1611"
 		--assert parse "123" [copy a-txt "1" (a-num: to integer! a-txt) copy b-txt "2" (b-num: to integer! b-txt) "3"]
 
@@ -2171,6 +2186,7 @@ Red [
 			"XXXabcde"
 			head insert/dup "abcde" #"X" 3
 
+	comment: { print, probe and ?? should be mocked in this test
 	--test-- "#1807"
 		m1807: #(a1807: 1)
 		a1807: m1807/a1807
@@ -2178,6 +2194,7 @@ Red [
 		--assert not error? try [print type? a1807]
 		--assert not error? try [?? a1807]
 		unset [a1807 m1807]
+	}
 
 	; --test-- "#1809"
 		; GUI
@@ -2200,11 +2217,13 @@ Red [
 	; --test-- "#1820"
 		; GUI
 
+	comment { probe should be mocked for this test 
 	--test-- "#1829"
 		md5: does ['MD5]
 		--assert function? do "probe :md5"
 		unset 'md5
-
+	}
+	
 	--test-- "#1834"
 		--assert equal? #(a: 3) extend/case extend/case make map! [a 1] [a 2] [a 3]
 
@@ -2764,7 +2783,6 @@ b}
 
 		--assert success3739
 		unset [s3739 a3739 b3739 success3739 reactor3739]
-
 
 ===end-group===
 
