@@ -29,6 +29,7 @@ lexer: context [
 	value2:	none									;-- secondary new value
 	fail?:	none									;-- used for failing some parsing rules
 	type:	none									;-- define the type of the new value
+	wtype:	none									;-- define the type of the word
 	rs?:	no 										;-- if TRUE, do lexing for Red/System
 	neg?:	no										;-- if TRUE, denotes a negative number value
 	base:	16										;-- binary base
@@ -211,13 +212,16 @@ lexer: context [
 				type: path!
 			)
 		]
-		opt [#":" (type: set-path!)]
+		opt [#":" (
+			type: set-path!
+			if wtype <> word! [throw-error]
+		)]
 		e: [path-end | ws-no-count | end | (pos: path throw-error)] :e ;-- detect invalid tail characters				
 		(value: stack/pop type)
 	]
 	
 	word-rule: 	[
-		(type: word!)
+		(type: wtype: word!)
 		#"%" [ws-no-count | pos: file-end :pos | end] (value: "%")	;-- special case for remainder op!
 		| path: s: begin-symbol-rule [
 			url-rule
@@ -228,7 +232,7 @@ lexer: context [
 	]
 	
 	get-word-rule: [
-		#":" (type: get-word!) s: begin-symbol-rule [
+		#":" (type: wtype: get-word!) s: begin-symbol-rule [
 			path-rule (
 				value/1: to get-word! value/1		;-- workaround missing get-path! in R2
 			)
@@ -240,7 +244,7 @@ lexer: context [
 	]
 	
 	lit-word-rule: [
-		#"'" (type: word!) [
+		#"'" (type: word! wtype: lit-word!) [
 			#"/" (type: lit-word! value: "/")
 			| s: begin-symbol-rule [
 				path-rule (type: lit-path!)				;-- path matched

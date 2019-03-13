@@ -327,7 +327,7 @@ system/lexer: context [
 			length [integer! string!]
 		return: [block!]
 		/local
-			new s e c pos value cnt type process path
+			new s e c pos value cnt type wtype process path
 			digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
 			not-file-char not-str-char not-mstr-char caret-char
 			non-printable-char integer-end ws-ASCII ws-U+2k control-char
@@ -624,9 +624,10 @@ system/lexer: context [
 					  reject
 				]
 			]
-			opt [#":" (type: set-path! set-path back tail stack)][
-				ahead [path-end | ws-no-count | end] | (throw-error [type path])
+			opt [#":" (type: set-path! set-path back tail stack
+					if (wtype <> word!) [throw-error [type path]])
 			]
+			[ahead [path-end | ws-no-count | end] | (throw-error [type path])]
 			(pop stack)
 		]
 		
@@ -641,7 +642,7 @@ system/lexer: context [
 		]
 
 		word-rule: 	[
-			(type: word!) special-words	opt [#":" (type: set-word!)]
+			(type: wtype: word!) special-words	opt [#":" (type: set-word!)]
 			(to-word stack value type)				;-- special case for / and // as words
 			| path: s: begin-symbol-rule (type: word!) [
 				url-rule
@@ -652,9 +653,9 @@ system/lexer: context [
 		]
 
 		get-word-rule: [
-			#":" (type: get-word!) [
+			#":" (type: wtype: get-word!) [
 				special-words (to-word stack value type)
-				| s: begin-symbol-rule [
+				| path: s: begin-symbol-rule [
 					path-rule (type: get-path!)
 					| (to-word stack copy/part s e type)	;-- get-word matched
 				]
@@ -662,10 +663,10 @@ system/lexer: context [
 		]
 
 		lit-word-rule: [
-			#"'" (type: lit-word!) [
+			#"'" (type: wtype: lit-word!) [
 				special-words (to-word stack value type)
 				| [
-					s: begin-symbol-rule [
+					path: s: begin-symbol-rule [
 						path-rule (type: lit-path!)			 ;-- path matched
 						| (to-word stack copy/part s e type) ;-- lit-word matched
 					]
