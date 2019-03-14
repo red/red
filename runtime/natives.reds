@@ -654,7 +654,9 @@ natives: context [
 			]
 			TYPE_BLOCK [
 				blk: as red-block! w
+				stack/mark-native words/_anon
 				set-many blk value block/rs-length? blk only? some?
+				stack/unwind
 				stack/set-last value
 			]
 			default [
@@ -2891,7 +2893,8 @@ natives: context [
 				][
 					fire [TO_ERROR(script invalid-arg) w]
 				]
-				_context/set w v
+				stack/keep								;-- avoid object event handler overwritting stack slots
+				_context/set w v						;-- can trigger object event handler
 			]
 			i: i + 1
 		]
