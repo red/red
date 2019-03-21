@@ -1440,7 +1440,6 @@ process: func [
 			y: either x < 0 [0 - x][x]
 			if y > 120 [y: 120]							;-- WHEEL_DELTA: 120
 			make-event msg x / y and FFFFh EVT_WHEEL
-			EVT_DISPATCH
 		]
 		WM_LBUTTONDOWN	[
 			if GetCapture <> null [return EVT_DISPATCH]
