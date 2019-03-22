@@ -15,6 +15,9 @@ block: context [
 	
 	depth: 0											;-- used to trace nesting level for FORM/MOLD
 
+	compare-arg-a: as red-value! 0
+	compare-arg-b: as red-value! 0
+
 	rs-length?: func [
 		blk 	[red-block!]
 		return: [integer!]
@@ -1137,9 +1140,15 @@ block: context [
 
 		all?: flags and sort-all-mask = sort-all-mask
 		num: flags >>> 2
-		if all [all? num > 0][					;FIXME: Corrupted series!!!
-			blk1: make-at as red-block! v1 1
-			blk2: make-at as red-block! v2 1
+		if all [all? num > 0][
+			if null? compare-arg-a [
+				compare-arg-a: ALLOC_TAIL(root)
+				compare-arg-b: ALLOC_TAIL(root)
+				make-at as red-block! compare-arg-a 1
+				make-at as red-block! compare-arg-b 1
+			]
+			blk1: as red-block! copy-cell compare-arg-a v1
+			blk2: as red-block! copy-cell compare-arg-b v2
 			s1: GET_BUFFER(blk1)
 			s2: GET_BUFFER(blk2)
 			s1/offset: value1
