@@ -2179,6 +2179,20 @@ Red [
 				
 ===end-group===
 
+===start-group=== "get"
+
+	--test-- "og1"
+		og1: make object! [a: 1 b: 2 c: "x"]
+		--assert equal? [1 2 "x"] get og1
+		--assert equal? [1 2 "x"] get :og1
+		--assert equal? [1 2 "x"] get/any :og1
+		--assert equal? [1 2 "x"] get/case :og1
+		--assert same? og1/c last get og1
+		--assert equal? 2 get 'og1/b
+		--assert empty? get object []
+
+===end-group===
+
 ===start-group=== "find & select"
 
 	--test-- "ofs"
