@@ -304,6 +304,7 @@ system/view/VID: context [
 				| 'options	  (add-option opts fetch-argument block! spec)
 				| 'loose	  (add-option opts [drag-on: 'down])
 				| 'all-over   (set-flag opts 'flags 'all-over)
+				| 'password   (set-flag opts 'flags 'password)
 				| 'hidden	  (opts/visible?: no)
 				| 'disabled	  (opts/enabled?: no)
 				| 'select	  (opts/selected: fetch-argument integer! spec)
