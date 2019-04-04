@@ -272,7 +272,7 @@ help-ctx: context [
 						parse reduce =val [some [datatype! | typeset!]]
 						parse =val ['function! block!]
 					][
-						print ["Looks like we have a bad type spec:" mold =val]
+						_print ["Looks like we have a bad type spec:" mold =val]
 					]
 				)
 			]
@@ -393,15 +393,15 @@ help-ctx: context [
 	][
 		fn: either any-function? :word [:word][get :word]
 		if not any-function? :fn [
-			print "show-function-help only works on words that refer to functions."
+			_print "show-function-help only works on words that refer to functions."
 			exit
 		]
 
 		; Convert the func to an object with fields for spec values
 		fn-as-obj: func-spec-ctx/parse-func-spec :fn
 		if not object? fn-as-obj [
-			print "Func spec couldn't be parsed, may be malformed."
-			print mold :fn
+			_print "Func spec couldn't be parsed, may be malformed."
+			_print mold :fn
 			exit
 		]
 
