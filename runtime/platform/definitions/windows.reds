@@ -37,6 +37,8 @@ Red/System [
 #define STARTF_USESHOWWINDOW			00000001h
 
 #define ERROR_BROKEN_PIPE				109
+#define ERROR_INSUFFICIENT_BUFFER		122
+#define ERROR_NO_MORE_ITEMS				259
 
 #define IS_TEXT_UNICODE_UNICODE_MASK 	000Fh
 
@@ -46,6 +48,15 @@ Red/System [
 #define FIONBIO							8004667Eh
 
 #define INVALID_HANDLE					[as int-ptr! -1]
+
+#define DIGCF_DEFAULT					00000001h
+#define DIGCF_PRESENT					00000002h
+#define DIGCF_ALLCLASSES				00000004h
+#define DIGCF_PROFILE					00000008h
+#define DIGCF_DEVICEINTERFACE			00000010h
+
+#define SPDRP_DEVICEDESC				00000000h
+#define SPDRP_DRIVER					00000009h
 
 #enum spawn-mode [
 	P_WAIT:		0
@@ -275,6 +286,38 @@ tagSYSTEM_INFO: alias struct! [
 	dwProcessorType				[integer!]
 	dwAllocationGranularity		[integer!]
 	wProcessorLevel				[integer!]
+]
+
+DEV-INFO-DATA!: alias struct! [    ;--size: 28
+	cbSize									[integer!]
+	ClassGuid								[integer!]
+	pad1									[integer!]
+	pad2									[integer!]
+	pad3									[integer!]
+	DevInst									[integer!]
+	reserved								[integer!]
+]
+
+DEV-INTERFACE-DATA!: alias struct! [  ;--size: 28
+	cbSize									[integer!]
+	ClassGuid								[integer!]
+	pad1									[integer!]
+	pad2									[integer!]
+	pad3									[integer!]
+	Flags									[integer!]
+	reserved								[integer!]
+]
+
+DEV-INTERFACE-DETAIL!: alias struct! [  ;--size: 8
+	cbSize									[integer!]
+	DevicePath								[c-string!]
+]
+
+UUID!: alias struct! [
+	data1	[integer!]
+	data2	[integer!]
+	data3	[integer!]
+	data4	[integer!]
 ]
 
 #import [
@@ -596,7 +639,89 @@ tagSYSTEM_INFO: alias struct! [
 			flags				[integer!]
 			return:				[logic!]
 		]
+		DeviceIoControl: "DeviceIoControl" [
+			hDevice				[integer!]
+			dwIoControlCode		[integer!]
+			lpInBuffer			[byte-ptr!]
+			nInBufferSize		[integer!]
+			lpOutBuffer			[byte-ptr!]
+			nOutBufferSize		[integer!]
+			lpBytesReturned		[int-ptr!]
+			lpOverlapped		[OVERLAPPED!]
+			return:				[logic!]
+		]
 	]
+	"rpcrt4.dll" stdcall [
+		UuidFromString: "UuidFromStringA" [
+			StringUuid		[c-string!]
+			Uuid			[UUID!]
+			return:			[integer!]
+		]
+	]
+	"setupapi.dll" stdcall [
+		SetupDiGetClassDevs: "SetupDiGetClassDevsA" [
+			ClassGuid						[UUID!]
+			Enumerator						[c-string!]
+			hwndParent						[integer!]
+			Flags							[integer!]
+			return: 						[int-ptr!]
+		]
+		SetupDiEnumDeviceInterfaces: "SetupDiEnumDeviceInterfaces" [
+			DeviceInfoSet 					[int-ptr!]
+			DeviceInfoData					[integer!]
+			InterfaceClassGuid				[UUID!]
+			MemberIndex						[integer!]
+			DeviceInterfaceData				[DEV-INTERFACE-DATA!]
+			return: 						[logic!]
+		]
+		SetupDiGetDeviceInterfaceDetail: "SetupDiGetDeviceInterfaceDetailA" [
+			DeviceInfoSet 					[int-ptr!]
+			DeviceInterfaceData				[DEV-INTERFACE-DATA!]
+			DeviceInterfaceDetailData		[DEV-INTERFACE-DETAIL!]
+			DeviceInterfaceDetailDataSize	[integer!]
+			RequiredSize					[int-ptr!]
+			DeviceInfoData					[DEV-INFO-DATA!]
+			return: 						[logic!]
+		]
+		SetupDiDestroyDeviceInfoList: "SetupDiDestroyDeviceInfoList" [
+			handle							[int-ptr!]
+			return: 						[logic!]
+		]
+		SetupDiEnumDeviceInfo: "SetupDiEnumDeviceInfo" [
+			DeviceInfoSet 					[int-ptr!]
+			MemberIndex						[integer!]
+			DeviceInfoData					[DEV-INFO-DATA!]
+			return: 						[logic!]
+		]
+		SetupDiGetDeviceRegistryProperty: "SetupDiGetDeviceRegistryPropertyA" [
+			DeviceInfoSet 					[int-ptr!]
+			DeviceInfoData 					[DEV-INFO-DATA!]
+			Property						[integer!]
+			PropertyRegDataType				[int-ptr!]
+			PropertyBuffer					[c-string!]
+			PropertyBufferSize				[integer!]
+			RequiredSize					[int-ptr!]
+			return: 						[logic!]
+		]
+		SetupDiGetDeviceInstanceId: "SetupDiGetDeviceInstanceIdA" [
+			DeviceInfoSet 					[int-ptr!]
+			DeviceInfoData					[DEV-INFO-DATA!]
+			buffer							[byte-ptr!]
+			buffersize						[integer!]
+			size							[int-ptr!]
+			return:							[logic!]
+		]
+		SetupDiOpenDevRegKey: "SetupDiOpenDevRegKey" [
+			DeviceInfoSet 					[int-ptr!]
+			DeviceInfoData					[DEV-INFO-DATA!]
+			scope							[integer!]
+			HwProfile						[integer!]
+			keyType							[integer!]
+			samDesired						[integer!]
+			return:							[integer!]
+		]
+	]
+
 	"ws2_32.dll" stdcall [
 		WSAStartup: "WSAStartup" [
 			version		[integer!]
@@ -779,3 +904,5 @@ GetAcceptExSockaddrs!: alias function! [
 	RemoteSockaddr			[int-ptr!]
 	RemoteSockaddrLength	[int-ptr!]
 ]
+
+#define GUID_DEVINTERFACE_HID "4D1E55B2-F16F-11CF-88CB-001111000030"

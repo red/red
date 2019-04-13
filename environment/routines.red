@@ -127,3 +127,16 @@ write-clipboard: routine ["Write content to the system clipboard" data [string!]
 write-stdout: routine ["Write data to STDOUT" str [string!]][			;-- internal use only
 	io/write null as red-value! str null null no no no
 ]
+
+usb-test: routine [
+	/local
+		dev		[red-block!]
+		dev2	[red-block!]
+][
+	dev: usb-device/alloc-device
+	usb-device/update-name dev "mytest1"
+	dev2: usb-device/alloc-device
+	usb-device/update-name dev2 "mytest2"
+	usb-device/update-children dev dev2
+	stack/set-last as red-value! dev
+]

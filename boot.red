@@ -34,6 +34,7 @@ Red [
 	#include %environment/networking.red
 
 	#include %environment/schemes/tcp.red
+	#include %environment/schemes/usb.red
 
 	#include %utils/preprocessor.r
 

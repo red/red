@@ -15,34 +15,23 @@ list-entry!: alias struct! [
 	prev	[list-entry!]
 ]
 
-list!: alias struct! [
-	next	[list-entry!]
-	prev	[list-entry!]
-	size	[integer!]			;-- list size
-	offset	[integer!]			;-- data offset in list entry
-]
-
-list: context [
-
+dlink: context [
 	init: func [
-		list	[list!]
-		offset	[integer!]
+		list	[list-entry!]
 	][
-		list/next: as list-entry! list
-		list/prev: as list-entry! list
-		list/size: 0
-		list/offset: offset
+		list/next: list
+		list/prev: list
 	]
-	
+
 	insert: func [
-		list	[list!]
+		list	[list-entry!]
 		entry	[list-entry!]
 	][
-		insert-next list as list-entry! list entry
+		insert-next list list entry
 	]
 
 	append: func [
-		list	[list!]
+		list	[list-entry!]
 		entry	[list-entry!]
 	][
 		insert-next list list/prev entry
@@ -50,7 +39,7 @@ list: context [
 
 	insert-next: func [
 		"insert an entry next to the node entry"
-		list	[list!]
+		list	[list-entry!]
 		node	[list-entry!]
 		entry	[list-entry!]
 	][
@@ -58,39 +47,66 @@ list: context [
 		entry/next: node/next
 		entry/prev: node
 		node/next: entry
-
-		list/size: list/size + 1
 	]
 
 	remove: func [
 		"remove an entry next to the node entry"
-		list	[list!]
+		list	[list-entry!]
 		entry	[list-entry!]
 	][
 		remove-entry list entry/prev entry/next
 	]
 
 	remove-head: func [
-		list	[list!]
+		list	[list-entry!]
 	][
-		remove-entry list as list-entry! list list/next/next
+		remove-entry list list list/next/next
 	]
 
 	remove-last: func [
-		list	[list!]
+		list	[list-entry!]
 	][
-		remove-entry list list/prev/prev as list-entry! list
+		remove-entry list list/prev/prev list
 	]
 
 	remove-entry: func [
 		"remove an entry between entry1 and entry2"
-		list	[list!]
+		list	[list-entry!]
 		entry1	[list-entry!]
 		entry2	[list-entry!]
+		/local
+			p	[byte-ptr!]
 	][
+		p: as byte-ptr! entry1/next
 		entry1/next: entry2
 		entry2/prev: entry1
 
-		list/size: list/size - 1
+		free p
+	]
+
+	clear: func [
+		list	[list-entry!]
+		/local
+			p	[list-entry!]
+			q	[list-entry!]
+	][
+		p: list/next
+		while [p <> list][
+			q: p/next
+			free as byte-ptr! p
+			p: q
+		]
+		list/next: list
+		list/prev: list
+	]
+
+	empty?: func [
+		list	[list-entry!]
+		return:	[logic!]
+	][
+		either all [
+			list/next = list
+			list/prev = list
+		][true][false]
 	]
 ]
