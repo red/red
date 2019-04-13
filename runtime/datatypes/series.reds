@@ -985,6 +985,7 @@ _series: context [
 
 		bytes:	part << (log-b unit)
 		node: 	alloc-bytes bytes
+		s:      GET_BUFFER(ser)
 		buffer: as series! node/value
 		buffer/flags: s/flags							;@@ filter flags?
 
@@ -1131,6 +1132,7 @@ _series: context [
 		new/header: TYPE_UNSET
 		part:	part << (log-b unit)
 		node:	alloc-bytes part
+		s: GET_BUFFER(ser)
 		buffer: as series! node/value
 		buffer/flags: s/flags							;@@ filter flags?
 		buffer/flags: buffer/flags and not flag-series-owned
