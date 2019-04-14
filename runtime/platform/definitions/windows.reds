@@ -49,6 +49,30 @@ Red/System [
 
 #define INVALID_HANDLE					[as int-ptr! -1]
 
+#define GENERIC_WRITE					40000000h
+#define GENERIC_READ 					80000000h
+#define FILE_SHARE_READ					00000001h
+#define FILE_SHARE_WRITE				00000002h
+#define FILE_SHARE_DELETE				00000004h
+#define CREATE_NEW						00000001h
+#define CREATE_ALWAYS					00000002h
+#define OPEN_EXISTING					00000003h
+#define OPEN_ALWAYS						00000004h
+#define TRUNCATE_EXISTING				00000005h
+#define FILE_ATTRIBUTE_NORMAL			00000080h
+#define FILE_ATTRIBUTE_DIRECTORY		00000010h
+#define FILE_FLAG_SEQUENTIAL_SCAN		08000000h
+
+#define FILE_ANY_ACCESS					0
+#define FILE_SPECIAL_ACCESS				FILE_ANY_ACCESS
+#define FILE_READ_ACCESS				0001h
+#define FILE_WRITE_ACCESS				0002h
+
+#define METHOD_BUFFERED					0
+#define METHOD_IN_DIRECT				1
+#define METHOD_OUT_DIRECT				2
+#define METHOD_NEITHER					3
+
 #define DIGCF_DEFAULT					00000001h
 #define DIGCF_PRESENT					00000002h
 #define DIGCF_ALLCLASSES				00000004h
@@ -57,6 +81,53 @@ Red/System [
 
 #define SPDRP_DEVICEDESC				00000000h
 #define SPDRP_DRIVER					00000009h
+
+#define CTL_CODE(DeviceType Function* Method Access) [
+	(DeviceType << 16) or (Access << 14) or (Function* << 2) or Method
+]
+
+#define FILE_DEVICE_UNKNOWN				00000022h
+#define FILE_DEVICE_USB					FILE_DEVICE_UNKNOWN
+
+#define HCD_GET_STATS_1										255
+#define HCD_DIAGNOSTIC_MODE_ON								256
+#define HCD_DIAGNOSTIC_MODE_OFF								257
+#define HCD_GET_ROOT_HUB_NAME								258
+#define HCD_GET_DRIVERKEY_NAME								265
+#define HCD_GET_STATS_2										266
+#define HCD_DISABLE_PORT									268
+#define HCD_ENABLE_PORT										269
+#define HCD_USER_REQUEST									270
+#define HCD_TRACE_READ_REQUEST								275
+
+#define USB_GET_NODE_INFORMATION							258
+#define USB_GET_NODE_CONNECTION_INFORMATION					259
+#define USB_GET_DESCRIPTOR_FROM_NODE_CONNECTION				260
+#define USB_GET_NODE_CONNECTION_NAME						261
+#define USB_DIAG_IGNORE_HUBS_ON								262
+#define USB_DIAG_IGNORE_HUBS_OFF							263
+#define USB_GET_NODE_CONNECTION_DRIVERKEY_NAME				264
+#define USB_GET_HUB_CAPABILITIES							271
+#define USB_GET_NODE_CONNECTION_ATTRIBUTES					272
+#define USB_HUB_CYCLE_PORT									273
+#define USB_GET_NODE_CONNECTION_INFORMATION_EX				274
+#define USB_RESET_HUB										275
+#define USB_GET_HUB_CAPABILITIES_EX							276
+#define USB_GET_HUB_INFORMATION_EX							277
+#define USB_GET_PORT_CONNECTOR_PROPERTIES					278
+#define USB_GET_NODE_CONNECTION_INFORMATION_EX_V2			279
+
+#define USB_GET_TRANSPORT_CHARACTERISTICS					281
+#define USB_REGISTER_FOR_TRANSPORT_CHARACTERISTICS_CHANGE	282
+#define USB_NOTIFY_ON_TRANSPORT_CHARACTERISTICS_CHANGE		283
+#define USB_UNREGISTER_FOR_TRANSPORT_CHARACTERISTICS_CHANGE	284
+
+#define USB_START_TRACKING_FOR_TIME_SYNC					285
+#define USB_GET_FRAME_NUMBER_AND_QPC_FOR_TIME_SYNC			286
+#define USB_STOP_TRACKING_FOR_TIME_SYNC						287
+
+#define USB_GET_DEVICE_CHARACTERISTICS						288
+#define IOCTL_GET_HCD_DRIVERKEY_NAME	[CTL_CODE(FILE_DEVICE_USB HCD_GET_DRIVERKEY_NAME METHOD_BUFFERED FILE_ANY_ACCESS)]
 
 #enum spawn-mode [
 	P_WAIT:		0
@@ -310,7 +381,7 @@ DEV-INTERFACE-DATA!: alias struct! [  ;--size: 28
 
 DEV-INTERFACE-DETAIL!: alias struct! [  ;--size: 8
 	cbSize									[integer!]
-	DevicePath								[c-string!]
+	DevicePath								[integer!]
 ]
 
 UUID!: alias struct! [
@@ -318,6 +389,11 @@ UUID!: alias struct! [
 	data2	[integer!]
 	data3	[integer!]
 	data4	[integer!]
+]
+
+USB-HCD-DRIVERKEY-NAME!: alias struct! [
+	actual-length	[integer!]
+	driver-key-name	[integer!]
 ]
 
 #import [
@@ -640,7 +716,7 @@ UUID!: alias struct! [
 			return:				[logic!]
 		]
 		DeviceIoControl: "DeviceIoControl" [
-			hDevice				[integer!]
+			hDevice				[int-ptr!]
 			dwIoControlCode		[integer!]
 			lpInBuffer			[byte-ptr!]
 			nInBufferSize		[integer!]
@@ -698,7 +774,17 @@ UUID!: alias struct! [
 			DeviceInfoData 					[DEV-INFO-DATA!]
 			Property						[integer!]
 			PropertyRegDataType				[int-ptr!]
-			PropertyBuffer					[c-string!]
+			PropertyBuffer					[byte-ptr!]
+			PropertyBufferSize				[integer!]
+			RequiredSize					[int-ptr!]
+			return: 						[logic!]
+		]
+		SetupDiGetDeviceRegistryPropertyW: "SetupDiGetDeviceRegistryPropertyW" [
+			DeviceInfoSet 					[int-ptr!]
+			DeviceInfoData 					[DEV-INFO-DATA!]
+			Property						[integer!]
+			PropertyRegDataType				[int-ptr!]
+			PropertyBuffer					[byte-ptr!]
 			PropertyBufferSize				[integer!]
 			RequiredSize					[int-ptr!]
 			return: 						[logic!]
