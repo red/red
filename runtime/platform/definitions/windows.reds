@@ -80,6 +80,9 @@ Red/System [
 #define DIGCF_DEVICEINTERFACE			00000010h
 
 #define SPDRP_DEVICEDESC				00000000h
+#define SPDRP_HARDWAREID				00000001h
+#define SPDRP_SERVICE					00000004h
+#define SPDRP_CLASS						00000007h
 #define SPDRP_DRIVER					00000009h
 
 #define CTL_CODE(DeviceType Function* Method Access) [

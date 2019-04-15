@@ -40,5 +40,9 @@ while [entry <> list][
     pHost: as usb-windows/USB-HOST-CONTROLLER-INFO! entry
     ;dump-hex pHost/driver-key-name
     print-line pHost/driver-key-len
+    if pHost/usb-dev-properties <> null [
+        print pHost/usb-dev-properties/device-id-len
+        print pHost/usb-dev-properties/device-desc-len
+    ]
     entry: entry/next
 ]
