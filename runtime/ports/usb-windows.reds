@@ -372,7 +372,7 @@ usb-windows: context [
 			]
 			entry: entry/next
 		]
-		dev-props: driver-name-to-device-props driver-key-name name-len
+		dev-props: driver-name-to-device-props dev-info dev-info-data;driver-key-name name-len
 		hc-info/driver-key-name: driver-key-name
 		hc-info/driver-key-len: name-len
 		if dev-props <> null [
@@ -382,13 +382,10 @@ usb-windows: context [
 	]
 
 	driver-name-to-device-props: func [
-		driver-name				[byte-ptr!]
-		name-len				[integer!]
+		dev-info			[int-ptr!]
+		info-data			[DEV-INFO-DATA!]
 		return:					[USB-DEVICE-PNP-STRINGS!]
 		/local
-			dev-info			[int-ptr!]
-			ndev-info			[integer!]
-			info-data			[DEV-INFO-DATA! value]
 			len					[integer!]
 			status				[logic!]
 			dev-props			[USB-DEVICE-PNP-STRINGS!]
@@ -401,34 +398,25 @@ usb-windows: context [
 		if dev-props = null [
 			return null
 		]
-		ndev-info: 0
-		status: driver-name-to-device-inst driver-name name-len :ndev-info info-data
-		if status = false [
-			free as byte-ptr! dev-props
-			return null
-		]
 		len: 0
-		status: SetupDiGetDeviceInstanceId as int-ptr! ndev-info info-data null 0 :len
+		status: SetupDiGetDeviceInstanceId dev-info info-data null 0 :len
 		last-error: GetLastError
 		if all [
 			status <> false
 			last-error <> ERROR_INSUFFICIENT_BUFFER
 		][
-			SetupDiDestroyDeviceInfoList as int-ptr! ndev-info
 			free as byte-ptr! dev-props
 			return null
 		]
 		len: len + 1
 		buf: allocate len
 		if buf = null [
-			SetupDiDestroyDeviceInfoList as int-ptr! ndev-info
 			free as byte-ptr! dev-props
 			return null
 		]
-		status: SetupDiGetDeviceInstanceId as int-ptr! ndev-info info-data
+		status: SetupDiGetDeviceInstanceId dev-info info-data
 					buf len :len
 		if status = false [
-			SetupDiDestroyDeviceInfoList as int-ptr! ndev-info
 			free as byte-ptr! dev-props
 			return null
 		]
@@ -436,10 +424,9 @@ usb-windows: context [
 		dev-props/device-id-len: len
 		nbuf: 0
 		nlen: 0
-		status: get-device-property as int-ptr! ndev-info info-data
+		status: get-device-property dev-info info-data
 					SPDRP_DEVICEDESC :nbuf :nlen
 		if status = false [
-			SetupDiDestroyDeviceInfoList as int-ptr! ndev-info
 			free buf
 			free as byte-ptr! dev-props
 			return null
@@ -447,18 +434,17 @@ usb-windows: context [
 		dev-props/device-desc: as byte-ptr! nbuf
 		dev-props/device-desc-len: nlen
 		nbuf: 0 nlen: 0
-		get-device-property as int-ptr! ndev-info info-data SPDRP_HARDWAREID :nbuf :nlen
+		get-device-property dev-info info-data SPDRP_HARDWAREID :nbuf :nlen
 		dev-props/hw-id: as byte-ptr! nbuf
 		dev-props/hw-id-len: nlen
 		nbuf: 0 nlen: 0
-		get-device-property as int-ptr! ndev-info info-data SPDRP_SERVICE :nbuf :nlen
+		get-device-property dev-info info-data SPDRP_SERVICE :nbuf :nlen
 		dev-props/service: as byte-ptr! nbuf
 		dev-props/service-len: nlen
 		nbuf: 0 nlen: 0
-		get-device-property as int-ptr! ndev-info info-data SPDRP_CLASS :nbuf :nlen
+		get-device-property dev-info info-data SPDRP_CLASS :nbuf :nlen
 		dev-props/dev-class: as byte-ptr! nbuf
 		dev-props/dev-class-len: nlen
-		SetupDiDestroyDeviceInfoList as int-ptr! ndev-info
 		dev-props
 	]
 
@@ -499,65 +485,6 @@ usb-windows: context [
 		copy-memory buffer as byte-ptr! :key-name-w/driver-key-name name-len/value
 		free as byte-ptr! key-name-w
 		buffer
-	]
-
-	driver-name-to-device-inst: func [
-		driver-name				[byte-ptr!]
-		name-len				[integer!]
-		pdev-info				[int-ptr!]
-		info-data				[DEV-INFO-DATA!]
-		return:					[logic!]
-		/local
-			ndev-info			[int-ptr!]
-			status				[logic!]
-			dev-index			[integer!]
-			ninfo-data			[DEV-INFO-DATA! value]
-			result				[logic!]
-			dname				[byte-ptr!]
-			buf					[integer!]
-			len					[integer!]
-	][
-		if pdev-info = null [return false]
-		if info-data = null [return false]
-		set-memory as byte-ptr! info-data null-byte size? DEV-INFO-DATA!
-		pdev-info/value: -1
-		ndev-info: SetupDiGetClassDevs null null 0 DIGCF_PRESENT or DIGCF_ALLCLASSES
-		if ndev-info = INVALID_HANDLE [
-			return false
-		]
-		dev-index: 0
-		len: 0
-		buf: 0
-		ninfo-data/cbSize: size? DEV-INFO-DATA!
-		forever [
-			status: SetupDiEnumDeviceInfo ndev-info dev-index ninfo-data
-			dev-index: dev-index + 1
-			if status <> true [
-				break
-			]
-			result: get-device-property ndev-info ninfo-data SPDRP_DRIVER :buf :len
-			if all [
-				result = true
-				buf <> 0
-				len = name-len
-				0 = compare-memory driver-name as byte-ptr! buf len
-			][
-				pdev-info/value: as integer! ndev-info
-				copy-memory as byte-ptr! info-data as byte-ptr! ninfo-data size? DEV-INFO-DATA!
-				free as byte-ptr! buf
-				break
-			]
-			if buf <> 0 [
-				free as byte-ptr! buf
-				buf: 0
-			]
-		]
-		if result = false [
-			if ndev-info = INVALID_HANDLE [
-				SetupDiDestroyDeviceInfoList ndev-info
-			]
-		]
-		status
 	]
 
 	init: does [

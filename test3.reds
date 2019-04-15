@@ -41,8 +41,10 @@ while [entry <> list][
     ;dump-hex pHost/driver-key-name
     print-line pHost/driver-key-len
     if pHost/usb-dev-properties <> null [
-        print pHost/usb-dev-properties/device-id-len
-        print pHost/usb-dev-properties/device-desc-len
+        dump-hex pHost/usb-dev-properties/device-id
+        print-line pHost/usb-dev-properties/device-id-len
+        dump-hex pHost/usb-dev-properties/device-desc
+        print-line pHost/usb-dev-properties/device-desc-len
     ]
     entry: entry/next
 ]
