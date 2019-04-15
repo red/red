@@ -50,15 +50,6 @@ usb-windows: context [
 		DEVICE-INFO
 	]
 
-	USB-CONTROLLER-INFO-0!: alias struct! [
-		pci-vendor-id		[integer!]
-		pci-device-id		[integer!]
-		pci-revision		[integer!]
-		num-root-ports		[integer!]
-		controller-flavor	[integer!]
-		hc-feature-flags	[integer!]
-	]
-
 	USB-DEVICE-PNP-STRINGS!: alias struct! [
 		device-id			[byte-ptr!]
 		device-id-len		[integer!]
@@ -84,7 +75,7 @@ usb-windows: context [
 		subsys-id			[integer!]
 		revision			[integer!]
 		;usb-power-info
-		bus-dev-func-valid	[integer!]
+		bus-dev-func-valid	[logic!]
 		bus-number			[integer!]
 		bus-device			[integer!]
 		bus-function		[integer!]
@@ -222,6 +213,38 @@ usb-windows: context [
 		]
 	]
 
+	get-host-controller-info: func [
+		hHCDev			[int-ptr!]
+		pinfo			[int-ptr!]
+		return:			[integer!]
+		/local
+			info		[USB-CONTROLLER-INFO-0!]
+			user-info	[USBUSER-CONTROLLER-INFO-0! value]
+			error		[integer!]
+			bytes		[integer!]
+			success		[logic!]
+	][
+		set-memory as byte-ptr! user-info null-byte size? USBUSER-CONTROLLER-INFO-0!
+		user-info/Header/request: USBUSER_GET_CONTROLLER_INFO_0
+		user-info/Header/ReqLen: size? USBUSER-CONTROLLER-INFO-0!
+		bytes: 0
+		error: 0
+		success: DeviceIoControl hHCDev IOCTL_USB_USER_REQUEST as byte-ptr! user-info size? USBUSER-CONTROLLER-INFO-0!
+					as byte-ptr! user-info size? USBUSER-CONTROLLER-INFO-0! :bytes null
+		either success <> true [
+			error: GetLastError
+		][
+			info: as USB-CONTROLLER-INFO-0! allocate size? USB-CONTROLLER-INFO-0!
+			either info = null [
+				error: GetLastError
+			][
+				copy-memory as byte-ptr! info as byte-ptr! user-info/Info0 size? USB-CONTROLLER-INFO-0!
+				pinfo/value: as integer! info
+			]
+		]
+		error
+	]
+
 	get-device-property: func [
 		dev-info		[int-ptr!]
 		info-data		[DEV-INFO-DATA!]
@@ -353,6 +376,8 @@ usb-windows: context [
 			dev				[integer!]
 			subsys			[integer!]
 			rev				[integer!]
+			temp			[integer!]
+			pinfo			[integer!]
 	][
 		hc-info: as USB-HOST-CONTROLLER-INFO! allocate size? USB-HOST-CONTROLLER-INFO!
 		if hc-info = null [exit]
@@ -388,6 +413,25 @@ usb-windows: context [
 			hc-info/subsys-id: subsys
 			hc-info/revision: rev
 			hc-info/usb-dev-properties: dev-props
+		]
+		hc-info/bus-dev-func-valid: false
+		temp: 0
+		success: SetupDiGetDeviceRegistryPropertyW dev-info dev-info-data
+					SPDRP_BUSNUMBER null as byte-ptr! :temp 4 null
+		hc-info/bus-number: temp
+		if success [
+			success: SetupDiGetDeviceRegistryPropertyW dev-info dev-info-data
+						SPDRP_ADDRESS null as byte-ptr! :temp 4 null
+		]
+		if success [
+			hc-info/bus-device: temp >>> 16
+			hc-info/bus-function: temp and 0000FFFFh
+			hc-info/bus-dev-func-valid: true
+		]
+		pinfo: 0
+		temp: get-host-controller-info hHCDev :pinfo
+		if temp = 0 [
+			hc-info/controller-info: as USB-CONTROLLER-INFO-0! pinfo
 		]
 		dlink/append tree as list-entry! hc-info
 	]

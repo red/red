@@ -45,10 +45,23 @@ while [entry <> list][
         print-line pHost/usb-dev-properties/device-id-len
         dump-hex pHost/usb-dev-properties/device-desc
         print-line pHost/usb-dev-properties/device-desc-len
+        print-line "host id:"
         print-line pHost/vendor-id
         print-line pHost/device-id
         print-line pHost/subsys-id
         print-line pHost/revision
+        print-line "bus function:"
+        print-line pHost/bus-dev-func-valid
+        print-line pHost/bus-number
+        print-line pHost/bus-device
+        print-line pHost/bus-function
+        print-line "controller info:"
+        print-line pHost/controller-info/pci-vendor-id
+        print-line pHost/controller-info/pci-device-id
+        print-line pHost/controller-info/pci-revision
+        print-line pHost/controller-info/num-root-ports
+        print-line pHost/controller-info/controller-flavor
+        print-line pHost/controller-info/hc-feature-flags
     ]
     entry: entry/next
 ]

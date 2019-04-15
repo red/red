@@ -84,6 +84,8 @@ Red/System [
 #define SPDRP_SERVICE					00000004h
 #define SPDRP_CLASS						00000007h
 #define SPDRP_DRIVER					00000009h
+#define SPDRP_BUSNUMBER					00000015h
+#define SPDRP_ADDRESS					0000001Ch
 
 #define CTL_CODE(DeviceType Function* Method Access) [
 	(DeviceType << 16) or (Access << 14) or (Function* << 2) or Method
@@ -131,6 +133,21 @@ Red/System [
 
 #define USB_GET_DEVICE_CHARACTERISTICS						288
 #define IOCTL_GET_HCD_DRIVERKEY_NAME	[CTL_CODE(FILE_DEVICE_USB HCD_GET_DRIVERKEY_NAME METHOD_BUFFERED FILE_ANY_ACCESS)]
+
+#define USB_CTL(id)						[CTL_CODE(FILE_DEVICE_USB id METHOD_BUFFERED FILE_ANY_ACCESS)]
+
+#define IOCTL_USB_USER_REQUEST			[USB_CTL(HCD_USER_REQUEST)]
+
+#define USBUSER_GET_CONTROLLER_INFO_0						00000001h
+#define USBUSER_GET_CONTROLLER_DRIVER_KEY					00000002h
+#define USBUSER_PASS_THRU									00000003h
+#define USBUSER_GET_POWER_STATE_MAP							00000004h
+#define USBUSER_GET_BANDWIDTH_INFORMATION					00000005h
+#define USBUSER_GET_BUS_STATISTICS_0						00000006h
+#define USBUSER_GET_ROOTHUB_SYMBOLIC_NAME					00000007h
+#define USBUSER_GET_USB_DRIVER_VERSION						00000008h
+#define USBUSER_GET_USB2_HW_VERSION							00000009h
+#define USBUSER_USB_REFRESH_HCT_REG							0000000Ah
 
 #enum spawn-mode [
 	P_WAIT:		0
@@ -395,8 +412,28 @@ UUID!: alias struct! [
 ]
 
 USB-HCD-DRIVERKEY-NAME!: alias struct! [
-	actual-length	[integer!]
-	driver-key-name	[integer!]
+	actual-length		[integer!]
+	driver-key-name		[integer!]
+]
+
+USBUSER-REQUEST-HEADER!: alias struct! [
+	request				[integer!]
+	status				[integer!]
+	ReqLen				[integer!]
+	ActualLen			[integer!]
+]
+
+USB-CONTROLLER-INFO-0!: alias struct! [
+	pci-vendor-id		[integer!]
+	pci-device-id		[integer!]
+	pci-revision		[integer!]
+	num-root-ports		[integer!]
+	controller-flavor	[integer!]
+	hc-feature-flags	[integer!]
+]
+USBUSER-CONTROLLER-INFO-0!: alias struct! [
+	Header				[USBUSER-REQUEST-HEADER! value]
+	Info0				[USB-CONTROLLER-INFO-0! value]
 ]
 
 #import [
