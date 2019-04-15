@@ -349,6 +349,10 @@ usb-windows: context [
 			success			[logic!]
 			dev-and-func	[integer!]
 			dev-props		[USB-DEVICE-PNP-STRINGS!]
+			ven				[integer!]
+			dev				[integer!]
+			subsys			[integer!]
+			rev				[integer!]
 	][
 		hc-info: as USB-HOST-CONTROLLER-INFO! allocate size? USB-HOST-CONTROLLER-INFO!
 		if hc-info = null [exit]
@@ -372,10 +376,17 @@ usb-windows: context [
 			]
 			entry: entry/next
 		]
-		dev-props: driver-name-to-device-props dev-info dev-info-data;driver-key-name name-len
+		dev-props: driver-name-to-device-props dev-info dev-info-data
 		hc-info/driver-key-name: driver-key-name
 		hc-info/driver-key-len: name-len
 		if dev-props <> null [
+			ven: 0 dev: 0 subsys: 0 rev: 0
+			sscanf [dev-props/device-id "PCI\VEN_%x&DEV_%x&SUBSYS_%x&REV_%x"
+				:ven :dev :subsys :rev]
+			hc-info/vendor-id: ven
+			hc-info/device-id: dev
+			hc-info/subsys-id: subsys
+			hc-info/revision: rev
 			hc-info/usb-dev-properties: dev-props
 		]
 		dlink/append tree as list-entry! hc-info

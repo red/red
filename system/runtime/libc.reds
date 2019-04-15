@@ -60,6 +60,7 @@ Red/System [
 		printf: 	 "printf"	[[variadic]]
 		sprintf:	 "sprintf"	[[variadic] return: [integer!]]
 		swprintf:	 "swprintf"	[[variadic] return: [integer!]]
+		sscanf:		 "sscanf"	[[variadic] return: [integer!]]
 		strtod:		 "strtod"  [
 			str			[byte-ptr!]
 			endptr		[byte-ptr!]

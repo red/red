@@ -45,6 +45,10 @@ while [entry <> list][
         print-line pHost/usb-dev-properties/device-id-len
         dump-hex pHost/usb-dev-properties/device-desc
         print-line pHost/usb-dev-properties/device-desc-len
+        print-line pHost/vendor-id
+        print-line pHost/device-id
+        print-line pHost/subsys-id
+        print-line pHost/revision
     ]
     entry: entry/next
 ]
