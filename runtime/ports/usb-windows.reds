@@ -229,7 +229,7 @@ usb-windows: context [
 				if dev-props <> null [
 					pid: 0
 					vid: 0
-					serial: as c-string! allocate 64
+					serial: as c-string! allocate length? as c-string! dev-props/device-id
 					sscanf [dev-props/device-id "USB\VID_%x&PID_%x\%s"
 						:vid :pid serial]
 					pNode/vid: vid
