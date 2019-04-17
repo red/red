@@ -32,6 +32,7 @@ usb-windows: context [
 		driver-name			[byte-ptr!]
 		driver-name-len		[integer!]
 		bus-number			[integer!]
+		port				[integer!]
 		latest-power-state	[integer!]
 	]
 
@@ -144,6 +145,8 @@ usb-windows: context [
 			pbuffer		[integer!]
 			plen		[integer!]
 			buf			[byte-ptr!]
+			port		[integer!]
+			hub			[integer!]
 	][
 		if device-list/dev-info <> INVALID_HANDLE [
 			clear-device-list device-list
@@ -154,7 +157,7 @@ usb-windows: context [
 		index: 0 error: 0
 		while [error <> ERROR_NO_MORE_ITEMS][
 			pNode: as DEVICE-INFO-NODE! allocate size? DEVICE-INFO-NODE!
-			if pNode = null [break]
+			if pNode = null [continue]
 			pNode/dev-info: dev-info
 			info-data: pNode/dev-info-data
 			info-data/cbSize: size? DEV-INFO-DATA!
@@ -172,7 +175,7 @@ usb-windows: context [
 							SPDRP_DEVICEDESC :pbuffer :plen
 				if bResult = false [
 					free-device-info-node pNode
-					break
+					continue
 				]
 				pNode/desc-name: as byte-ptr! pbuffer
 				pNode/desc-name-len: plen
@@ -180,7 +183,7 @@ usb-windows: context [
 							SPDRP_DRIVER :pbuffer :plen
 				if bResult = false [
 					free-device-info-node pNode
-					break
+					continue
 				]
 				pNode/driver-name: as byte-ptr! pbuffer
 				pNode/driver-name-len: plen
@@ -189,7 +192,7 @@ usb-windows: context [
 							interface-data
 				if success <> true [
 					free-device-info-node pNode
-					break
+					continue
 				]
 
 				reqLen: 0
@@ -201,12 +204,12 @@ usb-windows: context [
 					error <> ERROR_INSUFFICIENT_BUFFER
 				][
 					free-device-info-node pNode
-					break
+					continue
 				]
 				buf: allocate reqLen
 				if buf = null [
 					free-device-info-node pNode
-					break
+					continue
 				]
 				pNode/detail-data: as DEV-INTERFACE-DETAIL! buf
 				detail-data: pNode/detail-data
@@ -215,8 +218,19 @@ usb-windows: context [
 							detail-data reqLen :reqLen null
 				if success <> true [
 					free-device-info-node pNode
-					break
+					continue
 				]
+				pbuffer: 0
+				plen: 0
+				success: get-device-property-a dev-info info-data
+							SPDRP_LOCATION_INFORMATION :pbuffer :plen
+				either success <> true [
+					hub: -1 port: -1
+				][
+					hub: 0 port: 0
+					sscanf [pbuffer "Port_#%xHub_#%x" :port :hub]
+				]
+				pNode/port: port
 				dlink/append device-list/list-head as list-entry! pNode
 			]
 		]
@@ -284,6 +298,46 @@ usb-windows: context [
 		if buf = null [return false]
 		ppBuffer/value: as integer! buf
 		bResult: SetupDiGetDeviceRegistryPropertyW dev-info info-data property
+					null buf reqLen :reqLen
+		if bResult = false [
+			free buf
+			ppBuffer/value: 0
+			return false
+		]
+		plen/value: reqLen
+		true
+	]
+
+	get-device-property-a: func [
+		dev-info		[int-ptr!]
+		info-data		[DEV-INFO-DATA!]
+		property		[integer!]
+		ppBuffer		[int-ptr!]
+		plen			[int-ptr!]
+		return:			[logic!]
+		/local
+			bResult		[logic!]
+			reqLen		[integer!]
+			lastError	[integer!]
+			buf			[byte-ptr!]
+	][
+		if ppBuffer = null [return false]
+		ppBuffer/value: 0
+		reqLen: 0
+		bResult: SetupDiGetDeviceRegistryProperty dev-info info-data property
+					null null 0 :reqLen
+		lastError: GetLastError
+		if any [
+			reqLen = 0
+			all [
+				bResult <> false
+				lastError <> ERROR_INSUFFICIENT_BUFFER
+			]
+		][return false]
+		buf: allocate reqLen
+		if buf = null [return false]
+		ppBuffer/value: as integer! buf
+		bResult: SetupDiGetDeviceRegistryProperty dev-info info-data property
 					null buf reqLen :reqLen
 		if bResult = false [
 			free buf

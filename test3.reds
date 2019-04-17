@@ -14,9 +14,11 @@ entry: list/next
 while [entry <> list][
     pNode: as usb-windows/DEVICE-INFO-NODE! entry
     ;dump-hex pNode/desc-name
+    print-line "desc-name len:"
     print-line pNode/desc-name-len
     ;dump-hex pNode/driver-name
     print-line pNode/driver-name-len
+    print-line pNode/port
     entry: entry/next
 ]
 
