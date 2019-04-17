@@ -228,7 +228,7 @@ usb-windows: context [
 					hub: -1 port: -1
 				][
 					hub: 0 port: 0
-					sscanf [pbuffer "Port_#%xHub_#%x" :port :hub]
+					sscanf [pbuffer "Port_#%d.Hub_#%d" :port :hub]
 				]
 				pNode/port: port
 				dlink/append device-list/list-head as list-entry! pNode
