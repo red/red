@@ -47,6 +47,9 @@ usb-windows: context [
 		bus-number			[integer!]
 		port				[integer!]
 		dev-properties		[USB-DEVICE-PNP-STRINGS!]
+		vid					[integer!]
+		pid					[integer!]
+		serial-num			[c-string!]
 	]
 
 	device-list: declare DEVICE-GUID-LIST!
@@ -108,28 +111,35 @@ usb-windows: context [
 			]
 			free as byte-ptr! props
 		]
+		if pNode/serial-num <> null [
+			free as byte-ptr! pNode/serial-num
+		]
 		free as byte-ptr! pNode
 	]
 
 	enum-devices-with-guid: func [
-		device-list		[DEVICE-GUID-LIST!]
-		guid			[UUID!]
+		device-list			[DEVICE-GUID-LIST!]
+		guid				[UUID!]
 		/local
-			dev-info	[int-ptr!]
-			info-data	[DEV-INFO-DATA!]
+			dev-info		[int-ptr!]
+			info-data		[DEV-INFO-DATA!]
 			interface-data	[DEV-INTERFACE-DATA!]
-			detail-data	[DEV-INTERFACE-DETAIL!]
-			index		[integer!]
-			error		[integer!]
-			success		[logic!]
-			pNode		[DEVICE-INFO-NODE!]
-			bResult		[logic!]
-			reqLen		[integer!]
-			pbuffer		[integer!]
-			plen		[integer!]
-			buf			[byte-ptr!]
-			port		[integer!]
-			hub			[integer!]
+			detail-data		[DEV-INTERFACE-DETAIL!]
+			index			[integer!]
+			error			[integer!]
+			success			[logic!]
+			pNode			[DEVICE-INFO-NODE!]
+			bResult			[logic!]
+			reqLen			[integer!]
+			pbuffer			[integer!]
+			plen			[integer!]
+			buf				[byte-ptr!]
+			port			[integer!]
+			hub				[integer!]
+			dev-props		[USB-DEVICE-PNP-STRINGS!]
+			vid				[integer!]
+			pid				[integer!]
+			serial			[c-string!]
 	][
 		if device-list/dev-info <> INVALID_HANDLE [
 			clear-device-list device-list
@@ -214,7 +224,18 @@ usb-windows: context [
 					sscanf [pbuffer "Port_#%d.Hub_#%d" :port :hub]
 				]
 				pNode/port: port
-				pNode/dev-properties: driver-name-to-device-props dev-info info-data
+				dev-props: driver-name-to-device-props dev-info info-data
+				pNode/dev-properties: dev-props
+				if dev-props <> null [
+					pid: 0
+					vid: 0
+					serial: as c-string! allocate 64
+					sscanf [dev-props/device-id "USB\VID_%x&PID_%x\%s"
+						:vid :pid serial]
+					pNode/vid: vid
+					pNode/pid: pid
+					pNode/serial-num: serial
+				]
 				dlink/append device-list/list-head as list-entry! pNode
 			]
 		]
