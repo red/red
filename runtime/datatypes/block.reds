@@ -764,9 +764,7 @@ block: context [
 				either type = TYPE_WORD [
 					select-word parent as red-word! element case?
 				][
-					value: select parent element null yes case? no no null null no no
-					stack/pop 1							;-- remove FIND result from stack
-					value
+					select parent element null yes case? no no null null no no
 				]
 			]
 		]
