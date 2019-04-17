@@ -31,6 +31,7 @@ usb-windows: context [
 		desc-name-len		[integer!]
 		driver-name			[byte-ptr!]
 		driver-name-len		[integer!]
+		bus-number			[integer!]
 		latest-power-state	[integer!]
 	]
 
@@ -130,6 +131,10 @@ usb-windows: context [
 		device-list		[DEVICE-GUID-LIST!]
 		guid			[UUID!]
 		/local
+			dev-info	[int-ptr!]
+			info-data	[DEV-INFO-DATA!]
+			interface-data	[DEV-INTERFACE-DATA!]
+			detail-data	[DEV-INTERFACE-DETAIL!]
 			index		[integer!]
 			error		[integer!]
 			success		[logic!]
@@ -143,16 +148,19 @@ usb-windows: context [
 		if device-list/dev-info <> INVALID_HANDLE [
 			clear-device-list device-list
 		]
-		device-list/dev-info: SetupDiGetClassDevs guid null 0 DIGCF_PRESENT or DIGCF_DEVICEINTERFACE
-		if device-list/dev-info = INVALID_HANDLE [exit]
+		dev-info: SetupDiGetClassDevs guid null 0 DIGCF_PRESENT or DIGCF_DEVICEINTERFACE
+		device-list/dev-info: dev-info
+		if dev-info = INVALID_HANDLE [exit]
 		index: 0 error: 0
 		while [error <> ERROR_NO_MORE_ITEMS][
 			pNode: as DEVICE-INFO-NODE! allocate size? DEVICE-INFO-NODE!
 			if pNode = null [break]
-			pNode/dev-info: device-list/dev-info
-			pNode/dev-info-data/cbSize: size? DEV-INFO-DATA!
-			pNode/dev-interface-data/cbSize: size? DEV-INTERFACE-DATA!
-			success: SetupDiEnumDeviceInfo device-list/dev-info index pNode/dev-info-data
+			pNode/dev-info: dev-info
+			info-data: pNode/dev-info-data
+			info-data/cbSize: size? DEV-INFO-DATA!
+			interface-data: pNode/dev-interface-data
+			interface-data/cbSize: size? DEV-INTERFACE-DATA!
+			success: SetupDiEnumDeviceInfo dev-info index info-data
 			index: index + 1
 			either success = false [
 				error: GetLastError
@@ -160,7 +168,7 @@ usb-windows: context [
 			][
 				pbuffer: 0
 				plen: 0
-				bResult: get-device-property device-list/dev-info pNode/dev-info-data
+				bResult: get-device-property dev-info info-data
 							SPDRP_DEVICEDESC :pbuffer :plen
 				if bResult = false [
 					free-device-info-node pNode
@@ -168,7 +176,7 @@ usb-windows: context [
 				]
 				pNode/desc-name: as byte-ptr! pbuffer
 				pNode/desc-name-len: plen
-				bResult: get-device-property device-list/dev-info pNode/dev-info-data
+				bResult: get-device-property dev-info info-data
 							SPDRP_DRIVER :pbuffer :plen
 				if bResult = false [
 					free-device-info-node pNode
@@ -177,15 +185,15 @@ usb-windows: context [
 				pNode/driver-name: as byte-ptr! pbuffer
 				pNode/driver-name-len: plen
 
-				success: SetupDiEnumDeviceInterfaces device-list/dev-info 0 guid index - 1
-							pNode/dev-interface-data
+				success: SetupDiEnumDeviceInterfaces dev-info 0 guid index - 1
+							interface-data
 				if success <> true [
 					free-device-info-node pNode
 					break
 				]
 
 				reqLen: 0
-				success: SetupDiGetDeviceInterfaceDetail device-list/dev-info pNode/dev-interface-data
+				success: SetupDiGetDeviceInterfaceDetail dev-info interface-data
 							null 0 :reqLen null
 				error: GetLastError
 				if all [
@@ -201,9 +209,10 @@ usb-windows: context [
 					break
 				]
 				pNode/detail-data: as DEV-INTERFACE-DETAIL! buf
-				pNode/detail-data/cbSize: 5				; don't use size? DEV-INTERFACE-DETAIL!, as it's actual size = 5
-				success: SetupDiGetDeviceInterfaceDetail device-list/dev-info pNode/dev-interface-data
-							pNode/detail-data reqLen :reqLen null
+				detail-data: pNode/detail-data
+				detail-data/cbSize: 5				; don't use size? DEV-INTERFACE-DETAIL!, as it's actual size = 5
+				success: SetupDiGetDeviceInterfaceDetail dev-info interface-data
+							detail-data reqLen :reqLen null
 				if success <> true [
 					free-device-info-node pNode
 					break
