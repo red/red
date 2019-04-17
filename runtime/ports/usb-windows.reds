@@ -364,7 +364,7 @@ usb-windows: context [
 		/local
 			driver-key-name	[byte-ptr!]
 			name-len		[integer!]
-			root-hub-name	[c-string!]
+			root-hub-name	[byte-ptr!]
 			entry			[list-entry!]
 			hc-info			[USB-HOST-CONTROLLER-INFO!]
 			hc-list			[USB-HOST-CONTROLLER-INFO!]
@@ -434,6 +434,13 @@ usb-windows: context [
 			hc-info/controller-info: as USB-CONTROLLER-INFO-0! pinfo
 		]
 		dlink/append tree as list-entry! hc-info
+		name-len: 0
+		root-hub-name: get-root-hub-name hHCDev :name-len
+		if root-hub-name <> null [
+			print-line "root hub name"
+			print-line name-len
+			dump-hex root-hub-name
+		]
 	]
 
 	driver-name-to-device-props: func [
@@ -501,6 +508,37 @@ usb-windows: context [
 		dev-props/dev-class: as byte-ptr! nbuf
 		dev-props/dev-class-len: nlen
 		dev-props
+	]
+
+	get-root-hub-name: func [
+		hcd					[int-ptr!]
+		plen				[int-ptr!]
+		return:				[byte-ptr!]
+		/local
+			success			[logic!]
+			bytes			[integer!]
+			name			[USB-ROOT-HUB-NAME! value]
+			name-w			[USB-ROOT-HUB-NAME!]
+	][
+		bytes: 0
+		success: DeviceIoControl hcd IOCTL_USB_GET_ROOT_HUB_NAME null 0
+					as byte-ptr! name 6 :bytes null
+		if success <> true [
+			return null
+		]
+		bytes: name/actual-len
+		name-w: as USB-ROOT-HUB-NAME! allocate bytes
+		if name-w = null [
+			return null
+		]
+		success: DeviceIoControl hcd IOCTL_USB_GET_ROOT_HUB_NAME null 0
+					as byte-ptr! name-w bytes :bytes null
+		if success <> true [
+			free as byte-ptr! name-w
+			return null
+		]
+		plen/value: bytes
+		as byte-ptr! :name-w/root-hub-name
 	]
 
 	get-hcd-driver-key-name: func [
