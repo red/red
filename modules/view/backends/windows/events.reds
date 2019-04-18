@@ -1501,11 +1501,10 @@ do-events: func [
 	no-wait? [logic!]
 	return:  [logic!]
 	/local
-		msg	  [tagMSG]
+		msg	  [tagMSG value]
 		state [integer!]
 		msg?  [logic!]
 ][
-	msg: declare tagMSG
 	msg?: no
 
 	unless no-wait? [exit-loop: 0]
