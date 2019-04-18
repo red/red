@@ -1,7 +1,7 @@
 Red/System [
 	Title:   "Description"
 	Author:  "Qingtian Xie"
-	File: 	 %filename.red
+	File: 	 %case-folding.reds
 	Type:	 'library
 	Tabs:	 4
 	Rights:  "Copyright (C) 2014-2018 Red Foundation. All rights reserved."
