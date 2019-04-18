@@ -157,6 +157,10 @@ Red [
 		face2525/size/y: min-size/y + 10
 		--assert face2525/size/y = 60
 
+	--test-- "issue #3845"
+
+		u: ["b" ["c" ["d" 1]]]
+		--assert 1 = u/("b")/("c")/("d")
 
 ===end-group===
 
