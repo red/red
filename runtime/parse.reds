@@ -125,7 +125,6 @@ parser: context [
 		R_SET:			-5
 		R_NOT:			-6
 		R_INTO:			-7
-		R_THEN:			-8
 		R_REMOVE:		-9
 		R_INSERT:		-10
 		R_WHILE:		-11
@@ -1189,12 +1188,6 @@ parser: context [
 								PARSE_CHECK_INPUT_EMPTY? ;-- refresh end? flag after popping series
 								s: GET_BUFFER(rules)
 							]
-							R_THEN [
-								PARSE_TRACE(_pop)
-								s/tail: s/tail - 3		;-- pop rule stack frame
-								state: either match? [cmd: tail ST_NEXT_ACTION][ST_FIND_ALTERN]
-								pop?: no
-							]
 							R_CASE [
 								t: as triple! s/tail - 3
 								comp-op: t/max			;-- restore previous matching mode
@@ -1413,7 +1406,6 @@ parser: context [
 							R_TO		 [words/_to]
 							R_THRU		 [words/_thru]
 							R_NOT		 [words/_not]
-							R_THEN		 [words/_then]
 							R_REMOVE	 [words/_remove]
 							R_WHILE		 [words/_while]
 							R_COLLECT	 [words/_collect]
@@ -1732,11 +1724,6 @@ parser: context [
 							match?: end?
 							PARSE_TRACE(_match)
 							state: ST_CHECK_PENDING
-						]
-						sym = words/then [				;-- THEN
-							min:   R_NONE
-							type:  R_THEN
-							state: ST_PUSH_RULE
 						]
 						sym = words/if* [				;-- IF
 							cmd: cmd + 1

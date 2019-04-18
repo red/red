@@ -487,7 +487,6 @@ words: context [
 	none:			-1
 	pipe:			-1
 	dash:			-1
-	then:			-1
 	if*:			-1
 	remove:			-1
 	while*:			-1
@@ -579,7 +578,6 @@ words: context [
 	_to:			as red-word! 0
 	_thru:			as red-word! 0
 	_not:			as red-word! 0
-	_then:			as red-word! 0
 	_remove:		as red-word! 0
 	_while:			as red-word! 0
 	_collect:		as red-word! 0
@@ -691,7 +689,6 @@ words: context [
 		none:			symbol/make "none"
 		pipe:			symbol/make "|"
 		dash:			symbol/make "-"
-		then:			symbol/make "then"
 		if*:			symbol/make "if"
 		remove:			symbol/make "remove"
 		while*:			symbol/make "while"
@@ -775,7 +772,6 @@ words: context [
 		_to:			_context/add-global to
 		_thru:			_context/add-global thru
 		_not:			_context/add-global not*
-		_then:			_context/add-global then
 		_remove:		_context/add-global remove
 		_while:			_context/add-global while*
 		_collect:		_context/add-global collect
