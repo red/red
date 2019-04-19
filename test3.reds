@@ -13,8 +13,8 @@ list: usb-windows/device-list/list-head
 entry: list/next
 while [entry <> list][
     pNode: as usb-windows/DEVICE-INFO-NODE! entry
-    ;print-line "desc-name:"
-    ;dump-hex pNode/desc-name
+    print-line "desc-name:"
+    dump-hex pNode/desc-name
     print-line pNode/desc-name-len
     ;print-line "driver-name:"
     ;dump-hex pNode/driver-name
@@ -27,5 +27,12 @@ while [entry <> list][
     print-line pNode/hub-path
     dump-hex pNode/device-desc
     dump-hex pNode/config-desc
+    print-line "string id:"
+    print-line as integer! pNode/device-desc/15
+    print-line as integer! pNode/device-desc/16
+    print-line as integer! pNode/device-desc/17
+    if pNode/strings <> null [
+        dump-hex as byte-ptr! pNode/strings
+    ]
     entry: entry/next
 ]

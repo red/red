@@ -154,11 +154,12 @@ Red/System [
 #define USBUSER_USB_REFRESH_HCT_REG							0000000Ah
 
 #define USB_DEVICE_DESCRIPTOR_TYPE							#"^(01)"
-#define USB_CONFIGURATION_DESCRIPTOR_TYPE                   #"^(02)"
-#define USB_STRING_DESCRIPTOR_TYPE                          #"^(03)"
-#define USB_INTERFACE_DESCRIPTOR_TYPE                       #"^(04)"
-#define USB_ENDPOINT_DESCRIPTOR_TYPE                        #"^(05)"
+#define USB_CONFIGURATION_DESCRIPTOR_TYPE					#"^(02)"
+#define USB_STRING_DESCRIPTOR_TYPE							#"^(03)"
+#define USB_INTERFACE_DESCRIPTOR_TYPE						#"^(04)"
+#define USB_ENDPOINT_DESCRIPTOR_TYPE						#"^(05)"
 
+#define MAXIMUM_USB_STRING_LENGTH							255
 
 #enum spawn-mode [
 	P_WAIT:		0
@@ -496,6 +497,13 @@ USB-CONFIGURATION-DESCRIPTOR!: alias struct! [
 	iconfig				[byte!]
 	bmAttr				[byte!]
 	MaxPower			[byte!]
+]
+
+USB-STRING-DESCRIPTOR!: alias struct! [
+	bLength				[byte!]
+	bDescType			[byte!]
+	resv1				[byte!]
+	resv2				[byte!]
 ]
 
 #import [

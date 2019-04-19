@@ -34,6 +34,13 @@ usb-windows: context [
 		dev-class-len		[integer!]
 	]
 
+	STRING-DESC-NODE!: alias struct! [
+		next				[STRING-DESC-NODE!]
+		index				[byte!]
+		languageID			[integer!]
+		string-desc			[USB-STRING-DESCRIPTOR! value]
+	]
+
 	DEVICE-INFO-NODE!: alias struct! [
 		entry				[list-entry! value]
 		dev-info			[int-ptr!]
@@ -56,6 +63,7 @@ usb-windows: context [
 		device-desc-len		[integer!]
 		config-desc			[byte-ptr!]
 		config-desc-len		[integer!]
+		strings				[STRING-DESC-NODE!]
 	]
 
 	device-list: declare DEVICE-GUID-LIST!
@@ -159,6 +167,7 @@ usb-windows: context [
 			dev-path		[c-string!]
 			rint			[integer!]
 			hHub			[integer!]
+			strings			[STRING-DESC-NODE!]
 	][
 		if device-list/dev-info <> INVALID_HANDLE [
 			clear-device-list device-list
@@ -268,16 +277,18 @@ usb-windows: context [
 						hHub: CreateFileA dev-path GENERIC_WRITE FILE_SHARE_WRITE null
 								OPEN_EXISTING 0 null
 						if hHub <> -1 [
+							buf: get-device-desc hHub port :plen
+							if buf <> null [
+								pNode/device-desc: buf
+								pNode/device-desc-len: plen
+							]
 							buf: get-config-desc hHub port 0 :plen
 							if buf <> null [
 								pNode/config-desc: buf
 								pNode/config-desc-len: plen
 							]
-							buf: get-device-desc hHub port 0 :plen
-							if buf <> null [
-								pNode/device-desc: buf
-								pNode/device-desc-len: plen
-							]
+							strings: get-all-string-desc hHub port pNode/device-desc pNode/config-desc
+							pNode/strings: strings
 						]
 						CloseHandle as int-ptr! hHub
 					]
@@ -356,7 +367,6 @@ usb-windows: context [
 	get-device-desc: func [
 		hHub			[integer!]
 		port			[integer!]
-		config			[integer!]
 		plen			[int-ptr!]
 		return:			[byte-ptr!]
 		/local
@@ -377,7 +387,7 @@ usb-windows: context [
 		desc-req: as USB-DESCRIPTOR-REQUEST! req-buf
 		desc: as USB-DEVICE-DESCRIPTOR! (req-buf + 12)
 		desc-req/port: port
-		desc-req/wValue1: as byte! config
+		desc-req/wValue1: #"^(00)"
 		desc-req/wValue2: USB_DEVICE_DESCRIPTOR_TYPE
 		desc-req/wLength1: #"^(12)"
 		desc-req/wLength2: #"^(00)"
@@ -477,6 +487,151 @@ usb-windows: context [
 		copy-memory ret req-buf + 12 total2
 		free req-buf
 		ret
+	]
+
+	get-all-string-desc: func [
+		hHub			[integer!]
+		port			[integer!]
+		dev-desc		[byte-ptr!]
+		config-desc		[byte-ptr!]
+		return:			[STRING-DESC-NODE!]
+		/local
+			string-node	[STRING-DESC-NODE!]
+			numLangIDs	[integer!]
+			langIDs		[byte-ptr!]
+			descEnd		[byte-ptr!]
+			uIndex		[byte!]
+			bInfClass	[byte!]
+			more?		[logic!]
+			res			[integer!]
+	][
+		string-node: get-string-desc hHub port null-byte 0
+		if string-node = null [return null]
+		numLangIDs: (as integer! string-node/string-desc/bLength) - 2 / 2
+		langIDs: (as byte-ptr! string-node/string-desc) + 2
+
+		if dev-desc/15 <> null-byte [
+			get-string-descs hHub port dev-desc/15 numLangIDs langIDs string-node
+		]
+		if dev-desc/16 <> null-byte [
+			get-string-descs hHub port dev-desc/16 numLangIDs langIDs string-node
+		]
+		if dev-desc/17 <> null-byte [
+			get-string-descs hHub port dev-desc/17 numLangIDs langIDs string-node
+		]
+
+		string-node
+	]
+
+	get-string-descs: func [
+		hHub			[integer!]
+		port			[integer!]
+		index			[byte!]
+		numLangIDs		[integer!]
+		langIDs			[byte-ptr!]
+		node-head		[STRING-DESC-NODE!]
+		return:			[logic!]
+		/local
+			tail		[STRING-DESC-NODE!]
+			trailing	[STRING-DESC-NODE!]
+			i			[integer!]
+			t			[integer!]
+			k			[integer!]
+			id			[integer!]
+	][
+		tail: node-head
+		while [tail <> null][
+			if tail/index = index [
+				return true
+			]
+			trailing: tail
+			tail: tail/next
+		]
+		tail: trailing
+		i: 0
+		while [
+			all [
+				tail <> null
+				i < numLangIDs
+			]
+		][
+			t: i * 2 + 1
+			k: t + 1
+			id: (as integer! langIDs/t) << 8 + (as integer! langIDs/k)
+			tail/next: get-string-desc hHub port index id
+			i: i + 1
+			tail: tail/next
+		]
+		if tail = null [
+			return false
+		]
+		true
+	]
+
+	get-string-desc: func [
+		hHub			[integer!]
+		port			[integer!]
+		index			[byte!]
+		langID			[integer!]
+		return:			[STRING-DESC-NODE!]
+		/local
+			success		[logic!]
+			bytes		[integer!]
+			bytes-ret	[integer!]
+			req-buf		[byte-ptr!]
+			desc-req	[USB-DESCRIPTOR-REQUEST!]
+			desc		[USB-STRING-DESCRIPTOR!]
+			node		[STRING-DESC-NODE!]
+	][
+		bytes: (size? USB-DESCRIPTOR-REQUEST!) + MAXIMUM_USB_STRING_LENGTH
+		req-buf: allocate bytes
+		if req-buf = null [return null]
+		bytes-ret: 0
+		set-memory req-buf null-byte 12
+		bytes: 12 + MAXIMUM_USB_STRING_LENGTH
+		desc-req: as USB-DESCRIPTOR-REQUEST! req-buf
+		desc: as USB-STRING-DESCRIPTOR! (req-buf + 12)
+		desc-req/port: port
+		desc-req/wValue1: index
+		desc-req/wValue2: USB_STRING_DESCRIPTOR_TYPE
+		desc-req/wLength1: #"^(FF)"
+		desc-req/wLength2: #"^(00)"
+		desc-req/wIndex1: as byte! (langID >> 8)
+		desc-req/wIndex2: as byte! langID
+
+		success: DeviceIoControl as int-ptr! hHub IOCTL_USB_GET_DESCRIPTOR_FROM_NODE_CONNECTION as byte-ptr! desc-req bytes
+					as byte-ptr! desc-req bytes :bytes-ret null
+		if success <> true [
+			free req-buf
+			return null
+		]
+		if bytes-ret < 2 [
+			free req-buf
+			return null
+		]
+		if desc/bDescType <> USB_STRING_DESCRIPTOR_TYPE [
+			free req-buf
+			return null
+		]
+		if (as integer! desc/bLength) <> (bytes-ret - 12) [
+			free req-buf
+			return null
+		]
+		if (as integer! desc/bLength) % 2 <> 0 [
+			free req-buf
+			return null
+		]
+		node: as STRING-DESC-NODE! allocate (size? STRING-DESC-NODE!) + as integer! desc/bLength
+		if node = null [
+			free req-buf
+			return null
+		]
+		node/index: index
+		node/languageID: langID
+		node/next: null
+		copy-memory as byte-ptr! node/string-desc as byte-ptr! desc as integer! desc/bLength
+		free req-buf
+		node
 	]
 
 	get-device-property: func [
