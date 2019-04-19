@@ -17,7 +17,7 @@ clr-start
 clr-load 'WPF/PresentationFramework.dll
 
 ;-- Lib download from http://sharpvectors.codeplex.com/
-clr-load %./SvgConverter/SharpVectors.Converters.dll
+clr-load %./SvgConverter/SharpVectors.Converters.Wpf.dll
 clr-load %./SvgConverter/SharpVectors.Rendering.Wpf.dll
 
 settings: clr-new [SharpVectors.Renderers.Wpf.WpfDrawingSettings]

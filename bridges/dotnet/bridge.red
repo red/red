@@ -553,8 +553,8 @@ clr-search-class: routine [
 	assems: 0
 	domain/GetAssemblies clrDomain :assems
 	pAms: as int-ptr! assems
-	pAms: as int-ptr! pAms/4						;-- pvData
 	size: pAms/5
+	pAms: as int-ptr! pAms/4						;-- pvData
 	am: as this! pAms/1
 
 	len: -1
