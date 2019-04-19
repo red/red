@@ -465,6 +465,27 @@ USB-DESCRIPTOR-REQUEST!: alias struct! [
 	Data				[integer!]
 ]
 
+USB-DEVICE-DESCRIPTOR!: alias struct! [
+	bLength				[byte!]
+	bDescType			[byte!]
+	bcdUSB1				[byte!]
+	bcdUSB2				[byte!]
+	bDeviceClass		[byte!]
+	bDeviceSubClass		[byte!]
+	bDeviceProtocol		[byte!]
+	bMaxPacketSize0		[byte!]
+	idVendor1			[byte!]
+	idVendor2			[byte!]
+	idProduct1			[byte!]
+	idProduct2			[byte!]
+	bcdDevice1			[byte!]
+	bcdDevice2			[byte!]
+	iManufacturer		[byte!]
+	iProduct			[byte!]
+	iSerialNumber		[byte!]
+	bNumConfigs			[byte!]
+]
+
 USB-CONFIGURATION-DESCRIPTOR!: alias struct! [
 	bLength				[byte!]
 	bDescType			[byte!]

@@ -52,6 +52,8 @@ usb-windows: context [
 		serial-num			[c-string!]
 		hub-path			[c-string!]
 		hub-handle			[integer!]
+		device-desc			[byte-ptr!]
+		device-desc-len		[integer!]
 		config-desc			[byte-ptr!]
 		config-desc-len		[integer!]
 	]
@@ -123,6 +125,9 @@ usb-windows: context [
 		]
 		if pNode/config-desc <> null [
 			free pNode/config-desc
+		]
+		if pNode/device-desc <> null [
+			free pNode/device-desc
 		]
 		free as byte-ptr! pNode
 	]
@@ -268,6 +273,11 @@ usb-windows: context [
 								pNode/config-desc: buf
 								pNode/config-desc-len: plen
 							]
+							buf: get-device-desc hHub port 0 :plen
+							if buf <> null [
+								pNode/device-desc: buf
+								pNode/device-desc-len: plen
+							]
 						]
 						CloseHandle as int-ptr! hHub
 					]
@@ -341,6 +351,52 @@ usb-windows: context [
 			]
 		]
 		null
+	]
+
+	get-device-desc: func [
+		hHub			[integer!]
+		port			[integer!]
+		config			[integer!]
+		plen			[int-ptr!]
+		return:			[byte-ptr!]
+		/local
+			success		[logic!]
+			bytes		[integer!]
+			bytes-ret	[integer!]
+			req-buf		[byte-ptr!]
+			desc-req	[USB-DESCRIPTOR-REQUEST!]
+			desc		[USB-DEVICE-DESCRIPTOR!]
+			ret			[byte-ptr!]
+	][
+		bytes: (size? USB-DESCRIPTOR-REQUEST!) + size? USB-DEVICE-DESCRIPTOR!
+		req-buf: allocate bytes
+		if req-buf = null [return null]
+		bytes-ret: 0
+		set-memory req-buf null-byte 12
+		bytes: 12 + 18
+		desc-req: as USB-DESCRIPTOR-REQUEST! req-buf
+		desc: as USB-DEVICE-DESCRIPTOR! (req-buf + 12)
+		desc-req/port: port
+		desc-req/wValue1: as byte! config
+		desc-req/wValue2: USB_DEVICE_DESCRIPTOR_TYPE
+		desc-req/wLength1: #"^(12)"
+		desc-req/wLength2: #"^(00)"
+
+		success: DeviceIoControl as int-ptr! hHub IOCTL_USB_GET_DESCRIPTOR_FROM_NODE_CONNECTION as byte-ptr! desc-req bytes
+					as byte-ptr! desc-req bytes :bytes-ret null
+		if success <> true [
+			free req-buf
+			return null
+		]
+		if bytes-ret <> 30 [
+			free req-buf
+			return null
+		]
+		plen/value: 18
+		ret: allocate 18
+		copy-memory ret req-buf + 12 18
+		free req-buf
+		ret
 	]
 
 	get-config-desc: func [
