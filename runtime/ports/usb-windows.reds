@@ -50,6 +50,10 @@ usb-windows: context [
 		vid					[integer!]
 		pid					[integer!]
 		serial-num			[c-string!]
+		hub-path			[c-string!]
+		hub-handle			[integer!]
+		config-desc			[byte-ptr!]
+		config-desc-len		[integer!]
 	]
 
 	device-list: declare DEVICE-GUID-LIST!
@@ -114,6 +118,12 @@ usb-windows: context [
 		if pNode/serial-num <> null [
 			free as byte-ptr! pNode/serial-num
 		]
+		if pNode/hub-path <> null [
+			free as byte-ptr! pNode/hub-path
+		]
+		if pNode/config-desc <> null [
+			free pNode/config-desc
+		]
 		free as byte-ptr! pNode
 	]
 
@@ -140,6 +150,10 @@ usb-windows: context [
 			vid				[integer!]
 			pid				[integer!]
 			serial			[c-string!]
+			inst			[integer!]
+			dev-path		[c-string!]
+			rint			[integer!]
+			hHub			[integer!]
 	][
 		if device-list/dev-info <> INVALID_HANDLE [
 			clear-device-list device-list
@@ -151,6 +165,7 @@ usb-windows: context [
 		while [error <> ERROR_NO_MORE_ITEMS][
 			pNode: as DEVICE-INFO-NODE! allocate size? DEVICE-INFO-NODE!
 			if pNode = null [continue]
+			set-memory as byte-ptr! pNode null-byte size? DEVICE-INFO-NODE!
 			pNode/dev-info: dev-info
 			info-data: pNode/dev-info-data
 			info-data/cbSize: size? DEV-INFO-DATA!
@@ -236,9 +251,176 @@ usb-windows: context [
 					pNode/pid: pid
 					pNode/serial-num: serial
 				]
+				inst: 0
+				rint: CM_Get_Parent :inst info-data/DevInst 0
+				if all [
+					rint = 0
+					port <> -1
+				][
+					dev-path: get-hub-detail inst
+					pNode/hub-path: dev-path
+					if dev-path <> null [
+						hHub: CreateFileA dev-path GENERIC_WRITE FILE_SHARE_WRITE null
+								OPEN_EXISTING 0 null
+						if hHub <> -1 [
+							buf: get-config-desc hHub port 0 :plen
+							if buf <> null [
+								pNode/config-desc: buf
+								pNode/config-desc-len: plen
+							]
+						]
+						CloseHandle as int-ptr! hHub
+					]
+				]
 				dlink/append device-list/list-head as list-entry! pNode
 			]
 		]
+	]
+
+	get-hub-detail: func [
+		inst			[integer!]
+		return:			[c-string!]
+		/local
+			dev-info		[int-ptr!]
+			info-data		[DEV-INFO-DATA! value]
+			interface-data	[DEV-INTERFACE-DATA! value]
+			detail-data		[DEV-INTERFACE-DETAIL!]
+			index			[integer!]
+			error			[integer!]
+			success			[logic!]
+			reqLen			[integer!]
+			buf				[byte-ptr!]
+			ret				[c-string!]
+	][
+		dev-info: SetupDiGetClassDevs GUID_DEVINTERFACE_USB_HUB null 0 DIGCF_PRESENT or DIGCF_DEVICEINTERFACE
+		if dev-info = INVALID_HANDLE [
+			return null
+		]
+		index: 0 error: 0
+		while [error <> ERROR_NO_MORE_ITEMS][
+			info-data/cbSize: size? DEV-INFO-DATA!
+			interface-data/cbSize: size? DEV-INTERFACE-DATA!
+			success: SetupDiEnumDeviceInfo dev-info index info-data
+			index: index + 1
+			either success = false [
+				error: GetLastError
+			][
+				if info-data/DevInst = inst [
+					success: SetupDiEnumDeviceInterfaces dev-info 0 GUID_DEVINTERFACE_USB_HUB index - 1
+								interface-data
+					if success <> true [
+						continue
+					]
+					reqLen: 0
+					success: SetupDiGetDeviceInterfaceDetail dev-info interface-data
+								null 0 :reqLen null
+					error: GetLastError
+					if all [
+						success <> true
+						error <> ERROR_INSUFFICIENT_BUFFER
+					][
+						continue
+					]
+					buf: allocate reqLen
+					if buf = null [
+						continue
+					]
+					detail-data: as DEV-INTERFACE-DETAIL! buf
+					detail-data/cbSize: 5				; don't use size? DEV-INTERFACE-DETAIL!, as it's actual size = 5
+					success: SetupDiGetDeviceInterfaceDetail dev-info interface-data
+								detail-data reqLen :reqLen null
+					if success <> true [
+						free buf
+						continue
+					]
+					ret: as c-string! allocate reqLen - 4
+					copy-memory as byte-ptr! ret buf + 4 reqLen - 4
+					free buf
+					return ret
+				]
+			]
+		]
+		null
+	]
+
+	get-config-desc: func [
+		hHub			[integer!]
+		port			[integer!]
+		config			[integer!]
+		plen			[int-ptr!]
+		return:			[byte-ptr!]
+		/local
+			success		[logic!]
+			bytes		[integer!]
+			bytes-ret	[integer!]
+			req-buf		[byte-ptr!]
+			desc-req	[USB-DESCRIPTOR-REQUEST!]
+			desc		[USB-CONFIGURATION-DESCRIPTOR!]
+			total		[integer!]
+			total2		[integer!]
+			ret			[byte-ptr!]
+	][
+		bytes: (size? USB-DESCRIPTOR-REQUEST!) + size? USB-CONFIGURATION-DESCRIPTOR!
+		req-buf: allocate bytes
+		if req-buf = null [return null]
+		bytes-ret: 0
+		set-memory req-buf null-byte 12
+		bytes: 12 + 9
+		desc-req: as USB-DESCRIPTOR-REQUEST! req-buf
+		desc: as USB-CONFIGURATION-DESCRIPTOR! (req-buf + 12)
+		desc-req/port: port
+		desc-req/wValue1: as byte! config
+		desc-req/wValue2: USB_CONFIGURATION_DESCRIPTOR_TYPE
+		desc-req/wLength1: #"^(09)"
+		desc-req/wLength2: #"^(00)"
+
+		success: DeviceIoControl as int-ptr! hHub IOCTL_USB_GET_DESCRIPTOR_FROM_NODE_CONNECTION as byte-ptr! desc-req bytes
+					as byte-ptr! desc-req bytes :bytes-ret null
+		if success <> true [
+			free req-buf
+			return null
+		]
+		if bytes <> bytes-ret [
+			free req-buf
+			return null
+		]
+		total: (as integer! desc/wTotalLen2) << 8 + (as integer! desc/wTotalLen1)
+		if total < 9 [
+			free req-buf
+			return null
+		]
+		free req-buf
+		bytes: 12 + total
+		req-buf: allocate bytes
+		if req-buf = null [return null]
+		set-memory req-buf null-byte 12
+		desc-req: as USB-DESCRIPTOR-REQUEST! req-buf
+		desc: as USB-CONFIGURATION-DESCRIPTOR! (req-buf + 12)
+		desc-req/port: port
+		desc-req/wValue1: as byte! config
+		desc-req/wValue2: USB_CONFIGURATION_DESCRIPTOR_TYPE
+		desc-req/wLength1: #"^(09)"
+		desc-req/wLength2: #"^(00)"
+		success: DeviceIoControl as int-ptr! hHub IOCTL_USB_GET_DESCRIPTOR_FROM_NODE_CONNECTION as byte-ptr! desc-req bytes
+					as byte-ptr! desc-req bytes :bytes-ret null
+		if success <> true [
+			free req-buf
+			return null
+		]
+		if bytes <> bytes-ret [
+			free req-buf
+			return null
+		]
+		total2: (as integer! desc/wTotalLen2) << 8 + (as integer! desc/wTotalLen1)
+		if total <> total2 [
+			free req-buf
+			return null
+		]
+		plen/value: total2
+		ret: allocate total2
+		copy-memory ret req-buf + 12 total2
+		free req-buf
+		ret
 	]
 
 	get-device-property: func [

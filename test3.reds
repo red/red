@@ -24,5 +24,7 @@ while [entry <> list][
     print-line pNode/vid
     print-line pNode/pid
     print-line pNode/serial-num
+    print-line pNode/hub-path
+    dump-hex pNode/config-desc
     entry: entry/next
 ]

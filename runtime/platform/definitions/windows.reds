@@ -140,6 +140,8 @@ Red/System [
 #define IOCTL_USB_USER_REQUEST			[USB_CTL(HCD_USER_REQUEST)]
 #define IOCTL_USB_GET_ROOT_HUB_NAME		[CTL_CODE(FILE_DEVICE_USB HCD_GET_ROOT_HUB_NAME METHOD_BUFFERED FILE_ANY_ACCESS)]
 
+#define IOCTL_USB_GET_DESCRIPTOR_FROM_NODE_CONNECTION	[CTL_CODE(FILE_DEVICE_USB USB_GET_DESCRIPTOR_FROM_NODE_CONNECTION METHOD_BUFFERED FILE_ANY_ACCESS)]
+
 #define USBUSER_GET_CONTROLLER_INFO_0						00000001h
 #define USBUSER_GET_CONTROLLER_DRIVER_KEY					00000002h
 #define USBUSER_PASS_THRU									00000003h
@@ -150,6 +152,13 @@ Red/System [
 #define USBUSER_GET_USB_DRIVER_VERSION						00000008h
 #define USBUSER_GET_USB2_HW_VERSION							00000009h
 #define USBUSER_USB_REFRESH_HCT_REG							0000000Ah
+
+#define USB_DEVICE_DESCRIPTOR_TYPE							#"^(01)"
+#define USB_CONFIGURATION_DESCRIPTOR_TYPE                   #"^(02)"
+#define USB_STRING_DESCRIPTOR_TYPE                          #"^(03)"
+#define USB_INTERFACE_DESCRIPTOR_TYPE                       #"^(04)"
+#define USB_ENDPOINT_DESCRIPTOR_TYPE                        #"^(05)"
+
 
 #enum spawn-mode [
 	P_WAIT:		0
@@ -441,6 +450,31 @@ USBUSER-CONTROLLER-INFO-0!: alias struct! [
 USB-ROOT-HUB-NAME!: alias struct! [
 	actual-len			[integer!]
 	root-hub-name		[integer!]
+]
+
+USB-DESCRIPTOR-REQUEST!: alias struct! [
+	port				[integer!]
+	bmRequest			[byte!]
+	bRequest			[byte!]
+	wValue1				[byte!]
+	wValue2				[byte!]
+	wIndex1				[byte!]
+	wIndex2				[byte!]
+	wLength1			[byte!]
+	wLength2			[byte!]
+	Data				[integer!]
+]
+
+USB-CONFIGURATION-DESCRIPTOR!: alias struct! [
+	bLength				[byte!]
+	bDescType			[byte!]
+	wTotalLen1			[byte!]
+	wTotalLen2			[byte!]
+	bNumInfs			[byte!]
+	bConfigValue		[byte!]
+	iconfig				[byte!]
+	bmAttr				[byte!]
+	MaxPower			[byte!]
 ]
 
 #import [
@@ -981,6 +1015,21 @@ USB-ROOT-HUB-NAME!: alias struct! [
 			lpDirectory	 [integer!]
 			nShowCmd	 [integer!]
 			return:		 [integer!]
+		]
+	]
+	"CfgMgr32" stdcall [
+		CM_Get_Parent: "CM_Get_Parent" [
+			parent		[int-ptr!]
+			child		[integer!]
+			flags		[integer!]
+			return:		[integer!]
+		]
+		CM_Get_Device_ID: "CM_Get_Device_IDA" [
+			inst		[integer!]
+			buffer		[c-string!]
+			len			[integer!]
+			flags		[integer!]
+			return:		[integer!]
 		]
 	]
 ]
