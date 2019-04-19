@@ -12,6 +12,23 @@ Red [
 
 ~~~start-file~~~ "object"
 
+===start-group=== "reactor tests"
+
+    --test-- "reactor-basic-1"
+        rb1-r: make reactor! [
+            x: 1
+            y: 2
+            total: is [x + y]
+        ]
+        --assert 3 = rb1-r/total
+        rb1-r/x: 2
+        --assert 4 = rb1-r/total
+        rb1-r/x: 5
+        rb1-r/y: 10
+        --assert 15 = rb1-r/total
+        
+===end-group===
+
 ===start-group=== "basic tests"
 
 	--test-- "basic-1"
