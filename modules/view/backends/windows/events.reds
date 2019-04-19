@@ -449,6 +449,7 @@ make-event: func [
 		state  [integer!]
 		key	   [integer!]
 		char   [integer!]
+		saved  [handle!]
 ][
 	gui-evt/type:  evt
 	gui-evt/msg:   as byte-ptr! msg
@@ -527,6 +528,7 @@ make-event: func [
 		default	 [0]
 	]
 
+	saved: msg/hWnd
 	stack/mark-try-all words/_anon
 	res: as red-word! stack/arguments
 	catch CATCH_ALL_EXCEPTIONS [
@@ -535,6 +537,7 @@ make-event: func [
 	]
 	stack/adjust-post-try
 	if system/thrown <> 0 [system/thrown: 0]
+	msg/hWnd: saved
 	
 	if TYPE_OF(res) = TYPE_WORD [
 		sym: symbol/resolve res/symbol
