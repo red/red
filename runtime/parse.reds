@@ -1070,6 +1070,7 @@ parser: context [
 												PARSE_PICK_INPUT
 												offset: offset + 1
 											]
+											s-top: stack/top	;-- shields the stack from eventual object event call
 											either into? [
 												switch TYPE_OF(blk) [
 													TYPE_BINARY [binary/insert as red-binary! blk value null yes null no]
@@ -1083,6 +1084,7 @@ parser: context [
 											][
 												block/rs-append blk value
 											]
+											stack/top: s-top
 											offset = input/head
 										]
 									]
