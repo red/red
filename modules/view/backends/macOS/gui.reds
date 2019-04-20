@@ -614,10 +614,6 @@ change-color: func [
 ][
 	t: TYPE_OF(color)
 	if all [t <> TYPE_NONE t <> TYPE_TUPLE][exit]
-	if all [type <> window transparent-color? color][
-		objc_msgSend [hWnd sel_getUid "setDrawsBackground:" no]
-		exit
-	]
 	set?: yes
 	case [
 		type = area [
@@ -627,10 +623,7 @@ change-color: func [
 			if t = TYPE_NONE [clr: objc_msgSend [objc_getClass "NSColor" sel_getUid "textBackgroundColor"]]
 		]
 		type = text [
-			if t = TYPE_NONE [
-				clr: objc_msgSend [objc_getClass "NSColor" sel_getUid "controlColor"]
-				set?: no
-			]
+			if t = TYPE_NONE [set?: no]
 			objc_msgSend [hWnd sel_getUid "setDrawsBackground:" set?]
 		]
 		any [type = check type = radio][
