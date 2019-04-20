@@ -95,6 +95,8 @@ usb-windows: context [
 		pNode		[DEVICE-INFO-NODE!]
 		/local
 			props	[USB-DEVICE-PNP-STRINGS!]
+			strings	[STRING-DESC-NODE!]
+			next	[STRING-DESC-NODE!]
 	][
 		if pNode = null [exit]
 		if pNode/detail-data <> null [
@@ -136,6 +138,12 @@ usb-windows: context [
 		]
 		if pNode/device-desc <> null [
 			free pNode/device-desc
+		]
+		strings: pNode/strings
+		while [strings <> null][
+			next: strings/next
+			free as byte-ptr! strings
+			strings: next
 		]
 		free as byte-ptr! pNode
 	]
@@ -499,9 +507,10 @@ usb-windows: context [
 			string-node	[STRING-DESC-NODE!]
 			numLangIDs	[integer!]
 			langIDs		[byte-ptr!]
+			descStart	[byte-ptr!]
 			descEnd		[byte-ptr!]
-			uIndex		[byte!]
-			bInfClass	[byte!]
+			uIndex		[integer!]
+			success		[logic!]
 			more?		[logic!]
 			res			[integer!]
 	][
@@ -509,7 +518,7 @@ usb-windows: context [
 		if string-node = null [return null]
 		numLangIDs: (as integer! string-node/string-desc/bLength) - 2 / 2
 		langIDs: (as byte-ptr! string-node/string-desc) + 2
-
+		more?: false
 		if dev-desc/15 <> null-byte [
 			get-string-descs hHub port dev-desc/15 numLangIDs langIDs string-node
 		]
@@ -519,7 +528,68 @@ usb-windows: context [
 		if dev-desc/17 <> null-byte [
 			get-string-descs hHub port dev-desc/17 numLangIDs langIDs string-node
 		]
-
+		descStart: config-desc
+		descEnd: config-desc + (as integer! config-desc/3) + ((as integer! config-desc/4) << 8)
+		while [
+			all [
+				(descStart + 2) < descEnd
+				(descStart + as integer! descStart/1) <= descEnd
+			]
+		][
+			switch descStart/2 [
+				USB_CONFIGURATION_DESCRIPTOR_TYPE [
+					if (as integer! descStart/1) <> 9 [
+						break
+					]
+					if descStart/7 <> null-byte [
+						get-string-descs hHub port descStart/7 numLangIDs langIDs string-node
+					]
+					descStart: descStart + as integer! descStart/1
+				]
+				USB_IAD_DESCRIPTOR_TYPE [
+					if (as integer! descStart/1) <> 8 [
+						break
+					]
+					if descStart/8 <> null-byte [
+						get-string-descs hHub port descStart/8 numLangIDs langIDs string-node
+					]
+					descStart: descStart + as integer! descStart/1
+				]
+				USB_INTERFACE_DESCRIPTOR_TYPE [
+					if all [
+						(as integer! descStart/1) <> 7
+						(as integer! descStart/1) <> 9
+					][
+						break
+					]
+					if (as integer! descStart/1) = 9 [
+						if descStart/9 <> null-byte [
+							get-string-descs hHub port descStart/9 numLangIDs langIDs string-node
+						]
+						if descStart/6 = USB_DEVICE_CLASS_VIDEO [
+							more?: true
+						]
+					]
+					descStart: descStart + as integer! descStart/1
+				]
+				default [
+					descStart: descStart + as integer! descStart/1
+				]
+			]
+		]
+		if more? [
+			uIndex: 1
+			success: true
+			while [
+				all [
+					success
+					uIndex < NUM_STRING_DESC_TO_GET
+				]
+			][
+				success: get-string-descs hHub port as byte! uIndex numLangIDs langIDs string-node
+				uIndex: uIndex + 1
+			]
+		]
 		string-node
 	]
 
@@ -557,7 +627,7 @@ usb-windows: context [
 		][
 			t: i * 2 + 1
 			k: t + 1
-			id: (as integer! langIDs/t) << 8 + (as integer! langIDs/k)
+			id: (as integer! langIDs/k) << 8 + (as integer! langIDs/t)
 			tail/next: get-string-desc hHub port index id
 			i: i + 1
 			tail: tail/next
@@ -596,8 +666,8 @@ usb-windows: context [
 		desc-req/wValue2: USB_STRING_DESCRIPTOR_TYPE
 		desc-req/wLength1: #"^(FF)"
 		desc-req/wLength2: #"^(00)"
-		desc-req/wIndex1: as byte! (langID >> 8)
-		desc-req/wIndex2: as byte! langID
+		desc-req/wIndex1: as byte! langID
+		desc-req/wIndex2: as byte! (langID >> 8)
 
 		success: DeviceIoControl as int-ptr! hHub IOCTL_USB_GET_DESCRIPTOR_FROM_NODE_CONNECTION as byte-ptr! desc-req bytes
 					as byte-ptr! desc-req bytes :bytes-ret null

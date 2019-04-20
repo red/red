@@ -11,6 +11,8 @@ print-line "devices:"
 pNode: as usb-windows/DEVICE-INFO-NODE! 0
 list: usb-windows/device-list/list-head
 entry: list/next
+strings: as usb-windows/STRING-DESC-NODE! 0
+next: as usb-windows/STRING-DESC-NODE! 0
 while [entry <> list][
     pNode: as usb-windows/DEVICE-INFO-NODE! entry
     print-line "desc-name:"
@@ -19,8 +21,8 @@ while [entry <> list][
     ;print-line "driver-name:"
     ;dump-hex pNode/driver-name
     ;print-line pNode/driver-name-len
-    ;print-line "port:"
-    ;print-line pNode/port
+    print-line "port:"
+    print-line pNode/port
     print-line pNode/vid
     print-line pNode/pid
     print-line pNode/serial-num
@@ -28,11 +30,12 @@ while [entry <> list][
     dump-hex pNode/device-desc
     dump-hex pNode/config-desc
     print-line "string id:"
-    print-line as integer! pNode/device-desc/15
-    print-line as integer! pNode/device-desc/16
-    print-line as integer! pNode/device-desc/17
-    if pNode/strings <> null [
-        dump-hex as byte-ptr! pNode/strings
+    strings: pNode/strings
+    while [strings <> null][
+        next: strings/next
+        dump-hex as byte-ptr! strings/string-desc
+        strings: next
     ]
+    print-line "end"
     entry: entry/next
 ]

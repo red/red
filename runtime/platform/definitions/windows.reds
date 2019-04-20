@@ -159,7 +159,11 @@ Red/System [
 #define USB_INTERFACE_DESCRIPTOR_TYPE						#"^(04)"
 #define USB_ENDPOINT_DESCRIPTOR_TYPE						#"^(05)"
 
+#define USB_IAD_DESCRIPTOR_TYPE								#"^(0B)"
+#define USB_DEVICE_CLASS_VIDEO								#"^(0E)" 
+
 #define MAXIMUM_USB_STRING_LENGTH							255
+#define NUM_STRING_DESC_TO_GET								32
 
 #enum spawn-mode [
 	P_WAIT:		0
