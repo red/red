@@ -289,7 +289,7 @@ math: function [
 
 charset: func [
 	"Shortcut for `make bitset!`"
-	spec [block! integer! char! string!]
+	spec [block! integer! char! string! bitset! binary!]
 ][
 	make bitset! spec
 ]
