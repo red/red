@@ -1507,6 +1507,7 @@ do-events: func [
 		msg	  [tagMSG value]
 		state [integer!]
 		msg?  [logic!]
+		saved [tagMSG]
 ][
 	msg?: no
 
@@ -1514,17 +1515,19 @@ do-events: func [
 
 	while [
 		either no-wait? [
-			0 < PeekMessage msg null 0 0 1
+			0 < PeekMessage :msg null 0 0 1
 		][
-			0 < GetMessage msg null 0 0
+			0 < GetMessage :msg null 0 0
 		]
 	][
 		unless msg? [msg?: yes]
-		state: process msg
+		state: process :msg
 		if state >= EVT_DISPATCH [
-			current-msg: msg
-			TranslateMessage msg
-			DispatchMessage msg
+			saved: current-msg
+			current-msg: :msg
+			TranslateMessage :msg
+			DispatchMessage :msg
+			current-msg: saved
 		]
 		if no-wait? [return msg?]
 	]
