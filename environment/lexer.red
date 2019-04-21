@@ -552,7 +552,7 @@ system/lexer: context [
 
 		base-2-rule: [
 			"2#{" (type: binary!) [
-				s: any [counted-newline | 8 [#"0" | #"1" ] | ws-no-count | comment-rule] e: #"}"
+				s: any [counted-newline | 4 8 [#"0" | #"1" ] | ws-no-count | comment-rule] e: #"}"
 				| (throw-error [binary! skip s -3])
 			] (base: 2)
 		]
