@@ -559,7 +559,7 @@ platform: context [
 			]
 		]
 		crypto/init-provider
-		#if sub-system = 'console [init-dos-console]
+		init-output-buffer
 		#if unicode? = yes [
 			h: __iob_func
 			_setmode _fileno h + 8 _O_U16TEXT				;@@ stdout, throw an error on failure
