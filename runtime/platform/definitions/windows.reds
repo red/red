@@ -165,6 +165,43 @@ Red/System [
 #define MAXIMUM_USB_STRING_LENGTH							255
 #define NUM_STRING_DESC_TO_GET								32
 
+
+#define DICS_FLAG_GLOBAL									00000001h
+#define DICS_FLAG_CONFIGSPECIFIC							00000002h
+#define DICS_FLAG_CONFIGGENERAL								00000004h
+
+#define DIREG_DEV											00000001h
+#define DIREG_DRV											00000002h
+#define DIREG_BOTH											00000004h
+
+#define DELETE												00010000h
+#define READ_CONTROL										00020000h
+#define WRITE_DAC											00040000h
+#define WRITE_OWNER											00080000h
+#define SYNCHRONIZE											00100000h
+
+#define STANDARD_RIGHTS_REQUIRED							000F0000h
+
+#define STANDARD_RIGHTS_READ								READ_CONTROL
+#define STANDARD_RIGHTS_WRITE								READ_CONTROL
+#define STANDARD_RIGHTS_EXECUTE								READ_CONTROL
+
+#define STANDARD_RIGHTS_ALL									001F0000h
+
+#define SPECIFIC_RIGHTS_ALL									0000FFFFh
+
+#define KEY_QUERY_VALUE										0001h
+#define KEY_SET_VALUE										0002h
+#define KEY_CREATE_SUB_KEY									0004h
+#define KEY_ENUMERATE_SUB_KEYS								0008h
+#define KEY_NOTIFY											0010h
+#define KEY_CREATE_LINK										0020h
+#define KEY_WOW64_32KEY										0200h
+#define KEY_WOW64_64KEY										0100h
+#define KEY_WOW64_RES										0300h
+
+#define KEY_READ		[(STANDARD_RIGHTS_READ or KEY_QUERY_VALUE or KEY_ENUMERATE_SUB_KEYS or KEY_NOTIFY) and (not SYNCHRONIZE)]
+
 #enum spawn-mode [
 	P_WAIT:		0
 	P_NOWAIT:	1

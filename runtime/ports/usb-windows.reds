@@ -378,7 +378,7 @@ usb-windows: context [
 						][
 							continue
 						]
-						reg: SetupDiOpenDevRegKey dev-info info-data 1 0 1 131097
+						reg: SetupDiOpenDevRegKey dev-info info-data DICS_FLAG_GLOBAL 0 DIREG_DEV KEY_READ
 						if reg = -1 [
 							continue
 						]
