@@ -18,13 +18,13 @@ child-entry: as list-entry! 0
 child: as usb-windows/INTERFACE-INFO-NODE! 0
 while [entry <> list][
     pNode: as usb-windows/DEVICE-INFO-NODE! entry
-    print-line "dev-path:"
+    print "dev-path: "
     print-line pNode/path
     ;print-line "port:"
     ;print-line pNode/port
     ;print-line pNode/vid
     ;print-line pNode/pid
-    print-line "serial num:"
+    print "serial num: "
     print-line pNode/serial-num
     ;print-line pNode/hub-path
     dump-hex pNode/device-desc
@@ -42,8 +42,16 @@ while [entry <> list][
     child-entry: child-list/next
     while [child-entry <> child-list][
         child: as usb-windows/INTERFACE-INFO-NODE! child-entry
+        print "path: "
         print-line child/path
-        print-line child/index
+        if child/interface-num <> 255 [
+            print "interface num: "
+            print-line child/interface-num
+        ]
+        if child/collection-num <> 255 [
+            print "collection num: "
+            print-line child/collection-num
+        ]
         child-entry: child-entry/next
     ]
     print-line "child end"

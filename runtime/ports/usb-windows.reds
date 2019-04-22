@@ -37,7 +37,8 @@ usb-windows: context [
 
 	INTERFACE-INFO-NODE!: alias struct! [
 		entry				[list-entry! value]
-		index				[integer!]
+		interface-num		[integer!]
+		collection-num		[integer!]
 		path				[c-string!]
 		properties			[USB-DEVICE-PNP-STRINGS!]
 	]
@@ -334,6 +335,7 @@ usb-windows: context [
 			nvid			[integer!]
 			npid			[integer!]
 			nmi				[integer!]
+			ncol			[integer!]
 			nserial			[c-string!]
 			prop			[integer!]
 	][
@@ -361,11 +363,12 @@ usb-windows: context [
 					unless inst-ancestor? info-data/DevInst inst [
 						continue
 					]
+					nvid: 65535
+					npid: 65535
+					nmi: 255
+					ncol: 255
 					;print-line as c-string! buf
 					either 0 = compare-memory buf as byte-ptr! "USB\" 4 [
-						nvid: 65535
-						npid: 65535
-						nmi: 255
 						sscanf [buf "USB\VID_%4hx&PID_%4hx&MI_%2hx\%s"
 							:nvid :npid :nmi nserial]
 						if nmi = 255 [
@@ -402,14 +405,15 @@ usb-windows: context [
 						pguid: guid
 					][
 						either 0 = compare-memory buf as byte-ptr! "HID\" 4 [
-							nvid: 65535
-							npid: 65535
-							nmi: 255
-							sscanf [buf "HID\VID_%4hx&PID_%4hx&MI_%2hx\%s"
-								:nvid :npid :nmi nserial]
-							if nmi = 255 [
-								sscanf [buf "HID\VID_%4hx&PID_%4hx\%s"
-									:nvid :npid nserial]
+							sscanf [buf "HID\VID_%4hx&PID_%4hx&MI_%2hx&COL%2hx\%s"
+								:nvid :npid :nmi :ncol nserial]
+							if ncol = 255 [
+								sscanf [buf "HID\VID_%4hx&PID_%4hx&MI_%2hx\%s"
+									:nvid :npid :nmi nserial]
+								if nmi = 255 [
+									sscanf [buf "HID\VID_%4hx&PID_%4hx\%s"
+										:nvid :npid nserial]
+								]
 							]
 							unless all [
 								vid = nvid
@@ -426,7 +430,8 @@ usb-windows: context [
 					]
 					set-memory as byte-ptr! pNode null-byte size? INTERFACE-INFO-NODE!
 					dlink/init pNode/entry
-					pNode/index: nmi
+					pNode/interface-num: nmi
+					pNode/collection-num: ncol
 					prop: 0
 					pNode/path: get-dev-path-with-guid info-data/DevInst pguid :prop
 					pNode/properties: as USB-DEVICE-PNP-STRINGS! prop
