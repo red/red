@@ -840,11 +840,36 @@ USB-STRING-DESCRIPTOR!: alias struct! [
 			lpOverlapped		[OVERLAPPED!]
 			return:				[logic!]
 		]
+		RegQueryValueExW: "RegQueryValueExW" [
+			hKey			[integer!]
+			lpValueName		[c-string!]
+			lpReserved		[int-ptr!]
+			lpType			[int-ptr!]
+			lpData			[byte-ptr!]
+			lpcbData		[int-ptr!]
+			return:			[integer!]
+		]
+		RegCloseKey: "RegCloseKey" [
+			hKey			[integer!]
+			return:			[integer!]
+		]
 	]
 	"rpcrt4.dll" stdcall [
 		UuidFromString: "UuidFromStringA" [
 			StringUuid		[c-string!]
 			Uuid			[UUID!]
+			return:			[integer!]
+		]
+		UuidToString: "UuidToStringA" [
+			Uuid			[UUID!]
+			StringUuid		[int-ptr!]
+			return:			[integer!]
+		]
+	]
+	"Ole32.dll" stdcall [
+		IIDFromString: "IIDFromString" [
+			str				[c-string!]
+			ppiid			[UUID!]
 			return:			[integer!]
 		]
 	]
@@ -1057,6 +1082,18 @@ USB-STRING-DESCRIPTOR!: alias struct! [
 			flags		[integer!]
 			return:		[integer!]
 		]
+		CM_Get_Child: "CM_Get_Child" [
+			child		[int-ptr!]
+			parent		[integer!]
+			flags		[integer!]
+			return:		[integer!]
+		]
+		CM_Get_Sibling: "CM_Get_Sibling" [
+			next		[int-ptr!]
+			dev			[integer!]
+			flags		[integer!]
+			return:		[integer!]
+		]
 		CM_Get_Device_ID: "CM_Get_Device_IDA" [
 			inst		[integer!]
 			buffer		[c-string!]
@@ -1119,5 +1156,3 @@ GetAcceptExSockaddrs!: alias function! [
 	RemoteSockaddr			[int-ptr!]
 	RemoteSockaddrLength	[int-ptr!]
 ]
-
-#define GUID_DEVINTERFACE_HID "4D1E55B2-F16F-11CF-88CB-001111000030"

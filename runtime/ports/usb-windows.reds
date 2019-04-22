@@ -15,6 +15,8 @@ usb-windows: context [
 	GUID_DEVINTERFACE_USB_HOST_CONTROLLER: declare UUID!
 	GUID_DEVINTERFACE_USB_DEVICE: declare UUID!
 	GUID_DEVINTERFACE_USB_HUB: declare UUID!
+	GUID_DEVINTERFACE_HID: declare UUID!
+	GUID_DEVINTERFACE_VENDOR: declare UUID!
 
 	DEVICE-GUID-LIST!: alias struct! [
 		list-head		[list-entry! value]
@@ -41,6 +43,15 @@ usb-windows: context [
 		string-desc			[USB-STRING-DESCRIPTOR! value]
 	]
 
+	INTERFACE-INFO-NODE!: alias struct! [
+		entry				[list-entry! value]
+		index				[integer!]
+		device-id			[byte-ptr!]
+		device-id-len		[integer!]
+		path				[byte-ptr!]
+		path-len			[integer!]
+	]
+
 	DEVICE-INFO-NODE!: alias struct! [
 		entry				[list-entry! value]
 		dev-info			[int-ptr!]
@@ -64,6 +75,7 @@ usb-windows: context [
 		config-desc			[byte-ptr!]
 		config-desc-len		[integer!]
 		strings				[STRING-DESC-NODE!]
+		interface-entry		[list-entry! value]
 	]
 
 	device-list: declare DEVICE-GUID-LIST!
@@ -89,6 +101,19 @@ usb-windows: context [
 		]
 		l/next: l
 		l/prev: l
+	]
+
+	free-interface-info-node: func [
+		pNode		[INTERFACE-INFO-NODE!]
+	][
+		if pNode = null [exit]
+		if pNode/device-id <> null [
+			free pNode/device-id
+		]
+		if pNode/path <> null [
+			free pNode/path
+		]
+		free as byte-ptr! pNode
 	]
 
 	free-device-info-node: func [
@@ -263,15 +288,17 @@ usb-windows: context [
 				pNode/port: port
 				dev-props: driver-name-to-device-props dev-info info-data
 				pNode/dev-properties: dev-props
+				pid: 65535
+				vid: 65535
+				serial: null
 				if dev-props <> null [
-					pid: 0
-					vid: 0
-					serial: as c-string! allocate length? as c-string! dev-props/device-id
+					serial: as c-string! allocate dev-props/device-id-len
 					sscanf [dev-props/device-id "USB\VID_%x&PID_%x\%s"
 						:vid :pid serial]
 					pNode/vid: vid
 					pNode/pid: pid
 					pNode/serial-num: serial
+					;print-line as c-string! dev-props/device-id
 				]
 				inst: 0
 				rint: CM_Get_Parent :inst info-data/DevInst 0
@@ -279,7 +306,7 @@ usb-windows: context [
 					rint = 0
 					port <> -1
 				][
-					dev-path: get-hub-detail inst
+					dev-path: get-dev-path-with-guid inst GUID_DEVINTERFACE_USB_HUB
 					pNode/hub-path: dev-path
 					if dev-path <> null [
 						hHub: CreateFileA dev-path GENERIC_WRITE FILE_SHARE_WRITE null
@@ -301,13 +328,162 @@ usb-windows: context [
 						CloseHandle as int-ptr! hHub
 					]
 				]
+				dlink/init pNode/interface-entry
+				if all [
+					vid <> 65535
+					pid <> 65535
+				][
+					enum-child pNode/interface-entry info-data/DevInst vid pid
+				]
+
 				dlink/append device-list/list-head as list-entry! pNode
 			]
 		]
 	]
 
-	get-hub-detail: func [
+	enum-child: func [
+		list			[list-entry!]
 		inst			[integer!]
+		vid				[integer!]
+		pid				[integer!]
+		/local
+			dev-info		[int-ptr!]
+			info-data		[DEV-INFO-DATA! value]
+			buf				[byte-ptr!]
+			path			[byte-ptr!]
+			len				[integer!]
+			len2			[integer!]
+			len3			[integer!]
+			rint			[integer!]
+			pNode			[INTERFACE-INFO-NODE!]
+			reg				[integer!]
+			guid			[UUID! value]
+			pguid			[UUID!]
+			index			[integer!]
+			error			[integer!]
+			success			[logic!]
+			nvid			[integer!]
+			npid			[integer!]
+			nserial			[c-string!]
+	][
+		dev-info: SetupDiGetClassDevs null null 0 DIGCF_PRESENT or DIGCF_ALLCLASSES
+		if dev-info = INVALID_HANDLE [
+			exit
+		]
+		buf: allocate 256
+		nserial: as c-string! allocate 256
+		if buf = null [
+			exit
+		]
+		index: 0 error: 0 len: 0
+		while [error <> ERROR_NO_MORE_ITEMS][
+			info-data/cbSize: size? DEV-INFO-DATA!
+			success: SetupDiEnumDeviceInfo dev-info index info-data
+			index: index + 1
+			either success = false [
+				error: GetLastError
+			][
+				success: SetupDiGetDeviceInstanceId dev-info info-data buf 256 :len
+				either success = false [
+					error: GetLastError
+				][
+					unless inst-ancestor? info-data/DevInst inst [
+						continue
+					]
+					either 0 = compare-memory buf as byte-ptr! "USB\" 4 [
+						nvid: 65535
+						npid: 65535
+						sscanf [buf "USB\VID_%4hx&PID_%4hx%s"
+							:nvid :npid nserial]
+						unless all [
+							vid = nvid
+							pid = npid
+						][
+							continue
+						]
+						reg: SetupDiOpenDevRegKey dev-info info-data 1 0 1 131097
+						if reg = -1 [
+							continue
+						]
+						len3: 0
+						len2: 80
+						path: allocate 256
+						rint: RegQueryValueExW reg #u16 "DeviceInterfaceGUIDs" null :len3 path :len2
+						if rint = 2 [
+							rint: RegQueryValueExW reg #u16 "DeviceInterfaceGUID" null :len3 path :len2
+						]
+						RegCloseKey reg
+						if rint <> 0 [
+							free path
+							continue
+						]
+						if 0 <> IIDFromString as c-string! path guid [
+							free path
+							continue
+						]
+						free path
+						pguid: guid
+					][
+						either 0 = compare-memory buf as byte-ptr! "HID\" 4 [
+							nvid: 65535
+							npid: 65535
+							sscanf [buf "HID\VID_%4hx&PID_%4hx%s"
+								:nvid :npid nserial]
+							unless all [
+								vid = nvid
+								pid = npid
+							][
+								continue
+							]
+							pguid: GUID_DEVINTERFACE_HID
+						][continue]
+					]
+					pNode: as INTERFACE-INFO-NODE! allocate size? INTERFACE-INFO-NODE!
+					if pNode = null [
+						continue
+					]
+					set-memory as byte-ptr! pNode null-byte size? INTERFACE-INFO-NODE!
+					path: allocate len + 1
+					if path = null [
+						free-interface-info-node pNode
+						continue
+					]
+					copy-memory path buf len + 1
+					pNode/device-id: path
+					pNode/device-id-len: len
+
+					pNode/path: as byte-ptr! get-dev-path-with-guid info-data/DevInst pguid
+
+					dlink/append list as list-entry! pNode
+				]
+			]
+		]
+		free buf
+		free as byte-ptr! nserial
+		SetupDiDestroyDeviceInfoList dev-info
+	]
+
+	inst-ancestor?: func [
+		inst			[integer!]
+		ancestor		[integer!]
+		return:			[logic!]
+		/local
+			parent		[integer!]
+			nparent		[integer!]
+			rint		[integer!]
+	][
+		parent: 0 nparent: 0
+		rint: CM_Get_Parent :parent inst 0
+		if rint <> 0 [return false]
+		if parent = ancestor [return true]
+		rint: CM_Get_Parent :nparent parent 0
+		if rint <> 0 [return false]
+		nparent = ancestor
+	]
+
+	get-dev-path-with-guid: func [
+		inst			[integer!]
+		guid			[UUID!]
 		return:			[c-string!]
 		/local
 			dev-info		[int-ptr!]
@@ -321,21 +497,21 @@ usb-windows: context [
 			buf				[byte-ptr!]
 			ret				[c-string!]
 	][
-		dev-info: SetupDiGetClassDevs GUID_DEVINTERFACE_USB_HUB null 0 DIGCF_PRESENT or DIGCF_DEVICEINTERFACE
+		dev-info: SetupDiGetClassDevs guid null 0 DIGCF_PRESENT or DIGCF_DEVICEINTERFACE
 		if dev-info = INVALID_HANDLE [
 			return null
 		]
 		index: 0 error: 0
 		while [error <> ERROR_NO_MORE_ITEMS][
 			info-data/cbSize: size? DEV-INFO-DATA!
-			interface-data/cbSize: size? DEV-INTERFACE-DATA!
 			success: SetupDiEnumDeviceInfo dev-info index info-data
 			index: index + 1
 			either success = false [
 				error: GetLastError
 			][
 				if info-data/DevInst = inst [
-					success: SetupDiEnumDeviceInterfaces dev-info 0 GUID_DEVINTERFACE_USB_HUB index - 1
+					interface-data/cbSize: size? DEV-INTERFACE-DATA!
+					success: SetupDiEnumDeviceInterfaces dev-info 0 guid index - 1
 								interface-data
 					if success <> true [
 						continue
@@ -365,10 +541,12 @@ usb-windows: context [
 					ret: as c-string! allocate reqLen - 4
 					copy-memory as byte-ptr! ret buf + 4 reqLen - 4
 					free buf
+					SetupDiDestroyDeviceInfoList dev-info
 					return ret
 				]
 			]
 		]
+		SetupDiDestroyDeviceInfoList dev-info
 		null
 	]
 
@@ -859,6 +1037,8 @@ usb-windows: context [
 		UuidFromString "3ABF6F2D-71C4-462A-8A92-1E6861E6AF27" GUID_DEVINTERFACE_USB_HOST_CONTROLLER
 		UuidFromString "A5DCBF10-6530-11D2-901F-00C04FB951ED" GUID_DEVINTERFACE_USB_DEVICE
 		UuidFromString "F18A0E88-C30C-11D0-8815-00A0C906BED8" GUID_DEVINTERFACE_USB_HUB
+		UuidFromString "4D1E55B2-F16F-11CF-88CB-001111000030" GUID_DEVINTERFACE_HID
+		UuidFromString "88BAE032-5A81-49f0-BC3D-A4FF138216D6" GUID_DEVINTERFACE_VENDOR
 		dlink/init device-list/list-head
 		device-list/dev-info: INVALID_HANDLE
 
