@@ -41,6 +41,7 @@ usb-windows: context [
 		collection-num		[integer!]
 		path				[c-string!]
 		properties			[USB-DEVICE-PNP-STRINGS!]
+		driver				[integer!]
 	]
 
 	DEVICE-INFO-NODE!: alias struct! [
@@ -192,7 +193,6 @@ usb-windows: context [
 			pNode: as DEVICE-INFO-NODE! allocate size? DEVICE-INFO-NODE!
 			if pNode = null [continue]
 			set-memory as byte-ptr! pNode null-byte size? DEVICE-INFO-NODE!
-			dlink/init pNode/entry
 			dlink/init pNode/interface-entry
 			info-data/cbSize: size? DEV-INFO-DATA!
 			interface-data/cbSize: size? DEV-INTERFACE-DATA!
@@ -338,6 +338,7 @@ usb-windows: context [
 			ncol			[integer!]
 			nserial			[c-string!]
 			prop			[integer!]
+			driver			[integer!]
 	][
 		dev-info: SetupDiGetClassDevs null null 0 DIGCF_PRESENT or DIGCF_ALLCLASSES
 		if dev-info = INVALID_HANDLE [
@@ -367,6 +368,7 @@ usb-windows: context [
 					npid: 65535
 					nmi: 255
 					ncol: 255
+					driver: 0
 					;print-line as c-string! buf
 					either 0 = compare-memory buf as byte-ptr! "USB\" 4 [
 						sscanf [buf "USB\VID_%4hx&PID_%4hx&MI_%2hx\%s"
@@ -403,6 +405,7 @@ usb-windows: context [
 						]
 						free path
 						pguid: guid
+						driver: 1
 					][
 						either 0 = compare-memory buf as byte-ptr! "HID\" 4 [
 							sscanf [buf "HID\VID_%4hx&PID_%4hx&MI_%2hx&COL%2hx\%s"
@@ -422,6 +425,7 @@ usb-windows: context [
 								continue
 							]
 							pguid: GUID_DEVINTERFACE_HID
+							driver: 2
 						][continue]
 					]
 					pNode: as INTERFACE-INFO-NODE! allocate size? INTERFACE-INFO-NODE!
@@ -429,9 +433,9 @@ usb-windows: context [
 						continue
 					]
 					set-memory as byte-ptr! pNode null-byte size? INTERFACE-INFO-NODE!
-					dlink/init pNode/entry
 					pNode/interface-num: nmi
 					pNode/collection-num: ncol
+					pNode/driver: driver
 					prop: 0
 					pNode/path: get-dev-path-with-guid info-data/DevInst pguid :prop
 					pNode/properties: as USB-DEVICE-PNP-STRINGS! prop
