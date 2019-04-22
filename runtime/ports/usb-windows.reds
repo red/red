@@ -333,6 +333,7 @@ usb-windows: context [
 			success			[logic!]
 			nvid			[integer!]
 			npid			[integer!]
+			nmi				[integer!]
 			nserial			[c-string!]
 			prop			[integer!]
 	][
@@ -360,11 +361,17 @@ usb-windows: context [
 					unless inst-ancestor? info-data/DevInst inst [
 						continue
 					]
+					;print-line as c-string! buf
 					either 0 = compare-memory buf as byte-ptr! "USB\" 4 [
 						nvid: 65535
 						npid: 65535
-						sscanf [buf "USB\VID_%4hx&PID_%4hx%s"
-							:nvid :npid nserial]
+						nmi: 255
+						sscanf [buf "USB\VID_%4hx&PID_%4hx&MI_%2hx\%s"
+							:nvid :npid :nmi nserial]
+						if nmi = 255 [
+							sscanf [buf "USB\VID_%4hx&PID_%4hx\%s"
+								:nvid :npid nserial]
+						]
 						unless all [
 							vid = nvid
 							pid = npid
@@ -397,8 +404,13 @@ usb-windows: context [
 						either 0 = compare-memory buf as byte-ptr! "HID\" 4 [
 							nvid: 65535
 							npid: 65535
-							sscanf [buf "HID\VID_%4hx&PID_%4hx%s"
-								:nvid :npid nserial]
+							nmi: 255
+							sscanf [buf "HID\VID_%4hx&PID_%4hx&MI_%2hx\%s"
+								:nvid :npid :nmi nserial]
+							if nmi = 255 [
+								sscanf [buf "HID\VID_%4hx&PID_%4hx\%s"
+									:nvid :npid nserial]
+							]
 							unless all [
 								vid = nvid
 								pid = npid
@@ -414,6 +426,7 @@ usb-windows: context [
 					]
 					set-memory as byte-ptr! pNode null-byte size? INTERFACE-INFO-NODE!
 					dlink/init pNode/entry
+					pNode/index: nmi
 					prop: 0
 					pNode/path: get-dev-path-with-guid info-data/DevInst pguid :prop
 					pNode/properties: as USB-DEVICE-PNP-STRINGS! prop

@@ -43,6 +43,7 @@ while [entry <> list][
     while [child-entry <> child-list][
         child: as usb-windows/INTERFACE-INFO-NODE! child-entry
         print-line child/path
+        print-line child/index
         child-entry: child-entry/next
     ]
     print-line "child end"
