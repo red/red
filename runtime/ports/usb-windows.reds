@@ -18,22 +18,14 @@ usb-windows: context [
 	GUID_DEVINTERFACE_HID: declare UUID!
 	GUID_DEVINTERFACE_VENDOR: declare UUID!
 
-	DEVICE-GUID-LIST!: alias struct! [
-		list-head		[list-entry! value]
-		dev-info		[int-ptr!]
-	]
-
 	USB-DEVICE-PNP-STRINGS!: alias struct! [
-		device-id			[byte-ptr!]
-		device-id-len		[integer!]
+		device-id			[c-string!]
 		device-desc			[byte-ptr!]
 		device-desc-len		[integer!]
-		hw-id				[byte-ptr!]
-		hw-id-len			[integer!]
-		service				[byte-ptr!]
-		service-len			[integer!]
-		dev-class			[byte-ptr!]
-		dev-class-len		[integer!]
+		hw-id				[c-string!]
+		service				[c-string!]
+		dev-class			[c-string!]
+		driver-name			[c-string!]
 	]
 
 	STRING-DESC-NODE!: alias struct! [
@@ -46,30 +38,19 @@ usb-windows: context [
 	INTERFACE-INFO-NODE!: alias struct! [
 		entry				[list-entry! value]
 		index				[integer!]
-		device-id			[byte-ptr!]
-		device-id-len		[integer!]
-		path				[byte-ptr!]
-		path-len			[integer!]
+		path				[c-string!]
+		properties			[USB-DEVICE-PNP-STRINGS!]
 	]
 
 	DEVICE-INFO-NODE!: alias struct! [
 		entry				[list-entry! value]
-		dev-info			[int-ptr!]
-		dev-info-data		[DEV-INFO-DATA! value]
-		dev-interface-data	[DEV-INTERFACE-DATA! value]
-		detail-data			[DEV-INTERFACE-DETAIL!]
-		desc-name			[byte-ptr!]
-		desc-name-len		[integer!]
-		driver-name			[byte-ptr!]
-		driver-name-len		[integer!]
-		bus-number			[integer!]
 		port				[integer!]
-		dev-properties		[USB-DEVICE-PNP-STRINGS!]
+		path				[c-string!]
+		properties			[USB-DEVICE-PNP-STRINGS!]
 		vid					[integer!]
 		pid					[integer!]
 		serial-num			[c-string!]
 		hub-path			[c-string!]
-		hub-handle			[integer!]
 		device-desc			[byte-ptr!]
 		device-desc-len		[integer!]
 		config-desc			[byte-ptr!]
@@ -78,92 +59,91 @@ usb-windows: context [
 		interface-entry		[list-entry! value]
 	]
 
-	device-list: declare DEVICE-GUID-LIST!
+	device-list: declare list-entry!
 
 	clear-device-list: func [
-		list		[DEVICE-GUID-LIST!]
+		list		[list-entry!]
 		/local
-			l		[list-entry!]
 			p		[list-entry!]
 			q		[list-entry!]
 			node	[DEVICE-INFO-NODE!]
 	][
-		if list/dev-info <> INVALID_HANDLE [
-			SetupDiDestroyDeviceInfoList list/dev-info
-			list/dev-info: INVALID_HANDLE
-		]
-		l: list/list-head
-		p: l/next
-		while [p <> l][
+		p: list/next
+		while [p <> list][
 			q: p/next
 			free-device-info-node as DEVICE-INFO-NODE! p
 			p: q
 		]
-		l/next: l
-		l/prev: l
+		list/next: list
+		list/prev: list
+	]
+
+	clear-interface-list: func [
+		list		[list-entry!]
+		/local
+			p		[list-entry!]
+			q		[list-entry!]
+			node	[INTERFACE-INFO-NODE!]
+	][
+		p: list/next
+		while [p <> list][
+			q: p/next
+			free-interface-info-node as INTERFACE-INFO-NODE! p
+			p: q
+		]
+		list/next: list
+		list/prev: list
+	]
+
+	free-device-pnp-string: func [
+		props		[USB-DEVICE-PNP-STRINGS!]
+	][
+		if props <> null [
+			if props/device-id <> null [
+				free as byte-ptr! props/device-id
+			]
+			if props/device-desc <> null [
+				free props/device-desc
+			]
+			if props/hw-id <> null [
+				free as byte-ptr! props/hw-id
+			]
+			if props/service <> null [
+				free as byte-ptr! props/service
+			]
+			if props/dev-class <> null [
+				free as byte-ptr! props/dev-class
+			]
+			if props/driver-name <> null [
+				free as byte-ptr! props/driver-name
+			]
+			free as byte-ptr! props
+		]
 	]
 
 	free-interface-info-node: func [
 		pNode		[INTERFACE-INFO-NODE!]
 	][
 		if pNode = null [exit]
-		if pNode/device-id <> null [
-			free pNode/device-id
-		]
 		if pNode/path <> null [
-			free pNode/path
+			free as byte-ptr! pNode/path
 		]
+		free-device-pnp-string pNode/properties
 		free as byte-ptr! pNode
 	]
 
 	free-device-info-node: func [
 		pNode		[DEVICE-INFO-NODE!]
 		/local
-			props	[USB-DEVICE-PNP-STRINGS!]
 			strings	[STRING-DESC-NODE!]
 			next	[STRING-DESC-NODE!]
 	][
 		if pNode = null [exit]
-		if pNode/detail-data <> null [
-			free as byte-ptr! pNode/detail-data
+		if pNode/path <> null [
+			free as byte-ptr! pNode/path
 		]
-		if pNode/desc-name <> null [
-			free pNode/desc-name
-		]
-		if pNode/driver-name <> null [
-			free pNode/driver-name
-		]
-		props: pNode/dev-properties
-		if props <> null [
-			if props/device-id <> null [
-				free props/device-id
-			]
-			if props/device-desc <> null [
-				free props/device-desc
-			]
-			if props/hw-id <> null [
-				free props/hw-id
-			]
-			if props/service <> null [
-				free props/service
-			]
-			if props/dev-class <> null [
-				free props/dev-class
-			]
-			free as byte-ptr! props
-		]
-		if pNode/serial-num <> null [
-			free as byte-ptr! pNode/serial-num
-		]
-		if pNode/hub-path <> null [
-			free as byte-ptr! pNode/hub-path
-		]
-		if pNode/config-desc <> null [
-			free pNode/config-desc
-		]
-		if pNode/device-desc <> null [
-			free pNode/device-desc
-		]
+		free-device-pnp-string pNode/properties
+		clear-interface-list pNode/interface-entry
 		strings: pNode/strings
 		while [strings <> null][
 			next: strings/next
@@ -174,12 +154,12 @@ usb-windows: context [
 	]
 
 	enum-devices-with-guid: func [
-		device-list			[DEVICE-GUID-LIST!]
+		device-list			[list-entry!]
 		guid				[UUID!]
 		/local
 			dev-info		[int-ptr!]
-			info-data		[DEV-INFO-DATA!]
-			interface-data	[DEV-INTERFACE-DATA!]
+			info-data		[DEV-INFO-DATA! value]
+			interface-data	[DEV-INTERFACE-DATA! value]
 			detail-data		[DEV-INTERFACE-DETAIL!]
 			index			[integer!]
 			error			[integer!]
@@ -197,26 +177,23 @@ usb-windows: context [
 			pid				[integer!]
 			serial			[c-string!]
 			inst			[integer!]
+			path			[byte-ptr!]
 			dev-path		[c-string!]
 			rint			[integer!]
 			hHub			[integer!]
 			strings			[STRING-DESC-NODE!]
 	][
-		if device-list/dev-info <> INVALID_HANDLE [
-			clear-device-list device-list
-		]
+		clear-device-list device-list
 		dev-info: SetupDiGetClassDevs guid null 0 DIGCF_PRESENT or DIGCF_DEVICEINTERFACE
-		device-list/dev-info: dev-info
 		if dev-info = INVALID_HANDLE [exit]
 		index: 0 error: 0
 		while [error <> ERROR_NO_MORE_ITEMS][
 			pNode: as DEVICE-INFO-NODE! allocate size? DEVICE-INFO-NODE!
 			if pNode = null [continue]
 			set-memory as byte-ptr! pNode null-byte size? DEVICE-INFO-NODE!
-			pNode/dev-info: dev-info
-			info-data: pNode/dev-info-data
+			dlink/init pNode/entry
+			dlink/init pNode/interface-entry
 			info-data/cbSize: size? DEV-INFO-DATA!
-			interface-data: pNode/dev-interface-data
 			interface-data/cbSize: size? DEV-INTERFACE-DATA!
 			success: SetupDiEnumDeviceInfo dev-info index info-data
 			index: index + 1
@@ -224,25 +201,6 @@ usb-windows: context [
 				error: GetLastError
 				free-device-info-node pNode
 			][
-				pbuffer: 0
-				plen: 0
-				bResult: get-device-property dev-info info-data
-							SPDRP_DEVICEDESC :pbuffer :plen
-				if bResult = false [
-					free-device-info-node pNode
-					continue
-				]
-				pNode/desc-name: as byte-ptr! pbuffer
-				pNode/desc-name-len: plen
-				bResult: get-device-property dev-info info-data
-							SPDRP_DRIVER :pbuffer :plen
-				if bResult = false [
-					free-device-info-node pNode
-					continue
-				]
-				pNode/driver-name: as byte-ptr! pbuffer
-				pNode/driver-name-len: plen
-
 				success: SetupDiEnumDeviceInterfaces dev-info 0 guid index - 1
 							interface-data
 				if success <> true [
@@ -266,15 +224,25 @@ usb-windows: context [
 					free-device-info-node pNode
 					continue
 				]
-				pNode/detail-data: as DEV-INTERFACE-DETAIL! buf
-				detail-data: pNode/detail-data
+				detail-data: as DEV-INTERFACE-DETAIL! buf
 				detail-data/cbSize: 5				; don't use size? DEV-INTERFACE-DETAIL!, as it's actual size = 5
 				success: SetupDiGetDeviceInterfaceDetail dev-info interface-data
 							detail-data reqLen :reqLen null
 				if success <> true [
 					free-device-info-node pNode
+					free buf
 					continue
 				]
+				path: allocate reqLen
+				if path = null [
+					free-device-info-node pNode
+					free buf
+					continue
+				]
+				copy-memory path buf + 4 reqLen - 4
+				pNode/path: as c-string! path
+				free buf
+
 				pbuffer: 0
 				plen: 0
 				success: get-device-property-a dev-info info-data
@@ -286,13 +254,13 @@ usb-windows: context [
 					sscanf [pbuffer "Port_#%d.Hub_#%d" :port :hub]
 				]
 				pNode/port: port
-				dev-props: driver-name-to-device-props dev-info info-data
-				pNode/dev-properties: dev-props
+				dev-props: get-pnp-props dev-info info-data
+				pNode/properties: dev-props
 				pid: 65535
 				vid: 65535
 				serial: null
 				if dev-props <> null [
-					serial: as c-string! allocate dev-props/device-id-len
+					serial: as c-string! allocate 256
 					sscanf [dev-props/device-id "USB\VID_%x&PID_%x\%s"
 						:vid :pid serial]
 					pNode/vid: vid
@@ -306,7 +274,7 @@ usb-windows: context [
 					rint = 0
 					port <> -1
 				][
-					dev-path: get-dev-path-with-guid inst GUID_DEVINTERFACE_USB_HUB
+					dev-path: get-dev-path-with-guid inst GUID_DEVINTERFACE_USB_HUB null
 					pNode/hub-path: dev-path
 					if dev-path <> null [
 						hHub: CreateFileA dev-path GENERIC_WRITE FILE_SHARE_WRITE null
@@ -333,15 +301,16 @@ usb-windows: context [
 					vid <> 65535
 					pid <> 65535
 				][
-					enum-child pNode/interface-entry info-data/DevInst vid pid
+					enum-children pNode/interface-entry info-data/DevInst vid pid
 				]
 
-				dlink/append device-list/list-head as list-entry! pNode
+				dlink/append device-list as list-entry! pNode
 			]
 		]
+		SetupDiDestroyDeviceInfoList dev-info
 	]
 
-	enum-child: func [
+	enum-children: func [
 		list			[list-entry!]
 		inst			[integer!]
 		vid				[integer!]
@@ -365,6 +334,7 @@ usb-windows: context [
 			nvid			[integer!]
 			npid			[integer!]
 			nserial			[c-string!]
+			prop			[integer!]
 	][
 		dev-info: SetupDiGetClassDevs null null 0 DIGCF_PRESENT or DIGCF_ALLCLASSES
 		if dev-info = INVALID_HANDLE [
@@ -443,17 +413,10 @@ usb-windows: context [
 						continue
 					]
 					set-memory as byte-ptr! pNode null-byte size? INTERFACE-INFO-NODE!
-					path: allocate len + 1
-					if path = null [
-						free-interface-info-node pNode
-						continue
-					]
-					copy-memory path buf len + 1
-					pNode/device-id: path
-					pNode/device-id-len: len
-
-					pNode/path: as byte-ptr! get-dev-path-with-guid info-data/DevInst pguid
-
+					dlink/init pNode/entry
+					prop: 0
+					pNode/path: get-dev-path-with-guid info-data/DevInst pguid :prop
+					pNode/properties: as USB-DEVICE-PNP-STRINGS! prop
 					dlink/append list as list-entry! pNode
 				]
 			]
@@ -484,6 +447,7 @@ usb-windows: context [
 	get-dev-path-with-guid: func [
 		inst			[integer!]
 		guid			[UUID!]
+		prop			[int-ptr!]
 		return:			[c-string!]
 		/local
 			dev-info		[int-ptr!]
@@ -541,6 +505,9 @@ usb-windows: context [
 					ret: as c-string! allocate reqLen - 4
 					copy-memory as byte-ptr! ret buf + 4 reqLen - 4
 					free buf
+					if prop <> null [
+						prop/value: as integer! get-pnp-props dev-info info-data
+					]
 					SetupDiDestroyDeviceInfoList dev-info
 					return ret
 				]
@@ -962,7 +929,7 @@ usb-windows: context [
 		true
 	]
 
-	driver-name-to-device-props: func [
+	get-pnp-props: func [
 		dev-info			[int-ptr!]
 		info-data			[DEV-INFO-DATA!]
 		return:					[USB-DEVICE-PNP-STRINGS!]
@@ -1001,8 +968,7 @@ usb-windows: context [
 			free as byte-ptr! dev-props
 			return null
 		]
-		dev-props/device-id: buf
-		dev-props/device-id-len: len
+		dev-props/device-id: as c-string! buf
 		nbuf: 0
 		nlen: 0
 		status: get-device-property dev-info info-data
@@ -1015,17 +981,17 @@ usb-windows: context [
 		dev-props/device-desc: as byte-ptr! nbuf
 		dev-props/device-desc-len: nlen
 		nbuf: 0 nlen: 0
-		get-device-property dev-info info-data SPDRP_HARDWAREID :nbuf :nlen
-		dev-props/hw-id: as byte-ptr! nbuf
-		dev-props/hw-id-len: nlen
+		get-device-property-a dev-info info-data SPDRP_HARDWAREID :nbuf :nlen
+		dev-props/hw-id: as c-string! nbuf
 		nbuf: 0 nlen: 0
-		get-device-property dev-info info-data SPDRP_SERVICE :nbuf :nlen
-		dev-props/service: as byte-ptr! nbuf
-		dev-props/service-len: nlen
+		get-device-property-a dev-info info-data SPDRP_SERVICE :nbuf :nlen
+		dev-props/service: as c-string! nbuf
 		nbuf: 0 nlen: 0
-		get-device-property dev-info info-data SPDRP_CLASS :nbuf :nlen
-		dev-props/dev-class: as byte-ptr! nbuf
-		dev-props/dev-class-len: nlen
+		get-device-property-a dev-info info-data SPDRP_CLASS :nbuf :nlen
+		dev-props/dev-class: as c-string! nbuf
+		nbuf: 0 nlen: 0
+		get-device-property-a dev-info info-data SPDRP_DRIVER :nbuf :nlen
+		dev-props/driver-name: as c-string! nbuf
 		dev-props
 	]
 
@@ -1039,8 +1005,7 @@ usb-windows: context [
 		UuidFromString "F18A0E88-C30C-11D0-8815-00A0C906BED8" GUID_DEVINTERFACE_USB_HUB
 		UuidFromString "4D1E55B2-F16F-11CF-88CB-001111000030" GUID_DEVINTERFACE_HID
 		UuidFromString "88BAE032-5A81-49f0-BC3D-A4FF138216D6" GUID_DEVINTERFACE_VENDOR
-		dlink/init device-list/list-head
-		device-list/dev-info: INVALID_HANDLE
+		dlink/init device-list
 
 	]
 ]
