@@ -18,6 +18,24 @@ usb-windows: context [
 	GUID_DEVINTERFACE_HID: declare UUID!
 	GUID_DEVINTERFACE_VENDOR: declare UUID!
 
+	#enum DRIVER-TYPE! [
+		DRIVER-TYPE-NONE
+		DRIVER-TYPE-GEN
+		DRIVER-TYPE-WINUSB
+		DRIVER-TYPE-HIDUSB
+		DRIVER-TYPE-KBDHID
+		DRIVER-TYPE-MOUHID
+	]
+
+	#enum USB-ERROR! [
+		USB-ERROR-OK
+		USB-ERROR-HANDLE
+		USB-ERROR-UNSUPPORT
+		USB-ERROR-OPEN
+		USB-ERROR-INIT
+		USB-ERROR-MAX
+	]
+
 	USB-DEVICE-PNP-STRINGS!: alias struct! [
 		device-id			[c-string!]
 		device-desc			[byte-ptr!]
@@ -41,7 +59,13 @@ usb-windows: context [
 		collection-num		[integer!]
 		path				[c-string!]
 		properties			[USB-DEVICE-PNP-STRINGS!]
-		driver				[integer!]
+		hDev				[integer!]
+		hInf				[integer!]
+		hType				[DRIVER-TYPE!]
+		bulk-in				[integer!]
+		bulk-out			[integer!]
+		interrupt-in		[integer!]
+		interrupt-out		[integer!]
 	]
 
 	DEVICE-INFO-NODE!: alias struct! [
@@ -131,6 +155,7 @@ usb-windows: context [
 			free as byte-ptr! pNode/path
 		]
 		free-device-pnp-string pNode/properties
+		close-interface pNode
 		free as byte-ptr! pNode
 	]
 
@@ -368,7 +393,6 @@ usb-windows: context [
 					npid: 65535
 					nmi: 255
 					ncol: 255
-					driver: 0
 					;print-line as c-string! buf
 					either 0 = compare-memory buf as byte-ptr! "USB\" 4 [
 						sscanf [buf "USB\VID_%4hx&PID_%4hx&MI_%2hx\%s"
@@ -405,7 +429,6 @@ usb-windows: context [
 						]
 						free path
 						pguid: guid
-						driver: 1
 					][
 						either 0 = compare-memory buf as byte-ptr! "HID\" 4 [
 							sscanf [buf "HID\VID_%4hx&PID_%4hx&MI_%2hx&COL%2hx\%s"
@@ -425,7 +448,6 @@ usb-windows: context [
 								continue
 							]
 							pguid: GUID_DEVINTERFACE_HID
-							driver: 2
 						][continue]
 					]
 					pNode: as INTERFACE-INFO-NODE! allocate size? INTERFACE-INFO-NODE!
@@ -435,7 +457,6 @@ usb-windows: context [
 					set-memory as byte-ptr! pNode null-byte size? INTERFACE-INFO-NODE!
 					pNode/interface-num: nmi
 					pNode/collection-num: ncol
-					pNode/driver: driver
 					prop: 0
 					pNode/path: get-dev-path-with-guid info-data/DevInst pguid :prop
 					pNode/properties: as USB-DEVICE-PNP-STRINGS! prop
@@ -1019,6 +1040,98 @@ usb-windows: context [
 
 	enum-all-devices: does [
 		enum-devices-with-guid device-list GUID_DEVINTERFACE_USB_DEVICE
+	]
+
+	open-inteface: func [
+		pNode					[INTERFACE-INFO-NODE!]
+		return:					[USB-ERROR!]
+		/local
+			prop				[USB-DEVICE-PNP-STRINGS!]
+			ret					[USB-ERROR!]
+	][
+		prop: pNode/properties
+		if prop = null [return USB-ERROR-HANDLE]
+		if prop/service = null [return USB-ERROR-HANDLE]
+		if prop/device-id = null [return USB-ERROR-HANDLE]
+		if 0 = compare-memory as byte-ptr! prop/device-id as byte-ptr! "USB\" 4 [
+			if 0 = compare-memory as byte-ptr! prop/service as byte-ptr! "WINUSB" 6 [
+				return open-winusb pNode/path :pNode/hType :pNode/hdev :pNode/hInf
+			]
+			if 0 = compare-memory as byte-ptr! prop/service as byte-ptr! "HidUsb" 6 [
+				return open-hidusb pNode/path :pNode/hType :pNode/hdev :pNode/hInf
+			]
+			return USB-ERROR-UNSUPPORT
+		]
+		if 0 <> compare-memory as byte-ptr! prop/device-id as byte-ptr! "HID\" 4 [
+			return USB-ERROR-UNSUPPORT
+		]
+		if 0 = compare-memory as byte-ptr! prop/service as byte-ptr! "HidUsb" 6 [
+			return open-hidusb pNode/path :pNode/hType :pNode/hdev :pNode/hInf
+		]
+		if 0 = compare-memory as byte-ptr! prop/service as byte-ptr! "kbdhid" 6 [
+			ret: open-hidusb pNode/path :pNode/hType :pNode/hdev :pNode/hInf
+			if ret = USB-ERROR-OK [
+				pNode/hType: DRIVER-TYPE-KBDHID
+			]
+			return ret
+		]
+		if 0 = compare-memory as byte-ptr! prop/service as byte-ptr! "mouhid" 6 [
+			ret: open-hidusb pNode/path :pNode/hType :pNode/hdev :pNode/hInf
+			if ret = USB-ERROR-OK [
+				pNode/hType: DRIVER-TYPE-MOUHID
+			]
+			return ret
+		]
+		USB-ERROR-UNSUPPORT
+	]
+
+	close-interface: func [
+		pNode					[INTERFACE-INFO-NODE!]
+	][
+		if pNode/hInf <> 0 [
+			WinUsb_Free pNode/hInf
+			pNode/hInf: 0
+		]
+		if pNode/hDev <> 0 [
+			CloseHandle as int-ptr! pNode/hDev
+			pNode/hDev: 0
+		]
+	]
+
+	open-winusb: func [
+		path					[c-string!]
+		hType					[int-ptr!]
+		hDev					[int-ptr!]
+		hInf					[int-ptr!]
+		return:					[USB-ERROR!]
+	][
+		hDev/value: CreateFileA pNode/path GENERIC_WRITE FILE_SHARE_WRITE null
+				OPEN_EXISTING FILE_FLAG_OVERLAPPED null
+		if hDev/value = -1 [
+			return USB-ERROR-OPEN
+		]
+		if false = WinUsb_Initialize hDev hInf [
+			CloseHandle hDev
+			return USB-ERROR-INIT
+		]
+		hType/value: DRIVER-TYPE-WINUSB
+		USB-ERROR-OK
+	]
+
+	open-hidusb: func [
+		path					[c-string!]
+		hType					[int-ptr!]
+		hDev					[int-ptr!]
+		hInf					[int-ptr!]
+		return:					[USB-ERROR!]
+	][
+		hDev/value: CreateFileA pNode/path GENERIC_WRITE FILE_SHARE_WRITE null
+				OPEN_EXISTING 0 null
+		if hDev/value = -1 [
+			return USB-ERROR-OPEN
+		]
+		hType/value: DRIVER-TYPE-HIDUSB
+		USB-ERROR-OK
 	]
 
 	init: does [

@@ -24,24 +24,32 @@ while [entry <> list][
     ;print-line pNode/port
     ;print-line pNode/vid
     ;print-line pNode/pid
-    print "serial num: "
-    print-line pNode/serial-num
-    ;print-line pNode/hub-path
-    dump-hex pNode/device-desc
-    dump-hex pNode/config-desc
-    print-line "string id:"
-    strings: pNode/strings
-    while [strings <> null][
-        next: strings/next
-        dump-hex as byte-ptr! strings/string-desc
-        strings: next
+    if pNode/serial-num <> null [
+        print "serial num: "
+        print-line pNode/serial-num
     ]
-    print-line "string end"
+    ;print-line pNode/hub-path
+    ;dump-hex pNode/device-desc
+    ;dump-hex pNode/config-desc
+    ;print-line "string id:"
+    ;strings: pNode/strings
+    ;while [strings <> null][
+    ;    next: strings/next
+    ;    dump-hex as byte-ptr! strings/string-desc
+    ;    strings: next
+    ;]
+    ;print-line "string end"
+    print "service: "
+    print-line pNode/properties/service
     child-list: pNode/interface-entry
     print-line "child:"
     child-entry: child-list/next
     while [child-entry <> child-list][
         child: as usb-windows/INTERFACE-INFO-NODE! child-entry
+        if child/properties/service <> null [
+            print "service: "
+            print-line child/properties/service
+        ]
         print "path: "
         print-line child/path
         if child/interface-num <> 255 [
@@ -51,6 +59,16 @@ while [entry <> list][
         if child/collection-num <> 255 [
             print "collection num: "
             print-line child/collection-num
+        ]
+        if all [
+            pNode/vid = 1209h
+            pNode/pid = 53C1h
+        ][
+            if 0 = compare-memory as byte-ptr! child/properties/device-id as byte-ptr! "USB\" 4 [
+                print "open: "
+                print-line usb-windows/open-inteface child
+                usb-windows/close-interface child
+            ]
         ]
         child-entry: child-entry/next
     ]

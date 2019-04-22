@@ -68,6 +68,8 @@ Red/System [
 #define FILE_READ_ACCESS				0001h
 #define FILE_WRITE_ACCESS				0002h
 
+#define FILE_FLAG_OVERLAPPED			40000000h
+
 #define METHOD_BUFFERED					0
 #define METHOD_IN_DIRECT				1
 #define METHOD_OUT_DIRECT				2
@@ -545,6 +547,38 @@ USB-STRING-DESCRIPTOR!: alias struct! [
 	bDescType			[byte!]
 	resv1				[byte!]
 	resv2				[byte!]
+]
+
+HIDD-ATTRIBUTES!: alias struct! [
+		Size 			[integer!]
+		ID 				[integer!] ;vendorID and productID
+		VersionNumber 	[integer!]
+]
+
+HIDP-CAPS!: alias struct! [
+		Usage 				[integer!] ;Usage and UsagePage
+		ReportByteLength 	[integer!] ;InputReportByteLength and OutputReportByteLength
+		pad1  				[integer!]
+		pad2  				[integer!]
+		pad3  				[integer!]
+		pad4  				[integer!]
+		pad5  				[integer!]
+		pad6  				[integer!]
+		pad7  				[integer!]
+		pad8  				[integer!]
+		pad9  				[integer!]
+		pad10  				[integer!]
+		pad11  				[integer!]
+		pad12  				[integer!]
+		pad13  				[integer!]
+		pad14  				[integer!]
+]
+
+PIPE-INFO!: alias struct! [
+	pipeType								[integer!]
+	pipeID									[byte!]
+	maxPackSize								[integer!]
+	;interval								[byte!]
 ]
 
 #import [
@@ -1137,6 +1171,125 @@ USB-STRING-DESCRIPTOR!: alias struct! [
 			len			[integer!]
 			flags		[integer!]
 			return:		[integer!]
+		]
+	]
+	"winusb.dll" stdcall [
+		WinUsb_Initialize: "WinUsb_Initialize" [
+			DeviceHandle					[int-ptr!]
+			InterfaceHandle					[int-ptr!]
+			return:							[logic!]
+		]
+		WinUsb_Free: "WinUsb_Free" [
+			InterfaceHandle					[integer!]
+			return:							[logic!]
+		]
+		WinUsb_QueryPipe: "WinUsb_QueryPipe" [
+			InterfaceHandle					[integer!]
+			AlternateInterfaceNumber		[integer!]
+			PipeIndex						[integer!]
+			PipeInformation					[PIPE-INFO!]
+			return:							[logic!]
+		]
+		WinUsb_GetCurrentAlternateSetting: "WinUsb_GetCurrentAlternateSetting" [
+			DeviceHandle					[integer!]
+			AltSetting						[int-ptr!]
+			return:							[logic!]
+		]
+		WinUsb_WritePipe: "WinUsb_WritePipe" [
+			handle							[integer!]
+			pipeID							[integer!]
+			buffer							[byte-ptr!]
+			buf-len							[integer!]
+			trans-len						[int-ptr!]
+			overlapped						[OVERLAPPED!]
+			return:							[logic!]
+		]
+		WinUsb_ReadPipe: "WinUsb_ReadPipe" [
+			handle							[integer!]
+			pipeID							[integer!]
+			buffer							[byte-ptr!]
+			buf-len							[integer!]
+			trans-len						[int-ptr!]
+			overlapped						[OVERLAPPED!]
+			return:							[logic!]
+		]
+		WinUsb_GetOverlappedResult: "WinUsb_GetOverlappedResult" [
+			handle							[integer!]
+			overlapped						[OVERLAPPED!]
+			trans-len						[int-ptr!]
+			wait?							[logic!]
+			return:							[logic!]
+		]
+		WinUsb_SetPipePolicy: "WinUsb_SetPipePolicy" [
+			handle							[integer!]
+			pipeID							[integer!]
+			policy							[integer!]
+			value-len						[integer!]
+			value							[int-ptr!]
+			return:							[logic!]
+		]
+	]
+	"hid.dll" stdcall [
+		HidD_GetAttributes: "HidD_GetAttributes" [
+			device 		[int-ptr!]
+			attrib 		[HIDD-ATTRIBUTES!] ;have been not defined
+			return: 	[logic!]
+		]
+		HidD_GetSerialNumberString: "HidD_GetSerialNumberString" [
+			handle		[int-ptr!]
+			buffer 		[c-string!]
+			bufferlen 	[integer!]   ;ulong
+			return: 	[logic!]
+		]
+		HidD_GetManufacturerString: "HidD_GetManufacturerString" [
+			handle		[int-ptr!]
+			buffer 		[c-string!]
+			bufferlen 	[integer!]   ;ulong
+			return: 	[logic!]
+		]
+		HidD_GetProductString: "HidD_GetProductString" [
+			handle		[int-ptr!]
+			buffer 		[c-string!]
+			bufferlen 	[integer!]   ;ulong
+			return: 	[logic!]
+		]
+		HidD_SetFeature: "HidD_SetFeature" [
+			handle		[int-ptr!]
+			data  		[int-ptr!]
+			length 		[integer!] ;ulong
+			return: 	[logic!]
+		]
+		HidD_GetFeature: "HidD_GetFeature" [
+			handle		[int-ptr!]
+			data  		[int-ptr!]
+			length 		[integer!] ;ulong
+			return: 	[logic!]
+		]
+		HidD_GetIndexedString: "HidD_GetIndexedString" [
+			handle			[int-ptr!]
+			string-index	[integer!] ;ulong
+			buffer 			[int-ptr!]
+			bufferlen 		[integer!] ;ulong
+			return: 		[logic!]
+		]
+		HidD_GetPreparsedData: "HidD_GetPreparsedData" [
+			handle 			[int-ptr!]
+			preparsed-data 	[int-ptr!]
+			return: 		[logic!]
+		]
+		HidD_FreePreparsedData: "HidD_FreePreparsedData" [
+			preparsed-data 	[int-ptr!]
+			return: 		[logic!]
+		]
+		HidP_GetCaps: "HidP_GetCaps" [
+			preparsed-data 	[int-ptr!]
+			caps 			[HIDP-CAPS!] ;need to check
+			return: 		[integer!] ;ulong
+		]
+		HidD_SetNumInputBuffers: "HidD_SetNumInputBuffers" [
+			handle			[int-ptr!]
+			number-buffers 	[integer!] ;ulong
+			return: 		[logic!]
 		]
 	]
 ]
