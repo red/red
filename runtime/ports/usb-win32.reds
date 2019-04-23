@@ -1,7 +1,7 @@
 Red/System [
 	Title:	"usb port! implementation on Windows"
 	Author: "bitbegin"
-	File: 	%windows.reds
+	File: 	%usb-win32.reds
 	Tabs: 	4
 	Rights: "Copyright (C) 2018 Red Foundation. All rights reserved."
 	License: {
@@ -10,7 +10,7 @@ Red/System [
 	}
 ]
 
-usb-windows: context [
+usb-device: context [
 
 	GUID_DEVINTERFACE_USB_HOST_CONTROLLER: declare UUID!
 	GUID_DEVINTERFACE_USB_DEVICE: declare UUID!
@@ -1154,6 +1154,26 @@ usb-windows: context [
 		]
 		pNode/hType: DRIVER-TYPE-HIDUSB
 		USB-ERROR-OK
+	]
+
+	async-pipo-setup: func [
+		pNode					[INTERFACE-INFO-NODE!]
+		pipe-id					[integer!]
+		return:					[logic!]
+		/local
+			value				[integer!]
+	][
+		value: 1
+		WinUsb_SetPipePolicy pNode/hInf pipe-id RAW-IO 1 :value
+	]
+
+	pipo-timeout: func [
+		pNode					[INTERFACE-INFO-NODE!]
+		pipe-id					[integer!]
+		timeout					[integer!]
+		return:					[logic!]
+	][
+		WinUsb_SetPipePolicy pNode/hInf pipe-id PIPE-TRANSFER-TIMEOUT 4 :timeout
 	]
 
 	init: does [

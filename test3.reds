@@ -2,22 +2,22 @@ Red/System []
 #define handle!				[pointer! [integer!]]
 #include %runtime/dlink.reds
 #include %runtime/platform/definitions/windows.reds
-#include %runtime/ports/usb-windows.reds
+#include %runtime/ports/usb-win32.reds
 
-usb-windows/init
-usb-windows/enum-all-devices
+usb-device/init
+usb-device/enum-all-devices
 
 print-line "devices:"
-pNode: as usb-windows/DEVICE-INFO-NODE! 0
-list: usb-windows/device-list
+pNode: as usb-device/DEVICE-INFO-NODE! 0
+list: usb-device/device-list
 entry: list/next
-strings: as usb-windows/STRING-DESC-NODE! 0
-next: as usb-windows/STRING-DESC-NODE! 0
+strings: as usb-device/STRING-DESC-NODE! 0
+next: as usb-device/STRING-DESC-NODE! 0
 child-list: as list-entry! 0
 child-entry: as list-entry! 0
-child: as usb-windows/INTERFACE-INFO-NODE! 0
+child: as usb-device/INTERFACE-INFO-NODE! 0
 while [entry <> list][
-    pNode: as usb-windows/DEVICE-INFO-NODE! entry
+    pNode: as usb-device/DEVICE-INFO-NODE! entry
     print "dev-path: "
     print-line pNode/path
     ;print-line "port:"
@@ -45,7 +45,7 @@ while [entry <> list][
     print-line "child:"
     child-entry: child-list/next
     while [child-entry <> child-list][
-        child: as usb-windows/INTERFACE-INFO-NODE! child-entry
+        child: as usb-device/INTERFACE-INFO-NODE! child-entry
         if child/properties/service <> null [
             print "service: "
             print-line child/properties/service
@@ -65,13 +65,12 @@ while [entry <> list][
             pNode/pid = 53C1h
         ][
             if 0 = compare-memory as byte-ptr! child/properties/device-id as byte-ptr! "USB\" 4 [
-                print "open: "
-                print-line usb-windows/open-inteface child
+                usb-device/open-inteface child
                 print-line child/bulk-in
                 print-line child/bulk-out
                 print-line child/interrupt-in
                 print-line child/interrupt-out
-                usb-windows/close-interface child
+                usb-device/close-interface child
             ]
         ]
         child-entry: child-entry/next
@@ -79,4 +78,8 @@ while [entry <> list][
     print-line "child end"
     print-line ""
     entry: entry/next
+]
+
+#if debug? = yes [
+    print-line "asdfsad"
 ]
