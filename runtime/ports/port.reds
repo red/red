@@ -13,7 +13,7 @@ Red/System [
 g-poller: as int-ptr! 0
 
 #include %sockdata.reds
-#include %usb.reds
+;#include %usb.reds
 
 #either OS = 'Windows [
 	#include %socket-win32.reds

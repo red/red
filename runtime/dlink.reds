@@ -1,7 +1,7 @@
 Red/System [
 	Title:	"Doubly Linked List implementation"
 	Author: "Xie Qingtian"
-	File: 	%linked-list.reds
+	File: 	%dlink.reds
 	Tabs:	4
 	Rights: "Copyright (C) 2017 Xie Qingtian. All rights reserved."
 	License: {
