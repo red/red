@@ -1175,7 +1175,7 @@ PIPE-INFO!: alias struct! [
 	]
 	"winusb.dll" stdcall [
 		WinUsb_Initialize: "WinUsb_Initialize" [
-			DeviceHandle					[int-ptr!]
+			DeviceHandle					[integer!]
 			InterfaceHandle					[int-ptr!]
 			return:							[logic!]
 		]

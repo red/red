@@ -1099,22 +1099,21 @@ usb-windows: context [
 	]
 
 	open-winusb: func [
-		path					[c-string!]
-		hType					[int-ptr!]
-		hDev					[int-ptr!]
-		hInf					[int-ptr!]
+		pNode					[INTERFACE-INFO-NODE!]
 		return:					[USB-ERROR!]
+		/local
+			i					[integer!]
 	][
-		hDev/value: CreateFileA pNode/path GENERIC_WRITE FILE_SHARE_WRITE null
+		pNode/hDev: CreateFileA pNode/path GENERIC_WRITE FILE_SHARE_WRITE null
 				OPEN_EXISTING FILE_FLAG_OVERLAPPED null
-		if hDev/value = -1 [
+		if pNode/hDev = -1 [
 			return USB-ERROR-OPEN
 		]
-		if false = WinUsb_Initialize hDev hInf [
-			CloseHandle hDev
+		if false = WinUsb_Initialize pNode/hDev :pNode/hInf [
+			CloseHandle pNode/hDev
 			return USB-ERROR-INIT
 		]
-		hType/value: DRIVER-TYPE-WINUSB
+		pNode/hType: DRIVER-TYPE-WINUSB
 		USB-ERROR-OK
 	]
 
@@ -1125,12 +1124,12 @@ usb-windows: context [
 		hInf					[int-ptr!]
 		return:					[USB-ERROR!]
 	][
-		hDev/value: CreateFileA pNode/path GENERIC_WRITE FILE_SHARE_WRITE null
+		pNode/hDev: CreateFileA pNode/path GENERIC_WRITE FILE_SHARE_WRITE null
 				OPEN_EXISTING 0 null
-		if hDev/value = -1 [
+		if pNode/hDev = -1 [
 			return USB-ERROR-OPEN
 		]
-		hType/value: DRIVER-TYPE-HIDUSB
+		pNode/hType: DRIVER-TYPE-HIDUSB
 		USB-ERROR-OK
 	]
 
