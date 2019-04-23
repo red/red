@@ -581,6 +581,13 @@ PIPE-INFO!: alias struct! [
 	;interval								[byte!]
 ]
 
+#enum PIPE-TYPE! [
+	PIPE-TYPE-CONTROL
+	PIPE-TYPE-ISOCH
+	PIPE-TYPE-BULK
+	PIPE-TYPE-INTERRUPT
+]
+
 #import [
 	LIBC-file cdecl [
 		_setmode: "_setmode" [

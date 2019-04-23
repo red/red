@@ -1055,10 +1055,10 @@ usb-windows: context [
 		if prop/device-id = null [return USB-ERROR-HANDLE]
 		if 0 = compare-memory as byte-ptr! prop/device-id as byte-ptr! "USB\" 4 [
 			if 0 = compare-memory as byte-ptr! prop/service as byte-ptr! "WINUSB" 6 [
-				return open-winusb pNode/path :pNode/hType :pNode/hdev :pNode/hInf
+				return open-winusb pNode
 			]
 			if 0 = compare-memory as byte-ptr! prop/service as byte-ptr! "HidUsb" 6 [
-				return open-hidusb pNode/path :pNode/hType :pNode/hdev :pNode/hInf
+				return open-hidusb pNode
 			]
 			return USB-ERROR-UNSUPPORT
 		]
@@ -1066,17 +1066,17 @@ usb-windows: context [
 			return USB-ERROR-UNSUPPORT
 		]
 		if 0 = compare-memory as byte-ptr! prop/service as byte-ptr! "HidUsb" 6 [
-			return open-hidusb pNode/path :pNode/hType :pNode/hdev :pNode/hInf
+			return open-hidusb pNode
 		]
 		if 0 = compare-memory as byte-ptr! prop/service as byte-ptr! "kbdhid" 6 [
-			ret: open-hidusb pNode/path :pNode/hType :pNode/hdev :pNode/hInf
+			ret: open-hidusb pNode
 			if ret = USB-ERROR-OK [
 				pNode/hType: DRIVER-TYPE-KBDHID
 			]
 			return ret
 		]
 		if 0 = compare-memory as byte-ptr! prop/service as byte-ptr! "mouhid" 6 [
-			ret: open-hidusb pNode/path :pNode/hType :pNode/hdev :pNode/hInf
+			ret: open-hidusb pNode
 			if ret = USB-ERROR-OK [
 				pNode/hType: DRIVER-TYPE-MOUHID
 			]
@@ -1102,26 +1102,49 @@ usb-windows: context [
 		pNode					[INTERFACE-INFO-NODE!]
 		return:					[USB-ERROR!]
 		/local
-			i					[integer!]
+			index				[integer!]
+			pipe-info			[PIPE-INFO! value]
+			pipe-id				[integer!]
+			pipe-type			[PIPE-TYPE!]
 	][
-		pNode/hDev: CreateFileA pNode/path GENERIC_WRITE FILE_SHARE_WRITE null
+		pNode/hDev: CreateFileA pNode/path GENERIC_WRITE or GENERIC_READ FILE_SHARE_READ null
 				OPEN_EXISTING FILE_FLAG_OVERLAPPED null
 		if pNode/hDev = -1 [
 			return USB-ERROR-OPEN
 		]
 		if false = WinUsb_Initialize pNode/hDev :pNode/hInf [
-			CloseHandle pNode/hDev
+			CloseHandle as int-ptr! pNode/hDev
 			return USB-ERROR-INIT
 		]
 		pNode/hType: DRIVER-TYPE-WINUSB
+		index: 0
+		forever [
+			unless WinUsb_QueryPipe pNode/hInf 0 index pipe-info [break]
+			pipe-id: as integer! pipe-info/pipeID
+			pipe-type: pipe-info/pipeType
+			switch pipe-type [
+				PIPE-TYPE-BULK [
+					either (pipe-id and 80h) = 80h [
+						pNode/bulk-in: pipe-id
+					][
+						pNode/bulk-out: pipe-id
+					]
+				]
+				PIPE-TYPE-INTERRUPT [
+					either (pipe-id and 80h) = 80h [
+						pNode/interrupt-in: pipe-id
+					][
+						pNode/interrupt-out: pipe-id
+					]
+				]
+			]
+			index: index + 1
+		]
 		USB-ERROR-OK
 	]
 
 	open-hidusb: func [
-		path					[c-string!]
-		hType					[int-ptr!]
-		hDev					[int-ptr!]
-		hInf					[int-ptr!]
+		pNode					[INTERFACE-INFO-NODE!]
 		return:					[USB-ERROR!]
 	][
 		pNode/hDev: CreateFileA pNode/path GENERIC_WRITE FILE_SHARE_WRITE null

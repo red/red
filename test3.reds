@@ -67,6 +67,10 @@ while [entry <> list][
             if 0 = compare-memory as byte-ptr! child/properties/device-id as byte-ptr! "USB\" 4 [
                 print "open: "
                 print-line usb-windows/open-inteface child
+                print-line child/bulk-in
+                print-line child/bulk-out
+                print-line child/interrupt-in
+                print-line child/interrupt-out
                 usb-windows/close-interface child
             ]
         ]
