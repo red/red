@@ -97,17 +97,6 @@ Red/System [
 #define FILE_DEVICE_UNKNOWN				00000022h
 #define FILE_DEVICE_USB					FILE_DEVICE_UNKNOWN
 
-#define HCD_GET_STATS_1										255
-#define HCD_DIAGNOSTIC_MODE_ON								256
-#define HCD_DIAGNOSTIC_MODE_OFF								257
-#define HCD_GET_ROOT_HUB_NAME								258
-#define HCD_GET_DRIVERKEY_NAME								265
-#define HCD_GET_STATS_2										266
-#define HCD_DISABLE_PORT									268
-#define HCD_ENABLE_PORT										269
-#define HCD_USER_REQUEST									270
-#define HCD_TRACE_READ_REQUEST								275
-
 #define USB_GET_NODE_INFORMATION							258
 #define USB_GET_NODE_CONNECTION_INFORMATION					259
 #define USB_GET_DESCRIPTOR_FROM_NODE_CONNECTION				260
@@ -176,7 +165,6 @@ Red/System [
 #define DIREG_DRV											00000002h
 #define DIREG_BOTH											00000004h
 
-#define DELETE												00010000h
 #define READ_CONTROL										00020000h
 #define WRITE_DAC											00040000h
 #define WRITE_OWNER											00080000h
@@ -466,34 +454,11 @@ UUID!: alias struct! [
 	data4	[integer!]
 ]
 
-USB-HCD-DRIVERKEY-NAME!: alias struct! [
-	actual-length		[integer!]
-	driver-key-name		[integer!]
-]
-
 USBUSER-REQUEST-HEADER!: alias struct! [
 	request				[integer!]
 	status				[integer!]
 	ReqLen				[integer!]
 	ActualLen			[integer!]
-]
-
-USB-CONTROLLER-INFO-0!: alias struct! [
-	pci-vendor-id		[integer!]
-	pci-device-id		[integer!]
-	pci-revision		[integer!]
-	num-root-ports		[integer!]
-	controller-flavor	[integer!]
-	hc-feature-flags	[integer!]
-]
-USBUSER-CONTROLLER-INFO-0!: alias struct! [
-	Header				[USBUSER-REQUEST-HEADER! value]
-	Info0				[USB-CONTROLLER-INFO-0! value]
-]
-
-USB-ROOT-HUB-NAME!: alias struct! [
-	actual-len			[integer!]
-	root-hub-name		[integer!]
 ]
 
 USB-DESCRIPTOR-REQUEST!: alias struct! [

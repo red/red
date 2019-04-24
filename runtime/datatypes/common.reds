@@ -661,16 +661,7 @@ words: context [
 	_accept:		as red-word! 0
 	_connect:		as red-word! 0
 	_awake:			as red-word! 0
-
-	_class:			as red-word! 0
-	_vendor-id:		as red-word! 0
-	_product-id:	as red-word! 0
-	_revision:		as red-word! 0
-	_serial-number:	as red-word! 0
-	_path:			as red-word! 0
-	_handle:		as red-word! 0
-	_children:		as red-word! 0
-
+	
 	errors: context [
 		_throw:		as red-word! 0
 		note:		as red-word! 0
@@ -913,16 +904,6 @@ words: context [
 		_connect:		word/load "connect"
 		_awake:			word/load "awake"
 		
-		;-- usb
-		_class:			word/load "class"
-		_vendor-id:		word/load "vendor-id"
-		_product-id:	word/load "product-id"
-		_revision:		word/load "revision"
-		_serial-number:	word/load "serial-number"
-		_path:			word/load "path"
-		_handle:		word/load "handle"
-		_children:		word/load "children"
-
 		errors/throw:	 word/load "throw"
 		errors/note:	 word/load "note"
 		errors/syntax:	 word/load "syntax"
