@@ -4,11 +4,12 @@ buffer: make binary! 64
 append/dup buffer #{00} 64
 
 usb/awake: func [event /local port] [
-    debug ["=== usb event:" event/type]
+    print ["=== usb event:" event/type]
     port: event/port
     switch event/type [
         lookup [open port]
-        connect [insert port b]
+        connect [insert port buffer]
+        accept [insert port buffer]
         read [
 	        probe "usb read done"
 	        probe port/data
@@ -17,6 +18,5 @@ usb/awake: func [event /local port] [
     ]
     false
 ]
-insert usb buffer
 wait usb
 close usb

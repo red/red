@@ -138,13 +138,14 @@ tcp-server: func [
 ]
 
 usb-start: func [
-	p			[red-object!]
+	red-port	[red-object!]
 	host		[red-string!]
 ][
 	if null? g-poller [g-poller: poll/init]
 	#either OS = 'Windows [
 		usb-device/init
-		usb/create p host
+		usb/create red-port host
+		call-awake red-port red-port IO_EVT_ACCEPT
 	][
 		0
 	]

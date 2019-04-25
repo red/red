@@ -134,7 +134,7 @@ poll: context [
 				msg: red-port
 				switch data/code [
 					IOCP_OP_ACCEPT	[
-						msg: create-red-port red-port data/accept
+						;msg: create-red-port red-port data/accept
 						type: IO_EVT_ACCEPT
 					]
 					IOCP_OP_CONN	[type: IO_EVT_CONNECT]
