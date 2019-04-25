@@ -13,10 +13,10 @@ Red/System [
 #define AF_INET6	23
 
 sockdata!: alias struct! [
-	ovlap	[OVERLAPPED! value]		;-- the overlapped struct
 	cell	[cell! value]			;-- the port! cell
-	port	[int-ptr!]				;-- the bound iocp port
 	sock	[integer!]				;-- the socket
+	port	[int-ptr!]				;-- the bound iocp port
+	ovlap	[OVERLAPPED! value]		;-- the overlapped struct
 	accept	[integer!]				;-- the accept socket
 	buflen	[integer!]				;-- buffer length
 	buffer	[byte-ptr!]				;-- buffer for iocp poller
@@ -79,8 +79,8 @@ socket: context [
 			sockdata/insert sock as int-ptr! data
 		]
 		copy-cell as cell! red-port as cell! :data/cell
-		store-socket-data as int-ptr! data red-port
-		iocp/bind g-poller data
+		store-port-data as int-ptr! data red-port
+		iocp/bind g-poller as DATA-COMMON! data
 
 		set-memory as byte-ptr! data null-byte size? OVERLAPPED!
 		if null? data/buffer [		;-- make address buffer
@@ -126,10 +126,10 @@ socket: context [
 			sockdata/insert sock as int-ptr! data
 		]
 		copy-cell as cell! red-port as cell! :data/cell
-		store-socket-data as int-ptr! data red-port
-		iocp/bind g-poller data
+		store-port-data as int-ptr! data red-port
+		iocp/bind g-poller as DATA-COMMON! data
 
-		set-memory as byte-ptr! data null-byte size? OVERLAPPED!
+		set-memory as byte-ptr! :data/ovlap null-byte size? OVERLAPPED!
 
 		either type = AF_INET [		;-- IPv4
 			saddr/sin_family: type
@@ -169,8 +169,8 @@ socket: context [
 			iodata	[sockdata!]
 			n		[integer!]
 	][
-		iodata: as sockdata! get-socket-data red-port
-		iocp/bind g-poller iodata
+		iodata: as sockdata! get-port-data red-port
+		iocp/bind g-poller as DATA-COMMON! iodata
 
 		switch TYPE_OF(data) [
 			TYPE_BINARY [
@@ -199,13 +199,13 @@ socket: context [
 			n		[integer!]
 			flags	[integer!]
 	][
-		iodata: as sockdata! get-socket-data red-port
+		iodata: as sockdata! get-port-data red-port
 		pbuf: as WSABUF! :iodata/buflen
 		if null? pbuf/buf [
 			pbuf/len: 1024 * 1024
 			pbuf/buf: allocate 1024 * 1024
 		]
-		iocp/bind g-poller iodata
+		iocp/bind g-poller as DATA-COMMON! iodata
 
 		iodata/code: IOCP_OP_READ
 		n: 0
@@ -221,7 +221,7 @@ socket: context [
 		/local
 			iodata	[sockdata!]
 	][
-		iodata: as sockdata! get-socket-data red-port
+		iodata: as sockdata! get-port-data red-port
 		if iodata/buffer <> null [
 			free iodata/buffer
 			iodata/buffer: null

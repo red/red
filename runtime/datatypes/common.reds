@@ -547,6 +547,9 @@ words: context [
 	port: 			-1
 	user:			-1
 	host:			-1
+	tcp:			-1
+	usb:			-1
+	hid:			-1
 	
 	system:			-1
 	system-global:	-1
@@ -789,7 +792,10 @@ words: context [
 		port:			symbol/make "port"
 		user:			symbol/make "user"
 		host:			symbol/make "host"
-		
+		tcp:			symbol/make "tcp"
+		usb:			symbol/make "usb"
+		hid:			symbol/make "hid"
+
 		system:			symbol/make "system"
 		system-global:	symbol/make "system-global"
 

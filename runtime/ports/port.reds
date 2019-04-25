@@ -11,12 +11,18 @@ Red/System [
 ]
 
 g-poller: as int-ptr! 0
+DATA-COMMON!: alias struct! [
+	cell	[cell! value]			;-- the port! cell
+	fd		[integer!]				;-- the fd
+	bind	[int-ptr!]				;-- the bound port
+]
 
 #include %sockdata.reds
 ;#include %usb.reds
 
 #either OS = 'Windows [
 	#include %socket-win32.reds
+	#include %usb-win32.reds
 	#include %poller-iocp.reds
 ][
 	#include %socket-posix.reds
@@ -31,6 +37,18 @@ g-poller: as int-ptr! 0
 			#include %poller-poll.reds
 		]
 	]
+]
+
+get-port-sym: func [
+	red-port	[red-object!]
+	return:		[integer!]
+	/local
+		spec	[red-object!]
+		scheme	[red-word!]
+][
+	spec: as red-object! (object/get-values red-port) + port/field-spec
+	scheme: as red-word! (object/get-values spec)
+	symbol/resolve scheme/symbol
 ]
 
 create-socket-data: func [
@@ -58,11 +76,11 @@ create-red-port: func [
 	p: port/make none-value object/get-values proto TYPE_NONE
 	block/rs-append red-port-buffer as cell! p
 	copy-cell as cell! p as cell! :data/cell
-	store-socket-data as int-ptr! data p
+	store-port-data as int-ptr! data p
 	p
 ]
 
-store-socket-data: func [
+store-port-data: func [
 	data		[int-ptr!]
 	red-port	[red-object!]
 	/local
@@ -72,7 +90,7 @@ store-socket-data: func [
 	integer/make-at (object/get-values state) + 1 as-integer data
 ]
 
-get-socket-data: func [
+get-port-data: func [
 	red-port	[red-object!]
 	return:		[int-ptr!]
 	/local
@@ -119,6 +137,19 @@ tcp-server: func [
 	socket/accept p fd acp
 ]
 
+usb-start: func [
+	p			[red-object!]
+	host		[red-string!]
+][
+	if null? g-poller [g-poller: poll/init]
+	#either OS = 'Windows [
+		usb-device/init
+		usb/create p host
+	][
+		0
+	]
+]
+
 start-red-port: func [
 	red-port	[red-object!]
 	/local
@@ -129,6 +160,7 @@ start-red-port: func [
 		host	[red-string!]
 		p		[red-integer!]
 		scheme	[red-word!]
+		sym		[integer!]
 ][
 	values: object/get-values red-port
 	state: as red-object! values + port/field-state
@@ -138,13 +170,22 @@ start-red-port: func [
 	spec:	as red-object! values + port/field-spec
 	values: object/get-values spec
 	scheme: as red-word! values				;-- TBD: check scheme
+	sym: symbol/resolve scheme/symbol
 	host:	as red-string! values + 2
 	p:		as red-integer! values + 3
-	either TYPE_NONE = TYPE_OF(host) [		;-- start a tcp server
-		tcp-server red-port p
-	][
-		tcp-client red-port host p
+	case [
+		sym = words/tcp [
+			either TYPE_NONE = TYPE_OF(host) [		;-- start a tcp server
+				tcp-server red-port p
+			][
+				tcp-client red-port host p
+			]
+		]
+		sym = words/usb [
+			usb-start red-port host
+		]
 	]
+
 ]
 
 call-awake: func [

@@ -80,8 +80,6 @@ dlink: context [
 		p: as byte-ptr! entry1/next
 		entry1/next: entry2
 		entry2/prev: entry1
-
-		free p
 	]
 
 	clear: func [

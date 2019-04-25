@@ -116,7 +116,7 @@ socket: context [
 			sockdata/insert sock as int-ptr! data
 		]
 		copy-cell as cell! red-port as cell! :data/cell
-		store-socket-data as int-ptr! data red-port
+		store-port-data as int-ptr! data red-port
 
 		data/code: SOCK_OP_ACCEPT
 		data/state: EPOLLIN
@@ -142,7 +142,7 @@ socket: context [
 			sockdata/insert sock as int-ptr! data
 		]
 		copy-cell as cell! red-port as cell! :data/cell
-		store-socket-data as int-ptr! data red-port
+		store-port-data as int-ptr! data red-port
 
 		either type = AF_INET [		;-- IPv4
 			port: htons port
@@ -176,7 +176,7 @@ socket: context [
 			iodata	[sockdata!]
 			n		[integer!]
 	][
-		iodata: as sockdata! get-socket-data red-port
+		iodata: as sockdata! get-port-data red-port
 
 		switch TYPE_OF(data) [
 			TYPE_BINARY [
@@ -226,7 +226,7 @@ probe ["send " n " " len]
 			n		[integer!]
 			bin		[red-binary!]
 	][
-		iodata: as sockdata! get-socket-data red-port
+		iodata: as sockdata! get-port-data red-port
 		iodata/code: SOCK_OP_READ
 		n: _recv iodata/sock sock-readbuf 1024 * 1024 0
 probe ["read " n " "]
@@ -255,7 +255,7 @@ probe ["read " n " "]
 		/local
 			iodata	[sockdata!]
 	][
-		iodata: as sockdata! get-socket-data red-port
+		iodata: as sockdata! get-port-data red-port
 		if iodata <> null [
 			iodata/code: SOCK_OP_CLOSE
 			poll/push-ready g-poller iodata

@@ -128,6 +128,7 @@ port: context [
 			state  [red-object!]
 			base   [red-value!]
 			scheme [red-word!]
+			sym	   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "port/make"]]
 
@@ -148,6 +149,12 @@ port: context [
 		]
 		scheme: as red-word! object/get-values parts 0	;-- `scheme` field
 		if TYPE_OF(scheme) <> TYPE_WORD [fire [TO_ERROR(access no-scheme) spec]]
+		sym: symbol/resolve scheme/symbol
+		if all [
+			sym <> words/tcp
+			sym <> words/usb
+			sym <> words/hid
+		][fire [TO_ERROR(access no-scheme) spec]]
 
 		new: as red-object! stack/push*
 		object/copy
@@ -163,12 +170,32 @@ port: context [
 		base: object/get-values new
 		copy-cell as red-value! parts  base + field-spec
 		copy-cell as red-value! scheme base + field-scheme
-		object/copy
-			as red-object! #get system/standard/port-state
-			as red-object! base + field-state
-			null
-			no
-			null
+		case [
+			sym = words/tcp [
+				object/copy
+					as red-object! #get system/standard/port-state
+					as red-object! base + field-state
+					null
+					no
+					null
+			]
+			sym = words/usb [
+				object/copy
+					as red-object! #get system/standard/usb-port-state
+					as red-object! base + field-state
+					null
+					no
+					null
+			]
+			sym = words/hid [
+				object/copy
+					as red-object! #get system/standard/hid-port-state
+					as red-object! base + field-state
+					null
+					no
+					null
+			]
+		]
 		
 		new
 	]

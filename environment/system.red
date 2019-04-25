@@ -393,6 +393,13 @@ system: context [
 		port-state: object [
 			state: 'init sub: error: none closed?: false info: none
 		]
+		usb-port-state: object [
+			state: 'init sub: error: none closed?: false info: none interface: none
+		]
+
+		hid-port-state: object [
+			state: 'init sub: error: none closed?: false info: none interface: none
+		]
 	]
 	
 	lexer:		none

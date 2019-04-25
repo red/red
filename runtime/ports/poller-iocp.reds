@@ -31,18 +31,18 @@ iocp: context [
 
 	bind: func [
 		p		[int-ptr!]
-		data	[sockdata!]
+		data	[DATA-COMMON!]
 		/local
 			poller	[poller!]
 			port	[int-ptr!]
 	][
 		poller: as poller! p
-		if null? data/port [
-			port: CreateIoCompletionPort as int-ptr! data/sock poller/port null 0
+		if null? data/bind [
+			port: CreateIoCompletionPort as int-ptr! data/fd poller/port null 0
 			if port <> poller/port [
 				probe "iocp bind error"
 			]
-			data/port: port
+			data/bind: port
 		]
 	]
 ]
