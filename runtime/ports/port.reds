@@ -12,6 +12,7 @@ Red/System [
 
 g-poller: as int-ptr! 0
 DATA-COMMON!: alias struct! [
+	ovlap	[OVERLAPPED! value]
 	cell	[cell! value]			;-- the port! cell
 	fd		[integer!]				;-- the fd
 	bind	[int-ptr!]				;-- the bound port
@@ -144,7 +145,10 @@ usb-start: func [
 	if null? g-poller [g-poller: poll/init]
 	#either OS = 'Windows [
 		usb-device/init
+		usb/init
+		print-line "start"
 		usb/create red-port host
+		print-line "end"
 		call-awake red-port red-port IO_EVT_ACCEPT
 	][
 		0

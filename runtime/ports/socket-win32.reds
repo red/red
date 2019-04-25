@@ -13,10 +13,10 @@ Red/System [
 #define AF_INET6	23
 
 sockdata!: alias struct! [
+	ovlap	[OVERLAPPED! value]		;-- the overlapped struct
 	cell	[cell! value]			;-- the port! cell
 	sock	[integer!]				;-- the socket
 	port	[int-ptr!]				;-- the bound iocp port
-	ovlap	[OVERLAPPED! value]		;-- the overlapped struct
 	accept	[integer!]				;-- the accept socket
 	buflen	[integer!]				;-- buffer length
 	buffer	[byte-ptr!]				;-- buffer for iocp poller

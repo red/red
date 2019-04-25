@@ -14,16 +14,19 @@ write-usb: routine [
 	p		[object!]
 	data	[any-type!]
 ][
+	usb/write p data
 ]
 
 read-usb: routine [
 	p		[object!]
 ][
+	usb/read p
 ]
 
 close-usb: routine [
 	p		[object!]
 ][
+	usb/close p
 ]
 
 usb-scheme: context [

@@ -13,8 +13,9 @@ Red/System [
 #include %usbd-win32.reds
 
 USB-DATA!: alias struct! [
-	cell	[cell! value]			;-- the port! cell
 	ovlap	[OVERLAPPED! value]		;-- the overlapped struct
+	cell	[cell! value]			;-- the port! cell
+	fd		[integer!]
 	port	[int-ptr!]				;-- the bound iocp port
 	dev		[DEVICE-INFO-NODE!]
 	buflen	[integer!]				;-- buffer length
@@ -51,8 +52,8 @@ usb: context [
 		pid: 65535
 		mi: 255
 		col: 255
-		sscanf [s "VID=%4hx&PID=%4hx&SN=%s&MI=%2hx&COL=%2hx"
-			:vid :pid sn :mi :col]
+		sscanf [s "VID=%4hx&PID=%4hx&MI=%2hx&COL=%2hx&SN=%s"
+			:vid :pid :mi :col sn]
 		if all [
 			vid <> 65535
 			pid <> 65535
@@ -60,11 +61,12 @@ usb: context [
 			node: usb-device/open-usb vid pid sn mi col
 			if node = null [exit]
 			dlink/append usb-list as list-entry! node
-			data: as USB-DATA! allocate size? USB-DATA!
+			data: as USB-DATA! alloc0 size? USB-DATA!
 			copy-cell as cell! red-port as cell! :data/cell
 			data/dev: node
 			store-port-data as int-ptr! data red-port
-			set-memory as byte-ptr! :data/ovlap null-byte size? OVERLAPPED!
+			;set-memory as byte-ptr! :data/ovlap null-byte size? OVERLAPPED!
+			data/fd: node/interface/hDev
 		]
 	]
 
@@ -72,16 +74,22 @@ usb: context [
 		red-port	[red-object!]
 		/local
 			iodata	[USB-DATA!]
+			size	[integer!]
 			n		[integer!]
 	][
 		iodata: as USB-DATA! get-port-data red-port
 		if null? iodata/buffer [
-			iodata/buffer: allocate 1024 * 1024
-			iodata/buflen: 1024 * 1024
+			size: iodata/dev/interface/interrupt-in
+			iodata/buffer: allocate size
+			iodata/buflen: size
 		]
+		print-line "read"
+		print-line iodata/buflen
 		iocp/bind g-poller as DATA-COMMON! iodata
+		set-memory as byte-ptr! :iodata/ovlap null-byte size? OVERLAPPED!
 
 		iodata/code: IOCP_OP_READ
+		;dump-hex iodata/buffer
 		n: 0
 		if 0 <> usb-device/read-data iodata/dev/interface iodata/buffer iodata/buflen :n as OVERLAPPED! iodata [
 			exit
@@ -102,7 +110,8 @@ usb: context [
 	][
 		iodata: as USB-DATA! get-port-data red-port
 		iocp/bind g-poller as DATA-COMMON! iodata
-		print-line "asdfasdf"
+		set-memory as byte-ptr! :iodata/ovlap null-byte size? OVERLAPPED!
+		print-line "write"
 
 		switch TYPE_OF(data) [
 			TYPE_BINARY [

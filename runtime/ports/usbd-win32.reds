@@ -56,8 +56,10 @@ INTERFACE-INFO-NODE!: alias struct! [
 	hType				[DRIVER-TYPE!]
 	bulk-in				[integer!]
 	bulk-out			[integer!]
+	bulk-size			[integer!]
 	interrupt-in		[integer!]
 	interrupt-out		[integer!]
+	interrupt-size		[integer!]
 ]
 
 DEVICE-INFO-NODE!: alias struct! [
@@ -67,6 +69,7 @@ DEVICE-INFO-NODE!: alias struct! [
 	properties			[USB-DEVICE-PNP-STRINGS!]
 	vid					[integer!]
 	pid					[integer!]
+	inst				[integer!]
 	serial-num			[c-string!]
 	hub-path			[c-string!]
 	device-desc			[byte-ptr!]
@@ -295,34 +298,8 @@ usb-device: context [
 					pNode/serial-num: serial
 					;print-line as c-string! dev-props/device-id
 				]
-				inst: 0
-				rint: CM_Get_Parent :inst info-data/DevInst 0
-				if all [
-					rint = 0
-					port <> -1
-				][
-					dev-path: get-dev-path-with-guid inst GUID_DEVINTERFACE_USB_HUB null
-					pNode/hub-path: dev-path
-					if dev-path <> null [
-						hHub: CreateFileA dev-path GENERIC_WRITE FILE_SHARE_WRITE null
-								OPEN_EXISTING 0 null
-						if hHub <> -1 [
-							buf: get-device-desc hHub port :plen
-							if buf <> null [
-								pNode/device-desc: buf
-								pNode/device-desc-len: plen
-							]
-							buf: get-config-desc hHub port 0 :plen
-							if buf <> null [
-								pNode/config-desc: buf
-								pNode/config-desc-len: plen
-							]
-							strings: get-all-string-desc hHub port pNode/device-desc pNode/config-desc
-							pNode/strings: strings
-						]
-						CloseHandle as int-ptr! hHub
-					]
-				]
+				pNode/inst: info-data/DevInst
+				;get-descriptions pNode
 				dlink/init pNode/interface-entry
 				if all [
 					vid <> 65535
@@ -335,6 +312,48 @@ usb-device: context [
 			]
 		]
 		SetupDiDestroyDeviceInfoList dev-info
+	]
+
+	get-descriptions: func [
+		pNode			[DEVICE-INFO-NODE!]
+		/local
+			inst		[integer!]
+			rint		[integer!]
+			dev-path	[c-string!]
+			hHub		[integer!]
+			buf			[byte-ptr!]
+			plen		[integer!]
+			strings		[STRING-DESC-NODE!]
+	][
+		inst: 0
+		plen: 0
+		rint: CM_Get_Parent :inst pNode/inst 0
+		if all [
+			rint = 0
+			pNode/port <> -1
+		][
+			dev-path: get-dev-path-with-guid inst GUID_DEVINTERFACE_USB_HUB null
+			pNode/hub-path: dev-path
+			if dev-path <> null [
+				hHub: CreateFileA dev-path GENERIC_WRITE FILE_SHARE_WRITE null
+						OPEN_EXISTING 0 null
+				if hHub <> -1 [
+					buf: get-device-desc hHub pNode/port :plen
+					if buf <> null [
+						pNode/device-desc: buf
+						pNode/device-desc-len: plen
+					]
+					buf: get-config-desc hHub pNode/port 0 :plen
+					if buf <> null [
+						pNode/config-desc: buf
+						pNode/config-desc-len: plen
+					]
+					strings: get-all-string-desc hHub pNode/port pNode/device-desc pNode/config-desc
+					pNode/strings: strings
+				]
+				CloseHandle as int-ptr! hHub
+			]
+		]
 	]
 
 	enum-children: func [
@@ -1117,6 +1136,8 @@ usb-device: context [
 			CloseHandle as int-ptr! pNode/hDev
 			return USB-ERROR-INIT
 		]
+		;index: 0
+		;WinUsb_GetCurrentAlternateSetting pNode/hInf :index
 		pNode/hType: DRIVER-TYPE-WINUSB
 		index: 0
 		forever [
@@ -1130,6 +1151,7 @@ usb-device: context [
 					][
 						pNode/bulk-out: pipe-id
 					]
+					pNode/bulk-size: pipe-info/maxPackSize
 				]
 				PIPE-TYPE-INTERRUPT [
 					either (pipe-id and 80h) = 80h [
@@ -1137,9 +1159,13 @@ usb-device: context [
 					][
 						pNode/interrupt-out: pipe-id
 					]
+					pNode/interrupt-size: pipe-info/maxPackSize
 				]
 			]
 			index: index + 1
+		]
+		if false = async-pipo-setup pNode pNode/interrupt-out [
+			print-line "setup issue!"
 		]
 		USB-ERROR-OK
 	]
@@ -1267,6 +1293,8 @@ usb-device: context [
 			free-device-info-node dnode
 			return null
 		]
+		;print-line "open"
+		;print-line inode/hInf
 		dnode
 	]
 
@@ -1282,6 +1310,7 @@ usb-device: context [
 			if WinUsb_WritePipe pNode/hInf pNode/interrupt-out buf buflen plen ov [
 				return 0
 			]
+			if 997 = GetLastError [return 0]
 			return -1
 		]
 		-1
@@ -1299,6 +1328,7 @@ usb-device: context [
 			if WinUsb_ReadPipe pNode/hInf pNode/interrupt-in buf buflen plen ov [
 				return 0
 			]
+			if 997 = GetLastError [return 0]
 			return -1
 		]
 		-1

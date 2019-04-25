@@ -102,7 +102,10 @@ poll: context [
 			err		[integer!]
 			i		[integer!]
 			e		[OVERLAPPED_ENTRY!]
+			comm	[DATA-COMMON!]
+			sym		[integer!]
 			data	[sockdata!]
+			usbdata	[USB-DATA!]
 			bin		[red-binary!]
 			msg		[red-object!]
 			type	[integer!]
@@ -129,25 +132,55 @@ poll: context [
 			i: 0
 			while [i < cnt][
 				e: p/events + i
-				data: as sockdata! e/lpOverlapped
-				red-port: as red-object! :data/cell
-				msg: red-port
-				switch data/code [
-					IOCP_OP_ACCEPT	[
-						;msg: create-red-port red-port data/accept
-						type: IO_EVT_ACCEPT
+				comm: as DATA-COMMON! e/lpOverlapped
+				red-port: as red-object! :comm/cell
+				sym: get-port-sym red-port
+				if sym = words/tcp [
+					data: as sockdata! e/lpOverlapped
+					msg: red-port
+					switch data/code [
+						IOCP_OP_ACCEPT	[
+							msg: create-red-port red-port data/accept
+							type: IO_EVT_ACCEPT
+						]
+						IOCP_OP_CONN	[type: IO_EVT_CONNECT]
+						IOCP_OP_READ	[
+							print-line "tcp len:"
+							print-line e/dwNumberOfBytesTransferred
+							bin: binary/load data/buffer e/dwNumberOfBytesTransferred
+							copy-cell as cell! bin (object/get-values red-port) + port/field-data
+							stack/pop 1
+							type: IO_EVT_READ
+						]
+						IOCP_OP_WRITE	[type: IO_EVT_WROTE]
+						IOCP_OP_READ_UDP	[0]
+						IOCP_OP_WRITE_UDP	[0]
+						default			[probe ["wrong iocp code: " data/code]]
 					]
-					IOCP_OP_CONN	[type: IO_EVT_CONNECT]
-					IOCP_OP_READ	[
-						bin: binary/load data/buffer e/dwNumberOfBytesTransferred
-						copy-cell as cell! bin (object/get-values red-port) + port/field-data
-						stack/pop 1
-						type: IO_EVT_READ
+				]
+				if sym = words/usb [
+					usbdata: as USB-DATA! e/lpOverlapped
+					msg: red-port
+					switch usbdata/code [
+						IOCP_OP_ACCEPT	[
+							;msg: create-red-port red-port data/accept
+							type: IO_EVT_ACCEPT
+						]
+						IOCP_OP_CONN	[type: IO_EVT_CONNECT]
+						IOCP_OP_READ	[
+							print-line "usb len:"
+							print-line e/dwNumberOfBytesTransferred
+							;dump-hex usbdata/buffer
+							bin: binary/load usbdata/buffer e/dwNumberOfBytesTransferred
+							copy-cell as cell! bin (object/get-values red-port) + port/field-data
+							stack/pop 1
+							type: IO_EVT_READ
+						]
+						IOCP_OP_WRITE	[type: IO_EVT_WROTE]
+						IOCP_OP_READ_UDP	[0]
+						IOCP_OP_WRITE_UDP	[0]
+						default			[probe ["wrong iocp code: " usbdata/code]]
 					]
-					IOCP_OP_WRITE	[type: IO_EVT_WROTE]
-					IOCP_OP_READ_UDP	[0]
-					IOCP_OP_WRITE_UDP	[0]
-					default			[probe ["wrong iocp code: " data/code]]
 				]
 				call-awake red-port msg type
 				i: i + 1
