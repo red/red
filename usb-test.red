@@ -11,12 +11,12 @@ usb/awake: func [event /local port] [
     port: event/port
     switch event/type [
         lookup [open port]
-        connect [insert port buffer]
-        accept [insert port buffer]
+        connect [print "connect" copy port insert port buffer]
+        accept [print "accept" insert port buffer]
         read [
-	        probe "usb read done"
-	        probe port/data
-
+            probe "usb read done"
+            probe port/data
+            copy port
         ]
         wrote [
             probe "usb write done"

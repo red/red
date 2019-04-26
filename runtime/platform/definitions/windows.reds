@@ -542,8 +542,10 @@ HIDP-CAPS!: alias struct! [
 PIPE-INFO!: alias struct! [
 	pipeType								[integer!]
 	pipeID									[byte!]
-	maxPackSize								[integer!]
-	;interval								[byte!]
+	maxPackSize1							[byte!]
+	maxPackSize2							[byte!]
+	interval								[byte!]
+	resv									[integer!]
 ]
 
 #enum PIPE-TYPE! [

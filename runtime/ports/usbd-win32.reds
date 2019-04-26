@@ -55,11 +55,13 @@ INTERFACE-INFO-NODE!: alias struct! [
 	hInf				[integer!]
 	hType				[DRIVER-TYPE!]
 	bulk-in				[integer!]
+	bulk-in-size		[integer!]
 	bulk-out			[integer!]
-	bulk-size			[integer!]
+	bulk-out-size		[integer!]
 	interrupt-in		[integer!]
+	interrupt-in-size	[integer!]
 	interrupt-out		[integer!]
-	interrupt-size		[integer!]
+	interrupt-out-size	[integer!]
 ]
 
 DEVICE-INFO-NODE!: alias struct! [
@@ -1127,6 +1129,7 @@ usb-device: context [
 			pipe-id				[integer!]
 			pipe-type			[PIPE-TYPE!]
 	][
+		print-line pNode/path
 		pNode/hDev: CreateFileA pNode/path GENERIC_WRITE or GENERIC_READ FILE_SHARE_READ null
 				OPEN_EXISTING FILE_FLAG_OVERLAPPED null
 		if pNode/hDev = -1 [
@@ -1141,25 +1144,38 @@ usb-device: context [
 		pNode/hType: DRIVER-TYPE-WINUSB
 		index: 0
 		forever [
-			unless WinUsb_QueryPipe pNode/hInf 0 index pipe-info [break]
+			unless WinUsb_QueryPipe pNode/hInf 0 index pipe-info [
+				break
+			]
+			;dump-hex as byte-ptr! pipe-info
 			pipe-id: as integer! pipe-info/pipeID
 			pipe-type: pipe-info/pipeType
 			switch pipe-type [
 				PIPE-TYPE-BULK [
 					either (pipe-id and 80h) = 80h [
 						pNode/bulk-in: pipe-id
+						pNode/bulk-in-size: as integer! pipe-info/maxPackSize2
+						;print-line "bulk in: "
+						;print-line pipe-id
 					][
 						pNode/bulk-out: pipe-id
+						pNode/bulk-out-size: as integer! pipe-info/maxPackSize2
+						;print-line "bulk out: "
+						;print-line pipe-id
 					]
-					pNode/bulk-size: pipe-info/maxPackSize
 				]
 				PIPE-TYPE-INTERRUPT [
 					either (pipe-id and 80h) = 80h [
 						pNode/interrupt-in: pipe-id
+						pNode/interrupt-in-size: as integer! pipe-info/maxPackSize2
+						;print-line "int in: "
+						;print-line pipe-id
 					][
 						pNode/interrupt-out: pipe-id
+						pNode/interrupt-out-size: as integer! pipe-info/maxPackSize2
+						;print-line "int out: "
+						;print-line pipe-id
 					]
-					pNode/interrupt-size: pipe-info/maxPackSize
 				]
 			]
 			index: index + 1

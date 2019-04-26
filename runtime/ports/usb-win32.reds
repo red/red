@@ -79,7 +79,7 @@ usb: context [
 	][
 		iodata: as USB-DATA! get-port-data red-port
 		if null? iodata/buffer [
-			size: iodata/dev/interface/interrupt-in
+			size: iodata/dev/interface/interrupt-in-size
 			iodata/buffer: allocate size
 			iodata/buflen: size
 		]

@@ -149,7 +149,7 @@ usb-start: func [
 		print-line "start"
 		usb/create red-port host
 		print-line "end"
-		call-awake red-port red-port IO_EVT_ACCEPT
+		call-awake red-port red-port IO_EVT_CONNECT
 	][
 		0
 	]
