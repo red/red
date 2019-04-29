@@ -147,7 +147,7 @@ usb-start: func [
 		usb-device/init
 		usb/init
 		print-line "start"
-		usb/create red-port host
+		usb/open red-port host
 		print-line "end"
 		call-awake red-port red-port IO_EVT_CONNECT
 	][

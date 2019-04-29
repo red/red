@@ -31,7 +31,7 @@ usb: context [
 		dlink/init usb-list
 	]
 
-	create: func [
+	open: func [
 		red-port		[red-object!]
 		host			[red-string!]
 		/local
@@ -58,7 +58,7 @@ usb: context [
 			vid <> 65535
 			pid <> 65535
 		][
-			node: usb-device/open-usb vid pid sn mi col
+			node: usb-device/open vid pid sn mi col
 			if node = null [exit]
 			dlink/append usb-list as list-entry! node
 			data: as USB-DATA! alloc0 size? USB-DATA!
@@ -79,12 +79,20 @@ usb: context [
 	][
 		iodata: as USB-DATA! get-port-data red-port
 		if null? iodata/buffer [
-			size: iodata/dev/interface/interrupt-in-size
-			iodata/buffer: allocate size
-			iodata/buflen: size
+			if iodata/dev/interface/hType = DRIVER-TYPE-WINUSB [
+				size: iodata/dev/interface/interrupt-in-size
+				iodata/buffer: allocate size
+				iodata/buflen: size
+			]
+			if iodata/dev/interface/hType = DRIVER-TYPE-HIDUSB [
+				size: iodata/dev/interface/input-size
+				iodata/buffer: allocate size
+				iodata/buflen: size
+			]
 		]
 		print-line "read"
 		print-line iodata/buflen
+		print-line iodata/fd
 		iocp/bind g-poller as DATA-COMMON! iodata
 		set-memory as byte-ptr! :iodata/ovlap null-byte size? OVERLAPPED!
 

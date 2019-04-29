@@ -12,11 +12,11 @@ Red/System [
 
 #enum DRIVER-TYPE! [
 	DRIVER-TYPE-NONE
-	DRIVER-TYPE-GEN
+	;DRIVER-TYPE-GEN
 	DRIVER-TYPE-WINUSB
 	DRIVER-TYPE-HIDUSB
-	DRIVER-TYPE-KBDHID
-	DRIVER-TYPE-MOUHID
+	;DRIVER-TYPE-KBDHID
+	;DRIVER-TYPE-MOUHID
 ]
 
 #enum USB-ERROR! [
@@ -62,6 +62,10 @@ INTERFACE-INFO-NODE!: alias struct! [
 	interrupt-in-size	[integer!]
 	interrupt-out		[integer!]
 	interrupt-out-size	[integer!]
+	usage				[integer!]
+	usage-page			[integer!]
+	input-size			[integer!]
+	output-size			[integer!]
 ]
 
 DEVICE-INFO-NODE!: alias struct! [
@@ -372,6 +376,7 @@ usb-device: context [
 			len2			[integer!]
 			len3			[integer!]
 			rint			[integer!]
+			type			[integer!]
 			pNode			[INTERFACE-INFO-NODE!]
 			reg				[integer!]
 			guid			[UUID! value]
@@ -451,6 +456,7 @@ usb-device: context [
 						]
 						free path
 						pguid: guid
+						type: DRIVER-TYPE-WINUSB
 					][
 						either 0 = compare-memory buf as byte-ptr! "HID\" 4 [
 							sscanf [buf "HID\VID_%4hx&PID_%4hx&MI_%2hx&COL%2hx\%s"
@@ -470,6 +476,7 @@ usb-device: context [
 								continue
 							]
 							pguid: GUID_DEVINTERFACE_HID
+							type: DRIVER-TYPE-HIDUSB
 						][continue]
 					]
 					pNode: as INTERFACE-INFO-NODE! allocate size? INTERFACE-INFO-NODE!
@@ -479,6 +486,7 @@ usb-device: context [
 					set-memory as byte-ptr! pNode null-byte size? INTERFACE-INFO-NODE!
 					pNode/interface-num: nmi
 					pNode/collection-num: ncol
+					pNode/hType: type
 					prop: 0
 					pNode/path: get-dev-path-with-guid info-data/DevInst pguid :prop
 					pNode/properties: as USB-DEVICE-PNP-STRINGS! prop
@@ -1067,44 +1075,18 @@ usb-device: context [
 	open-inteface: func [
 		pNode					[INTERFACE-INFO-NODE!]
 		return:					[USB-ERROR!]
-		/local
-			prop				[USB-DEVICE-PNP-STRINGS!]
-			ret					[USB-ERROR!]
 	][
-		prop: pNode/properties
-		if prop = null [return USB-ERROR-HANDLE]
-		if prop/service = null [return USB-ERROR-HANDLE]
-		if prop/device-id = null [return USB-ERROR-HANDLE]
-		if 0 = compare-memory as byte-ptr! prop/device-id as byte-ptr! "USB\" 4 [
-			if 0 = compare-memory as byte-ptr! prop/service as byte-ptr! "WINUSB" 6 [
+		case [
+			pNode/hType = DRIVER-TYPE-WINUSB [
 				return open-winusb pNode
 			]
-			if 0 = compare-memory as byte-ptr! prop/service as byte-ptr! "HidUsb" 6 [
+			pNode/hType = DRIVER-TYPE-HIDUSB [
 				return open-hidusb pNode
 			]
-			return USB-ERROR-UNSUPPORT
-		]
-		if 0 <> compare-memory as byte-ptr! prop/device-id as byte-ptr! "HID\" 4 [
-			return USB-ERROR-UNSUPPORT
-		]
-		if 0 = compare-memory as byte-ptr! prop/service as byte-ptr! "HidUsb" 6 [
-			return open-hidusb pNode
-		]
-		if 0 = compare-memory as byte-ptr! prop/service as byte-ptr! "kbdhid" 6 [
-			ret: open-hidusb pNode
-			if ret = USB-ERROR-OK [
-				pNode/hType: DRIVER-TYPE-KBDHID
+			true [
+				return USB-ERROR-UNSUPPORT
 			]
-			return ret
 		]
-		if 0 = compare-memory as byte-ptr! prop/service as byte-ptr! "mouhid" 6 [
-			ret: open-hidusb pNode
-			if ret = USB-ERROR-OK [
-				pNode/hType: DRIVER-TYPE-MOUHID
-			]
-			return ret
-		]
-		USB-ERROR-UNSUPPORT
 	]
 
 	close-interface: func [
@@ -1141,7 +1123,6 @@ usb-device: context [
 		]
 		;index: 0
 		;WinUsb_GetCurrentAlternateSetting pNode/hInf :index
-		pNode/hType: DRIVER-TYPE-WINUSB
 		index: 0
 		forever [
 			unless WinUsb_QueryPipe pNode/hInf 0 index pipe-info [
@@ -1189,13 +1170,28 @@ usb-device: context [
 	open-hidusb: func [
 		pNode					[INTERFACE-INFO-NODE!]
 		return:					[USB-ERROR!]
+		/local
+			pbuf				[integer!]
+			caps				[HIDP-CAPS! value]
 	][
-		pNode/hDev: CreateFileA pNode/path GENERIC_WRITE FILE_SHARE_WRITE null
-				OPEN_EXISTING 0 null
+		pNode/hDev: CreateFileA pNode/path GENERIC_WRITE or GENERIC_READ FILE_SHARE_READ null
+				OPEN_EXISTING FILE_FLAG_OVERLAPPED null
 		if pNode/hDev = -1 [
 			return USB-ERROR-OPEN
 		]
-		pNode/hType: DRIVER-TYPE-HIDUSB
+		pbuf: 0
+		unless HidD_GetPreparsedData as int-ptr! pNode/hDev :pbuf [
+			return USB-ERROR-INIT
+		]
+		if HIDP_STATUS_SUCCESS = HidP_GetCaps as int-ptr! pbuf caps [
+			pNode/usage: caps/usage >>> 16
+			pNode/usage-page: caps/usage and FFFFh
+			pNode/input-size: caps/ReportByteLength >>> 16
+			pNode/output-size: caps/ReportByteLength and FFFFh
+			;print-line pNode/usage
+			;print-line pNode/usage-page
+		]
+		HidD_FreePreparsedData as int-ptr! pbuf
 		USB-ERROR-OK
 	]
 
@@ -1220,6 +1216,7 @@ usb-device: context [
 	]
 
 	find-usb: func [
+		device-list				[list-entry!]
 		vid						[integer!]
 		pid						[integer!]
 		sn						[c-string!]
@@ -1289,7 +1286,7 @@ usb-device: context [
 		null
 	]
 
-	open-usb: func [
+	open: func [
 		vid						[integer!]
 		pid						[integer!]
 		sn						[c-string!]
@@ -1302,14 +1299,15 @@ usb-device: context [
 	][
 		clear-device-list device-list
 		enum-devices-with-guid device-list GUID_DEVINTERFACE_USB_DEVICE
-		dnode: find-usb vid pid sn mi col
+		dnode: find-usb device-list vid pid sn mi col
 		if dnode = null [return null]
 		inode: dnode/interface
 		if USB-ERROR-OK <> open-inteface inode [
 			free-device-info-node dnode
 			return null
 		]
-		;print-line "open"
+		print-line "open"
+		print-line inode/hDev
 		;print-line inode/hInf
 		dnode
 	]
@@ -1321,15 +1319,30 @@ usb-device: context [
 		plen					[int-ptr!]
 		ov						[OVERLAPPED!]
 		return:					[integer!]
+		/local
+			ret					[integer!]
 	][
-		if pNode/hType = DRIVER-TYPE-WINUSB [
-			if WinUsb_WritePipe pNode/hInf pNode/interrupt-out buf buflen plen ov [
-				return 0
+		case [
+			pNode/hType = DRIVER-TYPE-WINUSB [
+				if WinUsb_WritePipe pNode/hInf pNode/interrupt-out buf buflen plen ov [
+					return 0
+				]
+				if 997 = GetLastError [return 0]
+				return -1
 			]
-			if 997 = GetLastError [return 0]
-			return -1
+			pNode/hType = DRIVER-TYPE-HIDUSB [
+				ret: WriteFile pNode/hDev buf buflen plen as integer! ov
+				print-line GetLastError
+				print-line ret
+				if as logic! ret [
+					return 0
+				]
+				return -1
+			]
+			true [
+				return -1
+			]
 		]
-		-1
 	]
 
 	read-data: func [
@@ -1339,15 +1352,30 @@ usb-device: context [
 		plen					[int-ptr!]
 		ov						[OVERLAPPED!]
 		return:					[integer!]
+		/local
+			ret					[integer!]
 	][
-		if pNode/hType = DRIVER-TYPE-WINUSB [
-			if WinUsb_ReadPipe pNode/hInf pNode/interrupt-in buf buflen plen ov [
-				return 0
+		case [
+			pNode/hType = DRIVER-TYPE-WINUSB [
+				if WinUsb_ReadPipe pNode/hInf pNode/interrupt-in buf buflen plen ov [
+					return 0
+				]
+				if 997 = GetLastError [return 0]
+				return -1
 			]
-			if 997 = GetLastError [return 0]
-			return -1
+			pNode/hType = DRIVER-TYPE-HIDUSB [
+				ret: ReadFile pNode/hDev buf buflen plen as integer! ov
+				print-line GetLastError
+				print-line ret
+				if as logic! ret [
+					return 0
+				]
+				return -1
+			]
+			true [
+				return -1
+			]
 		]
-		-1
 	]
 
 	init: does [
