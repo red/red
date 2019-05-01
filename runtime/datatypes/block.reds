@@ -1332,6 +1332,7 @@ block: context [
 			values?	[logic!]
 			tail?	[logic!]
 			hash?	[logic!]
+			action	[red-word!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/insert"]]
 		
@@ -1392,7 +1393,13 @@ block: context [
 		h: blk/head
 		tail?: any [(s/offset + h = s/tail) append?]
 		slots: part * cnt
-		index: either append? [(as-integer s/tail - s/offset) >> 4][h]
+		index: either append? [
+			action: words/_append
+			(as-integer s/tail - s/offset) >> 4
+		][
+			action: words/_insert
+			h
+		]
 		
 		unless tail? [									;TBD: process head? case separately
 			size: as-integer s/tail + slots - s/offset
@@ -1446,7 +1453,7 @@ block: context [
 				cell: cell + 1
 			]
 		]
-		ownership/check as red-value! blk words/_insert value index part
+		ownership/check as red-value! blk action value index part
 		
 		either append? [blk/head: 0][
 			blk/head: h + slots
