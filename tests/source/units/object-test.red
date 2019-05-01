@@ -2273,7 +2273,7 @@ Red [
 				if equal? mold owner mold make object! [a: 0 b: [1 2 3 4 5 6]] [a: a + 1]
 				if equal? word 'b [a: a + 10]
 				if equal? target [1 2 3 4 5 6] [a: a + 100]
-				if equal? action 'insert [a: a + 1000]
+				if equal? action 'append [a: a + 1000]
 				if equal? new 6 [a: a + 10000]
 				if equal? index 5 [a: a + 100000]
 				if equal? part 1 [a: a + 1000000]				 
