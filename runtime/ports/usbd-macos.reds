@@ -10,8 +10,63 @@ Red/System [
 	}
 ]
 
+#enum DRIVER-TYPE! [
+	DRIVER-TYPE-NONE
+	;DRIVER-TYPE-GEN
+	DRIVER-TYPE-WINUSB
+	DRIVER-TYPE-HIDUSB
+	;DRIVER-TYPE-KBDHID
+	;DRIVER-TYPE-MOUHID
+]
+
+#enum USB-ERROR! [
+	USB-ERROR-OK
+	USB-ERROR-HANDLE
+	USB-ERROR-UNSUPPORT
+	USB-ERROR-OPEN
+	USB-ERROR-INIT
+	USB-ERROR-MAX
+]
+
+INTERFACE-INFO-NODE!: alias struct! [
+	entry				[list-entry! value]
+	interface-num		[integer!]
+	collection-num		[integer!]
+	hDev				[integer!]
+	hInf				[integer!]
+	hType				[DRIVER-TYPE!]
+	bulk-in				[integer!]
+	bulk-in-size		[integer!]
+	bulk-out			[integer!]
+	bulk-out-size		[integer!]
+	interrupt-in		[integer!]
+	interrupt-in-size	[integer!]
+	interrupt-out		[integer!]
+	interrupt-out-size	[integer!]
+	usage				[integer!]
+	usage-page			[integer!]
+	input-size			[integer!]
+	output-size			[integer!]
+]
+
+DEVICE-INFO-NODE!: alias struct! [
+	entry				[list-entry! value]
+	vid					[integer!]
+	pid					[integer!]
+	inst				[integer!]
+	serial-num			[c-string!]
+	device-desc			[byte-ptr!]
+	device-desc-len		[integer!]
+	config-desc			[byte-ptr!]
+	config-desc-len		[integer!]
+	interface-entry		[list-entry! value]
+	interface			[INTERFACE-INFO-NODE!]
+]
 
 usb-device: context [
+
+	device-list: declare list-entry!
+
 	this!: alias struct! [vtbl [integer!]]
 
 	UUID!: alias struct! [
@@ -240,27 +295,13 @@ usb-device: context [
 		]
 	]
 
-	kIOUSBDeviceUserClientTypeID: CFUUIDGetConstantUUIDWithBytes null
-		#"^(9D)" #"^(C7)" #"^(B7)" #"^(80)" #"^(9E)" #"^(C0)" #"^(11)" #"^(D4)"
-		#"^(A5)" #"^(4F)" #"^(00)" #"^(0A)" #"^(27)" #"^(05)" #"^(28)" #"^(61)"
+	kIOUSBDeviceUserClientTypeID: as int-ptr! 0
+	kIOCFPlugInInterfaceID: as int-ptr! 0
+	kIOUSBDeviceInterfaceID: as int-ptr! 0
+	kIOUSBInterfaceUserClientTypeID: as int-ptr! 0
+	kIOUSBInterfaceInterfaceID550: as int-ptr! 0
 
-	kIOCFPlugInInterfaceID: CFUUIDGetConstantUUIDWithBytes null
-		#"^(C2)" #"^(44)" #"^(E8)" #"^(58)" #"^(10)" #"^(9C)" #"^(11)" #"^(D4)"
-		#"^(91)" #"^(D4)" #"^(00)" #"^(50)" #"^(E4)" #"^(C6)" #"^(42)" #"^(6F)"
-
-	kIOUSBDeviceInterfaceID: CFUUIDGetConstantUUIDWithBytes null
-		#"^(5C)" #"^(81)" #"^(87)" #"^(D0)" #"^(9E)" #"^(F3)" #"^(11)" #"^(D4)"
-		#"^(8B)" #"^(45)" #"^(00)" #"^(0A)" #"^(27)" #"^(05)" #"^(28)" #"^(61)"
-
-	kIOUSBInterfaceUserClientTypeID: CFUUIDGetConstantUUIDWithBytes null
-		#"^(2D)" #"^(97)" #"^(86)" #"^(C6)" #"^(9E)" #"^(F3)" #"^(11)" #"^(D4)"
-		#"^(AD)" #"^(51)" #"^(00)" #"^(0A)" #"^(27)" #"^(05)" #"^(28)" #"^(61)"
-
-	kIOUSBInterfaceInterfaceID550: CFUUIDGetConstantUUIDWithBytes null
-		#"^(6A)" #"^(E4)" #"^(4D)" #"^(3F)" #"^(EB)" #"^(45)" #"^(48)" #"^(7F)"
-		#"^(8E)" #"^(8E)" #"^(B9)" #"^(3B)" #"^(99)" #"^(F8)" #"^(EA)" #"^(9E)"
-
-	enum: func [
+	enum-all-devices: func [
 		return:				[int-ptr!]
 		/local
 			dict			[integer!]
@@ -276,7 +317,7 @@ usb-device: context [
 			pid				[integer!]
 			dev-ifc			[IOUSBDeviceInterface]
 			kr				[integer!]
-
+			pNode			[DEVICE-INFO-NODE!]
 	][
 		iter: 0
 		dict: IOServiceMatching "IOUSBDevice"
@@ -312,10 +353,99 @@ usb-device: context [
 			dev-ifc/GetDeviceProduct this :pid
 			print-line vid
 			print-line pid
+			pNode: as DEVICE-INFO-NODE! allocate size? DEVICE-INFO-NODE!
+			if pNode = null [continue]
+			set-memory as byte-ptr! pNode null-byte size? DEVICE-INFO-NODE!
+			dlink/init pNode/interface-entry
+			if all [
+				vid <> 0
+				pid <> 0
+			][
+				enum-children pNode/interface-entry this vid pid
+			]
 		]
 		IOObjectRelease as int-ptr! iter
 		null
 	]
 
+	enum-children: func [
+		list				[list-entry!]
+		this				[this!]
+		vid					[integer!]
+		pid					[integer!]
+		/local
+			dev-ifc			[IOUSBDeviceInterface]
+			req				[IOUSBFindInterfaceRequest value]
+			iter			[integer!]
+			saved			[int-ptr!]
+			interface		[integer!]
+			p-itf			[integer!]
+			score			[integer!]
+			dev				[int-ptr!]
+			kr				[integer!]
+			itf				[IOUSBInterfaceInterface]
+			guid			[UUID! value]
+			interface		[integer!]
+			itf-num			[integer!]
+	][
+		iter: 0 p-itf: 0 score: 0
+		interface: 0 itf-num: 0
+		dev-ifc: as IOUSBDeviceInterface this/vtbl
+		saved: system/stack/align
+		push 0
+		dev-ifc/CreateInterfaceIterator this :req :iter
+		system/stack/top: saved
+		while [
+			dev: IOIteratorNext iter
+			dev <> null
+		][
+			kr: IOCreatePlugInInterfaceForService
+				dev
+				kIOUSBInterfaceUserClientTypeID
+				kIOCFPlugInInterfaceID
+				:p-itf
+				:score
+			IOObjectRelease dev
+			if any [kr <> 0 zero? p-itf][continue]
+
+			this: as this! p-itf
+			itf: as IOUSBInterfaceInterface this/vtbl
+			guid: CFUUIDGetUUIDBytes kIOUSBInterfaceInterfaceID550
+			itf/QueryInterface this guid :interface
+			itf/Release this
+			this: as this! interface
+			itf: as IOUSBInterfaceInterface this/vtbl
+			itf/GetInterfaceNumber this :itf-num
+			print-line itf-num
+		]
+		IOObjectRelease as int-ptr! iter
+
+
+	]
+
+	init: does [
+		kIOUSBDeviceUserClientTypeID: CFUUIDGetConstantUUIDWithBytes null
+			#"^(9D)" #"^(C7)" #"^(B7)" #"^(80)" #"^(9E)" #"^(C0)" #"^(11)" #"^(D4)"
+			#"^(A5)" #"^(4F)" #"^(00)" #"^(0A)" #"^(27)" #"^(05)" #"^(28)" #"^(61)"
+
+		kIOCFPlugInInterfaceID: CFUUIDGetConstantUUIDWithBytes null
+			#"^(C2)" #"^(44)" #"^(E8)" #"^(58)" #"^(10)" #"^(9C)" #"^(11)" #"^(D4)"
+			#"^(91)" #"^(D4)" #"^(00)" #"^(50)" #"^(E4)" #"^(C6)" #"^(42)" #"^(6F)"
+
+		kIOUSBDeviceInterfaceID: CFUUIDGetConstantUUIDWithBytes null
+			#"^(5C)" #"^(81)" #"^(87)" #"^(D0)" #"^(9E)" #"^(F3)" #"^(11)" #"^(D4)"
+			#"^(8B)" #"^(45)" #"^(00)" #"^(0A)" #"^(27)" #"^(05)" #"^(28)" #"^(61)"
+
+		kIOUSBInterfaceUserClientTypeID: CFUUIDGetConstantUUIDWithBytes null
+			#"^(2D)" #"^(97)" #"^(86)" #"^(C6)" #"^(9E)" #"^(F3)" #"^(11)" #"^(D4)"
+			#"^(AD)" #"^(51)" #"^(00)" #"^(0A)" #"^(27)" #"^(05)" #"^(28)" #"^(61)"
+
+		kIOUSBInterfaceInterfaceID550: CFUUIDGetConstantUUIDWithBytes null
+			#"^(6A)" #"^(E4)" #"^(4D)" #"^(3F)" #"^(EB)" #"^(45)" #"^(48)" #"^(7F)"
+			#"^(8E)" #"^(8E)" #"^(B9)" #"^(3B)" #"^(99)" #"^(F8)" #"^(EA)" #"^(9E)"
+
+		dlink/init device-list
+
+	]
 ]
 
