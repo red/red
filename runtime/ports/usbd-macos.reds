@@ -28,6 +28,11 @@ Red/System [
 	USB-ERROR-MAX
 ]
 
+USB-DEVICE-ID!: alias struct! [
+	id1					[integer!]
+	id2					[integer!]
+]
+
 INTERFACE-INFO-NODE!: alias struct! [
 	entry				[list-entry! value]
 	interface-num		[integer!]
@@ -53,7 +58,7 @@ DEVICE-INFO-NODE!: alias struct! [
 	entry				[list-entry! value]
 	vid					[integer!]
 	pid					[integer!]
-	inst				[integer!]
+	id					[USB-DEVICE-ID! value]
 	serial-num			[c-string!]
 	device-desc			[byte-ptr!]
 	device-desc-len		[integer!]
@@ -66,6 +71,8 @@ DEVICE-INFO-NODE!: alias struct! [
 usb-device: context [
 
 	device-list: declare list-entry!
+	#define kIOServicePlane						"IOService"
+	#define kIOUSBInterfaceClassName			"IOUSBInterface"
 
 	this!: alias struct! [vtbl [integer!]]
 
@@ -233,6 +240,11 @@ usb-device: context [
 				existing		[int-ptr!]
 				return:			[integer!]
 			]
+			IOServiceGetMatchingService: "IOServiceGetMatchingService" [
+				masterPort		[integer!]
+				matching		[integer!]
+				return:			[int-ptr!]
+			]
 			IOIteratorIsValid: "IOIteratorIsValid" [
 				iter			[integer!]
 				return:			[logic!]
@@ -261,12 +273,33 @@ usb-device: context [
 				options			[integer!]
 				return:			[int-ptr!]
 			]
+			IORegistryEntryGetRegistryEntryID: "IORegistryEntryGetRegistryEntryID" [
+				entry			[int-ptr!]
+				id				[int-ptr!]
+				return:			[integer!]
+			]
+			IORegistryEntryGetChildIterator: "IORegistryEntryGetChildIterator" [
+				entry			[int-ptr!]
+				plane			[c-string!]
+				iter			[int-ptr!]
+				return:			[integer!]
+			]
+			IORegistryEntryIDMatching: "IORegistryEntryIDMatching" [
+				id				[USB-DEVICE-ID!]
+				return:			[integer!]
+			]
 			IOObjectRelease: "IOObjectRelease" [
-				object 		[int-ptr!]
-				return: 	[integer!]
+				object			[int-ptr!]
+				return:			[integer!]
+			]
+			IOObjectConformsTo: "IOObjectConformsTo" [
+				object			[int-ptr!]
+				name			[c-string!]
+				return:			[logic!]
 			]
 		]
 		"/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation" cdecl [
+			kCFAllocatorDefault: "kCFAllocatorDefault" [integer!]
 			kIOMasterPortDefault: "kIOMasterPortDefault" [integer!]
 			CFUUIDGetConstantUUIDWithBytes: "CFUUIDGetConstantUUIDWithBytes" [
 				allocator	[int-ptr!]
@@ -301,12 +334,13 @@ usb-device: context [
 	kIOUSBInterfaceUserClientTypeID: as int-ptr! 0
 	kIOUSBInterfaceInterfaceID550: as int-ptr! 0
 
-	enum-all-devices: func [
-		return:				[int-ptr!]
+	enum-usb-device: func [
+		device-list			[list-entry!]
 		/local
 			dict			[integer!]
 			iter			[integer!]
-			dev				[int-ptr!]
+			service			[int-ptr!]
+			id				[USB-DEVICE-ID! value]
 			interface		[integer!]
 			p-itf			[integer!]
 			score			[integer!]
@@ -320,93 +354,114 @@ usb-device: context [
 			pNode			[DEVICE-INFO-NODE!]
 	][
 		iter: 0
-		dict: IOServiceMatching "IOUSBDevice"
-		IOServiceGetMatchingServices kIOMasterPortDefault dict :iter
+		dict: IOServiceMatching "IOUSBHostDevice"
+		if 0 <> IOServiceGetMatchingServices kIOMasterPortDefault dict :iter [exit]
 
-		unless IOIteratorIsValid iter [return null]
+		unless IOIteratorIsValid iter [exit]
 		while [
-			dev: IOIteratorNext iter
-			dev <> null
+			service: IOIteratorNext iter
+			service <> null
 		][
+			kr: IORegistryEntryGetRegistryEntryID service as int-ptr! :id
+			if kr <> 0 [continue]
 			interface: 0
 			p-itf: as-integer :interface
 			score: 0
 			kr: IOCreatePlugInInterfaceForService
-					dev
+					service
 					kIOUSBDeviceUserClientTypeID
 					kIOCFPlugInInterfaceID
 					:p-itf
 					:score
-			IOObjectRelease dev
 
 			if any [kr <> 0 zero? p-itf][continue]
 			this: as this! p-itf
 			itf: as IOUSBInterfaceInterface this/vtbl
 			guid: CFUUIDGetUUIDBytes kIOUSBDeviceInterfaceID
-			itf/QueryInterface this guid :interface
+			kr: itf/QueryInterface this guid :interface
 			itf/Release this
-
+			if kr <> 0 [continue]
 			vid: 0 pid: 0
 			this: as this! interface
 			dev-ifc: as IOUSBDeviceInterface this/vtbl
-			dev-ifc/GetDeviceVendor this :vid
-			dev-ifc/GetDeviceProduct this :pid
+			kr: dev-ifc/GetDeviceVendor this :vid
+			if kr <> 0 [continue]
+			kr: dev-ifc/GetDeviceProduct this :pid
+			if kr <> 0 [continue]
+			print-line "new dev:"
 			print-line vid
 			print-line pid
 			pNode: as DEVICE-INFO-NODE! allocate size? DEVICE-INFO-NODE!
 			if pNode = null [continue]
 			set-memory as byte-ptr! pNode null-byte size? DEVICE-INFO-NODE!
 			dlink/init pNode/interface-entry
-			if all [
-				vid <> 0
-				pid <> 0
-			][
-				enum-children pNode/interface-entry this vid pid
-			]
+			pNode/id/id1: id/id1
+			pNode/id/id2: id/id2
+			pNode/vid: vid
+			pNode/pid: pid
+			enum-children pNode/interface-entry service vid pid
+			IOObjectRelease service
 		]
 		IOObjectRelease as int-ptr! iter
 		null
 	]
 
+	get-service-from-id: func [
+		id					[USB-DEVICE-ID! value]
+		pserive				[int-ptr!]
+		return:				[logic!]
+		/local
+			dict			[integer!]
+			service			[int-ptr!]
+	][
+		dict: IORegistryEntryIDMatching id
+		if dict = 0 [return false]
+		service: IOServiceGetMatchingService kIOMasterPortDefault dict
+		if service = null [return false]
+		pserive/value: as integer! service
+		true
+	]
+
 	enum-children: func [
 		list				[list-entry!]
-		this				[this!]
+		service				[int-ptr!]
 		vid					[integer!]
 		pid					[integer!]
 		/local
-			dev-ifc			[IOUSBDeviceInterface]
-			req				[IOUSBFindInterfaceRequest value]
 			iter			[integer!]
-			saved			[int-ptr!]
-			interface		[integer!]
 			p-itf			[integer!]
 			score			[integer!]
-			dev				[int-ptr!]
 			kr				[integer!]
+			itf-ser			[int-ptr!]
+			actual-num		[integer!]
+			this			[this!]
 			itf				[IOUSBInterfaceInterface]
 			guid			[UUID! value]
-			itf-num			[integer!]
+			interface		[integer!]
+			vid2			[integer!]
+			pid2			[integer!]
+			saved			[integer!]
 	][
-		iter: 0 p-itf: 0 score: 0
-		interface: 0 itf-num: 0
-		dev-ifc: as IOUSBDeviceInterface this/vtbl
-		saved: system/stack/align
-		push 0
-		dev-ifc/CreateInterfaceIterator this :req :iter
-		system/stack/top: saved
+		iter: 0 p-itf: 0 score: 0 actual-num: 0 interface: 0
+		kr: IORegistryEntryGetChildIterator service kIOServicePlane :iter
+		if kr <> 0 [exit]
 		while [
-			dev: IOIteratorNext iter
-			dev <> null
+			itf-ser: IOIteratorNext iter
+			itf-ser <> null
 		][
+			unless IOObjectConformsTo itf-ser kIOUSBInterfaceClassName [
+				IOObjectRelease itf-ser
+				continue
+			]
+
 			kr: IOCreatePlugInInterfaceForService
-				dev
+				itf-ser
 				kIOUSBInterfaceUserClientTypeID
 				kIOCFPlugInInterfaceID
 				:p-itf
 				:score
-			IOObjectRelease dev
+			IOObjectRelease itf-ser
 			if any [kr <> 0 zero? p-itf][continue]
-
 			this: as this! p-itf
 			itf: as IOUSBInterfaceInterface this/vtbl
 			guid: CFUUIDGetUUIDBytes kIOUSBInterfaceInterfaceID550
@@ -414,12 +469,24 @@ usb-device: context [
 			itf/Release this
 			this: as this! interface
 			itf: as IOUSBInterfaceInterface this/vtbl
-			itf/GetInterfaceNumber this :itf-num
-			print-line itf-num
+			if 0 <> itf/USBInterfaceOpen this [continue]
+			kr: itf/GetInterfaceNumber this :actual-num
+			print-line kr
+			print-line "interface"
+			vid2: 0 pid2: 0
+			kr: itf/GetDeviceVendor this :vid2
+			if kr <> 0 [continue]
+			kr: itf/GetDeviceProduct this :pid2
+			if kr <> 0 [continue]
+			print-line vid2
+			print-line pid2
+			print-line actual-num
 		]
 		IOObjectRelease as int-ptr! iter
+	]
 
-
+	enum-all-devices: does [
+		enum-usb-device device-list
 	]
 
 	init: does [
