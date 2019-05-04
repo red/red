@@ -77,6 +77,7 @@ usb-device: context [
 	#define kCFNumberSInt8Type					1
 	#define kCFNumberSInt32Type					3
 	#define kCFAllocatorDefault					null
+	#define kCFStringEncodingUTF8				08000100h
 
 	this!: alias struct! [vtbl [integer!]]
 
@@ -336,10 +337,20 @@ usb-device: context [
 			CFNumberGetTypeID: "CFNumberGetTypeID" [
 				return:		[integer!]
 			]
+			CFStringGetTypeID: "CFStringGetTypeID" [
+				return:		[integer!]
+			]
 			CFNumberGetValue: "CFNumberGetValue" [
-				number		[int-ptr!]
+				cf			[int-ptr!]
 				theType		[integer!]
 				valuePtr	[int-ptr!]
+				return:		[logic!]
+			]
+			CFStringGetCString: "CFStringGetCString" [
+				cf			[int-ptr!]
+				buff		[byte-ptr!]
+				size		[integer!]
+				encode		[integer!]
 				return:		[logic!]
 			]
 			CFRelease: "CFRelease" [
@@ -462,6 +473,27 @@ usb-device: context [
 		]
 		CFRelease ref
 		false
+	]
+
+	get-string-property: func [
+		entry			[int-ptr!]
+		key				[c-string!]
+		return:			[c-string!]
+		/local
+			ref			[int-ptr!]
+			buf			[byte-ptr!]
+	][
+		ref: IORegistryEntryCreateCFProperty entry key kCFAllocatorDefault 0
+		if ref = null [return null]
+		if (CFGetTypeID ref) = CFStringGetTypeID [
+			buf: allocate 256
+			if CFStringGetCString ref buf 256 kCFStringEncodingUTF8 [
+				CFRelease ref
+				return as c-string! buf
+			]
+		]
+		CFRelease ref
+		null
 	]
 
 	enum-children: func [
