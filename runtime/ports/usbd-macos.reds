@@ -494,12 +494,17 @@ usb-device: context [
 			ref			[int-ptr!]
 			buf			[byte-ptr!]
 	][
+		print-line "a"
 		ref: IORegistryEntryCreateCFProperty entry key kCFAllocatorDefault 0
+		print-line "b"
 		if ref = null [return null]
+		print-line "c"
 		if (CFGetTypeID ref) = CFStringGetTypeID [
 			buf: allocate 256
+			print-line "string"
 			if CFStringGetCString ref buf 256 kCFStringEncodingUTF8 [
 				CFRelease ref
+				print-line as c-string! buf
 				return as c-string! buf
 			]
 		]
@@ -541,6 +546,7 @@ usb-device: context [
 			]
 			kr: IORegistryEntryGetPath itf-ser kIOServicePlane as c-string! path
 			if kr <> 0 [continue]
+			get-string-property itf-ser "USB Interface Name"
 			kr: IOCreatePlugInInterfaceForService
 				itf-ser
 				kIOUSBInterfaceUserClientTypeID
