@@ -35,7 +35,7 @@ USB-DEVICE-ID!: alias struct! [
 
 INTERFACE-INFO-NODE!: alias struct! [
 	entry				[list-entry! value]
-	id					[USB-DEVICE-ID! value]
+	path				[c-string!]
 	interface-num		[integer!]
 	collection-num		[integer!]
 	hDev				[integer!]
@@ -59,7 +59,7 @@ DEVICE-INFO-NODE!: alias struct! [
 	entry				[list-entry! value]
 	vid					[integer!]
 	pid					[integer!]
-	id					[USB-DEVICE-ID! value]
+	path				[c-string!]
 	serial-num			[c-string!]
 	device-desc			[byte-ptr!]
 	device-desc-len		[integer!]
@@ -263,6 +263,12 @@ usb-device: context [
 				name			[byte-ptr!]
 				return:			[integer!]
 			]
+			IORegistryEntryGetPath: "IORegistryEntryGetPath" [
+				entry			[int-ptr!]
+				plane 			[c-string!]   ;--size is 128
+				path 			[c-string!]   ;--size is 512
+				return: 		[integer!]
+			]
 			IOCreatePlugInInterfaceForService: "IOCreatePlugInInterfaceForService" [
 				dev				[int-ptr!]
 				typeID			[int-ptr!]
@@ -371,7 +377,7 @@ usb-device: context [
 			dict			[integer!]
 			iter			[integer!]
 			service			[int-ptr!]
-			id				[USB-DEVICE-ID! value]
+			path			[byte-ptr!]
 			interface		[integer!]
 			p-itf			[integer!]
 			score			[integer!]
@@ -383,17 +389,20 @@ usb-device: context [
 			dev-ifc			[IOUSBDeviceInterface]
 			kr				[integer!]
 			pNode			[DEVICE-INFO-NODE!]
+			len				[integer!]
 	][
+		path: allocate 512
+		if path = null [exit]
 		iter: 0
 		dict: IOServiceMatching "IOUSBHostDevice"
-		if 0 <> IOServiceGetMatchingServices kIOMasterPortDefault dict :iter [exit]
+		if 0 <> IOServiceGetMatchingServices kIOMasterPortDefault dict :iter [free path exit]
 
-		unless IOIteratorIsValid iter [exit]
+		unless IOIteratorIsValid iter [free path exit]
 		while [
 			service: IOIteratorNext iter
 			service <> null
 		][
-			kr: IORegistryEntryGetRegistryEntryID service as int-ptr! :id
+			kr: IORegistryEntryGetPath service kIOServicePlane as c-string! path
 			if kr <> 0 [continue]
 			interface: 0
 			p-itf: as-integer :interface
@@ -426,15 +435,17 @@ usb-device: context [
 			if pNode = null [continue]
 			set-memory as byte-ptr! pNode null-byte size? DEVICE-INFO-NODE!
 			dlink/init pNode/interface-entry
-			pNode/id/id1: id/id1
-			pNode/id/id2: id/id2
+			len: length? as c-string! path
+			pNode/path: as c-string! allocate len + 1
+			copy-memory as byte-ptr! pNode/path path len + 1
+			print-line pNode/path
 			pNode/vid: vid
 			pNode/pid: pid
 			enum-children pNode/interface-entry service
 			IOObjectRelease service
 		]
 		IOObjectRelease as int-ptr! iter
-		null
+		free path
 	]
 
 	get-service-from-id: func [
@@ -501,6 +512,7 @@ usb-device: context [
 		service				[int-ptr!]
 		/local
 			iter			[integer!]
+			path			[byte-ptr!]
 			p-itf			[integer!]
 			score			[integer!]
 			kr				[integer!]
@@ -510,13 +522,15 @@ usb-device: context [
 			itf				[IOUSBInterfaceInterface]
 			guid			[UUID! value]
 			interface		[integer!]
-			id				[USB-DEVICE-ID! value]
 			pNode			[INTERFACE-INFO-NODE!]
 			saved			[integer!]
+			len				[integer!]
 	][
+		path: allocate 512
+		if path = null [exit]
 		iter: 0 p-itf: 0 score: 0 actual-num: 0 interface: 0
 		kr: IORegistryEntryGetChildIterator service kIOServicePlane :iter
-		if kr <> 0 [exit]
+		if kr <> 0 [free path exit]
 		while [
 			itf-ser: IOIteratorNext iter
 			itf-ser <> null
@@ -525,7 +539,7 @@ usb-device: context [
 				IOObjectRelease itf-ser
 				continue
 			]
-			kr: IORegistryEntryGetRegistryEntryID itf-ser as int-ptr! :id
+			kr: IORegistryEntryGetPath itf-ser kIOServicePlane as c-string! path
 			if kr <> 0 [continue]
 			kr: IOCreatePlugInInterfaceForService
 				itf-ser
@@ -549,13 +563,16 @@ usb-device: context [
 			pNode: as INTERFACE-INFO-NODE! allocate size? INTERFACE-INFO-NODE!
 			if pNode = null [continue]
 			set-memory as byte-ptr! pNode null-byte size? INTERFACE-INFO-NODE!
-			pNode/id/id1: id/id1
-			pNode/id/id2: id/id2
 			pNode/interface-num: actual-num
 			print-line "interface"
 			print-line actual-num
+			len: length? as c-string! path
+			pNode/path: as c-string! allocate len + 1
+			copy-memory as byte-ptr! pNode/path path len + 1
+			print-line pNode/path
 		]
 		IOObjectRelease as int-ptr! iter
+		free path
 	]
 
 	enum-all-devices: does [
