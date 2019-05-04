@@ -35,6 +35,7 @@ USB-DEVICE-ID!: alias struct! [
 
 INTERFACE-INFO-NODE!: alias struct! [
 	entry				[list-entry! value]
+	id					[USB-DEVICE-ID! value]
 	interface-num		[integer!]
 	collection-num		[integer!]
 	hDev				[integer!]
@@ -73,6 +74,9 @@ usb-device: context [
 	device-list: declare list-entry!
 	#define kIOServicePlane						"IOService"
 	#define kIOUSBInterfaceClassName			"IOUSBInterface"
+	#define kCFNumberSInt8Type					1
+	#define kCFNumberSInt32Type					3
+	#define kCFAllocatorDefault					null
 
 	this!: alias struct! [vtbl [integer!]]
 
@@ -268,7 +272,7 @@ usb-device: context [
 			]
 			IORegistryEntryCreateCFProperty: "IORegistryEntryCreateCFProperty" [
 				entry			[int-ptr!]
-				key				[int-ptr!]
+				key				[c-string!]
 				allocator		[integer!]
 				options			[integer!]
 				return:			[int-ptr!]
@@ -324,6 +328,22 @@ usb-device: context [
 			CFUUIDGetUUIDBytes: "CFUUIDGetUUIDBytes" [
 				guid		[int-ptr!]
 				return:		[UUID! value]
+			]
+			CFGetTypeID: "CFGetTypeID" [
+				cf			[int-ptr!]
+				return:		[integer!]
+			]
+			CFNumberGetTypeID: "CFNumberGetTypeID" [
+				return:		[integer!]
+			]
+			CFNumberGetValue: "CFNumberGetValue" [
+				number		[int-ptr!]
+				theType		[integer!]
+				valuePtr	[int-ptr!]
+				return:		[logic!]
+			]
+			CFRelease: "CFRelease" [
+				cf			[int-ptr!]
 			]
 		]
 	]
@@ -399,7 +419,7 @@ usb-device: context [
 			pNode/id/id2: id/id2
 			pNode/vid: vid
 			pNode/pid: pid
-			enum-children pNode/interface-entry service vid pid
+			enum-children pNode/interface-entry service
 			IOObjectRelease service
 		]
 		IOObjectRelease as int-ptr! iter
@@ -422,11 +442,31 @@ usb-device: context [
 		true
 	]
 
+	get-int-property: func [
+		entry 			[int-ptr!]
+		key				[c-string!]
+		pvalue			[int-ptr!]
+		return: 		[logic!]
+		/local
+			ref 		[int-ptr!]
+			value 		[integer!]
+	][
+		pvalue/value: 0
+		ref: IORegistryEntryCreateCFProperty entry key kCFAllocatorDefault 0
+		if ref = null [return false]
+		if (CFGetTypeID ref) = CFNumberGetTypeID [
+			if CFNumberGetValue ref kCFNumberSInt32Type pvalue [
+				CFRelease ref
+				return true
+			]
+		]
+		CFRelease ref
+		false
+	]
+
 	enum-children: func [
 		list				[list-entry!]
 		service				[int-ptr!]
-		vid					[integer!]
-		pid					[integer!]
 		/local
 			iter			[integer!]
 			p-itf			[integer!]
@@ -438,8 +478,8 @@ usb-device: context [
 			itf				[IOUSBInterfaceInterface]
 			guid			[UUID! value]
 			interface		[integer!]
-			vid2			[integer!]
-			pid2			[integer!]
+			id				[USB-DEVICE-ID! value]
+			pNode			[INTERFACE-INFO-NODE!]
 			saved			[integer!]
 	][
 		iter: 0 p-itf: 0 score: 0 actual-num: 0 interface: 0
@@ -453,7 +493,8 @@ usb-device: context [
 				IOObjectRelease itf-ser
 				continue
 			]
-
+			kr: IORegistryEntryGetRegistryEntryID itf-ser as int-ptr! :id
+			if kr <> 0 [continue]
 			kr: IOCreatePlugInInterfaceForService
 				itf-ser
 				kIOUSBInterfaceUserClientTypeID
@@ -469,17 +510,17 @@ usb-device: context [
 			itf/Release this
 			this: as this! interface
 			itf: as IOUSBInterfaceInterface this/vtbl
-			if 0 <> itf/USBInterfaceOpen this [continue]
+			;if 0 <> itf/USBInterfaceOpen this [print-line "open failed" continue]
 			kr: itf/GetInterfaceNumber this :actual-num
-			print-line kr
+			if kr <> 0 [continue]
+
+			pNode: as INTERFACE-INFO-NODE! allocate size? INTERFACE-INFO-NODE!
+			if pNode = null [continue]
+			set-memory as byte-ptr! pNode null-byte size? INTERFACE-INFO-NODE!
+			pNode/id/id1: id/id1
+			pNode/id/id2: id/id2
+			pNode/interface-num: actual-num
 			print-line "interface"
-			vid2: 0 pid2: 0
-			kr: itf/GetDeviceVendor this :vid2
-			if kr <> 0 [continue]
-			kr: itf/GetDeviceProduct this :pid2
-			if kr <> 0 [continue]
-			print-line vid2
-			print-line pid2
 			print-line actual-num
 		]
 		IOObjectRelease as int-ptr! iter
@@ -490,23 +531,23 @@ usb-device: context [
 	]
 
 	init: does [
-		kIOUSBDeviceUserClientTypeID: CFUUIDGetConstantUUIDWithBytes null
+		kIOUSBDeviceUserClientTypeID: CFUUIDGetConstantUUIDWithBytes kCFAllocatorDefault
 			#"^(9D)" #"^(C7)" #"^(B7)" #"^(80)" #"^(9E)" #"^(C0)" #"^(11)" #"^(D4)"
 			#"^(A5)" #"^(4F)" #"^(00)" #"^(0A)" #"^(27)" #"^(05)" #"^(28)" #"^(61)"
 
-		kIOCFPlugInInterfaceID: CFUUIDGetConstantUUIDWithBytes null
+		kIOCFPlugInInterfaceID: CFUUIDGetConstantUUIDWithBytes kCFAllocatorDefault
 			#"^(C2)" #"^(44)" #"^(E8)" #"^(58)" #"^(10)" #"^(9C)" #"^(11)" #"^(D4)"
 			#"^(91)" #"^(D4)" #"^(00)" #"^(50)" #"^(E4)" #"^(C6)" #"^(42)" #"^(6F)"
 
-		kIOUSBDeviceInterfaceID: CFUUIDGetConstantUUIDWithBytes null
+		kIOUSBDeviceInterfaceID: CFUUIDGetConstantUUIDWithBytes kCFAllocatorDefault
 			#"^(5C)" #"^(81)" #"^(87)" #"^(D0)" #"^(9E)" #"^(F3)" #"^(11)" #"^(D4)"
 			#"^(8B)" #"^(45)" #"^(00)" #"^(0A)" #"^(27)" #"^(05)" #"^(28)" #"^(61)"
 
-		kIOUSBInterfaceUserClientTypeID: CFUUIDGetConstantUUIDWithBytes null
+		kIOUSBInterfaceUserClientTypeID: CFUUIDGetConstantUUIDWithBytes kCFAllocatorDefault
 			#"^(2D)" #"^(97)" #"^(86)" #"^(C6)" #"^(9E)" #"^(F3)" #"^(11)" #"^(D4)"
 			#"^(AD)" #"^(51)" #"^(00)" #"^(0A)" #"^(27)" #"^(05)" #"^(28)" #"^(61)"
 
-		kIOUSBInterfaceInterfaceID550: CFUUIDGetConstantUUIDWithBytes null
+		kIOUSBInterfaceInterfaceID550: CFUUIDGetConstantUUIDWithBytes kCFAllocatorDefault
 			#"^(6A)" #"^(E4)" #"^(4D)" #"^(3F)" #"^(EB)" #"^(45)" #"^(48)" #"^(7F)"
 			#"^(8E)" #"^(8E)" #"^(B9)" #"^(3B)" #"^(99)" #"^(F8)" #"^(EA)" #"^(9E)"
 
