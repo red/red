@@ -28,16 +28,6 @@ Red/System [
 	USB-ERROR-MAX
 ]
 
-USB-DEVICE-PNP-STRINGS!: alias struct! [
-	device-id			[c-string!]
-	device-desc			[byte-ptr!]
-	device-desc-len		[integer!]
-	hw-id				[c-string!]
-	service				[c-string!]
-	dev-class			[c-string!]
-	driver-name			[c-string!]
-]
-
 STRING-DESC-NODE!: alias struct! [
 	next				[STRING-DESC-NODE!]
 	index				[byte!]
@@ -47,10 +37,10 @@ STRING-DESC-NODE!: alias struct! [
 
 INTERFACE-INFO-NODE!: alias struct! [
 	entry				[list-entry! value]
+	path				[c-string!]
+	name				[c-string!]
 	interface-num		[integer!]
 	collection-num		[integer!]
-	path				[c-string!]
-	properties			[USB-DEVICE-PNP-STRINGS!]
 	hDev				[integer!]
 	hInf				[integer!]
 	hType				[DRIVER-TYPE!]
@@ -70,18 +60,19 @@ INTERFACE-INFO-NODE!: alias struct! [
 
 DEVICE-INFO-NODE!: alias struct! [
 	entry				[list-entry! value]
-	port				[integer!]
-	path				[c-string!]
-	properties			[USB-DEVICE-PNP-STRINGS!]
 	vid					[integer!]
 	pid					[integer!]
-	inst				[integer!]
+	path				[c-string!]
+	name				[c-string!]
 	serial-num			[c-string!]
-	hub-path			[c-string!]
+	;-- platform
+	inst				[integer!]
+	;-- usb descriptions
 	device-desc			[byte-ptr!]
 	device-desc-len		[integer!]
 	config-desc			[byte-ptr!]
 	config-desc-len		[integer!]
+	prod
 	strings				[STRING-DESC-NODE!]
 	interface-entry		[list-entry! value]
 	interface			[INTERFACE-INFO-NODE!]
@@ -176,6 +167,9 @@ usb-device: context [
 			next	[STRING-DESC-NODE!]
 	][
 		if pNode = null [exit]
+		if pNode/path <> null [
+			free as byte-ptr! pNode/path
+		]
 		if pNode/path <> null [
 			free as byte-ptr! pNode/path
 		]
