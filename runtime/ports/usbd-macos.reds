@@ -36,6 +36,7 @@ USB-DEVICE-ID!: alias struct! [
 INTERFACE-INFO-NODE!: alias struct! [
 	entry				[list-entry! value]
 	path				[c-string!]
+	name				[c-string!]
 	interface-num		[integer!]
 	collection-num		[integer!]
 	hDev				[integer!]
@@ -60,6 +61,7 @@ DEVICE-INFO-NODE!: alias struct! [
 	vid					[integer!]
 	pid					[integer!]
 	path				[c-string!]
+	name				[c-string!]
 	serial-num			[c-string!]
 	device-desc			[byte-ptr!]
 	device-desc-len		[integer!]
@@ -77,7 +79,12 @@ usb-device: context [
 	#define kCFNumberSInt8Type					1
 	#define kCFNumberSInt32Type					3
 	#define kCFAllocatorDefault					null
+	#define kCFStringEncodingASCII				0600h
 	#define kCFStringEncodingUTF8				08000100h
+	#define kUSBProductName						"USB Product Name"
+	#define kUSBInterfaceName					"USB Interface Name"
+	#define CFSTR(cStr)							[__CFStringMakeConstantString cStr]
+	#define CFString(cStr)						[CFStringCreateWithCString kCFAllocatorDefault cStr kCFStringEncodingASCII]
 
 	this!: alias struct! [vtbl [integer!]]
 
@@ -312,6 +319,12 @@ usb-device: context [
 		"/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation" cdecl [
 			kCFAllocatorDefault: "kCFAllocatorDefault" [integer!]
 			kIOMasterPortDefault: "kIOMasterPortDefault" [integer!]
+			CFStringCreateWithCString: "CFStringCreateWithCString" [
+				allocator	[int-ptr!]
+				cStr		[c-string!]
+				encoding	[integer!]
+				return:		[c-string!]
+			]
 			CFUUIDGetConstantUUIDWithBytes: "CFUUIDGetConstantUUIDWithBytes" [
 				allocator	[int-ptr!]
 				byte0		[byte!]
@@ -359,6 +372,10 @@ usb-device: context [
 				encode		[integer!]
 				return:		[logic!]
 			]
+			__CFStringMakeConstantString: "__CFStringMakeConstantString" [
+				str			[c-string!]
+				return:		[c-string!]
+			]
 			CFRelease: "CFRelease" [
 				cf			[int-ptr!]
 			]
@@ -371,6 +388,68 @@ usb-device: context [
 	kIOUSBInterfaceUserClientTypeID: as int-ptr! 0
 	kIOUSBInterfaceInterfaceID550: as int-ptr! 0
 
+	clear-device-list: func [
+		list		[list-entry!]
+		/local
+			p		[list-entry!]
+			q		[list-entry!]
+			node	[DEVICE-INFO-NODE!]
+	][
+		p: list/next
+		while [p <> list][
+			q: p/next
+			free-device-info-node as DEVICE-INFO-NODE! p
+			p: q
+		]
+		list/next: list
+		list/prev: list
+	]
+
+	clear-interface-list: func [
+		list		[list-entry!]
+		/local
+			p		[list-entry!]
+			q		[list-entry!]
+			node	[INTERFACE-INFO-NODE!]
+	][
+		p: list/next
+		while [p <> list][
+			q: p/next
+			free-interface-info-node as INTERFACE-INFO-NODE! p
+			p: q
+		]
+		list/next: list
+		list/prev: list
+	]
+
+	free-interface-info-node: func [
+		pNode		[INTERFACE-INFO-NODE!]
+	][
+		if pNode = null [exit]
+		if pNode/path <> null [
+			free as byte-ptr! pNode/path
+		]
+		if pNode/name <> null [
+			free as byte-ptr! pNode/name
+		]
+		;close-interface pNode
+		free as byte-ptr! pNode
+	]
+
+	free-device-info-node: func [
+		pNode		[DEVICE-INFO-NODE!]
+	][
+		if pNode = null [exit]
+		if pNode/path <> null [
+			free as byte-ptr! pNode/path
+		]
+		if pNode/name <> null [
+			free as byte-ptr! pNode/name
+		]
+		clear-interface-list pNode/interface-entry
+		free as byte-ptr! pNode
+	]
+
 	enum-usb-device: func [
 		device-list			[list-entry!]
 		/local
@@ -378,6 +457,7 @@ usb-device: context [
 			iter			[integer!]
 			service			[int-ptr!]
 			path			[byte-ptr!]
+			name			[c-string!]
 			interface		[integer!]
 			p-itf			[integer!]
 			score			[integer!]
@@ -394,7 +474,7 @@ usb-device: context [
 		path: allocate 512
 		if path = null [exit]
 		iter: 0
-		dict: IOServiceMatching "IOUSBHostDevice"
+		dict: IOServiceMatching "IOUSBDevice"
 		if 0 <> IOServiceGetMatchingServices kIOMasterPortDefault dict :iter [free path exit]
 
 		unless IOIteratorIsValid iter [free path exit]
@@ -404,6 +484,7 @@ usb-device: context [
 		][
 			kr: IORegistryEntryGetPath service kIOServicePlane as c-string! path
 			if kr <> 0 [continue]
+			name: get-string-property service kUSBProductName
 			interface: 0
 			p-itf: as-integer :interface
 			score: 0
@@ -428,9 +509,6 @@ usb-device: context [
 			if kr <> 0 [continue]
 			kr: dev-ifc/GetDeviceProduct this :pid
 			if kr <> 0 [continue]
-			print-line "new dev:"
-			print-line vid
-			print-line pid
 			pNode: as DEVICE-INFO-NODE! allocate size? DEVICE-INFO-NODE!
 			if pNode = null [continue]
 			set-memory as byte-ptr! pNode null-byte size? DEVICE-INFO-NODE!
@@ -438,11 +516,12 @@ usb-device: context [
 			len: length? as c-string! path
 			pNode/path: as c-string! allocate len + 1
 			copy-memory as byte-ptr! pNode/path path len + 1
-			print-line pNode/path
+			pNode/name: name
 			pNode/vid: vid
 			pNode/pid: pid
 			enum-children pNode/interface-entry service
 			IOObjectRelease service
+			dlink/append device-list as list-entry! pNode
 		]
 		IOObjectRelease as int-ptr! iter
 		free path
@@ -465,16 +544,18 @@ usb-device: context [
 	]
 
 	get-int-property: func [
-		entry 			[int-ptr!]
+		entry			[int-ptr!]
 		key				[c-string!]
 		pvalue			[int-ptr!]
-		return: 		[logic!]
+		return:			[logic!]
 		/local
-			ref 		[int-ptr!]
-			value 		[integer!]
+			cf-str		[c-string!]
+			ref			[int-ptr!]
+			value		[integer!]
 	][
 		pvalue/value: 0
-		ref: IORegistryEntryCreateCFProperty entry key kCFAllocatorDefault 0
+		cf-str: CFSTR(key)
+		ref: IORegistryEntryCreateCFProperty entry cf-str kCFAllocatorDefault 0
 		if ref = null [return false]
 		if (CFGetTypeID ref) = CFNumberGetTypeID [
 			if CFNumberGetValue ref kCFNumberSInt32Type pvalue [
@@ -491,20 +572,19 @@ usb-device: context [
 		key				[c-string!]
 		return:			[c-string!]
 		/local
+			cf-str		[c-string!]
 			ref			[int-ptr!]
 			buf			[byte-ptr!]
 	][
-		print-line "a"
-		ref: IORegistryEntryCreateCFProperty entry key kCFAllocatorDefault 0
-		print-line "b"
-		if ref = null [return null]
-		print-line "c"
+		cf-str: CFSTR(key)
+		ref: IORegistryEntryCreateCFProperty entry cf-str kCFAllocatorDefault 0
+		if ref = null [
+			return null
+		]
 		if (CFGetTypeID ref) = CFStringGetTypeID [
 			buf: allocate 256
-			print-line "string"
-			if CFStringGetCString ref buf 256 kCFStringEncodingUTF8 [
+			if CFStringGetCString ref buf 256 kCFStringEncodingASCII [
 				CFRelease ref
-				print-line as c-string! buf
 				return as c-string! buf
 			]
 		]
@@ -518,6 +598,7 @@ usb-device: context [
 		/local
 			iter			[integer!]
 			path			[byte-ptr!]
+			name			[c-string!]
 			p-itf			[integer!]
 			score			[integer!]
 			kr				[integer!]
@@ -546,7 +627,7 @@ usb-device: context [
 			]
 			kr: IORegistryEntryGetPath itf-ser kIOServicePlane as c-string! path
 			if kr <> 0 [continue]
-			get-string-property itf-ser "USB Interface Name"
+			name: get-string-property itf-ser kUSBInterfaceName
 			kr: IOCreatePlugInInterfaceForService
 				itf-ser
 				kIOUSBInterfaceUserClientTypeID
@@ -570,12 +651,11 @@ usb-device: context [
 			if pNode = null [continue]
 			set-memory as byte-ptr! pNode null-byte size? INTERFACE-INFO-NODE!
 			pNode/interface-num: actual-num
-			print-line "interface"
-			print-line actual-num
+			pNode/name: name
 			len: length? as c-string! path
 			pNode/path: as c-string! allocate len + 1
 			copy-memory as byte-ptr! pNode/path path len + 1
-			print-line pNode/path
+			dlink/append list as list-entry! pNode
 		]
 		IOObjectRelease as int-ptr! iter
 		free path
