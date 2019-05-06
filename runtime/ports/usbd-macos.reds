@@ -15,6 +15,7 @@ Red/System [
 usb-device: context [
 
 	device-list: declare list-entry!
+
 	#define kIOServicePlane						"IOService"
 	#define kIOUSBDeviceClassName				"IOUSBDevice"
 	#define kIOUSBInterfaceClassName			"IOUSBInterface"
@@ -470,6 +471,7 @@ usb-device: context [
 			dlink/init pNode/interface-entry
 			pNode/path: as c-string! allocate path-len + 1
 			copy-memory as byte-ptr! pNode/path path path-len + 1
+			;print-line pNode/path
 			if name <> null [
 				pNode/name: as byte-ptr! name
 				pNode/name-len: (length? name) + 1
@@ -485,55 +487,6 @@ usb-device: context [
 		]
 		IOObjectRelease as int-ptr! iter
 		free path
-	]
-
-	get-int-property: func [
-		entry			[int-ptr!]
-		key				[c-string!]
-		pvalue			[int-ptr!]
-		return:			[logic!]
-		/local
-			cf-str		[c-string!]
-			ref			[int-ptr!]
-			value		[integer!]
-	][
-		pvalue/value: 0
-		cf-str: CFSTR(key)
-		ref: IORegistryEntryCreateCFProperty entry cf-str kCFAllocatorDefault 0
-		if ref = null [return false]
-		if (CFGetTypeID ref) = CFNumberGetTypeID [
-			if CFNumberGetValue ref kCFNumberSInt32Type pvalue [
-				CFRelease ref
-				return true
-			]
-		]
-		CFRelease ref
-		false
-	]
-
-	get-string-property: func [
-		entry			[int-ptr!]
-		key				[c-string!]
-		return:			[c-string!]
-		/local
-			cf-str		[c-string!]
-			ref			[int-ptr!]
-			buf			[byte-ptr!]
-	][
-		cf-str: CFSTR(key)
-		ref: IORegistryEntryCreateCFProperty entry cf-str kCFAllocatorDefault 0
-		if ref = null [
-			return null
-		]
-		if (CFGetTypeID ref) = CFStringGetTypeID [
-			buf: allocate 256
-			if CFStringGetCString ref buf 256 kCFStringEncodingASCII [
-				CFRelease ref
-				return as c-string! buf
-			]
-		]
-		CFRelease ref
-		null
 	]
 
 	enum-children: func [
@@ -600,14 +553,65 @@ usb-device: context [
 			pNode/interface-num: actual-num
 			pNode/path: as c-string! allocate path-len + 1
 			copy-memory as byte-ptr! pNode/path path path-len + 1
+			;print-line pNode/path
 			if name <> null [
 				pNode/name: as byte-ptr! name
 				pNode/name-len: (length? name) + 1
 			]
+			pNode/hType: DRIVER-TYPE-WINUSB
 			dlink/append list as list-entry! pNode
 		]
 		IOObjectRelease as int-ptr! iter
 		free path
+	]
+
+	get-int-property: func [
+		entry			[int-ptr!]
+		key				[c-string!]
+		pvalue			[int-ptr!]
+		return:			[logic!]
+		/local
+			cf-str		[c-string!]
+			ref			[int-ptr!]
+			value		[integer!]
+	][
+		pvalue/value: 0
+		cf-str: CFSTR(key)
+		ref: IORegistryEntryCreateCFProperty entry cf-str kCFAllocatorDefault 0
+		if ref = null [return false]
+		if (CFGetTypeID ref) = CFNumberGetTypeID [
+			if CFNumberGetValue ref kCFNumberSInt32Type pvalue [
+				CFRelease ref
+				return true
+			]
+		]
+		CFRelease ref
+		false
+	]
+
+	get-string-property: func [
+		entry			[int-ptr!]
+		key				[c-string!]
+		return:			[c-string!]
+		/local
+			cf-str		[c-string!]
+			ref			[int-ptr!]
+			buf			[byte-ptr!]
+	][
+		cf-str: CFSTR(key)
+		ref: IORegistryEntryCreateCFProperty entry cf-str kCFAllocatorDefault 0
+		if ref = null [
+			return null
+		]
+		if (CFGetTypeID ref) = CFStringGetTypeID [
+			buf: allocate 256
+			if CFStringGetCString ref buf 256 kCFStringEncodingASCII [
+				CFRelease ref
+				return as c-string! buf
+			]
+		]
+		CFRelease ref
+		null
 	]
 
 	enum-all-devices: does [
