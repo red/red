@@ -28,17 +28,25 @@ Red/System [
 	USB-ERROR-MAX
 ]
 
-STRING-DESC-NODE!: alias struct! [
-	next				[STRING-DESC-NODE!]
-	index				[byte!]
-	languageID			[integer!]
-	string-desc			[USB-STRING-DESCRIPTOR! value]
+USB-DESCRIPTION!: alias struct! [
+	device-desc			[byte-ptr!]
+	device-desc-len		[integer!]
+	config-desc			[byte-ptr!]
+	config-desc-len		[integer!]
+	language-id			[integer!]
+	vendor-str			[byte-ptr!]
+	vendor-str-len		[integer!]
+	product-str			[byte-ptr!]
+	product-str-len		[integer!]
+	serial-str			[byte-ptr!]
+	serial-str-len		[integer!]
 ]
 
 INTERFACE-INFO-NODE!: alias struct! [
 	entry				[list-entry! value]
 	path				[c-string!]
-	name				[c-string!]
+	name				[byte-ptr!]
+	name-len			[integer!]
 	interface-num		[integer!]
 	collection-num		[integer!]
 	hDev				[integer!]
@@ -63,17 +71,13 @@ DEVICE-INFO-NODE!: alias struct! [
 	vid					[integer!]
 	pid					[integer!]
 	path				[c-string!]
-	name				[c-string!]
-	serial-num			[c-string!]
+	name				[byte-ptr!]
+	name-len			[integer!]
 	;-- platform
+	serial-num			[c-string!]
 	inst				[integer!]
-	;-- usb descriptions
-	device-desc			[byte-ptr!]
-	device-desc-len		[integer!]
-	config-desc			[byte-ptr!]
-	config-desc-len		[integer!]
-	prod
-	strings				[STRING-DESC-NODE!]
+	port				[integer!]
+	;-- interface info
 	interface-entry		[list-entry! value]
 	interface			[INTERFACE-INFO-NODE!]
 ]
@@ -122,32 +126,6 @@ usb-device: context [
 		list/prev: list
 	]
 
-	free-device-pnp-string: func [
-		props		[USB-DEVICE-PNP-STRINGS!]
-	][
-		if props <> null [
-			if props/device-id <> null [
-				free as byte-ptr! props/device-id
-			]
-			if props/device-desc <> null [
-				free props/device-desc
-			]
-			if props/hw-id <> null [
-				free as byte-ptr! props/hw-id
-			]
-			if props/service <> null [
-				free as byte-ptr! props/service
-			]
-			if props/dev-class <> null [
-				free as byte-ptr! props/dev-class
-			]
-			if props/driver-name <> null [
-				free as byte-ptr! props/driver-name
-			]
-			free as byte-ptr! props
-		]
-	]
-
 	free-interface-info-node: func [
 		pNode		[INTERFACE-INFO-NODE!]
 	][
@@ -155,33 +133,39 @@ usb-device: context [
 		if pNode/path <> null [
 			free as byte-ptr! pNode/path
 		]
-		free-device-pnp-string pNode/properties
+		if pNode/name <> null [
+			free pNode/name
+		]
 		close-interface pNode
 		free as byte-ptr! pNode
 	]
 
 	free-device-info-node: func [
 		pNode		[DEVICE-INFO-NODE!]
-		/local
-			strings	[STRING-DESC-NODE!]
-			next	[STRING-DESC-NODE!]
 	][
 		if pNode = null [exit]
 		if pNode/path <> null [
 			free as byte-ptr! pNode/path
 		]
-		if pNode/path <> null [
-			free as byte-ptr! pNode/path
+		if pNode/name <> null [
+			free pNode/name
 		]
-		free-device-pnp-string pNode/properties
+		if pNode/serial-num <> null [
+			free as byte-ptr! pNode/serial-num
+		]
 		clear-interface-list pNode/interface-entry
-		strings: pNode/strings
-		while [strings <> null][
-			next: strings/next
-			free as byte-ptr! strings
-			strings: next
-		]
 		free as byte-ptr! pNode
+	]
+
+	free-description: func [
+		desc				[USB-DESCRIPTION!]
+	][
+		if desc/device-desc <> null [free desc/device-desc]
+		if desc/config-desc <> null [free desc/config-desc]
+		if desc/vendor-str <> null [free desc/vendor-str]
+		if desc/product-str <> null [free desc/product-str]
+		if desc/serial-str <> null [free desc/serial-str]
+		free as byte-ptr! desc
 	]
 
 	enum-devices-with-guid: func [
@@ -203,21 +187,17 @@ usb-device: context [
 			buf				[byte-ptr!]
 			port			[integer!]
 			hub				[integer!]
-			dev-props		[USB-DEVICE-PNP-STRINGS!]
+			device-id		[c-string!]
 			vid				[integer!]
 			pid				[integer!]
 			serial			[c-string!]
 			inst			[integer!]
 			path			[byte-ptr!]
-			dev-path		[c-string!]
-			rint			[integer!]
-			hHub			[integer!]
-			strings			[STRING-DESC-NODE!]
 	][
 		clear-device-list device-list
 		dev-info: SetupDiGetClassDevs guid null 0 DIGCF_PRESENT or DIGCF_DEVICEINTERFACE
 		if dev-info = INVALID_HANDLE [exit]
-		index: 0 error: 0
+		index: 0 error: 0 plen: 0 pbuffer: 0
 		while [error <> ERROR_NO_MORE_ITEMS][
 			pNode: as DEVICE-INFO-NODE! allocate size? DEVICE-INFO-NODE!
 			if pNode = null [continue]
@@ -273,8 +253,12 @@ usb-device: context [
 				pNode/path: as c-string! path
 				free buf
 
-				pbuffer: 0
-				plen: 0
+				buf: get-name dev-info info-data :plen
+				if buf <> null [
+					pNode/name: buf
+					pNode/name-len: plen
+				]
+
 				success: get-device-property-a dev-info info-data
 							SPDRP_LOCATION_INFORMATION :pbuffer :plen
 				either success <> true [
@@ -284,22 +268,22 @@ usb-device: context [
 					sscanf [pbuffer "Port_#%d.Hub_#%d" :port :hub]
 				]
 				pNode/port: port
-				dev-props: get-pnp-props dev-info info-data
-				pNode/properties: dev-props
+
 				pid: 65535
 				vid: 65535
 				serial: null
-				if dev-props <> null [
+				device-id: get-device-id dev-info info-data
+				if device-id <> null [
 					serial: as c-string! allocate 256
-					sscanf [dev-props/device-id "USB\VID_%x&PID_%x\%s"
+					sscanf [device-id "USB\VID_%x&PID_%x\%s"
 						:vid :pid serial]
 					pNode/vid: vid
 					pNode/pid: pid
 					pNode/serial-num: serial
-					;print-line as c-string! dev-props/device-id
+					free as byte-ptr! device-id
 				]
+
 				pNode/inst: info-data/DevInst
-				;get-descriptions pNode
 				dlink/init pNode/interface-entry
 				if all [
 					vid <> 65535
@@ -316,44 +300,72 @@ usb-device: context [
 
 	get-descriptions: func [
 		pNode			[DEVICE-INFO-NODE!]
+		return:			[USB-DESCRIPTION!]
 		/local
+			desc		[USB-DESCRIPTION!]
 			inst		[integer!]
 			rint		[integer!]
 			dev-path	[c-string!]
 			hHub		[integer!]
 			buf			[byte-ptr!]
 			plen		[integer!]
-			strings		[STRING-DESC-NODE!]
+			id			[integer!]
 	][
+		if pNode/port = -1 [return null]
+		desc: as USB-DESCRIPTION! allocate size? USB-DESCRIPTION!
+		if desc = null [return null]
 		inst: 0
 		plen: 0
 		rint: CM_Get_Parent :inst pNode/inst 0
-		if all [
-			rint = 0
-			pNode/port <> -1
-		][
-			dev-path: get-dev-path-with-guid inst GUID_DEVINTERFACE_USB_HUB null
-			pNode/hub-path: dev-path
-			if dev-path <> null [
-				hHub: CreateFileA dev-path GENERIC_WRITE FILE_SHARE_WRITE null
-						OPEN_EXISTING 0 null
-				if hHub <> -1 [
-					buf: get-device-desc hHub pNode/port :plen
-					if buf <> null [
-						pNode/device-desc: buf
-						pNode/device-desc-len: plen
-					]
-					buf: get-config-desc hHub pNode/port 0 :plen
-					if buf <> null [
-						pNode/config-desc: buf
-						pNode/config-desc-len: plen
-					]
-					strings: get-all-string-desc hHub pNode/port pNode/device-desc pNode/config-desc
-					pNode/strings: strings
+		if rint <> 0 [
+			free-description desc
+			return null
+		]
+
+		dev-path: get-dev-path-with-guid inst GUID_DEVINTERFACE_USB_HUB
+		if dev-path = null [
+			free-description desc
+			return null
+		]
+		hHub: CreateFileA dev-path GENERIC_WRITE FILE_SHARE_WRITE null
+				OPEN_EXISTING 0 null
+		if hHub = -1 [
+			free-description desc
+			return null
+		]
+		buf: get-device-desc hHub pNode/port :plen
+		if buf <> null [
+			desc/device-desc: buf
+			desc/device-desc-len: plen
+		]
+		buf: get-config-desc hHub pNode/port 0 :plen
+		if buf <> null [
+			desc/config-desc: buf
+			desc/config-desc-len: plen
+		]
+		if desc/device-desc <> null [
+			id: get-language-id hHub pNode/port
+			if id <> 0 [
+				desc/language-id: id
+				buf: get-vendor-str hHub pNode/port desc/device-desc id :plen
+				if buf <> null [
+					desc/vendor-str: buf
+					desc/vendor-str-len: plen
 				]
-				CloseHandle as int-ptr! hHub
+				buf: get-product-str hHub pNode/port desc/device-desc id :plen
+				if buf <> null [
+					desc/product-str: buf
+					desc/product-str-len: plen
+				]
+				buf: get-serial-str hHub pNode/port desc/device-desc id :plen
+				if buf <> null [
+					desc/serial-str: buf
+					desc/serial-str-len: plen
+				]
 			]
 		]
+		CloseHandle as int-ptr! hHub
+		desc
 	]
 
 	enum-children: func [
@@ -383,8 +395,6 @@ usb-device: context [
 			nmi				[integer!]
 			ncol			[integer!]
 			nserial			[c-string!]
-			prop			[integer!]
-			driver			[integer!]
 	][
 		dev-info: SetupDiGetClassDevs null null 0 DIGCF_PRESENT or DIGCF_ALLCLASSES
 		if dev-info = INVALID_HANDLE [
@@ -481,9 +491,12 @@ usb-device: context [
 					pNode/interface-num: nmi
 					pNode/collection-num: ncol
 					pNode/hType: type
-					prop: 0
-					pNode/path: get-dev-path-with-guid info-data/DevInst pguid :prop
-					pNode/properties: as USB-DEVICE-PNP-STRINGS! prop
+					pNode/path: get-dev-path-with-guid info-data/DevInst pguid
+					path: get-name dev-info info-data :len
+					if path <> null [
+						pNode/name: path
+						pNode/name-len: len
+					]
 					dlink/append list as list-entry! pNode
 				]
 			]
@@ -514,7 +527,6 @@ usb-device: context [
 	get-dev-path-with-guid: func [
 		inst			[integer!]
 		guid			[UUID!]
-		prop			[int-ptr!]
 		return:			[c-string!]
 		/local
 			dev-info		[int-ptr!]
@@ -572,9 +584,6 @@ usb-device: context [
 					ret: as c-string! allocate reqLen - 4
 					copy-memory as byte-ptr! ret buf + 4 reqLen - 4
 					free buf
-					if prop <> null [
-						prop/value: as integer! get-pnp-props dev-info info-data
-					]
 					SetupDiDestroyDeviceInfoList dev-info
 					return ret
 				]
@@ -709,145 +718,63 @@ usb-device: context [
 		ret
 	]
 
-	get-all-string-desc: func [
+	get-vendor-str: func [
 		hHub			[integer!]
 		port			[integer!]
 		dev-desc		[byte-ptr!]
-		config-desc		[byte-ptr!]
-		return:			[STRING-DESC-NODE!]
-		/local
-			string-node	[STRING-DESC-NODE!]
-			numLangIDs	[integer!]
-			langIDs		[byte-ptr!]
-			descStart	[byte-ptr!]
-			descEnd		[byte-ptr!]
-			uIndex		[integer!]
-			success		[logic!]
-			more?		[logic!]
-			res			[integer!]
+		id				[integer!]
+		plen			[int-ptr!]
+		return:			[byte-ptr!]
 	][
-		string-node: get-string-desc hHub port null-byte 0
-		if string-node = null [return null]
-		numLangIDs: (as integer! string-node/string-desc/bLength) - 2 / 2
-		langIDs: (as byte-ptr! string-node/string-desc) + 2
-		more?: false
 		if dev-desc/15 <> null-byte [
-			get-string-descs hHub port dev-desc/15 numLangIDs langIDs string-node
+			return get-string-desc hHub port dev-desc/15 id plen
 		]
-		if dev-desc/16 <> null-byte [
-			get-string-descs hHub port dev-desc/16 numLangIDs langIDs string-node
-		]
-		if dev-desc/17 <> null-byte [
-			get-string-descs hHub port dev-desc/17 numLangIDs langIDs string-node
-		]
-		descStart: config-desc
-		descEnd: config-desc + (as integer! config-desc/3) + ((as integer! config-desc/4) << 8)
-		while [
-			all [
-				(descStart + 2) < descEnd
-				(descStart + as integer! descStart/1) <= descEnd
-			]
-		][
-			switch descStart/2 [
-				USB_CONFIGURATION_DESCRIPTOR_TYPE [
-					if (as integer! descStart/1) <> 9 [
-						break
-					]
-					if descStart/7 <> null-byte [
-						get-string-descs hHub port descStart/7 numLangIDs langIDs string-node
-					]
-					descStart: descStart + as integer! descStart/1
-				]
-				USB_IAD_DESCRIPTOR_TYPE [
-					if (as integer! descStart/1) <> 8 [
-						break
-					]
-					if descStart/8 <> null-byte [
-						get-string-descs hHub port descStart/8 numLangIDs langIDs string-node
-					]
-					descStart: descStart + as integer! descStart/1
-				]
-				USB_INTERFACE_DESCRIPTOR_TYPE [
-					if all [
-						(as integer! descStart/1) <> 7
-						(as integer! descStart/1) <> 9
-					][
-						break
-					]
-					if (as integer! descStart/1) = 9 [
-						if descStart/9 <> null-byte [
-							get-string-descs hHub port descStart/9 numLangIDs langIDs string-node
-						]
-						if descStart/6 = USB_DEVICE_CLASS_VIDEO [
-							more?: true
-						]
-					]
-					descStart: descStart + as integer! descStart/1
-				]
-				default [
-					descStart: descStart + as integer! descStart/1
-				]
-			]
-		]
-		if more? [
-			uIndex: 1
-			success: true
-			while [
-				all [
-					success
-					uIndex < NUM_STRING_DESC_TO_GET
-				]
-			][
-				success: get-string-descs hHub port as byte! uIndex numLangIDs langIDs string-node
-				uIndex: uIndex + 1
-			]
-		]
-		string-node
+		null
 	]
 
-	get-string-descs: func [
+	get-product-str: func [
 		hHub			[integer!]
 		port			[integer!]
-		index			[byte!]
-		numLangIDs		[integer!]
-		langIDs			[byte-ptr!]
-		node-head		[STRING-DESC-NODE!]
-		return:			[logic!]
+		dev-desc		[byte-ptr!]
+		id				[integer!]
+		plen			[int-ptr!]
+		return:			[byte-ptr!]
+	][
+		if dev-desc/16 <> null-byte [
+			return get-string-desc hHub port dev-desc/16 id plen
+		]
+		null
+	]
+
+	get-serial-str: func [
+		hHub			[integer!]
+		port			[integer!]
+		dev-desc		[byte-ptr!]
+		id				[integer!]
+		plen			[int-ptr!]
+		return:			[byte-ptr!]
+	][
+		if dev-desc/17 <> null-byte [
+			return get-string-desc hHub port dev-desc/17 id plen
+		]
+		null
+	]
+
+	get-language-id: func [
+		hHub			[integer!]
+		port			[integer!]
+		return:			[integer!]
 		/local
-			tail		[STRING-DESC-NODE!]
-			trailing	[STRING-DESC-NODE!]
-			i			[integer!]
-			t			[integer!]
-			k			[integer!]
+			len			[integer!]
+			buf			[byte-ptr!]
 			id			[integer!]
 	][
-		tail: node-head
-		while [tail <> null][
-			if tail/index = index [
-				return true
-			]
-			trailing: tail
-			tail: tail/next
-		]
-		tail: trailing
-		i: 0
-		while [
-			all [
-				tail <> null
-				i < numLangIDs
-			]
-		][
-			t: i * 2 + 1
-			k: t + 1
-			id: (as integer! langIDs/k) << 8 + (as integer! langIDs/t)
-			tail/next: get-string-desc hHub port index id
-			i: i + 1
-			tail: tail/next
-		]
-		if tail = null [
-			return false
-		]
-		true
+		len: 0
+		buf: get-string-desc hHub port null-byte 0 :len
+		if buf = null [return 0]
+		id: (as integer! buf/1) + ((as integer! buf/2) << 8)
+		free buf
+		id
 	]
 
 	get-string-desc: func [
@@ -855,7 +782,8 @@ usb-device: context [
 		port			[integer!]
 		index			[byte!]
 		langID			[integer!]
-		return:			[STRING-DESC-NODE!]
+		plen			[int-ptr!]
+		return:			[byte-ptr!]
 		/local
 			success		[logic!]
 			bytes		[integer!]
@@ -863,7 +791,8 @@ usb-device: context [
 			req-buf		[byte-ptr!]
 			desc-req	[USB-DESCRIPTOR-REQUEST!]
 			desc		[USB-STRING-DESCRIPTOR!]
-			node		[STRING-DESC-NODE!]
+			len			[integer!]
+			ret			[byte-ptr!]
 	][
 		bytes: (size? USB-DESCRIPTOR-REQUEST!) + MAXIMUM_USB_STRING_LENGTH
 		req-buf: allocate bytes
@@ -887,7 +816,7 @@ usb-device: context [
 			free req-buf
 			return null
 		]
-		if bytes-ret < 2 [
+		if bytes-ret <= 14 [
 			free req-buf
 			return null
 		]
@@ -903,17 +832,16 @@ usb-device: context [
 			free req-buf
 			return null
 		]
-		node: as STRING-DESC-NODE! allocate (size? STRING-DESC-NODE!) + as integer! desc/bLength
-		if node = null [
+		len: (as integer! desc/bLength) - 2
+		ret: allocate len
+		if ret = null [
 			free req-buf
 			return null
 		]
-		node/index: index
-		node/languageID: langID
-		node/next: null
-		copy-memory as byte-ptr! node/string-desc as byte-ptr! desc as integer! desc/bLength
+		plen/value: len
+		copy-memory ret (as byte-ptr! desc) + 2 len
 		free req-buf
-		node
+		ret
 	]
 
 	get-device-property: func [
@@ -996,23 +924,16 @@ usb-device: context [
 		true
 	]
 
-	get-pnp-props: func [
+	get-device-id: func [
 		dev-info			[int-ptr!]
 		info-data			[DEV-INFO-DATA!]
-		return:					[USB-DEVICE-PNP-STRINGS!]
+		return:				[c-string!]
 		/local
 			len					[integer!]
 			status				[logic!]
-			dev-props			[USB-DEVICE-PNP-STRINGS!]
 			last-error			[integer!]
 			buf					[byte-ptr!]
-			nbuf				[integer!]
-			nlen				[integer!]
 	][
-		dev-props: as USB-DEVICE-PNP-STRINGS! allocate size? USB-DEVICE-PNP-STRINGS!
-		if dev-props = null [
-			return null
-		]
 		len: 0
 		status: SetupDiGetDeviceInstanceId dev-info info-data null 0 :len
 		last-error: GetLastError
@@ -1020,46 +941,39 @@ usb-device: context [
 			status <> false
 			last-error <> ERROR_INSUFFICIENT_BUFFER
 		][
-			free as byte-ptr! dev-props
 			return null
 		]
 		len: len + 1
 		buf: allocate len
 		if buf = null [
-			free as byte-ptr! dev-props
 			return null
 		]
 		status: SetupDiGetDeviceInstanceId dev-info info-data
 					buf len :len
 		if status = false [
-			free as byte-ptr! dev-props
 			return null
 		]
-		dev-props/device-id: as c-string! buf
-		nbuf: 0
-		nlen: 0
+		as c-string! buf
+	]
+
+	get-name: func [
+		dev-info			[int-ptr!]
+		info-data			[DEV-INFO-DATA!]
+		plen				[int-ptr!]
+		return:				[byte-ptr!]
+		/local
+			nbuf			[integer!]
+			nlen			[integer!]
+			status			[logic!]
+	][
+		nbuf: 0 nlen: 0
 		status: get-device-property dev-info info-data
 					SPDRP_DEVICEDESC :nbuf :nlen
 		if status = false [
-			free buf
-			free as byte-ptr! dev-props
 			return null
 		]
-		dev-props/device-desc: as byte-ptr! nbuf
-		dev-props/device-desc-len: nlen
-		nbuf: 0 nlen: 0
-		get-device-property-a dev-info info-data SPDRP_HARDWAREID :nbuf :nlen
-		dev-props/hw-id: as c-string! nbuf
-		nbuf: 0 nlen: 0
-		get-device-property-a dev-info info-data SPDRP_SERVICE :nbuf :nlen
-		dev-props/service: as c-string! nbuf
-		nbuf: 0 nlen: 0
-		get-device-property-a dev-info info-data SPDRP_CLASS :nbuf :nlen
-		dev-props/dev-class: as c-string! nbuf
-		nbuf: 0 nlen: 0
-		get-device-property-a dev-info info-data SPDRP_DRIVER :nbuf :nlen
-		dev-props/driver-name: as c-string! nbuf
-		dev-props
+		plen/value: nlen
+		as byte-ptr! nbuf
 	]
 
 	enum-all-devices: does [
