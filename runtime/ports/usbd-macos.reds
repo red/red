@@ -404,6 +404,7 @@ usb-device: context [
 			iter			[integer!]
 			service			[int-ptr!]
 			path			[byte-ptr!]
+			path-len		[integer!]
 			name			[c-string!]
 			serial-num		[c-string!]
 			interface		[integer!]
@@ -430,8 +431,11 @@ usb-device: context [
 			service: IOIteratorNext iter
 			service <> null
 		][
+			path/1: null-byte
 			kr: IORegistryEntryGetPath service kIOServicePlane as c-string! path
-			if kr <> 0 [continue]
+			if kr <> 0 [IOObjectRelease service continue]
+			path-len: length? as c-string! path
+			if path-len = 0 [IOObjectRelease service continue]
 			name: get-string-property service kUSBProductName
 			serial-num: get-string-property service kUSBSerialNum
 			interface: 0
@@ -444,31 +448,33 @@ usb-device: context [
 					:p-itf
 					:score
 
-			if any [kr <> 0 zero? p-itf][continue]
+			if any [kr <> 0 zero? p-itf][IOObjectRelease service continue]
 			this: as this! p-itf
 			itf: as IOUSBInterfaceInterface this/vtbl
 			guid: CFUUIDGetUUIDBytes kIOUSBDeviceInterfaceID
 			kr: itf/QueryInterface this guid :interface
 			itf/Release this
-			if kr <> 0 [continue]
+			if kr <> 0 [IOObjectRelease service continue]
 			vid: 0 pid: 0
 			this: as this! interface
 			dev-ifc: as IOUSBDeviceInterface this/vtbl
 			kr: dev-ifc/GetDeviceVendor this :vid
-			if kr <> 0 [continue]
+			if kr <> 0 [IOObjectRelease service continue]
 			kr: dev-ifc/GetDeviceProduct this :pid
-			if kr <> 0 [continue]
+			if kr <> 0 [IOObjectRelease service continue]
 			pNode: as DEVICE-INFO-NODE! allocate size? DEVICE-INFO-NODE!
-			if pNode = null [continue]
+			if pNode = null [IOObjectRelease service continue]
 			set-memory as byte-ptr! pNode null-byte size? DEVICE-INFO-NODE!
 			dlink/init pNode/interface-entry
-			len: length? as c-string! path
-			pNode/path: as c-string! allocate len + 1
-			copy-memory as byte-ptr! pNode/path path len + 1
-			pNode/name: as byte-ptr! name
-			pNode/name-len: (length? name) + 1
-			pNode/serial-num: serial-num
-			print-line serial-num
+			pNode/path: as c-string! allocate path-len + 1
+			copy-memory as byte-ptr! pNode/path path path-len + 1
+			if name <> null [
+				pNode/name: as byte-ptr! name
+				pNode/name-len: (length? name) + 1
+			]
+			if serial-num <> null [
+				pNode/serial-num: serial-num
+			]
 			pNode/vid: vid
 			pNode/pid: pid
 			enum-children pNode/interface-entry service
@@ -550,6 +556,7 @@ usb-device: context [
 		/local
 			iter			[integer!]
 			path			[byte-ptr!]
+			path-len		[integer!]
 			name			[c-string!]
 			p-itf			[integer!]
 			score			[integer!]
@@ -577,8 +584,11 @@ usb-device: context [
 				IOObjectRelease itf-ser
 				continue
 			]
+			path/1: null-byte
 			kr: IORegistryEntryGetPath itf-ser kIOServicePlane as c-string! path
-			if kr <> 0 [continue]
+			if kr <> 0 [IOObjectRelease itf-ser continue]
+			path-len: length? as c-string! path
+			if path-len = 0 [IOObjectRelease itf-ser continue]
 			name: get-string-property itf-ser kUSBInterfaceName
 			kr: IOCreatePlugInInterfaceForService
 				itf-ser
@@ -587,7 +597,7 @@ usb-device: context [
 				:p-itf
 				:score
 			IOObjectRelease itf-ser
-			if any [kr <> 0 zero? p-itf][continue]
+			if any [kr <> 0 zero? p-itf][IOObjectRelease itf-ser continue]
 			this: as this! p-itf
 			itf: as IOUSBInterfaceInterface this/vtbl
 			guid: CFUUIDGetUUIDBytes kIOUSBInterfaceInterfaceID550
@@ -597,17 +607,18 @@ usb-device: context [
 			itf: as IOUSBInterfaceInterface this/vtbl
 			;if 0 <> itf/USBInterfaceOpen this [print-line "open failed" continue]
 			kr: itf/GetInterfaceNumber this :actual-num
-			if kr <> 0 [continue]
+			if kr <> 0 [IOObjectRelease itf-ser continue]
 
 			pNode: as INTERFACE-INFO-NODE! allocate size? INTERFACE-INFO-NODE!
-			if pNode = null [continue]
+			if pNode = null [IOObjectRelease itf-ser continue]
 			set-memory as byte-ptr! pNode null-byte size? INTERFACE-INFO-NODE!
 			pNode/interface-num: actual-num
-			pNode/name: as byte-ptr! name
-			pNode/name-len: (length? name) + 1
-			len: length? as c-string! path
-			pNode/path: as c-string! allocate len + 1
-			copy-memory as byte-ptr! pNode/path path len + 1
+			pNode/path: as c-string! allocate path-len + 1
+			copy-memory as byte-ptr! pNode/path path path-len + 1
+			if name <> null [
+				pNode/name: as byte-ptr! name
+				pNode/name-len: (length? name) + 1
+			]
 			dlink/append list as list-entry! pNode
 		]
 		IOObjectRelease as int-ptr! iter

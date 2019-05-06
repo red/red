@@ -125,7 +125,8 @@ free-interface-info-node: func [
 	if pNode/name <> null [
 		free pNode/name
 	]
-	close-interface pNode
+	;-- close interface before free the node
+	;close-interface pNode
 	free as byte-ptr! pNode
 ]
 
