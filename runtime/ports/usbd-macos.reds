@@ -19,6 +19,7 @@ usb-device: context [
 	#define kIOServicePlane						"IOService"
 	#define kIOUSBDeviceClassName				"IOUSBDevice"
 	#define kIOUSBInterfaceClassName			"IOUSBInterface"
+	#define kIOHIDDevice						"IOHIDDevice"
 	#define kCFNumberSInt8Type					1
 	#define kCFNumberSInt32Type					3
 	#define kCFAllocatorDefault					null
@@ -416,6 +417,7 @@ usb-device: context [
 			this			[this!]
 			itf				[IOUSBInterfaceInterface]
 			guid			[UUID! value]
+			LocationID		[integer!]
 			vid				[integer!]
 			pid				[integer!]
 			dev-ifc			[IOUSBDeviceInterface]
@@ -461,6 +463,9 @@ usb-device: context [
 			vid: 0 pid: 0
 			this: as this! interface
 			dev-ifc: as IOUSBDeviceInterface this/vtbl
+			LocationID: 0
+			kr: dev-ifc/GetLocationID this :LocationID
+			if kr <> 0 [IOObjectRelease service continue]
 			kr: dev-ifc/GetDeviceVendor this :vid
 			if kr <> 0 [IOObjectRelease service continue]
 			kr: dev-ifc/GetDeviceProduct this :pid
@@ -471,7 +476,8 @@ usb-device: context [
 			dlink/init pNode/interface-entry
 			pNode/path: as c-string! allocate path-len + 1
 			copy-memory as byte-ptr! pNode/path path path-len + 1
-			;print-line pNode/path
+			print-line pNode/path
+			print-line LocationID
 			if name <> null [
 				pNode/name: as byte-ptr! name
 				pNode/name-len: (length? name) + 1
@@ -479,6 +485,7 @@ usb-device: context [
 			if serial-num <> null [
 				pNode/serial-num: serial-num
 			]
+			pNode/inst: LocationID
 			pNode/vid: vid
 			pNode/pid: pid
 			enum-children pNode/interface-entry service
@@ -501,6 +508,7 @@ usb-device: context [
 			score			[integer!]
 			kr				[integer!]
 			itf-ser			[int-ptr!]
+			LocationID		[integer!]
 			actual-num		[integer!]
 			this			[this!]
 			itf				[IOUSBInterfaceInterface]
@@ -544,6 +552,9 @@ usb-device: context [
 			this: as this! interface
 			itf: as IOUSBInterfaceInterface this/vtbl
 			;either 0 <> itf/USBInterfaceOpen this [print-line "busy"][print-line "not busy"]
+			LocationID: 0
+			kr: itf/GetLocationID this :LocationID
+			if kr <> 0 [IOObjectRelease itf-ser continue]
 			kr: itf/GetInterfaceNumber this :actual-num
 			if kr <> 0 [IOObjectRelease itf-ser continue]
 
@@ -551,9 +562,11 @@ usb-device: context [
 			if pNode = null [IOObjectRelease itf-ser continue]
 			set-memory as byte-ptr! pNode null-byte size? INTERFACE-INFO-NODE!
 			pNode/interface-num: actual-num
+			pNode/inst: LocationID
 			pNode/path: as c-string! allocate path-len + 1
 			copy-memory as byte-ptr! pNode/path path path-len + 1
-			;print-line pNode/path
+			print-line pNode/path
+			print-line LocationID
 			if name <> null [
 				pNode/name: as byte-ptr! name
 				pNode/name-len: (length? name) + 1
@@ -600,9 +613,7 @@ usb-device: context [
 	][
 		cf-str: CFSTR(key)
 		ref: IORegistryEntryCreateCFProperty entry cf-str kCFAllocatorDefault 0
-		if ref = null [
-			return null
-		]
+		if ref = null [return null]
 		if (CFGetTypeID ref) = CFStringGetTypeID [
 			buf: allocate 256
 			if CFStringGetCString ref buf 256 kCFStringEncodingASCII [

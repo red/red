@@ -46,6 +46,11 @@ INTERFACE-INFO-NODE!: alias struct! [
 	path				[c-string!]
 	name				[byte-ptr!]
 	name-len			[integer!]
+
+	;-- platform
+	inst				[integer!]
+
+	;-- info
 	interface-num		[integer!]
 	collection-num		[integer!]
 	hDev				[integer!]
@@ -72,10 +77,12 @@ DEVICE-INFO-NODE!: alias struct! [
 	path				[c-string!]
 	name				[byte-ptr!]
 	name-len			[integer!]
+
 	;-- platform
 	serial-num			[c-string!]
 	inst				[integer!]
 	port				[integer!]
+
 	;-- interface info
 	interface-entry		[list-entry! value]
 	interface			[INTERFACE-INFO-NODE!]
