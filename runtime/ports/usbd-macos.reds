@@ -10,65 +10,11 @@ Red/System [
 	}
 ]
 
-#enum DRIVER-TYPE! [
-	DRIVER-TYPE-NONE
-	;DRIVER-TYPE-GEN
-	DRIVER-TYPE-WINUSB
-	DRIVER-TYPE-HIDUSB
-	;DRIVER-TYPE-KBDHID
-	;DRIVER-TYPE-MOUHID
-]
-
-#enum USB-ERROR! [
-	USB-ERROR-OK
-	USB-ERROR-HANDLE
-	USB-ERROR-UNSUPPORT
-	USB-ERROR-OPEN
-	USB-ERROR-INIT
-	USB-ERROR-MAX
-]
+#include %usbd-common.reds
 
 USB-DEVICE-ID!: alias struct! [
 	id1					[integer!]
 	id2					[integer!]
-]
-
-INTERFACE-INFO-NODE!: alias struct! [
-	entry				[list-entry! value]
-	path				[c-string!]
-	name				[c-string!]
-	interface-num		[integer!]
-	collection-num		[integer!]
-	hDev				[integer!]
-	hInf				[integer!]
-	hType				[DRIVER-TYPE!]
-	bulk-in				[integer!]
-	bulk-in-size		[integer!]
-	bulk-out			[integer!]
-	bulk-out-size		[integer!]
-	interrupt-in		[integer!]
-	interrupt-in-size	[integer!]
-	interrupt-out		[integer!]
-	interrupt-out-size	[integer!]
-	usage				[integer!]
-	usage-page			[integer!]
-	input-size			[integer!]
-	output-size			[integer!]
-]
-
-DEVICE-INFO-NODE!: alias struct! [
-	entry				[list-entry! value]
-	vid					[integer!]
-	pid					[integer!]
-	path				[c-string!]
-	name				[c-string!]
-	serial-num			[c-string!]
-	device-desc			[byte-ptr!]
-	device-desc-len		[integer!]
-	config-desc			[byte-ptr!]
-	config-desc-len		[integer!]
-	interface-entry		[list-entry! value]
-	interface			[INTERFACE-INFO-NODE!]
 ]
 
 usb-device: context [
@@ -83,6 +29,7 @@ usb-device: context [
 	#define kCFStringEncodingUTF8				08000100h
 	#define kUSBProductName						"USB Product Name"
 	#define kUSBInterfaceName					"USB Interface Name"
+	#define kUSBSerialNum						"USB Serial Number"
 	#define CFSTR(cStr)							[__CFStringMakeConstantString cStr]
 	#define CFString(cStr)						[CFStringCreateWithCString kCFAllocatorDefault cStr kCFStringEncodingASCII]
 
@@ -430,7 +377,7 @@ usb-device: context [
 			free as byte-ptr! pNode/path
 		]
 		if pNode/name <> null [
-			free as byte-ptr! pNode/name
+			free pNode/name
 		]
 		;close-interface pNode
 		free as byte-ptr! pNode
@@ -444,7 +391,7 @@ usb-device: context [
 			free as byte-ptr! pNode/path
 		]
 		if pNode/name <> null [
-			free as byte-ptr! pNode/name
+			free pNode/name
 		]
 		clear-interface-list pNode/interface-entry
 		free as byte-ptr! pNode
@@ -458,6 +405,7 @@ usb-device: context [
 			service			[int-ptr!]
 			path			[byte-ptr!]
 			name			[c-string!]
+			serial-num		[c-string!]
 			interface		[integer!]
 			p-itf			[integer!]
 			score			[integer!]
@@ -485,6 +433,7 @@ usb-device: context [
 			kr: IORegistryEntryGetPath service kIOServicePlane as c-string! path
 			if kr <> 0 [continue]
 			name: get-string-property service kUSBProductName
+			serial-num: get-string-property service kUSBSerialNum
 			interface: 0
 			p-itf: as-integer :interface
 			score: 0
@@ -516,7 +465,10 @@ usb-device: context [
 			len: length? as c-string! path
 			pNode/path: as c-string! allocate len + 1
 			copy-memory as byte-ptr! pNode/path path len + 1
-			pNode/name: name
+			pNode/name: as byte-ptr! name
+			pNode/name-len: (length? name) + 1
+			pNode/serial-num: serial-num
+			print-line serial-num
 			pNode/vid: vid
 			pNode/pid: pid
 			enum-children pNode/interface-entry service
@@ -651,7 +603,8 @@ usb-device: context [
 			if pNode = null [continue]
 			set-memory as byte-ptr! pNode null-byte size? INTERFACE-INFO-NODE!
 			pNode/interface-num: actual-num
-			pNode/name: name
+			pNode/name: as byte-ptr! name
+			pNode/name-len: (length? name) + 1
 			len: length? as c-string! path
 			pNode/path: as c-string! allocate len + 1
 			copy-memory as byte-ptr! pNode/path path len + 1
