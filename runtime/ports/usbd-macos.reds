@@ -12,15 +12,11 @@ Red/System [
 
 #include %usbd-common.reds
 
-USB-DEVICE-ID!: alias struct! [
-	id1					[integer!]
-	id2					[integer!]
-]
-
 usb-device: context [
 
 	device-list: declare list-entry!
 	#define kIOServicePlane						"IOService"
+	#define kIOUSBDeviceClassName				"IOUSBDevice"
 	#define kIOUSBInterfaceClassName			"IOUSBInterface"
 	#define kCFNumberSInt8Type					1
 	#define kCFNumberSInt32Type					3
@@ -32,6 +28,11 @@ usb-device: context [
 	#define kUSBSerialNum						"USB Serial Number"
 	#define CFSTR(cStr)							[__CFStringMakeConstantString cStr]
 	#define CFString(cStr)						[CFStringCreateWithCString kCFAllocatorDefault cStr kCFStringEncodingASCII]
+
+	#define kUSBControl							0
+	#define kUSBIsoc							1
+	#define kUSBBulk							2
+	#define kUSBInterrupt						3
 
 	this!: alias struct! [vtbl [integer!]]
 
@@ -249,9 +250,10 @@ usb-device: context [
 				iter			[int-ptr!]
 				return:			[integer!]
 			]
-			IORegistryEntryIDMatching: "IORegistryEntryIDMatching" [
-				id				[USB-DEVICE-ID!]
-				return:			[integer!]
+			IORegistryEntryFromPath: "IORegistryEntryFromPath" [
+				masterPort 		[int-ptr!]
+				path 			[c-string!]
+				return: 		[int-ptr!]
 			]
 			IOObjectRelease: "IOObjectRelease" [
 				object			[int-ptr!]
@@ -423,7 +425,7 @@ usb-device: context [
 		path: allocate 512
 		if path = null [exit]
 		iter: 0
-		dict: IOServiceMatching "IOUSBDevice"
+		dict: IOServiceMatching kIOUSBDeviceClassName
 		if 0 <> IOServiceGetMatchingServices kIOMasterPortDefault dict :iter [free path exit]
 
 		unless IOIteratorIsValid iter [free path exit]
@@ -483,22 +485,6 @@ usb-device: context [
 		]
 		IOObjectRelease as int-ptr! iter
 		free path
-	]
-
-	get-service-from-id: func [
-		id					[USB-DEVICE-ID! value]
-		pserive				[int-ptr!]
-		return:				[logic!]
-		/local
-			dict			[integer!]
-			service			[int-ptr!]
-	][
-		dict: IORegistryEntryIDMatching id
-		if dict = 0 [return false]
-		service: IOServiceGetMatchingService kIOMasterPortDefault dict
-		if service = null [return false]
-		pserive/value: as integer! service
-		true
 	]
 
 	get-int-property: func [
@@ -568,7 +554,6 @@ usb-device: context [
 			guid			[UUID! value]
 			interface		[integer!]
 			pNode			[INTERFACE-INFO-NODE!]
-			saved			[integer!]
 			len				[integer!]
 	][
 		path: allocate 512
@@ -605,7 +590,7 @@ usb-device: context [
 			itf/Release this
 			this: as this! interface
 			itf: as IOUSBInterfaceInterface this/vtbl
-			;if 0 <> itf/USBInterfaceOpen this [print-line "open failed" continue]
+			;either 0 <> itf/USBInterfaceOpen this [print-line "busy"][print-line "not busy"]
 			kr: itf/GetInterfaceNumber this :actual-num
 			if kr <> 0 [IOObjectRelease itf-ser continue]
 
