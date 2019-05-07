@@ -421,8 +421,6 @@ usb-device: context [
 			if kr <> 0 [IOObjectRelease service continue]
 			path-len: length? as c-string! path
 			if path-len = 0 [IOObjectRelease service continue]
-			name: get-string-property service kUSBProductName
-			serial-num: get-string-property service kUSBSerialNum
 			interface: 0
 			p-itf: as-integer :interface
 			score: 0
@@ -456,10 +454,12 @@ usb-device: context [
 			dlink/init pNode/interface-entry
 			pNode/path: as c-string! allocate path-len + 1
 			copy-memory as byte-ptr! pNode/path path path-len + 1
+			name: get-string-property service kUSBProductName
 			if name <> null [
 				pNode/name: as byte-ptr! name
 				pNode/name-len: (length? name) + 1
 			]
+			serial-num: get-string-property service kUSBSerialNum
 			if serial-num <> null [
 				pNode/serial-num: serial-num
 			]
@@ -513,7 +513,6 @@ usb-device: context [
 			if kr <> 0 [IOObjectRelease itf-ser continue]
 			path-len: length? as c-string! path
 			if path-len = 0 [IOObjectRelease itf-ser continue]
-			name: get-string-property itf-ser kUSBInterfaceName
 			kr: IOCreatePlugInInterfaceForService
 				itf-ser
 				kIOUSBInterfaceUserClientTypeID
@@ -548,6 +547,7 @@ usb-device: context [
 				IOObjectRelease itf-ser
 				continue
 			]
+			name: interface-name as c-string! path
 			if name <> null [
 				pNode/name: as byte-ptr! name
 				pNode/name-len: (length? name) + 1
@@ -557,6 +557,25 @@ usb-device: context [
 		]
 		IOObjectRelease as int-ptr! iter
 		free path
+	]
+
+	interface-name: func [
+		path				[c-string!]
+		return:				[c-string!]
+		/local
+			p				[c-string!]
+			len				[integer!]
+			ret				[c-string!]
+	][
+		p: find-last-slash path
+		if p = null [return null]
+		len: length? p
+		ret: as c-string! allocate len - 1
+		if ret = null [return null]
+		copy-memory as byte-ptr! ret as byte-ptr! p len - 2
+		len: len - 1
+		ret/len: null-byte
+		ret
 	]
 
 	find-last-slash: func [
@@ -643,7 +662,6 @@ usb-device: context [
 			itf				[IOUSBInterfaceInterface]
 			guid			[UUID! value]
 			LocationID		[integer!]
-			iname			[c-string!]
 			dev-ifc			[IOHIDDeviceDeviceInterface]
 			kr				[integer!]
 			ref				[integer!]
@@ -651,7 +669,7 @@ usb-device: context [
 		if pNode/path = null [return false]
 		path: allocate 512
 		if path = null [return false]
-		iter: 0
+		iter: 0 ref: 0
 		dict: IOServiceMatching kIOHIDDevice
 		if 0 <> IOServiceGetMatchingServices kIOMasterPortDefault dict :iter [free path return false]
 
@@ -685,7 +703,6 @@ usb-device: context [
 			this: as this! interface
 			dev-ifc: as IOHIDDeviceDeviceInterface this/vtbl
 			LocationID: 0
-			ref: 0
 			kr: dev-ifc/getProperty this CFSTR(kIOHIDLocationIDKey) :ref
 			if kr <> 0 [IOObjectRelease service continue]
 			get-int-from-cfnumber as int-ptr! ref :LocationID
@@ -800,14 +817,16 @@ usb-device: context [
 					col/index: i
 					usage: 0
 					success: get-int-from-cfnumber ref-use :usage
-					if ref-use <> null [CFRelease ref-use]
+					;if ref-use <> null [CFRelease ref-use]
 					col/usage: usage
+					print-line usage
 
 					ref-page: CFDictionaryGetValue dict CFSTR(kIOHIDDeviceUsagePageKey)
 					page: 0
 					success: get-int-from-cfnumber ref-page :page
-					if ref-page <> null [CFRelease ref-page]
+					;if ref-page <> null [CFRelease ref-page]
 					col/usage-page: page
+					print-line page
 					i: i + 1
 				]
 				if i <> 0 [
@@ -942,8 +961,17 @@ usb-device: context [
 		pNode					[INTERFACE-INFO-NODE!]
 		return:					[USB-ERROR!]
 		/local
-			pbuf				[integer!]
+			entry				[int-ptr!]
+			num					[integer!]
+			cols				[HID-COLLECTION!]
 	][
+		entry: IORegistryEntryFromPath as int-ptr! kIOMasterPortDefault pNode/path
+		num: 0
+		cols: get-usage-property entry :num
+		if cols <> null [
+			pNode/collections: cols
+			pNode/col-count: num
+		]
 		USB-ERROR-OK
 	]
 

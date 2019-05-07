@@ -71,6 +71,7 @@ INTERFACE-INFO-NODE!: alias struct! [
 	interrupt-in-size	[integer!]
 	interrupt-out		[integer!]
 	interrupt-out-size	[integer!]
+	;-- for hid
 	;-- windows
 	collection			[HID-COLLECTION! value]
 	;-- macos
@@ -139,6 +140,9 @@ free-interface-info-node: func [
 	]
 	if pNode/name <> null [
 		free pNode/name
+	]
+	if pNode/collections <> null [
+		free as byte-ptr! pNode/collections
 	]
 	;-- close interface before free the node
 	;close-interface pNode
