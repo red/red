@@ -456,8 +456,6 @@ usb-device: context [
 			dlink/init pNode/interface-entry
 			pNode/path: as c-string! allocate path-len + 1
 			copy-memory as byte-ptr! pNode/path path path-len + 1
-			print-line pNode/path
-			print-line LocationID
 			if name <> null [
 				pNode/name: as byte-ptr! name
 				pNode/name-len: (length? name) + 1
@@ -550,9 +548,6 @@ usb-device: context [
 				IOObjectRelease itf-ser
 				continue
 			]
-			print-line "interface"
-			print-line pNode/path
-			print-line LocationID
 			if name <> null [
 				pNode/name: as byte-ptr! name
 				pNode/name-len: (length? name) + 1
@@ -702,8 +697,6 @@ usb-device: context [
 			free as byte-ptr! pNode/path
 			pNode/path: as c-string! allocate path-len + 1
 			copy-memory as byte-ptr! pNode/path path path-len + 1
-			print-line "hid"
-			print-line pNode/path
 			IOObjectRelease service
 			IOObjectRelease as int-ptr! iter
 			free path
@@ -907,10 +900,52 @@ usb-device: context [
 		enum-usb-device device-list
 		dnode: find-usb device-list vid pid sn mi col
 		if dnode = null [return null]
-		print-line "found"
-		null
+		inode: dnode/interface
+		if USB-ERROR-OK <> open-inteface inode [
+			free-device-info-node dnode
+			return null
+		]
+		print-line "open"
+		print-line inode/hDev
+		;print-line inode/hInf
+		dnode
 	]
 
+	open-inteface: func [
+		pNode					[INTERFACE-INFO-NODE!]
+		return:					[USB-ERROR!]
+	][
+		case [
+			pNode/hType = DRIVER-TYPE-WINUSB [
+				return open-winusb pNode
+			]
+			pNode/hType = DRIVER-TYPE-HIDUSB [
+				return open-hidusb pNode
+			]
+			true [
+				return USB-ERROR-UNSUPPORT
+			]
+		]
+	]
+
+	open-winusb: func [
+		pNode					[INTERFACE-INFO-NODE!]
+		return:					[USB-ERROR!]
+		/local
+			index				[integer!]
+			pipe-id				[integer!]
+	][
+		USB-ERROR-OK
+	]
+
+	open-hidusb: func [
+		pNode					[INTERFACE-INFO-NODE!]
+		return:					[USB-ERROR!]
+		/local
+			pbuf				[integer!]
+	][
+		USB-ERROR-OK
+	]
 
 	init: does [
 		kIOUSBDeviceUserClientTypeID: CFUUIDGetConstantUUIDWithBytes kCFAllocatorDefault
