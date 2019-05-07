@@ -18,6 +18,7 @@ usb-device: context [
 
 	#define kIOServicePlane						"IOService"
 	#define kIOUSBDeviceClassName				"IOUSBDevice"
+	#define kIOUSBDeviceClassNameNew			"IOUSBHostDevice"		;- Macos version >= 10.11
 	#define kIOUSBInterfaceClassName			"IOUSBInterface"
 	#define kIOHIDDevice						"IOHIDDevice"
 	#define kCFNumberSInt8Type					1
@@ -31,6 +32,7 @@ usb-device: context [
 	#define kIOHIDDeviceUsageKey				"DeviceUsage"
 	#define kIOHIDDeviceUsagePageKey			"DeviceUsagePage"
 	#define kIOHIDDeviceUsagePairsKey			"DeviceUsagePairs"
+	#define kIOHIDLocationIDKey					"LocationID"
 	#define CFSTR(cStr)							[__CFStringMakeConstantString cStr]
 	#define CFString(cStr)						[CFStringCreateWithCString kCFAllocatorDefault cStr kCFStringEncodingASCII]
 
@@ -191,6 +193,21 @@ usb-device: context [
 		ReadStreamsPipeAsyncTO			[int-ptr!]
 		WriteStreamsPipeAsyncTO			[int-ptr!]
 		AbortStreamsPipe				[int-ptr!]
+	]
+
+	IOHIDDeviceDeviceInterface: alias struct! [
+		IUNKNOWN_C_GUTS
+		open							[function! [this [this!] options [integer!] return: [integer!]]]
+		close							[function! [this [this!] options [integer!] return: [integer!]]]
+		getProperty						[function! [this [this!] key [c-string!] ref [int-ptr!] return: [integer!]]]
+		setProperty						[function! [this [this!] key [c-string!] ref [int-ptr!] return: [integer!]]]
+		getAsyncEventSource				[function! [this [this!] source [int-ptr!] return: [integer!]]]
+		copyMatchingElements			[function! [this [this!] dict [int-ptr!] elem [int-ptr!] options [integer!] return: [integer!]]]
+		setValue						[function! [this [this!] elem [int-ptr!] value [int-ptr!] timeout [integer!] callback [integer!] ctx [int-ptr!] options [integer!] return: [integer!]]]
+		getValue						[function! [this [this!] elem [int-ptr!] value [int-ptr!] timeout [integer!] callback [integer!] ctx [int-ptr!] options [integer!] return: [integer!]]]
+		setInputReportCallback			[function! [this [this!] report [byte-ptr!] len [integer!] callback [integer!] ctx [int-ptr!] options [integer!] return: [integer!]]]
+		setReport						[function! [this [this!] type [integer!] id [integer!] report [int-ptr!] len [integer!] timeout [integer!] callback [integer!] ctx [int-ptr!] options [integer!] return: [integer!]]]
+		getReport						[function! [this [this!] type [integer!] id [integer!] report [int-ptr!] plen [int-ptr!] timeout [integer!] callback [integer!] ctx [int-ptr!] options [integer!] return: [integer!]]]
 	]
 
 	#import [
@@ -358,6 +375,8 @@ usb-device: context [
 	kIOUSBDeviceInterfaceID: as int-ptr! 0
 	kIOUSBInterfaceUserClientTypeID: as int-ptr! 0
 	kIOUSBInterfaceInterfaceID550: as int-ptr! 0
+	kIOHIDDeviceTypeID: as int-ptr! 0
+	kIOHIDDeviceDeviceInterfaceID: as int-ptr! 0
 
 	enum-usb-device: func [
 		device-list			[list-entry!]
@@ -386,7 +405,10 @@ usb-device: context [
 		path: allocate 512
 		if path = null [exit]
 		iter: 0
-		dict: IOServiceMatching kIOUSBDeviceClassName
+		dict: IOServiceMatching kIOUSBDeviceClassNameNew
+		if dict = 0 [
+			dict: IOServiceMatching kIOUSBDeviceClassName
+		]
 		if 0 <> IOServiceGetMatchingServices kIOMasterPortDefault dict :iter [free path exit]
 
 		unless IOIteratorIsValid iter [free path exit]
@@ -521,8 +543,10 @@ usb-device: context [
 			set-memory as byte-ptr! pNode null-byte size? INTERFACE-INFO-NODE!
 			pNode/interface-num: actual-num
 			pNode/inst: LocationID
+			if hid-device? pNode [IOObjectRelease itf-ser continue]
 			pNode/path: as c-string! allocate path-len + 1
 			copy-memory as byte-ptr! pNode/path path path-len + 1
+			print-line "interface"
 			print-line pNode/path
 			print-line LocationID
 			if name <> null [
@@ -536,14 +560,84 @@ usb-device: context [
 		free path
 	]
 
-	;hid-device?: func [
-	;	pNode				[INTERFACE-INFO-NODE!]
-	;	return:				[logic!]
-	;	/local
-	;		
-	;][
-;
-	;]
+	hid-device?: func [
+		pNode				[INTERFACE-INFO-NODE!]
+		return:				[logic!]
+		/local
+			dict			[integer!]
+			iter			[integer!]
+			service			[int-ptr!]
+			path			[byte-ptr!]
+			path-len		[integer!]
+			interface		[integer!]
+			p-itf			[integer!]
+			score			[integer!]
+			this			[this!]
+			itf				[IOUSBInterfaceInterface]
+			guid			[UUID! value]
+			LocationID		[integer!]
+			dev-ifc			[IOHIDDeviceDeviceInterface]
+			kr				[integer!]
+			ref				[integer!]
+	][
+		path: allocate 512
+		if path = null [return false]
+		iter: 0
+		dict: IOServiceMatching kIOHIDDevice
+		if 0 <> IOServiceGetMatchingServices kIOMasterPortDefault dict :iter [free path return false]
+
+		unless IOIteratorIsValid iter [free path return false]
+		while [
+			service: IOIteratorNext iter
+			service <> null
+		][
+			path/1: null-byte
+			kr: IORegistryEntryGetPath service kIOServicePlane as c-string! path
+			if kr <> 0 [IOObjectRelease service continue]
+			path-len: length? as c-string! path
+			if path-len = 0 [IOObjectRelease service continue]
+			interface: 0
+			p-itf: as-integer :interface
+			score: 0
+			kr: IOCreatePlugInInterfaceForService
+					service
+					kIOHIDDeviceTypeID
+					kIOCFPlugInInterfaceID
+					:p-itf
+					:score
+
+			if any [kr <> 0 zero? p-itf][IOObjectRelease service continue]
+			this: as this! p-itf
+			itf: as IOUSBInterfaceInterface this/vtbl
+			guid: CFUUIDGetUUIDBytes kIOHIDDeviceDeviceInterfaceID
+			kr: itf/QueryInterface this guid :interface
+			itf/Release this
+			if kr <> 0 [IOObjectRelease service continue]
+			this: as this! interface
+			dev-ifc: as IOHIDDeviceDeviceInterface this/vtbl
+			LocationID: 0
+			ref: 0
+			kr: dev-ifc/getProperty this CFSTR(kIOHIDLocationIDKey) :ref
+			if kr <> 0 [IOObjectRelease service continue]
+			get-int-from-cfnumber as int-ptr! ref :LocationID
+			if ref <> 0 [IOObjectRelease as int-ptr! ref]
+			if LocationID <> pNode/inst [IOObjectRelease service continue]
+			if pNode/path <> null [
+				free as byte-ptr! pNode/path
+			]
+			pNode/path: as c-string! allocate path-len + 1
+			copy-memory as byte-ptr! pNode/path path path-len + 1
+			print-line "hid"
+			print-line pNode/path
+			IOObjectRelease service
+			IOObjectRelease as int-ptr! iter
+			free path
+			return true
+		]
+		IOObjectRelease as int-ptr! iter
+		free path
+		false
+	]
 
 	get-int-from-cfnumber: func [
 		ref				[int-ptr!]
@@ -682,6 +776,13 @@ usb-device: context [
 		kIOUSBInterfaceInterfaceID550: CFUUIDGetConstantUUIDWithBytes kCFAllocatorDefault
 			#"^(6A)" #"^(E4)" #"^(4D)" #"^(3F)" #"^(EB)" #"^(45)" #"^(48)" #"^(7F)"
 			#"^(8E)" #"^(8E)" #"^(B9)" #"^(3B)" #"^(99)" #"^(F8)" #"^(EA)" #"^(9E)"
+		kIOHIDDeviceTypeID: CFUUIDGetConstantUUIDWithBytes kCFAllocatorDefault
+			#"^(7D)" #"^(DE)" #"^(EC)" #"^(A8)" #"^(A7)" #"^(B4)" #"^(11)" #"^(DA)"
+			#"^(8A)" #"^(0E)" #"^(00)" #"^(14)" #"^(51)" #"^(97)" #"^(58)" #"^(EF)"
+
+		kIOHIDDeviceDeviceInterfaceID: CFUUIDGetConstantUUIDWithBytes kCFAllocatorDefault
+			#"^(47)" #"^(4B)" #"^(DC)" #"^(8E)" #"^(9F)" #"^(4A)" #"^(11)" #"^(DA)"
+			#"^(B3)" #"^(66)" #"^(00)" #"^(0D)" #"^(93)" #"^(6D)" #"^(06)" #"^(D2)"
 
 		dlink/init device-list
 
