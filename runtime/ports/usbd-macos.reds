@@ -28,6 +28,9 @@ usb-device: context [
 	#define kUSBProductName						"USB Product Name"
 	#define kUSBInterfaceName					"USB Interface Name"
 	#define kUSBSerialNum						"USB Serial Number"
+	#define kIOHIDDeviceUsageKey				"DeviceUsage"
+	#define kIOHIDDeviceUsagePageKey			"DeviceUsagePage"
+	#define kIOHIDDeviceUsagePairsKey			"DeviceUsagePairs"
 	#define CFSTR(cStr)							[__CFStringMakeConstantString cStr]
 	#define CFString(cStr)						[CFStringCreateWithCString kCFAllocatorDefault cStr kCFStringEncodingASCII]
 
@@ -307,14 +310,14 @@ usb-device: context [
 			CFNumberGetTypeID: "CFNumberGetTypeID" [
 				return:		[integer!]
 			]
-			CFStringGetTypeID: "CFStringGetTypeID" [
-				return:		[integer!]
-			]
 			CFNumberGetValue: "CFNumberGetValue" [
 				cf			[int-ptr!]
 				theType		[integer!]
 				valuePtr	[int-ptr!]
 				return:		[logic!]
+			]
+			CFStringGetTypeID: "CFStringGetTypeID" [
+				return:		[integer!]
 			]
 			CFStringGetCString: "CFStringGetCString" [
 				cf			[int-ptr!]
@@ -322,6 +325,23 @@ usb-device: context [
 				size		[integer!]
 				encode		[integer!]
 				return:		[logic!]
+			]
+			CFArrayGetTypeID: "CFArrayGetTypeID" [
+				return:		[integer!]
+			]
+			CFArrayGetCount: "CFArrayGetCount" [
+				cf			[int-ptr!]
+				return:		[integer!]
+			]
+			CFArrayGetValueAtIndex: "CFArrayGetValueAtIndex" [
+				cf			[int-ptr!]
+				index		[integer!]
+				return:		[int-ptr!]
+			]
+			CFDictionaryGetValue: "CFDictionaryGetValue" [
+				dict		[int-ptr!]
+				key			[c-string!]
+				return:		[int-ptr!]
 			]
 			__CFStringMakeConstantString: "__CFStringMakeConstantString" [
 				str			[c-string!]
@@ -338,68 +358,6 @@ usb-device: context [
 	kIOUSBDeviceInterfaceID: as int-ptr! 0
 	kIOUSBInterfaceUserClientTypeID: as int-ptr! 0
 	kIOUSBInterfaceInterfaceID550: as int-ptr! 0
-
-	clear-device-list: func [
-		list		[list-entry!]
-		/local
-			p		[list-entry!]
-			q		[list-entry!]
-			node	[DEVICE-INFO-NODE!]
-	][
-		p: list/next
-		while [p <> list][
-			q: p/next
-			free-device-info-node as DEVICE-INFO-NODE! p
-			p: q
-		]
-		list/next: list
-		list/prev: list
-	]
-
-	clear-interface-list: func [
-		list		[list-entry!]
-		/local
-			p		[list-entry!]
-			q		[list-entry!]
-			node	[INTERFACE-INFO-NODE!]
-	][
-		p: list/next
-		while [p <> list][
-			q: p/next
-			free-interface-info-node as INTERFACE-INFO-NODE! p
-			p: q
-		]
-		list/next: list
-		list/prev: list
-	]
-
-	free-interface-info-node: func [
-		pNode		[INTERFACE-INFO-NODE!]
-	][
-		if pNode = null [exit]
-		if pNode/path <> null [
-			free as byte-ptr! pNode/path
-		]
-		if pNode/name <> null [
-			free pNode/name
-		]
-		;close-interface pNode
-		free as byte-ptr! pNode
-	]
-
-	free-device-info-node: func [
-		pNode		[DEVICE-INFO-NODE!]
-	][
-		if pNode = null [exit]
-		if pNode/path <> null [
-			free as byte-ptr! pNode/path
-		]
-		if pNode/name <> null [
-			free pNode/name
-		]
-		clear-interface-list pNode/interface-entry
-		free as byte-ptr! pNode
-	]
 
 	enum-usb-device: func [
 		device-list			[list-entry!]
@@ -578,6 +536,29 @@ usb-device: context [
 		free path
 	]
 
+	;hid-device?: func [
+	;	pNode				[INTERFACE-INFO-NODE!]
+	;	return:				[logic!]
+	;	/local
+	;		
+	;][
+;
+	;]
+
+	get-int-from-cfnumber: func [
+		ref				[int-ptr!]
+		pvalue			[int-ptr!]
+		return:			[logic!]
+	][
+		if ref = null [return false]
+		if (CFGetTypeID ref) = CFNumberGetTypeID [
+			if CFNumberGetValue ref kCFNumberSInt32Type pvalue [
+				return true
+			]
+		]
+		false
+	]
+
 	get-int-property: func [
 		entry			[int-ptr!]
 		key				[c-string!]
@@ -586,20 +567,14 @@ usb-device: context [
 		/local
 			cf-str		[c-string!]
 			ref			[int-ptr!]
-			value		[integer!]
+			success		[logic!]
 	][
 		pvalue/value: 0
 		cf-str: CFSTR(key)
 		ref: IORegistryEntryCreateCFProperty entry cf-str kCFAllocatorDefault 0
-		if ref = null [return false]
-		if (CFGetTypeID ref) = CFNumberGetTypeID [
-			if CFNumberGetValue ref kCFNumberSInt32Type pvalue [
-				CFRelease ref
-				return true
-			]
-		]
-		CFRelease ref
-		false
+		success: get-int-from-cfnumber ref pvalue
+		if ref <> null [CFRelease ref]
+		success
 	]
 
 	get-string-property: func [
@@ -619,6 +594,64 @@ usb-device: context [
 			if CFStringGetCString ref buf 256 kCFStringEncodingASCII [
 				CFRelease ref
 				return as c-string! buf
+			]
+		]
+		CFRelease ref
+		null
+	]
+
+	get-usage-property: func [
+		entry			[int-ptr!]
+		pnum			[int-ptr!]
+		return:			[HID-COLLECTION!]
+		/local
+			cf-str		[c-string!]
+			ref			[int-ptr!]
+			num			[integer!]
+			cols		[HID-COLLECTION!]
+			col			[HID-COLLECTION!]
+			i			[integer!]
+			dict		[int-ptr!]
+			ref-use		[int-ptr!]
+			ref-page	[int-ptr!]
+			usage		[integer!]
+			page		[integer!]
+			success		[logic!]
+	][
+		pnum/value: 0
+		cf-str: CFSTR(kIOHIDDeviceUsagePairsKey)
+		ref: IORegistryEntryCreateCFProperty entry cf-str kCFAllocatorDefault 0
+		if ref = null [return null]
+		if (CFGetTypeID ref) = CFArrayGetTypeID [
+			num: CFArrayGetCount ref
+			if num > 0 [
+				pnum/value: num
+				cols: as HID-COLLECTION! allocate num * size? HID-COLLECTION!
+				if cols = null [CFRelease ref return null]
+				i: 0
+				loop num [
+					dict: CFArrayGetValueAtIndex ref i
+					if dict = null [break]
+					ref-use: CFDictionaryGetValue dict CFSTR(kIOHIDDeviceUsageKey)
+					col: cols + i
+					col/index: i
+					usage: 0
+					success: get-int-from-cfnumber ref-use :usage
+					if ref-use <> null [CFRelease ref-use]
+					col/usage: usage
+
+					ref-page: CFDictionaryGetValue dict CFSTR(kIOHIDDeviceUsagePageKey)
+					page: 0
+					success: get-int-from-cfnumber ref-page :page
+					if ref-page <> null [CFRelease ref-page]
+					col/usage-page: page
+					i: i + 1
+				]
+				if i <> 0 [
+					CFRelease ref
+					return cols
+				]
+				free as byte-ptr! cols
 			]
 		]
 		CFRelease ref

@@ -343,7 +343,7 @@ usb-device: context [
 					]
 					set-memory as byte-ptr! pNode null-byte size? INTERFACE-INFO-NODE!
 					pNode/interface-num: nmi
-					pNode/collection-num: ncol
+					pNode/collection/index: ncol
 					pNode/hType: type
 					pNode/path: get-dev-path-with-guid info-data/DevInst pguid
 					path: get-name dev-info info-data :len
@@ -946,10 +946,10 @@ usb-device: context [
 			return USB-ERROR-INIT
 		]
 		if HIDP_STATUS_SUCCESS = HidP_GetCaps as int-ptr! pbuf caps [
-			pNode/usage: caps/usage >>> 16
-			pNode/usage-page: caps/usage and FFFFh
-			pNode/input-size: caps/ReportByteLength >>> 16
-			pNode/output-size: caps/ReportByteLength and FFFFh
+			pNode/collection/usage: caps/usage >>> 16
+			pNode/collection/usage-page: caps/usage and FFFFh
+			pNode/collection/input-size: caps/ReportByteLength >>> 16
+			pNode/collection/output-size: caps/ReportByteLength and FFFFh
 			;print-line pNode/usage
 			;print-line pNode/usage-page
 		]
@@ -1024,14 +1024,14 @@ usb-device: context [
 						if mi = inode/interface-num [
 							if any [
 								col = 255
-								inode/collection-num = 255
+								inode/collection/index = 255
 							][
 								dlink/remove-entry device-list entry/prev entry/next
 								clear-device-list device-list
 								dnode/interface: inode
 								return dnode
 							]
-							if col = inode/collection-num [
+							if col = inode/collection/index [
 								dlink/remove-entry device-list entry/prev entry/next
 								clear-device-list device-list
 								dnode/interface: inode

@@ -41,6 +41,14 @@ USB-DESCRIPTION!: alias struct! [
 	serial-str-len		[integer!]
 ]
 
+HID-COLLECTION!: alias struct! [
+	index				[integer!]
+	usage				[integer!]
+	usage-page			[integer!]
+	input-size			[integer!]
+	output-size			[integer!]
+]
+
 INTERFACE-INFO-NODE!: alias struct! [
 	entry				[list-entry! value]
 	path				[c-string!]
@@ -52,7 +60,6 @@ INTERFACE-INFO-NODE!: alias struct! [
 
 	;-- info
 	interface-num		[integer!]
-	collection-num		[integer!]
 	hDev				[integer!]
 	hInf				[integer!]
 	hType				[DRIVER-TYPE!]
@@ -64,10 +71,11 @@ INTERFACE-INFO-NODE!: alias struct! [
 	interrupt-in-size	[integer!]
 	interrupt-out		[integer!]
 	interrupt-out-size	[integer!]
-	usage				[integer!]
-	usage-page			[integer!]
-	input-size			[integer!]
-	output-size			[integer!]
+	;-- windows
+	collection			[HID-COLLECTION! value]
+	;-- macos
+	collections			[HID-COLLECTION!]
+	col-count			[integer!]
 ]
 
 DEVICE-INFO-NODE!: alias struct! [
