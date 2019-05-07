@@ -545,7 +545,11 @@ usb-device: context [
 			pNode/inst: LocationID
 			pNode/path: as c-string! allocate path-len + 1
 			copy-memory as byte-ptr! pNode/path path path-len + 1
-			if hid-device? pNode [free as byte-ptr! pNode IOObjectRelease itf-ser continue]
+			if hid-device? pNode [
+				dlink/append list as list-entry! pNode
+				IOObjectRelease itf-ser
+				continue
+			]
 			print-line "interface"
 			print-line pNode/path
 			print-line LocationID
@@ -703,6 +707,7 @@ usb-device: context [
 			IOObjectRelease service
 			IOObjectRelease as int-ptr! iter
 			free path
+			pNode/hType: DRIVER-TYPE-HIDUSB
 			return true
 		]
 		IOObjectRelease as int-ptr! iter
@@ -826,6 +831,86 @@ usb-device: context [
 	enum-all-devices: does [
 		enum-usb-device device-list
 	]
+
+	find-usb: func [
+		device-list				[list-entry!]
+		vid						[integer!]
+		pid						[integer!]
+		sn						[c-string!]
+		mi						[integer!]
+		col						[integer!]
+		return:					[DEVICE-INFO-NODE!]
+		/local
+			entry				[list-entry!]
+			dnode				[DEVICE-INFO-NODE!]
+			len					[integer!]
+			len2				[integer!]
+			children			[list-entry!]
+			child-entry			[list-entry!]
+			inode				[INTERFACE-INFO-NODE!]
+	][
+		entry: device-list/next
+		while [entry <> device-list][
+			dnode: as DEVICE-INFO-NODE! entry
+			if all [
+				dnode/vid = vid
+				dnode/pid = pid
+			][
+				len: length? sn
+				len2: length? dnode/serial-num
+				if all [
+					len <> 0
+					len = len2
+					0 = compare-memory as byte-ptr! sn as byte-ptr! dnode/serial-num len
+				][
+					children: dnode/interface-entry
+					child-entry: children/next
+					while [child-entry <> children][
+						inode: as INTERFACE-INFO-NODE! child-entry
+						if any [
+							mi = 255
+							inode/interface-num = 255
+						][
+							dlink/remove-entry device-list entry/prev entry/next
+							clear-device-list device-list
+							dnode/interface: inode
+							return dnode
+						]
+						if mi = inode/interface-num [
+							dlink/remove-entry device-list entry/prev entry/next
+							clear-device-list device-list
+							dnode/interface: inode
+							return dnode
+						]
+						child-entry: child-entry/next
+					]
+				]
+			]
+			entry: entry/next
+		]
+		clear-device-list device-list
+		null
+	]
+
+	open: func [
+		vid						[integer!]
+		pid						[integer!]
+		sn						[c-string!]
+		mi						[integer!]
+		col						[integer!]
+		return:					[DEVICE-INFO-NODE!]
+		/local
+			dnode				[DEVICE-INFO-NODE!]
+			inode				[INTERFACE-INFO-NODE!]
+	][
+		clear-device-list device-list
+		enum-usb-device device-list
+		dnode: find-usb device-list vid pid sn mi col
+		if dnode = null [return null]
+		print-line "found"
+		null
+	]
+
 
 	init: does [
 		kIOUSBDeviceUserClientTypeID: CFUUIDGetConstantUUIDWithBytes kCFAllocatorDefault
