@@ -543,9 +543,9 @@ usb-device: context [
 			set-memory as byte-ptr! pNode null-byte size? INTERFACE-INFO-NODE!
 			pNode/interface-num: actual-num
 			pNode/inst: LocationID
-			if hid-device? pNode [IOObjectRelease itf-ser continue]
 			pNode/path: as c-string! allocate path-len + 1
 			copy-memory as byte-ptr! pNode/path path path-len + 1
+			if hid-device? pNode [free as byte-ptr! pNode IOObjectRelease itf-ser continue]
 			print-line "interface"
 			print-line pNode/path
 			print-line LocationID
@@ -558,6 +558,74 @@ usb-device: context [
 		]
 		IOObjectRelease as int-ptr! iter
 		free path
+	]
+
+	find-last-slash: func [
+		path				[c-string!]
+		return:				[c-string!]
+		/local
+			len				[integer!]
+			p				[c-string!]
+	][
+		len: length? path
+		if len = 0 [return null]
+		p: path + len - 1
+		loop len [
+			if p/1 = #"/" [
+				return p + 1
+			]
+			p: p - 1
+		]
+		null
+	]
+
+	find-second-last-slash: func [
+		path				[c-string!]
+		return:				[c-string!]
+		/local
+			len				[integer!]
+			first?			[logic!]
+			p				[c-string!]
+	][
+		len: length? path
+		if len = 0 [return null]
+		first?: true
+		p: path + len - 1
+		loop len [
+			if p/1 = #"/" [
+				either first? [
+					first?: false
+				][
+					return p + 1
+				]
+			]
+			p: p - 1
+		]
+		null
+	]
+
+	hid-path-contain?: func [
+		hpath				[c-string!]
+		ipath				[c-string!]
+		return:				[logic!]
+		/local
+			hp				[c-string!]
+			ip				[c-string!]
+			hlen			[integer!]
+			ilen			[integer!]
+	][
+		hp: find-second-last-slash hpath
+		if hp = null [return false]
+		ip: find-last-slash ipath
+		if ip = null [return false]
+		ilen: length? ip
+		if 0 = compare-memory as byte-ptr! hp as byte-ptr! ip ilen [
+			ilen: ilen + 1
+			if hp/ilen = #"/" [
+				return true
+			]
+		]
+		false
 	]
 
 	hid-device?: func [
@@ -576,10 +644,12 @@ usb-device: context [
 			itf				[IOUSBInterfaceInterface]
 			guid			[UUID! value]
 			LocationID		[integer!]
+			iname			[c-string!]
 			dev-ifc			[IOHIDDeviceDeviceInterface]
 			kr				[integer!]
 			ref				[integer!]
 	][
+		if pNode/path = null [return false]
 		path: allocate 512
 		if path = null [return false]
 		iter: 0
@@ -622,9 +692,10 @@ usb-device: context [
 			get-int-from-cfnumber as int-ptr! ref :LocationID
 			if ref <> 0 [IOObjectRelease as int-ptr! ref]
 			if LocationID <> pNode/inst [IOObjectRelease service continue]
-			if pNode/path <> null [
-				free as byte-ptr! pNode/path
+			unless hid-path-contain? as c-string! path pNode/path [
+				IOObjectRelease service continue
 			]
+			free as byte-ptr! pNode/path
 			pNode/path: as c-string! allocate path-len + 1
 			copy-memory as byte-ptr! pNode/path path path-len + 1
 			print-line "hid"
