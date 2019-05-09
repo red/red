@@ -147,7 +147,7 @@ free-interface-info-node: func [
 		free as byte-ptr! pNode/collections
 	]
 	if pNode/input-buffer <> null [
-		free as byte-ptr! pNode/input-buffer
+		free pNode/input-buffer
 	]
 	;-- close interface before free the node
 	;close-interface pNode

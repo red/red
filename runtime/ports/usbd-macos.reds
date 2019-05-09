@@ -46,6 +46,11 @@ usb-device: context [
 	#define kUSBBulk							2
 	#define kUSBInterrupt						3
 
+	#define kIOHIDReportTypeInput				0
+	#define kIOHIDReportTypeOutput				1
+	#define kIOHIDReportTypeFeature				2
+	#define kIOHIDReportTypeCount				3
+
 	this!: alias struct! [vtbl [integer!]]
 
 	UUID!: alias struct! [
@@ -323,6 +328,17 @@ usb-device: context [
 				device			[int-ptr!]
 				callback		[int-ptr!]
 				context			[int-ptr!]
+			]
+			IOHIDDeviceSetReportWithCallback: "IOHIDDeviceSetReportWithCallback" [
+				device			[int-ptr!]
+				type			[integer!]
+				id				[integer!]
+				report			[byte-ptr!]
+				reportlength	[integer!]
+				timeout			[float64!]
+				callback		[int-ptr!]
+				context			[int-ptr!]
+				return:			[integer!]
 			]
 		]
 		"/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation" cdecl [
@@ -1132,6 +1148,40 @@ usb-device: context [
 			IOHIDDeviceClose as int-ptr! pNode/hDev
 			pNode/hDev: 0
 		]
+	]
+
+	write-data: func [
+		pNode					[INTERFACE-INFO-NODE!]
+		buf						[byte-ptr!]
+		buflen					[integer!]
+		plen					[int-ptr!]
+		timeout					[integer!]
+		callback				[int-ptr!]
+		return:					[integer!]
+		/local
+			ret					[integer!]
+	][
+		case [
+			pNode/hType = DRIVER-TYPE-WINUSB [
+
+			]
+			pNode/hType = DRIVER-TYPE-HIDUSB [
+				ret: IOHIDDeviceSetReportWithCallback
+					as int-ptr! pNode/hDev
+					kIOHIDReportTypeOutput
+					as integer! buf/1
+					buf + 1
+					buflen - 1
+					as float64! timeout
+					callback
+					as int-ptr! pNode
+				return ret
+			]
+			true [
+				return -1
+			]
+		]
+		-1
 	]
 
 	init: does [
