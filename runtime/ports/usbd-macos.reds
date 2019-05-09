@@ -25,7 +25,7 @@ usb-device: context [
 	#define kCFNumberSInt32Type					3
 	#define kCFAllocatorDefault					null
 	#define kCFStringEncodingASCII				0600h
-	#define kCFStringEncodingUTF8				08000100h
+	;#define kCFStringEncodingUTF8				08000100h
 	#define kUSBProductName						"USB Product Name"
 	#define kUSBInterfaceName					"USB Interface Name"
 	#define kUSBSerialNum						"USB Serial Number"
@@ -39,7 +39,7 @@ usb-device: context [
 	#define kIOHIDOptionsTypeSeizeDevice		1
 
 	#define CFSTR(cStr)							[__CFStringMakeConstantString cStr]
-	#define CFString(cStr)						[CFStringCreateWithCString kCFAllocatorDefault cStr kCFStringEncodingASCII]
+	;#define CFString(cStr)						[CFStringCreateWithCString kCFAllocatorDefault cStr kCFStringEncodingASCII]
 
 	#define kUSBControl							0
 	#define kUSBIsoc							1
@@ -1155,8 +1155,9 @@ usb-device: context [
 		buf						[byte-ptr!]
 		buflen					[integer!]
 		plen					[int-ptr!]
-		timeout					[integer!]
 		callback				[int-ptr!]
+		timeout					[integer!]
+		data					[int-ptr!]
 		return:					[integer!]
 		/local
 			ret					[integer!]
@@ -1174,7 +1175,7 @@ usb-device: context [
 					buflen - 1
 					as float64! timeout
 					callback
-					as int-ptr! pNode
+					data
 				return ret
 			]
 			true [

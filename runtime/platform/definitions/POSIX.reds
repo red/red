@@ -454,6 +454,8 @@ errno: as int-ptr! 0
 		#define EV_EOF			8000h	;-- EOF detected
 		#define EV_ERROR		4000h	;-- error, data contains errno
 
+		#define NOTE_TRIGGER	01000000h
+
 		#define EV_SET(kevp a b c d e f) [
 			kevp/ident: as int-ptr! a
 			kevp/filter: c << 16 or b

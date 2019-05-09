@@ -1070,7 +1070,7 @@ io: context [
 		#define kCFStringEncodingUTF8		08000100h
 		#define kCFStringEncodingMacRoman	0
 
-		#define CFSTR(cStr)		[__CFStringMakeConstantString cStr]
+		;#define CFSTR(cStr)		[__CFStringMakeConstantString cStr]
 		#define CFString(cStr)	[CFStringCreateWithCString 0 cStr kCFStringEncodingUTF8]
 
 		to-NSString: func [str [red-string!] return: [integer!] /local len][

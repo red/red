@@ -11,21 +11,25 @@ Red/System [
 ]
 
 g-poller: as int-ptr! 0
-DATA-COMMON!: alias struct! [
-	ovlap	[OVERLAPPED! value]
-	cell	[cell! value]			;-- the port! cell
-	fd		[integer!]				;-- the fd
-	bind	[int-ptr!]				;-- the bound port
-]
 
 #include %sockdata.reds
 ;#include %usb.reds
 
 #either OS = 'Windows [
+	DATA-COMMON!: alias struct! [
+		ovlap	[OVERLAPPED! value]
+		cell	[cell! value]			;-- the port! cell
+		fd		[integer!]				;-- the fd
+		bind	[int-ptr!]				;-- the bound port
+	]
 	#include %socket-win32.reds
 	#include %usb-win32.reds
 	#include %poller-iocp.reds
 ][
+	DATA-COMMON!: alias struct! [
+		cell	[cell! value]
+		fd		[integer!]
+	]
 	#include %socket-posix.reds
 	#case [
 		any [OS = 'macOS OS = 'FreeBSD][
