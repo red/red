@@ -125,8 +125,6 @@ usb: context [
 				bin: as red-binary! data
 				len: binary/rs-length? bin
 				buf: binary/rs-head bin
-				len: len - iodata/offset
-				pbuf: pbuf + iodata/offset
 			]
 			TYPE_STRING [0]
 			default [0]

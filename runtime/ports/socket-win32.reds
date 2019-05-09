@@ -177,8 +177,6 @@ socket: context [
 				bin: as red-binary! data
 				pbuf/len: binary/rs-length? bin
 				pbuf/buf: binary/rs-head bin
-				len: len - iodata/offset
-				pbuf: pbuf + iodata/offset
 			]
 			TYPE_STRING [0]
 			default [0]

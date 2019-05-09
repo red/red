@@ -30,6 +30,7 @@ DATA-COMMON!: alias struct! [
 	#case [
 		any [OS = 'macOS OS = 'FreeBSD][
 			#include %poller-kqueue.reds
+			#include %usb-macos.reds
 		]
 		any [OS = 'Linux OS = 'Android][
 			#include %poller-epoll.reds
@@ -143,16 +144,11 @@ usb-start: func [
 	host		[red-string!]
 ][
 	if null? g-poller [g-poller: poll/init]
-	#either OS = 'Windows [
-		usb-device/init
-		usb/init
-		print-line "start"
-		usb/open red-port host
-		print-line "end"
-		call-awake red-port red-port IO_EVT_CONNECT
-	][
-		0
-	]
+	usb/init
+	print-line "start"
+	usb/open red-port host
+	print-line "end"
+	call-awake red-port red-port IO_EVT_CONNECT
 ]
 
 start-red-port: func [
