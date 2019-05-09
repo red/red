@@ -33,6 +33,8 @@ usb-device: context [
 	#define kIOHIDDeviceUsagePageKey			"DeviceUsagePage"
 	#define kIOHIDDeviceUsagePairsKey			"DeviceUsagePairs"
 	#define kIOHIDLocationIDKey					"LocationID"
+	#define kIOHIDOptionsTypeSeizeDevice		1
+
 	#define CFSTR(cStr)							[__CFStringMakeConstantString cStr]
 	#define CFString(cStr)						[CFStringCreateWithCString kCFAllocatorDefault cStr kCFStringEncodingASCII]
 
@@ -285,6 +287,28 @@ usb-device: context [
 				object			[int-ptr!]
 				name			[c-string!]
 				return:			[logic!]
+			]
+			IOHIDDeviceCreate: "IOHIDDeviceCreate" [
+				allocator 	[int-ptr!]
+				service 	[int-ptr!]
+				return: 	[int-ptr!]
+			]
+			IOHIDDeviceOpen: "IOHIDDeviceOpen" [
+				device 		[int-ptr!]
+				options 	[integer!]
+				return: 	[integer!]
+			]
+			IOHIDDeviceRegisterInputReportCallback: "IOHIDDeviceRegisterInputReportCallback" [
+				device 			[int-ptr!]
+				report 			[byte-ptr!]
+				reportlength	[integer!]
+				callback 		[int-ptr!]  ;--Pointer to a callback method of type IOHIDReportCallback.
+				context 		[int-ptr!]
+			]
+			IOHIDDeviceRegisterRemovalCallback: "IOHIDDeviceRegisterRemovalCallback" [
+				device 			[int-ptr!]
+				callback 		[int-ptr!]
+				context 		[int-ptr!]
 			]
 		]
 		"/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation" cdecl [
@@ -780,7 +804,7 @@ usb-device: context [
 		null
 	]
 
-	get-usage-property: func [
+	get-hid-usage-property: func [
 		entry			[int-ptr!]
 		pnum			[int-ptr!]
 		return:			[HID-COLLECTION!]
@@ -962,16 +986,34 @@ usb-device: context [
 		return:					[USB-ERROR!]
 		/local
 			entry				[int-ptr!]
+			hDev				[int-ptr!]
 			num					[integer!]
 			cols				[HID-COLLECTION!]
+			kr					[integer!]
 	][
 		entry: IORegistryEntryFromPath as int-ptr! kIOMasterPortDefault pNode/path
+		if entry = null [
+			return USB-ERROR-PATH
+		]
+		hDev: IOHIDDeviceCreate kCFAllocatorDefault entry
+		if hDev = null [
+			IOObjectRelease entry
+			return USB-ERROR-HANDLE
+		]
 		num: 0
-		cols: get-usage-property entry :num
+		cols: get-hid-usage-property entry :num
 		if cols <> null [
 			pNode/collections: cols
 			pNode/col-count: num
 		]
+		IOObjectRelease entry
+		kr: IOHIDDeviceOpen hDev kIOHIDOptionsTypeSeizeDevice
+		if kr <> 0 [
+			CFRelease hDev
+			return USB-ERROR-PATH
+		]
+
+		pNode/hDev: as integer! hDev
 		USB-ERROR-OK
 	]
 
