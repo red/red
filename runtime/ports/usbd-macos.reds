@@ -288,10 +288,16 @@ usb-device: context [
 				name			[c-string!]
 				return:			[logic!]
 			]
+			;-- HID API
 			IOHIDDeviceCreate: "IOHIDDeviceCreate" [
 				allocator 	[int-ptr!]
 				service 	[int-ptr!]
 				return: 	[int-ptr!]
+			]
+			IOHIDDeviceGetProperty: "IOHIDDeviceGetProperty" [
+				dev 			[int-ptr!]
+				device 			[c-string!]
+				return: 		[int-ptr!]
 			]
 			IOHIDDeviceOpen: "IOHIDDeviceOpen" [
 				device 		[int-ptr!]
@@ -704,6 +710,7 @@ usb-device: context [
 			if kr <> 0 [IOObjectRelease service continue]
 			path-len: length? as c-string! path
 			if path-len = 0 [IOObjectRelease service continue]
+			;
 			interface: 0
 			p-itf: as-integer :interface
 			score: 0
@@ -802,7 +809,7 @@ usb-device: context [
 	]
 
 	get-hid-usage-property: func [
-		entry			[int-ptr!]
+		device			[int-ptr!]
 		pnum			[int-ptr!]
 		return:			[HID-COLLECTION!]
 		/local
@@ -821,7 +828,7 @@ usb-device: context [
 	][
 		pnum/value: 0
 		cf-str: CFSTR(kIOHIDDeviceUsagePairsKey)
-		ref: IORegistryEntryCreateCFProperty entry cf-str kCFAllocatorDefault 0
+		ref: IOHIDDeviceGetProperty device cf-str
 		if ref = null [return null]
 		if (CFGetTypeID ref) = CFArrayGetTypeID [
 			num: CFArrayGetCount ref
@@ -997,20 +1004,20 @@ usb-device: context [
 			IOObjectRelease entry
 			return USB-ERROR-HANDLE
 		]
+		IOObjectRelease entry
 		num: 0
-		cols: get-hid-usage-property entry :num
+		cols: get-hid-usage-property hDev :num
 		if cols <> null [
 			pNode/collections: cols
 			pNode/col-count: num
 		]
-		IOObjectRelease entry
 		kr: IOHIDDeviceOpen hDev kIOHIDOptionsTypeSeizeDevice
 		if kr <> 0 [
 			CFRelease hDev
 			return USB-ERROR-PATH
 		]
-		print-line "ok"
 		pNode/hDev: as integer! hDev
+		print-line "ok"
 		USB-ERROR-OK
 	]
 
