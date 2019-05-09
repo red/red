@@ -33,6 +33,9 @@ usb-device: context [
 	#define kIOHIDDeviceUsagePageKey			"DeviceUsagePage"
 	#define kIOHIDDeviceUsagePairsKey			"DeviceUsagePairs"
 	#define kIOHIDLocationIDKey					"LocationID"
+	#define kIOHIDMaxInputReportSizeKey			"MaxInputReportSize"
+	#define kIOHIDMaxOutputReportSizeKey		"MaxOutputReportSize"
+	#define kIOHIDMaxFeatureReportSizeKey		"MaxFeatureReportSize"
 	#define kIOHIDOptionsTypeSeizeDevice		1
 
 	#define CFSTR(cStr)							[__CFStringMakeConstantString cStr]
@@ -808,6 +811,47 @@ usb-device: context [
 		null
 	]
 
+	get-hid-int-property: func [
+		device			[int-ptr!]
+		key				[c-string!]
+		pvalue			[int-ptr!]
+		return:			[logic!]
+		/local
+			cf-str		[c-string!]
+			ref			[int-ptr!]
+			success		[logic!]
+	][
+		pvalue/value: 0
+		cf-str: CFSTR(key)
+		ref: IOHIDDeviceGetProperty device cf-str
+		success: get-int-from-cfnumber ref pvalue
+		if ref <> null [CFRelease ref]
+		success
+	]
+
+	get-hid-string-property: func [
+		device			[int-ptr!]
+		key				[c-string!]
+		return:			[c-string!]
+		/local
+			cf-str		[c-string!]
+			ref			[int-ptr!]
+			buf			[byte-ptr!]
+	][
+		cf-str: CFSTR(key)
+		ref: IOHIDDeviceGetProperty device cf-str
+		if ref = null [return null]
+		if (CFGetTypeID ref) = CFStringGetTypeID [
+			buf: allocate 256
+			if CFStringGetCString ref buf 256 kCFStringEncodingASCII [
+				CFRelease ref
+				return as c-string! buf
+			]
+		]
+		CFRelease ref
+		null
+	]
+
 	get-hid-usage-property: func [
 		device			[int-ptr!]
 		pnum			[int-ptr!]
@@ -993,6 +1037,8 @@ usb-device: context [
 			hDev				[int-ptr!]
 			num					[integer!]
 			cols				[HID-COLLECTION!]
+			input-size			[integer!]
+			output-size			[integer!]
 			kr					[integer!]
 	][
 		entry: IORegistryEntryFromPath as int-ptr! kIOMasterPortDefault pNode/path
@@ -1011,6 +1057,16 @@ usb-device: context [
 			pNode/collections: cols
 			pNode/col-count: num
 		]
+		input-size: 0
+		unless get-hid-int-property hDev kIOHIDMaxInputReportSizeKey :input-size [
+			input-size: 64
+		]
+		pNode/input-size: input-size
+		output-size: 0
+		unless get-hid-int-property hDev kIOHIDMaxOutputReportSizeKey :output-size [
+			output-size: 64
+		]
+		pNode/output-size: output-size
 		kr: IOHIDDeviceOpen hDev kIOHIDOptionsTypeSeizeDevice
 		if kr <> 0 [
 			CFRelease hDev

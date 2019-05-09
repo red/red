@@ -948,8 +948,8 @@ usb-device: context [
 		if HIDP_STATUS_SUCCESS = HidP_GetCaps as int-ptr! pbuf caps [
 			pNode/collection/usage: caps/usage >>> 16
 			pNode/collection/usage-page: caps/usage and FFFFh
-			pNode/collection/input-size: caps/ReportByteLength >>> 16
-			pNode/collection/output-size: caps/ReportByteLength and FFFFh
+			pNode/input-size: caps/ReportByteLength >>> 16
+			pNode/output-size: caps/ReportByteLength and FFFFh
 			;print-line pNode/usage
 			;print-line pNode/usage-page
 		]

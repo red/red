@@ -46,8 +46,6 @@ HID-COLLECTION!: alias struct! [
 	index				[integer!]
 	usage				[integer!]
 	usage-page			[integer!]
-	input-size			[integer!]
-	output-size			[integer!]
 ]
 
 INTERFACE-INFO-NODE!: alias struct! [
@@ -73,6 +71,8 @@ INTERFACE-INFO-NODE!: alias struct! [
 	interrupt-out		[integer!]
 	interrupt-out-size	[integer!]
 	;-- for hid
+	input-size			[integer!]
+	output-size			[integer!]
 	;-- windows
 	collection			[HID-COLLECTION! value]
 	;-- macos

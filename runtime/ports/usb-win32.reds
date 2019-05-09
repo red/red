@@ -85,7 +85,7 @@ usb: context [
 				iodata/buflen: size
 			]
 			if iodata/dev/interface/hType = DRIVER-TYPE-HIDUSB [
-				size: iodata/dev/interface/collection/input-size
+				size: iodata/dev/interface/input-size
 				iodata/buffer: allocate size
 				iodata/buflen: size
 			]
