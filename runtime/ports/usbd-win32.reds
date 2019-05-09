@@ -1082,6 +1082,7 @@ usb-device: context [
 		buflen					[integer!]
 		plen					[int-ptr!]
 		ov						[OVERLAPPED!]
+		timeout					[integer!]
 		return:					[integer!]
 		/local
 			ret					[integer!]
@@ -1115,6 +1116,7 @@ usb-device: context [
 		buflen					[integer!]
 		plen					[int-ptr!]
 		ov						[OVERLAPPED!]
+		timeout					[integer!]
 		return:					[integer!]
 		/local
 			ret					[integer!]

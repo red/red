@@ -98,7 +98,7 @@ usb: context [
 		iodata/code: IOCP_OP_READ
 		;dump-hex iodata/buffer
 		n: 0
-		if 0 <> usb-device/read-data iodata/dev/interface iodata/buffer iodata/buflen :n as OVERLAPPED! iodata [
+		if 0 <> usb-device/read-data iodata/dev/interface iodata/buffer iodata/buflen :n as OVERLAPPED! iodata 0 [
 			exit
 		]
 
@@ -125,6 +125,8 @@ usb: context [
 				bin: as red-binary! data
 				len: binary/rs-length? bin
 				buf: binary/rs-head bin
+				len: len - iodata/offset
+				pbuf: pbuf + iodata/offset
 			]
 			TYPE_STRING [0]
 			default [0]
@@ -132,7 +134,7 @@ usb: context [
 
 		iodata/code: IOCP_OP_WRITE
 		n: 0
-		if 0 <> usb-device/write-data iodata/dev/interface buf len :n as OVERLAPPED! iodata [
+		if 0 <> usb-device/write-data iodata/dev/interface buf len :n as OVERLAPPED! iodata 0 [
 			exit
 		]
 
