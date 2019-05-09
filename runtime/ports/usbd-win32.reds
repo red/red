@@ -949,6 +949,8 @@ usb-device: context [
 			pNode/collection/usage: caps/usage >>> 16
 			pNode/collection/usage-page: caps/usage and FFFFh
 			pNode/input-size: caps/ReportByteLength >>> 16
+			if pNode/input-size = 0 [pNode/input-size: 64]
+			pNode/input-buffer: allocate pNode/input-size
 			pNode/output-size: caps/ReportByteLength and FFFFh
 			;print-line pNode/usage
 			;print-line pNode/usage-page

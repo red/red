@@ -1062,6 +1062,7 @@ usb-device: context [
 			input-size: 64
 		]
 		pNode/input-size: input-size
+		pNode/input-buffer: allocate pNode/input-size
 		output-size: 0
 		unless get-hid-int-property hDev kIOHIDMaxOutputReportSizeKey :output-size [
 			output-size: 64
@@ -1073,8 +1074,49 @@ usb-device: context [
 			return USB-ERROR-PATH
 		]
 		pNode/hDev: as integer! hDev
+
+		IOHIDDeviceRegisterInputReportCallback
+			hDev pNode/input-buffer pNode/input-size
+			as int-ptr! :hid-input-report-callback
+			as int-ptr! pNode
+
+		IOHIDDeviceRegisterRemovalCallback
+			hDev
+			as int-ptr! :hid-device-removal-callback
+			as int-ptr! pNode
+
 		print-line "ok"
 		USB-ERROR-OK
+	]
+
+	hid-input-report-callback: func [
+		[cdecl]
+		context					[int-ptr!]
+		result					[integer!]
+		sender					[int-ptr!]
+		report_type				[integer!]
+		report_id				[integer!]
+		report					[byte-ptr!]
+		report_length			[integer!]
+		/local
+			pNode				[INTERFACE-INFO-NODE!]
+	][
+		pNode: as INTERFACE-INFO-NODE! context
+		print-line "input"
+		;input
+	]
+
+	hid-device-removal-callback: func [
+		[cdecl]
+		context					[int-ptr!]
+		result					[integer!]
+		sender					[int-ptr!]
+		/local
+			pNode				[INTERFACE-INFO-NODE!]
+	][
+		pNode: as INTERFACE-INFO-NODE! context
+		print-line "close"
+		;close
 	]
 
 	init: does [
