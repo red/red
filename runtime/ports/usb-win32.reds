@@ -1,7 +1,7 @@
 Red/System [
-	Title:	"usb port! implementation"
+	Title:	"usb port! implementation for win32"
 	Author: "bitbegin"
-	File: 	%usb.reds
+	File: 	%usb-win32.reds
 	Tabs: 	4
 	Rights: "Copyright (C) 2018 Red Foundation. All rights reserved."
 	License: {
@@ -150,5 +150,7 @@ usb: context [
 			iodata/buffer: null
 		]
 		usb-device/close-interface iodata/dev/interface
+		dlink/remove usb-list as list-entry! iodata/dev
+		free-device-info-node as DEVICE-INFO-NODE! iodata/dev
 	]
 ]
