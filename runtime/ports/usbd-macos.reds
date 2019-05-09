@@ -247,9 +247,9 @@ usb-device: context [
 			]
 			IORegistryEntryGetPath: "IORegistryEntryGetPath" [
 				entry			[int-ptr!]
-				plane 			[c-string!]   ;--size is 128
-				path 			[c-string!]   ;--size is 512
-				return: 		[integer!]
+				plane			[c-string!]   ;--size is 128
+				path			[c-string!]   ;--size is 512
+				return:			[integer!]
 			]
 			IOCreatePlugInInterfaceForService: "IOCreatePlugInInterfaceForService" [
 				dev				[int-ptr!]
@@ -293,112 +293,117 @@ usb-device: context [
 			]
 			;-- HID API
 			IOHIDDeviceCreate: "IOHIDDeviceCreate" [
-				allocator 	[int-ptr!]
-				service 	[int-ptr!]
-				return: 	[int-ptr!]
+				allocator		[int-ptr!]
+				service			[int-ptr!]
+				return:			[int-ptr!]
 			]
 			IOHIDDeviceGetProperty: "IOHIDDeviceGetProperty" [
-				dev 			[int-ptr!]
-				device 			[c-string!]
-				return: 		[int-ptr!]
+				device			[int-ptr!]
+				key				[c-string!]
+				return:			[int-ptr!]
 			]
 			IOHIDDeviceOpen: "IOHIDDeviceOpen" [
-				device 		[int-ptr!]
-				options 	[integer!]
-				return: 	[integer!]
+				device			[int-ptr!]
+				options			[integer!]
+				return:			[integer!]
+			]
+			IOHIDDeviceClose: "IOHIDDeviceClose" [
+				device			[int-ptr!]
+				options			[integer!]
+				return:			[integer!]
 			]
 			IOHIDDeviceRegisterInputReportCallback: "IOHIDDeviceRegisterInputReportCallback" [
-				device 			[int-ptr!]
-				report 			[byte-ptr!]
+				device			[int-ptr!]
+				report			[byte-ptr!]
 				reportlength	[integer!]
-				callback 		[int-ptr!]  ;--Pointer to a callback method of type IOHIDReportCallback.
-				context 		[int-ptr!]
+				callback		[int-ptr!]  ;--Pointer to a callback method of type IOHIDReportCallback.
+				context			[int-ptr!]
 			]
 			IOHIDDeviceRegisterRemovalCallback: "IOHIDDeviceRegisterRemovalCallback" [
-				device 			[int-ptr!]
-				callback 		[int-ptr!]
-				context 		[int-ptr!]
+				device			[int-ptr!]
+				callback		[int-ptr!]
+				context			[int-ptr!]
 			]
 		]
 		"/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation" cdecl [
 			kCFAllocatorDefault: "kCFAllocatorDefault" [integer!]
 			kIOMasterPortDefault: "kIOMasterPortDefault" [integer!]
 			CFStringCreateWithCString: "CFStringCreateWithCString" [
-				allocator	[int-ptr!]
-				cStr		[c-string!]
-				encoding	[integer!]
-				return:		[c-string!]
+				allocator		[int-ptr!]
+				cStr			[c-string!]
+				encoding		[integer!]
+				return:			[c-string!]
 			]
 			CFUUIDGetConstantUUIDWithBytes: "CFUUIDGetConstantUUIDWithBytes" [
-				allocator	[int-ptr!]
-				byte0		[byte!]
-				byte1		[byte!]
-				byte2		[byte!]
-				byte3		[byte!]
-				byte4		[byte!]
-				byte5		[byte!]
-				byte6		[byte!]
-				byte7		[byte!]
-				byte8		[byte!]
-				byte9		[byte!]
-				byte10		[byte!]
-				byte11		[byte!]
-				byte12		[byte!]
-				byte13		[byte!]
-				byte14		[byte!]
-				byte15		[byte!]
-				return:		[int-ptr!]
+				allocator		[int-ptr!]
+				byte0			[byte!]
+				byte1			[byte!]
+				byte2			[byte!]
+				byte3			[byte!]
+				byte4			[byte!]
+				byte5			[byte!]
+				byte6			[byte!]
+				byte7			[byte!]
+				byte8			[byte!]
+				byte9			[byte!]
+				byte10			[byte!]
+				byte11			[byte!]
+				byte12			[byte!]
+				byte13			[byte!]
+				byte14			[byte!]
+				byte15			[byte!]
+				return:			[int-ptr!]
 			]
 			CFUUIDGetUUIDBytes: "CFUUIDGetUUIDBytes" [
-				guid		[int-ptr!]
-				return:		[UUID! value]
+				guid			[int-ptr!]
+				return:			[UUID! value]
 			]
 			CFGetTypeID: "CFGetTypeID" [
-				cf			[int-ptr!]
-				return:		[integer!]
+				cf				[int-ptr!]
+				return:			[integer!]
 			]
 			CFNumberGetTypeID: "CFNumberGetTypeID" [
-				return:		[integer!]
+				return:			[integer!]
 			]
 			CFNumberGetValue: "CFNumberGetValue" [
-				cf			[int-ptr!]
-				theType		[integer!]
-				valuePtr	[int-ptr!]
-				return:		[logic!]
+				cf				[int-ptr!]
+				theType			[integer!]
+				valuePtr		[int-ptr!]
+				return:			[logic!]
 			]
 			CFStringGetTypeID: "CFStringGetTypeID" [
-				return:		[integer!]
+				return:			[integer!]
 			]
 			CFStringGetCString: "CFStringGetCString" [
-				cf			[int-ptr!]
-				buff		[byte-ptr!]
-				size		[integer!]
-				encode		[integer!]
-				return:		[logic!]
+				cf				[int-ptr!]
+				buff			[byte-ptr!]
+				size			[integer!]
+				encode			[integer!]
+				return:			[logic!]
 			]
 			CFArrayGetTypeID: "CFArrayGetTypeID" [
-				return:		[integer!]
+				return:			[integer!]
 			]
 			CFArrayGetCount: "CFArrayGetCount" [
-				cf			[int-ptr!]
-				return:		[integer!]
+				cf				[int-ptr!]
+				return:			[integer!]
 			]
 			CFArrayGetValueAtIndex: "CFArrayGetValueAtIndex" [
-				cf			[int-ptr!]
-				index		[integer!]
-				return:		[int-ptr!]
+				cf				[int-ptr!]
+				index			[integer!]
+				return:			[int-ptr!]
 			]
 			CFDictionaryGetValue: "CFDictionaryGetValue" [
-				dict		[int-ptr!]
-				key			[c-string!]
-				return:		[int-ptr!]
+				dict			[int-ptr!]
+				key				[c-string!]
+				return:			[int-ptr!]
 			]
 			__CFStringMakeConstantString: "__CFStringMakeConstantString" [
-				str			[c-string!]
-				return:		[c-string!]
+				str				[c-string!]
+				return:			[c-string!]
 			]
 			CFRelease: "CFRelease" [
-				cf			[int-ptr!]
+				cf				[int-ptr!]
 			]
 		]
 	]
@@ -1117,6 +1122,16 @@ usb-device: context [
 		pNode: as INTERFACE-INFO-NODE! context
 		print-line "close"
 		;close
+	]
+
+	close-interface: func [
+		pNode					[INTERFACE-INFO-NODE!]
+	][
+		if pNode/hDev <> 0 [
+			;CFRelease as int-ptr! pNode/hDev
+			IOHIDDeviceClose as int-ptr! pNode/hDev
+			pNode/hDev: 0
+		]
 	]
 
 	init: does [
