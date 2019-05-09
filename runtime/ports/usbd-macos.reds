@@ -490,7 +490,7 @@ usb-device: context [
 			pNode/inst: LocationID
 			pNode/vid: vid
 			pNode/pid: pid
-			enum-children pNode/interface-entry service
+			enum-children pNode/interface-entry service LocationID
 			IOObjectRelease service
 			dlink/append device-list as list-entry! pNode
 		]
@@ -501,6 +501,7 @@ usb-device: context [
 	enum-children: func [
 		list				[list-entry!]
 		service				[int-ptr!]
+		location-id			[integer!]
 		/local
 			iter			[integer!]
 			path			[byte-ptr!]
@@ -510,7 +511,6 @@ usb-device: context [
 			score			[integer!]
 			kr				[integer!]
 			itf-ser			[int-ptr!]
-			LocationID		[integer!]
 			actual-num		[integer!]
 			this			[this!]
 			itf				[IOUSBInterfaceInterface]
@@ -553,9 +553,6 @@ usb-device: context [
 			this: as this! interface
 			itf: as IOUSBInterfaceInterface this/vtbl
 			;either 0 <> itf/USBInterfaceOpen this [print-line "busy"][print-line "not busy"]
-			LocationID: 0
-			kr: itf/GetLocationID this :LocationID
-			if kr <> 0 [IOObjectRelease itf-ser continue]
 			kr: itf/GetInterfaceNumber this :actual-num
 			if kr <> 0 [IOObjectRelease itf-ser continue]
 
@@ -563,10 +560,9 @@ usb-device: context [
 			if pNode = null [IOObjectRelease itf-ser continue]
 			set-memory as byte-ptr! pNode null-byte size? INTERFACE-INFO-NODE!
 			pNode/interface-num: actual-num
-			pNode/inst: LocationID
 			pNode/path: as c-string! allocate path-len + 1
 			copy-memory as byte-ptr! pNode/path path path-len + 1
-			if hid-device? pNode [
+			if hid-device? pNode location-id [
 				dlink/append list as list-entry! pNode
 				IOObjectRelease itf-ser
 				continue
@@ -672,6 +668,7 @@ usb-device: context [
 
 	hid-device?: func [
 		pNode				[INTERFACE-INFO-NODE!]
+		location-id			[integer!]
 		return:				[logic!]
 		/local
 			dict			[integer!]
@@ -731,7 +728,7 @@ usb-device: context [
 			if kr <> 0 [IOObjectRelease service continue]
 			get-int-from-cfnumber as int-ptr! ref :LocationID
 			if ref <> 0 [IOObjectRelease as int-ptr! ref]
-			if LocationID <> pNode/inst [IOObjectRelease service continue]
+			if LocationID <> location-id [IOObjectRelease service continue]
 			unless hid-path-contain? as c-string! path pNode/path [
 				IOObjectRelease service continue
 			]
@@ -1012,7 +1009,7 @@ usb-device: context [
 			CFRelease hDev
 			return USB-ERROR-PATH
 		]
-
+		print-line "ok"
 		pNode/hDev: as integer! hDev
 		USB-ERROR-OK
 	]
