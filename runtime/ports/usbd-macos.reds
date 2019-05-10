@@ -317,13 +317,6 @@ usb-device: context [
 				options			[integer!]
 				return:			[integer!]
 			]
-			IOHIDDeviceRegisterInputReportCallback: "IOHIDDeviceRegisterInputReportCallback" [
-				device			[int-ptr!]
-				report			[byte-ptr!]
-				reportlength	[integer!]
-				callback		[int-ptr!]  ;--Pointer to a callback method of type IOHIDReportCallback.
-				context			[int-ptr!]
-			]
 			IOHIDDeviceRegisterRemovalCallback: "IOHIDDeviceRegisterRemovalCallback" [
 				device			[int-ptr!]
 				callback		[int-ptr!]
@@ -335,6 +328,17 @@ usb-device: context [
 				id				[integer!]
 				report			[byte-ptr!]
 				reportlength	[integer!]
+				timeout			[float64!]
+				callback		[int-ptr!]
+				context			[int-ptr!]
+				return:			[integer!]
+			]
+			IOHIDDeviceGetReportWithCallback: "IOHIDDeviceGetReportWithCallback" [
+				device			[int-ptr!]
+				type			[integer!]
+				id				[integer!]
+				report			[byte-ptr!]
+				reportlength	[int-ptr!]
 				timeout			[float64!]
 				callback		[int-ptr!]
 				context			[int-ptr!]
@@ -1096,11 +1100,6 @@ usb-device: context [
 		]
 		pNode/hDev: as integer! hDev
 
-		IOHIDDeviceRegisterInputReportCallback
-			hDev pNode/input-buffer pNode/input-size
-			as int-ptr! :hid-input-report-callback
-			as int-ptr! pNode
-
 		IOHIDDeviceRegisterRemovalCallback
 			hDev
 			as int-ptr! :hid-device-removal-callback
@@ -1108,23 +1107,6 @@ usb-device: context [
 
 		print-line "ok"
 		USB-ERROR-OK
-	]
-
-	hid-input-report-callback: func [
-		[cdecl]
-		context					[int-ptr!]
-		result					[integer!]
-		sender					[int-ptr!]
-		report_type				[integer!]
-		report_id				[integer!]
-		report					[byte-ptr!]
-		report_length			[integer!]
-		/local
-			pNode				[INTERFACE-INFO-NODE!]
-	][
-		pNode: as INTERFACE-INFO-NODE! context
-		print-line "input"
-		;input
 	]
 
 	hid-device-removal-callback: func [
