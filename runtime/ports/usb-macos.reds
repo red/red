@@ -94,7 +94,7 @@ usb: context [
 		print-line "write"
 		hDev: iodata/dev/interface/hDev
 		fflags: EV_ADD or EV_ENABLE or EV_CLEAR
-		EV_SET(:evalue hDev EVFILT_USER fflags 0 NULL NULL)
+		EV_SET(evalue hDev EVFILT_USER fflags 0 NULL NULL)
 		poll/_modify g-poller :evalue 1
 		switch TYPE_OF(data) [
 			TYPE_BINARY [
@@ -106,7 +106,7 @@ usb: context [
 			default [0]
 		]
 
-		iodata/code: IOCP_OP_WRITE
+		iodata/code: SOCK_OP_WRITE
 		n: 0
 		if 0 <> usb-device/write-data iodata/dev/interface buf len :n as int-ptr! :write-callback 0 as int-ptr! iodata [
 			exit
