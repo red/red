@@ -470,6 +470,7 @@ interpreter: context [
 		function?: any [routine? TYPE_OF(native) = TYPE_FUNCTION]
 		fname:	   as red-word! pc - 1
 		args:	   null
+		ref-array: null
 
 		either function? [
 			fun: as red-function! native
@@ -486,6 +487,7 @@ interpreter: context [
 				blk/header: TYPE_BLOCK
 				blk/head:	0
 				blk/node:	args
+				blk/extra:	0
 			][
 				native/args: args
 			]
@@ -625,7 +627,7 @@ interpreter: context [
 			]
 		]
 		unless function? [
-			system/stack/top: ref-array					;-- reset native stack to our custom arguments frame
+			unless null? ref-array [system/stack/top: ref-array] ;-- reset native stack to our custom arguments frame
 			if TYPE_OF(native) = TYPE_NATIVE [push no]	;-- avoid 2nd type-checking for natives.
 			call: as function! [] native/code			;-- direct call for actions/natives
 			call
@@ -790,7 +792,7 @@ interpreter: context [
 				]
 				stack/mark-interp-func name
 				pc: eval-arguments as red-native! value pc end path slot
-				value: saved				
+				value: saved
 				_function/call as red-function! value ctx
 				either sub? [stack/unwind][stack/unwind-last]
 				#if debug? = yes [
