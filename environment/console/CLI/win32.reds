@@ -143,6 +143,9 @@ screenbuf-info!: alias struct! [	;-- size? screenbuf-info! = 22
 			info 			[integer!]
 			return: 		[integer!]
 		]
+		GetConsoleWindow: "GetConsoleWindow" [
+			return:			[int-ptr!]
+		]
 	]
 ]
 
