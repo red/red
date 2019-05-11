@@ -262,37 +262,6 @@ redc: context [
 		no
 	]
 	
-	split-tokens: has [args unescape len s e][
-		args: system/script/args
-		
-		unescape: to-paren [
-			if odd? len: offset? s e [len: len - 1]
-			e: skip e negate len / 2
-			e: remove/part s e
-		]
-		parse/all args: copy args [						;-- preprocess escape chars
-			any [
-				s: {'"} thru {"'} e: (s/1: #"{" e/-1: #"}")
-				| s: #"'" [to #"'" e: (s/1: #"{" e/1: #"}") | to end]
-				| s: some #"\" e: {"} unescape :e
-				  thru #"\" s: any #"\" e: {"} unescape :e
-				| skip
-			]
-		]
-		remove system/options/args: collect [			;-- remove first entry
-			parse/all args [							;-- tokenize and collect
-				some [[
-					some #"^"" s: to #"^"" e: (keep copy/part s e) some #"^""
-					| #"{" s: to #"}" e: (keep copy/part s e) skip
-					| s: [
-						to #" "  e: (keep copy/part s e)
-						| to end e: (if s <> e [keep copy/part s e]) skip]
-					] any #" "
-				]
-			]
-		]
-	]
-	
 	fetch-cmdline: has [cmd buffer size][
 		either Windows? [
 			cmd: GetCommandLineW
@@ -301,9 +270,8 @@ redc: context [
 			insert/dup buffer null size + 1
 
 			WideCharToMultiByte 65001 0 cmd -1 buffer size 0 0 ;-- CP_UTF8
-			while [find " ^@" last buffer][remove back tail buffer]
-			system/script/args: buffer
-			split-tokens
+			while [null = last buffer][take/last buffer]
+			system/options/args: remove split-tokens system/script/args: buffer
 		][
 		
 		]
@@ -320,24 +288,18 @@ redc: context [
 	]
 	
 	form-args: func [file /local args delim pos pos2 flag][
-		args: make string! 32
-
-		foreach arg pos: find system/options/args file [
-			case [
-				find arg #" " [
-					delim: pick {'"} to logic! find arg #"^""
-					repend args [delim arg delim]
-				]
-				find arg #"^"" [
-					repend args [#"'" arg #"'"]
-				]
-				'else [
-					append args arg
-				]
+		;-- see PR #3870 on details
+		either Windows? [
+			args: find system/script/args file
+			if args/-1 = #"^"" [args: back args]
+			args: copy args
+		][
+			args: make string! 32
+			foreach arg pos: find system/options/args file [
+				repend args [{'}  replace/all copy arg {'} {'\''}  {' }]
 			]
-			append args #" "
+			take/last args
 		]
-		remove back tail args
 		all [
 			pos2: find system/options/args flag: "--catch"
 			positive? offset? pos2 pos
@@ -662,22 +624,28 @@ redc: context [
 		]
 	]
 	
-	parse-tokens: func [cmds [string!] /local ws list s e token store][
-		ws: charset " ^/^M^-"
-		list: make block! 10
-		store: [
-			unless empty? token: trim copy/part s e [append list token]
-			s: e
+	;-- it's a Windows-only function, since on POSIX OSes arguments are initially a block
+	split-tokens: func [args /local ws s e -split-mode- switch-mode arg-end][
+		ws: charset " ^-" 								;-- according to MSDN "Parsing C++ Command-Line Arguments" article
+		-split-mode-: tail [end skip] 					;-- dynamic (optionally failing) rule for whitespace behavior
+		switch-mode: does [-split-mode-: skip head -split-mode- length? -split-mode-]
+		collect [
+			arg-end: has [s' e'] [
+				unless same? s': s e': e [ 				;-- empty argument check
+					;-- remove heading and trailing quotes (if any), even if it results in an empty arg
+					if s/1 = #"^"" [s': next s]
+					if all [e/-1 = #"^""  not same? e s'] [e': back e]
+					keep copy/part s' e'
+				]
+			]
+			parse/all s: args [							;-- tokenize and collect
+				some [e:
+					#"^"" (switch-mode)
+				|	-split-mode- some ws (arg-end) s:
+				|	skip
+				] e: (arg-end)
+			]
 		]
-		parse/all cmds [
-			s: any [
-				e: some ws (do store)
-				| {"} thru {"} e: (do store)
-				| "[" thru "]" e: (do store)
-				| skip
-			] e: (do store)
-		]
-		list
 	]
 
 	parse-options: func [
@@ -689,7 +657,7 @@ redc: context [
 			if encap? [fetch-cmdline]					;-- Fetch real command-line in UTF8 format
 			args: any [system/options/args system/script/args ""] ;-- ssa for quick-test.r
 		]	
-		unless block? args [args: parse-tokens args]
+		unless block? args [args: split-tokens args]
 		
 		target: default-target
 		opts: make system-dialect/options-class [
