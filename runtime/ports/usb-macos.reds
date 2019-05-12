@@ -72,9 +72,37 @@ usb: context [
 		/local
 			iodata	[USB-DATA!]
 			size	[integer!]
+			evalue	[kevent! value]
+			hDev	[integer!]
+			fflags	[integer!]
 			n		[integer!]
 	][
+		iodata: as USB-DATA! get-port-data red-port
+		if null? iodata/buffer [
+			if iodata/dev/interface/hType = DRIVER-TYPE-WINUSB [
+				size: iodata/dev/interface/interrupt-in-size
+				iodata/buffer: allocate size
+				iodata/buflen: size
+			]
+			if iodata/dev/interface/hType = DRIVER-TYPE-HIDUSB [
+				iodata/buffer: iodata/dev/interface/input-buffer
+				iodata/buflen: iodata/dev/interface/input-size
+			]
+		]
+		print-line "read"
+		hDev: iodata/dev/interface/hDev
+		fflags: EV_ADD or EV_ENABLE or EV_CLEAR
+		EV_SET(evalue hDev EVFILT_USER fflags 0 NULL NULL)
+		poll/_modify g-poller :evalue 1
 
+		iodata/code: SOCK_OP_READ
+		;dump-hex iodata/buffer
+		n: 0
+		if 0 <> usb-device/read-data iodata/dev/interface iodata/buffer iodata/buflen :n as int-ptr! :write-callback -1 as int-ptr! iodata [
+			exit
+		]
+
+		probe "usb read OK"
 	]
 
 	write: func [
@@ -108,7 +136,7 @@ usb: context [
 
 		iodata/code: SOCK_OP_WRITE
 		n: 0
-		if 0 <> usb-device/write-data iodata/dev/interface buf len :n as int-ptr! :write-callback 0 as int-ptr! iodata [
+		if 0 <> usb-device/write-data iodata/dev/interface buf len :n as int-ptr! :write-callback -1 as int-ptr! iodata [
 			exit
 		]
 

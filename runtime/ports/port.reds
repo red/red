@@ -33,8 +33,8 @@ g-poller: as int-ptr! 0
 	#include %socket-posix.reds
 	#case [
 		any [OS = 'macOS OS = 'FreeBSD][
-			#include %poller-kqueue.reds
 			#include %usb-macos.reds
+			#include %poller-kqueue.reds
 		]
 		any [OS = 'Linux OS = 'Android][
 			#include %poller-epoll.reds

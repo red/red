@@ -23,7 +23,7 @@ usb-device: context [
 	#define kIOHIDDevice						"IOHIDDevice"
 	#define kCFNumberSInt8Type					1
 	#define kCFNumberSInt32Type					3
-	#define kCFAllocatorDefault					null
+	;#define kCFAllocatorDefault					null
 	#define kCFStringEncodingASCII				0600h
 	;#define kCFStringEncodingUTF8				08000100h
 	#define kUSBProductName						"USB Product Name"
@@ -51,13 +51,70 @@ usb-device: context [
 	#define kIOHIDReportTypeFeature				2
 	#define kIOHIDReportTypeCount				3
 
+	#define pthread_t int-ptr!
+
+	pthread_cond_t: alias struct! [
+		__sig		[integer!]
+		opaque1		[integer!]	;opaque size =24
+		opaque2		[integer!]
+		opaque3		[integer!]
+		opaque4		[integer!]
+		opaque5		[integer!]
+		opaque6		[integer!]
+	]
+
+	pthread_mutex_t: alias struct! [
+		__sig		[integer!]
+		opaque1		[integer!]	;opaque size =40
+		opaque2		[integer!]
+		opaque3		[integer!]
+		opaque4		[integer!]
+		opaque5		[integer!]
+		opaque6		[integer!]
+		opaque7		[integer!]
+		opaque8		[integer!]
+		opaque9		[integer!]
+		opaque10	[integer!]
+	]
+	pthread_barrier_t: alias struct! [
+		mutex		[pthread_mutex_t value]
+		cond		[pthread_cond_t value]
+		count		[integer!]
+		trip_count	[integer!]
+	]
+
+	BARRIER-THREAD!: alias struct! [
+		thread					[pthread_t]
+		mutex					[pthread_mutex_t value]   ;pthread_mutex_t is int
+		condition				[pthread_cond_t value]
+		barrier					[pthread_barrier_t value]
+		shutdown_barrier		[pthread_barrier_t value]
+		shutdown_thread			[integer!]
+		read-run-loop			[int-ptr!]
+		read-run-loop-mode		[int-ptr!]
+		read-source				[int-ptr!]
+	]
+
+	CFRunLoopSourceContext: alias struct! [
+		version 			[integer!]
+		info 				[int-ptr!]
+		retain				[int-ptr!]
+		release 			[int-ptr!]
+		copyDescription		[int-ptr!]
+		equal				[int-ptr!]
+		hash 				[int-ptr!]
+		schedule 			[int-ptr!]
+		cancel 				[int-ptr!]
+		perform 			[int-ptr!]
+	]
+
 	this!: alias struct! [vtbl [integer!]]
 
 	UUID!: alias struct! [
-		data1	[integer!]
-		data2	[integer!]
-		data3	[integer!]
-		data4	[integer!]
+		data1		[integer!]
+		data2		[integer!]
+		data3		[integer!]
+		data4		[integer!]
 	]
 
 	QueryInterface!: alias function! [
@@ -221,6 +278,70 @@ usb-device: context [
 	]
 
 	#import [
+		LIBC-file cdecl [
+				pthread_mutex_init: "pthread_mutex_init" [
+					mutex 		[int-ptr!]
+					attr 		[int-ptr!]
+					return: 	[integer!]
+				]
+				pthread_cond_init: "pthread_cond_init" [
+					cond 		[int-ptr!]
+					attr 		[int-ptr!]
+					return: 	[integer!]
+				]
+				pthread_mutex_destroy: "pthread_mutex_destroy" [
+					mutex 		[int-ptr!]
+					return: 	[integer!]
+				]
+				pthread_cond_destroy: "pthread_cond_destroy" [
+					cond 		[int-ptr!]
+					return: 	[integer!]
+				]
+				pthread_mutex_lock: "pthread_mutex_lock" [
+					mutex 		[int-ptr!]
+					return: 	[integer!]
+				]
+				pthread_mutex_unlock: "pthread_mutex_unlock" [
+					mutex 		[int-ptr!]
+					return: 	[integer!]
+				]
+				pthread_cond_broadcast: "pthread_cond_broadcast" [
+					cond 		[int-ptr!]
+					return: 	[integer!]
+				]
+				pthread_cond_wait: "pthread_cond_wait" [
+					cond		[int-ptr!]
+					mutex		[int-ptr!]
+					return: 	[integer!]
+				]
+				pthread_create: "pthread_create" [
+					restrict 	[int-ptr!]
+					restrict1 	[int-ptr!]
+					restrict2 	[int-ptr!]
+					restrict3 	[int-ptr!]
+					return: 	[integer!]
+				]
+				pthread_cond_signal: "pthread_cond_signal" [
+					pthread_cond 	[int-ptr!]
+					return: 		[integer!]
+				]
+				gettimeofday: "gettimeofday" [
+					tv		[timeval!]
+					tz		[integer!]			;-- obsolete
+					return: [integer!]			;-- 0: success -1: failure
+				]
+				pthread_cond_timedwait: "pthread_cond_timedwait" [
+					restrict	[int-ptr!]
+					restrict1 	[int-ptr!]
+					restrict3 	[timespec!]
+					return: 	[integer!]
+				]
+				pthread_join: "pthread_join" [
+					thread 		[pthread_t]
+					retval 		[int-ptr!]
+					return: 	[integer!]
+				]
+		]
 		"/System/Library/Frameworks/IOKit.framework/IOKit" cdecl [
 			IOServiceMatching: "IOServiceMatching" [
 				name			[c-string!]
@@ -267,7 +388,7 @@ usb-device: context [
 			IORegistryEntryCreateCFProperty: "IORegistryEntryCreateCFProperty" [
 				entry			[int-ptr!]
 				key				[c-string!]
-				allocator		[integer!]
+				allocator		[int-ptr!]
 				options			[integer!]
 				return:			[int-ptr!]
 			]
@@ -322,6 +443,13 @@ usb-device: context [
 				callback		[int-ptr!]
 				context			[int-ptr!]
 			]
+			IOHIDDeviceRegisterInputReportCallback: "IOHIDDeviceRegisterInputReportCallback" [
+				device			[int-ptr!]
+				report			[byte-ptr!]
+				reportlength	[integer!]
+				callback		[int-ptr!]  ;--Pointer to a callback method of type IOHIDReportCallback.
+				context			[int-ptr!]
+			]
 			IOHIDDeviceSetReportWithCallback: "IOHIDDeviceSetReportWithCallback" [
 				device			[int-ptr!]
 				type			[integer!]
@@ -344,9 +472,28 @@ usb-device: context [
 				context			[int-ptr!]
 				return:			[integer!]
 			]
+			IOHIDDeviceSetReport: "IOHIDDeviceSetReport" [
+				device			[int-ptr!]
+				type			[integer!]
+				id				[integer!]
+				report			[byte-ptr!]
+				reportlength	[integer!]
+				return:			[integer!]
+			]
+			IOHIDDeviceScheduleWithRunLoop: "IOHIDDeviceScheduleWithRunLoop" [
+				device 			[int-ptr!]
+				runloop 		[int-ptr!]
+				runLoopMode		[int-ptr!]
+			]
+			IOHIDDeviceUnscheduleFromRunLoop: "IOHIDDeviceUnscheduleFromRunLoop" [
+				device 			[int-ptr!]
+				runloop			[int-ptr!]
+				runLoopMode		[int-ptr!]
+			]
 		]
 		"/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation" cdecl [
-			kCFAllocatorDefault: "kCFAllocatorDefault" [integer!]
+			kCFRunLoopDefaultMode: "kCFRunLoopDefaultMode" [int-ptr!]
+			kCFAllocatorDefault: "kCFAllocatorDefault" [int-ptr!]
 			kIOMasterPortDefault: "kIOMasterPortDefault" [integer!]
 			CFStringCreateWithCString: "CFStringCreateWithCString" [
 				allocator		[int-ptr!]
@@ -425,6 +572,38 @@ usb-device: context [
 			CFRelease: "CFRelease" [
 				cf				[int-ptr!]
 			]
+			CFRunLoopGetCurrent: "CFRunLoopGetCurrent" [
+				return:			[int-ptr!]
+			]
+			CFRunLoopGetMain: "CFRunLoopGetMain" [
+				return:			[int-ptr!]
+			]
+			CFRunLoopStop: "CFRunLoopStop" [
+				rl				[int-ptr!]
+			]
+			CFRunLoopSourceCreate: "CFRunLoopSourceCreate" [
+				allocator		[int-ptr!]
+				order			[integer!]
+				context			[int-ptr!]
+				return:			[int-ptr!]
+			]
+			CFRunLoopAddSource: "CFRunLoopAddSource" [
+				rl				[int-ptr!]
+				source			[int-ptr!]
+				mode			[int-ptr!]
+			]
+			CFRunLoopSourceSignal: "CFRunLoopSourceSignal" [
+				source			[int-ptr!]
+			]
+			CFRunLoopWakeUp: "CFRunLoopWakeUp" [
+				rl				[int-ptr!]
+			]
+			CFRunLoopRunInMode: "CFRunLoopRunInMode" [
+				mode 						[int-ptr!]
+				seconds 					[float!]
+				returnAfterSourceHandled	[logic!]
+				return: 					[integer!]
+			]
 		]
 	]
 
@@ -435,6 +614,53 @@ usb-device: context [
 	kIOUSBInterfaceInterfaceID550: as int-ptr! 0
 	kIOHIDDeviceTypeID: as int-ptr! 0
 	kIOHIDDeviceDeviceInterfaceID: as int-ptr! 0
+
+	pthread_barrier_init: func [
+		barrier 	[pthread_barrier_t]
+		count 		[integer!]
+		return: 	[integer!]
+	][
+		if count = 0 [
+			return -1
+		]
+		if (pthread_mutex_init :barrier/mutex null) < 0 [
+			return -1
+		]
+		if (pthread_cond_init :barrier/cond null) < 0 [
+			pthread_mutex_destroy :barrier/mutex
+			return -1
+		]
+		barrier/trip_count: count
+		barrier/count: 0
+		0
+	]
+
+	pthread_barrier_destroy: func [
+		barrier 		[pthread_barrier_t]
+		return: 		[integer!]
+	][
+		pthread_cond_destroy :barrier/cond
+		pthread_mutex_destroy :barrier/mutex
+		0
+	]
+
+	pthread_barrier_wait: function [
+		barrier			[pthread_barrier_t]
+		return: 		[integer!]
+	][
+		pthread_mutex_lock :barrier/mutex
+		barrier/count: barrier/count + 1
+		either barrier/count >= barrier/trip_count [
+			barrier/count: 0
+			pthread_cond_broadcast :barrier/cond
+			pthread_mutex_unlock :barrier/mutex
+			return 1
+		][
+			pthread_cond_wait :barrier/cond :barrier/mutex
+			pthread_mutex_unlock :barrier/mutex
+			return 0
+		]
+	]
 
 	enum-usb-device: func [
 		device-list			[list-entry!]
@@ -1065,6 +1291,7 @@ usb-device: context [
 			input-size			[integer!]
 			output-size			[integer!]
 			kr					[integer!]
+			barrier				[BARRIER-THREAD!]
 	][
 		entry: IORegistryEntryFromPath as int-ptr! kIOMasterPortDefault pNode/path
 		if entry = null [
@@ -1100,13 +1327,119 @@ usb-device: context [
 		]
 		pNode/hDev: as integer! hDev
 
+		barrier: as BARRIER-THREAD! allocate size? BARRIER-THREAD!
+		if barrier = null [
+			CFRelease hDev
+			pNode/hDev: 0
+			return USB-ERROR-INIT
+		]
+		set-memory as byte-ptr! barrier null-byte size? BARRIER-THREAD!
+		pthread_mutex_init :barrier/mutex null
+		pthread_cond_init :barrier/condition null
+		pthread_barrier_init as pthread_barrier_t :barrier/barrier 2
+		pthread_barrier_init as pthread_barrier_t :barrier/shutdown_barrier 2
+		pNode/pdata: as int-ptr! barrier
+
+		IOHIDDeviceRegisterInputReportCallback
+			hDev pNode/input-buffer pNode/input-size
+			as int-ptr! :hid-input-report-callback
+			as int-ptr! pNode
+
 		IOHIDDeviceRegisterRemovalCallback
 			hDev
 			as int-ptr! :hid-device-removal-callback
 			as int-ptr! pNode
 
+		barrier/read-run-loop-mode: kCFRunLoopDefaultMode
+		;--start the read thread
+		pthread_create :barrier/thread
+			null
+			as int-ptr! :hid-read-thread
+			as int-ptr! pNode
+		;--wait here for the read thread to be initialized
+		pthread_barrier_wait as pthread_barrier_t :barrier/barrier
+
 		print-line "ok"
 		USB-ERROR-OK
+	]
+
+	hid-read-thread: func [
+		[cdecl]
+		param					[int-ptr!]
+		return:					[int-ptr!]
+		/local
+			pNode				[INTERFACE-INFO-NODE!]
+			barrier				[BARRIER-THREAD!]
+			code				[integer!]
+			ctx					[CFRunLoopSourceContext value]
+			a					[integer!]
+	][
+		pNode: as INTERFACE-INFO-NODE! param
+		barrier: as BARRIER-THREAD! pNode/pdata
+		IOHIDDeviceScheduleWithRunLoop
+			as int-ptr! pNode/hDev
+			CFRunLoopGetCurrent
+			barrier/read-run-loop-mode
+
+		set-memory as byte-ptr! ctx null-byte size? CFRunLoopSourceContext
+		ctx/version: 0
+		ctx/info: param
+		ctx/perform: as int-ptr! :perform-signal-callback
+		barrier/read-source: CFRunLoopSourceCreate kCFAllocatorDefault 0 as int-ptr! :ctx
+		CFRunLoopAddSource CFRunLoopGetCurrent barrier/read-source barrier/read-run-loop-mode
+
+		barrier/read-run-loop: CFRunLoopGetCurrent
+		;--notify the main thread that the read thread is up and running
+		a: pthread_barrier_wait as pthread_barrier_t :barrier/barrier
+
+		while [all [barrier/shutdown_thread = 0 pNode/disconnected = 0]] [
+			code: CFRunLoopRunInMode barrier/read-run-loop-mode 1000.0 false
+			;--return if the device has been disconnected
+			if code = 1 [
+				pNode/disconnected: 1
+				break
+			]
+			;--break if the run loop returns finished or stopped
+			if all [code <> 3  code <> 4] [
+				barrier/shutdown_thread: 1
+				break
+			]
+		]
+		pthread_mutex_lock :barrier/mutex
+		pthread_cond_broadcast :barrier/condition
+		pthread_mutex_unlock :barrier/mutex
+		pthread_barrier_wait as pthread_barrier_t :barrier/shutdown_barrier
+
+		null
+	]
+
+	perform-signal-callback: func [
+		[cdecl]
+		context					[int-ptr!]
+		/local
+			pNode				[INTERFACE-INFO-NODE!]
+			barrier				[BARRIER-THREAD!]
+	][
+		pNode: as INTERFACE-INFO-NODE! context
+		barrier: as BARRIER-THREAD! pNode/pdata
+		CFRunLoopStop barrier/read-run-loop
+	]
+
+	hid-input-report-callback: func [
+		[cdecl]
+		context					[int-ptr!]
+		result					[integer!]
+		sender					[int-ptr!]
+		report_type				[integer!]
+		report_id				[integer!]
+		report					[byte-ptr!]
+		report_length			[integer!]
+		/local
+			pNode				[INTERFACE-INFO-NODE!]
+	][
+		pNode: as INTERFACE-INFO-NODE! context
+		;print-line "input"
+
 	]
 
 	hid-device-removal-callback: func [
@@ -1124,8 +1457,47 @@ usb-device: context [
 
 	close-interface: func [
 		pNode					[INTERFACE-INFO-NODE!]
+		/local
+			barrier				[BARRIER-THREAD!]
 	][
 		if pNode/hDev <> 0 [
+			barrier: as BARRIER-THREAD! pNode/pdata
+			if pNode/disconnected = 0 [
+				IOHIDDeviceRegisterInputReportCallback
+					as int-ptr! pNode/hDev
+					pNode/input-buffer
+					pNode/input-size
+					null
+					as int-ptr! pNode
+				IOHIDDeviceRegisterRemovalCallback
+					as int-ptr! pNode/hDev
+					null
+					as int-ptr! pNode
+				IOHIDDeviceUnscheduleFromRunLoop
+					as int-ptr! pNode/hDev
+					barrier/read-run-loop
+					barrier/read-run-loop-mode
+				IOHIDDeviceScheduleWithRunLoop
+					as int-ptr! pNode/hDev
+					CFRunLoopGetMain
+					kCFRunLoopDefaultMode
+			]
+
+			barrier/shutdown_thread: 1
+			CFRunLoopSourceSignal barrier/read-source
+			CFRunLoopWakeUp	barrier/read-run-loop
+
+			pthread_barrier_wait as pthread_barrier_t :barrier/shutdown_barrier
+			pthread_join barrier/thread null
+
+			pthread_barrier_destroy as pthread_barrier_t :barrier/shutdown_barrier
+			pthread_barrier_destroy as pthread_barrier_t :barrier/barrier
+			pthread_cond_destroy :barrier/condition
+			pthread_mutex_destroy :barrier/mutex
+
+			CFRelease barrier/read-run-loop-mode
+			CFRelease barrier/read-source
+
 			;CFRelease as int-ptr! pNode/hDev
 			IOHIDDeviceClose as int-ptr! pNode/hDev
 			pNode/hDev: 0
@@ -1142,6 +1514,7 @@ usb-device: context [
 		data					[int-ptr!]
 		return:					[integer!]
 		/local
+			evalue				[kevent! value]
 			ret					[integer!]
 	][
 		case [
@@ -1149,15 +1522,21 @@ usb-device: context [
 
 			]
 			pNode/hType = DRIVER-TYPE-HIDUSB [
-				ret: IOHIDDeviceSetReportWithCallback
+				print-line pNode/hDev
+				print-line kIOHIDReportTypeOutput
+				print-line buflen
+				ret: IOHIDDeviceSetReport
 					as int-ptr! pNode/hDev
 					kIOHIDReportTypeOutput
 					as integer! buf/1
 					buf + 1
 					buflen - 1
-					as float64! timeout
-					callback
-					data
+					;as float64! timeout
+					;callback
+					;data
+				print-line ret
+				EV_SET(evalue pNode/hDev EVFILT_USER 0 NOTE_TRIGGER NULL data)
+				poll/_modify g-poller :evalue 1
 				return ret
 			]
 			true [
@@ -1165,6 +1544,23 @@ usb-device: context [
 			]
 		]
 		-1
+	]
+
+	read-data: func [
+		pNode					[INTERFACE-INFO-NODE!]
+		buf						[byte-ptr!]
+		buflen					[integer!]
+		plen					[int-ptr!]
+		callback				[int-ptr!]
+		timeout					[integer!]
+		data					[int-ptr!]
+		return:					[integer!]
+		/local
+			evalue				[kevent! value]
+	][
+		EV_SET(evalue pNode/hDev EVFILT_USER 0 NOTE_TRIGGER NULL data)
+		poll/_modify g-poller :evalue 1
+		0
 	]
 
 	init: does [
