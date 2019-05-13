@@ -179,7 +179,10 @@ get-widget-handle: func [
 			if no-face? hWnd [
 				id: 0
 				GetWindowThreadProcessId hWnd :id
-				if id <> process-id [return as handle! -1]
+				if any [
+					id <> process-id
+					hWnd = GetConsoleWindow				;-- see #1290
+				] [ return as handle! -1 ]
 
 				p: as int-ptr! GetWindowLong hWnd 0		;-- try 3
 				either null? p [

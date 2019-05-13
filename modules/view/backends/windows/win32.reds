@@ -1045,6 +1045,9 @@ XFORM!: alias struct! [
 			str			[byte-ptr!]
 			return:		[integer!]
 		]
+		GetConsoleWindow: "GetConsoleWindow" [
+			return:			[int-ptr!]
+		]
 	]
 	"User32.dll" stdcall [
 		TrackMouseEvent: "TrackMouseEvent" [
