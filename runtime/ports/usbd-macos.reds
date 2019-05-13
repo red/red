@@ -12,6 +12,60 @@ Red/System [
 
 #include %usbd-common.reds
 
+#define pthread_t int-ptr!
+
+pthread_cond_t: alias struct! [
+	__sig		[integer!]
+	opaque1		[integer!]	;opaque size =24
+	opaque2		[integer!]
+	opaque3		[integer!]
+	opaque4		[integer!]
+	opaque5		[integer!]
+	opaque6		[integer!]
+]
+
+pthread_mutex_t: alias struct! [
+	__sig		[integer!]
+	opaque1		[integer!]	;opaque size =40
+	opaque2		[integer!]
+	opaque3		[integer!]
+	opaque4		[integer!]
+	opaque5		[integer!]
+	opaque6		[integer!]
+	opaque7		[integer!]
+	opaque8		[integer!]
+	opaque9		[integer!]
+	opaque10	[integer!]
+]
+pthread_barrier_t: alias struct! [
+	mutex		[pthread_mutex_t value]
+	cond		[pthread_cond_t value]
+	count		[integer!]
+	trip_count	[integer!]
+]
+
+BARRIER-THREAD!: alias struct! [
+	thread					[pthread_t]
+	mutex					[pthread_mutex_t value]   ;pthread_mutex_t is int
+	condition				[pthread_cond_t value]
+	barrier					[pthread_barrier_t value]
+	shutdown_barrier		[pthread_barrier_t value]
+	shutdown_thread			[integer!]
+	read-run-loop			[int-ptr!]
+	read-run-loop-mode		[int-ptr!]
+	read-source				[int-ptr!]
+	input-list				[list-entry! value]
+	input-trigger?			[logic!]
+	input-udata				[int-ptr!]
+]
+
+INPUT-REPORT!: alias struct! [
+	entry		[list-entry! value]
+	type		[integer!]
+	id			[integer!]
+	length		[integer!]
+]
+
 usb-device: context [
 
 	device-list: declare list-entry!
@@ -51,49 +105,7 @@ usb-device: context [
 	#define kIOHIDReportTypeFeature				2
 	#define kIOHIDReportTypeCount				3
 
-	#define pthread_t int-ptr!
 
-	pthread_cond_t: alias struct! [
-		__sig		[integer!]
-		opaque1		[integer!]	;opaque size =24
-		opaque2		[integer!]
-		opaque3		[integer!]
-		opaque4		[integer!]
-		opaque5		[integer!]
-		opaque6		[integer!]
-	]
-
-	pthread_mutex_t: alias struct! [
-		__sig		[integer!]
-		opaque1		[integer!]	;opaque size =40
-		opaque2		[integer!]
-		opaque3		[integer!]
-		opaque4		[integer!]
-		opaque5		[integer!]
-		opaque6		[integer!]
-		opaque7		[integer!]
-		opaque8		[integer!]
-		opaque9		[integer!]
-		opaque10	[integer!]
-	]
-	pthread_barrier_t: alias struct! [
-		mutex		[pthread_mutex_t value]
-		cond		[pthread_cond_t value]
-		count		[integer!]
-		trip_count	[integer!]
-	]
-
-	BARRIER-THREAD!: alias struct! [
-		thread					[pthread_t]
-		mutex					[pthread_mutex_t value]   ;pthread_mutex_t is int
-		condition				[pthread_cond_t value]
-		barrier					[pthread_barrier_t value]
-		shutdown_barrier		[pthread_barrier_t value]
-		shutdown_thread			[integer!]
-		read-run-loop			[int-ptr!]
-		read-run-loop-mode		[int-ptr!]
-		read-source				[int-ptr!]
-	]
 
 	CFRunLoopSourceContext: alias struct! [
 		version 			[integer!]
@@ -1334,6 +1346,8 @@ usb-device: context [
 			return USB-ERROR-INIT
 		]
 		set-memory as byte-ptr! barrier null-byte size? BARRIER-THREAD!
+		dlink/init barrier/input-list
+		barrier/input-trigger?: false
 		pthread_mutex_init :barrier/mutex null
 		pthread_cond_init :barrier/condition null
 		pthread_barrier_init as pthread_barrier_t :barrier/barrier 2
@@ -1436,10 +1450,29 @@ usb-device: context [
 		report_length			[integer!]
 		/local
 			pNode				[INTERFACE-INFO-NODE!]
+			barrier				[BARRIER-THREAD!]
+			input				[INPUT-REPORT!]
+			buffer				[byte-ptr!]
 	][
 		pNode: as INTERFACE-INFO-NODE! context
+		barrier: as BARRIER-THREAD! pNode/pdata
 		;print-line "input"
+		input: as INPUT-REPORT! allocate (size? INPUT-REPORT!) + report_length
+		if input = null [exit]
+		input/type: report_type
+		input/id: report_id
+		input/length: report_length
+		copy-memory as byte-ptr! (input + 1) report report_length
 
+		pthread_mutex_lock :barrier/mutex
+		dlink/append barrier/input-list as list-entry! input
+		
+		if barrier/input-trigger? [
+			barrier/input-trigger?: false
+			poll/trigger-user g-poller pNode/hDev barrier/input-udata
+		]
+		pthread_cond_signal :barrier/condition
+		pthread_mutex_unlock :barrier/mutex
 	]
 
 	hid-device-removal-callback: func [
@@ -1449,16 +1482,21 @@ usb-device: context [
 		sender					[int-ptr!]
 		/local
 			pNode				[INTERFACE-INFO-NODE!]
+			barrier				[BARRIER-THREAD!]
 	][
 		pNode: as INTERFACE-INFO-NODE! context
-		print-line "close"
-		;close
+		barrier: as BARRIER-THREAD! pNode/pdata
+		pNode/disconnected: 1
+		CFRunLoopStop barrier/read-run-loop
 	]
 
 	close-interface: func [
 		pNode					[INTERFACE-INFO-NODE!]
 		/local
 			barrier				[BARRIER-THREAD!]
+			list				[list-entry!]
+			entry				[list-entry!]
+			p					[list-entry!]
 	][
 		if pNode/hDev <> 0 [
 			barrier: as BARRIER-THREAD! pNode/pdata
@@ -1482,6 +1520,16 @@ usb-device: context [
 					CFRunLoopGetMain
 					kCFRunLoopDefaultMode
 			]
+			print-line "close interface"
+			list: barrier/input-list
+			entry: list/next
+			while [entry <> list][
+				p: entry/next
+				free as byte-ptr! entry
+				entry: p
+			]
+			list/next: list
+			list/prev: list
 
 			barrier/shutdown_thread: 1
 			CFRunLoopSourceSignal barrier/read-source
@@ -1551,15 +1599,26 @@ usb-device: context [
 		buf						[byte-ptr!]
 		buflen					[integer!]
 		plen					[int-ptr!]
-		callback				[int-ptr!]
-		timeout					[integer!]
 		data					[int-ptr!]
+		timeout					[integer!]
 		return:					[integer!]
 		/local
-			evalue				[kevent! value]
+			barrier				[BARRIER-THREAD!]
+			list				[list-entry!]
+			len					[integer!]
 	][
-		EV_SET(evalue pNode/hDev EVFILT_USER 0 NOTE_TRIGGER NULL data)
-		poll/_modify g-poller :evalue 1
+		barrier: as BARRIER-THREAD! pNode/pdata
+		pthread_mutex_lock :barrier/mutex
+		list: barrier/input-list
+		len: dlink/length? list
+		if len = 0 [
+			barrier/input-trigger?: true
+			barrier/input-udata: data
+		]
+		pthread_mutex_unlock :barrier/mutex
+		if len <> 0 [
+			poll/trigger-user g-poller pNode/hDev data
+		]
 		0
 	]
 

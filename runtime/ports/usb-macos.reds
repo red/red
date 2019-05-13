@@ -72,9 +72,7 @@ usb: context [
 		/local
 			iodata	[USB-DATA!]
 			size	[integer!]
-			evalue	[kevent! value]
 			hDev	[integer!]
-			fflags	[integer!]
 			n		[integer!]
 	][
 		iodata: as USB-DATA! get-port-data red-port
@@ -91,14 +89,12 @@ usb: context [
 		]
 		print-line "read"
 		hDev: iodata/dev/interface/hDev
-		fflags: EV_ADD or EV_ENABLE or EV_CLEAR
-		EV_SET(evalue hDev EVFILT_USER fflags 0 NULL NULL)
-		poll/_modify g-poller :evalue 1
+		poll/add-user g-poller hDev as int-ptr! iodata
 
 		iodata/code: SOCK_OP_READ
 		;dump-hex iodata/buffer
 		n: 0
-		if 0 <> usb-device/read-data iodata/dev/interface iodata/buffer iodata/buflen :n as int-ptr! :write-callback -1 as int-ptr! iodata [
+		if 0 <> usb-device/read-data iodata/dev/interface iodata/buffer iodata/buflen :n as int-ptr! iodata 0 [
 			exit
 		]
 
@@ -113,17 +109,13 @@ usb: context [
 			buf		[byte-ptr!]
 			len		[integer!]
 			iodata	[USB-DATA!]
-			evalue	[kevent! value]
 			hDev	[integer!]
-			fflags	[integer!]
 			n		[integer!]
 	][
 		iodata: as USB-DATA! get-port-data red-port
 		print-line "write"
 		hDev: iodata/dev/interface/hDev
-		fflags: EV_ADD or EV_ENABLE or EV_CLEAR
-		EV_SET(evalue hDev EVFILT_USER fflags 0 NULL NULL)
-		poll/_modify g-poller :evalue 1
+		poll/add-user g-poller hDev as int-ptr! iodata
 		switch TYPE_OF(data) [
 			TYPE_BINARY [
 				bin: as red-binary! data

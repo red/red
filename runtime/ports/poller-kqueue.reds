@@ -114,6 +114,31 @@ probe ["add sock: " sock]
 		_modify ref :e1 n
 	]
 
+	add-user: func [
+		ref			[int-ptr!]
+		fd			[integer!]
+		data		[int-ptr!]
+		/local
+			e		[kevent! value]
+			ev		[integer!]
+	][
+		ev: EV_ADD or EV_ENABLE or EV_CLEAR or EV_ONESHOT
+		EV_SET(e fd EVFILT_USER ev 0 NULL data)
+		_modify ref :e 1
+	]
+
+	trigger-user: func [
+		ref			[int-ptr!]
+		fd			[integer!]
+		data		[int-ptr!]
+		/local
+			e		[kevent! value]
+			ev		[integer!]
+	][
+		EV_SET(e fd EVFILT_USER 0 NOTE_TRIGGER NULL data)
+		_modify ref :e 1
+	]
+
 	remove: func [
 		ref		[int-ptr!]
 		sock	[integer!]
@@ -207,6 +232,10 @@ probe ["remove sock: " sock]
 			comm	[DATA-COMMON!]
 			sym		[integer!]
 			usbdata	[USB-DATA!]
+			pNode				[INTERFACE-INFO-NODE!]
+			barrier				[BARRIER-THREAD!]
+			list				[list-entry!]
+			input-report		[INPUT-REPORT!]
 	][
 		#if debug? = yes [print-line "poll/wait"]
 
@@ -319,10 +348,19 @@ probe ["remove sock: " sock]
 						]
 						SOCK_OP_CONN	[type: IO_EVT_CONNECT]
 						SOCK_OP_READ	[
+							pNode: usbdata/dev/interface
+							barrier: as BARRIER-THREAD! pNode/pdata
+							list: barrier/input-list
 							print-line "usb len:"
-							print-line usbdata/buflen
-							;dump-hex usbdata/buffer
-							bin: binary/load usbdata/buffer usbdata/buflen
+							either 0 = dlink/length? list [
+								print-line 0
+								bin: binary/load null 0
+							][
+								input-report: as INPUT-REPORT! dlink/remove-head list
+								print-line input-report/length
+								bin: binary/load as byte-ptr! (input-report + 1) input-report/length
+								free as byte-ptr! input-report
+							]
 							copy-cell as cell! bin (object/get-values red-port) + port/field-data
 							stack/pop 1
 							type: IO_EVT_READ
