@@ -53,18 +53,21 @@ dlink: context [
 		"remove an entry next to the node entry"
 		list	[list-entry!]
 		entry	[list-entry!]
+		return:	[list-entry!]
 	][
 		remove-entry list entry/prev entry/next
 	]
 
 	remove-head: func [
 		list	[list-entry!]
+		return:	[list-entry!]
 	][
 		remove-entry list list list/next/next
 	]
 
 	remove-last: func [
 		list	[list-entry!]
+		return:	[list-entry!]
 	][
 		remove-entry list list/prev/prev list
 	]
@@ -74,12 +77,14 @@ dlink: context [
 		list	[list-entry!]
 		entry1	[list-entry!]
 		entry2	[list-entry!]
+		return:	[list-entry!]
 		/local
-			p	[byte-ptr!]
+			p	[list-entry!]
 	][
-		p: as byte-ptr! entry1/next
+		p: entry1/next
 		entry1/next: entry2
 		entry2/prev: entry1
+		p
 	]
 
 	clear: func [
@@ -106,5 +111,21 @@ dlink: context [
 			list/next = list
 			list/prev = list
 		][true][false]
+	]
+	length?: func [
+		list	[list-entry!]
+		return:	[integer!]
+		/local
+			entry	[list-entry!]
+			p		[list-entry!]
+			len		[integer!]
+	][
+		len: 0
+		entry: list/next
+		while [entry <> list][
+			len: len + 1
+			entry: entry/next
+		]
+		len
 	]
 ]
