@@ -81,7 +81,8 @@ INTERFACE-INFO-NODE!: alias struct! [
 	;-- macos
 	collections			[HID-COLLECTION!]
 	col-count			[integer!]
-	pdata				[int-ptr!]
+	read-thread			[int-ptr!]
+	write-thread		[int-ptr!]
 ]
 
 DEVICE-INFO-NODE!: alias struct! [
@@ -152,8 +153,11 @@ free-interface-info-node: func [
 	if pNode/input-buffer <> null [
 		free pNode/input-buffer
 	]
-	if pNode/pdata <> null [
-		free as byte-ptr! pNode/pdata
+	if pNode/read-thread <> null [
+		free as byte-ptr! pNode/read-thread
+	]
+	if pNode/write-thread <> null [
+		free as byte-ptr! pNode/write-thread
 	]
 	;-- close interface before free the node
 	;close-interface pNode

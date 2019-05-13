@@ -51,19 +51,18 @@ BARRIER-THREAD!: alias struct! [
 	barrier					[pthread_barrier_t value]
 	shutdown_barrier		[pthread_barrier_t value]
 	shutdown_thread			[integer!]
-	read-run-loop			[int-ptr!]
-	read-run-loop-mode		[int-ptr!]
-	read-source				[int-ptr!]
-	input-list				[list-entry! value]
-	input-trigger?			[logic!]
-	input-udata				[int-ptr!]
+	run-loop				[int-ptr!]
+	run-loop-mode			[int-ptr!]
+	source					[int-ptr!]
+	list					[list-entry! value]		;-- for input report list
+	trigger?				[logic!]				;-- trigger kevent
+	udata					[int-ptr!]				;-- for kqueue udata
 ]
 
 INPUT-REPORT!: alias struct! [
 	entry		[list-entry! value]
 	type		[integer!]
-	id			[integer!]
-	length		[integer!]
+	length		[integer!]							;-- data[0] = report id
 ]
 
 usb-device: context [
@@ -1303,7 +1302,7 @@ usb-device: context [
 			input-size			[integer!]
 			output-size			[integer!]
 			kr					[integer!]
-			barrier				[BARRIER-THREAD!]
+			rthread				[BARRIER-THREAD!]
 	][
 		entry: IORegistryEntryFromPath as int-ptr! kIOMasterPortDefault pNode/path
 		if entry = null [
@@ -1339,20 +1338,20 @@ usb-device: context [
 		]
 		pNode/hDev: as integer! hDev
 
-		barrier: as BARRIER-THREAD! allocate size? BARRIER-THREAD!
-		if barrier = null [
+		rthread: as BARRIER-THREAD! allocate size? BARRIER-THREAD!
+		if rthread = null [
 			CFRelease hDev
 			pNode/hDev: 0
 			return USB-ERROR-INIT
 		]
-		set-memory as byte-ptr! barrier null-byte size? BARRIER-THREAD!
-		dlink/init barrier/input-list
-		barrier/input-trigger?: false
-		pthread_mutex_init :barrier/mutex null
-		pthread_cond_init :barrier/condition null
-		pthread_barrier_init as pthread_barrier_t :barrier/barrier 2
-		pthread_barrier_init as pthread_barrier_t :barrier/shutdown_barrier 2
-		pNode/pdata: as int-ptr! barrier
+		set-memory as byte-ptr! rthread null-byte size? BARRIER-THREAD!
+		dlink/init rthread/list
+		rthread/trigger?: false
+		pthread_mutex_init :rthread/mutex null
+		pthread_cond_init :rthread/condition null
+		pthread_barrier_init as pthread_barrier_t :rthread/barrier 2
+		pthread_barrier_init as pthread_barrier_t :rthread/shutdown_barrier 2
+		pNode/read-thread: as int-ptr! rthread
 
 		IOHIDDeviceRegisterInputReportCallback
 			hDev pNode/input-buffer pNode/input-size
@@ -1364,14 +1363,14 @@ usb-device: context [
 			as int-ptr! :hid-device-removal-callback
 			as int-ptr! pNode
 
-		barrier/read-run-loop-mode: kCFRunLoopDefaultMode
+		rthread/run-loop-mode: kCFRunLoopDefaultMode
 		;--start the read thread
-		pthread_create :barrier/thread
+		pthread_create :rthread/thread
 			null
 			as int-ptr! :hid-read-thread
 			as int-ptr! pNode
 		;--wait here for the read thread to be initialized
-		pthread_barrier_wait as pthread_barrier_t :barrier/barrier
+		pthread_barrier_wait as pthread_barrier_t :rthread/barrier
 
 		print-line "ok"
 		USB-ERROR-OK
@@ -1383,31 +1382,31 @@ usb-device: context [
 		return:					[int-ptr!]
 		/local
 			pNode				[INTERFACE-INFO-NODE!]
-			barrier				[BARRIER-THREAD!]
+			rthread				[BARRIER-THREAD!]
 			code				[integer!]
 			ctx					[CFRunLoopSourceContext value]
 			a					[integer!]
 	][
 		pNode: as INTERFACE-INFO-NODE! param
-		barrier: as BARRIER-THREAD! pNode/pdata
+		rthread: as BARRIER-THREAD! pNode/read-thread
 		IOHIDDeviceScheduleWithRunLoop
 			as int-ptr! pNode/hDev
 			CFRunLoopGetCurrent
-			barrier/read-run-loop-mode
+			rthread/run-loop-mode
 
 		set-memory as byte-ptr! ctx null-byte size? CFRunLoopSourceContext
 		ctx/version: 0
 		ctx/info: param
 		ctx/perform: as int-ptr! :perform-signal-callback
-		barrier/read-source: CFRunLoopSourceCreate kCFAllocatorDefault 0 as int-ptr! :ctx
-		CFRunLoopAddSource CFRunLoopGetCurrent barrier/read-source barrier/read-run-loop-mode
+		rthread/source: CFRunLoopSourceCreate kCFAllocatorDefault 0 as int-ptr! :ctx
+		CFRunLoopAddSource CFRunLoopGetCurrent rthread/source rthread/run-loop-mode
 
-		barrier/read-run-loop: CFRunLoopGetCurrent
+		rthread/run-loop: CFRunLoopGetCurrent
 		;--notify the main thread that the read thread is up and running
-		a: pthread_barrier_wait as pthread_barrier_t :barrier/barrier
+		a: pthread_barrier_wait as pthread_barrier_t :rthread/barrier
 
-		while [all [barrier/shutdown_thread = 0 pNode/disconnected = 0]] [
-			code: CFRunLoopRunInMode barrier/read-run-loop-mode 1000.0 false
+		while [all [rthread/shutdown_thread = 0 pNode/disconnected = 0]] [
+			code: CFRunLoopRunInMode rthread/run-loop-mode 1000.0 false
 			;--return if the device has been disconnected
 			if code = 1 [
 				pNode/disconnected: 1
@@ -1415,14 +1414,14 @@ usb-device: context [
 			]
 			;--break if the run loop returns finished or stopped
 			if all [code <> 3  code <> 4] [
-				barrier/shutdown_thread: 1
+				rthread/shutdown_thread: 1
 				break
 			]
 		]
-		pthread_mutex_lock :barrier/mutex
-		pthread_cond_broadcast :barrier/condition
-		pthread_mutex_unlock :barrier/mutex
-		pthread_barrier_wait as pthread_barrier_t :barrier/shutdown_barrier
+		pthread_mutex_lock :rthread/mutex
+		pthread_cond_broadcast :rthread/condition
+		pthread_mutex_unlock :rthread/mutex
+		pthread_barrier_wait as pthread_barrier_t :rthread/shutdown_barrier
 
 		null
 	]
@@ -1432,11 +1431,11 @@ usb-device: context [
 		context					[int-ptr!]
 		/local
 			pNode				[INTERFACE-INFO-NODE!]
-			barrier				[BARRIER-THREAD!]
+			rthread				[BARRIER-THREAD!]
 	][
 		pNode: as INTERFACE-INFO-NODE! context
-		barrier: as BARRIER-THREAD! pNode/pdata
-		CFRunLoopStop barrier/read-run-loop
+		rthread: as BARRIER-THREAD! pNode/read-thread
+		CFRunLoopStop rthread/run-loop
 	]
 
 	hid-input-report-callback: func [
@@ -1450,29 +1449,30 @@ usb-device: context [
 		report_length			[integer!]
 		/local
 			pNode				[INTERFACE-INFO-NODE!]
-			barrier				[BARRIER-THREAD!]
+			rthread				[BARRIER-THREAD!]
 			input				[INPUT-REPORT!]
 			buffer				[byte-ptr!]
 	][
 		pNode: as INTERFACE-INFO-NODE! context
-		barrier: as BARRIER-THREAD! pNode/pdata
+		rthread: as BARRIER-THREAD! pNode/read-thread
 		;print-line "input"
-		input: as INPUT-REPORT! allocate (size? INPUT-REPORT!) + report_length
+		input: as INPUT-REPORT! allocate (size? INPUT-REPORT!) + report_length + 1
 		if input = null [exit]
+		buffer: as byte-ptr! (input + 1)
+		buffer/1: as byte! report_id
 		input/type: report_type
-		input/id: report_id
-		input/length: report_length
-		copy-memory as byte-ptr! (input + 1) report report_length
+		input/length: report_length + 1
+		copy-memory buffer + 1 report report_length
 
-		pthread_mutex_lock :barrier/mutex
-		dlink/append barrier/input-list as list-entry! input
+		pthread_mutex_lock :rthread/mutex
+		dlink/append rthread/list as list-entry! input
 		
-		if barrier/input-trigger? [
-			barrier/input-trigger?: false
-			poll/trigger-user g-poller pNode/hDev barrier/input-udata
+		if rthread/trigger? [
+			rthread/trigger?: false
+			poll/trigger-user g-poller pNode/hDev rthread/udata
 		]
-		pthread_cond_signal :barrier/condition
-		pthread_mutex_unlock :barrier/mutex
+		pthread_cond_signal :rthread/condition
+		pthread_mutex_unlock :rthread/mutex
 	]
 
 	hid-device-removal-callback: func [
@@ -1482,24 +1482,24 @@ usb-device: context [
 		sender					[int-ptr!]
 		/local
 			pNode				[INTERFACE-INFO-NODE!]
-			barrier				[BARRIER-THREAD!]
+			rthread				[BARRIER-THREAD!]
 	][
 		pNode: as INTERFACE-INFO-NODE! context
-		barrier: as BARRIER-THREAD! pNode/pdata
+		rthread: as BARRIER-THREAD! pNode/read-thread
 		pNode/disconnected: 1
-		CFRunLoopStop barrier/read-run-loop
+		CFRunLoopStop rthread/run-loop
 	]
 
 	close-interface: func [
 		pNode					[INTERFACE-INFO-NODE!]
 		/local
-			barrier				[BARRIER-THREAD!]
+			rthread				[BARRIER-THREAD!]
 			list				[list-entry!]
 			entry				[list-entry!]
 			p					[list-entry!]
 	][
 		if pNode/hDev <> 0 [
-			barrier: as BARRIER-THREAD! pNode/pdata
+			rthread: as BARRIER-THREAD! pNode/read-thread
 			if pNode/disconnected = 0 [
 				IOHIDDeviceRegisterInputReportCallback
 					as int-ptr! pNode/hDev
@@ -1513,15 +1513,15 @@ usb-device: context [
 					as int-ptr! pNode
 				IOHIDDeviceUnscheduleFromRunLoop
 					as int-ptr! pNode/hDev
-					barrier/read-run-loop
-					barrier/read-run-loop-mode
+					rthread/run-loop
+					rthread/run-loop-mode
 				IOHIDDeviceScheduleWithRunLoop
 					as int-ptr! pNode/hDev
 					CFRunLoopGetMain
 					kCFRunLoopDefaultMode
 			]
 			print-line "close interface"
-			list: barrier/input-list
+			list: rthread/list
 			entry: list/next
 			while [entry <> list][
 				p: entry/next
@@ -1531,20 +1531,20 @@ usb-device: context [
 			list/next: list
 			list/prev: list
 
-			barrier/shutdown_thread: 1
-			CFRunLoopSourceSignal barrier/read-source
-			CFRunLoopWakeUp	barrier/read-run-loop
+			rthread/shutdown_thread: 1
+			CFRunLoopSourceSignal rthread/source
+			CFRunLoopWakeUp	rthread/run-loop
 
-			pthread_barrier_wait as pthread_barrier_t :barrier/shutdown_barrier
-			pthread_join barrier/thread null
+			pthread_barrier_wait as pthread_barrier_t :rthread/shutdown_barrier
+			pthread_join rthread/thread null
 
-			pthread_barrier_destroy as pthread_barrier_t :barrier/shutdown_barrier
-			pthread_barrier_destroy as pthread_barrier_t :barrier/barrier
-			pthread_cond_destroy :barrier/condition
-			pthread_mutex_destroy :barrier/mutex
+			pthread_barrier_destroy as pthread_barrier_t :rthread/shutdown_barrier
+			pthread_barrier_destroy as pthread_barrier_t :rthread/barrier
+			pthread_cond_destroy :rthread/condition
+			pthread_mutex_destroy :rthread/mutex
 
-			CFRelease barrier/read-run-loop-mode
-			CFRelease barrier/read-source
+			CFRelease rthread/run-loop-mode
+			CFRelease rthread/source
 
 			;CFRelease as int-ptr! pNode/hDev
 			IOHIDDeviceClose as int-ptr! pNode/hDev
@@ -1603,19 +1603,19 @@ usb-device: context [
 		timeout					[integer!]
 		return:					[integer!]
 		/local
-			barrier				[BARRIER-THREAD!]
+			rthread				[BARRIER-THREAD!]
 			list				[list-entry!]
 			len					[integer!]
 	][
-		barrier: as BARRIER-THREAD! pNode/pdata
-		pthread_mutex_lock :barrier/mutex
-		list: barrier/input-list
+		rthread: as BARRIER-THREAD! pNode/read-thread
+		pthread_mutex_lock :rthread/mutex
+		list: rthread/list
 		len: dlink/length? list
 		if len = 0 [
-			barrier/input-trigger?: true
-			barrier/input-udata: data
+			rthread/trigger?: true
+			rthread/udata: data
 		]
-		pthread_mutex_unlock :barrier/mutex
+		pthread_mutex_unlock :rthread/mutex
 		if len <> 0 [
 			poll/trigger-user g-poller pNode/hDev data
 		]
