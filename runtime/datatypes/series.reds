@@ -95,6 +95,7 @@ _series: context [
 		only?   [logic!]
 		return: [red-value!]
 		/local
+			int	 [red-integer!]
 			char [red-char!]
 			vec  [red-vector!]
 			s	 [series!]
@@ -128,6 +129,11 @@ _series: context [
 						TYPE_VECTOR [
 							vec: as red-vector! ser
 							copy-cell vector/get-value idx unit vec/type as cell! ser
+						]
+						TYPE_BINARY [
+							int: as red-integer! ser
+							int/header: TYPE_INTEGER
+							int/value: string/get-char idx unit
 						]
 						default [								;@@ ANY-STRING!
 							char: as red-char! ser
