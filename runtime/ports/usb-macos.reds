@@ -94,7 +94,7 @@ usb: context [
 		iodata/code: SOCK_OP_READ
 		;dump-hex iodata/buffer
 		n: 0
-		if 0 <> usb-device/read-data iodata/dev/interface iodata/buffer iodata/buflen :n as int-ptr! iodata 0 [
+		if 0 <> usb-device/read-data iodata/dev/interface iodata/buffer iodata/buflen :n as int-ptr! iodata -1 [
 			exit
 		]
 
@@ -128,31 +128,11 @@ usb: context [
 
 		iodata/code: SOCK_OP_WRITE
 		n: 0
-		if 0 <> usb-device/write-data iodata/dev/interface buf len :n as int-ptr! :write-callback -1 as int-ptr! iodata [
+		if 0 <> usb-device/write-data iodata/dev/interface buf len :n as int-ptr! iodata -1 [
 			exit
 		]
 
 		probe "usb Write OK"
-	]
-
-	write-callback: func [
-		[cdecl]
-		context					[int-ptr!]
-		result					[integer!]
-		sender					[int-ptr!]
-		report_type				[integer!]
-		report_id				[integer!]
-		report					[byte-ptr!]
-		report_length			[integer!]
-		/local
-			iodata				[USB-DATA!]
-			evalue				[kevent! value]
-			hDev				[integer!]
-	][
-		iodata: as USB-DATA! context
-		hDev: iodata/dev/interface/hDev
-		EV_SET(evalue hDev EVFILT_USER 0 NOTE_TRIGGER NULL NULL)
-		poll/_modify g-poller :evalue 1
 	]
 
 	close: func [

@@ -46,7 +46,7 @@ pthread_barrier_t: alias struct! [
 
 BARRIER-THREAD!: alias struct! [
 	thread					[pthread_t]
-	mutex					[pthread_mutex_t value]   ;pthread_mutex_t is int
+	mutex					[pthread_mutex_t value]		; pthread_mutex_t is int
 	condition				[pthread_cond_t value]
 	barrier					[pthread_barrier_t value]
 	shutdown_barrier		[pthread_barrier_t value]
@@ -54,15 +54,24 @@ BARRIER-THREAD!: alias struct! [
 	run-loop				[int-ptr!]
 	run-loop-mode			[int-ptr!]
 	source					[int-ptr!]
-	list					[list-entry! value]		;-- for input report list
-	trigger?				[logic!]				;-- trigger kevent
-	udata					[int-ptr!]				;-- for kqueue udata
+	list					[list-entry! value]			;-- for input report list
+	trigger?				[logic!]					;-- trigger kevent
+	udata					[int-ptr!]					;-- for kqueue udata
+]
+
+WRITE-THREAD!: alias struct! [
+	thread					[pthread_t]
+	mutex					[pthread_mutex_t value]		; pthread_mutex_t is int
+	trigger?				[logic!]					;-- trigger kevent
+	buffer					[byte-ptr!]					;-- data
+	buflen					[integer!]
+	udata					[int-ptr!]					;-- for kqueue udata
 ]
 
 INPUT-REPORT!: alias struct! [
 	entry		[list-entry! value]
 	type		[integer!]
-	length		[integer!]							;-- data[0] = report id
+	length		[integer!]								;-- data[0] = report id
 ]
 
 usb-device: context [
@@ -1557,12 +1566,11 @@ usb-device: context [
 		buf						[byte-ptr!]
 		buflen					[integer!]
 		plen					[int-ptr!]
-		callback				[int-ptr!]
-		timeout					[integer!]
 		data					[int-ptr!]
+		timeout					[integer!]
 		return:					[integer!]
 		/local
-			evalue				[kevent! value]
+			wthread				[WRITE-THREAD!]
 			ret					[integer!]
 	][
 		case [
@@ -1570,28 +1578,57 @@ usb-device: context [
 
 			]
 			pNode/hType = DRIVER-TYPE-HIDUSB [
-				print-line pNode/hDev
-				print-line kIOHIDReportTypeOutput
-				print-line buflen
-				ret: IOHIDDeviceSetReport
-					as int-ptr! pNode/hDev
-					kIOHIDReportTypeOutput
-					as integer! buf/1
-					buf + 1
-					buflen - 1
-					;as float64! timeout
-					;callback
-					;data
-				print-line ret
-				EV_SET(evalue pNode/hDev EVFILT_USER 0 NOTE_TRIGGER NULL data)
-				poll/_modify g-poller :evalue 1
-				return ret
+				wthread: as WRITE-THREAD! allocate size?  WRITE-THREAD!
+				if wthread = null [return -1]
+				set-memory as byte-ptr! wthread null-byte size? WRITE-THREAD!
+				pNode/write-thread: as int-ptr! wthread
+				wthread/udata: data
+				wthread/buffer: buf
+				wthread/buflen: buflen
+				pthread_create :wthread/thread
+					null
+					as int-ptr! :hid-write-thread
+					as int-ptr! pNode
+				return 0
 			]
 			true [
 				return -1
 			]
 		]
 		-1
+	]
+
+	hid-write-thread: func [
+		[cdecl]
+		param					[int-ptr!]
+		return:					[int-ptr!]
+		/local
+			pNode				[INTERFACE-INFO-NODE!]
+			wthread				[WRITE-THREAD!]
+			buffer				[byte-ptr!]
+			p					[byte-ptr!]
+			len					[integer!]
+	][
+		pNode: as INTERFACE-INFO-NODE! param
+		wthread: as WRITE-THREAD! pNode/write-thread
+		buffer: wthread/buffer
+		either buffer/1 = null-byte [
+			p: buffer + 1
+			len: wthread/buflen - 1
+		][
+			p: buffer
+			len: wthread/buflen
+		]
+		IOHIDDeviceSetReport
+			as int-ptr! pNode/hDev
+			kIOHIDReportTypeOutput
+			as integer! buffer/1
+			p
+			len
+		poll/trigger-user g-poller pNode/hDev wthread/udata
+		free as byte-ptr! wthread
+		pNode/write-thread: null
+		null
 	]
 
 	read-data: func [
