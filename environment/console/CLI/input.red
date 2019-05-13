@@ -376,6 +376,7 @@ unless system/console [
 			history/head: block/rs-length? history		;@@ set history list to tail (temporary)
 				
 			get-window-size
+			if null? saved-line [init-globals]
 			unless zero? string/rs-abs-length? saved-line [
 				head: saved-line/head
 				saved-line/head: 0
