@@ -23,7 +23,8 @@ Red/System [
 			][
 				lit?: all [								;-- is a literal argument expected?
 					TYPE_OF(pc) = TYPE_WORD
-					literal-first-arg? as red-native! value
+					literal-first-arg? as red-native! value ;-- left operand is a literal argument
+					next + 1 < end						;-- disable infix detection if no right operand #3840
 				]
 				either lit? [
 					#if debug? = yes [if verbose > 0 [log "infix detected!"]]
