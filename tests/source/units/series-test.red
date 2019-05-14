@@ -1795,4 +1795,12 @@ Red [
 		--assert "123456" = copy/part b -10
 ===end-group===
 
+===start-group=== "random"
+	--test-- "ser-random-1"
+		res: random/only #{AA}
+		--assert integer? res
+		--assert 170 = res
+
+===end-group===
+
 ~~~end-file~~~
