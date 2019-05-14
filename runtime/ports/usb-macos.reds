@@ -64,7 +64,7 @@ usb: context [
 			copy-cell as cell! red-port as cell! :data/cell
 			data/dev: node
 			store-port-data as int-ptr! data red-port
-			data/fd: node/interface/hDev
+			data/fd: node/interface/inst
 		]
 	]
 	read: func [
@@ -72,7 +72,6 @@ usb: context [
 		/local
 			iodata	[USB-DATA!]
 			size	[integer!]
-			hDev	[integer!]
 			n		[integer!]
 	][
 		iodata: as USB-DATA! get-port-data red-port
@@ -88,8 +87,7 @@ usb: context [
 			]
 		]
 		print-line "read"
-		hDev: iodata/dev/interface/hDev
-		poll/add-user g-poller hDev as int-ptr! iodata
+		poll/add-user g-poller iodata/dev/interface/inst as int-ptr! iodata
 
 		iodata/code: SOCK_OP_READ
 		;dump-hex iodata/buffer
@@ -109,13 +107,11 @@ usb: context [
 			buf		[byte-ptr!]
 			len		[integer!]
 			iodata	[USB-DATA!]
-			hDev	[integer!]
 			n		[integer!]
 	][
 		iodata: as USB-DATA! get-port-data red-port
 		print-line "write"
-		hDev: iodata/dev/interface/hDev
-		poll/add-user g-poller hDev as int-ptr! iodata
+		poll/add-user g-poller iodata/dev/interface/inst as int-ptr! iodata
 		switch TYPE_OF(data) [
 			TYPE_BINARY [
 				bin: as red-binary! data

@@ -62,6 +62,7 @@ BARRIER-THREAD!: alias struct! [
 WRITE-THREAD!: alias struct! [
 	thread					[pthread_t]
 	mutex					[pthread_mutex_t value]		; pthread_mutex_t is int
+	interface				[integer!]
 	trigger?				[logic!]					;-- trigger kevent
 	buffer					[byte-ptr!]					;-- data
 	buflen					[integer!]
@@ -113,7 +114,10 @@ usb-device: context [
 	#define kIOHIDReportTypeFeature				2
 	#define kIOHIDReportTypeCount				3
 
-
+	USB-DEVICE-ID!: alias struct! [
+		id1					[integer!]
+		id2					[integer!]
+	]
 
 	CFRunLoopSourceContext: alias struct! [
 		version 			[integer!]
@@ -690,6 +694,7 @@ usb-device: context [
 			service			[int-ptr!]
 			path			[byte-ptr!]
 			path-len		[integer!]
+			id				[USB-DEVICE-ID! value]
 			name			[c-string!]
 			serial-num		[c-string!]
 			interface		[integer!]
@@ -725,6 +730,8 @@ usb-device: context [
 			if kr <> 0 [IOObjectRelease service continue]
 			path-len: length? as c-string! path
 			if path-len = 0 [IOObjectRelease service continue]
+			kr: IORegistryEntryGetRegistryEntryID service as int-ptr! :id
+			if kr <> 0 [IOObjectRelease service continue]
 			interface: 0
 			p-itf: as-integer :interface
 			score: 0
@@ -767,7 +774,8 @@ usb-device: context [
 			if serial-num <> null [
 				pNode/serial-num: serial-num
 			]
-			pNode/inst: LocationID
+			pNode/inst: id/id1
+			pNode/inst2: id/id2
 			pNode/vid: vid
 			pNode/pid: pid
 			enum-children pNode/interface-entry service LocationID
@@ -786,6 +794,7 @@ usb-device: context [
 			iter			[integer!]
 			path			[byte-ptr!]
 			path-len		[integer!]
+			id				[USB-DEVICE-ID! value]
 			name			[c-string!]
 			p-itf			[integer!]
 			score			[integer!]
@@ -817,6 +826,8 @@ usb-device: context [
 			if kr <> 0 [IOObjectRelease itf-ser continue]
 			path-len: length? as c-string! path
 			if path-len = 0 [IOObjectRelease itf-ser continue]
+			kr: IORegistryEntryGetRegistryEntryID itf-ser as int-ptr! :id
+			if kr <> 0 [IOObjectRelease itf-ser continue]
 			kr: IOCreatePlugInInterfaceForService
 				itf-ser
 				kIOUSBInterfaceUserClientTypeID
@@ -824,7 +835,7 @@ usb-device: context [
 				:p-itf
 				:score
 			IOObjectRelease itf-ser
-			if any [kr <> 0 zero? p-itf][IOObjectRelease itf-ser continue]
+			if any [kr <> 0 zero? p-itf][continue]
 			this: as this! p-itf
 			itf: as IOUSBInterfaceInterface this/vtbl
 			guid: CFUUIDGetUUIDBytes kIOUSBInterfaceInterfaceID550
@@ -834,17 +845,18 @@ usb-device: context [
 			itf: as IOUSBInterfaceInterface this/vtbl
 			;either 0 <> itf/USBInterfaceOpen this [print-line "busy"][print-line "not busy"]
 			kr: itf/GetInterfaceNumber this :actual-num
-			if kr <> 0 [IOObjectRelease itf-ser continue]
+			if kr <> 0 [continue]
 
 			pNode: as INTERFACE-INFO-NODE! allocate size? INTERFACE-INFO-NODE!
-			if pNode = null [IOObjectRelease itf-ser continue]
+			if pNode = null [continue]
 			set-memory as byte-ptr! pNode null-byte size? INTERFACE-INFO-NODE!
 			pNode/interface-num: actual-num
+			pNode/inst: id/id1
+			pNode/inst2: id/id2
 			pNode/path: as c-string! allocate path-len + 1
 			copy-memory as byte-ptr! pNode/path path path-len + 1
 			if hid-device? pNode location-id [
 				dlink/append list as list-entry! pNode
-				IOObjectRelease itf-ser
 				continue
 			]
 			name: interface-name as c-string! path
@@ -1294,10 +1306,113 @@ usb-device: context [
 		pNode					[INTERFACE-INFO-NODE!]
 		return:					[USB-ERROR!]
 		/local
-			index				[integer!]
-			pipe-id				[integer!]
+			entry				[int-ptr!]
+			p-itf				[integer!]
+			score				[integer!]
+			kr					[integer!]
+			actual-num			[integer!]
+			this				[this!]
+			itf					[IOUSBInterfaceInterface]
+			guid				[UUID! value]
+			interface			[integer!]
+			rthread				[BARRIER-THREAD!]
 	][
+		entry: IORegistryEntryFromPath as int-ptr! kIOMasterPortDefault pNode/path
+		if entry = null [
+			return USB-ERROR-PATH
+		]
+		p-itf: 0 score: 0 interface: 0
+		kr: IOCreatePlugInInterfaceForService
+			entry
+			kIOUSBInterfaceUserClientTypeID
+			kIOCFPlugInInterfaceID
+			:p-itf
+			:score
+		IOObjectRelease entry
+		if any [kr <> 0 zero? p-itf][return USB-ERROR-HANDLE]
+		this: as this! p-itf
+		itf: as IOUSBInterfaceInterface this/vtbl
+		guid: CFUUIDGetUUIDBytes kIOUSBInterfaceInterfaceID550
+		itf/QueryInterface this guid :interface
+		itf/Release this
+		this: as this! interface
+		itf: as IOUSBInterfaceInterface this/vtbl
+		kr: itf/USBInterfaceOpen this
+		if kr <> 0 [return USB-ERROR-OPEN]
+		get-pipo-info pNode this itf
+
+		rthread: as BARRIER-THREAD! allocate size? BARRIER-THREAD!
+		if rthread = null [return USB-ERROR-INIT]
+		set-memory as byte-ptr! rthread null-byte size? BARRIER-THREAD!
+		dlink/init rthread/list
+		rthread/trigger?: false
+		pthread_mutex_init :rthread/mutex null
+		pthread_cond_init :rthread/condition null
+		pthread_barrier_init as pthread_barrier_t :rthread/barrier 2
+		pthread_barrier_init as pthread_barrier_t :rthread/shutdown_barrier 2
+		pNode/read-thread: as int-ptr! rthread
+
 		USB-ERROR-OK
+	]
+
+	get-pipo-info: func [
+		pNode					[INTERFACE-INFO-NODE!]
+		this					[this!]
+		itf						[IOUSBInterfaceInterface]
+		/local
+			num					[integer!]
+			i					[integer!]
+			saved				[int-ptr!]
+			kr					[integer!]
+			dir					[integer!]
+			score				[integer!]
+			type				[integer!]
+			size				[integer!]
+			interval			[integer!]
+	][
+		num: 0
+		kr: itf/GetNumEndpoints this :num
+		if kr <> 0 [exit]
+
+		dir: 0 score: 0 type: 0 size: 0 interval: 0
+		i: 1
+		while [i <= num][
+			saved: system/stack/align
+			push 0
+			kr: itf/GetPipeProperties this i :dir :score :type :size :interval
+			system/stack/top: saved
+			if kr <> 0 [i: i + 1 continue]
+			switch type [
+				kUSBBulk [
+					either dir = 0 [
+						pNode/bulk-out: i
+						pNode/bulk-out-size: size
+						;print-line "bulk out: "
+						;print-line i
+					][
+						pNode/bulk-in: i
+						pNode/bulk-in-size: size
+						;print-line "bulk in: "
+						;print-line i
+					]
+				]
+				kUSBInterrupt [
+					either dir = 0 [
+						pNode/interrupt-out: i
+						pNode/interrupt-out-size: size
+						;print-line "interrupt out: "
+						;print-line i
+					][
+						pNode/interrupt-in: i
+						pNode/interrupt-in-size: size
+						;print-line "interrupt in: "
+						;print-line i
+					]
+				]
+			]
+			itf/ClearPipeStall this i
+			i: i + 1
+		]
 	]
 
 	open-hidusb: func [
@@ -1478,7 +1593,7 @@ usb-device: context [
 		
 		if rthread/trigger? [
 			rthread/trigger?: false
-			poll/trigger-user g-poller pNode/hDev rthread/udata
+			poll/trigger-user g-poller pNode/inst rthread/udata
 		]
 		pthread_cond_signal :rthread/condition
 		pthread_mutex_unlock :rthread/mutex
@@ -1500,6 +1615,30 @@ usb-device: context [
 	]
 
 	close-interface: func [
+		pNode					[INTERFACE-INFO-NODE!]
+	][
+		case [
+			pNode/hType = DRIVER-TYPE-WINUSB [
+
+			]
+			pNode/hType = DRIVER-TYPE-HIDUSB [
+				close-hidusb pNode
+			]
+		]
+	]
+
+	close-winusb: func [
+		pNode					[INTERFACE-INFO-NODE!]
+		/local
+			wthread				[WRITE-THREAD!]
+	][
+		wthread: as WRITE-THREAD! pNode/write-thread
+		;if pNode/disconnected = 0 [
+			;interface
+		;]
+	]
+
+	close-hidusb: func [
 		pNode					[INTERFACE-INFO-NODE!]
 		/local
 			rthread				[BARRIER-THREAD!]
@@ -1625,7 +1764,7 @@ usb-device: context [
 			as integer! buffer/1
 			p
 			len
-		poll/trigger-user g-poller pNode/hDev wthread/udata
+		poll/trigger-user g-poller pNode/inst wthread/udata
 		free as byte-ptr! wthread
 		pNode/write-thread: null
 		null
@@ -1654,7 +1793,7 @@ usb-device: context [
 		]
 		pthread_mutex_unlock :rthread/mutex
 		if len <> 0 [
-			poll/trigger-user g-poller pNode/hDev data
+			poll/trigger-user g-poller pNode/inst data
 		]
 		0
 	]

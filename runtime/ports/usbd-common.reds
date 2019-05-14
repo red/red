@@ -58,6 +58,7 @@ INTERFACE-INFO-NODE!: alias struct! [
 
 	;-- platform
 	inst				[integer!]
+	inst2				[integer!]
 
 	;-- info
 	interface-num		[integer!]
@@ -96,6 +97,7 @@ DEVICE-INFO-NODE!: alias struct! [
 	;-- platform
 	serial-num			[c-string!]
 	inst				[integer!]
+	inst2				[integer!]
 	port				[integer!]
 
 	;-- interface info
