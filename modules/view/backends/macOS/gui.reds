@@ -333,7 +333,7 @@ init: func [
 	objc_msgSend [NSApp sel_getUid "setDelegate:" delegate]
 
 	get-os-version
-	create-main-menu
+	#if type = 'exe [create-main-menu]
 
 	;dlopen "./FScript.framework/FScript" 1
 	;objc_msgSend [
