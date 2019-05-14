@@ -1439,6 +1439,7 @@ usb-device: context [
 			output-size			[integer!]
 			kr					[integer!]
 			rthread				[BARRIER-THREAD!]
+			wthread				[ONESHOT-THREAD!]
 	][
 		entry: IORegistryEntryFromPath as int-ptr! kIOMasterPortDefault pNode/path
 		if entry = null [
@@ -1473,6 +1474,15 @@ usb-device: context [
 			return USB-ERROR-PATH
 		]
 		pNode/hDev: as integer! hDev
+
+		wthread: as ONESHOT-THREAD! allocate size?  ONESHOT-THREAD!
+		if wthread = null [
+			CFRelease hDev
+			pNode/hDev: 0
+			return USB-ERROR-INIT
+		]
+		set-memory as byte-ptr! wthread null-byte size? ONESHOT-THREAD!
+		pNode/write-thread: as int-ptr! wthread
 
 		rthread: as BARRIER-THREAD! allocate size? BARRIER-THREAD!
 		if rthread = null [
@@ -1749,20 +1759,19 @@ usb-device: context [
 		case [
 			pNode/hType = DRIVER-TYPE-WINUSB [
 				wthread: as ONESHOT-THREAD! pNode/write-thread
+				if wthread/thread = null [return -1]
 				wthread/udata: data
 				wthread/buffer: buf
 				wthread/buflen: buflen
 				pthread_create :wthread/thread
 					null
-					as int-ptr! :usb-write-thread
+					as int-ptr! :winusb-write-thread
 					as int-ptr! pNode
 				return 0
 			]
 			pNode/hType = DRIVER-TYPE-HIDUSB [
-				wthread: as ONESHOT-THREAD! allocate size?  ONESHOT-THREAD!
-				if wthread = null [return -1]
-				set-memory as byte-ptr! wthread null-byte size? ONESHOT-THREAD!
-				pNode/write-thread: as int-ptr! wthread
+				wthread: as ONESHOT-THREAD! pNode/write-thread
+				if wthread/thread = null [return -1]
 				wthread/udata: data
 				wthread/buffer: buf
 				wthread/buflen: buflen
@@ -1779,7 +1788,7 @@ usb-device: context [
 		-1
 	]
 
-	usb-write-thread: func [
+	winusb-write-thread: func [
 		[cdecl]
 		param					[int-ptr!]
 		return:					[int-ptr!]
@@ -1796,6 +1805,7 @@ usb-device: context [
 		itf: as IOUSBInterfaceInterface this/vtbl
 		kr: itf/WritePipe this pNode/interrupt-out wthread/buffer wthread/buflen
 		poll/trigger-user g-poller pNode/inst wthread/udata
+		wthread/thread: null
 		null
 	]
 
@@ -1827,8 +1837,7 @@ usb-device: context [
 			p
 			len
 		poll/trigger-user g-poller pNode/inst wthread/udata
-		free as byte-ptr! wthread
-		pNode/write-thread: null
+		wthread/thread: null
 		null
 	]
 
@@ -1840,38 +1849,27 @@ usb-device: context [
 		data					[int-ptr!]
 		timeout					[integer!]
 		return:					[integer!]
+		/local
+			rthread				[ONESHOT-THREAD!]
 	][
 		case [
 			pNode/hType = DRIVER-TYPE-WINUSB [
-				winusb-read-data pNode buf buflen plen data timeout
+				rthread: as ONESHOT-THREAD! pNode/read-thread
+				if rthread/thread = null [return -1]
+				rthread/udata: data
+				rthread/buffer: buf
+				rthread/buflen: buflen
+				pthread_create :rthread/thread
+					null
+					as int-ptr! :winusb-read-thread
+					as int-ptr! pNode
+				return 0
 			]
 			pNode/hType = DRIVER-TYPE-HIDUSB [
 				hid-read-data pNode buf buflen plen data timeout
 			]
 		]
 		0
-	]
-
-	winusb-read-data: func [
-		pNode					[INTERFACE-INFO-NODE!]
-		buf						[byte-ptr!]
-		buflen					[integer!]
-		plen					[int-ptr!]
-		data					[int-ptr!]
-		timeout					[integer!]
-		return:					[integer!]
-		/local
-			rthread				[ONESHOT-THREAD!]
-	][
-		rthread: as ONESHOT-THREAD! pNode/read-thread
-		rthread/udata: data
-		rthread/buffer: buf
-		rthread/buflen: buflen
-		pthread_create :rthread/thread
-			null
-			as int-ptr! :winusb-read-thread
-			as int-ptr! pNode
-		return 0
 	]
 
 	winusb-read-thread: func [
@@ -1898,6 +1896,7 @@ usb-device: context [
 		rthread/actual-len: len
 		free buffer
 		poll/trigger-user g-poller pNode/inst rthread/udata
+		rthread/thread: null
 		null
 	]
 
