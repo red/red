@@ -146,6 +146,10 @@ screenbuf-info!: alias struct! [	;-- size? screenbuf-info! = 22
 		GetConsoleWindow: "GetConsoleWindow" [
 			return:			[int-ptr!]
 		]
+		GetFileType: "GetFileType" [
+			hFile			[int-ptr!]
+			return:			[integer!]
+		]
 	]
 ]
 
@@ -156,6 +160,16 @@ utf-char: allocate 10
 
 #define FIRST_WORD(int) (int and FFFFh)
 #define SECOND_WORD(int) (int >>> 16)
+
+isatty: func [
+	handle	[int-ptr!]
+	return:	[logic!]
+][
+	all [
+		2 = GetFileType handle			;-- FILE_TYPE_CHAR: 2
+		(as-integer handle) and 3 = 3	;-- http://lists.gnu.org/archive/html/bug-gnulib/2009-08/msg00065.html
+	]
+]
 
 stdin-read: func [
 	return:		[integer!]
@@ -318,7 +332,7 @@ init: func [
 	/local
 		mode	[integer!]
 ][
-	console?: null <> GetConsoleWindow
+	console?: isatty as int-ptr! stdin
 
 	if console? [
 		GetConsoleMode stdin :saved-con
