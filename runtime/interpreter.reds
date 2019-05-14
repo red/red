@@ -1010,6 +1010,7 @@ interpreter: context [
 		]
 		
 		if infix? [
+			if pc >= end [fire [TO_ERROR(script no-op-arg) next]]
 			pc: eval-infix op pc end sub?
 			unless prefix? [
 				either sub? [stack/unwind][stack/unwind-last]
