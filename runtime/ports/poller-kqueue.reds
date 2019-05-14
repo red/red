@@ -234,9 +234,6 @@ probe ["remove sock: " sock]
 			usbdata	[USB-DATA!]
 			pNode				[INTERFACE-INFO-NODE!]
 			rthread				[BARRIER-THREAD!]
-			list				[list-entry!]
-			input-report		[INPUT-REPORT!]
-			buf					[byte-ptr!]
 	][
 		#if debug? = yes [print-line "poll/wait"]
 
@@ -351,23 +348,9 @@ probe ["remove sock: " sock]
 						SOCK_OP_READ	[
 							pNode: usbdata/dev/interface
 							rthread: as BARRIER-THREAD! pNode/read-thread
-							list: rthread/list
 							print-line "usb len:"
-							either 0 = dlink/length? list [
-								print-line 0
-								bin: binary/load null 0
-							][
-								input-report: as INPUT-REPORT! dlink/remove-head list
-								buf: as byte-ptr! (input-report + 1)
-								either buf/1 = #"^(00)" [
-									print-line input-report/length - 1
-									bin: binary/load buf + 1 input-report/length - 1
-								][
-									print-line input-report/length
-									bin: binary/load buf input-report/length
-								]
-								free as byte-ptr! input-report
-							]
+							print-line rthread/actual-len
+							bin: binary/load rthread/buffer rthread/actual-len
 							copy-cell as cell! bin (object/get-values red-port) + port/field-data
 							stack/pop 1
 							type: IO_EVT_READ
