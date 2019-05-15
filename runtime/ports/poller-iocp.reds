@@ -168,8 +168,8 @@ poll: context [
 						]
 						IOCP_OP_CONN	[type: IO_EVT_CONNECT]
 						IOCP_OP_READ	[
-							print-line "usb len:"
-							print-line e/dwNumberOfBytesTransferred
+							;print-line "usb len:"
+							;print-line e/dwNumberOfBytesTransferred
 							;dump-hex usbdata/buffer
 							bin: binary/load usbdata/buffer e/dwNumberOfBytesTransferred
 							copy-cell as cell! bin (object/get-values red-port) + port/field-data

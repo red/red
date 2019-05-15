@@ -923,9 +923,11 @@ usb-device: context [
 			]
 			index: index + 1
 		]
-		if false = async-pipo-setup pNode pNode/interrupt-out [
-			print-line "setup issue!"
-		]
+		;if false = async-pipo-setup pNode pNode/interrupt-out [
+		;	print-line "setup issue!"
+		;]
+		;WinUsb_ResetPipe pNode/hInf pNode/interrupt-out
+		;WinUsb_ResetPipe pNode/hInf pNode/interrupt-in
 		USB-ERROR-OK
 	]
 

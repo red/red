@@ -1220,6 +1220,11 @@ PIPE-INFO!: alias struct! [
 			overlapped						[OVERLAPPED!]
 			return:							[logic!]
 		]
+		WinUsb_ResetPipe: "WinUsb_ResetPipe" [
+			handle							[integer!]
+			pipeID							[integer!]
+			return:							[logic!]
+		]
 		WinUsb_GetOverlappedResult: "WinUsb_GetOverlappedResult" [
 			handle							[integer!]
 			overlapped						[OVERLAPPED!]
