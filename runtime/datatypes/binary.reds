@@ -963,11 +963,13 @@ binary: context [
 		]
 
 		if any [tail? not head?] [
+			tail: tail - 1
 			while [
-				all [head < tail head/value = null-byte]
+				all [head < tail tail/value = null-byte]
 			][
 				tail: tail - 1
 			]
+			tail: tail + 1
 		]
 
 		if cur <> head [

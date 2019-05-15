@@ -1360,6 +1360,15 @@ Red [
 
 	--test-- "trim-bin-1"
 		--assert #{} = trim #{00}
+
+	--test-- "trim-bin-2"
+		--assert #{1234} = trim #{000012340000}
+
+	--test-- "trim-bin-3"
+		--assert #{12340000} = trim/head #{000012340000}
+
+	--test-- "trim-bin-4"
+		--assert #{00001234} = trim/tail #{000012340000}
 ===end-group===
 
 ===start-group=== "sort"
