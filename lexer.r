@@ -527,7 +527,7 @@ lexer: context [
 
 	base-2-rule: [
 		"2#{" (type: binary!) [
-			s: any [counted-newline | 8 [#"0" | #"1" ] | ws-no-count | comment-rule]
+			s: any [counted-newline | 8 [any [ws-no-count | comment-rule][#"0" | #"1" ]] | ws-no-count | comment-rule]
 			e: #"}" (base: 2)
 			| (pos: skip s -3 throw-error)
 		]
