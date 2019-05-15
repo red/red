@@ -1759,7 +1759,7 @@ usb-device: context [
 		case [
 			pNode/hType = DRIVER-TYPE-WINUSB [
 				wthread: as ONESHOT-THREAD! pNode/write-thread
-				if wthread/thread = null [return -1]
+				if wthread/thread <> null [return -1]
 				wthread/udata: data
 				wthread/buffer: buf
 				wthread/buflen: buflen
@@ -1771,7 +1771,7 @@ usb-device: context [
 			]
 			pNode/hType = DRIVER-TYPE-HIDUSB [
 				wthread: as ONESHOT-THREAD! pNode/write-thread
-				if wthread/thread = null [return -1]
+				if wthread/thread <> null [return -1]
 				wthread/udata: data
 				wthread/buffer: buf
 				wthread/buflen: buflen
@@ -1804,6 +1804,11 @@ usb-device: context [
 		this: as this! wthread/interface
 		itf: as IOUSBInterfaceInterface this/vtbl
 		kr: itf/WritePipe this pNode/interrupt-out wthread/buffer wthread/buflen
+		if kr <> 0 [
+			wthread/actual-len: 0
+			return null
+		]
+		wthread/actual-len: wthread/buflen
 		poll/trigger-user g-poller pNode/inst wthread/udata
 		wthread/thread: null
 		null
@@ -1819,6 +1824,7 @@ usb-device: context [
 			buffer				[byte-ptr!]
 			p					[byte-ptr!]
 			len					[integer!]
+			kr					[integer!]
 	][
 		pNode: as INTERFACE-INFO-NODE! param
 		wthread: as ONESHOT-THREAD! pNode/write-thread
@@ -1830,12 +1836,17 @@ usb-device: context [
 			p: buffer
 			len: wthread/buflen
 		]
-		IOHIDDeviceSetReport
+		kr: IOHIDDeviceSetReport
 			as int-ptr! pNode/hDev
 			kIOHIDReportTypeOutput
 			as integer! buffer/1
 			p
 			len
+		if kr <> 0 [
+			wthread/actual-len: 0
+			return null
+		]
+		wthread/actual-len: wthread/buflen
 		poll/trigger-user g-poller pNode/inst wthread/udata
 		wthread/thread: null
 		null
@@ -1855,7 +1866,7 @@ usb-device: context [
 		case [
 			pNode/hType = DRIVER-TYPE-WINUSB [
 				rthread: as ONESHOT-THREAD! pNode/read-thread
-				if rthread/thread = null [return -1]
+				if rthread/thread <> null [return -1]
 				rthread/udata: data
 				rthread/buffer: buf
 				rthread/buflen: buflen
@@ -1882,19 +1893,14 @@ usb-device: context [
 			this				[this!]
 			itf					[IOUSBInterfaceInterface]
 			kr					[integer!]
-			buffer				[byte-ptr!]
-			len					[integer!]
 	][
 		pNode: as INTERFACE-INFO-NODE! param
 		rthread: as ONESHOT-THREAD! pNode/read-thread
 		this: as this! rthread/interface
 		itf: as IOUSBInterfaceInterface this/vtbl
-		buffer: allocate 128 len: 0
-		kr: itf/ReadPipe this pNode/interrupt-in buffer :len
-		if len > rthread/buflen [len: rthread/buflen]
-		copy-memory rthread/buffer buffer len
-		rthread/actual-len: len
-		free buffer
+		rthread/actual-len: rthread/buflen
+		kr: itf/ReadPipe this pNode/interrupt-in rthread/buffer :rthread/actual-len
+		if kr <> 0 [rthread/actual-len: 0 return null]
 		poll/trigger-user g-poller pNode/inst rthread/udata
 		rthread/thread: null
 		null
