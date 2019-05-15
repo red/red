@@ -117,6 +117,27 @@ Red [
 	--test-- "load-word-18"	--assert strict-equal? first ['a] load "'a"
 	--test-- "load-word-19" --assert strict-equal? first [œ∑´®†] load "œ∑´®†"
 	
+===end-group===
+
+===start-group=== "load binaries tests"
+
+	--test-- "load-bin-1"
+		src: "2#{00001111}"
+		--assert #{0F} = load src
+
+	--test-- "load-bin-2"
+		src: "2#{0000 11 11}"
+		--assert #{0F} = load src
+
+	--test-- "load-bin-3"
+		src: {
+		2#{
+		00 1 1
+		11
+		01
+
+		}}
+		--assert #{3D} = load src
 
 ===end-group===
 
