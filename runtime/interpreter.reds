@@ -22,7 +22,7 @@ Red/System [
 				infix?: yes
 			][
 				lit?: all [								;-- is a literal argument expected?
-					TYPE_OF(pc) = TYPE_WORD
+					any [TYPE_OF(pc) = TYPE_WORD TYPE_OF(pc) = TYPE_FUNCTION]
 					literal-first-arg? as red-native! value ;-- left operand is a literal argument
 					next + 1 < end						;-- disable infix detection if no right operand #3840
 				]
@@ -33,14 +33,20 @@ Red/System [
 					if TYPE_OF(pc) = TYPE_WORD [
 						left: _context/get as red-word! pc
 					]
-					unless all [
-						TYPE_OF(pc) = TYPE_WORD
-						any [									;-- left operand is a function call
-							TYPE_OF(left) = TYPE_ACTION
-							TYPE_OF(left) = TYPE_NATIVE
-							TYPE_OF(left) = TYPE_FUNCTION
+					unless any [
+						all [
+							TYPE_OF(pc) = TYPE_FUNCTION
+							literal-first-arg? as red-native! pc   ;-- a literal argument is expected
 						]
-						literal-first-arg? as red-native! left	;-- a literal argument is expected
+						all [
+							TYPE_OF(pc) = TYPE_WORD
+							any [								   ;-- left operand is a function call
+								TYPE_OF(left) = TYPE_ACTION
+								TYPE_OF(left) = TYPE_NATIVE
+								TYPE_OF(left) = TYPE_FUNCTION
+							]
+							literal-first-arg? as red-native! left ;-- a literal argument is expected
+						]
 					][
 						#if debug? = yes [if verbose > 0 [log "infix detected!"]]
 						infix?: yes
