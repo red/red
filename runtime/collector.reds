@@ -287,8 +287,13 @@ collector: context [
 		]]
 
 		#if debug? = yes [
-			probe ["root size: " block/rs-length? root ", root max: " ***-root-size ", cycles: " stats/cycles]
-			if verbose > 1 [probe "marking..."]
+			print [
+				"root size: "	block/rs-length? root
+				", root max: "	***-root-size
+				", cycles: "	stats/cycles
+				", before: " 	memory-info null 1
+			]
+			if verbose > 1 [probe "^/marking..."]
 		]
 
 		mark-block root
@@ -349,11 +354,14 @@ collector: context [
 		stats/cycles: stats/cycles + 1
 		;probe "done!"
 
-		#if debug? = yes [if verbose > 1 [
-			simple-io/close-file stdout
-			stdout: saved
-			#if OS = 'Windows [platform/dos-console?: yes]
-		]]
+		#if debug? = yes [
+			probe [", after: " memory-info null 1]
+			if verbose > 1 [
+				simple-io/close-file stdout
+				stdout: saved
+				#if OS = 'Windows [platform/dos-console?: yes]
+			]
+		]
 	]
 	
 	do-cycle: does [
