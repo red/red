@@ -287,24 +287,38 @@ redc: context [
 		file
 	]
 	
-	form-args: func [file /local args delim pos pos2 flag][
+	form-args: func [file /local ws at-file skip-options catch? list info args pos][
 		;-- see PR #3870 on details
+		ws: charset " ^-^/^M"
+		skip-options: does [
+			at-file: list
+			forall list [
+				at-file: list 						;-- save file position
+				either all [
+					find/match list/1 "--"			;-- an option
+					list/-1 <> "--"					;-- not after the "--"
+				][
+					if list/1 == "--catch" [catch?: yes]
+				][break]
+			]
+			at-file
+		]
 		either Windows? [
-			args: find system/script/args file
-			if args/-1 = #"^"" [args: back args]
-			args: copy args
+			list: split-tokens/save system/script/args info: copy []
+			list: next list			 					;-- skip the Red.exe
+			skip-options
+			args: copy pick info 2 * (index? at-file) - 1
 		][
+			list: system/options/args
+			pos: skip-options
 			args: make string! 32
-			foreach arg pos: find system/options/args file [
+			foreach arg at-file [
 				repend args [{'}  replace/all copy arg {'} {'\''}  {' }]
 			]
 			take/last args
 		]
-		all [
-			pos2: find system/options/args flag: "--catch"
-			positive? offset? pos2 pos
-			insert insert args flag #" "
-		]
+		if find/match file "--" [insert args "-- "]		;-- mark end of options if the filename is weird
+		if catch? [insert args "--catch "]				;-- pass --catch to the console
 		args
 	]
 
@@ -625,7 +639,7 @@ redc: context [
 	]
 	
 	;-- it's a Windows-only function, since on POSIX OSes arguments are initially a block
-	split-tokens: func [args /local ws s e -split-mode- switch-mode arg-end][
+	split-tokens: func [args /save into /local ws s e -split-mode- switch-mode arg-end][
 		ws: charset " ^-" 								;-- according to MSDN "Parsing C++ Command-Line Arguments" article
 		-split-mode-: tail [end skip] 					;-- dynamic (optionally failing) rule for whitespace behavior
 		switch-mode: does [-split-mode-: skip head -split-mode- length? -split-mode-]
@@ -636,6 +650,7 @@ redc: context [
 					if s/1 = #"^"" [s': next s]
 					if all [e/-1 = #"^""  not same? e s'] [e': back e]
 					keep copy/part s' e'
+					if into [repend into [s e]]
 				]
 			]
 			parse/all s: args [							;-- tokenize and collect
@@ -698,6 +713,7 @@ redc: context [
 				| "--cli"						(gui?: no)
 				| "--no-compress"				(opts/redbin-compress?: no)
 				| "--catch"								;-- just pass-thru
+				| "--" break							;-- stop options processing
 			]
 			set filename skip (src: load-filename filename)
 		]		
