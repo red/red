@@ -42,20 +42,23 @@ system/console: context [
 	
 	read-argument: function [/local value][
 		if args: system/script/args [
-			--catch: "--catch"
-			if system/console/catch?: make logic! pos: find args --catch [
-				remove find system/options/args --catch
-				remove/part pos 1 + length? --catch		;-- remove extra space too
-			]
 
 			args: system/options/args
+			--catch: "--catch"
 			while [
 				all [
 					not tail? args
 					find/match args/1 "--"	 			;-- skip options
 					args/-1 <> "--"						;-- stop after "--"
 				]
-			] [ args: next args ]
+			][
+				either --catch <> args/1 [
+					args: next args
+				][
+					remove args
+					system/console/catch?: yes
+				]
+			]
 
 			unless tail? args [
 				file: to-red-file args/1
@@ -82,7 +85,7 @@ system/console: context [
 						;-- this relies on `get-cmdline-args` logic:
 						parse args [any [=quote= thru [=quote= | end] | "\'" | not ws skip] any ws args:]
 					]
-					remove/part head args args
+					remove/part head args args 			;-- remove options & script name
 				]
 				path: first split-path file
 				if path <> %./ [change-dir path]
