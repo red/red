@@ -25,6 +25,9 @@ usb-device: context [
 	enum-devices-with-guid: func [
 		device-list			[list-entry!]
 		guid				[UUID!]
+		id?					[logic!]
+		_vid				[integer!]
+		_pid				[integer!]
 		/local
 			dev-info		[int-ptr!]
 			info-data		[DEV-INFO-DATA! value]
@@ -65,6 +68,32 @@ usb-device: context [
 				error: GetLastError
 				free-device-info-node pNode
 			][
+
+				device-id: get-device-id dev-info info-data
+				if device-id = null [
+					free-device-info-node pNode
+					continue
+				]
+				pid: 65535
+				vid: 65535
+				serial: as c-string! allocate 256
+				sscanf [device-id "USB\VID_%x&PID_%x\%s"
+					:vid :pid serial]
+				pNode/vid: vid
+				pNode/pid: pid
+				pNode/serial-num: serial
+				free as byte-ptr! device-id
+				if all [
+					id?
+					any [
+						_vid <> vid
+						_pid <> pid
+					]
+				][
+					free-device-info-node pNode
+					continue
+				]
+
 				success: SetupDiEnumDeviceInterfaces dev-info 0 guid index - 1
 							interface-data
 				if success <> true [
@@ -122,20 +151,6 @@ usb-device: context [
 					sscanf [pbuffer "Port_#%d.Hub_#%d" :port :hub]
 				]
 				pNode/port: port
-
-				pid: 65535
-				vid: 65535
-				serial: null
-				device-id: get-device-id dev-info info-data
-				if device-id <> null [
-					serial: as c-string! allocate 256
-					sscanf [device-id "USB\VID_%x&PID_%x\%s"
-						:vid :pid serial]
-					pNode/vid: vid
-					pNode/pid: pid
-					pNode/serial-num: serial
-					free as byte-ptr! device-id
-				]
 
 				pNode/inst: info-data/DevInst
 				dlink/init pNode/interface-entry
@@ -831,7 +846,7 @@ usb-device: context [
 	]
 
 	enum-all-devices: does [
-		enum-devices-with-guid device-list GUID_DEVINTERFACE_USB_DEVICE
+		enum-devices-with-guid device-list GUID_DEVINTERFACE_USB_DEVICE no 0 0
 	]
 
 	open-inteface: func [
@@ -1064,7 +1079,7 @@ usb-device: context [
 			inode				[INTERFACE-INFO-NODE!]
 	][
 		clear-device-list device-list
-		enum-devices-with-guid device-list GUID_DEVINTERFACE_USB_DEVICE
+		enum-devices-with-guid device-list GUID_DEVINTERFACE_USB_DEVICE yes vid pid
 		dnode: find-usb device-list vid pid sn mi col
 		if dnode = null [return null]
 		inode: dnode/interface
