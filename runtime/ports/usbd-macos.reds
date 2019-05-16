@@ -692,6 +692,9 @@ usb-device: context [
 
 	enum-usb-device: func [
 		device-list			[list-entry!]
+		id?					[logic!]
+		_vid				[integer!]
+		_pid				[integer!]
 		/local
 			dict			[integer!]
 			iter			[integer!]
@@ -763,6 +766,16 @@ usb-device: context [
 			if kr <> 0 [IOObjectRelease service continue]
 			kr: dev-ifc/GetDeviceProduct this :pid
 			if kr <> 0 [IOObjectRelease service continue]
+			if all [
+				id?
+				any [
+					_vid <> vid
+					_pid <> pid
+				]
+			][
+				IOObjectRelease service
+				continue
+			]
 			pNode: as DEVICE-INFO-NODE! allocate size? DEVICE-INFO-NODE!
 			if pNode = null [IOObjectRelease service continue]
 			set-memory as byte-ptr! pNode null-byte size? DEVICE-INFO-NODE!
@@ -1200,7 +1213,7 @@ usb-device: context [
 	]
 
 	enum-all-devices: does [
-		enum-usb-device device-list
+		enum-usb-device device-list no -1 -1
 	]
 
 	find-usb: func [
@@ -1276,7 +1289,7 @@ usb-device: context [
 	][
 		print-line "open"
 		clear-device-list device-list
-		enum-usb-device device-list
+		enum-usb-device device-list yes vid pid
 		dnode: find-usb device-list vid pid sn mi col
 		if dnode = null [return null]
 		inode: dnode/interface
