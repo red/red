@@ -71,8 +71,8 @@ system/console: context [
 					system/options/script: file
 					remove/part system/options/args next args 	;-- remove options & script name
 					#either config/OS = 'Windows [=quote=: {"}][=quote=: {'}]
-					=quoted-switch=: [s': =quote= {--} s: thru [e: =quote= any ws | end] e':]
-					=normal-switch=: [s': "--" s: thru [e: some ws | end] e':]
+					=quoted-switch=: [=quote= {--} s: thru [e: =quote= any ws | end]]
+					=normal-switch=: ["--" s: thru [e: some ws | end]]
 					parse system/script/args [
 						any ws args: any [							;-- skip switches
 							[ =quoted-switch= | =normal-switch= ]
