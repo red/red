@@ -55,33 +55,23 @@ usb-device: context [
 		dev-info: SetupDiGetClassDevs guid null 0 DIGCF_PRESENT or DIGCF_DEVICEINTERFACE
 		if dev-info = INVALID_HANDLE [exit]
 		index: 0 error: 0 plen: 0 pbuffer: 0
+		serial: as c-string! allocate 256
 		while [error <> ERROR_NO_MORE_ITEMS][
-			pNode: as DEVICE-INFO-NODE! allocate size? DEVICE-INFO-NODE!
-			if pNode = null [continue]
-			set-memory as byte-ptr! pNode null-byte size? DEVICE-INFO-NODE!
-			dlink/init pNode/interface-entry
 			info-data/cbSize: size? DEV-INFO-DATA!
 			interface-data/cbSize: size? DEV-INTERFACE-DATA!
 			success: SetupDiEnumDeviceInfo dev-info index info-data
 			index: index + 1
 			either success = false [
 				error: GetLastError
-				free-device-info-node pNode
 			][
-
 				device-id: get-device-id dev-info info-data
 				if device-id = null [
-					free-device-info-node pNode
 					continue
 				]
 				pid: 65535
 				vid: 65535
-				serial: as c-string! allocate 256
 				sscanf [device-id "USB\VID_%x&PID_%x\%s"
 					:vid :pid serial]
-				pNode/vid: vid
-				pNode/pid: pid
-				pNode/serial-num: serial
 				free as byte-ptr! device-id
 				if all [
 					id?
@@ -90,14 +80,12 @@ usb-device: context [
 						_pid <> pid
 					]
 				][
-					free-device-info-node pNode
 					continue
 				]
 
 				success: SetupDiEnumDeviceInterfaces dev-info 0 guid index - 1
 							interface-data
 				if success <> true [
-					free-device-info-node pNode
 					continue
 				]
 
@@ -109,12 +97,10 @@ usb-device: context [
 					success <> true
 					error <> ERROR_INSUFFICIENT_BUFFER
 				][
-					free-device-info-node pNode
 					continue
 				]
 				buf: allocate reqLen
 				if buf = null [
-					free-device-info-node pNode
 					continue
 				]
 				detail-data: as DEV-INTERFACE-DETAIL! buf
@@ -122,19 +108,28 @@ usb-device: context [
 				success: SetupDiGetDeviceInterfaceDetail dev-info interface-data
 							detail-data reqLen :reqLen null
 				if success <> true [
-					free-device-info-node pNode
 					free buf
 					continue
 				]
 				path: allocate reqLen
 				if path = null [
-					free-device-info-node pNode
 					free buf
 					continue
 				]
 				copy-memory path buf + 4 reqLen - 4
-				pNode/path: as c-string! path
 				free buf
+
+				pNode: as DEVICE-INFO-NODE! allocate size? DEVICE-INFO-NODE!
+				if pNode = null [continue]
+				set-memory as byte-ptr! pNode null-byte size? DEVICE-INFO-NODE!
+				dlink/init pNode/interface-entry
+				pNode/vid: vid
+				pNode/pid: pid
+				pNode/path: as c-string! path
+				reqLen: (length? serial) + 1
+				buf: allocate reqLen
+				copy-memory buf as byte-ptr! serial reqLen
+				pNode/serial-num: as c-string! buf
 
 				buf: get-name dev-info info-data :plen
 				if buf <> null [
@@ -165,6 +160,7 @@ usb-device: context [
 			]
 		]
 		SetupDiDestroyDeviceInfoList dev-info
+		free as byte-ptr! serial
 	]
 
 	get-descriptions: func [
