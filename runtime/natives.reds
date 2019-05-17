@@ -667,30 +667,41 @@ natives: context [
 	]
 
 	print*: func [check? [logic!]][
-		lf?: yes											;@@ get rid of this global state
-		prin* check?
-		lf?: no
-		last-lf?: yes
+		do-print check? yes
 	]
-	
-	prin*: func [
-		check? [logic!]
+
+	prin*: func [check? [logic!]][
+		#typecheck -prin-									;-- `prin` would be replaced by lexer
+		do-print check? lf?
+	]
+
+	do-print: func [
+		check?	[logic!]
+		lf?		[logic!]
 		/local
 			arg		[red-value!]
 			str		[red-string!]
 			blk		[red-block!]
+			oldhd	[integer!]
+			s		[series!]
+			block?	[logic!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "native/prin"]]
-		#typecheck -prin-									;-- `prin` would be replaced by lexer
+		#if debug? = yes [if verbose > 0 [print-line "native/do-print"]]
 		arg: stack/arguments
 
-		if TYPE_OF(arg) = TYPE_BLOCK [
-			block/rs-clear buffer-blk
+		block?: TYPE_OF(arg) = TYPE_BLOCK
+		if block? [
+			;-- for recursive printing, reduce/into should put result into the buffer tail
+			s: GET_BUFFER(buffer-blk)
+			oldhd: buffer-blk/head 							;-- save the old buffer head
+			buffer-blk/head: (as-integer s/tail - s/offset) >> (log-b GET_UNIT(s))
+
 			stack/push as red-value! buffer-blk
 			assert stack/top - 2 = stack/arguments			;-- check for correct stack layout
 			reduce* no 1
 			blk: as red-block! arg
 			blk/head: 0										;-- head changed by reduce/into
+			stack/set-last as red-value! buffer-blk 		;-- provide the modified-head buffer to form*
 		]
 
 		if TYPE_OF(arg) <> TYPE_STRING [actions/form* -1]
@@ -701,7 +712,11 @@ natives: context [
 			TYPE_OF(str) = TYPE_SYMBOL						;-- symbol! and string! structs are overlapping
 		]
 		dyn-print/red-print str lf?
-		last-lf?: no
+		if block? [											;-- restore the buffer head & clean up what was printed
+			block/rs-clear buffer-blk 
+			buffer-blk/head: oldhd			
+		]
+		last-lf?: lf?
 		stack/set-last unset-value
 	]
 	
