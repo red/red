@@ -165,10 +165,7 @@ isatty: func [
 	handle	[int-ptr!]
 	return:	[logic!]
 ][
-	all [
-		2 = GetFileType handle			;-- FILE_TYPE_CHAR: 2
-		(as-integer handle) and 3 = 3	;-- http://lists.gnu.org/archive/html/bug-gnulib/2009-08/msg00065.html
-	]
+	2 = GetFileType handle			;-- FILE_TYPE_CHAR: 2
 ]
 
 stdin-read: func [
