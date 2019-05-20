@@ -82,6 +82,10 @@ usb-device: context [
 				][
 					continue
 				]
+				if all [
+					vid = 65535
+					pid = 65535
+				][continue]
 
 				success: SetupDiEnumDeviceInterfaces dev-info 0 guid index - 1
 							interface-data
@@ -149,12 +153,7 @@ usb-device: context [
 
 				pNode/inst: info-data/DevInst
 				dlink/init pNode/interface-entry
-				if all [
-					vid <> 65535
-					pid <> 65535
-				][
-					enum-children pNode/interface-entry info-data/DevInst vid pid
-				]
+				enum-children pNode/interface-entry info-data/DevInst vid pid
 
 				dlink/append device-list as list-entry! pNode
 			]
