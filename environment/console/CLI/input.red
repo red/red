@@ -18,7 +18,7 @@ Red [
 unless system/console [
 	system/console: context [
 		history: make block! 200
-		size: 0x0
+		size: 80x50										;-- default size for dump/help funcs
 	]
 ]
 ;; End patch
@@ -85,6 +85,7 @@ unless system/console [
 
 		init-globals: func [][
 			saved-line: string/rs-make-at ALLOC_TAIL(root) 1
+			get-window-size
 		]
 
 		widechar?: func [
