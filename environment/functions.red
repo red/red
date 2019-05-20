@@ -503,7 +503,7 @@ cause-error: func [
 	err-id [word!] 
 	args [block! string!] 
 ][
-	args: compose [(:args )]
+	args: reduce either block? args [args] [[args]]		; Blockify string args
 	do make error! [
 		type: err-type
 		id: err-id
