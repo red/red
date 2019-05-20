@@ -318,7 +318,9 @@ usb-device: context [
 					len = len2
 					0 = compare-memory as byte-ptr! attr as byte-ptr! kHidDriver len
 				][
-					pNode/hType: DRIVER-TYPE-HIDUSB
+					if hid-device? pNode device vid pid [
+						pNode/hType: DRIVER-TYPE-HIDUSB
+					]
 				]
 			]
 			dlink/append list as list-entry! pNode
@@ -331,6 +333,70 @@ usb-device: context [
 
 		udev_enumerate_unref enumerate
 		udev_unref udev
+	]
+
+	hid-device?: func [
+		pNode					[INTERFACE-INFO-NODE!]
+		parent					[int-ptr!]
+		vid						[integer!]
+		pid						[integer!]
+		return:					[logic!]
+		/local
+			udev				[int-ptr!]
+			enumerate			[int-ptr!]
+			result				[integer!]
+			devices				[int-ptr!]
+			dev_list_entry		[int-ptr!]
+			sysfs_path			[c-string!]
+			device				[int-ptr!]
+			dev_path			[c-string!]
+			buf					[byte-ptr!]
+			len					[integer!]
+	][
+		udev: udev_new
+		if udev = null [return false]
+		enumerate: udev_enumerate_new udev
+		if enumerate = null [
+			udev_unref udev
+			return false
+		]
+		result: udev_enumerate_add_match_subsystem enumerate "hidraw"
+		if result <> 0 [
+			udev_enumerate_unref enumerate
+			udev_unref udev
+			return false
+		]
+		result: udev_enumerate_add_match_parent enumerate parent
+		if result <> 0 [
+			udev_enumerate_unref enumerate
+			udev_unref udev
+			return false
+		]
+		udev_enumerate_scan_devices enumerate
+		devices: udev_enumerate_get_list_entry enumerate
+		dev_list_entry: devices
+		if dev_list_entry <> null [
+			sysfs_path: udev_list_entry_get_name dev_list_entry
+			device: udev_device_new_from_syspath udev sysfs_path
+			dev_path: udev_device_get_devnode device
+			if dev_path = null [
+				udev_device_unref device
+				udev_enumerate_unref enumerate
+				udev_unref udev
+				return false
+			]
+			len: (length? dev_path) + 1
+			buf: allocate len
+			copy-memory buf as byte-ptr! dev_path len
+			free as byte-ptr! pNode/path
+			pNode/path: as c-string! buf
+			udev_device_unref device
+		]
+		udev_enumerate_unref enumerate
+		udev_unref udev
+		print-line pNode/path
+		print-line "is hid"
+		true
 	]
 
 	enum-all-devices: does [
