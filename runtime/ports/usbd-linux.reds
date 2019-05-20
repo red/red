@@ -15,9 +15,97 @@ Red/System [
 usb-device: context [
 
 	device-list: declare list-entry!
-	#define kHidDriver		"usbhid"
+
+	#define kHidDriver					"usbhid"
+	#define O_RDWR						02h
+	#define O_NONBLOCK					0800h
+
+	#define _IOC_NRBITS					8
+	#define _IOC_TYPEBITS				8
+	#define _IOC_SIZEBITS				14
+	#define _IOC_DIRBITS				2
+	#define _IOC_NRMASK					[(1 << _IOC_NRBITS) - 1]
+	#define _IOC_TYPEMASK				[(1 << _IOC_TYPEBITS) - 1]
+	#define _IOC_SIZEMASK				[(1 << _IOC_SIZEBITS) - 1]
+	#define _IOC_DIRMASK				[(1 << _IOC_DIRBITS) - 1]
+	#define _IOC_NONE					0
+	#define _IOC_WRITE					1
+	#define _IOC_READ					2
+	#define _IOC_READ_WRITE				[IOC_READ or _IOC_WRITE]
+
+	#define _IOC(dir type nr size) [
+		(dir  << _IOC_DIRSHIFT) or
+		(type << _IOC_TYPESHIFT) or
+		(nr   << _IOC_NRSHIFT) or
+		(size << _IOC_SIZESHIFT)
+	]
+
+	#define _IO(type nr)				[_IOC(_IOC_NONE type nr 0)]
+	#define _IOR(type nr size)			[_IOC(_IOC_READ type nr size)]
+	#define _IOW(type nr size)			[_IOC(_IOC_WRITE type nr size)]
+	#define _IOWR(type nr size)			[_IOC(_IOC_READ_WRITE type nr size)]
+	#define _IOR_BAD(type nr size)		[_IOC(_IOC_READ type nr size)]
+	#define _IOW_BAD(type nr size)		[_IOC(_IOC_WRITE type nr size)]
+	#define _IOWR_BAD(type nr size)		[_IOC(_IOC_READ_WRITE type nr size)]
+
+	#define _IOC_DIR(nr)				[(nr >>> _IOC_DIRSHIFT) and _IOC_DIRMASK]
+	#define _IOC_TYPE(nr)				[(nr >>> _IOC_TYPESHIFT) and _IOC_TYPEMASK]
+	#define _IOC_NR(nr)					[(nr >>> _IOC_NRSHIFT) and _IOC_NRMASK]
+	#define _IOC_SIZE(nr)				[(nr >>> _IOC_SIZESHIFT) and _IOC_SIZEMASK]
+
+	#define IOC_IN						[_IOC_WRITE << _IOC_DIRSHIFT]
+	#define IOC_OUT						[_IOC_READ << _IOC_DIRSHIFT]
+	#define IOC_INOUT					[_IOC_READ_WRITE << _IOC_DIRSHIFT]
+	#define IOCSIZE_MASK				[_IOC_SIZEMASK << _IOC_SIZESHIFT]
+	#define IOCSIZE_SHIFT				_IOC_SIZESHIFT
+
+
+	POLL-FD!: alias struct! [
+		fd						[integer!]
+		events					[integer!]  ;--events and revents
+	]
 
 	#import [
+		LIBC-file cdecl [
+			linux-open: "open" [
+				str				[c-string!]
+				int				[integer!]
+				return:			[integer!]
+			]
+			ioctl: "ioctl" [
+				s1				[integer!]
+				s2				[integer!]
+				s3				[int-ptr!]
+				return:			[integer!]
+			]
+			perror: "perror" [
+				s				[c-string!]
+			]
+			linux-write: "write" [
+				fd				[integer!]
+				buf				[c-string!]
+				count			[integer!]
+				return:			[integer!]
+			]
+			poll: "poll" [
+				fds				[POLL-FD!]
+				nfds			[integer!]
+				timeout			[integer!]
+				return:			[integer!]
+			]
+			linux-read: "read" [
+				fd				[integer!]
+				buf				[c-string!]
+				nbytes			[integer!]
+				return:			[integer!]
+			]
+			get-errno-ptr: "__errno_location" [
+					return:		[int-ptr!]
+				]
+			linux-close: "close" [
+				handle			[int-ptr!]
+			]
+		]
 		"libudev.so.1" cdecl [
 			udev_new: "udev_new" [
 				return:			[int-ptr!]
@@ -214,7 +302,6 @@ usb-device: context [
 				copy-memory buf as byte-ptr! serial len
 				pNode/serial-num: as c-string! buf
 			]
-			pNode/inst: as integer! dev_path				;-- just to distinguish devices
 			dlink/init pNode/interface-entry
 			enum-children pNode/interface-entry device vid pid
 
@@ -401,6 +488,132 @@ usb-device: context [
 
 	enum-all-devices: does [
 		enum-usb-device device-list no -1 -1
+	]
+
+	find-usb: func [
+		device-list				[list-entry!]
+		vid						[integer!]
+		pid						[integer!]
+		sn						[c-string!]
+		mi						[integer!]
+		col						[integer!]
+		return:					[DEVICE-INFO-NODE!]
+		/local
+			entry				[list-entry!]
+			dnode				[DEVICE-INFO-NODE!]
+			len					[integer!]
+			len2				[integer!]
+			children			[list-entry!]
+			child-entry			[list-entry!]
+			inode				[INTERFACE-INFO-NODE!]
+	][
+		entry: device-list/next
+		while [entry <> device-list][
+			dnode: as DEVICE-INFO-NODE! entry
+			if all [
+				dnode/vid = vid
+				dnode/pid = pid
+			][
+				len: length? sn
+				len2: length? dnode/serial-num
+				if all [
+					len <> 0
+					len = len2
+					0 = compare-memory as byte-ptr! sn as byte-ptr! dnode/serial-num len
+				][
+					children: dnode/interface-entry
+					child-entry: children/next
+					while [child-entry <> children][
+						inode: as INTERFACE-INFO-NODE! child-entry
+						if any [
+							mi = 255
+							inode/interface-num = 255
+						][
+							dlink/remove-entry device-list entry/prev entry/next
+							clear-device-list device-list
+							dnode/interface: inode
+							return dnode
+						]
+						if mi = inode/interface-num [
+							dlink/remove-entry device-list entry/prev entry/next
+							clear-device-list device-list
+							dnode/interface: inode
+							return dnode
+						]
+						child-entry: child-entry/next
+					]
+				]
+			]
+			entry: entry/next
+		]
+		clear-device-list device-list
+		null
+	]
+
+	open: func [
+		vid						[integer!]
+		pid						[integer!]
+		sn						[c-string!]
+		mi						[integer!]
+		col						[integer!]
+		return:					[DEVICE-INFO-NODE!]
+		/local
+			dnode				[DEVICE-INFO-NODE!]
+			inode				[INTERFACE-INFO-NODE!]
+	][
+		clear-device-list device-list
+		enum-usb-device device-list yes vid pid
+		dnode: find-usb device-list vid pid sn mi col
+		if dnode = null [return null]
+		inode: dnode/interface
+		if USB-ERROR-OK <> open-inteface inode [
+			free-device-info-node dnode
+			return null
+		]
+		print-line "open"
+		print-line inode/hDev
+		;print-line inode/hInf
+		dnode
+	]
+
+	open-inteface: func [
+		pNode					[INTERFACE-INFO-NODE!]
+		return:					[USB-ERROR!]
+	][
+		case [
+			pNode/hType = DRIVER-TYPE-WINUSB [
+				return open-winusb pNode
+			]
+			pNode/hType = DRIVER-TYPE-HIDUSB [
+				return open-hidusb pNode
+			]
+			true [
+				return USB-ERROR-UNSUPPORT
+			]
+		]
+	]
+
+	open-winusb: func [
+		pNode					[INTERFACE-INFO-NODE!]
+		return:					[USB-ERROR!]
+		/local
+			index				[integer!]
+	][
+		USB-ERROR-OK
+	]
+
+	open-hidusb: func [
+		pNode					[INTERFACE-INFO-NODE!]
+		return:					[USB-ERROR!]
+		/local
+			fd					[integer!]
+			result				[integer!]
+	][
+		fd: linux-open pNode/path O_RDWR or O_NONBLOCK
+		if fd < 0 [
+			return USB-ERROR-OPEN
+		]
+		USB-ERROR-OK
 	]
 
 	init: does [
