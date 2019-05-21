@@ -622,6 +622,7 @@ usb-device: context [
 			desc-size			[integer!]
 			rpt-desc			[int-ptr!]
 			result				[integer!]
+			buf					[byte-ptr!]
 	][
 		print-line pNode/path
 		fd: linux-open pNode/path O_RDWR or O_NONBLOCK
@@ -644,7 +645,9 @@ usb-device: context [
 			perror "HIDIOCGRDESC"
 			return USB-ERROR-OPEN
 		]
-		dump-hex as byte-ptr! rpt-desc
+		buf: allocate 4 + desc-size
+		copy-memory buf as byte-ptr! rpt-desc 4 + desc-size
+		pNode/report-desc: buf
 		free as byte-ptr! rpt-desc
 		USB-ERROR-OK
 	]

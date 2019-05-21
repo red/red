@@ -84,6 +84,8 @@ INTERFACE-INFO-NODE!: alias struct! [
 	col-count			[integer!]
 	read-thread			[int-ptr!]
 	write-thread		[int-ptr!]
+	;-- linux
+	report-desc			[byte-ptr!]
 ]
 
 DEVICE-INFO-NODE!: alias struct! [
@@ -151,6 +153,9 @@ free-interface-info-node: func [
 	]
 	if pNode/collections <> null [
 		free as byte-ptr! pNode/collections
+	]
+	if pNode/report-desc <> null [
+		free pNode/report-desc
 	]
 	if pNode/input-buffer <> null [
 		free pNode/input-buffer
