@@ -955,6 +955,7 @@ usb-device: context [
 		]
 		pbuf: 0
 		unless HidD_GetPreparsedData as int-ptr! pNode/hDev :pbuf [
+			CloseHandle as int-ptr! pNode/hDev
 			return USB-ERROR-INIT
 		]
 		if HIDP_STATUS_SUCCESS = HidP_GetCaps as int-ptr! pbuf caps [
