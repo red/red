@@ -17,6 +17,9 @@ usb-device: context [
 	device-list: declare list-entry!
 
 	#define kHidDriver					"usbhid"
+	#define O_ACCMODE					3
+	#define O_RDONLY					0
+	#define O_WRONLY					1
 	#define O_RDWR						02h
 	#define O_NONBLOCK					0800h
 
@@ -24,14 +27,19 @@ usb-device: context [
 	#define _IOC_TYPEBITS				8
 	#define _IOC_SIZEBITS				14
 	#define _IOC_DIRBITS				2
-	#define _IOC_NRMASK					[(1 << _IOC_NRBITS) - 1]
-	#define _IOC_TYPEMASK				[(1 << _IOC_TYPEBITS) - 1]
-	#define _IOC_SIZEMASK				[(1 << _IOC_SIZEBITS) - 1]
-	#define _IOC_DIRMASK				[(1 << _IOC_DIRBITS) - 1]
+	#define _IOC_NRMASK					[((1 << _IOC_NRBITS) - 1)]
+	#define _IOC_TYPEMASK				[((1 << _IOC_TYPEBITS) - 1)]
+	#define _IOC_SIZEMASK				[((1 << _IOC_SIZEBITS) - 1)]
+	#define _IOC_DIRMASK				[((1 << _IOC_DIRBITS) - 1)]
+	#define _IOC_NRSHIFT				0
+	#define _IOC_TYPESHIFT				[(_IOC_NRSHIFT + _IOC_NRBITS)]
+	#define _IOC_SIZESHIFT				[(_IOC_TYPESHIFT + _IOC_TYPEBITS)]
+	#define _IOC_DIRSHIFT				[(_IOC_SIZESHIFT + _IOC_SIZEBITS)]
+
 	#define _IOC_NONE					0
 	#define _IOC_WRITE					1
 	#define _IOC_READ					2
-	#define _IOC_READ_WRITE				[IOC_READ or _IOC_WRITE]
+	#define _IOC_READ_WRITE				[(_IOC_READ or _IOC_WRITE)]
 
 	#define _IOC(dir type nr size) [
 		(dir  << _IOC_DIRSHIFT) or
@@ -48,17 +56,21 @@ usb-device: context [
 	#define _IOW_BAD(type nr size)		[_IOC(_IOC_WRITE type nr size)]
 	#define _IOWR_BAD(type nr size)		[_IOC(_IOC_READ_WRITE type nr size)]
 
-	#define _IOC_DIR(nr)				[(nr >>> _IOC_DIRSHIFT) and _IOC_DIRMASK]
-	#define _IOC_TYPE(nr)				[(nr >>> _IOC_TYPESHIFT) and _IOC_TYPEMASK]
-	#define _IOC_NR(nr)					[(nr >>> _IOC_NRSHIFT) and _IOC_NRMASK]
-	#define _IOC_SIZE(nr)				[(nr >>> _IOC_SIZESHIFT) and _IOC_SIZEMASK]
+	#define _IOC_DIR(nr)				[((nr >>> _IOC_DIRSHIFT) and _IOC_DIRMASK)]
+	#define _IOC_TYPE(nr)				[((nr >>> _IOC_TYPESHIFT) and _IOC_TYPEMASK)]
+	#define _IOC_NR(nr)					[((nr >>> _IOC_NRSHIFT) and _IOC_NRMASK)]
+	#define _IOC_SIZE(nr)				[((nr >>> _IOC_SIZESHIFT) and _IOC_SIZEMASK)]
 
-	#define IOC_IN						[_IOC_WRITE << _IOC_DIRSHIFT]
-	#define IOC_OUT						[_IOC_READ << _IOC_DIRSHIFT]
-	#define IOC_INOUT					[_IOC_READ_WRITE << _IOC_DIRSHIFT]
-	#define IOCSIZE_MASK				[_IOC_SIZEMASK << _IOC_SIZESHIFT]
-	#define IOCSIZE_SHIFT				_IOC_SIZESHIFT
+	#define IOC_IN						[(_IOC_WRITE << _IOC_DIRSHIFT)]
+	#define IOC_OUT						[(_IOC_READ << _IOC_DIRSHIFT)]
+	#define IOC_INOUT					[(_IOC_READ_WRITE << _IOC_DIRSHIFT)]
+	#define IOCSIZE_MASK				[(_IOC_SIZEMASK << _IOC_SIZESHIFT)]
+	#define IOCSIZE_SHIFT				[(_IOC_SIZESHIFT)]
 
+	#define _IO_H						[(as integer! #"H")]
+	#define HIDIOCGRDESCSIZE			[_IOR(_IO_H 1 4)]
+	#define HID_MAX_DESCRIPTOR_SIZE		4096
+	#define HIDIOCGRDESC				[_IOR(_IO_H 2 (HID_MAX_DESCRIPTOR_SIZE + 4))]
 
 	POLL-FD!: alias struct! [
 		fd						[integer!]
@@ -75,7 +87,7 @@ usb-device: context [
 			ioctl: "ioctl" [
 				s1				[integer!]
 				s2				[integer!]
-				s3				[int-ptr!]
+				s3				[byte-ptr!]
 				return:			[integer!]
 			]
 			perror: "perror" [
@@ -607,12 +619,33 @@ usb-device: context [
 		return:					[USB-ERROR!]
 		/local
 			fd					[integer!]
+			desc-size			[integer!]
+			rpt-desc			[int-ptr!]
 			result				[integer!]
 	][
+		print-line pNode/path
 		fd: linux-open pNode/path O_RDWR or O_NONBLOCK
 		if fd < 0 [
+			perror "open"
 			return USB-ERROR-OPEN
 		]
+		desc-size: 0
+		result: ioctl fd HIDIOCGRDESCSIZE as byte-ptr! :desc-size
+		if result <> 0 [
+			perror "HIDIOCGRDESCSIZE"
+			return USB-ERROR-OPEN
+		]
+		print-line desc-size
+		rpt-desc: as int-ptr! allocate 4100
+		rpt-desc/1: desc-size
+		result: ioctl fd HIDIOCGRDESC as byte-ptr! rpt-desc
+		if result <> 0 [
+			free as byte-ptr! rpt-desc
+			perror "HIDIOCGRDESC"
+			return USB-ERROR-OPEN
+		]
+		dump-hex as byte-ptr! rpt-desc
+		free as byte-ptr! rpt-desc
 		USB-ERROR-OK
 	]
 
