@@ -656,6 +656,15 @@ usb-device: context [
 		USB-ERROR-OK
 	]
 
+	close-interface: func [
+		pNode					[INTERFACE-INFO-NODE!]
+	][
+		if pNode/hDev <> 0 [
+			CloseHandle as int-ptr! pNode/hDev
+			pNode/hDev: 0
+		]
+	]
+
 	init: does [
 		dlink/init device-list
 	]
