@@ -408,10 +408,12 @@ put: make action! [[
 
 remove: make action! [[
 		"Returns the series at the same index after removing a value"
-		series	 [series! bitset! none!]
+		series	 [series! bitset! map! none!]
 		/part "Removes a number of values, or values up to the given series index"
 			length [number! char! series!]
-		return:  [series! bitset! none!]
+		/key "Removes a key in map"
+			key-arg [scalar! any-string! any-word! binary!]
+		return:  [series! bitset! map! none!]
 	]
 	#get-definition ACT_REMOVE
 ]

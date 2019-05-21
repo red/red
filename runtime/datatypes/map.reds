@@ -393,7 +393,7 @@ map: context [
 		]
 
 		if zero? size1 [return 0]								;-- shortcut exit for empty map!
-					
+
 		table2: blk2/table
 		key1: block/rs-head as red-block! blk1
 		key1: key1 - 2
@@ -659,6 +659,26 @@ map: context [
 		either key = null [none-value][key + 1]
 	]
 
+	remove: func [
+		map	 	 [red-hash!]
+		part-arg [red-value!]							;-- null if no /part
+		key		 [red-value!]
+		return:	 [red-hash!]
+		/local
+			k	 [red-value!]
+			val	 [red-value!]
+	][
+		unless OPTION?(key) [
+			fire [TO_ERROR(script missing-arg)]
+		]
+		k: _hashtable/get map/table key 0 0 COMP_STRICT_EQUAL no no
+		val: k + 1
+		if all [k <> null val/header <> MAP_KEY_DELETED][
+			_hashtable/delete map/table k
+		]
+		map
+	]
+
 	;--- Misc actions ---
 
 	set-many: func [
@@ -769,7 +789,7 @@ map: context [
 			null			;pick
 			null			;poke
 			:put
-			null			;remove
+			:remove
 			null			;reverse
 			:select
 			null			;sort

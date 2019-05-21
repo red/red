@@ -911,17 +911,18 @@ bitset: context [
 	remove: func [
 		bits	[red-bitset!]
 		part	[red-value!]
+		key		[red-value!]
 		return:	[red-value!]
 		/local
 			s  [series!]
 			op [integer!]
 	][
-		unless OPTION?(part) [
+		unless OPTION?(key) [
 			fire [TO_ERROR(script missing-arg)]
 		]
 		s: GET_BUFFER(bits)
 		op: either FLAG_NOT?(s) [OP_SET][OP_CLEAR]
-		process part bits op no CMD_OTHER
+		process key bits op no CMD_OTHER
 		as red-value! bits
 	]
 	

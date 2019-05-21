@@ -1097,7 +1097,7 @@ parser: context [
 									input/head: p/input
 									assert int/value >= 0
 									PARSE_SAVE_SERIES
-									actions/remove input as red-value! int
+									actions/remove input as red-value! int as red-value! input
 									PARSE_RESTORE_SERIES
 								]
 							]
@@ -1532,7 +1532,7 @@ parser: context [
 									copy-cell as red-value! input base
 									input/head: new/head
 									PARSE_SAVE_SERIES
-									actions/remove input base ;-- REMOVE position
+									actions/remove input base as red-value! input ;-- REMOVE position
 									PARSE_RESTORE_SERIES
 									cmd: value
 									done?: yes
