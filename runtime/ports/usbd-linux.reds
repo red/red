@@ -115,7 +115,7 @@ usb-device: context [
 					return:		[int-ptr!]
 				]
 			linux-close: "close" [
-				handle			[int-ptr!]
+				handle			[integer!]
 			]
 		]
 		"libudev.so.1" cdecl [
@@ -633,6 +633,7 @@ usb-device: context [
 		desc-size: 0
 		result: ioctl fd HIDIOCGRDESCSIZE as byte-ptr! :desc-size
 		if result <> 0 [
+			linux-close fd
 			perror "HIDIOCGRDESCSIZE"
 			return USB-ERROR-OPEN
 		]
@@ -641,6 +642,7 @@ usb-device: context [
 		rpt-desc/1: desc-size
 		result: ioctl fd HIDIOCGRDESC as byte-ptr! rpt-desc
 		if result <> 0 [
+			linux-close fd
 			free as byte-ptr! rpt-desc
 			perror "HIDIOCGRDESC"
 			return USB-ERROR-OPEN
@@ -649,6 +651,8 @@ usb-device: context [
 		copy-memory buf as byte-ptr! rpt-desc 4 + desc-size
 		pNode/report-desc: buf
 		free as byte-ptr! rpt-desc
+
+		pNode/hDev: fd
 		USB-ERROR-OK
 	]
 
