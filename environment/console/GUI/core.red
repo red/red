@@ -235,9 +235,9 @@ object [
 	update-cfg: func [font [object!] cfg [block!] /local sz][
 		box/font: font
 		max-lines: cfg/buffer-lines
-		box/text: "XX"
+		box/text: "XXXXXXXXXX"
 		sz: size-text box
-		char-width: 1 + sz/x / 2
+		char-width: sz/x + 1 * 0.1 						;-- +1 compensates for size-text rounding
 		box/tabs: tab-size * char-width
 		line-h: rich-text/line-height? box 1
 		box/line-spacing: line-h
@@ -249,7 +249,7 @@ object [
 	]
 
 	adjust-console-size: function [size [pair!]][
-		cols: size/x - pad-left / char-width
+		cols: to integer! size/x - 20 - pad-left / char-width		;-- -20 compensates for scrollbar
 		rows: size/y / line-h
 		system/console/size: as-pair cols rows
 	]
