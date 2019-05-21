@@ -113,7 +113,7 @@ help-ctx: context [
 	fmt: func [v /molded][
 		; Does it help to mold only part? Can't hurt I suppose.
 		if any [molded  not string? :v] [v: mold/flat/part :v VAL_FORM_LIMIT + 1]
-		ellipsize-at v VAL_FORM_LIMIT
+		:v
 	]
 	;!!
 	form-value: func [value [any-type!]][
