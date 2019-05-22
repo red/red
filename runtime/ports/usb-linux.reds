@@ -111,10 +111,12 @@ usb: context [
 			len		[integer!]
 			iodata	[USB-DATA!]
 			n		[integer!]
+			wthread	[ONESHOT-THREAD!]
 	][
 		iodata: as USB-DATA! get-port-data red-port
 		print-line "write"
-		poll/add g-poller iodata/dev/interface/hDev EPOLLOUT or EPOLLET as int-ptr! iodata
+		wthread: as ONESHOT-THREAD! iodata/dev/interface/write-thread
+		poll/add g-poller wthread/pipe/in EPOLLIN or EPOLLET as int-ptr! iodata
 		switch TYPE_OF(data) [
 			TYPE_BINARY [
 				bin: as red-binary! data

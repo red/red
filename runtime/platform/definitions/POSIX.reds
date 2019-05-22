@@ -256,6 +256,15 @@ pollfd!: alias struct! [
 			nbytes         [integer!]
 			return:        [integer!]  "Number of bytes written or error"
 		]
+		ioctl: "ioctl" [
+			s1				[integer!]
+			s2				[integer!]
+			s3				[byte-ptr!]
+			return:			[integer!]
+		]
+		perror: "perror" [
+			s				[c-string!]
+		]
 		fcntl: "fcntl" [
 			[variadic]
 			; fd           [integer!]    "File descriptor"

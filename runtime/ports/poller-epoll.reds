@@ -173,6 +173,8 @@ poll: context [
 			sym		[integer!]
 			usbdata	[USB-DATA!]
 			pNode				[INTERFACE-INFO-NODE!]
+			handle	[integer!]
+			wthread	[ONESHOT-THREAD!]
 	][
 		#if debug? = yes [print-line "poll/wait"]
 
@@ -285,11 +287,21 @@ poll: context [
 							stack/pop 1
 							type: IO_EVT_READ
 						]
-						SOCK_OP_WRITE	[type: IO_EVT_WROTE]
+						SOCK_OP_WRITE	[
+							pNode: usbdata/dev/interface
+							wthread: as ONESHOT-THREAD! pNode/write-thread
+							handle: 0
+							_read wthread/pipe/in as byte-ptr! :handle 4
+							type: IO_EVT_WROTE
+						]
 						SOCK_OP_READ_UDP	[0]
 						SOCK_OP_WRITE_UDP	[0]
 						default			[probe ["wrong sock code: " usbdata/code]]
 					]
+					call-awake red-port msg type
+					ret: as red-logic! stack/arguments
+					if ret/value [close?: yes]
+					i: i + 1
 				]
 			]
 			if close? [return 1]

@@ -12,6 +12,25 @@ Red/System [
 
 #include %usbd-common.reds
 
+#define pthread_t int-ptr!
+
+PIPE-PAIR!: alias struct! [
+	in						[integer!]
+	out						[integer!]
+]
+
+ONESHOT-THREAD!: alias struct! [
+	buffer					[byte-ptr!]					;-- data
+	buflen					[integer!]
+	actual-len				[integer!]
+	thread					[pthread_t]
+	;mutex					[pthread_mutex_t value]		; pthread_mutex_t is int
+	;interface				[integer!]
+	trigger?				[logic!]					;-- trigger kevent
+	udata					[int-ptr!]					;-- for kqueue udata
+	pipe					[PIPE-PAIR! value]
+]
+
 usb-device: context [
 
 	device-list: declare list-entry!
@@ -31,43 +50,12 @@ usb-device: context [
 
 	#import [
 		LIBC-file cdecl [
-			linux-open: "open" [
-				str				[c-string!]
-				int				[integer!]
+			pthread_create: "pthread_create" [
+				restrict		[int-ptr!]
+				restrict1		[int-ptr!]
+				restrict2		[int-ptr!]
+				restrict3		[int-ptr!]
 				return:			[integer!]
-			]
-			ioctl: "ioctl" [
-				s1				[integer!]
-				s2				[integer!]
-				s3				[byte-ptr!]
-				return:			[integer!]
-			]
-			perror: "perror" [
-				s				[c-string!]
-			]
-			linux-write: "write" [
-				fd				[integer!]
-				buf				[byte-ptr!]
-				count			[integer!]
-				return:			[integer!]
-			]
-			poll: "poll" [
-				fds				[POLL-FD!]
-				nfds			[integer!]
-				timeout			[integer!]
-				return:			[integer!]
-			]
-			linux-read: "read" [
-				fd				[integer!]
-				buf				[byte-ptr!]
-				nbytes			[integer!]
-				return:			[integer!]
-			]
-			get-errno-ptr: "__errno_location" [
-					return:		[int-ptr!]
-				]
-			linux-close: "close" [
-				handle			[integer!]
 			]
 		]
 		"libudev.so.1" cdecl [
@@ -575,9 +563,10 @@ usb-device: context [
 			rpt-desc			[int-ptr!]
 			result				[integer!]
 			buf					[byte-ptr!]
+			wthread				[ONESHOT-THREAD!]
 	][
 		print-line pNode/path
-		fd: linux-open pNode/path O_RDWR or O_NONBLOCK
+		fd: _open pNode/path O_RDWR or O_NONBLOCK S_IREAD or S_IWRITE or S_IRGRP or S_IWGRP or S_IROTH
 		if fd < 0 [
 			perror "open"
 			return USB-ERROR-OPEN
@@ -585,19 +574,19 @@ usb-device: context [
 		desc-size: 0
 		result: ioctl fd HIDIOCGRDESCSIZE as byte-ptr! :desc-size
 		if result <> 0 [
-			linux-close fd
+			_close fd
 			perror "HIDIOCGRDESCSIZE"
-			return USB-ERROR-OPEN
+			return USB-ERROR-INIT
 		]
 		print-line desc-size
 		rpt-desc: as int-ptr! allocate 4100
 		rpt-desc/1: desc-size
 		result: ioctl fd HIDIOCGRDESC as byte-ptr! rpt-desc
 		if result <> 0 [
-			linux-close fd
+			_close fd
 			free as byte-ptr! rpt-desc
 			perror "HIDIOCGRDESC"
-			return USB-ERROR-OPEN
+			return USB-ERROR-INIT
 		]
 		buf: allocate 4 + desc-size
 		copy-memory buf as byte-ptr! rpt-desc 4 + desc-size
@@ -605,6 +594,23 @@ usb-device: context [
 		free as byte-ptr! rpt-desc
 
 		pNode/hDev: fd
+
+		wthread: as ONESHOT-THREAD! allocate size? ONESHOT-THREAD!
+		if wthread = null [
+			_close fd
+			perror "allocate"
+			return USB-ERROR-INIT
+		]
+		set-memory as byte-ptr! wthread null-byte size? ONESHOT-THREAD!
+		result: _pipe :wthread/pipe
+		if result <> 0 [
+			_close fd
+			free as byte-ptr! wthread
+			perror "create pipe"
+			return USB-ERROR-INIT
+		]
+		pNode/write-thread: as int-ptr! wthread
+
 		USB-ERROR-OK
 	]
 
@@ -612,7 +618,7 @@ usb-device: context [
 		pNode					[INTERFACE-INFO-NODE!]
 	][
 		if pNode/hDev <> 0 [
-			linux-close pNode/hDev
+			_close pNode/hDev
 			pNode/hDev: 0
 		]
 	]
@@ -625,6 +631,8 @@ usb-device: context [
 		data					[int-ptr!]
 		timeout					[integer!]
 		return:					[integer!]
+		/local
+			wthread				[ONESHOT-THREAD!]
 	][
 		case [
 			pNode/hType = DRIVER-TYPE-WINUSB [
@@ -632,7 +640,15 @@ usb-device: context [
 				return 0
 			]
 			pNode/hType = DRIVER-TYPE-HIDUSB [
-				plen/1: linux-write pNode/hDev buf buflen
+				wthread: as ONESHOT-THREAD! pNode/write-thread
+				if wthread/thread <> null [return -1]
+				wthread/udata: data
+				wthread/buffer: buf
+				wthread/buflen: buflen
+				pthread_create :wthread/thread
+					null
+					as int-ptr! :hid-write-thread
+					as int-ptr! pNode
 				return 0
 			]
 			true [
@@ -640,6 +656,32 @@ usb-device: context [
 			]
 		]
 		-1
+	]
+
+	hid-write-thread: func [
+		[cdecl]
+		param					[int-ptr!]
+		return:					[int-ptr!]
+		/local
+			pNode				[INTERFACE-INFO-NODE!]
+			wthread				[ONESHOT-THREAD!]
+			buffer				[byte-ptr!]
+			p					[byte-ptr!]
+			len					[integer!]
+	][
+		pNode: as INTERFACE-INFO-NODE! param
+		wthread: as ONESHOT-THREAD! pNode/write-thread
+		buffer: wthread/buffer
+		either buffer/1 = null-byte [
+			p: buffer + 1
+			len: wthread/buflen - 1
+		][
+			p: buffer
+			len: wthread/buflen
+		]
+		wthread/actual-len: _write pNode/hDev p len
+		_write wthread/pipe/out as byte-ptr! pNode 4
+		null
 	]
 
 	read-data: func [
@@ -657,7 +699,7 @@ usb-device: context [
 				return 0
 			]
 			pNode/hType = DRIVER-TYPE-HIDUSB [
-				plen/1: linux-read pNode/hDev buf buflen
+				plen/1: _read pNode/hDev buf buflen
 				return 0
 			]
 		]
