@@ -612,7 +612,7 @@ usb-device: context [
 		pNode					[INTERFACE-INFO-NODE!]
 	][
 		if pNode/hDev <> 0 [
-			CloseHandle as int-ptr! pNode/hDev
+			linux-close pNode/hDev
 			pNode/hDev: 0
 		]
 	]

@@ -169,7 +169,6 @@ poll: context [
 			err		[integer!]
 			red-port [red-object!]
 			close?	[logic!]
-			red-port [red-object!]
 			comm	[DATA-COMMON!]
 			sym		[integer!]
 			usbdata	[USB-DATA!]
