@@ -169,6 +169,11 @@ poll: context [
 			err		[integer!]
 			red-port [red-object!]
 			close?	[logic!]
+			red-port [red-object!]
+			comm	[DATA-COMMON!]
+			sym		[integer!]
+			usbdata	[USB-DATA!]
+			pNode				[INTERFACE-INFO-NODE!]
 	][
 		#if debug? = yes [print-line "poll/wait"]
 
@@ -192,73 +197,101 @@ poll: context [
 			i: 0
 			while [i < cnt][
 				e: p/events + i
-				data: as sockdata! e/ptr
-				red-port: as red-object! :data/cell
-				msg: red-port
-probe ["code: " data/code]
-				switch data/code [
-					SOCK_OP_NONE	[				;-- impluse event
-						_recv data/sock sock-readbuf 1024 * 1024 0
-						n: 0
-						while [queue/size > 0][
-							n: n + 1
-							data: as sockdata! deque/take queue
-							red-port: as red-object! :data/cell
-							switch data/code [
-								SOCK_OP_CONN  [type: IO_EVT_CONNECT]
-								SOCK_OP_READ  [type: IO_EVT_READ]
-								SOCK_OP_WROTE [type: IO_EVT_WROTE]
-								SOCK_OP_READ_UDP	[0]
-								SOCK_OP_WRITE_UDP	[0]
-								SOCK_OP_CLOSE [
-									sockdata/remove data/sock
-									remove g-poller data/sock 0 null
-									_close data/sock
-									free as byte-ptr! data
-									type: IO_EVT_CLOSE
-									close?: yes
+				comm: as DATA-COMMON! e/ptr
+				red-port: as red-object! :comm/cell
+				sym: get-port-sym red-port
+				if sym = words/tcp [
+					data: as sockdata! e/ptr
+					msg: red-port
+	probe ["code: " data/code]
+					switch data/code [
+						SOCK_OP_NONE	[				;-- impluse event
+							_recv data/sock sock-readbuf 1024 * 1024 0
+							n: 0
+							while [queue/size > 0][
+								n: n + 1
+								data: as sockdata! deque/take queue
+								red-port: as red-object! :data/cell
+								switch data/code [
+									SOCK_OP_CONN  [type: IO_EVT_CONNECT]
+									SOCK_OP_READ  [type: IO_EVT_READ]
+									SOCK_OP_WROTE [type: IO_EVT_WROTE]
+									SOCK_OP_READ_UDP	[0]
+									SOCK_OP_WRITE_UDP	[0]
+									SOCK_OP_CLOSE [
+										sockdata/remove data/sock
+										remove g-poller data/sock 0 null
+										_close data/sock
+										free as byte-ptr! data
+										type: IO_EVT_CLOSE
+										close?: yes
+									]
+									default				[probe ["wrong socket code: " data/code]]
 								]
-								default				[probe ["wrong socket code: " data/code]]
+								call-awake red-port red-port type
+								ret: as red-logic! stack/arguments
+								if ret/value [close?: yes]
 							]
-							call-awake red-port red-port type
-							ret: as red-logic! stack/arguments
-							if ret/value [close?: yes]
-						]
-						i: i + 1
-						continue
-					]
-					SOCK_OP_ACCEPT	[
-						n: size? sockaddr_in!
-						acpt: _accept data/sock as byte-ptr! :saddr :n
-						?? acpt
-						if acpt = -1 [
-							err: errno/value
 							i: i + 1
 							continue
 						]
-						socket/set-nonblocking acpt
-						msg: create-red-port red-port acpt
-						type: IO_EVT_ACCEPT
+						SOCK_OP_ACCEPT	[
+							n: size? sockaddr_in!
+							acpt: _accept data/sock as byte-ptr! :saddr :n
+							?? acpt
+							if acpt = -1 [
+								err: errno/value
+								i: i + 1
+								continue
+							]
+							socket/set-nonblocking acpt
+							msg: create-red-port red-port acpt
+							type: IO_EVT_ACCEPT
+						]
+						SOCK_OP_CONN	[type: IO_EVT_CONNECT]
+						SOCK_OP_READ	[
+							socket/read red-port
+							i: i + 1
+							continue
+						]
+						SOCK_OP_WRITE	[
+							socket/write red-port data/buffer
+							i: i + 1
+							continue
+						]
+						SOCK_OP_READ_UDP	[0]
+						SOCK_OP_WRITE_UDP	[0]
+						default				[probe ["wrong socket code: " data/code]]
 					]
-					SOCK_OP_CONN	[type: IO_EVT_CONNECT]
-					SOCK_OP_READ	[
-						socket/read red-port
-						i: i + 1
-						continue
-					]
-					SOCK_OP_WRITE	[
-						socket/write red-port data/buffer
-						i: i + 1
-						continue
-					]
-					SOCK_OP_READ_UDP	[0]
-					SOCK_OP_WRITE_UDP	[0]
-					default				[probe ["wrong socket code: " data/code]]
+					call-awake red-port msg type
+					ret: as red-logic! stack/arguments
+					if ret/value [close?: yes]
+					i: i + 1
 				]
-				call-awake red-port msg type
-				ret: as red-logic! stack/arguments
-				if ret/value [close?: yes]
-				i: i + 1
+				if sym = words/usb [
+					usbdata: as USB-DATA! e/ptr
+					msg: red-port
+					switch usbdata/code [
+						SOCK_OP_ACCEPT	[
+							;msg: create-red-port red-port data/accept
+							type: IO_EVT_ACCEPT
+						]
+						SOCK_OP_CONN	[type: IO_EVT_CONNECT]
+						SOCK_OP_READ	[
+							pNode: usbdata/dev/interface
+							print-line "usb len:"
+							print-line usbdata/buflen
+							bin: binary/load usbdata/buffer usbdata/buflen
+							copy-cell as cell! bin (object/get-values red-port) + port/field-data
+							stack/pop 1
+							type: IO_EVT_READ
+						]
+						SOCK_OP_WRITE	[type: IO_EVT_WROTE]
+						SOCK_OP_READ_UDP	[0]
+						SOCK_OP_WRITE_UDP	[0]
+						default			[probe ["wrong sock code: " usbdata/code]]
+					]
+				]
 			]
 			if close? [return 1]
 		]

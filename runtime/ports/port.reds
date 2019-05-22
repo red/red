@@ -37,6 +37,7 @@ g-poller: as int-ptr! 0
 			#include %poller-kqueue.reds
 		]
 		any [OS = 'Linux OS = 'Android][
+			#include %usb-linux.reds
 			#include %poller-epoll.reds
 		]
 		true [

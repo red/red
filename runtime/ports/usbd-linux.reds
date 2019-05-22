@@ -95,7 +95,7 @@ usb-device: context [
 			]
 			linux-write: "write" [
 				fd				[integer!]
-				buf				[c-string!]
+				buf				[byte-ptr!]
 				count			[integer!]
 				return:			[integer!]
 			]
@@ -107,7 +107,7 @@ usb-device: context [
 			]
 			linux-read: "read" [
 				fd				[integer!]
-				buf				[c-string!]
+				buf				[byte-ptr!]
 				nbytes			[integer!]
 				return:			[integer!]
 			]
@@ -663,6 +663,53 @@ usb-device: context [
 			CloseHandle as int-ptr! pNode/hDev
 			pNode/hDev: 0
 		]
+	]
+
+	write-data: func [
+		pNode					[INTERFACE-INFO-NODE!]
+		buf						[byte-ptr!]
+		buflen					[integer!]
+		plen					[int-ptr!]
+		data					[int-ptr!]
+		timeout					[integer!]
+		return:					[integer!]
+	][
+		case [
+			pNode/hType = DRIVER-TYPE-WINUSB [
+
+				return 0
+			]
+			pNode/hType = DRIVER-TYPE-HIDUSB [
+				plen/1: linux-write pNode/hDev buf buflen
+				return 0
+			]
+			true [
+				return -1
+			]
+		]
+		-1
+	]
+
+	read-data: func [
+		pNode					[INTERFACE-INFO-NODE!]
+		buf						[byte-ptr!]
+		buflen					[integer!]
+		plen					[int-ptr!]
+		data					[int-ptr!]
+		timeout					[integer!]
+		return:					[integer!]
+	][
+		case [
+			pNode/hType = DRIVER-TYPE-WINUSB [
+				
+				return 0
+			]
+			pNode/hType = DRIVER-TYPE-HIDUSB [
+				plen/1: linux-read pNode/hDev buf buflen
+				return 0
+			]
+		]
+		-1
 	]
 
 	init: does [
