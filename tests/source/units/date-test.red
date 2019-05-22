@@ -858,6 +858,16 @@ Red [
 		--assert do [random/seed d1 random 100] <> do [random/seed d2 random 100]
 		--assert do [random/seed d2 random 100] <> do [random/seed d3 random 100]
 
+
+	--test-- "issue-3881"
+		d: 29-Feb-2020
+		d/year: d/year - 1
+		--assert d = 1-Mar-2019
+
+		d: 29-Feb-2020/15:30:00+4:15
+		d/year: d/year - 1
+		--assert d = 1-Mar-2019/15:30:00+04:15
+
 ===end-group===
 
 ~~~end-file~~~

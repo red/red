@@ -910,7 +910,12 @@ date: context [
 					v: DATE_GET_ZONE(d)
 					dt/date: DATE_SET_ZONE(dt2/date v)
 				]
-				2 [dt/date: DATE_SET_YEAR(d v)]			;-- /year:
+				2 [										;-- /year:
+					dt/date: days-to-date
+								date-to-days DATE_SET_YEAR(d v)
+								DATE_GET_ZONE(d)
+								DATE_GET_TIME_FLAG(dt/date)
+				]
 				3 [set-month dt v]						;-- /month:
 				4 [										;-- /day:
 					dt/date: days-to-date v + date-to-days DATE_SET_DAY(d 0) DATE_GET_ZONE(d) time?
