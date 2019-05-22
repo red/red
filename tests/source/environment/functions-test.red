@@ -61,7 +61,7 @@ Red [
 		--assert false = empty? #(a: 1)
 	--test-- "empty-11"
 		m: #(a: 1)
-		m/a: none
+		remove/key m 'a
 		--assert true = empty? m
 
 ===end-group===

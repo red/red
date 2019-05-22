@@ -1532,8 +1532,8 @@ Red [
 
 	--test-- "#1206"
 		m1206: #(a 1 b 2)
-		m1206/a: none
-		m1206/a: none
+		remove/key m1206 'a
+		remove/key m1206 'a
 		--assert equal? m1206 #(b 2)
 		--assert equal? [b] keys-of m1206
 		--assert equal? [2] values-of m1206
@@ -2725,14 +2725,14 @@ b}
 		m2196: #()
 		repeat k 70 [
 			m2196/:k: {x}
-			m2196/:k: none
+			remove/key m2196 k
 		]
 		--assert empty? keys-of m2196
 		unset 'm2196
 
 	--test-- "#2209"
 		m2209: #(a 1 b 2)
-		m2209/a: none
+		remove/key m2209 'a
 		--assert equal? #(b: 2) m2209
 		unset 'm2209
 
@@ -2745,11 +2745,11 @@ b}
 
 	--test-- "#2234"
 		m2234: #(a 1 b 2)
-		m2234/a: none
+		remove/key m2234 'a
 		--assert not empty? keys-of m2234
 		--assert not empty? values-of m2234
 		m2234: #(a 1 b 2 c 3 d 4 e 5 f 6 g 7 h 8)
-		m2234/b: none
+		remove/key m2234 'b
 		--assert equal? [a c d e f g h] keys-of m2234
 		--assert equal? [1 3 4 5 6 7 8] values-of m2234
 
