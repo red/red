@@ -412,7 +412,7 @@ remove: make action! [[
 		/part "Removes a number of values, or values up to the given series index"
 			length [number! char! series!]
 		/key "Removes a key in map"
-			key-arg [scalar! any-string! any-word! binary!]
+			key-arg [scalar! any-string! any-word! binary! block!]
 		return:  [series! bitset! map! none!]
 	]
 	#get-definition ACT_REMOVE
