@@ -133,6 +133,14 @@ Red [
 		data: "The quick brown fox jumps over the lazy dog"
 		--assert 1541148634 = checksum data 'adler32
 
+	--test-- "adler32-6"
+		data: "1234567890123456"
+		--assert 463995715 = checksum data 'adler32
+
+	--test-- "adler32-7"
+		data: "12345678901234567890123456789012345678901234567890123456789012345678901234567890"
+		--assert -1749675927 = checksum data 'adler32
+
 ===end-group===
 
 ===start-group=== "adler32 fix-#3631 tests"

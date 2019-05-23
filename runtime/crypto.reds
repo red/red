@@ -341,12 +341,11 @@ crypto: context [
 				]
 			]
 			i: k % 16
-			until [
+			while [i <> 0] [
 				s1: s1 + as integer! buf/value
 				buf: buf + 1
 				s2: s2 + s1
 				i: i - 1
-				i = 0
 			]
 
 			s1: s1 % A32-BASE
