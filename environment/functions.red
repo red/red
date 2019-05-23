@@ -63,11 +63,15 @@ quit: func [
 ]
 
 empty?: func [
-	"Returns true if a series is at its tail"
-	series	[series! none!]
+	"Returns true if a series is at its tail or a map! is empty"
+	series	[series! none! map!]
 	return:	[logic!]
 ][
-	either series = none [true][tail? series]
+	case [
+		series? series [tail? series]
+		map? series [series = #()]
+		none? series [true]
+	]
 ]
 
 ??: func [
@@ -285,7 +289,7 @@ math: function [
 
 charset: func [
 	"Shortcut for `make bitset!`"
-	spec [block! integer! char! string!]
+	spec [block! integer! char! string! bitset! binary!]
 ][
 	make bitset! spec
 ]
@@ -687,42 +691,53 @@ extract-boot-args: function [
 ][
 	unless args: system/script/args [exit]				;-- non-executable case
 
-	;-- extract system/options/boot
-	either args/1 = dbl-quote [
-		until [args: next args args/1 <> dbl-quote]
-		system/options/boot: to-red-file copy/part args pos: find args dbl-quote
-		until [pos: next pos pos/1 <> dbl-quote]
+	at-arg2: none
+
+	#either config/OS = 'Windows [
+		;-- logic should mirror that of `split-tokens` in `red.r`
+
+		ws: charset " ^-" 								;-- according to MSDN "Parsing C++ Command-Line Arguments" article
+		split-mode: yes
+		system/options/boot: take system/options/args: collect [
+			arg-end: has [s' e'] [
+				unless same? s': s e': e [ 				;-- empty argument check
+					;-- remove heading and trailing quotes (if any), even if it results in an empty arg
+					if s/1 = #"^"" [s': next s]
+					if all [e/-1 = #"^""  not same? e s'] [e': back e]
+					keep copy/part s' e'
+				]
+			]
+			arg2-update: [if (at-arg2) | at-arg2:]
+			parse s: args [
+				some [e:
+					#"^"" (split-mode: not split-mode)
+				|	if (split-mode) some ws (arg-end) arg2-update s:
+				|	skip
+				] e: (arg-end) arg2-update
+			]
+		]
 	][
-		pos: either pos: find/tail args space [back pos][tail args]
-		system/options/boot: to-red-file copy/part args pos
-	]
-	;-- clean-up system/script/args
-	remove/part args: head args pos
-	
-	;-- set system/options/args
-	either empty? trim/head args [system/script/args: none][
-		unescape: quote (
-			if odd? len: offset? s e [len: len - 1]
-			e: skip e negate len / 2
-			e: remove/part s e
-		)
-		parse args: copy args [							;-- preprocess escape chars
-			any [
-				s: {'"} thru {"'} e: (s/1: #"{" e/-1: #"}")
-				| s: #"'" [to #"'" e: (s/1: #"{" e/1: #"}") | to end]
-				| s: some #"\" e: {"} unescape :e
-				  thru [s: some #"\" e: {"}] unescape :e
-				| skip
-			]
-		]
-		system/options/args: parse head args [			;-- tokenize and collect
-			collect some [[
-				some #"^"" keep copy s to #"^"" some #"^""
-				| #"{" keep copy s to #"}" skip
-				| keep copy s [to #" " | to end]] any #" "
+		;-- logic should be an inverse of `get-cmdline-args` as it is constructed there from *argv
+
+		ws: charset " ^-^/^M"
+		system/options/boot: take system/options/args: parse args [
+			collect some [
+				(buf: make string! 32) collect into buf any [
+					not ws [
+						#"'" keep to #"'" skip
+					|	"\'" keep (#"'")
+					|	keep skip
+					]
+				]
+				[some ws | end]
+				s: (at-arg2: any [at-arg2 s])
+				keep (buf)
 			]
 		]
 	]
+	remove/part args at-arg2 						;-- remove the program name
+
+	system/options/args
 ]
 
 collect: function [
@@ -1044,10 +1059,18 @@ average: func [
 	divide sum block to float! length? block
 ]
 
+last?: func [
+	"Returns TRUE if the series length is 1"
+	series [series!]
+] [
+	1 = length? series
+]
+
 ;------------------------------------------
 ;-				Aliases					  -
 ;------------------------------------------
 
+single?:	:last?
 keys-of:	:words-of
 object:		:context
 halt:		:quit										;-- default behavior unless console is loaded

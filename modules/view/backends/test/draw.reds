@@ -236,8 +236,9 @@ OS-draw-text: func [
 	pos		[red-pair!]
 	text	[red-string!]
 	catch?	[logic!]
+	return: [logic!]
 ][
-
+	true
 ]
 
 OS-draw-arc: func [

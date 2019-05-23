@@ -304,6 +304,7 @@ system/view/VID: context [
 				| 'options	  (add-option opts fetch-argument block! spec)
 				| 'loose	  (add-option opts [drag-on: 'down])
 				| 'all-over   (set-flag opts 'flags 'all-over)
+				| 'password   (set-flag opts 'flags 'password)
 				| 'hidden	  (opts/visible?: no)
 				| 'disabled	  (opts/enabled?: no)
 				| 'select	  (opts/selected: fetch-argument integer! spec)
@@ -742,8 +743,8 @@ system/view/VID: context [
 		]
 		if all [not size image: panel/image][panel/size: max panel/size image/size]
 
-		if all [focal-face not parent][panel/selected: focal-face]
-		
+		if all [focal-face find panel/pane focal-face not parent][panel/selected: focal-face]
+
 		if options [set/some panel make object! user-opts]
 		if flags [panel/flags: either panel/flags [unique union to-block panel/flags to-block flgs][flgs]]
 		if block? panel/actors [panel/actors: context panel/actors]

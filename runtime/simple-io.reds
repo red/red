@@ -1827,7 +1827,7 @@ simple-io: context [
 			curl: curl_easy_init
 
 			if zero? curl [
-				probe "ERROR: libcurl init failed."
+				#if debug? = yes [print-line "ERROR: libcurl init failed."]
 				curl_global_cleanup
 				return none-value
 			]
@@ -1915,7 +1915,7 @@ simple-io: context [
 			curl_global_cleanup
 
 			if res <> CURLE_OK [
-				print-line ["ERROR: " curl_easy_strerror res]
+				#if debug? = yes [print-line ["ERROR: " curl_easy_strerror res]]
 				return none-value
 			]
 

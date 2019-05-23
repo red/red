@@ -118,7 +118,7 @@ set-flag: function [
 	value [any-type!]
 ][
 	either flags: face/:facet [
-		if word? flags [flags: reduce [flags]]
+		if word? flags [face/:facet: flags: reduce [flags]]
 		either block? flags [append flags value][set in face facet value]
 	][
 		set in face facet value

@@ -657,17 +657,15 @@ draw-short-curves: func [
 	rel?		[logic!]
 	nr-points	[integer!]
 	/local
-		point	[tagPOINT]
 		pair	[red-pair!]
 		pt		[tagPOINT]
 		nb		[integer!]
-		control	[tagPOINT]
+		control	[tagPOINT value]
 		count	[integer!]
 ][
 	pt: ctx/other/edges
 	nb: 0
 	pair: start
-	control: declare tagPOINT
 	either ctx/other/prev-shape/type = SHAPE_CURVE [
 		control/x: ctx/other/prev-shape/control/x
 		control/y: ctx/other/prev-shape/control/y
@@ -681,11 +679,11 @@ draw-short-curves: func [
 		pt: pt + 1
 		pt/x: ( 2 * ctx/other/path-last-point/x ) - control/x
 		pt/y: ( 2 * ctx/other/path-last-point/y ) - control/y
+		control/x: pt/x
+		control/y: pt/y
 		pt: pt + 1
 		pt/x: either rel? [ ctx/other/path-last-point/x + pair/x ][ pair/x ]
 		pt/y: either rel? [ ctx/other/path-last-point/y + pair/y ][ pair/y ]
-		control/x: pt/x
-		control/y: pt/y
 		pt: pt + 1
 		loop nr-points - 1 [ pair: pair + 1 ]
 		if pair <= end [

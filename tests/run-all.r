@@ -57,9 +57,11 @@ do %source/units/run-post-extra-tests.r
 	--run-script-quiet %source/compiler/regression-test-redc-5.r
 ===end-group===
 
-===start-group=== "View Engine Tests"
-	--run-test-file-quiet %source/view/base-self-test.red
-===end-group===
+;===start-group=== "View Engine Tests"
+;	--run-test-file-quiet %source/view/base-self-test.red
+;===end-group===
+
+=======
 
 ***end-run-quiet***
 

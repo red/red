@@ -179,7 +179,10 @@ get-widget-handle: func [
 			if no-face? hWnd [
 				id: 0
 				GetWindowThreadProcessId hWnd :id
-				if id <> process-id [return as handle! -1]
+				if any [
+					id <> process-id
+					hWnd = GetConsoleWindow				;-- see #1290
+				] [ return as handle! -1 ]
 
 				p: as int-ptr! GetWindowLong hWnd 0		;-- try 3
 				either null? p [
@@ -2249,7 +2252,7 @@ unlink-sub-obj: func [
 	
 	if TYPE_OF(parent) = TYPE_BLOCK [
 		res: block/find parent as red-value! face null no no yes no null null no no no no
-		if TYPE_OF(res) <> TYPE_NONE [_series/remove as red-series! res null]
+		if TYPE_OF(res) <> TYPE_NONE [_series/remove as red-series! res null null]
 		if all [
 			field = FONT_OBJ_PARENT
 			block/rs-tail? parent

@@ -143,6 +143,11 @@ platform: context [
 		SuppressExternalCodecs		[integer!]
 	]
 
+	tagFILETIME: alias struct! [
+		dwLowDateTime	[integer!]
+		dwHighDateTime	[integer!]
+	]
+
 	tagSYSTEMTIME: alias struct! [
 		year-month	[integer!]
 		week-day	[integer!]
@@ -256,6 +261,14 @@ platform: context [
 			FreeEnvironmentStrings: "FreeEnvironmentStringsW" [
 				env			[c-string!]
 				return:		[logic!]
+			]
+			FileTimeToSystemTime: "FileTimeToSystemTime" [
+				filetime	[tagFILETIME]
+				systemtime	[tagSYSTEMTIME]
+				return:		[integer!]
+			]
+			GetSystemTimeAsFileTime: "GetSystemTimeAsFileTime" [
+				time			[tagFILETIME]
 			]
 			GetSystemTime: "GetSystemTime" [
 				time			[tagSYSTEMTIME]
@@ -482,20 +495,41 @@ platform: context [
 		return:  [float!]
 		/local
 			tm	[tagSYSTEMTIME value]
+			ftime	[tagFILETIME value]
 			h		[integer!]
 			m		[integer!]
 			sec		[integer!]
-			milli	[integer!]
+			ms-int 	[integer!]
+			bits0-31 	[integer!]
+			bits32-47 	[integer!]
+			bits48-63 	[integer!]
+			nano	[integer!]
+			hi		[integer!]
+			n 		[integer!]
 			t		[float!]
 			mi		[float!]
 	][
-		GetSystemTime tm
+		GetSystemTimeAsFileTime ftime
+		FileTimeToSystemTime ftime tm
 		h: tm/hour-minute and FFFFh
 		m: tm/hour-minute >>> 16
 		sec: tm/second and FFFFh
-		milli: either precise? [tm/second >>> 16][0]
-		mi: as float! milli
-		mi: mi / 1000.0
+		nano: either precise? [
+			ms-int: tm/second >>> 16
+			; let x0 = x1 + x2<<32 + x3<<48 (x2-x3 are 2-byte parts, to avoid overflow when multiplied by 1e4)
+			; then x0%n = (x1%n + (x2 * 1<<32%n) + (x3 * 1<<48%n)) % n
+			hi: ftime/dwHighDateTime
+			bits0-31: ftime/dwLowDateTime
+			if bits0-31 < 0 [hi: hi + 1] 		;-- `%` treats bits0-31 as signed, while it is really not, have to work around
+			bits32-47: hi and FFFFh
+			bits48-63: hi >>> 16 and FFFFh
+			n: 10'000
+			; overflow check: 9999 + (65535 * 8000) = 524'289'999
+			nano: (bits32-47 * 7'296) + (bits48-63 * 0'656) // n + (bits0-31 % n) 	;-- raw part, in 100ns units
+			nano * 100 + (ms-int * 1'000'000)
+		][0]
+		mi: as-float nano
+		mi: mi / 1e+9
 		t: as-float h * 3600 + (m * 60) + sec
 		t: t + mi
 		t
@@ -559,7 +593,7 @@ platform: context [
 			]
 		]
 		crypto/init-provider
-		#if sub-system = 'console [init-dos-console]
+		init-output-buffer
 		#if unicode? = yes [
 			h: __iob_func
 			_setmode _fileno h + 8 _O_U16TEXT				;@@ stdout, throw an error on failure

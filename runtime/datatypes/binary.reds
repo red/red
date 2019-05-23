@@ -609,7 +609,7 @@ binary: context [
 		bin: as byte-ptr! s/offset
 		count: 0
 		accum: 0
-		until [
+		while [len > 0] [
 			c: string/get-char p unit
 			BINARY_SKIP_COMMENT
 			if c = -1 [break]
@@ -629,7 +629,6 @@ binary: context [
 			]
 			p: p + unit
 			len: len - 1
-			zero? len
 		]
 		if positive? count [return null]
 		s/tail: as red-value! bin
@@ -743,7 +742,7 @@ binary: context [
 		bin: as byte-ptr! s/offset
 		accum: 0
 		flip: 0
-		until [
+		while [len > 0] [
 			c: string/get-char p unit
 			BINARY_SKIP_COMMENT
 			if c = -1 [break]
@@ -785,7 +784,6 @@ binary: context [
 
 			p: p + unit
 			len: len - 1
-			len <= 0
 		]
 		s/tail: as red-value! bin
 		node
@@ -965,11 +963,13 @@ binary: context [
 		]
 
 		if any [tail? not head?] [
+			tail: tail - 1
 			while [
-				all [head < tail head/value = null-byte]
+				all [head < tail tail/value = null-byte]
 			][
 				tail: tail - 1
 			]
+			tail: tail + 1
 		]
 
 		if cur <> head [

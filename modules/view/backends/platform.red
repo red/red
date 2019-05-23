@@ -642,10 +642,16 @@ system/view/platform: context [
 	]
 
 	exit-event-loop: routine [][
-		#switch OS [
-			Windows  [gui/PostQuitMessage 0]
-			macOS    [gui/post-quit-msg]
-			#default [0]
+		#switch GUI-engine [
+			native [
+				#switch OS [
+					Windows  [gui/PostQuitMessage 0]
+					macOS    [gui/post-quit-msg]
+					#default [0]
+				]
+			]
+			test []
+			GTK  []
 		]
 	]
 

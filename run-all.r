@@ -99,6 +99,10 @@ either each-mode [
 ]
 do %tests/source/units/run-post-extra-tests.r
 
+===start-group=== "View Engine Tests"
+	--run-test-file-quiet %source/view/base-self-test.red
+===end-group===
+
 qt/script-header: "Red/System []"
 qt/tests-dir: clean-path %system/tests/ 
 run-all-script %system/tests/ %run-all.r

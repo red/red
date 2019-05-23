@@ -55,6 +55,14 @@ Red [
 	--test-- "empty-6" --assert false = empty? "a"
 	--test-- "empty-7" --assert false = empty? [red blue]
 	--test-- "empty-8" --assert false = empty? %functions-test.red
+	--test-- "empty-9"
+		--assert true = empty? #()
+	--test-- "empty-10"
+		--assert false = empty? #(a: 1)
+	--test-- "empty-11"
+		m: #(a: 1)
+		remove/key m 'a
+		--assert true = empty? m
 
 ===end-group===
 
@@ -459,11 +467,6 @@ Red [
 		--assertf~= atan 1.0 0.7853981 0.0001
 ===end-group===
 
-===start-group=== "atan tests"
-	--test-- "atan test"
-		--assertf~= atan 1.0 0.7853981 0.0001
-===end-group===
-
 ===start-group=== "atan2 tests"
 	--test-- "atan2 test"
 		--assertf~= (atan2 10 1) 1.4711276 0.0001
@@ -475,8 +478,8 @@ Red [
 		--assert 2.0 = sqrt 4
 ===end-group===
 
-===start-group=== "sqrt tests"
-	--test-- "sqrt test"
+===start-group=== "rejoin tests"
+	--test-- "rejoin test"
 		--assert "24" = rejoin [1 + 1 2 * 2]
 ===end-group===
 
@@ -491,6 +494,27 @@ Red [
 		--assert 1.5 = average [1 2]
 		--assert 25% = average [30% 20%]
 		--assert 0.5 = average [1 30% 20%]
+===end-group===
+
+===start-group=== "last? tests"
+	--test-- "last? true tests"
+		--assert error? try [last? 2]
+		--assert true = last? [1]
+		--assert true = last? "1"
+		--assert true = last? make hash! [1]
+		--assert true = last? make vector! [1]
+		--assert true = last? #{01}
+	--test-- "last? false tests"
+		--assert false = last? []
+		--assert false = last? [1 2]
+		--assert false = last? ""
+		--assert false = last? "12"
+		--assert false = last? make hash! []
+		--assert false = last? make hash! [1 2]
+		--assert false = last? make vector! []
+		--assert false = last? make vector! [1 2]
+		--assert false = last? #{0102}
+		--assert false = last? #{}
 ===end-group===
 
 ~~~end-file~~~

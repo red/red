@@ -164,6 +164,7 @@ none: context [
 	remove: func [
 		none	[red-none!]
 		part	[red-value!]
+		key		[red-value!]
 		return:	[red-value!]
 	][
 		push-last

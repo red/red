@@ -229,6 +229,25 @@ do %../../../lexer.r
 		src: {Red [] "blah^2"}
 		--assert [[] "blah2"] = lexer/process src
 
+	--test-- "lexer-38"
+		src: "Red [] 2#{00001111}"
+		--assert "#{0F}" = mold second lexer/process src
+
+	--test-- "lexer-39"
+		src: "Red [] 2#{0000 11 11}"
+		--assert "#{0F}" = mold second lexer/process src
+
+	--test-- "lexer-40"
+		src: {Red []
+		2#{
+		00 1 1
+		11
+		01
+
+		}}
+		--assert "#{3D}" = mold second lexer/process src
+
+
 ===end-group===
 	
 ~~~end-file~~~

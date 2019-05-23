@@ -52,6 +52,17 @@ system/reactivity: context [
 	eat-events?: yes
 	debug?: 	 no
 	source:		 []
+
+	add-relation: func [
+		obj [object!]
+		word [default!]
+		reaction [block! function!]
+		targets [set-word! block! object! none!]
+		/local new-rel
+	][
+		new-rel: reduce [obj :word :reaction targets]
+		unless find/same/skip relations new-rel 4 [append relations new-rel]
+	]
 	
 	eval: function [code [block!] /safe][
 		either safe [
@@ -198,7 +209,7 @@ system/reactivity: context [
 		parse reaction rule: [
 			any [
 				item: word! (
-					if find words item/1 [repend relations [obj item/1 reaction field]]
+					if find words item/1 [add-relation obj item/1 reaction field]
 				)
 				| set-path! | any-string!
 				| into rule
@@ -267,7 +278,7 @@ system/reactivity: context [
 							item: item/1
 							if pos: find objs item/1 [
 								obj: pick objects 1 + index? pos
-								repend relations [obj item/2 :reaction objects]
+								add-relation obj item/2 :reaction objects
 								unless later [eval objects]
 								found?: yes
 							]
@@ -319,7 +330,7 @@ system/reactivity: context [
 								in obj 'on-change*
 							][
 								part: part + 1
-								repend relations [obj item/:part reaction ctx]
+								add-relation obj item/:part reaction ctx
 								unless later [eval reaction]
 								found?: yes
 							]
