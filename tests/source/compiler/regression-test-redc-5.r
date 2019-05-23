@@ -89,6 +89,121 @@ test
 		--compile-and-run-this-red {make image! []}
 		--assert not crashed?
 
+	;; #2438 --> see %load-test.red
+
+===end-group===
+
+
+===start-group=== "Red regressions #2501 - #3000"
+
+	;; for this test it doesn't matter if it errors out or returns a pair
+	--test-- "#2538"
+		--compile-and-run-this-red {probe system/console/size}
+		--assert not crashed?
+
+===end-group===
+
+; ===start-group=== "Red regressions #3001 - #3500"
+; ===end-group===
+
+===start-group=== "Red regressions #3501 - #4000"
+	
+	;; for this test it doesn't matter if it errors out or outputs a result
+	--test-- "#3714"
+		
+		--compile-and-run-this-red {probe system/view/metrics/dpi}
+		--assert not crashed?
+		
+		--compile-and-run-this-red {probe system/view/screens/1/size}
+		--assert not crashed?
+		
+		--compile-and-run-this-red {
+			print mold/flat/part system/console 100
+			print mold/flat/part system/console/size 100
+		}
+		--assert not crashed?
+
+
+	--test-- "#3733"
+		--compile-and-run-this-red {f: does [1] do [f/q]}
+		--assert not crashed?
+		--assert script-error?
+
+		;; FIXME: this should not error out when compiled:
+		--compile-and-run-this-red {
+			do [f: func [/q] bind [1] context []]
+			f/q
+		}
+		--assert not crashed?
+		; --assert not script-error?
+
+	
+	--test-- "#3773"
+		;; see the same triad interpreted in regression-test-red.red...
+
+		;; context? should not accept a string
+		--compile-and-run-this-red {
+			#macro ctx: func [x] [context? x]
+			ctx ""
+		}
+		--assert compiler-error?
+
+		;; this is reduced like: (mc 'mc) => (mc) => error (no arg)
+		--compile-and-run-this-red {
+			#macro mc: func [x] [x]
+			probe quote (mc 'mc)
+		}
+		--assert compiler-error?
+
+		;; :mc = func [x][x], so `mc :mc` executing `x` applies it to an empty arg list => error
+		--compile-and-run-this-red {
+			#macro mc: func [x] [x]
+			probe quote (mc :mc)
+		}
+		--assert compiler-error?
+
+
+	--test-- "#3831"
+		--compile-and-run-this-red {repeat x none []}
+		--assert not crashed?
+		--assert script-error?
+
+		--compile-and-run-this-red {loop none []}
+		--assert not crashed?
+		--assert script-error?
+
+
+	--test-- "#3866"
+		--compile-and-run-this-red {
+			f: func [x [string!]][probe x]
+			f 1
+		}
+		--assert not crashed?
+		--assert script-error?
+
+
+	--test-- "#3876"
+		--compile-and-run-this-red {
+			count: 0.0
+			vec-size: 100.0
+			vec: make vector! [float! 64 100]
+			count: count + 1.0
+			print count
+			print vec/:count
+			val: (1.012345 * (count / vec-size))
+			print val
+			vec/:count: val
+		}
+		--assert not crashed?
+		--assert script-error?
+
+
+	--test-- "#3891"
+		--compile-and-run-this-red {probe load "a<=>"}
+		--assert not crashed?
+		--assert script-error?
+
+
 ===end-group===
 
 ~~~end-file~~~ 
