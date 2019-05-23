@@ -258,7 +258,8 @@ stack: context [										;-- call stack
 
 		assert cbottom < ctop
 		ctop: ctop - 1
-		STACK_SET_FRAME
+		top: arguments + 1
+		arguments: ctop/prev
 		if acc-mode? [check-dyn-call]
 		
 		#if debug? = yes [if verbose > 1 [dump]]
