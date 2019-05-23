@@ -175,6 +175,7 @@ poll: context [
 			pNode				[INTERFACE-INFO-NODE!]
 			handle	[integer!]
 			wthread	[ONESHOT-THREAD!]
+			len		[integer!]
 	][
 		#if debug? = yes [print-line "poll/wait"]
 
@@ -280,9 +281,10 @@ poll: context [
 						SOCK_OP_CONN	[type: IO_EVT_CONNECT]
 						SOCK_OP_READ	[
 							pNode: usbdata/dev/interface
+							len: _read usbdata/dev/interface/hDev usbdata/buffer usbdata/buflen
 							print-line "usb len:"
-							print-line usbdata/buflen
-							bin: binary/load usbdata/buffer usbdata/buflen
+							print-line len
+							bin: binary/load usbdata/buffer len
 							copy-cell as cell! bin (object/get-values red-port) + port/field-data
 							stack/pop 1
 							type: IO_EVT_READ
