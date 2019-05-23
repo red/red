@@ -53,6 +53,8 @@ INTERFACE-INFO-NODE!: alias struct! [
 	path				[c-string!]
 	name				[byte-ptr!]
 	name-len			[integer!]
+	;-- syspath for linux
+	syspath				[c-string!]
 
 	disconnected		[integer!]
 
@@ -95,6 +97,8 @@ DEVICE-INFO-NODE!: alias struct! [
 	path				[c-string!]
 	name				[byte-ptr!]
 	name-len			[integer!]
+	;-- syspath for linux
+	syspath				[c-string!]
 
 	;-- platform
 	serial-num			[c-string!]
@@ -151,6 +155,9 @@ free-interface-info-node: func [
 	if pNode/name <> null [
 		free pNode/name
 	]
+	if pNode/syspath <> null [
+		free as byte-ptr! pNode/syspath
+	]
 	if pNode/collections <> null [
 		free as byte-ptr! pNode/collections
 	]
@@ -180,6 +187,9 @@ free-device-info-node: func [
 	]
 	if pNode/name <> null [
 		free pNode/name
+	]
+	if pNode/syspath <> null [
+		free as byte-ptr! pNode/syspath
 	]
 	if pNode/serial-num <> null [
 		free as byte-ptr! pNode/serial-num

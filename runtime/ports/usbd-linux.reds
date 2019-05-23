@@ -234,19 +234,23 @@ usb-device: context [
 			dlink/init pNode/interface-entry
 			pNode/vid: vid
 			pNode/pid: pid
+			len: (length? sysfs_path) + 1
+			buf: allocate len
+			copy-memory buf as byte-ptr! sysfs_path len
+			pNode/syspath: as c-string! buf
 
 			len: (length? dev_path) + 1
 			buf: allocate len
 			copy-memory buf as byte-ptr! dev_path len
 			pNode/path: as c-string! buf
-			print-line pNode/path
+			;print-line pNode/path
 			if name <> null [
 				len: (length? name) + 1
 				buf: allocate len
 				copy-memory buf as byte-ptr! name len
 				pNode/name: buf
 				pNode/name-len: len - 1
-				print-line name
+				;print-line name
 			]
 			if serial <> null [
 				len: (length? serial) + 1
@@ -254,8 +258,7 @@ usb-device: context [
 				copy-memory buf as byte-ptr! serial len
 				pNode/serial-num: as c-string! buf
 			]
-			dlink/init pNode/interface-entry
-			enum-children pNode/interface-entry device vid pid
+			enum-children pNode/interface-entry device dev_path vid pid
 
 			dlink/append device-list as list-entry! pNode
 
@@ -271,6 +274,7 @@ usb-device: context [
 	enum-children: func [
 		list					[list-entry!]
 		parent					[int-ptr!]
+		parent-path				[c-string!]
 		vid						[integer!]
 		pid						[integer!]
 		/local
@@ -363,8 +367,18 @@ usb-device: context [
 				]
 			]
 			dlink/append list as list-entry! pNode
-			print-line "child"
-			print-line sysfs_path
+			;print-line "child"
+			;print-line sysfs_path
+
+			len: (length? sysfs_path) + 1
+			buf: allocate len
+			copy-memory buf as byte-ptr! sysfs_path len
+			pNode/syspath: as c-string! buf
+
+			len: (length? parent-path) + 1
+			buf: allocate len
+			copy-memory buf as byte-ptr! parent-path len
+			pNode/path: as c-string! buf
 
 			udev_device_unref device
 			dev_list_entry: udev_list_entry_get_next dev_list_entry
@@ -424,17 +438,20 @@ usb-device: context [
 				udev_unref udev
 				return false
 			]
+			len: (length? sysfs_path) + 1
+			buf: allocate len
+			copy-memory buf as byte-ptr! sysfs_path len
+			pNode/syspath: as c-string! buf
 			len: (length? dev_path) + 1
 			buf: allocate len
 			copy-memory buf as byte-ptr! dev_path len
-			free as byte-ptr! pNode/path
 			pNode/path: as c-string! buf
 			udev_device_unref device
 		]
 		udev_enumerate_unref enumerate
 		udev_unref udev
-		print-line pNode/path
-		print-line "is hid"
+		;print-line pNode/path
+		;print-line "is hid"
 		true
 	]
 
