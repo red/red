@@ -497,13 +497,13 @@ save: function [
 	]
 ]
 
-cause-error: function [
+cause-error: func [
 	"Causes an immediate error throw, with the provided information"
-	err-type [word!]
-	err-id	 [word!]
-	args	 [block!]
+	err-type [word!] 
+	err-id [word!] 
+	args [block! string!] 
 ][
-	args: reduce args
+	args: reduce either block? args [args] [[args]]		; Blockify string args
 	do make error! [
 		type: err-type
 		id: err-id
