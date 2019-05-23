@@ -682,45 +682,6 @@ map: context [
 
 	;--- Misc actions ---
 
-	set-many: func [
-		blk		[red-block!]
-		map		[red-hash!]
-		size	[integer!]
-		/local
-			w		[red-word!]
-			k		[red-value!]
-			v		[red-value!]
-			i		[integer!]
-			type	[integer!]
-	][
-		i: 1
-		k: block/rs-head as red-block! map
-		w: as red-word! block/rs-head blk
-		while [i <= size][
-			either i % 2 = 0 [
-				_context/set w k
-			][
-				v: k + 1
-				type: TYPE_OF(w)
-				unless any [
-					type = TYPE_WORD
-					type = TYPE_GET_WORD
-					type = TYPE_SET_WORD
-					type = TYPE_LIT_WORD
-				][
-					fire [TO_ERROR(script invalid-arg) w]
-				]
-				type: k/header
-				k/header: TYPE_WORD
-				_context/set w k
-				k/header: type
-			]
-			k: k + 1
-			w: w + 1
-			i: i + 1
-		]
-	]
-
 	copy: func [
 		map	    	[red-hash!]
 		new			[red-hash!]
