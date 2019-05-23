@@ -860,12 +860,12 @@ Red [
 		--assert none? hs-remove-1/c
 
 	--test-- "remove-hash-6"
-		hs: [a 1 b 2 c 3]
-		--assert [a 1 c 3] =  remove/key hs 'b
+		hs: make hash! [a 1 b 2 c 3]
+		--assert (make hash! [a 1 c 3]) =  remove/key hs 'b
 
 	--test-- "remove-hash-7"
-		hs: [a 1 1 b 2 2 c 3 3]
-		--assert [a 1 1 c 3 3] =  remove/key/part hs 'b 2
+		hs: make hash! [a 1 1 b 2 2 c 3 3]
+		--assert (make hash! [a 1 1 c 3 3]) =  remove/key/part hs 'b 2
 
 	--test-- "remove-str-1"
 		a: "123"
