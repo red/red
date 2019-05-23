@@ -826,6 +826,14 @@ Red [
 		a: [1 2 3]
 		--assert [1 2 3] =  remove/part a 0
 
+	--test-- "remove-blk-8"
+		blk: [a 1 b 2 c 3]
+		--assert [a 1 c 3] =  remove/key blk 'b
+
+	--test-- "remove-blk-9"
+		blk: [a 1 1 b 2 2 c 3 3]
+		--assert [a 1 1 c 3 3] =  remove/key/part blk 'b 2
+
 	--test-- "remove-hash-1"
 		hs-remove-1: make hash! [a 2 3]
 		--assert (make hash! [2 3]) = remove hs-remove-1
@@ -850,6 +858,14 @@ Red [
 		--assert 2 = hs-remove-1/a
 		--assert none? hs-remove-1/b
 		--assert none? hs-remove-1/c
+
+	--test-- "remove-hash-6"
+		hs: make hash! [a 1 b 2 c 3]
+		--assert (make hash! [a 1 c 3]) =  remove/key hs 'b
+
+	--test-- "remove-hash-7"
+		hs: make hash! [a 1 1 b 2 2 c 3 3]
+		--assert (make hash! [a 1 1 c 3 3]) =  remove/key/part hs 'b 2
 
 	--test-- "remove-str-1"
 		a: "123"

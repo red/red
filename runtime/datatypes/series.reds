@@ -811,11 +811,6 @@ _series: context [
 	][
 		s:    GET_BUFFER(ser)
 		unit: GET_UNIT(s)
-		head: (as byte-ptr! s/offset) + (ser/head << (log-b unit))
-		tail: as byte-ptr! s/tail
-
-		if head >= tail [return ser]						;-- early exit if nothing to remove
-
 		part: unit
 		items: 1
 
@@ -837,6 +832,19 @@ _series: context [
 			items: part
 			part: part << (log-b unit)
 		]
+
+		if OPTION?(key-arg) [
+			ser: as red-series! actions/find ser key-arg null no yes no no null null no no no no
+			if TYPE_OF(ser) = TYPE_NONE [return ser]
+			items: items + 1			;-- remove key + value
+			part: part + unit
+		]
+
+		head: (as byte-ptr! s/offset) + (ser/head << (log-b unit))
+		tail: as byte-ptr! s/tail
+
+		if head >= tail [return ser]						;-- early exit if nothing to remove
+
 		ownership/check as red-value! ser words/_remove null ser/head items
 		
 		either head + part < tail [
