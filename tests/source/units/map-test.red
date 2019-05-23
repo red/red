@@ -37,19 +37,19 @@ Red [
 	
 ===end-group===
 
-===start-group=== "delete key"
+===start-group=== "remove key"
 
-	--test-- "map-delete-key-1"
+	--test-- "map-remove-key-1"
 		mdk1-m: #(a: 1 b: 2 c: 3)
-		mdk1-m/a: none
-		--assert none = mdk1-m/a
-		--assert none = find words-of mdk1-m 'a
+		remove/key mdk1-m 'a
+		--assert error? try [mdk1-m/a]
+		--assert none = find keys-of mdk1-m 'a
 
-	--test-- "map-delete-key-2"
+	--test-- "map-remove-key-2"
 		mdk2-m: #(a: 1 b: 2 c: 3)
-		mdk2-m/a: 'none
-		--assert 'none = mdk2-m/a
-		--assert [a b c] = find words-of mdk2-m 'a
+		mdk2-m/a: none
+		--assert none = mdk2-m/a
+		--assert [a b c] = find keys-of mdk2-m 'a
 		
 ===end-group===
 
@@ -57,18 +57,23 @@ Red [
 
 	--test-- "map-find-1"
 		mf1-m: #(a: none b: 1 c: 2)
-		--assert true = find mf1-m 'a
-		--assert true = find mf1-m 'b
-		--assert true = find mf1-m 'c
-		--assert none = find mf1-m 'd
+		--assert 'a		= find mf1-m 'a
+		--assert 'b		= find mf1-m 'b
+		--assert 'c		= find mf1-m 'c
+		--assert none	= find mf1-m 'd
 		
 	--test-- "map-find-2"
 		mf2-m: #(a: 1 b: 2 c: 3)
 		mf2-m/a: 'none
 		mf2-m/b: none
-		--assert true = find mf2-m 'a
-		--assert none = find mf2-m 'b
-		--assert true = find mf2-m 'c
+		--assert 'a = find mf2-m 'a
+		--assert 'b = find mf2-m 'b
+		--assert 'c = find mf2-m 'c
+
+	--test-- "map-find-3"
+		mf3-m: #(aB: 1 ab: 2 AB: 3)
+		--assert 'ab = find/case mf3-m 'ab
+		--assert none = find/case mf3-m 'Ab
 
 ===end-group===
 
@@ -113,8 +118,9 @@ Red [
 		
 	--test-- "map-put-2"
 		mput2-m: #(a: 1 b: 2)
-		--assert 4 = put mput2-m 'b 4
-		--assert 4 = mput2-m/b
+		--assert 4 = put/case mput2-m 'B 4
+		--assert 4 = select/case mput2-m 'B
+		--assert 3 = length? mput2-m
 	
 	--test-- "map-put-3"
 		mput3-m: #(a: 1 b: 2)
@@ -125,9 +131,14 @@ Red [
 	--test-- "map-put-4"
 		mput4-m: #(a: 1 b: 2)
 		--assert none = put mput4-m 'a none
-		--assert none = find words-of mput4-m 'a
-		--assert none = mput4-m/a
-		--assert 1 = length? mput4-m
+		--assert none = select mput4-m 'a
+		--assert 2 = length? mput4-m
+
+	--test-- "map-put-5"
+		mput5-m: #("AB" 1 "CD" 2)
+		--assert 1 = select mput5-m "ab"
+		--assert 4 = put/case mput5-m "ab" 4
+		--assert 4 = select/case mput5-m "ab"
 
 ===end-group===
 
@@ -220,12 +231,12 @@ Red [
 
 	--test-- "issue-2196"
 		m: #()
-		repeat k 70 [m/:k: {x} m/:k: none]
+		repeat k 70 [m/:k: {x} remove/key m k]
 		--assert empty? keys-of m
 
 	--test-- "issue-2234"
 		m: #(a 1 b 2)
-		m/a: none
+		remove/key m 'a
 		--assert [b] = keys-of m
 
 ===end-group===

@@ -83,7 +83,7 @@ map: context [
 			
 			while [value < s-tail][
 				next: value + 1
-				unless TYPE_OF(next) = TYPE_NONE [
+				unless next/header = MAP_KEY_DELETED [
 					if indent? [part: object/do-indent buffer tabs part]
 
 					part: actions/mold value buffer only? all? flat? arg part tabs
@@ -145,33 +145,23 @@ map: context [
 		while [cell < tail][
 			key: _hashtable/get table cell 0 0 op no no
 			value: cell + 1
-			either TYPE_OF(value) = TYPE_NONE [			;-- delete key entry
+			either key = null [
+				copy-cell cell kkey
+				preprocess-key kkey
+				s: as series! map/node/value
+				key: copy-cell kkey as cell! alloc-tail-unit s (size? cell!) << 1
 				val: key + 1
-				if all [
-					key <> null
-					TYPE_OF(val) <> TYPE_NONE
-				][
-					_hashtable/delete table key
-				]
+				val/header: TYPE_UNSET
+				_hashtable/put table key
 			][
-				either key = null [
-					copy-cell cell kkey
-					preprocess-key kkey
-					s: as series! map/node/value
-					key: copy-cell kkey as cell! alloc-tail-unit s (size? cell!) << 1
-					val: key + 1
-					val/header: TYPE_UNSET
-					_hashtable/put table key
-				][
-					val: key + 1
-					if TYPE_OF(val) = TYPE_NONE [		;-- increase size of keys
-						s: as series! table/value
-						psize: as int-ptr! s/offset
-						psize/value: psize/value + 1
-					]
+				val: key + 1
+				if val/header = MAP_KEY_DELETED [	;-- increase size of keys
+					s: as series! table/value
+					psize: as int-ptr! s/offset
+					psize/value: psize/value + 1
 				]
-				copy-cell value key + 1
 			]
+			copy-cell value key + 1
 			cell: cell + 2
 		]
 		as red-value! map
@@ -283,7 +273,7 @@ map: context [
 				blk/node: alloc-cells size
 				while [all [value < s-tail cnt < total]][
 					next: value + 1
-					unless TYPE_OF(next) = TYPE_NONE [
+					unless next/header = MAP_KEY_DELETED [
 						cnt: cnt + 1
 						new: block/rs-append blk value
 						if TYPE_OF(value) = TYPE_SET_WORD [
@@ -297,7 +287,7 @@ map: context [
 				blk/node: alloc-cells size
 				while [all [value < s-tail cnt < total]][
 					next: value + 1
-					unless TYPE_OF(next) = TYPE_NONE [
+					unless next/header = MAP_KEY_DELETED [
 						cnt: cnt + 1
 						block/rs-append blk next
 					]
@@ -308,7 +298,7 @@ map: context [
 				blk/node: alloc-cells size * 2
 				while [all [value < s-tail cnt < total]][
 					next: value + 1
-					unless TYPE_OF(next) = TYPE_NONE [
+					unless next/header = MAP_KEY_DELETED [
 						cnt: cnt + 1
 						block/rs-append blk value
 						block/rs-append blk next
@@ -403,7 +393,7 @@ map: context [
 		]
 
 		if zero? size1 [return 0]								;-- shortcut exit for empty map!
-					
+
 		table2: blk2/table
 		key1: block/rs-head as red-block! blk1
 		key1: key1 - 2
@@ -416,7 +406,7 @@ map: context [
 				until [												;-- next key
 					key1: key1 + 2
 					value1: key1 + 1
-					TYPE_OF(value1) <> TYPE_NONE
+					value1/header <> MAP_KEY_DELETED
 				]
 				key2: _hashtable/get table2 key1 0 0 COMP_STRICT_EQUAL no no
 
@@ -434,7 +424,7 @@ map: context [
 				until [												;-- next key
 					key1: key1 + 2
 					value1: key1 + 1
-					TYPE_OF(value1) <> TYPE_NONE
+					value1/header <> MAP_KEY_DELETED
 				]
 				start: -1
 				pace: 0
@@ -506,36 +496,29 @@ map: context [
 		key: _hashtable/get table element 0 0 op no no
 
 		either value <> null [						;-- set value
-			either TYPE_OF(value) = TYPE_NONE [		;-- delete key entry
+			either key = null [
+				copy-cell element k
+				preprocess-key k
+				s: as series! parent/node/value
+				key: copy-cell k as cell! alloc-tail-unit s (size? cell!) << 1
 				val: key + 1
-				if all [
-					key <> null
-					TYPE_OF(val) <> TYPE_NONE
-				][
-					_hashtable/delete table key
-				]
-				value
+				val/header: TYPE_UNSET
+				_hashtable/put table key
 			][
-				either key = null [
-					copy-cell element k
-					preprocess-key k
-					s: as series! parent/node/value
-					key: copy-cell k as cell! alloc-tail-unit s (size? cell!) << 1
-					val: key + 1
-					val/header: TYPE_UNSET
-					_hashtable/put table key
-				][
-					val: key + 1
-					if TYPE_OF(val) = TYPE_NONE [	;-- increase size of keys
-						s: as series! table/value
-						size: as int-ptr! s/offset
-						size/value: size/value + 1
-					]
+				val: key + 1
+				if val/header = MAP_KEY_DELETED [	;-- increase size of keys
+					s: as series! table/value
+					size: as int-ptr! s/offset
+					size/value: size/value + 1
 				]
-				copy-cell value key + 1
 			]
+			copy-cell value key + 1
 		][
-			either key = null [none-value][key + 1]
+			val: key + 1
+			if any [key = null val/header = MAP_KEY_DELETED][
+				fire [TO_ERROR(script invalid-path) path element]
+			]
+			val
 		]
 	]
 
@@ -643,7 +626,10 @@ map: context [
 		table: map/table
 		key: _hashtable/get table value 0 0 op no no
 		val: key + 1
-		either any [key = null TYPE_OF(val) = TYPE_NONE][none-value][true-value]
+		either any [
+			key = null
+			val/header = MAP_KEY_DELETED
+		][none-value][key]
 	]
 
 	;--- Navigation actions ---
@@ -674,6 +660,26 @@ map: context [
 		either key = null [none-value][key + 1]
 	]
 
+	remove: func [
+		map	 	 [red-hash!]
+		part-arg [red-value!]							;-- null if no /part
+		key		 [red-value!]
+		return:	 [red-hash!]
+		/local
+			k	 [red-value!]
+			val	 [red-value!]
+	][
+		unless OPTION?(key) [
+			fire [TO_ERROR(script missing-arg)]
+		]
+		k: _hashtable/get map/table key 0 0 COMP_STRICT_EQUAL no no
+		val: k + 1
+		if all [k <> null val/header <> MAP_KEY_DELETED][
+			_hashtable/delete map/table k
+		]
+		map
+	]
+
 	;--- Misc actions ---
 
 	set-many: func [
@@ -695,21 +701,19 @@ map: context [
 				_context/set w k
 			][
 				v: k + 1
-				unless TYPE_OF(v) = TYPE_NONE [
-					type: TYPE_OF(w)
-					unless any [
-						type = TYPE_WORD
-						type = TYPE_GET_WORD
-						type = TYPE_SET_WORD
-						type = TYPE_LIT_WORD
-					][
-						fire [TO_ERROR(script invalid-arg) w]
-					]
-					type: k/header
-					k/header: TYPE_WORD
-					_context/set w k
-					k/header: type
+				type: TYPE_OF(w)
+				unless any [
+					type = TYPE_WORD
+					type = TYPE_GET_WORD
+					type = TYPE_SET_WORD
+					type = TYPE_LIT_WORD
+				][
+					fire [TO_ERROR(script invalid-arg) w]
 				]
+				type: k/header
+				k/header: TYPE_WORD
+				_context/set w k
+				k/header: type
 			]
 			k: k + 1
 			w: w + 1
@@ -786,7 +790,7 @@ map: context [
 			null			;pick
 			null			;poke
 			:put
-			null			;remove
+			:remove
 			null			;reverse
 			:select
 			null			;sort

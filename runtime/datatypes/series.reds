@@ -796,6 +796,7 @@ _series: context [
 	remove: func [
 		ser	 	 [red-series!]
 		part-arg [red-value!]							;-- null if no /part
+		key-arg  [red-value!]
 		return:	 [red-series!]
 		/local
 			s		[series!]

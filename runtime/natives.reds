@@ -2974,7 +2974,7 @@ natives: context [
 		][
 			series/head: series/head - size
 			assert series/head >= 0
-			pos: as red-series! actions/remove series as red-value! part
+			pos: as red-series! actions/remove series part arg
 			series/head: pos/head
 		]
 	]
