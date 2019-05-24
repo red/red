@@ -283,6 +283,8 @@ poll: context [
 						SOCK_OP_READ	[
 							pNode: usbdata/dev/interface
 							rthread: as ONESHOT-THREAD! pNode/read-thread
+							handle: 0
+							_read rthread/pipe/in as byte-ptr! :handle 4
 							print-line "usb len:"
 							print-line rthread/actual-len
 							bin: binary/load rthread/buffer rthread/actual-len

@@ -71,6 +71,11 @@ usb-device: context [
 				restrict3		[int-ptr!]
 				return:			[integer!]
 			]
+			pthread_join: "pthread_join" [
+				thread		[int-ptr!]
+				retval		[int-ptr!]
+				return:		[integer!]
+			]
 		]
 		"libudev.so.1" cdecl [
 			udev_new: "udev_new" [
@@ -808,6 +813,7 @@ usb-device: context [
 		]
 		wthread/actual-len: wthread/buflen
 		_write wthread/pipe/out as byte-ptr! pNode 4
+		wthread/thread: null
 		null
 	]
 
@@ -834,6 +840,7 @@ usb-device: context [
 		]
 		wthread/actual-len: _write pNode/hDev p len
 		_write wthread/pipe/out as byte-ptr! pNode 4
+		wthread/thread: null
 		null
 	]
 
@@ -890,7 +897,7 @@ usb-device: context [
 			len					[integer!]
 	][
 		pNode: as INTERFACE-INFO-NODE! param
-		rthread: as ONESHOT-THREAD! pNode/write-thread
+		rthread: as ONESHOT-THREAD! pNode/read-thread
 		urb/ep: 81h
 		urb/len: rthread/buflen
 		urb/timeout: -1
@@ -900,6 +907,7 @@ usb-device: context [
 		]
 		rthread/actual-len: rthread/buflen
 		_write rthread/pipe/out as byte-ptr! pNode 4
+		rthread/thread: null
 		null
 	]
 
@@ -915,6 +923,7 @@ usb-device: context [
 		rthread: as ONESHOT-THREAD! pNode/read-thread
 		rthread/actual-len: _read pNode/hDev rthread/buffer rthread/buflen
 		_write rthread/pipe/out as byte-ptr! pNode 4
+		rthread/thread: null
 		null
 	]
 

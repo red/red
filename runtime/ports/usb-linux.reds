@@ -68,13 +68,14 @@ usb: context [
 			data/fd: node/interface/hDev
 		]
 	]
-
+	first?: true
 	read: func [
 		red-port	[red-object!]
 		/local
 			iodata	[USB-DATA!]
 			size	[integer!]
 			n		[integer!]
+			rthread	[ONESHOT-THREAD!]
 	][
 		iodata: as USB-DATA! get-port-data red-port
 		if null? iodata/buffer [
@@ -90,7 +91,16 @@ usb: context [
 			]
 		]
 		print-line "read"
-		poll/add g-poller iodata/dev/interface/hDev EPOLLIN or EPOLLET as int-ptr! iodata
+		rthread: as ONESHOT-THREAD! iodata/dev/interface/read-thread
+		either first? [
+			poll/add g-poller rthread/pipe/in EPOLLIN or EPOLLET as int-ptr! iodata
+			first?: false
+		][
+			print-line "remove"
+			poll/remove g-poller rthread/pipe/in EPOLLIN or EPOLLET as int-ptr! iodata
+			print-line "add"
+			poll/add g-poller rthread/pipe/in EPOLLIN or EPOLLET as int-ptr! iodata
+		]
 
 		iodata/code: SOCK_OP_READ
 		;dump-hex iodata/buffer
