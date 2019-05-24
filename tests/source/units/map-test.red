@@ -208,6 +208,38 @@ Red [
 
 ===end-group=== 
 
+===start-group=== "foreach"
+
+	--test-- "map-foreach-1"
+		blk: [a 1 b 2 c 3 d 4]
+		m: make map! blk
+		remove/key m 'c
+		remove/key blk 'c
+		foreach [k v] m [
+			--assert v = select blk k
+		]
+		foreach [k1 v1 k2 v2] m [
+			--assert v1 = select blk k1
+			--assert v2 = select blk k2
+		]
+
+	--test-- "map-foreach-2"
+		blk: [a 1 b 2 c 3 d 4]
+		m: make map! blk
+		remove/key m 'c
+		remove/key m 'd
+		remove/key blk 'c
+		remove/key blk 'd
+		foreach [k v] m [
+			--assert v = select blk k
+		]
+		foreach [k1 v1 k2 v2] m [
+			--assert v1 = select blk k1
+			--assert v2 = select blk k2
+		]
+
+===end-group=== 
+
 ===start-group=== "issues"
 
 	--test-- "issue-1835"
