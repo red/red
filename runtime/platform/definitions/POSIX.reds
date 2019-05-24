@@ -256,7 +256,7 @@ pollfd!: alias struct! [
 			nbytes         [integer!]
 			return:        [integer!]  "Number of bytes written or error"
 		]
-		ioctl: "ioctl" [
+		_ioctl: "ioctl" [
 			s1				[integer!]
 			s2				[integer!]
 			s3				[byte-ptr!]

@@ -43,10 +43,24 @@ usb-device: context [
 	#define HID_MAX_DESCRIPTOR_SIZE		4096
 	#define HIDIOCGRDESC				[_IOR(_IO_H 2 (HID_MAX_DESCRIPTOR_SIZE + 4))]
 
+	#define _IO_U						[(as integer! #"U")]
+	#define USBDEVFS_BULK				[_IOWR(_IO_U 2 16)]
+
+
+
 	POLL-FD!: alias struct! [
 		fd						[integer!]
 		events					[integer!]  ;--events and revents
 	]
+
+
+	USBDEVFS-BULKTRANSFER!: alias struct! [
+		ep						[integer!]
+		len						[integer!]
+		timeout					[integer!]
+		data					[byte-ptr!]
+	]
+
 
 	#import [
 		LIBC-file cdecl [
@@ -374,11 +388,12 @@ usb-device: context [
 			buf: allocate len
 			copy-memory buf as byte-ptr! sysfs_path len
 			pNode/syspath: as c-string! buf
-
-			len: (length? parent-path) + 1
-			buf: allocate len
-			copy-memory buf as byte-ptr! parent-path len
-			pNode/path: as c-string! buf
+			if pNode/path = null [
+				len: (length? parent-path) + 1
+				buf: allocate len
+				copy-memory buf as byte-ptr! parent-path len
+				pNode/path: as c-string! buf
+			]
 
 			udev_device_unref device
 			dev_list_entry: udev_list_entry_get_next dev_list_entry
@@ -566,51 +581,26 @@ usb-device: context [
 		pNode					[INTERFACE-INFO-NODE!]
 		return:					[USB-ERROR!]
 		/local
-			index				[integer!]
-	][
-		USB-ERROR-OK
-	]
-
-	open-hidusb: func [
-		pNode					[INTERFACE-INFO-NODE!]
-		return:					[USB-ERROR!]
-		/local
 			fd					[integer!]
-			desc-size			[integer!]
-			rpt-desc			[int-ptr!]
-			result				[integer!]
-			buf					[byte-ptr!]
+			;buf					[byte-ptr!]
 			wthread				[ONESHOT-THREAD!]
+			rthread				[ONESHOT-THREAD!]
+			result				[integer!]
 	][
+		print-line "winusb"
+		print-line pNode/syspath
 		print-line pNode/path
-		fd: _open pNode/path O_RDWR or O_NONBLOCK S_IREAD or S_IWRITE or S_IRGRP or S_IWGRP or S_IROTH
+		fd: _open pNode/path O_RDWR S_IREAD or S_IWRITE or S_IRGRP or S_IWGRP or S_IROTH
 		if fd < 0 [
 			perror "open"
 			return USB-ERROR-OPEN
 		]
-		desc-size: 0
-		result: ioctl fd HIDIOCGRDESCSIZE as byte-ptr! :desc-size
-		if result <> 0 [
-			_close fd
-			perror "HIDIOCGRDESCSIZE"
-			return USB-ERROR-INIT
-		]
-		print-line desc-size
-		rpt-desc: as int-ptr! allocate 4100
-		rpt-desc/1: desc-size
-		result: ioctl fd HIDIOCGRDESC as byte-ptr! rpt-desc
-		if result <> 0 [
-			_close fd
-			free as byte-ptr! rpt-desc
-			perror "HIDIOCGRDESC"
-			return USB-ERROR-INIT
-		]
-		buf: allocate 4 + desc-size
-		copy-memory buf as byte-ptr! rpt-desc 4 + desc-size
-		pNode/report-desc: buf
-		free as byte-ptr! rpt-desc
-
 		pNode/hDev: fd
+		;lseek fd 0 0
+		;buf: allocate 128
+		;set-memory buf null-byte 128
+		;print-line _read fd buf 128
+		;dump-hex buf
 
 		wthread: as ONESHOT-THREAD! allocate size? ONESHOT-THREAD!
 		if wthread = null [
@@ -627,6 +617,118 @@ usb-device: context [
 			return USB-ERROR-INIT
 		]
 		pNode/write-thread: as int-ptr! wthread
+
+		rthread: as ONESHOT-THREAD! allocate size? ONESHOT-THREAD!
+		if rthread = null [
+			_close fd
+			_close wthread/pipe/in
+			_close wthread/pipe/out
+			free as byte-ptr! wthread
+			perror "allocate"
+			return USB-ERROR-INIT
+		]
+		set-memory as byte-ptr! rthread null-byte size? ONESHOT-THREAD!
+		result: _pipe :rthread/pipe
+		if result <> 0 [
+			_close fd
+			_close wthread/pipe/in
+			_close wthread/pipe/out
+			free as byte-ptr! wthread
+			_close rthread/pipe/in
+			_close rthread/pipe/out
+			free as byte-ptr! rthread
+			perror "create pipe"
+			return USB-ERROR-INIT
+		]
+		pNode/read-thread: as int-ptr! rthread
+
+		USB-ERROR-OK
+	]
+
+	open-hidusb: func [
+		pNode					[INTERFACE-INFO-NODE!]
+		return:					[USB-ERROR!]
+		/local
+			fd					[integer!]
+			desc-size			[integer!]
+			rpt-desc			[int-ptr!]
+			result				[integer!]
+			buf					[byte-ptr!]
+			wthread				[ONESHOT-THREAD!]
+			rthread				[ONESHOT-THREAD!]
+	][
+		print-line "hidusb"
+		print-line pNode/syspath
+		print-line pNode/path
+		fd: _open pNode/path O_RDWR S_IREAD or S_IWRITE or S_IRGRP or S_IWGRP or S_IROTH
+		if fd < 0 [
+			perror "open"
+			return USB-ERROR-OPEN
+		]
+		pNode/hDev: fd
+		desc-size: 0
+		result: _ioctl fd HIDIOCGRDESCSIZE as byte-ptr! :desc-size
+		if result <> 0 [
+			_close fd
+			perror "HIDIOCGRDESCSIZE"
+			return USB-ERROR-INIT
+		]
+		print-line desc-size
+		rpt-desc: as int-ptr! allocate 4100
+		rpt-desc/1: desc-size
+		result: _ioctl fd HIDIOCGRDESC as byte-ptr! rpt-desc
+		if result <> 0 [
+			_close fd
+			free as byte-ptr! rpt-desc
+			perror "HIDIOCGRDESC"
+			return USB-ERROR-INIT
+		]
+		buf: allocate 4 + desc-size
+		copy-memory buf as byte-ptr! rpt-desc 4 + desc-size
+		pNode/report-desc: buf
+		free as byte-ptr! rpt-desc
+
+		wthread: as ONESHOT-THREAD! allocate size? ONESHOT-THREAD!
+		if wthread = null [
+			_close fd
+			perror "allocate"
+			return USB-ERROR-INIT
+		]
+		set-memory as byte-ptr! wthread null-byte size? ONESHOT-THREAD!
+		result: _pipe :wthread/pipe
+		if result <> 0 [
+			_close fd
+			_close wthread/pipe/in
+			_close wthread/pipe/out
+			free as byte-ptr! wthread
+			perror "create pipe"
+			return USB-ERROR-INIT
+		]
+		pNode/write-thread: as int-ptr! wthread
+
+		rthread: as ONESHOT-THREAD! allocate size? ONESHOT-THREAD!
+		if rthread = null [
+			_close fd
+			_close wthread/pipe/in
+			_close wthread/pipe/out
+			free as byte-ptr! wthread
+			perror "allocate"
+			return USB-ERROR-INIT
+		]
+		set-memory as byte-ptr! rthread null-byte size? ONESHOT-THREAD!
+		result: _pipe :rthread/pipe
+		if result <> 0 [
+			_close fd
+			_close wthread/pipe/in
+			_close wthread/pipe/out
+			free as byte-ptr! wthread
+			_close rthread/pipe/in
+			_close rthread/pipe/out
+			free as byte-ptr! rthread
+			perror "create pipe"
+			return USB-ERROR-INIT
+		]
+		pNode/read-thread: as int-ptr! rthread
 
 		USB-ERROR-OK
 	]
@@ -653,7 +755,15 @@ usb-device: context [
 	][
 		case [
 			pNode/hType = DRIVER-TYPE-WINUSB [
-
+				wthread: as ONESHOT-THREAD! pNode/write-thread
+				if wthread/thread <> null [return -1]
+				wthread/udata: data
+				wthread/buffer: buf
+				wthread/buflen: buflen
+				pthread_create :wthread/thread
+					null
+					as int-ptr! :winusb-write-thread
+					as int-ptr! pNode
 				return 0
 			]
 			pNode/hType = DRIVER-TYPE-HIDUSB [
@@ -664,7 +774,7 @@ usb-device: context [
 				wthread/buflen: buflen
 				pthread_create :wthread/thread
 					null
-					as int-ptr! :hid-write-thread
+					as int-ptr! :hidusb-write-thread
 					as int-ptr! pNode
 				return 0
 			]
@@ -675,7 +785,33 @@ usb-device: context [
 		-1
 	]
 
-	hid-write-thread: func [
+	winusb-write-thread: func [
+		[cdecl]
+		param					[int-ptr!]
+		return:					[int-ptr!]
+		/local
+			pNode				[INTERFACE-INFO-NODE!]
+			wthread				[ONESHOT-THREAD!]
+			urb					[USBDEVFS-BULKTRANSFER! value]
+			buffer				[byte-ptr!]
+			p					[byte-ptr!]
+			len					[integer!]
+	][
+		pNode: as INTERFACE-INFO-NODE! param
+		wthread: as ONESHOT-THREAD! pNode/write-thread
+		urb/ep: 1
+		urb/len: wthread/buflen
+		urb/timeout: -1
+		urb/data: wthread/buffer
+		if 0 > _ioctl pNode/hDev USBDEVFS_BULK as byte-ptr! :urb [
+			perror "winusb write"
+		]
+		wthread/actual-len: wthread/buflen
+		_write wthread/pipe/out as byte-ptr! pNode 4
+		null
+	]
+
+	hidusb-write-thread: func [
 		[cdecl]
 		param					[int-ptr!]
 		return:					[int-ptr!]
@@ -709,18 +845,77 @@ usb-device: context [
 		data					[int-ptr!]
 		timeout					[integer!]
 		return:					[integer!]
+		/local
+			rthread				[ONESHOT-THREAD!]
 	][
 		case [
 			pNode/hType = DRIVER-TYPE-WINUSB [
-				
+				rthread: as ONESHOT-THREAD! pNode/read-thread
+				if rthread/thread <> null [return -1]
+				rthread/udata: data
+				rthread/buffer: buf
+				rthread/buflen: buflen
+				pthread_create :rthread/thread
+					null
+					as int-ptr! :winusb-read-thread
+					as int-ptr! pNode
 				return 0
 			]
 			pNode/hType = DRIVER-TYPE-HIDUSB [
-				plen/1: _read pNode/hDev buf buflen
+				rthread: as ONESHOT-THREAD! pNode/read-thread
+				if rthread/thread <> null [return -1]
+				rthread/udata: data
+				rthread/buffer: buf
+				rthread/buflen: buflen
+				pthread_create :rthread/thread
+					null
+					as int-ptr! :hidusb-read-thread
+					as int-ptr! pNode
 				return 0
 			]
 		]
 		-1
+	]
+
+	winusb-read-thread: func [
+		[cdecl]
+		param					[int-ptr!]
+		return:					[int-ptr!]
+		/local
+			pNode				[INTERFACE-INFO-NODE!]
+			rthread				[ONESHOT-THREAD!]
+			urb					[USBDEVFS-BULKTRANSFER! value]
+			buffer				[byte-ptr!]
+			p					[byte-ptr!]
+			len					[integer!]
+	][
+		pNode: as INTERFACE-INFO-NODE! param
+		rthread: as ONESHOT-THREAD! pNode/write-thread
+		urb/ep: 81h
+		urb/len: rthread/buflen
+		urb/timeout: -1
+		urb/data: rthread/buffer
+		if 0 > _ioctl pNode/hDev USBDEVFS_BULK as byte-ptr! :urb [
+			perror "winusb read"
+		]
+		rthread/actual-len: rthread/buflen
+		_write rthread/pipe/out as byte-ptr! pNode 4
+		null
+	]
+
+	hidusb-read-thread: func [
+		[cdecl]
+		param					[int-ptr!]
+		return:					[int-ptr!]
+		/local
+			pNode				[INTERFACE-INFO-NODE!]
+			rthread				[ONESHOT-THREAD!]
+	][
+		pNode: as INTERFACE-INFO-NODE! param
+		rthread: as ONESHOT-THREAD! pNode/read-thread
+		rthread/actual-len: _read pNode/hDev rthread/buffer rthread/buflen
+		_write rthread/pipe/out as byte-ptr! pNode 4
+		null
 	]
 
 	init: does [
