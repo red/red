@@ -516,7 +516,7 @@ map: context [
 		][
 			val: key + 1
 			if any [key = null val/header = MAP_KEY_DELETED][
-				fire [TO_ERROR(script invalid-path) path element]
+				val: none-value
 			]
 			val
 		]

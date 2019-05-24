@@ -42,7 +42,7 @@ Red [
 	--test-- "map-remove-key-1"
 		mdk1-m: #(a: 1 b: 2 c: 3)
 		remove/key mdk1-m 'a
-		--assert error? try [mdk1-m/a]
+		--assert none? mdk1-m/a
 		--assert none = find keys-of mdk1-m 'a
 
 	--test-- "map-remove-key-2"
