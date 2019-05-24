@@ -61,8 +61,6 @@ do %source/units/run-post-extra-tests.r
 ;	--run-test-file-quiet %source/view/base-self-test.red
 ;===end-group===
 
-=======
-
 ***end-run-quiet***
 
 --delete-temp-files
