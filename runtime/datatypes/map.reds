@@ -686,39 +686,45 @@ map: context [
 		blk		[red-block!]
 		map		[red-hash!]
 		size	[integer!]
+		return: [logic!]
 		/local
 			w		[red-word!]
 			k		[red-value!]
 			v		[red-value!]
+			tail	[red-value!]
 			i		[integer!]
 			type	[integer!]
 	][
-		i: 1
+		i: 0
 		k: block/rs-head as red-block! map
+		tail: block/rs-tail as red-block! map
 		w: as red-word! block/rs-head blk
-		while [i <= size][
-			either i % 2 = 0 [
-				_context/set w k
+		while [all [i < size k < tail]][
+			type: TYPE_OF(w)
+			unless any [
+				type = TYPE_WORD
+				type = TYPE_GET_WORD
+				type = TYPE_SET_WORD
+				type = TYPE_LIT_WORD
 			][
-				v: k + 1
-				type: TYPE_OF(w)
-				unless any [
-					type = TYPE_WORD
-					type = TYPE_GET_WORD
-					type = TYPE_SET_WORD
-					type = TYPE_LIT_WORD
-				][
-					fire [TO_ERROR(script invalid-arg) w]
-				]
-				type: k/header
-				k/header: TYPE_WORD
-				_context/set w k
-				k/header: type
+				fire [TO_ERROR(script invalid-arg) w]
 			]
-			k: k + 1
-			w: w + 1
-			i: i + 1
+			v: k + 1
+			either all [i % 2 = 0 v/header = MAP_KEY_DELETED][
+				k: k + 2
+				map/head: map/head + 2
+			][
+				_context/set w k
+				w: w + 1
+				k: k + 1
+				i: i + 1
+			]
 		]
+		loop size - i [
+			_context/set w none-value
+			w: w + 1
+		]
+		i <> 0			;-- return false if map is empty
 	]
 
 	copy: func [
