@@ -31,6 +31,7 @@ map: context [
 		switch TYPE_OF(key) [
 			TYPE_WORD
 			TYPE_GET_WORD
+			TYPE_SET_WORD
 			TYPE_LIT_WORD [key/header: TYPE_SET_WORD]		;-- convert any-word! to set-word!
 			TYPE_BINARY
 			TYPE_STRING
