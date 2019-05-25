@@ -629,7 +629,7 @@ map: context [
 		either any [
 			key = null
 			val/header = MAP_KEY_DELETED
-		][none-value][key/header: TYPE_WORD key]
+		][none-value][key]
 	]
 
 	;--- Navigation actions ---
