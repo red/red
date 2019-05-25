@@ -58,9 +58,9 @@ Red [
 	}
 ]
 
-context [
-    #include %environment/codecs/json/common.red
+#include %environment/codecs/json/common.red
 
+context [
     decode-backslash-escapes: :json-common/decode-backslash-escapes
     json-esc-ch:              :json-common/json-esc-ch
     json-escaped:             :json-common/json-escaped
