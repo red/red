@@ -630,7 +630,11 @@ map: context [
 			key = null
 			val/header = MAP_KEY_DELETED
 		][none-value][
-			if TYPE_OF(key) = TYPE_SET_WORD [key/header: TYPE_WORD]
+			if TYPE_OF(key) = TYPE_SET_WORD [
+				copy-cell key as red-value! map
+				key: as red-value! map
+				key/header: TYPE_WORD
+			]
 			key
 		]
 	]

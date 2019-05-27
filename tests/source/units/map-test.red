@@ -75,6 +75,10 @@ Red [
 		--assert 'ab = find/case mf3-m 'ab
 		--assert none = find/case mf3-m 'Ab
 
+	--test-- "map-find-4"
+		mf4-m: make map! [b 1]
+		--assert 'b	= find mf4-m first [b:]
+		--assert 'b	= find mf4-m first [b:]
 ===end-group===
 
 ===start-group=== "copy"
