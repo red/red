@@ -20,8 +20,6 @@ usb-device: context [
 	GUID_DEVINTERFACE_HID: declare UUID!
 	GUID_DEVINTERFACE_VENDOR: declare UUID!
 
-	device-list: declare list-entry!
-
 	enum-devices-with-guid: func [
 		device-list			[list-entry!]
 		guid				[UUID!]
@@ -152,7 +150,6 @@ usb-device: context [
 				pNode/port: port
 
 				pNode/inst: info-data/DevInst
-				dlink/init pNode/interface-entry
 				enum-children pNode/interface-entry info-data/DevInst vid pid
 
 				dlink/append device-list as list-entry! pNode
@@ -352,10 +349,18 @@ usb-device: context [
 						continue
 					]
 					set-memory as byte-ptr! pNode null-byte size? INTERFACE-INFO-NODE!
-					pNode/interface-num: nmi
-					pNode/collection/index: ncol
+					dlink/init pNode/collection-entry
+					pNode/index: nmi
 					pNode/hType: type
 					pNode/path: get-dev-path-with-guid info-data/DevInst pguid
+					either type = DRIVER-TYPE-HIDUSB [
+						pNode/collection: get-collection-info pNode/path
+						if pNode/collection <> null [
+							pNode/collection/index: ncol
+						]
+					][
+						get-endpoints-info pNode/path pNode/endpoints
+					]
 					path: get-name dev-info info-data :len
 					if path <> null [
 						pNode/name: path
@@ -368,6 +373,100 @@ usb-device: context [
 		free buf
 		free as byte-ptr! nserial
 		SetupDiDestroyDeviceInfoList dev-info
+	]
+
+	get-collection-info: func [
+		path					[c-string!]
+		return:					[HID-COLLECTION-NODE!]
+		/local
+			hDev				[integer!]
+			pParsedData			[integer!]
+			caps				[HIDP-CAPS! value]
+			pNode				[HID-COLLECTION-NODE!]
+	][
+		hDev: CreateFileA path GENERIC_READ FILE_SHARE_READ null
+				OPEN_EXISTING FILE_ATTRIBUTE_NORMAL null
+		if hDev = -1 [
+			return null
+		]
+		pParsedData: 0
+		unless HidD_GetPreparsedData as int-ptr! pNode/hDev :pParsedData [
+			CloseHandle as int-ptr! hDev
+			return null
+		]
+		if HIDP_STATUS_SUCCESS <> HidP_GetCaps as int-ptr! pParsedData caps [
+			HidD_FreePreparsedData as int-ptr! pParsedData
+			CloseHandle as int-ptr! hDev
+			return null
+		]
+		HidD_FreePreparsedData as int-ptr! pParsedData
+		CloseHandle as int-ptr! hDev
+
+		pNode: as HID-COLLECTION-NODE! allocate size? HID-COLLECTION-NODE!
+		if pNode = null [
+			return null
+		]
+		set-memory as byte-ptr! pNode null-byte size? HID-COLLECTION-NODE!
+		pNode/usage: caps/usage >>> 16
+		pNode/usage-page: caps/usage and FFFFh
+		pNode/input-size: caps/ReportByteLength >>> 16
+		pNode/output-size: caps/ReportByteLength and FFFFh
+
+		pNode
+	]
+
+	get-endpoints-info: func [
+		path					[c-string!]
+		pNode					[ENDPOINT-INFO!]
+		/local
+			hDev				[integer!]
+			hInf				[integer!]
+			index				[integer!]
+			pipe-info			[PIPE-INFO! value]
+			pipe-id				[integer!]
+			pipe-type			[PIPE-TYPE!]
+	][
+		hDev: CreateFileA pNode/path GENERIC_READ FILE_SHARE_READ null
+				OPEN_EXISTING FILE_ATTRIBUTE_NORMAL null
+		if hDev = -1 [
+			exit
+		]
+		hInf: 0
+		if false = WinUsb_Initialize hDev :hInf [
+			CloseHandle as int-ptr! hDev
+			exit
+		]
+		index: 0
+		forever [
+			unless WinUsb_QueryPipe hInf 0 index pipe-info [
+				break
+			]
+			pipe-id: as integer! pipe-info/pipeID
+			pipe-type: pipe-info/pipeType
+			switch pipe-type [
+				PIPE-TYPE-BULK [
+					either (pipe-id and 80h) = 80h [
+						pNode/bulk-in: pipe-id
+						pNode/bulk-in-size: as integer! pipe-info/maxPackSize2
+					][
+						pNode/bulk-out: pipe-id
+						pNode/bulk-out-size: as integer! pipe-info/maxPackSize2
+					]
+				]
+				PIPE-TYPE-INTERRUPT [
+					either (pipe-id and 80h) = 80h [
+						pNode/interrupt-in: pipe-id
+						pNode/interrupt-in-size: as integer! pipe-info/maxPackSize2
+					][
+						pNode/interrupt-out: pipe-id
+						pNode/interrupt-out-size: as integer! pipe-info/maxPackSize2
+					]
+				]
+			]
+			index: index + 1
+		]
+		WinUsb_Free hInf
+		CloseHandle as int-ptr! hDev
 	]
 
 	inst-ancestor?: func [
@@ -840,8 +939,15 @@ usb-device: context [
 		as byte-ptr! nbuf
 	]
 
-	enum-all-devices: does [
-		enum-devices-with-guid device-list GUID_DEVINTERFACE_USB_DEVICE no 0 0
+	enum-all-devices: func [
+		return:					[list-entry!]
+		/local
+			dev-list			[list-entry!]
+	] [
+		dev-list: as list-entry! allocate size? list-entry!
+		dlink/init dev-list
+		enum-devices-with-guid dev-list GUID_DEVINTERFACE_USB_DEVICE no 0 0
+		dev-list
 	]
 
 	open-inteface: func [
@@ -877,11 +983,6 @@ usb-device: context [
 	open-winusb: func [
 		pNode					[INTERFACE-INFO-NODE!]
 		return:					[USB-ERROR!]
-		/local
-			index				[integer!]
-			pipe-info			[PIPE-INFO! value]
-			pipe-id				[integer!]
-			pipe-type			[PIPE-TYPE!]
 	][
 		print-line pNode/path
 		pNode/hDev: CreateFileA pNode/path GENERIC_WRITE or GENERIC_READ FILE_SHARE_READ null
@@ -895,44 +996,7 @@ usb-device: context [
 		]
 		;index: 0
 		;WinUsb_GetCurrentAlternateSetting pNode/hInf :index
-		index: 0
-		forever [
-			unless WinUsb_QueryPipe pNode/hInf 0 index pipe-info [
-				break
-			]
-			;dump-hex as byte-ptr! pipe-info
-			pipe-id: as integer! pipe-info/pipeID
-			pipe-type: pipe-info/pipeType
-			switch pipe-type [
-				PIPE-TYPE-BULK [
-					either (pipe-id and 80h) = 80h [
-						pNode/bulk-in: pipe-id
-						pNode/bulk-in-size: as integer! pipe-info/maxPackSize2
-						;print-line "bulk in: "
-						;print-line pipe-id
-					][
-						pNode/bulk-out: pipe-id
-						pNode/bulk-out-size: as integer! pipe-info/maxPackSize2
-						;print-line "bulk out: "
-						;print-line pipe-id
-					]
-				]
-				PIPE-TYPE-INTERRUPT [
-					either (pipe-id and 80h) = 80h [
-						pNode/interrupt-in: pipe-id
-						pNode/interrupt-in-size: as integer! pipe-info/maxPackSize2
-						;print-line "int in: "
-						;print-line pipe-id
-					][
-						pNode/interrupt-out: pipe-id
-						pNode/interrupt-out-size: as integer! pipe-info/maxPackSize2
-						;print-line "int out: "
-						;print-line pipe-id
-					]
-				]
-			]
-			index: index + 1
-		]
+
 		;if false = async-pipo-setup pNode pNode/interrupt-out [
 		;	print-line "setup issue!"
 		;]
@@ -944,31 +1008,12 @@ usb-device: context [
 	open-hidusb: func [
 		pNode					[INTERFACE-INFO-NODE!]
 		return:					[USB-ERROR!]
-		/local
-			pbuf				[integer!]
-			caps				[HIDP-CAPS! value]
 	][
 		pNode/hDev: CreateFileA pNode/path GENERIC_WRITE or GENERIC_READ FILE_SHARE_READ null
 				OPEN_EXISTING FILE_FLAG_OVERLAPPED null
 		if pNode/hDev = -1 [
 			return USB-ERROR-OPEN
 		]
-		pbuf: 0
-		unless HidD_GetPreparsedData as int-ptr! pNode/hDev :pbuf [
-			CloseHandle as int-ptr! pNode/hDev
-			return USB-ERROR-INIT
-		]
-		if HIDP_STATUS_SUCCESS = HidP_GetCaps as int-ptr! pbuf caps [
-			pNode/collection/usage: caps/usage >>> 16
-			pNode/collection/usage-page: caps/usage and FFFFh
-			pNode/input-size: caps/ReportByteLength >>> 16
-			if pNode/input-size = 0 [pNode/input-size: 64]
-			pNode/input-buffer: allocate pNode/input-size
-			pNode/output-size: caps/ReportByteLength and FFFFh
-			;print-line pNode/usage
-			;print-line pNode/usage-page
-		]
-		HidD_FreePreparsedData as int-ptr! pbuf
 		USB-ERROR-OK
 	]
 
@@ -1029,26 +1074,24 @@ usb-device: context [
 						inode: as INTERFACE-INFO-NODE! child-entry
 						if any [
 							mi = 255
-							inode/interface-num = 255
+							inode/index = 255
 						][
 							dlink/remove-entry device-list entry/prev entry/next
-							clear-device-list device-list
 							dnode/interface: inode
 							return dnode
 						]
-						if mi = inode/interface-num [
+						if mi = inode/index [
 							if any [
 								col = 255
+								inode/collection = null
 								inode/collection/index = 255
 							][
 								dlink/remove-entry device-list entry/prev entry/next
-								clear-device-list device-list
 								dnode/interface: inode
 								return dnode
 							]
 							if col = inode/collection/index [
 								dlink/remove-entry device-list entry/prev entry/next
-								clear-device-list device-list
 								dnode/interface: inode
 								return dnode
 							]
@@ -1059,7 +1102,6 @@ usb-device: context [
 			]
 			entry: entry/next
 		]
-		clear-device-list device-list
 		null
 	]
 
@@ -1071,12 +1113,14 @@ usb-device: context [
 		col						[integer!]
 		return:					[DEVICE-INFO-NODE!]
 		/local
+			dev-list			[list-entry! value]
 			dnode				[DEVICE-INFO-NODE!]
 			inode				[INTERFACE-INFO-NODE!]
 	][
-		clear-device-list device-list
-		enum-devices-with-guid device-list GUID_DEVINTERFACE_USB_DEVICE yes vid pid
-		dnode: find-usb device-list vid pid sn mi col
+		dlink/init dev-list
+		enum-devices-with-guid dev-list GUID_DEVINTERFACE_USB_DEVICE yes vid pid
+		dnode: find-usb dev-list vid pid sn mi col
+		clear-device-list dev-list
 		if dnode = null [return null]
 		inode: dnode/interface
 		if USB-ERROR-OK <> open-inteface inode [
@@ -1102,7 +1146,7 @@ usb-device: context [
 	][
 		case [
 			pNode/hType = DRIVER-TYPE-WINUSB [
-				if WinUsb_WritePipe pNode/hInf pNode/interrupt-out buf buflen plen ov [
+				if WinUsb_WritePipe pNode/hInf pNode/endpoints/interrupt-out buf buflen plen ov [
 					return 0
 				]
 				if 997 = GetLastError [return 0]
@@ -1110,8 +1154,6 @@ usb-device: context [
 			]
 			pNode/hType = DRIVER-TYPE-HIDUSB [
 				ret: WriteFile pNode/hDev buf buflen plen as integer! ov
-				print-line GetLastError
-				print-line ret
 				if as logic! ret [
 					return 0
 				]
@@ -1136,7 +1178,7 @@ usb-device: context [
 	][
 		case [
 			pNode/hType = DRIVER-TYPE-WINUSB [
-				if WinUsb_ReadPipe pNode/hInf pNode/interrupt-in buf buflen plen ov [
+				if WinUsb_ReadPipe pNode/hInf pNode/endpoints/interrupt-in buf buflen plen ov [
 					return 0
 				]
 				if 997 = GetLastError [return 0]
@@ -1144,8 +1186,6 @@ usb-device: context [
 			]
 			pNode/hType = DRIVER-TYPE-HIDUSB [
 				ret: ReadFile pNode/hDev buf buflen plen as integer! ov
-				print-line GetLastError
-				print-line ret
 				if as logic! ret [
 					return 0
 				]
@@ -1163,7 +1203,6 @@ usb-device: context [
 		UuidFromString "F18A0E88-C30C-11D0-8815-00A0C906BED8" GUID_DEVINTERFACE_USB_HUB
 		UuidFromString "4D1E55B2-F16F-11CF-88CB-001111000030" GUID_DEVINTERFACE_HID
 		UuidFromString "88BAE032-5A81-49f0-BC3D-A4FF138216D6" GUID_DEVINTERFACE_VENDOR
-		dlink/init device-list
 
 	]
 ]
