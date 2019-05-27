@@ -28,6 +28,13 @@ Red/System [
 	USB-ERROR-MAX
 ]
 
+#enum USB-NODE-TYPE! [
+	USB-NODE-TYPE-DEVICE
+	USB-NODE-TYPE-INTERFACE
+	USB-NODE-TYPE-COLLECTION
+	USB-NODE-TYPE-ENDPOINT
+]
+
 USB-DESCRIPTION!: alias struct! [
 	device-desc			[byte-ptr!]
 	device-desc-len		[integer!]
@@ -42,32 +49,24 @@ USB-DESCRIPTION!: alias struct! [
 	serial-str-len		[integer!]
 ]
 
-HID-COLLECTION!: alias struct! [
+HID-COLLECTION-NODE!: alias struct! [
+	entry				[list-entry! value]
+	;-- collection index
 	index				[integer!]
+	;-- top usage/page
 	usage				[integer!]
 	usage-page			[integer!]
+	;-- report size
+	input-size			[integer!]
+	output-size			[integer!]
+	;-- report id
+	report-id			[integer!]
 ]
 
-INTERFACE-INFO-NODE!: alias struct! [
-	entry				[list-entry! value]
-	path				[c-string!]
-	name				[byte-ptr!]
-	name-len			[integer!]
-	;-- syspath for linux
-	syspath				[c-string!]
-
-	disconnected		[integer!]
-
-	;-- platform
-	inst				[integer!]
-	inst2				[integer!]
-
-	;-- info
-	interface-num		[integer!]
-	hDev				[integer!]
-	hInf				[integer!]
-	hType				[DRIVER-TYPE!]
+ENDPOINT-INFO!: alias struct! [
+	;-- address
 	bulk-in				[integer!]
+	;-- max package size
 	bulk-in-size		[integer!]
 	bulk-out			[integer!]
 	bulk-out-size		[integer!]
@@ -75,26 +74,51 @@ INTERFACE-INFO-NODE!: alias struct! [
 	interrupt-in-size	[integer!]
 	interrupt-out		[integer!]
 	interrupt-out-size	[integer!]
-	;-- for hid
-	input-size			[integer!]
-	output-size			[integer!]
-	input-buffer		[byte-ptr!]
-	;-- windows
-	collection			[HID-COLLECTION! value]
-	;-- macos
-	collections			[HID-COLLECTION!]
-	col-count			[integer!]
+]
+
+INTERFACE-INFO-NODE!: alias struct! [
+	entry				[list-entry! value]
+	;-- interface num
+	index				[integer!]
+	;-- for open
+	path				[c-string!]
+	;-- for display
+	name				[byte-ptr!]
+	name-len			[integer!]
+	;-- syspath for linux
+	syspath				[c-string!]
+	;-- platform id for win32/macos
+	inst				[integer!]
+	;-- platform id 2 for macos
+	inst2				[integer!]
+
+	;-- open handle
+	hDev				[integer!]
+	;-- opend handle 2
+	hInf				[integer!]
+	;-- interface type
+	hType				[DRIVER-TYPE!]
+
+	;-- endpoint info (for generic interface)
+	endpoints			[ENDPOINT-INFO! value]
+
+	;-- hid collection list
+	collection-entry	[list-entry! value]
+	;-- selected collection
+	collection			[HID-COLLECTION-NODE!]
+
+	;-- read/write thread info
 	read-thread			[int-ptr!]
 	write-thread		[int-ptr!]
-	;-- linux
-	report-desc			[byte-ptr!]
 ]
 
 DEVICE-INFO-NODE!: alias struct! [
 	entry				[list-entry! value]
 	vid					[integer!]
 	pid					[integer!]
+	;-- for open
 	path				[c-string!]
+	;-- for display
 	name				[byte-ptr!]
 	name-len			[integer!]
 	;-- syspath for linux
@@ -106,9 +130,12 @@ DEVICE-INFO-NODE!: alias struct! [
 	inst2				[integer!]
 	port				[integer!]
 
-	;-- interface info
+	;-- interface list or selected interface
 	interface-entry		[list-entry! value]
+	;-- selected interface
 	interface			[INTERFACE-INFO-NODE!]
+	;-- offline
+	offline				[logic!]
 ]
 
 clear-device-list: func [
@@ -145,6 +172,30 @@ clear-interface-list: func [
 	list/prev: list
 ]
 
+clear-collection-list: func [
+	list		[list-entry!]
+	/local
+		p		[list-entry!]
+		q		[list-entry!]
+		node	[HID-COLLECTION-NODE!]
+][
+	p: list/next
+	while [p <> list][
+		q: p/next
+		free-collection-info-node as HID-COLLECTION-NODE! p
+		p: q
+	]
+	list/next: list
+	list/prev: list
+]
+
+free-collection-info-node: func [
+	pNode		[HID-COLLECTION-NODE!]
+][
+	if pNode = null [exit]
+	free as byte-ptr! pNode
+]
+
 free-interface-info-node: func [
 	pNode		[INTERFACE-INFO-NODE!]
 ][
@@ -158,23 +209,16 @@ free-interface-info-node: func [
 	if pNode/syspath <> null [
 		free as byte-ptr! pNode/syspath
 	]
-	if pNode/collections <> null [
-		free as byte-ptr! pNode/collections
-	]
-	if pNode/report-desc <> null [
-		free pNode/report-desc
-	]
-	if pNode/input-buffer <> null [
-		free pNode/input-buffer
-	]
 	if pNode/read-thread <> null [
 		free as byte-ptr! pNode/read-thread
 	]
 	if pNode/write-thread <> null [
 		free as byte-ptr! pNode/write-thread
 	]
-	;-- close interface before free the node
-	;close-interface pNode
+	if pNode/collection <> null [
+		free-collection-info-node pNode/collection
+	]
+	clear-collection-list pNode/collection-entry
 	free as byte-ptr! pNode
 ]
 
@@ -193,6 +237,9 @@ free-device-info-node: func [
 	]
 	if pNode/serial-num <> null [
 		free as byte-ptr! pNode/serial-num
+	]
+	if pNode/interface <> null [
+		free-interface-info-node pNode/interface
 	]
 	clear-interface-list pNode/interface-entry
 	free as byte-ptr! pNode
