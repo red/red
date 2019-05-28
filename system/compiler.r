@@ -541,6 +541,17 @@ system-dialect: make-profilable context [
 		any-float?: func [type [block!]][
 			find any-float! type/1
 		]
+
+		floats-in-condition?: func [cond [block!]] [	;-- used by IEEE754 NaN arithmetic
+			to logic! all [
+				find comparison-op cond/1
+				not empty? cond: next cond
+				any [
+					any-float? get-type cond/1
+					any-float? get-type cond/2
+				]
+			]
+		]
 		
 		any-pointer?: func [type [block!]][
 			type: first resolve-aliased type
@@ -2047,7 +2058,8 @@ system-dialect: make-profilable context [
 				]
 				set [unused chunk] comp-block-chunked	;-- compile TRUE block
 				emitter/set-signed-state expr			;-- properly set signed/unsigned state
-				emitter/branch/over/on chunk reduce [expr/1] ;-- branch over if expr is true
+				emitter/branch/over/on/parity			;-- branch over if expr is true
+					chunk reduce [expr/1] floats-in-condition? expr
 				emitter/merge chunk
 				last-type: none-type
 				<last>
@@ -2189,7 +2201,7 @@ system-dialect: make-profilable context [
 					find comparison-op expr/1
 					last-type/1 = 'logic!
 				][
-					emitter/logic-to-integer expr/1
+					emitter/logic-to-integer/parity expr/1 floats-in-condition? expr
 				]
 			]
 			reduce [
@@ -2243,7 +2255,9 @@ system-dialect: make-profilable context [
 	
 			set [unused chunk] comp-block-chunked		;-- compile TRUE block
 			emitter/set-signed-state expr				;-- properly set signed/unsigned state
-			emitter/branch/over/on chunk expr/1			;-- insert IF branching			
+			
+			emitter/branch/over/on/parity				;-- insert IF branching			
+				chunk expr/1 floats-in-condition? expr
 			emitter/merge chunk
 			last-type: none-type
 			<last>
@@ -2283,13 +2297,18 @@ system-dialect: make-profilable context [
 					last-type/1 = 'logic!				;-- and if EITHER returns a logic! too
 				]
 			][
-				if block? e-true  [emitter/logic-to-integer/with e-true  c-true]
-				if block? e-false [emitter/logic-to-integer/with e-false c-false]
+				if block? e-true  [
+					emitter/logic-to-integer/with/parity e-true  c-true  floats-in-condition? e-true
+				]
+				if block? e-false [
+					emitter/logic-to-integer/with/parity e-false c-false floats-in-condition? e-false
+				]
 			]
 		
 			offset: emitter/branch/over c-false
 			emitter/set-signed-state expr				;-- properly set signed/unsigned state
-			emitter/branch/over/adjust/on c-true negate offset expr/1	;-- skip over JMP-exit
+			emitter/branch/over/adjust/on/parity		;-- skip over JMP-exit
+				c-true negate offset expr/1 floats-in-condition? expr
 			emitter/merge emitter/chunks/join c-true c-false
 			<last>
 		]
@@ -2326,7 +2345,8 @@ system-dialect: make-profilable context [
 
 				emitter/set-signed-state test/1			;-- properly set signed/unsigned state
 				offset: negate emitter/branch/over bodies		;-- insert case exit branching
-				emitter/branch/over/on/adjust body/2 test/1/1 offset	;-- insert case test branching
+				emitter/branch/over/on/adjust/parity	;-- insert case test branching
+					body/2 test/1/1 offset floats-in-condition? test/1
 				
 				body: emitter/chunks/join test/2 body/2	;-- join case test with case body
 				bodies: emitter/chunks/join body bodies	;-- left join case with other cases
@@ -2345,6 +2365,10 @@ system-dialect: make-profilable context [
 				throw-error "SWITCH argument has no return value"
 			]
 			save-type: last-type			
+			unless find [integer! char! byte!] save-type [
+				pc: back pc 							;-- show the arg in the error report
+				throw-error ["SWITCH argument must be of integer! or char! type, got" save-type]
+			]
 			check-body spec: pc/1
 			foreach w [values list types][set w make block! 8]
 			forall spec [								;-- resolve possible enumeration symbols
@@ -2410,7 +2434,7 @@ system-dialect: make-profilable context [
 					body: comp-chunked [
 						emitter/target/emit-integer-operation '= reduce [<last> v]
 					]
-					emitter/branch/over/on/adjust bodies [=] values/2	;-- insert action branching			
+					emitter/branch/over/on/adjust bodies [=] values/2	;-- insert action branching		
 					bodies: emitter/chunks/join body bodies
 				]
 				head? values
@@ -2483,7 +2507,7 @@ system-dialect: make-profilable context [
 			set [expr chunk] comp-block-chunked/test 'until
 			pop-loop
 			emitter/resolve-loop-jumps chunk 'cont-back
-			emitter/branch/back/on chunk expr/1
+			emitter/branch/back/on/parity chunk expr/1 floats-in-condition? expr
 			emitter/resolve-loop-jumps chunk 'breaks
 			emitter/merge chunk	
 			last-type: none-type
@@ -2508,13 +2532,14 @@ system-dialect: make-profilable context [
 			emitter/resolve-loop-jumps body 'cont-next
 			bodies: emitter/chunks/join body cond
 			emitter/set-signed-state expr				;-- properly set signed/unsigned state
-			emitter/branch/back/on/adjust bodies reduce [expr/1] offset ;-- Test condition, exit if FALSE
+			emitter/branch/back/on/adjust/parity		;-- Test condition, exit if FALSE
+				bodies reduce [expr/1] offset floats-in-condition? expr
 			emitter/resolve-loop-jumps bodies 'breaks
 			emitter/merge bodies
 			last-type: none-type
 			<last>
 		]
-		
+
 		comp-expression-list: func [/_all /local list offset bodies op][
 			pc: next pc
 			check-body pc/1								;-- check body block
@@ -2534,8 +2559,9 @@ system-dialect: make-profilable context [
 				op: either logic? list/1/1/1 [first [<>]][list/1/1/1]
 				unless _all [op: reduce [op]]			;-- do not invert the test if ANY
 				emitter/set-signed-state list/1/1		;-- properly set signed/unsigned state
-				emitter/branch/over/on/adjust bodies op offset		;-- first emit branch				
-				bodies: emitter/chunks/join list/1/2 bodies			;-- then left join expr
+				emitter/branch/over/on/adjust/parity			;-- first emit branch				
+					bodies op offset floats-in-condition? list/1/1
+				bodies: emitter/chunks/join list/1/2 bodies		;-- then left join expr
 				also head? list	list: back list
 			]	
 			emitter/merge bodies
@@ -3192,7 +3218,6 @@ system-dialect: make-profilable context [
 			]
 			value: unbox expr
 			if any [block? value path? value][value: <last>]
-			
 			if store? [
 				unless all [paren? value 'value = last value][ ;-- struct by value excluded from heap allocation
 					emitter/store name value type
@@ -3296,7 +3321,8 @@ system-dialect: make-profilable context [
 					]
 					last-type/1 = 'logic!				;-- function's return type is logic!
 				][
-					emitter/logic-to-integer expr/1		;-- runtime logic! conversion before storing
+					emitter/logic-to-integer/parity		;-- runtime logic! conversion before storing
+						expr/1 floats-in-condition? expr
 				]
 				if all [
 					variable boxed						;-- process casting if result assigned to variable

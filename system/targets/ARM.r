@@ -1711,6 +1711,7 @@ make-profilable make target-class [
 		code 	[binary!]
 		op 		[word! block! logic! none!]
 		offset  [integer! none!]
+		parity	[none! logic!]	"FIXME: NOT IMPLEMENTED"
 		/back?
 		/local distance opcode jmp
 	][

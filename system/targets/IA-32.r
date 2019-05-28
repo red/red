@@ -590,7 +590,7 @@ make-profilable make target-class [
 
 	emit-not: func [value [word! char! tag! integer! logic! path! string! object!] /local opcodes type boxed][
 		if verbose >= 3 [print [">>>emitting NOT" mold value]]
-		
+
 		if object? value [boxed: value]
 		value: compiler/unbox value
 		if block? value [value: <last>]
@@ -1188,30 +1188,117 @@ make-profilable make target-class [
 		code [binary!]
 		op [word! block! logic! none!]
 		offset [integer! none!]
+		parity [none! logic!] "yes = also emit parity check for unordered (NaN) comparison"
 		/back?
-		/local size imm8? opcode jmp
+		/local size jump jump+ jmpofs jxx unord=true
 	][
 		if verbose >= 3 [print [">>>inserting branch" either op [join "cc: " mold op][""]]]
-		
-		size: (length? code) - any [offset 0]				;-- offset from the code's head
-		imm8?: size <= either back? [126][127]				;-- account 2 bytes for JMP imm8
-		opcode: either not none? op [						;-- explicitly test for none
-			op: case [
-				block? op [									;-- [cc] => keep
-					op: op/1
-					either logic? op [pick [= <>] op][op]	;-- [logic!] or [cc]
-				]
-				logic? op [pick [= <>] op]					;-- test for TRUE/FALSE
-				'else 	  [opposite? op]					;-- 'cc => invert condition
-			]
-			add-condition op copy pick [#{70} #{0F80}] imm8? ;-- Jcc offset 	; 8/32-bit displacement
-		][
-			pick [#{EB} #{E9}] imm8?						;-- JMP offset 	; 8/32-bit displacement
+		size: (length? code) - any [offset 0]			;-- offset from the code's head
+
+		jump: copy #{}									;-- resulting binary
+		jump+: func [bin] [append jump bin]
+
+		set-unord-branch: func [op] [					;-- unordered jump destination according to IEEE-754
+			unord=true: op = first [<>]					;-- NaN <> x = true, otherwise NaN op x = false
+			op
 		]
-		if back? [size: negate (size + (length? opcode) + pick [1 4] imm8?)]
-		jmp: rejoin [opcode either imm8? [to-bin8 size][to-bin32 size]]
-		insert any [all [back? tail code] code] jmp
-		length? jmp
+		jmpofs: does [size * pick [-1 1] yes = back?]	;-- size to signed offset converter
+		jxx: func [
+			"construct the jump instruction binary"
+			/cond "conditional jump (using <op>) or just JMP?"
+			/parity "parity jump (JP) - cannot be used with /cond"
+			/local opcode o short?
+		][
+			;-- test if qualifies for a short jump
+			o: jmpofs
+			short?: to logic! all [-126 <= o  o <= 127]	;-- account for 2bytes of Jxx opcode when short-jumping back
+			opcode: pick pick [
+				[#{EB} #{E9}]							;-- JMP short/near
+				[#{7A} #{0F8A}]							;-- JP short/near
+				[#{70} #{0F80}]							;-- Jcc short/near
+			]	either yes = cond [ 3 ][ not parity ]	;-- pick row: 1 = normal, 2 = parity, 3 = conditional
+				short? 									;-- pick column
+			if cond [opcode: add-condition op copy opcode]			;-- use `op` to modify the conditional jump Jcc
+			if back? [									;-- when jumping back, offset should account for the jump instruction size
+				size: size + (length? opcode) + (pick [1 4] short?)	;-- `jmpofs` will use `size`
+			]
+			o: do reduce [pick [to-bin8 to-bin32] short?  'jmpofs]	;-- make binary signed offset
+			rejoin [opcode o]
+		]
+
+		either none? op [								;-- explicitly test for none
+			jump+ jxx									;-- JMP offset 	; 8/32-bit displacement
+		][
+			op: case [
+				block? op [								;-- [cc] => keep
+					op: op/1
+					set-unord-branch either logic? op [	;-- [logic!] or [cc]
+						pick [= <>] op
+					][ op ]
+				]
+				logic? op [								;-- test for TRUE/FALSE
+					set-unord-branch pick [= <>] op
+				]
+				'else 	  [
+					op: opposite? set-unord-branch op	;-- 'cc => invert condition; unordered defined by the original op
+					unord=true: not unord=true 			;-- flip unordered target along with the condition
+					op
+				]
+			]
+
+			either not parity [
+				jump+ jxx/cond							;-- Jcc offset 	; 8/32-bit displacement
+			][
+				either back? [							;-- in `back?` mode size is adjusted by jxx automatically
+					either unord=true [
+						;; _true:
+						;;   <code>
+						;;   JP _true		; short/far
+						;;   Jcc _true		; short/far
+						;; _false:
+
+						jump+ jxx/parity				;-- append JP _true
+						jump+ jxx/cond					;-- append Jcc _true
+					][
+						;; _true:
+						;;   <code>
+						;;   JP _false		; short
+						;;   Jcc _true		; short/far
+						;; _false:
+
+						size: size + 2					;-- manually skip 2 bytes of the JP
+						jcc: jxx/cond 					;-- lay out Jcc _true
+						jump+ rejoin [#{7A} to-bin8 length? jcc]	;-- append JP _false, over the Jcc size
+						jump+ jcc						;-- append Jcc _true
+					]
+				][										;-- forward jumps, no auto size adjustment
+					either unord=true [
+						;;   JP _true		; short/far - needs to know Jcc size
+						;;   Jcc _true		; short/far
+						;; _false:
+						;;   <code>
+						;; _true:
+
+						jcc: jxx/cond 					;-- lay out Jcc _true
+						size: size + length? jcc 		;-- manually skip it's size for the JP
+						jump+ jxx/parity 				;-- append JP _true
+						jump+ jcc 						;-- append Jcc _true
+					][
+						;;   JP _false		; short - needs to know Jcc size
+						;;   Jcc _true		; short/far
+						;; _false:
+						;;   <code>
+						;; _true:
+
+						jcc: jxx/cond 					;-- lay out Jcc _true
+						jump+ rejoin [#{7A} to-bin8 length? jcc]	;-- append JP _false, over the Jcc size
+						jump+ jcc						;-- append Jcc _true
+					]
+				]
+			]
+		]
+		insert any [all [back? tail code] code] jump
+		length? jump
 	]
 	
 	emit-push-struct: func [slots [integer!]][		;-- number of 32-bit slots
@@ -1787,9 +1874,11 @@ make-profilable make target-class [
 		if reversed? [emit #{D9C9}]					;-- FXCH st0, st1
 		
 		either compiler/job/cpu-version >= 6.0	[	;-- support for FCOMI* only with P6+
+			; emit #{DFE9}							;-- FUCOMIP st0, st1
 			emit #{DFF1}							;-- FCOMIP st0, st1
 			emit-float-trash-last					;-- pop 2nd argument
 		][
+			; emit #{DDE9}							;-- FUCOMP st0, st1
 			emit #{D8D9}							;-- FCOMP st0, st1
 			emit #{DDD8}							;-- FSTP st0		; pop 2nd argument
 			emit #{9BDFE0}							;-- FSTSW ax		; move FPU flags to ax

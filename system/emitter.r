@@ -110,15 +110,16 @@ emitter: make-profilable context [
 		/on cond [word! block! logic!]
 		/adjust offset [integer!]
 		/local size
+		/parity use-parity? [none! logic!] "also emit parity check for unordered (NaN) comparison"
 	][
 		case [
 			over [
-				size: target/emit-branch chunk/1 cond offset
+				size: target/emit-branch chunk/1 cond offset use-parity?
 				foreach ptr chunk/2 [ptr/1: ptr/1 + size]	;-- adjust relocs
 				size
 			]
 			back [
-				target/emit-branch/back? chunk/1 cond offset
+				target/emit-branch/back? chunk/1 cond offset use-parity?
 			]
 		]
 	]
@@ -185,12 +186,12 @@ emitter: make-profilable context [
 		]
 	]
 
-	logic-to-integer: func [op [word! block!] /with chunk [block!] /local offset body][
+	logic-to-integer: func [op [word! block!] /parity use-parity? /with chunk [block!] /local offset body][
 		if all [with block? op][op: op/1]
 		
 		if find target/comparison-op op [
 			set [offset body] chunks/make-boolean
-			branch/over/on/adjust body reduce [op] offset/1
+			branch/over/on/adjust/parity body reduce [op] offset/1 use-parity?
 			either with [chunks/join chunk body][merge body]
 		]
 	]
