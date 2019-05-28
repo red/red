@@ -2760,6 +2760,11 @@ b}
 		--assert not error? try [3151391351465.995 // 1.0]
 		unset 'true?
 
+	--test-- "#2567"
+		--assert not negative? 1.#NaN
+		--assert not positive? 1.#NaN
+		--assert not     zero? 1.#NaN
+
 	--test-- "#3603"
 		bu3603: reduce [()]
 		rest3603: none
