@@ -3024,6 +3024,12 @@ natives: context [
 				TYPE_BINARY [
 					set-many-string blk as red-string! series size
 				]
+				TYPE_MAP [
+					if size <> 2 [
+						fire [TO_ERROR(script invalid-arg) blk]
+					]
+					result: map/set-many blk as red-hash! series size
+				]
 				TYPE_IMAGE [
 					#either OS = 'Windows [
 						image/set-many blk as red-image! series size

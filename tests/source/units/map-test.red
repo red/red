@@ -212,6 +212,30 @@ Red [
 
 ===end-group=== 
 
+===start-group=== "foreach"
+
+	--test-- "map-foreach-1"
+		blk: [a 1 b 2 c 3 d 4]
+		m: make map! blk
+		remove/key m 'c
+		remove/key blk 'c
+		foreach [k v] m [
+			--assert v = select blk k
+		]
+
+	--test-- "map-foreach-2"
+		blk: [a 1 b 2 c 3 d 4]
+		m: make map! blk
+		remove/key m 'c
+		remove/key m 'd
+		remove/key blk 'c
+		remove/key blk 'd
+		foreach [k v] m [
+			--assert v = select blk k
+		]
+
+===end-group=== 
+
 ===start-group=== "issues"
 
 	--test-- "issue-1835"
