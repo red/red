@@ -1238,6 +1238,14 @@ Red/System [
 
 ===start-group=== "various regression tests from bugtracker"
 
+	--test-- "issue #847"
+		inf: 1e308 + 1e308
+		nan: 0.0 * inf
+		--assert not (inf > nan)
+		--assert not (inf < nan)
+		--assert inf <> nan
+		--assert not (inf = nan)
+
 	--test-- "issue #227"
 		t: 2.2
 		ss: declare struct! [v [float!]]
