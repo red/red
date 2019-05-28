@@ -132,19 +132,19 @@ get-port-pipe: func [
 	word: as red-word! int
 	sym: symbol/resolve word/symbol
 	if sym = words/control [
-		type/value: PIPE-TYPE-CONTROL
+		type/value: USB-PIPE-TYPE-CONTROL
 		return 0
 	]
 	if sym = words/isochronous [
-		type/value: PIPE-TYPE-ISOCH
+		type/value: USB-PIPE-TYPE-ISOCH
 		return 0
 	]
 	if sym = words/bulk [
-		type/value: PIPE-TYPE-BULK
+		type/value: USB-PIPE-TYPE-BULK
 		return 0
 	]
 	if sym = words/interrupt [
-		type/value: PIPE-TYPE-INTERRUPT
+		type/value: USB-PIPE-TYPE-INTERRUPT
 		return 0
 	]
 	return -1

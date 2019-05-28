@@ -81,16 +81,15 @@ usb: context [
 	][
 		iodata: as USB-DATA! get-port-data red-port
 		if all [
-			iodata/dev/interface/hType <> DRIVER-TYPE-HIDUSB
-			iodata/dev/interface/hType <> DRIVER-TYPE-WINUSB
+			iodata/dev/interface/hType <> USB-DRIVER-TYPE-HIDUSB
+			iodata/dev/interface/hType <> USB-DRIVER-TYPE-WINUSB
 		][exit]
 
 		paddr: -1 ptype: -1
 		get-port-pipe red-port :paddr :ptype
-		iodata/dev/interface/pipe-addr: paddr
-		iodata/dev/interface/pipe-type: ptype
+		usb-select-pipe iodata/dev/interface paddr ptype yes
 
-		either iodata/dev/interface/hType = DRIVER-TYPE-HIDUSB [
+		either iodata/dev/interface/hType = USB-DRIVER-TYPE-HIDUSB [
 			size: iodata/dev/interface/collection/input-size
 		][
 			size: get-port-read-size red-port
@@ -137,14 +136,13 @@ usb: context [
 	][
 		iodata: as USB-DATA! get-port-data red-port
 		if all [
-			iodata/dev/interface/hType <> DRIVER-TYPE-HIDUSB
-			iodata/dev/interface/hType <> DRIVER-TYPE-WINUSB
+			iodata/dev/interface/hType <> USB-DRIVER-TYPE-HIDUSB
+			iodata/dev/interface/hType <> USB-DRIVER-TYPE-WINUSB
 		][exit]
 
 		paddr: -1 ptype: -1
 		get-port-pipe red-port :paddr :ptype
-		iodata/dev/interface/pipe-addr: paddr
-		iodata/dev/interface/pipe-type: ptype
+		usb-select-pipe iodata/dev/interface paddr ptype no
 
 		switch TYPE_OF(data) [
 			TYPE_BINARY [

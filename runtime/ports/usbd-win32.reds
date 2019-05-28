@@ -321,7 +321,7 @@ usb-device: context [
 						]
 						free path
 						pguid: guid
-						type: DRIVER-TYPE-WINUSB
+						type: USB-DRIVER-TYPE-WINUSB
 					][
 						either 0 = compare-memory buf as byte-ptr! "HID\" 4 [
 							sscanf [buf "HID\VID_%4hx&PID_%4hx&MI_%2hx&COL%2hx\%s"
@@ -341,7 +341,7 @@ usb-device: context [
 								continue
 							]
 							pguid: GUID_DEVINTERFACE_HID
-							type: DRIVER-TYPE-HIDUSB
+							type: USB-DRIVER-TYPE-HIDUSB
 						][continue]
 					]
 					pNode: as INTERFACE-INFO-NODE! allocate size? INTERFACE-INFO-NODE!
@@ -350,16 +350,16 @@ usb-device: context [
 					]
 					set-memory as byte-ptr! pNode null-byte size? INTERFACE-INFO-NODE!
 					dlink/init pNode/collection-entry
+					dlink/init pNode/endpoint-entry
 					pNode/index: nmi
 					pNode/hType: type
 					pNode/path: get-dev-path-with-guid info-data/DevInst pguid
-					either type = DRIVER-TYPE-HIDUSB [
-						pNode/collection: get-collection-info pNode/path
-						if pNode/collection <> null [
-							pNode/collection/index: ncol
-						]
+					either type = USB-DRIVER-TYPE-HIDUSB [
+						;-- one collection point to one device for win32 platform
+						get-collection-info pNode/path pNode/collection
+						pNode/collection/index: ncol
 					][
-						get-endpoints-info pNode/path pNode/endpoints
+						get-endpoints-info pNode/path pNode/endpoint-entry
 					]
 					path: get-name dev-info info-data :len
 					if path <> null [
@@ -377,54 +377,45 @@ usb-device: context [
 
 	get-collection-info: func [
 		path					[c-string!]
-		return:					[HID-COLLECTION-NODE!]
+		collection				[HID-COLLECTION-NODE!]
 		/local
 			hDev				[integer!]
 			pParsedData			[integer!]
 			caps				[HIDP-CAPS! value]
-			pNode				[HID-COLLECTION-NODE!]
 	][
 		hDev: CreateFileA path GENERIC_WRITE or GENERIC_READ FILE_SHARE_READ null
 				OPEN_EXISTING FILE_ATTRIBUTE_NORMAL null
 		if hDev = -1 [
-			return null
+			exit
 		]
 		pParsedData: 0
 		unless HidD_GetPreparsedData as int-ptr! hDev :pParsedData [
 			CloseHandle as int-ptr! hDev
-			return null
+			exit
 		]
 		if HIDP_STATUS_SUCCESS <> HidP_GetCaps as int-ptr! pParsedData caps [
 			HidD_FreePreparsedData as int-ptr! pParsedData
 			CloseHandle as int-ptr! hDev
-			return null
+			exit
 		]
 		HidD_FreePreparsedData as int-ptr! pParsedData
 		CloseHandle as int-ptr! hDev
 
-		pNode: as HID-COLLECTION-NODE! allocate size? HID-COLLECTION-NODE!
-		if pNode = null [
-			return null
-		]
-		set-memory as byte-ptr! pNode null-byte size? HID-COLLECTION-NODE!
-		pNode/usage: caps/usage >>> 16
-		pNode/usage-page: caps/usage and FFFFh
-		pNode/input-size: caps/ReportByteLength >>> 16
-		pNode/output-size: caps/ReportByteLength and FFFFh
-
-		pNode
+		collection/usage: caps/usage >>> 16
+		collection/usage-page: caps/usage and FFFFh
+		collection/input-size: caps/ReportByteLength >>> 16
+		collection/output-size: caps/ReportByteLength and FFFFh
 	]
 
 	get-endpoints-info: func [
 		path					[c-string!]
-		pNode					[ENDPOINT-INFO!]
+		list					[list-entry!]
 		/local
 			hDev				[integer!]
 			hInf				[integer!]
 			index				[integer!]
 			pipe-info			[PIPE-INFO! value]
-			pipe-id				[integer!]
-			pipe-type			[PIPE-TYPE!]
+			pNode				[ENDPOINT-INFO-NODE!]
 	][
 		hDev: CreateFileA path GENERIC_WRITE or GENERIC_READ FILE_SHARE_READ null
 				OPEN_EXISTING FILE_FLAG_OVERLAPPED null
@@ -441,28 +432,12 @@ usb-device: context [
 			unless WinUsb_QueryPipe hInf 0 index pipe-info [
 				break
 			]
-			pipe-id: as integer! pipe-info/pipeID
-			pipe-type: pipe-info/pipeType
-			switch pipe-type [
-				PIPE-TYPE-BULK [
-					either (pipe-id and 80h) = 80h [
-						pNode/bulk-in: pipe-id
-						pNode/bulk-in-size: as integer! pipe-info/maxPackSize2
-					][
-						pNode/bulk-out: pipe-id
-						pNode/bulk-out-size: as integer! pipe-info/maxPackSize2
-					]
-				]
-				PIPE-TYPE-INTERRUPT [
-					either (pipe-id and 80h) = 80h [
-						pNode/interrupt-in: pipe-id
-						pNode/interrupt-in-size: as integer! pipe-info/maxPackSize2
-					][
-						pNode/interrupt-out: pipe-id
-						pNode/interrupt-out-size: as integer! pipe-info/maxPackSize2
-					]
-				]
-			]
+			pNode: as ENDPOINT-INFO-NODE! allocate size? ENDPOINT-INFO-NODE!
+			set-memory as byte-ptr! pNode null-byte size? ENDPOINT-INFO-NODE!
+			pNode/address: as integer! pipe-info/pipeID
+			pNode/type: pipe-info/pipeType
+			pNode/max-size: as integer! pipe-info/maxPackSize2
+			dlink/append list as list-entry! pNode
 			index: index + 1
 		]
 		WinUsb_Free hInf
@@ -950,15 +925,15 @@ usb-device: context [
 		dev-list
 	]
 
-	open-inteface: func [
+	open-interface: func [
 		pNode					[INTERFACE-INFO-NODE!]
 		return:					[USB-ERROR!]
 	][
 		case [
-			pNode/hType = DRIVER-TYPE-WINUSB [
+			pNode/hType = USB-DRIVER-TYPE-WINUSB [
 				return open-winusb pNode
 			]
-			pNode/hType = DRIVER-TYPE-HIDUSB [
+			pNode/hType = USB-DRIVER-TYPE-HIDUSB [
 				return open-hidusb pNode
 			]
 			true [
@@ -1078,6 +1053,7 @@ usb-device: context [
 						][
 							dlink/remove-entry device-list entry/prev entry/next
 							dnode/interface: inode
+							clear-interface-list dnode/interface-entry
 							return dnode
 						]
 						if mi = inode/index [
@@ -1088,11 +1064,13 @@ usb-device: context [
 							][
 								dlink/remove-entry device-list entry/prev entry/next
 								dnode/interface: inode
+								clear-interface-list dnode/interface-entry
 								return dnode
 							]
 							if col = inode/collection/index [
 								dlink/remove-entry device-list entry/prev entry/next
 								dnode/interface: inode
+								clear-interface-list dnode/interface-entry
 								return dnode
 							]
 						]
@@ -1123,7 +1101,7 @@ usb-device: context [
 		clear-device-list dev-list
 		if dnode = null [return null]
 		inode: dnode/interface
-		if USB-ERROR-OK <> open-inteface inode [
+		if USB-ERROR-OK <> open-interface inode [
 			free-device-info-node dnode
 			return null
 		]
@@ -1145,14 +1123,14 @@ usb-device: context [
 			ret					[integer!]
 	][
 		case [
-			pNode/hType = DRIVER-TYPE-WINUSB [
-				if WinUsb_WritePipe pNode/hInf pNode/endpoints/interrupt-out buf buflen plen ov [
+			pNode/hType = USB-DRIVER-TYPE-WINUSB [
+				if WinUsb_WritePipe pNode/hInf pNode/endpoint/address buf buflen plen ov [
 					return 0
 				]
 				if 997 = GetLastError [return 0]
 				return -1
 			]
-			pNode/hType = DRIVER-TYPE-HIDUSB [
+			pNode/hType = USB-DRIVER-TYPE-HIDUSB [
 				ret: WriteFile pNode/hDev buf buflen plen as integer! ov
 				if as logic! ret [
 					return 0
@@ -1177,14 +1155,14 @@ usb-device: context [
 			ret					[integer!]
 	][
 		case [
-			pNode/hType = DRIVER-TYPE-WINUSB [
-				if WinUsb_ReadPipe pNode/hInf pNode/endpoints/interrupt-in buf buflen plen ov [
+			pNode/hType = USB-DRIVER-TYPE-WINUSB [
+				if WinUsb_ReadPipe pNode/hInf pNode/endpoint/address buf buflen plen ov [
 					return 0
 				]
 				if 997 = GetLastError [return 0]
 				return -1
 			]
-			pNode/hType = DRIVER-TYPE-HIDUSB [
+			pNode/hType = USB-DRIVER-TYPE-HIDUSB [
 				ret: ReadFile pNode/hDev buf buflen plen as integer! ov
 				if as logic! ret [
 					return 0

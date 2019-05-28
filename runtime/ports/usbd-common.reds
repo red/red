@@ -9,13 +9,13 @@ Red/System [
 		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
-#enum DRIVER-TYPE! [
-	DRIVER-TYPE-NONE
-	;DRIVER-TYPE-GEN
-	DRIVER-TYPE-WINUSB
-	DRIVER-TYPE-HIDUSB
-	;DRIVER-TYPE-KBDHID
-	;DRIVER-TYPE-MOUHID
+#enum USB-DRIVER-TYPE! [
+	USB-DRIVER-TYPE-NONE
+	;USB-DRIVER-TYPE-GEN
+	USB-DRIVER-TYPE-WINUSB
+	USB-DRIVER-TYPE-HIDUSB
+	;USB-DRIVER-TYPE-KBDHID
+	;USB-DRIVER-TYPE-MOUHID
 ]
 
 #enum USB-ERROR! [
@@ -35,12 +35,12 @@ Red/System [
 	USB-NODE-TYPE-ENDPOINT
 ]
 
-#enum PIPE-TYPE! [
-	PIPE-TYPE-CONTROL
-	PIPE-TYPE-ISOCH
-	PIPE-TYPE-BULK
-	PIPE-TYPE-INTERRUPT
-	PIPE-TYPE-INVALID
+#enum USB-PIPE-TYPE! [
+	USB-PIPE-TYPE-CONTROL
+	USB-PIPE-TYPE-ISOCH
+	USB-PIPE-TYPE-BULK
+	USB-PIPE-TYPE-INTERRUPT
+	USB-PIPE-TYPE-INVALID
 ]
 
 USB-DESCRIPTION!: alias struct! [
@@ -71,17 +71,11 @@ HID-COLLECTION-NODE!: alias struct! [
 	report-id			[integer!]
 ]
 
-ENDPOINT-INFO!: alias struct! [
-	;-- address
-	bulk-in				[integer!]
-	;-- max package size
-	bulk-in-size		[integer!]
-	bulk-out			[integer!]
-	bulk-out-size		[integer!]
-	interrupt-in		[integer!]
-	interrupt-in-size	[integer!]
-	interrupt-out		[integer!]
-	interrupt-out-size	[integer!]
+ENDPOINT-INFO-NODE!: alias struct! [
+	entry				[list-entry! value]
+	address				[integer!]
+	type				[USB-PIPE-TYPE!]
+	max-size			[integer!]
 ]
 
 INTERFACE-INFO-NODE!: alias struct! [
@@ -105,19 +99,17 @@ INTERFACE-INFO-NODE!: alias struct! [
 	;-- opend handle 2
 	hInf				[integer!]
 	;-- interface type
-	hType				[DRIVER-TYPE!]
-
-	;-- access port
-	pipe-addr			[integer!]
-	pipe-type			[PIPE-TYPE!]
+	hType				[USB-DRIVER-TYPE!]
 
 	;-- endpoint info (for generic interface)
-	endpoints			[ENDPOINT-INFO! value]
+	endpoint-entry		[list-entry! value]
+	;-- dynamic selected pipe
+	endpoint			[ENDPOINT-INFO-NODE! value]
 
 	;-- hid collection list
 	collection-entry	[list-entry! value]
 	;-- selected collection
-	collection			[HID-COLLECTION-NODE!]
+	collection			[HID-COLLECTION-NODE! value]
 
 	;-- read/write thread info
 	read-thread			[int-ptr!]
@@ -208,6 +200,30 @@ free-collection-info-node: func [
 	free as byte-ptr! pNode
 ]
 
+clear-endpoint-list: func [
+	list		[list-entry!]
+	/local
+		p		[list-entry!]
+		q		[list-entry!]
+		node	[ENDPOINT-INFO-NODE!]
+][
+	p: list/next
+	while [p <> list][
+		q: p/next
+		free-endpoint-info-node as ENDPOINT-INFO-NODE! p
+		p: q
+	]
+	list/next: list
+	list/prev: list
+]
+
+free-endpoint-info-node: func [
+	pNode		[ENDPOINT-INFO-NODE!]
+][
+	if pNode = null [exit]
+	free as byte-ptr! pNode
+]
+
 free-interface-info-node: func [
 	pNode		[INTERFACE-INFO-NODE!]
 ][
@@ -227,10 +243,8 @@ free-interface-info-node: func [
 	if pNode/write-thread <> null [
 		free as byte-ptr! pNode/write-thread
 	]
-	if pNode/collection <> null [
-		free-collection-info-node pNode/collection
-	]
 	clear-collection-list pNode/collection-entry
+	clear-endpoint-list pNode/endpoint-entry
 	free as byte-ptr! pNode
 ]
 
@@ -266,4 +280,87 @@ free-description: func [
 	if desc/product-str <> null [free desc/product-str]
 	if desc/serial-str <> null [free desc/serial-str]
 	free as byte-ptr! desc
+]
+
+usb-find-pipe-by-address: func [
+	list					[list-entry!]
+	address					[integer!]
+	return:					[ENDPOINT-INFO-NODE!]
+	/local
+		p					[list-entry!]
+		node				[ENDPOINT-INFO-NODE!]
+][
+	p: list/next
+	while [p <> list][
+		node: as ENDPOINT-INFO-NODE! p
+		if node/address = address [
+			return node
+		]
+		p: p/next
+	]
+	null
+]
+
+usb-find-pipe-by-type: func [
+	list					[list-entry!]
+	type					[USB-PIPE-TYPE!]
+	read?					[logic!]
+	return:					[ENDPOINT-INFO-NODE!]
+	/local
+		p					[list-entry!]
+		node				[ENDPOINT-INFO-NODE!]
+		read2?				[logic!]
+][
+	p: list/next
+	while [p <> list][
+		node: as ENDPOINT-INFO-NODE! p
+		either node/address > 127 [read2?: true][read2?: false]
+		if all [
+			node/type = type
+			read2? = read?
+		][
+			return node
+		]
+		p: p/next
+	]
+	null
+]
+
+usb-select-pipe: func [
+	pNode					[INTERFACE-INFO-NODE!]
+	address					[integer!]
+	type					[integer!]
+	read?					[logic!]
+	return:					[logic!]
+	/local
+		node				[ENDPOINT-INFO-NODE!]
+][
+	if all [
+		address > 0
+		address < 256
+	][
+		either read? [
+			address: address or 80h
+		][
+			address: address and 7Fh
+		]
+		node: usb-find-pipe-by-address pNode/endpoint-entry address
+		if node <> null [
+			copy-memory as byte-ptr! pNode/endpoint as byte-ptr! node size? ENDPOINT-INFO-NODE!
+			return true
+		]
+	]
+	if all [
+		type > USB-PIPE-TYPE-CONTROL
+		type < USB-PIPE-TYPE-INVALID
+	][
+		node: usb-find-pipe-by-type pNode/endpoint-entry type read?
+		if node <> null [
+			copy-memory as byte-ptr! pNode/endpoint as byte-ptr! node size? ENDPOINT-INFO-NODE!
+			return true
+		]
+	]
+	pNode/endpoint/address: 0
+	pNode/endpoint/type: USB-PIPE-TYPE-CONTROL
+	false
 ]
