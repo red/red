@@ -384,7 +384,7 @@ usb-device: context [
 			caps				[HIDP-CAPS! value]
 			pNode				[HID-COLLECTION-NODE!]
 	][
-		hDev: CreateFileA path GENERIC_READ FILE_SHARE_READ null
+		hDev: CreateFileA path GENERIC_WRITE or GENERIC_READ FILE_SHARE_READ null
 				OPEN_EXISTING FILE_ATTRIBUTE_NORMAL null
 		if hDev = -1 [
 			return null
@@ -426,8 +426,8 @@ usb-device: context [
 			pipe-id				[integer!]
 			pipe-type			[PIPE-TYPE!]
 	][
-		hDev: CreateFileA path GENERIC_READ FILE_SHARE_READ null
-				OPEN_EXISTING FILE_ATTRIBUTE_NORMAL null
+		hDev: CreateFileA path GENERIC_WRITE or GENERIC_READ FILE_SHARE_READ null
+				OPEN_EXISTING FILE_FLAG_OVERLAPPED null
 		if hDev = -1 [
 			exit
 		]
