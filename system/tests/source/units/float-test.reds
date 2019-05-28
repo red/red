@@ -1245,10 +1245,10 @@ Red/System [
 		--assert not (inf < nan)
 		--assert inf <> nan
 		--assert not (inf = nan)
-		--assert not (1.0 < 1.#nan)
-		--assert not (1.#nan > 1.0)
-		--assert not (1.0 > 1.#nan)
-		--assert not (1.#nan < 1.0)
+		--assert not (1.0 < nan)
+		--assert not (nan > 1.0)
+		--assert not (1.0 > nan)
+		--assert not (nan < 1.0)
 
 	--test-- "issue #227"
 		t: 2.2
