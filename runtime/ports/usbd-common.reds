@@ -35,6 +35,13 @@ Red/System [
 	USB-NODE-TYPE-ENDPOINT
 ]
 
+#enum PIPE-TYPE! [
+	PIPE-TYPE-CONTROL
+	PIPE-TYPE-ISOCH
+	PIPE-TYPE-BULK
+	PIPE-TYPE-INTERRUPT
+]
+
 USB-DESCRIPTION!: alias struct! [
 	device-desc			[byte-ptr!]
 	device-desc-len		[integer!]

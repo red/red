@@ -109,6 +109,59 @@ get-port-data: func [
 	either TYPE_OF(int) = TYPE_NONE [null][as int-ptr! int/value]
 ]
 
+get-port-pipe: func [
+	red-port	[red-object!]
+	addr		[int-ptr!]
+	type		[int-ptr!]
+	return:		[integer!]
+	/local
+		state	[red-object!]
+		int		[red-integer!]
+		word	[red-word!]
+		sym		[integer!]
+][
+	state: as red-object! (object/get-values red-port) + port/field-state
+	int: as red-integer! (object/get-values state) + 5
+	if TYPE_OF(int) = TYPE_INEGER [
+		addr/value: int/value
+		return 1
+	]
+	if TYPE_OF(int) <> TYPE_WORD [
+		return -1
+	]
+	word: as red-word! int
+	sym: symbol/resolve word/symbol
+	if sym = words/control [
+		type/value: PIPE-TYPE-CONTROL
+		return 0
+	]
+	if sym = words/isochronous [
+		type/value: PIPE-TYPE-ISOCH
+		return 0
+	]
+	if sym = words/bulk [
+		type/value: PIPE-TYPE-BULK
+		return 0
+	]
+	if sym = words/interrupt [
+		type/value: PIPE-TYPE-INTERRUPT
+		return 0
+	]
+	return -1
+]
+
+get-port-read-size: func [
+	red-port	[red-object!]
+	return:		[integer!]
+	/local
+		state	[red-object!]
+		int		[red-integer!]
+][
+	state: as red-object! (object/get-values red-port) + port/field-state
+	int: as red-integer! (object/get-values state) + 6
+	either TYPE_OF(int) = TYPE_INEGER [int/value][0]
+]
+
 tcp-client: func [
 	p		[red-object!]
 	host	[red-string!]

@@ -550,6 +550,10 @@ words: context [
 	tcp:			-1
 	usb:			-1
 	hid:			-1
+	control:		-1
+	bulk:			-1
+	interrupt:		-1
+	isochronous:	-1
 	
 	system:			-1
 	system-global:	-1
@@ -795,6 +799,10 @@ words: context [
 		tcp:			symbol/make "tcp"
 		usb:			symbol/make "usb"
 		hid:			symbol/make "hid"
+		control:		symbol/make "control"
+		bulk:			symbol/make "bulk"
+		interrupt:		symbol/make "interrupt"
+		isochronous:	symbol/make "isochronous"
 
 		system:			symbol/make "system"
 		system-global:	symbol/make "system-global"
