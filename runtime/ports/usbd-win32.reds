@@ -390,7 +390,7 @@ usb-device: context [
 			return null
 		]
 		pParsedData: 0
-		unless HidD_GetPreparsedData as int-ptr! pNode/hDev :pParsedData [
+		unless HidD_GetPreparsedData as int-ptr! hDev :pParsedData [
 			CloseHandle as int-ptr! hDev
 			return null
 		]
@@ -426,7 +426,7 @@ usb-device: context [
 			pipe-id				[integer!]
 			pipe-type			[PIPE-TYPE!]
 	][
-		hDev: CreateFileA pNode/path GENERIC_READ FILE_SHARE_READ null
+		hDev: CreateFileA path GENERIC_READ FILE_SHARE_READ null
 				OPEN_EXISTING FILE_ATTRIBUTE_NORMAL null
 		if hDev = -1 [
 			exit

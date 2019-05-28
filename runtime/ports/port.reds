@@ -122,7 +122,7 @@ get-port-pipe: func [
 ][
 	state: as red-object! (object/get-values red-port) + port/field-state
 	int: as red-integer! (object/get-values state) + 5
-	if TYPE_OF(int) = TYPE_INEGER [
+	if TYPE_OF(int) = TYPE_INTEGER [
 		addr/value: int/value
 		return 1
 	]
@@ -159,7 +159,7 @@ get-port-read-size: func [
 ][
 	state: as red-object! (object/get-values red-port) + port/field-state
 	int: as red-integer! (object/get-values state) + 6
-	either TYPE_OF(int) = TYPE_INEGER [int/value][0]
+	either TYPE_OF(int) = TYPE_INTEGER [int/value][0]
 ]
 
 tcp-client: func [
