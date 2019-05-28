@@ -218,10 +218,6 @@ Red [
 		foreach [k v] m [
 			--assert v = select blk k
 		]
-		foreach [k1 v1 k2 v2] m [
-			--assert v1 = select blk k1
-			--assert v2 = select blk k2
-		]
 
 	--test-- "map-foreach-2"
 		blk: [a 1 b 2 c 3 d 4]
@@ -232,10 +228,6 @@ Red [
 		remove/key blk 'd
 		foreach [k v] m [
 			--assert v = select blk k
-		]
-		foreach [k1 v1 k2 v2] m [
-			--assert v1 = select blk k1
-			--assert v2 = select blk k2
 		]
 
 ===end-group=== 

@@ -3025,7 +3025,7 @@ natives: context [
 					set-many-string blk as red-string! series size
 				]
 				TYPE_MAP [
-					if size % 2 <> 0 [
+					if size <> 2 [
 						fire [TO_ERROR(script invalid-arg) blk]
 					]
 					result: map/set-many blk as red-hash! series size
