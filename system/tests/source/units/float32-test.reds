@@ -343,7 +343,7 @@ Red/System [
 ===end-group===
 
 
-===start-group=== "IEEE754 compliance in NaN handling - float! type"
+===start-group=== "IEEE754 compliance in NaN handling - float32! type"
 
 	;-- vars list:
 	; nan +inf -inf zero one two five
