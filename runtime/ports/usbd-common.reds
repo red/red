@@ -40,6 +40,7 @@ Red/System [
 	PIPE-TYPE-ISOCH
 	PIPE-TYPE-BULK
 	PIPE-TYPE-INTERRUPT
+	PIPE-TYPE-INVALID
 ]
 
 USB-DESCRIPTION!: alias struct! [
@@ -105,6 +106,10 @@ INTERFACE-INFO-NODE!: alias struct! [
 	hInf				[integer!]
 	;-- interface type
 	hType				[DRIVER-TYPE!]
+
+	;-- access port
+	pipe-addr			[integer!]
+	pipe-type			[PIPE-TYPE!]
 
 	;-- endpoint info (for generic interface)
 	endpoints			[ENDPOINT-INFO! value]

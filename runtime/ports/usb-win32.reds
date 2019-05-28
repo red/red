@@ -75,21 +75,37 @@ usb: context [
 		/local
 			iodata	[USB-DATA!]
 			size	[integer!]
+			paddr	[integer!]
+			ptype	[integer!]
 			n		[integer!]
 	][
 		iodata: as USB-DATA! get-port-data red-port
-		if null? iodata/buffer [
-			if iodata/dev/interface/hType = DRIVER-TYPE-WINUSB [
-				size: iodata/dev/interface/interrupt-in-size
-				iodata/buffer: allocate size
-				iodata/buflen: size
-			]
-			if iodata/dev/interface/hType = DRIVER-TYPE-HIDUSB [
-				size: iodata/dev/interface/input-size
-				iodata/buffer: allocate size
-				iodata/buflen: size
-			]
+		if all [
+			iodata/dev/interface/hType <> DRIVER-TYPE-HIDUSB
+			iodata/dev/interface/hType <> DRIVER-TYPE-WINUSB
+		][exit]
+
+		paddr: -1 ptype: -1
+		get-port-pipe red-port :paddr :ptype
+		iodata/dev/interface/pipe-addr: paddr
+		iodata/dev/interface/pipe-type: ptype
+
+		either iodata/dev/interface/hType = DRIVER-TYPE-HIDUSB [
+			size: iodata/dev/interface/collection/input-size
+		][
+			size: get-port-read-size red-port
 		]
+		if any [
+			null? iodata/buffer
+			size > iodata/buflen
+		][
+			unless null? iodata/buffer [
+				free iodata/buffer
+			]
+			iodata/buffer: allocate size
+			iodata/buflen: size
+		]
+
 		print-line "read"
 		print-line iodata/buflen
 		print-line iodata/fd
@@ -100,6 +116,7 @@ usb: context [
 		;dump-hex iodata/buffer
 		n: 0
 		if 0 <> usb-device/read-data iodata/dev/interface iodata/buffer iodata/buflen :n as OVERLAPPED! iodata 0 [
+			print-line "read failed"
 			exit
 		]
 
@@ -114,12 +131,20 @@ usb: context [
 			buf		[byte-ptr!]
 			len		[integer!]
 			iodata	[USB-DATA!]
+			paddr	[integer!]
+			ptype	[integer!]
 			n		[integer!]
 	][
 		iodata: as USB-DATA! get-port-data red-port
-		iocp/bind g-poller as DATA-COMMON! iodata
-		set-memory as byte-ptr! :iodata/ovlap null-byte size? OVERLAPPED!
-		print-line "write"
+		if all [
+			iodata/dev/interface/hType <> DRIVER-TYPE-HIDUSB
+			iodata/dev/interface/hType <> DRIVER-TYPE-WINUSB
+		][exit]
+
+		paddr: -1 ptype: -1
+		get-port-pipe red-port :paddr :ptype
+		iodata/dev/interface/pipe-addr: paddr
+		iodata/dev/interface/pipe-type: ptype
 
 		switch TYPE_OF(data) [
 			TYPE_BINARY [
@@ -131,9 +156,13 @@ usb: context [
 			default [0]
 		]
 
+		print-line "write"
+		iocp/bind g-poller as DATA-COMMON! iodata
+		set-memory as byte-ptr! :iodata/ovlap null-byte size? OVERLAPPED!
 		iodata/code: IOCP_OP_WRITE
 		n: 0
 		if 0 <> usb-device/write-data iodata/dev/interface buf len :n as OVERLAPPED! iodata 0 [
+			print-line "write failed"
 			exit
 		]
 
