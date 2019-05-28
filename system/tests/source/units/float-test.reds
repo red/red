@@ -306,6 +306,936 @@ Red/System [
 	
 ===end-group===
 
+===start-group=== "IEEE754 compliance in NaN handling - float! type"
+
+	;-- vars list:
+	; nan +inf -inf zero one two five
+	; failed b i f g
+	; any1-fail all1-fail f-yes f-not fi-yes fi-not
+	; cmp= cmp< cmp> icmp= icmp< icmp> ecmp= ecmp< ecmp>
+
+	nan:   0.0 / 0.0
+	+inf:  1.0 / 0.0
+	-inf: -1.0 / 0.0
+	zero:  0.0
+	one:   1.0
+	two:   2.0
+	five:  5.0
+
+	;; check point 1 - assertions -- only in manual test files `nan-tests-manual*.reds`
+
+	;; check point 2 - if's
+	--test-- "if nan 1"
+		failed: no  if nan = nan [failed: yes]
+		--assert not failed
+
+	--test-- "if nan 2"
+		failed: no  if nan = one [failed: yes]
+		--assert not failed
+
+	--test-- "if nan 3"
+		failed: no  if nan < nan [failed: yes]
+		--assert not failed
+
+	--test-- "if nan 4"
+		failed: no  if nan < one [failed: yes]
+		--assert not failed
+
+	--test-- "if nan 5"
+		failed: no  if one < nan [failed: yes]
+		--assert not failed
+
+	--test-- "if nan 6"
+		failed: no  if two < one [failed: yes]
+		--assert not failed
+
+	--test-- "if nan 7"
+		failed: no  if one < nan [failed: yes]
+		--assert not failed
+
+
+	--test-- "if nan 8"
+		failed: yes  if one =  one [failed: no]
+		--assert not failed
+
+	--test-- "if nan 9"
+		failed: yes  if one <  two [failed: no]
+		--assert not failed
+
+	--test-- "if nan 10"
+		failed: yes  if nan <> nan [failed: no]
+		--assert not failed
+
+
+	--test-- "if nan 11"
+		failed: no  if not (one = one)  [failed: yes]
+		--assert not failed
+
+	--test-- "if nan 12"
+		failed: no  if not (one <> nan) [failed: yes]
+		--assert not failed
+
+	--test-- "if nan 13"
+		failed: no  if not (nan <> nan) [failed: yes]
+		--assert not failed
+
+
+	;; ... unless's
+	--test-- "unless nan 1"
+		failed: no  unless one = one  [failed: yes]
+		--assert not failed
+
+	--test-- "unless nan 2"
+		failed: no  unless one <> nan [failed: yes]
+		--assert not failed
+
+	--test-- "unless nan 3"
+		failed: no  unless nan <> nan [failed: yes]
+		--assert not failed
+
+
+	;; check point 3 - either's
+	--test-- "either nan 1"
+		failed: yes  either one =  one [failed: no][1]
+		--assert not failed
+
+	--test-- "either nan 2"
+		failed: yes  either one <  two [failed: no][1]
+		--assert not failed
+
+	--test-- "either nan 3"
+		failed: yes  either two >  one [failed: no][1]
+		--assert not failed
+
+	--test-- "either nan 4"
+		failed: yes  either nan =  nan [1][failed: no]
+		--assert not failed
+
+	--test-- "either nan 5"
+		failed: yes  either nan =  one [1][failed: no]
+		--assert not failed
+
+	--test-- "either nan 6"
+		failed: yes  either one =  nan [1][failed: no]
+		--assert not failed
+
+	--test-- "either nan 7"
+		failed: yes  either one <  one [1][failed: no]
+		--assert not failed
+
+	--test-- "either nan 8"
+		failed: yes  either one <  nan [1][failed: no]
+		--assert not failed
+
+	--test-- "either nan 9"
+		failed: yes  either nan <  one [1][failed: no]
+		--assert not failed
+
+	--test-- "either nan 10"
+		failed: yes  either one >  one [1][failed: no]
+		--assert not failed
+
+	--test-- "either nan 11"
+		failed: yes  either one >  nan [1][failed: no]
+		--assert not failed
+
+	--test-- "either nan 12"
+		failed: yes  either nan >  one [1][failed: no]
+		--assert not failed
+
+	--test-- "either nan 13"
+		failed: yes  either one <> one [1][failed: no]
+		--assert not failed
+
+	--test-- "either nan 14"
+		failed: yes  either nan <> nan [failed: no][1]
+		--assert not failed
+
+	--test-- "either nan 15"
+		failed: yes  either one <> nan [failed: no][1]
+		--assert not failed
+
+	--test-- "either nan 16"
+		failed: yes  either nan <> one [failed: no][1]
+		--assert not failed
+
+	--test-- "either nan 17"
+		failed: yes  either one <> two [failed: no][1]
+		--assert not failed
+
+
+	;; check point 4 - case's
+	--test-- "case nan 1"
+		failed: yes  case [one =  one [failed: no] true [1]]
+		--assert not failed
+
+	--test-- "case nan 2"
+		failed: yes  case [one <  two [failed: no] true [1]]
+		--assert not failed
+
+	--test-- "case nan 3"
+		failed: yes  case [two >  one [failed: no] true [1]]
+		--assert not failed
+
+	--test-- "case nan 4"
+		failed: yes  case [nan =  nan [1] true [failed: no]]
+		--assert not failed
+
+	--test-- "case nan 5"
+		failed: yes  case [nan =  one [1] true [failed: no]]
+		--assert not failed
+
+	--test-- "case nan 6"
+		failed: yes  case [one =  nan [1] true [failed: no]]
+		--assert not failed
+
+	--test-- "case nan 7"
+		failed: yes  case [one <  one [1] true [failed: no]]
+		--assert not failed
+
+	--test-- "case nan 8"
+		failed: yes  case [one <  nan [1] true [failed: no]]
+		--assert not failed
+
+	--test-- "case nan 9"
+		failed: yes  case [nan <  one [1] true [failed: no]]
+		--assert not failed
+
+	--test-- "case nan 10"
+		failed: yes  case [one >  one [1] true [failed: no]]
+		--assert not failed
+
+	--test-- "case nan 11"
+		failed: yes  case [one >  nan [1] true [failed: no]]
+		--assert not failed
+
+	--test-- "case nan 12"
+		failed: yes  case [nan >  one [1] true [failed: no]]
+		--assert not failed
+
+	--test-- "case nan 13"
+		failed: yes  case [one <> one [1] true [failed: no]]
+		--assert not failed
+
+	--test-- "case nan 14"
+		failed: yes  case [nan <> nan [failed: no] true [1]]
+		--assert not failed
+
+	--test-- "case nan 15"
+		failed: yes  case [one <> nan [failed: no] true [1]]
+		--assert not failed
+
+	--test-- "case nan 16"
+		failed: yes  case [nan <> one [failed: no] true [1]]
+		--assert not failed
+
+	--test-- "case nan 17"
+		failed: yes  case [one <> two [failed: no] true [1]]
+		--assert not failed
+
+	--test-- "case nan 18"
+		failed: yes  case [
+			nan = nan [1]
+			nan > one [1]
+			one > nan [1]
+			one = one [failed: no]
+		]
+		--assert not failed
+
+
+	;; check point 5 - until's end-condition
+	--test-- "until nan 1"
+		i: 0  f: five  g: zero
+		until [
+			i: i + 1
+			f: f - 1
+			g: zero / f
+			g <> zero
+		]
+		--assert i = 5
+
+	--test-- "until nan 2"
+		i: 0  f: five
+		until [
+			i: i + 1
+			f: f - 1
+			zero / f <> zero
+		]
+		--assert i = 5
+
+	--test-- "until nan 3"
+		i: 0  f: five
+		until [
+			i: i + 1
+			f: f - 1
+			not (zero / f <= +inf)
+		]
+		--assert i = 5
+
+	--test-- "until nan 4"
+		i: 0  f: five
+		until [
+			i: i + 1
+			f: f - 1
+			not (f * +inf <= +inf)
+		]
+		--assert i = 5
+
+	;; check point 6 - while's enter-condition
+	--test-- "while nan 1"
+		i: 0  f: five  g: zero
+		while [g = zero] [i: i + 1  f: f - 1  g: zero / f]
+		--assert i = 5
+
+	--test-- "while nan 2"
+		i: 0  f: five  g: zero
+		while [g <= +inf] [i: i + 1  f: f - 1  g: zero / f]
+		--assert i = 5
+
+	--test-- "while nan 3"
+		i: 0  f: five  g: zero
+		while [g >= -inf] [i: i + 1  f: f - 1  g: zero / f]
+		--assert i = 5
+
+	--test-- "while nan 4"
+		i: 0  f: five  g: zero
+		while [-inf <= g] [i: i + 1  f: f - 1  g: zero / f]
+		--assert i = 5
+
+	--test-- "while nan 5"
+		i: 0  f: five  g: zero
+		while [+inf >= g] [i: i + 1  f: f - 1  g: zero / f]
+		--assert i = 5
+
+	;; check point 7 - all's
+	--test-- "all nan 1"
+		failed: no         
+		all1-fail: func [][failed: yes]
+		all [zero = zero  zero < one  one < two  one <> nan  nan <> nan  nan = nan  all1-fail]
+		--assert not failed
+
+	--test-- "all nan 2"
+		failed: no  if     all [zero = zero  zero < one  one < two  one <> nan  nan <> nan  nan = nan][failed: yes]
+		--assert not failed
+
+	--test-- "all nan 3"
+		failed: no  unless all [zero = zero  zero < one  one < two  one <> nan  nan <> nan]           [failed: yes]
+		--assert not failed
+
+	--test-- "all nan 4"
+		failed: yes  either all [one =  one] [failed: no][1]
+		--assert not failed
+
+	--test-- "all nan 5"
+		failed: yes  either all [one <  two] [failed: no][1]
+		--assert not failed
+
+	--test-- "all nan 6"
+		failed: yes  either all [two >  one] [failed: no][1]
+		--assert not failed
+
+	--test-- "all nan 7"
+		failed: yes  either all [nan =  nan] [1][failed: no]
+		--assert not failed
+
+	--test-- "all nan 8"
+		failed: yes  either all [nan =  one] [1][failed: no]
+		--assert not failed
+
+	--test-- "all nan 9"
+		failed: yes  either all [one =  nan] [1][failed: no]
+		--assert not failed
+
+	--test-- "all nan 10"
+		failed: yes  either all [one <  one] [1][failed: no]
+		--assert not failed
+
+	--test-- "all nan 11"
+		failed: yes  either all [one <  nan] [1][failed: no]
+		--assert not failed
+
+	--test-- "all nan 12"
+		failed: yes  either all [nan <  one] [1][failed: no]
+		--assert not failed
+
+	--test-- "all nan 13"
+		failed: yes  either all [one >  one] [1][failed: no]
+		--assert not failed
+
+	--test-- "all nan 14"
+		failed: yes  either all [one >  nan] [1][failed: no]
+		--assert not failed
+
+	--test-- "all nan 15"
+		failed: yes  either all [nan >  one] [1][failed: no]
+		--assert not failed
+
+	--test-- "all nan 16"
+		failed: yes  either all [one <> one] [1][failed: no]
+		--assert not failed
+
+	--test-- "all nan 17"
+		failed: yes  either all [nan <> nan] [failed: no][1]
+		--assert not failed
+
+	--test-- "all nan 18"
+		failed: yes  either all [one <> nan] [failed: no][1]
+		--assert not failed
+
+	--test-- "all nan 19"
+		failed: yes  either all [nan <> one] [failed: no][1]
+		--assert not failed
+
+	--test-- "all nan 20"
+		failed: yes  either all [one <> two] [failed: no][1]
+		--assert not failed
+
+	--test-- "all nan 21"
+		failed: yes  b: all [nan = nan]  unless b [failed: no]
+		--assert not failed
+
+	--test-- "all nan 22"
+		failed: yes  b: all [one < nan]  unless b [failed: no]
+		--assert not failed
+
+	--test-- "all nan 23"
+		failed: yes  b: all [one > nan]  unless b [failed: no]
+		--assert not failed
+
+	--test-- "all nan 24"
+		failed: yes  b: all [one = one]      if b [failed: no]
+		--assert not failed
+
+
+	;; ... any's
+	--test-- "any nan 1"
+		failed: no
+		any1-fail: func [][failed: yes]
+		any [zero <> zero  zero > one  one > two  one = nan  nan = nan  nan <> nan  any1-fail]
+		--assert not failed
+
+	--test-- "any nan 2"
+		failed: no
+		unless any [zero <> zero  zero > one  one > two  one = nan  nan = nan  nan <> nan][
+			failed: yes
+		]
+		--assert not failed
+
+	--test-- "any nan 3"
+		failed: no
+		either any [zero <> zero  zero > one  one > two  one = nan  nan = nan] [failed: yes] [1]
+		--assert not failed
+
+	--test-- "any nan 4"
+		failed: yes  either any [one =  one] [failed: no][1]
+		--assert not failed
+
+	--test-- "any nan 5"
+		failed: yes  either any [one <  two] [failed: no][1]
+		--assert not failed
+
+	--test-- "any nan 6"
+		failed: yes  either any [two >  one] [failed: no][1]
+		--assert not failed
+
+	--test-- "any nan 7"
+		failed: yes  either any [nan =  nan] [1][failed: no]
+		--assert not failed
+
+	--test-- "any nan 8"
+		failed: yes  either any [nan =  one] [1][failed: no]
+		--assert not failed
+
+	--test-- "any nan 9"
+		failed: yes  either any [one =  nan] [1][failed: no]
+		--assert not failed
+
+	--test-- "any nan 10"
+		failed: yes  either any [one <  one] [1][failed: no]
+		--assert not failed
+
+	--test-- "any nan 11"
+		failed: yes  either any [one <  nan] [1][failed: no]
+		--assert not failed
+
+	--test-- "any nan 12"
+		failed: yes  either any [nan <  one] [1][failed: no]
+		--assert not failed
+
+	--test-- "any nan 13"
+		failed: yes  either any [one >  one] [1][failed: no]
+		--assert not failed
+
+	--test-- "any nan 14"
+		failed: yes  either any [one >  nan] [1][failed: no]
+		--assert not failed
+
+	--test-- "any nan 15"
+		failed: yes  either any [nan >  one] [1][failed: no]
+		--assert not failed
+
+	--test-- "any nan 16"
+		failed: yes  either any [one <> one] [1][failed: no]
+		--assert not failed
+
+	--test-- "any nan 17"
+		failed: yes  either any [nan <> nan] [failed: no][1]
+		--assert not failed
+
+	--test-- "any nan 18"
+		failed: yes  either any [one <> nan] [failed: no][1]
+		--assert not failed
+
+	--test-- "any nan 19"
+		failed: yes  either any [nan <> one] [failed: no][1]
+		--assert not failed
+
+	--test-- "any nan 20"
+		failed: yes  either any [one <> two] [failed: no][1]
+		--assert not failed
+
+	--test-- "any nan 21"
+		failed: yes  b: any [nan = nan]           unless b [failed: no]
+		--assert not failed
+
+	--test-- "any nan 22"
+		failed: yes  b: any [one < nan]           unless b [failed: no]
+		--assert not failed
+
+	--test-- "any nan 23"
+		failed: yes  b: any [one > nan]           unless b [failed: no]
+		--assert not failed
+
+	--test-- "any nan 24"
+		failed: yes  b: any [one = one]               if b [failed: no]
+		--assert not failed
+
+	--test-- "any nan 25"
+		failed: yes  b: any [nan = nan one = one]     if b [failed: no]
+		--assert not failed
+
+
+
+	;; check point 8 - functions with logic arguments from nan comparison
+	f-yes: func [cond [logic!] msg [c-string!]] [    if cond [failed: no]]
+	f-not: func [cond [logic!] msg [c-string!]] [unless cond [failed: no]]
+
+	--test-- "func nan 1"
+		failed: yes  f-yes nan <> nan "nan <> nan"
+		--assert not failed
+
+	--test-- "func nan 2"
+		failed: yes  f-yes one <> nan "one <> nan"
+		--assert not failed
+
+	--test-- "func nan 3"
+		failed: yes  f-yes not (nan = nan) "not nan = nan"
+		--assert not failed
+
+	--test-- "func nan 4"
+		failed: yes  f-yes not (one = nan) "not one = nan"
+		--assert not failed
+
+	--test-- "func nan 5"
+		failed: yes  f-not nan = nan "nan = nan"
+		--assert not failed
+
+	--test-- "func nan 6"
+		failed: yes  f-not nan = one "nan = one"
+		--assert not failed
+
+	--test-- "func nan 7"
+		failed: yes  f-not one = nan "one = nan"
+		--assert not failed
+
+	--test-- "func nan 8"
+		failed: yes  f-not nan < one "nan < one"
+		--assert not failed
+
+	--test-- "func nan 9"
+		failed: yes  f-not one < nan "one < nan"
+		--assert not failed
+
+	--test-- "func nan 10"
+		failed: yes  f-not nan > one "nan > one"
+		--assert not failed
+
+	--test-- "func nan 11"
+		failed: yes  f-not one > nan "one > nan"
+		--assert not failed
+
+	;; ... functions with integer arguments from nan comparison
+	fi-yes: func [i [integer!] msg [c-string!]] [if i = 1 [failed: no]]
+	fi-not: func [i [integer!] msg [c-string!]] [if i = 0 [failed: no]]
+
+	--test-- "func nan 12"
+		failed: yes  fi-yes as-integer nan <> nan "nan <> nan"
+		--assert not failed
+
+	--test-- "func nan 13"
+		failed: yes  fi-yes as-integer one <> nan "one <> nan"
+		--assert not failed
+
+	--test-- "func nan 14"
+		failed: yes  fi-yes as-integer not (nan = nan) "not nan = nan"
+		--assert not failed
+
+	--test-- "func nan 15"
+		failed: yes  fi-yes as-integer not (one = nan) "not one = nan"
+		--assert not failed
+
+	--test-- "func nan 16"
+		failed: yes  fi-not as-integer nan = nan "nan = nan"
+		--assert not failed
+
+	--test-- "func nan 17"
+		failed: yes  fi-not as-integer nan = one "nan = one"
+		--assert not failed
+
+	--test-- "func nan 18"
+		failed: yes  fi-not as-integer one = nan "one = nan"
+		--assert not failed
+
+	--test-- "func nan 19"
+		failed: yes  fi-not as-integer nan < one "nan < one"
+		--assert not failed
+
+	--test-- "func nan 20"
+		failed: yes  fi-not as-integer one < nan "one < nan"
+		--assert not failed
+
+	--test-- "func nan 21"
+		failed: yes  fi-not as-integer nan > one "nan > one"
+		--assert not failed
+
+	--test-- "func nan 22"
+		failed: yes  fi-not as-integer one > nan "one > nan"
+		--assert not failed
+
+
+	;; check point 9 - logic return values from nan comparison
+	cmp=: func [a [float!] b [float!] return: [logic!]] [a = b]
+	cmp<: func [a [float!] b [float!] return: [logic!]] [a < b]
+	cmp>: func [a [float!] b [float!] return: [logic!]] [a > b]
+
+	--test-- "func nan 23"
+		failed: yes  unless cmp= nan nan [failed: no]
+		--assert not failed
+
+	--test-- "func nan 24"
+		failed: yes  unless cmp= one nan [failed: no]
+		--assert not failed
+
+	--test-- "func nan 25"
+		failed: yes  unless cmp< one nan [failed: no]
+		--assert not failed
+
+	--test-- "func nan 26"
+		failed: yes  unless cmp< nan one [failed: no]
+		--assert not failed
+
+	--test-- "func nan 27"
+		failed: yes  unless cmp> one nan [failed: no]
+		--assert not failed
+
+	--test-- "func nan 28"
+		failed: yes  unless cmp> nan one [failed: no]
+		--assert not failed
+
+	--test-- "func nan 29"
+		failed: yes  if     cmp= one one [failed: no]
+		--assert not failed
+
+	--test-- "func nan 30"
+		failed: yes  if     cmp< one two [failed: no]
+		--assert not failed
+
+	--test-- "func nan 31"
+		failed: yes  if     cmp> two one [failed: no]
+		--assert not failed
+
+
+	;; ... integer return values from nan comparison
+	icmp=: func [a [float!] b [float!] return: [integer!]] [as integer! a = b]
+	icmp<: func [a [float!] b [float!] return: [integer!]] [as integer! a < b]
+	icmp>: func [a [float!] b [float!] return: [integer!]] [as integer! a > b]
+
+	--test-- "func nan 32"
+		failed: yes  unless 0 <> icmp= nan nan [failed: no]
+		--assert not failed
+
+	--test-- "func nan 33"
+		failed: yes  unless 0 <> icmp= one nan [failed: no]
+		--assert not failed
+
+	--test-- "func nan 34"
+		failed: yes  unless 0 <> icmp< one nan [failed: no]
+		--assert not failed
+
+	--test-- "func nan 35"
+		failed: yes  unless 0 <> icmp< nan one [failed: no]
+		--assert not failed
+
+	--test-- "func nan 36"
+		failed: yes  unless 0 <> icmp> one nan [failed: no]
+		--assert not failed
+
+	--test-- "func nan 37"
+		failed: yes  unless 0 <> icmp> nan one [failed: no]
+		--assert not failed
+
+	--test-- "func nan 38"
+		failed: yes  unless 1 <> icmp= one one [failed: no]
+		--assert not failed
+
+	--test-- "func nan 39"
+		failed: yes  unless 1 <> icmp< one two [failed: no]
+		--assert not failed
+
+	--test-- "func nan 40"
+		failed: yes  unless 1 <> icmp> two one [failed: no]
+		--assert not failed
+
+
+	;; check point 10 - assignment to logic/integer variables
+	--test-- "assign nan 1"
+		failed: yes  b: nan = nan  unless b [failed: no]
+		--assert not failed
+
+	--test-- "assign nan 2"
+		failed: yes  b: one < nan  unless b [failed: no]
+		--assert not failed
+
+	--test-- "assign nan 3"
+		failed: yes  b: one > nan  unless b [failed: no]
+		--assert not failed
+
+	--test-- "assign nan 4"
+		failed: yes  b: nan < one  unless b [failed: no]
+		--assert not failed
+
+	--test-- "assign nan 5"
+		failed: yes  b: nan > one  unless b [failed: no]
+		--assert not failed
+
+	--test-- "assign nan 6"
+		failed: yes  b: one = one      if b [failed: no]
+		--assert not failed
+
+	--test-- "assign nan 7"
+		failed: yes  b: nan <> nan     if b [failed: no]
+		--assert not failed
+
+	--test-- "assign nan 8"
+		failed: yes  i: as integer! nan = nan   if i =  0 [failed: no]
+		--assert not failed
+
+	--test-- "assign nan 9"
+		failed: yes  i: as integer! one < nan   if i =  0 [failed: no]
+		--assert not failed
+
+	--test-- "assign nan 10"
+		failed: yes  i: as integer! one > nan   if i =  0 [failed: no]
+		--assert not failed
+
+	--test-- "assign nan 11"
+		failed: yes  i: as integer! nan < one   if i =  0 [failed: no]
+		--assert not failed
+
+	--test-- "assign nan 12"
+		failed: yes  i: as integer! nan > one   if i =  0 [failed: no]
+		--assert not failed
+
+	--test-- "assign nan 13"
+		failed: yes  i: as integer! one = one   if i <> 0 [failed: no]
+		--assert not failed
+
+	--test-- "assign nan 14"
+		failed: yes  i: as integer! nan <> nan  if i <> 0 [failed: no]
+		--assert not failed
+
+	--test-- "assign nan 15"
+		failed: yes  i: as integer! (nan = nan)  if i =  0 [failed: no]
+		--assert not failed
+
+	--test-- "assign nan 16"
+		failed: yes  i: as integer! (one < nan)  if i =  0 [failed: no]
+		--assert not failed
+
+	--test-- "assign nan 17"
+		failed: yes  i: as integer! (one > nan)  if i =  0 [failed: no]
+		--assert not failed
+
+	--test-- "assign nan 18"
+		failed: yes  i: as integer! (nan < one)  if i =  0 [failed: no]
+		--assert not failed
+
+	--test-- "assign nan 19"
+		failed: yes  i: as integer! (nan > one)  if i =  0 [failed: no]
+		--assert not failed
+
+	--test-- "assign nan 10"
+		failed: yes  i: as integer! (one = one)  if i <> 0 [failed: no]
+		--assert not failed
+
+	--test-- "assign nan 20"
+		failed: yes  i: as integer! (nan <> nan) if i <> 0 [failed: no]
+		--assert not failed
+
+
+	;; check point 13 - case & switch logic return values from nan comparison
+	--test-- "case nan 1"
+		failed: yes  b: case [true [one <> nan]]      if b [failed: no]
+		--assert not failed
+
+	--test-- "case nan 2"
+		failed: yes  b: case [true [nan <> nan]]      if b [failed: no]
+		--assert not failed
+
+	--test-- "case nan 3"
+		failed: yes  b: case [true [nan =  nan]]  unless b [failed: no]
+		--assert not failed
+
+	--test-- "case nan 4"
+		failed: yes  b: case [true [one <= nan]]  unless b [failed: no]
+		--assert not failed
+
+	--test-- "case nan 5"
+		failed: yes  b: case [true [one >= nan]]  unless b [failed: no]
+		--assert not failed
+
+	--test-- "case nan 6"
+		failed: yes  b: case [true [nan <= one]]  unless b [failed: no]
+		--assert not failed
+
+	--test-- "case nan 7"
+		failed: yes  b: case [true [nan >= one]]  unless b [failed: no]
+		--assert not failed
+
+
+	--test-- "switch nan 1"
+		failed: yes  b: switch 1 [1 [one <> nan]]      if b [failed: no]
+		--assert not failed
+
+	--test-- "switch nan 2"
+		failed: yes  b: switch 1 [1 [nan <> nan]]      if b [failed: no]
+		--assert not failed
+
+	--test-- "switch nan 3"
+		failed: yes  b: switch 1 [1 [nan =  nan]]  unless b [failed: no]
+		--assert not failed
+
+	--test-- "switch nan 4"
+		failed: yes  b: switch 1 [1 [one <= nan]]  unless b [failed: no]
+		--assert not failed
+
+	--test-- "switch nan 5"
+		failed: yes  b: switch 1 [1 [one >= nan]]  unless b [failed: no]
+		--assert not failed
+
+	--test-- "switch nan 6"
+		failed: yes  b: switch 1 [1 [nan <= one]]  unless b [failed: no]
+		--assert not failed
+
+	--test-- "switch nan 7"
+		failed: yes  b: switch 1 [1 [nan >= one]]  unless b [failed: no]
+		--assert not failed
+
+
+	;; check point 14 - inlined nans in any/all
+	--test-- "inlined nan 1"
+		failed: yes  unless all [zero / zero <= +inf]      [failed: no]
+		--assert not failed
+
+	--test-- "inlined nan 2"
+		failed: yes  unless all [true zero / zero <= +inf] [failed: no]
+		--assert not failed
+
+	--test-- "inlined nan 3"
+		failed: yes  unless all [zero / zero <= +inf true] [failed: no]
+		--assert not failed
+
+	--test-- "inlined nan 4"
+		failed: yes  unless any [zero / zero <= +inf]       [failed: no]
+		--assert not failed
+
+	--test-- "inlined nan 5"
+		failed: yes  unless any [zero / zero <= +inf 1 = 2] [failed: no]
+		--assert not failed
+
+	--test-- "inlined nan 6"
+		failed: yes      if any [true zero / zero <= +inf]  [failed: no]
+		--assert not failed
+
+	--test-- "inlined nan 7"
+		failed: yes      if any [zero / zero <= +inf true]  [failed: no]
+		--assert not failed
+
+
+	;; check point 15 - funcs ending in either returning logic, passed out of the func
+	ecmp=: func [c [logic!] a [float!] b [float!] return: [logic!]] [either c [a = b][a <> b]]
+	ecmp<: func [c [logic!] a [float!] b [float!] return: [logic!]] [either c [a < b][a >= b]]
+	ecmp>: func [c [logic!] a [float!] b [float!] return: [logic!]] [either c [a > b][a <= b]]
+
+	--test-- "return either logic nan 1"
+		failed: yes  unless ecmp= yes nan nan [failed: no]
+		--assert not failed
+
+	--test-- "return either logic nan 2"
+		failed: yes      if ecmp=  no nan nan [failed: no]
+		--assert not failed
+
+	--test-- "return either logic nan 3"
+		failed: yes  unless ecmp= yes one nan [failed: no]
+		--assert not failed
+
+	--test-- "return either logic nan 4"
+		failed: yes      if ecmp=  no one nan [failed: no]
+		--assert not failed
+
+	--test-- "return either logic nan 5"
+		failed: yes  unless ecmp< yes two one [failed: no]
+		--assert not failed
+
+	--test-- "return either logic nan 6"
+		failed: yes  unless ecmp<  no one two [failed: no]
+		--assert not failed
+
+	--test-- "return either logic nan 7"
+		failed: yes  unless ecmp< yes one nan [failed: no]
+		--assert not failed
+
+	--test-- "return either logic nan 8"
+		failed: yes  unless ecmp<  no one nan [failed: no]
+		--assert not failed
+
+	--test-- "return either logic nan 9"
+		failed: yes  unless ecmp< yes nan one [failed: no]
+		--assert not failed
+
+	--test-- "return either logic nan 10"
+		failed: yes  unless ecmp<  no nan one [failed: no]
+		--assert not failed
+
+	--test-- "return either logic nan 11"
+		failed: yes  unless ecmp> yes one nan [failed: no]
+		--assert not failed
+
+	--test-- "return either logic nan 12"
+		failed: yes  unless ecmp>  no one nan [failed: no]
+		--assert not failed
+
+	--test-- "return either logic nan 13"
+		failed: yes  unless ecmp> yes nan one [failed: no]
+		--assert not failed
+
+	--test-- "return either logic nan 14"
+		failed: yes  unless ecmp>  no nan one [failed: no]
+		--assert not failed
+
+===end-group===
+
+
 ===start-group=== "various regression tests from bugtracker"
 
 	--test-- "issue #227"
