@@ -4,7 +4,8 @@ buffer: make binary! 64
 append buffer #{3F2323}
 append/dup buffer #{00} 61
 
-
+usb/state/pipe: 'interrupt
+usb/state/read-size: 64
 usb/awake: func [event /local port] [
     print ["=== usb event:" event/type]
     port: event/port
