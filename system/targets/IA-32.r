@@ -1245,6 +1245,19 @@ make-profilable make target-class [
 					op
 				]
 			]
+			
+			;-- optimization: JNx jumps fail on NaNs anyways, Jx - succeed; no need for parity tests
+			if all [
+				parity									;-- with NaN: CF=PF=ZF=1
+				either unord=true [
+					;-- JP can be left off if Jcc always succeeds on P=1: JC(<), JZ(=), JBE(<=)
+					find [< = <=]  op
+				][
+					;-- JP can be left off if Jcc always fails on P=1: JNC(>=), JNZ(<>), JA(>)
+					;-- FIXME: `>=` should also be in this list, but it doesn't work in case return tests - why??
+					find [> <>] op
+				]
+			] [parity: no]
 
 			either not parity [
 				jump+ jxx/cond							;-- Jcc offset 	; 8/32-bit displacement
