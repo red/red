@@ -1052,8 +1052,9 @@ usb-device: context [
 							inode/index = 255
 						][
 							dlink/remove-entry device-list entry/prev entry/next
-							dnode/interface: inode
+							dlink/remove-entry dnode/interface-entry child-entry/prev child-entry/next
 							clear-interface-list dnode/interface-entry
+							dnode/interface: inode
 							return dnode
 						]
 						if mi = inode/index [
@@ -1063,14 +1064,16 @@ usb-device: context [
 								inode/collection/index = 255
 							][
 								dlink/remove-entry device-list entry/prev entry/next
-								dnode/interface: inode
+								dlink/remove-entry dnode/interface-entry child-entry/prev child-entry/next
 								clear-interface-list dnode/interface-entry
+								dnode/interface: inode
 								return dnode
 							]
 							if col = inode/collection/index [
 								dlink/remove-entry device-list entry/prev entry/next
-								dnode/interface: inode
+								dlink/remove-entry dnode/interface-entry child-entry/prev child-entry/next
 								clear-interface-list dnode/interface-entry
+								dnode/interface: inode
 								return dnode
 							]
 						]
