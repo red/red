@@ -1,4 +1,11 @@
-Red/System []
+Red/System [
+	Title:   "Red/System manual test of IEEE-754 compliance of NaN comparison"
+	Author:  "@hiiamboris"
+	File: 	 %float-matrix-manual.reds
+	Tabs:	 4
+	Rights:  "Copyright (C) 2011-2019 Red Foundation. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
+]
 
 ;; these tests are included into the float-test.reds
 ;; but due to limitations of quick-test framework
