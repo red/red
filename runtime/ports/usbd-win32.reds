@@ -1124,10 +1124,11 @@ usb-device: context [
 		return:					[integer!]
 		/local
 			setup				[WINUSB-SETUP-PACKET! value]
+			len					[integer!]
 	][
 		if all [
 			pNode/endpoint/address > 0
-			pNode/endpoint/address < 128
+			pNode/endpoint/address < 80h
 			pNode/endpoint/type <> USB-PIPE-TYPE-CONTROL
 		][
 			if any [
@@ -1144,8 +1145,14 @@ usb-device: context [
 			return -1
 		]
 
-		if pNode/endpoint/address = 0 [
+		if any [
+			pNode/endpoint/address = 0
+			pNode/endpoint/type = USB-PIPE-TYPE-CONTROL
+		][
 			if buflen < 8 [return -1]
+			if 80h <= as integer! buf/1 [return -1]
+			len: (as integer! buf/7) + ((as integer! buf/8) << 8)
+			if buflen <> (len + 8) [return -1]
 			copy-memory as byte-ptr! setup buf 8
 			if WinUsb_ControlTransfer pNode/hInf setup buf + 8 buflen - 8 plen ov [
 				return 0
@@ -1185,6 +1192,57 @@ usb-device: context [
 		]
 	]
 
+	winusb-read-data: func [
+		pNode					[INTERFACE-INFO-NODE!]
+		buf						[byte-ptr!]
+		buflen					[integer!]
+		plen					[int-ptr!]
+		ov						[OVERLAPPED!]
+		timeout					[integer!]
+		return:					[integer!]
+		/local
+			setup				[WINUSB-SETUP-PACKET! value]
+			len					[integer!]
+	][
+		if all [
+			pNode/endpoint/address > 80h
+			pNode/endpoint/address < 0100h
+			pNode/endpoint/type <> USB-PIPE-TYPE-CONTROL
+		][
+			if any [
+				pNode/endpoint/type = USB-PIPE-TYPE-BULK
+				pNode/endpoint/type = USB-PIPE-TYPE-INTERRUPT
+			][
+				if WinUsb_ReadPipe pNode/hInf pNode/endpoint/address buf buflen plen ov [
+					return 0
+				]
+				if 997 = GetLastError [return 0]
+				return -1
+			]
+			;-- for iso
+			return -1
+		]
+
+		if any [
+			pNode/endpoint/address = 0
+			pNode/endpoint/address = 80h
+			pNode/endpoint/type = USB-PIPE-TYPE-CONTROL
+		][
+			if buflen < 8 [return -1]
+			if 80h > as integer! buf/1 [return -1]
+			len: (as integer! buf/7) + ((as integer! buf/8) << 8)
+			if buflen <> (len + 8) [return -1]
+			copy-memory as byte-ptr! setup buf 8
+			if WinUsb_ControlTransfer pNode/hInf setup buf + 8 buflen - 8 plen ov [
+				return 0
+			]
+			if 997 = GetLastError [return 0]
+			return -1
+		]
+
+		-1
+	]
+
 	read-data: func [
 		pNode					[INTERFACE-INFO-NODE!]
 		buf						[byte-ptr!]
@@ -1198,11 +1256,7 @@ usb-device: context [
 	][
 		case [
 			pNode/hType = USB-DRIVER-TYPE-WINUSB [
-				if WinUsb_ReadPipe pNode/hInf pNode/endpoint/address buf buflen plen ov [
-					return 0
-				]
-				if 997 = GetLastError [return 0]
-				return -1
+				return winusb-read-data pNode buf buflen plen ov timeout
 			]
 			pNode/hType = USB-DRIVER-TYPE-HIDUSB [
 				ret: ReadFile pNode/hDev buf buflen plen as integer! ov
