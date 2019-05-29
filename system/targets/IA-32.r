@@ -1254,8 +1254,7 @@ make-profilable make target-class [
 					find [< = <=]  op
 				][
 					;-- JP can be left off if Jcc always fails on P=1: JNC(>=), JNZ(<>), JA(>)
-					;-- FIXME: `>=` should also be in this list, but it doesn't work in case return tests - why??
-					find [> <>] op
+					find [> <> >=] op
 				]
 			] [parity: no]
 
