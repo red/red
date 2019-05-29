@@ -581,6 +581,17 @@ PIPE-INFO!: alias struct! [
 	RAW-IO
 ]
 
+WINUSB-SETUP-PACKET!: alias struct! [
+	RequestType			[byte!]
+	Request				[byte!]
+	wValue1				[byte!]
+	wValue2				[byte!]
+	wIndex1				[byte!]
+	wIndex2				[byte!]
+	wLength1			[byte!]
+	wLength2			[byte!]
+]
+
 #import [
 	LIBC-file cdecl [
 		_setmode: "_setmode" [
@@ -1182,6 +1193,19 @@ PIPE-INFO!: alias struct! [
 		WinUsb_Free: "WinUsb_Free" [
 			InterfaceHandle					[integer!]
 			return:							[logic!]
+		]
+		WinUsb_ControlTransfer: "WinUsb_ControlTransfer" [
+			InterfaceHandle					[integer!]
+			SetupPacket						[WINUSB-SETUP-PACKET! value]
+			Buffer							[byte-ptr!]
+			BufferLength					[integer!]
+			LengthTransferred				[int-ptr!]
+			overlapped						[OVERLAPPED!]
+			return:							[logic!]
+		]
+		WinUsb_FlushPipe: "WinUsb_FlushPipe" [
+			InterfaceHandle					[integer!]
+			PipeID							[integer!]
 		]
 		WinUsb_QueryPipe: "WinUsb_QueryPipe" [
 			InterfaceHandle					[integer!]
