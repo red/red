@@ -110,6 +110,7 @@ poll: context [
 			msg		[red-object!]
 			type	[integer!]
 			red-port [red-object!]
+			offset	[integer!]
 	][
 		#if debug? = yes [print-line "poll/wait"]
 
@@ -178,7 +179,12 @@ poll: context [
 						]
 						IOCP_OP_WRITE	[
 							if usbdata/data? [
-								bin: binary/load usbdata/buffer + 8 e/dwNumberOfBytesTransferred
+								either usbdata/dev/interface/hType = USB-DRIVER-TYPE-HIDUSB [
+									offset: 0
+								][
+									offset: 8
+								]
+								bin: binary/load usbdata/buffer + offset e/dwNumberOfBytesTransferred
 								copy-cell as cell! bin (object/get-values red-port) + port/field-data
 								stack/pop 1
 							]

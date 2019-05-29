@@ -394,11 +394,11 @@ system: context [
 			state: 'init sub: error: none closed?: false info: none
 		]
 		usb-port-state: object [
-			state: 'init sub: error: none closed?: false info: none pipe: none read-size: none
+			state: 'init sub: error: none closed?: false info: none pipe: none read-size: none feature: none
 		]
 
 		hid-port-state: object [
-			state: 'init sub: error: none closed?: false info: none pipe: none read-size: none
+			state: 'init sub: error: none closed?: false info: none pipe: none read-size: none feature: none
 		]
 	]
 	

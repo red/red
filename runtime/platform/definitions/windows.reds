@@ -94,6 +94,7 @@ Red/System [
 	(DeviceType << 16) or (Access << 14) or (Function* << 2) or Method
 ]
 
+#define FILE_DEVICE_KEYBOARD			0000000Bh
 #define FILE_DEVICE_UNKNOWN				00000022h
 #define FILE_DEVICE_USB					FILE_DEVICE_UNKNOWN
 
@@ -156,6 +157,45 @@ Red/System [
 #define MAXIMUM_USB_STRING_LENGTH							255
 #define NUM_STRING_DESC_TO_GET								32
 
+#define HID_CTL_CODE(id)				[CTL_CODE(FILE_DEVICE_KEYBOARD id METHOD_NEITHER FILE_ANY_ACCESS)]
+#define HID_BUFFER_CTL_CODE(id)			[CTL_CODE(FILE_DEVICE_KEYBOARD id METHOD_BUFFERED FILE_ANY_ACCESS)]
+#define HID_IN_CTL_CODE(id)				[CTL_CODE(FILE_DEVICE_KEYBOARD id METHOD_IN_DIRECT FILE_ANY_ACCESS)]
+#define HID_OUT_CTL_CODE(id)			[CTL_CODE(FILE_DEVICE_KEYBOARD id METHOD_OUT_DIRECT FILE_ANY_ACCESS)]
+
+#define IOCTL_HID_GET_DRIVER_CONFIG				[HID_BUFFER_CTL_CODE(100)]
+#define IOCTL_HID_SET_DRIVER_CONFIG				[HID_BUFFER_CTL_CODE(101)]
+#define IOCTL_HID_GET_POLL_FREQUENCY_MSEC		[HID_BUFFER_CTL_CODE(102)]
+#define IOCTL_HID_SET_POLL_FREQUENCY_MSEC		[HID_BUFFER_CTL_CODE(103)]
+#define IOCTL_GET_NUM_DEVICE_INPUT_BUFFERS		[HID_BUFFER_CTL_CODE(104)]
+#define IOCTL_SET_NUM_DEVICE_INPUT_BUFFERS		[HID_BUFFER_CTL_CODE(105)]
+#define IOCTL_HID_GET_COLLECTION_INFORMATION	[HID_BUFFER_CTL_CODE(106)]
+#define IOCTL_HID_ENABLE_WAKE_ON_SX				[HID_BUFFER_CTL_CODE(107)]
+#define IOCTL_HID_SET_S0_IDLE_TIMEOUT			[HID_BUFFER_CTL_CODE(108)]
+
+
+#define IOCTL_HID_GET_COLLECTION_DESCRIPTOR		[HID_CTL_CODE(100)]
+#define IOCTL_HID_FLUSH_QUEUE					[HID_CTL_CODE(101)]
+
+#define IOCTL_HID_SET_FEATURE					[HID_IN_CTL_CODE(100)]
+#define IOCTL_HID_SET_OUTPUT_REPORT				[HID_IN_CTL_CODE(101)]
+
+#define IOCTL_HID_GET_FEATURE					[HID_OUT_CTL_CODE(100)]
+#define IOCTL_GET_PHYSICAL_DESCRIPTOR			[HID_OUT_CTL_CODE(102)]
+#define IOCTL_HID_GET_HARDWARE_ID				[HID_OUT_CTL_CODE(103)]
+#define IOCTL_HID_GET_INPUT_REPORT				[HID_OUT_CTL_CODE(104)]
+#define IOCTL_HID_GET_OUTPUT_REPORT				[HID_OUT_CTL_CODE(105)]
+
+#define IOCTL_HID_GET_MANUFACTURER_STRING		[HID_OUT_CTL_CODE(110)]
+#define IOCTL_HID_GET_PRODUCT_STRING			[HID_OUT_CTL_CODE(111)]
+#define IOCTL_HID_GET_SERIALNUMBER_STRING		[HID_OUT_CTL_CODE(112)]
+
+#define IOCTL_HID_GET_INDEXED_STRING			[HID_OUT_CTL_CODE(120)]
+#define IOCTL_HID_GET_MS_GENRE_DESCRIPTOR		[HID_OUT_CTL_CODE(121)]
+
+#define IOCTL_HID_ENABLE_SECURE_READ			[HID_CTL_CODE(130)]
+#define IOCTL_HID_DISABLE_SECURE_READ			[HID_CTL_CODE(131)]
+
+#define IOCTL_HID_DEVICERESET_NOTIFICATION		[HID_CTL_CODE(140)]
 
 #define FACILITY_HID_ERROR_CODE								11h
 
@@ -538,28 +578,29 @@ USB-STRING-DESCRIPTOR!: alias struct! [
 ]
 
 HIDD-ATTRIBUTES!: alias struct! [
-		Size 			[integer!]
-		ID 				[integer!] ;vendorID and productID
-		VersionNumber 	[integer!]
+	Size				[integer!]
+	ID					[integer!] ;vendorID and productID
+	VersionNumber		[integer!]
 ]
 
 HIDP-CAPS!: alias struct! [
-		Usage 				[integer!] ;Usage and UsagePage
-		ReportByteLength 	[integer!] ;InputReportByteLength and OutputReportByteLength
-		pad1  				[integer!]
-		pad2  				[integer!]
-		pad3  				[integer!]
-		pad4  				[integer!]
-		pad5  				[integer!]
-		pad6  				[integer!]
-		pad7  				[integer!]
-		pad8  				[integer!]
-		pad9  				[integer!]
-		pad10  				[integer!]
-		pad11  				[integer!]
-		pad12  				[integer!]
-		pad13  				[integer!]
-		pad14  				[integer!]
+	Usage				[integer!] ;Usage and UsagePage
+	ReportByteLength	[integer!] ;InputReportByteLength and OutputReportByteLength
+	FeatureLength		[integer!]
+	pad1				[integer!]
+	pad2				[integer!]
+	pad3				[integer!]
+	pad4				[integer!]
+	pad5				[integer!]
+	pad6				[integer!]
+	pad7				[integer!]
+	pad8				[integer!]
+	pad9				[integer!]
+	pad10				[integer!]
+	pad11				[integer!]
+	pad12				[integer!]
+	pad13				[integer!]
+	pad14				[integer!]
 ]
 
 PIPE-INFO!: alias struct! [

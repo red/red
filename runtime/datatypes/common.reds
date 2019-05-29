@@ -554,7 +554,11 @@ words: context [
 	bulk:			-1
 	interrupt:		-1
 	isochronous:	-1
-	
+	get-feature:	-1
+	set-feature:	-1
+	get-report:		-1
+	set-report:		-1
+
 	system:			-1
 	system-global:	-1
 
@@ -803,6 +807,10 @@ words: context [
 		bulk:			symbol/make "bulk"
 		interrupt:		symbol/make "interrupt"
 		isochronous:	symbol/make "isochronous"
+		get-feature:	symbol/make "get-feature"
+		set-feature:	symbol/make "set-feature"
+		get-report:		symbol/make "get-report"
+		set-report:		symbol/make "set-report"
 
 		system:			symbol/make "system"
 		system-global:	symbol/make "system-global"

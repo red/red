@@ -43,6 +43,14 @@ Red/System [
 	USB-PIPE-TYPE-INVALID
 ]
 
+#enum HID-REPORT-TYPE! [
+	HID-GET-FEATURE
+	HID-SET-FEATURE
+	HID-GET-REPORT
+	HID-SET-REPORT
+	HID-REPORT-TYPE-INVALID
+]
+
 USB-DESCRIPTION!: alias struct! [
 	device-desc			[byte-ptr!]
 	device-desc-len		[integer!]
@@ -110,6 +118,9 @@ INTERFACE-INFO-NODE!: alias struct! [
 	collection-entry	[list-entry! value]
 	;-- selected collection
 	collection			[HID-COLLECTION-NODE! value]
+
+	;-- for hid report
+	report-type			[HID-REPORT-TYPE!]
 
 	;-- read/write thread info
 	read-thread			[int-ptr!]

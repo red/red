@@ -1164,6 +1164,56 @@ usb-device: context [
 		-1
 	]
 
+	hidusb-write-data: func [
+		pNode					[INTERFACE-INFO-NODE!]
+		buf						[byte-ptr!]
+		buflen					[integer!]
+		plen					[int-ptr!]
+		ov						[OVERLAPPED!]
+		timeout					[integer!]
+		return:					[integer!]
+		/local
+			ctrl-code			[integer!]
+			len					[integer!]
+	][
+		if all [
+			pNode/endpoint/address > 0
+			pNode/endpoint/address < 80h
+			pNode/endpoint/type = USB-PIPE-TYPE-INTERRUPT
+		][
+			if 0 = WriteFile pNode/hDev buf buflen plen as integer! ov [
+				return -1
+			]
+			return 0
+		]
+		if any [
+			pNode/endpoint/address = 0
+			pNode/endpoint/type = USB-PIPE-TYPE-CONTROL
+			pNode/report-type <> HID-REPORT-TYPE-INVALID
+		][
+			case [
+				pNode/report-type = HID-GET-FEATURE [
+					ctrl-code: IOCTL_HID_GET_FEATURE
+				]
+				pNode/report-type = HID-SET-FEATURE [
+					ctrl-code: IOCTL_HID_SET_FEATURE
+				]
+				pNode/report-type = HID-GET-REPORT [
+					ctrl-code: IOCTL_HID_GET_INPUT_REPORT
+				]
+				pNode/report-type = HID-SET-REPORT [
+					ctrl-code: IOCTL_HID_SET_OUTPUT_REPORT
+				]
+			]
+			len: 0
+			if DeviceIoControl as int-ptr! pNode/hDev ctrl-code buf buflen buf buflen :len ov [
+				return 0
+			]
+			print-line GetLastError
+		]
+		-1
+	]
+
 	write-data: func [
 		pNode					[INTERFACE-INFO-NODE!]
 		buf						[byte-ptr!]
@@ -1180,11 +1230,7 @@ usb-device: context [
 				return winusb-write-data pNode buf buflen plen ov timeout
 			]
 			pNode/hType = USB-DRIVER-TYPE-HIDUSB [
-				ret: WriteFile pNode/hDev buf buflen plen as integer! ov
-				if as logic! ret [
-					return 0
-				]
-				return -1
+				return hidusb-write-data pNode buf buflen plen ov timeout
 			]
 			true [
 				return -1
@@ -1223,6 +1269,32 @@ usb-device: context [
 			return -1
 		]
 
+		-1
+	]
+
+
+	hidusb-read-data: func [
+		pNode					[INTERFACE-INFO-NODE!]
+		buf						[byte-ptr!]
+		buflen					[integer!]
+		plen					[int-ptr!]
+		ov						[OVERLAPPED!]
+		timeout					[integer!]
+		return:					[integer!]
+		/local
+			ctrl-code			[integer!]
+			len					[integer!]
+	][
+		if all [
+			pNode/endpoint/address > 80h
+			pNode/endpoint/address < 0100h
+			pNode/endpoint/type = USB-PIPE-TYPE-INTERRUPT
+		][
+			if 0 = ReadFile pNode/hDev buf buflen plen as integer! ov [
+				return -1
+			]
+			return 0
+		]
 		-1
 	]
 

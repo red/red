@@ -89,6 +89,7 @@ usb: context [
 		paddr: -1 ptype: -1
 		get-port-pipe red-port :paddr :ptype
 		usb-select-pipe iodata/dev/interface paddr ptype yes
+		iodata/dev/interface/report-type: get-port-feature red-port
 
 		either iodata/dev/interface/hType = USB-DRIVER-TYPE-HIDUSB [
 			size: iodata/dev/interface/collection/input-size
@@ -145,6 +146,7 @@ usb: context [
 		paddr: -1 ptype: -1
 		get-port-pipe red-port :paddr :ptype
 		usb-select-pipe iodata/dev/interface paddr ptype no
+		iodata/dev/interface/report-type: get-port-feature red-port
 
 		len: 0
 		switch TYPE_OF(data) [
@@ -183,6 +185,25 @@ usb: context [
 			iodata/buflen: size + len
 			copy-memory iodata/buffer buf len
 			buf: iodata/buffer
+			len: iodata/buflen
+		]
+		if all [
+			iodata/dev/interface/hType = USB-DRIVER-TYPE-HIDUSB
+			any [
+				iodata/dev/interface/report-type = HID-GET-FEATURE
+				iodata/dev/interface/report-type = HID-GET-REPORT
+			]
+		][
+			unless null? iodata/buffer [
+				free iodata/buffer
+			]
+			size: get-port-read-size red-port
+			iodata/data?: true
+			iodata/buffer: allocate size
+			iodata/buflen: size
+			iodata/buffer/1: buf/1
+			buf: iodata/buffer
+			len: iodata/buflen
 		]
 
 		print-line "write"
