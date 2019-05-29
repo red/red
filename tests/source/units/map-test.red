@@ -50,6 +50,11 @@ Red [
 		mdk2-m/a: none
 		--assert none = mdk2-m/a
 		--assert [a b c] = find keys-of mdk2-m 'a
+
+	--test-- "map-remove-key-3"
+		mdk3-m: #("one" 2 "three" four)
+		remove/key mdk3-m "one"
+		--assert none = select mdk3-m "one"
 		
 ===end-group===
 

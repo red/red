@@ -657,6 +657,7 @@ map: context [
 		/local
 			table [node!]
 			key   [red-value!]
+			val   [red-value!]
 			op	  [integer!]
 	][
 		either same? [op: COMP_SAME][
@@ -664,7 +665,8 @@ map: context [
 		]
 		table: map/table
 		key: _hashtable/get table value 0 0 op no no
-		either key = null [none-value][key + 1]
+		val: key + 1
+		either any [key = null val/header = MAP_KEY_DELETED][none-value][val]
 	]
 
 	remove: func [
