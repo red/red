@@ -1150,7 +1150,7 @@ usb-device: context [
 			pNode/endpoint/type = USB-PIPE-TYPE-CONTROL
 		][
 			if buflen < 8 [return -1]
-			if 80h <= as integer! buf/1 [return -1]
+			if 0100h <= as integer! buf/1 [return -1]
 			len: (as integer! buf/7) + ((as integer! buf/8) << 8)
 			if buflen <> (len + 8) [return -1]
 			copy-memory as byte-ptr! setup buf 8
@@ -1220,23 +1220,6 @@ usb-device: context [
 				return -1
 			]
 			;-- for iso
-			return -1
-		]
-
-		if any [
-			pNode/endpoint/address = 0
-			pNode/endpoint/address = 80h
-			pNode/endpoint/type = USB-PIPE-TYPE-CONTROL
-		][
-			if buflen < 8 [return -1]
-			if 80h > as integer! buf/1 [return -1]
-			len: (as integer! buf/7) + ((as integer! buf/8) << 8)
-			if buflen <> (len + 8) [return -1]
-			copy-memory as byte-ptr! setup buf 8
-			if WinUsb_ControlTransfer pNode/hInf setup buf + 8 buflen - 8 plen ov [
-				return 0
-			]
-			if 997 = GetLastError [return 0]
 			return -1
 		]
 

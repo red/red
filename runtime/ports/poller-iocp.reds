@@ -176,7 +176,14 @@ poll: context [
 							stack/pop 1
 							type: IO_EVT_READ
 						]
-						IOCP_OP_WRITE	[type: IO_EVT_WROTE]
+						IOCP_OP_WRITE	[
+							if usbdata/data? [
+								bin: binary/load usbdata/buffer + 8 e/dwNumberOfBytesTransferred
+								copy-cell as cell! bin (object/get-values red-port) + port/field-data
+								stack/pop 1
+							]
+							type: IO_EVT_WROTE
+						]
 						IOCP_OP_READ_UDP	[0]
 						IOCP_OP_WRITE_UDP	[0]
 						default			[probe ["wrong iocp code: " usbdata/code]]
