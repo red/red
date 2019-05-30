@@ -5,7 +5,7 @@ buffer: make binary! 65
 first?: true
 
 usb/state/pipe: 0
-usb/state/read-size: 64
+usb/state/read-size: 65
 usb/state/feature: no
 step: 0
 usb/awake: func [event /local port] [

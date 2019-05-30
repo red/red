@@ -984,10 +984,14 @@ usb-device: context [
 		pNode					[INTERFACE-INFO-NODE!]
 		return:					[USB-ERROR!]
 	][
-		pNode/hDev: CreateFileA pNode/path GENERIC_WRITE or GENERIC_READ FILE_SHARE_READ null
-				OPEN_EXISTING FILE_FLAG_OVERLAPPED null
+		pNode/hDev: CreateFileA pNode/path GENERIC_WRITE or GENERIC_READ FILE_SHARE_READ or FILE_SHARE_WRITE null
+				OPEN_EXISTING FILE_ATTRIBUTE_NORMAL or FILE_FLAG_OVERLAPPED null
 		if pNode/hDev = -1 [
-			return USB-ERROR-OPEN
+			pNode/hDev: CreateFileA pNode/path 0 FILE_SHARE_READ or FILE_SHARE_WRITE null
+					OPEN_EXISTING FILE_ATTRIBUTE_NORMAL or FILE_FLAG_OVERLAPPED null
+			if pNode/hDev = -1 [
+				return USB-ERROR-OPEN
+			]
 		]
 		USB-ERROR-OK
 	]

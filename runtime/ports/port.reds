@@ -120,6 +120,8 @@ get-port-pipe: func [
 		word	[red-word!]
 		sym		[integer!]
 ][
+	type/value: USB-PIPE-TYPE-INVALID
+	addr/value: 0
 	state: as red-object! (object/get-values red-port) + port/field-state
 	int: as red-integer! (object/get-values state) + 5
 	if TYPE_OF(int) = TYPE_INTEGER [
