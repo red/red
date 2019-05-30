@@ -515,7 +515,7 @@ tangent: make native! [[
 
 arcsine: make native! [[
 		"Returns the trigonometric arcsine (in degrees by default in range [-90,90])"
-		sine	[float!] "in range [-1,1]"
+		sine	[float! integer!] "in range [-1,1]"
 		/radians "Angle is returned in radians [-pi/2,pi/2]"
 		return: [float!]
 	]
@@ -524,7 +524,7 @@ arcsine: make native! [[
 
 arccosine: make native! [[
 		"Returns the trigonometric arccosine (in degrees by default in range [0,180])"
-		cosine	[float!] "in range [-1,1]"
+		cosine	[float! integer!] "in range [-1,1]"
 		/radians "Angle is returned in radians [0,pi]"
 		return: [float!]
 	]
