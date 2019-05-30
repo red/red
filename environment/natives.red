@@ -187,7 +187,7 @@ reduce: make native! [[
 
 compose: make native! [[
 		"Returns a copy of a block, evaluating only parens"
-		value
+		value [block!]
 		/deep "Compose nested blocks"
 		/only "Compose nested blocks as blocks containing their values"
 		/into "Put results in out block, instead of creating a new block"
