@@ -4,6 +4,8 @@ buffer: make binary! 65
 
 first?: true
 
+usb/state/pipe: 'interrupt
+usb/state/read-size: 64
 usb/awake: func [event /local port] [
     print ["=== usb event:" event/type]
     port: event/port

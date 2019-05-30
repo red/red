@@ -347,6 +347,20 @@ usb-select-pipe: func [
 		node				[ENDPOINT-INFO-NODE!]
 ][
 	if all [
+		pNode/hType = USB-DRIVER-TYPE-HIDUSB
+		any [
+			address <> 0
+			all [
+				type <> USB-PIPE-TYPE-CONTROL
+				type <> USB-PIPE-TYPE-INVALID
+			]
+		]
+	][
+		pNode/endpoint/address: 1
+		pNode/endpoint/type: USB-PIPE-TYPE-INTERRUPT
+		return true
+	]
+	if all [
 		address > 0
 		address < 256
 	][

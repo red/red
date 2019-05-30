@@ -211,7 +211,7 @@ usb: context [
 		set-memory as byte-ptr! :iodata/ovlap null-byte size? OVERLAPPED!
 		iodata/code: IOCP_OP_WRITE
 		n: 0
-		if 0 <> usb-device/write-data iodata/dev/interface iodata/buffer iodata/buflen :n as OVERLAPPED! iodata 0 [
+		if 0 <> usb-device/write-data iodata/dev/interface buf len :n as OVERLAPPED! iodata 0 [
 			print-line "write failed"
 			exit
 		]
