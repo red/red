@@ -2795,7 +2795,7 @@ b}
 		--assert error? try [insert/part charset [] "abcd" 10%]
 		--assert error? try [remove/part "abcd" 10%]
 		--assert error? try [reverse/part "abcd" 10%]
-		--assert error? try [select/part "abcd" 10%]
+		--assert error? try [select/part "abcd" 1 10%]
 		--assert error? try [sort/part "abcd" 10%]
 		--assert error? try [take/part "abcd" 10%]
 		--assert error? try [read/part %. 10%]
