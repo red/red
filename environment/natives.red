@@ -346,7 +346,7 @@ parse: make native! [[
 		/case "Uses case-sensitive comparison"
 		;/strict
 		/part "Limit to a length or position"
-			length [number! series!]
+			length [integer! series!]
 		/trace
 			callback [function! [
 				event	[word!]
@@ -488,7 +488,7 @@ to-hex: make native! [[
 
 sine: make native! [[
 		"Returns the trigonometric sine"
-		angle	[number!]
+		angle	[float! integer!]
 		/radians "Angle is specified in radians"
 		return: [float!]
 	]
@@ -497,7 +497,7 @@ sine: make native! [[
 
 cosine: make native! [[
 		"Returns the trigonometric cosine"
-		angle	[number!]
+		angle	[float! integer!]
 		/radians "Angle is specified in radians"
 		return: [float!]
 	]
@@ -506,7 +506,7 @@ cosine: make native! [[
 
 tangent: make native! [[
 		"Returns the trigonometric tangent"
-		angle	[number!]
+		angle	[float! integer!]
 		/radians "Angle is specified in radians"
 		return: [float!]
 	]
@@ -515,7 +515,7 @@ tangent: make native! [[
 
 arcsine: make native! [[
 		"Returns the trigonometric arcsine (in degrees by default in range [-90,90])"
-		sine	[number!] "in range [-1,1]"
+		sine	[float!] "in range [-1,1]"
 		/radians "Angle is returned in radians [-pi/2,pi/2]"
 		return: [float!]
 	]
@@ -524,7 +524,7 @@ arcsine: make native! [[
 
 arccosine: make native! [[
 		"Returns the trigonometric arccosine (in degrees by default in range [0,180])"
-		cosine	[number!] "in range [-1,1]"
+		cosine	[float!] "in range [-1,1]"
 		/radians "Angle is returned in radians [0,pi]"
 		return: [float!]
 	]
@@ -533,7 +533,7 @@ arccosine: make native! [[
 
 arctangent: make native! [[
 		"Returns the trigonometric arctangent (in degrees by default in range [-90,90])"
-		tangent	[number!] "in range [-inf,+inf]"
+		tangent	[float! integer!] "in range [-inf,+inf]"
 		/radians "Angle is returned in radians [-pi/2,pi/2]"
 		return: [float!]
 	]
@@ -541,8 +541,8 @@ arctangent: make native! [[
 ]
 arctangent2: make native! [[
 		"Returns the smallest angle between the vectors (1,0) and (x,y) in degrees by default (-180,180]"
-		y       [number!]
-		x       [number!]
+		y       [float! integer!]
+		x       [float! integer!]
 		/radians "Angle is returned in radians (-pi,pi]"
 		return: [float!]
 	]
@@ -567,7 +567,7 @@ zero?: make native! [[
 
 log-2: make native! [[
 		"Return the base-2 logarithm"
-		value	[number!]
+		value	[float! integer!]
 		return: [float!]
 	]
 	#get-definition NAT_LOG_2
@@ -575,7 +575,7 @@ log-2: make native! [[
 
 log-10: make native! [[
 		"Returns the base-10 logarithm"
-		value	[number!]
+		value	[float! integer!]
 		return: [float!]
 	]
 	#get-definition NAT_LOG_10
@@ -583,7 +583,7 @@ log-10: make native! [[
 
 log-e: make native! [[
 		"Returns the natural (base-E) logarithm of the given value"
-		value	[number!]
+		value	[float! integer!]
 		return: [float!]
 	]
 	#get-definition NAT_LOG_E
@@ -591,7 +591,7 @@ log-e: make native! [[
 
 exp: make native! [[
 		"Raises E (the base of natural logarithm) to the power specified"
-		value	[number!]
+		value	[float! integer!]
 		return: [float!]
 	]
 	#get-definition NAT_EXP
@@ -599,7 +599,7 @@ exp: make native! [[
 
 square-root: make native! [[
 		"Returns the square root of a number"
-		value	[number!]
+		value	[float! integer!]
 		return: [float!]
 	]
 	#get-definition NAT_SQUARE_ROOT
@@ -635,7 +635,7 @@ uppercase: make native! [[
 		"Converts string of characters to uppercase"
 		string		[any-string! char!]
 		/part "Limits to a given length or position"
-			limit	[number! any-string!]
+			limit	[integer! any-string!]
 		return: 	[any-string! char!]
 	]
 	#get-definition NAT_UPPERCASE
@@ -645,7 +645,7 @@ lowercase: make native! [[
 		"Converts string of characters to lowercase"
 		string		[any-string! char!]
 		/part "Limits to a given length or position"
-			limit	[number! any-string!]
+			limit	[integer! any-string!]
 		return:		[any-string! char!]
 	]
 	#get-definition NAT_LOWERCASE

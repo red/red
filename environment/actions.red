@@ -229,7 +229,7 @@ append: make action! [[
 		series	   [series! bitset!]
 		value	   [any-type!]
 		/part "Limit the number of values inserted"
-			length [number! series!]
+			length [integer! series!]
 		/only "Insert block types as single values (overrides /part)"
 		/dup  "Duplicate the inserted values"
 			count  [integer!]
@@ -260,7 +260,7 @@ change: make action! [[
 		series [series!] "Series at point to change"
 		value [any-type!] "The new value"
 		/part "Limits the amount to change to a given length or position"
-			range [number! series!]
+			range [integer! series!]
 		/only "Changes a series as a series."
 		/dup "Duplicates the change a specified number of times"
 			count [number!]
@@ -280,7 +280,7 @@ copy: make action! [[
 		"Returns a copy of a non-scalar value"
 		value	 [series! any-object! bitset! map!]
 		/part	 "Limit the length of the result"
-			length [number! series! pair!]
+			length [integer! series! pair!]
 		/deep	 "Copy nested values"
 		/types	 "Copy only specific types of non-scalar values"
 			kind [datatype!]
@@ -294,7 +294,7 @@ find: make action! [[
 		series	 [series! bitset! typeset! any-object! map! none!]
 		value 	 [any-type!]
 		/part "Limit the length of the search"
-			length [number! series!]
+			length [integer! series!]
 		/only "Treat a series search value as a single value"
 		/case "Perform a case-sensitive search"
 		/same {Use "same?" as comparator}
@@ -340,7 +340,7 @@ insert: make action! [[
 		series	   [series! bitset!]
 		value	   [any-type!]
 		/part "Limit the number of values inserted"
-			length [number! series!]
+			length [integer! series!]
 		/only "Insert block types as single values (overrides /part)"
 		/dup  "Duplicate the inserted values"
 			count  [integer!]
@@ -410,7 +410,7 @@ remove: make action! [[
 		"Returns the series at the same index after removing a value"
 		series	 [series! bitset! map! none!]
 		/part "Removes a number of values, or values up to the given series index"
-			length [number! char! series!]
+			length [integer! char! series!]
 		/key "Removes a key in map"
 			key-arg [scalar! any-string! any-word! binary! block!]
 		return:  [series! bitset! map! none!]
@@ -422,7 +422,7 @@ reverse: make action! [[
 		"Reverses the order of elements; returns at same position"
 		series	 [series! pair! tuple!]
 		/part "Limits to a given length or position"
-			length [number! series!]
+			length [integer! series!]
 		return:  [series! pair! tuple!]
 	]
 	#get-definition ACT_REVERSE
@@ -433,7 +433,7 @@ select: make action! [[
 		series	 [series! any-object! map! none!]
 		value 	 [any-type!]
 		/part "Limit the length of the search"
-			length [number! series!]
+			length [integer! series!]
 		/only "Treat a series search value as a single value"
 		/case "Perform a case-sensitive search"
 		/same {Use "same?" as comparator}
@@ -458,7 +458,7 @@ sort: make action! [[
 		/compare "Comparator offset, block or function"
 			comparator [integer! block! any-function!]
 		/part "Sort only part of a series"
-			length [number! series!]
+			length [integer! series!]
 		/all "Compare all fields"
 		/reverse "Reverse sort order"
 		/stable "Stable sorting"
@@ -505,7 +505,7 @@ take: make action! [[
 		"Removes and returns one or more elements"
 		series	 [series! none!]
 		/part	 "Specifies a length or end position"
-			length [number! series!]
+			length [integer! series!]
 		/deep	 "Copy nested values"
 		/last	 "Take it from the tail end"
 	]
@@ -550,9 +550,9 @@ read: make action! [[
 		"Reads from a file, URL, or other port"
 		source	[file! url!]
 		/part	"Partial read a given number of units (source relative)"
-			length [number!]
+			length [integer!]
 		/seek	"Read from a specific position (source relative)"
-			index [number!]
+			index [integer!]
 		/binary	"Preserves contents exactly"
 		/lines	"Convert to block of strings"
 		/info
@@ -572,9 +572,9 @@ write: make action! [[
 		/info
 		/append "Write data at end of file"
 		/part	"Partial write a given number of units"
-			length	[number!]
+			length	[integer!]
 		/seek	"Write at a specific position"
-			index	[number!]
+			index	[integer!]
 		/allow	"Specifies protection attributes"
 			access	[block!]
 		/as		"Write with the specified encoding, default is 'UTF-8"

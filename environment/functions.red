@@ -990,8 +990,8 @@ atan: func [
 
 atan2: func [
 	"Returns the smallest angle between the vectors (1,0) and (x,y) in range (-pi,pi]"
-	y		[number!]
-	x		[number!]
+	y		[float! integer!]
+	x		[float! integer!]
 	return:	[float!]
 ][
 	#system [
@@ -1003,7 +1003,7 @@ atan2: func [
 
 sqrt: func [
 	"Returns the square root of a number"
-	number	[number!]
+	number	[float! integer!]
 	return:	[float!]
 ][
 	#system [
