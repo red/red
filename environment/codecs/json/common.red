@@ -18,10 +18,11 @@ Red [
 		0.0.1 10-Sep-2016 "First release. Based on %json.r"    Gregg
         0.0.2  9-Aug-2018 "Refactoring and minor improvements" Gabriele
 	]
-	License: [
-		http://www.apache.org/licenses/LICENSE-2.0 
-		and "The Software shall be used for Good, not Evil."
-	]
+	Rights:  "Copyright (C) 2019 Red Foundation. All rights reserved."
+	License: {
+		Distributed under the Boost Software License, Version 1.0.
+		See https://github.com/red/red/blob/master/BSL-License.txt
+	}
 ]
 
 json-common: context [
