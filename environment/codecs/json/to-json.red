@@ -21,10 +21,6 @@ Red [
         0.0.3 31-Aug-2018 "Converted to non-recursive version"          Gabriele
         0.0.4  9-Oct-2018 "Back to an easier to read recursive version" Gabriele
     ]
-    License: [
-        http://www.apache.org/licenses/LICENSE-2.0
-        and "The Software shall be used for Good, not Evil."
-    ]
     References: [
         http://www.json.org/
         https://www.ietf.org/rfc/rfc4627.txt
@@ -32,6 +28,11 @@ Red [
         http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf
         https://github.com/rebolek/red-tools/blob/master/json.red
     ]
+	Rights:  "Copyright (C) 2019 Red Foundation. All rights reserved."
+	License: {
+		Distributed under the Boost Software License, Version 1.0.
+		See https://github.com/red/red/blob/master/BSL-License.txt
+	}
 ]
 
 context [

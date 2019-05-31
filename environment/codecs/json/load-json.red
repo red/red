@@ -19,10 +19,6 @@ Red [
 		0.0.1 10-Sep-2016 "First release. Based on %json.r"    Gregg
         0.0.2  9-Aug-2018 "Refactoring and minor improvements" Gabriele
 	]
-	License: [
-		http://www.apache.org/licenses/LICENSE-2.0 
-		and "The Software shall be used for Good, not Evil."
-	]
 	References: [
 		http://www.json.org/
 		https://www.ietf.org/rfc/rfc4627.txt
@@ -56,6 +52,11 @@ Red [
 			- Missing fraction in number.
 			- Missing exponent in number.
 	}
+	Rights:  "Copyright (C) 2019 Red Foundation. All rights reserved."
+	License: {
+		Distributed under the Boost Software License, Version 1.0.
+		See https://github.com/red/red/blob/master/BSL-License.txt
+	}
 ]
 
 #include %environment/codecs/json/common.red
@@ -79,6 +80,11 @@ context [
 	non-zero-digit: charset "123456789"
 	hex-char:  charset "0123456789ABCDEFabcdef"
 	chars: charset [not {\"} #"^@" - #"^_"]		; Unescaped chars (NOT creates a virtual bitset)
+
+    ; chars allowed in Red word! values
+    not-word-char: charset {/\^^,[](){}"#%$@:;^/^(00A0) ^-^M}
+    word-1st: complement append union not-word-char digit #"'"
+    word-char: complement not-word-char
 
 	;-----------------------------------------------------------
 	;-- JSON value rules
@@ -163,7 +169,7 @@ context [
 	]
 	
 	property-list: [property any [sep property]]
-	property: [json-name (emit _str) json-value]
+	property: [json-name (emit either parse _str [word-1st any word-char] [to word! _str] [_str]) json-value]
 	json-name: [ws* string-literal ws* #":"]
 	
 	;-----------------------------------------------------------
