@@ -81,6 +81,11 @@ context [
 	hex-char:  charset "0123456789ABCDEFabcdef"
 	chars: charset [not {\"} #"^@" - #"^_"]		; Unescaped chars (NOT creates a virtual bitset)
 
+    ; chars allowed in Red word! values
+    not-word-char: charset {/\^^,[](){}"#%$@:;^/^(00A0) ^-^M}
+    word-1st: complement append union not-word-char digit #"'"
+    word-char: complement not-word-char
+
 	;-----------------------------------------------------------
 	;-- JSON value rules
 	;-----------------------------------------------------------
@@ -164,7 +169,7 @@ context [
 	]
 	
 	property-list: [property any [sep property]]
-	property: [json-name (emit _str) json-value]
+	property: [json-name (emit either parse _str [word-1st any word-char] [to word! _str] [_str]) json-value]
 	json-name: [ws* string-literal ws* #":"]
 	
 	;-----------------------------------------------------------
