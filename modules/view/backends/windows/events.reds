@@ -305,6 +305,9 @@ get-event-picked: func [
 		EVT_SCROLL [
 			integer/push get-track-pos msg/hWnd msg/msg = WM_VSCROLL
 		]
+		EVT_WHEEL [
+			float/push (as float! evt/flags) / (as float! 120.0)	;-- WHEEL_DELTA: 120
+		]
 		EVT_LEFT_DOWN
 		EVT_MIDDLE_DOWN
 		EVT_RIGHT_DOWN
@@ -1440,9 +1443,7 @@ process: func [
 		]
 		WM_MOUSEWHELL [
 			x: WIN32_HIWORD(msg/wParam)
-			y: either x < 0 [0 - x][x]
-			if y > 120 [y: 120]							;-- WHEEL_DELTA: 120
-			make-event msg x / y and FFFFh EVT_WHEEL
+			make-event msg x EVT_WHEEL
 		]
 		WM_LBUTTONDOWN	[
 			if GetCapture <> null [return EVT_DISPATCH]
