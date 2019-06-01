@@ -306,7 +306,7 @@ get-event-picked: func [
 			integer/push get-track-pos msg/hWnd msg/msg = WM_VSCROLL
 		]
 		EVT_WHEEL [
-			float/push (as float! evt/flags) / (as float! 120.0)	;-- WHEEL_DELTA: 120
+			float/push (as float! evt/flags) / 120.0	;-- WHEEL_DELTA: 120
 		]
 		EVT_LEFT_DOWN
 		EVT_MIDDLE_DOWN
