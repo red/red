@@ -267,7 +267,7 @@ object [
 		]
 	]
 
-	scroll: func [event /local key n][
+	scroll: func [event /local key n delta][
 		if empty? lines [exit]
 		key: event/key
 		n: switch/default key [
@@ -276,7 +276,16 @@ object [
 			page-up		[scroller/page-size]
 			page-down	[0 - scroller/page-size]
 			track		[scroller/position - event/picked]
-			wheel		[to-integer event/picked * 3]
+			wheel		[
+				delta: event/picked
+				case [	;-- scroll by lines
+					all [delta > -1.0 delta < 0.0][-1]
+					all [delta > 0.0 delta < 1.0][1]
+					true [
+						to-integer #either config/OS = 'macOS [delta][delta * 3]
+					]
+				]
+			]
 		][0]
 		if n <> 0 [
 			scroll-lines n
