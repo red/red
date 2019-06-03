@@ -876,6 +876,7 @@ usb-device: context [
 				dlink/append list as list-entry! pNode
 				continue
 			]
+			get-endpoints-info pNode/endpoint-entry this itf
 			name: interface-name as c-string! path
 			if name <> null [
 				pNode/name: as byte-ptr! name
@@ -886,6 +887,49 @@ usb-device: context [
 		]
 		IOObjectRelease as int-ptr! iter
 		free path
+	]
+
+	get-endpoints-info: func [
+		list					[list-entry!]
+		this					[this!]
+		itf						[IOUSBInterfaceInterface]
+		/local
+			num					[integer!]
+			i					[integer!]
+			saved				[int-ptr!]
+			kr					[integer!]
+			dir					[integer!]
+			score				[integer!]
+			type				[integer!]
+			size				[integer!]
+			interval			[integer!]
+			pNode				[ENDPOINT-INFO-NODE!]
+	][
+		num: 0
+		kr: itf/GetNumEndpoints this :num
+		if kr <> 0 [exit]
+
+		dir: 0 score: 0 type: 0 size: 0 interval: 0
+		i: 1
+		while [i <= num][
+			saved: system/stack/align
+			push 0
+			kr: itf/GetPipeProperties this i :dir :score :type :size :interval
+			system/stack/top: saved
+			if kr <> 0 [i: i + 1 continue]
+			pNode: as ENDPOINT-INFO-NODE! allocate size? ENDPOINT-INFO-NODE!
+			set-memory as byte-ptr! pNode null-byte size? ENDPOINT-INFO-NODE!
+			either dir = 0 [
+				pNode/address: i
+			][
+				pNode/address: i or 80h
+			]
+			pNode/type: type
+			pNode/max-size: size
+			dlink/append list as list-entry! pNode
+			itf/ClearPipeStall this i
+			i: i + 1
+		]
 	]
 
 	interface-name: func [
@@ -1358,7 +1402,6 @@ usb-device: context [
 		itf: as IOUSBInterfaceInterface this/vtbl
 		kr: itf/USBInterfaceOpen this
 		if kr <> 0 [return USB-ERROR-OPEN]
-		get-pipo-info pNode this itf
 
 		rthread: as ONESHOT-THREAD! allocate size? ONESHOT-THREAD!
 		if rthread = null [
@@ -1378,66 +1421,6 @@ usb-device: context [
 		pNode/read-thread: as int-ptr! rthread
 		pNode/write-thread: as int-ptr! wthread
 		USB-ERROR-OK
-	]
-
-	get-pipo-info: func [
-		pNode					[INTERFACE-INFO-NODE!]
-		this					[this!]
-		itf						[IOUSBInterfaceInterface]
-		/local
-			num					[integer!]
-			i					[integer!]
-			saved				[int-ptr!]
-			kr					[integer!]
-			dir					[integer!]
-			score				[integer!]
-			type				[integer!]
-			size				[integer!]
-			interval			[integer!]
-	][
-		num: 0
-		kr: itf/GetNumEndpoints this :num
-		if kr <> 0 [exit]
-
-		dir: 0 score: 0 type: 0 size: 0 interval: 0
-		i: 1
-		while [i <= num][
-			saved: system/stack/align
-			push 0
-			kr: itf/GetPipeProperties this i :dir :score :type :size :interval
-			system/stack/top: saved
-			if kr <> 0 [i: i + 1 continue]
-			switch type [
-				kUSBBulk [
-					either dir = 0 [
-						pNode/bulk-out: i
-						pNode/bulk-out-size: size
-						;print-line "bulk out: "
-						;print-line i
-					][
-						pNode/bulk-in: i
-						pNode/bulk-in-size: size
-						;print-line "bulk in: "
-						;print-line i
-					]
-				]
-				kUSBInterrupt [
-					either dir = 0 [
-						pNode/interrupt-out: i
-						pNode/interrupt-out-size: size
-						;print-line "interrupt out: "
-						;print-line i
-					][
-						pNode/interrupt-in: i
-						pNode/interrupt-in-size: size
-						;print-line "interrupt in: "
-						;print-line i
-					]
-				]
-			]
-			itf/ClearPipeStall this i
-			i: i + 1
-		]
 	]
 
 	open-hidusb: func [
