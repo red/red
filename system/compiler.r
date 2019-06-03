@@ -162,7 +162,8 @@ system-dialect: make-profilable context [
 			push	[1	inline	- [a [any-type!]]]
 			pop		[0	inline	- [						   return: [integer!]]]
 			throw	[1	inline	- [n [integer!]]]
-			log-b	[1	native	- [n [number!] return: [integer!]]]
+			read-io [1	inline	- [p [pointer! [integer!]] return: [integer!]]]
+			log-b	[1	native	- [n [number!]  return: [integer!]]]
 		]
 		
 		repend functions [shift-right-sym copy functions/-**]

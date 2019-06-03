@@ -582,6 +582,11 @@ make-profilable make target-class [
 		if verbose >= 3 [print ">>>emitting POP"]
 		emit #{58}									;-- POP eax
 	]
+	
+	emit-read-io: func [port][
+		if verbose >= 3 [print ">>>emitting READ-IO"]
+		emit #{ED}									;-- IN eax, dx
+	]
 
 	emit-log-b: func [type][
 		if type = 'byte! [emit #{25FF000000}]		;-- AND eax, 0xFF
