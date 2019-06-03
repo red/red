@@ -31,7 +31,7 @@ target-class: context [
 	emit-call-native: emit-not: emit-push: emit-pop:
 	emit-integer-operation: emit-float-operation: 
 	emit-throw:	on-init: emit-alt-last: emit-log-b:
-	emit-variable: emit-read-io: none
+	emit-variable: emit-read-io: emit-io-write: none
 	
 	comparison-op: [= <> < > <= >=]
 	math-op:	   compose [+ - * / // (to-word "%")]
@@ -235,7 +235,6 @@ target-class: context [
 					not	  [emit-not args/1]
 					push  [emit-push args/1]
 					pop	  [emit-pop]
-					read-io [emit-read-io args/1]
 					throw [
 						compiler/check-throw
 						compiler/last-type: [integer!]
