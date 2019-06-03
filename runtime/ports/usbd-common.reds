@@ -75,6 +75,8 @@ HID-COLLECTION-NODE!: alias struct! [
 	;-- report size
 	input-size			[integer!]
 	output-size			[integer!]
+	;-- for macos
+	input-buffer		[byte-ptr!]
 	;-- report id
 	report-id			[integer!]
 ]
@@ -208,6 +210,9 @@ free-collection-info-node: func [
 	pNode		[HID-COLLECTION-NODE!]
 ][
 	if pNode = null [exit]
+	if pNode/input-buffer <> null [
+		free pNode/input-buffer
+	]
 	free as byte-ptr! pNode
 ]
 

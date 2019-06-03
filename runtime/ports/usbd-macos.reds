@@ -1067,29 +1067,32 @@ usb-device: context [
 					kIOCFPlugInInterfaceID
 					:p-itf
 					:score
-
-			if any [kr <> 0 zero? p-itf][IOObjectRelease service continue]
+			IOObjectRelease service
+			if any [kr <> 0 zero? p-itf][continue]
 			this: as this! p-itf
 			itf: as IOUSBInterfaceInterface this/vtbl
 			guid: CFUUIDGetUUIDBytes kIOHIDDeviceDeviceInterfaceID
 			kr: itf/QueryInterface this guid :interface
 			itf/Release this
-			if kr <> 0 [IOObjectRelease service continue]
+			if kr <> 0 [continue]
 			this: as this! interface
 			dev-ifc: as IOHIDDeviceDeviceInterface this/vtbl
 			LocationID: 0
 			kr: dev-ifc/getProperty this CFSTR(kIOHIDLocationIDKey) :ref
-			if kr <> 0 [IOObjectRelease service continue]
+			if any [
+				kr <> 0
+				ref = 0
+			] [continue]
 			get-int-from-cfnumber as int-ptr! ref :LocationID
-			if ref <> 0 [IOObjectRelease as int-ptr! ref]
-			if LocationID <> location-id [IOObjectRelease service continue]
+			IOObjectRelease as int-ptr! ref
+			if LocationID <> location-id [continue]
 			unless hid-path-contain? as c-string! path pNode/path [
-				IOObjectRelease service continue
+				continue
 			]
+			get-collections-info pNode/collection-entry this dev-ifc
 			free as byte-ptr! pNode/path
 			pNode/path: as c-string! allocate path-len + 1
 			copy-memory as byte-ptr! pNode/path path path-len + 1
-			IOObjectRelease service
 			IOObjectRelease as int-ptr! iter
 			free path
 			pNode/hType: DRIVER-TYPE-HIDUSB
@@ -1098,6 +1101,77 @@ usb-device: context [
 		IOObjectRelease as int-ptr! iter
 		free path
 		false
+	]
+
+	get-collections-info: func [
+		list					[list-entry!]
+		this					[this!]
+		itf						[IOHIDDeviceDeviceInterface]
+		/local
+			ref					[integer!]
+			kr					[integer!]
+			input-size			[integer!]
+			output-size			[integer!]
+			num					[integer!]
+			i					[integer!]
+			pNode				[HID-COLLECTION-NODE!]
+			dict				[int-ptr!]
+			ref-use				[int-ptr!]
+			ref-page			[int-ptr!]
+			usage				[integer!]
+			page				[integer!]
+			success				[logic!]
+	][
+		input-size: 0
+		output-size: 0
+		ref: 0
+		kr: dev-ifc/getProperty this CFSTR(kIOHIDMaxInputReportSizeKey) :ref
+		if kr = 0 [
+			get-int-from-cfnumber as int-ptr! ref :input-size
+		]
+		if ref <> 0 [IOObjectRelease as int-ptr! ref]
+		kr: dev-ifc/getProperty this CFSTR(kIOHIDMaxOutputReportSizeKey) :ref
+		if kr = 0 [
+			get-int-from-cfnumber as int-ptr! ref :output-size
+		]
+		if ref <> 0 [IOObjectRelease as int-ptr! ref]
+
+		kr: dev-ifc/getProperty this CFSTR(kIOHIDDeviceUsagePairsKey) :ref
+		if any [
+			kr <> 0
+			ref = 0
+		][exit]
+		if (CFGetTypeID ref) = CFArrayGetTypeID [
+			num: CFArrayGetCount ref
+			if num > 0 [
+				i: 0
+				loop num [
+					pNode: as HID-COLLECTION-NODE! allocate size? HID-COLLECTION-NODE!
+					set-memory as byte-ptr! pNode null-byte size? HID-COLLECTION-NODE!
+					dict: CFArrayGetValueAtIndex ref i
+					if dict = null [break]
+					ref-use: CFDictionaryGetValue dict CFSTR(kIOHIDDeviceUsageKey)
+					pNode/index: i
+					usage: 0
+					success: get-int-from-cfnumber ref-use :usage
+					;if ref-use <> null [CFRelease ref-use]
+					pNode/usage: usage
+					print-line usage
+
+					ref-page: CFDictionaryGetValue dict CFSTR(kIOHIDDeviceUsagePageKey)
+					page: 0
+					success: get-int-from-cfnumber ref-page :page
+					;if ref-page <> null [CFRelease ref-page]
+					pNode/usage-page: page
+					print-line page
+					pNode/input-size: input-size
+					pNode/output-size: output-size
+					dlink/append list as list-entry! pNode
+					i: i + 1
+				]
+			]
+		]
+		IOObjectRelease as int-ptr! ref
 	]
 
 	get-int-from-cfnumber: func [
@@ -1149,107 +1223,6 @@ usb-device: context [
 			if CFStringGetCString ref buf 256 kCFStringEncodingASCII [
 				CFRelease ref
 				return as c-string! buf
-			]
-		]
-		CFRelease ref
-		null
-	]
-
-	get-hid-int-property: func [
-		device			[int-ptr!]
-		key				[c-string!]
-		pvalue			[int-ptr!]
-		return:			[logic!]
-		/local
-			cf-str		[c-string!]
-			ref			[int-ptr!]
-			success		[logic!]
-	][
-		pvalue/value: 0
-		cf-str: CFSTR(key)
-		ref: IOHIDDeviceGetProperty device cf-str
-		success: get-int-from-cfnumber ref pvalue
-		if ref <> null [CFRelease ref]
-		success
-	]
-
-	get-hid-string-property: func [
-		device			[int-ptr!]
-		key				[c-string!]
-		return:			[c-string!]
-		/local
-			cf-str		[c-string!]
-			ref			[int-ptr!]
-			buf			[byte-ptr!]
-	][
-		cf-str: CFSTR(key)
-		ref: IOHIDDeviceGetProperty device cf-str
-		if ref = null [return null]
-		if (CFGetTypeID ref) = CFStringGetTypeID [
-			buf: allocate 256
-			if CFStringGetCString ref buf 256 kCFStringEncodingASCII [
-				CFRelease ref
-				return as c-string! buf
-			]
-		]
-		CFRelease ref
-		null
-	]
-
-	get-hid-usage-property: func [
-		device			[int-ptr!]
-		pnum			[int-ptr!]
-		return:			[HID-COLLECTION!]
-		/local
-			cf-str		[c-string!]
-			ref			[int-ptr!]
-			num			[integer!]
-			cols		[HID-COLLECTION!]
-			col			[HID-COLLECTION!]
-			i			[integer!]
-			dict		[int-ptr!]
-			ref-use		[int-ptr!]
-			ref-page	[int-ptr!]
-			usage		[integer!]
-			page		[integer!]
-			success		[logic!]
-	][
-		pnum/value: 0
-		cf-str: CFSTR(kIOHIDDeviceUsagePairsKey)
-		ref: IOHIDDeviceGetProperty device cf-str
-		if ref = null [return null]
-		if (CFGetTypeID ref) = CFArrayGetTypeID [
-			num: CFArrayGetCount ref
-			if num > 0 [
-				pnum/value: num
-				cols: as HID-COLLECTION! allocate num * size? HID-COLLECTION!
-				if cols = null [CFRelease ref return null]
-				i: 0
-				loop num [
-					dict: CFArrayGetValueAtIndex ref i
-					if dict = null [break]
-					ref-use: CFDictionaryGetValue dict CFSTR(kIOHIDDeviceUsageKey)
-					col: cols + i
-					col/index: i
-					usage: 0
-					success: get-int-from-cfnumber ref-use :usage
-					;if ref-use <> null [CFRelease ref-use]
-					col/usage: usage
-					print-line usage
-
-					ref-page: CFDictionaryGetValue dict CFSTR(kIOHIDDeviceUsagePageKey)
-					page: 0
-					success: get-int-from-cfnumber ref-page :page
-					;if ref-page <> null [CFRelease ref-page]
-					col/usage-page: page
-					print-line page
-					i: i + 1
-				]
-				if i <> 0 [
-					CFRelease ref
-					return cols
-				]
-				free as byte-ptr! cols
 			]
 		]
 		CFRelease ref
@@ -1429,10 +1402,6 @@ usb-device: context [
 		/local
 			entry				[int-ptr!]
 			hDev				[int-ptr!]
-			num					[integer!]
-			cols				[HID-COLLECTION!]
-			input-size			[integer!]
-			output-size			[integer!]
 			kr					[integer!]
 			rthread				[BARRIER-THREAD!]
 			wthread				[ONESHOT-THREAD!]
@@ -1447,23 +1416,9 @@ usb-device: context [
 			return USB-ERROR-HANDLE
 		]
 		IOObjectRelease entry
-		num: 0
-		cols: get-hid-usage-property hDev :num
-		if cols <> null [
-			pNode/collections: cols
-			pNode/col-count: num
-		]
-		input-size: 0
-		unless get-hid-int-property hDev kIOHIDMaxInputReportSizeKey :input-size [
-			input-size: 64
-		]
-		pNode/input-size: input-size
+
 		pNode/input-buffer: allocate pNode/input-size
-		output-size: 0
-		unless get-hid-int-property hDev kIOHIDMaxOutputReportSizeKey :output-size [
-			output-size: 64
-		]
-		pNode/output-size: output-size
+
 		kr: IOHIDDeviceOpen hDev kIOHIDOptionsTypeSeizeDevice
 		if kr <> 0 [
 			CFRelease hDev
