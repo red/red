@@ -452,7 +452,7 @@ system-dialect: make-profilable context [
 									throw-error "system/io/read expects a pointer! as port argument"
 								]
 								emitter/target/emit-io-read last-type/2/1
-								last-type: [integer!]
+								last-type: last-type/2
 								true
 							]
 							write [
