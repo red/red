@@ -19,6 +19,7 @@ USB-DATA!: alias struct! [
 	dev		[DEVICE-INFO-NODE!]
 	buflen	[integer!]				;-- buffer length
 	buffer	[byte-ptr!]				;-- buffer for iocp poller
+	data?	[logic!]
 	code	[integer!]				;-- operation code @@ change to uint8
 	state	[integer!]				;-- @@ change to unit8
 ]
@@ -72,20 +73,35 @@ usb: context [
 		/local
 			iodata	[USB-DATA!]
 			size	[integer!]
+			paddr	[integer!]
+			ptype	[integer!]
 			n		[integer!]
 	][
 		iodata: as USB-DATA! get-port-data red-port
-		if null? iodata/buffer [
-			if iodata/dev/interface/hType = DRIVER-TYPE-WINUSB [
-				size: iodata/dev/interface/interrupt-in-size
-				iodata/buffer: allocate size
-				iodata/buflen: size
+		if all [
+			iodata/dev/interface/hType <> USB-DRIVER-TYPE-HIDUSB
+			iodata/dev/interface/hType <> USB-DRIVER-TYPE-WINUSB
+		][exit]
+
+		paddr: -1 ptype: -1
+		get-port-pipe red-port :paddr :ptype
+		usb-select-pipe iodata/dev/interface paddr ptype yes
+		iodata/dev/interface/report-type: get-port-feature red-port
+
+		either iodata/dev/interface/hType = USB-DRIVER-TYPE-HIDUSB [
+			size: iodata/dev/interface/collection/input-size
+		][
+			size: get-port-read-size red-port
+		]
+		if any [
+			null? iodata/buffer
+			size > iodata/buflen
+		][
+			unless null? iodata/buffer [
+				free iodata/buffer
 			]
-			if iodata/dev/interface/hType = DRIVER-TYPE-HIDUSB [
-				size: iodata/dev/interface/input-size
-				iodata/buffer: allocate size
-				iodata/buflen: size
-			]
+			iodata/buffer: allocate size
+			iodata/buflen: size
 		]
 		print-line "read"
 		poll/add-user g-poller iodata/dev/interface/inst as int-ptr! iodata
@@ -107,12 +123,24 @@ usb: context [
 			bin		[red-binary!]
 			buf		[byte-ptr!]
 			len		[integer!]
+			size	[integer!]
+			paddr	[integer!]
+			ptype	[integer!]
 			iodata	[USB-DATA!]
 			n		[integer!]
 	][
 		iodata: as USB-DATA! get-port-data red-port
-		print-line "write"
-		poll/add-user g-poller iodata/dev/interface/inst as int-ptr! iodata
+		if all [
+			iodata/dev/interface/hType <> USB-DRIVER-TYPE-HIDUSB
+			iodata/dev/interface/hType <> USB-DRIVER-TYPE-WINUSB
+		][exit]
+
+		paddr: -1 ptype: -1
+		get-port-pipe red-port :paddr :ptype
+		usb-select-pipe iodata/dev/interface paddr ptype no
+		iodata/dev/interface/report-type: get-port-feature red-port
+
+		len: 0
 		switch TYPE_OF(data) [
 			TYPE_BINARY [
 				bin: as red-binary! data
@@ -123,6 +151,55 @@ usb: context [
 			default [0]
 		]
 
+		if len = 0 [
+			exit
+		]
+
+		iodata/data?: false
+		if all [
+			iodata/dev/interface/hType = USB-DRIVER-TYPE-WINUSB
+			any [
+				iodata/dev/interface/endpoint/type = USB-PIPE-TYPE-CONTROL
+				iodata/dev/interface/endpoint/address = 0
+			]
+		][
+			either 80h <= as integer! buf/1 [
+				;control read
+				size: get-port-read-size red-port
+				iodata/data?: true
+			][
+				size: 0
+			]
+			unless null? iodata/buffer [
+				free iodata/buffer
+			]
+			iodata/buffer: allocate size + len
+			iodata/buflen: size + len
+			copy-memory iodata/buffer buf len
+			buf: iodata/buffer
+			len: iodata/buflen
+		]
+		if all [
+			iodata/dev/interface/hType = USB-DRIVER-TYPE-HIDUSB
+			any [
+				iodata/dev/interface/report-type = HID-GET-FEATURE
+				iodata/dev/interface/report-type = HID-GET-REPORT
+			]
+		][
+			unless null? iodata/buffer [
+				free iodata/buffer
+			]
+			size: get-port-read-size red-port
+			iodata/data?: true
+			iodata/buffer: allocate size
+			iodata/buflen: size
+			iodata/buffer/1: buf/1
+			buf: iodata/buffer
+			len: iodata/buflen
+		]
+
+		print-line "write"
+		poll/add-user g-poller iodata/dev/interface/inst as int-ptr! iodata
 		iodata/code: SOCK_OP_WRITE
 		n: 0
 		if 0 <> usb-device/write-data iodata/dev/interface buf len :n as int-ptr! iodata -1 [

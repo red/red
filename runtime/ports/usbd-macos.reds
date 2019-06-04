@@ -867,7 +867,7 @@ usb-device: context [
 			pNode: as INTERFACE-INFO-NODE! allocate size? INTERFACE-INFO-NODE!
 			if pNode = null [continue]
 			set-memory as byte-ptr! pNode null-byte size? INTERFACE-INFO-NODE!
-			pNode/interface-num: actual-num
+			pNode/index: actual-num
 			pNode/inst: id/id1
 			pNode/inst2: id/id2
 			pNode/path: as c-string! allocate path-len + 1
@@ -882,7 +882,7 @@ usb-device: context [
 				pNode/name: as byte-ptr! name
 				pNode/name-len: (length? name) + 1
 			]
-			pNode/hType: DRIVER-TYPE-WINUSB
+			pNode/hType: USB-DRIVER-TYPE-WINUSB
 			dlink/append list as list-entry! pNode
 		]
 		IOObjectRelease as int-ptr! iter
@@ -1095,7 +1095,7 @@ usb-device: context [
 			copy-memory as byte-ptr! pNode/path path path-len + 1
 			IOObjectRelease as int-ptr! iter
 			free path
-			pNode/hType: DRIVER-TYPE-HIDUSB
+			pNode/hType: USB-DRIVER-TYPE-HIDUSB
 			return true
 		]
 		IOObjectRelease as int-ptr! iter
@@ -1125,30 +1125,30 @@ usb-device: context [
 		input-size: 0
 		output-size: 0
 		ref: 0
-		kr: dev-ifc/getProperty this CFSTR(kIOHIDMaxInputReportSizeKey) :ref
+		kr: itf/getProperty this CFSTR(kIOHIDMaxInputReportSizeKey) :ref
 		if kr = 0 [
 			get-int-from-cfnumber as int-ptr! ref :input-size
 		]
 		if ref <> 0 [IOObjectRelease as int-ptr! ref]
-		kr: dev-ifc/getProperty this CFSTR(kIOHIDMaxOutputReportSizeKey) :ref
+		kr: itf/getProperty this CFSTR(kIOHIDMaxOutputReportSizeKey) :ref
 		if kr = 0 [
 			get-int-from-cfnumber as int-ptr! ref :output-size
 		]
 		if ref <> 0 [IOObjectRelease as int-ptr! ref]
 
-		kr: dev-ifc/getProperty this CFSTR(kIOHIDDeviceUsagePairsKey) :ref
+		kr: itf/getProperty this CFSTR(kIOHIDDeviceUsagePairsKey) :ref
 		if any [
 			kr <> 0
 			ref = 0
 		][exit]
-		if (CFGetTypeID ref) = CFArrayGetTypeID [
-			num: CFArrayGetCount ref
+		if (CFGetTypeID as int-ptr! ref) = CFArrayGetTypeID [
+			num: CFArrayGetCount as int-ptr! ref
 			if num > 0 [
 				i: 0
 				loop num [
 					pNode: as HID-COLLECTION-NODE! allocate size? HID-COLLECTION-NODE!
 					set-memory as byte-ptr! pNode null-byte size? HID-COLLECTION-NODE!
-					dict: CFArrayGetValueAtIndex ref i
+					dict: CFArrayGetValueAtIndex as int-ptr! ref i
 					if dict = null [break]
 					ref-use: CFDictionaryGetValue dict CFSTR(kIOHIDDeviceUsageKey)
 					pNode/index: i
@@ -1270,14 +1270,14 @@ usb-device: context [
 						inode: as INTERFACE-INFO-NODE! child-entry
 						if any [
 							mi = 255
-							inode/interface-num = 255
+							inode/index = 255
 						][
 							dlink/remove-entry device-list entry/prev entry/next
 							clear-device-list device-list
 							dnode/interface: inode
 							return dnode
 						]
-						if mi = inode/interface-num [
+						if mi = inode/index [
 							dlink/remove-entry device-list entry/prev entry/next
 							clear-device-list device-list
 							dnode/interface: inode
@@ -1325,10 +1325,10 @@ usb-device: context [
 		return:					[USB-ERROR!]
 	][
 		case [
-			pNode/hType = DRIVER-TYPE-WINUSB [
+			pNode/hType = USB-DRIVER-TYPE-WINUSB [
 				return open-winusb pNode
 			]
-			pNode/hType = DRIVER-TYPE-HIDUSB [
+			pNode/hType = USB-DRIVER-TYPE-HIDUSB [
 				return open-hidusb pNode
 			]
 			true [
@@ -1417,7 +1417,7 @@ usb-device: context [
 		]
 		IOObjectRelease entry
 
-		pNode/input-buffer: allocate pNode/input-size
+		pNode/collection/input-buffer: allocate pNode/collection/input-size
 
 		kr: IOHIDDeviceOpen hDev kIOHIDOptionsTypeSeizeDevice
 		if kr <> 0 [
@@ -1451,7 +1451,7 @@ usb-device: context [
 		pNode/read-thread: as int-ptr! rthread
 
 		IOHIDDeviceRegisterInputReportCallback
-			hDev pNode/input-buffer pNode/input-size
+			hDev pNode/collection/input-buffer pNode/collection/input-size
 			as int-ptr! :hid-input-report-callback
 			as int-ptr! pNode
 
@@ -1502,11 +1502,12 @@ usb-device: context [
 		;--notify the main thread that the read thread is up and running
 		a: pthread_barrier_wait as pthread_barrier_t :rthread/barrier
 
-		while [all [rthread/shutdown_thread = 0 pNode/disconnected = 0]] [
+		;while [all [rthread/shutdown_thread = 0 pNode/disconnected = 0]] [
+		while [rthread/shutdown_thread = 0][
 			code: CFRunLoopRunInMode rthread/run-loop-mode 1000.0 false
 			;--return if the device has been disconnected
 			if code = 1 [
-				pNode/disconnected: 1
+				;pNode/disconnected: 1
 				break
 			]
 			;--break if the run loop returns finished or stopped
@@ -1600,7 +1601,7 @@ usb-device: context [
 	][
 		pNode: as INTERFACE-INFO-NODE! context
 		rthread: as BARRIER-THREAD! pNode/read-thread
-		pNode/disconnected: 1
+		;pNode/disconnected: 1
 		CFRunLoopStop rthread/run-loop
 	]
 
@@ -1608,10 +1609,10 @@ usb-device: context [
 		pNode					[INTERFACE-INFO-NODE!]
 	][
 		case [
-			pNode/hType = DRIVER-TYPE-WINUSB [
+			pNode/hType = USB-DRIVER-TYPE-WINUSB [
 				close-winusb pNode
 			]
-			pNode/hType = DRIVER-TYPE-HIDUSB [
+			pNode/hType = USB-DRIVER-TYPE-HIDUSB [
 				close-hidusb pNode
 			]
 		]
@@ -1643,11 +1644,11 @@ usb-device: context [
 	][
 		if pNode/hDev <> 0 [
 			rthread: as BARRIER-THREAD! pNode/read-thread
-			if pNode/disconnected = 0 [
+			;if pNode/disconnected = 0 [
 				IOHIDDeviceRegisterInputReportCallback
 					as int-ptr! pNode/hDev
-					pNode/input-buffer
-					pNode/input-size
+					pNode/collection/input-buffer
+					pNode/collection/input-size
 					null
 					as int-ptr! pNode
 				IOHIDDeviceRegisterRemovalCallback
@@ -1662,7 +1663,7 @@ usb-device: context [
 					as int-ptr! pNode/hDev
 					CFRunLoopGetMain
 					kCFRunLoopDefaultMode
-			]
+			;]
 			print-line "close interface"
 			list: rthread/list
 			entry: list/next
@@ -1708,7 +1709,7 @@ usb-device: context [
 			ret					[integer!]
 	][
 		case [
-			pNode/hType = DRIVER-TYPE-WINUSB [
+			pNode/hType = USB-DRIVER-TYPE-WINUSB [
 				wthread: as ONESHOT-THREAD! pNode/write-thread
 				if wthread/thread <> null [return -1]
 				wthread/udata: data
@@ -1720,7 +1721,7 @@ usb-device: context [
 					as int-ptr! pNode
 				return 0
 			]
-			pNode/hType = DRIVER-TYPE-HIDUSB [
+			pNode/hType = USB-DRIVER-TYPE-HIDUSB [
 				wthread: as ONESHOT-THREAD! pNode/write-thread
 				if wthread/thread <> null [return -1]
 				wthread/udata: data
@@ -1754,7 +1755,7 @@ usb-device: context [
 		wthread: as ONESHOT-THREAD! pNode/write-thread
 		this: as this! wthread/interface
 		itf: as IOUSBInterfaceInterface this/vtbl
-		kr: itf/WritePipe this pNode/interrupt-out wthread/buffer wthread/buflen
+		kr: itf/WritePipe this pNode/endpoint/address wthread/buffer wthread/buflen
 		if kr <> 0 [
 			wthread/actual-len: 0
 			return null
@@ -1815,7 +1816,7 @@ usb-device: context [
 			rthread				[ONESHOT-THREAD!]
 	][
 		case [
-			pNode/hType = DRIVER-TYPE-WINUSB [
+			pNode/hType = USB-DRIVER-TYPE-WINUSB [
 				rthread: as ONESHOT-THREAD! pNode/read-thread
 				if rthread/thread <> null [return -1]
 				rthread/udata: data
@@ -1827,7 +1828,7 @@ usb-device: context [
 					as int-ptr! pNode
 				return 0
 			]
-			pNode/hType = DRIVER-TYPE-HIDUSB [
+			pNode/hType = USB-DRIVER-TYPE-HIDUSB [
 				hid-read-data pNode buf buflen plen data timeout
 			]
 		]
@@ -1850,7 +1851,7 @@ usb-device: context [
 		this: as this! rthread/interface
 		itf: as IOUSBInterfaceInterface this/vtbl
 		rthread/actual-len: rthread/buflen
-		kr: itf/ReadPipe this pNode/interrupt-in rthread/buffer :rthread/actual-len
+		kr: itf/ReadPipe this pNode/endpoint/address and 7Fh rthread/buffer :rthread/actual-len
 		if kr <> 0 [rthread/actual-len: 0 return null]
 		poll/trigger-user g-poller pNode/inst rthread/udata
 		rthread/thread: null
