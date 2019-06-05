@@ -465,9 +465,9 @@ system-dialect: make-profilable context [
 								port-type: last-type/2/1
 								
 								fetch-expression/final/keep 'write-io ;-- fetch data argument
-								;if any [none? last-type last-type/1 <> 'pointer!][
-								;	throw-error "system/io/write expects a pointer! as port argument"
-								;]
+								if any [none? last-type last-type/1 <> port-type][
+									throw-error "system/io/write expects data of same type as port pointed value"
+								]
 								emitter/target/emit-restore-last ;-- restore port argument
 								emitter/target/emit-io-write port-type
 								last-type: none
