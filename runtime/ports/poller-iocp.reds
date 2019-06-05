@@ -179,7 +179,7 @@ poll: context [
 						]
 						IOCP_OP_WRITE	[
 							if usbdata/data? [
-								either usbdata/dev/interface/hType = USB-DRIVER-TYPE-HIDUSB [
+								either usbdata/dev/interface/type = USB-DRIVER-TYPE-HIDUSB [
 									offset: 0
 								][
 									offset: 8

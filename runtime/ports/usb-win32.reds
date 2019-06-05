@@ -42,39 +42,31 @@ usb: context [
 			pid			[integer!]
 			sn			[c-string!]
 			mi			[integer!]
-			col			[integer!]
+			len			[integer!]
 			node		[DEVICE-INFO-NODE!]
 			data		[USB-DATA!]
 	][
 		sn: as c-string! alloc0 256
 		n: -1
 		s: unicode/to-utf8 host :n
-		vid: 65535
-		pid: 65535
-		mi: 255
-		col: 255
-		sscanf [s "VID=%4hx&PID=%4hx&MI=%2hx&COL=%2hx&SN=%s"
-			:vid :pid :mi :col sn]
-		if all [
-			vid <> 65535
-			pid <> 65535
-		][
-			node: usb-device/open vid pid sn mi col
-			if node = null [exit]
-			dlink/append usb-list as list-entry! node
-			data: as USB-DATA! alloc0 size? USB-DATA!
-			copy-cell as cell! red-port as cell! :data/cell
-			data/dev: node
-			store-port-data as int-ptr! data red-port
-			;set-memory as byte-ptr! :data/ovlap null-byte size? OVERLAPPED!
-			data/fd: node/interface/hDev
-		]
+		vid: 0 pid: 0 mi: 0
+		len: sscanf [s "VID=%4hx&PID=%4hx&MI=%2hx&SN=%s"
+			:vid :pid :mi sn]
+		if len <> 4 [exit]
+		node: usb-device/open vid pid sn mi
+		if node = null [exit]
+		dlink/append usb-list as list-entry! node
+		data: as USB-DATA! alloc0 size? USB-DATA!
+		copy-cell as cell! red-port as cell! :data/cell
+		data/dev: node
+		store-port-data as int-ptr! data red-port
 	]
 
 	read: func [
 		red-port	[red-object!]
 		/local
 			iodata	[USB-DATA!]
+			col		[integer!]
 			size	[integer!]
 			paddr	[integer!]
 			ptype	[integer!]
@@ -82,18 +74,19 @@ usb: context [
 	][
 		iodata: as USB-DATA! get-port-data red-port
 		if all [
-			iodata/dev/interface/hType <> USB-DRIVER-TYPE-HIDUSB
-			iodata/dev/interface/hType <> USB-DRIVER-TYPE-WINUSB
+			iodata/dev/interface/type <> USB-DRIVER-TYPE-HIDUSB
+			iodata/dev/interface/type <> USB-DRIVER-TYPE-WINUSB
 		][exit]
 
-		paddr: -1 ptype: -1
-		get-port-pipe red-port :paddr :ptype
-		usb-select-pipe iodata/dev/interface paddr ptype yes
-		iodata/dev/interface/report-type: get-port-feature red-port
-
-		either iodata/dev/interface/hType = USB-DRIVER-TYPE-HIDUSB [
+		either iodata/dev/interface/type = USB-DRIVER-TYPE-HIDUSB [
+			col: get-port-collection red-port
+			usb-select-collection iodata/dev/interface col
 			size: iodata/dev/interface/collection/input-size
 		][
+			paddr: -1 ptype: -1
+			get-port-pipe red-port :paddr :ptype
+			usb-select-pipe iodata/dev/interface paddr ptype yes
+			iodata/dev/interface/report-type: get-port-feature red-port
 			size: get-port-read-size red-port
 		]
 		if any [
@@ -131,6 +124,7 @@ usb: context [
 			bin		[red-binary!]
 			buf		[byte-ptr!]
 			len		[integer!]
+			col		[integer!]
 			size	[integer!]
 			iodata	[USB-DATA!]
 			paddr	[integer!]
@@ -139,14 +133,21 @@ usb: context [
 	][
 		iodata: as USB-DATA! get-port-data red-port
 		if all [
-			iodata/dev/interface/hType <> USB-DRIVER-TYPE-HIDUSB
-			iodata/dev/interface/hType <> USB-DRIVER-TYPE-WINUSB
+			iodata/dev/interface/type <> USB-DRIVER-TYPE-HIDUSB
+			iodata/dev/interface/type <> USB-DRIVER-TYPE-WINUSB
 		][exit]
 
-		paddr: -1 ptype: -1
-		get-port-pipe red-port :paddr :ptype
-		usb-select-pipe iodata/dev/interface paddr ptype no
-		iodata/dev/interface/report-type: get-port-feature red-port
+		either iodata/dev/interface/type = USB-DRIVER-TYPE-HIDUSB [
+			col: get-port-collection red-port
+			usb-select-collection iodata/dev/interface col
+			size: iodata/dev/interface/collection/input-size
+		][
+			paddr: -1 ptype: -1
+			get-port-pipe red-port :paddr :ptype
+			usb-select-pipe iodata/dev/interface paddr ptype yes
+			iodata/dev/interface/report-type: get-port-feature red-port
+			size: get-port-read-size red-port
+		]
 
 		len: 0
 		switch TYPE_OF(data) [
@@ -165,7 +166,7 @@ usb: context [
 
 		iodata/data?: false
 		if all [
-			iodata/dev/interface/hType = USB-DRIVER-TYPE-WINUSB
+			iodata/dev/interface/type = USB-DRIVER-TYPE-WINUSB
 			any [
 				iodata/dev/interface/endpoint/type = USB-PIPE-TYPE-CONTROL
 				iodata/dev/interface/endpoint/address = 0
@@ -188,7 +189,7 @@ usb: context [
 			len: iodata/buflen
 		]
 		if all [
-			iodata/dev/interface/hType = USB-DRIVER-TYPE-HIDUSB
+			iodata/dev/interface/type = USB-DRIVER-TYPE-HIDUSB
 			any [
 				iodata/dev/interface/report-type = HID-GET-FEATURE
 				iodata/dev/interface/report-type = HID-GET-REPORT

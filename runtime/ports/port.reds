@@ -164,6 +164,18 @@ get-port-read-size: func [
 	either TYPE_OF(int) = TYPE_INTEGER [int/value][0]
 ]
 
+get-port-collection: func [
+	red-port	[red-object!]
+	return:		[integer!]
+	/local
+		state	[red-object!]
+		int		[red-integer!]
+][
+	state: as red-object! (object/get-values red-port) + port/field-state
+	int: as red-integer! (object/get-values state) + 7
+	either TYPE_OF(int) = TYPE_INTEGER [int/value][0]
+]
+
 get-port-feature: func [
 	red-port	[red-object!]
 	return:		[integer!]

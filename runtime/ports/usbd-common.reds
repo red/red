@@ -69,6 +69,10 @@ HID-COLLECTION-NODE!: alias struct! [
 	entry				[list-entry! value]
 	;-- collection index
 	index				[integer!]
+	;-- path for win32
+	path				[c-string!]
+	;-- open handle
+	handle				[integer!]
 	;-- top usage/page
 	usage				[integer!]
 	usage-page			[integer!]
@@ -92,8 +96,13 @@ INTERFACE-INFO-NODE!: alias struct! [
 	entry				[list-entry! value]
 	;-- interface num
 	index				[integer!]
-	;-- for open
+	;-- path for macos/linux
 	path				[c-string!]
+	;-- open handle
+	handle				[integer!]
+	;-- interface type
+	type				[USB-DRIVER-TYPE!]
+
 	;-- for display
 	name				[byte-ptr!]
 	name-len			[integer!]
@@ -104,12 +113,8 @@ INTERFACE-INFO-NODE!: alias struct! [
 	;-- platform id 2 for macos
 	inst2				[integer!]
 
-	;-- open handle
-	hDev				[integer!]
-	;-- opend handle 2
-	hInf				[integer!]
-	;-- interface type
-	hType				[USB-DRIVER-TYPE!]
+	;-- winusb handle
+	winusb-handle		[integer!]
 
 	;-- endpoint info (for generic interface)
 	endpoint-entry		[list-entry! value]
@@ -210,6 +215,9 @@ free-collection-info-node: func [
 	pNode		[HID-COLLECTION-NODE!]
 ][
 	if pNode = null [exit]
+	if pNode/path <> null [
+		free as byte-ptr! pNode/path
+	]
 	if pNode/input-buffer <> null [
 		free pNode/input-buffer
 	]
@@ -352,7 +360,7 @@ usb-select-pipe: func [
 		node				[ENDPOINT-INFO-NODE!]
 ][
 	if all [
-		pNode/hType = USB-DRIVER-TYPE-HIDUSB
+		pNode/type = USB-DRIVER-TYPE-HIDUSB
 		any [
 			address <> 0
 			all [
@@ -393,4 +401,122 @@ usb-select-pipe: func [
 	pNode/endpoint/address: 0
 	pNode/endpoint/type: USB-PIPE-TYPE-CONTROL
 	false
+]
+
+usb-find-collection-by-index: func [
+	pNode					[INTERFACE-INFO-NODE!]
+	index					[integer!]
+	return:					[HID-COLLECTION-NODE!]
+	/local
+		entry				[list-entry!]
+		p					[list-entry!]
+		node				[HID-COLLECTION-NODE!]
+][
+	entry: pNode/collection-entry
+	p: entry/next
+	while [p <> entry][
+		node: as HID-COLLECTION-NODE! p
+		if any [
+			node/index = 256
+			node/index = index
+		][
+			return node
+		]
+		p: p/next
+	]
+	null
+]
+
+usb-select-collection: func [
+	pNode					[INTERFACE-INFO-NODE!]
+	index					[integer!]
+	return:					[logic!]
+	/local
+		node				[HID-COLLECTION-NODE!]
+][
+	node: usb-find-collection-by-index pNode index
+	if node = null [
+		return false
+	]
+	copy-memory as byte-ptr! pNode/collection as byte-ptr! node size? HID-COLLECTION-NODE!
+	true
+]
+
+usb-find-interface-by-index: func [
+	pNode					[DEVICE-INFO-NODE!]
+	index					[integer!]
+	return:					[INTERFACE-INFO-NODE!]
+	/local
+		entry				[list-entry!]
+		p					[list-entry!]
+		node				[INTERFACE-INFO-NODE!]
+][
+	entry: pNode/interface-entry
+	p: entry/next
+	while [p <> entry][
+		node: as INTERFACE-INFO-NODE! p
+		if any [
+			node/index = 256
+			node/index = index
+		][
+			return node
+		]
+		p: p/next
+	]
+	null
+]
+
+usb-find-by-interface: func [
+	device-list				[list-entry!]
+	vid						[integer!]
+	pid						[integer!]
+	sn						[c-string!]
+	mi						[integer!]
+	return:					[DEVICE-INFO-NODE!]
+	/local
+		entry				[list-entry!]
+		dnode				[DEVICE-INFO-NODE!]
+		len					[integer!]
+		len2				[integer!]
+		children			[list-entry!]
+		child-entry			[list-entry!]
+		inode				[INTERFACE-INFO-NODE!]
+][
+	entry: device-list/next
+	while [entry <> device-list][
+		dnode: as DEVICE-INFO-NODE! entry
+		if all [
+			dnode/vid = vid
+			dnode/pid = pid
+		][
+			len: length? sn
+			len2: length? dnode/serial-num
+			if any [
+				len = 0
+				all [
+					len = len2
+					0 = compare-memory as byte-ptr! sn as byte-ptr! dnode/serial-num len
+				]
+			][
+				children: dnode/interface-entry
+				child-entry: children/next
+				while [child-entry <> children][
+					inode: as INTERFACE-INFO-NODE! child-entry
+					if any [
+						mi = inode/index
+						inode/index = 256
+					][
+						dlink/remove-entry device-list entry/prev entry/next
+						dlink/remove-entry dnode/interface-entry child-entry/prev child-entry/next
+						clear-interface-list dnode/interface-entry
+						dnode/interface: inode
+						return dnode
+					]
+					child-entry: child-entry/next
+				]
+			]
+		]
+		entry: entry/next
+	]
+	null
 ]
