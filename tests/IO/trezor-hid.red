@@ -1,4 +1,4 @@
-usb: open usb://VID=1209&PID=53C1&MI=01&COL=00&SN=EF3ADD96F01D8B1975B6FE11
+usb: open usb://VID=1209&PID=53C1&MI=01&SN=EF3ADD96F01D8B1975B6FE11
 probe usb
 buffer: make binary! 65
 
