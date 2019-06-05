@@ -3697,6 +3697,30 @@ Converts a literal string to UTF-16LE format. The string is stored in memory in 
  
 Only literal strings can be statically processed by this directive.
 
+
+---#inline
+
+Injects CPU-specific machine code at current position in code. Both standalone statements and nested statements are supported.
+
+<b>Syntax</b>
+
+ #inline <binary>
+ #inline [<binary> return: [<type>]]
+
+ <binary> : a literal binary containing the machine code
+ <type>   : any valid Red/System type
+ 
+The second syntax is used to nest the machine code in an R/S expression. The returned type specification is then mandatory.
+
+<b>Examples</b>
+
+ #inline #{83C410}        ;-- ADD esp, 16
+
+ a: #inline [
+ 	#{B82A000000}         ;-- MOV eax, 42
+ 	return: [integer!]
+ ]
+
     
 ===Source code organization
 
