@@ -81,13 +81,13 @@ usb: context [
 		either iodata/dev/interface/type = USB-DRIVER-TYPE-HIDUSB [
 			col: get-port-collection red-port
 			usb-select-collection iodata/dev/interface col
+			iodata/dev/interface/report-type: get-port-feature red-port
 			size: iodata/dev/interface/collection/input-size
 			iodata/fd: iodata/dev/interface/collection/handle
 		][
 			paddr: -1 ptype: -1
 			get-port-pipe red-port :paddr :ptype
 			usb-select-pipe iodata/dev/interface paddr ptype yes
-			iodata/dev/interface/report-type: get-port-feature red-port
 			size: get-port-read-size red-port
 			iodata/fd: iodata/dev/interface/handle
 		]
@@ -142,13 +142,13 @@ usb: context [
 		either iodata/dev/interface/type = USB-DRIVER-TYPE-HIDUSB [
 			col: get-port-collection red-port
 			usb-select-collection iodata/dev/interface col
+			iodata/dev/interface/report-type: get-port-feature red-port
 			size: iodata/dev/interface/collection/input-size
 			iodata/fd: iodata/dev/interface/collection/handle
 		][
 			paddr: -1 ptype: -1
 			get-port-pipe red-port :paddr :ptype
 			usb-select-pipe iodata/dev/interface paddr ptype yes
-			iodata/dev/interface/report-type: get-port-feature red-port
 			size: get-port-read-size red-port
 			iodata/fd: iodata/dev/interface/handle
 		]
