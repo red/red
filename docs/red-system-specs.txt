@@ -3710,7 +3710,12 @@ Injects CPU-specific machine code at current position in code. Both standalone s
  <binary> : a literal binary containing the machine code
  <type>   : any valid Red/System type
  
-The second syntax is used to nest the machine code in an R/S expression. The returned type specification is then mandatory.
+The second syntax is used to nest the machine code in an R/S expression. The returned type specification is then mandatory. 
+
+\note CPU-specific implementation details
+The returned value needs to be stored in EAX register on IA-32, and R0 register on ARM. For floating point values, they need to be returned in FPU base registers (ST0 for Intel, S0/D0 for ARM).
+
+/note
 
 <b>Examples</b>
 
