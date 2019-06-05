@@ -582,6 +582,32 @@ make-profilable make target-class [
 		if verbose >= 3 [print ">>>emitting POP"]
 		emit #{58}									;-- POP eax
 	]
+	
+	emit-io-read: func [type][
+		if verbose >= 3 [print ">>>emitting SYSTEM/IO/READ"]
+		
+		emit #{89C2}								;-- MOV edx, eax
+		switch type [
+			byte!	 [
+				emit #{EC}							;-- IN al, dx
+				emit #{25FF000000}					;-- AND eax, 0xFF
+			]
+			;int16!	 []
+			integer! [emit #{ED}]					;-- IN eax, dx
+			;int64!	 []
+		]
+	]
+	
+	emit-io-write: func [type][
+		if verbose >= 3 [print ">>>emitting SYSTEM/IO/WRITE"]
+
+		switch type [
+			byte!	 [emit #{EE}]					;-- OUT dx, al
+			;int16!	 []
+			integer! [emit #{EF}]					;-- OUT dx, eax
+			;int64!	 []
+		]
+	]
 
 	emit-log-b: func [type][
 		if type = 'byte! [emit #{25FF000000}]		;-- AND eax, 0xFF

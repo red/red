@@ -162,7 +162,7 @@ system-dialect: make-profilable context [
 			push	[1	inline	- [a [any-type!]]]
 			pop		[0	inline	- [						   return: [integer!]]]
 			throw	[1	inline	- [n [integer!]]]
-			log-b	[1	native	- [n [number!] return: [integer!]]]
+			log-b	[1	native	- [n [number!]  return: [integer!]]]
 		]
 		
 		repend functions [shift-right-sym copy functions/-**]
@@ -414,7 +414,7 @@ system-dialect: make-profilable context [
 			none
 		]
 		
-		system-action?: func [path [path!] /local expr][
+		system-action?: func [path [path!] /local expr port-type][
 			if path/1 = 'system [
 				switch/default path/2 [
 					stack [
@@ -441,6 +441,38 @@ system-dialect: make-profilable context [
 							]
 							;push []
 							;pop  []
+						][false]
+					]
+					io [
+						switch/default path/3 [
+							read [
+								pc: next pc
+								fetch-expression/final/keep 'read-io
+								if any [none? last-type last-type/1 <> 'pointer!][
+									throw-error "system/io/read expects a pointer! as port argument"
+								]
+								emitter/target/emit-io-read last-type/2/1
+								last-type: last-type/2
+								true
+							]
+							write [
+								pc: next pc					 ;-- fetch port argument
+								fetch-expression/final/keep 'write-io
+								if any [none? last-type last-type/1 <> 'pointer!][
+									throw-error "system/io/write expects a pointer! as port argument"
+								]
+								emitter/target/emit-save-last ;-- save port argument on stack
+								port-type: last-type/2/1
+								
+								fetch-expression/final/keep 'write-io ;-- fetch data argument
+								if any [none? last-type last-type/1 <> port-type][
+									throw-error "system/io/write expects data of same type as port pointed value"
+								]
+								emitter/target/emit-restore-last ;-- restore port argument
+								emitter/target/emit-io-write port-type
+								last-type: none
+								true
+							]
 						][false]
 					]
 				][false]

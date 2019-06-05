@@ -1134,6 +1134,31 @@ make-profilable make target-class [
 		if verbose >= 3 [print ">>>emitting POP"]
 		emit-i32 #{e8bd0001}						;-- POP {r0}
 	]
+	
+	emit-io-read: func [type][
+		if verbose >= 3 [print ">>>emitting SYSTEM/IO/READ"]
+
+		switch type [
+			byte!	 [
+				emit-i32 #{e5500000}				;-- LDRB r0, [r0]
+				emit-i32 #{e20000ff}				;-- AND r0, r0, #ff
+			]
+			;int16!	 []
+			integer! [emit-i32 #{e5900000}]			;-- LDR r0, [r0]
+			;int64!	 []
+		]
+	]
+
+	emit-io-write: func [type][
+		if verbose >= 3 [print ">>>emitting SYSTEM/IO/WRITE"]
+
+		switch type [
+			byte!	 [emit-i32 #{e5410000}]			;-- STRB r0, [r1]
+			;int16!	 []
+			integer! [emit-i32 #{e5010000}]			;-- STR r0, [r1]
+			;int64!	 []
+		]
+	]
 
 	emit-log-b: func [type][
 		emit-i32 #{e16f0f10}						;-- CLZ r0, r0

@@ -31,7 +31,7 @@ target-class: context [
 	emit-call-native: emit-not: emit-push: emit-pop:
 	emit-integer-operation: emit-float-operation: 
 	emit-throw:	on-init: emit-alt-last: emit-log-b:
-	emit-variable: none
+	emit-variable: emit-read-io: emit-io-write: none
 	
 	comparison-op: [= <> < > <= >=]
 	math-op:	   compose [+ - * / // (to-word "%")]
