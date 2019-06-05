@@ -148,7 +148,7 @@ usb: context [
 		][
 			paddr: -1 ptype: -1
 			get-port-pipe red-port :paddr :ptype
-			usb-select-pipe iodata/dev/interface paddr ptype yes
+			usb-select-pipe iodata/dev/interface paddr ptype no
 			size: get-port-read-size red-port
 			iodata/fd: iodata/dev/interface/handle
 		]
