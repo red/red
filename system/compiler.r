@@ -1809,11 +1809,16 @@ system-dialect: make-profilable context [
 			fetch-expression #u16
 		]
 		
-		process-inline: func [machine-code][
-			unless binary? machine-code [
-				throw-error "#inline directive requires a binary! argument"
+		process-inline: func [code][
+			if block? code [
+				last-type: select code return-def
+				unless catch [parse last-type type-spec][
+					throw-error ["#inline directive returned type invalid:" mold last-type]
+				]
+				code: code/1
 			]
-			append emitter/code-buf machine-code
+			unless binary? code [throw-error "#inline directive requires a binary! argument"]
+			append emitter/code-buf code
 		]
 		
 		comp-chunked: func [body [block!]][
@@ -1834,7 +1839,7 @@ system-dialect: make-profilable context [
 				#enum	   [process-enum pc/2 pc/3 pc: skip pc 3]
 				#verbose   [set-verbose-level pc/2 pc: skip pc 2 none]
 				#u16	   [process-u16 	  pc]
-				#inline	   [process-inline pc/2	   pc: skip pc 2]
+				#inline	   [process-inline pc/2	   pc: skip pc 2 <last>]
 				#user-code [user-code?: not user-code? pc: next pc]
 				#build-date[change pc mold use [d][d: now d: d - d/zone d/zone: none d]]	;-- UTC
 				#script	   [							;-- internal compiler directive
