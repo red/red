@@ -3040,6 +3040,46 @@ Only needed for Intel platforms, does nothing on ARM (for now).
 /note
 
 
+---io/read
+
+Read a value from a low-level I/O port.
+
+<b>Syntax</b>
+
+ system/io/read <port>
+
+ return: byte! | integer!
+ 
+where:
+ <port> : I/O port address (pointer! [byte! | integer!])
+ 
+The returned value type depends on the type of pointer used for the port argument.
+
+\note Hardware vs memory-mapped I/O
+On some platforms (like ARM), such I/O operations are simply memory-mapped I/O.
+
+/note
+
+---io/write
+
+Write a value to a low-level I/O port.
+
+<b>Syntax</b>
+
+ system/io/write <port> <value>
+ 
+where:
+ <port> : I/O port address (pointer! [byte! | integer!])
+ <value>: written data of same type as port pointed value.
+ 
+The written value has to be consistent with the port's pointer type, otherwise a compilation error occurs.
+
+
+\note Hardware vs memory-mapped I/O
+On some platforms (like ARM), such I/O operations are simply memory-mapped I/O.
+
+/note
+
 ---image/base
 
 Returns the base address of the executable image in memory.
