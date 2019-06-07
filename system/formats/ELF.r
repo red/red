@@ -43,6 +43,7 @@ context [
 		ef-arm-abi		83886080	;; ABI version: 05000000h
 		ef-arm-hard		1024		;; Hard floating point required (400h)
 		ef-arm-soft		512			;; Soft floating point required (200h)
+		ef-arm-ep		2			;; Has entry points (02h)
 		
 		pt-load			1			;; loadable segment
 		pt-dynamic		2			;; dynamic linking information
@@ -412,6 +413,7 @@ context [
 				job/target
 				job/type
 				job/PIC?
+				job/ABI
 				get-offset "phdr"
 				get-offset "shdr"
 				get-address ".text"
@@ -532,6 +534,7 @@ context [
 		target-arch [word!]
 		target-type [word!]
 		PIC?		[logic!]
+		ABI			[word!]
 		phdr-offset [integer!]
 		shdr-offset [integer!]
 		text-address [integer!]
@@ -577,7 +580,8 @@ context [
 			]
 			arm		[
 				eh/machine: defs/em-arm
-				eh/flags: defs/ef-arm-abi or defs/ef-arm-soft
+				eh/flags: defs/ef-arm-abi or defs/ef-arm-ep or	;; EABI v5
+					either ABI = 'hard-float [defs/ef-arm-hard][defs/ef-arm-soft]
 			]
 		]
 
