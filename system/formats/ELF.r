@@ -534,7 +534,7 @@ context [
 		target-arch [word!]
 		target-type [word!]
 		PIC?		[logic!]
-		ABI			[word!]
+		ABI			[word! none!]
 		phdr-offset [integer!]
 		shdr-offset [integer!]
 		text-address [integer!]
