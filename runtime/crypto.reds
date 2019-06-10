@@ -680,6 +680,9 @@ crypto: context [
 			FreeBSD [
 				#define LIBCRYPTO-file "libcrypto.so.8"
 			]
+			RPi [
+				#define LIBCRYPTO-file "libcrypto.so.1.1"
+			]
 			#default [
 				#define LIBCRYPTO-file "libcrypto.so.1.0.0"
 			]
