@@ -54,6 +54,7 @@ matrix:
     sudo: required
     env: OS=arm
     script:                                          # Run ARMv7hf tests
+    - export LD_LIBRARY_PATH="./:/red/quick-test/runnable/arm-tests/red/"
     - >
       docker run -v ${PWD}:/red
       -w /red/quick-test/runnable/arm-tests/red/
