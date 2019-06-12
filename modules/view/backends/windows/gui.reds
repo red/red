@@ -1603,10 +1603,14 @@ OS-make-view: func [
 		][
 			init-drop-list handle data caption selected sym = drop-list
 		]
-		sym = field [set-hint-text handle options]
+		sym = field [
+			set-hint-text handle options
+			if TYPE_OF(selected) <> TYPE_NONE [change-selection handle selected values]
+		]
 		sym = area	 [
 			set-area-options handle options
 			change-text handle values sym
+			if TYPE_OF(selected) <> TYPE_NONE [change-selection handle selected values]
 		]
 		sym = rich-text [
 			init-base-face handle parent values alpha?
