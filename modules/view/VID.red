@@ -284,6 +284,7 @@ system/view/VID: context [
 		;-- process style options --
 		until [
 			unless no-skip [spec: next spec]
+			if no-skip [no-skip: false]					;-- disable the flag after 1st use
 			value: first spec
 			match?: parse spec [[
 				  ['left | 'center | 'right]	 (opt?: add-flag opts 'para 'align value)
