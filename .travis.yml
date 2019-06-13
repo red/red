@@ -65,7 +65,7 @@ matrix:
       -w /red/quick-test/runnable/arm-tests/system/
       --entrypoint /red/quick-test/runnable/arm-tests/system/run-all.sh
       resin/raspberry-pi2-debian:latest
-      -e LD_LIBRARY_PATH='./:/red/quick-test/runnable/arm-tests/red/'
+      -e LD_LIBRARY_PATH='./:/red/quick-test/runnable/arm-tests/system/'
 
 
   ### macOS ############################################################
