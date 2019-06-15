@@ -587,6 +587,11 @@ make-profilable make target-class [
 		]
 	]
 	
+	max-struct-alignment?: func [spec [block!]][	;-- returns max struct root field alignment need
+		foreach [name type] spec [if find [float! float64!] type/1 [return 8]]
+		4
+	]
+	
 	to-bin24: func [v [integer! char!]][
 		copy skip debase/base to-hex to integer! v 16 1
 	]
@@ -2449,7 +2454,7 @@ make-profilable make target-class [
 	emit-AAPCS-header: func [
 		args [block!] fspec [block!] attribs [block! none!]
 		/calc
-		/local reg bits offset type size stk freg cconv types nb
+		/local reg bits offset type size stk freg cconv types nb armhf? struct? r t
 	][
 		either args/1 = #custom [
 			unless calc [
@@ -2486,6 +2491,7 @@ make-profilable make target-class [
 				unless calc [emit-i32 #{e8bd0001}]	;-- POP {r0}
 				reg: 1
 			]
+			armhf?: compiler/job/ABI = 'hard-float
 
 			foreach arg args [
 				if arg <> #_ [						;-- bypass place-holder marker
@@ -2494,15 +2500,25 @@ make-profilable make target-class [
 						compiler/get-type arg		;-- fallback for [variadic]
 					]
 					either all [
-						compiler/job/ABI = 'hard-float
+						armhf?
 						find [float! float64! float32!] type/1
-						any [none? attribs not find attribs 'variadic]	;-- 'typed is not using hf ABI
+						any [none? attribs not find attribs 'variadic]	;-- variadic are not passed by VFP regs
 					][
 						unless calc [emit-pop-float/with freg type]
 						freg: freg + 1
 					][
+						struct?: type/1 = 'struct!
+						all [
+							'value = last t: type
+							any [struct? all [t: compiler/find-aliased t/1 t/1 = 'struct!]]
+							8 = max-struct-alignment? t/2
+							odd? reg
+							reg: reg + 1			;-- rule 4.3.5 of ABI 2.10 (IHI0042F)
+						]
 						foreach-member type [
 							size: either all [
+								not armhf?
+								not struct?
 								cconv = 'cdecl
 								find [float! float64!] type/1
 								'float32! = compiler/get-type arg
