@@ -1780,8 +1780,8 @@ make-profilable make target-class [
 		][
 			emit-i32 #{e1a03000}					;-- MOV r3, r0		; src
 			emit-load-imm32/reg slots 5				;-- MOV r5, <size>
-			emit-i32 #{e4931001}					;-- .loop:	LDR r1, [r3!], #1
-			emit-i32 #{e48c1001}					;--			STR r1, [ip!], #1
+			emit-i32 #{e4931004}					;-- .loop:	LDR r1, [r3!], #4
+			emit-i32 #{e48c1004}					;--			STR r1, [ip!], #4
 			emit-i32 #{e2555001}					;-- 		SUBS r5, r5, 1
 			emit-i32 #{1afffffb}					;-- 		BNE .loop
 		]
