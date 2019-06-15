@@ -2423,35 +2423,19 @@ make-profilable make target-class [
 			]
 			find math-op name [
 				either width = 8 [
-					either find mod-rem-op name [
-						emit-i32 #{ee802b01}		;-- FDIVD  d2, d0, d1
-						emit-i32 #{eebd4bc2}		;-- FTOSID s8, d2		; round towards 0
-						emit-i32 #{eeb02b40}		;-- FCPYD  d2, d0		; d2 = dividend
-						emit-i32 #{eeb80bc4}		;-- FSITOD d0, s8		; d0 = INT(q)
-						emit-i32 #{ee002b41}		;-- FNMACD d2, d0, d1	; d2 = d2 - d0 * d1
-					][
-						emit-i32 switch name [		;-- double precision math
-							+ [#{ee302b01}]			;-- FADDD d2, d0, d1
-							- [#{ee302b41}]			;-- FSUBD d2, d0, d1
-							* [#{ee202b01}]			;-- FMULD d2, d0, d1
-							/ [#{ee802b01}]			;-- FDIVD d2, d0, d1
-						]
+					emit-i32 switch name [			;-- double precision math
+						+ [#{ee302b01}]				;-- FADDD d2, d0, d1
+						- [#{ee302b41}]				;-- FSUBD d2, d0, d1
+						* [#{ee202b01}]				;-- FMULD d2, d0, d1
+						/ [#{ee802b01}]				;-- FDIVD d2, d0, d1
 					]
 					emit-i32 #{ec510b12}			;-- FMRRD r0, r1, d2	; move result to CPU
 				][
-					either find mod-rem-op name [
-						emit-i32 #{ee802a01}		;-- FDIVS  s4, s0, s2
-						emit-i32 #{eebd4ac2}		;-- FTOSIS s8, s4		; round towards 0
-						emit-i32 #{eeb02a40}		;-- FCPYS  s4, s0		; s4 = dividend
-						emit-i32 #{eeb80ac4}		;-- FSITOS s0, s8		; s0 = INT(q)
-						emit-i32 #{ee002a41}		;-- FNMACS s4, s0, s2	; s4 = s4 - s0 * s2
-					][
-						emit-i32 switch name [		;-- single precision math
-							+ [#{ee302a01}]			;-- FADDS s4, s0, s2
-							- [#{ee302a41}]			;-- FSUBS s4, s0, s2
-							* [#{ee202a01}]			;-- FMULS s4, s0, s2
-							/ [#{ee802a01}]			;-- FDIVS s4, s0, s2
-						]
+					emit-i32 switch name [			;-- single precision math
+						+ [#{ee302a01}]				;-- FADDS s4, s0, s2
+						- [#{ee302a41}]				;-- FSUBS s4, s0, s2
+						* [#{ee202a01}]				;-- FMULS s4, s0, s2
+						/ [#{ee802a01}]				;-- FDIVS s4, s0, s2
 					]
 					emit-i32 #{ee120a10}			;-- FMRS r0, s4			; move result to CPU
 				]

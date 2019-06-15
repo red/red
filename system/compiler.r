@@ -147,8 +147,8 @@ system-dialect: make-profilable context [
 			and		[2	op		- [a [bit-set!] b [bit-set!] return: [bit-set!]]]
 			or		[2	op		- [a [bit-set!] b [bit-set!] return: [bit-set!]]]
 			xor		[2	op		- [a [bit-set!] b [bit-set!] return: [bit-set!]]]
-			//		[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]		;-- modulo
-      (to-word "%")	[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]		;-- remainder (real syntax: %)
+			//		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- modulo
+      (to-word "%")	[2	op		- [a [number!] b [number!] return: [number!]]]		;-- remainder (real syntax: %)
 			>>		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift right signed
 			<<		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift left signed
 			-**		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift right unsigned

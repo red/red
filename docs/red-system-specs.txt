@@ -300,7 +300,7 @@ will output
 
 All Red/System math operators (+, -, *, /, //, %) are supported. The default rounding method on results is "rounding to nearest". Both operands need to be of float! types (no implicit casting).
 
-The modulo (//) and remainder (%) operators give the same results when used on float! values.
+The modulo (//) and remainder (%) operators are not defined for float! values (use the C `fmod()` function if such feature is needed).
 
 ---Float32!
 
@@ -1958,13 +1958,13 @@ Note: a rumtime exception will be raised (division by zero) on `-2147483648 / -1
 
  value1 % value2
  
-Note: a remainder will be negative if the divisor is negative. Same as in C or // operator in REBOL. See float types section for specific behaviour of this operator on float values.
+Note: a remainder will be negative if the divisor is negative. Same as in C or // operator in REBOL. Float types are not supported.
  
 <b>Modulo</b>: //
 
  value1 // value2
  
-Note: a positive result is always returned. Same as 'modulo function in REBOL. See float types section for specific behaviour of this operator on float values.
+Note: a positive result is always returned. Same as 'modulo function in REBOL. Float types are not supported.
 
 where
 

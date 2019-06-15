@@ -17,8 +17,8 @@ time: context [
 	m-factor: 60.0
 
 	#define GET_HOURS(time)   (floor time / h-factor)
-	#define GET_MINUTES(time) (floor time // 3600.0 / 60.0)
-	#define GET_SECONDS(time) (time // 60.0)
+	#define GET_MINUTES(time) (floor (fmod time 3600.0) / 60.0)
+	#define GET_SECONDS(time) (fmod time 60.0)
 
 	throw-error: func [spec [red-value!]][
 		fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_TIME spec]
@@ -32,7 +32,7 @@ time: context [
 
 	get-minutes: func [tm [float!] return: [integer!]][
 		if tm < 0.0 [tm: 0.0 - tm]
-		as-integer floor tm // 3600.0 / 60.0
+		as-integer floor (fmod tm 3600.0) / 60.0
 	]
 
 	push-field: func [

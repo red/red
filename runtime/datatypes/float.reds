@@ -246,7 +246,7 @@ float: context [
 					fire [TO_ERROR(math zero-divide)]
 					0.0									;-- pass the compiler's type-checking
 				][
-					left % right
+					fmod left right
 				]
 			]
 			default [
@@ -891,7 +891,7 @@ float: context [
 			ceil?		[ceil dec		 ]
 			r < d		[FLOAT_AWAY(dec) ]
 			r > d		[FLOAT_TRUNC(dec)]
-			_even?		[either d % 2.0 < 1.0 [FLOAT_TRUNC(dec)][FLOAT_AWAY(dec)]]
+			_even?		[either (fmod d 2.0) < 1.0 [FLOAT_TRUNC(dec)][FLOAT_AWAY(dec)]]
 			half-down?	[FLOAT_TRUNC(dec)]
 			half-ceil?	[ceil dec		 ]
 			true		[FLOAT_AWAY(dec) ]

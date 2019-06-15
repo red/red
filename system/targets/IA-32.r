@@ -1826,7 +1826,7 @@ make-profilable make target-class [
 	
 	emit-float-math-op: func [
 		name [word!] a [word!] b [word!] args [block!] reversed? [logic!]
-		/local mod? scale c type spec
+		/local scale c type spec
 	][
 		all [
 			find [+ -] name	
@@ -1837,29 +1837,12 @@ make-profilable make target-class [
 			compiler/throw-error "unsupported operation with float numbers"
 		]
 		
-		if find mod-rem-op name [					;-- work around unaccepted '// and '%
-			mod?: select mod-rem-func name			;-- convert operators to words (easier to handle)
-			name: first [/]							;-- work around unaccepted '/ 
-		]
 		set-width args/1
 		emit switch name [
 			+ [#{DEC1}]								;-- FADDP st0, st1
 			- [pick [#{DEE1} #{DEE9}] reversed?]	;-- FSUB[R]P st0, st1
 			* [#{DEC9}]								;-- FMULP st0, st1
-			/ [
-				if all [mod? not reversed?][
-					emit #{D9C9}					;-- FXCH st0, st1		; for modulo/remainder ops
-				]
-				switch/default mod? [
-					mod [#{D9F8}]					;-- FPREM st0, st1		; floating point remainder
-					rem [#{D9F8}]					;-- FPREM st0, st1 		; floating point remainder
-					;rem [#{D9F5}]					;-- FPREM1 st0, st1 	; rounded remainder (IEEE)
-				][pick [#{DEF1} #{DEF9}] reversed?]	;-- FDIV[R]P st0, st1
-			]
-		]
-		if mod? [									;-- Trash st1 to keep the stack clean
-			emit #{D9C9}							;-- FXCH st0, st1		; st1 <=> st0
-			emit-float-trash-last					;-- drop st0
+			/ [pick [#{DEF1} #{DEF9}] reversed?]	;-- FDIV[R]P st0, st1
 		]
 	]
 
