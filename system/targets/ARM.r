@@ -851,7 +851,7 @@ make-profilable make target-class [
 	
 	emit-alloc-stack: does [
 		emit-i32 #{e04dd100}						;-- SUB sp, r0, LSL #2
-		emit-i32 #{e20dd0fc}						;-- AND sp, #-4 ; align to lower bound
+		;emit-i32 #{e3cdd003}						;-- BIC sp, sp #3 ; align to lower 32-bit bound
 	]
 
 	emit-free-stack: does [
