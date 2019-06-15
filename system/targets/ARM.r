@@ -2756,7 +2756,7 @@ make-profilable make target-class [
 
 	emit-prolog: func [
 		name locals [block!]
-		/local args-nb attribs args reg freg fargs-nb cb? locals-size pos
+		/local args-nb attribs args reg freg fargs-nb cb? locals-size pos extras
 	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
 		
@@ -2794,6 +2794,7 @@ make-profilable make target-class [
 			args: fspec/4
 			either all [compiler/job/ABI = 'hard-float not empty? args][
 				reg: freg: 1
+				extras: 0
 				args: extract-arguments args		;-- cleanup and reverse arguments order
 				fargs-nb: count-floats args
 				
@@ -2806,7 +2807,9 @@ make-profilable make target-class [
 						emit-i32 to char! shift/left 1 args-nb - reg ;-- push in reverse order
 						reg: reg + 1
 					]
+					extras: extras + pick [2 1] to logic! find [float! float64!] arg/1
 				]
+				args-nb: extras
 			][
 				args-nb: any [
 					all [attribs find attribs 'variadic 4] ;-- push all 4 regs and let user code deal with it
