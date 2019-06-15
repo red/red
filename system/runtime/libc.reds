@@ -143,6 +143,11 @@ Red/System [
 			value		[float!]
 			return:		[float!]
 		]
+		fmod:		"fmod" [
+			x           [float!]
+			y           [float!]
+			return:     [float!]
+		]
 	]
 ]
 
