@@ -455,7 +455,7 @@ sort: make action! [[
 		/case "Perform a case-sensitive sort"
 		/skip "Treat the series as fixed size records"
 			size [integer!]
-		/compare "Comparator offset, block or function"
+		/compare "Comparator offset, block (TBD) or function"
 			comparator [integer! block! any-function!]
 		/part "Sort only part of a series"
 			length [number! series!]
