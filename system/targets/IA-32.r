@@ -2012,11 +2012,6 @@ make-profilable make target-class [
 						#{5D}						;-- POP ebp			; get 6th arg in reg
 					] 1 + fspec/1 - c
 				]
-				if PIC? [
-					emit #{8B5C24}					;-- MOV ebx, [esp-c-1]
-					emit to-bin8 negate (fspec/1 + 1) * 4
-					emit #{53}						;-- PUSH ebx
-				]
 				if fspec/1 >= 6 [
 					emit #{50}						;-- PUSH eax		; save frame pointer on stack
 				]
@@ -2029,7 +2024,10 @@ make-profilable make target-class [
 			BSD [emit-cdecl-pop fspec args]			;-- BSD syscall cconv (~ cdecl)
 			Linux [
 				if fspec/1 >= 6 [emit #{5D}]		;-- POP ebp			; restore frame pointer
-				if PIC? [emit #{5B}]				;-- POP ebx			; restore IP-relative pointer
+				if PIC? [
+					emit #{8B5C24}					;-- MOV ebx, [esp-c-1] ; restore IP-relative pointer
+					emit to-bin8 negate (fspec/1 + 1) * 4
+				]
 			]
 		]
 	]
