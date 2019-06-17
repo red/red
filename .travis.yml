@@ -28,8 +28,8 @@ env:
 
 
 matrix:
-  allow_failures:                       # Remove once ARM build is fixed
-  - env: OS=arm                         # Remove once ARM build is fixed
+#   allow_failures:               # Enable to disregard ARM build failures
+#   - env: OS=arm                 # Enable to disregard ARM build failures
   include:
 
 
@@ -58,14 +58,13 @@ matrix:
       docker run -v ${PWD}:/red
       -w /red/quick-test/runnable/arm-tests/red/
       --entrypoint /red/quick-test/runnable/arm-tests/red/run-all.sh
-      resin/raspberry-pi2-debian:latest
-      -e LD_LIBRARY_PATH='./:/red/quick-test/runnable/arm-tests/red/'
+      balenalib/raspberry-pi2-debian:latest
     - >
       docker run -v ${PWD}:/red
+      -e LD_LIBRARY_PATH='$LD_LIBRARY_PATH:/red/quick-test/runnable/arm-tests/system/'
       -w /red/quick-test/runnable/arm-tests/system/
       --entrypoint /red/quick-test/runnable/arm-tests/system/run-all.sh
-      resin/raspberry-pi2-debian:latest
-      -e LD_LIBRARY_PATH='./:/red/quick-test/runnable/arm-tests/system/'
+      balenalib/raspberry-pi2-debian:latest
 
 
   ### macOS ############################################################
@@ -100,7 +99,7 @@ install:
     i386/debian:red rebol -qws tests/build-arm-tests.r '-t RPi' &&
     docker run -v ${PWD}:/red -w /red
     i386/debian:red rebol -qws system/tests/build-arm-tests.r '-t RPi' &&
-    docker pull resin/raspberry-pi2-debian:latest ;
+    docker pull balenalib/raspberry-pi2-debian:latest ;
     fi
   # macOS: install rebol
   - >

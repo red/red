@@ -684,7 +684,7 @@ crypto: context [
 				#define LIBCRYPTO-file "libcrypto.so.1.1"
 			]
 			#default [
-				#define LIBCRYPTO-file "libcrypto.so.1.0.0"
+				#define LIBCRYPTO-file "libcrypto.so.1.0.2"
 			]
 		]
 		#import [
