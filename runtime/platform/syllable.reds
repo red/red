@@ -63,8 +63,7 @@ platform: context [
 		return: [int-ptr!]						;-- allocated memory region pointer
 		/local ptr flags
 	][
-		size: round-to-next size 16
-		assert zero? (size and 0Fh)				;-- size is a multiple of 16
+		assert zero? (size and (page-size - 1))	;-- size is a multiple of page size
 		flags: either exec? [MMAP_PROT_RWX][MMAP_PROT_RW]
 		flags: flags or MMAP_MAP_PRIVATE or MMAP_MAP_ANONYMOUS
 

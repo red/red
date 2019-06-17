@@ -73,8 +73,7 @@ platform: context [
 			ptr  [byte-ptr!]
 			prot [integer!]
 	][
-		size: round-to-next size 16
-		assert zero? (size and 0Fh)				;-- size is a multiple of 16
+		assert zero? (size and (page-size - 1))	;-- size is a multiple of page size
 		prot: either exec? [MMAP_PROT_RWX][MMAP_PROT_RW]
 
 		ptr: mmap 
