@@ -92,7 +92,7 @@ copy-cell: func [
 	dst		[cell!]
 	return: [red-value!]
 ][
-	if src = dst [exit]
+	if src = dst [return dst]
 	copy-memory											;@@ optimize for 16 bytes copying
 		as byte-ptr! dst
 		as byte-ptr! src
