@@ -92,10 +92,10 @@ copy-cell: func [
 	dst		[cell!]
 	return: [red-value!]
 ][
-	copy-memory											;@@ optimize for 16 bytes copying
-		as byte-ptr! dst
-		as byte-ptr! src
-		size? cell!
+	dst/header: src/header
+	dst/data1:  src/data1
+	dst/data2:  src/data2
+	dst/data3:  src/data3
 	dst
 ]
 
