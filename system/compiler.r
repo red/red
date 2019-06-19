@@ -42,7 +42,7 @@ system-dialect: make-profilable context [
 		format:				none						;-- file format
 		type:				'exe						;-- file type ('exe | 'dll | 'lib | 'obj | 'drv)
 		target:				'IA-32						;-- CPU target
-		cpu-version:		6.0							;-- CPU version (default: Pentium Pro)
+		cpu-version:		6.0							;-- CPU version (default for IA-32: 6.0, Pentium Pro, for ARM: 5.0)
 		verbosity:			0							;-- logs verbosity level
 		sub-system:			'console					;-- 'GUI | 'console
 		runtime?:			yes							;-- include Red/System runtime

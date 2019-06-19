@@ -127,7 +127,7 @@ Cross-compilation targets:
     WindowsXP    : Windows, x86, GUI applications, no touch API
     Linux        : GNU/Linux, x86
     Linux-ARM    : GNU/Linux, ARMv5, armel (soft-float)
-    RPi          : GNU/Linux, ARMv5, armhf (hard-float)
+    RPi          : GNU/Linux, ARMv7, armhf (hard-float)
     Darwin       : macOS Intel, console-only applications
     macOS        : macOS Intel, applications bundles
     Syllable     : Syllable OS, x86
