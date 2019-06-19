@@ -411,12 +411,13 @@ make-profilable make target-class [
 			#{11a01006}			; MOVNE r1, r6			; 	remainder: abs(dividend)
 			#{03a00001}			; MOVEQ r0, #1			; if dividend = divisor, quotient: 1
 			#{03a01000}			; MOVEQ r1, #0			;	remainder: 0
-			#{ea00001a}			; B .epilog				; finish
+			#{ea00001b}			; B .epilog				; finish
 							; .ispowerof2
 			#{e2453001}			; SUB r3, r5, #1		; r3: abs(divisor) - 1
 			#{e1130005}			; TST r3, r5			; if abs(divisor) is a power of 2 (divisor & (divisor - 1))
-			#{1a000009}			; BNE .notpowerof2
+			#{1a00000a}			; BNE .notpowerof2
 			#{e1a03000}			; MOV r3, r0			; save dividend
+			#{e1a00006}			; MOV r0, r6			; r0: abs(dividend)
 							; .powerof2
 			#{31a000c0}			; MOVCC r0, r0, ASR#1	; divide by 2 (but not on first pass)
 			#{e1b010a1}			; MOVS r1, r1, LSR#1	; until power of 2 reached (carry set)
