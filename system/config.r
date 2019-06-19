@@ -138,7 +138,7 @@ Linux-ARM [
 	target:		'ARM
 	ABI:		'soft-float
 	type:		'exe
-	cpu-version: 7.0
+	cpu-version: 5.0
 	base-address: 32768					; 8000h
 	dynamic-linker: "/lib/ld-linux.so.3"
 ]
