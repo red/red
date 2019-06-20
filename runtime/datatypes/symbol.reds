@@ -97,13 +97,12 @@ symbol: context [
 		s 		[c-string!]								;-- input c-string!
 		return:	[integer!]
 		/local
-			str  [red-string!]
+			str  [red-string! value]
 			sym  [red-symbol!]
 			id   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "symbol/make"]]
 		
-		str: declare red-string!
 		str/node:	unicode/load-utf8 s system/words/length? s
 		str/header: TYPE_SYMBOL							;-- make hashtable happy
 		str/head:	0
@@ -111,7 +110,6 @@ symbol: context [
 
 		if positive? id [return id]
 		
-		collector/keep str/node
 		sym: as red-symbol! ALLOC_TAIL(symbols)	
 		sym/header: TYPE_UNSET
 		sym/node:   str/node
