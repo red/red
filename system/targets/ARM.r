@@ -1103,10 +1103,15 @@ make-profilable make target-class [
 	emit-fpu-update: emit-fpu-init: none			;-- not used for now
 	
 	emit-get-overflow: does [
-		either last-math-op = '* [
-			emit-i32 #{e1550fc0}					;-- CMP   r5, r0, ASR #31
-			emit-i32 #{13a00001}					;-- MOVNE r0, #1
-			emit-i32 #{03a00000}					;-- MOVEQ r0, #0
+		switch/default last-math-op [
+			* [
+				emit-i32 #{e1550fc0}				;-- CMP   r5, r0, ASR #31
+				emit-i32 #{13a00001}				;-- MOVNE r0, #1
+				emit-i32 #{03a00000}				;-- MOVEQ r0, #0
+			]
+			/ [
+				emit-i32 #{e3a00000}				;-- MOV r0, #0	; false, overflows should be pre-checked for /
+			]
 		][
 			emit-i32 #{63a00001}					;-- MOVVS r0, #1
 			emit-i32 #{73a00000}					;-- MOVVC r0, #0

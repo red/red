@@ -26,10 +26,10 @@ Red/System [
 	--test-- "of-11" a: 0 + 0  a: 0 + 0					   --assert not system/cpu/overflow?
 	--test-- "of-12" a: 0 + 0  a: 0 * 0					   --assert not system/cpu/overflow?
 	--test-- "of-13" a: 0 + 0  a: 1 * 0					   --assert not system/cpu/overflow?
-	--test-- "of-14" a: 0 + 0  a: -2147483648 * -1		   --assert     system/cpu/overflow? 	
+	--test-- "of-14" a: 0 + 0  a: -2147483648 * -1		   --assert     system/cpu/overflow?
     --test-- "of-15" a: 0 + 0  a: 2147483647 / -1		   --assert not system/cpu/overflow?
     ;--test-- "of-16" a: 0 + 0  a: -2147483648 / -1		   --assert     system/cpu/overflow?
-    ;                                                      raises zero divide on Intel processors
+    ;                                                      raises divide overflow error
     
 ===end-group===
 
