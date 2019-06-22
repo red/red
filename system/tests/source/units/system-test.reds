@@ -33,6 +33,24 @@ Red/System [
     
 ===end-group===
 
+===start-group=== "system/stack/*-all"
+
+	--test-- "save-all-1"
+		#either target = 'IA-32 [
+			aa: system/cpu/eax
+			system/stack/push-all
+			system/cpu/eax: 123
+			system/stack/pop-all
+			bb: system/cpu/eax
+		][
+			aa: system/cpu/r0
+			system/stack/push-all
+			system/cpu/r0: 123
+			system/stack/pop-all
+			bb: system/cpu/r0
+		]
+		--assert aa = bb
+
   
 ~~~end-file~~~
 
