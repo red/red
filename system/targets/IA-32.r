@@ -608,6 +608,24 @@ make-profilable make target-class [
 			;int64!	 []
 		]
 	]
+	
+	emit-push-all: does [
+		emit #{60}									;-- PUSHAD
+		emit #{9C}									;-- PUSHFD	(from EFLAGS)
+		emit #{89E0}								;-- MOV eax, esp
+		emit #{83E4F0}								;-- AND esp, -16  ; FXSAVE needs 16-bit alignment
+		emit #{50}									;-- PUSH eax
+		emit #{81EC0C020000}						;-- SUB esp, 512+12 ; keep it aligned
+		emit #{0FAE0424}							;-- FXSAVE  [esp]
+	]
+	
+	emit-pop-all: does [
+		emit #{0FAE0C24}							;-- FXRSTOR [esp]
+		emit #{81C40C020000}						;-- ADD esp, 512+12
+		emit #{5C}									;-- POP esp
+		emit #{9D}									;-- POPFD	(to EFLAGS)
+		emit #{61}									;-- POPAD
+	]
 
 	emit-log-b: func [type][
 		if type = 'byte! [emit #{25FF000000}]		;-- AND eax, 0xFF

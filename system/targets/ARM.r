@@ -1159,6 +1159,16 @@ make-profilable make target-class [
 			;int64!	 []
 		]
 	]
+	
+	emit-push-all: does [
+		emit-i32 #{e92d57ff}						;-- STMFD sp!, {r0-r12,r14}
+		emit-i32 #{ed2d0b21}						;-- FSTMDBX sp!, {d0-d15}
+	]
+
+	emit-pop-all: does [
+		emit-i32 #{ed3d0b21}						;-- FLDMDBX sp!, {d0-d15}
+		emit-i32 #{e8bd57ff}						;-- LDMFD sp!, {r0-r12,r14}
+	]
 
 	emit-io-write: func [type][
 		if verbose >= 3 [print ">>>emitting SYSTEM/IO/WRITE"]

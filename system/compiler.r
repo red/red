@@ -439,6 +439,16 @@ system-dialect: make-profilable context [
 								emitter/target/emit-free-stack
 								true
 							]
+							push-all [
+								pc: next pc
+								emitter/target/emit-push-all
+								true
+							]
+							pop-all [
+								pc: next pc
+								emitter/target/emit-pop-all
+								true
+							]
 							;push []
 							;pop  []
 						][false]
