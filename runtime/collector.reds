@@ -11,6 +11,74 @@ Red/System [
 	Notes: "Implements the naive Mark&Sweep method."
 ]
 
+ext-resource: context [			;-- external resource management
+	verbose: 0
+	table: as node! 0
+	
+	add: func [
+		res		[int-ptr!]
+		type	[datatypes!]
+		/local
+			k	[red-value!]
+	][
+		;-- put-key will return the value next to the key
+		;-- we use key only, so here we do `value - 1` to get the key
+		;-- the key in the hashtable is a red-value! struct!
+		;-- k/data2 is the `res`, k/data1 and k/data3 are not unused
+		;-- we use use k/data1 to store mark infomation
+		k: (_hashtable/put-key table as-integer res) - 1
+		k/header: type
+		k/data1: 0
+	]
+
+	mark: func [
+		res		[int-ptr!]
+		/local
+			k	[red-value!]
+	][
+		k: _hashtable/get-value table as-integer res
+		assert k <> null
+
+		k: k - 1
+		k/data1: 1
+	]
+
+	release: func [
+		/local
+			s	[series!]
+			val [red-value!]
+			end [red-value!]
+			res [integer!]
+	][
+		s: _hashtable/get-keys table
+		val: s/offset
+		end: s/tail
+
+		while [val < end][
+			res: val/data2						;-- resource handle
+			if all [res <> 0 zero? val/data1] [	;-- not been marked, release it
+				switch val/header [
+					TYPE_IMAGE [
+						image/delete as red-image! val
+					]
+					default [0 #if debug? = yes [if verbose > 1 [
+						print ["No handler for external resource: " val/header]
+					]]]
+				]
+
+				_hashtable/delete-key table res
+				val/data2: 0
+			]
+			val/data1: 0						;-- clear mark
+			val: val + 1
+		]
+	]
+
+	init: does [
+		table: _hashtable/init 1000 null HASH_TABLE_INTEGER 0	;-- store key only
+	]
+]
+
 collector: context [
 	verbose: 0
 	active?: no
@@ -243,11 +311,11 @@ collector: context [
 						mark-block-node as node! native/code
 					]
 				]
-				#if OS = 'macOS [
 				TYPE_IMAGE [
 					image: as red-image! value
-					keep image/node
-				]]
+					#if OS = 'macOS [keep image/node]
+					ext-resource/mark image/node
+				]
 				default [0]
 			]
 			value: value + 1
@@ -301,6 +369,8 @@ collector: context [
 		_hashtable/mark symbol/table					;-- will mark symbols
 		#if debug? = yes [if verbose > 1 [probe "marking ownership table"]]
 		_hashtable/mark ownership/table
+		#if debug? = yes [if verbose > 1 [probe "marking external resource table"]]
+		_hashtable/mark ext-resource/table
 
 		#if debug? = yes [if verbose > 1 [probe "marking stack"]]
 		keep arg-stk/node
@@ -343,6 +413,7 @@ collector: context [
 		mark-stack-nodes
 		
 		#if debug? = yes [if verbose > 1 [probe "sweeping..."]]
+		ext-resource/release
 		_hashtable/sweep ownership/table
 		collect-frames COLLECTOR_RELEASE
 

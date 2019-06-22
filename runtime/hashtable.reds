@@ -191,18 +191,18 @@ _hashtable: context [
 		val: s/offset
 		end: s/tail
 		while [val < end][
-			node: as node! val/data1
+			node: as node! val/data2
 			if node <> null [
 				s: as series! node/value
 				either s/flags and flag-gc-mark = 0 [
 					delete-key table as-integer node
-					val/data1: 0
+					val/data2: 0
 				][	;-- check owner
 					obj: as red-object! val + 2
 					s: as series! obj/ctx/value
 					if s/flags and flag-gc-mark = 0 [
 						delete-key table as-integer node
-						val/data1: 0
+						val/data2: 0
 					]
 				]
 			]
@@ -495,7 +495,7 @@ _hashtable: context [
 						step: 0
 						either int? [
 							int-key: as int-ptr! ((as byte-ptr! blk) + idx)
-							hash: int-key/2
+							hash: int-key/3
 						][
 							k: blk + (idx and 7FFFFFFFh)
 							hash: hash-value k no
@@ -576,7 +576,7 @@ _hashtable: context [
 					_BUCKET_IS_NOT_EMPTY(flags ii sh)
 					any [
 						del?
-						k/2 <> key
+						k/3 <> key
 					]
 				]
 			][
@@ -598,7 +598,7 @@ _hashtable: context [
 		case [
 			_BUCKET_IS_EMPTY(flags ii sh) [
 				k: as int-ptr! alloc-tail-unit blk-node vsize
-				k/2: key
+				k/3: key
 				keys/x: len
 				_BUCKET_SET_BOTH_FALSE(flags ii sh)
 				h/size: h/size + 1
@@ -606,7 +606,7 @@ _hashtable: context [
 			]
 			_BUCKET_IS_DEL(flags ii sh) [
 				k: as int-ptr! blk + keys/x
-				k/2: key
+				k/3: key
 				_BUCKET_SET_BOTH_FALSE(flags ii sh)
 				h/size: h/size + 1
 			]
@@ -652,7 +652,7 @@ _hashtable: context [
 				_BUCKET_IS_NOT_EMPTY(flags ii sh)
 				any [
 					_BUCKET_IS_DEL(flags ii sh)
-					k/2 <> key
+					k/3 <> key
 				]
 			]
 		][
@@ -701,7 +701,7 @@ _hashtable: context [
 				_BUCKET_IS_NOT_EMPTY(flags ii sh)
 				any [
 					_BUCKET_IS_DEL(flags ii sh)
-					k/2 <> key
+					k/3 <> key
 				]
 			]
 		][
@@ -1168,5 +1168,17 @@ _hashtable: context [
 			part * 4
 		copy-memory as byte-ptr! indexes + dst temp items
 		free temp
+	]
+
+	get-keys: func [
+		table	[node!]
+		return: [series!]
+		/local
+			s	[series!]
+			h	[hashtable!]
+	][
+		s: as series! table/value
+		h: as hashtable! s/offset
+		as series! h/blk/value
 	]
 ]

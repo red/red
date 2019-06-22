@@ -93,6 +93,7 @@ image: context [
 		handle  [node!]
 		return: [red-image!]
 	][
+		ext-resource/add handle TYPE_IMAGE
 		img/head: 0
 		img/size: (OS-image/height? handle) << 16 or OS-image/width? handle
 		img/node: handle
@@ -438,6 +439,7 @@ image: context [
 		if negative? y [y: 0]
 		img/size: y << 16 or x
 		img/node: OS-image/make-image x y rgb alpha color
+		ext-resource/add img/node TYPE_IMAGE
 		img
 	]
 
@@ -458,7 +460,11 @@ image: context [
 					spec: stack/push spec						;-- store spec to avoid corrution (#2460)
 					#call [face? spec]
 					ret: as red-logic! stack/arguments
-					if ret/value [return exec/gui/OS-to-image as red-object! spec]
+					if ret/value [
+						proto: exec/gui/OS-to-image as red-object! spec
+						ext-resource/add proto/node TYPE_IMAGE
+						return proto
+					]
 				][0]
 			]
 			default [0]
@@ -915,7 +921,9 @@ image: context [
 			if negative? offset [offset: 0 part: img/head]
 		]
 
-		OS-image/clone img new part as red-pair! part-arg part?
+		img: OS-image/clone img new part as red-pair! part-arg part?
+		ext-resource/add img/node TYPE_IMAGE
+		img
 	]
 
 	init: does [

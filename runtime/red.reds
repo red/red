@@ -222,6 +222,7 @@ red: context [
 		parser/init
 		ownership/init
 		crypto/init
+		ext-resource/init
 		ext-process/init
 		
 		stack/init
