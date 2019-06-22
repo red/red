@@ -2760,6 +2760,32 @@ Current exceptions implementation (catch/throw) cannot mix with manual stack man
 
 /note
 
+---stack/push-all
+
+Saves all registers to stack.
+
+<b>Syntax</b>
+
+ system/stack/push-all
+
+The following registers are saved:
+
+* IA-32:  eax, ecx, edx, ebx, original esp, ebp, esi, edi, eflags, st0-7, xmm0-7.
+
+* ARM: r0-r12, r14, d0-15, CPSR.
+
+Note that eax and r0 content is modified after this call (though original values are restored by `pop-all`).
+
+---stack/pop-all
+
+Restore all registers from stack.
+
+<b>Syntax</b>
+
+ system/stack/pop-all
+
+See `stack/push-all` section for complete list of registers affected.
+
 ---pc
 
 Retrieve the CPU program counter value.
