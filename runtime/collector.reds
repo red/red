@@ -58,9 +58,11 @@ ext-resource: context [			;-- external resource management
 			res: val/data2						;-- resource handle
 			if all [res <> 0 zero? val/data1] [	;-- not been marked, release it
 				switch val/header [
+					#if any [OS = 'Windows OS = 'macOS][
 					TYPE_IMAGE [
 						image/delete as red-image! val
-					]
+					]]
+					TYPE_PORT [0]
 					default [0 #if debug? = yes [if verbose > 1 [
 						print ["No handler for external resource: " val/header]
 					]]]
