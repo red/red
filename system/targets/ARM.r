@@ -1163,10 +1163,14 @@ make-profilable make target-class [
 	emit-push-all: does [
 		emit-i32 #{e92d57ff}						;-- STMFD sp!, {r0-r12,r14}
 		emit-i32 #{ed2d0b21}						;-- FSTMDBX sp!, {d0-d15}
+		emit-i32 #{e10f0000}						;-- MRS r0, CPSR
+		emit-i32 #{e92d0001}						;-- STMFD sp!, {r0}
 	]
 
 	emit-pop-all: does [
-		emit-i32 #{ed3d0b21}						;-- FLDMDBX sp!, {d0-d15}
+		emit-i32 #{e8bd0001}						;-- LDMFD sp!, {r0}
+		emit-i32 #{e129f000}						;-- MSR CPSR, r0
+		emit-i32 #{ecbd0b21}						;-- FLDMIAX sp!, {d0-d15}
 		emit-i32 #{e8bd57ff}						;-- LDMFD sp!, {r0-r12,r14}
 	]
 
