@@ -1193,20 +1193,20 @@ make-profilable make target-class [
 	emit-pop-float: func [idx [integer!] /with type [block!]][
 		if with [width: select emitter/datatypes type/1]
 		emit-float
-			f-inc #{ed9d0b00} idx	;-- FLDD d<idx>, [sp]		; double precision float
-			f-inc #{ed9d0a00} idx	;-- FLDS s<idx>, [sp]		; single precision float
+			f-inc #{ed9d0b00} idx					;-- FLDD d<idx>, [sp]		; double precision float
+			f-inc #{ed9d0a00} idx					;-- FLDS s<idx>, [sp]		; single precision float
 			
-		emit-i32 join #{e28dd0}		;-- ADD sp, sp, width		; adjust stack pointer
+		emit-i32 join #{e28dd0}						;-- ADD sp, sp, width		; adjust stack pointer
 			to char! width
 	]
 	
 	emit-push-float: func [idx [integer!] type [block!]][
 		width: select emitter/datatypes type/1
-		emit-i32 join #{e24dd0}		;-- SUB sp, sp, width		; adjust stack pointer
+		emit-i32 join #{e24dd0}						;-- SUB sp, sp, width		; adjust stack pointer
 			to char! width
 		emit-float
-			f-inc #{ed8d0b00} idx	;-- FSTD [sp], d<idx>		; double precision float
-			f-inc #{ed8d0a00} idx	;-- FSTS [sp], s<idx>		; single precision float
+			f-inc #{ed8d0b00} idx					;-- FSTD [sp], d<idx>		; double precision float
+			f-inc #{ed8d0a00} idx					;-- FSTS [sp], s<idx>		; single precision float
 	]
 	
 	emit-not: func [value [word! char! tag! integer! logic! path! string! object!] /local opcodes type boxed][
