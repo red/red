@@ -278,7 +278,7 @@ collector: context [
 	]
 	
 	do-mark-sweep: func [
-		/local s [series!] p [int-ptr!] obj [red-object!] w [red-word!] cb file saved tm buf
+		/local s [series!] p [int-ptr!] obj [red-object!] w [red-word!] cb file saved tm tm1 buf
 	][
 		#if debug? = yes [if verbose > 1 [
 			#if OS = 'Windows [platform/dos-console?: no]
@@ -289,7 +289,7 @@ collector: context [
 		]]
 
 		#if debug? = yes [
-			buf: "                               "
+			buf: "                                                               "
 			tm: platform/get-time yes yes
 			print [
 				"root size: "	block/rs-length? root
@@ -345,7 +345,9 @@ collector: context [
 		
 		#if debug? = yes [if verbose > 1 [probe "marking nodes on native stack"]]
 		mark-stack-nodes
-		
+
+		#if debug? = yes [tm1: (platform/get-time yes yes) - tm]	;-- marking time
+
 		#if debug? = yes [if verbose > 1 [probe "sweeping..."]]
 		_hashtable/sweep ownership/table
 		collect-frames COLLECTOR_RELEASE
@@ -359,9 +361,9 @@ collector: context [
 		;probe "done!"
 
 		#if debug? = yes [
-			tm: (platform/get-time yes yes) - tm
-			sprintf [buf "%.3f ms" tm * 1000]
-			probe [", after: " memory-info null 1 ", time: " buf]
+			tm: (platform/get-time yes yes) - tm - tm1
+			sprintf [buf ", mark: %.3f ms, sweep: %.3f ms" tm1 * 1000 tm * 1000]
+			probe [", after: " memory-info null 1 buf]
 			if verbose > 1 [
 				simple-io/close-file stdout
 				stdout: saved
