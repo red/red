@@ -277,7 +277,9 @@ collector: context [
 		]
 	]
 	
-	do-mark-sweep: func [/local s [series!] p [int-ptr!] obj [red-object!] w [red-word!] cb file saved][
+	do-mark-sweep: func [
+		/local s [series!] p [int-ptr!] obj [red-object!] w [red-word!] cb file saved tm buf
+	][
 		#if debug? = yes [if verbose > 1 [
 			#if OS = 'Windows [platform/dos-console?: no]
 			file: "                      "
@@ -287,6 +289,8 @@ collector: context [
 		]]
 
 		#if debug? = yes [
+			buf: "                               "
+			tm: platform/get-time yes yes
 			print [
 				"root size: "	block/rs-length? root
 				", root max: "	***-root-size
@@ -355,7 +359,9 @@ collector: context [
 		;probe "done!"
 
 		#if debug? = yes [
-			probe [", after: " memory-info null 1]
+			tm: (platform/get-time yes yes) - tm
+			sprintf [buf "%.3f ms" tm * 1000]
+			probe [", after: " memory-info null 1 ", time: " buf]
 			if verbose > 1 [
 				simple-io/close-file stdout
 				stdout: saved
