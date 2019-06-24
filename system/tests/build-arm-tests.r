@@ -30,6 +30,7 @@ if system/script/args  [
 	    target = "Linux"
 	    target = "Android"
 	    target = "RPi"
+		target = "Linux-ARM"
 	][
 	    target: none
 	]
