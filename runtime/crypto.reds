@@ -341,12 +341,11 @@ crypto: context [
 				]
 			]
 			i: k % 16
-			until [
+			while [i <> 0] [
 				s1: s1 + as integer! buf/value
 				buf: buf + 1
 				s2: s2 + s1
 				i: i - 1
-				i = 0
 			]
 
 			s1: s1 % A32-BASE
@@ -681,8 +680,11 @@ crypto: context [
 			FreeBSD [
 				#define LIBCRYPTO-file "libcrypto.so.8"
 			]
+			RPi [
+				#define LIBCRYPTO-file "libcrypto.so.1.1"
+			]
 			#default [
-				#define LIBCRYPTO-file "libcrypto.so.1.0.0"
+				#define LIBCRYPTO-file "libcrypto.so.1.0.2"
 			]
 		]
 		#import [

@@ -1524,6 +1524,9 @@ string: context [
 			default [
 				either set? [
 					element: find parent element null no no no no null null no no no no
+					if TYPE_OF(element) = TYPE_NONE [
+						fire [TO_ERROR(script bad-path-set) path element]
+					]
 					actions/poke as red-series! element 2 value null
 					value
 				][
@@ -2187,6 +2190,7 @@ string: context [
 			type	  [integer!]
 			index	  [integer!]
 			tail?	  [logic!]
+			action	  [red-word!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/insert"]]
 
@@ -2223,7 +2227,13 @@ string: context [
 		s: GET_BUFFER(str)
 		len: (as-integer s/tail - s/offset) >> (log-b GET_UNIT(s))
 		tail?: any [len = str/head append?]
-		index: either append? [len][str/head]
+		index: either append? [
+			action: words/_append
+			len
+		][
+			action: words/_insert
+			str/head
+		]
 		
 		while [not zero? cnt][							;-- /dup support
 			type: TYPE_OF(value)
@@ -2287,7 +2297,7 @@ string: context [
 			cnt: cnt - 1
 		]
 		if part < 0 [part: 1]							;-- ownership/check needs part >= 0
-		ownership/check as red-value! str words/_insert value index part
+		ownership/check as red-value! str action value index part
 		
 		either append? [str/head: 0][
 			added: added * dup-n

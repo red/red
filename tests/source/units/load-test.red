@@ -117,6 +117,27 @@ Red [
 	--test-- "load-word-18"	--assert strict-equal? first ['a] load "'a"
 	--test-- "load-word-19" --assert strict-equal? first [œ∑´®†] load "œ∑´®†"
 	
+===end-group===
+
+===start-group=== "load binaries tests"
+
+	--test-- "load-bin-1"
+		src: "2#{00001111}"
+		--assert #{0F} = load src
+
+	--test-- "load-bin-2"
+		src: "2#{0000 11 11}"
+		--assert #{0F} = load src
+
+	--test-- "load-bin-3"
+		src: {
+		2#{
+		00 1 1
+		11
+		01
+
+		}}
+		--assert #{3D} = load src
 
 ===end-group===
 
@@ -273,5 +294,117 @@ Red [
 		--assert "" 			 == load/next s 's
 		--assert (make paren! 0) == load/next s 's
 		--assert [] 			 == load/next s 's
+
+===end-group===
+
+
+===start-group=== "load issue #2438"
+
+	--test-- "load a<=>"
+		--assert error? res: try [load "a<=>"]
+		--assert to logic! find/match form res {*** Syntax Error: invalid value at "<=>"^/*** Where:}
+
+	--test-- "load a</=>"
+		--assert not error? res: try [load "a</=>"]
+		--assert word? :res/1
+		--assert tag?  :res/2
+
+===end-group===
+
+===start-group=== "load issue #3717"
+	--test-- "load ) 1"
+		--assert error? res: try [load ")"]
+		--assert to logic! find/match form res {*** Syntax Error: missing #"(" at ")"^/*** Where}
+
+	--test-- "load ) 2"
+		--assert error? res: try [load "a)"]
+		--assert to logic! find/match form res {*** Syntax Error: missing #"(" at ")"^/*** Where}
+
+	--test-- "load ) 3"
+		--assert error? res: try [load "a)b"]
+		--assert to logic! find/match form res {*** Syntax Error: missing #"(" at ")b"^/*** Where}
+
+	--test-- "load ) 4"
+		--assert error? res: try [load "())b"]
+		--assert to logic! find/match form res {*** Syntax Error: missing #"(" at ")b"^/*** Where}
+
+	--test-- "load ) 5"
+		res: load/trap "())b"
+		--assert [()] = res/1
+		--assert "b" = res/2
+		--assert to logic! find/match form res/3 {*** Syntax Error: missing #"(" at ")b"^/*** Where}
+
+	--test-- "load ) 6"
+		s: "())b"
+		--assert [()] = load/all/next s 's
+		--assert ")b" = s
+		--assert error? try [load/all/next s 's]
+
+	--test-- "load ) 7"
+		--assert error? try [system/lexer/transcode/one ")" none false]
+
+	--test-- "load ] 1"
+		--assert error? res: try [load "]"]
+		--assert to logic! find/match form res {*** Syntax Error: missing #"[" at "]"^/*** Where}
+
+	--test-- "load ] 2"
+		--assert error? res: try [load "a]"]
+		--assert to logic! find/match form res {*** Syntax Error: missing #"[" at "]"^/*** Where}
+
+	--test-- "load ] 3"
+		--assert error? res: try [load "a]b"]
+		--assert to logic! find/match form res {*** Syntax Error: missing #"[" at "]b"^/*** Where}
+
+	--test-- "load ] 4"
+		--assert error? res: try [load "[]]b"]
+		--assert to logic! find/match form res {*** Syntax Error: missing #"[" at "]b"^/*** Where}
+
+	--test-- "load ] 5"
+		res: load/trap "[]]b"
+		--assert [[]] = res/1
+		--assert "b" = res/2
+		--assert to logic! find/match form res/3 {*** Syntax Error: missing #"[" at "]b"^/*** Where}
+
+	--test-- "load ] 6"
+		s: "[]]b"
+		--assert [[]] = load/all/next s 's
+		--assert "]b" = s
+		--assert error? try [load/all/next s 's]
+
+	--test-- "load ] 7"
+		--assert error? try [system/lexer/transcode/one "]" none false]
+
+	--test-- "load } 1"
+		--assert error? res: try [load "}"]
+		--assert to logic! find/match form res {*** Syntax Error: missing #"{" at "}"^/*** Where}
+
+	--test-- "load } 2"
+		--assert error? res: try [load "a}"]
+		--assert to logic! find/match form res {*** Syntax Error: missing #"{" at "}"^/*** Where}
+
+	--test-- "load } 3"
+		--assert error? res: try [load "a}b"]
+		--assert to logic! find/match form res {*** Syntax Error: missing #"{" at "}b"^/*** Where}
+
+	--test-- "load } 4"
+		--assert error? res: try [load "{}}b"]
+		--assert to logic! find/match form res {*** Syntax Error: missing #"{" at "}b"^/*** Where}
+
+	--test-- "load } 5"
+		res: load/trap "{}}b"
+		--assert [""] = res/1
+		--assert "b" = res/2
+		--assert to logic! find/match form res/3 {*** Syntax Error: missing #"{" at "}b"^/*** Where}
+
+	--test-- "load } 6"
+		s: "{}}b"
+		--assert [""] = load/all/next s 's
+		--assert "}b" = s
+		--assert error? try [load/all/next s 's]
+
+	--test-- "load } 7"
+		--assert error? try [system/lexer/transcode/one "}" none false]
+
+===end-group===
 
 ~~~end-file~~~

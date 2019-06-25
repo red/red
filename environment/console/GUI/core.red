@@ -139,7 +139,7 @@ object [
 				either all [lf? not prin?][add-line copy str][vprin str]
 			]
 		][
-			either all [lf? not prin?][add-line str][vprin str]
+			either all [lf? not prin?][add-line copy str][vprin str]
 		]
 		prin?: not lf?
 		if system/console/running? [
@@ -235,9 +235,9 @@ object [
 	update-cfg: func [font [object!] cfg [block!] /local sz][
 		box/font: font
 		max-lines: cfg/buffer-lines
-		box/text: "XX"
+		box/text: "XXXXXXXXXX"
 		sz: size-text box
-		char-width: 1 + sz/x / 2
+		char-width: sz/x + 1 * 0.1 						;-- +1 compensates for size-text rounding
 		box/tabs: tab-size * char-width
 		line-h: rich-text/line-height? box 1
 		box/line-spacing: line-h
@@ -249,7 +249,7 @@ object [
 	]
 
 	adjust-console-size: function [size [pair!]][
-		cols: size/x - pad-left / char-width
+		cols: to integer! size/x - 20 - pad-left / char-width		;-- -20 compensates for scrollbar
 		rows: size/y / line-h
 		system/console/size: as-pair cols rows
 	]
@@ -267,7 +267,7 @@ object [
 		]
 	]
 
-	scroll: func [event /local key n][
+	scroll: func [event /local key n delta][
 		if empty? lines [exit]
 		key: event/key
 		n: switch/default key [
@@ -276,7 +276,16 @@ object [
 			page-up		[scroller/page-size]
 			page-down	[0 - scroller/page-size]
 			track		[scroller/position - event/picked]
-			wheel		[event/picked * 3]
+			wheel		[
+				delta: event/picked
+				case [	;-- scroll by lines
+					all [delta > -1.0 delta < 0.0][-1]
+					all [delta > 0.0 delta < 1.0][1]
+					true [
+						to-integer #either config/OS = 'macOS [delta][delta * 3]
+					]
+				]
+			]
 		][0]
 		if n <> 0 [
 			scroll-lines n
@@ -415,7 +424,7 @@ object [
 
 	select-all: func [][
 		if empty? lines [exit]
-		reduce/into [1 1 line-cnt 1 + length? head line] clear selects
+		reduce/into [1 1 length? nlines 1 + length? head line] clear selects
 		system/view/platform/redraw console
 	]
 

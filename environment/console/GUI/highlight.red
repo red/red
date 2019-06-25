@@ -306,7 +306,7 @@ highlight: context [
 
 		lit-word-rule: [
 			#"'" (type: 'lit-word!) [
-				special-words (to-word stack value type)
+				special-words
 				| [
 					begin-symbol-rule [
 						path-rule (type: 'lit-path!)			 ;-- path matched

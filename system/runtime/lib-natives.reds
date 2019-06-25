@@ -48,6 +48,12 @@ copy-memory: func [						;; copy a memory buffer to a new region in a safe way ;
 	return:		[byte-ptr!]				;; returns the target start address ;;
 	/local c
 ][
+	assert target <> source
+	assert any [
+		(target + size) <= source
+		(source + size) <= target
+	]
+	
 	unless any [zero? size source = target][
 		either source < target [
 			until [

@@ -305,6 +305,9 @@ get-event-picked: func [
 		EVT_SCROLL [
 			integer/push get-track-pos msg/hWnd msg/msg = WM_VSCROLL
 		]
+		EVT_WHEEL [
+			float/push (as float! evt/flags) / 120.0	;-- WHEEL_DELTA: 120
+		]
 		EVT_LEFT_DOWN
 		EVT_MIDDLE_DOWN
 		EVT_RIGHT_DOWN
@@ -449,6 +452,7 @@ make-event: func [
 		state  [integer!]
 		key	   [integer!]
 		char   [integer!]
+		saved  [handle!]
 ][
 	gui-evt/type:  evt
 	gui-evt/msg:   as byte-ptr! msg
@@ -527,6 +531,7 @@ make-event: func [
 		default	 [0]
 	]
 
+	saved: msg/hWnd
 	stack/mark-try-all words/_anon
 	res: as red-word! stack/arguments
 	catch CATCH_ALL_EXCEPTIONS [
@@ -535,6 +540,7 @@ make-event: func [
 	]
 	stack/adjust-post-try
 	if system/thrown <> 0 [system/thrown: 0]
+	msg/hWnd: saved
 	
 	if TYPE_OF(res) = TYPE_WORD [
 		sym: symbol/resolve res/symbol
@@ -652,6 +658,7 @@ process-command-event: func [
 					child
 					as red-object! values + FACE_OBJ_SELECTED
 			]
+			current-msg/hWnd: child
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
 			if any [
 				type/symbol = field
@@ -659,7 +666,6 @@ process-command-event: func [
 			][	
 				select-text child get-face-values child
 			]
-			current-msg/hWnd: child
 			make-event current-msg 0 EVT_FOCUS
 		]
 		EN_KILLFOCUS
@@ -1437,10 +1443,7 @@ process: func [
 		]
 		WM_MOUSEWHELL [
 			x: WIN32_HIWORD(msg/wParam)
-			y: either x < 0 [0 - x][x]
-			if y > 120 [y: 120]							;-- WHEEL_DELTA: 120
-			make-event msg x / y and FFFFh EVT_WHEEL
-			EVT_DISPATCH
+			make-event msg x EVT_WHEEL
 		]
 		WM_LBUTTONDOWN	[
 			if GetCapture <> null [return EVT_DISPATCH]
@@ -1502,28 +1505,30 @@ do-events: func [
 	no-wait? [logic!]
 	return:  [logic!]
 	/local
-		msg	  [tagMSG]
+		msg	  [tagMSG value]
 		state [integer!]
 		msg?  [logic!]
+		saved [tagMSG]
 ][
-	msg: declare tagMSG
 	msg?: no
 
 	unless no-wait? [exit-loop: 0]
 
 	while [
 		either no-wait? [
-			0 < PeekMessage msg null 0 0 1
+			0 < PeekMessage :msg null 0 0 1
 		][
-			0 < GetMessage msg null 0 0
+			0 < GetMessage :msg null 0 0
 		]
 	][
 		unless msg? [msg?: yes]
-		state: process msg
+		state: process :msg
 		if state >= EVT_DISPATCH [
-			current-msg: msg
-			TranslateMessage msg
-			DispatchMessage msg
+			saved: current-msg
+			current-msg: :msg
+			TranslateMessage :msg
+			DispatchMessage :msg
+			current-msg: saved
 		]
 		if no-wait? [return msg?]
 	]

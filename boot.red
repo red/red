@@ -29,6 +29,7 @@ Red [
 	#include %environment/codecs/jpeg.red
 	#include %environment/codecs/bmp.red
 	#include %environment/codecs/gif.red
+	#include %environment/codecs/json.red
 
 	#include %environment/reactivity.red				;-- requires SET intrinsic
 	#include %utils/preprocessor.r

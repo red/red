@@ -30,6 +30,7 @@ if system/script/args  [
 	    target = "Linux"
 	    target = "Android"
 	    target = "RPi"
+		target = "Linux-ARM"
 	][
 	    target: none
 	]
@@ -44,9 +45,9 @@ a-dll-file: ["--compile-dll " copy file a-file-name]
 unless target [
     target: ask {
         Choose ARM target:
-        1) Linux
+        1) Linux armel (ARMv5)
         2) Android
-        3) Linux armhf
+        3) Linux armhf (ARMv7+)
         => }
     target: pick ["Linux-ARM" "Android" "RPi"] to-integer target
 ]
@@ -115,7 +116,7 @@ replace src "../../../../../" "../../../../"
 replace/all src {"libtest-} {"./libtest-}
 write arm-dir/dylib-auto-test.reds src
 compile-test arm-dir/dylib-auto-test.reds
-;if exists? arm-dir/dylib-auto-test.reds [delete arm-dir/dylib-auto-test.reds]
+if exists? arm-dir/dylib-auto-test.reds [delete arm-dir/dylib-auto-test.reds]
 
 ;; complie the test libs
 compile-test-dylibs target arm-dir

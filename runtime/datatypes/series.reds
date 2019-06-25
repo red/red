@@ -95,6 +95,7 @@ _series: context [
 		only?   [logic!]
 		return: [red-value!]
 		/local
+			int	 [red-integer!]
 			char [red-char!]
 			vec  [red-vector!]
 			s	 [series!]
@@ -128,6 +129,11 @@ _series: context [
 						TYPE_VECTOR [
 							vec: as red-vector! ser
 							copy-cell vector/get-value idx unit vec/type as cell! ser
+						]
+						TYPE_BINARY [
+							int: as red-integer! ser
+							int/header: TYPE_INTEGER
+							int/value: string/get-char idx unit
 						]
 						default [								;@@ ANY-STRING!
 							char: as red-char! ser
@@ -790,6 +796,7 @@ _series: context [
 	remove: func [
 		ser	 	 [red-series!]
 		part-arg [red-value!]							;-- null if no /part
+		key-arg  [red-value!]
 		return:	 [red-series!]
 		/local
 			s		[series!]
@@ -804,11 +811,6 @@ _series: context [
 	][
 		s:    GET_BUFFER(ser)
 		unit: GET_UNIT(s)
-		head: (as byte-ptr! s/offset) + (ser/head << (log-b unit))
-		tail: as byte-ptr! s/tail
-
-		if head >= tail [return ser]						;-- early exit if nothing to remove
-
 		part: unit
 		items: 1
 
@@ -830,6 +832,19 @@ _series: context [
 			items: part
 			part: part << (log-b unit)
 		]
+
+		if OPTION?(key-arg) [
+			ser: as red-series! actions/find ser key-arg null no yes no no null null no no no no
+			if TYPE_OF(ser) = TYPE_NONE [return ser]
+			items: items + 1			;-- remove key + value
+			part: part + unit
+		]
+
+		head: (as byte-ptr! s/offset) + (ser/head << (log-b unit))
+		tail: as byte-ptr! s/tail
+
+		if head >= tail [return ser]						;-- early exit if nothing to remove
+
 		ownership/check as red-value! ser words/_remove null ser/head items
 		
 		either head + part < tail [
@@ -985,6 +1000,7 @@ _series: context [
 
 		bytes:	part << (log-b unit)
 		node: 	alloc-bytes bytes
+		s:      GET_BUFFER(ser)
 		buffer: as series! node/value
 		buffer/flags: s/flags							;@@ filter flags?
 
@@ -1131,6 +1147,7 @@ _series: context [
 		new/header: TYPE_UNSET
 		part:	part << (log-b unit)
 		node:	alloc-bytes part
+		s: GET_BUFFER(ser)
 		buffer: as series! node/value
 		buffer/flags: s/flags							;@@ filter flags?
 		buffer/flags: buffer/flags and not flag-series-owned

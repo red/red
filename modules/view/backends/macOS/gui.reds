@@ -333,7 +333,7 @@ init: func [
 	objc_msgSend [NSApp sel_getUid "setDelegate:" delegate]
 
 	get-os-version
-	create-main-menu
+	#if type = 'exe [create-main-menu]
 
 	;dlopen "./FScript.framework/FScript" 1
 	;objc_msgSend [
@@ -614,10 +614,6 @@ change-color: func [
 ][
 	t: TYPE_OF(color)
 	if all [t <> TYPE_NONE t <> TYPE_TUPLE][exit]
-	if all [type <> window transparent-color? color][
-		objc_msgSend [hWnd sel_getUid "setDrawsBackground:" no]
-		exit
-	]
 	set?: yes
 	case [
 		type = area [
@@ -627,10 +623,7 @@ change-color: func [
 			if t = TYPE_NONE [clr: objc_msgSend [objc_getClass "NSColor" sel_getUid "textBackgroundColor"]]
 		]
 		type = text [
-			if t = TYPE_NONE [
-				clr: objc_msgSend [objc_getClass "NSColor" sel_getUid "controlColor"]
-				set?: no
-			]
+			if t = TYPE_NONE [set?: no]
 			objc_msgSend [hWnd sel_getUid "setDrawsBackground:" set?]
 		]
 		any [type = check type = radio][
@@ -1875,6 +1868,7 @@ OS-make-view: func [
 		]
 		sym = text-list [
 			make-text-list face obj rc menu bits and FACET_FLAGS_NO_BORDER = 0
+			integer/make-at values + FACE_OBJ_SELECTED 0
 		]
 		any [sym = button sym = check sym = radio][
 			if sym <> button [
@@ -2113,7 +2107,7 @@ unlink-sub-obj: func [
 	
 	if TYPE_OF(parent) = TYPE_BLOCK [
 		res: block/find parent as red-value! face null no no yes no null null no no no no
-		if TYPE_OF(res) <> TYPE_NONE [_series/remove as red-series! res null]
+		if TYPE_OF(res) <> TYPE_NONE [_series/remove as red-series! res null null]
 		if all [
 			field = FONT_OBJ_PARENT
 			block/rs-tail? parent

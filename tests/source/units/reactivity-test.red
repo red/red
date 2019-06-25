@@ -66,4 +66,56 @@ Red [
 
 ===end-group===
 
+===start-group=== "relations formation"
+
+	--test-- "rf-1" 	; sanity check
+		rf-1-r: make reactor! [a: 1 b: is [a * 2]]
+		--assert 0 < length? system/reactivity/relations
+		clear-reactions
+		--assert empty? system/reactivity/relations
+		unset [rf-1-r]
+
+	--test-- "rf-2" 	; shouldn't add duplicate relations
+		clear-reactions
+		rf-2-r: make reactor! [a: 1 b: is [a * a * a]]
+		--assert 1 * 4 = length? system/reactivity/relations
+		unset [rf-2-r]
+
+	--test-- "rf-3" 	; same
+		clear-reactions
+		do [	; FIXME: workaround for #3797
+			rf-3-r: make reactor! [a: b: 1  react [self/b: self/a * self/a * self/a]]
+			--assert 1 * 4 = length? system/reactivity/relations
+			--assert (rf-3-r/a: 2  rf-3-r/b = 8)
+		]
+		unset [rf-3-r]
+
+	--test-- "rf-4"	; same
+		clear-reactions
+		do [	; FIXME: workaround for #3797
+			rf-4-r: make reactor! [a: b: c: 1  react [self/c: self/a * self/a * self/b * self/b]]
+			--assert 2 * 4 = length? system/reactivity/relations
+			--assert (rf-4-r/a: 2  rf-4-r/c = 4)
+			--assert (rf-4-r/b: 2  rf-4-r/c = 16)
+		]
+		unset [rf-4-r]
+
+	--test-- "rf-5" 	; same
+		clear-reactions
+		do [	; FIXME: workaround for #3797
+			rf-5-r: make reactor! [
+				a: b: c: d: 1
+				b: is [a + a] 											; +1
+				react [self/c: self/a * self/b * a * b]					; +2
+				react [self/d: self/a + self/b + self/c + a + b + c] 	; +3
+			]
+			--assert 6 * 4 = length? system/reactivity/relations
+			--assert (rf-5-r/a: 2  rf-5-r/b = 4)
+			--assert rf-5-r/c = 64
+			--assert rf-5-r/d = (2 + 4 + 64 * 2)
+		]
+		unset [rf-5-r]
+
+===end-group===
+
 ~~~end-file~~~

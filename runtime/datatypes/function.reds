@@ -901,14 +901,9 @@ _function: context [
 		]
 		copy-cell value alloc-tail more					;-- store body block or none
 		
-		args: as red-block! alloc-tail more
-		args/header: TYPE_BLOCK
-		args/head:	 0
-		args/node: 	 null
-		args/extra:	 0
-		
+		alloc-tail more									;-- skip the precompiled args slot
 		native: as red-native! alloc-tail more
-		native/header: TYPE_NATIVE
+		if code <> 0 [native/header: TYPE_NATIVE]
 		native/args: null
 		native/spec: null
 		native/code: code

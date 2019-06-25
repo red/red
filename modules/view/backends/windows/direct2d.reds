@@ -709,6 +709,7 @@ put-brush: func [
 
 DX-init: func [
 	/local
+		str					[red-string!]
 		hr					[integer!]
 		factory 			[integer!]
 		dll					[handle!]
@@ -736,7 +737,8 @@ DX-init: func [
 	hr: DWriteCreateFactory 0 IID_IDWriteFactory :factory		;-- DWRITE_FACTORY_TYPE_SHARED: 0
 	assert zero? hr
 	dwrite-factory: as this! factory
-	dwrite-str-cache: alloc-bytes 1024
+	str: string/rs-make-at ALLOC_TAIL(root) 1024
+	dwrite-str-cache: str/node
 ]
 
 DX-cleanup: func [/local unk [IUnknown]][
@@ -1059,9 +1061,8 @@ create-text-layout: func [
 ][
 	len: -1
 	either TYPE_OF(text) = TYPE_STRING [
-		text/cache: dwrite-str-cache
+		if null? text/cache [text/cache: dwrite-str-cache]
 		str: unicode/to-utf16-len text :len no
-		dwrite-str-cache: text/cache
 	][
 		str: ""
 		len: 0

@@ -93,7 +93,7 @@ libRedRT: context [
 			]
 		]
 		if exists? file: get-path extras-file [
-			append funcs load/all file
+			funcs: unique append funcs load/all file
 		]
 		foreach def funcs [
 			name: to word! form def

@@ -36,7 +36,7 @@ Red/System [
 			size		[integer!]
 			return:		[byte-ptr!]
 		]
-		copy-memory: "memcpy" [
+		#either debug? = yes [libc.copy-memory:][copy-memory:] "memcpy" [
 			target		[byte-ptr!]
 			source		[byte-ptr!]
 			size		[integer!]
@@ -143,6 +143,27 @@ Red/System [
 			value		[float!]
 			return:		[float!]
 		]
+		fmod:		"fmod" [
+			x           [float!]
+			y           [float!]
+			return:     [float!]
+		]
+	]
+]
+
+#if debug? = yes [
+	copy-memory: func [ 
+		target		[byte-ptr!]
+		source		[byte-ptr!]
+		size		[integer!]				;; number of bytes to copy
+		return:		[byte-ptr!]
+	][
+		assert target <> source
+		assert any [
+			(target + size) <= source
+			(source + size) <= target
+		]
+		libc.copy-memory target source size
 	]
 ]
 

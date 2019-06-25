@@ -698,13 +698,6 @@ Red [
 	--test-- "blk-m97"	--assert not parse 	[[a]]		[into [some 'b]]
 	--test-- "blk-m98"	--assert parse 		[[a]]		[into ['a 'b] | block!]
 
-	--test-- "blk-m100"	--assert not parse	[]			[then skip]
-	--test-- "blk-m101"	--assert parse		[]			[then skip | end]
-	--test-- "blk-m102"	--assert parse		[a]			[then 'a | 'b]
-	--test-- "blk-m103"	--assert not parse	[c]			[then 'a | 'b]
-	--test-- "blk-m104"	--assert parse		[b]			[then 'a | 'b]
-	--test-- "blk-m105"	--assert parse		[z a]		['z then 'a | 'b]
-
 	x: none
 	--test-- "blk-m110"	--assert parse		[2 4 6]		[any [set x integer! if (even? x)]]
 	--test-- "blk-m111"	--assert not parse	[1]			[set x integer! if (even? x)]
@@ -1581,13 +1574,6 @@ Red [
 	--test-- "str-m85"	--assert parse 		"a"			[opt wa]
 	--test-- "str-m86"	--assert parse 		"a"			[opt skip]
 	--test-- "str-m87"	--assert parse 		"abc"		[skip opt #"b" skip]
-
-	--test-- "str-m90"	--assert not parse	""			[then skip]
-	--test-- "blk-m91"	--assert parse		""			[then skip | end]
-	--test-- "str-m92"	--assert parse		"a"			[then #"a" | #"b"]
-	--test-- "str-m93"	--assert not parse	"c"			[then #"a" | #"b"]
-	--test-- "str-m94"	--assert parse		"b"			[then #"a" | #"b"]
-	--test-- "str-m95"	--assert parse		"za"		[#"z" then #"a" | #"b"]
 
 	x: none
 	--test-- "str-m100"	--assert parse		"246"		[any [copy x skip if (even? load x)]]
@@ -2560,13 +2546,6 @@ Red [
 	--test-- "bin-m85"	--assert parse 		#{0A}		[opt wa]
 	--test-- "bin-m86"	--assert parse 		#{0A}		[opt skip]
 	--test-- "bin-m87"	--assert parse 		#{0A0B0C}	[skip opt #{0B} skip]
-
-	--test-- "bin-m90"	--assert not parse	#{}			[then skip]
-	--test-- "blk-m91"	--assert parse		#{}			[then skip | end]
-	--test-- "bin-m92"	--assert parse		#{0A}		[then #{0A} | #{0B}]
-	--test-- "bin-m93"	--assert not parse	#{0c}		[then #{0A} | #{0B}]
-	--test-- "bin-m94"	--assert parse		#{0B}		[then #{0A} | #{0B}]
-	--test-- "bin-m95"	--assert parse		#{0F0a}		[#"^(0F)" then #{0A} | #{0B}]
 
 	x: none
 	--test-- "bin-m100"	--assert parse		#{020406}	[any [copy x skip if (even? first x)]]

@@ -125,7 +125,6 @@ parser: context [
 		R_SET:			-5
 		R_NOT:			-6
 		R_INTO:			-7
-		R_THEN:			-8
 		R_REMOVE:		-9
 		R_INSERT:		-10
 		R_WHILE:		-11
@@ -549,14 +548,14 @@ parser: context [
 				cnt: counter/value
 			][
 				len: either any [type2 = TYPE_CHAR type2 = TYPE_BITSET][1][
-					assert any [
+					unless any [
 						type2 = TYPE_STRING
 						type2 = TYPE_FILE
 						type2 = TYPE_URL
 						type2 = TYPE_TAG
 						type2 = TYPE_EMAIL
 						type2 = TYPE_BINARY
-					]
+					][return no]
 					string/rs-length? as red-string! token
 				]
 				if zero? len [return yes]
@@ -1071,6 +1070,7 @@ parser: context [
 												PARSE_PICK_INPUT
 												offset: offset + 1
 											]
+											s-top: stack/top	;-- shields the stack from eventual object event call
 											either into? [
 												switch TYPE_OF(blk) [
 													TYPE_BINARY [binary/insert as red-binary! blk value null yes null no]
@@ -1084,6 +1084,7 @@ parser: context [
 											][
 												block/rs-append blk value
 											]
+											stack/top: s-top
 											offset = input/head
 										]
 									]
@@ -1096,7 +1097,7 @@ parser: context [
 									input/head: p/input
 									assert int/value >= 0
 									PARSE_SAVE_SERIES
-									actions/remove input as red-value! int
+									actions/remove input as red-value! int null
 									PARSE_RESTORE_SERIES
 								]
 							]
@@ -1126,7 +1127,7 @@ parser: context [
 									assert int/value >= 0
 									copy-cell as red-value! int base	;@@ remove once OPTION? fixed
 									PARSE_SAVE_SERIES
-									new: as red-series! actions/change input value base only? null
+									new: actions/change input value base only? null
 									if s-top <> null [stack/top: s-top]
 									PARSE_RESTORE_SERIES
 									input/head: new/head
@@ -1188,12 +1189,6 @@ parser: context [
 								
 								PARSE_CHECK_INPUT_EMPTY? ;-- refresh end? flag after popping series
 								s: GET_BUFFER(rules)
-							]
-							R_THEN [
-								PARSE_TRACE(_pop)
-								s/tail: s/tail - 3		;-- pop rule stack frame
-								state: either match? [cmd: tail ST_NEXT_ACTION][ST_FIND_ALTERN]
-								pop?: no
 							]
 							R_CASE [
 								t: as triple! s/tail - 3
@@ -1413,7 +1408,6 @@ parser: context [
 							R_TO		 [words/_to]
 							R_THRU		 [words/_thru]
 							R_NOT		 [words/_not]
-							R_THEN		 [words/_then]
 							R_REMOVE	 [words/_remove]
 							R_WHILE		 [words/_while]
 							R_COLLECT	 [words/_collect]
@@ -1538,7 +1532,7 @@ parser: context [
 									copy-cell as red-value! input base
 									input/head: new/head
 									PARSE_SAVE_SERIES
-									actions/remove input base ;-- REMOVE position
+									actions/remove input base null ;-- REMOVE position
 									PARSE_RESTORE_SERIES
 									cmd: value
 									done?: yes
@@ -1732,11 +1726,6 @@ parser: context [
 							match?: end?
 							PARSE_TRACE(_match)
 							state: ST_CHECK_PENDING
-						]
-						sym = words/then [				;-- THEN
-							min:   R_NONE
-							type:  R_THEN
-							state: ST_PUSH_RULE
 						]
 						sym = words/if* [				;-- IF
 							cmd: cmd + 1

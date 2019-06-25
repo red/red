@@ -164,7 +164,7 @@ AreaWndProc: func [
 		WM_CHAR [
 			either zero? (ES_MULTILINE and GetWindowLong hWnd GWL_STYLE) [ ;field
 				;-- stop beep when pressing enter in field
-				if wParam = 0Dh	[ return 0 ];-- VK_RETURN
+				if any [wParam = 0Dh wParam = 9][ return 0 ];-- VK_RETURN or VK_TAB
 			][
 				;-- stop beep when pressing CTRL+A in area and select all
 				;based on: https://stackoverflow.com/a/25355868/494472

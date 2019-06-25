@@ -1766,7 +1766,7 @@ OS-draw-shape-arc: func [
 	pi2: as float32! 2.0 * PI
 	theta: get-float32 item
 	theta: theta * as float32! (PI / 180.0)
-	theta: theta % pi2
+	theta: as-float32 fmod as-float theta as-float pi2
 
 	;-- calculate center
 	dx: (p1-x - p2-x) / as float32! 2.0

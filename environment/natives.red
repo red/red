@@ -91,7 +91,7 @@ forever: make native! [[
 foreach: make native! [[
 		"Evaluates body for each value in a series"
 		'word  [word! block!]   "Word, or words, to set on each iteration"
-		series [series!]
+		series [series! map!]
 		body   [block!]
 	]
 	#get-definition NAT_FOREACH
@@ -187,7 +187,7 @@ reduce: make native! [[
 
 compose: make native! [[
 		"Returns a copy of a block, evaluating only parens"
-		value
+		value [block!]
 		/deep "Compose nested blocks"
 		/only "Compose nested blocks as blocks containing their values"
 		/into "Put results in out block, instead of creating a new block"
@@ -198,7 +198,7 @@ compose: make native! [[
 
 get: make native! [[
 		"Returns the value a word refers to"
-		word	[word! path!]
+		word	[word! path! object!]
 		/any  "If word has no value, return UNSET rather than causing an error"
 		/case "Use case-sensitive comparison (path only)"
 		return: [any-type!]

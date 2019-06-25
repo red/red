@@ -15,6 +15,9 @@ block: context [
 	
 	depth: 0											;-- used to trace nesting level for FORM/MOLD
 
+	compare-arg-a: as red-value! 0
+	compare-arg-b: as red-value! 0
+
 	rs-length?: func [
 		blk 	[red-block!]
 		return: [integer!]
@@ -761,9 +764,7 @@ block: context [
 				either type = TYPE_WORD [
 					select-word parent as red-word! element case?
 				][
-					value: select parent element null yes case? no no null null no no
-					stack/pop 1							;-- remove FIND result from stack
-					value
+					select parent element null yes case? no no null null no no
 				]
 			]
 		]
@@ -861,16 +862,17 @@ block: context [
 		]
 
 		type: TYPE_OF(value)
+		if type = TYPE_OBJECT [hash?: no]				;-- use block search
 		any-blk?: either all [same? hash?][no][ANY_BLOCK_STRICT?(type)]
 		op: either case? [COMP_STRICT_EQUAL][COMP_FIND] ;-- warning: /case <> STRICT...
 		if same? [op: COMP_SAME]
 
 		either any [
 			match?
-			any-blk?									;@@ temporary, because we don't hash block!
+			any-blk?									;@@ we don't hash block!
 			not hash?
 		][
-			values: either only? [0][						;-- values > 0 => series comparison mode
+			values: either only? [0][					;-- values > 0 => series comparison mode
 				either any-blk? [
 					b: as red-block! value
 					s2: GET_BUFFER(b)
@@ -878,7 +880,7 @@ block: context [
 					(as-integer s2/tail - s2/offset) >> 4 - b/head
 				][0]
 			]
-			if negative? values [values: 0]					;-- empty value series case
+			if negative? values [values: 0]				;-- empty value series case
 
 			case [
 				last? [
@@ -1136,9 +1138,15 @@ block: context [
 
 		all?: flags and sort-all-mask = sort-all-mask
 		num: flags >>> 2
-		if all [all? num > 0][					;FIXME: Corrupted series!!!
-			blk1: make-at as red-block! v1 1
-			blk2: make-at as red-block! v2 1
+		if all [all? num > 0][
+			if null? compare-arg-a [
+				compare-arg-a: ALLOC_TAIL(root)
+				compare-arg-b: ALLOC_TAIL(root)
+				make-at as red-block! compare-arg-a 1
+				make-at as red-block! compare-arg-b 1
+			]
+			blk1: as red-block! copy-cell compare-arg-a v1
+			blk2: as red-block! copy-cell compare-arg-b v2
 			s1: GET_BUFFER(blk1)
 			s2: GET_BUFFER(blk2)
 			s1/offset: value1
@@ -1324,6 +1332,7 @@ block: context [
 			values?	[logic!]
 			tail?	[logic!]
 			hash?	[logic!]
+			action	[red-word!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/insert"]]
 		
@@ -1384,7 +1393,13 @@ block: context [
 		h: blk/head
 		tail?: any [(s/offset + h = s/tail) append?]
 		slots: part * cnt
-		index: either append? [(as-integer s/tail - s/offset) >> 4][h]
+		index: either append? [
+			action: words/_append
+			(as-integer s/tail - s/offset) >> 4
+		][
+			action: words/_insert
+			h
+		]
 		
 		unless tail? [									;TBD: process head? case separately
 			size: as-integer s/tail + slots - s/offset
@@ -1438,7 +1453,7 @@ block: context [
 				cell: cell + 1
 			]
 		]
-		ownership/check as red-value! blk words/_insert value index part
+		ownership/check as red-value! blk action value index part
 		
 		either append? [blk/head: 0][
 			blk/head: h + slots

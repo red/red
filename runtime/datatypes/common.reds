@@ -92,6 +92,7 @@ copy-cell: func [
 	dst		[cell!]
 	return: [red-value!]
 ][
+	if src = dst [return dst]
 	copy-memory											;@@ optimize for 16 bytes copying
 		as byte-ptr! dst
 		as byte-ptr! src
@@ -487,7 +488,6 @@ words: context [
 	none:			-1
 	pipe:			-1
 	dash:			-1
-	then:			-1
 	if*:			-1
 	remove:			-1
 	while*:			-1
@@ -579,7 +579,6 @@ words: context [
 	_to:			as red-word! 0
 	_thru:			as red-word! 0
 	_not:			as red-word! 0
-	_then:			as red-word! 0
 	_remove:		as red-word! 0
 	_while:			as red-word! 0
 	_collect:		as red-word! 0
@@ -604,7 +603,7 @@ words: context [
 	_clear:			as red-word! 0
 	_cleared:		as red-word! 0
 	_set-path:		as red-word! 0
-	_insert:		as red-word! 0
+	_append:		as red-word! 0
 	_poke:			as red-word! 0
 	_put:			as red-word! 0
 	;_remove:		as red-word! 0
@@ -691,7 +690,6 @@ words: context [
 		none:			symbol/make "none"
 		pipe:			symbol/make "|"
 		dash:			symbol/make "-"
-		then:			symbol/make "then"
 		if*:			symbol/make "if"
 		remove:			symbol/make "remove"
 		while*:			symbol/make "while"
@@ -775,7 +773,6 @@ words: context [
 		_to:			_context/add-global to
 		_thru:			_context/add-global thru
 		_not:			_context/add-global not*
-		_then:			_context/add-global then
 		_remove:		_context/add-global remove
 		_while:			_context/add-global while*
 		_collect:		_context/add-global collect
@@ -800,7 +797,7 @@ words: context [
 		_clear:			word/load "clear"
 		_cleared:		word/load "cleared"
 		_set-path:		word/load "set-path"
-		_insert:		word/load "insert"
+		_append:		word/load "append"
 		_move:			word/load "move"
 		_moved:			word/load "moved"
 		_poke:			word/load "poke"

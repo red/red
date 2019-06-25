@@ -49,9 +49,9 @@ do %source/units/run-pre-extra-tests.r
 ===end-group===
 do %source/units/run-post-extra-tests.r
 
-===start-group=== "View Engine Tests"
-	--run-test-file-quiet %source/view/base-self-test.red
-===end-group===
+;===start-group=== "View Engine Tests"
+;	--run-test-file-quiet %source/view/base-self-test.red
+;===end-group===
 
 ***end-run-quiet***
 
