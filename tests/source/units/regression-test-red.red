@@ -841,7 +841,7 @@ Red [
 		--assert equal? 1 f764
 		f764: function[os764][os764] 
 		--assert equal? 1 f764 1
-		f764:func[][os764: 1] 
+		f764: func[][os764: 1] 
 		--assert equal? 1 f764
 		f764: func[][os764: 1 os764] 
 		--assert equal? 1 f764
