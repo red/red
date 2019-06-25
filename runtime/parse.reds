@@ -125,7 +125,6 @@ parser: context [
 		R_SET:			-5
 		R_NOT:			-6
 		R_INTO:			-7
-		R_THEN:			-8
 		R_REMOVE:		-9
 		R_INSERT:		-10
 		R_WHILE:		-11
@@ -290,6 +289,7 @@ parser: context [
 			res	   [integer!]
 			set?   [logic!]								;-- required by BS_TEST_BIT
 			not?   [logic!]
+			bin?   [logic!]
 			match? [logic!]
 	][
 		s: GET_BUFFER(rules)
@@ -347,10 +347,11 @@ parser: context [
 				TYPE_TAG
 				TYPE_EMAIL
 				TYPE_BINARY [
-					if all [type = TYPE_BINARY TYPE_OF(token) <> TYPE_BINARY][
+					bin?: type = TYPE_BINARY
+					type: TYPE_OF(token)
+					if all [bin? type <> TYPE_BINARY not ANY_STRING?(type)][
 						PARSE_ERROR [TO_ERROR(script parse-rule) token]
 					]
-					type: TYPE_OF(token)
 					size: string/rs-length? as red-string! token
 					if type = TYPE_TAG [size: size + 2]
 					if (string/rs-length? as red-string! input) < size [return no]
@@ -521,6 +522,7 @@ parser: context [
 			len	   [integer!]
 			cnt	   [integer!]
 			type   [integer!]
+			type2  [integer!]
 			match? [logic!]
 			end?   [logic!]
 			s	   [series!]
@@ -531,6 +533,7 @@ parser: context [
 		cnt: 	0
 		match?: yes
 		type: 	TYPE_OF(input)
+		type2:	TYPE_OF(token)
 		
 		either any [									;TBD: replace with ANY_STRING
 			type = TYPE_STRING
@@ -544,6 +547,20 @@ parser: context [
 				match?: loop-bitset input as red-bitset! token min max counter part
 				cnt: counter/value
 			][
+				len: either any [type2 = TYPE_CHAR type2 = TYPE_BITSET][1][
+					unless any [
+						type2 = TYPE_STRING
+						type2 = TYPE_FILE
+						type2 = TYPE_URL
+						type2 = TYPE_TAG
+						type2 = TYPE_EMAIL
+						type2 = TYPE_BINARY
+					][return no]
+					string/rs-length? as red-string! token
+				]
+				if zero? len [return yes]
+				if type2 = TYPE_TAG [len: len + 2]
+				
 				until [									;-- ANY-STRING input matching
 					match?: either type = TYPE_BINARY [
 						binary/match? as red-binary! input token comp-op
@@ -551,7 +568,7 @@ parser: context [
 						string/match? as red-string! input token comp-op
 					]
 					end?: any [
-						all [match? advance as red-string! input token]	;-- consume matched input
+						all [match? _series/rs-skip input len]	;-- consume matched input
 						all [positive? part input/head >= part]
 					]
 					cnt: cnt + 1
@@ -798,6 +815,7 @@ parser: context [
 			only?	 [logic!]
 			done?	 [logic!]
 			saved?	 [logic!]
+			gc-saved [logic!]
 	][
 		match?:	  yes
 		end?:	  no
@@ -814,6 +832,9 @@ parser: context [
 		cnt-col:   0
 		fun-locs:  0
 		state:    ST_PUSH_BLOCK
+
+		s: GET_BUFFER(series)
+		if s/offset = s/tail [gc-saved: collector/active? collector/active?: no]
 
 		if OPTION?(fun) [fun-locs: _function/count-locals fun/spec 0]
 		
@@ -1049,6 +1070,7 @@ parser: context [
 												PARSE_PICK_INPUT
 												offset: offset + 1
 											]
+											s-top: stack/top	;-- shields the stack from eventual object event call
 											either into? [
 												switch TYPE_OF(blk) [
 													TYPE_BINARY [binary/insert as red-binary! blk value null yes null no]
@@ -1062,6 +1084,7 @@ parser: context [
 											][
 												block/rs-append blk value
 											]
+											stack/top: s-top
 											offset = input/head
 										]
 									]
@@ -1074,7 +1097,7 @@ parser: context [
 									input/head: p/input
 									assert int/value >= 0
 									PARSE_SAVE_SERIES
-									actions/remove input as red-value! int
+									actions/remove input as red-value! int null
 									PARSE_RESTORE_SERIES
 								]
 							]
@@ -1104,7 +1127,7 @@ parser: context [
 									assert int/value >= 0
 									copy-cell as red-value! int base	;@@ remove once OPTION? fixed
 									PARSE_SAVE_SERIES
-									new: as red-series! actions/change input value base only? null
+									new: actions/change input value base only? null
 									if s-top <> null [stack/top: s-top]
 									PARSE_RESTORE_SERIES
 									input/head: new/head
@@ -1166,12 +1189,6 @@ parser: context [
 								
 								PARSE_CHECK_INPUT_EMPTY? ;-- refresh end? flag after popping series
 								s: GET_BUFFER(rules)
-							]
-							R_THEN [
-								PARSE_TRACE(_pop)
-								s/tail: s/tail - 3		;-- pop rule stack frame
-								state: either match? [cmd: tail ST_NEXT_ACTION][ST_FIND_ALTERN]
-								pop?: no
 							]
 							R_CASE [
 								t: as triple! s/tail - 3
@@ -1391,7 +1408,6 @@ parser: context [
 							R_TO		 [words/_to]
 							R_THRU		 [words/_thru]
 							R_NOT		 [words/_not]
-							R_THEN		 [words/_then]
 							R_REMOVE	 [words/_remove]
 							R_WHILE		 [words/_while]
 							R_COLLECT	 [words/_collect]
@@ -1457,7 +1473,7 @@ parser: context [
 					sym: symbol/resolve w/symbol
 					#if debug? = yes [
 						sym*: symbol/get sym
-						if verbose > 0 [print-line ["parse: " sym*/cache]]
+						if verbose > 0 [print "parse: " print-symbol w print lf]
 					]
 					case [
 						sym = words/pipe [				;-- |
@@ -1516,7 +1532,7 @@ parser: context [
 									copy-cell as red-value! input base
 									input/head: new/head
 									PARSE_SAVE_SERIES
-									actions/remove input base ;-- REMOVE position
+									actions/remove input base null ;-- REMOVE position
 									PARSE_RESTORE_SERIES
 									cmd: value
 									done?: yes
@@ -1711,11 +1727,6 @@ parser: context [
 							PARSE_TRACE(_match)
 							state: ST_CHECK_PENDING
 						]
-						sym = words/then [				;-- THEN
-							min:   R_NONE
-							type:  R_THEN
-							state: ST_PUSH_RULE
-						]
 						sym = words/if* [				;-- IF
 							cmd: cmd + 1
 							if any [cmd = tail TYPE_OF(cmd) <> TYPE_PAREN][
@@ -1768,6 +1779,10 @@ parser: context [
 							]
 							either into? [
 								blk: as red-block! _context/get w
+								type: TYPE_OF(blk)
+								unless ANY_SERIES?(type) [
+									PARSE_ERROR [TO_ERROR(script parse-into-bad)]
+								]
 								max: either sym = words/after [-1][blk/head] ;-- save block cursor
 							][
 								block/push-only* 8
@@ -1843,7 +1858,10 @@ parser: context [
 			state = ST_EXIT
 		]
 		reset saved?
-		
+
+		s: GET_BUFFER(series)
+		if s/offset = s/tail [collector/active?: gc-saved]
+
 		either collect? [
 			base + 1
 		][

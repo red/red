@@ -18,8 +18,12 @@ alert: func [msg [string! block!]][
 	view/flags compose [
 		title "Message"
 		below center
-		text 200 (msg) center
-		button "ok"
+		text 200 (form reduce msg) center
+		button focus "OK" [unview] on-key [
+			switch event/key [
+				#"^M" #"^[" #" " #"^O" [unview]
+			]
+		]
 	] 'modal
 ]
 
@@ -59,11 +63,15 @@ quit: func [
 ]
 
 empty?: func [
-	"Returns true if a series is at its tail"
-	series	[series! none!]
+	"Returns true if a series is at its tail or a map! is empty"
+	series	[series! none! map!]
 	return:	[logic!]
 ][
-	either series = none [true][tail? series]
+	case [
+		series? series [tail? series]
+		map? series [series = #()]
+		none? series [true]
+	]
 ]
 
 ??: func [
@@ -191,7 +199,7 @@ repend: func [
 	value
 	/only "Appends a block value as a block"
 ][
-	head either any [only not any-list? series][
+	head either any [only not any-block? series][
 		insert/only tail series reduce :value
 	][
 		reduce/into :value tail series					;-- avoids wasting an intermediary block
@@ -205,49 +213,54 @@ replace: function [
 	value "New value, replaces pattern in the series"
 	/all "Replace all occurrences, not just the first"
 	/deep "Replace pattern in all sub-lists as well"
-	/local p rule s e many? len pos
+	/case "Case-sensitive replacement"
+	/local p rule s e many? len pos do-parse do-find
 ][
-	if system/words/all [deep any-list? series][
-		pattern: to block! either word? pattern [to lit-word! pattern][pattern]
-		parse series rule: [
-			some [
-				s: pattern e: (
-				s: change/part s value e
-					unless all [return series]
-				) :s
-				| ahead any-list! into rule | skip
+	do-parse: pick [parse/case parse] case
+	if system/words/all [deep any-list? series] [
+		pattern: to block! either word? pattern [to lit-word! pattern] [pattern]
+		do compose [
+			(do-parse) series rule: [
+				some [
+					s: pattern e: (
+						s: change/part s value e
+						unless all [return series]
+					) :s
+					| ahead any-list! into rule | skip
+				]
 			]
 		]
 		return series
 	]
-	if system/words/all [char? :pattern any-string? series][
+	if system/words/all [any [char? :pattern tag? :pattern] any-string? series] [
 		pattern: form pattern
 	]
 	either system/words/all [any-string? :series block? :pattern] [
 		p: [to pattern change pattern (value)]
-		parse series either all [[some p]][p]
-	][
+		do compose [(do-parse) series either all [[some p]] [p]]
+	] [
 		many?: any [
 			system/words/all [series? :pattern any-string? series]
 			binary? series
 			system/words/all [any-list? series any-list? :pattern]
-		] 
-		len: either many? [length? pattern][1]
+		]
+		len: either many? [length? pattern] [1]
+		do-find: pick [find/case find] case
 		either all [
 			pos: series
 			either many? [
-				while [pos: find pos pattern][
+				while [pos: do compose [(do-find) pos pattern]] [
 					remove/part pos len
 					pos: insert pos value
 				]
 			] [
-				while [pos: find pos :pattern] [
+				while [pos: do compose [(do-find) pos :pattern]] [
 					pos: insert remove pos value
 				]
 			]
 		] [
-			if pos: find series :pattern [
-				remove/part pos len 
+			if pos: do compose [(do-find) series :pattern] [
+				remove/part pos len
 				insert pos value
 			]
 		]
@@ -276,7 +289,7 @@ math: function [
 
 charset: func [
 	"Shortcut for `make bitset!`"
-	spec [block! integer! char! string!]
+	spec [block! integer! char! string! bitset! binary!]
 ][
 	make bitset! spec
 ]
@@ -484,13 +497,13 @@ save: function [
 	]
 ]
 
-cause-error: function [
+cause-error: func [
 	"Causes an immediate error throw, with the provided information"
-	err-type [word!]
-	err-id	 [word!]
-	args	 [block!]
+	err-type [word!] 
+	err-id [word!] 
+	args [block! string!] 
 ][
-	args: reduce args
+	args: reduce either block? args [args] [[args]]		; Blockify string args
 	do make error! [
 		type: err-type
 		id: err-id
@@ -678,42 +691,53 @@ extract-boot-args: function [
 ][
 	unless args: system/script/args [exit]				;-- non-executable case
 
-	;-- extract system/options/boot
-	either args/1 = dbl-quote [
-		until [args: next args args/1 <> dbl-quote]
-		system/options/boot: to-red-file copy/part args pos: find args dbl-quote
-		until [pos: next pos pos/1 <> dbl-quote]
+	at-arg2: none
+
+	#either config/OS = 'Windows [
+		;-- logic should mirror that of `split-tokens` in `red.r`
+
+		ws: charset " ^-" 								;-- according to MSDN "Parsing C++ Command-Line Arguments" article
+		split-mode: yes
+		system/options/boot: take system/options/args: collect [
+			arg-end: has [s' e'] [
+				unless same? s': s e': e [ 				;-- empty argument check
+					;-- remove heading and trailing quotes (if any), even if it results in an empty arg
+					if s/1 = #"^"" [s': next s]
+					if all [e/-1 = #"^""  not same? e s'] [e': back e]
+					keep copy/part s' e'
+				]
+			]
+			arg2-update: [if (at-arg2) | at-arg2:]
+			parse s: args [
+				some [e:
+					#"^"" (split-mode: not split-mode)
+				|	if (split-mode) some ws (arg-end) arg2-update s:
+				|	skip
+				] e: (arg-end) arg2-update
+			]
+		]
 	][
-		pos: either pos: find/tail args space [back pos][tail args]
-		system/options/boot: to-red-file copy/part args pos
-	]
-	;-- clean-up system/script/args
-	remove/part args: head args pos
-	
-	;-- set system/options/args
-	either empty? trim/head args [system/script/args: none][
-		unescape: quote (
-			if odd? len: offset? s e [len: len - 1]
-			e: skip e negate len / 2
-			e: remove/part s e
-		)
-		parse args: copy args [							;-- preprocess escape chars
-			any [
-				s: {'"} thru {"'} e: (s/1: #"{" e/-1: #"}")
-				| s: #"'" [to #"'" e: (s/1: #"{" e/1: #"}") | to end]
-				| s: some #"\" e: {"} unescape :e
-				  thru [s: some #"\" e: {"}] unescape :e
-				| skip
-			]
-		]
-		system/options/args: parse head args [			;-- tokenize and collect
-			collect some [[
-				some #"^"" keep copy s to #"^"" some #"^""
-				| #"{" keep copy s to #"}" skip
-				| keep copy s [to #" " | to end]] any #" "
+		;-- logic should be an inverse of `get-cmdline-args` as it is constructed there from *argv
+
+		ws: charset " ^-^/^M"
+		system/options/boot: take system/options/args: parse args [
+			collect some [
+				(buf: make string! 32) collect into buf any [
+					not ws [
+						#"'" keep to #"'" skip
+					|	"\'" keep (#"'")
+					|	keep skip
+					]
+				]
+				[some ws | end]
+				s: (at-arg2: any [at-arg2 s])
+				keep (buf)
 			]
 		]
 	]
+	remove/part args at-arg2 						;-- remove the program name
+
+	system/options/args
 ]
 
 collect: function [
@@ -855,7 +879,7 @@ path-thru: function [
 	hash: checksum form url 'MD5
 	file: head (remove back tail remove remove (form hash))
 	path: dirize append copy so/thru-cache copy/part file 2
-    unless exists? path [make-dir path] 
+	unless exists? path [make-dir path] 
 	append path file
 ]
 
@@ -935,8 +959,8 @@ tan: func [
 ]
 
 acos: func [
-	"Returns the trigonometric arccosine"
-	angle [float!] "Angle in radians"
+	"Returns the trigonometric arccosine (in radians in range [0,pi])"
+	cosine [float!] "in range [-1,1]"
 ][
 	#system [
 		stack/arguments: stack/arguments - 1
@@ -945,8 +969,8 @@ acos: func [
 ]
 
 asin: func [
-	"Returns the trigonometric arcsine"
-	angle [float!] "Angle in radians"
+	"Returns the trigonometric arcsine (in radians in range [-pi/2,pi/2])"
+	sine [float!] "in range [-1,1]"
 ][
 	#system [
 		stack/arguments: stack/arguments - 1
@@ -955,8 +979,8 @@ asin: func [
 ]
 
 atan: func [
-	"Returns the trigonometric arctangent"
-	angle [float!] "Angle in radians"
+	"Returns the trigonometric arctangent (in radians in range [-pi/2,+pi/2])"
+	tangent [float!] "in range [-inf,+inf]"
 ][
 	#system [
 		stack/arguments: stack/arguments - 1
@@ -965,7 +989,7 @@ atan: func [
 ]
 
 atan2: func [
-	"Returns the angle of the point y/x in radians"
+	"Returns the smallest angle between the vectors (1,0) and (x,y) in range (-pi,pi]"
 	y		[number!]
 	x		[number!]
 	return:	[float!]
@@ -1035,10 +1059,18 @@ average: func [
 	divide sum block to float! length? block
 ]
 
+last?: func [
+	"Returns TRUE if the series length is 1"
+	series [series!]
+] [
+	1 = length? series
+]
+
 ;------------------------------------------
 ;-				Aliases					  -
 ;------------------------------------------
 
+single?:	:last?
 keys-of:	:words-of
 object:		:context
 halt:		:quit										;-- default behavior unless console is loaded

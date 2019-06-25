@@ -15,6 +15,11 @@ No matter how small, your contribution will be valued and appreciated providing 
 (A simple way for you to confirm both 1 & 2 will be introduced in due course.)
 3. A lot of care and attention has been given to the design of both the Red and Red-System languages. Before starting work on anything to change or extend either language, please submit a proposal for your change by raising an issue on the Red project GitHub repository. (It could save you a lot of unnecessary work.)
 4. All code submissions should include a reasonable set of tests written with [quick test](http://static.red-lang.org/red-system-quick-test.html).
+5. All commit messages submitted to Red repository should be prefixed according to the following conventions:
+    * `FEAT:` new feature.
+    * `FIX:` ticket or bug fix. If it's a ticket, then the form is: `FIX: issue #<number> (<issue title>)`.
+    * `TESTS:` new or modified test(s), or testing framework related.
+    * `DOCS:` related to the part of the documentation that is in [red/docs](https://github.com/red/docs) repository.
 
 ### Coding Standards
 All contributions should adhere to the following coding standards

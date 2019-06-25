@@ -68,50 +68,38 @@ Red/System [
 			cnt		[integer!]
 			size	[integer!]
 			cp		[integer!]
-			offset	[integer!]
-			delim	[integer!]
+			quote 	[integer!]
 			end?	[logic!]
-			ws?		[logic!]
-			dq?		[logic!]
 	][
 		cnt: 0
 		size: 4'000									;-- enough?
+		quote: as-integer #"'"
 		str: string/rs-make-at ALLOC_TAIL(root) size
 		s: GET_BUFFER(str)
 		args: system/args-list
 		
 		until [
 			src: args/item
-			ws?: no
-			dq?: no
-			offset: string/rs-abs-length? str
-			
+
+			;-- see PR #3870 on quoting details
+			s: string/append-char s quote
 			until [
 				cnt: unicode/utf8-char-size? as-integer src/1
 				cp: unicode/decode-utf8-char src :cnt
-				switch cp [
-					#" "	[ws?: yes]
-					#"^""	[dq?: yes]
-					default [0]
+				either cp <> as-integer #"'" [
+					s: string/append-char s cp
+				][
+					s: string/append-char s quote
+					s: string/append-char s as-integer #"\"
+					s: string/append-char s quote
+					s: string/append-char s quote
 				]
-				s: string/append-char s cp
 				src: src + cnt
 				size: size - 1
 				any [src/1 = null-byte zero? size]
 			]
+			s: string/append-char s quote
 			
-			case [
-				ws? [
-					delim: as-integer either dq? [#"'"][#"^""]
-					s: string/insert-char s offset delim
-					s: string/append-char s delim
-				]
-				dq? [
-					s: string/insert-char s offset as-integer #"'"
-					s: string/append-char s delim  as-integer #"'"
-				]
-				true [0]
-			]
 			args: args + 1
 			end?: null? args/item
 			unless end? [s: string/append-char s as-integer #" "] ;-- add a space as separation
@@ -280,6 +268,7 @@ check-arg-type: func [
 		name: switch major [
 			10 [
 				switch minor [
+					14 ["Mojave"]
 					13 ["High Sierra"]
 					12 ["Sierra"]
 					11 ["El Capitan"]

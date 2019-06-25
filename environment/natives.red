@@ -91,7 +91,7 @@ forever: make native! [[
 foreach: make native! [[
 		"Evaluates body for each value in a series"
 		'word  [word! block!]   "Word, or words, to set on each iteration"
-		series [series!]
+		series [series! map!]
 		body   [block!]
 	]
 	#get-definition NAT_FOREACH
@@ -187,7 +187,7 @@ reduce: make native! [[
 
 compose: make native! [[
 		"Returns a copy of a block, evaluating only parens"
-		value
+		value [block!]
 		/deep "Compose nested blocks"
 		/only "Compose nested blocks as blocks containing their values"
 		/into "Put results in out block, instead of creating a new block"
@@ -198,7 +198,7 @@ compose: make native! [[
 
 get: make native! [[
 		"Returns the value a word refers to"
-		word	[word! path!]
+		word	[word! path! object!]
 		/any  "If word has no value, return UNSET rather than causing an error"
 		/case "Use case-sensitive comparison (path only)"
 		return: [any-type!]
@@ -403,7 +403,7 @@ difference: make native! [[
 		/case "Use case-sensitive comparison"
 		/skip "Treat the series as fixed size records"
 			size [integer!]
-		return: [block! hash! string! bitset! typeset!]
+		return: [block! hash! string! bitset! typeset! time!]
 	]
 	#get-definition NAT_DIFFERENCE
 ]
@@ -514,35 +514,36 @@ tangent: make native! [[
 ]
 
 arcsine: make native! [[
-		"Returns the trigonometric arcsine (in degrees by default)"
-		value	[number!]
-		/radians "Angle is returned in radians"
+		"Returns the trigonometric arcsine (in degrees by default in range [-90,90])"
+		sine	[number!] "in range [-1,1]"
+		/radians "Angle is returned in radians [-pi/2,pi/2]"
 		return: [float!]
 	]
 	#get-definition NAT_ARCSINE
 ]
 
 arccosine: make native! [[
-		"Returns the trigonometric arccosine (in degrees by default)"
-		value	[number!]
-		/radians "Angle is returned in radians"
+		"Returns the trigonometric arccosine (in degrees by default in range [0,180])"
+		cosine	[number!] "in range [-1,1]"
+		/radians "Angle is returned in radians [0,pi]"
 		return: [float!]
 	]
 	#get-definition NAT_ARCCOSINE
 ]
 
 arctangent: make native! [[
-		"Returns the trigonometric arctangent (in degrees by default)"
-		value	[number!]
-		/radians "Angle is returned in radians"
+		"Returns the trigonometric arctangent (in degrees by default in range [-90,90])"
+		tangent	[number!] "in range [-inf,+inf]"
+		/radians "Angle is returned in radians [-pi/2,pi/2]"
 		return: [float!]
 	]
 	#get-definition NAT_ARCTANGENT
 ]
 arctangent2: make native! [[
-		"Returns the smallest angle between the X axis and the point (x,y) (-pi to pi)"
+		"Returns the smallest angle between the vectors (1,0) and (x,y) in degrees by default (-180,180]"
 		y       [number!]
 		x       [number!]
+		/radians "Angle is returned in radians (-pi,pi]"
 		return: [float!]
 	]
 	#get-definition NAT_ARCTANGENT2

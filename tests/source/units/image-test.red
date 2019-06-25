@@ -11,6 +11,9 @@ Red [
 
 ~~~start-file~~~ "image"
 
+; FIXME: linux compiler can't swallow this, using do
+do [if all [system/view value? 'image! datatype? get 'image!] [
+
 img: make image! 2x2
 ===start-group=== "image range(integer index)"
 	--test-- "image range(integer index) 1"
@@ -86,5 +89,42 @@ img: make image! 2x2
 	--test-- "image range(pair index) 22"
 		--assert error? try [img/(3x2): 1.2.3]
 ===end-group===
+
+===start-group=== "image pixel assignment validity"
+	--test-- "image pixel 3-tuple assignment 1"
+		--assert 255.255.255 = img/1: 255.255.255
+	--test-- "image pixel 3-tuple assignment 2"
+		--assert 255.255.255.0 = img/1
+	--test-- "image pixel 4-tuple assignment"
+		--assert 255.255.255.255 = img/2: 255.255.255.255
+	--test-- "image pixel 5-tuple assignment 1"
+		--assert 1.2.3.4.5 = img/3: 1.2.3.4.5
+	--test-- "image pixel 5-tuple assignment 2"
+		--assert 1.2.3.4 = img/3
+	--test-- "image pixel junk assignment 1"
+		--assert error? try [img/1: "junk"]
+	--test-- "image pixel junk assignment 2"
+		--assert error? try [img/1: []]
+	--test-- "image pixel junk assignment 3"
+		--assert error? try [img/1: 3.14]
+	--test-- "image pixel unaffected by junk assignments?"
+		--assert 255.255.255.0 = img/1
+===end-group===
+
+===start-group=== "image issues"
+	--test-- "image issue 3651"
+		img: make image! 2x2
+		clrs: [255.0.0.0 0.255.0.0 0.0.255.0 255.255.255.0]
+		img/1: clrs/1
+		img/2: clrs/2
+		img/3: clrs/3
+		idx: 1
+		foreach clr img [
+			--assert clr = pick clrs idx
+			idx: idx + 1
+		]
+===end-group===
+
+]]
 
 ~~~end-file~~~

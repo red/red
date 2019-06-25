@@ -584,9 +584,7 @@ object: context [
 					string/append-char GET_BUFFER(buffer) as-integer #"'" ;-- create a literal word
 					part: part - 1
 				]
-				unless cycles/detect? value buffer :part mold? [
-					part: actions/mold value buffer only? all? flat? arg part tabs
-				]
+				part: actions/mold value buffer only? all? flat? arg part tabs
 
 				if any [indent? sym + 1 < s-tail][			;-- no final LF when FORMed
 					string/append-char GET_BUFFER(buffer) as-integer blank
@@ -970,6 +968,8 @@ object: context [
 			obj		[red-object!]
 			obj2	[red-object!]
 			ctx		[red-context!]
+			self	[node!]
+			s		[series!]
 			blk		[red-block!]
 			p-obj?  [logic!]
 			new?	[logic!]
@@ -997,13 +997,16 @@ object: context [
 				obj/on-set: null						;-- avoid GC marking previous value
 				blk: as red-block! spec
 				new?: _context/collect-set-words ctx blk
-				_context/bind blk ctx save-self-object obj yes	;-- bind spec block
+				self: save-self-object obj
+				_context/bind blk ctx self yes	;-- bind spec block
 				if p-obj? [duplicate proto/ctx obj/ctx no]		;-- clone and rebind proto's series
 				interpreter/eval blk no
 				
 				obj/class: either any [new? not p-obj?][get-new-id][proto/class]
 				obj/on-set: on-set-defined? ctx
 				if on-deep? obj [ownership/set-owner as red-value! obj obj null]
+				s: as series! self/value
+				copy-cell as red-value! obj s/offset
 			]
 			default [fire [TO_ERROR(syntax malconstruct) spec]]
 		]
@@ -1097,6 +1100,7 @@ object: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/form"]]
 
+		if cycles/detect? as red-value! obj buffer :part no [return part]
 		serialize obj buffer no no no arg part no 0 no
 	]
 	
@@ -1112,6 +1116,8 @@ object: context [
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/mold"]]
+		
+		if cycles/detect? as red-value! obj buffer :part yes [return part]
 		
 		string/concatenate-literal buffer "make object! ["
 		part: serialize obj buffer no all? flat? arg part - 14 yes indent + 1 yes
@@ -1207,10 +1213,11 @@ object: context [
 		if TYPE_OF(obj2) <> TYPE_OBJECT [RETURN_COMPARE_OTHER]
 
 		if op = COMP_SAME [return either obj1/ctx = obj2/ctx [0][-1]]
-		if all [
-			obj1/ctx = obj2/ctx
-			any [op = COMP_EQUAL op = COMP_FIND op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
-		][return 0]
+		if obj1/ctx = obj2/ctx [return 0]
+
+		if cycles/find? obj1/ctx [
+			return either cycles/find? obj2/ctx [0][-1]
+		]
 
 		ctx1: GET_CTX(obj1)
 		s: as series! ctx1/symbols/value
@@ -1233,12 +1240,13 @@ object: context [
 		value2: s/offset
 		
 		cycles/push obj1/ctx
+		cycles/push obj2/ctx
 		
 		until [
 			s1: symbol/resolve sym1/symbol
 			s2: symbol/resolve sym2/symbol
 			if s1 <> s2 [
-				cycles/pop
+				cycles/pop-n 2
 				return SIGN_COMPARE_RESULT(s1 s2)
 			]
 			type1: TYPE_OF(value1)
@@ -1251,17 +1259,13 @@ object: context [
 					any [type2 = TYPE_INTEGER type2 = TYPE_FLOAT]
 				]
 			][
-				either cycles/find? value1 [
-					res: as-integer not natives/same? value1 value2
-				][
-					res: actions/compare-value value1 value2 op
-				]
+				res: actions/compare-value value1 value2 op
 				sym1: sym1 + 1
 				sym2: sym2 + 1
 				value1: value1 + 1
 				value2: value2 + 1
 			][
-				cycles/pop
+				cycles/pop-n 2
 				return SIGN_COMPARE_RESULT(type1 type2)
 			]
 			any [
@@ -1269,7 +1273,7 @@ object: context [
 				sym1 >= tail
 			]
 		]
-		cycles/pop
+		cycles/pop-n 2
 		res
 	]
 	

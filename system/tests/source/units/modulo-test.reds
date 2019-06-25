@@ -43,29 +43,18 @@ Red/System [
   
 ===end-group=== 
 
-===start-group=== "float remainder"
+===start-group=== "float remainder (only defined for 64-bit floats)"
 
-  --test-- "fr-1" --assert  9.0  %  4.0  =  1.0
-  --test-- "fr-2" --assert  9.0  % -4.0  =  1.0
-  --test-- "fr-3" --assert -9.0  %  4.0  = -1.0
-  --test-- "fr-4" --assert -9.0  % -4.0  = -1.0
-  --test-- "fr-5" --assert  8.5  %  4.0  =  0.5
+  --test-- "fr-1" --assert (fmod 9.0 4.0)  =  1.0
+  --test-- "fr-2" --assert (fmod 9.0 -4.0)  =  1.0
+  --test-- "fr-3" --assert (fmod -9.0 4.0)  = -1.0
+  --test-- "fr-4" --assert (fmod -9.0 -4.0)  = -1.0
+  --test-- "fr-5" --assert (fmod 8.5 4.0)  =  0.5
 
-  --test-- "fr-6" --assertf~=  8.49 %  4.0    0.49	1E-6
-  --test-- "fr-7" --assertf~=  9.0  %  3.9    1.2	1E-6
-  --test-- "fr-8" --assertf~=  8.9  %  4.46   4.44	1E-6
-  --test-- "fr-9" --assertf~=  8.9  %  4.25   0.4	1E-6
-
-  --test-- "f32r-1" --assert (as-float32 9.0)  % (as-float32 4.0)  = as-float32 1.0
-  --test-- "f32r-2" --assert (as-float32 9.0)  % (as-float32 -4.0) = as-float32 1.0
-  --test-- "f32r-3" --assert (as-float32 -9.0) % (as-float32 4.0)  = as-float32 -1.0
-  --test-- "f32r-4" --assert (as-float32 -9.0) % (as-float32 -4.0) = as-float32 -1.0
-  --test-- "f32r-5" --assert (as-float32 8.5)  % (as-float32 4.0) = as-float32 0.5
-
-  --test-- "f32r-6" --assertf32~= (as-float32 8.49) % (as-float32 4.0)  (as-float32  0.49) 1E-6
-  --test-- "f32r-7" --assertf32~= (as-float32 9.0)  % (as-float32 3.9)  (as-float32  1.2)  1E-6
-  --test-- "f32r-8" --assertf32~= (as-float32 8.9)  % (as-float32 4.46) (as-float32  4.44) 1E-6
-  --test-- "f32r-9" --assertf32~= (as-float32 8.9)  % (as-float32 4.25) (as-float32  0.4)  1E-6
+  --test-- "fr-6" --assertf~=  (fmod 8.49 4.0)    0.49	1E-6
+  --test-- "fr-7" --assertf~=  (fmod 9.0  3.9)    1.2	1E-6
+  --test-- "fr-8" --assertf~=  (fmod 8.9  4.46)   4.44	1E-6
+  --test-- "fr-9" --assertf~=  (fmod 8.9  4.25)   0.4	1E-6
 
 ===end-group=== 
 

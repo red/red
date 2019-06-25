@@ -278,7 +278,9 @@ collector: context [
 		]
 	]
 	
-	do-mark-sweep: func [/local s [series!] p [int-ptr!] obj [red-object!] w [red-word!] cb file saved][
+	do-mark-sweep: func [
+		/local s [series!] p [int-ptr!] obj [red-object!] w [red-word!] cb file saved tm tm1 buf
+	][
 		#if debug? = yes [if verbose > 1 [
 			#if OS = 'Windows [platform/dos-console?: no]
 			file: "                      "
@@ -288,9 +290,16 @@ collector: context [
 		]]
 
 		#if debug? = yes [
-			probe ["root size: " block/rs-length? root ", root max: " ***-root-size ", cycles: " stats/cycles]
 			if verbose > 2 [stack-trace]
-			if verbose > 1 [probe "marking..."]
+			buf: "                                                               "
+			tm: platform/get-time yes yes
+			print [
+				"root size: "	block/rs-length? root
+				", root max: "	***-root-size
+				", cycles: "	stats/cycles
+				", before: " 	memory-info null 1
+			]
+			if verbose > 1 [probe "^/marking..."]
 		]
 
 		mark-block root
@@ -338,7 +347,9 @@ collector: context [
 		
 		#if debug? = yes [if verbose > 1 [probe "marking nodes on native stack"]]
 		mark-stack-nodes
-		
+
+		#if debug? = yes [tm1: (platform/get-time yes yes) - tm]	;-- marking time
+
 		#if debug? = yes [if verbose > 1 [probe "sweeping..."]]
 		_hashtable/sweep ownership/table
 		collect-frames COLLECTOR_RELEASE
@@ -351,11 +362,16 @@ collector: context [
 		stats/cycles: stats/cycles + 1
 		;probe "done!"
 
-		#if debug? = yes [if verbose > 1 [
-			simple-io/close-file stdout
-			stdout: saved
-			#if OS = 'Windows [platform/dos-console?: yes]
-		]]
+		#if debug? = yes [
+			tm: (platform/get-time yes yes) - tm - tm1
+			sprintf [buf ", mark: %.3f ms, sweep: %.3f ms" tm1 * 1000 tm * 1000]
+			probe [", after: " memory-info null 1 buf]
+			if verbose > 1 [
+				simple-io/close-file stdout
+				stdout: saved
+				#if OS = 'Windows [platform/dos-console?: yes]
+			]
+		]
 	]
 	
 	do-cycle: does [

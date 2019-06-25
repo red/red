@@ -17,22 +17,19 @@ cbuffer:		as byte-ptr! 0
 
 #include %win32-ansi.reds
 
-;-------------------------------------------
-;-- check whether we are in console mode
-;-------------------------------------------
-init-dos-console: func [/local n [integer!]][
-	cbuffer:		allocate 64
-	buffer:			allocate 1024
-	pbuffer:		buffer ;this stores buffer's head position
+init-output-buffer: func [/local n [integer!]][
+	cbuffer: allocate 64
+	buffer:	 allocate 1024
+	pbuffer: buffer ;-- this stores buffer's head position
 	n: 0
-	dos-console?: 0 < GetConsoleMode stdout :n
+	dos-console?: 0 < GetConsoleMode stdout :n		;-- check whether we are in console mode
 ]
 
 ;-------------------------------------------
 ;-- putwchar use windows api internal
 ;-------------------------------------------
 putwchar: func [
-	wchar	[integer!]									;-- wchar is 16-bit on Windows
+	wchar	[integer!]								;-- wchar is 16-bit on Windows
 	return:	[integer!]
 	/local
 		n	[integer!]
@@ -187,14 +184,7 @@ print-str: func [
 
 wflush: func [len [integer!] /local p [byte-ptr!] i [integer!]][
 	print-str cbuffer len * 2 UCS-2 no
-	p: cbuffer
-	i: 1
-	while [i < len][	;-- cbuffer contains numbers only, it's safe to convert widechar to char
-		p: p + 1
-		i: i + 1
-		p/value: p/i
-	]
-	dyn-print/rs-print as c-string! cbuffer len no
+	dyn-print/rs-print as c-string! pbuffer len no
 ]
 
 ;-------------------------------------------

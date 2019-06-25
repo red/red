@@ -326,19 +326,21 @@ ext-process: context [
 			sa/bInheritHandle: inherit
 			
 			either shell? [
-				len: (1 + platform/lstrlen as byte-ptr! cmd) * 2
-				cmdstr: make-c-string (14 + len)
-				copy-memory as byte-ptr! cmdstr as byte-ptr! #u16 "cmd /c " 14
-				copy-memory as byte-ptr! cmdstr + 14 as byte-ptr! cmd len
+				len: (platform/lstrlen as byte-ptr! cmd) * 2
+				cmdstr: make-c-string (26 + len)
+				copy-memory as byte-ptr! cmdstr as byte-ptr! #u16 {cmd /s /c "} 22
+				copy-memory as byte-ptr! cmdstr + 22 as byte-ptr! cmd len
+				copy-memory as byte-ptr! cmdstr + 22 + len as byte-ptr! #u16 {"^@} 4
 			][
 				cmdstr: cmd
 			]
 			unless platform/CreateProcessW null cmdstr null null inherit 0 null null :s-inf :p-inf [
 				either 2 = platform/GetLastError [		;-- ERROR_FILE_NOT_FOUND
-					len: (1 + platform/lstrlen as byte-ptr! cmd) * 2
-					cmdstr: make-c-string (14 + len)
-					copy-memory as byte-ptr! cmdstr as byte-ptr! #u16 "cmd /c " 14
-					copy-memory as byte-ptr! cmdstr + 14 as byte-ptr! cmd len
+					len: (platform/lstrlen as byte-ptr! cmd) * 2
+					cmdstr: make-c-string (26 + len)
+					copy-memory as byte-ptr! cmdstr as byte-ptr! #u16 {cmd /s /c "} 22
+					copy-memory as byte-ptr! cmdstr + 22 as byte-ptr! cmd len
+					copy-memory as byte-ptr! cmdstr + 22 + len as byte-ptr! #u16 {"^@} 4
 					shell?: yes							;-- force /shell mode and try again
 					win-shell?: yes
 					

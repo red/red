@@ -298,9 +298,15 @@ get-event-picked: func [
 				int
 			]
 		]
-		EVT_MENU   [word/push* evt/flags and FFFFh]
+		EVT_MENU   [
+			idx: evt/flags and FFFFh
+			either idx = 65535 [none/push][word/push* idx]
+		]
 		EVT_SCROLL [
 			integer/push get-track-pos msg/hWnd msg/msg = WM_VSCROLL
+		]
+		EVT_WHEEL [
+			float/push (as float! evt/flags) / 120.0	;-- WHEEL_DELTA: 120
 		]
 		EVT_LEFT_DOWN
 		EVT_MIDDLE_DOWN
@@ -446,6 +452,7 @@ make-event: func [
 		state  [integer!]
 		key	   [integer!]
 		char   [integer!]
+		saved  [handle!]
 ][
 	gui-evt/type:  evt
 	gui-evt/msg:   as byte-ptr! msg
@@ -524,6 +531,7 @@ make-event: func [
 		default	 [0]
 	]
 
+	saved: msg/hWnd
 	stack/mark-try-all words/_anon
 	res: as red-word! stack/arguments
 	catch CATCH_ALL_EXCEPTIONS [
@@ -532,6 +540,7 @@ make-event: func [
 	]
 	stack/adjust-post-try
 	if system/thrown <> 0 [system/thrown: 0]
+	msg/hWnd: saved
 	
 	if TYPE_OF(res) = TYPE_WORD [
 		sym: symbol/resolve res/symbol
@@ -649,6 +658,7 @@ process-command-event: func [
 					child
 					as red-object! values + FACE_OBJ_SELECTED
 			]
+			current-msg/hWnd: child
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
 			if any [
 				type/symbol = field
@@ -656,7 +666,6 @@ process-command-event: func [
 			][	
 				select-text child get-face-values child
 			]
-			current-msg/hWnd: child
 			make-event current-msg 0 EVT_FOCUS
 		]
 		EN_KILLFOCUS
@@ -706,21 +715,46 @@ paint-background: func [
 	hDC		[handle!]
 	return: [logic!]
 	/local
-		rect   [RECT_STRUCT value]
-		hBrush [handle!]
-		color  [integer!]
+		rect 	[RECT_STRUCT value]
+		brush	[integer!]
+		hBrush 	[handle!]
+		color 	[red-tuple!]
+		gdiclr 	[integer!]
+		graphic	[integer!]
+		values 	[red-value!]
 ][
-	color: to-bgr as node! GetWindowLong hWnd wc-offset + 4 FACE_OBJ_COLOR
-	either color = -1 [
-		either (GetWindowLong hWnd GWL_STYLE) and WS_CHILD = 0 [
+	values: get-face-values hWnd
+	color: as red-tuple! values + FACE_OBJ_COLOR
+
+	either win8+? [
+		;-- use plain old GDI fill when it's possible
+		either TYPE_OF(color) = TYPE_TUPLE [
+			hBrush: CreateSolidBrush color/array1 and 00FFFFFFh
+		][
+			if (GetWindowLong hWnd GWL_STYLE) and WS_CHILD <> 0 [return false]
 			hBrush: GetSysColorBrush COLOR_3DFACE
-		][return false]
+		]
+		GetClientRect hWnd rect
+		FillRect hDC rect hBrush
+		if TYPE_OF(color) = TYPE_TUPLE [DeleteObject hBrush]
 	][
-		hBrush: CreateSolidBrush color
+		;-- GDI+ alpha aware fill is required for W7 layered windows capture via OS-to-image
+		either TYPE_OF(color) = TYPE_TUPLE [
+			gdiclr: color/array1
+		][
+			if (GetWindowLong hWnd GWL_STYLE) and WS_CHILD <> 0 [return false]
+			gdiclr: GetSysColor COLOR_3DFACE
+		]
+		gdiclr: to-gdiplus-color-fixed gdiclr
+		brush: 0
+		GdipCreateSolidFill gdiclr :brush
+
+		graphic: 0
+		GdipCreateFromHDC hDC :graphic
+		GetClientRect hWnd rect
+		GdipFillRectangleI graphic brush 0 0 rect/right - rect/left rect/bottom - rect/top
+		GdipDeleteBrush brush
 	]
-	GetClientRect hWnd rect
-	FillRect hDC rect hBrush
-	DeleteObject hBrush
 	true
 ]
 
@@ -789,6 +823,9 @@ process-custom-draw: func [
 bitblt-memory-dc: func [
 	hWnd	[handle!]
 	alpha?	[logic!]
+	dc		[handle!]
+	dstx	[integer!]
+	dsty	[integer!]
 	/local
 		rect	[RECT_STRUCT value]
 		width	[integer!]
@@ -796,9 +833,9 @@ bitblt-memory-dc: func [
 		hBackDC [handle!]
 		ftn		[integer!]
 		bf		[tagBLENDFUNCTION]
-		dc		[handle!]
+		paint? 	[logic!]
 ][
-	dc: BeginPaint hWnd paint
+	if dc = null [dc: BeginPaint hWnd paint  paint?: yes]
 	hBackDC: as handle! GetWindowLong hWnd wc-offset - 4
 	GetClientRect hWnd rect
 	width: rect/right - rect/left
@@ -810,11 +847,11 @@ bitblt-memory-dc: func [
 		bf/BlendFlags: as-byte 0
 		bf/SourceConstantAlpha: as-byte 255
 		bf/AlphaFormat: as-byte 1
-		AlphaBlend dc 0 0 width height hBackDC 0 0 width height ftn
+		AlphaBlend dc dstx dsty width height hBackDC 0 0 width height ftn
 	][
-		BitBlt dc 0 0 width height hBackDC 0 0 SRCCOPY
+		BitBlt dc dstx dsty width height hBackDC 0 0 SRCCOPY
 	]
-	EndPaint hWnd paint
+	if paint? [EndPaint hWnd paint]
 ]
 
 screen-to-client: func [
@@ -1235,7 +1272,7 @@ WndProc: func [
 				either zero? GetWindowLong hWnd wc-offset - 4 [
 					do-draw hWnd null draw no yes yes yes
 				][
-					bitblt-memory-dc hWnd no
+					bitblt-memory-dc hWnd no null 0 0
 				]
 				return 0
 			]
@@ -1406,10 +1443,7 @@ process: func [
 		]
 		WM_MOUSEWHELL [
 			x: WIN32_HIWORD(msg/wParam)
-			y: either x < 0 [0 - x][x]
-			if y > 120 [y: 120]							;-- WHEEL_DELTA: 120
-			make-event msg x / y and FFFFh EVT_WHEEL
-			EVT_DISPATCH
+			make-event msg x EVT_WHEEL
 		]
 		WM_LBUTTONDOWN	[
 			if GetCapture <> null [return EVT_DISPATCH]
@@ -1471,28 +1505,30 @@ do-events: func [
 	no-wait? [logic!]
 	return:  [logic!]
 	/local
-		msg	  [tagMSG]
+		msg	  [tagMSG value]
 		state [integer!]
 		msg?  [logic!]
+		saved [tagMSG]
 ][
-	msg: declare tagMSG
 	msg?: no
 
 	unless no-wait? [exit-loop: 0]
 
 	while [
 		either no-wait? [
-			0 < PeekMessage msg null 0 0 1
+			0 < PeekMessage :msg null 0 0 1
 		][
-			0 < GetMessage msg null 0 0
+			0 < GetMessage :msg null 0 0
 		]
 	][
 		unless msg? [msg?: yes]
-		state: process msg
+		state: process :msg
 		if state >= EVT_DISPATCH [
-			current-msg: msg
-			TranslateMessage msg
-			DispatchMessage msg
+			saved: current-msg
+			current-msg: :msg
+			TranslateMessage :msg
+			DispatchMessage :msg
+			current-msg: saved
 		]
 		if no-wait? [return msg?]
 	]

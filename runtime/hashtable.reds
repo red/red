@@ -13,6 +13,8 @@ Red/System [
 	}
 ]
 
+#define MAP_KEY_DELETED		[0]
+
 #define HASH_TABLE_HASH		0
 #define HASH_TABLE_MAP		1
 #define HASH_TABLE_SYMBOL	2
@@ -733,6 +735,7 @@ _hashtable: context [
 			either type = HASH_TABLE_HASH [
 				resize-hash node n-buckets
 			][
+				if type = HASH_TABLE_MAP [n-buckets: h/n-buckets + 1]
 				resize node n-buckets
 			]
 		]
@@ -1001,7 +1004,7 @@ _hashtable: context [
 
 		either h/indexes = null [				;-- map!
 			key: key + 1
-			key/header: TYPE_NONE
+			key/header: MAP_KEY_DELETED
 		][										;-- hash!
 			s: as series! h/flags/value
 			flags: as int-ptr! s/offset

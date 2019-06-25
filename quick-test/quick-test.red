@@ -33,6 +33,7 @@ Red [
   ]  
 ]
 qt-file-name: none
+qt-verbose: false
 
 ;; group switches
 qt-group-name-not-printed: true
@@ -82,6 +83,10 @@ qt-init-file: func [] [
 ===start-group===: func [
   title [string!]
 ][
+  if qt-verbose [
+    prin "===group=== "
+    print title
+  ]
   qt-group-name: title
   qt-group?: true
 ]
@@ -89,6 +94,10 @@ qt-init-file: func [] [
 --test--: func [
   title [string!]
 ][
+  if qt-verbose [
+    prin "--test-- "
+    print title
+  ]
   qt-test-name: title
   qt-file-tests: qt-file-tests + 1
 ]

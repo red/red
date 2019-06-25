@@ -55,6 +55,14 @@ Red [
 	--test-- "empty-6" --assert false = empty? "a"
 	--test-- "empty-7" --assert false = empty? [red blue]
 	--test-- "empty-8" --assert false = empty? %functions-test.red
+	--test-- "empty-9"
+		--assert true = empty? #()
+	--test-- "empty-10"
+		--assert false = empty? #(a: 1)
+	--test-- "empty-11"
+		m: #(a: 1)
+		remove/key m 'a
+		--assert true = empty? m
 
 ===end-group===
 
@@ -207,6 +215,8 @@ Red [
 		--assert "abcc" = replace/all "abxx" "x" "c"
 		--assert [1 9 [2 3 4]] = replace [1 2 [2 3 4]] 2 9
 		--assert [1 9 [2 3 4]] = replace/all [1 2 [2 3 4]] 2 9
+		--assert "aaa bbb ccc" = replace "aaa <tag> ccc" <tag> "bbb"
+		--assert "aaa <bbb> ccc" = replace "aaa <tag> ccc" <tag> <bbb>
 		;--assert [1 9 [9 3 4]] = replace/deep [1 2 [2 3 4]] 2 9
 
 ===end-group===
@@ -268,6 +278,13 @@ Red [
 		cause-error-func-1: function [] [cause-error 'math 'zero-divide []]
 		cause-error-result-1: try [cause-error-func-1]
 			--assert error? cause-error-result-1
+	--test-- "cause-error string"
+		cause-error-func-2: function [] [cause-error 'user 'type "String Error Msg"]
+		cause-error-result-2: try [cause-error-func-2]
+			--assert error? cause-error-result-2
+			--assert cause-error-result-2/type = 'user
+			--assert cause-error-result-2/id = 'type
+			--assert cause-error-result-2/arg1 = "String Error Msg"
 ===end-group===
 
 ===start-group=== "pad tests"
@@ -457,11 +474,6 @@ Red [
 		--assertf~= atan 1.0 0.7853981 0.0001
 ===end-group===
 
-===start-group=== "atan tests"
-	--test-- "atan test"
-		--assertf~= atan 1.0 0.7853981 0.0001
-===end-group===
-
 ===start-group=== "atan2 tests"
 	--test-- "atan2 test"
 		--assertf~= (atan2 10 1) 1.4711276 0.0001
@@ -473,8 +485,8 @@ Red [
 		--assert 2.0 = sqrt 4
 ===end-group===
 
-===start-group=== "sqrt tests"
-	--test-- "sqrt test"
+===start-group=== "rejoin tests"
+	--test-- "rejoin test"
 		--assert "24" = rejoin [1 + 1 2 * 2]
 ===end-group===
 
@@ -489,6 +501,27 @@ Red [
 		--assert 1.5 = average [1 2]
 		--assert 25% = average [30% 20%]
 		--assert 0.5 = average [1 30% 20%]
+===end-group===
+
+===start-group=== "last? tests"
+	--test-- "last? true tests"
+		--assert error? try [last? 2]
+		--assert true = last? [1]
+		--assert true = last? "1"
+		--assert true = last? make hash! [1]
+		--assert true = last? make vector! [1]
+		--assert true = last? #{01}
+	--test-- "last? false tests"
+		--assert false = last? []
+		--assert false = last? [1 2]
+		--assert false = last? ""
+		--assert false = last? "12"
+		--assert false = last? make hash! []
+		--assert false = last? make hash! [1 2]
+		--assert false = last? make vector! []
+		--assert false = last? make vector! [1 2]
+		--assert false = last? #{0102}
+		--assert false = last? #{}
 ===end-group===
 
 ~~~end-file~~~

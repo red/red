@@ -2,7 +2,8 @@
 [![Windows build](https://bs.red-lang.org/windows.svg)](https://ci.appveyor.com/project/red/red/branch/master)
 [![macOS build](https://bs.red-lang.org/macos.svg)](https://travis-ci.org/red/red)
 [![Linux build](https://bs.red-lang.org/linux.svg)](https://travis-ci.org/red/red)
-[![ARM build](https://bs.red-lang.org/arm.svg)](https://travis-ci.org/red/red)
+[![ARMel build](https://bs.red-lang.org/armel.svg)](https://travis-ci.org/red/red)
+[![ARMhf build](https://bs.red-lang.org/armhf.svg)](https://travis-ci.org/red/red)
 
 Red Programming Language
 ------------------------
@@ -127,7 +128,7 @@ Cross-compilation targets:
     WindowsXP    : Windows, x86, GUI applications, no touch API
     Linux        : GNU/Linux, x86
     Linux-ARM    : GNU/Linux, ARMv5, armel (soft-float)
-    RPi          : GNU/Linux, ARMv5, armhf (hard-float)
+    RPi          : GNU/Linux, ARMv7, armhf (hard-float)
     Darwin       : macOS Intel, console-only applications
     macOS        : macOS Intel, applications bundles
     Syllable     : Syllable OS, x86
@@ -202,7 +203,7 @@ Note: The red git repository does not include a .gitignore file. If you run the 
 
 Contributing
 -------------------------
-If you want to contribute code to the Red project be sure to read the [guidelines](https://github.com/red/red/wiki/Contributor-Guidelines) first.
+If you want to contribute code to the Red project be sure to read the [guidelines](https://github.com/red/red/wiki/%5BDOC%5D-Contributor-Guidelines) first.
 
 It is usually a good idea to inform the Red team about what changes you are going to make in order to ensure that someone is not already working on the same thing. You can reach us through the [mailing-list](https://groups.google.com/forum/?hl=en#!forum/red-lang) or our [chat room](https://gitter.im/red/red).
 

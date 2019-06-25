@@ -426,7 +426,7 @@ lexer: context [
 	]
 
 	decimal-special: [
-		s: "-0.0" | (neg?: no) opt [#"-" (neg?: yes)] "1.#" s: [
+		s: "-0.0" pos: [integer-end | ws-no-count | end ] :pos | (neg?: no) opt [#"-" (neg?: yes)] "1.#" s: [
 			[[#"N" | #"n"] [#"a" | #"A"] [#"N" | #"n"]]
 			| [[#"I" | #"i"] [#"N" | #"n"] [#"F" | #"f"]]
 		]
@@ -527,7 +527,7 @@ lexer: context [
 
 	base-2-rule: [
 		"2#{" (type: binary!) [
-			s: any [counted-newline | 8 [#"0" | #"1" ] | ws-no-count | comment-rule]
+			s: any [counted-newline | 8 [any [ws-no-count | comment-rule][#"0" | #"1" ]] | ws-no-count | comment-rule]
 			e: #"}" (base: 2)
 			| (pos: skip s -3 throw-error)
 		]
@@ -838,6 +838,7 @@ lexer: context [
 		parse/all/case copy/part s e [
 			any [
 				escaped-char   (insert tail new value)
+				| #"^^"
 				| s: filter e: (insert/part tail new s e)
 			]										;-- exit on matching " or }
 		]

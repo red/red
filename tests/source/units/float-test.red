@@ -69,11 +69,25 @@ Red [
 		--assert 45 = arctangent 1
 
 	--test-- "float-arctangent2"
-		--assertf~=  3.1415926535898  arctangent2 0 -1 1E-13
-		--assertf~=  3.1415926535898  arctangent2 0.0 -1.0 1E-13
-		--assertf~= -1.5707963267949  arctangent2 -1 0 1E-13
-		--assertf~= -0.78539816339745 arctangent2 -1 1 1E-13
-		--assertf~= -0.78539816339745 arctangent2 -1.5 1.5 1E-13
+		--assertf~=  3.1415926535898  atan2 0 -1 1E-13
+		--assertf~=  3.1415926535898  atan2 0.0 -1.0 1E-13
+		--assertf~= -1.5707963267949  atan2 -1 0 1E-13
+		--assertf~= -0.78539816339745 atan2 -1 1 1E-13
+		--assertf~= -0.78539816339745 atan2 -1.5 1.5 1E-13
+
+	--test-- "float-arctangent3"
+		--assertf~=  3.1415926535898  arctangent2/radians 0 -1 1E-13
+		--assertf~=  3.1415926535898  arctangent2/radians 0.0 -1.0 1E-13
+		--assertf~= -1.5707963267949  arctangent2/radians -1 0 1E-13
+		--assertf~= -0.78539816339745 arctangent2/radians -1 1 1E-13
+		--assertf~= -0.78539816339745 arctangent2/radians -1.5 1.5 1E-13
+
+	--test-- "float-arctangent4"
+		--assertf~=  180.0 arctangent2 0 -1 1E-13
+		--assertf~=  180.0 arctangent2 0.0 -1.0 1E-13
+		--assertf~= -90.0  arctangent2 -1 0 1E-13
+		--assertf~= -45.0  arctangent2 -1 1 1E-13
+		--assertf~= -45.0  arctangent2 -1.5 1.5 1E-13
 
 ===end-group===
 

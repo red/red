@@ -110,6 +110,7 @@ Red/System [
 		pen?			[logic!]
 		brush?			[logic!]
 		on-image?		[logic!]					;-- drawing on image?
+		rect-y			[float32!]
 		pattern-blk		[int-ptr!]
 		pattern-mode	[integer!]
 		pattern-ver		[integer!]

@@ -582,6 +582,50 @@ make-profilable make target-class [
 		if verbose >= 3 [print ">>>emitting POP"]
 		emit #{58}									;-- POP eax
 	]
+	
+	emit-io-read: func [type][
+		if verbose >= 3 [print ">>>emitting SYSTEM/IO/READ"]
+		
+		emit #{89C2}								;-- MOV edx, eax
+		switch type [
+			byte!	 [
+				emit #{EC}							;-- IN al, dx
+				emit #{25FF000000}					;-- AND eax, 0xFF
+			]
+			;int16!	 []
+			integer! [emit #{ED}]					;-- IN eax, dx
+			;int64!	 []
+		]
+	]
+	
+	emit-io-write: func [type][
+		if verbose >= 3 [print ">>>emitting SYSTEM/IO/WRITE"]
+
+		switch type [
+			byte!	 [emit #{EE}]					;-- OUT dx, al
+			;int16!	 []
+			integer! [emit #{EF}]					;-- OUT dx, eax
+			;int64!	 []
+		]
+	]
+	
+	emit-push-all: does [
+		emit #{60}									;-- PUSHAD
+		emit #{9C}									;-- PUSHFD	(from EFLAGS)
+		emit #{89E0}								;-- MOV eax, esp
+		emit #{83E4F0}								;-- AND esp, -16  ; FXSAVE needs 16-bit alignment
+		emit #{50}									;-- PUSH eax
+		emit #{81EC0C020000}						;-- SUB esp, 512+12 ; keep it aligned
+		emit #{0FAE0424}							;-- FXSAVE  [esp]
+	]
+	
+	emit-pop-all: does [
+		emit #{0FAE0C24}							;-- FXRSTOR [esp]
+		emit #{81C40C020000}						;-- ADD esp, 512+12
+		emit #{5C}									;-- POP esp
+		emit #{9D}									;-- POPFD	(to EFLAGS)
+		emit #{61}									;-- POPAD
+	]
 
 	emit-log-b: func [type][
 		if type = 'byte! [emit #{25FF000000}]		;-- AND eax, 0xFF
@@ -1800,7 +1844,7 @@ make-profilable make target-class [
 	
 	emit-float-math-op: func [
 		name [word!] a [word!] b [word!] args [block!] reversed? [logic!]
-		/local mod? scale c type spec
+		/local scale c type spec
 	][
 		all [
 			find [+ -] name	
@@ -1811,29 +1855,12 @@ make-profilable make target-class [
 			compiler/throw-error "unsupported operation with float numbers"
 		]
 		
-		if find mod-rem-op name [					;-- work around unaccepted '// and '%
-			mod?: select mod-rem-func name			;-- convert operators to words (easier to handle)
-			name: first [/]							;-- work around unaccepted '/ 
-		]
 		set-width args/1
 		emit switch name [
 			+ [#{DEC1}]								;-- FADDP st0, st1
 			- [pick [#{DEE1} #{DEE9}] reversed?]	;-- FSUB[R]P st0, st1
 			* [#{DEC9}]								;-- FMULP st0, st1
-			/ [
-				if all [mod? not reversed?][
-					emit #{D9C9}					;-- FXCH st0, st1		; for modulo/remainder ops
-				]
-				switch/default mod? [
-					mod [#{D9F8}]					;-- FPREM st0, st1		; floating point remainder
-					rem [#{D9F8}]					;-- FPREM st0, st1 		; floating point remainder
-					;rem [#{D9F5}]					;-- FPREM1 st0, st1 	; rounded remainder (IEEE)
-				][pick [#{DEF1} #{DEF9}] reversed?]	;-- FDIV[R]P st0, st1
-			]
-		]
-		if mod? [									;-- Trash st1 to keep the stack clean
-			emit #{D9C9}							;-- FXCH st0, st1		; st1 <=> st0
-			emit-float-trash-last					;-- drop st0
+			/ [pick [#{DEF1} #{DEF9}] reversed?]	;-- FDIV[R]P st0, st1
 		]
 	]
 
@@ -2003,11 +2030,6 @@ make-profilable make target-class [
 						#{5D}						;-- POP ebp			; get 6th arg in reg
 					] 1 + fspec/1 - c
 				]
-				if PIC? [
-					emit #{8B5C24}					;-- MOV ebx, [esp-c-1]
-					emit to-bin8 negate (fspec/1 + 1) * 4
-					emit #{53}						;-- PUSH ebx
-				]
 				if fspec/1 >= 6 [
 					emit #{50}						;-- PUSH eax		; save frame pointer on stack
 				]
@@ -2020,7 +2042,10 @@ make-profilable make target-class [
 			BSD [emit-cdecl-pop fspec args]			;-- BSD syscall cconv (~ cdecl)
 			Linux [
 				if fspec/1 >= 6 [emit #{5D}]		;-- POP ebp			; restore frame pointer
-				if PIC? [emit #{5B}]				;-- POP ebx			; restore IP-relative pointer
+				if PIC? [
+					emit #{8B5C24}					;-- MOV ebx, [esp-c-1] ; restore IP-relative pointer
+					emit to-bin8 negate (fspec/1 + 1) * 4
+				]
 			]
 		]
 	]

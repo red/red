@@ -77,6 +77,7 @@ system/view/platform: context [
 				FACET_FLAGS_ALL_OVER:	00000001h
 
 				FACET_FLAGS_SCROLLABLE:	00040000h
+				FACET_FLAGS_PASSWORD:	00080000h
 
 				FACET_FLAGS_POPUP:		01000000h
 				FACET_FLAGS_MODAL:		02000000h
@@ -277,6 +278,7 @@ system/view/platform: context [
 			modal:			symbol/make "modal"
 			popup:			symbol/make "popup"
 			scrollable:		symbol/make "scrollable"
+			password:		symbol/make "password"
 
 			_accelerated:	symbol/make "accelerated"
 
@@ -569,7 +571,7 @@ system/view/platform: context [
 		pair: as red-pair! stack/arguments
 		pair/header: TYPE_PAIR
 		
-		gui/get-text-size text hFont pair
+		gui/get-text-size face text hFont pair
 	]
 	
 	on-change-facet: routine [
@@ -640,10 +642,16 @@ system/view/platform: context [
 	]
 
 	exit-event-loop: routine [][
-		#switch OS [
-			Windows  [gui/PostQuitMessage 0]
-			macOS    [gui/post-quit-msg]
-			#default [0]
+		#switch GUI-engine [
+			native [
+				#switch OS [
+					Windows  [gui/PostQuitMessage 0]
+					macOS    [gui/post-quit-msg]
+					#default [0]
+				]
+			]
+			test []
+			GTK  []
 		]
 	]
 

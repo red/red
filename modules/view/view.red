@@ -118,7 +118,7 @@ set-flag: function [
 	value [any-type!]
 ][
 	either flags: face/:facet [
-		if word? flags [flags: reduce [flags]]
+		if word? flags [face/:facet: flags: reduce [flags]]
 		either block? flags [append flags value][set in face facet value]
 	][
 		set in face facet value
@@ -424,7 +424,10 @@ face!: object [				;-- keep in sync with facet! enum
 			if all [not same-pane? any [series? :old object? :old]][modify old 'owned none]
 			
 			unless any [same-pane? find [font para edge actors extra] word][
-				if any [series? :new object? :new][modify new 'owned reduce [self word]]
+				if any [series? :new object? :new][
+					modify new 'owned none				;@@ `new` may be owned by another container
+					modify new 'owned reduce [self word]
+				]
 			]
 			if word = 'font  [link-sub-to-parent self 'font old new]
 			if word = 'para  [link-sub-to-parent self 'para old new]
@@ -681,10 +684,11 @@ do-events: function [
 	return: [logic! word!] "Returned value from last event"
 	/local result
 ][
-	win: last head system/view/screens/1/pane
-	unless win/state/4 [win/state/4: not no-wait]		;-- mark the window from which the event loop starts
-	set/any 'result system/view/platform/do-event-loop no-wait
-	:result
+	if win: last head system/view/screens/1/pane [
+		unless win/state/4 [win/state/4: not no-wait]		;-- mark the window from which the event loop starts
+		set/any 'result system/view/platform/do-event-loop no-wait
+		:result
+	]
 ]
 
 do-safe: func ["Internal Use Only" code [block!] /local result][
@@ -897,13 +901,13 @@ make-face: func [
 	]
 	face: make face! copy/deep model/template
 	
-	if spec [
-		opts: svv/opts-proto
-		css: make block! 2
-		spec: svv/fetch-options/no-skip face opts model blk css no
-		if model/init [do bind model/init 'face]
-		svv/process-reactors
-	]
+	unless spec [blk: []]
+	opts: svv/opts-proto
+	css: make block! 2
+	spec: svv/fetch-options/no-skip face opts model blk css no
+	if model/init [do bind model/init 'face]
+	svv/process-reactors
+
 	if offset [face/offset: xy]
 	if size [face/size: wh]
 	face

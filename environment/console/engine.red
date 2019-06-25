@@ -42,25 +42,26 @@ system/console: context [
 	
 	read-argument: function [/local value][
 		if args: system/script/args [
+
+			args: system/options/args
 			--catch: "--catch"
-			if system/console/catch?: make logic! pos: find args --catch [
-				remove find system/options/args --catch
-				remove/part pos 1 + length? --catch		;-- remove extra space too
+			while [
+				all [
+					not tail? args
+					find/match args/1 "--"	 			;-- skip options
+					args/-1 <> "--"						;-- stop after "--"
+				]
+			][
+				either --catch <> args/1 [
+					args: next args
+				][
+					remove args
+					system/console/catch?: yes
+				]
 			]
 
-			quote-arg: [{"} any [ahead [#"^""] break | skip] {"}]
-			normal-arg: complement charset space
-			rule: [quote-arg | normal-arg]
-			args: parse args [collect [any [keep copy value some rule | skip]]]
-			while [all [not tail? args find/match args/1 "--"]][args: next args] ;-- skip options
-
 			unless tail? args [
-				file: args/1
-				if file/1 = dbl-quote [
-					remove file
-					remove back tail file
-				]
-				file: to-red-file file
+				file: to-red-file args/1
 				
 				either error? set/any 'src try [read file][
 					print src
@@ -68,13 +69,23 @@ system/console: context [
 					;quit/return -1
 				][
 					system/options/script: file
-					remove system/options/args
-					args: system/script/args
-					remove/part args any [
-						find/tail next args pick {" } args/1 = #"^""
-						tail args
+					remove/part system/options/args next args 	;-- remove options & script name
+					#either config/OS = 'Windows [=quote=: {"}][=quote=: {'}]
+					=quoted-switch=: [=quote= {--} s: thru [e: =quote= any ws | end]]
+					=normal-switch=: ["--" s: thru [e: some ws | end]]
+					parse system/script/args [
+						any ws args: any [							;-- skip switches
+							[ =quoted-switch= | =normal-switch= ]
+							args: not if (same? s e) 				;-- stop after "--"
+						]
 					]
-					trim/head args
+					#either config/OS = 'Windows [
+						parse args [any [=quote= thru [=quote= | end] | not ws skip] any ws args:]
+					][
+						;-- this relies on `get-cmdline-args` logic:
+						parse args [any [=quote= thru [=quote= | end] | "\'" | not ws skip] any ws args:]
+					]
+					remove/part head args args 			;-- remove options & script name
 				]
 				path: first split-path file
 				if path <> %./ [change-dir path]
@@ -174,7 +185,7 @@ system/console: context [
 				not unset? :result [
 					if error? set/any 'err try [		;-- catch eventual MOLD errors
 						limit: size/x - 13
-						if limit = length? result: mold/part :result limit [ ;-- optimized for width = 72
+						if limit <= length? result: mold/part :result limit [ ;-- optimized for width = 72
 							clear back tail result
 							append result "..."
 						]

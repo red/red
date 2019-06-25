@@ -30,10 +30,11 @@ Red [
 		rb2-mem: none
 		rb2-mem2: none
 		rb2-b: copy [1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20]
+		loop 1000 [rb2-b: copy rb2-b]
 		recycle
 		rb2-mem: stats
 		
-		loop 2000 [rb2-b: copy rb2-b]
+		loop 1000 [rb2-b: copy rb2-b]
 		recycle
 		
 		rb2-mem2: stats
@@ -113,6 +114,7 @@ Red [
 		--assert rb7-mem2 <= rb7-mem
 		
 	--test-- "recycle-block-8"
+		clear []
 		rb8-mem: none
 		rb8-mem2: none
 		rb8-b: copy [1 2 3 4 5 6 7 8 9 10]

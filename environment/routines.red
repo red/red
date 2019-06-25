@@ -124,6 +124,6 @@ write-clipboard: routine ["Write content to the system clipboard" data [string!]
 	logic/box clipboard/write as red-value! data
 ]
 
-write-stdout: routine ["Write data to STDOUT" str [string!]][			;-- internal use only
-	simple-io/write null as red-value! str null null no no no
+write-stdout: routine ["Write data to STDOUT" data [any-type!]][			;-- internal use only
+	simple-io/write null as red-value! data null null no no no
 ]

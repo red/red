@@ -1414,7 +1414,7 @@ red: context [
 	
 	emit-path: func [
 		path [path! set-path!] set? [logic!] alt? [logic!]
-		/local pos words item blk get?
+		/local pos words item blk get? mark
 	][
 		either set? [
 			emit-open-frame 'eval-set-path
@@ -1433,11 +1433,17 @@ red: context [
 		
 		if path/1 = last obj-stack [remove path]		;-- remove temp object prefix inserted by object-access?
 		
+		if set? [
+			emit [object/path-parent/header: TYPE_NONE]
+			insert-lf -2
+		]
 		emit either integer? last path [
 			pick [set-int-path* eval-int-path*] set?
 		][
 			pick [set-path* eval-path*] set?
 		]
+		insert-lf -1
+		mark: tail output
 		path: back tail path
 		while [not head? path: back path][
 			emit pick [eval-int-path eval-path] integer? path/1
@@ -1453,7 +1459,7 @@ red: context [
 		]
 		emit words
 		
-		new-line/all pos no
+		new-line/all mark no
 		new-line pos yes
 		emit-close-frame
 	]

@@ -417,6 +417,11 @@ Red [
     put sp-3 'b 2
     put sp-3 'b 3
   --assert sp-3 = make hash! [a 1 b 3]
+
+  --test-- "series-put-issue 3567"
+	v: [a 1 c]
+	put v 'c 3
+	--assert v = [a 1 c 3]
 ===end-group===
 
 ===start-group=== "series-equal"
@@ -821,6 +826,14 @@ Red [
 		a: [1 2 3]
 		--assert [1 2 3] =  remove/part a 0
 
+	--test-- "remove-blk-8"
+		blk: [a 1 b 2 c 3]
+		--assert [a 1 c 3] =  remove/key blk 'b
+
+	--test-- "remove-blk-9"
+		blk: [a 1 1 b 2 2 c 3 3]
+		--assert [a 1 1 c 3 3] =  remove/key/part blk 'b 2
+
 	--test-- "remove-hash-1"
 		hs-remove-1: make hash! [a 2 3]
 		--assert (make hash! [2 3]) = remove hs-remove-1
@@ -845,6 +858,14 @@ Red [
 		--assert 2 = hs-remove-1/a
 		--assert none? hs-remove-1/b
 		--assert none? hs-remove-1/c
+
+	--test-- "remove-hash-6"
+		hs: make hash! [a 1 b 2 c 3]
+		--assert (make hash! [a 1 c 3]) =  remove/key hs 'b
+
+	--test-- "remove-hash-7"
+		hs: make hash! [a 1 1 b 2 2 c 3 3]
+		--assert (make hash! [a 1 1 c 3 3]) =  remove/key/part hs 'b 2
 
 	--test-- "remove-str-1"
 		a: "123"
@@ -1353,6 +1374,17 @@ Red [
 	--test-- "trim-block-1"
 		--assert [1 2] = trim [#[none] 1 #[none] 2 #[none]]
 
+	--test-- "trim-bin-1"
+		--assert #{} = trim #{00}
+
+	--test-- "trim-bin-2"
+		--assert #{1234} = trim #{000012340000}
+
+	--test-- "trim-bin-3"
+		--assert #{12340000} = trim/head #{000012340000}
+
+	--test-- "trim-bin-4"
+		--assert #{00001234} = trim/tail #{000012340000}
 ===end-group===
 
 ===start-group=== "sort"
@@ -1786,6 +1818,14 @@ Red [
 		--assert empty? copy/part a -4
 		--assert "3456" = copy/part b -4
 		--assert "123456" = copy/part b -10
+===end-group===
+
+===start-group=== "random"
+	--test-- "ser-random-1"
+		res: random/only #{AA}
+		--assert integer? res
+		--assert 170 = res
+
 ===end-group===
 
 ~~~end-file~~~

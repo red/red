@@ -1,7 +1,7 @@
 REBOL [
-	Title:   "Red source files preprocessor"
+	Title:	 "Red source files preprocessor"
 	Author:  "Nenad Rakocevic"
-	File: 	 %includes.r
+	File:	 %includes.r
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
@@ -38,6 +38,12 @@ write %build/bin/sources.r set-cache [
 			%gif.red
 			%jpeg.red
 			%png.red
+			%json.red
+			%json/ [
+				%common.red
+				%load-json.red
+				%to-json.red
+			]
 		]
 		%console/ [
 			%auto-complete.red
@@ -152,6 +158,7 @@ write %build/bin/sources.r set-cache [
 		%platform/ [
 			%android.reds
 			%darwin.reds
+			%freebsd.reds
 			%linux.reds
 			%POSIX.reds
 			%syllable.reds
@@ -161,7 +168,6 @@ write %build/bin/sources.r set-cache [
 			%image-quartz.reds
 			%win32-ansi.reds
 			%win32-print.reds
-			
 		]
 	]
 	%modules/ [

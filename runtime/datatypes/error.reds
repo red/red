@@ -45,6 +45,16 @@ error: context [
 		type/symbol
 	]
 	
+	get-id: func [
+		err		[red-object!]
+		return: [integer!]
+		/local
+			id [red-word!]
+	][
+		id: as red-word! (object/get-values err) + field-id
+		id/symbol
+	]
+	
 	get-stack-id: func [return: [integer!]][field-stack]
 	
 	get-call-argument: func [

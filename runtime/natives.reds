@@ -297,6 +297,7 @@ natives: context [
 		
 		either TYPE_OF(value) = TYPE_BLOCK [
 			size: block/rs-length? as red-block! value
+			if 0 >= size [fire [TO_ERROR(script invalid-arg) value]]
 			
 			while [foreach-next-block size][			;-- foreach [..]
 				stack/reset
@@ -385,7 +386,7 @@ natives: context [
 		value: stack/arguments
 		body: as red-block! stack/arguments + 2
 
-		part: as red-integer! integer/push 0			;-- store number of words to set
+		part: integer/push 0							;-- store number of words to set
 		stack/push stack/arguments + 1					;-- copy arguments to stack top in reverse order
 		stack/push value								;-- (required by foreach-next)
 
@@ -653,7 +654,9 @@ natives: context [
 			]
 			TYPE_BLOCK [
 				blk: as red-block! w
+				stack/mark-native words/_anon
 				set-many blk value block/rs-length? blk only? some?
+				stack/unwind
 				stack/set-last value
 			]
 			default [
@@ -664,30 +667,41 @@ natives: context [
 	]
 
 	print*: func [check? [logic!]][
-		lf?: yes											;@@ get rid of this global state
-		prin* check?
-		lf?: no
-		last-lf?: yes
+		do-print check? yes
 	]
-	
-	prin*: func [
-		check? [logic!]
+
+	prin*: func [check? [logic!]][
+		#typecheck -prin-									;-- `prin` would be replaced by lexer
+		do-print check? lf?
+	]
+
+	do-print: func [
+		check?	[logic!]
+		lf?		[logic!]
 		/local
 			arg		[red-value!]
 			str		[red-string!]
 			blk		[red-block!]
+			oldhd	[integer!]
+			s		[series!]
+			block?	[logic!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "native/prin"]]
-		#typecheck -prin-									;-- `prin` would be replaced by lexer
+		#if debug? = yes [if verbose > 0 [print-line "native/do-print"]]
 		arg: stack/arguments
 
-		if TYPE_OF(arg) = TYPE_BLOCK [
-			block/rs-clear buffer-blk
+		block?: TYPE_OF(arg) = TYPE_BLOCK
+		if block? [
+			;-- for recursive printing, reduce/into should put result into the buffer tail
+			s: GET_BUFFER(buffer-blk)
+			oldhd: buffer-blk/head 							;-- save the old buffer head
+			buffer-blk/head: (as-integer s/tail - s/offset) >> (log-b GET_UNIT(s))
+
 			stack/push as red-value! buffer-blk
 			assert stack/top - 2 = stack/arguments			;-- check for correct stack layout
 			reduce* no 1
 			blk: as red-block! arg
 			blk/head: 0										;-- head changed by reduce/into
+			stack/set-last as red-value! buffer-blk 		;-- provide the modified-head buffer to form*
 		]
 
 		if TYPE_OF(arg) <> TYPE_STRING [actions/form* -1]
@@ -698,7 +712,11 @@ natives: context [
 			TYPE_OF(str) = TYPE_SYMBOL						;-- symbol! and string! structs are overlapping
 		]
 		dyn-print/red-print str lf?
-		last-lf?: no
+		if block? [											;-- restore the buffer head & clean up what was printed
+			block/rs-clear buffer-blk 
+			buffer-blk/head: oldhd			
+		]
+		last-lf?: lf?
 		stack/set-last unset-value
 	]
 	
@@ -1026,24 +1044,8 @@ natives: context [
 	][
 		#typecheck [compose deep only into]
 		arg: stack/arguments
-		either TYPE_OF(arg) <> TYPE_BLOCK [					;-- pass-thru for non block! values
-			into?: into >= 0
-			stack/mark-native words/_body
-			if into? [as red-block! stack/push arg + into]
-			switch TYPE_OF(arg) [
-				TYPE_FUNCTION
-				TYPE_NATIVE
-				TYPE_ACTION
-				TYPE_OP
-				TYPE_ROUTINE [
-					stack/set-last arg
-				]
-				default [
-					interpreter/eval-expression arg arg + 1 no yes no
-				]
-			]
-			if into? [actions/insert* -1 0 -1]
-			stack/unwind-last
+		either TYPE_OF(arg) <> TYPE_BLOCK [
+			fire [TO_ERROR(script expect-val) datatype/push TYPE_BLOCK datatype/push TYPE_OF(arg)]
 		][
 			stack/set-last
 				as red-value! compose-block
@@ -1692,6 +1694,7 @@ natives: context [
 
 	arctangent2*: func [
 		check? [logic!]
+		radians [integer!]
 		/local
 			f	[red-float!]
 			n	[red-integer!]
@@ -1715,6 +1718,7 @@ natives: context [
 			x: f/value
 		]
 		f/value: atan2 y x
+		if radians < 0 [f/value: 180.0 / PI * f/value]			;-- to degrees
 		stack/set-last as red-value! f
 	]
 
@@ -1872,11 +1876,13 @@ natives: context [
 		/local
 			err	[red-object!]
 			id  [integer!]
+			type [integer!]
 	][
 		err: as red-object! stack/get-top
 		assert TYPE_OF(err) = TYPE_ERROR
-		id: error/get-type err
-		either id = words/errors/throw/symbol [			;-- check if error is of type THROW
+		id: error/get-id err
+		type: error/get-type err
+		either all [id = type id = words/errors/throw/symbol] [			;-- check if error is of type THROW
 			re-throw 									;-- let the error pass through
 		][
 			stack/adjust-post-try
@@ -2297,6 +2303,7 @@ natives: context [
 			bool [red-logic!]
 			s	 [series!]
 			step [integer!]
+			i	 [integer!]
 			nl?  [logic!]
 	][
 		#typecheck [new-line _all skip]
@@ -2317,13 +2324,15 @@ natives: context [
 				step: int/value
 			]
 			tail: s/tail
+			i: 0
 			while [cell < tail][
-				cell/header: either nl? [
-					cell/header or flag-new-line
-				][
+				cell/header: either nl? xor any [step = 1 zero? (i % step)][
 					cell/header and flag-nl-mask
+				][
+					cell/header or flag-new-line
 				]
-				cell: cell + step
+				cell: cell + 1
+				i: i + 1
 			]
 		][
 			cell/header: either nl? [
@@ -2899,7 +2908,8 @@ natives: context [
 				][
 					fire [TO_ERROR(script invalid-arg) w]
 				]
-				_context/set w v
+				stack/keep								;-- avoid object event handler overwritting stack slots
+				_context/set w v						;-- can trigger object event handler
 			]
 			i: i + 1
 		]
@@ -2964,7 +2974,7 @@ natives: context [
 		][
 			series/head: series/head - size
 			assert series/head >= 0
-			pos: as red-series! actions/remove series as red-value! part
+			pos: as red-series! actions/remove series part arg
 			series/head: pos/head
 		]
 	]
@@ -3002,7 +3012,7 @@ natives: context [
 		]
 		assert TYPE_OF(blk) = TYPE_BLOCK
 
-		result: loop? series
+		result: all [loop? series  size > 0]
 		if result [
 			switch type [
 				TYPE_STRING
@@ -3013,6 +3023,12 @@ natives: context [
 				TYPE_VECTOR
 				TYPE_BINARY [
 					set-many-string blk as red-string! series size
+				]
+				TYPE_MAP [
+					if size <> 2 [
+						fire [TO_ERROR(script invalid-arg) blk]
+					]
+					result: map/set-many blk as red-hash! series size
 				]
 				TYPE_IMAGE [
 					#either OS = 'Windows [

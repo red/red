@@ -599,10 +599,13 @@ stack: context [										;-- call stack
 	
 	pop: func [
 		positions [integer!]
+		/local
+			new	[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/pop"]]
 		
-		top: top - positions
+		new: top - positions
+		if new >= arguments [top: new]
 	]
 	
 	top-type?: func [

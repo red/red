@@ -1250,16 +1250,18 @@ actions: context [
 	
 	remove*: func [
 		part [integer!]
+		key  [integer!]
 		/local
 			part-arg [red-value!]
 	][
 		part-arg: either part < 0 [null][stack/arguments + part]
-		remove as red-series! stack/arguments part-arg
+		remove as red-series! stack/arguments part-arg stack/arguments + key
 	]
 	
 	remove: func [
 		series  [red-series!]
 		part	[red-value!]
+		key		[red-value!]
 		return:	[red-value!]
 		/local
 			action-remove
@@ -1269,10 +1271,11 @@ actions: context [
 		action-remove: as function! [
 			series	[red-series!]
 			part	[red-value!]
+			key		[red-value!]
 			return:	[red-value!]
 		] get-action-ptr as red-value! series ACT_REMOVE
 		
-		action-remove series part
+		action-remove series part key
 	]
 
 	reverse*: func [

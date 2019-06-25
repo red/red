@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 13/09/2017
-	Revision: 53
+	Date: 25/06/2019
+	Revision: 54
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -300,7 +300,7 @@ will output
 
 All Red/System math operators (+, -, *, /, //, %) are supported. The default rounding method on results is "rounding to nearest". Both operands need to be of float! types (no implicit casting).
 
-The modulo (//) and remainder (%) operators give the same results when used on float! values.
+The modulo (//) and remainder (%) operators are not defined for float! values (use the C `fmod()` function if such feature is needed).
 
 ---Float32!
 
@@ -1550,7 +1550,7 @@ will output:
 
 +++Custom
 
-It is sometimes desirable to have full control over the native stack layout of a function call, for example, when the function call needs to be dynamically constructed. The <b>custom</b> attribute allows you to manually <b>push</b> values on stack and still generate a correct function call with adequate stack cleanups. This is most useful with imported C functiosn that relies on <b>cdecl</b> convention, which requires the caller to clean-up the stack. The <b>custom</b> attribute will take care of it in a cross-platform way.
+It is sometimes desirable to have full control over the native stack layout of a function call, for example, when the function call needs to be dynamically constructed. The <b>custom</b> attribute allows you to manually <b>push</b> values on stack and still generate a correct function call with adequate stack cleanups. This is mostly useful with imported C functions that rely on <b>cdecl</b> convention, which requires the caller to clean-up the stack. The <b>custom</b> attribute will take care of it in a cross-platform way.
 
 Example:
 
@@ -1952,17 +1952,41 @@ The following math operations apply on integer or float values. When the operati
 
  value1 / value2
  
+\note CPU-specific behaviors
+
+For the two following edge cases:
+
+* division by zero
+
+* division overflow (-2147483648 / -1)
+
+The behavior depends on the compilation mode and CPU target:
+
+IA-32:
+
+* debug mode: runtime exception.
+
+* release mode: runtime exception.
+
+ARM:
+
+* debug mode: runtime exception.
+
+* release mode: returns 0 on division by zero, and -2147483648 on overflow.
+
+/note
+ 
 <b>Remainder</b>: %
 
  value1 % value2
  
-Note: a remainder will be negative if the divisor is negative. Same as in C or // operator in REBOL. See float types section for specific behaviour of this operator on float values.
+Note: a remainder will be negative if the divisor is negative. Same as in C or // operator in REBOL. Float types are not supported.
  
 <b>Modulo</b>: //
 
  value1 // value2
  
-Note: a positive result is always returned. Same as 'modulo function in REBOL. See float types section for specific behaviour of this operator on float values.
+Note: a positive result is always returned. Same as 'modulo function in REBOL. Float types are not supported.
 
 where
 
@@ -2758,6 +2782,32 @@ Current exceptions implementation (catch/throw) cannot mix with manual stack man
 
 /note
 
+---stack/push-all
+
+Saves all registers to stack.
+
+<b>Syntax</b>
+
+ system/stack/push-all
+
+The following registers are saved:
+
+* IA-32:  eax, ecx, edx, ebx, original esp, ebp, esi, edi, eflags, st0-7, xmm0-7.
+
+* ARM: r0-r12, r14, d0-15, CPSR.
+
+Note that eax and r0 content is modified after this call (though original values are restored by `pop-all`).
+
+---stack/pop-all
+
+Restore all registers from stack.
+
+<b>Syntax</b>
+
+ system/stack/pop-all
+
+See `stack/push-all` section for complete list of registers affected.
+
 ---pc
 
 Retrieve the CPU program counter value.
@@ -3037,6 +3087,46 @@ Only needed for Intel platforms, does nothing on ARM (for now).
 
 /note
 
+
+---io/read
+
+Read a value from a low-level I/O port.
+
+<b>Syntax</b>
+
+ system/io/read <port>
+
+ return: byte! | integer!
+ 
+where:
+ <port> : I/O port address (pointer! [byte! | integer!])
+ 
+The returned value type depends on the type of pointer used for the port argument.
+
+\note Hardware vs memory-mapped I/O
+On some platforms (like ARM), such I/O operations are simply memory-mapped I/O.
+
+/note
+
+---io/write
+
+Write a value to a low-level I/O port.
+
+<b>Syntax</b>
+
+ system/io/write <port> <value>
+ 
+where:
+ <port> : I/O port address (pointer! [byte! | integer!])
+ <value>: written data of same type as port pointed value.
+ 
+The written value has to be consistent with the port's pointer type, otherwise a compilation error occurs.
+
+
+\note Hardware vs memory-mapped I/O
+On some platforms (like ARM), such I/O operations are simply memory-mapped I/O.
+
+/note
 
 ---image/base
 
@@ -3655,6 +3745,35 @@ Converts a literal string to UTF-16LE format. The string is stored in memory in 
  
 Only literal strings can be statically processed by this directive.
 
+
+---#inline
+
+Injects CPU-specific machine code at current position in code. Both standalone statements and nested statements are supported.
+
+<b>Syntax</b>
+
+ #inline <binary>
+ #inline [<binary> return: [<type>]]
+
+ <binary> : a literal binary containing the machine code
+ <type>   : any valid Red/System type
+ 
+The second syntax is used to nest the machine code in an R/S expression. The returned type specification is then mandatory. 
+
+\note CPU-specific implementation details
+The returned value needs to be stored in EAX register on IA-32, and R0 register on ARM. For floating point values, they need to be returned in FPU base registers (ST0 for Intel, S0/D0 for ARM).
+
+/note
+
+<b>Examples</b>
+
+ #inline #{83C410}        ;-- ADD esp, 16
+
+ a: #inline [
+ 	#{B82A000000}         ;-- MOV eax, 42
+ 	return: [integer!]
+ ]
+
     
 ===Source code organization
 
@@ -3937,7 +4056,7 @@ will output:
 
 *<strike>Add a SWITCH function: branch on different code blocks depending on a input value</strike>
 
-*Add a INLINE function to inline machine code: inline #{1234...} and/or assembler
+*<strike>Add a INLINE function to inline machine code: inline #{1234...} and/or assembler</strike>
 
 *<strike>Add a NOT function that would return the boolean opposite of argument value. As booleans are not really supported in the current specs, NOT addition is postponed.</strike>
 
@@ -3960,6 +4079,20 @@ will output:
 
 
 ===Document History
+
+*<b>25/06/2019 - revision 54</b>
+
+*>Adds a #INLINE directive to inline machine code.
+
+*>Drop support for % and // operators on float types.
+
+*>Adds system/io/* intrinsics.
+
+*>Adds system/stack/*-all intrinsics.
+
+*>Document the division specific behaviors.
+
+
 
 *<b>13/09/2017 - revision 53</b>
 

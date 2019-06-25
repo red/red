@@ -408,10 +408,12 @@ put: make action! [[
 
 remove: make action! [[
 		"Returns the series at the same index after removing a value"
-		series	 [series! bitset! none!]
+		series	 [series! bitset! map! none!]
 		/part "Removes a number of values, or values up to the given series index"
 			length [number! char! series!]
-		return:  [series! bitset! none!]
+		/key "Removes a key in map"
+			key-arg [scalar! any-string! any-word! binary! block!]
+		return:  [series! bitset! map! none!]
 	]
 	#get-definition ACT_REMOVE
 ]
@@ -453,7 +455,7 @@ sort: make action! [[
 		/case "Perform a case-sensitive sort"
 		/skip "Treat the series as fixed size records"
 			size [integer!]
-		/compare "Comparator offset, block or function"
+		/compare "Comparator offset, block (TBD) or function"
 			comparator [integer! block! any-function!]
 		/part "Sort only part of a series"
 			length [number! series!]

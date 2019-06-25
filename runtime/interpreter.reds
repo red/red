@@ -21,9 +21,10 @@ Red/System [
 				#if debug? = yes [if verbose > 0 [log "infix detected!"]]
 				infix?: yes
 			][
-				lit?: all [								;-- is a literal argument is expected?
-					TYPE_OF(pc) = TYPE_WORD
-					literal-first-arg? as red-native! value
+				lit?: all [								;-- is a literal argument expected?
+					any [TYPE_OF(pc) = TYPE_WORD TYPE_OF(pc) = TYPE_FUNCTION]
+					literal-first-arg? as red-native! value ;-- left operand is a literal argument
+					next + 1 < end						;-- disable infix detection if no right operand #3840
 				]
 				either lit? [
 					#if debug? = yes [if verbose > 0 [log "infix detected!"]]
@@ -32,14 +33,20 @@ Red/System [
 					if TYPE_OF(pc) = TYPE_WORD [
 						left: _context/get as red-word! pc
 					]
-					unless all [
-						TYPE_OF(pc) = TYPE_WORD
-						any [									;-- left operand is a function call
-							TYPE_OF(left) = TYPE_ACTION
-							TYPE_OF(left) = TYPE_NATIVE
-							TYPE_OF(left) = TYPE_FUNCTION
+					unless any [
+						all [
+							TYPE_OF(pc) = TYPE_FUNCTION
+							literal-first-arg? as red-native! pc   ;-- a literal argument is expected
 						]
-						literal-first-arg? as red-native! left	;-- a literal argument is expected
+						all [
+							TYPE_OF(pc) = TYPE_WORD
+							any [								   ;-- left operand is a function call
+								TYPE_OF(left) = TYPE_ACTION
+								TYPE_OF(left) = TYPE_NATIVE
+								TYPE_OF(left) = TYPE_FUNCTION
+							]
+							literal-first-arg? as red-native! left ;-- a literal argument is expected
+						]
 					][
 						#if debug? = yes [if verbose > 0 [log "infix detected!"]]
 						infix?: yes
@@ -470,6 +477,7 @@ interpreter: context [
 		function?: any [routine? TYPE_OF(native) = TYPE_FUNCTION]
 		fname:	   as red-word! pc - 1
 		args:	   null
+		ref-array: null
 
 		either function? [
 			fun: as red-function! native
@@ -486,6 +494,7 @@ interpreter: context [
 				blk/header: TYPE_BLOCK
 				blk/head:	0
 				blk/node:	args
+				blk/extra:	0
 			][
 				native/args: args
 			]
@@ -625,7 +634,7 @@ interpreter: context [
 			]
 		]
 		unless function? [
-			system/stack/top: ref-array					;-- reset native stack to our custom arguments frame
+			unless null? ref-array [system/stack/top: ref-array] ;-- reset native stack to our custom arguments frame
 			if TYPE_OF(native) = TYPE_NATIVE [push no]	;-- avoid 2nd type-checking for natives.
 			call: as function! [] native/code			;-- direct call for actions/natives
 			call
@@ -684,19 +693,15 @@ interpreter: context [
 		while [item < tail][
 			#if debug? = yes [if verbose > 0 [print-line ["eval: path parent: " TYPE_OF(parent)]]]
 			
-			value: either TYPE_OF(item) = TYPE_GET_WORD [
-				_context/get as red-word! item
-			][
-				item
-			]
-			switch TYPE_OF(value) [
-				TYPE_UNSET [fire [TO_ERROR(script no-value)	item]]
-				TYPE_PAREN [
-					eval as red-block! value no		;-- eval paren content
-					value: stack/top - 1
+			value: switch TYPE_OF(item) [ 
+				TYPE_GET_WORD [_context/get as red-word! item]
+				TYPE_PAREN 	  [
+					eval as red-block! item no			;-- eval paren content
+					stack/top - 1
 				]
-				default [0]								;-- compilation pass-thru
+				default [item]
 			]
+			if TYPE_OF(value) = TYPE_UNSET [fire [TO_ERROR(script no-value) item]]
 			#if debug? = yes [if verbose > 0 [print-line ["eval: path item: " TYPE_OF(value)]]]
 			
 			gparent: parent								;-- save grand-parent reference
@@ -794,7 +799,7 @@ interpreter: context [
 				]
 				stack/mark-interp-func name
 				pc: eval-arguments as red-native! value pc end path slot
-				value: saved				
+				value: saved
 				_function/call as red-function! value ctx
 				either sub? [stack/unwind][stack/unwind-last]
 				#if debug? = yes [
@@ -1012,6 +1017,7 @@ interpreter: context [
 		]
 		
 		if infix? [
+			if pc >= end [fire [TO_ERROR(script no-op-arg) next]]
 			pc: eval-infix op pc end sub?
 			unless prefix? [
 				either sub? [stack/unwind][stack/unwind-last]

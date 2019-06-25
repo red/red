@@ -92,6 +92,7 @@ copy-cell: func [
 	dst		[cell!]
 	return: [red-value!]
 ][
+	if src = dst [return dst]
 	copy-memory											;@@ optimize for 16 bytes copying
 		as byte-ptr! dst
 		as byte-ptr! src
@@ -365,29 +366,26 @@ cycles: context [
 		top: top + 1
 		if top = end [fire [TO_ERROR(internal too-deep)]]
 	]
-	
+
 	pop: does [
 		if top > stack [top: top - 1]
 	]
+
+	pop-n: func [n [integer!]][
+		assert top - n >= stack
+		top: top - n
+	]
+	
+	reset: does [top: stack]
 	
 	find?: func [
-		value	[red-value!]
+		node	[node!]
 		return: [logic!]
 		/local
-			obj	 [red-object!]
-			blk	 [red-block!]
-			node [node!]
 			p	 [node!]
 	][
 		if top = stack [return no]
-		
-		node: either TYPE_OF(value) = TYPE_OBJECT [
-			obj: as red-object! value
-			obj/ctx
-		][
-			blk: as red-block! value
-			blk/node
-		]
+
 		p: stack
 		until [
 			if node = as node! p/value [return yes]
@@ -404,10 +402,20 @@ cycles: context [
 		mold?	[logic!]
 		return: [logic!]
 		/local
+			obj	 [red-object!]
+			blk	 [red-block!]
 			s	 [c-string!]
+			node [node!]
 			size [integer!]
 	][
-		either find? value [
+		node: either TYPE_OF(value) = TYPE_OBJECT [
+			obj: as red-object! value
+			obj/ctx
+		][
+			blk: as red-block! value
+			blk/node
+		]
+		either find? node [
 			either mold? [
 				switch TYPE_OF(value) [
 					TYPE_BLOCK	  [s: "[...]"			   size: 5 ]
@@ -480,7 +488,6 @@ words: context [
 	none:			-1
 	pipe:			-1
 	dash:			-1
-	then:			-1
 	if*:			-1
 	remove:			-1
 	while*:			-1
@@ -563,7 +570,6 @@ words: context [
 	_iterate:		as red-word! 0
 	_paren:			as red-word! 0
 	_anon:			as red-word! 0
-	_body:			as red-word! 0
 	_end:			as red-word! 0
 	_not-found:		as red-word! 0
 	_add:			as red-word! 0
@@ -573,7 +579,6 @@ words: context [
 	_to:			as red-word! 0
 	_thru:			as red-word! 0
 	_not:			as red-word! 0
-	_then:			as red-word! 0
 	_remove:		as red-word! 0
 	_while:			as red-word! 0
 	_collect:		as red-word! 0
@@ -613,7 +618,7 @@ words: context [
 	_clear:			as red-word! 0
 	_cleared:		as red-word! 0
 	_set-path:		as red-word! 0
-	_insert:		as red-word! 0
+	_append:		as red-word! 0
 	_poke:			as red-word! 0
 	_put:			as red-word! 0
 	;_remove:		as red-word! 0
@@ -711,7 +716,6 @@ words: context [
 		none:			symbol/make "none"
 		pipe:			symbol/make "|"
 		dash:			symbol/make "-"
-		then:			symbol/make "then"
 		if*:			symbol/make "if"
 		remove:			symbol/make "remove"
 		while*:			symbol/make "while"
@@ -795,7 +799,6 @@ words: context [
 		_to:			_context/add-global to
 		_thru:			_context/add-global thru
 		_not:			_context/add-global not*
-		_then:			_context/add-global then
 		_remove:		_context/add-global remove
 		_while:			_context/add-global while*
 		_collect:		_context/add-global collect
@@ -835,7 +838,7 @@ words: context [
 		_clear:			word/load "clear"
 		_cleared:		word/load "cleared"
 		_set-path:		word/load "set-path"
-		_insert:		word/load "insert"
+		_append:		word/load "append"
 		_move:			word/load "move"
 		_moved:			word/load "moved"
 		_poke:			word/load "poke"

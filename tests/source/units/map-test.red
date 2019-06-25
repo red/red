@@ -37,19 +37,24 @@ Red [
 	
 ===end-group===
 
-===start-group=== "delete key"
+===start-group=== "remove key"
 
-	--test-- "map-delete-key-1"
+	--test-- "map-remove-key-1"
 		mdk1-m: #(a: 1 b: 2 c: 3)
-		mdk1-m/a: none
-		--assert none = mdk1-m/a
-		--assert none = find words-of mdk1-m 'a
+		remove/key mdk1-m 'a
+		--assert none? mdk1-m/a
+		--assert none = find keys-of mdk1-m 'a
 
-	--test-- "map-delete-key-2"
+	--test-- "map-remove-key-2"
 		mdk2-m: #(a: 1 b: 2 c: 3)
-		mdk2-m/a: 'none
-		--assert 'none = mdk2-m/a
-		--assert [a b c] = find words-of mdk2-m 'a
+		mdk2-m/a: none
+		--assert none = mdk2-m/a
+		--assert [a b c] = find keys-of mdk2-m 'a
+
+	--test-- "map-remove-key-3"
+		mdk3-m: #("one" 2 "three" four)
+		remove/key mdk3-m "one"
+		--assert none = select mdk3-m "one"
 		
 ===end-group===
 
@@ -57,19 +62,28 @@ Red [
 
 	--test-- "map-find-1"
 		mf1-m: #(a: none b: 1 c: 2)
-		--assert true = find mf1-m 'a
-		--assert true = find mf1-m 'b
-		--assert true = find mf1-m 'c
-		--assert none = find mf1-m 'd
+		--assert 'a		= find mf1-m 'a
+		--assert 'b		= find mf1-m 'b
+		--assert 'c		= find mf1-m 'c
+		--assert none	= find mf1-m 'd
 		
 	--test-- "map-find-2"
 		mf2-m: #(a: 1 b: 2 c: 3)
 		mf2-m/a: 'none
 		mf2-m/b: none
-		--assert true = find mf2-m 'a
-		--assert none = find mf2-m 'b
-		--assert true = find mf2-m 'c
+		--assert 'a = find mf2-m 'a
+		--assert 'b = find mf2-m 'b
+		--assert 'c = find mf2-m 'c
 
+	--test-- "map-find-3"
+		mf3-m: #(aB: 1 ab: 2 AB: 3)
+		--assert 'ab = find/case mf3-m 'ab
+		--assert none = find/case mf3-m 'Ab
+
+	--test-- "map-find-4"
+		mf4-m: make map! [b 1]
+		--assert 'b	= find mf4-m first [b:]
+		--assert 'b	= find mf4-m first [b:]
 ===end-group===
 
 ===start-group=== "copy"
@@ -113,8 +127,9 @@ Red [
 		
 	--test-- "map-put-2"
 		mput2-m: #(a: 1 b: 2)
-		--assert 4 = put mput2-m 'b 4
-		--assert 4 = mput2-m/b
+		--assert 4 = put/case mput2-m 'B 4
+		--assert 4 = select/case mput2-m 'B
+		--assert 3 = length? mput2-m
 	
 	--test-- "map-put-3"
 		mput3-m: #(a: 1 b: 2)
@@ -125,9 +140,14 @@ Red [
 	--test-- "map-put-4"
 		mput4-m: #(a: 1 b: 2)
 		--assert none = put mput4-m 'a none
-		--assert none = find words-of mput4-m 'a
-		--assert none = mput4-m/a
-		--assert 1 = length? mput4-m
+		--assert none = select mput4-m 'a
+		--assert 2 = length? mput4-m
+
+	--test-- "map-put-5"
+		mput5-m: #("AB" 1 "CD" 2)
+		--assert 1 = select mput5-m "ab"
+		--assert 4 = put/case mput5-m "ab" 4
+		--assert 4 = select/case mput5-m "ab"
 
 ===end-group===
 
@@ -197,6 +217,30 @@ Red [
 
 ===end-group=== 
 
+===start-group=== "foreach"
+
+	--test-- "map-foreach-1"
+		blk: [a 1 b 2 c 3 d 4]
+		m: make map! blk
+		remove/key m 'c
+		remove/key blk 'c
+		foreach [k v] m [
+			--assert v = select blk k
+		]
+
+	--test-- "map-foreach-2"
+		blk: [a 1 b 2 c 3 d 4]
+		m: make map! blk
+		remove/key m 'c
+		remove/key m 'd
+		remove/key blk 'c
+		remove/key blk 'd
+		foreach [k v] m [
+			--assert v = select blk k
+		]
+
+===end-group=== 
+
 ===start-group=== "issues"
 
 	--test-- "issue-1835"
@@ -216,7 +260,17 @@ Red [
 		--assert 2 = select/case m 'A
 
 	--test-- "issue-1834"
-	--assert #(a: 3) = extend/case extend/case make map! [a 1] [a 2] [a 3]
+		--assert #(a: 3) = extend/case extend/case make map! [a 1] [a 2] [a 3]
+
+	--test-- "issue-2196"
+		m: #()
+		repeat k 70 [m/:k: {x} remove/key m k]
+		--assert empty? keys-of m
+
+	--test-- "issue-2234"
+		m: #(a 1 b 2)
+		remove/key m 'a
+		--assert [b] = keys-of m
 
 ===end-group===
 

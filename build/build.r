@@ -91,7 +91,7 @@ if Windows? [
 ]
 
 ;-- Restore git file
-attempt [write/binary git-file "none^/"]								;-- tests require it!
+attempt [write git-file "none"]								;-- tests require it!
 
 ;-- Remove temporary files
 attempt [delete ts-file]

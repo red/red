@@ -87,6 +87,8 @@ Red [
 	--assert none = select/part [1 2 3 4] [2 3] 2
 	--test-- "select/part-12"
 	--assert none = select/part [1 2 3 4] 3 2
+	--test-- "select/part-13"
+	--assert 5 = select/part skip [1 2 3 4 5 6] 2 4 2
 ===end-group===
 
 ===start-group=== "select/only"
