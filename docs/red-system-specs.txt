@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 13/09/2017
-	Revision: 53
+	Date: 25/06/2019
+	Revision: 54
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -1952,7 +1952,29 @@ The following math operations apply on integer or float values. When the operati
 
  value1 / value2
  
-Note: a rumtime exception will be raised (division by zero) on `-2147483648 / -1` as the result cannot be represented on 32-bit.
+\note CPU-specific behaviors
+
+For the two following edge cases:
+
+* division by zero
+
+* division overflow (-2147483648 / -1)
+
+The behavior depends on the compilation mode and CPU target:
+
+IA-32:
+
+* debug mode: runtime exception.
+
+* release mode: runtime exception.
+
+ARM:
+
+* debug mode: runtime exception.
+
+* release mode: returns 0 on division by zero, and -2147483648 on overflow.
+
+/note
  
 <b>Remainder</b>: %
 
@@ -4034,7 +4056,7 @@ will output:
 
 *<strike>Add a SWITCH function: branch on different code blocks depending on a input value</strike>
 
-*Add a INLINE function to inline machine code: inline #{1234...} and/or assembler
+*<strike>Add a INLINE function to inline machine code: inline #{1234...} and/or assembler</strike>
 
 *<strike>Add a NOT function that would return the boolean opposite of argument value. As booleans are not really supported in the current specs, NOT addition is postponed.</strike>
 
@@ -4057,6 +4079,20 @@ will output:
 
 
 ===Document History
+
+*<b>25/06/2019 - revision 54</b>
+
+*>Adds a #INLINE directive to inline machine code.
+
+*>Drop support for % and // operators on float types.
+
+*>Adds system/io/* intrinsics.
+
+*>Adds system/stack/*-all intrinsics.
+
+*>Document the division specific behaviors.
+
+
 
 *<b>13/09/2017 - revision 53</b>
 
