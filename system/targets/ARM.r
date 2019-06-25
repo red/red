@@ -386,13 +386,6 @@ make-profilable make target-class [
 		base: emitter/tail-ptr
 		
 		foreach opcode [
-							; .divide
-			#{e3510000}			; CMP r1, #0			; if divisor = 0
-			#{092d4000}			; PUSHEQ {lr}			; push calling address for error location
-			#{03a0000d}			; MOVEQ r0, #13			; integer divide by zero error code
-			#{092d0001}			; PUSHEQ {r0}
-			#{0a000000}			; BEQ ***-on-div-error	; call runtime error handler
-
 			#{e1a06000}			; MOV r6, r0			; r6: dividend
 			#{e1a05001}			; MOV r5, r1			; r5: divisor
 			#{e1a07001}			; MOV r7, r1			; r7: divisor
@@ -471,8 +464,6 @@ make-profilable make target-class [
  		][
  			emit-i32 opcode
  		]
- 		;-- link it with runtime error handler
- 		append emitter/symbols/***-on-div-error/3 base + (4 * insn-size)
 	]
 	
 	;-- Check if div-sym is not user-defined, else provide a unique replacement symbol
@@ -2161,6 +2152,28 @@ make-profilable make target-class [
 						emit-i32 #{e92d0002}		;-- PUSH {r1}	; save r1 from corruption
 						if load? [emit-load/alt args/2]
 					]
+				]
+				if compiler/job/debug? [
+					foreach opcode [
+						#{e3510000}			; CMP r1, #0			; if divisor = 0
+						#{03a0000d}			; MOVEQ r0, #13			; integer divide by zero error code
+						#{0a000006}			; BEQ .error
+						#{e3710001}			; CMP r1, #-1
+						#{1a000006}			; BNE .start
+						#{e3a06001}			; MOV r6, #1
+						#{e1a06f86}			; LSL r6, #31
+						#{e1560000}			; CMP r6, r0
+						#{1a000002}			; BNE .start
+						#{e3a0000e}			; MOV r0, #14			; integer overflow error code
+										; .error
+						#{092d4000}			; PUSHEQ {lr}			; push calling address for error location
+						#{092d0001}			; PUSHEQ {r0}
+						#{0a000000}			; BEQ ***-on-div-error	; call runtime error handler
+					][
+						emit-i32 opcode
+					]
+ 					;-- link it with runtime error handler
+					append emitter/symbols/***-on-div-error/3 emitter/tail-ptr - insn-size
 				]
 				either compiler/job/cpu-version < 7.0 [
 					call-divide mod?
