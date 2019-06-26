@@ -149,9 +149,11 @@ _series: context [
 				temp: as byte-ptr! :val
 				while [size > 0][
 					idx: head + (_random/rand % size << (log-b unit))
-					copy-memory temp head unit
-					copy-memory head idx unit
-					copy-memory idx temp unit
+					if idx <> head [
+						copy-memory temp head unit
+						copy-memory head idx unit
+						copy-memory idx temp unit
+					]
 					head: head + unit
 					size: size - 1
 				]
