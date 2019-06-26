@@ -174,6 +174,25 @@ Red [
     --test-- "load-json-20"
         --assert error? try [load-json {"Not a tab \T"}]
 
+    --test-- "load-json-21"
+        --assert #("<tag>" "value") = load-json {{"<tag>": "value"}}
+
+    --test-- "load-json-22"
+        res: #(
+            tag: "value"
+            "<tag" "value"
+            ">tag" "value"
+            "tag<" "value"
+            "<tag<" "value"
+            ">tag<" "value"
+            "tag>" "value"
+            "<tag>" "value"
+            ">tag>" "value"
+            "a<tag>b" "value"
+        )
+        str: {{"tag":"value","<tag":"value",">tag":"value","tag<":"value","<tag<":"value",">tag<":"value","tag>":"value","<tag>":"value",">tag>":"value","a<tag>b":"value"}}
+        --assert res = load-json str
+
 ===end-group===
 
 ===start-group=== "json-codec"

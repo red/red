@@ -81,8 +81,8 @@ context [
 	hex-char:  charset "0123456789ABCDEFabcdef"
 	chars: charset [not {\"} #"^@" - #"^_"]		; Unescaped chars (NOT creates a virtual bitset)
 
-    ; chars allowed in Red word! values
-    not-word-char: charset {/\^^,[](){}"#%$@:;^/^(00A0) ^-^M}
+    ; chars allowed in Red word! values - note that we don't allow < and > at all even though they are somewhat valid in word!
+    not-word-char: charset {/\^^,[](){}"#%$@:;^/^(00A0) ^-^M<>}
     word-1st: complement append union not-word-char digit #"'"
     word-char: complement not-word-char
 
