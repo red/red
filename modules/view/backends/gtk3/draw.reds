@@ -12,7 +12,7 @@ Red/System [
 
 #include %text-box.reds
 
-draw-state!: alias struct! [unused [integer!]]
+draw-state!: alias struct! [mat [handle!]]
 
 set-source-color: func [
 	cr			[handle!]
@@ -29,9 +29,34 @@ set-source-color: func [
 	g: g / 255.0
 	b: as-float color >> 16 and FFh
 	b: b / 255.0
-	a: as-float 255 - (color >>> 24)
-	a: a / 255.0
+	a: as-float color >> 24 and FFh
+	a: 1.0 - (a / 255.0)
 	cairo_set_source_rgba cr r g b a
+]
+
+;; TODO: only used for rich-text that I think need much less than that
+;; certainly create
+init-draw-ctx: func [
+	ctx		[draw-ctx!]
+	cr		[handle!]
+][
+	ctx/raw:			cr
+	ctx/pen-width:		1.0
+	ctx/pen-style:		0
+	ctx/pen-color:		0						;-- default: black
+	;ctx/pen-join:		miter
+	;ctx/pen-cap:		flat
+	ctx/brush-color:	0
+	ctx/font-color:		0
+	ctx/pen?:			yes
+	ctx/brush?:			no
+	ctx/pattern:		null
+	
+	ctx/font-desc: null ;default-font
+	ctx/layout: null ; make-pango-cairo-layout cr ctx/font-desc
+	ctx/font-opts:		null
+	ctx/font-underline?: no 
+	ctx/font-strike?: 	no
 ]
 
 draw-begin: func [
@@ -39,22 +64,14 @@ draw-begin: func [
 	cr			[handle!]
 	img			[red-image!]
 	on-graphic?	[logic!]
-	paint?		[logic!]
+	pattern?	[logic!]
 	return:		[draw-ctx!]
 ][
-	ctx/raw:			cr
-	ctx/pen-width:		1.0
-	ctx/pen-style:		0
-	ctx/pen-color:		0						;-- default: black
-	ctx/pen-join:		miter
-	ctx/pen-cap:		flat
-	ctx/brush-color:	0
-	ctx/font-color:		0
-	ctx/pen?:			yes
-	ctx/brush?:			no
-	ctx/pattern:		null
+	;; DEBUG: print ["draw-begin : " on-graphic? " " pattern?  lf]
+	init-draw-ctx ctx cr
 
 	cairo_set_line_width cr 1.0
+	;; DEBUG: print ["draw-begin: set-source-color black" lf]
 	set-source-color cr 0
 	ctx
 ]
@@ -64,13 +81,15 @@ draw-end: func [
 	hWnd		[handle!]
 	on-graphic? [logic!]
 	cache?		[logic!]
-	paint?		[logic!]
+	pattern?	[logic!]
 ][
-	0
+	cairo_identity_matrix dc/raw
+	free-pango-cairo-font dc
 ]
 
 do-paint: func [dc [draw-ctx!] /local cr [handle!]][
 	cr: dc/raw
+	;; DEBUG: print ["do-paint: " dc/brush? " " dc/pen? lf]
 	if dc/brush? [
 		cairo_save cr
 		either null? dc/pattern [
@@ -86,15 +105,17 @@ do-paint: func [dc [draw-ctx!] /local cr [handle!]][
 		cairo_restore cr
 	]
 	if dc/pen? [
+		;; DEBUG: print ["do-paint dc/pen? color " dc/pen-color lf]
 		cairo_stroke cr
 	]
+	
 ]
 
 OS-draw-anti-alias: func [
 	dc	[draw-ctx!]
 	on? [logic!]
 ][
-0
+	cairo_set_antialias dc/raw either on? [CAIRO_ANTIALIAS_GOOD][CAIRO_ANTIALIAS_NONE]
 ]
 
 OS-draw-line: func [
@@ -119,10 +140,13 @@ OS-draw-pen: func [
 	alpha? [logic!]
 ][
 	dc/pen?: not off?
-	if dc/pen-color <> color [
+	;; DEBUG: print ["OS-draw-pen: " not off? " with color " color lf ]
+	;; THIS if DOES NOT WORK: 
+	;; if dc/pen-color <> color [
 		dc/pen-color: color
+		;; DEBUG: print ["set-source-color" lf]
 		set-source-color dc/raw color
-	]
+	;;]
 ]
 
 OS-draw-fill-pen: func [
@@ -160,25 +184,45 @@ OS-draw-box: func [
 	lower [red-pair!]
 	/local
 		radius	[red-integer!]
-		rad		[integer!]
+		; t 		[integer!]
+		rad		[float!]
 		x		[float!]
 		y		[float!]
 		w		[float!]
 		h		[float!]
+		degrees [float!]
 ][
-	either TYPE_OF(lower) = TYPE_INTEGER [
+	radius: null
+	if TYPE_OF(lower) = TYPE_INTEGER [
 		radius: as red-integer! lower
 		lower:  lower - 1
-		rad: radius/value * 2
-		;;@@ TBD round box
-	][
-		x: as-float upper/x
-		y: as-float upper/y
-		w: as-float lower/x - upper/x
-		h: as-float lower/y - upper/y
-		cairo_rectangle dc/raw x y w h
-		do-paint dc
 	]
+
+	; if upper/x > lower/x [t: upper/x upper/x: lower/x lower/x: t]
+	; if upper/y > lower/y [t: upper/y upper/y: lower/y lower/y: t]
+
+	x: as-float upper/x
+	y: as-float upper/y
+	w: as-float lower/x - upper/x
+	h: as-float lower/y - upper/y
+
+	either radius <> null [
+		; t: as-integer either w > h [h][w]
+		; rad: as-float either radius/value * 2 > t [t / 2][radius/value]
+
+		rad: as-float radius/value * 2
+		degrees: pi / 180.0
+		;; TODO: not sure it is a the right version but it at least works!
+		cairo_new_sub_path dc/raw
+		cairo_arc dc/raw x + w - rad  y + rad rad -90.0 * degrees 0.0 * degrees
+		cairo_arc dc/raw x + w - rad y + h - rad rad 0.0 * degrees 90.0 * degrees
+		cairo_arc dc/raw x + rad y + h - rad rad 90.0 * degrees 180.0 * degrees
+		cairo_arc dc/raw x + rad y + rad rad 180.0 * degrees 270.0 * degrees
+		cairo_close_path dc/raw
+	][
+		cairo_rectangle dc/raw x y w h
+	]
+	do-paint dc
 ]
 
 OS-draw-triangle: func [
@@ -381,91 +425,148 @@ OS-draw-ellipse: func [
 	do-paint dc
 ]
 
-; move this to draw-ctx?
-font-size: 10.0						;-- used to find top line
+;;; TODO: Remove this when pango-cairo is the only choice! SOON!
+; pango-font?: yes ; switch to yes to switch to pango-cairo instead of toy cairo
 
 OS-draw-font: func [
 	dc		[draw-ctx!]
 	font	[red-object!]
+][ 
+	; either pango-font? [
+		make-pango-cairo-font dc font
+	; ][
+		; make-cairo-draw-font dc font
+	; ]
+]
+
+draw-text-at: func [
+	dc		[draw-ctx!]
+	text	[red-string!]
+	color	[integer!]
+	x		[integer!]
+	y		[integer!]
 	/local
-		cr       [handle!]
-		values   [red-value!]
-		style    [red-word!]
-		blk      [red-block!]
-		len      [integer!]
-		sym      [integer!]
-		str      [red-string!]
-		name     [c-string!]
-		size     [red-integer!]
-		css      [c-string!]
-		color    [red-tuple!]
-		bgcolor  [red-tuple!]
-		rgba     [c-string!]
-		slant    [integer!]
-		weight   [integer!]
-		extents  [cairo_font_extents_t!]
+		len     [integer!]
+		str		[c-string!]
+		ctx 	[handle!]
+		pl		[handle!]
+		width	[integer!]
+		height	[integer!]
+		size	[integer!]
 ][
-	cr: dc/raw
+	ctx: dc/raw
 
-	values: object/get-values font
+	len: -1
+	str: unicode/to-utf8 text :len
+	;; print ["draw-text-at: " str " at " x "x" y   lf]
+	; either pango-font? [
+		;; print ["draw-text-at: dc/layout: " dc/layout lf]
+	if null? dc/layout [
+		dc/font-desc: pango_font_description_from_string gtk-font
+		dc/layout: make-pango-cairo-layout ctx dc/font-desc
+	]
+	;pango-cairo-set-text dc str
+	pango-layout-context-set-text dc/layout dc str
+	;; print ["pango-cairo-set-text: " dc " " str lf]
+	set-source-color ctx color
+	;; print ["set-source-color: " ctx " " color lf]
 
-	;name:
-	str: 	as red-string!	values + FONT_OBJ_NAME
-	size:	as red-integer!	values + FONT_OBJ_SIZE
-	style:	as red-word!	values + FONT_OBJ_STYLE
-	;angle:
-	color:	as red-tuple!	values + FONT_OBJ_COLOR
-	;anti-alias?:
+	pango_cairo_update_layout ctx dc/layout
+				
+	size: 0
+	size: pango_font_description_get_size dc/font-desc
+	;; DEBUG: print ["pango_font_description_get_size: dc/font-desc: " dc/font-desc " size: " size lf]
+	cairo_move_to ctx as-float x
+					(as-float y) + ((as-float size) / PANGO_SCALE)
+	pl: pango_layout_get_line_readonly dc/layout 0
+	pango_cairo_show_layout_line ctx pl
+	
+	;pango_cairo_show_layout ctx dc/layout
 
-	dc/font-color: color/array1
+	do-paint dc
 
-	if TYPE_OF(str) = TYPE_STRING [
-		len: -1
-		name: unicode/to-utf8 str :len
- 	]
+]
 
-	len: switch TYPE_OF(style) [
-		TYPE_BLOCK [
-			blk: as red-block! style
-			style: as red-word! block/rs-head blk
-			block/rs-length? blk
-		]
-		TYPE_WORD	[1]
-		default		[0]
+draw-text-box-lines: func [
+	dc 		[draw-ctx!]
+	line	[c-string!]
+	pos		[red-pair!]
+	size 	[red-pair!]
+	tbox 	[red-object!]
+	/local
+		lc 		[layout-ctx!]
+		ctx		[handle!]
+		clr		[integer!]
+		pl		[handle!]
+		width	[integer!]
+		height	[integer!]
+		sizef 	[float!]
+		gstr	[GString!]
+		irect	[tagRECT value]
+		lrect	[tagRECT value]
+][
+	ctx: dc/raw
+
+	clr: either null? dc [0][
+		;;TODO: objc_msgSend [dc/font-attrs sel_getUid "objectForKey:" NSForegroundColorAttributeName]
+		dc/font-color
 	]
 
-	slant: CAIRO_FONT_SLANT_NORMAL
-	weight: CAIRO_FONT_WEIGHT_NORMAL
-  
-	unless zero? len [
-		loop len [
-			sym: symbol/resolve style/symbol
-			case [ 
-				sym = _bold      [weight: CAIRO_FONT_WEIGHT_BOLD]
-				sym = _italic    [slant: CAIRO_FONT_SLANT_ITALIC]
-				sym = _underline []
-				sym = _strike    []
-				true             []
-			]
-			style: style + 1
-		]
+	lc: either TYPE_OF(tbox) = TYPE_OBJECT [	
+	 	;; DEBUG: print ["draw-text-box-lines: " as int-ptr! dc lf]			;-- text-box!
+	 	as layout-ctx! OS-text-box-layout tbox as int-ptr! dc clr yes
+	 ][
+	 	null
+	 ]
+
+	unless null? lc/layout [
+
+		pango-layout-set-text lc size
+
+		set-source-color ctx clr
+		;; DEBUG: print ["set-source-color: " ctx " " clr lf]
+		
+		cairo_move_to ctx as-float pos/x (as-float pos/y) ; + sizef
+		pango_cairo_show_layout ctx lc/layout
+
+		free-pango-cairo-font dc
+
+		;; DEBUG: print ["free pango"  lf]
+		do-paint dc
 	]
+]
 
-	cairo_select_font_face cr name slant weight
 
-	if TYPE_OF(size) = TYPE_INTEGER [
-		extents: declare cairo_font_extents_t!
-		cairo_font_extents cr extents
+draw-text-box: func [
+	dc		[draw-ctx!]
+	pos		[red-pair!]
+	tbox	[red-object!]
+	catch?	[logic!]
+	/local
+		values	[red-value!]
+		text	[red-string!]
+		lc		[layout-ctx!]
+		len		[integer!]
+		str		[c-string!]
+		size 	[red-pair!]
+][
+	;; DEBUG: print ["draw-text-box: " tbox lf]
+	values: object/get-values tbox
+	text: as red-string! values + FACE_OBJ_TEXT
+	if TYPE_OF(text) <> TYPE_STRING [exit]
 
-		font-size: as-float size/value
-		cairo_set_font_size cr font-size * ((extents/ascent + extents/descent) / extents/ascent)
+	size: as red-pair! values + FACE_OBJ_SIZE
+	
+	;; DEBUG: print ["pos : " pos/x "x" pos/y " size: " size/x "x" size/y lf]
 
-		;	This technique is little more correct for me. 
-		;	This Red example will show the difference:
-		;
-		;		f: make font! [name: "Arial" size: 120]	
-		;		view [base 140x140 draw [font f text 10x10 "A" pen white box 0x10 140x130]]
-	]
+	len: -1
+	str: unicode/to-utf8 text :len
+
+	dc/font-desc: pango_font_description_from_string gtk-font
+	;;TORM: dc/layout: make-pango-cairo-layout dc/raw dc/font-desc
+	
+	;; DEBUG: print ["draw-text-box text: " str  " dc/font-desc: " dc/font-desc  lf]
+	draw-text-box-lines dc str pos size tbox
 ]
 
 OS-draw-text: func [
@@ -474,24 +575,16 @@ OS-draw-text: func [
 	text	[red-string!]
 	catch?	[logic!]
 	return: [logic!]
-	/local
-		ctx		[handle!]
-		len     [integer!]
-		str		[c-string!]
 ][
-	ctx: dc/raw
-	len: -1
-	str: unicode/to-utf8 text :len
-	cairo_move_to ctx as-float pos/x
-					  (as-float pos/y) + font-size
+	either TYPE_OF(text) = TYPE_STRING [
+		draw-text-at dc text dc/font-color pos/x pos/y
+	][
+		;; DEBUG: print ["OS-draw-text: " pos/x "x" pos/y lf]
+		draw-text-box dc pos as red-object! text catch?
+	]
 
-	set-source-color dc/raw dc/font-color
-	cairo_show_text ctx str
-
-	do-paint dc
-
-	set-source-color dc/raw dc/pen-color	;-- backup pen color
-	yes
+	;; DEBUG: print ["OS-draw-text end" lf]
+	true
 ]
 
 OS-draw-arc: func [
@@ -532,10 +625,16 @@ OS-draw-arc: func [
 	closed?: angle < end
 
 	cairo_save ctx
+	unless closed? [dc/brush?: no]
 	cairo_translate ctx cx    cy
 	cairo_scale     ctx rad-x rad-y
-	cairo_arc ctx 0.0 0.0 1.0 angle-begin angle-end
+	either sweep < 0 [
+		cairo_arc_negative ctx 0.0 0.0 1.0 angle-begin angle-end
+	][
+		cairo_arc ctx 0.0 0.0 1.0 angle-begin angle-end
+	]
 	if closed? [
+		cairo_line_to ctx 0.0 0.0
 		cairo_close_path ctx
 	]
 	cairo_restore ctx
@@ -618,12 +717,14 @@ GDK-draw-image: func [
 	/local
 		img		[handle!]
 ][
+	;; DEBUG: print ["GDK-draw-image " width " handle " image lf]
 	img: either width = 0 [image][gdk_pixbuf_scale_simple image width height 2]
-	;; DEBUG: print ["GDK-draw-image: " x "x" y lf]
+	;; DEBUG: print ["GDK-draw-image: " x "x" y "x" width "x" height lf]
 	cairo_translate cr as-float x as-float y
 	gdk_cairo_set_source_pixbuf cr img 0 0
 	cairo_paint cr
 	cairo_translate cr as-float (0 - x) as-float (0 - y)
+	if width > 0 [g_object_unref img]
 ]
 
 OS-draw-image: func [
@@ -636,23 +737,37 @@ OS-draw-image: func [
 	crop1		[red-pair!]
 	pattern		[red-word!]
 	/local
-		img		[integer!]
-		sub-img [integer!]
-		x		[integer!]
-		y		[integer!]
-		width	[integer!]
-		height	[integer!]
-		w		[float!]
-		h		[float!]
-		ww		[float!]
-		crop2	[red-pair!]
+		cr			[handle!]	
+		img			[int-ptr!]
+		bitmap 		[integer!]
+		stride 		[integer!]
+		x			[integer!]
+		y			[integer!]
+		width		[integer!]
+		height		[integer!]
+		w			[float!]
+		h			[float!]
+		crop_x		[float!]
+		crop_y		[float!]
+		crop2		[red-pair!]
+		crop_cr		[handle!]
+		crop_surf	[handle!]
+		crop_xscale	[float!]
+		crop_yscale	[float!]
+		format		[cairo_format_t!]
+		img_w		[float!]
+		img_h		[float!]
+		crop_img_sx	[integer!]
+		crop_img_sy	[integer!]
 ][
-	;; print ["OS-draw-image" lf]
+	;; DEBUG: print ["OS-draw-image" lf]
+	img_w:	as float! IMAGE_WIDTH(image/size)
+	img_h:	as float! IMAGE_HEIGHT(image/size)
 	either null? start [x: 0 y: 0][x: start/x y: start/y]
 	case [
 		start = end [
-			width:  IMAGE_WIDTH(image/size)
-			height: IMAGE_HEIGHT(image/size)
+			width:  as integer! img_w
+			height: as integer! img_h
 		]
 		start + 1 = end [					;-- two control points
 			width: end/x - x
@@ -661,24 +776,46 @@ OS-draw-image: func [
 		start + 2 = end [0]					;@@ TBD three control points
 		true [0]							;@@ TBD four control points
 	]
-
-	;; DEBUG: print ["OS-draw-image: " x "x" y " " width "x" height lf]
+	cr: dc/raw
+	;; DEBUG: print ["OS-draw-image: " x "x" y " " width "x" height lf "image: " image lf "original: " IMAGE_WIDTH(image/size) "x" IMAGE_HEIGHT(image/size)  lf]
 
 	img: OS-image/to-pixbuf image
-	if crop1 <> null [
+
+	either crop1 <> null [
+		;; DEBUG: print ["crop1: " crop1/x "x" crop1/y lf]
+		crop_x: as float! crop1/x
+		crop_y: as float! crop1/y
 		crop2: crop1 + 1
 		w: as float! crop2/x
 		h: as float! crop2/y
-		ww: w / h * (as float! height)
-		width: as-integer ww
-		; create new pixbuf
-		sub-img: as-integer gdk_pixbuf_scale_simple as handle! img width height 0 ; to correct parameters!!!
-		;sub-img: as-integer gdk_pixbuf_new 0 yes 8 width height
-		;gdk_pixbuf_scale as handle! img as handle! sub-img 0 0 width height 0.0 0.0 1.0 1.0 0 ; to correct parameters!!!
-	]
+		crop_xscale: w / (as float! width) 
+		crop_yscale: h / (as float! height)
+		crop_img_sx: as integer! (img_w / crop_xscale)
+		crop_img_sy: as integer! (img_h / crop_yscale)
+		;width: as-integer (w / h * (as float! height))
+		;; DEBUG: print ["cropping dest: " crop_x "x" crop_y "x" w "x" h " img size: " crop_img_sx "x" crop_img_sy lf]
+		img: gdk_pixbuf_scale_simple img crop_img_sx crop_img_sy 2	
+		format: CAIRO_FORMAT_RGB24 ;either 3 = gdk_pixbuf_get_n_channels img [CAIRO_FORMAT_RGB24][CAIRO_FORMAT_ARGB32]
+		;; DEBÙG: print ["pixbuf format: " format lf]
+		crop_surf: cairo_image_surface_create format crop_img_sx crop_img_sy
+		crop_cr: cairo_create crop_surf
+    	gdk_cairo_set_source_pixbuf crop_cr img 0 0
+		cairo_paint crop_cr
+		cairo_destroy crop_cr
 
-	GDK-draw-image dc/raw as handle! img x y width height
-	if crop1 <> null [g_object_unref as handle! sub-img]
+		cairo_save cr
+		cairo_translate cr as-float x as-float y
+		cairo_set_source_surface cr crop_surf (0.0 - (crop_x / crop_xscale)) (0.0 - (crop_y / crop_yscale)) 
+		cairo_rectangle cr 0.0 0.0 as float! width as float! height
+		cairo_fill cr
+		cairo_translate cr as-float (0 - x) as-float (0 - y)
+		cairo_restore cr
+
+		cairo_surface_destroy crop_surf
+		g_object_unref img
+	][
+		GDK-draw-image cr img x y width height
+	]
 ]
 
 OS-draw-grad-pen-old: func [
@@ -791,11 +928,15 @@ OS-matrix-rotate: func [
 ][
 	cr: dc/raw
 	rad: PI / 180.0 * get-float angle
-	cairo_translate cr as float! center/x 
+	if angle <> as red-integer! center [
+		cairo_translate cr as float! center/x 
 					   as float! center/y
+	]
 	cairo_rotate cr rad
-	cairo_translate cr as float! (0 - center/x) 
-					   as float! (0 - center/y)
+	if angle <> as red-integer! center [
+		cairo_translate cr as float! (0 - center/x) 
+					as float! (0 - center/y)
+	]
 ]
 
 OS-matrix-scale: func [
@@ -861,11 +1002,13 @@ OS-matrix-transform: func [
 	OS-matrix-translate dc pen translate/x translate/y
 ]
 
-OS-matrix-push: func [dc [draw-ctx!] /local state [integer!]][
-	state: 0
+OS-matrix-push: func [dc [draw-ctx!]  state [draw-state!]][
+cairo_save dc/raw
 ]
 
-OS-matrix-pop: func [dc [draw-ctx!]][0]
+OS-matrix-pop: func [dc [draw-ctx!] state [draw-state!]][
+	cairo_restore dc/raw
+]
 
 OS-matrix-reset: func [
 	dc [draw-ctx!]
@@ -887,11 +1030,18 @@ OS-matrix-set: func [
 	pen		[integer!]
 	blk		[red-block!]
 	/local
-		m	[integer!]
+		m	[cairo_matrix_t! value]
 		val [red-integer!]
 ][
-	m: 0
+	m: null
 	val: as red-integer! block/rs-head blk
+    m/xx: get-float val
+    m/yx: get-float val + 1
+    m/xy: get-float val + 2
+    m/yy: get-float val + 3
+    m/x0: get-float val + 4
+    m/y0: get-float val + 5
+	cairo_transform dc/raw :m ; Weirdly it is not cairo_set_matrix because it is a global change!  
 ]
 
 OS-set-matrix-order: func [
@@ -906,25 +1056,24 @@ OS-set-clip: func [
 	upper	[red-pair!]
 	lower	[red-pair!]
 ][
+	print ["set-clip!" lf]
+	0
 ]
 
 ;-- shape sub command --
 
 OS-draw-shape-beginpath: func [
 	dc			[draw-ctx!]
-	/local
-		path	[integer!]
-][
-
+][ 
 ]
 
 OS-draw-shape-endpath: func [
 	dc			[draw-ctx!]
 	close?		[logic!]
 	return:		[logic!]
-	/local
-		alpha	[byte!]
 ][
+	if close? [cairo_close_path dc/raw]
+	do-paint dc
 	true
 ]
 
@@ -932,8 +1081,18 @@ OS-draw-shape-moveto: func [
 	dc		[draw-ctx!]
 	coord	[red-pair!]
 	rel?	[logic!]
+	/local
+		x		[float!]
+		y		[float!]
 ][
-	
+	x: as-float coord/x
+	y: as-float coord/y
+	either rel? [
+		cairo_rel_move_to dc/raw x y
+	][
+		cairo_move_to dc/raw x y
+	]
+	dc/shape-curve?: no
 ]
 
 OS-draw-shape-line: func [
@@ -941,8 +1100,22 @@ OS-draw-shape-line: func [
 	start		[red-pair!]
 	end			[red-pair!]
 	rel?		[logic!]
+	/local
+		x		[float!]
+		y		[float!]
 ][
-
+	until [
+		x: as-float start/x
+		y: as-float start/y
+		either rel? [
+			cairo_rel_line_to dc/raw x y
+		][
+			cairo_line_to dc/raw x y
+		]
+		start: start + 1
+		start > end
+	]
+	dc/shape-curve?: no
 ]
 
 OS-draw-shape-axis: func [
@@ -950,10 +1123,97 @@ OS-draw-shape-axis: func [
 	start		[red-value!]
 	end			[red-value!]
 	rel?		[logic!]
-	hline		[logic!]
+	hline?		[logic!]
+	/local
+		len 	[float!]
+		last-x	[float!]
+		last-y	[float!]
 ][
-	
+	last-x: 0.0 last-y: 0.0
+	if 1 = cairo_has_current_point dc/raw[
+		cairo_get_current_point dc/raw :last-x :last-y
+	]
+	len: get-float as red-integer! start
+	either hline? [
+		cairo_line_to dc/raw either rel? [last-x + len][len] last-y
+	][
+		cairo_line_to dc/raw last-x either rel? [last-y + len][len]
+	]
+	dc/shape-curve?: no
 ]
+
+draw-curve: func [
+	dc		[draw-ctx!]
+	start	[red-pair!]
+	end		[red-pair!]
+	rel?	[logic!]
+	short?	[logic!]
+	num		[integer!]				;--	number of points
+	/local
+		dx		[float!]
+		dy		[float!]
+		p3y		[float!]
+		p3x		[float!]
+		p2y		[float!]
+		p2x		[float!]
+		p1y		[float!]
+		p1x		[float!]
+		pf		[float-ptr!]
+		pt		[red-pair!]
+][
+	pt: start + 1
+	p1x: as-float start/x
+	p1y: as-float start/y
+	p2x: as-float pt/x
+	p2y: as-float pt/y
+	if num = 3 [					;-- cubic Bézier
+		pt: start + 2
+		p3x: as-float pt/x
+		p3y: as-float pt/y
+	]
+
+	; dx: dc/last-pt-x
+	; dy: dc/last-pt-y
+	; if rel? [
+	; 	pf: :p1x
+	; 	loop num [
+	; 		pf/1: pf/1 + dx			;-- x
+	; 		pf/2: pf/2 + dy			;-- y
+	; 		pf: pf + 2
+	; 	]
+	; ]
+
+	; if short? [
+	; 	either dc/shape-curve? [
+	; 		;-- The control point is assumed to be the reflection of the control point
+	; 		;-- on the previous command relative to the current point
+	; 		p1x: dx * 2.0 - dc/control-x
+	; 		p1y: dy * 2.0 - dc/control-y
+	; 	][
+	; 		;-- if previous command is not curve/curv/qcurve/qcurv, use current point
+	; 		p1x: dx
+	; 		p1y: dy
+	; 	]
+	; ]
+
+	dc/shape-curve?: yes
+	either num = 3 [				;-- cubic Bézier
+		either rel? [cairo_rel_curve_to dc/raw p1x p1y p2x p2y p3x p3y] 
+		[cairo_curve_to dc/raw p1x p1y p2x p2y p3x p3y]
+		; dc/control-x: p2x
+		; dc/control-y: p2y
+		; dc/last-pt-x: p3x
+		; dc/last-pt-y: p3y
+	][								;-- quadratic Bézier
+		;CGPathAddQuadCurveToPoint dc/path null p1x p1y p2x p2y
+		; dc/control-x: p1x
+		; dc/control-y: p1y
+		; dc/last-pt-x: p2x
+		; dc/last-pt-y: p2y
+		0
+	]
+]
+
 
 OS-draw-shape-curve: func [
 	dc		[draw-ctx!]
@@ -961,6 +1221,7 @@ OS-draw-shape-curve: func [
 	end		[red-pair!]
 	rel?	[logic!]
 ][
+	draw-curve dc start end rel? no 3
 ]
 
 OS-draw-shape-qcurve: func [
@@ -969,7 +1230,7 @@ OS-draw-shape-qcurve: func [
 	end		[red-pair!]
 	rel?	[logic!]
 ][
-	;draw-curves dc start end rel? 2
+	draw-curve dc start end rel? no 2
 ]
 
 OS-draw-shape-curv: func [
@@ -978,7 +1239,7 @@ OS-draw-shape-curv: func [
 	end		[red-pair!]
 	rel?	[logic!]
 ][
-	;draw-short-curves dc start end rel? 2
+	draw-curve dc start - 1 end rel? yes 3
 ]
 
 OS-draw-shape-qcurv: func [
@@ -987,7 +1248,7 @@ OS-draw-shape-qcurv: func [
 	end		[red-pair!]
 	rel?	[logic!]
 ][
-	;draw-short-curves dc start end rel? 1
+		draw-curve dc start - 1 end rel? yes 2
 ]
 
 OS-draw-shape-arc: func [
@@ -996,13 +1257,120 @@ OS-draw-shape-arc: func [
 	sweep?	[logic!]
 	large?	[logic!]
 	rel?	[logic!]
+	/local
+		ctx			[handle!]
+		item		[red-integer!]
+		last-x		[float!]
+		last-y		[float!]
+		center-x	[float32!]
+		center-y	[float32!]
+		cx			[float32!]
+		cy			[float32!]
+		cf			[float32!]
+		angle-len	[float32!]
+		radius-x	[float32!]
+		radius-y	[float32!]
+		theta		[float32!]
+		X1			[float32!]
+		Y1			[float32!]
+		p1-x		[float32!]
+		p1-y		[float32!]
+		p2-x		[float32!]
+		p2-y		[float32!]
+		cos-val		[float32!]
+		sin-val		[float32!]
+		rx2			[float32!]
+		ry2			[float32!]
+		dx			[float32!]
+		dy			[float32!]
+		sqrt-val	[float32!]
+		sign		[float32!]
+		rad-check	[float32!]
+		pi2			[float32!]
 ][
-	
+	last-x: 0.0 last-y: 0.0
+	if 1 = cairo_has_current_point dc/raw[
+		cairo_get_current_point dc/raw :last-x :last-y
+	]
+	p1-x: as float32! last-x p1-y: as float32! last-y
+	p2-x: either rel? [ p1-x + as float32! end/x ][ as float32! end/x ]
+	p2-y: either rel? [ p1-y + as float32! end/y ][ as float32! end/y ]
+	item: as red-integer! end + 1
+	radius-x: fabsf get-float32 item
+	item: item + 1
+	radius-y: fabsf get-float32 item
+	item: item + 1
+	pi2: as float32! 2.0 * PI
+	theta: get-float32 item
+	theta: theta * as float32! (PI / 180.0)
+	theta: as-float32 fmod as-float theta as-float pi2 ; OLD: theta % pi2
+
+	;-- calculate center
+	dx: (p1-x - p2-x) / as float32! 2.0
+	dy: (p1-y - p2-y) / as float32! 2.0
+	cos-val: cosf theta
+	sin-val: sinf theta
+	X1: (cos-val * dx) + (sin-val * dy)
+	Y1: (cos-val * dy) - (sin-val * dx)
+	rx2: radius-x * radius-x
+	ry2: radius-y * radius-y
+	rad-check: ((X1 * X1) / rx2) + ((Y1 * Y1) / ry2)
+	if rad-check > as float32! 1.0 [
+		radius-x: radius-x * sqrtf rad-check
+		radius-y: radius-y * sqrtf rad-check
+		rx2: radius-x * radius-x
+		ry2: radius-y * radius-y
+	]
+	either large? = sweep? [sign: as float32! -1.0 ][sign: as float32! 1.0 ]
+	sqrt-val: ((rx2 * ry2) - (rx2 * Y1 * Y1) - (ry2 * X1 * X1)) / ((rx2 * Y1 * Y1) + (ry2 * X1 * X1))
+	either sqrt-val < as float32! 0.0 [cf: as float32! 0.0 ][ cf: sign * sqrtf sqrt-val ]
+	cx: cf * (radius-x * Y1 / radius-y)
+	cy: cf * (radius-y * X1 / radius-x) * (as float32! -1.0)
+	center-x: (cos-val * cx) - (sin-val * cy) + ((p1-x + p2-x) / as float32! 2.0)
+	center-y: (sin-val * cx) + (cos-val * cy) + ((p1-y + p2-y) / as float32! 2.0)
+
+
+	;-- transform our ellipse into the unit circle
+	; m: CGAffineTransformMakeScale (as float! 1.0) / radius-x (as float! 1.0) / radius-y
+	; m: CGAffineTransformRotate m (as float! 0.0) - theta
+	; m: CGAffineTransformTranslate m (as float! 0.0) - center-x (as float! 0.0) - center-y
+
+	; pt1/x: p1-x pt1/y: p1-y
+	; pt2/x: p2-x pt2/y: p2-y
+	; pt1: CGPointApplyAffineTransform pt1 m
+	; pt2: CGPointApplyAffineTransform pt2 m
+
+	;-- calculate angles
+	cx: atan2f p1-y p1-x
+	cy: atan2f p2-y p2-x
+	angle-len: cy - cx
+	either sweep? [
+		if angle-len < as float32! 0.0 [
+			angle-len: angle-len + pi2
+		]
+	][
+		if angle-len > as float32! 0.0 [
+			angle-len: angle-len - pi2
+		]
+	]
+
+	;-- construct the inverse transform
+	; m: CGAffineTransformMakeTranslation center-x center-y
+	; m: CGAffineTransformRotate m theta
+	; m: CGAffineTransformScale m radius-x radius-y
+	; CGPathAddRelativeArc ctx/path :m as float32! 0.0 as float32! 0.0 as float32! 1.0 cx angle-len
+	ctx: dc/raw
+	cairo_save ctx
+	cairo_new_sub_path ctx
+	cairo_translate ctx as float! center-x as float! center-y
+	cairo_scale     ctx as float! radius-x as float! radius-y
+	cairo_arc ctx 0.0 0.0 1.0 as float! cx as float! cy
+	cairo_restore ctx
 ]
 
 OS-draw-shape-close: func [
-	ctx		[draw-ctx!]
-][]
+	dc		[draw-ctx!]
+][cairo_close_path dc/raw ]
 
 OS-draw-brush-bitmap: func [
 	ctx		[draw-ctx!]

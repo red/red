@@ -88,7 +88,24 @@ Red/System [
 		pen?			[logic!]
 		brush?			[logic!]
 		pattern			[int-ptr!]
-		on-image?		[logic!]					;-- drawing on image?
+		on-image?		[logic!]
+		shape-curve?	[logic!]
+		; pango-cairo
+		font-desc		[handle!]
+		font-opts		[handle!]	
+		font-underline?	[logic!]
+		font-strike?	[logic!]
+		layout			[handle!] ; Only for draw not for rich-text
+	]
+
+	layout-ctx!: alias struct! [
+		layout			[handle!] ; Only for rich-text
+		text			[c-string!]
+		text-len		[integer!]
+		text-pos		[integer!]
+		text-markup		[handle!]
+		closed-tags		[handle!]
+		tag-list		[handle!]
 	]
 ]
 
