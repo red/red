@@ -15,6 +15,9 @@ Red/System [
 #define gobj_signal_connect(instance signal handler data) [
 	g_signal_connect_data instance signal as-integer handler data null 0
 ]
+#define gobj_signal_connect_after(instance signal handler data) [
+	g_signal_connect_data instance signal as-integer handler data null 1
+]
 
 #define G_ASCII_DTOSTR_BUF_SIZE	39
 
@@ -40,6 +43,12 @@ tagRECT: alias struct! [
 	y		[integer!]	
 	width	[integer!]
 	height	[integer!]
+]
+
+GdkEventAny!: alias struct! [
+	type          [integer!]
+  window        [int-ptr!]
+  send_event    [byte!]
 ]
 
 GdkEventKey!: alias struct! [
@@ -108,6 +117,41 @@ GdkEventCrossing!: alias struct! [
   state 		[integer!]
 ]
 
+GdkEventConfigure!: alias struct! [
+  type			[integer!]
+  window		[handle!]
+  send_event	[byte!]
+  x				[integer!]
+  y				[integer!]	
+  width			[integer!]
+  height		[integer!]
+]
+
+GdkEventScroll!: alias struct! [
+  type				[integer!]
+  window			[handle!]
+  send_event	[byte!]
+  time				[integer!]
+  x						[float!]
+  y						[float!]
+  state				[integer!]
+  direction		[integer!]
+  device			[handle!]
+  x_root			[float!]
+  y_root			[float!]
+  delta_x			[float!]
+  delta_y			[float!]
+  is_stop 		[integer!]
+]
+
+#enum GdkScrollDirection! [
+	GDK_SCROLL_UP
+	GDK_SCROLL_DOWN
+	GDK_SCROLL_LEFT
+	GDK_SCROLL_RIGHT
+	GDK_SCROLL_SMOOTH
+]
+
 #enum GGApplicationFlags! [
   G_APPLICATION_FLAGS_NONE: 0
   G_APPLICATION_IS_SERVICE: 1
@@ -119,16 +163,72 @@ GdkEventCrossing!: alias struct! [
 ]
 
 #enum GdkModifierType! [
-  GDK_SHIFT_MASK: 1
-  GDK_LOCK_MASK: 2
-  GDK_CONTROL_MASK: 4
-  GDK_MOD1_MASK: 8
-  GDK_MOD5_MASK: 128
-  GDK_BUTTON1_MASK: 256
-  GDK_BUTTON2_MASK: 512
-  GDK_BUTTON3_MASK: 1024
-  GDK_BUTTON4_MASK: 2048
-  GDK_BUTTON5_MASK: 4096
+  GDK_SHIFT_MASK: 		1
+  GDK_LOCK_MASK: 			2
+  GDK_CONTROL_MASK: 	4
+  GDK_MOD1_MASK: 			8
+  GDK_MOD5_MASK: 			128
+  GDK_BUTTON1_MASK: 	256
+  GDK_BUTTON2_MASK: 	512
+  GDK_BUTTON3_MASK: 	1024
+  GDK_BUTTON4_MASK: 	2048
+  GDK_BUTTON5_MASK: 	4096
+	GDK_SUPER_MASK: 		67108864
+  GDK_HYPER_MASK: 		134217728 
+  GDK_META_MASK: 			268435456
+]
+#enum GdkEventType! [
+	GDK_NOTHING: -1
+	GDK_DELETE
+	GDK_DESTROY
+	GDK_EXPOSE
+	GDK_MOTION_NOTIFY
+	GDK_BUTTON_PRESS
+	GDK_2BUTTON_PRESS:
+	GDK_DOUBLE_BUTTON_PRESS: 5
+	GDK_3BUTTON_PRESS:
+	GDK_TRIPLE_BUTTON_PRESS: 6
+	GDK_BUTTON_RELEASE
+	GDK_KEY_PRESS
+	GDK_KEY_RELEASE
+	GDK_ENTER_NOTIFY
+	GDK_LEAVE_NOTIFY
+	GDK_FOCUS_CHANGE
+	GDK_CONFIGURE
+	GDK_MAP
+	GDK_UNMAP
+	GDK_PROPERTY_NOTIFY
+	GDK_SELECTION_CLEAR
+	GDK_SELECTION_REQUEST
+	GDK_SELECTION_NOTIFY
+	GDK_PROXIMITY_IN
+	GDK_PROXIMITY_OUT
+	GDK_DRAG_ENTER
+	GDK_DRAG_LEAVE
+	GDK_DRAG_MOTION
+	GDK_DRAG_STATUS
+	GDK_DROP_START
+	GDK_DROP_FINISHED
+	GDK_CLIENT_EVENT
+	GDK_VISIBILITY_NOTIFY
+	GDK_SCROLL: 31
+	GDK_WINDOW_STATE
+	GDK_SETTING
+	GDK_OWNER_CHANGE
+	GDK_GRAB_BROKEN
+	GDK_DAMAGE
+	GDK_TOUCH_BEGIN
+	GDK_TOUCH_UPDATE
+	GDK_TOUCH_END
+	GDK_TOUCH_CANCEL
+	GDK_TOUCHPAD_SWIPE
+	GDK_TOUCHPAD_PINCH
+	GDK_PAD_BUTTON_PRESS
+	GDK_PAD_BUTTON_RELEASE
+	GDK_PAD_RING
+	GDK_PAD_STRIP
+	GDK_PAD_GROUP_MODE
+	GDK_EVENT_LAST
 ]
 
 #enum GdkEventMask! [
@@ -184,6 +284,88 @@ GtkTextIter!: alias struct! [
   GTK_FILE_CHOOSER_ACTION_CREATE_FOLDER
 ]
 
+#enum GtkResponseType! [
+	GTK_RESPONSE_NONE 
+	GTK_RESPONSE_REJECT 
+	GTK_RESPONSE_ACCEPT 
+	GTK_RESPONSE_DELETE_EVENT 
+	GTK_RESPONSE_OK 
+	GTK_RESPONSE_CANCEL 
+	GTK_RESPONSE_CLOSE 
+	GTK_RESPONSE_YES 
+	GTK_RESPONSE_NO 
+	GTK_RESPONSE_APPLY 
+	GTK_RESPONSE_HELP
+]
+
+#enum GtkJustification! [
+	GTK_JUSTIFY_LEFT
+	GTK_JUSTIFY_RIGHT
+	GTK_JUSTIFY_CENTER
+	GTK_JUSTIFY_FILL
+]
+
+#enum GtkWrapMode! [
+	GTK_WRAP_NONE
+	GTK_WRAP_CHAR
+	GTK_WRAP_WORD
+	GTK_WRAP_WORD_CHAR
+]
+
+#enum GtkAlign! [
+	GTK_ALIGN_FILL
+	GTK_ALIGN_START
+	GTK_ALIGN_END
+	GTK_ALIGN_CENTER
+	GTK_ALIGN_BASELINE
+]
+
+#enum GtkInputPurpose! [
+	GTK_INPUT_PURPOSE_FREE_FORM
+	GTK_INPUT_PURPOSE_ALPHA
+	GTK_INPUT_PURPOSE_DIGITS
+	GTK_INPUT_PURPOSE_NUMBER
+	GTK_INPUT_PURPOSE_PHONE
+	GTK_INPUT_PURPOSE_URL
+	GTK_INPUT_PURPOSE_EMAIL
+	GTK_INPUT_PURPOSE_NAME
+	GTK_INPUT_PURPOSE_PASSWORD
+	GTK_INPUT_PURPOSE_PIN
+]
+
+#enum GtkInputHints! [
+	GTK_INPUT_HINT_NONE
+	GTK_INPUT_HINT_SPELLCHECK
+	GTK_INPUT_HINT_NO_SPELLCHECK
+	GTK_INPUT_HINT_WORD_COMPLETION
+	GTK_INPUT_HINT_LOWERCASE
+	GTK_INPUT_HINT_UPPERCASE_CHARS
+	GTK_INPUT_HINT_UPPERCASE_WORDS
+	GTK_INPUT_HINT_UPPERCASE_SENTENCES
+	GTK_INPUT_HINT_INHIBIT_OSK
+	GTK_INPUT_HINT_VERTICAL_WRITING
+	GTK_INPUT_HINT_EMOJI
+	GTK_INPUT_HINT_NO_EMOJI
+]
+
+PangoAttribute!: alias struct! [
+	klass		[handle!]
+	start		[integer!]
+  	end 		[integer!]
+]
+
+#enum PangoWrapMode! [
+	PANGO_WRAP_WORD
+	PANGO_WRAP_CHAR
+	PANGO_WRAP_WORD_CHAR
+]
+
+#enum PangoEllipsizeMode! [
+	PANGO_ELLIPSIZE_NONE
+	PANGO_ELLIPSIZE_START
+	PANGO_ELLIPSIZE_MIDDLE
+	PANGO_ELLIPSIZE_END
+]
 
 #enum pango-style! [
   PANGO_STYLE_NORMAL
@@ -194,6 +376,14 @@ GtkTextIter!: alias struct! [
 #enum pango-variant! [
   PANGO_VARIANT_NORMAL
   PANGO_VARIANT_SMALL_CAPS
+]
+
+#enum pango-underline! [
+	PANGO_UNDERLINE_NONE
+	PANGO_UNDERLINE_SINGLE
+	PANGO_UNDERLINE_DOUBLE
+	PANGO_UNDERLINE_LOW
+	PANGO_UNDERLINE_ERROR
 ]
 
 #enum pango-weight! [
@@ -233,6 +423,12 @@ GtkTextIter!: alias struct! [
   PANGO_FONT_MASK_GRAVITY: 64
 ]
 
+#enum PangoAlignment! [
+	PANGO_ALIGN_LEFT
+	PANGO_ALIGN_CENTER
+	PANGO_ALIGN_RIGHT
+]
+
 #define PANGO_SCALE 1024
 #define PANGO_SCALE_XX_SMALL 0.5787037037037
 #define PANGO_SCALE_X_SMALL  0.6444444444444
@@ -253,11 +449,30 @@ GtkTextIter!: alias struct! [
  	CAIRO_FONT_WEIGHT_BOLD
 ]
 
+#enum cairo_antialias_t! [
+    CAIRO_ANTIALIAS_DEFAULT
+    CAIRO_ANTIALIAS_NONE
+    CAIRO_ANTIALIAS_GRAY
+    CAIRO_ANTIALIAS_SUBPIXEL
+		CAIRO_ANTIALIAS_FAST
+		CAIRO_ANTIALIAS_GOOD
+		CAIRO_ANTIALIAS_BEST
+]
+
+cairo_matrix_t!: alias struct! [
+    xx		[float!]
+		yx		[float!]
+    xy		[float!]
+		yy		[float!]
+    x0		[float!]
+		y0		[float!]
+]
+
 ; @@ cairo structures to remove if pango_cairo is enough to draw text on cairo
 ; cairo_text_extents_t!: alias struct! [ 
 ;  	x_bearing	[float!]
 ;  	y_bearing	[float!]
-;  	width		[float!]
+;  	width			[float!]
 ;  	height		[float!]
 ;  	x_advance	[float!]
 ;  	y_advance	[float!]
@@ -270,6 +485,56 @@ cairo_font_extents_t!: alias struct! [
 	max_x_advance	[float!]
 	max_y_advance	[float!]
 ]
+
+#enum cairo_format_t! [
+	CAIRO_FORMAT_INVALID
+	CAIRO_FORMAT_ARGB32
+	CAIRO_FORMAT_RGB24
+	CAIRO_FORMAT_A8
+	CAIRO_FORMAT_A1
+	CAIRO_FORMAT_RGB16_565
+	CAIRO_FORMAT_RGB30
+]
+
+GString!: alias struct! [
+	str 			[c-string!]
+	len				[integer!]
+	allocated_len 	[integer!]
+]
+
+GList!: alias struct! [
+  data 		[int-ptr!]
+  next 		[GList!]
+  prev 		[GList!]
+]
+
+GPtrArray!: alias struct! [
+  pdata			[int-ptr!]
+  len				[integer!]
+]
+
+#enum GtkPackDirection! [
+	GTK_PACK_DIRECTION_LTR
+	GTK_PACK_DIRECTION_RTL
+	GTK_PACK_DIRECTION_TTB
+	GTK_PACK_DIRECTION_BTT
+]
+
+#enum GtkOrientation! [
+	GTK_ORIENTATION_HORIZONTAL
+  GTK_ORIENTATION_VERTICAL
+]
+
+#enum GConnectFlags! [
+	G_CONNECT_AFTER
+	G_CONNECT_SWAPPED
+]
+
+#define GTK_STYLE_PROVIDER_PRIORITY_FALLBACK		1
+#define GTK_STYLE_PROVIDER_PRIORITY_THEME				200
+#define GTK_STYLE_PROVIDER_PRIORITY_SETTINGS		400
+#define GTK_STYLE_PROVIDER_PRIORITY_APPLICATION	600
+#define GTK_STYLE_PROVIDER_PRIORITY_USER				800
 
 #either OS = 'Windows [
 	;#define LIBGOBJECT-file "libgobject-2.0-0.dll"
@@ -290,6 +555,10 @@ cairo_font_extents_t!: alias struct! [
 #import [
 	LIBGTK-file cdecl [
 	;; LIBGOBJECT-file cdecl [
+		g_object_new: "g_object_new" [
+			[variadic]
+			return:		[handle!]
+		]
 		g_object_set_qdata: "g_object_set_qdata" [
 			object		[int-ptr!]
 			quark		[integer!]
@@ -306,6 +575,9 @@ cairo_font_extents_t!: alias struct! [
 		g_object_get: "g_object_get" [
 			[variadic]
 		]
+		g_clear_object: "g_clear_object" [
+			obj-ptr 		[integer!]
+		]
 		g_signal_connect_data: "g_signal_connect_data" [
 			instance	[int-ptr!]
 			signal		[c-string!]
@@ -314,6 +586,18 @@ cairo_font_extents_t!: alias struct! [
 			notify		[int-ptr!]
 			flags		[integer!]
 			return:		[integer!]
+		]
+		g_signal_emit_by_name: "g_signal_emit_by_name" [
+			instance	[int-ptr!]
+			signal		[c-string!]
+		]
+		g_object_ref: "g_object_ref" [
+			object		[int-ptr!]
+			return:		[int-ptr!]
+		]
+		g_object_ref_sink: "g_object_ref_sink" [
+			object		[int-ptr!]
+			return:		[int-ptr!]
 		]
 		g_object_unref: "g_object_unref" [
 			object		[int-ptr!]
@@ -324,6 +608,11 @@ cairo_font_extents_t!: alias struct! [
 		]
 		g_timeout_add: "g_timeout_add" [
 			ts 			[integer!]
+			handler		[integer!]
+			data		[int-ptr!]
+			return: 	[integer!]
+		]
+		g_idle_add: "g_idle_add" [
 			handler		[integer!]
 			data		[int-ptr!]
 			return: 	[integer!]
@@ -350,9 +639,28 @@ cairo_font_extents_t!: alias struct! [
 			code		[integer!]
 			return:		[integer!]
 		]
+		gdk_keyval_to_lower: "gdk_keyval_to_lower" [
+			code		[integer!]
+			return:		[integer!]
+		] 
+		gdk_keyval_is_upper: "gdk_keyval_is_upper" [
+			code		[integer!]
+			return:		[logic!]
+		]
+		gdk_keyval_is_lower: "gdk_keyval_is_lower" [
+			code		[integer!]
+			return:		[logic!]
+		] 
 		gdk_atom_intern_static_string: "gdk_atom_intern_static_string" [
 			name 		[c-string!]
 			return:		[handle!]
+		]
+		gdk_display_get_default: "gdk_display_get_default" [
+			return: 	[handle!]
+		]
+		gdk_display_get_default_screen: "gdk_display_get_default_screen" [
+			display 	[handle!]
+			return: 	[handle!]
 		]
 	;; ]
 	;; LIBGLIB-file cdecl [
@@ -375,14 +683,57 @@ cairo_font_extents_t!: alias struct! [
 			block?		[logic!]
 			return:		[logic!]
 		]
+		g_main_context_pending: "g_main_context_pending" [
+			context		[integer!]
+			return: 	[logic!]
+		]
+		g_main_context_is_owner: "g_main_context_is_owner" [
+			context		[integer!]
+			return: 	[logic!]
+		]
+		g_main_current_source: "g_main_current_source" [
+			return:		[handle!]
+		]
 		g_list_length: "g_list_length" [
-			list		[int-ptr!]
+			list			[int-ptr!]
 			return:		[integer!]
 		]
+		g_list_free: "g_list_free" [
+			list			[int-ptr!]
+		]
 		g_list_nth_data: "g_list_nth_data" [
-			list		[int-ptr!]
+			list		[handle!]
 			nth 		[integer!]
 			return:		[handle!]
+		]
+		g_list_append: "g_list_append" [
+			list		[handle!]
+			data		[handle!]
+			return: 	[handle!]
+		]
+		g_list_prepend: "g_list_prepend" [
+			list		[handle!]
+			data		[handle!]
+			return: 	[handle!]
+		]
+		g_list_first: "g_list_first" [
+			list		[handle!]
+			return: 	[handle!]
+		]
+		g_list_last: "g_list_last" [
+			list		[handle!]
+			return: 	[handle!]
+		]
+		g_list_delete_link: "g_list_delete_link" [
+			list		[handle!]
+			link		[handle!]
+			return: 	[handle!]
+		]
+		g_list_insert_sorted: "g_list_insert_sorted" [
+			list			[handle!]
+			data			[handle!]
+			comp-func	[integer!]
+			return: 	[handle!]
 		]
 		g_ascii_dtostr: "g_ascii_dtostr" [
 			buffer		[c-string!]
@@ -394,18 +745,67 @@ cairo_font_extents_t!: alias struct! [
 			[variadic]
 			return:		[c-string!]
 		]
+		g_strdup: "g_strdup" [
+			str		[c-string!]
+			return:	[c-string!]
+		]
+		g_strndup: "g_strndup"[
+			str		[c-string!]
+			n		[integer!]
+			return:	[c-string!]
+		]
+		g_strconcat: "g_strconcat" [
+			[variadic]
+			return:	[c-string!]
+		]
+		g_strcmp0: "g_strcmp0" [
+			str			[c-string!]
+			str2		[c-string!]
+			return: [integer!]
+		]
+		g_strsplit: "g_strsplit" [
+			str 		[c-string!]
+      delim		[c-string!]
+      tokens	[integer!]
+			return:	[handle!]
+		]
+		g_strsplit_set: "g_strsplit_set" [
+			str 		[c-string!]
+      delim		[c-string!]
+      tokens	[integer!]
+			return:	[handle!]
+		]
 		g_free: "g_free" [
-			pointer		[handle!]
+			ptr		[handle!]
+		]
+		g_strfreev: "g_strfreev" [
+			str_array	[handle!]
 		]
 		g_string_new: "g_string_new" [
-			return:		[handle!]
+			return:		[GString!]
+		]
+		g_string_sized_new: "g_string_sized_new" [
+			dfl_size 	[integer!]
+			return:		[GString!]
 		]
 		g_string_append: "g_string_append" [
-			str		[handle!]
+			str		[GString!]
 			text	[c-string!]
+			return: [GString!]
+		]
+		g_string_assign: "g_string_assign" [
+			str		[GString!]
+			text	[c-string!]
+			return: [GString!]
+		]
+		g_string_append_len: "g_string_append_len" [
+			str		[GString!]
+			text	[c-string!]
+			len 	[integer!]
+			return: [GString!]
 		]
 		g_string_free: "g_string_free" [
-			str		[handle!]
+			str		[GString!]
 			free	[logic!]
 			return:	[c-string!]
 		]
@@ -425,8 +825,87 @@ cairo_font_extents_t!: alias struct! [
 			return: 	[logic!]
 		]
 		g_settings_sync: "g_settings_sync" []
+		gtk_disable_setlocale: "gtk_disable_setlocale" []
 	;; ]
 	;; LIBGTK-file cdecl [
+		gtk_get_major_version: "gtk_get_major_version" [
+			return: 		[integer!]
+		]
+		gtk_get_minor_version: "gtk_get_minor_version" [
+			return: 		[integer!]
+		]
+		gtk_get_micro_version: "gtk_get_micro_version" [
+			return: 		[integer!]
+		]
+		gdk_cursor_new_from_pixbuf: "gdk_cursor_new_from_pixbuf" [
+			display			[handle!]
+			pixbuf			[handle!]
+			x						[integer!]
+			y						[integer!]
+			return:			[handle!]
+		]
+		gdk_cursor_new_from_name: "gdk_cursor_new_from_name" [
+			display			[handle!]
+			name				[c-string!]
+			return:			[handle!]
+		]
+		gtk_get_current_event_time: "gtk_get_current_event_time" [
+			return:			[integer!]
+		]
+		gtk_get_current_event_state: "gtk_get_current_event_state" [
+			state				[int-ptr!]
+		]
+		gtk_get_current_event: "gtk_get_current_event" [
+			return:			[handle!]
+		]
+		gtk_get_current_event_device: "gtk_get_current_event_device" [
+			return: 		[handle!]
+		]
+		gtk_get_event_widget: "gtk_get_event_widget" [
+			event				[handle!]
+			return:			[handle!]
+		]
+		gdk_event_get: "gdk_event_get" [
+			return:			[handle!]
+		]
+		gdk_event_peek: "gdk_event_peek" [
+			return:			[handle!]
+		]
+		gdk_event_copy: "gdk_event_copy" [
+			event			[handle!]
+			return:		[handle!]
+		]
+		gdk_event_free: " gdk_event_free" [
+			event			[handle!]
+		]
+		gdk_event_get_scroll_deltas: "gdk_event_get_scroll_deltas" [
+			event			[handle!]
+			dx				[float-ptr!]
+			dy				[float-ptr!]
+			return:		[integer!]
+		]
+
+		gdk_event_get_scroll_direction: "gdk_event_get_scroll_direction" [
+			event			[handle!]
+			direction	[int-ptr!]
+		]
+		gdk_window_get_display: "gdk_window_get_display" [
+			window			[handle!]
+			return: 		[handle!]
+		]
+		gdk_window_get_device_position: "gdk_window_get_device_position" [
+			window			[handle!]
+ 			device			[handle!]
+   		x						[int-ptr!]
+			y						[int-ptr!]
+ 			mask				[handle!]
+			return:			[handle!]
+		]
+		gdk_window_invalidate_rect: "gdk_window_invalidate_rect" [
+			window							[handle!]
+			rect								[tagRECT]
+			invalidate_children	[logic!]
+		]
 		gtk_application_new: "gtk_application_new" [
 			app-id		[c-string!]
 			flags		[integer!]
@@ -452,6 +931,119 @@ cairo_font_extents_t!: alias struct! [
 			app			[handle!]
 			window		[handle!]
 		]
+		gtk_menu_bar_new: "gtk_menu_bar_new" [
+			return:		[handle!]
+		]
+		gtk_menu_bar_set_pack_direction: "gtk_menu_bar_set_pack_direction" [
+			menubar		[handle!]
+			dir				[GtkPackDirection!]
+		]
+		gtk_menu_bar_set_child_pack_direction: "gtk_menu_bar_set_child_pack_direction" [
+			menubar		[handle!]
+			dir				[GtkPackDirection!]
+		]
+		gtk_menu_new: "gtk_menu_new" [
+			return:		[handle!]
+		]
+		gtk_menu_popup_at_pointer: "gtk_menu_popup_at_pointer" [
+			menu			[handle!]
+			event			[handle!]
+		]
+		gtk_menu_shell_append: "gtk_menu_shell_append" [
+			menu			[handle!]
+			item		[handle!]
+		]
+		gtk_menu_shell_prepend: "gtk_menu_shell_prepend" [
+			menu			[handle!]
+			item			[handle!]
+		]
+		gtk_menu_shell_insert: "gtk_menu_shell_insert" [
+			menu			[handle!]
+			item			[handle!]
+			pos				[integer!]
+		]
+		gtk_menu_shell_select_item: "gtk_menu_shell_select_item" [
+			menu			[handle!]
+			item			[handle!]
+		]
+		gtk_menu_shell_select_first: "gtk_menu_shell_select_first" [
+			menu			[handle!]
+			sensitive	[logic!]
+		]
+		gtk_menu_shell_deselect: "gtk_menu_shell_deselect" [
+			menu			[handle!]
+		]
+		gtk_menu_shell_activate_item: "gtk_menu_shell_activate_item" [
+			menu			[handle!]
+			item			[handle!]
+			force			[integer!]
+		]
+		gtk_menu_shell_cancel: "gtk_menu_shell_cancel" [
+			menu			[handle!]
+		]
+		gtk_menu_shell_set_take_focus: "gtk_menu_shell_set_take_focus" [
+			menu			[handle!]
+			focus			[integer!]
+		]
+		gtk_menu_shell_get_take_focus: "gtk_menu_shell_get_take_focus" [
+			menu			[handle!]
+			return:		[integer!]
+		]
+		gtk_menu_shell_get_selected_item: "gtk_menu_shell_get_selected_item" [
+			menu			[handle!]
+			return:		[handle!]
+		]
+		gtk_menu_shell_get_parent_shell: "gtk_menu_shell_get_parent_shell" [
+			menu			[handle!]
+			return:		[handle!]
+		]
+		gtk_menu_item_new: "gtk_menu_item_new" [
+			return:		[handle!]
+		]
+		gtk_menu_item_new_with_label: "gtk_menu_item_new_with_label" [
+			label			[c-string!]
+			return:		[handle!]
+		]
+		gtk_menu_item_new_with_mnemonic: "gtk_menu_item_new_with_mnemonic" [
+			label			[c-string!]
+			return:		[handle!]
+		]
+		gtk_menu_item_get_label: "gtk_menu_item_get_label" [
+			item			[handle!]
+			return: 	[c-string!]
+		]
+		gtk_menu_item_set_label: "gtk_menu_item_set_label" [
+			item			[handle!]
+			label 	[c-string!]
+		]
+		gtk_menu_item_get_use_underline: "gtk_menu_item_get_use_underline" [
+			item			[handle!]
+			return: 	[logic!]
+		]
+		gtk_menu_item_set_use_underline: "gtk_menu_item_set_use_underline" [
+			item			[handle!]
+			setting 	[logic!]
+		]
+		gtk_menu_item_set_submenu: "gtk_menu_item_set_submenu" [
+			item			[handle!]
+			submenu		[handle!]
+		]
+		gtk_menu_item_get_submenu: "gtk_menu_item_get_submenu" [
+			item			[handle!]
+			return:		[handle!]
+		]
+		gtk_menu_item_select: "gtk_menu_item_select" [
+			item			[handle!]
+		]
+		gtk_menu_item_deselect: "gtk_menu_item_deselect" [
+			item			[handle!]
+		]
+		gtk_menu_item_activate: "gtk_menu_item_activate" [
+			item			[handle!]
+		]
+		gtk_separator_menu_item_new: "gtk_separator_menu_item_new" [
+			return: 	[handle!]
+		]
 		gtk_file_chooser_dialog_new: "gtk_file_chooser_dialog_new" [
 			[variadic]
 			return:		[handle!]
@@ -459,6 +1051,10 @@ cairo_font_extents_t!: alias struct! [
 		gtk_dialog_run: "gtk_dialog_run" [
 			widget 		[handle!]
 			return:		[integer!]
+		]
+		gtk_dialog_response: "gtk_dialog_response" [
+			widget 		[handle!]
+			resp  		[integer!]
 		]
 		gtk_file_chooser_get_filename: "gtk_file_chooser_get_filename" [
 			widget 		[handle!]
@@ -481,6 +1077,12 @@ cairo_font_extents_t!: alias struct! [
 			font-sel 	[handle!]
 			return: 	[handle!]
 		]
+		gtk_init: "gtk_init" [
+			argc		[int-ptr!]
+			argv		[handle!]
+		]
+		gtk_main: "gtk_main" []
+		gtk_main_quit: "gtk_main_quit" []
 		gtk_main_iteration: "gtk_main_iteration" [
 			return: 	[logic!]
 		]
@@ -499,6 +1101,10 @@ cairo_font_extents_t!: alias struct! [
 			window		[handle!]
 			width		[integer!]
 			height		[integer!]
+		]
+		gtk_window_set_resizable: "gtk_window_set_resizable" [
+			window		[handle!]
+			mode			[logic!]
 		]
 		gtk_window_move: "gtk_window_move" [
 			window		[handle!]
@@ -530,10 +1136,65 @@ cairo_font_extents_t!: alias struct! [
 			window		[handle!]
 			setting		[logic!]
 		]
+		gtk_window_get_size: "gtk_window_get_size" [
+			window		[handle!]
+			width		[handle!]
+			height		[handle!]
+		]
+		gtk_window_propagate_key_event: "gtk_window_propagate_key_event" [
+			widget		[handle!]
+			event			[handle!]
+		]
+		gtk_window_get_focus: "gtk_window_get_focus" [
+			window 		[handle!]
+			return: 	[handle!]
+		]
+		gtk_window_set_focus: "gtk_window_set_focus" [
+			window 		[handle!]
+			widget	 	[handle!]	
+		]
+		gtk_window_get_default_widget: "gtk_window_get_default_widget" [
+			window 		[handle!]
+			return:	 	[handle!]	
+		]
+		gtk_window_set_default: "gtk_window_set_default" [
+			window 					[handle!]
+			default_widget	[handle!]
+		]
+		gtk_propagate_event: "gtk_propagate_event" [
+			widget		[handle!]
+			event			[handle!]
+		]
+		gtk_widget_register_window: "gtk_widget_register_window" [
+			widget		[handle!]
+			window		[handle!]
+		]
+		gtk_widget_unregister_window: "gtk_widget_unregister_window" [
+			widget		[handle!]
+			window		[handle!]
+		]
+		gtk_widget_event: "gtk_widget_event" [
+			widget		[handle!]
+			event			[handle!]
+			return: 	[logic!]
+		]
 		gtk_widget_queue_draw: "gtk_widget_queue_draw" [
 			widget		[handle!]
 		]
+		gtk_widget_queue_draw_area: "gtk_widget_queue_draw_area" [
+			widget		[handle!]
+			x					[integer!]
+			y					[integer!]
+			w					[integer!]
+			h					[integer!]
+		]
+		gtk_widget_queue_resize: "gtk_widget_queue_resize" [
+			widget		[handle!]
+		]
 		gtk_widget_queue_resize_no_redraw: "gtk_widget_queue_resize_no_redraw" [
+			widget		[handle!]
+		]
+		gtk_widget_queue_allocate: "gtk_widget_queue_allocate" [
 			widget		[handle!]
 		]
 		gtk_widget_show_all: "gtk_widget_show_all" [
@@ -545,19 +1206,65 @@ cairo_font_extents_t!: alias struct! [
 		gtk_widget_show: "gtk_widget_show" [
 			widget		[handle!]
 		]
+		gtk_widget_show_now: "gtk_widget_show_now" [
+			widget		[handle!]
+		]
+		gtk_widget_realize: "gtk_widget_realize" [
+			widget		[handle!]
+		]
+		gtk_widget_activate: "gtk_widget_activate" [
+			widget		[handle!]
+			return: 	[logic!]
+		]
 		gtk_widget_set_halign: "gtk_widget_set_halign" [
 			widget		[handle!]
 			type		[integer!]
+		]
+		gtk_widget_set_hexpand: "gtk_widget_set_hexpand" [
+			widget		[handle!]
+			type		 	[logic!]
+		]
+		gtk_widget_set_vexpand: "gtk_widget_set_vexpand" [
+			widget		[handle!]
+			type		 	[logic!]
+		]
+		gtk_widget_compute_expand: "gtk_widget_compute_expand" [
+			widget		[handle!]
+			orient		[GtkOrientation!]
+			return: 	[logic!]
 		]
 		gtk_widget_set_visible: "gtk_widget_set_visible" [
 			widget		[handle!]
 			state 		[logic!]
 		]
+		gtk_widget_get_visible: "gtk_widget_get_visible" [
+			widget		[handle!]
+			return: 		[logic!]
+		]
+		gtk_widget_is_visible: "gtk_widget_is_visible" [
+			widget		[handle!]
+			return: 		[logic!]
+		]
 		gtk_widget_set_sensitive: "gtk_widget_set_sensitive" [
 			widget		[handle!]
 			state 		[logic!]
 		]
+		gtk_widget_get_sensitive: "gtk_widget_get_sensitive" [
+			widget		[handle!]
+			return: 	[logic!]
+		]
+		gtk_widget_is_sensitive: "gtk_widget_is_sensitive" [
+			widget		[handle!]
+			return: 	[logic!]
+		]
+		gtk_widget_is_focus: "gtk_widget_is_focus" [
+			widget		[handle!]
+			return: 	[logic!]
+		]
 		gtk_widget_grab_focus: "gtk_widget_grab_focus" [
+			widget		[handle!]
+		]
+		gtk_widget_grab_default: "gtk_widget_grab_default" [
 			widget		[handle!]
 		]
 		gtk_widget_set_size_request: "gtk_widget_set_size_request" [
@@ -573,11 +1280,6 @@ cairo_font_extents_t!: alias struct! [
 		gtk_widget_size_allocate: "gtk_widget_size_allocate" [
 			widget		[handle!]
 			alloc		[handle!]
-		]
-		gtk_widget_compute_expand: "gtk_widget_compute_expand" [
-			widget		[handle!]
-			direction	[integer!]
-			return: 	[logic!]
 		]
 		gtk_widget_get_allocation: "gtk_widget_get_allocation" [
 			widget		[handle!]
@@ -595,9 +1297,29 @@ cairo_font_extents_t!: alias struct! [
 			widget		[handle!]
 			focus		[logic!]
 		]
+		gtk_widget_set_can_default: "gtk_widget_set_can_default" [
+			widget				[handle!]
+			can_default		[logic!]
+		]
 		gtk_widget_set_focus_on_click: "gtk_widget_set_focus_on_click" [
 			widget		[handle!]
 			focus		[logic!]
+		]
+		gtk_widget_get_can_default: "gtk_widget_get_can_default" [
+			widget		[handle!]
+			return:		[logic!]
+		]
+		gtk_widget_get_focus_on_click: "gtk_widget_get_focus_on_click" [
+			widget		[handle!]
+			return:		[logic!]
+		]
+		gtk_widget_get_parent: "gtk_widget_get_parent" [
+			widget		[handle!]
+			return:		[handle!]
+		]
+		gtk_widget_get_toplevel: "gtk_widget_get_toplevel" [
+			widget		[handle!]
+			return:		[handle!]
 		]
 		gtk_widget_destroy: "gtk_widget_destroy" [
 			widget 	[handle!]
@@ -607,9 +1329,17 @@ cairo_font_extents_t!: alias struct! [
 			text	[c-string!]
 			return:	[handle!]
 		]
+		gtk_widget_create_pango_context: "gtk_widget_create_pango_context" [
+			widget 	[handle!]
+			return: [handle!]
+		]
 		gtk_widget_add_events: "gtk_widget_add_events" [
 			widget 	[handle!]
-			mask 	[integer!]
+			mask 		[integer!]
+		]
+		gtk_widget_get_events: "gtk_widget_get_events" [
+			widget 	[handle!]
+			return: [integer!]
 		]
 		gtk_widget_override_font: "gtk_widget_override_font" [
 			widget	[handle!]
@@ -637,6 +1367,13 @@ cairo_font_extents_t!: alias struct! [
 			container	[handle!]
 			widget		[handle!]
 		]
+		gtk_container_get_focus_child: "gtk_container_get_focus_child" [
+			container	[handle!]
+			return:		[handle!]
+		]
+		gtk_container_child_set: "gtk_container_child_set" [
+			[variadic]
+		]
 		gtk_frame_new: "gtk_frame_new" [
 			label		[c-string!]
 			return: 	[handle!]
@@ -654,31 +1391,63 @@ cairo_font_extents_t!: alias struct! [
 			frame		[handle!]
 			shadow		[integer!]
 		]
+		gtk_box_new: "gtk_box_new" [
+			orient		[GtkOrientation!]
+			spacing		[integer!]
+			return:		[handle!]
+		]
+		gtk_box_pack_start: "gtk_box_pack_start" [
+			box				[handle!]
+			widget		[handle!]
+			expand		[logic!]
+			fill			[logic!]
+			padding		[integer!]
+		]
 		gtk_fixed_new: "gtk_fixed_new" [
 			return:		[handle!]
 		]
 		gtk_fixed_put: "gtk_fixed_put" [
-			fixed		[handle!]
+			fixed			[handle!]
 			widget		[handle!]
-			x			[integer!]
-			y			[integer!]
+			x					[integer!]
+			y					[integer!]
 		]
 		gtk_fixed_move: "gtk_fixed_move" [
-			fixed		[handle!]
+			fixed			[handle!]
 			widget		[handle!]
-			x			[integer!]
-			y			[integer!]
+			x					[integer!]
+			y					[integer!]
 		]
 		gtk_layout_new: "gtk_layout_new" [
-			hadj		[handle!]
-			vadj		[handle!]
+			hadj			[handle!]
+			vadj			[handle!]
 			return:		[handle!]
 		]
 		gtk_layout_put: "gtk_layout_put" [
 			layout		[handle!]
 			widget		[handle!]
-			x			[integer!]
-			y			[integer!]
+			x					[integer!]
+			y					[integer!]
+		]
+		gtk_layout_move: "gtk_layout_move" [
+			layout		[handle!]
+			widget		[handle!]
+			x					[integer!]
+			y					[integer!]
+		]
+		gtk_layout_set_size: "gtk_layout_set_size" [
+			layout		[handle!]
+			w					[integer!]
+			h					[integer!]
+		]
+		gtk_layout_get_size: "gtk_layout_get_size" [
+			layout		[handle!]
+			w					[int-ptr!]
+			h					[int-ptr!]
+		]
+		gtk_layout_get_bin_window: "gtk_layout_get_bin_window" [
+			layout		[handle!]
+			return:		[handle!]
 		]
 		gtk_bin_get_child: "gtk_bin_get_child" [
 			bin			[handle!]
@@ -716,6 +1485,10 @@ cairo_font_extents_t!: alias struct! [
 		gtk_button_new_with_label: "gtk_button_new_with_label" [
 			label		[c-string!]
 			return:		[handle!]
+		]
+		gtk_button_get_label: "gtk_button_get_label" [
+			button		[handle!]
+			return:		[c-string!]
 		]
 		gtk_button_set_label: "gtk_button_set_label" [
 			button		[handle!]
@@ -755,8 +1528,18 @@ cairo_font_extents_t!: alias struct! [
 			button		[handle!]
 			active?		[logic!]
 		]
+		gtk_toggle_button_toggled: "gtk_toggle_button_toggled" [
+			button		[handle!]
+		]
+		gtk_radio_button_get_group: "gtk_radio_button_get_group" [
+			radio 		[handle!]
+			return:		[handle!]
+		]
 		gtk_drawing_area_new: "gtk_drawing_area_new" [
 			return:		[handle!]
+		]
+		gtk_image_new: "gtk_image_new" [
+			return: 	[handle!]
 		]
 		gtk_image_new_from_pixbuf: "gtk_image_new_from_pixbuf" [
 			pixbuf 		[handle!]
@@ -765,6 +1548,10 @@ cairo_font_extents_t!: alias struct! [
 		gtk_image_new_from_file: "gtk_image_new_from_file" [
 			filename 	[c-string!]
 			return: 	[handle!]
+		]
+		gtk_image_set_from_pixbuf: "gtk_image_set_from_pixbuf" [
+			widget 		[handle!]
+			pixbuf 		[handle!]
 		]
 		gtk_label_new: "gtk_label_new" [
 			label		[c-string!]
@@ -778,6 +1565,18 @@ cairo_font_extents_t!: alias struct! [
 			widget		[handle!]
 			label		[c-string!]
 		]
+		gtk_label_set_markup: "gtk_label_set_markup" [
+			widget		[handle!]
+			label		[c-string!]
+		]
+		gtk_label_set_justify: "gtk_label_set_justify" [
+			widget		[handle!]
+			justify		[integer!]
+		]
+		gtk_label_set_line_wrap: "gtk_label_set_line_wrap" [
+			widget		[handle!]
+			wrap			[logic!]
+		]
 		gtk_event_box_new: "gtk_event_box_new" [
 			return: 	[handle!]
 		]
@@ -788,7 +1587,15 @@ cairo_font_extents_t!: alias struct! [
 			entry		[handle!]
 			nchars		[integer!]
 		]
+		gtk_entry_set_max_width_chars: "gtk_entry_set_max_width_chars" [
+			entry		[handle!]
+			nchars		[integer!]
+		]
 		gtk_entry_get_buffer: "gtk_entry_get_buffer" [
+			entry		[handle!]
+			return:		[handle!]
+		]
+		gtk_entry_get_layout: "gtk_entry_get_layout" [
 			entry		[handle!]
 			return:		[handle!]
 		]
@@ -800,10 +1607,29 @@ cairo_font_extents_t!: alias struct! [
 			buffer		[handle!]
 			text		[c-string!]
 		]
+		gtk_entry_set_placeholder_text: "gtk_entry_set_placeholder_text" [
+			buffer		[handle!]
+			text			[c-string!]
+		]
+		gtk_entry_set_visibility: "gtk_entry_set_visibility" [
+			entry			[handle!]
+			visible		[logic!]
+		]
 		gtk_entry_buffer_set_text: "gtk_entry_buffer_set_text" [
 			buffer		[handle!]
 			text		[c-string!]
 			len			[integer!]
+		]
+		gtk_editable_select_region: "gtk_editable_select_region" [
+			entry		[handle!]
+			start		[integer!]
+			end			[integer!]
+		]
+		gtk_editable_get_selection_bounds: "gtk_editable_get_selection_bounds" [
+			entry		[handle!]
+			start		[int-ptr!]
+			end			[int-ptr!]
+			return: [logic!]
 		]
 
 		gtk_scale_new_with_range: "gtk_scale_new_with_range" [
@@ -855,6 +1681,14 @@ cairo_font_extents_t!: alias struct! [
 			view		[handle!]
 			return:		[handle!]
 		]
+		gtk_text_view_set_justification: "gtk_text_view_set_justification" [
+			view			[handle!]
+			justify		[integer!]
+		]
+		gtk_text_view_set_wrap_mode: "gtk_text_view_set_wrap_mode" [
+			view			[handle!]
+			mode			[integer!]
+		]
 		gtk_text_buffer_set_text: "gtk_text_buffer_set_text" [
 			buffer		[handle!]
 			text		[c-string!]
@@ -872,9 +1706,32 @@ cairo_font_extents_t!: alias struct! [
 			start		[handle!]
 			end			[handle!]
 		]
+		gtk_text_buffer_get_selection_bounds: "gtk_text_buffer_get_selection_bounds" [
+			buffer		[handle!]
+			start		[handle!]
+			end			[handle!]
+			return: [logic!]
+		]
+		gtk_text_buffer_select_range: "gtk_text_buffer_select_range" [
+			buffer	[handle!]
+			ins			[handle!]
+			bound		[handle!]
+		]
 		gtk_text_buffer_create_tag: "gtk_text_buffer_create_tag" [
 			[variadic]
 			return: 	[handle!]
+		]
+		gtk_text_iter_get_offset: "gtk_text_iter_get_offset" [
+			iter		[handle!]
+			return:	[integer!]
+		]
+		gtk_text_iter_set_offset: "gtk_text_iter_set_offset" [
+			iter		[handle!]
+			offset	[integer!]
+		]
+		gtk_text_iter_get_line: "gtk_text_iter_get_line" [
+			iter		[handle!]
+			return:	[integer!]
 		]
 		gtk_combo_box_text_new: "gtk_combo_box_text_new" [
 			return:		[handle!]
@@ -901,6 +1758,10 @@ cairo_font_extents_t!: alias struct! [
 			combo		[handle!]
 			return:		[c-string!]
 		]
+		gtk_combo_box_set_popup_fixed_width: "gtk_combo_box_set_popup_fixed_width" [
+			combo		[handle!]
+			fixed 	[logic!]
+		]
 		gtk_notebook_new: "gtk_notebook_new" [
 			return:		[handle!]
 		]
@@ -913,6 +1774,11 @@ cairo_font_extents_t!: alias struct! [
 		gtk_notebook_get_current_page: "gtk_notebook_get_current_page" [
 			nb			[handle!]
 			return: 	[integer!]
+		]
+
+		gtk_notebook_set_current_page: "gtk_notebook_set_current_page" [
+			nb			[handle!]
+			index 		[integer!]
 		]
 
 		gtk_notebook_get_nth_page: "gtk_notebook_get_nth_page" [
@@ -936,6 +1802,16 @@ cairo_font_extents_t!: alias struct! [
 			provider	[handle!]
 			data		[c-string!]
 			length		[integer!]
+			error		[handle!]
+		]
+		gtk_css_provider_load_from_file: "gtk_css_provider_load_from_file" [
+			provider	[handle!]
+			url		[c-string!]
+			error		[handle!]
+		]
+		gtk_css_provider_load_from_path: "gtk_css_provider_load_from_path" [
+			provider	[handle!]
+			path		[c-string!]
 			error		[handle!]
 		]
 		gtk_style_context_add_provider: "gtk_style_context_add_provider" [
@@ -969,24 +1845,211 @@ cairo_font_extents_t!: alias struct! [
 			widget		[handle!]
 			return:		[handle!]
 		]
+		gtk_render_background: "gtk_render_background" [
+			style			[handle!]
+			cr				[handle!]
+			x 				[float!]
+			y 				[float!]
+			w 				[float!]
+			h 				[float!]
+		]
 		pango_layout_new: "pango_layout_new" [
 			context		[handle!]
 			return:		[handle!]
 		]
-   		pango_layout_set_text: "pango_layout_set_text" [
+		pango_layout_copy: "pango_layout_copy" [
+			context		[handle!]
+			return: 	[handle!]
+		]
+		pango_layout_get_context: "pango_layout_get_context" [
+			layout		[handle!]
+			return: 	[handle!]
+		]
+   	pango_layout_set_text: "pango_layout_set_text" [
 			layout		[handle!]
 			text		[c-string!]
 			len			[integer!]
 		]
-   		pango_layout_set_font_description: "pango_layout_set_font_description" [
+		pango_layout_set_markup: "pango_layout_set_markup" [
+			layout	[handle!]
+			markup	[c-string!]
+			len			[integer!]
+		]
+		pango_layout_set_markup_with_accel: "pango_layout_set_markup_with_accel" [
+			layout			[handle!]
+			markup			[c-string!]
+			len					[integer!]
+			accel_mark	[integer!]
+			accel_char	[int-ptr!]
+		] 
+   	pango_layout_set_font_description: "pango_layout_set_font_description" [
 			layout		[handle!]
 			fontdesc	[handle!]
 		]
-   		pango_layout_get_pixel_size: "pango_layout_get_pixel_size" [
+   	pango_layout_get_pixel_size: "pango_layout_get_pixel_size" [
 			layout		[handle!]
 			width		[int-ptr!]
 			height		[int-ptr!]
 		]
+		pango_layout_get_line: "pango_layout_get_line" [
+			layout		[handle!]
+			line		[integer!]
+			return:		[handle!]
+		]
+		pango_layout_get_line_readonly: "pango_layout_get_line_readonly" [
+			layout		[handle!]
+			line		[integer!]
+			return:		[handle!]
+		]
+		pango_layout_get_character_count: "pango_layout_get_character_count" [
+			layout		[handle!]
+			return:		[integer!]
+		]
+		pango_layout_is_wrapped: "pango_layout_is_wrapped" [
+			layout		[handle!]
+			return:		[logic!]
+		]
+		pango_layout_set_wrap: "pango_layout_set_wrap" [
+			layout		[handle!]
+			mode			[PangoWrapMode!]
+		]
+		pango_layout_get_wrap: "pango_layout_get_wrap" [
+			layout		[handle!]
+			return:		[PangoWrapMode!]
+		]
+		pango_layout_is_ellipsized: "pango_layout_is_ellipsized" [
+			layout		[handle!]
+			return:		[logic!]
+		]
+		pango_layout_set_ellipsize: "pango_layout_set_ellipsize" [
+			layout		[handle!]
+			mode			[PangoEllipsizeMode!]
+		]
+		pango_layout_get_ellipsize: "pango_layout_get_ellipsize" [
+			layout		[handle!]
+			return:		[PangoEllipsizeMode!]
+		]
+		pango_layout_get_indent: "pango_layout_get_indent" [
+			layout		[handle!]
+			return:		[integer!]
+		]
+		pango_layout_set_indent: "pango_layout_set_indent" [
+			layout		[handle!]
+			indent		[integer!]
+		]
+		pango_layout_get_spacing: "pango_layout_get_spacing" [
+			layout		[handle!]
+			return:		[integer!]
+		]
+		pango_layout_set_spacing: "pango_layout_set_spacing" [
+			layout		[handle!]
+			spacing		[integer!]
+		]
+		pango_layout_get_justify: "pango_layout_get_justify" [
+			layout		[handle!]
+			return:		[logic!]
+		]
+		pango_layout_set_justify: "pango_layout_set_justify" [
+			layout		[handle!]
+			justify		[logic!]
+		]
+		pango_layout_set_alignment: "pango_layout_set_alignment" [
+			layout		[handle!]
+			align			[PangoAlignment!]
+		]
+		pango_layout_get_alignment: "pango_layout_get_alignment" [
+			layout		[handle!]
+			return:		[PangoAlignment!]
+		]
+		pango_layout_set_width: "pango_layout_set_width" [
+			layout		[handle!]
+			width			[integer!]
+		]
+		pango_layout_get_width: "pango_layout_get_width" [
+			layout		[handle!]
+			return:		[integer!]
+		]
+		pango_layout_set_height: "pango_layout_set_height" [
+			layout		[handle!]
+			height			[integer!]
+		]
+		pango_layout_get_height: "pango_layout_get_height" [
+			layout		[handle!]
+			return:		[integer!]
+		]
+    pango_layout_get_size: "pango_layout_get_size" [
+			 layout		[handle!]
+			 width		[int-ptr!]
+			 height		[int-ptr!]
+		]
+		pango_layout_set_attributes: "pango_layout_set_attributes" [
+			layout		[handle!]
+			attrs		[handle!]
+		]
+		pango_layout_get_iter: "pango_layout_get_iter" [
+			layout		[handle!]
+			return: 	[handle!]
+		]
+		pango_layout_iter_get_baseline: "pango_layout_iter_get_baseline" [
+			iter			[handle!]
+			return:		[integer!]
+		]
+		pango_layout_get_extents: "pango_layout_get_extents" [
+			layout		[handle!]
+			irect			[tagRECT]
+			lrect			[tagRECT]
+		]
+		pango_layout_get_pixel_extents: "pango_layout_get_pixel_extents" [
+			layout		[handle!]
+			irect			[tagRECT]
+			lrect			[tagRECT]
+		]
+		pango_layout_index_to_pos: "pango_layout_index_to_pos" [
+			layout		[handle!]
+			index			[integer!]
+			pos				[tagRECT]
+		]
+		pango_layout_index_to_line_x: "pango_layout_index_to_line_x" [
+			layout		[handle!]
+			index			[integer!]
+			trailing	[integer!]
+			line			[int-ptr!]
+			x-pos			[int-ptr!]
+		]
+		pango_layout_xy_to_index: "pango_layout_xy_to_index" [
+			layout		[handle!]
+			x					[integer!]
+			y					[integer!]
+			index			[int-ptr!]
+			trailing	[int-ptr!]
+			return:		[logic!]
+		]
+		pango_layout_get_cursor_pos: "pango_layout_get_cursor_pos" [
+			layout		[handle!]
+			index			[integer!]
+			spos			[tagRECT]
+			wpos			[tagRECT]
+		]
+		pango_layout_move_cursor_visually: "pango_layout_move_cursor_visually" [
+			layout		[handle!]
+			strong		[logic!]
+			old_ind		[integer!]
+			old_trail	[integer!]
+			direct		[integer!]
+			new_ind		[int-ptr!]
+			new_trail	[int-ptr!]
+		]
+		pango_layout_get_line_count: "pango_layout_get_line_count" [
+			layout		[handle!]
+			return:		[integer!]
+		]
+		pango_layout_line_get_pixel_extents: "pango_layout_line_get_pixel_extents" [
+			line			[handle!]
+			irect			[tagRECT]
+			lrect			[tagRECT]
+		]
+
+
 		pango_font_description_new: "pango_font_description_new" [
 			return: 	[handle!]
 		]
@@ -1052,16 +2115,48 @@ cairo_font_extents_t!: alias struct! [
 		gdk_pango_context_get: "gdk_pango_context_get" [
 			return:		[handle!]
 		]
+
+		gdk_pango_context_get_for_screen: "gdk_pango_context_get_for_screen" [
+			screen		[handle!]
+			return:		[handle!]
+		]
+
+		
+
+		gtk_widget_get_pango_context: "gtk_widget_get_pango_context" [
+			return:		[handle!]
+		]
+		
 		gtk_settings_get_default: "gtk_settings_get_default" [
 			return: 	[handle!]
 		]
 
 	;; LIBCAIRO-file cdecl [
+		cairo_create: "cairo_create" [
+			surf			[handle!]
+			return:		[handle!]
+		]
+
+		cairo_destroy: "cairo_destroy" [
+			cr			[handle!]
+		]
+
+		cairo_clip: "cairo_clip" [
+			cr			[handle!]
+		]
+
 		cairo_line_to: "cairo_line_to" [
 			cr			[handle!]
-			x			[float!]
-			y			[float!]
+			x				[float!]
+			y				[float!]
 		]
+
+		cairo_rel_line_to: "cairo_rel_line_to" [
+			cr			[handle!]
+			dx			[float!]
+			dy			[float!]
+		]
+
 		cairo_curve_to: "cairo_curve_to" [
 			cr			[handle!]
 			x1			[float!]
@@ -1071,12 +2166,38 @@ cairo_font_extents_t!: alias struct! [
 			x3			[float!]
 			y3			[float!]
 		]
+
+		cairo_rel_curve_to: "cairo_curve_to" [
+			cr			[handle!]
+			dx1			[float!]
+			dy1			[float!]
+			dx2			[float!]
+			dy2			[float!]
+			dx3			[float!]
+			dy3			[float!]
+		]
+
 		cairo_move_to: "cairo_move_to" [
 			cr			[handle!]
 			x			[float!]
 			y			[float!]
 		]
+
+		cairo_rel_move_to: "cairo_rel_move_to" [
+			cr			[handle!]
+			dx			[float!]
+			dy			[float!]
+		]
+
 		cairo_arc: "cairo_arc" [
+			cr			[handle!]
+			xc			[float!]
+			yc			[float!]
+			radius		[float!]
+			angle1		[float!]
+			angle2		[float!]
+		]
+		cairo_arc_negative: "cairo_arc_negative" [
 			cr			[handle!]
 			xc			[float!]
 			yc			[float!]
@@ -1091,11 +2212,23 @@ cairo_font_extents_t!: alias struct! [
 			w			[float!]
 			h			[float!]
 		]
+		cairo_new_path: "cairo_new_path" [
+			cr			[handle!]
+		]
 		cairo_new_sub_path: "cairo_new_sub_path" [
 			cr			[handle!]
 		]
 		cairo_close_path: "cairo_close_path" [
 			cr			[handle!]
+		]
+		cairo_get_current_point: "cairo_get_current_point" [
+			cr			[handle!]
+			x			[float-ptr!]
+			y			[float-ptr!]
+		]
+		cairo_has_current_point: "cairo_has_current_point" [
+			cr			[handle!]
+			return:		[integer!]
 		]
 		cairo_stroke: "cairo_stroke" [
 			cr			[handle!]
@@ -1180,9 +2313,6 @@ cairo_font_extents_t!: alias struct! [
 			cr			[handle!]
 			antialias	[integer!]
 		]
-		cairo_surface_destroy: "cairo_surface_destroy" [
-			surface		[handle!]
-		]
 		cairo_pattern_create_linear: "cairo_pattern_create_linear" [
 			x0			[float!]
 			y0			[float!]
@@ -1220,6 +2350,18 @@ cairo_font_extents_t!: alias struct! [
 		cairo_stroke_preserve: "cairo_stroke_preserve" [
 			cr			[handle!]
 		]
+		cairo_get_matrix: "cairo_get_matrix" [
+			cr			[handle!]
+			mat			[cairo_matrix_t!]
+		]
+		cairo_set_matrix: "cairo_set_matrix" [
+			cr			[handle!]
+			mat			[cairo_matrix_t!]
+		]
+		cairo_transform: "cairo_transform" [
+			cr			[handle!]
+			mat			[cairo_matrix_t!]
+		]
 		; Related to draw text with cairo (no succes for base widget) replaced by pango_cairo
 		cairo_select_font_face: "cairo_select_font_face" [
 			cr			[handle!]
@@ -1231,11 +2373,7 @@ cairo_font_extents_t!: alias struct! [
 		; 	cr			[handle!]
 		; 	size		[integer!]
 		; ]
-		; cairo_text_extents: "cairo_text_extents" [
-		; 	cr			[handle!]
-		; 	text 		[c-string!]
-		; 	extents		[handle!]
-		; ]
+		;
 		cairo_font_extents: "cairo_font_extents" [
 			cr			[handle!]
 			extents		[cairo_font_extents_t!]
@@ -1244,9 +2382,44 @@ cairo_font_extents_t!: alias struct! [
 		; 	cr			[handle!]
 		; 	text 		[c-string!]
 		; ]
+		cairo_image_surface_create: "cairo_image_surface_create" [
+			format		[cairo_format_t!]
+			width			[integer!]
+			height		[integer!]
+			return:		[handle!]	
+		]
+		cairo_image_surface_create_for_data: "cairo_image_surface_create_for_data" [
+			data			[byte-ptr!]
+			format		[cairo_format_t!]
+			width			[integer!]
+			height		[integer!]
+			stride		[integer!]
+			return:		[handle!]
+		]
+		cairo_surface_finish: "cairo_surface_finish" [
+			surf			[handle!]
+		]
+		cairo_surface_destroy: "cairo_surface_destroy" [
+			surf			[handle!]
+		]
+		cairo_image_surface_get_data: "cairo_image_surface_get_data" [
+			surf			[handle!]
+			return:		[byte-ptr!]
+		]
+		cairo_surface_flush: "cairo_surface_flush" [
+			surf			[handle!]
+		]
+		cairo_surface_mark_dirty: "cairo_surface_mark_dirty" [
+			surf			[handle!]
+		]
+		cairo_format_stride_for_width: "cairo_format_stride_for_width" [
+			format		[cairo_format_t!]
+			width			[integer!]
+			return: 	[integer!]
+		]
 		gdk_cairo_set_source_pixbuf: "gdk_cairo_set_source_pixbuf" [
 			cr 			[handle!]
-			pixbuf 		[handle!]
+			pixbuf 	[handle!]
 			x 			[integer!]
 			y 			[integer!]
 		]
@@ -1257,6 +2430,14 @@ cairo_font_extents_t!: alias struct! [
 			width 		[integer!]
 			height 		[integer!]
 			return: 	[handle!]
+		]
+		gdk_pixbuf_new_subpixbuf: "gdk_pixbuf_new_subpixbuf" [
+			pixbuf 		[handle!]
+			x 				[integer!]
+			y 				[integer!]
+			width 		[integer!]
+			height 		[integer!]
+			return:		[handle!]
 		]
 		gdk_pixbuf_copy: "gdk_pixbuf_copy" [
 			pixbuf 		[handle!]
@@ -1282,6 +2463,32 @@ cairo_font_extents_t!: alias struct! [
 			interp_type	[integer!]
 			return: 	[handle!]
 		]
+		gdk_pixbuf_get_from_surface: "gdk_pixbuf_get_from_surface" [
+			surf			[handle!]
+			src_x			[integer!]
+			src_y			[integer!]
+			width			[integer!]
+			height		[integer!]
+			return:		[handle!]
+		]
+		gdk_pixbuf_get_from_window: "gdk_pixbuf_get_from_window" [
+			window		[handle!]
+			src_x			[integer!]
+			src_y			[integer!]
+			width			[integer!]
+			height		[integer!]
+			return:		[handle!]
+		]
+		gdk_pixbuf_get_n_channels: "gdk_pixbuf_get_n_channels" [
+			pixbuf		[handle!]
+			return: 	[integer!]
+		]
+
+		;; Useless since already called inside pango_cairo_create_context
+		; pango_cairo_font_map_get_default: "pango_cairo_font_map_get_default" [
+		; 	return: 	[handle!]
+		; ]
+
 		pango_cairo_create_context: "pango_cairo_create_context" [
 			cr 			[handle!]
 			return: 	[handle!]
@@ -1297,6 +2504,191 @@ cairo_font_extents_t!: alias struct! [
 		pango_cairo_show_layout: "pango_cairo_show_layout" [
 			cr 			[handle!]
 			layout 		[handle!]
+		]
+		pango_cairo_show_layout_line: "pango_cairo_show_layout_line" [
+			cr 			[handle!]
+			layout_line [handle!]
+		]
+		pango_cairo_context_set_font_options: "pango_cairo_context_set_font_options" [
+			cr 			[handle!]
+			opts		[handle!]
+		]
+		pango_context_load_font: "pango_context_load_font" [
+			context		[handle!]
+			fd				[handle!]
+			return: 	[handle!]
+		]
+		pango_font_map_create_context: "pango_font_map_create_context" [
+			fontmap		[handle!]
+			return:		[handle!]
+		]
+		pango_parse_markup: "pango_parse_markup" [
+			markup_text		[c-string!]
+            length 			[integer!]
+            accel_marker	[integer!] 	;gunichar=guint32
+            attr_list		[handle!] 	;[pointer! [handle!]]
+            text			[handle!] 	;[pointer! [c-string!]]
+            accel_char		[integer!] 	;gunichar=gunit32
+            error			[handle!]
+			return: 		[logic!]
+		]
+		pango_attr_list_new: "pango_attr_list_new" [
+			return: 	[handle!]
+		]
+ 		pango_attr_list_ref: "pango_attr_list_ref" [
+			 attrs 		[handle!]
+			 return: 	[handle!]
+		 ]
+ 		pango_attr_list_unref: "pango_attr_list_unref" [
+			 attrs 		[handle!]
+		 ]
+		pango_attr_list_copy: "pango_attr_list_copy" [
+			attrs 		[handle!]
+			return: 	[handle!]
+		 ]
+		pango_attr_list_insert: "pango_attr_list_insert" [
+			attrs 		[handle!]
+			attr 		[PangoAttribute!]
+		]
+		pango_attr_list_change: "pango_attr_list_change" [
+			attrs 		[handle!]
+			attr 		[PangoAttribute!]
+		]
+		pango_attr_list_insert_before: "pango_attr_list_insert_before" [
+			attrs 		[handle!]
+			attr 		[PangoAttribute!]
+		] 
+		pango_attr_list_splice: "pango_attr_list_splice" [
+			attrs 		[handle!]
+			attrs2 		[handle!]
+			pos			[integer!]
+			len			[integer!]
+		]
+
+		pango_attribute_equal: "pango_attribute_equal" [
+			attr 		[handle!]
+			attr2 		[handle!]
+			return:		[logic!]
+		]
+		pango_attribute_destroy: "pango_attribute_destroy" [
+			attr		[PangoAttribute!]
+		]
+		;; font description attributes
+		pango_attr_family_new: "pango_attr_family_new" [
+			name		[c-string!]
+			return: 	[PangoAttribute!]
+		]
+		pango_attr_style_new: "pango_attr_style_new" [
+			style		[integer!]
+			return: 	[PangoAttribute!]
+		]
+		pango_attr_variant_new: "pango_attr_variant_new" [
+			variant		[integer!]
+			return: 	[PangoAttribute!]
+		]
+		pango_attr_stretch_new: "pango_attr_stretch_new" [
+			stretch		[integer!]
+			return: 	[PangoAttribute!]
+		]
+		pango_attr_weight_new: "pango_attr_weight_new" [
+			weight		[integer!]
+			return: 	[PangoAttribute!]
+		]
+		pango_attr_size_new: "pango_attr_size_new" [
+			size		[integer!]
+			return: 	[PangoAttribute!]
+		]
+		pango_attr_size_new_absolute: "pango_attr_size_new_absolute" [
+			size		[integer!]
+			return: 	[PangoAttribute!]
+		]
+		pango_attr_font_desc_new: "pango_attr_font_desc_new" [
+			font-desc	[handle!]
+			return: 	[PangoAttribute!]
+		]
+		;; Color attributes
+		pango_attr_foreground_new: "pango_attr_foreground_new" [
+			r			[integer!]
+			g			[integer!]
+			b			[integer!]
+			return: 	[PangoAttribute!]
+		]
+		pango_attr_background_new: "pango_attr_background_new" [
+			r			[integer!]
+			g			[integer!]
+			b			[integer!]
+			return: 	[PangoAttribute!]
+		]
+		;; styles attributes
+		pango_attr_strikethrough_new: "pango_attr_strikethrough_new" [
+			ok			[logic!]
+			return: 	[PangoAttribute!]
+		]
+		pango_attr_strikethrough_color_new: "pango_attr_strikethrough_color_new" [
+			r			[integer!]
+			g			[integer!]
+			b			[integer!]
+			return: 	[PangoAttribute!]
+		]
+		pango_attr_underline_new: "pango_attr_underline_new" [
+			ok			[integer!]
+			return: 	[PangoAttribute!]
+		]
+		pango_attr_underline_color_new: "pango_attr_underline_color_new" [
+			r			[integer!]
+			g			[integer!]
+			b			[integer!]
+			return: 	[PangoAttribute!]
+		]
+		pango_attr_shape_new: "pango_attr_shape_new" [
+			ink-rect	 [handle!]
+			logical-rect [handle!]
+			return: 	 [PangoAttribute!]
+		]
+		;; size attributes
+		pango_attr_scale_new: "pango_attr_scale_new" [
+			scale		[float!]
+			return: 	[PangoAttribute!]
+		]
+		pango_attr_rise_new: "pango_attr_rise_new" [
+			rise		[integer!]
+			return: 	[PangoAttribute!]
+		]
+		pango_attr_letter_spacing_new: "pango_attr_letter_spacing_new" [
+			spacing		[integer!]
+			return: 	[PangoAttribute!]
+		]
+		pango_attr_gravity_new: "pango_attr_gravity_new" [
+			gravity		[integer!]
+			return: 	[PangoAttribute!]
+		]
+		pango_attr_gravity_hint_new: "pango_attr_gravity_hint_new" [
+			hint		[integer!]
+			return: 	[PangoAttribute!]
+		]
+		pango_attr_font_features_new: "pango_attr_font_features_new" [
+			features	[c-string!]
+			return: 	[PangoAttribute!]
+		]
+		pango_attr_foreground_alpha_new: "pango_attr_foreground_alpha_new" [
+			alpha		[integer!]
+			return: 	[PangoAttribute!]
+		]
+		pango_attr_background_alpha_new: "pango_attr_background_alpha_new" [
+			alpha		[integer!]
+			return: 	[PangoAttribute!]
+		]
+
+
+		cairo_font_options_create: "cairo_font_options_create" [
+			return: 	[handle!]
+		]
+		cairo_font_options_destroy: "cairo_font_options_destroy" [
+			return: 	[handle!]
+		]
+		cairo_font_options_set_antialias: "cairo_font_options_set_antialias" [
+			cfo			[handle!]
+            antialias	[cairo_antialias_t!]
 		]
 	]
 ]

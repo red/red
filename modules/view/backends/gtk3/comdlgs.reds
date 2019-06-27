@@ -10,6 +10,14 @@ Red/System [
 	}
 ]
 
+request-file-double-clicked: func [
+	[cdecl]
+	widget	[handle!]
+	ctx		[node!]
+][
+	gtk_dialog_response widget GTK_RESPONSE_ACCEPT
+]
+
 _request-file: func [
 	title		[red-string!]
 	path		[red-file!]
@@ -28,9 +36,10 @@ _request-file: func [
 		ret		[red-value!]
 ][
 	ret: as red-value! none-value
-	widget: gtk_file_chooser_dialog_new ["FileChooserDialog" null either dir? [GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER][GTK_FILE_CHOOSER_ACTION_OPEN] "Cancel" 5 "Open" 2 null]
+	widget: gtk_file_chooser_dialog_new ["FileChooserDialog" null either dir? [GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER][GTK_FILE_CHOOSER_ACTION_OPEN] "Cancel" GTK_RESPONSE_CANCEL "Open" GTK_RESPONSE_ACCEPT null]
+	gobj_signal_connect(widget "file-activated" :request-file-double-clicked null)
 	resp: gtk_dialog_run widget
-	if resp = 2 [
+	if resp = GTK_RESPONSE_ACCEPT [
 		cstr: gtk_file_chooser_get_filename widget 
 		size: length? cstr
 		str: string/load cstr size UTF-8
