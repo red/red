@@ -361,7 +361,7 @@ collector: context [
 
 		#if debug? = yes [
 			tm: (platform/get-time yes yes) - tm - tm1
-			sprintf [buf ", mark: %.3fms, sweep: %.3fms" tm1 * 1000 tm * 1000]
+			sprintf [buf ", mark: %.2fms, sweep: %.2fms" tm1 * 1000 tm * 1000]
 			probe [" => " memory-info null 1 buf]
 			if verbose > 1 [
 				simple-io/close-file stdout
