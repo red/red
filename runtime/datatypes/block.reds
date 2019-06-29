@@ -119,6 +119,37 @@ block: context [
 		]
 		blk
 	]
+	
+	rs-select: func [
+		blk		[red-block!]
+		value	[red-value!]
+		return: [red-value!]
+		/local
+			slot [red-value!]
+			tail [red-value!]
+			s	 [series!]
+			compare
+	][
+		s: GET_BUFFER(blk)
+		slot: s/offset + blk/head
+		tail: s/tail
+		
+		compare: as function! [
+			value1  [red-value!]
+			value2  [red-value!]
+			op	    [integer!]							;-- type of comparison
+			return: [integer!]							;-- returns 0 if COMP_FIND matches
+		] actions/get-action-ptr value ACT_COMPARE		;-- extract the dispatched action
+
+		while [slot < tail][
+			if zero? compare value slot COMP_FIND [
+				slot: slot + 1
+				either slot < tail [return slot][return as red-value! none-value]
+			]
+			slot: slot + 1
+		]
+		as red-value! none-value
+	]
 
 	clone: func [
 		blk 	[red-block!]
