@@ -765,7 +765,7 @@ system-dialect: make-profilable context [
 				tag!	 [either value = <last> [last-type][[logic!]]]
 				string!	 [[c-string!]]
 				get-word! [
-					type: resolve-type to word! value
+					if none? type: resolve-type to word! value [throw-error ["undefined symbol:" mold value]]
 					
 					switch/default type/1 [
 						function! [type]
