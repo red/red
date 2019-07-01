@@ -743,7 +743,7 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		get-type: func [value /local type][
+		get-type: func [value /local type name][
 			switch/default type?/word value [
 				word! 	 [resolve-type value]
 				integer! [[integer!]]
@@ -765,14 +765,20 @@ system-dialect: make-profilable context [
 				tag!	 [either value = <last> [last-type][[logic!]]]
 				string!	 [[c-string!]]
 				get-word! [
-					if none? type: resolve-type to word! value [throw-error ["undefined symbol:" mold value]]
+					name: to word! value
 					
+					if none? type: any [
+						resolve-type name
+						all [ns-path resolve-type ns-prefix name]
+					][
+						throw-error ["undefined symbol:" mold value]
+					]
 					switch/default type/1 [
 						function! [type]
 						integer! byte! float! float32! [compose/deep [pointer! [(type/1)]]]
 					][
 						with-alias-resolution off [
-							type: resolve-type to word! value
+							type: resolve-type name
 						]
 						either struct-by-value? type [
 							type
