@@ -1893,14 +1893,13 @@ change-enabled: func [
 		bool [red-logic!]
 ][
 	bool: as red-logic! values + FACE_OBJ_ENABLED?
-	either all [
+	if all [
 		type = base
 		(BASE_FACE_CARET and GetWindowLong hWnd wc-offset - 12) <> 0
 	][
 		change-visible hWnd values bool/value base
-	][
-		EnableWindow hWnd bool/value
 	]
+	EnableWindow hWnd bool/value
 ]
 
 change-visible: func [

@@ -58,7 +58,7 @@ gui-console-ctx: context [
 		]
 		actors: object [
 			on-time: func [face [object!] event [event!]][
-				caret/rate: 2
+				if caret/enabled? [caret/rate: 2]
 				terminal/on-time
 				'done
 			]
@@ -109,7 +109,7 @@ gui-console-ctx: context [
 	]
 
 	caret: make face! [
-		type: 'base color: caret-clr offset: 0x0 size: 1x17 rate: 2 visible?: no
+		type: 'base color: caret-clr offset: 0x0 size: 1x17 rate: 2 enabled?: no
 		options: compose [caret (console) cursor: I-beam accelerated: yes]
 		actors: object [
 			on-time: func [face [object!] event [event!]][
@@ -124,7 +124,7 @@ gui-console-ctx: context [
 
 	#include %settings.red
 
-	show-caret: func [][unless caret/visible? [caret/visible?: yes]]
+	show-caret: func [][unless caret/enabled? [caret/enabled?: yes]]
 
 	setup-faces: does [
 		console/pane: reduce [caret]
@@ -175,12 +175,12 @@ gui-console-ctx: context [
 			]
 			on-focus: func [face [object!] event [event!]][
 				caret/color: caret-clr
-				unless caret/visible? [caret/visible?: yes]
+				unless caret/enabled? [caret/enabled?: yes]
 				caret/rate: 2
 				terminal/refresh
 			]
 			on-unfocus: func [face [object!] event [event!]][
-				if caret/visible? [caret/visible?: no]
+				if caret/enabled? [caret/enabled?: no]
 				caret/rate: none
 			]
 		]
@@ -242,7 +242,7 @@ ask: function [
 		do-events
 	]
 	vt/ask?: no
-	gui-console-ctx/caret/visible?: no
+	gui-console-ctx/caret/enabled?: no
 	unless gui-console-ctx/console/state [line: "quit"]
 	line
 ]
