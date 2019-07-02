@@ -1136,6 +1136,7 @@ WndProc: func [
 			if type = window [
 				win-state: 0
 				type: either modal-loop-type = EVT_MOVING [EVT_MOVE][EVT_SIZE]
+				current-msg/hWnd: hWnd
 				make-event current-msg 0 type
 				return 0
 			]
