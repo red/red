@@ -99,7 +99,7 @@ Red/System [
 	ACT_OR~
 	ACT_XOR~
 	
-	;-- Series actions --
+	;-- Series actions --								;-- Port! actions start here
 	ACT_APPEND
 	ACT_AT
 	ACT_BACK

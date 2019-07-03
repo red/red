@@ -10,23 +10,15 @@ Red [
 	}
 ]
 
-select-scheme: function ["Internal Use Only" p [port! object!]][
-	s: p/scheme
-	case [
-		any-word? s [s: select system/schemes s]
-		block? s 	[]
-	]	
-	unless object? s [cause-error 'access 'no-scheme [p/scheme]]
-	p/scheme: s
-]
-
 register-scheme: func [
 	"Registers a new scheme"
-	name [word!]	"Scheme's name"
-	spec [object!]	"Actors functions"
+	spec [object!]	"Scheme definition"
+	/native
+		dispatch [handle!]
 ][
-	unless find/skip system/schemes name 2 [
-		reduce/into [name spec] system/schemes
+	if native [spec/actor: dispatch]
+	unless find/skip system/schemes spec/name 2 [
+		reduce/into [spec/name spec] system/schemes
 	]
 ]
 

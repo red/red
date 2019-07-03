@@ -69,7 +69,7 @@ url: context [
 
 		either TYPE_OF(p) = TYPE_OBJECT [
 			p: port/make none-value as red-value! p TYPE_NONE
-			if open? [port/open p new? read? write? seek? allow]
+			if open? [actions/open as red-value! p new? read? write? seek? allow]
 		][
 			0 ;TBD: error invalid url
 		]

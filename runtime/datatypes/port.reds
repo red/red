@@ -42,11 +42,8 @@ port: context [
 		/local
 			actors [red-object!]
 	][
-		stack/mark-func action null
-		#call [select-scheme port]
-		actors: as red-object! stack/arguments
-		assert TYPE_OF(actors) = TYPE_OBJECT
-		stack/unwind
+		actors: as red-object! (object/get-values port) + field-actor
+		if TYPE_OF(actors) <> TYPE_OBJECT [fire [TO_ERROR(access invalid-port)]]
 		actors
 	]
 	
@@ -58,7 +55,7 @@ port: context [
 			actor [red-function!]
 	][
 		actor: as red-function! object/rs-select actors as red-value! action
-		if TYPE_OF(actor) = TYPE_NONE [fire [TO_ERROR(access no-port-action) action]]
+		if TYPE_OF(actor) <> TYPE_FUNCTION [fire [TO_ERROR(access no-port-action) action]]
 		actor
 	]
 	
@@ -74,6 +71,7 @@ port: context [
 		port: stack/arguments
 		actors: get-actors as red-object! port action
 		actor: get-actor actors action
+
 		stack/mark-func action actors/ctx
 		stack/push port
 		if args > 1 [stack/push port + 1]
@@ -106,7 +104,9 @@ port: context [
 			new	   [red-object!]
 			parts  [red-object!]
 			state  [red-object!]
+			obj	   [red-object!]
 			base   [red-value!]
+			actor  [red-value!]
 			scheme [red-word!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "port/make"]]
@@ -126,7 +126,7 @@ port: context [
 			new/on-set: null
 			parts: object/make new spec type
 		]
-		scheme: as red-word! object/get-values parts 0	;-- `scheme` field
+		scheme: as red-word! object/get-values parts	;-- `scheme` field
 		if TYPE_OF(scheme) <> TYPE_WORD [fire [TO_ERROR(access no-scheme) spec]]
 
 		new: as red-object! stack/push*
@@ -143,6 +143,17 @@ port: context [
 		base: object/get-values new
 		copy-cell as red-value! parts  base + field-spec
 		copy-cell as red-value! scheme base + field-scheme
+		
+		obj: as red-object! block/rs-select as red-block! #get system/schemes as red-value! scheme
+		assert TYPE_OF(obj) = TYPE_OBJECT
+		actor: (object/get-values obj) + 3									;-- `actor` field from scheme object
+		type: TYPE_OF(actor)
+		
+		unless any [type = TYPE_OBJECT type = TYPE_HANDLE][
+			fire [TO_ERROR(access invalid-actor) spec]
+		]
+		copy-cell as red-value! actor base + field-actor
+		
 		object/copy
 			as red-object! #get system/standard/port-state
 			as red-object! base + field-state

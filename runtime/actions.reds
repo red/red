@@ -60,11 +60,25 @@ actions: context [
 	
 	get-action-ptr-from: func [
 		type	[integer!]								;-- datatype ID
+		value	[red-value!]							;-- Red value to dispatch from
 		action	[integer!]								;-- action ID
 		return: [integer!]								;-- action pointer (datatype-dependent)
 		/local
 			index [integer!]
+			actor [red-handle!]
+			table [int-ptr!]
 	][
+		if TYPE_OF(value) = TYPE_PORT [
+			actor: as red-handle! (object/get-values as red-object! value) + 2
+			
+			if all [action >= ACT_APPEND TYPE_OF(actor) = TYPE_HANDLE][
+				table: as int-ptr! actor/value
+				action: action - ACT_APPEND + 1			;-- index is 1-based
+				index: table/action
+				if zero? index [ERR_EXPECT_ARGUMENT(type 0)]
+				return index
+			]
+		]
 		index: type << 8 + action
 		index: action-table/index						;-- lookup action function pointer
 
@@ -80,7 +94,7 @@ actions: context [
 			arg  [red-value!]
 	][
 		arg: stack/arguments
-		get-action-ptr-from TYPE_OF(arg) action
+		get-action-ptr-from TYPE_OF(arg) arg action
 	]	
 
 	get-action-ptr: func [
@@ -88,7 +102,7 @@ actions: context [
 		action	[integer!]								;-- action ID
 		return: [integer!]								;-- action pointer (datatype-dependent)
 	][
-		get-action-ptr-from TYPE_OF(value) action
+		get-action-ptr-from TYPE_OF(value) value action
 	]
 	
 	get-index-argument: func [
@@ -140,7 +154,7 @@ actions: context [
 			spec	 [red-value!]
 			type	 [integer!]
 			return:	 [red-value!]						;-- newly created value
-		] get-action-ptr-from type ACT_MAKE
+		] get-action-ptr-from type proto ACT_MAKE
 		
 		action-make proto spec type
 	]
@@ -197,7 +211,7 @@ actions: context [
 			value	[red-value!]
 			field	[integer!]
 			return:	[red-block!]
-		] get-action-ptr-from TYPE_OF(value) ACT_REFLECT
+		] get-action-ptr-from TYPE_OF(value) value ACT_REFLECT
 			
 		action-reflect value field/symbol
 	]
@@ -230,7 +244,7 @@ actions: context [
 			spec	 [red-value!]
 			type	 [integer!]
 			return:	 [red-value!]						;-- newly created value
-		] get-action-ptr-from type ACT_TO
+		] get-action-ptr-from type proto ACT_TO
 
 		action-to proto spec type
 	]
