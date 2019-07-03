@@ -609,6 +609,7 @@ process-command-event: func [
 		saved  [handle!]
 		child  [handle!]
 		evt	   [integer!]
+		widget [integer!]
 ][
 	if all [zero? lParam wParam < 1000][				;-- heuristic to detect a menu selection (--)'
 		unless null? menu-handle [
@@ -678,8 +679,8 @@ process-command-event: func [
 			values: get-face-values child
 
 			type: as red-word! values + FACE_OBJ_TYPE
-			res: either type/symbol = text-list [LB_GETCURSEL][CB_GETCURSEL]
-			idx: as-integer SendMessage child res 0 0
+			widget: either type/symbol = text-list [LB_GETCURSEL][CB_GETCURSEL]
+			idx: as-integer SendMessage child widget 0 0
 
 			int: as red-integer! values + FACE_OBJ_SELECTED
 			if all [
@@ -687,6 +688,12 @@ process-command-event: func [
 				idx + 1 = int/value
 			][exit]										;-- do not send event if select the same item
 			res: make-event current-msg idx EVT_SELECT
+
+			idx: as-integer SendMessage child widget 0 0 ;-- user may change select item in on-select handler
+			if all [									;-- if user change it back to the preview item, exit
+				TYPE_OF(int) = TYPE_INTEGER
+				idx + 1 = int/value
+			][exit]										;-- do not send change event if select the same item
 			int/header: TYPE_INTEGER
 			int/value: idx + 1
 
