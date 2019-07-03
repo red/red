@@ -799,6 +799,7 @@ system-dialect: make-profilable context [
 							find [float! float64! c-string!] first type: get-type value/1
 							type: [integer!]
 						]
+						if type/1 = 'function! [type: [integer!]] ;-- forces pointer! [integer!] if function reference
 						next next reduce ['array! length? value 'pointer! type]	;-- hide array size
 					]
 				]
@@ -1069,7 +1070,7 @@ system-dialect: make-profilable context [
 			parse list [
 				some [
 					p: word! (check-enum-symbol p) :p ['true | 'false] (p/1: do p/1)
-					| string! | char! | integer! | decimal!
+					| string! | char! | integer! | decimal! | get-word! | p: 'null (p/1: 0)
 				] | (throw-error ["invalid literal array content:" mold list])
 			]
 			to paren! list
