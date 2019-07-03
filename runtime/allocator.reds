@@ -698,6 +698,27 @@ compare-refs: func [[cdecl] a [int-ptr!] b [int-ptr!] return: [integer!]][
 	a/value - b/value
 ]
 
+update-direct-ptr: func [
+	start		[byte-ptr!]
+	end			[byte-ptr!]
+	delta		[integer!]
+	/local
+		top	  [int-ptr!]
+		stk	  [int-ptr!]
+		p	  [byte-ptr!]
+][
+	top:  system/stack/top
+	stk:  stk-bottom
+	until [
+		stk: stk - 1
+		p: as byte-ptr! stk/value  
+		if all [p > start p < end][
+			stk/value: as-integer p + delta
+		]
+		stk = top
+	]
+]
+
 extract-stack-refs: func [
 	store? [logic!]
 	/local
@@ -1147,6 +1168,9 @@ expand-series: func [
 	
 	assert not zero? (series/flags and not series-in-use) ;-- ensure that 'used bit is set
 	series/flags: series/flags xor series-in-use		  ;-- clear 'used bit (enough to free the series)	
+
+	delta: as-integer new - series
+	update-direct-ptr as byte-ptr! series as byte-ptr! series/tail delta
 	new	
 ]
 
