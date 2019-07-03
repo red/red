@@ -685,7 +685,8 @@ respond-window-add: func [
 	on-type: 0
 	if respond-event?  actors "on-close" [on-type: on-type or ON_CLOSE]
 	if respond-event?  actors "on-move" [on-type: on-type or ON_MOVE] if respond-event?  actors "on-moving" [on-type: on-type or ON_MOVING]
-	if respond-event?  actors "on-size" [on-type: on-type or ON_SIZE] if respond-event?  actors "on-sizing" [on-type: on-type or ON_SIZING]
+	if respond-event?  actors "on-size" [on-type: on-type or ON_SIZE] if respond-event?  actors "on-size" [on-type: on-type or ON_SIZE]
+	if respond-event?  actors "on-size" [on-type: on-type or ON_SIZING] if respond-event?  actors "on-sizing" [on-type: on-type or ON_SIZING]
 	if respond-event?  actors "on-time" [on-type: on-type or ON_TIME]  
 	if respond-event?  actors "on-drawing" [on-type: on-type or ON_DRAWING]
 	if respond-event?  actors "on-scroll" [on-type: on-type or ON_SCROLL] 
@@ -933,8 +934,8 @@ connect-widget-events: function [
 		sym = window [
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add window delete-event " lf]]
 			gobj_signal_connect(widget "delete-event" :window-delete-event null)
-			;BUG (make `vid.red` failing):gtk_widget_add_events widget GDK_STRUCTURE_MASK
-			;gobj_signal_connect(widget "configure-event" :window-configure-event null)
+			;BUG (make `vid.red` failing): gtk_widget_add_events widget GDK_STRUCTURE_MASK
+			gobj_signal_connect(widget "configure-event" :window-configure-event null)
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add window size-allocate " lf]]
 			gobj_signal_connect(widget "size-allocate" :window-size-allocate null)
 			connect-common-events widget face sym parent
