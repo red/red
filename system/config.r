@@ -95,6 +95,7 @@ Linux [									; Linux default target
 	format: 	'ELF
 	type:		'exe
 	dynamic-linker: "/lib/ld-linux.so.2"
+	stack-align-16?: yes
 ]
 Linux-Old [
 	OS:			'Linux
