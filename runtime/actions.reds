@@ -69,7 +69,7 @@ actions: context [
 			table [int-ptr!]
 	][
 		if TYPE_OF(value) = TYPE_PORT [
-			actor: as red-handle! (object/get-values as red-object! value) + 2
+			actor: as red-handle! (object/get-values as red-object! value) + port/field-actor
 			
 			if all [action >= ACT_APPEND TYPE_OF(actor) = TYPE_HANDLE][
 				table: as int-ptr! actor/value
