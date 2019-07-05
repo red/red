@@ -75,7 +75,7 @@ actions: context [
 				table: as int-ptr! actor/value
 				action: action - ACT_APPEND + 1			;-- index is 1-based
 				index: table/action
-				if zero? index [ERR_EXPECT_ARGUMENT(type 0)]
+				if zero? index [fire [TO_ERROR(access no-port-action)]]
 				return index
 			]
 		]

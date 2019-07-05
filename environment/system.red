@@ -213,7 +213,7 @@ system: context [
 				invalid-port:		["invalid port object (invalid field values)"]
 				invalid-actor:		["invalid port actor (must be handle or object)"]
 				;invalid-port-arg:	["invalid port argument:" arg1]
-				no-port-action:		["this port does not support:" :arg1]
+				no-port-action:		"port action not supported"
 				;protocol:			["protocol error:" :arg1]
 				;invalid-check:		["invalid checksum (tampered file):" :arg1]
 				;write-error:		["write failed:" :arg1 "reason:" :arg2]
