@@ -312,27 +312,37 @@ window-removed-event: func [
 ]
 
 ;; BUG: `vid.red` fails... back with window-size-allocate handler for resizing
-; window-configure-event: func [
-; 	[cdecl]
-; 	widget	[handle!]
-; 	event	[GdkEventConfigure!]
-; 	/local
-; 		sz	 [red-pair!]
-; ][
-; 	;;DEBUG: print [ "window-resizing " event/x "x" event/y " " event/width "x" event/height lf]
-; 	sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE		;-- update face/size
-; 	either any [event/width <> sz/x event/height <> sz/y] [
-; 		;if 0 = (evt-motion/cpt % evt-motion/sensitiv) [
-; 			evt-motion/x_new: event/width 
-; 			evt-motion/y_new: event/height
-; 			evt-motion/x_root: as float! event/x
-; 			evt-motion/y_root: as float! event/y 
-; 			make-event widget 0 EVT_SIZING
-; 		;]
-; 		;evt-motion/cpt: evt-motion/cpt + 1
-; 		yes
-; 	][no]
-; ]
+window-configure-event: func [
+	[cdecl]
+	widget	[handle!]
+	event	[GdkEventConfigure!]
+	/local
+		sz	 [red-pair!]
+][
+	;;DEBUG: print [ "window-resizing " event/x "x" event/y " " event/width "x" event/height lf]
+	sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE		;-- update face/size
+	; either any [event/width <> sz/x event/height <> sz/y] [
+	; 	;if 0 = (evt-motion/cpt % evt-motion/sensitiv) [
+	; 		evt-motion/x_new: event/width 
+	; 		evt-motion/y_new: event/height
+	; 		evt-motion/x_root: as float! event/x
+	; 		evt-motion/y_root: as float! event/y 
+	; 		make-event widget 0 EVT_SIZE
+	; 	;]
+	; 	;evt-motion/cpt: evt-motion/cpt + 1
+	; 	yes
+	; ][no]
+	if any [event/width <> sz/x event/height <> sz/y] [
+		; evt-sizing/x_new: event/width 
+		; evt-sizing/y_new: event/height
+		; sz/x: evt-sizing/x_new
+		; sz/y: evt-sizing/y_new
+		; ;; DEBUG: print ["window-size-allocate: "  evt-sizing/x_root "x" evt-sizing/y_root  lf]
+		; evt-sizing/x_root: as float! event/x
+		; evt-sizing/y_root: as float! event/y
+		make-event widget 0 EVT_SIZE
+	]
+]
 
 
 window-size-allocate: func [

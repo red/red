@@ -140,12 +140,14 @@ free-font: func [
 		state [red-block!]
 		hFont [handle!]
 ][
+	;; DEBUG: print ["free-font begin" lf]
 	hFont: get-font-handle font 0
 	unless null? hFont [
 		state: as red-block! (object/get-values font) + FONT_OBJ_STATE
 		state/header: TYPE_NONE
 		free-font-handle hFont
 	]
+	;; DEBUG: print ["free-font end" lf]
 ]
 
 set-font-handle: func [
@@ -766,18 +768,22 @@ pango-layout-context-set-text: func [
 free-pango-cairo-font: func [
 	dc		[draw-ctx!]
 ][
+	;; DEBUG: print ["free-pango-cairo-layout begin" lf]
 	unless null? dc/font-desc [
 		pango_font_description_free dc/font-desc 
 		dc/font-desc: null
 	]
+	;; DEBUG: print ["free-pango-cairo-layout font-opts: " dc/font-opts lf]
 	unless null? dc/font-opts [
 		cairo_font_options_destroy dc/font-opts
-		dc/font-desc: null
+		dc/font-opts: null
 	]
+	;; DEBUG: print ["free-pango-cairo-layout dc/layout: " dc/layout lf]
 	unless null? dc/layout [
 		g_object_unref dc/layout
 		dc/layout: null
 	]
+	;; DEBUG: print ["free-pango-cairo-layout end" lf]
 ]
 
 make-pango-cairo-layout: func [
@@ -790,6 +796,6 @@ make-pango-cairo-layout: func [
 	;; DEBUG: print ["make-pango-cairo-layout" lf]
 	layout: pango_cairo_create_layout cr 
 	unless null? fd [pango_layout_set_font_description layout fd]
-	;; DEBUG: print ["make-pango-cairo-layout: " dc/layout lf]
+	;; DEBUG: print ["make-pango-cairo-layout: " layout lf]
 	layout
 ]
