@@ -721,7 +721,7 @@ GDK-draw-image: func [
 	img: either width = 0 [image][gdk_pixbuf_scale_simple image width height 2]
 	;; DEBUG: print ["GDK-draw-image: " x "x" y "x" width "x" height lf]
 	cairo_translate cr as-float x as-float y
-	gdk_cairo_set_source_pixbuf cr img 0 0
+	gdk_cairo_set_source_pixbuf cr img 0.0 0.0
 	cairo_paint cr
 	cairo_translate cr as-float (0 - x) as-float (0 - y)
 	if width > 0 [g_object_unref img]
@@ -799,7 +799,7 @@ OS-draw-image: func [
 		;; DEBÙG: print ["pixbuf format: " format lf]
 		crop_surf: cairo_image_surface_create format crop_img_sx crop_img_sy
 		crop_cr: cairo_create crop_surf
-    	gdk_cairo_set_source_pixbuf crop_cr img 0 0
+    	gdk_cairo_set_source_pixbuf crop_cr img 0.0 0.0
 		cairo_paint crop_cr
 		cairo_destroy crop_cr
 
