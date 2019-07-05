@@ -201,6 +201,7 @@ system: context [
 				code:				500
 				type:				"Access Error"
 				cannot-open:		["cannot open:" :arg1]
+				cannot-close:		["cannot close:" :arg1]
 				invalid-utf8:		["invalid UTF-8 encoding:" :arg1]
 				;not-open:			["port is not open:" :arg1]
 				;already-open:		["port is already open:" :arg1]
