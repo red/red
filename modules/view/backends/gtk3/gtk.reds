@@ -2420,8 +2420,8 @@ GPtrArray!: alias struct! [
 		gdk_cairo_set_source_pixbuf: "gdk_cairo_set_source_pixbuf" [
 			cr 			[handle!]
 			pixbuf 	[handle!]
-			x 			[integer!]
-			y 			[integer!]
+			x 			[float!]
+			y 			[float!]
 		]
 		gdk_pixbuf_new: "gdk_pixbuf_new" [
 			colorsp 	[integer!]
