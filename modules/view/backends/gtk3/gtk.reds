@@ -2684,7 +2684,7 @@ GPtrArray!: alias struct! [
 			return: 	[handle!]
 		]
 		cairo_font_options_destroy: "cairo_font_options_destroy" [
-			return: 	[handle!]
+			fontopts 	[handle!]
 		]
 		cairo_font_options_set_antialias: "cairo_font_options_set_antialias" [
 			cfo			[handle!]
