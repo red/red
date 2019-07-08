@@ -91,7 +91,8 @@ object [
 
 	exit-ask-loop: func [/escape][
 		clear selects
-		caret/visible?: no
+		caret/enabled?: no
+		caret/rate: none
 		either escape [append line #"^["][
 			if all [not empty? line line <> first history][insert history line]
 			hist-idx: 0
@@ -308,9 +309,9 @@ object [
 		if ask? [
 			either offset/y < console/size/y [
 				caret/offset: offset
-				unless caret/visible? [caret/visible?: yes]
+				unless caret/enabled? [caret/enabled?: yes]
 			][
-				if caret/visible? [caret/visible?: no]
+				if caret/enabled? [caret/enabled?: no]
 			]
 		]
 	]
@@ -590,7 +591,7 @@ object [
 			pos: pos + offset? start end
 			clipboard: skip end either end/2 = #"^/" [2][1]
 			if nl? [
-				caret/visible?: no
+				caret/enabled?: no
 				insert history line
 				unless resume [system/view/platform/exit-event-loop]
 			]

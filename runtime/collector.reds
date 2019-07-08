@@ -292,10 +292,9 @@ collector: context [
 			buf: "                                                               "
 			tm: platform/get-time yes yes
 			print [
-				"root size: "	block/rs-length? root
-				", root max: "	***-root-size
-				", cycles: "	stats/cycles
-				", before: " 	memory-info null 1
+				"root: " block/rs-length? root "/" ***-root-size
+				", runs: " stats/cycles
+				", mem: " 	memory-info null 1
 			]
 			if verbose > 1 [probe "^/marking..."]
 		]
@@ -362,8 +361,8 @@ collector: context [
 
 		#if debug? = yes [
 			tm: (platform/get-time yes yes) - tm - tm1
-			sprintf [buf ", mark: %.3f ms, sweep: %.3f ms" tm1 * 1000 tm * 1000]
-			probe [", after: " memory-info null 1 buf]
+			sprintf [buf ", mark: %.2fms, sweep: %.2fms" tm1 * 1000 tm * 1000]
+			probe [" => " memory-info null 1 buf]
 			if verbose > 1 [
 				simple-io/close-file stdout
 				stdout: saved

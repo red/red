@@ -584,6 +584,8 @@ free-faces: func [
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
 
+	if sym = window [ShowWindow handle SW_HIDE]			;-- hide it first for better User experience
+
 	rate: values + FACE_OBJ_RATE
 	if TYPE_OF(rate) <> TYPE_NONE [change-rate handle none-value]
 
@@ -1891,14 +1893,13 @@ change-enabled: func [
 		bool [red-logic!]
 ][
 	bool: as red-logic! values + FACE_OBJ_ENABLED?
-	either all [
+	if all [
 		type = base
 		(BASE_FACE_CARET and GetWindowLong hWnd wc-offset - 12) <> 0
 	][
 		change-visible hWnd values bool/value base
-	][
-		EnableWindow hWnd bool/value
 	]
+	EnableWindow hWnd bool/value
 ]
 
 change-visible: func [
