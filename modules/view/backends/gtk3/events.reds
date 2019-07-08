@@ -936,7 +936,6 @@ connect-widget-events: function [
 			gobj_signal_connect(widget "delete-event" :window-delete-event null)
 			;BUG (make `vid.red` failing): gtk_widget_add_events widget GDK_STRUCTURE_MASK
 			gobj_signal_connect(widget "configure-event" :window-configure-event null)
-			;BUG (make `vid.red` failing):gtk_widget_add_events widget GDK_STRUCTURE_MASK
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add window size-allocate " lf]]
 			gobj_signal_connect(widget "size-allocate" :window-size-allocate null)
 			connect-common-events widget face sym parent
