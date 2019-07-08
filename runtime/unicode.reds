@@ -395,7 +395,7 @@ unicode: context [
 		]
 		 
 		buf1:  as byte-ptr! s/offset
-		buf4:  buf1
+		buf4:  as int-ptr! buf1
 		end:   buf1 + s/size
 		count: size
 
