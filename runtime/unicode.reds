@@ -393,9 +393,9 @@ unicode: context [
 				s: expand-series s used * unit
 			]
 		]
-		
+		 
 		buf1:  as byte-ptr! s/offset
-		buf4:  null
+		buf4:  buf1
 		end:   buf1 + s/size
 		count: size
 
