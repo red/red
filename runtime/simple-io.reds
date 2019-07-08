@@ -826,6 +826,7 @@ simple-io: context [
 			][
 				size: size + len
 			]
+			if offset < 0 [seek-file file 0]
 		]
 
 		if size <= 0 [
@@ -837,7 +838,7 @@ simple-io: context [
 			return val
 		]
 
-		if offset > 0 [
+		if offset >= 0 [
 			seek-file file offset
 			size: size - offset
 		]
