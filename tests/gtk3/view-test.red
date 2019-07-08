@@ -3,12 +3,12 @@ Red [
 	Needs: 'View
 ]
 
-system/view/debug?: yes
-live?: system/view/auto-sync?: no
+system/view/debug?: no
+live?: system/view/auto-sync?: yes
 
 workstation?: system/view/platform/product = 1
 os-version: system/view/platform/version
-recycle/off
+;recycle/off
 
 #switch config/OS [
 	Windows [
@@ -902,7 +902,3 @@ append win/pane make face! [
 
 dump-face win
 view/flags win [resize]
-system/view/debug?: no
-system/view/auto-sync?: yes
-
-recycle/on
