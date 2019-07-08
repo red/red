@@ -394,14 +394,13 @@ unicode: context [
 			]
 		]
 		
+		if zero? size [return node]
+
 		buf1:  as byte-ptr! s/offset
 		buf4:  as int-ptr! buf1
 		end:   buf1 + s/size
 		count: size
 
-		if zero? size [return node]
-		;assert not zero? as-integer src/1				;@@ ensure input string not empty
-		
 		if all [src/1 = #"^(EF)" src/2 = #"^(BB)" src/3 = #"^(BF)"][ ;-- skip BOM if present
 			src: src + 3
 			count: count - 3
