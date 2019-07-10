@@ -8,6 +8,7 @@ Red [
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
+	Notes: {Low-level GPIO code largely inspired by http://wiringpi.com/}
 ]
 
 gpio-scheme: context [
@@ -134,11 +135,37 @@ gpio-scheme: context [
 		]
 	]
 	
+	models: [
+	;-- Name ---------- Mapping --
+		"Model A"		old
+		"Model B"		old
+		"Model A+"		old
+		"Model B+"		old
+		"Pi 2"			new
+		"Alpha"			old
+		"CM"			old
+		"Unknown07"		new
+		"Pi 3"			new
+		"Pi Zero"		old
+		"CM3"			new
+		"Unknown11"		new
+		"Pi Zero-W"		old
+		"Pi 3B+"		new
+		"Pi 3A+"		new
+		"Unknown15"		new
+		"CM3+"			new
+		"Unknown17"		new
+		"Unknown18"		new
+		"Unknown19"		new
+	]
+	
 	gpio.open: routine [
 		state [block!]
+		old?  [logic!]
 		/local
 			handle [red-handle!]
 			fd	   [integer!]
+			model  [integer!]
 			base   [byte-ptr!]
 	][
 		fd: platform/io-open "/dev/gpiomem" 00101002h	;-- O_RDWR or O_SYNC
@@ -146,8 +173,9 @@ gpio-scheme: context [
 			handle: as red-handle! block/rs-head state
 			handle/header: TYPE_HANDLE
 			handle/value: fd
+			model: either old? [GPIO_PERIPH_RPI01][GPIO_PERIPH_RPI23]
 
-			base: mmap null 4096 MMAP_PROT_RW MMAP_MAP_SHARED fd GPIO_PERIPH_RPI23 or GPIO_OFFSET
+			base: mmap null 4096 MMAP_PROT_RW MMAP_MAP_SHARED fd model or GPIO_OFFSET
 			if any [
 				(as-integer base) > 0
 				-1024 < as-integer base					;-- check if not in the error codes range
@@ -172,9 +200,17 @@ gpio-scheme: context [
 
 	;--- Port actions ---
 
-	open: func [port /local state][
+	open: func [port /local state info revision model][
+		unless attempt [info: read %/proc/cpuinfo][
+			cause-error 'access 'cannot-open ["cannot access /proc/cpuinfo"]
+		]
+		parse/case info [thru "Revision" thru #":" any #" " copy revision to lf]
+		revision: to-integer debase/base revision 16
+		model: FFh << 4 and revision >> 4
+		
 		state: port/state: copy [none none]				;-- fd (handle!), base (handle!)
-		gpio.open port/state
+		gpio.open port/state 'old = pick models model + 1 * 2 	;-- model is 0-based
+		
 		case [
 			none? state/1 [cause-error 'access 'cannot-open ["failed to open /dev/gpiomem"]]
 			none? state/2 [cause-error 'access 'cannot-open ["mmap() failed"]]
