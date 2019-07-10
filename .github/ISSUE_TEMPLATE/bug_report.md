@@ -7,9 +7,8 @@ assignees: ''
 
 ---
 
-** Before Submitting **
-
-Please consider posting on https://gitter.im/red/bugs gitter room before opening your issue, to see if others think it should be filed, can help reproduce, etc.
+**Before submitting**
+Prior to opening this ticket, please consider to share your finding in our [dedicated chat](https://gitter.im/red/bugs), so we could confirm it and help you with bug reproduction on other platforms.
 
 **Describe the bug**
 A clear and concise description of what the bug is.
