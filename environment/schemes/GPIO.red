@@ -32,8 +32,8 @@ gpio-scheme: context [
 			]
 		]
 
-		#define GPIO_PERIPH_RPI23	3F000000h		;-- RPi 2 & 3 peripherals
-		#define GPIO_PERIPH_RPI01	20000000h		;-- RPi zero & 1 peripherals
+		#define GPIO_PERIPH_RPI23	3F000000h			;-- RPi 2 & 3 peripherals
+		#define GPIO_PERIPH_RPI01	20000000h			;-- RPi zero & 1 peripherals
 		#define GPIO_OFFSET			00200000h
 
 		#enum gpio-pins! [
@@ -67,10 +67,25 @@ gpio-scheme: context [
 			GPPUDCLK0: 	98h
 			GPPUDCLK1: 	9Ch
 		]
+		
+		#enum pin-modes! [
+			MODE_INPUT: 	0
+			MODE_OUTPUT
+			MODE_PWM_OUTPUT
+			MODE_GPIO_CLOCK
+			MODE_4										;-- not defined yet
+			MODE_5
+			MODE_6
+		]
+		
+		#enum pin-values! [
+			LOW:	0
+			HIGH
+		]
 
 		pause: func [time [integer!]][platform/usleep time * 1000]
 
-		select: func [
+		set-mode: func [
 			base [byte-ptr!]
 			pin	 [integer!]
 			mode [integer!]
@@ -97,12 +112,25 @@ gpio-scheme: context [
 				bit	  [integer!]
 				mode  [integer!]
 		][
-			index: pin >> 3
+			index: pin >> 3								;-- pin >> 5 * 4
 			bit: 1 << (pin and 31)
 
 			mode: either high? [GPSET0][GPCLR0]
 			p: as int-ptr! (base + mode + index)
 			p/value: bit
+		]
+				
+		get: func [
+			base    [byte-ptr!]
+			pin	    [integer!]
+			return: [integer!]
+			/local
+				p	  [int-ptr!]
+				bit	  [integer!]
+		][
+			bit: 1 << (pin and 31)
+			p: as int-ptr! (base + GPLEV0)
+			either p/value and bit <> 0 [1][0]
 		]
 	]
 	
