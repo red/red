@@ -78,6 +78,12 @@ gpio-scheme: context [
 			MODE_5
 			MODE_6
 		]
+
+		#enum pull-updown! [
+			PUD_OFF:		 0
+			PUD_DOWN
+			PUD_UP
+		]
 		
 		#enum pin-values! [
 			LOW:	0
@@ -132,6 +138,30 @@ gpio-scheme: context [
 			bit: 1 << (pin and 31)
 			p: as int-ptr! (base + GPLEV0)
 			either p/value and bit <> 0 [1][0]
+		]
+		
+		set-pull: func [
+			base	[byte-ptr!]
+			pin		[integer!]
+			pud		[integer!]
+			/local
+				p	[int-ptr!]
+		][
+			p: as int-ptr! (base + GPPUD)
+			p/value: pud and 3
+			platform/usleep 5
+			
+			p: as int-ptr! (base + GPPUDCLK0)
+			p/value: 1 << (pin and 31)
+			platform/usleep 5
+			
+			p: as int-ptr! (base + GPPUD)
+			p/value: 0
+			platform/usleep 5
+		
+			p: as int-ptr! (base + GPPUDCLK0)
+			p/value: 0
+			platform/usleep 5
 		]
 	]
 	
