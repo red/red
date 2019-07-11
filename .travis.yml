@@ -107,7 +107,7 @@ install:
     printf
     'FROM i386/debian:latest\n
     RUN apt-get update &&
-    apt-get install -y curl libcurl3 &&
+    apt-get install -y curl libcurl4 &&
     curl -o /bin/rebol https://static.red-lang.org/tmp/rebol &&
     chmod +x /bin/rebol\n
     ' > Dockerfile &&
