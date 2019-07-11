@@ -958,6 +958,8 @@ parser: context [
 								]
 								if loop? [
 									;-- Reset state for a new loop
+									p/input: input/head			;-- set saved pos to new position
+									p/sub: len					;-- set it to a neutral value
 									t/state: cnt + 1
 									cmd: (block/rs-head rule) + p/rule ;-- reset rule offset
 									PARSE_TRACE(_iterate)
