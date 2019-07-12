@@ -37,6 +37,10 @@ gpio-scheme: context [
 			#define GPIO_PERIPH_RPI23	3F000000h		;-- RPi 2 & 3 peripherals
 			#define GPIO_PERIPH_RPI01	20000000h		;-- RPi zero & 1 peripherals
 			#define GPIO_OFFSET			00200000h
+			#define GPIO_PWM			0020C000h
+			
+			#define PWMCLK_CNTL			40
+ 			#define PWMCLK_DIV			41
 
 			#enum gpio-pins! [
 				GPFSEL0:   	00h
@@ -89,6 +93,32 @@ gpio-scheme: context [
 			#enum pin-values! [
 				LOW: 0
 				HIGH
+			]
+			
+			#enum pwm-control! [
+				PWM_CONTROL:	0
+				PWM_STATUS:		1
+				PWM0_RANGE:		4
+				PWM0_DATA:		5
+				PWM1_RANGE:		8
+				PWM1_DATA:		9
+			]
+			
+			#enum pwm-modes! [
+				PWM0_MS_MODE:	0080h					;-- Run in MS mode
+				PWM0_USEFIFO:	0020h					;-- Data from FIFO
+				PWM0_REVPOLAR:	0010h					;-- Reverse polarity
+				PWM0_OFFSTATE:	0008h					;-- Ouput Off state
+				PWM0_REPEATFF:	0004h					;-- Repeat last value if FIFO empty
+				PWM0_SERIAL:	0002h					;-- Run in serial mode
+				PWM0_ENABLE:	0001h					;-- Channel Enable
+				PWM1_MS_MODE:	8000h					;-- Run in MS mode
+				PWM1_USEFIFO:	2000h					;-- Data from FIFO
+				PWM1_REVPOLAR:	1000h					;-- Reverse polarity
+				PWM1_OFFSTATE:	0800h					;-- Ouput Off state
+				PWM1_REPEATFF:	0400h					;-- Repeat last value if FIFO empty
+				PWM1_SERIAL:	0200h					;-- Run in serial mode
+				PWM1_ENABLE:	0100h					;-- Channel Enable
 			]
 
 			set-mode: func [
@@ -197,6 +227,7 @@ gpio-scheme: context [
 			fd	   [integer!]
 			model  [integer!]
 			base   [byte-ptr!]
+			pwm    [byte-ptr!]
 	][
 		fd: platform/io-open "/dev/gpiomem" 00101002h	;-- O_RDWR or O_SYNC
 		if fd > 0 [
@@ -213,6 +244,16 @@ gpio-scheme: context [
 				handle: handle + 1
 				handle/header: TYPE_HANDLE
 				handle/value: as-integer base
+			]
+			
+			pwm: gpio/mmap null 4096 MMAP_PROT_RW MMAP_MAP_SHARED fd model or GPIO_PWM
+			if any [
+				(as-integer pwm) > 0
+				-1024 < as-integer pwm					;-- check if not in the error codes range
+			][
+				handle: handle + 1
+				handle/header: TYPE_HANDLE
+				handle/value: as-integer pwm
 			]
 		]
 	]
@@ -248,7 +289,7 @@ gpio-scheme: context [
 
 	;--- Port actions ---
 
-	open: func [port /local state info revision model][
+	open: func [port /local state info revision model err i][
 		unless attempt [info: read %/proc/cpuinfo][
 			cause-error 'access 'cannot-open ["cannot access /proc/cpuinfo"]
 		]
@@ -256,17 +297,15 @@ gpio-scheme: context [
 		revision: to-integer debase/base revision 16
 		model: FFh << 4 and revision >> 4
 		
-		state: port/state: copy [none none]				;-- fd (handle!), base (handle!)
+		state: port/state: copy [none none none]		;-- fd (handle!), base (handle!), pwm (handle!)
 		gpio.open port/state 'old = pick models model + 1 * 2 	;-- model is 0-based
 		
-		case [
-			none? state/1 [cause-error 'access 'cannot-open ["failed to open /dev/gpiomem"]]
-			none? state/2 [cause-error 'access 'cannot-open ["mmap() failed"]]
-		]
+		err: ["failed to open /dev/gpiomem" "base mmap() failed" "pwm mmap() failed"]
+		repeat i 3 [unless state/:i [cause-error 'access 'cannot-open [err/:i]]]
 	]
 	
 	insert: func [port data [block!] /local s base modes value pulls pos m list v][
-		unless all [block? s: port/state parse s [2 handle!]][
+		unless all [block? s: port/state parse s [3 handle!]][
 			cause-error 'access 'not-open ["port/state is invalid"]
 		]
 		base: port/state/2
@@ -296,12 +335,10 @@ gpio-scheme: context [
 		port/data: list
 	]
 
-	close: func [port /local state][
+	close: func [port /local state err i][
 		gpio.close state: port/state
-		case [
-			handle? state/1 [cause-error 'access 'cannot-close ["failed to close /dev/gpiomem"]]
-			handle? state/2 [cause-error 'access 'cannot-close ["mmunap() failed"]]
-		]
+		err: ["failed to close /dev/gpiomem" "base mmunap() failed" "pwm mmunap() failed"]
+		repeat i 2 [if handle? state/:i [cause-error 'access 'cannot-close [err/:i]]]
 	]
 ]
 
