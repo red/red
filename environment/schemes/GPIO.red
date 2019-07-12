@@ -244,7 +244,7 @@ gpio-scheme: context [
 		if zero? platform/io-close handle/value [handle/header: TYPE_NONE]
 	]
 	
-	gpio.pause: routine [us [integer!]][platform/usleep us]
+	gpio.pause: routine [us [integer!]][platform/usleep us * 1000]
 
 	;--- Port actions ---
 
@@ -265,13 +265,13 @@ gpio-scheme: context [
 		]
 	]
 	
-	insert: func [port data [block!] /local s base modes value pulls pos m list d][
+	insert: func [port data [block!] /local s base modes value pulls pos m list v][
 		unless all [block? s: port/state parse s [2 handle!]][
 			cause-error 'access 'not-open ["port/state is invalid"]
 		]
 		base: port/state/2
 		
-		modes: ['in (m: 1) | 'out (m: 2) | 'pwm (m: 3)]					;-- order matters
+		modes: [['in | 'input] (m: 1) | ['out | 'output] (m: 2) | 'pwm (m: 3)]	;-- order matters
 		value: [m: logic! | ['on | 'high] (m: yes) | ['off | 'low] (m: no) | m: integer!]
 		pulls: ['pull-off (m: 1) | 'pull-down (m: 2) | 'pull-up (m: 3)] ;-- order matters
 		list: none
@@ -287,7 +287,9 @@ gpio-scheme: context [
 						none!  [list: d]
 					][append list: reduce [list] d]
 				)
-				| 'pause integer! (gpio.pause pos/2)
+				| 'pause [integer! | float!] (
+					gpio.pause either float? v: pos/2 [to-integer v * 1000][v]
+				)
 			]
 		][cause-error 'access 'invalid-cmd [data]]
 		
