@@ -1046,6 +1046,8 @@ WndProc: func [
 		flags  [integer!]
 		miniz? [logic!]
 		font?  [logic!]
+		x	   [integer!]
+		y	   [integer!]
 ][
 	type: either no-face? hWnd [panel][			;@@ remove this test, create a WndProc for panel?
 		values: get-face-values hWnd
@@ -1093,7 +1095,16 @@ WndProc: func [
 					][FACE_OBJ_SIZE]
 					if miniz? [return 0]
 
+					x: 0 y: 0
 					modal-loop-type: either msg = WM_MOVE [
+						pos: GetWindowLong hWnd wc-offset - 16	;-- get border size
+						either zero? pos [
+							window-border-info? hWnd :x :y null null
+							SetWindowLong hWnd wc-offset - 16 x << 16 or (y and FFFFh)
+						][
+							x: WIN32_HIWORD(pos)
+							y: WIN32_LOWORD(pos)
+						]
 						SetWindowLong hWnd wc-offset - 8 lParam
 						EVT_MOVING
 					][EVT_SIZING]
@@ -1103,8 +1114,8 @@ WndProc: func [
 
 					offset: as red-pair! values + type
 					offset/header: TYPE_PAIR
-					offset/x: WIN32_LOWORD(lParam) * 100 / dpi-factor
-					offset/y: WIN32_HIWORD(lParam) * 100 / dpi-factor
+					offset/x: WIN32_LOWORD(lParam) + x * 100 / dpi-factor
+					offset/y: WIN32_HIWORD(lParam) + y * 100 / dpi-factor
 
 					values: values + FACE_OBJ_STATE
 					if all [
