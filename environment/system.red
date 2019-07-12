@@ -203,7 +203,7 @@ system: context [
 				cannot-open:		["cannot open:" :arg1]
 				cannot-close:		["cannot close:" :arg1]
 				invalid-utf8:		["invalid UTF-8 encoding:" :arg1]
-				;not-open:			["port is not open:" :arg1]
+				not-open:			["port is not open:" :arg1]
 				;already-open:		["port is already open:" :arg1]
 				no-connect:			["cannot connect:" :arg1 "reason: timeout"]
 				;not-connected:		["port is not connected:" :arg1]
@@ -236,6 +236,7 @@ system: context [
 				;bad-extension:		["invalid extension format:" :arg1]
 				;extension-init:	["extension cannot be initialized (check version):" :arg1]
 				;call-fail:			["external process failed:" :arg1]
+				invalid-cmd:		["invalid port command:" :arg1]
 			]
 			reserved1: object [
 				code:				600
