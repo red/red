@@ -8,7 +8,10 @@ Red [
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
-	Notes: {Low-level GPIO code largely inspired by http://wiringpi.com/}
+	Notes: {
+		For Raspberry Pi boards only for now.
+		Low-level GPIO code largely inspired by http://wiringpi.com/
+	}
 ]
 
 gpio-scheme: context [
@@ -34,13 +37,16 @@ gpio-scheme: context [
 				]
 			]
 
-			#define GPIO_PERIPH_RPI23	3F000000h		;-- RPi 2 & 3 peripherals
-			#define GPIO_PERIPH_RPI01	20000000h		;-- RPi zero & 1 peripherals
-			#define GPIO_OFFSET			00200000h
-			#define GPIO_PWM			0020C000h
+			#define RPI_GPIO_PERIPH_RPI23	3F000000h	;-- RPi 2 & 3 peripherals
+			#define RPI_GPIO_PERIPH_RPI01	20000000h	;-- RPi zero & 1 peripherals
+			#define RPI_GPIO_OFFSET			00200000h
+			#define RPI_GPIO_PWM			0020C000h
+			#define RPI_GPIO_CLOCK_BASE		00101000h
 			
-			#define PWMCLK_CNTL			40
- 			#define PWMCLK_DIV			41
+			#define RPI_BCM_PASSWORD		5A000000h
+			
+			#define RPI_PWMCLK_CNTL			40
+ 			#define RPI_PWMCLK_DIV			41
 
 			#enum gpio-pins! [
 				GPFSEL0:   	00h
@@ -120,9 +126,13 @@ gpio-scheme: context [
 				PWM1_SERIAL:	0200h					;-- Run in serial mode
 				PWM1_ENABLE:	0100h					;-- Channel Enable
 			]
+			
+			regions: [RPI_GPIO_OFFSET RPI_GPIO_PWM RPI_GPIO_CLOCK_BASE]
 
 			set-mode: func [
 				base [byte-ptr!]
+				pwm	 [byte-ptr!]
+				clk	 [byte-ptr!]
 				pin	 [integer!]
 				mode [integer!]
 				/local
@@ -130,12 +140,28 @@ gpio-scheme: context [
 					index  [integer!]
 					shift  [integer!]
 					mask   [integer!]
+					bits   [integer!]
+					alt	   [integer!]
 			][
 				index: pin * CDh >> 11
 				shift: pin - (index * 10) * 3
 				GPFSEL: as int-ptr! (base + (index << 2))
 				mask: GPFSEL/value and not (7 << shift)
-				GPFSEL/value: mode << shift or mask
+				bits: either mode <> MODE_PWM_OUTPUT [mode][
+					alt: switch pin [
+						12 13   [4]						;-- FSEL_ALT0
+						18 19   [2]						;-- FSEL_ALT5
+						default [probe "invalid pin" 0]
+					]
+				]
+				GPFSEL/value: bits << shift or mask
+				
+				if mode = MODE_PWM_OUTPUT [
+					platform/usleep 110
+					pwm-set-mode pwm 1					;-- PWM_MODE_BAL
+					pwm-set-range pwm 1024
+					pwm-set-clock pwm clk 32			;-- 600KHz, starts the PWM
+				]
 			]
 
 			set: func [
@@ -192,6 +218,62 @@ gpio-scheme: context [
 				p/value: 0
 				platform/usleep 5
 			]
+			
+			;-- Select the native "balanced" mode, or standard mark:space mode
+			pwm-set-mode: func [
+				pwm	 [byte-ptr!]
+				mode [integer!]							;-- 0: PWM_MODE_MS, 1: PWM_MODE_BAL
+				/local
+					p	 [int-ptr!]
+					bits [integer!]
+			][
+				bits: PWM0_ENABLE or PWM1_ENABLE
+				if zero? mode [bits: bits or PWM0_MS_MODE or PWM1_MS_MODE]
+				p: as int-ptr! (pwm + PWM_CONTROL)
+				p/value: bits
+			]
+			
+			pwm-set-range: func [
+				pwm	  [byte-ptr!]
+				range [integer!]
+				/local
+					p [int-ptr!]
+			][
+				p: as int-ptr! (pwm + PWM0_RANGE)
+				p/value: range
+				platform/usleep 10
+				
+				p: as int-ptr! (pwm + PWM1_RANGE)
+				p/value: range
+				platform/usleep 10
+			]
+			
+			pwm-set-clock: func [
+				pwm		[byte-ptr!]
+				clk		[byte-ptr!]
+				divisor [integer!]
+				/local
+					p	  [int-ptr!]
+					c	  [int-ptr!]
+					cd	  [int-ptr!]
+					saved [integer!]
+			][
+				divisor: divisor and 4095
+				p: as int-ptr! (pwm + PWM_CONTROL)
+				saved: p/value
+				p/value: 0								;-- stop PWM
+				
+				c: as int-ptr! (clk + RPI_PWMCLK_CNTL)
+				c/value: RPI_BCM_PASSWORD or 1			;-- stop PWM clock
+				platform/usleep 110
+				
+				while [c/value and 80h <> 0][platform/usleep 1]
+				
+				cd: as int-ptr! (clk + RPI_PWMCLK_DIV)
+				cd/value: RPI_BCM_PASSWORD or (divisor << 12)
+				c/value: RPI_BCM_PASSWORD or 11h		;-- start PWM clock
+				p/value: saved
+			]
 		]
 	]
 	
@@ -227,39 +309,31 @@ gpio-scheme: context [
 			fd	   [integer!]
 			model  [integer!]
 			base   [byte-ptr!]
-			pwm    [byte-ptr!]
+			i	   [integer!]
 	][
 		fd: platform/io-open "/dev/gpiomem" 00101002h	;-- O_RDWR or O_SYNC
 		if fd > 0 [
 			handle: as red-handle! block/rs-head state
 			handle/header: TYPE_HANDLE
 			handle/value: fd
-			model: either old? [GPIO_PERIPH_RPI01][GPIO_PERIPH_RPI23]
+			model: either old? [RPI_GPIO_PERIPH_RPI01][RPI_GPIO_PERIPH_RPI23]
 
-			base: gpio/mmap null 4096 MMAP_PROT_RW MMAP_MAP_SHARED fd model or GPIO_OFFSET
-			if any [
-				(as-integer base) > 0
-				-1024 < as-integer base					;-- check if not in the error codes range
-			][
-				handle: handle + 1
-				handle/header: TYPE_HANDLE
-				handle/value: as-integer base
-			]
-			
-			pwm: gpio/mmap null 4096 MMAP_PROT_RW MMAP_MAP_SHARED fd model or GPIO_PWM
-			if any [
-				(as-integer pwm) > 0
-				-1024 < as-integer pwm					;-- check if not in the error codes range
-			][
-				handle: handle + 1
-				handle/header: TYPE_HANDLE
-				handle/value: as-integer pwm
+			i: 1
+			until [
+				base: gpio/mmap null 4096 MMAP_PROT_RW MMAP_MAP_SHARED fd model or gpio/regions/i
+				if -1 <> as-integer base [
+					handle: handle + 1
+					handle/header: TYPE_HANDLE
+					handle/value: as-integer base
+				]
+				i: i + 1
+				i > gpio/regions/0
 			]
 		]
 	]
 	
-	gpio.set-mode: routine [base [handle!] pin [integer!] mode [integer!]][
-		gpio/set-mode as byte-ptr! base/value pin mode - 1
+	gpio.set-mode: routine [base [handle!] pwm [handle!] clk [handle!] pin [integer!] mode [integer!]][
+		gpio/set-mode as byte-ptr! pwm/value as byte-ptr! base/value as byte-ptr! clk/value pin mode - 1
 	]
 	
 	gpio.set: routine [base [handle!] pin [integer!] value [integer!]][
@@ -279,9 +353,11 @@ gpio-scheme: context [
 		/local
 			handle [red-handle!]
 	][
-		handle: as red-handle! (block/rs-head state) + 1
-		if zero? gpio/munmap as byte-ptr! handle/value 4096 [handle/header: TYPE_NONE]
-		handle: handle - 1
+		handle: as red-handle! (block/rs-head state) + 3
+		loop 3 [
+			if zero? gpio/munmap as byte-ptr! handle/value 4096 [handle/header: TYPE_NONE]
+			handle: handle - 1
+		]
 		if zero? platform/io-close handle/value [handle/header: TYPE_NONE]
 	]
 	
@@ -297,27 +373,27 @@ gpio-scheme: context [
 		revision: to-integer debase/base revision 16
 		model: FFh << 4 and revision >> 4
 		
-		state: port/state: copy [none none none]		;-- fd (handle!), base (handle!), pwm (handle!)
+		;-- fd (handle!), base (handle!), pwm (handle!), clk (handle!)
+		state: port/state: copy [none none none none]
 		gpio.open port/state 'old = pick models model + 1 * 2 	;-- model is 0-based
 		
 		err: ["failed to open /dev/gpiomem" "base mmap() failed" "pwm mmap() failed"]
 		repeat i 3 [unless state/:i [cause-error 'access 'cannot-open [err/:i]]]
 	]
 	
-	insert: func [port data [block!] /local s base modes value pulls pos m list v][
-		unless all [block? s: port/state parse s [3 handle!]][
+	insert: func [port data [block!] /local base modes value pulls pos m list v][
+		unless all [block? s: port/state parse s [4 handle!]][
 			cause-error 'access 'not-open ["port/state is invalid"]
 		]
-		base: port/state/2
-		
 		modes: [['in | 'input] (m: 1) | ['out | 'output] (m: 2) | 'pwm (m: 3)]	;-- order matters
 		value: [m: logic! | ['on | 'high] (m: yes) | ['off | 'low] (m: no) | m: integer!]
 		pulls: ['pull-off (m: 1) | 'pull-down (m: 2) | 'pull-up (m: 3)] ;-- order matters
 		list: none
+		base: s/2
 		
 		unless parse data [
 			some [pos:
-				  'set-mode    integer! modes (gpio.set-mode base pos/2 m)
+				  'set-mode    integer! modes (gpio.set-mode base s/3 s/4 pos/2 m)
 				| 'set         integer! value (gpio.set base pos/2 make integer! m)
 				| pulls        integer!       (gpio.set-pull base pos/2 m)
 				| 'get         integer!       (d: gpio.get base pos/2
@@ -338,7 +414,7 @@ gpio-scheme: context [
 	close: func [port /local state err i][
 		gpio.close state: port/state
 		err: ["failed to close /dev/gpiomem" "base mmunap() failed" "pwm mmunap() failed"]
-		repeat i 2 [if handle? state/:i [cause-error 'access 'cannot-close [err/:i]]]
+		repeat i 4 [if handle? state/:i [cause-error 'access 'cannot-close [err/:i]]]
 	]
 ]
 
