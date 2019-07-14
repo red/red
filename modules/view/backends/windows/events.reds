@@ -24,6 +24,7 @@ oldBaseWndProc:	 0
 modal-loop-type: 0										;-- remanence of last EVT_MOVE or EVT_SIZE
 zoom-distance:	 0
 special-key: 	-1										;-- <> -1 if a non-displayable key is pressed
+key-flags:		 0										;-- last key-flags, needed in mouseleave event
 
 flags-blk: declare red-block!							;-- static block value for event/flags
 flags-blk/header:	TYPE_UNSET
@@ -306,7 +307,8 @@ get-event-picked: func [
 			integer/push get-track-pos msg/hWnd msg/msg = WM_VSCROLL
 		]
 		EVT_WHEEL [
-			float/push (as float! evt/flags) / 120.0	;-- WHEEL_DELTA: 120
+			idx: WIN32_LOWORD(evt/flags)
+			float/push (as float! idx) / 120.0	;-- WHEEL_DELTA: 120
 		]
 		EVT_LEFT_DOWN
 		EVT_MIDDLE_DOWN
@@ -462,7 +464,7 @@ make-event: func [
 
 	switch evt [
 		EVT_OVER [
-			gui-evt/flags: gui-evt/flags or flags or decode-down-flags msg/wParam
+			gui-evt/flags: flags
 		]
 		EVT_KEY_DOWN [
 			key: msg/wParam and FFFFh
@@ -518,8 +520,7 @@ make-event: func [
 		EVT_MIDDLE_UP
 		EVT_DBL_CLICK
 		EVT_WHEEL [
-			key: flags
-			flags: msg/wParam
+			key: flags >>> 16
 			if flags and 08h <> 0 [key: key or EVT_FLAG_CTRL_DOWN]	;-- MK_CONTROL
 			if flags and 04h <> 0 [key: key or EVT_FLAG_SHIFT_DOWN]	;-- MK_SHIFT
 			gui-evt/flags: key
@@ -1449,20 +1450,20 @@ process: func [
 					TrackMouseEvent :track
 					msg/hWnd: new
 				]
-				make-event msg 0 EVT_OVER
+				key-flags: decode-down-flags msg/wParam
+				make-event msg key-flags EVT_OVER
 			]
 			hover-saved: new
 			msg/hWnd: saved
 			EVT_DISPATCH
 		]
 		WM_MOUSELEAVE [
-			make-event msg EVT_FLAG_AWAY EVT_OVER
+			make-event msg EVT_FLAG_AWAY or key-flags EVT_OVER
 			if msg/hWnd = hover-saved [hover-saved: null]
 			EVT_DISPATCH
 		]
 		WM_MOUSEWHELL [
-			x: WIN32_HIWORD(msg/wParam)
-			make-event msg x EVT_WHEEL
+			make-event msg msg/wParam EVT_WHEEL
 		]
 		WM_LBUTTONDOWN	[
 			if GetCapture <> null [return EVT_DISPATCH]
