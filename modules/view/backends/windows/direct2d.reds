@@ -877,6 +877,7 @@ create-dc-render-target: func [
 
 create-text-format: func [
 	font	[red-object!]
+	face	[red-object!]
 	return: [integer!]
 	/local
 		values	[red-value!]
@@ -908,12 +909,13 @@ create-text-format: func [
 			none/make-in blk
 		]
 
-		h-font: (as red-handle! block/rs-head blk) + 1
+		value: block/rs-head blk
+		h-font: (as red-handle! value) + 1
 		if TYPE_OF(h-font) = TYPE_HANDLE [
 			return h-font/value
 		]
 
-		make-font null font				;-- always make a GDI font
+		if TYPE_OF(value) = TYPE_NONE [make-font face font]	;-- make a GDI font
 
 		int: as red-integer! values + FONT_OBJ_SIZE
 		len: either TYPE_OF(int) <> TYPE_INTEGER [10][int/value]
@@ -1101,7 +1103,7 @@ draw-text-d2d: func [
 		_32		[integer!]
 		m		[D2D_MATRIX_3X2_F]
 ][
-	fmt: as this! create-text-format font
+	fmt: as this! create-text-format font null
 	set-text-format fmt para
 
 	layout: create-text-layout text fmt rc/right rc/bottom
