@@ -163,8 +163,8 @@ gpio-scheme: context [
 					bits   [integer!]
 					idx	   [integer!]
 			][
-				if debug? [probe ["---- PIN: " pin ", MODE: " mode ", PWM: " pwm ", CLK: " clk]]
-
+				if debug? [probe ["---- PIN: " pin ", MODE: " mode ", BASE: " base ", PWM: " pwm ", CLK: " clk]]
+				
 				idx: pin + 1
 				index: as-integer gpio-to-FSEL/idx
 				shift: as-integer gpio-to-shift/idx
@@ -348,29 +348,32 @@ gpio-scheme: context [
 			base   [byte-ptr!]
 			i	   [integer!]
 	][
-		fd: platform/io-open "/dev/gpiomem" 00101002h	;-- O_RDWR or O_SYNC
-		if fd > 0 [
-			handle: as red-handle! block/rs-head state
-			handle/header: TYPE_HANDLE
-			handle/value: fd
-			model: either old? [RPI_GPIO_PERIPH_RPI01][RPI_GPIO_PERIPH_RPI23]
+		fd: platform/io-open "/dev/mem" 00101002h		;-- O_RDWR or O_SYNC
+		either fd < 0 [
+			fd: platform/io-open "/dev/gpiomem" 00101002h ;-- O_RDWR or O_SYNC
+			either fd < 0 [exit][model: 0]				;-- relative addressing
+		][
+			model: either old? [RPI_GPIO_PERIPH_RPI01][RPI_GPIO_PERIPH_RPI23] ;-- absolute addressing
+		]
+		handle: as red-handle! block/rs-head state
+		handle/header: TYPE_HANDLE
+		handle/value: fd
 
-			i: 1
-			until [
-				base: gpio/mmap null 4096 MMAP_PROT_RW MMAP_MAP_SHARED fd model or gpio/regions/i
-				if -1 <> as-integer base [
-					handle: handle + 1
-					handle/header: TYPE_HANDLE
-					handle/value: as-integer base
-				]
-				i: i + 1
-				i > gpio/regions/0
+		i: 1
+		until [
+			base: gpio/mmap null 4096 MMAP_PROT_RW MMAP_MAP_SHARED fd model or gpio/regions/i
+			handle: handle + 1
+			if -1 <> as-integer base [
+				handle/header: TYPE_HANDLE
+				handle/value: as-integer base
 			]
+			i: i + 1
+			i > gpio/regions/0
 		]
 	]
 	
 	gpio.set-mode: routine [base [handle!] pwm [handle!] clk [handle!] pin [integer!] mode [integer!]][
-		gpio/set-mode as int-ptr! pwm/value as int-ptr! base/value as int-ptr! clk/value pin mode - 1
+		gpio/set-mode as int-ptr! base/value as int-ptr! pwm/value as int-ptr! clk/value pin mode - 1
 	]
 	
 	gpio.set: routine [base [handle!] pin [integer!] value [integer!]][
@@ -416,10 +419,10 @@ gpio-scheme: context [
 		
 		;-- fd (handle!), base (handle!), pwm (handle!), clk (handle!)
 		state: port/state: copy [none none none none]
-		gpio.open port/state 'old = pick models model + 1 * 2 	;-- model is 0-based
+		gpio.open state 'old = pick models model + 1 * 2 	;-- model is 0-based
 		
 		err: [
-			"failed to open /dev/gpiomem"
+			"failed to open /dev/mem and /dev/gpiomem, retry with `sudo`"
 			"base mmap() failed"
 			"pwm mmap() failed"
 			"clk mmap() failed"
@@ -427,21 +430,21 @@ gpio-scheme: context [
 		repeat i 4 [unless state/:i [cause-error 'access 'cannot-open [err/:i]]]
 	]
 	
-	insert: func [port data [block!] /local s base modes value pulls pos m list v][
-		unless all [block? s: port/state parse s [4 handle!]][
+	insert: func [port data [block!] /local state base modes value pulls pos m list v][
+		unless all [block? state: port/state parse state [4 handle!]][
 			cause-error 'access 'not-open ["port/state is invalid"]
 		]
 		modes: [['in | 'input] (m: 1) | ['out | 'output] (m: 2) | 'pwm (m: 3)]	;-- order matters
 		value: [m: logic! | ['on | 'high] (m: yes) | ['off | 'low] (m: no) | m: integer!]
 		pulls: ['pull-off (m: 1) | 'pull-down (m: 2) | 'pull-up (m: 3)] ;-- order matters
 		list: none
-		base: s/2
+		base: state/2
 		
 		unless parse data [
 			some [pos:
-				  'set-mode    integer! modes    (gpio.set-mode base s/3 s/4 pos/2 m)
+				  'set-mode    integer! modes    (gpio.set-mode base state/3 state/4 pos/2 m)
 				| 'set         integer! value    (gpio.set base pos/2 make integer! m)
-				| 'set-pwm     integer! integer! (gpio.set-pwm s/3 pos/2 pos/3)
+				| 'set-pwm     integer! integer! (gpio.set-pwm state/3 pos/2 pos/3)
 				| pulls        integer!          (gpio.set-pull base pos/2 m)
 				| 'get         integer!          (d: gpio.get base pos/2
 					switch/default type?/word list [
@@ -479,21 +482,17 @@ register-scheme make system/standard/scheme [
 
 #example [
 	p: open gpio://
-	
-comment {
+
 	insert p [set-mode 18 pwm]
-	repeat i 1000 [
+	repeat i 500 [
 		insert p compose [set-pwm 18 (i)]
-		wait 0.001
+		wait 0.003
 	]
-	repeat i 1000 [
-		insert p compose [set-pwm 18 (1000 - i)]
-		wait 0.001
+	repeat i 500 [
+		insert p compose [set-pwm 18 (500 - i)]
+		wait 0.003
 	]
 	insert p [set-pwm 18 0 set-mode 18 in]
-	close p
-	quit 
-}	
 
 	insert p [set-mode 18 out]
 	loop 20 [
@@ -522,4 +521,4 @@ comment {
 	]
 
 	close p
- ]
+]
