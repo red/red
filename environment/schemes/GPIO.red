@@ -49,35 +49,35 @@ gpio-scheme: context [
  			#define RPI_PWMCLK_DIV			41
 
 			#enum gpio-pins! [
-				GPFSEL0:   	00h
-				GPFSEL1:   	04h
-				GPFSEL2:   	08h
-				GPFSEL3:   	0Ch
-				GPFSEL4:   	10h
-				GPFSEL5:   	14h
-				GPSET0:    	1Ch
-				GPSET1:    	20h
-				GPCLR0:    	28h
-				GPCLR1:    	2Ch
-				GPLEV0:    	34h
-				GPLEV1:    	38h
-				GPEDS0:    	40h
-				GPEDS1:    	44h
-				GPREN0:    	4Ch
-				GPREN1:    	50h
-				GPFEN0:    	58h
-				GPFEN1:    	5Ch
-				GPHEN0:    	64h
-				GPHEN1:    	68h
-				GPLEN0:    	70h
-				GPLEN1:    	74h
-				GPAREN0:   	7Ch
-				GPAREN1:   	80h
-				GPAFEN0:   	88h
-				GPAFEN1:   	8Ch
-				GPPUD:     	94h
-				GPPUDCLK0: 	98h
-				GPPUDCLK1: 	9Ch
+				GPFSEL0:	00h
+				GPFSEL1:	01h
+				GPFSEL2:	02h
+				GPFSEL3:	03h
+				GPFSEL4:	04h
+				GPFSEL5:	05h
+				GPSET0:		07h
+				GPSET1:		08h
+				GPCLR0:		0Ah
+				GPCLR1:		0Bh
+				GPLEV0:		0Dh
+				GPLEV1:		0Eh
+				GPEDS0:		10h
+				GPEDS1:		11h
+				GPREN0:		13h
+				GPREN1:		14h
+				GPFEN0:		16h
+				GPFEN1:		17h
+				GPHEN0:		19h
+				GPHEN1:		1Ah
+				GPLEN0:		1Ch
+				GPLEN1:		1Dh
+				GPAREN0:	1Fh
+				GPAREN1:	20h
+				GPAFEN0:	22h
+				GPAFEN1:	23h
+				GPPUD:		25h
+				GPPUDCLK0:	26h
+				GPPUDCLK1:	27h
 			]
 
 			#enum pin-modes! [
@@ -128,11 +128,31 @@ gpio-scheme: context [
 			]
 			
 			regions: [RPI_GPIO_OFFSET RPI_GPIO_PWM RPI_GPIO_CLOCK_BASE]
+			
+			gpio-to-FSEL: [
+				#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)"
+				#"^(01)" #"^(01)" #"^(01)" #"^(01)" #"^(01)" #"^(01)" #"^(01)" #"^(01)" #"^(01)" #"^(01)"
+				#"^(02)" #"^(02)" #"^(02)" #"^(02)" #"^(02)" #"^(02)" #"^(02)" #"^(02)" #"^(02)" #"^(02)"
+				#"^(03)" #"^(03)" #"^(03)" #"^(03)" #"^(03)" #"^(03)" #"^(03)" #"^(03)" #"^(03)" #"^(03)"
+				#"^(04)" #"^(04)" #"^(04)" #"^(04)" #"^(04)" #"^(04)" #"^(04)" #"^(04)" #"^(04)" #"^(04)"
+				#"^(05)" #"^(05)" #"^(05)" #"^(05)" #"^(05)" #"^(05)" #"^(05)" #"^(05)" #"^(05)" #"^(05)"
+			]
+			
+			gpio-to-shift: [
+				#"^(00)" #"^(03)" #"^(06)" #"^(09)" #"^(0C)" #"^(0F)" #"^(12)" #"^(15)" #"^(18)" #"^(1B)"
+				#"^(00)" #"^(03)" #"^(06)" #"^(09)" #"^(0C)" #"^(0F)" #"^(12)" #"^(15)" #"^(18)" #"^(1B)"
+				#"^(00)" #"^(03)" #"^(06)" #"^(09)" #"^(0C)" #"^(0F)" #"^(12)" #"^(15)" #"^(18)" #"^(1B)"
+				#"^(00)" #"^(03)" #"^(06)" #"^(09)" #"^(0C)" #"^(0F)" #"^(12)" #"^(15)" #"^(18)" #"^(1B)"
+				#"^(00)" #"^(03)" #"^(06)" #"^(09)" #"^(0C)" #"^(0F)" #"^(12)" #"^(15)" #"^(18)" #"^(1B)"
+				#"^(00)" #"^(03)" #"^(06)" #"^(09)" #"^(0C)" #"^(0F)" #"^(12)" #"^(15)" #"^(18)" #"^(1B)"
+			]
+			
+			debug?: no
 
 			set-mode: func [
-				base [byte-ptr!]
-				pwm	 [byte-ptr!]
-				clk	 [byte-ptr!]
+				base [int-ptr!]
+				pwm	 [int-ptr!]
+				clk	 [int-ptr!]
 				pin	 [integer!]
 				mode [integer!]
 				/local
@@ -141,17 +161,20 @@ gpio-scheme: context [
 					shift  [integer!]
 					mask   [integer!]
 					bits   [integer!]
-					alt	   [integer!]
+					idx	   [integer!]
 			][
-				index: pin * CDh >> 11
-				shift: pin - (index * 10) * 3
-				GPFSEL: as int-ptr! (base + (index << 2))
+				if debug? [probe ["---- PIN: " pin ", MODE: " mode ", PWM: " pwm ", CLK: " clk]]
+
+				idx: pin + 1
+				index: as-integer gpio-to-FSEL/idx
+				shift: as-integer gpio-to-shift/idx
+				GPFSEL: base + index
 				mask: GPFSEL/value and not (7 << shift)
 				bits: either mode <> MODE_PWM_OUTPUT [mode][
-					alt: switch pin [
-						12 13   [4]						;-- FSEL_ALT0
-						18 19   [2]						;-- FSEL_ALT5
-						default [probe "invalid pin" 0]
+					switch pin [
+						18 19		   [2]				;-- FSEL_ALT5
+						12 13 40 41 45 [4]				;-- FSEL_ALT0
+						default [probe "invalid PWM pin" 0]	;@@ needs to return or throw an error!
 					]
 				]
 				GPFSEL/value: bits << shift or mask
@@ -165,7 +188,7 @@ gpio-scheme: context [
 			]
 
 			set: func [
-				base [byte-ptr!]
+				base  [int-ptr!]
 				pin	  [integer!]
 				high? [logic!]
 				/local
@@ -174,16 +197,16 @@ gpio-scheme: context [
 					bit	  [integer!]
 					mode  [integer!]
 			][
-				index: pin >> 3							;-- pin >> 5 * 4
+				index: pin >> 5
 				bit: 1 << (pin and 31)
 
 				mode: either high? [GPSET0][GPCLR0]
-				p: as int-ptr! (base + mode + index)
+				p: base + mode + index
 				p/value: bit
 			]
 
 			get: func [
-				base    [byte-ptr!]
+				base    [int-ptr!]
 				pin	    [integer!]
 				return: [integer!]
 				/local
@@ -191,37 +214,50 @@ gpio-scheme: context [
 					bit	  [integer!]
 			][
 				bit: 1 << (pin and 31)
-				p: as int-ptr! (base + GPLEV0)
+				p: base + GPLEV0
 				either p/value and bit <> 0 [1][0]
 			]
 
 			set-pull: func [
-				base	[byte-ptr!]
+				base	[int-ptr!]
 				pin		[integer!]
 				pud		[integer!]
 				/local
 					p	[int-ptr!]
 			][
-				p: as int-ptr! (base + GPPUD)
+				p: base + GPPUD
 				p/value: pud and 3
 				platform/usleep 5
 
-				p: as int-ptr! (base + GPPUDCLK0)
+				p: base + GPPUDCLK0
 				p/value: 1 << (pin and 31)
 				platform/usleep 5
 
-				p: as int-ptr! (base + GPPUD)
+				p: base + GPPUD
 				p/value: 0
 				platform/usleep 5
 
-				p: as int-ptr! (base + GPPUDCLK0)
+				p: base + GPPUDCLK0
 				p/value: 0
 				platform/usleep 5
 			]
 			
+			set-pwm: func [
+				pwm	  [int-ptr!]
+				pin	  [integer!]
+				value [integer!]
+				/local
+					p	 [int-ptr!]
+					port [integer!]
+			][
+				port: either pin and 1 = 0 [PWM0_DATA][PWM1_DATA]
+				p: pwm + port
+				p/value: value
+			]
+			
 			;-- Select the native "balanced" mode, or standard mark:space mode
 			pwm-set-mode: func [
-				pwm	 [byte-ptr!]
+				pwm	 [int-ptr!]
 				mode [integer!]							;-- 0: PWM_MODE_MS, 1: PWM_MODE_BAL
 				/local
 					p	 [int-ptr!]
@@ -229,28 +265,28 @@ gpio-scheme: context [
 			][
 				bits: PWM0_ENABLE or PWM1_ENABLE
 				if zero? mode [bits: bits or PWM0_MS_MODE or PWM1_MS_MODE]
-				p: as int-ptr! (pwm + PWM_CONTROL)
+				p: pwm + PWM_CONTROL
 				p/value: bits
 			]
 			
 			pwm-set-range: func [
-				pwm	  [byte-ptr!]
+				pwm	  [int-ptr!]
 				range [integer!]
 				/local
 					p [int-ptr!]
 			][
-				p: as int-ptr! (pwm + PWM0_RANGE)
+				p: pwm + PWM0_RANGE
 				p/value: range
 				platform/usleep 10
 				
-				p: as int-ptr! (pwm + PWM1_RANGE)
+				p: pwm + PWM1_RANGE
 				p/value: range
 				platform/usleep 10
 			]
 			
 			pwm-set-clock: func [
-				pwm		[byte-ptr!]
-				clk		[byte-ptr!]
+				pwm		[int-ptr!]
+				clk		[int-ptr!]
 				divisor [integer!]
 				/local
 					p	  [int-ptr!]
@@ -259,17 +295,18 @@ gpio-scheme: context [
 					saved [integer!]
 			][
 				divisor: divisor and 4095
-				p: as int-ptr! (pwm + PWM_CONTROL)
+				p: pwm + PWM_CONTROL
+			
 				saved: p/value
 				p/value: 0								;-- stop PWM
-				
-				c: as int-ptr! (clk + RPI_PWMCLK_CNTL)
+
+				c: clk + RPI_PWMCLK_CNTL
 				c/value: RPI_BCM_PASSWORD or 1			;-- stop PWM clock
 				platform/usleep 110
 				
 				while [c/value and 80h <> 0][platform/usleep 1]
 				
-				cd: as int-ptr! (clk + RPI_PWMCLK_DIV)
+				cd: clk + RPI_PWMCLK_DIV
 				cd/value: RPI_BCM_PASSWORD or (divisor << 12)
 				c/value: RPI_BCM_PASSWORD or 11h		;-- start PWM clock
 				p/value: saved
@@ -333,19 +370,23 @@ gpio-scheme: context [
 	]
 	
 	gpio.set-mode: routine [base [handle!] pwm [handle!] clk [handle!] pin [integer!] mode [integer!]][
-		gpio/set-mode as byte-ptr! pwm/value as byte-ptr! base/value as byte-ptr! clk/value pin mode - 1
+		gpio/set-mode as int-ptr! pwm/value as int-ptr! base/value as int-ptr! clk/value pin mode - 1
 	]
 	
 	gpio.set: routine [base [handle!] pin [integer!] value [integer!]][
-		gpio/set as byte-ptr! base/value pin as-logic value
+		gpio/set as int-ptr! base/value pin as-logic value
 	]
 	
 	gpio.set-pull: routine [base [handle!] pin [integer!] value [integer!]][
-		gpio/set-pull as byte-ptr! base/value pin value - 1
+		gpio/set-pull as int-ptr! base/value pin value - 1
+	]
+	
+	gpio.set-pwm: routine [pwm [handle!] pin [integer!] value [integer!]][
+		gpio/set-pwm as int-ptr! pwm/value pin value
 	]
 	
 	gpio.get: routine [base [handle!] pin [integer!] return: [integer!]][
-		gpio/get as byte-ptr! base/value pin
+		gpio/get as int-ptr! base/value pin
 	]
 
 	gpio.close: routine [
@@ -377,11 +418,16 @@ gpio-scheme: context [
 		state: port/state: copy [none none none none]
 		gpio.open port/state 'old = pick models model + 1 * 2 	;-- model is 0-based
 		
-		err: ["failed to open /dev/gpiomem" "base mmap() failed" "pwm mmap() failed"]
-		repeat i 3 [unless state/:i [cause-error 'access 'cannot-open [err/:i]]]
+		err: [
+			"failed to open /dev/gpiomem"
+			"base mmap() failed"
+			"pwm mmap() failed"
+			"clk mmap() failed"
+		]
+		repeat i 4 [unless state/:i [cause-error 'access 'cannot-open [err/:i]]]
 	]
 	
-	insert: func [port data [block!] /local base modes value pulls pos m list v][
+	insert: func [port data [block!] /local s base modes value pulls pos m list v][
 		unless all [block? s: port/state parse s [4 handle!]][
 			cause-error 'access 'not-open ["port/state is invalid"]
 		]
@@ -393,10 +439,11 @@ gpio-scheme: context [
 		
 		unless parse data [
 			some [pos:
-				  'set-mode    integer! modes (gpio.set-mode base s/3 s/4 pos/2 m)
-				| 'set         integer! value (gpio.set base pos/2 make integer! m)
-				| pulls        integer!       (gpio.set-pull base pos/2 m)
-				| 'get         integer!       (d: gpio.get base pos/2
+				  'set-mode    integer! modes    (gpio.set-mode base s/3 s/4 pos/2 m)
+				| 'set         integer! value    (gpio.set base pos/2 make integer! m)
+				| 'set-pwm     integer! integer! (gpio.set-pwm s/3 pos/2 pos/3)
+				| pulls        integer!          (gpio.set-pull base pos/2 m)
+				| 'get         integer!          (d: gpio.get base pos/2
 					switch/default type?/word list [
 						block! [append list d]
 						none!  [list: d]
@@ -413,7 +460,12 @@ gpio-scheme: context [
 
 	close: func [port /local state err i][
 		gpio.close state: port/state
-		err: ["failed to close /dev/gpiomem" "base mmunap() failed" "pwm mmunap() failed"]
+		err: [
+			"failed to close /dev/gpiomem"
+			"base mmunap() failed"
+			"pwm mmunap() failed"
+			"clk mmunap() failed"
+		]
 		repeat i 4 [if handle? state/:i [cause-error 'access 'cannot-close [err/:i]]]
 	]
 ]
@@ -427,7 +479,30 @@ register-scheme make system/standard/scheme [
 
 #example [
 	p: open gpio://
+	
+comment {
+	insert p [set-mode 18 pwm]
+	repeat i 1000 [
+		insert p compose [set-pwm 18 (i)]
+		wait 0.001
+	]
+	repeat i 1000 [
+		insert p compose [set-pwm 18 (1000 - i)]
+		wait 0.001
+	]
+	insert p [set-pwm 18 0 set-mode 18 in]
+	close p
+	quit 
+}	
 
+	insert p [set-mode 18 out]
+	loop 20 [
+		insert p [set 18 on]
+		wait 0.1
+		insert p [set 18 off]
+		wait 0.1
+	]
+	
 	insert p [set-mode 4 out]
 	loop 20 [
 		insert p [set 4 on]
