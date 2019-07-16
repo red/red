@@ -920,6 +920,7 @@ change-size: func [
 	;; DEBUG: print ["change-size " get-symbol-name get-widget-symbol widget " " widget " " size/x "x" size/y lf]
 	
 	either type = window [
+		;; DEBUG: print ["change-size window: "  size/x "x" size/y lf]
 		gtk_window_set_default_size widget size/x size/y
 		gtk_widget_queue_draw widget
 	][
