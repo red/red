@@ -685,8 +685,8 @@ respond-window-add: func [
 	on-type: 0
 	if respond-event?  actors "on-close" [on-type: on-type or ON_CLOSE]
 	if respond-event?  actors "on-move" [on-type: on-type or ON_MOVE] if respond-event?  actors "on-moving" [on-type: on-type or ON_MOVING]
-	if respond-event?  actors "on-size" [on-type: on-type or ON_SIZE] if respond-event?  actors "on-size" [on-type: on-type or ON_SIZE]
-	if respond-event?  actors "on-size" [on-type: on-type or ON_SIZING] if respond-event?  actors "on-sizing" [on-type: on-type or ON_SIZING]
+	if respond-event?  actors "on-size" [on-type: on-type or ON_SIZE]
+	if respond-event?  actors "on-sizing" [on-type: on-type or ON_SIZING]
 	if respond-event?  actors "on-time" [on-type: on-type or ON_TIME]  
 	if respond-event?  actors "on-drawing" [on-type: on-type or ON_DRAWING]
 	if respond-event?  actors "on-scroll" [on-type: on-type or ON_SCROLL] 
