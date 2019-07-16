@@ -465,9 +465,7 @@ red-gtk-styles: func [
 	env strarr str
 	found 	[logic!]
 ][
-	env: system/env-vars 
-	;strarr: g_strsplit "GTK_STYLES" "=" 2
-	;g_strfreev strarr
+	env: system/env-vars
 	found: no
 	until [ 
 		strarr: g_strsplit env/item "=" 2
