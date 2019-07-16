@@ -1743,6 +1743,7 @@ OS-make-view: func [
 			]
 			gtk_window_set_resizable widget (bits and FACET_FLAGS_RESIZE <> 0)
 			unless null? caption [gtk_window_set_title widget caption]
+			;; DEBUG: print ["make-view: set_default_size " size/x "x" size/y lf]
 			gtk_window_set_default_size widget size/x size/y
 			winbox: gtk_box_new GTK_ORIENTATION_VERTICAL  0
       		gtk_container_add widget winbox

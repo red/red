@@ -222,6 +222,7 @@ base-draw: func [
 		sym		[integer!]
 		pos		[red-pair! value]
 		DC		[draw-ctx! value]
+		drawDC  [draw-ctx!]
 ][
 	;; DEBUG: print ["base-draw " widget lf]
 
@@ -268,13 +269,14 @@ base-draw: func [
 		;; DEBUG: print ["do-draw in base-draw" lf]
 		do-draw cr null draw no yes yes yes
 	][
-		; system/thrown: 0
-		; DC: declare draw-ctx!								;@@ should declare it on stack
-		; draw-begin DC ctx img no no
-		; integer/make-at as red-value! draw as-integer DC
+		;; DEBUG: print ["base-draw: draw not a block" lf]
+		system/thrown: 0
+		drawDC: declare draw-ctx!								;@@ should declare it on stack
+		draw-begin drawDC cr null no no
+		integer/make-at as red-value! draw as-integer drawDC
 		make-event widget 0 EVT_DRAWING
-		; draw/header: TYPE_NONE
-		; draw-end DC ctx no no no
+		draw/header: TYPE_NONE
+		draw-end drawDC cr no no no
 	]
 	;; DEBUG: print ["base-draw " widget lf]
 
