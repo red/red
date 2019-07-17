@@ -406,6 +406,22 @@ gpio-scheme: context [
 	]
 	
 	gpio.pause: routine [us [integer!]][platform/usleep us * 1000]
+	
+	fade: function [p [port!] spec [block!]][
+		i: spec/3
+		_to:  spec/5
+		delta: _to - i
+		delay: spec/6 / absolute delta
+		looping?: pick [[i <= _to][_to <= i]] positive? step: sign? delta
+		
+		do [
+			while looping? [
+				insert p compose [set-pwm (spec/1) (i)]
+				wait delay
+				i: i + step
+			]
+		]
+	]
 
 	;--- Port actions ---
 
@@ -452,6 +468,7 @@ gpio-scheme: context [
 						none!  [list: d]
 					][append list: reduce [list] d]
 				)
+				| 'fade integer! 'from integer! 'to integer! time! (fade port next pos)
 				| 'pause [integer! | float!] (
 					gpio.pause either float? v: pos/2 [to-integer v * 1000][v]
 				)
@@ -484,15 +501,18 @@ register-scheme make system/standard/scheme [
 	p: open gpio://
 
 	insert p [set-mode 18 pwm]
-	repeat i 500 [
-		insert p compose [set-pwm 18 (i)]
-		wait 0.003
-	]
-	repeat i 500 [
-		insert p compose [set-pwm 18 (500 - i)]
-		wait 0.003
-	]
-	insert p [set-pwm 18 0 set-mode 18 in]
+	
+	insert p [fade 18 from 0 to 500 0:0:3]
+	insert p [fade 18 from 500 to 0 0:0:3]
+	;repeat i 500 [
+	;	insert p compose [set-pwm 18 (i)]
+	;	wait 0.003
+	;]
+	;repeat i 500 [
+	;	insert p compose [set-pwm 18 (500 - i)]
+	;	wait 0.003
+	;]
+	insert p [set-mode 18 in]
 
 	insert p [set-mode 18 out]
 	loop 20 [
