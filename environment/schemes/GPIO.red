@@ -407,16 +407,13 @@ gpio-scheme: context [
 	
 	gpio.pause: routine [us [integer!]][platform/usleep us * 1000]
 	
-	fade: function [p [port!] spec [block!]][
-		i: spec/3
-		_to:  spec/5
-		delta: _to - i
-		delay: spec/6 / absolute delta
+	fade: function [p [port!] pin [integer!] from [integer!] _to [integer!] delay [integer! time!]][
+		delay: delay / absolute delta: _to - i: from
 		looping?: pick [[i <= _to][_to <= i]] positive? step: sign? delta
 		
 		do [
 			while looping? [
-				insert p compose [set-pwm (spec/1) (i)]
+				insert p [set-pwm pin i]
 				wait delay
 				i: i + step
 			]
@@ -446,30 +443,43 @@ gpio-scheme: context [
 		repeat i 4 [unless state/:i [cause-error 'access 'cannot-open [err/:i]]]
 	]
 	
-	insert: func [port data [block!] /local state base modes value pulls pos m list v][
+	insert: func [port data [block!] /local state base modes value pulls pos m list v p f t expr int-expr][
 		unless all [block? state: port/state parse state [4 handle!]][
 			cause-error 'access 'not-open ["port/state is invalid"]
 		]
-		modes: [['in | 'input] (m: 1) | ['out | 'output] (m: 2) | 'pwm (m: 3)]	;-- order matters
+		expr:  [m: [word! | path!] (v: get m/1) | paren! (v: do m/1)]
+		int-expr: [m: integer! (v: m/1) | expr [if (not integer? v) fail | none]]
+		
+		modes: [['in | 'input] (m: 1) | ['out | 'output] (m: 2) | 'pwm (m: 3)]
+		
 		value: [m: logic! | ['on | 'high] (m: yes) | ['off | 'low] (m: no) | m: integer!]
-		pulls: ['pull-off (m: 1) | 'pull-down (m: 2) | 'pull-up (m: 3)] ;-- order matters
-		duty:  [m: [integer! (m: m/1) | percent! (m: to integer! 1024 * m/1)]]
+		
+		pulls: ['pull-off (m: 1) | 'pull-down (m: 2) | 'pull-up (m: 3)]
+		
+		duty:  [
+			[m: percent! (v: m/1) | int-expr]
+			[if (not integer? m: either percent? v [to integer! 1024 * v][v]) fail | none]
+		]
 		base:  state/2
 		list:  none
 		
 		unless parse data [
 			some [pos:
-				  'set-mode    integer! modes    (gpio.set-mode base state/3 state/4 pos/2 m)
-				| 'set         integer! value    (gpio.set base pos/2 make integer! m)
-				| pulls        integer!          (gpio.set-pull base pos/2 m)
-				| 'set-pwm     integer! duty     (gpio.set-pwm state/3 pos/2 m)
-				| 'get         integer!          (d: gpio.get base pos/2
+				  'set-mode    int-expr modes       (gpio.set-mode base state/3 state/4 v m)
+				| 'set         int-expr value       (gpio.set base v make integer! m)
+				| pulls (p: m) int-expr             (gpio.set-pull base v p)
+				| 'set-pwm     int-expr (p: v) duty (gpio.set-pwm state/3 p m)
+				| 'get         int-expr             (d: gpio.get base v
 					switch/default type?/word list [
 						block! [append list d]
 						none!  [list: d]
 					][append list: reduce [list] d]
 				)
-				| 'fade integer! 'from integer! 'to integer! time! (fade port next pos)
+				| 'fade   int-expr (p: v)
+					'from int-expr (f: v)
+					'to   int-expr (t: v)
+					[m: time! (v: m/1) | expr [if (not time? v) fail | none]] 
+					(fade port p f t v)
 				| 'pause [integer! | float!] (
 					gpio.pause either float? v: pos/2 [to-integer v * 1000][v]
 				)
@@ -501,28 +511,32 @@ register-scheme make system/standard/scheme [
 #example [
 	p: open gpio://
 
-	insert p [set-mode 18 pwm]
+	LED-green: 18
+	LED-red: 4
 	
-	insert p [fade 18 from 0 to 500 0:0:3]
-	insert p [fade 18 from 500 to 0 0:0:3]
+	insert p [set-mode (LED-green) pwm]
+	
+	delay: 0:0:3
+	insert p [fade LED-green from 0 to 500 delay]
+	insert p [fade LED-green from 500 to 0 delay]
 	
 	wait 1
-	insert p [set-pwm 18 50%]
+	insert p [set-pwm LED-green 50%]
 	wait 1
-	insert p [set-pwm 18 30%]
+	insert p [set-pwm LED-green 30%]
 	wait 1
-	insert p [set-pwm 18 15%]
+	insert p [set-pwm LED-green 15%]
 	wait 1
-	insert p [set-pwm 18 0%]
+	insert p [set-pwm LED-green 0%]
 	wait 1
 	
-	insert p [set-mode 18 in]
+	insert p [set-mode LED-green in]
 
-	insert p [set-mode 18 out]
+	insert p [set-mode LED-green out]
 	loop 20 [
-		insert p [set 18 on]
+		insert p [set LED-green on]
 		wait 0.1
-		insert p [set 18 off]
+		insert p [set LED-green off]
 		wait 0.1
 	]
 	
