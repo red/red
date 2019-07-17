@@ -453,15 +453,16 @@ gpio-scheme: context [
 		modes: [['in | 'input] (m: 1) | ['out | 'output] (m: 2) | 'pwm (m: 3)]	;-- order matters
 		value: [m: logic! | ['on | 'high] (m: yes) | ['off | 'low] (m: no) | m: integer!]
 		pulls: ['pull-off (m: 1) | 'pull-down (m: 2) | 'pull-up (m: 3)] ;-- order matters
-		list: none
-		base: state/2
+		duty:  [m: [integer! (m: m/1) | percent! (m: to integer! 1024 * m/1)]]
+		base:  state/2
+		list:  none
 		
 		unless parse data [
 			some [pos:
 				  'set-mode    integer! modes    (gpio.set-mode base state/3 state/4 pos/2 m)
 				| 'set         integer! value    (gpio.set base pos/2 make integer! m)
-				| 'set-pwm     integer! integer! (gpio.set-pwm state/3 pos/2 pos/3)
 				| pulls        integer!          (gpio.set-pull base pos/2 m)
+				| 'set-pwm     integer! duty     (gpio.set-pwm state/3 pos/2 m)
 				| 'get         integer!          (d: gpio.get base pos/2
 					switch/default type?/word list [
 						block! [append list d]
@@ -504,14 +505,17 @@ register-scheme make system/standard/scheme [
 	
 	insert p [fade 18 from 0 to 500 0:0:3]
 	insert p [fade 18 from 500 to 0 0:0:3]
-	;repeat i 500 [
-	;	insert p compose [set-pwm 18 (i)]
-	;	wait 0.003
-	;]
-	;repeat i 500 [
-	;	insert p compose [set-pwm 18 (500 - i)]
-	;	wait 0.003
-	;]
+	
+	wait 1
+	insert p [set-pwm 18 50%]
+	wait 1
+	insert p [set-pwm 18 30%]
+	wait 1
+	insert p [set-pwm 18 15%]
+	wait 1
+	insert p [set-pwm 18 0%]
+	wait 1
+	
 	insert p [set-mode 18 in]
 
 	insert p [set-mode 18 out]
