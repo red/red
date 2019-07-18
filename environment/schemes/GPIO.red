@@ -520,17 +520,17 @@ register-scheme make system/standard/scheme [
 	insert p [fade LED-green from 0 to 500 delay]
 	insert p [fade LED-green from 500 to 0 delay]
 	
-	wait 1
-	insert p [set-pwm LED-green 50%]
-	wait 1
-	insert p [set-pwm LED-green 30%]
-	wait 1
-	insert p [set-pwm LED-green 15%]
-	wait 1
-	insert p [set-pwm LED-green 0%]
-	wait 1
-	
-	insert p [set-mode LED-green in]
+	insert p [
+		set-pwm LED-green 50%
+		pause 1.0
+		set-pwm LED-green 30%
+		pause 1.0
+		set-pwm LED-green 15%
+		pause 1.0
+		set-pwm LED-green 0%
+		pause 1.0
+		set-mode LED-green in
+	]
 
 	insert p [set-mode LED-green out]
 	loop 20 [
