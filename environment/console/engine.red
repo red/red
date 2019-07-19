@@ -202,7 +202,6 @@ system/console: context [
 	
 	eval-command: function [line [string!] /extern cue mode][
 		if mode = 'mono [change/dup count 0 3]			;-- reset delimiter counters to zero
-		
 		if any [not tail? line mode <> 'mono][
 			either all [not empty? line escape = last line][
 				cue: none
