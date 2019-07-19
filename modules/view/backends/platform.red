@@ -648,6 +648,7 @@ system/view/platform: context [
 				#switch OS [
 					Windows  [gui/PostQuitMessage 0]
 					macOS    [gui/post-quit-msg]
+					Linux    [gui/post-quit-msg]
 					#default [0]
 				]
 			]

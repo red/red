@@ -216,13 +216,11 @@ get-event-key: func [
 				res: either all [special?  evt/type = EVT_KEY][
 					as red-value! none-value
 				][
-					either code > 0 [
-						;; DEBUG: print ["key-code2=" code " flags=" evt/flags " special-key=" special-key " special?=" special? " shift=" (evt/flags and EVT_FLAG_SHIFT_DOWN <> 0) lf]
-						char: as red-char! stack/push*
-						char/header: TYPE_CHAR
-						char/value: code
-						as red-value! char
-					][as red-value! none-value]
+					;; DEBUG: print ["key-code2=" code " flags=" evt/flags " special-key=" special-key " special?=" special? " shift=" (evt/flags and EVT_FLAG_SHIFT_DOWN <> 0) lf]
+					char: as red-char! stack/push*
+					char/header: TYPE_CHAR
+					char/value: code
+					as red-value! char
 				]
 			]
 			res
@@ -420,7 +418,7 @@ do-events: func [
 	no-wait? [logic!]
 	return:  [logic!]
 	/local
-		msg? [logic!]
+		msg? 	[logic!]
 		event	[GdkEventAny!]
 		widget	[handle!]
 		; state	[GdkModifierType!]
@@ -534,7 +532,9 @@ translate-key: func [
 	special?: no
 	key: case [
 		all[keycode >= 20h keycode <= 5Ah][keycode]; RED_VK_SPACE to RED_VK_Z 
+		all[keycode >= 5Bh keycode <= 60h][keycode]
 		all[keycode >= 61h keycode <= 7Ah][keycode]; RED_VK_a to RED_VK_z
+		all[keycode >= 7Bh keycode <= 7Dh][keycode];
 		all[keycode >= A0h keycode <= FFh][keycode];
 		all[keycode >= FFBEh keycode <= FFD5h][special?: yes keycode + RED_VK_F1 - FFBEh]		;RED_VK_F1 to RED_VK_F24
 		all[keycode >= FF51h keycode <= FF54h][special?: yes keycode + RED_VK_LEFT - FF51h]		;RED_VK_LEFT to RED_VK_DOWN
@@ -543,12 +543,13 @@ translate-key: func [
 		keycode = FF1Bh [special?: yes RED_VK_ESCAPE]
 		keycode = FF50h [special?: yes RED_VK_HOME]
 		keycode = FFE5h [special?: yes RED_VK_NUMLOCK]
-		keycode = FF08h [special?: yes RED_VK_BACK]
+		keycode = FF08h [special?: no RED_VK_BACK]
 		keycode = FF09h [special?: yes RED_VK_TAB]
 		keycode = FFE1h [special?: yes RED_VK_LSHIFT]
 		keycode = FFE2h [special?: yes RED_VK_RSHIFT]
 		keycode = FFE3h [special?: yes RED_VK_LCONTROL]
 		keycode = FFE4h [special?: yes RED_VK_RCONTROL]
+		keycode = FFFFh [special?: yes RED_VK_DELETE]
 		;@@ To complete!
 		true [RED_VK_UNKNOWN]
 	]
@@ -563,7 +564,7 @@ post-quit-msg: func [
 		e	[integer!]
 		tm	[float!]
 ][
-	0
+	exit-loop: exit-loop - 1
 ]
 
 ;;------------- centralize here connection handlers

@@ -1537,8 +1537,7 @@ parse-common-opts: func [
 					set-draggable widget yes
 				]
 				sym = _cursor [
-					;; DEBUG: 
-					print ["set cursor: " widget lf]
+					;; DEBUG: print ["set cursor: " widget lf]
 					w: word + 1
 					display: gdk_window_get_display widget
 					either TYPE_OF(w) = TYPE_IMAGE [

@@ -128,7 +128,7 @@ gui-console-ctx: context [
 
 	setup-faces: does [
 		console/pane: reduce [caret]
-		append win/pane reduce [console tips]
+		append win/pane reduce [console]; tips]
 		win/menu: [
 			"File" [
 				"Run..."			run-file
