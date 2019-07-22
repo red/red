@@ -1040,5 +1040,6 @@ widget-scroll-event: func [
 	ctx			[node!]
 	return:		[integer!]
 ][
-	make-event widget check-flags event/type event/state EVT_WHEEL
+	;; DEBUG: print ["scroll-event: " event/direction " " event/delta_x " " event/delta_y lf]
+	make-event widget as-integer (event/delta_y * 10000) EVT_WHEEL
 ]

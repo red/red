@@ -275,6 +275,9 @@ get-event-picked: func [
 				int
 			]
 		]
+		EVT_WHEEL [
+			float/push as-float evt/flags / 10000.0
+		]
 		EVT_MENU [word/push* evt/flags and FFFFh]
 		default	 [integer/push evt/flags and FFFFh]
 	]

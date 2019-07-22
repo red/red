@@ -1724,6 +1724,8 @@ OS-make-view: func [
 		sym = rich-text [
 			widget: gtk_layout_new null null;gtk_drawing_area_new
 			gtk_layout_set_size widget size/x size/y
+			_widget: gtk_scrolled_window_new null null
+			gtk_container_add _widget widget
 		]
 		sym = window [
 			;; DEBUG: print ["win App " GTKApp lf]
