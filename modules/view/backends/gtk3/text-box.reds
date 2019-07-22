@@ -279,7 +279,8 @@ pango-markup-text: func [
 		;; DEBUG: print ["Add </markup>" lf]
 		text: as GString! lc/text-markup
 		g_string_append  text "</markup>"
-		;; DEBUG: print ["tex-markup: " text/str lf]
+		;; DEBUG: print ["text: " lc/text lf]
+		;; DEBUG: print ["text-markup: " text/str lf]
 	]
 ]
 
@@ -598,7 +599,9 @@ OS-text-box-layout: func [
 	text: as red-string! values + FACE_OBJ_TEXT
 	len: -1
 	str: unicode/to-utf8 text :len
-	layout-ctx-begin lc str len
+	str: g_markup_escape_text str len
+
+	layout-ctx-begin lc str length? str
 
 	size: as red-pair! values + FACE_OBJ_SIZE
 
@@ -646,7 +649,9 @@ OS-text-box-layout: func [
 		g_string_assign as GString! lc/text-markup lc/text
 	]
 	layout-ctx-end lc
-	if null? target [pango-layout-set-text lc size]
+	if null? target [
+		pango-layout-set-text lc size
+	]
 	as handle! lc
 ]
 
@@ -657,6 +662,7 @@ pango-layout-set-text: func [
 		gstr 	[GString!]
 ][
 	gstr: as GString! lc/text-markup
+	;; DEBUG: print ["pango-layout-set-text:<<-" gstr/str "->>" lf]
 	pango_layout_set_markup lc/layout gstr/str -1
 	pango_layout_set_width lc/layout PANGO_SCALE * size/x
 	pango_layout_set_height lc/layout PANGO_SCALE * size/y
