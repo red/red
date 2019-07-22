@@ -130,18 +130,18 @@ GdkEventConfigure!: alias struct! [
 GdkEventScroll!: alias struct! [
   type				[integer!]
   window			[handle!]
-  send_event	[byte!]
+  send_event		[byte!]
   time				[integer!]
-  x						[float!]
-  y						[float!]
+  x					[float!]
+  y					[float!]
   state				[integer!]
-  direction		[integer!]
+  direction			[integer!]
   device			[handle!]
   x_root			[float!]
   y_root			[float!]
   delta_x			[float!]
   delta_y			[float!]
-  is_stop 		[integer!]
+  is_stop 			[integer!]
 ]
 
 #enum GdkScrollDirection! [
