@@ -617,6 +617,11 @@ GPtrArray!: alias struct! [
 			data		[int-ptr!]
 			return: 	[integer!]
 		]
+		g_markup_escape_text: "g_markup_escape_text" [
+			text 		[c-string!]
+			len 		[integer!]
+			return:		[c-string!]
+		]
 	;; ]
 	;; LIBGDK-file cdecl [
 		gdk_screen_width: "gdk_screen_width" [
