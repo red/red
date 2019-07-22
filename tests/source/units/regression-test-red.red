@@ -2784,6 +2784,30 @@ b}
 		--assert success3739
 		unset [s3739 a3739 b3739 success3739 reactor3739]
 
+	--test-- "#3773"
+		;; context? should not accept a string
+		--assert error? try [
+			do/expand [
+				#macro ctx: func [x] [context? x]
+				ctx ""
+			]
+		]
+		;; this is reduced like: (mc 'mc) => (mc) => error (no arg)
+		--assert error? try [
+			do/expand [
+				#macro mc: func [x] [x]
+				probe quote (mc 'mc)
+			]
+		]
+		;; :mc = func [x][x], so `mc :mc` executing `x` applies it to an empty arg list => error
+		--assert error? try [
+			do/expand [
+				#macro mc: func [x] [x]
+				probe quote (mc :mc)
+			]
+		]
+
+
 ===end-group===
 
 ~~~end-file~~~
