@@ -17,7 +17,7 @@ Red/System [
 ;;		-24  : Direct2D target interface
 ;;			   base-layered: caret's owner handle
 ;;		-20  : evolved-base-layered: child handle
-;;		-16  : base-layered: owner handle
+;;		-16  : base-layered: owner handle, window: border width and height
 ;;		-12  : base-layered: clipped? flag, caret? flag, d2d? flag, ime? flag
 ;;		 -8  : base: pos X/Y in pixel
 ;;			   window: pos X/Y in pixel
@@ -300,7 +300,7 @@ get-text-size: func [
 	if null? hFont [hFont: default-font]
 	saved: SelectObject hwnd hFont
 	GetClientRect hWnd rc
-	render-text values hwnd dc rc str bbox
+	render-text values hwnd dc rc str :bbox
 
 	SelectObject hwnd saved
 	ReleaseDC hwnd dc
@@ -583,6 +583,8 @@ free-faces: func [
 	values: object/get-values face
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
+
+	if sym = window [ShowWindow handle SW_HIDE]			;-- hide it first for better User experience
 
 	rate: values + FACE_OBJ_RATE
 	if TYPE_OF(rate) <> TYPE_NONE [change-rate handle none-value]
@@ -906,6 +908,7 @@ init-window: func [										;-- post-creation settings
 		modes	[integer!]
 ][
 	SetWindowLong handle wc-offset - 4 0
+	SetWindowLong handle wc-offset - 16 0
 	SetWindowLong handle wc-offset - 24 0
 
 	modes: SWP_NOZORDER
@@ -1465,6 +1468,8 @@ OS-make-view: func [
 
 			if bits and FACET_FLAGS_NO_TITLE  <> 0 [flags: WS_POPUP or WS_BORDER]
 			if bits and FACET_FLAGS_NO_BORDER <> 0 [flags: WS_POPUP]
+			if size/x < 0 [size/x: 200]
+			if size/y < 0 [size/y: 200]
 			rc/left: 0
 			rc/top: 0
 			rc/right:  dpi-scale size/x
@@ -1737,8 +1742,6 @@ change-offset: func [
 		offset	[tagPOINT]
 		values	[red-value!]
 		layer?	[logic!]
-		x		[integer!]
-		y		[integer!]
 		pos-x	[integer!]
 		pos-y	[integer!]
 ][
@@ -1757,10 +1760,6 @@ change-offset: func [
 		SetCaretPos pos-x pos-y
 		set-ime-pos hWnd pos-x pos-y
 	]
-
-	x: 0
-	y: 0
-	if type = window [window-border-info? hWnd :x :y null null]
 
 	if all [not win8+? type = base][
 		values: get-face-values hWnd
@@ -1800,7 +1799,7 @@ change-offset: func [
 	SetWindowPos 
 		hWnd
 		as handle! 0
-		x + pos-x y + pos-y
+		pos-x pos-y
 		0 0
 		flags
 	if type = tab-panel [update-tab-contents hWnd FACE_OBJ_OFFSET]
@@ -1891,14 +1890,13 @@ change-enabled: func [
 		bool [red-logic!]
 ][
 	bool: as red-logic! values + FACE_OBJ_ENABLED?
-	either all [
+	if all [
 		type = base
 		(BASE_FACE_CARET and GetWindowLong hWnd wc-offset - 12) <> 0
 	][
 		change-visible hWnd values bool/value base
-	][
-		EnableWindow hWnd bool/value
 	]
+	EnableWindow hWnd bool/value
 ]
 
 change-visible: func [

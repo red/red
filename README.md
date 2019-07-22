@@ -63,7 +63,7 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
 `[options]`
 
     -c, --compile                  : Generate an executable in the working
-                                     folder, using libRedRT. (developement mode)
+                                     folder, using libRedRT. (development mode)
 
     -d, --debug, --debug-stabs     : Compile source file in debug mode. STABS
                                      is supported for Linux targets.

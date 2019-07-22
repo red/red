@@ -1452,6 +1452,8 @@ natives: context [
 	][
 		#typecheck [enbase base-arg]
 		data: as red-string! stack/arguments
+		data/cache: null
+
 		base: either positive? base-arg [
 			int: as red-integer! data + 1
 			int/value
