@@ -155,13 +155,6 @@ port: context [
 		]
 		copy-cell as red-value! actor base + field-actor
 		
-		object/copy
-			as red-object! #get system/standard/port-state
-			as red-object! base + field-state
-			null
-			no
-			null
-		
 		new
 	]
 

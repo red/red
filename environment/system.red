@@ -393,9 +393,6 @@ system: context [
 		url-parts: object [
 			scheme: user-info: host: port: path: target: query: fragment: ref: none
 		]
-		port-state: object [
-			state: 'init sub: error: none closed?: false info: none
-		]
 		scheme: object [
 			name: title: info: actor: awake: none
 		]
