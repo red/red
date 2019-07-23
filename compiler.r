@@ -893,6 +893,10 @@ red: context [
 		not empty? intersect expr-stack iterators
 	]
 	
+	join-obj-stack: func [item [word! path!]][
+		new-line/all join obj-stack item off
+	]
+	
 	get-obj-base: func [name [any-word!]][
 		either local-word? name [func-objs][objects]
 	]
@@ -969,7 +973,7 @@ red: context [
 	is-object?: func [expr /local pos][
 		unless find [word! get-word! path!] type?/word expr [return none]
 		any [
-			attempt [do join obj-stack expr]
+			attempt [do join-obj-stack expr]
 			all [path? expr attempt [do head insert copy expr 'objects]]
 			all [
 				find [object! word!] type?/word expr
@@ -1034,12 +1038,16 @@ red: context [
 		]
 	]
 	
-	system-words-path?: func [path [path! set-path!]][
+	system-words-path?: func [path [path! set-path!] /local get?][
 		if all [
 			2 < length? path
-			find/match path 'system/words 
+			any [
+				find/match path 'system/words
+				all [get?: get-word? path/1 path/1 = 'system path/2 = 'words]
+			]
 		][
 			remove/part path 2
+			if get? [path/1: to get-word! path/1]
 			either 1 = length? path [
 				switch type?/word pc/1: load mold path [
 					set-word!	[comp-set-word]
@@ -1146,8 +1154,15 @@ red: context [
 		]
 	]
 	
-	check-redefined: func [name [word!] original [any-word!] /only /local pos entry][
-		if all [not only pos: find-function name original][
+	check-redefined: func [name [word!] original [any-word!] /only /local pos entry obj][
+		if all [
+			not only
+			pos: find-function name original
+			not all [									;-- if name is not bound to an object
+				rebol-gctx <> obj: bind? original
+				not find shadow-funcs obj
+			]
+		][
 			remove/part pos 2							;-- remove previous function definition
 		]
 		if all [
@@ -1174,16 +1189,28 @@ red: context [
 		name
 	]
 	
-	check-cloned-function: func [new [word!] /local name alter entry pos alias old type][
-		if all [
-			get-word? pc/1
-			name: to word! pc/1	
+	check-cloned-function: func [new [word!] original /local name alter entry pos alias old type path][
+		if any [
 			all [
-				alter: get-prefix-func name
-				entry: find functions alter
-				name: alter
+				get-word? pc/1
+				name: to word! pc/1	
+				all [
+					alter: get-prefix-func name
+					entry: find functions alter
+					name: alter
+				]
+			]
+			all [
+				path? path: pc/1
+				2 < length? path
+				all [get?: get-word? path/1 path/1 = 'system path/2 = 'words]
+				entry: find functions name: last path
 			]
 		][
+			all [
+				ctx: obj-func-call? original
+				new: decorate-obj-member new ctx
+			]
 			if alter: select-ssa name [
 				entry: find functions alter
 			]
@@ -1218,7 +1245,7 @@ red: context [
 		]
 	]
 	
-	check-new-func-name: func [path [path!] symbol [word!] ctx [word!] /local name][
+	check-new-func-name: func [symbol [word!] ctx [word!] /local name][
 		if any [
 			set-word? name: pc/-1
 			all [lit-word? name 'set = pc/-2]
@@ -1387,7 +1414,7 @@ red: context [
 	
 	emit-path: func [
 		path [path! set-path!] set? [logic!] alt? [logic!]
-		/local pos words item blk get?
+		/local pos words item blk get? mark
 	][
 		either set? [
 			emit-open-frame 'eval-set-path
@@ -1406,11 +1433,17 @@ red: context [
 		
 		if path/1 = last obj-stack [remove path]		;-- remove temp object prefix inserted by object-access?
 		
+		if set? [
+			emit [object/path-parent/header: TYPE_NONE]
+			insert-lf -2
+		]
 		emit either integer? last path [
 			pick [set-int-path* eval-int-path*] set?
 		][
 			pick [set-path* eval-path*] set?
 		]
+		insert-lf -1
+		mark: tail output
 		path: back tail path
 		while [not head? path: back path][
 			emit pick [eval-int-path eval-path] integer? path/1
@@ -1426,7 +1459,7 @@ red: context [
 		]
 		emit words
 		
-		new-line/all pos no
+		new-line/all mark no
 		new-line pos yes
 		emit-close-frame
 	]
@@ -1857,7 +1890,7 @@ red: context [
 		/locals
 			words ctx spec name id func? obj original body pos entry symbol
 			body? ctx2 new blk list path on-set-info values w defer mark blk-idx
-			event pos2 loc-s loc-d shadow-path saved-pc saved set? rebind?
+			event pos2 loc-s loc-d shadow-path saved-pc saved set? rebind? evt-var
 	][
 		saved-pc: pc
 		either set-path? original: pc/-1 [
@@ -1995,8 +2028,10 @@ red: context [
 				head insert saved 'objects
 			]
 		][
-			join obj-stack either path [to path! path][name] ;-- account for current object stack
+			join-obj-stack either path [to path! path][name] ;-- account for current object stack
 		]
+		shadow-path: new-line/all shadow-path no
+		
 		either path [
 			unless attempt [
 				do reduce [to set-path! shadow-path obj] ;-- set object in shadow tree
@@ -2013,7 +2048,7 @@ red: context [
 
 		unless all [empty? locals-stack not iterator-pending?][	;-- in a function or iteration block
 			emit compose [
-				(to set-word! ctx) _context/clone get-root-node (blk-idx)	;-- rebuild context
+				(to set-word! ctx) _context/clone get-root (blk-idx) ;-- rebuild context
 			]
 			insert-lf -3
 		]
@@ -2051,6 +2086,7 @@ red: context [
 					obj-stack: append to path! 'objects any [path name] ;-- from root
 				][
 					append obj-stack any [path name]	;-- from current objects stack
+					new-line/all obj-stack off
 				]
 				pc: next pc
 				comp-next-block yes
@@ -2099,8 +2135,15 @@ red: context [
 		if any [pos pos2][
 			unless pos  [pos:  -1]
 			unless pos2 [pos2: -1]
-			change/only on-set-info reduce [pos loc-s pos2 loc-d]	;-- cache values
-			repend defer ['object/init-events ctx pos loc-s pos2 loc-d]
+			evt-var: to-word join 'evt form id
+			redirect-to literals [
+				emit compose [
+					(to set-word! evt-var) as node! 0
+				]
+				insert-lf -4
+			]
+			change/only on-set-info reduce [pos loc-s pos2 loc-d evt-var]	;-- cache values
+			repend defer [to-set-word evt-var 'object/init-events ctx pos loc-s pos2 loc-d]
 			new-line skip defer 3 yes
 		]
 		
@@ -2902,7 +2945,7 @@ red: context [
 			obj: find objects obj
 			either obj/5 [
 				ctx: either empty? locals-stack [obj/2]['octx]
-				emit reduce ['object/push ctx obj/3 obj/5/1 obj/5/2 obj/5/3 obj/5/4] ;-- event(s) case
+				emit reduce ['object/push ctx obj/5/5 obj/3 obj/5/1 obj/5/2 obj/5/3 obj/5/4] ;-- event(s) case
 				insert-lf -7
 			][
 				emit reduce ['object/init-push obj/2 obj/3]
@@ -3216,7 +3259,10 @@ red: context [
 						]
 					][
 						if head? path [
-							if alter: select-ssa name [entry: find functions alter]
+							if all [alter: select-ssa name name: alter][
+								path/1: alter
+								entry: find functions alter
+							]
 							pc: next pc
 							either ctx: any [
 								obj-func-call? value
@@ -3245,13 +3291,12 @@ red: context [
 			]
 		]
 		self?: path/1 = 'self
-
 		if all [
 			not any [set? dynamic? find path integer!]
 			set [fpath symbol ctx] obj-func-path? path
 		][
 			either get? [
-				check-new-func-name path symbol ctx
+				check-new-func-name symbol ctx
 			][
 				pc: next pc
 				comp-call/with fpath functions/:symbol symbol ctx
@@ -3666,14 +3711,14 @@ red: context [
 				unless defer [insert mark start]		;-- restore beginning of frame
 			]
 			all [
-				any [word? pc/1 path? pc/1]
+				any [word? pc/1 all [path? pc/1 not get-word? pc/1/1]]
 				do take-frame
 				defer: dispatch-ctx-keywords/with original pc/1
 			][]
 			'else [
 				if start [emit start]
 				unless any [obj-bound? no-check?][check-redefined name original]
-				check-cloned-function name
+				check-cloned-function name original
 				comp-substitute-expression				;-- fetch a value (2nd argument)
 			]
 		]
@@ -3764,8 +3809,8 @@ red: context [
 					]
 				]
 			][
-				if alter: select-ssa name [entry: find functions alter]
-				
+				if all [alter: select-ssa name name: alter][entry: find functions alter]
+			
 				either ctx: any [
 					obj-func-call? original
 					pick entry/2 5
@@ -4407,10 +4452,10 @@ red: context [
 			if store [
 				obj: entry/2
 				either set-path? name [
-					do reduce [to set-path! join obj-stack to path! name obj] ;-- set object in shadow tree
+					do reduce [to set-path! join-obj-stack to path! name obj] ;-- set object in shadow tree
 				][
 					unless tail? next obj-stack [		;-- set object in shadow tree (if sub-object)
-						do reduce [to set-path! join obj-stack name obj]
+						do reduce [to set-path! join-obj-stack name obj]
 					]
 				]
 			]
@@ -4436,10 +4481,10 @@ red: context [
 				if store [
 					obj: entry/2
 					either set-path? name [
-						do reduce [to set-path! join obj-stack to path! name obj] ;-- set object in shadow tree
+						do reduce [to set-path! join-obj-stack to path! name obj] ;-- set object in shadow tree
 					][
 						unless tail? next obj-stack [		;-- set object in shadow tree (if sub-object)
-							do reduce [to set-path! join obj-stack name obj]
+							do reduce [to set-path! join-obj-stack name obj]
 						]
 					]
 				]
@@ -4516,7 +4561,7 @@ red: context [
 	]
 	
 	comp-finish: does [
-		redbin/finish pick [[compress] []] to logic! redc/load-lib?
+		redbin/finish pick [[compress] []] to logic! all [redc/load-lib? job/redbin-compress?]
 	]
 	
 	comp-source: func [code [block!] /local user main saved mods][
@@ -4555,13 +4600,14 @@ red: context [
 		reduce [user mods main]
 	]
 	
-	comp-as-lib: func [code [block!] /local user main mark defs pos ext-ctx][
+	comp-as-lib: func [code [block!] /local user main mark defs pos ext-ctx slots][
 		out: copy/deep [
 			Red/System [
 				type:   'dll
 				origin: 'Red
 			]
 			
+			***-root-size: <root-size>
 			with red [
 				exec: context [
 					<declarations>
@@ -4611,6 +4657,8 @@ red: context [
 		]
 		append script literals
 		append script [
+			red/boot?: no
+			red/collector/active?: yes
 			------------| "Main program"
 		]
 		append script main
@@ -4619,6 +4667,9 @@ red: context [
 		unless empty? sys-global [
 			process-calls/global sys-global				;-- lazy #call processing
 		]
+		slots: redbin/index + 3000
+		if job/dev-mode? [slots: slots + 100'000]		;-- Cannot know how many slot will be needed by the app
+		change/only find out <root-size> slots
 		
 		pos: third last out
 		change find pos <script> script
@@ -4634,6 +4685,7 @@ red: context [
 			Red/System [origin: 'Red]
 
 			<imports>
+			***-root-size: <root-size>
 
 			with red [
 				root-base: redbin/boot-load system/boot-data yes
@@ -4642,6 +4694,7 @@ red: context [
 		]][[
 			Red/System [origin: 'Red]
 
+			***-root-size: <root-size>
 			red/init
 			
 			with red [
@@ -4666,6 +4719,8 @@ red: context [
 		;-- assemble all parts together in right order
 		script: make block! 100'000
 		
+		if job/dev-mode? [append script [red/boot?: yes]] ;-- boot mode was reset by libRedRT
+		
 		append script [
 			------------| "Symbols"
 		]
@@ -4679,7 +4734,10 @@ red: context [
 		]
 		append script declarations
 		pos: tail script
+		
+		unless job/dev-mode? [append script [red/collector/active?: yes]]
 		append script [
+			red/boot?: no
 			------------| "Functions"
 		]
 		append script output
@@ -4695,6 +4753,7 @@ red: context [
 			process-calls/global sys-global				;-- lazy #call processing
 		]
 
+		change/only find out <root-size> redbin/index + 3000
 		change/only find last out <script> script		;-- inject compilation result in template
 		output: out
 		if verbose > 2 [?? output]

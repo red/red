@@ -319,12 +319,19 @@ emitter: make-profilable context [
 				]
 				pad-data-buf target/struct-align-size
 			]
+			get-word! [
+				spec: any [
+					select symbols to word! value
+					all [compiler/ns-path select symbols compiler/ns-prefix to word! value]
+				]
+				unless spec/4 [append/only spec make block! 1]
+				append spec/4 index? tail data-buf
+				store-global 0 'integer! none
+			]
 			array! [
 				type: first compiler/get-type value/1
-				if find [float! float64!] type [
-					store-global 0 'integer! none			;-- insert a 32-bit padding to ensure /0 points to the length slot
-				]
-				store-global length? value 'integer! none	;-- store array size first
+				if find [float! float64!] type [pad-data-buf 4] ;-- optional 32-bit padding to ensure /0 points to the length slot
+				store-global length? value 'integer! none	;-- stores array size first
 				ptr: tail data-buf							;-- ensures array pointer skips size info
 				f64?: no
 				foreach item value [						;-- mixed types, use 32/64-bit for each slot
@@ -354,7 +361,9 @@ emitter: make-profilable context [
 						store-value/ref none str [c-string!] reduce [ref + 1]
 					]
 				][
-					foreach item value [store-global item type none]
+					foreach item value [
+						store-global item any [all [get-word? item 'get-word!] type] none
+					]
 				]
 			]
 			binary! [
@@ -553,6 +562,9 @@ emitter: make-profilable context [
 							][
 								target/emit-fpu-get/masks path/4
 							]
+						]
+						status [
+							target/emit-fpu-get/status
 						]
 						control-word [
 							either set? [

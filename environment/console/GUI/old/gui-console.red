@@ -24,6 +24,7 @@ Red [
 ]
 
 ask: routine [
+	"Prompt the user for input"
 	question [string!]
 	return:  [string!]
 ][
@@ -35,7 +36,7 @@ ask: routine [
 		null
 ]
 
-input: does [ask ""]
+input: function ["Wait for console user input"][ask ""]
 
 gui-console-ctx: context [
 	cfg-path:	 none

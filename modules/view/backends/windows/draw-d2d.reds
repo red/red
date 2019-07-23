@@ -31,6 +31,10 @@ draw-begin-d2d: func [
 		brushes [int-ptr!]
 		pbrush	[ID2D1SolidColorBrush]
 		d3d-clr [D3DCOLORVALUE]
+		values	[red-value!]
+		clr		[red-tuple!]
+		text	[red-string!]
+		pos		[red-pair! value]
 ][
 	target: get-hwnd-render-target hWnd
 
@@ -48,22 +52,27 @@ draw-begin-d2d: func [
 	m/_22: as float32! 1.0
 	rt/SetTransform this m						;-- set to identity matrix
 
-	bg-clr: to-bgr as node! GetWindowLong hWnd wc-offset + 4 FACE_OBJ_COLOR
+	values: get-face-values hWnd
+	clr: as red-tuple! values + FACE_OBJ_COLOR
+	bg-clr: either TYPE_OF(clr) = TYPE_TUPLE [clr/array1][-1]
 	if bg-clr <> -1 [							;-- paint background
 		rt/Clear this to-dx-color bg-clr null
 	]
 
-	brush: select-brush target + 1 ctx/pen-color
 	d3d-clr: to-dx-color ctx/pen-color null
-	either zero? brush [
-		rt/CreateSolidColorBrush this d3d-clr null :brush
-		put-brush target + 1 ctx/pen-color brush
-	][
-		this: as this! brush
-		pbrush: as ID2D1SolidColorBrush this/vtbl
-		pbrush/SetColor this d3d-clr
-	]
+	brush: 0
+	rt/CreateSolidColorBrush this d3d-clr null :brush
 	ctx/pen: brush
+
+	brush: 0
+	rt/CreateSolidColorBrush this d3d-clr null :brush
+	ctx/brush: brush
+
+	text: as red-string! values + FACE_OBJ_TEXT
+	if TYPE_OF(text) = TYPE_STRING [
+		pos/x: 0 pos/y: 0
+		OS-draw-text-d2d ctx pos as red-string! get-face-obj hWnd yes
+	]
 ]
 
 clean-draw-d2d: func [
@@ -72,7 +81,8 @@ clean-draw-d2d: func [
 		IUnk [IUnknown]
 		this [this!]
 ][
-	;;TBD release all brushes when D2DERR_RECREATE_TARGET or exit the process
+	COM_SAFE_RELEASE_OBJ(IUnk ctx/pen)
+	COM_SAFE_RELEASE_OBJ(IUnk ctx/brush)
 ]
 
 draw-end-d2d: func [
@@ -95,6 +105,7 @@ draw-end-d2d: func [
 			d2d-release-target ctx/brushes
 			ctx/dc: null
 			SetWindowLong hWnd wc-offset - 24 0
+			InvalidateRect hWnd null 0
 		]
 		default [
 			0		;@@ TBD log error!!!
@@ -121,6 +132,63 @@ OS-draw-pen-d2d: func [
 	]
 ]
 
+OS-draw-line-width-d2d: func [
+	ctx			[draw-ctx!]
+	width		[red-value!]
+	/local
+		width-v [float32!]
+][
+	width-v: (get-float32 as red-integer! width)
+	if ctx/pen-width <> width-v [
+		ctx/pen-width: width-v
+	]
+]
+
+OS-draw-line-d2d: func [
+	ctx	   [draw-ctx!]
+	point  [red-pair!]
+	end	   [red-pair!]
+	/local
+		pt0		[red-pair!]
+		pt1		[red-pair!]
+		this	[this!]
+		rt		[ID2D1HwndRenderTarget]
+][
+	this: as this! ctx/dc
+	rt: as ID2D1HwndRenderTarget this/vtbl
+	pt0:  point
+
+	while [pt1: pt0 + 1 pt1 <= end][
+		rt/DrawLine
+			this
+			as float32! pt0/x as float32! pt0/y
+			as float32! pt1/x as float32! pt1/y
+			ctx/pen
+			ctx/pen-width
+			0
+		pt0: pt0 + 1
+	]
+]
+
+OS-draw-fill-pen-d2d: func [
+	ctx		[draw-ctx!]
+	color	[integer!]
+	off?	[logic!]
+	/local
+		this	[this!]
+		brush	[ID2D1SolidColorBrush]
+][
+	if any [ctx/brush-color <> color ctx/brush? = off?][
+		ctx/brush?: not off?
+		ctx/brush-color: color
+		if ctx/brush? [
+			this: as this! ctx/brush
+			brush: as ID2D1SolidColorBrush this/vtbl
+			brush/SetColor this to-dx-color color null
+		]
+	]
+]
+
 OS-draw-circle-d2d: func [
 	ctx	   [draw-ctx!]
 	center [red-pair!]
@@ -128,12 +196,11 @@ OS-draw-circle-d2d: func [
 	/local
 		this	[this!]
 		rt		[ID2D1HwndRenderTarget]
-		ellipse [D2D1_ELLIPSE]
+		ellipse [D2D1_ELLIPSE value]
 ][
 	this: as this! ctx/dc
 	rt: as ID2D1HwndRenderTarget this/vtbl
 
-	ellipse: declare D2D1_ELLIPSE
 	ellipse/x: as float32! center/x
 	ellipse/y: as float32! center/y
 	ellipse/radiusX: get-float32 radius
@@ -146,6 +213,30 @@ OS-draw-circle-d2d: func [
 	]
 ]
 
+OS-draw-box-d2d: func [
+	ctx		[draw-ctx!]
+	upper	[red-pair!]
+	lower	[red-pair!]
+	/local
+		this	[this!]
+		rt		[ID2D1HwndRenderTarget]
+		rc		[D2D_RECT_F value]
+][
+	this: as this! ctx/dc
+	rt: as ID2D1HwndRenderTarget this/vtbl
+
+	rc/right: as float32! lower/x
+	rc/bottom: as float32! lower/y
+	rc/left: as float32! upper/x
+	rc/top: as float32! upper/y
+	if ctx/brush? [
+		rt/FillRectangle this rc ctx/brush 
+	]
+	if ctx/pen? [
+		rt/DrawRectangle this rc ctx/pen ctx/pen-width ctx/pen-style
+	]
+]
+
 OS-draw-text-d2d: func [
 	ctx		[draw-ctx!]
 	pos		[red-pair!]
@@ -154,34 +245,18 @@ OS-draw-text-d2d: func [
 	/local
 		this	[this!]
 		rt		[ID2D1HwndRenderTarget]
-		values	[red-value!]
-		int		[red-integer!]
-		state	[red-block!]
-		bool	[red-logic!]
 		layout	[this!]
+		fmt		[this!]
 ][
 	this: as this! ctx/dc
 	rt: as ID2D1HwndRenderTarget this/vtbl
 
-	either TYPE_OF(text) = TYPE_OBJECT [				;-- text-box!
-		values: object/get-values as red-object! text
-		state: as red-block! values + TBOX_OBJ_STATE
-
-		layout: either TYPE_OF(state) = TYPE_BLOCK [
-			bool: as red-logic! (block/rs-tail state) - 1
-			either bool/value [
-				OS-text-box-layout as red-object! text ctx/brushes 0 yes
-			][
-				int: as red-integer! block/rs-head state
-				as this! int/value
-			]
-		][
-			OS-text-box-layout as red-object! text ctx/brushes 0 yes
-		]
+	layout: either TYPE_OF(text) = TYPE_OBJECT [				;-- text-box!
+		OS-text-box-layout as red-object! text ctx/brushes 0 yes
 	][
-		0
+		fmt: as this! create-text-format as red-object! text null
+		create-text-layout text fmt 0 0
 	]
-
 	txt-box-draw-background ctx/brushes pos layout
 	rt/DrawTextLayout this as float32! pos/x as float32! pos/y layout ctx/pen 0
 ]

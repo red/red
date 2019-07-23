@@ -91,13 +91,13 @@ system/lexer: context [
 		
 		ret: as red-binary! stack/arguments
 		ret/head: 0
-		ret/header: TYPE_BINARY
+		ret/header: TYPE_NONE
 		ret/node: switch base [
 			16 [binary/decode-16 p len unit]
 			2  [binary/decode-2  p len unit]
 			64 [binary/decode-64 p len unit]
 		]
-		if ret/node = null [ret/header: TYPE_NONE]		;-- return NONE!
+		if ret/node <> null [ret/header: TYPE_BINARY]		;-- if null, return NONE!
 	]
 
 	make-tuple: routine [
@@ -332,7 +332,7 @@ system/lexer: context [
 			not-file-char not-str-char not-mstr-char caret-char
 			non-printable-char integer-end ws-ASCII ws-U+2k control-char
 			four half non-zero path-end base base64-char slash-end not-url-char
-			email-end pair-end file-end err
+			email-end pair-end file-end err date-sep time-sep not-tag-1st
 	][
 		cs:		[- - - - - - - - - - - - - - - - - - - - - - - - - - - - -] ;-- memoized bitsets
 		stack:	clear []
@@ -552,7 +552,7 @@ system/lexer: context [
 
 		base-2-rule: [
 			"2#{" (type: binary!) [
-				s: any [counted-newline | 8 [#"0" | #"1" ] | ws-no-count | comment-rule] e: #"}"
+				s: any [counted-newline | 8 [any [ws-no-count | comment-rule][#"0" | #"1" ]] | ws-no-count | comment-rule] e: #"}"
 				| (throw-error [binary! skip s -3])
 			] (base: 2)
 		]
@@ -781,7 +781,7 @@ system/lexer: context [
 						| 1 2 digit e: (hour: make-number s e integer! mn: none) ;-- +/-h, +/-hh
 						opt [#":" s: 2 digit e: (mn: make-number s e integer!)]
 					]
-					(date/zone: make-hm either neg? [negate hour][hour] any [mn 0])
+					(zone: make-hm hour any [mn 0] date/zone: either neg? [negate zone][zone])
 				]
 			] sticky-word-rule (value: date)
 		]
@@ -929,7 +929,7 @@ system/lexer: context [
 				| get-word-rule
 				| refinement-rule
 				| file-rule			(store stack value: do process)
-				| char-rule			(store stack value)
+				| char-rule			(if value > 10FFFFh [throw-error [char! skip pos -6]] store stack value)
 				| map-rule
 				| paren-rule
 				| escaped-rule		(store stack value)
@@ -942,8 +942,8 @@ system/lexer: context [
 			)
 		]
 
-		one-value: [any ws pos: opt literal-value pos: to end opt wrong-end]
-		any-value: [pos: any [some ws | literal-value]]
+		one-value: [any ws pos: literal-value pos: to end opt wrong-end]
+		any-value: [pos: any [some ws | literal-value e: if (not same? pos e)]]
 		red-rules: [any-value any ws opt wrong-end]
 
 		if pre-load [do [pre-load src length]]
@@ -954,7 +954,18 @@ system/lexer: context [
 			][
 				parse/case src either one [one-value][red-rules]
 			][
-				throw-error ['value pos]
+				unless tail? pos [
+					if find ")]}" pos/1 [
+						value: switch pos/1 [
+							#")"	[#"("]
+							#"]"	[#"["]
+							#"}"	[#"{"]
+						]
+						pos: next pos
+						throw-error/missing [value back pos]
+					]
+					throw-error ['value pos]
+				]
 			]
 		]	
 		either trap [

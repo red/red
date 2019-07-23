@@ -226,17 +226,6 @@ integer: context [
 			TYPE_OF(left) = TYPE_INTEGER
 			TYPE_OF(left) = TYPE_CHAR
 		]
-		assert any [
-			TYPE_OF(right) = TYPE_INTEGER
-			TYPE_OF(right) = TYPE_CHAR
-			TYPE_OF(right) = TYPE_FLOAT
-			TYPE_OF(right) = TYPE_PERCENT
-			TYPE_OF(right) = TYPE_PAIR
-			TYPE_OF(right) = TYPE_TUPLE
-			TYPE_OF(right) = TYPE_TIME
-			TYPE_OF(right) = TYPE_VECTOR
-			TYPE_OF(right) = TYPE_DATE
-		]
 
 		switch TYPE_OF(right) [
 			TYPE_INTEGER TYPE_CHAR [
@@ -604,7 +593,9 @@ integer: context [
 			]
 			exp: exp >> 1
 			base: base * base
-			if system/cpu/overflow? [throw RED_INT_OVERFLOW]
+			if all [system/cpu/overflow? exp > 0][
+				throw RED_INT_OVERFLOW
+			]
 		]
 		res
 	]

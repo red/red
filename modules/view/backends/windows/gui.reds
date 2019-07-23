@@ -17,7 +17,7 @@ Red/System [
 ;;		-24  : Direct2D target interface
 ;;			   base-layered: caret's owner handle
 ;;		-20  : evolved-base-layered: child handle
-;;		-16  : base-layered: owner handle
+;;		-16  : base-layered: owner handle, window: border width and height
 ;;		-12  : base-layered: clipped? flag, caret? flag, d2d? flag, ime? flag
 ;;		 -8  : base: pos X/Y in pixel
 ;;			   window: pos X/Y in pixel
@@ -179,7 +179,10 @@ get-widget-handle: func [
 			if no-face? hWnd [
 				id: 0
 				GetWindowThreadProcessId hWnd :id
-				if id <> process-id [return as handle! -1]
+				if any [
+					id <> process-id
+					hWnd = GetConsoleWindow				;-- see #1290
+				] [ return as handle! -1 ]
 
 				p: as int-ptr! GetWindowLong hWnd 0		;-- try 3
 				either null? p [
@@ -272,29 +275,44 @@ get-gesture-info: func [
 ]
 
 get-text-size: func [
+	face 	[red-object!]
 	str		[red-string!]
 	hFont	[handle!]
 	pair	[red-pair!]
 	return: [tagSIZE]
 	/local
-		saved [handle!]
-		size  [tagSIZE]
+		saved 	[handle!]
+		values 	[red-value!]
+		hwnd 	[handle!]
+		dc 		[handle!]
+		size 	[tagSIZE]
+		rc 		[RECT_STRUCT value]
+		bbox 	[RECT_STRUCT_FLOAT32 value]
 ][
 	size: declare tagSIZE
-	if null? hFont [hFont: default-font]
-	saved: SelectObject hScreen hFont
-	
-	GetTextExtentPoint32
-		hScreen
-		unicode/to-utf16 str
-		string/rs-length? str
-		size
 
-	SelectObject hScreen saved
+	;-- possibly null if hwnd wasn't stored in `state` yet (upon face creation)
+	;  in this case hwnd=0 is of the screen, while `para` can still be applied from the face/ctx
+	hwnd: face-handle? face
+	values: object/get-values face
+	dc: GetWindowDC hwnd
+
+	if null? hFont [hFont: default-font]
+	saved: SelectObject hwnd hFont
+	GetClientRect hWnd rc
+	render-text values hwnd dc rc str :bbox
+
+	SelectObject hwnd saved
+	ReleaseDC hwnd dc
+	
+	size/width:  as integer! ceil as float! bbox/width
+	size/height: as integer! ceil as float! bbox/height
+
 	if pair <> null [
-		pair/x: size/width * 100 / dpi-factor
-		pair/y: size/height * 100 / dpi-factor
+		pair/x: as integer! ceil as float! bbox/width  * 100 / dpi-factor
+		pair/y: as integer! ceil as float! bbox/height * 100 / dpi-factor
 	]
+
 	size
 ]
 
@@ -512,6 +530,20 @@ update-selection: func [
 	]
 ]
 
+update-rich-text: func [
+	state	[red-block!]
+	handles [red-block!]
+	return: [logic!]
+	/local
+		redraw [red-logic!]
+][
+	if TYPE_OF(handles) = TYPE_BLOCK [
+		redraw: as red-logic! (block/rs-tail handles) - 1
+		redraw/value: true
+	]
+	TYPE_OF(state) <> TYPE_BLOCK
+]
+
 to-bgr: func [
 	node	[node!]
 	pos		[integer!]
@@ -552,6 +584,8 @@ free-faces: func [
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
 
+	if sym = window [ShowWindow handle SW_HIDE]			;-- hide it first for better User experience
+
 	rate: values + FACE_OBJ_RATE
 	if TYPE_OF(rate) <> TYPE_NONE [change-rate handle none-value]
 
@@ -582,15 +616,15 @@ free-faces: func [
 				free-graph cam
 			]
 		]
-		any [sym = window sym = panel sym = base][
+		any [sym = window sym = panel sym = base sym = rich-text][
 			if zero? (WS_EX_LAYERED and GetWindowLong handle GWL_EXSTYLE) [
 				dc: GetWindowLong handle wc-offset - 4
 				if dc <> 0 [DeleteDC as handle! dc]			;-- delete cached dc
 			]
 			flags: get-flags as red-block! values + FACE_OBJ_FLAGS
-			if flags and FACET_FLAGS_MODAL <> 0 [
-				SetActiveWindow GetWindow handle GW_OWNER
-			]
+			;if flags and FACET_FLAGS_MODAL <> 0 [
+			;	SetActiveWindow GetWindow handle GW_OWNER
+			;]
 			dc: GetWindowLong handle wc-offset - 24
 			if dc <> 0 [
 				either (GetWindowLong handle wc-offset - 12) and BASE_FACE_IME <> 0 [
@@ -606,6 +640,8 @@ free-faces: func [
 		]
 	]
 	either sym = window [
+		state: values + FACE_OBJ_SELECTED
+		state/header: TYPE_NONE
 		SetWindowLong handle wc-offset - 4 -1
 		PostMessage handle WM_CLOSE 0 0
 	][
@@ -728,15 +764,25 @@ get-metrics: func [
 		
 	map/put 
 		as red-hash! #get system/view/metrics/colors
+		as red-value! _text as red-value! tuple/push
+			3 (GetSysColor COLOR_WINDOWTEXT) 0 0
+		no
+		
+	map/put 
+		as red-hash! #get system/view/metrics/colors
 		as red-value! _window as red-value! tuple/push
-			3 (GetSysColor 5) 0 0							;-- COLOR_WINDOW
+			3 (GetSysColor COLOR_WINDOW) 0 0
 		no
 		
 	map/put 
 		as red-hash! #get system/view/metrics/colors
 		as red-value! _panel as red-value! tuple/push
-			3 (GetSysColor 15) 0 0							;-- COLOR_3DFACE
+			3 (GetSysColor COLOR_3DFACE) 0 0
 		no
+]
+
+on-gc-mark: does [
+	collector/keep flags-blk/node
 ]
 
 init: func [
@@ -791,6 +837,8 @@ init: func [
 	int/value:  as-integer version-info/wProductType
 
 	get-metrics
+	
+	collector/register as int-ptr! :on-gc-mark
 ]
 
 cleanup: does [
@@ -860,6 +908,7 @@ init-window: func [										;-- post-creation settings
 		modes	[integer!]
 ][
 	SetWindowLong handle wc-offset - 4 0
+	SetWindowLong handle wc-offset - 16 0
 	SetWindowLong handle wc-offset - 24 0
 
 	modes: SWP_NOZORDER
@@ -941,6 +990,7 @@ get-flags: func [
 			sym = modal		 [flags: flags or FACET_FLAGS_MODAL]
 			sym = popup		 [flags: flags or FACET_FLAGS_POPUP]
 			sym = scrollable [flags: flags or FACET_FLAGS_SCROLLABLE]
+			sym = password	 [flags: flags or FACET_FLAGS_PASSWORD]
 			true			 [fire [TO_ERROR(script invalid-arg) word]]
 		]
 		word: word + 1
@@ -1161,7 +1211,7 @@ evolve-base-face: func [
 				hInstance
 				null
 
-			SetLayeredWindowAttributes handle 1 0 1
+			SetLayeredWindowAttributes handle 1 0 2
 			SetWindowLong handle wc-offset - 20 0
 			if visible/value [ShowWindow handle SW_SHOWNA]
 			SetWindowLong hWnd wc-offset - 20 as-integer handle
@@ -1338,14 +1388,15 @@ OS-make-view: func [
 		sym = field [
 			class: #u16 "RedField"
 			flags: flags or WS_TABSTOP
+			if bits and FACET_FLAGS_PASSWORD <> 0 [flags: flags or ES_PASSWORD]
 			unless para? [flags: flags or ES_LEFT or ES_AUTOHSCROLL or ES_NOHIDESEL]
-			if bits and FACET_FLAGS_NO_BORDER = 0 [ws-flags: WS_EX_CLIENTEDGE]
+			if bits and FACET_FLAGS_NO_BORDER = 0 [ws-flags: ws-flags or WS_EX_CLIENTEDGE]
 		]
 		sym = area [
 			class: #u16 "RedArea"
 			unless para? [flags: flags or ES_LEFT or ES_AUTOHSCROLL or WS_HSCROLL or ES_NOHIDESEL]
 			flags: flags or ES_MULTILINE or ES_AUTOVSCROLL or WS_VSCROLL or WS_TABSTOP
-			if bits and FACET_FLAGS_NO_BORDER = 0 [ws-flags: WS_EX_CLIENTEDGE]
+			if bits and FACET_FLAGS_NO_BORDER = 0 [ws-flags: ws-flags or WS_EX_CLIENTEDGE]
 		]
 		sym = text [
 			class: #u16 "RedFace"
@@ -1354,6 +1405,7 @@ OS-make-view: func [
 		sym = text-list [
 			class: #u16 "RedListBox"
 			flags: flags or LBS_NOTIFY or WS_HSCROLL or WS_VSCROLL or LBS_NOINTEGRALHEIGHT
+			if bits and FACET_FLAGS_NO_BORDER = 0 [ws-flags: ws-flags or WS_EX_CLIENTEDGE]
 		]
 		sym = drop-down [
 			class: #u16 "RedCombo"
@@ -1377,7 +1429,7 @@ OS-make-view: func [
 			class: #u16 "RedScroller"
 			if size/y > size/x [flags: flags or SBS_VERT]
 		]
-		sym = base [
+		any [sym = base sym = rich-text][
 			class: #u16 "RedBase"
 			alpha?: transparent-base?
 				as red-tuple! values + FACE_OBJ_COLOR
@@ -1416,6 +1468,8 @@ OS-make-view: func [
 
 			if bits and FACET_FLAGS_NO_TITLE  <> 0 [flags: WS_POPUP or WS_BORDER]
 			if bits and FACET_FLAGS_NO_BORDER <> 0 [flags: WS_POPUP]
+			if size/x < 0 [size/x: 200]
+			if size/y < 0 [size/y: 200]
 			rc/left: 0
 			rc/top: 0
 			rc/right:  dpi-scale size/x
@@ -1554,15 +1608,25 @@ OS-make-view: func [
 		][
 			init-drop-list handle data caption selected sym = drop-list
 		]
-		sym = field [set-hint-text handle options]
+		sym = field [
+			set-hint-text handle options
+			if TYPE_OF(selected) <> TYPE_NONE [change-selection handle selected values]
+		]
 		sym = area	 [
 			set-area-options handle options
 			change-text handle values sym
+			if TYPE_OF(selected) <> TYPE_NONE [change-selection handle selected values]
+		]
+		sym = rich-text [
+			init-base-face handle parent values alpha?
+			SetWindowLong handle wc-offset - 12 BASE_FACE_D2D or BASE_FACE_IME
 		]
 		sym = window [
 			init-window handle bits
-			with clipboard [
-				if null? main-hWnd [main-hWnd: handle]
+			#if sub-system = 'gui [
+				with clipboard [
+					if null? main-hWnd [main-hWnd: handle]
+				]
 			]
 			offset/x: off-x - rc/left * 100 / dpi-factor
 			offset/y: off-y - rc/top * 100 / dpi-factor
@@ -1582,9 +1646,10 @@ OS-make-view: func [
 
 change-size: func [
 	hWnd [handle!]
-	size [red-pair!]
+	vals [red-value!]
 	type [integer!]
 	/local
+		size	[red-pair!]
 		cx		[integer!]
 		cy		[integer!]
 		max		[integer!]
@@ -1595,6 +1660,7 @@ change-size: func [
 		sz-x	[integer!]
 		sz-y	[integer!]
 ][
+	size: as red-pair! vals + FACE_OBJ_SIZE
 	cx: 0
 	cy: 0
 	if type = window [window-border-info? hWnd null null :cx :cy]
@@ -1606,9 +1672,8 @@ change-size: func [
 	]
 
 	if layer? [
-		values: get-face-values hWnd
-		pos: as red-pair! values + FACE_OBJ_OFFSET
-		process-layered-region hWnd size pos as red-block! values + FACE_OBJ_PANE pos null layer?
+		pos: as red-pair! vals + FACE_OBJ_OFFSET
+		process-layered-region hWnd size pos as red-block! vals + FACE_OBJ_PANE pos null layer?
 	]
 
 	sz-x: dpi-scale size/x
@@ -1622,7 +1687,7 @@ change-size: func [
 
 	if layer? [
 		hWnd: as handle! GetWindowLong hWnd wc-offset - 20
-		if hWnd <> null [change-size hWnd size -1]
+		if hWnd <> null [change-size hWnd vals -1]
 	]
 	case [
 		any [type = slider type = progress][
@@ -1677,8 +1742,6 @@ change-offset: func [
 		offset	[tagPOINT]
 		values	[red-value!]
 		layer?	[logic!]
-		x		[integer!]
-		y		[integer!]
 		pos-x	[integer!]
 		pos-y	[integer!]
 ][
@@ -1697,10 +1760,6 @@ change-offset: func [
 		SetCaretPos pos-x pos-y
 		set-ime-pos hWnd pos-x pos-y
 	]
-
-	x: 0
-	y: 0
-	if type = window [window-border-info? hWnd :x :y null null]
 
 	if all [not win8+? type = base][
 		values: get-face-values hWnd
@@ -1740,7 +1799,7 @@ change-offset: func [
 	SetWindowPos 
 		hWnd
 		as handle! 0
-		x + pos-x y + pos-y
+		pos-x pos-y
 		0 0
 		flags
 	if type = tab-panel [update-tab-contents hWnd FACE_OBJ_OFFSET]
@@ -1793,11 +1852,16 @@ change-text: func [
 		update-base hWnd null null values
 		exit
 	]
+	if type = rich-text [
+		InvalidateRect hWnd null 0
+		exit
+	]
+
 	str: as red-string! values + FACE_OBJ_TEXT
 	text: null
 	switch TYPE_OF(str) [
 		TYPE_STRING [
-			text: unicode/to-utf16 str yes
+			text: unicode/to-utf16 str
 			len: string/rs-length? str
 		]
 		TYPE_NONE	[
@@ -1826,25 +1890,33 @@ change-enabled: func [
 		bool [red-logic!]
 ][
 	bool: as red-logic! values + FACE_OBJ_ENABLED?
-	either type = caret [
-		either bool/value [update-caret hWnd values][DestroyCaret]
-		change-visible hWnd bool/value caret
+	if all [
+		type = base
+		(BASE_FACE_CARET and GetWindowLong hWnd wc-offset - 12) <> 0
 	][
-		EnableWindow hWnd bool/value
+		change-visible hWnd values bool/value base
 	]
+	EnableWindow hWnd bool/value
 ]
 
 change-visible: func [
-	hWnd  [handle!]
-	show? [logic!]
-	type  [integer!]
+	hWnd	[handle!]
+	values	[red-value!]
+	show?	[logic!]
+	type	[integer!]
 	/local
 		value [integer!]
 ][
+	if all [
+		type = base
+		(BASE_FACE_CARET and GetWindowLong hWnd wc-offset - 12) <> 0
+	][
+		either show? [update-caret hWnd values][DestroyCaret]
+	]
 	value: either show? [either type = base [SW_SHOWNA][SW_SHOW]][SW_HIDE]
 	ShowWindow hWnd value
 	unless win8+? [update-layered-window hWnd null null null -1]
-	
+
 	if type = group-box [
 		hWnd: as handle! GetWindowLong hWnd wc-offset - 4
 		ShowWindow hWnd value
@@ -1889,8 +1961,9 @@ change-selection: func [
 			either TYPE_OF(int) = TYPE_NONE [
 				stop-camera hWnd
 			][
-				select-camera hWnd int/value - 1
-				toggle-preview hWnd true
+				if select-camera hWnd int/value - 1 [
+					toggle-preview hWnd true
+				]
 			]
 		]
 		sym = text-list [
@@ -2002,6 +2075,9 @@ change-data: func [
 				as red-integer! values + FACE_OBJ_SELECTED
 				type = drop-list
 		]
+		type = rich-text [
+			InvalidateRect hWnd null 0
+		]
 		true [0]										;-- default, do nothing
 	]
 ]
@@ -2017,16 +2093,14 @@ change-rate: func [
 		TYPE_INTEGER [
 			int: as red-integer! rate
 			if int/value <= 0 [fire [TO_ERROR(script invalid-facet-type) rate]]
-			KillTimer hWnd null
-			SetTimer hWnd null 1000 / int/value :TimerProc
+			SetTimer hWnd 1 1000 / int/value :TimerProc
 		]
 		TYPE_TIME [
 			tm: as red-time! rate
 			if tm/time <= 0.0 [fire [TO_ERROR(script invalid-facet-type) rate]]
-			KillTimer hWnd null
-			SetTimer hWnd null as-integer tm/time * 1000.0 :TimerProc
+			SetTimer hWnd 1 as-integer tm/time * 1000.0 :TimerProc
 		]
-		TYPE_NONE [KillTimer hWnd null]
+		TYPE_NONE [KillTimer hWnd 1]
 		default	  [fire [TO_ERROR(script invalid-facet-type) rate]]
 	]
 ]
@@ -2084,7 +2158,7 @@ change-parent: func [
 	unless tab-panel? [bool/value: parent <> null]
 
 	either null? parent [
-		change-visible hWnd no sym
+		change-visible hWnd values no sym
 		SetParent hWnd null
 	][
 		if tab-panel? [exit]
@@ -2180,7 +2254,7 @@ unlink-sub-obj: func [
 	
 	if TYPE_OF(parent) = TYPE_BLOCK [
 		res: block/find parent as red-value! face null no no yes no null null no no no no
-		if TYPE_OF(res) <> TYPE_NONE [_series/remove as red-series! res null]
+		if TYPE_OF(res) <> TYPE_NONE [_series/remove as red-series! res null null]
 		if all [
 			field = FONT_OBJ_PARENT
 			block/rs-tail? parent
@@ -2213,6 +2287,12 @@ OS-update-view: func [
 	state: as red-block! values + FACE_OBJ_STATE
 	word: as red-word! values + FACE_OBJ_TYPE
 	type: symbol/resolve word/symbol
+
+	if all [
+		type = rich-text
+		update-rich-text state as red-block! values + FACE_OBJ_EXT3
+	][exit]
+
 	s: GET_BUFFER(state)
 	int: as red-integer! s/offset
 	hWnd: as handle! int/value
@@ -2223,7 +2303,7 @@ OS-update-view: func [
 		change-offset hWnd as red-pair! values + FACE_OBJ_OFFSET type
 	]
 	if flags and FACET_FLAG_SIZE <> 0 [
-		change-size hWnd as red-pair! values + FACE_OBJ_SIZE type
+		change-size hWnd values type
 	]
 	if flags and FACET_FLAG_TEXT <> 0 [
 		change-text hWnd values type
@@ -2236,20 +2316,26 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_VISIBLE? <> 0 [
 		bool: as red-logic! values + FACE_OBJ_VISIBLE?
-		change-visible hWnd bool/value type
+		change-visible hWnd values bool/value type
 	]
 	if flags and FACET_FLAG_SELECTED <> 0 [
 		int2: as red-integer! values + FACE_OBJ_SELECTED
 		change-selection hWnd int2 values
 	]
 	if flags and FACET_FLAG_FLAGS <> 0 [
+		flags: get-flags as red-block! values + FACE_OBJ_FLAGS
 		SetWindowLong
 			hWnd
 			wc-offset + 16
-			get-flags as red-block! values + FACE_OBJ_FLAGS
+			flags
+		if type = field [
+			type: either flags and FACET_FLAGS_PASSWORD = 0 [0][25CFh]
+			SendMessage hWnd 204 type 0
+			SetFocus hWnd
+		]
 	]
 	if flags and FACET_FLAG_DRAW  <> 0 [
-		if any [type = base type = panel type = window][
+		if any [type = base type = panel type = window type = rich-text][
 			update-base hWnd null null values
 		]
 	]
@@ -2372,6 +2458,7 @@ OS-update-facet: func [
 	]
 ]
 
+
 OS-to-image: func [
 	face	[red-object!]
 	return: [red-image!]
@@ -2379,38 +2466,35 @@ OS-to-image: func [
 		hWnd 	[handle!]
 		dc		[handle!]
 		mdc		[handle!]
-		x		[integer!]
-		y		[integer!]
-		h		[integer!]
-		w		[integer!]
-		rect	[RECT_STRUCT]
+		rc		[RECT_STRUCT value]
 		width	[integer!]
 		height	[integer!]
 		bmp		[handle!]
 		bitmap	[integer!]
-		flags	[integer!]
 		img		[red-image!]
 		word	[red-word!]
 		size	[red-pair!]
 		screen? [logic!]
+		bo		[tagPOINT value] 		;-- base offset
+		sym 	[integer!]
 ][
-	hWnd: null w: 0
-	rect: as RECT_STRUCT :w
+	hWnd: null
 	word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
-	screen?: screen = symbol/resolve word/symbol
+	sym: symbol/resolve word/symbol
+	screen?: screen = sym
 	either screen? [
 		size: as red-pair! get-node-facet face/ctx FACE_OBJ_SIZE
-		width: size/x
-		height: size/y
-		rect/left: 0
-		rect/top: 0
+		width: dpi-scale size/x
+		height: dpi-scale size/y
+		rc/left: 0
+		rc/top: 0
 		dc: hScreen
 	][
 		hWnd: face-handle? face
 		if null? hWnd [return as red-image! none-value]
-		GetWindowRect hWnd rect
-		width: rect/right - rect/left
-		height: rect/bottom - rect/top
+		GetWindowRect hWnd rc
+		width: rc/right - rc/left
+		height: rc/bottom - rc/top
 		dc: GetDC hWnd
 	]
 
@@ -2419,11 +2503,22 @@ OS-to-image: func [
 	SelectObject mdc bmp
 
 	either screen? [
-		BitBlt mdc 0 0 width height hScreen rect/left rect/top SRCCOPY
+		BitBlt mdc 0 0 width height hScreen rc/left rc/top SRCCOPY
 	][
-		flags: either win8+? [2][0]
-		if zero? PrintWindow hWnd mdc flags [			;-- fails
-			SendMessage hWnd 0317h as-integer mdc 62	;-- WM_PRINT
+		either win8+? [
+			PrintWindow hWnd mdc 2
+		][
+			bo/x: 0  bo/y: 0
+			;-- when printing whole windows, account for nonclient area size:
+			if window = sym [
+				ClientToScreen hWnd bo
+				bo/x: bo/x - rc/left
+				bo/y: bo/y - rc/top
+			]
+
+			; see https://stackoverflow.com/a/44062144 and #3465 as to why PrintWindow shouldn't be used alone
+			PrintWindow hWnd mdc 0 		;-- print everything that's printable
+			imprint-layers-deep mdc hWnd bo/x bo/y null
 		]
 	]
 

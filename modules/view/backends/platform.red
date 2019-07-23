@@ -77,6 +77,7 @@ system/view/platform: context [
 				FACET_FLAGS_ALL_OVER:	00000001h
 
 				FACET_FLAGS_SCROLLABLE:	00040000h
+				FACET_FLAGS_PASSWORD:	00080000h
 
 				FACET_FLAGS_POPUP:		01000000h
 				FACET_FLAGS_MODAL:		02000000h
@@ -108,18 +109,6 @@ system/view/platform: context [
 				PARA_OBJ_V-ALIGN
 				PARA_OBJ_WRAP?
 				PARA_OBJ_PARENT
-			]
-
-			#enum text-box-facet! [
-				TBOX_OBJ_TEXT
-				TBOX_OBJ_SIZE
-				TBOX_OBJ_FONT
-				TBOX_OBJ_PARA
-				TBOX_OBJ_SPACING
-				TBOX_OBJ_TABS
-				TBOX_OBJ_STYLES
-				TBOX_OBJ_TARGET
-				TBOX_OBJ_STATE
 			]
 
 			#enum scroller-facet! [
@@ -195,6 +184,7 @@ system/view/platform: context [
 				PEN_LINE_CAP
 				PEN_LINE_JOIN
 			]
+			red/boot?: yes								;-- forces words allocation in root block
 			
 			facets: context [
 				type:		symbol/make "type"
@@ -255,7 +245,7 @@ system/view/platform: context [
 			camera:			symbol/make "camera"
 			caret:			symbol/make "caret"
 			scroller:		symbol/make "scroller"
-			rich-text?:		symbol/make "rich-text?"
+			rich-text:		symbol/make "rich-text"
 
 			---:			symbol/make "---"
 			done:			symbol/make "done"
@@ -288,6 +278,7 @@ system/view/platform: context [
 			modal:			symbol/make "modal"
 			popup:			symbol/make "popup"
 			scrollable:		symbol/make "scrollable"
+			password:		symbol/make "password"
 
 			_accelerated:	symbol/make "accelerated"
 
@@ -383,6 +374,9 @@ system/view/platform: context [
 			_right-command:	word/load "right-command"
 			_caps-lock:		word/load "caps-lock"
 			_num-lock:		word/load "num-lock"
+			
+			red/boot?: no
+			red/collector/active?: yes
 
 			get-event-type: func [
 				evt		[red-event!]
@@ -577,7 +571,7 @@ system/view/platform: context [
 		pair: as red-pair! stack/arguments
 		pair/header: TYPE_PAIR
 		
-		gui/get-text-size text hFont pair
+		gui/get-text-size face text hFont pair
 	]
 	
 	on-change-facet: routine [
@@ -648,10 +642,16 @@ system/view/platform: context [
 	]
 
 	exit-event-loop: routine [][
-		#switch OS [
-			Windows  [gui/PostQuitMessage 0]
-			macOS    [gui/post-quit-msg]
-			#default [0]
+		#switch GUI-engine [
+			native [
+				#switch OS [
+					Windows  [gui/PostQuitMessage 0]
+					macOS    [gui/post-quit-msg]
+					#default [0]
+				]
+			]
+			test []
+			GTK  []
 		]
 	]
 
@@ -689,7 +689,7 @@ system/view/platform: context [
 			layout? [logic!]
 	][
 		layout?: yes
-		state: as red-block! (object/get-values box) + gui/TBOX_OBJ_STATE
+		state: as red-block! (object/get-values box) + gui/FACE_OBJ_EXT3
 		if TYPE_OF(state) = TYPE_BLOCK [
 			bool: as red-logic! (block/rs-tail state) - 1
 			layout?: bool/value
@@ -732,6 +732,8 @@ system/view/platform: context [
 				group-box:		[3x3  10x3]
 				tab-panel:		[1x3  25x0]
 				button:			[8x8   0x0]
+				drop-down:		[0x7   0x0]
+				drop-list:		[0x7   0x0]
 			]
 			macOS [
 				button:			[11x11 0x0 regular 14x14 0x0 small 11x11 0x0 mini 11x11 0x0]
@@ -743,18 +745,33 @@ system/view/platform: context [
 				drop-list:		[14x26 0x0 regular 14x26 0x0 small 11x22 0x0 mini 11x22 0x0]
 			]
 		]]
-		extend system/view/metrics/def-heights [#switch config/OS [
-			Windows []
-			macOS	[
-				check:		21
-				radio:		21
-				text:		18
-				field:		21
-				drop-down:	21
-				drop-list:	21
-				progress:	21
+		#switch config/OS [
+			Windows [
+				if version/1 <= 6 [						;-- for Win7 & XP
+					extend system/view/metrics/def-heights [
+						button:		23
+						text:		24
+						field:		24
+						check:		24
+						radio:		24
+						slider:		24
+						drop-down:	23
+						drop-list:	23
+					]
+				]
 			]
-		]]
+			macOS	[
+				extend system/view/metrics/def-heights [
+					check:		21
+					radio:		21
+					text:		18
+					field:		21
+					drop-down:	21
+					drop-list:	21
+					progress:	21
+				]
+			]
+		]
 		
 		colors: system/view/metrics/colors
 		#switch config/OS [
@@ -778,7 +795,7 @@ system/view/platform: context [
 		
 		set fonts:
 			bind [fixed sans-serif serif] system/view/fonts
-			switch system/platform/OS [
+			switch system/platform [
 				Windows [
 					either version/1 >= 6 [
 						["Consolas" "Arial" "Times"]

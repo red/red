@@ -1,7 +1,7 @@
 REBOL [
-	Title:   "Red source files preprocessor"
+	Title:	 "Red source files preprocessor"
 	Author:  "Nenad Rakocevic"
-	File: 	 %includes.r
+	File:	 %includes.r
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
@@ -27,6 +27,7 @@ write %build/bin/sources.r set-cache [
 		%functions.red
 		%lexer.red
 		%natives.red
+		%networking.red
 		%operators.red
 		%reactivity.red
 		%routines.red
@@ -37,6 +38,12 @@ write %build/bin/sources.r set-cache [
 			%gif.red
 			%jpeg.red
 			%png.red
+			%json.red
+			%json/ [
+				%common.red
+				%load-json.red
+				%to-json.red
+			]
 		]
 		%console/ [
 			%auto-complete.red
@@ -50,6 +57,11 @@ write %build/bin/sources.r set-cache [
 				%win32.reds
 			]
 			%GUI/ [
+				%old/ [
+					%gui-console.red
+					%terminal.reds
+					%windows.reds
+				]
 				%app.ico
 				%core.red
 				%gui-console.red
@@ -62,31 +74,33 @@ write %build/bin/sources.r set-cache [
 	%runtime/ [
 		%actions.reds
 		%allocator.reds
+		%call.reds
+		%case-folding-table.reds
+		%case-folding.reds
+		%clipboard.reds
+		%collector.reds
+		%crush.reds
+		%crypto.reds
 		%debug-tools.reds
 		%definitions.reds
-		%case-folding.reds
-		%interpreter.reds
+		%hashtable.reds
 		%inflate.reds
+		%interpreter.reds
 		%macros.reds
 		%natives.reds
+		%ownership.reds
 		%parse.reds
+		%print.reds
 		%random.reds
-		%crypto.reds
 		%red.reds
 		%redbin.reds
-		%sort.reds
-		%hashtable.reds
-		%ownership.reds
-		%stack.reds
-		%tools.reds
-		%tokenizer.reds
-		%unicode.reds
 		%simple-io.reds
-		%clipboard.reds
-		%crush.reds
+		%sort.reds
+		%stack.reds
+		%tokenizer.reds
+		%tools.reds
+		%unicode.reds
 		%utils.reds
-		%call.reds
-		%print.reds
 		%datatypes/ [
 			%action.reds
 			%block.reds
@@ -121,6 +135,7 @@ write %build/bin/sources.r set-cache [
 			%pair.reds
 			%percent.reds
 			%point.reds
+			%port.reds
 			%refinement.reds
 			%routine.reds
 			%series.reds
@@ -143,6 +158,7 @@ write %build/bin/sources.r set-cache [
 		%platform/ [
 			%android.reds
 			%darwin.reds
+			%freebsd.reds
 			%linux.reds
 			%POSIX.reds
 			%syllable.reds
@@ -152,7 +168,6 @@ write %build/bin/sources.r set-cache [
 			%image-quartz.reds
 			%win32-ansi.reds
 			%win32-print.reds
-			
 		]
 	]
 	%modules/ [
@@ -162,6 +177,7 @@ write %build/bin/sources.r set-cache [
 			%rules.red
 			%styles.red
 			%utils.red
+			%RTD.red
 			%VID.red
 			%backends/ [
 				%keycodes.reds

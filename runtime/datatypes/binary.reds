@@ -18,6 +18,7 @@ binary: context [
 			until [
 				p: p + unit
 				len: len - 1
+				if len <= 0 [c: -1 break]
 				c: string/get-char p unit
 				c = as-integer lf
 			]
@@ -44,6 +45,27 @@ binary: context [
 	]
 
 	enbase64: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+
+	debase58: [
+		#"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" ;-- 07h
+		#"^(40)" #"^(40)" #"^(40)" #"^(80)" #"^(40)" #"^(40)" #"^(80)" #"^(80)" ;-- 0Fh
+		#"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" ;-- 17h
+		#"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" ;-- 1Fh
+		#"^(40)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(40)" ;-- 27h
+		#"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" ;-- 2Fh
+		#"^(80)" #"^(00)" #"^(01)" #"^(02)" #"^(03)" #"^(04)" #"^(05)" #"^(06)" ;-- 37h
+		#"^(07)" #"^(08)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" ;-- 3Fh
+		#"^(80)" #"^(09)" #"^(0A)" #"^(0B)" #"^(0C)" #"^(0D)" #"^(0E)" #"^(0F)" ;-- 47h
+		#"^(10)" #"^(80)" #"^(11)" #"^(12)" #"^(13)" #"^(14)" #"^(15)" #"^(80)" ;-- 4Fh
+		#"^(16)" #"^(17)" #"^(18)" #"^(19)" #"^(1A)" #"^(1B)" #"^(1C)" #"^(1D)" ;-- 57h
+		#"^(1E)" #"^(1F)" #"^(20)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" ;-- 5Fh
+		#"^(80)" #"^(21)" #"^(22)" #"^(23)" #"^(24)" #"^(25)" #"^(26)" #"^(27)" ;-- 67h
+		#"^(28)" #"^(29)" #"^(2A)" #"^(2B)" #"^(80)" #"^(2C)" #"^(2D)" #"^(2E)" ;-- 6Fh
+		#"^(2F)" #"^(30)" #"^(31)" #"^(32)" #"^(33)" #"^(34)" #"^(35)" #"^(36)" ;-- 77h
+		#"^(37)" #"^(38)" #"^(39)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" ;-- 7Fh
+	]
+
+	enbase58: "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 
 	rs-length?: func [
 		bin 	[red-binary!]
@@ -219,11 +241,12 @@ binary: context [
 		unit: GET_UNIT(s)
 		
 		bin/head: 0
-		bin/header: TYPE_BINARY
+		bin/header: TYPE_UNSET
 		bin/node: decode-16 
 			(as byte-ptr! s/offset) + (str/head << (log-b unit))
 			string/rs-length? str
 			unit
+		bin/header: TYPE_BINARY
 		stack/pop 1
 		if null? bin/node [fire [TO_ERROR(script invalid-data) issue]]
 	]
@@ -242,9 +265,14 @@ binary: context [
 			p1		[byte-ptr!]
 			p2		[byte-ptr!]
 			end		[byte-ptr!]
+			type	[integer!]
 			same?	[logic!]
 	][
-		if TYPE_OF(bin2) <> TYPE_BINARY [RETURN_COMPARE_OTHER]
+		type: TYPE_OF(bin2)
+		if all [
+			type <> TYPE_BINARY
+			not ANY_STRING?(type)
+		][RETURN_COMPARE_OTHER]
 
 		same?: all [
 			bin1/node = bin2/node
@@ -333,7 +361,8 @@ binary: context [
 			char [red-char!]
 	][
 		switch TYPE_OF(value) [
-			TYPE_BINARY [
+			TYPE_BINARY
+			TYPE_ANY_STRING [
 				0 = equal? bin as red-binary! value op yes
 			]
 			TYPE_CHAR [
@@ -430,6 +459,81 @@ binary: context [
 		node
 	]
 
+	encode-58: func [
+		p		[byte-ptr!]
+		len		[integer!]
+		return:	[node!]
+		/local
+			temp		[byte-ptr!]
+			node		[node!]
+			s			[series!]
+			bin			[byte-ptr!]
+			c			[integer!]
+			j			[integer!]
+			start		[integer!]
+			rem			[integer!]
+			rem2		[integer!]
+			div-loop	[integer!]
+			zero-cnt	[integer!]
+			dig256		[integer!]
+			tmp-div		[integer!]
+	][
+		temp: allocate len
+		copy-memory temp p len
+
+		node: alloc-bytes len * 2
+		s: as series! node/value
+		bin: as byte-ptr! s/offset
+
+		zero-cnt: 1
+		while [
+			all [
+				zero-cnt <= len
+				temp/zero-cnt = #"^(00)"
+			]
+		][
+			zero-cnt: zero-cnt + 1
+		]
+
+		j: len * 2 + 1
+		start: zero-cnt
+		while [start <= len] [
+			rem: 0
+			div-loop: start
+			while [div-loop <= len][
+				dig256: as-integer temp/div-loop
+				tmp-div: rem * 256 + dig256
+				temp/div-loop: as byte! (tmp-div / 58)
+				rem: tmp-div % 58
+				div-loop: div-loop + 1
+			]
+			if #"^(00)" = temp/start [start: start + 1]
+			j: j - 1
+			rem2: rem + 1
+			bin/j: enbase58/rem2
+		]
+
+		while [
+			all [
+				j <= (2 * len)
+				enbase58/1 = bin/j
+			]
+		][
+			j: j + 1
+		]
+		while [zero-cnt > 0][
+			zero-cnt: zero-cnt - 1
+			j: j - 1
+			bin/j: enbase58/1
+		]
+		len: len * 2 - j
+		move-memory bin bin + j len
+
+		free temp
+		s/tail: as red-value! (bin + len)
+		node
+	]
+
 	encode-64: func [
 		p		[byte-ptr!]
 		len		[integer!]
@@ -505,9 +609,10 @@ binary: context [
 		bin: as byte-ptr! s/offset
 		count: 0
 		accum: 0
-		until [
+		while [len > 0] [
 			c: string/get-char p unit
 			BINARY_SKIP_COMMENT
+			if c = -1 [break]
 			if c > as-integer space [
 				case [
 					c = as-integer #"0" [accum: accum << 1]
@@ -524,10 +629,97 @@ binary: context [
 			]
 			p: p + unit
 			len: len - 1
-			zero? len
 		]
 		if positive? count [return null]
 		s/tail: as red-value! bin
+		node
+	]
+
+	decode-58: func [
+		p		[byte-ptr!]
+		len		[integer!]
+		unit	[integer!]
+		return:	[node!]
+		/local
+			temp		[byte-ptr!]
+			node		[node!]
+			s			[series!]
+			bin			[byte-ptr!]
+			c			[integer!]
+			val			[integer!]
+			nlen		[integer!]
+			j			[integer!]
+			start		[integer!]
+			rem			[integer!]
+			div-loop	[integer!]
+			zero-cnt	[integer!]
+			dig256		[integer!]
+			tmp-div		[integer!]
+	][
+		temp: allocate len
+
+		nlen: 0
+		until [
+			c: string/get-char p unit
+			BINARY_SKIP_COMMENT
+			if any [c = -1 c > 7Fh] [break]
+			c: c + 1
+			val: as-integer debase58/c
+			either val < 40h [
+				nlen: nlen + 1
+				temp/nlen: as byte! val
+			][if val = 80h [free temp return null]]
+
+			p: p + unit
+			len: len - 1
+			len <= 0
+		]
+
+		len: nlen
+		node: alloc-bytes len
+		s: as series! node/value
+		bin: as byte-ptr! s/offset
+
+		zero-cnt: 1
+		while [
+			all [
+				zero-cnt <= len
+				temp/zero-cnt = #"^(00)"
+			]
+		][
+			zero-cnt: zero-cnt + 1
+		]
+
+		j: len + 1
+		start: zero-cnt
+		while [start <= len] [
+			rem: 0
+			div-loop: start
+			while [div-loop <= len][
+				dig256: as-integer temp/div-loop
+				tmp-div: rem * 58 + dig256
+				temp/div-loop: as byte! (tmp-div / 256)
+				rem: tmp-div % 256
+				div-loop: div-loop + 1
+			]
+			if #"^(00)" = temp/start [start: start + 1]
+			j: j - 1
+			bin/j: as byte! rem
+		]
+
+		while [
+			all [
+				j <= len
+				#"^(00)" = bin/j
+			]
+		][
+			j: j + 1
+		]
+		len: len - j + zero-cnt
+		move-memory bin bin + j - zero-cnt len
+
+		free temp
+		s/tail: as red-value! (bin + len)
 		node
 	]
 
@@ -550,9 +742,10 @@ binary: context [
 		bin: as byte-ptr! s/offset
 		accum: 0
 		flip: 0
-		until [
+		while [len > 0] [
 			c: string/get-char p unit
 			BINARY_SKIP_COMMENT
+			if c = -1 [break]
 			c: c + 1
 			val: as-integer debase64/c
 			either val < 40h [
@@ -591,7 +784,6 @@ binary: context [
 
 			p: p + unit
 			len: len - 1
-			len <= 0
 		]
 		s/tail: as red-value! bin
 		node
@@ -624,6 +816,7 @@ binary: context [
 		until [
 			c: 7Fh and string/get-char p unit
 			BINARY_SKIP_COMMENT
+			if c = -1 [break]
 			if c > as-integer space [
 				c: c + 1
 				hex: as-integer table/c
@@ -701,9 +894,10 @@ binary: context [
 			bin	[red-binary!]
 	][
 		bin: as red-binary! slot
-		bin/header: TYPE_BINARY
+		bin/header: TYPE_UNSET
 		bin/head: 0
 		bin/node: alloc-bytes size
+		bin/header: TYPE_BINARY
 		bin
 	]
 
@@ -769,9 +963,11 @@ binary: context [
 		]
 
 		if any [tail? not head?] [
-			until [
+			tail: tail - 1
+			while [
+				all [head < tail tail/value = null-byte]
+			][
 				tail: tail - 1
-				any [head = tail tail/value <> null-byte]
 			]
 			tail: tail + 1
 		]
@@ -908,8 +1104,10 @@ binary: context [
 			src		  [red-block!]
 			cell	  [red-value!]
 			limit	  [red-value!]
+			beg		  [red-value!]
 			int		  [red-integer!]
 			char	  [red-char!]
+			buffer	  [red-binary!]
 			bin2	  [red-binary!]
 			saved	  [red-value!]
 			data	  [byte-ptr!]
@@ -921,8 +1119,6 @@ binary: context [
 			part	  [integer!]
 			len		  [integer!]
 			added	  [integer!]
-			bytes	  [integer!]
-			rest	  [integer!]
 			tail?	  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/insert"]]
@@ -960,59 +1156,72 @@ binary: context [
 			append?
 		]
 
-		while [not zero? cnt][							;-- /dup support
-			either TYPE_OF(value) = TYPE_BLOCK [		;@@ replace it with: typeset/any-block?
-				src: as red-block! value
-				s2: GET_BUFFER(src)
-				cell:  s2/offset + src/head
-				limit: cell + block/rs-length? src
+		either TYPE_OF(value) = TYPE_BLOCK [		;@@ replace it with: typeset/any-block?
+			src: as red-block! value
+			s2: GET_BUFFER(src)
+			cell:  s2/offset + src/head
+			limit: cell + block/rs-length? src
+			if cell = limit [return as red-value! bin]
+		][
+			cell:  value
+			limit: value + 1
+		]
+
+		len: 0
+		added: 0
+		beg: cell
+		buffer: as red-binary! stack/push*
+		buffer/header: TYPE_UNSET
+		while [cell < limit][					;-- may has multiple values
+			either TYPE_OF(cell) = TYPE_INTEGER [
+				int: as red-integer! cell
+				either int/value <= FFh [
+					int-value: int/value
+					data: as byte-ptr! :int-value
+					len: 1
+				][
+					fire [TO_ERROR(script out-of-range) cell]
+				]
+				if cell = beg [make-at as red-value! buffer cnt]
+				rs-append buffer data 1
 			][
-				cell:  value
-				limit: value + 1
-			]
-			bytes: 0
-			added: 0
-			len: 0
-			while [all [cell < limit added <> part]][	;-- multiple values case
-				either TYPE_OF(cell) = TYPE_INTEGER [
-					int: as red-integer! cell
-					either int/value <= FFh [
-						int-value: int/value
-						data: as byte-ptr! :int-value
-						len: 1
-					][
-						fire [TO_ERROR(script out-of-range) cell]
-					]
-				][
-					bin2: as red-binary! stack/push*
-					saved: stack/top
+				saved: stack/top
+				bin2: as red-binary! stack/push*
+				bin2/header: TYPE_UNSET
 
-					bin2: to bin2 cell TYPE_BINARY	;@@ TO will push value to stack
+				bin2: to bin2 cell TYPE_BINARY	;@@ TO will push value to stack
+
+				len: rs-length? bin2
+				either cell = beg [
+					copy-cell as cell! bin2 as cell! buffer
+				][
 					data: rs-head bin2
-					len: rs-length? bin2
-
-					stack/top: saved
+					rs-append buffer data len
 				]
-
-				either positive? part [			;-- /part support
-					rest: part - added
-					if rest > len [rest: len]
-					added: added + rest
-				][rest: len]
-
-				either tail? [
-					rs-append bin data rest
-				][
-					rs-insert bin bytes data rest
-				]
-				bytes: bytes + rest
-				cell: cell + 1
+				stack/top: saved
 			]
+
+			if all [positive? part added + len > part][	;-- /part support
+				len: part - added
+			]
+			added: added + len
+			cell: cell + 1
+		]
+
+		data: rs-head buffer
+		len: added
+		added: 0
+		while [not zero? cnt][					;-- /dup support
+			either tail? [
+				rs-append bin data len
+			][
+				rs-insert bin added data len
+			]
+			added: added + len
 			cnt: cnt - 1
 		]
 		unless append? [
-			bytes: bytes * dup-n
-			bin/head: bin/head + bytes
+			bin/head: bin/head + added
 			s: GET_BUFFER(bin)
 			assert (as byte-ptr! s/offset) + (bin/head << (log-b GET_UNIT(s))) <= as byte-ptr! s/tail
 		]
@@ -1058,6 +1267,7 @@ binary: context [
 			form-slot	[red-value!]
 	][
 		form-slot: stack/push*				;-- reserve space for FORMing incompatible values
+		form-slot/header: TYPE_UNSET
 		added: 0
 		bytes: 0
 

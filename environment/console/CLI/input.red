@@ -74,16 +74,18 @@ unless system/console [
 		buffer:		declare byte-ptr!
 		pbuffer:	declare byte-ptr!
 		input-line: declare red-string!
-		saved-line:	declare red-string!
 		prompt:		declare	red-string!
 		history:	declare red-block!
+		saved-line:	as red-string! 0
 		buf-size:	128
 		columns:	-1
 		rows:		-1
 		output?:	yes
 		pasting?:	no
 
-		string/rs-make-at as cell! saved-line 1
+		init-globals: func [][
+			saved-line: string/rs-make-at ALLOC_TAIL(root) 1
+		]
 
 		widechar?: func [
 			str			[red-string!]
@@ -117,7 +119,7 @@ unless system/console [
 				str2	[red-string!]
 				head	[integer!]
 		][
-			#call [red-complete-input str yes]
+			#call [red-complete-ctx/complete-input str yes]
 			stack/top: stack/arguments + 1
 			result: as red-block! stack/top
 			num: block/rs-length? result
@@ -374,6 +376,7 @@ unless system/console [
 			history/head: block/rs-length? history		;@@ set history list to tail (temporary)
 				
 			get-window-size
+			if null? saved-line [init-globals]
 			unless zero? string/rs-abs-length? saved-line [
 				head: saved-line/head
 				saved-line/head: 0
@@ -524,11 +527,12 @@ unless system/console [
 		]
 
 		stdin-readline: func [
+			in-line  [red-string!]
 			/local
 				c	 [integer!]
 				s	 [series!]
 		][
-			s: GET_BUFFER(input-line)
+			s: GET_BUFFER(in-line)
 			while [true][
 				#either OS = 'Windows [
 					c: stdin-read
@@ -549,7 +553,7 @@ unless system/console [
 				restore
 				print-line ""
 			][
-				stdin-readline
+				stdin-readline input-line
 			]
 		]
 
@@ -565,11 +569,11 @@ unless system/console [
 	]
 ]
 
-_set-buffer-history: routine [line [string!] hist [block!]][
+_set-buffer-history: routine ["Internal Use Only" line [string!] hist [block!]][
 	terminal/setup line hist
 ]
 
-_read-input: routine [prompt [string!]][
+_read-input: routine ["Internal Use Only" prompt [string!]][
 	terminal/edit prompt
 ]
 
@@ -581,6 +585,7 @@ _terminate-console: routine [][
 ]
 
 ask: function [
+	"Prompt the user for input"
 	question [string!]
 	return:  [string!]
 ][
@@ -590,4 +595,31 @@ ask: function [
 	buffer
 ]
 
-input: does [ask ""]
+input: func ["Wait for console user input"] [ask ""]
+
+input-stdin: routine [
+	"Temporary function, internal use only"
+	/local
+		line	[red-value!]
+		saved	[integer!]
+		mode	[integer!]
+][
+	line: stack/arguments
+	string/rs-make-at line 256
+	terminal/stdin-readline as red-string! line
+]
+
+read-stdin: routine [
+	"Temporary function, internal use only"
+	buffer	[binary!]
+	buflen	[integer!]
+	/local
+		sz	[integer!]
+		s	[series!]
+][
+	sz: simple-io/read-data stdin binary/rs-head buffer buflen
+	if sz > 0 [
+		s: GET_BUFFER(buffer)
+		s/tail: as cell! (as byte-ptr! s/tail) + sz
+	]
+]

@@ -88,10 +88,17 @@ _context: context [
 	add-global: func [
 		sym		[integer!]
 		return: [red-word!]
+		/local
+			w	[red-word!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/add-global"]]
 		
-		add-global-word sym no yes
+		w: add-global-word sym no yes
+		either red/boot? [
+			as red-word! copy-cell as red-value! w ALLOC_TAIL(root)
+		][
+			w
+		]
 	]
 	
 	add-global-word: func [
@@ -331,9 +338,11 @@ _context: context [
 	]
 	
 	clone: func [
-		node	[node!]
-		return:	[node!]
+		slot	[red-block!]
+		return: [node!]
 		/local
+			obj		[red-object!]
+			node	[node!]
 			sym		[red-word!]
 			ctx		[red-context!]
 			new		[node!]
@@ -341,6 +350,9 @@ _context: context [
 			dst		[series!]
 			slots	[integer!]
 	][
+		assert TYPE_OF(slot) = TYPE_OBJECT
+		obj: as red-object! slot
+		node: obj/ctx
 		ctx: TO_CTX(node)
 		src: as series! ctx/symbols/value
 		slots: (as-integer (src/tail - src/offset)) >> 4
@@ -359,42 +371,48 @@ _context: context [
 			as byte-ptr! sym
 			as byte-ptr! src/offset
 			slots << 4
-		
+
 		while [slots > 0][
 			sym/ctx: new
 			sym: sym + 1
 			slots: slots - 1
 		]
+		obj/ctx: new
 		new
 	]
 
 	create: func [
-		slots		[integer!]							;-- max number of words in the context
-		stack?		[logic!]							;-- TRUE: alloc values on stack, FALSE: alloc them from heap
-		self?		[logic!]
-		return:		[node!]
+		slots	[integer!]							;-- max number of words in the context
+		stack?	[logic!]							;-- TRUE: alloc values on stack, FALSE: alloc them from heap
+		self?	[logic!]
+		return:	[node!]
 		/local
-			cell 	[red-context!]
-			node	[node!]
+			cell [red-context!]
+			slot [red-value!]
+			node [node!]
+			symbols [node!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/create"]]
 		
 		if zero? slots [slots: 1]
 		node: alloc-cells 2
 		cell: as red-context! alloc-tail as series! node/value
-		cell/header: TYPE_CONTEXT						;-- implicit reset of all header flags	
-		cell/symbols: alloc-series slots 16 0			;-- force offset at head of buffer
+		slot: alloc-tail as series! node/value			;-- allocate a slot for obj/func back-reference
+		slot/header: TYPE_UNSET
+		cell/header: TYPE_UNSET							;-- implicit reset of all header flags	
+		symbols: alloc-cells slots						;@@ create the node! on native stack, so it can be marked by GC
 		cell/self: node
-		alloc-tail as series! node/value				;-- allocate a slot for obj/func back-reference
-		
-		if self? [cell/header: cell/header or flag-self-mask]
 
 		either stack? [
-			cell/header: TYPE_CONTEXT or flag-series-stk
 			cell/values: null							;-- will be set to stack frame dynamically
+			cell/header: TYPE_CONTEXT or flag-series-stk
 		][
 			cell/values: alloc-unset-cells slots
+			cell/header: TYPE_CONTEXT
 		]
+		cell/symbols: symbols
+
+		if self? [cell/header: cell/header or flag-self-mask]
 		node
 	]
 	
@@ -408,6 +426,7 @@ _context: context [
 			symbols	[node!]
 			ctx		[red-context!]
 			cell	[red-value!]
+			end		[red-value!]
 			slot	[red-word!]
 			s		[series!]
 			type	[integer!]
@@ -419,9 +438,10 @@ _context: context [
 		
 		s: GET_BUFFER(spec)
 		cell: s/offset
+		end: s/tail
 		i: 0
 		
-		while [cell < s/tail][
+		while [cell < end][
 			type: TYPE_OF(cell)
 			if any [									;TBD: use typeset/any-word?
 				type = TYPE_WORD
@@ -438,6 +458,12 @@ _context: context [
 			]
 			cell: cell + 1
 		]
+
+		unless stack? [
+			s: as series! ctx/values/value
+			s/tail: s/offset + i
+		]
+
 		new
 	]
 	
@@ -467,6 +493,8 @@ _context: context [
 			end	  [red-value!]
 			w	  [red-word!]
 	][
+		if cycles/find? body/node [return body]
+		cycles/push body/node
 		value: block/rs-head body
 		end:   block/rs-tail body
 
@@ -482,7 +510,7 @@ _context: context [
 						self?
 						TYPE_OF(value) = TYPE_WORD
 						w/symbol = words/self
-					][			
+					][
 						w/ctx: obj						;-- make SELF refer to the original object
 						w/index: -1						;-- make it fail if resolved out of context
 					][
@@ -496,6 +524,7 @@ _context: context [
 			]
 			value: value + 1
 		]
+		cycles/pop
 		body
 	]
 	

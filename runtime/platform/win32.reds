@@ -90,39 +90,38 @@ OSVERSIONINFO: alias struct! [
 	dwMinorVersion		[integer!]
 	dwBuildNumber		[integer!]	
 	dwPlatformId		[integer!]
-	szCSDVersion		[byte-ptr!]						;-- array of 128 bytes
+	szCSDVersion		[integer!]						;-- array of 128 bytes
 	szCSDVersion0		[integer!]
-	szCSDVersion1		[float!]
-	szCSDVersion2		[float!]
-	szCSDVersion3		[float!]
-	szCSDVersion4		[float!]
-	szCSDVersion5		[float!]
-	szCSDVersion6		[float!]
-	szCSDVersion7		[float!]
-	szCSDVersion8		[float!]
-	szCSDVersion9		[float!]
-	szCSDVersion10		[float!]
-	szCSDVersion11		[float!]
-	szCSDVersion12		[float!]
-	szCSDVersion13		[float!]
-	szCSDVersion14		[float!]
-	szCSDVersion15		[float!]
-	szCSDVersion16		[float!]
-	szCSDVersion17		[float!]
-	szCSDVersion18		[float!]
-	szCSDVersion19		[float!]
-	szCSDVersion20		[float!]
-	szCSDVersion21		[float!]
-	szCSDVersion22		[float!]
-	szCSDVersion23		[float!]
-	szCSDVersion24		[float!]
-	szCSDVersion25		[float!]
-	szCSDVersion26		[float!]
-	szCSDVersion27		[float!]
-	szCSDVersion28		[float!]
-	szCSDVersion29		[float!]
-	szCSDVersion30		[float!]
-	szCSDVersion31		[float!]
+	szCSDVersion1		[integer!]
+	szCSDVersion2		[integer!]
+	szCSDVersion3		[integer!]
+	szCSDVersion4		[integer!]
+	szCSDVersion5		[integer!]
+	szCSDVersion6		[integer!]
+	szCSDVersion7		[integer!]
+	szCSDVersion8		[integer!]
+	szCSDVersion9		[integer!]
+	szCSDVersion10		[integer!]
+	szCSDVersion11		[integer!]
+	szCSDVersion12		[integer!]
+	szCSDVersion13		[integer!]
+	szCSDVersion14		[integer!]
+	szCSDVersion15		[integer!]
+	szCSDVersion16		[integer!]
+	szCSDVersion17		[integer!]
+	szCSDVersion18		[integer!]
+	szCSDVersion19		[integer!]
+	szCSDVersion20		[integer!]
+	szCSDVersion21		[integer!]
+	szCSDVersion22		[integer!]
+	szCSDVersion23		[integer!]
+	szCSDVersion24		[integer!]
+	szCSDVersion25		[integer!]
+	szCSDVersion26		[integer!]
+	szCSDVersion27		[integer!]
+	szCSDVersion28		[integer!]
+	szCSDVersion29		[integer!]
+	szCSDVersion30		[integer!]
 	wServicePack		[integer!]						;-- Major: 16, Minor: 16
 	wSuiteMask0			[byte!]
 	wSuiteMask1			[byte!]
@@ -142,6 +141,11 @@ platform: context [
 		DebugEventCallback			[integer!]
 		SuppressBackgroundThread	[integer!]
 		SuppressExternalCodecs		[integer!]
+	]
+
+	tagFILETIME: alias struct! [
+		dwLowDateTime	[integer!]
+		dwHighDateTime	[integer!]
 	]
 
 	tagSYSTEMTIME: alias struct! [
@@ -202,6 +206,7 @@ platform: context [
 			VirtualFree: "VirtualFree" [
 				address 	[int-ptr!]
 				size		[integer!]
+				type		[integer!]
 				return:		[integer!]
 			]
 			AllocConsole: "AllocConsole" [return: [logic!]]
@@ -256,6 +261,14 @@ platform: context [
 			FreeEnvironmentStrings: "FreeEnvironmentStringsW" [
 				env			[c-string!]
 				return:		[logic!]
+			]
+			FileTimeToSystemTime: "FileTimeToSystemTime" [
+				filetime	[tagFILETIME]
+				systemtime	[tagSYSTEMTIME]
+				return:		[integer!]
+			]
+			GetSystemTimeAsFileTime: "GetSystemTimeAsFileTime" [
+				time			[tagFILETIME]
 			]
 			GetSystemTime: "GetSystemTime" [
 				time			[tagSYSTEMTIME]
@@ -360,7 +373,7 @@ platform: context [
 				isWow64?	[int-ptr!]
 				return:		[logic!]
 			]
-			GetVersionEx: "GetVersionExW" [
+			GetVersionEx: "GetVersionExA" [
 				lpVersionInfo [OSVERSIONINFO]
 				return:		[integer!]
 			]
@@ -416,7 +429,7 @@ platform: context [
 	free-virtual: func [
 		ptr [int-ptr!]									;-- address of memory region to release
 	][
-		if negative? VirtualFree ptr ptr/value [
+		if zero? VirtualFree ptr 0 8000h [				;-- MEM_RELEASE: 0x8000
 			 throw OS_ERROR_VMEM_RELEASE_FAILED
 		]
 	]
@@ -482,20 +495,41 @@ platform: context [
 		return:  [float!]
 		/local
 			tm	[tagSYSTEMTIME value]
+			ftime	[tagFILETIME value]
 			h		[integer!]
 			m		[integer!]
 			sec		[integer!]
-			milli	[integer!]
+			ms-int 	[integer!]
+			bits0-31 	[integer!]
+			bits32-47 	[integer!]
+			bits48-63 	[integer!]
+			nano	[integer!]
+			hi		[integer!]
+			n 		[integer!]
 			t		[float!]
 			mi		[float!]
 	][
-		GetSystemTime tm
+		GetSystemTimeAsFileTime ftime
+		FileTimeToSystemTime ftime tm
 		h: tm/hour-minute and FFFFh
 		m: tm/hour-minute >>> 16
 		sec: tm/second and FFFFh
-		milli: either precise? [tm/second >>> 16][0]
-		mi: as float! milli
-		mi: mi / 1000.0
+		nano: either precise? [
+			ms-int: tm/second >>> 16
+			; let x0 = x1 + x2<<32 + x3<<48 (x2-x3 are 2-byte parts, to avoid overflow when multiplied by 1e4)
+			; then x0%n = (x1%n + (x2 * 1<<32%n) + (x3 * 1<<48%n)) % n
+			hi: ftime/dwHighDateTime
+			bits0-31: ftime/dwLowDateTime
+			if bits0-31 < 0 [hi: hi + 1] 		;-- `%` treats bits0-31 as signed, while it is really not, have to work around
+			bits32-47: hi and FFFFh
+			bits48-63: hi >>> 16 and FFFFh
+			n: 10'000
+			; overflow check: 9999 + (65535 * 8000) = 524'289'999
+			nano: (bits32-47 * 7'296) + (bits48-63 * 0'656) // n + (bits0-31 % n) 	;-- raw part, in 100ns units
+			nano * 100 + (ms-int * 1'000'000)
+		][0]
+		mi: as-float nano
+		mi: mi / 1e+9
 		t: as-float h * 3600 + (m * 60) + sec
 		t: t + mi
 		t
@@ -559,7 +593,7 @@ platform: context [
 			]
 		]
 		crypto/init-provider
-		#if sub-system = 'console [init-dos-console]
+		init-output-buffer
 		#if unicode? = yes [
 			h: __iob_func
 			_setmode _fileno h + 8 _O_U16TEXT				;@@ stdout, throw an error on failure

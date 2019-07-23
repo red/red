@@ -271,7 +271,7 @@ preprocessor: context [
 	expand: func [
 		code [block!] job [object! none!]
 		/clean
-		/local rule e pos cond value then else cases body keep? expr src saved
+		/local rule e pos cond value then else cases body keep? expr src saved file
 	][	
 		either clean [reset job][exec/config: job]
 
@@ -295,6 +295,18 @@ preprocessor: context [
 								src: red/load-source/hidden clean-path join red/main-path s/2
 								expand src job				;-- just preprocess it, real inclusion occurs later
 							]
+						]
+					]
+				)
+				| s: #include-binary [file! | string!] (
+					if active? [
+						either all [not Rebol system/state/interpreted?][
+							s/1: 'read/binary
+							if string? s/2 [s/2: to-red-file s/2]
+						][
+							file: either string? s/2 [to-rebol-file s/2][s/2]
+							file: clean-path join red/main-path file
+							change/part s read/binary file 2
 						]
 					]
 				)

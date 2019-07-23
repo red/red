@@ -94,6 +94,7 @@ terminal: context [
 		s-t-idx [integer!]					;-- offset of the last selected line
 		limit	[integer!]
 		full?	[logic!]					;-- buffer is full or not
+		offset	[integer!]
 		data	[red-string!]
 		end		[red-value!]
 	]
@@ -149,7 +150,6 @@ terminal: context [
 	v-terminal: 0
 	extra-table: [0]						;-- extra unicode check table for Windows
 	stub-table: [0 0]
-	data-blk: declare red-value!
 
 	#include %../../CLI/wcwidth.reds
 
@@ -329,7 +329,7 @@ terminal: context [
 				delta: n - node/nlines
 				node/nlines: n
 				out/last: cursor
-				out/end: buf/tail
+				out/offset: (as-integer buf/tail - buf/offset) >> 4
 				either count = max [
 					full?: yes
 					buf/tail: buf/offset
@@ -623,7 +623,7 @@ terminal: context [
 		out: as ring-buffer! allocate size? ring-buffer!
 		out/max: 10000
 		out/lines: as line-node! allocate out/max * size? line-node!
-		out/data: as red-string! string/rs-make-at data-blk 10000
+		out/data: as red-string! string/rs-make-at ALLOC_TAIL(root) 10000
 
 		vt/bg-color: 00FCFCFCh
 		vt/font-color: 00000000h
@@ -632,9 +632,9 @@ terminal: context [
 		vt/win-h: win-y
 		update-font vt char-x char-y
 		vt/out: out
-		vt/in: as red-string! #get system/console/line
-		vt/buffer: as red-string! #get system/console/buffer
-		vt/history: as red-block! #get system/console/history
+		vt/in: as red-string! copy-cell #get system/console/line ALLOC_TAIL(root)
+		vt/buffer: as red-string! copy-cell #get system/console/buffer ALLOC_TAIL(root)
+		vt/history: as red-block! copy-cell #get system/console/history ALLOC_TAIL(root)
 		vt/history-max: 200
 		vt/history-pos: 0
 		vt/history-beg: 1
@@ -643,7 +643,7 @@ terminal: context [
 		vt/caret?: no
 		vt/ask?: no
 		vt/input?: no
-		vt/prompt: as red-string! #get system/console/prompt
+		vt/prompt: as red-string! copy-cell #get system/console/prompt ALLOC_TAIL(root)
 		vt/prompt-len: string/rs-length? vt/prompt
 
 		reset-vt vt
@@ -971,9 +971,9 @@ terminal: context [
 			if any [len > n len = -1][len: n]
 		]
 		s: GET_BUFFER(str)
-		if out <> null [s/tail: out/end]
+		if out <> null [s/tail: s/offset + out/offset]
 		s/tail: as cell! (as byte-ptr! s/tail) - (len << (GET_UNIT(s) >> 1))
-		if out <> null [out/end: s/tail]
+		if out <> null [out/offset: (as-integer s/tail - s/offset) >> 4]
 	]
 
 	complete-line: func [
@@ -998,7 +998,7 @@ terminal: context [
 			stack/arguments
 
 		line/head: vt/cursor - vt/prompt-len
-		#call [red-complete-input line yes]
+		#call [red-complete-ctx/complete-input line yes]
 		result: as red-block! stack/arguments
 		num: block/rs-length? result
 

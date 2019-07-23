@@ -126,7 +126,8 @@ make-font: func [
 		int/value: as-integer hFont
 	]
 
-	if face <> null [
+	blk: as red-block! values + FONT_OBJ_PARENT
+	if all [face <> null TYPE_OF(blk) <> TYPE_BLOCK][
 		blk: block/make-at as red-block! values + FONT_OBJ_PARENT 4
 		block/rs-append blk as red-value! face
 	]
@@ -270,10 +271,11 @@ OS-request-font: func [
 		size: lstrlen as byte-ptr! name
 		values: object/get-values font
 		str: as red-string! values + FONT_OBJ_NAME
-		str/header:	TYPE_STRING							;-- implicit reset of all header flags
+		str/header: TYPE_UNSET
 		str/head:	0
 		str/cache:	null
 		str/node:	unicode/load-utf16 name size null no
+		str/header:	TYPE_STRING							;-- implicit reset of all header flags
 		integer/make-at values + FONT_OBJ_SIZE cf/iPointSize / 10
 
 		style: as red-block! values + FONT_OBJ_STYLE

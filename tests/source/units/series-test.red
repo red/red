@@ -417,6 +417,11 @@ Red [
     put sp-3 'b 2
     put sp-3 'b 3
   --assert sp-3 = make hash! [a 1 b 3]
+
+  --test-- "series-put-issue 3567"
+	v: [a 1 c]
+	put v 'c 3
+	--assert v = [a 1 c 3]
 ===end-group===
 
 ===start-group=== "series-equal"
@@ -821,6 +826,14 @@ Red [
 		a: [1 2 3]
 		--assert [1 2 3] =  remove/part a 0
 
+	--test-- "remove-blk-8"
+		blk: [a 1 b 2 c 3]
+		--assert [a 1 c 3] =  remove/key blk 'b
+
+	--test-- "remove-blk-9"
+		blk: [a 1 1 b 2 2 c 3 3]
+		--assert [a 1 1 c 3 3] =  remove/key/part blk 'b 2
+
 	--test-- "remove-hash-1"
 		hs-remove-1: make hash! [a 2 3]
 		--assert (make hash! [2 3]) = remove hs-remove-1
@@ -845,6 +858,14 @@ Red [
 		--assert 2 = hs-remove-1/a
 		--assert none? hs-remove-1/b
 		--assert none? hs-remove-1/c
+
+	--test-- "remove-hash-6"
+		hs: make hash! [a 1 b 2 c 3]
+		--assert (make hash! [a 1 c 3]) =  remove/key hs 'b
+
+	--test-- "remove-hash-7"
+		hs: make hash! [a 1 1 b 2 2 c 3 3]
+		--assert (make hash! [a 1 1 c 3 3]) =  remove/key/part hs 'b 2
 
 	--test-- "remove-str-1"
 		a: "123"
@@ -1342,14 +1363,28 @@ Red [
 		--assert "    ^-1^/    2^-  ^/  c3  ^/  ^/^/" = trim/with copy mstr "ab"
 
 	--test-- "trim-str-9"
-		--assert "    ^-1^/    b2^-  ^/  c3  ^/  ^/^/" = trim/with copy mstr #"a"
+		--assert "a1ab2ac3" = trim/all { a ^-1^/ ab2^- ^/ ac3 ^/ ^/^/}
 
 	--test-- "trim-str-10"
+		--assert "    ^-1^/    b2^-  ^/  c3  ^/  ^/^/" = trim/with copy mstr #"a"
+
+	--test-- "trim-str-11"
 		--assert "    ^-1^/    b2^-  ^/  c3  ^/  ^/^/" = trim/with copy mstr 97
 
 	--test-- "trim-block-1"
 		--assert [1 2] = trim [#[none] 1 #[none] 2 #[none]]
 
+	--test-- "trim-bin-1"
+		--assert #{} = trim #{00}
+
+	--test-- "trim-bin-2"
+		--assert #{1234} = trim #{000012340000}
+
+	--test-- "trim-bin-3"
+		--assert #{12340000} = trim/head #{000012340000}
+
+	--test-- "trim-bin-4"
+		--assert #{00001234} = trim/tail #{000012340000}
 ===end-group===
 
 ===start-group=== "sort"
@@ -1745,15 +1780,52 @@ Red [
 		--assert 3  = select hs 2
 ===end-group===
 
-===start-group=== "series-unicode"
+===start-group=== "copy"
+	--test-- "copy-1"
+		c1-a: ["a" "b" "c"]
+		c1-b: copy c1-a
+		--assert equal? c1-a c1-b
+		--assert not same? c1-a c1-b
+	--test-- "copy-2"
+		c2-a: ["a" "b" "c"]
+		c2-b: copy a
+		c2-a: next c2-a
+		--assert not equal? c2-a c2-b
 
-	;--test-- "suc1"
-	;	--assert equal? "爊倍弊褊不瀍阊吊谍樊服复漍焊蔊昊瘊㬊阍"
-	;					read %tests/fixtures/chinese-characters.txt
-						
-	;--test-- "suc2"
-	;	--assert equal? ["爊倍弊褊不瀍阊吊谍樊服复漍焊蔊昊瘊㬊阍"]
-	;					read/lines %tests/fixtures/chinese-characters.txt
+	--test-- "copy-3"
+		a: "12345678"
+		b: skip a 6
+		c: tail a
+		d: skip a 2
+		remove/part a 4
+		--assert "5678" = a
+		--assert empty? b
+		--assert empty? copy b
+		--assert empty? c
+		--assert empty? copy c
+		--assert "78" = d
+		--assert "78" = copy d
+		--assert "78" = copy/part d b
+		--assert "78" = copy/part b d
+		clear a
+		--assert empty? d
+		--assert empty? copy d
+		--assert empty? copy/part d b
+
+	--test-- "copy-4"
+		a: "12345678"
+		b: skip a 6
+		--assert empty? copy/part a -4
+		--assert "3456" = copy/part b -4
+		--assert "123456" = copy/part b -10
+===end-group===
+
+===start-group=== "random"
+	--test-- "ser-random-1"
+		res: random/only #{AA}
+		--assert integer? res
+		--assert 170 = res
+
 ===end-group===
 
 ~~~end-file~~~

@@ -42,7 +42,7 @@ any-list!:		make typeset! [block! paren! hash!]
 any-path!:		make typeset! [path! set-path! get-path! lit-path!]
 any-block!:		union any-path! any-list!
 any-function!:	make typeset! [native! action! op! function! routine!]
-any-object!:	make typeset! [object! error!]
+any-object!:	make typeset! [object! error! port!]
 any-string!:	make typeset! [string! file! url! tag! email!]
 series!:		union make typeset! [binary! image! vector!] union any-block! any-string!
 immediate!:		union scalar! union all-word! make typeset! [none! logic! datatype! typeset! handle! date!]

@@ -306,7 +306,7 @@ highlight: context [
 
 		lit-word-rule: [
 			#"'" (type: 'lit-word!) [
-				special-words (to-word stack value type)
+				special-words
 				| [
 					begin-symbol-rule [
 						path-rule (type: 'lit-path!)			 ;-- path matched
@@ -480,8 +480,7 @@ highlight: context [
 			pos: any [some ws | literal-value (
 				if all [type style: select theme type][
 					len: offset? s e
-					append dst index? s
-					append dst len
+					append dst as-pair (index? s) len
 					append dst style
 				]
 			)]

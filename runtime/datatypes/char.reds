@@ -93,6 +93,9 @@ char: context [
 		switch TYPE_OF(spec) [
 			TYPE_INTEGER
 			TYPE_CHAR [
+				if ANY [spec/data2 > 0010FFFFh spec/data2 < 0] [
+					fire [TO_ERROR(script out-of-range) spec]
+				]
 				proto/value: spec/data2
 			]
 			TYPE_FLOAT

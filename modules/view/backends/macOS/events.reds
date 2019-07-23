@@ -23,9 +23,10 @@ zoom-distance:	 0
 special-key: 	-1										;-- <> -1 if a non-displayable key is pressed
 
 flags-blk: declare red-block!							;-- static block value for event/flags
-flags-blk/header:	TYPE_BLOCK
+flags-blk/header:	TYPE_UNSET
 flags-blk/head:		0
 flags-blk/node:		alloc-cells 4
+flags-blk/header:	TYPE_BLOCK
 
 char-keys: [
 	1000C400h C0FF0080h E0FFFF7Fh 0000F7FFh 00000000h 3F000000h 1F000080h 00FC7F38h
@@ -240,8 +241,10 @@ get-event-offset: func [
 		event	[integer!]
 		offset	[red-pair!]
 		rc		[NSRect!]
+		frame	[NSRect! value]
 		y		[integer!]
 		x		[integer!]
+		v		[integer!]
 ][
 	type: evt/type
 	offset: as red-pair! stack/push*
@@ -272,9 +275,10 @@ get-event-offset: func [
 			type = EVT_SIZING
 			type = EVT_SIZE
 		][
-			rc: as NSRect! (as int-ptr! evt/msg) + 2
-			offset/x: as-integer rc/w
-			offset/y: as-integer rc/h
+			v: objc_msgSend [evt/msg sel_getUid "contentView"]
+			frame: objc_msgSend_rect [v sel_getUid "frame"]
+			offset/x: as-integer frame/w
+			offset/y: as-integer frame/h
 			as red-value! offset
 		]
 		any [
@@ -386,6 +390,7 @@ get-event-picked: func [
 		int	[red-integer!]
 		obj [integer!]
 		n	[integer!]
+		d	[float32!]
 ][
 	as red-value! switch evt/type [
 		EVT_ZOOM
@@ -403,6 +408,13 @@ get-event-picked: func [
 		]
 		EVT_MENU [word/push* evt/flags and FFFFh]
 		EVT_SCROLL [integer/push evt/flags >>> 4]
+		EVT_WHEEL [
+			d: objc_msgSend_f32 [evt/flags sel_getUid "scrollingDeltaY"]
+			if 1 = objc_msgSend [evt/flags sel_getUid "hasPreciseScrollingDeltas"] [
+				d: d / (as float32! 10.0)
+			]
+			float/push as float! d
+		]
 		EVT_IME [to-red-string evt/flags null]
 		EVT_DBL_CLICK [
 			obj: as-integer evt/msg
@@ -458,7 +470,11 @@ make-event: func [
 ][
 	gui-evt/type:  evt
 	gui-evt/msg:   as byte-ptr! obj
-	gui-evt/flags: flags
+	either evt = EVT_WHEEL [
+		gui-evt/flags: check-extra-keys flags	;-- pass event as flags for EVT_WHEEL
+	][
+		gui-evt/flags: flags
+	]
 
 	state: EVT_DISPATCH
 
@@ -576,33 +592,44 @@ do-events: func [
 		msg?	[logic!]
 		pool	[integer!]
 		timeout [integer!]
-		event	[integer!]
+		event	[int-ptr!]
 ][
 	msg?: no
-	either no-wait? [
+	timeout: either no-wait? [0][
+		loop-started?: yes
+		objc_msgSend [NSApp sel_getUid "activateIgnoringOtherApps:" 1]
+		objc_msgSend [NSApp sel_getUid "finishLaunching"]
+		objc_msgSend [objc_getClass "NSDate" sel_getUid "distantFuture"]	
+	]
+
+	until [
 		pool: objc_msgSend [objc_getClass "NSAutoreleasePool" sel_getUid "alloc"]
 		objc_msgSend [pool sel_getUid "init"]
 
-		event: objc_msgSend [
+		event: as int-ptr! objc_msgSend [
 			NSApp sel_getUid "nextEventMatchingMask:untilDate:inMode:dequeue:"
 			NSAnyEventMask
-			0
+			timeout
 			NSDefaultRunLoopMode
 			true
 		]
-		if event <> 0 [
+		if event <> null [
 			msg?: yes
-			objc_msgSend [NSApp sel_getUid "sendEvent:" event]
+			either all [
+				event/2 = NSApplicationDefined
+				QuitMsgData = objc_msgSend [event sel_getUid "data1"]
+			][
+				no-wait?: yes
+			][
+				objc_msgSend [NSApp sel_getUid "sendEvent:" event]
+			]
 		]
 		objc_msgSend [pool sel_getUid "drain"]
-	][
-		loop-started?: yes
-		objc_msgSend [NSApp sel_getUid "activateIgnoringOtherApps:" 1]
-		objc_msgSend [NSApp sel_getUid "run"]
-		#if sub-system <> 'gui [
-			if zero? win-cnt [objc_msgSend [NSApp sel_getUid "deactivate"]]
-		]
-		msg?: yes
+		no-wait?
+	]
+
+	#if sub-system <> 'gui [
+		if zero? win-cnt [objc_msgSend [NSApp sel_getUid "deactivate"]]
 	]
 	msg?
 ]

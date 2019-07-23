@@ -46,6 +46,7 @@ Red/System [
 
 #define DT_CENTER				0001h
 #define DT_VCENTER				0004h
+#define DT_BOTTOM 				0008h
 #define DT_WORDBREAK			0010h
 #define DT_SINGLELINE			0020h
 #define DT_EXPANDTABS			0040h
@@ -81,6 +82,7 @@ Red/System [
 #define COLOR_BACKGROUND	1
 #define COLOR_MENU			4
 #define COLOR_WINDOW		5
+#define COLOR_WINDOWTEXT	8
 #define COLOR_3DFACE		15
 
 #define CS_VREDRAW			1
@@ -235,6 +237,7 @@ Red/System [
 #define ES_CENTER			00000001h
 #define ES_RIGHT			00000003h
 #define ES_MULTILINE		00000004h
+#define ES_PASSWORD			00000020h
 #define ES_AUTOVSCROLL		00000040h
 #define ES_AUTOHSCROLL		00000080h
 #define ES_NOHIDESEL		00000100h
@@ -489,6 +492,7 @@ Red/System [
 
 #define TextRenderingHintSystemDefault		0
 #define TextRenderingHintAntiAliasGridFit	3
+#define TextRenderingHintClearTypeGridFit	5
 
 #define SRCCOPY					00CC0020h
 
@@ -1035,11 +1039,14 @@ XFORM!: alias struct! [
 		GetProcAddress: "GetProcAddress" [
 			hModule		[handle!]
 			lpProcName	[c-string!]
-			return:		[integer!]
+			return:		[int-ptr!]
 		]
 		lstrlen: "lstrlenW" [
 			str			[byte-ptr!]
 			return:		[integer!]
+		]
+		GetConsoleWindow: "GetConsoleWindow" [
+			return:			[int-ptr!]
 		]
 	]
 	"User32.dll" stdcall [
@@ -1094,7 +1101,7 @@ XFORM!: alias struct! [
 		]
 		KillTimer: "KillTimer" [
 			hWnd		[handle!]
-			uIDEvent	[int-ptr!]
+			uIDEvent	[integer!]
 			return:		[logic!]
 		]
 		OpenClipboard: "OpenClipboard" [
@@ -1182,6 +1189,10 @@ XFORM!: alias struct! [
 			return:		[integer!]
 		]
 		GetDC: "GetDC" [
+			hWnd		[handle!]
+			return:		[handle!]
+		]
+		GetWindowDC: "GetWindowDC" [
 			hWnd		[handle!]
 			return:		[handle!]
 		]
@@ -1332,12 +1343,6 @@ XFORM!: alias struct! [
 			return:		[handle!]
 		]
 		WindowFromPoint: "WindowFromPoint" [
-			x			[integer!]
-			y			[integer!]
-			return:		[handle!]
-		]
-		RealChildWindowFromPoint: "RealChildWindowFromPoint" [
-			hwndParent	[handle!]
 			x			[integer!]
 			y			[integer!]
 			return:		[handle!]
@@ -2623,6 +2628,18 @@ XFORM!: alias struct! [
 			brush		[integer!]
 			return:		[integer!]
 		]
+		GdipMeasureString: "GdipMeasureString" [
+			graphics	[integer!]
+			text		[c-string!]
+			lenght		[integer!]
+			font		[integer!]
+			layoutRect	[RECT_STRUCT_FLOAT32]
+			format		[integer!]
+			boundingBox	[RECT_STRUCT_FLOAT32]
+			codepointsFitted	[pointer! [integer!]]
+			linesFilled	[pointer! [integer!]]
+			return:		[integer!]
+		]
 		GdipDrawBeziersI: "GdipDrawBeziersI" [
 			graphics	[integer!]
 			pen			[integer!]
@@ -2831,7 +2848,6 @@ XFORM!: alias struct! [
 		]
 	]
 ]
-
 
 #case [
 	any [not legacy not find legacy 'no-touch] [

@@ -13,22 +13,6 @@ Red/System [
 paren: context [
 	verbose: 0
 	
-	push*: func [
-		size	  [integer!]
-		return:   [red-paren!]	
-		/local
-			paren [red-paren!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "paren/push*"]]
-		
-		paren: as red-block! ALLOC_TAIL(root)
-		paren/header: TYPE_PAREN					;-- implicit reset of all header flags
-		paren/head:   0
-		paren/node:   alloc-cells size
-		push paren
-		paren
-	]
-	
 	push: func [
 		paren [red-paren!]
 	][

@@ -67,6 +67,17 @@ Red [
 
 ===end-group===
 
+===start-group=== "Load percent tests"
+
+	;-- for issue #3435 (1.#INF and 1.#NaN values corrupts percentage value scanner)
+	--test-- "load-percent-1"	--assert "1.#NaN" = mold load "1.#nan"
+	--test-- "load-percent-2"	--assert 1% == load "1%"
+
+	;-- for issue #3449 (compile lexer reads percent! as an issue!)
+	--test-- "load-percent-3"	--assert -10% == load "-10%"
+	
+===end-group===
+
 ===start-group=== "Load integer tests"
 
 	--test-- "load-int-1"	--assert 0 == load "0"
@@ -106,6 +117,27 @@ Red [
 	--test-- "load-word-18"	--assert strict-equal? first ['a] load "'a"
 	--test-- "load-word-19" --assert strict-equal? first [œ∑´®†] load "œ∑´®†"
 	
+===end-group===
+
+===start-group=== "load binaries tests"
+
+	--test-- "load-bin-1"
+		src: "2#{00001111}"
+		--assert #{0F} = load src
+
+	--test-- "load-bin-2"
+		src: "2#{0000 11 11}"
+		--assert #{0F} = load src
+
+	--test-- "load-bin-3"
+		src: {
+		2#{
+		00 1 1
+		11
+		01
+
+		}}
+		--assert #{3D} = load src
 
 ===end-group===
 
@@ -225,6 +257,21 @@ Red [
 
 ===end-group===
 
+===start-group=== "load date tests"
+
+	--test-- "load-date-1"	--assert 3-Mar-0000/13:44:24+09:45  = load "3-Mar-0000/13:44:24+09:45"
+	--test-- "load-date-2"	--assert 14-Jan-2046/9:34:48-12:15  = load "14-Jan-2046/9:34:48-12:15"
+	--test-- "load-date-3"	--assert 19-Nov-4262/9:41:12-01:30  = load "19-Nov-4262/9:41:12-01:30"
+	--test-- "load-date-4"	--assert 12-Feb-1864/3:26:00-14:30  = load "12-Feb-1864/3:26:00-14:30"
+	--test-- "load-date-5"	--assert 29-Jul-4351/8:14:00+09:30  = load "29-Jul-4351/8:14:00+09:30"
+	--test-- "load-date-6"	--assert 18-Dec-1884/22:30:48-07:00 = load "18-Dec-1884/22:30:48-07:00"
+	--test-- "load-date-7"	--assert 21-May-5509/0:14:24-03:00  = load "21-May-5509/0:14:24-03:00"
+	--test-- "load-date-8"	--assert 23-Apr-4622/4:22:48+05:30  = load "23-Apr-4622/4:22:48+05:30"
+	--test-- "load-date-9"	--assert 22-Feb-1583/16:36:48-14:45 = load "22-Feb-1583/16:36:48-14:45"
+	--test-- "load-date-10"	--assert 26-Feb-6712/17:07:12-10:00 = load "26-Feb-6712/17:07:12-10:00"
+
+===end-group===
+
 ===start-group=== "load next tests"
 
 	--test-- "load-next-1"
@@ -247,5 +294,117 @@ Red [
 		--assert "" 			 == load/next s 's
 		--assert (make paren! 0) == load/next s 's
 		--assert [] 			 == load/next s 's
+
+===end-group===
+
+
+===start-group=== "load issue #2438"
+
+	--test-- "load a<=>"
+		--assert error? res: try [load "a<=>"]
+		--assert to logic! find/match form res {*** Syntax Error: invalid value at "<=>"^/*** Where:}
+
+	--test-- "load a</=>"
+		--assert not error? res: try [load "a</=>"]
+		--assert word? :res/1
+		--assert tag?  :res/2
+
+===end-group===
+
+===start-group=== "load issue #3717"
+	--test-- "load ) 1"
+		--assert error? res: try [load ")"]
+		--assert to logic! find/match form res {*** Syntax Error: missing #"(" at ")"^/*** Where}
+
+	--test-- "load ) 2"
+		--assert error? res: try [load "a)"]
+		--assert to logic! find/match form res {*** Syntax Error: missing #"(" at ")"^/*** Where}
+
+	--test-- "load ) 3"
+		--assert error? res: try [load "a)b"]
+		--assert to logic! find/match form res {*** Syntax Error: missing #"(" at ")b"^/*** Where}
+
+	--test-- "load ) 4"
+		--assert error? res: try [load "())b"]
+		--assert to logic! find/match form res {*** Syntax Error: missing #"(" at ")b"^/*** Where}
+
+	--test-- "load ) 5"
+		res: load/trap "())b"
+		--assert [()] = res/1
+		--assert "b" = res/2
+		--assert to logic! find/match form res/3 {*** Syntax Error: missing #"(" at ")b"^/*** Where}
+
+	--test-- "load ) 6"
+		s: "())b"
+		--assert [()] = load/all/next s 's
+		--assert ")b" = s
+		--assert error? try [load/all/next s 's]
+
+	--test-- "load ) 7"
+		--assert error? try [system/lexer/transcode/one ")" none false]
+
+	--test-- "load ] 1"
+		--assert error? res: try [load "]"]
+		--assert to logic! find/match form res {*** Syntax Error: missing #"[" at "]"^/*** Where}
+
+	--test-- "load ] 2"
+		--assert error? res: try [load "a]"]
+		--assert to logic! find/match form res {*** Syntax Error: missing #"[" at "]"^/*** Where}
+
+	--test-- "load ] 3"
+		--assert error? res: try [load "a]b"]
+		--assert to logic! find/match form res {*** Syntax Error: missing #"[" at "]b"^/*** Where}
+
+	--test-- "load ] 4"
+		--assert error? res: try [load "[]]b"]
+		--assert to logic! find/match form res {*** Syntax Error: missing #"[" at "]b"^/*** Where}
+
+	--test-- "load ] 5"
+		res: load/trap "[]]b"
+		--assert [[]] = res/1
+		--assert "b" = res/2
+		--assert to logic! find/match form res/3 {*** Syntax Error: missing #"[" at "]b"^/*** Where}
+
+	--test-- "load ] 6"
+		s: "[]]b"
+		--assert [[]] = load/all/next s 's
+		--assert "]b" = s
+		--assert error? try [load/all/next s 's]
+
+	--test-- "load ] 7"
+		--assert error? try [system/lexer/transcode/one "]" none false]
+
+	--test-- "load } 1"
+		--assert error? res: try [load "}"]
+		--assert to logic! find/match form res {*** Syntax Error: missing #"{" at "}"^/*** Where}
+
+	--test-- "load } 2"
+		--assert error? res: try [load "a}"]
+		--assert to logic! find/match form res {*** Syntax Error: missing #"{" at "}"^/*** Where}
+
+	--test-- "load } 3"
+		--assert error? res: try [load "a}b"]
+		--assert to logic! find/match form res {*** Syntax Error: missing #"{" at "}b"^/*** Where}
+
+	--test-- "load } 4"
+		--assert error? res: try [load "{}}b"]
+		--assert to logic! find/match form res {*** Syntax Error: missing #"{" at "}b"^/*** Where}
+
+	--test-- "load } 5"
+		res: load/trap "{}}b"
+		--assert [""] = res/1
+		--assert "b" = res/2
+		--assert to logic! find/match form res/3 {*** Syntax Error: missing #"{" at "}b"^/*** Where}
+
+	--test-- "load } 6"
+		s: "{}}b"
+		--assert [""] = load/all/next s 's
+		--assert "}b" = s
+		--assert error? try [load/all/next s 's]
+
+	--test-- "load } 7"
+		--assert error? try [system/lexer/transcode/one "}" none false]
+
+===end-group===
 
 ~~~end-file~~~

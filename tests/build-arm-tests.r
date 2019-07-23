@@ -29,6 +29,7 @@ if system/script/args  [
 	    target = "Linux"
 	    target = "Android"
 	    target = "RPi"
+        target = "Linux-ARM"
 	    target = "Darwin"
 	][
 	    target: none
@@ -39,9 +40,9 @@ if system/script/args  [
 unless target [
     target: ask {
         Choose ARM target:
-        1) Linux
+        1) Linux armel (ARMv5)
         2) Android
-        3) Linux armhf
+        3) Linux armhf (ARMv7+)
         => }
     target: pick ["Linux-ARM" "Android" "RPi"] to-integer target
 ]
@@ -69,7 +70,7 @@ foreach file [
     exe: to-local-file join arm-dir exe
     cmd: join "" [  to-local-file system/options/boot " -sc "
         to-local-file clean-path %../red.r
-        " -t " target " -o " exe " "
+        " -r -t " target " -o " exe " "
     	to-local-file test-file	
     ]
     clear output

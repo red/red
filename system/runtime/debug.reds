@@ -152,6 +152,10 @@ __print-debug-stack: func [
 	]
 ]
 
+stack-trace: func [][
+	__print-debug-stack system/pc
+]
+
 ;-------------------------------------------
 ;-- Print an integer as hex number on screen, limited to n characters
 ;-------------------------------------------
@@ -219,8 +223,8 @@ dump-memory: func [
 			]
 			
 			byte: data-ptr/value
-			ascii/i: either byte < as-byte 32 [
-				either byte = null-byte [#"."][#"^(FE)"]
+			ascii/i: either any [byte < as-byte 32 byte > as-byte 127][
+				either byte = null-byte [#"."][#"?"]
 			][
 				byte
 			]

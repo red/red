@@ -29,8 +29,10 @@ Red [
 	#include %environment/codecs/jpeg.red
 	#include %environment/codecs/bmp.red
 	#include %environment/codecs/gif.red
+	#include %environment/codecs/json.red
 
 	#include %environment/reactivity.red				;-- requires SET intrinsic
+	#include %environment/networking.red
 	#include %utils/preprocessor.r
 
 	;-- temporary code --
@@ -43,13 +45,11 @@ Red [
 	
 	system/version: load system/version
 	
-	system/options/cache: either system/platform/OS = 'Windows [
+	system/options/cache: either system/platform = 'Windows [
 		append to-red-file get-env "APPDATA" %/Red/
 	][
 		append any [attempt [to-red-file get-env "HOME"] %/tmp] %/.red/
 	]
-
-	system/platform/name: OS-product-name
 ]
 
 ;-- command-line arguments processing

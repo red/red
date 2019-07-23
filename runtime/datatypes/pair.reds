@@ -141,8 +141,7 @@ pair: context [
 				int: as red-integer! spec
 				push int/value int/value
 			]
-			TYPE_FLOAT
-			TYPE_PERCENT [
+			TYPE_FLOAT [
 				fl: as red-float! spec
 				x: as-integer fl/value
 				push x x
@@ -256,6 +255,7 @@ pair: context [
 			int	 [red-integer!]
 			w	 [red-word!]
 			axis [integer!]
+			type [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "pair/eval-path"]]
 		
@@ -264,22 +264,26 @@ pair: context [
 				int: as red-integer! element
 				axis: int/value
 				if all [axis <> 1 axis <> 2][
-					fire [TO_ERROR(script invalid-path) stack/arguments element]
+					fire [TO_ERROR(script invalid-path) path element]
 				]
 			]
 			TYPE_WORD [
 				w: as red-word! element
 				axis: symbol/resolve w/symbol
 				if all [axis <> words/x axis <> words/y][
-					fire [TO_ERROR(script invalid-path) stack/arguments element]
+					fire [TO_ERROR(script invalid-path) path element]
 				]
 				axis: either axis = words/x [1][2]
 			]
 			default [
-				fire [TO_ERROR(script invalid-path) stack/arguments element]
+				fire [TO_ERROR(script invalid-path) path element]
 			]
 		]
 		either value <> null [
+			type: TYPE_OF(value)
+			if type <> TYPE_INTEGER [
+				fire [TO_ERROR(script invalid-type) datatype/push type]
+			]
 			int: as red-integer! stack/arguments
 			int/header: TYPE_INTEGER
 			either axis = 1 [parent/x: int/value][parent/y: int/value]

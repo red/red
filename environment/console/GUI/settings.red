@@ -59,12 +59,16 @@ set-font-color: func [color [tuple!] /local clr][
 ]
 
 display-about: function [][
+	;-- cloak URLs to avoid false positives from bad AV software
+	red-lang: to-string debase "aHR0cHM6Ly93d3cucmVkLWxhbmcub3Jn"
+	github:   to-string debase "aHR0cHM6Ly9naXRodWIuY29tL3JlZC9yZWQ="
+
 	lay: layout/tight [
 		title "About"
 		size 360x330
 		backdrop 58.58.60
 
-		style text:  text 360 center 58.58.60 
+		style text:  text 360 center 58.58.60
 		style txt:   text font-color white
 		style small: txt  font [size: 9 color: white]
 		style link:  text cursor 'hand all-over
@@ -78,8 +82,8 @@ display-about: function [][
 		at 153x86 image fstk-logo
 		at 0x160 small 360x20 "Copyright 2011-2018 - Red Foundation"
 		at 0x180 small 360x20 "and contributors."
-		at 0x230 link "http://red-lang.org" font-size 10 font-color white
-		at 0x260 link "http://github.com/red/red" font-size 10 font-color white
+		at 0x230 link red-lang font-size 10 font-color white
+		at 0x260 link github   font-size 10 font-color white
 		at 154x300 button "Close" [unview win/selected: console]
 		do [ver/text: form reduce [
 				"Build" system/version #"-" any [
@@ -102,14 +106,14 @@ show-cfg-dialog: function [][
 			set-font-color cfg-forecolor/data: face/color
 		]
 		style hex-field: field 90 center font [name: font/name]
-		
+
 		group-box "Background color" [
 			bbox #000000 bbox #002b36 bbox #073642 bbox #293955
 			bbox #eee8d5 bbox #fdf6e3 bbox #ffffff
 			cfg-backcolor: hex-field
 		]
 		return
-		
+
 		group-box "Font color" [
 			fbox #b98000 fbox #cb4b16 fbox #dc322f fbox #d33682
 			fbox #6c71c4 fbox #268bd2 fbox #2aa198
@@ -119,10 +123,10 @@ show-cfg-dialog: function [][
 			fbox #839496 fbox #93a1a1 fbox #ffffff
 		]
 		return
-		
-		pad 150x10 text "Buffer Lines" 80 
+
+		pad 150x10 text "Buffer Lines" 80
 		pad -17x0 cfg-buffers: hex-field right return
-		
+
 		pad 90x20
 		button "OK" [
 			if cfg/buffer-lines <> cfg-buffers/data [
@@ -151,6 +155,7 @@ apply-cfg: function [][
 		size:  cfg/font-size
 		color: cfg/font-color
 	]
+	gui-console-ctx/font: font
 	console/font: font
 	ft: copy font
 	ft/color: white
@@ -173,18 +178,23 @@ save-cfg: function [][
 	save/header cfg-path cfg [Purpose: "Red Console Configuration File"]
 ]
 
-load-cfg: func [/local cfg-dir][
+load-cfg: func [/local cfg-dir cfg-content][
 	system/view/auto-sync?: no
 	cfg-dir: append copy system/options/cache
 			#either config/OS = 'Windows [%Red-Console/][%.Red-Console/]
 
 	unless exists? cfg-dir [make-dir/deep cfg-dir]
 	cfg-path: append cfg-dir %console-cfg.red
-	
-	cfg: either exists? cfg-path [skip load cfg-path 2][
+
+	cfg: either all [
+		exists? cfg-path
+		attempt [select cfg-content: load cfg-path 'Red]
+	][
+		skip cfg-content 2
+	][
 		compose [
 			win-pos:	  (win/offset)
-			win-size:	  (win/size)
+			win-size:	  640x480
 
 			font-name:	  (font/name)
 			font-size:	  11

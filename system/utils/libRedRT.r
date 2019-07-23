@@ -93,7 +93,7 @@ libRedRT: context [
 			]
 		]
 		if exists? file: get-path extras-file [
-			append funcs load/all file
+			funcs: unique append funcs load/all file
 		]
 		foreach def funcs [
 			name: to word! form def
@@ -129,9 +129,15 @@ libRedRT: context [
 	]
 	
 	process: func [job functions exports /local name list pos tmpl words lits file base-dir][
-		make-exports functions exports
-		if job/OS = 'Windows [append/only funcs 'red/image/push]
-		
+		if find [Windows macOS] job/OS [
+			append funcs [
+				red/image/push
+				red/image/acquire-buffer
+				red/image/release-buffer
+			]
+		]
+		make-exports functions exports job
+
 		clear imports
 		clear template
 		append template "^/red: context "
@@ -235,6 +241,8 @@ libRedRT: context [
 		]
 		append imports [
 			words: context [
+				red/boot?: yes							;-- ensures words are in fixed memory area
+				
 				_body:		red/word/load "<body>"
 				_anon:		red/word/load "<anon>"
 				_remove:	red/word/load "remove"
@@ -263,6 +271,8 @@ libRedRT: context [
 				aux-down?:	red/symbol/make "aux-down?"
 				ctrl?:		red/symbol/make "ctrl?"
 				shift?:	 	red/symbol/make "shift?"
+				
+				red/boot?: no
 			]
 		]
 		

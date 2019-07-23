@@ -1,27 +1,84 @@
-Values members of the Red community should aspire to when communicating within the community:
+# Red Language Community Code of Conduct
 
-* Be friendly and welcoming
-* Be patient
-    * Remember that people have varying communication styles and that not everyone is using their native language. (Meaning and tone can be lost in translation.)
-* Be thoughtful
-    * Productive communication requires effort. Think about how your words will be interpreted.
-    * Remember that sometimes it is best to refrain entirely from commenting.
-* Be respectful
-    * In particular, respect differences of opinion. It is important that we resolve disagreements and differing views constructively.
-* Avoid destructive behavior
-    * Derailing: stay on topic; if you want to talk about something else, start a new conversation. Respect the room's topic.
-    * Unconstructive criticism: don't merely decry the current state of affairs; offer (or at least solicit) suggestions as to how things may be improved.
-    * Snarking (pithy, unproductive, sniping comments).
+## 1. Purpose
 
-The following actions are explicitly forbidden:
+We strive to provide a friendly, safe, and welcoming environment for all, generate positive experiences, and make the world a better place. 
 
-* Insulting, demeaning, hateful, or threatening remarks.
-* Discrimination based on age, disability, gender, nationality, race, religion, sexuality, or similar personal characteristic.
-* Bullying or systematic harassment.
-* Unwelcome sexual advances.
-* Incitement to any of these.
+## 2. Goal of this Document
 
-The Red communication channels are moderated, disrespectful behavior will lead to exclusion from the communication channel.
+This code of conduct outlines expectations for those who participate in our community, as well as the consequences for unacceptable behavior, online and In Real Life.
 
-## Acknowledgements
-This document was based on the Code of Conduct from the Elixir and Go projects with parts derived from Django's Code of Conduct, Rust's Code of Conduct and the Contributor Covenant.
+## 3. Expected Behavior
+
+The following behaviors are expected of all community members:
+
+ * Participate in ways that contribute to the health and longevity of the community.
+ * Exercise consideration and respect for others.
+ * Assume ignorance rather than malice. 
+ * Refrain from demeaning, discriminatory, or harassing behavior and speech.
+ * Alert community leaders if you notice a dangerous situation, someone in distress, or violations of this Code of Conduct.
+ * Remember that community event venues may be shared with members of the public. Be respectful to all patrons of these locations.
+
+See also: [Community-Communication-Values](https://github.com/red/red/wiki/%5BNOTES%5D-Community-Communication-Values)
+
+## 4. Unacceptable Behavior
+
+The following behaviors are considered harassment and are unacceptable within our community:
+
+ * Violence, threats of violence, or violent language directed against another person.
+ * Discriminatory jokes and language.
+ * Posting or displaying sexually explicit or violent material.
+ * Posting or threatening to post other people's personally identifying information ("doxing").
+ * Personal insults, particularly those related to gender, sexual orientation, race, religion, or disability.
+ * Inappropriate photography or recording.
+ * Inappropriate physical contact. You should have someone's consent before touching them.
+ * Unwelcome sexual attention, including sexualized comments or jokes, inappropriate touching, and sexual advances.
+ * Deliberate intimidation, stalking or following (online or in person).
+ * Advocating for, or encouraging, any of the above behavior.
+ * Sustained disruption of community events, including talks and presentations.
+
+## 5. Weapons Policy
+
+No weapons will be allowed at events, community spaces, or in other spaces covered by the scope of this Code of Conduct. Weapons include but are not limited to guns, explosives (including fireworks), and large knives such as those used for hunting or display, as well as any other item used for the purpose of causing injury or harm to others. Anyone seen in possession of one of these items will be asked to leave immediately, and will only be allowed to return without the weapon. Community members are further expected to comply with all state and local laws on this matter.
+
+## 6. Consequences of Unacceptable Behavior
+
+Unacceptable behavior from any community member, including sponsors and those with decision-making authority, will not be tolerated.
+
+Anyone asked to stop unacceptable behavior is expected to comply immediately.
+
+If a community member engages in unacceptable behavior, the community organizers may take any action they deem appropriate, up to and including a temporary ban or permanent expulsion from the community without warning (and without refund in the case of a paid event).
+
+## 7. Reporting Guidelines
+
+If you are subject to or witness unacceptable behavior, or have any other concerns, please notify a community organizer as soon as possible.
+
+Additionally, community organizers are available to help community members engage with local law enforcement or to otherwise help those experiencing unacceptable behavior feel safe. In the context of in-person events, organizers will also provide escorts as desired by the person experiencing distress.
+
+## 8. Addressing Grievances
+
+If you feel you have been falsely or unfairly accused of violating this Code of Conduct, you should notify a community organizer with a concise description of your grievance. Your grievance will be handled in accordance with our existing governing policies. 
+
+## 9. Scope
+
+We expect all community participants (contributors, paid or otherwise; sponsors; and other guests) to abide by this Code of Conduct in all community venues--online and in-person--as well as in all one-on-one communications pertaining to community business.
+
+This code of conduct and its related procedures also applies to unacceptable behavior occurring outside the scope of community activities when such behavior has the potential to adversely affect the safety and well-being of community members.
+
+## 10. Contact info
+
+red-lang@googlegroups.com
+
+## 11. License and attribution
+
+This Code of Conduct is derived from that distributed by [Stumptown Syndicate](http://stumptownsyndicate.org) under a [Creative Commons Attribution-ShareAlike license](http://creativecommons.org/licenses/by-sa/3.0/). 
+
+Portions of text derived from the [Django Code of Conduct](https://www.djangoproject.com/conduct/) and the [Geek Feminism Anti-Harassment Policy](http://geekfeminism.wikia.com/wiki/Conference_anti-harassment/Policy).
+
+_Revision 2.3. Posted 6 March 2017._
+
+_Revision 2.2. Posted 4 February 2016._
+
+_Revision 2.1. Posted 23 June 2014._
+
+_Revision 2.0, adopted by the [Stumptown Syndicate](http://stumptownsyndicate.org) board on 10 January 2013. Posted 17 March 2013._

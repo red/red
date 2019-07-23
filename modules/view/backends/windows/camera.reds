@@ -142,20 +142,19 @@ init-camera: func [
 		val [integer!] 
 ][
 	cam: as camera! allocate size? camera!				;@@ need to be freed
+	zero-memory as byte-ptr! cam size? camera!
 	val: collect-camera cam data
-	either zero? val [
+	if zero? val [
 		free as byte-ptr! cam
 		SetWindowLong hWnd wc-offset - 4 0
 		exit
-	][
-		init-graph cam 0
-		build-preview-graph cam hWnd
-		toggle-preview hWnd open?
 	]
+
 	SetWindowLong hWnd wc-offset - 4 val
 	if TYPE_OF(sel) = TYPE_INTEGER [
-		select-camera hWnd sel/value - 1
-		toggle-preview hWnd true
+		if select-camera hWnd sel/value - 1 [
+			toggle-preview hWnd true
+		]
 	]
 ]
 
@@ -304,17 +303,22 @@ toggle-preview: func [
 select-camera: func [
 	handle	[handle!]
 	idx		[integer!]
+	return: [logic!]
 	/local
 		cam [camera!]
 ][
 	cam: as camera! GetWindowLong handle wc-offset - 4
-	if idx >= cam/num [
+	if any [idx < 0 idx >= cam/num][
 		fire [TO_ERROR(access cannot-open) integer/push idx + 1]
 	]
 	teardown-graph cam
 	free-graph cam
 	init-graph cam idx
-	build-preview-graph cam handle
+	either zero? build-preview-graph cam handle [true][
+		teardown-graph cam
+		free-graph cam
+		false
+	]
 ]
 
 collect-camera: func [

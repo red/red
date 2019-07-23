@@ -59,10 +59,11 @@ Red/System [
 	TYPE_EMAIL											;-- 2D		45
 	TYPE_HANDLE											;-- 2E		46
 	TYPE_DATE											;-- 2F		47
-	TYPE_IMAGE											;-- 30		48		;-- needs to be last
+	TYPE_PORT											;-- 30		48
+	TYPE_IMAGE											;-- 31		49		;-- needs to be last
 	TYPE_EVENT											
 	TYPE_CLOSURE
-	TYPE_PORT
+	TYPE_TOTAL_COUNT									;-- keep tabs on number of datatypes.
 ]
 
 #enum actions! [
@@ -98,7 +99,7 @@ Red/System [
 	ACT_OR~
 	ACT_XOR~
 	
-	;-- Series actions --
+	;-- Series actions --								;-- Port! actions start here
 	ACT_APPEND
 	ACT_AT
 	ACT_BACK
@@ -243,6 +244,7 @@ Red/System [
 	NAT_SIZE?
 	NAT_BROWSE
 	NAT_DECOMPRESS
+	NAT_RECYCLE
 ]
 
 #enum math-op! [
@@ -280,19 +282,26 @@ Red/System [
 
 #enum exceptions! [
 	RED_NO_EXCEPTION
-	OS_ERROR_VMEM:					100000000
-	OS_ERROR_VMEM_RELEASE_FAILED:	100000001
-	OS_ERROR_VMEM_OUT_OF_MEMORY:	100000002
-	OS_ERROR_VMEM_ALL:				100000010
-	RED_INT_OVERFLOW:				190000000
-	RED_THROWN_THROW:				195939000
-	RED_THROWN_EXIT
-	RED_THROWN_RETURN
-	RED_THROWN_CONTINUE
-	RED_THROWN_BREAK
-	RED_THROWN_ERROR:				195939070		;-- #0BADCAFE (keep it positive)
+	OS_ERROR_VMEM:					2147483637
+	OS_ERROR_VMEM_RELEASE_FAILED:	2147483638
+	OS_ERROR_VMEM_OUT_OF_MEMORY:	2147483639
+	OS_ERROR_VMEM_ALL:				2147483640
+	RED_INT_OVERFLOW:				2147483641
+	RED_THROWN_THROW:				2147483642
+	RED_THROWN_EXIT:				2147483643
+	RED_THROWN_RETURN:				2147483644
+	RED_THROWN_CONTINUE:			2147483645
+	RED_THROWN_BREAK:				2147483646
+	RED_THROWN_ERROR:				2147483647
 ]
 
+#enum object-classes! [
+	OBJ_CLASS_ERROR!:	1
+	OBJ_CLASS_PORT!
+	OBJ_CLASS_FACE!
+]
+
+#define DATATYPES_NB	51							;-- total number of built-in datatypes (including TYPE_VALUE)
 #define NATIVES_NB		110							;-- max number of natives (arbitrary set)
 #define ACTIONS_NB		62							;-- number of actions (exact number)
 #define INHERIT_ACTION	-1							;-- placeholder for letting parent's action pass through
@@ -518,13 +527,18 @@ Red/System [
 	]
 ]
 
-#define GET_SIZE_FROM(spec) [
+#define GET_INT_FROM(n spec) [
 	either TYPE_OF(spec) = TYPE_FLOAT [
 		fl: as red-float! spec
-		as-integer fl/value
+		n: as-integer fl/value
+		#if target = 'IA-32 [
+			if system/fpu/status and FPU_EXCEPTION_INVALID_OP <> 0 [
+				fire [TO_ERROR(internal no-memory)]
+			]
+		]
 	][
 		int: as red-integer! spec
-		int/value
+		n: int/value
 	]
 ]
 

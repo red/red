@@ -124,6 +124,8 @@ button-mouse-down: func [
 		bound	[NSRect!]
 		rc		[NSRect!]
 ][
+	if 0 <> objc_getAssociatedObject self RedEnableKey [exit]	;-- button is disabled
+
 	inside?: yes
 	objc_msgSend [self sel_getUid "highlight:" inside?]
 	objc_setAssociatedObject self RedNSEventKey event OBJC_ASSOCIATION_ASSIGN
@@ -326,7 +328,7 @@ on-key-down: func [
 			key: objc_msgSend [event sel_getUid "characters"]
 			if all [
 				key <> 0
-				0 < objc_msgSend [key sel_getUid "length"]
+				0 < objc_msgSend [key sel_length]
 			][
 				key: objc_msgSend [key sel_getUid "characterAtIndex:" 0]
 				make-event self key or flags EVT_KEY
@@ -512,19 +514,8 @@ scroll-wheel: func [
 	self	[integer!]
 	cmd		[integer!]
 	event	[integer!]
-	/local
-		d	  [float32!]
-		flags [integer!]
-		delta [integer!]
 ][
-	d: objc_msgSend_f32 [event sel_getUid "scrollingDeltaY"]
-	case [
-		all [d > as float32! -1.0 d < as float32! 0.0][delta: -1]
-		all [d > as float32! 0.0 d < as float32! 1.0][delta: 1]
-		true [delta: as-integer d]
-	]
-	flags: check-extra-keys event
-	make-event self delta or flags EVT_WHEEL
+	make-event self event EVT_WHEEL
 ]
 
 slider-change: func [
@@ -583,7 +574,7 @@ set-text: func [
 		face [red-object!]
 		out	 [c-string!]
 ][
-	size: objc_msgSend [text sel_getUid "length"]
+	size: objc_msgSend [text sel_length]
 	if size >= 0 [
 		str: as red-string! (get-face-values obj) + FACE_OBJ_TEXT
 		if TYPE_OF(str) <> TYPE_STRING [
@@ -899,13 +890,6 @@ app-send-event: func [
 			check?: yes
 			window: process-mouse-tracking window event
 		]
-		NSApplicationDefined [
-			x: objc_msgSend [event sel_getUid "data1"]
-			if x = QuitMsgData [
-				objc_msgSend [NSApp sel_getUid "stop:" NSApp]
-				exit
-			]
-		]
 		default [0]
 	]
 
@@ -998,7 +982,6 @@ win-should-close: func [
 	return: [logic!]
 ][
 	make-event sender 0 EVT_CLOSE
-	post-quit-msg
 	no
 ]
 
@@ -1035,12 +1018,12 @@ win-did-resize: func [
 		v	[integer!]
 		rc	[NSRect! value]
 ][
+	make-event self 0 EVT_SIZING
 	v: objc_msgSend [self sel_getUid "contentView"]
 	rc: objc_msgSend_rect [v sel_getUid "frame"]
 	sz: (as red-pair! get-face-values self) + FACE_OBJ_SIZE		;-- update face/size
 	sz/x: as-integer rc/w
 	sz/y: as-integer rc/h
-	make-event self 0 EVT_SIZING
 ]
 
 win-live-resize: func [
@@ -1273,7 +1256,7 @@ set-marked-text: func [
 	text: either attr-str? [objc_msgSend [str sel_getUid "string"]][str]
 	make-event self text EVT_IME
 	_marked-range-idx: idx1
-	_marked-range-len: objc_msgSend [text sel_getUid "length"]
+	_marked-range-len: objc_msgSend [text sel_length]
 	if zero? _marked-range-len [
 		objc_msgSend [self sel_getUid "unmarkText"]
 	]
@@ -1337,7 +1320,7 @@ insert-text-range: func [
 		str sel_getUid "isKindOfClass:" objc_getClass "NSAttributedString"
 	]
 	text: either attr-str? [objc_msgSend [str sel_getUid "string"]][str]
-	len: objc_msgSend [text sel_getUid "length"]
+	len: objc_msgSend [text sel_length]
 	idx: 0
 	while [idx < len][
 		key: objc_msgSend [text sel_getUid "characterAtIndex:" idx]
@@ -1475,7 +1458,10 @@ draw-rect: func [
 		draw	[red-block!]
 		clr		[red-tuple!]
 		size	[red-pair!]
+		type	[red-word!]
+		sym		[integer!]
 		bmp		[integer!]
+		pos		[red-pair! value]
 		v1010?	[logic!]
 		DC		[draw-ctx!]
 ][
@@ -1492,14 +1478,22 @@ draw-rect: func [
 	draw: as red-block! vals + FACE_OBJ_DRAW
 	clr:  as red-tuple! vals + FACE_OBJ_COLOR
 	size: as red-pair! vals + FACE_OBJ_SIZE
+	type: as red-word! vals + FACE_OBJ_TYPE
+	sym: symbol/resolve type/symbol
+
 	if TYPE_OF(clr) = TYPE_TUPLE [
 		paint-background ctx clr/array1 x y width height
 	]
 	if TYPE_OF(img) = TYPE_IMAGE [
 		CG-draw-image ctx OS-image/to-cgimage img 0 0 size/x size/y
 	]
-	if (object_getClass self) = objc_getClass "RedBase" [
-		render-text ctx vals as NSSize! (as int-ptr! self) + 8
+	case [
+		sym = base [render-text ctx vals as NSSize! (as int-ptr! self) + 8]
+		sym = rich-text [
+			pos/x: 0 pos/y: 0
+			draw-text-box null :pos get-face-obj self yes
+		]
+		true []
 	]
 
 	img: as red-image! (as int-ptr! self) + 8				;-- view's size

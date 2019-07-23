@@ -92,7 +92,12 @@ none: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "none/mold"]]
 
-		form value buffer arg part
+		either all? [
+			string/concatenate-literal buffer "#[none]"
+			part - 7
+		] [
+			form value buffer arg part
+		]
 	]
 	
 	compare: func [
@@ -159,6 +164,7 @@ none: context [
 	remove: func [
 		none	[red-none!]
 		part	[red-value!]
+		key		[red-value!]
 		return:	[red-value!]
 	][
 		push-last

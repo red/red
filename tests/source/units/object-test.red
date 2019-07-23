@@ -12,6 +12,23 @@ Red [
 
 ~~~start-file~~~ "object"
 
+===start-group=== "reactor tests"
+
+    --test-- "reactor-basic-1"
+        rb1-r: make reactor! [
+            x: 1
+            y: 2
+            total: is [x + y]
+        ]
+        --assert 3 = rb1-r/total
+        rb1-r/x: 2
+        --assert 4 = rb1-r/total
+        rb1-r/x: 5
+        rb1-r/y: 10
+        --assert 15 = rb1-r/total
+        
+===end-group===
+
 ===start-group=== "basic tests"
 
 	--test-- "basic-1"
@@ -275,8 +292,9 @@ Red [
 			;o14: make object! [
 			;o15: make object! [
 				i: 1
-			]]]]]]]]]]]]
+			]]]]]]]]]]]];]]
 		]
+		;--assert no5-o1/o2/o3/o4/o5/o6/o7/o8/o9/o10/o11/o12/o13/o14/o15/i = 1 
 		--assert no5-o1/o2/o3/o4/o5/o6/o7/o8/o9/o10/o11/o12/o13/i = 1
 		
 	--test-- "no6 issue #928"
@@ -2178,6 +2196,20 @@ Red [
 				
 ===end-group===
 
+===start-group=== "get"
+
+	--test-- "og1"
+		og1: make object! [a: 1 b: 2 c: "x"]
+		--assert equal? [1 2 "x"] get og1
+		--assert equal? [1 2 "x"] get :og1
+		--assert equal? [1 2 "x"] get/any :og1
+		--assert equal? [1 2 "x"] get/case :og1
+		--assert same? og1/c last get og1
+		--assert equal? 2 get 'og1/b
+		--assert empty? get object []
+
+===end-group===
+
 ===start-group=== "find & select"
 
 	--test-- "ofs"
@@ -2241,7 +2273,7 @@ Red [
 				if equal? mold owner mold make object! [a: 0 b: [1 2 3 4 5 6]] [a: a + 1]
 				if equal? word 'b [a: a + 10]
 				if equal? target [1 2 3 4 5 6] [a: a + 100]
-				if equal? action 'insert [a: a + 1000]
+				if equal? action 'append [a: a + 1000]
 				if equal? new 6 [a: a + 10000]
 				if equal? index 5 [a: a + 100000]
 				if equal? part 1 [a: a + 1000000]				 

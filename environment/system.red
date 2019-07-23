@@ -36,7 +36,16 @@ system: context [
 		__make-sys-object
 	]
 
-	platform: #system [__get-OS-info]
+	platform: func ["Return a word identifying the operating system"][
+		#system [
+			#switch OS [
+				Windows  [SET_RETURN(words/_windows)]
+				Syllable [SET_RETURN(words/_syllable)]
+				macOS	 [SET_RETURN(words/_macOS)]
+				#default [SET_RETURN(words/_linux)]
+			]
+		]
+	]
 
 	catalog: context [
 		datatypes:
@@ -172,6 +181,8 @@ system: context [
 				not-event-type:		["VIEW - not a valid event type" :arg1]
 				invalid-facet-type:	["VIEW - invalid rate value:" :arg1]
 				vid-invalid-syntax:	["VID - invalid syntax at:" :arg1]
+				rtd-invalid-syntax: ["RTD - invalid syntax at:" :arg1]
+				rtd-no-match:		["RTD - opening/closing tag not matching for:" :arg1]
 				react-bad-func:		"REACT - /LINK option requires a function! as argument"
 				react-not-enough:	"REACT - reactive functions must accept at least 2 arguments"
 				react-no-match:		"REACT - objects block length must match reaction function arg count"
@@ -190,19 +201,21 @@ system: context [
 				code:				500
 				type:				"Access Error"
 				cannot-open:		["cannot open:" :arg1]
+				cannot-close:		["cannot close:" :arg1]
 				invalid-utf8:		["invalid UTF-8 encoding:" :arg1]
-				;not-open:			["port is not open:" :arg1]
+				not-open:			["port is not open:" :arg1]
 				;already-open:		["port is already open:" :arg1]
 				no-connect:			["cannot connect:" :arg1 "reason: timeout"]
 				;not-connected:		["port is not connected:" :arg1]
 				;no-script:			["script not found:" :arg1]
 				;no-scheme-name:	["new scheme must have a name:" :arg1]
-				;no-scheme:			["missing port scheme:" :arg1]
-				;invalid-spec:		["invalid spec or options:" :arg1]
-				;invalid-port:		["invalid port object (invalid field values)"]
-				;invalid-actor:		["invalid port actor (must be native or object)"]
+				no-scheme:			["missing port scheme:" :arg1]
+				unknown-scheme:		["scheme is unknown:" :arg1]
+				invalid-spec:		["invalid spec or options:" :arg1]
+				invalid-port:		["invalid port object (invalid field values)"]
+				invalid-actor:		["invalid port actor (must be handle or object)"]
 				;invalid-port-arg:	["invalid port argument:" arg1]
-				;no-port-action:	["this port does not support:" :arg1]
+				no-port-action:		"port action not supported"
 				;protocol:			["protocol error:" :arg1]
 				;invalid-check:		["invalid checksum (tampered file):" :arg1]
 				;write-error:		["write failed:" :arg1 "reason:" :arg2]
@@ -224,6 +237,15 @@ system: context [
 				;bad-extension:		["invalid extension format:" :arg1]
 				;extension-init:	["extension cannot be initialized (check version):" :arg1]
 				;call-fail:			["external process failed:" :arg1]
+				invalid-cmd:		["invalid port command:" :arg1]
+			]
+			reserved1: object [
+				code:				600
+				type:				"Reserved1 Error"
+			]
+			reserved2: object [
+				code:				700
+				type:				"Reserved2 Error"
 			]
 			user: object [
 				code:				800
@@ -242,6 +264,7 @@ system: context [
 				;limit-hit:			["internal limit reached:" :arg1]
 				;bad-sys-func:		["invalid or missing system function:" :arg1]
 				too-deep:			"block or paren series is too deep to display"
+				no-cycle:			"circular reference not allowed"
 				feature-na:			"feature not available"
 				not-done:			"reserved for future use (or not yet implemented)"
 				invalid-error:		["invalid error object field value:" :arg1]
@@ -263,7 +286,7 @@ system: context [
 	
 	modules: make block! 8
 	codecs:  make block! 8
-	schemes: context []
+	schemes: make block! 10
 	ports:	 context []
 	
 	locale: context [
@@ -355,15 +378,24 @@ system: context [
 		]
 	]
 	
-	standard: context [
-		header: context [
+	standard: context [									;-- do not change object fields number/order
+		header: object [
 			title: name: type: version: date: file: author: needs: none
 		]
-		error: context [
+		port: object [
+			spec: scheme: actor: awake: state: data: extra: none
+		]
+		error: object [
 			code: type: id: arg1: arg2: arg3: near: where: stack: none
 		]
-		file-info: context [
+		file-info: object [
 			name: size: date: type: none
+		]
+		url-parts: object [
+			scheme: user-info: host: port: path: target: query: fragment: ref: none
+		]
+		scheme: object [
+			name: title: info: actor: awake: none
 		]
 	]
 	

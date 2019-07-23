@@ -157,6 +157,7 @@ Red/System [
 #define RedCameraDevicesKey		4000FFF2h
 #define RedCameraDevInputKey	4000FFF3h
 #define RedCameraImageKey		4000FFF4h
+#define RedSecureFieldKey		4000FFF5h
 #define RedTimerKey				4000FFFAh
 #define RedFieldEditorKey		4000FFFBh
 #define RedAllOverFlagKey		4000FFFCh
@@ -229,6 +230,11 @@ tagSIZE: alias struct! [
 
 #import [
 	LIBC-file cdecl [
+		strrchr: "strrchr" [
+			str			[c-string!]
+			c			[integer!]
+			return:		[c-string!]
+		]
 		objc_getClass: "objc_getClass" [
 			class		[c-string!]
 			return:		[integer!]
@@ -320,6 +326,7 @@ tagSIZE: alias struct! [
 		]
 		objc_msgSend: "objc_msgSend" [[variadic] return: [integer!]]
 		objc_msgSend_pt: "objc_msgSend" [[variadic] return: [CGPoint! value]]
+		objc_msgSend_sz: "objc_msgSend" [[variadic] return: [NSSize! value]]
 		objc_msgSend_range: "objc_msgSend" [[variadic] return: [NSRange! value]]
 		objc_msgSendSuper: "objc_msgSendSuper" [[variadic] return: [integer!]]
 		objc_msgSend_f32: "objc_msgSend_fpret" [[variadic] return: [float32!]]
@@ -337,11 +344,28 @@ tagSIZE: alias struct! [
 		]
 	]
 	"/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation" cdecl [
+		kCFRunLoopDefaultMode: "kCFRunLoopDefaultMode" [integer!]
 		CFAttributedStringCreate: "CFAttributedStringCreate" [
 			allocator	[integer!]
 			str			[integer!]
 			attributes	[integer!]
 			return:		[integer!]
+		]
+		CFGetTypeID: "CFGetTypeID" [
+			cf			[int-ptr!]
+			return:		[integer!]
+		]
+		CFNumberGetTypeID: "CFNumberGetTypeID" [
+			return:		[integer!]
+		]
+		CFNumberGetValue: "CFNumberGetValue" [
+			number		[int-ptr!]
+			theType		[integer!]
+			valuePtr	[int-ptr!]
+			return:		[logic!]
+		]
+		CFRunLoopGetCurrent: "CFRunLoopGetCurrent" [
+			return:		[int-ptr!]
 		]
 		;CFAttributedStringCreateMutable: "CFAttributedStringCreateMutable" [
 		;	allocator	[integer!]

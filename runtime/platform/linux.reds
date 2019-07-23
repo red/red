@@ -83,8 +83,7 @@ platform: context [
 		return: [int-ptr!]						;-- allocated memory region pointer
 		/local ptr prot
 	][
-		size: round-to-next size 16
-		assert zero? (size and 0Fh)				;-- size is a multiple of 16
+		assert zero? (size and (page-size - 1))	;-- size is a multiple of page size
 		prot: either exec? [MMAP_PROT_RWX][MMAP_PROT_RW]
 
 		ptr: mmap 
@@ -95,7 +94,7 @@ platform: context [
 			-1									;-- portable value
 			0
 
-		if -1 = as-integer ptr [throw OS_ERROR_VMEM_OUT_OF_MEMORY]
+		if -12 = as-integer ptr [throw OS_ERROR_VMEM_OUT_OF_MEMORY]
 		as int-ptr! ptr
 	]
 

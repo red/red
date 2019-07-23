@@ -45,6 +45,16 @@ error: context [
 		type/symbol
 	]
 	
+	get-id: func [
+		err		[red-object!]
+		return: [integer!]
+		/local
+			id [red-word!]
+	][
+		id: as red-word! (object/get-values err) + field-id
+		id/symbol
+	]
+	
 	get-stack-id: func [return: [integer!]][field-stack]
 	
 	get-call-argument: func [
@@ -102,7 +112,7 @@ error: context [
 			base [red-value!]
 			blk	 [red-block!]
 	][
-		blk: block/push* 2
+		blk: block/push-only* 2
 		block/rs-append blk cat
 		block/rs-append blk id
 	
@@ -177,7 +187,7 @@ error: context [
 			null
 		
 		new/header: TYPE_ERROR							;-- implicit reset of all header flags
-		new/class:  0
+		new/class:  OBJ_CLASS_ERROR!
 		new/on-set: null
 		
 		base:	object/get-values new
@@ -193,7 +203,7 @@ error: context [
 				w: sym + cat
 				
 				if any [
-					int/value <= 0
+					int/value < 0
 					(sym + object/get-size errors) <= as red-value! w
 				][
 					fire [TO_ERROR(script out-of-range) spec]
@@ -223,14 +233,14 @@ error: context [
 						
 						errors: (as red-object! object/get-values errors) + cat
 						value: value + 1
-						if value < block/rs-tail blk [
+						either value < block/rs-tail blk [
 							if TYPE_OF(value) <> TYPE_WORD [
 								fire [TO_ERROR(script invalid-arg) value]
 							]
 							cat2: object/rs-find errors value
 							if cat2 = -1 [fire [TO_ERROR(script invalid-spec-field) words/_id]]
 							copy-cell value base + field-id
-						]
+						][fire [TO_ERROR(script invalid-spec-field) words/_id]]
 					]
 					TYPE_SET_WORD [
 						_context/bind blk GET_CTX(new) new/ctx yes

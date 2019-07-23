@@ -42,9 +42,8 @@ system/view/VID: context [
 		
 		process: function [root [object!]][
 			unless active? [exit]
-			actions: system/view/VID/GUI-rules/processors
-			
-			foreach list reduce [general select OS system/platform/OS user][
+
+			foreach list reduce [general select OS system/platform user][
 				foreach name list [
 					if debug? [print ["Applying rule:" name]]
 					name: get in processors name
@@ -107,7 +106,8 @@ system/view/VID: context [
 				if all [face/text face/type <> 'drop-list][
 					min-sz: max min-sz size-text face
 				]
-				min-sz + any [system/view/metrics/misc/scroller 0x0]
+				s: system/view/metrics/misc/scroller
+				either s [as-pair min-sz/x + s/x min-sz/y][min-sz]
 			]
 			all [face/type = 'area string? face/text not empty? face/text][
 				len: 0
@@ -144,19 +144,19 @@ system/view/VID: context [
 					offset: offset + either dir = 'across [
 						switch align [
 							top	   [negate mar/2/x]
-							middle [to integer! round mar/2/x + mar/2/y / 2.0]
+							middle [to integer! round/floor mar/2/x + mar/2/y / 2.0]
 							bottom [mar/2/y]
 						]
 					][
 						switch align [
 							left   [negate mar/1/x]
-							center [to integer! round mar/1/x + mar/1/y / 2.0]
+							center [to integer! round/floor mar/1/x + mar/1/y / 2.0]
 							right  [mar/1/y]
 						]
 					]
 				]
 				if offset <> 0 [
-					if find [center middle] align [offset: to integer! round offset / 2.0]
+					if find [center middle] align [offset: to integer! round/floor offset / 2.0]
 					face/offset/:axis: face/offset/:axis + offset
 				]
 			]
@@ -265,6 +265,7 @@ system/view/VID: context [
 	
 	fetch-options: function [
 		face [object!] opts [object!] style [block!] spec [block!] css [block!] styling? [logic!]
+		/no-skip
 		/extern focal-face
 		return: [block!]
 	][
@@ -282,7 +283,9 @@ system/view/VID: context [
 		
 		;-- process style options --
 		until [
-			value: first spec: next spec
+			unless no-skip [spec: next spec]
+			if no-skip [no-skip: false]					;-- disable the flag after 1st use
+			value: first spec
 			match?: parse spec [[
 				  ['left | 'center | 'right]	 (opt?: add-flag opts 'para 'align value)
 				| ['top  | 'middle | 'bottom]	 (opt?: add-flag opts 'para 'v-align value)
@@ -301,6 +304,7 @@ system/view/VID: context [
 				| 'options	  (add-option opts fetch-argument block! spec)
 				| 'loose	  (add-option opts [drag-on: 'down])
 				| 'all-over   (set-flag opts 'flags 'all-over)
+				| 'password   (set-flag opts 'flags 'password)
 				| 'hidden	  (opts/visible?: no)
 				| 'disabled	  (opts/enabled?: no)
 				| 'select	  (opts/selected: fetch-argument integer! spec)
@@ -313,6 +317,7 @@ system/view/VID: context [
 				| 'cursor	  (add-option opts compose [cursor: (pre-load fetch-argument cursor! spec)])
 				| 'init		  (opts/init: fetch-argument block! spec)
 				| 'with		  (do-with: fetch-argument block! spec)
+				| 'tight	  (if opts/text [tight?: yes])
 				| 'react	  (
 					if later?: spec/2 = 'later [spec: next spec]
 					repend reactors [face fetch-argument block! spec later?]
@@ -406,6 +411,12 @@ system/view/VID: context [
 				oi/size
 			]
 		]
+		all [											;-- preprocess RTD inputs
+			face/type = 'rich-text
+			opts/data
+			rtd-layout/with opts/data face
+			opts/data: none
+		]
 
 		font: opts/font
 		if any [face-font: face/font font][
@@ -420,6 +431,11 @@ system/view/VID: context [
 			]
 			foreach [field value] default-font [
 				if none? face-font/:field [face-font/:field: get value]
+			]
+		]
+		if all [block? face/actors block? actors: opts/actors][
+			foreach [name f s b] face/actors [
+				unless find actors name [repend actors [name f s b]]
 			]
 		]
 		
@@ -452,6 +468,8 @@ system/view/VID: context [
 				max sz min-sz
 			]
 		]
+		if tight? [face/size: calc-size face]
+		
 		all [											;-- account for hard margins
 			not styling?
 			mar: select system/view/metrics/margins face/type
@@ -551,7 +569,7 @@ system/view/VID: context [
 		
 		unless panel [
 			focal-face: none
-			panel: make face! system/view/VID/styles/window/template  ;-- absolute path to avoid clashing with /styles
+			panel: make face! copy system/view/VID/styles/window/template  ;-- absolute path to avoid clashing with /styles
 		]
 		either block? panel/pane [list: panel/pane][panel/pane: list]
 		
@@ -699,7 +717,7 @@ system/view/VID: context [
 							face/offset/:axis: list/:index/offset/:axis
 						]
 					]
-					unless any [face/color panel/type = 'tab-panel][
+					unless any [face/color panel/type = 'tab-panel face/type = 'text][
 						face/color: system/view/metrics/colors/(face/type)
 					]
 					
@@ -725,8 +743,8 @@ system/view/VID: context [
 		]
 		if all [not size image: panel/image][panel/size: max panel/size image/size]
 
-		if all [focal-face not parent][panel/selected: focal-face]
-		
+		if all [focal-face find panel/pane focal-face not parent][panel/selected: focal-face]
+
 		if options [set/some panel make object! user-opts]
 		if flags [panel/flags: either panel/flags [unique union to-block panel/flags to-block flgs][flgs]]
 		if block? panel/actors [panel/actors: context panel/actors]

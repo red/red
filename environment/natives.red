@@ -91,7 +91,7 @@ forever: make native! [[
 foreach: make native! [[
 		"Evaluates body for each value in a series"
 		'word  [word! block!]   "Word, or words, to set on each iteration"
-		series [series!]
+		series [series! map!]
 		body   [block!]
 	]
 	#get-definition NAT_FOREACH
@@ -187,7 +187,7 @@ reduce: make native! [[
 
 compose: make native! [[
 		"Returns a copy of a block, evaluating only parens"
-		value
+		value [block!]
 		/deep "Compose nested blocks"
 		/only "Compose nested blocks as blocks containing their values"
 		/into "Put results in out block, instead of creating a new block"
@@ -198,7 +198,7 @@ compose: make native! [[
 
 get: make native! [[
 		"Returns the value a word refers to"
-		word	[word! path!]
+		word	[word! path! object!]
 		/any  "If word has no value, return UNSET rather than causing an error"
 		/case "Use case-sensitive comparison (path only)"
 		return: [any-type!]
@@ -322,9 +322,10 @@ stats: make native! [[
 ]
 
 bind: make native! [[
+		"Bind words to a context; returns rebound words"
 		word 	[block! any-word!]
 		context [any-word! any-object! function!]
-		/copy
+		/copy	"Deep copy blocks before binding"
 		return: [block! any-word!]
 	]
 	#get-definition NAT_BIND
@@ -339,11 +340,12 @@ in: make native! [[
 ]
 
 parse: make native! [[
+		"Process a series using dialected grammar rules"
 		input [binary! any-block! any-string!]
 		rules [block!]
-		/case
+		/case "Uses case-sensitive comparison"
 		;/strict
-		/part
+		/part "Limit to a length or position"
 			length [number! series!]
 		/trace
 			callback [function! [
@@ -401,7 +403,7 @@ difference: make native! [[
 		/case "Use case-sensitive comparison"
 		/skip "Treat the series as fixed size records"
 			size [integer!]
-		return: [block! hash! string! bitset! typeset!]
+		return: [block! hash! string! bitset! typeset! time!]
 	]
 	#get-definition NAT_DIFFERENCE
 ]
@@ -427,7 +429,8 @@ complement?: make native! [[
 
 dehex: make native! [[
 		"Converts URL-style hex encoded (%xx) strings"
-		value [string! file!]							;@@ replace with any-string!
+		value [any-string!]
+		return:	[string!] "Always return a string"
 	]
 	#get-definition NAT_DEHEX
 ]
@@ -511,35 +514,36 @@ tangent: make native! [[
 ]
 
 arcsine: make native! [[
-		"Returns the trigonometric arcsine (in degrees by default)"
-		angle	[number!]
-		/radians "Angle is specified in radians"
+		"Returns the trigonometric arcsine (in degrees by default in range [-90,90])"
+		sine	[number!] "in range [-1,1]"
+		/radians "Angle is returned in radians [-pi/2,pi/2]"
 		return: [float!]
 	]
 	#get-definition NAT_ARCSINE
 ]
 
 arccosine: make native! [[
-		"Returns the trigonometric arccosine (in degrees by default)"
-		angle	[number!]
-		/radians "Angle is specified in radians"
+		"Returns the trigonometric arccosine (in degrees by default in range [0,180])"
+		cosine	[number!] "in range [-1,1]"
+		/radians "Angle is returned in radians [0,pi]"
 		return: [float!]
 	]
 	#get-definition NAT_ARCCOSINE
 ]
 
 arctangent: make native! [[
-		"Returns the trigonometric arctangent (in degrees by default)"
-		angle	[number!]
-		/radians "Angle is specified in radians"
+		"Returns the trigonometric arctangent (in degrees by default in range [-90,90])"
+		tangent	[number!] "in range [-inf,+inf]"
+		/radians "Angle is returned in radians [-pi/2,pi/2]"
 		return: [float!]
 	]
 	#get-definition NAT_ARCTANGENT
 ]
 arctangent2: make native! [[
-		"Returns the angle of the point y/x in radians, when measured counterclockwise from a circle's x axis (where 0x0 represents the center of the circle). The return value is between -pi and +pi."
+		"Returns the smallest angle between the vectors (1,0) and (x,y) in degrees by default (-180,180]"
 		y       [number!]
 		x       [number!]
+		/radians "Angle is returned in radians (-pi,pi]"
 		return: [float!]
 	]
 	#get-definition NAT_ARCTANGENT2
@@ -602,10 +606,11 @@ square-root: make native! [[
 ]
 
 construct: make native! [[
+		"Makes a new object from an unevaluated spec; standard logic words are evaluated"
 		block [block!]
-		/with
-			object [object!]
-		/only
+		/with "Use a prototype object"
+			object [object!] "Prototype object"
+		/only "Don't evaluate standard logic words"
 	]
 	#get-definition NAT_CONSTRUCT
 ]
@@ -712,7 +717,7 @@ debase: make native! [[
 		"Decodes binary-coded string (BASE-64 default) to binary value"
 		value [string!] "The string to decode"
 		/base "Binary base to use"
-			base-value [integer!] "The base to convert from: 64, 16, or 2"
+			base-value [integer!] "The base to convert from: 64, 58, 16, or 2"
 	]
 	#get-definition NAT_DEBASE
 ]
@@ -721,7 +726,7 @@ enbase: make native! [[
 		"Encodes a string into a binary-coded string (BASE-64 default)"
 		value [binary! string!] "If string, will be UTF8 encoded"
 		/base "Binary base to use"
-			base-value [integer!] "The base to convert from: 64, 16, or 2"
+			base-value [integer!] "The base to convert from: 64, 58, 16, or 2"
 	]
 	#get-definition NAT_ENBASE
 ]
@@ -819,7 +824,7 @@ now: make native! [[
 		/month		"Returns month only"
 		/day		"Returns day of the month only"
 		/time		"Returns time only"
-		/zone		"Returns time zone offset from UCT (GMT) only"
+		/zone		"Returns time zone offset from UTC (GMT) only"
 		/date		"Returns date only"
 		/weekday	"Returns day of the week as integer (Monday is day 1)"
 		/yearday	"Returns day of the year (Julian)"
@@ -877,9 +882,18 @@ browse: make native! [[
 
 decompress: make native! [[
 		"Decompresses data. Data in GZIP format (RFC 1952) by default"
-		data		  [binary!]
-		/zlib	 size [integer!] "Data in ZLIB format (RFC 1950), uncompressed file size is required"
-		/deflate size [integer!] "Data in DEFLATE format (RFC 1951), uncompressed file size is required"
+		data		[binary!]
+		/zlib		"Data in ZLIB format (RFC 1950)"
+		size		[integer!] "Uncompressed data size"
+		/deflate	"Data in DEFLATE format (RFC 1951)"
+		size		[integer!] "Uncompressed data size"
 	]
 	#get-definition NAT_DECOMPRESS
+]
+
+recycle: make native! [[
+		/on
+		/off
+	]
+	#get-definition NAT_RECYCLE
 ]

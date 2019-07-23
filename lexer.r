@@ -8,7 +8,7 @@ REBOL [
 ]
 
 ;-- Patch NEW-LINE and NEW-LINE? natives to accept paren! --
-append first find third :new-line  block! paren!
+append first find third :new-line  block! [path! paren!]
 append first find third :new-line? block! paren!
 
 
@@ -426,7 +426,7 @@ lexer: context [
 	]
 
 	decimal-special: [
-		s: "-0.0" | (neg?: no) opt [#"-" (neg?: yes)] "1.#" s: [
+		s: "-0.0" pos: [integer-end | ws-no-count | end ] :pos | (neg?: no) opt [#"-" (neg?: yes)] "1.#" s: [
 			[[#"N" | #"n"] [#"a" | #"A"] [#"N" | #"n"]]
 			| [[#"I" | #"i"] [#"N" | #"n"] [#"F" | #"f"]]
 		]
@@ -527,7 +527,7 @@ lexer: context [
 
 	base-2-rule: [
 		"2#{" (type: binary!) [
-			s: any [counted-newline | 8 [#"0" | #"1" ] | ws-no-count | comment-rule]
+			s: any [counted-newline | 8 [any [ws-no-count | comment-rule][#"0" | #"1" ]] | ws-no-count | comment-rule]
 			e: #"}" (base: 2)
 			| (pos: skip s -3 throw-error)
 		]
@@ -815,8 +815,10 @@ lexer: context [
 			#[datatype! decimal!][s: load-decimal s]
 			#[datatype! issue!  ][
 				if s = "-0.0" [s: "0-"]					;-- re-encoded for consistency
-				s: to issue! either #"%" = last s [s][join "." s]
-				if neg? [append s #"-"]
+				either #"%" = last s [s: to issue! s][
+					s: to issue! join "." s
+					if neg? [append s #"-"]
+				]
 			]
 		][
 			unless find [integer! decimal!] type?/word s: to integer! s [throw-error]
@@ -836,6 +838,7 @@ lexer: context [
 		parse/all/case copy/part s e [
 			any [
 				escaped-char   (insert tail new value)
+				| #"^^"
 				| s: filter e: (insert/part tail new s e)
 			]										;-- exit on matching " or }
 		]

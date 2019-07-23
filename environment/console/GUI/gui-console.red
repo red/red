@@ -47,9 +47,9 @@ gui-console-ctx: context [
 	scroller:	make scroller! []
 
 	console:	make face! [
-		type: 'base color: 0.0.128 offset: 0x0 size: 400x400
+		type: 'rich-text color: 0.0.128 offset: 0x0 size: 400x400
 		flags:   [scrollable all-over]
-		options: [cursor: I-beam rich-text?: yes]
+		options: [cursor: I-beam]
 		menu: [
 			"Copy^-Ctrl+C"		copy
 			"Paste^-Shift+Ins"	paste
@@ -58,8 +58,9 @@ gui-console-ctx: context [
 		]
 		actors: object [
 			on-time: func [face [object!] event [event!]][
-				caret/rate: 2
-				face/rate: none
+				if caret/enabled? [caret/rate: 2]
+				terminal/on-time
+				'done
 			]
 			on-drawing: func [face [object!] event [event!]][
 				terminal/paint
@@ -68,7 +69,11 @@ gui-console-ctx: context [
 				terminal/scroll event
 			]
 			on-wheel: func [face [object!] event [event!]][
-				terminal/scroll event
+				either event/ctrl? [
+					terminal/zoom event
+				][
+					terminal/scroll event
+				]
 			]
 			on-key: func [face [object!] event [event!]][
 				terminal/press-key event
@@ -83,7 +88,7 @@ gui-console-ctx: context [
 				terminal/mouse-up event
 			]
 			on-over: func [face [object!] event [event!]][
-				terminal/mouse-move event
+				terminal/mouse-move event/offset
 			]
 			on-menu: func [face [object!] event [event!]][
 				switch event/picked [
@@ -91,13 +96,16 @@ gui-console-ctx: context [
 					paste		[terminal/paste]
 					select-all	[terminal/select-all]
 				]
+				'done
 			]
 		]
+
+		tabs: none line-spacing: 'default handles: none	;-- extra fields
 
 		init: func [/local box][
 			terminal/windows: system/view/screens/1/pane
 			box: terminal/box
-			box/styles: make block! 200
+			box/data: make block! 200
 			scroller: get-scroller self 'horizontal
 			scroller/visible?: no						;-- hide horizontal bar
 			scroller: get-scroller self 'vertical
@@ -107,11 +115,12 @@ gui-console-ctx: context [
 	]
 
 	caret: make face! [
-		type: 'base color: caret-clr offset: 0x0 size: 1x17 rate: 2 visible?: no
+		type: 'base color: caret-clr offset: 0x0 size: 1x17 rate: 2 enabled?: no
 		options: compose [caret (console) cursor: I-beam accelerated: yes]
 		actors: object [
 			on-time: func [face [object!] event [event!]][
 				face/color: either face/color = caret-clr [255.255.255.254][caret-clr]
+				'done
 			]
 		]
 	]
@@ -121,10 +130,11 @@ gui-console-ctx: context [
 
 	#include %settings.red
 
-	show-caret: func [][unless caret/visible? [caret/visible?: yes]]
+	show-caret: func [][unless caret/enabled? [caret/enabled?: yes]]
 
 	setup-faces: does [
-		append win/pane reduce [console tips caret]
+		console/pane: reduce [caret]
+		append win/pane reduce [console tips]
 		win/menu: [
 			"File" [
 				"Run..."			run-file
@@ -166,11 +176,21 @@ gui-console-ctx: context [
 				clear head system/view/screens/1/pane
 			]
 			on-resizing: function [face [object!] event [event!]][
-				new-sz: face/size
+				new-sz: event/offset
 				console/size: new-sz
 				terminal/resize new-sz
 				terminal/adjust-console-size new-sz
 				unless system/view/auto-sync? [show face]
+			]
+			on-focus: func [face [object!] event [event!]][
+				caret/color: caret-clr
+				unless caret/enabled? [caret/enabled?: yes]
+				caret/rate: 2
+				terminal/refresh
+			]
+			on-unfocus: func [face [object!] event [event!]][
+				if caret/enabled? [caret/enabled?: no]
+				caret/rate: none
 			]
 		]
 		tips/parent: win
@@ -178,11 +198,15 @@ gui-console-ctx: context [
 
 	win: layout/tight [						;-- main window
 		title "Red Console"
-		size  640x480
+		size  200x200
 	]
 
 	add-gui-print: routine [][
-		dyn-print/add as int-ptr! :red-print-gui as int-ptr! :rs-print-gui
+		gui-console-buffer: ALLOC_TAIL(root)
+		gui-console-buffer/header: TYPE_UNSET
+		dyn-print/add as int-ptr! :red-print-gui #either debug? = yes [null][
+			as int-ptr! :rs-print-gui
+		]
 	]
 
 	launch: func [/local svs][
@@ -205,6 +229,7 @@ gui-console-ctx: context [
 ]
 
 ask: function [
+	"Prompt the user for input"
 	question [string!]
 	return:  [string!]
 ][
@@ -216,7 +241,7 @@ ask: function [
 	vt: gui-console-ctx/terminal
 	vt/line: line
 	vt/pos: 0
-	vt/add-line line
+	vt/add-line head line
 	vt/ask?: yes
 	vt/reset-top/force
 	vt/clear-stack
@@ -228,12 +253,16 @@ ask: function [
 		do-events
 	]
 	vt/ask?: no
-	gui-console-ctx/caret/visible?: no
+	gui-console-ctx/caret/enabled?: no
 	unless gui-console-ctx/console/state [line: "quit"]
 	line
 ]
 
+input: function ["Wait for console user input" return: [string!]][ask ""]
+
 #system [
+	gui-console-buffer: as red-value! 0
+
 	red-print-gui: func [
 		str		[red-string!]
 		lf?		[logic!]
@@ -248,15 +277,16 @@ ask: function [
 		/local
 			str [red-string!]
 	][
-		str: declare red-string!
+		str: as red-string! gui-console-buffer
 		if negative? size [size: length? cstr]
 		either TYPE_OF(str) = TYPE_STRING [
 			string/rs-reset str
 			unicode/load-utf8-buffer cstr size GET_BUFFER(str) null yes
 		][
+			str/header: TYPE_UNSET
+			str/node: unicode/load-utf8-buffer cstr size null null yes
 			str/header: TYPE_STRING
 			str/head: 0
-			str/node: unicode/load-utf8-buffer cstr size null null yes
 			str/cache: null
 		]
 		red-print-gui str lf?
