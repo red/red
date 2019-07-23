@@ -146,8 +146,10 @@ port: context [
 		copy-cell as red-value! scheme base + field-scheme
 		
 		obj: as red-object! block/rs-select as red-block! #get system/schemes as red-value! scheme
-		assert TYPE_OF(obj) = TYPE_OBJECT
-		actor: (object/get-values obj) + 3									;-- `actor` field from scheme object
+		if TYPE_OF(obj) <> TYPE_OBJECT [				 ;@@ check obj deeper!
+			fire [TO_ERROR(access unknown-scheme) spec]
+		]
+		actor: (object/get-values obj) + 3				;-- `actor` field from scheme object
 		type: TYPE_OF(actor)
 		
 		unless any [type = TYPE_OBJECT type = TYPE_HANDLE][

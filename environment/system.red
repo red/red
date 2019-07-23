@@ -210,6 +210,7 @@ system: context [
 				;no-script:			["script not found:" :arg1]
 				;no-scheme-name:	["new scheme must have a name:" :arg1]
 				no-scheme:			["missing port scheme:" :arg1]
+				unknown-scheme:		["scheme is unknown:" :arg1]
 				invalid-spec:		["invalid spec or options:" :arg1]
 				invalid-port:		["invalid port object (invalid field values)"]
 				invalid-actor:		["invalid port actor (must be handle or object)"]
