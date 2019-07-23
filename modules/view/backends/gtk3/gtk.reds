@@ -667,6 +667,37 @@ GPtrArray!: alias struct! [
 			display 	[handle!]
 			return: 	[handle!]
 		]
+		gtk_clipboard_get: "gtk_clipboard_get" [
+			atom 		[handle!]
+			return: 	[handle!]
+		]
+		gtk_clipboard_set_text: "gtk_clipboard_set_text" [
+			clipboard 	[handle!]
+			text 		[c-string!]
+			len 		[integer!]
+		]
+		gtk_clipboard_set_image: "gtk_clipboard_set_image" [
+			clipboard 	[handle!]
+			img 		[handle!]
+		]
+		gtk_clipboard_wait_for_text: "gtk_clipboard_wait_for_text" [
+			clipboard 	[handle!]
+			return: 	[c-string!]
+		]
+		gtk_clipboard_wait_for_image: "gtk_clipboard_wait_for_image" [
+			clipboard 	[handle!]
+			return: 	[handle!]
+		]
+		gtk_clipboard_request_text: "gtk_clipboard_request_text" [
+			clipboard 	[handle!]
+			handler 	[integer!]
+			data		[handle!]
+		]
+		gtk_clipboard_request_image: "gtk_clipboard_request_image" [
+			clipboard 	[handle!]
+			handler 	[integer!]
+			data		[handle!]
+		]
 	;; ]
 	;; LIBGLIB-file cdecl [
 		g_quark_from_string: "g_quark_from_string" [
@@ -845,20 +876,20 @@ GPtrArray!: alias struct! [
 		gdk_cursor_new_from_pixbuf: "gdk_cursor_new_from_pixbuf" [
 			display			[handle!]
 			pixbuf			[handle!]
-			x						[integer!]
-			y						[integer!]
+			x				[integer!]
+			y				[integer!]
 			return:			[handle!]
 		]
 		gdk_cursor_new_from_name: "gdk_cursor_new_from_name" [
 			display			[handle!]
-			name				[c-string!]
+			name			[c-string!]
 			return:			[handle!]
 		]
 		gtk_get_current_event_time: "gtk_get_current_event_time" [
 			return:			[integer!]
 		]
 		gtk_get_current_event_state: "gtk_get_current_event_state" [
-			state				[int-ptr!]
+			state			[int-ptr!]
 		]
 		gtk_get_current_event: "gtk_get_current_event" [
 			return:			[handle!]
@@ -878,7 +909,7 @@ GPtrArray!: alias struct! [
 		]
 		gdk_event_copy: "gdk_event_copy" [
 			event			[handle!]
-			return:		[handle!]
+			return:			[handle!]
 		]
 		gdk_event_free: " gdk_event_free" [
 			event			[handle!]
@@ -887,12 +918,12 @@ GPtrArray!: alias struct! [
 			event			[handle!]
 			dx				[float-ptr!]
 			dy				[float-ptr!]
-			return:		[integer!]
+			return:			[integer!]
 		]
 
 		gdk_event_get_scroll_direction: "gdk_event_get_scroll_direction" [
 			event			[handle!]
-			direction	[int-ptr!]
+			direction		[int-ptr!]
 		]
 		gdk_window_get_display: "gdk_window_get_display" [
 			window			[handle!]
@@ -901,14 +932,14 @@ GPtrArray!: alias struct! [
 		gdk_window_get_device_position: "gdk_window_get_device_position" [
 			window			[handle!]
  			device			[handle!]
-   		x						[int-ptr!]
-			y						[int-ptr!]
- 			mask				[handle!]
+   			x				[int-ptr!]
+			y				[int-ptr!]
+ 			mask			[handle!]
 			return:			[handle!]
 		]
 		gdk_window_invalidate_rect: "gdk_window_invalidate_rect" [
-			window							[handle!]
-			rect								[tagRECT]
+			window				[handle!]
+			rect				[tagRECT]
 			invalidate_children	[logic!]
 		]
 		gtk_application_new: "gtk_application_new" [
@@ -941,110 +972,110 @@ GPtrArray!: alias struct! [
 		]
 		gtk_menu_bar_set_pack_direction: "gtk_menu_bar_set_pack_direction" [
 			menubar		[handle!]
-			dir				[GtkPackDirection!]
+			dir			[GtkPackDirection!]
 		]
 		gtk_menu_bar_set_child_pack_direction: "gtk_menu_bar_set_child_pack_direction" [
 			menubar		[handle!]
-			dir				[GtkPackDirection!]
+			dir			[GtkPackDirection!]
 		]
 		gtk_menu_new: "gtk_menu_new" [
 			return:		[handle!]
 		]
 		gtk_menu_popup_at_pointer: "gtk_menu_popup_at_pointer" [
-			menu			[handle!]
-			event			[handle!]
+			menu		[handle!]
+			event		[handle!]
 		]
 		gtk_menu_shell_append: "gtk_menu_shell_append" [
-			menu			[handle!]
+			menu		[handle!]
 			item		[handle!]
 		]
 		gtk_menu_shell_prepend: "gtk_menu_shell_prepend" [
-			menu			[handle!]
-			item			[handle!]
+			menu		[handle!]
+			item		[handle!]
 		]
 		gtk_menu_shell_insert: "gtk_menu_shell_insert" [
-			menu			[handle!]
-			item			[handle!]
-			pos				[integer!]
+			menu		[handle!]
+			item		[handle!]
+			pos			[integer!]
 		]
 		gtk_menu_shell_select_item: "gtk_menu_shell_select_item" [
-			menu			[handle!]
-			item			[handle!]
+			menu		[handle!]
+			item		[handle!]
 		]
 		gtk_menu_shell_select_first: "gtk_menu_shell_select_first" [
-			menu			[handle!]
+			menu		[handle!]
 			sensitive	[logic!]
 		]
 		gtk_menu_shell_deselect: "gtk_menu_shell_deselect" [
-			menu			[handle!]
+			menu		[handle!]
 		]
 		gtk_menu_shell_activate_item: "gtk_menu_shell_activate_item" [
-			menu			[handle!]
-			item			[handle!]
-			force			[integer!]
+			menu		[handle!]
+			item		[handle!]
+			force		[integer!]
 		]
 		gtk_menu_shell_cancel: "gtk_menu_shell_cancel" [
-			menu			[handle!]
+			menu		[handle!]
 		]
 		gtk_menu_shell_set_take_focus: "gtk_menu_shell_set_take_focus" [
-			menu			[handle!]
-			focus			[integer!]
+			menu		[handle!]
+			focus		[integer!]
 		]
 		gtk_menu_shell_get_take_focus: "gtk_menu_shell_get_take_focus" [
-			menu			[handle!]
+			menu		[handle!]
 			return:		[integer!]
 		]
 		gtk_menu_shell_get_selected_item: "gtk_menu_shell_get_selected_item" [
-			menu			[handle!]
+			menu		[handle!]
 			return:		[handle!]
 		]
 		gtk_menu_shell_get_parent_shell: "gtk_menu_shell_get_parent_shell" [
-			menu			[handle!]
+			menu		[handle!]
 			return:		[handle!]
 		]
 		gtk_menu_item_new: "gtk_menu_item_new" [
 			return:		[handle!]
 		]
 		gtk_menu_item_new_with_label: "gtk_menu_item_new_with_label" [
-			label			[c-string!]
+			label		[c-string!]
 			return:		[handle!]
 		]
 		gtk_menu_item_new_with_mnemonic: "gtk_menu_item_new_with_mnemonic" [
-			label			[c-string!]
+			label		[c-string!]
 			return:		[handle!]
 		]
 		gtk_menu_item_get_label: "gtk_menu_item_get_label" [
-			item			[handle!]
+			item		[handle!]
 			return: 	[c-string!]
 		]
 		gtk_menu_item_set_label: "gtk_menu_item_set_label" [
-			item			[handle!]
-			label 	[c-string!]
+			item		[handle!]
+			label 		[c-string!]
 		]
 		gtk_menu_item_get_use_underline: "gtk_menu_item_get_use_underline" [
-			item			[handle!]
+			item		[handle!]
 			return: 	[logic!]
 		]
 		gtk_menu_item_set_use_underline: "gtk_menu_item_set_use_underline" [
-			item			[handle!]
+			item		[handle!]
 			setting 	[logic!]
 		]
 		gtk_menu_item_set_submenu: "gtk_menu_item_set_submenu" [
-			item			[handle!]
+			item		[handle!]
 			submenu		[handle!]
 		]
 		gtk_menu_item_get_submenu: "gtk_menu_item_get_submenu" [
-			item			[handle!]
+			item		[handle!]
 			return:		[handle!]
 		]
 		gtk_menu_item_select: "gtk_menu_item_select" [
-			item			[handle!]
+			item		[handle!]
 		]
 		gtk_menu_item_deselect: "gtk_menu_item_deselect" [
-			item			[handle!]
+			item		[handle!]
 		]
 		gtk_menu_item_activate: "gtk_menu_item_activate" [
-			item			[handle!]
+			item		[handle!]
 		]
 		gtk_separator_menu_item_new: "gtk_separator_menu_item_new" [
 			return: 	[handle!]
@@ -1109,7 +1140,7 @@ GPtrArray!: alias struct! [
 		]
 		gtk_window_set_resizable: "gtk_window_set_resizable" [
 			window		[handle!]
-			mode			[logic!]
+			mode		[logic!]
 		]
 		gtk_window_move: "gtk_window_move" [
 			window		[handle!]
@@ -1148,7 +1179,7 @@ GPtrArray!: alias struct! [
 		]
 		gtk_window_propagate_key_event: "gtk_window_propagate_key_event" [
 			widget		[handle!]
-			event			[handle!]
+			event		[handle!]
 		]
 		gtk_window_get_focus: "gtk_window_get_focus" [
 			window 		[handle!]
@@ -1163,12 +1194,12 @@ GPtrArray!: alias struct! [
 			return:	 	[handle!]	
 		]
 		gtk_window_set_default: "gtk_window_set_default" [
-			window 					[handle!]
+			window 			[handle!]
 			default_widget	[handle!]
 		]
 		gtk_propagate_event: "gtk_propagate_event" [
 			widget		[handle!]
-			event			[handle!]
+			event		[handle!]
 		]
 		gtk_widget_register_window: "gtk_widget_register_window" [
 			widget		[handle!]
@@ -1180,7 +1211,7 @@ GPtrArray!: alias struct! [
 		]
 		gtk_widget_event: "gtk_widget_event" [
 			widget		[handle!]
-			event			[handle!]
+			event		[handle!]
 			return: 	[logic!]
 		]
 		gtk_widget_queue_draw: "gtk_widget_queue_draw" [
@@ -1188,10 +1219,10 @@ GPtrArray!: alias struct! [
 		]
 		gtk_widget_queue_draw_area: "gtk_widget_queue_draw_area" [
 			widget		[handle!]
-			x					[integer!]
-			y					[integer!]
-			w					[integer!]
-			h					[integer!]
+			x			[integer!]
+			y			[integer!]
+			w			[integer!]
+			h			[integer!]
 		]
 		gtk_widget_queue_resize: "gtk_widget_queue_resize" [
 			widget		[handle!]
@@ -1227,11 +1258,11 @@ GPtrArray!: alias struct! [
 		]
 		gtk_widget_set_hexpand: "gtk_widget_set_hexpand" [
 			widget		[handle!]
-			type		 	[logic!]
+			type		[logic!]
 		]
 		gtk_widget_set_vexpand: "gtk_widget_set_vexpand" [
 			widget		[handle!]
-			type		 	[logic!]
+			type		[logic!]
 		]
 		gtk_widget_compute_expand: "gtk_widget_compute_expand" [
 			widget		[handle!]
@@ -1244,11 +1275,11 @@ GPtrArray!: alias struct! [
 		]
 		gtk_widget_get_visible: "gtk_widget_get_visible" [
 			widget		[handle!]
-			return: 		[logic!]
+			return: 	[logic!]
 		]
 		gtk_widget_is_visible: "gtk_widget_is_visible" [
 			widget		[handle!]
-			return: 		[logic!]
+			return: 	[logic!]
 		]
 		gtk_widget_set_sensitive: "gtk_widget_set_sensitive" [
 			widget		[handle!]
@@ -1303,8 +1334,8 @@ GPtrArray!: alias struct! [
 			focus		[logic!]
 		]
 		gtk_widget_set_can_default: "gtk_widget_set_can_default" [
-			widget				[handle!]
-			can_default		[logic!]
+			widget		[handle!]
+			can_default	[logic!]
 		]
 		gtk_widget_set_focus_on_click: "gtk_widget_set_focus_on_click" [
 			widget		[handle!]
@@ -1340,7 +1371,7 @@ GPtrArray!: alias struct! [
 		]
 		gtk_widget_add_events: "gtk_widget_add_events" [
 			widget 	[handle!]
-			mask 		[integer!]
+			mask 	[integer!]
 		]
 		gtk_widget_get_events: "gtk_widget_get_events" [
 			widget 	[handle!]
