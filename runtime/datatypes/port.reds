@@ -20,6 +20,7 @@ port: context [
 		field-awake
 		field-state
 		field-data
+		field-extra
 	]
 	
 	call-function: func [
