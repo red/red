@@ -128,7 +128,7 @@ gui-console-ctx: context [
 
 	setup-faces: does [
 		console/pane: reduce [caret]
-		append win/pane reduce [console]; tips]
+		append win/pane reduce [console tips]
 		win/menu: [
 			"File" [
 				"Run..."			run-file
@@ -208,6 +208,7 @@ gui-console-ctx: context [
 		console/init
 		load-cfg
 		win/visible?: yes
+		#if config/OS = 'Linux [tips/visible?: no]
 
 		svs: system/view/screens/1
 		svs/pane: next svs/pane				;-- proctect itself from unview/all

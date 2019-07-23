@@ -977,8 +977,7 @@ change-visible: func [
 			0
 		]
 		true [
-			;; DEBUG: 
-			print ["change-visible " widget " (type " get-symbol-name type "): " show? lf]
+			;; DEBUG: print ["change-visible " widget " (type " get-symbol-name type "): " show? lf]
 			gtk_widget_set_visible widget show?
 		]
 	]
