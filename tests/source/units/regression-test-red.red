@@ -2784,6 +2784,7 @@ b}
 		--assert success3739
 		unset [s3739 a3739 b3739 success3739 reactor3739]
 
+comment {
 	--test-- "#3773"
 		;; context? should not accept a string
 		--assert error? try [
@@ -2806,7 +2807,7 @@ b}
 				probe quote (mc :mc)
 			]
 		]
-
+}
 
 ===end-group===
 
