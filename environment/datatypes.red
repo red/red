@@ -60,10 +60,7 @@ email!:			make datatype! #get-definition TYPE_EMAIL
 handle!:		make datatype! #get-definition TYPE_HANDLE
 date!:			make datatype! #get-definition TYPE_DATE
 port!:			make datatype! #get-definition TYPE_PORT
-
-#if find config/modules 'view [
-	event!: make datatype! #get-definition TYPE_EVENT
-]
+event!:			make datatype! #get-definition TYPE_EVENT
 
 none:  			make none! 0
 true:  			make logic! 1

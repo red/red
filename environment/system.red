@@ -178,7 +178,7 @@ system: context [
 				not-window:			"VIEW - expected a window root face"
 				bad-window:			"VIEW - a window face cannot be nested in another window"
 				not-linked:			"VIEW - face not linked to a window"
-				not-event-type:		["VIEW - not a valid event type" :arg1]
+				not-event-type:		["EVENT - not a valid event type" :arg1]
 				invalid-facet-type:	["VIEW - invalid rate value:" :arg1]
 				vid-invalid-syntax:	["VID - invalid syntax at:" :arg1]
 				rtd-invalid-syntax: ["RTD - invalid syntax at:" :arg1]

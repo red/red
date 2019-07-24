@@ -10,6 +10,11 @@ Red/System [
 	}
 ]
 
+#enum event-category! [
+	EVT_CATEGORY_GUI
+	EVT_CATEGORY_IO
+]
+
 event: context [
 	verbose: 0
 	
@@ -98,33 +103,50 @@ event: context [
 		/local
 			word [red-word!]
 			sym	 [integer!]
+			grp  [integer!]
 	][
 		word: as red-word! element
 		sym: symbol/resolve word/symbol
-		
+		grp: evt/type >>> 16
+
 		either value <> null [
 			if sym <> words/type [fire [TO_ERROR(script invalid-path-set) path]]
 			if TYPE_OF(value) <> TYPE_WORD [fire [TO_ERROR(script bad-path-set) path value]]
-			gui/set-event-type evt as red-word! value
+			switch grp [
+				#if modules contains 'View [
+				EVT_CATEGORY_GUI [gui/set-event-type evt as red-word! value]
+				]
+				EVT_CATEGORY_IO  [0]
+				default [assert 1 = 0]		;-- something is wrong
+			]
 			value
 		][
-			case [
-				sym = words/type	  [gui/get-event-type evt]
-				sym = words/face	  [gui/get-event-face evt]
-				sym = words/window	  [gui/get-event-window evt]
-				sym = words/offset	  [gui/get-event-offset evt]
-				sym = words/key		  [gui/get-event-key evt]
-				sym = words/picked	  [gui/get-event-picked evt]
-				sym = words/flags	  [gui/get-event-flags evt]
-				sym = words/away?	  [gui/get-event-flag evt/flags gui/EVT_FLAG_AWAY]
-				sym = words/down?	  [gui/get-event-flag evt/flags gui/EVT_FLAG_DOWN]
-				sym = words/mid-down? [gui/get-event-flag evt/flags gui/EVT_FLAG_MID_DOWN]
-				sym = words/alt-down? [gui/get-event-flag evt/flags gui/EVT_FLAG_ALT_DOWN]
-				sym = words/aux-down? [gui/get-event-flag evt/flags gui/EVT_FLAG_AUX_DOWN]
-				sym = words/ctrl?	  [gui/get-event-flag evt/flags gui/EVT_FLAG_CTRL_DOWN]
-				sym = words/shift?	  [gui/get-event-flag evt/flags gui/EVT_FLAG_SHIFT_DOWN]
-				;sym = words/code	  [gui/get-event-code	  evt/msg]
-				true 				  [fire [TO_ERROR(script invalid-path) path element] null]
+			switch grp [
+				#if modules contains 'View [
+				EVT_CATEGORY_GUI [
+					case [
+						sym = words/type	  [gui/get-event-type evt]
+						sym = words/face	  [gui/get-event-face evt]
+						sym = words/window	  [gui/get-event-window evt]
+						sym = words/offset	  [gui/get-event-offset evt]
+						sym = words/key		  [gui/get-event-key evt]
+						sym = words/picked	  [gui/get-event-picked evt]
+						sym = words/flags	  [gui/get-event-flags evt]
+						sym = words/away?	  [gui/get-event-flag evt/flags gui/EVT_FLAG_AWAY]
+						sym = words/down?	  [gui/get-event-flag evt/flags gui/EVT_FLAG_DOWN]
+						sym = words/mid-down? [gui/get-event-flag evt/flags gui/EVT_FLAG_MID_DOWN]
+						sym = words/alt-down? [gui/get-event-flag evt/flags gui/EVT_FLAG_ALT_DOWN]
+						sym = words/aux-down? [gui/get-event-flag evt/flags gui/EVT_FLAG_AUX_DOWN]
+						sym = words/ctrl?	  [gui/get-event-flag evt/flags gui/EVT_FLAG_CTRL_DOWN]
+						sym = words/shift?	  [gui/get-event-flag evt/flags gui/EVT_FLAG_SHIFT_DOWN]
+						;sym = words/code	  [gui/get-event-code	  evt/msg]
+						true 				  [fire [TO_ERROR(script invalid-path) path element] null]
+					]
+				]]
+				EVT_CATEGORY_IO [
+					null
+				]
+				default [fire [TO_ERROR(script not-event-type) integer/push grp] null]
 			]
 		]
 	]

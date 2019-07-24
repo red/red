@@ -300,7 +300,7 @@ red-hash!: alias struct! [
 
 red-event!: alias struct! [
 	header	[integer!]								;-- cell header
-	type	[integer!]								;-- symbol ID
+	type	[integer!]								;-- event category (high 16bit) and event type (low 16bit)
 	msg		[byte-ptr!]								;-- low-level OS-specific structure
 	flags	[integer!]								;-- bit array
 ]

@@ -103,6 +103,7 @@ red: context [
 	#include %datatypes/handle.reds
 	#include %datatypes/date.reds
 	#include %datatypes/port.reds
+	#either modules contains 'View [][#include %datatypes/event.reds]
 	#if OS = 'Windows [#include %datatypes/image.reds]	;-- temporary
 	#if OS = 'macOS   [#include %datatypes/image.reds]	;-- temporary
 
@@ -198,6 +199,7 @@ red: context [
 		handle/init
 		date/init
 		port/init
+		#either modules contains 'View [][event/init]
 		#if OS = 'Windows [image/init]					;-- temporary
 		#if OS = 'macOS   [image/init]					;-- temporary
 		
