@@ -208,7 +208,6 @@ gui-console-ctx: context [
 		console/init
 		load-cfg
 		win/visible?: yes
-		#if config/OS = 'Linux [tips/visible?: no]
 
 		svs: system/view/screens/1
 		svs/pane: next svs/pane				;-- proctect itself from unview/all

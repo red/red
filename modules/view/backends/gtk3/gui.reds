@@ -616,8 +616,6 @@ adjust-sizes: func [
 	free as byte-ptr! rect
 ]
 
-
-
 remove-widget-timer: func [
 	widget [handle!]
 	/local
@@ -946,20 +944,30 @@ add-invisible: func [
 	list-invisible: g_list_prepend list-invisible widget 
 ]
 
+free-invisible: does [
+	g_list_free list-invisible
+	list-invisible: as handle! 0
+]
+
 hide-invisible: func [
 	/local
-	child 	[GList!]
+		child 	[GList!]
+		widget 	[handle!]
+		values	[red-value!]
+		show?	[red-logic!]
 ][ 
+	;; DEBUG: print ["hide-invisible" lf]
 	if 0 = g_list_length list-invisible [exit]
 	;; DEBUG: print ["hide-invisible " g_list_length list-invisible lf]
 	child: as GList! list-invisible
 	while [not null? child][
-		;; DEBUG: print ["hide-invisible: " child/data lf]
-		gtk_widget_set_visible child/data no
+		widget: child/data
+		values: get-face-values widget
+		show?: as red-logic! values + FACE_OBJ_VISIBLE?
+		;; DEBUG: print ["hide-invisible: " widget lf]
+		gtk_widget_set_visible widget show?/value
 		child: child/next
 	]
-	g_list_free list-invisible
-	list-invisible: as handle! 0
 ]
 
 change-visible: func [
@@ -979,6 +987,7 @@ change-visible: func [
 		true [
 			;; DEBUG: print ["change-visible " widget " (type " get-symbol-name type "): " show? lf]
 			gtk_widget_set_visible widget show?
+			gtk_widget_queue_draw widget
 		]
 	]
 ;	gtk_widget_queue_draw widget
@@ -1615,6 +1624,8 @@ OS-show-window: func [
 	gtk_widget_grab_focus as handle! widget
 	face: (as red-object! get-face-values as handle! widget) + FACE_OBJ_SELECTED
 	if TYPE_OF(face) = TYPE_OBJECT [gtk_widget_grab_focus face-handle? face]
+	;; Deal with visible? facets
+	hide-invisible
 ]
 
 OS-make-view: func [
@@ -2079,7 +2090,8 @@ OS-update-view: func [
 
 	;; update-view at least ask for this
 	;if main-window = widget [
-		gtk_widget_queue_draw widget
+
+	gtk_widget_queue_draw widget
 	;]
 
 	int/value: 0										;-- reset flags

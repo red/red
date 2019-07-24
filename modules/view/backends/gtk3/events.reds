@@ -436,8 +436,6 @@ do-events: func [
 	;@@ we use a global value to simulate it
 
 	;; DEBUG: print ["do-events no-wait? " no-wait? lf]
-	;; Special initialisation of hidden widgets (cf gui.reds)
-	hide-invisible
 	
 	;; Initially normally uncommented: the exit-loop is also decremented in destroy for supposed no-wait view!
 	unless no-wait? [
@@ -568,6 +566,7 @@ post-quit-msg: func [
 		tm	[float!]
 ][
 	exit-loop: exit-loop - 1
+	if 0 = exit-loop [hide-invisible]
 ]
 
 ;;------------- centralize here connection handlers
