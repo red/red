@@ -48,8 +48,6 @@ _request-file: func [
 		set-type ret TYPE_FILE
 	]
 	gtk_widget_destroy widget
-	; This trick really matters to end the loop when in the red-console 
-		while [gtk_events_pending][gtk_main_iteration]
 	ret
 ]
 
