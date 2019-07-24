@@ -756,13 +756,13 @@ tagPOINT: alias struct! [
 			cp			[c-string!]
 			return:		[integer!]
 		]
-		_bind: "bind" [
+		WS2.bind: "bind" [
 			s			[integer!]
 			addr		[int-ptr!]
 			namelen		[integer!]
 			return:		[integer!]
 		]
-		listen: "listen" [
+		WS2.listen: "listen" [
 			s			[integer!]
 			backlog		[integer!]
 			return:		[integer!]

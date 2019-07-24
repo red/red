@@ -109,7 +109,7 @@ simple-io: context [
 				]
 				access: S_IREAD or S_IWRITE or S_IRGRP or S_IWGRP or S_IROTH
 			]
-			file: _open filename modes access
+			file: LibC.open filename modes access
 		]
 		if file = -1 [return -1]
 		file
@@ -143,7 +143,7 @@ simple-io: context [
 		#either OS = 'Windows [
 			-1 <> GetFileAttributesW path
 		][
-			-1 <> _access path 0						;-- F_OK: 0
+			-1 <> libC.access path 0					;-- F_OK: 0
 		]
 	]
 
@@ -178,7 +178,7 @@ simple-io: context [
 			res: ReadFile file buffer size :len null
 			res: either zero? res [-1][len]
 		][
-			res: _read file buffer size
+			res: LibC.read file buffer size
 		]
 		res
 	]
@@ -197,7 +197,7 @@ simple-io: context [
 			ret: WriteFile file data size :len null
 			ret: either zero? ret [-1][len]
 		][
-			ret: _write file data size
+			ret: LibC.write file data size
 		]
 		ret
 	]
@@ -209,7 +209,7 @@ simple-io: context [
 		#either OS = 'Windows [
 			CloseHandle as handle! file
 		][
-			zero? _close file
+			zero? LibC.close file
 		]
 	]
 
@@ -431,7 +431,7 @@ simple-io: context [
 			res: either dir? filename [RemoveDirectory name][DeleteFile name]
 			res <> 0
 		][
-			0 = _remove name
+			0 = LibC.remove name
 		]
 	]
 

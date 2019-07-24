@@ -286,7 +286,7 @@ get-timezone: func [
 		tm	[tm!]
 ][
 	t: 0
-	_time :t
+	LibC.time :t
 	tm: localtime :t
 	tm/isdst: 0
 	t2: mktime tm

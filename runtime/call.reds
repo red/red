@@ -61,7 +61,7 @@ ext-process: context [
 			str/len: #"^/"
 			#switch OS [								;-- Write to stderr, no error check
 				Windows  [ WriteFile GetStdHandle STD_ERROR_HANDLE as byte-ptr! str len :len null ]
-				#default [ _write stderr as byte-ptr! str len ]
+				#default [ LibC.write stderr as byte-ptr! str len ]
 			]
 			free as byte-ptr! str
 		]
@@ -410,7 +410,7 @@ ext-process: context [
 			if in? [
 				input-len: 0
 				fd-in: declare f-desc!
-				if (_pipe as int-ptr! fd-in) = -1 [		;-- Create a pipe for child's input
+				if (LibC.pipe as int-ptr! fd-in) = -1 [		;-- Create a pipe for child's input
 					__red-call-print-error [ error-pipe "stdin" ]
 					return -1
 				]
@@ -419,7 +419,7 @@ ext-process: context [
 				out-len: 0
 				out-size: READ-BUFFER-SIZE
 				fd-out: declare f-desc!
-				if (_pipe as int-ptr! fd-out) = -1 [		;-- Create a pipe for child's output
+				if (LibC.pipe as int-ptr! fd-out) = -1 [		;-- Create a pipe for child's output
 					__red-call-print-error [ error-pipe "stdout" ]
 					return -1
 				]
@@ -428,74 +428,74 @@ ext-process: context [
 				err-len: 0
 				err-size: READ-BUFFER-SIZE
 				fd-err: declare f-desc!
-				if (_pipe as int-ptr! fd-err) = -1 [		;-- Create a pipe for child's error
+				if (LibC.pipe as int-ptr! fd-err) = -1 [		;-- Create a pipe for child's error
 					__red-call-print-error [ error-pipe "stderr" ]
 					return -1
 				]
 			]
 
-			pid: _fork
+			pid: LibC.fork
 			if pid = 0 [								;-- Child process
 				if in-buf <> null [                     ;-- redirect stdin to the pipe
 					either in-buf/count = -1 [			;-- file
-						nfds: _open2 as c-string! in-buf/buffer O_RDONLY
+						nfds: LibC.open2 as c-string! in-buf/buffer O_RDONLY
 						if nfds < 0 [quit -1]
 						dup2 nfds stdin
-						_close nfds
+						LibC.close nfds
 					][
-						_close fd-in/writing
+						LibC.close fd-in/writing
 						err: dup2 fd-in/reading stdin
 						if err = -1 [ __red-call-print-error [ error-dup2 "stdin" ]]
-						_close fd-in/reading
+						LibC.close fd-in/reading
 					]
 				]
 				either out-buf <> null [				;-- redirect stdout to the pipe
 					either out-buf/count = -1 [
-						nfds: _open
+						nfds: LibC.open
 							as c-string! out-buf/buffer
 							O_BINARY or O_WRONLY or O_CREAT or O_APPEND
 							438							;-- 0666
 						if nfds < 0 [quit -1]
 						dup2 nfds stdout
-						_close nfds
+						LibC.close nfds
 					][
-						_close fd-out/reading
+						LibC.close fd-out/reading
 						err: dup2 fd-out/writing stdout
 						if err = -1 [ __red-call-print-error [ error-dup2 "stdout" ]]
-						_close fd-out/writing
+						LibC.close fd-out/writing
 					]
 				][
 					if not console? [					;-- redirect stdout to /dev/null.
-						dev-null: _open2 "/dev/null" O_WRONLY
+						dev-null: LibC.open2 "/dev/null" O_WRONLY
 						err: dup2 dev-null stdout
 						if err = -1 [ __red-call-print-error [ error-dup2 "stdout to null" ]]
-						_close dev-null
+						LibC.close dev-null
 					]
 				]
 				either err-buf <> null [				;-- redirect stderr to the pipe
 					either err-buf/count = -1 [
-						nfds: _open
+						nfds: LibC.open
 							as c-string! err-buf/buffer
 							O_BINARY or O_WRONLY or O_CREAT or O_APPEND
 							438							;-- 0666
 						if nfds < 0 [quit -1]
 						dup2 nfds stderr
-						_close nfds
+						LibC.close nfds
 					][
-						_close fd-err/reading
+						LibC.close fd-err/reading
 						err: dup2 fd-err/writing stderr
 						if err = -1 [ __red-call-print-error [ error-dup2 "stderr" ]]
-						_close fd-err/writing
+						LibC.close fd-err/writing
 					]
 				][
 					if not console? [					;-- redirect stderr to /dev/null.
-						dev-null: _open2 "/dev/null" O_WRONLY
+						dev-null: LibC.open2 "/dev/null" O_WRONLY
 						err: dup2 dev-null stderr
 						if err = -1 [ __red-call-print-error [ error-dup2 "stderr to null" ]]
-						_close dev-null
+						LibC.close dev-null
 					]
 				]
-				if all [(in-buf = null) (not console?)] [_close stdin]	;-- no redirection, stdin closed
+				if all [(in-buf = null) (not console?)] [LibC.close stdin]	;-- no redirection, stdin closed
 				
 				either shell? [
 					args: as str-array! allocate 4 * size? c-string!
@@ -534,7 +534,7 @@ ext-process: context [
 					fds/fd: fd-in/writing
 					set-flags-fd fds/fd
 					fds/events: POLLOUT
-					_close fd-in/reading
+					LibC.close fd-in/reading
 					nfds: nfds + 1
 				]
 				if out? [								;- Create buffer for output
@@ -545,7 +545,7 @@ ext-process: context [
 					fds/fd: fd-out/reading
 					set-flags-fd fds/fd
 					fds/events: POLLIN
-					_close fd-out/writing
+					LibC.close fd-out/writing
 					nfds: nfds + 1
 				]
 				if err? [								;- Create buffer for error
@@ -556,7 +556,7 @@ ext-process: context [
 					fds/fd: fd-err/reading
 					set-flags-fd fds/fd
 					fds/events: POLLIN
-					_close fd-err/writing
+					LibC.close fd-err/writing
 					nfds: nfds + 1
 				]
 				n: nfds
@@ -565,18 +565,18 @@ ext-process: context [
 					if i = -1 [break]
 					if i = pid [
 						if out-buf <> null [
-							nbytes: _read fd-out/reading out-buf/buffer + out-len out-size - out-len
+							nbytes: LibC.read fd-out/reading out-buf/buffer + out-len out-size - out-len
 							if nbytes > 0 [out-len: out-len + nbytes]
-							_close fd-out/reading
+							LibC.close fd-out/reading
 						]
 						if err-buf <> null [
-							nbytes: _read fd-err/reading err-buf/buffer + err-len err-size - err-len
+							nbytes: LibC.read fd-err/reading err-buf/buffer + err-len err-size - err-len
 							if nbytes > 0 [err-len: err-len + nbytes]
-							_close fd-err/reading
+							LibC.close fd-err/reading
 						]
 						break
 					]
-					if 0 > _poll pfds nfds -1 [n: 0]
+					if 0 > LibC.poll pfds nfds -1 [n: 0]
 
 					i: 0
 					while [all [i < nfds n > 0]][
@@ -585,16 +585,16 @@ ext-process: context [
 						revents: fds/events >>> 16
 						case [
 							revents and POLLERR <> 0 [
-								_close fds/fd
+								LibC.close fds/fd
 								fds/fd: -1
 								n: n - 1
 							]
 							revents and POLLOUT <> 0 [
-								nbytes: _write fds/fd in-buf/buffer + input-len in-buf/count - input-len
+								nbytes: LibC.write fds/fd in-buf/buffer + input-len in-buf/count - input-len
 								if nbytes <= 0 [n: 0 nbytes: in-buf/count]
 								input-len: input-len + nbytes
 								if input-len >= in-buf/count [
-									_close fds/fd
+									LibC.close fds/fd
 									fds/fd: -1
 									n: n - 1
 								]
@@ -615,10 +615,10 @@ ext-process: context [
 								]
 								until [
 									to-read: size/value - offset/value
-									nbytes: _read fds/fd pbuf/buffer + offset/value to-read    ;-- read pipe, store into buffer
+									nbytes: LibC.read fds/fd pbuf/buffer + offset/value to-read    ;-- read pipe, store into buffer
 									if nbytes < 0 [break]
 									if nbytes = 0 [
-										_close fds/fd
+										LibC.close fds/fd
 										fds/fd: -1
 										n: n - 1
 									]
@@ -632,7 +632,7 @@ ext-process: context [
 								]
 								pbuf/count: offset/value
 							]
-							revents and POLLHUP <> 0 [_close fds/fd fds/fd: -1 n: n - 1]
+							revents and POLLHUP <> 0 [LibC.close fds/fd fds/fd: -1 n: n - 1]
 							revents and POLLNVAL <> 0 [n: -1]
 							true [0]
 						]

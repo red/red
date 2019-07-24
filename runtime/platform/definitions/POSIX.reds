@@ -187,7 +187,7 @@ timespec!: alias struct! [
 			begin	[integer!]
 			return: [float!]
 		]
-		_time: "time" [
+		LibC.time: "time" [
 			ptr		[int-ptr!]
 			return: [integer!]
 		]
@@ -203,11 +203,7 @@ timespec!: alias struct! [
 			tm		[tm!]
 			return: [integer!]
 		]
-		_fork: "fork" [
-			return:        [integer!]
-		]
-		_sleep: "sleep" [
-			nb             [integer!]
+		LibC.fork: "fork" [
 			return:        [integer!]
 		]
 		execvp: "execvp" [
@@ -235,7 +231,7 @@ timespec!: alias struct! [
 			options        [integer!]
 			return:        [integer!]
 		]
-		_pipe: "pipe" [
+		LibC.pipe: "pipe" [
 			pipedes        [int-ptr!]  "Pointer to a 2 integers array"
 			return:        [integer!]
 		]
@@ -244,28 +240,28 @@ timespec!: alias struct! [
 			fd2            [integer!]
 			return:        [integer!]
 		]
-		_open:	"open" [
+		LibC.open:	"open" [
 			filename	[c-string!]
 			flags		[integer!]
 			mode		[integer!]
 			return:		[integer!]
 		]
-		_open2: "open" [
+		LibC.open2: "open" [
 			filename		[c-string!]
 			flags			[integer!]
 			return:			[integer!]
 		]
-		_close: "close" [
+		LibC.close: "close" [
 			fd             [integer!]
 			return:        [integer!]
 		]
-		_read: "read" [
+		LibC.read: "read" [
 			fd             [integer!]
 			buf            [byte-ptr!]
 			nbytes         [integer!]
 			return:        [integer!]  "Number of bytes read or error"
 		]
-		_write: "write" [
+		LibC.write: "write" [
 			fd             [integer!]
 			buf            [byte-ptr!]
 			nbytes         [integer!]
@@ -278,13 +274,13 @@ timespec!: alias struct! [
 			; ...                        "Optional arguments"
 			return:        [integer!]
 		]
-		_poll: "poll" [
+		LibC.poll: "poll" [
 			fds			[pollfd!]
 			nfds		[integer!]
 			timeout		[integer!]
 			return:		[integer!]
 		]
-		_access: "access" [
+		LibC.access: "access" [
 			filename	[c-string!]
 			mode		[integer!]
 			return:		[integer!]
@@ -313,47 +309,47 @@ timespec!: alias struct! [
 			sv			[int-ptr!]
 			return:		[integer!]
 		]
-		_remove: "remove" [
+		LibC.remove: "remove" [
 			pathname	[c-string!]
 			return: 	[integer!]
 		]
-		_socket: "socket" [
+		libC.socket: "socket" [
 			family		[integer!]
 			type		[integer!]
 			protocl		[integer!]
 			return:		[integer!]
 		]
-		_bind: "bind" [
+		LibC.bind: "bind" [
 			fd			[integer!]
 			addr		[byte-ptr!]
 			addrlen		[integer!]
 			return:		[integer!]
 		]
-		_accept: "accept" [
+		LibC.accept: "accept" [
 			fd			[integer!]
 			addr		[byte-ptr!]
 			addrlen		[int-ptr!]
 			return:		[integer!]
 		]
-		_listen: "listen" [
+		LibC.listen: "listen" [
 			fd			[integer!]
 			backlog		[integer!]
 			return:		[integer!]
 		]
-		_connect: "connect" [
+		LibC.connect: "connect" [
 			fd			[integer!]
 			addr		[int-ptr!]
 			addrlen		[integer!]
 			return:		[integer!]
 		]
-		_send: "send" [
+		LibC.send: "send" [
 			fd			[integer!]
 			buf			[byte-ptr!]
 			len			[integer!]
 			flags		[integer!]
 			return:		[integer!]
 		]
-		_recv: "recv" [
+		libC.recv: "recv" [
 			fd			[integer!]
 			buf			[byte-ptr!]
 			len			[integer!]
@@ -377,7 +373,6 @@ timespec!: alias struct! [
 		]
 	]
 ]
-
 
 errno: as int-ptr! 0
 

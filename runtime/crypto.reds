@@ -358,26 +358,6 @@ crypto: context [
 	]
 
 	#if OS <> 'Windows [
-	#import [
-		LIBC-file cdecl [
-			open2: "open" [
-				path	[c-string!]
-				flags	[integer!]
-				return: [integer!]
-			]
-			_read:	"read" [
-				fd		[integer!]
-				buf	    [byte-ptr!]
-				size	[integer!]
-				return:	[integer!]
-			]
-			_close:	"close" [
-				fd		[integer!]
-				return:	[integer!]
-			]
-		]
-	]
-
 	urandom: func [
 		buffer	[byte-ptr!]							;-- buffer to receive data
 		size	[integer!]							;-- size of the buffer
@@ -386,23 +366,23 @@ crypto: context [
 			fd	[integer!]
 			n	[integer!]
 	][
-		fd: open2 "/dev/urandom" O_RDONLY
+		fd: LibC.open2 "/dev/urandom" O_RDONLY
 		if fd < 0 [return false]
 
 		;@@ cache fd
 		while [size > 0][
 			until [
-			 	n: _read fd buffer size
+			 	n: LibC.read fd buffer size
 			 	not all [n < 0 errno/value = 4]		;-- 4: EINTR
 			]
 			if n < 0 [
-				_close fd
+				LibC.close fd
 				return false
 			]
 			buffer: buffer + n
 			size: size - n
 		]
-		_close fd
+		LibC.close fd
 		true
 	]]
 
@@ -519,30 +499,6 @@ crypto: context [
 		;-- Exists in kernel starting from Linux 2.6.38
 		#import [
 			LIBC-file cdecl [
-				socket: "socket" [
-					family	[integer!]
-					type	[integer!]
-					protocl	[integer!]
-					return: [integer!]
-				]
-				sock-bind: "bind" [
-					fd 		[integer!]
-					addr	[byte-ptr!]
-					addrlen [integer!]
-					return:	[integer!]
-				]
-				accept:	"accept" [
-					fd		[integer!]
-					addr	[byte-ptr!]
-					addrlen	[int-ptr!]
-					return:	[integer!]
-				]
-				_write: "write" [
-					fd		[integer!]
-					buffer	[c-string!]
-					count	[integer!]
-					return: [integer!]
-				]
 				syscall: "syscall" [
 					[variadic]
 					return:	[integer!]
@@ -633,13 +589,13 @@ crypto: context [
 				]
 			]
 			copy-memory sa + 24 as byte-ptr! alg length? alg
-			fd: socket AF_ALG SOCK_SEQPACKET 0
-			sock-bind fd sa 88
-			opfd: accept fd null null
-			_write opfd as c-string! data len
-			_read opfd hash alg-digest-size type
-			_close opfd
-			_close fd
+			fd: LibC.socket AF_ALG SOCK_SEQPACKET 0
+			LibC.bind fd sa 88
+			opfd: LibC.accept fd null null
+			LibC.write opfd as c-string! data len
+			LibC.read opfd hash alg-digest-size type
+			LibC.close opfd
+			LibC.close fd
 			free sa
 			hash
 		]
