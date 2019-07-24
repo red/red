@@ -12,7 +12,7 @@ Red/System [
 
 platform: context [
 	
-	#include %POSIX.reds
+	#include %../POSIX/POSIX.reds
 
 	#import  [
 		LIBC-file cdecl [

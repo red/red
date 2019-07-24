@@ -60,7 +60,7 @@ Red/System [
 	TYPE_HANDLE											;-- 2E		46
 	TYPE_DATE											;-- 2F		47
 	TYPE_PORT											;-- 30		48
-	TYPE_IMAGE											;-- 32		50		;-- needs to be last
+	TYPE_IMAGE											;-- 31		49		;-- needs to be last
 	TYPE_EVENT
 	TYPE_CLOSURE
 	TYPE_TOTAL_COUNT									;-- keep tabs on number of datatypes.

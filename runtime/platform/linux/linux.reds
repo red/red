@@ -14,12 +14,12 @@ platform: context [
 	
 	#either OS = 'Android [
 		#either type = 'exe [
-			#include %POSIX.reds
+			#include %../POSIX/POSIX.reds
 		][
-			#include %android.reds
+			#include %../android/android.reds
 		]
 	][
-		#include %POSIX.reds
+		#include %../POSIX/POSIX.reds
 	]
 
 	#import  [

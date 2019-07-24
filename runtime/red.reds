@@ -49,10 +49,10 @@ red: context [
 	;--------------------------------------------
 	#switch OS [
 		Windows  [#include %platform/windows/image-gdiplus.reds]
-		Syllable []
 		macOS	 [#include %platform/darwin/image-quartz.reds]
+		Android  []
 		FreeBSD  []
-		#default []
+		#default [#include %platform/linux/image-gdk.reds]
 	]
 
 	#include %datatypes/datatype.reds
@@ -103,9 +103,8 @@ red: context [
 	#include %datatypes/handle.reds
 	#include %datatypes/date.reds
 	#include %datatypes/port.reds
+	#include %datatypes/image.reds
 	#either modules contains 'View [][#include %datatypes/event.reds]
-	#if OS = 'Windows [#include %datatypes/image.reds]	;-- temporary
-	#if OS = 'macOS   [#include %datatypes/image.reds]	;-- temporary
 
 	;-- Debugging helpers --
 	
@@ -199,10 +198,9 @@ red: context [
 		handle/init
 		date/init
 		port/init
+		image/init
 		#either modules contains 'View [][event/init]
-		#if OS = 'Windows [image/init]					;-- temporary
-		#if OS = 'macOS   [image/init]					;-- temporary
-		
+
 		actions/init
 		
 		;-- initialize memory before anything else
@@ -275,8 +273,7 @@ red: context [
 			handle/verbose:		verbosity
 			date/verbose:		verbosity
 			port/verbose:		verbosity
-			#if OS = 'Windows [image/verbose: verbosity]
-			#if OS = 'macOS   [image/verbose: verbosity]
+			image/verbose:		verbosity
 
 			actions/verbose:	verbosity
 			natives/verbose:	verbosity
