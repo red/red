@@ -545,7 +545,7 @@ translate-key: func [
 		keycode = FF50h [special?: yes RED_VK_HOME]
 		keycode = FFE5h [special?: yes RED_VK_NUMLOCK]
 		keycode = FF08h [special?: no RED_VK_BACK]
-		keycode = FF09h [special?: yes RED_VK_TAB]
+		keycode = FF09h [special?: no RED_VK_TAB]
 		keycode = FFE1h [special?: yes RED_VK_LSHIFT]
 		keycode = FFE2h [special?: yes RED_VK_RSHIFT]
 		keycode = FFE3h [special?: yes RED_VK_LCONTROL]
