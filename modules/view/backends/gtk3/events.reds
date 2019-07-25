@@ -565,7 +565,6 @@ post-quit-msg: func [
 		e	[integer!]
 		tm	[float!]
 ][
-	if 1 = exit-loop [free-invisible]
 	exit-loop: exit-loop - 1
 ]
 

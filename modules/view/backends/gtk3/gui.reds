@@ -193,6 +193,13 @@ container?: func [
 	g_object_get_qdata widget gtk-container-id
 ]
 
+real-container?: func [
+	widget		[handle!]
+	return: 	[handle!]
+][
+	g_object_get_qdata widget real-container-id
+]
+
 gtk-layout?: func [
 	type 	[integer!]
 	return: [logic!]
@@ -932,41 +939,38 @@ change-size: func [
 
 ]
 
-;; Special treatment for hidden (or invisible) widgets
-;; that are hidden at the beginning of do-events as a first initialization
-
-list-invisible: as handle! 0
-
-add-invisible: func [
+hide-invisible-all: func [
 	widget 	[handle!]
-][
-	;; DEBUG: print ["add invisible " widget lf]
-	list-invisible: g_list_prepend list-invisible widget 
-]
-
-free-invisible: does [
-	g_list_free list-invisible
-	list-invisible: as handle! 0
-]
-
-hide-invisible: func [
 	/local
-		child 	[GList!]
-		widget 	[handle!]
-		values	[red-value!]
-		show?	[red-logic!]
-][ 
-	;; DEBUG: print ["hide-invisible" lf]
-	if 0 = g_list_length list-invisible [exit]
-	;; DEBUG: print ["hide-invisible " g_list_length list-invisible lf]
-	child: as GList! list-invisible
-	while [not null? child][
-		widget: child/data
-		values: get-face-values widget
-		show?: as red-logic! values + FACE_OBJ_VISIBLE?
-		;; DEBUG: print ["hide-invisible: " widget lf]
-		gtk_widget_set_visible widget show?/value
-		child: child/next
+		child		[handle!]
+		pane 		[red-block!]
+		type		[red-word!]
+		sym			[integer!]
+		face 		[red-object!]
+		tail 		[red-object!]
+		values		[red-value!]
+		show?		[red-logic!]
+][
+	values: get-face-values widget
+	type: 	as red-word! values + FACE_OBJ_TYPE
+	pane: 	as red-block! values + FACE_OBJ_PANE
+	show?:	as red-logic! values + FACE_OBJ_VISIBLE?
+
+	sym: 	symbol/resolve type/symbol
+
+	gtk_widget_set_visible widget show?/value
+	 
+	if all [TYPE_OF(pane) = TYPE_BLOCK 0 <> block/rs-length? pane] [
+		face: as red-object! block/rs-head pane
+		tail: as red-object! block/rs-tail pane
+
+		while [face < tail][
+			child: face-handle? face 
+			unless null? child [
+				hide-invisible-all child
+			]
+			face: face + 1
+		]
 	]
 ]
 
@@ -1621,11 +1625,11 @@ OS-show-window: func [
 	;; DEBUG: print ["OS-show-window" as handle! widget "(" get-symbol-name get-widget-symbol as handle! widget ")" lf]
 	if null? as handle! widget [exit]
 	gtk_widget_show_all as handle! widget
+	;; Deal with visible? facets
+	hide-invisible-all as handle! widget
 	gtk_widget_grab_focus as handle! widget
 	face: (as red-object! get-face-values as handle! widget) + FACE_OBJ_SELECTED
 	if TYPE_OF(face) = TYPE_OBJECT [gtk_widget_grab_focus face-handle? face]
-	;; Deal with visible? facets
-	hide-invisible
 ]
 
 OS-make-view: func [
@@ -1951,7 +1955,6 @@ OS-make-view: func [
 	change-selection widget as red-integer! values + FACE_OBJ_SELECTED sym
 	change-para widget face as red-object! values + FACE_OBJ_PARA font sym
 
-	unless show?/value [add-invisible widget]
 	change-enabled widget enabled?/value sym
 	
 	make-styles-provider widget
