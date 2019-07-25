@@ -19,6 +19,7 @@ REBOL [
 	crashed?: does [true? find qt/output "*** Runtime Error"]
 	compiled?: does [true? not find qt/comp-output "Error"]
 	script-error?: does [true? find qt/output "Script Error"]
+	syntax-error?: does [true? find qt/output "Syntax Error"]
 	compiler-error?: does [true? find qt/comp-output "*** Compiler Internal Error"]
 	compilation-error?: does [true? find qt/comp-output "*** Compilation Error"]
 	loading-error: func [value] [found? find qt/comp-output join "*** Loading Error: " value]
@@ -201,7 +202,7 @@ test
 	--test-- "#3891"
 		--compile-and-run-this-red {probe load "a<=>"}
 		--assert not crashed?
-		--assert syntax-error "invalid value"
+		--assert syntax-error?
 
 
 ===end-group===
