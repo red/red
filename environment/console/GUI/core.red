@@ -803,7 +803,7 @@ object [
 			debug-print ["char: -"  char "- "  
 			switch/default char [
 				#"^M"	["M"] #"^H"	["H"] #"^-"	["-"]
-				left	["left"] right	["right"] up		["up"] down	["down"]
+				left	["left"] right	["right"] up ["up"] down ["down"]
 				insert	["insert"] delete	["delete"]
 				#"^A" home	["home"] #"^E" end	["end"] #"^C"	["C"] #"^V"	["V"]
 				#"^X"	["X"] #"^Z"	["Z"] #"^Y"	["Y"] #"^["	["["] #"^~"	["~"]				;-- Ctrl + Backspace
