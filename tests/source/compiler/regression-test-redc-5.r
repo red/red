@@ -201,7 +201,7 @@ test
 	--test-- "#3891"
 		--compile-and-run-this-red {probe load "a<=>"}
 		--assert not crashed?
-		--assert script-error?
+		--assert syntax-error "invalid value"
 
 
 ===end-group===
