@@ -137,30 +137,30 @@ test
 		--assert not crashed?
 		; --assert not script-error?
 
-	
-	--test-- "#3773"
-		;; see the same triad interpreted in regression-test-red.red...
-
-		;; context? should not accept a string
-		--compile-and-run-this-red {
-			#macro ctx: func [x] [context? x]
-			ctx ""
-		}
-		--assert compiler-error?
-
-		;; this is reduced like: (mc 'mc) => (mc) => error (no arg)
-		--compile-and-run-this-red {
-			#macro mc: func [x] [x]
-			probe quote (mc 'mc)
-		}
-		--assert compiler-error?
-
-		;; :mc = func [x][x], so `mc :mc` executing `x` applies it to an empty arg list => error
-		--compile-and-run-this-red {
-			#macro mc: func [x] [x]
-			probe quote (mc :mc)
-		}
-		--assert compiler-error?
+; FIXME: cannot test this until compile-time macros will be expanded by Red, not Rebol	
+;	--test-- "#3773"
+;		;; see the same triad interpreted in regression-test-red.red...
+;
+;		;; context? should not accept a string
+;		--compile-and-run-this-red {
+;			#macro ctx: func [x] [context? x]
+;			ctx ""
+;		}
+;		--assert compiler-error?
+;
+;		;; this is reduced like: (mc 'mc) => (mc) => error (no arg)
+;		--compile-and-run-this-red {
+;			#macro mc: func [x] [x]
+;			probe quote (mc 'mc)
+;		}
+;		--assert compiler-error?
+;
+;		;; :mc = func [x][x], so `mc :mc` executing `x` applies it to an empty arg list => error
+;		--compile-and-run-this-red {
+;			#macro mc: func [x] [x]
+;			probe quote (mc :mc)
+;		}
+;		--assert compiler-error?
 
 
 	--test-- "#3831"
