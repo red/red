@@ -408,7 +408,7 @@ get-flags: func [
 	]
 	flags: 0
 
-	until [
+	loop len [
 		sym: symbol/resolve word/symbol
 		case [
 			sym = all-over	 [flags: flags or FACET_FLAGS_ALL_OVER]
@@ -425,8 +425,6 @@ get-flags: func [
 			true			 [fire [TO_ERROR(script invalid-arg) word]]
 		]
 		word: word + 1
-		len: len - 1
-		zero? len
 	]
 	flags
 ]
