@@ -7,15 +7,15 @@ do [
 debug: :print
 ;debug: :comment
 
-max-count: 100000
+max-count: 30000
 count: 0
 total: 0
 
 print "TCP client"
 
-client: open tcp://127.0.0.1:8000
+client: open tcp://127.0.0.1:8123
 
-b: make binary! size: 10000
+b: make binary! size: 80000
 loop size [append b random 255]
 insert b skip (to binary! length? b) 4
 
@@ -30,12 +30,6 @@ client/awake: func [event /local port] [
         connect [insert port b]
         read [
 	        probe "client read done"
-	        probe port/data
-            if port/data/2 [
-                print ["ERROR in response" total]
-                close port
-                return true
-            ]
             either port/data = #{0f} [
                 count: count + 1
                 total: total + size + 4

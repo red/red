@@ -113,7 +113,7 @@ socket: context [
 		wsbuf/buf: buffer
 		data/event: SOCK_EVT_WRITE
 		n: 0
-		probe WSASend sock :wsbuf 1 :n 0 as OVERLAPPED! data null
+		WSASend sock :wsbuf 1 :n 0 as OVERLAPPED! data null
 	]
 
 	read: func [

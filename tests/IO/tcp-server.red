@@ -41,7 +41,7 @@ new-client: func [port /local data] [
     copy port
 ]
 
-server: open tcp://:8000
+server: open tcp://:8123
 
 server/awake: func [event] [
     if event/type = 'accept [new-client event/port]
