@@ -1621,16 +1621,24 @@ OS-show-window: func [
 	widget	[integer!]
 	/local
 		face 	[red-object!]
-	; 	auto-adjust?	[red-logic!]
+	 	event 	[GdkEventConfigure!]
+		type 	[integer!]
 ][
-	;; DEBUG: print ["OS-show-window" as handle! widget "(" get-symbol-name get-widget-symbol as handle! widget ")" lf]
-	if null? as handle! widget [exit]
-	gtk_widget_show_all as handle! widget
-	;; Deal with visible? facets
-	hide-invisible-all as handle! widget
-	gtk_widget_grab_focus as handle! widget
-	face: (as red-object! get-face-values as handle! widget) + FACE_OBJ_SELECTED
-	if TYPE_OF(face) = TYPE_OBJECT [gtk_widget_grab_focus face-handle? face]
+	unless null? as handle! widget [
+		type: get-widget-symbol as handle! widget
+		;; DEBUG: print ["OS-show-window " as handle! widget "(" get-symbol-name type ")" lf]
+		gtk_widget_show_all as handle! widget
+		;; Deal with visible? facets
+		hide-invisible-all as handle! widget
+		gtk_widget_grab_focus as handle! widget
+		face: (as red-object! get-face-values as handle! widget) + FACE_OBJ_SELECTED
+		if TYPE_OF(face) = TYPE_OBJECT [gtk_widget_grab_focus face-handle? face]
+		; Just here as an attempt to fire a configure event
+		; if type = window [
+		; 	event: declare GdkEventConfigure!
+		; 	g_signal_emit_by_name [as handle! widget "configure-event" event]
+		; ]
+	]
 ]
 
 OS-make-view: func [

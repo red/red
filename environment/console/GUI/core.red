@@ -284,7 +284,6 @@ object [
 			track		[scroller/position - event/picked]
 			wheel		[
 				delta: event/picked
-				;;;debug-print ["delta: " delta lf]
 				case [	;-- scroll by lines
 					all [delta > -1.0 delta < 0.0][-1]
 					all [delta > 0.0 delta < 1.0][1]
@@ -294,7 +293,6 @@ object [
 				]
 			]
 		][0]
-		;;;debug-print ["n: " n lf]
 		if n <> 0 [
 			scroll-lines n
 			system/view/platform/redraw console
