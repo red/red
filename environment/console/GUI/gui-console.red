@@ -207,10 +207,6 @@ gui-console-ctx: context [
 		view/flags/no-wait win [resize]		;-- create window instance
 		console/init
 		load-cfg
-		#if config/OS = 'Linux [
-			; A solution to fix the caret issue at the very beginning which did not occur after resizing (that calls the following line)
-			terminal/resize console/size
-		]
 		win/visible?: yes
 
 		svs: system/view/screens/1
