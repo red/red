@@ -97,8 +97,11 @@ handle: context [
 		indent	[integer!]
 		return: [integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "handle/mold"]]
-		
+		#if debug? = yes [
+			all?: yes			;-- show handle in debug mode
+			if verbose > 0 [print-line "handle/mold"]
+		]
+
 		either all? [
 			string/concatenate-literal buffer "#[handle! "
 			part: form h buffer arg part
