@@ -144,7 +144,11 @@ event: context [
 					]
 				]]
 				EVT_CATEGORY_IO [
-					null
+					case [
+						sym = words/type	[io/get-event-type evt]
+						sym = words/port	[io/get-event-port evt]
+						true				[fire [TO_ERROR(script invalid-path) path element] null]
+					]
 				]
 				default [fire [TO_ERROR(script not-event-type) integer/push grp] null]
 			]

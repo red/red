@@ -2137,6 +2137,7 @@ natives: context [
 	][
 		#typecheck [wait all?] ;only?]
 		val: as red-float! stack/arguments
+		time: -1
 		switch TYPE_OF(val) [
 			TYPE_INTEGER [
 				int: as red-integer! val
@@ -2150,10 +2151,11 @@ natives: context [
 			TYPE_TIME [
 				time: as-integer (val/value * #either OS = 'Windows [1E3][1E6])
 			]
+			TYPE_PORT TYPE_BLOCK [time: -1]
 			default [fire [TO_ERROR(script invalid-arg) val]]
 		]
+		io/do-events time
 		val/header: TYPE_NONE
-		platform/wait time
 	]
 
 	checksum*: func [

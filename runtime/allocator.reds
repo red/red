@@ -508,6 +508,9 @@ compact-series-frame: func [
 			src: as byte-ptr! s
 			;probe ["search gap from: " s]
 			until [							;-- search for a gap
+				if s/flags and flag-series-fixed <> 0 [ ;-- stop compacting when there is a fixed series
+					return refs
+				]
 				s/flags: s/flags and not flag-gc-mark	;-- clear mark flag
 				s: as series! (as byte-ptr! s + 1) + s/size
 				tail?: s >= heap

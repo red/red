@@ -35,6 +35,8 @@ Red [
 	#include %environment/networking.red
 	#include %utils/preprocessor.r
 
+	#include %environment/schemes/native-schemes.red
+
 	;-- temporary code --
 	#if not find [Windows macOS] config/OS [
 		unset [image!]
