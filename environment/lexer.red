@@ -694,7 +694,7 @@ system/lexer: context [
 		sticky-word-rule: [								;-- protect from sticky words typos
 			ahead [integer-end | ws-no-count | end | (throw-error [type s])]
 		]
-		hexa-rule: [2 8 hexa e: #"h" ahead [integer-end | ws-no-count | end]]
+		hexa-rule: [1 8 hexa e: #"h" ahead [integer-end | ws-no-count | end]]
 
 		tuple-value-rule: [byte 2 11 [#"." byte] e: (type: tuple!)]
 

@@ -248,6 +248,12 @@ do %../../../lexer.r
 		--assert "#{3D}" = mold second lexer/process src
 
 
+	--test-- "lexer-41"
+		src: {Red []
+			[1h 10h 100h 1000h 10000h 100000h 1000000h]
+		}
+		--assert "[1 16 256 4096 65536 1048576 16777216]" = mold second lexer/process src
+
 ===end-group===
 	
 ~~~end-file~~~

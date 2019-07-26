@@ -207,7 +207,10 @@ loader: make-profilable context [
 				| [hex-delim | ws]
 				s: copy value some [hex-chars (c: c + 1)] #"h"	;-- literal hexadecimal support	
 				e: [hex-delim | ws-all | #";" to lf | end] (
-					either find [2 4 8] c [
+					either all [
+						c >= 1
+						c <= 8
+					][
 						e: change/part s to integer! to issue! value e
 					][
 						throw-error ["invalid hex literal:" copy/part s 40]

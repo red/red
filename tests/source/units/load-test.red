@@ -407,4 +407,11 @@ Red [
 
 ===end-group===
 
+===start-group=== "load hex"
+	--test-- "load hex 1"
+		--assert 0 = 0h
+	--test-- "load hex 2"
+		--assert [1 16 256 4096 65536 1048576 16777216] = [1h 10h 100h 1000h 10000h 100000h 1000000h]
+===end-group===
+
 ~~~end-file~~~

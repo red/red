@@ -265,7 +265,7 @@ lexer: context [
 	
 	slash-rule: [s: [slash opt slash] e:]
 	
-	hexa-rule: [2 8 hexa e: #"h" pos: [integer-end | ws-no-count | end ] :pos (type: integer!)]
+	hexa-rule: [1 8 hexa e: #"h" pos: [integer-end | ws-no-count | end ] :pos (type: integer!)]
 
 	sticky-word-rule: [								;-- protect from sticky words typos
 		mark: [integer-end | ws-no-count | end | (pos: s throw-error)] :mark
@@ -783,6 +783,9 @@ lexer: context [
 	]
 	
 	decode-hexa: func [s [string!]][
+		if odd? length? s [
+			insert s #"0"
+		]
 		to integer! debase/base s 16
 	]
 	
