@@ -247,6 +247,7 @@ object [
 		if font/color [change theme/foreground font/color]
 		#if config/OS = 'Linux [
 			; since in Linux/GTK, no on-resizing when the window is first drawn
+			gui-console-ctx/console/size: cfg/win-size
 			resize gui-console-ctx/console/size
 		]
 		adjust-console-size gui-console-ctx/console/size

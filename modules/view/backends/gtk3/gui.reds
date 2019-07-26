@@ -895,7 +895,7 @@ change-offset: func [
 ][
 	;; DEBUG: print ["change-offset type: " get-symbol-name get-widget-symbol widget " " widget " " pos/x "x" pos/y lf]
 	either type = window [
-		0
+		gtk_window_move widget pos/x pos/y
 	][
 		unless null? widget [
 			;OS-refresh-window as integer! main-window

@@ -319,9 +319,18 @@ window-configure-event: func [
 	widget	[handle!]
 	event	[GdkEventConfigure!]
 	/local
-		sz	 [red-pair!]
+		sz	 	[red-pair!]
+		offset	[red-pair!]
+		x 		[integer!]
+		y 		[integer!]
 ][
 	;;DEBUG: print [ "window-resizing " event/x "x" event/y " " event/width "x" event/height lf]
+	
+	; Set the offset when window is moved
+	offset: (as red-pair! get-face-values widget) + FACE_OBJ_OFFSET
+	x: 0 y: 0 gtk_window_get_position widget :x :y
+	offset/x: x offset/y: y
+
 	sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE		;-- update face/size
 	; either any [event/width <> sz/x event/height <> sz/y] [
 	; 	;if 0 = (evt-motion/cpt % evt-motion/sensitiv) [
