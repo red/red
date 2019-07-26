@@ -588,8 +588,7 @@ GPtrArray!: alias struct! [
 			return:		[integer!]
 		]
 		g_signal_emit_by_name: "g_signal_emit_by_name" [
-			instance	[int-ptr!]
-			signal		[c-string!]
+			[variadic]
 		]
 		g_object_ref: "g_object_ref" [
 			object		[int-ptr!]
