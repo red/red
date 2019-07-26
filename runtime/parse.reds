@@ -816,6 +816,7 @@ parser: context [
 			done?	 [logic!]
 			saved?	 [logic!]
 			gc-saved [logic!]
+			word?    [logic!]
 	][
 		match?:	  yes
 		end?:	  no
@@ -1637,7 +1638,8 @@ parser: context [
 							
 							s-top: null
 							saved: input/head
-							either TYPE_OF(value) = TYPE_WORD [
+							word?: TYPE_OF(value) = TYPE_WORD
+							either word? [
 								new: as red-series! _context/get as red-word! value
 								if all [TYPE_OF(new) = TYPE_OF(input) new/node = input/node][
 									cmd: value + 1		;-- INSERT position
@@ -1668,7 +1670,7 @@ parser: context [
 							]
 							PARSE_SAVE_SERIES
 							before: input/head
-							if TYPE_OF(value) = TYPE_WORD [value: _context/get as red-word! value]
+							if word? [value: _context/get as red-word! value]
 							actions/insert input value null as-logic max null no
 							input/head: saved + (input/head - before)
 							if s-top <> null [stack/top: s-top]

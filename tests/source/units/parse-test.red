@@ -2711,6 +2711,15 @@ Red [
 		parse "bx" [some [not "b" | skip]]
 		--assert true				;-- just check that parse finishes
 
+
+	--test-- "#3357"
+		parse x3357: [][insert ('foo)]
+		--assert x3357 = [foo]
+
+		parse x3357b: [][insert ('foo)]
+		--assert x3357b = [foo]
+
+
 ===end-group===
     
 ~~~end-file~~~
