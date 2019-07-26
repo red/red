@@ -52,9 +52,9 @@ client/awake: func [event /local port] [
     ]
     false
 ]
-
-wait client
-close client
-print "Done"
-
+if none? system/view [
+	wait client
+	close client
+	print "Done"
+]
 ]

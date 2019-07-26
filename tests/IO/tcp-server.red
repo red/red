@@ -49,9 +49,11 @@ server/awake: func [event] [
 ]
 
 print "TCP server: waiting for client to connect"
-wait server
-print "done"
-close server
+if none? system/view [
+	wait server
+	print "done"
+	close server
+]
 
 ]
 

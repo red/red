@@ -95,9 +95,10 @@ iocp: context [
 
 		cnt: 0
 		res: GetQueuedCompletionStatusEx p/port p/events p/evt-cnt :cnt timeout no
-		err: GetLastError
-		if zero? res [exit]
-		if all [res <> 0 err = IOCP_WAIT_TIMEOUT][exit]
+		if zero? res [
+			err: GetLastError
+			exit
+		]
 
 		if cnt = p/evt-cnt [			;-- TBD: extend events buffer
 			0
