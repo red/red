@@ -16,7 +16,7 @@ Red/System [
 ;;		-28  : Cursor handle
 ;;		-24  : Direct2D target interface
 ;;			   base-layered: caret's owner handle
-;;		-20  : evolved-base-layered: child handle
+;;		-20  : evolved-base-layered: child handle, window: modal window's parent handle
 ;;		-16  : base-layered: owner handle, window: border width and height
 ;;		-12  : base-layered: clipped? flag, caret? flag, d2d? flag, ime? flag
 ;;		 -8  : base: pos X/Y in pixel
@@ -622,9 +622,9 @@ free-faces: func [
 				if dc <> 0 [DeleteDC as handle! dc]			;-- delete cached dc
 			]
 			flags: get-flags as red-block! values + FACE_OBJ_FLAGS
-			;if flags and FACET_FLAGS_MODAL <> 0 [
-			;	SetActiveWindow GetWindow handle GW_OWNER
-			;]
+			if flags and FACET_FLAGS_MODAL <> 0 [
+				SetActiveWindow as handle! GetWindowLong handle wc-offset - 20
+			]
 			dc: GetWindowLong handle wc-offset - 24
 			if dc <> 0 [
 				either (GetWindowLong handle wc-offset - 12) and BASE_FACE_IME <> 0 [
@@ -898,26 +898,10 @@ window-border-info?: func [
 
 init-window: func [										;-- post-creation settings
 	handle  [handle!]
-	bits	[integer!]
-	/local
-		x		[integer!]
-		y		[integer!]
-		cx		[integer!]
-		cy		[integer!]
-		owner	[handle!]
-		modes	[integer!]
 ][
 	SetWindowLong handle wc-offset - 4 0
 	SetWindowLong handle wc-offset - 16 0
 	SetWindowLong handle wc-offset - 24 0
-
-	modes: SWP_NOZORDER
-
-	if bits and FACET_FLAGS_MODAL <> 0 [
-		modes: 0
-		owner: find-last-window
-		if owner <> null [SetWindowLong handle GWL_HWNDPARENT as-integer owner]
-	]
 ]
 
 set-selected-focus: func [
@@ -1477,6 +1461,9 @@ OS-make-view: func [
 			AdjustWindowRectEx rc flags menu-bar? menu window ws-flags
 			rc/right: rc/right - rc/left
 			rc/bottom: rc/bottom - rc/top
+			if bits and FACET_FLAGS_MODAL <> 0 [
+				parent: as-integer find-last-window
+			]
 		]
 		true [											;-- search in user-defined classes
 			p: find-class type
@@ -1622,7 +1609,8 @@ OS-make-view: func [
 			SetWindowLong handle wc-offset - 12 BASE_FACE_D2D or BASE_FACE_IME
 		]
 		sym = window [
-			init-window handle bits
+			init-window handle
+			SetWindowLong handle wc-offset - 20 parent
 			#if sub-system = 'gui [
 				with clipboard [
 					if null? main-hWnd [main-hWnd: handle]
