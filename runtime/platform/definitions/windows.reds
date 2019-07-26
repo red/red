@@ -77,7 +77,7 @@ Red/System [
 
 #define IS_TEXT_UNICODE_UNICODE_MASK 	000Fh
 
-#define WAIT_TIMEOUT					258
+#define IOCP_WAIT_TIMEOUT				258
 #define WAIT_OBJECT_0					0
 
 #define FIONBIO							8004667Eh

@@ -10,11 +10,6 @@ Red/System [
 	}
 ]
 
-#enum event-category! [
-	EVT_CATEGORY_GUI
-	EVT_CATEGORY_IO
-]
-
 event: context [
 	verbose: 0
 	

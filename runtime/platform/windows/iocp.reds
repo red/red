@@ -88,8 +88,6 @@ iocp: context [
 			e		[OVERLAPPED_ENTRY!]
 			data	[iocp-data!]
 	][
-		#if debug? = yes [print-line "iocp/wait"]
-
 		if null? p/events [
 			p/evt-cnt: 512
 			p/events: as OVERLAPPED_ENTRY! allocate p/evt-cnt * size? OVERLAPPED_ENTRY!
@@ -97,6 +95,9 @@ iocp: context [
 
 		cnt: 0
 		res: GetQueuedCompletionStatusEx p/port p/events p/evt-cnt :cnt timeout no
+		err: GetLastError
+		if zero? res [exit]
+		if all [res <> 0 err = IOCP_WAIT_TIMEOUT][exit]
 
 		if cnt = p/evt-cnt [			;-- TBD: extend events buffer
 			0

@@ -12,6 +12,11 @@ Red/System [
 
 ;=== Cross platform definitions ===
 
+#enum event-category! [
+	EVT_CATEGORY_GUI
+	EVT_CATEGORY_IO
+]
+
 #define SOCK_STREAM		1				;-- stream socket
 #define SOCK_DGRAM		2				;-- datagram socket
 #define SOCK_RAW		3				;-- raw-protocol interface
