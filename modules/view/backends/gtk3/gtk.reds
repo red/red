@@ -1142,10 +1142,20 @@ GPtrArray!: alias struct! [
 			window		[handle!]
 			mode		[logic!]
 		]
+		gtk_window_resize: "gtk_window_resize" [
+			window		[handle!]
+			w			[integer!]
+			h			[integer!]
+		]
 		gtk_window_move: "gtk_window_move" [
 			window		[handle!]
 			x			[integer!]
 			y			[integer!]
+		]
+		gtk_window_get_position: "gtk_window_get_position" [
+			window		[handle!]
+			x			[int-ptr!]
+			y			[int-ptr!]
 		]
 		gtk_window_present: "gtk_window_present" [
 			window		[handle!]

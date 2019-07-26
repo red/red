@@ -927,6 +927,7 @@ change-size: func [
 	either type = window [
 		;; DEBUG: print ["change-size window: "  size/x "x" size/y lf]
 		gtk_window_set_default_size widget size/x size/y
+		gtk_window_resize widget size/x size/y
 		gtk_widget_queue_draw widget
 	][
 		 unless null? widget [
