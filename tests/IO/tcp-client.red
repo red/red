@@ -7,9 +7,9 @@ do [
 debug: :print
 ;debug: :comment
 
-max-count: 30000
+max-count: 300000
 count: 0
-total: 0
+total: 0.0
 
 print "TCP client"
 
@@ -30,7 +30,7 @@ client/awake: func [event /local port] [
         connect [insert port b]
         read [
 	        probe "client read done"
-            either port/data = #{0f} [
+            either port/data/1 = 15 [
                 count: count + 1
                 total: total + size + 4
                 if count // 1000 = 0 [

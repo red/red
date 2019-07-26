@@ -7,7 +7,7 @@ do [
 debug: :print
 ;debug: :comment
 
-total: 0
+total: 0.0
 count: 0
 
 process-data: func [port /local len] [
