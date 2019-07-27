@@ -90,8 +90,14 @@ OS-request-font: func [
 		trait		[integer!]
 		bold?		[logic!]
 		resp		[integer!]
+		fd-sel 		[handle!]
 ][
 	widget: gtk_font_chooser_dialog_new "Font" null
+	if all[TYPE_OF(selected) = TYPE_OBJECT][
+		fd-sel: get-font-handle selected 0
+		;; DEBUG: print ["fd-sel: " pango_font_description_get_family fd-sel " " pango_font_description_get_size fd-sel lf]
+		gtk_font_chooser_set_font_desc widget fd-sel
+	]
 	resp: gtk_dialog_run widget
 	;; print ["resp: " resp lf]
 	either resp = -5 [
@@ -120,6 +126,7 @@ OS-request-font: func [
 				word/make-at _italic as red-value! style
 			]
 		]
+		set-font-handle font fd
 	][
 		font/header: TYPE_NONE
 	]
