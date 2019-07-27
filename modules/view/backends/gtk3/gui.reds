@@ -866,7 +866,7 @@ change-font: func [
 		; provider [handle!]
 		hFont	[handle!]
 ][
-	;; DEBUG: print ["change-font" lf]
+	;; DEBUG: print ["change-font " widget " " get-symbol-name type lf]
 	if TYPE_OF(font) <> TYPE_OBJECT [return no]
 
 	; provider: get-styles-provider widget

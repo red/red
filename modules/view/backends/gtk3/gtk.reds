@@ -1112,6 +1112,10 @@ GPtrArray!: alias struct! [
 			font-sel 	[handle!]
 			return: 	[handle!]
 		]
+		gtk_font_chooser_set_font_desc: "gtk_font_chooser_set_font_desc" [
+			font-sel 	[handle!]
+			font-desc 	[handle!]
+		]
 		gtk_init: "gtk_init" [
 			argc		[int-ptr!]
 			argv		[handle!]
