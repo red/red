@@ -140,6 +140,12 @@ show-cfg-dialog: function [][
 		]
 		button "Cancel" [unview win/selected: console]
 	]
+	lay/actors: object [
+		on-close: func [face [object!] event [event!]][
+			unview win/selected: console
+		]
+	]
+
 	cfg-buffers/data:	cfg/buffer-lines
 	cfg-forecolor/data:	cfg/font-color
 	cfg-backcolor/data:	cfg/background
