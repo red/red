@@ -29,6 +29,7 @@ strict-equal-test.red
 object-test.red
 integer-test.red
 float-test.red
+handle-test.red
 same-test.red
 words-of-test.red
 unset-test.red

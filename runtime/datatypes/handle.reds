@@ -53,6 +53,36 @@ handle: context [
 		h
 	]
 
+	make: func [
+		proto	[red-value!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-handle!]
+		/local
+			h	[red-handle!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "handle/make"]]
+
+		h: as red-handle! integer/make proto spec type
+		h/header: TYPE_HANDLE
+		h
+	]
+
+	to: func [
+		proto 	[red-value!]							;-- overwrite this slot with result
+		spec	[red-value!]
+		type	[integer!]
+		return: [red-value!]
+		/local
+			h	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "handle/to"]]
+
+		h: integer/to proto spec type
+		h/header: TYPE_HANDLE
+		h
+	]
+
 	push: func [
 		value	[handle!]
 		return: [red-handle!]
@@ -80,10 +110,11 @@ handle: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "handle/form"]]
 		
+		string/concatenate-literal buffer "make handle! "
 		formed: string/to-hex h/value false
 		string/concatenate-literal buffer formed
 		string/append-char GET_BUFFER(buffer) as-integer #"h"
-		part - 9
+		part - 22
 	]
 	
 	mold: func [
@@ -99,15 +130,7 @@ handle: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "handle/mold"]]
 		
-		either all? [
-			string/concatenate-literal buffer "#[handle! "
-			part: form h buffer arg part
-			string/append-char GET_BUFFER(buffer) as-integer #"]"
-			part + 11
-		][
-			string/concatenate-literal buffer "handle!"
-			part + 11
-		]
+		form h buffer arg part
 	]
 
 	compare: func [
@@ -131,10 +154,10 @@ handle: context [
 			TYPE_INTEGER
 			"handle!"
 			;-- General actions --
-			null			;make
+			:make
 			null			;random
 			null			;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			null			;eval-path
