@@ -861,7 +861,7 @@ container-emit-event: func [
 	;; DEBUG: if evt/type = GDK_BUTTON_PRESS [print ["emit event " widget lf]]
 	if all[x >= rect/x x <= (rect/x + rect/width) y >= rect/y y <= (rect/y + rect/height)][
 		;; DEBUG: if evt/type = GDK_BUTTON_PRESS [print ["emit2 event " widget " event " evt/x "x" evt/y lf "widget size " rect/x "x" rect/y "x" rect/width "x" rect/height lf]]
-		gtk_widget_event widget event
+		gtk_widget_event real-widget? widget event
 	]
 	free as byte-ptr! rect
 ]

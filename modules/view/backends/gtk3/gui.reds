@@ -35,6 +35,7 @@ AppMainMenu:	as handle! 0
 red-face-id: 		g_quark_from_string "red-face-id"
 gtk-style-id: 		g_quark_from_string "gtk-style-id"
 _widget-id:			g_quark_from_string "_widget-id"
+real-widget-id:		g_quark_from_string "real-widget-id"
 gtk-container-id:	g_quark_from_string "gtk-container-id"
 red-timer-id:		g_quark_from_string "red-timer-id"
 css-id:				g_quark_from_string "css-id"
@@ -177,6 +178,25 @@ get-widget-data: func [
 ][
 	values: get-face-values widget
     as red-block! values + FACE_OBJ_DATA
+]
+
+;; Used to delegate event (see handlers.red) for widget that have container for scrollbar (like rich-text)
+set-real-widget: func [
+	_widget		[handle!]
+	widget	[handle!]
+][
+	g_object_set_qdata _widget real-widget-id widget
+]
+
+real-widget?: func [
+	_widget		[handle!]
+	return: 	[handle!]
+	/local
+		widget 	[handle!]
+][
+	widget: g_object_get_qdata _widget real-widget-id
+	if null? widget [widget: _widget]
+	return widget
 ]
 
 set-container: func [
@@ -1748,6 +1768,8 @@ OS-make-view: func [
 			widget: gtk_layout_new null null;gtk_drawing_area_new
 			gtk_layout_set_size widget size/x size/y
 			_widget: gtk_scrolled_window_new null null
+			set-real-widget _widget widget
+			;; DEBUG: print ["rich-text _widget: " _widget lf]
 			gtk_container_add _widget widget
 		]
 		sym = window [
