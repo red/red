@@ -16,7 +16,7 @@ Red/System [
 ;;		-28  : Cursor handle
 ;;		-24  : Direct2D target interface
 ;;			   base-layered: caret's owner handle
-;;		-20  : evolved-base-layered: child handle, window: modal window's parent handle
+;;		-20  : evolved-base-layered: child handle, window: previous focused handle
 ;;		-16  : base-layered: owner handle, window: border width and height
 ;;		-12  : base-layered: clipped? flag, caret? flag, d2d? flag, ime? flag
 ;;		 -8  : base: pos X/Y in pixel
@@ -621,10 +621,6 @@ free-faces: func [
 				dc: GetWindowLong handle wc-offset - 4
 				if dc <> 0 [DeleteDC as handle! dc]			;-- delete cached dc
 			]
-			flags: get-flags as red-block! values + FACE_OBJ_FLAGS
-			if flags and FACET_FLAGS_MODAL <> 0 [
-				SetActiveWindow as handle! GetWindowLong handle wc-offset - 20
-			]
 			dc: GetWindowLong handle wc-offset - 24
 			if dc <> 0 [
 				either (GetWindowLong handle wc-offset - 12) and BASE_FACE_IME <> 0 [
@@ -904,21 +900,30 @@ init-window: func [										;-- post-creation settings
 	SetWindowLong handle wc-offset - 24 0
 ]
 
-set-selected-focus: func [
-	hWnd [handle!]
+get-selected-handle: func [
+	hWnd	[handle!]
+	return: [handle!]
 	/local
 		face   [red-object!]
 		values [red-value!]
 		handle [handle!]
 ][
 	values: get-face-values hWnd
+	handle: null
 	if values <> null [
 		face: as red-object! values + FACE_OBJ_SELECTED
 		if TYPE_OF(face) = TYPE_OBJECT [
 			handle: face-handle? face
-			unless null? handle [SetFocus handle]
 		]
 	]
+	handle
+]
+
+set-selected-focus: func [
+	hWnd [handle!]
+][
+	hWnd: get-selected-handle hWnd
+	unless null? hWnd [SetFocus hWnd]
 ]
 
 set-logic-state: func [
@@ -1264,8 +1269,7 @@ OS-show-window: func [
 	]
 
 	SetForegroundWindow as handle! hWnd
-	face: (as red-object! get-face-values as handle! hWnd) + FACE_OBJ_SELECTED
-	if TYPE_OF(face) = TYPE_OBJECT [SetFocus get-face-handle face]
+	set-selected-focus as handle! hWnd
 ]
 
 OS-make-view: func [
@@ -1296,6 +1300,7 @@ OS-make-view: func [
 		value	  [integer!]
 		handle	  [handle!]
 		hWnd	  [handle!]
+		focused   [handle!]
 		p		  [ext-class!]
 		id		  [integer!]
 		vertical? [logic!]
@@ -1461,8 +1466,10 @@ OS-make-view: func [
 			AdjustWindowRectEx rc flags menu-bar? menu window ws-flags
 			rc/right: rc/right - rc/left
 			rc/bottom: rc/bottom - rc/top
+			focused: null
 			if bits and FACET_FLAGS_MODAL <> 0 [
 				parent: as-integer find-last-window
+				focused: get-selected-handle as handle! parent
 			]
 		]
 		true [											;-- search in user-defined classes
@@ -1610,7 +1617,7 @@ OS-make-view: func [
 		]
 		sym = window [
 			init-window handle
-			SetWindowLong handle wc-offset - 20 parent
+			SetWindowLong handle wc-offset - 20 as-integer focused
 			#if sub-system = 'gui [
 				with clipboard [
 					if null? main-hWnd [main-hWnd: handle]

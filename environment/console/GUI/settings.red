@@ -136,9 +136,8 @@ show-cfg-dialog: function [][
 			set-font-color cfg/font-color: cfg-forecolor/data
 			set-background cfg/background: cfg-backcolor/data
 			unview
-			win/selected: console
 		]
-		button "Cancel" [unview win/selected: console]
+		button "Cancel" [unview]
 	]
 	cfg-buffers/data:	cfg/buffer-lines
 	cfg-forecolor/data:	cfg/font-color

@@ -1363,7 +1363,14 @@ WndProc: func [
 		]
 		WM_CLOSE [
 			if type = window [
-				either -1 = GetWindowLong hWnd wc-offset - 4 [clean-up][
+				either -1 = GetWindowLong hWnd wc-offset - 4 [
+					flags: get-flags as red-block! values + FACE_OBJ_FLAGS
+					if flags and FACET_FLAGS_MODAL <> 0 [
+						;SetActiveWindow GetWindow hWnd GW_OWNER
+						SetFocus as handle! GetWindowLong hWnd wc-offset - 20
+					]
+					clean-up
+				][
 					SetFocus hWnd									;-- force focus on the closing window,
 					current-msg/hWnd: hWnd							;-- prevents late unfocus event generation.
 					res: make-event current-msg 0 EVT_CLOSE
