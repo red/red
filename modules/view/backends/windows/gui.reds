@@ -294,6 +294,9 @@ get-text-size: func [
 	;-- possibly null if hwnd wasn't stored in `state` yet (upon face creation)
 	;  in this case hwnd=0 is of the screen, while `para` can still be applied from the face/ctx
 	hwnd: face-handle? face
+	if null? hwnd [
+		hwnd: GetDesktopWindow
+	]
 	values: object/get-values face
 	dc: GetWindowDC hwnd
 
