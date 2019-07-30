@@ -868,9 +868,7 @@ connect-notify-events: function [
 	;; DEBUG: if debug-connect? DEBUG_CONNECT_NOTIFY [print ["connect-notify-events " widget " " get-symbol-name sym lf]]
 
 	unless null? widget [
-		_widget: either sym = text [
-			g_object_get_qdata widget _widget-id
-		][widget]
+		_widget: either sym = text [_widget? widget][widget]
 
 		if respond-mouse? widget ON_OVER [
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_NOTIFY [print [ "connect-notifiy-events ON-OVER: " get-symbol-name sym "->" widget "(" _widget ")" lf]]

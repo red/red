@@ -180,6 +180,25 @@ get-widget-data: func [
     as red-block! values + FACE_OBJ_DATA
 ]
 
+;; GTK basic widget is often embedded in some super widget in order to be contained in some layout widget 
+set-_widget: func [
+	widget		[handle!]
+	_widget	[handle!]
+][
+	g_object_set_qdata widget _widget-id _widget
+]
+
+_widget?: func [
+	widget		[handle!]
+	return: 	[handle!]
+	/local
+		_widget 	[handle!]
+][
+	_widget: g_object_get_qdata widget _widget-id
+	if null? _widget [_widget: widget]
+	return _widget
+]
+
 ;; Used to delegate event (see handlers.red) for widget that have container for scrollbar (like rich-text)
 set-real-widget: func [
 	_widget		[handle!]
@@ -474,8 +493,7 @@ debug-show-children: func [
 			; if next widget is on the right of the previous one or there is no overlapping dx becomes 0 
 		
 			unless null? container [	
-				widget_: g_object_get_qdata child _widget-id
-				if null? widget_ [widget_: child]
+				widget_: _widget? child
 
 				gtk_widget_get_allocation widget_ as handle! rect
 				; rmk: rect/x and rect/y are absolute coordinates when offset/x and offset/y are relative coordinates
@@ -620,8 +638,7 @@ adjust-sizes: func [
 				; if next widget is on the right of the previous one or there is no overlapping dx becomes 0 
 				if any [ox > offset/x not overlap?] [dx: 0]
 				unless null? container [	
-					widget_: g_object_get_qdata child _widget-id
-					if null? widget_ [widget_: child]
+					widget_: _widget? child
 					if debug [ print ["move child: " offset/x "+" dx "("  offset/x + dx ")" " " offset/y lf]]
 					gtk_layout_move container widget_ offset/x + dx  offset/y
 					gtk_widget_get_allocation widget_ as handle! rect
@@ -925,8 +942,7 @@ change-offset: func [
 			; 	g_object_get_qdata widget _widget-id
 			; ][widget]
 			
-			_widget: g_object_get_qdata widget _widget-id
-			_widget: either null? _widget [widget][_widget]
+			_widget: _widget? widget
 			unless null? container [
 				gtk_layout_move container _widget pos/x pos/y
 				gtk_widget_queue_draw _widget
@@ -951,8 +967,7 @@ change-size: func [
 		gtk_widget_queue_draw widget
 	][
 		 unless null? widget [
-			_widget: g_object_get_qdata widget _widget-id
-			_widget: either null? _widget [widget][_widget]
+			_widget: _widget? widget
 			gtk_widget_set_size_request _widget size/x size/y
 			unless null? _widget [gtk_widget_queue_resize _widget]
 		]
@@ -1908,7 +1923,7 @@ OS-make-view: func [
 		parent <> 0
 	][
 		p-sym: get-widget-symbol as handle! parent
-		either null? _widget [_widget: widget][g_object_set_qdata widget _widget-id _widget ]
+		either null? _widget [_widget: widget][set-_widget widget _widget ]
 		; TODO: case to replace with either if no more choice
 		;; DEBUG: print ["Parent: " get-symbol-name p-sym " _widget" _widget lf]
 		case [
