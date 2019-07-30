@@ -827,7 +827,7 @@ change-color: func [
 	]
 ]
 
-update-z-order: func [
+change-pane: func [
 	parent	[handle!]
 	pane	[red-block!]
 	type	[integer!]
@@ -835,6 +835,7 @@ update-z-order: func [
 		face	[red-object!]
 		tail 	[red-object!]
 		widget 	[handle!]
+		_widget 	[handle!]
 		nb   	[integer!]
 		s	 	[series!]
 		values	[red-value!]
@@ -842,7 +843,7 @@ update-z-order: func [
 		list 	[GList!] child [GList!]
 
 ][
-	;; DEBUG: print ["update-z-order" lf]
+	;; DEBUG: print ["change-pane " get-symbol-name type lf]
 
 	if gtk-layout? type [ ;; this is for gtk_layout widget
 		list: as GList! gtk_container_get_children parent
@@ -867,13 +868,13 @@ update-z-order: func [
 			if TYPE_OF(face) = TYPE_OBJECT [
 				widget: face-handle? face
 				if widget <> null [
+					_widget: _widget? widget
 					nb: nb + 1
-					;; DEBUG: print ["added widget" nb ": " widget " to " parent lf]
-					gtk_container_add parent widget
+					;; DEBUG: print ["add widget" nb ": " widget "(" _widget ") to " parent lf]
+					gtk_container_add parent _widget
 					values: object/get-values face
 					offset: as red-pair! values + FACE_OBJ_OFFSET
-					gtk_layout_move parent widget offset/x  offset/y 
-					g_object_unref widget
+					gtk_layout_move parent _widget offset/x  offset/y 
 				]
 			]
 			face: face + 1
@@ -2109,8 +2110,7 @@ OS-update-view: func [
 		]
 	]
 	if all [flags and FACET_FLAG_PANE <> 0 type <> tab-panel][
-		update-z-order widget as red-block! values + FACE_OBJ_PANE type
-		;0
+		change-pane widget as red-block! values + FACE_OBJ_PANE type
 	]
 	if flags and FACET_FLAG_RATE <> 0 [
 		change-rate widget values + FACE_OBJ_RATE
