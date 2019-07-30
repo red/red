@@ -1439,6 +1439,9 @@ XFORM!: alias struct! [
 			lpRect		[RECT_STRUCT]
 			return:		[integer!]
 		]
+		GetDesktopWindow: "GetDesktopWindow" [
+			return:		[handle!]
+		]
 		FillRect: "FillRect" [
 			hDC			[handle!]
 			lprc		[RECT_STRUCT]
