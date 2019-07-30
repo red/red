@@ -802,4 +802,6 @@ Red [
 		ro9-mem2: stats
 		--assert ro9-mem2 <= ro9-mem
 
+===end-group===
+
 ~~~end-file~~~
