@@ -514,7 +514,7 @@ draw-text-box-lines: func [
 
 	lc: either TYPE_OF(tbox) = TYPE_OBJECT [	
 	 	;; DEBUG: print ["draw-text-box-lines: " as int-ptr! dc lf]			;-- text-box!
-	 	as layout-ctx! OS-text-box-layout tbox as int-ptr! dc clr yes
+		 as layout-ctx! OS-text-box-layout tbox as int-ptr! dc clr yes
 	 ][
 	 	null
 	 ]
@@ -561,7 +561,7 @@ draw-text-box: func [
 
 	len: -1
 	str: unicode/to-utf8 text :len
-
+	; default font-desc that can be overloaded in OS-text-box-layout called inside draw-text-box-lines 
 	dc/font-desc: pango_font_description_from_string gtk-font
 	;;TORM: dc/layout: make-pango-cairo-layout dc/raw dc/font-desc
 	

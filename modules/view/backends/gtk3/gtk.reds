@@ -806,8 +806,8 @@ GPtrArray!: alias struct! [
 		]
 		g_strsplit_set: "g_strsplit_set" [
 			str 		[c-string!]
-      delim		[c-string!]
-      tokens	[integer!]
+			delim		[c-string!]
+			tokens	[integer!]
 			return:	[handle!]
 		]
 		g_free: "g_free" [
@@ -1931,11 +1931,15 @@ GPtrArray!: alias struct! [
 			accel_mark	[integer!]
 			accel_char	[int-ptr!]
 		] 
-   	pango_layout_set_font_description: "pango_layout_set_font_description" [
+		pango_layout_get_font_description: "pango_layout_get_font_description" [
+			layout		[handle!]
+			return:		[handle!]
+		]
+   		pango_layout_set_font_description: "pango_layout_set_font_description" [
 			layout		[handle!]
 			fontdesc	[handle!]
 		]
-   	pango_layout_get_pixel_size: "pango_layout_get_pixel_size" [
+   		pango_layout_get_pixel_size: "pango_layout_get_pixel_size" [
 			layout		[handle!]
 			width		[int-ptr!]
 			height		[int-ptr!]

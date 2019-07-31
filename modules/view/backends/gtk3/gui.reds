@@ -56,7 +56,7 @@ _drag-on:		symbol/make "drag-on"
 
 settings:		as handle! 0 
 pango-context:	as handle! 0
-gtk-font:		"Sans 10"
+gtk-font:		"Sans 13"
 default-font:	as handle! 0
 
 ; Do not KNOW about this one 
