@@ -642,7 +642,7 @@ OS-text-box-layout: func [
 
 	len: -1
 	str: unicode/to-utf8 text :len
-	;str: g_markup_escape_text str len
+	str: g_markup_escape_text str len
 
 	layout-ctx-init lc str length? str
 
@@ -714,7 +714,3 @@ pango-layout-set-text: func [
 	pango_layout_set_height lc/layout PANGO_SCALE * size/y
 	pango_layout_set_wrap lc/layout PANGO_WRAP_WORD_CHAR
 ]
-
-; pango-layout-styled-set-text: func [
-
-; ]
