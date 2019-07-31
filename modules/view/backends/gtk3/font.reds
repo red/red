@@ -95,6 +95,7 @@ face-font?: func [
 	as red-object!	(object/get-values face) + FACE_OBJ_FONT
 ]
 
+;; IMPORTANT: Do not remove idx below (even if unused) since it is used in platform.red with this signature
 get-font-handle: func [
 	font	[red-object!]
 	idx		[integer!]
@@ -481,6 +482,19 @@ red-gtk-styles: func [
 	]	
 ]
 
+font-color?: func [
+	font 		[red-object!]
+	return: 	[integer!]
+	/local
+		values	[red-value!]
+		color	[red-tuple!]
+][
+	values: object/get-values font
+	color:	as red-tuple!	values + FONT_OBJ_COLOR
+
+	color/array1
+]
+
 ; move this to draw-ctx!? (used in draw-text-at)
 cairo-font-size: 10.0						;-- used to find top line
 
@@ -725,6 +739,43 @@ pango-cairo-set-text: func [
 			g_free as handle! ptext
 		][
 			pango_layout_set_text dc/layout text -1
+		]
+	]
+]
+
+;; A rewrite of pango_layout_set_markup but in red/system to control warning messages
+;; with option force to avoid the warning when considering 
+pango-layout-set-markup: func [
+	layout	[handle!]
+	mtext	[c-string!]
+	len 	[integer!]
+	force 	[logic!]
+	/local
+		status		[logic!]
+		attrs-ptr	[int-ptr!]
+		attrs		[handle!]
+		ptext-ptr	[int-ptr!]
+		ptext		[c-string!]
+		accel		[integer!]  
+		error		[handle!]
+][
+	unless null? layout [
+		attrs-ptr: declare int-ptr!
+		ptext-ptr: declare int-ptr!
+		;; DEBUG: print ["pango-layout-set-markup mtext: " mtext lf]
+		status: pango_parse_markup mtext len 0 attrs-ptr ptext-ptr null null
+		attrs: as handle! attrs-ptr/value
+		ptext: as c-string! ptext-ptr/value
+		;; DEBUG: print ["pango-layout-set-markup ptext: " ptext lf]
+		either any[status force] [
+			pango_layout_set_text layout ptext  -1
+			unless null? attrs [
+				pango_layout_set_attributes layout attrs
+				pango_attr_list_unref attrs
+			]
+			g_free as handle! ptext
+		][
+			pango_layout_set_text layout mtext -1
 		]
 	]
 ]

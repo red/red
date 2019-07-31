@@ -76,23 +76,63 @@ pango-insert-tag: func [
 	lc/tag-list: g_list_insert_sorted lc/tag-list tag as-integer :pango-compare-tag
 ]
 
-layout-ctx-begin: func [
+pango-append-open-tag: func [
+	gstr	[GString!]
+	ot 		[c-string!]
+][
+	g_string_append gstr "<span "
+	g_string_append gstr ot
+	g_string_append gstr ">"
+	g_free as handle! ot
+]
+
+layout-preamble?: func [
+	gstr		[GString!]
+	fd			[handle!]
+	color 		[integer!]
+	/local
+		ot		[c-string!]
+		rgba	[c-string!]
+][
+	g_string_assign gstr "<markup>"
+
+	ot: pango-open-tag-string? "face" pango_font_description_get_family fd
+	pango-append-open-tag gstr ot
+
+	ot: pango-open-tag-int? "size" pango_font_description_get_size fd
+	pango-append-open-tag gstr ot
+
+	rgba: int-to-bgra-hex color
+	;; DEBUG: print ["col(" rgba ")[" pos "," pos + len - 1 "]" lf]
+	
+	ot: pango-open-tag-string? "color" rgba
+	pango-append-open-tag gstr ot
+]
+
+layout-postamble?: func [
+	gstr		[GString!]
+][
+	g_string_append gstr "</span></span></span>"
+	g_string_append gstr "</markup>"
+	;; DEBUG: print ["text: " lc/text lf]
+	;; DEBUG: print ["text-markup: " text/str lf]
+]
+
+layout-ctx-init: func [
 	lc 			[layout-ctx!]
 	text 		[c-string!]
 	text-len	[integer!]
 	/local
-		ot		[c-string!]
+		gstr 	[GString!]
 ][
 	lc/closed-tags: null
 	lc/text: text
 	lc/text-len: text-len
 	lc/text-pos: 0
 	lc/text-markup: as handle! g_string_sized_new PANGO_TEXT_MARKUP_SIZED
-	g_string_assign as GString! lc/text-markup ""
 	lc/tag-list: null
-
-	ot: pango-open-tag-string? lc "face" gtk-font
-	pango-insert-tag lc ot 0 text-len
+	gstr: as GString! lc/text-markup
+	g_string_assign gstr ""
 ]
 
 pango-add-open-tag: func [
@@ -107,14 +147,14 @@ pango-add-open-tag: func [
 		g_string_append_len gstr lc/text + lc/text-pos pos - lc/text-pos
 		lc/text-pos: pos
 	]
-	g_string_append gstr "<span "
-	g_string_append gstr open-tag
-	g_string_append gstr ">"
-	g_free as handle! open-tag
+	pango-append-open-tag gstr open-tag
+	; g_string_append gstr "<span "
+	; g_string_append gstr open-tag
+	; g_string_append gstr ">"
+	; g_free as handle! open-tag
 ]
 
 pango-open-tag-string?: func [
-	lc 			[layout-ctx!]
 	attr-key	[c-string!]
 	attr-val	[c-string!]
 	return: 	[c-string!]
@@ -127,7 +167,6 @@ pango-open-tag-string?: func [
 ]
 
 pango-open-tag-int?: func [
-	lc 			[layout-ctx!]
 	attr-key	[c-string!]
 	attr-val	[integer!]
 	return: 	[c-string!]
@@ -140,7 +179,6 @@ pango-open-tag-int?: func [
 ]
 
 pango-open-tag-float?: func [
-	lc 			[layout-ctx!]
 	attr-key	[c-string!]
 	attr-val	[float!]
 	return: 	[c-string!]
@@ -250,8 +288,10 @@ pango-process-tag: func [
 	pango-add-closed-tag lc pos + len
 ]
 
-pango-markup-text: func [
+layout-ctx-do: func [
 	lc 			[layout-ctx!]
+	fd 			[handle!]
+	color 		[integer!]
 	/local
 		gl		[GList!]
 		last	[GList!]
@@ -259,14 +299,18 @@ pango-markup-text: func [
 		len		[integer!]
 		pos		[integer!]
 		opt		[c-string!]
-		text	[GString!]
+		gstr	[GString!]
 ][
-	unless null? lc/tag-list [
+	gstr: as GString! lc/text-markup
+	;; DEBUG: print ["layout-ctx-do layout: " lc/layout " " pango_font_description_get_family fd " " pango_font_description_get_size fd lf]
+	layout-preamble? gstr fd color
+	either null? lc/tag-list [
+		g_string_append gstr lc/text
+	][
 		last: as GList! g_list_last lc/tag-list
 		gl: as GList! g_list_first lc/tag-list
 
 		lc/text-pos: 0 lc/closed-tags: null
-		g_string_assign as GString! lc/text-markup "<markup>"
 		until [
 			tag: as pango-opt-tag! gl/data
 			;; DEBUG: print ["<span "  tag/opt "> at (" tag/pos "," tag/len ")" lf]
@@ -276,21 +320,8 @@ pango-markup-text: func [
 			null? gl
 		]
 		pango-close-tags lc -1
-		;; DEBUG: print ["Add </markup>" lf]
-		text: as GString! lc/text-markup
-		g_string_append  text "</markup>"
-		;; DEBUG: print ["text: " lc/text lf]
-		;; DEBUG: print ["text-markup: " text/str lf]
 	]
-]
-
-layout-ctx-end: func [
-	lc 			[layout-ctx!]
-	/local
-		text		[GString!]
-][
-	; TODO: free everything not anymore used
-	pango-markup-text lc
+	layout-postamble? gstr
 ]
 
 int-to-rgba: func [
@@ -342,7 +373,7 @@ OS-text-box-color: func [
 	rgba: int-to-bgra-hex color
 	;; DEBUG: print ["col(" rgba ")[" pos "," pos + len - 1 "]" lf]
 	
-	ot: pango-open-tag-string? lc "color" rgba
+	ot: pango-open-tag-string? "color" rgba
 	pango-insert-tag lc ot pos len
 ]
 
@@ -362,7 +393,7 @@ OS-text-box-background: func [
 	rgba: int-to-bgra-hex color
 	;; DEBUG: print ["bgcol(" rgba ")[" pos "," pos + len - 1 "]" lf]
 	
-	ot: pango-open-tag-string? lc "bgcolor" rgba
+	ot: pango-open-tag-string? "bgcolor" rgba
 	pango-insert-tag lc ot pos len
 
 ]
@@ -380,7 +411,7 @@ OS-text-box-weight: func [
 ][
 	lc: as layout-ctx! layout
 
-	ot: pango-open-tag-int? lc "weight" weight pos len
+	ot: pango-open-tag-int? "weight" weight pos len
 	pango-insert-tag lc ot pos len
 
 ]
@@ -395,7 +426,7 @@ OS-text-box-italic: func [
 ][
 	lc: as layout-ctx! layout
 
-	ot: pango-open-tag-string? lc "style" "italic"
+	ot: pango-open-tag-string? "style" "italic"
 	pango-insert-tag lc ot pos len
 ]
 
@@ -411,7 +442,7 @@ OS-text-box-underline: func [
 ][
 	lc: as layout-ctx! layout
 
-	ot: pango-open-tag-string? lc "underline" "single"
+	ot: pango-open-tag-string? "underline" "single"
 	pango-insert-tag lc ot pos len
 ]
 
@@ -426,7 +457,7 @@ OS-text-box-strikeout: func [
 ][
 	lc: as layout-ctx! layout
 	
-	ot: pango-open-tag-string? lc "strikethrough" "true"
+	ot: pango-open-tag-string? "strikethrough" "true"
 	pango-insert-tag lc ot pos len
 ]
 
@@ -458,7 +489,7 @@ OS-text-box-font-name: func [
 	strlen: -1
 	str: unicode/to-utf8 name :strlen
 
-	ot: pango-open-tag-string? lc "face" str
+	ot: pango-open-tag-string? "face" str
 	pango-insert-tag lc ot pos len
 ]
 
@@ -474,7 +505,7 @@ OS-text-box-font-size: func [
 ][
 	lc: as layout-ctx! layout
 
-	ot: pango-open-tag-int? lc "font" as integer! size
+	ot: pango-open-tag-int? "font" as integer! size
 	pango-insert-tag lc ot pos len
 ]
 
@@ -498,10 +529,13 @@ OS-text-box-metrics: func [
 		idx		[integer!]
 		trail	[integer!]
 		ok?		[logic!]
+		;; DEBUG: fd		[handle!]
 ][
-	;; DEBUG: print ["OS-text-box-metrics: " type lf]
+	;; DEBUG: print ["OS-text-box-metrics: " get-symbol-name type lf]
 	rstate: as red-integer! block/rs-head state
 	layout: as handle! rstate/value
+	;; DEBUG: print ["layout: " layout lf]
+	;; DEBUG: fd: pango_layout_get_font_description layout print ["OS-text-box-metrics layout: " layout " " pango_font_description_get_family fd " " pango_font_description_get_size fd lf]
 	if null? layout [return as red-value! none-value]
 	as red-value! switch type [
 		TBOX_METRICS_OFFSET?
@@ -574,15 +608,16 @@ OS-text-box-layout: func [
 		lc 		[layout-ctx!]
 		cached? [logic!]
 		force?	[logic!]
-
-		font	[handle!]
+		font 	[red-object!]
+		hFont	[handle!]
 		clr		[integer!]
 		text	[red-string!]
-		len     [integer!]
+		len		[integer!]
 		str		[c-string!]
 		pc		[handle!]
+		ft-ok?	[logic!]
 ][	
-	;; DEBUG: print ["OS-text-box-layout: " box " target: " target lf]
+	;; DEBUG: print ["OS-text-box-layout: " box " " face-handle? box " target: " target lf]
 	values: object/get-values box
 	state: as red-block! values + FACE_OBJ_EXT3
 	cached?: TYPE_OF(state) = TYPE_BLOCK
@@ -597,11 +632,19 @@ OS-text-box-layout: func [
 
 	lc: declare layout-ctx! ; this is not dynamic but lc/layout would change dynamically for each rich-text
 	text: as red-string! values + FACE_OBJ_TEXT
+	font: as red-object! values + FACE_OBJ_FONT
+	ft-ok?: TYPE_OF(font) = TYPE_OBJECT ;all[not null? target TYPE_OF(font) = TYPE_OBJECT]
+	hFont: default-font 
+	if ft-ok? [
+		hFont: get-font-handle font 0
+		if null? hFont [hFont: default-font]
+	]
+
 	len: -1
 	str: unicode/to-utf8 text :len
-	str: g_markup_escape_text str len
+	;str: g_markup_escape_text str len
 
-	layout-ctx-begin lc str length? str
+	layout-ctx-init lc str length? str
 
 	size: as red-pair! values + FACE_OBJ_SIZE
 
@@ -614,11 +657,12 @@ OS-text-box-layout: func [
 				; this is when OS-text-box-metrics is used before drawing
 				if null? pango-context [pango-context: gdk_pango_context_get]
 				lc/layout: pango_layout_new pango-context
-				;; DEBUG: print ["rich-text layout: " lc/layout lf]
-				pango_layout_set_font_description lc/layout pango_font_description_from_string  gtk-font ; needs to get the rich-text font
+				;; DEBUG: print ["rich-text layout: " lc/layout " " pango_font_description_get_family hFont " " pango_font_description_get_size hFont lf]
+				pango_layout_set_font_description lc/layout hFont 
 			]
 		][
 			dc: as draw-ctx! target
+			dc/font-desc: hFont
 			lc/layout: make-pango-cairo-layout dc/raw dc/font-desc
 			;; DEBUG: print ["rich-text layout with target: " lc/layout lf]
 		]
@@ -648,7 +692,8 @@ OS-text-box-layout: func [
 	][
 		g_string_assign as GString! lc/text-markup lc/text
 	]
-	layout-ctx-end lc
+	pango_layout_set_font_description lc/layout hFont
+	layout-ctx-do lc hFont either ft-ok? [font-color? font][ft-clr]
 	if null? target [
 		pango-layout-set-text lc size
 	]
@@ -663,7 +708,8 @@ pango-layout-set-text: func [
 ][
 	gstr: as GString! lc/text-markup
 	;; DEBUG: print ["pango-layout-set-text:<<-" gstr/str "->>" lf]
-	pango_layout_set_markup lc/layout gstr/str -1
+	;;pango_layout_set_markup lc/layout gstr/str -1
+	pango-layout-set-markup lc/layout gstr/str -1 false
 	pango_layout_set_width lc/layout PANGO_SCALE * size/x
 	pango_layout_set_height lc/layout PANGO_SCALE * size/y
 	pango_layout_set_wrap lc/layout PANGO_WRAP_WORD_CHAR
