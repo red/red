@@ -325,7 +325,7 @@ get-event-picked: func [
 			integer/push get-track-pos msg/hWnd msg/msg = WM_VSCROLL
 		]
 		EVT_WHEEL [
-			idx: WIN32_LOWORD(evt/flags)
+			idx: WIN32_HIWORD(msg/wParam)
 			float/push (as float! idx) / 120.0	;-- WHEEL_DELTA: 120
 		]
 		EVT_LEFT_DOWN
@@ -538,10 +538,7 @@ make-event: func [
 		EVT_MIDDLE_UP
 		EVT_DBL_CLICK
 		EVT_WHEEL [
-			key: flags >>> 16
-			if flags and 08h <> 0 [key: key or EVT_FLAG_CTRL_DOWN]	;-- MK_CONTROL
-			if flags and 04h <> 0 [key: key or EVT_FLAG_SHIFT_DOWN]	;-- MK_SHIFT
-			gui-evt/flags: key
+			gui-evt/flags: flags
 		]
 		EVT_CLICK [
 			gui-evt/flags: check-extra-keys yes
@@ -1445,7 +1442,9 @@ process: func [
 		x	   [integer!]
 		y	   [integer!]
 		track  [tagTRACKMOUSEEVENT value]
+		flags  [integer!]
 ][
+	flags: decode-down-flags msg/wParam
 	switch msg/msg [
 		WM_MOUSEMOVE [
 			lParam: msg/lParam
@@ -1475,8 +1474,8 @@ process: func [
 					TrackMouseEvent :track
 					msg/hWnd: new
 				]
-				key-flags: decode-down-flags msg/wParam
-				make-event msg key-flags EVT_OVER
+				make-event msg flags EVT_OVER
+				key-flags: flags
 			]
 			hover-saved: new
 			msg/hWnd: saved
@@ -1488,15 +1487,18 @@ process: func [
 			EVT_DISPATCH
 		]
 		WM_MOUSEWHELL [
-			make-event msg msg/wParam EVT_WHEEL
+			flags: 0
+			if msg/wParam and 08h <> 0 [flags: flags or EVT_FLAG_CTRL_DOWN]		;-- MK_CONTROL
+			if msg/wParam and 04h <> 0 [flags: flags or EVT_FLAG_SHIFT_DOWN]	;-- MK_SHIFT
+			make-event msg flags EVT_WHEEL
 		]
 		WM_LBUTTONDOWN	[
 			if GetCapture <> null [return EVT_DISPATCH]
 			menu-origin: null							;-- reset if user clicks on menu bar
 			menu-ctx: null
-			make-event msg 0 EVT_LEFT_DOWN
+			make-event msg flags EVT_LEFT_DOWN
 		]
-		WM_LBUTTONUP	[make-event msg 0 EVT_LEFT_UP]
+		WM_LBUTTONUP	[make-event msg flags EVT_LEFT_UP]
 		WM_RBUTTONDOWN	[
 			if GetCapture <> null [return EVT_DISPATCH]
 			lParam: msg/lParam
@@ -1508,13 +1510,13 @@ process: func [
 			ClientToScreen msg/hWnd pt
 			menu-origin: null
 			menu-ctx: null
-			res: make-event msg 0 EVT_RIGHT_DOWN
+			res: make-event msg flags EVT_RIGHT_DOWN
 			if show-context-menu msg pt/x pt/y [res: EVT_NO_DISPATCH]
 			res
 		]
-		WM_RBUTTONUP	[make-event msg 0 EVT_RIGHT_UP]
-		WM_MBUTTONDOWN	[make-event msg 0 EVT_MIDDLE_DOWN]
-		WM_MBUTTONUP	[make-event msg 0 EVT_MIDDLE_UP]
+		WM_RBUTTONUP	[make-event msg flags EVT_RIGHT_UP]
+		WM_MBUTTONDOWN	[make-event msg flags EVT_MIDDLE_DOWN]
+		WM_MBUTTONUP	[make-event msg flags EVT_MIDDLE_UP]
 		WM_KEYDOWN		[
 			res: make-event msg 0 EVT_KEY_DOWN
 			if res <> EVT_NO_DISPATCH [
@@ -1538,7 +1540,7 @@ process: func [
 			menu-origin: null							;-- reset if user clicks on menu bar
 			menu-ctx: null
 			make-event msg 0 EVT_LEFT_DOWN
-			make-event msg 0 EVT_DBL_CLICK
+			make-event msg flags EVT_DBL_CLICK
 			EVT_DISPATCH
 		]
 		;WM_DESTROY []
