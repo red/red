@@ -101,6 +101,24 @@ get-event-offset: func [
 ][
 	msg: as tagMSG evt/msg
 	case [
+		evt/type = EVT_WHEEL [
+			offset: as red-pair! stack/push*
+			offset/header: TYPE_PAIR
+			value: msg/lParam
+			x: WIN32_LOWORD(value)
+			y: WIN32_HIWORD(value)
+			;-- if need to support `multiple monitors`, change the sign of offset/x and offset/y
+			if x and 8000h <> 0 [
+				x: 0 - (x or FFFF0000h)
+			]
+			if y and 8000h <> 0 [
+				y: 0 - (y or FFFF0000h)
+			]
+			pt: screen-to-client msg/hWnd x y
+			offset/x: pt/x
+			offset/y: pt/y
+			as red-value! offset
+		]
 		any [
 			evt/type <= EVT_OVER
 			evt/type = EVT_MOVING
