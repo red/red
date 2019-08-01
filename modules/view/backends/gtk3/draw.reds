@@ -144,6 +144,7 @@ OS-draw-pen: func [
 	;; THIS if DOES NOT WORK: 
 	;; if dc/pen-color <> color [
 		dc/pen-color: color
+		dc/font-color: color
 		;; DEBUG: print ["set-source-color" lf]
 		set-source-color dc/raw color
 	;;]
