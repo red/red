@@ -2104,10 +2104,10 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_COLOR <> 0 [
 		;; DEBUG: print ["FACET_FLAG_COLOR " get-symbol-name type lf]
-		if type = base [
+		;;;if type = base [
 			;; DEBUG: print ["FACET_FLAG_COLOR " widget  lf]
 			change-color widget as red-tuple! values + FACE_OBJ_COLOR type
-		]
+		;;;]
 	]
 	if all [flags and FACET_FLAG_PANE <> 0 type <> tab-panel][
 		change-pane widget as red-block! values + FACE_OBJ_PANE type

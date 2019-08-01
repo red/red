@@ -89,10 +89,8 @@ pango-append-open-tag: func [
 layout-preamble?: func [
 	gstr		[GString!]
 	fd			[handle!]
-	color 		[integer!]
 	/local
 		ot		[c-string!]
-		rgba	[c-string!]
 ][
 	g_string_assign gstr "<markup>"
 
@@ -101,18 +99,12 @@ layout-preamble?: func [
 
 	ot: pango-open-tag-int? "size" pango_font_description_get_size fd
 	pango-append-open-tag gstr ot
-
-	rgba: int-to-bgra-hex color
-	;; DEBUG: print ["col(" rgba ")[" pos "," pos + len - 1 "]" lf]
-	
-	ot: pango-open-tag-string? "color" rgba
-	pango-append-open-tag gstr ot
 ]
 
 layout-postamble?: func [
 	gstr		[GString!]
 ][
-	g_string_append gstr "</span></span></span>"
+	g_string_append gstr "</span></span>"
 	g_string_append gstr "</markup>"
 	;; DEBUG: print ["text: " lc/text lf]
 	;; DEBUG: print ["text-markup: " text/str lf]
@@ -291,7 +283,6 @@ pango-process-tag: func [
 layout-ctx-do: func [
 	lc 			[layout-ctx!]
 	fd 			[handle!]
-	color 		[integer!]
 	/local
 		gl		[GList!]
 		last	[GList!]
@@ -303,7 +294,7 @@ layout-ctx-do: func [
 ][
 	gstr: as GString! lc/text-markup
 	;; DEBUG: print ["layout-ctx-do layout: " lc/layout " " pango_font_description_get_family fd " " pango_font_description_get_size fd lf]
-	layout-preamble? gstr fd color
+	layout-preamble? gstr fd
 	either null? lc/tag-list [
 		g_string_append gstr lc/text
 	][
@@ -693,7 +684,7 @@ OS-text-box-layout: func [
 		g_string_assign as GString! lc/text-markup lc/text
 	]
 	pango_layout_set_font_description lc/layout hFont
-	layout-ctx-do lc hFont either ft-ok? [font-color? font][ft-clr]
+	layout-ctx-do lc hFont
 	if null? target [
 		pango-layout-set-text lc size
 	]
@@ -714,3 +705,77 @@ pango-layout-set-text: func [
 	pango_layout_set_height lc/layout PANGO_SCALE * size/y
 	pango_layout_set_wrap lc/layout PANGO_WRAP_WORD_CHAR
 ]
+
+; pango-layout-styled-set-text: func [
+
+; ]
+
+comment {
+append-text-and-seek: func [
+	str
+	start
+	end
+ ][                                         
+    if end > start [                                    
+     g_string_append_len str start end - start  
+     end: end + 1
+	 start: end
+	]
+ ]
+
+g-markup-escape-text [
+	text 	[c-string!]
+    leng	[integer!]
+	/local
+		str 	[GString!]
+				[byte-ptr!] 
+		pending [byte-ptr!]
+		end 	[byte-ptr!]
+][
+	GString *str;
+
+  g_return_val_if_fail (text != NULL, NULL);
+
+  if len < 0 [len: length? text]
+
+  str: g_string_sized_new len
+
+  p: = pending = text;
+  end = text + length;
+
+  until [
+
+      switch (c)
+        {
+        case '&':
+          APPEND_TEXT_AND_SEEK (str, p, pending);
+          g_string_append (str, "&amp;");
+          break;
+
+        case '<':
+          APPEND_TEXT_AND_SEEK (str, p, pending);
+          g_string_append (str, "&lt;");
+          break;
+
+		 ]
+	bar: bar + 1
+    bar/1 = null-byte
+
+  if (pending > p)
+    g_string_append_len (str, p, pending - p);
+
+  
+  
+
+  return g_string_free (str, FALSE);
+}
+
+
+until [
+     print bar/1                   
+     bar: bar + 1
+     bar/1 = null-byte
+]
+
+ ] 
+}
