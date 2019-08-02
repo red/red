@@ -243,8 +243,19 @@ pango-close-tags: func [
 
 		]
 	]
-	;; DEBUG: print ["size? lc/closed-tags: " g_list_length lc/closed-tags lf]
-	if all[ last? 0 < g_list_length lc/closed-tags] [pango-close-tags lc -1]
+	;; DEBUG: print ["size? lc/closed-tags: " g_list_length lc/closed-tags  " last?: " last? lf]
+	if last? [
+		either 0 < g_list_length lc/closed-tags [
+			pango-close-tags lc -1
+		][
+			text-len: lc/text-len - lc/text-pos
+			;; DEBUG: print ["pango-close-tags -> last append: (" text-len ")" lc/text + lc/text-pos  lf]
+			if text-len > 0 [
+				g_string_append_len gstr lc/text + lc/text-pos text-len
+				lc/text-pos: lc/text-pos + text-len
+			]
+		]
+	]
 ]
 
 pango-process-closed-tags: func [
@@ -634,10 +645,12 @@ OS-text-box-layout: func [
 	len: -1
 	str: unicode/to-utf8 text :len
 	str: g-markup-escape-text str len
-	;;str: g_markup_escape_text str len
+	;; OLD: str: g_markup_escape_text str len
+	;; DEBUG: print ["OS-text-box-layout str: " str lf]
 	
-
 	layout-ctx-init lc str length? str
+
+	;; DEBUG: print ["OS-text-box-layout lc/text: " lc/text " " lc/text-len lf]
 
 	size: as red-pair! values + FACE_OBJ_SIZE
 
