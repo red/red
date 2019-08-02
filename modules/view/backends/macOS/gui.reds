@@ -97,7 +97,7 @@ get-face-obj: func [
 ][
 	ivar: class_getInstanceVariable object_getClass view IVAR_RED_FACE
 	assert ivar <> 0
-	as red-object! (as cell! view + ivar_getOffset ivar)
+	as red-object! view + ivar_getOffset ivar
 ]
 
 get-face-flags: func [
