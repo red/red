@@ -67,7 +67,7 @@ object [
 	scrolling:	0
 	scroll-pos: 0
 
-	color?:		no
+	color?:		yes
 	theme: #(
 		foreground	[0.0.0]
 		background	[252.252.252]
