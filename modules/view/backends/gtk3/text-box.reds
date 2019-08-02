@@ -633,7 +633,9 @@ OS-text-box-layout: func [
 
 	len: -1
 	str: unicode/to-utf8 text :len
-	str: g_markup_escape_text str len
+	str: g-markup-escape-text str len
+	;;str: g_markup_escape_text str len
+	
 
 	layout-ctx-init lc str length? str
 
@@ -706,76 +708,46 @@ pango-layout-set-text: func [
 	pango_layout_set_wrap lc/layout PANGO_WRAP_WORD_CHAR
 ]
 
-; pango-layout-styled-set-text: func [
-
-; ]
-
-comment {
-append-text-and-seek: func [
-	str
-	start
-	end
- ][                                         
-    if end > start [                                    
-     g_string_append_len str start end - start  
-     end: end + 1
-	 start: end
-	]
- ]
-
-g-markup-escape-text [
+;; g_markup_escape_text alternative to only escape & and < characters.
+g-markup-escape-text: func [
 	text 	[c-string!]
-    leng	[integer!]
+	len		[integer!]
+	return:	[c-string!]
 	/local
 		str 	[GString!]
-				[byte-ptr!] 
+		p		[byte-ptr!]
 		pending [byte-ptr!]
 		end 	[byte-ptr!]
+		c		[byte!]
 ][
-	GString *str;
+	if len < 0 [len: length? text]
 
-  g_return_val_if_fail (text != NULL, NULL);
+	str: g_string_sized_new len
 
-  if len < 0 [len: length? text]
+	p: declare byte-ptr!
+	pending: declare byte-ptr!
+	end: declare byte-ptr!
 
-  str: g_string_sized_new len
+	p: as byte-ptr! text 
+	pending: as byte-ptr! text
+	end: p + len
 
-  p: = pending = text;
-  end = text + length;
-
-  until [
-
-      switch (c)
-        {
-        case '&':
-          APPEND_TEXT_AND_SEEK (str, p, pending);
-          g_string_append (str, "&amp;");
-          break;
-
-        case '<':
-          APPEND_TEXT_AND_SEEK (str, p, pending);
-          g_string_append (str, "&lt;");
-          break;
-
-		 ]
-	bar: bar + 1
-    bar/1 = null-byte
-
-  if (pending > p)
-    g_string_append_len (str, p, pending - p);
-
-  
-  
-
-  return g_string_free (str, FALSE);
-}
-
-
-until [
-     print bar/1                   
-     bar: bar + 1
-     bar/1 = null-byte
+	while [ all[p < end pending < end] ][
+		;; DEBUG: print ["pending: " pending/value " p: " p " pending: " pending " end: " end lf]
+		c: pending/value
+		switch c [
+			#"&" #"<" [
+				; append inter text
+				g_string_append_len str as c-string! p as-integer pending - p  
+				pending: pending + 1
+				p: pending
+				; append escaped text
+				g_string_append str either c = #"<" ["&lt;"]["&amp;"]
+			]
+			default [pending: pending + 1]
+		]
+	]
+	if pending > p [g_string_append_len str as c-string! p as-integer pending - p]
+	;; DEBUG: print ["str: " str/str lf]
+  	g_string_free str false
 ]
-
- ] 
-}
