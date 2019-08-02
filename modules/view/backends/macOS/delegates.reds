@@ -321,7 +321,10 @@ on-key-down: func [
 		either special-key = -1 [						;-- special key
 			make-event self key or flags EVT_KEY
 		][
-			if any [key = 8 key = 9][								;-- backspace
+			if any [
+				key = 8 key = 9							;-- backspace
+				key = 13								;-- number enter
+			][
 				make-event self key or flags EVT_KEY
 				exit
 			]
