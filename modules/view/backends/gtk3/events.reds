@@ -852,6 +852,10 @@ connect-common-events: function [
 		if respond-mouse? widget ON_WHEEL [
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_COMMON [print [ "connect-common-events ON_WHEEL: " get-symbol-name sym "->" widget lf]]
 			gtk_widget_add_events widget GDK_SCROLL_MASK
+			if container-type? sym [
+				;; Bubbling does not work for rich-text so delegation to the parent with EVT_DISPATCH
+				connect-container-events widget "scroll-event"
+			]
 			gobj_signal_connect(widget "scroll-event" :widget-scroll-event face/ctx)
 		]
 
