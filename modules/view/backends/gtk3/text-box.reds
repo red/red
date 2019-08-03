@@ -136,7 +136,7 @@ pango-add-open-tag: func [
 ][
 	gstr: as GString! lc/text-markup
 	if lc/text-pos < pos [ ; add text until pos
-		g_string_append_len gstr lc/text + lc/text-pos pos - lc/text-pos
+		g-string-append-len gstr lc/text + lc/text-pos pos - lc/text-pos
 		lc/text-pos: pos
 	]
 	pango-append-open-tag gstr open-tag
@@ -229,7 +229,7 @@ pango-close-tags: func [
 	text-len: text-len - lc/text-pos
 	;; DEBUG: print ["pango-close-tags -> append: (" text-len ")" lc/text + lc/text-pos  lf]
 	if text-len > 0 [
-		g_string_append_len gstr lc/text + lc/text-pos text-len
+		g-string-append-len gstr lc/text + lc/text-pos text-len
 		lc/text-pos: lc/text-pos + text-len
 	]
 	if 0 < g_list_length lc/closed-tags [
@@ -251,7 +251,7 @@ pango-close-tags: func [
 			text-len: lc/text-len - lc/text-pos
 			;; DEBUG: print ["pango-close-tags -> last append: (" text-len ")" lc/text + lc/text-pos  lf]
 			if text-len > 0 [
-				g_string_append_len gstr lc/text + lc/text-pos text-len
+				g-string-append-len gstr lc/text + lc/text-pos text-len
 				lc/text-pos: lc/text-pos + text-len
 			]
 		]
@@ -307,7 +307,7 @@ layout-ctx-do: func [
 	;; DEBUG: print ["layout-ctx-do layout: " lc/layout " " pango_font_description_get_family fd " " pango_font_description_get_size fd lf]
 	layout-preamble? gstr fd
 	either null? lc/tag-list [
-		g_string_append gstr lc/text
+		g_string_append gstr g_markup_escape_text lc/text lc/text-len
 	][
 		last: as GList! g_list_last lc/tag-list
 		gl: as GList! g_list_first lc/tag-list
@@ -644,9 +644,6 @@ OS-text-box-layout: func [
 
 	len: -1
 	str: unicode/to-utf8 text :len
-	str: g-markup-escape-text str len
-	;; OLD: str: g_markup_escape_text str len
-	;; DEBUG: print ["OS-text-box-layout str: " str lf]
 	
 	layout-ctx-init lc str length? str
 
@@ -721,46 +718,24 @@ pango-layout-set-text: func [
 	pango_layout_set_wrap lc/layout PANGO_WRAP_WORD_CHAR
 ]
 
-;; g_markup_escape_text alternative to only escape & and < characters.
-g-markup-escape-text: func [
-	text 	[c-string!]
-	len		[integer!]
-	return:	[c-string!]
+g-markup-escape-text-len: func [
+	text 		[c-string!]
+	text-len	[integer!]
+	return: 	[c-string!]
 	/local
-		str 	[GString!]
-		p		[byte-ptr!]
-		pending [byte-ptr!]
-		end 	[byte-ptr!]
-		c		[byte!]
+		gstr			[GString!]
 ][
-	if len < 0 [len: length? text]
+	gstr: g_string_new_len text text-len
+	g_markup_escape_text g_string_free gstr false text-len
+]
 
-	str: g_string_sized_new len
-
-	p: declare byte-ptr!
-	pending: declare byte-ptr!
-	end: declare byte-ptr!
-
-	p: as byte-ptr! text 
-	pending: as byte-ptr! text
-	end: p + len
-
-	while [ all[p < end pending < end] ][
-		;; DEBUG: print ["pending: " pending/value " p: " p " pending: " pending " end: " end lf]
-		c: pending/value
-		switch c [
-			#"&" #"<" [
-				; append inter text
-				g_string_append_len str as c-string! p as-integer pending - p  
-				pending: pending + 1
-				p: pending
-				; append escaped text
-				g_string_append str either c = #"<" ["&lt;"]["&amp;"]
-			]
-			default [pending: pending + 1]
-		]
-	]
-	if pending > p [g_string_append_len str as c-string! p as-integer pending - p]
-	;; DEBUG: print ["str: " str/str lf]
-  	g_string_free str false
+g-string-append-len: func [
+	gstr		[GString!]
+	text 		[c-string!]
+	text-len	[integer!]
+	/local
+		str 		[c-string!]
+][
+	str: g-markup-escape-text-len text text-len
+	g_string_append gstr str
 ]

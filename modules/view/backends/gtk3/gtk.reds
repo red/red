@@ -819,6 +819,11 @@ GPtrArray!: alias struct! [
 		g_string_new: "g_string_new" [
 			return:		[GString!]
 		]
+		g_string_new_len: "g_string_new_len" [
+			text		[c-string!]
+			len 		[integer!]
+			return:		[GString!]
+		]
 		g_string_sized_new: "g_string_sized_new" [
 			dfl_size 	[integer!]
 			return:		[GString!]
