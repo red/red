@@ -125,6 +125,32 @@ img: make image! 2x2
 		]
 ===end-group===
 
+===start-group=== "image issues 3769"
+	--test-- "#3769 case 1"
+		img: make image! 4x4
+		img2: make image! 2x2
+		img3: copy/part img 2x2
+		--assert img2 = img3
+
+	--test-- "#3769 case 2"
+		img: make image! 4x4
+		img2: make image! 1x1
+		img3: copy/part img 1
+		--assert img2 = img3
+
+	--test-- "#3769 case 3"
+		img: make image! 4x4
+		img2: make image! 1x1
+		loop 2 [img3: copy/part img 1]
+		--assert img2 = img3
+
+	--test-- "#3769 case 4"
+		img: make image! 0x0
+		img2: copy img
+		--assert img = img2
+
+===end-group===
+
 ]]
 
 ~~~end-file~~~
