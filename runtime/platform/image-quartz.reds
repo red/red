@@ -713,40 +713,53 @@ OS-image: context [
 		width: IMAGE_WIDTH(inode/size)
 		height: IMAGE_HEIGHT(inode/size)
 		offset: src/head
-		x: offset % width
-		y: offset / width
 
 		dst/node: make-node handle null 0 width height
 		inode: as img-node! (as series! dst/node/value) + 1
 
-		either all [zero? offset not part?][
-			inode/handle: CGImageCreateCopy handle
-			dst/size: src/size
+		either any [
+			width <= 0
+			height <= 0
 		][
-			either all [part? TYPE_OF(size) = TYPE_PAIR][
-				w: width - x
-				h: height - y
-				if size/x < w [w: size/x]
-				if size/y < h [h: size/y]
-				inode/handle: CGImageCreateWithImageInRect
-					handle as float32! x as float32! y as float32! w as float32! h
+			inode/size: 0
+			dst/size: 0
+		][
+			either all [zero? offset not part?][
+				inode/handle: CGImageCreateCopy handle
+				dst/size: src/size
 			][
-				either part < width [h: 1 w: part][
-					h: part / width
-					w: width
+				x: offset % width
+				y: offset / width
+				either all [part? TYPE_OF(size) = TYPE_PAIR][
+					w: width - x
+					h: height - y
+					if size/x < w [w: size/x]
+					if size/y < h [h: size/y]
+					unless any [
+						w <= 0
+						h <= 0
+					][
+						inode/handle: CGImageCreateWithImageInRect
+							handle as float32! x as float32! y as float32! w as float32! h
+					]
+				][
+					either part < width [h: 1 w: part][
+						h: part / width
+						w: width
+					]
+					if zero? part [w: 1 h: 1]
+					either zero? part [w: 0 h: 0][
+						inode/flags: IMG_NODE_MODIFIED or IMG_NODE_HAS_BUFFER
+						src-buf: as byte-ptr! data-to-image handle yes yes
+						dst-buf: allocate w * h * 4
+						copy-memory dst-buf src-buf w * h * 4 offset * 4
+						inode/handle: null
+						inode/buffer: as int-ptr! dst-buf
+					]
 				]
-				if zero? part [w: 1 h: 1]
-				either zero? part [w: 0 h: 0][
-					inode/flags: IMG_NODE_MODIFIED or IMG_NODE_HAS_BUFFER
-					src-buf: as byte-ptr! data-to-image handle yes yes
-					dst-buf: allocate w * h * 4
-					copy-memory dst-buf src-buf w * h * 4 offset * 4
-					inode/handle: null
-					inode/buffer: as int-ptr! dst-buf
-				]
+				inode/size: h << 16 or w
+				dst/size: inode/size
 			]
-			inode/size: h << 16 or w
-			dst/size: inode/size
 		]
 		dst/header: TYPE_IMAGE
 		dst/head: 0
