@@ -520,6 +520,8 @@ bitset: context [
 			blk	 [red-block!]
 			bin  [red-binary!]
 			w	 [red-word!]
+			src  [byte-ptr!]
+			dst  [byte-ptr!]
 			s	 [series!]
 			op	 [integer!]
 			not? [logic!]
@@ -527,6 +529,24 @@ bitset: context [
 	][
 		bits: as red-bitset! stack/push*
 		bits/header: TYPE_UNSET
+
+		not?: no
+		if TYPE_OF(spec) = TYPE_BLOCK [
+			blk: as red-block! spec
+			s: GET_BUFFER(blk)
+			if s/offset + blk/head < s/tail [			;-- allow empty spec block
+				w: as red-word! s/offset + blk/head
+				not?: all [
+					TYPE_OF(w) = TYPE_WORD
+					w/symbol = words/not*
+				]
+				if not? [blk/head: blk/head + 1]			;-- skip NOT
+				w: w + 1
+				if all [s/offset + blk/head < s/tail TYPE_OF(w) = TYPE_BINARY][
+					spec: as red-value! w					;-- force processing of the binary! value
+				]
+			]
+		]
 
 		switch TYPE_OF(spec) [
 			TYPE_BITSET [
@@ -558,20 +578,22 @@ bitset: context [
 				bits/node: alloc-bytes size
 				s: GET_BUFFER(bits)
 				s/tail: as cell! ((as byte-ptr! s/offset) + size)
-				copy-memory as byte-ptr! s/offset binary/rs-head bin size
+				either not? [
+					dst: as byte-ptr! s/offset
+					src: binary/rs-head bin
+					while [size > 0][
+						dst/size: not src/size
+						size: size - 1
+					]
+				][
+					copy-memory as byte-ptr! s/offset binary/rs-head bin size
+				]
+				if not? [
+					s: GET_BUFFER(bits)
+					s/flags: s/flags or flag-bitset-not
+				]
 			]
 			default [
-				not?: no
-				
-				if TYPE_OF(spec) = TYPE_BLOCK [
-					blk: as red-block! spec
-					w: as red-word! block/rs-head blk
-					not?: all [
-						TYPE_OF(w) = TYPE_WORD
-						w/symbol = words/not*
-					]
-					if not? [blk/head: blk/head + 1]		;-- skip NOT
-				]
 				byte: either not? [#"^(FF)"][null-byte]
 				op: either not? [OP_CLEAR][OP_SET]
 				
