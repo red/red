@@ -200,7 +200,7 @@ get-para-flags: func [
 			
 			h-def: left
 			
-			if all [wrap? type = text][
+			if all[wrap? type <> field][
 				flags: 00010000h						;-- SS_ENDELLIPSIS
 			]
 		]
