@@ -540,10 +540,10 @@ bitset: context [
 					TYPE_OF(w) = TYPE_WORD
 					w/symbol = words/not*
 				]
-				if not? [blk/head: blk/head + 1]			;-- skip NOT
+				if not? [blk/head: blk/head + 1]		;-- skip NOT
 				w: w + 1
 				if all [s/offset + blk/head < s/tail TYPE_OF(w) = TYPE_BINARY][
-					spec: as red-value! w					;-- force processing of the binary! value
+					spec: as red-value! w				;-- force processing of the binary! value
 				]
 			]
 		]
@@ -566,7 +566,7 @@ bitset: context [
 					]
 				]
 				size: either zero? (size and 7) [size][size + 8 and -8]	;-- round to byte multiple
-				size: size >> 3								;-- convert to bytes
+				size: size >> 3							;-- convert to bytes
 				bits/node: alloc-bytes-filled size null-byte
 				
 				s: GET_BUFFER(bits)
@@ -597,15 +597,15 @@ bitset: context [
 				byte: either not? [#"^(FF)"][null-byte]
 				op: either not? [OP_CLEAR][OP_SET]
 				
-				size: process spec null OP_MAX no cmd		;-- 1st pass: determine size
+				size: process spec null OP_MAX no cmd	;-- 1st pass: determine size
 				bits/node: alloc-bytes-filled size byte
 				bits/header: TYPE_BITSET
 				if not? [
 					s: GET_BUFFER(bits)
 					s/flags: s/flags or flag-bitset-not
 				]
-				process spec bits op no	cmd					;-- 2nd pass: set bits
-				if not? [blk/head: blk/head - 1]			;-- restore series argument head
+				process spec bits op no	cmd				;-- 2nd pass: set bits
+				if not? [blk/head: blk/head - 1]		;-- restore series argument head
 			]
 		]
 		bits/header: TYPE_BITSET						;-- implicit reset of all header flags
