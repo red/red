@@ -371,53 +371,6 @@ OS-image: context [
 		bitmap
 	]
 
-	copy: func [
-		dst		[integer!]
-		src		[integer!]
-		pixels	[integer!]
-		lines	[integer!]
-		offset	[integer!]
-		format	[integer!]
-		/local
-			bmp-src [BitmapData!]
-			bmp-dst [BitmapData!]
-			palette [byte-ptr!]
-			bytes	[integer!]
-			pbytes	[integer!]
-			stride	[integer!]
-			dstride	[integer!]
-			w		[integer!]
-			from	[byte-ptr!]
-			to		[byte-ptr!]
-	][
-		pbytes: format >> 8 and FFh / 8				;--number of bytes per pixel
-
-		bmp-src: as BitmapData! lock-bitmap-fmt src format no
-		bmp-dst: as BitmapData! lock-bitmap-fmt dst format yes
-		stride: bmp-src/stride
-		dstride: bmp-dst/stride
-		w: bmp-src/width
-		offset: offset / w * stride + (offset % w * pbytes)
-		from: bmp-src/scan0 + offset
-		to: bmp-dst/scan0
-		loop lines [
-			copy-memory to from dstride
-			to: to + dstride
-			from: from + stride
-		]
-		unlock-bitmap-fmt src as-integer bmp-src
-		unlock-bitmap-fmt dst as-integer bmp-dst
-
-		if format and PixelFormatIndexed <> 0 [		;-- indexed image, need to set palette
-			bytes: 0
-			GdipGetImagePaletteSize src :bytes
-			palette: allocate bytes
-			GdipGetImagePalette src palette bytes
-			GdipSetImagePalette dst palette
-			free palette
-		]
-	]
-
 	load-image: func [
 		src			[red-string!]
 		return:		[int-ptr!]
@@ -617,33 +570,31 @@ OS-image: context [
 
 		x: offset % width
 		y: offset / width
-		format: 0
-		GdipGetImagePixelFormat handle :format
 		either all [part? TYPE_OF(size) = TYPE_PAIR][
 			w: width - x
 			h: height - y
 			if size/x < w [w: size/x]
 			if size/y < h [h: size/y]
-			either any [
-				w <= 0
-				h <= 0
-			][
-				dst/size: 0
-			][
-				GdipCloneBitmapAreaI x y w h format handle :bmp
-				dst/size: h << 16 or w
-			]
 		][
 			either zero? part [
-				dst/size: 0
+				w: 0 h: 0
 			][
 				either part < width [h: 1 w: part][
 					h: part / width
 					w: width
 				]
-				GdipCloneBitmapAreaI x y w h format handle :bmp
-				dst/size: h << 16 or w
 			]
+		]
+		either any [
+			w <= 0
+			h <= 0
+		][
+			dst/size: 0
+		][
+			format: 0
+			GdipGetImagePixelFormat handle :format
+			GdipCloneBitmapAreaI x y w h format handle :bmp
+			dst/size: h << 16 or w
 		]
 
 		dst/header: TYPE_IMAGE
