@@ -377,11 +377,15 @@ OS-image: context [
 		/local
 			handle	[integer!]
 			res		[integer!]
+			bmp		[integer!]
 	][
 		handle: 0
 		res: GdipCreateBitmapFromFile file/to-OS-path src :handle
 		unless zero? res [return null]
-		as int-ptr! handle
+		bmp: 0
+		GdipCloneImage handle :bmp
+		GdipDisposeImage handle
+		as int-ptr! bmp
 	]
 
 	make-image: func [
