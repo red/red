@@ -1122,7 +1122,7 @@ natives: context [
 			][
 				stack/set-last 
 					as red-value! _context/bind
-						block/clone as red-block! value yes no
+						block/clone as red-block! value yes yes
 						TO_CTX(ctx)
 						obj
 						self?
