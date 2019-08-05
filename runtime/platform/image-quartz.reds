@@ -321,17 +321,29 @@ OS-image: context [
 	]
 
 	copy: func [
-		dst		[integer!]
-		src		[integer!]
-		bytes	[integer!]
-		offset	[integer!]
+		dst		[byte-ptr!]
+		dw		[integer!]
+		dh		[integer!]
+		ds		[integer!]
+		src		[byte-ptr!]
+		sw		[integer!]
+		sh		[integer!]
+		ss		[integer!]
+		x		[integer!]
+		y		[integer!]
 		/local
-			dst-buf [byte-ptr!]
-			src-buf [byte-ptr!]
+			offset	[integer!]
+			from	[byte-ptr!]
+			to		[byte-ptr!]
 	][
-		dst-buf: CGBitmapContextGetData dst
-		src-buf: CGBitmapContextGetData src
-		copy-memory dst-buf src-buf + offset bytes
+		offset: y * ss + x * 4
+		from: src + offset
+		to: dst
+		loop dh [
+			copy-memory to from ds
+			to: to + ds
+			from: from + ss
+		]
 	]
 
 	make-node: func [
@@ -696,7 +708,7 @@ OS-image: context [
 		part?	[logic!]
 		return: [red-image!]
 		/local
-			inode	[img-node!]
+			inode0	[img-node!]
 			width	[integer!]
 			height	[integer!]
 			offset	[integer!]
@@ -706,61 +718,81 @@ OS-image: context [
 			w		[integer!]
 			src-buf [byte-ptr!]
 			dst-buf [byte-ptr!]
+			handle0	[int-ptr!]
 			handle	[int-ptr!]
+			scan0	[int-ptr!]
 	][
-		inode: as img-node! (as series! src/node/value) + 1
-		handle: inode/handle
-		width: IMAGE_WIDTH(inode/size)
-		height: IMAGE_HEIGHT(inode/size)
+		inode0: as img-node! (as series! src/node/value) + 1
+		handle0: inode0/handle
+		width: IMAGE_WIDTH(inode0/size)
+		height: IMAGE_HEIGHT(inode0/size)
 		offset: src/head
 
-		dst/node: make-node handle null 0 width height
-		inode: as img-node! (as series! dst/node/value) + 1
-
-		either any [
+		if any [
 			width <= 0
 			height <= 0
 		][
-			inode/size: 0
 			dst/size: 0
-		][
-			either all [zero? offset not part?][
-				inode/handle: CGImageCreateCopy handle
-				dst/size: src/size
+			dst/header: TYPE_IMAGE
+			dst/head: 0
+			dst/node: make-node null null IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED 0 0
+			return dst
+		]
+
+		if all [zero? offset not part?][
+			either null? handle0 [
+				scan0: as int-ptr! allocate inode0/size
+				dst/node: make-node null scan0 IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED width height
+				copy-memory as byte-ptr! scan0 as byte-ptr! inode0/buffer inode0/size
 			][
-				x: offset % width
-				y: offset / width
-				either all [part? TYPE_OF(size) = TYPE_PAIR][
-					w: width - x
-					h: height - y
-					if size/x < w [w: size/x]
-					if size/y < h [h: size/y]
-					unless any [
-						w <= 0
-						h <= 0
-					][
-						inode/handle: CGImageCreateWithImageInRect
-							handle as float32! x as float32! y as float32! w as float32! h
-					]
-				][
-					either part < width [h: 1 w: part][
-						h: part / width
-						w: width
-					]
-					if zero? part [w: 1 h: 1]
-					either zero? part [w: 0 h: 0][
-						inode/flags: IMG_NODE_MODIFIED or IMG_NODE_HAS_BUFFER
-						src-buf: as byte-ptr! data-to-image handle yes yes
-						dst-buf: allocate w * h * 4
-						copy-memory dst-buf src-buf w * h * 4 offset * 4
-						inode/handle: null
-						inode/buffer: as int-ptr! dst-buf
-					]
+				handle: CGImageCreateCopy handle0
+				dst/node: make-node handle null 0 width height
+			]
+			dst/size: src/size
+			dst/header: TYPE_IMAGE
+			dst/head: 0
+			return dst
+		]
+
+		x: offset % width
+		y: offset / width
+		either all [part? TYPE_OF(size) = TYPE_PAIR][
+			w: width - x
+			h: height - y
+			if size/x < w [w: size/x]
+			if size/y < h [h: size/y]
+		][
+			either zero? part [
+				w: 0 h: 0
+			][
+				either part < width [h: 1 w: part][
+					h: part / width
+					w: width
 				]
-				inode/size: h << 16 or w
-				dst/size: inode/size
 			]
 		]
+		if any [
+			w <= 0
+			h <= 0
+		][
+			dst/size: 0
+			dst/header: TYPE_IMAGE
+			dst/head: 0
+			dst/node: make-node null null IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED 0 0
+			return dst
+		]
+
+		either null? handle0 [
+			dst-buf: allocate w * h * 4
+			dst/node: make-node null as int-ptr! dst-buf IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED w h
+			src-buf: as byte-ptr! inode0/buffer
+			copy dst-buf w h w * 4 src-buf width height width * 4 x y
+		][
+			handle: CGImageCreateWithImageInRect
+				handle0 as float32! x as float32! y as float32! w as float32! h
+			dst/node: make-node handle null 0 w h
+		]
+		dst/size: h << 16 or w
 		dst/header: TYPE_IMAGE
 		dst/head: 0
 		dst
