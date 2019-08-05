@@ -320,7 +320,7 @@ OS-image: context [
 		as-integer img/node
 	]
 
-	copy: func [
+	copy-rect: func [
 		dst		[byte-ptr!]
 		dw		[integer!]
 		dh		[integer!]
@@ -331,6 +331,7 @@ OS-image: context [
 		ss		[integer!]
 		x		[integer!]
 		y		[integer!]
+		lines	[integer!]
 		/local
 			offset	[integer!]
 			from	[byte-ptr!]
@@ -339,7 +340,7 @@ OS-image: context [
 		offset: y * ss + x * 4
 		from: src + offset
 		to: dst
-		loop dh [
+		loop lines [
 			copy-memory to from ds
 			to: to + ds
 			from: from + ss
@@ -786,7 +787,7 @@ OS-image: context [
 			dst-buf: allocate w * h * 4
 			dst/node: make-node null as int-ptr! dst-buf IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED w h
 			src-buf: as byte-ptr! inode0/buffer
-			copy dst-buf w h w * 4 src-buf width height width * 4 x y
+			copy-rect dst-buf w h w * 4 src-buf width height width * 4 x y h
 		][
 			handle: CGImageCreateWithImageInRect
 				handle0 as float32! x as float32! y as float32! w as float32! h
