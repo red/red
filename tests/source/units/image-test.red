@@ -214,6 +214,13 @@ img: make image! 2x2
 		img2: copy img
 		--assert img = img2
 
+	--test-- "#3769 (#1555 regression)"
+		save %test.png make image! 10x10
+		img: load %test.png
+		save %test.png img
+		delete %test.png
+		--assert true
+
 ===end-group===
 
 ]]

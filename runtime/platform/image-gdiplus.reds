@@ -371,21 +371,98 @@ OS-image: context [
 		bitmap
 	]
 
+	copy-rect: func [
+		dst		[byte-ptr!]
+		dw		[integer!]
+		dh		[integer!]
+		ds		[integer!]
+		src		[byte-ptr!]
+		sw		[integer!]
+		sh		[integer!]
+		ss		[integer!]
+		x		[integer!]
+		y		[integer!]
+		lines	[integer!]
+		/local
+			offset	[integer!]
+			from	[byte-ptr!]
+			to		[byte-ptr!]
+	][
+		offset: y * ss + x * 4
+		from: src + offset
+		to: dst
+		loop lines [
+			copy-memory to from ds
+			to: to + ds
+			from: from + ss
+		]
+	]
+
+	copy: func [
+		dst		[integer!]
+		src		[integer!]
+		lines	[integer!]
+		x		[integer!]
+		y		[integer!]
+		format	[integer!]
+		/local
+			pbytes	[integer!]
+			bmp-src [BitmapData!]
+			bmp-dst [BitmapData!]
+			dw		[integer!]
+			dh		[integer!]
+			ds		[integer!]
+			sw		[integer!]
+			sh		[integer!]
+			ss		[integer!]
+			palette [byte-ptr!]
+			bytes	[integer!]
+	][
+		pbytes: format >> 8 and FFh / 8				;--number of bytes per pixel
+
+		bmp-src: as BitmapData! lock-bitmap-fmt src format no
+		bmp-dst: as BitmapData! lock-bitmap-fmt dst format yes
+		sw: bmp-src/width sh: bmp-src/height ss: bmp-src/stride
+		dw: bmp-dst/width dh: bmp-dst/height ds: bmp-dst/stride
+		copy-rect bmp-dst/scan0 dw dh ds bmp-src/scan0 sw sh ss x y lines
+		unlock-bitmap-fmt src as-integer bmp-src
+		unlock-bitmap-fmt dst as-integer bmp-dst
+
+		if format and PixelFormatIndexed <> 0 [		;-- indexed image, need to set palette
+			bytes: 0
+			GdipGetImagePaletteSize src :bytes
+			palette: allocate bytes
+			GdipGetImagePalette src palette bytes
+			GdipSetImagePalette dst palette
+			free palette
+		]
+	]
+
 	load-image: func [
 		src			[red-string!]
 		return:		[int-ptr!]
 		/local
 			handle	[integer!]
 			res		[integer!]
-			bmp		[integer!]
+			bitmap	[integer!]
+			format	[integer!]
+			w		[integer!]
+			h		[integer!]
 	][
 		handle: 0
 		res: GdipCreateBitmapFromFile file/to-OS-path src :handle
 		unless zero? res [return null]
-		bmp: 0
-		GdipCloneImage handle :bmp
+
+		format: 0
+		bitmap: 0
+		GdipGetImagePixelFormat handle :format
+		w: width? as int-ptr! handle
+		h: height? as int-ptr! handle
+		GdipCreateBitmapFromScan0 w h 0 format null :bitmap
+		copy bitmap handle h 0 0 format
+
 		GdipDisposeImage handle
-		as int-ptr! bmp
+		as int-ptr! bitmap
 	]
 
 	make-image: func [
