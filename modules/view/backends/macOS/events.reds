@@ -470,11 +470,7 @@ make-event: func [
 ][
 	gui-evt/type:  evt
 	gui-evt/msg:   as byte-ptr! obj
-	either evt = EVT_WHEEL [
-		gui-evt/flags: check-extra-keys flags	;-- pass event as flags for EVT_WHEEL
-	][
-		gui-evt/flags: flags
-	]
+	gui-evt/flags: flags
 
 	state: EVT_DISPATCH
 
