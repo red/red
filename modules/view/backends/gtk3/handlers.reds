@@ -224,7 +224,7 @@ base-draw: func [
 		DC		[draw-ctx! value]
 		drawDC  [draw-ctx!]
 ][
-	;; DEBUG: print ["base-draw " widget lf]
+	;; DEBUG: print ["base-draw " widget " " gtk_widget_get_allocated_width widget "x" gtk_widget_get_allocated_height widget lf]
 
 	vals: get-node-values ctx
 	img:  as red-image! vals + FACE_OBJ_IMAGE
@@ -329,6 +329,7 @@ window-configure-event: func [
 	; Set the offset when window is moved
 	offset: (as red-pair! get-face-values widget) + FACE_OBJ_OFFSET
 	x: 0 y: 0 gtk_window_get_position widget :x :y
+	;; DEBUG: print ["offset: " x "x" y lf]
 	offset/x: x offset/y: y
 
 	sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE		;-- update face/size
@@ -363,11 +364,12 @@ window-size-allocate: func [
 	/local
 		sz	 [red-pair!]
 ][
-	;; DEBUG: print ["window-size-allocate"   lf]
+	;; DEBUG: print ["window-size-allocate rect: " rect/x "x" rect/y "x" rect/width "x" rect/height     lf]
 	sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE		;-- update face/size
 	if any [rect/width <> sz/x rect/height <> sz/y] [
 			evt-sizing/x_new: rect/width 
 			evt-sizing/y_new: rect/height
+			;; DEBUG: print ["sz: " sz/x "x" sz/y  " -> " evt-sizing/x_new "x" evt-sizing/y_new lf]
 			sz/x: evt-sizing/x_new
 			sz/y: evt-sizing/y_new
 			;; DEBUG: print ["window-size-allocate: "  evt-sizing/x_root "x" evt-sizing/y_root  lf]

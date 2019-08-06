@@ -114,12 +114,12 @@ get-event-offset: func [
 			evt/type = EVT_SIZING
 			evt/type = EVT_SIZE
 		][
-			;; DEBUG: print ["event-offset type: " get-symbol-name get-widget-symbol widget lf]
 			offset: as red-pair! stack/push*
 			offset/header: TYPE_PAIR
 
 			widget: as handle! evt/msg
 			sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE
+			;; DEBUG: print ["event-offset type: " get-symbol-name get-widget-symbol widget " size: " sz/x "x" sz/y lf]
 			; sz/x: evt-sizing/x_new
 			; sz/y: evt-sizing/y_new
 			

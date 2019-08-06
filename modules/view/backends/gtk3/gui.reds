@@ -1659,21 +1659,19 @@ OS-show-window: func [
 		face 	[red-object!]
 	 	event 	[GdkEventConfigure!]
 		type 	[integer!]
+		size	[red-pair!]
+		hWnd 	[handle!]
 ][
-	unless null? as handle! widget [
-		type: get-widget-symbol as handle! widget
+	hWnd: as handle! widget
+	unless null? hWnd [
+		type: get-widget-symbol hWnd
 		;; DEBUG: print ["OS-show-window " as handle! widget "(" get-symbol-name type ")" lf]
-		gtk_widget_show_all as handle! widget
+		gtk_widget_show_all hWnd
 		;; Deal with visible? facets
-		hide-invisible-all as handle! widget
-		gtk_widget_grab_focus as handle! widget
-		face: (as red-object! get-face-values as handle! widget) + FACE_OBJ_SELECTED
+		hide-invisible-all hWnd
+		gtk_widget_grab_focus hWnd
+		face: (as red-object! get-face-values hWnd) + FACE_OBJ_SELECTED
 		if TYPE_OF(face) = TYPE_OBJECT [gtk_widget_grab_focus face-handle? face]
-		; Just here as an attempt to fire a configure event
-		; if type = window [
-		; 	event: declare GdkEventConfigure!
-		; 	g_signal_emit_by_name [as handle! widget "configure-event" event]
-		; ]
 	]
 ]
 
@@ -1804,10 +1802,8 @@ OS-make-view: func [
 				;; DEBUG: print ["Creation of Modal window" lf]
 				gtk_window_set_modal widget yes
 			]
-			gtk_window_set_resizable widget (bits and FACET_FLAGS_RESIZE <> 0)
 			unless null? caption [gtk_window_set_title widget caption]
-			;; DEBUG: print ["make-view: set_default_size " size/x "x" size/y lf]
-			gtk_window_set_default_size widget size/x size/y
+			
 			winbox: gtk_box_new GTK_ORIENTATION_VERTICAL  0
       		gtk_container_add widget winbox
 			if all [						;@@ application menu ?
@@ -1826,6 +1822,12 @@ OS-make-view: func [
 			g_object_set_qdata widget real-container-id container
 			;; DEBUG: print ["window is " widget " real container is " container lf]
 			gtk_window_move widget offset/x offset/y
+			
+			;; The following line really matters to fix the initial size of the window
+			gtk_widget_set_size_request widget size/x size/y
+			gtk_window_set_resizable widget (bits and FACET_FLAGS_RESIZE <> 0)
+			gtk_window_set_decorated widget (bits and FACET_FLAGS_NO_BORDER = 0)
+			
 		]
 		sym = slider [
 			vertical?: size/y > size/x
@@ -2001,7 +2003,6 @@ OS-make-view: func [
 
 	change-selection widget as red-integer! values + FACE_OBJ_SELECTED sym
 	change-para widget face as red-object! values + FACE_OBJ_PARA font sym
-
 	change-enabled widget enabled?/value sym
 	
 	make-styles-provider widget
@@ -2016,7 +2017,6 @@ OS-make-view: func [
 	change-color widget as red-tuple! values + FACE_OBJ_COLOR sym
 	
 	;; USELESS: if sym <> window [gtk_widget_show widget]
-
 	stack/unwind
 	as-integer widget
 ]
