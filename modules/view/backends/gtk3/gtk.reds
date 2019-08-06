@@ -1155,6 +1155,14 @@ GPtrArray!: alias struct! [
 			w			[integer!]
 			h			[integer!]
 		]
+		gtk_window_set_decorated: "gtk_window_set_decorated" [
+			window		[handle!]
+			mode		[logic!]
+		]
+		gtk_window_set_deletable: "gtk_window_set_deletable" [
+			window		[handle!]
+			mode		[logic!]
+		]
 		gtk_window_move: "gtk_window_move" [
 			window		[handle!]
 			x			[integer!]
