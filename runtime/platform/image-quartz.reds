@@ -95,6 +95,11 @@ OS-image: context [
 				h			[float32!]
 				src			[integer!]
 			]
+			CGContextScaleCTM: "CGContextScaleCTM" [
+				c			[integer!]
+				sx			[float32!]
+				sy			[float32!]
+			]
 			CGImageSourceCreateWithData: "CGImageSourceCreateWithData" [
 				data		[int-ptr!]
 				options		[integer!]
@@ -305,19 +310,29 @@ OS-image: context [
 		height	[integer!]
 		return: [integer!]
 		/local
-			graphic [integer!]
-			old-w	[integer!]
-			old-h	[integer!]
-			format	[integer!]
-			bitmap	[integer!]
+			old-w		[integer!]
+			old-h		[integer!]
+			handle		[integer!]
+			rect		[NSRect!]
+			color-space [integer!]
+			ctx			[integer!]
+			nhandle		[integer!]
 	][
 		old-w: IMAGE_WIDTH(img/size)
 		old-h: IMAGE_HEIGHT(img/size)
 
-		graphic: 0
-		format: 0
-		bitmap: 0
-		as-integer img/node
+		handle: to-cgimage img
+
+		rect: make-rect 0 0 width height
+		color-space: CGColorSpaceCreateDeviceRGB
+		ctx: CGBitmapContextCreate null width height 32 width * 16 color-space 2101h
+		CGContextScaleCTM ctx as float32! 1.0 as float32! 1.0
+		CGContextDrawImage ctx rect/x rect/y rect/w rect/h handle
+		nhandle: CGBitmapContextCreateImage ctx
+		CGColorSpaceRelease color-space
+		CGContextRelease ctx
+
+		as integer! make-node as int-ptr! nhandle null 0 width height
 	]
 
 	copy-rect: func [
