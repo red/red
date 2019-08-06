@@ -518,6 +518,7 @@ scroll-wheel: func [
 	cmd		[integer!]
 	event	[integer!]
 ][
+	objc_setAssociatedObject self RedNSEventKey event OBJC_ASSOCIATION_ASSIGN
 	make-event self event EVT_WHEEL
 ]
 
