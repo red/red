@@ -432,24 +432,18 @@ get-event-flags: func [
 	return: [red-value!]
 	/local
 		blk [red-block!]
-		flags [integer!]
 ][
 	blk: flags-blk
-	block/rs-clear blk
-	either evt/type = EVT_WHEEL [
-		flags: check-extra-keys evt/flags
-	][
-		flags: evt/flags
-	]
-	if flags and EVT_FLAG_AWAY		 <> 0 [block/rs-append blk as red-value! _away]
-	if flags and EVT_FLAG_DOWN		 <> 0 [block/rs-append blk as red-value! _down]
-	if flags and EVT_FLAG_MID_DOWN	 <> 0 [block/rs-append blk as red-value! _mid-down]
-	if flags and EVT_FLAG_ALT_DOWN	 <> 0 [block/rs-append blk as red-value! _alt-down]
-	if flags and EVT_FLAG_AUX_DOWN	 <> 0 [block/rs-append blk as red-value! _aux-down]
-	if flags and EVT_FLAG_CTRL_DOWN	 <> 0 [block/rs-append blk as red-value! _control]
-	if flags and EVT_FLAG_SHIFT_DOWN <> 0 [block/rs-append blk as red-value! _shift]
-	if flags and EVT_FLAG_MENU_DOWN <> 0 [block/rs-append blk as red-value! _alt]
-	if flags and EVT_FLAG_CMD_DOWN <> 0 [block/rs-append blk as red-value! _command]
+	block/rs-clear blk	
+	if evt/flags and EVT_FLAG_AWAY		 <> 0 [block/rs-append blk as red-value! _away]
+	if evt/flags and EVT_FLAG_DOWN		 <> 0 [block/rs-append blk as red-value! _down]
+	if evt/flags and EVT_FLAG_MID_DOWN	 <> 0 [block/rs-append blk as red-value! _mid-down]
+	if evt/flags and EVT_FLAG_ALT_DOWN	 <> 0 [block/rs-append blk as red-value! _alt-down]
+	if evt/flags and EVT_FLAG_AUX_DOWN	 <> 0 [block/rs-append blk as red-value! _aux-down]
+	if evt/flags and EVT_FLAG_CTRL_DOWN	 <> 0 [block/rs-append blk as red-value! _control]
+	if evt/flags and EVT_FLAG_SHIFT_DOWN <> 0 [block/rs-append blk as red-value! _shift]
+	if evt/flags and EVT_FLAG_MENU_DOWN <> 0 [block/rs-append blk as red-value! _alt]
+	if evt/flags and EVT_FLAG_CMD_DOWN <> 0 [block/rs-append blk as red-value! _command]
 	as red-value! blk
 ]
 
