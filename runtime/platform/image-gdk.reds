@@ -17,6 +17,11 @@ Red/System [
 	GDK_COLORSPACE_RGB
 ]
 
+GError!: alias struct! [
+	domain		[integer!]
+	code		[integer!]
+	message		[c-string!]
+]
 ; bgra-to-rgba: func [
 ; 	color		[integer!]
 ; 	return: 	[integer!]
@@ -209,6 +214,10 @@ OS-image: context [
 			gdk_pixbuf_loader_close: "gdk_pixbuf_loader_close" [
 				loader		[handle!]
 				err 		[handle!]
+				return: 	[logic!]
+			]
+			gdk_pixbuf_save: "gdk_pixbuf_save" [
+				[variadic]
 				return: 	[logic!]
 			]
 			g_object_unref: "g_object_unref" [
@@ -769,37 +778,31 @@ OS-image: context [
 		format	[integer!]
 		return: [red-value!]
 		/local
-			type		[integer!]
-			path		[integer!]
-			dst			[integer!]
-			img			[int-ptr!]
+			type		[c-string!]
+			path		[c-string!]
+			pixbuf		[handle!]
+			err 		[GError!]
 	][
-		;; DEBUG: print ["encode" lf]
+		err: declare GError!
 		switch format [
-			IMAGE_BMP  [probe "type: kUTTypeBMP"]
-			IMAGE_PNG  [probe "type: kUTTypePNG"]
-			IMAGE_GIF  [probe "type: kUTTypeGIF"]
-			IMAGE_JPEG [probe "type: kUTTypeJPEG"]
-			IMAGE_TIFF [probe "type: kUTTypeTIFF"]
+			IMAGE_BMP  [type: "bmp"]
+			IMAGE_PNG  [type: "png"]
+			;IMAGE_GIF  [type: "gif"]
+			IMAGE_JPEG [type: "jpeg"]
+			IMAGE_TIFF [type: "tiff"]
 			default    [probe "Cannot find image encoder" return null]
 		]
 
-		img: to-pixbuf image
-		; switch TYPE_OF(slot) [
-		; 	TYPE_URL
-		; 	TYPE_FILE [
-		; 		path: simple-io/to-NSURL as red-string! slot yes
-		; 		dst: CGImageDestinationCreateWithURL path type 1 0
-		; 		;if zero? dst []				;-- error
-		; 		CGImageDestinationAddImage dst img 0
-		; 		unless CGImageDestinationFinalize dst [
-		; 			0 ;-- error
-		; 		]
-		; 		CFRelease path
-		; 		CFRelease dst
-		; 	]
-		; 	default [0]
-		; ]
+		;; DEBUG: print ["encode: " type lf]
+		pixbuf: to-pixbuf image
+		switch TYPE_OF(slot) [
+			TYPE_URL
+			TYPE_FILE [
+				path: file/to-OS-path as red-string! slot
+				gdk_pixbuf_save [pixbuf path type err null]
+			]
+			default [0]
+		]
 		slot
 	]
 
