@@ -385,4 +385,5 @@
 	red/true-value			cell!
 	red/false-value			cell!
 	red/boot?				logic!
+	red/collector/active?	logic!
 ]
