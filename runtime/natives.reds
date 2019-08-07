@@ -1122,7 +1122,7 @@ natives: context [
 			][
 				stack/set-last 
 					as red-value! _context/bind
-						block/clone as red-block! value yes no
+						block/clone as red-block! value yes yes
 						TO_CTX(ctx)
 						obj
 						self?
@@ -1452,6 +1452,8 @@ natives: context [
 	][
 		#typecheck [enbase base-arg]
 		data: as red-string! stack/arguments
+		data/cache: null
+
 		base: either positive? base-arg [
 			int: as red-integer! data + 1
 			int/value

@@ -226,38 +226,38 @@ xor~: make action! [[
 
 append: make action! [[
 		"Inserts value(s) at series tail; returns series head"
-		series	   [series! bitset!]
+		series	   [series! bitset! port!]
 		value	   [any-type!]
 		/part "Limit the number of values inserted"
 			length [number! series!]
 		/only "Insert block types as single values (overrides /part)"
 		/dup  "Duplicate the inserted values"
 			count  [integer!]
-		return:    [series! bitset!]
+		return:    [series! port! bitset!]
 	]
 	#get-definition ACT_APPEND
 ]
 
 at: make action! [[
 		"Returns a series at a given index"
-		series	 [series!]
+		series	 [series! port!]
 		index 	 [integer! pair!]
-		return:  [series!]
+		return:  [series! port!]
 	]
 	#get-definition ACT_AT
 ]
 
 back: make action! [[
 		"Returns a series at the previous index"
-		series	 [series!]
-		return:  [series!]
+		series	 [series! port!]
+		return:  [series! port!]
 	]
 	#get-definition ACT_BACK
 ]
 
 change: make action! [[
 		"Changes a value in a series and returns the series after the change"
-		series [series!] "Series at point to change"
+		series [series! port!] "Series at point to change"
 		value [any-type!] "The new value"
 		/part "Limits the amount to change to a given length or position"
 			range [number! series!]
@@ -270,8 +270,8 @@ change: make action! [[
 
 clear: make action! [[
 		"Removes series values from current index to tail; returns new tail"
-		series	 [series! bitset! map! none!]
-		return:  [series! bitset! map! none!]
+		series	 [series! port! bitset! map! none!]
+		return:  [series! port! bitset! map! none!]
 	]
 	#get-definition ACT_CLEAR
 ]
@@ -313,15 +313,15 @@ find: make action! [[
 
 head: make action! [[
 		"Returns a series at its first index"
-		series	 [series!]
-		return:  [series!]
+		series	 [series! port!]
+		return:  [series! port!]
 	]
 	#get-definition ACT_HEAD
 ]
 
 head?: make action! [[
 		"Returns true if a series is at its first index"
-		series	 [series!]
+		series	 [series! port!]
 		return:  [logic!]
 	]
 	#get-definition ACT_HEAD?
@@ -329,7 +329,7 @@ head?: make action! [[
 
 index?: make action! [[
 		"Returns the current index of series relative to the head, or of word in a context"
-		series	 [series! any-word!]
+		series	 [series! port! any-word!]
 		return:  [integer!]
 	]
 	#get-definition ACT_INDEX?
@@ -337,21 +337,21 @@ index?: make action! [[
 
 insert: make action! [[
 		"Inserts value(s) at series index; returns series past the insertion"
-		series	   [series! bitset!]
+		series	   [series! port! bitset!]
 		value	   [any-type!]
 		/part "Limit the number of values inserted"
 			length [number! series!]
 		/only "Insert block types as single values (overrides /part)"
 		/dup  "Duplicate the inserted values"
 			count  [integer!]
-		return:    [series! bitset!]
+		return:    [series! port! bitset!]
 	]
 	#get-definition ACT_INSERT
 ]
 
 length?: make action! [[
 		"Returns the number of values in the series, from the current index to the tail"
-		series	 [series! bitset! map! tuple! none!]
+		series	 [series! port! bitset! map! tuple! none!]
 		return:  [integer! none!]
 	]
 	#get-definition ACT_LENGTH?
@@ -359,26 +359,26 @@ length?: make action! [[
 
 move: make action! [[
 		"Moves one or more elements from one series to another position or series"
-		origin	   [series!]
-		target	   [series!]
+		origin	   [series! port!]
+		target	   [series! port!]
 		/part "Limit the number of values inserted"
 			length [integer!]
-		return:    [series!]
+		return:    [series! port!]
 	]
 	#get-definition ACT_MOVE
 ]
 
 next: make action! [[
 		"Returns a series at the next index"
-		series	 [series!]
-		return:  [series!]
+		series	 [series! port!]
+		return:  [series! port!]
 	]
 	#get-definition ACT_NEXT
 ]
 
 pick: make action! [[
 		"Returns the series value at a given index"
-		series	 [series! bitset! pair! tuple! date! time!]
+		series	 [series! port! bitset! pair! tuple! date! time!]
 		index 	 [scalar! any-string! any-word! block! logic! time!]
 		return:  [any-type!]
 	]
@@ -387,43 +387,43 @@ pick: make action! [[
 
 poke: make action! [[
 		"Replaces the series value at a given index, and returns the new value"
-		series	 [series! bitset!]
+		series	 [series! port! bitset!]
 		index 	 [scalar! any-string! any-word! block! logic!]
 		value 	 [any-type!]
-		return:  [series! bitset!]
+		return:  [series! port! bitset!]
 	]
 	#get-definition ACT_POKE
 ]
 
 put: make action! [[
 		"Replaces the value following a key, and returns the new value"
-		series	 [series! map! object!]
+		series	 [series! port! map! object!]
 		key 	 [scalar! any-string! any-word! binary!]
 		value 	 [any-type!]
 		/case "Perform a case-sensitive search"
-		return:  [series! map! object!]
+		return:  [series! port! map! object!]
 	]
 	#get-definition ACT_PUT
 ]
 
 remove: make action! [[
 		"Returns the series at the same index after removing a value"
-		series	 [series! bitset! map! none!]
+		series	 [series! port! bitset! map! none!]
 		/part "Removes a number of values, or values up to the given series index"
 			length [number! char! series!]
 		/key "Removes a key in map"
 			key-arg [scalar! any-string! any-word! binary! block!]
-		return:  [series! bitset! map! none!]
+		return:  [series! port! bitset! map! none!]
 	]
 	#get-definition ACT_REMOVE
 ]
 
 reverse: make action! [[
 		"Reverses the order of elements; returns at same position"
-		series	 [series! pair! tuple!]
+		series	 [series! port! pair! tuple!]
 		/part "Limits to a given length or position"
 			length [number! series!]
-		return:  [series! pair! tuple!]
+		return:  [series! port! pair! tuple!]
 	]
 	#get-definition ACT_REVERSE
 ]
@@ -451,7 +451,7 @@ select: make action! [[
 
 sort: make action! [[
 		"Sorts a series (modified); default sort order is ascending"
-		series	 [series!]
+		series	 [series! port!]
 		/case "Perform a case-sensitive sort"
 		/skip "Treat the series as fixed size records"
 			size [integer!]
@@ -469,33 +469,33 @@ sort: make action! [[
 
 skip: make action! [[
 		"Returns the series relative to the current index"
-		series	 [series!]
+		series	 [series! port!]
 		offset 	 [integer! pair!]
-		return:  [series!]
+		return:  [series! port!]
 	]
 	#get-definition ACT_SKIP
 ]
 
 swap: make action! [[
 		"Swaps elements between two series or the same series"
-		series1  [series!]
-		series2  [series!]
-		return:  [series!]
+		series1  [series! port!]
+		series2  [series! port!]
+		return:  [series! port!]
 	]
 	#get-definition ACT_SWAP
 ]
 
 tail: make action! [[
 		"Returns a series at the index after its last value"
-		series	 [series!]
-		return:  [series!]
+		series	 [series! port!]
+		return:  [series! port!]
 	]
 	#get-definition ACT_TAIL
 ]
 
 tail?: make action! [[
 		"Returns true if a series is past its last value"
-		series	 [series!]
+		series	 [series! port!]
 		return:  [logic!]
 	]
 	#get-definition ACT_TAIL?
@@ -503,7 +503,7 @@ tail?: make action! [[
 
 take: make action! [[
 		"Removes and returns one or more elements"
-		series	 [series! none!]
+		series	 [series! port! none!]
 		/part	 "Specifies a length or end position"
 			length [number! series!]
 		/deep	 "Copy nested values"
@@ -514,7 +514,7 @@ take: make action! [[
 
 trim: make action! [[
 		"Removes space from a string or NONE from a block"
-		series	[series!]
+		series	[series! port!]
 		/head	"Removes only from the head"
 		/tail	"Removes only from the tail"
 		/auto	"Auto indents lines relative to first line"
@@ -528,27 +528,51 @@ trim: make action! [[
 
 ;-- I/O actions --
 
-;create
-;close
+create: make action! [[
+		"Send port a create request"
+		port [port! file! url! block!]
+	]
+	#get-definition ACT_CREATE
+]
+
+close: make action! [[
+		"Closes a port"
+		port [port!]
+	]
+	#get-definition ACT_CLOSE
+]
 
 delete: make action! [[
 		"Deletes the specified file or empty folder"
-		file [file!]
+		file [file! port!]
 	]
 	#get-definition ACT_DELETE
 ]
-;open
+
+open: make action! [[
+		"Opens a port; makes a new port from a specification if necessary"
+		port [port! file! url! block!]
+		/new "Create new file - if it exists, deletes it"
+		/read "Open for read access"
+		/write "Open for write access"
+		/seek "Optimize for random access"
+		/allow "Specificies right access attributes"
+			access [block!]
+	]
+	#get-definition ACT_OPEN
+]
+
 ;open?
 query: make action! [[
 		"Returns information about a file"
-		target [file!]
+		target [file! port!]
 	]
 	#get-definition ACT_QUERY
 ]
 
 read: make action! [[
 		"Reads from a file, URL, or other port"
-		source	[file! url!]
+		source	[file! url! port!]
 		/part	"Partial read a given number of units (source relative)"
 			length [number!]
 		/seek	"Read from a specific position (source relative)"
@@ -565,7 +589,7 @@ read: make action! [[
 ;update
 write: make action! [[
 		"Writes to a file, URL, or other port"
-		destination	[file! url!]
+		destination	[file! url! port!]
 		data		[any-type!]
 		/binary	"Preserves contents exactly"
 		/lines	"Write each value in a block as a separate line"

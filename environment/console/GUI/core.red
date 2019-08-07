@@ -233,17 +233,22 @@ object [
 		console/color: background
 	]
 
-	update-cfg: func [font [object!] cfg [block!] /local sz][
+	update-cfg: func [font [object!] cfg [block! none!] /local sz][
 		box/font: font
-		max-lines: cfg/buffer-lines
 		box/text: "XXXXXXXXXX"
+
 		sz: size-text box
 		char-width: sz/x + 1 * 0.1 						;-- +1 compensates for size-text rounding
 		box/tabs: tab-size * char-width
+
 		line-h: rich-text/line-height? box 1
 		box/line-spacing: line-h
 		caret/size/y: line-h
-		if cfg/background [change theme/background cfg/background]
+
+		if cfg [
+			max-lines: cfg/buffer-lines
+			if cfg/background [change theme/background cfg/background]
+		]
 		if font/color [change theme/foreground font/color]
 		adjust-console-size gui-console-ctx/console/size
 		update-theme
@@ -294,6 +299,16 @@ object [
 			scroll-lines n
 			system/view/platform/redraw console
 		]
+	]
+
+	zoom: func [event /local ft sz][
+		box/line-spacing: none
+		ft: box/font
+		sz: ft/size
+		either event/picked > 0 [sz: sz + 1][sz: sz - 1]
+		if sz = 5 [exit]		;-- mininum size
+		ft/size: sz
+		update-cfg ft none
 	]
 
 	update-caret: func [/local len n s h lh offset][

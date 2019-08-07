@@ -93,14 +93,11 @@ get-face-obj: func [
 	view	[integer!]
 	return: [red-object!]
 	/local
-		face [red-object!]
 		ivar [integer!]
 ][
-	face: declare red-object!
 	ivar: class_getInstanceVariable object_getClass view IVAR_RED_FACE
 	assert ivar <> 0
-	as red-object! copy-cell as cell! view + ivar_getOffset ivar as cell! face
-	face
+	as red-object! view + ivar_getOffset ivar
 ]
 
 get-face-flags: func [
@@ -411,7 +408,7 @@ get-flags: func [
 	]
 	flags: 0
 
-	until [
+	loop len [
 		sym: symbol/resolve word/symbol
 		case [
 			sym = all-over	 [flags: flags or FACET_FLAGS_ALL_OVER]
@@ -428,8 +425,6 @@ get-flags: func [
 			true			 [fire [TO_ERROR(script invalid-arg) word]]
 		]
 		word: word + 1
-		len: len - 1
-		zero? len
 	]
 	flags
 ]

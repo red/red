@@ -300,7 +300,8 @@ map: context [
 					next: value + 1
 					unless next/header = MAP_KEY_DELETED [
 						cnt: cnt + 1
-						block/rs-append blk value
+						new: block/rs-append blk value
+						new/header: new/header or flag-new-line
 						block/rs-append blk next
 					]
 					value: value + 2

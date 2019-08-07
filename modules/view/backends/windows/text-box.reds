@@ -217,7 +217,7 @@ OS-text-box-metrics: func [
 	as red-value! switch type [
 		TBOX_METRICS_OFFSET?
 		TBOX_METRICS_OFFSET_LOWER [
-			text: as red-string! int + 3
+			text: as red-string! int + 2
 			x: as float32! 0.0 y: as float32! 0.0
 			int: as red-integer! arg0
 			hr: either TYPE_OF(text) <> TYPE_STRING [0][adjust-index text int/value - 1]
@@ -300,12 +300,11 @@ OS-text-box-layout: func [
 		w		[integer!]
 		h		[integer!]
 		fmt		[this!]
-		old-fmt	[this!]
 		layout	[this!]
 ][
 	values: object/get-values box
 	state: as red-block! values + FACE_OBJ_EXT3
-	fmt: as this! create-text-format as red-object! values + FACE_OBJ_FONT
+	fmt: as this! create-text-format as red-object! values + FACE_OBJ_FONT box
 
 	if null? target [
 		hWnd: face-handle? box
@@ -324,25 +323,18 @@ OS-text-box-layout: func [
 		int: as red-integer! pval
 		layout: as this! int/value
 		COM_SAFE_RELEASE(IUnk layout)		;-- release previous text layout
-		int: int + 1
-		old-fmt: as this! int/value
-		if old-fmt <> fmt [
-			COM_SAFE_RELEASE(IUnk old-fmt)
-			int/value: as-integer fmt
-		]
 		bool: as red-logic! int + 3
 		bool/value: false
 	][
-		block/make-at state 5
-		none/make-in state							;-- 1: text layout
-		handle/make-in state as-integer fmt			;-- 2: text format
-		handle/make-in state 0						;-- 3: target
-		none/make-in state							;-- 4: text
-		logic/make-in state false					;-- 5: layout?
+		block/make-at state 4
+		none/make-in state					;-- 1: text layout
+		handle/make-in state 0				;-- 2: target
+		none/make-in state					;-- 3: text
+		logic/make-in state false			;-- 4: layout?
 		pval: block/rs-head state
 	]
 
-	handle/make-at pval + 2 as-integer target
+	handle/make-at pval + 1 as-integer target
 	vec: as red-vector! target/4
 	if vec <> null [vector/rs-clear vec]
 
@@ -358,7 +350,7 @@ OS-text-box-layout: func [
 		w: 0 h: 0
 	]
 
-	copy-cell as red-value! str pval + 3			;-- save text
+	copy-cell as red-value! str pval + 2			;-- save text
 	layout: create-text-layout str fmt w h
 	handle/make-at pval as-integer layout
 

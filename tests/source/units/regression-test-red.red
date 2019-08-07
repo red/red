@@ -841,7 +841,7 @@ Red [
 		--assert equal? 1 f764
 		f764: function[os764][os764] 
 		--assert equal? 1 f764 1
-		f764:func[][os764: 1] 
+		f764: func[][os764: 1] 
 		--assert equal? 1 f764
 		f764: func[][os764: 1 os764] 
 		--assert equal? 1 f764
@@ -2783,6 +2783,31 @@ b}
 
 		--assert success3739
 		unset [s3739 a3739 b3739 success3739 reactor3739]
+
+comment {
+	--test-- "#3773"
+		;; context? should not accept a string
+		--assert error? try [
+			do/expand [
+				#macro ctx: func [x] [context? x]
+				ctx ""
+			]
+		]
+		;; this is reduced like: (mc 'mc) => (mc) => error (no arg)
+		--assert error? try [
+			do/expand [
+				#macro mc: func [x] [x]
+				probe quote (mc 'mc)
+			]
+		]
+		;; :mc = func [x][x], so `mc :mc` executing `x` applies it to an empty arg list => error
+		--assert error? try [
+			do/expand [
+				#macro mc: func [x] [x]
+				probe quote (mc :mc)
+			]
+		]
+}
 
 ===end-group===
 

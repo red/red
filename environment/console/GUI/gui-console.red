@@ -69,7 +69,11 @@ gui-console-ctx: context [
 				terminal/scroll event
 			]
 			on-wheel: func [face [object!] event [event!]][
-				terminal/scroll event
+				either event/ctrl? [
+					terminal/zoom event
+				][
+					terminal/scroll event
+				]
 			]
 			on-key: func [face [object!] event [event!]][
 				terminal/press-key event
@@ -95,6 +99,8 @@ gui-console-ctx: context [
 				'done
 			]
 		]
+
+		tabs: none line-spacing: 'default handles: none	;-- extra fields
 
 		init: func [/local box][
 			terminal/windows: system/view/screens/1/pane

@@ -124,11 +124,12 @@ linker: context [
 					]
 				]
 			]
-			if all [	
-				spec/1 = 'global
-				block? spec/4
-			][										;-- data to data references
-				pointer/value: data-ptr + spec/2			
+			if block? spec/4 [
+				pointer/value: either spec/1 = 'global [
+					data-ptr + spec/2				;-- data to data references
+				][
+					either job/PIC? [spec/2 - 1][code-ptr + spec/2 - 1]	;-- data to code references
+				]
 				foreach ref spec/4 [change at dbuf ref form-struct pointer]
 			]
 		]

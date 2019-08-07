@@ -16,8 +16,8 @@ Red/System [
 ;;		-28  : Cursor handle
 ;;		-24  : Direct2D target interface
 ;;			   base-layered: caret's owner handle
-;;		-20  : evolved-base-layered: child handle
-;;		-16  : base-layered: owner handle
+;;		-20  : evolved-base-layered: child handle, window: previous focused handle
+;;		-16  : base-layered: owner handle, window: border width and height
 ;;		-12  : base-layered: clipped? flag, caret? flag, d2d? flag, ime? flag
 ;;		 -8  : base: pos X/Y in pixel
 ;;			   window: pos X/Y in pixel
@@ -294,13 +294,16 @@ get-text-size: func [
 	;-- possibly null if hwnd wasn't stored in `state` yet (upon face creation)
 	;  in this case hwnd=0 is of the screen, while `para` can still be applied from the face/ctx
 	hwnd: face-handle? face
+	if null? hwnd [
+		hwnd: GetDesktopWindow
+	]
 	values: object/get-values face
 	dc: GetWindowDC hwnd
 
 	if null? hFont [hFont: default-font]
 	saved: SelectObject hwnd hFont
 	GetClientRect hWnd rc
-	render-text values hwnd dc rc str bbox
+	render-text values hwnd dc rc str :bbox
 
 	SelectObject hwnd saved
 	ReleaseDC hwnd dc
@@ -621,10 +624,6 @@ free-faces: func [
 				dc: GetWindowLong handle wc-offset - 4
 				if dc <> 0 [DeleteDC as handle! dc]			;-- delete cached dc
 			]
-			flags: get-flags as red-block! values + FACE_OBJ_FLAGS
-			;if flags and FACET_FLAGS_MODAL <> 0 [
-			;	SetActiveWindow GetWindow handle GW_OWNER
-			;]
 			dc: GetWindowLong handle wc-offset - 24
 			if dc <> 0 [
 				either (GetWindowLong handle wc-offset - 12) and BASE_FACE_IME <> 0 [
@@ -898,42 +897,36 @@ window-border-info?: func [
 
 init-window: func [										;-- post-creation settings
 	handle  [handle!]
-	bits	[integer!]
-	/local
-		x		[integer!]
-		y		[integer!]
-		cx		[integer!]
-		cy		[integer!]
-		owner	[handle!]
-		modes	[integer!]
 ][
 	SetWindowLong handle wc-offset - 4 0
+	SetWindowLong handle wc-offset - 16 0
 	SetWindowLong handle wc-offset - 24 0
-
-	modes: SWP_NOZORDER
-
-	if bits and FACET_FLAGS_MODAL <> 0 [
-		modes: 0
-		owner: find-last-window
-		if owner <> null [SetWindowLong handle GWL_HWNDPARENT as-integer owner]
-	]
 ]
 
-set-selected-focus: func [
-	hWnd [handle!]
+get-selected-handle: func [
+	hWnd	[handle!]
+	return: [handle!]
 	/local
 		face   [red-object!]
 		values [red-value!]
 		handle [handle!]
 ][
 	values: get-face-values hWnd
+	handle: null
 	if values <> null [
 		face: as red-object! values + FACE_OBJ_SELECTED
 		if TYPE_OF(face) = TYPE_OBJECT [
 			handle: face-handle? face
-			unless null? handle [SetFocus handle]
 		]
 	]
+	handle
+]
+
+set-selected-focus: func [
+	hWnd [handle!]
+][
+	hWnd: get-selected-handle hWnd
+	unless null? hWnd [SetFocus hWnd]
 ]
 
 set-logic-state: func [
@@ -976,7 +969,7 @@ get-flags: func [
 	]
 	flags: 0
 	
-	until [
+	loop len [
 		sym: symbol/resolve word/symbol
 		case [
 			sym = all-over	 [flags: flags or FACET_FLAGS_ALL_OVER]
@@ -993,8 +986,6 @@ get-flags: func [
 			true			 [fire [TO_ERROR(script invalid-arg) word]]
 		]
 		word: word + 1
-		len: len - 1
-		zero? len
 	]
 	flags
 ]
@@ -1279,8 +1270,7 @@ OS-show-window: func [
 	]
 
 	SetForegroundWindow as handle! hWnd
-	face: (as red-object! get-face-values as handle! hWnd) + FACE_OBJ_SELECTED
-	if TYPE_OF(face) = TYPE_OBJECT [SetFocus get-face-handle face]
+	set-selected-focus as handle! hWnd
 ]
 
 OS-make-view: func [
@@ -1311,6 +1301,7 @@ OS-make-view: func [
 		value	  [integer!]
 		handle	  [handle!]
 		hWnd	  [handle!]
+		focused   [handle!]
 		p		  [ext-class!]
 		id		  [integer!]
 		vertical? [logic!]
@@ -1467,6 +1458,8 @@ OS-make-view: func [
 
 			if bits and FACET_FLAGS_NO_TITLE  <> 0 [flags: WS_POPUP or WS_BORDER]
 			if bits and FACET_FLAGS_NO_BORDER <> 0 [flags: WS_POPUP]
+			if size/x < 0 [size/x: 200]
+			if size/y < 0 [size/y: 200]
 			rc/left: 0
 			rc/top: 0
 			rc/right:  dpi-scale size/x
@@ -1474,6 +1467,11 @@ OS-make-view: func [
 			AdjustWindowRectEx rc flags menu-bar? menu window ws-flags
 			rc/right: rc/right - rc/left
 			rc/bottom: rc/bottom - rc/top
+			focused: null
+			if bits and FACET_FLAGS_MODAL <> 0 [
+				parent: as-integer find-last-window
+				focused: get-selected-handle as handle! parent
+			]
 		]
 		true [											;-- search in user-defined classes
 			p: find-class type
@@ -1619,7 +1617,8 @@ OS-make-view: func [
 			SetWindowLong handle wc-offset - 12 BASE_FACE_D2D or BASE_FACE_IME
 		]
 		sym = window [
-			init-window handle bits
+			init-window handle
+			SetWindowLong handle wc-offset - 20 as-integer focused
 			#if sub-system = 'gui [
 				with clipboard [
 					if null? main-hWnd [main-hWnd: handle]
@@ -1739,8 +1738,6 @@ change-offset: func [
 		offset	[tagPOINT]
 		values	[red-value!]
 		layer?	[logic!]
-		x		[integer!]
-		y		[integer!]
 		pos-x	[integer!]
 		pos-y	[integer!]
 ][
@@ -1759,10 +1756,6 @@ change-offset: func [
 		SetCaretPos pos-x pos-y
 		set-ime-pos hWnd pos-x pos-y
 	]
-
-	x: 0
-	y: 0
-	if type = window [window-border-info? hWnd :x :y null null]
 
 	if all [not win8+? type = base][
 		values: get-face-values hWnd
@@ -1802,7 +1795,7 @@ change-offset: func [
 	SetWindowPos 
 		hWnd
 		as handle! 0
-		x + pos-x y + pos-y
+		pos-x pos-y
 		0 0
 		flags
 	if type = tab-panel [update-tab-contents hWnd FACE_OBJ_OFFSET]

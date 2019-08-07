@@ -44,7 +44,6 @@ function!:		make datatype! #get-definition TYPE_FUNCTION
 ;closure!:		make datatype! #get-definition TYPE_CLOSURE
 routine!:		make datatype! #get-definition TYPE_ROUTINE
 object!:		make datatype! #get-definition TYPE_OBJECT
-;port!:			make datatype! #get-definition TYPE_PORT
 bitset!:		make datatype! #get-definition TYPE_BITSET
 float!:			make datatype! #get-definition TYPE_FLOAT
 point!:			make datatype! #get-definition TYPE_POINT
@@ -60,6 +59,7 @@ tag!:			make datatype! #get-definition TYPE_TAG
 email!:			make datatype! #get-definition TYPE_EMAIL
 handle!:		make datatype! #get-definition TYPE_HANDLE
 date!:			make datatype! #get-definition TYPE_DATE
+port!:			make datatype! #get-definition TYPE_PORT
 
 #if find config/modules 'view [
 	event!: make datatype! #get-definition TYPE_EVENT

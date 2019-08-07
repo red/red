@@ -20,6 +20,7 @@ color-backgrounds: function [
 	foreach-face/with root [face/color: face/parent/color][
 		all [
 			none? face/color
+			face/parent
 			find [window panel group-box tab-panel] face/parent/type
 			find [text slider radio check group-box tab-panel panel] face/type
 		]
@@ -38,6 +39,7 @@ color-tabpanel-children: function [
 	][
 		all [
 			none? face/color
+			face/parent
 			face/parent/type = 'panel
 			gp: face/parent/parent
 			gp/type = 'tab-panel
@@ -57,6 +59,7 @@ OK-Cancel: function [
 	][
 		either all [
 			face/type = 'button
+			face/parent
 			find cancel-captions face/text
 		][
 			last-but: none

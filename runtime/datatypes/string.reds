@@ -363,6 +363,40 @@ string: context [
 		]
 		false
 	]
+	
+	rs-match: func [
+		str1	[red-string!]
+		cstr	[c-string!]
+		return: [logic!]								;-- TRUE if str1 starts with str2
+		/local
+			s	  [series!]
+			unit  [integer!]
+			size  [integer!]
+			size2 [integer!]
+			p	  [byte-ptr!]
+			tail  [byte-ptr!]
+			c	  [integer!]
+			byte  [byte!]
+	][
+		size: rs-length? str1
+		size2: length? cstr
+		if size < size2 [return no]
+		
+		p: rs-head str1
+		tail: rs-tail str1
+		s: GET_BUFFER(str1)
+		unit: GET_UNIT(s)
+		
+		while [all [p < tail cstr/1 <> null-byte]][
+			c: get-char p unit
+			if c > 255 [return no]
+			byte: as-byte c
+			if byte <> cstr/1 [return no]
+			cstr: cstr + 1
+			p: p + unit
+		]
+		yes
+	]
 
 	get-char: func [
 		p	    [byte-ptr!]

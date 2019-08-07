@@ -32,6 +32,7 @@ Red [
 	#include %environment/codecs/json.red
 
 	#include %environment/reactivity.red				;-- requires SET intrinsic
+	#include %environment/networking.red
 	#include %utils/preprocessor.r
 
 	;-- temporary code --

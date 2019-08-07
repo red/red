@@ -254,7 +254,7 @@ OS-draw-text-d2d: func [
 	layout: either TYPE_OF(text) = TYPE_OBJECT [				;-- text-box!
 		OS-text-box-layout as red-object! text ctx/brushes 0 yes
 	][
-		fmt: as this! create-text-format as red-object! text
+		fmt: as this! create-text-format as red-object! text null
 		create-text-layout text fmt 0 0
 	]
 	txt-box-draw-background ctx/brushes pos layout

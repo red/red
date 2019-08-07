@@ -192,6 +192,7 @@ collector: context [
 					keep series/node
 				]
 				TYPE_ERROR
+				TYPE_PORT
 				TYPE_OBJECT [
 					#if debug? = yes [if verbose > 1 [print "object"]]
 					obj: as red-object! value
@@ -289,6 +290,7 @@ collector: context [
 		]]
 
 		#if debug? = yes [
+			if verbose > 2 [stack-trace]
 			buf: "                                                               "
 			tm: platform/get-time yes yes
 			print [
@@ -361,7 +363,7 @@ collector: context [
 
 		#if debug? = yes [
 			tm: (platform/get-time yes yes) - tm - tm1
-			sprintf [buf ", mark: %.2fms, sweep: %.2fms" tm1 * 1000 tm * 1000]
+			sprintf [buf ", mark: %.1fms, sweep: %.1fms" tm1 * 1000 tm * 1000]
 			probe [" => " memory-info null 1 buf]
 			if verbose > 1 [
 				simple-io/close-file stdout

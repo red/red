@@ -96,11 +96,11 @@ stack: context [										;-- call stack
 		a-end: as cell!		  (as byte-ptr! args-series)  + args-series/size
 		c-end: as call-frame! (as byte-ptr! calls-series) + calls-series/size
 
-		arguments:	args-series/tail					;@@ incorrect?!
 		bottom:  	args-series/offset
-		top:	 	args-series/tail					;@@ incorrect?!
+		arguments:	bottom
+		top:	 	bottom
 		cbottom: 	as call-frame! calls-series/offset
-		ctop:	 	as call-frame! calls-series/tail	;@@ incorrect?!
+		ctop:	 	cbottom
 		
 		body-symbol: words/_body/symbol
 		anon-symbol: words/_anon/symbol
@@ -258,7 +258,8 @@ stack: context [										;-- call stack
 
 		assert cbottom < ctop
 		ctop: ctop - 1
-		STACK_SET_FRAME
+		top: arguments + 1
+		arguments: ctop/prev
 		if acc-mode? [check-dyn-call]
 		
 		#if debug? = yes [if verbose > 1 [dump]]
@@ -599,13 +600,11 @@ stack: context [										;-- call stack
 	
 	pop: func [
 		positions [integer!]
-		/local
-			new	[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/pop"]]
 		
-		new: top - positions
-		if new >= arguments [top: new]
+		top: top - positions
+		if top < bottom [top: bottom]
 	]
 	
 	top-type?: func [

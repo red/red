@@ -2706,7 +2706,20 @@ Red [
 			]
 		]
 		--assert [[1 2] [3 4] [5 6] [7 8] [9]] = partition3108 [1 2 3 4 5 6 7 8 9] 2
-		
+
+	--test-- "#3927"
+		parse "bx" [some [not "b" | skip]]
+		--assert true				;-- just check that parse finishes
+
+
+	--test-- "#3357"
+		parse x3357: [][insert ('foo)]
+		--assert x3357 = [foo]
+
+		parse x3357b: [][insert ('foo)]
+		--assert x3357b = [foo]
+
+
 ===end-group===
     
 ~~~end-file~~~

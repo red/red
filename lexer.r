@@ -8,7 +8,7 @@ REBOL [
 ]
 
 ;-- Patch NEW-LINE and NEW-LINE? natives to accept paren! --
-append first find third :new-line  block! paren!
+append first find third :new-line  block! [path! paren!]
 append first find third :new-line? block! paren!
 
 
