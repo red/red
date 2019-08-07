@@ -47,7 +47,7 @@ gui-console-ctx: context [
 	scroller:	make scroller! []
 
 	console:	make face! [
-		type: 'rich-text color: 0.0.128 offset: 0x0 size: 400x400
+		type: 'rich-text color: 0.0.128 offset: 0x0 size: 200x200
 		flags:   [scrollable all-over]
 		options: [cursor: I-beam]
 		menu: [
@@ -134,7 +134,7 @@ gui-console-ctx: context [
 
 	setup-faces: does [
 		console/pane: reduce [caret]
-		append win/pane reduce [console]; tips]
+		append win/pane reduce [console tips]
 		win/menu: [
 			"File" [
 				"Run..."			run-file

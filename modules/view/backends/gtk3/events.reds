@@ -114,12 +114,12 @@ get-event-offset: func [
 			evt/type = EVT_SIZING
 			evt/type = EVT_SIZE
 		][
-			;; DEBUG: print ["event-offset type: " get-symbol-name get-widget-symbol widget lf]
 			offset: as red-pair! stack/push*
 			offset/header: TYPE_PAIR
 
 			widget: as handle! evt/msg
 			sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE
+			;; DEBUG: print ["event-offset type: " get-symbol-name get-widget-symbol widget " size: " sz/x "x" sz/y lf]
 			; sz/x: evt-sizing/x_new
 			; sz/y: evt-sizing/y_new
 			
@@ -436,8 +436,6 @@ do-events: func [
 	;@@ we use a global value to simulate it
 
 	;; DEBUG: print ["do-events no-wait? " no-wait? lf]
-	;; Special initialisation of hidden widgets (cf gui.reds)
-	hide-invisible
 	
 	;; Initially normally uncommented: the exit-loop is also decremented in destroy for supposed no-wait view!
 	unless no-wait? [
@@ -547,7 +545,7 @@ translate-key: func [
 		keycode = FF50h [special?: yes RED_VK_HOME]
 		keycode = FFE5h [special?: yes RED_VK_NUMLOCK]
 		keycode = FF08h [special?: no RED_VK_BACK]
-		keycode = FF09h [special?: yes RED_VK_TAB]
+		keycode = FF09h [special?: no RED_VK_TAB]
 		keycode = FFE1h [special?: yes RED_VK_LSHIFT]
 		keycode = FFE2h [special?: yes RED_VK_RSHIFT]
 		keycode = FFE3h [special?: yes RED_VK_LCONTROL]
@@ -854,6 +852,10 @@ connect-common-events: function [
 		if respond-mouse? widget ON_WHEEL [
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_COMMON [print [ "connect-common-events ON_WHEEL: " get-symbol-name sym "->" widget lf]]
 			gtk_widget_add_events widget GDK_SCROLL_MASK
+			if container-type? sym [
+				;; Bubbling does not work for rich-text so delegation to the parent with EVT_DISPATCH
+				connect-container-events widget "scroll-event"
+			]
 			gobj_signal_connect(widget "scroll-event" :widget-scroll-event face/ctx)
 		]
 
@@ -870,9 +872,7 @@ connect-notify-events: function [
 	;; DEBUG: if debug-connect? DEBUG_CONNECT_NOTIFY [print ["connect-notify-events " widget " " get-symbol-name sym lf]]
 
 	unless null? widget [
-		_widget: either sym = text [
-			g_object_get_qdata widget _widget-id
-		][widget]
+		_widget: either sym = text [_widget? widget][widget]
 
 		if respond-mouse? widget ON_OVER [
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_NOTIFY [print [ "connect-notifiy-events ON-OVER: " get-symbol-name sym "->" widget "(" _widget ")" lf]]

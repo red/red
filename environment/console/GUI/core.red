@@ -67,7 +67,7 @@ object [
 	scrolling:	0
 	scroll-pos: 0
 
-	color?:		no
+	color?:		yes
 	theme: #(
 		foreground	[0.0.0]
 		background	[252.252.252]
@@ -250,6 +250,11 @@ object [
 			if cfg/background [change theme/background cfg/background]
 		]
 		if font/color [change theme/foreground font/color]
+		#if config/OS = 'Linux [
+			; since in Linux/GTK, no on-resizing when the window is first drawn
+			gui-console-ctx/console/size: cfg/win-size
+			resize gui-console-ctx/console/size
+		]
 		adjust-console-size gui-console-ctx/console/size
 		update-theme
 	]
@@ -284,7 +289,6 @@ object [
 			track		[scroller/position - event/picked]
 			wheel		[
 				delta: event/picked
-				;;;debug-print ["delta: " delta lf]
 				case [	;-- scroll by lines
 					all [delta > -1.0 delta < 0.0][-1]
 					all [delta > 0.0 delta < 1.0][1]
@@ -294,7 +298,6 @@ object [
 				]
 			]
 		][0]
-		;;;debug-print ["n: " n lf]
 		if n <> 0 [
 			scroll-lines n
 			system/view/platform/redraw console
@@ -818,7 +821,7 @@ object [
 			debug-print ["char: -"  char "- "  
 			switch/default char [
 				#"^M"	["M"] #"^H"	["H"] #"^-"	["-"]
-				left	["left"] right	["right"] up		["up"] down	["down"]
+				left	["left"] right	["right"] up ["up"] down ["down"]
 				insert	["insert"] delete	["delete"]
 				#"^A" home	["home"] #"^E" end	["end"] #"^C"	["C"] #"^V"	["V"]
 				#"^X"	["X"] #"^Z"	["Z"] #"^Y"	["Y"] #"^["	["["] #"^~"	["~"]				;-- Ctrl + Backspace

@@ -35,6 +35,7 @@ AppMainMenu:	as handle! 0
 red-face-id: 		g_quark_from_string "red-face-id"
 gtk-style-id: 		g_quark_from_string "gtk-style-id"
 _widget-id:			g_quark_from_string "_widget-id"
+real-widget-id:		g_quark_from_string "real-widget-id"
 gtk-container-id:	g_quark_from_string "gtk-container-id"
 red-timer-id:		g_quark_from_string "red-timer-id"
 css-id:				g_quark_from_string "css-id"
@@ -55,7 +56,7 @@ _drag-on:		symbol/make "drag-on"
 
 settings:		as handle! 0 
 pango-context:	as handle! 0
-gtk-font:		"Sans 10"
+gtk-font:		"Sans 13"
 default-font:	as handle! 0
 
 ; Do not KNOW about this one 
@@ -179,6 +180,44 @@ get-widget-data: func [
     as red-block! values + FACE_OBJ_DATA
 ]
 
+;; GTK basic widget is often embedded in some super widget in order to be contained in some layout widget 
+set-_widget: func [
+	widget		[handle!]
+	_widget	[handle!]
+][
+	g_object_set_qdata widget _widget-id _widget
+]
+
+_widget?: func [
+	widget		[handle!]
+	return: 	[handle!]
+	/local
+		_widget 	[handle!]
+][
+	_widget: g_object_get_qdata widget _widget-id
+	if null? _widget [_widget: widget]
+	return _widget
+]
+
+;; Used to delegate event (see handlers.red) for widget that have container for scrollbar (like rich-text)
+set-real-widget: func [
+	_widget		[handle!]
+	widget	[handle!]
+][
+	g_object_set_qdata _widget real-widget-id widget
+]
+
+real-widget?: func [
+	_widget		[handle!]
+	return: 	[handle!]
+	/local
+		widget 	[handle!]
+][
+	widget: g_object_get_qdata _widget real-widget-id
+	if null? widget [widget: _widget]
+	return widget
+]
+
 set-container: func [
 	widget		[handle!]
 	container	[handle!]
@@ -191,6 +230,13 @@ container?: func [
 	return: 	[handle!]
 ][
 	g_object_get_qdata widget gtk-container-id
+]
+
+real-container?: func [
+	widget		[handle!]
+	return: 	[handle!]
+][
+	g_object_get_qdata widget real-container-id
 ]
 
 gtk-layout?: func [
@@ -447,8 +493,7 @@ debug-show-children: func [
 			; if next widget is on the right of the previous one or there is no overlapping dx becomes 0 
 		
 			unless null? container [	
-				widget_: g_object_get_qdata child _widget-id
-				if null? widget_ [widget_: child]
+				widget_: _widget? child
 
 				gtk_widget_get_allocation widget_ as handle! rect
 				; rmk: rect/x and rect/y are absolute coordinates when offset/x and offset/y are relative coordinates
@@ -593,8 +638,7 @@ adjust-sizes: func [
 				; if next widget is on the right of the previous one or there is no overlapping dx becomes 0 
 				if any [ox > offset/x not overlap?] [dx: 0]
 				unless null? container [	
-					widget_: g_object_get_qdata child _widget-id
-					if null? widget_ [widget_: child]
+					widget_: _widget? child
 					if debug [ print ["move child: " offset/x "+" dx "("  offset/x + dx ")" " " offset/y lf]]
 					gtk_layout_move container widget_ offset/x + dx  offset/y
 					gtk_widget_get_allocation widget_ as handle! rect
@@ -615,8 +659,6 @@ adjust-sizes: func [
 	]
 	free as byte-ptr! rect
 ]
-
-
 
 remove-widget-timer: func [
 	widget [handle!]
@@ -785,7 +827,7 @@ change-color: func [
 	]
 ]
 
-update-z-order: func [
+change-pane: func [
 	parent	[handle!]
 	pane	[red-block!]
 	type	[integer!]
@@ -793,6 +835,7 @@ update-z-order: func [
 		face	[red-object!]
 		tail 	[red-object!]
 		widget 	[handle!]
+		_widget 	[handle!]
 		nb   	[integer!]
 		s	 	[series!]
 		values	[red-value!]
@@ -800,7 +843,7 @@ update-z-order: func [
 		list 	[GList!] child [GList!]
 
 ][
-	;; DEBUG: print ["update-z-order" lf]
+	;; DEBUG: print ["change-pane " get-symbol-name type lf]
 
 	if gtk-layout? type [ ;; this is for gtk_layout widget
 		list: as GList! gtk_container_get_children parent
@@ -825,13 +868,13 @@ update-z-order: func [
 			if TYPE_OF(face) = TYPE_OBJECT [
 				widget: face-handle? face
 				if widget <> null [
+					_widget: _widget? widget
 					nb: nb + 1
-					;; DEBUG: print ["added widget" nb ": " widget " to " parent lf]
-					gtk_container_add parent widget
+					;; DEBUG: print ["add widget" nb ": " widget "(" _widget ") to " parent lf]
+					gtk_container_add parent _widget
 					values: object/get-values face
 					offset: as red-pair! values + FACE_OBJ_OFFSET
-					gtk_layout_move parent widget offset/x  offset/y 
-					g_object_unref widget
+					gtk_layout_move parent _widget offset/x  offset/y 
 				]
 			]
 			face: face + 1
@@ -861,7 +904,7 @@ change-font: func [
 		; provider [handle!]
 		hFont	[handle!]
 ][
-	;; DEBUG: print ["change-font" lf]
+	;; DEBUG: print ["change-font " widget " " get-symbol-name type lf]
 	if TYPE_OF(font) <> TYPE_OBJECT [return no]
 
 	; provider: get-styles-provider widget
@@ -890,7 +933,7 @@ change-offset: func [
 ][
 	;; DEBUG: print ["change-offset type: " get-symbol-name get-widget-symbol widget " " widget " " pos/x "x" pos/y lf]
 	either type = window [
-		0
+		gtk_window_move widget pos/x pos/y
 	][
 		unless null? widget [
 			;OS-refresh-window as integer! main-window
@@ -900,8 +943,7 @@ change-offset: func [
 			; 	g_object_get_qdata widget _widget-id
 			; ][widget]
 			
-			_widget: g_object_get_qdata widget _widget-id
-			_widget: either null? _widget [widget][_widget]
+			_widget: _widget? widget
 			unless null? container [
 				gtk_layout_move container _widget pos/x pos/y
 				gtk_widget_queue_draw _widget
@@ -922,11 +964,11 @@ change-size: func [
 	either type = window [
 		;; DEBUG: print ["change-size window: "  size/x "x" size/y lf]
 		gtk_window_set_default_size widget size/x size/y
+		gtk_window_resize widget size/x size/y
 		gtk_widget_queue_draw widget
 	][
 		 unless null? widget [
-			_widget: g_object_get_qdata widget _widget-id
-			_widget: either null? _widget [widget][_widget]
+			_widget: _widget? widget
 			gtk_widget_set_size_request _widget size/x size/y
 			unless null? _widget [gtk_widget_queue_resize _widget]
 		]
@@ -934,32 +976,39 @@ change-size: func [
 
 ]
 
-;; Special treatment for hidden (or invisible) widgets
-;; that are hidden at the beginning of do-events as a first initialization
-
-list-invisible: as handle! 0
-
-add-invisible: func [
+hide-invisible-all: func [
 	widget 	[handle!]
-][
-	;; DEBUG: print ["add invisible " widget lf]
-	list-invisible: g_list_prepend list-invisible widget 
-]
-
-hide-invisible: func [
 	/local
-	child 	[GList!]
-][ 
-	if 0 = g_list_length list-invisible [exit]
-	;; DEBUG: print ["hide-invisible " g_list_length list-invisible lf]
-	child: as GList! list-invisible
-	while [not null? child][
-		;; DEBUG: print ["hide-invisible: " child/data lf]
-		gtk_widget_set_visible child/data no
-		child: child/next
+		child		[handle!]
+		pane 		[red-block!]
+		type		[red-word!]
+		sym			[integer!]
+		face 		[red-object!]
+		tail 		[red-object!]
+		values		[red-value!]
+		show?		[red-logic!]
+][
+	values: get-face-values widget
+	type: 	as red-word! values + FACE_OBJ_TYPE
+	pane: 	as red-block! values + FACE_OBJ_PANE
+	show?:	as red-logic! values + FACE_OBJ_VISIBLE?
+
+	sym: 	symbol/resolve type/symbol
+
+	gtk_widget_set_visible widget show?/value
+	 
+	if all [TYPE_OF(pane) = TYPE_BLOCK 0 <> block/rs-length? pane] [
+		face: as red-object! block/rs-head pane
+		tail: as red-object! block/rs-tail pane
+
+		while [face < tail][
+			child: face-handle? face 
+			unless null? child [
+				hide-invisible-all child
+			]
+			face: face + 1
+		]
 	]
-	g_list_free list-invisible
-	list-invisible: as handle! 0
 ]
 
 change-visible: func [
@@ -977,9 +1026,9 @@ change-visible: func [
 			0
 		]
 		true [
-			;; DEBUG: 
-			print ["change-visible " widget " (type " get-symbol-name type "): " show? lf]
+			;; DEBUG: print ["change-visible " widget " (type " get-symbol-name type "): " show? lf]
 			gtk_widget_set_visible widget show?
+			gtk_widget_queue_draw widget
 		]
 	]
 ;	gtk_widget_queue_draw widget
@@ -1608,14 +1657,22 @@ OS-show-window: func [
 	widget	[integer!]
 	/local
 		face 	[red-object!]
-	; 	auto-adjust?	[red-logic!]
+	 	event 	[GdkEventConfigure!]
+		type 	[integer!]
+		size	[red-pair!]
+		hWnd 	[handle!]
 ][
-	;; DEBUG: print ["OS-show-window" as handle! widget "(" get-symbol-name get-widget-symbol as handle! widget ")" lf]
-	if null? as handle! widget [exit]
-	gtk_widget_show_all as handle! widget
-	gtk_widget_grab_focus as handle! widget
-	face: (as red-object! get-face-values as handle! widget) + FACE_OBJ_SELECTED
-	if TYPE_OF(face) = TYPE_OBJECT [gtk_widget_grab_focus face-handle? face]
+	hWnd: as handle! widget
+	unless null? hWnd [
+		type: get-widget-symbol hWnd
+		;; DEBUG: print ["OS-show-window " as handle! widget "(" get-symbol-name type ")" lf]
+		gtk_widget_show_all hWnd
+		;; Deal with visible? facets
+		hide-invisible-all hWnd
+		gtk_widget_grab_focus hWnd
+		face: (as red-object! get-face-values hWnd) + FACE_OBJ_SELECTED
+		if TYPE_OF(face) = TYPE_OBJECT [gtk_widget_grab_focus face-handle? face]
+	]
 ]
 
 OS-make-view: func [
@@ -1725,6 +1782,8 @@ OS-make-view: func [
 			widget: gtk_layout_new null null;gtk_drawing_area_new
 			gtk_layout_set_size widget size/x size/y
 			_widget: gtk_scrolled_window_new null null
+			set-real-widget _widget widget
+			;; DEBUG: print ["rich-text _widget: " _widget lf]
 			gtk_container_add _widget widget
 		]
 		sym = window [
@@ -1743,10 +1802,8 @@ OS-make-view: func [
 				;; DEBUG: print ["Creation of Modal window" lf]
 				gtk_window_set_modal widget yes
 			]
-			gtk_window_set_resizable widget (bits and FACET_FLAGS_RESIZE <> 0)
 			unless null? caption [gtk_window_set_title widget caption]
-			;; DEBUG: print ["make-view: set_default_size " size/x "x" size/y lf]
-			gtk_window_set_default_size widget size/x size/y
+			
 			winbox: gtk_box_new GTK_ORIENTATION_VERTICAL  0
       		gtk_container_add widget winbox
 			if all [						;@@ application menu ?
@@ -1765,6 +1822,12 @@ OS-make-view: func [
 			g_object_set_qdata widget real-container-id container
 			;; DEBUG: print ["window is " widget " real container is " container lf]
 			gtk_window_move widget offset/x offset/y
+			
+			;; The following line really matters to fix the initial size of the window
+			gtk_widget_set_size_request widget size/x size/y
+			gtk_window_set_resizable widget (bits and FACET_FLAGS_RESIZE <> 0)
+			gtk_window_set_decorated widget (bits and FACET_FLAGS_NO_BORDER = 0)
+			
 		]
 		sym = slider [
 			vertical?: size/y > size/x
@@ -1863,7 +1926,7 @@ OS-make-view: func [
 		parent <> 0
 	][
 		p-sym: get-widget-symbol as handle! parent
-		either null? _widget [_widget: widget][g_object_set_qdata widget _widget-id _widget ]
+		either null? _widget [_widget: widget][set-_widget widget _widget ]
 		; TODO: case to replace with either if no more choice
 		;; DEBUG: print ["Parent: " get-symbol-name p-sym " _widget" _widget lf]
 		case [
@@ -1940,8 +2003,6 @@ OS-make-view: func [
 
 	change-selection widget as red-integer! values + FACE_OBJ_SELECTED sym
 	change-para widget face as red-object! values + FACE_OBJ_PARA font sym
-
-	unless show?/value [add-invisible widget]
 	change-enabled widget enabled?/value sym
 	
 	make-styles-provider widget
@@ -1956,7 +2017,6 @@ OS-make-view: func [
 	change-color widget as red-tuple! values + FACE_OBJ_COLOR sym
 	
 	;; USELESS: if sym <> window [gtk_widget_show widget]
-
 	stack/unwind
 	as-integer widget
 ]
@@ -2044,14 +2104,13 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_COLOR <> 0 [
 		;; DEBUG: print ["FACET_FLAG_COLOR " get-symbol-name type lf]
-		if type = base [
+		;;;if type = base [
 			;; DEBUG: print ["FACET_FLAG_COLOR " widget  lf]
 			change-color widget as red-tuple! values + FACE_OBJ_COLOR type
-		]
+		;;;]
 	]
 	if all [flags and FACET_FLAG_PANE <> 0 type <> tab-panel][
-		update-z-order widget as red-block! values + FACE_OBJ_PANE type
-		;0
+		change-pane widget as red-block! values + FACE_OBJ_PANE type
 	]
 	if flags and FACET_FLAG_RATE <> 0 [
 		change-rate widget values + FACE_OBJ_RATE
@@ -2080,7 +2139,8 @@ OS-update-view: func [
 
 	;; update-view at least ask for this
 	;if main-window = widget [
-		gtk_widget_queue_draw widget
+
+	gtk_widget_queue_draw widget
 	;]
 
 	int/value: 0										;-- reset flags
