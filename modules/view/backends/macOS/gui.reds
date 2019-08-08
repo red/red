@@ -2184,13 +2184,15 @@ OS-to-image: func [
 	/local
 		view	[integer!]
 		data	[integer!]
-		rc		[NSRect!]
+		rc		[NSRect! value]
 		sz		[red-pair!]
 		bmp		[integer!]
 		img		[integer!]
 		ret		[red-image!]
 		type	[integer!]
 		word	[red-word!]
+		cview	[integer!]
+		rep		[integer!]
 ][
 	word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
 	type: symbol/resolve word/symbol
@@ -2211,12 +2213,15 @@ OS-to-image: func [
 			view: as-integer face-handle? face
 			either zero? view [ret: as red-image! none-value][
 				sz: as red-pair! (object/get-values face) + FACE_OBJ_SIZE
-				rc: make-rect 0 0 sz/x sz/y
-				data: objc_msgSend [view sel_getUid "dataWithPDFInsideRect:" rc/x rc/y rc/w rc/h]
+				cview: objc_msgSend [view sel_getUid "contentView"]
+				rc: objc_msgSend_rect [cview sel_getUid "bounds"]
+				rep: objc_msgSend [cview sel_getUid "bitmapImageRepForCachingDisplayInRect:" rc/x rc/y rc/w rc/h]
+				objc_msgSend [cview sel_getUid "cacheDisplayInRect:toBitmapImageRep:" rc/x rc/y rc/w rc/h rep]
 				img: objc_msgSend [
 					objc_msgSend [objc_getClass "NSImage" sel_alloc]
-					sel_getUid "initWithData:" data
+					sel_getUid "initWithSize:" as float! rc/w as float! rc/h
 				]
+				objc_msgSend [img sel_getUid "addRepresentation:" rep]
 				bmp: objc_msgSend [img sel_getUid "CGImageForProposedRect:context:hints:" 0 0 0]
 				ret: image/init-image as red-image! stack/push* OS-image/load-cgimage as int-ptr! bmp
 				objc_msgSend [bmp sel_getUid "retain"]
