@@ -959,6 +959,7 @@ parser: context [
 								]
 								if loop? [
 									;-- Reset state for a new loop
+									PARSE_SET_INPUT_LENGTH(len)
 									p/input: input/head			;-- set saved pos to new position
 									p/sub: len					;-- set it to a neutral value
 									t/state: cnt + 1
