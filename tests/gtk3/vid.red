@@ -4,6 +4,7 @@ Red [
 	File: 	 %vid.red
 	Needs:	 'View
 ]
+
 system/view/debug?: no ;yes
 
 view [
