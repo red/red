@@ -1050,7 +1050,14 @@ widget-scroll-event: func [
 	event		[GdkEventScroll!]
 	ctx			[node!]
 	return:		[integer!]
+	/local
+		state 	[integer!]
 ][
 	;; DEBUG: print ["scroll-event: " event/direction " " event/delta_x " " event/delta_y lf]
-	make-event widget as-integer (event/delta_y * 10000) EVT_WHEEL
+	state: 0
+	g_object_set_qdata widget red-event-id as handle! event
+	if any[event/delta_y < -0.01 event/delta_y > 0.01][	
+		state: make-event widget check-down-flags event/state EVT_WHEEL
+	]
+	state
 ]

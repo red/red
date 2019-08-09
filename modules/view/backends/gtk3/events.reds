@@ -256,10 +256,9 @@ get-event-picked: func [
 	evt		[red-event!]
 	return: [red-value!]
 	/local
-		res [red-value!]
-		int	[red-integer!]
-		pct [red-float!]
-		zd	[float!]
+		res		[red-value!]
+		int		[red-integer!]
+		event	[GdkEventScroll!]
 ][
 	as red-value! switch evt/type [
 		EVT_ZOOM
@@ -276,7 +275,8 @@ get-event-picked: func [
 			]
 		]
 		EVT_WHEEL [
-			float/push as-float evt/flags / 10000.0
+			event: as GdkEventScroll! g_object_get_qdata as handle! evt/msg red-event-id
+			float/push event/delta_y
 		]
 		EVT_MENU [word/push* evt/flags and FFFFh]
 		default	 [integer/push evt/flags and FFFFh]
@@ -289,7 +289,7 @@ get-event-flags: func [
 	/local
 		blk [red-block!]
 ][
-	;; DEBUG: print ["get-event-flags: " evt/flags lf]
+	;; DEBUG: print ["get-event-flags " lf]
 	blk: flags-blk
 	block/rs-clear blk	
 	if evt/flags and EVT_FLAG_AWAY		 <> 0 [block/rs-append blk as red-value! _away]
@@ -307,6 +307,7 @@ get-event-flag: func [
 	flag	[integer!]
 	return: [red-value!]
 ][
+	;; DEBUG: print ["get-event-flag "  flags and flag <> 0 lf]
 	as red-value! logic/push flags and flag <> 0
 ]
 

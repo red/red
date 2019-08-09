@@ -632,6 +632,10 @@ GPtrArray!: alias struct! [
 		gdk_screen_get_default: "gdk_screen_get_default" [
 			return:		[handle!]
 		]
+		gdk_screen_get_root_window: "gdk_screen_get_root_window" [
+			screen		[handle!]
+			return:		[handle!]
+		]
 		gdk_keymap_get_default: "gdk_keymap_get_default" [
 			return: 	[handle!]
 		]
@@ -665,6 +669,15 @@ GPtrArray!: alias struct! [
 		gdk_display_get_default_screen: "gdk_display_get_default_screen" [
 			display 	[handle!]
 			return: 	[handle!]
+		]
+		gdk_x11_window_get_xid: "gdk_x11_window_get_xid" [
+			win			[handle!]
+			return: 	[integer!]
+		]
+		gdk_x11_window_foreign_new_for_display: "gdk_x11_window_foreign_new_for_display" [
+			display 	[handle!]
+			xwin		[integer!]
+			return:		[handle!]
 		]
 		gtk_clipboard_get: "gtk_clipboard_get" [
 			atom 		[handle!]
@@ -1227,6 +1240,10 @@ GPtrArray!: alias struct! [
 			widget		[handle!]
 			event		[handle!]
 		]
+		gtk_widget_get_window: "gtk_widget_get_window" [
+			widget		[handle!]
+			return:		[handle!]
+		]
 		gtk_widget_register_window: "gtk_widget_register_window" [
 			widget		[handle!]
 			window		[handle!]
@@ -1304,6 +1321,10 @@ GPtrArray!: alias struct! [
 			return: 	[logic!]
 		]
 		gtk_widget_is_visible: "gtk_widget_is_visible" [
+			widget		[handle!]
+			return: 	[logic!]
+		]
+		gtk_widget_is_drawable: "gtk_widget_is_drawable" [
 			widget		[handle!]
 			return: 	[logic!]
 		]
@@ -2539,15 +2560,26 @@ GPtrArray!: alias struct! [
 		]
 		gdk_pixbuf_get_from_window: "gdk_pixbuf_get_from_window" [
 			window		[handle!]
-			src_x			[integer!]
-			src_y			[integer!]
-			width			[integer!]
+			src_x		[integer!]
+			src_y		[integer!]
+			width		[integer!]
 			height		[integer!]
 			return:		[handle!]
 		]
 		gdk_pixbuf_get_n_channels: "gdk_pixbuf_get_n_channels" [
 			pixbuf		[handle!]
 			return: 	[integer!]
+		]
+		gdk_get_default_root_window: "gdk_get_default_root_window" [
+			return:		[handle!]
+		]
+		gdk_window_get_width: "gdk_window_get_width" [
+			win 		[handle!]
+			return:		[integer!]
+		]
+		gdk_window_get_height: "gdk_window_get_height" [
+			win 		[handle!]
+			return:		[integer!]
 		]
 
 		;; Useless since already called inside pango_cairo_create_context
