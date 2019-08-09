@@ -44,6 +44,7 @@ real-container-id:	g_quark_from_string "real-container-id"
 menu-id:			g_quark_from_string "menu-id"
 drag-id:			g_quark_from_string "drag-id"
 no-wait-id:			g_quark_from_string "no-wait-id"
+red-event-id: 		g_quark_from_string "red-event-id"
 
 group-radio:	as handle! 0
 tabs: context [
@@ -182,7 +183,7 @@ get-widget-data: func [
 
 ;; GTK basic widget is often embedded in some super widget in order to be contained in some layout widget 
 set-_widget: func [
-	widget		[handle!]
+	widget	[handle!]
 	_widget	[handle!]
 ][
 	g_object_set_qdata widget _widget-id _widget
@@ -2262,13 +2263,11 @@ OS-to-image: func [
 	return: [red-image!]
 	/local
 		widget 	[handle!]
-		dc		[handle!]
-		mdc		[handle!]
+		win		[handle!]
+		xwin 	[integer!]
 		width	[integer!]
 		height	[integer!]
-		bmp		[handle!]
-		bitmap	[integer!]
-		img		[red-image!]
+		pixbuf	[handle!]
 		word	[red-word!]
 		type	[integer!]
 		size	[red-pair!]
@@ -2278,27 +2277,30 @@ OS-to-image: func [
 	type: symbol/resolve word/symbol
 
 	;; DEBUG: print ["OS-to-image:" get-symbol-name type lf]
-	 
+	
 	case [ 
 		type = screen [
-			; get pixbuf from screen_root_window	 
-			bmp: as handle! 0;gdk_pixbuf_get_from_window gdk_screen_get_root_window gdk_screen_get_default 0 0 screen-size-x screen-size-y; CGWindowListCreateImage 0 0 7F800000h 7F800000h 1 0 0		;-- INF
-			ret: image/init-image as red-image! stack/push* OS-image/load-pixbuf bmp
+			win: gdk_get_default_root_window 
+			xwin: gdk_x11_window_get_xid win
+      		win: gdk_x11_window_foreign_new_for_display gdk_window_get_display win xwin
+			pixbuf: gdk_pixbuf_get_from_window win 0 0 screen-size-x screen-size-y; CGWindowListCreateImage 0 0 7F800000h 7F800000h 1 0 0		;-- INF
+			ret: image/init-image as red-image! stack/push* OS-image/load-pixbuf pixbuf
 		]
 		true [
 			widget: face-handle? face
+			;; DEBUG: print ["widget: " widget lf]
 			either null? widget [ret: as red-image! none-value][
-				size: as red-pair! (object/get-values face) + FACE_OBJ_SIZE
-				; rc: make-rect 0 0 sz/x sz/y
-				; data: objc_msgSend [view sel_getUid "dataWithPDFInsideRect:" rc/x rc/y rc/w rc/h]
-				; img: objc_msgSend [
-				; 	objc_msgSend [objc_getClass "NSImage" sel_alloc]
-				; 	sel_getUid "initWithData:" data
-				; ]
-				bmp: as handle! 0; objc_msgSend [img sel_getUid "CGImageForProposedRect:context:hints:" 0 0 0]
-				ret: image/init-image as red-image! stack/push* OS-image/load-pixbuf bmp
-				; objc_msgSend [bmp sel_getUid "retain"]
-				; objc_msgSend [img sel_release]
+				either gtk_window_is_active main-window [
+					size: as red-pair! (object/get-values face) + FACE_OBJ_SIZE
+					win: gtk_widget_get_window widget
+					;; DEBUG: print ["win: " win " size: " size/x "x" size/y lf]
+					pixbuf: gdk_pixbuf_get_from_window win 0 0 size/x size/y
+					ret: image/init-image as red-image! stack/push* OS-image/load-pixbuf pixbuf
+					;g_object_unref pixbuf
+				][
+					print ["Red/GTK warning: to-image not yet implemented when window is not active!"]
+					ret: as red-image! none-value
+				]
 			]
 		]
 	]
