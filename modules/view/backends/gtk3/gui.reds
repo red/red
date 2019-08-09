@@ -37,6 +37,7 @@ gtk-style-id: 		g_quark_from_string "gtk-style-id"
 _widget-id:			g_quark_from_string "_widget-id"
 real-widget-id:		g_quark_from_string "real-widget-id"
 gtk-container-id:	g_quark_from_string "gtk-container-id"
+parent-window-id:	g_quark_from_string "parent-window-id"
 red-timer-id:		g_quark_from_string "red-timer-id"
 css-id:				g_quark_from_string "css-id"
 size-id:			g_quark_from_string "size-id"
@@ -198,6 +199,22 @@ _widget?: func [
 	_widget: g_object_get_qdata widget _widget-id
 	if null? _widget [_widget: widget]
 	return _widget
+]
+
+set-parent-window: func [
+	widget	[handle!]
+	window	[handle!]
+][
+	g_object_set_qdata widget parent-window-id window
+]
+
+parent-window?: func [
+	widget		[handle!]
+	return: 	[handle!]
+	/local
+		window 	[handle!]
+][
+	g_object_get_qdata widget parent-window-id
 ]
 
 ;; Used to delegate event (see handlers.red) for widget that have container for scrollbar (like rich-text)
@@ -1926,6 +1943,7 @@ OS-make-view: func [
 		sym <> window
 		parent <> 0
 	][
+		set-parent-window widget last-window
 		p-sym: get-widget-symbol as handle! parent
 		either null? _widget [_widget: widget][set-_widget widget _widget ]
 		; TODO: case to replace with either if no more choice
@@ -2277,26 +2295,29 @@ OS-to-image: func [
 	type: symbol/resolve word/symbol
 
 	;; DEBUG: print ["OS-to-image:" get-symbol-name type lf]
-	
 	case [ 
 		type = screen [
-			win: gdk_get_default_root_window 
-			xwin: gdk_x11_window_get_xid win
-      		win: gdk_x11_window_foreign_new_for_display gdk_window_get_display win xwin
-			pixbuf: gdk_pixbuf_get_from_window win 0 0 screen-size-x screen-size-y; CGWindowListCreateImage 0 0 7F800000h 7F800000h 1 0 0		;-- INF
+			win: gdk_get_default_root_window
+			width: gdk_window_get_width win
+			height: gdk_window_get_height win
+			; xwin: gdk_x11_window_get_xid win
+      		; win: gdk_x11_window_foreign_new_for_display gdk_window_get_display win xwin
+			pixbuf: gdk_pixbuf_get_from_window win 0 0 width height ;screen-size-x screen-size-y; CGWindowListCreateImage 0 0 7F800000h 7F800000h 1 0 0		;-- INF
 			ret: image/init-image as red-image! stack/push* OS-image/load-pixbuf pixbuf
 		]
 		true [
 			widget: face-handle? face
 			;; DEBUG: print ["widget: " widget lf]
 			either null? widget [ret: as red-image! none-value][
-				either gtk_window_is_active main-window [
+				either gtk_window_is_active parent-window? widget [
 					size: as red-pair! (object/get-values face) + FACE_OBJ_SIZE
 					win: gtk_widget_get_window widget
-					;; DEBUG: print ["win: " win " size: " size/x "x" size/y lf]
-					pixbuf: gdk_pixbuf_get_from_window win 0 0 size/x size/y
-					ret: image/init-image as red-image! stack/push* OS-image/load-pixbuf pixbuf
-					;g_object_unref pixbuf
+					if not null? win [ 
+						;; DEBUG: print ["win: " win " size: " size/x "x" size/y lf]
+						pixbuf: gdk_pixbuf_get_from_window win 0 0 size/x size/y
+						ret: image/init-image as red-image! stack/push* OS-image/load-pixbuf pixbuf
+						;g_object_unref pixbuf
+					]
 				][
 					print ["Red/GTK warning: to-image not yet implemented when window is not active!"]
 					ret: as red-image! none-value
