@@ -2719,6 +2719,10 @@ Red [
 		parse x3357b: [][insert ('foo)]
 		--assert x3357b = [foo]
 
+	--test-- "#3951"
+	res: none
+	do "res: expand-directives/clean [[] #macro word! func [s e]['OK] WTF]()"
+	--assert res = [[] OK]
 
 ===end-group===
     
