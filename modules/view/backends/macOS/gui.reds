@@ -1816,7 +1816,7 @@ OS-make-view: func [
 		len: -1
 		CFString((unicode/to-utf8 str :len))
 	][
-		0
+		CFString("")
 	]
 	rc: make-rect offset/x offset/y size/x size/y
 	case [
