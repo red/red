@@ -716,6 +716,43 @@ OS-image: context [
 		slot
 	]
 
+	combine-image: func [
+		img1	[integer!]
+		img2	[integer!]
+		mode	[integer!]		;-- TBD, default w = max (w1 w2), h = h1 + h2
+		return:	[integer!]
+		/local
+			w1		[integer!]
+			h1		[integer!]
+			w2		[integer!]
+			h2		[integer!]
+			w		[integer!]
+			h		[integer!]
+			cs		[integer!]
+			rect	[NSRect!]
+			ctx		[integer!]
+			handle	[integer!]
+	][
+		w1: CGImageGetWidth as int-ptr! img1
+		h1: CGImageGetHeight as int-ptr! img1
+		w2: CGImageGetWidth as int-ptr! img2
+		h2: CGImageGetHeight as int-ptr! img2
+
+		w: w1
+		if w1 < w2 [w: w2]
+		h: h1 + h2
+		cs: CGColorSpaceCreateDeviceRGB
+		ctx: CGBitmapContextCreate null w h 32 w * 16 cs 2101h
+		rect: make-rect 0 h2 w1 h1
+		CGContextDrawImage ctx rect/x rect/y rect/w rect/h img1
+		rect: make-rect 0 0 w2 h2
+		CGContextDrawImage ctx rect/x rect/y rect/w rect/h img2
+		CGColorSpaceRelease cs
+		handle: CGBitmapContextCreateImage ctx
+		CGContextRelease ctx
+		handle
+	]
+
 	clone: func [
 		src		[red-image!]
 		dst		[red-image!]

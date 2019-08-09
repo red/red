@@ -2183,10 +2183,16 @@ OS-to-image: func [
 	return: [red-image!]
 	/local
 		view	[integer!]
+		cview	[integer!]
 		data	[integer!]
+		rect	[RECT_STRUCT value]
 		rc		[NSRect! value]
+		rc2		[NSRect! value]
+		h		[float32!]
 		sz		[red-pair!]
 		bmp		[integer!]
+		bmp2	[integer!]
+		bmp3	[integer!]
 		img		[integer!]
 		ret		[red-image!]
 		type	[integer!]
@@ -2198,7 +2204,8 @@ OS-to-image: func [
 	type: symbol/resolve word/symbol
 	case [
 		type = screen [
-			bmp: CGWindowListCreateImage 0 0 7F800000h 7F800000h 1 0 0		;-- INF
+			rect/left: 0 rect/top: 0 rect/right: 7F800000h rect/bottom: 7F800000h
+			bmp: CGWindowListCreateImage as NSRect! rect 1 0 0		;-- INF
 			ret: image/init-image as red-image! stack/push* OS-image/load-cgimage as int-ptr! bmp
 			objc_msgSend [bmp sel_getUid "retain"]
 		]
@@ -2215,10 +2222,34 @@ OS-to-image: func [
 			either zero? view [ret: as red-image! none-value][
 				sz: as red-pair! (object/get-values face) + FACE_OBJ_SIZE
 				either type = window [
+					rc: objc_msgSend_rect [view sel_getUid "frame"]
+					cview: objc_msgSend [view sel_getUid "contentView"]
+					rc2: objc_msgSend_rect [cview sel_getUid "frame"]
+					h: rc/h - rc2/h
+					rc/y: rc/y - h
+					rc/h: h
 					id: objc_msgSend [view sel_getUid "windowNumber"]
-					bmp: CGWindowListCreateImage 7F800000h 7F800000h 0 0 8 id 1 or 8
-					ret: image/init-image as red-image! stack/push* OS-image/load-cgimage as int-ptr! bmp
-					objc_msgSend [bmp sel_getUid "retain"]
+					;-- title
+					bmp: CGWindowListCreateImage rc 8 id 1 or 8
+
+					;-- content
+					rep: objc_msgSend [cview sel_getUid "bitmapImageRepForCachingDisplayInRect:" rc2/x rc2/y rc2/w rc2/h]
+					objc_msgSend [cview sel_getUid "cacheDisplayInRect:toBitmapImageRep:" rc2/x rc2/y rc2/w rc2/h rep]
+					img: objc_msgSend [
+						objc_msgSend [objc_getClass "NSImage" sel_alloc]
+						sel_getUid "initWithSize:" as float! rc2/w as float! rc2/h
+					]
+					objc_msgSend [img sel_getUid "addRepresentation:" rep]
+					bmp2: objc_msgSend [img sel_getUid "CGImageForProposedRect:context:hints:" 0 0 0]
+
+					;-- combine
+					bmp3: OS-image/combine-image bmp bmp2 0
+
+					ret: image/init-image as red-image! stack/push* OS-image/load-cgimage as int-ptr! bmp3
+					;CGImageRelease bmp
+					;CGImageRelease bmp2
+					objc_msgSend [img sel_release]
+					objc_msgSend [bmp3 sel_getUid "retain"]
 				][
 					rc: objc_msgSend_rect [view sel_getUid "bounds"]
 					rep: objc_msgSend [view sel_getUid "bitmapImageRepForCachingDisplayInRect:" rc/x rc/y rc/w rc/h]
