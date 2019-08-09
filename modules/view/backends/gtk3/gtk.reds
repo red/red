@@ -1138,6 +1138,10 @@ GPtrArray!: alias struct! [
 			argc		[int-ptr!]
 			argv		[handle!]
 		]
+		gdk_init: "gdk_init" [
+			argc		[int-ptr!]
+			argv		[handle!]
+		]
 		gtk_main: "gtk_main" []
 		gtk_main_quit: "gtk_main_quit" []
 		gtk_main_iteration: "gtk_main_iteration" [
