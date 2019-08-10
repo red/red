@@ -683,7 +683,7 @@ update-z-order: func [
 		parr nb
 	]
 	free as byte-ptr! parr
-	if type = window [parent: objc_msgSend [parent sel_getUid "contentView"]]
+	if any [type = window type = group-box] [parent: objc_msgSend [parent sel_getUid "contentView"]]
 	objc_msgSend [parent sel_getUid "setSubviews:" arr]
 ]
 
