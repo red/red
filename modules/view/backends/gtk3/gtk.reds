@@ -1101,6 +1101,10 @@ GPtrArray!: alias struct! [
 			[variadic]
 			return:		[handle!]
 		]
+		gtk_file_chooser_set_do_overwrite_confirmation: "gtk_file_chooser_set_do_overwrite_confirmation" [
+			widget 		[handle!]
+			mode		[logic!]
+		]
 		gtk_dialog_run: "gtk_dialog_run" [
 			widget 		[handle!]
 			return:		[integer!]
@@ -1240,11 +1244,22 @@ GPtrArray!: alias struct! [
 			window 			[handle!]
 			default_widget	[handle!]
 		]
+		gtk_offscreen_window_new: "gtk_offscreen_window_new" [
+			return:		[handle!]
+		]
+		gtk_offscreen_window_get_pixbuf: "gtk_offscreen_window_get_pixbuf" [
+			window 			[handle!]
+			return: 	[handle!]
+		]
 		gtk_propagate_event: "gtk_propagate_event" [
 			widget		[handle!]
 			event		[handle!]
 		]
 		gtk_widget_get_window: "gtk_widget_get_window" [
+			widget		[handle!]
+			return:		[handle!]
+		]
+		gtk_widget_get_display: "gtk_widget_get_display" [
 			widget		[handle!]
 			return:		[handle!]
 		]
@@ -1405,6 +1420,10 @@ GPtrArray!: alias struct! [
 			return:		[handle!]
 		]
 		gtk_widget_get_toplevel: "gtk_widget_get_toplevel" [
+			widget		[handle!]
+			return:		[handle!]
+		]
+		gtk_widget_get_parent_window: "gtk_widget_get_parent_window" [
 			widget		[handle!]
 			return:		[handle!]
 		]
@@ -2584,6 +2603,10 @@ GPtrArray!: alias struct! [
 		gdk_window_get_height: "gdk_window_get_height" [
 			win 		[handle!]
 			return:		[integer!]
+		]
+		gdk_window_set_cursor: "gdk_window_set_cursor" [
+			win 		[handle!]
+			cursor		[handle!]
 		]
 
 		;; Useless since already called inside pango_cairo_create_context

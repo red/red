@@ -38,6 +38,7 @@ _request-file: func [
 	ret: as red-value! none-value
 	widget: gtk_file_chooser_dialog_new ["FileChooserDialog" null either dir? [GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER][GTK_FILE_CHOOSER_ACTION_OPEN] "Cancel" GTK_RESPONSE_CANCEL "Open" GTK_RESPONSE_ACCEPT null]
 	gobj_signal_connect(widget "file-activated" :request-file-double-clicked null)
+	unless null? main-window [gtk_window_set_transient_for widget main-window]
 	resp: gtk_dialog_run widget
 	if resp = GTK_RESPONSE_ACCEPT [
 		cstr: gtk_file_chooser_get_filename widget 
