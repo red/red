@@ -44,6 +44,7 @@ size-id:			g_quark_from_string "size-id"
 real-container-id:	g_quark_from_string "real-container-id"
 menu-id:			g_quark_from_string "menu-id"
 drag-id:			g_quark_from_string "drag-id"
+cursor-id:			g_quark_from_string "cursor-id"
 no-wait-id:			g_quark_from_string "no-wait-id"
 red-event-id: 		g_quark_from_string "red-event-id"
 
@@ -211,10 +212,24 @@ set-parent-window: func [
 parent-window?: func [
 	widget		[handle!]
 	return: 	[handle!]
+][
+	g_object_get_qdata widget parent-window-id
+]
+
+set-cursor: func [
+	widget	[handle!]
+	cursor	[handle!]
+][
+	g_object_set_qdata widget cursor-id cursor
+]
+
+cursor?: func [
+	widget		[handle!]
+	return: 	[handle!]
 	/local
 		window 	[handle!]
 ][
-	g_object_get_qdata widget parent-window-id
+	g_object_get_qdata widget cursor-id
 ]
 
 ;; Used to delegate event (see handlers.red) for widget that have container for scrollbar (like rich-text)
@@ -994,7 +1009,7 @@ change-size: func [
 
 ]
 
-hide-invisible-all: func [
+init-all-children: func [
 	widget 	[handle!]
 	/local
 		child		[handle!]
@@ -1005,15 +1020,21 @@ hide-invisible-all: func [
 		tail 		[red-object!]
 		values		[red-value!]
 		show?		[red-logic!]
+		cursor		[handle!]
 ][
 	values: get-face-values widget
 	type: 	as red-word! values + FACE_OBJ_TYPE
 	pane: 	as red-block! values + FACE_OBJ_PANE
-	show?:	as red-logic! values + FACE_OBJ_VISIBLE?
-
 	sym: 	symbol/resolve type/symbol
 
+	; init invisible
+	show?:	as red-logic! values + FACE_OBJ_VISIBLE?
 	gtk_widget_set_visible widget show?/value
+	; init cursor
+	cursor: cursor? widget
+	unless null? cursor [
+		gdk_window_set_cursor gtk_widget_get_window widget cursor
+	]
 	 
 	if all [TYPE_OF(pane) = TYPE_BLOCK 0 <> block/rs-length? pane] [
 		face: as red-object! block/rs-head pane
@@ -1022,7 +1043,7 @@ hide-invisible-all: func [
 		while [face < tail][
 			child: face-handle? face 
 			unless null? child [
-				hide-invisible-all child
+				init-all-children child
 			]
 			face: face + 1
 		]
@@ -1584,10 +1605,12 @@ parse-common-opts: func [
 		hcur	[handle!]
 		pixbuf	[handle!]
 		display [handle!]
+		win 	[handle!]
 		x		[integer!]
 		y		[integer!]
 		;;;btn?	[logic!]
 ][
+	;; DEBUG: print ["parse-common-opts: " get-symbol-name type lf]
 	;;;btn?: yes
 	if TYPE_OF(options) = TYPE_BLOCK [
 		word: as red-word! block/rs-head options
@@ -1606,7 +1629,7 @@ parse-common-opts: func [
 				sym = _cursor [
 					;; DEBUG: print ["set cursor: " widget lf]
 					w: word + 1
-					display: gdk_window_get_display widget
+					display: gtk_widget_get_display widget
 					either TYPE_OF(w) = TYPE_IMAGE [
 						img: as red-image! w
 						pixbuf: OS-image/to-pixbuf img 0 0
@@ -1622,8 +1645,9 @@ parse-common-opts: func [
 							sym = _cross	["crosshair"]
 							true			["default"]
 						]
-						hcur: gdk_cursor_new_from_name widget cur
+						hcur: gdk_cursor_new_from_name display cur
 					]
+					set-cursor widget hcur
 				]
 				; sym = _class [
 				; 	w: word + 1
@@ -1683,10 +1707,10 @@ OS-show-window: func [
 	hWnd: as handle! widget
 	unless null? hWnd [
 		type: get-widget-symbol hWnd
-		;; DEBUG: print ["OS-show-window " as handle! widget "(" get-symbol-name type ")" lf]
 		gtk_widget_show_all hWnd
+		;; DEBUG: print ["OS-show-window " hWnd "(" get-symbol-name type ") win: " gtk_widget_get_window hWnd lf]
 		;; Deal with visible? facets
-		hide-invisible-all hWnd
+		init-all-children hWnd
 		gtk_widget_grab_focus hWnd
 		face: (as red-object! get-face-values hWnd) + FACE_OBJ_SELECTED
 		if TYPE_OF(face) = TYPE_OBJECT [gtk_widget_grab_focus face-handle? face]
@@ -2034,7 +2058,7 @@ OS-make-view: func [
 	if TYPE_OF(rate) <> TYPE_NONE [change-rate widget rate]
 	
 	change-color widget as red-tuple! values + FACE_OBJ_COLOR sym
-	
+
 	;; USELESS: if sym <> window [gtk_widget_show widget]
 	stack/unwind
 	as-integer widget
@@ -2290,20 +2314,26 @@ OS-to-image: func [
 		type	[integer!]
 		size	[red-pair!]
 		ret		[red-image!]
+		list 	[GList!]
+		child 	[GList!]
 ][
 	word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
 	type: symbol/resolve word/symbol
 
-	;; DEBUG: print ["OS-to-image:" get-symbol-name type lf]
+	;; DEBUG: 
+	print ["OS-to-image:" get-symbol-name type lf]
 	case [ 
 		type = screen [
 			win: gdk_get_default_root_window
 			width: gdk_window_get_width win
 			height: gdk_window_get_height win
-			; xwin: gdk_x11_window_get_xid win
-      		; win: gdk_x11_window_foreign_new_for_display gdk_window_get_display win xwin
-			pixbuf: gdk_pixbuf_get_from_window win 0 0 width height ;screen-size-x screen-size-y; CGWindowListCreateImage 0 0 7F800000h 7F800000h 1 0 0		;-- INF
-			ret: image/init-image as red-image! stack/push* OS-image/load-pixbuf pixbuf
+			xwin: gdk_x11_window_get_xid win
+      		win: gdk_x11_window_foreign_new_for_display gdk_window_get_display win xwin
+			either  null? win [ret: as red-image! none-value]
+			[
+				pixbuf: gdk_pixbuf_get_from_window win 0 0 width height ;screen-size-x screen-size-y; CGWindowListCreateImage 0 0 7F800000h 7F800000h 1 0 0		;-- INF
+				ret: image/init-image as red-image! stack/push* OS-image/load-pixbuf pixbuf
+			]
 		]
 		true [
 			widget: face-handle? face
@@ -2319,8 +2349,39 @@ OS-to-image: func [
 						;g_object_unref pixbuf
 					]
 				][
-					print ["Red/GTK warning: to-image not yet implemented when window is not active!"]
-					ret: as red-image! none-value
+					either type = window [
+						win: gtk_offscreen_window_new
+
+						list: as GList! gtk_container_get_children widget
+						child: list 
+						while [not null? child][
+							g_object_ref child/data ; to avoid destruction before removing from container
+							gtk_container_remove widget child/data
+							gtk_container_add win child/data
+							;; DEBUG: print ["removed widget" nb ": " child/data " to " parent lf]
+							child: child/next
+						]
+						g_list_free as int-ptr! list
+						gtk_widget_show_all win
+						gtk_widget_queue_draw win
+						pixbuf: gtk_offscreen_window_get_pixbuf win
+						ret: image/init-image as red-image! stack/push* OS-image/load-pixbuf pixbuf
+
+						list: as GList! gtk_container_get_children win
+						child: list 
+						while [not null? child][
+							g_object_ref child/data ; to avoid destruction before removing from container
+							gtk_container_remove win child/data
+							gtk_container_add  widget child/data
+							;; DEBUG: print ["removed widget" nb ": " child/data " to " parent lf]
+							child: child/next
+						]
+						g_list_free as int-ptr! list
+
+					][
+						print ["Red/GTK warning: to-image not yet implemented when window is not active!"]
+						ret: as red-image! none-value
+					]
 				]
 			]
 		]
