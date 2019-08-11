@@ -2326,8 +2326,7 @@ OS-to-image: func [
 	word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
 	type: symbol/resolve word/symbol
 
-	;; DEBUG: 
-	print ["OS-to-image:" get-symbol-name type lf]
+	;; DEBUG: print ["OS-to-image:" get-symbol-name type lf]
 	case [ 
 		type = screen [
 			win: gdk_get_default_root_window
