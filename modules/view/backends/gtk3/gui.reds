@@ -1021,20 +1021,26 @@ init-all-children: func [
 		values		[red-value!]
 		show?		[red-logic!]
 		cursor		[handle!]
+		win 		[handle!]
 ][
 	values: get-face-values widget
 	type: 	as red-word! values + FACE_OBJ_TYPE
 	pane: 	as red-block! values + FACE_OBJ_PANE
 	sym: 	symbol/resolve type/symbol
 
+	;;;;; init begin
+	;; DEBUG: print ["init-all-children: " get-symbol-name sym lf]
 	; init invisible
 	show?:	as red-logic! values + FACE_OBJ_VISIBLE?
 	gtk_widget_set_visible widget show?/value
 	; init cursor
 	cursor: cursor? widget
 	unless null? cursor [
-		gdk_window_set_cursor gtk_widget_get_window widget cursor
+		win: gtk_widget_get_window widget
+		;; DEBUG: print ["win: " win lf]
+		unless null? win [gdk_window_set_cursor win cursor]
 	]
+	;;;;; init end
 	 
 	if all [TYPE_OF(pane) = TYPE_BLOCK 0 <> block/rs-length? pane] [
 		face: as red-object! block/rs-head pane
