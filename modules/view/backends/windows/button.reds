@@ -58,6 +58,13 @@ init-button: func [
 			imgs: null
 		]
 	]
+	SendMessage hWnd BCM_GETIMAGELIST 0 as integer! BIL
+	if all [
+		BIL/handle <> 0
+		BIL/handle <> -1
+	][
+		ImageList_Destroy BIL/handle
+	]
 	either null? imgs [
 		BIL/handle: -1
 	][
