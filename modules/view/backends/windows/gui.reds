@@ -1926,6 +1926,7 @@ change-image: func [
 	type	[integer!]
 ][
 	if type = base [update-base hWnd null null values]
+	if type = button [init-button hWnd values]
 ]
 
 change-selection: func [
