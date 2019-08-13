@@ -115,8 +115,8 @@ get-event-offset: func [
 				y: 0 - (y or FFFF0000h)
 			]
 			pt: screen-to-client msg/hWnd x y
-			offset/x: pt/x
-			offset/y: pt/y
+			offset/x: pt/x * 100 / dpi-factor
+			offset/y: pt/y * 100 / dpi-factor
 			as red-value! offset
 		]
 		any [
@@ -158,8 +158,8 @@ get-event-offset: func [
 
 			value: GetMessagePos
 			pt: screen-to-client msg/hWnd WIN32_LOWORD(value) WIN32_HIWORD(value)
-			offset/x: pt/x
-			offset/y: pt/y
+			offset/x: pt/x * 100 / dpi-factor
+			offset/y: pt/y * 100 / dpi-factor
 			as red-value! offset
 		]
 		any [
@@ -175,15 +175,15 @@ get-event-offset: func [
 			offset/header: TYPE_PAIR
 			value: gi/ptsLocation						;-- coordinates of center point		
 
-			offset/x: WIN32_LOWORD(value)
-			offset/y: WIN32_HIWORD(value)
+			offset/x: WIN32_LOWORD(value) * 100 / dpi-factor
+			offset/y: WIN32_HIWORD(value) * 100 / dpi-factor
 			as red-value! offset
 		]
 		evt/type = EVT_MENU [
 			offset: as red-pair! stack/push*
 			offset/header: TYPE_PAIR
-			offset/x: menu-x
-			offset/y: menu-y
+			offset/x: menu-x * 100 / dpi-factor
+			offset/y: menu-y * 100 / dpi-factor
 			as red-value! offset
 		]
 		true [as red-value! none-value]
