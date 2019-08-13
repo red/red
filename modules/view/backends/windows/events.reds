@@ -133,12 +133,11 @@ get-event-offset: func [
 			either evt/flags and EVT_FLAG_AWAY <> 0 [
 				msg: as tagMSG evt/msg
 				pt: declare tagPOINT
-				pt/x: WIN32_LOWORD(value)
-				pt/y: WIN32_HIWORD(value)
-				ClientToScreen get-child-from-xy msg/hWnd pt/x pt/y pt
+				pt/x: 0 pt/y: 0
+				GetCursorPos pt
 				x: pt/x
 				y: pt/y
-				pt: get-window-pos msg/hWnd
+				pt/x: 0 pt/y: 0
 				ClientToScreen msg/hWnd pt
 				offset/x: x - pt/x * 100 / dpi-factor
 				offset/y: y - pt/y * 100 / dpi-factor

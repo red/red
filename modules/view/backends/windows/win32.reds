@@ -1051,6 +1051,10 @@ XFORM!: alias struct! [
 		]
 	]
 	"User32.dll" stdcall [
+		GetCursorPos: "GetCursorPos" [
+			pt			[tagPOINT]
+			return:		[logic!]
+		]
 		TrackMouseEvent: "TrackMouseEvent" [
 			EventTrack	[tagTRACKMOUSEEVENT]
 			return:		[logic!]
