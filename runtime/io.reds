@@ -11,14 +11,15 @@ Red/System [
 ]
 
 #enum io-event-type! [
-	IO_EVT_NONE:	300
-	IO_EVT_ERROR
-	IO_EVT_ACCEPT
-	IO_EVT_CONNECT
-	IO_EVT_READ
-	IO_EVT_WROTE
-	IO_EVT_CLOSE
-	IO_EVT_EXIT_LOOP
+	IO_EVT_NONE:		0
+	IO_EVT_ERROR:		1
+	IO_EVT_READ:		2
+	IO_EVT_WRITE:		4
+	IO_EVT_CLOSE:		8
+	IO_EVT_ACCEPT:		16
+	IO_EVT_CONNECT:		32
+	IO_EVT_WROTE:		64	
+	IO_EVT_PULSE:		128
 	;-- more IO Events
 	;-- IO_EVT...
 ]
@@ -35,11 +36,12 @@ io: context [
 		evt		[red-event!]
 		return: [red-value!]
 	][
+		probe ["get-event-type: " evt/type and FFFFh]
 		as red-value! switch (evt/type and FFFFh) [
 			IO_EVT_ACCEPT	[words/_accept]
 			IO_EVT_CONNECT	[words/_connect]
 			IO_EVT_READ		[words/_read]
-			IO_EVT_WROTE	[words/_wrote]
+			IO_EVT_WRITE	[words/_wrote]
 			IO_EVT_CLOSE	[words/_close]
 			IO_EVT_ERROR	[words/_error]
 		]
@@ -99,7 +101,7 @@ io: context [
 		time	[integer!]		;-- milliseconds, -1: infinite time
 	][
 		forever [
-			iocp/wait g-iocp time
+			if zero? iocp/wait g-iocp time [exit]
 			if time > -1 [exit]
 		]
 	]

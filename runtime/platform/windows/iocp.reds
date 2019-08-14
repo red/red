@@ -1,7 +1,7 @@
 Red/System [
 	Title:	"IOCP on Windows"
 	Author: "Xie Qingtian"
-	File: 	%windows.reds
+	File: 	%iocp.reds
 	Tabs: 	4
 	Rights: "Copyright (C) 2018 Red Foundation. All rights reserved."
 	License: {
@@ -37,6 +37,8 @@ iocp-data!: alias struct! [
 ]
 
 iocp: context [
+	verbose: 0
+
 	create: func [
 		return: [iocp!]
 		/local
@@ -80,6 +82,7 @@ iocp: context [
 		"wait I/O completion events and dispatch them"
 		p			[iocp!]
 		timeout		[integer!]			;-- time in ms, -1: infinite
+		return:		[integer!]
 		/local
 			res		[integer!]
 			cnt		[integer!]
@@ -97,7 +100,7 @@ iocp: context [
 		res: GetQueuedCompletionStatusEx p/port p/events p/evt-cnt :cnt timeout no
 		if zero? res [
 			err: GetLastError
-			exit
+			return 0
 		]
 
 		if cnt = p/evt-cnt [			;-- TBD: extend events buffer
@@ -112,5 +115,6 @@ iocp: context [
 			data/event-handler as int-ptr! data
 			i: i + 1
 		]
+		1
 	]
 ]

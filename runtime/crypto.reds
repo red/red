@@ -592,7 +592,7 @@ crypto: context [
 			fd: LibC.socket AF_ALG SOCK_SEQPACKET 0
 			LibC.bind fd sa 88
 			opfd: LibC.accept fd null null
-			LibC.write opfd as c-string! data len
+			LibC.write opfd data len
 			LibC.read opfd hash alg-digest-size type
 			LibC.close opfd
 			LibC.close fd

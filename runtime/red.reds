@@ -38,6 +38,8 @@ red: context [
 	#include %case-folding.reds
 	#include %sort.reds
 	#include %hashtable.reds
+	#include %deque.reds
+	#include %dlink.reds
 	#include %ownership.reds
 	
 	;--------------------------------------------

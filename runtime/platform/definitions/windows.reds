@@ -820,7 +820,7 @@ ConnectEx!: alias function! [
 	dwSendDataLength		[integer!]
 	lpdwBytesSent			[int-ptr!]
 	lpOverlapped			[int-ptr!]
-	return:					[logic!]
+	return:					[integer!]
 ]
 
 DisconnectEx!: alias function! [

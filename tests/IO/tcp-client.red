@@ -35,7 +35,7 @@ client/awake: func [event /local port] [
                 total: total + size + 4
                 if count // 1000 = 0 [
                     t: to float! difference now/precise start
-                    mbps: round (total / t * 10 / 1024 / 1024)
+                    mbps: round (total / t * 8 / 1024 / 1024)
                 ]
                 print [count round (total / 1024 / 1024) "MB" mbps "Mbps"]
                 either count < max-count [

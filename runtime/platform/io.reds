@@ -10,13 +10,7 @@ Red/System [
 	}
 ]
 
-#enum socket-event! [
-	SOCK_EVT_ERROR
-	SOCK_EVT_ACCEPT
-	SOCK_EVT_CONNECT
-	SOCK_EVT_READ
-	SOCK_EVT_WRITE
-]
+SOCK_READBUF_SZ: 1048576				;-- 1MB
 
 #either OS = 'Windows [
 	#include %windows/iocp.reds

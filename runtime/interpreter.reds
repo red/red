@@ -516,6 +516,7 @@ interpreter: context [
 		]
 		
 		s: as series! args/value
+assert s <> null
 		value:	   s/offset
 		tail:	   s/tail
 		required?: yes

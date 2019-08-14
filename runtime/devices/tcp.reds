@@ -13,45 +13,59 @@ Red/System [
 tcp-device: context [
 	verbose: 1
 
-	tcp-data!: alias struct! [
-		iocp		[iocp-data! value]
-		port		[red-object! value]		;-- red port! cell
-		buflen		[integer!]
-		buffer		[byte-ptr!]
-		pin-buf		[node!]
-	]
-
 	event-handler: func [
 		data		[iocp-data!]
 		/local
 			p		[red-object!]
 			msg		[red-object!]
-			tcp		[tcp-data!]
+			tcp		[sockdata!]
 			type	[integer!]
 			bin		[red-binary!]
+			s		[series!]
 	][
-		tcp: as tcp-data! data
+		tcp: as sockdata! data
 		p: as red-object! :tcp/port
 		msg: p
+		type: data/event
 
 		switch data/event [
-			SOCK_EVT_ACCEPT	[
-				msg: create-red-port p data/accept-sock
-				iocp/bind g-iocp as int-ptr! data/accept-sock
-				type: IO_EVT_ACCEPT
+			IO_EVT_ACCEPT	[
+				#either OS = 'Windows [
+					msg: create-red-port p data/accept-sock
+					iocp/bind g-iocp as int-ptr! data/accept-sock
+					socket/acceptex as-integer data/device data
+				][
+					msg: create-red-port p socket/accept as-integer data/device
+				]
 			]
-			SOCK_EVT_CONNECT [type: IO_EVT_CONNECT]
-			SOCK_EVT_READ	[
-				bin: binary/load tcp/buffer data/transferred
-				copy-cell as cell! bin (object/get-values p) + port/field-data
-				stack/pop 1
-				type: IO_EVT_READ
+			IO_EVT_READ	[
+				bin: as red-binary! (object/get-values p) + port/field-data
+				s: GET_BUFFER(bin)
+				s/tail: as cell! (as byte-ptr! s/tail) + data/transferred
+				io/unpin-memory bin/node
+				#either OS = 'Windows [
+					either data/accept-sock = PENDING_IO_FLAG [
+						free as byte-ptr! data
+					][
+						data/event: IO_EVT_NONE
+					]
+				][
+					data/event: IO_EVT_NONE
+				]
 			]
-			SOCK_EVT_WRITE	[
-				io/unpin-memory tcp/pin-buf
-				type: IO_EVT_WROTE
+			IO_EVT_WRITE	[
+				io/unpin-memory tcp/send-buf
+				#either OS = 'Windows [
+					either data/accept-sock = PENDING_IO_FLAG [
+						free as byte-ptr! data
+					][
+						data/event: IO_EVT_NONE
+					]
+				][
+					data/event: IO_EVT_NONE
+				]
 			]
-			default			[probe ["wrong tcp event: " data/event]]
+			default			[data/event: IO_EVT_NONE]
 		]
 
 		io/call-awake p msg type
@@ -63,9 +77,10 @@ tcp-device: context [
 		return:		[red-object!]
 	][
 		proto: port/make none-value object/get-values proto TYPE_NONE
+
 		;; @@ add it to a block, so GC can mark it. Improve it later!!!
 		block/rs-append ports-block as red-value! proto
-
+		
 		create-tcp-data proto sock
 		proto
 	]
@@ -75,17 +90,48 @@ tcp-device: context [
 		sock	[integer!]
 		return: [iocp-data!]
 		/local
-			data [tcp-data!]
+			data	[sockdata!]
 	][
-		data: as tcp-data! alloc0 size? tcp-data!
+		data: as sockdata! alloc0 size? sockdata!
 		data/iocp/event-handler: as iocp-event-handler! :event-handler
 		data/iocp/device: as handle! sock
 		copy-cell as cell! port as cell! :data/port
+		#if OS <> 'Windows [data/iocp/io-port: g-iocp]
 
 		;-- store low-level data into red port
 		io/store-iocp-data as iocp-data! data port
-
 		as iocp-data! data
+	]
+
+	get-tcp-data: func [
+		red-port	[red-object!]
+		return:		[sockdata!]
+		/local
+			state	[red-handle!]
+			data	[iocp-data!]
+			new		[sockdata!]
+	][
+		state: as red-handle! (object/get-values red-port) + port/field-state
+		if TYPE_OF(state) <> TYPE_HANDLE [
+			probe "ERROR: No low-level handle"
+			0 ;; TBD throw error
+		]
+
+		#either OS = 'Windows [
+			data: as iocp-data! state/value
+			either data/event = IO_EVT_NONE [		;-- we can reuse this one
+				as sockdata! data
+			][										;-- needs to create a new one
+				new: as sockdata! alloc0 size? sockdata!
+				new/iocp/event-handler: as iocp-event-handler! :event-handler
+				new/iocp/device: data/device
+				new/iocp/accept-sock: PENDING_IO_FLAG ;-- use it as a flag to indicate pending data
+				copy-cell as cell! red-port as cell! :new/port
+				new
+			]
+		][
+			as sockdata! state/value
+		]
 	]
 
 	tcp-client: func [
@@ -119,9 +165,8 @@ tcp-device: context [
 
 		fd: socket/create AF_INET SOCK_STREAM IPPROTO_TCP
 		socket/bind fd num/value AF_INET
-		socket/listen fd 1024
+		socket/listen fd 1024 create-tcp-data port fd
 		iocp/bind g-iocp as int-ptr! fd
-		socket/accept fd create-tcp-data port fd
 	]
 
 	;-- actions
@@ -164,16 +209,12 @@ tcp-device: context [
 		red-port	[red-object!]
 		return:		[red-value!]
 		/local
-			data	[tcp-data!]
+			data	[iocp-data!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tcp/close"]]
 
-		data: as tcp-data! io/get-iocp-data red-port
-		if data/buffer <> null [
-			free data/buffer
-			data/buffer: null
-		]
-		socket/close as-integer data/iocp/device
+		data: io/get-iocp-data red-port
+		if data <> null [socket/close as-integer data/device]
 		as red-value! red-port
 	]
 
@@ -186,9 +227,8 @@ tcp-device: context [
 		append?		[logic!]
 		return:		[red-value!]
 		/local
-			data	[tcp-data!]
+			data	[sockdata!]
 			bin		[red-binary!]
-			pbuf	[WSABUF! value]
 			n		[integer!]
 	][
 		switch TYPE_OF(value) [
@@ -199,8 +239,8 @@ tcp-device: context [
 			default [return as red-value! port]
 		]
 
-		data: as tcp-data! io/get-iocp-data port
-		data/pin-buf: bin/node
+		data: get-tcp-data port IO_EVT_WRITE
+		data/send-buf: bin/node
 
 		socket/write
 			as-integer data/iocp/device
@@ -211,24 +251,27 @@ tcp-device: context [
 	]
 
 	copy: func [
-		port		[red-object!]
+		red-port	[red-object!]
 		new			[red-value!]
 		part		[red-value!]
 		deep?		[logic!]
 		types		[red-value!]
 		return:		[red-value!]
 		/local
-			data	[tcp-data!]
+			data	[iocp-data!]
+			buf		[red-binary!]
+			s		[series!]
 	][
-		data: as tcp-data! io/get-iocp-data port
-		
-		if null? data/buffer [
-			data/buflen: 1024 * 1024
-			data/buffer: allocate 1024 * 1024
+		buf: as red-binary! (object/get-values red-port) + port/field-data
+		if TYPE_OF(buf) <> TYPE_BINARY [
+			binary/make-at as cell! buf SOCK_READBUF_SZ
 		]
-
-		socket/read as-integer data/iocp/device data/buffer data/buflen as iocp-data! data
-		as red-value! port
+		buf/head: 0
+		io/pin-memory buf
+		s: GET_BUFFER(buf)
+		data: as iocp-data! get-tcp-data red-port IO_EVT_READ
+		socket/read as-integer data/device as byte-ptr! s/offset s/size data
+		as red-value! red-port
 	]
 
 	table: [

@@ -12,6 +12,14 @@ Red/System [
 
 #define AF_INET6	23
 
+#define PENDING_IO_FLAG		1
+
+sockdata!: alias struct! [
+	iocp		[iocp-data! value]
+	port		[red-object! value]		;-- red port! cell
+	send-buf	[node!]					;-- send buffer
+]
+
 socket: context [
 	verbose: 1
 
@@ -52,12 +60,17 @@ socket: context [
 	listen: func [
 		sock	[integer!]
 		backlog	[integer!]
+		data	[iocp-data!]
 		return:	[integer!]
+		/local
+			ret	[integer!]
 	][
-		WS2.listen sock backlog
+		ret: WS2.listen sock backlog
+		if zero? ret [acceptex sock data]
+		ret
 	]
 
-	accept: func [
+	acceptex: func [
 		sock	 [integer!]
 		data	 [iocp-data!]
 		/local
@@ -69,7 +82,7 @@ socket: context [
 		]
 
 		n: 0
-		data/event: SOCK_EVT_ACCEPT
+		data/event: IO_EVT_ACCEPT
 		data/accept-sock: create AF_INET SOCK_STREAM IPPROTO_TCP
 
 		AcceptEx: as AcceptEx! AcceptEx-func
@@ -87,7 +100,7 @@ socket: context [
 			saddr	[sockaddr_in! value]
 			ConnectEx [ConnectEx!]
 	][
-		data/event: SOCK_EVT_CONNECT
+		data/event: IO_EVT_CONNECT
 		n: 0
 		port: htons port
 		saddr/sin_family: port << 16 or type
@@ -111,7 +124,7 @@ socket: context [
 
 		wsbuf/len: length
 		wsbuf/buf: buffer
-		data/event: SOCK_EVT_WRITE
+		data/event: IO_EVT_WRITE
 		n: 0
 		WSASend sock :wsbuf 1 :n 0 as OVERLAPPED! data null
 	]
@@ -128,7 +141,7 @@ socket: context [
 	][
 		wsbuf/len: length
 		wsbuf/buf: buffer
-		data/event: SOCK_EVT_READ
+		data/event: IO_EVT_READ
 		n: 0
 		flags: 0
 		if 0 <> WSARecv sock :wsbuf 1 :n :flags as OVERLAPPED! data null [
