@@ -410,7 +410,7 @@ get-event-picked: func [
 		]
 		EVT_MENU [
 			idx: evt/flags and FFFFh
-			either idx = 65535 [none/push][word/push* idx]
+			either idx = FFFFh [none/push][word/push* idx]
 		]
 		EVT_SCROLL [integer/push evt/flags >>> 4]
 		EVT_WHEEL [
