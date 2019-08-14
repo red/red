@@ -412,7 +412,7 @@ object: context [
 		ctx: GET_CTX(obj) 
 		s: as series! ctx/values/value
 		fun: as red-function! s/offset + index
-		if TYPE_OF(fun) <> TYPE_FUNCTION [fire [TO_ERROR(script invalid-arg) fun]]
+		if TYPE_OF(fun) <> TYPE_FUNCTION [fire [TO_ERROR(script invalid-obj-evt) fun]]
 		
 		stack/mark-func words/_on-change* fun/ctx
 		stack/push as red-value! word
@@ -442,7 +442,7 @@ object: context [
 		#if debug? = yes [if verbose > 0 [print-line "object/fire-on-deep"]]
 
 		assert TYPE_OF(owner) = TYPE_OBJECT
-		assert owner/on-set <> null
+		if null? owner/on-set [fire [TO_ERROR(script invalid-obj-evt) owner]]
 		s: as series! owner/on-set/value
 
 		int: as red-integer! s/offset + 1
