@@ -37,6 +37,7 @@ write %build/bin/sources.r set-cache [
 			%gif.red
 			%jpeg.red
 			%png.red
+			%csv.red
 			%json.red
 			%json/ [
 				%common.red
