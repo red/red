@@ -175,7 +175,7 @@ hash: context [
 			;-- General actions --
 			:make
 			null			;random
-			null			;reflect
+			INHERIT_ACTION	;reflect
 			:to
 			INHERIT_ACTION	;form
 			:mold

@@ -1124,7 +1124,7 @@ vector: context [
 			;-- General actions --
 			:make
 			INHERIT_ACTION	;random
-			null			;reflect
+			INHERIT_ACTION	;reflect
 			null			;to
 			:form
 			:mold
