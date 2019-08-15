@@ -365,6 +365,20 @@ error: context [
 		string/append-char GET_BUFFER(buffer) as-integer #"]"
 		part - 1
 	]
+	
+	eval-path: func [
+		parent	[red-object!]							;-- implicit type casting
+		element	[red-value!]
+		value	[red-value!]
+		path	[red-value!]
+		case?	[logic!]
+		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "error/eval-path"]]
+		
+		if value <> null [fire [TO_ERROR(script invalid-path-set) path]]
+		object/eval-path parent element value path case?
+	]
 
 	init: does [
 		datatype/register [
@@ -378,7 +392,7 @@ error: context [
 			null			;to
 			:form
 			:mold
-			INHERIT_ACTION	;eval-path
+			:eval-path
 			null			;set-path
 			INHERIT_ACTION	;compare
 			;-- Scalar actions --
