@@ -379,6 +379,18 @@ Red [
 	;-- for issue #2593 (ROUND rounds float down if scale is integer)
 	--test-- "round18"  --assert 1 = round/to 0.5 1
 	--test-- "round19"  --assert 0 = round/to 0.499 1
+
+	;-- for issue 3759
+	--test-- "round20"
+		--assert -3.0 = round/to/floor -2.4 1.0
+		--assert -3 = round/to/floor -2.4 1
+		--assert -2.0 = round/to/ceiling -2.4 1.0
+		--assert -2 = round/to/ceiling -2.4 1
+		--assert -4.0 = round/to/floor -2.4 2.0
+		--assert -4 = round/to/floor -2.4 2
+		--assert -2.0 = round/to/ceiling -2.4 2.0
+		--assert -2 = round/to/ceiling -2.4 2
+
 ===end-group===
 
 ===start-group=== "various regression tests from bugtracker"
