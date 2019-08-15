@@ -469,7 +469,7 @@ save: function [
 			data: either all [
 				append mold/all/only :value newline
 			][
-				trim mold/only :value
+				mold/only :value
 			]
 			case/all [
 				not binary? data [data: to binary! data]
