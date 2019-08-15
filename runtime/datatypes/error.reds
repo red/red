@@ -379,6 +379,26 @@ error: context [
 		if value <> null [fire [TO_ERROR(script invalid-path-set) path]]
 		object/eval-path parent element value path case?
 	]
+	
+	compare: func [
+		obj1	[red-object!]							;-- first operand
+		obj2	[red-object!]							;-- second operand
+		op		[integer!]								;-- type of comparison
+		return:	[integer!]
+		/local
+			res [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "error/compare"]]
+		
+		either TYPE_OF(obj2) = TYPE_ERROR [
+			set-type as red-value! obj2 TYPE_OBJECT
+			res: object/compare obj1 obj2 op
+			set-type as red-value! obj2 TYPE_ERROR
+		][
+			RETURN_COMPARE_OTHER
+		]
+		res
+	]
 
 	init: does [
 		datatype/register [
@@ -394,7 +414,7 @@ error: context [
 			:mold
 			:eval-path
 			null			;set-path
-			INHERIT_ACTION	;compare
+			:compare
 			;-- Scalar actions --
 			null			;absolute
 			null			;add
