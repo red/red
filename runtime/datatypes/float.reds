@@ -856,17 +856,12 @@ float: context [
 		dec: f/value
 		sc: either TYPE_OF(f) = TYPE_PERCENT [0.01][1.0]
 		if OPTION?(scale) [
-			if TYPE_OF(scale) = TYPE_INTEGER [
-				int: as red-integer! value
-				either dec < 0.0 [
-					int/value: as-integer dec - 0.5
-				][
-					int/value: as-integer dec + 0.5
-				]
-				int/header: TYPE_INTEGER
-				return integer/round value as red-integer! scale _even? down? half-down? floor? ceil? half-ceil?
+			either TYPE_OF(scale) = TYPE_INTEGER [
+				int: as red-integer! scale
+				sc: abs as float! int/value
+			][
+				sc: abs scale/value
 			]
-			sc: abs scale/value
 			if TYPE_OF(f) = TYPE_PERCENT [sc: sc / 100.0]
 			if sc = 0.0 [fire [TO_ERROR(math overflow)]]
 		]
@@ -905,6 +900,12 @@ float: context [
 			dec
 		][
 			ldexp dec / sc e
+		]
+		if TYPE_OF(scale) = TYPE_INTEGER [
+			dec: f/value
+			int: as red-integer! value
+			int/header: TYPE_INTEGER
+			int/value: as integer! dec
 		]
 		value
 	]
