@@ -454,13 +454,15 @@ save: function [
 		if header [
 			if object? :header-data [header-data: body-of header-data]
 		]
-		suffix: suffix? where
-		find-encoder?: no
-		foreach [name codec] system/codecs [
-			if (find codec/suffixes suffix) [		;@@ temporary required until dyn-stack implemented
-				data: do [codec/encode value dst]
-				if same? data dst [exit]
-				find-encoder?: yes
+		if find [file! url!] type?/word where [
+			suffix: suffix? where
+			find-encoder?: no
+			foreach [name codec] system/codecs [
+				if (find codec/suffixes suffix) [		;@@ temporary required until dyn-stack implemented
+					data: do [codec/encode value dst]
+					if same? data dst [exit]
+					find-encoder?: yes
+				]
 			]
 		]
 		unless find-encoder? [
