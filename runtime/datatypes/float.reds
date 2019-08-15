@@ -901,11 +901,19 @@ float: context [
 		][
 			ldexp dec / sc e
 		]
-		if TYPE_OF(scale) = TYPE_INTEGER [
-			dec: f/value
-			int: as red-integer! value
-			int/header: TYPE_INTEGER
-			int/value: as integer! dec
+		if OPTION?(scale) [
+			either TYPE_OF(scale) = TYPE_INTEGER [
+				dec: f/value
+				int: as red-integer! value
+				int/header: TYPE_INTEGER
+				int/value: as integer! dec
+			][
+				value/header: either TYPE_OF(scale) = TYPE_PERCENT [
+					TYPE_FLOAT
+				][
+					TYPE_OF(scale)
+				]
+			]
 		]
 		value
 	]
