@@ -702,7 +702,7 @@ integer: context [
 		if num = 80000000h [return value]
 		sc: 1
 		if OPTION?(scale) [
-			if TYPE_OF(scale) = TYPE_FLOAT [
+			if TYPE_OF(scale) <> TYPE_INTEGER [
 				f: as red-float! value
 				f/value: as-float num
 				f/header: TYPE_FLOAT
