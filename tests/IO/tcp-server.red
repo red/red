@@ -4,15 +4,15 @@ Red [
 
 do [
 
-debug: :print
-;debug: :comment
+;debug: :print
+debug: :comment
 
 total: 0.0
 count: 0
 
 process-data: func [port /local len] [
 	;debug ["port data:" port/data]
-	probe "process-data enter"
+	debug "process-data enter"
     unless empty? port/data [
         len: length? port/data
         debug ["--- packet:" length? port/data "of" len]
@@ -20,9 +20,9 @@ process-data: func [port /local len] [
         insert port #{0f}
         count: count + 1
         total: total + len + 4
-        print [count round (total / 1024 / 1024) "MB"]
+        debug [count round (total / 1024 / 1024) "MB"]
     ]
-	probe "process-data exit"
+	debug "process-data exit"
 ]
 
 new-event: func [event] [

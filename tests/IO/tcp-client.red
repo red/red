@@ -4,8 +4,8 @@ Red [
 
 do [
 
-debug: :print
-;debug: :comment
+;debug: :print
+debug: :comment
 
 max-count: 300000
 count: 0
@@ -29,7 +29,7 @@ client/awake: func [event /local port] [
         lookup [open port]
         connect [insert port b]
         read [
-	        probe "client read done"
+	        ;probe "client read done"
             either port/data/1 = 15 [
                 count: count + 1
                 total: total + size + 4
@@ -37,7 +37,7 @@ client/awake: func [event /local port] [
                     t: to float! difference now/precise start
                     mbps: round (total / t * 8 / 1024 / 1024)
                 ]
-                print [count round (total / 1024 / 1024) "MB" mbps "Mbps"]
+                debug [count round (total / 1024 / 1024) "MB" mbps "Mbps"]
                 either count < max-count [
                     insert port b
                 ][
@@ -48,7 +48,7 @@ client/awake: func [event /local port] [
                 copy port
             ]
         ]
-        wrote [probe "client write done" copy port]
+        wrote [copy port]
     ]
     false
 ]

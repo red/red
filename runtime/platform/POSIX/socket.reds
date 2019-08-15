@@ -135,14 +135,11 @@ socket: context [
 
 probe ["socket/write/event: " data/event]
 
-		if data/event and IO_EVT_WRITE = 1 [	;-- we need to use pending list
+		state: data/state
+		if state and IO_STATE_PENDING_WRITE = IO_STATE_PENDING_WRITE [
 			iocp/add-pending data buffer length IO_EVT_WRITE
 			exit
 		]
-
-		state: data/state
-		data/event: data/event or IO_EVT_WRITE
-		data/state: state and (not IO_STATE_WRITE_DONE) 
 
 		n: LibC.send sock buffer length 0 
 
@@ -150,17 +147,19 @@ probe ["socket/write: " length " " n]
 
 		io-port: data/io-port
 		either n = length [
-			data/state: state or IO_STATE_WRITE_DONE
+			data/event: IO_EVT_WRITE
 			iocp/post io-port data
 		][
-			either zero? state [
-				data/state: EPOLLOUT
-				iocp/add io-port sock EPOLLOUT or EPOLLET data
-			][
-				if state and EPOLLOUT = 0 [
-					data/state: state or EPOLLOUT or EPOLLET
-					iocp/modify io-port sock data/state data
+			case [
+				zero? state [
+					data/state: IO_STATE_PENDING_WRITE
+					iocp/add io-port sock EPOLLOUT or EPOLLET data
 				]
+				state and EPOLLOUT = 0 [
+					data/state: state or IO_STATE_PENDING_WRITE
+					iocp/modify io-port sock EPOLLIN or EPOLLOUT or EPOLLET data
+				]
+				true [data/state: state or IO_STATE_WRITING]
 			]
 			if n < 0 [n: 0]
 			data/write-buf: buffer + n
@@ -177,32 +176,39 @@ probe ["socket/write: " length " " n]
 			n		[integer!]
 			state	[integer!]
 	][
-		assert data/event and IO_EVT_READ = 0
-		if data/event and IO_EVT_READ = 1 [		;-- we need to use pending list
+		state: data/state
+		if state and IO_STATE_PENDING_READ = IO_STATE_PENDING_READ [
 			iocp/add-pending data buffer length IO_EVT_READ
 			exit
 		]
 
-		state: data/state
-		data/event: data/event or IO_EVT_READ
-		data/state: state and (not IO_STATE_READ_DONE) 
 		n: LibC.recv sock buffer length 0
 probe ["socket/read: " n]
-		either n >= 0 [
-			data/transferred: n
-			data/state: state or IO_STATE_READ_DONE
-			iocp/post data/io-port data
-		][
-			data/read-buf: buffer
-			data/read-buflen: length
-			either zero? state [
-				data/state: EPOLLIN
-				iocp/add data/io-port sock EPOLLIN or EPOLLET data
-			][
-				if state and EPOLLIN = 0 [
-					data/state: state or EPOLLIN or EPOLLET
-					iocp/modify data/io-port sock data/state data
+		case [
+			n > 0 [
+				data/event: IO_EVT_READ
+				data/transferred: n
+				iocp/post data/io-port data
+			]
+			n < 0 [
+				data/read-buf: buffer
+				data/read-buflen: length
+				case [
+					zero? state [
+						data/state: IO_STATE_PENDING_READ
+						iocp/add data/io-port sock EPOLLIN or EPOLLET data
+					]
+					state and EPOLLIN = 0 [
+						data/state: state or IO_STATE_PENDING_READ
+						iocp/modify data/io-port sock EPOLLIN or EPOLLOUT or EPOLLET data
+					]
+					true [data/state: state or IO_STATE_READING]
 				]
+			]
+			zero? n [
+				data/transferred: 0
+				data/event: IO_EVT_CLOSE
+				iocp/post data/io-port data
 			]
 		]
 	]

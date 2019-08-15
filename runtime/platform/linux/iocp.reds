@@ -13,8 +13,10 @@ Red/System [
 	}
 ]
 
-#define IO_STATE_READ_DONE	4000h
-#define IO_STATE_WRITE_DONE	8000h
+#define IO_STATE_READING		4000h
+#define IO_STATE_WRITING		8000h
+#define IO_STATE_PENDING_READ	4001h		;-- READING or EPOLLIN
+#define IO_STATE_PENDING_WRITE	8004h		;-- WRITING or EPOLLOUT
 
 iocp-event-handler!: alias function! [
 	data		[int-ptr!]
@@ -118,7 +120,7 @@ iocp: context [
 			err		[integer!]
 			sock	[integer!]
 			datalen [integer!]
-			evt		[integer!]
+			state	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "iocp/wait"]]
 
@@ -140,93 +142,65 @@ iocp: context [
 		while [i < cnt][
 			e: p/events + i
 			data: as iocp-data! e/ptr
-			evt: data/event
 			sock: as-integer data/device
-			either evt = IO_EVT_PULSE [
+			either data/event = IO_EVT_PULSE [
 				datalen: 0
 				n: LibC.recv sock as byte-ptr! :datalen 4 0
 				assert n = 1
 
 				p/posted?: no
 				n: queue/size
+?? n
 				loop n [
 					data: as iocp-data! deque/take queue
-					evt: data/event
-					probe ["pluse event: " evt]
-					case [
-						evt and IO_EVT_READ <> 0 [
-							data/event: IO_EVT_READ
-							data/event-handler as int-ptr! data
-							if all [
-								null? data/pending-read
-								data/event = IO_EVT_NONE
-							][
-								data/event: evt and (not IO_EVT_READ)
-							]
-						]
-						evt and IO_EVT_WRITE <> 0 [
-							data/event: IO_EVT_WRITE
-							data/event-handler as int-ptr! data
-							if all [
-								null? data/pending-write
-								data/event = IO_EVT_NONE
-							][
-								data/event: evt and (not IO_EVT_WRITE)
-							]
-						]
-						true [data/event-handler as int-ptr! data]
-					]
+					#if debug? = yes [probe ["pluse event: " data/event]]
+					data/event-handler as int-ptr! data
 				]
 			][
-				probe ["ready event: " evt " " e/events]
+				probe ["ready event: " e/events]
+				state: data/state
 				case [
 					all [
 						e/events and EPOLLIN <> 0
-						evt and IO_EVT_READ <> 0
+						state and IO_STATE_READING <> 0
 					][
-						either data/pending-read <> null [
-							0 ;;TBD
-						][
+						either null? data/pending-read [
 probe [sock " " data/read-buf " " data/read-buflen]
-							if data/state and IO_STATE_READ_DONE = 0 [
-								n: LibC.recv sock data/read-buf data/read-buflen 0
-	probe errno/value
-	probe ["read data: " n]
-								data/transferred: n
-								data/event: IO_EVT_READ
-								data/event-handler as int-ptr! data
-								if data/event = IO_EVT_NONE [
-									data/event: evt and (not IO_EVT_READ)
-								]
-							]
+							n: LibC.recv sock data/read-buf data/read-buflen 0
+probe errno/value
+probe ["read data: " n]
+							data/state: state and (not IO_STATE_READING)
+							data/transferred: n
+							data/event: IO_EVT_READ
+							data/event-handler as int-ptr! data
+						][
+							0 ;TBD
 						]
 					]
 					all [
 						e/events and EPOLLOUT <> 0
-						evt and IO_EVT_WRITE <> 0
+						state and IO_STATE_WRITING <> 0
 					][
-						either data/pending-write <> null [
-							0 ;; TBD
-						][
-							if data/state and IO_STATE_WRITE_DONE = 0 [
-								datalen: data/write-buflen
-								n: LibC.send sock data/write-buf datalen 0
-								either n = datalen [
-									data/write-buf: null
-									data/event: IO_EVT_WRITE
-									data/event-handler as int-ptr! data
-									if data/event = IO_EVT_NONE [
-										data/event: evt and (not IO_EVT_WRITE)
-									]
-								][	;-- remaining data to be sent
-									data/write-buf: data/write-buf + n
-									data/write-buflen: data/write-buflen - n
-								]
+						either null? data/pending-write [
+							datalen: data/write-buflen
+							n: LibC.send sock data/write-buf datalen 0
+							either n = datalen [
+								data/state: state and (not IO_STATE_WRITING)
+								data/write-buf: null
+								data/event: IO_EVT_WRITE
+								data/event-handler as int-ptr! data
+							][	;-- remaining data to be sent
+								data/write-buf: data/write-buf + n
+								data/write-buflen: data/write-buflen - n
 							]
+						][
+							0 ;; TBD
 						]
 					]
-					zero? evt [probe "why zero?"]
-					true [data/event-handler as int-ptr! data]
+					data/event > IO_EVT_WRITE [
+						data/event-handler as int-ptr! data
+					]
+					true [0]
 				]
 			]
 			i: i + 1
