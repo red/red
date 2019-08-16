@@ -477,7 +477,7 @@ errno: as int-ptr! 0
 			kevp/filter: c << 16 or b
 			kevp/fflags: d
 			kevp/data: e
-			kevp/udata: f
+			kevp/udata: as int-ptr! f
 		]
 
 		kevent!: alias struct! [
@@ -494,10 +494,10 @@ errno: as int-ptr! 0
 				get-errno-ptr: "__error" [
 					return: [int-ptr!]
 				]
-				_kqueue: "kqueue" [
+				LibC.kqueue: "kqueue" [
 					return: [integer!]
 				]
-				_kevent: "kevent" [
+				LibC.kevent: "kevent" [
 					kq		[integer!]
 					clist	[kevent!]
 					nchange [integer!]
@@ -508,6 +508,8 @@ errno: as int-ptr! 0
 				]
 			]
 		]
+
+		#define epoll_event! kevent!
 	]
 	true [
 		#define O_CREAT		64
@@ -519,7 +521,7 @@ errno: as int-ptr! 0
 
 		epoll_event!: alias struct! [
 			events		[integer!]
-			ptr			[int-ptr!]
+			udata		[int-ptr!]
 			pad			[integer!]
 		]
 		#import [

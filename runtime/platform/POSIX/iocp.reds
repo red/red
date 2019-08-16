@@ -1,5 +1,5 @@
 Red/System [
-	Title:	"IOCP on Linux"
+	Title:	"IOCP on Unix"
 	Author: "Xie Qingtian"
 	File: 	%iocp.reds
 	Tabs: 	4
@@ -9,7 +9,7 @@ Red/System [
 		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 	NOTE: {
-		This is not a completed IOCP implementation on Linux.
+		This is not a completed IOCP implementation.
 	}
 ]
 
@@ -66,7 +66,12 @@ iocp: context [
 		errno: get-errno-ptr
 		p: as iocp! alloc0 size? iocp!
 		p/maxn: 65536
-		p/epfd: epoll_create1 00080000h
+
+		#either OS = 'macOS [
+			p/epfd: LibC.kqueue
+		][
+			p/epfd: epoll_create1 00080000h
+		]
 		assert p/epfd > 0
 
 		p/ready-socks: deque/create 1024
@@ -98,12 +103,31 @@ iocp: context [
 		free as byte-ptr! p
 	]
 
+	post: func [
+		p		[iocp!]
+		data	[iocp-data!]
+	][
+		deque/push p/ready-socks as int-ptr! data
+		unless p/posted? [
+			p/posted?: yes
+			LibC.send p/pair-1 as byte-ptr! "p" 1 0
+		]
+	]
+
 	bind: func [
 		"bind a device handle to the I/O completion port"
 		p		[iocp!]
 		handle	[int-ptr!]
 	][
 	]
+
+#either OS = 'macOS [
+	#define IOCP_READ_ACTION? [filter = EVFILT_READ]
+	#define IOCP_WRITE_ACTION? [filter = EVFILT_WRITE]
+][
+	#define IOCP_READ_ACTION? [e/events and EPOLLIN <> 0]
+	#define IOCP_WRITE_ACTION? [e/events and EPOLLOUT <> 0]
+]
 
 	wait: func [
 		"wait I/O completion events and dispatch them"
@@ -121,6 +145,12 @@ iocp: context [
 			sock	[integer!]
 			datalen [integer!]
 			state	[integer!]
+			#if OS = 'macOS [
+			filter	[integer!]
+			flags	[integer!]
+			_tm		[timespec! value]
+			tm		[timespec!]
+			]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "iocp/wait"]]
 
@@ -131,8 +161,22 @@ iocp: context [
 		]
 		queue: p/ready-socks
 
-		cnt: epoll_wait p/epfd p/events p/nevents timeout
-		if all [cnt < 0 errno/value = EINTR][return 0]
+		#either OS = 'macOS [
+			either timeout < 0 [
+				tm: null
+			][
+				tm: :_tm
+				tm/sec: timeout / 1000
+				tm/nsec: timeout % 1000 * 1000000
+			]
+
+			cnt: LibC.kevent p/epfd null 0 p/events p/nevents tm
+			if cnt < 0 [return 0]
+		][
+			cnt: epoll_wait p/epfd p/events p/nevents timeout
+			if all [cnt < 0 errno/value = EINTR][return 0]
+		]
+
 ?? cnt
 		if cnt = p/nevents [		;-- TBD: extend events buffer
 			0
@@ -141,7 +185,7 @@ iocp: context [
 		i: 0
 		while [i < cnt][
 			e: p/events + i
-			data: as iocp-data! e/ptr
+			data: as iocp-data! e/udata
 			sock: as-integer data/device
 			either data/event = IO_EVT_PULSE [
 				datalen: 0
@@ -157,11 +201,26 @@ iocp: context [
 					data/event-handler as int-ptr! data
 				]
 			][
-				probe ["ready event: " e/events]
+				#either OS = 'macOS [
+					filter: e/filter and FFFFh
+					flags: e/filter >>> 16
+					probe ["ready event: " filter " " flags]
+				][
+					probe ["ready event: " e/events]
+				]
+				
 				state: data/state
 				case [
+				#if OS = 'macOS [
+					flags and EV_ERROR <> 0 [
+						probe "kqueue error" halt
+					]
+					flags and EV_EOF <> 0 [
+						probe "kqueue: socket close"
+					]
+				]
 					all [
-						e/events and EPOLLIN <> 0
+						IOCP_READ_ACTION?
 						state and IO_STATE_READING <> 0
 					][
 						either null? data/pending-read [
@@ -178,7 +237,7 @@ probe ["read data: " n]
 						]
 					]
 					all [
-						e/events and EPOLLOUT <> 0
+						IOCP_WRITE_ACTION?
 						state and IO_STATE_WRITING <> 0
 					][
 						either null? data/pending-write [
@@ -256,12 +315,104 @@ probe ["read data: " n]
 			as list-entry! create-pending buffer len
 	]
 
+	push-data: func [
+		p		[iocp!]
+		sdata	[iocp-data!]
+	][
+		deque/push p/ready-socks as int-ptr! sdata
+	]
+
+	pulse: func [
+		p		[iocp!]
+	][
+		LibC.send p/pair-1 as byte-ptr! "p" 1 0
+	]
+
 	kill: func [
 		p	[iocp!]
 	][
 		LibC.send p/pair-1 as byte-ptr! "k" 1 0
 	]
 
+#either OS = 'macOS [
+	_modify: func [
+		kqfd	[integer!]
+		evs		[kevent!]
+		cnt		[integer!]
+		/local
+			res	[integer!]
+	][
+		res: LibC.kevent kqfd evs cnt null 0 null
+		if res < 0 [
+			probe ["change kevent failed, errno: " errno/value]
+		]
+	]
+
+	add: func [
+		p		[iocp!]
+		sock	[integer!]
+		events	[integer!]
+		data	[iocp-data!]
+		/local
+			e2	[kevent! value]
+			e1	[kevent! value]
+			e	[kevent!]
+			ev	[integer!]
+			n	[integer!]
+	][
+		ev: EV_ADD
+		if events and EPOLLET <> 0 [ev: ev or EV_CLEAR]
+
+		e: as kevent! :e1
+		n: 0
+		if events and EPOLLIN <> 0 [
+			EV_SET(e sock EVFILT_READ ev 0 null data)
+			n: n + 1
+			e: e + 1
+		]
+		if events and EPOLLOUT <> 0 [
+			EV_SET(e sock EVFILT_WRITE ev 0 null data)
+			n: n + 1
+		]
+		_modify p/epfd :e1 n
+	]
+
+	remove: func [
+		p		[iocp!]
+		sock	[integer!]
+		events	[integer!]
+		data	[iocp-data!]
+		/local
+			e2	[kevent! value]
+			e1	[kevent! value]
+			e	[kevent!]
+			ev	[integer!]
+			n	[integer!]
+	][
+		ev: EV_DELETE
+		e: as kevent! :e1
+		n: 0
+		if events and EPOLLIN <> 0 [
+			EV_SET(e sock EVFILT_READ ev 0 null data)
+			n: n + 1
+			e: e + 1
+		]
+		if events and EPOLLOUT <> 0 [
+			EV_SET(e sock EVFILT_WRITE ev 0 null data)
+			n: n + 1
+		]
+		_modify p/epfd :e1 n
+	]
+
+	modify: func [
+		p		[iocp!]
+		sock	[integer!]
+		events	[integer!]
+		data	[iocp-data!]
+	][
+		add p sock events data
+	]
+][
 	_modify: func [
 		epfd	[integer!]
 		sock	[integer!]
@@ -271,7 +422,7 @@ probe ["read data: " n]
 		/local
 			ev	[epoll_event! value]
 	][
-		ev/ptr: as int-ptr! data
+		ev/udata: as int-ptr! data
 		ev/events: evts
 		if 0 <> epoll_ctl epfd op sock :ev [
 			probe ["epoll_ctl error! fd: " sock " op: " op]
@@ -304,28 +455,4 @@ probe ["read data: " n]
 	][
 		_modify p/epfd sock events data EPOLL_CTL_MOD
 	]
-
-	post: func [
-		p		[iocp!]
-		data	[iocp-data!]
-	][
-		deque/push p/ready-socks as int-ptr! data
-		unless p/posted? [
-			p/posted?: yes
-			LibC.send p/pair-1 as byte-ptr! "p" 1 0
-		]
-	]
-
-	push-data: func [
-		p		[iocp!]
-		sdata	[iocp-data!]
-	][
-		deque/push p/ready-socks as int-ptr! sdata
-	]
-
-	pulse: func [
-		p		[iocp!]
-	][
-		LibC.send p/pair-1 as byte-ptr! "p" 1 0
-	]
-]
+]]
