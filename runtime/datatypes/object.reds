@@ -1255,8 +1255,8 @@ object: context [
 				type1 = type2
 				all [word/any-word? type1 word/any-word? type2]
 				all [											;@@ replace by ANY_NUMBER?
-					any [type1 = TYPE_INTEGER type1 = TYPE_FLOAT]
-					any [type2 = TYPE_INTEGER type2 = TYPE_FLOAT]
+					any [type1 = TYPE_INTEGER type1 = TYPE_FLOAT type1 = TYPE_PERCENT]
+					any [type2 = TYPE_INTEGER type2 = TYPE_FLOAT type2 = TYPE_PERCENT]
 				]
 			][
 				res: actions/compare-value value1 value2 op
