@@ -2798,18 +2798,20 @@ Red [
 	--test-- "float-divide 37"
 		i: 2.2250738585072014e-308
 		j: 1.1
-		--assert strict-equal? 2.022794416824729e-308 2.2250738585072014e-308 / 1.1
-		--assert strict-equal? 2.022794416824729e-308 divide 2.2250738585072014e-308 1.1
-		--assert strict-equal? 2.022794416824729e-308 i / j
-		--assert strict-equal? 2.022794416824729e-308 divide i j
+		base: to-float #{000E8BA2E8BA2E8C}					;;FIXME: workaround #3993
+		--assert strict-equal? base 2.2250738585072014e-308 / 1.1
+		--assert strict-equal? base divide 2.2250738585072014e-308 1.1
+		--assert strict-equal? base i / j
+		--assert strict-equal? base divide i j
 
 	--test-- "float-divide 38"
 		i: 2.2250738585072014e-308
 		j: -1.1
-		--assert strict-equal? -2.022794416824729e-308 2.2250738585072014e-308 / -1.1
-		--assert strict-equal? -2.022794416824729e-308 divide 2.2250738585072014e-308 -1.1
-		--assert strict-equal? -2.022794416824729e-308 i / j
-		--assert strict-equal? -2.022794416824729e-308 divide i j
+		base: to-float #{800E8BA2E8BA2E8C}					;;FIXME: workaround #3993
+		--assert strict-equal? base 2.2250738585072014e-308 / -1.1
+		--assert strict-equal? base divide 2.2250738585072014e-308 -1.1
+		--assert strict-equal? base i / j
+		--assert strict-equal? base divide i j
 
 	--test-- "float-divide 39"
 		i: 2.2250738585072014e-308
