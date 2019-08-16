@@ -1540,10 +1540,7 @@ OS-make-view: func [
 		sym = camera	[init-camera handle data selected false]
 		sym = text-list [init-text-list handle data selected]
 		sym = base		[init-base-face handle parent values alpha?]
-		sym = tab-panel [
-			selected/header: TYPE_NONE					;-- no selection allowed before tabs are created
-			set-tabs handle values
-		]
+		sym = tab-panel [set-tabs handle values]
 		sym = group-box [
 			flags: flags or WS_GROUP or BS_GROUPBOX
 			hWnd: CreateWindowEx
