@@ -16,14 +16,7 @@ SOCK_READBUF_SZ: 1048576				;-- 1MB
 	#include %windows/iocp.reds
 	#include %windows/socket.reds
 ][
-	#case [
-		any [OS = 'macOS OS = 'FreeBSD][
-			#include %darwin/iocp.reds
-		]
-		any [OS = 'Linux OS = 'Android][
-			#include %linux/iocp.reds
-		]
-	]
+	#include %POSIX/iocp.reds
 	#include %POSIX/socket.reds
 ]
 

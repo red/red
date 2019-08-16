@@ -28,7 +28,7 @@ tcp-device: context [
 		msg: p
 		type: data/event
 
-		switch data/event [
+		switch type [
 			IO_EVT_ACCEPT	[
 				#either OS = 'Windows [
 					msg: create-red-port p data/accept-sock
@@ -43,29 +43,25 @@ tcp-device: context [
 				s: GET_BUFFER(bin)
 				s/tail: as cell! (as byte-ptr! s/tail) + data/transferred
 				io/unpin-memory bin/node
-				#either OS = 'Windows [
+				#if OS = 'Windows [
 					either data/accept-sock = PENDING_IO_FLAG [
 						free as byte-ptr! data
 					][
 						data/event: IO_EVT_NONE
 					]
-				][
-					data/event: IO_EVT_NONE
 				]
 			]
 			IO_EVT_WRITE	[
 				io/unpin-memory tcp/send-buf
-				#either OS = 'Windows [
+				#if OS = 'Windows [
 					either data/accept-sock = PENDING_IO_FLAG [
 						free as byte-ptr! data
 					][
 						data/event: IO_EVT_NONE
 					]
-				][
-					data/event: IO_EVT_NONE
 				]
 			]
-			default			[data/event: IO_EVT_NONE]
+			default [data/event: IO_EVT_NONE]
 		]
 
 		io/call-awake p msg type
@@ -239,7 +235,7 @@ tcp-device: context [
 			default [return as red-value! port]
 		]
 
-		data: get-tcp-data port IO_EVT_WRITE
+		data: get-tcp-data port
 		data/send-buf: bin/node
 
 		socket/write
@@ -269,7 +265,7 @@ tcp-device: context [
 		buf/head: 0
 		io/pin-memory buf
 		s: GET_BUFFER(buf)
-		data: as iocp-data! get-tcp-data red-port IO_EVT_READ
+		data: as iocp-data! get-tcp-data red-port
 		socket/read as-integer data/device as byte-ptr! s/offset s/size data
 		as red-value! red-port
 	]
