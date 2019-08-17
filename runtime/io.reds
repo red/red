@@ -59,22 +59,16 @@ io: context [
 		msg			[red-object!]
 		op			[io-event-type!]
 		/local
-			values	[red-value!]
-			awake	[red-function!]
 			evt		[red-event! value]
 	][
-		values: object/get-values red-port
-		awake: as red-function! values + port/field-awake
-		if TYPE_OF(awake) <> TYPE_FUNCTION [exit]
-
 		evt/header: TYPE_EVENT
 		evt/type: EVT_CATEGORY_IO << 16 or op
 		evt/msg: as byte-ptr! msg
 
 		;-- call port/awake: func [event [event!]][]
-		stack/mark-func words/_awake awake/ctx
+		stack/mark-func words/_awake red-port/ctx
 		stack/push as red-value! :evt
-		port/call-function awake awake/ctx
+		port/call-function red-port words/_awake
 		stack/reset
 	]
 
