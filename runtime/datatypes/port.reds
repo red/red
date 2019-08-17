@@ -24,21 +24,24 @@ port: context [
 	]
 	
 	call-function: func [
-		actor   [red-function!]
-		ctx	    [node!]
+		actors  [red-object!]
+		action	[red-word!]
 		return: [red-value!]
 		/local
+			actor [red-function!]
 			count [integer!]
 	][
+		actor: as red-function! object/rs-select actors as red-value! action
+		if TYPE_OF(actor) <> TYPE_FUNCTION [fire [TO_ERROR(access no-port-action) action]]
+		
 		count: _function/calc-arity null actor 0
 		if positive? count [_function/init-locals count]
-		_function/call actor ctx
+		_function/call actor actors/ctx
 		stack/unwind-last
 	]
 	
 	get-actors: func [
 		port	 [red-object!]
-		action	 [red-word!]
 		return:  [red-object!]
 		/local
 			actors [red-object!]
@@ -48,18 +51,6 @@ port: context [
 		actors
 	]
 	
-	get-actor: func [
-		actors  [red-object!]
-		action	[red-word!]
-		return: [red-function!]
-		/local
-			actor [red-function!]
-	][
-		actor: as red-function! object/rs-select actors as red-value! action
-		if TYPE_OF(actor) <> TYPE_FUNCTION [fire [TO_ERROR(access no-port-action) action]]
-		actor
-	]
-	
 	do-action: func [
 		action	[red-word!]
 		args	[integer!]
@@ -67,16 +58,14 @@ port: context [
 		/local
 			port   [red-value!]
 			actors [red-object!]
-			actor  [red-function!]
 	][
 		port: stack/arguments
-		actors: get-actors as red-object! port action
-		actor: get-actor actors action
+		actors: get-actors as red-object! port 
 
 		stack/mark-func action actors/ctx
 		stack/push port
 		if args > 1 [stack/push port + 1]
-		call-function actor actors/ctx
+		call-function actors action
 	]
 	
 	do-action-port: func [
@@ -85,13 +74,11 @@ port: context [
 		return: [red-value!]
 		/local
 			actors [red-object!]
-			actor  [red-function!]
 	][
-		actors: get-actors port action
-		actor: get-actor actors action
+		actors: get-actors port
 		stack/mark-func action actors/ctx
 		stack/push as red-value! port
-		call-function actor actors/ctx
+		call-function actors action
 	]
 
 	;-- actions --
@@ -260,7 +247,6 @@ port: context [
 		dup		[red-value!]
 		/local
 			actors [red-object!]
-			actor  [red-function!]
 			part?  [logic!]
 			dup?   [logic!]
 	][
@@ -268,8 +254,7 @@ port: context [
 		
 		part?: OPTION?(part)
 		dup?:  OPTION?(dup)
-		actors: get-actors as red-object! port words/_change
-		actor: get-actor actors words/_change
+		actors: get-actors as red-object! port
 		stack/mark-func words/_change actors/ctx
 		stack/push as red-value! port
 		stack/push value
@@ -278,7 +263,7 @@ port: context [
 		logic/push only?
 		logic/push dup?
 		either dup? [stack/push dup][none/push]
-		call-function actor actors/ctx
+		call-function actors words/_change
 	]
 	
 	find: func [
@@ -298,7 +283,6 @@ port: context [
 		return:  [red-value!]
 		/local
 			actors [red-object!]
-			actor  [red-function!]
 			part?  [logic!]
 			with?  [logic!]
 			skip?  [logic!]
@@ -308,8 +292,7 @@ port: context [
 		part?: OPTION?(part)
 		with?: OPTION?(with-arg)
 		skip?: OPTION?(skip)
-		actors: get-actors as red-object! port words/_find
-		actor: get-actor actors words/_find
+		actors: get-actors as red-object! port
 		stack/mark-func words/_find actors/ctx
 		stack/push as red-value! port
 		stack/push value
@@ -327,7 +310,7 @@ port: context [
 		logic/push reverse?
 		logic/push tail?
 		logic/push match?
-		call-function actor actors/ctx
+		call-function actors words/_find
 	]
 	
 	insert: func [
@@ -340,7 +323,6 @@ port: context [
 		return:	[red-value!]
 		/local
 			actors [red-object!]
-			actor  [red-function!]
 			part?  [logic!]
 			dup?   [logic!]
 	][
@@ -348,8 +330,7 @@ port: context [
 
 		part?: OPTION?(part)
 		dup?: OPTION?(dup)
-		actors: get-actors as red-object! port words/_insert
-		actor: get-actor actors words/_insert
+		actors: get-actors as red-object! port
 		stack/mark-func words/_insert actors/ctx
 		stack/push as red-value! port
 		stack/push value
@@ -359,7 +340,7 @@ port: context [
 		logic/push dup?
 		either dup? [stack/push dup][none/push]
 		logic/push append?
-		call-function actor actors/ctx
+		call-function actors words/_insert
 	]
 	
 	move: func [
@@ -369,20 +350,18 @@ port: context [
 		return:	[red-value!]
 		/local
 			actors [red-object!]
-			actor  [red-function!]
 			part?  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "port/move"]]
 		
 		part?: OPTION?(part)
-		actors: get-actors as red-object! port words/_move
-		actor: get-actor actors words/_move
+		actors: get-actors as red-object! port
 		stack/mark-func words/_move actors/ctx
 		stack/push as red-value! port
 		stack/push target
 		logic/push part?
 		either part? [stack/push as red-value! part][none/push]
-		call-function actor actors/ctx
+		call-function actors words/_move
 	]
 	
 	copy: func [
@@ -394,7 +373,6 @@ port: context [
 		return: [red-value!]
 		/local
 			actors [red-object!]
-			actor  [red-function!]
 			part?  [logic!]
 			types? [logic!]
 	][
@@ -402,8 +380,7 @@ port: context [
 		
 		part?: OPTION?(part)
 		types?: OPTION?(types)
-		actors: get-actors as red-object! port words/_copy
-		actor: get-actor actors words/_copy
+		actors: get-actors as red-object! port
 		stack/mark-func words/_copy actors/ctx
 		stack/push as red-value! port
 		logic/push part?
@@ -411,7 +388,7 @@ port: context [
 		logic/push deep?
 		logic/push types?
 		either types? [stack/push types][none/push]
-		call-function actor actors/ctx
+		call-function actors words/_copy
 		copy-cell stack/arguments new
 	]
 	
@@ -447,18 +424,16 @@ port: context [
 		return: [red-value!]
 		/local
 			actors [red-object!]
-			actor  [red-function!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "port/modify"]]
 
-		actors: get-actors port words/_modify
-		actor: get-actor actors words/_modify
+		actors: get-actors port
 		stack/mark-func words/_modify actors/ctx
 		stack/push as red-value! port
 		stack/push field
 		stack/push value
 		logic/push case?
-		call-function actor actors/ctx
+		call-function actors words/_modify
 	]
 		
 	open: func [
@@ -471,12 +446,10 @@ port: context [
 		return:	[red-value!]
 		/local
 			actors [red-object!]
-			actor  [red-function!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "port/open"]]
 		
-		actors: get-actors port words/_open
-		actor: get-actor actors words/_open
+		actors: get-actors port
 		stack/mark-func words/_open actors/ctx
 		stack/push as red-value! port
 		logic/push new?
@@ -484,7 +457,7 @@ port: context [
 		logic/push write?
 		logic/push seek?
 		stack/push allow
-		call-function actor actors/ctx
+		call-function actors words/_open
 	]
 	
 	poke: func [
@@ -495,17 +468,15 @@ port: context [
 		return:	[red-value!]
 		/local
 			actors [red-object!]
-			actor  [red-function!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "port/poke"]]
 		
-		actors: get-actors port words/_poke
-		actor: get-actor actors words/_poke
+		actors: get-actors port
 		stack/mark-func words/_poke actors/ctx
 		stack/push as red-value! port
 		stack/push boxed
 		stack/push data
-		call-function actor actors/ctx
+		call-function actors words/_poke
 	]
 	
 	put: func [
@@ -516,18 +487,16 @@ port: context [
 		return:	[red-value!]
 		/local
 			actors [red-object!]
-			actor  [red-function!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "port/put"]]
 
-		actors: get-actors port words/_put
-		actor: get-actor actors words/_put
+		actors: get-actors port
 		stack/mark-func words/_put actors/ctx
 		stack/push as red-value! port
 		stack/push key
 		stack/push value
 		logic/push case?
-		call-function actor actors/ctx
+		call-function actors words/_put
 	]
 	
 	query: func [
@@ -567,19 +536,17 @@ port: context [
 		return: [red-value!]
 		/local
 			actors [red-object!]
-			actor  [red-function!]
 			part?  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "port/remove"]]
 		
 		part?: OPTION?(part)
-		actors: get-actors as red-object! port words/_remove
-		actor: get-actor actors words/_remove
+		actors: get-actors as red-object! port
 		stack/mark-func words/_remove actors/ctx
 		stack/push as red-value! port
 		logic/push part?
 		either part? [stack/push part][none/push]
-		call-function actor actors/ctx
+		call-function actors words/_remove
 	]
 	
 	reverse: func [
@@ -588,19 +555,17 @@ port: context [
 		return: [red-value!]
 		/local
 			actors [red-object!]
-			actor  [red-function!]
 			part?  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "port/reverse"]]
 
 		part?: OPTION?(part)
-		actors: get-actors as red-object! port words/_reverse
-		actor: get-actor actors words/_reverse
+		actors: get-actors as red-object! port
 		stack/mark-func words/_reverse actors/ctx
 		stack/push as red-value! port
 		logic/push part?
 		either part? [stack/push part][none/push]
-		call-function actor actors/ctx
+		call-function actors words/_reverse
 	]
 	
 	rename: func [
@@ -609,16 +574,14 @@ port: context [
 		return: [red-value!]
 		/local
 			actors [red-object!]
-			actor  [red-function!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "port/rename"]]
 
-		actors: get-actors as red-object! from words/_rename
-		actor: get-actor actors words/_rename
+		actors: get-actors as red-object! from
 		stack/mark-func words/_rename actors/ctx
 		stack/push from
 		stack/push to
-		call-function actor actors/ctx
+		call-function actors words/_rename
 	]
 
 	select: func [
@@ -636,7 +599,6 @@ port: context [
 		return:  [red-value!]
 		/local
 			actors [red-object!]
-			actor  [red-function!]
 			part?  [logic!]
 			with?  [logic!]
 			skip?  [logic!]
@@ -646,8 +608,7 @@ port: context [
 		part?: OPTION?(part)
 		with?: OPTION?(with-arg)
 		skip?: OPTION?(skip)
-		actors: get-actors as red-object! port words/_select
-		actor: get-actor actors words/_select
+		actors: get-actors as red-object! port
 		stack/mark-func words/_select actors/ctx
 		stack/push as red-value! port
 		stack/push value
@@ -663,7 +624,7 @@ port: context [
 		either skip? [stack/push as red-value! skip][none/push]
 		logic/push last?
 		logic/push reverse?
-		call-function actor actors/ctx
+		call-function actors words/_select
 	]
 	
 	sort: func [
@@ -678,7 +639,6 @@ port: context [
 		return:  [red-value!]
 		/local
 			actors [red-object!]
-			actor  [red-function!]
 			part?  [logic!]
 			comp?  [logic!]
 			skip?  [logic!]
@@ -688,8 +648,7 @@ port: context [
 		part?: OPTION?(part)
 		comp?: OPTION?(compare)
 		skip?: OPTION?(skip)
-		actors: get-actors as red-object! port words/_sort
-		actor: get-actor actors words/_sort
+		actors: get-actors as red-object! port
 		stack/mark-func words/_sort actors/ctx
 		stack/push as red-value! port
 		logic/push case?
@@ -702,7 +661,7 @@ port: context [
 		logic/push all?
 		logic/push reverse?
 		logic/push stable?
-		call-function actor actors/ctx
+		call-function actors words/_sort
 	]
 	
 	swap: func [
@@ -711,16 +670,14 @@ port: context [
 		return: [red-value!]
 		/local
 			actors [red-object!]
-			actor  [red-function!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "port/swap"]]
 		
-		actors: get-actors as red-object! port words/_sort
-		actor: get-actor actors words/_sort
+		actors: get-actors as red-object! port
 		stack/mark-func words/_sort actors/ctx
 		stack/push as red-value! port
 		stack/push series2
-		call-function actor actors/ctx
+		call-function actors words/_sort
 	]
 	
 	take: func [
@@ -731,21 +688,19 @@ port: context [
 		return: [red-value!]
 		/local
 			actors [red-object!]
-			actor  [red-function!]
 			part?  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "port/take"]]
 		
 		part?: OPTION?(part)
-		actors: get-actors as red-object! port words/_take
-		actor: get-actor actors words/_take
+		actors: get-actors as red-object! port
 		stack/mark-func words/_take actors/ctx
 		stack/push as red-value! port
 		logic/push part?
 		either part? [stack/push part][none/push]
 		logic/push deep?
 		logic/push last?
-		call-function actor actors/ctx
+		call-function actors words/_take
 	]
 	
 	trim: func [
@@ -759,14 +714,12 @@ port: context [
 		return:  [red-value!]
 		/local
 			actors [red-object!]
-			actor  [red-function!]
 			with?  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "port/trim"]]
 
 		with?: OPTION?(with-arg)
-		actors: get-actors as red-object! port words/_trim
-		actor: get-actor actors words/_trim
+		actors: get-actors as red-object! port
 		stack/mark-func words/_trim actors/ctx
 		stack/push as red-value! port
 		logic/push head?
@@ -776,7 +729,7 @@ port: context [
 		logic/push all?
 		logic/push with?
 		either with? [stack/push with-arg][none/push]
-		call-function actor actors/ctx
+		call-function actors words/_trim
 	]
 	
 	update: func [

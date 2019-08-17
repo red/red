@@ -149,7 +149,7 @@ round: make action! [[
 		"Returns the nearest integer. Halves round up (away from zero) by default"
 		n		[number! time! pair!]
 		/to		"Return the nearest multiple of the scale parameter"
-		scale	[number!] "Must be a non-zero value"
+		scale	[number! time!] "Must be a non-zero value"
 		/even		"Halves round toward even results"
 		/down		"Round toward zero, ignoring discarded digits. (truncate)"
 		/half-down	"Halves round toward zero"

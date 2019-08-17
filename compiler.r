@@ -2260,7 +2260,7 @@ red: context [
 	]
 	
 	comp-any: does [
-		either block? pc/1 [
+		either all [block? pc/1 not check-infix-operators no][
 			comp-boolean-expressions 'any ['if 'logic/false? body]
 		][
 			emit-open-frame 'any
@@ -2271,7 +2271,7 @@ red: context [
 	]
 	
 	comp-all: does [
-		either block? pc/1 [
+		either all [block? pc/1 not check-infix-operators no][
 			comp-boolean-expressions 'all [
 				'either 'logic/false? set-last-none body
 			]

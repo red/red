@@ -492,7 +492,9 @@ integer: context [
 				char: as red-char! value2				;@@ could be optimized as integer! and char!
 				right: char/value						;@@ structures are overlapping exactly
 			]
-			TYPE_FLOAT TYPE_PERCENT [
+			TYPE_FLOAT
+			TYPE_TIME
+			TYPE_PERCENT [
 				f: as red-float! value1
 				left: value1/value
 				f/value: as-float left
@@ -702,7 +704,7 @@ integer: context [
 		if num = 80000000h [return value]
 		sc: 1
 		if OPTION?(scale) [
-			if TYPE_OF(scale) = TYPE_FLOAT [
+			if TYPE_OF(scale) <> TYPE_INTEGER [
 				f: as red-float! value
 				f/value: as-float num
 				f/header: TYPE_FLOAT

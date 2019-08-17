@@ -3283,6 +3283,7 @@ system-dialect: make-profilable context [
 				]
 				boxed: expr
 				expr: either any-float? boxed/type [cast/quiet expr][cast expr]
+				if object? expr [comp-expression expr keep?]
 			]
 			
 			;-- dead expressions elimination

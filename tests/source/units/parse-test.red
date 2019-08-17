@@ -2711,6 +2711,19 @@ Red [
 		parse "bx" [some [not "b" | skip]]
 		--assert true				;-- just check that parse finishes
 
+
+	--test-- "#3357"
+		parse x3357: [][insert ('foo)]
+		--assert x3357 = [foo]
+
+		parse x3357b: [][insert ('foo)]
+		--assert x3357b = [foo]
+
+	--test-- "#3951"
+	res: none
+	do "res: expand-directives/clean [[] #macro word! func [s e]['OK] WTF]()"
+	--assert res = [[] OK]
+
 ===end-group===
     
 ~~~end-file~~~

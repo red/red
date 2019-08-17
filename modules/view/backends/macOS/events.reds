@@ -391,6 +391,8 @@ get-event-picked: func [
 		obj [integer!]
 		n	[integer!]
 		d	[float32!]
+		event [integer!]
+		idx	[integer!]
 ][
 	as red-value! switch evt/type [
 		EVT_ZOOM
@@ -406,12 +408,19 @@ get-event-picked: func [
 				int
 			]
 		]
-		EVT_MENU [word/push* evt/flags and FFFFh]
+		EVT_MENU [
+			idx: evt/flags and FFFFh
+			either idx = FFFFh [none/push][word/push* idx]
+		]
 		EVT_SCROLL [integer/push evt/flags >>> 4]
 		EVT_WHEEL [
-			d: objc_msgSend_f32 [evt/flags sel_getUid "scrollingDeltaY"]
-			if 1 = objc_msgSend [evt/flags sel_getUid "hasPreciseScrollingDeltas"] [
-				d: d / (as float32! 10.0)
+			event: objc_getAssociatedObject as-integer evt/msg RedNSEventKey
+			d: as float32! 0
+			if event <> 0 [
+				d: objc_msgSend_f32 [event sel_getUid "scrollingDeltaY"]
+				if 1 = objc_msgSend [event sel_getUid "hasPreciseScrollingDeltas"] [
+					d: d / (as float32! 10.0)
+				]
 			]
 			float/push as float! d
 		]

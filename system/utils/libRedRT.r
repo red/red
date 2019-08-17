@@ -224,7 +224,13 @@ libRedRT: context [
 		
 		foreach [def type] vars [						;-- global variables
 			list: either 2 < length? def [
-				pos: find imports to set-word! def/2
+				unless pos: find imports to set-word! def/2 [
+					insert pos: tail imports compose/deep [
+						(to set-word! def/2) context [
+							#import [libRedRT-file stdcall []]
+						]
+					]
+				]
 				pos/3/2/3
 			][
 				pos: find imports #import

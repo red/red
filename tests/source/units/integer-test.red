@@ -112,6 +112,12 @@ Red [
 
 	--test-- "round13" --assert  24 = round/half-ceiling/to  23 3
 	--test-- "round14" --assert -24 = round/half-ceiling/to -23 3
+
+	--test-- "round15"
+		--assert  24.0 = round/to 23 3.0
+		--assert  23.1 = round/to 23 30%
+		--assert  0:00:16 = round/to 15 0:0:2
+
 ===end-group===
 
 ===start-group=== "with other datatypes"

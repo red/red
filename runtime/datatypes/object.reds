@@ -412,7 +412,7 @@ object: context [
 		ctx: GET_CTX(obj) 
 		s: as series! ctx/values/value
 		fun: as red-function! s/offset + index
-		if TYPE_OF(fun) <> TYPE_FUNCTION [fire [TO_ERROR(script invalid-arg) fun]]
+		if TYPE_OF(fun) <> TYPE_FUNCTION [fire [TO_ERROR(script invalid-obj-evt) fun]]
 		
 		stack/mark-func words/_on-change* fun/ctx
 		stack/push as red-value! word
@@ -442,7 +442,7 @@ object: context [
 		#if debug? = yes [if verbose > 0 [print-line "object/fire-on-deep"]]
 
 		assert TYPE_OF(owner) = TYPE_OBJECT
-		assert owner/on-set <> null
+		if null? owner/on-set [fire [TO_ERROR(script invalid-obj-evt) owner]]
 		s: as series! owner/on-set/value
 
 		int: as red-integer! s/offset + 1
@@ -1255,8 +1255,8 @@ object: context [
 				type1 = type2
 				all [word/any-word? type1 word/any-word? type2]
 				all [											;@@ replace by ANY_NUMBER?
-					any [type1 = TYPE_INTEGER type1 = TYPE_FLOAT]
-					any [type2 = TYPE_INTEGER type2 = TYPE_FLOAT]
+					any [type1 = TYPE_INTEGER type1 = TYPE_FLOAT type1 = TYPE_PERCENT]
+					any [type2 = TYPE_INTEGER type2 = TYPE_FLOAT type2 = TYPE_PERCENT]
 				]
 			][
 				res: actions/compare-value value1 value2 op
