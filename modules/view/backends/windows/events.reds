@@ -748,7 +748,7 @@ paint-background: func [
 	values: get-face-values hWnd
 	color: as red-tuple! values + FACE_OBJ_COLOR
 
-	either win8+? [
+	either any [win8+? color/array1 and FF000000h = 0][
 		;-- use plain old GDI fill when it's possible
 		either TYPE_OF(color) = TYPE_TUPLE [
 			hBrush: CreateSolidBrush color/array1 and 00FFFFFFh
