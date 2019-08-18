@@ -170,7 +170,9 @@ gui-console-ctx: context [
 			]
 			on-close: func [face [object!] event [event!]][
 				save-cfg
+				system/view/platform/exit-event-loop
 				clear head system/view/screens/1/pane
+				quit
 			]
 			on-resizing: function [face [object!] event [event!]][
 				new-sz: event/offset
