@@ -232,7 +232,7 @@ system/console: context [
 			]
 		]
 		forever [
-			eval-command ask any [
+			eval-command ask/newline? any [
 				cue
 				all [string? set/any 'p do [prompt] :p]
 				form :p

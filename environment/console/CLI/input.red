@@ -587,6 +587,7 @@ _terminate-console: routine [][
 ask: function [
 	"Prompt the user for input"
 	question [string!]
+	/newline?
 	return:  [string!]
 ][
 	buffer: make string! 1
