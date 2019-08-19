@@ -991,7 +991,7 @@ parser: context [
 									before: input/head
 									end?: _series/rs-skip as red-series! input 1
 									match?: before = input/head
-									if positive? part [match?: input/head >= part or match?]
+									if positive? part [match?: input/head > part or match?]
 									
 									either match? [
 										w: as red-word! (block/rs-head rule) + p/rule + 1 ;-- TO/THRU argument
