@@ -228,20 +228,29 @@ gui-console-ctx: context [
 ask: function [
 	"Prompt the user for input"
 	question [string!]
+	/newline?
 	return:  [string!]
 ][
 	gui-console-ctx/show-caret
 
-	line: make string! 8
-	line: insert line question
-
 	vt: gui-console-ctx/terminal
+	either newline? [
+		line: make string! 8
+		line: insert line question
+		vt/pos: 0
+	][
+		line: last vt/lines
+		remove back tail vt/lines
+		vt/pos: length? line
+		line: tail line
+		line: insert line question
+	]
 	vt/line: line
-	vt/pos: 0
 	vt/add-line head line
 	vt/ask?: yes
 	vt/reset-top/force
 	vt/clear-stack
+
 	either vt/paste/resume [
 		vt/do-ask-loop/no-wait
 	][
