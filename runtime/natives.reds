@@ -2745,14 +2745,13 @@ natives: context [
 					TYPE_TUPLE [
 						tp: as red-tuple! arg2
 						buf2: (as byte-ptr! tp) + 4
-						if size <> TUPLE_SIZE?(tp) [
-							fire [TO_ERROR(script out-of-range) arg2]
-						]
-						either max? [
-							until [n: n + 1 if buf/n < buf2/n [buf/n: buf2/n] n = size]
-						][
-							until [n: n + 1 if buf/n > buf2/n [buf/n: buf2/n] n = size]
-						]
+						either size = TUPLE_SIZE?(tp) [
+							either max? [
+								until [n: n + 1 if buf/n < buf2/n [buf/n: buf2/n] n = size]
+							][
+								until [n: n + 1 if buf/n > buf2/n [buf/n: buf2/n] n = size]
+							]
+						][comp?: yes]
 					]
 					TYPE_FLOAT
 					TYPE_INTEGER [
