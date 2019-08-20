@@ -97,6 +97,7 @@ write %build/bin/sources.r set-cache [
 		%simple-io.reds
 		%sort.reds
 		%stack.reds
+		%thread.reds
 		%tokenizer.reds
 		%tools.reds
 		%unicode.reds
