@@ -77,7 +77,6 @@ modify: make action! [[
 		field 	 [word!]
 		value 	 [any-type!]
 		/case "Perform a case-sensitive lookup"
-		return:  [map! file!]
 	]
 	#get-definition ACT_MODIFY
 ]
