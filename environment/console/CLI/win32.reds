@@ -260,13 +260,17 @@ get-window-size: func [
 		size    [red-pair!]
 ][
 	info: declare screenbuf-info!
+	size: as red-pair! #get system/console/size
+	size/x: 80											;-- set defaults when working with stdout
+	size/y: 50											;   as many output funcs rely on it
+	columns: size/x
+	rows: size/y
 	if zero? GetConsoleScreenBufferInfo stdout as-integer info [return -1]
 	x-y: info/Size
 	columns: FIRST_WORD(x-y)
 	rows: SECOND_WORD(x-y)
-	size: as red-pair! #get system/console/size
-	size/x: SECOND_WORD(info/top-right) - SECOND_WORD(info/attr-left) 
-	size/y: FIRST_WORD(info/bottom-maxWidth) - FIRST_WORD(info/top-right)
+	size/x: SECOND_WORD(info/top-right) - SECOND_WORD(info/attr-left) + 1
+	size/y: FIRST_WORD(info/bottom-maxWidth) - FIRST_WORD(info/top-right) + 1
 	if columns <= 0 [size/x: 80 columns: 80 return -1]
 	x-y: info/Position
 	base-y: SECOND_WORD(x-y)
