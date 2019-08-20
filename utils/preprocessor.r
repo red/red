@@ -269,7 +269,7 @@ preprocessor: context [
 	]
 
 	expand: func [
-		code [block!] job [object! none!]
+		code [block! paren!] job [object! none!]
 		/clean
 		/local rule e pos cond value then else cases body keep? expr src saved file
 	][	
