@@ -2476,7 +2476,11 @@ natives: context [
 		dt: as red-date! stack/arguments
 		dt/header: TYPE_DATE
 		dt/date: platform/get-date utc >= 0
-		if _date > -1 [dt/time: 0.0 exit]
+		if _date > -1 [
+			dt/date: dt/date and FFFEFF80h				;-- clear time? flag and TZ data.
+			dt/time: 0.0
+			exit
+		]
 		dt/date: DATE_SET_TIME_FLAG(dt/date)
 		
 		tm: platform/get-time yes precise >= 0
