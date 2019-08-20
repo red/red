@@ -77,7 +77,7 @@ thread: context [
 		]
 	]
 
-	create: func [
+	start: func [
 		routine		[int-ptr!]		;-- thread-func!
 		args		[int-ptr!]
 		stack-size	[integer!]		;-- stack size in bytes. 0: default stack size
@@ -102,7 +102,7 @@ thread: context [
 		TerminateThread thread -1
 	]
 
-	exit: func [
+	stop: func [
 		retcode [integer!]
 	][
 		_endthreadex retcode
@@ -128,7 +128,7 @@ thread: context [
 		]
 	]
 
-	self: func [
+	id?: func [
 		"return current thread id"
 		return: [integer!]
 	][
@@ -212,7 +212,7 @@ thread: context [
 		]
 	]
 
-	create: func [
+	start: func [
 		routine [int-ptr!]
 		args	[int-ptr!]
 		stack	[integer!]
@@ -250,7 +250,7 @@ thread: context [
 		zero? pthread_cancel thread
 	]
 
-	exit: func [
+	stop: func [
 		retcode [integer!]
 	][
 		pthread_exit retcode
@@ -273,12 +273,12 @@ thread: context [
 		]
 	]
 
-	self: func [
+	id?: func [
 		"return current thread id"
 		return: [integer!]
 	][
 		pthread_self
 	]
 ]
-	
+
 ]
