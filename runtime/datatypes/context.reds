@@ -555,8 +555,9 @@ _context: context [
 			s	 [series!]
 	][
 		s: GET_BUFFER(spec)
-		cell: s/offset
+		cell: s/offset + spec/head
 		tail: s/tail
+		assert cell <= tail
 		
 		s: as series! ctx/symbols/value
 		base: s/tail - s/offset
