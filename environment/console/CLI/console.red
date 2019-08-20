@@ -14,5 +14,19 @@ Red [
 #include %../help.red
 #include %../engine.red
 
-system/console/init "Red Console"
-system/console/launch
+cli-console-ctx: context [
+	settings: #include %settings.red
+
+	launch: does [
+		settings/load-cfg
+
+		system/console/init "Red Console"
+		system/console/launch
+	]
+]
+
+save-cfg: function [][
+	cli-console-ctx/settings/save-cfg
+]
+
+cli-console-ctx/launch

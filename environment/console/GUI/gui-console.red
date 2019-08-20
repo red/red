@@ -225,6 +225,10 @@ gui-console-ctx: context [
 	]
 ]
 
+save-cfg: function [][
+	gui-console-ctx/save-cfg
+]
+
 ask: function [
 	"Prompt the user for input"
 	question [string!]
