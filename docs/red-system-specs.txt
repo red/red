@@ -813,7 +813,7 @@ A pointer can also point to a one-dimensional array of values literally specifie
  <variable>: [<items>]
 
  <variable> : a pointer of same type as the array items.
- <items>    : is a non-empty list of integer!, byte!, float!, logic! literal values.
+ <items>    : is a non-empty list of integer!, byte!, float!, logic!, c-string! literal values.
  
 The array is statically allocated and can be accessed using pointer path notation or pointer arithmetic. The size of the array (in number of elements) is stored in a 32-bit slot, just preceding the beginning of the array (at index 0). Mixing the different allowed types in the same array is permitted (enumerations can also be used). In such case, the size of each array's slot is either 32-bit, or 64-bit if a float64! value is present.
 
