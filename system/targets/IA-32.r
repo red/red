@@ -97,16 +97,16 @@ make-profilable make target-class [
 
 	emit-variable: func [
 		name  [word! object!] 
-		gcode [binary! block! none!]					;-- global opcodes
-		pcode [binary! block! none!]					;-- PIC opcodes
-		lcode [binary! block!] 							;-- local opcodes
+		gcode [binary! block! none!]				;-- global opcodes
+		pcode [binary! block! none!]				;-- PIC opcodes
+		lcode [binary! block!] 						;-- local opcodes
 		/local offset byte code spec
 	][
 		if object? name [name: compiler/unbox name]
 		
 		case [
 			offset: emitter/local-offset? name [
-				offset: stack-encode offset 			;-- local variable case
+				offset: stack-encode offset 		;-- local variable case
 				either block? lcode: adjust-disp32 lcode offset [
 					emit reduce bind lcode 'offset
 				][
@@ -114,7 +114,7 @@ make-profilable make target-class [
 					emit offset
 				]
 			]
-			PIC? [										;-- global variable case (PIC version)
+			PIC? [									;-- global variable case (PIC version)
 				spec: emitter/symbols/:name
 				either spec/1 = 'import-var [
 					emit #{8BB3}					;-- MOV esi, [ebx+<import disp>]
@@ -135,7 +135,7 @@ make-profilable make target-class [
 					]
 				]
 			]
-			'global [									;-- global variable case
+			'global [								;-- global variable case
 				spec: emitter/symbols/:name
 				either spec/1 = 'import-var [
 					emit #{8B3D}					;-- MOV edi, [<import>]
@@ -213,11 +213,11 @@ make-profilable make target-class [
 		]	
 	]
 	
-	emit-variable-poly: func [							;-- polymorphic variable access generation
+	emit-variable-poly: func [						;-- polymorphic variable access generation
 		name [word! object!]
-		    g8 [binary!] 		g32 [binary!]			;-- opcodes for global variables
-		    p8 [binary!] 		p32 [binary!]			;-- opcodes for global variables (PIC)
-			l8 [binary! block!] l32 [binary! block!]	;-- opcodes for local variables
+		    g8 [binary!] 		g32 [binary!]		;-- opcodes for global variables
+		    p8 [binary!] 		p32 [binary!]		;-- opcodes for global variables (PIC)
+			l8 [binary! block!] l32 [binary! block!];-- opcodes for local variables
 	][
 		with-width-of name [
 			switch width [
