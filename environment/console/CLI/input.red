@@ -414,6 +414,7 @@ unless system/console [
 				switch c [
 					KEY_ENTER [
 						add-history line
+						max: max + 1
 						string/rs-reset saved-line
 						exit
 					]
