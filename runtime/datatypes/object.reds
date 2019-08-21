@@ -944,16 +944,16 @@ object: context [
 		return:	[red-object!]
 		/local
 			obj	 [red-object!]
-			ctx	 [red-context!]
 	][
 		obj: as red-object! stack/push*
-		make-at obj 4									;-- arbitrary value
-		obj/class: get-new-id
-		obj/on-set: null
-		ctx: GET_CTX(obj)
-		
-		unless null? proto [extend ctx GET_CTX(proto) obj]
-		collect-couples ctx spec only?
+		either null? proto [
+			make-at obj 4									;-- arbitrary value
+			obj/class: get-new-id
+			obj/on-set: null
+		][
+			copy proto obj null no null
+		]
+		collect-couples GET_CTX(obj) spec only?
 		obj
 	]
 	
