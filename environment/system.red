@@ -190,6 +190,7 @@ system: context [
 				react-bad-obj:		"REACT - target can only contain object values"
 				react-gctx:			["REACT - word" :arg1 "is not a reactor's field"]
 				lib-invalid-arg:	["LIBRED - invalid argument for" :arg1]
+				buffer-not-enough:	["Buffer size too small, should be:" :arg1]
 			]
 			math: object [
 				code:				400
