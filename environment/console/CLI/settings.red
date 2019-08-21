@@ -19,10 +19,8 @@ context [
 	]
 
 	save-cfg: function [/local saved][
-		reverse cfg/history
 		clear skip cfg/history 100
 		save/header cfg-path cfg [Purpose: "Red Console Configuration File"]
-		reverse cfg/history
 	]
 
 	load-cfg: func [/local cfg-dir cfg-content cli-default][
@@ -46,7 +44,6 @@ context [
 		unless find cfg 'history [
 			append cfg [history: []]
 		]
-		reverse cfg/history
 		apply-cfg
 	]
 ]

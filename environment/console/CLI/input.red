@@ -164,8 +164,14 @@ unless system/console [
 			str	[red-string!]
 		][
 			str/head: 0
-			unless zero? string/rs-length? str [
-				block/rs-append history as red-value! str		;TBD Don't add duplicated lines.
+			unless any [
+				zero? string/rs-length? str
+				all [
+					0 < block/rs-length? history
+					zero? string/equal? str as red-string! block/rs-abs-at history 0 COMP_STRICT_EQUAL no
+				]
+			][
+				block/insert-value history as red-value! str
 			]
 		]
 
@@ -370,10 +376,14 @@ unless system/console [
 				head   [integer!]
 				c	   [integer!]
 				n	   [integer!]
+				pos	   [integer!]
+				max	   [integer!]
 		][
 			line: input-line
 			copy-cell as red-value! prompt-str as red-value! prompt
-			history/head: block/rs-length? history		;@@ set history list to tail (temporary)
+			history/head: 0
+			pos: -1
+			max: block/rs-length? history
 				
 			get-window-size
 			if null? saved-line [init-globals]
@@ -433,26 +443,27 @@ unless system/console [
 							refresh
 						]
 					]
-					KEY_CTRL_P
-					KEY_UP [
-						unless zero? history/head [
-							history/head: history/head - 1
-							fetch-history
-							line/head: string/rs-abs-length? line
-							refresh
-						]
-					]
 					KEY_CTRL_N
 					KEY_DOWN [
-						unless block/rs-tail? history [
-							history/head: history/head + 1
-							either block/rs-tail? history [
-								string/rs-reset line
-							][
-								fetch-history
-							]
-							refresh
+						either pos < 0 [
+							string/rs-reset line
+						][
+							history/head: pos
+							fetch-history
+							pos: pos - 1
 						]
+						refresh
+					]
+					KEY_CTRL_P
+					KEY_UP [
+						either pos >= (max - 1) [
+							string/rs-reset line
+						][
+							pos: pos + 1
+							history/head: pos
+							fetch-history
+						]
+						refresh
 					]
 					KEY_CTRL_A
 					KEY_HOME [
