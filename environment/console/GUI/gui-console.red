@@ -225,7 +225,7 @@ gui-console-ctx: context [
 	]
 ]
 
-save-cfg: function [][
+_save-cfg: function [][
 	gui-console-ctx/save-cfg
 ]
 
