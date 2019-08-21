@@ -25,7 +25,7 @@ cli-console-ctx: context [
 	]
 ]
 
-save-cfg: function [][
+_save-cfg: function [][
 	cli-console-ctx/settings/save-cfg
 ]
 
