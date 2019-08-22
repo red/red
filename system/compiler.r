@@ -414,7 +414,7 @@ system-dialect: make-profilable context [
 			none
 		]
 		
-		system-action?: func [path [path!] /local expr port-type op][
+		system-action?: func [path [path!] /local expr port-type op ret?][
 			if path/1 = 'system [
 				switch/default path/2 [
 					stack [
@@ -493,7 +493,25 @@ system-dialect: make-profilable context [
 								true
 							]
 							cas [
-							
+								pc: next pc
+								err: "system/atomic/cas expects "
+								repeat i 3 [
+									if not-equal?
+										first get-type pc/:i 
+										pick [pointer! integer! integer!] i
+									[
+										throw-error join err pick [
+											"a pointer! as argument"
+											"an integer! as check argument"
+											"an integer! as value argument"
+										] i
+									]
+								]
+								ret?: not empty? expr-call-stack
+								emitter/target/emit-atomic-cas pc/1 pc/2 pc/3 ret? 'seq-cst
+								last-type: [logic!]
+								pc: skip pc 3
+								true
 							]
 							load [
 								pc: next pc
@@ -515,7 +533,7 @@ system-dialect: make-profilable context [
 									throw-error join err "an integer! as value argument"
 								]
 								emitter/target/emit-atomic-store pc/1 pc/2 'seq-cst
-								pc: next pc
+								pc: skip pc 2
 								true
 							]
 						][
@@ -528,7 +546,7 @@ system-dialect: make-profilable context [
 									throw-error rejoin ["system/atomic/" op " expects an integer! as value argument"]
 								]
 								emitter/target/emit-atomic-math pc/1 op pc/2 'seq-cst
-								pc: next pc
+								pc: skip pc 2
 								true
 							][
 								false

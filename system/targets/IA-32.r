@@ -572,6 +572,24 @@ make-profilable make target-class [
 		]
 	]
 	
+	emit-atomic-cas: func [ptr [word!] check value ret? [logic!] order [word!]][
+		if verbose >= 3 [print [">>>emitting ATOMIC-CAS" mold ptr mold check mold value ret? mold order]]
+
+		emit-load value
+		emit-move-path-alt
+		emit-load check
+		emit-variable ptr
+			#{8B35}									;-- MOV esi, [value1]	; global
+			#{8BB3}									;-- MOV esi, [ebx+disp]	; PIC
+			#{8B75}									;-- MOV esi, [ebp+n]	; local
+		
+		emit #{F00FB116}							;-- LOCK CMPXCHG [esi], edx
+		if ret? [
+			emit #{0F94C0}							;-- SETE al
+			emit #{25FF000000}						;-- AND eax, 0xFF
+		]
+	]
+	
 	emit-atomic-fence: does [
 		if verbose >= 3 [print ">>>emitting ATOMIC-FENCE"]
 		emit #{0FAEF0}								;-- MFENCE
