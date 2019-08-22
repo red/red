@@ -414,7 +414,7 @@ system-dialect: make-profilable context [
 			none
 		]
 		
-		system-action?: func [path [path!] /local expr port-type][
+		system-action?: func [path [path!] /local expr port-type op][
 			if path/1 = 'system [
 				switch/default path/2 [
 					stack [
@@ -485,12 +485,55 @@ system-dialect: make-profilable context [
 							]
 						][false]
 					]
-					cpu [
-						either path/3 = 'fence [
-							pc: next pc
-							emitter/target/emit-fence
-							true
-						][false]
+					atomic [
+						switch/default path/3 [
+							fence [
+								pc: next pc
+								emitter/target/emit-atomic-fence
+								true
+							]
+							cas [
+							
+							]
+							load [
+								pc: next pc
+								if 'pointer! <> first get-type pc/1 [
+									throw-error "system/atomic/load expects a pointer! as argument"
+								]
+								emitter/target/emit-atomic-load pc/1 'seq-cst
+								last-type: [integer!]
+								pc: next pc
+								true
+							]
+							store [
+								pc: next pc
+								err: "system/atomic/store expects "
+								if 'pointer! <> first get-type pc/1 [
+									throw-error join err "a pointer! as argument"
+								]
+								if 'integer! <> first last-type: get-type pc/2 [
+									throw-error join err "an integer! as value argument"
+								]
+								emitter/target/emit-atomic-store pc/1 pc/2 'seq-cst
+								pc: next pc
+								true
+							]
+						][
+							either find [add sub or xor and nand] op: path/3 [
+								pc: next pc
+								if 'pointer! <> first get-type pc/1 [
+									throw-error rejoin ["system/atomic/" op " expects a pointer! as argument"]
+								]
+								if 'integer! <> first last-type: get-type pc/2 [
+									throw-error rejoin ["system/atomic/" op " expects an integer! as value argument"]
+								]
+								emitter/target/emit-atomic-math pc/1 op pc/2 'seq-cst
+								pc: next pc
+								true
+							][
+								false
+							]
+						]
 					]
 				][false]
 			]

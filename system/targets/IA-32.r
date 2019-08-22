@@ -544,13 +544,42 @@ make-profilable make target-class [
 		emit #{9BDBE3}								;-- FINIT			; init x87 FPU
 	]
 	
+	emit-atomic-load: func [ptr [word!] order [word!]][
+		if verbose >= 3 [print [">>>emitting ATOMIC-LOAD" mold ptr mold order]]
+		emit-pointer-path to path! reduce [ptr 'value] none
+	]
+	
+	emit-atomic-store: func [ptr [word!] value order [word!]][
+		if verbose >= 3 [print [">>>emitting ATOMIC-STORE" mold ptr mold value mold order]]
+		emit-load value
+		emit-move-path-alt
+		emit-pointer-path to set-path! reduce [ptr 'value] none
+		emit-atomic-fence
+	]
+	
+	emit-atomic-math: func [ptr [word!] op [word!] value order [word!]][
+		if verbose >= 3 [print [">>>emitting ATOMIC-MATH-OP" mold ptr mold op mold value mold order]]
+		emit-load value
+		emit-move-path-alt
+		emit-init-path ptr
+		switch op [
+			add  [emit #{F00110}]					;-- LOCK ADD [eax], edx
+			sub  [emit #{F02910}]					;-- LOCK SUB [eax], edx
+			or   [emit #{F00910}]					;-- LOCK OR  [eax], edx
+			xor  [emit #{F03110}]					;-- LOCK XOR [eax], edx
+			and  [emit #{F02110}]					;-- LOCK AND [eax], edx
+			nand []
+		]
+	]
+	
+	emit-atomic-fence: does [
+		if verbose >= 3 [print ">>>emitting ATOMIC-FENCE"]
+		emit #{0FAEF0}								;-- MFENCE
+	]
+
 	emit-get-overflow: does [
 		emit #{0F90C0}								;-- SETO al
 		emit #{83E001}								;-- AND eax, 1
-	]
-	
-	emit-fence: does [
-		emit #{0FAEF0}								;-- MFENCE
 	]
 	
 	emit-get-pc: func [/ebx][
