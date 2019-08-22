@@ -549,6 +549,10 @@ make-profilable make target-class [
 		emit #{83E001}								;-- AND eax, 1
 	]
 	
+	emit-fence: does [
+		emit #{0FAEF0}								;-- MFENCE
+	]
+	
 	emit-get-pc: func [/ebx][
 		emit #{E800000000}							;-- CALL next		; call the next instruction
 		either ebx [

@@ -485,6 +485,13 @@ system-dialect: make-profilable context [
 							]
 						][false]
 					]
+					cpu [
+						either path/3 = 'fence [
+							pc: next pc
+							emitter/target/emit-fence
+							true
+						][false]
+					]
 				][false]
 			]
 		]

@@ -1109,6 +1109,10 @@ make-profilable make target-class [
 		]
 	]
 	
+	emit-fence: does [
+		emit-i32 #{f57ff05b}						;-- DMB ish (memory fence)
+	]
+	
 	emit-get-pc: does [
 		emit-i32 #{e1a0000f}						;-- MOV r0, pc
 	]
