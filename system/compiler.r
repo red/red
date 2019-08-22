@@ -1777,7 +1777,7 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		process-get: func [code [block!] /local value][
+		process-get: func [code [block!]][
 			unless job/red-pass? [						;-- when Red runtime is included in a R/S app
 				pc: skip pc 2							;-- just ignore #get directive
 				return none
@@ -1788,7 +1788,7 @@ system-dialect: make-profilable context [
 			fetch-expression #get
 		]
 		
-		process-in: func [code [block!] /local value][
+		process-in: func [code [block!]][
 			unless job/red-pass? [						;-- when Red runtime is included in a R/S app
 				pc: skip pc 2							;-- just ignore #in directive
 				return none
