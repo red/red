@@ -557,11 +557,12 @@ make-profilable make target-class [
 		emit-atomic-fence
 	]
 	
-	emit-atomic-math: func [ptr [word!] op [word!] value order [word!]][
+	emit-atomic-math: func [ptr [word! get-word!] op [word!] value order [word!]][
 		if verbose >= 3 [print [">>>emitting ATOMIC-MATH-OP" mold ptr mold op mold value mold order]]
 		emit-load value
 		emit-move-path-alt
-		emit-init-path ptr
+		either get-word? ptr [emit-load ptr][emit-init-path ptr]
+		
 		switch op [
 			add  [emit #{F00110}]					;-- LOCK ADD [eax], edx
 			sub  [emit #{F02910}]					;-- LOCK SUB [eax], edx
@@ -572,16 +573,25 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-atomic-cas: func [ptr [word!] check value ret? [logic!] order [word!]][
+	emit-atomic-cas: func [ptr [word! get-word!] check value ret? [logic!] order [word!]][
 		if verbose >= 3 [print [">>>emitting ATOMIC-CAS" mold ptr mold check mold value ret? mold order]]
 
 		emit-load value
 		emit-move-path-alt
 		emit-load check
-		emit-variable ptr
-			#{8B35}									;-- MOV esi, [value1]	; global
-			#{8BB3}									;-- MOV esi, [ebx+disp]	; PIC
-			#{8B75}									;-- MOV esi, [ebp+n]	; local
+		either get-word? ptr [
+			either PIC? [
+				emit #{8DB3}						;-- LEA esi, [ebx+disp] ; &name
+			][
+				emit #{BE}							;-- MOV esi, &name
+			]
+			emit-reloc-addr emitter/get-symbol-ref to word! ptr	;-- symbol address
+		][
+			emit-variable ptr
+				#{8B35}								;-- MOV esi, [value1]	; global
+				#{8BB3}								;-- MOV esi, [ebx+disp]	; PIC
+				#{8B75}								;-- MOV esi, [ebp+n]	; local
+		]
 		
 		emit #{F00FB116}							;-- LOCK CMPXCHG [esi], edx
 		if ret? [
