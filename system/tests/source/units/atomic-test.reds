@@ -103,6 +103,7 @@ Red/System [
 
 		atomic-add-func: func [udata [int-ptr!]][	;-- thread-func!
 			loop A_N_ITERS [
+				;g-a: g-a + 1		;-- this will fail
 				system/atomic/add :g-a 1
 			]
 		]
@@ -123,6 +124,18 @@ Red/System [
 	--test-- "atomic CAS"
 		g-a: 0	;-- global variable
 
+		;fail-increment: func [val [int-ptr!] /local old [integer!] new [integer!]][
+		;	until [		;-- non-atomic compare and swap
+		;		old: val/value
+		;		new: old + 1
+		;		either old = val/value [
+		;			val/value: new
+		;			true
+		;		][
+		;			false
+		;		]
+		;	]
+		;]
 		cas-increment: func [val [int-ptr!] /local old [integer!] new [integer!]][
 			until [
 				old: system/atomic/load val
@@ -131,6 +144,7 @@ Red/System [
 			]
 		]
 		atomic-cas-increment: func [udata [int-ptr!]][	;-- thread-func!
+			;loop A_N_ITERS [fail-increment :g-a]		;-- this wil fail
 			loop A_N_ITERS [cas-increment :g-a]
 		]
 		run-parallel as int-ptr! :atomic-cas-increment
