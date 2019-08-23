@@ -557,16 +557,38 @@ make-profilable make target-class [
 		emit-atomic-fence
 	]
 	
-	emit-atomic-math: func [op [word!] value order [word!]][
+	emit-atomic-math: func [op [word!] right-op old? [logic!] order [word!]][
 		if verbose >= 3 [print [">>>emitting ATOMIC-MATH-OP" mold ptr mold op mold value mold order]]
 		emit #{89C6} 								;-- MOV esi, eax
-		emit-load value
-		switch op [
-			add  [emit #{F00106}]					;-- LOCK ADD [esi], eax
-			sub  [emit #{F02906}]					;-- LOCK SUB [esi], eax
-			or   [emit #{F00906}]					;-- LOCK OR  [esi], eax
-			xor  [emit #{F03106}]					;-- LOCK XOR [esi], eax
-			and  [emit #{F02106}]					;-- LOCK AND [esi], eax
+		emit-load right-op
+		either old? [
+			either find [add sub] op [
+				if op = 'sub [emit #{F7D8}]			;-- NEG eax
+				emit #{F00FC106}					;-- LOCK XADD [esi], eax
+			][
+				emit #{89C7}						;-- MOV edi, eax	; edi: right-op
+  				emit #{8B06}						;-- MOV eax, [esi]
+  													;-- .loop:
+  				emit #{89C1}						;--   MOV ecx, eax
+  				emit #{89C2}						;--   MOV edx, eax
+  				switch op [
+  					or  [emit #{09F9}]				;--   OR  ecx, edi
+  					xor [emit #{31F9}]				;--   XOR ecx, edi
+  					and [emit #{21F9}]				;--   AND ecx, edi
+  				]
+  				emit #{F00FB10E}					;--   LOCK CMPXCHG [esi], ecx
+  				emit #{75F4}						;--   JNE .loop
+  				emit #{89D0}						;-- MOV eax, edx	; eax: last old value
+			]
+		][
+			switch op [
+				add  [emit #{F00106}]				;-- LOCK ADD [esi], eax
+				sub  [emit #{F02906}]				;-- LOCK SUB [esi], eax
+				or   [emit #{F00906}]				;-- LOCK OR  [esi], eax
+				xor  [emit #{F03106}]				;-- LOCK XOR [esi], eax
+				and  [emit #{F02106}]				;-- LOCK AND [esi], eax
+			]
+			emit #{8B06}							;-- MOV eax, [esi]
 		]
 	]
 	

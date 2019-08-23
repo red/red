@@ -548,7 +548,7 @@ system-dialect: make-profilable context [
 									throw-error rejoin ["system/atomic/" op " expects an integer! as value argument"]
 								]
 								fetch-expression/final/keep 'atomic
-								emitter/target/emit-atomic-math op pc/1 'seq-cst
+								emitter/target/emit-atomic-math op pc/1 path/4 = 'old 'seq-cst
 								pc: next pc
 								true
 							][
