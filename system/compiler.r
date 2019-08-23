@@ -508,9 +508,10 @@ system-dialect: make-profilable context [
 									]
 								]
 								ret?: not empty? expr-call-stack
-								emitter/target/emit-atomic-cas pc/1 pc/2 pc/3 ret? 'seq-cst
+								fetch-expression/final/keep 'atomic
+								emitter/target/emit-atomic-cas pc/1 pc/2 ret? 'seq-cst
 								last-type: [logic!]
-								pc: skip pc 3
+								pc: skip pc 2
 								true
 							]
 							load [
@@ -518,9 +519,9 @@ system-dialect: make-profilable context [
 								if 'pointer! <> first get-type pc/1 [
 									throw-error "system/atomic/load expects a pointer! as argument"
 								]
-								emitter/target/emit-atomic-load pc/1 'seq-cst
+								fetch-expression/final/keep 'atomic
+								emitter/target/emit-atomic-load 'seq-cst
 								last-type: [integer!]
-								pc: next pc
 								true
 							]
 							store [
@@ -532,12 +533,13 @@ system-dialect: make-profilable context [
 								if 'integer! <> first last-type: get-type pc/2 [
 									throw-error join err "an integer! as value argument"
 								]
-								emitter/target/emit-atomic-store pc/1 pc/2 'seq-cst
-								pc: skip pc 2
+								fetch-expression/final/keep 'atomic
+								emitter/target/emit-atomic-store pc/1 'seq-cst
+								pc: next pc
 								true
 							]
 						][
-							either find [add sub or xor and nand] op: path/3 [
+							either find [add sub or xor and] op: path/3 [
 								pc: next pc
 								if 'pointer! <> first get-type pc/1 [
 									throw-error rejoin ["system/atomic/" op " expects a pointer! as argument"]
@@ -545,8 +547,9 @@ system-dialect: make-profilable context [
 								if 'integer! <> first last-type: get-type pc/2 [
 									throw-error rejoin ["system/atomic/" op " expects an integer! as value argument"]
 								]
-								emitter/target/emit-atomic-math pc/1 op pc/2 'seq-cst
-								pc: skip pc 2
+								fetch-expression/final/keep 'atomic
+								emitter/target/emit-atomic-math op pc/1 'seq-cst
+								pc: next pc
 								true
 							][
 								false

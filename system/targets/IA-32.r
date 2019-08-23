@@ -544,55 +544,38 @@ make-profilable make target-class [
 		emit #{9BDBE3}								;-- FINIT			; init x87 FPU
 	]
 	
-	emit-atomic-load: func [ptr [word!] order [word!]][
+	emit-atomic-load: func [order [word!]][
 		if verbose >= 3 [print [">>>emitting ATOMIC-LOAD" mold ptr mold order]]
-		emit-pointer-path to path! reduce [ptr 'value] none
+		emit #{8B00}								;-- MOV eax, [eax]
 	]
 	
-	emit-atomic-store: func [ptr [word!] value order [word!]][
+	emit-atomic-store: func [value order [word!]][
 		if verbose >= 3 [print [">>>emitting ATOMIC-STORE" mold ptr mold value mold order]]
+		emit #{89C6} 								;-- MOV esi, eax
 		emit-load value
-		emit-move-path-alt
-		emit-pointer-path to set-path! reduce [ptr 'value] none
+		emit #{8906}								;-- MOV [esi], eax
 		emit-atomic-fence
 	]
 	
-	emit-atomic-math: func [ptr [word! get-word!] op [word!] value order [word!]][
+	emit-atomic-math: func [op [word!] value order [word!]][
 		if verbose >= 3 [print [">>>emitting ATOMIC-MATH-OP" mold ptr mold op mold value mold order]]
+		emit #{89C6} 								;-- MOV esi, eax
 		emit-load value
-		emit-move-path-alt
-		either get-word? ptr [emit-load ptr][emit-init-path ptr]
-		
 		switch op [
-			add  [emit #{F00110}]					;-- LOCK ADD [eax], edx
-			sub  [emit #{F02910}]					;-- LOCK SUB [eax], edx
-			or   [emit #{F00910}]					;-- LOCK OR  [eax], edx
-			xor  [emit #{F03110}]					;-- LOCK XOR [eax], edx
-			and  [emit #{F02110}]					;-- LOCK AND [eax], edx
-			nand []
+			add  [emit #{F00106}]					;-- LOCK ADD [esi], eax
+			sub  [emit #{F02906}]					;-- LOCK SUB [esi], eax
+			or   [emit #{F00906}]					;-- LOCK OR  [esi], eax
+			xor  [emit #{F03106}]					;-- LOCK XOR [esi], eax
+			and  [emit #{F02106}]					;-- LOCK AND [esi], eax
 		]
 	]
 	
-	emit-atomic-cas: func [ptr [word! get-word!] check value ret? [logic!] order [word!]][
+	emit-atomic-cas: func [check value ret? [logic!] order [word!]][
 		if verbose >= 3 [print [">>>emitting ATOMIC-CAS" mold ptr mold check mold value ret? mold order]]
-
+		emit #{89C6} 								;-- MOV esi, eax
 		emit-load value
-		emit-move-path-alt
-		emit-load check
-		either get-word? ptr [
-			either PIC? [
-				emit #{8DB3}						;-- LEA esi, [ebx+disp] ; &name
-			][
-				emit #{BE}							;-- MOV esi, &name
-			]
-			emit-reloc-addr emitter/get-symbol-ref to word! ptr	;-- symbol address
-		][
-			emit-variable ptr
-				#{8B35}								;-- MOV esi, [value1]	; global
-				#{8BB3}								;-- MOV esi, [ebx+disp]	; PIC
-				#{8B75}								;-- MOV esi, [ebp+n]	; local
-		]
-		
+		emit-move-path-alt							;-- load new value in edx
+		emit-load check								;-- load check value in eax
 		emit #{F00FB116}							;-- LOCK CMPXCHG [esi], edx
 		if ret? [
 			emit #{0F94C0}							;-- SETE al
