@@ -120,6 +120,22 @@ Red/System [
 		run-parallel as int-ptr! :atomic-sub-func
 		--assert 0 = g-a
 
+	--test-- "atomic CAS"
+		g-a: 0	;-- global variable
+
+		cas-increment: func [val [int-ptr!] /local old [integer!] new [integer!]][
+			until [
+				old: system/atomic/load val
+				new: old + 1
+				system/atomic/cas val old new
+			]
+		]
+		atomic-cas-increment: func [udata [int-ptr!]][	;-- thread-func!
+			loop A_N_ITERS [cas-increment :g-a]
+		]
+		run-parallel as int-ptr! :atomic-cas-increment
+		--assert A_N_THREADS * A_N_ITERS = g-a		
+
 	run-parallel-2: func [
 		op-func		[int-ptr!]
 		init-value	[integer!]
