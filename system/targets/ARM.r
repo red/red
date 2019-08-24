@@ -1093,6 +1093,11 @@ make-profilable make target-class [
 	
 	emit-fpu-update: emit-fpu-init: none			;-- not used for now
 	
+	emit-atomic-fence: does [
+		if verbose >= 3 [print ">>>emitting ATOMIC-FENCE"]
+		emit-i32 #{f57ff05b}						;-- DMB ish
+	]
+	
 	emit-get-overflow: does [
 		switch/default last-math-op [
 			* [
