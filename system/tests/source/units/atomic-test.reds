@@ -17,6 +17,30 @@ Red/System [
 
 ~~~start-file~~~ "atomic operations"
 
+===start-group=== "atomic operations path"
+	st!: alias struct! [
+		a	[integer!]
+		b	[integer!]
+	]
+	st: declare st!
+	st/a: 0
+	st/b: 1
+
+	--test-- "atomic load path"
+		test-load: func [s [st!]][
+			--assert (system/atomic/load :s/b) = 1
+		]
+		test-load st
+
+	--test-- "atomic store path"
+		test-store: func [s [st!]][
+			system/atomic/store :s/a 1
+			--assert s/a = s/b
+		]
+		test-store st
+
+===end-group===
+
 ===start-group=== "atomic operations with multi threads"
 	run-parallel: func [
 		op-func		[int-ptr!]
