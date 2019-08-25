@@ -1,5 +1,5 @@
 Red/System [
-	Title:	"A FIFO Multi-Producer Multi-Consumer (MPMC) Queue"
+	Title:	"A Fixed Size FIFO Multi-Producer Multi-Consumer (MPMC) Queue"
 	Author: "Xie Qingtian"
 	File: 	%queue.reds
 	Tabs:	4
@@ -82,8 +82,7 @@ queue: context [
 			tail	[integer!]
 	][
 		until [
-			next: system/atomic/load :qe/tail
-			tail: next
+			tail: system/atomic/load :qe/tail
 			node: qe/data + tail
 			if (system/atomic/load :node/status) <> tail [return false] ;-- queue is full
 			next: tail + 1 and qe/capacityMask
@@ -103,8 +102,7 @@ queue: context [
 			next	[integer!]
 	][
 		until [
-			next: system/atomic/load :qe/head
-			head: next
+			head: system/atomic/load :qe/head
 			node: qe/data + head
 			if (system/atomic/load :node/status) = head [return null] ;-- queue is empty
 			next: head + 1 and qe/capacityMask
@@ -115,21 +113,21 @@ queue: context [
 	]
 
 	s-push: func [
-		"single producer push, no lock is needed"
+		"single producer push, a bit faster than push"
 		qe			[queue!]
 		val			[int-ptr!]
+		return:		[logic!]
 		/local
 			tail	[integer!]
 			node	[qnode!]
 	][
-		if qe/capacity = size qe [		;-- full, expand it
-			make-space qe 1
-		]
 		tail: qe/tail
-		qe/tail: tail + 1 and qe/capacityMask
 		node: qe/data + tail
+		if tail <> node/status [return false] ;-- queue is full
+		qe/tail: tail + 1 and qe/capacityMask
 		node/value: val
-		node/status: not tail
+		system/atomic/store :node/status -1
+		true
 	]
 
 	empty?: func [
@@ -151,32 +149,10 @@ queue: context [
 	][
 		tail: system/atomic/load :qe/tail
 		head: system/atomic/load :qe/head
-		if tail < head [tail: tail + qe/capacityMask]
+		if any [
+			tail < head
+			all [tail = head qe/data/status <> 0]
+		][tail: tail + qe/capacity]
 		tail - head
-	]
-
-	make-space: func [
-		qe		[queue!]
-		len		[integer!]
-		/local
-			cap		[integer!]
-			old-cap	[integer!]
-			n		[integer!]
-			ptr		[qnode!]
-	][
-		old-cap: qe/capacity
-		cap: old-cap
-		until [
-			cap: cap << 1
-			cap > (old-cap + len)
-		]
-		qe/capacity: cap
-		qe/data: as qnode! realloc as byte-ptr! qe/data cap * size? qnode!
-		ptr: qe/data + old-cap
-		while [old-cap < cap][
-			ptr/status: old-cap
-			ptr: ptr + 1
-			old-cap: old-cap + 1
-		]
 	]
 ]
