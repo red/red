@@ -86,10 +86,11 @@ queue: context [
 			tail: next
 			node: qe/data + tail
 			if (system/atomic/load :node/status) <> tail [return false] ;-- queue is full
-			system/atomic/cas :qe/tail tail tail + 1 and qe/capacityMask
+			next: tail + 1 and qe/capacityMask
+			system/atomic/cas :qe/tail tail next
 		]
 		node/value: val
-		system/atomic/store :node/status not tail
+		system/atomic/store :node/status -1
 		true
 	]
 
@@ -106,7 +107,8 @@ queue: context [
 			head: next
 			node: qe/data + head
 			if (system/atomic/load :node/status) = head [return null] ;-- queue is empty
-			system/atomic/cas :qe/head head head + 1 and qe/capacityMask
+			next: head + 1 and qe/capacityMask
+			system/atomic/cas :qe/head head next
 		]
 		system/atomic/store :node/status head
 		node/value
@@ -120,7 +122,7 @@ queue: context [
 			tail	[integer!]
 			node	[qnode!]
 	][
-		if qe/capacity = qe/size [		;-- full, expand it
+		if qe/capacity = size qe [		;-- full, expand it
 			make-space qe 1
 		]
 		tail: qe/tail
@@ -154,7 +156,7 @@ queue: context [
 	]
 
 	make-space: func [
-		queue	[queue!]
+		qe		[queue!]
 		len		[integer!]
 		/local
 			cap		[integer!]
@@ -166,10 +168,10 @@ queue: context [
 		cap: old-cap
 		until [
 			cap: cap << 1
-			cap > (size + len)
+			cap > (old-cap + len)
 		]
 		qe/capacity: cap
-		qe/data: as int-ptr! realloc as byte-ptr! qe/data cap * size? qnode!
+		qe/data: as qnode! realloc as byte-ptr! qe/data cap * size? qnode!
 		ptr: qe/data + old-cap
 		while [old-cap < cap][
 			ptr/status: old-cap
