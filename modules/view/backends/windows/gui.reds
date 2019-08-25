@@ -1467,10 +1467,10 @@ OS-make-view: func [
 			AdjustWindowRectEx rc flags menu-bar? menu window ws-flags
 			rc/right: rc/right - rc/left
 			rc/bottom: rc/bottom - rc/top
-			focused: null
+			focused: null 
 			if bits and FACET_FLAGS_MODAL <> 0 [
 				parent: as-integer find-last-window
-				focused: get-selected-handle as handle! parent
+				if parent <> 0 [focused: get-selected-handle as handle! parent]
 			]
 		]
 		true [											;-- search in user-defined classes
