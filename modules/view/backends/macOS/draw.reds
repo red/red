@@ -22,7 +22,16 @@ edges: as CGPoint! allocate max-edges * (size? CGPoint!)	;-- polygone edges buff
 colors: as pointer! [float32!] allocate 5 * max-colors * (size? float32!)
 colors-pos: colors + (4 * max-colors)
 
-draw-state!: alias struct! [unused [integer!]]
+draw-state!: alias struct! [
+	pen-clr		[integer!]
+	brush-clr	[integer!]
+	pen-join	[integer!]
+	pen-cap		[integer!]
+	pen?		[logic!]
+	brush?		[logic!]
+	a-pen?		[logic!]
+	a-brush?	[logic!]
+]
 
 draw-begin: func [
 	ctx			[draw-ctx!]
@@ -1405,12 +1414,26 @@ OS-matrix-transform: func [
 
 OS-matrix-push: func [dc [draw-ctx!] state [draw-state!]][
 	CGContextSaveGState dc/raw
+	state/pen-clr: dc/pen-color
+	state/brush-clr: dc/brush-color
+	state/pen-join: dc/pen-join
+	state/pen-cap: dc/pen-cap
+	state/pen?: dc/pen?
+	state/brush?: dc/brush?
+	state/a-pen?: dc/grad-pen?
+	state/a-brush?: dc/grad-brush?
 ]
 
 OS-matrix-pop: func [dc [draw-ctx!] state [draw-state!]][
 	CGContextRestoreGState dc/raw
-	dc/pen-color:		0
-	dc/brush-color:		0
+	dc/pen-color: state/pen-clr
+	dc/brush-color: state/brush-clr
+	dc/pen-join: state/pen-join
+	dc/pen-cap: state/pen-cap
+	dc/pen?: state/pen?
+	dc/brush?: state/brush?
+	dc/grad-pen?: state/a-pen?
+	dc/grad-brush?: state/a-brush?
 ]
 
 OS-matrix-reset: func [
