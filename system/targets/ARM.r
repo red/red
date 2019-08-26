@@ -1109,6 +1109,38 @@ make-profilable make target-class [
 		emit-atomic-fence
 	]
 	
+	emit-atomic-math: func [op [word!] right-op old? [logic!] order [word!]][
+		if verbose >= 3 [print [">>>emitting ATOMIC-MATH-OP" mold ptr mold op mold value mold order]]
+		emit-i32 #{e1a03000}						;-- MOV r3, r0
+		emit-load right-op
+		emit-atomic-fence
+													;-- .loop:
+		emit-i32 #{e1931f9f}						;--   LDREX r1, [r3]
+		either old? [
+			emit-i32 switch op [
+				add  [#{e0812000}]					;--   ADD r2, r1, r0
+				sub  [#{e0412000}]					;--   SUB r2, r1, r0
+				or   [#{e1812000}]					;--   ORR r2, r1, r0
+				xor  [#{e0212000}]					;--   EOR r2, r1, r0
+				and  [#{e0012000}]					;--   AND r2, r1, r0
+			]
+			emit-i32 #{e183cf92}					;--   STREX ip, r2, [r3]
+		][
+			emit-i32 switch op [
+				add  [#{e0811000}]					;--   ADD r1, r0
+				sub  [#{e0411000}]					;--   SUB r1, r0
+				or   [#{e1811000}]					;--   ORR r1, r0
+				xor  [#{e0211000}]					;--   EOR r1, r0
+				and  [#{e0011000}]					;--   AND r1, r0
+			]
+			emit-i32 #{e183cf91}					;--   STREX ip, r1, [r3]
+		]
+		emit-i32 #{e35c0000}						;--   CMP ip, #0
+		emit-i32 #{1afffffa}						;--   BNE .loop
+		emit-atomic-fence
+		emit-i32 #{e1a00001}						;-- MOV r0, r1
+	]
+	
 	emit-atomic-cas: func [check value ret? [logic!] order [word!]][
 		if verbose >= 3 [print [">>>emitting ATOMIC-CAS" mold ptr mold check mold value ret? mold order]]
 		emit-i32 #{e1a03000}						;-- MOV r3, r0
