@@ -340,21 +340,6 @@ on-key-down: func [
 	]
 ]
 
-key-down-base: func [
-	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	event	[integer!]
-][
-	either zero? objc_getAssociatedObject self RedRichTextKey [
-		on-key-down self event
-	][
-		objc_msgSend [
-			objc_msgSend [self sel_getUid "inputContext"] sel_getUid "handleEvent:" event
-		]
-	]
-]
-
 win-level: func [
 	[cdecl]
 	self	[integer!]
@@ -846,12 +831,23 @@ win-send-event: func [
 			find?: yes
 			responder: objc_msgSend [self sel_getUid "firstResponder"]
 			object_getInstanceVariable responder IVAR_RED_DATA :type
-			if type <> base [
+			either type <> base [
 				unless red-face? responder [
 					responder: objc_getAssociatedObject self RedFieldEditorKey
 					unless red-face? responder [find?: no]
 				]
-				if find? [on-key-down responder event]
+				if find? [
+					on-key-down responder event
+					send?: no
+				]
+			][
+				on-key-down responder event
+				send?: no
+				unless zero? objc_getAssociatedObject self RedRichTextKey [
+					objc_msgSend [
+						objc_msgSend [self sel_getUid "inputContext"] sel_getUid "handleEvent:" event
+					]
+				]
 			]
 		]
 		true [0]
