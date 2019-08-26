@@ -51,8 +51,13 @@ gui-console-ctx: context [
 		flags:   [scrollable all-over]
 		options: [cursor: I-beam]
 		menu: [
-			"Copy^-Ctrl+C"		copy
-			"Paste^-Shift+Ins"	paste
+			#either config/OS = 'macOS [
+				"Copy^-Command+C"	copy
+				"Paste^-Command+V"	paste
+			][
+				"Copy^-Ctrl+C"		copy
+				"Paste^-Shift+Ins"	paste
+			]
 			---
 			"Select All"		select-all
 		]
