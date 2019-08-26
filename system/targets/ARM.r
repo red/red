@@ -1108,10 +1108,30 @@ make-profilable make target-class [
 		emit-i32 #{e5820000}						;-- STR r0, [r2]
 		emit-atomic-fence
 	]
+	
+	emit-atomic-cas: func [check value ret? [logic!] order [word!]][
+		if verbose >= 3 [print [">>>emitting ATOMIC-CAS" mold ptr mold check mold value ret? mold order]]
+		emit-i32 #{e1a03000}						;-- MOV r3, r0
+		emit-load check
+		emit-i32 #{e1a02000}						;-- MOV r2, r0		; r2: check
+		emit-load value
+		emit-i32 #{e3a0c001}						;-- MOV ip, #1		; preset fail flag
+		emit-atomic-fence
+													;-- .loop:
+		emit-i32 #{e1931f9f}						;--   LDREX r1, [r3]
+		emit-i32 #{e1510002}						;--   CMP r1, r2
+		emit-i32 #{1a000002}						;--   BNE .exit
+		emit-i32 #{e183cf90}						;--   STREX ip, r0, [r3]
+		emit-i32 #{e35c0000}						;--   CMP ip, #0
+		emit-i32 #{1afffff9}						;--   BNE .loop
+													;-- .exit:
+		emit-atomic-fence
+		if ret? [emit-i32 #{e22c0001}]				;--   EOR r0, ip, #1
+	]
 
 	emit-atomic-fence: does [
 		if verbose >= 3 [print ">>>emitting ATOMIC-FENCE"]
-		emit-i32 #{f57ff05b}						;-- DMB ish
+		emit-i32 #{f57ff05b}						;-- DMB ish (memory fence)
 	]
 	
 	emit-get-overflow: does [
@@ -1128,10 +1148,6 @@ make-profilable make target-class [
 			emit-i32 #{63a00001}					;-- MOVVS r0, #1
 			emit-i32 #{73a00000}					;-- MOVVC r0, #0
 		]
-	]
-	
-	emit-fence: does [
-		emit-i32 #{f57ff05b}						;-- DMB ish (memory fence)
 	]
 	
 	emit-get-pc: does [
