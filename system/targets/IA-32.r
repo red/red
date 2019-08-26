@@ -581,12 +581,12 @@ make-profilable make target-class [
   				emit #{89D0}						;-- MOV eax, edx	; eax: last old value
 			]
 		][
-			switch op [
-				add  [emit #{F00106}]				;-- LOCK ADD [esi], eax
-				sub  [emit #{F02906}]				;-- LOCK SUB [esi], eax
-				or   [emit #{F00906}]				;-- LOCK OR  [esi], eax
-				xor  [emit #{F03106}]				;-- LOCK XOR [esi], eax
-				and  [emit #{F02106}]				;-- LOCK AND [esi], eax
+			emit switch op [
+				add  [#{F00106}]					;-- LOCK ADD [esi], eax
+				sub  [#{F02906}]					;-- LOCK SUB [esi], eax
+				or   [#{F00906}]					;-- LOCK OR  [esi], eax
+				xor  [#{F03106}]					;-- LOCK XOR [esi], eax
+				and  [#{F02106}]					;-- LOCK AND [esi], eax
 			]
 			emit #{8B06}							;-- MOV eax, [esi]
 		]
