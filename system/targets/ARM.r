@@ -1093,6 +1093,22 @@ make-profilable make target-class [
 	
 	emit-fpu-update: emit-fpu-init: none			;-- not used for now
 	
+	emit-atomic-load: func [order [word!]][
+		if verbose >= 3 [print [">>>emitting ATOMIC-LOAD" mold ptr mold order]]
+		emit-atomic-fence
+		emit-i32 #{e5900000}						;-- LDR r0, [r0]
+		emit-atomic-fence
+	]
+	
+	emit-atomic-store: func [value order [word!]][
+		if verbose >= 3 [print [">>>emitting ATOMIC-STORE" mold ptr mold value mold order]]
+		emit-i32 #{e1a02000}						;-- MOV r2, r0
+		emit-atomic-fence
+		emit-load value
+		emit-i32 #{e5820000}						;-- STR r0, [r2]
+		emit-atomic-fence
+	]
+
 	emit-atomic-fence: does [
 		if verbose >= 3 [print ">>>emitting ATOMIC-FENCE"]
 		emit-i32 #{f57ff05b}						;-- DMB ish
