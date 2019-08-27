@@ -11,24 +11,26 @@ Red [
 ]
 
 context [
-	cfg-path:	 none
-	cfg:		 none
+	cfg-dir:	none
+	cfg-path:	none
+	cfg:		none
 
 	apply-cfg: function [][
 		system/console/history: cfg/history
 	]
 
 	save-cfg: function [/local saved][
+		unless exists? cfg-dir [make-dir/deep cfg-dir]
 		clear skip cfg/history 100
 		save/header cfg-path cfg [Purpose: "Red Console Configuration File"]
 	]
 
-	load-cfg: func [/local cfg-dir cfg-content cli-default][
+	load-cfg: func [/local cfg-content cli-default][
 		cfg-dir: append copy system/options/cache
 				#either config/OS = 'Windows [%Red-Console/][%.Red-Console/]
 
 		unless exists? cfg-dir [make-dir/deep cfg-dir]
-		cfg-path: append cfg-dir %console-cfg.red
+		cfg-path: append copy cfg-dir %console-cfg.red
 
 		cfg: either all [
 			exists? cfg-path

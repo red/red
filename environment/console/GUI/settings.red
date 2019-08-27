@@ -166,6 +166,7 @@ apply-cfg: function [][
 ]
 
 save-cfg: function [][
+	unless exists? cfg-dir [make-dir/deep cfg-dir]
 	offset: win/offset					;-- offset could be negative in some cases
 	if offset/x < 0 [offset/x: 0]
 	if offset/y < 0 [offset/y: 0]
@@ -191,13 +192,13 @@ check-cfg: function [gui-default][
 	]
 ]
 
-load-cfg: func [/local cfg-dir cfg-content gui-default][
+load-cfg: func [/local cfg-content gui-default][
 	system/view/auto-sync?: no
 	cfg-dir: append copy system/options/cache
 			#either config/OS = 'Windows [%Red-Console/][%.Red-Console/]
 
 	unless exists? cfg-dir [make-dir/deep cfg-dir]
-	cfg-path: append cfg-dir %console-cfg.red
+	cfg-path: append copy cfg-dir %console-cfg.red
 
 	gui-default: compose [
 		win-pos:	  (win/offset)
