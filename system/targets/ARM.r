@@ -1109,7 +1109,7 @@ make-profilable make target-class [
 		emit-atomic-fence
 	]
 	
-	emit-atomic-math: func [op [word!] right-op old? [logic!] order [word!]][
+	emit-atomic-math: func [op [word!] right-op old? [logic!] ret? [logic!] order [word!]][
 		if verbose >= 3 [print [">>>emitting ATOMIC-MATH-OP" mold ptr mold op mold value mold order]]
 		emit-i32 #{e1a03000}						;-- MOV r3, r0
 		emit-load right-op

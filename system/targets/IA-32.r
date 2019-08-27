@@ -557,28 +557,40 @@ make-profilable make target-class [
 		emit-atomic-fence
 	]
 	
-	emit-atomic-math: func [op [word!] right-op old? [logic!] order [word!]][
-		if verbose >= 3 [print [">>>emitting ATOMIC-MATH-OP" mold ptr mold op mold value mold order]]
+	emit-atomic-math: func [op [word!] right-op old? [logic!] ret? [logic!] order [word!]][
+		if verbose >= 3 [print [">>>emitting ATOMIC-MATH-OP" mold ptr mold op mold value mold ret? mold order]]
 		emit #{89C6} 								;-- MOV esi, eax
 		emit-load right-op
-		either old? [
+		either any [old? ret?][
 			either find [add sub] op [
+				emit #{89C2}						;-- MOV edx, eax
 				if op = 'sub [emit #{F7D8}]			;-- NEG eax
 				emit #{F00FC106}					;-- LOCK XADD [esi], eax
+				if all [ret? not old?][
+					emit either op = 'add [
+						#{01D0}						;-- ADD eax, edx
+					][
+						#{29D0}						;-- SUB eax, edx
+					]
+				]
 			][
 				emit #{89C7}						;-- MOV edi, eax	; edi: right-op
-  				emit #{8B06}						;-- MOV eax, [esi]
-  													;-- .loop:
-  				emit #{89C1}						;--   MOV ecx, eax
-  				emit #{89C2}						;--   MOV edx, eax
-  				switch op [
-  					or  [emit #{09F9}]				;--   OR  ecx, edi
-  					xor [emit #{31F9}]				;--   XOR ecx, edi
-  					and [emit #{21F9}]				;--   AND ecx, edi
-  				]
-  				emit #{F00FB10E}					;--   LOCK CMPXCHG [esi], ecx
-  				emit #{75F4}						;--   JNE .loop
-  				emit #{89D0}						;-- MOV eax, edx	; eax: last old value
+				emit #{8B06}						;-- MOV eax, [esi]
+													;-- .loop:
+				emit #{89C1}						;--   MOV ecx, eax
+				unless old? [emit #{89C2}]			;--   [MOV edx, eax]  ; only for old?
+				switch op [
+					or  [emit #{09F9}]				;--   OR  ecx, edi
+					xor [emit #{31F9}]				;--   XOR ecx, edi
+					and [emit #{21F9}]				;--   AND ecx, edi
+				]
+				emit #{F00FB10E}					;--   LOCK CMPXCHG [esi], ecx
+				emit either old? [#{75F4}][#{75F6}]	;--   JNE .loop
+				emit either all [ret? not old?][
+					#{89C8}							;-- MOV eax, ecx	; eax: newly written value
+				][
+					#{89D0}							;-- MOV eax, edx	; eax: last old value
+				]
 			]
 		][
 			emit switch op [
@@ -588,7 +600,6 @@ make-profilable make target-class [
 				xor  [#{F03106}]					;-- LOCK XOR [esi], eax
 				and  [#{F02106}]					;-- LOCK AND [esi], eax
 			]
-			emit #{8B06}							;-- MOV eax, [esi]
 		]
 	]
 	
