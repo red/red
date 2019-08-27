@@ -108,6 +108,8 @@ print ["This test started at" start-time]
 
 ===start-group=== "System tests"
   --run-test-file-quiet %source/units/system-test.reds
+  --run-test-file-quiet %source/units/atomic-test.reds
+  --run-test-file-quiet %source/units/queue-test.reds
 ===end-group===
 
 ===start-group=== "Auto-tests"
