@@ -373,32 +373,16 @@ query-cursor: func [
 get-window-size: func [
 	/local
 		ws	 [winsize!]
-		here [integer!]
 		size [red-pair!]
 ][
 	ws: declare winsize!
 
 	ioctl stdout TIOCGWINSZ ws
 	columns: ws/rowcol >> 16
-
-	if zero? columns [
-		columns: 80
-		here: 0
-		if query-cursor :here [
-			emit-string "^[[999C"
-
-			either query-cursor :columns [
-				if columns > here [				;-- reset cursor position
-					emit-string-int "^[[" columns - here #"D"
-				]
-			][
-				emit cr
-			]
-		]
-	]
+	rows: ws/rowcol and FFFFh
 	size: as red-pair! #get system/console/size
 	size/x: columns
-	size/y: ws/rowcol and FFFFh
+	size/y: rows
 ]
 
 reset-cursor-pos: does [
