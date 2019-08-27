@@ -1938,7 +1938,7 @@ red: context [
 							]
 						]
 					) 
-					| #include (comp-include/only pos)
+					| #include (comp-include/only pos) :pos
 					| skip
 				]
 			]
