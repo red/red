@@ -431,13 +431,19 @@ output-to-screen: does [
 	write stdout buffer (as-integer pbuffer - buffer)
 ]
 
-init: func [
+init: func [][
+	console?: 1 = isatty stdin
+	if console? [
+		get-window-size
+	]
+]
+
+init-console: func [
 	/local
 		term [termios!]
 		cc	 [byte-ptr!]
 		so	 [sigaction! value]
 ][
-	console?: 1 = isatty stdin
 	relative-y: 0
 	
 	if console? [

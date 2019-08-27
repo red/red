@@ -85,7 +85,6 @@ unless system/console [
 
 		init-globals: func [][
 			saved-line: string/rs-make-at ALLOC_TAIL(root) 1
-			get-window-size
 		]
 
 		widechar?: func [
@@ -577,7 +576,7 @@ unless system/console [
 			copy-cell as red-value! line as red-value! input-line
 			copy-cell as red-value! hist as red-value! history
 
-			init		;-- enter raw mode
+			init-console		;-- enter raw mode
 		]
 	]
 ]
