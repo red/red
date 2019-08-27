@@ -7,14 +7,19 @@ Red/System [
 	License:	"BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
+#include %../../../../quick-test/quick-test.reds
+
+#either cpu-version > 5.0 [
+
 #define handle! int-ptr!
 
-#include %../../../../quick-test/quick-test.reds
 #include %../../../../runtime/threads.reds
 #include %../../../../runtime/queue.reds
 
 #define A_N_THREADS		100
 #define A_N_ITERS		100000
+
+#define COND_CC [#if OS <> 'Windows [[cdecl]]]
 
 ~~~start-file~~~ "Queue Test"
 
@@ -22,6 +27,7 @@ Red/System [
 
 	--test-- "queue test 1"
 		producer-func: func [
+			COND_CC
 			qe		[queue!]
 			return:	[integer!]
 		][
@@ -31,6 +37,7 @@ Red/System [
 			0
 		]
 		consumer-func: func [
+			COND_CC
 			qe		[queue!]
 			return: [integer!]
 			/local
@@ -79,6 +86,7 @@ Red/System [
 
 	--test-- "queue test 2 - single producer"
 		s-producer-func: func [
+			COND_CC
 			qe		[queue!]
 			return:	[integer!]
 		][
@@ -120,3 +128,14 @@ Red/System [
 ===end-group===
 
 ~~~end-file~~~
+
+][
+
+~~~start-file~~~ "Queue Test"
+
+===start-group=== "Queue Basic"
+===end-group===
+
+~~~end-file~~~
+
+]
