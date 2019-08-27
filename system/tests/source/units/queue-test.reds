@@ -7,6 +7,8 @@ Red/System [
 	License:	"BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
+#if cpu-version > 5.0 [
+
 #define handle! int-ptr!
 
 #include %../../../../quick-test/quick-test.reds
@@ -125,3 +127,4 @@ Red/System [
 ===end-group===
 
 ~~~end-file~~~
+]
