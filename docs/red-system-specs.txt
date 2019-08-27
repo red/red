@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 25/06/2019
-	Revision: 54
+	Date: 27/08/2019
+	Revision: 55
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -2823,7 +2823,7 @@ ARM target returns the value of the PC (r15) register.
 
 /note
 
----cpu
+---cpu/&lt;reg&gt;
 
 Set or retrieve any of the CPU's registers value.
 
@@ -3122,11 +3122,78 @@ where:
  
 The written value has to be consistent with the port's pointer type, otherwise a compilation error occurs.
 
-
 \note Hardware vs memory-mapped I/O
 On some platforms (like ARM), such I/O operations are simply memory-mapped I/O.
 
 /note
+
+
+---atomic/fence
+
+Generate a read/write data <a href="https://en.wikipedia.org/wiki/Memory_barrier">memory barrier</a>, using the sequentially consistent (`seq_cst`) <a href="https://en.wikipedia.org/wiki/Memory_ordering">memory order</a>.
+
+<b>Syntax</b>
+
+ system/atomic/fence
+
+---atomic/load
+
+Performs a thread-safe atomic read from a given memory location.
+
+<b>Syntax</b>
+
+ system/atomic/load <ptr>
+
+ return: integer! value read from <ptr> memory location.
+ 
+where:
+ <ptr> : memory location to load from (pointer! [integer!])
+
+---atomic/store
+
+Performs a thread-safe atomic write to a given memory location.
+
+<b>Syntax</b>
+
+ system/atomic/store <ptr> <value>
+
+where:
+ <ptr>   : memory location to write to (pointer! [integer!])
+ <value> : integer value to store (integer!)
+
+---atomic/cas
+
+Performs a thread-safe atomic compare &#x26; swap to a given memory location.
+
+<b>Syntax</b>
+
+ system/atomic/cas <ptr> <old> <new>
+
+ return: TRUE on success, otherwise FALSE (logic!)
+
+where:
+ <ptr> : memory location to read/write to (pointer! [integer!])
+ <old> : integer value to compare to (integer!)
+ <new> : integer value to write if comparison succeeded (integer!)
+
+The compare &#x26; swap semantics are described <a href="https://en.wikipedia.org/wiki/Compare-and-swap">here</a>. The memory location is read and the value is compared to the <b>old</b> value. If equal, the <b>new</b> value is written and it returns `true`, otherwise it aborts and returns `false`.
+
+---atomic/&lt;math-op&gt;
+
+Performs a thread-safe atomic math or bitwise operation to a given memory location.
+
+<b>Syntax</b>
+
+ system/atomic/<op> <ptr> <value>
+ system/atomic/<op>/old <ptr> <value>
+
+ return: the new value, or the old value if /old refinement is present.
+
+where:
+ <op>    : add, sub, or, xor, and
+ <ptr>   : memory location to write to (pointer! [integer!])
+ <value> : operand value (integer!)
+
 
 ---image/base
 
@@ -4079,6 +4146,11 @@ will output:
 
 
 ===Document History
+
+*<b>27/08/2019 - revision 55</b>
+
+*>Adds system/atomic/* intrinsics description.
+
 
 *<b>25/06/2019 - revision 54</b>
 
