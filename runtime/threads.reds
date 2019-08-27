@@ -219,6 +219,7 @@ thread: context [
 		return: [handle!]
 		/local
 			attr [pthread_attr_t value]
+			a	 [pthread_attr_t]
 			t	 [integer!]
 			ret	 [integer!]
 	][
@@ -230,10 +231,11 @@ thread: context [
 				pthread_attr_destroy :attr
 				return null
 			]
-		][attr: null]
+			a: :attr
+		][a: null]
 
-		ret: pthread_create :t attr routine args
-		pthread_attr_destroy :attr
+		ret: pthread_create :t a routine args
+		if stack > 0 [pthread_attr_destroy a]
 		either zero? ret [as handle! t][null]
 	]
 

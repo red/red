@@ -383,7 +383,7 @@ context [
 			".text"			data (job/sections/code/2)
 			".stabstr"		data (to-elf-strtab join ["%_"] extract natives 2)
 			".shstrtab"		data (to-elf-strtab sections)
-			".ARM.attributes" data (build-arm-attributes job/ABI)
+			".ARM.attributes" data (build-arm-attributes job/ABI job/cpu-version)
 		]
 
 		layout: layout-binary structure commands
@@ -849,11 +849,17 @@ context [
 
 	build-arm-attributes: func [
 		ABI			[word! none!]
-		/local section sub-section attributes attrs
+		cpu-version [tuple! decimal!]
+		/local section sub-section attributes attrs ver
 	][
 		attrs: defs/arm/attributes
+		ver: case [
+			cpu-version < 7.0 ['v5T]
+			all [7.0 <= cpu-version cpu-version < 8.0]['v7]
+			8.0 <= cpu-version ['v8]
+		]
 		attributes: rejoin [
-			attrs/cpu-arch				defs/arm/cpu-arch/v5T
+			attrs/cpu-arch				defs/arm/cpu-arch/:ver
 			attrs/arm-isa-use			#{01}			;; yes
 			attrs/abi-pcs-wchar_t		#{04}			;; 4 bytes
 			attrs/abi-fp-denormal		#{01}			;; needed

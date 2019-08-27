@@ -544,6 +544,83 @@ make-profilable make target-class [
 		emit #{9BDBE3}								;-- FINIT			; init x87 FPU
 	]
 	
+	emit-atomic-load: func [order [word!]][
+		if verbose >= 3 [print [">>>emitting ATOMIC-LOAD" mold ptr mold order]]
+		emit #{8B00}								;-- MOV eax, [eax]
+	]
+	
+	emit-atomic-store: func [value order [word!]][
+		if verbose >= 3 [print [">>>emitting ATOMIC-STORE" mold ptr mold value mold order]]
+		emit #{89C6} 								;-- MOV esi, eax
+		emit-load value
+		emit #{8906}								;-- MOV [esi], eax
+		emit-atomic-fence
+	]
+	
+	emit-atomic-math: func [op [word!] right-op old? [logic!] ret? [logic!] order [word!]][
+		if verbose >= 3 [print [">>>emitting ATOMIC-MATH-OP" mold ptr mold op mold value mold ret? mold order]]
+		emit #{89C6} 								;-- MOV esi, eax
+		emit-load right-op
+		either any [old? ret?][
+			either find [add sub] op [
+				emit #{89C2}						;-- MOV edx, eax
+				if op = 'sub [emit #{F7D8}]			;-- NEG eax
+				emit #{F00FC106}					;-- LOCK XADD [esi], eax
+				if all [ret? not old?][
+					emit either op = 'add [
+						#{01D0}						;-- ADD eax, edx
+					][
+						#{29D0}						;-- SUB eax, edx
+					]
+				]
+			][
+				emit #{89C7}						;-- MOV edi, eax	; edi: right-op
+				emit #{8B06}						;-- MOV eax, [esi]
+													;-- .loop:
+				emit #{89C1}						;--   MOV ecx, eax
+				unless old? [emit #{89C2}]			;--   [MOV edx, eax]  ; only for old?
+				switch op [
+					or  [emit #{09F9}]				;--   OR  ecx, edi
+					xor [emit #{31F9}]				;--   XOR ecx, edi
+					and [emit #{21F9}]				;--   AND ecx, edi
+				]
+				emit #{F00FB10E}					;--   LOCK CMPXCHG [esi], ecx
+				emit either old? [#{75F4}][#{75F6}]	;--   JNE .loop
+				emit either all [ret? not old?][
+					#{89C8}							;-- MOV eax, ecx	; eax: newly written value
+				][
+					#{89D0}							;-- MOV eax, edx	; eax: last old value
+				]
+			]
+		][
+			emit switch op [
+				add  [#{F00106}]					;-- LOCK ADD [esi], eax
+				sub  [#{F02906}]					;-- LOCK SUB [esi], eax
+				or   [#{F00906}]					;-- LOCK OR  [esi], eax
+				xor  [#{F03106}]					;-- LOCK XOR [esi], eax
+				and  [#{F02106}]					;-- LOCK AND [esi], eax
+			]
+		]
+	]
+	
+	emit-atomic-cas: func [check value ret? [logic!] order [word!]][
+		if verbose >= 3 [print [">>>emitting ATOMIC-CAS" mold ptr mold check mold value ret? mold order]]
+		emit #{89C6} 								;-- MOV esi, eax
+		emit-load value
+		emit-move-path-alt							;-- load new value in edx
+		emit-load check								;-- load check value in eax
+		emit #{F00FB116}							;-- LOCK CMPXCHG [esi], edx
+		if ret? [
+			emit #{0F94C0}							;-- SETE al
+			emit #{25FF000000}						;-- AND eax, 0xFF
+		]
+	]
+	
+	emit-atomic-fence: does [
+		if verbose >= 3 [print ">>>emitting ATOMIC-FENCE"]
+		emit #{0FAEF0}								;-- MFENCE
+	]
+
 	emit-get-overflow: does [
 		emit #{0F90C0}								;-- SETO al
 		emit #{83E001}								;-- AND eax, 1
