@@ -16,12 +16,15 @@ Red/System [
 #define A_N_THREADS		100
 #define A_N_ITERS		100000
 
+#define COND_CC [#if OS <> 'Windows [[cdecl]]]
+
 ~~~start-file~~~ "Queue Test"
 
 ===start-group=== "Queue Basic"
 
 	--test-- "queue test 1"
 		producer-func: func [
+			COND_CC
 			qe		[queue!]
 			return:	[integer!]
 		][
@@ -31,6 +34,7 @@ Red/System [
 			0
 		]
 		consumer-func: func [
+			COND_CC
 			qe		[queue!]
 			return: [integer!]
 			/local
@@ -79,6 +83,7 @@ Red/System [
 
 	--test-- "queue test 2 - single producer"
 		s-producer-func: func [
+			COND_CC
 			qe		[queue!]
 			return:	[integer!]
 		][

@@ -15,6 +15,8 @@ Red/System [
 #define A_N_THREADS		100
 #define A_N_ITERS		100000
 
+#define COND_CC [#if OS <> 'Windows [[cdecl]]]
+
 ~~~start-file~~~ "atomic operations"
 
 ===start-group=== "atomic operations path"
@@ -91,6 +93,7 @@ Red/System [
 		counter2: 0
 
 		atomic-load-store: func [			;-- thread-func!
+			COND_CC
 			udata	[int-ptr!]
 			return: [logic!]
 			/local
@@ -125,7 +128,7 @@ Red/System [
 	--test-- "atomic add"
 		g-a: 0	;-- global variable
 
-		atomic-add-func: func [udata [int-ptr!]][	;-- thread-func!
+		atomic-add-func: func [COND_CC udata [int-ptr!]][	;-- thread-func!
 			loop A_N_ITERS [
 				;g-a: g-a + 1		;-- this will fail
 				system/atomic/add :g-a 1
@@ -137,7 +140,7 @@ Red/System [
 	--test-- "atomic sub"
 		g-a: A_N_THREADS * A_N_ITERS
 
-		atomic-sub-func: func [udata [int-ptr!]][	;-- thread-func!
+		atomic-sub-func: func [COND_CC udata [int-ptr!]][	;-- thread-func!
 			loop A_N_ITERS [
 				system/atomic/sub :g-a 1
 			]
@@ -167,7 +170,7 @@ Red/System [
 				system/atomic/cas val old new
 			]
 		]
-		atomic-cas-increment: func [udata [int-ptr!]][	;-- thread-func!
+		atomic-cas-increment: func [COND_CC udata [int-ptr!]][	;-- thread-func!
 			;loop A_N_ITERS [fail-increment :g-a]		;-- this wil fail
 			loop A_N_ITERS [cas-increment :g-a]
 		]
@@ -199,7 +202,7 @@ Red/System [
 	]
 
 	--test-- "atomic add 2"
-		atomic-add-func2: func [udata [int-ptr!]][	;-- thread-func!
+		atomic-add-func2: func [COND_CC udata [int-ptr!]][	;-- thread-func!
 			loop A_N_ITERS [
 				system/atomic/add udata 1
 			]
@@ -207,7 +210,7 @@ Red/System [
 		--assert A_N_THREADS * A_N_ITERS = run-parallel-2 as int-ptr! :atomic-add-func2 0
 
 	--test-- "atomic sub 2"
-		atomic-sub-func2: func [udata [int-ptr!]][	;-- thread-func!
+		atomic-sub-func2: func [COND_CC udata [int-ptr!]][	;-- thread-func!
 			loop A_N_ITERS [
 				system/atomic/sub udata 1
 			]
