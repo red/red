@@ -7,11 +7,12 @@ Red/System [
 	License:	"BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
-#if cpu-version > 5.0 [
+#include %../../../../quick-test/quick-test.reds
+
+#either cpu-version > 5.0 [
 
 #define handle! int-ptr!
 
-#include %../../../../quick-test/quick-test.reds
 #include %../../../../runtime/threads.reds
 #include %../../../../runtime/queue.reds
 
@@ -127,4 +128,14 @@ Red/System [
 ===end-group===
 
 ~~~end-file~~~
+
+][
+
+~~~start-file~~~ "Queue Test"
+
+===start-group=== "Queue Basic"
+===end-group===
+
+~~~end-file~~~
+
 ]
