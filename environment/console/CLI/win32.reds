@@ -330,7 +330,7 @@ output-to-screen: func [/local n][
 ]
 
 init: func [][
-	console?: 1 = isatty stdin
+	console?: isatty as int-ptr! stdin
 	if console? [
 		get-window-size
 	]
