@@ -329,12 +329,17 @@ output-to-screen: func [/local n][
 	WriteConsole stdout buffer (as-integer pbuffer - buffer) / 2 :n null
 ]
 
-init: func [
+init: func [][
+	console?: 1 = isatty stdin
+	if console? [
+		get-window-size
+	]
+]
+
+init-console: func [
 	/local
 		mode	[integer!]
 ][
-	console?: isatty as int-ptr! stdin
-
 	if console? [
 		GetConsoleMode stdin :saved-con
 		mode: saved-con and (not ENABLE_PROCESSED_INPUT)	;-- turn off PROCESSED_INPUT, so we can handle control-c
