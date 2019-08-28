@@ -1414,6 +1414,7 @@ OS-matrix-transform: func [
 
 OS-matrix-push: func [dc [draw-ctx!] state [draw-state!]][
 	CGContextSaveGState dc/raw
+	CGContextSetLineWidth dc/raw dc/pen-width
 	state/pen-clr: dc/pen-color
 	state/brush-clr: dc/brush-color
 	state/pen-join: dc/pen-join
