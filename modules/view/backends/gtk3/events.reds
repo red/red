@@ -276,7 +276,7 @@ get-event-picked: func [
 		]
 		EVT_WHEEL [
 			event: as GdkEventScroll! g_object_get_qdata as handle! evt/msg red-event-id
-			float/push event/delta_y
+			float/push 0.0 - event/delta_y
 		]
 		EVT_MENU [word/push* evt/flags and FFFFh]
 		default	 [integer/push evt/flags and FFFFh]
