@@ -108,7 +108,10 @@ system/console: context [
 		][
 			#if gui-console? = no [terminal/pasting?: no]
 		]
-		#if gui-console? = no [terminal/init-globals]
+		#if gui-console? = no [
+			terminal/init
+			terminal/init-globals
+		]
 	]
 
 	count-delimiters: function [

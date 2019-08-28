@@ -59,6 +59,7 @@ quit: func [
 	][
 		if system/console [do [_terminate-console]]
 	]
+	if system/console [do [_save-cfg]]
 	quit-return any [status 0]
 ]
 
@@ -454,20 +455,22 @@ save: function [
 		if header [
 			if object? :header-data [header-data: body-of header-data]
 		]
-		suffix: suffix? where
-		find-encoder?: no
-		foreach [name codec] system/codecs [
-			if (find codec/suffixes suffix) [		;@@ temporary required until dyn-stack implemented
-				data: do [codec/encode value dst]
-				if same? data dst [exit]
-				find-encoder?: yes
+		if find [file! url!] type?/word where [
+			suffix: suffix? where
+			find-encoder?: no
+			foreach [name codec] system/codecs [
+				if (find codec/suffixes suffix) [		;@@ temporary required until dyn-stack implemented
+					data: do [codec/encode value dst]
+					if same? data dst [exit]
+					find-encoder?: yes
+				]
 			]
 		]
 		unless find-encoder? [
 			data: either all [
 				append mold/all/only :value newline
 			][
-				trim mold/only :value
+				mold/only :value
 			]
 			case/all [
 				not binary? data [data: to binary! data]

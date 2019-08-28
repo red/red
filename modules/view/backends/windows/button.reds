@@ -54,30 +54,42 @@ init-button: func [
 			width: size/x
 			height: size/y
 		]
-		default [exit]
-	]
-
-	sz: either 1 < num [6][1]
-	hlist: ImageList_Create width height ILC_COLOR32 sz 0
-	beg:  as red-image! block/rs-head imgs
-	img-1: image/resize beg width height
-	i: 0
-	loop sz [
-		either i < num [
-			img: beg + i
-			img: either zero? i [img-1][image/resize img width height]
-		][
-			img: img-1
+		default [
+			imgs: null
 		]
-		bitmap: 0
-		GdipCreateHBITMAPFromBitmap as-integer img/node :bitmap 0
-		ImageList_Add hlist bitmap 0
-		DeleteObject as handle! bitmap
-		if all [i > 0 i < num][image/delete img]
-		i: i + 1
 	]
-	image/delete img-1
-	BIL/handle: hlist
+	SendMessage hWnd BCM_GETIMAGELIST 0 as integer! BIL
+	if all [
+		BIL/handle <> 0
+		BIL/handle <> -1
+	][
+		ImageList_Destroy BIL/handle
+	]
+	either null? imgs [
+		BIL/handle: -1
+	][
+		sz: either 1 < num [6][1]
+		hlist: ImageList_Create width height ILC_COLOR32 sz 0
+		beg:  as red-image! block/rs-head imgs
+		img-1: image/resize beg width height
+		i: 0
+		loop sz [
+			either i < num [
+				img: beg + i
+				img: either zero? i [img-1][image/resize img width height]
+			][
+				img: img-1
+			]
+			bitmap: 0
+			GdipCreateHBITMAPFromBitmap as-integer img/node :bitmap 0
+			ImageList_Add hlist bitmap 0
+			DeleteObject as handle! bitmap
+			if all [i > 0 i < num][image/delete img]
+			i: i + 1
+		]
+		image/delete img-1
+		BIL/handle: hlist
+	]
 	BIL/align: 4
 	SendMessage hWnd BM_SETSTYLE BS_BITMAP or GetWindowLong hWnd GWL_STYLE 0
 	SendMessage hWnd BCM_SETIMAGELIST 0 0

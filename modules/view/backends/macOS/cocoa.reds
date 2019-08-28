@@ -450,11 +450,7 @@ tagSIZE: alias struct! [
 			return:		[integer!]
 		]
 		CGWindowListCreateImage: "CGWindowListCreateImage" [
-			;bounds		[NSRect! value]
-			x			[integer!]
-			y			[integer!]
-			w			[integer!]
-			h			[integer!]
+			bounds		[NSRect! value]
 			listOption	[integer!]
 			windowID	[integer!]
 			imageOption [integer!]

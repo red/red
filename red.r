@@ -473,7 +473,7 @@ redc: context [
 			][
 				files2: pick [
 					[%core.red %highlight.red %settings.red %tips.red]
-					[%input.red %wcwidth.reds %win32.reds %POSIX.reds]
+					[%input.red %wcwidth.reds %win32.reds %POSIX.reds %settings.red]
 				] gui?
 				if gui? [write/binary td/app.ico read-binary-cache console/app.ico]
 			]

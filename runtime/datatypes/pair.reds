@@ -306,11 +306,9 @@ pair: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "pair/compare"]]
 
-		if TYPE_OF(right) <> TYPE_PAIR [
-			return either any [op = COMP_FIND op = COMP_STRICT_EQUAL][1][RETURN_COMPARE_OTHER]
-		]
-		diff: left/y - right/y
-		if zero? diff [diff: left/x - right/x]
+		if TYPE_OF(right) <> TYPE_PAIR [RETURN_COMPARE_OTHER]
+		diff: left/x - right/x
+		if zero? diff [diff: left/y - right/y]
 		SIGN_COMPARE_RESULT(diff 0)
 	]
 

@@ -365,8 +365,20 @@ Red [
 ===end-group===
 
 ===start-group=== "round"
+	--test-- "round 1"
+		--assert 0:00:01 = round/to 0:0:1.4 1
 
-	round/to  0:0:1.4  1
+	--test-- "round 2"
+		--assert 0:00:01 = round/to 0:0:1.4 0:0:1
+
+	--test-- "round 3"
+		--assert 12:35:23 = round/to 12:34:56 0:1:1
+		--assert 12:35:23 = round/to 12:34:56 to integer! 0:1:1
+		--assert 12:35:23 = round/to 12:34:56 to float! 0:1:1
+
+	--test-- "round 4"
+		--assert 12:34:56.1 = round/to 12:34:56 0.3
+		--assert 12:34:56.1 = round/to 12:34:56 30%
 
 ===end-group===
 

@@ -606,12 +606,18 @@ object [
 		unless resume [clipboard: read-clipboard]
 		if all [clipboard not empty? clipboard][
 			start: clipboard
-			end: find clipboard #"^M"
-			either end [nl?: yes][nl?: no end: tail clipboard]
+			end: find clipboard #"^/"
+			either end [
+				nl?: yes
+				if end/-1 = #"^M" [end: back end]
+			][
+				nl?: no
+				end: tail clipboard
+			]
 			insert/part skip line pos start end
 			idx: pos
 			pos: pos + offset? start end
-			clipboard: skip end either end/2 = #"^/" [2][1]
+			clipboard: skip end either end/1 = #"^M" [2][1]
 			if nl? [
 				caret/enabled?: no
 				insert history line

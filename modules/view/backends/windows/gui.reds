@@ -1467,10 +1467,10 @@ OS-make-view: func [
 			AdjustWindowRectEx rc flags menu-bar? menu window ws-flags
 			rc/right: rc/right - rc/left
 			rc/bottom: rc/bottom - rc/top
-			focused: null
+			focused: null 
 			if bits and FACET_FLAGS_MODAL <> 0 [
 				parent: as-integer find-last-window
-				focused: get-selected-handle as handle! parent
+				if parent <> 0 [focused: get-selected-handle as handle! parent]
 			]
 		]
 		true [											;-- search in user-defined classes
@@ -1540,10 +1540,7 @@ OS-make-view: func [
 		sym = camera	[init-camera handle data selected false]
 		sym = text-list [init-text-list handle data selected]
 		sym = base		[init-base-face handle parent values alpha?]
-		sym = tab-panel [
-			selected/header: TYPE_NONE					;-- no selection allowed before tabs are created
-			set-tabs handle values
-		]
+		sym = tab-panel [set-tabs handle values]
 		sym = group-box [
 			flags: flags or WS_GROUP or BS_GROUPBOX
 			hWnd: CreateWindowEx
@@ -1926,6 +1923,7 @@ change-image: func [
 	type	[integer!]
 ][
 	if type = base [update-base hWnd null null values]
+	if type = button [init-button hWnd values]
 ]
 
 change-selection: func [

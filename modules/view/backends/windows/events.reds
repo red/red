@@ -115,8 +115,8 @@ get-event-offset: func [
 				y: 0 - (y or FFFF0000h)
 			]
 			pt: screen-to-client msg/hWnd x y
-			offset/x: pt/x
-			offset/y: pt/y
+			offset/x: pt/x * 100 / dpi-factor
+			offset/y: pt/y * 100 / dpi-factor
 			as red-value! offset
 		]
 		any [
@@ -133,12 +133,11 @@ get-event-offset: func [
 			either evt/flags and EVT_FLAG_AWAY <> 0 [
 				msg: as tagMSG evt/msg
 				pt: declare tagPOINT
-				pt/x: WIN32_LOWORD(value)
-				pt/y: WIN32_HIWORD(value)
-				ClientToScreen get-child-from-xy msg/hWnd pt/x pt/y pt
+				pt/x: 0 pt/y: 0
+				GetCursorPos pt
 				x: pt/x
 				y: pt/y
-				pt: get-window-pos msg/hWnd
+				pt/x: 0 pt/y: 0
 				ClientToScreen msg/hWnd pt
 				offset/x: x - pt/x * 100 / dpi-factor
 				offset/y: y - pt/y * 100 / dpi-factor
@@ -158,8 +157,8 @@ get-event-offset: func [
 
 			value: GetMessagePos
 			pt: screen-to-client msg/hWnd WIN32_LOWORD(value) WIN32_HIWORD(value)
-			offset/x: pt/x
-			offset/y: pt/y
+			offset/x: pt/x * 100 / dpi-factor
+			offset/y: pt/y * 100 / dpi-factor
 			as red-value! offset
 		]
 		any [
@@ -175,15 +174,15 @@ get-event-offset: func [
 			offset/header: TYPE_PAIR
 			value: gi/ptsLocation						;-- coordinates of center point		
 
-			offset/x: WIN32_LOWORD(value)
-			offset/y: WIN32_HIWORD(value)
+			offset/x: WIN32_LOWORD(value) * 100 / dpi-factor
+			offset/y: WIN32_HIWORD(value) * 100 / dpi-factor
 			as red-value! offset
 		]
 		evt/type = EVT_MENU [
 			offset: as red-pair! stack/push*
 			offset/header: TYPE_PAIR
-			offset/x: menu-x
-			offset/y: menu-y
+			offset/x: menu-x * 100 / dpi-factor
+			offset/y: menu-y * 100 / dpi-factor
 			as red-value! offset
 		]
 		true [as red-value! none-value]
@@ -319,7 +318,7 @@ get-event-picked: func [
 		]
 		EVT_MENU   [
 			idx: evt/flags and FFFFh
-			either idx = 65535 [none/push][word/push* idx]
+			either idx = FFFFh [none/push][word/push* idx]
 		]
 		EVT_SCROLL [
 			integer/push get-track-pos msg/hWnd msg/msg = WM_VSCROLL
@@ -749,7 +748,7 @@ paint-background: func [
 	values: get-face-values hWnd
 	color: as red-tuple! values + FACE_OBJ_COLOR
 
-	either win8+? [
+	either any [win8+? color/array1 and FF000000h = 0][
 		;-- use plain old GDI fill when it's possible
 		either TYPE_OF(color) = TYPE_TUPLE [
 			hBrush: CreateSolidBrush color/array1 and 00FFFFFFh

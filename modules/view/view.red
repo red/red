@@ -1025,9 +1025,9 @@ foreach-face: function [
 	exec: [either block? :body [do body][body face]]
 	
 	foreach face face/pane [
-		unless post? [either spec [all [do spec do exec]][do exec]]
+		unless post? [either spec [all [do spec try exec]][try exec]]
 		if block? face/pane [foreach-face/with/sub face :body spec post?]
-		if post? [either spec [all [do spec do exec]][do exec]]
+		if post? [either spec [all [do spec try exec]][try exec]]
 	]
 ]
 
