@@ -1,19 +1,19 @@
 Red [
-    title: "Basic TCP test client"
+    title: "Basic UDP test client"
 ]
 
 do [
 
-;debug: :print
-debug: :comment
+debug: :print
+;debug: :comment
 
 max-count: 300000
 count: 0
 total: 0.0
 
-print "TCP client"
+print "UDP client"
 
-client: open tcp://127.0.0.1:8123
+udp-port: open udp://127.0.0.1:8180
 
 b: make binary! size: 80000
 loop size [append b random 255]
@@ -22,11 +22,10 @@ insert b skip (to binary! length? b) 4
 start: now/precise
 mbps: "?"
 
-client/awake: func [event /local port] [
+udp-port/awake: func [event /local port] [
     debug ["=== Client event:" event/type]
     port: event/port
     switch event/type [
-        connect [insert port b]
         read [
 	        ;probe "client read done"
             either port/data/1 = 15 [
@@ -51,9 +50,12 @@ client/awake: func [event /local port] [
     ]
     false
 ]
+
+insert udp-port b		;-- perform a send action
+
 if none? system/view [
-	wait client
-	close client
+	wait udp-port
+	close udp-port
 	print "Done"
 ]
 ]

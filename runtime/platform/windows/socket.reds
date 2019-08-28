@@ -111,40 +111,54 @@ socket: context [
 		ConnectEx sock as int-ptr! :saddr size? saddr null 0 :n as int-ptr! data
 	]
 
-	write: func [
+	send: func [
 		sock		[integer!]
 		buffer		[byte-ptr!]
 		length		[integer!]
 		data		[iocp-data!]
 		/local
 			wsbuf	[WSABUF! value]
-			n		[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "socket/write"]]
 
 		wsbuf/len: length
 		wsbuf/buf: buffer
 		data/event: IO_EVT_WRITE
-		n: 0
-		WSASend sock :wsbuf 1 :n 0 as OVERLAPPED! data null
+		WSASend sock :wsbuf 1 null 0 as OVERLAPPED! data null
 	]
 
-	read: func [
+	usend: func [	;-- for UDP
+		sock		[integer!]
+		addr		[sockaddr_in!]
+		addrsz		[integer!]
+		buffer		[byte-ptr!]
+		length		[integer!]
+		data		[iocp-data!]
+		/local
+			wsbuf	[WSABUF! value]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "socket/write"]]
+
+		wsbuf/len: length
+		wsbuf/buf: buffer
+		data/event: IO_EVT_WRITE
+		WSASendTo sock :wsbuf 1 null 0 addr addrsz as OVERLAPPED! data null
+	]
+
+	recv: func [
 		sock		[integer!]
 		buffer		[byte-ptr!]
 		length		[integer!]
 		data		[iocp-data!]
 		/local
 			wsbuf	[WSABUF! value]
-			n		[integer!]
 			flags	[integer!]
 	][
 		wsbuf/len: length
 		wsbuf/buf: buffer
 		data/event: IO_EVT_READ
-		n: 0
 		flags: 0
-		if 0 <> WSARecv sock :wsbuf 1 :n :flags as OVERLAPPED! data null [
+		if 0 <> WSARecv sock :wsbuf 1 null :flags as OVERLAPPED! data null [
 			exit
 		]
 	]

@@ -1,16 +1,16 @@
 Red/System [
-	Title:	"low-level TCP port"
+	Title:	"low-level UDP port"
 	Author: "Xie Qingtian"
-	File: 	%tcp.reds
+	File: 	%udp.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
+	Rights: "Copyright (C) 2015-2019 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
-tcp-device: context [
+udp-device: context [
 	verbose: 1
 
 	event-handler: func [
@@ -18,13 +18,13 @@ tcp-device: context [
 		/local
 			p		[red-object!]
 			msg		[red-object!]
-			tcp		[sockdata!]
+			udp		[sockdata!]
 			type	[integer!]
 			bin		[red-binary!]
 			s		[series!]
 	][
-		tcp: as sockdata! data
-		p: as red-object! :tcp/port
+		udp: as sockdata! data
+		p: as red-object! :udp/port
 		msg: p
 		type: data/event
 
@@ -52,7 +52,7 @@ tcp-device: context [
 				]
 			]
 			IO_EVT_WRITE	[
-				io/unpin-memory tcp/send-buf
+				io/unpin-memory udp/send-buf
 				#if OS = 'Windows [
 					either data/accept-sock = PENDING_IO_FLAG [
 						free as byte-ptr! data
@@ -77,11 +77,11 @@ tcp-device: context [
 		;; @@ add it to a block, so GC can mark it. Improve it later!!!
 		block/rs-append ports-block as red-value! proto
 		
-		create-tcp-data proto sock
+		create-udp-data proto sock
 		proto
 	]
 
-	create-tcp-data: func [
+	create-udp-data: func [
 		port	[red-object!]
 		sock	[integer!]
 		return: [iocp-data!]
@@ -99,7 +99,7 @@ tcp-device: context [
 		as iocp-data! data
 	]
 
-	get-tcp-data: func [
+	get-udp-data: func [
 		red-port	[red-object!]
 		return:		[sockdata!]
 		/local
@@ -130,7 +130,7 @@ tcp-device: context [
 		]
 	]
 
-	tcp-client: func [
+	udp-client: func [
 		port	[red-object!]
 		host	[red-string!]
 		num		[red-integer!]
@@ -139,29 +139,29 @@ tcp-device: context [
 			n		[integer!]
 			addr	[c-string!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "tcp client"]]
+		#if debug? = yes [if verbose > 0 [print-line "udp client"]]
 
-		fd: socket/create AF_INET SOCK_STREAM IPPROTO_TCP
+		fd: socket/create AF_INET SOCK_DGRAM IPPROTO_UDP
 		iocp/bind g-iocp as int-ptr! fd
 		socket/bind fd 0 AF_INET
 
 		n: -1
 		addr: unicode/to-utf8 host :n
-		socket/connect fd addr num/value AF_INET create-tcp-data port fd
+		socket/connect fd addr num/value AF_INET create-udp-data port fd
 	]
 
-	tcp-server: func [
+	udp-server: func [
 		port	[red-object!]
 		num		[red-integer!]
 		/local
 			fd	[integer!]
 			acp [integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "tcp server"]]
+		#if debug? = yes [if verbose > 0 [print-line "udp server"]]
 
-		fd: socket/create AF_INET SOCK_STREAM IPPROTO_TCP
+		fd: socket/create AF_INET SOCK_DGRAM IPPROTO_UDP
 		socket/bind fd num/value AF_INET
-		socket/listen fd 1024 create-tcp-data port fd
+		socket/listen fd 1024 create-udp-data port fd
 		iocp/bind g-iocp as int-ptr! fd
 	]
 
@@ -182,7 +182,7 @@ tcp-device: context [
 			host	[red-string!]
 			num		[red-integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "tcp/open"]]
+		#if debug? = yes [if verbose > 0 [print-line "udp/open"]]
 
 		values: object/get-values red-port
 		state: as red-handle! values + port/field-state
@@ -193,10 +193,10 @@ tcp-device: context [
 		host:	as red-string! values + 2
 		num:	as red-integer! values + 3		;-- port number
 
-		either zero? string/rs-length? host [	;-- e.g. open tcp://:8000
-			tcp-server red-port num
+		either zero? string/rs-length? host [	;-- e.g. open udp://:8000
+			udp-server red-port num
 		][
-			tcp-client red-port host num
+			udp-client red-port host num
 		]
 		as red-value! red-port
 	]
@@ -207,7 +207,7 @@ tcp-device: context [
 		/local
 			data	[iocp-data!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "tcp/close"]]
+		#if debug? = yes [if verbose > 0 [print-line "udp/close"]]
 
 		data: io/get-iocp-data red-port
 		if data <> null [socket/close as-integer data/device]
@@ -235,7 +235,7 @@ tcp-device: context [
 			default [return as red-value! port]
 		]
 
-		data: get-tcp-data port
+		data: get-udp-data port
 		data/send-buf: bin/node
 
 		socket/send
@@ -265,7 +265,7 @@ tcp-device: context [
 		buf/head: 0
 		io/pin-memory buf
 		s: GET_BUFFER(buf)
-		data: as iocp-data! get-tcp-data red-port
+		data: as iocp-data! get-udp-data red-port
 		socket/recv as-integer data/device as byte-ptr! s/offset s/size data
 		as red-value! red-port
 	]

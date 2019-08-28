@@ -125,3 +125,4 @@ io: context [
 ]
 
 #include %devices/tcp.reds
+#include %devices/udp.reds

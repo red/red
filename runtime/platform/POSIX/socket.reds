@@ -121,7 +121,7 @@ socket: context [
 		]
 	]
 
-	write: func [
+	send: func [
 		sock		[integer!]
 		buffer		[byte-ptr!]
 		length		[integer!]
@@ -167,7 +167,7 @@ probe ["socket/write: " length " " n]
 		]
 	]
 
-	read: func [
+	recv: func [
 		sock		[integer!]
 		buffer		[byte-ptr!]
 		length		[integer!]

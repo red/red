@@ -106,12 +106,14 @@ iocp: context [
 	post: func [
 		p		[iocp!]
 		data	[iocp-data!]
+		return:	[logic!]
 	][
 		deque/push p/ready-socks as int-ptr! data
 		unless p/posted? [
 			p/posted?: yes
 			LibC.send p/pair-1 as byte-ptr! "p" 1 0
 		]
+		true
 	]
 
 	bind: func [

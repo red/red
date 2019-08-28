@@ -65,6 +65,14 @@ iocp: context [
 		free as byte-ptr! p
 	]
 
+	post: func [
+		p		[iocp!]
+		data	[iocp-data!]
+		return:	[logic!]
+	][
+		0 <> PostQueuedCompletionStatus p/port 0 null as OVERLAPPED! data
+	]
+
 	bind: func [
 		"bind a device handle to the I/O completion port"
 		p		[iocp!]

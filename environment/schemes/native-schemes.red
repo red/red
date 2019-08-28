@@ -16,3 +16,10 @@ register-scheme/native make system/standard/scheme [
 	name: 'TCP
 	title: "TCP scheme implementation"
 ] actor
+
+actor: #system [handle/push udp-device/table]
+
+register-scheme/native make system/standard/scheme [
+	name: 'UDP
+	title: "UDP scheme implementation"
+] actor
