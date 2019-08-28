@@ -959,6 +959,7 @@ parser: context [
 								]
 								if loop? [
 									;-- Reset state for a new loop
+									PARSE_SET_INPUT_LENGTH(len)
 									p/input: input/head			;-- set saved pos to new position
 									p/sub: len					;-- set it to a neutral value
 									t/state: cnt + 1
@@ -990,7 +991,7 @@ parser: context [
 									before: input/head
 									end?: _series/rs-skip as red-series! input 1
 									match?: before = input/head
-									if positive? part [match?: input/head >= part or match?]
+									if positive? part [match?: input/head > part or match?]
 									
 									either match? [
 										w: as red-word! (block/rs-head rule) + p/rule + 1 ;-- TO/THRU argument

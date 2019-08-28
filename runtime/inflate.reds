@@ -775,6 +775,7 @@ zlib-uncompress: func[
 		b		[integer!]
 		c		[integer!]
 		res		[integer!]
+		maxLen	[integer!]
 ][
 	src: source
 	dst: dest
@@ -814,7 +815,12 @@ zlib-uncompress: func[
 	a32: 256 * a32 + a
 
 	;--inflate
+	maxLen: destLen/value
 	res: deflate/uncompress dst destLen (src + 2) (sourceLen - 6)
+	if maxLen < destLen/value [
+		fire [TO_ERROR(script buffer-not-enough) integer/push destLen/value]
+	]
+
 	if res <> 0 [
 		return -3
 	]

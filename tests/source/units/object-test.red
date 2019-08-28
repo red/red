@@ -2300,6 +2300,26 @@ Red [
 		;; COMMENTED OUT
 		;;--assert not error? try [ iss-3516-t: iss-3516-c/f [] ]
 
+
+	--test-- "issue #3406"
+		do [						;-- cannot run this test using libRedRT
+			b3406: context [x: 2  f: does [x]]
+			c3406: context [f: does [x]  x: 3]
+			d3406: construct/with [x: 4] b3406
+			e3406: construct/with [x: 5] c3406
+
+			--assert b3406/f = 2
+			--assert c3406/f = 3
+			--assert d3406/f = 4
+			--assert e3406/f = 5
+
+			;-- alternative to 3406 merging objects using MAKE
+			
+			g3406: context [f: does [x]  x: 3]
+			h3406: make g3406 object [x: 5]
+			--assert h3406/f = 5
+		]
+
 ===end-group===
 
 ~~~end-file~~~

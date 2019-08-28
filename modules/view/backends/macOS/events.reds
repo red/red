@@ -392,6 +392,7 @@ get-event-picked: func [
 		n	[integer!]
 		d	[float32!]
 		event [integer!]
+		idx	[integer!]
 ][
 	as red-value! switch evt/type [
 		EVT_ZOOM
@@ -407,7 +408,10 @@ get-event-picked: func [
 				int
 			]
 		]
-		EVT_MENU [word/push* evt/flags and FFFFh]
+		EVT_MENU [
+			idx: evt/flags and FFFFh
+			either idx = FFFFh [none/push][word/push* idx]
+		]
 		EVT_SCROLL [integer/push evt/flags >>> 4]
 		EVT_WHEEL [
 			event: objc_getAssociatedObject as-integer evt/msg RedNSEventKey

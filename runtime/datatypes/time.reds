@@ -409,9 +409,21 @@ time: context [
 		ceil?		[logic!]
 		half-ceil?	[logic!]
 		return:		[red-value!]
+		/local
+			type	[integer!]
+			int		[red-integer!]
+			val		[float!]
+			ret		[red-float!]
 	][
 		float/round as red-value! tm scale _even? down? half-down? floor? ceil? half-ceil?
-		as red-value! tm
+		ret: as red-float! tm
+		if ret/header = TYPE_INTEGER [
+			int: as red-integer! ret
+			val: as float! int/value
+			ret/value: val
+		]
+		ret/header: TYPE_TIME
+		as red-value! ret
 	]
 	
 	pick: func [

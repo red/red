@@ -2719,6 +2719,16 @@ Red [
 		parse x3357b: [][insert ('foo)]
 		--assert x3357b = [foo]
 
+	--test-- "#3951"
+		res: none
+		do "res: expand-directives/clean [[] #macro word! func [s e]['OK] WTF]()"
+		--assert res = [[] OK]
+
+	--test-- "#3427"
+		--assert parse/part %234 ["23" thru [end]] 3
+		--assert parse/part %234 ["23" to [end]] 3
+		--assert parse/part %234 ["23" to end] 3
+		repeat i 4 [--assert parse/part "12" ["1" to [end]] i]
 
 ===end-group===
     

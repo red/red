@@ -161,6 +161,7 @@ system: context [
 				;wrong-denom:		[:arg1 "not same denomination as" :arg2]
 				;bad-press:			["invalid compressed data - problem:" :arg1]
 				;dialect:			["incorrect" :arg1 "dialect usage at:" :arg2]
+				invalid-obj-evt:	["invalid object event handler:" :arg1]
 				parse-rule:			["PARSE - invalid rule or usage of rule:" :arg1]
 				parse-end:			["PARSE - unexpected end of rule after:" :arg1]
 				;parse-variable:	["PARSE - expected a variable, not:" :arg1]
@@ -189,6 +190,7 @@ system: context [
 				react-bad-obj:		"REACT - target can only contain object values"
 				react-gctx:			["REACT - word" :arg1 "is not a reactor's field"]
 				lib-invalid-arg:	["LIBRED - invalid argument for" :arg1]
+				buffer-not-enough:	["Buffer size too small, should be:" :arg1]
 			]
 			math: object [
 				code:				400

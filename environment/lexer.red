@@ -533,7 +533,10 @@ system/lexer: context [
 		]
 
 		multiline-string: [
-			#"{" s: nested-curly-braces (unless zero? cnt [throw-error [string! s]])
+			#"{" s: nested-curly-braces (
+				unless zero? cnt [throw-error [string! s]]
+				old-line: line
+			)
 		]
 
 		string-rule: [(type: string!) line-string | multiline-string]
@@ -575,7 +578,7 @@ system/lexer: context [
 			)
 		]
 
-		binary-rule: [base-16-rule | base-64-rule | base-2-rule]
+		binary-rule: [[base-16-rule | base-64-rule | base-2-rule] (old-line: line)]
 
 		file-rule: [
 			s: #"%" [

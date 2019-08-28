@@ -22,7 +22,16 @@ edges: as CGPoint! allocate max-edges * (size? CGPoint!)	;-- polygone edges buff
 colors: as pointer! [float32!] allocate 5 * max-colors * (size? float32!)
 colors-pos: colors + (4 * max-colors)
 
-draw-state!: alias struct! [unused [integer!]]
+draw-state!: alias struct! [
+	pen-clr		[integer!]
+	brush-clr	[integer!]
+	pen-join	[integer!]
+	pen-cap		[integer!]
+	pen?		[logic!]
+	brush?		[logic!]
+	a-pen?		[logic!]
+	a-brush?	[logic!]
+]
 
 draw-begin: func [
 	ctx			[draw-ctx!]
@@ -216,10 +225,8 @@ OS-draw-line-width: func [
 ][
 	width-v: get-float32 as red-integer! width
 	if width-v <= F32_0 [width-v: F32_1]
-	if dc/pen-width <> width-v [
-		dc/pen-width: width-v
-		CGContextSetLineWidth dc/raw width-v
-	]
+	dc/pen-width: width-v
+	CGContextSetLineWidth dc/raw width-v
 ]
 
 get-shape-center: func [
@@ -938,17 +945,15 @@ OS-draw-line-join: func [
 		mode [integer!]
 ][
 	mode: kCGLineJoinMiter
-	if dc/pen-join <> style [
-		dc/pen-join: style
-		case [
-			style = miter		[mode: kCGLineJoinMiter]
-			style = miter-bevel [mode: kCGLineJoinMiter]
-			style = _round		[mode: kCGLineJoinRound]
-			style = bevel		[mode: kCGLineJoinBevel]
-			true				[mode: kCGLineJoinMiter]
-		]
-		CGContextSetLineJoin dc/raw mode
+	dc/pen-join: style
+	case [
+		style = miter		[mode: kCGLineJoinMiter]
+		style = miter-bevel [mode: kCGLineJoinMiter]
+		style = _round		[mode: kCGLineJoinRound]
+		style = bevel		[mode: kCGLineJoinBevel]
+		true				[mode: kCGLineJoinMiter]
 	]
+	CGContextSetLineJoin dc/raw mode
 ]
 
 OS-draw-line-cap: func [
@@ -958,16 +963,14 @@ OS-draw-line-cap: func [
 		mode [integer!]
 ][
 	mode: kCGLineCapButt
-	if dc/pen-cap <> style [
-		dc/pen-cap: style
-		case [
-			style = flat		[mode: kCGLineCapButt]
-			style = square		[mode: kCGLineCapSquare]
-			style = _round		[mode: kCGLineCapRound]
-			true				[mode: kCGLineCapButt]
-		]
-		CGContextSetLineCap dc/raw mode
+	dc/pen-cap: style
+	case [
+		style = flat		[mode: kCGLineCapButt]
+		style = square		[mode: kCGLineCapSquare]
+		style = _round		[mode: kCGLineCapRound]
+		true				[mode: kCGLineCapButt]
 	]
+	CGContextSetLineCap dc/raw mode
 ]
 
 CG-draw-image: func [						;@@ use CALayer to get very good performance?
@@ -1405,12 +1408,26 @@ OS-matrix-transform: func [
 
 OS-matrix-push: func [dc [draw-ctx!] state [draw-state!]][
 	CGContextSaveGState dc/raw
+	state/pen-clr: dc/pen-color
+	state/brush-clr: dc/brush-color
+	state/pen-join: dc/pen-join
+	state/pen-cap: dc/pen-cap
+	state/pen?: dc/pen?
+	state/brush?: dc/brush?
+	state/a-pen?: dc/grad-pen?
+	state/a-brush?: dc/grad-brush?
 ]
 
 OS-matrix-pop: func [dc [draw-ctx!] state [draw-state!]][
 	CGContextRestoreGState dc/raw
-	dc/pen-color:		0
-	dc/brush-color:		0
+	dc/pen-color: state/pen-clr
+	dc/brush-color: state/brush-clr
+	dc/pen-join: state/pen-join
+	dc/pen-cap: state/pen-cap
+	dc/pen?: state/pen?
+	dc/brush?: state/brush?
+	dc/grad-pen?: state/a-pen?
+	dc/grad-brush?: state/a-brush?
 ]
 
 OS-matrix-reset: func [

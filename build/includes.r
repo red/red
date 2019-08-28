@@ -55,6 +55,7 @@ write %build/bin/sources.r set-cache [
 				%POSIX.reds
 				%wcwidth.reds
 				%win32.reds
+				%settings.red
 			]
 			%GUI/ [
 				%old/ [
@@ -97,6 +98,7 @@ write %build/bin/sources.r set-cache [
 		%simple-io.reds
 		%sort.reds
 		%stack.reds
+		%threads.reds
 		%tokenizer.reds
 		%tools.reds
 		%unicode.reds

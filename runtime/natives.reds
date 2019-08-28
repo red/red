@@ -2476,7 +2476,11 @@ natives: context [
 		dt: as red-date! stack/arguments
 		dt/header: TYPE_DATE
 		dt/date: platform/get-date utc >= 0
-		if _date > -1 [dt/time: 0.0 exit]
+		if _date > -1 [
+			dt/date: dt/date and FFFEFF80h				;-- clear time? flag and TZ data.
+			dt/time: 0.0
+			exit
+		]
 		dt/date: DATE_SET_TIME_FLAG(dt/date)
 		
 		tm: platform/get-time yes precise >= 0
@@ -2741,14 +2745,13 @@ natives: context [
 					TYPE_TUPLE [
 						tp: as red-tuple! arg2
 						buf2: (as byte-ptr! tp) + 4
-						if size <> TUPLE_SIZE?(tp) [
-							fire [TO_ERROR(script out-of-range) arg2]
-						]
-						either max? [
-							until [n: n + 1 if buf/n < buf2/n [buf/n: buf2/n] n = size]
-						][
-							until [n: n + 1 if buf/n > buf2/n [buf/n: buf2/n] n = size]
-						]
+						either size = TUPLE_SIZE?(tp) [
+							either max? [
+								until [n: n + 1 if buf/n < buf2/n [buf/n: buf2/n] n = size]
+							][
+								until [n: n + 1 if buf/n > buf2/n [buf/n: buf2/n] n = size]
+							]
+						][comp?: yes]
 					]
 					TYPE_FLOAT
 					TYPE_INTEGER [
