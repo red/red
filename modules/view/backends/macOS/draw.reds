@@ -225,10 +225,8 @@ OS-draw-line-width: func [
 ][
 	width-v: get-float32 as red-integer! width
 	if width-v <= F32_0 [width-v: F32_1]
-	if dc/pen-width <> width-v [
-		dc/pen-width: width-v
-		CGContextSetLineWidth dc/raw width-v
-	]
+	dc/pen-width: width-v
+	CGContextSetLineWidth dc/raw width-v
 ]
 
 get-shape-center: func [
@@ -947,17 +945,15 @@ OS-draw-line-join: func [
 		mode [integer!]
 ][
 	mode: kCGLineJoinMiter
-	if dc/pen-join <> style [
-		dc/pen-join: style
-		case [
-			style = miter		[mode: kCGLineJoinMiter]
-			style = miter-bevel [mode: kCGLineJoinMiter]
-			style = _round		[mode: kCGLineJoinRound]
-			style = bevel		[mode: kCGLineJoinBevel]
-			true				[mode: kCGLineJoinMiter]
-		]
-		CGContextSetLineJoin dc/raw mode
+	dc/pen-join: style
+	case [
+		style = miter		[mode: kCGLineJoinMiter]
+		style = miter-bevel [mode: kCGLineJoinMiter]
+		style = _round		[mode: kCGLineJoinRound]
+		style = bevel		[mode: kCGLineJoinBevel]
+		true				[mode: kCGLineJoinMiter]
 	]
+	CGContextSetLineJoin dc/raw mode
 ]
 
 OS-draw-line-cap: func [
@@ -967,16 +963,14 @@ OS-draw-line-cap: func [
 		mode [integer!]
 ][
 	mode: kCGLineCapButt
-	if dc/pen-cap <> style [
-		dc/pen-cap: style
-		case [
-			style = flat		[mode: kCGLineCapButt]
-			style = square		[mode: kCGLineCapSquare]
-			style = _round		[mode: kCGLineCapRound]
-			true				[mode: kCGLineCapButt]
-		]
-		CGContextSetLineCap dc/raw mode
+	dc/pen-cap: style
+	case [
+		style = flat		[mode: kCGLineCapButt]
+		style = square		[mode: kCGLineCapSquare]
+		style = _round		[mode: kCGLineCapRound]
+		true				[mode: kCGLineCapButt]
 	]
+	CGContextSetLineCap dc/raw mode
 ]
 
 CG-draw-image: func [						;@@ use CALayer to get very good performance?
