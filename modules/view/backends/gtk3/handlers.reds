@@ -553,13 +553,22 @@ key-release-event: func [
 	make-event widget key or flags EVT_KEY_UP
 ]
 
-field-move-focus: func [
+focus-in-event: func [
 	[cdecl]
 	widget		[handle!]
 	event		[handle!]
 	ctx			[node!]
 ][
-	print-line "move-focus"
+	make-event widget 0 EVT_FOCUS
+]
+
+focus-out-event: func [
+	[cdecl]
+	widget		[handle!]
+	event		[handle!]
+	ctx			[node!]
+][
+	make-event widget 0 EVT_UNFOCUS
 ]
 
 mouse-button-release-event: func [
