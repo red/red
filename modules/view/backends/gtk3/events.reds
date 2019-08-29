@@ -777,6 +777,8 @@ connect-widget-events: function [
 			gtk_widget_set_focus_on_click widget yes
 			gtk_widget_is_focus widget
 			gtk_widget_grab_focus widget
+			gobj_signal_connect(widget "focus-in-event" :focus-in-event face/ctx)
+			gobj_signal_connect(widget "focus-out-event" :focus-out-event face/ctx)
 		]
 		sym = window [
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add window delete-event " lf]]
@@ -793,10 +795,11 @@ connect-widget-events: function [
 		sym = text [0]
 		sym = field [
 			gtk_widget_set_can_focus widget yes
+			gtk_widget_set_focus_on_click widget yes
 			gtk_widget_is_focus widget
-			;This depends on version >= 3.2
-			;gtk_widget_set_focus_on_click widget yes
-			gobj_signal_connect(widget "move-focus" :field-move-focus face/ctx)
+			gtk_widget_grab_focus widget
+			gobj_signal_connect(widget "focus-in-event" :focus-in-event face/ctx)
+			gobj_signal_connect(widget "focus-out-event" :focus-out-event face/ctx)
 		]
 		sym = progress [
 			0
@@ -810,6 +813,12 @@ connect-widget-events: function [
 			g_object_set [widget "populate-all" yes null]
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add area populate-popup" lf]]
 			gobj_signal_connect(widget "populate-popup" :area-populate-popup face/ctx)
+			gtk_widget_set_can_focus widget yes
+			gtk_widget_set_focus_on_click widget yes
+			gtk_widget_is_focus widget
+			gtk_widget_grab_focus widget
+			gobj_signal_connect(widget "focus-in-event" :focus-in-event face/ctx)
+			gobj_signal_connect(widget "focus-out-event" :focus-out-event face/ctx)
 		]
 		sym = group-box [
 			0
