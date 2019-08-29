@@ -22,7 +22,7 @@ change-para: func [
 		where	[integer!]
 		lay		[handle!]
 ][
-	
+
 	if TYPE_OF(para) <> TYPE_OBJECT [return no]
 	flags: get-para-flags type para
 	;; DEBUG: if flags <> 0 [print ["change-para " widget " " get-symbol-name type " flags: " flags lf]]
@@ -90,9 +90,9 @@ update-para: func [
 	;; COMMENTED SINCE UNUSED!
 	; sym:	symbol/resolve type/symbol
 	; para: 	as red-object! values + FACE_OBJ_PARA
-	
+
 	unless TYPE_OF(type) = TYPE_WORD [exit]				;@@ make it an error message
-	
+
 	;; COMMENTED SINCE UNUSED!
 	; case [
 	; 	sym = base [mask: not 002Fh]
@@ -112,7 +112,7 @@ update-para: func [
 	; 	]
 	; 	true [0]
 	; ]
-	
+
 	state: as red-block! values + FACE_OBJ_STATE
 	if TYPE_OF(state) = TYPE_BLOCK [
 		int: as red-integer! (block/rs-head state) + 1
@@ -149,17 +149,17 @@ get-para-flags: func [
 	align:  as red-word! values + PARA_OBJ_V-ALIGN
 	v-sym:  symbol/resolve align/symbol
 	bool:   as red-logic! values + PARA_OBJ_WRAP?
-	
+
 	wrap?:	any [
 		TYPE_OF(bool) = TYPE_NONE
 		all [TYPE_OF(bool) = TYPE_LOGIC bool/value]
 	]
-	
-	left:	 0 center:  0 right:	 0 h-def: 	 0 
+
+	left:	 0 center:  0 right:	 0 h-def: 	 0
 	top:	 0 middle:	0 bottom:	 0 v-def: 	 0
-	
+
 	flags:	 0
-	
+
 	case [
 		any [
 			type = base
@@ -172,7 +172,7 @@ get-para-flags: func [
 			middle: 0004h								;-- DT_VCENTER
 			bottom: 0008h								;-- DT_BOTTOM
 			h-def: center v-def: top
-			
+
 			unless wrap? [flags: 0010h]					;-- DT_SINGLELINE
 		]
 		any [
@@ -186,7 +186,7 @@ get-para-flags: func [
 			top:	00000400h							;-- BS_TOP
 			middle: 00000C00h							;-- BS_VCENTER
 			bottom: 00000800h							;-- BS_BOTTOM
-			
+
 			h-def: either type = button [center][left]
 		]
 		any [
@@ -197,9 +197,9 @@ get-para-flags: func [
 			left:	0000h								;-- ES_LEFT / SS_LEFT
 			right:  0001h								;-- ES_RIGHT / SS_RIGHT
 			center: 0002h								;-- ES_CENTER / SS_CENTER
-			
+
 			h-def: left
-			
+
 			if all[wrap? type <> field][
 				flags: 00010000h						;-- SS_ENDELLIPSIS
 			]

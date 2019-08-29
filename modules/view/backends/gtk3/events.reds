@@ -122,11 +122,11 @@ get-event-offset: func [
 			;; DEBUG: print ["event-offset type: " get-symbol-name get-widget-symbol widget " size: " sz/x "x" sz/y lf]
 			; sz/x: evt-sizing/x_new
 			; sz/y: evt-sizing/y_new
-			
+
 			; print ["OFFSET is SIZE ? " sz " vs " offset lf] ; => NO!
 			; alternative 1:
  			; sz/x: (as integer! evt-sizing/x_root) - offset/x
-			; sz/y: (as integer! evt-sizing/y_root)  - offset/y 
+			; sz/y: (as integer! evt-sizing/y_root)  - offset/y
 
 			; alternative 2:
 			; sz/x: gtk_widget_get_allocated_width widget
@@ -291,7 +291,7 @@ get-event-flags: func [
 ][
 	;; DEBUG: print ["get-event-flags " lf]
 	blk: flags-blk
-	block/rs-clear blk	
+	block/rs-clear blk
 	if evt/flags and EVT_FLAG_AWAY		 <> 0 [block/rs-append blk as red-value! _away]
 	if evt/flags and EVT_FLAG_DOWN		 <> 0 [block/rs-append blk as red-value! _down]
 	if evt/flags and EVT_FLAG_MID_DOWN	 <> 0 [block/rs-append blk as red-value! _mid-down]
@@ -312,7 +312,7 @@ get-event-flag: func [
 ]
 
 ;; This function is only called in handlers.red
-;; No 
+;; No
 make-event: func [
 	msg		[handle!]
 	flags	[integer!]
@@ -405,7 +405,7 @@ make-event: func [
 
 	; if TYPE_OF(res) = TYPE_WORD [
 	; 	sym: symbol/resolve res/symbol
-	; 	;; DEBUG: 
+	; 	;; DEBUG:
 	; 	print ["make-events result:" sym lf]
 
 	; 	case [
@@ -437,7 +437,7 @@ do-events: func [
 	;@@ we use a global value to simulate it
 
 	;; DEBUG: print ["do-events no-wait? " no-wait? lf]
-	
+
 	;; Initially normally uncommented: the exit-loop is also decremented in destroy for supposed no-wait view!
 	unless no-wait? [
 		exit-loop: exit-loop + 1
@@ -447,7 +447,7 @@ do-events: func [
 		if g_main_context_iteration GTKApp-Ctx not no-wait? [msg?: yes]
 		if no-wait? [break]
 	]
-	
+
 	while [g_main_context_iteration GTKApp-Ctx false][	;-- consume leftover event
 		msg?: yes
 		if no-wait? [break]
@@ -533,7 +533,7 @@ translate-key: func [
 	;; DEBUG: print [" translate-key: keycode: " keycode lf]
 	special?: no
 	key: case [
-		all[keycode >= 20h keycode <= 5Ah][keycode]; RED_VK_SPACE to RED_VK_Z 
+		all[keycode >= 20h keycode <= 5Ah][keycode]; RED_VK_SPACE to RED_VK_Z
 		all[keycode >= 5Bh keycode <= 60h][keycode]
 		all[keycode >= 61h keycode <= 7Ah][keycode]; RED_VK_a to RED_VK_z
 		all[keycode >= 7Bh keycode <= 7Dh][keycode];
@@ -571,7 +571,7 @@ post-quit-msg: func [
 
 ;;------------- centralize here connection handlers
 ;; The goal is to only connect gtk handlers only when actor is provided
-;; Rmk: Specific development for rich-text with panel parent with on-over actor for rich-text 
+;; Rmk: Specific development for rich-text with panel parent with on-over actor for rich-text
 ;; 		The panel needs to receive the event otherwise the rich-text can't receive the event with the associated actor.
 ;;		A delegation connection is provided to do so.
 
@@ -596,7 +596,7 @@ debug-connect?: func [level [integer!] return: [logic!]][debug-connect-level and
 
 
 respond-event?: func [
-	actors		[red-object!]	
+	actors		[red-object!]
 	type		[c-string!]
 	return:		[logic!]
 	/local
@@ -620,7 +620,7 @@ respond-window-id:	g_quark_from_string "respond-window-id"
 	ON_LEFT_UP:			2
 	ON_MIDDLE_DOWN:		4
 	ON_MIDDLE_UP:		8
-	ON_RIGHT_DOWN:		16	
+	ON_RIGHT_DOWN:		16
 	ON_RIGHT_UP:		32
 	ON_AUX_DOWN:		64
 	ON_AUX_UP:			128
@@ -638,16 +638,16 @@ respond-mouse-add: func [
 		on-type	[integer!]
 ][
 	on-type: 0
-	if respond-event?  actors "on-down" [on-type: on-type or ON_LEFT_DOWN]  
+	if respond-event?  actors "on-down" [on-type: on-type or ON_LEFT_DOWN]
 	if respond-event?  actors "on-up" [on-type: on-type or ON_LEFT_UP]
-	if respond-event?  actors "on-mid-down" [on-type: on-type or ON_MIDDLE_DOWN] 
+	if respond-event?  actors "on-mid-down" [on-type: on-type or ON_MIDDLE_DOWN]
 	if respond-event?  actors "on-mid-up" [on-type: on-type or ON_MIDDLE_UP]
-	if respond-event?  actors "on-alt-down" [on-type: on-type or ON_RIGHT_DOWN] 
+	if respond-event?  actors "on-alt-down" [on-type: on-type or ON_RIGHT_DOWN]
 	if respond-event?  actors "on-alt-up" [on-type: on-type or ON_RIGHT_UP]
-	if respond-event?  actors "on-aux-down" [on-type: on-type or ON_AUX_DOWN] 
-	if respond-event?  actors "on-aux-up" [on-type: on-type or ON_AUX_UP]  
+	if respond-event?  actors "on-aux-down" [on-type: on-type or ON_AUX_DOWN]
+	if respond-event?  actors "on-aux-up" [on-type: on-type or ON_AUX_UP]
 	if respond-event?  actors "on-click" [on-type: on-type or ON_CLICK] if respond-event?  actors "on-dbl-click" [on-type: on-type or ON_DBL_CLICK]
-	if respond-event?  actors "on-wheel" [on-type: on-type or ON_WHEEL] 
+	if respond-event?  actors "on-wheel" [on-type: on-type or ON_WHEEL]
 	if respond-event?  actors "on-over" [on-type: on-type or ON_OVER]
 	if all[on-type > 0 not null? widget][
 		;; DEBUG: if debug-connect? DEBUG_CONNECT_RESPOND_MOUSE [print ["Add mouse event " on-type " for " get-symbol-name sym  lf ]]
@@ -691,12 +691,12 @@ respond-window-add: func [
 	if respond-event?  actors "on-moving" [on-type: on-type or ON_MOVING]
 	if respond-event?  actors "on-size" [on-type: on-type or ON_SIZE]
 	if respond-event?  actors "on-sizing" [on-type: on-type or ON_SIZING]
-	if respond-event?  actors "on-time" [on-type: on-type or ON_TIME]  
+	if respond-event?  actors "on-time" [on-type: on-type or ON_TIME]
 	if respond-event?  actors "on-drawing" [on-type: on-type or ON_DRAWING]
-	if respond-event?  actors "on-scroll" [on-type: on-type or ON_SCROLL] 
+	if respond-event?  actors "on-scroll" [on-type: on-type or ON_SCROLL]
 	if respond-event?  actors "on-over" [on-type: on-type or ON_OVER]
 	if respond-event?  actors "on-select" [on-type: on-type or ON_SELECT]
-	if respond-event?  actors "on-change" [on-type: on-type or ON_CHANGE] 
+	if respond-event?  actors "on-change" [on-type: on-type or ON_CHANGE]
 	if respond-event?  actors "on-menu" [on-type: on-type or ON_MENU]
 	if all[on-type > 0 not null? widget][
 		;; DEBUG: if debug-connect? DEBUG_CONNECT_RESPOND_WINDOW [print ["Add window event " on-type " for " get-symbol-name sym  lf ]]
@@ -739,12 +739,12 @@ respond-key-add: func [
 	if respond-event?  actors "on-key-down" [on-type: on-type or ON_KEY_DOWN]
 	if respond-event?  actors "on-key-up" [on-type: on-type or ON_KEY_UP]
 	if respond-event?  actors "on-ime" [on-type: on-type or ON_IME]
-	if respond-event?  actors "on-focus" [on-type: on-type or ON_FOCUS]  
+	if respond-event?  actors "on-focus" [on-type: on-type or ON_FOCUS]
 	if respond-event?  actors "on-unfocus" [on-type: on-type or ON_UNFOCUS]
-	if respond-event?  actors "on-enter" [on-type: on-type or ON_ENTER] 
+	if respond-event?  actors "on-enter" [on-type: on-type or ON_ENTER]
 	if respond-event?  actors "on-zoom" [on-type: on-type or ON_ZOOM]
 	if respond-event?  actors "on-pan" [on-type: on-type or ON_PAN]
-	if respond-event?  actors "on-rotate" [on-type: on-type or ON_ROTATE] 
+	if respond-event?  actors "on-rotate" [on-type: on-type or ON_ROTATE]
 	if respond-event?  actors "on-two-tap" [on-type: on-type or ON_TWO_TAP]
 	if respond-event?  actors "on-press-tap" [on-type: on-type or ON_PRESS_TAP]
 	if all[on-type > 0 not null? widget][
@@ -797,8 +797,8 @@ connect-container-events: func [
 
 ;; TODO: before finding better solution!!!!
 ;; container-type? is now only restricted to rich-text (cf gui.red)
-;; since 
-;; 1) it is required in makedoc/easy-VID-rt.red 
+;; since
+;; 1) it is required in makedoc/easy-VID-rt.red
 ;; 2) it is too slow when used in ast.red for base widget (too much delegations).
 
 connect-common-events: function [
@@ -811,7 +811,7 @@ connect-common-events: function [
 
 		if respond-mouse? widget (ON_LEFT_DOWN or ON_RIGHT_DOWN or ON_MIDDLE_DOWN or ON_AUX_DOWN) [
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_COMMON [print [ "connect-common-events ON-DOWN: " get-symbol-name sym "->" widget lf]]
-			gtk_widget_add_events widget GDK_BUTTON_PRESS_MASK 
+			gtk_widget_add_events widget GDK_BUTTON_PRESS_MASK
 			if container-type? sym [
 				;; Bubbling does not work for rich-text so delegation to the parent with EVT_DISPATCH
 				connect-container-events widget "button-press-event"
@@ -827,7 +827,7 @@ connect-common-events: function [
 			]
 			gobj_signal_connect(widget "motion-notify-event" :mouse-motion-notify-event face/ctx)
 		]
-		
+
 		if respond-mouse? widget (ON_LEFT_UP or ON_RIGHT_UP or ON_MIDDLE_UP or ON_AUX_UP) [
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_COMMON [print [ "connect-common-events ON-UP: " get-symbol-name sym "->" widget lf]]
 			gtk_widget_add_events widget  GDK_BUTTON_RELEASE_MASK
@@ -843,7 +843,7 @@ connect-common-events: function [
 			gtk_widget_add_events widget  GDK_KEY_PRESS_MASK or GDK_FOCUS_CHANGE_MASK
 			gobj_signal_connect(widget "key-press-event" :key-press-event face/ctx)
 		]
-		
+
 		if respond-key? widget (ON_KEY_UP or ON_UNFOCUS) [
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_COMMON [print [ "connect-common-events ON-KEY-UP: " get-symbol-name sym "->" widget lf]]
 			gtk_widget_add_events widget GDK_KEY_RELEASE_MASK
@@ -895,7 +895,7 @@ connect-widget-events: function [
 		buffer	[handle!]
 ][
 	;; register red mouse, key and window on event functions
-	
+
 	;; DEBUG: print ["common-widget-events for " get-symbol-name sym " " widget lf]
 	;; DEBUG: if null? actors/ctx [print ["null? actors/ctx" lf]]
 
@@ -914,7 +914,7 @@ connect-widget-events: function [
 			gobj_signal_connect(widget "toggled" :button-toggled face/ctx)
 		]
 		sym = radio [
-			;@@ Line below removed because it generates an error and there is no click event for radio 
+			;@@ Line below removed because it generates an error and there is no click event for radio
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add radio toggled " lf]]
 			gobj_signal_connect(widget "toggled" :button-toggled face/ctx)
 		]
@@ -974,7 +974,7 @@ connect-widget-events: function [
 				;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add fiedl button-release-event " lf]]
 				gobj_signal_connect(widget "button-release-event" :field-button-release-event face/ctx)
 			;;]
-			
+
 			gtk_widget_set_can_focus widget yes
 			gtk_widget_is_focus widget
 			;This depends on version >= 3.2
@@ -990,7 +990,7 @@ connect-widget-events: function [
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add area changed " lf]]
 			gobj_signal_connect(buffer "changed" :area-changed widget)
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add area populate-all " lf]]
-			g_object_set [widget "populate-all" yes null] 
+			g_object_set [widget "populate-all" yes null]
 			if respond-mouse? widget (ON_LEFT_DOWN or ON_RIGHT_DOWN or ON_MIDDLE_DOWN or ON_AUX_DOWN) [
 				;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add area button-press-event " lf]]
 				gobj_signal_connect(widget "button-press-event" :area-button-press-event face/ctx)
@@ -1023,8 +1023,8 @@ connect-widget-events: function [
 			; if respond-mouse? widget (ON_LEFT_DOWN or ON_RIGHT_DOWN or ON_MIDDLE_DOWN or ON_AUX_DOWN) [
 			;	gobj_signal_connect(widget "button-press-event" :panel-button-press-event face/ctx)
 			;]
-			; if respond-mouse? widget ON_OVER [gobj_signal_connect(widget "motion-notify-event" :mouse-motion-notify-event face/ctx)] 
-			
+			; if respond-mouse? widget ON_OVER [gobj_signal_connect(widget "motion-notify-event" :mouse-motion-notify-event face/ctx)]
+
 			; if respond-mouse? widget (ON_LEFT_UP or ON_RIGHT_UP or ON_MIDDLE_UP or ON_AUX_UP) [gobj_signal_connect(widget "button-release-event" :mouse-button-release-event face/ctx)]
 			; if respond-key? widget (ON_KEY or ON_KEY_DOWN) [gobj_signal_connect(widget "key-press-event" :key-press-event face/ctx)]
 			; if respond-key? widget ON_KEY_UP [gobj_signal_connect(widget "key-release-event" :key-release-event face/ctx)]

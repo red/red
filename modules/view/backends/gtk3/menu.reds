@@ -45,7 +45,7 @@ build-menu: func [
 		key		 	[c-string!]
 		action	 	[integer!]
 ][
-	if TYPE_OF(menu) <> TYPE_BLOCK [return null] 
+	if TYPE_OF(menu) <> TYPE_BLOCK [return null]
 
 	;; DEBUG: print ["Menu: " hMenu " with target: " target lf]
 	value: block/rs-head menu
@@ -61,10 +61,10 @@ build-menu: func [
 
 				len: -1
 				title: unicode/to-utf8 str :len
-				
+
 				item: gtk_menu_item_new_with_label title
 				gtk_widget_show item
-				
+
 				if next < tail [
 					switch TYPE_OF(next) [
 						TYPE_BLOCK [
@@ -140,7 +140,7 @@ append-context-menu: func [
 	item: gtk_separator_menu_item_new
 	gtk_widget_show item
 	gtk_menu_shell_append hMenu item
-	build-menu menu hMenu widget 
+	build-menu menu hMenu widget
 ]
 
 menu-bar?: func [

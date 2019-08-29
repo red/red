@@ -151,24 +151,24 @@ render-text: func [
 
 	pline: pango_layout_get_line lpc 0
 	pango_layout_line_get_pixel_extents pline rect lrect
-	ly: (pango_layout_get_line_count lpc) * lrect/height 
+	ly: (pango_layout_get_line_count lpc) * lrect/height
 	lx: lrect/width
 
 	case [
 		flags and 0001h <> 0 [x: (as-float (size/x - lx)) / 2.0]	; center
 		flags and 0002h <> 0 [x: as-float (size/x - lx)] 			; right
-		true [x: 0.0]			 									; left 
+		true [x: 0.0]			 									; left
 	]
 	case [
 		flags and 0004h <> 0 [y: (as-float (size/y - ly)) / 2.0]	; middle
 		flags and 0008h <> 0 [y: as-float (size/y - ly)] 			; bottom
 		true [y: 0.0] 												; top
 	]
-	
+
 	;; DEBUG: print [lx "x" ly " and (" x "," y ")" lf]
 
-	cairo_move_to cr x y 
-		
+	cairo_move_to cr x y
+
 	pango_cairo_show_layout cr lpc
 
 	cairo_stroke cr
@@ -200,9 +200,9 @@ render-text: func [
 ; 	]
 
 ; 	;cairo_move_to(cr, w/2 - extents.width/2, h/2);
-; 	cairo_move_to cr x y  
+; 	cairo_move_to cr x y
 ; print [ "hi-str: <" str ">" lf]
-; 	cairo_show_text cr str 
+; 	cairo_show_text cr str
 
 ]
 
@@ -233,23 +233,23 @@ base-draw: func [
 	size: as red-pair! vals + FACE_OBJ_SIZE
 	type: as red-word! vals + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
-	
+
 	if TYPE_OF(clr) = TYPE_TUPLE [
 		;; DEBUG: print ["base-draw color" (clr/array1 >>> 24 and FFh)  "x" (clr/array1 >> 16 and FFh ) "x" (clr/array1 >> 8 and FFh ) "x" (clr/array1 and FFh ) lf]
-		
+
 		;;;  OLD and DOES NOT WORK
 		; cairo_save cr
 		; set-source-color cr clr/array1
 		; cairo_paint cr								;-- paint background
 		; cairo_restore cr
 		;cairo_save cr
-		gtk_render_background gtk_widget_get_style_context widget cr 0.0 0.0  as float! size/x as float! size/y 
+		gtk_render_background gtk_widget_get_style_context widget cr 0.0 0.0  as float! size/x as float! size/y
 		;cairo_restore cr
 	]
 
 	if TYPE_OF(img) = TYPE_IMAGE [
 		;; DEBUG: print ["base-draw, GDK-draw-image: " 0 "x" 0 "x" size/x "x" size/y lf]
-		;; ONLY WORK for Mandelbrot and raytracer: 
+		;; ONLY WORK for Mandelbrot and raytracer:
 		;; GDK-draw-image cr OS-image/to-argb-pixbuf img 0 0 size/x size/y
 		GDK-draw-image cr OS-image/to-pixbuf img 0 0 size/x size/y
 	]
@@ -264,7 +264,7 @@ base-draw: func [
 		]
 		true []
 	]
-	
+
 	either TYPE_OF(draw) = TYPE_BLOCK [
 		;; DEBUG: print ["do-draw in base-draw" lf]
 		do-draw cr null draw no yes yes yes
@@ -308,7 +308,7 @@ window-removed-event: func [
 	widget	[handle!]
 	count	[int-ptr!]
 ][
-	;; DEBUG[view/no-wait]: print ["App " app " removed window " widget "exit-loop: " exit-loop " win-cnt: " win-cnt " main-window? " main-window = widget] 
+	;; DEBUG[view/no-wait]: print ["App " app " removed window " widget "exit-loop: " exit-loop " win-cnt: " win-cnt " main-window? " main-window = widget]
 	unless view-no-wait? widget [count/value: count/value - 1]
 	;; DEBUG[view/no-wait]: print ["=> exit-loop: " count/value lf]
 ]
@@ -325,7 +325,7 @@ window-configure-event: func [
 		y 		[integer!]
 ][
 	;;DEBUG: print [ "window-resizing " event/x "x" event/y " " event/width "x" event/height lf]
-	
+
 	; Set the offset when window is moved
 	offset: (as red-pair! get-face-values widget) + FACE_OBJ_OFFSET
 	x: 0 y: 0 gtk_window_get_position widget :x :y
@@ -335,17 +335,17 @@ window-configure-event: func [
 	sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE		;-- update face/size
 	; either any [event/width <> sz/x event/height <> sz/y] [
 	; 	;if 0 = (evt-motion/cpt % evt-motion/sensitiv) [
-	; 		evt-motion/x_new: event/width 
+	; 		evt-motion/x_new: event/width
 	; 		evt-motion/y_new: event/height
 	; 		evt-motion/x_root: as float! event/x
-	; 		evt-motion/y_root: as float! event/y 
+	; 		evt-motion/y_root: as float! event/y
 	; 		make-event widget 0 EVT_SIZE
 	; 	;]
 	; 	;evt-motion/cpt: evt-motion/cpt + 1
 	; 	yes
 	; ][no]
 	if any [event/width <> sz/x event/height <> sz/y] [
-		; evt-sizing/x_new: event/width 
+		; evt-sizing/x_new: event/width
 		; evt-sizing/y_new: event/height
 		; sz/x: evt-sizing/x_new
 		; sz/y: evt-sizing/y_new
@@ -367,7 +367,7 @@ window-size-allocate: func [
 	;; DEBUG: print ["window-size-allocate rect: " rect/x "x" rect/y "x" rect/width "x" rect/height     lf]
 	sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE		;-- update face/size
 	if any [rect/width <> sz/x rect/height <> sz/y] [
-			evt-sizing/x_new: rect/width 
+			evt-sizing/x_new: rect/width
 			evt-sizing/y_new: rect/height
 			;; DEBUG: print ["sz: " sz/x "x" sz/y  " -> " evt-sizing/x_new "x" evt-sizing/y_new lf]
 			sz/x: evt-sizing/x_new
@@ -376,7 +376,7 @@ window-size-allocate: func [
 			evt-sizing/x_root: as float! rect/x
 			evt-sizing/y_root: as float! rect/y
 			make-event widget 0 EVT_SIZING
-	] 
+	]
 ]
 
 range-value-changed: func [
@@ -511,7 +511,7 @@ field-key-press-event: func [
 		text	[c-string!]
 		face	[red-object!]
 		qdata	[handle!]
-][	 
+][
 	;; DEBUG: print ["key-press-event: " event-key/keyval lf]
 	if event-key/keyval > FFFFh [return EVT_DISPATCH]
 	key: translate-key event-key/keyval
@@ -529,7 +529,7 @@ field-key-press-event: func [
 				RED_VK_SHIFT	RED_VK_CONTROL
 				RED_VK_LSHIFT	RED_VK_RSHIFT
 				RED_VK_LCONTROL	RED_VK_RCONTROL
-				RED_VK_LMENU	RED_VK_RMENU 
+				RED_VK_LMENU	RED_VK_RMENU
 				RED_VK_UNKNOWN [0]				 ;-- no KEY event
 				default  [res: make-event widget key or flags EVT_KEY] ;-- force a KEY event
 			]
@@ -572,24 +572,24 @@ field-move-focus: func [
 	[cdecl]
 	widget	[handle!]
 	event	[handle!]
-	ctx		[node!] 
+	ctx		[node!]
 ][
 	print-line "move-focus"
 ]
 
 field-button-release-event: func [
 	[cdecl]
-	widget 	[handle!] 
+	widget 	[handle!]
 	event	[GdkEventButton!]
 	ctx 	[node!]
 	return: [integer!]
-	/local	
+	/local
 		x			[integer!]
 		y			[integer!]
 		sel			[red-pair!]
 ][
 	;; DEBUG: print [ "field  mouse -> BUTTON-RELEASE: " widget " x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
-	if event/button = GDK_BUTTON_PRIMARY [ 
+	if event/button = GDK_BUTTON_PRIMARY [
 		x: -1 y: -1
 		if gtk_editable_get_selection_bounds widget :x :y [
 			;; DEBUG: print ["from " x " to " y lf ]
@@ -618,11 +618,11 @@ area-changed: func [
 		end		[GtkTextIter!]
 ][
 	; Weirdly, GtkTextIter introduced since I did not simplest solution to get the full content of a GtkTextBuffer!
-	start: as GtkTextIter! allocate (size? GtkTextIter!) 
-	end: as GtkTextIter! allocate (size? GtkTextIter!) 
+	start: as GtkTextIter! allocate (size? GtkTextIter!)
+	end: as GtkTextIter! allocate (size? GtkTextIter!)
 	gtk_text_buffer_get_bounds buffer as handle! start as handle! end
 	text: gtk_text_buffer_get_text buffer as handle! start as handle! end no
-	free as byte-ptr! start free as byte-ptr! end 
+	free as byte-ptr! start free as byte-ptr! end
 	qdata: g_object_get_qdata widget red-face-id
     unless null? qdata [
         face: as red-object! qdata
@@ -633,7 +633,7 @@ area-changed: func [
 
 area-button-press-event: func [
 	[cdecl]
-	widget 	[handle!] 
+	widget 	[handle!]
 	event	[GdkEventButton!]
 	ctx 	[node!]
 	return: [integer!]
@@ -641,7 +641,7 @@ area-button-press-event: func [
 		flags 		[integer!]
 ][
 	;; DEBUG: print [ "area -> BUTTON-PRESS: " widget " x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
-	
+
 	menu-x: as-integer event/x
 	menu-y: as-integer event/y
 	;; DEBUG: print ["menu cursor pos: " menu-x "x" menu-y lf]
@@ -652,7 +652,7 @@ area-button-press-event: func [
 
 area-button-release-event: func [
 	[cdecl]
-	widget 	[handle!] 
+	widget 	[handle!]
 	event	[GdkEventButton!]
 	ctx 	[node!]
 	return: [integer!]
@@ -660,16 +660,16 @@ area-button-release-event: func [
 		flags 		[integer!]
 		buffer		[handle!]
 		start		[GtkTextIter!]; value does not work
-		end			[GtkTextIter!]		
+		end			[GtkTextIter!]
 		x			[integer!]
 		y			[integer!]
 		sel			[red-pair!]
 ][
 	;; DEBUG: print [ "area  mouse -> BUTTON-RELEASE: " widget " x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
 	if event/button = GDK_BUTTON_PRIMARY [
-		start: as GtkTextIter! allocate (size? GtkTextIter!) 
-		end: as GtkTextIter! allocate (size? GtkTextIter!) 
-		buffer: gtk_text_view_get_buffer widget 
+		start: as GtkTextIter! allocate (size? GtkTextIter!)
+		end: as GtkTextIter! allocate (size? GtkTextIter!)
+		buffer: gtk_text_view_get_buffer widget
 		if gtk_text_buffer_get_selection_bounds buffer as handle! start as handle! end [
 			x: -1 y: -1
 			x: gtk_text_iter_get_offset as handle! start
@@ -683,7 +683,7 @@ area-button-release-event: func [
 			]
 			make-event widget 0 EVT_SELECT
 		]
-		free as byte-ptr! start free as byte-ptr! end 
+		free as byte-ptr! start free as byte-ptr! end
 	]
 	0
 ]
@@ -696,7 +696,7 @@ area-populate-popup: func [
 	/local
 		menu	[red-block!]
 ][
-	;; DEBUG: print ["populate menu for " widget " and menu " hMenu lf] 
+	;; DEBUG: print ["populate menu for " widget " and menu " hMenu lf]
 	menu: as red-block! get-node-facet ctx FACE_OBJ_MENU
 	append-context-menu menu hMenu widget
 ]
@@ -719,11 +719,11 @@ red-timer-action: func [
 	; 	remove-widget-timer self
 	; 	no ; this removes the timer
 	; ]
-]	
+]
 
 widget-enter-notify-event: func [
 	[cdecl]
-	widget 	[handle!] 
+	widget 	[handle!]
 	event	[GdkEventCrossing!]
 	ctx 	[node!]
 	return: [integer!]
@@ -739,7 +739,7 @@ widget-enter-notify-event: func [
 
 widget-leave-notify-event: func [
 	[cdecl]
-	widget 	[handle!] 
+	widget 	[handle!]
 	event	[GdkEventCrossing!]
 	ctx 	[node!]
 	return: [integer!]
@@ -754,7 +754,7 @@ widget-leave-notify-event: func [
 
 drag-widget-motion-notify-event: func [
 	[cdecl]
-	widget 	[handle!] 
+	widget 	[handle!]
 	event	[GdkEventMotion!]
 	ctx 	[node!]
 	return: [integer!]
@@ -772,7 +772,7 @@ drag-widget-motion-notify-event: func [
 		if 0 = (evt-motion/cpt % evt-motion/sensitiv) [
 			x:  event/x_root - evt-motion/x_root
 			y:  event/y_root - evt-motion/y_root
-			evt-motion/x_new: as-integer x + either x > 0.0 [0.5][-0.5] 
+			evt-motion/x_new: as-integer x + either x > 0.0 [0.5][-0.5]
 			evt-motion/y_new: as-integer y + either y > 0.0 [0.5][-0.5]
 			;; DEBUG: print ["new " evt-motion/x_new "x" evt-motion/y_new lf]
 			evt-motion/x_root: event/x_root
@@ -788,7 +788,7 @@ drag-widget-motion-notify-event: func [
 
 drag-widget-button-press-event: func [
 	[cdecl]
-	widget 	[handle!] 
+	widget 	[handle!]
 	event	[GdkEventButton!]
 	ctx 	[node!]
 	return: [integer!]
@@ -815,7 +815,7 @@ drag-widget-button-press-event: func [
 
 drag-widget-button-release-event: func [
 	[cdecl]
-	widget 	[handle!] 
+	widget 	[handle!]
 	event	[GdkEventButton!]
 	ctx 	[node!]
 	return: [integer!]
@@ -830,10 +830,10 @@ drag-widget-button-release-event: func [
 	; Special treatment for check and radio buttons (TODO: button)
 	type: as red-word! get-node-facet ctx FACE_OBJ_TYPE
 	sym:	symbol/resolve type/symbol
-	
+
 	if all [
 		any [sym = check sym = radio]
-		evt-motion/cpt = 0					; IMPORTANT: change state only if no dragging! 
+		evt-motion/cpt = 0					; IMPORTANT: change state only if no dragging!
 	][
 		state: gtk_toggle_button_get_active widget
 		gtk_toggle_button_set_active widget either sym = check [not state][yes]
@@ -859,7 +859,7 @@ container-emit-event: func [
 	x: as-integer evt/x y: as-integer evt/y
 	rect: 	as tagRECT allocate (size? tagRECT)
 	gtk_widget_get_allocation widget as handle! rect
-	
+
 	;; DEBUG: if evt/type = GDK_BUTTON_PRESS [print ["emit event " widget lf]]
 	if all[x >= rect/x x <= (rect/x + rect/width) y >= rect/y y <= (rect/y + rect/height)][
 		;; DEBUG: if evt/type = GDK_BUTTON_PRESS [print ["emit2 event " widget " event " evt/x "x" evt/y lf "widget size " rect/x "x" rect/y "x" rect/width "x" rect/height lf]]
@@ -870,7 +870,7 @@ container-emit-event: func [
 
 container-delegate-to-children: func [
 	[cdecl]
-	widget 	[handle!] 
+	widget 	[handle!]
 	event	[int-ptr!]
 	ctx 	[node!]
 	return: [integer!]
@@ -882,7 +882,7 @@ container-delegate-to-children: func [
 
 mouse-button-press-event: func [
 	[cdecl]
-	widget 	[handle!] 
+	widget 	[handle!]
 	event	[GdkEventButton!]
 	ctx 	[node!]
 	return: [integer!]
@@ -893,9 +893,9 @@ mouse-button-press-event: func [
 	;; DEBUG: print [ "mouse -> BUTTON-PRESS: " widget " ("  ") x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root " drag? " draggable? widget lf]
 	; evt-motion/state: yes
 	; evt-motion/cpt: 0
-	
+
 	if gtk_widget_get_focus_on_click widget [
-		;; DEBUG: print ["grab focus on mouse " widget lf] 
+		;; DEBUG: print ["grab focus on mouse " widget lf]
 		gtk_widget_grab_focus widget
 	]
 	if draggable? widget [return 0] ; delegate to drag
@@ -926,7 +926,7 @@ mouse-button-press-event: func [
 
 mouse-button-release-event: func [
 	[cdecl]
-	widget 	[handle!] 
+	widget 	[handle!]
 	event	[GdkEventButton!]
 	ctx 	[node!]
 	return: [integer!]
@@ -941,14 +941,14 @@ mouse-button-release-event: func [
 	evt-motion/y_root: event/y_root
 	evt-motion/x_new: as-integer event/x
 	evt-motion/y_new: as-integer event/y
-	flags: check-flags event/type event/state 
+	flags: check-flags event/type event/state
 	make-event widget flags case [event/button = GDK_BUTTON_SECONDARY [EVT_RIGHT_UP] event/button = GDK_BUTTON_MIDDLE [EVT_MIDDLE_UP] true [EVT_LEFT_UP]]
 	;;0 ;;no
 ]
 
 mouse-motion-notify-event: func [
 	[cdecl]
-	widget 	[handle!] 
+	widget 	[handle!]
 	event	[GdkEventMotion!]
 	ctx 	[node!]
 	return: [integer!]
@@ -969,9 +969,9 @@ mouse-motion-notify-event: func [
 	wflags: get-flags (as red-block! get-face-values widget) + FACE_OBJ_FLAGS
 	if wflags and FACET_FLAGS_ALL_OVER <> 0 [
 		flags: check-flags event/type event/state
-		make-event widget flags EVT_OVER	 
+		make-event widget flags EVT_OVER
 	]
-	;; DEBUG: print ["mouse-motion-notify-event:  down? " (event/state and GDK_BUTTON1_MASK <> 0) " " (flags and EVT_FLAG_DOWN <> 0) lf] 
+	;; DEBUG: print ["mouse-motion-notify-event:  down? " (event/state and GDK_BUTTON1_MASK <> 0) " " (flags and EVT_FLAG_DOWN <> 0) lf]
 	EVT_DISPATCH ;;no
 ]
 
@@ -1056,7 +1056,7 @@ widget-scroll-event: func [
 	;; DEBUG: print ["scroll-event: " event/direction " " event/delta_x " " event/delta_y lf]
 	state: 0
 	g_object_set_qdata widget red-event-id as handle! event
-	if any[event/delta_y < -0.01 event/delta_y > 0.01][	
+	if any[event/delta_y < -0.01 event/delta_y > 0.01][
 		state: make-event widget check-down-flags event/state EVT_WHEEL
 	]
 	state

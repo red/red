@@ -51,11 +51,11 @@ init-draw-ctx: func [
 	ctx/pen?:			yes
 	ctx/brush?:			no
 	ctx/pattern:		null
-	
+
 	ctx/font-desc: null ;default-font
 	ctx/layout: null ; make-pango-cairo-layout cr ctx/font-desc
 	ctx/font-opts:		null
-	ctx/font-underline?: no 
+	ctx/font-underline?: no
 	ctx/font-strike?: 	no
 ]
 
@@ -99,7 +99,7 @@ do-paint: func [dc [draw-ctx!] /local cr [handle!]][
 		]
 		cairo_fill_preserve cr
 		unless dc/pen? [
-			set-source-color cr dc/pen-color 
+			set-source-color cr dc/pen-color
 			cairo_stroke cr
 		]
 		cairo_restore cr
@@ -108,7 +108,7 @@ do-paint: func [dc [draw-ctx!] /local cr [handle!]][
 		;; DEBUG: print ["do-paint dc/pen? color " dc/pen-color lf]
 		cairo_stroke cr
 	]
-	
+
 ]
 
 OS-draw-anti-alias: func [
@@ -141,7 +141,7 @@ OS-draw-pen: func [
 ][
 	dc/pen?: not off?
 	;; DEBUG: print ["OS-draw-pen: " not off? " with color " color lf ]
-	;; THIS if DOES NOT WORK: 
+	;; THIS if DOES NOT WORK:
 	;; if dc/pen-color <> color [
 		dc/pen-color: color
 		dc/font-color: color
@@ -272,7 +272,7 @@ do-spline-step: func [
 			t: t + spline-delta
 			t2: t * t
 			t3: t2 * t
-			
+
 			x:
 			   2.0 * (as-float p1/x) + ((as-float p2/x) - (as-float p0/x) * t) +
 			   ((2.0 * (as-float p0/x) - (5.0 * (as-float p1/x)) + (4.0 * (as-float p2/x)) - (as-float p3/x)) * t2) +
@@ -310,13 +310,13 @@ OS-draw-spline: func [
 			start + 1
 			start + 2
 	][
-		do-spline-step ctx 
+		do-spline-step ctx
 			start
 			start
 			start + 1
 			start + 2
 	]
-	
+
 	point: start
 	stop: end - 3
 
@@ -340,7 +340,7 @@ OS-draw-spline: func [
 			end
 			start
 			start + 1
-		cairo_close_path ctx 
+		cairo_close_path ctx
 	][
 		do-spline-step ctx
 			end - 2
@@ -432,7 +432,7 @@ OS-draw-ellipse: func [
 OS-draw-font: func [
 	dc		[draw-ctx!]
 	font	[red-object!]
-][ 
+][
 	; either pango-font? [
 		make-pango-cairo-font dc font
 	; ][
@@ -473,7 +473,7 @@ draw-text-at: func [
 	;; print ["set-source-color: " ctx " " color lf]
 
 	pango_cairo_update_layout ctx dc/layout
-				
+
 	size: 0
 	size: pango_font_description_get_size dc/font-desc
 	;; DEBUG: print ["pango_font_description_get_size: dc/font-desc: " dc/font-desc " size: " size lf]
@@ -481,7 +481,7 @@ draw-text-at: func [
 					(as-float y) + ((as-float size) / PANGO_SCALE)
 	pl: pango_layout_get_line_readonly dc/layout 0
 	pango_cairo_show_layout_line ctx pl
-	
+
 	;pango_cairo_show_layout ctx dc/layout
 
 	do-paint dc
@@ -513,7 +513,7 @@ draw-text-box-lines: func [
 		dc/font-color
 	]
 
-	lc: either TYPE_OF(tbox) = TYPE_OBJECT [	
+	lc: either TYPE_OF(tbox) = TYPE_OBJECT [
 	 	;; DEBUG: print ["draw-text-box-lines: " as int-ptr! dc lf]			;-- text-box!
 		 as layout-ctx! OS-text-box-layout tbox as int-ptr! dc clr yes
 	 ][
@@ -526,7 +526,7 @@ draw-text-box-lines: func [
 
 		set-source-color ctx clr
 		;; DEBUG: print ["set-source-color: " ctx " " clr lf]
-		
+
 		cairo_move_to ctx as-float pos/x (as-float pos/y) ; + sizef
 		pango_cairo_show_layout ctx lc/layout
 
@@ -557,15 +557,15 @@ draw-text-box: func [
 	if TYPE_OF(text) <> TYPE_STRING [exit]
 
 	size: as red-pair! values + FACE_OBJ_SIZE
-	
+
 	;; DEBUG: print ["pos : " pos/x "x" pos/y " size: " size/x "x" size/y lf]
 
 	len: -1
 	str: unicode/to-utf8 text :len
-	; default font-desc that can be overloaded in OS-text-box-layout called inside draw-text-box-lines 
+	; default font-desc that can be overloaded in OS-text-box-layout called inside draw-text-box-lines
 	dc/font-desc: pango_font_description_from_string gtk-font
 	;;TORM: dc/layout: make-pango-cairo-layout dc/raw dc/font-desc
-	
+
 	;; DEBUG: print ["draw-text-box text: " str  " dc/font-desc: " dc/font-desc  lf]
 	draw-text-box-lines dc str pos size tbox
 ]
@@ -653,9 +653,9 @@ OS-draw-curve: func [
 ][
 	ctx: dc/raw
 
-	if (as-integer end - start) >> 4 = 3    ; four input points 
+	if (as-integer end - start) >> 4 = 3    ; four input points
 	[
-		cairo_move_to ctx as-float start/x 
+		cairo_move_to ctx as-float start/x
 						  as-float start/y
 		start: start + 1
 	]
@@ -679,7 +679,7 @@ OS-draw-line-join: func [
 ][
 	if dc/pen-join <> style [
 		dc/pen-join: style
-		cairo_set_line_join dc/raw 
+		cairo_set_line_join dc/raw
 			case [
 				style = miter		[0]
 				style = _round		[1]
@@ -689,7 +689,7 @@ OS-draw-line-join: func [
 			]
 	]
 ]
-	
+
 OS-draw-line-cap: func [
 	dc	  [draw-ctx!]
 	style [integer!]
@@ -738,7 +738,7 @@ OS-draw-image: func [
 	crop1		[red-pair!]
 	pattern		[red-word!]
 	/local
-		cr			[handle!]	
+		cr			[handle!]
 		img			[int-ptr!]
 		bitmap 		[integer!]
 		stride 		[integer!]
@@ -789,13 +789,13 @@ OS-draw-image: func [
 		crop2: crop1 + 1
 		w: as float! crop2/x
 		h: as float! crop2/y
-		crop_xscale: w / (as float! width) 
+		crop_xscale: w / (as float! width)
 		crop_yscale: h / (as float! height)
 		crop_img_sx: as integer! (img_w / crop_xscale)
 		crop_img_sy: as integer! (img_h / crop_yscale)
 		;width: as-integer (w / h * (as float! height))
 		;; DEBUG: print ["cropping dest: " crop_x "x" crop_y "x" w "x" h " img size: " crop_img_sx "x" crop_img_sy lf]
-		img: gdk_pixbuf_scale_simple img crop_img_sx crop_img_sy 2	
+		img: gdk_pixbuf_scale_simple img crop_img_sx crop_img_sy 2
 		format: CAIRO_FORMAT_RGB24 ;either 3 = gdk_pixbuf_get_n_channels img [CAIRO_FORMAT_RGB24][CAIRO_FORMAT_ARGB32]
 		;; DEBÙG: print ["pixbuf format: " format lf]
 		crop_surf: cairo_image_surface_create format crop_img_sx crop_img_sy
@@ -806,7 +806,7 @@ OS-draw-image: func [
 
 		cairo_save cr
 		cairo_translate cr as-float x as-float y
-		cairo_set_source_surface cr crop_surf (0.0 - (crop_x / crop_xscale)) (0.0 - (crop_y / crop_yscale)) 
+		cairo_set_source_surface cr crop_surf (0.0 - (crop_x / crop_xscale)) (0.0 - (crop_y / crop_yscale))
 		cairo_rectangle cr 0.0 0.0 as float! width as float! height
 		cairo_fill cr
 		cairo_translate cr as-float (0 - x) as-float (0 - y)
@@ -915,7 +915,7 @@ OS-draw-grad-pen: func [
 	spread		[integer!]
 	brush?		[logic!]
 ][
-	
+
 ]
 
 OS-matrix-rotate: func [
@@ -930,12 +930,12 @@ OS-matrix-rotate: func [
 	cr: dc/raw
 	rad: PI / 180.0 * get-float angle
 	if angle <> as red-integer! center [
-		cairo_translate cr as float! center/x 
+		cairo_translate cr as float! center/x
 					   as float! center/y
 	]
 	cairo_rotate cr rad
 	if angle <> as red-integer! center [
-		cairo_translate cr as float! (0 - center/x) 
+		cairo_translate cr as float! (0 - center/x)
 					as float! (0 - center/y)
 	]
 ]
@@ -962,7 +962,7 @@ OS-matrix-translate: func [
 		cr [handle!]
 ][
 	cr: dc/raw
-	cairo_translate cr as-float x 
+	cairo_translate cr as-float x
 					   as-float y
 ]
 
@@ -1042,7 +1042,7 @@ OS-matrix-set: func [
     m/yy: get-float val + 3
     m/x0: get-float val + 4
     m/y0: get-float val + 5
-	cairo_transform dc/raw :m ; Weirdly it is not cairo_set_matrix because it is a global change!  
+	cairo_transform dc/raw :m ; Weirdly it is not cairo_set_matrix because it is a global change!
 ]
 
 OS-set-matrix-order: func [
@@ -1065,7 +1065,7 @@ OS-set-clip: func [
 
 OS-draw-shape-beginpath: func [
 	dc			[draw-ctx!]
-][ 
+][
 ]
 
 OS-draw-shape-endpath: func [
@@ -1199,7 +1199,7 @@ draw-curve: func [
 
 	dc/shape-curve?: yes
 	either num = 3 [				;-- cubic Bézier
-		either rel? [cairo_rel_curve_to dc/raw p1x p1y p2x p2y p3x p3y] 
+		either rel? [cairo_rel_curve_to dc/raw p1x p1y p2x p2y p3x p3y]
 		[cairo_curve_to dc/raw p1x p1y p2x p2y p3x p3y]
 		; dc/control-x: p2x
 		; dc/control-y: p2y
