@@ -12,20 +12,20 @@ Red/System [
 
 gtk-app-activate: func [
 	[cdecl]
-	app		[handle!]
-	data	[int-ptr!]
+	app			[handle!]
+	data		[int-ptr!]
 	/local
-		win [handle!]
+		win		[handle!]
 ][
 	probe "active"
 ]
 
 set-selected: func [
-	obj [handle!]
-	ctx [node!]
-	idx [integer!]
+	obj			[handle!]
+	ctx			[node!]
+	idx			[integer!]
 	/local
-		int [red-integer!]
+		int		[red-integer!]
 ][
 	int: as red-integer! get-node-facet ctx FACE_OBJ_SELECTED
 	int/header: TYPE_INTEGER
@@ -33,14 +33,14 @@ set-selected: func [
 ]
 
 set-text: func [
-	obj		[handle!]
-	ctx		[node!]
-	text	[c-string!]
+	obj			[handle!]
+	ctx			[node!]
+	text		[c-string!]
 	/local
-		size [integer!]
-		str	 [red-string!]
-		face [red-object!]
-		out	 [c-string!]
+		size	[integer!]
+		str		[red-string!]
+		face	[red-object!]
+		out		[c-string!]
 ][
 	;; DEBUG: print ["set-text: " text lf]
 	size: length? text
@@ -66,19 +66,19 @@ set-text: func [
 
 button-clicked: func [
 	[cdecl]
-	widget	[handle!]
-	ctx		[node!]
+	widget		[handle!]
+	ctx			[node!]
 ][
 	make-event widget 0 EVT_CLICK
 ]
 
 button-toggled: func [
 	[cdecl]
-	button	[handle!]
-	ctx		[node!]
+	button		[handle!]
+	ctx			[node!]
 	/local
-		bool		  [red-logic!]
-		type		  [integer!]
+		bool	[red-logic!]
+		type	[integer!]
 		undetermined? [logic!]
 ][
 	bool: as red-logic! get-node-facet ctx FACE_OBJ_DATA
@@ -94,15 +94,15 @@ button-toggled: func [
 ]
 
 render-text: func [
-	cr		[handle!]
-	size 	[red-pair!]
-	values	[red-value!]
+	cr			[handle!]
+	size		[red-pair!]
+	values		[red-value!]
 	/local
 		text	[red-string!]
 		font	[red-object!]
 		para	[red-object!]
 		flags	[integer!]
-		len      [integer!]
+		len		[integer!]
 		str		[c-string!]
 		line	[integer!]
 		x		[float!]
@@ -110,14 +110,14 @@ render-text: func [
 		temp	[float!]
 		;te		[cairo_text_extents_t!]
 		;fe		[cairo_font_extents_t!]
-		lx 		[integer!]
-		ly 		[integer!]
+		lx		[integer!]
+		ly		[integer!]
 		rect	[tagRECT value]
 		lrect	[tagRECT value]
 		pline	[handle!]
-		pc	 	[handle!]
+		pc		[handle!]
 		lpc		[handle!]
-		fd 		[handle!]
+		fd		[handle!]
 ][
 	text: as red-string! values + FACE_OBJ_TEXT
 	if TYPE_OF(text) <> TYPE_STRING [exit]
@@ -208,21 +208,21 @@ render-text: func [
 
 base-draw: func [
 	[cdecl]
-	widget	[handle!]
-	cr		[handle!]
-	ctx		[node!]
-	return: [logic!]
+	widget		[handle!]
+	cr			[handle!]
+	ctx			[node!]
+	return:		[logic!]
 	/local
-		vals 	[red-value!]
-		draw 	[red-block!]
-		clr  	[red-tuple!]
-		img  	[red-image!]
+		vals	[red-value!]
+		draw	[red-block!]
+		clr		[red-tuple!]
+		img		[red-image!]
 		size	[red-pair!]
 		type	[red-word!]
 		sym		[integer!]
 		pos		[red-pair! value]
 		DC		[draw-ctx! value]
-		drawDC  [draw-ctx!]
+		drawDC	[draw-ctx!]
 ][
 	;; DEBUG: print ["base-draw " widget " " gtk_widget_get_allocated_width widget "x" gtk_widget_get_allocated_height widget lf]
 
@@ -285,8 +285,8 @@ base-draw: func [
 
 window-delete-event: func [
 	[cdecl]
-	widget	[handle!]
-	return: [logic!]
+	widget		[handle!]
+	return:		[logic!]
 ][
 	;; DEBUG: print ["window-delete-event" lf]
 	make-event widget 0 EVT_CLOSE
@@ -304,9 +304,9 @@ window-delete-event: func [
 
 window-removed-event: func [
 	[cdecl]
-	app		[handle!]
-	widget	[handle!]
-	count	[int-ptr!]
+	app			[handle!]
+	widget		[handle!]
+	count		[int-ptr!]
 ][
 	;; DEBUG[view/no-wait]: print ["App " app " removed window " widget "exit-loop: " exit-loop " win-cnt: " win-cnt " main-window? " main-window = widget]
 	unless view-no-wait? widget [count/value: count/value - 1]
@@ -316,13 +316,13 @@ window-removed-event: func [
 ;; BUG: `vid.red` fails... back with window-size-allocate handler for resizing
 window-configure-event: func [
 	[cdecl]
-	widget	[handle!]
-	event	[GdkEventConfigure!]
+	widget		[handle!]
+	event		[GdkEventConfigure!]
 	/local
-		sz	 	[red-pair!]
+		sz		[red-pair!]
 		offset	[red-pair!]
-		x 		[integer!]
-		y 		[integer!]
+		x		[integer!]
+		y		[integer!]
 ][
 	;;DEBUG: print [ "window-resizing " event/x "x" event/y " " event/width "x" event/height lf]
 
@@ -359,10 +359,10 @@ window-configure-event: func [
 
 window-size-allocate: func [
 	[cdecl]
-	widget	[handle!]
-	rect	[tagRECT]
+	widget		[handle!]
+	rect		[tagRECT]
 	/local
-		sz	 [red-pair!]
+		sz		[red-pair!]
 ][
 	;; DEBUG: print ["window-size-allocate rect: " rect/x "x" rect/y "x" rect/width "x" rect/height     lf]
 	sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE		;-- update face/size
@@ -381,16 +381,16 @@ window-size-allocate: func [
 
 range-value-changed: func [
 	[cdecl]
-	range	[handle!]
-	ctx		[node!]
+	range		[handle!]
+	ctx			[node!]
 	/local
-		vals  [red-value!]
-		val   [float!]
-		size  [red-pair!]
-	;	type  [red-word!]
-		pos   [red-float!]
-	;	sym   [integer!]
-		max   [float!]
+		vals	[red-value!]
+		val		[float!]
+		size	[red-pair!]
+		;	type  [red-word!]
+		pos		[red-float!]
+		;	sym   [integer!]
+		max		[float!]
 ][
 	; This event happens on GtkRange widgets including GtkScale.
 	; Will any other widget need this?
@@ -416,12 +416,12 @@ range-value-changed: func [
 
 combo-selection-changed: func [
 	[cdecl]
-	widget	[handle!]
-	ctx		[node!]
+	widget		[handle!]
+	ctx			[node!]
 	/local
-		idx [integer!]
-		res [integer!]
-		text [c-string!]
+		idx		[integer!]
+		res		[integer!]
+		text	[c-string!]
 ][
 	idx: gtk_combo_box_get_active widget
 	if idx >= 0 [
@@ -437,13 +437,13 @@ combo-selection-changed: func [
 
 text-list-selected-rows-changed: func [
 	[cdecl]
-	widget	[handle!]
-	ctx		[node!]
+	widget		[handle!]
+	ctx			[node!]
 	/local
-		idx [integer!]
-		sel [handle!]
-		res [integer!]
-		text [c-string!]
+		idx		[integer!]
+		sel		[handle!]
+		res		[integer!]
+		text	[c-string!]
 ][
 	; From now, only single-selection mode
 	sel: gtk_list_box_get_selected_row widget
@@ -461,13 +461,13 @@ text-list-selected-rows-changed: func [
 
 tab-panel-switch-page: func [
 	[cdecl]
-	widget	[handle!]
-	page	[handle!]
-	idx		[integer!]
-	ctx		[node!]
+	widget		[handle!]
+	page		[handle!]
+	idx			[integer!]
+	ctx			[node!]
 	/local
-		res  [integer!]
-		text [c-string!]
+		res		[integer!]
+		text	[c-string!]
 ][
 	if idx >= 0 [
 		res: make-event widget idx + 1 EVT_SELECT
@@ -555,9 +555,9 @@ key-release-event: func [
 
 field-move-focus: func [
 	[cdecl]
-	widget	[handle!]
-	event	[handle!]
-	ctx		[node!]
+	widget		[handle!]
+	event		[handle!]
+	ctx			[node!]
 ][
 	print-line "move-focus"
 ]
@@ -635,8 +635,8 @@ mouse-button-release-event: func [
 
 area-changed: func [
 	[cdecl]
-	buffer	[handle!]
-	widget	[handle!]
+	buffer		[handle!]
+	widget		[handle!]
 	/local
 		text	[c-string!]
 		face	[red-object!]
@@ -660,9 +660,9 @@ area-changed: func [
 
 area-populate-popup: func [
 	[cdecl]
-	widget	[handle!]
-	hMenu	[handle!]
-	ctx 	[node!]
+	widget		[handle!]
+	hMenu		[handle!]
+	ctx 		[node!]
 	/local
 		menu	[red-block!]
 ][
@@ -693,12 +693,12 @@ red-timer-action: func [
 
 widget-enter-notify-event: func [
 	[cdecl]
-	widget 	[handle!]
-	event	[GdkEventCrossing!]
-	ctx 	[node!]
-	return: [integer!]
+	widget		[handle!]
+	event		[GdkEventCrossing!]
+	ctx			[node!]
+	return:		[integer!]
 	/local
-		flags 		[integer!]
+		flags	[integer!]
 ][
 	;; DEBUG: print [ "ENTER: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
 
@@ -709,12 +709,12 @@ widget-enter-notify-event: func [
 
 widget-leave-notify-event: func [
 	[cdecl]
-	widget 	[handle!]
-	event	[GdkEventCrossing!]
-	ctx 	[node!]
-	return: [integer!]
+	widget		[handle!]
+	event		[GdkEventCrossing!]
+	ctx			[node!]
+	return:		[integer!]
 	/local
-		flags 		[integer!]
+		flags	[integer!]
 ][
 	;; DEBUG: print [ "LEAVE: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
 	flags: check-flags event/type event/state
@@ -724,15 +724,15 @@ widget-leave-notify-event: func [
 
 drag-widget-motion-notify-event: func [
 	[cdecl]
-	widget 	[handle!]
-	event	[GdkEventMotion!]
-	ctx 	[node!]
-	return: [integer!]
+	widget		[handle!]
+	event		[GdkEventMotion!]
+	ctx			[node!]
+	return:		[integer!]
 	/local
-		offset 	[red-pair!]
-		x 		[float!]
-		y 		[float!]
-		flags 	[integer!]
+		offset	[red-pair!]
+		x		[float!]
+		y		[float!]
+		flags	[integer!]
 		state	[integer!]
 
 ][
@@ -758,13 +758,13 @@ drag-widget-motion-notify-event: func [
 
 drag-widget-button-press-event: func [
 	[cdecl]
-	widget 	[handle!]
-	event	[GdkEventButton!]
-	ctx 	[node!]
-	return: [integer!]
+	widget		[handle!]
+	event		[GdkEventButton!]
+	ctx			[node!]
+	return:		[integer!]
 	/local
-		offset 	[red-pair!]
-		flags 	[integer!]
+		offset	[red-pair!]
+		flags	[integer!]
 ][
 	;; DEBUG: print [ "DRAG BUTTON-PRESS: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
 	if any[
@@ -785,15 +785,15 @@ drag-widget-button-press-event: func [
 
 drag-widget-button-release-event: func [
 	[cdecl]
-	widget 	[handle!]
-	event	[GdkEventButton!]
-	ctx 	[node!]
-	return: [integer!]
+	widget		[handle!]
+	event		[GdkEventButton!]
+	ctx			[node!]
+	return:		[integer!]
 	/local
 		type	[red-word!]
 		sym		[integer!]
 		state	[logic!]
-		flags 	[integer!]
+		flags	[integer!]
 ][
 	;; DEBUG: print [ "Drag -> BUTTON-RELEASE: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
 	unless any[event/button = GDK_BUTTON_PRIMARY event/button = GDK_BUTTON_SECONDARY event/button = GDK_BUTTON_MIDDLE] [return 0]
@@ -817,13 +817,13 @@ drag-widget-button-release-event: func [
 
 container-emit-event: func [
 	[cdecl]
-	widget	[handle!]
-	event	[int-ptr!]
+	widget		[handle!]
+	event		[int-ptr!]
 	/local
-		rect 		[tagRECT]
-		evt			[GdkEventButton!]
-		x 			[integer!]
-		y 			[integer!]
+		rect	[tagRECT]
+		evt		[GdkEventButton!]
+		x		[integer!]
+		y		[integer!]
 ][
 	evt: as GdkEventButton! event
 	x: as-integer evt/x y: as-integer evt/y
@@ -840,10 +840,10 @@ container-emit-event: func [
 
 container-delegate-to-children: func [
 	[cdecl]
-	widget 	[handle!]
-	event	[int-ptr!]
-	ctx 	[node!]
-	return: [integer!]
+	widget		[handle!]
+	event		[int-ptr!]
+	ctx			[node!]
+	return:		[integer!]
 ][
 	;; DEBUG: print [ "parent -> CONTAINER DELEGATE: " widget lf]
 	gtk_container_foreach widget as-integer :container-emit-event event
@@ -902,14 +902,14 @@ mouse-button-press-event: func [
 
 mouse-motion-notify-event: func [
 	[cdecl]
-	widget 	[handle!]
-	event	[GdkEventMotion!]
-	ctx 	[node!]
-	return: [integer!]
+	widget		[handle!]
+	event		[GdkEventMotion!]
+	ctx			[node!]
+	return:		[integer!]
 	/local
-		offset 	[red-pair!]
-		x 		[float!]
-		y 		[float!]
+		offset	[red-pair!]
+		x		[float!]
+		y		[float!]
 		wflags	[integer!]
 		flags	[integer!]
 ][
@@ -948,7 +948,7 @@ widget-scroll-event: func [
 	ctx			[node!]
 	return:		[integer!]
 	/local
-		state 	[integer!]
+		state	[integer!]
 ][
 	;; DEBUG: print ["scroll-event: " event/direction " " event/delta_x " " event/delta_y lf]
 	state: 0
