@@ -288,7 +288,6 @@ system/view/platform: context [
 			_I-beam:		symbol/make "I-beam"
 			_cross:			symbol/make "cross"
 
-			on-over:		symbol/make "on-over"
 			_drag-on:		symbol/make "drag-on"
 			_actors:		word/load "actors"
 			_scroller:		word/load "scroller"
@@ -376,6 +375,45 @@ system/view/platform: context [
 			_caps-lock:		word/load "caps-lock"
 			_num-lock:		word/load "num-lock"
 			
+			on-key:			word/load "on-key"
+			on-key-down:	word/load "on-key-down"
+			on-key-up:		word/load "on-key-up"
+			on-ime:			word/load "on-ime"
+			on-focus:		word/load "on-focus"
+			on-unfocus:		word/load "on-unfocus"
+			on-enter:		word/load "on-enter"
+			on-zoom:		word/load "on-zoom"
+			on-pan:			word/load "on-pan"
+			on-rotate:		word/load "on-rotate"
+			on-two-tap:		word/load "on-two-tap"
+			on-press-tap:	word/load "on-press-tap"
+
+			on-close:		word/load "on-close"
+			on-move:		word/load "on-move"
+			on-moving:		word/load "on-moving"
+			on-size:		word/load "on-size"
+			on-sizing:		word/load "on-sizing"
+			on-time:		word/load "on-time"
+			on-drawing:		word/load "on-drawing"
+			on-scroll:		word/load "on-scroll"
+			on-over:		word/load "on-over"
+			on-select:		word/load "on-select"
+			on-change:		word/load "on-change"
+			on-menu:		word/load "on-menu"
+
+			on-down:		word/load "on-down"
+			on-up:			word/load "on-up"
+			on-mid-down:	word/load "on-mid-down"
+			on-mid-up:		word/load "on-mid-up"
+			on-alt-down:	word/load "on-alt-down"
+			on-alt-up:		word/load "on-alt-up"
+			on-aux-down:	word/load "on-aux-down"
+			on-aux-up:		word/load "on-aux-up"
+			on-click:		word/load "on-click"
+			on-dbl-click:	word/load "on-dbl-click"
+			on-wheel:		word/load "on-wheel"
+			on-over:		word/load "on-over"
+
 			red/boot?: no
 			red/collector/active?: yes
 
