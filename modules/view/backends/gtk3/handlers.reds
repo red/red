@@ -414,23 +414,6 @@ range-value-changed: func [
 	;]
 ]
 
-simple-button-press-event: func [
-	[cdecl]
-	_widget	[handle!]
-	evt 	[handle!]
-	widget	[handle!]
-][
-	make-event widget 0 EVT_LEFT_DOWN
-]
-simple-button-release-event: func [
-	[cdecl]
-	_widget	[handle!]
-	evt 	[handle!]
-	widget	[handle!]
-][
-	make-event widget 0 EVT_LEFT_UP
-]
-
 combo-selection-changed: func [
 	[cdecl]
 	widget	[handle!]
@@ -498,7 +481,7 @@ tab-panel-switch-page: func [
 ]
 
 ; Do not use key-press-event since character would not be printed!
-field-key-press-event: func [
+key-press-event: func [
 	[cdecl]
 	widget		[handle!]
 	event-key	[GdkEventKey!]
@@ -539,33 +522,35 @@ field-key-press-event: func [
 	EVT_DISPATCH
 ]
 
-field-key-release-event: func [
+key-release-event: func [
 	[cdecl]
 	widget		[handle!]
 	event-key	[GdkEventKey!]
 	ctx			[node!]
 	return:		[integer!]
 	/local
-		res		[integer!]
+		sym		[integer!]
+		text	[c-string!]
+		qdata	[handle!]
+		face	[red-object!]
 		key		[integer!]
 		flags	[integer!]
-		text	[c-string!]
-		face	[red-object!]
-		qdata	[handle!]
 ][
-	;; DEBUG: print "key-release: "
-	;; DEBUG: print [ "keyval: " event-key/keyval  " -> " gdk_keyval_name event-key/keyval  "(" event-key/keyval  " -> " gdk_keyval_to_lower event-key/keyval ") et state: " event-key/state lf]
-	;; DEBUG: print [ "keycode: " as integer! event-key/keycode1 " " as integer! event-key/keycode2 lf]
-
-	text: gtk_entry_get_text widget
-	qdata: g_object_get_qdata widget red-face-id
-	;; DEBUG: print ["qdata: " qdata "text: " text lf]
-    unless null? qdata [
-        face: as red-object! qdata
-		set-text widget face/ctx text
-		make-event widget 0 EVT_CHANGE
+	sym: get-widget-symbol widget
+	if sym = field [
+		text: gtk_entry_get_text widget
+		qdata: g_object_get_qdata widget red-face-id
+		unless null? qdata [
+			face: as red-object! qdata
+			set-text widget face/ctx text
+			make-event widget 0 EVT_CHANGE
+		]
 	]
-	make-event widget 0 EVT_KEY_UP
+	if event-key/keyval > FFFFh [return EVT_DISPATCH]
+	key: translate-key event-key/keyval
+	flags: 0 ;either char-key? as-byte key [0][80000000h]	;-- special key or not
+	flags: flags or check-extra-keys event-key/state
+	make-event widget key or flags EVT_KEY_UP
 ]
 
 field-move-focus: func [
@@ -577,33 +562,75 @@ field-move-focus: func [
 	print-line "move-focus"
 ]
 
-field-button-release-event: func [
+mouse-button-release-event: func [
 	[cdecl]
-	widget 	[handle!]
-	event	[GdkEventButton!]
-	ctx 	[node!]
-	return: [integer!]
+	widget		[handle!]
+	event		[GdkEventButton!]
+	ctx			[node!]
+	return:		[integer!]
 	/local
-		x			[integer!]
-		y			[integer!]
-		sel			[red-pair!]
+		sym		[integer!]
+		x		[integer!]
+		y		[integer!]
+		sel		[red-pair!]
+		buffer	[handle!]
+		start	[GtkTextIter!]
+		end		[GtkTextIter!]
+		flags	[integer!]
+		ev		[integer!]
 ][
-	;; DEBUG: print [ "field  mouse -> BUTTON-RELEASE: " widget " x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
-	if event/button = GDK_BUTTON_PRIMARY [
-		x: -1 y: -1
-		if gtk_editable_get_selection_bounds widget :x :y [
-			;; DEBUG: print ["from " x " to " y lf ]
-			sel: as red-pair! (get-face-values widget) + FACE_OBJ_SELECTED
-			either x = y [sel/header: TYPE_NONE][
-				sel/header: TYPE_PAIR
-				sel/x: x + 1
-				sel/y: y
+	if draggable? widget [return 0] ; delegate to drag
+
+	sym: get-widget-symbol widget
+	if sym = field [
+		if event/button = GDK_BUTTON_PRIMARY [
+			x: -1 y: -1
+			if gtk_editable_get_selection_bounds widget :x :y [
+				;; DEBUG: print ["from " x " to " y lf ]
+				sel: as red-pair! (get-face-values widget) + FACE_OBJ_SELECTED
+				either x = y [sel/header: TYPE_NONE][
+					sel/header: TYPE_PAIR
+					sel/x: x + 1
+					sel/y: y
+				]
+				make-event widget 0 EVT_SELECT
 			]
-			make-event widget 0 EVT_SELECT
 		]
 	]
-	make-event widget 0 EVT_LEFT_UP
-	EVT_NO_DISPATCH
+	if sym = area [
+		if event/button = GDK_BUTTON_PRIMARY [
+			start: as GtkTextIter! allocate (size? GtkTextIter!)
+			end: as GtkTextIter! allocate (size? GtkTextIter!)
+			buffer: gtk_text_view_get_buffer widget
+			if gtk_text_buffer_get_selection_bounds buffer as handle! start as handle! end [
+				x: -1 y: -1
+				x: gtk_text_iter_get_offset as handle! start
+				y: gtk_text_iter_get_offset as handle! end
+				;; DEBUG: print ["from " x " to " y lf ]
+				sel: as red-pair! (get-face-values widget) + FACE_OBJ_SELECTED
+				either x = y [sel/header: TYPE_NONE][
+					sel/header: TYPE_PAIR
+					sel/x: x + 1
+					sel/y: y
+				]
+				make-event widget 0 EVT_SELECT
+			]
+			free as byte-ptr! start free as byte-ptr! end
+		]
+	]
+	evt-motion/state: yes
+	evt-motion/cpt: 0
+	evt-motion/x_root: event/x_root
+	evt-motion/y_root: event/y_root
+	evt-motion/x_new: as-integer event/x
+	evt-motion/y_new: as-integer event/y
+	flags: check-flags event/type event/state
+	ev: case [
+		event/button = GDK_BUTTON_SECONDARY [EVT_RIGHT_UP]
+		event/button = GDK_BUTTON_MIDDLE [EVT_MIDDLE_UP]
+		true [EVT_LEFT_UP]
+	]
+	make-event widget flags ev
 ]
 
 area-changed: func [
@@ -629,63 +656,6 @@ area-changed: func [
 		set-text widget face/ctx text
 		make-event widget 0 EVT_CHANGE
 	]
-]
-
-area-button-press-event: func [
-	[cdecl]
-	widget 	[handle!]
-	event	[GdkEventButton!]
-	ctx 	[node!]
-	return: [integer!]
-	/local
-		flags 		[integer!]
-][
-	;; DEBUG: print [ "area -> BUTTON-PRESS: " widget " x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
-
-	menu-x: as-integer event/x
-	menu-y: as-integer event/y
-	;; DEBUG: print ["menu cursor pos: " menu-x "x" menu-y lf]
-	flags: check-flags event/type event/state
-	make-event widget flags EVT_LEFT_DOWN
-	0;;no
-]
-
-area-button-release-event: func [
-	[cdecl]
-	widget 	[handle!]
-	event	[GdkEventButton!]
-	ctx 	[node!]
-	return: [integer!]
-	/local
-		flags 		[integer!]
-		buffer		[handle!]
-		start		[GtkTextIter!]; value does not work
-		end			[GtkTextIter!]
-		x			[integer!]
-		y			[integer!]
-		sel			[red-pair!]
-][
-	;; DEBUG: print [ "area  mouse -> BUTTON-RELEASE: " widget " x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
-	if event/button = GDK_BUTTON_PRIMARY [
-		start: as GtkTextIter! allocate (size? GtkTextIter!)
-		end: as GtkTextIter! allocate (size? GtkTextIter!)
-		buffer: gtk_text_view_get_buffer widget
-		if gtk_text_buffer_get_selection_bounds buffer as handle! start as handle! end [
-			x: -1 y: -1
-			x: gtk_text_iter_get_offset as handle! start
-			y: gtk_text_iter_get_offset as handle! end
-			;; DEBUG: print ["from " x " to " y lf ]
-			sel: as red-pair! (get-face-values widget) + FACE_OBJ_SELECTED
-			either x = y [sel/header: TYPE_NONE][
-				sel/header: TYPE_PAIR
-				sel/x: x + 1
-				sel/y: y
-			]
-			make-event widget 0 EVT_SELECT
-		]
-		free as byte-ptr! start free as byte-ptr! end
-	]
-	0
 ]
 
 area-populate-popup: func [
@@ -882,23 +852,26 @@ container-delegate-to-children: func [
 
 mouse-button-press-event: func [
 	[cdecl]
-	widget 	[handle!]
-	event	[GdkEventButton!]
-	ctx 	[node!]
-	return: [integer!]
+	widget		[handle!]
+	event		[GdkEventButton!]
+	ctx			[node!]
+	return:		[integer!]
 	/local
-		flags 		[integer!]
-		hMenu		[handle!]
+		sym		[integer!]
+		flags	[integer!]
+		hMenu	[handle!]
+		ev		[integer!]
 ][
 	;; DEBUG: print [ "mouse -> BUTTON-PRESS: " widget " ("  ") x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root " drag? " draggable? widget lf]
 	; evt-motion/state: yes
 	; evt-motion/cpt: 0
+	sym: get-widget-symbol widget
 
 	if gtk_widget_get_focus_on_click widget [
 		;; DEBUG: print ["grab focus on mouse " widget lf]
 		gtk_widget_grab_focus widget
 	]
-	if draggable? widget [return 0] ; delegate to drag
+	if draggable? widget [return EVT_DISPATCH] ; delegate to drag
 
 	;; DEBUG: print ["with button " event/button lf]
 	if  event/button = GDK_BUTTON_SECONDARY  [
@@ -919,31 +892,12 @@ mouse-button-press-event: func [
 	evt-motion/x_new: as-integer event/x
 	evt-motion/y_new: as-integer event/y
 	flags: check-flags event/type event/state
-	make-event widget flags case [event/button = GDK_BUTTON_SECONDARY [EVT_RIGHT_DOWN] event/button = GDK_BUTTON_MIDDLE [EVT_MIDDLE_DOWN] true [EVT_LEFT_DOWN]]
-	;; DEBUG: print ["NO DISPATCH" lf]
-	EVT_NO_DISPATCH
-]
-
-mouse-button-release-event: func [
-	[cdecl]
-	widget 	[handle!]
-	event	[GdkEventButton!]
-	ctx 	[node!]
-	return: [integer!]
-	/local
-		flags 		[integer!]
-][
-	;; DEBUG: print [ "mouse -> BUTTON-RELEASE: " widget " x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root " drag? " draggable? widget lf]
-	if draggable? widget [return 0] ; delegate to drag
-	evt-motion/state: yes
-	evt-motion/cpt: 0
-	evt-motion/x_root: event/x_root
-	evt-motion/y_root: event/y_root
-	evt-motion/x_new: as-integer event/x
-	evt-motion/y_new: as-integer event/y
-	flags: check-flags event/type event/state
-	make-event widget flags case [event/button = GDK_BUTTON_SECONDARY [EVT_RIGHT_UP] event/button = GDK_BUTTON_MIDDLE [EVT_MIDDLE_UP] true [EVT_LEFT_UP]]
-	;;0 ;;no
+	ev: case [
+		event/button = GDK_BUTTON_SECONDARY [EVT_RIGHT_DOWN]
+		event/button = GDK_BUTTON_MIDDLE [EVT_MIDDLE_DOWN]
+		true [EVT_LEFT_DOWN]
+	]
+	make-event widget flags ev
 ]
 
 mouse-motion-notify-event: func [
@@ -973,63 +927,6 @@ mouse-motion-notify-event: func [
 	]
 	;; DEBUG: print ["mouse-motion-notify-event:  down? " (event/state and GDK_BUTTON1_MASK <> 0) " " (flags and EVT_FLAG_DOWN <> 0) lf]
 	EVT_DISPATCH ;;no
-]
-
-key-press-event: func [
-	[cdecl]
-	widget		[handle!]
-	event-key	[GdkEventKey!]
-	ctx			[node!]
-	return:		[integer!]
-	/local
-		state	[integer!]
-		key		[integer!]
-		flags	[integer!]
-		text	[c-string!]
-][
-
-	;; DEBUG: print ["key-press-event: " event-key/keyval " " widget lf]
-	state: 0
-	either event-key/keyval > FFFFh [state: 1][
-		key: translate-key event-key/keyval
-		flags: 0 ;either char-key? as-byte key [0][80000000h]	;-- special key or not
-		flags: flags or check-extra-keys event-key/state
-
-
-		state: make-event widget key or flags EVT_KEY_DOWN
-		unless state = EVT_NO_DISPATCH [
-			state: make-event widget key or flags EVT_KEY
-		]
-	]
-	state
-]
-
-key-release-event: func [
-	[cdecl]
-	widget		[handle!]
-	event-key	[GdkEventKey!]
-	ctx			[node!]
-	return:		[integer!]
-	/local
-		state	[integer!]
-		key		[integer!]
-		flags	[integer!]
-		text	[c-string!]
-][
-	;; DEBUG: print ["key-release-event: " event-key/keyval " " widget lf]
-	state: 0
-	either event-key/keyval > FFFFh [state: 1][
-		key: translate-key event-key/keyval
-		flags: 0 ;either char-key? as-byte key [0][80000000h]	;-- special key or not
-		flags: flags or check-extra-keys event-key/state
-
-
-		state: make-event widget key or flags EVT_KEY_UP
-		unless state = EVT_NO_DISPATCH [
-			state: make-event widget key or flags EVT_KEY
-		]
-	]
-	state
 ]
 
 menu-item-activate: func [
