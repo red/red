@@ -903,6 +903,9 @@ connect-widget-events: function [
 	respond-key-add widget actors sym
 	respond-window-add widget actors sym
 
+	;-- expose all active events to upper users
+	connect-common-events widget face sym parent
+
 	case [
 		sym = check [
 			;@@ No click event for check
@@ -926,7 +929,6 @@ connect-widget-events: function [
 			gtk_widget_add_events widget GDK_BUTTON_PRESS_MASK or GDK_BUTTON1_MOTION_MASK or GDK_BUTTON_RELEASE_MASK or GDK_KEY_PRESS_MASK or GDK_KEY_RELEASE_MASK
 			gtk_widget_set_can_focus widget yes
 			gtk_widget_set_focus_on_click widget yes
-			connect-common-events widget face sym parent
 		]
 		sym = rich-text [
 			gobj_signal_connect(widget "draw" :base-draw face/ctx)
@@ -935,7 +937,6 @@ connect-widget-events: function [
 			gtk_widget_set_focus_on_click widget yes
 			gtk_widget_is_focus widget
 			gtk_widget_grab_focus widget
-			connect-common-events widget face sym parent
 		]
 		sym = window [
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add window delete-event " lf]]
@@ -944,7 +945,6 @@ connect-widget-events: function [
 			gobj_signal_connect(widget "configure-event" :window-configure-event null)
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add window size-allocate " lf]]
 			gobj_signal_connect(widget "size-allocate" :window-size-allocate null)
-			connect-common-events widget face sym parent
 		]
 		sym = slider [
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add slider value-changed " lf]]
@@ -1028,7 +1028,6 @@ connect-widget-events: function [
 			; if respond-mouse? widget (ON_LEFT_UP or ON_RIGHT_UP or ON_MIDDLE_UP or ON_AUX_UP) [gobj_signal_connect(widget "button-release-event" :mouse-button-release-event face/ctx)]
 			; if respond-key? widget (ON_KEY or ON_KEY_DOWN) [gobj_signal_connect(widget "key-press-event" :key-press-event face/ctx)]
 			; if respond-key? widget ON_KEY_UP [gobj_signal_connect(widget "key-release-event" :key-release-event face/ctx)]
-			connect-common-events widget face sym parent
 		]
 		sym = tab-panel [
 			if respond-window? widget (ON_SELECT or ON_CHANGE) [
@@ -1040,7 +1039,6 @@ connect-widget-events: function [
 			;;; Mandatory and can respond to  (ON_SELECT or ON_CHANGE)
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add text-list selected-rows-changed " lf]]
 			gobj_signal_connect(widget "selected-rows-changed" :text-list-selected-rows-changed face/ctx)
-			connect-common-events widget face sym parent 
 		]
 		any [
 			sym = drop-list
