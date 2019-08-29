@@ -30,9 +30,9 @@ pango-opt-tag!: alias struct! [
 ]
 
 pango-compare-tag: func [
-	[cdecl] 
-	tag1 	[pango-opt-tag!] 
-	tag2 	[pango-opt-tag!] 
+	[cdecl]
+	tag1 	[pango-opt-tag!]
+	tag2 	[pango-opt-tag!]
 	return:	[integer!]
 	/local
 		comp 	[integer!]
@@ -267,13 +267,13 @@ pango-process-closed-tags: func [
 		tmp 					[c-string!]
 		pos-current-closed-tag 	[integer!]
 		pos-last-closed-tag 	[integer!]
-][	
+][
 	pos-last-closed-tag: pango-last-closed-tag? lc
 	pos-current-closed-tag: pos + len
 	;; DEBUG: print ["process closed tags: current=" pos-current-closed-tag " last=" pos-last-closed-tag lf]
 	; Close tags with text first if any
 	if all[
-		pos-last-closed-tag <> -1 
+		pos-last-closed-tag <> -1
 		pos-current-closed-tag > pos-last-closed-tag
 	][
 		pango-close-tags lc pos-last-closed-tag
@@ -317,7 +317,7 @@ layout-ctx-do: func [
 			tag: as pango-opt-tag! gl/data
 			;; DEBUG: print ["<span "  tag/opt "> at (" tag/pos "," tag/len ")" lf]
 			pango-process-tag lc tag/opt tag/pos tag/len
-			
+
 			gl: gl/next
 			null? gl
 		]
@@ -350,9 +350,9 @@ int-to-bgra-hex: func [
 		g			[integer!]
 		a			[integer!]
 ][
-	a: (color >> 24 and FFh) 
-	r: (color >> 16 and FFh) 
-	g: (color >> 8 and FFh) 
+	a: (color >> 24 and FFh)
+	r: (color >> 16 and FFh)
+	g: (color >> 8 and FFh)
 	b: (color  and FFh)
 	color: (b << 24 and FF000000h) or (g << 16  and 00FF0000h) or ( r << 8 and FF00h) or ( a and FFh)
 	;; DEBUG: print ["col(#" string/to-hex color no ")" lf]
@@ -374,7 +374,7 @@ OS-text-box-color: func [
 
 	rgba: int-to-bgra-hex color
 	;; DEBUG: print ["col(" rgba ")[" pos "," pos + len - 1 "]" lf]
-	
+
 	ot: pango-open-tag-string? "color" rgba
 	pango-insert-tag lc ot pos len
 ]
@@ -391,10 +391,10 @@ OS-text-box-background: func [
 		ot		[c-string!]
 ][
 	lc: as layout-ctx! layout
-	
+
 	rgba: int-to-bgra-hex color
 	;; DEBUG: print ["bgcol(" rgba ")[" pos "," pos + len - 1 "]" lf]
-	
+
 	ot: pango-open-tag-string? "bgcolor" rgba
 	pango-insert-tag lc ot pos len
 
@@ -458,7 +458,7 @@ OS-text-box-strikeout: func [
 		ot		[c-string!]
 ][
 	lc: as layout-ctx! layout
-	
+
 	ot: pango-open-tag-string? "strikethrough" "true"
 	pango-insert-tag lc ot pos len
 ]
@@ -541,13 +541,13 @@ OS-text-box-metrics: func [
 	if null? layout [return as red-value! none-value]
 	as red-value! switch type [
 		TBOX_METRICS_OFFSET?
-		TBOX_METRICS_OFFSET_LOWER [ ; caret-to-offset 
+		TBOX_METRICS_OFFSET_LOWER [ ; caret-to-offset
 			int: as red-integer! arg0
 			pango_layout_index_to_pos layout int/value - 1 :rect
-			;; DEBUG: print ["TBOX_METRICS_OFFSET? " rect/x / PANGO_SCALE "x" rect/y / PANGO_SCALE "x" rect/width / PANGO_SCALE "x" rect/height / PANGO_SCALE lf] 
+			;; DEBUG: print ["TBOX_METRICS_OFFSET? " rect/x / PANGO_SCALE "x" rect/y / PANGO_SCALE "x" rect/width / PANGO_SCALE "x" rect/height / PANGO_SCALE lf]
 			pair/push rect/x / PANGO_SCALE  rect/y / PANGO_SCALE
 		]
-		TBOX_METRICS_INDEX? 
+		TBOX_METRICS_INDEX?
 		TBOX_METRICS_CHAR_INDEX? [ ; offset-to-caret
 			pos: as red-pair! arg0
 			idx: -1 trail: -1
@@ -563,7 +563,7 @@ OS-text-box-metrics: func [
 			width: -1 height: -1
 			;pango_layout_get_pixel_size layout :width :height
 			; width: (pango_layout_get_width layout) / PANGO_SCALE
-			height: (pango_layout_get_line_count layout) * lrect/height 
+			height: (pango_layout_get_line_count layout) * lrect/height
 			width: lrect/width
 			;; DEBUG: print ["TBOX_METRICS_SIZE: " width "x" height " " pango_layout_get_line_count layout lf]
 			;print ["text: " layout/text lf]
@@ -618,7 +618,7 @@ OS-text-box-layout: func [
 		str		[c-string!]
 		pc		[handle!]
 		ft-ok?	[logic!]
-][	
+][
 	;; DEBUG: print ["OS-text-box-layout: " box " " face-handle? box " target: " target lf]
 	values: object/get-values box
 	state: as red-block! values + FACE_OBJ_EXT3
@@ -636,7 +636,7 @@ OS-text-box-layout: func [
 	text: as red-string! values + FACE_OBJ_TEXT
 	font: as red-object! values + FACE_OBJ_FONT
 	ft-ok?: TYPE_OF(font) = TYPE_OBJECT ;all[not null? target TYPE_OF(font) = TYPE_OBJECT]
-	hFont: default-font 
+	hFont: default-font
 	if ft-ok? [
 		hFont: get-font-handle font 0
 		if null? hFont [hFont: default-font]
@@ -644,7 +644,7 @@ OS-text-box-layout: func [
 
 	len: -1
 	str: unicode/to-utf8 text :len
-	
+
 	layout-ctx-init lc str length? str
 
 	;; DEBUG: print ["OS-text-box-layout lc/text: " lc/text " " lc/text-len lf]
@@ -661,7 +661,7 @@ OS-text-box-layout: func [
 				if null? pango-context [pango-context: gdk_pango_context_get]
 				lc/layout: pango_layout_new pango-context
 				;; DEBUG: print ["rich-text layout: " lc/layout " " pango_font_description_get_family hFont " " pango_font_description_get_size hFont lf]
-				pango_layout_set_font_description lc/layout hFont 
+				pango_layout_set_font_description lc/layout hFont
 			]
 		][
 			dc: as draw-ctx! target

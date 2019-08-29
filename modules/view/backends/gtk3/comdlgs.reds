@@ -41,7 +41,7 @@ _request-file: func [
 	unless null? main-window [gtk_window_set_transient_for widget main-window]
 	resp: gtk_dialog_run widget
 	if resp = GTK_RESPONSE_ACCEPT [
-		cstr: gtk_file_chooser_get_filename widget 
+		cstr: gtk_file_chooser_get_filename widget
 		size: length? cstr
 		str: string/load cstr size UTF-8
 		if dir? [string/append-char GET_BUFFER(str) as-integer #"/"]
@@ -81,7 +81,7 @@ OS-request-font: func [
 	return:			[red-object!]
 	/local
 		widget		[handle!]
-		fd 			[handle!]			
+		fd 			[handle!]
 		values		[red-value!]
 		style		[red-block!]
 		size		[integer!]
@@ -102,7 +102,7 @@ OS-request-font: func [
 	resp: gtk_dialog_run widget
 	;; print ["resp: " resp lf]
 	either resp = -5 [
-		fd: gtk_font_chooser_get_font_desc widget 
+		fd: gtk_font_chooser_get_font_desc widget
 		cstr: pango_font_description_get_family fd
 		size: length? cstr
 		values: object/get-values font
@@ -132,7 +132,7 @@ OS-request-font: func [
 		font/header: TYPE_NONE
 	]
 	gtk_widget_destroy widget
-	; This trick really matters to end the loop when in the red-console 
+	; This trick really matters to end the loop when in the red-console
 	while [gtk_events_pending][gtk_main_iteration]
 
 	font

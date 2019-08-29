@@ -170,7 +170,7 @@ set-font-handle: func [
 	]
 
 	values: object/get-values font
-			
+
 	blk: as red-block! values + FONT_OBJ_STATE
 	either TYPE_OF(blk) <> TYPE_BLOCK [
 		block/make-at blk 2
@@ -233,7 +233,7 @@ font-description: func [
 	color:	as red-tuple!	values + FONT_OBJ_COLOR
 
 	; font name
-	name: "Arial" ; @@ to change to default font name  
+	name: "Arial" ; @@ to change to default font name
 	if TYPE_OF(str) = TYPE_STRING [
 		len: -1
 		name: unicode/to-utf8 str :len
@@ -259,7 +259,7 @@ font-description: func [
 	unless zero? len [
 		loop len [
 			sym: symbol/resolve style/symbol
-			case [ 
+			case [
 				sym = _bold      [fweight: PANGO_WEIGHT_BOLD]
 				sym = _italic    [fstyle: PANGO_STYLE_ITALIC]
 				sym = _underline []
@@ -294,8 +294,8 @@ font-description-create: func [
 	pango_font_description_set_style fd fstyle
 	pango_font_description_set_stretch fd PANGO_STRETCH_NORMAL
 	pango_font_description_set_variant fd PANGO_VARIANT_NORMAL
-	
-	;; DOES NOT WORK AS EXPECTED: 
+
+	;; DOES NOT WORK AS EXPECTED:
 	;; css: pango_font_description_to_string fd
 	;; print ["font description css: " css lf]
 
@@ -345,8 +345,8 @@ css-styles: func [
 		rgba     [c-string!]
 ][
 	css:	g_strdup_printf ["* {"]
-	
-	if TYPE_OF(font) = TYPE_OBJECT [ 
+
+	if TYPE_OF(font) = TYPE_OBJECT [
 		values: object/get-values font
 
 		;name:
@@ -420,7 +420,7 @@ css-styles: func [
 	]
 
 	;; DEBUG: print ["css-styles -> css: " css lf]
-	
+
 	css
 ]
 
@@ -456,19 +456,19 @@ css-provider: func [
 	provider: gtk_css_provider_new
 	gtk_css_provider_load_from_path provider path null
 	display: gdk_display_get_default
-	screen: gdk_display_get_default_screen display  
+	screen: gdk_display_get_default_screen display
 	gtk_style_context_add_provider_for_screen screen provider priority
 	g_object_unref provider
 ]
 
 red-gtk-styles: func [
-	/local 
+	/local
 	env strarr str
 	found 	[logic!]
 ][
 	env: system/env-vars
 	found: no
-	until [ 
+	until [
 		strarr: g_strsplit env/item "=" 2
 		str: as c-string! (strarr/1)
 		if 0 = g_strcmp0 str "RED_GTK_STYLES" [
@@ -479,7 +479,7 @@ red-gtk-styles: func [
 		env: env + 1
 		g_strfreev strarr
 		any[found env/item = null]
-	]	
+	]
 ]
 
 font-color?: func [
@@ -550,11 +550,11 @@ make-cairo-draw-font: func [
 
 	slant: CAIRO_FONT_SLANT_NORMAL
 	weight: CAIRO_FONT_WEIGHT_NORMAL
-  
+
 	unless zero? len [
 		loop len [
 			sym: symbol/resolve style/symbol
-			case [ 
+			case [
 				sym = _bold      [weight: CAIRO_FONT_WEIGHT_BOLD]
 				sym = _italic    [slant: CAIRO_FONT_SLANT_ITALIC]
 				sym = _underline []
@@ -574,10 +574,10 @@ make-cairo-draw-font: func [
 		cairo-font-size: as-float size/value
 		cairo_set_font_size cr cairo-font-size * ((extents/ascent + extents/descent) / extents/ascent)
 
-		;	This technique is little more correct for me. 
+		;	This technique is little more correct for me.
 		;	This Red example will show the difference:
 		;
-		;		f: make font! [name: "Arial" size: 120]	
+		;		f: make font! [name: "Arial" size: 120]
 		;		view [base 140x140 draw [font f text 10x10 "A" pen white box 0x10 140x130]]
 	]
 ]
@@ -622,7 +622,7 @@ make-pango-cairo-font: func [
 	dc/font-color: color/array1
 
 	;;;------- font description
-	fname: "Arial" ; @@ to change to default font name  
+	fname: "Arial" ; @@ to change to default font name
 	if TYPE_OF(str) = TYPE_STRING [
 		len: -1
 		fname: unicode/to-utf8 str :len
@@ -644,7 +644,7 @@ make-pango-cairo-font: func [
 	unless zero? len [
 		loop len [
 			sym: symbol/resolve style/symbol
-			case [ 
+			case [
 				sym = _bold      [fweight: PANGO_WEIGHT_BOLD]
 				sym = _italic    [fstyle: PANGO_STYLE_ITALIC]
 				sym = _underline [dc/font-underline?: yes]
@@ -658,10 +658,10 @@ make-pango-cairo-font: func [
 	free-pango-cairo-font dc
 	dc/font-desc: font-description-create fname fsize fweight fstyle
 	dc/font-opts: cairo_font_options_create
-	
+
 	dc/layout: make-pango-cairo-layout cr dc/font-desc
 
-	
+
 	;anti-alias?:
 	value: values + FONT_OBJ_ANTI-ALIAS?
 
@@ -721,7 +721,7 @@ pango-cairo-set-text: func [
 		ptext-ptr	[int-ptr!]
 		mtext		[c-string!]
 		ptext		[c-string!]
-		accel		[integer!]  
+		accel		[integer!]
 		error		[handle!]
 ][
 	unless null? dc/layout [
@@ -744,7 +744,7 @@ pango-cairo-set-text: func [
 ]
 
 ;; A rewrite of pango_layout_set_markup but in red/system to control warning messages
-;; with option force to avoid the warning when considering 
+;; with option force to avoid the warning when considering
 pango-layout-set-markup: func [
 	layout	[handle!]
 	mtext	[c-string!]
@@ -756,7 +756,7 @@ pango-layout-set-markup: func [
 		attrs		[handle!]
 		ptext-ptr	[int-ptr!]
 		ptext		[c-string!]
-		accel		[integer!]  
+		accel		[integer!]
 		error		[handle!]
 ][
 	unless null? layout [
@@ -792,7 +792,7 @@ pango-layout-context-set-text: func [
 		ptext-ptr	[int-ptr!]
 		mtext		[c-string!]
 		ptext		[c-string!]
-		accel		[integer!]  
+		accel		[integer!]
 		error		[handle!]
 ][
 	unless null? layout [
@@ -819,7 +819,7 @@ free-pango-cairo-font: func [
 ][
 	;; DEBUG: print ["free-pango-cairo-layout begin" lf]
 	unless null? dc/font-desc [
-		pango_font_description_free dc/font-desc 
+		pango_font_description_free dc/font-desc
 		dc/font-desc: null
 	]
 	;; DEBUG: print ["free-pango-cairo-layout font-opts: " dc/font-opts lf]
@@ -843,7 +843,7 @@ make-pango-cairo-layout: func [
 		layout 	[handle!]
 ][
 	;; DEBUG: print ["make-pango-cairo-layout" lf]
-	layout: pango_cairo_create_layout cr 
+	layout: pango_cairo_create_layout cr
 	unless null? fd [pango_layout_set_font_description layout fd]
 	;; DEBUG: print ["make-pango-cairo-layout: " layout lf]
 	layout

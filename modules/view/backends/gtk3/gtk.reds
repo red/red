@@ -30,7 +30,7 @@ RECT_STRUCT: alias struct! [
 
 tagPOINT: alias struct! [
 	x		[integer!]
-	y		[integer!]	
+	y		[integer!]
 ]
 
 tagSIZE: alias struct! [
@@ -40,7 +40,7 @@ tagSIZE: alias struct! [
 
 tagRECT: alias struct! [
 	x		[integer!]
-	y		[integer!]	
+	y		[integer!]
 	width	[integer!]
 	height	[integer!]
 ]
@@ -74,8 +74,8 @@ GdkEventMotion!: alias struct! [
   y				[float!]
   axes			[float-ptr!]
   state			[integer!]
-  is_hint1		[byte!] 
-  is_hint2		[byte!] 
+  is_hint1		[byte!]
+  is_hint2		[byte!]
   device		[int-ptr!]
   x_root		[float!]
   y_root		[float!]
@@ -90,7 +90,7 @@ GdkEventButton!: alias struct! [
   y				[float!]
   axes			[float-ptr!]
   state			[integer!]
-  button		[integer!] 
+  button		[integer!]
   device		[int-ptr!]
   x_root		[float!]
   y_root		[float!]
@@ -108,8 +108,8 @@ GdkEventCrossing!: alias struct! [
   y_root		[float!]
   axes			[float-ptr!]
   state			[integer!]
-  is_hint1		[byte!] 
-  is_hint2		[byte!] 
+  is_hint1		[byte!]
+  is_hint2		[byte!]
   device		[int-ptr!]
   mode			[integer!]
   detail		[integer!]
@@ -122,7 +122,7 @@ GdkEventConfigure!: alias struct! [
   window		[handle!]
   send_event	[byte!]
   x				[integer!]
-  y				[integer!]	
+  y				[integer!]
   width			[integer!]
   height		[integer!]
 ]
@@ -174,7 +174,7 @@ GdkEventScroll!: alias struct! [
   GDK_BUTTON4_MASK: 	2048
   GDK_BUTTON5_MASK: 	4096
 	GDK_SUPER_MASK: 		67108864
-  GDK_HYPER_MASK: 		134217728 
+  GDK_HYPER_MASK: 		134217728
   GDK_META_MASK: 			268435456
 ]
 #enum GdkEventType! [
@@ -260,7 +260,7 @@ GdkEventScroll!: alias struct! [
   ;;GDK_ALL_EVENTS_MASK:           fffffffeh
 ]
 
-GtkTextIter!: alias struct! [ 
+GtkTextIter!: alias struct! [
   dummy1  [handle!]
   dummy2  [handle!]
   dummy3 [integer!]
@@ -285,16 +285,16 @@ GtkTextIter!: alias struct! [
 ]
 
 #enum GtkResponseType! [
-	GTK_RESPONSE_NONE 
-	GTK_RESPONSE_REJECT 
-	GTK_RESPONSE_ACCEPT 
-	GTK_RESPONSE_DELETE_EVENT 
-	GTK_RESPONSE_OK 
-	GTK_RESPONSE_CANCEL 
-	GTK_RESPONSE_CLOSE 
-	GTK_RESPONSE_YES 
-	GTK_RESPONSE_NO 
-	GTK_RESPONSE_APPLY 
+	GTK_RESPONSE_NONE
+	GTK_RESPONSE_REJECT
+	GTK_RESPONSE_ACCEPT
+	GTK_RESPONSE_DELETE_EVENT
+	GTK_RESPONSE_OK
+	GTK_RESPONSE_CANCEL
+	GTK_RESPONSE_CLOSE
+	GTK_RESPONSE_YES
+	GTK_RESPONSE_NO
+	GTK_RESPONSE_APPLY
 	GTK_RESPONSE_HELP
 ]
 
@@ -469,7 +469,7 @@ cairo_matrix_t!: alias struct! [
 ]
 
 ; @@ cairo structures to remove if pango_cairo is enough to draw text on cairo
-; cairo_text_extents_t!: alias struct! [ 
+; cairo_text_extents_t!: alias struct! [
 ;  	x_bearing	[float!]
 ;  	y_bearing	[float!]
 ;  	width			[float!]
@@ -650,7 +650,7 @@ GPtrArray!: alias struct! [
 		gdk_keyval_to_lower: "gdk_keyval_to_lower" [
 			code		[integer!]
 			return:		[integer!]
-		] 
+		]
 		gdk_keyval_is_upper: "gdk_keyval_is_upper" [
 			code		[integer!]
 			return:		[logic!]
@@ -658,7 +658,7 @@ GPtrArray!: alias struct! [
 		gdk_keyval_is_lower: "gdk_keyval_is_lower" [
 			code		[integer!]
 			return:		[logic!]
-		] 
+		]
 		gdk_atom_intern_static_string: "gdk_atom_intern_static_string" [
 			name 		[c-string!]
 			return:		[handle!]
@@ -1234,11 +1234,11 @@ GPtrArray!: alias struct! [
 		]
 		gtk_window_set_focus: "gtk_window_set_focus" [
 			window 		[handle!]
-			widget	 	[handle!]	
+			widget	 	[handle!]
 		]
 		gtk_window_get_default_widget: "gtk_window_get_default_widget" [
 			window 		[handle!]
-			return:	 	[handle!]	
+			return:	 	[handle!]
 		]
 		gtk_window_set_default: "gtk_window_set_default" [
 			window 			[handle!]
@@ -1449,12 +1449,12 @@ GPtrArray!: alias struct! [
 		]
 		gtk_widget_override_font: "gtk_widget_override_font" [
 			widget	[handle!]
-			fd		[handle!] 
+			fd		[handle!]
 		]
 		gtk_widget_override_color: "gtk_widget_override_color" [
 			widget	[handle!]
 			state	[integer!]
-			color	[handle!] 
+			color	[handle!]
 		]
 		gtk_container_add: "gtk_container_add" [
 			container	[handle!]
@@ -1899,7 +1899,7 @@ GPtrArray!: alias struct! [
 		]
 		gtk_notebook_get_n_pages: "gtk_notebook_get_n_pages" [
 			nb			[handle!]
-			return: 	[integer!]	
+			return: 	[integer!]
 		]
 		gtk_css_provider_new: "gtk_css_provider_new" [
 			return:		[handle!]
@@ -1987,7 +1987,7 @@ GPtrArray!: alias struct! [
 			len					[integer!]
 			accel_mark	[integer!]
 			accel_char	[int-ptr!]
-		] 
+		]
 		pango_layout_get_font_description: "pango_layout_get_font_description" [
 			layout		[handle!]
 			return:		[handle!]
@@ -2231,12 +2231,12 @@ GPtrArray!: alias struct! [
 			return:		[handle!]
 		]
 
-		
+
 
 		gtk_widget_get_pango_context: "gtk_widget_get_pango_context" [
 			return:		[handle!]
 		]
-		
+
 		gtk_settings_get_default: "gtk_settings_get_default" [
 			return: 	[handle!]
 		]
@@ -2496,7 +2496,7 @@ GPtrArray!: alias struct! [
 			format		[cairo_format_t!]
 			width			[integer!]
 			height		[integer!]
-			return:		[handle!]	
+			return:		[handle!]
 		]
 		cairo_image_surface_create_for_data: "cairo_image_surface_create_for_data" [
 			data			[byte-ptr!]
@@ -2682,7 +2682,7 @@ GPtrArray!: alias struct! [
 		pango_attr_list_insert_before: "pango_attr_list_insert_before" [
 			attrs 		[handle!]
 			attr 		[PangoAttribute!]
-		] 
+		]
 		pango_attr_list_splice: "pango_attr_list_splice" [
 			attrs 		[handle!]
 			attrs2 		[handle!]
