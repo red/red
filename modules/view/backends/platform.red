@@ -289,6 +289,7 @@ system/view/platform: context [
 			_cross:			symbol/make "cross"
 
 			on-over:		symbol/make "on-over"
+			_drag-on:		symbol/make "drag-on"
 			_actors:		word/load "actors"
 			_scroller:		word/load "scroller"
 			_window:		word/load "window"

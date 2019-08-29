@@ -54,9 +54,6 @@ tabs: context [
 	cur: 	0
 ]
 
-; to put in other place (usually platform.red) if useful
-_drag-on:		symbol/make "drag-on"
-
 settings:		as handle! 0
 pango-context:	as handle! 0
 gtk-font:		"Sans 13"
@@ -67,9 +64,6 @@ default-font:	as handle! 0
 main-window:	as handle! 0
 last-window:	as handle! 0
 
-; Temporary, will be removed...
-last-widget:	as handle! 0
-
 log-pixels-x:	0
 log-pixels-y:	0
 screen-size-x:	0
@@ -77,8 +71,8 @@ screen-size-y:	0
 
 
 get-face-obj: func [
-	handle	[handle!]
-	return: [red-object!]
+	handle		[handle!]
+	return:		[red-object!]
 	/local
 		face	[red-object!]
 		qdata	[handle!]
@@ -94,8 +88,8 @@ get-face-obj: func [
 ]
 
 get-face-values: func [
-	handle	[handle!]
-	return: [red-value!]
+	handle		[handle!]
+	return:		[red-value!]
 	/local
 		face	[red-object!]
 		qdata	[handle!]
@@ -113,11 +107,11 @@ get-face-values: func [
 ]
 
 get-node-values: func [
-	node	[node!]
-	return: [red-value!]
+	node		[node!]
+	return:		[red-value!]
 	/local
-		ctx	 [red-context!]
-		s	 [series!]
+		ctx		[red-context!]
+		s		[series!]
 ][
 	ctx: TO_CTX(node)
 	s: as series! ctx/values/value
@@ -125,12 +119,12 @@ get-node-values: func [
 ]
 
 get-node-facet: func [
-	node	[node!]
-	facet	[integer!]
-	return: [red-value!]
+	node		[node!]
+	facet		[integer!]
+	return:		[red-value!]
 	/local
-		ctx	 [red-context!]
-		s	 [series!]
+		ctx		[red-context!]
+		s		[series!]
 ][
 	ctx: TO_CTX(node)
 	s: as series! ctx/values/value
@@ -138,18 +132,18 @@ get-node-facet: func [
 ]
 
 get-face-flags: func [
-	face	[handle!]
-	return: [integer!]
+	face		[handle!]
+	return:		[integer!]
 ][
 	0
 ]
 
 face-handle?: func [
-	face	[red-object!]
-	return: [handle!]									;-- returns NULL is no handle
+	face		[red-object!]
+	return:		[handle!]									;-- returns NULL is no handle
 	/local
-		state [red-block!]
-		int	  [red-integer!]
+		state	[red-block!]
+		int		[red-integer!]
 ][
 	state: as red-block! get-node-facet face/ctx FACE_OBJ_STATE
 	if TYPE_OF(state) = TYPE_BLOCK [
@@ -160,10 +154,10 @@ face-handle?: func [
 ]
 
 get-widget-symbol: func [
-    widget    [handle!]
-    return:    [integer!]
-    /local
-        type    [red-word!]
+	widget		[handle!]
+	return:		[integer!]
+	/local
+		type	[red-word!]
 		values	[red-value!]
 ][
 	values: get-face-values widget
@@ -174,28 +168,28 @@ get-widget-symbol: func [
 ]
 
 get-widget-data: func [
-    widget    [handle!]
-    return:    [red-block!]
+	widget		[handle!]
+	return:		[red-block!]
 	/local
 		values	[red-value!]
 ][
 	values: get-face-values widget
-    as red-block! values + FACE_OBJ_DATA
+	as red-block! values + FACE_OBJ_DATA
 ]
 
 ;; GTK basic widget is often embedded in some super widget in order to be contained in some layout widget
 set-_widget: func [
-	widget	[handle!]
-	_widget	[handle!]
+	widget		[handle!]
+	_widget		[handle!]
 ][
 	g_object_set_qdata widget _widget-id _widget
 ]
 
 _widget?: func [
 	widget		[handle!]
-	return: 	[handle!]
+	return:		[handle!]
 	/local
-		_widget 	[handle!]
+		_widget	[handle!]
 ][
 	_widget: g_object_get_qdata widget _widget-id
 	if null? _widget [_widget: widget]
@@ -203,31 +197,31 @@ _widget?: func [
 ]
 
 set-parent-window: func [
-	widget	[handle!]
-	window	[handle!]
+	widget		[handle!]
+	window		[handle!]
 ][
 	g_object_set_qdata widget parent-window-id window
 ]
 
 parent-window?: func [
 	widget		[handle!]
-	return: 	[handle!]
+	return:		[handle!]
 ][
 	g_object_get_qdata widget parent-window-id
 ]
 
 set-cursor: func [
-	widget	[handle!]
-	cursor	[handle!]
+	widget		[handle!]
+	cursor		[handle!]
 ][
 	g_object_set_qdata widget cursor-id cursor
 ]
 
 cursor?: func [
 	widget		[handle!]
-	return: 	[handle!]
+	return:		[handle!]
 	/local
-		window 	[handle!]
+		window	[handle!]
 ][
 	g_object_get_qdata widget cursor-id
 ]
@@ -235,16 +229,16 @@ cursor?: func [
 ;; Used to delegate event (see handlers.red) for widget that have container for scrollbar (like rich-text)
 set-real-widget: func [
 	_widget		[handle!]
-	widget	[handle!]
+	widget		[handle!]
 ][
 	g_object_set_qdata _widget real-widget-id widget
 ]
 
 real-widget?: func [
 	_widget		[handle!]
-	return: 	[handle!]
+	return:		[handle!]
 	/local
-		widget 	[handle!]
+		widget	[handle!]
 ][
 	widget: g_object_get_qdata _widget real-widget-id
 	if null? widget [widget: _widget]
@@ -260,28 +254,28 @@ set-container: func [
 
 container?: func [
 	widget		[handle!]
-	return: 	[handle!]
+	return:		[handle!]
 ][
 	g_object_get_qdata widget gtk-container-id
 ]
 
 real-container?: func [
 	widget		[handle!]
-	return: 	[handle!]
+	return:		[handle!]
 ][
 	g_object_get_qdata widget real-container-id
 ]
 
 gtk-layout?: func [
-	type 	[integer!]
-	return: [logic!]
+	type		[integer!]
+	return:		[logic!]
 ][
 	any[type = rich-text type = panel type = base]
 ]
 
 container-type?: func [
-	type 	[integer!]
-	return: [logic!]
+	type		[integer!]
+	return:		[logic!]
 ][
 	;;; See events.reds to see the comment above
 	; Option I:  any[type = rich-text type = panel type = base]
@@ -290,22 +284,22 @@ container-type?: func [
 ]
 
 set-draggable: func [
-	item	[handle!]
-	key		[logic!]
+	item		[handle!]
+	key			[logic!]
 ][
 	g_object_set_qdata item drag-id as int-ptr! either key [1][0]
 ]
 
 draggable?: func [
 	item		[handle!]
-	return: 	[logic!]
+	return:		[logic!]
 ][
 	1 = as integer! g_object_get_qdata item drag-id
 ]
 
 set-view-no-wait: func [
-	window	[handle!]
-	key		[logic!]
+	window		[handle!]
+	key			[logic!]
 ][
 	; usually a view/no-wait call at most twice do-events and at least one do-events with no-wait? = true
 	;; DEBUG[view/no-wait]: print ["view-no-wait? window " window " => "  key lf]
@@ -314,28 +308,28 @@ set-view-no-wait: func [
 
 view-no-wait?: func [
 	window		[handle!]
-	return: 	[logic!]
+	return:		[logic!]
 ][
 	all[1 = as integer! g_object_get_qdata window no-wait-id window <> main-window]
 ]
 
 get-child-from-xy: func [
-	parent	[handle!]
-	x		[integer!]
-	y		[integer!]
-	return: [integer!]
+	parent		[handle!]
+	x			[integer!]
+	y			[integer!]
+	return:		[integer!]
 	/local
-		widget [handle!]
+		widget	[handle!]
 ][
 0
 ]
 
 get-text-size: func [
-	face    [red-object!]
-	str		[red-string!]
-	hFont	[handle!]
-	pair	[red-pair!]
-	return: [tagSIZE]
+	face		[red-object!]
+	str			[red-string!]
+	hFont		[handle!]
+	pair		[red-pair!]
+	return:		[tagSIZE]
 	/local
 		text	[c-string!]
 		len		[integer!]
@@ -344,7 +338,7 @@ get-text-size: func [
 		pl		[handle!]
 		size	[tagSIZE]
 		df		[c-string!]
-		pc 		[handle!]
+		pc		[handle!]
 		widget	[handle!]
 ][
 	if null? pango-context [pango-context: gdk_pango_context_get]
@@ -390,11 +384,11 @@ get-text-size: func [
 ]
 
 to-bgr: func [
-	node	[node!]
-	pos		[integer!]
-	return: [integer!]									;-- 00bbggrr format or -1 if not found
+	node		[node!]
+	pos			[integer!]
+	return:		[integer!]									;-- 00bbggrr format or -1 if not found
 	/local
-		color [red-tuple!]
+		color	[red-tuple!]
 ][
 	color: as red-tuple! get-node-facet node pos
 	either TYPE_OF(color) = TYPE_TUPLE [
@@ -405,18 +399,18 @@ to-bgr: func [
 ]
 
 free-handles: func [
-	widget	[integer!]
-	force?	[logic!]
+	widget		[integer!]
+	force?		[logic!]
 	/local
-		values [red-value!]
-		type   [red-word!]
-		face   [red-object!]
-		tail   [red-object!]
-		pane   [red-block!]
-		state  [red-value!]
-		rate   [red-value!]
-		sym	   [integer!]
-		handle [handle!]
+		values	[red-value!]
+		type	[red-word!]
+		face	[red-object!]
+		tail	[red-object!]
+		pane	[red-block!]
+		state	[red-value!]
+		rate	[red-value!]
+		sym		[integer!]
+		handle	[handle!]
 ][
 	values: get-face-values as handle! widget
 	type: as red-word! values + FACE_OBJ_TYPE
@@ -452,27 +446,27 @@ free-handles: func [
 
 ; Debug function to show children tree
 debug-show-children: func [
-	widget 	[handle!]
-	parent? [logic!]
+	widget			[handle!]
+	parent?			[logic!]
 	/local
 		widget_		[handle!]
 		child		[handle!]
 		container	[handle!]
-		rect 		[tagRECT]
+		rect		[tagRECT]
 		sx			[integer!]
 		sy			[integer!]
 		offset		[red-pair!]
 		size		[red-pair!]
-		pane 		[red-block!]
+		pane		[red-block!]
 		type		[red-word!]
 		sym			[integer!]
-		face 		[red-object!]
-		tail 		[red-object!]
+		face		[red-object!]
+		tail		[red-object!]
 		values		[red-value!]
 		overlap?	[logic!]
 		; these ones would be removed
 		debug		[logic!]
-		cpt 		[integer!]
+		cpt			[integer!]
 ][
 	; to remove when satisfactory enough development
 	debug: yes
@@ -572,8 +566,8 @@ init: func [][
 ]
 
 get-symbol-name: function [
-	sym 	[integer!]
-	return: [c-string!]
+	sym			[integer!]
+	return:		[c-string!]
 ][
 	case [
 		sym = check ["check"]
@@ -612,12 +606,12 @@ get-symbol-name: function [
 ]
 ; this adjustment is supposed to fix only horizontally consecutive widgets in the same pane
 adjust-sizes: func [
-	widget 	[handle!]
+	widget			[handle!]
 	/local
 		widget_		[handle!]
 		child		[handle!]
 		container	[handle!]
-		rect 		[tagRECT]
+		rect		[tagRECT]
 		dx			[integer!]
 		dy			[integer!]
 		ox			[integer!]
@@ -626,16 +620,16 @@ adjust-sizes: func [
 		sy			[integer!]
 		offset		[red-pair!]
 		size		[red-pair!]
-		pane 		[red-block!]
+		pane		[red-block!]
 		type		[red-word!]
 		sym			[integer!]
-		face 		[red-object!]
-		tail 		[red-object!]
+		face		[red-object!]
+		tail		[red-object!]
 		values		[red-value!]
 		overlap?	[logic!]
 		; these ones would be removed
 		debug		[logic!]
-		cpt 		[integer!]
+		cpt			[integer!]
 ][
 	; to remove when satisfactory enough development
 	debug: no
@@ -694,7 +688,7 @@ adjust-sizes: func [
 ]
 
 remove-widget-timer: func [
-	widget [handle!]
+	widget		[handle!]
 	/local
 		timer	[integer!]
 		data	[handle!]
@@ -712,8 +706,8 @@ remove-widget-timer: func [
 ]
 
 add-widget-timer: func [
-	widget 	[handle!]
-	ts 		[integer!]
+	widget		[handle!]
+	ts			[integer!]
 	/local
 		timer	[integer!]
 		data	[handle!]
@@ -724,23 +718,23 @@ add-widget-timer: func [
 ]
 
 get-widget-timer: func [
-	widget 	[handle!]
-	return: [int-ptr!]
+	widget		[handle!]
+	return:		[int-ptr!]
 ][
 	either null? widget [as int-ptr! 0][g_object_get_qdata widget red-timer-id]
 ]
 
 remove-all-timers: func [
-	widget 	[handle!]
+	widget		[handle!]
 	/local
-		widget_		[handle!]
-		pane 		[red-block!]
-		type		[red-word!]
-		sym			[integer!]
-		face 		[red-object!]
-		tail 		[red-object!]
-		values		[red-value!]
-		rate 		[red-value!]
+		widget_	[handle!]
+		pane	[red-block!]
+		type	[red-word!]
+		sym		[integer!]
+		face	[red-object!]
+		tail	[red-object!]
+		values	[red-value!]
+		rate	[red-value!]
 ][
 	remove-widget-timer widget
 	values: get-face-values widget
@@ -765,8 +759,8 @@ remove-all-timers: func [
 ]
 
 change-rate: func [
-	widget [handle!]
-	rate [red-value!]
+	widget		[handle!]
+	rate		[red-value!]
 	/local
 		int		[red-integer!]
 		tm		[red-time!]
@@ -801,11 +795,11 @@ change-rate: func [
 ]
 
 change-image: func [
-	widget	[handle!]
-	image	[red-image!]
-	type	[integer!]
+	widget		[handle!]
+	image		[red-image!]
+	type		[integer!]
 	/local
-		img	 [handle!]
+		img		[handle!]
 ][
 	;; DEBUG: print ["change-image " widget " type: " get-symbol-name type lf]
 	case [
@@ -825,14 +819,14 @@ change-image: func [
 ]
 
 change-color: func [
-	widget	[handle!]
-	color	[red-tuple!]
-	type	[integer!]
+	widget		[handle!]
+	color		[red-tuple!]
+	type		[integer!]
 	/local
-		clr  [integer!]
-		t	 [integer!]
-		face [red-object!]
-		font [red-object!]
+		clr		[integer!]
+		t		[integer!]
+		face	[red-object!]
+		font	[red-object!]
 ][
 	;; DEBUG: print ["change-color "  widget " " get-symbol-name type lf]
 	t: TYPE_OF(color)
@@ -861,19 +855,20 @@ change-color: func [
 ]
 
 change-pane: func [
-	parent	[handle!]
-	pane	[red-block!]
-	type	[integer!]
+	parent		[handle!]
+	pane		[red-block!]
+	type		[integer!]
 	/local
 		face	[red-object!]
-		tail 	[red-object!]
-		widget 	[handle!]
-		_widget 	[handle!]
-		nb   	[integer!]
-		s	 	[series!]
+		tail	[red-object!]
+		widget	[handle!]
+		_widget	[handle!]
+		nb		[integer!]
+		s		[series!]
 		values	[red-value!]
-		offset 	[red-pair!]
-		list 	[GList!] child [GList!]
+		offset	[red-pair!]
+		list	[GList!]
+		child	[GList!]
 
 ][
 	;; DEBUG: print ["change-pane " get-symbol-name type lf]
@@ -927,11 +922,11 @@ change-pane: func [
 ]
 
 change-font: func [
-	widget	[handle!]
-	face	[red-object!]
-	font	[red-object!]
-	type	[integer!]
-	return: [logic!]
+	widget		[handle!]
+	face		[red-object!]
+	font		[red-object!]
+	type		[integer!]
+	return:		[logic!]
 	/local
 		; css		 [c-string!]
 		; provider [handle!]
@@ -957,11 +952,11 @@ change-font: func [
 ]
 
 change-offset: func [
-	widget [handle!]
-	pos  [red-pair!]
-	type [integer!]
+	widget		[handle!]
+	pos			[red-pair!]
+	type		[integer!]
 	/local
-		container 	[handle!]
+		container	[handle!]
 		_widget		[handle!]
 ][
 	;; DEBUG: print ["change-offset type: " get-symbol-name get-widget-symbol widget " " widget " " pos/x "x" pos/y lf]
@@ -986,9 +981,9 @@ change-offset: func [
 ]
 
 change-size: func [
-	widget [handle!]
-	size [red-pair!]
-	type [integer!]
+	widget		[handle!]
+	size		[red-pair!]
+	type		[integer!]
 	/local
 		_widget	[handle!]
 ][
@@ -1010,18 +1005,18 @@ change-size: func [
 ]
 
 init-all-children: func [
-	widget 	[handle!]
+	widget		[handle!]
 	/local
-		child		[handle!]
-		pane 		[red-block!]
-		type		[red-word!]
-		sym			[integer!]
-		face 		[red-object!]
-		tail 		[red-object!]
-		values		[red-value!]
-		show?		[red-logic!]
-		cursor		[handle!]
-		win 		[handle!]
+		child	[handle!]
+		pane	[red-block!]
+		type	[red-word!]
+		sym		[integer!]
+		face	[red-object!]
+		tail	[red-object!]
+		values	[red-value!]
+		show?	[red-logic!]
+		cursor	[handle!]
+		win		[handle!]
 ][
 	values: get-face-values widget
 	type: 	as red-word! values + FACE_OBJ_TYPE
@@ -1057,9 +1052,9 @@ init-all-children: func [
 ]
 
 change-visible: func [
-	widget  [handle!]
-	show? [logic!]
-	type  [integer!]
+	widget		[handle!]
+	show?		[logic!]
+	type		[integer!]
 ][
 	case [
 		type = window [
@@ -1080,25 +1075,25 @@ change-visible: func [
 ]
 
 change-enabled: func [
-	widget	 [handle!]
-	enabled? [logic!]
-	type	 [integer!]
+	widget		[handle!]
+	enabled?	[logic!]
+	type		[integer!]
 	/local
-		obj  [integer!]
+		obj		[integer!]
 ][
 	gtk_widget_set_sensitive widget enabled?
 ]
 
 change-text: func [
-	widget	[handle!]
-	values	[red-value!]
-	face	[red-object!]
-	type	[integer!]
+	widget		[handle!]
+	values		[red-value!]
+	face		[red-object!]
+	type		[integer!]
 	/local
-		len    [integer!]
-		cstr   [c-string!]
-		str    [red-string!]
-		buffer [handle!]
+		len		[integer!]
+		cstr	[c-string!]
+		str		[red-string!]
+		buffer	[handle!]
 ][
 	;; DEBUG: print ["change-text: " get-symbol-name type lf]
 
@@ -1145,15 +1140,15 @@ change-text: func [
 ]
 
 change-data: func [
-	widget   [handle!]
-	values [red-value!]
+	widget		[handle!]
+	values		[red-value!]
 	/local
-		data 	[red-value!]
-		word 	[red-word!]
+		data	[red-value!]
+		word	[red-word!]
 		size	[red-pair!]
 		f		[red-float!]
 		str		[red-string!]
-		caption [c-string!]
+		caption	[c-string!]
 		type	[integer!]
 		len		[integer!]
 ][
@@ -1207,14 +1202,14 @@ change-data: func [
 ]
 
 change-selection: func [
-	widget   [handle!]
-	int	   [red-integer!]								;-- can be also none! | object!
-	type   [integer!]
+	widget		[handle!]
+	int			[red-integer!]								;-- can be also none! | object!
+	type		[integer!]
 	/local
 		idx 	[integer!]
 		sz		[integer!]
-		wnd 	[integer!]
-		item 	[handle!]
+		wnd		[integer!]
+		item	[handle!]
 		sel		[red-pair!]
 		ins		[GtkTextIter!]
 		bound	[GtkTextIter!]
@@ -1289,8 +1284,8 @@ set-hint-text: func [
 	/local
 		text	[red-string!]
 		cell	[integer!]
-		len  	[integer!]
-		str  	[c-string!]
+		len		[integer!]
+		str		[c-string!]
 ][
 	if TYPE_OF(options) <> TYPE_BLOCK [exit]
 	text: as red-string! block/select-word options word/load "hint" no
@@ -1302,11 +1297,11 @@ set-hint-text: func [
 ]
 
 set-selected-focus: func [
-	widget [handle!]
+	widget		[handle!]
 	/local
-		face   [red-object!]
-		values [red-value!]
-		handle [handle!]
+		face	[red-object!]
+		values	[red-value!]
+		handle	[handle!]
 ][
 	values: get-face-values widget
 	if values <> null [
@@ -1319,11 +1314,11 @@ set-selected-focus: func [
 ]
 
 set-logic-state: func [
-	widget   [handle!]
-	state  [red-logic!]
-	check? [logic!]
+	widget		[handle!]
+	state		[red-logic!]
+	check?		[logic!]
 	/local
-		value [integer!]
+		value	[integer!]
 ][
 	value: either TYPE_OF(state) <> TYPE_LOGIC [
 		state/header: TYPE_LOGIC
@@ -1337,13 +1332,13 @@ set-logic-state: func [
 ]
 
 get-flags: func [
-	field	[red-block!]
-	return: [integer!]									;-- return a bit-array of all flags
+	field		[red-block!]
+	return:		[integer!]									;-- return a bit-array of all flags
 	/local
-		word  [red-word!]
-		len	  [integer!]
-		sym	  [integer!]
-		flags [integer!]
+		word	[red-word!]
+		len		[integer!]
+		sym		[integer!]
+		flags	[integer!]
 ][
 	switch TYPE_OF(field) [
 		TYPE_BLOCK [
@@ -1383,11 +1378,11 @@ get-flags: func [
 ]
 
 get-position-value: func [
-	pos		[red-float!]
-	maximun [integer!]
-	return: [integer!]
+	pos			[red-float!]
+	maximun		[integer!]
+	return:		[integer!]
 	/local
-		f	[float!]
+		f		[float!]
 ][
 	f: 0.0
 	if any [
@@ -1400,10 +1395,10 @@ get-position-value: func [
 ]
 
 get-fraction-value: func [
-	pos		[red-float!]
-	return: [float!]
+	pos			[red-float!]
+	return:		[float!]
 	/local
-		f	[float!]
+		f		[float!]
 ][
 	f: 0.0
 	if any [
@@ -1416,17 +1411,17 @@ get-fraction-value: func [
 ]
 
 get-screen-size: func [
-	id		[integer!]									;@@ Not used yet
-	return: [red-pair!]
+	id			[integer!]									;@@ Not used yet
+	return:		[red-pair!]
 ][
 	pair/push screen-size-x screen-size-y
 ]
 
 store-face-to-obj: func [
-	obj		[handle!]
-	face	[red-object!]
+	obj			[handle!]
+	face		[red-object!]
 	/local
-		storage [red-value!]
+		storage	[red-value!]
 ][
 	storage: as red-value! allocate 16					;@@ should delete it when destory widget
 	copy-cell as cell! face storage
@@ -1439,11 +1434,11 @@ init-combo-box: func [
 	caption		[c-string!]
 	drop-list?	[logic!] ;to remove if unused
 	/local
-		str	 [red-string!]
-		tail [red-string!]
-		len  [integer!]
-		val  [c-string!]
-		size [integer!]
+		str		[red-string!]
+		tail	[red-string!]
+		len		[integer!]
+		val		[c-string!]
+		size	[integer!]
 ][
 	if any [
 		TYPE_OF(data) = TYPE_BLOCK
@@ -1492,8 +1487,8 @@ remove-entry: func [
 ]
 
 init-text-list: func [
-	widget	 [handle!]
-	data	 [red-block!]
+	widget		[handle!]
+	data		[red-block!]
 	/local
 		str		[red-string!]
 		tail	[red-string!]
@@ -1530,8 +1525,8 @@ init-text-list: func [
 ]
 
 update-scroller: func [
-	scroller [red-object!]
-	flag	 [integer!]
+	scroller	[red-object!]
+	flag		[integer!]
 	/local
 		parent		[red-object!]
 		vertical?	[red-logic!]
@@ -1582,11 +1577,11 @@ update-scroller: func [
 
 
 update-rich-text: func [
-	state	[red-block!]
-	handles [red-block!]
-	return: [logic!]
+	state		[red-block!]
+	handles		[red-block!]
+	return:		[logic!]
 	/local
-		redraw [red-logic!]
+		redraw	[red-logic!]
 ][
 	if TYPE_OF(handles) = TYPE_BLOCK [
 		redraw: as red-logic! (block/rs-tail handles) - 1
@@ -1596,10 +1591,10 @@ update-rich-text: func [
 ]
 
 parse-common-opts: func [
-	widget	[handle!]
-	face 	[red-object!]
-	options [red-block!]
-	type	[integer!]
+	widget		[handle!]
+	face		[red-object!]
+	options		[red-block!]
+	type		[integer!]
 	/local
 		word	[red-word!]
 		w		[red-word!]
@@ -1610,8 +1605,8 @@ parse-common-opts: func [
 		cur		[c-string!]
 		hcur	[handle!]
 		pixbuf	[handle!]
-		display [handle!]
-		win 	[handle!]
+		display	[handle!]
+		win		[handle!]
 		x		[integer!]
 		y		[integer!]
 		;;;btn?	[logic!]
@@ -1688,7 +1683,7 @@ parse-common-opts: func [
 ]
 
 OS-redraw: func [
-	widget [integer!]
+	widget		[integer!]
 ][
 	;; DEBUG: print ["OS-redraw" lf]
 	unless null? as handle! widget [gtk_widget_queue_draw as handle! widget]
@@ -1702,13 +1697,13 @@ OS-refresh-window: func [widget [integer!]][
 ]
 
 OS-show-window: func [
-	widget	[integer!]
+	widget		[integer!]
 	/local
-		face 	[red-object!]
-	 	event 	[GdkEventConfigure!]
-		type 	[integer!]
+		face	[red-object!]
+	 	event	[GdkEventConfigure!]
+		type	[integer!]
 		size	[red-pair!]
-		hWnd 	[handle!]
+		hWnd	[handle!]
 ][
 	hWnd: as handle! widget
 	unless null? hWnd [
@@ -1724,43 +1719,43 @@ OS-show-window: func [
 ]
 
 OS-make-view: func [
-	face	[red-object!]
-	parent	[integer!]
-	return: [integer!]
+	face		[red-object!]
+	parent		[integer!]
+	return:		[integer!]
 	/local
-		values	  [red-value!]
-		type	  [red-word!]
-		str		  [red-string!]
-		tail	  [red-string!]
-		offset	  [red-pair!]
-		size	  [red-pair!]
-		data	  [red-block!]
-		int		  [red-integer!]
-		img		  [red-image!]
-		menu	  [red-block!]
-		show?	  [red-logic!]
-		enabled?  [red-logic!]
-		selected  [red-integer!]
-		font	  [red-object!]
-		para	  [red-object!]
-		flags	  [integer!]
-		bits	  [integer!]
-		rate	  [red-value!]
-		sym		  [integer!]
-		p-sym	  [integer!]
-		caption   [c-string!]
-		len		  [integer!]
-		widget	  [handle!]
-		_widget	  [handle!]
-		winbox	  [handle!]
-		buffer	  [handle!]
-		container [handle!]
-		hMenu	  [handle!]
-		value	  [integer!]
-		fvalue	  [float!]
-		vertical? [logic!]
-		rfvalue	  [red-float!]
-		actors	  [red-object!]
+		values		[red-value!]
+		type		[red-word!]
+		str			[red-string!]
+		tail		[red-string!]
+		offset		[red-pair!]
+		size		[red-pair!]
+		data		[red-block!]
+		int			[red-integer!]
+		img			[red-image!]
+		menu		[red-block!]
+		show?		[red-logic!]
+		enabled?	[red-logic!]
+		selected	[red-integer!]
+		font		[red-object!]
+		para		[red-object!]
+		flags		[integer!]
+		bits		[integer!]
+		rate		[red-value!]
+		sym			[integer!]
+		p-sym		[integer!]
+		caption		[c-string!]
+		len			[integer!]
+		widget		[handle!]
+		_widget		[handle!]
+		winbox		[handle!]
+		buffer		[handle!]
+		container	[handle!]
+		hMenu		[handle!]
+		value		[integer!]
+		fvalue		[float!]
+		vertical?	[logic!]
+		rfvalue		[red-float!]
+		actors		[red-object!]
 ][
 	stack/mark-native words/_body
 
@@ -2071,7 +2066,7 @@ OS-make-view: func [
 ]
 
 OS-update-view: func [
-	face [red-object!]
+	face		[red-object!]
 	/local
 		ctx		[red-context!]
 		values	[red-value!]
@@ -2196,13 +2191,13 @@ OS-update-view: func [
 ]
 
 unlink-sub-obj: func [
-	face  [red-object!]
-	obj   [red-object!]
-	field [integer!]
+	face		[red-object!]
+	obj			[red-object!]
+	field		[integer!]
 	/local
-		values [red-value!]
-		parent [red-block!]
-		res	   [red-value!]
+		values	[red-value!]
+		parent	[red-block!]
+		res		[red-value!]
 ][
 	values: object/get-values obj
 	parent: as red-block! values + field
@@ -2220,13 +2215,13 @@ unlink-sub-obj: func [
 ]
 
 OS-destroy-view: func [
-	face   [red-object!]
-	empty? [logic!]
+	face		[red-object!]
+	empty?		[logic!]
 	/local
-		handle [handle!]
-		values [red-value!]
-		obj	   [red-object!]
-		flags  [integer!]
+		handle	[handle!]
+		values	[red-value!]
+		obj		[red-object!]
+		flags	[integer!]
 ][
 	;; DEBUG: print ["OS-destroy-view" lf]
 	handle: face-handle? face
@@ -2261,19 +2256,19 @@ OS-destroy-view: func [
 ]
 
 OS-update-facet: func [
-	face   [red-object!]
-	facet  [red-word!]
-	value  [red-value!]
-	action [red-word!]
-	new	   [red-value!]
-	index  [integer!]
-	part   [integer!]
+	face		[red-object!]
+	facet		[red-word!]
+	value		[red-value!]
+	action		[red-word!]
+	new			[red-value!]
+	index		[integer!]
+	part		[integer!]
 	/local
-		word [red-word!]
-		sym	 [integer!]
-		type [integer!]
-		pane [red-block!]
-		widget [handle!]
+		word	[red-word!]
+		sym		[integer!]
+		type	[integer!]
+		pane	[red-block!]
+		widget	[handle!]
 ][
 	sym: symbol/resolve facet/symbol
 	;; DEBUG: print ["update-facet " get-symbol-name sym lf]
@@ -2307,12 +2302,12 @@ OS-update-facet: func [
 ]
 
 OS-to-image: func [
-	face	[red-object!]
-	return: [red-image!]
+	face		[red-object!]
+	return:		[red-image!]
 	/local
-		widget 	[handle!]
+		widget	[handle!]
 		win		[handle!]
-		xwin 	[integer!]
+		xwin	[integer!]
 		width	[integer!]
 		height	[integer!]
 		pixbuf	[handle!]
@@ -2320,8 +2315,8 @@ OS-to-image: func [
 		type	[integer!]
 		size	[red-pair!]
 		ret		[red-image!]
-		list 	[GList!]
-		child 	[GList!]
+		list	[GList!]
+		child	[GList!]
 ][
 	word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
 	type: symbol/resolve word/symbol
@@ -2395,13 +2390,13 @@ OS-to-image: func [
 ]
 
 OS-do-draw: func [
-	image	[red-image!]
-	cmds	[red-block!]
+	image		[red-image!]
+	cmds		[red-block!]
 	/local
 		cr		[handle!]
 		surf	[handle!]
-		w	 	[integer!]
-		h	 	[integer!]
+		w		[integer!]
+		h		[integer!]
 		bitmap	[integer!]
 		data	[int-ptr!]
 		stride	[integer!]
@@ -2425,13 +2420,13 @@ OS-do-draw: func [
 ]
 
 OS-do-draw-OLD: func [
-	image	[red-image!]
-	cmds	[red-block!]
+	image		[red-image!]
+	cmds		[red-block!]
 	/local
 		cr		[handle!]
 		surf	[handle!]
-		w	 	[integer!]
-		h	 	[integer!]
+		w		[integer!]
+		h		[integer!]
 		bitmap	[integer!]
 		data	[int-ptr!]
 		stride	[integer!]
@@ -2455,8 +2450,8 @@ OS-do-draw-OLD: func [
 ]
 
 OS-draw-face: func [
-	ctx		[draw-ctx!]
-	cmds	[red-block!]
+	ctx			[draw-ctx!]
+	cmds		[red-block!]
 ][
 	if TYPE_OF(cmds) = TYPE_BLOCK [
 		catch RED_THROWN_ERROR [parse-draw ctx cmds yes]

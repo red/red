@@ -646,7 +646,8 @@ respond-mouse-add: func [
 	if respond-event?  actors "on-alt-up" [on-type: on-type or ON_RIGHT_UP]
 	if respond-event?  actors "on-aux-down" [on-type: on-type or ON_AUX_DOWN]
 	if respond-event?  actors "on-aux-up" [on-type: on-type or ON_AUX_UP]
-	if respond-event?  actors "on-click" [on-type: on-type or ON_CLICK] if respond-event?  actors "on-dbl-click" [on-type: on-type or ON_DBL_CLICK]
+	if respond-event?  actors "on-click" [on-type: on-type or ON_CLICK]
+	if respond-event?  actors "on-dbl-click" [on-type: on-type or ON_DBL_CLICK]
 	if respond-event?  actors "on-wheel" [on-type: on-type or ON_WHEEL]
 	if respond-event?  actors "on-over" [on-type: on-type or ON_OVER]
 	if all[on-type > 0 not null? widget][
