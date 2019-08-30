@@ -10,7 +10,7 @@ REBOL [
 ;; Reference doc: http://developer.apple.com/library/mac/#documentation/DeveloperTools/Conceptual/MachORuntime/Reference/reference.html
 
 context [
-	defs: compose [
+	defs: [
 		extensions [
 			exe %""
 			obj %.o
