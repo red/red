@@ -111,6 +111,7 @@ object [
 	vprin: func [str [string!]][
 		either empty? lines [
 			append lines str
+			append flags 0
 		][
 			append last lines str
 		]
