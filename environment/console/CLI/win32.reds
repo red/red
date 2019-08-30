@@ -278,6 +278,7 @@ get-window-size: func [
 ]
 
 emit-red-char: func [cp [integer!] /local n][
+	if hide-input? [cp: as-integer #"*"]
 	n: 2 * unicode/cp-to-utf16 cp pbuffer
 	pbuffer: pbuffer + n
 ]
