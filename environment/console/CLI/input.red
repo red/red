@@ -165,6 +165,7 @@ unless system/console [
 			str	[red-string!]
 		][
 			str/head: 0
+			if hide-input? [exit]
 			unless any [
 				zero? string/rs-length? str
 				all [

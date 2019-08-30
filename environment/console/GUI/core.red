@@ -95,7 +95,11 @@ object [
 		caret/enabled?: no
 		caret/rate: none
 		either escape [append line #"^["][
-			if all [not empty? line line <> first history][insert history line]
+			if all [
+				not empty? line
+				line <> first history
+				zero? last flags
+			][insert history line]
 			hist-idx: 0
 		]
 		prin?: no
