@@ -236,7 +236,7 @@ thread: context [
 
 		ret: pthread_create :t a routine args
 		if stack > 0 [pthread_attr_destroy a]
-		either zero? ret [as handle! t][null]
+		either zero? ret [as handle! t][probe "pthread_create fail" null]
 	]
 
 	detach: func [
