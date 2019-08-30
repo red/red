@@ -172,6 +172,7 @@ unless system/console [
 					zero? string/equal? str as red-string! block/rs-abs-at history 0 COMP_STRICT_EQUAL no
 				]
 			][
+				history/head: 0
 				block/insert-value history as red-value! str
 			]
 		]
