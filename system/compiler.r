@@ -75,6 +75,7 @@ system-dialect: make-profilable context [
 		modules:			none
 		show:				none
 		command-line:		none
+		show-func-map?:		no							;-- yes => output the functions address/name map
 	]
 	
 	compiler: make-profilable context [

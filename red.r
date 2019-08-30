@@ -712,6 +712,7 @@ redc: context [
 				| "--no-runtime"				(opts/runtime?: no)		;@@ overridable by config!
 				| "--cli"						(gui?: no)
 				| "--no-compress"				(opts/redbin-compress?: no)
+				| "--show-func-map"				(opts/show-func-map?: yes)
 				| "--catch"								;-- just pass-thru
 				| "--" break							;-- stop options processing
 			]

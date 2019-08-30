@@ -249,7 +249,18 @@ linker: context [
 
 		repend data-buf [buffer specs]
 	]
-		
+	
+	show-funcs-map: func [
+		job 	 [object!]
+		code-ptr [integer!]							;-- code memory address
+	][
+		print "^/--- Functions entry points ---"
+		foreach [name spec] job/symbols [
+			if is-native? name spec [print [to-hex code-ptr + spec/2 - 1 #":" name]]
+		]
+		print "--- end ---^/"
+	]
+	
 	clean-imports: func [imports [block!]][			;-- remove unused imports
 		foreach [lib list] imports/3 [
 			remove-each [name refs] list [empty? refs]
