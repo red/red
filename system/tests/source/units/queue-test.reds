@@ -32,7 +32,9 @@ Red/System [
 			return:	[integer!]
 		][
 			loop A_N_ITERS [
-				until [queue/push qe as int-ptr! 1]
+				while [not queue/push qe as int-ptr! 1][
+					thread/yield
+				]
 			]
 			0
 		]
@@ -46,10 +48,10 @@ Red/System [
 		][
 			n: 0
 			loop A_N_ITERS [
-				until [
+				while [
 					ret: as-integer queue/pop qe
-					ret <> 0
-				]
+					zero? ret
+				][thread/yield]
 				n: n + ret
 			]
 			n
@@ -91,7 +93,9 @@ Red/System [
 			return:	[integer!]
 		][
 			loop A_N_ITERS * 31 [
-				until [queue/s-push qe as int-ptr! 1]
+				while [not queue/s-push qe as int-ptr! 1][
+					thread/yield
+				]
 			]
 			0
 		]
