@@ -308,6 +308,7 @@ emit-string-int: func [
 emit-red-char: func [
 	cp			[integer!]
 ][
+	if hide-input? [cp: as-integer #"*"]
 	case [
 		cp <= 7Fh [
 			pbuffer/1: as-byte cp

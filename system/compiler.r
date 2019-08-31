@@ -75,6 +75,7 @@ system-dialect: make-profilable context [
 		modules:			none
 		show:				none
 		command-line:		none
+		show-func-map?:		no							;-- yes => output the functions address/name map
 	]
 	
 	compiler: make-profilable context [
@@ -2444,7 +2445,7 @@ system-dialect: make-profilable context [
 				
 				append expr-call-stack #body			;-- marker for enabling expression post-processing
 				fetch-into cases [						;-- compile case body
-					append/only list body: comp-block-chunked/bool
+					append/only list body: comp-block-chunked
 					append/only types resolve-expr-type/quiet body/1
 				]
 				clear find/last expr-call-stack #body

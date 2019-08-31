@@ -82,6 +82,7 @@ unless system/console [
 		rows:		-1
 		output?:	yes
 		pasting?:	no
+		hide-input?: no
 
 		init-globals: func [][
 			saved-line: string/rs-make-at ALLOC_TAIL(root) 1
@@ -120,7 +121,7 @@ unless system/console [
 				head	[integer!]
 		][
 			#call [red-complete-ctx/complete-input str yes]
-			stack/top: stack/arguments + 1
+			stack/top: stack/arguments + 2
 			result: as red-block! stack/top
 			num: block/rs-length? result
 			unless zero? num [
@@ -164,6 +165,7 @@ unless system/console [
 			str	[red-string!]
 		][
 			str/head: 0
+			if hide-input? [exit]
 			unless any [
 				zero? string/rs-length? str
 				all [
@@ -171,6 +173,7 @@ unless system/console [
 					zero? string/equal? str as red-string! block/rs-abs-at history 0 COMP_STRICT_EQUAL no
 				]
 			][
+				history/head: 0
 				block/insert-value history as red-value! str
 			]
 		]
@@ -335,6 +338,7 @@ unless system/console [
 				offset [integer!]
 				bytes  [integer!]
 				psize  [integer!]
+				hide?  [logic!]
 		][
 			line: input-line
 
@@ -345,7 +349,10 @@ unless system/console [
 				#if OS <> 'Windows [reset-cursor-pos][0]
 			]
 			init-buffer line prompt
+			hide?: hide-input?
+			hide-input?: no
 			bytes: emit-red-string prompt columns no
+			hide-input?: hide?
 
 			psize: bytes // columns
 			offset: bytes + (emit-red-string line columns - psize yes)	;-- output until reach cursor posistion
@@ -558,13 +565,16 @@ unless system/console [
 		]
 
 		edit: func [
-			prompt-str [red-string!]
+			prompt-str	[red-string!]
+			hidden?		[logic!]
 		][
 			either console? [
+				hide-input?: hidden?
 				console-edit prompt-str
 				restore
 				print-line ""
 			][
+				hide-input?: no
 				stdin-readline input-line
 			]
 		]
@@ -585,8 +595,8 @@ _set-buffer-history: routine ["Internal Use Only" line [string!] hist [block!]][
 	terminal/setup line hist
 ]
 
-_read-input: routine ["Internal Use Only" prompt [string!]][
-	terminal/edit prompt
+_read-input: routine ["Internal Use Only" prompt [string!] hidden? [logic!]][
+	terminal/edit prompt hidden?
 ]
 
 _terminate-console: routine [][
@@ -599,11 +609,12 @@ _terminate-console: routine [][
 ask: function [
 	"Prompt the user for input"
 	question [string!]
+	/hide
 	return:  [string!]
 ][
 	buffer: make string! 1
 	_set-buffer-history buffer head system/console/history
-	_read-input question
+	_read-input question hide
 	buffer
 ]
 

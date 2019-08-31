@@ -239,6 +239,7 @@ _save-cfg: function [][
 ask: function [
 	"Prompt the user for input"
 	question [string!]
+	/hide
 	return:  [string!]
 ][
 	gui-console-ctx/show-caret
@@ -253,6 +254,7 @@ ask: function [
 	vt/ask?: yes
 	vt/reset-top/force
 	vt/clear-stack
+	vt/set-flag hide
 	either vt/paste/resume [
 		vt/do-ask-loop/no-wait
 	][

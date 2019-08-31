@@ -449,7 +449,7 @@ object: context [
 		assert TYPE_OF(int) = TYPE_INTEGER
 		index: int/value >> 16
 		count: int/value and FFFFh
-		
+		if index = -1 [exit]							;-- abort if no on-deep-change* handler		
 		if null? new [new: as red-value! none-value]
 
 		ctx: GET_CTX(owner) 

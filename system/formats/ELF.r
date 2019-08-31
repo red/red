@@ -518,6 +518,8 @@ context [
 			get-offset ".data"
 			get-size   ".data"
 
+		if job/show-func-map? [linker/show-funcs-map job get-address ".text"]
+
 		;; Concatenate the layout data into the output binary.
 		job/buffer: copy #{}
 		foreach [name values] layout [
