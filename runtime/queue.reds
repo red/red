@@ -100,6 +100,7 @@ queue: context [
 			node	[qnode!]
 			head	[integer!]
 			next	[integer!]
+			result	[int-ptr!]
 	][
 		until [
 			head: system/atomic/load :qe/head
@@ -108,8 +109,9 @@ queue: context [
 			next: head + 1 and qe/capacityMask
 			system/atomic/cas :qe/head head next
 		]
+		result: node/value
 		system/atomic/store :node/status head
-		node/value
+		result
 	]
 
 	s-push: func [
