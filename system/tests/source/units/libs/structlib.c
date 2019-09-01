@@ -118,11 +118,11 @@ typedef struct {
 
 static int* callback_func;
 
-extern void set_callback(int* ptr) {
+EXPORT void set_callback(int* ptr) {
     callback_func = ptr;
 }
 
-extern float test_callback() {
+EXPORT float test_callback() {
     MyRect (*p)() = (MyRect (*)())callback_func;
     MyRect rc = p();
     return rc.x;
