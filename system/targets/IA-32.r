@@ -2308,7 +2308,7 @@ make-profilable make target-class [
 
 	emit-epilog: func [
 		name [word!] locals [block!] args-size [integer!] locals-size [integer!] /with slots [integer! none!]
-		/local fspec attribs vars offset
+		/local fspec attribs vars offset ret-extra?
 	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
 		
@@ -2331,6 +2331,8 @@ make-profilable make target-class [
 					emit #{B9}						;-- MOV ecx, <size>
 					emit to-bin32 slots
 					emit #{F3A5}					;-- REP MOVS
+					
+					ret-extra?: compiler/job/OS = 'macOS ;-- flag for popping an extra slot on macOS only
 				]
 			]
 		]
@@ -2356,7 +2358,11 @@ make-profilable make target-class [
 			fspec/3 = 'cdecl
 		][
 			;; cdecl: Leave original arguments on stack, popped by caller.
-			emit #{C3}								;-- RET
+			emit either ret-extra? [
+				#{C20004}							;-- RETN 4	; macOS with returned struct by value > 8 bytes
+			][
+				#{C3}								;-- RET
+			]
 		][
 			;; stdcall/reds: Consume original arguments from stack.
 			either compiler/check-variable-arity? locals [
@@ -2368,7 +2374,7 @@ make-profilable make target-class [
 				emit #{56}							;-- PUSH esi		; push return address
 				emit #{C3}							;-- RET
 			][
-				emit #{C2}							;-- RET args-size
+				emit #{C2}							;-- RETN args-size
 				emit to-bin16 round/to/ceiling args-size 4
 			]
 		]
