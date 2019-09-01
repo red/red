@@ -1061,7 +1061,7 @@ struct-local-foo2
 		]
 
 		set_callback3999 as int-ptr! :callback-func
-		--assert 23.0 = test_callback3999
+		--assert (as-float 23.0) = test_callback3999
 
 
 	--test-- "svb50"
