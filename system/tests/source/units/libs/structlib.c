@@ -106,3 +106,24 @@ EXPORT hugef32 returnHugef32(hugef32 h, int a, int b) {
 	t.six = h.six;
 	return t;
 }
+
+/* Regression test on issue #3999 */
+
+typedef struct {
+    float x;
+    float y;
+    float w;
+    float h;
+} MyRect;
+
+static int* callback_func;
+
+extern void set_callback(int* ptr) {
+    callback_func = ptr;
+}
+
+extern float test_callback() {
+    MyRect (*p)() = (MyRect (*)())callback_func;
+    MyRect rc = p();
+    return rc.x;
+}
