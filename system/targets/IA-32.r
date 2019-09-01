@@ -2308,7 +2308,7 @@ make-profilable make target-class [
 
 	emit-epilog: func [
 		name [word!] locals [block!] args-size [integer!] locals-size [integer!] /with slots [integer! none!]
-		/local fspec attribs vars offset ret-extra?
+		/local fspec attribs vars offset ret-extra? cdecl?
 	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
 		
@@ -2355,11 +2355,11 @@ make-profilable make target-class [
 		emit #{C9}									;-- LEAVE			; catch flag is skipped
 		either any [
 			zero? args-size
-			fspec/3 = 'cdecl
+			cdecl?: fspec/3 = 'cdecl
 		][
 			;; cdecl: Leave original arguments on stack, popped by caller.
-			emit either ret-extra? [
-				#{C20004}							;-- RETN 4	; macOS with returned struct by value > 8 bytes
+			emit either all [cdecl? ret-extra?][
+				#{C20400}							;-- RETN 4	; macOS with returned struct by value > 8 bytes
 			][
 				#{C3}								;-- RET
 			]
