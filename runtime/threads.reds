@@ -52,6 +52,7 @@ thread: context [
 			;ExitThread: "ExitThread" [
 			;	retval		[integer!]
 			;]
+			SwitchToThread: "SwitchToThread" [return: [logic!]]
 			CloseHandle: "CloseHandle" [
 				hObject		[handle!]
 				return:		[logic!]
@@ -137,7 +138,7 @@ thread: context [
 
 	yield: func [][
 		"relinquish the CPU for a moment"
-		#inline #{F390}		;-- x86 pause instruction
+		SwitchToThread
 	]
 
 ][	;-- POSIX
