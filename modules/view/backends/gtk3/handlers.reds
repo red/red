@@ -529,28 +529,32 @@ key-release-event: func [
 	ctx			[node!]
 	return:		[integer!]
 	/local
-		sym		[integer!]
-		text	[c-string!]
-		qdata	[handle!]
-		face	[red-object!]
 		key		[integer!]
 		flags	[integer!]
 ][
-	sym: get-widget-symbol widget
-	if sym = field [
-		text: gtk_entry_get_text widget
-		qdata: g_object_get_qdata widget red-face-id
-		unless null? qdata [
-			face: as red-object! qdata
-			set-text widget face/ctx text
-			make-event widget 0 EVT_CHANGE
-		]
-	]
 	if event-key/keyval > FFFFh [return EVT_DISPATCH]
 	key: translate-key event-key/keyval
 	flags: 0 ;either char-key? as-byte key [0][80000000h]	;-- special key or not
 	flags: flags or check-extra-keys event-key/state
 	make-event widget key or flags EVT_KEY_UP
+]
+
+field-changed: func [
+	[cdecl]
+	buffer		[handle!]
+	widget		[handle!]
+	/local
+		text	[c-string!]
+		qdata	[handle!]
+		face	[red-object!]
+][
+	text: gtk_entry_get_text widget
+	qdata: g_object_get_qdata widget red-face-id
+	unless null? qdata [
+		face: as red-object! qdata
+		set-text widget face/ctx text
+		make-event widget 0 EVT_CHANGE
+	]
 ]
 
 focus-in-event: func [
@@ -583,8 +587,8 @@ mouse-button-release-event: func [
 		y		[integer!]
 		sel		[red-pair!]
 		buffer	[handle!]
-		start	[GtkTextIter!]
-		end		[GtkTextIter!]
+		start	[GtkTextIter! value]
+		end		[GtkTextIter! value]
 		flags	[integer!]
 		ev		[integer!]
 ][
@@ -608,8 +612,6 @@ mouse-button-release-event: func [
 	]
 	if sym = area [
 		if event/button = GDK_BUTTON_PRIMARY [
-			start: as GtkTextIter! allocate (size? GtkTextIter!)
-			end: as GtkTextIter! allocate (size? GtkTextIter!)
 			buffer: gtk_text_view_get_buffer widget
 			if gtk_text_buffer_get_selection_bounds buffer as handle! start as handle! end [
 				x: -1 y: -1
@@ -624,7 +626,6 @@ mouse-button-release-event: func [
 				]
 				make-event widget 0 EVT_SELECT
 			]
-			free as byte-ptr! start free as byte-ptr! end
 		]
 	]
 	evt-motion/state: yes
@@ -650,18 +651,15 @@ area-changed: func [
 		text	[c-string!]
 		face	[red-object!]
 		qdata	[handle!]
-		start	[GtkTextIter!]
-		end		[GtkTextIter!]
+		start	[GtkTextIter! value]
+		end		[GtkTextIter! value]
 ][
 	; Weirdly, GtkTextIter introduced since I did not simplest solution to get the full content of a GtkTextBuffer!
-	start: as GtkTextIter! allocate (size? GtkTextIter!)
-	end: as GtkTextIter! allocate (size? GtkTextIter!)
 	gtk_text_buffer_get_bounds buffer as handle! start as handle! end
 	text: gtk_text_buffer_get_text buffer as handle! start as handle! end no
-	free as byte-ptr! start free as byte-ptr! end
 	qdata: g_object_get_qdata widget red-face-id
-    unless null? qdata [
-        face: as red-object! qdata
+	unless null? qdata [
+		face: as red-object! qdata
 		set-text widget face/ctx text
 		make-event widget 0 EVT_CHANGE
 	]

@@ -676,6 +676,8 @@ connect-common-events: function [
 	]
 
 	if any [
+		sym = field
+		sym = area
 		respond-event? actors on-up
 		respond-event? actors on-mid-up
 		respond-event? actors on-alt-up
@@ -690,7 +692,6 @@ connect-common-events: function [
 	]
 
 	if any [
-		sym = field
 		respond-event? actors on-key
 		respond-event? actors on-key-down
 		respond-event? actors on-focus
@@ -701,7 +702,6 @@ connect-common-events: function [
 	]
 
 	if any [
-		sym = field
 		respond-event? actors on-key-up
 		respond-event? actors on-unfocus
 	][
@@ -794,6 +794,7 @@ connect-widget-events: function [
 		]
 		sym = text [0]
 		sym = field [
+			gobj_signal_connect(widget "changed" :field-changed widget)
 			gtk_widget_set_can_focus widget yes
 			gtk_widget_set_focus_on_click widget yes
 			gtk_widget_is_focus widget

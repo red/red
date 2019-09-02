@@ -1211,8 +1211,8 @@ change-selection: func [
 		wnd		[integer!]
 		item	[handle!]
 		sel		[red-pair!]
-		ins		[GtkTextIter!]
-		bound	[GtkTextIter!]
+		ins		[GtkTextIter! value]
+		bound	[GtkTextIter! value]
 		buffer	[handle!]
 ][
 	;; DEBUG: print ["change-selection: " widget " (" get-symbol-name type ")" lf]
@@ -1234,15 +1234,12 @@ change-selection: func [
 				gtk_editable_select_region widget idx idx + sz
 			][
 				buffer: gtk_text_view_get_buffer widget
-				ins: as GtkTextIter! allocate (size? GtkTextIter!)
-				bound: as GtkTextIter! allocate (size? GtkTextIter!)
 				;; Careful! GtkTextIter! needs to be initialized first (so this weird call first!)
 				gtk_text_buffer_get_selection_bounds buffer as handle! ins as handle! bound
 				;; DEBUG: print [" pos : " idx "x" idx + sz lf]
 				gtk_text_iter_set_offset as handle! ins idx
 				gtk_text_iter_set_offset as handle! bound idx + sz
 				gtk_text_buffer_select_range buffer as handle! ins as handle! bound
-				free as byte-ptr! ins free as byte-ptr! bound
 			]
 		]
 	; 	type = camera [
