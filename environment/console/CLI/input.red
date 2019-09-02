@@ -18,7 +18,7 @@ Red [
 unless system/console [
 	system/console: context [
 		history: make block! 200
-		size: 0x0
+		size: 80x50										;-- default size for dump/help funcs
 	]
 ]
 ;; End patch
@@ -82,6 +82,7 @@ unless system/console [
 		rows:		-1
 		output?:	yes
 		pasting?:	no
+		hide-input?: no
 
 		init-globals: func [][
 			saved-line: string/rs-make-at ALLOC_TAIL(root) 1
@@ -120,7 +121,7 @@ unless system/console [
 				head	[integer!]
 		][
 			#call [red-complete-ctx/complete-input str yes]
-			stack/top: stack/arguments + 1
+			stack/top: stack/arguments + 2
 			result: as red-block! stack/top
 			num: block/rs-length? result
 			unless zero? num [
@@ -164,8 +165,16 @@ unless system/console [
 			str	[red-string!]
 		][
 			str/head: 0
-			unless zero? string/rs-length? str [
-				block/rs-append history as red-value! str		;TBD Don't add duplicated lines.
+			if hide-input? [exit]
+			unless any [
+				zero? string/rs-length? str
+				all [
+					0 < block/rs-length? history
+					zero? string/equal? str as red-string! block/rs-abs-at history 0 COMP_STRICT_EQUAL no
+				]
+			][
+				history/head: 0
+				block/insert-value history as red-value! str
 			]
 		]
 
@@ -329,6 +338,7 @@ unless system/console [
 				offset [integer!]
 				bytes  [integer!]
 				psize  [integer!]
+				hide?  [logic!]
 		][
 			line: input-line
 
@@ -339,7 +349,10 @@ unless system/console [
 				#if OS <> 'Windows [reset-cursor-pos][0]
 			]
 			init-buffer line prompt
+			hide?: hide-input?
+			hide-input?: no
 			bytes: emit-red-string prompt columns no
+			hide-input?: hide?
 
 			psize: bytes // columns
 			offset: bytes + (emit-red-string line columns - psize yes)	;-- output until reach cursor posistion
@@ -370,10 +383,14 @@ unless system/console [
 				head   [integer!]
 				c	   [integer!]
 				n	   [integer!]
+				pos	   [integer!]
+				max	   [integer!]
 		][
 			line: input-line
 			copy-cell as red-value! prompt-str as red-value! prompt
-			history/head: block/rs-length? history		;@@ set history list to tail (temporary)
+			history/head: 0
+			pos: -1
+			max: block/rs-length? history
 				
 			get-window-size
 			if null? saved-line [init-globals]
@@ -404,6 +421,7 @@ unless system/console [
 				switch c [
 					KEY_ENTER [
 						add-history line
+						max: max + 1
 						string/rs-reset saved-line
 						exit
 					]
@@ -433,26 +451,27 @@ unless system/console [
 							refresh
 						]
 					]
-					KEY_CTRL_P
-					KEY_UP [
-						unless zero? history/head [
-							history/head: history/head - 1
-							fetch-history
-							line/head: string/rs-abs-length? line
-							refresh
-						]
-					]
 					KEY_CTRL_N
 					KEY_DOWN [
-						unless block/rs-tail? history [
-							history/head: history/head + 1
-							either block/rs-tail? history [
-								string/rs-reset line
-							][
-								fetch-history
-							]
-							refresh
+						either pos < 0 [
+							string/rs-reset line
+						][
+							history/head: pos
+							fetch-history
+							pos: pos - 1
 						]
+						refresh
+					]
+					KEY_CTRL_P
+					KEY_UP [
+						either pos >= (max - 1) [
+							string/rs-reset line
+						][
+							pos: pos + 1
+							history/head: pos
+							fetch-history
+						]
+						refresh
 					]
 					KEY_CTRL_A
 					KEY_HOME [
@@ -546,13 +565,16 @@ unless system/console [
 		]
 
 		edit: func [
-			prompt-str [red-string!]
+			prompt-str	[red-string!]
+			hidden?		[logic!]
 		][
 			either console? [
+				hide-input?: hidden?
 				console-edit prompt-str
 				restore
 				print-line ""
 			][
+				hide-input?: no
 				stdin-readline input-line
 			]
 		]
@@ -564,7 +586,7 @@ unless system/console [
 			copy-cell as red-value! line as red-value! input-line
 			copy-cell as red-value! hist as red-value! history
 
-			init		;-- enter raw mode
+			init-console		;-- enter raw mode
 		]
 	]
 ]
@@ -573,8 +595,8 @@ _set-buffer-history: routine ["Internal Use Only" line [string!] hist [block!]][
 	terminal/setup line hist
 ]
 
-_read-input: routine ["Internal Use Only" prompt [string!]][
-	terminal/edit prompt
+_read-input: routine ["Internal Use Only" prompt [string!] hidden? [logic!]][
+	terminal/edit prompt hidden?
 ]
 
 _terminate-console: routine [][
@@ -587,11 +609,12 @@ _terminate-console: routine [][
 ask: function [
 	"Prompt the user for input"
 	question [string!]
+	/hide
 	return:  [string!]
 ][
 	buffer: make string! 1
 	_set-buffer-history buffer head system/console/history
-	_read-input question
+	_read-input question hide
 	buffer
 ]
 

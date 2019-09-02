@@ -97,16 +97,16 @@ make-profilable make target-class [
 
 	emit-variable: func [
 		name  [word! object!] 
-		gcode [binary! block! none!]					;-- global opcodes
-		pcode [binary! block! none!]					;-- PIC opcodes
-		lcode [binary! block!] 							;-- local opcodes
+		gcode [binary! block! none!]				;-- global opcodes
+		pcode [binary! block! none!]				;-- PIC opcodes
+		lcode [binary! block!] 						;-- local opcodes
 		/local offset byte code spec
 	][
 		if object? name [name: compiler/unbox name]
 		
 		case [
 			offset: emitter/local-offset? name [
-				offset: stack-encode offset 			;-- local variable case
+				offset: stack-encode offset 		;-- local variable case
 				either block? lcode: adjust-disp32 lcode offset [
 					emit reduce bind lcode 'offset
 				][
@@ -114,7 +114,7 @@ make-profilable make target-class [
 					emit offset
 				]
 			]
-			PIC? [										;-- global variable case (PIC version)
+			PIC? [									;-- global variable case (PIC version)
 				spec: emitter/symbols/:name
 				either spec/1 = 'import-var [
 					emit #{8BB3}					;-- MOV esi, [ebx+<import disp>]
@@ -135,7 +135,7 @@ make-profilable make target-class [
 					]
 				]
 			]
-			'global [									;-- global variable case
+			'global [								;-- global variable case
 				spec: emitter/symbols/:name
 				either spec/1 = 'import-var [
 					emit #{8B3D}					;-- MOV edi, [<import>]
@@ -213,11 +213,11 @@ make-profilable make target-class [
 		]	
 	]
 	
-	emit-variable-poly: func [							;-- polymorphic variable access generation
+	emit-variable-poly: func [						;-- polymorphic variable access generation
 		name [word! object!]
-		    g8 [binary!] 		g32 [binary!]			;-- opcodes for global variables
-		    p8 [binary!] 		p32 [binary!]			;-- opcodes for global variables (PIC)
-			l8 [binary! block!] l32 [binary! block!]	;-- opcodes for local variables
+		    g8 [binary!] 		g32 [binary!]		;-- opcodes for global variables
+		    p8 [binary!] 		p32 [binary!]		;-- opcodes for global variables (PIC)
+			l8 [binary! block!] l32 [binary! block!];-- opcodes for local variables
 	][
 		with-width-of name [
 			switch width [
@@ -544,6 +544,83 @@ make-profilable make target-class [
 		emit #{9BDBE3}								;-- FINIT			; init x87 FPU
 	]
 	
+	emit-atomic-load: func [order [word!]][
+		if verbose >= 3 [print [">>>emitting ATOMIC-LOAD" mold ptr mold order]]
+		emit #{8B00}								;-- MOV eax, [eax]
+	]
+	
+	emit-atomic-store: func [value order [word!]][
+		if verbose >= 3 [print [">>>emitting ATOMIC-STORE" mold ptr mold value mold order]]
+		emit #{89C6} 								;-- MOV esi, eax
+		emit-load value
+		emit #{8906}								;-- MOV [esi], eax
+		emit-atomic-fence
+	]
+	
+	emit-atomic-math: func [op [word!] right-op old? [logic!] ret? [logic!] order [word!]][
+		if verbose >= 3 [print [">>>emitting ATOMIC-MATH-OP" mold ptr mold op mold value mold ret? mold order]]
+		emit #{89C6} 								;-- MOV esi, eax
+		emit-load right-op
+		either any [old? ret?][
+			either find [add sub] op [
+				emit #{89C2}						;-- MOV edx, eax
+				if op = 'sub [emit #{F7D8}]			;-- NEG eax
+				emit #{F00FC106}					;-- LOCK XADD [esi], eax
+				if all [ret? not old?][
+					emit either op = 'add [
+						#{01D0}						;-- ADD eax, edx
+					][
+						#{29D0}						;-- SUB eax, edx
+					]
+				]
+			][
+				emit #{89C7}						;-- MOV edi, eax	; edi: right-op
+				emit #{8B06}						;-- MOV eax, [esi]
+													;-- .loop:
+				emit #{89C1}						;--   MOV ecx, eax
+				unless old? [emit #{89C2}]			;--   [MOV edx, eax]  ; only for old?
+				switch op [
+					or  [emit #{09F9}]				;--   OR  ecx, edi
+					xor [emit #{31F9}]				;--   XOR ecx, edi
+					and [emit #{21F9}]				;--   AND ecx, edi
+				]
+				emit #{F00FB10E}					;--   LOCK CMPXCHG [esi], ecx
+				emit either old? [#{75F4}][#{75F6}]	;--   JNE .loop
+				emit either all [ret? not old?][
+					#{89C8}							;-- MOV eax, ecx	; eax: newly written value
+				][
+					#{89D0}							;-- MOV eax, edx	; eax: last old value
+				]
+			]
+		][
+			emit switch op [
+				add  [#{F00106}]					;-- LOCK ADD [esi], eax
+				sub  [#{F02906}]					;-- LOCK SUB [esi], eax
+				or   [#{F00906}]					;-- LOCK OR  [esi], eax
+				xor  [#{F03106}]					;-- LOCK XOR [esi], eax
+				and  [#{F02106}]					;-- LOCK AND [esi], eax
+			]
+		]
+	]
+	
+	emit-atomic-cas: func [check value ret? [logic!] order [word!]][
+		if verbose >= 3 [print [">>>emitting ATOMIC-CAS" mold ptr mold check mold value ret? mold order]]
+		emit #{89C6} 								;-- MOV esi, eax
+		emit-load value
+		emit-move-path-alt							;-- load new value in edx
+		emit-load check								;-- load check value in eax
+		emit #{F00FB116}							;-- LOCK CMPXCHG [esi], edx
+		if ret? [
+			emit #{0F94C0}							;-- SETE al
+			emit #{25FF000000}						;-- AND eax, 0xFF
+		]
+	]
+	
+	emit-atomic-fence: does [
+		if verbose >= 3 [print ">>>emitting ATOMIC-FENCE"]
+		emit #{0FAEF0}								;-- MFENCE
+	]
+
 	emit-get-overflow: does [
 		emit #{0F90C0}								;-- SETO al
 		emit #{83E001}								;-- AND eax, 1
@@ -2231,7 +2308,7 @@ make-profilable make target-class [
 
 	emit-epilog: func [
 		name [word!] locals [block!] args-size [integer!] locals-size [integer!] /with slots [integer! none!]
-		/local fspec attribs vars offset
+		/local fspec attribs vars offset ret-extra? cdecl?
 	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
 		
@@ -2254,6 +2331,8 @@ make-profilable make target-class [
 					emit #{B9}						;-- MOV ecx, <size>
 					emit to-bin32 slots
 					emit #{F3A5}					;-- REP MOVS
+					
+					ret-extra?: compiler/job/OS = 'macOS ;-- flag for popping an extra slot on macOS only
 				]
 			]
 		]
@@ -2276,10 +2355,14 @@ make-profilable make target-class [
 		emit #{C9}									;-- LEAVE			; catch flag is skipped
 		either any [
 			zero? args-size
-			fspec/3 = 'cdecl
+			cdecl?: fspec/3 = 'cdecl
 		][
 			;; cdecl: Leave original arguments on stack, popped by caller.
-			emit #{C3}								;-- RET
+			emit either all [cdecl? ret-extra?][
+				#{C20400}							;-- RETN 4	; macOS with returned struct by value > 8 bytes
+			][
+				#{C3}								;-- RET
+			]
 		][
 			;; stdcall/reds: Consume original arguments from stack.
 			either compiler/check-variable-arity? locals [
@@ -2291,7 +2374,7 @@ make-profilable make target-class [
 				emit #{56}							;-- PUSH esi		; push return address
 				emit #{C3}							;-- RET
 			][
-				emit #{C2}							;-- RET args-size
+				emit #{C2}							;-- RETN args-size
 				emit to-bin16 round/to/ceiling args-size 4
 			]
 		]

@@ -105,7 +105,7 @@ event: context [
 		grp: evt/type >>> 16
 
 		either value <> null [
-			if sym <> words/type [fire [TO_ERROR(script invalid-path-set) path]]
+			if sym <> words/type [fire [TO_ERROR(script bad-path-set) path word]]
 			if TYPE_OF(value) <> TYPE_WORD [fire [TO_ERROR(script bad-path-set) path value]]
 			switch grp [
 				#if modules contains 'View [

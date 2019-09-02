@@ -75,6 +75,7 @@ system-dialect: make-profilable context [
 		modules:			none
 		show:				none
 		command-line:		none
+		show-func-map?:		no							;-- yes => output the functions address/name map
 	]
 	
 	compiler: make-profilable context [
@@ -414,7 +415,7 @@ system-dialect: make-profilable context [
 			none
 		]
 		
-		system-action?: func [path [path!] /local expr port-type][
+		system-action?: func [path [path!] /local expr port-type op ret?][
 			if path/1 = 'system [
 				switch/default path/2 [
 					stack [
@@ -484,6 +485,78 @@ system-dialect: make-profilable context [
 								true
 							]
 						][false]
+					]
+					atomic [
+						switch/default path/3 [
+							fence [
+								pc: next pc
+								emitter/target/emit-atomic-fence
+								true
+							]
+							cas [
+								pc: next pc
+								err: "system/atomic/cas expects "
+								repeat i 3 [
+									if not-equal?
+										first get-type pc/:i 
+										pick [pointer! integer! integer!] i
+									[
+										throw-error join err pick [
+											"a pointer! as argument"
+											"an integer! as check argument"
+											"an integer! as value argument"
+										] i
+									]
+								]
+								ret?: not empty? expr-call-stack
+								fetch-expression/final/keep 'atomic
+								emitter/target/emit-atomic-cas pc/1 pc/2 ret? 'seq-cst
+								last-type: [logic!]
+								pc: skip pc 2
+								true
+							]
+							load [
+								pc: next pc
+								if 'pointer! <> first get-type pc/1 [
+									throw-error "system/atomic/load expects a pointer! as argument"
+								]
+								fetch-expression/final/keep 'atomic
+								emitter/target/emit-atomic-load 'seq-cst
+								last-type: [integer!]
+								true
+							]
+							store [
+								pc: next pc
+								err: "system/atomic/store expects "
+								if 'pointer! <> first get-type pc/1 [
+									throw-error join err "a pointer! as argument"
+								]
+								if 'integer! <> first last-type: get-type pc/2 [
+									throw-error join err "an integer! as value argument"
+								]
+								fetch-expression/final/keep 'atomic
+								emitter/target/emit-atomic-store pc/1 'seq-cst
+								pc: next pc
+								true
+							]
+						][
+							either find [add sub or xor and] op: path/3 [
+								pc: next pc
+								if 'pointer! <> first get-type pc/1 [
+									throw-error rejoin ["system/atomic/" op " expects a pointer! as argument"]
+								]
+								if 'integer! <> first last-type: get-type pc/2 [
+									throw-error rejoin ["system/atomic/" op " expects an integer! as value argument"]
+								]
+								ret?: not empty? expr-call-stack
+								fetch-expression/final/keep 'atomic
+								emitter/target/emit-atomic-math op pc/1 path/4 = 'old ret? 'seq-cst
+								pc: next pc
+								true
+							][
+								false
+							]
+						]
 					]
 				][false]
 			]
@@ -1770,7 +1843,7 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		process-get: func [code [block!] /local value][
+		process-get: func [code [block!]][
 			unless job/red-pass? [						;-- when Red runtime is included in a R/S app
 				pc: skip pc 2							;-- just ignore #get directive
 				return none
@@ -1781,7 +1854,7 @@ system-dialect: make-profilable context [
 			fetch-expression #get
 		]
 		
-		process-in: func [code [block!] /local value][
+		process-in: func [code [block!]][
 			unless job/red-pass? [						;-- when Red runtime is included in a R/S app
 				pc: skip pc 2							;-- just ignore #in directive
 				return none
@@ -2372,7 +2445,7 @@ system-dialect: make-profilable context [
 				
 				append expr-call-stack #body			;-- marker for enabling expression post-processing
 				fetch-into cases [						;-- compile case body
-					append/only list body: comp-block-chunked/bool
+					append/only list body: comp-block-chunked
 					append/only types resolve-expr-type/quiet body/1
 				]
 				clear find/last expr-call-stack #body

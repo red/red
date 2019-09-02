@@ -59,6 +59,7 @@ quit: func [
 	][
 		if system/console [do [_terminate-console]]
 	]
+	if system/console [do [_save-cfg]]
 	quit-return any [status 0]
 ]
 

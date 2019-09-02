@@ -12,8 +12,9 @@ Red [
 
 object [
 	lines:		make block! 1000				;-- line buffer
-	nlines:		make block! 1000				;-- line count of each line, changed according to window width
-	heights:	make block! 1000				;-- height of each (wrapped) line, in pixels
+	nlines:		clear make vector! 1000			;-- line count of each line, changed according to window width
+	heights:	clear make vector! 1000			;-- height of each (wrapped) line, in pixels
+	flags:		clear make vector! 1000			;-- flags of each line. e.g. hidden flag
 	selects:	make block! 8					;-- selected texts: [start-linenum idx end-linenum idx]
 
 	max-lines:	1000							;-- maximum size of the line buffer
@@ -94,7 +95,11 @@ object [
 		caret/enabled?: no
 		caret/rate: none
 		either escape [append line #"^["][
-			if all [not empty? line line <> first history][insert history line]
+			if all [
+				not empty? line
+				line <> first history
+				zero? last flags
+			][insert history line]
 			hist-idx: 0
 		]
 		prin?: no
@@ -110,6 +115,7 @@ object [
 	vprin: func [str [string!]][
 		either empty? lines [
 			append lines str
+			append flags 0
 		][
 			append last lines str
 		]
@@ -157,6 +163,18 @@ object [
 		blk
 	]
 
+	set-flag: func [val [integer! none! logic!]][
+		val: case [
+			none? val	[0]
+			logic? val	[either val [1][0]]
+			true [val]
+		]
+		;-- reuse the flags to store the prompt length
+		;-- just for convienient as we only have one flag for now
+		unless zero? val [val: length? head line]
+		poke flags length? lines val
+	]
+
 	add-line: func [str [string!]][
 		either full? [
 			line-cnt: line-cnt - first nlines
@@ -165,15 +183,19 @@ object [
 				lines: reset-buffer lines
 				nlines: reset-buffer nlines
 				heights: reset-buffer heights
+				flags: reset-buffer flags
 			][
 				lines: next lines
 				nlines: next nlines
 				heights: next heights
+				flags: next flags
 			]
 			append lines str
+			append flags 0
 			calc-top/new
 		][
 			append lines str
+			append flags 0
 			full?: max-lines = length? lines
 			calc-top
 		]
@@ -599,12 +621,18 @@ object [
 		unless resume [clipboard: read-clipboard]
 		if all [clipboard not empty? clipboard][
 			start: clipboard
-			end: find clipboard #"^M"
-			either end [nl?: yes][nl?: no end: tail clipboard]
+			end: find clipboard #"^/"
+			either end [
+				nl?: yes
+				if end/-1 = #"^M" [end: back end]
+			][
+				nl?: no
+				end: tail clipboard
+			]
 			insert/part skip line pos start end
 			idx: pos
 			pos: pos + offset? start end
-			clipboard: skip end either end/2 = #"^/" [2][1]
+			clipboard: skip end either end/1 = #"^M" [2][1]
 			if nl? [
 				caret/enabled?: no
 				insert history line
@@ -901,7 +929,7 @@ object [
 		if swap? [move/part skip selects 2 selects 2]
 	]
 
-	paint: func [/local str cmds y n h cnt delta num end styles][
+	paint: func [/local txt str cmds y n h cnt delta num end styles][
 		if empty? lines [exit]
 		cmds: [pen color text 0x0 text-box]
 		cmds/2: foreground
@@ -913,8 +941,12 @@ object [
 		num: line-cnt
 		styles: box/data
 		foreach str at lines top [
-			box/text: str
-			if color? [highlight/add-styles str clear styles theme]
+			txt: either zero? cnt: pick flags n [str][
+				txt: copy/part str cnt
+				append/dup txt "*" length? skip str cnt
+			]
+			box/text: txt
+			if color? [highlight/add-styles txt clear styles theme]
 			mark-selects styles n
 			cmds/4/y: y
 			system/view/platform/draw-face console cmds

@@ -449,7 +449,7 @@ object: context [
 		assert TYPE_OF(int) = TYPE_INTEGER
 		index: int/value >> 16
 		count: int/value and FFFFh
-		
+		if index = -1 [exit]							;-- abort if no on-deep-change* handler		
 		if null? new [new: as red-value! none-value]
 
 		ctx: GET_CTX(owner) 
@@ -712,8 +712,8 @@ object: context [
 		base: s/tail - s/offset
 		
 		s: as series! ctx/values/value
-		node: save-self-object obj
 
+		;-- 1st pass: fill and eventually extend the context
 		while [syms < tail][
 			value: _context/add-with ctx as red-word! syms vals
 			
@@ -722,12 +722,22 @@ object: context [
 				value: s/offset + _context/find-word ctx word/symbol yes
 				copy-cell vals value
 			]
+			syms: syms + 1
+			vals: vals + 1
+		]
+		
+		;-- 2nd pass: deep copy series and rebind functions
+		node: save-self-object obj
+		value: s/offset
+		tail:  s/tail
+		
+		while [value < tail][
 			type: TYPE_OF(value)
 			case [
 				ANY_SERIES?(type) [
 					actions/copy
 						as red-series! value
-						value						;-- overwrite the value
+						value							;-- overwrite the value
 						null
 						yes
 						null
@@ -737,8 +747,7 @@ object: context [
 				]
 				true [0]
 			]
-			syms: syms + 1
-			vals: vals + 1
+			value: value + 1
 		]
 		s: as series! ctx/symbols/value					;-- refreshing pointer
 		s/tail - s/offset > base						;-- TRUE: new words added
@@ -944,16 +953,16 @@ object: context [
 		return:	[red-object!]
 		/local
 			obj	 [red-object!]
-			ctx	 [red-context!]
 	][
 		obj: as red-object! stack/push*
-		make-at obj 4									;-- arbitrary value
-		obj/class: get-new-id
-		obj/on-set: null
-		ctx: GET_CTX(obj)
-		
-		unless null? proto [extend ctx GET_CTX(proto) obj]
-		collect-couples ctx spec only?
+		either null? proto [
+			make-at obj 4									;-- arbitrary value
+			obj/class: get-new-id
+			obj/on-set: null
+		][
+			copy proto obj null yes null
+		]
+		collect-couples GET_CTX(obj) spec only?
 		obj
 	]
 	

@@ -615,6 +615,9 @@ struct-local-foo2
 			returnHuge2:   "returnHuge2"   [h [huge! value] a [integer!] b [integer!] return: [huge! value]]
 			returnHuge3:   "returnHuge3"   [h [hugeI! value] a [integer!] b [integer!] return: [hugeI! value]]
 			returnHugef32: "returnHugef32" [h [hugef32! value] a [integer!] b [integer!] return: [hugef32! value]]
+			
+			set_callback3999:  "set_callback"  [ptr [int-ptr!]]
+			test_callback3999: "test_callback" [return: [float32!]]
 		]
 	]
 	s1: declare tiny!
@@ -1037,6 +1040,28 @@ struct-local-foo2
 		--assert :nest5/sub + 2  = :nest5/sub/f2
 		--assert :nest5/sub + 4  = :nest5/sub/f3
 		--assert :nest5/sub + 12 = :nest5/g2
+		
+	--test-- "#3999"
+		MyRect!: alias struct! [
+			x   [float32!]
+			y   [float32!]
+			w   [float32!]
+			h   [float32!]
+		]
+
+		callback-func: func [
+			[cdecl]
+			return: [MyRect! value]
+			/local
+				rc  [MyRect! value]
+		][
+			rc/x: as float32! 23.0
+			rc/w: as float32! 123.0
+			rc
+		]
+
+		set_callback3999 as int-ptr! :callback-func
+		--assert (as-float32 23.0) = test_callback3999
 
 
 	--test-- "svb50"

@@ -66,9 +66,9 @@ parser: context [
 		value: base
 		switch TYPE_OF(input) [
 			TYPE_BINARY [
-				int: as red-integer! base
-				int/header: TYPE_INTEGER
-				int/value: binary/rs-abs-at as red-binary! input offset
+				int2: as red-integer! base
+				int2/header: TYPE_INTEGER
+				int2/value: binary/rs-abs-at as red-binary! input offset
 			]
 			TYPE_STRING 								;TBD: replace with ANY_STRING
 			TYPE_FILE
@@ -991,7 +991,7 @@ parser: context [
 									before: input/head
 									end?: _series/rs-skip as red-series! input 1
 									match?: before = input/head
-									if positive? part [match?: input/head >= part or match?]
+									if positive? part [match?: input/head > part or match?]
 									
 									either match? [
 										w: as red-word! (block/rs-head rule) + p/rule + 1 ;-- TO/THRU argument

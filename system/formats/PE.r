@@ -1157,12 +1157,14 @@ context [
 		linker/set-image-info
 			job
 			base-address
-			(section-addr?/memory job 'code) - base-address
+			(section-addr?/memory job 'code)
 			length? job/sections/code/2
-			(section-addr?/memory job 'data) - base-address
+			(section-addr?/memory job 'data)
 			length? job/sections/data/2
 
-		foreach [name spec] job/sections [		
+		if job/show-func-map? [linker/show-funcs-map job entry-point-address? job]
+
+		foreach [name spec] job/sections [
 			pad: pad-size? spec/2
 			append job/buffer spec/2
 			insert/dup tail job/buffer null pad

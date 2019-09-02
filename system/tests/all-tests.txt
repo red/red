@@ -27,4 +27,6 @@
 %source/units/math-mixed-test.reds
 %source/units/infix-test.reds
 %source/units/conditional-test.reds
+%source/units/atomic-test.reds
+%source/units/queue-test.reds
 %source/units/auto-tests/dylib-auto-test.reds

@@ -77,7 +77,6 @@ modify: make action! [[
 		field 	 [word!]
 		value 	 [any-type!]
 		/case "Perform a case-sensitive lookup"
-		return:  [map! file!]
 	]
 	#get-definition ACT_MODIFY
 ]
@@ -562,7 +561,13 @@ open: make action! [[
 	#get-definition ACT_OPEN
 ]
 
-;open?
+open?: make action! [[
+		"Returns TRUE if port is open"
+		port [port!]
+	]
+	#get-definition ACT_OPEN?
+]
+
 query: make action! [[
 		"Returns information about a file"
 		target [file! port!]
@@ -585,8 +590,22 @@ read: make action! [[
 	]
 	#get-definition ACT_READ
 ]
-;rename
-;update
+
+rename: make action! [[
+		"Rename a file"
+		from [port! file! url!]
+		to   [port! file! url!]
+	]
+	#get-definition ACT_RENAME
+]
+
+update: make action! [[
+		"Updates external and internal states (normally after read/write)"
+		port [port!]
+	]
+	#get-definition ACT_UPDATE
+]
+
 write: make action! [[
 		"Writes to a file, URL, or other port"
 		destination	[file! url! port!]

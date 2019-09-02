@@ -243,6 +243,7 @@ _context: context [
 			obj		[red-object!]
 			slot	[red-value!]
 			old		[red-value!]
+			saved	[red-value!]
 			s		[series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/set-in"]]
@@ -265,11 +266,12 @@ _context: context [
 				obj: as red-object! s/offset + 1
 				
 				if all [TYPE_OF(obj) = TYPE_OBJECT obj/on-set <> null][
+					saved: stack/top
 					old: stack/push slot
 					word: as red-word! word
 					copy-cell value slot
 					object/fire-on-set obj word old value
-					stack/top: old - 1
+					stack/top: saved
 					return slot
 				]
 			]
@@ -555,8 +557,9 @@ _context: context [
 			s	 [series!]
 	][
 		s: GET_BUFFER(spec)
-		cell: s/offset
+		cell: s/offset + spec/head
 		tail: s/tail
+		assert cell <= tail
 		
 		s: as series! ctx/symbols/value
 		base: s/tail - s/offset
