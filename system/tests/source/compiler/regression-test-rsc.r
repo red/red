@@ -762,27 +762,29 @@ print foo
 }
 		--assert equal? "false" qt/output
 
-	--test-- "#273"
-		--compile-this {
-Red/System []
-4.0 // 2.0
-}
-		--assert compiled?
+;;-- removed due to // and % operators made obsolete
+; 	--test-- "#273"
+; 		--compile-this {
+; Red/System []
+; 4.0 // 2.0
+; }
+; 		--assert compiled?
 
-	--test-- "#275"
-		--compile-and-run-this {
-Red/System []
-a: 600851475143.0 ;prime number
-i: 2.0
-while [i * i <= a] [
-	if a // i = 0.0 [
-		a: a / i
-	]
-	i: i + 1.0
-]
-print a
-}
-		--assert not crashed?
+;;-- removed due to // and % operators made obsolete
+; 	--test-- "#275"
+; 		--compile-and-run-this {
+; Red/System []
+; a: 600851475143.0 ;prime number
+; i: 2.0
+; while [i * i <= a] [
+; 	if a // i = 0.0 [
+; 		a: a / i
+; 	]
+; 	i: i + 1.0
+; ]
+; print a
+; }
+; 		--assert not crashed?
 
 	--test-- "#281"
 		--compile-this {
