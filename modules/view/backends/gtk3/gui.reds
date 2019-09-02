@@ -1845,7 +1845,7 @@ OS-make-view: func [
 			unless null? caption [gtk_window_set_title widget caption]
 
 			winbox: gtk_box_new GTK_ORIENTATION_VERTICAL  0
-      		gtk_container_add widget winbox
+			gtk_container_add widget winbox
 			if all [						;@@ application menu ?
 				null? AppMainMenu
 				menu-bar? menu window
@@ -1866,8 +1866,14 @@ OS-make-view: func [
 			;; The following line really matters to fix the initial size of the window
 			gtk_widget_set_size_request widget size/x size/y
 			gtk_window_set_resizable widget (bits and FACET_FLAGS_RESIZE <> 0)
-			gtk_window_set_decorated widget (bits and FACET_FLAGS_NO_BORDER = 0)
-
+			either any [
+				bits and FACET_FLAGS_NO_TITLE <> 0
+				bits and FACET_FLAGS_NO_BORDER <> 0
+			][
+				gtk_window_set_decorated widget no
+			][
+				gtk_window_set_decorated widget yes
+			]
 		]
 		sym = slider [
 			vertical?: size/y > size/x
