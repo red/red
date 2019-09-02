@@ -171,4 +171,20 @@ Red [
 
 ===end-group===
 
+===start-group=== "regression tests"
+
+	--test-- "#3091"
+		a3091: make reactor! [b: 5 c: is [b]]
+		do bind [b: 2] a3091
+		--assert a3091/c = 2
+
+	--test-- "#4022"
+		do [													;-- force through interpreter as
+			a4022: make reactor! [i: repeat i 2 [i]]			;-- `repeat` returns unset when compiled.
+			--assert a4022/i = 2
+		]
+	
+
+===end-group===
+
 ~~~end-file~~~
