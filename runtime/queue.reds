@@ -136,6 +136,24 @@ queue: context [
 		true
 	]
 
+	s-pop: func [
+		qe			[queue!]
+		return: 	[int-ptr!]
+		/local
+			node	[qnode!]
+			head	[integer!]
+			result	[int-ptr!]
+	][
+		head: qe/head
+		node: qe/data + (head and qe/capacityMask)
+		if head <> node/h-flag [return null] ;-- queue is empty
+		qe/head: head + 1
+		result: node/value
+		head: head + qe/capacity
+		system/atomic/store :node/t-flag head
+		result
+	]
+
 	empty?: func [
 		qe			[queue!]
 		return: 	[logic!]
@@ -150,17 +168,11 @@ queue: context [
 		qe			[queue!]
 		return: 	[integer!]
 		/local
-			tail	[integer!]
-			head	[integer!]
-			qn		[qnode!]
+			tail	[int-ptr!]
+			head	[int-ptr!]
 	][
-		tail: system/atomic/load :qe/tail
-		head: system/atomic/load :qe/head
-		qn: qe/data + (tail and qe/capacityMask)
-		if any [
-			tail < head
-			all [tail = head tail <> qn/t-flag]
-		][tail: tail + qe/capacity]
-		tail - head
+		tail: as int-ptr! system/atomic/load :qe/tail
+		head: as int-ptr! system/atomic/load :qe/head
+		either tail > head [as-integer tail - head][0]
 	]
 ]
