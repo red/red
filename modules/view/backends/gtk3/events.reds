@@ -430,7 +430,7 @@ do-events: func [
 ][
 	msg?: no
 
-	set-view-no-wait last-window no-wait?
+	set-view-no-wait gtk_application_get_active_window GTKApp no-wait?
 
 	;@@ Improve it!!!
 	;@@ as we cannot access gapplication->priv->use_count
