@@ -2954,11 +2954,11 @@ make-profilable make target-class [
 		
 		locals-offset: def-locals-offset
 		if cb? [
-			if all [not zero? args-nb even? args-nb][
-				locals-offset: locals-offset + 4
-				emit-i32 #{e92d0001}				;-- PUSH {r0} ; ensures stack is aligned for FSTMD
-			]
 			;-- d8-d15 do not need saving as they are not used for now
+			if all [fspec/3 = 'cdecl <ret-ptr> = emitter/stack/1][
+				locals-offset: locals-offset + 4
+				emit-i32 #{e92d0001}				;-- PUSH {r0} ; save optional return struct pointer
+			]
 			emit-i32 #{e92d07f0}					;-- STMFD sp!, {r4-r10}
 			locals-offset: locals-offset + 28		;-- 7 * 4
 			if PIC? [
@@ -2978,14 +2978,14 @@ make-profilable make target-class [
 
 	emit-epilog: func [
 		name [word! path!] locals [block!] args-size [integer!] locals-size [integer!]
-		 /with slots [integer! none!]
-		/local fspec attribs cb?
+		/with slots [integer! none!]
+		/local fspec attribs cb? vars
 	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
 
 		fspec: select/only compiler/functions name
 		
-		if slots [
+		if all [slots fspec/3 <> 'cdecl][
 			case [
 				slots = 1 [emit-i32 #{e5900000}]	;-- LDR r0, [r0]
 				slots = 2 [
@@ -2994,7 +2994,7 @@ make-profilable make target-class [
 				]
 				'else [
 					vars: emitter/stack
-					unless tag? vars/1 [
+					if vars/1 <> <ret-ptr> [
 						compiler/throw-error ["Function" name "has no return pointer in" mold locals]
 					]
 					emit-i32 join #{e59bc0} to-bin8 vars/2 ;-- LDR ip, [fp, 8]
@@ -3011,6 +3011,24 @@ make-profilable make target-class [
 		][
 			emit-i32 join #{e24bd0} to-bin8 locals-offset ;-- SUB sp, fp, offset
 			emit-i32 #{e8bd07f0}					;-- LDMFD sp!, {r4-r10}
+			if all [slots fspec/3 = 'cdecl][
+				case [
+					slots = 1 [emit-i32 #{e5900000}];-- LDR r0, [r0]
+					slots = 2 [
+						emit-i32 #{e5901004}		;-- LDR r1, [r0, 4]
+						emit-i32 #{e5900000}		;-- LDR r0, [r0]
+					]
+					'else [
+						vars: emitter/stack
+						unless tag? vars/1 [
+							compiler/throw-error ["Function" name "has no return pointer in" mold locals]
+						]
+						emit-i32 #{e49dc004}		;-- POP {ip}	; load saved return struct pointer
+						emit-copy-mem slots
+						emit-i32 #{e1a0000c}		;-- MOV r0, ip	; return pointer expected in r0
+					]
+				]
+			]
 		]
 		
 		emit-i32 #{e1a0d00b}						;-- MOV sp, fp		; catch flag is skipped
