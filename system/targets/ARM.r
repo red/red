@@ -569,6 +569,18 @@ make-profilable make target-class [
 		head reverse spec
 	]
 	
+	homogeneous-floats?: func [fspec [block!] /local ret res fl32? cnt][
+		ret: select fspec compiler/return-def
+		if ret/1 <> 'struct! [ret: compiler/resolve-aliased ret]
+		fl32?: no
+		cnt: 0
+		res: parse ret/2 [
+			  1 4 [word! into ['float!] (cnt: cnt + 1)]
+			| 1 4 [word! into ['float32!] (cnt: cnt + 1)] (fl32?: yes)
+		]
+		reduce [res fl32? cnt]
+	]
+	
 	hidden-ptr?: func [fspec [block!] /local ret][
 		all [
 			fspec/2 = 'import
@@ -702,6 +714,19 @@ make-profilable make target-class [
 	
 	emit-float: func [d-code [binary!] s-code [binary!]][
 		emit-i32 either width = 8 [d-code][s-code]
+	]
+
+	emit-fldr-indexed: func [idx [integer!] single? /local op][
+		either single? [
+			emit-i32 #{ed}							;-- FLDS s<idx>, [r0, #offset] ; single
+			emit-i32 pick [#{900a} #{d00a} #{901a} #{d01a}] idx + 1 ;-- s0, s1, s2, s3
+		][
+			op: #{ed900b}  							;-- FLDD d<idx>, [r0, #offset] ; double
+			if idx <> 0 [op: op or next debase/base to-hex shift/left idx 4 16]
+			emit-i32 op
+			idx: idx * 2
+		]
+		emit-i32 to-bin8 idx
 	]
 	
 	emit-load-local: func [opcode [binary!] offset [integer!] /float][
@@ -2979,7 +3004,7 @@ make-profilable make target-class [
 	emit-epilog: func [
 		name [word! path!] locals [block!] args-size [integer!] locals-size [integer!]
 		/with slots [integer! none!]
-		/local fspec attribs cb? vars
+		/local fspec attribs cb? vars flags
 	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
 
@@ -3012,20 +3037,30 @@ make-profilable make target-class [
 			emit-i32 join #{e24bd0} to-bin8 locals-offset ;-- SUB sp, fp, offset
 			emit-i32 #{e8bd07f0}					;-- LDMFD sp!, {r4-r10}
 			if all [slots fspec/3 = 'cdecl][
-				case [
-					slots = 1 [emit-i32 #{e5900000}];-- LDR r0, [r0]
-					slots = 2 [
-						emit-i32 #{e5901004}		;-- LDR r1, [r0, 4]
-						emit-i32 #{e5900000}		;-- LDR r0, [r0]
-					]
-					'else [
-						vars: emitter/stack
-						unless tag? vars/1 [
-							compiler/throw-error ["Function" name "has no return pointer in" mold locals]
+				either all [
+					compiler/job/ABI = 'hard-float
+					flags: homogeneous-floats? fspec/4	;-- rule 6.1.2.2 of aapcs IHI0042F
+					flags/1
+				][
+					repeat idx flags/3 [emit-fldr-indexed idx - 1 flags/2]
+				][
+					case [
+						slots = 1 [
+							emit-i32 #{e5900000}	;-- LDR r0, [r0]
 						]
-						emit-i32 #{e49dc004}		;-- POP {ip}	; load saved return struct pointer
-						emit-copy-mem slots
-						emit-i32 #{e1a0000c}		;-- MOV r0, ip	; return pointer expected in r0
+						slots = 2 [
+							emit-i32 #{e5901004}	;-- LDR r1, [r0, 4]
+							emit-i32 #{e5900000}	;-- LDR r0, [r0]
+						]
+						'else [
+							vars: emitter/stack
+							unless tag? vars/1 [
+								compiler/throw-error ["Function" name "has no return pointer in" mold locals]
+							]
+							emit-i32 #{e49dc004}	;-- POP {ip}	; load saved return struct pointer
+							emit-copy-mem slots
+							emit-i32 #{e1a0000c}	;-- MOV r0, ip	; return pointer expected in r0
+						]
 					]
 				]
 			]
