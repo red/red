@@ -29,6 +29,8 @@ Red [
 		--assert "1;2;3^/4;5;6^/" = to-csv/with [[1 2 3][4 5 6]] #";"
 		--assert "1;2;3^/4;5;6^/" = to-csv/with/skip [1 2 3 4 5 6] #";" 3
 	--test-- "to-csv-5-quote"
+		--assert equal? {"hel""lo"^/} to-csv [{hel"lo}]
+		--assert equal? {"hel""""lo"^/} to-csv [{hel""lo}]
 		--assert equal?
 			"'hello world',',',''''^/" 
 			to-csv/quote ["hello world" "," "'"] #"'"
