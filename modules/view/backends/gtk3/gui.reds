@@ -2045,8 +2045,11 @@ OS-make-view: func [
 
 	;-- store the face value in the extra space of the window struct
 	assert TYPE_OF(face) = TYPE_OBJECT					;-- detect corruptions caused by CreateWindow unwanted events
-	store-face-to-obj widget face
-	if sym = text [store-face-to-obj _widget face]
+	either sym = text [
+		store-face-to-obj _widget face
+	][
+		store-face-to-obj widget face
+	]
 
 	change-selection widget as red-integer! values + FACE_OBJ_SELECTED sym
 	change-para widget face as red-object! values + FACE_OBJ_PARA font sym
@@ -2237,25 +2240,25 @@ OS-destroy-view: func [
 		gtk_widget_destroy handle
 		win-cnt: win-cnt - 1
 	][
+		;; DEBUG: print ["closing main window win-cnt: " win-cnt " exit-loop: " exit-loop lf]
 
-	;; DEBUG: print ["closing main window win-cnt: " win-cnt " exit-loop: " exit-loop lf]
+		obj: as red-object! values + FACE_OBJ_FONT
+		if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj FONT_OBJ_PARENT]
 
-	obj: as red-object! values + FACE_OBJ_FONT
-	if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj FONT_OBJ_PARENT]
+		obj: as red-object! values + FACE_OBJ_PARA
+		if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj PARA_OBJ_PARENT]
 
-	obj: as red-object! values + FACE_OBJ_PARA
-	if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj PARA_OBJ_PARENT]
+		;;g_main_context_release GTKApp-Ctx
+		;; DEBUG:
 
-	;;g_main_context_release GTKApp-Ctx
-	;; DEBUG:
+		;; TODO: This can be useless now!
+		remove-all-timers handle
 
-	;; TODO: This can be useless now!
-	remove-all-timers handle
+		;; DEBUG: print ["BYE! win: " win-cnt " (" handle ")" lf]
 
-	;; DEBUG: print ["BYE! win: " win-cnt " (" handle ")" lf]
-
-	free-handles as-integer handle no
+		free-handles as-integer handle no
 	]
+	free as byte-ptr! g_object_get_qdata handle red-face-id
 ]
 
 OS-update-facet: func [
