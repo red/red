@@ -10,16 +10,6 @@ Red/System [
 	}
 ]
 
-gtk-app-activate: func [
-	[cdecl]
-	app			[handle!]
-	data		[int-ptr!]
-	/local
-		win		[handle!]
-][
-	probe "active"
-]
-
 set-selected: func [
 	obj			[handle!]
 	ctx			[node!]
@@ -332,26 +322,8 @@ window-configure-event: func [
 	;; DEBUG: print ["offset: " x "x" y lf]
 	offset/x: x offset/y: y
 
-	sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE		;-- update face/size
-	; either any [event/width <> sz/x event/height <> sz/y] [
-	; 	;if 0 = (evt-motion/cpt % evt-motion/sensitiv) [
-	; 		evt-motion/x_new: event/width
-	; 		evt-motion/y_new: event/height
-	; 		evt-motion/x_root: as float! event/x
-	; 		evt-motion/y_root: as float! event/y
-	; 		make-event widget 0 EVT_SIZE
-	; 	;]
-	; 	;evt-motion/cpt: evt-motion/cpt + 1
-	; 	yes
-	; ][no]
+	sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE
 	if any [event/width <> sz/x event/height <> sz/y] [
-		; evt-sizing/x_new: event/width
-		; evt-sizing/y_new: event/height
-		; sz/x: evt-sizing/x_new
-		; sz/y: evt-sizing/y_new
-		; ;; DEBUG: print ["window-size-allocate: "  evt-sizing/x_root "x" evt-sizing/y_root  lf]
-		; evt-sizing/x_root: as float! event/x
-		; evt-sizing/y_root: as float! event/y
 		make-event widget 0 EVT_SIZE
 	]
 ]
@@ -365,17 +337,9 @@ window-size-allocate: func [
 		sz		[red-pair!]
 ][
 	;; DEBUG: print ["window-size-allocate rect: " rect/x "x" rect/y "x" rect/width "x" rect/height     lf]
-	sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE		;-- update face/size
+	sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE
 	if any [rect/width <> sz/x rect/height <> sz/y] [
-			evt-sizing/x_new: rect/width
-			evt-sizing/y_new: rect/height
-			;; DEBUG: print ["sz: " sz/x "x" sz/y  " -> " evt-sizing/x_new "x" evt-sizing/y_new lf]
-			sz/x: evt-sizing/x_new
-			sz/y: evt-sizing/y_new
-			;; DEBUG: print ["window-size-allocate: "  evt-sizing/x_root "x" evt-sizing/y_root  lf]
-			evt-sizing/x_root: as float! rect/x
-			evt-sizing/y_root: as float! rect/y
-			make-event widget 0 EVT_SIZING
+		make-event widget 0 EVT_SIZING
 	]
 ]
 

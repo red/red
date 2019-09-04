@@ -43,12 +43,6 @@ evt-motion: context [
 	sensitiv:	3
 ]
 
-evt-sizing: context [
-	x_root:		0.0
-	y_root:		0.0
-	x_new: 		0
-	y_new: 		0
-]
 make-at: func [
 	widget	[handle!]
 	face	[red-object!]
@@ -119,20 +113,6 @@ get-event-offset: func [
 
 			widget: as handle! evt/msg
 			sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE
-			;; DEBUG: print ["event-offset type: " get-symbol-name get-widget-symbol widget " size: " sz/x "x" sz/y lf]
-			; sz/x: evt-sizing/x_new
-			; sz/y: evt-sizing/y_new
-
-			; print ["OFFSET is SIZE ? " sz " vs " offset lf] ; => NO!
-			; alternative 1:
- 			; sz/x: (as integer! evt-sizing/x_root) - offset/x
-			; sz/y: (as integer! evt-sizing/y_root)  - offset/y
-
-			; alternative 2:
-			; sz/x: gtk_widget_get_allocated_width widget
-			; sz/y: gtk_widget_get_allocated_height widget
-
-			;; DEBUG: print ["event-size: " sz/x "x" sz/y " vs " offset/x "x" offset/y lf]
 			as red-value! sz
 		]
 		any [
