@@ -602,7 +602,7 @@ struct-local-foo2
 	#switch OS [
 		Windows  [#define STRUCTLIB-file "structlib.dll"]
 		macOS	 [#define STRUCTLIB-file "libstructlib.dylib"]
-		FreeBSD  [#define STRUCTLIB-file "libstruct.so"]
+		FreeBSD  [#define STRUCTLIB-file "libstruct-BSD.so"]
 		#default [#define STRUCTLIB-file "libstructlib.so"]
 	]
 
