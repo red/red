@@ -2308,14 +2308,19 @@ make-profilable make target-class [
 
 	emit-epilog: func [
 		name [word!] locals [block!] args-size [integer!] locals-size [integer!] /with slots [integer! none!]
-		/local fspec attribs vars offset ret-extra? cdecl?
+		/local fspec attribs vars offset cdecl? SysVABI? clean-hidden-ptr?
 	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
 		
+		fspec: select compiler/functions name
+		
 		if slots [
+			SysVABI?: all [compiler/job/OS = 'Linux fspec/3 = 'cdecl]
 			case [
-				slots = 1 [emit #{8B00}]			;-- MOV eax, [eax]
-				slots = 2 [
+				all [not SysVABI? slots = 1][
+					emit #{8B00}					;-- MOV eax, [eax]
+				]
+				all [not SysVABI? slots = 2][
 					emit #{8B5004}					;-- MOV edx, [eax+4]
 					emit #{8B00}					;-- MOV eax, [eax]
 				]
@@ -2331,13 +2336,16 @@ make-profilable make target-class [
 					emit #{B9}						;-- MOV ecx, <size>
 					emit to-bin32 slots
 					emit #{F3A5}					;-- REP MOVS
-					
-					ret-extra?: compiler/job/OS = 'macOS ;-- flag for popping an extra slot on macOS only
 				]
 			]
+			if clean-hidden-ptr?: all [
+				tag? emitter/stack/1
+				any [SysVABI? all [slots > 2 compiler/job/OS = 'macOS]]
+			][
+				emit #{8B45}					    ;-- MOV eax, [ebp+<ptr>]
+				emit to-bin8 emitter/stack/2
+			]
 		]
-		
-		fspec: select compiler/functions name
 		if any [
 			fspec/5 = 'callback
 			all [
@@ -2358,7 +2366,7 @@ make-profilable make target-class [
 			cdecl?: fspec/3 = 'cdecl
 		][
 			;; cdecl: Leave original arguments on stack, popped by caller.
-			emit either all [cdecl? ret-extra?][
+			emit either all [cdecl? clean-hidden-ptr?][
 				#{C20400}							;-- RETN 4	; macOS with returned struct by value > 8 bytes
 			][
 				#{C3}								;-- RET
