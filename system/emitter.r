@@ -715,7 +715,24 @@ emitter: make-profilable context [
 		size: pick [4 0] to logic! struct-ptr?: all [
 			ret: select locals compiler/return-def
 			'value = last ret
-			2 < struct-slots? ret
+			any [
+				all [
+					target/target = 'ARM
+					all [block? locals/1 find locals/1 'cdecl]
+					any [
+						all [
+							compiler/job/ABI = 'soft-float
+							1 < struct-slots? ret
+						]
+						all [
+							compiler/job/ABI = 'hard-float
+							2 < struct-slots? ret
+							not first target/homogeneous-floats? locals
+						]
+					]
+				]
+				2 < struct-slots? ret
+			]
 		]
 		if push [
 			clear stack

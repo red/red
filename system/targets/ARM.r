@@ -2977,15 +2977,16 @@ make-profilable make target-class [
 		emit-push pick [-2 0] to logic! all [attribs find attribs 'catch]	;-- push catch flag
 		emit-push 0									;-- reserve slot for catch resume address
 		
-		locals-offset: def-locals-offset
+		locals-offset: def-locals-offset			;@@ global state used in epilog
 		if cb? [
 			;-- d8-d15 do not need saving as they are not used for now
+			emit-i32 #{e92d07f0}					;-- STMFD sp!, {r4-r10}
+			locals-offset: locals-offset + 28		;-- 7 * 4
+			
 			if all [fspec/3 = 'cdecl <ret-ptr> = emitter/stack/1][
 				locals-offset: locals-offset + 4
 				emit-i32 #{e92d0001}				;-- PUSH {r0} ; save optional return struct pointer
 			]
-			emit-i32 #{e92d07f0}					;-- STMFD sp!, {r4-r10}
-			locals-offset: locals-offset + 28		;-- 7 * 4
 			if PIC? [
 				emit-i32 #{e1a0900f}				;-- MOV sb, pc
 				pools/collect emitter/tail-ptr + 1 + 2 ;-- +1 adjustment for CALL first opcode
@@ -3004,11 +3005,12 @@ make-profilable make target-class [
 	emit-epilog: func [
 		name [word! path!] locals [block!] args-size [integer!] locals-size [integer!]
 		/with slots [integer! none!]
-		/local fspec attribs cb? vars flags
+		/local fspec attribs cb? flags hf? ret-ptr?
 	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
 
 		fspec: select/only compiler/functions name
+		ret-ptr?: <ret-ptr> = emitter/stack/1
 		
 		if all [slots fspec/3 <> 'cdecl][
 			case [
@@ -3018,11 +3020,10 @@ make-profilable make target-class [
 					emit-i32 #{e5900000}			;-- LDR r0, [r0]
 				]
 				'else [
-					vars: emitter/stack
-					if vars/1 <> <ret-ptr> [
+					unless ret-ptr? [
 						compiler/throw-error ["Function" name "has no return pointer in" mold locals]
 					]
-					emit-i32 join #{e59bc0} to-bin8 vars/2 ;-- LDR ip, [fp, 8]
+					emit-i32 join #{e59bc0} to-bin8 emitter/stack/2 ;-- LDR ip, [fp, 8]
 					emit-copy-mem slots
 				]
 			]
@@ -3035,35 +3036,36 @@ make-profilable make target-class [
 			]
 		][
 			emit-i32 join #{e24bd0} to-bin8 locals-offset ;-- SUB sp, fp, offset
-			emit-i32 #{e8bd07f0}					;-- LDMFD sp!, {r4-r10}
 			if all [slots fspec/3 = 'cdecl][
+				hf?: compiler/job/ABI = 'hard-float
 				either all [
-					compiler/job/ABI = 'hard-float
+					hf?
 					flags: homogeneous-floats? fspec/4	;-- rule 6.1.2.2 of aapcs IHI0042F
 					flags/1
 				][
 					repeat idx flags/3 [emit-fldr-indexed idx - 1 flags/2]
+					if ret-ptr? [emit-i32 #{e8bd1000}]	;-- POP {ip}  ; load saved return struct pointer
 				][
 					case [
 						slots = 1 [
 							emit-i32 #{e5900000}	;-- LDR r0, [r0]
 						]
-						slots = 2 [
+						all [hf? slots = 2][
 							emit-i32 #{e5901004}	;-- LDR r1, [r0, 4]
 							emit-i32 #{e5900000}	;-- LDR r0, [r0]
 						]
 						'else [
-							vars: emitter/stack
-							unless tag? vars/1 [
+							unless ret-ptr? [
 								compiler/throw-error ["Function" name "has no return pointer in" mold locals]
 							]
-							emit-i32 #{e49dc004}	;-- POP {ip}	; load saved return struct pointer
+							emit-i32 #{e8bd1000}	;-- POP {ip}	; load saved return struct pointer
 							emit-copy-mem slots
 							emit-i32 #{e1a0000c}	;-- MOV r0, ip	; return pointer expected in r0
 						]
 					]
 				]
 			]
+			emit-i32 #{e8bd07f0}					;-- LDMFD sp!, {r4-r10}
 		]
 		
 		emit-i32 #{e1a0d00b}						;-- MOV sp, fp		; catch flag is skipped
