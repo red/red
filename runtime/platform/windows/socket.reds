@@ -17,6 +17,7 @@ Red/System [
 sockdata!: alias struct! [
 	iocp		[iocp-data! value]
 	port		[red-object! value]		;-- red port! cell
+	flags		[integer!]
 	send-buf	[node!]					;-- send buffer
 ]
 
@@ -130,7 +131,7 @@ socket: context [
 	usend: func [	;-- for UDP
 		sock		[integer!]
 		addr		[sockaddr_in!]
-		addrsz		[integer!]
+		addr-sz		[integer!]
 		buffer		[byte-ptr!]
 		length		[integer!]
 		data		[iocp-data!]
@@ -142,7 +143,25 @@ socket: context [
 		wsbuf/len: length
 		wsbuf/buf: buffer
 		data/event: IO_EVT_WRITE
-		WSASendTo sock :wsbuf 1 null 0 addr addrsz as OVERLAPPED! data null
+		WSASendTo sock :wsbuf 1 null 0 addr addr-sz as OVERLAPPED! data null
+	]
+
+	urecv: func [
+		sock		[integer!]
+		buffer		[byte-ptr!]
+		length		[integer!]
+		addr		[sockaddr_in!]
+		addr-sz		[int-ptr!]
+		data		[sockdata!]
+		/local
+			wsbuf	[WSABUF! value]
+	][
+		wsbuf/len: length
+		wsbuf/buf: buffer
+		data/iocp/event: IO_EVT_READ
+		if 0 <> WSARecvFrom sock :wsbuf 1 null :data/flags addr addr-sz as OVERLAPPED! data null [
+			exit
+		]
 	]
 
 	recv: func [

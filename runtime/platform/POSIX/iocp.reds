@@ -49,7 +49,8 @@ iocp-data!: alias struct! [
 	read-buflen		[integer!]
 	write-buf		[byte-ptr!]
 	write-buflen	[integer!]		
-	state			[integer!]
+	type			[integer!]			;@@ change it to uint16
+	state			[integer!]			;@@ change it to uint16
 	pending-read	[pending-data!]
 	pending-write	[pending-data!]
 ]

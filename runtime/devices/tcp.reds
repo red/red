@@ -85,18 +85,8 @@ tcp-device: context [
 		port	[red-object!]
 		sock	[integer!]
 		return: [iocp-data!]
-		/local
-			data	[sockdata!]
 	][
-		data: as sockdata! alloc0 size? sockdata!
-		data/iocp/event-handler: as iocp-event-handler! :event-handler
-		data/iocp/device: as handle! sock
-		copy-cell as cell! port as cell! :data/port
-		#if OS <> 'Windows [data/iocp/io-port: g-iocp]
-
-		;-- store low-level data into red port
-		io/store-iocp-data as iocp-data! data port
-		as iocp-data! data
+		as iocp-data! io/create-socket-data port sock as int-ptr! :event-handler size? sockdata!
 	]
 
 	get-tcp-data: func [

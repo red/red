@@ -13,36 +13,38 @@ Red/System [
 udp-device: context [
 	verbose: 1
 
+	udp-data!: alias struct! [
+		iocp		[iocp-data! value]
+		port		[red-object! value]		;-- red port! cell
+		flags		[integer!]
+		send-buf	[node!]					;-- send buffer
+		addr		[sockaddr_in6!]			;-- IPv4 or IPv6 address
+		addr-sz		[integer!]
+	]
+
 	event-handler: func [
 		data		[iocp-data!]
 		/local
 			p		[red-object!]
 			msg		[red-object!]
-			udp		[sockdata!]
+			udp		[udp-data!]
 			type	[integer!]
 			bin		[red-binary!]
 			s		[series!]
 	][
-		udp: as sockdata! data
+		udp: as udp-data! data
 		p: as red-object! :udp/port
 		msg: p
 		type: data/event
-
+probe "UDP event-handler"
 		switch type [
-			IO_EVT_ACCEPT	[
-				#either OS = 'Windows [
-					msg: create-red-port p data/accept-sock
-					iocp/bind g-iocp as int-ptr! data/accept-sock
-					socket/acceptex as-integer data/device data
-				][
-					msg: create-red-port p socket/accept as-integer data/device
-				]
-			]
 			IO_EVT_READ	[
 				bin: as red-binary! (object/get-values p) + port/field-data
 				s: GET_BUFFER(bin)
+				probe ["read data: " data/transferred]
 				s/tail: as cell! (as byte-ptr! s/tail) + data/transferred
 				io/unpin-memory bin/node
+				msg: create-red-port p socket/accept as-integer data/device
 				#if OS = 'Windows [
 					either data/accept-sock = PENDING_IO_FLAG [
 						free as byte-ptr! data
@@ -70,6 +72,8 @@ udp-device: context [
 	create-red-port: func [
 		proto		[red-object!]
 		sock		[integer!]
+		addr		[c-string!]
+		num			[integer!]
 		return:		[red-object!]
 	][
 		proto: port/make none-value object/get-values proto TYPE_NONE
@@ -77,35 +81,45 @@ udp-device: context [
 		;; @@ add it to a block, so GC can mark it. Improve it later!!!
 		block/rs-append ports-block as red-value! proto
 		
-		create-udp-data proto sock
+		create-udp-data proto sock addr num
 		proto
 	]
 
 	create-udp-data: func [
 		port	[red-object!]
 		sock	[integer!]
-		return: [iocp-data!]
+		addr	[c-string!]
+		num		[integer!]			;-- port number
+		return: [udp-data!]
 		/local
-			data	[sockdata!]
+			data	[udp-data!]
+			saddr	[sockaddr_in!]
 	][
-		data: as sockdata! alloc0 size? sockdata!
-		data/iocp/event-handler: as iocp-event-handler! :event-handler
-		data/iocp/device: as handle! sock
-		copy-cell as cell! port as cell! :data/port
-		#if OS <> 'Windows [data/iocp/io-port: g-iocp]
+		data: as udp-data! io/create-socket-data port sock as int-ptr! :event-handler size? udp-data!
+		#if OS <> 'Windows [data/iocp/type: SOCK_DGRAM]
 
-		;-- store low-level data into red port
-		io/store-iocp-data as iocp-data! data port
-		as iocp-data! data
+		;@@ TBD add IPv6 support
+		data/addr-sz: size? sockaddr_in!
+		saddr: as sockaddr_in! :data/addr
+		num: htons num
+		saddr/sin_family: num << 16 or AF_INET
+		either addr <> null [
+			saddr/sin_addr: inet_addr addr
+		][
+			saddr/sin_addr: 0
+		]
+		saddr/sa_data1: 0
+		saddr/sa_data2: 0
+		data
 	]
 
 	get-udp-data: func [
 		red-port	[red-object!]
-		return:		[sockdata!]
+		return:		[udp-data!]
 		/local
 			state	[red-handle!]
 			data	[iocp-data!]
-			new		[sockdata!]
+			new		[udp-data!]
 	][
 		state: as red-handle! (object/get-values red-port) + port/field-state
 		if TYPE_OF(state) <> TYPE_HANDLE [
@@ -116,9 +130,9 @@ udp-device: context [
 		#either OS = 'Windows [
 			data: as iocp-data! state/value
 			either data/event = IO_EVT_NONE [		;-- we can reuse this one
-				as sockdata! data
+				as udp-data! data
 			][										;-- needs to create a new one
-				new: as sockdata! alloc0 size? sockdata!
+				new: as udp-data! alloc0 size? udp-data!
 				new/iocp/event-handler: as iocp-event-handler! :event-handler
 				new/iocp/device: data/device
 				new/iocp/accept-sock: PENDING_IO_FLAG ;-- use it as a flag to indicate pending data
@@ -126,7 +140,7 @@ udp-device: context [
 				new
 			]
 		][
-			as sockdata! state/value
+			as udp-data! state/value
 		]
 	]
 
@@ -143,11 +157,9 @@ udp-device: context [
 
 		fd: socket/create AF_INET SOCK_DGRAM IPPROTO_UDP
 		iocp/bind g-iocp as int-ptr! fd
-		socket/bind fd 0 AF_INET
-
 		n: -1
 		addr: unicode/to-utf8 host :n
-		socket/connect fd addr num/value AF_INET create-udp-data port fd
+		create-udp-data port fd addr num/value
 	]
 
 	udp-server: func [
@@ -160,8 +172,8 @@ udp-device: context [
 		#if debug? = yes [if verbose > 0 [print-line "udp server"]]
 
 		fd: socket/create AF_INET SOCK_DGRAM IPPROTO_UDP
+		create-udp-data port fd null num/value
 		socket/bind fd num/value AF_INET
-		socket/listen fd 1024 create-udp-data port fd
 		iocp/bind g-iocp as int-ptr! fd
 	]
 
@@ -223,7 +235,7 @@ udp-device: context [
 		append?		[logic!]
 		return:		[red-value!]
 		/local
-			data	[sockdata!]
+			data	[udp-data!]
 			bin		[red-binary!]
 			n		[integer!]
 	][
@@ -238,8 +250,10 @@ udp-device: context [
 		data: get-udp-data port
 		data/send-buf: bin/node
 
-		socket/send
+		socket/usend
 			as-integer data/iocp/device
+			as sockaddr_in! data/addr
+			data/addr-sz
 			binary/rs-head bin
 			binary/rs-length? bin
 			as iocp-data! data
@@ -254,7 +268,7 @@ udp-device: context [
 		types		[red-value!]
 		return:		[red-value!]
 		/local
-			data	[iocp-data!]
+			data	[udp-data!]
 			buf		[red-binary!]
 			s		[series!]
 	][
@@ -265,8 +279,14 @@ udp-device: context [
 		buf/head: 0
 		io/pin-memory buf
 		s: GET_BUFFER(buf)
-		data: as iocp-data! get-udp-data red-port
-		socket/recv as-integer data/device as byte-ptr! s/offset s/size data
+		data: as udp-data! get-udp-data red-port
+		socket/urecv
+			as-integer data/iocp/device
+			as byte-ptr! s/offset
+			s/size
+			as sockaddr_in! :data/addr
+			:data/addr-sz
+			as sockdata! data
 		as red-value! red-port
 	]
 

@@ -20,7 +20,6 @@ thread: context [
 #either OS = 'Windows [
 
 	#define WAIT_TIMEOUT	258
-	#define WAIT_OBJECT_0	0
 
 	#import [
 		LIBC-file cdecl [

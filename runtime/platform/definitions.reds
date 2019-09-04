@@ -55,7 +55,7 @@ in6_addr!: alias struct! [				;-- 16 bytes
 ]
 
 sockaddr_in6!: alias struct! [
-	sin_family	 [integer!]
+	sin_family	 [integer!]				;-- family and port
 	sin_flowinfo [integer!]
 	sin_addr	 [in6_addr! value]
 	sin_scope_id [integer!]

@@ -72,13 +72,28 @@ io: context [
 		stack/reset
 	]
 
-	store-iocp-data: func [
-		data		[iocp-data!]
+	create-socket-data: func [
 		red-port	[red-object!]
+		sock		[integer!]
+		handler		[int-ptr!]
+		size		[integer!]
+		return: 	[sockdata!]
+		/local
+			data	[sockdata!]
 	][
+		data: as sockdata! alloc0 size
+		data/iocp/event-handler: as iocp-event-handler! handler
+		data/iocp/device: as handle! sock
+		copy-cell as cell! red-port as cell! :data/port
+		#if OS <> 'Windows [
+			data/iocp/io-port: g-iocp
+			data/iocp/type: SOCK_STREAM
+		]
+		;-- store low-level data into red port
 		handle/make-at
 			(object/get-values red-port) + port/field-state
 			as-integer data
+		data
 	]
 
 	get-iocp-data: func [
