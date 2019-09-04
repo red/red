@@ -43,6 +43,7 @@ MSDOS [									; Windows default target
 	format: 	'PE
 	type:		'exe
 	sub-system: 'console
+	PIC?:		yes
 ]
 ;-------------------------
 Windows [
@@ -50,6 +51,7 @@ Windows [
 	format: 	'PE
 	type:		'exe
 	sub-system: 'GUI
+	PIC?:		yes
 ]
 WindowsXP [
 	OS:			'Windows
