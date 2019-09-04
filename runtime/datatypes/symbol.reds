@@ -139,6 +139,7 @@ symbol: context [
 	][
 		s: GET_BUFFER(symbols)
 		sym: as red-symbol! s/offset + id - 1
+		assert sym < s/tail
 		either positive? sym/alias [sym/alias][id]
 	]
 
