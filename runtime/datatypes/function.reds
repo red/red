@@ -659,7 +659,7 @@ _function: context [
 		collect-deep list ignore body
 		
 		if 0 < block/rs-length? list [
-			unless local-ref? spec [
+			if -1 = count-locals spec/node spec/head yes [
 				block/rs-append spec as red-value! refinements/local
 			]
 			block/rs-append-block spec list
@@ -803,18 +803,11 @@ _function: context [
 		]
 		check-duplicates spec
 	]
-	
-	local-ref?: func [
-		spec	[red-block!]
-		return: [logic!]
-	][
-		0 <> count-locals spec/node spec/head
-	]
-
 
 	count-locals: func [
 		node	[node!]
 		offset	[integer!]
+		local?	[logic!]								;-- TRUE: return -1 to signify lack of /local refinement
 		return: [integer!]
 		/local
 			value  [red-value!]
@@ -845,7 +838,7 @@ _function: context [
 			]
 			value: value + 1
 		]
-		cnt
+		either all [local? not count?][-1][cnt]
 	]
 	
 	init-locals: func [
