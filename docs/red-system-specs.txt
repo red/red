@@ -1046,8 +1046,8 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 <td class="allow">as integer!</td>
 <td class="allow">as integer!</td>
 <td class="allow">as integer!</td>
-<td class="allow">to integer!</td>
-<td class="allow">to integer!</td>
+<td class="allow">to integer!&sup3;</td>
+<td class="allow">to integer!&sup3;</td>
 <td class="allow">as integer!</td>
 </tr><tr>
 
@@ -1101,7 +1101,7 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 
 <th>float!</th>
 <td class="deny">ERROR</td>
-<td class="allow">as float!</td>
+<td class="allow">to float!</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
@@ -1113,7 +1113,7 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 
 <th>float32!</th>
 <td class="deny">ERROR</td>
-<td class="allow">as float32!</td>
+<td class="allow">to float32!</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
@@ -1140,6 +1140,7 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 
 &sup1; Casting allowed, but integer values higher than 255 will be truncated, so beware!<br>
 &sup2; A data modification can occur.<br>
+&sup3; Rounded towards zero.<br>
 
 --- Size?
 
