@@ -699,6 +699,20 @@ connect-common-events: function [
 	]
 ]
 
+connect-focus-events: function [
+	widget		[handle!]
+	face		[red-object!]
+	actors		[red-object!]
+	sym			[integer!]
+][
+	if respond-event? actors on-focus [
+		gobj_signal_connect(widget "focus-in-event" :focus-in-event face/ctx)
+	]
+	if respond-event? actors on-unfocus [
+		gobj_signal_connect(widget "focus-out-event" :focus-out-event face/ctx)
+	]
+]
+
 connect-notify-events: function [
 	widget		[handle!]
 	face		[red-object!]
@@ -757,8 +771,7 @@ connect-widget-events: function [
 			gtk_widget_set_focus_on_click widget yes
 			gtk_widget_is_focus widget
 			gtk_widget_grab_focus widget
-			gobj_signal_connect(widget "focus-in-event" :focus-in-event face/ctx)
-			gobj_signal_connect(widget "focus-out-event" :focus-out-event face/ctx)
+			connect-focus-events widget face actors sym
 		]
 		sym = window [
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add window delete-event " lf]]
@@ -767,6 +780,7 @@ connect-widget-events: function [
 			gobj_signal_connect(widget "configure-event" :window-configure-event null)
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add window size-allocate " lf]]
 			gobj_signal_connect(widget "size-allocate" :window-size-allocate null)
+			connect-focus-events widget face actors sym
 		]
 		sym = slider [
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add slider value-changed " lf]]
@@ -779,8 +793,7 @@ connect-widget-events: function [
 			gtk_widget_set_focus_on_click widget yes
 			gtk_widget_is_focus widget
 			gtk_widget_grab_focus widget
-			gobj_signal_connect(widget "focus-in-event" :focus-in-event face/ctx)
-			gobj_signal_connect(widget "focus-out-event" :focus-out-event face/ctx)
+			connect-focus-events widget face actors sym
 		]
 		sym = progress [
 			0
@@ -798,8 +811,7 @@ connect-widget-events: function [
 			gtk_widget_set_focus_on_click widget yes
 			gtk_widget_is_focus widget
 			gtk_widget_grab_focus widget
-			gobj_signal_connect(widget "focus-in-event" :focus-in-event face/ctx)
-			gobj_signal_connect(widget "focus-out-event" :focus-out-event face/ctx)
+			connect-focus-events widget face actors sym
 		]
 		sym = group-box [
 			0
