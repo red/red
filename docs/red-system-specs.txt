@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 27/08/2019
-	Revision: 55
+	Date: 05/09/2019
+	Revision: 56
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -3284,6 +3284,18 @@ Example:
 will output:
  foo! alias detected
 
+---words
+
+Access an indentifier from global context when it is also defined locally.
+
+<b>Syntax</b>
+
+ system/words/<name>					;-- calling a function, reading a variable
+ system/words/<name>:					;-- setting a variable
+
+ <name> : identifer or access path
+
+See also "Namespaces" section.
 
 ===Compiler directives
 
@@ -4147,6 +4159,11 @@ will output:
 
 
 ===Document History
+
+*<b>05/09/2019 - revision 56</b>
+
+*>Fixes issues #3301, #3303, #3305.
+
 
 *<b>27/08/2019 - revision 55</b>
 
