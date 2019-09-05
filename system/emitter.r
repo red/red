@@ -711,14 +711,14 @@ emitter: make-profilable context [
 		round/ceiling (member-offset? spec none) / target/stack-width
 	]
 	
-	arguments-size?: func [locals [block!] /push /local size name type width offset struct-ptr?][
-		size: pick [4 0] to logic! struct-ptr?: all [
-			ret: select locals compiler/return-def
+	struct-ptr?: func [spec [block!] /local ret][
+		all [
+			ret: select spec compiler/return-def
 			'value = last ret
 			any [
 				all [
 					target/target = 'ARM
-					all [block? locals/1 find locals/1 'cdecl]
+					all [block? spec/1 find spec/1 'cdecl]
 					any [
 						all [
 							compiler/job/ABI = 'soft-float
@@ -727,16 +727,20 @@ emitter: make-profilable context [
 						all [
 							compiler/job/ABI = 'hard-float
 							2 < struct-slots? ret
-							not first target/homogeneous-floats? locals
+							not first target/homogeneous-floats? spec
 						]
 					]
 				]
 				2 < struct-slots? ret
 			]
 		]
+	]
+	
+	arguments-size?: func [locals [block!] /push /local size name type width offset ret-ptr?][
+		size: pick 4x0 ret-ptr?: to logic! struct-ptr? locals
 		if push [
 			clear stack
-			if struct-ptr? [repend stack [<ret-ptr> target/args-offset]]
+			if ret-ptr? [repend stack [<ret-ptr> target/args-offset]]
 		]
 		width: target/stack-width
 		offset: target/args-offset
