@@ -3333,9 +3333,9 @@ Red/System is able to load external shared libraries at the time a Red/System ex
  <ID>            : identifier of the function in the shared library
  <VAR>           : identifier of the variable in the shared library
  <argument>      : function's argument indentifier
- <datatype>      : integer! | byte! | pointer! [integer! | byte!] |
+ <datatype>      : integer! | byte! | pointer! [integer! | byte! | float! | float32! | logic!] |
                    float! | float32! | c-string! | struct! [<members>] |
-                   function! [<spec>]
+                   function! [<spec>] | <alias>
 
 <u>Notes</u>:
 
