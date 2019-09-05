@@ -539,74 +539,6 @@ focus-out-event: func [
 	make-event widget 0 EVT_UNFOCUS
 ]
 
-mouse-button-release-event: func [
-	[cdecl]
-	widget		[handle!]
-	event		[GdkEventButton!]
-	ctx			[node!]
-	return:		[integer!]
-	/local
-		sym		[integer!]
-		x		[integer!]
-		y		[integer!]
-		sel		[red-pair!]
-		buffer	[handle!]
-		start	[GtkTextIter! value]
-		end		[GtkTextIter! value]
-		flags	[integer!]
-		ev		[integer!]
-][
-	if draggable? widget [return 0] ; delegate to drag
-
-	sym: get-widget-symbol widget
-	if sym = field [
-		if event/button = GDK_BUTTON_PRIMARY [
-			x: -1 y: -1
-			if gtk_editable_get_selection_bounds widget :x :y [
-				;; DEBUG: print ["from " x " to " y lf ]
-				sel: as red-pair! (get-face-values widget) + FACE_OBJ_SELECTED
-				either x = y [sel/header: TYPE_NONE][
-					sel/header: TYPE_PAIR
-					sel/x: x + 1
-					sel/y: y
-				]
-				make-event widget 0 EVT_SELECT
-			]
-		]
-	]
-	if sym = area [
-		if event/button = GDK_BUTTON_PRIMARY [
-			buffer: gtk_text_view_get_buffer widget
-			if gtk_text_buffer_get_selection_bounds buffer as handle! start as handle! end [
-				x: -1 y: -1
-				x: gtk_text_iter_get_offset as handle! start
-				y: gtk_text_iter_get_offset as handle! end
-				;; DEBUG: print ["from " x " to " y lf ]
-				sel: as red-pair! (get-face-values widget) + FACE_OBJ_SELECTED
-				either x = y [sel/header: TYPE_NONE][
-					sel/header: TYPE_PAIR
-					sel/x: x + 1
-					sel/y: y
-				]
-				make-event widget 0 EVT_SELECT
-			]
-		]
-	]
-	evt-motion/state: yes
-	evt-motion/cpt: 0
-	evt-motion/x_root: event/x_root
-	evt-motion/y_root: event/y_root
-	evt-motion/x_new: as-integer event/x
-	evt-motion/y_new: as-integer event/y
-	flags: check-flags event/type event/state
-	ev: case [
-		event/button = GDK_BUTTON_SECONDARY [EVT_RIGHT_UP]
-		event/button = GDK_BUTTON_MIDDLE [EVT_MIDDLE_UP]
-		true [EVT_LEFT_UP]
-	]
-	make-event widget flags ev
-]
-
 area-changed: func [
 	[cdecl]
 	buffer		[handle!]
@@ -819,6 +751,74 @@ container-delegate-to-children: func [
 	;; DEBUG: print [ "parent -> CONTAINER DELEGATE: " widget lf]
 	gtk_container_foreach widget as-integer :container-emit-event event
 	EVT_DISPATCH
+]
+
+mouse-button-release-event: func [
+	[cdecl]
+	widget		[handle!]
+	event		[GdkEventButton!]
+	ctx			[node!]
+	return:		[integer!]
+	/local
+		sym		[integer!]
+		x		[integer!]
+		y		[integer!]
+		sel		[red-pair!]
+		buffer	[handle!]
+		start	[GtkTextIter! value]
+		end		[GtkTextIter! value]
+		flags	[integer!]
+		ev		[integer!]
+][
+	if draggable? widget [return 0] ; delegate to drag
+
+	sym: get-widget-symbol widget
+	if sym = field [
+		if event/button = GDK_BUTTON_PRIMARY [
+			x: -1 y: -1
+			if gtk_editable_get_selection_bounds widget :x :y [
+				;; DEBUG: print ["from " x " to " y lf ]
+				sel: as red-pair! (get-face-values widget) + FACE_OBJ_SELECTED
+				either x = y [sel/header: TYPE_NONE][
+					sel/header: TYPE_PAIR
+					sel/x: x + 1
+					sel/y: y
+				]
+				make-event widget 0 EVT_SELECT
+			]
+		]
+	]
+	if sym = area [
+		if event/button = GDK_BUTTON_PRIMARY [
+			buffer: gtk_text_view_get_buffer widget
+			if gtk_text_buffer_get_selection_bounds buffer as handle! start as handle! end [
+				x: -1 y: -1
+				x: gtk_text_iter_get_offset as handle! start
+				y: gtk_text_iter_get_offset as handle! end
+				;; DEBUG: print ["from " x " to " y lf ]
+				sel: as red-pair! (get-face-values widget) + FACE_OBJ_SELECTED
+				either x = y [sel/header: TYPE_NONE][
+					sel/header: TYPE_PAIR
+					sel/x: x + 1
+					sel/y: y
+				]
+				make-event widget 0 EVT_SELECT
+			]
+		]
+	]
+	evt-motion/state: yes
+	evt-motion/cpt: 0
+	evt-motion/x_root: event/x_root
+	evt-motion/y_root: event/y_root
+	evt-motion/x_new: as-integer event/x
+	evt-motion/y_new: as-integer event/y
+	flags: check-flags event/type event/state
+	ev: case [
+		event/button = GDK_BUTTON_SECONDARY [EVT_RIGHT_UP]
+		event/button = GDK_BUTTON_MIDDLE [EVT_MIDDLE_UP]
+		true [EVT_LEFT_UP]
+	]
+	make-event widget flags ev
 ]
 
 mouse-button-press-event: func [
