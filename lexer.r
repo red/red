@@ -108,7 +108,7 @@ lexer: context [
 	caret-char:		charset [#"^(40)" - #"^(5F)"]
 	non-printable-char: charset [#"^(00)" - #"^(1F)"]
 	pair-end:		charset {^{"[]();:}
-	integer-end:	charset {^{"[]();:xX}
+	integer-end:	charset {^{"[]();:xX<}
 	path-end:		charset {^{"[]();}
 	file-end:		charset {^{[]();}
 	date-sep:		charset "/-"
