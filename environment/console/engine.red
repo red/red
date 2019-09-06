@@ -35,7 +35,7 @@ system/console: context [
 	size:		0x0
 	running?:	no
 	catch?:		no										;-- YES: force script to fallback into the console
-	count:		[0 0 0]									;-- multiline counters for [squared curly parens]
+	delimiters:	[]										;-- multiline delimiters for [squared curly parens]
 	ws:			charset " ^/^M^-"
 
 	gui?:	#system [logic/box #either gui-console? = yes [yes][no]]
@@ -114,33 +114,76 @@ system/console: context [
 		]
 	]
 
-	count-delimiters: function [
+	check-delimiters: function [
 		buffer	[string!]
-		/extern count
-		return: [block!]
+		/extern delimiters
+		return: [logic!]
 	][
 		escaped: [#"^^" skip]
+		block-rule: [
+			(append delimiters #"[")
+			any [
+				#"[" block-rule
+				| #"{" curly-rule
+				| #"(" paren-rule
+				| pos: #";" :pos remove [skip [thru lf | to end]]
+				| dbl-quote dbl-quote-rule
+				| #"}" (either #"{" = last delimiters [remove back tail delimiters][return false])
+				| #")" (either #"(" = last delimiters [remove back tail delimiters][return false])
+				| #"]" (remove back tail delimiters) break
+				| skip
+			]
+		]
+
+		curly-rule: [
+			(append delimiters #"{")
+			any [
+				escaped
+				| #"{" curly-rule
+				| #"}" (remove back tail delimiters) break
+				| skip
+			]
+		]
+
+		paren-rule: [
+			(append delimiters #"(")
+			any [
+				#"[" block-rule
+				| #"{" curly-rule
+				| #"(" paren-rule
+				| pos: #";" :pos remove [skip [thru lf | to end]]
+				| dbl-quote dbl-quote-rule
+				| #"]" (either #"[" = last delimiters [remove back tail delimiters][return false])
+				| #"}" (either #"{" = last delimiters [remove back tail delimiters][return false])
+				| #")" (remove back tail delimiters) break
+				| skip
+			]
+		]
+
+		dbl-quote-rule: [
+			any [
+				[lf | end] (return false)
+				| escaped
+				| dbl-quote break
+				| skip
+			]
+		]
 		
 		parse buffer [
 			any [
 				escaped
-				| pos: #";" if (zero? count/2) :pos remove [skip [thru lf | to end]]
-				| #"[" (if zero? count/2 [count/1: count/1 + 1])
-				| #"]" (if zero? count/2 [count/1: count/1 - 1])
-				| #"(" (if zero? count/2 [count/3: count/3 + 1])
-				| #")" (if zero? count/2 [count/3: count/3 - 1])
-				| dbl-quote if (zero? count/2) any [escaped | dbl-quote break | skip]
-				| #"{" (count/2: count/2 + 1) any [
-					escaped
-					| #"{" (count/2: count/2 + 1)
-					| #"}" (count/2: count/2 - 1) break
-					| skip
-				]
-				| #"}" (count/2: count/2 - 1)
+				| pos: #";" if (#"{" <> last delimiters) :pos remove [skip [thru lf | to end]]
+				| #"[" if (#"{" <> last delimiters) block-rule
+				| #"]" if (#"{" <> last delimiters) (either #"[" = last delimiters [remove back tail delimiters][return false])
+				| #"(" if (#"{" <> last delimiters) paren-rule
+				| #")" if (#"{" <> last delimiters) (either #"(" = last delimiters [remove back tail delimiters][return false])
+				| dbl-quote if (#"{" <> last delimiters) dbl-quote-rule
+				| #"{" curly-rule
+				| #"}" (either #"{" = last delimiters [remove back tail delimiters][return false])
 				| skip
 			]
 		]
-		count
+		true
 	]
 	
 	try-do: func [code /local result return: [any-type!]][
@@ -160,21 +203,6 @@ system/console: context [
 	buffer: make string! 10000
 	cue:    none
 	mode:   'mono
-	
-	switch-mode: func [cnt][
-		mode: case [
-			cnt/1 > 0 ['block]
-			cnt/2 > 0 ['string]
-			cnt/3 > 0 ['paren]
-			'else 	  [do-command 'mono]
-		]
-		cue: switch mode [
-			block  ["[    "]
-			string ["{    "]
-			paren  ["(    "]
-			mono   [none]
-		]
-	]
 
 	do-command: function [/local result err][
 		if error? code: try [load/all buffer][print code]
@@ -204,7 +232,7 @@ system/console: context [
 	]
 	
 	eval-command: function [line [string!] /extern cue mode][
-		if mode = 'mono [change/dup count 0 3]			;-- reset delimiter counters to zero
+		if mode = 'mono [clear delimiters]				;-- reset delimiter stack
 		
 		if any [not tail? line mode <> 'mono][
 			either all [not empty? line escape = last line][
@@ -213,15 +241,21 @@ system/console: context [
 				mode: 'mono								;-- force exit from multiline mode
 				print "(escape)"
 			][
-				cnt: count-delimiters line
+				cue: none
+				res: check-delimiters line
 				append buffer line
 				append buffer lf						;-- needed for multiline modes
-
-				switch mode [
-					block  [if cnt/1 <= 0 [switch-mode cnt]]
-					string [if cnt/2 <= 0 [switch-mode cnt]]
-					paren  [if cnt/3 <= 0 [switch-mode cnt]]
-					mono   [either any [cnt/1 > 0 cnt/2 > 0 cnt/3 > 0][switch-mode cnt][do-command]]
+				either res [
+					either empty? delimiters [
+						do-command						;-- no delimiters error
+						mode: 'mono
+					][
+						mode: 'other
+						cue: rejoin [last delimiters "    "]
+					]
+				][
+					do-command							;-- lexer will throw error
+					mode: 'mono
 				]
 			]
 		]
