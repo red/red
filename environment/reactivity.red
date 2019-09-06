@@ -295,9 +295,11 @@ system/reactivity: context [
 				found?: no
 				while [pos: find/same/only pos :reaction][
 					obj: pos/-2
-					if any [src = 'all src = obj all [block? src find/same src obj]][
+					either any [src = 'all src = obj all [block? src find/same src obj]][
 						pos: remove/part skip pos -2 4
 						found?: yes
+					][
+						break
 					]
 				]
 			]
