@@ -232,6 +232,76 @@ _sort: context [
 		]
 	]
 
+	;-- max heapify
+	sift-down: func [
+		base	[byte-ptr!]
+		_max	[integer!]
+		node	[integer!]
+		width	[integer!]
+		op		[integer!]
+		flags	[integer!]
+		cmpfunc [integer!]
+		/local
+			cmp left right greater i j t swaptype lp rp np gp
+	][
+		cmp: as cmpfunc! cmpfunc
+		SORT_SWAPINIT(base width)
+		forever [
+			left: node * 2 + 1
+			right: left + 1
+			lp: base + (left * width)
+			rp: base + (right * width)
+			np: base + (node * width)
+			greater: either all [
+				right < _max
+				negative? cmp lp rp op flags
+			][right][left]
+
+			gp: base + (greater * width)
+			if any [
+				greater >= _max
+				not negative? cmp np gp op flags
+			][break]
+			SORT_SWAP(np gp)
+			node: greater
+		]
+	]
+
+	heap-sort:  func [
+		base	[byte-ptr!]
+		num		[integer!]
+		width	[integer!]
+		op		[integer!]
+		flags	[integer!]
+		cmpfunc [integer!]
+		/local
+			i j t swaptype m mp
+	][
+		m: num / 2 - 1
+		while [m >= 0][
+			sift-down base num m width op flags cmpfunc
+			m: m - 1
+		]
+
+		SORT_SWAPINIT(base width)
+		m: num - 1
+		while [m > 0][
+			mp: base + (m * width)
+			SORT_SWAP(base mp)
+			sift-down base m 0 width op flags cmpfunc
+			m: m - 1
+		]
+	]
+
+	#define GRAIL_ARGS_EXT_DEF [
+		width	[integer!]
+		op		[integer!]
+		flags	[integer!]
+		cmpfunc [integer!]
+	]
+	
+	#define GRAIL_ARGS_EXT [width op flags cmpfunc]
+
 	grail-rotate: func [
 		base	[byte-ptr!]
 		n1		[integer!]
