@@ -1093,6 +1093,9 @@ object: context [
 					vals: vals + 1
 				]
 			]
+			field = words/owner [
+				return as red-block! logic/box ctx/header and flag-owner <> 0
+			]
 			true [
 				--NOT_IMPLEMENTED--						;@@ raise error
 			]
