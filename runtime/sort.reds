@@ -232,6 +232,84 @@ _sort: context [
 		]
 	]
 
+	;-- Shifts the first element to the right until it encounters a greater or equal element.
+	shift-head: func [
+		base	[byte-ptr!]
+		num		[integer!]
+		width	[integer!]
+		op		[integer!]
+		flags	[integer!]
+		cmpfunc [integer!]
+		/local
+			cmp i j t swaptype m mp np
+	][
+		cmp: as cmpfunc! cmpfunc
+		if all [
+			num >= 2
+			positive? cmp base base + width op flags
+		][
+			SORT_SWAPINIT(base width)
+			m: 1
+			while [m < (num - 1)][
+				mp: base + (m * width)
+				np: mp + width
+				if positive? cmp mp np op flags [
+					SORT_SWAP(mp np)
+				]
+				m: m + 1
+			]
+		]
+	]
+
+	;-- Shifts the last element to the left until it encounters a smaller or equal element.
+	shift-tail: func [
+		base	[byte-ptr!]
+		num		[integer!]
+		width	[integer!]
+		op		[integer!]
+		flags	[integer!]
+		cmpfunc [integer!]
+		/local
+			cmp i j t swaptype m mp np
+	][
+		cmp: as cmpfunc! cmpfunc
+		mp: base + (num * width) - width
+		np: mp - width
+		if all [
+			num >= 2
+			negative? cmp mp np op flags
+		][
+			SORT_SWAPINIT(base width)
+			m: num - 1
+			while [m > 0][
+				mp: base + (m * width)
+				np: mp - width
+				if negative? cmp mp np op flags [
+					SORT_SWAP(mp np)
+				]
+				m: m - 1
+			]
+		]
+	]
+
+	;-- `O(n^2)` worst-case.
+	insertion-sort: func [
+		base	[byte-ptr!]
+		num		[integer!]
+		width	[integer!]
+		op		[integer!]
+		flags	[integer!]
+		cmpfunc [integer!]
+		/local
+			i j t swaptype m mp
+	][
+		m: 1
+		while [m < num][
+			shift-tail base m + 1 width op flags cmpfunc
+			m: m + 1
+		]
+	]
+
 	;-- max heapify
 	sift-down: func [
 		base	[byte-ptr!]
@@ -267,7 +345,8 @@ _sort: context [
 		]
 	]
 
-	heap-sort:  func [
+	;-- guarantees `O(n log n)` worst-case.
+	heap-sort: func [
 		base	[byte-ptr!]
 		num		[integer!]
 		width	[integer!]
