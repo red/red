@@ -310,6 +310,47 @@ _sort: context [
 		]
 	]
 
+	;-- Partially sorts a slice by shifting several out-of-order elements around.
+	;-- Returns `true` if the slice is sorted at the end. This function is `O(n)` worst-case.
+	partial-insertion-sort: func [
+		base	[byte-ptr!]
+		num		[integer!]
+		width	[integer!]
+		op		[integer!]
+		flags	[integer!]
+		cmpfunc [integer!]
+		return:	[logic!]
+		/local
+			MAX_STEPS SHORTEST_SHIFTING
+			cmp i j t swaptype m mp np
+	][
+		MAX_STEPS: 5
+		SHORTEST_SHIFTING: 50
+		cmp: as cmpfunc! cmpfunc
+		SORT_SWAPINIT(base width)
+
+		m: 1
+		loop MAX_STEPS [
+			while [m < num][
+				mp: base + (m * width)
+				np: base - width
+				either negative? cmp mp np op flags [
+					break
+				][
+					m: m + 1
+				]
+			]
+			if m = len [return true]
+			if num < SHORTEST_SHIFTING [return false]
+			mp: base + (m * width)
+			np: base - width
+			SORT_SWAP(mp np)
+			shift-tail base m width op flags cmpfunc
+			shift-head base + (m * width) num - m width op flags cmpfunc
+		]
+		false
+	]
+
 	;-- max heapify
 	sift-down: func [
 		base	[byte-ptr!]
