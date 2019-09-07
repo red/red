@@ -165,6 +165,7 @@ system/console: context [
 				[lf | end] (return false)
 				| escaped
 				| dbl-quote break
+				| skip end (return false)
 				| skip
 			]
 		]
