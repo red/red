@@ -850,10 +850,13 @@ bitset: context [
 		tail?	 [logic!]
 		match?	 [logic!]
 		return:	 [red-value!]
+		/local
+			bool [red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bitset/find"]]
 		
-		pick bits 0 value
+		bool: as red-logic! pick bits 0 value
+		as red-value! either bool/value [bool][none-value]
 	]
 	
 	insert: func [
