@@ -1079,7 +1079,7 @@ interpreter: context [
 			while [value < tail][
 				#if debug? = yes [if verbose > 0 [log "root loop..."]]
 				value: eval-expression value tail no no no
-				if value + 1 < tail [stack/reset]
+				if value + 1 <= tail [stack/reset]
 			]
 		]
 		either chain? [stack/unwind-last][stack/unwind]
