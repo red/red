@@ -44,6 +44,16 @@ _sort: context [
 
 	#define SORT_SWAP(a b) [swapfunc a b width swaptype]
 
+	#define SORT_COPY(a b) [
+		either zero? swaptype [
+			i: as int-ptr! a
+			j: as int-ptr! b
+			j/1: i/1
+		][
+			copyfunc a b width swaptype
+		]
+	]
+
 	#define SORT_SWAP_N(a b n) [
 		loop n [
 			SORT_SWAP(a b)
@@ -52,14 +62,14 @@ _sort: context [
 		]
 	]
 
-	#define SORT_ARGS_EXT_DEF [
-		width	[integer!]
-		op		[integer!]
-		flags	[integer!]
-		cmpfunc [integer!]
+	UNIT!: alias struct! [
+		a	[integer!]
+		b	[integer!]
 	]
-	
-	#define SORT_ARGS_EXT [width op flags cmpfunc]
+	unit-buffer: declare UNIT!
+	BLOCK: 128
+	buffer-l: allocate BLOCK
+	buffer-r: allocate BLOCK
 
 	swapfunc: func [
 		a		 [byte-ptr!]
@@ -89,6 +99,38 @@ _sort: context [
 				j/1: t1
 				i: i + 1
 				j: j + 1
+			]
+		]
+	]
+
+	copyfunc: func [
+		a			[byte-ptr!]
+		b			[byte-ptr!]
+		n			[integer!]
+		swaptype	[integer!]
+		/local cnt i j ii jj
+	][
+		either swaptype > 1 [
+			cnt: n
+			i: a
+			j: b
+			until [
+				j/1: i/1
+				i: i + 1
+				j: j + 1
+				cnt: cnt - 1
+				zero? cnt
+			]
+		][
+			cnt: n / 4
+			ii: as int-ptr! a
+			jj: as int-ptr! b
+			until [
+				jj/1: ii/1
+				ii: ii + 1
+				jj: jj + 1
+				cnt: cnt - 1
+				zero? cnt
 			]
 		]
 	]
@@ -239,7 +281,7 @@ _sort: context [
 		width	[integer!]
 		op		[integer!]
 		flags	[integer!]
-		cmpfunc [integer!]
+		cmpfunc	[integer!]
 		/local
 			cmp i j t swaptype m mp np
 	][
@@ -268,7 +310,7 @@ _sort: context [
 		width	[integer!]
 		op		[integer!]
 		flags	[integer!]
-		cmpfunc [integer!]
+		cmpfunc	[integer!]
 		/local
 			cmp i j t swaptype m mp np
 	][
@@ -299,7 +341,7 @@ _sort: context [
 		width	[integer!]
 		op		[integer!]
 		flags	[integer!]
-		cmpfunc [integer!]
+		cmpfunc	[integer!]
 		/local
 			i j t swaptype m mp
 	][
@@ -318,7 +360,7 @@ _sort: context [
 		width	[integer!]
 		op		[integer!]
 		flags	[integer!]
-		cmpfunc [integer!]
+		cmpfunc	[integer!]
 		return:	[logic!]
 		/local
 			MAX_STEPS SHORTEST_SHIFTING
@@ -340,7 +382,7 @@ _sort: context [
 					m: m + 1
 				]
 			]
-			if m = len [return true]
+			if m = num [return true]
 			if num < SHORTEST_SHIFTING [return false]
 			mp: base + (m * width)
 			np: base - width
@@ -351,6 +393,255 @@ _sort: context [
 		false
 	]
 
+	;-- Partitions it into elements smaller than `pivot`, followed by elements greater than or equal to `pivot`.
+	;-- Returns the number of elements smaller than `pivot`.
+	;-- Partitioning is performed block-by-block in order to minimize the cost of branching operations.
+	;-- This idea is presented in the [BlockQuicksort][pdf] paper.
+	;-- [pdf]: http://drops.dagstuhl.de/opus/volltexte/2016/6389/pdf/LIPIcs-ESA-2016-38.pdf
+	partition-in-blocks: func [
+		base	[byte-ptr!]
+		num		[integer!]
+		width	[integer!]
+		pivot	[byte-ptr!]
+		op		[integer!]
+		flags	[integer!]
+		cmpfunc	[integer!]
+		return:	[integer!]
+		/local
+			l block_l start_l end_l offsets_l
+			r block_r start_r end_r offsets_r
+			cmp i j t swaptype
+			w is_done elem m w2 count mp np temp
+			unit	[UNIT! value]
+	][
+		l: base
+		block_l: BLOCK
+		start_l: as byte-ptr! 0
+		end_l: as byte-ptr! 0
+		offsets_l: buffer-l
+
+		r: l + (num * width)
+		block_r: BLOCK
+		start_r: as byte-ptr! 0
+		end_r: as byte-ptr! 0
+		offsets_r: buffer-r
+
+		cmp: as cmpfunc! cmpfunc
+		SORT_SWAPINIT(base width)
+
+		forever [
+			w: (as integer! r - l) / width
+			is_done: w <= (2 * BLOCK)
+			if is_done [
+				if any [
+					start_l < end_l
+					start_r < end_r
+				][w: w - BLOCK]
+				case [
+					start_l < end_l [
+						block_r: w
+					]
+					start_r < end_r[
+						block_l: w
+					]
+					true [
+						block_l: w / 2
+						block_r: w - block_l
+					]
+				]
+			]
+			if start_l = end_l [
+				start_l: offsets_l
+				end_l: offsets_l
+				elem: l
+				m: 0
+				while [m < block_l][
+					end_l/1: as byte! m
+					unless negative? cmp elem pivot op flags [
+						end_l: end_l + width
+					]
+					elem: elem + width
+				]
+			]
+			if start_r = end_r [
+				start_r: offsets_r
+				end_r: offsets_r
+				elem: r
+				m: 0
+				while [m < block_r][
+					elem: elem - width
+					end_r/1: as byte! m
+					if negative? cmp elem pivot op flags [
+						end_r: end_r + width
+					]
+				]
+			]
+
+			w: (as integer! end_l - start_l) / width
+			w2: (as integer! end_r - start_r) / width
+			count: w
+			if w > w2 [count: w2]
+
+			if count > 0 [
+				temp: as byte-ptr! unit
+				mp: l + ((as integer! start_l) * width)
+				np: r - ((as integer! start_r) * width) - width
+				SORT_COPY(mp temp)
+				SORT_COPY(np mp)
+				loop count - 1 [
+					start_l: start_l + width
+					mp: mp + width
+					SORT_COPY(mp np)
+					start_r: start_r + width
+					np: np + width
+					SORT_COPY(np mp)
+				]
+				SORT_COPY(temp np)
+				start_l: start_l + width
+				start_r: start_r + width
+			]
+
+			if start_l = end_l [
+				l: l + (block_l * width)
+			]
+			if start_r = end_r [
+				r: r - (block_r * width)
+			]
+			if is_done [break]
+		]
+
+		case [
+			start_l < end_l [
+				while [start_l < end_l][
+					end_l: end_l - width
+					mp: l + ((as integer! end_l/1) * width)
+					np: r - width
+					SORT_SWAP(mp np)
+					r: r - width
+				]
+				w: (as integer! r - base) / width
+			]
+			start_r < end_r [
+				while [start_r < end_r][
+					end_r: end_r - width
+					mp: l
+					np: r - ((as integer! end_r/1) * width) - width
+					SORT_SWAP(mp np)
+					l: l + width
+				]
+				w: (as integer! l - base) / width
+			]
+			true [
+				w: (as integer! l - base) / width
+			]
+		]
+		w
+	]
+
+	;-- Partitions it into elements smaller than `base[pivot]`, followed by elements greater than or equal to `base[pivot]`.
+	;--
+	partition: func [
+		base	[byte-ptr!]
+		num		[integer!]
+		width	[integer!]
+		npivot	[integer!]
+		op		[integer!]
+		flags	[integer!]
+		cmpfunc	[integer!]
+		pnum	[int-ptr!]
+		return:	[logic!]
+		/local
+			cmp i j t swaptype
+			_base mp temp l r
+	][
+		_base: base
+		cmp: as cmpfunc! cmpfunc
+		SORT_SWAPINIT(base width)
+		mp: base + (npivot * width)
+		SORT_SWAP(base mp)
+		temp: as byte-ptr! unit-buffer
+		SORT_COPY(base temp)
+		base: base + width
+		num: num - 1
+
+		l: 0
+		r: num
+		while [l < r][
+			mp: base + (l * width)
+			either negative? cmp mp temp op flags [
+				l: l + 1
+			][
+				break
+			]
+		]
+		while [l < r][
+			mp: base + (r * width) - width
+			either not negative? cmp mp temp op flags [
+				r: r - 1
+			][
+				break
+			]
+		]
+		base: base + (l * width)
+		num: r - l
+		pnum/value: partition-in-blocks base num width temp op flags cmpfunc
+		mp: _base + (pnum/value * width)
+		SORT_SWAP(base mp)
+		l >= r
+	]
+
+	partition-equal: func [
+		base	[byte-ptr!]
+		num		[integer!]
+		width	[integer!]
+		npivot	[integer!]
+		op		[integer!]
+		flags	[integer!]
+		cmpfunc	[integer!]
+		return:	[integer!]
+		/local
+			cmp i j t swaptype
+			_base mp np temp l r
+	][
+		_base: base
+		cmp: as cmpfunc! cmpfunc
+		SORT_SWAPINIT(base width)
+		mp: base + (npivot * width)
+		SORT_SWAP(base mp)
+		temp: as byte-ptr! unit-buffer
+		SORT_COPY(base temp)
+		base: base + width
+		num: num - 1
+
+		l: 0
+		r: num
+		forever [
+			while [l < r][
+				mp: base + (l * width)
+				either not negative? cmp temp mp op flags [
+					l: l + 1
+				][
+					break
+				]
+			]
+			while [l < r][
+				mp: base + (r * width) - width
+				either negative? cmp temp mp op flags [
+					r: r - 1
+				][
+					break
+				]
+			]
+			if l >= r [break]
+			r: r - 1
+			mp: base + (l * width)
+			np: base + (r * width)
+			SORT_SWAP(mp np)
+			l: l + 1
+		]
+		l + 1
+	]
+
 	;-- max heapify
 	sift-down: func [
 		base	[byte-ptr!]
@@ -359,7 +650,7 @@ _sort: context [
 		width	[integer!]
 		op		[integer!]
 		flags	[integer!]
-		cmpfunc [integer!]
+		cmpfunc	[integer!]
 		/local
 			cmp left right greater i j t swaptype lp rp np gp
 	][
@@ -393,7 +684,7 @@ _sort: context [
 		width	[integer!]
 		op		[integer!]
 		flags	[integer!]
-		cmpfunc [integer!]
+		cmpfunc	[integer!]
 		/local
 			i j t swaptype m mp
 	][
