@@ -17,6 +17,13 @@ register-scheme/native make system/standard/scheme [
 	title: "TCP scheme implementation"
 ] actor
 
+actor: #system [handle/push TLS-device/table]
+
+register-scheme/native make system/standard/scheme [
+	name: 'TLS
+	title: "TLS scheme implementation"
+] actor
+
 actor: #system [handle/push udp-device/table]
 
 register-scheme/native make system/standard/scheme [

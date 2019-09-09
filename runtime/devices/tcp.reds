@@ -35,7 +35,7 @@ tcp-device: context [
 					iocp/bind g-iocp as int-ptr! data/accept-sock
 					socket/acceptex as-integer data/device data
 				][
-					msg: create-red-port p socket/accept as-integer data/device
+					msg: create-red-port p socket/accept
 				]
 			]
 			IO_EVT_READ	[
