@@ -4338,7 +4338,7 @@ red: context [
 			set-word!	[comp-set-word]
 			word!		[comp-word]
 			get-word!	[comp-word/literal]
-			paren!		[comp-next-block root]
+			paren!		[comp-paren root]
 			set-path!	[comp-path/set? root]
 			path! 		[comp-path root]
 		][
@@ -4361,6 +4361,12 @@ red: context [
 				if tail? pc [emit-dyn-check]
 			]
 		]
+	]
+	
+	comp-paren: func [root? [logic!]][
+		emit-open-frame 'paren
+		comp-next-block root?
+		emit-close-frame
 	]
 	
 	comp-next-block: func [root? [logic!] /with blk /local saved pos][
