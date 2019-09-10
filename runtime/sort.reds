@@ -65,6 +65,8 @@ _sort: context [
 	UNIT!: alias struct! [
 		a	[integer!]
 		b	[integer!]
+		c	[integer!]
+		d	[integer!]
 	]
 
 	BLOCK: 128
@@ -431,7 +433,7 @@ _sort: context [
 		loop MAX_STEPS [
 			while [m < num][
 				mp: base + (m * width)
-				np: base - width
+				np: mp - width
 				either negative? cmp mp np op flags [
 					break
 				][
@@ -497,7 +499,7 @@ _sort: context [
 					start_l < end_l [
 						block_r: w
 					]
-					start_r < end_r[
+					start_r < end_r [
 						block_l: w
 					]
 					true [
@@ -515,9 +517,10 @@ _sort: context [
 					end_l/1: as byte! m
 					temp: as byte-ptr! pivot
 					unless negative? cmp elem temp op flags [
-						end_l: end_l + width
+						end_l: end_l + 1
 					]
 					elem: elem + width
+					m: m + 1
 				]
 			]
 			if start_r = end_r [
@@ -530,33 +533,34 @@ _sort: context [
 					end_r/1: as byte! m
 					temp: as byte-ptr! pivot
 					if negative? cmp elem temp op flags [
-						end_r: end_r + width
+						end_r: end_r + 1
 					]
+					m: m + 1
 				]
 			]
 
-			w: (as integer! end_l - start_l) / width
-			w2: (as integer! end_r - start_r) / width
+			w: as integer! end_l - start_l
+			w2: as integer! end_r - start_r
 			count: w
 			if w > w2 [count: w2]
 
 			if count > 0 [
 				temp: as byte-ptr! unit
-				mp: l + ((as integer! start_l) * width)
-				np: r - ((as integer! start_r) * width) - width
+				mp: l + ((as integer! start_l/1) * width)
+				np: r - ((as integer! start_r/1) * width) - width
 				SORT_COPY(mp temp)
 				SORT_COPY(np mp)
 				loop count - 1 [
-					start_l: start_l + width
-					mp: mp + width
+					start_l: start_l + 1
+					mp: l + ((as integer! start_l/1) * width)
 					SORT_COPY(mp np)
-					start_r: start_r + width
-					np: np + width
+					start_r: start_r + 1
+					np: r - ((as integer! start_r/1) * width) - width
 					SORT_COPY(np mp)
 				]
 				SORT_COPY(temp np)
-				start_l: start_l + width
-				start_r: start_r + width
+				start_l: start_l + 1
+				start_r: start_r + 1
 			]
 
 			if start_l = end_l [
@@ -571,7 +575,7 @@ _sort: context [
 		case [
 			start_l < end_l [
 				while [start_l < end_l][
-					end_l: end_l - width
+					end_l: end_l - 1
 					mp: l + ((as integer! end_l/1) * width)
 					np: r - width
 					SORT_SWAP(mp np)
@@ -581,7 +585,7 @@ _sort: context [
 			]
 			start_r < end_r [
 				while [start_r < end_r][
-					end_r: end_r - width
+					end_r: end_r - 1
 					mp: l
 					np: r - ((as integer! end_r/1) * width) - width
 					SORT_SWAP(mp np)
@@ -601,8 +605,8 @@ _sort: context [
 	partition: func [
 		base	[byte-ptr!]
 		num		[integer!]
-		width	[integer!]
 		npivot	[integer!]
+		width	[integer!]
 		op		[integer!]
 		flags	[integer!]
 		cmpfunc	[integer!]
@@ -644,8 +648,9 @@ _sort: context [
 		base: base + (l * width)
 		num: r - l
 		pnum/value: partition-in-blocks base num unit width op flags cmpfunc
+		pnum/value: pnum/value + l
 		mp: _base + (pnum/value * width)
-		SORT_SWAP(base mp)
+		SORT_SWAP(_base mp)
 		l >= r
 	]
 
@@ -771,7 +776,6 @@ _sort: context [
 			return swaps = 0
 		]
 
-		;-- TBD: reverse
 		reverse base num width
 
 		pivot/1: num - 1 - b
@@ -817,7 +821,7 @@ _sort: context [
 			was-balanced was-partitioned was-p
 			npivot likely-sorted
 			cmp i j t swaptype m n mp np
-			temp temp2 mid left right left-num right-num
+			temp mid left right left-num right-num
 			unit	[UNIT! value]
 	][
 		cmp: as cmpfunc! cmpfunc
@@ -851,7 +855,7 @@ _sort: context [
 					exit
 				]
 			]
-			unless pred? [
+			if pred? [
 				mp: as byte-ptr! pred
 				np: base + (npivot * width)
 				unless negative? cmp mp np op flags [
@@ -863,7 +867,7 @@ _sort: context [
 			]
 
 			mid: 0
-			was-p: partition base num width npivot op flags cmpfunc :mid
+			was-p: partition base num npivot width op flags cmpfunc :mid
 			either mid > (num - mid) [
 				was-balanced: num - mid >= (num / 8)
 			][
@@ -882,8 +886,6 @@ _sort: context [
 				recurse left left-num pred pred? limit width op flags cmpfunc
 				base: right
 				num: right-num
-				temp2: as byte-ptr! unit
-				SORT_COPY(temp temp2)
 				pred: unit
 				pred?: true
 			][
