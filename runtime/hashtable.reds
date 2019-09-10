@@ -973,7 +973,6 @@ _hashtable: context [
 				k: blk + idx
 				if all [
 					_BUCKET_IS_NOT_DEL(flags ii sh)
-					TYPE_OF(k) = key-type
 					actions/compare k key op
 					idx - head // skip = 0
 				][
