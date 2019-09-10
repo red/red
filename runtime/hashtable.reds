@@ -69,7 +69,7 @@ hash-string: func [
 			UCS-2  [(as-integer p/2) << 8 + p/1]
 			UCS-4  [p4: as int-ptr! p p4/value]
 		]
-		unless case? [k1: case-folding/folding-case k1 yes]
+		unless case? [k1: case-folding/change-char k1 yes]
 		k1: k1 * MURMUR_HASH_3_X86_32_C1
 		k1: MURMUR_HASH_ROTL_32(k1 15)
 		k1: k1 * MURMUR_HASH_3_X86_32_C2
