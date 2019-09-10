@@ -313,7 +313,7 @@ system/reactivity: context [
 								cause-error 'script 'no-value [item]
 							]
 							either 2 = length? item [
-								obj: get item/1
+								set/any 'obj get/any item/1
 								part: 1
 							][
 								part: length? item
