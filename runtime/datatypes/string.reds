@@ -1925,34 +1925,15 @@ string: context [
 				]
 				p2: pattern
 				until [									;-- series comparison
-					either unit = unit2 [
-						switch unit [
-							Latin1 [
-								c1: as-integer p1/1
-								c2: as-integer p2/1
-							]
-							UCS-2  [
-								c1: (as-integer p1/2) << 8 + p1/1
-								c2: (as-integer p2/2) << 8 + p2/1
-							]
-							UCS-4  [
-								p4: as int-ptr! p1
-								c1: p4/1
-								p4: as int-ptr! p2
-								c2: p4/1
-							]
-						]
-					][
-						switch unit [
-							Latin1 [c1: as-integer p1/1]
-							UCS-2  [c1: (as-integer p1/2) << 8 + p1/1]
-							UCS-4  [p4: as int-ptr! p1 c1: p4/1]
-						]
-						switch unit2 [
-							Latin1 [c2: as-integer p2/1]
-							UCS-2  [c2: (as-integer p2/2) << 8 + p2/1]
-							UCS-4  [p4: as int-ptr! p2 c2: p4/1]
-						]
+					switch unit [
+						Latin1 [c1: as-integer p1/1]
+						UCS-2  [c1: (as-integer p1/2) << 8 + p1/1]
+						UCS-4  [p4: as int-ptr! p1 c1: p4/1]
+					]
+					switch unit2 [
+						Latin1 [c2: as-integer p2/1]
+						UCS-2  [c2: (as-integer p2/2) << 8 + p2/1]
+						UCS-4  [p4: as int-ptr! p2 c2: p4/1]
 					]
 					if case? [
 						c1: case-folding/folding-case c1 yes	;-- uppercase c1
