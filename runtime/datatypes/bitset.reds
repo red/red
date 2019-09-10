@@ -360,6 +360,7 @@ bitset: context [
 		/local
 			int	  [red-integer!]
 			char  [red-char!]
+			fl	  [red-float!]
 			w	  [red-word!]
 			value [red-value!]
 			tail  [red-value!]
@@ -378,14 +379,22 @@ bitset: context [
 		
 		switch TYPE_OF(spec) [
 			TYPE_CHAR
-			TYPE_INTEGER [
+			TYPE_INTEGER
+			TYPE_FLOAT [
 				type: TYPE_OF(spec)
-				max: either type = TYPE_CHAR [
-					char: as red-char! spec
-					char/value
-				][
-					int: as red-integer! spec
-					int/value
+				max: switch type [
+					TYPE_CHAR [
+						char: as red-char! spec
+						char/value
+					]
+					TYPE_FLOAT [
+						fl: as red-float! spec
+						as-integer fl/value
+					]
+					default [
+						int: as red-integer! spec
+						int/value
+					]
 				]
 				if all [max < 0 op <> OP_TEST][
 					fire [TO_ERROR(script out-of-range) spec]
@@ -909,6 +918,7 @@ bitset: context [
 		/local
 			bool  [red-logic!]
 			int	  [red-integer!]
+			fl	  [red-float!]
 			type  [integer!]
 			op	  [integer!]
 			s	  [series!]
@@ -918,12 +928,14 @@ bitset: context [
 		type: TYPE_OF(data)
 		bool: as red-logic! data
 		int:  as red-integer! data
+		fl:	  as red-float! data
 		s:	  GET_BUFFER(bits)
 		
 		op: either any [
 			type = TYPE_NONE
 			all [type = TYPE_LOGIC not bool/value]
 			all [type = TYPE_INTEGER zero? int/value]
+			all [type = TYPE_FLOAT fl/value = 0.0]
 		][
 			OP_CLEAR
 		][
