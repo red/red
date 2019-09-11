@@ -25,6 +25,7 @@ platform: context [
 
 	gdiplus-token: 0
 	page-size: 4096
+	SSPI: as SecurityFunctionTableW 0
 
 	#include %win32-print.reds
 
@@ -249,5 +250,8 @@ platform: context [
 		WSAIoctl fd C8000006h h 16 :DisconnectEx-func size? int-ptr! :n null null
 
 		closesocket fd
+
+		SSPI: InitSecurityInterfaceW
+		assert SSPI <> null
 	]
 ]

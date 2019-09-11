@@ -59,6 +59,17 @@ Red/System [
 #define _O_U16TEXT      	00020000h 					;-- file mode is UTF16 no BOM (translated)
 #define _O_U8TEXT       	00040000h 					;-- file mode is UTF8  no BOM (translated)
 
+#define SCH_CRED_MANUAL_CRED_VALIDATION	08h
+#define SCH_CRED_NO_DEFAULT_CREDS		10h
+#define SCH_USE_STRONG_CRYPTO			00400000h
+
+#define ISC_REQ_REPLAY_DETECT			04h
+#define ISC_REQ_SEQUENCE_DETECT			08h
+#define ISC_REQ_CONFIDENTIALITY			10h
+#define ISC_REQ_ALLOCATE_MEMORY			0100h
+#define ISC_REQ_EXTENDED_ERROR			4000h
+#define ISC_REQ_STREAM					8000h
+#define ISC_REQ_MANUAL_CRED_VALIDATION	00080000h
 
 #define FORMAT_MESSAGE_ALLOCATE_BUFFER	00000100h
 #define FORMAT_MESSAGE_IGNORE_INSERTS	00000200h
@@ -345,6 +356,175 @@ PATHDATA: alias struct! [
 tagPOINT: alias struct! [
 	x		[integer!]
 	y		[integer!]	
+]
+
+CERT_CONTEXT: alias struct! [
+	dwCertEncodingType	[integer!]
+	pbCertEncoded		[byte!]
+	cbCertEncoded		[integer!]
+	pCertInfo			[int-ptr!]
+	hCertStore			[int-ptr!]
+]
+
+SCHANNEL_CRED: alias struct! [
+	dwVersion				[integer!]
+	cCreds					[integer!]
+	paCred					[int-ptr!]
+	hRootStore				[int-ptr!]
+
+	cMappers				[integer!]
+	aphMappers				[int-ptr!]
+
+	cSupportedAlgs			[integer!]
+	palgSupportedAlg		[int-ptr!]
+
+	grbitEnabledProtocols	[integer!]
+	dwMinimumCipherStrength	[integer!]
+	dwMaximumCipherStrength	[integer!]
+	dwSessionLifespan		[integer!]
+	dwFlags					[integer!]
+	dwCredFormat			[integer!]
+]
+
+SecHandle!: alias struct! [
+	dwLower		[int-ptr!]
+	dwUpper		[int-ptr!]
+]
+
+SecBuffer!: alias struct! [
+	cbBuffer	[integer!]			;-- Size of the buffer, in bytes
+	BufferType	[integer!]			;-- Type of the buffer (below)
+	pvBuffer	[byte-ptr!]
+]
+
+SecBufferDesc!: alias struct! [
+	ulVersion	[integer!]
+	cBuffers	[integer!]
+	pBuffers	[SecBuffer!]
+]
+
+AcquireCredentialsHandleW!: alias function! [
+	pszPrincipal		[c-string!]
+	pszPackage			[c-string!]
+	fCredentialUse		[integer!]
+	pvLogonId			[int-ptr!]
+	pAuthData			[int-ptr!]
+	pGetKeyFn			[int-ptr!]
+	pvGetKeyArgument	[int-ptr!]
+	phCredential		[SecHandle!]
+	ptsExpiry			[tagFILETIME]
+	return:				[integer!]
+]
+
+FreeCredentialsHandle!: alias function! [
+	phCredential		[int-ptr!]
+	return:				[integer!]
+]
+
+AcceptSecurityContext!: alias function! [
+	phCredential		[SecHandle!]
+	phContext			[SecHandle!]
+	pInput				[SecBufferDesc!]
+	fContextReq			[integer!]
+	TargetDataRep		[integer!]
+	phNewContext		[SecHandle!]
+	pOutput				[SecBufferDesc!]
+	pfContextAttr		[int-ptr!]
+	ptsExpiry			[tagFILETIME]
+	return:				[integer!]
+]
+
+InitializeSecurityContextW!: alias function! [
+	phCredential		[SecHandle!]
+	phContext			[SecHandle!]
+	pTargetName			[c-string!]
+	fContextReq			[integer!]
+	Reserved1			[integer!]
+	TargetDataRep		[integer!]
+	pInput				[SecBufferDesc!]
+	Reserved2			[integer!]
+	phNewContext		[SecHandle!]
+	pOutput				[SecBufferDesc!]
+	pfContextAttr		[int-ptr!]
+	ptsExpiry			[tagFILETIME]
+	return:				[integer!]
+]
+
+DeleteSecurityContext!: alias function! [
+	phContext			[int-ptr!]
+	return:				[integer!]
+]
+
+FreeContextBuffer!: alias function! [
+	pvContextBuffer		[int-ptr!]
+	return:				[integer!]
+]
+
+ApplyControlToken!: alias function! [
+	phContext			[SecHandle!]
+	pInput				[SecBufferDesc!]
+	return:				[integer!]
+]
+
+QueryContextAttributesW!: alias function! [
+	phContext			[SecHandle!]
+	ulAttribute			[integer!]
+	pBuffer				[byte-ptr!]
+	return:				[integer!]
+]
+
+DecryptMessage!: alias function! [
+	phContext			[SecHandle!]
+	pMessage			[SecBufferDesc!]
+	MessageSeqNo		[integer!]
+	fQOP				[int-ptr!]
+	return:				[integer!]
+]
+
+EncryptMessage!: alias function! [
+	phContext			[SecHandle!]
+	fQOP				[integer!]
+	pMessage			[SecBufferDesc!]
+	MessageSeqNo		[integer!]
+	return:				[integer!]
+]
+
+SecurityFunctionTableW: alias struct! [
+	dwVersion					[integer!]
+	EnumerateSecurityPackagesW	[int-ptr!]
+	QueryCredentialsAttributesW	[int-ptr!]
+	AcquireCredentialsHandleW	[AcquireCredentialsHandleW!]
+	FreeCredentialsHandle		[FreeCredentialsHandle!]
+	Reserved2					[int-ptr!]
+	InitializeSecurityContextW	[InitializeSecurityContextW!]
+	AcceptSecurityContext		[AcceptSecurityContext!]
+	CompleteAuthToken			[int-ptr!]
+	DeleteSecurityContext		[DeleteSecurityContext!]
+	ApplyControlToken			[ApplyControlToken!]
+	QueryContextAttributesW		[QueryContextAttributesW!]
+	ImpersonateSecurityContext	[int-ptr!]
+	RevertSecurityContext		[int-ptr!]
+	MakeSignature				[int-ptr!]
+	VerifySignature				[int-ptr!]
+	FreeContextBuffer			[FreeContextBuffer!]
+	QuerySecurityPackageInfoW	[int-ptr!]
+	Reserved3					[int-ptr!]
+	Reserved4					[int-ptr!]
+	ExportSecurityContext		[int-ptr!]
+	ImportSecurityContextW		[int-ptr!]
+	AddCredentialsW 			[int-ptr!]
+	Reserved8					[int-ptr!]
+	QuerySecurityContextToken	[int-ptr!]
+	EncryptMessage				[EncryptMessage!]
+	DecryptMessage				[DecryptMessage!]
+	SetContextAttributesW		[int-ptr!]	;-- available in OSes after win2k
+	SetCredentialsAttributesW	[int-ptr!]	;-- available in OSes after W2k3SP1
+
+	ChangeAccountPasswordW		[int-ptr!]
+
+	;-- Fields below this are available in OSes after Windows 8.1
+	QueryContextAttributesExW	[int-ptr!]
+	QueryCredentialsAttributesExW [int-ptr!]
 ]
 
 #import [
@@ -822,6 +1002,11 @@ tagPOINT: alias struct! [
 			return:		 [integer!]
 		]
 	]
+	"secur32.dll" stdcall [
+		InitSecurityInterfaceW: "InitSecurityInterfaceW" [
+			return: [SecurityFunctionTableW]
+		]
+	]
 ]
 
 AcceptEx!: alias function! [
@@ -876,3 +1061,4 @@ GetAcceptExSockaddrs!: alias function! [
 	RemoteSockaddr			[int-ptr!]
 	RemoteSockaddrLength	[int-ptr!]
 ]
+

@@ -68,3 +68,10 @@ sockaddr_in6!: alias struct! [
 ][			;-- POSIX
 	#include %definitions/POSIX.reds
 ]
+
+zero-memory: func [
+	dest	[byte-ptr!]
+	size	[integer!]
+][
+	loop size [dest/value: #"^@" dest: dest + 1]
+]
