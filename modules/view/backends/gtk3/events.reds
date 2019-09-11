@@ -43,12 +43,6 @@ evt-motion: context [
 	sensitiv:	3
 ]
 
-evt-sizing: context [
-	x_root:		0.0
-	y_root:		0.0
-	x_new: 		0
-	y_new: 		0
-]
 make-at: func [
 	widget	[handle!]
 	face	[red-object!]
@@ -119,20 +113,6 @@ get-event-offset: func [
 
 			widget: as handle! evt/msg
 			sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE
-			;; DEBUG: print ["event-offset type: " get-symbol-name get-widget-symbol widget " size: " sz/x "x" sz/y lf]
-			; sz/x: evt-sizing/x_new
-			; sz/y: evt-sizing/y_new
-
-			; print ["OFFSET is SIZE ? " sz " vs " offset lf] ; => NO!
-			; alternative 1:
- 			; sz/x: (as integer! evt-sizing/x_root) - offset/x
-			; sz/y: (as integer! evt-sizing/y_root)  - offset/y
-
-			; alternative 2:
-			; sz/x: gtk_widget_get_allocated_width widget
-			; sz/y: gtk_widget_get_allocated_height widget
-
-			;; DEBUG: print ["event-size: " sz/x "x" sz/y " vs " offset/x "x" offset/y lf]
 			as red-value! sz
 		]
 		any [
@@ -430,7 +410,7 @@ do-events: func [
 ][
 	msg?: no
 
-	set-view-no-wait last-window no-wait?
+	set-view-no-wait gtk_application_get_active_window GTKApp no-wait?
 
 	;@@ Improve it!!!
 	;@@ as we cannot access gapplication->priv->use_count
@@ -676,6 +656,8 @@ connect-common-events: function [
 	]
 
 	if any [
+		sym = field
+		sym = area
 		respond-event? actors on-up
 		respond-event? actors on-mid-up
 		respond-event? actors on-alt-up
@@ -690,7 +672,6 @@ connect-common-events: function [
 	]
 
 	if any [
-		sym = field
 		respond-event? actors on-key
 		respond-event? actors on-key-down
 		respond-event? actors on-focus
@@ -701,7 +682,6 @@ connect-common-events: function [
 	]
 
 	if any [
-		sym = field
 		respond-event? actors on-key-up
 		respond-event? actors on-unfocus
 	][
@@ -716,6 +696,20 @@ connect-common-events: function [
 			connect-container-events widget "scroll-event"
 		]
 		gobj_signal_connect(widget "scroll-event" :widget-scroll-event face/ctx)
+	]
+]
+
+connect-focus-events: function [
+	widget		[handle!]
+	face		[red-object!]
+	actors		[red-object!]
+	sym			[integer!]
+][
+	if respond-event? actors on-focus [
+		gobj_signal_connect(widget "focus-in-event" :focus-in-event face/ctx)
+	]
+	if respond-event? actors on-unfocus [
+		gobj_signal_connect(widget "focus-out-event" :focus-out-event face/ctx)
 	]
 ]
 
@@ -777,8 +771,7 @@ connect-widget-events: function [
 			gtk_widget_set_focus_on_click widget yes
 			gtk_widget_is_focus widget
 			gtk_widget_grab_focus widget
-			gobj_signal_connect(widget "focus-in-event" :focus-in-event face/ctx)
-			gobj_signal_connect(widget "focus-out-event" :focus-out-event face/ctx)
+			connect-focus-events widget face actors sym
 		]
 		sym = window [
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add window delete-event " lf]]
@@ -787,6 +780,7 @@ connect-widget-events: function [
 			gobj_signal_connect(widget "configure-event" :window-configure-event null)
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add window size-allocate " lf]]
 			gobj_signal_connect(widget "size-allocate" :window-size-allocate null)
+			connect-focus-events widget face actors sym
 		]
 		sym = slider [
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add slider value-changed " lf]]
@@ -794,12 +788,12 @@ connect-widget-events: function [
 		]
 		sym = text [0]
 		sym = field [
+			gobj_signal_connect(widget "changed" :field-changed widget)
 			gtk_widget_set_can_focus widget yes
 			gtk_widget_set_focus_on_click widget yes
 			gtk_widget_is_focus widget
 			gtk_widget_grab_focus widget
-			gobj_signal_connect(widget "focus-in-event" :focus-in-event face/ctx)
-			gobj_signal_connect(widget "focus-out-event" :focus-out-event face/ctx)
+			connect-focus-events widget face actors sym
 		]
 		sym = progress [
 			0
@@ -817,8 +811,7 @@ connect-widget-events: function [
 			gtk_widget_set_focus_on_click widget yes
 			gtk_widget_is_focus widget
 			gtk_widget_grab_focus widget
-			gobj_signal_connect(widget "focus-in-event" :focus-in-event face/ctx)
-			gobj_signal_connect(widget "focus-out-event" :focus-out-event face/ctx)
+			connect-focus-events widget face actors sym
 		]
 		sym = group-box [
 			0

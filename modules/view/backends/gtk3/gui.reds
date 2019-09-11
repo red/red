@@ -1211,8 +1211,8 @@ change-selection: func [
 		wnd		[integer!]
 		item	[handle!]
 		sel		[red-pair!]
-		ins		[GtkTextIter!]
-		bound	[GtkTextIter!]
+		ins		[GtkTextIter! value]
+		bound	[GtkTextIter! value]
 		buffer	[handle!]
 ][
 	;; DEBUG: print ["change-selection: " widget " (" get-symbol-name type ")" lf]
@@ -1234,15 +1234,12 @@ change-selection: func [
 				gtk_editable_select_region widget idx idx + sz
 			][
 				buffer: gtk_text_view_get_buffer widget
-				ins: as GtkTextIter! allocate (size? GtkTextIter!)
-				bound: as GtkTextIter! allocate (size? GtkTextIter!)
 				;; Careful! GtkTextIter! needs to be initialized first (so this weird call first!)
 				gtk_text_buffer_get_selection_bounds buffer as handle! ins as handle! bound
 				;; DEBUG: print [" pos : " idx "x" idx + sz lf]
 				gtk_text_iter_set_offset as handle! ins idx
 				gtk_text_iter_set_offset as handle! bound idx + sz
 				gtk_text_buffer_select_range buffer as handle! ins as handle! bound
-				free as byte-ptr! ins free as byte-ptr! bound
 			]
 		]
 	; 	type = camera [
@@ -1848,7 +1845,7 @@ OS-make-view: func [
 			unless null? caption [gtk_window_set_title widget caption]
 
 			winbox: gtk_box_new GTK_ORIENTATION_VERTICAL  0
-      		gtk_container_add widget winbox
+			gtk_container_add widget winbox
 			if all [						;@@ application menu ?
 				null? AppMainMenu
 				menu-bar? menu window
@@ -1869,8 +1866,14 @@ OS-make-view: func [
 			;; The following line really matters to fix the initial size of the window
 			gtk_widget_set_size_request widget size/x size/y
 			gtk_window_set_resizable widget (bits and FACET_FLAGS_RESIZE <> 0)
-			gtk_window_set_decorated widget (bits and FACET_FLAGS_NO_BORDER = 0)
-
+			either any [
+				bits and FACET_FLAGS_NO_TITLE <> 0
+				bits and FACET_FLAGS_NO_BORDER <> 0
+			][
+				gtk_window_set_decorated widget no
+			][
+				gtk_window_set_decorated widget yes
+			]
 		]
 		sym = slider [
 			vertical?: size/y > size/x
@@ -2042,8 +2045,11 @@ OS-make-view: func [
 
 	;-- store the face value in the extra space of the window struct
 	assert TYPE_OF(face) = TYPE_OBJECT					;-- detect corruptions caused by CreateWindow unwanted events
-	store-face-to-obj widget face
-	if sym = text [store-face-to-obj _widget face]
+	either sym = text [
+		store-face-to-obj _widget face
+	][
+		store-face-to-obj widget face
+	]
 
 	change-selection widget as red-integer! values + FACE_OBJ_SELECTED sym
 	change-para widget face as red-object! values + FACE_OBJ_PARA font sym
@@ -2234,25 +2240,25 @@ OS-destroy-view: func [
 		gtk_widget_destroy handle
 		win-cnt: win-cnt - 1
 	][
+		;; DEBUG: print ["closing main window win-cnt: " win-cnt " exit-loop: " exit-loop lf]
 
-	;; DEBUG: print ["closing main window win-cnt: " win-cnt " exit-loop: " exit-loop lf]
+		obj: as red-object! values + FACE_OBJ_FONT
+		if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj FONT_OBJ_PARENT]
 
-	obj: as red-object! values + FACE_OBJ_FONT
-	if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj FONT_OBJ_PARENT]
+		obj: as red-object! values + FACE_OBJ_PARA
+		if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj PARA_OBJ_PARENT]
 
-	obj: as red-object! values + FACE_OBJ_PARA
-	if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj PARA_OBJ_PARENT]
+		;;g_main_context_release GTKApp-Ctx
+		;; DEBUG:
 
-	;;g_main_context_release GTKApp-Ctx
-	;; DEBUG:
+		;; TODO: This can be useless now!
+		remove-all-timers handle
 
-	;; TODO: This can be useless now!
-	remove-all-timers handle
+		;; DEBUG: print ["BYE! win: " win-cnt " (" handle ")" lf]
 
-	;; DEBUG: print ["BYE! win: " win-cnt " (" handle ")" lf]
-
-	free-handles as-integer handle no
+		free-handles as-integer handle no
 	]
+	free as byte-ptr! g_object_get_qdata handle red-face-id
 ]
 
 OS-update-facet: func [

@@ -261,27 +261,27 @@ GdkEventScroll!: alias struct! [
 ]
 
 GtkTextIter!: alias struct! [
-  dummy1  [handle!]
-  dummy2  [handle!]
-  dummy3 [integer!]
-  dummy4 [integer!]
-  dummy5 [integer!]
-  dummy6 [integer!]
-  dummy7 [integer!]
-  dummy8 [integer!]
-  dummy9  [handle!]
-  dummy10  [handle!]
-  dummy11 [integer!]
-  dummy12 [integer!]
-  dummy13 [integer!]
-  dummy14  [handle!]
+	dummy1		[handle!]
+	dummy2		[handle!]
+	dummy3		[integer!]
+	dummy4		[integer!]
+	dummy5		[integer!]
+	dummy6		[integer!]
+	dummy7		[integer!]
+	dummy8		[integer!]
+	dummy9		[handle!]
+	dummy10		[handle!]
+	dummy11		[integer!]
+	dummy12		[integer!]
+	dummy13		[integer!]
+	dummy14		[handle!]
 ]
 
 #enum GtkFileChooserAction! [
-  GTK_FILE_CHOOSER_ACTION_OPEN
-  GTK_FILE_CHOOSER_ACTION_SAVE
-  GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER
-  GTK_FILE_CHOOSER_ACTION_CREATE_FOLDER
+	GTK_FILE_CHOOSER_ACTION_OPEN
+	GTK_FILE_CHOOSER_ACTION_SAVE
+	GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER
+	GTK_FILE_CHOOSER_ACTION_CREATE_FOLDER
 ]
 
 #enum GtkResponseType! [
@@ -351,7 +351,7 @@ GtkTextIter!: alias struct! [
 PangoAttribute!: alias struct! [
 	klass		[handle!]
 	start		[integer!]
-  	end 		[integer!]
+	end 		[integer!]
 ]
 
 #enum PangoWrapMode! [
@@ -368,14 +368,14 @@ PangoAttribute!: alias struct! [
 ]
 
 #enum pango-style! [
-  PANGO_STYLE_NORMAL
-  PANGO_STYLE_OBLIQUE
-  PANGO_STYLE_ITALIC
+	PANGO_STYLE_NORMAL
+	PANGO_STYLE_OBLIQUE
+	PANGO_STYLE_ITALIC
 ]
 
 #enum pango-variant! [
-  PANGO_VARIANT_NORMAL
-  PANGO_VARIANT_SMALL_CAPS
+	PANGO_VARIANT_NORMAL
+	PANGO_VARIANT_SMALL_CAPS
 ]
 
 #enum pango-underline! [
@@ -387,40 +387,40 @@ PangoAttribute!: alias struct! [
 ]
 
 #enum pango-weight! [
-  PANGO_WEIGHT_THIN: 100
-  PANGO_WEIGHT_ULTRALIGHT: 200
-  PANGO_WEIGHT_LIGHT: 300
-  PANGO_WEIGHT_SEMILIGHT: 350
-  PANGO_WEIGHT_BOOK: 380
-  PANGO_WEIGHT_NORMAL: 400
-  PANGO_WEIGHT_MEDIUM: 500
-  PANGO_WEIGHT_SEMIBOLD: 600
-  PANGO_WEIGHT_BOLD: 700
-  PANGO_WEIGHT_ULTRABOLD: 800
-  PANGO_WEIGHT_HEAVY: 900
-  PANGO_WEIGHT_ULTRAHEAVY: 1000
+	PANGO_WEIGHT_THIN: 100
+	PANGO_WEIGHT_ULTRALIGHT: 200
+	PANGO_WEIGHT_LIGHT: 300
+	PANGO_WEIGHT_SEMILIGHT: 350
+	PANGO_WEIGHT_BOOK: 380
+	PANGO_WEIGHT_NORMAL: 400
+	PANGO_WEIGHT_MEDIUM: 500
+	PANGO_WEIGHT_SEMIBOLD: 600
+	PANGO_WEIGHT_BOLD: 700
+	PANGO_WEIGHT_ULTRABOLD: 800
+	PANGO_WEIGHT_HEAVY: 900
+	PANGO_WEIGHT_ULTRAHEAVY: 1000
 ]
 
 #enum pango-stretch! [
-  PANGO_STRETCH_ULTRA_CONDENSED
-  PANGO_STRETCH_EXTRA_CONDENSED
-  PANGO_STRETCH_CONDENSED
-  PANGO_STRETCH_SEMI_CONDENSED
-  PANGO_STRETCH_NORMAL
-  PANGO_STRETCH_SEMI_EXPANDED
-  PANGO_STRETCH_EXPANDED
-  PANGO_STRETCH_EXTRA_EXPANDED
-  PANGO_STRETCH_ULTRA_EXPANDED
+	PANGO_STRETCH_ULTRA_CONDENSED
+	PANGO_STRETCH_EXTRA_CONDENSED
+	PANGO_STRETCH_CONDENSED
+	PANGO_STRETCH_SEMI_CONDENSED
+	PANGO_STRETCH_NORMAL
+	PANGO_STRETCH_SEMI_EXPANDED
+	PANGO_STRETCH_EXPANDED
+	PANGO_STRETCH_EXTRA_EXPANDED
+	PANGO_STRETCH_ULTRA_EXPANDED
 ]
 
 #enum pango-font-mask! [
-  PANGO_FONT_MASK_FAMILY: 1
-  PANGO_FONT_MASK_STYLE: 2
-  PANGO_FONT_MASK_VARIANT: 4
-  PANGO_FONT_MASK_WEIGHT: 8
-  PANGO_FONT_MASK_STRETCH: 16
-  PANGO_FONT_MASK_SIZE: 32
-  PANGO_FONT_MASK_GRAVITY: 64
+	PANGO_FONT_MASK_FAMILY: 1
+	PANGO_FONT_MASK_STYLE: 2
+	PANGO_FONT_MASK_VARIANT: 4
+	PANGO_FONT_MASK_WEIGHT: 8
+	PANGO_FONT_MASK_STRETCH: 16
+	PANGO_FONT_MASK_SIZE: 32
+	PANGO_FONT_MASK_GRAVITY: 64
 ]
 
 #enum PangoAlignment! [
@@ -450,22 +450,22 @@ PangoAttribute!: alias struct! [
 ]
 
 #enum cairo_antialias_t! [
-    CAIRO_ANTIALIAS_DEFAULT
-    CAIRO_ANTIALIAS_NONE
-    CAIRO_ANTIALIAS_GRAY
-    CAIRO_ANTIALIAS_SUBPIXEL
-		CAIRO_ANTIALIAS_FAST
-		CAIRO_ANTIALIAS_GOOD
-		CAIRO_ANTIALIAS_BEST
+	CAIRO_ANTIALIAS_DEFAULT
+	CAIRO_ANTIALIAS_NONE
+	CAIRO_ANTIALIAS_GRAY
+	CAIRO_ANTIALIAS_SUBPIXEL
+	CAIRO_ANTIALIAS_FAST
+	CAIRO_ANTIALIAS_GOOD
+	CAIRO_ANTIALIAS_BEST
 ]
 
 cairo_matrix_t!: alias struct! [
-    xx		[float!]
-		yx		[float!]
-    xy		[float!]
-		yy		[float!]
-    x0		[float!]
-		y0		[float!]
+	xx		[float!]
+	yx		[float!]
+	xy		[float!]
+	yy		[float!]
+	x0		[float!]
+	y0		[float!]
 ]
 
 ; @@ cairo structures to remove if pango_cairo is enough to draw text on cairo
@@ -503,14 +503,14 @@ GString!: alias struct! [
 ]
 
 GList!: alias struct! [
-  data 		[int-ptr!]
-  next 		[GList!]
-  prev 		[GList!]
+	data 		[int-ptr!]
+	next 		[GList!]
+	prev 		[GList!]
 ]
 
 GPtrArray!: alias struct! [
-  pdata			[int-ptr!]
-  len				[integer!]
+	pdata		[int-ptr!]
+	len			[integer!]
 ]
 
 #enum GtkPackDirection! [
@@ -522,7 +522,7 @@ GPtrArray!: alias struct! [
 
 #enum GtkOrientation! [
 	GTK_ORIENTATION_HORIZONTAL
-  GTK_ORIENTATION_VERTICAL
+	GTK_ORIENTATION_VERTICAL
 ]
 
 #enum GConnectFlags! [
@@ -1816,10 +1816,10 @@ GPtrArray!: alias struct! [
 			buffer		[handle!]
 			start		[handle!]
 			end			[handle!]
-			return: [logic!]
+			return:		[logic!]
 		]
 		gtk_text_buffer_select_range: "gtk_text_buffer_select_range" [
-			buffer	[handle!]
+			buffer		[handle!]
 			ins			[handle!]
 			bound		[handle!]
 		]
@@ -1829,15 +1829,15 @@ GPtrArray!: alias struct! [
 		]
 		gtk_text_iter_get_offset: "gtk_text_iter_get_offset" [
 			iter		[handle!]
-			return:	[integer!]
+			return:		[integer!]
 		]
 		gtk_text_iter_set_offset: "gtk_text_iter_set_offset" [
 			iter		[handle!]
-			offset	[integer!]
+			offset		[integer!]
 		]
 		gtk_text_iter_get_line: "gtk_text_iter_get_line" [
 			iter		[handle!]
-			return:	[integer!]
+			return:		[integer!]
 		]
 		gtk_combo_box_text_new: "gtk_combo_box_text_new" [
 			return:		[handle!]
@@ -1971,7 +1971,7 @@ GPtrArray!: alias struct! [
 			layout		[handle!]
 			return: 	[handle!]
 		]
-   	pango_layout_set_text: "pango_layout_set_text" [
+		pango_layout_set_text: "pango_layout_set_text" [
 			layout		[handle!]
 			text		[c-string!]
 			len			[integer!]
@@ -1992,7 +1992,7 @@ GPtrArray!: alias struct! [
 			layout		[handle!]
 			return:		[handle!]
 		]
-   		pango_layout_set_font_description: "pango_layout_set_font_description" [
+		pango_layout_set_font_description: "pango_layout_set_font_description" [
 			layout		[handle!]
 			fontdesc	[handle!]
 		]
@@ -2087,7 +2087,7 @@ GPtrArray!: alias struct! [
 			layout		[handle!]
 			return:		[integer!]
 		]
-    pango_layout_get_size: "pango_layout_get_size" [
+		pango_layout_get_size: "pango_layout_get_size" [
 			 layout		[handle!]
 			 width		[int-ptr!]
 			 height		[int-ptr!]
