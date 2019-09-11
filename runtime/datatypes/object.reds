@@ -64,7 +64,6 @@ object: context [
 		return:	 [integer!]								;-- -1 if not found, else index
 		/local
 			word [red-word!]
-			ctx	 [node!]
 	][
 		assert any [									;@@ replace with ANY_WORD?
 			TYPE_OF(value) = TYPE_WORD
@@ -73,8 +72,7 @@ object: context [
 			TYPE_OF(value) = TYPE_SET_WORD
 		]
 		word: as red-word! value
-		ctx: obj/ctx
-		 _context/find-word TO_CTX(ctx) word/symbol yes
+		 _context/find-word GET_CTX(obj) word/symbol yes
 	]
 	
 	rs-select: func [
