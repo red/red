@@ -70,6 +70,12 @@ _sort: context [
 	]
 
 	BLOCK: 128
+	SHORTEST_MEDIAN_OF_MEDIANS: 50
+	MAX_SWAPS: 12
+	MAX_INSERTION: 20
+	MAX_STEPS: 5
+	SHORTEST_SHIFTING: 50
+
 	buffer-l: allocate BLOCK
 	buffer-r: allocate BLOCK
 
@@ -344,19 +350,22 @@ _sort: context [
 			cmp i j t swaptype m mp np
 	][
 		cmp: as cmpfunc! cmpfunc
+		SORT_SWAPINIT(base width)
+		mp: base
+		np: mp + width
 		if all [
 			num >= 2
-			positive? cmp base base + width op flags
+			negative? cmp np mp op flags
 		][
-			SORT_SWAPINIT(base width)
-			m: 1
-			while [m < (num - 1)][
-				mp: base + (m * width)
-				np: mp + width
-				if positive? cmp mp np op flags [
-					SORT_SWAP(mp np)
+			SORT_SWAP(mp np)
+			m: num - 2
+			loop m [
+				mp: np
+				np: np + width
+				if negative? cmp mp np op flags [
+					break
 				]
-				m: m + 1
+				SORT_SWAP(mp np)
 			]
 		]
 	]
@@ -373,21 +382,22 @@ _sort: context [
 			cmp i j t swaptype m mp np
 	][
 		cmp: as cmpfunc! cmpfunc
+		SORT_SWAPINIT(base width)
 		mp: base + (num * width) - width
 		np: mp - width
 		if all [
 			num >= 2
 			negative? cmp mp np op flags
 		][
-			SORT_SWAPINIT(base width)
-			m: num - 1
-			while [m > 0][
-				mp: base + (m * width)
-				np: mp - width
-				if negative? cmp mp np op flags [
-					SORT_SWAP(mp np)
+			SORT_SWAP(mp np)
+			m: num - 2
+			loop m [
+				mp: np
+				np: np - width
+				if positive? cmp mp np op flags [
+					break
 				]
-				m: m - 1
+				SORT_SWAP(mp np)
 			]
 		]
 	]
@@ -421,11 +431,9 @@ _sort: context [
 		cmpfunc	[integer!]
 		return:	[logic!]
 		/local
-			MAX_STEPS SHORTEST_SHIFTING
 			cmp i j t swaptype m mp np
 	][
-		MAX_STEPS: 5
-		SHORTEST_SHIFTING: 50
+
 		cmp: as cmpfunc! cmpfunc
 		SORT_SWAPINIT(base width)
 
@@ -443,7 +451,7 @@ _sort: context [
 			if m = num [return true]
 			if num < SHORTEST_SHIFTING [return false]
 			mp: base + (m * width)
-			np: base - width
+			np: mp - width
 			SORT_SWAP(mp np)
 			shift-tail base m width op flags cmpfunc
 			shift-head base + (m * width) num - m width op flags cmpfunc
@@ -644,7 +652,11 @@ _sort: context [
 		]
 		base: base + (l * width)
 		num: r - l
-		pnum/value: partition-in-blocks base num pivot width op flags cmpfunc
+		either l >= r [
+			pnum/value: 0
+		][
+			pnum/value: partition-in-blocks base num pivot width op flags cmpfunc
+		]
 		pnum/value: pnum/value + l
 		mp: _base + (pnum/value * width)
 		SORT_SWAP(_base mp)
@@ -662,10 +674,9 @@ _sort: context [
 		return:	[integer!]
 		/local
 			cmp i j t swaptype
-			_base mp np l r
+			mp np l r
 			pivot
 	][
-		_base: base
 		cmp: as cmpfunc! cmpfunc
 		SORT_SWAPINIT(base width)
 		mp: base + (npivot * width)
@@ -712,20 +723,22 @@ _sort: context [
 		cmpfunc	[integer!]
 		/local
 			i j t swaptype
-			random gen modulus pos m other mp np
+			random modulus pos m other mp np
 	][
 		if num >= 8 [
 			SORT_SWAPINIT(base width)
 			random: num
-			random: random xor (random << 13)
-			random: random xor (random >>> 17)
-			random: random xor (random << 5)
-			gen: random
 			modulus: 1 << log-b num
+			if num <> modulus [
+				modulus: modulus << 1
+			]
 			pos: num / 4 * 2
 			m: 0
 			while [m < 3][
-				other: gen and (modulus - 1)
+				random: random xor (random << 13)
+				random: random xor (random >>> 17)
+				random: random xor (random << 5)
+				other: random and (modulus - 1)
 				if other >= num [
 					other: other - num
 				]
@@ -747,14 +760,11 @@ _sort: context [
 		pivot	[int-ptr!]
 		return:	[logic!]
 		/local
-			SHORTEST_MEDIAN_OF_MEDIANS MAX_SWAPS
 			a b c swaps
 	][
-		SHORTEST_MEDIAN_OF_MEDIANS: 50
-		MAX_SWAPS: 12
 		a: num / 4
-		b: a * 2
-		c: a * 3
+		b: a + a
+		c: b + a
 		swaps: 0
 		
 		if num >= 8 [
@@ -783,22 +793,18 @@ _sort: context [
 		num		[integer!]
 		width	[integer!]
 		/local
-			i j t swaptype m n mp np
+			i j t swaptype mp np
 	][
 		SORT_SWAPINIT(base width)
-		m: 0 n: num
+		mp: base
+		np: base + (num * width) - width
 		forever [
-			if any [
-				m = n
-				m = (n - 1)
-			][
+			if mp >= np [
 				break
 			]
-			mp: base + (m * width)
-			np: base + (n * width)
+			mp: mp + width
+			np: np - width
 			SORT_SWAP(mp np)
-			m: m + 1
-			n: n - 1
 		]
 	]
 
@@ -813,7 +819,6 @@ _sort: context [
 		flags	[integer!]
 		cmpfunc	[integer!]
 		/local
-			MAX_INSERTION
 			was-balanced was-partitioned was-p
 			npivot likely-sorted
 			cmp i j t swaptype m n mp np
@@ -821,7 +826,6 @@ _sort: context [
 	][
 		cmp: as cmpfunc! cmpfunc
 		SORT_SWAPINIT(base width)
-		MAX_INSERTION: 20
 		was-balanced: true
 		was-partitioned: true
 		forever [
@@ -856,7 +860,7 @@ _sort: context [
 				unless negative? cmp mp np op flags [
 					mid: partition-equal base num width npivot op flags cmpfunc
 					base: base + (mid * width)
-					num: num - width
+					num: num - mid
 					continue
 				]
 			]
