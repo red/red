@@ -41,8 +41,8 @@ deep-reactor!: make reactor! [
 	]
 ]
 
-;reactor:	  function [spec [block!]][make reactor! spec]
-;deep-reactor: function [spec [block!]][make deep-reactor! spec]
+reactor:	  function [spec [block!]][make reactor! spec]
+deep-reactor: function [spec [block!]][make deep-reactor! spec]
 
 
 system/reactivity: context [
