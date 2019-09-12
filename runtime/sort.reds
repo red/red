@@ -39,7 +39,7 @@ cmpfunc!: alias function! [
 _sort: context [
 
 	#define SORT_SWAPINIT(a width) [
-		swaptype: either width % (size? integer!) = 0 [0][2]
+		swaptype: either width % (size? integer!) = 0 [0][1]
 	]
 
 	#define SORT_SWAP(a b) [swapfunc a b width swaptype]
@@ -59,9 +59,10 @@ _sort: context [
 		b		 [byte-ptr!]
 		n		 [integer!]
 		swaptype [integer!]
-		/local cnt i j ii jj t1 t2
+		/local cnt [integer!] i [byte-ptr!] j [byte-ptr!]
+			ii [int-ptr!] jj [int-ptr!] t1 [byte!] t2 [integer!]
 	][
-		either swaptype < 2 [
+		either zero? swaptype [
 			cnt: n >> 2
 			ii: as int-ptr! a
 			jj: as int-ptr! b
@@ -197,12 +198,14 @@ _sort: context [
 				m: base + width
 				while [m < end][
 					n: m
-					until [
-						if positive? cmp (n - width) n op flags [
-							SORT_SWAP((n - width) n)
+					while [
+						all [
+							n > base
+							positive? cmp (n - width) n op flags
 						]
+					][
+						SORT_SWAP((n - width) n)
 						n: n - width
-						n <= base
 					]
 					m: m + width
 				]
