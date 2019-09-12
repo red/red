@@ -39,27 +39,10 @@ cmpfunc!: alias function! [
 _sort: context [
 
 	#define SORT_SWAPINIT(a width) [
-		swaptype: either any [
-			(as-integer a) % (size? integer!) <> 0
-			width % (size? integer!) > 0
-		][
-			2
-		][
-			either width = size? integer! [0][1]
-		]
+		swaptype: either width % (size? integer!) = 0 [0][2]
 	]
 
-	#define SORT_SWAP(a b) [
-		either zero? swaptype [
-			i: as int-ptr! a
-			j: as int-ptr! b
-			t: i/1
-			i/1: j/1
-			j/1: t
-		][
-			swapfunc a b width swaptype
-		]
-	]
+	#define SORT_SWAP(a b) [swapfunc a b width swaptype]
 
 	#define SORT_SWAP_N(a b n) [
 		cnt: n
@@ -78,7 +61,20 @@ _sort: context [
 		swaptype [integer!]
 		/local cnt i j ii jj t1 t2
 	][
-		either swaptype > 1 [
+		either swaptype < 2 [
+			cnt: n >> 2
+			ii: as int-ptr! a
+			jj: as int-ptr! b
+			until [
+				t2: ii/1
+				ii/1: jj/1
+				jj/1: t2
+				ii: ii + 1
+				jj: jj + 1
+				cnt: cnt - 1
+				zero? cnt
+			]
+		][
 			cnt: n
 			i: a
 			j: b
@@ -88,19 +84,6 @@ _sort: context [
 				j/1: t1
 				i: i + 1
 				j: j + 1
-				cnt: cnt - 1
-				zero? cnt
-			]
-		][
-			cnt: n / 4
-			ii: as int-ptr! a
-			jj: as int-ptr! b
-			until [
-				t2: ii/1
-				ii/1: jj/1
-				jj/1: t2
-				ii: ii + 1
-				jj: jj + 1
 				cnt: cnt - 1
 				zero? cnt
 			]
@@ -137,15 +120,18 @@ _sort: context [
 		flags	[integer!]
 		cmpfunc [integer!]
 		/local
-			cmp a b c d m n end i j t r part result swaptype swapped?
+			a [byte-ptr!] b [byte-ptr!] c [byte-ptr!] d [byte-ptr!] m [byte-ptr!]
+			n [byte-ptr!] end [byte-ptr!] i [byte-ptr!] j [byte-ptr!] r [integer!]
+			part [integer!] result [integer!] swaptype [integer!] swapped? [logic!]
+			cmp
 	][
 		cmp: as cmpfunc! cmpfunc
+		SORT_SWAPINIT(base width)
 		until [
-			SORT_SWAPINIT(base width)
 			swapped?: false
 			end: base + (num * width)
 
-			if num < 8 [								;-- Insertion sort on smallest arrays
+			if num < 7 [								;-- Insertion sort on smallest arrays
 				m: base + width
 				while [m < end][
 					n: m
@@ -163,22 +149,24 @@ _sort: context [
 				exit
 			]
 			m: base + (num / 2 * width)
-			a: base
-			b: base + (num - 1 * width)
-			if num > 40 [
-				part: num / 8 * width
-				a: med3 a a + part a + (2 * part) op flags cmpfunc
-				m: med3 m - part m m + part op flags cmpfunc
-				b: med3 b - (2 * part) b - part b op flags cmpfunc
+			if num > 7 [
+				a: base
+				b: base + (num - 1 * width)
+				if num > 40 [
+					part: num >> 3 * width
+					a: med3 a a + part a + (2 * part) op flags cmpfunc
+					m: med3 m - part m m + part op flags cmpfunc
+					b: med3 b - (2 * part) b - part b op flags cmpfunc
+				]
+				m: med3 a m b op flags cmpfunc
 			]
-			m: med3 a m b op flags cmpfunc
-
 			SORT_SWAP(base m)
 			a: base + width
 			b: a
+
 			c: base + ((num - 1) * width)
 			d: c
-			until [
+			forever [
 				while [b <= c][
 					result: cmp b base op flags
 					if result > 0 [break]
@@ -199,15 +187,13 @@ _sort: context [
 					]
 					c: c - width
 				]
-				if b <= c [
-					SORT_SWAP(b c)
-					swapped?: true
-					b: b + width
-					c: c - width
-				]
-				b > c
+				if b > c [break]
+				SORT_SWAP(b c)
+				swapped?: true
+				b: b + width
+				c: c - width
 			]
-			unless swapped? [
+			unless swapped? [			;-- switch to insertion sort 
 				m: base + width
 				while [m < end][
 					n: m
@@ -220,7 +206,7 @@ _sort: context [
 					]
 					m: m + width
 				]
-				exit			
+				exit
 			]
 			r: as-integer either (a - base) < (b - a) [a - base][b - a]
 			if r > 0 [swapfunc base b - r r swaptype]
