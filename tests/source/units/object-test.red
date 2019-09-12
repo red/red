@@ -65,8 +65,9 @@ Red [
 		--assert obj5/a = 456
 
 	--test-- "basic-7"
-		--assert find obj5 'a
-		--assert not find obj5 'z
+		;; DEPRECATED
+		;;--assert find obj5 'a
+		;;--assert not find obj5 'z
 		--assert 456 = select obj5 'a
 		--assert none? select obj5 'z
 
@@ -1081,8 +1082,9 @@ Red [
 			--assert obj5/a = 456
 
 		--test-- "loc-basic-7"
-			--assert find obj5 'a
-			--assert not find obj5 'z
+			;; DEPRECATED
+			;;--assert find obj5 'a
+			;;--assert not find obj5 'z
 			--assert 456 = select obj5 'a
 			--assert none? select obj5 'z
 
@@ -2210,22 +2212,22 @@ Red [
 
 ===end-group===
 
-===start-group=== "find & select"
+===start-group=== "select"
 
 	--test-- "ofs"
 		ofs1: make object! [a: 1]
-		--assert find ofs1 'a
+		;;--assert find ofs1 'a
 		--assert 1 = select ofs1 'a
 		
 	--test-- "ofs2"
 		ofs2: make object! [a: none]
-		--assert find ofs2 'a
+		;;--assert find ofs2 'a
 		--assert none = select ofs2 'a
 		
 	--test-- "ofs3"
 		ofs3: make object! [a: 1]
-		--assert not find ofs3 'b
-		--assert not select ofs3 'b			
+		;;--assert not find ofs3 'b
+		--assert not select ofs3 'b
 
 ===end-group===
 
