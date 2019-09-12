@@ -945,14 +945,19 @@ _sort: context [
 
 	;-- guarantees `O(n log n)` worst-case.
 	heap-sort: func [
-		base	[byte-ptr!]
-		num		[integer!]
-		width	[integer!]
-		op		[integer!]
-		flags	[integer!]
-		cmpfunc	[integer!]
+		base			[byte-ptr!]
+		num				[integer!]
+		width			[integer!]
+		op				[integer!]
+		flags			[integer!]
+		cmpfunc			[integer!]
 		/local
-			i j t swaptype m mp
+			i			[int-ptr!]
+			j			[int-ptr!]
+			t			[integer!]
+			swaptype	[integer!]
+			m			[integer!]
+			mp			[byte-ptr!]
 	][
 		m: num / 2 - 1
 		while [m >= 0][
@@ -962,10 +967,11 @@ _sort: context [
 
 		SORT_SWAPINIT(base width)
 		m: num - 1
+		mp: base + (m * width)
 		while [m > 0][
-			mp: base + (m * width)
 			SORT_SWAP(base mp)
 			sift-down base m 0 width op flags cmpfunc
+			mp: mp - width
 			m: m - 1
 		]
 	]
