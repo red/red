@@ -70,14 +70,12 @@ _sort: context [
 	]
 
 	BLOCK: 128
+	BLOCK-USIZE: BLOCK / 4
 	SHORTEST_MEDIAN_OF_MEDIANS: 50
 	MAX_SWAPS: 12
 	MAX_INSERTION: 20
 	MAX_STEPS: 5
 	SHORTEST_SHIFTING: 50
-
-	buffer-l: allocate BLOCK
-	buffer-r: allocate BLOCK
 
 	swapfunc: func [
 		a		 [byte-ptr!]
@@ -484,13 +482,13 @@ _sort: context [
 		block_l: BLOCK
 		start_l: as byte-ptr! 0
 		end_l: as byte-ptr! 0
-		offsets_l: buffer-l
+		offsets_l: as byte-ptr! system/stack/allocate BLOCK-USIZE
 
 		r: l + (num * width)
 		block_r: BLOCK
 		start_r: as byte-ptr! 0
 		end_r: as byte-ptr! 0
-		offsets_r: buffer-r
+		offsets_r: as byte-ptr! system/stack/allocate BLOCK-USIZE
 
 		cmp: as cmpfunc! cmpfunc
 		SORT_SWAPINIT(base width)
