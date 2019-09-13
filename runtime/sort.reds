@@ -44,15 +44,7 @@ _sort: context [
 
 	#define SORT_SWAP(a b) [swapfunc a b width swaptype]
 
-	#define SORT_COPY(a b) [
-		either zero? swaptype [
-			i: as int-ptr! a
-			j: as int-ptr! b
-			j/1: i/1
-		][
-			copyfunc a b width swaptype
-		]
-	]
+	#define SORT_COPY(a b) [copyfunc a b width swaptype]
 
 	#define SORT_SWAP_N(a b n) [
 		loop n [
@@ -61,6 +53,15 @@ _sort: context [
 			b: b + width
 		]
 	]
+
+	#define SORT_ARGS_EXT_DEF [
+		width	[integer!]
+		op		[integer!]
+		flags	[integer!]
+		cmpfunc [integer!]
+	]
+	
+	#define SORT_ARGS_EXT [width op flags cmpfunc]
 
 	UNIT!: alias struct! [
 		a	[integer!]
@@ -116,27 +117,22 @@ _sort: context [
 		swaptype	[integer!]
 		/local cnt i j ii jj
 	][
-		either swaptype > 1 [
-			cnt: n
-			i: a
-			j: b
-			until [
-				j/1: i/1
-				i: i + 1
-				j: j + 1
-				cnt: cnt - 1
-				zero? cnt
-			]
-		][
-			cnt: n / 4
+		either zero? swaptype [
+			cnt: n >> 2
 			ii: as int-ptr! a
 			jj: as int-ptr! b
-			until [
+			loop cnt [
 				jj/1: ii/1
 				ii: ii + 1
 				jj: jj + 1
-				cnt: cnt - 1
-				zero? cnt
+			]
+		][
+			i: a
+			j: b
+			loop n [
+				j/1: i/1
+				i: i + 1
+				j: j + 1
 			]
 		]
 	]
@@ -973,15 +969,6 @@ _sort: context [
 			m: m - 1
 		]
 	]
-
-	#define GRAIL_ARGS_EXT_DEF [
-		width	[integer!]
-		op		[integer!]
-		flags	[integer!]
-		cmpfunc [integer!]
-	]
-	
-	#define GRAIL_ARGS_EXT [width op flags cmpfunc]
 
 	grail-rotate: func [
 		base	[byte-ptr!]
