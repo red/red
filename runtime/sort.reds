@@ -45,14 +45,21 @@ _sort: context [
 	#define SORT_SWAP(a b) [swapfunc a b width swaptype]
 
 	#define SORT_SWAP_N(a b n) [
-		cnt: n
-		while [cnt <> 0][
+		loop n [
 			SORT_SWAP(a b)
 			a: a + width
 			b: b + width
-			cnt: cnt - 1
 		]
 	]
+
+	#define SORT_ARGS_EXT_DEF [
+		width	[integer!]
+		op		[integer!]
+		flags	[integer!]
+		cmpfunc [integer!]
+	]
+	
+	#define SORT_ARGS_EXT [width op flags cmpfunc]
 
 	swapfunc: func [
 		a		 [byte-ptr!]
@@ -66,27 +73,22 @@ _sort: context [
 			cnt: n >> 2
 			ii: as int-ptr! a
 			jj: as int-ptr! b
-			until [
+			loop cnt [
 				t2: ii/1
 				ii/1: jj/1
 				jj/1: t2
 				ii: ii + 1
 				jj: jj + 1
-				cnt: cnt - 1
-				zero? cnt
 			]
 		][
-			cnt: n
 			i: a
 			j: b
-			until [
+			loop n [
 				t1: i/1
 				i/1: j/1
 				j/1: t1
 				i: i + 1
 				j: j + 1
-				cnt: cnt - 1
-				zero? cnt
 			]
 		]
 	]
@@ -230,15 +232,6 @@ _sort: context [
 		]
 	]
 
-	#define GRAIL_ARGS_EXT_DEF [
-		width	[integer!]
-		op		[integer!]
-		flags	[integer!]
-		cmpfunc [integer!]
-	]
-	
-	#define GRAIL_ARGS_EXT [width op flags cmpfunc]
-
 	grail-rotate: func [
 		base	[byte-ptr!]
 		n1		[integer!]
@@ -266,7 +259,7 @@ _sort: context [
 		base	[byte-ptr!]
 		num		[integer!]
 		key		[byte-ptr!]
-		GRAIL_ARGS_EXT_DEF
+		SORT_ARGS_EXT_DEF
 		return: [integer!]
 		/local
 			cmp a b c
@@ -285,7 +278,7 @@ _sort: context [
 		base	[byte-ptr!]
 		num		[integer!]
 		key		[byte-ptr!]
-		GRAIL_ARGS_EXT_DEF
+		SORT_ARGS_EXT_DEF
 		return: [integer!]
 		/local
 			cmp a b c
@@ -304,13 +297,13 @@ _sort: context [
 		base	[byte-ptr!]
 		n1		[integer!]
 		n2		[integer!]
-		GRAIL_ARGS_EXT_DEF
+		SORT_ARGS_EXT_DEF
 		/local cmp h
 	][
 		cmp: as cmpfunc! cmpfunc
 		either n1 < n2 [
 			while [n1 <> 0][
-				h: grail-search-left base + (n1 * width) n2 base GRAIL_ARGS_EXT
+				h: grail-search-left base + (n1 * width) n2 base SORT_ARGS_EXT
 				if h <> 0 [
 					grail-rotate base n1 h width
 					base: base + (h * width)
@@ -329,7 +322,7 @@ _sort: context [
 			]
 		][
 			while [n2 <> 0][
-				h: grail-search-right base n1 base + (n1 + n2 - 1 * width) GRAIL_ARGS_EXT
+				h: grail-search-right base n1 base + (n1 + n2 - 1 * width) SORT_ARGS_EXT
 				if h <> n1 [
 					grail-rotate base + (h * width) n1 - h n2 width
 					n1: h
@@ -351,32 +344,32 @@ _sort: context [
 		base	[byte-ptr!]
 		n1		[integer!]
 		n2		[integer!]
-		GRAIL_ARGS_EXT_DEF
+		SORT_ARGS_EXT_DEF
 		/local
 			cmp K k1 k2 m1 m2 ak
 	][
 		cmp: as cmpfunc! cmpfunc
 		if any [n1 < 3 n2 < 3][
-			grail-merge-nobuf base n1 n2 GRAIL_ARGS_EXT
+			grail-merge-nobuf base n1 n2 SORT_ARGS_EXT
 			exit
 		]
 		K: either n1 < n2 [n1 + (n2 / 2)][n1 / 2]
 		ak: base + (K * width)
-		k1: grail-search-left base n1 ak GRAIL_ARGS_EXT
+		k1: grail-search-left base n1 ak SORT_ARGS_EXT
 		k2: k1
 		if all [
 			k2 < n1
 			zero? cmp base + (k2 * width) ak op flags
 		][
-			k2: k1 + grail-search-right base + (k1 * width) n1 - k1 ak GRAIL_ARGS_EXT
+			k2: k1 + grail-search-right base + (k1 * width) n1 - k1 ak SORT_ARGS_EXT
 		]
-		m1: grail-search-left base + (n1 * width) n2 ak GRAIL_ARGS_EXT
+		m1: grail-search-left base + (n1 * width) n2 ak SORT_ARGS_EXT
 		m2: m1
 		if all [
 			m2 < n2
 			zero? cmp base + (n1 + m2 * width) ak op flags
 		][
-			m2: m1 + grail-search-right base + (n1 + m1 * width) n2 - m1 ak GRAIL_ARGS_EXT
+			m2: m1 + grail-search-right base + (n1 + m1 * width) n2 - m1 ak SORT_ARGS_EXT
 		]
 		either k1 = k2 [
 			grail-rotate base + (k2 * width) n1 - k2 m2 width
@@ -384,8 +377,8 @@ _sort: context [
 			grail-rotate base + (k1 * width) n1 - k1 m1 width
 			if m2 <> m1 [grail-rotate base + (k2 + m1 * width) n1 - k2 m2 - m1 width]
 		]
-		grail-classic-merge base + (k2 + m2 * width) n1 - k2 n2 - m2 GRAIL_ARGS_EXT
-		grail-classic-merge base k1 m1 GRAIL_ARGS_EXT
+		grail-classic-merge base + (k2 + m2 * width) n1 - k2 n2 - m2 SORT_ARGS_EXT
+		grail-classic-merge base k1 m1 SORT_ARGS_EXT
 	]
 
 	mergesort: func [
@@ -414,11 +407,11 @@ _sort: context [
 			p0: 0
 			p1: num - (2 * h)
 			while [p0 <= p1][
-				grail-classic-merge base + (p0 * width) h h GRAIL_ARGS_EXT
+				grail-classic-merge base + (p0 * width) h h SORT_ARGS_EXT
 				p0: p0 + (2 * h)
 			]
 			rest: num - p0
-			if rest > h [grail-classic-merge base + (p0 * width) h rest - h GRAIL_ARGS_EXT]
+			if rest > h [grail-classic-merge base + (p0 * width) h rest - h SORT_ARGS_EXT]
 			h: h * 2
 		]
 	]
