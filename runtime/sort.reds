@@ -425,30 +425,28 @@ _sort: context [
 		cmpfunc	[integer!]
 		return:	[logic!]
 		/local
-			cmp i j t swaptype m mp np
+			cmp i j t swaptype m mp
 	][
-
 		cmp: as cmpfunc! cmpfunc
 		SORT_SWAPINIT(base width)
 
 		m: 1
+		mp: base + width
 		loop MAX_STEPS [
-			while [m < num][
-				mp: base + (m * width)
-				np: mp - width
-				either negative? cmp mp np op flags [
-					break
-				][
-					m: m + 1
+			while [
+				all [
+					m < num
+					not negative? cmp mp mp - width op flags
 				]
+			][
+				m: m + 1
+				mp: mp + width
 			]
 			if m = num [return true]
 			if num < SHORTEST_SHIFTING [return false]
-			mp: base + (m * width)
-			np: mp - width
-			SORT_SWAP(mp np)
+			SORT_SWAP(mp (mp - width))
 			shift-tail base m width op flags cmpfunc
-			shift-head base + (m * width) num - m width op flags cmpfunc
+			shift-head mp num - m width op flags cmpfunc
 		]
 		false
 	]
@@ -577,18 +575,16 @@ _sort: context [
 				while [start_l < end_l][
 					end_l: end_l - 1
 					mp: l + ((as integer! end_l/1) * width)
-					np: r - width
-					SORT_SWAP(mp np)
 					r: r - width
+					SORT_SWAP(mp r)
 				]
 				w: (as integer! r - base) / width
 			]
 			start_r < end_r [
 				while [start_r < end_r][
 					end_r: end_r - 1
-					mp: l
 					np: r - ((as integer! end_r/1) * width) - width
-					SORT_SWAP(mp np)
+					SORT_SWAP(l np)
 					l: l + width
 				]
 				w: (as integer! l - base) / width
@@ -628,18 +624,20 @@ _sort: context [
 
 		l: 0
 		r: num
+		mp: base
 		while [l < r][
-			mp: base + (l * width)
 			either negative? cmp mp pivot op flags [
 				l: l + 1
+				mp: mp + width
 			][
 				break
 			]
 		]
+		mp: base + (r * width) - width
 		while [l < r][
-			mp: base + (r * width) - width
 			either not negative? cmp mp pivot op flags [
 				r: r - 1
+				mp: mp - width
 			][
 				break
 			]
@@ -681,29 +679,33 @@ _sort: context [
 
 		l: 0
 		r: num
+		mp: base
+		np: base + (r * width)
 		forever [
-			while [l < r][
-				mp: base + (l * width)
-				either not negative? cmp pivot mp op flags [
-					l: l + 1
-				][
-					break
+			while [
+				all [
+					l < r
+					not negative? cmp pivot mp op flags
 				]
+			][
+				l: l + 1
+				mp: mp + width
 			]
-			while [l < r][
-				mp: base + (r * width) - width
-				either negative? cmp pivot mp op flags [
-					r: r - 1
-				][
-					break
+			while [
+				all [
+					l < r
+					negative? cmp pivot np - width op flags
 				]
+			][
+				r: r - 1
+				np: np - width
 			]
 			if l >= r [break]
 			r: r - 1
-			mp: base + (l * width)
-			np: base + (r * width)
+			np: np - width
 			SORT_SWAP(mp np)
 			l: l + 1
+			mp: mp + width
 		]
 		l + 1
 	]
@@ -726,7 +728,7 @@ _sort: context [
 			if num <> modulus [
 				modulus: modulus << 1
 			]
-			pos: num / 4 * 2
+			pos: num >>> 1 and FFFFFFFEh
 			m: 0
 			while [m < 3][
 				random: random xor (random << 13)
@@ -756,7 +758,7 @@ _sort: context [
 		/local
 			a b c swaps
 	][
-		a: num / 4
+		a: num >>> 2
 		b: a + a
 		c: b + a
 		swaps: 0
