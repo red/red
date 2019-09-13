@@ -113,7 +113,7 @@ native: context [
 			unless found? [fire [TO_ERROR(script no-refine) fname word]]
 			value: value + 1
 		]
-		
+		assert ref-array + index <= as int-ptr! s/tail
 		block/rs-append args as red-value! none-value	;-- restore vector record
 		
 		vec: as red-vector! ALLOC_TAIL(args)
