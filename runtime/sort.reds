@@ -79,18 +79,22 @@ _sort: context [
 	SHORTEST_SHIFTING: 50
 
 	swapfunc: func [
-		a		 [byte-ptr!]
-		b		 [byte-ptr!]
-		n		 [integer!]
-		swaptype [integer!]
-		/local cnt [integer!] i [byte-ptr!] j [byte-ptr!]
-			ii [int-ptr!] jj [int-ptr!] t1 [byte!] t2 [integer!]
+		a				[byte-ptr!]
+		b				[byte-ptr!]
+		n				[integer!]
+		swaptype		[integer!]
+		/local 
+			i			[byte-ptr!]
+			j			[byte-ptr!]
+			ii			[int-ptr!]
+			jj			[int-ptr!]
+			t1			[byte!]
+			t2			[integer!]
 	][
 		either zero? swaptype [
-			cnt: n >> 2
 			ii: as int-ptr! a
 			jj: as int-ptr! b
-			loop cnt [
+			loop n >> 2 [
 				t2: ii/1
 				ii/1: jj/1
 				jj/1: t2
@@ -111,17 +115,20 @@ _sort: context [
 	]
 
 	copyfunc: func [
-		a			[byte-ptr!]
-		b			[byte-ptr!]
-		n			[integer!]
-		swaptype	[integer!]
-		/local cnt i j ii jj
+		a				[byte-ptr!]
+		b				[byte-ptr!]
+		n				[integer!]
+		swaptype		[integer!]
+		/local
+			i			[byte-ptr!]
+			j			[byte-ptr!]
+			ii			[int-ptr!]
+			jj			[int-ptr!]
 	][
 		either zero? swaptype [
-			cnt: n >> 2
 			ii: as int-ptr! a
 			jj: as int-ptr! b
-			loop cnt [
+			loop n >> 2 [
 				jj/1: ii/1
 				ii: ii + 1
 				jj: jj + 1
@@ -138,17 +145,19 @@ _sort: context [
 	]
 
 	sort2: func [
-		base	[byte-ptr!]
-		a		[int-ptr!]
-		b		[int-ptr!]
-		swaps	[int-ptr!]
-		width	[integer!]
-		op		[integer!]
-		flags	[integer!]
-		cmpfunc [integer!]
+		base			[byte-ptr!]
+		a				[int-ptr!]
+		b				[int-ptr!]
+		swaps			[int-ptr!]
+		width			[integer!]
+		op				[integer!]
+		flags			[integer!]
+		cmpfunc			[integer!]
 		/local
-			cmp
-			mp np temp
+			cmp			[cmpfunc!]
+			mp			[byte-ptr!]
+			np			[byte-ptr!]
+			temp		[integer!]
 	][
 		cmp: as cmpfunc! cmpfunc
 		mp: base + (a/1 * width)
@@ -162,15 +171,15 @@ _sort: context [
 	]
 
 	sort3: func [
-		base	[byte-ptr!]
-		a		[int-ptr!]
-		b		[int-ptr!]
-		c		[int-ptr!]
-		swaps	[int-ptr!]
-		width	[integer!]
-		op		[integer!]
-		flags	[integer!]
-		cmpfunc [integer!]
+		base			[byte-ptr!]
+		a				[int-ptr!]
+		b				[int-ptr!]
+		c				[int-ptr!]
+		swaps			[int-ptr!]
+		width			[integer!]
+		op				[integer!]
+		flags			[integer!]
+		cmpfunc			[integer!]
 	][
 		sort2 base a b swaps width op flags cmpfunc
 		sort2 base b c swaps width op flags cmpfunc
@@ -178,15 +187,16 @@ _sort: context [
 	]
 
 	sort-adjacent: func [
-		base	[byte-ptr!]
-		a		[int-ptr!]
-		swaps	[int-ptr!]
-		width	[integer!]
-		op		[integer!]
-		flags	[integer!]
-		cmpfunc [integer!]
+		base			[byte-ptr!]
+		a				[int-ptr!]
+		swaps			[int-ptr!]
+		width			[integer!]
+		op				[integer!]
+		flags			[integer!]
+		cmpfunc			[integer!]
 		/local
-			b c
+			b			[integer!]
+			c			[integer!]
 	][
 		b: a/1 - 1
 		c: a/1 + 1
@@ -194,14 +204,15 @@ _sort: context [
 	]
 
 	med3: func [
-		a		[byte-ptr!]
-		b		[byte-ptr!]
-		c		[byte-ptr!]
-		op		[integer!]
-		flags	[integer!]
-		cmpfunc [integer!]
-		return: [byte-ptr!]
-		/local cmp
+		a				[byte-ptr!]
+		b				[byte-ptr!]
+		c				[byte-ptr!]
+		op				[integer!]
+		flags			[integer!]
+		cmpfunc			[integer!]
+		return:			[byte-ptr!]
+		/local
+			cmp			[cmpfunc!]
 	][
 		cmp: as cmpfunc! cmpfunc
 		either negative? cmp a b op flags [
@@ -216,17 +227,26 @@ _sort: context [
 	]
 
 	qsort: func [
-		base	[byte-ptr!]
-		num		[integer!]
-		width	[integer!]
-		op		[integer!]
-		flags	[integer!]
-		cmpfunc [integer!]
+		base			[byte-ptr!]
+		num				[integer!]
+		width			[integer!]
+		op				[integer!]
+		flags			[integer!]
+		cmpfunc			[integer!]
 		/local
-			a [byte-ptr!] b [byte-ptr!] c [byte-ptr!] d [byte-ptr!] m [byte-ptr!]
-			n [byte-ptr!] end [byte-ptr!] i [byte-ptr!] j [byte-ptr!] r [integer!]
-			part [integer!] result [integer!] swaptype [integer!] swapped? [logic!]
-			cmp
+			a			[byte-ptr!]
+			b			[byte-ptr!]
+			c			[byte-ptr!]
+			d			[byte-ptr!]
+			m			[byte-ptr!]
+			n			[byte-ptr!]
+			end			[byte-ptr!]
+			r			[integer!]
+			part		[integer!]
+			result		[integer!]
+			swapped?	[logic!]
+			cmp			[cmpfunc!]
+			swaptype	[integer!]
 	][
 		cmp: as cmpfunc! cmpfunc
 		SORT_SWAPINIT(base width)
@@ -334,14 +354,18 @@ _sort: context [
 
 	;-- Shifts the first element to the right until it encounters a greater or equal element.
 	shift-head: func [
-		base	[byte-ptr!]
-		num		[integer!]
-		width	[integer!]
-		op		[integer!]
-		flags	[integer!]
-		cmpfunc	[integer!]
+		base			[byte-ptr!]
+		num				[integer!]
+		width			[integer!]
+		op				[integer!]
+		flags			[integer!]
+		cmpfunc			[integer!]
 		/local
-			cmp i j t swaptype m mp np
+			m			[integer!]
+			mp			[byte-ptr!]
+			np			[byte-ptr!]
+			cmp			[cmpfunc!]
+			swaptype	[integer!]
 	][
 		cmp: as cmpfunc! cmpfunc
 		SORT_SWAPINIT(base width)
@@ -366,14 +390,18 @@ _sort: context [
 
 	;-- Shifts the last element to the left until it encounters a smaller or equal element.
 	shift-tail: func [
-		base	[byte-ptr!]
-		num		[integer!]
-		width	[integer!]
-		op		[integer!]
-		flags	[integer!]
-		cmpfunc	[integer!]
+		base			[byte-ptr!]
+		num				[integer!]
+		width			[integer!]
+		op				[integer!]
+		flags			[integer!]
+		cmpfunc			[integer!]
 		/local
-			cmp i j t swaptype m mp np
+			m			[integer!]
+			mp			[byte-ptr!]
+			np			[byte-ptr!]
+			cmp			[cmpfunc!]
+			swaptype	[integer!]
 	][
 		cmp: as cmpfunc! cmpfunc
 		SORT_SWAPINIT(base width)
@@ -398,14 +426,14 @@ _sort: context [
 
 	;-- `O(n^2)` worst-case.
 	insertion-sort: func [
-		base	[byte-ptr!]
-		num		[integer!]
-		width	[integer!]
-		op		[integer!]
-		flags	[integer!]
-		cmpfunc	[integer!]
+		base			[byte-ptr!]
+		num				[integer!]
+		width			[integer!]
+		op				[integer!]
+		flags			[integer!]
+		cmpfunc			[integer!]
 		/local
-			i j t swaptype m mp
+			m			[integer!]
 	][
 		m: 1
 		while [m < num][
@@ -417,15 +445,18 @@ _sort: context [
 	;-- Partially sorts a slice by shifting several out-of-order elements around.
 	;-- Returns `true` if the slice is sorted at the end. This function is `O(n)` worst-case.
 	partial-insertion-sort: func [
-		base	[byte-ptr!]
-		num		[integer!]
-		width	[integer!]
-		op		[integer!]
-		flags	[integer!]
-		cmpfunc	[integer!]
-		return:	[logic!]
+		base			[byte-ptr!]
+		num				[integer!]
+		width			[integer!]
+		op				[integer!]
+		flags			[integer!]
+		cmpfunc			[integer!]
+		return:			[logic!]
 		/local
-			cmp i j t swaptype m mp
+			m			[integer!]
+			mp			[byte-ptr!]
+			cmp			[cmpfunc!]
+			swaptype	[integer!]
 	][
 		cmp: as cmpfunc! cmpfunc
 		SORT_SWAPINIT(base width)
@@ -457,20 +488,38 @@ _sort: context [
 	;-- This idea is presented in the [BlockQuicksort][pdf] paper.
 	;-- [pdf]: http://drops.dagstuhl.de/opus/volltexte/2016/6389/pdf/LIPIcs-ESA-2016-38.pdf
 	partition-in-blocks: func [
-		base	[byte-ptr!]
-		num		[integer!]
-		pivot	[byte-ptr!]
-		width	[integer!]
-		op		[integer!]
-		flags	[integer!]
-		cmpfunc	[integer!]
-		return:	[integer!]
+		base			[byte-ptr!]
+		num				[integer!]
+		pivot			[byte-ptr!]
+		width			[integer!]
+		op				[integer!]
+		flags			[integer!]
+		cmpfunc			[integer!]
+		return:			[integer!]
 		/local
-			l block_l start_l end_l offsets_l
-			r block_r start_r end_r offsets_r
-			cmp i j t swaptype
-			w is_done elem m w2 count mp np temp
-			unit	[UNIT! value]
+			l			[byte-ptr!]
+			block_l		[integer!]
+			start_l		[byte-ptr!]
+			end_l		[byte-ptr!]
+			offsets_l	[byte-ptr!]
+			r			[byte-ptr!]
+			block_r		[integer!]
+			start_r		[byte-ptr!]
+			end_r		[byte-ptr!]
+			offsets_r	[byte-ptr!]
+			BLOCK2		[integer!]
+			w			[integer!]
+			w2			[integer!]
+			is_done		[logic!]
+			elem		[byte-ptr!]
+			m			[integer!]
+			count		[integer!]
+			mp			[byte-ptr!]
+			np			[byte-ptr!]
+			temp		[byte-ptr!]
+			unit		[UNIT! value]
+			cmp			[cmpfunc!]
+			swaptype	[integer!]
 	][
 		l: base
 		block_l: BLOCK
@@ -483,13 +532,14 @@ _sort: context [
 		start_r: as byte-ptr! 0
 		end_r: as byte-ptr! 0
 		offsets_r: as byte-ptr! system/stack/allocate BLOCK-USIZE
+		BLOCK2: BLOCK << 1
 
 		cmp: as cmpfunc! cmpfunc
 		SORT_SWAPINIT(base width)
 
 		forever [
 			w: (as integer! r - l) / width
-			is_done: w <= (2 * BLOCK)
+			is_done: w <= BLOCK2
 			if is_done [
 				if any [
 					start_l < end_l
@@ -503,7 +553,7 @@ _sort: context [
 						block_l: w
 					]
 					true [
-						block_l: w / 2
+						block_l: w >>> 1
 						block_r: w - block_l
 					]
 				]
@@ -599,19 +649,23 @@ _sort: context [
 	;-- Partitions it into elements smaller than `base[pivot]`, followed by elements greater than or equal to `base[pivot]`.
 	;--
 	partition: func [
-		base	[byte-ptr!]
-		num		[integer!]
-		npivot	[integer!]
-		width	[integer!]
-		op		[integer!]
-		flags	[integer!]
-		cmpfunc	[integer!]
-		pnum	[int-ptr!]
-		return:	[logic!]
+		base			[byte-ptr!]
+		num				[integer!]
+		npivot			[integer!]
+		width			[integer!]
+		op				[integer!]
+		flags			[integer!]
+		cmpfunc			[integer!]
+		pnum			[int-ptr!]
+		return:			[logic!]
 		/local
-			cmp i j t swaptype
-			_base mp l r
-			pivot
+			_base		[byte-ptr!]
+			mp			[byte-ptr!]
+			l			[integer!]
+			r			[integer!]
+			pivot		[byte-ptr!]
+			cmp			[cmpfunc!]
+			swaptype	[integer!]
 	][
 		_base: base
 		cmp: as cmpfunc! cmpfunc
@@ -656,18 +710,22 @@ _sort: context [
 	]
 
 	partition-equal: func [
-		base	[byte-ptr!]
-		num		[integer!]
-		width	[integer!]
-		npivot	[integer!]
-		op		[integer!]
-		flags	[integer!]
-		cmpfunc	[integer!]
-		return:	[integer!]
+		base			[byte-ptr!]
+		num				[integer!]
+		width			[integer!]
+		npivot			[integer!]
+		op				[integer!]
+		flags			[integer!]
+		cmpfunc			[integer!]
+		return:			[integer!]
 		/local
-			cmp i j t swaptype
-			mp np l r
-			pivot
+			mp			[byte-ptr!]
+			np			[byte-ptr!]
+			l			[integer!]
+			r			[integer!]
+			pivot		[byte-ptr!]
+			cmp			[cmpfunc!]
+			swaptype	[integer!]
 	][
 		cmp: as cmpfunc! cmpfunc
 		SORT_SWAPINIT(base width)
@@ -711,15 +769,21 @@ _sort: context [
 	]
 
 	break-patterns: func [
-		base	[byte-ptr!]
-		num		[integer!]
-		width	[integer!]
-		op		[integer!]
-		flags	[integer!]
-		cmpfunc	[integer!]
+		base			[byte-ptr!]
+		num				[integer!]
+		width			[integer!]
+		op				[integer!]
+		flags			[integer!]
+		cmpfunc			[integer!]
 		/local
-			i j t swaptype
-			random modulus pos m other mp np
+			random		[integer!]
+			modulus		[integer!]
+			pos			[integer!]
+			other		[integer!]
+			m			[integer!]
+			mp			[byte-ptr!]
+			np			[byte-ptr!]
+			swaptype	[integer!]
 	][
 		if num >= 8 [
 			SORT_SWAPINIT(base width)
@@ -728,13 +792,14 @@ _sort: context [
 			if num <> modulus [
 				modulus: modulus << 1
 			]
+			modulus: modulus - 1
 			pos: num >>> 1 and FFFFFFFEh
 			m: 0
 			while [m < 3][
 				random: random xor (random << 13)
 				random: random xor (random >>> 17)
 				random: random xor (random << 5)
-				other: random and (modulus - 1)
+				other: random and modulus
 				if other >= num [
 					other: other - num
 				]
@@ -747,16 +812,19 @@ _sort: context [
 	]
 
 	choose-pivot: func [
-		base	[byte-ptr!]
-		num		[integer!]
-		width	[integer!]
-		op		[integer!]
-		flags	[integer!]
-		cmpfunc	[integer!]
-		pivot	[int-ptr!]
-		return:	[logic!]
+		base			[byte-ptr!]
+		num				[integer!]
+		width			[integer!]
+		op				[integer!]
+		flags			[integer!]
+		cmpfunc			[integer!]
+		pivot			[int-ptr!]
+		return:			[logic!]
 		/local
-			a b c swaps
+			a			[integer!]
+			b			[integer!]
+			c			[integer!]
+			swaps		[integer!]
 	][
 		a: num >>> 2
 		b: a + a
@@ -779,17 +847,18 @@ _sort: context [
 		]
 
 		reverse base num width
-
 		pivot/1: num - 1 - b
 		true
 	]
 
 	reverse: func [
-		base	[byte-ptr!]
-		num		[integer!]
-		width	[integer!]
+		base			[byte-ptr!]
+		num				[integer!]
+		width			[integer!]
 		/local
-			i j t swaptype mp np
+			mp			[byte-ptr!]
+			np			[byte-ptr!]
+			swaptype	[integer!]
 	][
 		SORT_SWAPINIT(base width)
 		mp: base
@@ -805,20 +874,33 @@ _sort: context [
 	]
 
 	recurse: func [
-		base	[byte-ptr!]
-		num		[integer!]
-		pred	[byte-ptr!]
-		pred?	[logic!]
-		limit	[integer!]
-		width	[integer!]
-		op		[integer!]
-		flags	[integer!]
-		cmpfunc	[integer!]
+		base				[byte-ptr!]
+		num					[integer!]
+		pred				[byte-ptr!]
+		pred?				[logic!]
+		limit				[integer!]
+		width				[integer!]
+		op					[integer!]
+		flags				[integer!]
+		cmpfunc				[integer!]
 		/local
-			was-balanced was-partitioned was-p
-			npivot likely-sorted
-			cmp i j t swaptype m n mp np
-			temp mid left right left-num right-num
+			was-balanced	[logic!]
+			was-partitioned	[logic!]
+			was-p			[logic!]
+			npivot			[integer!]
+			likely-sorted	[logic!]
+			m				[integer!]
+			n				[integer!]
+			mp				[byte-ptr!]
+			np				[byte-ptr!]
+			temp			[byte-ptr!]
+			mid				[integer!]
+			left			[byte-ptr!]
+			right			[byte-ptr!]
+			left-num		[integer!]
+			right-num		[integer!]
+			cmp				[cmpfunc!]
+			swaptype		[integer!]
 	][
 		cmp: as cmpfunc! cmpfunc
 		SORT_SWAPINIT(base width)
@@ -864,9 +946,9 @@ _sort: context [
 			mid: 0
 			was-p: partition base num npivot width op flags cmpfunc :mid
 			either mid > (num - mid) [
-				was-balanced: num - mid >= (num / 8)
+				was-balanced: num - mid >= (num >>> 3)
 			][
-				was-balanced: mid >= (num / 8)
+				was-balanced: mid >= (num >>> 3)
 			]
 			was-partitioned: was-p
 			left: base
@@ -891,14 +973,14 @@ _sort: context [
 	]
 
 	pbqsort: func [
-		base	[byte-ptr!]
-		num		[integer!]
-		width	[integer!]
-		op		[integer!]
-		flags	[integer!]
-		cmpfunc	[integer!]
+		base			[byte-ptr!]
+		num				[integer!]
+		width			[integer!]
+		op				[integer!]
+		flags			[integer!]
+		cmpfunc			[integer!]
 		/local
-			limit
+			limit		[integer!]
 	][
 		limit: 1 + log-b num
 		recurse base num base false limit width op flags cmpfunc
@@ -906,20 +988,28 @@ _sort: context [
 
 	;-- max heapify
 	sift-down: func [
-		base	[byte-ptr!]
-		_max	[integer!]
-		node	[integer!]
-		width	[integer!]
-		op		[integer!]
-		flags	[integer!]
-		cmpfunc	[integer!]
+		base			[byte-ptr!]
+		_max			[integer!]
+		node			[integer!]
+		width			[integer!]
+		op				[integer!]
+		flags			[integer!]
+		cmpfunc			[integer!]
 		/local
-			cmp left right greater i j t swaptype lp rp np gp
+			left		[integer!]
+			right		[integer!]
+			greater		[integer!]
+			lp			[byte-ptr!]
+			rp			[byte-ptr!]
+			np			[byte-ptr!]
+			gp			[byte-ptr!]
+			cmp			[cmpfunc!]
+			swaptype	[integer!]
 	][
 		cmp: as cmpfunc! cmpfunc
 		SORT_SWAPINIT(base width)
 		forever [
-			left: node * 2 + 1
+			left: node << 1 + 1
 			right: left + 1
 			lp: base + (left * width)
 			rp: base + (right * width)
@@ -948,14 +1038,11 @@ _sort: context [
 		flags			[integer!]
 		cmpfunc			[integer!]
 		/local
-			i			[int-ptr!]
-			j			[int-ptr!]
-			t			[integer!]
-			swaptype	[integer!]
 			m			[integer!]
 			mp			[byte-ptr!]
+			swaptype	[integer!]
 	][
-		m: num / 2 - 1
+		m: num >>> 1 - 1
 		while [m >= 0][
 			sift-down base num m width op flags cmpfunc
 			m: m - 1
@@ -973,11 +1060,14 @@ _sort: context [
 	]
 
 	grail-rotate: func [
-		base	[byte-ptr!]
-		n1		[integer!]
-		n2		[integer!]
-		width	[integer!]
-		/local end cnt b1 swaptype i j t
+		base			[byte-ptr!]
+		n1				[integer!]
+		n2				[integer!]
+		width			[integer!]
+		/local
+			end			[byte-ptr!]
+			b1			[byte-ptr!]
+			swaptype	[integer!]
 	][
 		SORT_SWAPINIT(base width)
 		while [all [n1 <> 0 n2 <> 0]][
@@ -996,13 +1086,16 @@ _sort: context [
 	]
 
 	grail-search-left: func [
-		base	[byte-ptr!]
-		num		[integer!]
-		key		[byte-ptr!]
+		base			[byte-ptr!]
+		num				[integer!]
+		key				[byte-ptr!]
 		SORT_ARGS_EXT_DEF
-		return: [integer!]
+		return:			[integer!]
 		/local
-			cmp a b c
+			cmp			[cmpfunc!]
+			a			[integer!]
+			b			[integer!]
+			c			[integer!]
 	][
 		cmp: as cmpfunc! cmpfunc
 		a: -1
@@ -1015,13 +1108,16 @@ _sort: context [
 	]
 
 	grail-search-right: func [
-		base	[byte-ptr!]
-		num		[integer!]
-		key		[byte-ptr!]
+		base			[byte-ptr!]
+		num				[integer!]
+		key				[byte-ptr!]
 		SORT_ARGS_EXT_DEF
-		return: [integer!]
+		return:			[integer!]
 		/local
-			cmp a b c
+			cmp			[cmpfunc!]
+			a			[integer!]
+			b			[integer!]
+			c			[integer!]
 	][
 		cmp: as cmpfunc! cmpfunc
 		a: -1
@@ -1034,11 +1130,13 @@ _sort: context [
 	]
 
 	grail-merge-nobuf: func [
-		base	[byte-ptr!]
-		n1		[integer!]
-		n2		[integer!]
+		base			[byte-ptr!]
+		n1				[integer!]
+		n2				[integer!]
 		SORT_ARGS_EXT_DEF
-		/local cmp h
+		/local
+			cmp			[cmpfunc!]
+			h			[integer!]
 	][
 		cmp: as cmpfunc! cmpfunc
 		either n1 < n2 [
@@ -1081,12 +1179,18 @@ _sort: context [
 	]
 
 	grail-classic-merge: func [
-		base	[byte-ptr!]
-		n1		[integer!]
-		n2		[integer!]
+		base			[byte-ptr!]
+		n1				[integer!]
+		n2				[integer!]
 		SORT_ARGS_EXT_DEF
 		/local
-			cmp K k1 k2 m1 m2 ak
+			cmp			[cmpfunc!]
+			K			[integer!]
+			k1			[integer!]
+			k2			[integer!]
+			m1			[integer!]
+			m2			[integer!]
+			aK			[byte-ptr!]
 	][
 		cmp: as cmpfunc! cmpfunc
 		if any [n1 < 3 n2 < 3][
@@ -1122,14 +1226,22 @@ _sort: context [
 	]
 
 	mergesort: func [
-		base	[byte-ptr!]
-		num		[integer!]
-		width	[integer!]
-		op		[integer!]
-		flags	[integer!]
-		cmpfunc [integer!]
+		base			[byte-ptr!]
+		num				[integer!]
+		width			[integer!]
+		op				[integer!]
+		flags			[integer!]
+		cmpfunc			[integer!]
 		/local
-			cmp m pm0 pm1 h p0 p1 rest swaptype i j t
+			m			[integer!]
+			pm0			[byte-ptr!]
+			pm1			[byte-ptr!]
+			h			[integer!]
+			p0			[integer!]
+			p1			[integer!]
+			rest		[integer!]
+			cmp			[cmpfunc!]
+			swaptype	[integer!]
 	][
 		SORT_SWAPINIT(base width)
 		cmp: as cmpfunc! cmpfunc
