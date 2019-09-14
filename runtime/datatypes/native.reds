@@ -148,17 +148,6 @@ native: context [
 		vec/type:	TYPE_INTEGER
 	]
 	
-	push: func [
-		/local
-			cell  [red-native!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "native/push"]]
-		
-		cell: as red-native! stack/push*
-		cell/header: TYPE_NATIVE
-		;...TBD
-	]
-	
 	;-- Actions -- 
 	
 	make: func [

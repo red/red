@@ -57,7 +57,6 @@
 	red/refinement/push-local
 	red/lit-word/push-local
 
-	red/action/push
 	red/binary/push
 	red/block/push
 	red/char/push
@@ -76,7 +75,6 @@
 	red/lit-word/push
 	red/logic/push
 	red/map/push
-	red/native/push
 	red/none/push
 	red/object/push
 	red/op/push
