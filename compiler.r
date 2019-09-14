@@ -804,7 +804,7 @@ red: context [
 	]
 	
 	decorate-series-var: func [name [word!] /local new list][
-		new: to word! join name get-counter
+		new: to word! append append mold/flat name "||" get-counter
 		list: select lit-vars select [blk block str string ctx context ts typeset] name
 		if all [list not find list new][append list new]
 		new
