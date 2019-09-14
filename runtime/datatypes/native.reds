@@ -13,6 +13,31 @@ Red/System [
 native: context [
 	verbose: 0
 	
+	clone-ref-array: func [
+		vec		[red-vector!]							;-- clone the vector in-place
+		return: [red-vector!]
+		/local
+			new    [node!]
+			s	   [series!]
+			target [series!]
+			size   [integer!]
+	][
+		s: GET_BUFFER(vec)
+		size: s/size
+		new: alloc-bytes size
+
+		unless zero? size [
+			target: as series! new/value
+			copy-memory
+				as byte-ptr! target/offset
+				as byte-ptr! s/offset
+				size
+			target/tail: as cell! ((as byte-ptr! target/offset) + size)
+		]	
+		vec/node: new
+		vec
+	]
+	
 	preprocess-options: func [							;-- cache optional typesets for native calls
 		args	  [red-block!]
 		native	  [red-native!]
@@ -39,7 +64,7 @@ native: context [
 			found?	  [logic!]
 	][
 		s: GET_BUFFER(args)
-		vec: vector/clone as red-vector! s/tail - 1
+		vec: clone-ref-array as red-vector! s/tail - 1
 		saved: vec/node
 		s/tail: s/tail - 2								;-- clear the vector record
 		
