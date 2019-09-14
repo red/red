@@ -1316,7 +1316,7 @@ block: context [
 		either stable? [
 			_sort/mergesort as byte-ptr! head len step * (size? red-value!) op flags cmp
 		][
-			_sort/pbqsort as byte-ptr! head len step * (size? red-value!) op flags cmp
+			_sort/pdqsort as byte-ptr! head len step * (size? red-value!) op flags cmp
 		]
 		collector/active?: saved
 		ownership/check as red-value! blk words/_sort null blk/head 0

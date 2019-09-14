@@ -2172,7 +2172,7 @@ string: context [
 				]
 			]
 		]
-		_sort/pbqsort buffer len unit * step op flags cmp
+		_sort/pdqsort buffer len unit * step op flags cmp
 		ownership/check as red-value! str words/_sort null str/head 0
 		str
 	]

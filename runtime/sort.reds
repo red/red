@@ -972,7 +972,7 @@ _sort: context [
 		]
 	]
 
-	pbqsort: func [
+	pdqsort: func [
 		base			[byte-ptr!]
 		num				[integer!]
 		width			[integer!]
