@@ -773,6 +773,11 @@ Also, additions and subtractions between pointer addresses are allowed. The resu
  offset: p - q							;-- would store 6 in offset
                             			;-- type of offset is pointer! [integer!]
 
+\note pointer/pointer math <> pointer/integer math
+Unlike in C language, pointer/pointer arithmetics always treat the operands as byte pointers, while pointer/integer arithmetics scales the integer operand to the size of the pointed type.
+
+/note
+
 +++Pointer path notation
 
 It is possible to use path notation to simulate an array with indexed access. Both reading and writing are possible. Indexes are <b>one-based</b>.
