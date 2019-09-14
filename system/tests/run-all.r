@@ -59,6 +59,7 @@ print ["This test started at" start-time]
 ===end-group===
 
 ===start-group=== "Datatype tests"
+  --run-test-file-quiet %source/units/array-test.reds 
   --run-test-file-quiet %source/units/logic-test.reds       
   --run-test-file-quiet %source/units/byte-test.reds
   --run-test-file-quiet %source/units/c-string-test.reds
