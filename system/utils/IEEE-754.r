@@ -12,6 +12,11 @@ REBOL [
 ]
 
 IEEE-754: context [
+
+	specials: [
+		#0-		#{80000000}
+	]
+
 	split64: func [
 		"Returns block containing three components of double floating point value"
 		n [number!] /local sign exp frac
@@ -41,18 +46,23 @@ IEEE-754: context [
 
 	to-binary64: func [
 		"convert a numerical value into native binary format"
-		n  [number!]
+		n  [number! issue!]
 		/rev     "reverse binary output"
 		/local out sign exp frac
 	][
-		set [sign exp frac] split64 n
-		out: make binary! 8
-		loop 6 [
-			insert out to char! byte: frac // 256
-			frac: frac - byte / 256
+		either issue? n [
+			out: copy select specials next n
+			append out #{00000000}
+		][
+			set [sign exp frac] split64 n
+			out: make binary! 8
+			loop 6 [
+				insert out to char! byte: frac // 256
+				frac: frac - byte / 256
+			]
+			insert out to char! exp // 16 * 16  + frac
+			insert out to char! exp / 16 + (128 * sign)
 		]
-		insert out to char! exp // 16 * 16  + frac
-		insert out to char! exp / 16 + (128 * sign)
 		either rev [copy reverse out][out]
 	]
 

@@ -269,7 +269,7 @@ emitter: make-profilable context [
 				ptr: tail data-buf
 				value: compiler/unbox value
 				if integer? value [value: to decimal! value]
-				unless decimal? value [value: 0.0]
+				unless find [decimal! issue!] type?/word value [value: 0.0]
 				append ptr either type = 'float32! [
 					IEEE-754/to-binary32/rev value	;-- stored in little-endian
 				][

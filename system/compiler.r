@@ -138,6 +138,7 @@ system-dialect: make-profilable context [
 		]
 		
 		comparison-op: [= <> < > <= >=]
+		float-special: [#INF #INF- #NaN #0-]
 		
 		functions: to-hash compose [
 		;--Name--Arity--Type----Cc--Specs--		   Cc = Calling convention
@@ -874,6 +875,11 @@ system-dialect: make-profilable context [
 						]
 						if type/1 = 'function! [type: [integer!]] ;-- forces pointer! [integer!] if function reference
 						next next reduce ['array! length? value 'pointer! type]	;-- hide array size
+					]
+				]
+				issue!	 [
+					either find float-special next value [[float!]][
+						throw-error ["invalid special float value:" mold value]
 					]
 				]
 				none!	 [none-type]					;-- no type case (func with no return value)
@@ -3553,7 +3559,7 @@ system-dialect: make-profilable context [
 				string!		[do pass]
 				decimal!	[do pass]
 				block!		[also preprocess-array pc/1 pc: next pc]
-				issue!		[comp-directive]
+				issue!		[either pc/1/1 = #"." [do pass][comp-directive]]
 			][
 				throw-error "datatype not allowed"
 			]

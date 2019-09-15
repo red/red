@@ -1353,7 +1353,7 @@ make-profilable make target-class [
 	]
 	
 	emit-push: func [
-		value [char! logic! integer! word! block! string! tag! path! get-word! object! decimal!]
+		value [char! logic! integer! word! block! string! tag! path! get-word! object! decimal! issue!]
 		/with cast [object!]
 		/cdecl										;-- external call
 		/keep
@@ -1401,16 +1401,17 @@ make-profilable make target-class [
 					emit #{6A}						;-- PUSH imm8
 					emit to-bin8 value
 				][
-					emit #{68}						;-- PUSH imm32		
+					emit #{68}						;-- PUSH imm32
 					emit to-bin32 value	
 				]
 			]
+			issue!
 			decimal! [
 				value: either all [cast cast/type/1 = 'float32! not cdecl][
 					IEEE-754/to-binary32/rev value
 				][
 					value: IEEE-754/to-binary64/rev value
-					emit #{68}						;-- PUSH high part		
+					emit #{68}						;-- PUSH high part
 					emit at value 5
 					value
 				]
