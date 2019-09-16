@@ -820,26 +820,28 @@ A pointer can also point to a one-dimensional array of values literally specifie
  <variable> : a pointer of same type as the array items.
  <items>    : is a non-empty list of integer!, byte!, float!, logic!, c-string! literal values.
  
-The array is statically allocated and can be accessed using pointer path notation or pointer arithmetic. The size of the array (in number of elements) is stored in a 32-bit slot, just preceding the beginning of the array (at index 0). Mixing the different allowed types in the same array is permitted (enumerations can also be used). In such case, the size of each array's slot is either 32-bit, or 64-bit if a float64! value is present.
+The array is statically allocated and can be accessed using pointer path notation or pointer arithmetic. Mixing the different allowed types in the same array is permitted (enumerations can also be used). In such case, the size of each array's slot is either 32-bit, or 64-bit if a float64! value is present.
+
+The size of a literal array can be retrieved using <b>size?</b> keyword.
 
 Examples:
 
  list: [123 456 789]
- probe list/0							;-- outputs 3
+ probe size? list						;-- outputs 3
  probe list/2							;-- outputs 456
 
  s: [#"h" #"e" #"l" #"l" #"o"]
  sz: as int-ptr! s
- probe sz/0								;-- outputs 5
+ probe size? s							;-- outputs 5
  probe s/5								;-- outputs o
 
  a: ["hello" "Red" "world"]
- probe a/0								;-- outputs 3
+ probe size? a							;-- outputs 3
  probe as-c-string a/2					;-- outputs Red
 
  c: [456 "hello" "Red" "world" #"e" true]
- probe c/0								;-- outputs 6
- probe c/1
+ probe size? c							;-- outputs 6
+ probe c/1								;-- outputs 456
  probe as-c-string c/3					;-- outputs Red
  probe as-byte c/5						;-- outputs e
  probe as-logic c/6						;-- outputs true
@@ -854,7 +856,7 @@ Examples:
  
 <u>Notes</u>: 
 
-* In the second example, this literal array is not equivalent to its c-string! counterpart "hello", as the literal array does not add a NUL value at tail of the sequence.
+* In the second example, this literal array is not equivalent to its c-string! counterpart "hello", as the literal array does not add a NUL character at tail of the sequence.
 
 * In the last example, pay attention to the different pointer indexes used, depending on the size (32-bit or 64-bit) of referenced value.
 

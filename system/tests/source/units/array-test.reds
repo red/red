@@ -16,11 +16,12 @@ Red/System [
 	--test-- "Float array"					;#4031
 	fa: [1e-16 1e-32 1e-64 1e-128 0.0]
 	p: as int-ptr! fa
-	--assert p/0 = 5
+	--assert 5 = size? fa
 	fa/5: 1.234
 	--assert fa/5 = 1.234
 
 ===end-group===
+
 
 
 ~~~end-file~~~

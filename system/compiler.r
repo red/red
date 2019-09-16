@@ -869,7 +869,11 @@ system-dialect: make-profilable context [
 						pointer! [reduce [value/1 value/2]]
 					][
 						all [
-							find [function! c-string!] first type: get-type value/1
+							any [
+								find [function! c-string!] first type: get-type value/1
+								find value get-word!
+								find value string!
+							]
 							type: [integer!]
 						]
 						next next reduce ['array! length? value 'pointer! type]	;-- hide array size
