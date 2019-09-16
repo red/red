@@ -892,8 +892,9 @@ decompress: make native! [[
 ]
 
 recycle: make native! [[
-		/on
-		/off
+		"Recycles unused memory"
+		/on		"Turns on garbage collector"
+		/off	"Turns off garbage collector"
 	]
 	#get-definition NAT_RECYCLE
 ]
