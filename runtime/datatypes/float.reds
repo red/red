@@ -90,8 +90,6 @@ float: context [
 			s0		[c-string!]
 			p0		[c-string!]
 			p		[c-string!]
-			p1		[c-string!]
-			dot?	[logic!]
 			d		[int64!]
 			w0		[integer!]
 			n		[integer!]
@@ -128,25 +126,14 @@ float: context [
 			type = FORM_PERCENT [13]
 			true [0]
 		]
-		s: red-dtoa/form-float f n
+		s: red-dtoa/form-float f n type <> FORM_TIME
 
 		tried?: no
 		s0: s
 		until [
-			p:    null
-			p1:   null
-			dot?: no
-
+			p: null
 			until [
-				if s/1 = #"." [dot?: yes]
-				if s/1 = #"e" [
-					p: s
-					until [
-						s: s + 1
-						s/1 > #"0"
-					]
-					p1: s
-				]
+				if s/1 = #"e" [p: s]
 				s: s + 1
 				s/1 = #"^@"
 			]
@@ -183,35 +170,15 @@ float: context [
 							type = FORM_TIME	 [6]
 							true				 [14]
 						]
-						s: red-dtoa/form-float f n
+						s: red-dtoa/form-float f n type <> FORM_TIME
 					]
 				]
 			]
 			s0 <> s
 		]
-
-		if p1 <> null [											;-- remove #"+" and leading zero
-			p0: p
-			either p/2 = #"-" [p: p + 2][p: p + 1]
-			move-memory as byte-ptr! p as byte-ptr! p1 as-integer s - p1
-			s: p + as-integer s - p1
-			s/1: #"^@"
-			p: p0
-		]
-		either percent? [
+		if percent? [
 			s/1: #"%"
 			s/2: #"^@"
-		][
-			if all [not dot? type <> FORM_TIME][				;-- added tailing ".0"
-				either p = null [
-					p: s
-				][
-					move-memory as byte-ptr! p + 2 as byte-ptr! p as-integer s - p
-				]
-				p/1: #"."
-				p/2: #"0"
-				s/3: #"^@"
-			]
 		]
 		s0
 	]

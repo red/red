@@ -790,6 +790,7 @@ red-dtoa: context [
 		decpt	[int-ptr!]
 		sign	[int-ptr!]
 		length	[int-ptr!]
+		add-0?	[logic!]
 		return: [c-string!]
 		/local
 			mlo [big-int!]
@@ -834,7 +835,11 @@ red-dtoa: context [
 
 		if f = 0.0 [
 			decpt/value: 9998
-			return either sign? ["-0.0"]["0.0"]
+			either add-0? [
+				return either not sign? ["0.0"]["-0.0"]
+			][
+				return either not sign? ["0"]["-0"]
+			]
 		]
 
 		be: 0
@@ -1446,34 +1451,30 @@ red-dtoa: context [
 
 		if any [c = #"." c = #","] [
 			s: s + 1
-			case [
-				zero? ndigits [
-					s1: s
-					while [c: s/1 c = #"0"][s: s + 1]
-					fraclen: fraclen + (s - s1)
-					s0: s
+			if all [ndigits = 1 s/1 = #"#"][
+				c: s/2
+				if any [c = #"I" c = #"i"] [
+					either neg? [d/int2: FFF00000h][d/int2: 7FF00000h]
+					return rv
 				]
-				all [ndigits = 1 s/1 = #"#"][
-					c: s/2
-					if any [c = #"I" c = #"i"] [
-						either neg? [d/int2: 7FF00000h][d/int2: 80000000h]
-						return rv
-					]
-					if any [c = #"N" c = #"n"] [
-						d/int2: 7FF80000h
-						return rv
-					]
-				]
-				true [
-					s1: s
-					while [
-						c: s/1
-						all [c >= #"0" c <= #"9"]
-					][s: s + 1]
-					ndigits: ndigits + (s - s1)
-					fraclen: fraclen + (s - s1)
+				if any [c = #"N" c = #"n"] [
+					d/int2: 7FF80000h
+					return rv
 				]
 			]
+			if zero? ndigits [
+				s1: s
+				while [c: s/1 c = #"0"][s: s + 1]
+				fraclen: fraclen + (s - s1)
+				s0: s
+			]
+			s1: s
+			while [
+				c: s/1
+				all [c >= #"0" c <= #"9"]
+			][s: s + 1]
+			ndigits: ndigits + (s - s1)
+			fraclen: fraclen + (s - s1)
 		]
 		nd:  ndigits
 		nd0: ndigits - fraclen
@@ -1893,6 +1894,7 @@ red-dtoa: context [
 	form-float: func [			;-- wrapper of `float-to-ascii` for convenient use
 		f 		[float!]
 		ndigits	[integer!]		;-- maximum significant digits
+		add-0?	[logic!]		;-- add .0 if not fractional part
 		return: [c-string!]
 		/local
 			s	[byte-ptr!]
@@ -1905,12 +1907,12 @@ red-dtoa: context [
 		e: 0
 		len: 0
 		sig: 0
-		s: as byte-ptr! float-to-ascii f ndigits :e :sig :len
+		s: as byte-ptr! float-to-ascii f ndigits :e :sig :len add-0?
 
 		if e > 9997 [return as c-string! s]				;-- NaN, INFs, +/-0.0
 
 		case [
-			 any [e > 17 e < -3][						;-- e-format
+			 any [e > 17 e < -6][						;-- e-format
 				move-memory s + 2 s + 1 len
 				s/2: #"."
 				end: s + len
@@ -1918,15 +1920,12 @@ red-dtoa: context [
 			e > 0 [
 				either e <= len [
 					move-memory s + e + 1 s + e len - e
-					e: e + 1
-					s/e: #"."
 					end: s + len
 				][
 					set-memory s + len #"0" e - len
 					end: s + e
-					e: e + 1
-					s/e: #"."
 				]
+				e: e + 1 s/e: #"."
 				e: 0
 			]
 			true [
@@ -1940,8 +1939,10 @@ red-dtoa: context [
 		]
 
 		if end/1 = #"." [
-			end: end + 1
-			end/1: #"0"
+			either add-0? [
+				end: end + 1
+				end/1: #"0"
+			][end/1: #"^@"]
 		]
 		if e <> 0 [
 			end: end + 1
