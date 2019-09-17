@@ -94,6 +94,7 @@ float: context [
 			dot?	[logic!]
 			d		[int64!]
 			w0		[integer!]
+			n		[integer!]
 			temp	[float!]
 			tried?	[logic!]
 			pretty? [logic!]
@@ -118,24 +119,16 @@ float: context [
 			if temp < DBL_EPSILON [return either percent? ["0%"]["0.0"]]
 		]
 
-		s: "0000000000000000000000000000000"					;-- 32 bytes wide, big enough.
-		case [
-			any [type = FORM_FLOAT_32 type = FORM_PERCENT_32][
-				sprintf [s "%.7g" f]
-			]
-			type = FORM_TIME [									;-- microsecond precision
-				either f < 10.0 [s0: "%.7g"][s0: "%.8g"]
-				sprintf [s s0 f]
-			]
-			type = FORM_PERCENT [
-				sprintf [s "%.13g" f]
-			]
-			true [
-				s/17: #"0"
-				s/18: #"0"
-				sprintf [s "%.16g" f]
-			]
+		n: case [
+			any [
+				type = FORM_FLOAT_32
+				type = FORM_PERCENT_32
+				type = FORM_TIME
+			][7]
+			type = FORM_PERCENT [13]
+			true [0]
 		]
+		s: red-dtoa/form-float f n
 
 		tried?: no
 		s0: s
@@ -185,13 +178,12 @@ float: context [
 						all [p0/2 = #"9" p0/1 = #"9"]
 					][
 						tried?: yes
-						s: case [
-							type = FORM_FLOAT_32 ["%.5g"]
-							type = FORM_TIME	 ["%.6g"]
-							true				 ["%.14g"]
+						n: case [
+							type = FORM_FLOAT_32 [5]
+							type = FORM_TIME	 [6]
+							true				 [14]
 						]
-						sprintf [s0 s f]
-						s: s0
+						s: red-dtoa/form-float f n
 					]
 				]
 			]
