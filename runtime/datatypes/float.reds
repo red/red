@@ -88,14 +88,10 @@ float: context [
 		/local
 			s		[c-string!]
 			s0		[c-string!]
-			p0		[c-string!]
-			p		[c-string!]
 			d		[int64!]
 			w0		[integer!]
 			n		[integer!]
 			temp	[float!]
-			tried?	[logic!]
-			pretty? [logic!]
 			percent? [logic!]
 			add-0?	[logic!]
 	][
@@ -131,59 +127,17 @@ float: context [
 		]
 		s: red-dtoa/form-float f n add-0?
 
-		tried?: no
-		s0: s
-		until [
-			p: null
+		if percent? [
+			s0: s
 			until [
-				if s/1 = #"e" [p: s]
 				s: s + 1
 				s/1 = #"^@"
 			]
-
-			if pretty-print? [									;-- prettify output if needed
-				pretty?: no
-				either p = null [								;-- No "E" notation
-					w0: as-integer s - s0
-					if w0 > 16 [
-						p0: either s0/1 = #"-" [s0 + 1][s0]
-						if any [
-							p0/1 <> #"0"
-							all [p0/1 = #"0" w0 > 17]
-						][
-							p0: s - 2
-							pretty?: yes
-						]
-					]
-				][
-					if (as-integer p - s0) > 16 [				;-- the number of digits = 16
-						p0: p - 2
-						pretty?: yes
-					]
-				]
-
-				if all [pretty? not tried?][
-					if any [									;-- correct '01' or '99' pattern
-						all [p0/2 = #"1" p0/1 = #"0"]
-						all [p0/2 = #"9" p0/1 = #"9"]
-					][
-						tried?: yes
-						n: case [
-							type = FORM_FLOAT_32 [5]
-							type = FORM_TIME	 [6]
-							true				 [14]
-						]
-						s: red-dtoa/form-float f n add-0?
-					]
-				]
-			]
-			s0 <> s
-		]
-		if percent? [
 			s/1: #"%"
 			s/2: #"^@"
+			s: s0
 		]
-		s0
+		s
 	]
 
 	do-math-op: func [
