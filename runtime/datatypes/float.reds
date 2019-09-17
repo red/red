@@ -97,6 +97,7 @@ float: context [
 			tried?	[logic!]
 			pretty? [logic!]
 			percent? [logic!]
+			add-0?	[logic!]
 	][
 		d: as int64! :f
 		w0: d/int2												;@@ Use little endian. Watch out big endian !
@@ -112,6 +113,8 @@ float: context [
 		]
 
 		percent?: any [type = FORM_PERCENT type = FORM_PERCENT_32]
+		add-0?: any [type = FORM_FLOAT_64 type = FORM_FLOAT_32]
+
 		if pretty-print? [
 			temp: abs f
 			if temp < DBL_EPSILON [return either percent? ["0%"]["0.0"]]
@@ -126,7 +129,7 @@ float: context [
 			type = FORM_PERCENT [13]
 			true [0]
 		]
-		s: red-dtoa/form-float f n type <> FORM_TIME
+		s: red-dtoa/form-float f n add-0?
 
 		tried?: no
 		s0: s
@@ -170,7 +173,7 @@ float: context [
 							type = FORM_TIME	 [6]
 							true				 [14]
 						]
-						s: red-dtoa/form-float f n type <> FORM_TIME
+						s: red-dtoa/form-float f n add-0?
 					]
 				]
 			]
