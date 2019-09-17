@@ -70,13 +70,8 @@ string: context [
 		len		[integer!]
 		e		[int-ptr!]
 		return: [float!]
-		/local
-			s0	[byte-ptr!]
-			f	[float!]
 	][
-		f: red-dtoa/string-to-float s s + len
-		e/value: 0
-		f
+		red-dtoa/string-to-float s s + len e
 	]
 
 	byte-to-hex: func [

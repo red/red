@@ -656,9 +656,8 @@ red-dtoa: context [
 		e		[int-ptr!]
 		return: [float!]
 		/local
-			xa xa0 w y z k d f
+			d [int64! value] xa xa0 w y z k f
 	][
-		d:   declare int64!
 		f:   as pointer! [float!] d
 		xa0: DTOA_BIG_INT_X(a)
 		xa:  xa0 + a/wds - 1
@@ -1381,6 +1380,7 @@ red-dtoa: context [
 	string-to-float: func [
 		start	[byte-ptr!]
 		end		[byte-ptr!]
+		ret		[int-ptr!]
 		return: [float!]
 		/local
 			rv	[float!]
@@ -1393,27 +1393,29 @@ red-dtoa: context [
 			bd0	[big-int!]
 			bs	[big-int!]
 			delta [big-int!]
+			bc	[cmp-info! value]
 			bb2 bb5 bd2 bd5 bs2 c dsign e e1
 			i j k nd nd0 odd neg? s s0 s1
 			aadj aadj1 adj y z next?
-			L bc d d0 d2 w0 w1 ndigits fraclen
+			L d d0 d2 w0 w1 ndigits fraclen
 	][
-		bb:    null
-		bb1:   null
-		bd:    null
-		bd0:   null
-		bs:    null
-		delta: null
-		next?: yes
-		neg?:  no
-		rv:    0.0
-		rv0:   0.0
-		aadj2: 0.0
-		d:     as int64! :rv
-		d0:    as int64! :rv0
-		d2:    as int64! :aadj2
-		s:     start
-		c:     s/1
+		bb:        null
+		bb1:       null
+		bd:        null
+		bd0:       null
+		bs:        null
+		delta:     null
+		next?:     yes
+		neg?:      no
+		rv:        0.0
+		rv0:       0.0
+		aadj2:     0.0
+		d:         as int64! :rv
+		d0:        as int64! :rv0
+		d2:        as int64! :aadj2
+		s:         start
+		c:         s/1
+		ret/value: 0
 
 		if any [
 			c = #"+"
@@ -1444,20 +1446,34 @@ red-dtoa: context [
 
 		if any [c = #"." c = #","] [
 			s: s + 1
-			if zero? ndigits [
-				s1: s
-				while [c: s/1 c = #"0"][s: s + 1]
-				fraclen: fraclen + (s - s1)
-				s0: s
+			case [
+				zero? ndigits [
+					s1: s
+					while [c: s/1 c = #"0"][s: s + 1]
+					fraclen: fraclen + (s - s1)
+					s0: s
+				]
+				all [ndigits = 1 s/1 = #"#"][
+					c: s/2
+					if any [c = #"I" c = #"i"] [
+						either neg? [d/int2: 7FF00000h][d/int2: 80000000h]
+						return rv
+					]
+					if any [c = #"N" c = #"n"] [
+						d/int2: 7FF80000h
+						return rv
+					]
+				]
+				true [
+					s1: s
+					while [
+						c: s/1
+						all [c >= #"0" c <= #"9"]
+					][s: s + 1]
+					ndigits: ndigits + (s - s1)
+					fraclen: fraclen + (s - s1)
+				]
 			]
-
-			s1: s
-			while [
-				c: s/1
-				all [c >= #"0" c <= #"9"]
-			][s: s + 1]
-			ndigits: ndigits + (s - s1)
-			fraclen: fraclen + (s - s1)
 		]
 		nd:  ndigits
 		nd0: ndigits - fraclen
@@ -1470,6 +1486,9 @@ red-dtoa: context [
 
 		e: e - (nd - nd0)
 		if nd0 <= 0 [nd0: nd]
+
+		;-- finish parsing
+		;if ret <> null [ret/value: s]
 
 		if zero? nd [return either neg? [d/int2: 80000000h rv][0.0]]
 
@@ -1488,7 +1507,6 @@ red-dtoa: context [
 		y: 0
 		z: 0
 		i: 0
-		bc: declare cmp-info!
 		e1: e
 		bc/e0: e1
 		until [
