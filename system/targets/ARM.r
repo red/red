@@ -1370,7 +1370,7 @@ make-profilable make target-class [
 	]
 
 	emit-load: func [
-		value [char! logic! integer! word! string! path! paren! get-word! object! decimal!]
+		value [char! logic! integer! word! string! path! paren! get-word! object! decimal! issue!]
 		/alt
 		/with cast [object!]
 		/local type offset spec original opcode
@@ -1387,6 +1387,7 @@ make-profilable make target-class [
 			integer! [
 				emit-load-imm32 value
 			]
+			issue!
 			decimal! [
 				either all [cast cast/type/1 = 'float32!][
 					emit-load-imm32 to integer! IEEE-754/to-binary32 value
@@ -1500,7 +1501,7 @@ make-profilable make target-class [
 	]
 	
 	emit-store: func [
-		name [word!] value [char! logic! integer! word! string! paren! tag! get-word! decimal!]
+		name [word!] value [char! logic! integer! word! string! paren! tag! get-word! decimal! issue!]
 		spec [block! none!]
 		/by-value slots [integer!]
 		/local store-qword store-word store-byte type opcode
@@ -1535,6 +1536,7 @@ make-profilable make target-class [
 			integer! [
 				do store-word
 			]
+			issue!
 			decimal! [
 				type: compiler/get-variable-spec name
 				either type/1 = 'float32! [
@@ -1908,7 +1910,7 @@ make-profilable make target-class [
 	]
 
 	emit-push: func [
-		value [char! logic! integer! word! block! string! tag! path! get-word! object! decimal!]
+		value [char! logic! integer! word! block! string! tag! path! get-word! object! decimal! issue!]
 		/with cast [object!]
 		/cdecl
 		/local push-last push-last64 spec type conv-int-float? float?
@@ -1949,6 +1951,7 @@ make-profilable make target-class [
 				emit-load-imm32/reg value 3
 				emit-i32 #{e92d0008}				;-- PUSH {r3}
 			]
+			issue!
 			decimal! [
 				either all [cast cast/type/1 = 'float32! not cdecl][
 					emit-load-imm32 to integer! IEEE-754/to-binary32 value

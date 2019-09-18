@@ -782,7 +782,7 @@ make-profilable make target-class [
 	]
 	
 	emit-load: func [
-		value [char! logic! integer! word! string! path! paren! get-word! object! decimal!]
+		value [char! logic! integer! word! string! path! paren! get-word! object! decimal! issue!]
 		/alt
 		/with cast [object!]
 		/local offset spec
@@ -805,6 +805,7 @@ make-profilable make target-class [
 				emit #{B8}							;-- MOV eax, value
 				emit to-bin32 value
 			]
+			issue!
 			decimal! [
 				set-width any [cast value]
 				emit-push any [cast value]
@@ -918,7 +919,7 @@ make-profilable make target-class [
 	]
 	
 	emit-store: func [
-		name [word!] value [char! logic! integer! word! string! paren! tag! get-word! decimal!]
+		name [word!] value [char! logic! integer! word! string! paren! tag! get-word! decimal! issue!]
 		spec [block! none!]
 		/by-value slots [integer!]
 		/local store-dword type offset
@@ -946,6 +947,7 @@ make-profilable make target-class [
 				do store-dword
 				emit to-bin32 value
 			]
+			issue!
 			decimal! [
 				store-float-variable name
 			]
