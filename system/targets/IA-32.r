@@ -2035,7 +2035,7 @@ make-profilable make target-class [
 		][
 			size: size + stack-width				;-- account for extra space
 		]
-		if issue? args/1 [							;-- test for variadic call
+		if compiler/variadic? args/1 [
 			size: call-arguments-size? args/2
 			if spec/2 = 'native [
 				size: size + pick [12 8] args/1 = #typed 	;-- account for extra arguments
@@ -2140,7 +2140,7 @@ make-profilable make target-class [
 	
 	emit-call-import: func [args [block!] fspec [block!] spec [block!] attribs [block! none!] /local cdecl?][
 		cdecl?: fspec/3 = 'cdecl
-		if all [issue? args/1 not cdecl?][emit-variadic-data args]
+		if all [compiler/variadic? args/1 not cdecl?][emit-variadic-data args]
 
 		either compiler/job/OS = 'macOS [
 			either PIC? [
@@ -2176,7 +2176,7 @@ make-profilable make target-class [
 				emit-indirect-call spec
 			]
 		][
-			if all [issue? args/1 not cdecl?][emit-variadic-data args]
+			if all [compiler/variadic? args/1 not cdecl?][emit-variadic-data args]
 			emit #{E8}								;-- CALL NEAR disp
 			emit-reloc-addr spec					;-- 32-bit relative displacement
 		]
@@ -2194,7 +2194,7 @@ make-profilable make target-class [
 			emit #{89E7}							;-- MOV edi, esp
 			emit #{83E4F0}							;-- AND esp, -16
 
-			offset: 4 + either issue? args/1 [		;-- account for saved edi
+			offset: 4 + either compiler/variadic? args/1 [ ;-- account for saved edi
 				all [
 					args/1 = #variadic
 					fspec/3 <> 'cdecl
