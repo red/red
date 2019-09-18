@@ -17,13 +17,13 @@ IEEE-754: context [
 		single [
 			#INF	#{7F800000}
 			#INF-	#{FF800000}
-			#NaN	#{7FC00000}
+			#NaN	#{7F200000}							;-- Quiet NaN
 			#0-		#{80000000}
 		]
 		double [
 			#INF	#{7FF0000000000000}
 			#INF-	#{FFF0000000000000}
-			#NaN	#{7FF8000000000000}	
+			#NaN	#{7FF8000000000000}					;-- Quiet NaN
 			#0-		#{8000000000000000}
 		]
 	]
@@ -43,11 +43,11 @@ IEEE-754: context [
 			frac: n / (2 ** exp)
 
 			either positive? exp: exp + 1023 [
-				frac: frac - 1         				; drop the first bit for normals
-				frac: frac * (2 ** 52) 				; make the remaining fraction an
-													; "integer"
+				frac: frac - 1         					;-- drop the first bit for normals
+				frac: frac * (2 ** 52) 					;-- make the remaining fraction an
+														;-- "integer"
 			][
-				frac: 2 ** (51 + exp) * frac  		; denormals
+				frac: 2 ** (51 + exp) * frac  			;-- denormals
 				exp: 0
 			]
 		]
@@ -91,9 +91,9 @@ IEEE-754: context [
 
 			either positive? exp: exp + 127 [
 				frac: frac - 1
-				frac: frac * (2 ** 23) 				; make the remaining fraction an "integer"
+				frac: frac * (2 ** 23) 					;-- make the remaining fraction an "integer"
 			][
-				frac: 2 ** (22 + exp) * frac  		; denormals
+				frac: 2 ** (22 + exp) * frac  			;-- denormals
 				exp: 0
 			]
 			frac: to integer! frac + .5
