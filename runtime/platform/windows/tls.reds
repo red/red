@@ -60,14 +60,19 @@ SChannel: context [
 	]
 
 	negotiate: func [
+		sock		[integer!]
+		hcred		[SecHandle!]
+		host		[c-string!]
 		client?		[logic!]
 		return:		[logic!]
 		/local
 			sspi-flags	[integer!]
 			indesc		[SecBufferDesc! value]
 			outdesc		[SecBufferDesc! value]
-			outbufs		[SecBuffer! value]
-			inbufs		[SecBuffer!]
+			outbuf		[SecBuffer! value]
+			inbuf		[SecBuffer!]
+			expiry		[tagFILETIME value]
+			ret			[integer!]
 	][
 		;-- allocate 2 SecBuffer! on stack for inbufs
 		inbufs: as SecBuffer! system/stack/allocate (size? SecBuffer!) >> 1
@@ -81,8 +86,32 @@ SChannel: context [
 
 		outdesc/ulVersion: 0
 		outdesc/cBuffers: 1
-		outdesc/pBuffers: :outbufs
+		outdesc/pBuffers: :outbuf
 
+		ret: platform/SSPI/InitializeSecurityContext
+			hcred
+			null
+			host
+			sspi-flags
+			0
+			10h			;-- SECURITY_NATIVE_DREP
+			null
+			0
+			null
+			outdesc
+			:sspi-flags
+			:expiry
+
+		if ret <> 00090312h [	;-- SEC_I_CONTINUE_NEEDED
+			return false
+		]
+
+		if all [				;-- send response to server if there is one
+			outbuf.cbBuffer <> 0
+			outbuf.pvBuffer <> null
+		][
+			0 ;socket/send 
+		]
 		true
 	]
 
