@@ -131,7 +131,7 @@ socket: context [
 			io-port	[iocp!]
 			state	[integer!]
 	][
-		;#if debug? = yes [if verbose > 0 [print-line "socket/write"]]
+		;#if debug? = yes [if verbose > 0 [print-line "socket/send"]]
 
 probe ["socket/write/event: " data/event]
 
@@ -211,6 +211,28 @@ probe ["socket/read: " n]
 				iocp/post data/io-port data
 			]
 		]
+	]
+
+	usend: func [	;-- for UDP
+		sock		[integer!]
+		addr		[sockaddr_in!]
+		addr-sz		[integer!]
+		buffer		[byte-ptr!]
+		length		[integer!]
+		data		[iocp-data!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "socket/usend"]]
+	]
+
+	urecv: func [
+		sock		[integer!]
+		buffer		[byte-ptr!]
+		length		[integer!]
+		addr		[sockaddr_in!]
+		addr-sz		[int-ptr!]
+		data		[sockdata!]
+	][
+
 	]
 
 	close: func [

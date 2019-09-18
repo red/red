@@ -551,3 +551,74 @@ errno: as int-ptr! 0
 		]
 	]
 ]
+
+#either OS = 'macOS [
+	#define LIBSSL-file "libssl.dylib"
+][
+	#define LIBSSL-file "libssl.so"
+]
+
+#import [
+	LIBSSL-file cdecl [
+		SSL_library_init: "SSL_library_init" [
+			return:	[integer!]
+		]
+		SSL_CTX_new: "SSL_CTX_new" [
+			method	[int-ptr!]
+			return: [int-ptr!]
+		]
+		TLS_method: "TLS_method" [
+			return: [int-ptr!]
+		]
+		TLS_client_method: "TLS_client_method" [
+			return: [int-ptr!]
+		]
+		SSL_new: "SSL_new" [
+			ctx		[int-ptr!]
+			return: [int-ptr!]
+		]
+		SSL_free: "SSL_free" [
+			ssl		[int-ptr!]
+		]
+		SSL_clear: "SSL_clear" [
+			ssl		[int-ptr!]
+			return: [integer!]
+		]
+		SSL_set_fd: "SSL_set_fd" [
+			ssl		[int-ptr!]
+			fd		[integer!]
+			return: [integer!]
+		]
+		SSL_set_connect_state: "SSL_set_connect_state" [
+			ssl		[int-ptr!]
+		]
+		SSL_set_accept_state: "SSL_set_accept_state" [
+			ssl		[int-ptr!]
+		]
+		SSL_do_handshake: "SSL_do_handshake" [
+			ssl		[int-ptr!]
+			return: [integer!]
+		]
+		SSL_get_error: "SSL_get_error" [
+			ssl		[int-ptr!]
+			ret		[integer!]
+			return: [integer!]
+		]
+		SSL_shutdown: "SSL_shutdown" [
+			ssl		[int-ptr!]
+			return: [integer!]
+		]
+		SSL_read: "SSL_read" [
+			ssl		[int-ptr!]
+			buf		[byte-ptr!]
+			num		[integer!]
+			return:	[integer!]
+		]
+		SSL_Write: "SSL_Write" [
+			ssl		[int-ptr!]
+			buf		[byte-ptr!]
+			num		[integer!]
+			return:	[integer!]
+		]
+	]
+]
