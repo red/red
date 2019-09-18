@@ -58,7 +58,7 @@ json-common: context [
     ]
     
 	translit: func [
-		"Tansliterate sub-strings in a string"
+		"Transliterate sub-strings in a string"
 		string [string!] "Input (modified)"
 		rule   [block! bitset!] "What to change"
 		xlat   [block! function!] "Translation table or function. MUST map a string! to a string!."

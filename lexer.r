@@ -822,7 +822,12 @@ lexer: context [
 				]
 			]
 		][
-			unless find [integer! decimal!] type?/word s: to integer! s [throw-error]
+			if any [
+				not find [integer! decimal!] type?/word s: to integer! s
+				all [rs? type <> type? s]
+			][
+				throw-error
+			]
 		]
 		s
 	]
