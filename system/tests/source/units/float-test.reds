@@ -306,6 +306,24 @@ Red/System [
 	
 ===end-group===
 
+===start-group=== "Float special values"
+		--test-- "fsp-1"
+			fp-1:  1.#NAN 	--assert fp-1 =  1.#NAN
+			fp-1:  1.#INF 	--assert fp-1 =  1.#INF
+			fp-1: +1.#INF 	--assert fp-1 =  1.#INF
+			fp-1: -1.#INF 	--assert fp-1 = -1.#INF
+
+		--test-- "fsp-2"
+			fp-2: -0.0 	--assert fp-2 = -0.0
+			--assert 1.0 + -0.0 = 1.0
+			--assert -1.0 * 0.0 = -0.0
+
+		--test-- "fsp-3"
+			fsp-3: func [f [float!] return: [float!]][f]
+			--assert -0.0 = fsp-3 -0.0
+
+===end-group===
+
 ===start-group=== "various regression tests from bugtracker"
 
 	--test-- "issue #227"

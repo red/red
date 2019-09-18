@@ -329,6 +329,24 @@ Red/System [
 
 ===end-group===
 
+===start-group=== "Float special values"
+		--test-- "fsp-1"
+			fp-1: as-float32 1.#NAN 	--assert fp-1 = as-float32 1.#NAN
+			fp-1: as-float32 1.#INF 	--assert fp-1 = as-float32 1.#INF
+			fp-1: as-float32 +1.#INF 	--assert fp-1 = as-float32 1.#INF
+			fp-1: as-float32 -1.#INF 	--assert fp-1 = as-float32 -1.#INF
+
+		--test-- "fsp-2"
+			fp-2: as-float32 -0.0 	--assert fp-2 = as-float32 -0.0
+			--assert (as-float32 1.0) + (as-float32 -0.0) = as-float32 1.0
+			--assert (as-float32 -1.0) * (as-float32 0.0) = as-float32 -0.0
+
+		--test-- "fsp-3"
+			fsp-3: func [f [float32!] return: [float32!]][f]
+			--assert (as-float32 -0.0) = fsp-3 as-float32 -0.0
+
+===end-group===
+
 ===start-group=== "implicit literal type casting of function arguments"
 	--test-- "fiitc1"
 		flitc1-f: function [
