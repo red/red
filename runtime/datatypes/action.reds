@@ -13,17 +13,6 @@ Red/System [
 action: context [
 	verbose: 0
 	
-	push: func [
-		/local
-			cell  [red-action!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "action/push"]]
-		
-		cell: as red-action! stack/push*
-		cell/header: TYPE_ACTION
-		;...TBD
-	]
-	
 	;-- Actions -- 
 	
 	make: func [

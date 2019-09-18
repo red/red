@@ -198,7 +198,7 @@ compose: make native! [[
 
 get: make native! [[
 		"Returns the value a word refers to"
-		word	[word! path! object!]
+		word	[any-word! refinement! path! object!]
 		/any  "If word has no value, return UNSET rather than causing an error"
 		/case "Use case-sensitive comparison (path only)"
 		return: [any-type!]
@@ -892,8 +892,9 @@ decompress: make native! [[
 ]
 
 recycle: make native! [[
-		/on
-		/off
+		"Recycles unused memory"
+		/on		"Turns on garbage collector"
+		/off	"Turns off garbage collector"
 	]
 	#get-definition NAT_RECYCLE
 ]

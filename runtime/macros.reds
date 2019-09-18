@@ -590,6 +590,15 @@ Red/System [
 	either a < b [-1][either a > b [1][0]]
 ]
 
+#define DISPATCH_COMPARE(value) [
+	as function! [									;-- pre-dispatch compare action
+		value1  [red-value!]						;-- first operand
+		value2  [red-value!]						;-- second operand
+		op	    [integer!]							;-- type of comparison
+		return: [integer!]
+	] actions/get-action-ptr value ACT_COMPARE
+]
+
 #define IMAGE_WIDTH(size)  (size and FFFFh) 
 #define IMAGE_HEIGHT(size) (size >> 16)
 

@@ -837,7 +837,7 @@ parser: context [
 		s: GET_BUFFER(series)
 		if s/offset = s/tail [gc-saved: collector/active? collector/active?: no]
 
-		if OPTION?(fun) [fun-locs: _function/count-locals fun/spec 0]
+		if OPTION?(fun) [fun-locs: _function/count-locals fun/spec 0 no]
 		
 		saved?: save-stack
 		base: stack/push*								;-- slot on stack for COPY/SET operations (until OPTION?() is fixed)

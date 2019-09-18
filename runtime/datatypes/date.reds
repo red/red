@@ -453,13 +453,14 @@ date: context [
 		switch TYPE_OF(value) [
 			TYPE_INTEGER [
 				int: as red-integer! value
-				h: int/value
+				h: int/value % 16
 				m: 0
 			]
 			TYPE_TIME [
 				tm: as red-time! value
-				h: time/get-hours tm/time
-				m: time/get-minutes tm/time
+				t: fmod tm/time 57600.0					;-- 16.0 hours in seconds
+				h: time/get-hours t
+				m: time/get-minutes t
 			]
 			default [fire [TO_ERROR(script invalid-arg) value]]
 		]

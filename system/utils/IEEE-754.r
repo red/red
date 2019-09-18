@@ -12,6 +12,22 @@ REBOL [
 ]
 
 IEEE-754: context [
+
+	specials: [
+		single [
+			#INF	#{7F800000}
+			#INF-	#{FF800000}
+			#NaN	#{7FC00000}
+			#0-		#{80000000}
+		]
+		double [
+			#INF	#{7FF0000000000000}
+			#INF-	#{FFF0000000000000}
+			#NaN	#{7FF8000000000000}	
+			#0-		#{8000000000000000}
+		]
+	]
+
 	split64: func [
 		"Returns block containing three components of double floating point value"
 		n [number!] /local sign exp frac
@@ -19,7 +35,6 @@ IEEE-754: context [
 		sign: either negative? n [n: negate n 1][0]
 
 		either zero? n [exp: frac: 0][
-
 			either zero? 1024 - exp: to integer! log-2 n [
 				exp: 1023
 			][
@@ -41,18 +56,22 @@ IEEE-754: context [
 
 	to-binary64: func [
 		"convert a numerical value into native binary format"
-		n  [number!]
+		n  [number! issue!]
 		/rev     "reverse binary output"
 		/local out sign exp frac
 	][
-		set [sign exp frac] split64 n
-		out: make binary! 8
-		loop 6 [
-			insert out to char! byte: frac // 256
-			frac: frac - byte / 256
+		either issue? n [
+			out: copy select specials/double next n
+		][
+			set [sign exp frac] split64 n
+			out: make binary! 8
+			loop 6 [
+				insert out to char! byte: frac // 256
+				frac: frac - byte / 256
+			]
+			insert out to char! exp // 16 * 16  + frac
+			insert out to char! exp / 16 + (128 * sign)
 		]
-		insert out to char! exp // 16 * 16  + frac
-		insert out to char! exp / 16 + (128 * sign)
 		either rev [copy reverse out][out]
 	]
 
@@ -63,7 +82,6 @@ IEEE-754: context [
 		sign: either negative? n [n: negate n 1][0]
 
 		either zero? n [exp: frac: 0][
-		
 			either zero? 128 - exp: to integer! log-2 n [
 				exp: 127
 			][
@@ -85,18 +103,22 @@ IEEE-754: context [
 
 	to-binary32: func [
 		"convert a numerical value into native binary format"
-		n  [number!]
+		n  [number! issue!]
 		/rev     "reverse binary output"
 		/local out sign exp frac
 	][
-		set [sign exp frac] split32 n
-		out: make binary! 4
-		loop 2 [
-			insert out to char! byte: frac // 256
-			frac: frac - byte / 256
+		either issue? n [
+			out: copy select specials/single next n
+		][
+			set [sign exp frac] split32 n
+			out: make binary! 4
+			loop 2 [
+				insert out to char! byte: frac // 256
+				frac: frac - byte / 256
+			]
+			insert out to char! exp * 128 // 256  + frac
+			insert out to char! exp / 2 + (128 * sign)
 		]
-	    insert out to char! exp * 128 // 256  + frac
-	    insert out to char! exp / 2 + (128 * sign)
 		either rev [copy reverse out][out]
 	]
 ]

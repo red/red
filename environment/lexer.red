@@ -382,7 +382,7 @@ system/lexer: context [
 					#"^(00)" - #"^(08)"						;-- (exclude TAB)
 					#"^(0A)" - #"^(1F)"
 				]
-				cs/13: charset {^{"[]();:xX}				;-- integer-end
+				cs/13: charset {^{"[]();:xX<}				;-- integer-end
 				cs/14: charset " ^-^M"						;-- ws-ASCII, ASCII common whitespaces
 				cs/15: charset [#"^(2000)" - #"^(200A)"]	;-- ws-U+2k, Unicode spaces in the U+2000-U+200A range
 				cs/16: charset [ 							;-- Control characters

@@ -316,7 +316,6 @@ Red [
 	--test-- "series-select-22"
 		ss22-b: [1x2 0 3x4 1]
 		--assert 0 = select ss22-b 1x2
-
 		
 ===end-group===
 
@@ -1450,7 +1449,12 @@ Red [
 		pb2-b: [#"x" #"y"]
 		pb2-c: #"x"
 		--assert #"y" = pb2-b/:pb2-c
-		
+
+	--test-- "path-hash-1 issue #3720"
+		ph1-h: make hash! [a: 1]
+		ph1-h/a: 2
+		--assert 2 = ph1-h/a
+
 	--test-- "path-str-1"
 		pb1-s: "xy"
 		--assert #"y" = pb1-s/(#"x")

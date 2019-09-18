@@ -133,13 +133,7 @@ block: context [
 		s: GET_BUFFER(blk)
 		slot: s/offset + blk/head
 		tail: s/tail
-		
-		compare: as function! [
-			value1  [red-value!]
-			value2  [red-value!]
-			op	    [integer!]							;-- type of comparison
-			return: [integer!]							;-- returns 0 if COMP_FIND matches
-		] actions/get-action-ptr value ACT_COMPARE		;-- extract the dispatched action
+		compare: DISPATCH_COMPARE(value)
 
 		while [slot < tail][
 			if zero? compare value slot COMP_FIND [
@@ -1121,12 +1115,7 @@ block: context [
 		if flags and sort-reverse-mask = sort-reverse-mask [
 			temp: value1 value1: value2 value2: temp
 		]
-		action-compare: as function! [
-			value1  [red-value!]						;-- first operand
-			value2  [red-value!]						;-- second operand
-			op	    [integer!]							;-- type of comparison
-			return: [integer!]
-		] actions/get-action-ptr value1 ACT_COMPARE
+		action-compare: DISPATCH_COMPARE(value1)
 
 		res: action-compare value1 value2 op
 		if res = -2 [res: TYPE_OF(value1) - TYPE_OF(value2)]

@@ -1945,7 +1945,7 @@ natives: context [
 		part [integer!]
 	][
 		#typecheck [uppercase part]
-		case-folding/change-case stack/arguments part yes
+		case-folding/change stack/arguments part yes
 	]
 
 	lowercase*: func [
@@ -1953,7 +1953,7 @@ natives: context [
 		part [integer!]
 	][
 		#typecheck [lowercase part]
-		case-folding/change-case stack/arguments part no
+		case-folding/change stack/arguments part no
 	]
 	
 	as-pair*: func [
