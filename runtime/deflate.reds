@@ -12,9 +12,28 @@ deflate: context [
 	#define MAX_MATCH		258
 	#define DICT_BUFF_SIZE	4096	;[DICT_SIZE * CACHE_SIZE]
 
-	STATUS!: alias struct! [
+	DEFLATE!: alias struct! [
 		bits		[integer!]
 		cnt			[integer!]
+	]
+
+	INFLATE!: alias struct! [
+		bits		[integer!]
+		cnt			[integer!]
+		lits		[int-ptr!]
+		dsts		[int-ptr!]
+		lens		[int-ptr!]
+		tlit		[integer!]
+		tdist		[integer!]
+		tlen		[integer!]
+	]
+
+	#enum STATES! [
+		STATE-HDR
+		STATE-STORED
+		STATE-FIXED
+		STATE-DYN
+		STATE-BLK
 	]
 
 	MIRROR: [
@@ -41,12 +60,42 @@ deflate: context [
 	LMIN: [11 13 15 17 19 23 27 31 35 43 51 59 67 83 99 115 131 163 195 227]
 	DMIN: [1 2 3 4 5 7 9 13 17 25 33 49 65 97 129 193 257 385 513 769 1025 1537 2049 3073 4097 6145 8193 12289 16385 24577]
 
+	ORDER: [
+		#"^(16)" #"^(17)" #"^(18)" #"^(00)" #"^(08)" #"^(07)" #"^(09)" #"^(06)"
+		#"^(10)" #"^(05)" #"^(11)" #"^(04)" #"^(12)" #"^(03)" #"^(13)" #"^(02)"
+		#"^(14)" #"^(01)" #"^(15)"
+	]
+
+	DBASE: [
+		1 2 3 4 5 7 9 13 17 25 33 49 65 97 129 193
+		257 385 513 769 1025 1537 2049 3073 4097 6145 8193 12289 16385 24577 0 0
+	]
+
+	DBITS: [
+		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(01)" #"^(01)" #"^(02)" #"^(02)"
+		#"^(03)" #"^(03)" #"^(04)" #"^(04)" #"^(05)" #"^(05)" #"^(06)" #"^(06)"
+		#"^(07)" #"^(07)" #"^(08)" #"^(08)" #"^(09)" #"^(09)" #"^(0A)" #"^(0A)"
+		#"^(0B)" #"^(0B)" #"^(0C)" #"^(0C)" #"^(0D)" #"^(0D)" #"^(00)" #"^(00)"
+	]
+
+	LBASE: [
+		3 4 5 6 7 8 9 10 11 13 15 17 19 23 27 31
+		35 43 51 59 67 83 99 115 131 163 195 227 258 0 0
+	]
+
+	LBITS: [
+		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)"
+		#"^(01)" #"^(01)" #"^(01)" #"^(01)" #"^(02)" #"^(02)" #"^(02)" #"^(02)"
+		#"^(03)" #"^(03)" #"^(03)" #"^(03)" #"^(04)" #"^(04)" #"^(04)" #"^(04)"
+		#"^(05)" #"^(05)" #"^(05)" #"^(05)" #"^(00)" #"^(00)" #"^(00)"
+	]
+
 	rev16: func [
-		n				[integer!]
-		return:			[integer!]
+		n			[integer!]
+		return:		[integer!]
 		/local
-			t			[integer!]
-			r			[integer!]
+			t		[integer!]
+			r		[integer!]
 	][
 		t: n and FFh + 1
 		r: (as integer! MIRROR/t) << 8
@@ -56,10 +105,10 @@ deflate: context [
 	]
 
 	npow2: func [
-		n				[integer!]
-		return:			[integer!]
+		n			[integer!]
+		return:		[integer!]
 		/local
-			t			[integer!]
+			t		[integer!]
 	][
 		t: 1 << log-b n
 		if n <> t [
@@ -70,13 +119,13 @@ deflate: context [
 
 
 	hash: func [
-		s				[byte-ptr!]
-		return:			[integer!]
+		s			[byte-ptr!]
+		return:		[integer!]
 		/local
-			a			[integer!]
-			b			[integer!]
-			c			[integer!]
-			x			[integer!]
+			a		[integer!]
+			b		[integer!]
+			c		[integer!]
+			x		[integer!]
 	][
 		a: as integer! s/1
 		b: as integer! s/2
@@ -92,13 +141,13 @@ deflate: context [
 	]
 
 	hash2: func [
-		s				[byte-ptr!]
-		return:			[integer!]
+		s			[byte-ptr!]
+		return:		[integer!]
 		/local
-			a			[integer!]
-			b			[integer!]
-			c			[integer!]
-			x			[integer!]
+			a		[integer!]
+			b		[integer!]
+			c		[integer!]
+			x		[integer!]
 	][
 		a: as integer! s/1
 		b: as integer! s/2
@@ -109,12 +158,12 @@ deflate: context [
 	]
 
 	write: func [
-		dst				[byte-ptr!]
-		end				[byte-ptr!]
-		s				[STATUS!]
-		code			[integer!]
-		bitcnt			[integer!]
-		return:			[byte-ptr!]
+		dst			[byte-ptr!]
+		end			[byte-ptr!]
+		s			[DEFLATE!]
+		code		[integer!]
+		bitcnt		[integer!]
+		return:		[byte-ptr!]
 	][
 		s/bits: code << s/cnt or s/bits
 		s/cnt: s/cnt + bitcnt
@@ -130,23 +179,23 @@ deflate: context [
 	]
 
 	match: func [
-		dst				[byte-ptr!]
-		end				[byte-ptr!]
-		s				[STATUS!]
-		dist			[integer!]
-		len				[integer!]
-		return:			[byte-ptr!]
+		dst			[byte-ptr!]
+		end			[byte-ptr!]
+		s			[DEFLATE!]
+		dist		[integer!]
+		len			[integer!]
+		return:		[byte-ptr!]
 		/local
-			lc			[integer!]
-			lx			[integer!]
-			pos			[integer!]
-			dc			[integer!]
-			dx			[integer!]
+			lc		[integer!]
+			lx		[integer!]
+			pos		[integer!]
+			dc		[integer!]
+			dx		[integer!]
 	][
 		lc: len
 		lx: log-b len - 3
 		lx: lx - 2
-		lx: either lx < 0 [0][lx]
+		if lx < 0 [lx: 0]
 		case [
 			lx = 0 [lc: lc + 254]
 			len >= 258 [
@@ -174,7 +223,7 @@ deflate: context [
 
 		dc: dist - 1
 		dx: log-b npow2 dist >> 2
-		dx: either dx < 0 [0][dx]
+		if dx < 0 [dx: 0]
 		if dx <> 0 [
 			pos: dx + 1
 			dc: as integer! dist > DXMAX/pos
@@ -190,13 +239,13 @@ deflate: context [
 	]
 
 	lit: func [
-		dst				[byte-ptr!]
-		end				[byte-ptr!]
-		s				[STATUS!]
-		c				[integer!]
-		return:			[byte-ptr!]
+		dst			[byte-ptr!]
+		end			[byte-ptr!]
+		s			[DEFLATE!]
+		c			[integer!]
+		return:		[byte-ptr!]
 		/local
-			pos			[integer!]
+			pos		[integer!]
 	][
 		if c <= 143 [
 			pos: 30h + c + 1
@@ -206,29 +255,29 @@ deflate: context [
 		write dst end s 2 * (as integer! MIRROR/pos) + 1 9
 	]
 
-	_deflate: func [
-		out				[byte-ptr!]
-		out-size		[integer!]
-		in				[byte-ptr!]
-		in-size			[integer!]
-		plen			[int-ptr!]
-		return:			[integer!]
+	compress: func [
+		out			[byte-ptr!]
+		out-size	[integer!]
+		in			[byte-ptr!]
+		in-size		[integer!]
+		plen		[int-ptr!]
+		return:		[integer!]
 		/local
-			i			[integer!]
-			st			[STATUS! value]
-			dst			[byte-ptr!]
-			dend		[byte-ptr!]
-			iend		[byte-ptr!]
-			dict		[int-ptr!]
-			ptr			[byte-ptr!]
-			h			[integer!]
-			c			[integer!]
-			ents		[int-ptr!]
-			sub			[byte-ptr!]
-			pos			[integer!]
-			s			[byte-ptr!]
-			len			[integer!]
-			dist		[integer!]
+			i		[integer!]
+			st		[DEFLATE! value]
+			dst		[byte-ptr!]
+			dend	[byte-ptr!]
+			iend	[byte-ptr!]
+			dict	[int-ptr!]
+			ptr		[byte-ptr!]
+			h		[integer!]
+			c		[integer!]
+			ents	[int-ptr!]
+			sub		[byte-ptr!]
+			pos		[integer!]
+			s		[byte-ptr!]
+			len		[integer!]
+			dist	[integer!]
 	][
 		dict: system/stack/allocate DICT_BUFF_SIZE
 		set-memory as byte-ptr! dict null-byte DICT_BUFF_SIZE << 2
@@ -285,6 +334,349 @@ deflate: context [
 		dst: write dst dend st 2 10
 		dst: write dst dend st 2 3
 		plen/value: as integer! dst - out
+		0
+	]
+
+
+
+	read: func [
+		src			[int-ptr!]
+		end			[byte-ptr!]
+		s			[INFLATE!]
+		n			[integer!]
+		return:		[integer!]
+		/local
+			in		[byte-ptr!]
+			v		[integer!]
+			t		[integer!]
+	][
+		in: as byte-ptr! src/1
+		v: (1 << n) - 1 and s/bits
+		s/bits: s/bits >> n
+		s/bitcnt: s/bitcnt - n
+		if s/bitcnt < 0 [s/bitcnt: 0]
+		while [
+			all [
+				s/bitcnt < 16
+				in < end
+			]
+		][
+			t: as integer! in/1
+			in: in + 1
+			s/bits: t << s/bitcnt or s/bits
+			s/bitcnt: s/bitcnt + 8
+		]
+		src/1: as integer! in
+		v
+	]
+
+	build: func [
+		tree		[int-ptr!]
+		lens		[byte-ptr!]
+		symcnt		[integer!]
+		return:		[integer!]
+		/local
+			n		[integer!]
+			cnt		[int-ptr!]
+			first	[int-ptr!]
+			codes	[int-ptr!]
+			pos		[integer!]
+			slot	[integer!]
+			code	[integer!]
+			len		[integer!]
+			t		[integer!]
+	][
+		cnt: system/stack/allocate 16
+		first: system/stack/allocate 16
+		codes: system/stack/allocate 16
+		set-memory as byte-ptr! first null-byte 16 * size? integer!
+		cnt/1: 0 first/1: 0 codes/1: 0
+		n: 1
+		while [n <= symcnt][
+			pos: lens/n
+			cnt/pos: cnt/pos + 1
+			n: n + 1
+		]
+		n: 1
+		while [n <= 15][
+			pos: n + 1
+			codes/pos: (codes/n + cnt/n) << 1
+			first/pos: first/n + cnt/n
+			n: n + 1
+		]
+		n: 0
+		while [n < symcnt][
+			pos: n + 1
+			len: lens/pos
+			if len = 0 [continue]
+			code: codes/pos
+			codes/pos: codes/pos + 1
+			slot: first/pos
+			first/pos: first/pos + 1
+			t: code << (32 - len)
+			pos: slot + 1
+			tree/pos: t or (n << 4) or len
+			n: n + 1
+		]
+		first/16
+	]
+
+	decode: func [
+		src			[int-ptr!]
+		end			[byte-ptr!]
+		s			[INFLATE!]
+		tree		[int-ptr!]
+		max			[integer!]
+		return:		[integer!]
+		/local
+			key		[integer!]
+			lo		[integer!]
+			hi		[integer!]
+			search	[integer!]
+			guess	[integer!]
+			pos		[integer!]
+	][
+		lo: 0
+		hi: max
+		search: rev16 s/bits << 16
+		while [lo < hi][
+			guess: lo + hi / 2
+			pos: guess + 1
+			either search < tree/pos [hi: guess][
+				lo: guess + 1
+			]
+		]
+		key: tree/lo
+		read src end s key and 0Fh
+		key >> 4 and 0FFFh
+	]
+
+	uncompress: func [
+		out			[byte-ptr!]
+		out-size	[integer!]
+		*in			[byte-ptr!]
+		in-size		[integer!]
+		plen		[int-ptr!]
+		return:		[integer!]
+		/local
+			*lits	[int-ptr!]
+			*dsts	[int-ptr!]
+			*lens	[int-ptr!]
+			lens	[int-ptr!]
+			iend	[byte-ptr!]
+			oend	[byte-ptr!]
+			o		[byte-ptr!]
+			in		[integer!]
+			state	[STATES!]
+			s		[INFLATE! value]
+			last	[integer!]
+			type	[integer!]
+			len		[integer!]
+			nlen	[integer!]
+			num		[integer!]
+			n		[integer!]
+			i		[integer!]
+			nlit	[integer!]
+			ndist	[integer!]
+			nlens	[byte-ptr!]
+			sym		[integer!]
+			dsym	[integer!]
+			offs	[integer!]
+			p		[byte-ptr!]
+	][
+		*lits: system/stack/allocate 288
+		*dsts: system/stack/allocate 32
+		*lens: system/stack/allocate 19
+		lens: system/stack/allocate 288 + 32
+		nlens: system/stack/allocate 5
+
+		iend: in + in-size
+		oend: out + out-size
+		o: out in: as integer! *in
+		state: STATE-HDR
+		last: 0
+		set-memory as byte-ptr! s null-byte size? INFLATE!
+		s/lits: *lits
+		s/dsts: *dsts
+		s/lens: *lens
+		read :in iend s 0
+
+		while [
+			any [
+				(as byte-ptr! in) < iend
+				s/bitcnt <> 0
+			]
+		][
+			switch state [
+				STATE-HDR [
+					type: 0
+					last: read :in iend s 1
+					type: read :in iend s 2
+					switch type [
+						0 [
+							state: STATE-STORED
+						]
+						1 [
+							state: STATE-FIXED
+						]
+						2 [
+							state: STATE-DYN
+						]
+						default [
+							plen/value: as integer! out - o
+							return -1
+						]
+					]
+				]
+				STATE-STORED [
+					read :in iend s s/bitcnt and 7
+					len: read :in iend s 16
+					nlen: read :in iend s 16
+					in: in - 2
+					s/bitcnt: 0
+					if any [
+						in + len > as integer! iend
+						len = 0
+					][
+						plen/value: as integer! out - o
+						return -2
+					]
+					if out < oend [
+						num: as integer! oend - out
+						either num >= len [
+							copy-memory in out len
+							out: out + len
+						][
+							copy-memory in out len - num
+							out: out + len - num
+						]
+					]
+					in: in + len
+					state: STATE-HDR
+				]
+				STATE-FIXED [
+					n: 1
+					while [n <= 144][
+						lens/n: 8
+						n: n + 1
+					]
+					while [n <= 256][
+						lens/n: 9
+						n: n + 1
+					]
+					while [n <= 280][
+						lens/n: 7
+						n: n + 1
+					]
+					while [n <= 288][
+						lens/n: 8
+						n: n + 1
+					]
+					while [n <= (288 + 32)][
+						lens/n: 5
+						n: n + 1
+					]
+					s/tlit: build s/lits lens 288
+					s/tdist: build s/dsts lens + 288 32
+					state: STATE-BLK
+				]
+				STATE-DYN [
+					set-memory nlens null-byte 19
+					nlit: 257 + read :in iend s 5
+					ndist: 1 + read :in iend s 5
+					nlen: 4 + read :in iend s 4
+					n: 1
+					while [n <= nlen][
+						pos: 1 + as integer! ORDER/n
+						nlens/pos: read :in iend s 3
+						n: n + 1
+					]
+					s/tlen: build s/lens nlens 19
+
+					n: 0
+					while [n < (nlit + ndist)][
+						sym: decode :in iend s s/lens s/tlen
+						switch sym [
+							16 [
+								len: read :in iend s 2
+								i: 3 + len
+								forever [
+									pos: n + 1
+									lens/pos: lens/n
+									i: i - 1
+									n: n + 1
+								]
+							]
+							17 [
+								len: read :in iend s 3
+								i: 3 + len
+								forever [
+									pos: n + 1
+									lens/pos: null-byte
+									i: i - 1
+									n: n + 1
+								]
+							]
+							18 [
+								len: read :in iend s 7
+								i: 11 + len
+								forever [
+									pos: n + 1
+									lens/pos: null-byte
+									i: i - 1
+									n: n + 1
+								]
+							]
+							default [
+								n: n + 1
+								lens/pos: as byte! sym
+							]
+						]
+					]
+					s/tlit: build s/lits lens nlit
+					s/tdist: s/dsts lens + nlit ndist
+					state: STATE-BLK
+				]
+				STATE-BLK [
+					sym: decode :in iend s s/lits s/tlit
+					case [
+						sym > 256 [
+							sym: sym - 257
+							pos: sym + 1
+							len: read :in iend s LBITS/sym
+							len: len + LBASE/sym
+							dsym: decode :in iend s/dsts s/tdist
+							pos: dsym + 1
+							offs: read :in iend s DBITS/pos
+							offs: offs + DBASE/pos
+							n: as integer! out - o
+							if offs > n [
+								plen/value: n
+								return -1
+							]
+							while [len > 0][
+								p: out - offs
+								out/1: p/1
+								out: out + 1
+								len: len - 1
+							]
+						]
+						sym = 256 [
+							if last > 0 [
+								plen/value: as integer! out - o
+								return -1
+							]
+							state: STATE-HDR
+						]
+						true [
+							out/1: as byte! sym
+							out: out + 1
+						]
+					]
+				]
+			]
+		]
+		plen/value: as integer! out - o
 		0
 	]
 ]
