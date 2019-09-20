@@ -2434,7 +2434,7 @@ make-profilable make target-class [
 		]
 	]
 
-	emit-float-operation: func [name [word!] args [block!] /local a b left right spec size saved][
+	emit-float-operation: func [name [word!] args [block!] /local a b left right spec size saved conv?][
 		if verbose >= 3 [print [">>>inlining float op:" mold name mold args]]
 		
 		set [a b] get-arguments-class args
@@ -2528,12 +2528,19 @@ make-profilable make target-class [
 						#{ee010a10}					;-- FMSR s2, r0
 				]
 				if block? right [
-					if path? left [emit-pop-float 0]
-					emit-float 
-						#{ec410b11}					;-- FMDRR d1, r1, r0
-						#{ee010a10}					;-- FMSR s2, r0
+					either all [path? left not path? right][
+						emit-pop-float 1
+						if object? args/2 [
+							emit-vfp-casting/right args/2
+							conv?: yes
+						]
+					][
+						emit-float 
+							#{ec410b11}				;-- FMDRR d1, r1, r0
+							#{ee010a10}				;-- FMSR s2, r0
+					]
 				]
-				if object? args/2 [emit-vfp-casting/right args/2]
+				if all [object? args/2 not conv?][emit-vfp-casting/right args/2]
 			]
 		]
 		width: saved
