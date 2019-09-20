@@ -1,4 +1,16 @@
-Red/System []
+Red/System [
+	Title:	"deflate"
+	Author: "bitbegin"
+	File: 	%deflate.reds
+	Tabs:	4
+	Rights:  "Copyright (C) 2011-2019 Red Foundation. All rights reserved."
+	License: {
+		Distributed under the Boost Software License, Version 1.0.
+		See https://github.com/red/red/blob/master/BSL-License.txt
+	}
+]
+
+;-- this file can be included in RS environment, not only for Red's runtime
 
 deflate: context [
 	#define DICT_BITS		10
@@ -271,10 +283,9 @@ deflate: context [
 
 	compress: func [
 		out			[byte-ptr!]
-		out-size	[integer!]
+		out-size	[int-ptr!]
 		in			[byte-ptr!]
 		in-size		[integer!]
-		plen		[int-ptr!]
 		return:		[integer!]
 		/local
 			i		[integer!]
@@ -297,7 +308,7 @@ deflate: context [
 		set-memory as byte-ptr! dict null-byte DICT_BUFF_SIZE << 2
 		st/bits: 0 st/cnt: 0
 		dst: out
-		dend: dst + out-size
+		dend: dst + out-size/1
 		iend: in + in-size
 
 		dst: write dst dend st 1 1
@@ -347,7 +358,7 @@ deflate: context [
 		dst: write dst dend st 0 7
 		dst: write dst dend st 2 10
 		dst: write dst dend st 2 3
-		plen/value: as integer! dst - out
+		out-size/value: as integer! dst - out
 		if dst > dend [
 			return DEFLATE-NO-MEM
 		]
@@ -473,10 +484,9 @@ deflate: context [
 
 	uncompress: func [
 		out			[byte-ptr!]
-		out-size	[integer!]
+		out-size	[int-ptr!]
 		*in			[byte-ptr!]
 		in-size		[integer!]
-		plen		[int-ptr!]
 		return:		[integer!]
 		/local
 			*lits	[int-ptr!]
@@ -518,7 +528,7 @@ deflate: context [
 
 		o: out in: as integer! *in
 		iend: *in + in-size
-		oend: out + out-size
+		oend: out + out-size/1
 		state: STATE-HDR
 		last: 0
 		read :in iend s 0
@@ -545,7 +555,7 @@ deflate: context [
 							state: STATE-DYN
 						]
 						default [
-							plen/value: as integer! out - o
+							out-size/value: as integer! out - o
 							return INFLATE_HDR
 						]
 					]
@@ -560,7 +570,7 @@ deflate: context [
 						in + len > as integer! iend
 						len = 0
 					][
-						plen/value: as integer! out - o
+						out-size/value: as integer! out - o
 						return INFLATE_LEN
 					]
 					p: as byte-ptr! in
@@ -671,7 +681,7 @@ deflate: context [
 							offs: offs + DBASE/pos
 							n: as integer! out - o
 							if offs > n [
-								plen/value: n
+								out-size/value: n
 								return INFLATE_BLK
 							]
 							loop len [
@@ -684,7 +694,7 @@ deflate: context [
 						]
 						sym = 256 [
 							if last > 0 [
-								plen/value: as integer! out - o
+								out-size/value: as integer! out - o
 								if oend > out [
 									return INFLATE-NO-MEM
 								]
@@ -702,7 +712,7 @@ deflate: context [
 				]
 			]
 		]
-		plen/value: as integer! out - o
+		out-size/value: as integer! out - o
 		INFLATE_END
 	]
 ]
