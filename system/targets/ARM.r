@@ -2612,7 +2612,7 @@ make-profilable make target-class [
 				]
 			]
 		][
-			if issue? args/1 [args: args/2]
+			if compiler/variadic? args/1 [args: args/2]
 			reg: freg: stk: 0
 			cconv: fspec/3
 			types: fspec/4
@@ -2733,7 +2733,7 @@ make-profilable make target-class [
 	]
 	
 	emit-call-import: func [args [block!] fspec [block!] spec [block!] attribs [block! none!] /local extra type][
-		if all [issue? args/1 args/1 <> #custom fspec/3 <> 'cdecl][
+		if all [compiler/variadic? args/1 args/1 <> #custom fspec/3 <> 'cdecl][
 			emit-variadic-data args
 		]
 		extra: emit-AAPCS-header args fspec attribs
@@ -2777,7 +2777,7 @@ make-profilable make target-class [
 			]
 			if cb? [emit-hf-return fspec/4]
 		][
-			if all [issue? args/1 fspec/3 <> 'cdecl][emit-variadic-data args]
+			if all [compiler/variadic? args/1 fspec/3 <> 'cdecl][emit-variadic-data args]
 			emit-reloc-addr spec/3
 			emit-i32 #{eb000000}					;-- BL <disp>
 		]
@@ -2827,7 +2827,7 @@ make-profilable make target-class [
 		
 		emit-i32 #{e1a0c00d}						;-- MOV ip, sp
 		emit-i32 #{e3cdd007}						;-- BIC sp, sp, #7		; align sp to 8 bytes
-		if issue? tag: args/1 [args: args/2]
+		if compiler/variadic? tag: args/1 [args: args/2]
 		size: max 16 emit-AAPCS-header/calc args fspec all [block? blk: fspec/4/1 blk]
 		unless zero? size // 8 [emit-i32 #{e24dd004}] ;-- SUB sp, sp, #4	; ensure call will be 8-bytes aligned
 		emit-i32 #{e92d5000}						;-- PUSH {ip,lr}		; save previous sp and lr value
