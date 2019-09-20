@@ -1992,7 +1992,7 @@ make-profilable make target-class [
 				]
 			]
 			reg [
-				if b = 'reg [do reg-right]
+				if all [b = 'reg not path? right][do reg-right]
 				if object? args/1 [
 					if block? left [emit-casting args/1 no]
 					set-width/type compiler/last-type: args/1/type
