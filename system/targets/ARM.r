@@ -2545,21 +2545,6 @@ make-profilable make target-class [
 		]
 		width: saved
 		
-		if any [
-			all [b = 'reg all [path? left block? right]]
-			;all [a = 'reg b = 'ref path? left]
-		][											;-- exchange s0/s2 or d0/d1
-			either width = 4 [
-				emit-i32 #{eeb02a40}				;-- FCPYS  s4, s0
-				emit-i32 #{eeb00a41}				;-- FCPYS  s0, s2
-				emit-i32 #{eeb01a42}				;-- FCPYS  s2, s4
-			][
-				emit-i32 #{eeb02b40}				;-- FCPYD  d2, d0
-				emit-i32 #{eeb00b41}				;-- FCPYD  d0, d1
-				emit-i32 #{eeb01b42}				;-- FCPYD  d1, d2
-			]
-		]
-		
 		case [
 			find comparison-op name [
 				emit-float 							;-- load immediate from data segment
