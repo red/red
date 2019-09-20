@@ -389,11 +389,13 @@ deflate: context [
 		cnt: system/stack/allocate 16
 		first: system/stack/allocate 16
 		codes: system/stack/allocate 16
-		set-memory as byte-ptr! first null-byte 16 * size? integer!
+		set-memory as byte-ptr! cnt null-byte 16 * size? integer!
 		cnt/1: 0 first/1: 0 codes/1: 0
-		n: 1
-		while [n <= symcnt][
-			pos: as integer! lens/n
+		n: 0
+		while [n < symcnt][
+			pos: n + 1
+			pos: as integer! lens/pos
+			pos: pos + 1
 			cnt/pos: cnt/pos + 1
 			n: n + 1
 		]
@@ -409,6 +411,7 @@ deflate: context [
 			pos: n + 1
 			len: as integer! lens/pos
 			if len = 0 [continue]
+			pos: len + 1
 			code: codes/pos
 			codes/pos: codes/pos + 1
 			slot: first/pos
@@ -438,11 +441,11 @@ deflate: context [
 	][
 		lo: 0
 		hi: max
-		search: rev16 s/bits << 16
+		search: (rev16 s/bits) << 16 or FFFFh
 		while [lo < hi][
 			guess: lo + hi / 2
 			pos: guess + 1
-			either search < tree/pos [hi: guess][
+			either (as byte-ptr! search) < (as byte-ptr! tree/pos) [hi: guess][
 				lo: guess + 1
 			]
 		]
@@ -488,6 +491,10 @@ deflate: context [
 		*lits: system/stack/allocate 288
 		*dsts: system/stack/allocate 32
 		*lens: system/stack/allocate 19
+		set-memory as byte-ptr! s null-byte size? INFLATE!
+		s/lits: *lits
+		s/dsts: *dsts
+		s/lens: *lens
 
 		lens: as byte-ptr! system/stack/allocate 80		;(288 + 32) / 4
 		nlens: as byte-ptr! system/stack/allocate 5
@@ -497,10 +504,6 @@ deflate: context [
 		oend: out + out-size
 		state: STATE-HDR
 		last: 0
-		set-memory as byte-ptr! s null-byte size? INFLATE!
-		s/lits: *lits
-		s/dsts: *dsts
-		s/lens: *lens
 		read :in iend s 0
 
 		while [
@@ -602,7 +605,7 @@ deflate: context [
 							16 [
 								len: read :in iend s 2
 								i: 3 + len
-								forever [
+								while [i > 0] [
 									pos: n + 1
 									lens/pos: lens/n
 									i: i - 1
@@ -612,7 +615,7 @@ deflate: context [
 							17 [
 								len: read :in iend s 3
 								i: 3 + len
-								forever [
+								while [i > 0] [
 									pos: n + 1
 									lens/pos: null-byte
 									i: i - 1
@@ -622,7 +625,7 @@ deflate: context [
 							18 [
 								len: read :in iend s 7
 								i: 11 + len
-								forever [
+								while [i > 0] [
 									pos: n + 1
 									lens/pos: null-byte
 									i: i - 1
