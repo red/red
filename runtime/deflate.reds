@@ -36,6 +36,20 @@ deflate: context [
 		STATE-BLK
 	]
 
+	#enum DEFLATE-ERROR! [
+		DEFLATE-OK: 0
+		DEFLATE-NO-MEM
+	]
+
+	#enum INFLATE-ERROR! [
+		INFLATE-OK: 0
+		INFLATE-NO-MEM
+		INFLATE_END
+		INFLATE_LEN
+		INFLATE_HDR
+		INFLATE_BLK
+	]
+
 	MIRROR: [
 		#"^(00)" #"^(80)" #"^(40)" #"^(C0)" #"^(20)" #"^(A0)" #"^(60)" #"^(E0)" #"^(10)" #"^(90)" #"^(50)" #"^(D0)" #"^(30)" #"^(B0)" #"^(70)" #"^(F0)"
 		#"^(08)" #"^(88)" #"^(48)" #"^(C8)" #"^(28)" #"^(A8)" #"^(68)" #"^(E8)" #"^(18)" #"^(98)" #"^(58)" #"^(D8)" #"^(38)" #"^(B8)" #"^(78)" #"^(F8)"
@@ -334,7 +348,10 @@ deflate: context [
 		dst: write dst dend st 2 10
 		dst: write dst dend st 2 3
 		plen/value: as integer! dst - out
-		0
+		if dst > dend [
+			return DEFLATE-NO-MEM
+		]
+		DEFLATE-OK
 	]
 
 
@@ -529,7 +546,7 @@ deflate: context [
 						]
 						default [
 							plen/value: as integer! out - o
-							return -1
+							return INFLATE_HDR
 						]
 					]
 				]
@@ -544,17 +561,15 @@ deflate: context [
 						len = 0
 					][
 						plen/value: as integer! out - o
-						return -2
+						return INFLATE_LEN
 					]
-					if out < oend [
-						num: as integer! oend - out
-						either num >= len [
-							copy-memory as byte-ptr! in out len
-							out: out + len
-						][
-							copy-memory as byte-ptr! in out len - num
-							out: out + len - num
+					p: as byte-ptr! in
+					loop len [
+						if oend > out [
+							out/1: p/1
 						]
+						out: out + 1
+						p: p + 1
 					]
 					in: in + len
 					state: STATE-HDR
@@ -657,24 +672,30 @@ deflate: context [
 							n: as integer! out - o
 							if offs > n [
 								plen/value: n
-								return -1
+								return INFLATE_BLK
 							]
-							while [len > 0][
+							loop len [
 								p: out - offs
-								out/1: p/1
+								if oend > out [
+									out/1: p/1
+								]
 								out: out + 1
-								len: len - 1
 							]
 						]
 						sym = 256 [
 							if last > 0 [
 								plen/value: as integer! out - o
-								return -1
+								if oend > out [
+									return INFLATE-NO-MEM
+								]
+								return 0
 							]
 							state: STATE-HDR
 						]
 						true [
-							out/1: as byte! sym
+							if oend > out [
+								out/1: as byte! sym
+							]
 							out: out + 1
 						]
 					]
@@ -682,7 +703,7 @@ deflate: context [
 			]
 		]
 		plen/value: as integer! out - o
-		0
+		INFLATE_END
 	]
 ]
 
