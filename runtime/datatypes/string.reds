@@ -70,27 +70,8 @@ string: context [
 		len		[integer!]
 		e		[int-ptr!]
 		return: [float!]
-		/local
-			s0	[byte-ptr!]
-			f	[float!]
 	][
-		f: strtod s as byte-ptr! e
-		e/value: either len > (e/value - as-integer s) [
-			s0: s
-			if any [s/1 = #"-" s/1 = #"+"] [s: s + 1]
-			if s/3 = #"#" [						;-- 1.#NaN, -1.#INF" or "1.#INF
-				if any [s/4 = #"I" s/4 = #"i"] [
-					return either s0/1 = #"-" [
-						0.0 - float/+INF
-					][float/+INF]
-				]
-				if any [s/4 = #"N" s/4 = #"n"] [
-					return float/QNaN
-				]
-			]
-			-1
-		][0]
-		f
+		red-dtoa/string-to-float s s + len e
 	]
 
 	byte-to-hex: func [

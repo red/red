@@ -85,6 +85,7 @@ write %build/bin/sources.r set-cache [
 		%crypto.reds
 		%debug-tools.reds
 		%definitions.reds
+		%dtoa.reds
 		%hashtable.reds
 		%inflate.reds
 		%interpreter.reds
