@@ -303,6 +303,22 @@ Red/System [
 	
 	--test-- "fc-12"
 		--assert fcptr/a - (fcfoo 5.0) = -2.0			;-- reg(path!)/reg(block!)
+
+	--test-- "#4038"
+		RECT_F4038: alias struct! [
+			left		[float!]
+			top			[float!]
+			right		[float!]
+			bottom		[float!]
+		]
+
+		test4038: func [/local rc [RECT_F4038 value]][
+			rc/right: 0.0
+			--assert rc/right = 0.0
+			rc/right: rc/right + as float! (1 + 2)
+			--assert rc/right = 3.0
+		]
+		test4038
 	
 ===end-group===
 
