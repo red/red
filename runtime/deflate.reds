@@ -19,7 +19,7 @@ deflate: context [
 
 	INFLATE!: alias struct! [
 		bits		[integer!]
-		cnt			[integer!]
+		bitcnt		[integer!]
 		lits		[int-ptr!]
 		dsts		[int-ptr!]
 		lens		[int-ptr!]
@@ -393,7 +393,7 @@ deflate: context [
 		cnt/1: 0 first/1: 0 codes/1: 0
 		n: 1
 		while [n <= symcnt][
-			pos: lens/n
+			pos: as integer! lens/n
 			cnt/pos: cnt/pos + 1
 			n: n + 1
 		]
@@ -407,7 +407,7 @@ deflate: context [
 		n: 0
 		while [n < symcnt][
 			pos: n + 1
-			len: lens/pos
+			len: as integer! lens/pos
 			if len = 0 [continue]
 			code: codes/pos
 			codes/pos: codes/pos + 1
@@ -462,7 +462,7 @@ deflate: context [
 			*lits	[int-ptr!]
 			*dsts	[int-ptr!]
 			*lens	[int-ptr!]
-			lens	[int-ptr!]
+			lens	[byte-ptr!]
 			iend	[byte-ptr!]
 			oend	[byte-ptr!]
 			o		[byte-ptr!]
@@ -483,16 +483,18 @@ deflate: context [
 			dsym	[integer!]
 			offs	[integer!]
 			p		[byte-ptr!]
+			pos		[integer!]
 	][
 		*lits: system/stack/allocate 288
 		*dsts: system/stack/allocate 32
 		*lens: system/stack/allocate 19
-		lens: system/stack/allocate 288 + 32
-		nlens: system/stack/allocate 5
 
-		iend: in + in-size
-		oend: out + out-size
+		lens: as byte-ptr! system/stack/allocate 80		;(288 + 32) / 4
+		nlens: as byte-ptr! system/stack/allocate 5
+
 		o: out in: as integer! *in
+		iend: *in + in-size
+		oend: out + out-size
 		state: STATE-HDR
 		last: 0
 		set-memory as byte-ptr! s null-byte size? INFLATE!
@@ -544,10 +546,10 @@ deflate: context [
 					if out < oend [
 						num: as integer! oend - out
 						either num >= len [
-							copy-memory in out len
+							copy-memory as byte-ptr! in out len
 							out: out + len
 						][
-							copy-memory in out len - num
+							copy-memory as byte-ptr! in out len - num
 							out: out + len - num
 						]
 					]
@@ -557,23 +559,23 @@ deflate: context [
 				STATE-FIXED [
 					n: 1
 					while [n <= 144][
-						lens/n: 8
+						lens/n: as byte! 8
 						n: n + 1
 					]
 					while [n <= 256][
-						lens/n: 9
+						lens/n: as byte! 9
 						n: n + 1
 					]
 					while [n <= 280][
-						lens/n: 7
+						lens/n: as byte! 7
 						n: n + 1
 					]
 					while [n <= 288][
-						lens/n: 8
+						lens/n: as byte! 8
 						n: n + 1
 					]
 					while [n <= (288 + 32)][
-						lens/n: 5
+						lens/n: as byte! 5
 						n: n + 1
 					]
 					s/tlit: build s/lits lens 288
@@ -588,7 +590,7 @@ deflate: context [
 					n: 1
 					while [n <= nlen][
 						pos: 1 + as integer! ORDER/n
-						nlens/pos: read :in iend s 3
+						nlens/pos: as byte! read :in iend s 3
 						n: n + 1
 					]
 					s/tlen: build s/lens nlens 19
@@ -634,7 +636,7 @@ deflate: context [
 						]
 					]
 					s/tlit: build s/lits lens nlit
-					s/tdist: s/dsts lens + nlit ndist
+					s/tdist: build s/dsts lens + nlit ndist
 					state: STATE-BLK
 				]
 				STATE-BLK [
@@ -643,11 +645,11 @@ deflate: context [
 						sym > 256 [
 							sym: sym - 257
 							pos: sym + 1
-							len: read :in iend s LBITS/sym
+							len: read :in iend s as integer! LBITS/sym
 							len: len + LBASE/sym
-							dsym: decode :in iend s/dsts s/tdist
+							dsym: decode :in iend s s/dsts s/tdist
 							pos: dsym + 1
-							offs: read :in iend s DBITS/pos
+							offs: read :in iend s as integer! DBITS/pos
 							offs: offs + DBASE/pos
 							n: as integer! out - o
 							if offs > n [
