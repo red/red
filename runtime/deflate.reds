@@ -1,5 +1,5 @@
 Red/System [
-	Title:	"deflate"
+	Title:	"deflate lib"
 	Author: "bitbegin"
 	File: 	%deflate.reds
 	Tabs:	4
@@ -50,12 +50,12 @@ deflate: context [
 
 	#enum DEFLATE-ERROR! [
 		DEFLATE-OK: 0
-		DEFLATE-NO-MEM
+		DEFLATE-NO-MEM: 1
 	]
 
 	#enum INFLATE-ERROR! [
 		INFLATE-OK: 0
-		INFLATE-NO-MEM
+		INFLATE-NO-MEM: 1
 		INFLATE_END
 		INFLATE_LEN
 		INFLATE_HDR
@@ -364,8 +364,6 @@ deflate: context [
 		]
 		DEFLATE-OK
 	]
-
-
 
 	read: func [
 		src			[int-ptr!]
@@ -698,7 +696,7 @@ deflate: context [
 								if oend > out [
 									return INFLATE-NO-MEM
 								]
-								return 0
+								return INFLATE_END
 							]
 							state: STATE-HDR
 						]
