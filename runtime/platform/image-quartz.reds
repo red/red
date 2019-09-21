@@ -769,6 +769,8 @@ OS-image: context [
 			y		[integer!]
 			h		[integer!]
 			w		[integer!]
+			sz-x	[integer!]
+			sz-y	[integer!]
 			src-buf [byte-ptr!]
 			dst-buf [byte-ptr!]
 			handle0	[int-ptr!]
@@ -812,8 +814,10 @@ OS-image: context [
 		either all [part? TYPE_OF(size) = TYPE_PAIR][
 			w: width - x
 			h: height - y
-			if size/x < w [w: size/x]
-			if size/y < h [h: size/y]
+			sz-x: as-integer size/x
+			sz-y: as-integer size/y
+			if sz-x < w [w: sz-x]
+			if sz-y < h [h: sz-y]
 		][
 			either zero? part [
 				w: 0 h: 0

@@ -382,8 +382,8 @@ get-window-size: func [
 	columns: ws/rowcol >> 16
 	rows: ws/rowcol and FFFFh
 	size: as red-pair! #get system/console/size
-	size/x: columns
-	size/y: rows
+	size/x: as-float32 columns
+	size/y: as-float32 rows
 ]
 
 reset-cursor-pos: does [
