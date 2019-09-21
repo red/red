@@ -1,7 +1,7 @@
 Red/System [
 	Title:	"deflate lib"
 	Author: "bitbegin"
-	File: 	%deflate.reds
+	File: 	%deflate-rs.reds
 	Tabs:	4
 	Rights:  "Copyright (C) 2011-2019 Red Foundation. All rights reserved."
 	License: {
