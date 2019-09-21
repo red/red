@@ -1,7 +1,7 @@
 Red/System [
 	Title:	"deflate for Red's runtime"
 	Author: "bitbegin"
-	File: 	%deflate-rt.reds
+	File: 	%deflate.reds
 	Tabs:	4
 	Rights:  "Copyright (C) 2011-2019 Red Foundation. All rights reserved."
 	License: {
@@ -12,7 +12,7 @@ Red/System [
 
 ;-- deflate used for Red's runtime
 
-#include %deflate.reds
+#include %deflate-rs.reds
 
 ;-- gzip-uncompress function
 #define GZIP_FTEXT		1
