@@ -29,15 +29,6 @@ tcp-device: context [
 		type: data/event
 
 		switch type [
-			IO_EVT_ACCEPT	[
-				#either OS = 'Windows [
-					msg: create-red-port p data/accept-sock
-					iocp/bind g-iocp as int-ptr! data/accept-sock
-					socket/acceptex as-integer data/device data
-				][
-					msg: create-red-port p socket/accept as-integer data/device
-				]
-			]
 			IO_EVT_READ	[
 				bin: as red-binary! (object/get-values p) + port/field-data
 				s: GET_BUFFER(bin)
@@ -59,6 +50,15 @@ tcp-device: context [
 					][
 						data/event: IO_EVT_NONE
 					]
+				]
+			]
+			IO_EVT_ACCEPT	[
+				#either OS = 'Windows [
+					msg: create-red-port p data/accept-sock
+					iocp/bind g-iocp as int-ptr! data/accept-sock
+					socket/acceptex as-integer data/device data
+				][
+					msg: create-red-port p socket/accept as-integer data/device
 				]
 			]
 			default [data/event: IO_EVT_NONE]

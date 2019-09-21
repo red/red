@@ -13,10 +13,17 @@ Red/System [
 	}
 ]
 
+#define IO_STATE_TLS_DONE		1000h
 #define IO_STATE_READING		4000h
 #define IO_STATE_WRITING		8000h
 #define IO_STATE_PENDING_READ	4001h		;-- READING or EPOLLIN
 #define IO_STATE_PENDING_WRITE	8004h		;-- WRITING or EPOLLOUT
+
+#enum iocp-type! [
+	IOCP_TYPE_TCP: 0
+	IOCP_TYPE_UDP: 1
+	IOCP_TYPE_TLS: 10h
+]
 
 iocp-event-handler!: alias function! [
 	data		[int-ptr!]
@@ -53,6 +60,13 @@ iocp-data!: alias struct! [
 	state			[integer!]			;@@ change it to uint16
 	pending-read	[pending-data!]
 	pending-write	[pending-data!]
+]
+
+tls-data!: alias struct! [
+	iocp		[iocp-data! value]
+	port		[red-object! value]		;-- red port! cell
+	send-buf	[node!]					;-- send buffer
+	ssl			[int-ptr!]
 ]
 
 iocp: context [
@@ -216,12 +230,22 @@ iocp: context [
 
 			#if OS = 'macOS [
 				if flags and EV_ERROR <> 0 [
-					probe "kqueue error" continue
+					probe "kqueue error"
+					i: i + 1 continue
 				]
 				if flags and EV_EOF <> 0 [
-					probe "kqueue: socket close" continue
+					probe "kqueue: socket close"
+					i: i + 1 continue
 				]
 			]
+				if all [
+					data/type = IOCP_TYPE_TLS
+					state and IO_STATE_TLS_DONE = 0
+				][
+					tls/negotiate as tls-data! data
+					i: i + 1 continue
+				]
+
 				if all [
 					IOCP_READ_ACTION?
 					state and IO_STATE_READING <> 0

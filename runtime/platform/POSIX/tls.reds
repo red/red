@@ -15,14 +15,6 @@ Red/System [
 #define SSL_ERROR_WANT_WRITE	3
 #define SSL_ERROR_WANT_X509_LOOKUP	4
 
-tls-data!: alias struct! [
-	iocp		[iocp-data! value]
-	port		[red-object! value]		;-- red port! cell
-	send-buf	[node!]					;-- send buffer
-	ssl			[int-ptr!]
-	connected?	[logic!]
-]
-
 tls: context [
 
 	server-ctx: as int-ptr! 0
@@ -55,12 +47,23 @@ tls: context [
 			][
 				SSL_set_accept_state ssl
 			]
-			either zero? td/iocp/state [
-				iocp/add td/iocp/io-port fd EPOLLIN or EPOLLOUT or EPOLLET as iocp-data! td
-			][
-				iocp/modify td/iocp/io-port fd EPOLLIN or EPOLLOUT or EPOLLET as iocp-data! td
-			]
 		]
+	]
+
+	update-td: func [
+		td	[tls-data!]
+		evt [integer!]
+		/local
+			state [integer!]
+	][
+		state: td/iocp/state
+		either zero? state [
+			iocp/add td/iocp/io-port fd evt or EPOLLET as iocp-data! td
+		][
+			iocp/modify td/iocp/io-port fd evt or EPOLLET as iocp-data! td
+			evt: state or evt
+		]
+		td/iocp/state: evt
 	]
 
 	negotiate: func [
@@ -71,13 +74,13 @@ tls: context [
 	][
 		ssl: td/ssl
 		ret: SSL_do_handshake ssl
-		either ret = 1 [td/connected?: yes][
+		either ret = 1 [td/iocp/state: IO_STATE_TLS_DONE][
 			switch SSL_get_error ssl ret [
 				SSL_ERROR_WANT_READ [
-					
+					update-td td EPOLLIN
 				]
 				SSL_ERROR_WANT_WRITE [
-					
+					update-td td EPOLLOUT
 				]
 				default [probe "error when do handshake" exit]
 			]

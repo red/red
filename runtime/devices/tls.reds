@@ -25,8 +25,6 @@ TLS-device: context [
 			fd		[integer!]
 	][
 		td: as tls-data! data
-		unless td/connected? [tls/negotiate td]
-
 		p: as red-object! :td/port
 		msg: p
 		type: data/event
@@ -96,7 +94,8 @@ TLS-device: context [
 		sock	[integer!]
 		return: [iocp-data!]
 	][
-		as iocp-data! io/create-socket-data port sock as int-ptr! :event-handler size? sockdata!
+		as iocp-data! io/create-socket-data port sock as int-ptr! :event-handler size? tls-data!
+		#if OS <> 'Windows [data/iocp/type: IOCP_TYPE_TLS]
 	]
 
 	get-tcp-data: func [
