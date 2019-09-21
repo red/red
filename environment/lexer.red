@@ -796,6 +796,11 @@ system/lexer: context [
 			(type: integer!)
 		]
 
+		pair-value-rule: [
+			integer-number-rule
+			opt [float-number-rule | float-exp-rule e: (type: float!)]
+		]
+
 		integer-rule: [
 			float-special (value: make-number s e type)	;-- escape path for NaN, INFs
 			| (neg?: no) integer-number-rule
@@ -804,7 +809,7 @@ system/lexer: context [
 			  sticky-word-rule
 			  (value: make-number s e type)
 			  opt [
-				[#"x" | #"X"] [s: integer-number-rule | (throw-error [pair! pos])]
+				[#"x" | #"X"] [s: pair-value-rule | (throw-error [pair! pos])]
 				ahead [pair-end | ws-no-count | end | (throw-error [pair! pos])]
 				(value: as-pair value make-number s e type)
 			  ]
