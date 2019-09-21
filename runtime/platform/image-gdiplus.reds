@@ -485,7 +485,7 @@ OS-image: context [
 		if any [zero? width zero? height][return null]
 		bitmap: 0
 		if 0 <> GdipCreateBitmapFromScan0 width height 0 PixelFormat32bppARGB null :bitmap [
-			fire [TO_ERROR(script invalid-arg) pair/push width height]
+			fire [TO_ERROR(script invalid-arg) pair/push-int width height]
 		]
 		data: as BitmapData! lock-bitmap-fmt bitmap PixelFormat32bppARGB yes
 		scan0: as int-ptr! data/scan0
@@ -615,6 +615,8 @@ OS-image: context [
 			y		[integer!]
 			w		[integer!]
 			h		[integer!]
+			sz-x	[integer!]
+			sz-y	[integer!]
 			offset	[integer!]
 			handle	[integer!]
 			width	[integer!]
@@ -654,8 +656,10 @@ OS-image: context [
 		either all [part? TYPE_OF(size) = TYPE_PAIR][
 			w: width - x
 			h: height - y
-			if size/x < w [w: size/x]
-			if size/y < h [h: size/y]
+			sz-x: as-integer size/x
+			sz-y: as-integer size/y
+			if sz-x < w [w: sz-x]
+			if sz-y < h [h: sz-y]
 		][
 			either zero? part [
 				w: 0 h: 0

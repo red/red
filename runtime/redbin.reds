@@ -400,7 +400,8 @@ redbin: context [
 				data + 2
 			]
 			TYPE_PAIR	[
-				cell: as cell! pair/make-in parent data/2 data/3
+				;FIXME
+				cell: as cell! pair/make-in parent as-float32 data/2 as-float32 data/3
 				data + 3
 			]
 			TYPE_UNSET		[

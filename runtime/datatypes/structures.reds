@@ -214,8 +214,8 @@ red-point!: alias struct! [
 red-pair!: alias struct! [
 	header 	[integer!]								;-- cell header
 	padding	[integer!]								;-- align value on 64-bit boundary
-	x		[integer!]								;-- 32-bit signed integer or float32!
-	y		[integer!]								;-- 32-bit signed integer or float32!
+	x		[float32!]								;-- 32-bit signed integer or float32!
+	y		[float32!]								;-- 32-bit signed integer or float32!
 ]
 
 red-action!: alias struct! [

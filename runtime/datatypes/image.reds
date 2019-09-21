@@ -344,8 +344,8 @@ image: context [
 			idx: index/value
 		][											;-- pair!
 			pair: as red-pair! index
-			x: pair/x
-			y: pair/y
+			x: as-integer pair/x
+			y: as-integer pair/y
 			if out-range <> null [
 				either base = 1 [
 					if any [x > w x <= 0 y > h y <= 0][out-range/value: 1]
@@ -432,9 +432,9 @@ image: context [
 			default [return to proto spec type]
 		]
 
-		x: pair/x
+		x: as-integer pair/x
 		if negative? x [x: 0]
-		y: pair/y
+		y: as-integer pair/y
 		if negative? y [y: 0]
 		img/size: y << 16 or x
 		img/node: OS-image/make-image x y rgb alpha color
@@ -702,7 +702,7 @@ image: context [
 				case [
 					sym = words/size [
 						if set? [fire [TO_ERROR(script invalid-path) path element]]
-						pair/push IMAGE_WIDTH(parent/size) IMAGE_HEIGHT(parent/size)
+						pair/push-int IMAGE_WIDTH(parent/size) IMAGE_HEIGHT(parent/size)
 					]
 					sym = words/argb [
 						either set? [

@@ -21,9 +21,9 @@ pair: context [
 			right [red-pair!]
 			int	  [red-integer!]
 			fl	  [red-float!]
-			x	  [integer!]
-			y	  [integer!]
-			f	  [float!]
+			x	  [float!]
+			y	  [float!]
+			f	  [float32!]
 	][
 		left: as red-pair! stack/arguments
 		right: left + 1
@@ -32,30 +32,30 @@ pair: context [
 		
 		switch TYPE_OF(right) [
 			TYPE_PAIR 	 [
-				x: right/x
-				y: right/y
+				x: as float! right/x
+				y: as float! right/y
 			]
 			TYPE_INTEGER [
 				int: as red-integer! right
-				x: int/value
+				x: as-float int/value
 				y: x
 			]
 			TYPE_FLOAT TYPE_PERCENT [
 				fl: as red-float! right
-				f: fl/value
+				f: as-float32 fl/value
 				switch op [
 					OP_MUL [
-						left/x: as-integer (as-float left/x) * f
-						left/y: as-integer (as-float left/y) * f
+						left/x: left/x * f
+						left/y: left/y * f
 						return left
 					]
 					OP_DIV [
-						left/x: as-integer (as-float left/x) / f
-						left/y: as-integer (as-float left/y) / f
+						left/x: left/x / f
+						left/y: left/y / f
 						return left
 					]
 					default [
-						x: as-integer fl/value
+						x: fl/value
 						y: x
 					]
 				]
@@ -64,15 +64,15 @@ pair: context [
 				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(right)]
 			]
 		]
-		left/x: integer/do-math-op left/x x op
-		left/y: integer/do-math-op left/y y op
+		left/x: as-float32 float/do-math-op as-float left/x x op
+		left/y: as-float32 float/do-math-op as-float left/y y op
 		left
 	]
 	
 	make-at: func [
 		slot 	[red-value!]
-		x 		[integer!]
-		y 		[integer!]
+		x 		[float32!]
+		y 		[float32!]
 		return: [red-pair!]
 		/local
 			pair [red-pair!]
@@ -88,8 +88,8 @@ pair: context [
 	
 	make-in: func [
 		parent 	[red-block!]
-		x 		[integer!]
-		y 		[integer!]
+		x 		[float32!]
+		y 		[float32!]
 		return: [red-pair!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "pair/make-in"]]
@@ -97,25 +97,34 @@ pair: context [
 	]
 	
 	push: func [
-		x		[integer!]
-		y		[integer!]
+		x		[float32!]
+		y		[float32!]
 		return: [red-pair!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "pair/push"]]
 		make-at stack/push* x y
 	]
 
-	get-value-int: func [
+	push-int: func [
+		x		[integer!]
+		y		[integer!]
+		return: [red-pair!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "pair/push-int"]]
+		make-at stack/push* as float32! x as float32! y
+	]
+
+	get-float32: func [
 		int		[red-integer!]
-		return: [integer!]
+		return: [float32!]
 		/local
 			fl	[red-float!]
 	][
 		either TYPE_OF(int) = TYPE_FLOAT [
 			fl: as red-float! int
-			as-integer fl/value
+			as-float32 fl/value
 		][
-			int/value
+			as-float32 int/value
 		]
 	]
 
@@ -130,8 +139,9 @@ pair: context [
 			int	 [red-integer!]
 			int2 [red-integer!]
 			fl	 [red-float!]
-			x	 [integer!]
-			y	 [integer!]
+			x	 [float32!]
+			y	 [float32!]
+			cell [integer!]
 			val	 [red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "pair/make"]]
@@ -139,11 +149,12 @@ pair: context [
 		switch TYPE_OF(spec) [
 			TYPE_INTEGER [
 				int: as red-integer! spec
-				push int/value int/value
+				x: as-float32 int/value
+				push x x
 			]
 			TYPE_FLOAT [
 				fl: as red-float! spec
-				x: as-integer fl/value
+				x: as-float32 fl/value
 				push x x
 			]
 			TYPE_BLOCK [
@@ -156,13 +167,11 @@ pair: context [
 				][
 					fire [TO_ERROR(syntax malconstruct) spec]
 				]
-				x: get-value-int int
-				y: get-value-int int2
-				push x y
+				push get-float32 int get-float32 int2
 			]
 			TYPE_STRING [
-				y: 0
-				val: as red-value! :y
+				cell: 0
+				val: as red-value! :cell
 				copy-cell spec val					;-- save spec, load-value will change it
 
 				proto: load-value as red-string! spec
@@ -174,7 +183,7 @@ pair: context [
 			TYPE_PAIR [as red-pair! spec]
 			default [
 				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_PAIR spec]
-				push 0 0
+				push-int 0 0
 			]
 		]
 	]
@@ -186,22 +195,21 @@ pair: context [
 		only?   [logic!]
 		return: [red-value!]
 		/local
-			n	 [integer!]
+			n	[float32!]
+			x	[integer!]
+			y	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "pair/random"]]
 
+		x: as-integer pair/x
+		y: as-integer pair/y
 		either seed? [
-			_random/srand pair/x xor pair/y
+			_random/srand x xor y
 			pair/header: TYPE_UNSET
 		][
-			unless zero? pair/x [
-				n: _random/rand % pair/x + 1
-				pair/x: either negative? pair/x [0 - n][n]
-			]
-			unless zero? pair/y [
-				n: _random/rand % pair/y + 1
-				pair/y: either negative? pair/y [0 - n][n]
-			]
+			n: (as-float32 _random/rand) / as-float32 2147483648.0
+			unless zero? x [pair/x: pair/x * n]
+			unless zero? y [pair/y: pair/y * n]
 		]
 		as red-value! pair
 	]
@@ -217,13 +225,13 @@ pair: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "pair/form"]]
 
-		formed: integer/form-signed pair/x
+		formed: float/form-float as-float pair/x float/FORM_TIME
 		string/concatenate-literal buffer formed
 		part: part - length? formed						;@@ optimize by removing length?
 		
 		string/append-char GET_BUFFER(buffer) as-integer #"x"
 		
-		formed: integer/form-signed pair/y
+		formed: float/form-float as-float pair/y float/FORM_TIME
 		string/concatenate-literal buffer formed
 		part - 1 - length? formed						;@@ optimize by removing length?
 	]
@@ -252,10 +260,11 @@ pair: context [
 		case?	[logic!]
 		return:	[red-value!]
 		/local
-			int	 [red-integer!]
+			int  [red-integer!]
 			w	 [red-word!]
 			axis [integer!]
 			type [integer!]
+			f32  [float32!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "pair/eval-path"]]
 		
@@ -281,18 +290,16 @@ pair: context [
 		]
 		either value <> null [
 			type: TYPE_OF(value)
-			if type <> TYPE_INTEGER [
+			if all [type <> TYPE_INTEGER type <> TYPE_FLOAT] [
 				fire [TO_ERROR(script invalid-type) datatype/push type]
 			]
-			int: as red-integer! stack/arguments
-			int/header: TYPE_INTEGER
-			either axis = 1 [parent/x: int/value][parent/y: int/value]
+			f32: get-float32 as red-integer! value
+			either axis = 1 [parent/x: f32][parent/y: f32]
 			object/check-owner as red-value! parent
-			as red-value! int
+			value
 		][
-			int: integer/push either axis = 1 [parent/x][parent/y]
-			stack/pop 1									;-- avoid moving stack top
-			int
+			f32: either axis = 1 [parent/x][parent/y]
+			as red-value! float/box as-float f32
 		]
 	]
 	
@@ -302,19 +309,19 @@ pair: context [
 		op		[integer!]								;-- type of comparison
 		return:	[integer!]
 		/local
-			diff [integer!]
+			diff [float!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "pair/compare"]]
 
 		if TYPE_OF(right) <> TYPE_PAIR [RETURN_COMPARE_OTHER]
-		diff: left/x - right/x
-		if zero? diff [diff: left/y - right/y]
-		SIGN_COMPARE_RESULT(diff 0)
+		diff: as-float left/x - right/x
+		if diff <> 0.0 [diff: as float! left/y - right/y]
+		SIGN_COMPARE_RESULT(diff 0.0)
 	]
 
 	round: func [
 		value		[red-value!]
-		scale		[red-integer!]
+		scale		[red-float!]
 		_even?		[logic!]
 		down?		[logic!]
 		half-down?	[logic!]
@@ -324,22 +331,14 @@ pair: context [
 		return:		[red-value!]
 		/local
 			pair	[red-pair!]
-			_pad3	[integer!]
-			_pad2	[integer!]
-			_pad1	[integer!]
-			header	[integer!]
-			val		[red-integer!]
+			val		[red-float! value]
 	][
 		pair: as red-pair! value
-		header: TYPE_INTEGER
-		val: as red-integer! :header
-		val/value: pair/x
-		pair/x: get-value-int as red-integer!
-				integer/round as red-value! val scale _even? down? half-down? floor? ceil? half-ceil?
-		header: TYPE_INTEGER
-		val/value: pair/y
-		pair/y: get-value-int as red-integer!
-				integer/round as red-value! val scale _even? down? half-down? floor? ceil? half-ceil?
+		val/header: TYPE_FLOAT
+		val/value: as-float pair/x
+		pair/x: as-float32 float/round as red-value! val scale _even? down? half-down? floor? ceil? half-ceil?
+		val/value: as-float pair/y
+		pair/y: as-float32 float/round as red-value! val scale _even? down? half-down? floor? ceil? half-ceil?
 		value
 	]
 
@@ -356,8 +355,8 @@ pair: context [
 		#if debug? = yes [if verbose > 0 [print-line "pair/absolute"]]
 
 		pair: as red-pair! stack/arguments
-		pair/x: integer/abs pair/x
-		pair/y: integer/abs pair/y
+		pair/x: as float32! float/abs as-float pair/x		;@@ TBD: optimize it
+		pair/y: as float32! float/abs as-float pair/y
 		pair
 	]
 	
@@ -402,8 +401,8 @@ pair: context [
 			pair [red-pair!]
 	][
 		pair: as red-pair! stack/arguments
-		pair/x: 0 - pair/x
-		pair/y: 0 - pair/y
+		pair/x: (as-float32 0.0) - pair/x
+		pair/y: (as-float32 0.0) - pair/y
 		pair
 	]
 	
@@ -416,7 +415,7 @@ pair: context [
 		#if debug? = yes [if verbose > 0 [print-line "pair/pick"]]
 
 		if all [index <> 1 index <> 2][fire [TO_ERROR(script out-of-range) boxed]]
-		as red-value! integer/push either index = 1 [pair/x][pair/y]
+		as red-value! float/push as-float either index = 1 [pair/x][pair/y]
 	]
 	
 	reverse: func [
@@ -424,7 +423,7 @@ pair: context [
 		part	[red-value!]
 		return:	[red-value!]
 		/local
-			tmp [integer!]
+			tmp [float32!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "pair/reverse"]]
 	

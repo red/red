@@ -1764,7 +1764,7 @@ natives: context [
 			]
 			TYPE_PAIR [
 				p: as red-pair! i
-				all [p/x = 0 p/y = 0]
+				all [p/x = as-float32 0.0 p/y = as-float32 0.0]
 			]
 			TYPE_TUPLE [
 				tuple/all-zero? as red-tuple! i
@@ -1959,39 +1959,19 @@ natives: context [
 	as-pair*: func [
 		check? [logic!]
 		/local
-			pair [red-pair!]
+			p	 [red-pair!]
 			arg	 [red-value!]
 			int  [red-integer!]
 			fl	 [red-float!]
 	][
 		#typecheck as-pair
 		arg: stack/arguments
-		pair: as red-pair! arg
-		
-		switch TYPE_OF(arg) [
-			TYPE_INTEGER [
-				int: as red-integer! arg
-				pair/x: int/value
-			]
-			TYPE_FLOAT	 [
-				fl: as red-float! arg
-				pair/x: as-integer fl/value
-			]
-			default		 [assert false]
-		]
+		p: as red-pair! arg
+
+		p/x: pair/get-float32 as red-integer! arg
 		arg: arg + 1
-		switch TYPE_OF(arg) [
-			TYPE_INTEGER [
-				int: as red-integer! arg
-				pair/y: int/value
-			]
-			TYPE_FLOAT	 [
-				fl: as red-float! arg
-				pair/y: as-integer fl/value
-			]
-			default		[assert false]
-		]
-		pair/header: TYPE_PAIR
+		p/y: pair/get-float32 as red-integer! arg
+		p/header: TYPE_PAIR
 	]
 	
 	break*: func [check? [logic!] returned [integer!]][
@@ -2680,6 +2660,7 @@ natives: context [
 			buf		[byte-ptr!]
 			buf2	[byte-ptr!]
 			i		[integer!]
+			f32		[float32!]
 			n		[integer!]
 			size	[integer!]
 			type	[integer!]
@@ -2723,13 +2704,13 @@ natives: context [
 					]
 					TYPE_FLOAT
 					TYPE_INTEGER [
-						i: arg-to-integer arg2
+						f32: pair/get-float32 as red-integer! arg2
 						either max? [
-							if p/x < i [p/x: i]
-							if p/y < i [p/y: i]
+							if p/x < f32 [p/x: f32]
+							if p/y < f32 [p/y: f32]
 						][
-							if p/x > i [p/x: i]
-							if p/y > i [p/y: i]
+							if p/x > f32 [p/x: f32]
+							if p/y > f32 [p/y: f32]
 						]
 						if arg <> stack/arguments [stack/set-last arg]
 					]

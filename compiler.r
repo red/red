@@ -1760,7 +1760,7 @@ red: context [
 					]
 				]
 				pair? :value [
-					emit 'pair/push
+					emit 'pair/push-int
 					emit reduce [value/1 value/2]
 					insert-lf -3
 				]
