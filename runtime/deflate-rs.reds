@@ -87,9 +87,9 @@ deflate: context [
 	DMIN: [1 2 3 4 5 7 9 13 17 25 33 49 65 97 129 193 257 385 513 769 1025 1537 2049 3073 4097 6145 8193 12289 16385 24577]
 
 	ORDER: [
-		#"^(16)" #"^(17)" #"^(18)" #"^(00)" #"^(08)" #"^(07)" #"^(09)" #"^(06)"
-		#"^(10)" #"^(05)" #"^(11)" #"^(04)" #"^(12)" #"^(03)" #"^(13)" #"^(02)"
-		#"^(14)" #"^(01)" #"^(15)"
+		#"^(10)" #"^(11)" #"^(12)" #"^(00)" #"^(08)" #"^(07)" #"^(09)" #"^(06)"
+		#"^(0A)" #"^(05)" #"^(0B)" #"^(04)" #"^(0C)" #"^(03)" #"^(0D)" #"^(02)"
+		#"^(0E)" #"^(01)" #"^(0F)"
 	]
 
 	DBASE: [
@@ -402,6 +402,7 @@ deflate: context [
 		symcnt		[integer!]
 		return:		[integer!]
 		/local
+			p		[int-ptr!]
 			n		[integer!]
 			cnt		[int-ptr!]
 			first	[int-ptr!]
@@ -412,6 +413,11 @@ deflate: context [
 			len		[integer!]
 			t		[integer!]
 	][
+		p: tree
+		loop symcnt [
+			p/1: 0
+			p: p + 1
+		]
 		cnt: system/stack/allocate 16
 		first: system/stack/allocate 16
 		codes: system/stack/allocate 16
@@ -436,7 +442,10 @@ deflate: context [
 		while [n < symcnt][
 			pos: n + 1
 			len: as integer! lens/pos
-			if len = 0 [continue]
+			if len = 0 [
+				n: n + 1
+				continue
+			]
 			pos: len + 1
 			code: codes/pos
 			codes/pos: codes/pos + 1
@@ -477,7 +486,7 @@ deflate: context [
 		]
 		key: tree/lo
 		read src end s key and 0Fh
-		key >> 4 and 0FFFh
+		key >>> 4 and 0FFFh
 	]
 
 	uncompress: func [
@@ -657,7 +666,7 @@ deflate: context [
 							]
 							default [
 								n: n + 1
-								lens/pos: as byte! sym
+								lens/n: as byte! sym
 							]
 						]
 					]
@@ -671,8 +680,8 @@ deflate: context [
 						sym > 256 [
 							sym: sym - 257
 							pos: sym + 1
-							len: read :in iend s as integer! LBITS/sym
-							len: len + LBASE/sym
+							len: read :in iend s as integer! LBITS/pos
+							len: len + LBASE/pos
 							dsym: decode :in iend s s/dsts s/tdist
 							pos: dsym + 1
 							offs: read :in iend s as integer! DBITS/pos
@@ -693,10 +702,10 @@ deflate: context [
 						sym = 256 [
 							if last > 0 [
 								out-size/value: as integer! out - o
-								if oend > out [
+								if oend < out [
 									return INFLATE-NO-MEM
 								]
-								return INFLATE_END
+								return INFLATE-OK
 							]
 							state: STATE-HDR
 						]
@@ -711,6 +720,9 @@ deflate: context [
 			]
 		]
 		out-size/value: as integer! out - o
+		if (as byte-ptr! in) = iend [
+			return INFLATE-OK
+		]
 		INFLATE_END
 	]
 ]

@@ -125,7 +125,7 @@ red: context [
 	#include %redbin.reds
 	#include %utils.reds
 	#include %call.reds
-	#include %inflate.reds
+	#include %deflate.reds
 	#include %collector.reds
 
 	_root:	 	declare red-block!						;-- statically alloc root cell for bootstrapping

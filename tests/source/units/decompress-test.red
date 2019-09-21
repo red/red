@@ -29,15 +29,15 @@ Red [
 	--test-- "zlib 1"
 		data: #{789C35C6C10980301005D156A6009B5AD8A00BAB1F929890EECD45E6F0A6EB56AD9A44C3488D920BB77510CCC8E4147A7B0B2FD8E35C36F66CFE3E0CC71765}
 		origin: "tomorrow is a lovely day, i will go outside and have a hahahahaha"
-		--assert origin = to-string decompress/zlib data 65
+		--assert origin = to-string decompress/zlib data
 	--test-- "zlib 2"
 		data: #{789C4B4C4A363432060006EC01BD}
 		origin: "abc123"
-		--assert origin = to-string decompress/zlib data 6
+		--assert origin = to-string decompress/zlib data
 	--test-- "zlib 3"
 		data: #{789C7BD631F1E9B439CFD62C0A4A4D79B17EED8B150D00713E0BBA}
 		origin: "我喜欢Red语言"			;-- utf8 encoding
-		--assert origin = to-string decompress/zlib data 18
+		--assert origin = to-string decompress/zlib data
 ===end-group===
 
 ~~~end-file~~~

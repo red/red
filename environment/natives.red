@@ -884,9 +884,7 @@ decompress: make native! [[
 		"Decompresses data. Data in GZIP format (RFC 1952) by default"
 		data		[binary!]
 		/zlib		"Data in ZLIB format (RFC 1950)"
-		size		[integer!] "Uncompressed data size"
 		/deflate	"Data in DEFLATE format (RFC 1951)"
-		size		[integer!] "Uncompressed data size"
 	]
 	#get-definition NAT_DECOMPRESS
 ]

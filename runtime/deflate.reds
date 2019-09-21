@@ -99,7 +99,7 @@ gzip-uncompress: func [
 	if flga and GZIP_FNAME <> 0 [
 		c: 0
 		until [
-			if start - src >= src-len [
+			if start >= (src + src-len) [
 				return INFLATE-GZIP-HDR
 			]
 			c: as integer! start/value
@@ -111,7 +111,7 @@ gzip-uncompress: func [
 	if flga and GZIP_FCOMMENT <> 0 [
 		c: 0
 		until [
-			if start - src >= src-len [
+			if start >= (src + src-len) [
 				return INFLATE-GZIP-HDR
 			]
 			c: as integer! start/value
@@ -122,11 +122,11 @@ gzip-uncompress: func [
 
 	;--check header crc if present
 	if flga and GZIP_FHCRC <> 0 [
-		if start - src >= (src-len - 2) [
+		if start >= (src + src-len - 2) [
 			return INFLATE-GZIP-HDR
 		]
 		crc: (as integer! start/2) << 8 + as integer! start/1
-		c: crypto/CRC32 src start - src
+		c: crypto/CRC32 src as integer! start - src
 		if crc <> (c and FFFFh) [
 			return INFLATE-GZIP-HDR
 		]
@@ -221,7 +221,7 @@ gzip-compress: func [
 	DEFLATE-GZIP-OK
 ]
 
-zlib-uncompress: func[
+zlib-uncompress: func [
 	dest		[byte-ptr!]
 	dest-len	[int-ptr!]
 	src			[byte-ptr!]
@@ -256,10 +256,10 @@ zlib-uncompress: func[
 	]
 	;--get adler32 checksum
 	p: src + src-len - 4
-	crc: (as integer! p/4) << 24
-	crc: (as integer! p/3) << 16 + crc
-	crc: (as integer! p/2) << 8 + crc
-	crc: (as integer! p/1) + crc
+	crc: (as integer! p/1) << 24
+	crc: (as integer! p/2) << 16 + crc
+	crc: (as integer! p/3) << 8 + crc
+	crc: (as integer! p/4) + crc
 
 	res: deflate/uncompress dest dest-len src + 2 src-len - 6
 	if res <> 0 [return res]

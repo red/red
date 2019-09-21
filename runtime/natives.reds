@@ -2624,45 +2624,57 @@ natives: context [
 		_deflate [integer!]
 		/local
 			arg		[red-binary!]
-			sz		[red-integer!]
 			src		[byte-ptr!]
 			srclen	[integer!]
+			buffer	[byte-ptr!]
+			buflen	[integer!]
 			res		[integer!]
-			dst		[red-binary! value]
-			dstlen	[integer!]
-			s		[series!]
-			buf		[byte-ptr!]
+			dst		[red-binary!]
 	][
 		#typecheck [decompress zlib _deflate]
 		arg: as red-binary! stack/arguments
 		src: binary/rs-head arg
 		srclen: binary/rs-length? arg
-
+		buflen: 128 + srclen
+		buffer: allocate buflen
+		if buffer = null [
+			fire [TO_ERROR(script buffer-not-enough) integer/push buflen]
+		]
 		case [
 			zlib > 0 [
-				sz: as red-integer! arg + zlib
-				dstlen: sz/value
+				res: zlib-uncompress buffer :buflen src srclen
+				if res = 1 [
+					free buffer
+					buflen: buflen + 1
+					buffer: allocate buflen
+					res: zlib-uncompress buffer :buflen src srclen
+				]
 			]
 			_deflate > 0 [
-				sz: as red-integer! arg + _deflate
-				dstlen: sz/value
+				res: deflate/uncompress buffer :buflen src srclen
+				if res = 1 [
+					free buffer
+					buflen: buflen + 1
+					buffer: allocate buflen
+					res: deflate/uncompress buffer :buflen src srclen
+				]
 			]
 			true [
-				dstlen: 0
-				gzip-uncompress null :dstlen src srclen
+				res: gzip-uncompress buffer :buflen src srclen
+				if res = 1 [
+					free buffer
+					buflen: buflen + 1
+					buffer: allocate buflen
+					res: gzip-uncompress buffer :buflen src srclen
+				]
 			]
 		]
-
-		binary/make-at as red-value! dst dstlen
-		s: GET_BUFFER(dst)
-		buf: as byte-ptr! s/offset
-		res: case [
-			zlib > 0		[zlib-uncompress buf :dstlen src srclen]
-			_deflate > 0	[deflate/uncompress buf :dstlen src srclen]
-			true			[gzip-uncompress buf :dstlen src srclen]
+		if res <> 0 [
+			free buffer
+			fire [TO_ERROR(script invalid-data)]
 		]
-		if res <> 0 [fire [TO_ERROR(script invalid-data)]]
-		s/tail: as cell! (buf + dstlen)
+		dst: binary/load buffer buflen
+		free buffer
 		stack/set-last as red-value! dst
 	]
 
