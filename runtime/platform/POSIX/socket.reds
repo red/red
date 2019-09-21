@@ -172,6 +172,7 @@ probe ["socket/write: " length " " n]
 		buffer		[byte-ptr!]
 		length		[integer!]
 		data		[iocp-data!]
+		return:		[integer!]
 		/local
 			n		[integer!]
 			state	[integer!]
@@ -179,7 +180,7 @@ probe ["socket/write: " length " " n]
 		state: data/state
 		if state and IO_STATE_PENDING_READ = IO_STATE_PENDING_READ [
 			iocp/add-pending data buffer length IO_EVT_READ
-			exit
+			return -1
 		]
 
 		n: LibC.recv sock buffer length 0
@@ -211,6 +212,7 @@ probe ["socket/read: " n]
 				iocp/post data/io-port data
 			]
 		]
+		n
 	]
 
 	usend: func [	;-- for UDP

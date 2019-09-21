@@ -128,6 +128,23 @@ socket: context [
 		WSASend sock :wsbuf 1 null 0 as OVERLAPPED! data null
 	]
 
+	recv: func [
+		sock		[integer!]
+		buffer		[byte-ptr!]
+		length		[integer!]
+		data		[iocp-data!]
+		return:		[integer!]
+		/local
+			wsbuf	[WSABUF! value]
+			flags	[integer!]
+	][
+		wsbuf/len: length
+		wsbuf/buf: buffer
+		data/event: IO_EVT_READ
+		flags: 0
+		WSARecv sock :wsbuf 1 null :flags as OVERLAPPED! data null [
+	]
+
 	usend: func [	;-- for UDP
 		sock		[integer!]
 		addr		[sockaddr_in!]
@@ -160,24 +177,6 @@ socket: context [
 		wsbuf/buf: buffer
 		data/iocp/event: IO_EVT_READ
 		if 0 <> WSARecvFrom sock :wsbuf 1 null :data/flags addr addr-sz as OVERLAPPED! data null [
-			exit
-		]
-	]
-
-	recv: func [
-		sock		[integer!]
-		buffer		[byte-ptr!]
-		length		[integer!]
-		data		[iocp-data!]
-		/local
-			wsbuf	[WSABUF! value]
-			flags	[integer!]
-	][
-		wsbuf/len: length
-		wsbuf/buf: buffer
-		data/event: IO_EVT_READ
-		flags: 0
-		if 0 <> WSARecv sock :wsbuf 1 null :flags as OVERLAPPED! data null [
 			exit
 		]
 	]

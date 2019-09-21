@@ -13,11 +13,11 @@ Red/System [
 SOCK_READBUF_SZ: 1048576				;-- 1MB
 
 #either OS = 'Windows [
-	#include %windows/tls.reds
 	#include %windows/iocp.reds
+	#include %windows/tls.reds
 	#include %windows/socket.reds
 ][
-	#include %POSIX/tls.reds
 	#include %POSIX/iocp.reds
+	#include %POSIX/tls.reds
 	#include %POSIX/socket.reds
 ]

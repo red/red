@@ -18,26 +18,20 @@ TLS-device: context [
 		/local
 			p		[red-object!]
 			msg		[red-object!]
-			tcp		[sockdata!]
+			td		[tls-data!]
 			type	[integer!]
 			bin		[red-binary!]
 			s		[series!]
+			fd		[integer!]
 	][
-		tcp: as sockdata! data
-		p: as red-object! :tcp/port
+		td: as tls-data! data
+		unless td/connected? [tls/negotiate td]
+
+		p: as red-object! :td/port
 		msg: p
 		type: data/event
 
 		switch type [
-			IO_EVT_ACCEPT	[
-				#either OS = 'Windows [
-					msg: create-red-port p data/accept-sock
-					iocp/bind g-iocp as int-ptr! data/accept-sock
-					socket/acceptex as-integer data/device data
-				][
-					msg: create-red-port p socket/accept as-integer data/device
-				]
-			]
 			IO_EVT_READ	[
 				bin: as red-binary! (object/get-values p) + port/field-data
 				s: GET_BUFFER(bin)
@@ -52,7 +46,7 @@ TLS-device: context [
 				]
 			]
 			IO_EVT_WRITE	[
-				io/unpin-memory tcp/send-buf
+				io/unpin-memory td/send-buf
 				#if OS = 'Windows [
 					either data/accept-sock = PENDING_IO_FLAG [
 						free as byte-ptr! data
@@ -60,6 +54,22 @@ TLS-device: context [
 						data/event: IO_EVT_NONE
 					]
 				]
+			]
+			IO_EVT_ACCEPT	[
+				#either OS = 'Windows [
+					msg: create-red-port p data/accept-sock
+					iocp/bind g-iocp as int-ptr! data/accept-sock
+					socket/acceptex as-integer data/device data
+				][
+					fd: socket/accept as-integer data/device
+					msg: create-red-port p fd
+					tls/create td no
+					tls/negotiate td
+				]
+			]
+			IO_EVT_CONNECT [
+				tls/create td yes
+				tls/negotiate td
 			]
 			default [data/event: IO_EVT_NONE]
 		]

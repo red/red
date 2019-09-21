@@ -560,17 +560,14 @@ errno: as int-ptr! 0
 
 #import [
 	LIBSSL-file cdecl [
-		SSL_library_init: "SSL_library_init" [
-			return:	[integer!]
-		]
 		SSL_CTX_new: "SSL_CTX_new" [
 			method	[int-ptr!]
 			return: [int-ptr!]
 		]
-		TLS_method: "TLS_method" [
+		TLS_client_method: "TLS_client_method" [
 			return: [int-ptr!]
 		]
-		TLS_client_method: "TLS_client_method" [
+		TLS_server_method: "TLS_server_method" [
 			return: [int-ptr!]
 		]
 		SSL_new: "SSL_new" [

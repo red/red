@@ -164,21 +164,21 @@ iocp: context [
 		]
 		queue: p/ready-socks
 
-		#either OS = 'macOS [
-			either timeout < 0 [
-				tm: null
-			][
-				tm: :_tm
-				tm/sec: timeout / 1000
-				tm/nsec: timeout % 1000 * 1000000
-			]
-
-			cnt: LibC.kevent p/epfd null 0 p/events p/nevents tm
-			if cnt < 0 [return 0]
+	#either OS = 'macOS [
+		either timeout < 0 [
+			tm: null
 		][
-			cnt: epoll_wait p/epfd p/events p/nevents timeout
-			if all [cnt < 0 errno/value = EINTR][return 0]
+			tm: :_tm
+			tm/sec: timeout / 1000
+			tm/nsec: timeout % 1000 * 1000000
 		]
+
+		cnt: LibC.kevent p/epfd null 0 p/events p/nevents tm
+		if cnt < 0 [return 0]
+	][
+		cnt: epoll_wait p/epfd p/events p/nevents timeout
+		if all [cnt < 0 errno/value = EINTR][return 0]
+	]
 
 ?? cnt
 		if cnt = p/nevents [		;-- TBD: extend events buffer
@@ -204,65 +204,63 @@ iocp: context [
 					data/event-handler as int-ptr! data
 				]
 			][
-				#either OS = 'macOS [
-					filter: e/filter and FFFFh
-					flags: e/filter >>> 16
-					probe ["ready event: " filter " " flags]
-				][
-					probe ["ready event: " e/events]
-				]
+			#either OS = 'macOS [
+				filter: e/filter and FFFFh
+				flags: e/filter >>> 16
+				probe ["ready event: " filter " " flags]
+			][
+				probe ["ready event: " e/events]
+			]
 				
 				state: data/state
-				case [
-				#if OS = 'macOS [
-					flags and EV_ERROR <> 0 [
-						probe "kqueue error" halt
-					]
-					flags and EV_EOF <> 0 [
-						probe "kqueue: socket close"
-					]
+
+			#if OS = 'macOS [
+				if flags and EV_ERROR <> 0 [
+					probe "kqueue error" continue
 				]
-					all [
-						IOCP_READ_ACTION?
-						state and IO_STATE_READING <> 0
-					][
-						either null? data/pending-read [
+				if flags and EV_EOF <> 0 [
+					probe "kqueue: socket close" continue
+				]
+			]
+				if all [
+					IOCP_READ_ACTION?
+					state and IO_STATE_READING <> 0
+				][
+					either null? data/pending-read [
 probe [sock " " data/read-buf " " data/read-buflen]
-							n: LibC.recv sock data/read-buf data/read-buflen 0
+						n: LibC.recv sock data/read-buf data/read-buflen 0
 probe errno/value
 probe ["read data: " n]
-							data/state: state and (not IO_STATE_READING)
-							data/transferred: n
-							data/event: IO_EVT_READ
-							data/event-handler as int-ptr! data
-						][
-							0 ;TBD
-						]
-					]
-					all [
-						IOCP_WRITE_ACTION?
-						state and IO_STATE_WRITING <> 0
-					][
-						either null? data/pending-write [
-							datalen: data/write-buflen
-							n: LibC.send sock data/write-buf datalen 0
-							either n = datalen [
-								data/state: state and (not IO_STATE_WRITING)
-								data/write-buf: null
-								data/event: IO_EVT_WRITE
-								data/event-handler as int-ptr! data
-							][	;-- remaining data to be sent
-								data/write-buf: data/write-buf + n
-								data/write-buflen: data/write-buflen - n
-							]
-						][
-							0 ;; TBD
-						]
-					]
-					data/event > IO_EVT_WRITE [
+						data/state: state and (not IO_STATE_READING)
+						data/transferred: n
+						data/event: IO_EVT_READ
 						data/event-handler as int-ptr! data
+					][
+						0 ;TBD
 					]
-					true [0]
+				]
+				if all [
+					IOCP_WRITE_ACTION?
+					state and IO_STATE_WRITING <> 0
+				][
+					either null? data/pending-write [
+						datalen: data/write-buflen
+						n: LibC.send sock data/write-buf datalen 0
+						either n = datalen [
+							data/state: state and (not IO_STATE_WRITING)
+							data/write-buf: null
+							data/event: IO_EVT_WRITE
+							data/event-handler as int-ptr! data
+						][	;-- remaining data to be sent
+							data/write-buf: data/write-buf + n
+							data/write-buflen: data/write-buflen - n
+						]
+					][
+						0 ;; TBD
+					]
+				]
+				if data/event > IO_EVT_WRITE [
+					data/event-handler as int-ptr! data
 				]
 			]
 			i: i + 1
