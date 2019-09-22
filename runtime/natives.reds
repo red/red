@@ -2626,7 +2626,6 @@ natives: context [
 			arg		[red-binary!]
 			src		[byte-ptr!]
 			srclen	[integer!]
-			f		[float!]
 			buffer	[byte-ptr!]
 			buflen	[integer!]
 			res		[integer!]
@@ -2637,9 +2636,7 @@ natives: context [
 		arg: as red-binary! stack/arguments
 		src: binary/rs-head arg
 		srclen: binary/rs-length? arg
-
-		f: (as float! srclen + 32) * 1.001	;-- expand 0.1%, should be quite enough
-		buflen: as-integer f
+		buflen: srclen
 
 		loop 2 [	;-- try again in case fails the first time
 			binary/make-at as red-value! dst buflen
@@ -2656,7 +2653,7 @@ natives: context [
 					res: gzip-compress buffer :buflen src srclen
 				]
 			]
-			if res <= 1 [break]
+			if res <> 1 [break]
 		]
 		if res <> 0 [
 			fire [TO_ERROR(script invalid-data)]
@@ -2719,7 +2716,7 @@ natives: context [
 				_deflate > 0	[deflate/uncompress buf :dstlen src srclen]
 				true			[gzip-uncompress buf :dstlen src srclen]
 			]
-			if res <= 1 [break]
+			if res <> 1 [break]
 		]
 		if res <> 0 [fire [TO_ERROR(script invalid-data)]]
 		s/tail: as cell! (buf + dstlen)
