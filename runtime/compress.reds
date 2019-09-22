@@ -207,7 +207,7 @@ gzip-compress: func [
 	]
 	dest: dest + dest-len/1
 	dest-len/1: dest-len/1 + 18
-	if dest + 8 >= dend [
+	if dest + 8 > dend [
 		return DEFLATE-GZIP-LEN
 	]
 	crc: crypto/CRC32 src src-len
@@ -300,7 +300,7 @@ zlib-compress: func [
 	]
 	dest: dest + dest-len/1
 	dest-len/1: dest-len/1 + 6
-	if dest + 4 >= dend [
+	if dest + 4 > dend [
 		return DEFLATE-ZLIB-LEN
 	]
 	crc: crypto/adler32 src src-len
