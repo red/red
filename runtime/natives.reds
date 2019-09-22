@@ -2638,7 +2638,7 @@ natives: context [
 		src: binary/rs-head arg
 		srclen: binary/rs-length? arg
 
-		f: (as float! srclen + 64) * 1.001	;-- expand 0.1%, should be quite enough
+		f: (as float! srclen + 32) * 1.001	;-- expand 0.1%, should be quite enough
 		buflen: as-integer f
 
 		loop 2 [	;-- try again in case fails the first time
@@ -2656,7 +2656,7 @@ natives: context [
 					res: gzip-compress buffer :buflen src srclen
 				]
 			]
-			if zero? res [break]
+			if res <= 1 [break]
 		]
 		if res <> 0 [
 			fire [TO_ERROR(script invalid-data)]
@@ -2719,7 +2719,7 @@ natives: context [
 				_deflate > 0	[deflate/uncompress buf :dstlen src srclen]
 				true			[gzip-uncompress buf :dstlen src srclen]
 			]
-			if any [zero? res res <> 1][break]
+			if res <= 1 [break]
 		]
 		if res <> 0 [fire [TO_ERROR(script invalid-data)]]
 		s/tail: as cell! (buf + dstlen)

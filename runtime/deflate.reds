@@ -50,16 +50,16 @@ deflate: context [
 
 	#enum DEFLATE-ERROR! [
 		DEFLATE-OK: 0
-		DEFLATE-NO-MEM: 1
+		DEFLATE-NO-MEM: 1	;-- output buffer is too small, return the right size in `out-size`.
 	]
 
 	#enum INFLATE-ERROR! [
 		INFLATE-OK: 0
-		INFLATE-NO-MEM: 1
-		INFLATE_END
-		INFLATE_LEN
-		INFLATE_HDR
-		INFLATE_BLK
+		INFLATE-NO-MEM: 1	;-- output buffer is too small, return the right size in `out-size`.
+		INFLATE_END			;-- error: wrong data format
+		INFLATE_LEN			;-- error: wrong internal length
+		INFLATE_HDR			;-- error: wrong header
+		INFLATE_BLK			;-- error: wrong block
 	]
 
 	MIRROR: [
