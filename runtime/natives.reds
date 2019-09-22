@@ -2634,8 +2634,13 @@ natives: context [
 	][
 		#typecheck [compress zlib _deflate]
 		arg: as red-binary! stack/arguments
-		src: binary/rs-head arg
-		srclen: binary/rs-length? arg
+		either TYPE_OF(arg) <> TYPE_BINARY [		;-- any-string!
+			srclen: -1
+			src: as byte-ptr! unicode/to-utf8 as red-string! arg :srclen
+		][
+			src: binary/rs-head arg
+			srclen: binary/rs-length? arg
+		]
 		buflen: srclen + 32
 
 		loop 2 [	;-- try again in case fails the first time
