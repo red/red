@@ -2636,7 +2636,7 @@ natives: context [
 		arg: as red-binary! stack/arguments
 		src: binary/rs-head arg
 		srclen: binary/rs-length? arg
-		buflen: srclen
+		buflen: srclen + 32
 
 		loop 2 [	;-- try again in case fails the first time
 			binary/make-at as red-value! dst buflen
