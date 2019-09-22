@@ -248,7 +248,7 @@ deflate: context [
 		]
 
 		dc: dist - 1
-		dx: log-b npow2 dist >> 2
+		dx: log-b (npow2 dist) >> 2
 		if dx < 0 [dx: 0]
 		if dx <> 0 [
 			pos: dx + 1

@@ -2618,6 +2618,66 @@ natives: context [
 		]
 	]
 
+	compress*: func [
+		check?	 [logic!]
+		zlib	 [integer!]
+		_deflate [integer!]
+		/local
+			arg		[red-binary!]
+			src		[byte-ptr!]
+			srclen	[integer!]
+			buffer	[byte-ptr!]
+			buflen	[integer!]
+			res		[integer!]
+			dst		[red-binary!]
+	][
+		#typecheck [compress zlib _deflate]
+		arg: as red-binary! stack/arguments
+		src: binary/rs-head arg
+		srclen: binary/rs-length? arg
+		buflen: 32 + srclen
+		buffer: allocate buflen
+		if buffer = null [
+			fire [TO_ERROR(script buffer-not-enough) integer/push buflen]
+		]
+		case [
+			zlib > 0 [
+				res: zlib-compress buffer :buflen src srclen
+				if res = 1 [
+					free buffer
+					buflen: buflen + 1
+					buffer: allocate buflen
+					res: zlib-compress buffer :buflen src srclen
+				]
+			]
+			_deflate > 0 [
+				res: deflate/compress buffer :buflen src srclen
+				if res = 1 [
+					free buffer
+					buflen: buflen + 1
+					buffer: allocate buflen
+					res: deflate/compress buffer :buflen src srclen
+				]
+			]
+			true [
+				res: gzip-compress buffer :buflen src srclen
+				if res = 1 [
+					free buffer
+					buflen: buflen + 1
+					buffer: allocate buflen
+					res: gzip-compress buffer :buflen src srclen
+				]
+			]
+		]
+		if res <> 0 [
+			free buffer
+			fire [TO_ERROR(script invalid-data)]
+		]
+		dst: binary/load buffer buflen
+		free buffer
+		stack/set-last as red-value! dst
+	]
+
 	decompress*: func [
 		check?	 [logic!]
 		zlib	 [integer!]
@@ -3292,6 +3352,7 @@ natives: context [
 			:zero?*
 			:size?*
 			:browse*
+			:compress*
 			:decompress*
 			:recycle*
 		]

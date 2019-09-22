@@ -190,7 +190,7 @@ gzip-compress: func [
 	dest/1: #"^(1F)"
 	dest/2: #"^(8B)"
 	dest/3: #"^(08)"
-	dest/4: #"^(02)"
+	dest/4: #"^(00)"
 	dest/5: #"^(00)"
 	dest/6: #"^(00)"
 	dest/7: #"^(00)"
@@ -204,9 +204,9 @@ gzip-compress: func [
 		dest-len/1: dest-len/1 + 18
 		return res
 	]
-	dest-len/1: dest-len/1 + 8
-	if dest + dest-len/1 >= dend [
-		dest-len/1: dest-len/1 + 10
+	dest: dest + dest-len/1
+	dest-len/1: dest-len/1 + 18
+	if dest + 8 >= dend [
 		return DEFLATE-GZIP-LEN
 	]
 	crc: crypto/CRC32 src src-len
@@ -297,15 +297,15 @@ zlib-compress: func [
 		dest-len/1: dest-len/1 + 6
 		return res
 	]
-	dest-len/1: dest-len/1 + 4
-	if dest + dest-len/1 >= dend [
-		dest-len/1: dest-len/1 + 2
+	dest: dest + dest-len/1
+	dest-len/1: dest-len/1 + 6
+	if dest + 4 >= dend [
 		return DEFLATE-ZLIB-LEN
 	]
-	crc: crypto/CRC32 src src-len
-	dest/1: as byte! crc
-	dest/2: as byte! crc >> 8
-	dest/3: as byte! crc >> 16
-	dest/4: as byte! crc >> 24
+	crc: crypto/adler32 src src-len
+	dest/1: as byte! crc >> 24
+	dest/2: as byte! crc >> 16
+	dest/3: as byte! crc >> 8
+	dest/4: as byte! crc
 	DEFLATE-ZLIB-OK
 ]

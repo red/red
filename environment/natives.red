@@ -880,6 +880,15 @@ browse: make native! [[
 	#get-definition NAT_BROWSE
 ]
 
+compress: make native! [[
+		"compresses data. return GZIP format (RFC 1952) by default"
+		data		[binary!]
+		/zlib		"Return ZLIB format (RFC 1950)"
+		/deflate	"Return DEFLATE format (RFC 1951)"
+	]
+	#get-definition NAT_COMPRESS
+]
+
 decompress: make native! [[
 		"Decompresses data. Data in GZIP format (RFC 1952) by default"
 		data		[binary!]

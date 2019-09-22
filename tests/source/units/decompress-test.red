@@ -40,4 +40,17 @@ Red [
 		--assert origin = to-string decompress/zlib data
 ===end-group===
 
+===start-group=== "compress & decompress"
+	data: "Red is a new programming language strongly inspired by Rebol, but with a broader field of usage thanks to its native-code compiler, from system programming to high-level scripting, while providing modern support for concurrency and multi-core CPUs."
+	--test-- "deflate"
+		--assert data = to string! decompress/deflate compress/deflate to binary! data
+
+	--test-- "gzip"
+		--assert data = to string! decompress compress to binary! data
+
+	--test-- "zlib"
+		--assert data = to string! decompress/zlib compress/zlib to binary! data
+
+===end-group===
+
 ~~~end-file~~~
