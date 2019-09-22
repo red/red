@@ -2626,55 +2626,44 @@ natives: context [
 			arg		[red-binary!]
 			src		[byte-ptr!]
 			srclen	[integer!]
+			f		[float!]
 			buffer	[byte-ptr!]
 			buflen	[integer!]
 			res		[integer!]
-			dst		[red-binary!]
+			s		[series!]
+			dst		[red-binary! value]
 	][
 		#typecheck [compress zlib _deflate]
 		arg: as red-binary! stack/arguments
 		src: binary/rs-head arg
 		srclen: binary/rs-length? arg
-		buflen: 32 + srclen
-		buffer: allocate buflen
-		if buffer = null [
-			fire [TO_ERROR(script buffer-not-enough) integer/push buflen]
-		]
-		case [
-			zlib > 0 [
-				res: zlib-compress buffer :buflen src srclen
-				if res = 1 [
-					free buffer
-					buflen: buflen + 1
-					buffer: allocate buflen
+
+		f: (as float! srclen + 64) * 1.001	;-- expand 0.1%, should be quite enough
+?? srclen
+		buflen: as-integer f
+?? buflen
+		loop 2 [	;-- try again in case fails the first time
+			binary/make-at as red-value! dst buflen
+			s: GET_BUFFER(dst)
+			buffer: as byte-ptr! s/offset
+			case [
+				zlib > 0 [
 					res: zlib-compress buffer :buflen src srclen
 				]
-			]
-			_deflate > 0 [
-				res: deflate/compress buffer :buflen src srclen
-				if res = 1 [
-					free buffer
-					buflen: buflen + 1
-					buffer: allocate buflen
+				_deflate > 0 [
 					res: deflate/compress buffer :buflen src srclen
 				]
-			]
-			true [
-				res: gzip-compress buffer :buflen src srclen
-				if res = 1 [
-					free buffer
-					buflen: buflen + 1
-					buffer: allocate buflen
+				true [
 					res: gzip-compress buffer :buflen src srclen
 				]
 			]
+			?? buflen
+			if zero? res [break]
 		]
 		if res <> 0 [
-			free buffer
 			fire [TO_ERROR(script invalid-data)]
 		]
-		dst: binary/load buffer buflen
-		free buffer
+		s/tail: as cell! (buffer + buflen)
 		stack/set-last as red-value! dst
 	]
 
@@ -2684,57 +2673,55 @@ natives: context [
 		_deflate [integer!]
 		/local
 			arg		[red-binary!]
+			sz		[red-integer!]
 			src		[byte-ptr!]
 			srclen	[integer!]
-			buffer	[byte-ptr!]
-			buflen	[integer!]
 			res		[integer!]
-			dst		[red-binary!]
+			dst		[red-binary! value]
+			dstlen	[integer!]
+			s		[series!]
+			buf		[byte-ptr!]
 	][
 		#typecheck [decompress zlib _deflate]
 		arg: as red-binary! stack/arguments
 		src: binary/rs-head arg
 		srclen: binary/rs-length? arg
-		buflen: 128 + srclen
-		buffer: allocate buflen
-		if buffer = null [
-			fire [TO_ERROR(script buffer-not-enough) integer/push buflen]
-		]
+
 		case [
 			zlib > 0 [
-				res: zlib-uncompress buffer :buflen src srclen
-				if res = 1 [
-					free buffer
-					buflen: buflen + 1
-					buffer: allocate buflen
-					res: zlib-uncompress buffer :buflen src srclen
+				sz: as red-integer! arg + zlib
+				dstlen: sz/value
+				if sz/value < (srclen * 2) [
+					;-- if dstlen is too small, calculate real buffer size before decompress
+					dstlen: 0
+					zlib-uncompress null :dstlen src srclen
 				]
 			]
 			_deflate > 0 [
-				res: deflate/uncompress buffer :buflen src srclen
-				if res = 1 [
-					free buffer
-					buflen: buflen + 1
-					buffer: allocate buflen
-					res: deflate/uncompress buffer :buflen src srclen
+				sz: as red-integer! arg + _deflate
+				dstlen: sz/value
+				if sz/value < (srclen * 2) [
+					dstlen: 0
+					deflate/uncompress null :dstlen src srclen
 				]
 			]
 			true [
-				res: gzip-uncompress buffer :buflen src srclen
-				if res = 1 [
-					free buffer
-					buflen: buflen + 1
-					buffer: allocate buflen
-					res: gzip-uncompress buffer :buflen src srclen
-				]
+				dstlen: 0
+				;-- get buffer size from gzip format header
+				gzip-uncompress null :dstlen src srclen
 			]
 		]
-		if res <> 0 [
-			free buffer
-			fire [TO_ERROR(script invalid-data)]
+
+		binary/make-at as red-value! dst dstlen
+		s: GET_BUFFER(dst)
+		buf: as byte-ptr! s/offset
+		res: case [
+			zlib > 0		[zlib-uncompress buf :dstlen src srclen]
+			_deflate > 0	[deflate/uncompress buf :dstlen src srclen]
+			true			[gzip-uncompress buf :dstlen src srclen]
 		]
-		dst: binary/load buffer buflen
-		free buffer
+		if res <> 0 [fire [TO_ERROR(script invalid-data)]]
+		s/tail: as cell! (buf + dstlen)
 		stack/set-last as red-value! dst
 	]
 

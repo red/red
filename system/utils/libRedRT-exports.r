@@ -370,6 +370,7 @@
 	red/natives/size?*
 	red/natives/browse*
 	red/natives/context?*
+	red/natives/compress*
 	red/natives/decompress*
 	red/natives/recycle*
 ][
