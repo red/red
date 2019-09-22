@@ -2639,9 +2639,8 @@ natives: context [
 		srclen: binary/rs-length? arg
 
 		f: (as float! srclen + 64) * 1.001	;-- expand 0.1%, should be quite enough
-?? srclen
 		buflen: as-integer f
-?? buflen
+
 		loop 2 [	;-- try again in case fails the first time
 			binary/make-at as red-value! dst buflen
 			s: GET_BUFFER(dst)
@@ -2657,7 +2656,6 @@ natives: context [
 					res: gzip-compress buffer :buflen src srclen
 				]
 			]
-			?? buflen
 			if zero? res [break]
 		]
 		if res <> 0 [
