@@ -2689,7 +2689,7 @@ natives: context [
 			zlib > 0 [
 				sz: as red-integer! arg + zlib
 				dstlen: sz/value
-				if sz/value < (srclen * 2) [
+				if dstlen <= srclen [
 					;-- if dstlen is too small, calculate real buffer size before decompress
 					dstlen: 0
 					zlib-uncompress null :dstlen src srclen
@@ -2698,7 +2698,7 @@ natives: context [
 			_deflate > 0 [
 				sz: as red-integer! arg + _deflate
 				dstlen: sz/value
-				if sz/value < (srclen * 2) [
+				if dstlen <= srclen [
 					dstlen: 0
 					deflate/uncompress null :dstlen src srclen
 				]
@@ -2710,13 +2710,16 @@ natives: context [
 			]
 		]
 
-		binary/make-at as red-value! dst dstlen
-		s: GET_BUFFER(dst)
-		buf: as byte-ptr! s/offset
-		res: case [
-			zlib > 0		[zlib-uncompress buf :dstlen src srclen]
-			_deflate > 0	[deflate/uncompress buf :dstlen src srclen]
-			true			[gzip-uncompress buf :dstlen src srclen]
+		loop 2 [	;-- try again in case fails the first time
+			binary/make-at as red-value! dst dstlen
+			s: GET_BUFFER(dst)
+			buf: as byte-ptr! s/offset
+			res: case [
+				zlib > 0		[zlib-uncompress buf :dstlen src srclen]
+				_deflate > 0	[deflate/uncompress buf :dstlen src srclen]
+				true			[gzip-uncompress buf :dstlen src srclen]
+			]
+			if any [zero? res res <> 1][break]
 		]
 		if res <> 0 [fire [TO_ERROR(script invalid-data)]]
 		s/tail: as cell! (buf + dstlen)
