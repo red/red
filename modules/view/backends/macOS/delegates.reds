@@ -647,8 +647,8 @@ text-will-selection: func [
 	sel: as red-pair! (get-face-values self) + FACE_OBJ_SELECTED
 	either zero? len2 [sel/header: TYPE_NONE][
 		sel/header: TYPE_PAIR
-		sel/x: idx2 + 1
-		sel/y: idx2 + len2
+		sel/x: as float32! idx2 + 1
+		sel/y: as float32! idx2 + len2
 	]
 
 	make-event self 0 EVT_SELECT
@@ -1022,8 +1022,8 @@ win-did-resize: func [
 	v: objc_msgSend [self sel_getUid "contentView"]
 	rc: objc_msgSend_rect [v sel_getUid "frame"]
 	sz: (as red-pair! get-face-values self) + FACE_OBJ_SIZE		;-- update face/size
-	sz/x: as-integer rc/w
-	sz/y: as-integer rc/h
+	sz/x: rc/w
+	sz/y: rc/h
 ]
 
 win-live-resize: func [
@@ -1046,8 +1046,8 @@ win-did-move: func [
 ][
 	rc: as NSRect! (as int-ptr! self) + 2
 	sz: (as red-pair! get-face-values self) + FACE_OBJ_OFFSET	;-- update face/offset
-	sz/x: as-integer rc/x
-	sz/y: screen-size-y - as-integer (rc/y + rc/h)
+	sz/x: rc/x
+	sz/y: (as float32! screen-size-y) - (rc/y + rc/h)
 	make-event self 0 EVT_MOVE
 ]
 
@@ -1431,9 +1431,9 @@ hit-test: func [
 			]
 			w: IMAGE_WIDTH(img/size)
 			h: IMAGE_HEIGHT(img/size)
-			ratio: (as float32! w) / (as float32! sz/x)
+			ratio: (as float32! w) / sz/x
 			x: as-integer pt/x * ratio
-			ratio: (as float32! h) / (as float32! sz/y)
+			ratio: (as float32! h) / sz/y
 			y: as-integer pt/y * ratio
 			pixel: OS-image/get-pixel img/node y * w + x
 			if pixel >>> 24 = 0 [v: 0]
@@ -1485,12 +1485,12 @@ draw-rect: func [
 		paint-background ctx clr/array1 x y width height
 	]
 	if TYPE_OF(img) = TYPE_IMAGE [
-		CG-draw-image ctx OS-image/to-cgimage img 0 0 size/x size/y
+		CG-draw-image ctx OS-image/to-cgimage img 0 0 as integer! size/x as integer! size/y
 	]
 	case [
 		sym = base [render-text ctx vals as NSSize! (as int-ptr! self) + 8]
 		sym = rich-text [
-			pos/x: 0 pos/y: 0
+			pos/x: as float32! 0.0 pos/y: as float32! 0.0
 			draw-text-box null :pos get-face-obj self yes
 		]
 		true []

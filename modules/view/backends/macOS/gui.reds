@@ -180,8 +180,8 @@ get-text-size: func [
 	size/width: as-integer ceil as-float rc/x
 	size/height: as-integer ceil as-float rc/y
 	if pair <> null [
-		pair/x: size/width
-		pair/y: size/height
+		pair/x: as float32! size/width
+		pair/y: as float32! size/height
 	]
 	CFRelease cf-str
 	CFRelease attr
@@ -450,7 +450,7 @@ get-screen-size: func [
 	id		[integer!]									;@@ Not used yet
 	return: [red-pair!]
 ][
-	pair/push screen-size-x screen-size-y
+	pair/push-int screen-size-x screen-size-y
 ]
 
 store-face-to-obj: func [
@@ -532,8 +532,8 @@ change-size: func [
 		frame	[NSRect! value]
 		h		[float32!]
 ][
-	rc: make-rect size/x size/y 0 0
-	if all [type = button size/y > 32][
+	rc: make-rect as integer! size/x as integer! size/y 0 0
+	if all [type = button size/y > as float32! 32][
 		objc_msgSend [hWnd sel_getUid "setBezelStyle:" NSRegularSquareBezelStyle]
 	]
 	either type = window [
@@ -765,9 +765,9 @@ change-offset: func [
 	/local
 		rc [NSRect!]
 ][
-	rc: make-rect pos/x pos/y 0 0
+	rc: make-rect as integer! pos/x as integer! pos/y 0 0
 	either type = window [
-		rc/y: as float32! screen-size-y - pos/y
+		rc/y: (as float32! screen-size-y) - pos/y
 		objc_msgSend [hWnd sel_getUid "setFrameTopLeftPoint:" rc/x rc/y]
 	][
 		objc_msgSend [hWnd sel_getUid "setFrameOrigin:" rc/x rc/y]
@@ -922,7 +922,7 @@ change-data: func [
 		][
 			f: as red-float! data
 			size: as red-pair! values + FACE_OBJ_SIZE
-			len: either size/x > size/y [size/x][size/y]
+			len: either size/x > size/y [as integer! size/x][as integer! size/y]
 			objc_msgSend [hWnd sel_getUid "setDoubleValue:" f/value * (as-float len)]
 		]
 		type = check [
@@ -965,7 +965,7 @@ change-data: func [
 			size: as red-pair! values + FACE_OBJ_SIZE
 			view: objc_msgSend [hWnd sel_getUid "documentView"]
 			sz: objc_msgSend_sz [view sel_getUid "frameSize"]
-			rc: make-rect 0 0 as-integer sz/w size/y
+			rc: make-rect 0 0 as-integer sz/w as integer! size/y
 			either max-w > rc/w [
 				rc/w: max-w + as float32! 16.0
 				make-text-list
@@ -1009,8 +1009,8 @@ change-selection: func [
 				idx: 0
 				sz:  0
 			][
-				idx: sel/x - 1
-				sz: sel/y - idx						;-- should point past the last selected char
+				idx: (as integer! sel/x) - 1
+				sz: (as integer! sel/y) - idx			;-- should point past the last selected char
 			]
 			either type = field [
 				win: objc_msgSend [NSApp sel_getUid "mainWindow"]
@@ -1261,7 +1261,7 @@ init-base-face: func [
 	opts: as red-block! values + FACE_OBJ_OPTIONS
 
 	either bits and FACET_FLAGS_SCROLLABLE <> 0 [
-		rc: make-rect 0 0 size/x size/y
+		rc: make-rect 0 0 as integer! size/x as integer! size/y
 		id: objc_getClass "RedBase"
 		obj: objc_msgSend [
 			objc_msgSend [id sel_getUid "alloc"]
@@ -1818,10 +1818,10 @@ OS-make-view: func [
 	][
 		CFString("")
 	]
-	rc: make-rect offset/x offset/y size/x size/y
+	rc: make-rect as integer! offset/x as integer! offset/y as integer! size/x as integer! size/y
 	case [
 		sym = window [
-			rc: make-rect offset/x screen-size-y - offset/y - size/y size/x size/y
+			rc: make-rect as integer! offset/x screen-size-y - as integer! (offset/y + size/y) as integer! size/x as integer! size/y
 			init-window face obj caption bits rc
 		]
 		sym = drop-list [
@@ -1903,7 +1903,7 @@ OS-make-view: func [
 			]
 		]
 		sym = slider [
-			len: either size/x > size/y [size/x][size/y]
+			len: either size/x > size/y [as integer! size/x][as integer! size/y]
 			flt: as-float len
 			objc_msgSend [obj sel_getUid "setMaxValue:" flt]
 			flt: get-position-value as red-float! data flt

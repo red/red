@@ -252,13 +252,13 @@ get-event-offset: func [
 	case [
 		type <= EVT_OVER [
 			event: objc_getAssociatedObject as-integer evt/msg RedNSEventKey
-			either zero? event [offset/x: 0 offset/y: 0][
+			either zero? event [offset/x: as float32! 0.0 offset/y: as float32! 0.0][
 				rc: as NSRect! (as int-ptr! event) + 2
 				x: objc_msgSend [evt/msg sel_getUid "convertPoint:fromView:" rc/x rc/y 0]
 				y: system/cpu/edx
 				rc: as NSRect! :x
-				offset/x: as-integer rc/x
-				offset/y: as-integer rc/y
+				offset/x: rc/x
+				offset/y: rc/y
 			]
 			as red-value! offset
 		]
@@ -267,8 +267,8 @@ get-event-offset: func [
 			type = EVT_MOVE
 		][
 			rc: as NSRect! (as int-ptr! evt/msg) + 2
-			offset/x: as-integer rc/x
-			offset/y: screen-size-y - as-integer (rc/y + rc/h)
+			offset/x: rc/x
+			offset/y: (as float32! screen-size-y) - (rc/y + rc/h)
 			as red-value! offset
 		]
 		any [
@@ -277,8 +277,8 @@ get-event-offset: func [
 		][
 			v: objc_msgSend [evt/msg sel_getUid "contentView"]
 			frame: objc_msgSend_rect [v sel_getUid "frame"]
-			offset/x: as-integer frame/w
-			offset/y: as-integer frame/h
+			offset/x: frame/w
+			offset/y: frame/h
 			as red-value! offset
 		]
 		any [

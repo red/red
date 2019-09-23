@@ -216,8 +216,8 @@ OS-text-box-metrics: func [
 			pos: as red-pair! arg0
 			xx: 0
 			pt: as CGPoint! :xx
-			pt/x: as float32! pos/x
-			pt/y: as float32! pos/y
+			pt/x: pos/x
+			pt/y: pos/y
 			idx: objc_msgSend [
 				layout
 				sel_getUid "characterIndexForPoint:inTextContainer:fractionOfDistanceBetweenInsertionPoints:"
