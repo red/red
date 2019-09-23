@@ -143,24 +143,24 @@ Red [
         --assert #() = load-json "{}"
 
     --test-- "load-json-14"
-        --assert #("array" []) = load-json {{"array":[ ]}}
+        --assert #(array: []) = load-json {{"array":[ ]}}
 
     --test-- "load-json-15"
-        --assert #("a" #("b" #("c" 3))) = load-json {{"a": {"b": {"c": 3}}}}
+        --assert #(a: #(b: #(c: 3))) = load-json {{"a": {"b": {"c": 3}}}}
 
     --test-- "load-json-16"
-        --assert #("a" #("b" #("c" 3 "d" 4))) = load-json {{"a": { "b": {"c": 3, "d": 4}}}}
+        --assert #(a: #(b: #(c: 3 d: 4))) = load-json {{"a": { "b": {"c": 3, "d": 4}}}}
 
     --test-- "load-json-17"
         res: #(
-            "A" 1
-            "a" #(
-                "b" #(
-                    "c" 3
-                    "d" ["x" "y" [3 4] "z"]
+            A: 1
+            a: #(
+                b: #(
+                    c: 3
+                    d: ["x" "y" [3 4] "z"]
                 )
             )
-            "B" 2
+            B: 2
         )
         str: {{"A": 1, "a": {"b": { "c": 3, "d": [ "x", "y", [3, 4 ], "z"] }}, "B": 2}}
         --assert res = load-json str
@@ -174,20 +174,39 @@ Red [
     --test-- "load-json-20"
         --assert error? try [load-json {"Not a tab \T"}]
 
+    --test-- "load-json-21"
+        --assert #("<tag>" "value") = load-json {{"<tag>": "value"}}
+
+    --test-- "load-json-22"
+        res: #(
+            tag: "value"
+            "<tag" "value"
+            ">tag" "value"
+            "tag<" "value"
+            "<tag<" "value"
+            ">tag<" "value"
+            "tag>" "value"
+            "<tag>" "value"
+            ">tag>" "value"
+            "a<tag>b" "value"
+        )
+        str: {{"tag":"value","<tag":"value",">tag":"value","tag<":"value","<tag<":"value",">tag<":"value","tag>":"value","<tag>":"value",">tag>":"value","a<tag>b":"value"}}
+        --assert res = load-json str
+
 ===end-group===
 
 ===start-group=== "json-codec"
 
     --test-- "json-codec-2"
         res: #(
-            "A" 1
-            "a" #(
-                "b" #(
-                    "c" 3
-                    "d" ["x" "y" [3 4] "z"]
+            A: 1
+            a: #(
+                b: #(
+                    c: 3
+                    d: ["x" "y" [3 4] "z"]
                 )
             )
-            "B" 2
+            B: 2
         )
         str: {{"A": 1, "a": {"b": { "c": 3, "d": [ "x", "y", [3, 4 ], "z"] }}, "B": 2}}
         --assert res = load/as str 'json

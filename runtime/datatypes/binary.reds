@@ -1433,7 +1433,7 @@ binary: context [
 			;-- General actions --
 			INHERIT_ACTION	;make
 			INHERIT_ACTION	;random
-			null			;reflect
+			INHERIT_ACTION	;reflect
 			:to
 			:form
 			:mold

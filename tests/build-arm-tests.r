@@ -29,6 +29,7 @@ if system/script/args  [
 	    target = "Linux"
 	    target = "Android"
 	    target = "RPi"
+        target = "Linux-ARM"
 	    target = "Darwin"
 	][
 	    target: none
@@ -39,9 +40,9 @@ if system/script/args  [
 unless target [
     target: ask {
         Choose ARM target:
-        1) Linux
+        1) Linux armel (ARMv5)
         2) Android
-        3) Linux armhf
+        3) Linux armhf (ARMv7+)
         => }
     target: pick ["Linux-ARM" "Android" "RPi"] to-integer target
 ]
@@ -73,7 +74,8 @@ foreach file [
     	to-local-file test-file	
     ]
     clear output
-    call/output cmd output
+    compilation-status: call/output cmd output
+    if compilation-status <> 0 [ quit/return compilation-status ]
     print output
 ]
 

@@ -841,7 +841,7 @@ Red [
 		--assert equal? 1 f764
 		f764: function[os764][os764] 
 		--assert equal? 1 f764 1
-		f764:func[][os764: 1] 
+		f764: func[][os764: 1] 
 		--assert equal? 1 f764
 		f764: func[][os764: 1 os764] 
 		--assert equal? 1 f764
@@ -2248,10 +2248,9 @@ Red [
 		; GUI
 
 	--test-- "#1865"
-		; FIXME: in 0.6.4 is still buggy when compiled, see #2232
-		; --assert not equal? 2 (a: 'ok 1 + 1 :a)
-		; --assert equal? 'ok (a: 'ok 1 + 1 :a)
-		; unset 'a
+		--assert not equal? 2 (a: 'ok 1 + 1 :a)
+		--assert equal? 'ok (a: 'ok 1 + 1 :a)
+		unset 'a
 
 	--test-- "#1867"
 		; TODO: original error should result in endless loop. how to check it?
@@ -2788,6 +2787,53 @@ b}
 
 		--assert success3739
 		unset [s3739 a3739 b3739 success3739 reactor3739]
+
+comment {
+	--test-- "#3773"
+		;; context? should not accept a string
+		--assert error? try [
+			do/expand [
+				#macro ctx: func [x] [context? x]
+				ctx ""
+			]
+		]
+		;; this is reduced like: (mc 'mc) => (mc) => error (no arg)
+		--assert error? try [
+			do/expand [
+				#macro mc: func [x] [x]
+				probe quote (mc 'mc)
+			]
+		]
+		;; :mc = func [x][x], so `mc :mc` executing `x` applies it to an empty arg list => error
+		--assert error? try [
+			do/expand [
+				#macro mc: func [x] [x]
+				probe quote (mc :mc)
+			]
+		]
+}
+
+	--test-- "#2232"
+		--assert 'ok = (a: 'ok 1 :a)
+		--assert 'ok = (a: 'ok 1 + 1 :a)
+		--assert 'ok = (a: 'ok 1 + 1 probe :a)
+		--assert equal? 'ok (a: 'ok 1 + 1 :a)
+		--assert equal? 'ok (a: 'ok 1 + 1 :a)
+
+		n: func [/a][100]
+		res: n - (1 n/a)
+		--assert zero? res
+		--assert n - (1 n/a) = 0
+		--assert (n - (1 n/a)) = 0
+
+		--assert zero? n - (x: 0 n)
+		--assert zero? n - (x: 0 n/a)
+		--assert zero? n - (x: 123 n/a)
+		--assert zero? n - (1 + 2 n/a)
+		--assert equal? [100] reduce [(1 + 2 n/a)]
+
+		--assert equal? [3 100] reduce [1 + 2 n/a]
+		--assert equal? [100 100 123 3] reduce [(123 n/a) (1 + 2 n/a) (n/a 123) (n/a 1 + 2)]
 
 ===end-group===
 

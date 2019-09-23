@@ -687,4 +687,37 @@ Red/System [
 
 ===end-group===
 
+===start-group=== "Issues"
+
+	--test-- "#3961"
+		cell-3961!: alias struct! [
+			header	[integer!]
+			data1	[integer!]
+			data2	[integer!]
+			data3	[integer!]
+		]
+		red-object-3961!: alias struct! [
+			header 	[integer!]
+			ctx		[int-ptr!]
+			class	[integer!]
+			on-set	[int-ptr!]
+		]
+		obj123: context [
+			test1: func [
+				view    [integer!]
+				return: [red-object-3961!]
+				/local
+					t [integer!]
+					z [red-object-3961!]
+			][
+				t: 54h
+				z: as red-object-3961! (as cell-3961! view + t)
+				z
+			]
+		]
+		--assert (as red-object-3961! 01820DB4h) = obj123/test1 01820D60h
+
+
+===end-group===
+
 ~~~end-file~~~

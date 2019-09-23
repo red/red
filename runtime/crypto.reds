@@ -681,7 +681,11 @@ crypto: context [
 				#define LIBCRYPTO-file "libcrypto.so.8"
 			]
 			#default [
-				#define LIBCRYPTO-file "libcrypto.so.1.0.0"
+				#switch config-name [
+					RPi		  [#define LIBCRYPTO-file "libcrypto.so.1.1"]
+					Linux-ARM [#define LIBCRYPTO-file "libcrypto.so.1.1"]
+					#default  [#define LIBCRYPTO-file "libcrypto.so.1.0.2"]
+				]
 			]
 		]
 		#import [

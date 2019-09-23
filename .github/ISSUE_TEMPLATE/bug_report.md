@@ -1,7 +1,14 @@
 ---
 name: Bug report
 about: Create a report to help us improve
+title: ''
+labels: ''
+assignees: ''
+
 ---
+
+**Before submitting**
+Prior to opening this ticket, please share your finding in our [dedicated chat](https://gitter.im/red/bugs), so we can confirm it and help in reproducing it, including on other platforms.
 
 **Describe the bug**
 A clear and concise description of what the bug is.

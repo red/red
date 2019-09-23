@@ -296,8 +296,8 @@ Red [
 	--test-- "fun-ref-2"
 		blk: clean-strings spec-of :append	
 		--assert blk = [
-			series [series! bitset!] value [any-type!] /part length [number! series!]
-			/only /dup count [integer!] return: [series! bitset!]
+			series [series! bitset! port!] value [any-type!] /part length [number! series!]
+			/only /dup count [integer!] return: [series! port! bitset!]
 		]
 	
 	--test-- "fun-ref-3"

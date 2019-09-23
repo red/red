@@ -321,7 +321,10 @@ on-key-down: func [
 		either special-key = -1 [						;-- special key
 			make-event self key or flags EVT_KEY
 		][
-			if any [key = 8 key = 9][								;-- backspace
+			if any [
+				key = 8 key = 9							;-- backspace
+				key = 13								;-- number enter
+			][
 				make-event self key or flags EVT_KEY
 				exit
 			]
@@ -333,21 +336,6 @@ on-key-down: func [
 				key: objc_msgSend [key sel_getUid "characterAtIndex:" 0]
 				make-event self key or flags EVT_KEY
 			]
-		]
-	]
-]
-
-key-down-base: func [
-	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	event	[integer!]
-][
-	either zero? objc_getAssociatedObject self RedRichTextKey [
-		on-key-down self event
-	][
-		objc_msgSend [
-			objc_msgSend [self sel_getUid "inputContext"] sel_getUid "handleEvent:" event
 		]
 	]
 ]
@@ -514,19 +502,9 @@ scroll-wheel: func [
 	self	[integer!]
 	cmd		[integer!]
 	event	[integer!]
-	/local
-		d	  [float32!]
-		flags [integer!]
-		delta [integer!]
 ][
-	d: objc_msgSend_f32 [event sel_getUid "scrollingDeltaY"]
-	case [
-		all [d > as float32! -1.0 d < as float32! 0.0][delta: -1]
-		all [d > as float32! 0.0 d < as float32! 1.0][delta: 1]
-		true [delta: as-integer d]
-	]
-	flags: check-extra-keys event
-	make-event self delta or flags EVT_WHEEL
+	objc_setAssociatedObject self RedNSEventKey event OBJC_ASSOCIATION_ASSIGN
+	make-event self event EVT_WHEEL
 ]
 
 slider-change: func [
@@ -853,12 +831,23 @@ win-send-event: func [
 			find?: yes
 			responder: objc_msgSend [self sel_getUid "firstResponder"]
 			object_getInstanceVariable responder IVAR_RED_DATA :type
-			if type <> base [
+			either type <> base [
 				unless red-face? responder [
 					responder: objc_getAssociatedObject self RedFieldEditorKey
 					unless red-face? responder [find?: no]
 				]
-				if find? [on-key-down responder event]
+				if find? [
+					on-key-down responder event
+					send?: no
+				]
+			][
+				on-key-down responder event
+				send?: no
+				unless zero? objc_getAssociatedObject self RedRichTextKey [
+					objc_msgSend [
+						objc_msgSend [self sel_getUid "inputContext"] sel_getUid "handleEvent:" event
+					]
+				]
 			]
 		]
 		true [0]
@@ -1529,7 +1518,9 @@ return-field-editor: func [
 	obj		[integer!]
 	return: [integer!]
 ][
-	objc_setAssociatedObject sender RedFieldEditorKey obj OBJC_ASSOCIATION_ASSIGN
+	if obj <> 0 [
+		objc_setAssociatedObject obj RedFieldEditorKey 0 OBJC_ASSOCIATION_ASSIGN
+	]
 	0
 ]
 

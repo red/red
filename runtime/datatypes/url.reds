@@ -51,6 +51,30 @@ url: context [
 
 		copy-cell as red-value! url stack/push*
 	]
+	
+	to-port: func [
+		url		[red-url!]
+		new?	[logic!]
+		read?	[logic!]
+		write?	[logic!]
+		seek?	[logic!]
+		allow	[red-value!]
+		open?	[logic!]
+		return:	[red-value!]
+		/local
+			p [red-object!]
+	][
+		#call [url-parser/parse-url url]
+		p: as red-object! stack/arguments
+
+		either TYPE_OF(p) = TYPE_OBJECT [
+			p: port/make none-value as red-value! p TYPE_NONE
+			if open? [actions/open as red-value! p new? read? write? seek? allow]
+		][
+			0 ;TBD: error invalid url
+		]
+		as red-value! p
+	]
 
 	;-- Actions --
 	
@@ -213,6 +237,20 @@ url: context [
 	]
 
 	;-- I/O actions
+	
+	open: func [
+		url		[red-url!]
+		new?	[logic!]
+		read?	[logic!]
+		write?	[logic!]
+		seek?	[logic!]
+		allow	[red-value!]
+		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "url/open"]]
+		to-port url new? read? write? seek? allow yes
+	]
+	
 	read: func [
 		src		[red-value!]
 		part	[red-value!]
@@ -222,21 +260,28 @@ url: context [
 		info?	[logic!]
 		as-arg	[red-value!]
 		return:	[red-value!]
+		/local
+			p [red-object!]
 	][
-		if any [
-			OPTION?(part)
-			OPTION?(seek)
-			OPTION?(as-arg)
+		either string/rs-match as red-string! src "http" [
+			if any [
+				OPTION?(part)
+				OPTION?(seek)
+				OPTION?(as-arg)
+			][
+				--NOT_IMPLEMENTED--
+			]
+			part: simple-io/request-http words/get as red-url! src null null binary? lines? info?
+			if TYPE_OF(part) = TYPE_NONE [fire [TO_ERROR(access no-connect) src]]
+			part
 		][
-			--NOT_IMPLEMENTED--
+			p: as red-object! to-port as red-url! src no no no OPTION?(seek) none-value no
+			port/read p part seek binary? lines? info? as-arg
 		]
-		part: simple-io/request-http words/get as red-url! src null null binary? lines? info?
-		if TYPE_OF(part) = TYPE_NONE [fire [TO_ERROR(access no-connect) src]]
-		part
 	]
 
 	write: func [
-		dest	[red-value!]
+		dest	[red-url!]
 		data	[red-value!]
 		binary? [logic!]
 		lines?	[logic!]
@@ -251,52 +296,59 @@ url: context [
 			blk		[red-block!]
 			method	[red-word!]
 			header	[red-block!]
+			p		[red-object!]
 			action	[integer!]
 			sym		[integer!]
 	][
-		if any [
-			OPTION?(seek)
-			OPTION?(allow)
-			OPTION?(as-arg)
-		][
-			--NOT_IMPLEMENTED--
-		]
-
-		either TYPE_OF(data) = TYPE_BLOCK [
-			blk: as red-block! data
-			either 0 = block/rs-length? blk [
-				header: null
-				action: words/get
+		either string/rs-match as red-string! dest "http" [
+			if any [
+				OPTION?(seek)
+				OPTION?(allow)
+				OPTION?(as-arg)
 			][
-				method: as red-word! block/rs-head blk
-				if TYPE_OF(method) <> TYPE_WORD [
-					fire [TO_ERROR(script invalid-arg) method]
-				]
-				action: symbol/resolve method/symbol
-				either block/rs-next blk [null][
-					header: as red-block! block/rs-head blk
-					if TYPE_OF(header) <> TYPE_BLOCK [
-						fire [TO_ERROR(script invalid-arg) header]
-					]
-				]
-				data: as red-value! either block/rs-next blk [null][block/rs-head blk]
+				--NOT_IMPLEMENTED--
 			]
-		][
-			header: null
-			action: words/post
-		]
 
-		if all [
-			data <> null
-			TYPE_OF(data) <> TYPE_BLOCK
-			TYPE_OF(data) <> TYPE_STRING
-			TYPE_OF(data) <> TYPE_BINARY
+			either TYPE_OF(data) = TYPE_BLOCK [
+				blk: as red-block! data
+				either 0 = block/rs-length? blk [
+					header: null
+					action: words/get
+				][
+					method: as red-word! block/rs-head blk
+					if TYPE_OF(method) <> TYPE_WORD [
+						fire [TO_ERROR(script invalid-arg) method]
+					]
+					action: symbol/resolve method/symbol
+					either block/rs-next blk [null][
+						header: as red-block! block/rs-head blk
+						if TYPE_OF(header) <> TYPE_BLOCK [
+							fire [TO_ERROR(script invalid-arg) header]
+						]
+					]
+					data: as red-value! either block/rs-next blk [null][block/rs-head blk]
+				]
+			][
+				header: null
+				action: words/post
+			]
+
+			if all [
+				data <> null
+				TYPE_OF(data) <> TYPE_BLOCK
+				TYPE_OF(data) <> TYPE_STRING
+				TYPE_OF(data) <> TYPE_BINARY
+			][
+				fire [TO_ERROR(script invalid-arg) data]
+			]
+			part: simple-io/request-http action dest header data binary? lines? info?
+			if TYPE_OF(part) = TYPE_NONE [fire [TO_ERROR(access no-connect) dest]]
+			part
 		][
-			fire [TO_ERROR(script invalid-arg) data]
+			data: stack/push data
+			p: as red-object! to-port as red-url! dest no no no OPTION?(seek) none-value no
+			port/write p data binary? lines? info? append? part seek allow as-arg
 		]
-		part: simple-io/request-http action as red-url! dest header data binary? lines? info?
-		if TYPE_OF(part) = TYPE_NONE [fire [TO_ERROR(access no-connect) dest]]
-		part
 	]
 
 	init: does [
@@ -364,7 +416,7 @@ url: context [
 			null			;close
 			null			;delete
 			INHERIT_ACTION	;modify
-			null			;open
+			:open
 			null			;open?
 			null			;query
 			:read

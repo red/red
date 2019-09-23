@@ -11,7 +11,8 @@ notifications:
     on_success: never
   webhooks:
     urls:
-    - https://webhooks.gitter.im/e/f9318a4a24c9157f20d1
+    # Gitter
+    - secure: "FWx+7+aWMapJfqykkpcBSiaNylWkSXRiXt28pXlbg5LHHgMz5Fh44BwdSB3RnD/lFqLWw+0w0XfvTjqEcqkn0x3nb9UKN/LJfh+QJGEv6wfjg2X+zlLuLVmFgRurWeHk3dDS1Y8SN4jdcondXmRP+KHKrwx5v/18LDYSHMWjO0Y="
     on_success: change  # options: [always|never|change] default: always
     on_failure: always  # options: [always|never|change] default: always
     on_start: false     # default: false
@@ -24,12 +25,13 @@ language: c
 env:
   global:
     - STATUS=1
-    - secure: "IHmQUKT/8TJ2Qx/AXzyQBruJqGeDvFUwTby8EIDmA+v8/ypJ5VrWDU4w11cdSsgm3+U5w48F9eKq4avQiVFffcY0Z6vpKPbuPn1/AkAHB1qYB20QsOvNrHBGfMGvfu+exNCY8qIifLLGCPYriG84hgW7QHEWLw2NruFLr4HBQ5s="
+    # STATUS_URL
+    - secure: "OGj4ljDpWyvhS8pBDJxFt5Xm7J+dX6tOJpMvQRBb2Q+2QPAniHwNCbQbJj02vTFR5eGAzmgFuv8ovKdPtOwSgKVeS0cxr3PCGBdV8GGEq1LjAP96YQshYIvW5najvwuhcE0jM4MujIiYxa+X+ftjcBstsN1h3ItskrvyZv5/4BM="
 
 
 matrix:
-  allow_failures:                       # Remove once ARM build is fixed
-  - env: OS=arm                         # Remove once ARM build is fixed
+#   allow_failures:               # Enable to disregard ARM build failures
+#   - env: OS=arm                 # Enable to disregard ARM build failures
   include:
 
 
@@ -48,22 +50,42 @@ matrix:
       i386/debian:red rebol -qws system/tests/run-all.r --batch
 
 
-  ### ARM ##############################################################
+  ### ARMel ############################################################
   - os: linux
     dist: trusty
     sudo: required
-    env: OS=arm
+    env: OS=armel
+    script:                                          # Run ARMv5el tests
+    - >
+      docker run -v ${PWD}:/red
+      -w /red/quick-test/runnable/arm-tests/red/
+      --entrypoint /red/quick-test/runnable/arm-tests/red/run-all.sh
+      balenalib/armv5e-debian:latest
+    - >
+      docker run -v ${PWD}:/red
+      -e LD_LIBRARY_PATH='$LD_LIBRARY_PATH:/red/quick-test/runnable/arm-tests/system/'
+      -w /red/quick-test/runnable/arm-tests/system/
+      --entrypoint /red/quick-test/runnable/arm-tests/system/run-all.sh
+      balenalib/armv5e-debian:latest
+
+
+  ### ARMhf ############################################################
+  - os: linux
+    dist: trusty
+    sudo: required
+    env: OS=armhf
     script:                                          # Run ARMv7hf tests
     - >
       docker run -v ${PWD}:/red
       -w /red/quick-test/runnable/arm-tests/red/
       --entrypoint /red/quick-test/runnable/arm-tests/red/run-all.sh
-      resin/raspberry-pi2-debian:latest
+      balenalib/raspberry-pi2-debian:latest
     - >
       docker run -v ${PWD}:/red
+      -e LD_LIBRARY_PATH='$LD_LIBRARY_PATH:/red/quick-test/runnable/arm-tests/system/'
       -w /red/quick-test/runnable/arm-tests/system/
       --entrypoint /red/quick-test/runnable/arm-tests/system/run-all.sh
-      resin/raspberry-pi2-debian:latest
+      balenalib/raspberry-pi2-debian:latest
 
 
   ### macOS ############################################################
@@ -85,20 +107,29 @@ install:
     printf
     'FROM i386/debian:latest\n
     RUN apt-get update &&
-    apt-get install -y curl libcurl3 &&
+    apt-get install -y curl libcurl4 &&
     curl -o /bin/rebol https://static.red-lang.org/tmp/rebol &&
     chmod +x /bin/rebol\n
     ' > Dockerfile &&
     docker build -t i386/debian:red . ;
     fi
-  # ARM: build tests on i386
+  # ARMel: build tests on i386
   - >
-    if [[ ${OS} == "arm" ]]; then
+    if [[ ${OS} == "armel" ]]; then
+    docker run -v ${PWD}:/red -w /red
+    i386/debian:red rebol -qws tests/build-arm-tests.r '-t Linux-ARM' &&
+    docker run -v ${PWD}:/red -w /red
+    i386/debian:red rebol -qws system/tests/build-arm-tests.r '-t Linux-ARM' &&
+    docker pull balenalib/armv5e-debian:latest ;
+    fi
+  # ARMhf: build tests on i386
+  - >
+    if [[ ${OS} == "armhf" ]]; then
     docker run -v ${PWD}:/red -w /red
     i386/debian:red rebol -qws tests/build-arm-tests.r '-t RPi' &&
     docker run -v ${PWD}:/red -w /red
     i386/debian:red rebol -qws system/tests/build-arm-tests.r '-t RPi' &&
-    docker pull resin/raspberry-pi2-debian:latest ;
+    docker pull balenalib/raspberry-pi2-debian:latest ;
     fi
   # macOS: install rebol
   - >
@@ -113,7 +144,7 @@ install:
 after_failure:
   - >
     STATUS=0 ;
-    if [[ ${OS} == "arm" ]]; then
+    if [[ ${OS} == "armel" ]] || [[ ${OS} == "armhf" ]]; then
     cat quick-test/runnable/arm-tests/red/quick-test.log ;
     printf '\n\n\n\n' ;
     cat quick-test/runnable/arm-tests/system/quick-test.log ;
@@ -126,4 +157,4 @@ after_failure:
 
 # Notify build status
 after_script:
-  - curl ${URL}/${OS}/${STATUS}
+  - curl ${STATUS_URL}/${OS}/${STATUS}

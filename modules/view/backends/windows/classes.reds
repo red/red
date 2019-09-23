@@ -129,6 +129,7 @@ make-super-class: func [
 ]
 
 FaceWndProc: func [
+	[stdcall]
 	hWnd	[handle!]
 	msg		[integer!]
 	wParam	[integer!]
@@ -145,6 +146,7 @@ FaceWndProc: func [
 ]
 
 AreaWndProc: func [
+	[stdcall]
 	hWnd	[handle!]
 	msg		[integer!]
 	wParam	[integer!]

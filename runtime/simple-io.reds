@@ -826,6 +826,7 @@ simple-io: context [
 			][
 				size: size + len
 			]
+			if offset < 0 [seek-file file 0]
 		]
 
 		if size <= 0 [
@@ -837,7 +838,7 @@ simple-io: context [
 			return val
 		]
 
-		if offset > 0 [
+		if offset >= 0 [
 			seek-file file offset
 			size: size - offset
 		]
@@ -1373,6 +1374,22 @@ simple-io: context [
 			mp
 		]
 
+		add-header: func [
+			http	[IWinHttpRequest]
+			IH		[interface!]
+			header	[c-string!]
+			data	[c-string!]
+			/local
+				bstr-u	[byte-ptr!]
+				bstr-m	[byte-ptr!]
+		][
+			bstr-u: SysAllocString header
+			bstr-m: SysAllocString data
+			http/SetRequestHeader IH/ptr bstr-u bstr-m
+			SysFreeString bstr-m
+			SysFreeString bstr-u
+		]
+
 		request-http: func [
 			method	[integer!]
 			url		[red-url!]
@@ -1407,6 +1424,7 @@ simple-io: context [
 				proxy	[tagVARIANT value]
 				parr	[integer!]
 				buf		[byte-ptr!]
+				headers [int-ptr!]
 		][
 			res: as red-value! none-value
 			parr: 0
@@ -1495,11 +1513,9 @@ simple-io: context [
 						SysFreeString bstr-u
 					]
 				][
-					bstr-u: SysAllocString #u16 "Content-Type"
-					bstr-m: SysAllocString #u16 "application/x-www-form-urlencoded"
-					http/SetRequestHeader IH/ptr bstr-u bstr-m
-					SysFreeString bstr-m
-					SysFreeString bstr-u
+					add-header http IH #u16 "Content-Type" #u16 "application/x-www-form-urlencoded"
+					add-header http IH #u16 "Accept-Charset" #u16 "UTF-8"
+					add-header http IH #u16 "User-Agent" #u16 "Mozilla/5.0 (Windows NT 6.1; Win64; x64)"
 				]
 				hr: http/Send IH/ptr body/data1 body/data2 body/data3 body/data4
 			][
@@ -1862,7 +1878,7 @@ simple-io: context [
 				curl_easy_setopt curl CURLOPT_HEADERFUNCTION as-integer :get-http-header
 			]
 
-			if header <> null [
+			either header <> null [
 				s: GET_BUFFER(header)
 				value: s/offset + header/head
 				tail:  s/tail
@@ -1878,6 +1894,10 @@ simple-io: context [
 					slist: curl_slist_append slist unicode/to-utf8 str :len
 					value: value + 1
 				]
+				curl_easy_setopt curl CURLOPT_HTTPHEADER slist
+			][
+				slist: curl_slist_append slist "Accept-Charset: UTF-8"
+				slist: curl_slist_append slist "User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64)"
 				curl_easy_setopt curl CURLOPT_HTTPHEADER slist
 			]
 

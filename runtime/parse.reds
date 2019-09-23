@@ -66,9 +66,9 @@ parser: context [
 		value: base
 		switch TYPE_OF(input) [
 			TYPE_BINARY [
-				int: as red-integer! base
-				int/header: TYPE_INTEGER
-				int/value: binary/rs-abs-at as red-binary! input offset
+				int2: as red-integer! base
+				int2/header: TYPE_INTEGER
+				int2/value: binary/rs-abs-at as red-binary! input offset
 			]
 			TYPE_STRING 								;TBD: replace with ANY_STRING
 			TYPE_FILE
@@ -816,6 +816,7 @@ parser: context [
 			done?	 [logic!]
 			saved?	 [logic!]
 			gc-saved [logic!]
+			word?    [logic!]
 	][
 		match?:	  yes
 		end?:	  no
@@ -836,7 +837,7 @@ parser: context [
 		s: GET_BUFFER(series)
 		if s/offset = s/tail [gc-saved: collector/active? collector/active?: no]
 
-		if OPTION?(fun) [fun-locs: _function/count-locals fun/spec 0]
+		if OPTION?(fun) [fun-locs: _function/count-locals fun/spec 0 no]
 		
 		saved?: save-stack
 		base: stack/push*								;-- slot on stack for COPY/SET operations (until OPTION?() is fixed)
@@ -958,6 +959,9 @@ parser: context [
 								]
 								if loop? [
 									;-- Reset state for a new loop
+									PARSE_SET_INPUT_LENGTH(len)
+									p/input: input/head			;-- set saved pos to new position
+									p/sub: len					;-- set it to a neutral value
 									t/state: cnt + 1
 									cmd: (block/rs-head rule) + p/rule ;-- reset rule offset
 									PARSE_TRACE(_iterate)
@@ -987,7 +991,7 @@ parser: context [
 									before: input/head
 									end?: _series/rs-skip as red-series! input 1
 									match?: before = input/head
-									if positive? part [match?: input/head >= part or match?]
+									if positive? part [match?: input/head > part or match?]
 									
 									either match? [
 										w: as red-word! (block/rs-head rule) + p/rule + 1 ;-- TO/THRU argument
@@ -1127,7 +1131,7 @@ parser: context [
 									assert int/value >= 0
 									copy-cell as red-value! int base	;@@ remove once OPTION? fixed
 									PARSE_SAVE_SERIES
-									new: as red-series! actions/change input value base only? null
+									new: actions/change input value base only? null
 									if s-top <> null [stack/top: s-top]
 									PARSE_RESTORE_SERIES
 									input/head: new/head
@@ -1635,7 +1639,8 @@ parser: context [
 							
 							s-top: null
 							saved: input/head
-							either TYPE_OF(value) = TYPE_WORD [
+							word?: TYPE_OF(value) = TYPE_WORD
+							either word? [
 								new: as red-series! _context/get as red-word! value
 								if all [TYPE_OF(new) = TYPE_OF(input) new/node = input/node][
 									cmd: value + 1		;-- INSERT position
@@ -1666,7 +1671,7 @@ parser: context [
 							]
 							PARSE_SAVE_SERIES
 							before: input/head
-							if TYPE_OF(value) = TYPE_WORD [value: _context/get as red-word! value]
+							if word? [value: _context/get as red-word! value]
 							actions/insert input value null as-logic max null no
 							input/head: saved + (input/head - before)
 							if s-top <> null [stack/top: s-top]

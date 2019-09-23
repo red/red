@@ -14,55 +14,88 @@ Red [
 ===start-group=== "IS function"
 
 	--test-- "is-1"
-		a: make reactor! [x: 1 y: is [x + 1]]
-		--assert a/x == 1
-		--assert a/y == 2
-		a/x: 5
-		--assert a/y == 6
+		is-1a: make reactor! [x: 1 y: is [x + 1]]
+		--assert is-1a/x == 1
+		--assert is-1a/y == 2
+		is-1a/x: 5
+		--assert is-1a/y == 6
+		unset 'is-1a
 
 	--test-- "is-2"
-		--assert [x + 1] = react? a 'x
-		--assert 	 none? react?/target a 'x
-		--assert [x + 1] = react?/target a 'y
-		--assert     none? react? a 'y
+		is-2a: make reactor! [x: 1 y: is [x + 1]]
+		--assert [x + 1] = react? is-2a 'x
+		--assert 	 none? react?/target is-2a 'x
+		--assert [x + 1] = react?/target is-2a 'y
+		--assert     none? react? is-2a 'y
+		unset 'is-2a
 	
 	--test-- "is-3"
-		b: make reactor! [x: 2 y: 3 z: is [x + y]]
-		--assert b/x == 2
-		--assert b/y == 3
-		--assert b/z == 5
-		b/x: 5
-		--assert b/z == 8
+		is-3b: make reactor! [x: 2 y: 3 z: is [x + y]]
+		--assert is-3b/x == 2
+		--assert is-3b/y == 3
+		--assert is-3b/z == 5
+		is-3b/x: 5
+		--assert is-3b/z == 8
+		unset 'is-3b
 
 	--test-- "is-4"
-		--assert [x + y] = react? b 'x
-		--assert [x + y] = react? b 'y
-		--assert [x + y] = react?/target b 'z
+		is-4b: make reactor! [x: 2 y: 3 z: is [x + y]]
+		--assert [x + y] = react? is-4b 'x
+		--assert [x + y] = react? is-4b 'y
+		--assert [x + y] = react?/target is-4b 'z
+		unset 'is-4b
     
     --test-- "is-5"
-		c: make reactor! [x: 1 y: is [x + 1] z: is [y + 1]]
-		--assert c/x == 1
-		--assert c/y == 2
-		--assert c/z == 3
-		c/x: 4
-		--assert c/y == 5
-		--assert c/z == 6
+		is-5c: make reactor! [x: 1 y: is [x + 1] z: is [y + 1]]
+		--assert is-5c/x == 1
+		--assert is-5c/y == 2
+		--assert is-5c/z == 3
+		is-5c/x: 4
+		--assert is-5c/y == 5
+		--assert is-5c/z == 6
+		unset 'is-5c
 
 	--test-- "is-6"
-		--assert [x + 1] = react? c 'x
-		--assert     none? react?/target c 'x
-		--assert [x + 1] = react?/target c 'y
-		--assert [y + 1] = react? c 'y
-		--assert none? react? c 'z
-		--assert [y + 1] = react?/target c 'z
+		is-6c: make reactor! [x: 1 y: is [x + 1] z: is [y + 1]]
+		--assert [x + 1] = react? is-6c 'x
+		--assert     none? react?/target is-6c 'x
+		--assert [x + 1] = react?/target is-6c 'y
+		--assert [y + 1] = react? is-6c 'y
+		--assert none? react? is-6c 'z
+		--assert [y + 1] = react?/target is-6c 'z
+		unset 'is-6c
 
- --test-- "is-7"
-		;d: make reactor! [x: is [y + 1] y: is [x + 3]]
-		;--assert none? d/x
-		;--assert none? d/y
-		;d/x: 1
-		;--assert d/x = 5
-		;--assert d/y = 4
+	--test-- "is-7"
+		is-7d: make reactor! [x: is [attempt [y + 1]] y: is [attempt [x + 3]]]
+		--assert none? is-7d/x
+		--assert none? is-7d/y
+		is-7d/x: 1
+		--assert is-7d/x = 1 							;-- x is fixed by the assignment
+		--assert is-7d/y = 4
+		unset 'is-7d
+
+	--test-- "is-8"
+		is-8r: make reactor! [x: is [attempt [y + 1]] y: is [attempt [z + 2]] z: is [attempt [x + 3]]]
+		--assert none? is-8r/x
+		--assert none? is-8r/y
+		--assert none? is-8r/z
+		is-8r/x: 1
+		--assert is-8r/x = 1 							;-- x is fixed by the assignment
+		--assert is-8r/z = 4
+		--assert is-8r/y = 6
+		is-8r/y: 1
+		--assert is-8r/y = 1 							;-- y is fixed by the assignment
+		--assert is-8r/x = 2
+		--assert is-8r/z = 5
+		is-8r/z: 1
+		--assert is-8r/z = 1 							;-- z is fixed by the assignment
+		--assert is-8r/y = 3
+		--assert is-8r/x = 4
+		unset 'is-8r
+
+
+	;-- final group cleanup
+	clear-reactions
 
 ===end-group===
 
@@ -115,6 +148,42 @@ Red [
 			--assert rf-5-r/d = (2 + 4 + 64 * 2)
 		]
 		unset [rf-5-r]
+
+	--test-- "rf-6"	; #3333 where `is` produced an excessive reaction with the wrong target object
+		clear-reactions
+		rf-6r: make reactor! [x: 1]
+		rf-6c: context [ x: is [rf-6r/x] ]
+		--assert 1 * 4 = length? system/reactivity/relations 	;-- should only be a single reaction
+		--assert rf-6r = :system/reactivity/relations/1 		;-- `r` should be the source object
+		unset [rf-6c rf-6r]
+
+	--test-- "rf-7"	; #3333 triple-reaction case
+		clear-reactions
+		rf-7r: make reactor! [x: 1]
+		rf-7x: is [rf-7r/x]
+		--assert 1 * 4 = length? system/reactivity/relations 	;-- should only be a single reaction
+		--assert rf-7r = :system/reactivity/relations/1 		;-- `r` should be the source object
+		unset [rf-7r rf-7x]
+
+
+	;-- final group cleanup
+	clear-reactions
+
+===end-group===
+
+===start-group=== "regression tests"
+
+	--test-- "#3091"
+		a3091: make reactor! [b: 5 c: is [b]]
+		do bind [b: 2] a3091
+		--assert a3091/c = 2
+
+	--test-- "#4022"
+		do [													;-- force through interpreter as
+			a4022: make reactor! [i: repeat i 2 [i]]			;-- `repeat` returns unset when compiled.
+			--assert a4022/i = 2
+		]
+	
 
 ===end-group===
 

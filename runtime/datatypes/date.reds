@@ -20,7 +20,7 @@ date: context [
 	#define DATE_GET_ZONE_SIGN(d)	 (as-logic d and 40h >>	6)
 	#define DATE_GET_ZONE_HOURS(d)	 (d and 3Fh >> 2)	;-- sign excluded
 	#define DATE_GET_ZONE_MINUTES(d) (d and 03h * 15)
-	#define DATE_GET_SECONDS(t)		 (t // 60.0)
+	#define DATE_GET_SECONDS(t)		 (fmod t 60.0)
 	#define DATE_GET_TIME_FLAG(d)	 (as-logic d >> 16 and 01h)
 	
 	#define DATE_SET_YEAR(d year)	 (d and 0001FFFFh or (year << 17))
@@ -453,13 +453,14 @@ date: context [
 		switch TYPE_OF(value) [
 			TYPE_INTEGER [
 				int: as red-integer! value
-				h: int/value
+				h: int/value % 16
 				m: 0
 			]
 			TYPE_TIME [
 				tm: as red-time! value
-				h: time/get-hours tm/time
-				m: time/get-minutes tm/time
+				t: fmod tm/time 57600.0					;-- 16.0 hours in seconds
+				h: time/get-hours t
+				m: time/get-minutes t
 			]
 			default [fire [TO_ERROR(script invalid-arg) value]]
 		]

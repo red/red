@@ -31,7 +31,9 @@ target-class: context [
 	emit-call-native: emit-not: emit-push: emit-pop:
 	emit-integer-operation: emit-float-operation: 
 	emit-throw:	on-init: emit-alt-last: emit-log-b:
-	emit-variable: none
+	emit-variable: emit-read-io: emit-io-write: 
+	emit-push-all: emit-pop-all: emit-atomic-load: emit-atomic-store: 
+	emit-atomic-math: emit-atomic-fence: none
 	
 	comparison-op: [= <> < > <= >=]
 	math-op:	   compose [+ - * / // (to-word "%")]
@@ -189,6 +191,7 @@ target-class: context [
 					char! 	  ['imm]
 					integer!  ['imm]
 					decimal!  ['imm]
+					issue!    ['imm]
 					word! 	  ['ref] 				;-- value needs to be fetched
 					get-word! ['ref]
 					block!    ['reg] 				;-- value in accumulator (or in alt-acc)

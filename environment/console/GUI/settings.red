@@ -136,9 +136,8 @@ show-cfg-dialog: function [][
 			set-font-color cfg/font-color: cfg-forecolor/data
 			set-background cfg/background: cfg-backcolor/data
 			unview
-			win/selected: console
 		]
-		button "Cancel" [unview win/selected: console]
+		button "Cancel" [unview]
 	]
 	cfg-buffers/data:	cfg/buffer-lines
 	cfg-forecolor/data:	cfg/font-color
@@ -167,6 +166,7 @@ apply-cfg: function [][
 ]
 
 save-cfg: function [][
+	unless exists? cfg-dir [make-dir/deep cfg-dir]
 	offset: win/offset					;-- offset could be negative in some cases
 	if offset/x < 0 [offset/x: 0]
 	if offset/y < 0 [offset/y: 0]
@@ -178,32 +178,52 @@ save-cfg: function [][
 	save/header cfg-path cfg [Purpose: "Red Console Configuration File"]
 ]
 
-load-cfg: func [/local cfg-dir cfg-content][
+check-cfg: function [gui-default][
+	iter: gui-default
+	while [not tail? iter][
+		either f: find cfg iter/1 [
+			if (type? f/2) <> type? iter/2 [
+				f/2: iter/2
+			]
+		][
+			repend cfg [iter/1 iter/2]
+		]
+		iter: skip iter 2
+	]
+]
+
+load-cfg: func [/local cfg-content gui-default][
 	system/view/auto-sync?: no
 	cfg-dir: append copy system/options/cache
 			#either config/OS = 'Windows [%Red-Console/][%.Red-Console/]
 
 	unless exists? cfg-dir [make-dir/deep cfg-dir]
-	cfg-path: append cfg-dir %console-cfg.red
+	cfg-path: append copy cfg-dir %console-cfg.red
 
-	cfg: either all [
+	gui-default: compose [
+		win-pos:	  (win/offset)
+		win-size:	  640x480
+
+		font-name:	  (font/name)
+		font-size:	  11
+		font-color:	  0.0.0
+		background:	  252.252.252
+	]
+
+	either all [
 		exists? cfg-path
 		attempt [select cfg-content: load cfg-path 'Red]
 	][
-		skip cfg-content 2
+		cfg: skip cfg-content 2
+		check-cfg gui-default
 	][
-		compose [
-			win-pos:	  (win/offset)
-			win-size:	  640x480
-
-			font-name:	  (font/name)
-			font-size:	  11
-			font-color:	  0.0.0
-			background:	  252.252.252
-
-			buffer-lines: 10000
-			history:	  []
-		]
+		cfg: gui-default
+	]
+	unless find cfg 'buffer-lines [
+		append cfg [buffer-lines: 10000]
+	]
+	unless find cfg 'history [
+		append cfg [history: []]
 	]
 	apply-cfg
 	win/selected: console

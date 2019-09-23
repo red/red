@@ -585,11 +585,13 @@ struct-local-foo2
 
 ===start-group=== "Struct passed/returned by value"
 
-	tiny!:  alias struct! [b1 [byte!]]
-	small!: alias struct! [one [integer!] two [integer!]]
-	big!:   alias struct! [one [integer!] two [integer!] three [float!]]
-	huge!:  alias struct! [w1 [integer!] w2 [integer!] w3 [float!] w4 [integer!] w5 [integer!] w6 [float!]]
-	super!: alias struct! [f1 [float!] f2 [float!] f3 [float!] f4 [float!] f5 [float!] f6 [float!]]
+	tiny!:    alias struct! [b1 [byte!]]
+	small!:   alias struct! [one [integer!] two [integer!]]
+	big!:     alias struct! [one [integer!] two [integer!] three [float!]]
+	huge!:    alias struct! [w1 [integer!] w2 [integer!] w3 [float!] w4 [integer!] w5 [integer!] w6 [float!]]
+	hugeI!:   alias struct! [w1 [integer!] w2 [integer!] w3 [integer!] w4 [integer!] w5 [integer!] w6 [integer!]]
+	hugef32!: alias struct! [w1 [float32!] w2 [integer!] w3 [float32!] w4 [integer!] w5 [integer!] w6 [float32!]]
+	super!:   alias struct! [f1 [float!] f2 [float!] f3 [float!] f4 [float!] f5 [float!] f6 [float!]]
 
 	nested1!: alias struct! [f1	[integer!] sub [tiny! value] f2	[integer!]]
 	nested2!: alias struct! [f1	[integer!] sub [small! value] f2 [integer!]]
@@ -600,17 +602,28 @@ struct-local-foo2
 	#switch OS [
 		Windows  [#define STRUCTLIB-file "structlib.dll"]
 		macOS	 [#define STRUCTLIB-file "libstructlib.dylib"]
-		FreeBSD  [#define STRUCTLIB-file "libstruct.so"]
+		FreeBSD  [#define STRUCTLIB-file "libstruct-BSD.so"]
 		#default [#define STRUCTLIB-file "libstructlib.so"]
 	]
 
 	#import [
 		STRUCTLIB-file cdecl [
-			returnTiny:  "returnTiny"  [return: [tiny! value]]
-			returnSmall: "returnSmall" [return: [small! value]]
-			returnBig:	 "returnBig"   [return: [big! value]]
-			returnHuge:  "returnHuge"  [a [integer!] b [integer!] return: [huge! value]]
-			returnHuge2: "returnHuge2" [h [huge! value] a [integer!] b [integer!] return: [huge! value]]
+			returnTiny:    "returnTiny"    [return: [tiny! value]]
+			returnSmall:   "returnSmall"   [return: [small! value]]
+			returnBig:	   "returnBig"     [return: [big! value]]
+			returnHuge:    "returnHuge"    [a [integer!] b [integer!] return: [huge! value]]
+			returnHuge2:   "returnHuge2"   [h [huge! value] a [integer!] b [integer!] return: [huge! value]]
+			returnHuge3:   "returnHuge3"   [h [hugeI! value] a [integer!] b [integer!] return: [hugeI! value]]
+			returnHugef32: "returnHugef32" [h [hugef32! value] a [integer!] b [integer!] return: [hugef32! value]]
+			
+			set_callback3999:   "set_callback"   [ptr [int-ptr!]]
+			test_callback3999:  "test_callback"  [return: [float32!]]
+			test_callback3999B: "test_callbackB" [return: [float!]]
+			test_callback3999C: "test_callbackC" [return: [float32!]]
+			test_callback3999D: "test_callbackD" [return: [float32!]]
+			test_callback3999E: "test_callbackE" [return: [float32!]]
+			test_callback3999F: "test_callbackF" [return: [float!]]
+			test_callback3999G: "test_callbackG" [return: [float!]]
 		]
 	]
 	s1: declare tiny!
@@ -825,6 +838,29 @@ struct-local-foo2
 		--assert sv4/w4 = 444
 		--assert sv4/w5 = 555
 		--assert sv4/w6 = 6.789
+		
+	--test-- "svb15.1"
+		sv5: declare hugeI!
+		sv5/w6: 999
+		sv5: returnHuge3 sv5 as-integer #"0" as-integer #"1"
+		--assert sv5/w1 = 48
+		--assert sv5/w2 = 49
+		--assert sv5/w3 = 3
+		--assert sv5/w4 = 444
+		--assert sv5/w5 = 555
+		--assert sv5/w6 = 999
+		
+	--test-- "svb15.2"
+		sv6: declare hugef32!
+		sv6/w6: as-float32 9.99
+		sv6: returnHugef32 sv6 as-integer #"0" as-integer #"1"
+
+		--assert sv6/w1 = as-float32 1.23
+		--assert sv6/w2 = 49
+		--assert sv6/w3 = as-float32 3.5
+		--assert sv6/w4 = 444
+		--assert sv6/w5 = 555
+		--assert sv6/w6 = as-float32 9.99
 	
 	--test-- "svb16"
 		nest1: declare nested1!
@@ -1010,7 +1046,150 @@ struct-local-foo2
 		--assert :nest5/sub + 2  = :nest5/sub/f2
 		--assert :nest5/sub + 4  = :nest5/sub/f3
 		--assert :nest5/sub + 12 = :nest5/g2
+		
+	--test-- "#3999"
+		MyRect!: alias struct! [
+			x   [float32!]
+			y   [float32!]
+			w   [float32!]
+			h   [float32!]
+		]
 
+		callback-func: func [
+			[cdecl]
+			return: [MyRect! value]
+			/local
+				rc  [MyRect! value]
+		][
+			rc/x: as float32! 23.0
+			rc/w: as float32! 123.0
+			rc
+		]
+
+		set_callback3999 as int-ptr! :callback-func
+		--assert (as-float32 23.0) = test_callback3999
+
+
+	--test-- "#3999-B"
+		MyRectB!: alias struct! [
+			x   [float!]
+			y   [float!]
+			w   [float!]
+			h   [float!]
+		]
+
+		callback-func-B: func [
+			[cdecl]
+			return: [MyRectB! value]
+			/local
+				rc  [MyRectB! value]
+		][
+			rc/x: 23.0
+			rc/w: 123.0
+			rc
+		]
+
+		set_callback3999 as int-ptr! :callback-func-B
+		--assert 23.0 = test_callback3999B
+
+	--test-- "#3999-C"
+		MyRectC!: alias struct! [
+			x   [float32!]
+			y   [float32!]
+			w   [float32!]
+			h   [float32!]
+			g   [float32!]
+		]
+
+		callback-func-C: func [
+			[cdecl]
+			return: [MyRectC! value]
+			/local
+				rc  [MyRectC! value]
+		][
+			rc/x: as float32! 23.0
+			rc/w: as float32! 123.0
+			rc
+		]
+
+		set_callback3999 as int-ptr! :callback-func-C
+		--assert (as-float32 23.0) = test_callback3999C
+
+	--test-- "#3999-D"
+		MyRectD!: alias struct! [
+			x   [float32!]
+		]
+
+		callback-func-D: func [
+			[cdecl]
+			return: [MyRectD! value]
+			/local
+				rc  [MyRectD! value]
+		][
+			rc/x: as float32! 23.0
+			rc
+		]
+
+		set_callback3999 as int-ptr! :callback-func-D
+		--assert (as-float32 23.0) = test_callback3999D
+
+	--test-- "#3999-E"
+		MyRectE!: alias struct! [
+			x   [float32!]
+			y   [float32!]
+		]
+
+		callback-func-E: func [
+			[cdecl]
+			return: [MyRectE! value]
+			/local
+				rc  [MyRectE! value]
+		][
+			rc/x: as float32! 23.0
+			rc/y: as float32! 123.0
+			rc
+		]
+
+		set_callback3999 as int-ptr! :callback-func-E
+		--assert (as-float32 23.0) = test_callback3999E
+
+	--test-- "#3999-F"
+		MyRectF!: alias struct! [
+			x   [float!]
+		]
+
+		callback-func-F: func [
+			[cdecl]
+			return: [MyRectF! value]
+			/local
+				rc  [MyRectF! value]
+		][
+			rc/x: 23.0
+			rc
+		]
+
+		set_callback3999 as int-ptr! :callback-func-F
+		--assert 23.0 = test_callback3999F
+
+	--test-- "#3999-G"
+		MyRectG!: alias struct! [
+			x   [float!]
+			y   [float!]
+		]
+
+		callback-func-G: func [
+			[cdecl]
+			return: [MyRectG! value]
+			/local
+				rc  [MyRectG! value]
+		][
+			rc/x: 23.0
+			rc/y: 123.0
+			rc
+		]
+
+		set_callback3999 as int-ptr! :callback-func-G
+		--assert 23.0 = test_callback3999G
 
 	--test-- "svb50"
 		localsbvf: func [

@@ -119,6 +119,31 @@ block: context [
 		]
 		blk
 	]
+	
+	rs-select: func [
+		blk		[red-block!]
+		value	[red-value!]
+		return: [red-value!]
+		/local
+			slot [red-value!]
+			tail [red-value!]
+			s	 [series!]
+			compare
+	][
+		s: GET_BUFFER(blk)
+		slot: s/offset + blk/head
+		tail: s/tail
+		compare: DISPATCH_COMPARE(value)
+
+		while [slot < tail][
+			if zero? compare value slot COMP_FIND [
+				slot: slot + 1
+				either slot < tail [return slot][return as red-value! none-value]
+			]
+			slot: slot + 1
+		]
+		as red-value! none-value
+	]
 
 	clone: func [
 		blk 	[red-block!]
@@ -1090,12 +1115,7 @@ block: context [
 		if flags and sort-reverse-mask = sort-reverse-mask [
 			temp: value1 value1: value2 value2: temp
 		]
-		action-compare: as function! [
-			value1  [red-value!]						;-- first operand
-			value2  [red-value!]						;-- second operand
-			op	    [integer!]							;-- type of comparison
-			return: [integer!]
-		] actions/get-action-ptr value1 ACT_COMPARE
+		action-compare: DISPATCH_COMPARE(value1)
 
 		res: action-compare value1 value2 op
 		if res = -2 [res: TYPE_OF(value1) - TYPE_OF(value2)]
@@ -1170,22 +1190,22 @@ block: context [
 		switch TYPE_OF(res) [
 			TYPE_LOGIC [
 				bool: as red-logic! res
-				either bool/value [1][-1]
+				either bool/value [-1][1]
 			]
 			TYPE_INTEGER [
 				int: as red-integer! res
-				0 - int/value
+				int/value
 			]
 			TYPE_FLOAT [
 				d: as red-float! res
 				case [
-					d/value > 0.0 [-1]
-					d/value < 0.0 [1]
+					d/value > 0.0 [1]
+					d/value < 0.0 [-1]
 					true [0]
 				]
 			]
-			TYPE_NONE [-1]
-			default [1]
+			TYPE_NONE [1]
+			default [-1]
 		]
 	]
 

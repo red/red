@@ -50,6 +50,11 @@ Red [
 		mdk2-m/a: none
 		--assert none = mdk2-m/a
 		--assert [a b c] = find keys-of mdk2-m 'a
+
+	--test-- "map-remove-key-3"
+		mdk3-m: #("one" 2 "three" four)
+		remove/key mdk3-m "one"
+		--assert none = select mdk3-m "one"
 		
 ===end-group===
 
@@ -209,6 +214,30 @@ Red [
 		clear m
 		put m 'b 1
 		--assert #(b 1) = m
+
+===end-group=== 
+
+===start-group=== "foreach"
+
+	--test-- "map-foreach-1"
+		blk: [a 1 b 2 c 3 d 4]
+		m: make map! blk
+		remove/key m 'c
+		remove/key blk 'c
+		foreach [k v] m [
+			--assert v = select blk k
+		]
+
+	--test-- "map-foreach-2"
+		blk: [a 1 b 2 c 3 d 4]
+		m: make map! blk
+		remove/key m 'c
+		remove/key m 'd
+		remove/key blk 'c
+		remove/key blk 'd
+		foreach [k v] m [
+			--assert v = select blk k
+		]
 
 ===end-group=== 
 

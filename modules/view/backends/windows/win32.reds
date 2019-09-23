@@ -500,6 +500,7 @@ Red/System [
 #define ILC_COLOR32				20h
 
 #define BCM_SETIMAGELIST		1602h
+#define BCM_GETIMAGELIST		1603h
 #define BCM_SETTEXTMARGIN		1604h
 
 #define ICC_LISTVIEW_CLASSES	00000001h				;-- listview, header
@@ -698,6 +699,7 @@ tagMINMAXINFO: alias struct! [
 ]
 
 wndproc-cb!: alias function! [
+	[stdcall]
 	hWnd	[handle!]
 	msg		[integer!]
 	wParam	[integer!]
@@ -706,6 +708,7 @@ wndproc-cb!: alias function! [
 ]
 
 timer-cb!: alias function! [
+	[stdcall]
 	hWnd	[handle!]
 	msg		[integer!]
 	idEvent	[int-ptr!]
@@ -1050,6 +1053,10 @@ XFORM!: alias struct! [
 		]
 	]
 	"User32.dll" stdcall [
+		GetCursorPos: "GetCursorPos" [
+			pt			[tagPOINT]
+			return:		[logic!]
+		]
 		TrackMouseEvent: "TrackMouseEvent" [
 			EventTrack	[tagTRACKMOUSEEVENT]
 			return:		[logic!]
@@ -1438,6 +1445,9 @@ XFORM!: alias struct! [
 			hWnd		[handle!]
 			lpRect		[RECT_STRUCT]
 			return:		[integer!]
+		]
+		GetDesktopWindow: "GetDesktopWindow" [
+			return:		[handle!]
 		]
 		FillRect: "FillRect" [
 			hDC			[handle!]

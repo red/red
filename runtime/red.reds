@@ -16,6 +16,7 @@ red: context [
 	#include %definitions.reds
 	#include %macros.reds
 	#include %tools.reds
+	#include %dtoa.reds
 	
 	#switch OS [										;-- loading OS-specific bindings
 		Windows  [#include %platform/win32.reds]
@@ -25,7 +26,7 @@ red: context [
 		#default [#include %platform/linux.reds]
 	]
 	
-	;#include %threads.reds
+	#include %threads.reds
 	#include %allocator.reds
 	#include %crush.reds
 	
@@ -102,6 +103,7 @@ red: context [
 	#include %datatypes/email.reds
 	#include %datatypes/handle.reds
 	#include %datatypes/date.reds
+	#include %datatypes/port.reds
 	#if OS = 'Windows [#include %datatypes/image.reds]	;-- temporary
 	#if OS = 'macOS   [#include %datatypes/image.reds]	;-- temporary
 
@@ -123,7 +125,7 @@ red: context [
 	#include %redbin.reds
 	#include %utils.reds
 	#include %call.reds
-	#include %inflate.reds
+	#include %compress.reds
 	#include %collector.reds
 
 	_root:	 	declare red-block!						;-- statically alloc root cell for bootstrapping
@@ -196,6 +198,7 @@ red: context [
 		email/init
 		handle/init
 		date/init
+		port/init
 		#if OS = 'Windows [image/init]					;-- temporary
 		#if OS = 'macOS   [image/init]					;-- temporary
 		
@@ -270,6 +273,7 @@ red: context [
 			email/verbose:		verbosity
 			handle/verbose:		verbosity
 			date/verbose:		verbosity
+			port/verbose:		verbosity
 			#if OS = 'Windows [image/verbose: verbosity]
 			#if OS = 'macOS   [image/verbose: verbosity]
 

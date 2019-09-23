@@ -269,14 +269,14 @@ preprocessor: context [
 	]
 
 	expand: func [
-		code [block!] job [object! none!]
+		code [block! paren!] job [object! none!]
 		/clean
 		/local rule e pos cond value then else cases body keep? expr src saved file
 	][	
 		either clean [reset job][exec/config: job]
 
 		#process off
-		parse code rule: [
+		rule: [
 			any [
 				s: macros
 				| 'routine 2 skip						;-- avoid overlapping with R/S preprocessor
@@ -370,6 +370,9 @@ preprocessor: context [
 			]
 		]
 		#process on
+		
+		unless Rebol [rule/1: 'while]					;-- avoid no-forward premature exit in Red (#3771)
+		parse code rule
 		code
 	]
 	

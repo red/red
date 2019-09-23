@@ -2,7 +2,8 @@
 [![Windows build](https://bs.red-lang.org/windows.svg)](https://ci.appveyor.com/project/red/red/branch/master)
 [![macOS build](https://bs.red-lang.org/macos.svg)](https://travis-ci.org/red/red)
 [![Linux build](https://bs.red-lang.org/linux.svg)](https://travis-ci.org/red/red)
-[![ARM build](https://bs.red-lang.org/arm.svg)](https://travis-ci.org/red/red)
+[![ARMel build](https://bs.red-lang.org/armel.svg)](https://travis-ci.org/red/red)
+[![ARMhf build](https://bs.red-lang.org/armhf.svg)](https://travis-ci.org/red/red)
 
 Red Programming Language
 ------------------------
@@ -62,7 +63,7 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
 `[options]`
 
     -c, --compile                  : Generate an executable in the working
-                                     folder, using libRedRT. (developement mode)
+                                     folder, using libRedRT. (development mode)
 
     -d, --debug, --debug-stabs     : Compile source file in debug mode. STABS
                                      is supported for Linux targets.
@@ -127,7 +128,7 @@ Cross-compilation targets:
     WindowsXP    : Windows, x86, GUI applications, no touch API
     Linux        : GNU/Linux, x86
     Linux-ARM    : GNU/Linux, ARMv5, armel (soft-float)
-    RPi          : GNU/Linux, ARMv5, armhf (hard-float)
+    RPi          : GNU/Linux, ARMv7, armhf (hard-float)
     Darwin       : macOS Intel, console-only applications
     macOS        : macOS Intel, applications bundles
     Syllable     : Syllable OS, x86

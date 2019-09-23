@@ -42,8 +42,7 @@ system/view/VID: context [
 		
 		process: function [root [object!]][
 			unless active? [exit]
-			actions: system/view/VID/GUI-rules/processors
-			
+
 			foreach list reduce [general select OS system/platform user][
 				foreach name list [
 					if debug? [print ["Applying rule:" name]]
@@ -285,6 +284,7 @@ system/view/VID: context [
 		;-- process style options --
 		until [
 			unless no-skip [spec: next spec]
+			if no-skip [no-skip: false]					;-- disable the flag after 1st use
 			value: first spec
 			match?: parse spec [[
 				  ['left | 'center | 'right]	 (opt?: add-flag opts 'para 'align value)

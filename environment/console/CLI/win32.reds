@@ -260,13 +260,17 @@ get-window-size: func [
 		size    [red-pair!]
 ][
 	info: declare screenbuf-info!
+	size: as red-pair! #get system/console/size
+	size/x: 80											;-- set defaults when working with stdout
+	size/y: 50											;   as many output funcs rely on it
+	columns: size/x
+	rows: size/y
 	if zero? GetConsoleScreenBufferInfo stdout as-integer info [return -1]
 	x-y: info/Size
 	columns: FIRST_WORD(x-y)
 	rows: SECOND_WORD(x-y)
-	size: as red-pair! #get system/console/size
-	size/x: SECOND_WORD(info/top-right) - SECOND_WORD(info/attr-left) 
-	size/y: FIRST_WORD(info/bottom-maxWidth) - FIRST_WORD(info/top-right)
+	size/x: SECOND_WORD(info/top-right) - SECOND_WORD(info/attr-left) + 1
+	size/y: FIRST_WORD(info/bottom-maxWidth) - FIRST_WORD(info/top-right) + 1
 	if columns <= 0 [size/x: 80 columns: 80 return -1]
 	x-y: info/Position
 	base-y: SECOND_WORD(x-y)
@@ -274,6 +278,7 @@ get-window-size: func [
 ]
 
 emit-red-char: func [cp [integer!] /local n][
+	if hide-input? [cp: as-integer #"*"]
 	n: 2 * unicode/cp-to-utf16 cp pbuffer
 	pbuffer: pbuffer + n
 ]
@@ -325,12 +330,17 @@ output-to-screen: func [/local n][
 	WriteConsole stdout buffer (as-integer pbuffer - buffer) / 2 :n null
 ]
 
-init: func [
+init: func [][
+	console?: isatty as int-ptr! stdin
+	if console? [
+		get-window-size
+	]
+]
+
+init-console: func [
 	/local
 		mode	[integer!]
 ][
-	console?: isatty as int-ptr! stdin
-
 	if console? [
 		GetConsoleMode stdin :saved-con
 		mode: saved-con and (not ENABLE_PROCESSED_INPUT)	;-- turn off PROCESSED_INPUT, so we can handle control-c

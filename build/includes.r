@@ -27,6 +27,7 @@ write %build/bin/sources.r set-cache [
 		%functions.red
 		%lexer.red
 		%natives.red
+		%networking.red
 		%operators.red
 		%reactivity.red
 		%routines.red
@@ -37,6 +38,7 @@ write %build/bin/sources.r set-cache [
 			%gif.red
 			%jpeg.red
 			%png.red
+			%csv.red
 			%json.red
 			%json/ [
 				%common.red
@@ -54,6 +56,7 @@ write %build/bin/sources.r set-cache [
 				%POSIX.reds
 				%wcwidth.reds
 				%win32.reds
+				%settings.red
 			]
 			%GUI/ [
 				%old/ [
@@ -78,12 +81,14 @@ write %build/bin/sources.r set-cache [
 		%case-folding.reds
 		%clipboard.reds
 		%collector.reds
+		%compress.reds
 		%crush.reds
 		%crypto.reds
 		%debug-tools.reds
 		%definitions.reds
+		%deflate.reds
+		%dtoa.reds
 		%hashtable.reds
-		%inflate.reds
 		%interpreter.reds
 		%macros.reds
 		%natives.reds
@@ -96,6 +101,7 @@ write %build/bin/sources.r set-cache [
 		%simple-io.reds
 		%sort.reds
 		%stack.reds
+		%threads.reds
 		%tokenizer.reds
 		%tools.reds
 		%unicode.reds
@@ -134,6 +140,7 @@ write %build/bin/sources.r set-cache [
 			%pair.reds
 			%percent.reds
 			%point.reds
+			%port.reds
 			%refinement.reds
 			%routine.reds
 			%series.reds

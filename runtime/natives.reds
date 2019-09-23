@@ -386,7 +386,7 @@ natives: context [
 		value: stack/arguments
 		body: as red-block! stack/arguments + 2
 
-		part: as red-integer! integer/push 0			;-- store number of words to set
+		part: integer/push 0							;-- store number of words to set
 		stack/push stack/arguments + 1					;-- copy arguments to stack top in reverse order
 		stack/push value								;-- (required by foreach-next)
 
@@ -1122,7 +1122,7 @@ natives: context [
 			][
 				stack/set-last 
 					as red-value! _context/bind
-						block/clone as red-block! value yes no
+						block/clone as red-block! value yes yes
 						TO_CTX(ctx)
 						obj
 						self?
@@ -1452,6 +1452,8 @@ natives: context [
 	][
 		#typecheck [enbase base-arg]
 		data: as red-string! stack/arguments
+		data/cache: null
+
 		base: either positive? base-arg [
 			int: as red-integer! data + 1
 			int/value
@@ -1943,7 +1945,7 @@ natives: context [
 		part [integer!]
 	][
 		#typecheck [uppercase part]
-		case-folding/change-case stack/arguments part yes
+		case-folding/change stack/arguments part yes
 	]
 
 	lowercase*: func [
@@ -1951,7 +1953,7 @@ natives: context [
 		part [integer!]
 	][
 		#typecheck [lowercase part]
-		case-folding/change-case stack/arguments part no
+		case-folding/change stack/arguments part no
 	]
 	
 	as-pair*: func [
@@ -2474,7 +2476,11 @@ natives: context [
 		dt: as red-date! stack/arguments
 		dt/header: TYPE_DATE
 		dt/date: platform/get-date utc >= 0
-		if _date > -1 [dt/time: 0.0 exit]
+		if _date > -1 [
+			dt/date: dt/date and FFFEFF80h				;-- clear time? flag and TZ data.
+			dt/time: 0.0
+			exit
+		]
 		dt/date: DATE_SET_TIME_FLAG(dt/date)
 		
 		tm: platform/get-time yes precise >= 0
@@ -2612,6 +2618,55 @@ natives: context [
 		]
 	]
 
+	compress*: func [
+		check?	 [logic!]
+		zlib	 [integer!]
+		_deflate [integer!]
+		/local
+			arg		[red-binary!]
+			src		[byte-ptr!]
+			srclen	[integer!]
+			buffer	[byte-ptr!]
+			buflen	[integer!]
+			res		[integer!]
+			s		[series!]
+			dst		[red-binary! value]
+	][
+		#typecheck [compress zlib _deflate]
+		arg: as red-binary! stack/arguments
+		either TYPE_OF(arg) <> TYPE_BINARY [		;-- any-string!
+			srclen: -1
+			src: as byte-ptr! unicode/to-utf8 as red-string! arg :srclen
+		][
+			src: binary/rs-head arg
+			srclen: binary/rs-length? arg
+		]
+		buflen: srclen + 32
+
+		loop 2 [	;-- try again in case fails the first time
+			binary/make-at as red-value! dst buflen
+			s: GET_BUFFER(dst)
+			buffer: as byte-ptr! s/offset
+			case [
+				zlib > 0 [
+					res: zlib-compress buffer :buflen src srclen
+				]
+				_deflate > 0 [
+					res: deflate/compress buffer :buflen src srclen
+				]
+				true [
+					res: gzip-compress buffer :buflen src srclen
+				]
+			]
+			if res <> 1 [break]
+		]
+		if res <> 0 [
+			fire [TO_ERROR(script invalid-data)]
+		]
+		s/tail: as cell! (buffer + buflen)
+		stack/set-last as red-value! dst
+	]
+
 	decompress*: func [
 		check?	 [logic!]
 		zlib	 [integer!]
@@ -2636,24 +2691,37 @@ natives: context [
 			zlib > 0 [
 				sz: as red-integer! arg + zlib
 				dstlen: sz/value
+				if dstlen <= srclen [
+					;-- if dstlen is too small, calculate real buffer size before decompress
+					dstlen: 0
+					zlib-uncompress null :dstlen src srclen
+				]
 			]
 			_deflate > 0 [
 				sz: as red-integer! arg + _deflate
 				dstlen: sz/value
+				if dstlen <= srclen [
+					dstlen: 0
+					deflate/uncompress null :dstlen src srclen
+				]
 			]
 			true [
 				dstlen: 0
+				;-- get buffer size from gzip format header
 				gzip-uncompress null :dstlen src srclen
 			]
 		]
 
-		binary/make-at as red-value! dst dstlen
-		s: GET_BUFFER(dst)
-		buf: as byte-ptr! s/offset
-		res: case [
-			zlib > 0		[zlib-uncompress buf :dstlen src srclen]
-			_deflate > 0	[deflate/uncompress buf :dstlen src srclen]
-			true			[gzip-uncompress buf :dstlen src srclen]
+		loop 2 [	;-- try again in case fails the first time
+			binary/make-at as red-value! dst dstlen
+			s: GET_BUFFER(dst)
+			buf: as byte-ptr! s/offset
+			res: case [
+				zlib > 0		[zlib-uncompress buf :dstlen src srclen]
+				_deflate > 0	[deflate/uncompress buf :dstlen src srclen]
+				true			[gzip-uncompress buf :dstlen src srclen]
+			]
+			if res <> 1 [break]
 		]
 		if res <> 0 [fire [TO_ERROR(script invalid-data)]]
 		s/tail: as cell! (buf + dstlen)
@@ -2739,14 +2807,13 @@ natives: context [
 					TYPE_TUPLE [
 						tp: as red-tuple! arg2
 						buf2: (as byte-ptr! tp) + 4
-						if size <> TUPLE_SIZE?(tp) [
-							fire [TO_ERROR(script out-of-range) arg2]
-						]
-						either max? [
-							until [n: n + 1 if buf/n < buf2/n [buf/n: buf2/n] n = size]
-						][
-							until [n: n + 1 if buf/n > buf2/n [buf/n: buf2/n] n = size]
-						]
+						either size = TUPLE_SIZE?(tp) [
+							either max? [
+								until [n: n + 1 if buf/n < buf2/n [buf/n: buf2/n] n = size]
+							][
+								until [n: n + 1 if buf/n > buf2/n [buf/n: buf2/n] n = size]
+							]
+						][comp?: yes]
 					]
 					TYPE_FLOAT
 					TYPE_INTEGER [
@@ -3024,6 +3091,12 @@ natives: context [
 				TYPE_BINARY [
 					set-many-string blk as red-string! series size
 				]
+				TYPE_MAP [
+					if size <> 2 [
+						fire [TO_ERROR(script invalid-arg) blk]
+					]
+					result: map/set-many blk as red-hash! series size
+				]
 				TYPE_IMAGE [
 					#either OS = 'Windows [
 						image/set-many blk as red-image! series size
@@ -3269,6 +3342,7 @@ natives: context [
 			:zero?*
 			:size?*
 			:browse*
+			:compress*
 			:decompress*
 			:recycle*
 		]

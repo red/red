@@ -40,6 +40,7 @@ Red [
 #include %tips.red
 
 gui-console-ctx: context [
+	cfg-dir:	none
 	cfg-path:	none
 	cfg:		none
 	font:		make font! [name: "Consolas" size: 11 color: 0.0.0]
@@ -51,14 +52,19 @@ gui-console-ctx: context [
 		flags:   [scrollable all-over]
 		options: [cursor: I-beam]
 		menu: [
-			"Copy^-Ctrl+C"		copy
-			"Paste^-Shift+Ins"	paste
+			#either config/OS = 'macOS [
+				"Copy^-Command+C"	copy
+				"Paste^-Command+V"	paste
+			][
+				"Copy^-Ctrl+C"		copy
+				"Paste^-Shift+Ins"	paste
+			]
 			---
 			"Select All"		select-all
 		]
 		actors: object [
 			on-time: func [face [object!] event [event!]][
-				caret/rate: 2
+				if caret/enabled? [caret/rate: 2]
 				terminal/on-time
 				'done
 			]
@@ -69,7 +75,11 @@ gui-console-ctx: context [
 				terminal/scroll event
 			]
 			on-wheel: func [face [object!] event [event!]][
-				terminal/scroll event
+				either event/ctrl? [
+					terminal/zoom event
+				][
+					terminal/scroll event
+				]
 			]
 			on-key: func [face [object!] event [event!]][
 				terminal/press-key event
@@ -96,6 +106,8 @@ gui-console-ctx: context [
 			]
 		]
 
+		tabs: none line-spacing: 'default handles: none	;-- extra fields
+
 		init: func [/local box][
 			terminal/windows: system/view/screens/1/pane
 			box: terminal/box
@@ -109,7 +121,7 @@ gui-console-ctx: context [
 	]
 
 	caret: make face! [
-		type: 'base color: caret-clr offset: 0x0 size: 1x17 rate: 2 visible?: no
+		type: 'base color: caret-clr offset: 0x0 size: 1x17 rate: 2 enabled?: no
 		options: compose [caret (console) cursor: I-beam accelerated: yes]
 		actors: object [
 			on-time: func [face [object!] event [event!]][
@@ -124,7 +136,7 @@ gui-console-ctx: context [
 
 	#include %settings.red
 
-	show-caret: func [][unless caret/visible? [caret/visible?: yes]]
+	show-caret: func [][unless caret/enabled? [caret/enabled?: yes]]
 
 	setup-faces: does [
 		console/pane: reduce [caret]
@@ -164,7 +176,9 @@ gui-console-ctx: context [
 			]
 			on-close: func [face [object!] event [event!]][
 				save-cfg
+				system/view/platform/exit-event-loop
 				clear head system/view/screens/1/pane
+				quit
 			]
 			on-resizing: function [face [object!] event [event!]][
 				new-sz: event/offset
@@ -175,12 +189,12 @@ gui-console-ctx: context [
 			]
 			on-focus: func [face [object!] event [event!]][
 				caret/color: caret-clr
-				unless caret/visible? [caret/visible?: yes]
+				unless caret/enabled? [caret/enabled?: yes]
 				caret/rate: 2
 				terminal/refresh
 			]
 			on-unfocus: func [face [object!] event [event!]][
-				if caret/visible? [caret/visible?: no]
+				if caret/enabled? [caret/enabled?: no]
 				caret/rate: none
 			]
 		]
@@ -217,9 +231,14 @@ gui-console-ctx: context [
 	]
 ]
 
+_save-cfg: function [][
+	gui-console-ctx/save-cfg
+]
+
 ask: function [
 	"Prompt the user for input"
 	question [string!]
+	/hide
 	return:  [string!]
 ][
 	gui-console-ctx/show-caret
@@ -234,6 +253,7 @@ ask: function [
 	vt/ask?: yes
 	vt/reset-top/force
 	vt/clear-stack
+	vt/set-flag hide
 	either vt/paste/resume [
 		vt/do-ask-loop/no-wait
 	][
@@ -242,7 +262,7 @@ ask: function [
 		do-events
 	]
 	vt/ask?: no
-	gui-console-ctx/caret/visible?: no
+	gui-console-ctx/caret/enabled?: no
 	unless gui-console-ctx/console/state [line: "quit"]
 	line
 ]

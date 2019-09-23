@@ -804,7 +804,7 @@ red: context [
 	]
 	
 	decorate-series-var: func [name [word!] /local new list][
-		new: to word! join name get-counter
+		new: to word! append append mold/flat name "||" get-counter
 		list: select lit-vars select [blk block str string ctx context ts typeset] name
 		if all [list not find list new][append list new]
 		new
@@ -893,6 +893,10 @@ red: context [
 		not empty? intersect expr-stack iterators
 	]
 	
+	join-obj-stack: func [item [word! path!]][
+		new-line/all join obj-stack item off
+	]
+	
 	get-obj-base: func [name [any-word!]][
 		either local-word? name [func-objs][objects]
 	]
@@ -969,7 +973,7 @@ red: context [
 	is-object?: func [expr /local pos][
 		unless find [word! get-word! path!] type?/word expr [return none]
 		any [
-			attempt [do join obj-stack expr]
+			attempt [do join-obj-stack expr]
 			all [path? expr attempt [do head insert copy expr 'objects]]
 			all [
 				find [object! word!] type?/word expr
@@ -1034,12 +1038,16 @@ red: context [
 		]
 	]
 	
-	system-words-path?: func [path [path! set-path!]][
+	system-words-path?: func [path [path! set-path!] /local get?][
 		if all [
 			2 < length? path
-			find/match path 'system/words 
+			any [
+				find/match path 'system/words
+				all [get?: get-word? path/1 path/1 = 'system path/2 = 'words]
+			]
 		][
 			remove/part path 2
+			if get? [path/1: to get-word! path/1]
 			either 1 = length? path [
 				switch type?/word pc/1: load mold path [
 					set-word!	[comp-set-word]
@@ -1181,16 +1189,28 @@ red: context [
 		name
 	]
 	
-	check-cloned-function: func [new [word!] /local name alter entry pos alias old type][
-		if all [
-			get-word? pc/1
-			name: to word! pc/1	
+	check-cloned-function: func [new [word!] original /local name alter entry pos alias old type path][
+		if any [
 			all [
-				alter: get-prefix-func name
-				entry: find functions alter
-				name: alter
+				get-word? pc/1
+				name: to word! pc/1	
+				all [
+					alter: get-prefix-func name
+					entry: find functions alter
+					name: alter
+				]
+			]
+			all [
+				path? path: pc/1
+				2 < length? path
+				all [get?: get-word? path/1 path/1 = 'system path/2 = 'words]
+				entry: find functions name: last path
 			]
 		][
+			all [
+				ctx: obj-func-call? original
+				new: decorate-obj-member new ctx
+			]
 			if alter: select-ssa name [
 				entry: find functions alter
 			]
@@ -1225,7 +1245,7 @@ red: context [
 		]
 	]
 	
-	check-new-func-name: func [path [path!] symbol [word!] ctx [word!] /local name][
+	check-new-func-name: func [symbol [word!] ctx [word!] /local name][
 		if any [
 			set-word? name: pc/-1
 			all [lit-word? name 'set = pc/-2]
@@ -1918,7 +1938,7 @@ red: context [
 							]
 						]
 					) 
-					| #include (comp-include/only pos)
+					| #include (comp-include/only pos) :pos
 					| skip
 				]
 			]
@@ -2008,8 +2028,10 @@ red: context [
 				head insert saved 'objects
 			]
 		][
-			join obj-stack either path [to path! path][name] ;-- account for current object stack
+			join-obj-stack either path [to path! path][name] ;-- account for current object stack
 		]
+		shadow-path: new-line/all shadow-path no
+		
 		either path [
 			unless attempt [
 				do reduce [to set-path! shadow-path obj] ;-- set object in shadow tree
@@ -2064,6 +2086,7 @@ red: context [
 					obj-stack: append to path! 'objects any [path name] ;-- from root
 				][
 					append obj-stack any [path name]	;-- from current objects stack
+					new-line/all obj-stack off
 				]
 				pc: next pc
 				comp-next-block yes
@@ -2237,7 +2260,7 @@ red: context [
 	]
 	
 	comp-any: does [
-		either block? pc/1 [
+		either all [block? pc/1 not check-infix-operators no][
 			comp-boolean-expressions 'any ['if 'logic/false? body]
 		][
 			emit-open-frame 'any
@@ -2248,7 +2271,7 @@ red: context [
 	]
 	
 	comp-all: does [
-		either block? pc/1 [
+		either all [block? pc/1 not check-infix-operators no][
 			comp-boolean-expressions 'all [
 				'either 'logic/false? set-last-none body
 			]
@@ -3236,7 +3259,10 @@ red: context [
 						]
 					][
 						if head? path [
-							if alter: select-ssa name [entry: find functions alter]
+							if all [alter: select-ssa name name: alter][
+								path/1: alter
+								entry: find functions alter
+							]
 							pc: next pc
 							either ctx: any [
 								obj-func-call? value
@@ -3265,13 +3291,12 @@ red: context [
 			]
 		]
 		self?: path/1 = 'self
-
 		if all [
 			not any [set? dynamic? find path integer!]
 			set [fpath symbol ctx] obj-func-path? path
 		][
 			either get? [
-				check-new-func-name path symbol ctx
+				check-new-func-name symbol ctx
 			][
 				pc: next pc
 				comp-call/with fpath functions/:symbol symbol ctx
@@ -3686,14 +3711,14 @@ red: context [
 				unless defer [insert mark start]		;-- restore beginning of frame
 			]
 			all [
-				any [word? pc/1 path? pc/1]
+				any [word? pc/1 all [path? pc/1 not get-word? pc/1/1]]
 				do take-frame
 				defer: dispatch-ctx-keywords/with original pc/1
 			][]
 			'else [
 				if start [emit start]
 				unless any [obj-bound? no-check?][check-redefined name original]
-				check-cloned-function name
+				check-cloned-function name original
 				comp-substitute-expression				;-- fetch a value (2nd argument)
 			]
 		]
@@ -3784,8 +3809,8 @@ red: context [
 					]
 				]
 			][
-				if alter: select-ssa name [entry: find functions alter]
-				
+				if all [alter: select-ssa name name: alter][entry: find functions alter]
+			
 				either ctx: any [
 					obj-func-call? original
 					pick entry/2 5
@@ -4313,7 +4338,7 @@ red: context [
 			set-word!	[comp-set-word]
 			word!		[comp-word]
 			get-word!	[comp-word/literal]
-			paren!		[comp-next-block root]
+			paren!		[comp-paren root]
 			set-path!	[comp-path/set? root]
 			path! 		[comp-path root]
 		][
@@ -4336,6 +4361,12 @@ red: context [
 				if tail? pc [emit-dyn-check]
 			]
 		]
+	]
+	
+	comp-paren: func [root? [logic!]][
+		emit-open-frame 'paren
+		comp-next-block root?
+		emit-close-frame
 	]
 	
 	comp-next-block: func [root? [logic!] /with blk /local saved pos][
@@ -4427,10 +4458,10 @@ red: context [
 			if store [
 				obj: entry/2
 				either set-path? name [
-					do reduce [to set-path! join obj-stack to path! name obj] ;-- set object in shadow tree
+					do reduce [to set-path! join-obj-stack to path! name obj] ;-- set object in shadow tree
 				][
 					unless tail? next obj-stack [		;-- set object in shadow tree (if sub-object)
-						do reduce [to set-path! join obj-stack name obj]
+						do reduce [to set-path! join-obj-stack name obj]
 					]
 				]
 			]
@@ -4456,10 +4487,10 @@ red: context [
 				if store [
 					obj: entry/2
 					either set-path? name [
-						do reduce [to set-path! join obj-stack to path! name obj] ;-- set object in shadow tree
+						do reduce [to set-path! join-obj-stack to path! name obj] ;-- set object in shadow tree
 					][
 						unless tail? next obj-stack [		;-- set object in shadow tree (if sub-object)
-							do reduce [to set-path! join obj-stack name obj]
+							do reduce [to set-path! join-obj-stack name obj]
 						]
 					]
 				]

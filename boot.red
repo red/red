@@ -30,8 +30,10 @@ Red [
 	#include %environment/codecs/bmp.red
 	#include %environment/codecs/gif.red
 	#include %environment/codecs/json.red
+	#include %environment/codecs/csv.red
 
 	#include %environment/reactivity.red				;-- requires SET intrinsic
+	#include %environment/networking.red
 	#include %utils/preprocessor.r
 
 	;-- temporary code --

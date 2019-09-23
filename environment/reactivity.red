@@ -41,8 +41,8 @@ deep-reactor!: make reactor! [
 	]
 ]
 
-;reactor:	  function [spec [block!]][make reactor! spec]
-;deep-reactor: function [spec [block!]][make deep-reactor! spec]
+reactor:	  function [spec [block!]][make reactor! spec]
+deep-reactor: function [spec [block!]][make deep-reactor! spec]
 
 
 system/reactivity: context [
@@ -54,10 +54,10 @@ system/reactivity: context [
 	source:		 []
 
 	add-relation: func [
-		obj [object!]
-		word [default!]
+		obj		 [object!]
+		word
 		reaction [block! function!]
-		targets [set-word! block! object! none!]
+		targets  [set-word! block! object! none!]
 		/local new-rel
 	][
 		new-rel: reduce [obj :word :reaction targets]
@@ -171,7 +171,7 @@ system/reactivity: context [
 	set 'dump-reactions function [
 		"Output all the current reactive relations for debugging purpose"
 	][
-		limit: any [all [system/console system/console/size/x] 72] - 10
+		limit: (any [all [system/console system/console/size/x] 72]) - 10
 		count: 0
 		
 		foreach [obj field reaction target] relations [
@@ -205,13 +205,11 @@ system/reactivity: context [
 		'field	 [set-word!]	"Set-word which will get set to the result of the reaction"
 		reaction [block!]		"Reactive relation"
 	][
-		words: words-of obj: context? field
+		obj: context? field
 		parse reaction rule: [
 			any [
-				item: word! (
-					if find words item/1 [add-relation obj item/1 reaction field]
-				)
-				| set-path! | any-string!
+				item: word! (if in obj item/1 [add-relation obj item/1 reaction field])
+				| any-path! | any-string!
 				| into rule
 				| skip
 			]
@@ -295,9 +293,11 @@ system/reactivity: context [
 				found?: no
 				while [pos: find/same/only pos :reaction][
 					obj: pos/-2
-					if any [src = 'all src = obj all [block? src find/same src obj]][
+					either any [src = 'all src = obj all [block? src find/same src obj]][
 						pos: remove/part skip pos -2 4
 						found?: yes
+					][
+						break
 					]
 				]
 			]
@@ -311,7 +311,7 @@ system/reactivity: context [
 								cause-error 'script 'no-value [item]
 							]
 							either 2 = length? item [
-								obj: get item/1
+								set/any 'obj get/any item/1
 								part: 1
 							][
 								part: length? item

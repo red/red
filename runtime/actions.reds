@@ -60,11 +60,25 @@ actions: context [
 	
 	get-action-ptr-from: func [
 		type	[integer!]								;-- datatype ID
+		value	[red-value!]							;-- Red value to dispatch from
 		action	[integer!]								;-- action ID
 		return: [integer!]								;-- action pointer (datatype-dependent)
 		/local
 			index [integer!]
+			actor [red-handle!]
+			table [int-ptr!]
 	][
+		if TYPE_OF(value) = TYPE_PORT [
+			actor: as red-handle! (object/get-values as red-object! value) + port/field-actor
+			
+			if all [action >= ACT_APPEND TYPE_OF(actor) = TYPE_HANDLE][
+				table: as int-ptr! actor/value
+				action: action - ACT_APPEND + 1			;-- index is 1-based
+				index: table/action
+				if zero? index [fire [TO_ERROR(access no-port-action)]]
+				return index
+			]
+		]
 		index: type << 8 + action
 		index: action-table/index						;-- lookup action function pointer
 
@@ -80,7 +94,7 @@ actions: context [
 			arg  [red-value!]
 	][
 		arg: stack/arguments
-		get-action-ptr-from TYPE_OF(arg) action
+		get-action-ptr-from TYPE_OF(arg) arg action
 	]	
 
 	get-action-ptr: func [
@@ -88,7 +102,7 @@ actions: context [
 		action	[integer!]								;-- action ID
 		return: [integer!]								;-- action pointer (datatype-dependent)
 	][
-		get-action-ptr-from TYPE_OF(value) action
+		get-action-ptr-from TYPE_OF(value) value action
 	]
 	
 	get-index-argument: func [
@@ -140,7 +154,7 @@ actions: context [
 			spec	 [red-value!]
 			type	 [integer!]
 			return:	 [red-value!]						;-- newly created value
-		] get-action-ptr-from type ACT_MAKE
+		] get-action-ptr-from type proto ACT_MAKE
 		
 		action-make proto spec type
 	]
@@ -197,7 +211,7 @@ actions: context [
 			value	[red-value!]
 			field	[integer!]
 			return:	[red-block!]
-		] get-action-ptr-from TYPE_OF(value) ACT_REFLECT
+		] get-action-ptr-from TYPE_OF(value) value ACT_REFLECT
 			
 		action-reflect value field/symbol
 	]
@@ -230,7 +244,7 @@ actions: context [
 			spec	 [red-value!]
 			type	 [integer!]
 			return:	 [red-value!]						;-- newly created value
-		] get-action-ptr-from type ACT_TO
+		] get-action-ptr-from type proto ACT_TO
 
 		action-to proto spec type
 	]
@@ -415,12 +429,7 @@ actions: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/compare"]]
 
-		action-compare: as function! [
-			value1  [red-value!]						;-- first operand
-			value2  [red-value!]						;-- second operand
-			op	    [integer!]							;-- type of comparison
-			return: [integer!]
-		] get-action-ptr value1 ACT_COMPARE
+		action-compare: DISPATCH_COMPARE(value1)
 		
 		value: action-compare value1 value2 op
 		if all [
@@ -459,12 +468,7 @@ actions: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/compare-value"]]
 
-		action-compare: as function! [
-			value1  [red-value!]						;-- first operand
-			value2  [red-value!]						;-- second operand
-			op	    [integer!]							;-- type of comparison
-			return: [integer!]
-		] get-action-ptr value1 ACT_COMPARE
+		action-compare: DISPATCH_COMPARE(value1)
 
 		switch TYPE_OF(value1) [
 			TYPE_LOGIC	 [res: value1/data1 - value2/data1]
@@ -1564,8 +1568,49 @@ actions: context [
 		action-trim series head? tail? auto? lines? all? with-arg
 	]
 
-	create*: func [][]
-	close*: func [][]
+	create*: func [
+		return:	[red-value!]
+	][
+		stack/set-last create stack/arguments
+	]
+	
+	create: func [
+		spec	[red-value!]
+		return: [red-value!]
+		/local
+			action-create
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/create"]]
+
+		action-create: as function! [
+			spec	[red-value!]
+			return: [red-value!]
+		] get-action-ptr spec ACT_CREATE
+
+		action-create spec
+	]
+	
+	close*: func [
+		return:	[red-value!]
+	][
+		stack/set-last close stack/arguments
+	]
+
+	close: func [
+		port	[red-value!]
+		return: [red-value!]
+		/local
+			action-close
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/close"]]
+
+		action-close: as function! [
+			port	[red-value!]
+			return: [red-value!]
+		] get-action-ptr port ACT_CLOSE
+
+		action-close port
+	]
 	
 	delete*: func [
 		return:	[red-value!]
@@ -1588,9 +1633,68 @@ actions: context [
 
 		action-delete file
 	]
+
+	open*: func [
+		new   [integer!]
+		read  [integer!]
+		write [integer!]
+		seek  [integer!]
+		allow [integer!]
+	][
+		stack/set-last open
+			stack/arguments
+			new   <> -1
+			read  <> -1
+			write <> -1
+			seek  <> -1
+			stack/arguments + allow
+	]
 	
-	open*: func [][]
-	open?*: func [][]
+	open: func [
+		spec	[red-value!]
+		new?	[logic!]
+		read?	[logic!]
+		write?	[logic!]
+		seek?	[logic!]
+		allow	[red-value!]
+		return: [red-value!]
+		/local
+			action-open
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/open"]]
+
+		action-open: as function! [
+			spec	[red-value!]
+			new?	[logic!]
+			read?	[logic!]
+			write?	[logic!]
+			seek?	[logic!]
+			allow	[red-value!]
+			return:	[red-value!]						;-- picked value from series
+		] get-action-ptr spec ACT_OPEN
+
+		action-open spec new? read? write? seek? allow
+	]
+	
+	open?*: func [][
+		stack/set-last open? stack/arguments
+	]
+
+	open?: func [
+		port	[red-value!]
+		return:	[red-value!]
+		/local
+			action-open?
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/open?"]]
+
+		action-open?: as function! [
+			port	[red-value!]
+			return:	[red-value!]						;-- picked value from series
+		] get-action-ptr port ACT_OPEN?
+
+		action-open? port
+	]
 
 	query*: func [][
 		stack/set-last query stack/arguments
@@ -1659,8 +1763,51 @@ actions: context [
 		action-read src part seek binary? lines? info? as-arg
 	]
 
-	rename*: func [][]
-	update*: func [][]
+	rename*: func [
+		return:	[red-value!]
+	][
+		stack/set-last rename stack/arguments stack/arguments + 1
+	]
+
+	rename: func [
+		from	[red-value!]
+		to		[red-value!]
+		return: [red-value!]
+		/local
+			action-rename
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/rename"]]
+
+		action-rename: as function! [
+			from	[red-value!]
+			to		[red-value!]
+			return: [red-value!]
+		] get-action-ptr from ACT_RENAME
+
+		action-rename from to
+	]
+	
+	update*: func [
+		return:	[red-value!]
+	][
+		stack/set-last update stack/arguments
+	]
+
+	update: func [
+		port	[red-value!]
+		return: [red-value!]
+		/local
+			action-update
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/update"]]
+
+		action-update: as function! [
+			port	[red-value!]
+			return: [red-value!]
+		] get-action-ptr port ACT_UPDATE
+
+		action-update port
+	]
 
 	write*: func [
 		binary? [integer!]
@@ -1781,16 +1928,16 @@ actions: context [
 			:take*
 			:trim*
 			;-- I/O actions --
-			null			;create
-			null			;close
+			:create*
+			:close*
 			:delete*
 			:modify*
-			null			;open
-			null			;open?
+			:open*
+			:open?*
 			:query*
 			:read*
-			null			;rename
-			null			;update
+			:rename*
+			:update*
 			:write*
 		]
 	]

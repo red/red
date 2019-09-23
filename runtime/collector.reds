@@ -192,6 +192,7 @@ collector: context [
 					keep series/node
 				]
 				TYPE_ERROR
+				TYPE_PORT
 				TYPE_OBJECT [
 					#if debug? = yes [if verbose > 1 [print "object"]]
 					obj: as red-object! value
@@ -277,7 +278,20 @@ collector: context [
 		]
 	]
 	
-	do-mark-sweep: func [/local s [series!] p [int-ptr!] obj [red-object!] w [red-word!] cb file saved][
+	do-mark-sweep: func [
+		/local
+			s		[series!]
+			p		[int-ptr!]
+			obj		[red-object!]
+			w		[red-word!]
+			cb
+		#if debug? = yes [
+			file	[c-string!]
+			saved	[integer!]
+			buf		[c-string!]
+			tm tm1
+		]
+	][
 		#if debug? = yes [if verbose > 1 [
 			#if OS = 'Windows [platform/dos-console?: no]
 			file: "                      "
@@ -287,11 +301,13 @@ collector: context [
 		]]
 
 		#if debug? = yes [
+			if verbose > 2 [stack-trace]
+			buf: "                                                               "
+			tm: platform/get-time yes yes
 			print [
-				"root size: "	block/rs-length? root
-				", root max: "	***-root-size
-				", cycles: "	stats/cycles
-				", before: " 	memory-info null 1
+				"root: " block/rs-length? root "/" ***-root-size
+				", runs: " stats/cycles
+				", mem: " 	memory-info null 1
 			]
 			if verbose > 1 [probe "^/marking..."]
 		]
@@ -341,7 +357,9 @@ collector: context [
 		
 		#if debug? = yes [if verbose > 1 [probe "marking nodes on native stack"]]
 		mark-stack-nodes
-		
+
+		#if debug? = yes [tm1: (platform/get-time yes yes) - tm]	;-- marking time
+
 		#if debug? = yes [if verbose > 1 [probe "sweeping..."]]
 		_hashtable/sweep ownership/table
 		collect-frames COLLECTOR_RELEASE
@@ -355,7 +373,9 @@ collector: context [
 		;probe "done!"
 
 		#if debug? = yes [
-			probe [", after: " memory-info null 1]
+			tm: (platform/get-time yes yes) - tm - tm1
+			sprintf [buf ", mark: %.1fms, sweep: %.1fms" tm1 * 1000 tm * 1000]
+			probe [" => " memory-info null 1 buf]
 			if verbose > 1 [
 				simple-io/close-file stdout
 				stdout: saved

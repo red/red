@@ -684,7 +684,7 @@ do-events: function [
 	return: [logic! word!] "Returned value from last event"
 	/local result
 ][
-	if win: last head system/view/screens/1/pane [
+	if all [win: last head system/view/screens/1/pane win/state][
 		unless win/state/4 [win/state/4: not no-wait]		;-- mark the window from which the event loop starts
 		set/any 'result system/view/platform/do-event-loop no-wait
 		:result
@@ -1025,9 +1025,9 @@ foreach-face: function [
 	exec: [either block? :body [do body][body face]]
 	
 	foreach face face/pane [
-		unless post? [either spec [all [do spec do exec]][do exec]]
+		unless post? [either spec [all [do spec try exec]][try exec]]
 		if block? face/pane [foreach-face/with/sub face :body spec post?]
-		if post? [either spec [all [do spec do exec]][do exec]]
+		if post? [either spec [all [do spec try exec]][try exec]]
 	]
 ]
 

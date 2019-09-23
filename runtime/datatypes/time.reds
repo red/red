@@ -17,8 +17,8 @@ time: context [
 	m-factor: 60.0
 
 	#define GET_HOURS(time)   (floor time / h-factor)
-	#define GET_MINUTES(time) (floor time // 3600.0 / 60.0)
-	#define GET_SECONDS(time) (time // 60.0)
+	#define GET_MINUTES(time) (floor (fmod time 3600.0) / 60.0)
+	#define GET_SECONDS(time) (fmod time 60.0)
 
 	throw-error: func [spec [red-value!]][
 		fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_TIME spec]
@@ -32,7 +32,7 @@ time: context [
 
 	get-minutes: func [tm [float!] return: [integer!]][
 		if tm < 0.0 [tm: 0.0 - tm]
-		as-integer floor tm // 3600.0 / 60.0
+		as-integer floor (fmod tm 3600.0) / 60.0
 	]
 
 	push-field: func [
@@ -308,6 +308,7 @@ time: context [
 				]
 				default [assert false]
 			]
+			object/check-owner as red-value! t
 			value
 		][
 			value: push-field t field
@@ -409,9 +410,21 @@ time: context [
 		ceil?		[logic!]
 		half-ceil?	[logic!]
 		return:		[red-value!]
+		/local
+			type	[integer!]
+			int		[red-integer!]
+			val		[float!]
+			ret		[red-float!]
 	][
 		float/round as red-value! tm scale _even? down? half-down? floor? ceil? half-ceil?
-		as red-value! tm
+		ret: as red-float! tm
+		if ret/header = TYPE_INTEGER [
+			int: as red-integer! ret
+			val: as float! int/value
+			ret/value: val
+		]
+		ret/header: TYPE_TIME
+		as red-value! ret
 	]
 	
 	pick: func [

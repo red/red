@@ -3,10 +3,11 @@ Red [
     Author:  "Gabriele Santilli"
     File:    %json.red
     Purpose: "Adds JSON as a valid data type to use with LOAD/AS and SAVE/AS"
-	License: [
-		http://www.apache.org/licenses/LICENSE-2.0 
-		and "The Software shall be used for Good, not Evil."
-	]
+	Rights:  "Copyright (C) 2019 Red Foundation. All rights reserved."
+	License: {
+		Distributed under the Boost Software License, Version 1.0.
+		See https://github.com/red/red/blob/master/BSL-License.txt
+	}
 ]
 
 #include %environment/codecs/json/load-json.red

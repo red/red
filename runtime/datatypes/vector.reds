@@ -591,31 +591,6 @@ vector: context [
 		as red-value! left
 	]
 	
-	clone: func [
-		vec		[red-vector!]							;-- clone the vector in-place
-		return: [red-vector!]
-		/local
-			new    [node!]
-			s	   [series!]
-			target [series!]
-			size   [integer!]
-	][
-		s: GET_BUFFER(vec)
-		size: s/size									;-- @@ head position ignored
-		new: alloc-bytes size
-		
-		unless zero? size [
-			target: as series! new/value
-			copy-memory
-				as byte-ptr! target/offset
-				as byte-ptr! s/offset
-				size
-			target/tail: as cell! ((as byte-ptr! target/offset) + size)
-		]
-		vec/node: new
-		vec
-	]
-	
 	push: func [
 		vec [red-vector!]
 	][
@@ -1124,7 +1099,7 @@ vector: context [
 			;-- General actions --
 			:make
 			INHERIT_ACTION	;random
-			null			;reflect
+			INHERIT_ACTION	;reflect
 			null			;to
 			:form
 			:mold

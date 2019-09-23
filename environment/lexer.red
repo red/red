@@ -260,19 +260,21 @@ system/lexer: context [
 
 	make-word: routine [
 		src   [string!]
+		end   [string!]
 		type  [datatype!]
 	][
 		set-type
-			as red-value! word/box (symbol/make-alt src) ;-- word/box puts it in stack/arguments
+			as red-value! word/box (symbol/make-alt src end/head - src/head) ;-- word/box puts it in stack/arguments
 			type/value
 	]
 
 	to-word: func [
 		stack [block!]
-		src   [string!]
+		start [string!]
+		end   [string!]
 		type  [datatype!]
 	][
-		store stack make-word src type
+		store stack make-word start end type
 	]
 
 	pop: function [stack [block!]][
@@ -382,7 +384,7 @@ system/lexer: context [
 					#"^(00)" - #"^(08)"						;-- (exclude TAB)
 					#"^(0A)" - #"^(1F)"
 				]
-				cs/13: charset {^{"[]();:xX}				;-- integer-end
+				cs/13: charset {^{"[]();:xX<}				;-- integer-end
 				cs/14: charset " ^-^M"						;-- ws-ASCII, ASCII common whitespaces
 				cs/15: charset [#"^(2000)" - #"^(200A)"]	;-- ws-U+2k, Unicode spaces in the U+2000-U+200A range
 				cs/16: charset [ 							;-- Control characters
@@ -533,7 +535,10 @@ system/lexer: context [
 		]
 
 		multiline-string: [
-			#"{" s: nested-curly-braces (unless zero? cnt [throw-error [string! s]])
+			#"{" s: nested-curly-braces (
+				unless zero? cnt [throw-error [string! s]]
+				old-line: line
+			)
 		]
 
 		string-rule: [(type: string!) line-string | multiline-string]
@@ -575,7 +580,7 @@ system/lexer: context [
 			)
 		]
 
-		binary-rule: [base-16-rule | base-64-rule | base-2-rule]
+		binary-rule: [[base-16-rule | base-64-rule | base-2-rule] (old-line: line)]
 
 		file-rule: [
 			s: #"%" [
@@ -609,16 +614,16 @@ system/lexer: context [
 		path-rule: [
 			ahead #"/" (								;-- path detection barrier
 				push-path stack type					;-- create empty path
-				to-word stack copy/part s e word!		;-- push 1st path element
+				to-word stack s e word!		;-- push 1st path element
 				type: path!
 			)
 			some [
 				#"/"
 				s: [
 					integer-number-rule			(store stack make-number s e type)
-					| begin-symbol-rule			(to-word stack copy/part s e word!)
+					| begin-symbol-rule			(to-word stack s e word!)
 					| paren-rule
-					| #":" s: begin-symbol-rule	(to-word stack copy/part s e get-word!)
+					| #":" s: begin-symbol-rule	(to-word stack s e get-word!)
 					;@@ add more datatypes here
 					| (throw-error [path! path])
 					  reject
@@ -642,32 +647,32 @@ system/lexer: context [
 
 		word-rule: 	[
 			(type: word!) special-words	opt [#":" (type: set-word!)]
-			(to-word stack value type)				;-- special case for / and // as words
+			(to-word stack value tail value type)				;-- special case for / and // as words
 			| path: s: begin-symbol-rule (type: word!) [
 				url-rule
 				| path-rule							;-- path matched
 				| opt [#":" (type: set-word!)]
-				  (if type [to-word stack copy/part s e type])	;-- word or set-word matched
+				  (if type [to-word stack s e type])	;-- word or set-word matched
 			]
 		]
 
 		get-word-rule: [
 			#":" (type: get-word!) [
-				special-words (to-word stack value type)
+				special-words (to-word stack value tail value type)
 				| s: begin-symbol-rule [
 					path-rule (type: get-path!)
-					| (to-word stack copy/part s e type)	;-- get-word matched
+					| (to-word stack s e type)	;-- get-word matched
 				]
 			]
 		]
 
 		lit-word-rule: [
 			#"'" (type: lit-word!) [
-				special-words (to-word stack value type)
+				special-words (to-word stack value tail value type)
 				| [
 					s: begin-symbol-rule [
 						path-rule (type: lit-path!)			 ;-- path matched
-						| (to-word stack copy/part s e type) ;-- lit-word matched
+						| (to-word stack s e type) ;-- lit-word matched
 					]
 				]
 			]
@@ -677,7 +682,7 @@ system/lexer: context [
 		issue-rule: [
 			#"#" (type: issue!) s: symbol-rule (
 				if (index? s) = index? e [throw-error [type skip s -4]]
-				to-word stack copy/part s e type
+				to-word stack s e type
 			)
 		]
 		
@@ -688,7 +693,7 @@ system/lexer: context [
 				| ahead [not-word-char | ws-no-count | control-char] (type: word!) e: ;-- / case
 				| symbol-rule (type: refinement! s: next s)
 			]
-			(to-word stack copy/part s e type)
+			(to-word stack s e type)
 		]
 		
 		sticky-word-rule: [								;-- protect from sticky words typos

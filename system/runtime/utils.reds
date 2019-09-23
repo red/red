@@ -154,7 +154,7 @@ degree-to-radians: func [
 	/local
 		factor [float!]
 ][
-	val: val % 360.0
+	val: fmod val 360.0
 	if any [val > 180.0 val < -180.0] [
 		factor: either val < 0.0 [360.0][-360.0]
 		val: val + factor

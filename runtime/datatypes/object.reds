@@ -42,29 +42,12 @@ object: context [
 		]
 	]
 	
-	check-word: func [
-		value [red-value!]
-		/local
-			type [integer!]
-	][
-		type: TYPE_OF(value)
-		unless any [									;@@ replace with ANY_WORD?
-			type = TYPE_WORD
-			type = TYPE_LIT_WORD
-			type = TYPE_GET_WORD
-			type = TYPE_SET_WORD
-		][
-			fire [TO_ERROR(script invalid-type) datatype/push type]
-		]
-	]
-	
 	rs-find: func [
 		obj		 [red-object!]
 		value	 [red-value!]
 		return:	 [integer!]								;-- -1 if not found, else index
 		/local
 			word [red-word!]
-			ctx	 [node!]
 	][
 		assert any [									;@@ replace with ANY_WORD?
 			TYPE_OF(value) = TYPE_WORD
@@ -73,8 +56,7 @@ object: context [
 			TYPE_OF(value) = TYPE_SET_WORD
 		]
 		word: as red-word! value
-		ctx: obj/ctx
-		 _context/find-word TO_CTX(ctx) word/symbol yes
+		 _context/find-word GET_CTX(obj) word/symbol yes
 	]
 	
 	rs-select: func [
@@ -412,7 +394,7 @@ object: context [
 		ctx: GET_CTX(obj) 
 		s: as series! ctx/values/value
 		fun: as red-function! s/offset + index
-		if TYPE_OF(fun) <> TYPE_FUNCTION [fire [TO_ERROR(script invalid-arg) fun]]
+		if TYPE_OF(fun) <> TYPE_FUNCTION [fire [TO_ERROR(script invalid-obj-evt) fun]]
 		
 		stack/mark-func words/_on-change* fun/ctx
 		stack/push as red-value! word
@@ -442,14 +424,14 @@ object: context [
 		#if debug? = yes [if verbose > 0 [print-line "object/fire-on-deep"]]
 
 		assert TYPE_OF(owner) = TYPE_OBJECT
-		assert owner/on-set <> null
+		if null? owner/on-set [fire [TO_ERROR(script invalid-obj-evt) owner]]
 		s: as series! owner/on-set/value
 
 		int: as red-integer! s/offset + 1
 		assert TYPE_OF(int) = TYPE_INTEGER
 		index: int/value >> 16
 		count: int/value and FFFFh
-		
+		if index = -1 [exit]							;-- abort if no on-deep-change* handler		
 		if null? new [new: as red-value! none-value]
 
 		ctx: GET_CTX(owner) 
@@ -712,8 +694,8 @@ object: context [
 		base: s/tail - s/offset
 		
 		s: as series! ctx/values/value
-		node: save-self-object obj
 
+		;-- 1st pass: fill and eventually extend the context
 		while [syms < tail][
 			value: _context/add-with ctx as red-word! syms vals
 			
@@ -722,12 +704,22 @@ object: context [
 				value: s/offset + _context/find-word ctx word/symbol yes
 				copy-cell vals value
 			]
+			syms: syms + 1
+			vals: vals + 1
+		]
+		
+		;-- 2nd pass: deep copy series and rebind functions
+		node: save-self-object obj
+		value: s/offset
+		tail:  s/tail
+		
+		while [value < tail][
 			type: TYPE_OF(value)
 			case [
 				ANY_SERIES?(type) [
 					actions/copy
 						as red-series! value
-						value						;-- overwrite the value
+						value							;-- overwrite the value
 						null
 						yes
 						null
@@ -737,8 +729,7 @@ object: context [
 				]
 				true [0]
 			]
-			syms: syms + 1
-			vals: vals + 1
+			value: value + 1
 		]
 		s: as series! ctx/symbols/value					;-- refreshing pointer
 		s/tail - s/offset > base						;-- TRUE: new words added
@@ -944,16 +935,16 @@ object: context [
 		return:	[red-object!]
 		/local
 			obj	 [red-object!]
-			ctx	 [red-context!]
 	][
 		obj: as red-object! stack/push*
-		make-at obj 4									;-- arbitrary value
-		obj/class: get-new-id
-		obj/on-set: null
-		ctx: GET_CTX(obj)
-		
-		unless null? proto [extend ctx GET_CTX(proto) obj]
-		collect-couples ctx spec only?
+		either null? proto [
+			make-at obj 4									;-- arbitrary value
+			obj/class: get-new-id
+			obj/on-set: null
+		][
+			copy proto obj null yes null
+		]
+		collect-couples GET_CTX(obj) spec only?
 		obj
 	]
 	
@@ -1083,6 +1074,9 @@ object: context [
 					syms: syms + 1
 					vals: vals + 1
 				]
+			]
+			field = words/owner [
+				return as red-block! logic/box ctx/header and flag-owner <> 0
 			]
 			true [
 				--NOT_IMPLEMENTED--						;@@ raise error
@@ -1255,8 +1249,8 @@ object: context [
 				type1 = type2
 				all [word/any-word? type1 word/any-word? type2]
 				all [											;@@ replace by ANY_NUMBER?
-					any [type1 = TYPE_INTEGER type1 = TYPE_FLOAT]
-					any [type2 = TYPE_INTEGER type2 = TYPE_FLOAT]
+					any [type1 = TYPE_INTEGER type1 = TYPE_FLOAT type1 = TYPE_PERCENT]
+					any [type2 = TYPE_INTEGER type2 = TYPE_FLOAT type2 = TYPE_PERCENT]
 				]
 			][
 				res: actions/compare-value value1 value2 op
@@ -1376,31 +1370,6 @@ object: context [
 		new
 	]
 	
-	find: func [
-		obj		 [red-object!]
-		value	 [red-value!]
-		part	 [red-value!]
-		only?	 [logic!]
-		case?	 [logic!]
-		same?	 [logic!]
-		any?	 [logic!]
-		with-arg [red-string!]
-		skip	 [red-integer!]
-		last?	 [logic!]
-		reverse? [logic!]
-		tail?	 [logic!]
-		match?	 [logic!]
-		return:	 [red-value!]
-		/local
-			id	 [integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "object/find"]]
-		
-		check-word value
-		id: rs-find obj value
-		as red-value! either id = -1 [none-value][true-value]
-	]
-	
 	select: func [
 		obj		 [red-object!]
 		value	 [red-value!]
@@ -1414,10 +1383,20 @@ object: context [
 		last?	 [logic!]
 		reverse? [logic!]
 		return:	 [red-value!]
+		/local
+			type [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/select"]]
 		
-		check-word value
+		type: TYPE_OF(value)
+		unless any [									;@@ replace with ANY_WORD?
+			type = TYPE_WORD
+			type = TYPE_LIT_WORD
+			type = TYPE_GET_WORD
+			type = TYPE_SET_WORD
+		][
+			fire [TO_ERROR(script invalid-type) datatype/push type]
+		]
 		rs-select obj value
 	]
 	
@@ -1506,7 +1485,7 @@ object: context [
 			null			;change
 			null			;clear
 			:copy
-			:find
+			null			;find
 			null			;head
 			null			;head?
 			null			;index?

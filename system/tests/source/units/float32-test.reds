@@ -326,6 +326,41 @@ Red/System [
 	
 	--test-- "fc-12"
 		--assert fcptr/a - (fcfoo as float32! 5.0) = as float32! -2.0			;-- reg(path!)/reg(block!)
+		
+	--test-- "#4038"
+		RECT_F4038: alias struct! [
+			left		[float32!]
+			top			[float32!]
+			right		[float32!]
+			bottom		[float32!]
+		]
+
+		test4038: func [/local rc [RECT_F4038 value]][
+			rc/right: as float32! 0.0
+			--assert rc/right = as float32! 0.0
+			rc/right: rc/right + as float32! (1 + 2)
+			--assert rc/right = as float32! 3.0
+		]
+		test4038
+
+===end-group===
+
+===start-group=== "Float special values"
+		--test-- "fsp-1"
+			;; FIXME: float comparisons
+			;fp-1: as-float32 1.#NAN 	--assert fp-1 = as-float32 1.#NAN
+			;fp-1: as-float32 1.#INF 	--assert fp-1 = as-float32 1.#INF
+			;fp-1: as-float32 +1.#INF 	--assert fp-1 = as-float32 1.#INF
+			;fp-1: as-float32 -1.#INF 	--assert fp-1 = as-float32 -1.#INF
+
+		--test-- "fsp-2"
+			fp-2: as-float32 -0.0 	--assert fp-2 = as-float32 -0.0
+			--assert (as-float32 1.0) + (as-float32 -0.0) = as-float32 1.0
+			--assert (as-float32 -1.0) * (as-float32 0.0) = as-float32 -0.0
+
+		--test-- "fsp-3"
+			fsp-3: func [f [float32!] return: [float32!]][f]
+			--assert (as-float32 -0.0) = fsp-3 as-float32 -0.0
 
 ===end-group===
 

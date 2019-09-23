@@ -43,6 +43,7 @@ context [
 		ef-arm-abi		83886080	;; ABI version: 05000000h
 		ef-arm-hard		1024		;; Hard floating point required (400h)
 		ef-arm-soft		512			;; Soft floating point required (200h)
+		ef-arm-ep		2			;; Has entry points (02h)
 		
 		pt-load			1			;; loadable segment
 		pt-dynamic		2			;; dynamic linking information
@@ -382,7 +383,7 @@ context [
 			".text"			data (job/sections/code/2)
 			".stabstr"		data (to-elf-strtab join ["%_"] extract natives 2)
 			".shstrtab"		data (to-elf-strtab sections)
-			".ARM.attributes" data (build-arm-attributes job/ABI)
+			".ARM.attributes" data (build-arm-attributes job/ABI job/cpu-version)
 		]
 
 		layout: layout-binary structure commands
@@ -412,6 +413,7 @@ context [
 				job/target
 				job/type
 				job/PIC?
+				job/ABI
 				get-offset "phdr"
 				get-offset "shdr"
 				get-address ".text"
@@ -516,6 +518,8 @@ context [
 			get-offset ".data"
 			get-size   ".data"
 
+		if job/show-func-map? [linker/show-funcs-map job get-address ".text"]
+
 		;; Concatenate the layout data into the output binary.
 		job/buffer: copy #{}
 		foreach [name values] layout [
@@ -532,6 +536,7 @@ context [
 		target-arch [word!]
 		target-type [word!]
 		PIC?		[logic!]
+		ABI			[word! none!]
 		phdr-offset [integer!]
 		shdr-offset [integer!]
 		text-address [integer!]
@@ -577,7 +582,8 @@ context [
 			]
 			arm		[
 				eh/machine: defs/em-arm
-				eh/flags: defs/ef-arm-abi or defs/ef-arm-soft
+				eh/flags: defs/ef-arm-abi or defs/ef-arm-ep or	;; EABI v5
+					either ABI = 'hard-float [defs/ef-arm-hard][defs/ef-arm-soft]
 			]
 		]
 
@@ -845,11 +851,17 @@ context [
 
 	build-arm-attributes: func [
 		ABI			[word! none!]
-		/local section sub-section attributes attrs
+		cpu-version [tuple! decimal!]
+		/local section sub-section attributes attrs ver
 	][
 		attrs: defs/arm/attributes
+		ver: case [
+			cpu-version < 7.0 ['v5T]
+			all [7.0 <= cpu-version cpu-version < 8.0]['v7]
+			8.0 <= cpu-version ['v8]
+		]
 		attributes: rejoin [
-			attrs/cpu-arch				defs/arm/cpu-arch/v5T
+			attrs/cpu-arch				defs/arm/cpu-arch/:ver
 			attrs/arm-isa-use			#{01}			;; yes
 			attrs/abi-pcs-wchar_t		#{04}			;; 4 bytes
 			attrs/abi-fp-denormal		#{01}			;; needed

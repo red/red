@@ -134,7 +134,7 @@ build-menu: func [
 					title 0 key
 				]
 				objc_msgSend [item sel_getUid "setTarget:" target]
-				if next < tail [
+				either next < tail [
 					switch TYPE_OF(next) [
 						TYPE_BLOCK [
 							sub-menu: objc_msgSend [objc_getClass "NSMenu" sel_getUid "alloc"]
@@ -149,8 +149,14 @@ build-menu: func [
 							objc_msgSend [item sel_getUid "setAction:" action]
 							value: value + 1
 						]
-						default [0]
+						default [
+							objc_msgSend [item sel_getUid "setTag:" -1]
+							objc_msgSend [item sel_getUid "setAction:" action]
+						]
 					]
+				][
+					objc_msgSend [item sel_getUid "setTag:" -1]
+					objc_msgSend [item sel_getUid "setAction:" action]
 				]
 			]
 			TYPE_WORD [
