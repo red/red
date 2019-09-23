@@ -52,14 +52,22 @@ hash-string: func [
 	case?	[logic!]
 	return: [integer!]
 	/local s [series!] unit [integer!] p [byte-ptr!] p4 [int-ptr!] k1 [integer!]
-		h1 [integer!] tail [byte-ptr!] len [integer!] head [integer!]
+		h1 [integer!] tail [byte-ptr!] len [integer!] head [integer!] sc [red-slice!]
 ][
 	s: GET_BUFFER(str)
 	unit: GET_UNIT(s)
 	head: either TYPE_OF(str) = TYPE_SYMBOL [0][str/head]
 	p: (as byte-ptr! s/offset) + (head << (log-b unit))
-	tail: as byte-ptr! s/tail
-	len: (as-integer tail - p) >> (log-b unit) << 2
+
+	sc: as red-slice! str
+	either all [TYPE_OF(sc) = TYPE_SLICE sc/length >= 0][
+		len: sc/length
+		tail: p + (len << (log-b unit))
+		len: len << 2
+	][
+		tail: as byte-ptr! s/tail
+		len: (as-integer tail - p) >> (log-b unit) << 2
+	]
 	h1: hash-secret						;-- seed
 
 	;-- body
@@ -232,6 +240,7 @@ _hashtable: context [
 		/local sym [red-string!] s [series!]
 	][
 		switch TYPE_OF(key) [
+			TYPE_SLICE
 			TYPE_SYMBOL
 			TYPE_STRING
 			TYPE_FILE
@@ -963,7 +972,7 @@ _hashtable: context [
 				any [
 					_BUCKET_IS_DEL(flags ii sh)
 					hash?
-					TYPE_OF(k) <> key-type
+					all [key-type <> TYPE_SLICE TYPE_OF(k) <> key-type]
 					not actions/compare k key op
 				]
 			]

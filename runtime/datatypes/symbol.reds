@@ -19,12 +19,12 @@ symbol: context [
 		return: [logic!]
 	][
 		assert TYPE_OF(word) = TYPE_WORD
-		(symbol/resolve word/symbol) = symbol/resolve words/any-type!
+		(resolve word/symbol) = resolve words/any-type!
 	]
 	
 	search: func [
-		str 	  [red-string!]
-		return:	  [integer!]
+		str			 [red-slice!]
+		return:		 [integer!]
 		/local
 			s		 [series!]
 			id		 [integer!]
@@ -64,28 +64,34 @@ symbol: context [
 		copy-memory as byte-ptr! dst as byte-ptr! src len
 		node
 	]
-	
+
 	make-alt: func [
 		str 	[red-string!]
+		len		[integer!]		;-- -1: use the whole string
 		return:	[integer!]
 		/local
 			sym	[red-symbol!]
 			id	[integer!]
-			len [integer!]
-			h	[integer!]
+			val [red-slice! value]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "symbol/make-alt"]]
 
-		len: -1											;-- convert all chars
-		h: str/header
-		str/header: TYPE_SYMBOL							;-- make hashtable happy
-		id: search str
-		str/header: h
+		;-- make a slice, then search in the hashtable
+		val/header: TYPE_SLICE
+		val/head:	str/head
+		val/node:	str/node
+		val/length: len
+		id: search val
+
 		if positive? id [return id]
 
 		sym: as red-symbol! ALLOC_TAIL(symbols)
 		sym/header: TYPE_UNSET
-		sym/node:   str/node
+		either len < 0 [
+			sym/node: str/node
+		][
+			sym/node: copy-part str/node str/head len
+		]
 		sym/cache:  unicode/str-to-utf8 str :len no
 		sym/alias:  either zero? id [-1][0 - id]		;-- -1: no alias, abs(id)>0: alias id
 		sym/header: TYPE_SYMBOL							;-- implicit reset of all header flags
@@ -97,15 +103,16 @@ symbol: context [
 		s 		[c-string!]								;-- input c-string!
 		return:	[integer!]
 		/local
-			str  [red-string! value]
+			str  [red-slice! value]
 			sym  [red-symbol!]
 			id   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "symbol/make"]]
-		
+
 		str/node:	unicode/load-utf8 s system/words/length? s
-		str/header: TYPE_SYMBOL							;-- make hashtable happy
+		str/header: TYPE_SLICE
 		str/head:	0
+		str/length: -1
 		id: search str
 
 		if positive? id [return id]

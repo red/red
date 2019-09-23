@@ -704,6 +704,7 @@ string: context [
 			c2	  [integer!]
 			lax?  [logic!]
 			same? [logic!]
+			sc	  [red-slice!]
 	][
 		same?: all [
 			str1/node = str2/node
@@ -722,8 +723,14 @@ string: context [
 		head1: either TYPE_OF(str1) = TYPE_SYMBOL [0][str1/head]
 		head2: either TYPE_OF(str2) = TYPE_SYMBOL [0][str2/head]
 		size1: (as-integer s1/tail - s1/offset) >> (log-b unit1) - head1
-		size2: (as-integer s2/tail - s2/offset) >> (log-b unit2) - head2
-		end: as byte-ptr! s2/tail							;-- only one "end" is needed
+		sc: as red-slice! str2
+		either all [TYPE_OF(sc) = TYPE_SLICE sc/length >= 0][
+			size2: sc/length
+			end: (as byte-ptr! s2/offset) + (head2 + size2 << (log-b unit2))
+		][
+			size2: (as-integer s2/tail - s2/offset) >> (log-b unit2) - head2
+			end: as byte-ptr! s2/tail						;-- only one "end" is needed
+		]
 
 		either match? [
 			if zero? size2 [
