@@ -541,7 +541,6 @@ gdi-calc-arc: func [
 	angle-len		[float!]
 	return:			[arcPOINTS!]
 	/local
-		radius		[red-pair!]
 		angle		[red-integer!]
 		start-x		[float!]
 		start-y		[float!]
@@ -625,8 +624,8 @@ draw-curves: func [
 		while [ nb < 3 ][
 			nb: nb + 1
 			pt: pt + 1
-			pt/x: either rel? [ pair/x + ctx/other/path-last-point/x ][ pair/x ]
-			pt/y: either rel? [ pair/y + ctx/other/path-last-point/y ][ pair/y ]
+			pt/x: either rel? [ (as integer! pair/x) + ctx/other/path-last-point/x ][ as integer! pair/x ]
+			pt/y: either rel? [ (as integer! pair/y) + ctx/other/path-last-point/y ][ as integer! pair/y ]
 			if nb < nr-points [ pair: pair + 1 ]
 		]
 		ctx/other/path-last-point/x: pt/x
@@ -682,13 +681,13 @@ draw-short-curves: func [
 		control/x: pt/x
 		control/y: pt/y
 		pt: pt + 1
-		pt/x: either rel? [ ctx/other/path-last-point/x + pair/x ][ pair/x ]
-		pt/y: either rel? [ ctx/other/path-last-point/y + pair/y ][ pair/y ]
+		pt/x: either rel? [ ctx/other/path-last-point/x + as integer! pair/x ][ as integer! pair/x ]
+		pt/y: either rel? [ ctx/other/path-last-point/y + as integer! pair/y ][ as integer! pair/y ]
 		pt: pt + 1
 		loop nr-points - 1 [ pair: pair + 1 ]
 		if pair <= end [
-			pt/x: either rel? [ ctx/other/path-last-point/x + pair/x ][ pair/x ]
-			pt/y: either rel? [ ctx/other/path-last-point/y + pair/y ][ pair/y ]
+			pt/x: either rel? [ ctx/other/path-last-point/x + as integer! pair/x ][ as integer! pair/x ]
+			pt/y: either rel? [ ctx/other/path-last-point/y + as integer! pair/y ][ as integer! pair/y ]
 			ctx/other/last-point?: yes
 			ctx/other/path-last-point/x: pt/x
 			ctx/other/path-last-point/y: pt/y
@@ -787,11 +786,11 @@ OS-draw-shape-moveto: func [
 		pt	[tagPOINT]
 ][
 	either all [ rel? ctx/other/last-point? ][
-		ctx/other/path-last-point/x: ctx/other/path-last-point/x + coord/x
-		ctx/other/path-last-point/y: ctx/other/path-last-point/y + coord/y
+		ctx/other/path-last-point/x: ctx/other/path-last-point/x + as integer! coord/x
+		ctx/other/path-last-point/y: ctx/other/path-last-point/y + as integer! coord/y
 	][
-		ctx/other/path-last-point/x: coord/x
-		ctx/other/path-last-point/y: coord/y
+		ctx/other/path-last-point/x: as integer! coord/x
+		ctx/other/path-last-point/y: as integer! coord/y
 	]
 	ctx/other/connect-subpath: 0
 	ctx/other/last-point?: yes
@@ -826,8 +825,8 @@ OS-draw-shape-line: func [
 	]
 
 	while [all [pair <= end nb < MAX_EDGES]][
-		pt/x: pair/x
-		pt/y: pair/y
+		pt/x: as integer! pair/x
+		pt/y: as integer! pair/y
 		if rel? [
 			pt/x: pt/x + ctx/other/path-last-point/x
 			pt/y: pt/y + ctx/other/path-last-point/y
@@ -983,7 +982,6 @@ OS-draw-shape-arc: func [
 		sign		[float!]
 		rad-check	[float!]
 		angle		[red-integer!]
-		center		[red-pair!]
 		m			[integer!]
 		path		[integer!]
 		arc-dir		[integer!]
@@ -1157,8 +1155,8 @@ OS-draw-line: func [
 	nb:	   0
 
 	while [all [pair <= end nb < MAX_EDGES]][
-		pt/x: pair/x
-		pt/y: pair/y
+		pt/x: as integer! pair/x
+		pt/y: as integer! pair/y
 		nb: nb + 1
 		pt: pt + 1
 		pair: pair + 1
@@ -1343,7 +1341,10 @@ OS-draw-box: func [
 		lower:  lower - 1
 		radius/value
 	][0]
-	up-x: upper/x up-y: upper/y low-x: lower/x low-y: lower/y
+	up-x: as integer! upper/x
+	up-y: as integer! upper/y
+	low-x: as integer! lower/x
+	low-y: as integer! lower/y
 	either positive? rad [
 		rad: rad * 2
 		width: low-x - up-x
@@ -1400,13 +1401,13 @@ OS-draw-triangle: func [		;@@ TBD merge this function with OS-draw-polygon
 	point: point + 1
 
 	pair: start + 1
-	point/x: pair/x										;-- 2nd point
-	point/y: pair/y
+	point/x: as integer! pair/x							;-- 2nd point
+	point/y: as integer! pair/y
 	point: point + 1
 
 	pair: pair + 1
-	point/x: pair/x										;-- 3rd point
-	point/y: pair/y
+	point/x: as integer! pair/x							;-- 3rd point
+	point/y: as integer! pair/y
 	point: point + 1
 
 	point/x: start/x									;-- close the triangle
@@ -1447,8 +1448,8 @@ OS-draw-polygon: func [
 	nb:	   0
 
 	while [all [pair <= end nb < MAX_EDGES]][
-		point/x: pair/x
-		point/y: pair/y
+		point/x: as integer! pair/x
+		point/y: as integer! pair/y
 		nb: nb + 1
 		point: point + 1
 		pair: pair + 1
@@ -1494,8 +1495,8 @@ OS-draw-spline: func [
 	nb:	   0
 
 	while [all [pair <= end nb < MAX_EDGES]][
-		point/x: pair/x
-		point/y: pair/y
+		point/x: as integer! pair/x
+		point/y: as integer! pair/y
 		nb: nb + 1
 		point: point + 1
 		pair: pair + 1
@@ -1590,7 +1591,7 @@ OS-draw-circle: func [
 			w: as-integer f/value * 2.0
 		]
 	]
-	do-draw-ellipse ctx center/x - rad-x center/y - rad-y w h
+	do-draw-ellipse ctx (as integer! center/x) - rad-x (as integer! center/y) - rad-y w h
 ]
 
 OS-draw-ellipse: func [
@@ -1598,7 +1599,7 @@ OS-draw-ellipse: func [
 	upper	 [red-pair!]
 	diameter [red-pair!]
 ][
-	do-draw-ellipse ctx upper/x upper/y diameter/x diameter/y
+	do-draw-ellipse ctx as integer! upper/x as integer! upper/y as integer! diameter/x as integer! diameter/y
 ]
 
 OS-draw-font: func [
@@ -1663,16 +1664,16 @@ OS-draw-text: func [
 	either ctx/on-image? [
 		x: 0
 		rect: as RECT_STRUCT_FLOAT32 :x
-		rect/x: as float32! pos/x
-		rect/y: as float32! pos/y
+		rect/x: pos/x
+		rect/y: pos/y
 		rect/width: as float32! 0
 		rect/height: as float32! 0
 		GdipDrawString ctx/graphics str len ctx/gp-font rect 0 ctx/gp-font-brush
 	][
 		tm: as tagTEXTMETRIC ctx/other/gradient-pen/colors
 		GetTextMetrics ctx/dc tm
-		x: dpi-scale pos/x
-		y: dpi-scale pos/y
+		x: dpi-scale as integer! pos/x
+		y: dpi-scale as integer! pos/y
 		p: str
 		while [len > 0][
 			if all [p/1 = #"^/" p/2 = #"^@"][
@@ -1697,14 +1698,14 @@ OS-draw-arc: func [
 		angle		[red-integer!]
 		rad-x		[integer!]
 		rad-y		[integer!]
+		center-x	[integer!]
+		center-y	[integer!]
 		start-x		[integer!]
 		start-y		[integer!]
 		end-x		[integer!]
 		end-y		[integer!]
 		angle-begin	[float32!]
 		angle-len	[float32!]
-		rad-x-float	[float32!]
-		rad-y-float	[float32!]
 		rad-x-2		[float32!]
 		rad-y-2		[float32!]
 		rad-x-y		[float32!]
@@ -1718,12 +1719,14 @@ OS-draw-arc: func [
 		dc			[handle!]
 ][
 	radius: center + 1
-	rad-x: radius/x
-	rad-y: radius/y
+	rad-x: as integer! radius/x
+	rad-y: as integer! radius/y
 	angle: as red-integer! radius + 1
 	angle-begin: as float32! angle/value
 	angle: angle + 1
 	angle-len: as float32! angle/value
+	center-x: as integer! center/x
+	center-y: as integer! center/y
 
 	closed?: angle < end
 
@@ -1733,8 +1736,8 @@ OS-draw-arc: func [
 				GdipFillPieI
 					ctx/graphics
 					ctx/gp-brush
-					center/x - rad-x
-					center/y - rad-y
+					center-x - rad-x
+					center-y - rad-y
 					rad-x << 1
 					rad-y << 1
 					angle-begin
@@ -1743,8 +1746,8 @@ OS-draw-arc: func [
 			GdipDrawPieI
 				ctx/graphics
 				ctx/gp-pen
-				center/x - rad-x
-				center/y - rad-y
+				center-x - rad-x
+				center-y - rad-y
 				rad-x << 1
 				rad-y << 1
 				angle-begin
@@ -1753,8 +1756,8 @@ OS-draw-arc: func [
 			GdipDrawArcI
 				ctx/graphics
 				ctx/gp-pen
-				center/x - rad-x
-				center/y - rad-y
+				center-x - rad-x
+				center-y - rad-y
 				rad-x << 1
 				rad-y << 1
 				angle-begin
@@ -1762,12 +1765,10 @@ OS-draw-arc: func [
 		]
 	][
 		dc: ctx/dc
-		rad-x-float: as float32! rad-x
-		rad-y-float: as float32! rad-y
 
 		arc-points: gdi-calc-arc
-						as float! center/x
-						as float! center/y
+						as float! center-x
+						as float! center-y
 						as float! rad-x
 						as float! rad-y
 						as float! angle-begin
@@ -1778,10 +1779,10 @@ OS-draw-arc: func [
 		either closed? [
 			Pie
 				dc
-				center/x - rad-x
-				center/y - rad-y
-				center/x + rad-x
-				center/y + rad-y
+				center-x - rad-x
+				center-y - rad-y
+				center-x + rad-x
+				center-y + rad-y
 				as integer! arc-points/start-x
 				as integer! arc-points/start-y
 				as integer! arc-points/end-x
@@ -1789,10 +1790,10 @@ OS-draw-arc: func [
 		][
 			Arc
 				dc
-				center/x - rad-x
-				center/y - rad-y
-				center/x + rad-x
-				center/y + rad-y
+				center-x - rad-x
+				center-y - rad-y
+				center-x + rad-x
+				center-y + rad-y
 				as integer! arc-points/start-x
 				as integer! arc-points/start-y
 				as integer! arc-points/end-x
@@ -1820,23 +1821,23 @@ OS-draw-curve: func [
 	count: (as-integer end - pair) >> 4 + 1
 
 	either count = 3 [			;-- p0, p1, p2 -> p0, (p0 + 2p1) / 3, (2p1 + p2) / 3, p2
-		point/x: pair/x
-		point/y: pair/y
+		point/x: as integer! pair/x
+		point/y: as integer! pair/y
 		point: point + 1
 		p2: pair + 1
 		p3: pair + 2
-		point/x: p2/x << 1 + pair/x / 3
-		point/y: p2/y << 1 + pair/y / 3
+		point/x: (as integer! p2/x) << 1 + (as integer! pair/x) / 3
+		point/y: (as integer! p2/y << 1 + (as integer! pair/y / 3
 		point: point + 1
-		point/x: p2/x << 1 + p3/x / 3
-		point/y: p2/y << 1 + p3/y / 3
+		point/x: (as integer! p2/x) << 1 + (as integer! p3/x) / 3
+		point/y: (as integer! p2/y) << 1 + (as integer! p3/y) / 3
 		point: point + 1
-		point/x: end/x
-		point/y: end/y
+		point/x: as integer! end/x
+		point/y: as integer! end/y
 	][
 		until [
-			point/x: pair/x
-			point/y: pair/y
+			point/x: as integer! pair/x
+			point/y: as integer! pair/y
 			nb: nb + 1
 			point: point + 1
 			pair: pair + 1
@@ -1931,26 +1932,26 @@ OS-draw-image: func [
 		h: IMAGE_HEIGHT(image/size)
 	][
 		crop2: crop1 + 1
-		src-x: crop1/x
-		src-y: crop1/y
-		w: crop2/x
-		h: crop2/y
+		src-x: as integer! crop1/x
+		src-y: as integer! crop1/y
+		w: as integer! crop2/x
+		h: as integer! crop2/y
 	]
-	either null? start [x: 0 y: 0][x: start/x y: start/y]
+	either null? start [x: 0 y: 0][x: as integer! start/x y: as integer! start/y]
 	case [
 		start = end [
 			width:  w
 			height: h
 		]
 		start + 1 = end [					;-- two control points
-			width: end/x - x
-			height: end/y - y
+			width: (as integer! end/x) - x
+			height: (as integer! end/y) - y
 		]
 		start + 2 = end [					;-- three control points
 			pts: ctx/other/edges
 			loop 3 [
-				pts/x: start/x
-				pts/y: start/y
+				pts/x: as integer! start/x
+				pts/y: as integer! start/y
 				pts: pts + 1
 				start: start + 1
 			]
@@ -2162,15 +2163,15 @@ OS-draw-brush-bitmap: func [
 		x: 0
 		y: 0
 	][
-		x: crop-1/x
-		y: crop-1/y
+		x: as integer! crop-1/x
+		y: as integer! crop-1/y
 	]
 	either crop-2 = null [
 		width:  width - x
 		height: height - y
 	][
-		width:  either ( x + crop-2/x ) > width [ width - x ][ crop-2/x ]
-		height: either ( y + crop-2/y ) > height [ height - y ][ crop-2/y ]
+		width:  either ( x + as integer! crop-2/x ) > width [ width - x ][ as integer! crop-2/x ]
+		height: either ( y + as integer! crop-2/y ) > height [ height - y ][ as integer! crop-2/y ]
 	]
 	wrap: WRAP_MODE_TILE
 	unless mode = null [
@@ -2652,22 +2653,22 @@ _check-gradient-box: func [
 			gradient/type = GRADIENT_LINEAR
 			gradient/type = GRADIENT_DIAMOND
 		][
-			_upper/x: upper/x
-			_lower/x: lower/x
+			_upper/x: as integer! upper/x
+			_lower/x: as integer! lower/x
 			either gradient/type = GRADIENT_LINEAR [
 				_upper/y: 0
 				_lower/y: 0
 			][
-				_upper/y: upper/y
-				_lower/y: lower/y
+				_upper/y: as integer! upper/y
+				_lower/y: as integer! lower/y
 			]
 			_other/x: INVALID_RADIUS
 		]
 		gradient/type = GRADIENT_RADIAL [
-			dx: ( lower/x - upper/x + 1 ) / 2
-			dy: ( lower/y - upper/y + 1 ) / 2
-			_upper/x: upper/x + dx
-			_upper/y: upper/y + dy
+			dx: ( (as integer! lower/x) - (as integer! upper/x) + 1 ) / 2
+			dy: ( (as integer! lower/y) - (as integer! upper/y) + 1 ) / 2
+			_upper/x: (as integer! upper/x) + dx
+			_upper/y: (as integer! upper/y) + dy
 			_lower/x: _upper/x
 			_lower/y: _upper/y
 			_other/x: as-integer sqrt as-float (dx * dx + ( dy * dy ) )
@@ -2947,8 +2948,8 @@ OS-draw-grad-pen-old: func [
 ][
 	_colors: ctx/other/gradient-pen/colors
 	_colors-pos: ctx/other/gradient-pen/colors-pos
-	x: offset/x
-	y: offset/y
+	x: as integer! offset/x
+	y: as integer! offset/y
 
 	int: as red-integer! offset + 1
 	start: int/value
@@ -3045,7 +3046,7 @@ OS-draw-grad-pen-old: func [
 		GdipCreatePathGradientFromPath n :brush
 		GdipDeletePath n
 		GdipSetPathGradientCenterColor brush color/value
-		GdipSetPathGradientCenterPointI brush as tagPOINT :offset/x
+		GdipSetPathGradientCenterPointI brush as tagPOINT :x
 		reverse-int-array color count
 		n: count - 1
 		start: 2
@@ -3201,10 +3202,10 @@ OS-draw-grad-pen: func [
 				gradient/positions?: true
 				pt: gradient/data
 				point: as red-pair! positions
-				pt/x: point/x pt/y: point/y
+				pt/x: as integer! point/x pt/y: as integer! point/y
 				pt: pt + 1
 				point: as red-pair! (positions + 1)
-				pt/x: point/x pt/y: point/y
+				pt/x: as integer! point/x pt/y: as integer! point/y
 				gradient-linear ctx gradient gradient/data gradient/data + 1
 			]
 		]
@@ -3214,7 +3215,7 @@ OS-draw-grad-pen: func [
 				gradient/positions?: true
 				pt: gradient/data
 				point: as red-pair! positions
-				pt/x: point/x pt/y: point/y
+				pt/x: as integer! point/x pt/y: as integer! point/y
 				either mode = radial [
 					value: positions + 1
 					radius: as-integer get-float as red-integer! value
@@ -3222,18 +3223,18 @@ OS-draw-grad-pen: func [
 					if focal? [
 						point: as red-pair! ( positions + 2 )
 					]
-					pt/x: point/x pt/y: point/y
+					pt/x: as integer! point/x pt/y: as integer! point/y
 					pt: pt + 1
 					pt/x: radius
 				][
 					pt: pt + 1
 					point: as red-pair! (positions + 1)
-					pt/x: point/x pt/y: point/y
+					pt/x: as integer! point/x pt/y: as integer! point/y
 					pt: pt + 1
 					either focal? [
 						point: as red-pair! ( positions + 2 )
-						pt/x: point/x
-						pt/y: point/y
+						pt/x: as integer! point/x
+						pt/y: as integer! point/y
 					][
 						pt/x: INVALID_RADIUS
 					]
@@ -3267,10 +3268,10 @@ OS-set-clip: func [
 		either rect? [
 			GdipSetClipRectI
 				ctx/graphics
-				u/x
-				u/y
-				l/x - u/x
-				l/y - u/y
+				as integer! u/x
+				as integer! u/y
+				as integer! l/x - u/x
+				as integer! l/y - u/y
 				clip-mode
 		][
 			GdipSetClipPath
@@ -3283,7 +3284,7 @@ OS-set-clip: func [
 		dc: ctx/dc
 		if rect? [
 			BeginPath dc
-			Rectangle dc u/x u/y l/x l/y
+			Rectangle dc as integer! u/x as integer! u/y as integer! l/x as integer! l/y
 		]
 		EndPath dc  ;-- a path has already been started
 		SelectClipPath dc clip-mode
@@ -3315,11 +3316,11 @@ OS-matrix-rotate: func [
 		;-- rotate figure
 		g: ctx/graphics
 		if angle <> as red-integer! center [
-			GdipTranslateWorldTransform g as float32! center/x as float32! center/y GDIPLUS_MATRIX_PREPEND
+			GdipTranslateWorldTransform g center/x center/y GDIPLUS_MATRIX_PREPEND
 		]
 		GdipRotateWorldTransform g get-float32 angle GDIPLUS_MATRIX_PREPEND
 		if angle <> as red-integer! center [
-			GdipTranslateWorldTransform g as float32! 0 - center/x as float32! 0 - center/y GDIPLUS_MATRIX_PREPEND
+			GdipTranslateWorldTransform g (as float32! 0) - center/x (as float32! 0) - center/y GDIPLUS_MATRIX_PREPEND
 		]
 	]
 ]
@@ -3445,11 +3446,11 @@ OS-matrix-transform: func [
 		m: 0
 		GdipCreateMatrix :m
 
-		if center? [GdipTranslateMatrix m as float32! center/x as float32! center/y GDIPLUS_MATRIX_PREPEND]
-		GdipTranslateMatrix m as float32! translate/x as float32! translate/y GDIPLUS_MATRIX_PREPEND
+		if center? [GdipTranslateMatrix m center/x center/y GDIPLUS_MATRIX_PREPEND]
+		GdipTranslateMatrix m translate/x translate/y GDIPLUS_MATRIX_PREPEND
 		GdipScaleMatrix m get-float32 scale get-float32 scale + 1 GDIPLUS_MATRIX_PREPEND
 		GdipRotateMatrix m get-float32 rotate GDIPLUS_MATRIX_PREPEND
-		if center? [GdipTranslateMatrix m as float32! 0 - center/x as float32! 0 - center/y GDIPLUS_MATRIX_PREPEND]
+		if center? [GdipTranslateMatrix m (as float32! 0) - center/x (as float32! 0) - center/y GDIPLUS_MATRIX_PREPEND]
 
 		GdipMultiplyWorldTransform ctx/graphics m ctx/other/matrix-order
 		GdipDeleteMatrix m

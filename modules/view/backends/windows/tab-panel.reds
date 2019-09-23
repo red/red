@@ -88,7 +88,7 @@ adjust-parent: func [									;-- prevent tabcontrol from having children
 		SetWindowPos
 			hWnd
 			null
-			dpi-scale pos/x + x dpi-scale pos/y + y
+			dpi-scale (as integer! pos/x) + x dpi-scale (as integer! pos/y) + y
 			0 0
 			SWP_NOSIZE or SWP_NOZORDER
 	]
@@ -221,7 +221,7 @@ update-tab-contents: func [
 							change-size hWnd values panel
 						][
 							pos: as red-pair! values + FACE_OBJ_OFFSET
-							adjust-parent hWnd parent pos/x pos/y
+							adjust-parent hWnd parent as integer! pos/x as integer! pos/y
 						]
 					]
 					obj: obj + 1

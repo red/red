@@ -51,8 +51,8 @@ init-button: func [
 				size: as red-pair! img
 				num: 1
 			]
-			width: size/x
-			height: size/y
+			width: as integer! size/x
+			height: as integer! size/y
 		]
 		default [
 			imgs: null

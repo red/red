@@ -312,8 +312,8 @@ get-text-size: func [
 	size/height: as integer! ceil as float! bbox/height
 
 	if pair <> null [
-		pair/x: as integer! ceil as float! bbox/width  * 100 / dpi-factor
-		pair/y: as integer! ceil as float! bbox/height * 100 / dpi-factor
+		pair/x: as float32! ceil as float! bbox/width  * 100 / dpi-factor
+		pair/y: as float32! ceil as float! bbox/height * 100 / dpi-factor
 	]
 
 	size
@@ -508,7 +508,7 @@ update-caret: func [
 ][
 	size: as red-pair! values + FACE_OBJ_SIZE
 	owner: as handle! GetWindowLong hWnd wc-offset - 24
-	CreateCaret owner null size/x size/y
+	CreateCaret owner null as integer! size/x as integer! size/y
 	change-offset hWnd as red-pair! values + FACE_OBJ_OFFSET caret
 ]
 
@@ -528,8 +528,8 @@ update-selection: func [
 		sel/header: TYPE_NONE
 	][
 		sel/header: TYPE_PAIR
-		sel/x: begin + 1								;-- one-based positionq
-		sel/y: end										;-- points past the last selected, so no need + 1
+		sel/x: as float32! begin + 1								;-- one-based positionq
+		sel/y: as float32! end										;-- points past the last selected, so no need + 1
 	]
 ]
 
@@ -1124,8 +1124,8 @@ get-slider-pos: func [
 		percent/rs-make-at as red-value! pos 0.0
 	]
 	amount: as-integer SendMessage msg/hWnd TBM_GETPOS 0 0
-	divisor: size/x
-	if size/y > size/x [divisor: size/y amount: divisor - amount]
+	divisor: as integer! size/x
+	if size/y > size/x [divisor: as integer! size/y amount: divisor - amount]
 	pos/value: (as-float amount) / as-float divisor
 ]
 
@@ -1135,7 +1135,7 @@ get-screen-size: func [
 ][
 	screen-size-x: GetDeviceCaps hScreen HORZRES
 	screen-size-y: GetDeviceCaps hScreen VERTRES
-	pair/push screen-size-x * 100 / dpi-factor screen-size-y * 100 / dpi-factor
+	pair/push-int screen-size-x * 100 / dpi-factor screen-size-y * 100 / dpi-factor
 ]
 
 dwm-composition-enabled?: func [
@@ -1194,8 +1194,8 @@ evolve-base-face: func [
 				WS_POPUP
 				WIN32_LOWORD(pos)
 				WIN32_HIWORD(pos)
-				size/x
-				size/y
+				as integer! size/x
+				as integer! size/y
 				hWnd
 				null
 				hInstance
@@ -1458,12 +1458,12 @@ OS-make-view: func [
 
 			if bits and FACET_FLAGS_NO_TITLE  <> 0 [flags: WS_POPUP or WS_BORDER]
 			if bits and FACET_FLAGS_NO_BORDER <> 0 [flags: WS_POPUP]
-			if size/x < 0 [size/x: 200]
-			if size/y < 0 [size/y: 200]
+			if size/x < as float32! 0 [size/x: as float32! 200]
+			if size/y < as float32! 0 [size/y: as float32! 200]
 			rc/left: 0
 			rc/top: 0
-			rc/right:  dpi-scale size/x
-			rc/bottom: dpi-scale size/y
+			rc/right:  dpi-scale as integer! size/x
+			rc/bottom: dpi-scale as integer! size/y
 			AdjustWindowRectEx rc flags menu-bar? menu window ws-flags
 			rc/right: rc/right - rc/left
 			rc/bottom: rc/bottom - rc/top
@@ -1503,11 +1503,11 @@ OS-make-view: func [
 		parent: as-integer evolve-base-face as handle! parent
 	]
 
-	off-x:	dpi-scale offset/x
-	off-y:	dpi-scale offset/y
+	off-x:	dpi-scale as integer! offset/x
+	off-y:	dpi-scale as integer! offset/y
 	if sym <> window [
-		rc/right:	dpi-scale size/x
-		rc/bottom:	dpi-scale size/y
+		rc/right:	dpi-scale as integer! size/x
+		rc/bottom:	dpi-scale as integer! size/y
 	]
 
 	handle: CreateWindowEx
@@ -1561,15 +1561,15 @@ OS-make-view: func [
 			SetWindowLong handle wc-offset - 4 as-integer hWnd
 		]
 		panel? [
-			adjust-parent handle as handle! parent offset/x offset/y
+			adjust-parent handle as handle! parent as integer! offset/x as integer! offset/y
 			SetWindowLong handle wc-offset - 24 0
 		]
 		sym = slider [
 			vertical?: size/y > size/x
-			value: either vertical? [size/y][size/x]
+			value: either vertical? [as integer! size/y][as integer! size/x]
 			SendMessage handle TBM_SETRANGE 1 value << 16
 			value: get-position-value as red-float! data value
-			if vertical? [value: size/y - value]
+			if vertical? [value: (as integer! size/y) - value]
 			SendMessage handle TBM_SETPOS 1 value
 		]
 		sym = scroller [
@@ -1621,8 +1621,8 @@ OS-make-view: func [
 					if null? main-hWnd [main-hWnd: handle]
 				]
 			]
-			offset/x: off-x - rc/left * 100 / dpi-factor
-			offset/y: off-y - rc/top * 100 / dpi-factor
+			offset/x: as float32! off-x - rc/left * 100 / dpi-factor
+			offset/y: as float32! off-y - rc/top * 100 / dpi-factor
 			SetWindowLong
 				handle
 				wc-offset - 8
@@ -1669,8 +1669,8 @@ change-size: func [
 		process-layered-region hWnd size pos as red-block! vals + FACE_OBJ_PANE pos null layer?
 	]
 
-	sz-x: dpi-scale size/x
-	sz-y: dpi-scale size/y
+	sz-x: dpi-scale as integer! size/x
+	sz-y: dpi-scale as integer! size/y
 	SetWindowPos 
 		hWnd
 		as handle! 0
@@ -1743,8 +1743,8 @@ change-offset: func [
 	pt: as red-pair! :header
 	layer?: (GetWindowLong hWnd GWL_EXSTYLE) and WS_EX_LAYERED > 0
 
-	pos-x: dpi-scale pos/x
-	pos-y: dpi-scale pos/y
+	pos-x: dpi-scale as integer! pos/x
+	pos-y: dpi-scale as integer! pos/y
 	if all [					;-- caret widget
 		layer?
 		type = base
@@ -1763,14 +1763,14 @@ change-offset: func [
 			owner: as handle! GetWindowLong hWnd wc-offset - 16
 			child: as handle! GetWindowLong hWnd wc-offset - 20
 
-			pt/x: pos-x
-			pt/y: pos-y
+			pt/x: as float32! pos-x
+			pt/y: as float32! pos-y
 			ClientToScreen owner (as tagPOINT pt) + 1
 			offset: as tagPOINT pt
-			offset/x: pt/x - WIN32_LOWORD(param)
-			offset/y: pt/y - WIN32_HIWORD(param)
-			pos-x: pt/x
-			pos-y: pt/y
+			offset/x: (as integer! pt/x) - WIN32_LOWORD(param)
+			offset/y: (as integer! pt/y) - WIN32_HIWORD(param)
+			pos-x: as integer! pt/x
+			pos-y: as integer! pt/y
 			update-layered-window hWnd null offset null -1
 
 			if child <> null [
@@ -1823,8 +1823,8 @@ select-text: func [
 ][
 	sel: as red-pair! values + FACE_OBJ_SELECTED
 	either TYPE_OF(sel) = TYPE_PAIR [
-		begin: sel/x - 1
-		end: sel/y										;-- should point past the last selected char
+		begin: (as integer! sel/x) - 1
+		end: as integer! sel/y										;-- should point past the last selected char
 	][
 		begin: 0
 		end:   0
@@ -2011,7 +2011,7 @@ change-data: func [
 			f: as red-float! data
 			size: as red-pair! values + FACE_OBJ_SIZE
 			flt: f/value
-			range: either size/y > size/x [flt: 1.0 - flt size/y][size/x]
+			range: either size/y > size/x [flt: 1.0 - flt as integer! size/y][as integer! size/x]
 			flt: flt * as-float range
 			SendMessage hWnd TBM_SETPOS 1 as-integer flt
 		]
@@ -2167,8 +2167,8 @@ change-parent: func [
 			x: WIN32_LOWORD(pos)
 			y: WIN32_HIWORD(pos)
 			offset: as red-pair! values + FACE_OBJ_OFFSET
-			pt/x: dpi-scale offset/x
-			pt/y: dpi-scale offset/y
+			pt/x: dpi-scale as integer! offset/x
+			pt/y: dpi-scale as integer! offset/y
 			position-base hWnd handle :pt
 			SetWindowPos hWnd null pt/x pt/y 0 0 SWP_NOSIZE or SWP_NOZORDER or SWP_NOACTIVATE
 			pt/x: pt/x - x
@@ -2478,8 +2478,8 @@ OS-to-image: func [
 	screen?: screen = sym
 	either screen? [
 		size: as red-pair! get-node-facet face/ctx FACE_OBJ_SIZE
-		width: dpi-scale size/x
-		height: dpi-scale size/y
+		width: dpi-scale as integer! size/x
+		height: dpi-scale as integer! size/y
 		rc/left: 0
 		rc/top: 0
 		dc: hScreen

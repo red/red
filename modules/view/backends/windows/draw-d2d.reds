@@ -70,7 +70,8 @@ draw-begin-d2d: func [
 
 	text: as red-string! values + FACE_OBJ_TEXT
 	if TYPE_OF(text) = TYPE_STRING [
-		pos/x: 0 pos/y: 0
+		pos/x: as float32! 0.0
+		pos/y: as float32! 0.0
 		OS-draw-text-d2d ctx pos as red-string! get-face-obj hWnd yes
 	]
 ]
@@ -161,8 +162,8 @@ OS-draw-line-d2d: func [
 	while [pt1: pt0 + 1 pt1 <= end][
 		rt/DrawLine
 			this
-			as float32! pt0/x as float32! pt0/y
-			as float32! pt1/x as float32! pt1/y
+			pt0/x pt0/y
+			pt1/x pt1/y
 			ctx/pen
 			ctx/pen-width
 			0
@@ -201,8 +202,8 @@ OS-draw-circle-d2d: func [
 	this: as this! ctx/dc
 	rt: as ID2D1HwndRenderTarget this/vtbl
 
-	ellipse/x: as float32! center/x
-	ellipse/y: as float32! center/y
+	ellipse/x: center/x
+	ellipse/y: center/y
 	ellipse/radiusX: get-float32 radius
 	ellipse/radiusY: ellipse/radiusX
 	if ctx/brush? [
@@ -225,10 +226,10 @@ OS-draw-box-d2d: func [
 	this: as this! ctx/dc
 	rt: as ID2D1HwndRenderTarget this/vtbl
 
-	rc/right: as float32! lower/x
-	rc/bottom: as float32! lower/y
-	rc/left: as float32! upper/x
-	rc/top: as float32! upper/y
+	rc/right: lower/x
+	rc/bottom: lower/y
+	rc/left: upper/x
+	rc/top: upper/y
 	if ctx/brush? [
 		rt/FillRectangle this rc ctx/brush 
 	]
@@ -258,5 +259,5 @@ OS-draw-text-d2d: func [
 		create-text-layout text fmt 0 0
 	]
 	txt-box-draw-background ctx/brushes pos layout
-	rt/DrawTextLayout this as float32! pos/x as float32! pos/y layout ctx/pen 0
+	rt/DrawTextLayout this pos/x pos/y layout ctx/pen 0
 ]

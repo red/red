@@ -39,22 +39,22 @@ init-panel: func [
 			x: calc-rect/left - win-rect/left
 			y: calc-rect/top  - win-rect/top
 			either dpi-factor <> 100 [
-				pair/x: x * 100 / dpi-factor
-				pair/y: y * 100 / dpi-factor
+				pair/x: as float32! x * 100 / dpi-factor
+				pair/y: as float32! y * 100 / dpi-factor
 			][
-				pair/x: x - 3
-				pair/y: y - 1
+				pair/x: as float32! x - 3
+				pair/y: as float32! y - 1
 			]
 
 			pair: as red-pair! values + FACE_OBJ_SIZE
 			x: calc-rect/right  - calc-rect/left
 			y: calc-rect/bottom - calc-rect/top
 			either dpi-factor <> 100 [
-				pair/x: x * 100 / dpi-factor
-				pair/y: y * 100 / dpi-factor
+				pair/x: as float32! x * 100 / dpi-factor
+				pair/y: as float32! y * 100 / dpi-factor
 			][
-				pair/x: x + 4
-				pair/y: y + 3
+				pair/x: as float32! x + 4
+				pair/y: as float32! y + 3
 			]
 		]
 	]

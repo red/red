@@ -115,8 +115,8 @@ get-event-offset: func [
 				y: 0 - (y or FFFF0000h)
 			]
 			pt: screen-to-client msg/hWnd x y
-			offset/x: pt/x * 100 / dpi-factor
-			offset/y: pt/y * 100 / dpi-factor
+			offset/x: as float32! pt/x * 100 / dpi-factor
+			offset/y: as float32! pt/y * 100 / dpi-factor
 			as red-value! offset
 		]
 		any [
@@ -139,11 +139,11 @@ get-event-offset: func [
 				y: pt/y
 				pt/x: 0 pt/y: 0
 				ClientToScreen msg/hWnd pt
-				offset/x: x - pt/x * 100 / dpi-factor
-				offset/y: y - pt/y * 100 / dpi-factor
+				offset/x: as float32! x - pt/x * 100 / dpi-factor
+				offset/y: as float32! y - pt/y * 100 / dpi-factor
 			][
-				offset/x: WIN32_LOWORD(value) * 100 / dpi-factor
-				offset/y: WIN32_HIWORD(value) * 100 / dpi-factor
+				offset/x: as float32! WIN32_LOWORD(value) * 100 / dpi-factor
+				offset/y: as float32! WIN32_HIWORD(value) * 100 / dpi-factor
 			]
 			as red-value! offset
 		]
@@ -157,8 +157,8 @@ get-event-offset: func [
 
 			value: GetMessagePos
 			pt: screen-to-client msg/hWnd WIN32_LOWORD(value) WIN32_HIWORD(value)
-			offset/x: pt/x * 100 / dpi-factor
-			offset/y: pt/y * 100 / dpi-factor
+			offset/x: as float32! pt/x * 100 / dpi-factor
+			offset/y: as float32! pt/y * 100 / dpi-factor
 			as red-value! offset
 		]
 		any [
@@ -174,15 +174,15 @@ get-event-offset: func [
 			offset/header: TYPE_PAIR
 			value: gi/ptsLocation						;-- coordinates of center point		
 
-			offset/x: WIN32_LOWORD(value) * 100 / dpi-factor
-			offset/y: WIN32_HIWORD(value) * 100 / dpi-factor
+			offset/x: as float32! WIN32_LOWORD(value) * 100 / dpi-factor
+			offset/y: as float32! WIN32_HIWORD(value) * 100 / dpi-factor
 			as red-value! offset
 		]
 		evt/type = EVT_MENU [
 			offset: as red-pair! stack/push*
 			offset/header: TYPE_PAIR
-			offset/x: menu-x * 100 / dpi-factor
-			offset/y: menu-y * 100 / dpi-factor
+			offset/x: as float32! menu-x * 100 / dpi-factor
+			offset/y: as float32! menu-y * 100 / dpi-factor
 			as red-value! offset
 		]
 		true [as red-value! none-value]
@@ -935,13 +935,13 @@ set-window-info: func [
 		values: get-face-values hWnd
 		pair: as red-pair! values + FACE_OBJ_SIZE
 		info: as tagMINMAXINFO lParam
-		cx: pair/x + cx
-		cy: pair/y + cy
+		cx: (as integer! pair/x) + cx
+		cy: (as integer! pair/y) + cy
 
-		if pair/x > info/ptMaxSize.x [info/ptMaxSize.x: cx ret?: yes]
-		if pair/y > info/ptMaxSize.y [info/ptMaxSize.y: cy ret?: yes]
-		if pair/x > info/ptMaxTrackSize.x [info/ptMaxTrackSize.x: cx ret?: yes]
-		if pair/y > info/ptMaxTrackSize.y [info/ptMaxTrackSize.y: cy ret?: yes]
+		if (as integer! pair/x) > info/ptMaxSize.x [info/ptMaxSize.x: cx ret?: yes]
+		if (as integer! pair/y) > info/ptMaxSize.y [info/ptMaxSize.y: cy ret?: yes]
+		if (as integer! pair/x) > info/ptMaxTrackSize.x [info/ptMaxTrackSize.x: cx ret?: yes]
+		if (as integer! pair/y) > info/ptMaxTrackSize.y [info/ptMaxTrackSize.y: cy ret?: yes]
 	]
 	ret?
 ]
@@ -995,8 +995,8 @@ update-window: func [
 				hdwp
 				hWnd
 				null
-				dpi-scale pos/x dpi-scale pos/y
-				dpi-scale sz/x  dpi-scale sz/y
+				dpi-scale as integer! pos/x dpi-scale as integer! pos/y
+				dpi-scale as integer! sz/x  dpi-scale as integer! sz/y
 				SWP_NOZORDER or SWP_NOACTIVATE
 
 			font: as red-object! values + FACE_OBJ_FONT
@@ -1131,8 +1131,8 @@ WndProc: func [
 
 					offset: as red-pair! values + type
 					offset/header: TYPE_PAIR
-					offset/x: WIN32_LOWORD(lParam) + x * 100 / dpi-factor
-					offset/y: WIN32_HIWORD(lParam) + y * 100 / dpi-factor
+					offset/x: as float32! WIN32_LOWORD(lParam) + x * 100 / dpi-factor
+					offset/y: as float32! WIN32_HIWORD(lParam) + y * 100 / dpi-factor
 
 					values: values + FACE_OBJ_STATE
 					if all [

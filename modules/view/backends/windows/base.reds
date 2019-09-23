@@ -36,8 +36,8 @@ init-base-face: func [
 	SetWindowLong handle wc-offset - 16 parent
 	SetWindowLong handle wc-offset - 20 0
 	SetWindowLong handle wc-offset - 24 0
-	pt/x: dpi-scale offset/x
-	pt/y: dpi-scale offset/y
+	pt/x: dpi-scale as integer! offset/x
+	pt/y: dpi-scale as integer! offset/y
 	either alpha? [
 		unless win8+? [
 			position-base handle as handle! parent :pt
@@ -229,21 +229,21 @@ process-layered-region: func [
 		face  [red-object!]
 		tail  [red-object!]
 ][
-	x: dpi-scale origin/x
-	y: dpi-scale origin/y
+	x: dpi-scale as integer! origin/x
+	y: dpi-scale as integer! origin/y
 	either null? rect [
 		rect: :rc
 		owner: as handle! GetWindowLong hWnd wc-offset - 16
 		assert owner <> null
 		GetClientRect owner rect
 	][
-		x: x + dpi-scale pos/x
-		y: y + dpi-scale pos/y
+		x: x + dpi-scale as integer! pos/x
+		y: y + dpi-scale as integer! pos/y
 	]
 
 	sz: as tagSIZE :rc
-	sz/width: dpi-scale size/x
-	sz/height: dpi-scale size/y
+	sz/width: dpi-scale as integer! size/x
+	sz/height: dpi-scale as integer! size/y
 	if layer? [
 		w: x + sz/width - rect/right
 		w: either positive? w [sz/width - w][sz/width]
@@ -371,8 +371,8 @@ update-layered-window: func [
 				border: winpos/cx - rect/right >> 1
 				size: as red-pair! values + FACE_OBJ_SIZE
 				sz: as tagSIZE :rect
-				sz/width: dpi-scale size/x
-				sz/height: dpi-scale size/y
+				sz/width: dpi-scale as integer! size/x
+				sz/height: dpi-scale as integer! size/y
 				width: sz/width
 				height: sz/height
 				if x + sz/width + border > (winpos/x + winpos/cx) [
@@ -763,8 +763,8 @@ update-base: func [
 	sz:		as red-pair!   values + FACE_OBJ_SIZE
 	graphic: 0
 
-	width: dpi-scale sz/x
-	height: dpi-scale sz/y
+	width: dpi-scale as integer! sz/x
+	height: dpi-scale as integer! sz/y
 	hBackDC: CreateCompatibleDC hScreen
 	hBitmap: CreateCompatibleBitmap hScreen width height
 	SelectObject hBackDC hBitmap
@@ -845,8 +845,8 @@ imprint-layers-deep: func [
 					cofs: as red-pair! cvalues + FACE_OBJ_OFFSET
 					imprint-layers-deep
 						dc chwnd
-						bx + dpi-scale cofs/x
-						by + dpi-scale cofs/y
+						bx + dpi-scale as integer! cofs/x
+						by + dpi-scale as integer! cofs/y
 						cvalues
 				]
 				child: child + 1
