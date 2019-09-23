@@ -1662,10 +1662,15 @@ natives: context [
 	][
 		#typecheck [tangent radians]
 		f: degree-to-radians* radians TYPE_TANGENT
-		either (float/abs f/value) = (PI / 2.0) [
-			fire [TO_ERROR(math overflow)]
+		
+		either f/value = (PI / 2.0) [					;-- see #3441 on `tangent 90` handling
+			f/value: 1.0 / 0.0
 		][
-			f/value: tan f/value
+			either f/value = (PI / -2.0) [
+				f/value: -1.0 / 0.0
+			][
+				f/value: tan f/value
+			]
 		]
 		f
 	]
@@ -2897,14 +2902,10 @@ natives: context [
 		f: argument-as-float
 		d: f/value
 
-		either all [type <> TYPE_TANGENT any [d < -1.0 d > 1.0]] [
-			fire [TO_ERROR(math overflow)]
-		][
-			f/value: switch type [
-				TYPE_SINE	 [asin d]
-				TYPE_COSINE  [acos d]
-				TYPE_TANGENT [atan d]
-			]
+		f/value: switch type [
+			TYPE_SINE	 [asin d]
+			TYPE_COSINE  [acos d]
+			TYPE_TANGENT [atan d]
 		]
 
 		if radians < 0 [f/value: f/value * 180.0 / PI]			;-- to degrees

@@ -36,7 +36,15 @@ Red [
 		--assert 0.0 = cosine 90
 
 	--test-- "float-cosine-3"
-		;--assert 0.0 = cosine/radians pi / 2
+		--assert 0.0 = cosine/radians pi / 2
+
+	--test-- "float-cosine-4"
+		--assert nan? cosine  1.#inf
+		--assert nan? cosine -1.#inf
+
+	--test-- "float-cosine-5"
+		--assert nan? cosine 1.#nan
+
 
 	--test-- "float-sine-1"
 		--assertf~= 0.0 sine/radians pi 1E-13
@@ -44,11 +52,35 @@ Red [
 	--test-- "float-sine-2"
 		--assert 1 = sine 90
 
+	--test-- "float-sine-3"
+		--assert nan? sine  1.#inf
+		--assert nan? sine -1.#inf
+
+	--test-- "float-sine-4"
+		--assert nan? sine 1.#nan
+
+
 	--test-- "float-tangent-1"
 		--assert 0.0 = tangent/radians 0
 
 	--test-- "float-tangent-2"
 		--assert -1 = tangent 135
+
+	--test-- "float-tangent-3"
+		--assert nan? tangent  1.#inf
+		--assert nan? tangent -1.#inf
+
+	--test-- "float-tangent-4"
+		--assert nan? tangent 1.#nan
+
+	--test-- "float-tangent-5"							;-- see #3441
+		--assert  1.#inf = tangent  90
+		--assert -1.#inf = tangent -90
+		--assert  1e10 < tangent 90.0 - 1e-10
+		--assert -1e10 > tangent 90.0 + 1e-10
+		--assert -1e10 > tangent -90.0 + 1e-10
+		--assert  1e10 < tangent -90.0 - 1e-10
+
 
 	--test-- "float-arcsine-1"
 		--assertf~= -1.5707963267949 arcsine/radians -1 1E-13
@@ -56,11 +88,33 @@ Red [
 	--test-- "float-arcsine-2"
 		--assert 90 = arcsine 1
 
+	--test-- "float-arcsine-3"
+		--assert nan? arcsine 2
+
+	--test-- "float-arcsine-4"
+		--assert nan? arcsine  1.#inf
+		--assert nan? arcsine -1.#inf
+
+	--test-- "float-arcsine-5"
+		--assert nan? arcsine 1.#nan
+
+
 	--test-- "float-arccosine-1"
 		--assertf~= 1.5707963267949 arccosine/radians 0 1E-13
 
 	--test-- "float-arccosine-2"
 		--assert 90 = arccosine 0
+		
+	--test-- "float-arccosine-3"
+		--assert nan? arccosine 2
+		
+	--test-- "float-arccosine-4"
+		--assert nan? arccosine  1.#inf
+		--assert nan? arccosine -1.#inf
+		
+	--test-- "float-arccosine-5"
+		--assert nan? arccosine 1.#nan
+		
 
 	--test-- "float-arctangent-1"
 		--assertf~= -0.785398163397448 arctangent/radians -1 1E-13
@@ -68,26 +122,51 @@ Red [
 	--test-- "float-arctangent-2"
 		--assert 45 = arctangent 1
 
-	--test-- "float-arctangent2"
+	--test-- "float-arctangent-3"
+		--assert  90 = arctangent  1.#inf
+		--assert -90 = arctangent -1.#inf
+
+	--test-- "float-arctangent-4"
+		--assert nan? arctangent 1.#nan
+
+	--test-- "float-arctangent-5"
+		--assert  90.0 = arctangent tangent  90
+		--assert -90.0 = arctangent tangent -90
+
+
+	--test-- "float-arctangent2-1"
 		--assertf~=  3.1415926535898  atan2 0 -1 1E-13
 		--assertf~=  3.1415926535898  atan2 0.0 -1.0 1E-13
 		--assertf~= -1.5707963267949  atan2 -1 0 1E-13
 		--assertf~= -0.78539816339745 atan2 -1 1 1E-13
 		--assertf~= -0.78539816339745 atan2 -1.5 1.5 1E-13
 
-	--test-- "float-arctangent3"
+	--test-- "float-arctangent2-2"
 		--assertf~=  3.1415926535898  arctangent2/radians 0 -1 1E-13
 		--assertf~=  3.1415926535898  arctangent2/radians 0.0 -1.0 1E-13
 		--assertf~= -1.5707963267949  arctangent2/radians -1 0 1E-13
 		--assertf~= -0.78539816339745 arctangent2/radians -1 1 1E-13
 		--assertf~= -0.78539816339745 arctangent2/radians -1.5 1.5 1E-13
 
-	--test-- "float-arctangent4"
+	--test-- "float-arctangent2-3"
 		--assertf~=  180.0 arctangent2 0 -1 1E-13
 		--assertf~=  180.0 arctangent2 0.0 -1.0 1E-13
 		--assertf~= -90.0  arctangent2 -1 0 1E-13
 		--assertf~= -45.0  arctangent2 -1 1 1E-13
 		--assertf~= -45.0  arctangent2 -1.5 1.5 1E-13
+
+	--test-- "float-arctangent2-4"
+		--assert nan? arctangent2 1 1.#nan
+		--assert nan? arctangent2 1.#nan 1
+
+	--test-- "float-arctangent2-5"
+		--assert nan? arctangent2 1.#inf 1.#inf
+		--assert  90.0 = arctangent2  1.#inf  1
+		--assert  90.0 = arctangent2  1.#inf  0
+		--assert  90.0 = arctangent2  1.#inf -1
+		--assert -90.0 = arctangent2 -1.#inf -1
+		--assert -90.0 = arctangent2 -1.#inf  0
+		--assert -90.0 = arctangent2 -1.#inf  1
 
 ===end-group===
 
