@@ -228,7 +228,7 @@ OS-text-box-metrics: func [
 				x: x + hit/width
 				y: y + hit/height
 			]
-			pair/push as-integer x + as float32! 0.5 as-integer y + as float32! 0.99
+			pair/push x + as float32! 0.5 y + as float32! 0.99
 		]
 		TBOX_METRICS_INDEX?
 		TBOX_METRICS_CHAR_INDEX? [
@@ -270,7 +270,7 @@ OS-text-box-metrics: func [
 			metrics: as DWRITE_TEXT_METRICS :left
 			hr: dl/GetMetrics this metrics
 			either type = TBOX_METRICS_SIZE [
-				pair/push as-integer metrics/width as-integer metrics/height
+				pair/push metrics/width metrics/height
 			][
 				integer/push metrics/lineCount
 			]

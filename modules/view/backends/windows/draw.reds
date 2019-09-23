@@ -1396,8 +1396,8 @@ OS-draw-triangle: func [		;@@ TBD merge this function with OS-draw-polygon
 ][
 	point: ctx/other/edges
 
-	point/x: start/x									;-- 1st point
-	point/y: start/y
+	point/x: as integer! start/x						;-- 1st point
+	point/y: as integer! start/y
 	point: point + 1
 
 	pair: start + 1
@@ -1410,8 +1410,8 @@ OS-draw-triangle: func [		;@@ TBD merge this function with OS-draw-polygon
 	point/y: as integer! pair/y
 	point: point + 1
 
-	point/x: start/x									;-- close the triangle
-	point/y: start/y
+	point/x: as integer! start/x						;-- close the triangle
+	point/y: as integer! start/y
 
 	either ctx/other/GDI+? [
 		check-gradient-poly ctx ctx/other/edges 3
@@ -1456,8 +1456,8 @@ OS-draw-polygon: func [
 	]
 	;if nb = max-edges [fire error]
 
-	point/x: start/x									;-- close the polygon
-	point/y: start/y
+	point/x: as integer! start/x						;-- close the polygon
+	point/y: as integer! start/y
 
 	either ctx/other/GDI+? [
 		check-gradient-poly ctx ctx/other/edges nb
@@ -1827,7 +1827,7 @@ OS-draw-curve: func [
 		p2: pair + 1
 		p3: pair + 2
 		point/x: (as integer! p2/x) << 1 + (as integer! pair/x) / 3
-		point/y: (as integer! p2/y << 1 + (as integer! pair/y / 3
+		point/y: (as integer! p2/y) << 1 + (as integer! pair/y) / 3
 		point: point + 1
 		point/x: (as integer! p2/x) << 1 + (as integer! p3/x) / 3
 		point/y: (as integer! p2/y) << 1 + (as integer! p3/y) / 3
@@ -2218,7 +2218,7 @@ OS-draw-brush-pattern: func [
 	]
 	pat-image/header: TYPE_IMAGE
 	pat-image/head:   0
-	pat-image/size:   size/y << 16 or size/x
+	pat-image/size:   (as integer! size/y) << 16 or as integer! size/x
 	bkg-alpha:        as byte! 0
 	p-alpha:          allocate pat-image/size
 	p: p-alpha
@@ -2226,7 +2226,7 @@ OS-draw-brush-pattern: func [
 		p/value: as-byte 255
 		p: p + 1
 	]
-	pat-image/node: OS-image/make-image size/x size/y null p-alpha null
+	pat-image/node: OS-image/make-image as integer! size/x as integer! size/y null p-alpha null
 	free p-alpha
 	do-draw null pat-image block no no no no
 	OS-draw-brush-bitmap ctx pat-image crop-1 crop-2 mode brush?

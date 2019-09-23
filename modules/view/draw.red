@@ -942,11 +942,11 @@ Red/System [
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
 									OS-matrix-push DC :state
-									OS-matrix-translate DC sym point/x point/y
+									OS-matrix-translate DC sym as integer! point/x as integer! point/y
 									parse-draw DC as red-block! cmd catch?
 									OS-matrix-pop DC :state
 								][
-									OS-matrix-translate DC sym point/x point/y
+									OS-matrix-translate DC sym as integer! point/x as integer! point/y
 								]
 							]
 							sym = skew [
@@ -1120,8 +1120,8 @@ Red/System [
 					]
 					TYPE_PAIR [											;-- range
 						range: as red-pair! cmd
-						idx: range/x - 1
-						len: range/y
+						idx: (as integer! range/x) - 1
+						len: as integer! range/y
 						if idx + len > max-len [len: max-len - idx]
 					]
 					TYPE_STRING [										;-- font name

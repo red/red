@@ -756,7 +756,7 @@ get-metrics: func [
 	
 	svm: as red-hash! #get system/view/metrics/misc
 	
-	map/put svm as red-value! _scroller as red-value! pair/push
+	map/put svm as red-value! _scroller as red-value! pair/push-int
 		GetSystemMetrics 2								;-- SM_CXVSCROLL
 		GetSystemMetrics 20								;-- SM_CYVSCROLL
 		no
@@ -1727,20 +1727,13 @@ change-offset: func [
 		size	[red-pair!]
 		flags	[integer!]
 		param	[integer!]
-		_y		[integer!]
-		_x		[integer!]
-		pad		[integer!]
-		header	[integer!]
-		pt		[red-pair!]
-		offset	[tagPOINT]
+		offset	[tagPOINT value]
 		values	[red-value!]
 		layer?	[logic!]
 		pos-x	[integer!]
 		pos-y	[integer!]
 ][
 	flags: SWP_NOSIZE or SWP_NOZORDER or SWP_NOACTIVATE
-	header: 0
-	pt: as red-pair! :header
 	layer?: (GetWindowLong hWnd GWL_EXSTYLE) and WS_EX_LAYERED > 0
 
 	pos-x: dpi-scale as integer! pos/x
@@ -1763,14 +1756,13 @@ change-offset: func [
 			owner: as handle! GetWindowLong hWnd wc-offset - 16
 			child: as handle! GetWindowLong hWnd wc-offset - 20
 
-			pt/x: as float32! pos-x
-			pt/y: as float32! pos-y
-			ClientToScreen owner (as tagPOINT pt) + 1
-			offset: as tagPOINT pt
-			offset/x: (as integer! pt/x) - WIN32_LOWORD(param)
-			offset/y: (as integer! pt/y) - WIN32_HIWORD(param)
-			pos-x: as integer! pt/x
-			pos-y: as integer! pt/y
+			offset/x: pos-x
+			offset/y: pos-y
+			ClientToScreen owner offset
+			offset/x: offset/x - WIN32_LOWORD(param)
+			offset/y: offset/y - WIN32_HIWORD(param)
+			pos-x: offset/x
+			pos-y: offset/y
 			update-layered-window hWnd null offset null -1
 
 			if child <> null [
@@ -1782,7 +1774,6 @@ change-offset: func [
 					flags
 			]
 		][
-			offset: as tagPOINT pt
 			offset/x: pos-x - WIN32_LOWORD(param)
 			offset/y: pos-y - WIN32_HIWORD(param)
 			update-layered-window hWnd null offset null -1
