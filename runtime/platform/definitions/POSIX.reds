@@ -611,7 +611,7 @@ errno: as int-ptr! 0
 			num		[integer!]
 			return:	[integer!]
 		]
-		SSL_Write: "SSL_Write" [
+		SSL_write: "SSL_write" [
 			ssl		[int-ptr!]
 			buf		[byte-ptr!]
 			num		[integer!]

@@ -116,6 +116,8 @@ socket: context [
 		either zero? LibC.connect sock as int-ptr! :saddr size? saddr [
 			iocp/post data/io-port data
 		][
+			probe errno/value
+			probe "connect async"
 			data/state: EPOLLOUT
 			iocp/add data/io-port sock EPOLLOUT or EPOLLET data
 		]
@@ -141,7 +143,9 @@ probe ["socket/write/event: " data/event]
 			exit
 		]
 
-		n: LibC.send sock buffer length 0 
+		data/write-buf: buffer
+		data/write-buflen: length
+		n: iocp/write-io data
 
 probe ["socket/write: " length " " n]
 
@@ -183,7 +187,9 @@ probe ["socket/write: " length " " n]
 			return -1
 		]
 
-		n: LibC.recv sock buffer length 0
+		data/read-buf: buffer
+		data/read-buflen: length
+		n: iocp/read-io data
 probe ["socket/read: " n]
 		case [
 			n > 0 [

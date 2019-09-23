@@ -59,15 +59,8 @@ TLS-device: context [
 					iocp/bind g-iocp as int-ptr! data/accept-sock
 					socket/acceptex as-integer data/device data
 				][
-					fd: socket/accept as-integer data/device
-					msg: create-red-port p fd
-					tls/create td no
-					tls/negotiate td
+
 				]
-			]
-			IO_EVT_CONNECT [
-				tls/create td yes
-				tls/negotiate td
 			]
 			default [data/event: IO_EVT_NONE]
 		]
@@ -93,9 +86,12 @@ TLS-device: context [
 		port	[red-object!]
 		sock	[integer!]
 		return: [iocp-data!]
+		/local
+			data [iocp-data!]
 	][
-		as iocp-data! io/create-socket-data port sock as int-ptr! :event-handler size? tls-data!
-		#if OS <> 'Windows [data/iocp/type: IOCP_TYPE_TLS]
+		data: as iocp-data! io/create-socket-data port sock as int-ptr! :event-handler size? tls-data!
+		#if OS <> 'Windows [data/type: IOCP_TYPE_TLS]
+		data
 	]
 
 	get-tcp-data: func [

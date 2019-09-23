@@ -87,7 +87,6 @@ io: context [
 		copy-cell as cell! red-port as cell! :data/port
 		#if OS <> 'Windows [
 			data/iocp/io-port: g-iocp
-			data/iocp/type: SOCK_STREAM
 		]
 		;-- store low-level data into red port
 		handle/make-at

@@ -138,6 +138,44 @@ iocp: context [
 	][
 	]
 
+	read-io: func [
+		data	[iocp-data!]
+		return: [integer!]
+		/local
+			tls [tls-data!]
+	][
+		probe ["read-io " data/type]
+		switch data/type [
+			IOCP_TYPE_TCP [
+				LibC.recv as-integer data/device data/read-buf data/read-buflen 0
+			]
+			IOCP_TYPE_TLS [
+				tls: as tls-data! data
+				SSL_read tls/ssl data/read-buf data/read-buflen
+			]
+			IOCP_TYPE_UDP [0]
+		]
+	]
+
+	write-io: func [
+		data	[iocp-data!]
+		return: [integer!]
+		/local
+			tls [tls-data!]
+	][
+		probe ["write-io " data/type]
+		switch data/type [
+			IOCP_TYPE_TCP [
+				LibC.send as-integer data/device data/write-buf data/write-buflen 0
+			]
+			IOCP_TYPE_TLS [
+				tls: as tls-data! data
+				SSL_write tls/ssl data/write-buf data/write-buflen
+			]
+			IOCP_TYPE_UDP [0]
+		]
+	]
+
 #either OS = 'macOS [
 	#define IOCP_READ_ACTION? [filter = EVFILT_READ]
 	#define IOCP_WRITE_ACTION? [filter = EVFILT_WRITE]
@@ -203,10 +241,9 @@ iocp: context [
 		while [i < cnt][
 			e: p/events + i
 			data: as iocp-data! e/udata
-			sock: as-integer data/device
 			either data/event = IO_EVT_PULSE [
 				datalen: 0
-				n: LibC.recv sock as byte-ptr! :datalen 4 0
+				n: LibC.recv as-integer data/device as byte-ptr! :datalen 4 0
 				assert n = 1
 
 				p/posted?: no
@@ -242,8 +279,18 @@ iocp: context [
 					data/type = IOCP_TYPE_TLS
 					state and IO_STATE_TLS_DONE = 0
 				][
-					tls/negotiate as tls-data! data
-					i: i + 1 continue
+					if data/event = IO_EVT_CONNECT [
+						tls/create as tls-data! data yes
+					]
+					;if data/event = IO_EVT_ACCEPT [
+					;	fd: socket/accept as-integer data/device
+					;	msg: create-red-port p fd
+					;	tls/create td no
+					;]
+					unless tls/negotiate as tls-data! data [
+						i: i + 1
+						continue
+					]
 				]
 
 				if all [
@@ -251,8 +298,9 @@ iocp: context [
 					state and IO_STATE_READING <> 0
 				][
 					either null? data/pending-read [
-probe [sock " " data/read-buf " " data/read-buflen]
-						n: LibC.recv sock data/read-buf data/read-buflen 0
+probe [data/device " " data/read-buf " " data/read-buflen]
+						;n: LibC.recv sock data/read-buf data/read-buflen 0
+						n: read-io data
 probe errno/value
 probe ["read data: " n]
 						data/state: state and (not IO_STATE_READING)
@@ -269,7 +317,8 @@ probe ["read data: " n]
 				][
 					either null? data/pending-write [
 						datalen: data/write-buflen
-						n: LibC.send sock data/write-buf datalen 0
+						;n: LibC.send sock data/write-buf datalen 0
+						n: write-io data
 						either n = datalen [
 							data/state: state and (not IO_STATE_WRITING)
 							data/write-buf: null
@@ -277,7 +326,7 @@ probe ["read data: " n]
 							data/event-handler as int-ptr! data
 						][	;-- remaining data to be sent
 							data/write-buf: data/write-buf + n
-							data/write-buflen: data/write-buflen - n
+							data/write-buflen: datalen - n
 						]
 					][
 						0 ;; TBD

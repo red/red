@@ -83,7 +83,7 @@ probe "UDP event-handler"
 		block/rs-append ports-block as red-value! proto
 
 		data: as udp-data! io/create-socket-data proto sock as int-ptr! :event-handler size? udp-data!
-		#if OS <> 'Windows [data/iocp/type: SOCK_DGRAM]
+		;#if OS <> 'Windows [data/iocp/type: SOCK_DGRAM]
 
 		proto
 	]

@@ -31,17 +31,20 @@ tls: context [
 		if null? td/ssl [
 			either client? [
 				if null? client-ctx [client-ctx: SSL_CTX_new TLS_client_method]
+				?? client-ctx
 				ctx: client-ctx
 			][
 				if null? server-ctx [server-ctx: SSL_CTX_new TLS_server_method]
 				ctx: server-ctx
 			]
 			ssl: SSL_new ctx
+			?? ssl
 			td/ssl: ssl
 			if null? ssl [probe "SSL_new failed" exit]
 
 			fd: as-integer td/iocp/device
-			SSL_set_fd ssl fd
+			?? fd
+			probe SSL_set_fd ssl fd
 			either client? [
 				SSL_set_connect_state ssl
 			][
@@ -58,9 +61,9 @@ tls: context [
 	][
 		state: td/iocp/state
 		either zero? state [
-			iocp/add td/iocp/io-port fd evt or EPOLLET as iocp-data! td
+			iocp/add td/iocp/io-port as-integer td/iocp/device evt or EPOLLET as iocp-data! td
 		][
-			iocp/modify td/iocp/io-port fd evt or EPOLLET as iocp-data! td
+			iocp/modify td/iocp/io-port as-integer td/iocp/device evt or EPOLLET as iocp-data! td
 			evt: state or evt
 		]
 		td/iocp/state: evt
@@ -68,22 +71,33 @@ tls: context [
 
 	negotiate: func [
 		td		[tls-data!]
+		return: [logic!]
 		/local
 			ssl [int-ptr!]
 			ret [integer!]
 	][
+		probe "negotiate...................."
 		ssl: td/ssl
+		?? ssl
 		ret: SSL_do_handshake ssl
-		either ret = 1 [td/iocp/state: IO_STATE_TLS_DONE][
-			switch SSL_get_error ssl ret [
+		?? ret
+		either ret = 1 [td/iocp/state: IO_STATE_TLS_DONE yes][
+			ret: SSL_get_error ssl ret
+			?? ret
+			switch ret [
 				SSL_ERROR_WANT_READ [
+					probe "want read"
 					update-td td EPOLLIN
 				]
 				SSL_ERROR_WANT_WRITE [
+					probe "want write"
 					update-td td EPOLLOUT
 				]
-				default [probe "error when do handshake" exit]
+				default [probe "error when do handshake"]
 			]
+			no
 		]
 	]
+
+	
 ]
