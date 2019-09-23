@@ -100,6 +100,33 @@ copy-cell: func [
 	dst
 ]
 
+copy-part: func [		;-- copy part of the series!
+	node	[node!]
+	offset	[integer!]
+	len		[integer!]
+	return: [node!]
+	/local
+		s		[series!]
+		unit	[integer!]
+		new		[node!]
+		buf		[series!]
+][
+	s: as series! node/value
+	unit: GET_UNIT(s)
+	len:  len << (log-b unit)
+
+	new: alloc-bytes len
+	buf: as series! new/value
+	buf/flags: s/flags and not flag-series-owned
+	offset: offset << (log-b unit)
+	copy-memory
+		as byte-ptr! buf/offset
+		(as byte-ptr! s/offset) + offset
+		len
+	buf/tail: as cell! (as byte-ptr! buf/offset) + len
+	new
+]
+
 get-root: func [
 	idx		[integer!]
 	return: [red-block!]

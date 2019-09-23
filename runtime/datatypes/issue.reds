@@ -102,7 +102,7 @@ issue: context [
 							null no null
 					]
 				]
-				sym: symbol/make-alt str					;-- convert before altering proto slot
+				sym: symbol/make-alt str -1				;-- convert before altering proto slot
 
 				w: as red-word! proto
 				w/ctx: global-ctx
