@@ -920,10 +920,10 @@ OS-draw-curve: func [
 	p3: start + 2
 
 	either 2 = ((as-integer end - start) >> 4) [		;-- p0, p1, p2  -->  p0, (p0 + 2p1) / 3, (2p1 + p2) / 3, p2
-		cp1x: (p2/x * 2.0 + start/x) / as float32! 3.0
-		cp1y: (p2/y * 2.0 + start/y) / as float32! 3.0
-		cp2x: (p2/x * 2.0 + p3/x) / as float32! 3.0
-		cp2y: (p2/y * 2.0 + p3/y) / as float32! 3.0
+		cp1x: (p2/x * (as float32! 2.0) + start/x) / as float32! 3.0
+		cp1y: (p2/y * (as float32! 2.0) + start/y) / as float32! 3.0
+		cp2x: (p2/x * (as float32! 2.0) + p3/x) / as float32! 3.0
+		cp2y: (p2/y * (as float32! 2.0) + p3/y) / as float32! 3.0
 	][
 		cp1x: p2/x
 		cp1y: p2/y
@@ -1655,8 +1655,8 @@ draw-curve: func [
 		either dc/shape-curve? [
 			;-- The control point is assumed to be the reflection of the control point
 			;-- on the previous command relative to the current point
-			p1x: dx * 2.0 - dc/control-x
-			p1y: dy * 2.0 - dc/control-y
+			p1x: dx * (as float32! 2.0) - dc/control-x
+			p1y: dy * (as float32! 2.0) - dc/control-y
 		][
 			;-- if previous command is not curve/curv/qcurve/qcurv, use current point
 			p1x: dx
