@@ -197,7 +197,7 @@ setup-filter-button: func [
 ][
 	object_setInstanceVariable panel IVAR_RED_DATA as-integer filter
 
-	rc: make-rect 0 0 0 0
+	rc: make-rect F32_0 F32_0 F32_0 F32_0
 	obj: objc_msgSend [
 		objc_msgSend [objc_getClass "NSPopUpButton" sel_getUid "alloc"]
 		sel_getUid "initWithFrame:pullsDown:" rc/x rc/y rc/w rc/h false

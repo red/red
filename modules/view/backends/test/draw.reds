@@ -365,8 +365,8 @@ OS-matrix-scale: func [
 OS-matrix-translate: func [
 	ctx			[draw-ctx!]
 	pen-fill	[integer!]
-	x			[integer!]
-	y			[integer!]
+	x			[float32!]
+	y			[float32!]
 ][
 
 ]

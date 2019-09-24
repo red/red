@@ -3354,8 +3354,8 @@ OS-matrix-scale: func [
 OS-matrix-translate: func [
 	ctx			[draw-ctx!]
 	pen-fill	[integer!]
-	x			[integer!]
-	y			[integer!]
+	x			[float32!]
+	y			[float32!]
 	/local
 		gradient	[gradient!]
 		pen?		[logic!]
@@ -3375,8 +3375,8 @@ OS-matrix-translate: func [
 		;-- translate figure
 		GdipTranslateWorldTransform
 			ctx/graphics
-			as float32! x
-			as float32! y
+			x
+			y
 			ctx/other/matrix-order
 	]
 ]

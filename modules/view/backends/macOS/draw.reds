@@ -13,8 +13,6 @@ Red/System [
 #include %text-box.reds
 
 #define DRAW_FLOAT_MAX		[as float32! 3.4e38]
-#define F32_0				[as float32! 0.0]
-#define F32_1				[as float32! 1.0]
 
 max-colors: 256												;-- max number of colors for gradient
 max-edges: 1000												;-- max number of edges for a polygon
@@ -985,7 +983,7 @@ CG-draw-image: func [						;@@ use CALayer to get very good performance?
 		rc		[NSRect!]
 		ty		[float32!]
 ][
-	rc: make-rect x y width height
+	rc: make-rect as float32! x as float32! y as float32! width as float32! height
 	ty: rc/y + rc/h
 	;-- flip coords
 	;; drawing an image or PDF by calling Core Graphics functions directly,
@@ -1323,11 +1321,11 @@ OS-matrix-rotate: func [
 	rad: (as float32! PI) / (as float32! 180.0) * get-float32 angle
 	either pen = -1 [
 		if angle <> as red-integer! center [
-			_OS-matrix-translate ctx as integer! center/x as integer! center/y
+			_OS-matrix-translate ctx center/x center/y
 		]
 		CGContextRotateCTM ctx rad
 		if angle <> as red-integer! center [
-			_OS-matrix-translate ctx 0 - as integer! center/x 0 - as integer! center/y
+			_OS-matrix-translate ctx (as float32! 0.0) - center/x (as float32! 0.0) - center/y
 		]
 	][
 		dc/matrix: CGAffineTransformRotate dc/matrix rad
@@ -1349,22 +1347,22 @@ OS-matrix-scale: func [
 
 _OS-matrix-translate: func [
 	ctx [handle!]
-	x	[integer!]
-	y	[integer!]
+	x	[float32!]
+	y	[float32!]
 ][
-	CGContextTranslateCTM ctx as float32! x as float32! y
+	CGContextTranslateCTM ctx x y
 ]
 
 OS-matrix-translate: func [
 	dc	[draw-ctx!]
 	pen [integer!]
-	x	[integer!]
-	y	[integer!]
+	x	[float32!]
+	y	[float32!]
 ][
 	either pen = -1 [
-		CGContextTranslateCTM dc/raw as float32! x as float32! y
+		CGContextTranslateCTM dc/raw x y
 	][
-		dc/matrix: CGAffineTransformTranslate dc/matrix as float32! x as float32! y
+		dc/matrix: CGAffineTransformTranslate dc/matrix x y
 	]
 ]
 
@@ -1404,7 +1402,7 @@ OS-matrix-transform: func [
 
 	OS-matrix-rotate dc pen rotate center
 	OS-matrix-scale dc pen scale scale + 1
-	_OS-matrix-translate dc/raw as integer! translate/x as integer! translate/y
+	_OS-matrix-translate dc/raw translate/x translate/y
 ]
 
 OS-matrix-push: func [dc [draw-ctx!] state [draw-state!]][

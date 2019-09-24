@@ -468,19 +468,19 @@ store-face-to-obj: func [
 ]
 
 make-rect: func [
-	x		[integer!]
-	y		[integer!]
-	w		[integer!]
-	h		[integer!]
+	x		[float32!]
+	y		[float32!]
+	w		[float32!]
+	h		[float32!]
 	return: [NSRect!]
 	/local
 		r	[NSRect!]
 ][
 	r: declare NSRect!
-	r/x: as float32! x
-    r/y: as float32! y
-    r/w: as float32! w
-    r/h: as float32! h
+	r/x: x
+    r/y: y
+    r/w: w
+    r/h: h
     r
 ]
 
@@ -532,8 +532,8 @@ change-size: func [
 		frame	[NSRect! value]
 		h		[float32!]
 ][
-	rc: make-rect as integer! size/x as integer! size/y 0 0
-	if all [type = button size/y > as float32! 32][
+	rc: make-rect size/x size/y F32_0 F32_0
+	if all [type = button size/y > as float32! 32.0][
 		objc_msgSend [hWnd sel_getUid "setBezelStyle:" NSRegularSquareBezelStyle]
 	]
 	either type = window [
@@ -765,7 +765,7 @@ change-offset: func [
 	/local
 		rc [NSRect!]
 ][
-	rc: make-rect as integer! pos/x as integer! pos/y 0 0
+	rc: make-rect pos/x pos/y F32_0 F32_0
 	either type = window [
 		rc/y: (as float32! screen-size-y) - pos/y
 		objc_msgSend [hWnd sel_getUid "setFrameTopLeftPoint:" rc/x rc/y]
@@ -965,7 +965,7 @@ change-data: func [
 			size: as red-pair! values + FACE_OBJ_SIZE
 			view: objc_msgSend [hWnd sel_getUid "documentView"]
 			sz: objc_msgSend_sz [view sel_getUid "frameSize"]
-			rc: make-rect 0 0 as-integer sz/w as integer! size/y
+			rc: make-rect F32_0 F32_0 sz/w size/y
 			either max-w > rc/w [
 				rc/w: max-w + as float32! 16.0
 				make-text-list
@@ -1094,7 +1094,7 @@ set-content-view: func [
 	cls: either null? face ["NSViewFlip"]["RedView"]
 	id: objc_getClass cls
 	view: objc_msgSend [id sel_getUid "alloc"]
-	rect: make-rect 0 0 0 0
+	rect: make-rect F32_0 F32_0 F32_0 F32_0
 	view: objc_msgSend [view sel_getUid "initWithFrame:" rect/x rect/y rect/w rect/h]
 	if face <> null [store-face-to-obj view id face]
 	objc_msgSend [obj sel_getUid "setContentView:" view]
@@ -1261,7 +1261,7 @@ init-base-face: func [
 	opts: as red-block! values + FACE_OBJ_OPTIONS
 
 	either bits and FACET_FLAGS_SCROLLABLE <> 0 [
-		rc: make-rect 0 0 as integer! size/x as integer! size/y
+		rc: make-rect F32_0 F32_0 size/x size/y
 		id: objc_getClass "RedBase"
 		obj: objc_msgSend [
 			objc_msgSend [id sel_getUid "alloc"]
@@ -1818,10 +1818,10 @@ OS-make-view: func [
 	][
 		CFString("")
 	]
-	rc: make-rect as integer! offset/x as integer! offset/y as integer! size/x as integer! size/y
+	rc: make-rect offset/x offset/y size/x size/y
 	case [
 		sym = window [
-			rc: make-rect as integer! offset/x screen-size-y - as integer! (offset/y + size/y) as integer! size/x as integer! size/y
+			rc: make-rect offset/x (as float32! screen-size-y) - offset/y - size/y size/x size/y
 			init-window face obj caption bits rc
 		]
 		sym = drop-list [
@@ -2277,7 +2277,7 @@ OS-do-draw: func [
 		rc	[NSRect!]
 		ctx [int-ptr!]
 ][
-	rc: make-rect IMAGE_WIDTH(img/size) IMAGE_HEIGHT(img/size) 0 0
+	rc: make-rect as float32! IMAGE_WIDTH(img/size) as float32! IMAGE_HEIGHT(img/size) F32_0 F32_0
 	ctx: OS-image/to-bitmap-ctx OS-image/to-cgimage img
 	do-draw ctx as red-image! rc cmds yes no no no
 	OS-image/ctx-to-image img as-integer ctx

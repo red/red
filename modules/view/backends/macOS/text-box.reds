@@ -206,8 +206,7 @@ OS-text-box-metrics: func [
 				][
 					_x: objc_msgSend [layout sel_getUid "locationForGlyphAtIndex:" idx]
 				]
-				x: pt/x + as float32! 0.5
-				pair/push as-integer x as-integer pt/y
+				pair/push pt/x pt/y
 			]
 		]
 		TBOX_METRICS_INDEX?
@@ -238,9 +237,7 @@ OS-text-box-metrics: func [
 			push method push layout push frame
 			objc_msgSend_stret 6
 			system/stack/top: saved
-			pair/push
-				as-integer (frame/w + as float32! 0.5)
-				as-integer (frame/h + as float32! 0.5)
+			pair/push frame/w frame/h
 		]
 		TBOX_METRICS_LINE_COUNT [
 			idx: objc_msgSend [layout sel_getUid "glyphRangeForTextContainer:" tc]
@@ -354,8 +351,8 @@ OS-text-box-layout: func [
 	;@@ set para: as red-object! values + FACE_OBJ_PARA
 
 	if TYPE_OF(size) = TYPE_PAIR [
-		unless zero? size/x [sz/w: as float32! size/x]
-		unless zero? size/y [sz/h: as float32! size/y]
+		unless zero? as integer! size/x [sz/w: size/x]
+		unless zero? as integer! size/y [sz/h: size/y]
 	]
 	objc_msgSend [tc sel_getUid "setSize:" sz/w sz/h]
 

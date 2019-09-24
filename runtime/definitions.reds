@@ -57,6 +57,9 @@ Red/System [
 #define handle!				[pointer! [integer!]]
 
 
+#define F32_0				[as float32! 0.0]
+#define F32_1				[as float32! 1.0]
+
 ;=== Unicode support definitions ===
 
 #enum encoding! [
