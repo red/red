@@ -175,7 +175,8 @@ comment {
 	--test-- "prem-2"
 		prem2-p: 16x15
 		--assert equal? prem2-p % 2x3 0x0
-		
+
+comment {
 	--test-- "prem-3"
 		prem3-p: 2147483647x2147483647
 		--assert equal? prem3-p % 2 1x1
@@ -183,7 +184,7 @@ comment {
 	--test-- "prem-4"
 		prem4-p: -2147483648x-2147483648
 		--assert equal? prem4-p % -2147483648 0x0
-		
+}
 ===end-group===
 
 ===start-group=== "pair - negate"
@@ -206,6 +207,7 @@ comment {
 		
 ===end-group===
 
+comment {
 ===start-group=== "pair - and"
 	
 	--test-- "pand-1"		--assert equal? 0x0 (1x1 and 0x0)
@@ -245,6 +247,7 @@ comment {
 	--test-- "pxor-5"		--assert equal? 0x3	(7x7 xor 7x4)
 
 ===end-group===
+}
 
 ===start-group=== "pair - reverse"
 
