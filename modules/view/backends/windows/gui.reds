@@ -1759,10 +1759,10 @@ change-offset: func [
 			offset/x: pos-x
 			offset/y: pos-y
 			ClientToScreen owner offset
-			offset/x: offset/x - WIN32_LOWORD(param)
-			offset/y: offset/y - WIN32_HIWORD(param)
 			pos-x: offset/x
 			pos-y: offset/y
+			offset/x: offset/x - WIN32_LOWORD(param)
+			offset/y: offset/y - WIN32_HIWORD(param)
 			update-layered-window hWnd null offset null -1
 
 			if child <> null [

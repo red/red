@@ -228,7 +228,7 @@ OS-text-box-metrics: func [
 				x: x + hit/width
 				y: y + hit/height
 			]
-			pair/push x + as float32! 0.5 y + as float32! 0.99
+			pair/push x y + as float32! 0.99
 		]
 		TBOX_METRICS_INDEX?
 		TBOX_METRICS_CHAR_INDEX? [
