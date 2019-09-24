@@ -415,7 +415,7 @@ get-event-picked: func [
 		EVT_SCROLL [integer/push evt/flags >>> 4]
 		EVT_WHEEL [
 			event: objc_getAssociatedObject as-integer evt/msg RedNSEventKey
-			d: as float32! 0
+			d: as float32! 0.0
 			if event <> 0 [
 				d: objc_msgSend_f32 [event sel_getUid "scrollingDeltaY"]
 				if 1 = objc_msgSend [event sel_getUid "hasPreciseScrollingDeltas"] [

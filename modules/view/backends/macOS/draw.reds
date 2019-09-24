@@ -1950,7 +1950,7 @@ OS-draw-brush-pattern: func [
 	rc/y: as float32! y
 	rc/w: width
 	rc/h: height
-	m: CGAffineTransformMake F32_1 F32_0 F32_0 as float32! -1.0 as float32! 0 height
+	m: CGAffineTransformMake F32_1 F32_0 F32_0 as float32! -1.0 F32_0 height
 	pattern: CGPatternCreate as int-ptr! dc rc m width height 0 yes callbacks
 	either brush? [
 		dc/brush?: yes

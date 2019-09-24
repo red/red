@@ -1458,8 +1458,8 @@ OS-make-view: func [
 
 			if bits and FACET_FLAGS_NO_TITLE  <> 0 [flags: WS_POPUP or WS_BORDER]
 			if bits and FACET_FLAGS_NO_BORDER <> 0 [flags: WS_POPUP]
-			if size/x < as float32! 0 [size/x: as float32! 200]
-			if size/y < as float32! 0 [size/y: as float32! 200]
+			if size/x < as float32! 0.0 [size/x: as float32! 200.0]
+			if size/y < as float32! 0.0 [size/y: as float32! 200.0]
 			rc/left: 0
 			rc/top: 0
 			rc/right:  dpi-scale as integer! size/x

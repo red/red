@@ -1243,12 +1243,12 @@ gdiplus-roundrect-path: func [
 	/local
 		angle90 [float32!]
 ][
-	angle90: as float32! 90
-	GdipAddPathArcI path x y diameter diameter as float32! 180 angle90
+	angle90: as float32! 90.0
+	GdipAddPathArcI path x y diameter diameter as float32! 180.0 angle90
 	x: x + (width - diameter)
-	GdipAddPathArcI path x y diameter diameter as float32! 270 angle90
+	GdipAddPathArcI path x y diameter diameter as float32! 270.0 angle90
 	y: y + (height - diameter)
-	GdipAddPathArcI path x y diameter diameter as float32! 0 angle90
+	GdipAddPathArcI path x y diameter diameter F32_0 angle90
 	x: x - (width - diameter)
 	GdipAddPathArcI path x y diameter diameter angle90 angle90
 	GdipClosePathFigure path
@@ -1666,8 +1666,8 @@ OS-draw-text: func [
 		rect: as RECT_STRUCT_FLOAT32 :x
 		rect/x: pos/x
 		rect/y: pos/y
-		rect/width: as float32! 0
-		rect/height: as float32! 0
+		rect/width: as float32! 0.0
+		rect/height: as float32! 0.0
 		GdipDrawString ctx/graphics str len ctx/gp-font rect 0 ctx/gp-font-brush
 	][
 		tm: as tagTEXTMETRIC ctx/other/gradient-pen/colors
@@ -3320,7 +3320,7 @@ OS-matrix-rotate: func [
 		]
 		GdipRotateWorldTransform g get-float32 angle GDIPLUS_MATRIX_PREPEND
 		if angle <> as red-integer! center [
-			GdipTranslateWorldTransform g (as float32! 0) - center/x (as float32! 0) - center/y GDIPLUS_MATRIX_PREPEND
+			GdipTranslateWorldTransform g (as float32! 0.0) - center/x (as float32! 0.0) - center/y GDIPLUS_MATRIX_PREPEND
 		]
 	]
 ]
@@ -3450,7 +3450,7 @@ OS-matrix-transform: func [
 		GdipTranslateMatrix m translate/x translate/y GDIPLUS_MATRIX_PREPEND
 		GdipScaleMatrix m get-float32 scale get-float32 scale + 1 GDIPLUS_MATRIX_PREPEND
 		GdipRotateMatrix m get-float32 rotate GDIPLUS_MATRIX_PREPEND
-		if center? [GdipTranslateMatrix m (as float32! 0) - center/x (as float32! 0) - center/y GDIPLUS_MATRIX_PREPEND]
+		if center? [GdipTranslateMatrix m (as float32! 0.0) - center/x (as float32! 0.0) - center/y GDIPLUS_MATRIX_PREPEND]
 
 		GdipMultiplyWorldTransform ctx/graphics m ctx/other/matrix-order
 		GdipDeleteMatrix m
