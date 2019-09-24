@@ -288,19 +288,22 @@ pair: context [
 				fire [TO_ERROR(script invalid-path) path element]
 			]
 		]
+
 		either value <> null [
 			type: TYPE_OF(value)
 			if all [type <> TYPE_INTEGER type <> TYPE_FLOAT] [
 				fire [TO_ERROR(script invalid-type) datatype/push type]
 			]
+
 			f32: get-float32 as red-integer! value
 			either axis = 1 [parent/x: f32][parent/y: f32]
 			object/check-owner as red-value! parent
-			value
 		][
 			f32: either axis = 1 [parent/x][parent/y]
-			as red-value! float/box as-float f32
+			value: as red-value! float/push as-float f32
+			stack/pop 1			;-- avoid moving stack top
 		]
+		value
 	]
 	
 	compare: func [

@@ -113,15 +113,17 @@ img: make image! 2x2
 
 ===start-group=== "image copy"
 	create-test-image: function [size [pair!]][
-		bin: make binary! size/x * size/y * 3
+		sz-x: to-integer size/x
+		sz-y: to-integer size/y
+		bin: make binary! sz-x * sz-y * 3
 		if any [
-			size/x >= 16
-			size/y >= 16
+			sz-x >= 16
+			sz-y >= 16
 		][return none]
 		j: 1
-		loop size/y [
+		loop sz-y [
 			i: 1
-			loop size/x [
+			loop sz-x [
 				t: j * 16 + i
 				append/dup bin t 3
 				i: i + 1
