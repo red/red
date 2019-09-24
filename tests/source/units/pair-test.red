@@ -34,6 +34,8 @@ Red [
 		--assert equal? pick pb2-p 1 0
 		--assert equal? pick pb2-p 2 0
 		
+;-- too large integer to float32! will lost precise
+comment {
 	--test-- "pb-3"
 		pb3-p: 2147483647x2147483647
 		--assert equal? pb3-p/x 2147483647
@@ -63,7 +65,7 @@ Red [
 		--assert equal? pb5-p 2147483647x-2147483648
 		--assert equal? pick pb5-p 1 2147483647
 		--assert equal? pick pb5-p 2 -2147483648
-		
+}
 	--test-- "pb-6"			--assert equal? 3x4 as-pair 3 4
 	--test-- "pb-7"			--assert equal? 4x5 make pair! [4 5]
 	--test-- "pb-8"			--assert equal? none attempt [as-pair 10]
