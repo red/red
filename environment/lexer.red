@@ -13,6 +13,47 @@ Red [
 system/lexer: context [
 
 	pre-load: none
+	
+	digit:  		charset "0123465798"
+	hexa-upper:  	charset "ABCDEF"
+	hexa-lower:  	charset "abcdef"
+	hexa:  			union digit hexa-upper
+	hexa-char:		union hexa hexa-lower
+	not-word-char:  charset {/\^^,[](){}"#%$@:;}
+	not-word-1st:	union union not-word-char digit charset {'}
+	not-file-char:	charset {[](){}"@:;}
+	not-str-char:	#"^""
+	not-mstr-char:	#"}"
+	caret-char:		charset [#"^(40)" - #"^(5F)"]
+	non-printable-char: charset [
+		#"^(00)" - #"^(08)"								;-- (exclude TAB)
+		#"^(0A)" - #"^(1F)"
+	]
+	integer-end:	charset {^{"[]();:xX<}
+	ws-ASCII:		charset " ^-^M"
+	ws-U+2k:		charset [#"^(2000)" - #"^(200A)"]	;-- Unicode spaces in the U+2000-U+200A range
+	control-char:	charset [ 							;-- Control characters
+		#"^(00)" - #"^(1F)"								;-- C0 control codes
+		#"^(80)" - #"^(9F)"								;-- C1 control codes
+	]
+	four:			charset "01234"
+	half:			charset "012345"
+	non-zero:		charset "123456789"
+	path-end:		charset {^{"[]();}
+	base64-char:	union digit charset [
+		#"A" - #"Z" #"a" - #"z" #"+" #"/" #"="
+	]
+	slash-end:		charset {[](){}":;}
+	not-url-char:	charset {[](){}";}
+	email-end:		union not-file-char union ws-ASCII charset "<^/"
+	pair-end:		charset {^{"[]();:}
+	file-end:		charset {^{[]();:}
+	date-sep:		charset "/-"
+	time-sep:		charset "/T"
+	not-tag-1st:	charset "=><[](){};^""
+
+	month-rule: [(m: none)]							;-- dynamically filled
+	mon-rule:   [(m: none)]							;-- dynamically filled
 
 	throw-error: function [spec [block!] /missing][
 		type: spec/1									;-- preserve lit-words from double reduction
@@ -330,13 +371,7 @@ system/lexer: context [
 		return: [block!]
 		/local
 			new s e c pos value cnt type process path
-			digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
-			not-file-char not-str-char not-mstr-char caret-char
-			non-printable-char integer-end ws-ASCII ws-U+2k control-char
-			four half non-zero path-end base base64-char slash-end not-url-char
-			email-end pair-end file-end err date-sep time-sep not-tag-1st
 	][
-		cs:		[- - - - - - - - - - - - - - - - - - - - - - - - - - - - -] ;-- memoized bitsets
 		stack:	clear []
 		count?:	yes										;-- if TRUE, lines counter is enabled
 		old-line: line: 1
@@ -363,70 +398,6 @@ system/lexer: context [
 			if type = file! [parse new [any [s: #"\" change s #"/" | skip]]]
 			new
 		]
-		
-		month-rule: [(m: none)]							;-- dynamically filled
-		mon-rule:   [(m: none)]							;-- dynamically filled
-
-		if cs/1 = '- [
-			do [
-				cs/1:  charset "0123465798"					;-- digit
-				cs/2:  charset "ABCDEF"						;-- hexa-upper
-				cs/3:  charset "abcdef"						;-- hexa-lower
-				cs/4:  union cs/1 cs/2						;-- hexa
-				cs/5:  union cs/4 cs/3						;-- hexa-char	
-				cs/6:  charset {/\^^,[](){}"#%$@:;}			;-- not-word-char
-				cs/7:  union union cs/6 cs/1 charset {'}	;-- not-word-1st
-				cs/8:  charset {[](){}"@:;}					;-- not-file-char
-				cs/9:  #"^""								;-- not-str-char
-				cs/10: #"}"									;-- not-mstr-char
-				cs/11: charset [#"^(40)" - #"^(5F)"]		;-- caret-char
-				cs/12: charset [							;-- non-printable-char
-					#"^(00)" - #"^(08)"						;-- (exclude TAB)
-					#"^(0A)" - #"^(1F)"
-				]
-				cs/13: charset {^{"[]();:xX<}				;-- integer-end
-				cs/14: charset " ^-^M"						;-- ws-ASCII, ASCII common whitespaces
-				cs/15: charset [#"^(2000)" - #"^(200A)"]	;-- ws-U+2k, Unicode spaces in the U+2000-U+200A range
-				cs/16: charset [ 							;-- Control characters
-					#"^(00)" - #"^(1F)"						;-- C0 control codes
-					#"^(80)" - #"^(9F)"						;-- C1 control codes
-				]
-				cs/17: charset "01234"						;-- four
-				cs/18: charset "012345"						;-- half
-				cs/19: charset "123456789"					;-- non-zero
-				cs/20: charset {^{"[]();}					;-- path-end
-				cs/21: union cs/1 charset [					;-- base64-char
-					#"A" - #"Z" #"a" - #"z" #"+" #"/" #"="
-				]
-				cs/22: charset {[](){}":;}					;-- slash-end
-				cs/23: charset {[](){}";}					;-- not-url-char
-				cs/24: union cs/8 union cs/14 charset "<^/" ;-- email-end
-				cs/25: charset {^{"[]();:}					;-- pair-end
-				cs/26: charset {^{[]();:}					;-- file-end
-				cs/27: charset "/-"							;-- date-sep
-				cs/28: charset "/T"							;-- time-sep
-				cs/29: charset "=><[](){};^""				;-- not-tag-1st
-
-				list: system/locale/months
-				while [not tail? list][
-					append month-rule list/1
-					append/only month-rule p: copy quote (m: ?)
-					unless tail? next list [append month-rule '|]
-					p/2: index? list
-					append mon-rule copy/part list/1 3
-					append/only mon-rule p
-					unless tail? next list [append mon-rule '|]
-					list: next list
-				]
-			]
-		]
-		set [
-			digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
-			not-file-char not-str-char not-mstr-char caret-char
-			non-printable-char integer-end ws-ASCII ws-U+2k control-char
-			four half non-zero path-end base64-char slash-end not-url-char email-end
-			pair-end file-end date-sep time-sep not-tag-1st
-		] cs
 
 		byte: [
 			"25" half
@@ -980,4 +951,21 @@ system/lexer: context [
 			either all [one not only][pos][stack/1]
 		]
 	]
+	
+	init: has [list p][
+		list: system/locale/months
+		while [not tail? list][
+			append month-rule list/1
+			append/only month-rule p: copy quote (m: ?)
+			unless tail? next list [append month-rule '|]
+			p/2: index? list
+			append mon-rule copy/part list/1 3
+			append/only mon-rule p
+			unless tail? next list [append mon-rule '|]
+			list: next list
+		]
+		bind month-rule :transcode
+		bind mon-rule   :transcode
+	]
+	init
 ]
