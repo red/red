@@ -124,7 +124,7 @@ system/view/VID: context [
 		]
 	]
 	
-	align-faces: function [pane [block!] dir [word!] align [word!] max-sz [integer!]][
+	align-faces: function [pane [block!] dir [word!] align [word!] max-sz [number!]][
 		if empty? pane [exit]
 
 		edge?: any [
