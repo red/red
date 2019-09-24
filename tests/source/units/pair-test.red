@@ -16,23 +16,23 @@ Red [
 
 	--test-- "pb-1"
 		pb1-p: 1x1
-		--assert equal? pb1-p/x 1
-		--assert equal? pb1-p/y 1
-		--assert equal? first pb1-p 1
-		--assert equal? second pb1-p 1
+		--assert equal? to integer! pb1-p/x 1
+		--assert equal? to integer! pb1-p/y 1
+		--assert equal? to integer! first pb1-p 1
+		--assert equal? to integer! second pb1-p 1
 		--assert equal? pb1-p 1x1
-		--assert equal? pick pb1-p 1 1
-		--assert equal? pick pb1-p 2 1
+		--assert equal? to integer! pick pb1-p 1 1
+		--assert equal? to integer! pick pb1-p 2 1
 		
 	--test-- "pb-2"
 		pb2-p: 0x0
-		--assert equal? pb2-p/x 0
-		--assert equal? pb2-p/y 0
-		--assert equal? first pb2-p 0
-		--assert equal? second pb2-p 0
+		--assert equal? to integer! pb2-p/x 0
+		--assert equal? to integer! pb2-p/y 0
+		--assert equal? to integer! first pb2-p 0
+		--assert equal? to integer! second pb2-p 0
 		--assert equal? pb2-p 0x0
-		--assert equal? pick pb2-p 1 0
-		--assert equal? pick pb2-p 2 0
+		--assert equal? to integer! pick pb2-p 1 0
+		--assert equal? to integer! pick pb2-p 2 0
 		
 ;-- too large integer to float32! will lost precise
 comment {

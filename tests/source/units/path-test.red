@@ -153,9 +153,9 @@ Red [
 
 		face2525: object [size: 80x24]
 		min-size: 345x50
-		--assert min-size/x + 10 = 355
+		--assert (to integer! min-size/x + 10) = 355
 		face2525/size/y: min-size/y + 10
-		--assert face2525/size/y = 60
+		--assert (to integer! face2525/size/y) = 60
 
 	--test-- "issue #3845"
 
