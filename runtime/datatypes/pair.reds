@@ -315,7 +315,7 @@ pair: context [
 
 		if TYPE_OF(right) <> TYPE_PAIR [RETURN_COMPARE_OTHER]
 		diff: as-float left/x - right/x
-		if diff <> 0.0 [diff: as float! left/y - right/y]
+		if diff = 0.0 [diff: as float! left/y - right/y]
 		SIGN_COMPARE_RESULT(diff 0.0)
 	]
 
