@@ -79,6 +79,7 @@
 	red/object/push
 	red/op/push
 	red/pair/push
+	red/pair/push-int
 	red/paren/push
 	red/path/push
 	red/percent/push
