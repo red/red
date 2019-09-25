@@ -2934,6 +2934,7 @@ OS-draw-grad-pen-old: func [
 		next	[red-value!]
 		clr		[red-tuple!]
 		pt		[tagPOINT]
+		ptv		[tagPOINT value]
 		color	[int-ptr!]
 		last-c	[int-ptr!]
 		pos		[float32-ptr!]
@@ -3046,7 +3047,9 @@ OS-draw-grad-pen-old: func [
 		GdipCreatePathGradientFromPath n :brush
 		GdipDeletePath n
 		GdipSetPathGradientCenterColor brush color/value
-		GdipSetPathGradientCenterPointI brush as tagPOINT :x
+		ptv/x: as integer! offset/x
+		ptv/y: as integer! offset/y
+		GdipSetPathGradientCenterPointI brush ptv
 		reverse-int-array color count
 		n: count - 1
 		start: 2
