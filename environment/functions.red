@@ -400,7 +400,7 @@ load: function [
 		file!	[
 			suffix: suffix? source
 			foreach [name codec] system/codecs [
-				if (find codec/suffixes suffix) [		;@@ temporary required until dyn-stack implemented
+				if find codec/suffixes suffix [
 					return do [codec/decode source]
 				]
 			]
@@ -411,7 +411,7 @@ load: function [
 			either source/1 = 200 [
 				foreach [name codec] system/codecs [
 					foreach mime codec/mime-type [
-						if (find source/2/Content-Type mold mime) [
+						if find source/2/Content-Type mold mime [
 							return do [codec/decode source/3]
 						]
 					]
