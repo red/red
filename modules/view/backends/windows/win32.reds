@@ -699,6 +699,7 @@ tagMINMAXINFO: alias struct! [
 ]
 
 wndproc-cb!: alias function! [
+	[stdcall]
 	hWnd	[handle!]
 	msg		[integer!]
 	wParam	[integer!]
@@ -707,6 +708,7 @@ wndproc-cb!: alias function! [
 ]
 
 timer-cb!: alias function! [
+	[stdcall]
 	hWnd	[handle!]
 	msg		[integer!]
 	idEvent	[int-ptr!]

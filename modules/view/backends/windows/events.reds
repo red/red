@@ -1016,6 +1016,7 @@ update-window: func [
 ]
 
 TimerProc: func [
+	[stdcall]
 	hWnd   [handle!]
 	msg	   [integer!]
 	id	   [int-ptr!]
@@ -1026,6 +1027,7 @@ TimerProc: func [
 ]
 
 WndProc: func [
+	[stdcall]
 	hWnd	[handle!]
 	msg		[integer!]
 	wParam	[integer!]

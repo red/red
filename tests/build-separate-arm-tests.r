@@ -84,7 +84,8 @@ foreach file all-tests [
     	to-local-file test-file	
     ]
     clear output
-    call/output cmd output
+    compilation_status: call/output cmd output
+    if compilation-status <> 0 [ quit/return compilation-status ]
     print output
 ]
 

@@ -70,27 +70,8 @@ string: context [
 		len		[integer!]
 		e		[int-ptr!]
 		return: [float!]
-		/local
-			s0	[byte-ptr!]
-			f	[float!]
 	][
-		f: strtod s as byte-ptr! e
-		e/value: either len > (e/value - as-integer s) [
-			s0: s
-			if any [s/1 = #"-" s/1 = #"+"] [s: s + 1]
-			if s/3 = #"#" [						;-- 1.#NaN, -1.#INF" or "1.#INF
-				if any [s/4 = #"I" s/4 = #"i"] [
-					return either s0/1 = #"-" [
-						0.0 - float/+INF
-					][float/+INF]
-				]
-				if any [s/4 = #"N" s/4 = #"n"] [
-					return float/QNaN
-				]
-			]
-			-1
-		][0]
-		f
+		red-dtoa/string-to-float s s + len e
 	]
 
 	byte-to-hex: func [
@@ -355,8 +336,8 @@ string: context [
 		while [head < tail][
 			c1: get-char head unit
 			unless case? [
-				c1: case-folding/folding-case c1 yes	;-- uppercase c1
-				cp: case-folding/folding-case cp yes	;-- uppercase cp
+				c1: case-folding/change-char c1 yes	;-- uppercase c1
+				cp: case-folding/change-char cp yes	;-- uppercase cp
 			]
 			if c1 = cp [return true]
 			head: head + skip
@@ -723,6 +704,7 @@ string: context [
 			c2	  [integer!]
 			lax?  [logic!]
 			same? [logic!]
+			sc	  [red-slice!]
 	][
 		same?: all [
 			str1/node = str2/node
@@ -741,8 +723,14 @@ string: context [
 		head1: either TYPE_OF(str1) = TYPE_SYMBOL [0][str1/head]
 		head2: either TYPE_OF(str2) = TYPE_SYMBOL [0][str2/head]
 		size1: (as-integer s1/tail - s1/offset) >> (log-b unit1) - head1
-		size2: (as-integer s2/tail - s2/offset) >> (log-b unit2) - head2
-		end: as byte-ptr! s2/tail							;-- only one "end" is needed
+		sc: as red-slice! str2
+		either all [TYPE_OF(sc) = TYPE_SLICE sc/length >= 0][
+			size2: sc/length
+			end: (as byte-ptr! s2/offset) + (head2 + size2 << (log-b unit2))
+		][
+			size2: (as-integer s2/tail - s2/offset) >> (log-b unit2) - head2
+			end: as byte-ptr! s2/tail						;-- only one "end" is needed
+		]
 
 		either match? [
 			if zero? size2 [
@@ -783,8 +771,8 @@ string: context [
 				UCS-4  [p4: as int-ptr! p2 c2: p4/1]
 			]
 			if lax? [
-				c1: case-folding/folding-case c1 yes	;-- uppercase c1
-				c2: case-folding/folding-case c2 yes	;-- uppercase c2
+				c1: case-folding/change-char c1 yes	;-- uppercase c1
+				c2: case-folding/change-char c2 yes	;-- uppercase c2
 			]
 			p1: p1 + unit1
 			p2: p2 + unit2
@@ -888,8 +876,8 @@ string: context [
 				if op <> COMP_STRICT_EQUAL [
 					if all [65 <= c1 c1 <= 90][c1: c1 + 32]	;-- lowercase c1
 					if all [65 <= c2 c2 <= 90][c2: c2 + 32] ;-- lowercase c2
-					c1: case-folding/folding-case c1 yes	;-- uppercase c1
-					c2: case-folding/folding-case c2 yes	;-- uppercase c2
+					c1: case-folding/change-char c1 yes	;-- uppercase c1
+					c2: case-folding/change-char c2 yes	;-- uppercase c2
 				]
 				c1 = c2
 			]
@@ -1630,8 +1618,8 @@ string: context [
 		c1: (as-integer p1/2) << 8 + p1/1
 		c2: (as-integer p2/2) << 8 + p2/1
 		if op = COMP_EQUAL [
-			c1: case-folding/folding-case c1 yes	;-- uppercase c1
-			c2: case-folding/folding-case c2 yes	;-- uppercase c2
+			c1: case-folding/change-char c1 yes	;-- uppercase c1
+			c2: case-folding/change-char c2 yes	;-- uppercase c2
 		]
 		either zero? flags [c1 - c2][c2 - c1]
 	]
@@ -1652,8 +1640,8 @@ string: context [
 		p4: as int-ptr! p2
 		c2: p4/1
 		if op = COMP_EQUAL [
-			c1: case-folding/folding-case c1 yes	;-- uppercase c1
-			c2: case-folding/folding-case c2 yes	;-- uppercase c2
+			c1: case-folding/change-char c1 yes	;-- uppercase c1
+			c2: case-folding/change-char c2 yes	;-- uppercase c2
 		]
 		either zero? flags [c1 - c2][c2 - c1]
 	]
@@ -1840,7 +1828,7 @@ string: context [
 				char: as red-char! value
 				c2: char/value
 				if case? [
-					c2: case-folding/folding-case c2 yes ;-- uppercase c2
+					c2: case-folding/change-char c2 yes ;-- uppercase c2
 				]
 			]
 			TYPE_BITSET [
@@ -1897,7 +1885,7 @@ string: context [
 					UCS-4  [p4: as int-ptr! buffer c1: p4/1]
 				]
 				if case? [
-					c1: case-folding/folding-case c1 yes ;-- uppercase c1
+					c1: case-folding/change-char c1 yes ;-- uppercase c1
 				]
 				either bs? [
 					either c1 < sz [
@@ -1925,38 +1913,19 @@ string: context [
 				]
 				p2: pattern
 				until [									;-- series comparison
-					either unit = unit2 [
-						switch unit [
-							Latin1 [
-								c1: as-integer p1/1
-								c2: as-integer p2/1
-							]
-							UCS-2  [
-								c1: (as-integer p1/2) << 8 + p1/1
-								c2: (as-integer p2/2) << 8 + p2/1
-							]
-							UCS-4  [
-								p4: as int-ptr! p1
-								c1: p4/1
-								p4: as int-ptr! p2
-								c2: p4/1
-							]
-						]
-					][
-						switch unit [
-							Latin1 [c1: as-integer p1/1]
-							UCS-2  [c1: (as-integer p1/2) << 8 + p1/1]
-							UCS-4  [p4: as int-ptr! p1 c1: p4/1]
-						]
-						switch unit2 [
-							Latin1 [c2: as-integer p2/1]
-							UCS-2  [c2: (as-integer p2/2) << 8 + p2/1]
-							UCS-4  [p4: as int-ptr! p2 c2: p4/1]
-						]
+					switch unit [
+						Latin1 [c1: as-integer p1/1]
+						UCS-2  [c1: (as-integer p1/2) << 8 + p1/1]
+						UCS-4  [p4: as int-ptr! p1 c1: p4/1]
+					]
+					switch unit2 [
+						Latin1 [c2: as-integer p2/1]
+						UCS-2  [c2: (as-integer p2/2) << 8 + p2/1]
+						UCS-4  [p4: as int-ptr! p2 c2: p4/1]
 					]
 					if case? [
-						c1: case-folding/folding-case c1 yes	;-- uppercase c1
-						c2: case-folding/folding-case c2 yes	;-- uppercase c2
+						c1: case-folding/change-char c1 yes	;-- uppercase c1
+						c2: case-folding/change-char c2 yes	;-- uppercase c2
 					]
 					found?: c1 = c2
 					

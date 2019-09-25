@@ -18,6 +18,7 @@ Red/System [
 
 #define A_N_THREADS		100
 #define A_N_ITERS		100000
+#define A_QE_SIZE		8192
 
 #define COND_CC [#if OS <> 'Windows [[cdecl]]]
 
@@ -32,7 +33,9 @@ Red/System [
 			return:	[integer!]
 		][
 			loop A_N_ITERS [
-				until [queue/push qe as int-ptr! 1]
+				while [not queue/push qe as int-ptr! 1][
+					thread/yield
+				]
 			]
 			0
 		]
@@ -46,10 +49,10 @@ Red/System [
 		][
 			n: 0
 			loop A_N_ITERS [
-				until [
+				while [
 					ret: as-integer queue/pop qe
-					ret <> 0
-				]
+					zero? ret
+				][thread/yield]
 				n: n + ret
 			]
 			n
@@ -62,7 +65,7 @@ Red/System [
 				ret		[integer!]
 				qe		[queue!]
 		][
-			qe: queue/create 1024 * 8
+			qe: queue/create A_QE_SIZE
 			threads: system/stack/allocate 64
 			n: 1
 			until [			;-- start producer and consumer threads
@@ -91,7 +94,9 @@ Red/System [
 			return:	[integer!]
 		][
 			loop A_N_ITERS * 31 [
-				until [queue/s-push qe as int-ptr! 1]
+				while [not queue/s-push qe as int-ptr! 1][
+					thread/yield
+				]
 			]
 			0
 		]
@@ -103,7 +108,7 @@ Red/System [
 				ret		[integer!]
 				qe		[queue!]
 		][
-			qe: queue/create 1024 * 8
+			qe: queue/create A_QE_SIZE
 			threads: system/stack/allocate 32
 			n: 1
 			until [			;-- start consumer threads
@@ -124,6 +129,59 @@ Red/System [
 		]
 
 		run-queue-test-2
+
+	--test-- "queue test 3 - single consumer"
+		s-consumer-func: func [
+			COND_CC
+			qe		[queue!]
+			return:	[integer!]
+			/local
+				n	[integer!]
+				ret [integer!]
+				val [integer!]
+		][
+			ret: 1
+			loop 31 [
+				n: 0
+				loop A_N_ITERS [
+					while [
+						val: as-integer queue/s-pop qe
+						zero? val
+					][thread/yield]
+					n: n + val
+				]
+				if n <> A_N_ITERS [ret: 0]
+			]
+			ret
+		]
+
+		run-queue-test-3: func [
+			/local
+				threads [int-ptr!]
+				n		[integer!]
+				ret		[integer!]
+				qe		[queue!]
+		][
+			qe: queue/create A_QE_SIZE
+			threads: system/stack/allocate 32
+
+			;-- start consumer thread
+			threads/1: as-integer thread/start as int-ptr! :s-consumer-func as int-ptr! qe 0
+
+			n: 2
+			until [			;-- start producer threads
+				threads/n: as-integer thread/start as int-ptr! :producer-func as int-ptr! qe 0
+				n: n + 1
+				n = 33
+			]
+
+			ret: 0
+			thread/wait as int-ptr! threads/1 -1 :ret
+
+			--assert ret = 1
+		]
+
+		run-queue-test-3
 
 ===end-group===
 

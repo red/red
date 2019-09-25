@@ -402,6 +402,7 @@ update-layered-window: func [
 ]
 
 BaseInternalWndProc: func [
+	[stdcall]
 	hWnd	[handle!]
 	msg		[integer!]
 	wParam	[integer!]
@@ -427,6 +428,7 @@ BaseInternalWndProc: func [
 ]
 
 BaseWndProc: func [
+	[stdcall]
 	hWnd	[handle!]
 	msg		[integer!]
 	wParam	[integer!]

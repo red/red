@@ -279,7 +279,18 @@ collector: context [
 	]
 	
 	do-mark-sweep: func [
-		/local s [series!] p [int-ptr!] obj [red-object!] w [red-word!] cb file saved tm tm1 buf
+		/local
+			s		[series!]
+			p		[int-ptr!]
+			obj		[red-object!]
+			w		[red-word!]
+			cb
+		#if debug? = yes [
+			file	[c-string!]
+			saved	[integer!]
+			buf		[c-string!]
+			tm tm1
+		]
 	][
 		#if debug? = yes [if verbose > 1 [
 			#if OS = 'Windows [platform/dos-console?: no]

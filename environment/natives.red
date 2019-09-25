@@ -198,7 +198,7 @@ compose: make native! [[
 
 get: make native! [[
 		"Returns the value a word refers to"
-		word	[word! path! object!]
+		word	[any-word! refinement! path! object!]
 		/any  "If word has no value, return UNSET rather than causing an error"
 		/case "Use case-sensitive comparison (path only)"
 		return: [any-type!]
@@ -880,20 +880,30 @@ browse: make native! [[
 	#get-definition NAT_BROWSE
 ]
 
+compress: make native! [[
+		"compresses data. return GZIP format (RFC 1952) by default"
+		data		[any-string! binary!]
+		/zlib		"Return ZLIB format (RFC 1950)"
+		/deflate	"Return DEFLATE format (RFC 1951)"
+	]
+	#get-definition NAT_COMPRESS
+]
+
 decompress: make native! [[
 		"Decompresses data. Data in GZIP format (RFC 1952) by default"
 		data		[binary!]
 		/zlib		"Data in ZLIB format (RFC 1950)"
-		size		[integer!] "Uncompressed data size"
+		size		[integer!] "Uncompressed data size. Use 0 if don't know"
 		/deflate	"Data in DEFLATE format (RFC 1951)"
-		size		[integer!] "Uncompressed data size"
+		size		[integer!] "Uncompressed data size. Use 0 if don't know"
 	]
 	#get-definition NAT_DECOMPRESS
 ]
 
 recycle: make native! [[
-		/on
-		/off
+		"Recycles unused memory"
+		/on		"Turns on garbage collector"
+		/off	"Turns off garbage collector"
 	]
 	#get-definition NAT_RECYCLE
 ]

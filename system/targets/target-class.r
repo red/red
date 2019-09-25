@@ -191,6 +191,7 @@ target-class: context [
 					char! 	  ['imm]
 					integer!  ['imm]
 					decimal!  ['imm]
+					issue!    ['imm]
 					word! 	  ['ref] 				;-- value needs to be fetched
 					get-word! ['ref]
 					block!    ['reg] 				;-- value in accumulator (or in alt-acc)

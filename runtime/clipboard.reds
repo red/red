@@ -64,6 +64,9 @@ clipboard: context [
 					str			[byte-ptr!]
 					return:		[integer!]
 				]
+				Sleep: "Sleep" [
+					dwMilliseconds	[integer!]
+				]
 			]
 		]
 
@@ -81,13 +84,20 @@ clipboard: context [
 			/local
 				hMem	[integer!]
 				p		[byte-ptr!]
-				cp		[integer!]
+				ok		[logic!]
 				val		[red-value!]
 		][
 			p: null
 			val: as red-value! none-value
 
-			unless OpenClipboard main-hWnd [return as red-value! false-value]
+			;-- OpenClipboard often fails on W7 after an EmptyClipboard call, so be persistent
+			ok: yes
+			loop 3 [
+				unless ok [Sleep 1]
+				ok: OpenClipboard main-hWnd
+				if ok [break]
+			]
+			unless ok [return as red-value! false-value]
 
 			hMem: GetClipboardData CF_UNICODETEXT
 			if hMem <> 0 [
@@ -106,14 +116,16 @@ clipboard: context [
 			return:		[logic!]
 			/local
 				res		[integer!]
+				ok		[logic!]
 				len		[integer!]
 				hMem	[integer!]
 				p		[byte-ptr!]
 				p1		[byte-ptr!]
 		][
-			unless OpenClipboard main-hWnd [return false]
-			EmptyClipboard
+			hMem: 0
 
+			;-- let the memory stuff come before OpenClipboard
+			;-- this delays OpenClipboard an extra bit, resulting in lesser failure rate
 			switch TYPE_OF(data) [
 				TYPE_STRING [
 					len: -1
@@ -127,6 +139,22 @@ clipboard: context [
 				default		[0]
 			]
 
+			;-- OpenClipboard often fails on W7 after an EmptyClipboard call, so be persistent
+			ok: yes
+			loop 3 [
+				unless ok [Sleep 1]
+				ok: OpenClipboard main-hWnd
+				if ok [break]
+			]
+			unless ok [									;-- clean up after a (rare) failure
+				unless hMem = 0 [
+					GlobalLock hMem
+					GlobalFree hMem
+					GlobalUnlock hMem
+				]
+				return false
+			]
+			EmptyClipboard
 			res: SetClipboardData CF_UNICODETEXT hMem
 			CloseClipboard
 			as logic! res

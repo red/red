@@ -269,7 +269,7 @@ emitter: make-profilable context [
 				ptr: tail data-buf
 				value: compiler/unbox value
 				if integer? value [value: to decimal! value]
-				unless decimal? value [value: 0.0]
+				unless find [decimal! issue!] type?/word value [value: 0.0]
 				append ptr either type = 'float32! [
 					IEEE-754/to-binary32/rev value	;-- stored in little-endian
 				][
@@ -330,8 +330,7 @@ emitter: make-profilable context [
 			]
 			array! [
 				type: first compiler/get-type value/1
-				if find [float! float64!] type [pad-data-buf 4] ;-- optional 32-bit padding to ensure /0 points to the length slot
-				store-global length? value 'integer! none	;-- stores array size first
+				if find [float! float64!] type [pad-data-buf 8] ;-- optional 32-bit padding to ensure /0 points to the length slot
 				ptr: tail data-buf							;-- ensures array pointer skips size info
 				f64?: no
 				foreach item value [						;-- mixed types, use 32/64-bit for each slot
@@ -711,15 +710,36 @@ emitter: make-profilable context [
 		round/ceiling (member-offset? spec none) / target/stack-width
 	]
 	
-	arguments-size?: func [locals [block!] /push /local size name type width offset struct-ptr?][
-		size: pick [4 0] to logic! struct-ptr?: all [
-			ret: select locals compiler/return-def
+	struct-ptr?: func [spec [block!] /local ret][
+		all [
+			ret: select spec compiler/return-def
 			'value = last ret
-			2 < struct-slots? ret
+			any [
+				all [
+					target/target = 'ARM
+					all [block? spec/1 find spec/1 'cdecl]
+					any [
+						all [
+							compiler/job/ABI = 'soft-float
+							1 < struct-slots? ret
+						]
+						all [
+							compiler/job/ABI = 'hard-float
+							2 < struct-slots? ret
+							not first target/homogeneous-floats? spec
+						]
+					]
+				]
+				2 < struct-slots? ret
+			]
 		]
+	]
+	
+	arguments-size?: func [locals [block!] /push /local size name type width offset ret-ptr?][
+		size: pick 4x0 ret-ptr?: to logic! struct-ptr? locals
 		if push [
 			clear stack
-			if struct-ptr? [repend stack [<ret-ptr> target/args-offset]]
+			if ret-ptr? [repend stack [<ret-ptr> target/args-offset]]
 		]
 		width: target/stack-width
 		offset: target/args-offset

@@ -923,7 +923,7 @@ context [
 			first  get-segment-info '__DATA
 			second get-segment-info '__DATA
 		
-		if job/show-func-map? [linker/show-funcs-map job entry-point-address? job]
+		if job/show-func-map? [linker/show-funcs-map job get-section-addr '__text]
 		
 		emit-page-aligned out job/sections/code/2
 		

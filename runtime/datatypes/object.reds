@@ -42,29 +42,12 @@ object: context [
 		]
 	]
 	
-	check-word: func [
-		value [red-value!]
-		/local
-			type [integer!]
-	][
-		type: TYPE_OF(value)
-		unless any [									;@@ replace with ANY_WORD?
-			type = TYPE_WORD
-			type = TYPE_LIT_WORD
-			type = TYPE_GET_WORD
-			type = TYPE_SET_WORD
-		][
-			fire [TO_ERROR(script invalid-type) datatype/push type]
-		]
-	]
-	
 	rs-find: func [
 		obj		 [red-object!]
 		value	 [red-value!]
 		return:	 [integer!]								;-- -1 if not found, else index
 		/local
 			word [red-word!]
-			ctx	 [node!]
 	][
 		assert any [									;@@ replace with ANY_WORD?
 			TYPE_OF(value) = TYPE_WORD
@@ -73,8 +56,7 @@ object: context [
 			TYPE_OF(value) = TYPE_SET_WORD
 		]
 		word: as red-word! value
-		ctx: obj/ctx
-		 _context/find-word TO_CTX(ctx) word/symbol yes
+		 _context/find-word GET_CTX(obj) word/symbol yes
 	]
 	
 	rs-select: func [
@@ -1093,6 +1075,9 @@ object: context [
 					vals: vals + 1
 				]
 			]
+			field = words/owner [
+				return as red-block! logic/box ctx/header and flag-owner <> 0
+			]
 			true [
 				--NOT_IMPLEMENTED--						;@@ raise error
 			]
@@ -1385,31 +1370,6 @@ object: context [
 		new
 	]
 	
-	find: func [
-		obj		 [red-object!]
-		value	 [red-value!]
-		part	 [red-value!]
-		only?	 [logic!]
-		case?	 [logic!]
-		same?	 [logic!]
-		any?	 [logic!]
-		with-arg [red-string!]
-		skip	 [red-integer!]
-		last?	 [logic!]
-		reverse? [logic!]
-		tail?	 [logic!]
-		match?	 [logic!]
-		return:	 [red-value!]
-		/local
-			id	 [integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "object/find"]]
-		
-		check-word value
-		id: rs-find obj value
-		as red-value! either id = -1 [none-value][true-value]
-	]
-	
 	select: func [
 		obj		 [red-object!]
 		value	 [red-value!]
@@ -1423,10 +1383,20 @@ object: context [
 		last?	 [logic!]
 		reverse? [logic!]
 		return:	 [red-value!]
+		/local
+			type [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/select"]]
 		
-		check-word value
+		type: TYPE_OF(value)
+		unless any [									;@@ replace with ANY_WORD?
+			type = TYPE_WORD
+			type = TYPE_LIT_WORD
+			type = TYPE_GET_WORD
+			type = TYPE_SET_WORD
+		][
+			fire [TO_ERROR(script invalid-type) datatype/push type]
+		]
 		rs-select obj value
 	]
 	
@@ -1515,7 +1485,7 @@ object: context [
 			null			;change
 			null			;clear
 			:copy
-			:find
+			null			;find
 			null			;head
 			null			;head?
 			null			;index?

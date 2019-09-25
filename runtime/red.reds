@@ -16,6 +16,7 @@ red: context [
 	#include %definitions.reds
 	#include %macros.reds
 	#include %tools.reds
+	#include %dtoa.reds
 	
 	#switch OS [										;-- loading OS-specific bindings
 		Windows  [#include %platform/win32.reds]
@@ -126,7 +127,7 @@ red: context [
 	#include %redbin.reds
 	#include %utils.reds
 	#include %call.reds
-	#include %inflate.reds
+	#include %compress.reds
 	#include %collector.reds
 
 	_root:	 	declare red-block!						;-- statically alloc root cell for bootstrapping

@@ -397,6 +397,7 @@ collect-camera: func [
 ]
 
 CameraWndProc: func [
+	[stdcall]
 	hWnd	[handle!]
 	msg		[integer!]
 	wParam	[integer!]

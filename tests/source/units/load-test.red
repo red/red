@@ -64,6 +64,9 @@ Red [
 	--test-- "load-44"	--assert 1.3			== load "1,3"
 	--test-- "load-45"	--assert 2147483648.0	== load "2147483648"
 	--test-- "load-46"	--assert -2147483649.0	== load "-2147483649"
+	;-- issue #3243
+	f3243: 11.651178950846456
+	--test-- "load-47"	--assert f3243 == load mold f3243
 
 ===end-group===
 

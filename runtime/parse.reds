@@ -66,9 +66,9 @@ parser: context [
 		value: base
 		switch TYPE_OF(input) [
 			TYPE_BINARY [
-				int: as red-integer! base
-				int/header: TYPE_INTEGER
-				int/value: binary/rs-abs-at as red-binary! input offset
+				int2: as red-integer! base
+				int2/header: TYPE_INTEGER
+				int2/value: binary/rs-abs-at as red-binary! input offset
 			]
 			TYPE_STRING 								;TBD: replace with ANY_STRING
 			TYPE_FILE
@@ -837,7 +837,7 @@ parser: context [
 		s: GET_BUFFER(series)
 		if s/offset = s/tail [gc-saved: collector/active? collector/active?: no]
 
-		if OPTION?(fun) [fun-locs: _function/count-locals fun/spec 0]
+		if OPTION?(fun) [fun-locs: _function/count-locals fun/spec 0 no]
 		
 		saved?: save-stack
 		base: stack/push*								;-- slot on stack for COPY/SET operations (until OPTION?() is fixed)

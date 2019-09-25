@@ -138,6 +138,7 @@ system-dialect: make-profilable context [
 		]
 		
 		comparison-op: [= <> < > <= >=]
+		float-special: [#INF #INF- #NaN #0-]
 		
 		functions: to-hash compose [
 		;--Name--Arity--Type----Cc--Specs--		   Cc = Calling convention
@@ -649,6 +650,8 @@ system-dialect: make-profilable context [
 			reduce [count array]
 		]
 		
+		variadic?: func [value][all [issue? value value/1 <> #"."]]
+		
 		any-path?: func [value][
 			find [path! set-path! lit-path!] type?/word value
 		]
@@ -869,11 +872,19 @@ system-dialect: make-profilable context [
 						pointer! [reduce [value/1 value/2]]
 					][
 						all [
-							find [float! float64! c-string!] first type: get-type value/1
+							any [
+								find [function! c-string!] first type: get-type value/1
+								find value get-word!
+								find value string!
+							]
 							type: [integer!]
 						]
-						if type/1 = 'function! [type: [integer!]] ;-- forces pointer! [integer!] if function reference
 						next next reduce ['array! length? value 'pointer! type]	;-- hide array size
+					]
+				]
+				issue!	 [
+					either find float-special next value [[float!]][
+						throw-error ["invalid special float value:" mold value]
 					]
 				]
 				none!	 [none-type]					;-- no type case (func with no return value)
@@ -1438,6 +1449,7 @@ system-dialect: make-profilable context [
 				]
 				all [
 					type
+					type/1
 					any [
 						find type-sets expected/1
 						find type-sets type/1
@@ -1495,15 +1507,18 @@ system-dialect: make-profilable context [
 			]
 			list: clear []
 			forall args [
-				either all [decimal? args/1 spec/2/1 = 'float32!][
+				append/only list either all [
+					find [decimal! issue!] type?/word args/1
+					spec/2/1 = 'float32!
+				][
 					args/1:	make action-class [			;-- inject type casting to float32!
 						action: 'type-cast
 						type: [float32!]
 						data: args/1					;-- literal float!
 					]
-					append/only list spec/2				;-- pass-thru for float! values used as float32! arguments
+					spec/2				;-- pass-thru for float! values used as float32! arguments
 				][
-					append/only list check-expected-type name args/1 spec/2
+					check-expected-type name args/1 spec/2
 				]
 				spec: skip spec	2
 			]
@@ -3139,7 +3154,7 @@ system-dialect: make-profilable context [
 				types slots
 		][
 			name: decorate-fun name
-			list: either issue? args/1 [args/2][		;-- bypass type-checking for variable arity calls
+			list: either variadic? args/1 [args/2][		;-- bypass type-checking for variable arity calls
 				check-arguments-type name args
 				args
 			]
@@ -3553,7 +3568,7 @@ system-dialect: make-profilable context [
 				string!		[do pass]
 				decimal!	[do pass]
 				block!		[also preprocess-array pc/1 pc: next pc]
-				issue!		[comp-directive]
+				issue!		[either pc/1/1 = #"." [do pass][comp-directive]]
 			][
 				throw-error "datatype not allowed"
 			]
@@ -3597,7 +3612,7 @@ system-dialect: make-profilable context [
 			block-level: 0
 			while [not tail? pc][
 				case [
-					issue? pc/1 [comp-directive]
+					all [issue? pc/1 pc/1/1 <> #"."][comp-directive]
 					all [
 						set-word? pc/1
 						find [func function] pc/2

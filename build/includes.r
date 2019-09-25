@@ -81,12 +81,14 @@ write %build/bin/sources.r set-cache [
 		%case-folding.reds
 		%clipboard.reds
 		%collector.reds
+		%compress.reds
 		%crush.reds
 		%crypto.reds
 		%debug-tools.reds
 		%definitions.reds
+		%deflate.reds
+		%dtoa.reds
 		%hashtable.reds
-		%inflate.reds
 		%interpreter.reds
 		%macros.reds
 		%natives.reds
