@@ -656,7 +656,7 @@ system/view: context [
 		
 		set/any 'result do-actor face event event/type
 		
-		if all [face/parent :result <> 'done][
+		if all [face/parent not find [done continue] :result][
 			set/any 'result system/view/awake/with event face/parent ;-- event bubbling
 			if :result = 'stop [return 'stop]
 		]
