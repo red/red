@@ -574,18 +574,6 @@ debug-connect-level: DEBUG_CONNECT_NONE
 
 debug-connect?: func [level [integer!] return: [logic!]][debug-connect-level and level <> 0]
 
-
-respond-event?: func [
-	actors		[red-object!]
-	type		[red-word!]
-	return:		[logic!]
-][
-	if null? actors/ctx [
-		return false
-	]
-	-1 <> object/rs-find actors as red-value! type
-]
-
 connect-container-events: func [
 	widget		[handle!]
 	evt-type	[c-string!]
@@ -633,70 +621,42 @@ connect-common-events: function [
 ][
 	assert widget <> null
 
-	if any [
-		respond-event? actors on-down
-		respond-event? actors on-mid-down
-		respond-event? actors on-alt-down
-		respond-event? actors on-aux-down
-	][
-		gtk_widget_add_events widget GDK_BUTTON_PRESS_MASK
-		if container-type? sym [
-			;; Bubbling does not work for rich-text so delegation to the parent with EVT_DISPATCH
-			connect-container-events widget "button-press-event"
-		]
-		gobj_signal_connect(widget "button-press-event" :mouse-button-press-event face/ctx)
-	]
-	if respond-event? actors on-over [
-		gtk_widget_add_events widget GDK_BUTTON1_MOTION_MASK or GDK_POINTER_MOTION_MASK
-		if container-type? sym [
-			;; Bubbling does not work for rich-text so delegation to the parent with EVT_DISPATCH
-			connect-container-events widget "motion-notify-event"
-		]
-		gobj_signal_connect(widget "motion-notify-event" :mouse-motion-notify-event face/ctx)
-	]
 
-	if any [
-		sym = field
-		sym = area
-		respond-event? actors on-up
-		respond-event? actors on-mid-up
-		respond-event? actors on-alt-up
-		respond-event? actors on-aux-up
-	][
-		gtk_widget_add_events widget  GDK_BUTTON_RELEASE_MASK
-		if container-type? sym [
-			;; Bubbling does not work for rich-text so delegation to the parent with EVT_DISPATCH
-			connect-container-events widget "button-release-event"
-		]
-		gobj_signal_connect(widget "button-release-event" :mouse-button-release-event face/ctx)
+	gtk_widget_add_events widget GDK_BUTTON_PRESS_MASK
+	if container-type? sym [
+		;; Bubbling does not work for rich-text so delegation to the parent with EVT_DISPATCH
+		connect-container-events widget "button-press-event"
 	]
+	gobj_signal_connect(widget "button-press-event" :mouse-button-press-event face/ctx)
+	
+	gtk_widget_add_events widget GDK_BUTTON1_MOTION_MASK or GDK_POINTER_MOTION_MASK
+	if container-type? sym [
+		;; Bubbling does not work for rich-text so delegation to the parent with EVT_DISPATCH
+		connect-container-events widget "motion-notify-event"
+	]
+	gobj_signal_connect(widget "motion-notify-event" :mouse-motion-notify-event face/ctx)
 
-	if any [
-		respond-event? actors on-key
-		respond-event? actors on-key-down
-		respond-event? actors on-focus
-		respond-event? actors on-enter
-	][
-		gtk_widget_add_events widget  GDK_KEY_PRESS_MASK or GDK_FOCUS_CHANGE_MASK
-		gobj_signal_connect(widget "key-press-event" :key-press-event face/ctx)
-	]
 
-	if any [
-		respond-event? actors on-key-up
-		respond-event? actors on-unfocus
-	][
-		gtk_widget_add_events widget GDK_KEY_RELEASE_MASK
-		gobj_signal_connect(widget "key-release-event" :key-release-event face/ctx)
+	gtk_widget_add_events widget  GDK_BUTTON_RELEASE_MASK
+	if container-type? sym [
+		;; Bubbling does not work for rich-text so delegation to the parent with EVT_DISPATCH
+		connect-container-events widget "button-release-event"
 	]
+	gobj_signal_connect(widget "button-release-event" :mouse-button-release-event face/ctx)
 
-	if respond-event? actors on-wheel [
-		gtk_widget_add_events widget GDK_SCROLL_MASK
-		if container-type? sym [
-			;; Bubbling does not work for rich-text so delegation to the parent with EVT_DISPATCH
-			connect-container-events widget "scroll-event"
-		]
-		gobj_signal_connect(widget "scroll-event" :widget-scroll-event face/ctx)
+	gtk_widget_add_events widget  GDK_KEY_PRESS_MASK or GDK_FOCUS_CHANGE_MASK
+	gobj_signal_connect(widget "key-press-event" :key-press-event face/ctx)
+
+	gtk_widget_add_events widget GDK_KEY_RELEASE_MASK
+	gobj_signal_connect(widget "key-release-event" :key-release-event face/ctx)
+
+
+	gtk_widget_add_events widget GDK_SCROLL_MASK
+	if container-type? sym [
+		;; Bubbling does not work for rich-text so delegation to the parent with EVT_DISPATCH
+		connect-container-events widget "scroll-event"
 	]
+	gobj_signal_connect(widget "scroll-event" :widget-scroll-event face/ctx)
 ]
 
 connect-focus-events: function [
@@ -705,12 +665,8 @@ connect-focus-events: function [
 	actors		[red-object!]
 	sym			[integer!]
 ][
-	if respond-event? actors on-focus [
-		gobj_signal_connect(widget "focus-in-event" :focus-in-event face/ctx)
-	]
-	if respond-event? actors on-unfocus [
-		gobj_signal_connect(widget "focus-out-event" :focus-out-event face/ctx)
-	]
+	gobj_signal_connect(widget "focus-in-event" :focus-in-event face/ctx)
+	gobj_signal_connect(widget "focus-out-event" :focus-out-event face/ctx)
 ]
 
 connect-notify-events: function [
@@ -720,12 +676,10 @@ connect-notify-events: function [
 	sym			[integer!]
 ][
 	assert widget <> null
-	if respond-event? actors on-over [
-		if sym = text [widget: _widget? widget]
-		gtk_widget_add_events widget GDK_ENTER_NOTIFY_MASK or GDK_LEAVE_NOTIFY_MASK
-		gobj_signal_connect(widget "enter-notify-event" :widget-enter-notify-event face/ctx)
-		gobj_signal_connect(widget "leave-notify-event" :widget-leave-notify-event face/ctx)
-	]
+	if sym = text [widget: _widget? widget]
+	gtk_widget_add_events widget GDK_ENTER_NOTIFY_MASK or GDK_LEAVE_NOTIFY_MASK
+	gobj_signal_connect(widget "enter-notify-event" :widget-enter-notify-event face/ctx)
+	gobj_signal_connect(widget "leave-notify-event" :widget-leave-notify-event face/ctx)
 ]
 
 connect-widget-events: function [
@@ -753,10 +707,8 @@ connect-widget-events: function [
 			gobj_signal_connect(widget "toggled" :button-toggled face/ctx)
 		]
 		sym = button [
-			if respond-event? actors on-click [
-				;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add button clicked " lf]]
-				gobj_signal_connect(widget "clicked" :button-clicked null)
-			]
+			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add button clicked " lf]]
+			gobj_signal_connect(widget "clicked" :button-clicked null)
 		]
 		sym = base [
 			gobj_signal_connect(widget "draw" :base-draw face/ctx)
@@ -823,13 +775,8 @@ connect-widget-events: function [
 			gtk_widget_set_focus_on_click widget yes
 		]
 		sym = tab-panel [
-			if any [
-				respond-event? actors on-select
-				respond-event? actors on-change
-			][
-				;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add tab-panel switch-page " lf]]
-				gobj_signal_connect(widget "switch-page" :tab-panel-switch-page face/ctx)
-			]
+			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add tab-panel switch-page " lf]]
+			gobj_signal_connect(widget "switch-page" :tab-panel-switch-page face/ctx)
 		]
 		sym = text-list [
 			;;; Mandatory and can respond to  (ON_SELECT or ON_CHANGE)
