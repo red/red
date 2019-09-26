@@ -72,73 +72,103 @@ tokenizer: context [
 		as byte-ptr! 0									;-- never reached, just make compiler happy
 	]
 	
-	scanner!: alias function! [s [byte-ptr!] end [byte-ptr!] return: [byte-ptr!]]
-
-
-	scan-string: func [s [byte-ptr!] end [byte-ptr!] return: [byte-ptr!]
-	;	/local
-	][
-		s
-	]
-
-	scan-alt-string: func [s [byte-ptr!] end [byte-ptr!] return: [byte-ptr!]
-	;	/local
-	][
-		s
-	]
-
-	scan-block: func [s [byte-ptr!] end [byte-ptr!] return: [byte-ptr!]
-	;	/local
-	][
-		s
-	]
-
-	scan-paren: func [s [byte-ptr!] end [byte-ptr!] return: [byte-ptr!]
-	;	/local
-	][
-		s
-	]
-
-	scan-comment: func [s [byte-ptr!] end [byte-ptr!] return: [byte-ptr!]
-	;	/local
-	][
-		s
-	]
-
-	scan-file: func [s [byte-ptr!] end [byte-ptr!] return: [byte-ptr!]
-	;	/local
-	][
-		s
+	#enum errors! [
+		LEX_ERR_STRING: 1
+		
+		LEX_ERROR										;-- keep it last
 	]
 	
-	scan-refinement: func [s [byte-ptr!] end [byte-ptr!] return: [byte-ptr!]
-	;	/local
-	][
-		s
-	]
-
-	scan-money: func [s [byte-ptr!] end [byte-ptr!] return: [byte-ptr!]
-	;	/local
-	][
-		s
-	]
-
-	scan-lesser: func [s [byte-ptr!] end [byte-ptr!] return: [byte-ptr!]
-	;	/local
-	][
-		s
-	]
-
-	scan-lit: func [s [byte-ptr!] end [byte-ptr!] return: [byte-ptr!]
-	;	/local
-	][
-		s
+	state!: alias struct! [
+		parent [red-block!]								;-- any-block! accepted
+		head   [byte-ptr!]
+		tail   [byte-ptr!]
+		pos    [byte-ptr!]
+		err	   [integer!]
 	]
 	
-	scan-get: func [s [byte-ptr!] end [byte-ptr!] return: [byte-ptr!]
+	scanner!: alias function! [state [state!] return: [byte-ptr!]]
+
+
+	scan-string: func [state [state!] return: [byte-ptr!]
+		/local
+			p [byte-ptr!]
+			e [byte-ptr!]
+			c [byte!]
+	][
+		p: state/pos
+		e: state/tail
+		while [c: p/value all [p < e c <> #"^""]][
+			either c = #"^^" [p: p + 2][
+				if c = #"^/" [state/pos: p throw LEX_ERR_STRING]
+				p: p + 1
+			]
+		]
+		
+		e: p
+		p: state/pos
+		;decode/converte the string
+		
+		p
+	]
+
+	scan-alt-string: func [state [state!] return: [byte-ptr!]
 	;	/local
 	][
-		s
+		null
+	]
+
+	scan-block: func [state [state!] return: [byte-ptr!]
+	;	/local
+	][
+		null
+	]
+
+	scan-paren: func [state [state!] return: [byte-ptr!]
+	;	/local
+	][
+		null
+	]
+
+	scan-comment: func [state [state!] return: [byte-ptr!]
+	;	/local
+	][
+		null
+	]
+
+	scan-file: func [state [state!] return: [byte-ptr!]
+	;	/local
+	][
+		null
+	]
+	
+	scan-refinement: func [state [state!] return: [byte-ptr!]
+	;	/local
+	][
+		null
+	]
+
+	scan-money: func [state [state!] return: [byte-ptr!]
+	;	/local
+	][
+		null
+	]
+
+	scan-lesser: func [state [state!] return: [byte-ptr!]
+	;	/local
+	][
+		null
+	]
+
+	scan-lit: func [state [state!] return: [byte-ptr!]
+	;	/local
+	][
+		null
+	]
+	
+	scan-get: func [state [state!] return: [byte-ptr!]
+	;	/local
+	][
+		null
 	]
 	
 	value-1st: [
@@ -157,28 +187,54 @@ tokenizer: context [
 		;else			:scan-word
 	]
 
-	scan-token: func [
-		src [byte-ptr!]
-		len [integer!]
+	scan-tokens: func [
+		state [state!]
 		/local
-			p	   [byte-ptr!]
-			end	   [byte-ptr!]
-			cp	   [integer!]
-			res	   [int-ptr!]
-			action [scanner!]
+			parent	[red-block!]
+			p		[byte-ptr!]
+			e		[byte-ptr!]
+			cp		[integer!]
+			res		[int-ptr!]
+			s		[series!]
+			do-scan [scanner!]
 	][
-		p: src
-		end: p + len
+		parent: state/parent
+		s:  GET_BUFFER(parent)
+		p:  state/pos
+		e:  state/tail
+		cp: 0
 
-		while [p < end][
-			cp: as-integer p/value
+		while [p < e][
+			p: decode-utf8-char p :cp
 			res: as int-ptr! value-1st/cp
 			either null? res [
 				p: p + 1
 			][
-				action: as scanner! res
-				p: action p + 1 end
+				do-scan: as scanner! res
+				state/pos: p + 1
+				p: do-scan state
 			]
+		]
+		state/pos: p
+	]
+	
+	scan: func [
+		dst [red-block!]								;-- destination block
+		src [byte-ptr!]									;-- UTF-8 buffer
+		len [integer!]									;-- buffer size in bytes
+		/local
+			stack [red-block!]
+			state [state! value]
+	][
+		state/parent: block/make-in dst 100
+		state/head: src
+		state/tail: src + len
+		state/pos:  src
+		state/err:  0
+		
+		catch LEX_ERROR [scan-tokens state]
+		if system/thrown > 0 [
+			0 ; error handling
 		]
 	]
 
