@@ -79,11 +79,14 @@ tokenizer: context [
 	]
 	
 	state!: alias struct! [
-		parent [red-block!]								;-- any-block! accepted
-		head   [byte-ptr!]
-		tail   [byte-ptr!]
-		pos    [byte-ptr!]
-		err	   [integer!]
+		parent   [red-block!]							;-- any-block! accepted
+		buffer	 [red-value!]							;-- special buffer for hatching any-blocks
+		buf-head [red-value!]
+		buf-tail [red-value!]
+		head     [byte-ptr!]
+		tail     [byte-ptr!]
+		pos      [byte-ptr!]
+		err	     [integer!]
 	]
 	
 	scanner!: alias function! [state [state!] return: [byte-ptr!]]
@@ -124,6 +127,12 @@ tokenizer: context [
 	]
 
 	scan-paren: func [state [state!] return: [byte-ptr!]
+	;	/local
+	][
+		null
+	]
+	
+	scan-paren-close: func [state [state!] return: [byte-ptr!]
 	;	/local
 	][
 		null
@@ -171,21 +180,104 @@ tokenizer: context [
 		null
 	]
 	
-	value-1st: [
+	scan-sharp: func [state [state!] return: [byte-ptr!]
+	;	/local
+	][
+		null
+	]
+	
+	#enum lexer-categories! [
+		LEX_EOF
+		LEX_BLANK
+		LEX_COMMA
+		LEX_COLON
+		LEX_NUMBER
+		LEX_WORD
+	]
+	
+	lex-table-template: [
+	;--- Code ------- 1st char ------------ Nth char ---
+		#"^(00)"							LEX_EOF
+		#"^(01)"							LEX_NO_OP
+		#"^(02)"							LEX_NO_OP
+		#"^(03)"							LEX_NO_OP
+		#"^(04)"							LEX_NO_OP
+		#"^(05)"							LEX_NO_OP
+		#"^(06)"							LEX_NO_OP
+		#"^(07)"							LEX_NO_OP
+		#"^(08)"							LEX_NO_OP
+		#"^(09)"							LEX_BLANK	;-- TAB
+		#"^(0A)"							LEX_BLANK	;-- LF
+		#"^(0B)"							LEX_NO_OP   
+		#"^(0C)"							LEX_NO_OP
+		#"^(0D)"							LEX_BLANK	;-- CR
+		#"^(0E)"							LEX_NO_OP
+		#"^(0F)"							LEX_NO_OP		
+		#"^(10)"							LEX_NO_OP
+		#"^(11)"							LEX_NO_OP		
+		#"^(12)"							LEX_NO_OP
+		#"^(13)"							LEX_NO_OP		
+		#"^(14)"							LEX_NO_OP		
+		#"^(15)"							LEX_NO_OP
+		#"^(16)"							LEX_NO_OP		
+		#"^(17)"							LEX_NO_OP		
+		#"^(18)"							LEX_NO_OP
+		#"^(19)"							LEX_NO_OP
+		#"^(1A)"							LEX_NO_OP
+		#"^(1B)"							LEX_NO_OP
+		#"^(1C)"							LEX_NO_OP		
+		#"^(1D)"							LEX_NO_OP
+		#"^(1E)"							LEX_NO_OP
+		#"^(1F)"							LEX_NO_OP
+		#"^(10)"							LEX_NO_OP		
+		
+		#" "								LEX_BLANK	;-- space
+		#"!"								LEX_WORD
 		#"^""			:scan-string
+		#"#"			:scan-sharp
+		#"$"			:scan-money
+		#"%"			:scan-file
+		#"&"								LEX_WORD
+		#"'"			:scan-lit
+		#"("			:scan-paren
+		#")"			:scan-paren-close
+		#"*"								LEX_WORD
+		#"+"								LEX_WORD
+		#","								LEX_COMMA
+		#"-"								LEX_WORD
+		#"."								LEX_WORD
+		#"/"			:scan-refinement
+		
+		#"0"								LEX_NUMBER
+		#"1"								LEX_NUMBER
+		#"2"								LEX_NUMBER
+		#"3"								LEX_NUMBER
+		#"4"								LEX_NUMBER
+		#"5"								LEX_NUMBER
+		#"6"								LEX_NUMBER
+		#"7"								LEX_NUMBER
+		#"8"								LEX_NUMBER
+		#"9"								LEX_NUMBER
+		
+		#":"			:scan-get
+		#";"			:scan-comment
+		#"<"			:scan-lesser
+		#"="								LEX_WORD
+		#">"								LEX_WORD
+		#"?"								LEX_WORD
+		
+		
+		
 		#"{"			:scan-alt-string
 		#"["			:scan-block
-		#"("			:scan-paren
-		#";"			:scan-comment
-		#"%"			:scan-file
-		#"/"			:scan-refinement
-		#"$"			:scan-money
-		#"<"			:scan-lesser
-		#"'"			:scan-lit
-		#":"			:scan-get
+		
+		
+		
 		;[#"0" - #"9"] 	:scan-digit
 		;else			:scan-word
 	]
+	
+	lex-table: as int-ptr! 0							;-- table created at run-time
 
 	scan-tokens: func [
 		state [state!]
@@ -194,7 +286,7 @@ tokenizer: context [
 			p		[byte-ptr!]
 			e		[byte-ptr!]
 			cp		[integer!]
-			res		[int-ptr!]
+			res		[integer!]
 			s		[series!]
 			do-scan [scanner!]
 	][
@@ -205,9 +297,13 @@ tokenizer: context [
 		cp: 0
 
 		while [p < e][
-			p: decode-utf8-char p :cp
-			res: as int-ptr! value-1st/cp
-			either null? res [
+			while [										;-- skip all head blanks
+				cp: as-integer p/value
+				lex-table/cp = LEX_BLANK
+			][p: p + 1]
+			
+			res: lex-table/cp
+			either res < 1000 [
 				p: p + 1
 			][
 				do-scan: as scanner! res
@@ -227,6 +323,9 @@ tokenizer: context [
 			state [state! value]
 	][
 		state/parent: block/make-in dst 100
+		state/buffer: as cell! alloc-big 1000 * size? cell!
+		state/buf-head: state/buffer
+		state/buf-tail: state/buffer + 1000
 		state/head: src
 		state/tail: src + len
 		state/pos:  src
@@ -236,6 +335,10 @@ tokenizer: context [
 		if system/thrown > 0 [
 			0 ; error handling
 		]
+	]
+	
+	init: func [][
+	
 	]
 
 	scan-integer: func [
