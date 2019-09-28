@@ -1,9 +1,9 @@
 REBOL [
-	Title:   "Red source files preprocessor"
+	Title:	 "Red source files preprocessor"
 	Author:  "Nenad Rakocevic"
-	File: 	 %includes.r
+	File:	 %includes.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
@@ -16,6 +16,9 @@ write %build/bin/sources.r set-cache [
 	%boot.red
 	%compiler.r
 	%lexer.r
+	%build/ [
+		%git.r
+	]
 	%environment/ [
 		%actions.red
 		%colors.red
@@ -24,6 +27,7 @@ write %build/bin/sources.r set-cache [
 		%functions.red
 		%lexer.red
 		%natives.red
+		%networking.red
 		%operators.red
 		%reactivity.red
 		%routines.red
@@ -34,48 +38,74 @@ write %build/bin/sources.r set-cache [
 			%gif.red
 			%jpeg.red
 			%png.red
+			%csv.red
+			%json.red
+			%json/ [
+				%common.red
+				%load-json.red
+				%to-json.red
+			]
 		]
 		%console/ [
 			%auto-complete.red
-			%console.red
 			%engine.red
-			%gui-console.red
 			%help.red
-			%input.red
-			%wcwidth.reds
-			%POSIX.reds
-			%terminal.reds
-			%windows.reds
-			%win32.reds
+			%CLI/ [
+				%console.red
+				%input.red
+				%POSIX.reds
+				%wcwidth.reds
+				%win32.reds
+				%settings.red
+			]
+			%GUI/ [
+				%old/ [
+					%gui-console.red
+					%terminal.reds
+					%windows.reds
+				]
+				%app.ico
+				%core.red
+				%gui-console.red
+				%highlight.red
+				%settings.red
+				%tips.red
+			]
 		]
 	]
 	%runtime/ [
 		%actions.reds
 		%allocator.reds
+		%call.reds
+		%case-folding-table.reds
+		%case-folding.reds
+		%clipboard.reds
+		%collector.reds
+		%compress.reds
+		%crush.reds
+		%crypto.reds
 		%debug-tools.reds
 		%definitions.reds
-		%case-folding.reds
+		%deflate.reds
+		%dtoa.reds
+		%hashtable.reds
 		%interpreter.reds
-		%inflate.reds
 		%macros.reds
 		%natives.reds
+		%ownership.reds
 		%parse.reds
+		%print.reds
 		%random.reds
-		%crypto.reds
 		%red.reds
 		%redbin.reds
-		%sort.reds
-		%hashtable.reds
-		%ownership.reds
-		%stack.reds
-		%tools.reds
-		%tokenizer.reds
-		%unicode.reds
 		%simple-io.reds
-		%clipboard.reds
-		%crush.reds
+		%sort.reds
+		%stack.reds
+		%threads.reds
+		%tokenizer.reds
+		%tools.reds
+		%unicode.reds
 		%utils.reds
-		%call.reds
 		%datatypes/ [
 			%action.reds
 			%block.reds
@@ -110,6 +140,7 @@ write %build/bin/sources.r set-cache [
 			%pair.reds
 			%percent.reds
 			%point.reds
+			%port.reds
 			%refinement.reds
 			%routine.reds
 			%series.reds
@@ -132,6 +163,7 @@ write %build/bin/sources.r set-cache [
 		%platform/ [
 			%android.reds
 			%darwin.reds
+			%freebsd.reds
 			%linux.reds
 			%POSIX.reds
 			%syllable.reds
@@ -139,9 +171,8 @@ write %build/bin/sources.r set-cache [
 			%COM.reds
 			%image-gdiplus.reds
 			%image-quartz.reds
-			%win32-cli.reds
-			%win32-gui.reds
 			%win32-ansi.reds
+			%win32-print.reds
 		]
 	]
 	%modules/ [
@@ -151,6 +182,7 @@ write %build/bin/sources.r set-cache [
 			%rules.red
 			%styles.red
 			%utils.red
+			%RTD.red
 			%VID.red
 			%backends/ [
 				%keycodes.reds

@@ -3,7 +3,7 @@ Red/System [
 	Author: "Qingtian Xie"
 	File: 	%selectors.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2016 Qingtian Xie. All rights reserved."
+	Rights: "Copyright (C) 2016-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -28,6 +28,7 @@ sel_addAttributes:				0
 sel_addAttribute:				0
 sel_initWithObjectsAndKeys:		0
 sel_arrayWithObject:			0
+sel_length:						0
 
 cls_NSArray:					0
 
@@ -44,6 +45,7 @@ init-selectors: does [
 	sel_addAttribute:			sel_getUid "addAttribute:value:range:"
 	sel_initWithObjectsAndKeys:	sel_getUid "initWithObjectsAndKeys:"
 	sel_arrayWithObject:		sel_getUid "arrayWithObject:"
+	sel_length:					sel_getUid "length"
 
 	cls_NSArray:				objc_getClass "NSArray"
 ]

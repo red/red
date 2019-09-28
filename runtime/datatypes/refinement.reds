@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %refinement.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/red-system/runtime/BSL-License.txt
@@ -33,6 +33,7 @@ refinement: context [
 		/local
 			ref [red-refinement!]
 	][
+		assert red/boot?
 		ref: as red-refinement! ALLOC_TAIL(root) 
 		ref/header: TYPE_REFINEMENT					;-- implicit reset of all header flags
 		ref/symbol: symbol/make str

@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic, Oldes, Qingtian Xie"
 	File: 	 %float.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -88,16 +88,12 @@ float: context [
 		/local
 			s		[c-string!]
 			s0		[c-string!]
-			p0		[c-string!]
-			p		[c-string!]
-			p1		[c-string!]
-			dot?	[logic!]
 			d		[int64!]
 			w0		[integer!]
+			n		[integer!]
 			temp	[float!]
-			tried?	[logic!]
-			pretty? [logic!]
 			percent? [logic!]
+			add-0?	[logic!]
 	][
 		d: as int64! :f
 		w0: d/int2												;@@ Use little endian. Watch out big endian !
@@ -113,115 +109,35 @@ float: context [
 		]
 
 		percent?: any [type = FORM_PERCENT type = FORM_PERCENT_32]
+		add-0?: any [type = FORM_FLOAT_64 type = FORM_FLOAT_32]
+
 		if pretty-print? [
 			temp: abs f
 			if temp < DBL_EPSILON [return either percent? ["0%"]["0.0"]]
 		]
 
-		s: "0000000000000000000000000000000"					;-- 32 bytes wide, big enough.
-		case [
-			any [type = FORM_FLOAT_32 type = FORM_PERCENT_32][
-				sprintf [s "%.7g" f]
-			]
-			type = FORM_TIME [									;-- microsecond precision
-				either f < 10.0 [s0: "%.7g"][s0: "%.8g"]
-				sprintf [s s0 f]
-			]
-			type = FORM_PERCENT [
-				sprintf [s "%.13g" f]
-			]
-			true [
-				s/17: #"0"
-				s/18: #"0"
-				sprintf [s "%.16g" f]
-			]
+		n: case [
+			any [
+				type = FORM_FLOAT_32
+				type = FORM_PERCENT_32
+				type = FORM_TIME
+			][7]
+			type = FORM_PERCENT [13]
+			true [0]
 		]
+		s: red-dtoa/form-float f n add-0?
 
-		tried?: no
-		s0: s
-		until [
-			p:    null
-			p1:   null
-			dot?: no
-
+		if percent? [
+			s0: s
 			until [
-				if s/1 = #"." [dot?: yes]
-				if s/1 = #"e" [
-					p: s
-					until [
-						s: s + 1
-						s/1 > #"0"
-					]
-					p1: s
-				]
 				s: s + 1
 				s/1 = #"^@"
 			]
-
-			if pretty-print? [									;-- prettify output if needed
-				pretty?: no
-				either p = null [								;-- No "E" notation
-					w0: as-integer s - s0
-					if w0 > 16 [
-						p0: either s0/1 = #"-" [s0 + 1][s0]
-						if any [
-							p0/1 <> #"0"
-							all [p0/1 = #"0" w0 > 17]
-						][
-							p0: s - 2
-							pretty?: yes
-						]
-					]
-				][
-					if (as-integer p - s0) > 16 [				;-- the number of digits = 16
-						p0: p - 2
-						pretty?: yes
-					]
-				]
-
-				if all [pretty? not tried?][
-					if any [									;-- correct '01' or '99' pattern
-						all [p0/2 = #"1" p0/1 = #"0"]
-						all [p0/2 = #"9" p0/1 = #"9"]
-					][
-						tried?: yes
-						s: case [
-							type = FORM_FLOAT_32 ["%.5g"]
-							type = FORM_TIME	 ["%.6g"]
-							true				 ["%.14g"]
-						]
-						sprintf [s0 s f]
-						s: s0
-					]
-				]
-			]
-			s0 <> s
-		]
-
-		if p1 <> null [											;-- remove #"+" and leading zero
-			p0: p
-			either p/2 = #"-" [p: p + 2][p: p + 1]
-			move-memory as byte-ptr! p as byte-ptr! p1 as-integer s - p1
-			s: p + as-integer s - p1
-			s/1: #"^@"
-			p: p0
-		]
-		either percent? [
 			s/1: #"%"
 			s/2: #"^@"
-		][
-			if all [not dot? type <> FORM_TIME][				;-- added tailing ".0"
-				either p = null [
-					p: s
-				][
-					move-memory as byte-ptr! p + 2 as byte-ptr! p as-integer s - p
-				]
-				p/1: #"."
-				p/2: #"0"
-				s/3: #"^@"
-			]
+			s: s0
 		]
-		s0
+		s
 	]
 
 	do-math-op: func [
@@ -246,7 +162,7 @@ float: context [
 					fire [TO_ERROR(math zero-divide)]
 					0.0									;-- pass the compiler's type-checking
 				][
-					left % right
+					fmod left right
 				]
 			]
 			default [
@@ -550,7 +466,9 @@ float: context [
 				p: (as byte-ptr! s/offset) + (str/head << log-b unit)
 				len: (as-integer s/tail - p) >> log-b unit
 				
-				proto/value: tokenizer/scan-float p len unit :err
+				either len > 0 [
+					proto/value: tokenizer/scan-float p len unit :err
+				][err: -1]
 				if err <> 0 [fire [TO_ERROR(script bad-to-arg) datatype/push type spec]]
 			]
 			TYPE_BINARY [
@@ -854,13 +772,12 @@ float: context [
 		dec: f/value
 		sc: either TYPE_OF(f) = TYPE_PERCENT [0.01][1.0]
 		if OPTION?(scale) [
-			if TYPE_OF(scale) = TYPE_INTEGER [
-				int: as red-integer! value
-				int/value: as-integer dec + 0.5
-				int/header: TYPE_INTEGER
-				return integer/round value as red-integer! scale _even? down? half-down? floor? ceil? half-ceil?
+			either TYPE_OF(scale) = TYPE_INTEGER [
+				int: as red-integer! scale
+				sc: abs as float! int/value
+			][
+				sc: abs scale/value
 			]
-			sc: abs scale/value
 			if TYPE_OF(f) = TYPE_PERCENT [sc: sc / 100.0]
 			if sc = 0.0 [fire [TO_ERROR(math overflow)]]
 		]
@@ -885,7 +802,7 @@ float: context [
 			ceil?		[ceil dec		 ]
 			r < d		[FLOAT_AWAY(dec) ]
 			r > d		[FLOAT_TRUNC(dec)]
-			_even?		[either d % 2.0 < 1.0 [FLOAT_TRUNC(dec)][FLOAT_AWAY(dec)]]
+			_even?		[either (fmod d 2.0) < 1.0 [FLOAT_TRUNC(dec)][FLOAT_AWAY(dec)]]
 			half-down?	[FLOAT_TRUNC(dec)]
 			half-ceil?	[ceil dec		 ]
 			true		[FLOAT_AWAY(dec) ]
@@ -899,6 +816,20 @@ float: context [
 			dec
 		][
 			ldexp dec / sc e
+		]
+		if OPTION?(scale) [
+			either TYPE_OF(scale) = TYPE_INTEGER [
+				dec: f/value
+				int: as red-integer! value
+				int/header: TYPE_INTEGER
+				int/value: as integer! dec
+			][
+				value/header: either TYPE_OF(scale) = TYPE_PERCENT [
+					TYPE_FLOAT
+				][
+					TYPE_OF(scale)
+				]
+			]
 		]
 		value
 	]

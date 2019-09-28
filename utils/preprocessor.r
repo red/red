@@ -3,7 +3,7 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File: 	 %preprocessor.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2016 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2016-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 Red []													;-- make it usable by Red too.
@@ -269,14 +269,14 @@ preprocessor: context [
 	]
 
 	expand: func [
-		code [block!] job [object! none!]
+		code [block! paren!] job [object! none!]
 		/clean
-		/local rule e pos cond value then else cases body keep? expr src saved
+		/local rule e pos cond value then else cases body keep? expr src saved file
 	][	
 		either clean [reset job][exec/config: job]
 
 		#process off
-		parse code rule: [
+		rule: [
 			any [
 				s: macros
 				| 'routine 2 skip						;-- avoid overlapping with R/S preprocessor
@@ -295,6 +295,18 @@ preprocessor: context [
 								src: red/load-source/hidden clean-path join red/main-path s/2
 								expand src job				;-- just preprocess it, real inclusion occurs later
 							]
+						]
+					]
+				)
+				| s: #include-binary [file! | string!] (
+					if active? [
+						either all [not Rebol system/state/interpreted?][
+							s/1: 'read/binary
+							if string? s/2 [s/2: to-red-file s/2]
+						][
+							file: either string? s/2 [to-rebol-file s/2][s/2]
+							file: clean-path join red/main-path file
+							change/part s read/binary file 2
 						]
 					]
 				)
@@ -358,6 +370,9 @@ preprocessor: context [
 			]
 		]
 		#process on
+		
+		unless Rebol [rule/1: 'while]					;-- avoid no-forward premature exit in Red (#3771)
+		parse code rule
 		code
 	]
 	

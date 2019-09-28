@@ -3,7 +3,7 @@ Red [
 	Author:  "Nenad Rakocevic"
 	File: 	 %system.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -12,8 +12,9 @@ Red [
 
 system: context [
 	version: #version
-	build:	 context [
-		date:	#build-date
+	build: context [
+		date: to-local-date #build-date
+		git: do #git
 		config: context #build-config
 	]
 		
@@ -34,7 +35,7 @@ system: context [
 		]
 		__make-sys-object
 	]
-	
+
 	platform: func ["Return a word identifying the operating system"][
 		#system [
 			#switch OS [
@@ -45,7 +46,7 @@ system: context [
 			]
 		]
 	]
-	
+
 	catalog: context [
 		datatypes:
 		actions:
@@ -75,6 +76,7 @@ system: context [
 				return:				"return or exit not in function"
 				throw:				["no catch for throw:" :arg1]
 				continue:			"no loop to continue"
+				while-cond:			"BREAK/CONTINUE cannot be used in WHILE condition block"
 			]
 			note: object [
 				code:				100
@@ -159,6 +161,7 @@ system: context [
 				;wrong-denom:		[:arg1 "not same denomination as" :arg2]
 				;bad-press:			["invalid compressed data - problem:" :arg1]
 				;dialect:			["incorrect" :arg1 "dialect usage at:" :arg2]
+				invalid-obj-evt:	["invalid object event handler:" :arg1]
 				parse-rule:			["PARSE - invalid rule or usage of rule:" :arg1]
 				parse-end:			["PARSE - unexpected end of rule after:" :arg1]
 				;parse-variable:	["PARSE - expected a variable, not:" :arg1]
@@ -179,12 +182,15 @@ system: context [
 				not-event-type:		["VIEW - not a valid event type" :arg1]
 				invalid-facet-type:	["VIEW - invalid rate value:" :arg1]
 				vid-invalid-syntax:	["VID - invalid syntax at:" :arg1]
+				rtd-invalid-syntax: ["RTD - invalid syntax at:" :arg1]
+				rtd-no-match:		["RTD - opening/closing tag not matching for:" :arg1]
 				react-bad-func:		"REACT - /LINK option requires a function! as argument"
 				react-not-enough:	"REACT - reactive functions must accept at least 2 arguments"
 				react-no-match:		"REACT - objects block length must match reaction function arg count"
 				react-bad-obj:		"REACT - target can only contain object values"
 				react-gctx:			["REACT - word" :arg1 "is not a reactor's field"]
 				lib-invalid-arg:	["LIBRED - invalid argument for" :arg1]
+				buffer-not-enough:	["Buffer size too small, should be:" :arg1]
 			]
 			math: object [
 				code:				400
@@ -197,19 +203,21 @@ system: context [
 				code:				500
 				type:				"Access Error"
 				cannot-open:		["cannot open:" :arg1]
+				cannot-close:		["cannot close:" :arg1]
 				invalid-utf8:		["invalid UTF-8 encoding:" :arg1]
-				;not-open:			["port is not open:" :arg1]
+				not-open:			["port is not open:" :arg1]
 				;already-open:		["port is already open:" :arg1]
 				no-connect:			["cannot connect:" :arg1 "reason: timeout"]
 				;not-connected:		["port is not connected:" :arg1]
 				;no-script:			["script not found:" :arg1]
 				;no-scheme-name:	["new scheme must have a name:" :arg1]
-				;no-scheme:			["missing port scheme:" :arg1]
-				;invalid-spec:		["invalid spec or options:" :arg1]
-				;invalid-port:		["invalid port object (invalid field values)"]
-				;invalid-actor:		["invalid port actor (must be native or object)"]
+				no-scheme:			["missing port scheme:" :arg1]
+				unknown-scheme:		["scheme is unknown:" :arg1]
+				invalid-spec:		["invalid spec or options:" :arg1]
+				invalid-port:		["invalid port object (invalid field values)"]
+				invalid-actor:		["invalid port actor (must be handle or object)"]
 				;invalid-port-arg:	["invalid port argument:" arg1]
-				;no-port-action:	["this port does not support:" :arg1]
+				no-port-action:		"port action not supported"
 				;protocol:			["protocol error:" :arg1]
 				;invalid-check:		["invalid checksum (tampered file):" :arg1]
 				;write-error:		["write failed:" :arg1 "reason:" :arg2]
@@ -231,6 +239,15 @@ system: context [
 				;bad-extension:		["invalid extension format:" :arg1]
 				;extension-init:	["extension cannot be initialized (check version):" :arg1]
 				;call-fail:			["external process failed:" :arg1]
+				invalid-cmd:		["invalid port command:" :arg1]
+			]
+			reserved1: object [
+				code:				600
+				type:				"Reserved1 Error"
+			]
+			reserved2: object [
+				code:				700
+				type:				"Reserved2 Error"
 			]
 			user: object [
 				code:				800
@@ -249,6 +266,7 @@ system: context [
 				;limit-hit:			["internal limit reached:" :arg1]
 				;bad-sys-func:		["invalid or missing system function:" :arg1]
 				too-deep:			"block or paren series is too deep to display"
+				no-cycle:			"circular reference not allowed"
 				feature-na:			"feature not available"
 				not-done:			"reserved for future use (or not yet implemented)"
 				invalid-error:		["invalid error object field value:" :arg1]
@@ -270,7 +288,7 @@ system: context [
 	
 	modules: make block! 8
 	codecs:  make block! 8
-	schemes: context []
+	schemes: make block! 10
 	ports:	 context []
 	
 	locale: context [
@@ -362,12 +380,24 @@ system: context [
 		]
 	]
 	
-	standard: context [
-		header: context [
+	standard: context [									;-- do not change object fields number/order
+		header: object [
 			title: name: type: version: date: file: author: needs: none
 		]
-		error: context [
+		port: object [
+			spec: scheme: actor: awake: state: data: extra: none
+		]
+		error: object [
 			code: type: id: arg1: arg2: arg3: near: where: stack: none
+		]
+		file-info: object [
+			name: size: date: type: none
+		]
+		url-parts: object [
+			scheme: user-info: host: port: path: target: query: fragment: ref: none
+		]
+		scheme: object [
+			name: title: info: actor: awake: none
 		]
 	]
 	

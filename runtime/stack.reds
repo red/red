@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %stack.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -32,8 +32,6 @@ stack: context [										;-- call stack
 		saved  [node!]
 	]
 	
-	arg-stk:		as red-block!	0					;-- argument stack (should never be relocated)
-	call-stk:		as red-block!	0					;-- call stack (should never be relocated)
 	args-series:	as series!		0
 	calls-series:	as series!		0
 	a-end: 			as red-value!	0
@@ -87,12 +85,6 @@ stack: context [										;-- call stack
 	]
 	
 	init: does [
-		arg-stk:  block/make-in root 1024
-		call-stk: block/make-in root 512
-
-		set-flag arg-stk/node  flag-series-fixed or flag-series-nogc
-		set-flag call-stk/node flag-series-fixed or flag-series-nogc
-
 		;-- Shortcuts for stack buffers simpler and faster access
 		;-- (stack buffers are not resizable with such approach
 		;-- this can be made more flexible (but slower) if necessary
@@ -104,11 +96,11 @@ stack: context [										;-- call stack
 		a-end: as cell!		  (as byte-ptr! args-series)  + args-series/size
 		c-end: as call-frame! (as byte-ptr! calls-series) + calls-series/size
 
-		arguments:	args-series/tail					;@@ incorrect?!
 		bottom:  	args-series/offset
-		top:	 	args-series/tail					;@@ incorrect?!
+		arguments:	bottom
+		top:	 	bottom
 		cbottom: 	as call-frame! calls-series/offset
-		ctop:	 	as call-frame! calls-series/tail	;@@ incorrect?!
+		ctop:	 	cbottom
 		
 		body-symbol: words/_body/symbol
 		anon-symbol: words/_anon/symbol
@@ -266,7 +258,8 @@ stack: context [										;-- call stack
 
 		assert cbottom < ctop
 		ctop: ctop - 1
-		STACK_SET_FRAME
+		top: arguments + 1
+		arguments: ctop/prev
 		if acc-mode? [check-dyn-call]
 		
 		#if debug? = yes [if verbose > 1 [dump]]
@@ -353,7 +346,7 @@ stack: context [										;-- call stack
 			sym	  [integer!]
 	][
 		top: as call-frame! int/value
-		value: ALLOC_TAIL(root)
+		value: stack/push*
 		int: as red-integer! value
 		int/header: TYPE_INTEGER
 		base: cbottom
@@ -611,6 +604,7 @@ stack: context [										;-- call stack
 		#if debug? = yes [if verbose > 0 [print-line "stack/pop"]]
 		
 		top: top - positions
+		if top < bottom [top: bottom]
 	]
 	
 	top-type?: func [

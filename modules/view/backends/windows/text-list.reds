@@ -3,7 +3,7 @@ Red/System [
 	Author: "Xie Qingtian, Nenad Rakocevic"
 	File: 	%text-list.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2015 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -202,6 +202,7 @@ update-list: func [
 				]
 				any [
 					sym = words/_insert/symbol
+					sym = words/_append/symbol
 					sym = words/_poke/symbol
 					sym = words/_put/symbol
 					sym = words/_reverse/symbol
@@ -217,11 +218,19 @@ update-list: func [
 						new
 					]
 					loop part [
-						if sym <> words/_insert/symbol [
+						if all [
+							sym <> words/_insert/symbol
+							sym <> words/_append/symbol
+						][
 							remove-list-item hWnd index drop?
 						]
 						insert-list-item hWnd str index drop?
-						if sym = words/_reverse/symbol [index: index + 1]
+						if any [
+							sym = words/_reverse/symbol
+							sym = words/_append/symbol
+						][
+							index: index + 1
+						]
 						ownership/bind as red-value! str face _data
 						str: str + 1
 					]

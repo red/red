@@ -3,7 +3,7 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File: 	 %config.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
@@ -95,6 +95,7 @@ Linux [									; Linux default target
 	format: 	'ELF
 	type:		'exe
 	dynamic-linker: "/lib/ld-linux.so.2"
+	stack-align-16?: yes
 ]
 Linux-Old [
 	OS:			'Linux
@@ -136,7 +137,9 @@ Linux-ARM [
 	OS:			'Linux
 	format:		'ELF
 	target:		'ARM
+	ABI:		'soft-float
 	type:		'exe
+	cpu-version: 5.0
 	base-address: 32768					; 8000h
 	dynamic-linker: "/lib/ld-linux.so.3"
 ]
@@ -147,6 +150,7 @@ RPi [
 	target:		'ARM
 	ABI:		'hard-float
 	type:		'exe
+	cpu-version: 7.0
 	base-address: 32768					; 8000h
 	dynamic-linker: "/lib/ld-linux-armhf.so.3"
 ]

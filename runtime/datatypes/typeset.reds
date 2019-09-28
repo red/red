@@ -65,15 +65,6 @@ typeset: context [
 		ts
 	]
 	
-	create: func [
-		bs1		[integer!]								;-- pre-encoded in little-endian
-		bs2		[integer!]								;-- pre-encoded in little-endian
-		bs3		[integer!]								;-- pre-encoded in little-endian
-		return: [red-typeset!]
-	][
-		make-in root bs1 bs2 bs3
-	]
-	
 	make-default: func [
 		blk [red-block!]
 		/local

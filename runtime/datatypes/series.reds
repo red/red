@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic, Qingtian Xie"
 	File: 	 %series.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -87,7 +87,7 @@ _series: context [
 	]
 
 	;-- Actions --
-	
+
 	random: func [
 		ser		[red-series!]
 		seed?	[logic!]
@@ -95,12 +95,14 @@ _series: context [
 		only?   [logic!]
 		return: [red-value!]
 		/local
+			int	 [red-integer!]
 			char [red-char!]
-			vec [red-vector!]
+			vec  [red-vector!]
 			s	 [series!]
 			size [integer!]
 			unit [integer!]
 			len	 [integer!]
+			val  [red-value! value]
 			temp [byte-ptr!]
 			idx	 [byte-ptr!]
 			head [byte-ptr!]
@@ -128,6 +130,11 @@ _series: context [
 							vec: as red-vector! ser
 							copy-cell vector/get-value idx unit vec/type as cell! ser
 						]
+						TYPE_BINARY [
+							int: as red-integer! ser
+							int/header: TYPE_INTEGER
+							int/value: string/get-char idx unit
+						]
 						default [								;@@ ANY-STRING!
 							char: as red-char! ser
 							char/header: TYPE_CHAR
@@ -139,16 +146,17 @@ _series: context [
 				]
 			][
 				len: size
-				temp: as byte-ptr! stack/push*
+				temp: as byte-ptr! :val
 				while [size > 0][
 					idx: head + (_random/rand % size << (log-b unit))
-					copy-memory temp head unit
-					copy-memory head idx unit
-					copy-memory idx temp unit
+					if idx <> head [
+						copy-memory temp head unit
+						copy-memory head idx unit
+						copy-memory idx temp unit
+					]
 					head: head + unit
 					size: size - 1
 				]
-				stack/pop 1
 			]
 			ownership/check as red-value! ser words/_random null ser/head len
 		]
@@ -406,9 +414,9 @@ _series: context [
 			int: as red-integer! part-arg
 			part: int/value
 			if part <= 0 [return as red-value! target]	;-- early exit if negative /part index
-			items: part
 			limit: (as-integer tail - src) >> log-b unit
 			if part > limit [part: limit]
+			items: part
 			part: part << (log-b unit)
 		]
 		
@@ -416,6 +424,9 @@ _series: context [
 		either origin/node = target/node [				;-- same series case
 			dst: (as byte-ptr! s/offset) + (target/head << (log-b unit))
 			if src = dst [return as red-value! target]	;-- early exit if no move is required
+			if all [dst > src dst <> tail part > (as-integer tail - dst)][
+				return as red-value! origin
+			]
 			if dst > tail [dst: tail]					;-- avoid overflows if part is too big
 			ownership/check as red-value! target words/_move null origin/head items
 
@@ -533,6 +544,7 @@ _series: context [
 			neg?	[logic!]
 			part?	[logic!]
 			blk?	[logic!]
+			self?	[logic!]
 			added	[integer!]
 			n		[integer!]
 			cnt		[integer!]
@@ -544,27 +556,29 @@ _series: context [
 			if cnt < 1 [return ser]
 		]
 
-		neg?: no
+		neg?: no self?: no
 		s:    GET_BUFFER(ser)
 		unit: GET_UNIT(s)
+		unit: log-b unit
 		head: ser/head
-		size: (as-integer s/tail - s/offset) >> (log-b unit)
+		size: (as-integer s/tail - s/offset) >> unit
 
 		type: TYPE_OF(ser)
 		blk?: ANY_BLOCK?(type)
 
+		ser2: as red-series! value
 		values?: either all [only? blk?][no][
 			n: TYPE_OF(value)
+			self?: all [type = n ser/node = ser2/node]	;-- ser and value are the same series
 			ANY_BLOCK?(n)
 		]
 
-		items: either values? [
-			ser2: as red-series! value
+		items: either any [self? values?][
 			s2: GET_BUFFER(ser2)
-			cell:  s2/offset + ser2/head
-			block/rs-length? ser2
+			cell: as cell! (as byte-ptr! s2/offset) + (ser2/head << unit)
+			get-length ser2 no
 		][
-			cell:  value
+			cell: value
 			1
 		]
 		limit: cell + items
@@ -595,27 +609,29 @@ _series: context [
 			if part > size [part: size]
 		][size: size - head]
 
-		either blk? [
+		either any [blk? self?][
 			n: either part? [part][items * cnt]
 			if n > size [n: size]
 			ownership/check as red-value! ser words/_change null head n
 
 			added: either part? [items - part][items - size]
-			n: as-integer s/tail + added - s/offset
+			added: added << unit
+			n: (as-integer (s/tail - s/offset)) + added
 			if n > s/size [s: expand-series s n * 2]
 
-			value: s/offset + head
+			src: (as byte-ptr! s/offset) + (head << unit)
+			tail: as byte-ptr! s/tail
 			either part? [
-				size: either neg? [size + part][size - part]
+				size: size - part
 				move-memory
-					as byte-ptr! value + items
-					as byte-ptr! value + part
-					size * size? cell!
-				s/tail: s/tail + added
+					src + (items << unit)
+					src + (part << unit)
+					size << unit
+				s/tail: as cell! tail + added
 			][
-				if added > 0 [s/tail: s/tail + added]
+				if added > 0 [s/tail: as cell! tail + added]
 			]
-			copy-memory as byte-ptr! value as byte-ptr! cell items * size? cell!
+			copy-memory src as byte-ptr! cell items << unit
 
 			if type = TYPE_HASH [
 				n: items * cnt
@@ -632,9 +648,9 @@ _series: context [
 			]
 		][
 			tail: as byte-ptr! s/tail
-			src: (as byte-ptr! s/offset) + (ser/head << (log-b unit))
+			src: (as byte-ptr! s/offset) + (head << unit)
 			if part? [
-				added: part << (log-b unit)
+				added: part << unit
 				move-memory src src + added (as-integer tail - src) - added
 				s/tail: as cell! tail - added
 			]
@@ -707,6 +723,9 @@ _series: context [
 
 		s: GET_BUFFER(ser)
 		size: (as-integer s/tail - s/offset) >> (log-b GET_UNIT(s)) - ser/head
+
+		if size <= 0 [return as red-value! ser]    ;-- early exit if nothing to clear
+
 		ownership/check as red-value! ser words/_clear null ser/head size
 		s/tail: as cell! (as byte-ptr! s/offset) + (ser/head << (log-b GET_UNIT(s)))
 		ownership/check as red-value! ser words/_cleared null ser/head 0
@@ -779,6 +798,7 @@ _series: context [
 	remove: func [
 		ser	 	 [red-series!]
 		part-arg [red-value!]							;-- null if no /part
+		key-arg  [red-value!]
 		return:	 [red-series!]
 		/local
 			s		[series!]
@@ -793,11 +813,6 @@ _series: context [
 	][
 		s:    GET_BUFFER(ser)
 		unit: GET_UNIT(s)
-		head: (as byte-ptr! s/offset) + (ser/head << (log-b unit))
-		tail: as byte-ptr! s/tail
-
-		if head = tail [return ser]						;-- early exit if nothing to remove
-
 		part: unit
 		items: 1
 
@@ -819,6 +834,19 @@ _series: context [
 			items: part
 			part: part << (log-b unit)
 		]
+
+		if OPTION?(key-arg) [
+			ser: as red-series! actions/find ser key-arg null no yes no no null null no no no no
+			if TYPE_OF(ser) = TYPE_NONE [return ser]
+			items: items + 1			;-- remove key + value
+			part: part + unit
+		]
+
+		head: (as byte-ptr! s/offset) + (ser/head << (log-b unit))
+		tail: as byte-ptr! s/tail
+
+		if head >= tail [return ser]						;-- early exit if nothing to remove
+
 		ownership/check as red-value! ser words/_remove null ser/head items
 		
 		either head + part < tail [
@@ -852,6 +880,7 @@ _series: context [
 			unit	[integer!]
 			head	[byte-ptr!]
 			tail	[byte-ptr!]
+			val		[red-value! value]
 			temp	[byte-ptr!]
 			int		[red-integer!]
 			ser2	[red-series!]
@@ -895,7 +924,7 @@ _series: context [
 		]
 		if all [positive? part head + part < tail] [tail: head + part]
 		tail: tail - unit								;-- point to last value
-		temp: as byte-ptr! stack/push*
+		temp: as byte-ptr! :val
 		while [head < tail][							;-- TODO: optimise it according to unit
 			copy-memory temp head unit
 			copy-memory head tail unit
@@ -909,7 +938,6 @@ _series: context [
 			head: head + unit
 			tail: tail - unit
 		]
-		stack/pop 1
 		ownership/check as red-value! ser words/_reverse null ser/head items
 		ser
 	]
@@ -933,6 +961,7 @@ _series: context [
 			bytes	[integer!]
 			size	[integer!]
 			hash	[red-hash!]
+			part2	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "series/take"]]
 
@@ -944,6 +973,7 @@ _series: context [
 		s:    GET_BUFFER(ser)
 		unit: GET_UNIT(s)
 		part: 1
+		part2: 1
 
 		if OPTION?(part-arg) [
 			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
@@ -961,11 +991,18 @@ _series: context [
 					either last? [size - (ser2/head - ser/head)][ser2/head - ser/head]
 				]
 			]
+			part2: part
+			if negative? part [
+				size: ser/head
+				part: either last? [1][0 - part]
+			]
 			if part > size [part: size]
+			if zero? part [part: 1]
 		]
 
 		bytes:	part << (log-b unit)
 		node: 	alloc-bytes bytes
+		s:      GET_BUFFER(ser)
 		buffer: as series! node/value
 		buffer/flags: s/flags							;@@ filter flags?
 
@@ -974,37 +1011,43 @@ _series: context [
 		ser2/extra:  either TYPE_OF(ser) = TYPE_VECTOR [ser/extra][0]
 		ser2/node:  node
 		ser2/head:  0
-		
-		ownership/check as red-value! ser words/_take null ser/head part
 
-		either positive? part [
-			tail: as byte-ptr! s/tail
-			offset: (as byte-ptr! s/offset) + (ser/head << (log-b unit))
+		ownership/check as red-value! ser words/_take null ser/head part2
+
+		offset: (as byte-ptr! s/offset) + (ser/head << (log-b unit))
+		tail: as byte-ptr! s/tail
+		either positive? part2 [
 			if last? [
 				offset: tail - bytes
 				s/tail: as cell! offset
 			]
-			copy-memory
-				as byte-ptr! buffer/offset
-				offset
-				bytes
-			buffer/tail: as cell! (as byte-ptr! buffer/offset) + bytes
+		][
+			if any [last? part > ser/head][return as red-value! ser2]
+			offset: offset - bytes
+		]
+		copy-memory
+			as byte-ptr! buffer/offset
+			offset
+			bytes
+		buffer/tail: as cell! (as byte-ptr! buffer/offset) + bytes
 
-			unless last? [
-				move-memory
-					offset
-					offset + bytes
-					as-integer tail - offset - bytes
-				s/tail: as cell! tail - bytes
-			]
-			if TYPE_OF(ser) = TYPE_HASH [
-				unit: either last? [size][ser/head + part]
-				hash: as red-hash! ser
-				_hashtable/refresh hash/table 0 - part unit size - unit yes
-				hash: as red-hash! ser2
-				hash/table: _hashtable/init part ser2 HASH_TABLE_HASH 1
-			]
-		][return as red-value! ser2]
+		unless last? [
+			move-memory
+				offset
+				offset + bytes
+				as-integer tail - offset - bytes
+			s/tail: as cell! tail - bytes
+		]
+
+		if TYPE_OF(ser) = TYPE_HASH [
+			unit: either last? [size][ser/head + part]
+			hash: as red-hash! ser
+			_hashtable/refresh hash/table 0 - part unit size - unit yes
+			hash: as red-hash! ser2
+			hash/header: TYPE_BLOCK		;-- set to TYPE_BLOCK so we don't mark hash/table
+			hash/table: _hashtable/init part ser2 HASH_TABLE_HASH 1
+			hash/header: TYPE_HASH
+		]
 		
 		ownership/check as red-value! ser words/_taken null ser/head 0
 		as red-value! ser2
@@ -1062,22 +1105,27 @@ _series: context [
 			unit	[integer!]
 			part	[integer!]
 			type	[integer!]
+			flag	[integer!]
+			len		[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "series/copy"]]
 
 		type: TYPE_OF(ser)
 		s: GET_BUFFER(ser)
 		unit: GET_UNIT(s)
+		flag: ser/header and flag-new-line
 
 		offset: ser/head
-		part: (as-integer s/tail - s/offset) >> (log-b unit) - offset
+		len: (as-integer s/tail - s/offset) >> (log-b unit)
+		part: len - offset
+		if part < 0 [part: 0]
 
 		if OPTION?(types) [--NOT_IMPLEMENTED--]
 
 		if OPTION?(part-arg) [
 			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
 				int: as red-integer! part-arg
-				either int/value > part [part][int/value]
+				int/value
 			][
 				ser2: as red-series! part-arg
 				unless all [
@@ -1088,14 +1136,20 @@ _series: context [
 				]
 				ser2/head - ser/head
 			]
+			if negative? part [
+				part: 0 - part
+				offset: offset - part
+				if negative? offset [offset: 0 part: ser/head]
+			]
 		]
-		if negative? part [
-			part: 0 - part
-			offset: offset - part
-			if negative? offset [offset: 0 part: ser/head]
-		]
+
+		if offset > len [part: 0 offset: len]
+		if offset + part > len [part: len - offset]
+
+		new/header: TYPE_UNSET
 		part:	part << (log-b unit)
 		node:	alloc-bytes part
+		s: GET_BUFFER(ser)
 		buffer: as series! node/value
 		buffer/flags: s/flags							;@@ filter flags?
 		buffer/flags: buffer/flags and not flag-series-owned
@@ -1110,7 +1164,7 @@ _series: context [
 			buffer/tail: as cell! (as byte-ptr! buffer/offset) + part
 		]
 
-		new/header: type
+		new/header: type or flag
 		new/node:   node
 		new/head:   0
 		new/extra:  either type = TYPE_VECTOR [ser/extra][0]

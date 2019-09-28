@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %object.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -42,29 +42,12 @@ object: context [
 		]
 	]
 	
-	check-word: func [
-		value [red-value!]
-		/local
-			type [integer!]
-	][
-		type: TYPE_OF(value)
-		unless any [									;@@ replace with ANY_WORD?
-			type = TYPE_WORD
-			type = TYPE_LIT_WORD
-			type = TYPE_GET_WORD
-			type = TYPE_SET_WORD
-		][
-			fire [TO_ERROR(script invalid-type) datatype/push type]
-		]
-	]
-	
 	rs-find: func [
 		obj		 [red-object!]
 		value	 [red-value!]
 		return:	 [integer!]								;-- -1 if not found, else index
 		/local
 			word [red-word!]
-			ctx	 [node!]
 	][
 		assert any [									;@@ replace with ANY_WORD?
 			TYPE_OF(value) = TYPE_WORD
@@ -73,8 +56,7 @@ object: context [
 			TYPE_OF(value) = TYPE_SET_WORD
 		]
 		word: as red-word! value
-		ctx: obj/ctx
-		 _context/find-word TO_CTX(ctx) word/symbol yes
+		 _context/find-word GET_CTX(obj) word/symbol yes
 	]
 	
 	rs-select: func [
@@ -162,8 +144,11 @@ object: context [
 			tail	[red-value!]
 			new		[red-value!]
 			old		[red-value!]
+			int		[red-integer!]
 			s		[series!]
 			i		[integer!]
+			idx-s	[integer!]
+			idx-d	[integer!]
 			type	[integer!]
 			on-set?	[logic!]
 	][
@@ -175,21 +160,35 @@ object: context [
 		on-set?: obj/on-set <> null
 		s: as series! ctx/symbols/value
 		word: as red-word! s/offset
+		
+		if on-set? [
+			s: as series! obj/on-set/value
+			int: as red-integer! s/offset
+			idx-s: int/value >>> 16
+			int: int + 1
+			idx-d: int/value >>> 16
+		]
 
 		either all [not only? any [type = TYPE_BLOCK type = TYPE_OBJECT]][
 			either type = TYPE_BLOCK [
 				blk: as red-block! value
-				i: 1
+				i: 0
 				while [values < tail][
-					new: _series/pick as red-series! blk i null
+					new: _series/pick as red-series! blk i + 1 null
 					unless all [some? TYPE_OF(new) = TYPE_NONE][
-						if on-set? [old: stack/push values]
-						copy-cell new values
-						if on-set? [fire-on-set obj word old new]
+						either on-set? [
+							if all [i <> idx-s i <> idx-d][	;-- do not overwrite event handlers
+								old: stack/push values
+								copy-cell new values
+								fire-on-set obj word old new
+							]
+						][
+							copy-cell new values
+						]
 					]
+					i: i + 1
 					word: word + 1
 					values: values + 1
-					i: i + 1
 				]
 			][
 				obj2: as red-object! value
@@ -201,9 +200,15 @@ object: context [
 					if i > -1 [
 						new: values2 + i
 						unless all [some? TYPE_OF(new) = TYPE_NONE][
-							if on-set? [old: stack/push values]
-							copy-cell new values
-							if on-set? [fire-on-set obj word old new]
+							either on-set? [
+								if all [i <> idx-s i <> idx-d][		;-- do not overwrite event handlers
+									old: stack/push values
+									copy-cell new values
+									fire-on-set obj word old new
+								]
+							][
+								copy-cell new values
+							]
 						]
 					]
 					word: word + 1
@@ -211,10 +216,18 @@ object: context [
 				]
 			]
 		][
+			i: 0
 			while [values < tail][
-				if on-set? [old: stack/push values]
-				copy-cell value values
-				if on-set? [fire-on-set obj word old new]
+				either on-set? [
+					if all [i <> idx-s i <> idx-d][		;-- do not overwrite event handlers
+						old: stack/push values
+						copy-cell value values
+						fire-on-set obj word old new
+					]
+				][
+					copy-cell value values
+				]
+				i: i + 1
 				word: word + 1
 				values: values + 1
 			]
@@ -231,6 +244,7 @@ object: context [
 		node: alloc-cells 1								;-- hidden object value storage used by SELF
 		s: as series! node/value
 		copy-cell as red-value! obj s/offset
+		s/tail: s/offset + 1
 		node
 	]
 	
@@ -375,11 +389,12 @@ object: context [
 		assert TYPE_OF(int) = TYPE_INTEGER
 		index: int/value >> 16
 		count: int/value and FFFFh
+		if index = -1 [exit]							;-- abort if no on-change* handler
 		
 		ctx: GET_CTX(obj) 
 		s: as series! ctx/values/value
 		fun: as red-function! s/offset + index
-		if TYPE_OF(fun) <> TYPE_FUNCTION [fire [TO_ERROR(script invalid-arg) fun]]
+		if TYPE_OF(fun) <> TYPE_FUNCTION [fire [TO_ERROR(script invalid-obj-evt) fun]]
 		
 		stack/mark-func words/_on-change* fun/ctx
 		stack/push as red-value! word
@@ -409,14 +424,14 @@ object: context [
 		#if debug? = yes [if verbose > 0 [print-line "object/fire-on-deep"]]
 
 		assert TYPE_OF(owner) = TYPE_OBJECT
-		assert owner/on-set <> null
+		if null? owner/on-set [fire [TO_ERROR(script invalid-obj-evt) owner]]
 		s: as series! owner/on-set/value
 
 		int: as red-integer! s/offset + 1
 		assert TYPE_OF(int) = TYPE_INTEGER
 		index: int/value >> 16
 		count: int/value and FFFFh
-		
+		if index = -1 [exit]							;-- abort if no on-deep-change* handler		
 		if null? new [new: as red-value! none-value]
 
 		ctx: GET_CTX(owner) 
@@ -479,10 +494,9 @@ object: context [
 			n [integer!]
 	][
 		n: tabs
-		until [
+		while [n > 0][
 			string/concatenate-literal buffer "    "
 			n: n - 1
-			zero? n
 		]
 		part - (4 * tabs)
 	]
@@ -552,9 +566,7 @@ object: context [
 					string/append-char GET_BUFFER(buffer) as-integer #"'" ;-- create a literal word
 					part: part - 1
 				]
-				unless cycles/detect? value buffer :part mold? [
-					part: actions/mold value buffer only? all? flat? arg part tabs
-				]
+				part: actions/mold value buffer only? all? flat? arg part tabs
 
 				if any [indent? sym + 1 < s-tail][			;-- no final LF when FORMed
 					string/append-char GET_BUFFER(buffer) as-integer blank
@@ -682,8 +694,8 @@ object: context [
 		base: s/tail - s/offset
 		
 		s: as series! ctx/values/value
-		node: save-self-object obj
 
+		;-- 1st pass: fill and eventually extend the context
 		while [syms < tail][
 			value: _context/add-with ctx as red-word! syms vals
 			
@@ -692,12 +704,22 @@ object: context [
 				value: s/offset + _context/find-word ctx word/symbol yes
 				copy-cell vals value
 			]
+			syms: syms + 1
+			vals: vals + 1
+		]
+		
+		;-- 2nd pass: deep copy series and rebind functions
+		node: save-self-object obj
+		value: s/offset
+		tail:  s/tail
+		
+		while [value < tail][
 			type: TYPE_OF(value)
 			case [
 				ANY_SERIES?(type) [
 					actions/copy
 						as red-series! value
-						value						;-- overwrite the value
+						value							;-- overwrite the value
 						null
 						yes
 						null
@@ -707,8 +729,7 @@ object: context [
 				]
 				true [0]
 			]
-			syms: syms + 1
-			vals: vals + 1
+			value: value + 1
 		]
 		s: as series! ctx/symbols/value					;-- refreshing pointer
 		s/tail - s/offset > base						;-- TRUE: new words added
@@ -731,8 +752,10 @@ object: context [
 			fire [TO_ERROR(script bad-func-def) fun]
 		]
 		spec: as red-block! stack/push*
-		spec/head: 0
-		spec/node: fun/spec
+		spec/header: TYPE_BLOCK
+		spec/head:	 0
+		spec/node:	 fun/spec
+		spec/extra:	 0
 		
 		blk: block/clone as red-block! more yes yes
 		_context/bind blk ctx node yes					;-- rebind new body to object's context
@@ -754,11 +777,15 @@ object: context [
 			ctx [red-context!]
 			obj	[red-object!]
 			s	[series!]
+			ss	[series!]
+			sz	[integer!]
 	][
 		ctx: TO_CTX(node)
 		s: as series! ctx/values/value
 		if s/offset = s/tail [
-			s/tail: s/offset + (s/size >> 4)			;-- (late) setting of 'values right tail pointer
+			ss: as series! ctx/symbols/value
+			sz: (as-integer (ss/tail - ss/offset)) >> 4
+			s/tail: s/offset + sz						;-- (late) setting of 'values right tail pointer
 		]
 		
 		obj: as red-object! stack/push*
@@ -778,6 +805,7 @@ object: context [
 		loc-s [integer!]
 		idx-d [integer!]								;-- for on-deep-change* event
 		loc-d [integer!]
+		return: [node!]
 		/local
 			obj [red-object!]
 			s	[series!]
@@ -789,10 +817,12 @@ object: context [
 		
 		s: as series! ctx/value
 		copy-cell as red-value! obj s/offset + 1		;-- refresh back-reference
+		obj/on-set
 	]
 	
 	push: func [
 		ctx		[node!]
+		evt		[node!]
 		class	[integer!]
 		idx-s	[integer!]								;-- for on-change* event
 		loc-s	[integer!]
@@ -804,10 +834,11 @@ object: context [
 			s	[series!]
 	][
 		obj: as red-object! stack/push*
-		obj/header: TYPE_OBJECT
+		obj/header: TYPE_UNSET
 		obj/ctx:	ctx
 		obj/class:	class
-		obj/on-set: make-callback-node TO_CTX(ctx) idx-s loc-s idx-d loc-d
+		obj/on-set: evt
+		obj/header: TYPE_OBJECT
 		
 		s: as series! ctx/value
 		copy-cell as red-value! obj s/offset + 1		;-- set back-reference
@@ -821,10 +852,11 @@ object: context [
 		/local
 			s [series!]
 	][
-		obj/header: TYPE_OBJECT
+		obj/header: TYPE_UNSET
 		obj/ctx:	_context/create slots no yes
 		obj/class:	0
 		obj/on-set: null
+		obj/header: TYPE_OBJECT
 		
 		s: as series! obj/ctx/value
 		copy-cell as red-value! obj s/offset + 1		;-- set back-reference
@@ -903,16 +935,16 @@ object: context [
 		return:	[red-object!]
 		/local
 			obj	 [red-object!]
-			ctx	 [red-context!]
 	][
 		obj: as red-object! stack/push*
-		make-at obj 4									;-- arbitrary value
-		obj/class: get-new-id
-		obj/on-set: null
-		ctx: GET_CTX(obj)
-		
-		unless null? proto [extend ctx GET_CTX(proto) obj]
-		collect-couples ctx spec only?
+		either null? proto [
+			make-at obj 4									;-- arbitrary value
+			obj/class: get-new-id
+			obj/on-set: null
+		][
+			copy proto obj null yes null
+		]
+		collect-couples GET_CTX(obj) spec only?
 		obj
 	]
 	
@@ -927,6 +959,8 @@ object: context [
 			obj		[red-object!]
 			obj2	[red-object!]
 			ctx		[red-context!]
+			self	[node!]
+			s		[series!]
 			blk		[red-block!]
 			p-obj?  [logic!]
 			new?	[logic!]
@@ -934,6 +968,7 @@ object: context [
 		#if debug? = yes [if verbose > 0 [print-line "object/make"]]
 		
 		obj: as red-object! stack/push*
+		obj/header: TYPE_UNSET
 		
 		p-obj?: TYPE_OF(proto) = TYPE_OBJECT
 		
@@ -950,15 +985,19 @@ object: context [
 				obj/class: either extend ctx GET_CTX(obj2) obj [get-new-id][proto/class] ;@@ class-id is not transmitted for 'self!
 			]
 			TYPE_BLOCK [
+				obj/on-set: null						;-- avoid GC marking previous value
 				blk: as red-block! spec
 				new?: _context/collect-set-words ctx blk
-				_context/bind blk ctx save-self-object obj yes	;-- bind spec block
+				self: save-self-object obj
+				_context/bind blk ctx self yes	;-- bind spec block
 				if p-obj? [duplicate proto/ctx obj/ctx no]		;-- clone and rebind proto's series
 				interpreter/eval blk no
 				
 				obj/class: either any [new? not p-obj?][get-new-id][proto/class]
 				obj/on-set: on-set-defined? ctx
 				if on-deep? obj [ownership/set-owner as red-value! obj obj null]
+				s: as series! self/value
+				copy-cell as red-value! obj s/offset
 			]
 			default [fire [TO_ERROR(syntax malconstruct) spec]]
 		]
@@ -978,6 +1017,7 @@ object: context [
 			value [red-value!]
 			word  [red-word!]
 			s	  [series!]
+			len	  [integer!]
 	][
 		blk: 		as red-block! stack/push*
 		blk/header: TYPE_BLOCK
@@ -1007,7 +1047,11 @@ object: context [
 			]
 			field = words/body [
 				blk/node: ctx/symbols
-				blk/node: alloc-cells block/rs-length? blk
+				len: block/rs-length? blk
+				if len = 0 [len: 1]
+				blk/header: TYPE_UNSET
+				blk/node: alloc-cells len
+				blk/header: TYPE_BLOCK
 				
 				s: as series! ctx/symbols/value
 				syms: s/offset
@@ -1031,6 +1075,9 @@ object: context [
 					vals: vals + 1
 				]
 			]
+			field = words/owner [
+				return as red-block! logic/box ctx/header and flag-owner <> 0
+			]
 			true [
 				--NOT_IMPLEMENTED--						;@@ raise error
 			]
@@ -1047,6 +1094,7 @@ object: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/form"]]
 
+		if cycles/detect? as red-value! obj buffer :part no [return part]
 		serialize obj buffer no no no arg part no 0 no
 	]
 	
@@ -1063,8 +1111,10 @@ object: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/mold"]]
 		
+		if cycles/detect? as red-value! obj buffer :part yes [return part]
+		
 		string/concatenate-literal buffer "make object! ["
-		part: serialize obj buffer only? all? flat? arg part - 14 yes indent + 1 yes
+		part: serialize obj buffer no all? flat? arg part - 14 yes indent + 1 yes
 		if indent > 0 [part: do-indent buffer indent part]
 		string/append-char GET_BUFFER(buffer) as-integer #"]"
 		part - 1
@@ -1157,10 +1207,11 @@ object: context [
 		if TYPE_OF(obj2) <> TYPE_OBJECT [RETURN_COMPARE_OTHER]
 
 		if op = COMP_SAME [return either obj1/ctx = obj2/ctx [0][-1]]
-		if all [
-			obj1/ctx = obj2/ctx
-			any [op = COMP_EQUAL op = COMP_FIND op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
-		][return 0]
+		if obj1/ctx = obj2/ctx [return 0]
+
+		if cycles/find? obj1/ctx [
+			return either cycles/find? obj2/ctx [0][-1]
+		]
 
 		ctx1: GET_CTX(obj1)
 		s: as series! ctx1/symbols/value
@@ -1183,12 +1234,13 @@ object: context [
 		value2: s/offset
 		
 		cycles/push obj1/ctx
+		cycles/push obj2/ctx
 		
 		until [
 			s1: symbol/resolve sym1/symbol
 			s2: symbol/resolve sym2/symbol
 			if s1 <> s2 [
-				cycles/pop
+				cycles/pop-n 2
 				return SIGN_COMPARE_RESULT(s1 s2)
 			]
 			type1: TYPE_OF(value1)
@@ -1197,21 +1249,17 @@ object: context [
 				type1 = type2
 				all [word/any-word? type1 word/any-word? type2]
 				all [											;@@ replace by ANY_NUMBER?
-					any [type1 = TYPE_INTEGER type1 = TYPE_FLOAT]
-					any [type2 = TYPE_INTEGER type2 = TYPE_FLOAT]
+					any [type1 = TYPE_INTEGER type1 = TYPE_FLOAT type1 = TYPE_PERCENT]
+					any [type2 = TYPE_INTEGER type2 = TYPE_FLOAT type2 = TYPE_PERCENT]
 				]
 			][
-				either cycles/find? value1 [
-					res: as-integer not natives/same? value1 value2
-				][
-					res: actions/compare-value value1 value2 op
-				]
+				res: actions/compare-value value1 value2 op
 				sym1: sym1 + 1
 				sym2: sym2 + 1
 				value1: value1 + 1
 				value2: value2 + 1
 			][
-				cycles/pop
+				cycles/pop-n 2
 				return SIGN_COMPARE_RESULT(type1 type2)
 			]
 			any [
@@ -1219,7 +1267,7 @@ object: context [
 				sym1 >= tail
 			]
 		]
-		cycles/pop
+		cycles/pop-n 2
 		res
 	]
 	
@@ -1237,7 +1285,6 @@ object: context [
 			tail  [red-value!]
 			src	  [series!]
 			dst	  [series!]
-			s	  [series!]
 			node  [node!]
 			size  [integer!]
 			slots [integer!]
@@ -1257,12 +1304,13 @@ object: context [
 		slots:	size >> 4
 		
 		copy-cell as cell! obj as cell! new
+		new/header: TYPE_UNSET
 		new/ctx: _context/create slots no yes
 		new/class: obj/class
+		new/header: TYPE_OBJECT
 		nctx: GET_CTX(new)
-		
-		s: as series! new/ctx/value
-		copy-cell as red-value! new s/offset + 1		;-- set back-reference
+
+		copy-cell as red-value! new as red-value! nctx + 1	;-- set back-reference
 
 		node: save-self-object new
 		
@@ -1322,31 +1370,6 @@ object: context [
 		new
 	]
 	
-	find: func [
-		obj		 [red-object!]
-		value	 [red-value!]
-		part	 [red-value!]
-		only?	 [logic!]
-		case?	 [logic!]
-		same?	 [logic!]
-		any?	 [logic!]
-		with-arg [red-string!]
-		skip	 [red-integer!]
-		last?	 [logic!]
-		reverse? [logic!]
-		tail?	 [logic!]
-		match?	 [logic!]
-		return:	 [red-value!]
-		/local
-			id	 [integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "object/find"]]
-		
-		check-word value
-		id: rs-find obj value
-		as red-value! either id = -1 [none-value][true-value]
-	]
-	
 	select: func [
 		obj		 [red-object!]
 		value	 [red-value!]
@@ -1360,10 +1383,20 @@ object: context [
 		last?	 [logic!]
 		reverse? [logic!]
 		return:	 [red-value!]
+		/local
+			type [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/select"]]
 		
-		check-word value
+		type: TYPE_OF(value)
+		unless any [									;@@ replace with ANY_WORD?
+			type = TYPE_WORD
+			type = TYPE_LIT_WORD
+			type = TYPE_GET_WORD
+			type = TYPE_SET_WORD
+		][
+			fire [TO_ERROR(script invalid-type) datatype/push type]
+		]
 		rs-select obj value
 	]
 	
@@ -1452,7 +1485,7 @@ object: context [
 			null			;change
 			null			;clear
 			:copy
-			:find
+			null			;find
 			null			;head
 			null			;head?
 			null			;index?

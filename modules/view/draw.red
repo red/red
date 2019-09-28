@@ -3,7 +3,7 @@ Red/System [
 	Author: "Nenad Rakocevic"
 	File: 	%draw.red
 	Tabs: 	4
-	Rights: "Copyright (C) 2015 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -41,7 +41,7 @@ Red/System [
 		replace:        symbol/make "replace"
 		intersect:      symbol/make "intersect"
 		union:          symbol/make "union"
-		xor:            symbol/make "xor"
+		_xor:            symbol/make "xor"
 		exclude:        symbol/make "exclude"
 		complement:     symbol/make "complement"
 		rotate:			symbol/make "rotate"
@@ -775,7 +775,9 @@ Red/System [
 							sym = text [
 								DRAW_FETCH_VALUE(TYPE_PAIR)					;-- position
 								DRAW_FETCH_VALUE_2(TYPE_STRING TYPE_OBJECT) ;-- string! or text-box!
-								OS-draw-text DC as red-pair! start as red-string! cmd catch?
+								unless OS-draw-text DC as red-pair! start as red-string! cmd catch? [
+									throw-draw-error cmds cmd catch?
+								]
 							]
 							sym = _arc [
 								loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)]	;-- center/radius (of the circle/ellipse)
@@ -874,7 +876,7 @@ Red/System [
 										type = replace
 										type = intersect
 										type = union
-										type = xor
+										type = _xor
 										type = exclude
 									][ 
 										clip-mode: type
@@ -1054,6 +1056,7 @@ Red/System [
 			dc			[handle!]
 			layout		[handle!]			;-- text layout (opaque handle)
 			cmds		[red-block!]
+			max-len		[integer!]
 			catch?		[logic!]
 			/local
 				cmd		[red-value!]
@@ -1063,6 +1066,7 @@ Red/System [
 				start	[red-value!]
 				int1	[red-integer!]
 				int2	[red-integer!]
+				range	[red-pair!]
 				word	[red-word!]
 				sym		[integer!]
 				rgb		[integer!]
@@ -1107,14 +1111,6 @@ Red/System [
 								DRAW_FETCH_OPT_VALUE(TYPE_LIT_WORD)		;-- style: 'dash, 'wave
 								OS-text-box-border layout idx len start cmd
 							]
-							sym = _font-name [
-								DRAW_FETCH_VALUE(TYPE_STRING)
-								OS-text-box-font-name dc layout idx len as red-string! start
-							]
-							sym = _font-size [
-								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
-								OS-text-box-font-size dc layout idx len get-float as red-integer! start
-							]
 							true [throw-draw-error cmds cmd catch?]
 						]
 					]
@@ -1122,16 +1118,17 @@ Red/System [
 						rgb: get-color-int as red-tuple! cmd :alpha?
 						OS-text-box-color dc layout idx len rgb
 					]
-					TYPE_INTEGER [										;-- range
-						int1: as red-integer! cmd
-						int2: int1 + 1
-						cmd: cmd + 2
-						if any [TYPE_OF(int2) <> TYPE_INTEGER TYPE_OF(cmd) = TYPE_INTEGER][
-							throw-draw-error cmds cmd catch?
-						]
-						idx: int1/value - 1
-						len: int2/value
-						cmd: as red-value! int2
+					TYPE_PAIR [											;-- range
+						range: as red-pair! cmd
+						idx: range/x - 1
+						len: range/y
+						if idx + len > max-len [len: max-len - idx]
+					]
+					TYPE_STRING [										;-- font name
+						OS-text-box-font-name dc layout idx len as red-string! cmd
+					]
+					TYPE_INTEGER TYPE_FLOAT [							;-- font size
+						OS-text-box-font-size dc layout idx len get-float as red-integer! cmd
 					]
 					default [throw-draw-error cmds cmd catch?]
 				]
@@ -1145,12 +1142,17 @@ draw: function [
 	"Draws scalable vector graphics to an image"
 	image	[image! pair!]	"Image or size for an image"
 	cmd		[block!]		"Draw commands"
-	/transparent
+	/transparent			"Make a transparent image, if pair! spec is used"
 	return: [image!]
 ][
 	if pair? image [
-		image: either transparent [ make image! image 255.255.255.0 ][ make image! image ]
+		image: make image! either transparent [
+			reduce [image system/words/transparent]
+		][
+			image
+		]
 	]
+	
 	system/view/platform/draw-image image cmd
 	image
 ]

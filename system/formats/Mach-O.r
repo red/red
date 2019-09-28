@@ -3,14 +3,14 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File:	 %Mach-O.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
 ;; Reference doc: http://developer.apple.com/library/mac/#documentation/DeveloperTools/Conceptual/MachORuntime/Reference/reference.html
 
 context [
-	defs: compose [
+	defs: [
 		extensions [
 			exe %""
 			obj %.o
@@ -922,6 +922,8 @@ context [
 			second get-segment-info '__TEXT
 			first  get-segment-info '__DATA
 			second get-segment-info '__DATA
+		
+		if job/show-func-map? [linker/show-funcs-map job get-section-addr '__text]
 		
 		emit-page-aligned out job/sections/code/2
 		

@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Qingtian Xie"
 	File: 	 %image-quartz.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2016 Qingtian Xie. All rights reserved."
+	Rights:  "Copyright (C) 2016-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
@@ -95,6 +95,11 @@ OS-image: context [
 				h			[float32!]
 				src			[integer!]
 			]
+			CGContextScaleCTM: "CGContextScaleCTM" [
+				c			[integer!]
+				sx			[float32!]
+				sy			[float32!]
+			]
 			CGImageSourceCreateWithData: "CGImageSourceCreateWithData" [
 				data		[int-ptr!]
 				options		[integer!]
@@ -134,6 +139,18 @@ OS-image: context [
 				interpolate [logic!]
 				intent		[integer!]
 				return:		[integer!]
+			]
+			CGImageCreateCopy: "CGImageCreateCopy" [
+				image		[int-ptr!]
+				return:		[int-ptr!]
+			]
+			CGImageCreateWithImageInRect: "CGImageCreateWithImageInRect" [
+				image		[int-ptr!]
+				x			[float32!]
+				y			[float32!]
+				w			[float32!]
+				h			[float32!]
+				return:		[int-ptr!]
 			]
 			CGDataProviderCreateWithData: "CGDataProviderCreateWithData" [
 				info		[int-ptr!]
@@ -221,7 +238,7 @@ OS-image: context [
 		inode: as img-node! (as series! img/node/value) + 1
 		if zero? inode/flags [
 			inode/flags: IMG_NODE_HAS_BUFFER
-			inode/buffer: OS-image/data-to-image inode/handle yes yes
+			inode/buffer: data-to-image inode/handle yes yes
 		]
 		if write? [inode/flags: inode/flags or IMG_NODE_MODIFIED]
 		as integer! inode
@@ -255,7 +272,7 @@ OS-image: context [
 		node: as img-node! (as series! bitmap/value) + 1
 		if zero? node/flags [
 			node/flags: IMG_NODE_HAS_BUFFER
-			node/buffer: OS-image/data-to-image node/handle yes yes
+			node/buffer: data-to-image node/handle yes yes
 		]
 		buf: node/buffer + index
 		buf/value
@@ -273,7 +290,7 @@ OS-image: context [
 		node: as img-node! (as series! bitmap/value) + 1
 		if zero? node/flags [
 			node/flags: IMG_NODE_HAS_BUFFER
-			node/buffer: OS-image/data-to-image node/handle yes yes
+			node/buffer: data-to-image node/handle yes yes
 		]
 		node/flags: node/flags or IMG_NODE_MODIFIED
 		buf: node/buffer + index
@@ -293,33 +310,56 @@ OS-image: context [
 		height	[integer!]
 		return: [integer!]
 		/local
-			graphic [integer!]
-			old-w	[integer!]
-			old-h	[integer!]
-			format	[integer!]
-			bitmap	[integer!]
+			old-w		[integer!]
+			old-h		[integer!]
+			handle		[integer!]
+			rect		[NSRect!]
+			color-space [integer!]
+			ctx			[integer!]
+			nhandle		[integer!]
 	][
 		old-w: IMAGE_WIDTH(img/size)
 		old-h: IMAGE_HEIGHT(img/size)
 
-		graphic: 0
-		format: 0
-		bitmap: 0
-		as-integer img/node
+		handle: to-cgimage img
+
+		rect: make-rect 0 0 width height
+		color-space: CGColorSpaceCreateDeviceRGB
+		ctx: CGBitmapContextCreate null width height 32 width * 16 color-space 2101h
+		CGContextScaleCTM ctx as float32! 1.0 as float32! 1.0
+		CGContextDrawImage ctx rect/x rect/y rect/w rect/h handle
+		nhandle: CGBitmapContextCreateImage ctx
+		CGColorSpaceRelease color-space
+		CGContextRelease ctx
+
+		as integer! make-node as int-ptr! nhandle null 0 width height
 	]
 
-	copy: func [
-		dst		[integer!]
-		src		[integer!]
-		bytes	[integer!]
-		offset	[integer!]
+	copy-rect: func [
+		dst		[byte-ptr!]
+		dw		[integer!]
+		dh		[integer!]
+		ds		[integer!]
+		src		[byte-ptr!]
+		sw		[integer!]
+		sh		[integer!]
+		ss		[integer!]
+		x		[integer!]
+		y		[integer!]
+		lines	[integer!]
 		/local
-			dst-buf [byte-ptr!]
-			src-buf [byte-ptr!]
+			offset	[integer!]
+			from	[byte-ptr!]
+			to		[byte-ptr!]
 	][
-		dst-buf: CGBitmapContextGetData dst
-		src-buf: CGBitmapContextGetData src
-		copy-memory dst-buf src-buf + offset bytes
+		offset: y * ss + x * 4
+		from: src + offset
+		to: dst
+		loop lines [
+			copy-memory to from ds
+			to: to + ds
+			from: from + ss
+		]
 	]
 
 	make-node: func [
@@ -676,6 +716,43 @@ OS-image: context [
 		slot
 	]
 
+	combine-image: func [
+		img1	[integer!]
+		img2	[integer!]
+		mode	[integer!]		;-- TBD, default w = max (w1 w2), h = h1 + h2
+		return:	[integer!]
+		/local
+			w1		[integer!]
+			h1		[integer!]
+			w2		[integer!]
+			h2		[integer!]
+			w		[integer!]
+			h		[integer!]
+			cs		[integer!]
+			rect	[NSRect!]
+			ctx		[integer!]
+			handle	[integer!]
+	][
+		w1: CGImageGetWidth as int-ptr! img1
+		h1: CGImageGetHeight as int-ptr! img1
+		w2: CGImageGetWidth as int-ptr! img2
+		h2: CGImageGetHeight as int-ptr! img2
+
+		w: w1
+		if w1 < w2 [w: w2]
+		h: h1 + h2
+		cs: CGColorSpaceCreateDeviceRGB
+		ctx: CGBitmapContextCreate null w h 32 w * 16 cs 2101h
+		rect: make-rect 0 h2 w1 h1
+		CGContextDrawImage ctx rect/x rect/y rect/w rect/h img1
+		rect: make-rect 0 0 w2 h2
+		CGContextDrawImage ctx rect/x rect/y rect/w rect/h img2
+		CGColorSpaceRelease cs
+		handle: CGBitmapContextCreateImage ctx
+		CGContextRelease ctx
+		handle
+	]
+
 	clone: func [
 		src		[red-image!]
 		dst		[red-image!]
@@ -684,11 +761,93 @@ OS-image: context [
 		part?	[logic!]
 		return: [red-image!]
 		/local
-			inode	[img-node!]
+			inode0	[img-node!]
+			width	[integer!]
+			height	[integer!]
+			offset	[integer!]
+			x		[integer!]
+			y		[integer!]
+			h		[integer!]
+			w		[integer!]
+			src-buf [byte-ptr!]
+			dst-buf [byte-ptr!]
+			handle0	[int-ptr!]
+			handle	[int-ptr!]
+			scan0	[int-ptr!]
 	][
-		copy-cell as red-value! src as red-value! dst
-		inode: as img-node! (as series! dst/node/value) + 1
-		inode/flags: IMG_NODE_MODIFIED
+		inode0: as img-node! (as series! src/node/value) + 1
+		handle0: inode0/handle
+		width: IMAGE_WIDTH(inode0/size)
+		height: IMAGE_HEIGHT(inode0/size)
+		offset: src/head
+
+		if any [
+			width <= 0
+			height <= 0
+		][
+			dst/size: 0
+			dst/header: TYPE_IMAGE
+			dst/head: 0
+			dst/node: make-node null null IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED 0 0
+			return dst
+		]
+
+		if all [zero? offset not part?][
+			either null? handle0 [
+				scan0: as int-ptr! allocate inode0/size
+				dst/node: make-node null scan0 IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED width height
+				copy-memory as byte-ptr! scan0 as byte-ptr! inode0/buffer inode0/size
+			][
+				handle: CGImageCreateCopy handle0
+				dst/node: make-node handle null 0 width height
+			]
+			dst/size: src/size
+			dst/header: TYPE_IMAGE
+			dst/head: 0
+			return dst
+		]
+
+		x: offset % width
+		y: offset / width
+		either all [part? TYPE_OF(size) = TYPE_PAIR][
+			w: width - x
+			h: height - y
+			if size/x < w [w: size/x]
+			if size/y < h [h: size/y]
+		][
+			either zero? part [
+				w: 0 h: 0
+			][
+				either part < width [h: 1 w: part][
+					h: part / width
+					w: width
+				]
+			]
+		]
+		if any [
+			w <= 0
+			h <= 0
+		][
+			dst/size: 0
+			dst/header: TYPE_IMAGE
+			dst/head: 0
+			dst/node: make-node null null IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED 0 0
+			return dst
+		]
+
+		either null? handle0 [
+			dst-buf: allocate w * h * 4
+			dst/node: make-node null as int-ptr! dst-buf IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED w h
+			src-buf: as byte-ptr! inode0/buffer
+			copy-rect dst-buf w h w * 4 src-buf width height width * 4 x y h
+		][
+			handle: CGImageCreateWithImageInRect
+				handle0 as float32! x as float32! y as float32! w as float32! h
+			dst/node: make-node handle null 0 w h
+		]
+		dst/size: h << 16 or w
+		dst/header: TYPE_IMAGE
+		dst/head: 0
 		dst
 	]
 ]

@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %error.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -43,6 +43,16 @@ error: context [
 	][
 		type: as red-word! (object/get-values err) + field-type
 		type/symbol
+	]
+	
+	get-id: func [
+		err		[red-object!]
+		return: [integer!]
+		/local
+			id [red-word!]
+	][
+		id: as red-word! (object/get-values err) + field-id
+		id/symbol
 	]
 	
 	get-stack-id: func [return: [integer!]][field-stack]
@@ -102,7 +112,7 @@ error: context [
 			base [red-value!]
 			blk	 [red-block!]
 	][
-		blk: block/push* 2
+		blk: block/push-only* 2
 		block/rs-append blk cat
 		block/rs-append blk id
 	
@@ -177,7 +187,7 @@ error: context [
 			null
 		
 		new/header: TYPE_ERROR							;-- implicit reset of all header flags
-		new/class:  0
+		new/class:  OBJ_CLASS_ERROR!
 		new/on-set: null
 		
 		base:	object/get-values new
@@ -193,7 +203,7 @@ error: context [
 				w: sym + cat
 				
 				if any [
-					int/value <= 0
+					int/value < 0
 					(sym + object/get-size errors) <= as red-value! w
 				][
 					fire [TO_ERROR(script out-of-range) spec]
@@ -223,14 +233,14 @@ error: context [
 						
 						errors: (as red-object! object/get-values errors) + cat
 						value: value + 1
-						if value < block/rs-tail blk [
+						either value < block/rs-tail blk [
 							if TYPE_OF(value) <> TYPE_WORD [
 								fire [TO_ERROR(script invalid-arg) value]
 							]
 							cat2: object/rs-find errors value
 							if cat2 = -1 [fire [TO_ERROR(script invalid-spec-field) words/_id]]
 							copy-cell value base + field-id
-						]
+						][fire [TO_ERROR(script invalid-spec-field) words/_id]]
 					]
 					TYPE_SET_WORD [
 						_context/bind blk GET_CTX(new) new/ctx yes
@@ -355,6 +365,40 @@ error: context [
 		string/append-char GET_BUFFER(buffer) as-integer #"]"
 		part - 1
 	]
+	
+	eval-path: func [
+		parent	[red-object!]							;-- implicit type casting
+		element	[red-value!]
+		value	[red-value!]
+		path	[red-value!]
+		case?	[logic!]
+		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "error/eval-path"]]
+		
+		if value <> null [fire [TO_ERROR(script invalid-path-set) path]]
+		object/eval-path parent element value path case?
+	]
+	
+	compare: func [
+		obj1	[red-object!]							;-- first operand
+		obj2	[red-object!]							;-- second operand
+		op		[integer!]								;-- type of comparison
+		return:	[integer!]
+		/local
+			res [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "error/compare"]]
+		
+		either TYPE_OF(obj2) = TYPE_ERROR [
+			set-type as red-value! obj2 TYPE_OBJECT
+			res: object/compare obj1 obj2 op
+			set-type as red-value! obj2 TYPE_ERROR
+		][
+			RETURN_COMPARE_OTHER
+		]
+		res
+	]
 
 	init: does [
 		datatype/register [
@@ -368,9 +412,9 @@ error: context [
 			null			;to
 			:form
 			:mold
-			INHERIT_ACTION	;eval-path
+			:eval-path
 			null			;set-path
-			INHERIT_ACTION	;compare
+			:compare
 			;-- Scalar actions --
 			null			;absolute
 			null			;add

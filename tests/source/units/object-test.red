@@ -4,13 +4,30 @@ Red [
 	File: 	 %object-test.red
 	Version: "0.1.0"
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
 #include  %../../../quick-test/quick-test.red
 
 ~~~start-file~~~ "object"
+
+===start-group=== "reactor tests"
+
+    --test-- "reactor-basic-1"
+        rb1-r: make reactor! [
+            x: 1
+            y: 2
+            total: is [x + y]
+        ]
+        --assert 3 = rb1-r/total
+        rb1-r/x: 2
+        --assert 4 = rb1-r/total
+        rb1-r/x: 5
+        rb1-r/y: 10
+        --assert 15 = rb1-r/total
+        
+===end-group===
 
 ===start-group=== "basic tests"
 
@@ -48,8 +65,9 @@ Red [
 		--assert obj5/a = 456
 
 	--test-- "basic-7"
-		--assert find obj5 'a
-		--assert not find obj5 'z
+		;; DEPRECATED
+		;;--assert find obj5 'a
+		;;--assert not find obj5 'z
 		--assert 456 = select obj5 'a
 		--assert none? select obj5 'z
 
@@ -275,8 +293,9 @@ Red [
 			;o14: make object! [
 			;o15: make object! [
 				i: 1
-			]]]]]]]]]]]]
+			]]]]]]]]]]]];]]
 		]
+		;--assert no5-o1/o2/o3/o4/o5/o6/o7/o8/o9/o10/o11/o12/o13/o14/o15/i = 1 
 		--assert no5-o1/o2/o3/o4/o5/o6/o7/o8/o9/o10/o11/o12/o13/i = 1
 		
 	--test-- "no6 issue #928"
@@ -1063,8 +1082,9 @@ Red [
 			--assert obj5/a = 456
 
 		--test-- "loc-basic-7"
-			--assert find obj5 'a
-			--assert not find obj5 'z
+			;; DEPRECATED
+			;;--assert find obj5 'a
+			;;--assert not find obj5 'z
 			--assert 456 = select obj5 'a
 			--assert none? select obj5 'z
 
@@ -2178,22 +2198,36 @@ Red [
 				
 ===end-group===
 
-===start-group=== "find & select"
+===start-group=== "get"
+
+	--test-- "og1"
+		og1: make object! [a: 1 b: 2 c: "x"]
+		--assert equal? [1 2 "x"] get og1
+		--assert equal? [1 2 "x"] get :og1
+		--assert equal? [1 2 "x"] get/any :og1
+		--assert equal? [1 2 "x"] get/case :og1
+		--assert same? og1/c last get og1
+		--assert equal? 2 get 'og1/b
+		--assert empty? get object []
+
+===end-group===
+
+===start-group=== "select"
 
 	--test-- "ofs"
 		ofs1: make object! [a: 1]
-		--assert find ofs1 'a
+		;;--assert find ofs1 'a
 		--assert 1 = select ofs1 'a
 		
 	--test-- "ofs2"
 		ofs2: make object! [a: none]
-		--assert find ofs2 'a
+		;;--assert find ofs2 'a
 		--assert none = select ofs2 'a
 		
 	--test-- "ofs3"
 		ofs3: make object! [a: 1]
-		--assert not find ofs3 'b
-		--assert not select ofs3 'b			
+		;;--assert not find ofs3 'b
+		--assert not select ofs3 'b
 
 ===end-group===
 
@@ -2241,7 +2275,7 @@ Red [
 				if equal? mold owner mold make object! [a: 0 b: [1 2 3 4 5 6]] [a: a + 1]
 				if equal? word 'b [a: a + 10]
 				if equal? target [1 2 3 4 5 6] [a: a + 100]
-				if equal? action 'insert [a: a + 1000]
+				if equal? action 'append [a: a + 1000]
 				if equal? new 6 [a: a + 10000]
 				if equal? index 5 [a: a + 100000]
 				if equal? part 1 [a: a + 1000000]				 
@@ -2262,6 +2296,31 @@ Red [
 		b: make a [e: 2]
 		--assert 1 = do a/d
 		--assert 2 = do b/d
+		
+	--test-- "issue #3516"
+		iss-3516-c: context [ f: func [a] [] ]
+		;; COMMENTED OUT
+		;;--assert not error? try [ iss-3516-t: iss-3516-c/f [] ]
+
+
+	--test-- "issue #3406"
+		do [						;-- cannot run this test using libRedRT
+			b3406: context [x: 2  f: does [x]]
+			c3406: context [f: does [x]  x: 3]
+			d3406: construct/with [x: 4] b3406
+			e3406: construct/with [x: 5] c3406
+
+			--assert b3406/f = 2
+			--assert c3406/f = 3
+			--assert d3406/f = 4
+			--assert e3406/f = 5
+
+			;-- alternative to 3406 merging objects using MAKE
+			
+			g3406: context [f: does [x]  x: 3]
+			h3406: make g3406 object [x: 5]
+			--assert h3406/f = 5
+		]
 
 ===end-group===
 

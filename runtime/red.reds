@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %red.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -16,6 +16,7 @@ red: context [
 	#include %definitions.reds
 	#include %macros.reds
 	#include %tools.reds
+	#include %dtoa.reds
 	
 	#switch OS [										;-- loading OS-specific bindings
 		Windows  [#include %platform/win32.reds]
@@ -25,14 +26,14 @@ red: context [
 		#default [#include %platform/linux.reds]
 	]
 	
-	;#include %threads.reds
+	#include %threads.reds
 	#include %allocator.reds
-	;#include %collector.reds
 	#include %crush.reds
 	
 	;-- Datatypes --
 	
 	#include %datatypes/structures.reds
+	#include %print.reds
 	#include %datatypes/common.reds
 	#include %unicode.reds
 	#include %case-folding.reds
@@ -102,6 +103,7 @@ red: context [
 	#include %datatypes/email.reds
 	#include %datatypes/handle.reds
 	#include %datatypes/date.reds
+	#include %datatypes/port.reds
 	#if OS = 'Windows [#include %datatypes/image.reds]	;-- temporary
 	#if OS = 'macOS   [#include %datatypes/image.reds]	;-- temporary
 
@@ -123,23 +125,31 @@ red: context [
 	#include %redbin.reds
 	#include %utils.reds
 	#include %call.reds
-	#include %inflate.reds
+	#include %compress.reds
+	#include %collector.reds
 
 	_root:	 	declare red-block!						;-- statically alloc root cell for bootstrapping
 	root:	 	as red-block! 0							;-- root block
 	symbols: 	as red-block! 0 						;-- symbols table
 	global-ctx: as node! 0								;-- global context
+	arg-stk:	as red-block!	0						;-- argument stack (should never be relocated)
+	call-stk:	as red-block!	0						;-- call stack (should never be relocated)
+	stk-bottom: system/stack/top
+
 	verbosity:  0
+	boot?: 		no
 
 	;-- Booting... --
 	
 	init: does [
+		boot?: yes
+		dyn-print/init
 		platform/init
 		_random/init
 		init-mem										;@@ needs a local context
 		
-		name-table: as names! allocate 50 * size? names!	 ;-- datatype names table
-		action-table: as int-ptr! allocate 256 * 50 * size? pointer! ;-- actions jump table	
+		name-table: as names! allocate TYPE_TOTAL_COUNT * size? names!	 ;-- datatype names table
+		action-table: as int-ptr! allocate 256 * TYPE_TOTAL_COUNT * size? pointer! ;-- actions jump table	
 
 		datatype/init
 		unset/init
@@ -188,6 +198,7 @@ red: context [
 		email/init
 		handle/init
 		date/init
+		port/init
 		#if OS = 'Windows [image/init]					;-- temporary
 		#if OS = 'macOS   [image/init]					;-- temporary
 		
@@ -197,12 +208,14 @@ red: context [
 		alloc-node-frame nodes-per-frame				;-- 10k nodes
 		alloc-series-frame								;-- first frame of 1MB
 
-		root:	 	block/make-in null 2000	
-		symbols: 	block/make-in root 1000
-		global-ctx: _context/create 1000 no no
+		root:		block/make-fixed null ***-root-size
+		arg-stk:	block/make-fixed root 2 * 2000
+		call-stk:	block/make-fixed root 20 * 2000
+		symbols: 	block/make-in root 4000
+		global-ctx: _context/create 4000 no no
 
 		case-folding/init
-		symbol/table: _hashtable/init 1000 symbols HASH_TABLE_SYMBOL 1
+		symbol/table: _hashtable/init 4000 symbols HASH_TABLE_SYMBOL 1
 
 		datatype/make-words								;-- build datatype names as word! values
 		words/build										;-- create symbols used internally
@@ -260,6 +273,7 @@ red: context [
 			email/verbose:		verbosity
 			handle/verbose:		verbosity
 			date/verbose:		verbosity
+			port/verbose:		verbosity
 			#if OS = 'Windows [image/verbose: verbosity]
 			#if OS = 'macOS   [image/verbose: verbosity]
 

@@ -3,7 +3,7 @@ Red [
 	Author: "Nenad Rakocevic"
 	File: 	%reactivity.red
 	Tabs: 	4
-	Rights: "Copyright (C) 2016 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2016-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -41,24 +41,35 @@ deep-reactor!: make reactor! [
 	]
 ]
 
-;reactor:	  function [spec [block!]][make reactor! spec]
-;deep-reactor: function [spec [block!]][make deep-reactor! spec]
+reactor:	  function [spec [block!]][make reactor! spec]
+deep-reactor: function [spec [block!]][make deep-reactor! spec]
 
 
 system/reactivity: context [
 	relations:	 make block! 1000		;@@ change it to hash! once stable
-	stack:		 make block! 100		;@@ change it to hash! once stable ???
+	;-- queue format: [reactor reaction target done]
 	queue:		 make block! 100
 	eat-events?: yes
 	debug?: 	 no
 	source:		 []
+
+	add-relation: func [
+		obj		 [object!]
+		word
+		reaction [block! function!]
+		targets  [set-word! block! object! none!]
+		/local new-rel
+	][
+		new-rel: reduce [obj :word :reaction targets]
+		unless find/same/skip relations new-rel 4 [append relations new-rel]
+	]
 	
 	eval: function [code [block!] /safe][
 		either safe [
 			if error? set/any 'result try/all code [
 				print :result
 				prin "*** Near: "
-				probe code
+				print mold/part/flat code 80
 				result: none
 			]
 			get/any 'result
@@ -67,9 +78,8 @@ system/reactivity: context [
 		]
 	]
 	
-	eval-reaction: function [reactor [object!] reaction [block! function!] target][
-		append stack reactor
-		append/only stack :reaction
+	eval-reaction: func [reactor [object!] reaction [block! function!] target /mark][
+		if mark [repend queue [reactor :reaction target yes]]
 		
 		either set-word? target [
 			set/any target eval/safe :reaction
@@ -78,12 +88,11 @@ system/reactivity: context [
 		]
 	]
 	
-	pending?: function [reactor [object!] reaction [block! function!] type [word!]][
-		step: pick [3 2] type = 'queue
-		p: get type
-		while [p: find/same/skip p reactor step][
-			if same? p/2 reaction [return yes]
-			p: skip p step
+	pending?: function [reactor [object!] reaction [block! function!]][
+		q: queue
+		while [q: find/same/skip q reactor 4][
+			if same? :q/2 :reaction [return yes]
+			q: skip q 4
 		]
 		no
 	]
@@ -91,39 +100,42 @@ system/reactivity: context [
 	check: function [reactor [object!] /only field [word! set-word!]][
 		unless empty? pos: relations [
 			while [pos: find/same/skip pos reactor 4][
-				reaction: pos/3
+				reaction: :pos/3
 				if all [
 					any [not only pos/2 = field]
-					any [empty? stack not pending? reactor :reaction 'stack]
+					any [empty? queue  not pending? reactor :reaction]
 				][
-					either empty? stack [
+					either empty? queue [
 						if empty? source [
 							append source reactor
 							append source field
 						]
-						eval-reaction reactor :reaction pos/4
+						eval-reaction/mark reactor :reaction pos/4
 						
-						unless empty? queue [
-							q: tail queue
-							while [not head? q][
-								q: skip q -3
-								eval-reaction q/1 q/2 q/3
-								q: tail remove/part q 3	;-- new reactions could have been queued
+						q: tail queue
+						until [
+							q: skip q': q -4
+							either q/4 [ 				;-- was already executed?
+								clear q 				;-- allow requeueing of it
+							][
+								eval-reaction q/1 :q/2 q/3
+								either tail? q' [ 		;-- queue wasn't extended
+									clear q 			;-- allow requeueing
+								][
+									q/4: yes 			;-- mark as executed
+									q: tail queue 		;-- jump to recently queued reactions
+								]
 							]
+							head? q
 						]
-						clear stack
+						clear queue
 						clear source
 					][
 						unless all [
 							eat-events?
-							any [
-								pending? reactor :reaction 'stack
-								pending? reactor :reaction 'queue
-							]
+							pending? reactor :reaction
 						][
-							append queue reactor
-							append/only queue :reaction
-							append/only queue pos/4
+							repend queue [reactor :reaction pos/4 no]
 						]
 					]
 				]
@@ -132,12 +144,34 @@ system/reactivity: context [
 		]
 	]
 	
+	set 'stop-reactor function [
+		face [object!]
+		/deep
+	][
+		list: relations
+		while [not tail? list][
+			either any [
+				same? list/1 face
+				all [
+					block? list/4
+					pos: find/same list/4 face
+					empty? head remove pos
+				]
+			][
+				remove/part list 4
+			][
+				list: skip list 4
+			]
+		]
+		if all [deep block? face/pane][foreach f face/pane [stop-reactor/deep f]]
+	]
+	
 	set 'clear-reactions function ["Removes all reactive relations"][clear relations]
 	
 	set 'dump-reactions function [
 		"Output all the current reactive relations for debugging purpose"
 	][
-		limit: any [all [system/console system/console/size/x] 72] - 10
+		limit: (any [all [system/console system/console/size/x] 72]) - 10
 		count: 0
 		
 		foreach [obj field reaction target] relations [
@@ -171,19 +205,17 @@ system/reactivity: context [
 		'field	 [set-word!]	"Set-word which will get set to the result of the reaction"
 		reaction [block!]		"Reactive relation"
 	][
-		words: words-of obj: context? field
+		obj: context? field
 		parse reaction rule: [
 			any [
-				item: word! (
-					if find words item/1 [repend relations [obj item/1 reaction field]]
-				)
-				| set-path! | any-string!
+				item: word! (if in obj item/1 [add-relation obj item/1 reaction field])
+				| any-path! | any-string!
 				| into rule
 				| skip
 			]
 		]
 		react/later/with reaction field
-		set field either block? reaction/1 [do reaction/1][eval reaction]
+		set field either block? :reaction/1 [do :reaction/1][eval reaction]
 	]
 	
 	set 'is make op! :is~
@@ -244,7 +276,7 @@ system/reactivity: context [
 							item: item/1
 							if pos: find objs item/1 [
 								obj: pick objects 1 + index? pos
-								repend relations [obj item/2 :reaction objects]
+								add-relation obj item/2 :reaction objects
 								unless later [eval objects]
 								found?: yes
 							]
@@ -261,9 +293,11 @@ system/reactivity: context [
 				found?: no
 				while [pos: find/same/only pos :reaction][
 					obj: pos/-2
-					if any [src = 'all src = obj all [block? src find/same src obj]][
+					either any [src = 'all src = obj all [block? src find/same src obj]][
 						pos: remove/part skip pos -2 4
 						found?: yes
+					][
+						break
 					]
 				]
 			]
@@ -277,7 +311,7 @@ system/reactivity: context [
 								cause-error 'script 'no-value [item]
 							]
 							either 2 = length? item [
-								obj: get item/1
+								set/any 'obj get/any item/1
 								part: 1
 							][
 								part: length? item
@@ -296,7 +330,7 @@ system/reactivity: context [
 								in obj 'on-change*
 							][
 								part: part + 1
-								repend relations [obj item/:part reaction ctx]
+								add-relation obj item/:part reaction ctx
 								unless later [eval reaction]
 								found?: yes
 							]

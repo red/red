@@ -43,27 +43,27 @@ Red [
 	--test-- "Z"					--assert 65445 = checksum "Z"  'tcp
 	--test-- "char 127"				--assert 65408 = checksum form make char! 127 'tcp
 	--test-- "char 255"				--assert 15424 = checksum form make char! 255 'tcp
-	
+
 	--test-- "tcpcrc1"
 		data: "12"
 		--assert 52941 = checksum data 'tcp
-		
+
 	--test-- "tcpcrc2"
 		data: "123"
 		--assert 52890 = checksum data 'tcp
-		
+
 	--test-- "tcpcrc3"
 		data: "123456789"
 		--assert 12018 = checksum data 'tcp
-		
-	--test-- "tcpcrc4" 
+
+	--test-- "tcpcrc4"
 		data: "0123456789"
 		--assert 64245 = checksum data 'tcp
-		
+
 	--test-- "tcpcrc5"
 		data: "The quick brown fox jumps over the lazy dog"
 		--assert 55613 = checksum data 'tcp
-		
+
 ===end-group===
 
 
@@ -76,107 +76,160 @@ Red [
 	--test-- "Z"					--assert 1505515367	= checksum "Z"  'crc32
 	--test-- "char 127"				--assert 314082080	= checksum form make char! 127 'crc32
 	--test-- "char 255"				--assert -87017361	= checksum form make char! 255 'crc32
-	
+
 	--test-- "crc32-1"
 		data: "12"
 		--assert 1330857165	= checksum data 'crc32
-	
+
 	--test-- "crc32-2"
 		data: "123"
 		--assert -2008521774	= checksum data 'crc32
-	
+
 	--test-- "crc32-3"
 		data: "123456789"
 		--assert -873187034	= checksum data 'crc32
-		
+
 	--test-- "crc32-4"
 		data: "0123456789"
 		--assert -1501247546	= checksum data 'crc32
-		
+
 	--test-- "crc32-5"
 		data: "The quick brown fox jumps over the lazy dog"
 		--assert 1095738169	= checksum data 'crc32
-		
+
 ===end-group===
 
+===start-group=== "adler32 tests"
+	--test-- ""
+		--assert 1 = checksum "" 'adler32
+	--test-- "^@"
+		--assert 65537 = checksum "^@" 'adler32
+	--test-- "^A"
+		--assert 131074 = checksum "^A" 'adler32
+	--test-- "^_"
+		--assert 2097184 = checksum "^_" 'adler32
+	--test-- " "
+		--assert 2162721 = checksum " " 'adler32
+	--test-- "Z"
+		--assert 5963867 = checksum "Z"  'adler32
+	--test-- "char 127"
+		--assert 8388736 = checksum #{7F} 'adler32
+	--test-- "char 255"
+		--assert 16777472 = checksum #{FF} 'adler32
+
+	--test-- "adler32-1"
+		--assert 9830500 = checksum "12" 'adler32
+
+	--test-- "adler32-2"
+		--assert 19726487 = checksum "123" 'adler32
+
+	--test-- "adler32-3"
+		--assert 152961502 = checksum "123456789" 'adler32
+
+	--test-- "adler32-4"
+		--assert 184484366 = checksum "0123456789" 'adler32
+
+	--test-- "adler32-5"
+		data: "The quick brown fox jumps over the lazy dog"
+		--assert 1541148634 = checksum data 'adler32
+
+	--test-- "adler32-6"
+		data: "1234567890123456"
+		--assert 463995715 = checksum data 'adler32
+
+	--test-- "adler32-7"
+		data: "12345678901234567890123456789012345678901234567890123456789012345678901234567890"
+		--assert -1749675927 = checksum data 'adler32
+
+===end-group===
+
+===start-group=== "adler32 fix-#3631 tests"
+
+	--test-- "fix-#3631-1"
+		--assert 11731034 = checksum "X^A" 'adler32
+
+	--test-- "fix-#3631-2"
+		--assert 260637475 = checksum "qwertyo^G" 'adler32
+
+===end-group===
 
 ===start-group=== "MD5 tests"
-	
+
 	--test-- "MD5_empty"
 		data: ""
 		expected: #{D41D8CD98F00B204E9800998ECF8427E}
 		 --assert expected = checksum data 'md5
-		
+
 	--test-- "MD5_quick"
 		data: "The quick brown fox jumps over the lazy dog"
 		expected: #{9E107D9D372BB6826BD81D3542A419D6}
 		--assert expected = checksum data 'md5
-	
+
 	--test-- "MD5_1-9"
 		data: "123456789"
 		expected: #{25F9E794323B453885F5181F1B624D0B}
 		 --assert expected = checksum data 'md5
-	
-	--test-- "MD5_0-9" 
+
+	--test-- "MD5_0-9"
 		data: "0123456789"
 		expected: #{781E5E245D69B566979B86E28D23F2C7}
 		--assert expected = checksum data 'md5
-		
+
 ===end-group===
 
 
 ===start-group=== "SHA1 tests"
-	
+
 	--test-- "SHA1_empty"
 		data: ""
 		expected: #{DA39A3EE5E6B4B0D3255BFEF95601890AFD80709}
 	 	--assert expected = checksum data 'sha1
-	
+
 	--test-- "SHA1_quick"
 		data: "The quick brown fox jumps over the lazy dog"
 		expected: #{2FD4E1C67A2D28FCED849EE1BB76E7391B93EB12}
 	 	--assert expected = checksum data 'sha1
-	
-	--test-- "SHA1_1-9" 
+
+	--test-- "SHA1_1-9"
 		data: "123456789"
 		expected: #{F7C3BC1D808E04732ADF679965CCC34CA7AE3441}
 		--assert expected = checksum data 'sha1
-	
-	--test-- "SHA1_0-9" 
+
+	--test-- "SHA1_0-9"
 		data: "0123456789"
 		expected: #{87ACEC17CD9DCD20A716CC2CF67417B71C8A7016}
 		--assert expected = checksum data 'sha1
-	
+
 ===end-group===
 
 
 ===start-group=== "SHA256 tests"
-	
+
 	--test-- "SHA256_empty"
 		data: ""
 		expected: #{E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855}
     	--assert expected = checksum data 'sha256
-	
-	--test-- "SHA256_quick" 
+
+	--test-- "SHA256_quick"
 		data: "The quick brown fox jumps over the lazy dog"
 		expected: #{D7A8FBB307D7809469CA9ABCB0082E4F8D5651E46D3CDB762D02D0BF37C9E592}
 		--assert expected = checksum data 'sha256
-	
+
 	--test-- "SHA256_1-9"
 		data: "123456789"
 		expected: #{15E2B0D3C33891EBB0F1EF609EC419420C20E320CE94C65FBC8C3312448EB225}
 		--assert expected = checksum data 'sha256
-	
+
 	 --test-- "SHA256_0-9"
 	 	data: "0123456789"
 		expected: #{84D89877F0D4041EFB6BF91A16F0248F2FD573E6AF05C19F96BEDB9F882F7882}
 		--assert expected = checksum data 'sha256
-   
+
 ===end-group===
 
 
 ===start-group=== "SHA384 tests"
-	
+
 	--test-- "SHA384_empty"
 		data: ""
 		expected: #{
@@ -184,7 +237,7 @@ Red [
 			274EDEBFE76F65FBD51AD2F14898B95B
 		}
 		--assert expected = checksum data 'sha384
-	
+
 	--test-- "SHA384_quick"
 		data: "The quick brown fox jumps over the lazy dog"
 		expected: #{
@@ -192,7 +245,7 @@ Red [
 			9CB1E5DC1E85A941BBEE3D7F2AFBC9B1
 		}
 		--assert expected = checksum data 'sha384
-	
+
 	--test-- "SHA384_1-9"
 		data: "123456789"
 		expected: #{
@@ -200,15 +253,15 @@ Red [
 			A5E3179847334A18479C8D1DEDEA1BE3
 		}
 		--assert expected = checksum data 'sha384
-	
-	--test-- "SHA384_0-9" 
+
+	--test-- "SHA384_0-9"
 		data: "0123456789"
 		expected: #{
 			90AE531F24E48697904A4D0286F354C50A350EBB6C2B9EFCB22F71C96CEAEFFC
 			11C6095E9CA0DF0EC30BF685DCF2E5E5
 		}
 		--assert expected = checksum data 'sha384
-	
+
 ===end-group===
 
 
@@ -219,28 +272,28 @@ Red [
 		47D0D13C5D85F2B0FF8318D2877EEC2F63B931BD47417A81A538327AF927DA3E
 	}
 	--test-- "SHA512_empty" --assert expected = checksum data 'sha512
-	
+
 	data: "The quick brown fox jumps over the lazy dog"
 	expected: #{
 		07E547D9586F6A73F73FBAC0435ED76951218FB7D0C8D788A309D785436BBB64
 		2E93A252A954F23912547D1E8A3B5ED6E1BFD7097821233FA0538F3DB854FEE6
 	}
 	--test-- "SHA512_quick" --assert expected = checksum data 'sha512
-	
+
 	data: "123456789"
 	expected: #{
 		D9E6762DD1C8EAF6D61B3C6192FC408D4D6D5F1176D0C29169BC24E71C3F274A
 		D27FCD5811B313D681F7E55EC02D73D499C95455B6B5BB503ACF574FBA8FFE85
 	}
 	--test-- "SHA512_1-9" --assert expected = checksum data 'sha512
-	
+
 	data: "0123456789"
 	expected: #{
 		BB96C2FC40D2D54617D6F276FEBE571F623A8DADF0B734855299B0E107FDA32C
 		F6B69F2DA32B36445D73690B93CBD0F7BFC20E0F7F28553D2A4428F23B716E90
 	}
 	--test-- "SHA512_0-9" --assert expected = checksum data 'sha512
-	
+
 ===end-group===
 
 
@@ -273,7 +326,7 @@ Red [
 		}
 		--assert expected = checksum/with data 'sha384 key
 
-	--test-- "SHA512" 
+	--test-- "SHA512"
 		data: copy ""
 		key:  copy ""
 		expected: #{
@@ -283,7 +336,7 @@ Red [
 		--assert expected = checksum/with data 'sha512 key
 
 ===end-group===
-  
+
 
 ===start-group=== "/with (HMAC) standard test vectors"
 
@@ -327,13 +380,13 @@ Red [
 ; Test vectors from RFC 4231 (https://tools.ietf.org/html/rfc4231)
 ;-------------------------------------------------------------------------------
 
-	--test-- "PRF-1-HMAC-SHA-256" 
+	--test-- "PRF-1-HMAC-SHA-256"
 		data: copy #{4869205468657265}							; "Hi There"
 		key:  copy #{0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B}	; 20 bytes
 		expected: #{B0344C61D8DB38535CA8AFCEAF0BF12B881DC200C9833DA726E9376C2E32CFF7}
 		--assert expected = checksum/with data 'sha256 key
 
-	--test-- "PRF-1-HMAC-SHA-384" 
+	--test-- "PRF-1-HMAC-SHA-384"
 		data: copy #{4869205468657265}							; "Hi There"
 		key:  copy #{0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B}	; 20 bytes
 		expected: #{
@@ -342,7 +395,7 @@ Red [
 		}
 		--assert expected = checksum/with data 'sha384 key
 
-	--test-- "PRF-1-HMAC-SHA-512" 
+	--test-- "PRF-1-HMAC-SHA-512"
 		data: copy #{4869205468657265}							; "Hi There"
 		key:  copy #{0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B}	; 20 bytes
 		expected: #{
@@ -368,7 +421,7 @@ Red [
 
 	--test-- "PRF-2-HMAC-SHA-512"
 		data: copy  "what do ya want for nothing?"
-		key:  copy "Jefe" 
+		key:  copy "Jefe"
 		expected: #{
 			164B7A7BFCF819E2E395FBE73B56E0A387BD64222E831FD610270CD7EA250554
 			9758BF75C05A994A6D034F65F8F0E6FDCAEAB1A34D4A6B4B636E070A38BCE737
@@ -407,7 +460,7 @@ Red [
 			BF3E848279A722C806B485A47E67C807B946A337BEE8942674278859E13292FB
 		}
 		--assert expected = checksum/with data 'sha512 key
-	
+
 	--test-- "PRF-4-HMAC-SHA-256"
 		data: copy #{													; 50 bytes
 			CDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCD
@@ -429,7 +482,7 @@ Red [
 		}
 		--assert expected = checksum/with data 'sha384 key
 
-	--test-- "PRF-4-HMAC-SHA-512" 
+	--test-- "PRF-4-HMAC-SHA-512"
 		data: copy #{													; 50 bytes
 			CDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCD
 			CDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCDCD
@@ -466,7 +519,7 @@ Red [
 		--assert expected = checksum/with data 'sha512 key
 
 												; "Test Using Larger Than Block-Size Key - Hash Key First"
-	data: copy#{											
+	data: copy#{
 		54657374205573696E67204C6172676572205468616E20426C6F636B2D53697A
 		65204B6579202D2048617368204B6579204669727374
 	}
@@ -477,10 +530,10 @@ Red [
 		AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 		AAAAAA
 	}
-                  
+
 	--test-- "PRF-6-HMAC-SHA-256"
 												; "Test Using Larger Than Block-Size Key - Hash Key First"
-		data: copy#{											
+		data: copy#{
 			54657374205573696E67204C6172676572205468616E20426C6F636B2D53697A
 			65204B6579202D2048617368204B6579204669727374
 		}
@@ -496,7 +549,7 @@ Red [
 
 	--test-- "PRF-6-HMAC-SHA-384"
 												; "Test Using Larger Than Block-Size Key - Hash Key First"
-		data: copy#{											
+		data: copy#{
 			54657374205573696E67204C6172676572205468616E20426C6F636B2D53697A
 			65204B6579202D2048617368204B6579204669727374
 		}
@@ -515,7 +568,7 @@ Red [
 
 	--test-- "PRF-6-HMAC-SHA-512"
 												; "Test Using Larger Than Block-Size Key - Hash Key First"
-		data: copy#{											
+		data: copy#{
 			54657374205573696E67204C6172676572205468616E20426C6F636B2D53697A
 			65204B6579202D2048617368204B6579204669727374
 		}
@@ -525,13 +578,13 @@ Red [
 			AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 			AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 			AAAAAA
-		} 
+		}
 		expected: #{
 			80B24263C7C1A3EBB71493C1DD7BE8B49B46D1F41B4AEEC1121B013783F8F352
 			6B56D037E05F2598BD0FD2215D6A1E5295E64F73F63F0AEC8B915A985D786598
 		}
 		--assert expected = checksum/with data 'sha512 key
-                  
+
 	--test-- "PRF-7-HMAC-SHA-256"
 														; data = "This is a test using a larger than block-size key
 														; and a larger than block-size data. The key needs to be

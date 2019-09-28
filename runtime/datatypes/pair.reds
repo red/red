@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %pair.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -40,12 +40,7 @@ pair: context [
 				x: int/value
 				y: x
 			]
-			TYPE_FLOAT [
-				fl: as red-float! right
-				x: as-integer fl/value
-				y: x
-			]
-			TYPE_PERCENT [
+			TYPE_FLOAT TYPE_PERCENT [
 				fl: as red-float! right
 				f: fl/value
 				switch op [
@@ -146,8 +141,7 @@ pair: context [
 				int: as red-integer! spec
 				push int/value int/value
 			]
-			TYPE_FLOAT
-			TYPE_PERCENT [
+			TYPE_FLOAT [
 				fl: as red-float! spec
 				x: as-integer fl/value
 				push x x
@@ -261,6 +255,7 @@ pair: context [
 			int	 [red-integer!]
 			w	 [red-word!]
 			axis [integer!]
+			type [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "pair/eval-path"]]
 		
@@ -269,22 +264,26 @@ pair: context [
 				int: as red-integer! element
 				axis: int/value
 				if all [axis <> 1 axis <> 2][
-					fire [TO_ERROR(script invalid-path) stack/arguments element]
+					fire [TO_ERROR(script invalid-path) path element]
 				]
 			]
 			TYPE_WORD [
 				w: as red-word! element
 				axis: symbol/resolve w/symbol
 				if all [axis <> words/x axis <> words/y][
-					fire [TO_ERROR(script invalid-path) stack/arguments element]
+					fire [TO_ERROR(script invalid-path) path element]
 				]
 				axis: either axis = words/x [1][2]
 			]
 			default [
-				fire [TO_ERROR(script invalid-path) stack/arguments element]
+				fire [TO_ERROR(script invalid-path) path element]
 			]
 		]
 		either value <> null [
+			type: TYPE_OF(value)
+			if type <> TYPE_INTEGER [
+				fire [TO_ERROR(script invalid-type) datatype/push type]
+			]
 			int: as red-integer! stack/arguments
 			int/header: TYPE_INTEGER
 			either axis = 1 [parent/x: int/value][parent/y: int/value]
@@ -307,11 +306,9 @@ pair: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "pair/compare"]]
 
-		if TYPE_OF(right) <> TYPE_PAIR [
-			return either any [op = COMP_FIND op = COMP_STRICT_EQUAL][1][RETURN_COMPARE_OTHER]
-		]
-		diff: left/y - right/y
-		if zero? diff [diff: left/x - right/x]
+		if TYPE_OF(right) <> TYPE_PAIR [RETURN_COMPARE_OTHER]
+		diff: left/x - right/x
+		if zero? diff [diff: left/y - right/y]
 		SIGN_COMPARE_RESULT(diff 0)
 	]
 

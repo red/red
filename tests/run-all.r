@@ -49,6 +49,18 @@ do %source/units/run-pre-extra-tests.r
 ===end-group===
 do %source/units/run-post-extra-tests.r
 
+===start-group=== "Red Compiler Regression Tests"
+	--run-script-quiet %source/compiler/regression-test-redc-1.r
+	--run-script-quiet %source/compiler/regression-test-redc-2.r
+	--run-script-quiet %source/compiler/regression-test-redc-3.r
+	--run-script-quiet %source/compiler/regression-test-redc-4.r
+	--run-script-quiet %source/compiler/regression-test-redc-5.r
+===end-group===
+
+;===start-group=== "View Engine Tests"
+;	--run-test-file-quiet %source/view/base-self-test.red
+;===end-group===
+
 ***end-run-quiet***
 
 --delete-temp-files

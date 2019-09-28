@@ -3,7 +3,7 @@ Red/System [
 	Author: "Nenad Rakocevic"
 	File: 	%para.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2015 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -89,28 +89,29 @@ get-para-flags: func [
 	para	[red-object!]
 	return: [integer!]
 	/local
-		values  [red-value!]
-		align   [red-word!]
-		bool	[red-logic!]
-		wrap?	[logic!]
-		flags   [integer!]
-		left    [integer!]
-		center  [integer!]
-		right   [integer!]
-		top	    [integer!]
-		middle  [integer!]
-		bottom  [integer!]
-		default [integer!]
-		h-sym	[integer!]
-		v-sym	[integer!]
+		values   [red-value!]
+		align    [red-word!]
+		bool	 [red-logic!]
+		wrap?	 [logic!]
+		flags    [integer!]
+		left     [integer!]
+		center   [integer!]
+		right    [integer!]
+		top	     [integer!]
+		middle   [integer!]
+		bottom   [integer!]
+		default  [integer!]
+		vdefault [integer!]
+		h-sym	 [integer!]
+		v-sym	 [integer!]
 ][
 	if TYPE_OF(para) <> TYPE_OBJECT [return 0]
 
 	values: object/get-values para
 	align:  as red-word! values + PARA_OBJ_ALIGN
-	h-sym:  symbol/resolve align/symbol
+	h-sym:  either TYPE_OF(align) = TYPE_WORD [symbol/resolve align/symbol][-1]
 	align:  as red-word! values + PARA_OBJ_V-ALIGN
-	v-sym:  symbol/resolve align/symbol
+	v-sym:  either TYPE_OF(align) = TYPE_WORD [symbol/resolve align/symbol][-1]
 	bool:   as red-logic! values + PARA_OBJ_WRAP?
 	
 	wrap?:	any [
@@ -118,14 +119,15 @@ get-para-flags: func [
 		all [TYPE_OF(bool) = TYPE_LOGIC bool/value]
 	]
 	
-	left:	 0
-	center:  0
-	right:	 0
-	top:	 0
-	middle:	 0
-	bottom:	 0
-	default: 0
-	flags:	 0
+	left:	  0
+	center:   0
+	right:	  0
+	top:	  0
+	middle:	  0
+	bottom:	  0
+	default:  0
+	vdefault: 0
+	flags:	  0
 	
 	case [
 		type = base [
@@ -136,8 +138,9 @@ get-para-flags: func [
 			middle: 0004h								;-- DT_VCENTER
 			bottom: 0008h								;-- DT_BOTTOM
 			default: center
+			vdefault: middle
 			
-			unless wrap? [flags: 00000020h]				;-- DT_SINGLELINE
+			if wrap? [flags: DT_WORDBREAK]
 		]
 		any [
 			type = button
@@ -150,7 +153,8 @@ get-para-flags: func [
 			top:	00000400h							;-- BS_TOP
 			middle: 00000C00h							;-- BS_VCENTER
 			bottom: 00000800h							;-- BS_BOTTOM
-			
+
+			vdefault: middle
 			default: either type = button [center][left]
 		]
 		any [
@@ -183,7 +187,7 @@ get-para-flags: func [
 		v-sym = _para/top	 [flags: flags or top]
 		v-sym = _para/middle [flags: flags or middle]
 		v-sym = _para/bottom [flags: flags or bottom]
-		true				 [0]
+		true				 [flags: flags or vdefault]
 	]
 	flags
 ]

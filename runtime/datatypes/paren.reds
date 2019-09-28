@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %paren.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -12,22 +12,6 @@ Red/System [
 
 paren: context [
 	verbose: 0
-	
-	push*: func [
-		size	  [integer!]
-		return:   [red-paren!]	
-		/local
-			paren [red-paren!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "paren/push*"]]
-		
-		paren: as red-block! ALLOC_TAIL(root)
-		paren/header: TYPE_PAREN					;-- implicit reset of all header flags
-		paren/head:   0
-		paren/node:   alloc-cells size
-		push paren
-		paren
-	]
 	
 	push: func [
 		paren [red-paren!]

@@ -10,9 +10,6 @@ Red/System [
 	}
 ]
 
-#define BASE_FACE_CLIPPED 1
-#define BASE_FACE_CARET   2
-
 init-base-face: func [
 	handle		[handle!]
 	parent		[integer!]
@@ -28,7 +25,6 @@ init-base-face: func [
 		len		[integer!]
 		sym		[integer!]
 		flags	[integer!]
-		face [red-object!]
 ][
 	offset: as red-pair! values + FACE_OBJ_OFFSET
 	size:	as red-pair! values + FACE_OBJ_SIZE
@@ -36,15 +32,15 @@ init-base-face: func [
 	opts:	as red-block! values + FACE_OBJ_OPTIONS
 
 	SetWindowLong handle wc-offset - 4 0
+	SetWindowLong handle wc-offset - 12 0
 	SetWindowLong handle wc-offset - 16 parent
 	SetWindowLong handle wc-offset - 20 0
 	SetWindowLong handle wc-offset - 24 0
+	pt/x: dpi-scale offset/x
+	pt/y: dpi-scale offset/y
 	either alpha? [
-		either win8+? [
-			pt/x: dpi-scale offset/x
-			pt/y: dpi-scale offset/y
-		][
-			pt: position-base handle as handle! parent offset
+		unless win8+? [
+			position-base handle as handle! parent :pt
 		]
 		update-base handle as handle! parent :pt values
 		if all [show?/value IsWindowVisible as handle! parent][
@@ -54,7 +50,7 @@ init-base-face: func [
 			process-layered-region handle size offset null offset null yes
 		]
 	][
-		SetWindowLong handle wc-offset - 12 offset/y << 16 or (offset/x and FFFFh)
+		SetWindowLong handle wc-offset - 8 WIN32_MAKE_LPARAM(pt/x pt/y)
 	]
 
 	if TYPE_OF(opts) = TYPE_BLOCK [
@@ -67,7 +63,6 @@ init-base-face: func [
 			case [
 				sym = caret [
 					SetWindowLong handle wc-offset - 12 flags or BASE_FACE_CARET
-					face: as red-object! word + 1
 					SetWindowLong handle wc-offset - 24 as-integer get-face-handle as red-object! word + 1
 					update-caret handle values
 				]
@@ -82,17 +77,10 @@ init-base-face: func [
 position-base: func [
 	base	[handle!]
 	parent	[handle!]
-	offset	[red-pair!]
-	return: [tagPOINT value]
-	/local
-		pt	[tagPOINT value]
+	pt		[tagPOINT]
 ][
-	pt/x: offset/x
-	pt/y: offset/y
 	ClientToScreen parent pt		;-- convert client offset to screen offset
-	SetWindowLong base wc-offset - 4 dpi-scale pt/x
-	SetWindowLong base wc-offset - 8 dpi-scale pt/y
-	pt
+	SetWindowLong base wc-offset - 8 WIN32_MAKE_LPARAM(pt/x pt/y)
 ]
 
 layered-win?: func [
@@ -144,7 +132,7 @@ render-base: func [
 	if all [
 		group-box <> type
 		window <> type
-		render-text values hWnd hDC :rc
+		render-text values hWnd hDC :rc null null
 	][
 		res: true
 	]
@@ -156,74 +144,35 @@ render-text: func [
 	hWnd	[handle!]
 	hDC		[handle!]
 	rc		[RECT_STRUCT]
+	text	[red-string!]
+	bbox 	[RECT_STRUCT_FLOAT32] 		; renders if = null, measures otherwise
 	return: [logic!]
 	/local
-		text	[red-string!]
 		font	[red-object!]
 		para	[red-object!]
-		color	[red-tuple!]
-		state	[red-block!]
-		handle	[red-handle!]
-		hFont	[handle!]
-		old		[integer!]
-		flags	[integer!]
 		res		[logic!]
-		len		[integer!]
-		str		[c-string!]
 		graphic	[integer!]
 ][
 	;unless winxp? [return render-text-d2d values hDC rc]
 	res: false
-	text: as red-string! values + FACE_OBJ_TEXT
+	if text = null [text: as red-string! values + FACE_OBJ_TEXT]
 	para: as red-object! values + FACE_OBJ_PARA
 	if TYPE_OF(text) = TYPE_STRING [
 		font: as red-object! values + FACE_OBJ_FONT
-		hFont: default-font
-		
-		if TYPE_OF(font) = TYPE_OBJECT [
-			values: object/get-values font
-			color: as red-tuple! values + FONT_OBJ_COLOR
-			if all [
-				TYPE_OF(color) = TYPE_TUPLE
-				color/array1 <> 0
-			][
-				if color/array1 >>> 24 > 0 [				;-- has alpha channel
-					graphic: 0
-					GdipCreateFromHDC hDC :graphic
-					GdipSetSmoothingMode graphic GDIPLUS_ANTIALIAS
-					update-base-text hWnd graphic hDC text font para rc/right - rc/left rc/bottom - rc/top
-					GdipDeleteGraphics graphic
-					return true
-				]
-				SetTextColor hDC color/array1 and 00FFFFFFh
-			]
-			state: as red-block! values + FONT_OBJ_STATE
-			if TYPE_OF(state) = TYPE_BLOCK [
-				handle: as red-handle! block/rs-head state
-				if TYPE_OF(handle) = TYPE_HANDLE [
-					hFont: as handle! handle/value
-				]
-			]
-		]
-		SelectObject hDC hFont
-		flags: either TYPE_OF(para) = TYPE_OBJECT [
-			get-para-flags base para
-		][
-			DT_SINGLELINE or DT_CENTER or DT_VCENTER
-		]
-		flags: flags or 0800h		;-- DT_NOPREFIX
-		old: SetBkMode hDC 1
-		len: -1
-		str: unicode/to-utf16-len text :len yes
-		res: 0 <> DrawText hDC str len rc flags
-		SetBkMode hDC old
+		graphic: 0
+		GdipCreateFromHDC hDC :graphic
+		; GdipSetSmoothingMode graphic GDIPLUS_ANTIALIAS
+		; using GDI+ text rendering instead of GDI, see #2503 and #3465
+		update-base-text hWnd graphic hDC text font para rc/right - rc/left rc/bottom - rc/top bbox
+		GdipDeleteGraphics graphic
+		res: true
 	]
 	res
 ]
 
 clip-layered-window: func [
 	hWnd		[handle!]
-	size		[red-pair!]
+	size		[tagSIZE]
 	x			[integer!]
 	y			[integer!]
 	new-width	[integer!]
@@ -234,11 +183,11 @@ clip-layered-window: func [
 		flags	[integer!]
 ][
 	flags: GetWindowLong hWnd wc-offset - 12
-	either any [
+	if any [
 		not zero? x
 		not zero? y
-		size/x <> new-width
-		size/y <> new-height
+		size/width <> new-width
+		size/height <> new-height
 		BASE_FACE_CLIPPED and flags <> 0
 	][
 		SetWindowLong hWnd wc-offset - 12 flags or BASE_FACE_CLIPPED
@@ -249,6 +198,13 @@ clip-layered-window: func [
 			rgn: CreateRectRgn x y new-width new-height
 			SetWindowRgn child rgn false
 		]
+	]
+	if all [
+		BASE_FACE_CLIPPED and flags <> 0
+		zero? x
+		zero? y
+		size/width = new-width
+		size/height = new-height
 	][SetWindowLong hWnd wc-offset - 12 flags and FFFFFFFEh]
 ]
 
@@ -266,6 +222,7 @@ process-layered-region: func [
 		w	  [integer!]
 		h	  [integer!]
 		rc	  [RECT_STRUCT value]
+		sz	  [tagSIZE]
 		owner [handle!]
 		type  [red-word!]
 		value [red-value!]
@@ -284,22 +241,25 @@ process-layered-region: func [
 		y: y + dpi-scale pos/y
 	]
 
+	sz: as tagSIZE :rc
+	sz/width: dpi-scale size/x
+	sz/height: dpi-scale size/y
 	if layer? [
-		w: x + size/x - rect/right
-		w: either positive? w [size/x - w][size/x]
+		w: x + sz/width - rect/right
+		w: either positive? w [sz/width - w][sz/width]
 		either negative? x [
-			x: either x + size/x < 0 [size/x][0 - x]
+			x: either x + sz/width < 0 [sz/width][0 - x]
 		][
 			x: 0
 		]
-		h: y + size/y - rect/bottom
-		h: either positive? h [size/y - h][size/y]
+		h: y + sz/height - rect/bottom
+		h: either positive? h [sz/height - h][sz/height]
 		either negative? y [
-			y: either y + size/y < 0 [size/y][0 - y]
+			y: either y + sz/height < 0 [sz/height][0 - y]
 		][
 			y: 0
 		]
-		clip-layered-window hWnd size x y w h
+		clip-layered-window hWnd sz x y w h
 	]
 
 	if all [
@@ -343,6 +303,7 @@ update-layered-window: func [
 		x		[integer!]
 		y		[integer!]
 		rect	[RECT_STRUCT value]
+		sz		[tagSIZE]
 		border	[integer!]
 		width	[integer!]
 		height	[integer!]
@@ -378,8 +339,9 @@ update-layered-window: func [
 		(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) > 0
 	][
 		either offset <> null [
-			x: (dpi-scale offset/x) + GetWindowLong hWnd wc-offset - 4
-			y: (dpi-scale offset/y) + GetWindowLong hWnd wc-offset - 8
+			border: GetWindowLong hWnd wc-offset - 8
+			x: offset/x + WIN32_LOWORD(border)
+			y: offset/y + WIN32_HIWORD(border)
 			unless all [zero? offset/x zero? offset/y][
 				hdwp: DeferWindowPos
 					hdwp
@@ -388,8 +350,7 @@ update-layered-window: func [
 					x y
 					0 0
 					SWP_NOSIZE or SWP_NOZORDER or SWP_NOACTIVATE
-				SetWindowLong hWnd wc-offset - 4 x
-				SetWindowLong hWnd wc-offset - 8 y
+				SetWindowLong hWnd wc-offset - 8 WIN32_MAKE_LPARAM(x y)
 				hWnd: as handle! GetWindowLong hWnd wc-offset - 20
 				if hWnd <> null [
 					hdwp: DeferWindowPos
@@ -409,16 +370,19 @@ update-layered-window: func [
 				GetClientRect winpos/hWnd rect
 				border: winpos/cx - rect/right >> 1
 				size: as red-pair! values + FACE_OBJ_SIZE
-				width: size/x
-				height: size/y
-				if x + size/x + border > (winpos/x + winpos/cx) [
-					width: size/x - (x + size/x - (winpos/x + winpos/cx)) - border
+				sz: as tagSIZE :rect
+				sz/width: dpi-scale size/x
+				sz/height: dpi-scale size/y
+				width: sz/width
+				height: sz/height
+				if x + sz/width + border > (winpos/x + winpos/cx) [
+					width: sz/width - (x + sz/width - (winpos/x + winpos/cx)) - border
 				]
-				if y + size/y + border > (winpos/y + winpos/cy) [
-					height: size/y - (y + size/y - (winpos/y + winpos/cy)) - border
+				if y + sz/height + border > (winpos/y + winpos/cy) [
+					height: sz/height - (y + sz/height - (winpos/y + winpos/cy)) - border
 				]
 
-				clip-layered-window hWnd size 0 0 width height
+				clip-layered-window hWnd sz 0 0 width height
 			]
 		][
 			bool: as red-logic! values + FACE_OBJ_VISIBLE?
@@ -438,6 +402,7 @@ update-layered-window: func [
 ]
 
 BaseInternalWndProc: func [
+	[stdcall]
 	hWnd	[handle!]
 	msg		[integer!]
 	wParam	[integer!]
@@ -451,11 +416,10 @@ BaseInternalWndProc: func [
 		WM_MOUSEACTIVATE [return 3]							;-- do not make it activated when click it
 		WM_NCHITTEST	 [return -1]
 		WM_ERASEBKGND	 [
-			hBrush: CreateSolidBrush 1
+			hBrush: GetSysColorBrush COLOR_3DFACE
 			rect: declare RECT_STRUCT
 			GetClientRect hWnd rect
 			FillRect as handle! wParam rect hBrush
-			DeleteObject hBrush
 			return 1
 		]
 		default [0]
@@ -464,6 +428,7 @@ BaseInternalWndProc: func [
 ]
 
 BaseWndProc: func [
+	[stdcall]
 	hWnd	[handle!]
 	msg		[integer!]
 	wParam	[integer!]
@@ -493,7 +458,7 @@ BaseWndProc: func [
 		WM_LBUTTONUP	 [ReleaseCapture return 0]
 		WM_ERASEBKGND	 [return 1]					;-- drawing in WM_PAINT to avoid flicker
 		WM_SIZE  [
-			either (get-face-flags hWnd) and FACET_FLAGS_D2D = 0 [
+			either (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D = 0 [
 				unless zero? GetWindowLong hWnd wc-offset + 4 [
 					update-base hWnd null null get-face-values hWnd
 				]
@@ -510,26 +475,34 @@ BaseWndProc: func [
 			]
 			return 0
 		]
+		0317h	;-- WM_PRINT 			;-- these messages are not actually being used
+		0318h	;-- WM_PRINTCLIENT 		; see https://stackoverflow.com/a/44062144
 		WM_PAINT
 		WM_DISPLAYCHANGE [
-			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
-			either TYPE_OF(draw) = TYPE_BLOCK [
-				either zero? GetWindowLong hWnd wc-offset - 4 [
-					do-draw hWnd null draw no yes yes yes
+			if (WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) = 0 [
+				draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
+				either TYPE_OF(draw) = TYPE_BLOCK [
+					either zero? GetWindowLong hWnd wc-offset - 4 [
+						do-draw hWnd null draw no yes yes yes
+					][
+						bitblt-memory-dc hWnd no null 0 0
+					]
 				][
-					bitblt-memory-dc hWnd no
+					if null? current-msg [return -1]
+					system/thrown: 0
+					DC: declare draw-ctx!				;@@ should declare it on stack
+					catch RED_THROWN_ERROR [
+						draw-begin DC hWnd null no yes
+						integer/make-at as red-value! draw as-integer DC
+						current-msg/hWnd: hWnd
+						make-event current-msg 0 EVT_DRAWING
+						draw/header: TYPE_NONE
+						draw-end DC hWnd no no yes
+					]
+					system/thrown: 0
 				]
-			][
-				system/thrown: 0
-				DC: declare draw-ctx!				;@@ should declare it on stack
-				draw-begin DC hWnd null no yes
-				integer/make-at as red-value! draw as-integer DC
-				current-msg/hWnd: hWnd
-				make-event current-msg 0 EVT_DRAWING
-				draw/header: TYPE_NONE
-				draw-end DC hWnd no no yes
+				return 0
 			]
-			return 0
 		]
 		WM_VSCROLL
 		WM_HSCROLL [
@@ -541,15 +514,43 @@ BaseWndProc: func [
 				return 0
 			]
 		]
-		0317h	;-- WM_PRINT
-		0318h [ ;-- WM_PRINTCLIENT
-			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
-			do-draw hWnd as red-image! wParam draw no no no yes
+		WM_NCHITTEST [
+			w: DefWindowProc hWnd msg wParam lParam
+			flags: GetWindowLong hWnd wc-offset - 28
+			if flags <> 0 [							;-- has custom cursor
+				either w = 1 [						;-- client area
+					flags: flags or 80000000h
+				][
+					flags: flags and 7FFFFFFFh
+				]
+				SetWindowLong hWnd wc-offset - 28 flags
+			]
+			return w
+		]
+		WM_SETCURSOR [
+			w: GetWindowLong as handle! wParam wc-offset - 28
+			if all [
+				w <> 0
+				w and 80000000h <> 0					;-- inside client area
+			][
+				SetCursor as handle! (w and 7FFFFFFFh)
+				return 1
+			]
+		]
+		WM_MENUSELECT [
+			if wParam <> FFFF0000h [
+				menu-selected: WIN32_LOWORD(wParam)
+				menu-handle: as handle! lParam
+			]
+			return 0
+		]
+		WM_COMMAND [
+			process-command-event hWnd msg wParam lParam
 			return 0
 		]
 		default [0]
 	]
-	if (get-face-flags hWnd) and FACET_FLAGS_EDITABLE <> 0 [
+	if (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_IME <> 0 [
 		switch msg [
 			WM_IME_SETCONTEXT [
 				either zero? wParam [
@@ -594,18 +595,15 @@ update-base-background: func [
 	color	[red-tuple!]
 	width	[integer!]
 	height	[integer!]
-	return: [logic!]				;-- true: has alpha channel
 	/local
 		clr		[integer!]
 		brush	[integer!]
 ][
-	clr: color/array1
-	clr: to-gdiplus-color clr
+	clr: to-gdiplus-color-fixed color/array1
 	brush: 0
 	GdipCreateSolidFill clr :brush
 	GdipFillRectangleI graphic brush 0 0 width height
 	GdipDeleteBrush brush
-	either clr >>> 24 = 255 [false][true]
 ]
 
 update-base-text: func [
@@ -617,8 +615,10 @@ update-base-text: func [
 	para	[red-object!]
 	width	[integer!]
 	height	[integer!]
+	bbox	[RECT_STRUCT_FLOAT32]		;-- renders if = null, measures otherwise
 	/local
 		format	[integer!]
+		fflags 	[integer!]
 		hFont	[integer!]
 		hBrush	[integer!]
 		flags	[integer!]
@@ -630,17 +630,22 @@ update-base-text: func [
 		color	[red-tuple!]
 		state	[red-block!]
 		rect	[RECT_STRUCT_FLOAT32 value]
+		gdiclr 	[integer!]
+		default-color 	[logic!]
 ][
 	if TYPE_OF(text) <> TYPE_STRING [exit]
 
 	;GdipSetCompositingMode graphic 0				;-- over mode
 	;GdipSetCompositingQuality graphic 2			;-- high quality
 	;GdipSetPixelOffsetMode graphic 2				;-- high quality
+	;-- ClearType looks BAD on alpha-enabled background
+	; GdipSetTextRenderingHint graphic TextRenderingHintClearTypeGridFit
 	GdipSetTextRenderingHint graphic TextRenderingHintAntiAliasGridFit
 
 	format: 0
 	hBrush: 0
 	clr: 0
+	default-color: yes
 	hFont: as-integer default-font
 
 	if TYPE_OF(font) = TYPE_OBJECT [
@@ -656,30 +661,25 @@ update-base-text: func [
 		][
 			hFont: as-integer make-font get-face-obj hWnd font
 		]
-		if TYPE_OF(color) = TYPE_TUPLE [clr: color/array1]
+		if TYPE_OF(color) = TYPE_TUPLE [
+			clr: color/array1
+			default-color: no
+		]
 	]
 	SelectObject dc as handle! hFont
 
 	flags: either TYPE_OF(para) = TYPE_OBJECT [
 		get-para-flags base para
 	][
-		1 or 4
+		5 							;-- 1 = center + 4 = middle
 	]
-	case [
-		flags and 1 <> 0 [h-align: 1]
-		flags and 2 <> 0 [h-align: 2]
-		true			 [h-align: 0]
-	]
-	case [
-		flags and 4 <> 0 [v-align: 1]
-		flags and 8 <> 0 [v-align: 2]
-		true			 [v-align: 0]
-	]
+	h-align: flags and 3 			;-- 0,1,2 = left,center,right
+	v-align: flags >>> 2 and 3		;-- 0,4,8 = top,middle,bottom
 
 	GdipCreateFontFromDC as-integer dc :hFont
-	GdipCreateSolidFill to-gdiplus-color clr :hBrush
 
-	GdipCreateStringFormat 80000000h 0 :format
+	fflags: either flags and DT_WORDBREAK = 0 [1000h][0]	;-- 1000h = nowrap
+	GdipCreateStringFormat fflags or 80000000h 0 :format 	;-- 1 << 31 = GDI passthrough
 	GdipSetStringFormatAlign format h-align
 	GdipSetStringFormatLineAlign format v-align
 
@@ -688,10 +688,18 @@ update-base-text: func [
 	rect/width: as float32! width
 	rect/height: as float32! height
 
-	GdipDrawString graphic unicode/to-utf16 text -1 hFont :rect format hBrush
+	either bbox = null [
+		if default-color [clr: GetSysColor COLOR_WINDOWTEXT]
+		gdiclr: to-gdiplus-color-fixed clr
+		GdipCreateSolidFill gdiclr :hBrush
+		GdipDrawString graphic unicode/to-utf16 text -1 hFont :rect format hBrush
+		GdipDeleteBrush hBrush
+	][
+		rect/height: as float32! 1e6	;-- allow some room for rendering, otherwise stops at height
+		GdipMeasureString graphic unicode/to-utf16 text -1 hFont :rect format bbox null null
+	]
 
 	GdipDeleteStringFormat format
-	GdipDeleteBrush hBrush
 	GdipDeleteFont hFont
 ]
 
@@ -702,7 +710,10 @@ transparent-base?: func [
 ][
 	either all [
 		TYPE_OF(color) = TYPE_TUPLE
-		TUPLE_SIZE?(color) = 3
+		any [
+			TUPLE_SIZE?(color) = 3 
+			color/array1 and FF000000h = 0
+		]
 	][false][true]
 ]
 
@@ -724,14 +735,12 @@ update-base: func [
 		size	[tagSIZE]
 		hBitmap [handle!]
 		hBackDC [handle!]
-		ptSrc	[tagPOINT]
-		ftn		[integer!]
-		bf		[tagBLENDFUNCTION]
+		ptSrc	[tagPOINT value]
+		bf		[tagBLENDFUNCTION value]
 		graphic [integer!]
-		alpha?	[logic!]
 		flags	[integer!]
 ][
-	if (get-face-flags hWnd) and FACET_FLAGS_D2D <> 0 [
+	if (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D <> 0 [
 		InvalidateRect hWnd null 0
 		exit
 	]
@@ -752,22 +761,7 @@ update-base: func [
 	font:	as red-object! values + FACE_OBJ_FONT
 	para:	as red-object! values + FACE_OBJ_PARA
 	sz:		as red-pair!   values + FACE_OBJ_SIZE
-	ptSrc:  declare tagPOINT
-	alpha?: yes     
 	graphic: 0
-
-	unless transparent-base? color img [
-		SetWindowLong hWnd GWL_STYLE WS_CHILD or WS_CLIPSIBLINGS
-		SetWindowLong hWnd GWL_EXSTYLE 0
-		unless null? parent [
-			SetParent hWnd parent
-			change-offset hWnd as red-pair! values + FACE_OBJ_OFFSET base
-			SetActiveWindow parent
-		]
-		update-base hWnd parent ptDst values
-		ShowWindow hWnd SW_SHOW
-		exit
-	]
 
 	width: dpi-scale sz/x
 	height: dpi-scale sz/y
@@ -777,25 +771,87 @@ update-base: func [
 	GdipCreateFromHDC hBackDC :graphic
 
 	if TYPE_OF(color) = TYPE_TUPLE [				;-- update background
-		alpha?: update-base-background graphic color width height
+		update-base-background graphic color width height
 	]
 	GdipSetSmoothingMode graphic GDIPLUS_ANTIALIAS
 	update-base-image graphic img width height
-	update-base-text hWnd graphic hBackDC text font para width height
+	update-base-text hWnd graphic hBackDC text font para width height null
 	do-draw null as red-image! graphic cmds yes no no yes
 
 	ptSrc/x: 0
 	ptSrc/y: 0
 	size: as tagSIZE :width
-	ftn: 0
-	bf: as tagBLENDFUNCTION :ftn
 	bf/BlendOp: as-byte 0
 	bf/BlendFlags: as-byte 0
 	bf/SourceConstantAlpha: as-byte 255
 	bf/AlphaFormat: as-byte 1
-	flags: either alpha? [2][4]
-	UpdateLayeredWindow hWnd hScreen ptDst size hBackDC ptSrc 0 as-integer :ftn flags
+	flags: 2
+	UpdateLayeredWindow hWnd null ptDst size hBackDC :ptSrc 0 :bf flags
+
 	GdipDeleteGraphics graphic
 	DeleteObject hBitmap
 	DeleteDC hBackDC
 ]
+
+
+;-- blends the image of every encountered visible layered window into the DC
+imprint-layers-deep: func [
+	dc 			[handle!]
+	hwnd 		[handle!]
+	bx			[integer!]		;-- "base" offset: where on the DC this window will appear
+	by			[integer!]
+	values 		[red-value!]
+	/local
+	type 		[red-word!]
+	sym 		[integer!]
+	draw		[red-block!]
+	pane 		[red-block!]
+	visible? 	[red-logic!]
+	child 		[red-object!]
+	tail 		[red-object!]
+	state 		[red-block!]
+	cofs 		[red-pair!]		;-- "child" offset - it's position inside the parent
+	chwnd 		[handle!]
+	cvalues		[red-value!]
+][
+	if null = values [values: get-face-values hwnd]
+
+	;-- imprint hwnd
+	type: as red-word! values + FACE_OBJ_TYPE
+	sym: symbol/resolve type/symbol
+	if all [sym = base  layered-win? hwnd][
+		draw: as red-block! values + FACE_OBJ_DRAW
+		either all [bx = 0 by = 0] [
+			;-- paint directly to DC
+			do-draw hwnd as red-image! dc draw no no no yes
+		][
+			do-draw hwnd null draw no yes no yes 		;-- paint into RAM
+			bitblt-memory-dc hwnd yes dc bx by 			;-- blend back
+		]
+	]
+
+	;-- imprint hwnd's children if any
+	pane: as red-block! values + FACE_OBJ_PANE
+	if TYPE_OF(pane) = TYPE_BLOCK [
+		visible?: as red-logic! values + FACE_OBJ_VISIBLE?
+		if visible?/value [
+			child:	as red-object! block/rs-head pane
+			tail:	as red-object! block/rs-tail pane
+			while [child < tail][
+				state: as red-block! get-node-facet child/ctx FACE_OBJ_STATE
+				if TYPE_OF(state) = TYPE_BLOCK [
+					chwnd: get-face-handle child
+					cvalues: get-face-values chwnd
+					cofs: as red-pair! cvalues + FACE_OBJ_OFFSET
+					imprint-layers-deep
+						dc chwnd
+						bx + dpi-scale cofs/x
+						by + dpi-scale cofs/y
+						cvalues
+				]
+				child: child + 1
+			]
+		]
+	]
+]
+

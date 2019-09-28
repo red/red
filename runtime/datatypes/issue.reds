@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %issue.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/red-system/runtime/BSL-License.txt
@@ -32,9 +32,28 @@ issue: context [
 		str 	[c-string!]
 		return:	[red-word!]
 	][
-		load-in str root
+		either red/boot? [
+			load-in str root
+		][
+			make-at stack/push* str
+		]
 	]
-	
+
+	make-at: func [
+		slot	[red-value!]
+		str		[c-string!]
+		return: [red-word!]
+		/local
+			cell [red-word!]
+	][
+		cell: as red-word! slot
+		cell/header: TYPE_ISSUE							;-- implicit reset of all header flags
+		cell/ctx: 	 global-ctx
+		cell/symbol: symbol/make str yes
+		cell/index:  -1
+		cell
+	]
+
 	push: func [
 		w  [red-word!]
 	][
@@ -83,7 +102,7 @@ issue: context [
 							null no null
 					]
 				]
-				sym: symbol/make-alt str					;-- convert before altering proto slot
+				sym: symbol/make-alt str -1				;-- convert before altering proto slot
 
 				w: as red-word! proto
 				w/ctx: global-ctx

@@ -4,7 +4,7 @@ Red/System [
 	File: 	 %float-test.reds
 	Version: 0.1.0
 	Tabs:	 4
-	Rights:  "Copyright (C) 2012-2015 Peter W A Wood, Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2012-2015 Peter W A Wood,-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
@@ -303,7 +303,42 @@ Red/System [
 	
 	--test-- "fc-12"
 		--assert fcptr/a - (fcfoo 5.0) = -2.0			;-- reg(path!)/reg(block!)
+
+	--test-- "#4038"
+		RECT_F4038: alias struct! [
+			left		[float!]
+			top			[float!]
+			right		[float!]
+			bottom		[float!]
+		]
+
+		test4038: func [/local rc [RECT_F4038 value]][
+			rc/right: 0.0
+			--assert rc/right = 0.0
+			rc/right: rc/right + as float! (1 + 2)
+			--assert rc/right = 3.0
+		]
+		test4038
 	
+===end-group===
+
+===start-group=== "Float special values"
+		--test-- "fsp-1"
+			;; FIXME: float comparisons
+			;fp-1:  1.#NAN 	--assert fp-1 =  1.#NAN
+			;fp-1:  1.#INF 	--assert fp-1 =  1.#INF
+			;fp-1: +1.#INF 	--assert fp-1 =  1.#INF
+			;fp-1: -1.#INF 	--assert fp-1 = -1.#INF
+
+		--test-- "fsp-2"
+			fp-2: -0.0 	--assert fp-2 = -0.0
+			--assert 1.0 + -0.0 = 1.0
+			--assert -1.0 * 0.0 = -0.0
+
+		--test-- "fsp-3"
+			fsp-3: func [f [float!] return: [float!]][f]
+			--assert -0.0 = fsp-3 -0.0
+
 ===end-group===
 
 ===start-group=== "various regression tests from bugtracker"

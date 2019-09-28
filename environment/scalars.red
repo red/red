@@ -3,7 +3,7 @@ Red [
 	Author:  "Nenad Rakocevic"
 	File: 	 %scalars.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -42,7 +42,7 @@ any-list!:		make typeset! [block! paren! hash!]
 any-path!:		make typeset! [path! set-path! get-path! lit-path!]
 any-block!:		union any-path! any-list!
 any-function!:	make typeset! [native! action! op! function! routine!]
-any-object!:	make typeset! [object! error!]
+any-object!:	make typeset! [object! error! port!]
 any-string!:	make typeset! [string! file! url! tag! email!]
 series!:		union make typeset! [binary! image! vector!] union any-block! any-string!
 immediate!:		union scalar! union all-word! make typeset! [none! logic! datatype! typeset! handle! date!]

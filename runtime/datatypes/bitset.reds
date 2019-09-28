@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %bitset.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -56,7 +56,7 @@ bitset: context [
 			byte [byte!]
 	][
 		s: GET_BUFFER(bits)
-		if (s/size << 3) < index [
+		if (s/size << 3) <= index [
 			byte: either FLAG_NOT?(s) [#"^(FF)"][null-byte]
 			s: expand-series-filled s (index >> 3) + 1 byte
 		]
@@ -130,7 +130,7 @@ bitset: context [
 			string/append-char GET_BUFFER(buffer) as-integer c
 			
 			p: p + 1
-			part: part - 1
+			part: part - 2
 			if all [part? negative? part][return part]
 		]
 		part
@@ -360,6 +360,7 @@ bitset: context [
 		/local
 			int	  [red-integer!]
 			char  [red-char!]
+			fl	  [red-float!]
 			w	  [red-word!]
 			value [red-value!]
 			tail  [red-value!]
@@ -378,14 +379,25 @@ bitset: context [
 		
 		switch TYPE_OF(spec) [
 			TYPE_CHAR
-			TYPE_INTEGER [
+			TYPE_INTEGER
+			TYPE_FLOAT [
 				type: TYPE_OF(spec)
-				max: either type = TYPE_CHAR [
-					char: as red-char! spec
-					char/value
-				][
-					int: as red-integer! spec
-					int/value
+				max: switch type [
+					TYPE_CHAR [
+						char: as red-char! spec
+						char/value
+					]
+					TYPE_FLOAT [
+						fl: as red-float! spec
+						as-integer fl/value
+					]
+					default [
+						int: as red-integer! spec
+						int/value
+					]
+				]
+				if all [max < 0 op <> OP_TEST][
+					fire [TO_ERROR(script out-of-range) spec]
 				]
 				unless op = OP_MAX [
 					s: GET_BUFFER(bits)
@@ -517,13 +529,33 @@ bitset: context [
 			blk	 [red-block!]
 			bin  [red-binary!]
 			w	 [red-word!]
+			src  [byte-ptr!]
+			dst  [byte-ptr!]
 			s	 [series!]
 			op	 [integer!]
 			not? [logic!]
 			byte [byte!]
 	][
 		bits: as red-bitset! stack/push*
-		bits/header: TYPE_BITSET						;-- implicit reset of all header flags
+		bits/header: TYPE_UNSET
+
+		not?: no
+		if TYPE_OF(spec) = TYPE_BLOCK [
+			blk: as red-block! spec
+			s: GET_BUFFER(blk)
+			if s/offset + blk/head < s/tail [			;-- allow empty spec block
+				w: as red-word! s/offset + blk/head
+				not?: all [
+					TYPE_OF(w) = TYPE_WORD
+					w/symbol = words/not*
+				]
+				if not? [blk/head: blk/head + 1]		;-- skip NOT
+				w: w + 1
+				if all [s/offset + blk/head < s/tail TYPE_OF(w) = TYPE_BINARY][
+					spec: as red-value! w				;-- force processing of the binary! value
+				]
+			]
+		]
 
 		switch TYPE_OF(spec) [
 			TYPE_BITSET [
@@ -543,7 +575,7 @@ bitset: context [
 					]
 				]
 				size: either zero? (size and 7) [size][size + 8 and -8]	;-- round to byte multiple
-				size: size >> 3								;-- convert to bytes
+				size: size >> 3							;-- convert to bytes
 				bits/node: alloc-bytes-filled size null-byte
 				
 				s: GET_BUFFER(bits)
@@ -555,33 +587,37 @@ bitset: context [
 				bits/node: alloc-bytes size
 				s: GET_BUFFER(bits)
 				s/tail: as cell! ((as byte-ptr! s/offset) + size)
-				copy-memory as byte-ptr! s/offset binary/rs-head bin size
-			]
-			default [
-				not?: no
-				
-				if TYPE_OF(spec) = TYPE_BLOCK [
-					blk: as red-block! spec
-					w: as red-word! block/rs-head blk
-					not?: all [
-						TYPE_OF(w) = TYPE_WORD
-						w/symbol = words/not*
+				either not? [
+					dst: as byte-ptr! s/offset
+					src: binary/rs-head bin
+					while [size > 0][
+						dst/size: not src/size
+						size: size - 1
 					]
-					if not? [blk/head: blk/head + 1]		;-- skip NOT
+				][
+					copy-memory as byte-ptr! s/offset binary/rs-head bin size
 				]
-				byte: either not? [#"^(FF)"][null-byte]
-				op: either not? [OP_CLEAR][OP_SET]
-				
-				size: process spec null OP_MAX no cmd		;-- 1st pass: determine size
-				bits/node: alloc-bytes-filled size byte
 				if not? [
 					s: GET_BUFFER(bits)
 					s/flags: s/flags or flag-bitset-not
 				]
-				process spec bits op no	cmd					;-- 2nd pass: set bits
-				if not? [blk/head: blk/head - 1]			;-- restore series argument head
+			]
+			default [
+				byte: either not? [#"^(FF)"][null-byte]
+				op: either not? [OP_CLEAR][OP_SET]
+				
+				size: process spec null OP_MAX no cmd	;-- 1st pass: determine size
+				bits/node: alloc-bytes-filled size byte
+				bits/header: TYPE_BITSET
+				if not? [
+					s: GET_BUFFER(bits)
+					s/flags: s/flags or flag-bitset-not
+				]
+				process spec bits op no	cmd				;-- 2nd pass: set bits
+				if not? [blk/head: blk/head - 1]		;-- restore series argument head
 			]
 		]
+		bits/header: TYPE_BITSET						;-- implicit reset of all header flags
 		bits
 	]
 	
@@ -631,10 +667,13 @@ bitset: context [
 		not?: FLAG_NOT?(s)
 		
 		string/concatenate-literal buffer "make bitset! "
-		if not? [string/concatenate-literal buffer "[not "]
+		part: part - 13
+		if not? [string/concatenate-literal buffer "[not " part: part - 5]
 		
 		string/concatenate-literal buffer "#{"
-		part: form-bytes bits buffer OPTION?(arg) part - 13 not?
+		part: part - 2
+		part: form-bytes bits buffer OPTION?(arg) part not?
+		if all [OPTION?(arg) part <= 0][return part]
 		string/append-char GET_BUFFER(buffer) as-integer #"}"
 		
 		either not? [
@@ -800,8 +839,9 @@ bitset: context [
 		#if debug? = yes [if verbose > 0 [print-line "bitset/copy"]]
 		
 		s: GET_BUFFER(bits)
-		new/header: TYPE_BITSET
+		new/header: TYPE_UNSET
 		new/node:	copy-series s
+		new/header: TYPE_BITSET
 		new
 	]
 	
@@ -819,10 +859,13 @@ bitset: context [
 		tail?	 [logic!]
 		match?	 [logic!]
 		return:	 [red-value!]
+		/local
+			bool [red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bitset/find"]]
 		
-		pick bits 0 value
+		bool: as red-logic! pick bits 0 value
+		as red-value! either bool/value [bool][none-value]
 	]
 	
 	insert: func [
@@ -875,6 +918,7 @@ bitset: context [
 		/local
 			bool  [red-logic!]
 			int	  [red-integer!]
+			fl	  [red-float!]
 			type  [integer!]
 			op	  [integer!]
 			s	  [series!]
@@ -884,12 +928,14 @@ bitset: context [
 		type: TYPE_OF(data)
 		bool: as red-logic! data
 		int:  as red-integer! data
+		fl:	  as red-float! data
 		s:	  GET_BUFFER(bits)
 		
 		op: either any [
 			type = TYPE_NONE
 			all [type = TYPE_LOGIC not bool/value]
 			all [type = TYPE_INTEGER zero? int/value]
+			all [type = TYPE_FLOAT fl/value = 0.0]
 		][
 			OP_CLEAR
 		][
@@ -902,17 +948,18 @@ bitset: context [
 	remove: func [
 		bits	[red-bitset!]
 		part	[red-value!]
+		key		[red-value!]
 		return:	[red-value!]
 		/local
 			s  [series!]
 			op [integer!]
 	][
-		unless OPTION?(part) [
+		unless OPTION?(key) [
 			fire [TO_ERROR(script missing-arg)]
 		]
 		s: GET_BUFFER(bits)
 		op: either FLAG_NOT?(s) [OP_SET][OP_CLEAR]
-		process part bits op no CMD_OTHER
+		process key bits op no CMD_OTHER
 		as red-value! bits
 	]
 	

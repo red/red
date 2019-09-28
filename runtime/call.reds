@@ -21,9 +21,9 @@ Red/System [
 	}
 ]
 
-#define READ-BUFFER-SIZE 4096
-
 ext-process: context [
+
+	#enum buffer-size! [READ_BUFFER_SIZE: 4096]
 
 	p-buffer!: alias struct! [							;-- Data buffer struct, pointer and bytes count
 		count  [integer!]
@@ -93,6 +93,11 @@ ext-process: context [
 		reading  [integer!]
 		writing  [integer!]
 	]
+	
+	init-global: does [
+		str-buffer: ALLOC_TAIL(root)
+		string/make-at str-buffer 1024 * 100 Latin1
+	]
 
 	insert-string: func [
 		str		 [red-string!]
@@ -146,14 +151,14 @@ ext-process: context [
 		win-error?: no				;@@ make it local variable
 		win-shell?: no				;@@ make it local variable
 
-		init: does []
+		init: does [init-global]
 
 		read-from-pipe: func [      "Read data from pipe fd into buffer"
 			fd	 [integer!]      "File descriptor"
 			data [p-buffer!]
 			/local len size total
 		][
-			size: READ-BUFFER-SIZE						;-- get initial buffer size
+			size: READ_BUFFER_SIZE						;-- get initial buffer size
 			total: 0
 			until [
 				len: 0
@@ -211,17 +216,18 @@ ext-process: context [
 				err-read   [integer!]
 				err-write  [integer!]
 				dev-null   [integer!]
-				sa p-inf s-inf len success error str
+				sa         [security-attributes! value]
+				p-inf      [process-info! value]
+				s-inf      [startup-info! value]
+				len        [integer!]
+				success    [integer!]
 		][
 			win-error?: no
 			win-shell?: shell?
-			s-inf: declare startup-info!
-			p-inf: declare process-info!
-			sa: declare security-attributes!
-			sa/nLength: size? sa
+			sa/nLength: size? security-attributes!
 			sa/lpSecurityDescriptor: 0
 			sa/bInheritHandle: true
-			
+
 			out-read:  0								;-- Pipes
 			out-write: 0
 			in-read:   0
@@ -230,7 +236,8 @@ ext-process: context [
 			err-write: 0
 			
 			inherit: false
-			s-inf/cb: size? s-inf
+			set-memory as byte-ptr! :s-inf null-byte size? startup-info!
+			s-inf/cb: size? startup-info!
 			s-inf/dwFlags: 0
 			s-inf/hStdInput:  platform/GetStdHandle STD_INPUT_HANDLE
 			s-inf/hStdOutput: platform/GetStdHandle STD_OUTPUT_HANDLE
@@ -266,7 +273,7 @@ ext-process: context [
 					out-write: open-file-to-write out-buf sa
 				][
 					out-buf/count: 0
-					out-buf/buffer: allocate READ-BUFFER-SIZE
+					out-buf/buffer: allocate READ_BUFFER_SIZE
 					
 					unless platform/CreatePipe :out-read :out-write sa 0 [	;-- Create a pipe for child's output
 						__red-call-print-error [ error-pipe "stdout" ]
@@ -288,7 +295,7 @@ ext-process: context [
 					err-write: open-file-to-write err-buf sa
 				][
 					err-buf/count: 0
-					err-buf/buffer: allocate READ-BUFFER-SIZE
+					err-buf/buffer: allocate READ_BUFFER_SIZE
 					unless platform/CreatePipe :err-read :err-write sa 0 [	;-- Create a pipe for child's error
 						__red-call-print-error [ error-pipe "stderr" ]
 						return -1
@@ -304,7 +311,7 @@ ext-process: context [
 					s-inf/hStdError: dev-null
 				]
 			]
-			if any [ (in-buf <> null) (out-buf <> null) (err-buf <> null) ][
+			if any [in-buf <> null out-buf <> null err-buf <> null][
 				waitend?: true
 				inherit: true
 				s-inf/dwFlags: STARTF_USESTDHANDLES
@@ -319,23 +326,25 @@ ext-process: context [
 			sa/bInheritHandle: inherit
 			
 			either shell? [
-				len: (1 + platform/lstrlen as byte-ptr! cmd) * 2
-				cmdstr: make-c-string (14 + len)
-				copy-memory as byte-ptr! cmdstr as byte-ptr! #u16 "cmd /c " 14
-				copy-memory as byte-ptr! cmdstr + 14 as byte-ptr! cmd len
+				len: (platform/lstrlen as byte-ptr! cmd) * 2
+				cmdstr: make-c-string (26 + len)
+				copy-memory as byte-ptr! cmdstr as byte-ptr! #u16 {cmd /s /c "} 22
+				copy-memory as byte-ptr! cmdstr + 22 as byte-ptr! cmd len
+				copy-memory as byte-ptr! cmdstr + 22 + len as byte-ptr! #u16 {"^@} 4
 			][
 				cmdstr: cmd
 			]
-			unless platform/CreateProcessW null cmdstr null null inherit 0 null null s-inf p-inf [
+			unless platform/CreateProcessW null cmdstr null null inherit 0 null null :s-inf :p-inf [
 				either 2 = platform/GetLastError [		;-- ERROR_FILE_NOT_FOUND
-					len: (1 + platform/lstrlen as byte-ptr! cmd) * 2
-					cmdstr: make-c-string (14 + len)
-					copy-memory as byte-ptr! cmdstr as byte-ptr! #u16 "cmd /c " 14
-					copy-memory as byte-ptr! cmdstr + 14 as byte-ptr! cmd len
+					len: (platform/lstrlen as byte-ptr! cmd) * 2
+					cmdstr: make-c-string (26 + len)
+					copy-memory as byte-ptr! cmdstr as byte-ptr! #u16 {cmd /s /c "} 22
+					copy-memory as byte-ptr! cmdstr + 22 as byte-ptr! cmd len
+					copy-memory as byte-ptr! cmdstr + 22 + len as byte-ptr! #u16 {"^@} 4
 					shell?: yes							;-- force /shell mode and try again
 					win-shell?: yes
 					
-					unless platform/CreateProcessW null cmdstr null null inherit 0 null null s-inf p-inf [
+					unless platform/CreateProcessW null cmdstr null null inherit 0 null null :s-inf :p-inf [
 						__red-call-print-error [ "Error Red/System call : CreateProcess : ^"" cmd "^" Error : " platform/GetLastError]
 						if shell? [free as byte-ptr! cmdstr]
 						return -1
@@ -386,6 +395,7 @@ ext-process: context [
 
 		init: does [
 			shell-name: platform/getenv "SHELL"
+			init-global
 		]
 
 		set-flags-fd: func [
@@ -427,7 +437,7 @@ ext-process: context [
 			]
 			if out? [									;- Create buffer for output
 				out-len: 0
-				out-size: READ-BUFFER-SIZE
+				out-size: READ_BUFFER_SIZE
 				fd-out: declare f-desc!
 				if (platform/pipe as int-ptr! fd-out) = -1 [		;-- Create a pipe for child's output
 					__red-call-print-error [ error-pipe "stdout" ]
@@ -436,7 +446,7 @@ ext-process: context [
 			]
 			if err? [									;- Create buffer for error
 				err-len: 0
-				err-size: READ-BUFFER-SIZE
+				err-size: READ_BUFFER_SIZE
 				fd-err: declare f-desc!
 				if (platform/pipe as int-ptr! fd-err) = -1 [		;-- Create a pipe for child's error
 					__red-call-print-error [ error-pipe "stderr" ]
@@ -550,7 +560,7 @@ ext-process: context [
 				if out? [								;- Create buffer for output
 					waitend?: true
 					out-buf/count: 0
-					out-buf/buffer: allocate READ-BUFFER-SIZE
+					out-buf/buffer: allocate READ_BUFFER_SIZE
 					fds: pfds + nfds
 					fds/fd: fd-out/reading
 					set-flags-fd fds/fd
@@ -561,7 +571,7 @@ ext-process: context [
 				if err? [								;- Create buffer for error
 					waitend?: true
 					err-buf/count: 0
-					err-buf/buffer: allocate READ-BUFFER-SIZE
+					err-buf/buffer: allocate READ_BUFFER_SIZE
 					fds: pfds + nfds
 					fds/fd: fd-err/reading
 					set-flags-fd fds/fd
@@ -634,7 +644,7 @@ ext-process: context [
 									]
 									offset/value: offset/value + nbytes
 									if offset/value >= size/value [
-										size/value: size/value + READ-BUFFER-SIZE
+										size/value: size/value + READ_BUFFER_SIZE
 										pbuf/buffer: realloc pbuf/buffer size/value 
 										if null? pbuf/buffer [n: -1 break]
 									]
@@ -739,11 +749,7 @@ ext-process: context [
 	
 		PLATFORM_TO_CSTR(cstr cmd len)	
 		pid: OS-call cstr wait? show? console? shell? inp out err
-	
-		if all [in-str <> null TYPE_OF(in-str) = TYPE_STRING inp/count > 0][
-			free inp/buffer
-		]
-	
+
 		if all [redirout <> null out/count <> -1][
 			insert-string redirout out shell? console?
 			free out/buffer

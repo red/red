@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %integer.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -225,17 +225,6 @@ integer: context [
 		assert any [									;@@ replace by typeset check when possible
 			TYPE_OF(left) = TYPE_INTEGER
 			TYPE_OF(left) = TYPE_CHAR
-		]
-		assert any [
-			TYPE_OF(right) = TYPE_INTEGER
-			TYPE_OF(right) = TYPE_CHAR
-			TYPE_OF(right) = TYPE_FLOAT
-			TYPE_OF(right) = TYPE_PERCENT
-			TYPE_OF(right) = TYPE_PAIR
-			TYPE_OF(right) = TYPE_TUPLE
-			TYPE_OF(right) = TYPE_TIME
-			TYPE_OF(right) = TYPE_VECTOR
-			TYPE_OF(right) = TYPE_DATE
 		]
 
 		switch TYPE_OF(right) [
@@ -503,7 +492,9 @@ integer: context [
 				char: as red-char! value2				;@@ could be optimized as integer! and char!
 				right: char/value						;@@ structures are overlapping exactly
 			]
-			TYPE_FLOAT TYPE_PERCENT [
+			TYPE_FLOAT
+			TYPE_TIME
+			TYPE_PERCENT [
 				f: as red-float! value1
 				left: value1/value
 				f/value: as-float left
@@ -604,7 +595,9 @@ integer: context [
 			]
 			exp: exp >> 1
 			base: base * base
-			if system/cpu/overflow? [throw RED_INT_OVERFLOW]
+			if all [system/cpu/overflow? exp > 0][
+				throw RED_INT_OVERFLOW
+			]
 		]
 		res
 	]
@@ -711,7 +704,7 @@ integer: context [
 		if num = 80000000h [return value]
 		sc: 1
 		if OPTION?(scale) [
-			if TYPE_OF(scale) = TYPE_FLOAT [
+			if TYPE_OF(scale) <> TYPE_INTEGER [
 				f: as red-float! value
 				f/value: as-float num
 				f/header: TYPE_FLOAT

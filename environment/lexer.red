@@ -3,7 +3,7 @@ Red [
 	Author:  "Nenad Rakocevic"
 	File: 	 %lexer.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2014-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2014-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -13,6 +13,47 @@ Red [
 system/lexer: context [
 
 	pre-load: none
+	
+	digit:  		charset "0123465798"
+	hexa-upper:  	charset "ABCDEF"
+	hexa-lower:  	charset "abcdef"
+	hexa:  			union digit hexa-upper
+	hexa-char:		union hexa hexa-lower
+	not-word-char:  charset {/\^^,[](){}"#%$@:;}
+	not-word-1st:	union union not-word-char digit charset {'}
+	not-file-char:	charset {[](){}"@:;}
+	not-str-char:	#"^""
+	not-mstr-char:	#"}"
+	caret-char:		charset [#"^(40)" - #"^(5F)"]
+	non-printable-char: charset [
+		#"^(00)" - #"^(08)"								;-- (exclude TAB)
+		#"^(0A)" - #"^(1F)"
+	]
+	integer-end:	charset {^{"[]();:xX<}
+	ws-ASCII:		charset " ^-^M"
+	ws-U+2k:		charset [#"^(2000)" - #"^(200A)"]	;-- Unicode spaces in the U+2000-U+200A range
+	control-char:	charset [ 							;-- Control characters
+		#"^(00)" - #"^(1F)"								;-- C0 control codes
+		#"^(80)" - #"^(9F)"								;-- C1 control codes
+	]
+	four:			charset "01234"
+	half:			charset "012345"
+	non-zero:		charset "123456789"
+	path-end:		charset {^{"[]();}
+	base64-char:	union digit charset [
+		#"A" - #"Z" #"a" - #"z" #"+" #"/" #"="
+	]
+	slash-end:		charset {[](){}":;}
+	not-url-char:	charset {[](){}";}
+	email-end:		union not-file-char union ws-ASCII charset "<^/"
+	pair-end:		charset {^{"[]();:}
+	file-end:		charset {^{[]();:}
+	date-sep:		charset "/-"
+	time-sep:		charset "/T"
+	not-tag-1st:	charset "=><[](){};^""
+
+	month-rule: [(m: none)]							;-- dynamically filled
+	mon-rule:   [(m: none)]							;-- dynamically filled
 
 	throw-error: function [spec [block!] /missing][
 		type: spec/1									;-- preserve lit-words from double reduction
@@ -91,13 +132,13 @@ system/lexer: context [
 		
 		ret: as red-binary! stack/arguments
 		ret/head: 0
-		ret/header: TYPE_BINARY
+		ret/header: TYPE_NONE
 		ret/node: switch base [
 			16 [binary/decode-16 p len unit]
 			2  [binary/decode-2  p len unit]
 			64 [binary/decode-64 p len unit]
 		]
-		if ret/node = null [ret/header: TYPE_NONE]		;-- return NONE!
+		if ret/node <> null [ret/header: TYPE_BINARY]		;-- if null, return NONE!
 	]
 
 	make-tuple: routine [
@@ -260,19 +301,21 @@ system/lexer: context [
 
 	make-word: routine [
 		src   [string!]
+		end   [string!]
 		type  [datatype!]
 	][
 		set-type
-			as red-value! word/box (symbol/make-alt src) ;-- word/box puts it in stack/arguments
+			as red-value! word/box (symbol/make-alt src end/head - src/head) ;-- word/box puts it in stack/arguments
 			type/value
 	]
 
 	to-word: func [
 		stack [block!]
-		src   [string!]
+		start [string!]
+		end   [string!]
 		type  [datatype!]
 	][
-		store stack make-word src type
+		store stack make-word start end type
 	]
 
 	pop: function [stack [block!]][
@@ -328,13 +371,7 @@ system/lexer: context [
 		return: [block!]
 		/local
 			new s e c pos value cnt type process path
-			digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
-			not-file-char not-str-char not-mstr-char caret-char
-			non-printable-char integer-end ws-ASCII ws-U+2k control-char
-			four half non-zero path-end base base64-char slash-end not-url-char
-			email-end pair-end file-end err
 	][
-		cs:		[- - - - - - - - - - - - - - - - - - - - - - - - - - - - -] ;-- memoized bitsets
 		stack:	clear []
 		count?:	yes										;-- if TRUE, lines counter is enabled
 		old-line: line: 1
@@ -361,70 +398,6 @@ system/lexer: context [
 			if type = file! [parse new [any [s: #"\" change s #"/" | skip]]]
 			new
 		]
-		
-		month-rule: [(m: none)]							;-- dynamically filled
-		mon-rule:   [(m: none)]							;-- dynamically filled
-
-		if cs/1 = '- [
-			do [
-				cs/1:  charset "0123465798"					;-- digit
-				cs/2:  charset "ABCDEF"						;-- hexa-upper
-				cs/3:  charset "abcdef"						;-- hexa-lower
-				cs/4:  union cs/1 cs/2						;-- hexa
-				cs/5:  union cs/4 cs/3						;-- hexa-char	
-				cs/6:  charset {/\^^,[](){}"#%$@:;}			;-- not-word-char
-				cs/7:  union union cs/6 cs/1 charset {'}	;-- not-word-1st
-				cs/8:  charset {[](){}"@:;}					;-- not-file-char
-				cs/9:  #"^""								;-- not-str-char
-				cs/10: #"}"									;-- not-mstr-char
-				cs/11: charset [#"^(40)" - #"^(5F)"]		;-- caret-char
-				cs/12: charset [							;-- non-printable-char
-					#"^(00)" - #"^(08)"						;-- (exclude TAB)
-					#"^(0A)" - #"^(1F)"
-				]
-				cs/13: charset {^{"[]();:xX}				;-- integer-end
-				cs/14: charset " ^-^M"						;-- ws-ASCII, ASCII common whitespaces
-				cs/15: charset [#"^(2000)" - #"^(200A)"]	;-- ws-U+2k, Unicode spaces in the U+2000-U+200A range
-				cs/16: charset [ 							;-- Control characters
-					#"^(00)" - #"^(1F)"						;-- C0 control codes
-					#"^(80)" - #"^(9F)"						;-- C1 control codes
-				]
-				cs/17: charset "01234"						;-- four
-				cs/18: charset "012345"						;-- half
-				cs/19: charset "123456789"					;-- non-zero
-				cs/20: charset {^{"[]();}					;-- path-end
-				cs/21: union cs/1 charset [					;-- base64-char
-					#"A" - #"Z" #"a" - #"z" #"+" #"/" #"="
-				]
-				cs/22: charset {[](){}":;}					;-- slash-end
-				cs/23: charset {[](){}";}					;-- not-url-char
-				cs/24: union cs/8 union cs/14 charset "<^/" ;-- email-end
-				cs/25: charset {^{"[]();:}					;-- pair-end
-				cs/26: charset {^{[]();:}					;-- file-end
-				cs/27: charset "/-"							;-- date-sep
-				cs/28: charset "/T"							;-- time-sep
-				cs/29: charset "=><[](){};^""				;-- not-tag-1st
-
-				list: system/locale/months
-				while [not tail? list][
-					append month-rule list/1
-					append/only month-rule p: copy quote (m: ?)
-					unless tail? next list [append month-rule '|]
-					p/2: index? list
-					append mon-rule copy/part list/1 3
-					append/only mon-rule p
-					unless tail? next list [append mon-rule '|]
-					list: next list
-				]
-			]
-		]
-		set [
-			digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
-			not-file-char not-str-char not-mstr-char caret-char
-			non-printable-char integer-end ws-ASCII ws-U+2k control-char
-			four half non-zero path-end base64-char slash-end not-url-char email-end
-			pair-end file-end date-sep time-sep not-tag-1st
-		] cs
 
 		byte: [
 			"25" half
@@ -533,7 +506,10 @@ system/lexer: context [
 		]
 
 		multiline-string: [
-			#"{" s: nested-curly-braces (unless zero? cnt [throw-error [string! s]])
+			#"{" s: nested-curly-braces (
+				unless zero? cnt [throw-error [string! s]]
+				old-line: line
+			)
 		]
 
 		string-rule: [(type: string!) line-string | multiline-string]
@@ -552,7 +528,7 @@ system/lexer: context [
 
 		base-2-rule: [
 			"2#{" (type: binary!) [
-				s: any [counted-newline | 8 [#"0" | #"1" ] | ws-no-count | comment-rule] e: #"}"
+				s: any [counted-newline | 8 [any [ws-no-count | comment-rule][#"0" | #"1" ]] | ws-no-count | comment-rule] e: #"}"
 				| (throw-error [binary! skip s -3])
 			] (base: 2)
 		]
@@ -575,7 +551,7 @@ system/lexer: context [
 			)
 		]
 
-		binary-rule: [base-16-rule | base-64-rule | base-2-rule]
+		binary-rule: [[base-16-rule | base-64-rule | base-2-rule] (old-line: line)]
 
 		file-rule: [
 			s: #"%" [
@@ -609,23 +585,23 @@ system/lexer: context [
 		path-rule: [
 			ahead #"/" (								;-- path detection barrier
 				push-path stack type					;-- create empty path
-				to-word stack copy/part s e word!		;-- push 1st path element
+				to-word stack s e word!		;-- push 1st path element
 				type: path!
 			)
 			some [
 				#"/"
 				s: [
 					integer-number-rule			(store stack make-number s e type)
-					| begin-symbol-rule			(to-word stack copy/part s e word!)
+					| begin-symbol-rule			(to-word stack s e word!)
 					| paren-rule
-					| #":" s: begin-symbol-rule	(to-word stack copy/part s e get-word!)
+					| #":" s: begin-symbol-rule	(to-word stack s e get-word!)
 					;@@ add more datatypes here
 					| (throw-error [path! path])
 					  reject
 				]
 			]
 			opt [#":" (type: set-path! set-path back tail stack)][
-				ahead [path-end | ws | end] | (throw-error [type path])
+				ahead [path-end | ws-no-count | end] | (throw-error [type path])
 			]
 			(pop stack)
 		]
@@ -642,32 +618,32 @@ system/lexer: context [
 
 		word-rule: 	[
 			(type: word!) special-words	opt [#":" (type: set-word!)]
-			(to-word stack value type)				;-- special case for / and // as words
+			(to-word stack value tail value type)				;-- special case for / and // as words
 			| path: s: begin-symbol-rule (type: word!) [
 				url-rule
 				| path-rule							;-- path matched
 				| opt [#":" (type: set-word!)]
-				  (if type [to-word stack copy/part s e type])	;-- word or set-word matched
+				  (if type [to-word stack s e type])	;-- word or set-word matched
 			]
 		]
 
 		get-word-rule: [
 			#":" (type: get-word!) [
-				special-words (to-word stack value type)
+				special-words (to-word stack value tail value type)
 				| s: begin-symbol-rule [
 					path-rule (type: get-path!)
-					| (to-word stack copy/part s e type)	;-- get-word matched
+					| (to-word stack s e type)	;-- get-word matched
 				]
 			]
 		]
 
 		lit-word-rule: [
 			#"'" (type: lit-word!) [
-				special-words (to-word stack value type)
+				special-words (to-word stack value tail value type)
 				| [
 					s: begin-symbol-rule [
 						path-rule (type: lit-path!)			 ;-- path matched
-						| (to-word stack copy/part s e type) ;-- lit-word matched
+						| (to-word stack s e type) ;-- lit-word matched
 					]
 				]
 			]
@@ -677,7 +653,7 @@ system/lexer: context [
 		issue-rule: [
 			#"#" (type: issue!) s: symbol-rule (
 				if (index? s) = index? e [throw-error [type skip s -4]]
-				to-word stack copy/part s e type
+				to-word stack s e type
 			)
 		]
 		
@@ -688,7 +664,7 @@ system/lexer: context [
 				| ahead [not-word-char | ws-no-count | control-char] (type: word!) e: ;-- / case
 				| symbol-rule (type: refinement! s: next s)
 			]
-			(to-word stack copy/part s e type)
+			(to-word stack s e type)
 		]
 		
 		sticky-word-rule: [								;-- protect from sticky words typos
@@ -781,7 +757,7 @@ system/lexer: context [
 						| 1 2 digit e: (hour: make-number s e integer! mn: none) ;-- +/-h, +/-hh
 						opt [#":" s: 2 digit e: (mn: make-number s e integer!)]
 					]
-					(date/zone: make-hm either neg? [negate hour][hour] any [mn 0])
+					(zone: make-hm hour any [mn 0] date/zone: either neg? [negate zone][zone])
 				]
 			] sticky-word-rule (value: date)
 		]
@@ -929,7 +905,7 @@ system/lexer: context [
 				| get-word-rule
 				| refinement-rule
 				| file-rule			(store stack value: do process)
-				| char-rule			(store stack value)
+				| char-rule			(if value > 10FFFFh [throw-error [char! skip pos -6]] store stack value)
 				| map-rule
 				| paren-rule
 				| escaped-rule		(store stack value)
@@ -942,8 +918,8 @@ system/lexer: context [
 			)
 		]
 
-		one-value: [any ws pos: opt literal-value pos: to end opt wrong-end]
-		any-value: [pos: any [some ws | literal-value]]
+		one-value: [any ws pos: literal-value pos: to end opt wrong-end]
+		any-value: [pos: any [some ws | literal-value e: if (not same? pos e)]]
 		red-rules: [any-value any ws opt wrong-end]
 
 		if pre-load [do [pre-load src length]]
@@ -954,7 +930,18 @@ system/lexer: context [
 			][
 				parse/case src either one [one-value][red-rules]
 			][
-				throw-error ['value pos]
+				unless tail? pos [
+					if find ")]}" pos/1 [
+						value: switch pos/1 [
+							#")"	[#"("]
+							#"]"	[#"["]
+							#"}"	[#"{"]
+						]
+						pos: next pos
+						throw-error/missing [value back pos]
+					]
+					throw-error ['value pos]
+				]
 			]
 		]	
 		either trap [
@@ -964,4 +951,21 @@ system/lexer: context [
 			either all [one not only][pos][stack/1]
 		]
 	]
+	
+	init: has [list p][
+		list: system/locale/months
+		while [not tail? list][
+			append month-rule list/1
+			append/only month-rule p: copy quote (m: ?)
+			unless tail? next list [append month-rule '|]
+			p/2: index? list
+			append mon-rule copy/part list/1 3
+			append/only mon-rule p
+			unless tail? next list [append mon-rule '|]
+			list: next list
+		]
+		bind month-rule :transcode
+		bind mon-rule   :transcode
+	]
+	init
 ]

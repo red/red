@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %definitions.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2016 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2016-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -23,6 +23,7 @@ Red/System [
 #define flag-ins-both		30000000h		;-- optimize for both head & tail insertions
 #define flag-ins-tail		20000000h		;-- optimize for tail insertions
 #define flag-ins-head		10000000h		;-- optimize for head insertions
+#define flag-gc-mark		08000000h		;-- mark as referenced for the GC (mark phase)
 #define flag-series-big		01000000h		;-- 1 = big, 0 = series
 #define flag-series-small	00800000h		;-- series <= 16 bytes
 #define flag-series-stk		00400000h		;-- values block allocated on stack
@@ -109,6 +110,7 @@ Red/System [
 		pen?			[logic!]
 		brush?			[logic!]
 		on-image?		[logic!]					;-- drawing on image?
+		rect-y			[float32!]
 		pattern-blk		[int-ptr!]
 		pattern-mode	[integer!]
 		pattern-ver		[integer!]
@@ -279,6 +281,7 @@ Red/System [
 		gp-matrix		[integer!]
 		gp-path			[integer!]
 		image-attr		[integer!]								;-- gdiplus image attributes
+		scale-ratio		[float32!]
 		pen?			[logic!]
 		brush?			[logic!]
 		on-image?		[logic!]								;-- drawing on image?

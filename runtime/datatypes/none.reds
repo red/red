@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %none.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -92,7 +92,12 @@ none: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "none/mold"]]
 
-		form value buffer arg part
+		either all? [
+			string/concatenate-literal buffer "#[none]"
+			part - 7
+		] [
+			form value buffer arg part
+		]
 	]
 	
 	compare: func [
@@ -159,6 +164,7 @@ none: context [
 	remove: func [
 		none	[red-none!]
 		part	[red-value!]
+		key		[red-value!]
 		return:	[red-value!]
 	][
 		push-last

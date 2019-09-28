@@ -3,7 +3,7 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File: 	 %libRedRT.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
@@ -93,7 +93,7 @@ libRedRT: context [
 			]
 		]
 		if exists? file: get-path extras-file [
-			append funcs load/all file
+			funcs: unique append funcs load/all file
 		]
 		foreach def funcs [
 			name: to word! form def
@@ -129,9 +129,15 @@ libRedRT: context [
 	]
 	
 	process: func [job functions exports /local name list pos tmpl words lits file base-dir][
-		make-exports functions exports
-		if job/OS = 'Windows [append/only funcs 'red/image/push]
-		
+		if find [Windows macOS] job/OS [
+			append funcs [
+				red/image/push
+				red/image/acquire-buffer
+				red/image/release-buffer
+			]
+		]
+		make-exports functions exports job
+
 		clear imports
 		clear template
 		append template "^/red: context "
@@ -218,7 +224,13 @@ libRedRT: context [
 		
 		foreach [def type] vars [						;-- global variables
 			list: either 2 < length? def [
-				pos: find imports to set-word! def/2
+				unless pos: find imports to set-word! def/2 [
+					insert pos: tail imports compose/deep [
+						(to set-word! def/2) context [
+							#import [libRedRT-file stdcall []]
+						]
+					]
+				]
 				pos/3/2/3
 			][
 				pos: find imports #import
@@ -235,6 +247,8 @@ libRedRT: context [
 		]
 		append imports [
 			words: context [
+				red/boot?: yes							;-- ensures words are in fixed memory area
+				
 				_body:		red/word/load "<body>"
 				_anon:		red/word/load "<anon>"
 				_remove:	red/word/load "remove"
@@ -263,6 +277,8 @@ libRedRT: context [
 				aux-down?:	red/symbol/make "aux-down?"
 				ctrl?:		red/symbol/make "ctrl?"
 				shift?:	 	red/symbol/make "shift?"
+				
+				red/boot?: no
 			]
 		]
 		

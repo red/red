@@ -3,7 +3,7 @@ Red/System [
 	Author:	 "Nenad Rakocevic, Xie Qingtian"
 	File: 	 %date.reds
 	Tabs:	 4
-	Rights:	 "Copyright (C) 2017 Nenad Rakocevic. All rights reserved."
+	Rights:	 "Copyright (C) 2017-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -20,7 +20,7 @@ date: context [
 	#define DATE_GET_ZONE_SIGN(d)	 (as-logic d and 40h >>	6)
 	#define DATE_GET_ZONE_HOURS(d)	 (d and 3Fh >> 2)	;-- sign excluded
 	#define DATE_GET_ZONE_MINUTES(d) (d and 03h * 15)
-	#define DATE_GET_SECONDS(t)		 (t // 60.0)
+	#define DATE_GET_SECONDS(t)		 (fmod t 60.0)
 	#define DATE_GET_TIME_FLAG(d)	 (as-logic d >> 16 and 01h)
 	
 	#define DATE_SET_YEAR(d year)	 (d and 0001FFFFh or (year << 17))
@@ -453,13 +453,14 @@ date: context [
 		switch TYPE_OF(value) [
 			TYPE_INTEGER [
 				int: as red-integer! value
-				h: int/value
+				h: int/value % 16
 				m: 0
 			]
 			TYPE_TIME [
 				tm: as red-time! value
-				h: time/get-hours tm/time
-				m: time/get-minutes tm/time
+				t: fmod tm/time 57600.0					;-- 16.0 hours in seconds
+				h: time/get-hours t
+				m: time/get-minutes t
 			]
 			default [fire [TO_ERROR(script invalid-arg) value]]
 		]
@@ -478,6 +479,31 @@ date: context [
 			dt/date: DATE_SET_ZONE(d v)
 			dt/time: to-utc-time t v
 		]
+	]
+
+	set-all: func[
+		dt     [red-date!]
+		year   [integer!]
+		month  [integer!]
+		day    [integer!]
+		hour   [integer!]
+		minute [integer!]
+		second [integer!]
+		nsec   [integer!] 
+		/local d t
+	][
+		d: 0 t: 0.0
+		d: DATE_SET_YEAR(d year)
+		d: DATE_SET_MONTH(d month)
+		d: DATE_SET_DAY(d day)
+		d: DATE_SET_TIME_FLAG(d)
+		t:  (3600.0 * as float! hour)
+		  + (60.0   * as float! minute)
+		  + (         as float! second)
+		  + (1e-9   * as float! nsec)
+		dt/header: TYPE_DATE
+		dt/date: d
+		dt/time: t
 	]
 	
 	create: func [
@@ -657,13 +683,15 @@ date: context [
 			dd	  [integer!]
 			tz	  [integer!]
 			s	  [float!]
+			d1	  [integer!]
 			time? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "date/random"]]
 
 		d: dt/date
+		d1: dt/date + as integer! dt/time
 		either seed? [
-			_random/srand d
+			_random/srand d1
 			dt/header: TYPE_UNSET
 		][
 			time?: DATE_GET_TIME_FLAG(d)
@@ -883,7 +911,12 @@ date: context [
 					v: DATE_GET_ZONE(d)
 					dt/date: DATE_SET_ZONE(dt2/date v)
 				]
-				2 [dt/date: DATE_SET_YEAR(d v)]			;-- /year:
+				2 [										;-- /year:
+					dt/date: days-to-date
+								date-to-days DATE_SET_YEAR(d v)
+								DATE_GET_ZONE(d)
+								DATE_GET_TIME_FLAG(dt/date)
+				]
 				3 [set-month dt v]						;-- /month:
 				4 [										;-- /day:
 					dt/date: days-to-date v + date-to-days DATE_SET_DAY(d 0) DATE_GET_ZONE(d) time?

@@ -3,7 +3,7 @@ Red [
 	Author: ["Nenad Rakocevic" "Kaj de Vos"]
 	File: 	%engine.red
 	Tabs: 	4
-	Rights: "Copyright (C) 2012-2015 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2012-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -29,49 +29,63 @@ Red [
 
 system/console: context [
 
-	prompt: ">> "
-	result: "=="
-	history: make block! 200
-	size:	 0x0
-	catch?:	 no											;-- YES: force script to fallback into the console
-	count:	 [0 0 0]									;-- multiline counters for [squared curly parens]
-	ws:		 charset " ^/^M^-"
+	prompt:		">> "
+	result:		"=="
+	history:	make block! 200
+	size:		0x0
+	running?:	no
+	catch?:		no										;-- YES: force script to fallback into the console
+	delimiters:	[]										;-- multiline delimiters for [squared curly parens]
+	ws:			charset " ^/^M^-"
 
-	gui?: #system [logic/box #either gui-console? = yes [yes][no]]
+	gui?:	#system [logic/box #either gui-console? = yes [yes][no]]
 	
-	read-argument: function [][
+	read-argument: function [/local value][
 		if args: system/script/args [
+
+			args: system/options/args
 			--catch: "--catch"
-			if system/console/catch?: make logic! pos: find args --catch [
-				remove find system/options/args --catch
-				remove/part pos 1 + length? --catch		;-- remove extra space too
+			while [
+				all [
+					not tail? args
+					find/match args/1 "--"	 			;-- skip options
+					args/-1 <> "--"						;-- stop after "--"
+				]
+			][
+				either --catch <> args/1 [
+					args: next args
+				][
+					remove args
+					system/console/catch?: yes
+				]
 			]
 
-			quote-arg: [{"} any [ahead [#"^""] break | skip] {"}]
-			normal-arg: complement charset space
-			rule: [quote-arg | normal-arg]
-			args: parse args [collect [any [keep copy value some rule | skip]]]
-			while [all [not tail? args find/match args/1 "--"]][args: next args] ;-- skip options
-
 			unless tail? args [
-				file: args/1
-				if file/1 = dbl-quote [
-					remove file
-					remove back tail file
-				]
-				file: to-red-file file
-				either src: attempt [read file][
-					system/options/script: file
-					remove system/options/args
-					args: system/script/args
-					remove/part args any [
-						find/tail next args pick {" } args/1 = #"^""
-						tail args
-					]
-					trim/head args
-				][
-					print ["*** Error: cannot access argument file:^/" file]
+				file: to-red-file args/1
+				
+				either error? set/any 'src try [read file][
+					print src
+					src: none
 					;quit/return -1
+				][
+					system/options/script: file
+					remove/part system/options/args next args 	;-- remove options & script name
+					#either config/OS = 'Windows [=quote=: {"}][=quote=: {'}]
+					=quoted-switch=: [=quote= {--} s: thru [e: =quote= any ws | end]]
+					=normal-switch=: ["--" s: thru [e: some ws | end]]
+					parse system/script/args [
+						any ws args: any [							;-- skip switches
+							[ =quoted-switch= | =normal-switch= ]
+							args: not if (same? s e) 				;-- stop after "--"
+						]
+					]
+					#either config/OS = 'Windows [
+						parse args [any [=quote= thru [=quote= | end] | not ws skip] any ws args:]
+					][
+						;-- this relies on `get-cmdline-args` logic:
+						parse args [any [=quote= thru [=quote= | end] | "\'" | not ws skip] any ws args:]
+					]
+					remove/part head args args 			;-- remove options & script name
 				]
 				path: first split-path file
 				if path <> %./ [change-dir path]
@@ -80,7 +94,7 @@ system/console: context [
 		]
 	]
 
-	init: routine [
+	init: routine [					;-- only used by CLI console
 		str [string!]
 		/local
 			ret
@@ -94,45 +108,87 @@ system/console: context [
 		][
 			#if gui-console? = no [terminal/pasting?: no]
 		]
-	]
-
-	terminate: routine [][
-		#if OS <> 'Windows [
 		#if gui-console? = no [
-			if terminal/init? [terminal/emit-string "^[[?2004l"]	;-- disable bracketed paste mode
-		]]
+			terminal/init
+			terminal/init-globals
+		]
 	]
 
-	count-delimiters: function [
+	check-delimiters: function [
 		buffer	[string!]
-		/extern count
-		return: [block!]
+		/extern delimiters
+		return: [logic!]
 	][
 		escaped: [#"^^" skip]
+		block-rule: [
+			(append delimiters #"[")
+			any [
+				#"[" block-rule
+				| #"{" curly-rule
+				| #"(" paren-rule
+				| pos: #";" :pos remove [skip [thru lf | to end]]
+				| dbl-quote dbl-quote-rule
+				| #"}" (either #"{" = last delimiters [remove back tail delimiters][return false])
+				| #")" (either #"(" = last delimiters [remove back tail delimiters][return false])
+				| #"]" (remove back tail delimiters) break
+				| skip
+			]
+		]
+
+		curly-rule: [
+			(append delimiters #"{")
+			any [
+				escaped
+				| #"{" curly-rule
+				| #"}" (remove back tail delimiters) break
+				| skip
+			]
+		]
+
+		paren-rule: [
+			(append delimiters #"(")
+			any [
+				#"[" block-rule
+				| #"{" curly-rule
+				| #"(" paren-rule
+				| pos: #";" :pos remove [skip [thru lf | to end]]
+				| dbl-quote dbl-quote-rule
+				| #"]" (either #"[" = last delimiters [remove back tail delimiters][return false])
+				| #"}" (either #"{" = last delimiters [remove back tail delimiters][return false])
+				| #")" (remove back tail delimiters) break
+				| skip
+			]
+		]
+
+		dbl-quote-rule: [
+			any [
+				[lf | end] (return false)
+				| escaped
+				| dbl-quote break
+				| skip end (return false)
+				| skip
+			]
+		]
 		
 		parse buffer [
 			any [
 				escaped
-				| pos: #";" if (zero? count/2) :pos remove [skip [thru lf | to end]]
-				| #"[" (if zero? count/2 [count/1: count/1 + 1])
-				| #"]" (if zero? count/2 [count/1: count/1 - 1])
-				| #"(" (if zero? count/2 [count/3: count/3 + 1])
-				| #")" (if zero? count/2 [count/3: count/3 - 1])
-				| dbl-quote if (zero? count/2) any [escaped | dbl-quote break | skip]
-				| #"{" (count/2: count/2 + 1) any [
-					escaped
-					| #"{" (count/2: count/2 + 1)
-					| #"}" (count/2: count/2 - 1) break
-					| skip
-				]
-				| #"}" (count/2: count/2 - 1)
+				| pos: #";" if (#"{" <> last delimiters) :pos remove [skip [thru lf | to end]]
+				| #"[" if (#"{" <> last delimiters) block-rule
+				| #"]" if (#"{" <> last delimiters) (either #"[" = last delimiters [remove back tail delimiters][return false])
+				| #"(" if (#"{" <> last delimiters) paren-rule
+				| #")" if (#"{" <> last delimiters) (either #"(" = last delimiters [remove back tail delimiters][return false])
+				| dbl-quote if (#"{" <> last delimiters) dbl-quote-rule
+				| #"{" curly-rule
+				| #"}" (either #"{" = last delimiters [remove back tail delimiters][return false])
 				| skip
 			]
 		]
-		count
+		true
 	]
 	
 	try-do: func [code /local result return: [any-type!]][
+		running?: yes
 		set/any 'result try/all [
 			either 'halt-request = set/any 'result catch/name code 'console [
 				print "(halted)"						;-- return an unset value
@@ -140,6 +196,7 @@ system/console: context [
 				:result
 			]
 		]
+		running?: no
 		:result
 	]
 
@@ -147,28 +204,12 @@ system/console: context [
 	buffer: make string! 10000
 	cue:    none
 	mode:   'mono
-	
-	switch-mode: func [cnt][
-		mode: case [
-			cnt/1 > 0 ['block]
-			cnt/2 > 0 ['string]
-			cnt/3 > 0 ['paren]
-			'else 	  [do-command 'mono]
-		]
-		cue: switch mode [
-			block  ["[    "]
-			string ["{    "]
-			paren  ["(    "]
-			mono   [none]
-		]
-	]
 
 	do-command: function [/local result err][
 		if error? code: try [load/all buffer][print code]
 
 		unless any [error? code tail? code][
 			set/any 'result try-do code
-			
 			case [
 				error? :result [
 					print [result lf]
@@ -176,7 +217,7 @@ system/console: context [
 				not unset? :result [
 					if error? set/any 'err try [		;-- catch eventual MOLD errors
 						limit: size/x - 13
-						if limit = length? result: mold/part :result limit [ ;-- optimized for width = 72
+						if limit <= length? result: mold/part :result limit [ ;-- optimized for width = 72
 							clear back tail result
 							append result "..."
 						]
@@ -186,13 +227,13 @@ system/console: context [
 					]
 				]
 			]
-			unless last-lf? [prin lf]
+			if all [not last-lf? not gui?][prin lf]
 		]
 		clear buffer
 	]
 	
 	eval-command: function [line [string!] /extern cue mode][
-		if mode = 'mono [change/dup count 0 3]			;-- reset delimiter counters to zero
+		if mode = 'mono [clear delimiters]				;-- reset delimiter stack
 		
 		if any [not tail? line mode <> 'mono][
 			either all [not empty? line escape = last line][
@@ -201,15 +242,21 @@ system/console: context [
 				mode: 'mono								;-- force exit from multiline mode
 				print "(escape)"
 			][
-				cnt: count-delimiters line
+				cue: none
+				res: check-delimiters line
 				append buffer line
 				append buffer lf						;-- needed for multiline modes
-
-				switch mode [
-					block  [if cnt/1 <= 0 [switch-mode cnt]]
-					string [if cnt/2 <= 0 [switch-mode cnt]]
-					paren  [if cnt/3 <= 0 [switch-mode cnt]]
-					mono   [either any [cnt/1 > 0 cnt/2 > 0 cnt/3 > 0][switch-mode cnt][do-command]]
+				either res [
+					either empty? delimiters [
+						do-command						;-- no delimiters error
+						mode: 'mono
+					][
+						mode: 'other
+						cue: rejoin [last delimiters "    "]
+					]
+				][
+					do-command							;-- lexer will throw error
+					mode: 'mono
 				]
 			]
 		]
@@ -313,10 +360,10 @@ expand: func [
 	probe expand-directives/clean blk
 ]
 
-ls:		func ['dir [any-type!]][list-dir :dir]
-ll:		func ['dir [any-type!]][list-dir/col :dir 1]
-pwd:	does [prin mold system/options/path]
-halt:	does [throw/name 'halt-request 'console]
+ls:		func ["Display a directory listing, for the current dir if none is given" 'dir [any-type!]][list-dir :dir]
+ll:		func ["Display a single column directory listing, for the current dir if none is given" 'dir [any-type!]][list-dir/col :dir 1]
+pwd:	func ["Displays the active directory path (Print Working Dir)"][prin mold system/options/path]
+halt:	func ["Stops evaluation and returns to the input prompt"][throw/name 'halt-request 'console]
 
 cd:	function [
 	"Changes the active directory path"

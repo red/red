@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %word.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -30,8 +30,15 @@ word: context [
 	load: func [
 		str 	[c-string!]
 		return:	[red-word!]
+		/local
+			w	[red-word!]
 	][
-		_context/add-global-word symbol/make str yes yes
+		w: _context/add-global-word symbol/make str yes yes
+		either red/boot? [
+			as red-word! copy-cell as red-value! w ALLOC_TAIL(root)
+		][
+			w
+		]
 	]
 	
 	make-at: func [

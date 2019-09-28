@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %common.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -44,6 +44,7 @@ alloc-at-tail: func [
 	blk		[red-block!]
 	return: [cell!]
 ][
+	assert any [blk <> root ***-root-size > block/rs-length? root]
 	alloc-tail as series! blk/node/value
 ]
 
@@ -53,7 +54,6 @@ alloc-tail: func [
 	/local 
 		cell [red-value!]
 ][
-	
 	if (as byte-ptr! s/tail) = ((as byte-ptr! s + 1) + s/size) [
 		s: expand-series s 0
 	]
@@ -92,11 +92,39 @@ copy-cell: func [
 	dst		[cell!]
 	return: [red-value!]
 ][
+	if src = dst [return dst]
 	copy-memory											;@@ optimize for 16 bytes copying
 		as byte-ptr! dst
 		as byte-ptr! src
 		size? cell!
 	dst
+]
+
+copy-part: func [		;-- copy part of the series!
+	node	[node!]
+	offset	[integer!]
+	len		[integer!]
+	return: [node!]
+	/local
+		s		[series!]
+		unit	[integer!]
+		new		[node!]
+		buf		[series!]
+][
+	s: as series! node/value
+	unit: GET_UNIT(s)
+	len:  len << (log-b unit)
+
+	new: alloc-bytes len
+	buf: as series! new/value
+	buf/flags: s/flags and not flag-series-owned
+	offset: offset << (log-b unit)
+	copy-memory
+		as byte-ptr! buf/offset
+		(as byte-ptr! s/offset) + offset
+		len
+	buf/tail: as cell! (as byte-ptr! buf/offset) + len
+	new
 ]
 
 get-root: func [
@@ -113,6 +141,7 @@ get-root-node: func [
 		obj [red-object!]
 ][
 	obj: as red-object! get-root idx
+	assert TYPE_OF(obj) = TYPE_OBJECT
 	obj/ctx
 ]
 
@@ -364,29 +393,26 @@ cycles: context [
 		top: top + 1
 		if top = end [fire [TO_ERROR(internal too-deep)]]
 	]
-	
+
 	pop: does [
 		if top > stack [top: top - 1]
 	]
+
+	pop-n: func [n [integer!]][
+		assert top - n >= stack
+		top: top - n
+	]
+	
+	reset: does [top: stack]
 	
 	find?: func [
-		value	[red-value!]
+		node	[node!]
 		return: [logic!]
 		/local
-			obj	 [red-object!]
-			blk	 [red-block!]
-			node [node!]
 			p	 [node!]
 	][
 		if top = stack [return no]
-		
-		node: either TYPE_OF(value) = TYPE_OBJECT [
-			obj: as red-object! value
-			obj/ctx
-		][
-			blk: as red-block! value
-			blk/node
-		]
+
 		p: stack
 		until [
 			if node = as node! p/value [return yes]
@@ -403,18 +429,32 @@ cycles: context [
 		mold?	[logic!]
 		return: [logic!]
 		/local
+			obj	 [red-object!]
+			blk	 [red-block!]
 			s	 [c-string!]
+			node [node!]
 			size [integer!]
 	][
-		either find? value [
+		node: either TYPE_OF(value) = TYPE_OBJECT [
+			obj: as red-object! value
+			obj/ctx
+		][
+			blk: as red-block! value
+			blk/node
+		]
+		either find? node [
 			either mold? [
 				switch TYPE_OF(value) [
-					TYPE_BLOCK	[s: "[...]"				 size: 5 ]
-					TYPE_PAREN	[s: "(...)"				 size: 5 ]
-					TYPE_MAP	[s: "#(...)"			 size: 6 ]
-					TYPE_HASH	[s: "make hash! [...]"	 size: 16]
-					TYPE_OBJECT [s: "make object! [...]" size: 18]
-					default		[assert false]
+					TYPE_BLOCK	  [s: "[...]"			   size: 5 ]
+					TYPE_PAREN	  [s: "(...)"			   size: 5 ]
+					TYPE_MAP	  [s: "#(...)"			   size: 6 ]
+					TYPE_HASH	  [s: "make hash! [...]"   size: 16]
+					TYPE_OBJECT	  [s: "make object! [...]" size: 18]
+					TYPE_PATH
+					TYPE_GET_PATH 
+					TYPE_LIT_PATH
+					TYPE_GET_PATH [s: "..."				   size: 3 ]
+					default		  [assert false]
 				]
 			][
 				s: "..."
@@ -475,7 +515,6 @@ words: context [
 	none:			-1
 	pipe:			-1
 	dash:			-1
-	then:			-1
 	if*:			-1
 	remove:			-1
 	while*:			-1
@@ -558,7 +597,6 @@ words: context [
 	_iterate:		as red-word! 0
 	_paren:			as red-word! 0
 	_anon:			as red-word! 0
-	_body:			as red-word! 0
 	_end:			as red-word! 0
 	_not-found:		as red-word! 0
 	_add:			as red-word! 0
@@ -568,7 +606,6 @@ words: context [
 	_to:			as red-word! 0
 	_thru:			as red-word! 0
 	_not:			as red-word! 0
-	_then:			as red-word! 0
 	_remove:		as red-word! 0
 	_while:			as red-word! 0
 	_collect:		as red-word! 0
@@ -585,6 +622,22 @@ words: context [
 	_quote: 		as red-word! 0
 	_collect: 		as red-word! 0
 	_set: 			as red-word! 0
+	_case:			as red-word! 0
+	
+	;-- navigating actions
+	_at:			as red-word! 0
+	_back:			as red-word! 0
+	_find:			as red-word! 0
+	_head:			as red-word! 0
+	_head?:			as red-word! 0
+	_index?:		as red-word! 0
+	_length?:		as red-word! 0
+	_next:			as red-word! 0
+	_pick:			as red-word! 0
+	_select:		as red-word! 0
+	_skip:			as red-word! 0
+	_tail:			as red-word! 0
+	_tail?:			as red-word! 0
 	
 	;-- modifying actions
 	_change:		as red-word! 0
@@ -592,7 +645,7 @@ words: context [
 	_clear:			as red-word! 0
 	_cleared:		as red-word! 0
 	_set-path:		as red-word! 0
-	_insert:		as red-word! 0
+	_append:		as red-word! 0
 	_poke:			as red-word! 0
 	_put:			as red-word! 0
 	;_remove:		as red-word! 0
@@ -625,8 +678,19 @@ words: context [
 	_multiply:		as red-word! 0
 	_browse:		as red-word! 0
 	
+	_open:			as red-word! 0
+	_create:		as red-word! 0
+	_close:			as red-word! 0
+	_delete:		as red-word! 0
+	_modify:		as red-word! 0
+	_query:			as red-word! 0
+	_read:			as red-word! 0
+	_rename:		as red-word! 0
+	_update:		as red-word! 0
+	_write:			as red-word! 0
+	
 	errors: context [
-		throw:		as red-word! 0
+		_throw:		as red-word! 0
 		note:		as red-word! 0
 		syntax:		as red-word! 0
 		script:		as red-word! 0
@@ -679,7 +743,6 @@ words: context [
 		none:			symbol/make "none"
 		pipe:			symbol/make "|"
 		dash:			symbol/make "-"
-		then:			symbol/make "then"
 		if*:			symbol/make "if"
 		remove:			symbol/make "remove"
 		while*:			symbol/make "while"
@@ -763,7 +826,6 @@ words: context [
 		_to:			_context/add-global to
 		_thru:			_context/add-global thru
 		_not:			_context/add-global not*
-		_then:			_context/add-global then
 		_remove:		_context/add-global remove
 		_while:			_context/add-global while*
 		_collect:		_context/add-global collect
@@ -780,6 +842,22 @@ words: context [
 		_quote: 		_context/add-global quote
 		_collect: 		_context/add-global collect
 		_set: 			_context/add-global set
+		_case:			_context/add-global case*
+		
+		;-- navigating actions
+		_at:			word/load "at"
+		_back:			word/load "back"
+		_find:			word/load "find"
+		_head:			word/load "head"
+		_head?:			word/load "head?"
+		_index?:		word/load "index?"
+		_length?:		word/load "length?"
+		_next:			word/load "next"
+		_pick:			word/load "pick"
+		_skip:			word/load "skip"
+		_select:		word/load "select"
+		_tail:			word/load "tail"
+		_tail?:			word/load "tail?"
 		
 		;-- modifying actions
 		_change:		word/load "change"
@@ -787,7 +865,7 @@ words: context [
 		_clear:			word/load "clear"
 		_cleared:		word/load "cleared"
 		_set-path:		word/load "set-path"
-		_insert:		word/load "insert"
+		_append:		word/load "append"
 		_move:			word/load "move"
 		_moved:			word/load "moved"
 		_poke:			word/load "poke"
@@ -834,6 +912,18 @@ words: context [
 		_multiply:		word/load "multiply"
 		_browse:		word/load "browse"
 		
+		;-- I/O actions
+		_open:			word/load "open"
+		_create:		word/load "create"
+		_close:			word/load "close"
+		_delete:		word/load "delete"
+		_modify:		word/load "modify"
+		_query:			word/load "query"
+		_read:			word/load "read"
+		_rename:		word/load "rename"
+		_update:		word/load "update"
+		_write:			word/load "write"
+		
 		errors/throw:	 word/load "throw"
 		errors/note:	 word/load "note"
 		errors/syntax:	 word/load "syntax"
@@ -849,16 +939,20 @@ words: context [
 refinements: context [
 	local: 		as red-refinement! 0
 	extern: 	as red-refinement! 0
+	compare:	as red-refinement! 0
 
 	_part:		as red-refinement! 0
 	_skip:		as red-refinement! 0
+	_with:		as red-refinement! 0
 
 	build: does [
-		local:	refinement/load "local"
-		extern:	refinement/load "extern"
+		local:		refinement/load "local"
+		extern:		refinement/load "extern"
+		compare:	refinement/load "compare"
 
-		_part:	refinement/load "part"
-		_skip:	refinement/load "skip"
+		_part:		refinement/load "part"
+		_skip:		refinement/load "skip"
+		_with:		refinement/load "with"
 	]
 ]
 

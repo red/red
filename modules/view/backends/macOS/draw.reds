@@ -3,7 +3,7 @@ Red/System [
 	Author: "Qingtian Xie"
 	File: 	%draw.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2016 Qingtian Xie. All rights reserved."
+	Rights: "Copyright (C) 2016-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -14,7 +14,7 @@ Red/System [
 
 #define DRAW_FLOAT_MAX		[as float32! 3.4e38]
 #define F32_0				[as float32! 0.0]
-#define F32_1				[as float32! 1.0]	
+#define F32_1				[as float32! 1.0]
 
 max-colors: 256												;-- max number of colors for gradient
 max-edges: 1000												;-- max number of edges for a polygon
@@ -22,7 +22,16 @@ edges: as CGPoint! allocate max-edges * (size? CGPoint!)	;-- polygone edges buff
 colors: as pointer! [float32!] allocate 5 * max-colors * (size? float32!)
 colors-pos: colors + (4 * max-colors)
 
-draw-state!: alias struct! [unused [integer!]]
+draw-state!: alias struct! [
+	pen-clr		[integer!]
+	brush-clr	[integer!]
+	pen-join	[integer!]
+	pen-cap		[integer!]
+	pen?		[logic!]
+	brush?		[logic!]
+	a-pen?		[logic!]
+	a-brush?	[logic!]
+]
 
 draw-begin: func [
 	ctx			[draw-ctx!]
@@ -42,6 +51,7 @@ draw-begin: func [
 
 		either on-graphic? [							;-- draw on image!, flip the CTM
 			rc: as NSRect! img
+			ctx/rect-y: rc/y
 			CGContextTranslateCTM CGCtx as float32! 0.0 rc/y
 			CGContextScaleCTM CGCtx as float32! 1.0 as float32! -1.0
 		][
@@ -69,6 +79,7 @@ draw-begin: func [
 	ctx/colorspace:		CGColorSpaceCreateDeviceRGB
 	ctx/last-pt-x:		as float32! 0.0
 	ctx/last-pt-y:		as float32! 0.0
+	ctx/on-image?:		on-graphic?
 
 	ctx/font-attrs: objc_msgSend [				;-- default font attributes
 		objc_msgSend [objc_getClass "NSDictionary" sel_getUid "alloc"]
@@ -209,15 +220,13 @@ OS-draw-fill-pen: func [
 OS-draw-line-width: func [
 	dc	  [draw-ctx!]
 	width [red-value!]
-	/local 
+	/local
 		width-v	[float32!]
 ][
 	width-v: get-float32 as red-integer! width
 	if width-v <= F32_0 [width-v: F32_1]
-	if dc/pen-width <> width-v [
-		dc/pen-width: width-v
-		CGContextSetLineWidth dc/raw width-v
-	]
+	dc/pen-width: width-v
+	CGContextSetLineWidth dc/raw width-v
 ]
 
 get-shape-center: func [
@@ -358,6 +367,9 @@ OS-draw-box: func [
 		ym		[float32!]
 		y1		[float32!]
 		y2		[float32!]
+		width	[integer!]
+		height	[integer!]
+		irad	[integer!]
 ][
 	ctx: dc/raw
 	radius: null
@@ -376,7 +388,11 @@ OS-draw-box: func [
 	ym: y1 + (y2 - y1 / as float32! 2.0)
 
 	either radius <> null [
-		rad: as float32! radius/value
+		width: lower/x - upper/x
+		height: lower/y - upper/y
+		t: either width > height [height][width]
+		irad: either radius/value * 2 > t [t / 2][radius/value]
+		rad: as float32! irad
 		CGContextMoveToPoint ctx x1 ym
 		CGContextAddArcToPoint ctx x1 y1 xm y1 rad
 		CGContextAddArcToPoint ctx x2 y1 x2 ym rad
@@ -456,15 +472,15 @@ OS-draw-polygon: func [
 	point: edges
 	pair:  start
 	nb:	   0
-	
+
 	while [all [pair <= end nb < max-edges]][
 		point/x: as float32! pair/x
 		point/y: as float32! pair/y
 		nb: nb + 1
 		point: point + 1
-		pair: pair + 1	
+		pair: pair + 1
 	]
-	;if nb = max-edges [fire error]	
+	;if nb = max-edges [fire error]
 	point/x: as float32! start/x						;-- close the polygon
 	point/y: as float32! start/y
 
@@ -679,13 +695,17 @@ draw-text-at: func [
 ]
 
 draw-text-box: func [
-	ctx		[handle!]
+	dc		[draw-ctx!]
 	pos		[red-pair!]
 	tbox	[red-object!]
 	catch?	[logic!]
 	/local
 		int		[red-integer!]
+		values	[red-value!]
 		state	[red-block!]
+		str		[red-string!]
+		bool	[red-logic!]
+		layout? [logic!]
 		layout	[integer!]
 		tc		[integer!]
 		idx		[integer!]
@@ -693,11 +713,23 @@ draw-text-box: func [
 		y		[integer!]
 		x		[integer!]
 		pt		[CGPoint!]
+		clr		[integer!]
 ][
-	state: (as red-block! object/get-values tbox) + TBOX_OBJ_STATE
+	values: object/get-values tbox
+	str: as red-string! values + FACE_OBJ_TEXT
+	if TYPE_OF(str) <> TYPE_STRING [exit]
 
-	if TYPE_OF(state) <> TYPE_BLOCK [
-		OS-text-box-layout tbox null catch?
+	state: as red-block! values + FACE_OBJ_EXT3
+	layout?: yes
+	if TYPE_OF(state) = TYPE_BLOCK [
+		bool: as red-logic! (block/rs-tail state) - 1
+		layout?: bool/value
+	]
+	if layout? [
+		clr: either null? dc [0][
+			objc_msgSend [dc/font-attrs sel_getUid "objectForKey:" NSForegroundColorAttributeName]
+		]
+		OS-text-box-layout tbox null clr catch?
 	]
 
 	int: as red-integer! block/rs-head state
@@ -720,6 +752,7 @@ OS-draw-text: func [
 	pos		[red-pair!]
 	text	[red-string!]
 	catch?	[logic!]
+	return: [logic!]
 	/local
 		ctx [handle!]
 ][
@@ -727,10 +760,11 @@ OS-draw-text: func [
 	either TYPE_OF(text) = TYPE_STRING [
 		draw-text-at ctx text dc/font-attrs pos/x pos/y
 	][
-		draw-text-box ctx pos as red-object! text catch?
+		draw-text-box dc pos as red-object! text catch?
 	]
 	CG-set-color ctx dc/pen-color no				;-- drawing text will change pen color, so reset it
 	CG-set-color ctx dc/brush-color yes				;-- drawing text will change brush color, so reset it
+	true
 ]
 
 _draw-arc: func [
@@ -911,19 +945,17 @@ OS-draw-line-join: func [
 		mode [integer!]
 ][
 	mode: kCGLineJoinMiter
-	if dc/pen-join <> style [
-		dc/pen-join: style
-		case [
-			style = miter		[mode: kCGLineJoinMiter]
-			style = miter-bevel [mode: kCGLineJoinMiter]
-			style = _round		[mode: kCGLineJoinRound]
-			style = bevel		[mode: kCGLineJoinBevel]
-			true				[mode: kCGLineJoinMiter]
-		]
-		CGContextSetLineJoin dc/raw mode
+	dc/pen-join: style
+	case [
+		style = miter		[mode: kCGLineJoinMiter]
+		style = miter-bevel [mode: kCGLineJoinMiter]
+		style = _round		[mode: kCGLineJoinRound]
+		style = bevel		[mode: kCGLineJoinBevel]
+		true				[mode: kCGLineJoinMiter]
 	]
+	CGContextSetLineJoin dc/raw mode
 ]
-	
+
 OS-draw-line-cap: func [
 	dc	  [draw-ctx!]
 	style [integer!]
@@ -931,16 +963,14 @@ OS-draw-line-cap: func [
 		mode [integer!]
 ][
 	mode: kCGLineCapButt
-	if dc/pen-cap <> style [
-		dc/pen-cap: style
-		case [
-			style = flat		[mode: kCGLineCapButt]
-			style = square		[mode: kCGLineCapSquare]
-			style = _round		[mode: kCGLineCapRound]
-			true				[mode: kCGLineCapButt]
-		]
-		CGContextSetLineCap dc/raw mode
+	dc/pen-cap: style
+	case [
+		style = flat		[mode: kCGLineCapButt]
+		style = square		[mode: kCGLineCapSquare]
+		style = _round		[mode: kCGLineCapRound]
+		true				[mode: kCGLineCapButt]
 	]
+	CGContextSetLineCap dc/raw mode
 ]
 
 CG-draw-image: func [						;@@ use CALayer to get very good performance?
@@ -1153,7 +1183,7 @@ OS-draw-grad-pen-old: func [
 		color/2: (as float32! val >> 8 and FFh) / 255.0
 		color/3: (as float32! val >> 16 and FFh) / 255.0
 		color/4: (as float32! 255 - (val >>> 24)) / 255.0
-		next: head + 1 
+		next: head + 1
 		if TYPE_OF(next) = TYPE_FLOAT [head: next f: as red-float! head p: as float32! f/value]
 		pos/value: p
 		if next <> head [p: p + delta]
@@ -1371,19 +1401,33 @@ OS-matrix-transform: func [
 	rotate: as red-integer! either center + 1 = scale [center][center + 1]
 	center?: rotate <> center
 
-	OS-matrix-rotate dc pen rotate center
-	OS-matrix-scale dc pen scale scale + 1
 	_OS-matrix-translate dc/raw translate/x translate/y
+	OS-matrix-scale dc pen scale scale + 1
+	OS-matrix-rotate dc pen rotate center
 ]
 
 OS-matrix-push: func [dc [draw-ctx!] state [draw-state!]][
 	CGContextSaveGState dc/raw
+	state/pen-clr: dc/pen-color
+	state/brush-clr: dc/brush-color
+	state/pen-join: dc/pen-join
+	state/pen-cap: dc/pen-cap
+	state/pen?: dc/pen?
+	state/brush?: dc/brush?
+	state/a-pen?: dc/grad-pen?
+	state/a-brush?: dc/grad-brush?
 ]
 
 OS-matrix-pop: func [dc [draw-ctx!] state [draw-state!]][
 	CGContextRestoreGState dc/raw
-	dc/pen-color:		0
-	dc/brush-color:		0
+	dc/pen-color: state/pen-clr
+	dc/brush-color: state/brush-clr
+	dc/pen-join: state/pen-join
+	dc/pen-cap: state/pen-cap
+	dc/pen?: state/pen?
+	dc/brush?: state/brush?
+	dc/grad-pen?: state/a-pen?
+	dc/grad-brush?: state/a-brush?
 ]
 
 OS-matrix-reset: func [
@@ -1392,7 +1436,11 @@ OS-matrix-reset: func [
 	/local
 		m [CGAffineTransform! value]
 ][
-	m: CGAffineTransformMake F32_1 F32_0 F32_0 F32_1 as float32! 0.5 as float32! 0.5
+	either dc/on-image? [
+		m: CGAffineTransformMake F32_1 F32_0 F32_0 as float32! -1.0 F32_0 dc/rect-y
+	][
+		m: CGAffineTransformMake F32_1 F32_0 F32_0 F32_1 as float32! 0.5 as float32! 0.5
+	]
 	CGContextSetCTM dc/raw m
 ]
 
@@ -1622,7 +1670,7 @@ draw-curve: func [
 			;-- The control point is assumed to be the reflection of the control point
 			;-- on the previous command relative to the current point
 			p1x: dx * 2.0 - dc/control-x
-			p1y: dy * 2.0 - dc/control-y		
+			p1y: dy * 2.0 - dc/control-y
 		][
 			;-- if previous command is not curve/curv/qcurve/qcurv, use current point
 			p1x: dx
@@ -1735,7 +1783,7 @@ OS-draw-shape-arc: func [
 	pi2: as float32! 2.0 * PI
 	theta: get-float32 item
 	theta: theta * as float32! (PI / 180.0)
-	theta: theta % pi2
+	theta: as-float32 fmod as-float theta as-float pi2
 
 	;-- calculate center
 	dx: (p1-x - p2-x) / as float32! 2.0
@@ -1933,4 +1981,3 @@ OS-draw-brush-pattern: func [
 		dc/grad-pen: -1
 	]
 ]
-

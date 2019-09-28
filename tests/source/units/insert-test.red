@@ -3,7 +3,7 @@ Red [
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 %insert-test.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
@@ -302,6 +302,9 @@ Red [
 	
 	--test-- "iri4 - issue #599"
 	--assert "<56a<56aI" = head insert/part/dup "I" ["<" #"5" #"6" a x] 4 2
+
+	--test-- "iri5 - issue #3705"
+	--assert 5000 = length? head insert/dup #{} #{20} 5000
 
 ===end-group===
 

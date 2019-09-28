@@ -55,6 +55,14 @@ Red [
 	--test-- "empty-6" --assert false = empty? "a"
 	--test-- "empty-7" --assert false = empty? [red blue]
 	--test-- "empty-8" --assert false = empty? %functions-test.red
+	--test-- "empty-9"
+		--assert true = empty? #()
+	--test-- "empty-10"
+		--assert false = empty? #(a: 1)
+	--test-- "empty-11"
+		m: #(a: 1)
+		remove/key m 'a
+		--assert true = empty? m
 
 ===end-group===
 
@@ -96,6 +104,7 @@ Red [
 	--test-- "first-test-3" --assert 1 = first 1.2.3.4.5
 	--test-- "first-test-4" --assert 1 = first 1x2
 	--test-- "first-test-5" --assert 12 = first 12:13:14.15
+	--test-- "first-test-6" --assert 1-Feb-2018 = first 1-Feb-2018/03:04:05-06:00
 ===end-group===
 
 ===start-group=== "second tests"
@@ -104,6 +113,7 @@ Red [
 	--test-- "second-test-3" --assert 2 = second 1.2.3.4.5
 	--test-- "second-test-4" --assert 2 = second 1x2
 	--test-- "second-test-5" --assert 13 = second 12:13:14.15
+	--test-- "second-test-6" --assert 2018 = second 1-Feb-2018/03:04:05-06:00
 ===end-group===
 
 ===start-group=== "third tests"
@@ -111,22 +121,29 @@ Red [
 	--test-- "third-test-2" --assert 3 = third [1 2 3 4 5]
 	--test-- "third-test-3" --assert 3 = third 1.2.3.4.5
 	--test-- "third-test-4" --assert 14 = third 12:13:14
+	--test-- "third-test-5" --assert 2 = third 1-Feb-2018/03:04:05-06:00
 ===end-group===
 
 ===start-group=== "fourth tests"
 	--test-- "fourth-test-1" --assert #"d" = fourth "abcde"
 	--test-- "fourth-test-2" --assert 4 = fourth [1 2 3 4 5]
 	--test-- "fourth-test-3" --assert 4 = fourth 1.2.3.4.5
+	--test-- "fourth-test-4" --assert 1 = fourth 1-Feb-2018/03:04:05-06:00
 ===end-group===
 
 ===start-group=== "fifth tests"
 	--test-- "fifth-test-1" --assert #"e" = fifth "abcde"
 	--test-- "fifth-test-2" --assert 5 = fifth [1 2 3 4 5]
+	--test-- "fifth-test-3" --assert -6:00 = fifth 1-Feb-2018/03:04:05-06:00
 ===end-group===
 
 ===start-group=== "last tests"
 	--test-- "last-test-1" --assert #"e" = last "abcde"
 	--test-- "last-test-2" --assert 5 = last [1 2 3 4 5]
+	--test-- "last-test-3" --assert none = last []
+	--test-- "last-test-4" --assert 4 = last 1.2.3.4
+	--test-- "last-test-5" --assert 6 = last 9.8.7.6	; so last val doesn't match length
+	--test-- "last-test-6" --assert 7 = last [9 8 7]	; so last val doesn't match length
 ===end-group===
 
 ===start-group=== "context tests"
@@ -198,6 +215,8 @@ Red [
 		--assert "abcc" = replace/all "abxx" "x" "c"
 		--assert [1 9 [2 3 4]] = replace [1 2 [2 3 4]] 2 9
 		--assert [1 9 [2 3 4]] = replace/all [1 2 [2 3 4]] 2 9
+		--assert "aaa bbb ccc" = replace "aaa <tag> ccc" <tag> "bbb"
+		--assert "aaa <bbb> ccc" = replace "aaa <tag> ccc" <tag> <bbb>
 		;--assert [1 9 [9 3 4]] = replace/deep [1 2 [2 3 4]] 2 9
 
 ===end-group===
@@ -243,6 +262,14 @@ Red [
 		save-test-1: copy ""
 		save save-test-1 1
 			--assert "#{31}" = save-test-1
+	--test-- "save test 2"
+		save-test-2: copy ""
+		save save-test-2 "abc"
+			--assert "#{2261626322}" = save-test-2
+	--test-- "save test 3"
+		save-test-3: copy ""
+		save/as save-test-3 "abc" none
+			--assert "#{2261626322}" = save-test-3
 		;TODO
 ===end-group===
 
@@ -251,6 +278,13 @@ Red [
 		cause-error-func-1: function [] [cause-error 'math 'zero-divide []]
 		cause-error-result-1: try [cause-error-func-1]
 			--assert error? cause-error-result-1
+	--test-- "cause-error string"
+		cause-error-func-2: function [] [cause-error 'user 'type "String Error Msg"]
+		cause-error-result-2: try [cause-error-func-2]
+			--assert error? cause-error-result-2
+			--assert cause-error-result-2/type = 'user
+			--assert cause-error-result-2/id = 'type
+			--assert cause-error-result-2/arg1 = "String Error Msg"
 ===end-group===
 
 ===start-group=== "pad tests"
@@ -387,7 +421,7 @@ Red [
 
 ===start-group=== "path-thru tests"
 	--test-- "path-thru test"
-		--assert not none? find (path-thru http://red-lang.com) "/cache/red-lang.com"
+		--assert not none? find (path-thru http://red-lang.com) "/cache/91/91DD75833FAA7FF66B9BD4638549782B"
 ===end-group===
 
 ===start-group=== "exists-thru? tests"
@@ -440,11 +474,6 @@ Red [
 		--assertf~= atan 1.0 0.7853981 0.0001
 ===end-group===
 
-===start-group=== "atan tests"
-	--test-- "atan test"
-		--assertf~= atan 1.0 0.7853981 0.0001
-===end-group===
-
 ===start-group=== "atan2 tests"
 	--test-- "atan2 test"
 		--assertf~= (atan2 10 1) 1.4711276 0.0001
@@ -456,9 +485,43 @@ Red [
 		--assert 2.0 = sqrt 4
 ===end-group===
 
-===start-group=== "sqrt tests"
-	--test-- "sqrt test"
+===start-group=== "rejoin tests"
+	--test-- "rejoin test"
 		--assert "24" = rejoin [1 + 1 2 * 2]
+===end-group===
+
+===start-group=== "sum and average tests"
+	--test-- "sum tests"
+		--assert 0 = sum []
+		--assert 3 = sum [1 2]
+		--assert 1.5 = sum [1 30% 20%]
+		--assert 150% = sum [30% 20% 1]
+	--test-- "average tests"
+		--assert none = average []
+		--assert 1.5 = average [1 2]
+		--assert 25% = average [30% 20%]
+		--assert 0.5 = average [1 30% 20%]
+===end-group===
+
+===start-group=== "last? tests"
+	--test-- "last? true tests"
+		--assert error? try [last? 2]
+		--assert true = last? [1]
+		--assert true = last? "1"
+		--assert true = last? make hash! [1]
+		--assert true = last? make vector! [1]
+		--assert true = last? #{01}
+	--test-- "last? false tests"
+		--assert false = last? []
+		--assert false = last? [1 2]
+		--assert false = last? ""
+		--assert false = last? "12"
+		--assert false = last? make hash! []
+		--assert false = last? make hash! [1 2]
+		--assert false = last? make vector! []
+		--assert false = last? make vector! [1 2]
+		--assert false = last? #{0102}
+		--assert false = last? #{}
 ===end-group===
 
 ~~~end-file~~~

@@ -3,7 +3,7 @@ Red [
 	Author:  "Nenad Rakocevic"
 	File: 	 %routines.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -34,37 +34,42 @@ set-quiet: routine [
 ]
 
 ;-- Following definitions are used to create op! corresponding operators
-shift-right:   routine [data [integer!] bits [integer!]][natives/shift* no -1 -1]
-shift-left:	   routine [data [integer!] bits [integer!]][natives/shift* no  1 -1]
-shift-logical: routine [data [integer!] bits [integer!]][natives/shift* no -1  1]
+shift-right:   routine ["Shift bits to the right" data [integer!] bits [integer!]][natives/shift* no -1 -1]
+shift-left:	   routine ["Shift bits to the left" data [integer!] bits [integer!]][natives/shift* no  1 -1]
+shift-logical: routine ["Shift bits to the right (unsigned)" data [integer!] bits [integer!]][natives/shift* no -1  1]
 
 ;-- Helping routine for console, returns true if last output character was a LF
-last-lf?: routine [/local bool [red-logic!]][
+last-lf?: routine ["Internal Use Only" /local bool [red-logic!]][
 	bool: as red-logic! stack/arguments
 	bool/header: TYPE_LOGIC
 	bool/value:	 natives/last-lf?
 ]
 
-get-current-dir: routine [][
+get-current-dir: routine ["Returns the platform’s current directory for the process"][
 	stack/set-last as red-value! file/get-current-dir
 ]
 
-set-current-dir: routine [path [string!] /local dir [red-file!]][
+set-current-dir: routine ["Sets the platform’s current process directory" path [string!] /local dir [red-file!]][
 	dir: as red-file! stack/arguments
 	unless platform/set-current-dir file/to-OS-path dir [
 		fire [TO_ERROR(access cannot-open) dir]
 	]
 ]
 
-create-dir: routine [path [file!]][			;@@ temporary, user should use `make-dir`
+create-dir: routine ["Create the given directory" path [file!]][			;@@ temporary, user should use `make-dir`
 	simple-io/make-dir file/to-OS-path path
 ]
 
-exists?: routine [path [file!] return: [logic!]][
+exists?: routine ["Returns TRUE if the file exists" path [file!] return: [logic!]][
 	simple-io/file-exists? file/to-OS-path path
 ]
 
+os-info: routine ["Returns detailed operating system version information"][
+	__get-OS-info
+]
+
 as-color: routine [
+	"Combine R, G and B values into a tuple"
 	r [integer!]
 	g [integer!]
 	b [integer!]
@@ -85,6 +90,7 @@ as-color: routine [
 ]
 
 as-ipv4: routine [
+	"Combine a, b, c and d values into a tuple"
 	a [integer!]
 	b [integer!]
 	c [integer!]
@@ -110,14 +116,14 @@ as-rgba: :as-ipv4
 
 ;-- Temporary definition --
 
-read-clipboard: routine [][
+read-clipboard: routine ["Return the contents of the system clipboard"][
 	stack/set-last clipboard/read
 ]
 
-write-clipboard: routine [data [string!]][
+write-clipboard: routine ["Write content to the system clipboard" data [string!]][
 	logic/box clipboard/write as red-value! data
 ]
 
-write-stdout: routine [str [string!]][			;-- internal use only
-	simple-io/write null as red-value! str null null no no no
+write-stdout: routine ["Write data to STDOUT" data [any-type!]][			;-- internal use only
+	simple-io/write null as red-value! data null null no no no
 ]

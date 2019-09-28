@@ -3,12 +3,12 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File: 	 %lexer.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
 ;-- Patch NEW-LINE and NEW-LINE? natives to accept paren! --
-append first find third :new-line  block! paren!
+append first find third :new-line  block! [path! paren!]
 append first find third :new-line? block! paren!
 
 
@@ -17,7 +17,6 @@ lexer: context [
 	
 	old-line: none
 	line: 	none									;-- source code lines counter
-	lines:	[]										;-- offsets of newlines marker in current block
 	count?: yes										;-- if TRUE, lines counter is enabled
 	cnt:	none									;-- counts nested {} in multi-line strings
 	pos:	none									;-- source input position (error reporting)
@@ -109,7 +108,7 @@ lexer: context [
 	caret-char:		charset [#"^(40)" - #"^(5F)"]
 	non-printable-char: charset [#"^(00)" - #"^(1F)"]
 	pair-end:		charset {^{"[]();:}
-	integer-end:	charset {^{"[]();:xX}
+	integer-end:	charset {^{"[]();:xX<}
 	path-end:		charset {^{"[]();}
 	file-end:		charset {^{[]();}
 	date-sep:		charset "/-"
@@ -427,7 +426,8 @@ lexer: context [
 	]
 
 	decimal-special: [
-		s: "-0.0" | (neg?: no) opt [#"-" (neg?: yes)] "1.#" s: [
+		s: "-0.0" pos: [integer-end | ws-no-count | end ] :pos 
+		| (neg?: no) opt [#"-" (neg?: yes)] opt #"+" "1.#" s: [
 			[[#"N" | #"n"] [#"a" | #"A"] [#"N" | #"n"]]
 			| [[#"I" | #"i"] [#"N" | #"n"] [#"F" | #"f"]]
 		]
@@ -528,7 +528,7 @@ lexer: context [
 
 	base-2-rule: [
 		"2#{" (type: binary!) [
-			s: any [counted-newline | 8 [#"0" | #"1" ] | ws-no-count | comment-rule]
+			s: any [counted-newline | 8 [any [ws-no-count | comment-rule][#"0" | #"1" ]] | ws-no-count | comment-rule]
 			e: #"}" (base: 2)
 			| (pos: skip s -3 throw-error)
 		]
@@ -627,15 +627,8 @@ lexer: context [
 	
 	any-value: [pos: any [literal-value | ws]]
 
-	header: [
-		pos: thru "Red" (rs?: no) opt ["/System" (rs?: yes stack/push 'Red/System)]
-		any-ws block-rule (stack/push value)
-		| (throw-error/with "Invalid Red program") end skip
-	]
-
 	program: [
-		pos: opt UTF-8-BOM
-		header
+		block-rule (if rs? [stack/push 'Red/System] stack/push value)
 		any-value
 		opt wrong-end
 	]
@@ -823,11 +816,18 @@ lexer: context [
 			#[datatype! decimal!][s: load-decimal s]
 			#[datatype! issue!  ][
 				if s = "-0.0" [s: "0-"]					;-- re-encoded for consistency
-				s: to issue! either #"%" = last s [s][join "." s]
-				if neg? [append s #"-"]
+				either #"%" = last s [s: to issue! s][
+					s: to issue! join "." s
+					if neg? [append s #"-"]
+				]
 			]
 		][
-			unless find [integer! decimal!] type?/word s: to integer! s [throw-error]
+			if any [
+				not find [integer! decimal!] type?/word s: to integer! s
+				all [rs? type <> type? s]
+			][
+				throw-error
+			]
 		]
 		s
 	]
@@ -844,6 +844,7 @@ lexer: context [
 		parse/all/case copy/part s e [
 			any [
 				escaped-char   (insert tail new value)
+				| #"^^"
 				| s: filter e: (insert/part tail new s e)
 			]										;-- exit on matching " or }
 		]
@@ -874,10 +875,25 @@ lexer: context [
 		replace/all copy/part s back e "%" "%25"
 	]
 	
+	identify-header: func [src /local p ws found?][
+		ws: charset " ^-^M^/"
+		rs?: no
+		pos: src
+		until [
+			unless pos: find/tail pos "Red" [throw-error/with "Invalid Red program"]
+			if all [pos find/match pos "/System"][rs?: yes pos: skip pos 7]
+			while [find/match ws pos/1][pos: next pos]
+			found?: pos/1 = #"["
+		]	
+		unless found? [throw-error/with "Invalid Red program"]
+		pos
+	]
+	
 	process: func [src [string! binary!] /local blk][
 		old-line: line: 1
 		count?: yes
-		blk: stack/allocate block! 100				;-- root block
+		blk: stack/allocate block! 100				;-- root block		
+		src: identify-header src
 		
 		unless parse/all/case src program [throw-error]
 		stack/reset

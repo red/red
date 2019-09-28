@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %darwin.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/red-system/runtime/BSL-License.txt
@@ -21,6 +21,11 @@ Red/System [
 
 #define SYSCALL_MMAP		197
 #define SYSCALL_MUNMAP		73
+
+#define gestaltSystemVersion		1937339254			;-- "sysv"
+#define gestaltSystemVersionMajor	1937339185			;-- "sys1"
+#define gestaltSystemVersionMinor	1937339186			;-- "sys2"
+#define gestaltSystemVersionBugFix	1937339187			;-- "sys3"
 
 platform: context [ 
 
@@ -64,10 +69,11 @@ platform: context [
 		size 	[integer!]						;-- allocated size in bytes (page size multiple)
 		exec? 	[logic!]						;-- TRUE => executable region
 		return: [int-ptr!]						;-- allocated memory region pointer
-		/local ptr prot
+		/local
+			ptr  [byte-ptr!]
+			prot [integer!]
 	][
-		size: round-to-next size 16
-		assert zero? (size and 0Fh)				;-- size is a multiple of 16
+		assert zero? (size and (page-size - 1))	;-- size is a multiple of page size
 		prot: either exec? [MMAP_PROT_RWX][MMAP_PROT_RW]
 
 		ptr: mmap 
@@ -78,7 +84,7 @@ platform: context [
 			-1									;-- portable value
 			0
 
-		if -1 = as-integer ptr [throw OS_ERROR_VMEM_OUT_OF_MEMORY]
+		if 12 = as-integer ptr [throw OS_ERROR_VMEM_OUT_OF_MEMORY]
 		as int-ptr! ptr
 	]
 

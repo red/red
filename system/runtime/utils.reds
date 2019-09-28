@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %utils.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -154,7 +154,7 @@ degree-to-radians: func [
 	/local
 		factor [float!]
 ][
-	val: val % 360.0
+	val: fmod val 360.0
 	if any [val > 180.0 val < -180.0] [
 		factor: either val < 0.0 [360.0][-360.0]
 		val: val + factor

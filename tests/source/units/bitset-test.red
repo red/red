@@ -3,7 +3,7 @@
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 %bitset-test.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
@@ -20,6 +20,7 @@
 	--test-- "basic-5"	--assert "make bitset! #{40}" = mold charset #"^(01)"
 	--test-- "basic-6"	--assert "make bitset! #{000000000000FFC0}" = mold charset "0123456789"
 	--test-- "basic-7"	--assert "make bitset! #{F0}" = mold charset [0 1 2 3]
+	--test-- "basic-8"	--assert error? try [make bitset! [-1]]
 
 	--test-- "basic-8"	
 		--assert "make bitset! #{FF800000FFFF8000048900007FFFFFE0}"
@@ -161,9 +162,9 @@
 		bs: charset "012345789"
 		--assert 64 = length? bs
 		--assert "make bitset! #{000000000000FDC0}" = mold bs
-		--assert "make bitset! #{0000000000007DC0}" = mold remove/part bs #"0"
-		--assert "make bitset! #{0000000000003DC0}" = mold remove/part bs 49
-		--assert "make bitset! #{0000000000000000}" = mold remove/part bs [#"2" - #"7" "8" #"9"]
+		--assert "make bitset! #{0000000000007DC0}" = mold remove/key bs #"0"
+		--assert "make bitset! #{0000000000003DC0}" = mold remove/key bs 49
+		--assert "make bitset! #{0000000000000000}" = mold remove/key bs [#"2" - #"7" "8" #"9"]
 
 ===end-group===
 
@@ -298,6 +299,24 @@
 		--assert "make bitset! [not #{00000000FF80}]" = mold bs
 		poke bs [32 - 40] true
 		--assert "make bitset! [not #{000000000000}]" = mold bs
+
+===end-group===
+
+===start-group=== "bitset issues"
+
+	--test-- "issue #3443"
+		bs: make bitset! #{}
+		n: 135 idx: 0
+		until [
+			bs/:idx: true
+			idx: idx + 1
+			idx > n
+		]
+		--assert "make bitset! #{FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF}" = mold bs
+
+
+	--test-- "issue #3950"
+		--assert (make bitset! [not #{000000000000000040}]) = do mold complement charset "A"
 
 ===end-group===
 

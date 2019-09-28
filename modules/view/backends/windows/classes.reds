@@ -3,7 +3,7 @@ Red/System [
 	Author: "Nenad Rakocevic"
 	File: 	%classes.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2015 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -129,6 +129,7 @@ make-super-class: func [
 ]
 
 FaceWndProc: func [
+	[stdcall]
 	hWnd	[handle!]
 	msg		[integer!]
 	wParam	[integer!]
@@ -145,6 +146,7 @@ FaceWndProc: func [
 ]
 
 AreaWndProc: func [
+	[stdcall]
 	hWnd	[handle!]
 	msg		[integer!]
 	wParam	[integer!]
@@ -164,15 +166,21 @@ AreaWndProc: func [
 		WM_CHAR [
 			either zero? (ES_MULTILINE and GetWindowLong hWnd GWL_STYLE) [ ;field
 				;-- stop beep when pressing enter in field
-				if wParam = 0Dh	[ return 0 ];-- VK_RETURN
+				if any [wParam = 0Dh wParam = 9][ return 0 ];-- VK_RETURN or VK_TAB
 			][
 				;-- stop beep when pressing CTRL+A in area and select all
 				;based on: https://stackoverflow.com/a/25355868/494472
 				if wParam = 1 [
 					SendMessage hwnd EM_SETSEL 0 -1 ;-- select all
-					return 1;
+					return 1
 				]
 			]
+		]
+		WM_KEYUP
+		WM_LBUTTONUP	[
+			update-selection hWnd get-face-values hWnd
+			current-msg/hWnd: hWnd
+			make-event current-msg 0 EVT_SELECT
 		]
 		default [0]
 	]
@@ -224,6 +232,7 @@ register-classes: func [
 	make-super-class #u16 "RedListBox"	#u16 "ListBox"			 0 yes
 	make-super-class #u16 "RedProgress" #u16 "msctls_progress32" 0 yes
 	make-super-class #u16 "RedSlider"	#u16 "msctls_trackbar32" 0 yes
+	make-super-class #u16 "RedScroller"	#u16 "SCROLLBAR"		 0 yes
 	make-super-class #u16 "RedTabpanel"	#u16 "SysTabControl32"	 0 yes
 
 	OldFaceWndProc: make-super-class

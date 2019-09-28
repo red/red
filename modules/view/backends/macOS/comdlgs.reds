@@ -258,6 +258,7 @@ _request-file: func [
 		parent		[integer!]
 		dir			[integer!]
 		res			[integer!]
+		val			[red-value! value]
 		exist?		[logic!]
 ][
 	quit-modal-loop?: no
@@ -332,7 +333,7 @@ _request-file: func [
 	value2: as-integer multi?
 	value3: as-integer save?
 	value4: as-integer dir?
-	ret:	as-integer stack/push*
+	ret:	as-integer :val
 
 	parent: objc_msgSend [NSApp sel_getUid "mainWindow"]
 	either parent <> 0 [

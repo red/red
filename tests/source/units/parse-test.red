@@ -3,7 +3,7 @@ Red [
 	Author:	"Nenad Rakocevic"
 	File:	%parse-test.reds
 	Tabs:	4
-	Rights:	"Copyright (C) 2011-2015 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	Rights:	"Copyright (C) 2011-2015 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
@@ -698,13 +698,6 @@ Red [
 	--test-- "blk-m97"	--assert not parse 	[[a]]		[into [some 'b]]
 	--test-- "blk-m98"	--assert parse 		[[a]]		[into ['a 'b] | block!]
 
-	--test-- "blk-m100"	--assert not parse	[]			[then skip]
-	--test-- "blk-m101"	--assert parse		[]			[then skip | end]
-	--test-- "blk-m102"	--assert parse		[a]			[then 'a | 'b]
-	--test-- "blk-m103"	--assert not parse	[c]			[then 'a | 'b]
-	--test-- "blk-m104"	--assert parse		[b]			[then 'a | 'b]
-	--test-- "blk-m105"	--assert parse		[z a]		['z then 'a | 'b]
-
 	x: none
 	--test-- "blk-m110"	--assert parse		[2 4 6]		[any [set x integer! if (even? x)]]
 	--test-- "blk-m111"	--assert not parse	[1]			[set x integer! if (even? x)]
@@ -866,8 +859,7 @@ Red [
 	--test-- "str-14"	--assert not parse	"ab"		[[#"b" | "a"]]
 	--test-- "str-15"	--assert parse		"ab"		[["a" | #"b"][#"b" | "a"]]
 	
-	;--test-- "str-16"	--assert parse		"123"		[integer!]
-	
+	--test-- "str-16"	--assert error? try [ parse "123" [integer!] ]
 	
 	--test-- "str-20"
 		res: 0	
@@ -1583,13 +1575,6 @@ Red [
 	--test-- "str-m86"	--assert parse 		"a"			[opt skip]
 	--test-- "str-m87"	--assert parse 		"abc"		[skip opt #"b" skip]
 
-	--test-- "str-m90"	--assert not parse	""			[then skip]
-	--test-- "blk-m91"	--assert parse		""			[then skip | end]
-	--test-- "str-m92"	--assert parse		"a"			[then #"a" | #"b"]
-	--test-- "str-m93"	--assert not parse	"c"			[then #"a" | #"b"]
-	--test-- "str-m94"	--assert parse		"b"			[then #"a" | #"b"]
-	--test-- "str-m95"	--assert parse		"za"		[#"z" then #"a" | #"b"]
-
 	x: none
 	--test-- "str-m100"	--assert parse		"246"		[any [copy x skip if (even? load x)]]
 	--test-- "str-m101"	--assert not parse	"1"			[copy x skip if (even? load x)]
@@ -1803,12 +1788,12 @@ Red [
 		--assert not parse 	"aabbc"		nanbnc
 
 	--test-- "str-cplx5"
-		split: function [series [string!] dlm [string! char!] /local value][
+		split-test5: function [series [string!] dlm [string! char!] /local value][
 		  rule: complement charset dlm
 		  parse series [collect [any [keep copy value some rule | skip]]]
 		]
-		--assert ["Hello" "bright" "world!"]  = split "Hello bright world!" space
-		--assert ["Hell" "bright" "w" "rld!"] = split "Hello bright world!" " o"
+		--assert ["Hello" "bright" "world!"]  = split-test5 "Hello bright world!" space
+		--assert ["Hell" "bright" "w" "rld!"] = split-test5 "Hello bright world!" " o"
 
 ===end-group===
 
@@ -1868,7 +1853,7 @@ Red [
 		
 	--test-- "#748"
 		txt: "Hello world"
-		parse txt [ while any [ remove "l" | skip ] ]
+		parse txt [ while [any [ remove "l" | skip ] fail] ]
 		--assert txt = "Heo word"
 		--assert 8 = length? txt
 
@@ -2562,13 +2547,6 @@ Red [
 	--test-- "bin-m86"	--assert parse 		#{0A}		[opt skip]
 	--test-- "bin-m87"	--assert parse 		#{0A0B0C}	[skip opt #{0B} skip]
 
-	--test-- "bin-m90"	--assert not parse	#{}			[then skip]
-	--test-- "blk-m91"	--assert parse		#{}			[then skip | end]
-	--test-- "bin-m92"	--assert parse		#{0A}		[then #{0A} | #{0B}]
-	--test-- "bin-m93"	--assert not parse	#{0c}		[then #{0A} | #{0B}]
-	--test-- "bin-m94"	--assert parse		#{0B}		[then #{0A} | #{0B}]
-	--test-- "bin-m95"	--assert parse		#{0F0a}		[#"^(0F)" then #{0A} | #{0B}]
-
 	x: none
 	--test-- "bin-m100"	--assert parse		#{020406}	[any [copy x skip if (even? first x)]]
 	--test-- "bin-m101"	--assert not parse	#{01}		[copy x skip if (even? first x)]
@@ -2717,6 +2695,40 @@ Red [
 		--assert parse "abc" [to [s: "bc"] 2 skip]
 		--assert parse "abc" [to [s: () "bc"] 2 skip]
 		--assert parse "abc" [to [s: (123) "bc"] 2 skip]
+		
+	--test-- "#3108"
+		--assert parse [1][some [to end]]
+		--assert parse [1][some [to [end]]]
+
+		partition3108: function [elems [block!] group [integer!]][
+			parse elems [
+				collect some [keep group skip | collect keep to end]
+			]
+		]
+		--assert [[1 2] [3 4] [5 6] [7 8] [9]] = partition3108 [1 2 3 4 5 6 7 8 9] 2
+
+	--test-- "#3927"
+		parse "bx" [some [not "b" | skip]]
+		--assert true				;-- just check that parse finishes
+
+
+	--test-- "#3357"
+		parse x3357: [][insert ('foo)]
+		--assert x3357 = [foo]
+
+		parse x3357b: [][insert ('foo)]
+		--assert x3357b = [foo]
+
+	--test-- "#3951"
+		res: none
+		do "res: expand-directives/clean [[] #macro word! func [s e]['OK] WTF]()"
+		--assert res = [[] OK]
+
+	--test-- "#3427"
+		--assert parse/part %234 ["23" thru [end]] 3
+		--assert parse/part %234 ["23" to [end]] 3
+		--assert parse/part %234 ["23" to end] 3
+		repeat i 4 [--assert parse/part "12" ["1" to [end]] i]
 
 ===end-group===
     

@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %ownership.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -121,20 +121,23 @@ ownership: context [
 					]
 				]
 
-				if put? [	;-- process series if not already owned
+				if put? [								;-- process series if not already owned
 					slot: as red-value! _hashtable/put-key table as-integer series/node
 					copy-cell container slot
 					copy-cell as red-value! owner slot + 1
 					copy-cell as red-value! word  slot + 2
 				]
 				if ANY_BLOCK?(type) [
+					if cycles/find? series/node [exit]
 					value: s/offset + series/head
 					tail:  s/tail
+					cycles/push series/node
 					
 					while [value < tail][
 						bind value owner word
 						value: value + 1
 					]
+					cycles/pop
 				]
 			]
 			type = TYPE_OBJECT [
@@ -142,19 +145,28 @@ ownership: context [
 				ctx: GET_CTX(obj)
 				
 				if ctx/header and flag-owner = 0 [		;-- stop if another owner is met
+					if cycles/find? ctx/values [exit]
 					s: as series! ctx/values/value
 					
 					value: s/offset
 					tail:  s/tail
+					cycles/push ctx/values
 					
 					s: as series! ctx/symbols/value
 					word: as red-word! s/offset
 					
 					while [value < tail][
-						bind value owner word
+						obj: as red-object! value
+						if any [
+							TYPE_OF(value) <> TYPE_OBJECT
+							obj/ctx <> owner/ctx		;-- avoid infinite recursion (#3253)
+						][
+							bind value owner word
+						]
 						value: value + 1
 						word: word + 1
 					]
+					cycles/pop
 				]
 			]
 			true [0]
@@ -168,6 +180,7 @@ ownership: context [
 		/local
 			ctx	  [red-context!]
 	][
+		assert TYPE_OF(owner) = TYPE_OBJECT
 		bind container owner word
 		ctx: GET_CTX(owner)
 		ctx/header: ctx/header or flag-owner

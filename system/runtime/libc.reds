@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %lib-C.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -19,6 +19,11 @@ Red/System [
 		free:		 "free" [
 			block		[byte-ptr!]
 		]
+		realloc:	"realloc" [		"Resize and return allocated memory."
+			memory			[byte-ptr!]
+			size			[integer!]
+			return:			[byte-ptr!]
+		]
 		set-memory:	 "memset" [
 			target		[byte-ptr!]
 			filler		[byte!]
@@ -31,7 +36,7 @@ Red/System [
 			size		[integer!]
 			return:		[byte-ptr!]
 		]
-		copy-memory: "memcpy" [
+		#either debug? = yes [libc.copy-memory:][copy-memory:] "memcpy" [
 			target		[byte-ptr!]
 			source		[byte-ptr!]
 			size		[integer!]
@@ -64,6 +69,12 @@ Red/System [
 			str			[byte-ptr!]
 			endptr		[byte-ptr!]
 			return:		[float!]
+		]
+		qsort:		"qsort" [
+			base		[byte-ptr!]
+			nitems		[integer!]
+			width		[integer!]
+			cmpfunc		[function! [[cdecl] a [int-ptr!] b [int-ptr!] return: [integer!]]]
 		]
 	]
 
@@ -132,6 +143,27 @@ Red/System [
 			value		[float!]
 			return:		[float!]
 		]
+		fmod:		"fmod" [
+			x           [float!]
+			y           [float!]
+			return:     [float!]
+		]
+	]
+]
+
+#if debug? = yes [
+	copy-memory: func [ 
+		target		[byte-ptr!]
+		source		[byte-ptr!]
+		size		[integer!]				;; number of bytes to copy
+		return:		[byte-ptr!]
+	][
+		assert target <> source
+		assert any [
+			(target + size) <= source
+			(source + size) <= target
+		]
+		libc.copy-memory target source size
 	]
 ]
 
@@ -169,31 +201,48 @@ Red/System [
 		i
 	]
 
-	prin-float: func [f [float!] return: [float!] /local s p e?][
-		either f - (floor f) = 0.0 [
-			s: "                        "				;-- 23 + 1 for NUL
-			sprintf [s "%g.0" f]
-			assert s/1 <> null-byte
-			p: s
-			e?: no
-			while [p/1 <> null-byte][
-				if p/1 = #"e" [e?: yes]
-				p: p + 1
+	prin-float: func [
+		f		[float!]
+		return: [float!]
+		/local s [c-string!] p [c-string!] e? [logic!] d [int-ptr!]
+	][
+		d: as int-ptr! :f
+		case [
+			d/2 = 7FF80000h [
+				prin "1.#NaN"
 			]
-			if e? [p: p - 2 p/1: null-byte]
-			prin s
-		][
-			printf ["%.16g" f]
+			f - (floor f) = 0.0 [
+				s: "                        "				;-- 23 + 1 for NUL
+				sprintf [s "%g.0" f]
+				assert s/1 <> null-byte
+				p: s
+				e?: no
+				while [p/1 <> null-byte][
+					if p/1 = #"e" [e?: yes]
+					p: p + 1
+				]
+				if any [e? p/-2 = #"F"][p: p - 2 p/1: null-byte]
+				prin s
+			]
+			true [printf ["%.16g" f]]
 		]
 		f
 	]
 
-	prin-float32: func [f32 [float32!] return: [float32!] /local f [float!]][
-		f: as float! f32
-		either f - (floor f) = 0.0 [
-			printf ["%g.0" f]
-		][
-			printf ["%.7g" f]
+	prin-float32: func [f32 [float32!] return: [float32!] /local f [float!] d [int-ptr!]][
+		d: as int-ptr! :f32
+		case [
+			d/1 = 7FC00000h [prin "1.#NaN"]
+			d/1 = 7F800000h [prin "1.#INF"]
+			d/1 = FF800000h [prin "-1.#INF"]
+			true [
+				f: as float! f32
+				either f - (floor f) = 0.0 [
+					printf ["%g.0" f]
+				][
+					printf ["%.7g" f]
+				]
+			]
 		]
 		f32
 	]

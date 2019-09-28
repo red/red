@@ -3,7 +3,7 @@ Red [
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 %find-test.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
@@ -301,7 +301,7 @@ Red [
 	--test-- "find/reverse-3"
 		--assert [3 3 2 1] = find/reverse tail [1 2 3 3 2 1] [3 3]
 	--test-- "find/reverse-4"
-		--assert "3321" = find/reverse back back back tail "123321" "33"
+		--assert "3321" = find/reverse back back tail "123321" "33"
 	--test-- "find/reverse-5"
 		--assert "3321" = find/reverse back back back tail"123321" "3"
 	--test-- "find/reverse-6"
@@ -334,5 +334,68 @@ Red [
 	--test-- "find datatype! -2"
 		--assert none = find [a] integer!
 ===end-group===
+
+===start-group=== "find/reverse/match"
+	--test-- "find/reverse/match-1"
+		--assert none = find/reverse/match tail "abc" "abc"
+	--test-- "find/reverse/match-2"
+		--assert none = find/reverse/match tail "abcx" "abc"
+===end-group===
+
+===start-group=== "find/tail/skip"
+	list: [a 6 7 c d e 8 7 b c d e f 6 4]
+	list2: [c d e 8 7 b c d e f 6 4]
+	res:  [8 7 b c d e f 6 4]
+	pattern: [c d e]
+	
+	--test-- "fts-1"
+		--assert res = find/tail/skip list pattern 3
+	--test-- "fts-2"
+		--assert res = find/skip/tail list pattern 3
+	--test-- "fts-3"
+		--assert res = find/tail/skip list2 pattern 3
+	--test-- "fts-4"
+		--assert [f 6 4] = find/tail/skip/last list2 pattern 3
+		
+===end-group===
+
+===start-group=== "find/tail/skip/last"
+	--test-- "ftsl-1"
+		--assert [f 6 4] = find/tail/skip/last list2 pattern 3
+		
+===end-group===
+
+===start-group=== "FIND issue #3687"
+
+	--test-- "issue-3687-1"
+		--assert [c d e f 6 4] = find/skip/last list2 pattern 3	
+	--test-- "issue-3687-2"
+		--assert [c d e f 6 4] = find/skip/reverse tail list2 pattern 3
+	--test-- "issue-3687-3"
+		--assert [c d e 8 7 b c d e f 6 4] = find/skip/reverse skip list2 6 pattern 3
+
+	--test-- "issue-3687-4"
+		--assert [f 6 4] = find/tail/skip/last list2 pattern 3
+	--test-- "issue-3687-5"
+		--assert [f 6 4] = find/tail/skip/reverse tail list2 pattern 3
+	--test-- "issue-3687-6"
+		--assert [8 7 b c d e f 6 4] = find/tail/skip/reverse skip list2 6 pattern 3
+
+	s: "cde87bcdef64"
+	pattern: "cde"
+
+	--test-- "issue-3687-7"
+		--assert "cdef64" = find/skip/last s pattern 3
+	--test-- "issue-3687-8"
+		--assert "cdef64" = find/skip/reverse tail s pattern 3
+	--test-- "issue-3687-9"
+		--assert "cde87bcdef64" = find/skip/reverse skip s 6 pattern 3
+
+	--test-- "issue-3687-10"
+		--assert "f64" = find/tail/skip/last s pattern 3
+	--test-- "issue-3687-11"
+		--assert "f64" = find/tail/skip/reverse tail s pattern 3
+	--test-- "issue-3687-12"
+		--assert "87bcdef64" = find/tail/skip/reverse skip s 6 pattern 3
 
 ~~~end-file~~~

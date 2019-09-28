@@ -174,6 +174,7 @@ win: make face! [
 			"Sub2" [
 				"Sub-menu2"		sub-m2
 			]
+			"Recycle"			gc
 		]
 		"Search" [
 			"Find..."			find
@@ -206,6 +207,7 @@ win: make face! [
 					win/pane/1/text: "Hello"
 					show win/pane/1
 				]
+				gc [recycle probe stats]
 			]
 		]
 		on-close: func [face [object!] event [event!]][

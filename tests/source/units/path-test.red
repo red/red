@@ -4,7 +4,7 @@ Red [
 	File: 	 %char-test.red
 	Version: "0.1.0"
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
@@ -157,6 +157,10 @@ Red [
 		face2525/size/y: min-size/y + 10
 		--assert face2525/size/y = 60
 
+	--test-- "issue #3845"
+
+		u: ["b" ["c" ["d" 1]]]
+		--assert 1 = u/("b")/("c")/("d")
 
 ===end-group===
 

@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Qingtian Xie"
 	File:	 %hash.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2014-2015 Qingtian Xie. All rights reserved."
+	Rights:  "Copyright (C) 2014-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -175,7 +175,7 @@ hash: context [
 			;-- General actions --
 			:make
 			null			;random
-			null			;reflect
+			INHERIT_ACTION	;reflect
 			:to
 			INHERIT_ACTION	;form
 			:mold

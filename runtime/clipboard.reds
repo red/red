@@ -16,7 +16,7 @@ clipboard: context [
 		#import [
 			"User32.dll" stdcall [
 				OpenClipboard: "OpenClipboard" [
-					hWnd		[integer!]
+					hWnd		[int-ptr!]
 					return:		[logic!]
 				]
 				SetClipboardData: "SetClipboardData" [
@@ -64,6 +64,9 @@ clipboard: context [
 					str			[byte-ptr!]
 					return:		[integer!]
 				]
+				Sleep: "Sleep" [
+					dwMilliseconds	[integer!]
+				]
 			]
 		]
 
@@ -74,18 +77,27 @@ clipboard: context [
 		#define CF_UNICODETEXT		13
 		#define CF_DIBV5			17
 
+		main-hWnd: as int-ptr! 0
+
 		read: func [
 			return:		[red-value!]
 			/local
 				hMem	[integer!]
 				p		[byte-ptr!]
-				cp		[integer!]
+				ok		[logic!]
 				val		[red-value!]
 		][
 			p: null
-			unless OpenClipboard 0 [
-				return none-value
+			val: as red-value! none-value
+
+			;-- OpenClipboard often fails on W7 after an EmptyClipboard call, so be persistent
+			ok: yes
+			loop 3 [
+				unless ok [Sleep 1]
+				ok: OpenClipboard main-hWnd
+				if ok [break]
 			]
+			unless ok [return as red-value! false-value]
 
 			hMem: GetClipboardData CF_UNICODETEXT
 			if hMem <> 0 [
@@ -103,30 +115,49 @@ clipboard: context [
 			data		[red-value!]
 			return:		[logic!]
 			/local
+				res		[integer!]
+				ok		[logic!]
 				len		[integer!]
 				hMem	[integer!]
 				p		[byte-ptr!]
 				p1		[byte-ptr!]
 		][
-			unless OpenClipboard 0 [return false]
-			EmptyClipboard
+			hMem: 0
 
+			;-- let the memory stuff come before OpenClipboard
+			;-- this delays OpenClipboard an extra bit, resulting in lesser failure rate
 			switch TYPE_OF(data) [
 				TYPE_STRING [
 					len: -1
 					p1: as byte-ptr! unicode/to-utf16-len as red-string! data :len yes
-					hMem: GlobalAlloc 42h len * 2 + 4
+					hMem: GlobalAlloc 2 len * 2 + 2
 					p: GlobalLock hMem
-					copy-memory p p1 len * 2
+					copy-memory p p1 len * 2 + 2
 					GlobalUnlock hMem
 				]
 				TYPE_IMAGE	[0]
 				default		[0]
 			]
 
-			SetClipboardData CF_UNICODETEXT hMem
+			;-- OpenClipboard often fails on W7 after an EmptyClipboard call, so be persistent
+			ok: yes
+			loop 3 [
+				unless ok [Sleep 1]
+				ok: OpenClipboard main-hWnd
+				if ok [break]
+			]
+			unless ok [									;-- clean up after a (rare) failure
+				unless hMem = 0 [
+					GlobalLock hMem
+					GlobalFree hMem
+					GlobalUnlock hMem
+				]
+				return false
+			]
+			EmptyClipboard
+			res: SetClipboardData CF_UNICODETEXT hMem
 			CloseClipboard
-			true
+			as logic! res
 		]
 	]
 	macOS [

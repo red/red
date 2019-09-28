@@ -3,7 +3,7 @@ Red [
 	Author:  "Nenad Rakocevic"
 	File: 	 %rules.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2017 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2017-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
@@ -20,6 +20,7 @@ color-backgrounds: function [
 	foreach-face/with root [face/color: face/parent/color][
 		all [
 			none? face/color
+			face/parent
 			find [window panel group-box tab-panel] face/parent/type
 			find [text slider radio check group-box tab-panel panel] face/type
 		]
@@ -38,6 +39,7 @@ color-tabpanel-children: function [
 	][
 		all [
 			none? face/color
+			face/parent
 			face/parent/type = 'panel
 			gp: face/parent/parent
 			gp/type = 'tab-panel
@@ -57,6 +59,7 @@ OK-Cancel: function [
 	][
 		either all [
 			face/type = 'button
+			face/parent
 			find cancel-captions face/text
 		][
 			last-but: none

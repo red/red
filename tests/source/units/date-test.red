@@ -4,7 +4,7 @@ Red [
 	File: 	 %date-test.red
 	Version: "0.1.0"
 	Tabs:	 4
-	Rights:  "Copyright (C) 2017 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2017-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
@@ -850,6 +850,23 @@ Red [
 			22-Feb-1583/16:36:48-14:45
 			26-Feb-6712/17:07:12-10:00
 		]
+
+	--test-- "misc-5"
+		d1: 2000-01-01/00:00:00
+		d2: 2000-01-02/00:00:00
+		d3: 2000-01-02/00:00:01
+		--assert do [random/seed d1 random 100] <> do [random/seed d2 random 100]
+		--assert do [random/seed d2 random 100] <> do [random/seed d3 random 100]
+
+
+	--test-- "issue-3881"
+		d: 29-Feb-2020
+		d/year: d/year - 1
+		--assert d = 1-Mar-2019
+
+		d: 29-Feb-2020/15:30:00+4:15
+		d/year: d/year - 1
+		--assert d = 1-Mar-2019/15:30:00+04:15
 
 ===end-group===
 

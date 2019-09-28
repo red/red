@@ -3,7 +3,7 @@ Red/System [
 	Author: "Qingtian Xie" "Yongzhao Huang"
 	File: 	%crypto.reds
 	Tabs:	4
-	Rights: "Copyright (C) 2016 Qingtian Xie. All rights reserved."
+	Rights: "Copyright (C) 2016-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -22,7 +22,7 @@ crypto: context [
 	_sha512:	0
 	_hash:		0
 	errno:		as int-ptr! 0
-	
+
 	init: does [
 		_tcp:		symbol/make "tcp"
 		_md5:		symbol/make "md5"
@@ -86,7 +86,7 @@ crypto: context [
 			default		[ 0]
 		]
 	]
-	
+
 	alg-from-symbol: func [
 		"Return the algorithm ID for a given symbol."
 		sym		[integer!]
@@ -100,9 +100,9 @@ crypto: context [
 			sym = _sha256 [ALG_SHA256]
 			sym = _sha384 [ALG_SHA384]
 			sym = _sha512 [ALG_SHA512]
-		]	
+		]
 	]
-	
+
 	CRC32: func [
 		"Calculate the CRC32b value for the input data."
 		data	[byte-ptr!]
@@ -137,7 +137,7 @@ crypto: context [
 			sum [integer!]
 	][
 		sum: 0
-		
+
 		while [len > 1][
 			;-- Operate on 2 separate bytes. We don't have a UINT16 type.
 			sum: sum + (((as-integer data/1) << 8) or as-integer data/2)
@@ -173,13 +173,13 @@ crypto: context [
 	; https://www.ietf.org/rfc/rfc4868.txt
 	calc-hmac: func [
 		data		[byte-ptr!]						;-- message
-		len			[integer!]					
+		len			[integer!]
 		key-data	[byte-ptr!]						;-- key/password
 		key-len		[integer!]
 		type		[crypto-algorithm!]
 		return:		[byte-ptr!]
 		/local
-			block-size	[integer!]					
+			block-size	[integer!]
 			n			[integer!]
 			hash-len	[integer!]					;-- set based on the algorithm used
 			hkey-data	[byte-ptr!]					;-- hashed key (used if key > block-size)
@@ -341,13 +341,11 @@ crypto: context [
 				]
 			]
 			i: k % 16
-			until [
-				k: as integer! buf/value
-				s1: s1 + k
+			while [i <> 0] [
+				s1: s1 + as integer! buf/value
 				buf: buf + 1
 				s2: s2 + s1
 				i: i - 1
-				i = 0
 			]
 
 			s1: s1 % A32-BASE
@@ -533,7 +531,7 @@ crypto: context [
 					0	;-- Either need to leave out this default or make the compiler happy by not changing type's datatype.
 				]
 			]
-			
+
 			CryptCreateHash provider type null 0 :handle
 			CryptHashData handle data len 0
 			CryptGetHashParam handle HP_HASHVAL hash :size 0
@@ -683,7 +681,11 @@ crypto: context [
 				#define LIBCRYPTO-file "libcrypto.so.8"
 			]
 			#default [
-				#define LIBCRYPTO-file "libcrypto.so.1.0.0"
+				#switch config-name [
+					RPi		  [#define LIBCRYPTO-file "libcrypto.so.1.1"]
+					Linux-ARM [#define LIBCRYPTO-file "libcrypto.so.1.1"]
+					#default  [#define LIBCRYPTO-file "libcrypto.so.1.0.2"]
+				]
 			]
 		]
 		#import [

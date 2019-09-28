@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %debug.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -152,6 +152,10 @@ __print-debug-stack: func [
 	]
 ]
 
+stack-trace: func [][
+	__print-debug-stack system/pc
+]
+
 ;-------------------------------------------
 ;-- Print an integer as hex number on screen, limited to n characters
 ;-------------------------------------------
@@ -219,8 +223,8 @@ dump-memory: func [
 			]
 			
 			byte: data-ptr/value
-			ascii/i: either byte < as-byte 32 [
-				either byte = null-byte [#"."][#"^(FE)"]
+			ascii/i: either any [byte < as-byte 32 byte > as-byte 127][
+				either byte = null-byte [#"."][#"?"]
 			][
 				byte
 			]

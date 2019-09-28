@@ -3,7 +3,7 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File: 	 %compiler.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
@@ -42,7 +42,7 @@ system-dialect: make-profilable context [
 		format:				none						;-- file format
 		type:				'exe						;-- file type ('exe | 'dll | 'lib | 'obj | 'drv)
 		target:				'IA-32						;-- CPU target
-		cpu-version:		6.0							;-- CPU version (default: Pentium Pro)
+		cpu-version:		6.0							;-- CPU version (default for IA-32: 6.0, Pentium Pro, for ARM: 5.0)
 		verbosity:			0							;-- logs verbosity level
 		sub-system:			'console					;-- 'GUI | 'console
 		runtime?:			yes							;-- include Red/System runtime
@@ -65,6 +65,7 @@ system-dialect: make-profilable context [
 		red-strict-check?:	yes							;-- no => defers undefined word errors reporting at run-time
 		red-tracing?:		yes							;-- no => do not compile tracing code
 		red-help?:			no							;-- yes => keep doc-strings from boot.red
+		redbin-compress?:	yes							;-- yes => compress Redbin payload using custom CRUSH algorithm
 		legacy:				none						;-- block of optional OS legacy features flags
 		gui-console?:		no							;-- yes => redirect printing to gui console (temporary)
 		libRed?: 			no
@@ -74,6 +75,7 @@ system-dialect: make-profilable context [
 		modules:			none
 		show:				none
 		command-line:		none
+		show-func-map?:		no							;-- yes => output the functions address/name map
 	]
 	
 	compiler: make-profilable context [
@@ -136,6 +138,7 @@ system-dialect: make-profilable context [
 		]
 		
 		comparison-op: [= <> < > <= >=]
+		float-special: [#INF #INF- #NaN #0-]
 		
 		functions: to-hash compose [
 		;--Name--Arity--Type----Cc--Specs--		   Cc = Calling convention
@@ -146,8 +149,8 @@ system-dialect: make-profilable context [
 			and		[2	op		- [a [bit-set!] b [bit-set!] return: [bit-set!]]]
 			or		[2	op		- [a [bit-set!] b [bit-set!] return: [bit-set!]]]
 			xor		[2	op		- [a [bit-set!] b [bit-set!] return: [bit-set!]]]
-			//		[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]		;-- modulo
-      (to-word "%")	[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]		;-- remainder (real syntax: %)
+			//		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- modulo
+      (to-word "%")	[2	op		- [a [number!] b [number!] return: [number!]]]		;-- remainder (real syntax: %)
 			>>		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift right signed
 			<<		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift left signed
 			-**		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift right unsigned
@@ -161,7 +164,7 @@ system-dialect: make-profilable context [
 			push	[1	inline	- [a [any-type!]]]
 			pop		[0	inline	- [						   return: [integer!]]]
 			throw	[1	inline	- [n [integer!]]]
-			log-b	[1	native	- [n [number!] return: [integer!]]]
+			log-b	[1	native	- [n [number!]  return: [integer!]]]
 		]
 		
 		repend functions [shift-right-sym copy functions/-**]
@@ -413,7 +416,7 @@ system-dialect: make-profilable context [
 			none
 		]
 		
-		system-action?: func [path [path!] /local expr][
+		system-action?: func [path [path!] /local expr port-type op ret?][
 			if path/1 = 'system [
 				switch/default path/2 [
 					stack [
@@ -438,9 +441,123 @@ system-dialect: make-profilable context [
 								emitter/target/emit-free-stack
 								true
 							]
+							push-all [
+								pc: next pc
+								emitter/target/emit-push-all
+								true
+							]
+							pop-all [
+								pc: next pc
+								emitter/target/emit-pop-all
+								true
+							]
 							;push []
 							;pop  []
 						][false]
+					]
+					io [
+						switch/default path/3 [
+							read [
+								pc: next pc
+								fetch-expression/final/keep 'read-io
+								if any [none? last-type last-type/1 <> 'pointer!][
+									throw-error "system/io/read expects a pointer! as port argument"
+								]
+								emitter/target/emit-io-read last-type/2/1
+								last-type: last-type/2
+								true
+							]
+							write [
+								pc: next pc					 ;-- fetch port argument
+								fetch-expression/final/keep 'write-io
+								if any [none? last-type last-type/1 <> 'pointer!][
+									throw-error "system/io/write expects a pointer! as port argument"
+								]
+								emitter/target/emit-save-last ;-- save port argument on stack
+								port-type: last-type/2/1
+								
+								fetch-expression/final/keep 'write-io ;-- fetch data argument
+								if any [none? last-type last-type/1 <> port-type][
+									throw-error "system/io/write expects data of same type as port pointed value"
+								]
+								emitter/target/emit-restore-last ;-- restore port argument
+								emitter/target/emit-io-write port-type
+								last-type: none
+								true
+							]
+						][false]
+					]
+					atomic [
+						switch/default path/3 [
+							fence [
+								pc: next pc
+								emitter/target/emit-atomic-fence
+								true
+							]
+							cas [
+								pc: next pc
+								err: "system/atomic/cas expects "
+								repeat i 3 [
+									if not-equal?
+										first get-type pc/:i 
+										pick [pointer! integer! integer!] i
+									[
+										throw-error join err pick [
+											"a pointer! as argument"
+											"an integer! as check argument"
+											"an integer! as value argument"
+										] i
+									]
+								]
+								ret?: not empty? expr-call-stack
+								fetch-expression/final/keep 'atomic
+								emitter/target/emit-atomic-cas pc/1 pc/2 ret? 'seq-cst
+								last-type: [logic!]
+								pc: skip pc 2
+								true
+							]
+							load [
+								pc: next pc
+								if 'pointer! <> first get-type pc/1 [
+									throw-error "system/atomic/load expects a pointer! as argument"
+								]
+								fetch-expression/final/keep 'atomic
+								emitter/target/emit-atomic-load 'seq-cst
+								last-type: [integer!]
+								true
+							]
+							store [
+								pc: next pc
+								err: "system/atomic/store expects "
+								if 'pointer! <> first get-type pc/1 [
+									throw-error join err "a pointer! as argument"
+								]
+								if 'integer! <> first last-type: get-type pc/2 [
+									throw-error join err "an integer! as value argument"
+								]
+								fetch-expression/final/keep 'atomic
+								emitter/target/emit-atomic-store pc/1 'seq-cst
+								pc: next pc
+								true
+							]
+						][
+							either find [add sub or xor and] op: path/3 [
+								pc: next pc
+								if 'pointer! <> first get-type pc/1 [
+									throw-error rejoin ["system/atomic/" op " expects a pointer! as argument"]
+								]
+								if 'integer! <> first last-type: get-type pc/2 [
+									throw-error rejoin ["system/atomic/" op " expects an integer! as value argument"]
+								]
+								ret?: not empty? expr-call-stack
+								fetch-expression/final/keep 'atomic
+								emitter/target/emit-atomic-math op pc/1 path/4 = 'old ret? 'seq-cst
+								pc: next pc
+								true
+							][
+								false
+							]
+						]
 					]
 				][false]
 			]
@@ -532,6 +649,8 @@ system-dialect: make-profilable context [
 			]
 			reduce [count array]
 		]
+		
+		variadic?: func [value][all [issue? value value/1 <> #"."]]
 		
 		any-path?: func [value][
 			find [path! set-path! lit-path!] type?/word value
@@ -700,7 +819,7 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		get-type: func [value /local type][
+		get-type: func [value /local type name][
 			switch/default type?/word value [
 				word! 	 [resolve-type value]
 				integer! [[integer!]]
@@ -722,14 +841,20 @@ system-dialect: make-profilable context [
 				tag!	 [either value = <last> [last-type][[logic!]]]
 				string!	 [[c-string!]]
 				get-word! [
-					type: resolve-type to word! value
+					name: to word! value
 					
+					if none? type: any [
+						resolve-type name
+						all [ns-path resolve-type ns-prefix name]
+					][
+						throw-error ["undefined symbol:" mold value]
+					]
 					switch/default type/1 [
 						function! [type]
 						integer! byte! float! float32! [compose/deep [pointer! [(type/1)]]]
 					][
 						with-alias-resolution off [
-							type: resolve-type to word! value
+							type: resolve-type name
 						]
 						either struct-by-value? type [
 							type
@@ -747,10 +872,19 @@ system-dialect: make-profilable context [
 						pointer! [reduce [value/1 value/2]]
 					][
 						all [
-							find [float! float64! c-string!] first type: get-type value/1
+							any [
+								find [function! c-string!] first type: get-type value/1
+								find value get-word!
+								find value string!
+							]
 							type: [integer!]
 						]
 						next next reduce ['array! length? value 'pointer! type]	;-- hide array size
+					]
+				]
+				issue!	 [
+					either find float-special next value [[float!]][
+						throw-error ["invalid special float value:" mold value]
 					]
 				]
 				none!	 [none-type]					;-- no type case (func with no return value)
@@ -1017,7 +1151,12 @@ system-dialect: make-profilable context [
 		]
 		
 		preprocess-array: func [list [block!]][
-			parse list [some [p: word! (check-enum-symbol p) | skip]]
+			parse list [
+				some [
+					p: word! (check-enum-symbol p) :p ['true | 'false] (p/1: do p/1)
+					| string! | char! | integer! | decimal! | get-word! | p: 'null (p/1: 0)
+				] | (throw-error ["invalid literal array content:" mold list])
+			]
 			to paren! list
 		]
 		
@@ -1156,7 +1295,7 @@ system-dialect: make-profilable context [
 		]
 		
 		check-keywords: func [name [word!]][
-			if find keywords name [
+			if find keywords-list  name [
 				throw-error ["attempt to redefine a protected keyword:" name]
 			]
 		]
@@ -1310,6 +1449,7 @@ system-dialect: make-profilable context [
 				]
 				all [
 					type
+					type/1
 					any [
 						find type-sets expected/1
 						find type-sets type/1
@@ -1367,15 +1507,18 @@ system-dialect: make-profilable context [
 			]
 			list: clear []
 			forall args [
-				either all [decimal? args/1 spec/2/1 = 'float32!][
+				append/only list either all [
+					find [decimal! issue!] type?/word args/1
+					spec/2/1 = 'float32!
+				][
 					args/1:	make action-class [			;-- inject type casting to float32!
 						action: 'type-cast
 						type: [float32!]
 						data: args/1					;-- literal float!
 					]
-					append/only list spec/2				;-- pass-thru for float! values used as float32! arguments
+					spec/2				;-- pass-thru for float! values used as float32! arguments
 				][
-					append/only list check-expected-type name args/1 spec/2
+					check-expected-type name args/1 spec/2
 				]
 				spec: skip spec	2
 			]
@@ -1715,7 +1858,7 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		process-get: func [code [block!] /local value][
+		process-get: func [code [block!]][
 			unless job/red-pass? [						;-- when Red runtime is included in a R/S app
 				pc: skip pc 2							;-- just ignore #get directive
 				return none
@@ -1726,7 +1869,7 @@ system-dialect: make-profilable context [
 			fetch-expression #get
 		]
 		
-		process-in: func [code [block!] /local value][
+		process-in: func [code [block!]][
 			unless job/red-pass? [						;-- when Red runtime is included in a R/S app
 				pc: skip pc 2							;-- just ignore #in directive
 				return none
@@ -1771,6 +1914,18 @@ system-dialect: make-profilable context [
 			fetch-expression #u16
 		]
 		
+		process-inline: func [code][
+			if block? code [
+				last-type: select code return-def
+				unless catch [parse last-type type-spec][
+					throw-error ["#inline directive returned type invalid:" mold last-type]
+				]
+				code: code/1
+			]
+			unless binary? code [throw-error "#inline directive requires a binary! argument"]
+			append emitter/code-buf code
+		]
+		
 		comp-chunked: func [body [block!]][
 			emitter/chunks/start
 			do body
@@ -1789,8 +1944,9 @@ system-dialect: make-profilable context [
 				#enum	   [process-enum pc/2 pc/3 pc: skip pc 3]
 				#verbose   [set-verbose-level pc/2 pc: skip pc 2 none]
 				#u16	   [process-u16 	  pc]
+				#inline	   [process-inline pc/2	   pc: skip pc 2 <last>]
 				#user-code [user-code?: not user-code? pc: next pc]
-				#build-date[change pc mold now]
+				#build-date[change pc mold use [d][d: now d: d - d/zone d/zone: none d]]	;-- UTC
 				#script	   [							;-- internal compiler directive
 					unless pc/2 = 'in-memory [
 						compiler/script: secure-clean-path pc/2	;-- set the origin of following code
@@ -2304,7 +2460,7 @@ system-dialect: make-profilable context [
 				
 				append expr-call-stack #body			;-- marker for enabling expression post-processing
 				fetch-into cases [						;-- compile case body
-					append/only list body: comp-block-chunked/bool
+					append/only list body: comp-block-chunked
 					append/only types resolve-expr-type/quiet body/1
 				]
 				clear find/last expr-call-stack #body
@@ -2998,7 +3154,7 @@ system-dialect: make-profilable context [
 				types slots
 		][
 			name: decorate-fun name
-			list: either issue? args/1 [args/2][		;-- bypass type-checking for variable arity calls
+			list: either variadic? args/1 [args/2][		;-- bypass type-checking for variable arity calls
 				check-arguments-type name args
 				args
 			]
@@ -3215,6 +3371,7 @@ system-dialect: make-profilable context [
 				]
 				boxed: expr
 				expr: either any-float? boxed/type [cast/quiet expr][cast expr]
+				if object? expr [comp-expression expr keep?]
 			]
 			
 			;-- dead expressions elimination
@@ -3411,7 +3568,7 @@ system-dialect: make-profilable context [
 				string!		[do pass]
 				decimal!	[do pass]
 				block!		[also preprocess-array pc/1 pc: next pc]
-				issue!		[comp-directive]
+				issue!		[either pc/1/1 = #"." [do pass][comp-directive]]
 			][
 				throw-error "datatype not allowed"
 			]
@@ -3455,7 +3612,7 @@ system-dialect: make-profilable context [
 			block-level: 0
 			while [not tail? pc][
 				case [
-					issue? pc/1 [comp-directive]
+					all [issue? pc/1 pc/1/1 <> #"."][comp-directive]
 					all [
 						set-word? pc/1
 						find [func function] pc/2
@@ -3920,7 +4077,7 @@ system-dialect: make-profilable context [
 			]
 			set-verbose-level 0
 			if opts/runtime? [comp-runtime-epilog]
-			
+
 			set-verbose-level opts/verbosity
 			compiler/finalize							;-- compile all functions
 			set-verbose-level 0

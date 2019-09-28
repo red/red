@@ -3,7 +3,7 @@ Red/System [
 	Author: "Nenad Rakocevic"
 	File: 	%menu.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2015 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -14,6 +14,8 @@ menu-selected:	-1										;-- last selected menu item ID
 menu-handle: 	as handle! 0							;-- last selected menu handle
 menu-origin:	as handle! 0							;-- window where context menu was opened from
 menu-ctx:		as handle! 0							;-- context menu handle
+menu-x:			0
+menu-y:			0
 
 
 build-menu: func [
@@ -48,7 +50,7 @@ build-menu: func [
 				item/fMask:	MIIM_STRING or MIIM_ID or MIIM_DATA
 				next: value + 1
 
-				if next < tail [
+				either next < tail [
 					switch TYPE_OF(next) [
 						TYPE_BLOCK [
 							item/hSubMenu: build-menu as red-block! next CreatePopupMenu
@@ -58,11 +60,12 @@ build-menu: func [
 						TYPE_WORD [
 							w: as red-word! next
 							item/dwItemData: w/symbol
-							item/fMask:	item/fMask or MIIM_DATA
 							value: value + 1
 						]
-						default [0]
+						default [item/dwItemData: -1]
 					]
+				][
+					item/dwItemData: -1
 				]
 				item/cch: string/rs-length? str
 				item/dwTypeData: unicode/to-utf16 str

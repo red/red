@@ -11,11 +11,11 @@ Red/System [
 ;; library declarations
 #import [
 	LIBM-file cdecl [
-		abs-float: "fabs" [
+		test-abs-float: "fabs" [
 			f		[float!]
 			return:	[float!]
 		]
-		abs-int: "abs" [
+		test-abs-int: "abs" [
 			i		[integer!]
 			return:	[integer!]
 		]
@@ -35,12 +35,12 @@ lt-int!: alias struct! [
 
 #import [
 	LIBC-file cdecl [
-		memcpy: "memcpy" [
+		test-memcpy: "memcpy" [
 			to		[c-string!]
 			from	[c-string!]
 			len		[integer!]
 		]
-		qsort: "qsort" [
+		test-qsort: "qsort" [
 			array   [lt-array!]
 			count   [integer!]
 			size    [integer!]
@@ -50,7 +50,7 @@ lt-int!: alias struct! [
 				return: [integer!]
 			]]
 		]
-		strlen: "strlen" [
+		test-strlen: "strlen" [
 			str		[c-string!]
 			return:	[integer!]
 		]
@@ -63,16 +63,16 @@ lt-int!: alias struct! [
 ===start-group=== "calls"
 
 	--test-- "lib1"
-		--assert 2 = abs-int 2
+		--assert 2 = test-abs-int 2
 	--test-- "lib2"
-		--assert 2.0 = abs-float -2.0
+		--assert 2.0 = test-abs-float -2.0
 	--test-- "lib3"
 		s: "hello, world"
-		--assert 12 = strlen s
+		--assert 12 = test-strlen s
 	--test-- "lib4"
 		new: "123456789012"
 		old: "HW"
-		memcpy new old 12
+		test-memcpy new old 12
 		--assert new/1 = #"H"
 		--assert new/2 = #"W"
 		--assert 2 = length? new
@@ -98,7 +98,7 @@ lt-int!: alias struct! [
 		][
 			first/i - second/i
 		]
-		qsort lib-array 4 4 :lib-compare
+		test-qsort lib-array 4 4 :lib-compare
 		--assert 1 = lib-array/a
 		--assert 2 = lib-array/b
 		--assert 3 = lib-array/c

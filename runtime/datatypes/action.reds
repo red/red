@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %action.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -12,17 +12,6 @@ Red/System [
 
 action: context [
 	verbose: 0
-	
-	push: func [
-		/local
-			cell  [red-action!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "action/push"]]
-		
-		cell: as red-action! stack/push*
-		cell/header: TYPE_ACTION
-		;...TBD
-	]
 	
 	;-- Actions -- 
 	

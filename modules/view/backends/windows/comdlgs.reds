@@ -104,7 +104,10 @@ OS-request-dir: func [
 	pbuf: null
 	buffer: allocate 520
 
-	if TYPE_OF(dir) = TYPE_FILE [
+	if any [
+		TYPE_OF(dir) = TYPE_FILE
+		TYPE_OF(dir) = TYPE_STRING
+	] [
 		pbuf: as byte-ptr! file/to-OS-path as red-file! dir
 		copy-memory buffer pbuf (lstrlen pbuf) << 1 + 2
 	]
@@ -156,7 +159,10 @@ OS-request-file: func [
 	ofn: declare tagOFNW
 	filters: #u16 "All files^@*.*^@Red scripts^@*.red;*.reds^@REBOL scripts^@*.r^@Text files^@*.txt^@"
 	buffer: allocate MAX_FILE_REQ_BUF
-	either TYPE_OF(name) = TYPE_FILE [
+	either any [
+		TYPE_OF(name) = TYPE_FILE
+		TYPE_OF(name) = TYPE_STRING
+	] [
 		pbuf: as byte-ptr! file/to-OS-path as red-file! name
 		len: lstrlen pbuf
 		len: len << 1 - 1

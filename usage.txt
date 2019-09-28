@@ -16,6 +16,10 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
     -dlib, --dynamic-lib           : Generate a shared library from the source
                                      file.
 
+    -e, --encap                    : Compile in encap mode, so code is interpreted 
+                                     at runtime. Avoids compiler issues. Required
+                                     for some dynamic code.
+
     -h, --help                     : Output this help text.
 
     -o <file>, --output <file>     : Specify a non-default [path/][name] for
@@ -68,7 +72,7 @@ Cross-compilation targets:
     WindowsXP    : Windows, x86, GUI applications, no touch API
     Linux        : GNU/Linux, x86
     Linux-ARM    : GNU/Linux, ARMv5, armel (soft-float)
-    RPi          : GNU/Linux, ARMv5, armhf (hard-float)
+    RPi          : GNU/Linux, ARMv7, armhf (hard-float)
     Darwin       : macOS Intel, console or GUI applications
     macOS        : macOS Intel, GUI-only, applications bundles
     Syllable     : Syllable OS, x86

@@ -27,7 +27,7 @@ REBOL [
     		;; issue #748
     		prin "*test6* "
     		txt: "Hello world"
-    		parse txt [ while any [ remove "l" | skip ] ]
+    		parse txt [ any [ remove "l" | skip ] ]
     		print txt
     		;; issue #796
     		prin "*test7* "
@@ -48,5 +48,31 @@ REBOL [
     	--assert-printed? "*test7* 开会"
     	--assert-printed? "*test8* str12"
     	--assert none = find qt/output "*test6* Heo wordd"
+
+    --test-- "Red print 2 - unset values #901"
+        --compile-and-run-this-red {
+            print [1 () 2]
+        }
+        --assert qt/output = "1  2^/"
+
+    --test-- "Red recursive print 1"
+        --compile-and-run-this-red {
+            print [1 print [2 print [3 3] 2] 1]
+        }
+        --assert qt/output = "3 3^/2  2^/1  1^/"
+
+    --test-- "Red recursive print 2"
+        --compile-and-run-this-red {
+            prin [1 prin [2 prin [3 3] 2] 1]
+        }
+        --assert qt/output = "3 32  21  1"
+
+    --test-- "Red recursive print 3"
+        --compile-and-run-this-red {
+            prin [1 print [2 prin [3 print 4 3] 2] 1]
+        }
+        --assert qt/output = "4^/3  32  2^/1  1"
+
+    ;-- TODO: print from CLI and GUI console should be also tested somehow
   
 ~~~end-file~~~ 

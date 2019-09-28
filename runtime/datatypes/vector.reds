@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %vector.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -591,31 +591,6 @@ vector: context [
 		as red-value! left
 	]
 	
-	clone: func [
-		vec		[red-vector!]							;-- clone the vector in-place
-		return: [red-vector!]
-		/local
-			new    [node!]
-			s	   [series!]
-			target [series!]
-			size   [integer!]
-	][
-		s: GET_BUFFER(vec)
-		size: s/size									;-- @@ head position ignored
-		new: alloc-bytes size
-		
-		unless zero? size [
-			target: as series! new/value
-			copy-memory
-				as byte-ptr! target/offset
-				as byte-ptr! s/offset
-				size
-			target/tail: as cell! ((as byte-ptr! target/offset) + size)
-		]
-		vec/node: new
-		vec
-	]
-	
 	push: func [
 		vec [red-vector!]
 	][
@@ -635,10 +610,11 @@ vector: context [
 			s	[series!]
 	][
 		vec: as red-vector! slot
-		vec/header: TYPE_VECTOR							;-- implicit reset of all header flags
+		vec/header: TYPE_UNSET
 		vec/head: 	0
 		vec/node: 	alloc-bytes size * unit
 		vec/type:	type
+		vec/header: TYPE_VECTOR							;-- implicit reset of all header flags
 		
 		s: GET_BUFFER(vec)
 		s/flags: s/flags and flag-unit-mask or unit
@@ -681,7 +657,7 @@ vector: context [
 		
 		switch type [
 			TYPE_INTEGER
-			TYPE_FLOAT [type: TYPE_INTEGER size: GET_SIZE_FROM(spec)]
+			TYPE_FLOAT [type: TYPE_INTEGER GET_INT_FROM(size spec)]
 			TYPE_BLOCK [
 				size:  block/rs-length? as red-block! spec
 				either zero? size [
@@ -1123,7 +1099,7 @@ vector: context [
 			;-- General actions --
 			:make
 			INHERIT_ACTION	;random
-			null			;reflect
+			INHERIT_ACTION	;reflect
 			null			;to
 			:form
 			:mold

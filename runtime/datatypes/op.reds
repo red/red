@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %op.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -86,7 +86,7 @@ op: context [
 		flag: 0
 		type: TYPE_OF(spec)
 		unless any [
-			type = TYPE_BLOCK
+			;type = TYPE_BLOCK
 			type = TYPE_ACTION					;@@ replace with ANY_NATIVE? when available
 			type = TYPE_NATIVE
 			type = TYPE_OP
@@ -95,12 +95,12 @@ op: context [
 		][fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(spec)]]
 		
 		node: switch type [
-			TYPE_BLOCK [
-				s: GET_BUFFER(spec)
-				blk: as red-block! s/offset
-				if blk + blk/head + 2 <> s/tail [throw-make proto spec]
-				blk/node
-			]
+			;TYPE_BLOCK [
+			;	s: GET_BUFFER(spec)
+			;	blk: as red-block! s/offset
+			;	if blk + blk/head + 2 <> s/tail [throw-make proto spec]
+			;	blk/node
+			;]
 			TYPE_ACTION
 			TYPE_NATIVE
 			TYPE_OP [

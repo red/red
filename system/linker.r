@@ -3,7 +3,7 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File: 	 %linker.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
@@ -85,10 +85,11 @@ linker: context [
 		/local
 			spec
 	][
+		unless job/runtime? [exit]
 		spec: find job/symbols '***-exec-image
 		set-integer-at job spec/2/2 + 4  base-address	;-- + 4 => skip the struct pointer slot
 		set-integer-at job spec/2/2 + 8  code-offset
-		set-integer-at job spec/2/2 + 12  code-size
+		set-integer-at job spec/2/2 + 12 code-size
 		set-integer-at job spec/2/2 + 16 data-offset
 		set-integer-at job spec/2/2 + 20 data-size
 	]
@@ -123,11 +124,12 @@ linker: context [
 					]
 				]
 			]
-			if all [	
-				spec/1 = 'global
-				block? spec/4
-			][										;-- data to data references
-				pointer/value: data-ptr + spec/2			
+			if block? spec/4 [
+				pointer/value: either spec/1 = 'global [
+					data-ptr + spec/2				;-- data to data references
+				][
+					either job/PIC? [spec/2 - 1][code-ptr + spec/2 - 1]	;-- data to code references
+				]
 				foreach ref spec/4 [change at dbuf ref form-struct pointer]
 			]
 		]
@@ -247,7 +249,18 @@ linker: context [
 
 		repend data-buf [buffer specs]
 	]
-		
+	
+	show-funcs-map: func [
+		job 	 [object!]
+		code-ptr [integer!]							;-- code memory address
+	][
+		print "^/--- Functions entry points ---"
+		foreach [name spec] job/symbols [
+			if is-native? name spec [print [to-hex code-ptr + spec/2 - 1 #":" name]]
+		]
+		print "--- end ---^/"
+	]
+	
 	clean-imports: func [imports [block!]][			;-- remove unused imports
 		foreach [lib list] imports/3 [
 			remove-each [name refs] list [empty? refs]
