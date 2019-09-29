@@ -1752,7 +1752,6 @@ OS-make-view: func [
 		fvalue		[float!]
 		vertical?	[logic!]
 		rfvalue		[red-float!]
-		actors		[red-object!]
 ][
 	stack/mark-native words/_body
 
@@ -1776,8 +1775,6 @@ OS-make-view: func [
 
 	bits: 	  get-flags as red-block! values + FACE_OBJ_FLAGS
 	sym: 	  symbol/resolve type/symbol
-
-	actors: as red-object! values + FACE_OBJ_ACTORS
 
 	; if bits and FACET_FLAGS_SCROLLABLE <> 0 [
 	; 	flags: flags or WS_HSCROLL or WS_VSCROLL
@@ -2039,7 +2036,7 @@ OS-make-view: func [
 	]
 
 	; Deal with actors
-	connect-widget-events widget face actors sym _widget as int-ptr! parent
+	connect-widget-events widget face sym _widget as int-ptr! parent
 
 	unless any[sym = window sym = area][build-context-menu widget menu]
 
