@@ -616,7 +616,6 @@ connect-container-events: func [
 connect-common-events: function [
 	widget		[handle!]
 	face		[red-object!]
-	actors		[red-object!]
 	sym			[integer!]
 ][
 	assert widget <> null
@@ -662,7 +661,6 @@ connect-common-events: function [
 connect-focus-events: function [
 	widget		[handle!]
 	face		[red-object!]
-	actors		[red-object!]
 	sym			[integer!]
 ][
 	gobj_signal_connect(widget "focus-in-event" :focus-in-event face/ctx)
@@ -672,7 +670,6 @@ connect-focus-events: function [
 connect-notify-events: function [
 	widget		[handle!]
 	face		[red-object!]
-	actors		[red-object!]
 	sym			[integer!]
 ][
 	assert widget <> null
@@ -683,17 +680,16 @@ connect-notify-events: function [
 ]
 
 connect-widget-events: function [
-	widget 		[handle!]
-	face 		[red-object!]
-	actors		[red-object!]
-	sym		[integer!]
-	_widget 	[handle!]
+	widget		[handle!]
+	face		[red-object!]
+	sym			[integer!]
+	_widget		[handle!]
 	parent		[handle!]
 	/local
 		buffer	[handle!]
 ][
 	;; register red mouse, key and window on event functions
-	connect-common-events widget face actors sym
+	connect-common-events widget face sym
 
 	case [
 		sym = check [
@@ -723,7 +719,7 @@ connect-widget-events: function [
 			gtk_widget_set_focus_on_click widget yes
 			gtk_widget_is_focus widget
 			gtk_widget_grab_focus widget
-			connect-focus-events widget face actors sym
+			connect-focus-events widget face sym
 		]
 		sym = window [
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add window delete-event " lf]]
@@ -732,7 +728,7 @@ connect-widget-events: function [
 			gobj_signal_connect(widget "configure-event" :window-configure-event null)
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add window size-allocate " lf]]
 			gobj_signal_connect(widget "size-allocate" :window-size-allocate null)
-			connect-focus-events widget face actors sym
+			connect-focus-events widget face sym
 		]
 		sym = slider [
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add slider value-changed " lf]]
@@ -745,7 +741,7 @@ connect-widget-events: function [
 			gtk_widget_set_focus_on_click widget yes
 			gtk_widget_is_focus widget
 			gtk_widget_grab_focus widget
-			connect-focus-events widget face actors sym
+			connect-focus-events widget face sym
 		]
 		sym = progress [
 			0
@@ -763,7 +759,7 @@ connect-widget-events: function [
 			gtk_widget_set_focus_on_click widget yes
 			gtk_widget_is_focus widget
 			gtk_widget_grab_focus widget
-			connect-focus-events widget face actors sym
+			connect-focus-events widget face sym
 		]
 		sym = group-box [
 			0
@@ -793,5 +789,5 @@ connect-widget-events: function [
 		]
 		true [0]
 	]
-	connect-notify-events widget face actors sym
+	connect-notify-events widget face sym
 ]
