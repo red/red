@@ -1617,13 +1617,6 @@ parse-common-opts: func [
 		while [len > 0][
 			sym: symbol/resolve word/symbol
 			case [
-				sym = _drag-on [
-					gtk_widget_add_events widget GDK_BUTTON_PRESS_MASK or GDK_BUTTON1_MOTION_MASK or GDK_BUTTON_RELEASE_MASK ;or GDK_ENTER_NOTIFY_MASK
-					gobj_signal_connect(widget "motion-notify-event" :drag-widget-motion-notify-event face/ctx)
-					gobj_signal_connect(widget "button-press-event" :drag-widget-button-press-event face/ctx)
-					gobj_signal_connect(widget "button-release-event" :drag-widget-button-release-event face/ctx)
-					set-draggable widget yes
-				]
 				sym = _cursor [
 					;; DEBUG: print ["set cursor: " widget lf]
 					w: word + 1
@@ -1647,36 +1640,12 @@ parse-common-opts: func [
 					]
 					set-cursor widget hcur
 				]
-				; sym = _class [
-				; 	w: word + 1
-				; 	sym: symbol/resolve w/symbol
-				; 	sym: case [
-				; 		sym = _regular	[0]			;-- 32
-				; 		sym = _small	[1]			;-- 28
-				; 		sym = _mini		[2]			;-- 16
-				; 		true			[0]
-				; 	]
-				; 	objc_msgSend [
-				; 		objc_msgSend [widget sel_getUid "cell"]
-				; 		sel_getUid "setControlSize:" sym
-				; 	]
-				; 	btn?: no
-				; ]
-				; sym = _accelerated [
-				; 	bool: as red-logic! word + 1
-				; 	if bool/value [objc_msgSend [widget sel_getUid "setWantsLayer:" yes]]
-				; ]
 				true [0]
 			]
 			word: word + 2
 			len: len - 2
 		]
 	]
-
-	; if type = button [
-	; 	len: either btn? [NSRegularSquareBezelStyle][NSRoundedBezelStyle]
-	; 	objc_msgSend [widget sel_getUid "setBezelStyle:" len]
-	; ]
 ]
 
 OS-redraw: func [
