@@ -44,7 +44,6 @@ size-id:			g_quark_from_string "size-id"
 real-container-id:	g_quark_from_string "real-container-id"
 menu-id:			g_quark_from_string "menu-id"
 drag-id:			g_quark_from_string "drag-id"
-cursor-id:			g_quark_from_string "cursor-id"
 no-wait-id:			g_quark_from_string "no-wait-id"
 red-event-id: 		g_quark_from_string "red-event-id"
 
@@ -208,22 +207,6 @@ parent-window?: func [
 	return:		[handle!]
 ][
 	g_object_get_qdata widget parent-window-id
-]
-
-set-cursor: func [
-	widget		[handle!]
-	cursor		[handle!]
-][
-	g_object_set_qdata widget cursor-id cursor
-]
-
-cursor?: func [
-	widget		[handle!]
-	return:		[handle!]
-	/local
-		window	[handle!]
-][
-	g_object_get_qdata widget cursor-id
 ]
 
 ;; Used to delegate event (see handlers.red) for widget that have container for scrollbar (like rich-text)
@@ -1015,8 +998,6 @@ init-all-children: func [
 		tail	[red-object!]
 		values	[red-value!]
 		show?	[red-logic!]
-		cursor	[handle!]
-		win		[handle!]
 ][
 	values: get-face-values widget
 	type: 	as red-word! values + FACE_OBJ_TYPE
@@ -1028,13 +1009,7 @@ init-all-children: func [
 	; init invisible
 	show?:	as red-logic! values + FACE_OBJ_VISIBLE?
 	gtk_widget_set_visible widget show?/value
-	; init cursor
-	cursor: cursor? widget
-	unless null? cursor [
-		win: gtk_widget_get_window widget
-		;; DEBUG: print ["win: " win lf]
-		unless null? win [gdk_window_set_cursor win cursor]
-	]
+
 	;;;;; init end
 
 	if all [TYPE_OF(pane) = TYPE_BLOCK 0 <> block/rs-length? pane] [
@@ -1606,10 +1581,7 @@ parse-common-opts: func [
 		win		[handle!]
 		x		[integer!]
 		y		[integer!]
-		;;;btn?	[logic!]
 ][
-	;; DEBUG: print ["parse-common-opts: " get-symbol-name type lf]
-	;;;btn?: yes
 	if TYPE_OF(options) = TYPE_BLOCK [
 		word: as red-word! block/rs-head options
 		len: block/rs-length? options
@@ -1638,7 +1610,8 @@ parse-common-opts: func [
 						]
 						hcur: gdk_cursor_new_from_name display cur
 					]
-					set-cursor widget hcur
+					win: gtk_widget_get_window widget
+					gdk_window_set_cursor win hcur
 				]
 				true [0]
 			]
@@ -1927,7 +1900,6 @@ OS-make-view: func [
 		]
 	]
 
-	parse-common-opts widget face as red-block! values + FACE_OBJ_OPTIONS sym
 	; save the previous group-radio state as a global variable
 	group-radio: either sym = radio [widget][as handle! 0]
 
@@ -2028,6 +2000,10 @@ OS-make-view: func [
 	if TYPE_OF(rate) <> TYPE_NONE [change-rate widget rate]
 
 	change-color widget as red-tuple! values + FACE_OBJ_COLOR sym
+
+	;-- we need first realize widget to get wdk-window, then can set cursor
+	gtk_widget_realize widget
+	parse-common-opts widget face as red-block! values + FACE_OBJ_OPTIONS sym
 
 	;; USELESS: if sym <> window [gtk_widget_show widget]
 	stack/unwind
