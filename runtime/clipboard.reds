@@ -13,6 +13,7 @@ Red/System [
 clipboard: context [
 #switch OS [
 	Windows [
+
 		#import [
 			"User32.dll" stdcall [
 				OpenClipboard: "OpenClipboard" [
@@ -41,6 +42,10 @@ clipboard: context [
 				GetForegroundWindow: "GetForegroundWindow" [
 					return:		[integer!]
 				]
+				RegisterClipboardFormat: "RegisterClipboardFormatA" [
+					lpszFormat	[c-string!]
+					return:		[integer!]
+				]
 			]
 			"kernel32.dll" stdcall [
 				GlobalAlloc: "GlobalAlloc" [
@@ -60,6 +65,10 @@ clipboard: context [
 					hMem		[integer!]
 					return:		[integer!]
 				]
+				GlobalSize: "GlobalSize" [
+					hMem		[integer!]
+					return:		[integer!]				;-- valid for 32bit exe only
+				]
 				lstrlen: "lstrlenW" [
 					str			[byte-ptr!]
 					return:		[integer!]
@@ -68,13 +77,76 @@ clipboard: context [
 					dwMilliseconds	[integer!]
 				]
 			]
+			"Shell32.dll" stdcall [
+				DragQueryFile: "DragQueryFileW" [
+					hDrop		[integer!]
+					iFile		[integer!]
+					lpszFile	[byte-ptr!]
+					cch			[integer!]
+					return:		[integer!]
+				]
+			]
+		]
+
+		DROPFILES!: alias struct! [
+			pFiles				[integer!]
+			pt					[tagPOINT value]
+			fNC					[logic!]
+			fWide				[logic!]
+		]
+
+		BitmapData!: alias struct! [
+			width		[integer!]
+			height		[integer!]
+			stride		[integer!]
+			pixelFormat	[integer!]
+			scan0		[byte-ptr!]
+			reserved	[integer!]
+		]
+
+		BITMAPV5HEADER!: alias struct! [
+  			Size			[integer!]
+  			Width			[integer!]
+  			Height			[integer!]
+  			PlanesBitCount	[integer!]
+  			Compression		[integer!]
+  			SizeImage		[integer!]
+  			XPelsPerMeter	[integer!]
+  			YPelsPerMeter	[integer!]
+  			ClrUsed			[integer!]
+  			ClrImportant	[integer!]
+  			RedMask			[integer!]
+  			GreenMask		[integer!]
+  			BlueMask		[integer!]
+  			AlphaMask		[integer!]
+  			CSType			[integer!]
+  			EndpointsRedX	[integer!]
+  			EndpointsRedY	[integer!]
+  			EndpointsRedZ	[integer!]
+  			EndpointsGreenX	[integer!]
+  			EndpointsGreenY	[integer!]
+  			EndpointsGreenZ	[integer!]
+  			EndpointsBlueX	[integer!]
+  			EndpointsBlueY	[integer!]
+  			EndpointsBlueZ	[integer!]
+			GammaRed		[integer!]
+			GammaGreen		[integer!]
+			GammaBlue		[integer!]
+			Intent			[integer!]
+			ProfileData		[integer!]
+			ProfileSize		[integer!]
+			Reserved		[integer!]
 		]
 
 		#define CF_TEXT				1
 		#define CF_BITMAP			2
+		#define CF_TIFF				6					;; TBD
 		#define CF_OEMTEXT			7
 		#define CF_DIB				8
+		#define CF_RIFF				11					;; TBD
+		#define CF_WAVE				12					;; TBD
 		#define CF_UNICODETEXT		13
+		#define CF_HDROP			15
 		#define CF_DIBV5			17
 
 		main-hWnd: as int-ptr! 0
@@ -84,11 +156,23 @@ clipboard: context [
 			/local
 				hMem	[integer!]
 				p		[byte-ptr!]
+				p1		[byte-ptr!]
+				p2		[byte-ptr!]
+				bufsz	[integer!]
 				ok		[logic!]
 				val		[red-value!]
+				blk		[red-block!]
+				str		[red-string!]
+				bmp		[integer!]
+				fmts	[int-ptr!]
+				count	[integer!]
+				i		[integer!]
+				len		[integer!]
+				hdr		[BITMAPV5HEADER!]
 		][
+			val: none-value
 			p: null
-			val: as red-value! none-value
+			i: 0
 
 			;-- OpenClipboard often fails on W7 after an EmptyClipboard call, so be persistent
 			ok: yes
@@ -99,15 +183,114 @@ clipboard: context [
 			]
 			unless ok [return as red-value! false-value]
 
-			hMem: GetClipboardData CF_UNICODETEXT
-			if hMem <> 0 [
-				p: GlobalLock hMem
-				if p <> null [
-					val: as red-value! string/load as-c-string p lstrlen p UTF-16LE
+			loop 1 [									;-- trick for `break` to work
+
+				;-- test text first
+				hMem: GetClipboardData CF_UNICODETEXT
+				if hMem <> 0 [
+					p: GlobalLock hMem
+					unless null? p [
+						str: as red-string! stack/push*
+						str/header: TYPE_UNSET
+						str/head: 0
+						str/cache: null
+						str/node: unicode/load-utf16 as-c-string p lstrlen p null yes
+						str/header: TYPE_STRING
+						val: as red-value! str
+						GlobalUnlock hMem
+					]
+					break
 				]
-				GlobalUnlock hMem
-			]
+
+				;-- test for a list of files
+				hMem: GetClipboardData CF_HDROP
+				if hMem <> 0 [
+					p: GlobalLock hMem
+					unless null? p [
+						;-- files can be in ANSI codepage; DragQueryFileW func deals with that
+						count: DragQueryFile hMem FFFFFFFFh null 0
+						assert count >= 0
+						blk: block/push-only* count
+						i: 0 bufsz: 0 p1: null
+						loop count [
+							len: DragQueryFile hMem i null 0
+							if len > bufsz [
+								bufsz: either len > 260 [len][260]
+								p2: realloc p1 bufsz * 2
+								if null? p2 [free p1 p1: null break]
+								p1: p2
+							]
+							DragQueryFile hMem i p1 bufsz
+							string/load-at as-c-string p1 lstrlen p1 ALLOC_TAIL(blk) UTF-16LE
+							i: i + 1
+						]
+						unless null? p1 [free p1 p1: null]
+						val: as red-value! blk
+						GlobalUnlock hMem
+					]
+					break
+				]
+
+				;-- test for images: first for raw data; then for standard DIB
+
+				;-- these formats are supported by *some* programs
+				;; see https://stackoverflow.com/a/6565158
+				fmts: [0 0 0]
+				fmts/1: RegisterClipboardFormat "PNG"
+				fmts/2: RegisterClipboardFormat "JFIF"
+				fmts/3: RegisterClipboardFormat "GIF"
+				assert all [fmts/1 <> 0 fmts/2 <> 0 fmts/3 <> 0]
+
+				loop size? fmts [
+					hMem: GetClipboardData fmts/1
+					if hMem <> 0 [break]
+					fmts: fmts + 1
+				]
+				if hMem <> 0 [
+					p: GlobalLock hMem
+					unless null? p [
+						val: as red-value! image/load-binary binary/load p GlobalSize hMem
+						GlobalUnlock hMem
+					]
+					break
+				]
+
+				;-- finally try the standard DIB: supports the alpha-channel unless it's messed with
+				;; see on the transparency support: https://stackoverflow.com/a/46400011
+				hMem: GetClipboardData CF_DIBV5
+				if hMem <> 0 [
+					p: GlobalLock hMem
+					unless null? p [
+						hdr: as BITMAPV5HEADER! p
+						bmp: 0
+						either all [					;-- is format compatible with Red GDI+ image?
+							hdr/PlanesBitCount >> 16 = 32
+							hdr/Compression = 3			;-- BI_BITFIELDS
+							hdr/AlphaMask = FF000000h
+							hdr/RedMask   = 00FF0000h
+							hdr/GreenMask = 0000FF00h
+							hdr/BlueMask  = 000000FFh
+						][								;-- can copy the data directly
+							if hdr/Height < 0 [hdr/Height: 0 - hdr/Height]
+							assert all [0 = OS-image/GdipGetImagePixelFormat bmp :i  i = PixelFormat32bppARGB]
+							OS-image/GdipCreateBitmapFromScan0 hdr/Width hdr/Height 0 PixelFormat32bppARGB p :bmp
+						][								;-- will have to convert, losing the alpha data if any
+							OS-image/GdipCreateBitmapFromGdiDib
+								p  p + hdr/Size + (hdr/ClrUsed * 4) + hdr/ProfileSize  :bmp
+						]
+						val: as red-value! image/init-image as red-image! stack/push* as int-ptr! bmp
+						GlobalUnlock hMem
+					]
+					break
+				]
+
+			];; loop 1
+
 			CloseClipboard
+
+			;-- none = general success but empty or unsupported data
+			;-- false = failure during data retrieval
+			if all [hMem <> 0 null? p] [return as red-value! false-value]
 			val
 		]
 
@@ -115,28 +298,131 @@ clipboard: context [
 			data		[red-value!]
 			return:		[logic!]
 			/local
-				res		[integer!]
+				res		[int-ptr!]
+				fmts	[int-ptr!]
+				hMem	[int-ptr!]
 				ok		[logic!]
 				len		[integer!]
-				hMem	[integer!]
 				p		[byte-ptr!]
 				p1		[byte-ptr!]
+				value	[red-value!]
+				tail	[red-value!]
+				bin		[red-binary!]
+				df		[DROPFILES!]
+				bmdata	[BitmapData!]
+				hdr		[BITMAPV5HEADER!]
 		][
-			hMem: 0
+			hMem: [0 0]  hMem/1: 0  hMem/2: 0
+			fmts: [0 0]  fmts/1: 0  fmts/2: 0
 
 			;-- let the memory stuff come before OpenClipboard
-			;-- this delays OpenClipboard an extra bit, resulting in lesser failure rate
+			;; this delays OpenClipboard an extra bit, resulting in lesser failure rate
+			;; plus, it can throw an error from this block
 			switch TYPE_OF(data) [
+
+				TYPE_NONE	[0]							;-- allow `none` to empty the clipboard
+
 				TYPE_STRING [
+					fmts/1: CF_UNICODETEXT
 					len: -1
 					p1: as byte-ptr! unicode/to-utf16-len as red-string! data :len yes
-					hMem: GlobalAlloc 2 len * 2 + 2
-					p: GlobalLock hMem
-					copy-memory p p1 len * 2 + 2
-					GlobalUnlock hMem
+					hMem/1: GlobalAlloc 2 len * 2 + 2
+					if hMem/1 <> 0 [
+						p: GlobalLock hMem/1
+						unless null? p [
+							copy-memory p p1 len * 2 + 2
+							GlobalUnlock hMem/1
+						]
+					]
 				]
-				TYPE_IMAGE	[0]
-				default		[0]
+
+				TYPE_BLOCK	[							;-- block of files in native format
+					fmts/1: CF_HDROP
+
+					;-- count the total characters for the DROPFILES data
+					len: 2								;-- always have 2 trailing null chars, even for an empty block
+					value: block/rs-head as red-block! data
+					tail:  block/rs-tail as red-block! data
+					while [value < tail] [
+						assert any [TYPE_OF(value) = TYPE_FILE  TYPE_OF(value) = TYPE_STRING]
+						len: len + 1 + string/rs-length? as red-string! value
+						value: value + 1
+					]
+
+					;-- conservatively allocate 4 bytes for each char
+					hMem/1: GlobalAlloc 2 len * 4 + size? DROPFILES!
+					if hMem/1 <> 0 [
+						p: GlobalLock hMem/1
+						unless null? p [
+							;-- construct the DROPFILES data
+							set-memory p #"^@" size? DROPFILES!
+							df: as DROPFILES! p
+							df/pFiles: size? DROPFILES!
+							df/fWide: yes
+							p: p + df/pFiles
+							value: block/rs-head as red-block! data
+							while [value < tail] [
+								len: -1
+								p1: as byte-ptr! unicode/to-utf16-len as red-string! value :len yes
+								len: len * 2 + 2
+								copy-memory p p1 len
+								p: p + len
+								value: value + 1
+							]
+							p/1: #"^@" p/2: #"^@"
+							GlobalUnlock hMem/1
+						]
+					]
+				];; TYPE_BLOCK
+
+				TYPE_IMAGE	[
+					;-- put image in the "PNG" format for it's better portability
+					;; see https://stackoverflow.com/a/15691001 on rationale
+					fmts/1: RegisterClipboardFormat "PNG"
+					assert fmts/1 <> 0
+					bin: as red-binary! image/encode as red-image! data none-value IMAGE_PNG
+					len: binary/rs-length? bin
+					hMem/1: GlobalAlloc 2 len
+					if hMem/1 <> 0 [
+						p1: GlobalLock hMem/1
+						unless null? p1 [
+							copy-memory p1 binary/rs-head bin len
+							GlobalUnlock hMem/1
+						]
+					]
+
+					;-- also put the image in DIB format for compatibility
+					fmts/2: CF_DIBV5
+					bmdata: as BitmapData! OS-image/lock-bitmap as red-image! data no
+					assert not null? bmdata
+					len: bmdata/width * bmdata/height * 4
+					hMem/2: GlobalAlloc 2 len + size? BITMAPV5HEADER!
+					if hMem/2 <> 0 [
+						p: GlobalLock hMem/2
+						unless null? p [
+							set-memory p #"^@" size? BITMAPV5HEADER!
+							hdr: as BITMAPV5HEADER! p
+							hdr/Size: size? BITMAPV5HEADER!
+							hdr/Width: bmdata/width
+							hdr/Height: 0 - bmdata/height	;-- top-down image
+							hdr/PlanesBitCount: 00200001h	;-- 32 bpp, 1 plane
+							hdr/Compression: 3				;-- BI_BITFIELDS
+							hdr/SizeImage: len
+							hdr/AlphaMask: FF000000h
+							hdr/RedMask:   00FF0000h
+							hdr/GreenMask: 0000FF00h
+							hdr/BlueMask:  000000FFh
+							hdr/CSType: 57696E20h			;-- "Win " = LCS_WINDOWS_COLOR_SPACE
+							hdr/Intent: 4					;-- 4 = LCS_GM_IMAGES
+							assert bmdata/pixelFormat = PixelFormat32bppARGB
+							copy-memory p + hdr/Size bmdata/scan0 len
+							GlobalUnlock hMem/2
+						]
+					]
+					OS-image/unlock-bitmap as red-image! data as integer! bmdata
+				];; TYPE_IMAGE
+
+				default		[fire [TO_ERROR(script invalid-arg) data]]
 			]
 
 			;-- OpenClipboard often fails on W7 after an EmptyClipboard call, so be persistent
@@ -147,17 +433,31 @@ clipboard: context [
 				if ok [break]
 			]
 			unless ok [									;-- clean up after a (rare) failure
-				unless hMem = 0 [
-					GlobalLock hMem
-					GlobalFree hMem
-					GlobalUnlock hMem
+				unless hMem/1 = 0 [
+					GlobalLock hMem/1
+					GlobalFree hMem/1
+					GlobalUnlock hMem/1
+				]
+				unless hMem/2 = 0 [
+					GlobalLock hMem/2
+					GlobalFree hMem/2
+					GlobalUnlock hMem/2
 				]
 				return false
 			]
-			EmptyClipboard
-			res: SetClipboardData CF_UNICODETEXT hMem
+
+			res: [1 1]  res/1: 1  res/2: 1
+			if TYPE_OF(data) = TYPE_NONE [p: as byte-ptr! 1]	;-- empty clipboard in case of `none` argument
+			unless null? p [									;-- but not in case of a failed allocation/lock
+				EmptyClipboard
+				if fmts/1 <> 0 [res/1: SetClipboardData fmts/1 hMem/1]
+				if fmts/2 <> 0 [res/2: SetClipboardData fmts/2 hMem/2]
+			]
 			CloseClipboard
-			as logic! res
+			;-- false if:
+			;; - failed to prepare or set text or file list
+			;; - failed to prepare image in DIB format, or set it in either format
+			all [res/1 <> 0 res/2 <> 0 not null? p]
 		]
 	]
 	macOS [
