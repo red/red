@@ -621,6 +621,7 @@ object [
 		unless resume [
 			clipboard: read-clipboard
 			if image? clipboard [clipboard: none]
+			if block? clipboard [clipboard: mold clipboard]
 		]
 		if all [clipboard not empty? clipboard][
 			start: clipboard
