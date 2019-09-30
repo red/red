@@ -10,11 +10,17 @@ Red/System [
 	}
 ]
 
-SOCK_READBUF_SZ: 1048576				;-- 1MB
+SOCK_READBUF_SZ: 8192			;-- 8KB
+
+#enum iocp-type! [
+	IOCP_TYPE_TCP:		0
+	IOCP_TYPE_UDP:		1
+	IOCP_TYPE_TLS:		10h
+]
 
 #either OS = 'Windows [
 	#include %windows/iocp.reds
-	#include %windows/tls.reds
+	;#include %windows/tls.reds
 	#include %windows/socket.reds
 ][
 	#include %POSIX/iocp.reds

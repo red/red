@@ -90,7 +90,7 @@ TLS-device: context [
 			data [iocp-data!]
 	][
 		data: as iocp-data! io/create-socket-data port sock as int-ptr! :event-handler size? tls-data!
-		#if OS <> 'Windows [data/type: IOCP_TYPE_TLS]
+		data/type: IOCP_TYPE_TLS
 		data
 	]
 
@@ -133,6 +133,7 @@ TLS-device: context [
 			fd		[integer!]
 			n		[integer!]
 			addr	[c-string!]
+			data	[iocp-data!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tls client"]]
 
@@ -142,7 +143,9 @@ TLS-device: context [
 
 		n: -1
 		addr: unicode/to-utf8 host :n
-		socket/connect fd addr num/value AF_INET create-tcp-data port fd
+		data: create-tcp-data port fd
+		#if OS = 'Windows [data/state: IO_STATE_CLIENT]
+		socket/connect fd addr num/value AF_INET data
 	]
 
 	tcp-server: func [
@@ -225,7 +228,7 @@ TLS-device: context [
 		switch TYPE_OF(value) [
 			TYPE_BINARY [
 				bin: as red-binary! value
-				io/pin-memory bin
+				io/pin-memory bin/node
 			]
 			default [return as red-value! port]
 		]
@@ -258,7 +261,7 @@ TLS-device: context [
 			binary/make-at as cell! buf SOCK_READBUF_SZ
 		]
 		buf/head: 0
-		io/pin-memory buf
+		io/pin-memory buf/node
 		s: GET_BUFFER(buf)
 		data: as iocp-data! get-tcp-data red-port
 		socket/recv as-integer data/device as byte-ptr! s/offset s/size data

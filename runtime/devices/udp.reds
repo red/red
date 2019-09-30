@@ -99,7 +99,7 @@ probe "UDP event-handler"
 			saddr	[sockaddr_in!]
 	][
 		data: as udp-data! io/create-socket-data port sock as int-ptr! :event-handler size? udp-data!
-		#if OS <> 'Windows [data/iocp/type: IOCP_TYPE_UDP]
+		data/iocp/type: IOCP_TYPE_UDP
 
 		;@@ TBD add IPv6 support
 		data/addr-sz: size? sockaddr_in!

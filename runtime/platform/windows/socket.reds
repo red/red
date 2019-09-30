@@ -117,6 +117,7 @@ socket: context [
 		buffer		[byte-ptr!]
 		length		[integer!]
 		data		[iocp-data!]
+		return:		[integer!]
 		/local
 			wsbuf	[WSABUF! value]
 	][
@@ -125,7 +126,10 @@ socket: context [
 		wsbuf/len: length
 		wsbuf/buf: buffer
 		data/event: IO_EVT_WRITE
-		WSASend sock :wsbuf 1 null 0 as OVERLAPPED! data null
+		unless zero? WSASend sock :wsbuf 1 null 0 as OVERLAPPED! data null [	;-- error
+			either ERROR_IO_PENDING = GetLastError [return ERROR_IO_PENDING][return -1]
+		]
+		0
 	]
 
 	recv: func [
@@ -142,7 +146,7 @@ socket: context [
 		wsbuf/buf: buffer
 		data/event: IO_EVT_READ
 		flags: 0
-		WSARecv sock :wsbuf 1 null :flags as OVERLAPPED! data null [
+		WSARecv sock :wsbuf 1 null :flags as OVERLAPPED! data null
 	]
 
 	usend: func [	;-- for UDP

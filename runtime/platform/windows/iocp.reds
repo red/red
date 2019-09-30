@@ -10,6 +10,11 @@ Red/System [
 	}
 ]
 
+#define IO_STATE_TLS_DONE		1000h
+#define IO_STATE_CLIENT			2000h
+#define IO_STATE_READING		4000h
+#define IO_STATE_WRITING		8000h
+
 iocp-event-handler!: alias function! [
 	data		[int-ptr!]
 ]
@@ -31,6 +36,8 @@ iocp-data!: alias struct! [
 	device			[handle!]				;-- device handle
 	event-handler	[iocp-event-handler!]
 	event			[integer!]
+	type			[integer!]				;-- TCP, UDP, TLS, etc
+	state			[integer!]
 	transferred		[integer!]				;-- number of bytes transferred
 	accept-sock		[integer!]
 	accept-addr		[byte-ptr!]
@@ -120,6 +127,14 @@ iocp: context [
 			e: p/events + i
 			data: as iocp-data! e/lpOverlapped
 			data/transferred: e/dwNumberOfBytesTransferred
+			;if all [
+			;	data/type = IOCP_TYPE_TLS
+			;	data/state and IO_STATE_TLS_DONE = 0
+			;	not tls/negotiate as tls-data! data 
+			;][
+			;	i: i + 1
+			;	continue
+			;]
 			data/event-handler as int-ptr! data
 			i: i + 1
 		]

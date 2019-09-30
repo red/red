@@ -19,12 +19,6 @@ Red/System [
 #define IO_STATE_PENDING_READ	4001h		;-- READING or EPOLLIN
 #define IO_STATE_PENDING_WRITE	8004h		;-- WRITING or EPOLLOUT
 
-#enum iocp-type! [
-	IOCP_TYPE_TCP: 0
-	IOCP_TYPE_UDP: 1
-	IOCP_TYPE_TLS: 10h
-]
-
 iocp-event-handler!: alias function! [
 	data		[int-ptr!]
 ]

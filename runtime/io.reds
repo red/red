@@ -115,11 +115,11 @@ io: context [
 	]
 
 	pin-memory: func [
-		bin		[red-binary!]
+		node	[node!]
 		/local
 			s	[series!]
 	][
-		s: GET_BUFFER(bin)
+		s: as series! node/value
 		s/flags: s/flags or flag-series-fixed
 	]
 
@@ -139,5 +139,5 @@ io: context [
 ]
 
 #include %devices/tcp.reds
-#include %devices/tls.reds
-#include %devices/udp.reds
+;#include %devices/tls.reds
+;#include %devices/udp.reds
