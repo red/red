@@ -1079,23 +1079,33 @@ clipboard-internal: context [
 	]
 ]
 
-read-clipboard: func ["Return the contents of the system clipboard" return: [string! block! image!] /local r] [
-	also r: clipboard-internal/read-clipboard*
-	if block? r [forall r [change r to-red-file r/1]]
-]
-
-write-clipboard: func ["Write content to the system clipboard" data [string! block! image! none!]] [
-	either block? data [
-		data: copy data
-		forall data [change data to-local-file :data/1]
-	][
-		all [
-			image? data
-			empty? data
-			data: none
-		]
+#either config/OS = 'Windows [
+	read-clipboard: func ["Return the contents of the system clipboard" return: [string! block! image! none! logic!] /local r] [
+		also r: clipboard-internal/read-clipboard*
+		if block? r [forall r [change r to-red-file r/1]]
 	]
-	clipboard-internal/write-clipboard* data
+
+	write-clipboard: func ["Write content to the system clipboard" data [string! block! image! none!] return: [none! logic!]] [
+		either block? data [
+			data: copy data
+			forall data [change data to-local-file :data/1]
+		][
+			all [
+				image? data
+				empty? data
+				data: none
+			]
+		]
+		clipboard-internal/write-clipboard* data
+	]
+][
+	read-clipboard: func ["Return the contents of the system clipboard" return: [string! none! logic!] /local r] [
+		clipboard-internal/read-clipboard*
+	]
+
+	write-clipboard: func ["Write content to the system clipboard" data [string!] return: [none! logic!]] [
+		clipboard-internal/write-clipboard* data
+	]
 ]
 
 unset 'clipboard-internal
