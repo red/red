@@ -14,7 +14,7 @@ Red [
 ===start-group=== "text IO"
 
 	do [if system/platform <> 'Linux [
-	
+
 		--test-- "text-io-1"
 			--assert false <> write-clipboard ""
 			--assert "" = read-clipboard
@@ -86,7 +86,9 @@ Red [
 
 	]];; do [if system/platform = 'Windows [
 
-	write-clipboard none								;-- clean it up
+	do [if system/platform <> 'Linux [
+		write-clipboard none							;-- clean it up
+	]]
 
 ===end-group===
 
