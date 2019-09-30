@@ -116,15 +116,16 @@ C_WORD      : all the rest
 ws: space | tab | cr | lf
 dbl-quote: "
 
-delimit1: [ | ] | ( | ) | { | } | " | : | ws | ; | @
-delimit2: [ | ] | ( | ) | { | } | " | : | ws | ; | <
-delimit3: [ | ] | ( | ) | { | } | " | % | ws | ; | < | #
-delimit4: < | > | =
-delimit5: [ | ] | ( | ) | { | } | " | % | ws | ; | < | # | @ | / | \ | ^ | , | :
-delimit6: [ | ] | ( | ) | { | } | " | % | ws | ; | < | # | @ | / | \ | ^ | , | : | 0-9
-delimit7: [ | ] | ( | ) | { | } | " | % | ws | ; | < | # | \ | ^ | ,
-delimit8: [ | ] | ( | ) | { | } | : | ws | ; | @
-delimit9: ] | ) | } | " | : | < | > | ,
+delimit1:  [ | ] | ( | ) | { | } | " | : | ws | ; | @
+delimit2:  [ | ] | ( | ) | { | } | " | : | ws | ; | <
+delimit3:  [ | ] | ( | ) | { | } | " | % | ws | ; | < | #
+delimit4:  < | > | =
+delimit5:  [ | ] | ( | ) | { | } | " | % | ws | ; | < | # | @ | / | \ | ^ | , | :
+delimit6:  [ | ] | ( | ) | { | } | " | % | ws | ; | < | # | @ | / | \ | ^ | , | : | 0-9
+delimit7:  [ | ] | ( | ) | { | } | " | % | ws | ; | < | # | \ | ^ | ,
+delimit8:  [ | ] | ( | ) | { | } | : | ws | ; | @
+delimit9:  ] | ) | } | " | : | < | > | ,
+delimit10: [ | ] | ( | ) | { | } | " | ws | ; | <
 
 hexa: C_ZERO | C_DIGIT | C_ALPHAX
 
@@ -176,10 +177,10 @@ S_START->"#"->S_SHARP->"{"->S_BINARY->hexa|ws->S_BINARY
                               \                 \->delimit1->T_ISSUE
                                \->delimit9->T_ERROR
 
-S_START->digit->S_NUMBER->digit->S_NUMBER
-                 \->delimit2->T_INTEGER
+S_START->digit->S_NUMBER->digit|"'"->S_NUMBER
+                 \->delimit10->T_INTEGER
                   \->"%"->T_PERCENT
-                   \->"."->S_DECIMAL->digit|"e"|"E"->S_DECIMAL->"%"->T_PERCENT
+                   \->"."->S_DECIMAL->digit|"e"|"E"->S_DECIMAL
                     \       \->delimit2->T_FLOAT
                      \       \->"%"->T_PERCENT
                       \       \->"x"|"X"->S_PAIR_1ST
@@ -203,7 +204,9 @@ S_START->digit->S_NUMBER->digit->S_NUMBER
                                         \
                                          \->"@"->S_EMAIL
                                           \
-                                           \->else->T_ERROR
+                                           \->"e"|"E"->S_DECIMAL
+                                            \
+                                             \->else->T_ERROR
                                         
 
 S_START->"<"->S_LESSER
