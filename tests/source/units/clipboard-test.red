@@ -13,23 +13,26 @@ Red [
 
 ===start-group=== "text IO"
 
-	--test-- "text-io-1"
-		--assert false <> write-clipboard ""
-		--assert "" = read-clipboard
+	do [if system/platform <> 'Linux [
+	
+		--test-- "text-io-1"
+			--assert false <> write-clipboard ""
+			--assert "" = read-clipboard
 
-	--test-- "text-io-2"
-		--assert false <> write-clipboard "text"
-		--assert "text" = read-clipboard
+		--test-- "text-io-2"
+			--assert false <> write-clipboard "text"
+			--assert "text" = read-clipboard
 
-	--test-- "text-io-3"
-		--assert false <> write-clipboard "1^/2^/3^/"
-		--assert "1^/2^/3^/" = read-clipboard
+		--test-- "text-io-3"
+			--assert false <> write-clipboard "1^/2^/3^/"
+			--assert "1^/2^/3^/" = read-clipboard
 
-	--test-- "text-io-long-1"
-		til1: append/dup copy "" "data " 1000
-		--assert false <> write-clipboard til1
-		--assert til1 = read-clipboard
-		unset 'til1
+		--test-- "text-io-long-1"
+			til1: append/dup copy "" "data " 1000
+			--assert false <> write-clipboard til1
+			--assert til1 = read-clipboard
+			unset 'til1
+	]]
 
 
 	do [if system/platform = 'Windows [
