@@ -990,27 +990,18 @@ change-size: func [
 init-all-children: func [
 	widget		[handle!]
 	/local
-		child	[handle!]
+		values	[red-value!]
 		pane	[red-block!]
-		type	[red-word!]
-		sym		[integer!]
+		show?	[red-logic!]
 		face	[red-object!]
 		tail	[red-object!]
-		values	[red-value!]
-		show?	[red-logic!]
+		child	[handle!]
 ][
 	values: get-face-values widget
-	type: 	as red-word! values + FACE_OBJ_TYPE
 	pane: 	as red-block! values + FACE_OBJ_PANE
-	sym: 	symbol/resolve type/symbol
 
-	;;;;; init begin
-	;; DEBUG: print ["init-all-children: " get-symbol-name sym lf]
-	; init invisible
 	show?:	as red-logic! values + FACE_OBJ_VISIBLE?
 	gtk_widget_set_visible widget show?/value
-
-	;;;;; init end
 
 	if all [TYPE_OF(pane) = TYPE_BLOCK 0 <> block/rs-length? pane] [
 		face: as red-object! block/rs-head pane
