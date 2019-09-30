@@ -160,6 +160,12 @@ OS-image: context [
 				height		[int-ptr!]
 				return:		[integer!]
 			]
+			GdipCreateBitmapFromGdiDib: "GdipCreateBitmapFromGdiDib" [
+				bmi			[byte-ptr!]
+				data		[byte-ptr!]
+				bitmap		[int-ptr!]
+				return:		[integer!]
+			]
 			GdipCreateBitmapFromScan0: "GdipCreateBitmapFromScan0" [
 				width		[integer!]
 				height		[integer!]

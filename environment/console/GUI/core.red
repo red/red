@@ -618,7 +618,10 @@ object [
 
 	paste: func [/resume /local nl? start end idx][
 		delete-selected
-		unless resume [clipboard: read-clipboard]
+		unless resume [
+			clipboard: read-clipboard
+			if image? clipboard [clipboard: none]
+		]
 		if all [clipboard not empty? clipboard][
 			start: clipboard
 			end: find clipboard #"^/"
@@ -651,7 +654,7 @@ object [
 				paste-cnt: 0
 			]
 		]
-		not empty? clipboard
+		all [clipboard not empty? clipboard]
 	]
 
 	cut: func [][
