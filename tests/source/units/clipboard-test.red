@@ -87,7 +87,7 @@ Red [
 	]];; do [if system/platform = 'Windows [
 
 	do [if system/platform <> 'Linux [
-		write-clipboard none							;-- clean it up
+		write-clipboard ""								;-- clean it up
 	]]
 
 ===end-group===
