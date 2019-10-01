@@ -65,12 +65,11 @@ Red [
 			--assert false <> write-clipboard make image! 0x0
 			--assert none? read-clipboard
 
-		;-- FIXME: #4056
-		; --test-- "image-io-2"
-		; 	ii2: make image! 1x1
-		; 	--assert false <> write-clipboard ii2
-		; 	--assert ii2 = read-clipboard
-		; 	unset 'ii2
+		--test-- "image-io-2"
+			ii2: make image! 1x1
+			--assert false <> write-clipboard ii2
+			--assert ii2 = read-clipboard
+			unset 'ii2
 
 		--test-- "image-io-3"
 			ii3: draw make image! [100x100 0.200.200.200] [pen purple line-width 5 circle 50x50 40]
