@@ -18,6 +18,7 @@ S_SKIP_CHAR
 S_CONSTRUCT
 S_ISSUE
 S_NUMBER
+S_DOTNUM
 S_DECIMAL
 S_DEC_SPECIAL
 S_TUPLE
@@ -100,12 +101,12 @@ C_DOT       : .
 C_MONEY     : $
 C_SIGN      : +, -
 C_CARET     : ^
-C_EOF       : NUL
 C_UCS2      : 0xC2-0xDF, 0xE0-EF
 C_UCS4      : 0xF0-0xF4
-C_ILLEGAL   : 0xC0-0xC1, 0xF5-0xFF
 C_NO_OP     : 0x01-0x08, 0x11, 0x12, 0x14-0x1F
 C_WORD      : all the rest
+C_ILLEGAL   : 0xC0-0xC1, 0xF5-0xFF
+C_EOF       : NUL
 
 
 ;":"->S_CLASS_GET    => set as high-bits flag
@@ -126,6 +127,7 @@ delimit7:  [ | ] | ( | ) | { | } | " | % | ws | ; | < | # | \ | ^ | ,
 delimit8:  [ | ] | ( | ) | { | } | : | ws | ; | @
 delimit9:  ] | ) | } | " | : | < | > | ,
 delimit10: [ | ] | ( | ) | { | } | " | ws | ; | <
+delimit11:  [ | ] | ( | ) | { | } | " | : | ws | ; | < | /
 
 hexa: C_ZERO | C_DIGIT | C_ALPHAX
 
@@ -177,37 +179,43 @@ S_START->"#"->S_SHARP->"{"->S_BINARY->hexa|ws->S_BINARY
                               \                 \->delimit1->T_ISSUE
                                \->delimit9->T_ERROR
 
+
 S_START->digit->S_NUMBER->digit|"'"->S_NUMBER
                  \->delimit10->T_INTEGER
                   \->"%"->T_PERCENT
-                   \->"."->S_DECIMAL->digit|"e"|"E"->S_DECIMAL
-                    \       \->delimit2->T_FLOAT
-                     \       \->"%"->T_PERCENT
-                      \       \->"x"|"X"->S_PAIR_1ST
-                       \       \->"#"->S_DEC_SPECIAL->not(delimit6)->S_DEC_SPECIAL
-                        \       \       \->delimit6->T_FLOAT
-                         \       \->"."->S_TUPLE->digit|"."->S_TUPLE
-                          \       \       \->delimit2->T_TUPLE
-                           \       \->else->T_ERROR
-                            \
-                             \->"/"->S_DATE->not(delimit2)->S_DATE
-                              \       \->delimit2->T_DATE
-                               \
-                                \->":"->S_TIME_1ST->digit->S_TIME->digit|":"|"."->S_TIME
-                                 \       \->else->T_ERROR   \->delimit3->T_TIME
-                                  \                          \->else->T_ERROR
+                   \->"."->S_DOTNUM->digit->S_DECIMAL->digit|"e"|"E"|"'"->S_DECIMAL
+                    \       \                 \->"."->S_TUPLE->digit|"."->S_TUPLE
+                     \       \                 \       \->delimit11->T_TUPLE
+                      \       \                 \->"%"->T_PERCENT
+                       \       \                 \->"x"|"X"->S_PAIR_1ST
+                        \       \                 \->delimit11->T_FLOAT
+                         \       \                 \->else->T_ERROR
+                          \       \
+                           \       \->"#"->S_DEC_SPECIAL->not(delimit6)->S_DEC_SPECIAL
+                            \       \       \->delimit6->T_FLOAT
+                             \       \
+                              \       \->"%"->T_PERCENT
+                               \       \->"x"|"X"->S_PAIR_1ST
+                                \       \->"e"|"E"|"'"->S_DECIMAL
+                                 \       \->delimit11->T_FLOAT
+                                  \       \->else->T_ERROR
                                    \
-                                    \->"x"|"X"->S_PAIR_1ST->digit->S_PAIR->digit|"."|"e"|"E"->S_PAIR
-                                     \           \->else->T_ERROR    \->delimit2->T_PAIR
-                                      \                               \->else->T_ERROR
-                                       \->"#"->S_SHARP
-                                        \
-                                         \->"@"->S_EMAIL
-                                          \
-                                           \->"e"|"E"->S_DECIMAL
-                                            \
-                                             \->else->T_ERROR
-                                        
+		                            \->"/"->S_DATE->not(delimit2)->S_DATE
+		                             \       \->delimit2->T_DATE
+		                              \
+		                               \->":"->S_TIME_1ST->digit->S_TIME->digit|":"|"."->S_TIME
+		                                \       \->else->T_ERROR   \->delimit3->T_TIME
+		                                 \                          \->else->T_ERROR
+		                                  \
+		                                   \->"x"|"X"->S_PAIR_1ST->digit->S_PAIR->digit|"."|"e"|"E"->S_PAIR
+		                                    \           \->else->T_ERROR    \->delimit2->T_PAIR
+		                                     \                               \->else->T_ERROR
+		                                      \
+		                                       \->"#"->S_SHARP
+		                                        \->"@"->S_EMAIL
+		                                         \->"e"|"E"->S_DECIMAL
+                                                  \->else->T_ERROR
+                  
 
 S_START->"<"->S_LESSER
                \->delimit1|">"->T_WORD
