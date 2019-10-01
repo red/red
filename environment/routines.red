@@ -116,6 +116,21 @@ as-rgba: :as-ipv4
 
 ;-- Temporary definition --
 
+read-clipboard: routine [
+	"Return the contents of the system clipboard"
+	return: [any-type!] "false on failure, none if empty, otherwise: string!, block! of files!, or an image!"
+][
+	stack/set-last clipboard/read
+]
+
+write-clipboard: routine [
+	"Write content to the system clipboard"
+	data [any-type!] "string!, block! of files!, an image! or none!"
+	return: [logic!] "indicates success"
+][
+	logic/box clipboard/write as red-value! data
+]
+
 write-stdout: routine ["Write data to STDOUT" data [any-type!]][			;-- internal use only
 	simple-io/write null as red-value! data null null no no no
 ]

@@ -211,6 +211,7 @@ clipboard: context [
 						count: DragQueryFile hMem FFFFFFFFh null 0
 						assert count >= 0
 						blk: block/push-only* count
+						str: string/make-at stack/push* 64 Latin1
 						i: 0 bufsz: 0 p1: null
 						loop count [
 							len: DragQueryFile hMem i null 0
@@ -221,9 +222,15 @@ clipboard: context [
 								p1: p2
 							]
 							DragQueryFile hMem i p1 bufsz
-							string/load-at as-c-string p1 lstrlen p1 ALLOC_TAIL(blk) UTF-16LE
+							string/load-at as-c-string p1 lstrlen p1 as red-value! str UTF-16LE
+							stack/mark-native words/_body 
+							#call [to-red-file str]
+							block/rs-append blk stack/arguments
+							stack/unwind
+							string/rs-reset str
 							i: i + 1
 						]
+						stack/pop 1						;-- get rid of `str`
 						unless null? p1 [free p1 p1: null]
 						val: as red-value! blk
 						GlobalUnlock hMem
@@ -292,7 +299,7 @@ clipboard: context [
 			;-- false = failure during data retrieval
 			if all [hMem <> 0 null? p] [return as red-value! false-value]
 			val
-		]
+		];; read
 
 		write: func [
 			data		[red-value!]
@@ -307,7 +314,10 @@ clipboard: context [
 				p1		[byte-ptr!]
 				value	[red-value!]
 				tail	[red-value!]
+				str		[red-string!]
 				bin		[red-binary!]
+				blk		[red-block!]
+				img		[red-image!]
 				df		[DROPFILES!]
 				bmdata	[BitmapData!]
 				hdr		[BITMAPV5HEADER!]
@@ -339,13 +349,16 @@ clipboard: context [
 				TYPE_BLOCK	[							;-- block of files in native format
 					fmts/1: CF_HDROP
 
-					;-- count the total characters for the DROPFILES data
+					;-- count the total characters for the DROPFILES data, also convert files to OS format
 					len: 2								;-- always have 2 trailing null chars, even for an empty block
 					value: block/rs-head as red-block! data
 					tail:  block/rs-tail as red-block! data
+					blk: block/push-only* (as-integer tail - value) / size? cell!
 					while [value < tail] [
 						assert any [TYPE_OF(value) = TYPE_FILE  TYPE_OF(value) = TYPE_STRING]
-						len: len + 1 + string/rs-length? as red-string! value
+						str: string/make-at ALLOC_TAIL(blk) 64 Latin1
+						file/to-local-path as red-file! value str no
+						len: len + 1 + string/rs-length? str
 						value: value + 1
 					]
 
@@ -360,66 +373,71 @@ clipboard: context [
 							df/pFiles: size? DROPFILES!
 							df/fWide: yes
 							p: p + df/pFiles
-							value: block/rs-head as red-block! data
-							while [value < tail] [
+							str: as red-string! block/rs-head blk
+							tail: block/rs-tail blk
+							while [str < as red-string! tail] [
 								len: -1
-								p1: as byte-ptr! unicode/to-utf16-len as red-string! value :len yes
+								p1: as byte-ptr! unicode/to-utf16-len str :len yes
 								len: len * 2 + 2
 								copy-memory p p1 len
 								p: p + len
-								value: value + 1
+								str: str + 1
 							]
 							p/1: #"^@" p/2: #"^@"
 							GlobalUnlock hMem/1
 						]
 					]
+					stack/pop 1							;-- get rid of `blk`
 				];; TYPE_BLOCK
 
 				TYPE_IMAGE	[
-					;-- put image in the "PNG" format for it's better portability
-					;; see https://stackoverflow.com/a/15691001 on rationale
-					fmts/1: RegisterClipboardFormat "PNG"
-					assert fmts/1 <> 0
-					bin: as red-binary! image/encode as red-image! data none-value IMAGE_PNG
-					len: binary/rs-length? bin
-					hMem/1: GlobalAlloc 2 len
-					if hMem/1 <> 0 [
-						p1: GlobalLock hMem/1
-						unless null? p1 [
-							copy-memory p1 binary/rs-head bin len
-							GlobalUnlock hMem/1
+					img: as red-image! data
+					if IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) > 0 [
+						;-- put image in the "PNG" format for it's better portability
+						;; see https://stackoverflow.com/a/15691001 on rationale
+						fmts/1: RegisterClipboardFormat "PNG"
+						assert fmts/1 <> 0
+						bin: as red-binary! image/encode img none-value IMAGE_PNG
+						len: binary/rs-length? bin
+						hMem/1: GlobalAlloc 2 len
+						if hMem/1 <> 0 [
+							p1: GlobalLock hMem/1
+							unless null? p1 [
+								copy-memory p1 binary/rs-head bin len
+								GlobalUnlock hMem/1
+							]
 						]
-					]
 
-					;-- also put the image in DIB format for compatibility
-					fmts/2: CF_DIBV5
-					bmdata: as BitmapData! OS-image/lock-bitmap as red-image! data no
-					assert not null? bmdata
-					len: bmdata/width * bmdata/height * 4
-					hMem/2: GlobalAlloc 2 len + size? BITMAPV5HEADER!
-					if hMem/2 <> 0 [
-						p: GlobalLock hMem/2
-						unless null? p [
-							set-memory p #"^@" size? BITMAPV5HEADER!
-							hdr: as BITMAPV5HEADER! p
-							hdr/Size: size? BITMAPV5HEADER!
-							hdr/Width: bmdata/width
-							hdr/Height: 0 - bmdata/height	;-- top-down image
-							hdr/PlanesBitCount: 00200001h	;-- 32 bpp, 1 plane
-							hdr/Compression: 3				;-- BI_BITFIELDS
-							hdr/SizeImage: len
-							hdr/AlphaMask: FF000000h
-							hdr/RedMask:   00FF0000h
-							hdr/GreenMask: 0000FF00h
-							hdr/BlueMask:  000000FFh
-							hdr/CSType: 57696E20h			;-- "Win " = LCS_WINDOWS_COLOR_SPACE
-							hdr/Intent: 4					;-- 4 = LCS_GM_IMAGES
-							assert bmdata/pixelFormat = PixelFormat32bppARGB
-							copy-memory p + hdr/Size bmdata/scan0 len
-							GlobalUnlock hMem/2
+						;-- also put the image in DIB format for compatibility
+						fmts/2: CF_DIBV5
+						bmdata: as BitmapData! OS-image/lock-bitmap img no
+						assert not null? bmdata
+						len: bmdata/width * bmdata/height * 4
+						hMem/2: GlobalAlloc 2 len + size? BITMAPV5HEADER!
+						if hMem/2 <> 0 [
+							p: GlobalLock hMem/2
+							unless null? p [
+								set-memory p #"^@" size? BITMAPV5HEADER!
+								hdr: as BITMAPV5HEADER! p
+								hdr/Size: size? BITMAPV5HEADER!
+								hdr/Width: bmdata/width
+								hdr/Height: 0 - bmdata/height	;-- top-down image
+								hdr/PlanesBitCount: 00200001h	;-- 32 bpp, 1 plane
+								hdr/Compression: 3				;-- BI_BITFIELDS
+								hdr/SizeImage: len
+								hdr/AlphaMask: FF000000h
+								hdr/RedMask:   00FF0000h
+								hdr/GreenMask: 0000FF00h
+								hdr/BlueMask:  000000FFh
+								hdr/CSType: 57696E20h			;-- "Win " = LCS_WINDOWS_COLOR_SPACE
+								hdr/Intent: 4					;-- 4 = LCS_GM_IMAGES
+								assert bmdata/pixelFormat = PixelFormat32bppARGB
+								copy-memory p + hdr/Size bmdata/scan0 len
+								GlobalUnlock hMem/2
+							]
 						]
-					]
-					OS-image/unlock-bitmap as red-image! data as integer! bmdata
+						OS-image/unlock-bitmap img as integer! bmdata
+					];; if IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) > 0
 				];; TYPE_IMAGE
 
 				default		[fire [TO_ERROR(script invalid-arg) data]]
@@ -458,7 +476,7 @@ clipboard: context [
 			;; - failed to prepare or set text or file list
 			;; - failed to prepare image in DIB format, or set it in either format
 			all [res/1 <> 0 res/2 <> 0 not null? p]
-		]
+		];; write
 	]
 	macOS [
 		#import [
