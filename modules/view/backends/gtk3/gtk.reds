@@ -1866,7 +1866,7 @@ GPtrArray!: alias struct! [
 		]
 		gtk_combo_box_set_popup_fixed_width: "gtk_combo_box_set_popup_fixed_width" [
 			combo		[handle!]
-			fixed 	[logic!]
+			fixed		[logic!]
 		]
 		gtk_notebook_new: "gtk_notebook_new" [
 			return:		[handle!]
@@ -1875,11 +1875,11 @@ GPtrArray!: alias struct! [
 			nb			[handle!]
 			pane		[handle!]
 			label		[handle!]
-			return: 	[integer!]
+			return:		[integer!]
 		]
 		gtk_notebook_get_current_page: "gtk_notebook_get_current_page" [
 			nb			[handle!]
-			return: 	[integer!]
+			return:		[integer!]
 		]
 
 		gtk_notebook_set_current_page: "gtk_notebook_set_current_page" [
@@ -1889,8 +1889,8 @@ GPtrArray!: alias struct! [
 
 		gtk_notebook_get_nth_page: "gtk_notebook_get_nth_page" [
 			nb			[handle!]
-			index	 	[integer!]
-			return: 	[handle!]
+			index		[integer!]
+			return:		[handle!]
 		]
 		gtk_notebook_get_tab_label_text: "gtk_notebook_get_tab_label_text" [
 			nb			[handle!]
@@ -1899,7 +1899,19 @@ GPtrArray!: alias struct! [
 		]
 		gtk_notebook_get_n_pages: "gtk_notebook_get_n_pages" [
 			nb			[handle!]
-			return: 	[integer!]
+			return:		[integer!]
+		]
+		gtk_notebook_remove_page: "gtk_notebook_remove_page" [
+			nb			[handle!]
+			index		[integer!]
+			return:		[integer!]
+		]
+		gtk_notebook_insert_page: "gtk_notebook_insert_page" [
+			nb			[handle!]
+			pane		[handle!]
+			label		[handle!]
+			index		[integer!]
+			return:		[integer!]
 		]
 		gtk_css_provider_new: "gtk_css_provider_new" [
 			return:		[handle!]

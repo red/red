@@ -677,8 +677,6 @@ mouse-button-release-event: func [
 		flags	[integer!]
 		ev		[integer!]
 ][
-	if draggable? widget [return 0] ; delegate to drag
-
 	sym: get-widget-symbol widget
 	if sym = field [
 		if event/button = GDK_BUTTON_PRIMARY [
@@ -749,7 +747,6 @@ mouse-button-press-event: func [
 		;; DEBUG: print ["grab focus on mouse " widget lf]
 		gtk_widget_grab_focus widget
 	]
-	if draggable? widget [return EVT_DISPATCH] ; delegate to drag
 
 	;; DEBUG: print ["with button " event/button lf]
 	if  event/button = GDK_BUTTON_SECONDARY  [
@@ -793,7 +790,6 @@ mouse-motion-notify-event: func [
 ][
 	;; DEBUG: print [ "mouse -> MOTION: " widget " x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root " drag? " draggable? widget lf]
 
-	if draggable? widget [return EVT_DISPATCH] ; delegate to drag
 	evt-motion/x_new: as-integer event/x
 	evt-motion/y_new: as-integer event/y
 	evt-motion/x_root: event/x_root
