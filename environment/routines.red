@@ -128,7 +128,7 @@ write-clipboard: routine [
 	data [any-type!] "string!, block! of files!, an image! or none!"
 	return: [logic!] "indicates success"
 ][
-	logic/box clipboard/write as red-value! data
+	clipboard/write as red-value! data
 ]
 
 write-stdout: routine ["Write data to STDOUT" data [any-type!]][			;-- internal use only
