@@ -21,6 +21,7 @@ Red/System [
 #include %menu.reds
 #include %handlers.reds
 #include %comdlgs.reds
+#include %tab-panel.reds
 
 GTKApp:			as handle! 0
 GTKApp-Ctx: 	0
@@ -42,15 +43,14 @@ css-id:				g_quark_from_string "css-id"
 size-id:			g_quark_from_string "size-id"
 real-container-id:	g_quark_from_string "real-container-id"
 menu-id:			g_quark_from_string "menu-id"
-drag-id:			g_quark_from_string "drag-id"
 no-wait-id:			g_quark_from_string "no-wait-id"
 red-event-id: 		g_quark_from_string "red-event-id"
+cursor-id:			g_quark_from_string "cursor-id"
+
+#define SET-CURSOR(s d)		[g_object_set_qdata s cursor-id d]
+#define GET-CURSOR(s)		[g_object_get_qdata s cursor-id]
 
 group-radio:	as handle! 0
-tabs: context [
-	nb: 	0
-	cur: 	0
-]
 
 settings:		as handle! 0
 pango-context:	as handle! 0
@@ -151,6 +151,20 @@ face-handle?: func [
 	null
 ]
 
+get-face-handle: func [
+	face	[red-object!]
+	return: [integer!]
+	/local
+		state [red-block!]
+		int	  [red-integer!]
+][
+	state: as red-block! get-node-facet face/ctx FACE_OBJ_STATE
+	assert TYPE_OF(state) = TYPE_BLOCK
+	int: as red-integer! block/rs-head state
+	assert TYPE_OF(int) = TYPE_HANDLE
+	int/value
+]
+
 get-widget-symbol: func [
 	widget		[handle!]
 	return:		[integer!]
@@ -249,20 +263,6 @@ container-type?: func [
 	; Option I:  any[type = rich-text type = panel type = base]
 	; Option II:
 	type = rich-text
-]
-
-set-draggable: func [
-	item		[handle!]
-	key			[logic!]
-][
-	g_object_set_qdata item drag-id as int-ptr! either key [1][0]
-]
-
-draggable?: func [
-	item		[handle!]
-	return:		[logic!]
-][
-	1 = as integer! g_object_get_qdata item drag-id
 ]
 
 set-view-no-wait: func [
@@ -978,6 +978,8 @@ init-all-children: func [
 		values	[red-value!]
 		pane	[red-block!]
 		show?	[red-logic!]
+		cursor	[handle!]
+		win		[handle!]
 		face	[red-object!]
 		tail	[red-object!]
 		child	[handle!]
@@ -987,6 +989,14 @@ init-all-children: func [
 
 	show?:	as red-logic! values + FACE_OBJ_VISIBLE?
 	gtk_widget_set_visible widget show?/value
+
+	cursor: GET-CURSOR(widget)
+	unless null? cursor [
+		win: gtk_widget_get_window widget
+		unless null? win [
+			gdk_window_set_cursor win cursor
+		]
+	]
 
 	if all [TYPE_OF(pane) = TYPE_BLOCK 0 <> block/rs-length? pane] [
 		face: as red-object! block/rs-head pane
@@ -1554,7 +1564,6 @@ parse-common-opts: func [
 		hcur	[handle!]
 		pixbuf	[handle!]
 		display	[handle!]
-		win		[handle!]
 		x		[integer!]
 		y		[integer!]
 ][
@@ -1586,8 +1595,7 @@ parse-common-opts: func [
 						]
 						hcur: gdk_cursor_new_from_name display cur
 					]
-					win: gtk_widget_get_window widget
-					gdk_window_set_cursor win hcur
+					SET-CURSOR(widget hcur)
 				]
 				true [0]
 			]
@@ -1847,8 +1855,7 @@ OS-make-view: func [
 		]
 		sym = tab-panel [
 			widget: gtk_notebook_new
-			tabs/cur: 0
-			tabs/nb: block/rs-length? data
+			set-tabs widget values
 		]
 		sym = text-list [
 			widget: gtk_list_box_new
@@ -1879,6 +1886,8 @@ OS-make-view: func [
 	; save the previous group-radio state as a global variable
 	group-radio: either sym = radio [widget][as handle! 0]
 
+	parse-common-opts widget face as red-block! values + FACE_OBJ_OPTIONS sym
+
 	;;DEBUG: print [ "New widget " get-symbol-name sym "->" widget lf]
 
 	if all [
@@ -1889,66 +1898,38 @@ OS-make-view: func [
 		either null? _widget [_widget: widget][set-_widget widget _widget ]
 		; TODO: case to replace with either if no more choice
 		;; DEBUG: print ["Parent: " get-symbol-name p-sym " _widget" _widget lf]
-		case [
-			p-sym = tab-panel [
-				container: as handle! parent
-				; widget is necessarily a panel and then same as _widget
-				data: get-widget-data container
-				str:  (as red-string! block/rs-head data) + tabs/cur
-				caption: either TYPE_OF(str) = TYPE_STRING [
-					len: -1
-					unicode/to-utf8 str :len
-				][
-					"Tab"
-				]
-				buffer: gtk_label_new caption
-				gtk_notebook_append_page container widget buffer
-				tabs/cur: tabs/cur + 1
-				if tabs/cur = tabs/nb [tabs/cur: 0 tabs/nb: 0]
-				set-container widget container
+
+		container:  as handle! case [
+			p-sym = window [
+				g_object_get_qdata as handle! parent real-container-id
 			]
-			; p-sym = panel [
-			; 	container:  as handle! parent
-			; 	;save gtk_fixed container for adjustment since size/x and size/y are not the real sizes in gtk and need to be updated in a second pass
-			; 	set-container widget container
-			; 	if sym = text [set_container _widget container]
-			; 	gtk_widget_set_size_request _widget size/x size/y
-			; 	gtk_layout_put container _widget offset/x offset/y
-			; ]
+			any [p-sym = panel p-sym = rich-text p-sym = base] [parent]
+			p-sym = group-box [
+				buffer: gtk_container_get_children as handle! parent
+				;; DEBUG: print ["Parent when not container : " buffer/value lf]
+				buffer/value
+			]
 			true [
-				container:  as handle! case [
-					p-sym = window [
-						g_object_get_qdata as handle! parent real-container-id
-					]
-					any [p-sym = panel p-sym = rich-text p-sym = base] [parent]
-					p-sym = group-box [
-						buffer: gtk_container_get_children as handle! parent
-						;; DEBUG: print ["Parent when not container : " buffer/value lf]
-						buffer/value
-					]
-					true [
-						; CAREFULL: NOT SURE THIS WAS USED PROPERLY -> for compilation of gui-console this clearly leads to a bug
-						; buffer: gtk_container_get_children as handle! parent
-						; ;; DEBUG:
-						; print ["Parent when not container : " buffer/value lf]
-						; buffer/value
+				; CAREFULL: NOT SURE THIS WAS USED PROPERLY -> for compilation of gui-console this clearly leads to a bug
+				; buffer: gtk_container_get_children as handle! parent
+				; ;; DEBUG:
+				; print ["Parent when not container : " buffer/value lf]
+				; buffer/value
 
-						;; redirect to the layout of the parent
-						;; WARNING: (since completedly changed code)
-						print ["DEVEL WARNING: <<NORMALLY NOTHING SHOULD GO HERE>>  (ONLY FOR DEVELOPMENT SINCE CODE HAS FULLY CHANGED BUT IMPOSSIBLE TO TEST) " lf]
-						container? as handle! parent
-					]
-				]
-				;; DEBUG: print ["widget (" get-symbol-name sym "):" widget "[_widget: " _widget "] with parent (" get-symbol-name p-sym ") " as handle! parent " with container (" (get-symbol-name get-widget-symbol container)  ") " container lf]
-
-				;save gtk_layout container for adjustment since size/x and size/y are not the real sizes in gtk and need to be updated in a second pass
-				set-container widget container
-				if sym = text [set-container _widget container]
-				gtk_widget_set_size_request _widget size/x size/y
-				gtk_layout_put container _widget offset/x offset/y
-				;; DEBUG: print ["make-view: _widget: " offset/x "x" offset/y "x" size/x "x" size/y lf]
+				;; redirect to the layout of the parent
+				;; WARNING: (since completedly changed code)
+				print ["DEVEL WARNING: <<NORMALLY NOTHING SHOULD GO HERE>>  (ONLY FOR DEVELOPMENT SINCE CODE HAS FULLY CHANGED BUT IMPOSSIBLE TO TEST) " lf]
+				container? as handle! parent
 			]
 		]
+		;; DEBUG: print ["widget (" get-symbol-name sym "):" widget "[_widget: " _widget "] with parent (" get-symbol-name p-sym ") " as handle! parent " with container (" (get-symbol-name get-widget-symbol container)  ") " container lf]
+
+		;save gtk_layout container for adjustment since size/x and size/y are not the real sizes in gtk and need to be updated in a second pass
+		set-container widget container
+		if sym = text [set-container _widget container]
+		gtk_widget_set_size_request _widget size/x size/y
+		gtk_layout_put container _widget offset/x offset/y
+		;; DEBUG: print ["make-view: _widget: " offset/x "x" offset/y "x" size/x "x" size/y lf]
 	]
 
 	; Deal with actors
@@ -1975,10 +1956,6 @@ OS-make-view: func [
 	if TYPE_OF(rate) <> TYPE_NONE [change-rate widget rate]
 
 	change-color widget as red-tuple! values + FACE_OBJ_COLOR sym
-
-	;-- we need first realize widget to get wdk-window, then can set cursor
-	gtk_widget_realize widget
-	parse-common-opts widget face as red-block! values + FACE_OBJ_OPTIONS sym
 
 	;; USELESS: if sym <> window [gtk_widget_show widget]
 	stack/unwind

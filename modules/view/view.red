@@ -751,7 +751,7 @@ show: function [
 			]
 			p: either with [parent/state/1][0]
 
-			#if config/OS = 'macOS [					;@@ remove this system specific code
+			#if config/OS <> 'Windows [					;@@ remove this system specific code
 				if all [face/type = 'tab-panel face/pane][
 					link-tabs-to-parent face
 					foreach f face/pane [show/force f]
