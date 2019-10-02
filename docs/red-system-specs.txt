@@ -4102,7 +4102,7 @@ will output:
  
 ---Logic!
 
-*Add logic! support for OR, XOR, AND operators (if it provides any advantage over ANY/ALL).
+*<strike>Add logic! support for OR, XOR, AND operators (if it provides any advantage over ANY/ALL).</strike>
  
 ---Integer!
 
