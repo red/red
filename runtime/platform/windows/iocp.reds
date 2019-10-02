@@ -123,18 +123,20 @@ iocp: context [
 		]
 
 		i: 0
+?? cnt
 		while [i < cnt][
 			e: p/events + i
 			data: as iocp-data! e/lpOverlapped
 			data/transferred: e/dwNumberOfBytesTransferred
-			;if all [
-			;	data/type = IOCP_TYPE_TLS
-			;	data/state and IO_STATE_TLS_DONE = 0
-			;	not tls/negotiate as tls-data! data 
-			;][
-			;	i: i + 1
-			;	continue
-			;]
+probe [data/event " " data/type " " data/state]
+			if all [
+				data/type = IOCP_TYPE_TLS
+				data/state and IO_STATE_TLS_DONE = 0
+				not tls/negotiate as tls-data! data 
+			][
+				i: i + 1
+				continue
+			]
 			data/event-handler as int-ptr! data
 			i: i + 1
 		]

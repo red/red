@@ -220,7 +220,7 @@ tcp-device: context [
 		switch TYPE_OF(value) [
 			TYPE_BINARY [
 				bin: as red-binary! value
-				io/pin-memory bin
+				io/pin-memory bin/node
 			]
 			default [return as red-value! port]
 		]
@@ -253,7 +253,7 @@ tcp-device: context [
 			binary/make-at as cell! buf SOCK_READBUF_SZ
 		]
 		buf/head: 0
-		io/pin-memory buf
+		io/pin-memory buf/node
 		s: GET_BUFFER(buf)
 		data: as iocp-data! get-tcp-data red-port
 		socket/recv as-integer data/device as byte-ptr! s/offset s/size data

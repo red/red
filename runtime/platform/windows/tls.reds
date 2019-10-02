@@ -28,10 +28,18 @@ tls-data!: alias struct! [
 	credential	[SecHandle! value]		;-- credential handle
 	security	[int-ptr!]				;-- security context handle lower
 	security2	[int-ptr!]				;-- security context handle upper
-	cert-ctx	[CERT_CONTEXT]			;-- certificate context
+	;-- SecPkgContext_StreamSizes
+	ctx-max-msg	[integer!]
+	ctx-header	[integer!]
+	ctx-trailer	[integer!]
 ]
 
 tls: context [
+	verbose: 0
+
+	cert-client: as CERT_CONTEXT 0
+	user-store: as int-ptr! 0
+	machine-store: as int-ptr! 0
 
 	sspi-flags-client: ISC_REQ_SEQUENCE_DETECT or
 		ISC_REQ_REPLAY_DETECT or
@@ -49,9 +57,9 @@ tls: context [
 		ASC_REQ_STREAM
 
 	create-credentials: func [
-		client?		[logic!]			;-- Is it client side?
-		cert-ctx	[CERT_CONTEXT]
 		hcred		[SecHandle!]		;-- OUT: Security handle in hcred
+		cert-ctx	[CERT_CONTEXT]
+		client?		[logic!]			;-- Is it client side?
 		return:		[integer!]			;-- return status code
 		/local
 			scred	[SCHANNEL_CRED value]
@@ -60,39 +68,40 @@ tls: context [
 			flags	[integer!]
 			ptr		[ptr-value!]
 	][
-		;zero-memory as byte-ptr! :scred size? SCHANNEL_CRED
-		;scred/dwVersion: 4		;-- SCHANNEL_CRED_VERSION
+		zero-memory as byte-ptr! :scred size? SCHANNEL_CRED
+		scred/dwVersion: 4		;-- SCHANNEL_CRED_VERSION
+		scred/grbitEnabledProtocols: 0800h
 
-		;if cert-ctx <> null [
-		;	ptr/value: as int-ptr! cert-ctx
-		;	scred/cCreds: 1
-		;	scred/paCred: as int-ptr! :ptr
-		;]
+		if cert-ctx <> null [
+			ptr/value: as int-ptr! cert-ctx
+			scred/cCreds: 1
+			scred/paCred: as int-ptr! :ptr
+		]
+		
+		flags: SCH_USE_STRONG_CRYPTO
+		if client? [flags: flags or SCH_CRED_NO_DEFAULT_CREDS or SCH_CRED_MANUAL_CRED_VALIDATION]
+		scred/dwFlags: flags
 
-		;flags: SCH_USE_STRONG_CRYPTO
-		;if client? [flags: flags or SCH_CRED_NO_DEFAULT_CREDS]
-		;scred/dwFlags: flags
-
-		;either client? [flags: 2][flags: 1]		;-- Credential use flags
-		;status: platform/SSPI/AcquireCredentialsHandleW
-		;	null		;-- name of principal
-		;	#u16 "Microsoft Unified Security Protocol Provider"
-		;	flags
-		;	null
-		;	as int-ptr! :scred
-		;	null
-		;	null
-		;	hcred
-		;	:expiry
-
-		;if status <> 0 [
-		;	status: GetLastError
-		;	either status = 8009030Dh [		;-- SEC_E_UNKNOWN_CREDENTIALS
-		;		status: -1					;-- needs administrator rights
-		;	][
-		;		status: -2
-		;	]
-		;]
+		either client? [flags: 2][flags: 1]		;-- Credential use flags
+		status: platform/SSPI/AcquireCredentialsHandleW
+			null		;-- name of principal
+			#u16 "Microsoft Unified Security Protocol Provider"
+			flags
+			null
+			as int-ptr! :scred
+			null
+			null
+			hcred
+			:expiry
+?? status
+		if status <> 0 [
+			status: GetLastError
+			either status = 8009030Dh [		;-- SEC_E_UNKNOWN_CREDENTIALS
+				status: -1					;-- needs administrator rights
+			][
+				status: -2
+			]
+		]
 		status
 	]
 
@@ -101,27 +110,89 @@ tls: context [
 		/local
 			buf		[red-binary!]
 	][
-		;buf: as red-binary! (object/get-values data/port) + port/field-data
-		;if TYPE_OF(buf) <> TYPE_BINARY [
-		;	binary/make-at as cell! buf MAX_SSL_MSG_LENGTH * 2
-		;]
-		;data/send-buf: buf/node
+		buf: as red-binary! (object/get-values data/port) + port/field-data
+		if TYPE_OF(buf) <> TYPE_BINARY [
+			binary/make-at as cell! buf MAX_SSL_MSG_LENGTH * 2
+		]
+		data/send-buf: buf/node
 	]
 
 	release-context: func [
 		data	[tls-data!]
 	][
-		;if SecIsValidHandle(data/credential) [
-		;	platform/SSPI/FreeCredentialsHandle data/credential
-		;]
-		;platform/SSPI/DeleteSecurityContext data/security
+		if SecIsValidHandle(data/credential) [
+			platform/SSPI/FreeCredentialsHandle data/credential
+		]
+		platform/SSPI/DeleteSecurityContext data/security
+	]
+
+	get-client-credential: func [
+		data		[tls-data!]
+		return:		[CERT_CONTEXT]
+		/local
+			issuer-list	[SecPkgContext_IssuerListInfoEx! value]
+			cred		[SecHandle! value]
+			status		[integer!]
+			cert-ctx	[CERT_CONTEXT]
+			eku			[CERT_ENHKEY_USAGE value]
+			err			[integer!]
+	][
+		;-- Read list of trusted issuers from schannel.
+		;-- 
+		;-- Note the a server will NOT send an issuer list if it has the registry key
+		;-- HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL
+		;-- has a DWORD value called SendTrustedIssuerList set to 0
+		status: platform/SSPI/QueryContextAttributesW
+			as SecHandle! :data/security
+			59h			;-- SECPKG_ATTR_ISSUER_LIST_EX
+			as byte-ptr! :issuer-list
+
+		if status <> 0 [
+			probe ["Querying issuer list info failed: " status]
+			return null
+		]
+
+		;-- Now go ask for the client credentials
+		either issuer-list/cIssuers <> 0 [
+			0		;-- TBD get certificate by issuer
+
+		][			;-- Select any valid certificate, regardless of issuer
+			user-store: CertOpenStore
+				as c-string! 10	;-- CERT_STORE_PROV_SYSTEM
+				0
+				null
+				0001C000h		;-- CERT_STORE_OPEN_EXISTING_FLAG or CERT_STORE_READONLY_FLAG or CERT_SYSTEM_STORE_CURRENT_USER
+				#u16 "My"
+
+			if null? user-store [
+				err: GetLastError
+				probe ["open Cert store error: " err]
+			]
+			cert-ctx: null
+			eku/cUsageIdentifier: 1
+			eku/rgpszUsageIdentifier: "1.3.6.1.5.5.7.3.2"		;-- szOID_PKIX_KP_CLIENT_AUTH
+			while [
+				cert-ctx: CertFindCertificateInStore
+					user-store
+					1			;-- X509_ASN_ENCODING
+					1			;-- CERT_FIND_OPTIONAL_ENHKEY_USAGE_FLAG
+					000A0000h	;-- CERT_FIND_ENHKEY_USAGE
+					as byte-ptr! :eku
+					cert-ctx
+				cert-ctx <> null
+			][
+				return cert-ctx
+			]
+		]
+		null
 	]
 
 	negotiate: func [
 		data		[tls-data!]
 		return:		[logic!]
 		/local
-			indesc		[SecBufferDesc! value]
+			_indesc		[SecBufferDesc! value]
+			indesc		[SecBufferDesc!]
 			outdesc		[SecBufferDesc! value]
 			outbuf-1	[SecBuffer!]
 			outbuf-2	[SecBuffer!]
@@ -138,163 +209,292 @@ tls: context [
 			s			[series!]
 			client?		[logic!]
 			state		[integer!]
+			credential	[SecHandle! value]
+			ctx-size	[SecPkgContext_StreamSizes value]
 	][
-;		state: data/iocp/state
-;		client?: state and IO_STATE_CLIENT <> 0
+		state: data/iocp/state
+		client?: state and IO_STATE_CLIENT <> 0
 
-;		;-- allocate 2 SecBuffer! on stack for buffer
-;		inbuf-1: as SecBuffer! system/stack/allocate (size? SecBuffer!) >> 1
-;		inbuf-2: inbuf-1 + 1
-;		outbuf-1: as SecBuffer! system/stack/allocate (size? SecBuffer!) >> 1
-;		outbuf-2: outbuf-1 + 1
+		;-- allocate 2 SecBuffer! on stack for buffer
+		inbuf-1: as SecBuffer! system/stack/allocate (size? SecBuffer!) >> 1
+		inbuf-2: inbuf-1 + 1
+		outbuf-1: as SecBuffer! system/stack/allocate (size? SecBuffer!) >> 1
+		outbuf-2: outbuf-1 + 1
 
-;		buflen: data/buf-len
+		buflen: data/buf-len
+?? buflen
+		if data/iocp/event = IO_EVT_READ [
+			buflen: data/iocp/transferred
+		]
 
-;		if data/iocp/event = IO_EVT_READ [
-;			buflen: data/iocp/transferred
-;		]
+		if state and IO_STATE_READING <> 0 [
+			s: as series! data/send-buf/value
+			pbuffer: as byte-ptr! s/offset
+			data/iocp/state: state and (not IO_STATE_READING)
+			socket/recv
+						as-integer data/iocp/device
+						pbuffer + buflen
+						MAX_SSL_MSG_LENGTH * 2 - buflen
+						as iocp-data! data 
+			return false
+		]
 
-;		if state and IO_STATE_READING <> 0 [
-;			s: as series! data/send-buf/value
-;			pbuffer: as byte-ptr! s/offset
-;			data/iocp/state: state and (not IO_STATE_READING)
-;			socket/recv
-;						as-integer data/iocp/device
-;						pbuffer + buflen
-;						MAX_SSL_MSG_LENGTH * 2 - buflen
-;						as iocp-data! data 
-;			return false
-;		]
+?? buflen
+probe [data/security " " data/credential]
+		indesc: as SecBufferDesc! :_indesc
 
-;		forever [
-;			;-- setup input buffers
-;			inbuf-1/BufferType: 2		;-- SECBUFFER_TOKEN
-;			inbuf-1/cbBuffer: buflen
-;			inbuf-2/BufferType: 0		;-- SECBUFFER_EMPTY
-;			inbuf-2/cbBuffer: 0
-;			inbuf-2/pvBuffer: null
-;			indesc/ulVersion: 0
-;			indesc/cBuffers: 2
-;			indesc/pBuffers: inbuf-1
+		forever [
+			;-- setup input buffers
+			inbuf-1/BufferType: 2		;-- SECBUFFER_TOKEN
+			inbuf-1/cbBuffer: buflen
+			inbuf-2/BufferType: 0		;-- SECBUFFER_EMPTY
+			inbuf-2/cbBuffer: 0
+			inbuf-2/pvBuffer: null
+			indesc/ulVersion: 0
+			indesc/cBuffers: 2
+			indesc/pBuffers: inbuf-1
 
-;			;-- setup output buffers
-;			outbuf-1/BufferType: 2
-;			outbuf-1/cbBuffer: 0
-;			outbuf-1/pvBuffer: null
-;			outdesc/ulVersion: 0
-;			outdesc/cBuffers: 1
-;			outdesc/pBuffers: outbuf-1
+			;-- setup output buffers
+			outbuf-1/BufferType: 2
+			outbuf-1/cbBuffer: 0
+			outbuf-1/pvBuffer: null
+			outdesc/ulVersion: 0
+			outdesc/cBuffers: 1
+			outdesc/pBuffers: outbuf-1
 
-;			pbuffer: null
-;			either zero? data/security [
-;				create data
-;				sec-handle: null
-;				sec-handle2: as SecHandle! :data/security
-;				if client? [indesc: null]
-;				inbuf-1/pvBuffer: null
-;				io/pin-memory data/send-buf
-;			][
-;				sec-handle: as SecHandle! :data/security
-;				sec-handle2: null
-;				s: as series! data/send-buf/value
-;				pbuffer: as byte-ptr! s/offset
-;				inbuf-1/pvBuffer: pbuffer
-;			]
+			pbuffer: null
+			either null? data/security [
+				create data
+				create-credentials as SecHandle! :data/credential null client?
+				sec-handle: null
+				sec-handle2: as SecHandle! :data/security
+				if client? [indesc: null]
+				inbuf-1/pvBuffer: null
+				io/pin-memory data/send-buf
+			][
+				sec-handle: as SecHandle! :data/security
+				sec-handle2: null
+				s: as series! data/send-buf/value
+				pbuffer: as byte-ptr! s/offset
+				inbuf-1/pvBuffer: pbuffer
+			]
 
-;			attr: 0
-;			either client? [
-;				ret: platform/SSPI/InitializeSecurityContext
-;					data/credential
-;					sec-handle
-;					0
-;					sspi-flags-client
-;					0
-;					10h			;-- SECURITY_NATIVE_DREP
-;					indesc
-;					0
-;					sec-handle2
-;					outdesc
-;					:attr
-;					:expiry
-;			][
-;				outbuf-2/BufferType: 0		;-- SECBUFFER_EMPTY
-;				outbuf-2/cbBuffer: 0
-;				outbuf-2/pvBuffer: null
-;				outdesc/cBuffers: 2
-;				ret: platform/SSPI/AcceptSecurityContext
-;					data/credential
-;					sec-handle
-;					indesc
-;					sspi-flags-server
-;					0
-;					sec-handle2
-;					outdesc
-;					:attr
-;					:expiry
-;			]
+			attr: 0
+?? client?
+?? sec-handle
+?? indesc
+?? outdesc
+?? sec-handle2
+probe [data/credential/dwLower " " data/credential/dwUpper]
+			either client? [
+				ret: platform/SSPI/InitializeSecurityContextW
+					data/credential
+					sec-handle
+					null
+					sspi-flags-client
+					0
+					10h			;-- SECURITY_NATIVE_DREP
+					indesc
+					0
+					sec-handle2
+					outdesc
+					:attr
+					:expiry
+?? ret
+			][
+				outbuf-2/BufferType: 0		;-- SECBUFFER_EMPTY
+				outbuf-2/cbBuffer: 0
+				outbuf-2/pvBuffer: null
+				outdesc/cBuffers: 2
+				ret: platform/SSPI/AcceptSecurityContext
+					data/credential
+					sec-handle
+					indesc
+					sspi-flags-server
+					0
+					sec-handle2
+					outdesc
+					:attr
+					:expiry
+			]
 
-;probe ["ret: " as int-ptr! ret]
-;			switch ret [
-;				SEC_I_CONTINUE_NEEDED [
-;					;-- this error means that information we provided in contextData is not enough to generate SSL token.
-;					;-- We'll ask other party for more information by sending our unfinished "token",
-;					;-- and then we will start all over - from the response that we'll get from the other party.
-;					extra-buf: inbuf-2
-;					if all [
-;						not client?
-;						inbuf-2/BufferType <> 5		;-- SECBUFFER_EXTRA
-;					][
-;						extra-buf: outbuf-2
-;					]
-;					if all [
-;						extra-buf/BufferType = 5
-;						extra-buf/cbBuffer > 0
-;					][
-;						;-- part of data is digested and is not needed to be supplied again.
-;						;-- So we shift our leftover into the beginning
-;						move-memory pbuffer pbuffer + (buflen - extra-buf/cbBuffer) extra-buf/cbBuffer
-;						buflen: cbBuffer
-;						data/buf-len: buflen
-;						continue		;-- start all over again
-;					]
-;					if all [
-;						outbuf-1/cbBuffer > 0
-;						outbuf-1/pvBuffer <> null
-;					][
-;						if 0 > socket/send
-;							as-integer data/iocp/device
-;							outbuf-1/pvBuffer
-;							outbuf-1/cbBuffer
-;							as iocp-data! data [
-;							platform/SSPI/FreeContextBuffer outbuf-1/pvBuffer
-;							release-context data
-;						]
-;						data/iocp/state: state or IO_STATE_READING
-;					]
-;				]
-;				SEC_E_INCOMPLETE_MESSAGE [
-;					socket/recv
-;						as-integer data/iocp/device
-;						pbuffer + buflen
-;						MAX_SSL_MSG_LENGTH * 2 - buflen
-;						as iocp-data! data
-;					return false
-;				]
-;				SEC_I_INCOMPLETE_CREDENTIALS [return false]
-;				0	[		;-- S_OK
-;					either client? [
-;						data/event: IO_EVT_CONNECT
-;					][
-;						data/event: IO_EVT_ACCEPT
-;					]
-;					return true
-;				]
-;				default [
-;					probe ["InitializeSecurityContext Error " ret]
-;					return false
-;				]
-;			]
-;		]
+probe ["ret: " as int-ptr! ret]
+			switch ret [
+				SEC_I_CONTINUE_NEEDED [
+					;-- this error means that information we provided in contextData is not enough to generate SSL token.
+					;-- We'll ask other party for more information by sending our unfinished "token",
+					;-- and then we will start all over - from the response that we'll get from the other party.
+					extra-buf: inbuf-2
+					if all [
+						not client?
+						inbuf-2/BufferType <> 5		;-- SECBUFFER_EXTRA
+					][
+						extra-buf: outbuf-2
+					]
+probe outbuf-1/cbBuffer
+dump4 outbuf-1/pvBuffer
+					if all [
+						outbuf-1/cbBuffer > 0
+						outbuf-1/pvBuffer <> null
+					][
+						data/iocp/state: state or IO_STATE_READING
+						if 0 > socket/send
+							as-integer data/iocp/device
+							outbuf-1/pvBuffer
+							outbuf-1/cbBuffer
+							as iocp-data! data [
+probe "errororjejdlskfjkldjaflkdsjf"
+							platform/SSPI/FreeContextBuffer outbuf-1/pvBuffer
+							release-context data
+						]
+					]
+probe ["extra-buf: " extra-buf/BufferType]
+					either all [
+						extra-buf/BufferType = 5
+						extra-buf/cbBuffer > 0
+					][
+						;-- part of data is digested and is not needed to be supplied again.
+						;-- So we shift our leftover into the beginning
+						move-memory pbuffer pbuffer + (buflen - extra-buf/cbBuffer) extra-buf/cbBuffer
+						buflen: extra-buf/cbBuffer
+						data/buf-len: buflen
+						continue		;-- start all over again
+					][return false]
+				]
+				SEC_E_INCOMPLETE_MESSAGE [
+					socket/recv
+						as-integer data/iocp/device
+						pbuffer + buflen
+						MAX_SSL_MSG_LENGTH * 2 - buflen
+						as iocp-data! data
+					data/iocp/state: state and (not IO_STATE_READING)
+					return false
+				]
+				SEC_E_INCOMPLETE_CREDENTIALS [
+					cert-client: get-client-credential data
+					if null? cert-client [return false]
+					create-credentials as SecHandle! :data/credential cert-client client? 
+				]
+				0 [		;-- S_OK
+probe "OK>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
+					data/iocp/state: state or IO_STATE_TLS_DONE
+					platform/SSPI/QueryContextAttributesW
+						sec-handle
+						4			;-- SECPKG_ATTR_STREAM_SIZES
+						as byte-ptr! :ctx-size
+probe [
+	ctx-size/cbHeader " " ctx-size/cbTrailer " " ctx-size/cbMaximumMessage " " ctx-size/cBuffers
+	" " ctx-size/cbBlockSize
+]
+					data/ctx-max-msg: ctx-size/cbMaximumMessage
+					data/ctx-header: ctx-size/cbHeader
+					data/ctx-trailer: ctx-size/cbTrailer
+
+					either client? [
+						data/iocp/event: IO_EVT_CONNECT
+					][
+						data/iocp/event: IO_EVT_ACCEPT
+					]
+					return true
+				]
+				default [
+					probe ["InitializeSecurityContext Error " ret]
+					return false
+				]
+			]
+		]
 		false
+	]
+
+	encode: func [
+		output	[byte-ptr!]
+		buffer	[byte-ptr!]
+		length	[integer!]
+		data	[tls-data!]
+		return: [integer!]
+		/local
+			buffer4	[secbuffer! value]
+			buffer3	[secbuffer! value]
+			buffer2	[SecBuffer! value]
+			buffer1	[SecBuffer! value]
+			sbin	[SecBufferDesc! value]
+			size	[integer!]
+			len2	[integer!]
+			max-len	[integer!]
+			status	[integer!]
+			out-sz	[integer!]
+	][
+		copy-memory output + data/ctx-header buffer length
+		size: 0
+		out-sz: 0
+		max-len: data/ctx-max-msg
+		while [size < length][
+			len2: length - size
+			if len2 > max-len [len2: max-len]
+
+			buffer1/BufferType: 7		;-- SECBUFFER_STREAM_HEADER
+			buffer1/cbBuffer: data/ctx-header
+			buffer1/pvBuffer: output
+
+			output: output + data/ctx-header
+			buffer2/BufferType: 1		;-- SECBUFFER_DATA
+			buffer2/cbBuffer: len2
+			buffer2/pvBuffer: output
+
+			buffer3/BufferType: 6		;-- SECBUFFER_STREAM_TRAILER
+			buffer3/cbBuffer: data/ctx-trailer
+			buffer3/pvBuffer: output + len2
+
+			buffer4/BufferType: 0		;-- SECBUFFER_EMPTY
+			buffer4/cbBuffer: 0
+			buffer4/pvBuffer: null
+
+			sbin/ulVersion: 0
+			sbin/pBuffers: :buffer1
+			sbin/cBuffers: 4
+
+			status: platform/SSPI/EncryptMessage
+				as SecHandle! :data/security
+				0
+				sbin
+				0
+			?? status
+			if status <> 0 [return 0]
+probe ["buffer size: " buffer1/cbBuffer " " buffer2/cbBuffer " " buffer3/cbBuffer]
+			out-sz: buffer1/cbBuffer + buffer2/cbBuffer + buffer3/cbBuffer
+			size: size + len2
+		]
+		out-sz
+	]
+
+	send: func [
+		sock		[integer!]
+		buffer		[byte-ptr!]
+		length		[integer!]
+		data		[tls-data!]
+		return:		[integer!]
+		/local
+			wsbuf	[WSABUF! value]
+			err		[integer!]
+			outbuf	[byte-ptr!]
+			s		[series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "tls/send"]]
+
+		s: as series! data/send-buf/value
+		outbuf: as byte-ptr! s/offset
+?? length
+		length: encode outbuf buffer length data
+?? length
+		wsbuf/len: length
+		wsbuf/buf: outbuf
+		data/iocp/event: IO_EVT_WRITE
+
+		unless zero? WSASend sock :wsbuf 1 null 0 as OVERLAPPED! data null [	;-- error
+			err: GetLastError
+			?? err
+			either ERROR_IO_PENDING = err [return ERROR_IO_PENDING][return -1]
+		]
+		0
 	]
 ]

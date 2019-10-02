@@ -408,6 +408,24 @@ SecBufferDesc!: alias struct! [
 	pBuffers	[SecBuffer!]
 ]
 
+SecPkgContext_IssuerListInfoEx!: alias struct! [
+	aIssuers	[int-ptr!]
+	cIssuers	[integer!]
+]
+
+SecPkgContext_StreamSizes: alias struct! [
+	cbHeader			[integer!]
+	cbTrailer			[integer!]
+	cbMaximumMessage	[integer!]
+	cBuffers			[integer!]
+	cbBlockSize			[integer!]
+]
+
+CERT_ENHKEY_USAGE: alias struct! [
+	cUsageIdentifier		[integer!]
+	rgpszUsageIdentifier	[c-string!]
+]
+
 AcquireCredentialsHandleW!: alias function! [
 	pszPrincipal		[c-string!]
 	pszPackage			[c-string!]
@@ -422,7 +440,7 @@ AcquireCredentialsHandleW!: alias function! [
 ]
 
 FreeCredentialsHandle!: alias function! [
-	phCredential		[int-ptr!]
+	phCredential		[SecHandle!]
 	return:				[integer!]
 ]
 
@@ -461,7 +479,7 @@ DeleteSecurityContext!: alias function! [
 ]
 
 FreeContextBuffer!: alias function! [
-	pvContextBuffer		[int-ptr!]
+	pvContextBuffer		[byte-ptr!]
 	return:				[integer!]
 ]
 
@@ -1010,6 +1028,25 @@ SecurityFunctionTableW: alias struct! [
 	"secur32.dll" stdcall [
 		InitSecurityInterfaceW: "InitSecurityInterfaceW" [
 			return: [SecurityFunctionTableW]
+		]
+	]
+	"crypt32.dll" stdcall [
+		CertOpenStore: "CertOpenStore" [
+			lpszStoreProvider	[c-string!]
+			dwEncodingType		[integer!]
+			hCryptProv			[int-ptr!]
+			dwFlags				[integer!]
+			pvPara				[c-string!]
+			return:				[int-ptr!]
+		]
+		CertFindCertificateInStore: "CertFindCertificateInStore" [
+			hCertStore			[int-ptr!]
+			dwCertEncodingType	[integer!]
+			dwFindFlags			[integer!]
+			dwFindType			[integer!]
+			pvFindPara			[byte-ptr!]
+			pPrevCertContext	[CERT_CONTEXT]
+			return:				[CERT_CONTEXT]
 		]
 	]
 ]

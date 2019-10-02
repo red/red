@@ -139,5 +139,5 @@ io: context [
 ]
 
 #include %devices/tcp.reds
-;#include %devices/tls.reds
-;#include %devices/udp.reds
+#include %devices/tls.reds
+#include %devices/udp.reds

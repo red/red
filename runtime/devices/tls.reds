@@ -234,13 +234,22 @@ TLS-device: context [
 		]
 
 		data: get-tcp-data port
-		data/send-buf: bin/node
 
-		socket/send
-			as-integer data/iocp/device
-			binary/rs-head bin
-			binary/rs-length? bin
-			as iocp-data! data
+		#either OS = 'Windows [
+			data/send-buf: alloc-bytes 96 + binary/rs-length? bin
+			tls/send
+				as-integer data/iocp/device
+				binary/rs-head bin
+				binary/rs-length? bin
+				as tls-data! data
+		][
+			data/send-buf: bin/node
+			socket/send
+				as-integer data/iocp/device
+				binary/rs-head bin
+				binary/rs-length? bin
+				as iocp-data! data
+		]
 		as red-value! port
 	]
 

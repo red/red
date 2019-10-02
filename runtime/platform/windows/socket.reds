@@ -98,6 +98,7 @@ socket: context [
 		data		[iocp-data!]
 		/local
 			n		[integer!]
+			ret		[integer!]
 			saddr	[sockaddr_in! value]
 			ConnectEx [ConnectEx!]
 	][
@@ -109,7 +110,9 @@ socket: context [
 		saddr/sa_data1: 0
 		saddr/sa_data2: 0
 		ConnectEx: as ConnectEx! ConnectEx-func
-		ConnectEx sock as int-ptr! :saddr size? saddr null 0 :n as int-ptr! data
+?? sock
+		ret: ConnectEx sock as int-ptr! :saddr size? saddr null 0 :n as int-ptr! data
+?? ret		
 	]
 
 	send: func [
@@ -120,14 +123,18 @@ socket: context [
 		return:		[integer!]
 		/local
 			wsbuf	[WSABUF! value]
+			err		[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "socket/write"]]
 
 		wsbuf/len: length
 		wsbuf/buf: buffer
 		data/event: IO_EVT_WRITE
+
 		unless zero? WSASend sock :wsbuf 1 null 0 as OVERLAPPED! data null [	;-- error
-			either ERROR_IO_PENDING = GetLastError [return ERROR_IO_PENDING][return -1]
+			err: GetLastError
+			?? err
+			either ERROR_IO_PENDING = err [return ERROR_IO_PENDING][return -1]
 		]
 		0
 	]

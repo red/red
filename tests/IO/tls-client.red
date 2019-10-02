@@ -13,14 +13,12 @@ total: 0.0
 
 print "Secure TCP client"
 
-client: open tls://127.0.0.1:8123
-
-b: make binary! size: 80000
-loop size [append b random 255]
-insert b skip (to binary! length? b) 4
+client: open tls://127.0.0.1:49503
 
 start: now/precise
 mbps: "?"
+
+b: to-binary "Hello Red"
 
 client/awake: func [event /local port] [
     debug ["=== Client event:" event/type]
@@ -28,26 +26,8 @@ client/awake: func [event /local port] [
     switch event/type [
         connect [insert port b]
         read [
-	        ;probe "client read done"
-            either port/data/1 = 15 [
-                count: count + 1
-                total: total + size + 4
-                if count // 1000 = 0 [
-                    t: to float! difference now/precise start
-                    mbps: round (total / t * 8 / 1024 / 1024)
-                ]
-                debug [count round (total / 1024 / 1024) "MB" mbps "Mbps"]
-                either count < max-count [
-                    insert port b
-                ][
-                    close port
-                    return true
-                ]
-            ][
-                copy port
-            ]
         ]
-        wrote [copy port]
+        wrote []
     ]
     false
 ]
