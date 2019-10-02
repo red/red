@@ -882,6 +882,9 @@ system-dialect: make-profilable context [
 						next next reduce ['array! length? value 'pointer! type]	;-- hide array size
 					]
 				]
+				binary! [
+					next next reduce ['array! length? value 'pointer! [byte!]]
+				]
 				issue!	 [
 					either find float-special next value [[float!]][
 						throw-error ["invalid special float value:" mold value]
@@ -3567,6 +3570,7 @@ system-dialect: make-profilable context [
 				integer!	[do pass]
 				string!		[do pass]
 				decimal!	[do pass]
+				binary!		[do pass]
 				block!		[also preprocess-array pc/1 pc: next pc]
 				issue!		[either pc/1/1 = #"." [do pass][comp-directive]]
 			][
