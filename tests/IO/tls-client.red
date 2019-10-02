@@ -26,8 +26,10 @@ client/awake: func [event /local port] [
     switch event/type [
         connect [insert port b]
         read [
+	        probe length? port/data
+	        probe to-string port/data
         ]
-        wrote []
+        wrote [copy port]
     ]
     false
 ]

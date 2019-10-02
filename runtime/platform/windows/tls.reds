@@ -332,7 +332,6 @@ probe ["ret: " as int-ptr! ret]
 						extra-buf: outbuf-2
 					]
 probe outbuf-1/cbBuffer
-dump4 outbuf-1/pvBuffer
 					if all [
 						outbuf-1/cbBuffer > 0
 						outbuf-1/pvBuffer <> null
@@ -389,6 +388,11 @@ probe [
 					data/ctx-max-msg: ctx-size/cbMaximumMessage
 					data/ctx-header: ctx-size/cbHeader
 					data/ctx-trailer: ctx-size/cbTrailer
+
+					either client? [extra-buf: inbuf-2][extra-buf: outbuf-2]
+					if extra-buf/BufferType = 5 [
+						probe "fjdksafjkldsajf0000000000000000000000000000000000000000"
+					]
 
 					either client? [
 						data/iocp/event: IO_EVT_CONNECT
@@ -496,5 +500,74 @@ probe ["buffer size: " buffer1/cbBuffer " " buffer2/cbBuffer " " buffer3/cbBuffe
 			either ERROR_IO_PENDING = err [return ERROR_IO_PENDING][return -1]
 		]
 		0
+	]
+
+	decode: func [
+		data	[tls-data!]
+		return: [logic!]
+		/local
+			bin	[red-binary!]
+			s	[series!]
+			len [integer!]
+			buffer4	[secbuffer! value]
+			buffer3	[secbuffer! value]
+			buffer2	[SecBuffer! value]
+			buffer1	[SecBuffer! value]
+			sbin	[SecBufferDesc! value]
+			size	[integer!]
+			len2	[integer!]
+			max-len	[integer!]
+			status	[integer!]
+			out-sz	[integer!]
+			buf		[SecBuffer!]
+			i		[integer!]
+	][
+		bin: as red-binary! (object/get-values as red-object! :data/port) + port/field-data
+		s: GET_BUFFER(bin)
+
+		buffer1/BufferType: 1		;-- SECBUFFER_DATA
+		buffer1/cbBuffer: data/iocp/transferred
+		buffer1/pvBuffer: as byte-ptr! s/offset
+dump4 buffer1/pvBuffer
+ 
+		buffer2/BufferType: 0
+		buffer3/BufferType: 0
+		buffer4/BufferType: 0		;-- SECBUFFER_EMPTY
+
+		sbin/ulVersion: 0
+		sbin/pBuffers: :buffer1
+		sbin/cBuffers: 4
+
+		status: platform/SSPI/DecryptMessage
+			as SecHandle! :data/security
+			sbin
+			0
+			null
+probe as int-ptr! status
+		switch status [
+			0	[		;-- Wow! success!
+				len: 0
+				buf: :buffer1
+				loop 4 [
+					probe ["BufferType: " buf/BufferType]
+					probe ["cbBuffer: " buf/cbBuffer " " buf/pvBuffer]
+					if buf/BufferType = 1 [
+						copy-memory (as byte-ptr! s/offset) + len buf/pvBuffer buf/cbBuffer
+						len: len + buf/cbBuffer
+					]
+					buf: buf + 1
+				]
+			]
+			SEC_E_INCOMPLETE_MESSAGE [
+				
+				0
+			]
+			00090317h [		;-- SEC_I_CONTEXT_EXPIRED
+				0
+			]
+			default [probe ["error in tls/decode: " as int-ptr! status]]
+		]
+	data/iocp/transferred: len
+		true
 	]
 ]
