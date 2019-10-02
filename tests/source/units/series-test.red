@@ -1422,8 +1422,8 @@ Red [
 	--test-- "sort-blk-3"
 		a: ["Larry" 45 "Curly" 50 "Mo" 42]
 		--assert ["Mo" 42 "Larry" 45 "Curly" 50] = sort/skip/compare a 2 2
-		--assert ["Mo" 42 "Larry" 45 "Curly" 50] = sort/skip/compare a 2 func [a b][a < b]
-		--assert ["Curly" 50 "Larry" 45 "Mo" 42] = sort/skip/compare/all a 2 func [a b][a/2 < b/2]
+		--assert ["Curly" 50 "Larry" 45 "Mo" 42] = sort/skip/compare a 2 func [a b][a < b]
+		--assert ["Mo" 42 "Larry" 45 "Curly" 50] = sort/skip/compare/all a 2 func [a b][a/2 < b/2]
 
 	--test-- "sort-blk-4"
 		o1: context [a: 2 i: "a"]
@@ -1437,6 +1437,17 @@ Red [
 		a: reduce [o1 o2 o3 o8 o4 o5 o6 o7]
 		res: reduce [o2 o3 o4 o5 o6 o1 o8 o7]
 		--assert res = sort/compare/stable a func [a b][b/a - a/a]
+		
+	--test-- "sort-blk-5"
+		--assert [1 3 2] = sort/compare [1 3 2] func [a b] [-5]
+		--assert [2 3 1] = sort/compare [1 3 2] func [a b] [5]
+		--assert [6 5 4 3 2 1] = sort/compare [1 2 3 4 5 6] func [a b] [5]
+		--assert [1 2 3 4 5 6] = sort/compare [1 2 3 4 5 6] func [a b] [-5]
+		--assert [1 2 3] = sort/compare [1 3 2] func [a b] [a < b]
+		--assert [3 2 1] = sort/compare [1 3 2] func [a b] [a > b]
+		--assert [1 2 3 4 5 6] = sort/compare [1 2 3 4 5 6] func [a b] [a < b]
+		--assert [6 5 4 3 2 1] = sort/compare [1 2 3 4 5 6] func [a b] [a > b]
+		
 ===end-group===
 
 ===start-group=== "path access"	
