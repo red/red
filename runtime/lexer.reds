@@ -85,44 +85,44 @@ lexer: context [
 		T_TAG
 		T_URL
 		T_EMAIL
-		T_PATH	
+		T_PATH
 	]
 	
 	#enum character-classes! [
-		C_BLANK    
-		C_LINE     
-		C_DIGIT    
-		C_ZERO     
-		C_BLOCK_OP 
-		C_BLOCK_CL 
-		C_PAREN_OP 
-		C_PAREN_CL 
+		C_BLANK
+		C_LINE
+		C_DIGIT
+		C_ZERO
+		C_BLOCK_OP
+		C_BLOCK_CL
+		C_PAREN_OP
+		C_PAREN_CL
 		C_STRING_OP
 		C_STRING_CL
 		C_DBL_QUOTE
-		C_SHARP    
-		C_QUOTE    
-		C_COLON    
-		C_X        
-		C_EXP      
-		C_ALPHAX   
-		C_SLASH    
-		C_BSLASH   
-		C_LESSER   
-		C_GREATER  
-		C_PERCENT  
-		C_COMMA    
-		C_SEMICOL  
-		C_AT       
-		C_DOT      
-		C_MONEY    
-		C_SIGN     
-		C_CARET    
-		C_UCS2     
-		C_UCS4     
-		C_NO_OP    
-		C_WORD     
-		C_ILLEGAL  
+		C_SHARP
+		C_QUOTE
+		C_COLON
+		C_X
+		C_EXP
+		C_ALPHAX
+		C_SLASH
+		C_BSLASH
+		C_LESSER
+		C_GREATER
+		C_PERCENT
+		C_COMMA
+		C_SEMICOL
+		C_AT
+		C_DOT
+		C_MONEY
+		C_SIGN
+		C_CARET
+		C_UCS2
+		C_UCS4
+		C_NO_OP
+		C_WORD
+		C_ILLEGAL
 		C_EOF
 	]
 	
