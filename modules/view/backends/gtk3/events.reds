@@ -78,7 +78,7 @@ get-event-window: func [
 ][
 	;; DEBUG: print ["get-event-windows: " evt/type " " evt/msg lf]
 	handle: gtk_widget_get_toplevel as handle! evt/msg
-	as red-value! get-face-obj handle
+	as red-value! g_object_get_qdata handle red-face-id
 ]
 
 get-event-offset: func [
@@ -574,39 +574,6 @@ debug-connect-level: DEBUG_CONNECT_NONE
 
 debug-connect?: func [level [integer!] return: [logic!]][debug-connect-level and level <> 0]
 
-connect-container-events: func [
-	widget		[handle!]
-	evt-type	[c-string!]
-	/local
-		container		[handle!]
-		id 				[integer!]
-][
-	container: container? widget
-	unless null? container [
-		;; DEBUG: if debug-connect? DEBUG_CONNECT_COMMON [print ["connect-container-events " container " " evt-type lf]]
-		case [
-			0 = g_strcmp0 evt-type "button-press-event" [
-				gtk_widget_add_events container GDK_BUTTON_PRESS_MASK
-			]
-			0 = g_strcmp0 evt-type  "motion-notify-event" [
-				gtk_widget_add_events container GDK_BUTTON1_MOTION_MASK or GDK_POINTER_MOTION_MASK
-			]
-			0 = g_strcmp0 evt-type  "button-release-event" [
-				gtk_widget_add_events container GDK_BUTTON_RELEASE_MASK
-			]
-			0 = g_strcmp0 evt-type  "enter-notify-event" [ ; normally unused
-				gtk_widget_add_events container GDK_ENTER_NOTIFY_MASK
-			]
-			0 = g_strcmp0 evt-type  "leave-notify-event" [ ; normally unused
-				gtk_widget_add_events container GDK_LEAVE_NOTIFY_MASK
-			]
-			true [0]
-		]
-		if null? container [print ["container null for connection with " widget " " evt-type lf]]
-		id: gobj_signal_connect(container evt-type :container-delegate-to-children null)
-	]
-]
-
 ;; TODO: before finding better solution!!!!
 ;; container-type? is now only restricted to rich-text (cf gui.red)
 ;; since
@@ -615,133 +582,110 @@ connect-container-events: func [
 
 connect-common-events: function [
 	widget		[handle!]
-	face		[red-object!]
-	sym			[integer!]
+	data		[int-ptr!]
 ][
 	assert widget <> null
-
-
 	gtk_widget_add_events widget GDK_BUTTON_PRESS_MASK
-	if container-type? sym [
-		;; Bubbling does not work for rich-text so delegation to the parent with EVT_DISPATCH
-		connect-container-events widget "button-press-event"
-	]
-	gobj_signal_connect(widget "button-press-event" :mouse-button-press-event face/ctx)
+	gobj_signal_connect(widget "button-press-event" :mouse-button-press-event data)
 	
 	gtk_widget_add_events widget GDK_BUTTON1_MOTION_MASK or GDK_POINTER_MOTION_MASK
-	if container-type? sym [
-		;; Bubbling does not work for rich-text so delegation to the parent with EVT_DISPATCH
-		connect-container-events widget "motion-notify-event"
-	]
-	gobj_signal_connect(widget "motion-notify-event" :mouse-motion-notify-event face/ctx)
+	gobj_signal_connect(widget "motion-notify-event" :mouse-motion-notify-event data)
 
 
-	gtk_widget_add_events widget  GDK_BUTTON_RELEASE_MASK
-	if container-type? sym [
-		;; Bubbling does not work for rich-text so delegation to the parent with EVT_DISPATCH
-		connect-container-events widget "button-release-event"
-	]
-	gobj_signal_connect(widget "button-release-event" :mouse-button-release-event face/ctx)
+	gtk_widget_add_events widget GDK_BUTTON_RELEASE_MASK
+	gobj_signal_connect(widget "button-release-event" :mouse-button-release-event data)
 
-	gtk_widget_add_events widget  GDK_KEY_PRESS_MASK or GDK_FOCUS_CHANGE_MASK
-	gobj_signal_connect(widget "key-press-event" :key-press-event face/ctx)
+	gtk_widget_add_events widget GDK_KEY_PRESS_MASK or GDK_FOCUS_CHANGE_MASK
+	gobj_signal_connect(widget "key-press-event" :key-press-event data)
 
 	gtk_widget_add_events widget GDK_KEY_RELEASE_MASK
-	gobj_signal_connect(widget "key-release-event" :key-release-event face/ctx)
-
+	gobj_signal_connect(widget "key-release-event" :key-release-event data)
 
 	gtk_widget_add_events widget GDK_SCROLL_MASK
-	if container-type? sym [
-		;; Bubbling does not work for rich-text so delegation to the parent with EVT_DISPATCH
-		connect-container-events widget "scroll-event"
-	]
-	gobj_signal_connect(widget "scroll-event" :widget-scroll-event face/ctx)
+	gobj_signal_connect(widget "scroll-event" :widget-scroll-event data)
 ]
 
 connect-focus-events: function [
 	widget		[handle!]
-	face		[red-object!]
-	sym			[integer!]
+	data		[int-ptr!]
 ][
-	gobj_signal_connect(widget "focus-in-event" :focus-in-event face/ctx)
-	gobj_signal_connect(widget "focus-out-event" :focus-out-event face/ctx)
+	assert widget <> null
+	gobj_signal_connect(widget "focus-in-event" :focus-in-event data)
+	gobj_signal_connect(widget "focus-out-event" :focus-out-event data)
 ]
 
 connect-notify-events: function [
 	widget		[handle!]
-	face		[red-object!]
-	sym			[integer!]
+	data		[int-ptr!]
 ][
 	assert widget <> null
-	if sym = text [widget: _widget? widget]
 	gtk_widget_add_events widget GDK_ENTER_NOTIFY_MASK or GDK_LEAVE_NOTIFY_MASK
-	gobj_signal_connect(widget "enter-notify-event" :widget-enter-notify-event face/ctx)
-	gobj_signal_connect(widget "leave-notify-event" :widget-leave-notify-event face/ctx)
+	gobj_signal_connect(widget "enter-notify-event" :widget-enter-notify-event data)
+	gobj_signal_connect(widget "leave-notify-event" :widget-leave-notify-event data)
 ]
 
 connect-widget-events: function [
 	widget		[handle!]
-	face		[red-object!]
 	sym			[integer!]
-	_widget		[handle!]
-	parent		[handle!]
+	evbox		[handle!]
 	/local
 		buffer	[handle!]
 ][
-	;; register red mouse, key and window on event functions
-	connect-common-events widget face sym
+	;; register red mouse, key event functions
+	connect-common-events evbox widget
 
 	case [
 		sym = check [
 			;@@ No click event for check
 			;gobj_signal_connect(widget "clicked" :button-clicked null)
-			gobj_signal_connect(widget "toggled" :button-toggled face/ctx)
+			gobj_signal_connect(evbox "toggled" :button-toggled widget)
 		]
 		sym = radio [
 			;@@ Line below removed because it generates an error and there is no click event for radio
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add radio toggled " lf]]
-			gobj_signal_connect(widget "toggled" :button-toggled face/ctx)
+			gobj_signal_connect(evbox "toggled" :button-toggled widget)
 		]
 		sym = button [
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add button clicked " lf]]
-			gobj_signal_connect(widget "clicked" :button-clicked null)
+			gobj_signal_connect(evbox "clicked" :button-clicked widget)
 		]
 		sym = base [
-			gobj_signal_connect(widget "draw" :base-draw face/ctx)
-			gtk_widget_add_events widget GDK_BUTTON_PRESS_MASK or GDK_BUTTON1_MOTION_MASK or GDK_BUTTON_RELEASE_MASK or GDK_KEY_PRESS_MASK or GDK_KEY_RELEASE_MASK
-			gtk_widget_set_can_focus widget yes
-			gtk_widget_set_focus_on_click widget yes
+			gobj_signal_connect(evbox "draw" :base-draw widget)
+			gtk_widget_add_events evbox GDK_BUTTON_PRESS_MASK or GDK_BUTTON1_MOTION_MASK or GDK_BUTTON_RELEASE_MASK or GDK_KEY_PRESS_MASK or GDK_KEY_RELEASE_MASK
+			gtk_widget_set_can_focus evbox yes
+			gtk_widget_set_focus_on_click evbox yes
 		]
 		sym = rich-text [
-			gobj_signal_connect(widget "draw" :base-draw face/ctx)
+			gobj_signal_connect(widget "draw" :base-draw widget)
 			gtk_widget_add_events widget GDK_BUTTON_PRESS_MASK or GDK_BUTTON1_MOTION_MASK or GDK_BUTTON_RELEASE_MASK or GDK_KEY_PRESS_MASK or GDK_KEY_RELEASE_MASK
 			gtk_widget_set_can_focus widget yes
 			gtk_widget_set_focus_on_click widget yes
 			gtk_widget_is_focus widget
 			gtk_widget_grab_focus widget
-			connect-focus-events widget face sym
+			connect-focus-events widget widget
 		]
 		sym = window [
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add window delete-event " lf]]
-			gobj_signal_connect(widget "delete-event" :window-delete-event null)
+			gobj_signal_connect(evbox "delete-event" :window-delete-event widget)
 			;BUG (make `vid.red` failing): gtk_widget_add_events widget GDK_STRUCTURE_MASK
-			gobj_signal_connect(widget "configure-event" :window-configure-event null)
+			gobj_signal_connect(evbox "configure-event" :window-configure-event widget)
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add window size-allocate " lf]]
-			gobj_signal_connect(widget "size-allocate" :window-size-allocate null)
-			connect-focus-events widget face sym
+			gobj_signal_connect(evbox "size-allocate" :window-size-allocate widget)
+			connect-focus-events evbox widget
 		]
 		sym = slider [
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add slider value-changed " lf]]
-			gobj_signal_connect(widget "value-changed" :range-value-changed face/ctx)
+			gobj_signal_connect(evbox "value-changed" :range-value-changed widget)
 		]
 		sym = text [0]
 		sym = field [
-			gobj_signal_connect(widget "changed" :field-changed widget)
-			gtk_widget_set_can_focus widget yes
-			gtk_widget_set_focus_on_click widget yes
-			gtk_widget_is_focus widget
-			gtk_widget_grab_focus widget
-			connect-focus-events widget face sym
+			buffer: gtk_entry_get_buffer widget
+			gobj_signal_connect(buffer "changed" :field-changed widget)
+			gtk_widget_set_can_focus evbox yes
+			gtk_widget_set_focus_on_click evbox yes
+			gtk_widget_is_focus evbox
+			gtk_widget_grab_focus evbox
+			connect-focus-events evbox widget
 		]
 		sym = progress [
 			0
@@ -752,32 +696,32 @@ connect-widget-events: function [
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add area changed " lf]]
 			gobj_signal_connect(buffer "changed" :area-changed widget)
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add area populate-all " lf]]
-			g_object_set [widget "populate-all" yes null]
+			g_object_set [evbox "populate-all" yes widget]
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add area populate-popup" lf]]
-			gobj_signal_connect(widget "populate-popup" :area-populate-popup face/ctx)
-			gtk_widget_set_can_focus widget yes
-			gtk_widget_set_focus_on_click widget yes
-			gtk_widget_is_focus widget
-			gtk_widget_grab_focus widget
-			connect-focus-events widget face sym
+			gobj_signal_connect(evbox "populate-popup" :area-populate-popup widget)
+			gtk_widget_set_can_focus evbox yes
+			gtk_widget_set_focus_on_click evbox yes
+			gtk_widget_is_focus evbox
+			gtk_widget_grab_focus evbox
+			connect-focus-events evbox widget
 		]
 		sym = group-box [
 			0
 		]
 		sym = panel [
-			gobj_signal_connect(widget "draw" :base-draw face/ctx)
-			gtk_widget_add_events widget GDK_BUTTON_PRESS_MASK or GDK_BUTTON1_MOTION_MASK or GDK_BUTTON_RELEASE_MASK or GDK_KEY_PRESS_MASK or GDK_KEY_RELEASE_MASK or GDK_FOCUS_CHANGE_MASK
-			gtk_widget_set_can_focus widget yes
-			gtk_widget_set_focus_on_click widget yes
+			gobj_signal_connect(evbox "draw" :base-draw widget)
+			gtk_widget_add_events evbox GDK_BUTTON_PRESS_MASK or GDK_BUTTON1_MOTION_MASK or GDK_BUTTON_RELEASE_MASK or GDK_KEY_PRESS_MASK or GDK_KEY_RELEASE_MASK or GDK_FOCUS_CHANGE_MASK
+			gtk_widget_set_can_focus evbox yes
+			gtk_widget_set_focus_on_click evbox yes
 		]
 		sym = tab-panel [
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add tab-panel switch-page " lf]]
-			gobj_signal_connect(widget "switch-page" :tab-panel-switch-page face/ctx)
+			gobj_signal_connect(evbox "switch-page" :tab-panel-switch-page widget)
 		]
 		sym = text-list [
 			;;; Mandatory and can respond to  (ON_SELECT or ON_CHANGE)
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add text-list selected-rows-changed " lf]]
-			gobj_signal_connect(widget "selected-rows-changed" :text-list-selected-rows-changed face/ctx)
+			gobj_signal_connect(evbox "selected-rows-changed" :text-list-selected-rows-changed widget)
 		]
 		any [
 			sym = drop-list
@@ -785,9 +729,9 @@ connect-widget-events: function [
 		][
 			;;; Mandatory! and can respond to (ON_SELECT or ON_CHANGE)
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add drop-(list|down) changed " lf]]
-			gobj_signal_connect(widget "changed" :combo-selection-changed face/ctx)
+			gobj_signal_connect(evbox "changed" :combo-selection-changed widget)
 		]
 		true [0]
 	]
-	connect-notify-events widget face sym
+	connect-notify-events evbox widget
 ]

@@ -56,22 +56,22 @@ set-text: func [
 
 button-clicked: func [
 	[cdecl]
+	evbox		[handle!]
 	widget		[handle!]
-	ctx			[node!]
 ][
 	make-event widget 0 EVT_CLICK
 ]
 
 button-toggled: func [
 	[cdecl]
+	evbox		[handle!]
 	button		[handle!]
-	ctx			[node!]
 	/local
 		bool	[red-logic!]
 		type	[integer!]
 		undetermined? [logic!]
 ][
-	bool: as red-logic! get-node-facet ctx FACE_OBJ_DATA
+	bool: (as red-logic! get-face-values button) + FACE_OBJ_DATA
 	undetermined?: gtk_toggle_button_get_inconsistent button
 
 	either undetermined? [
@@ -198,9 +198,9 @@ render-text: func [
 
 base-draw: func [
 	[cdecl]
-	widget		[handle!]
+	evbox		[handle!]
 	cr			[handle!]
-	ctx			[node!]
+	widget		[handle!]
 	return:		[logic!]
 	/local
 		vals	[red-value!]
@@ -216,7 +216,7 @@ base-draw: func [
 ][
 	;; DEBUG: print ["base-draw " widget " " gtk_widget_get_allocated_width widget "x" gtk_widget_get_allocated_height widget lf]
 
-	vals: get-node-values ctx
+	vals: get-face-values widget
 	img:  as red-image! vals + FACE_OBJ_IMAGE
 	draw: as red-block! vals + FACE_OBJ_DRAW
 	clr:  as red-tuple! vals + FACE_OBJ_COLOR
@@ -247,10 +247,10 @@ base-draw: func [
 	case [
 		sym = base [render-text cr size vals]
 		sym = rich-text [
-			;; DEBUG: print ["base-draw (rich-text)" widget " face " get-face-obj widget lf]
+			;; DEBUG: print ["base-draw (rich-text)" widget " face " GET-RED-FACE widget lf]
 			pos/x: 0 pos/y: 0
 			init-draw-ctx :DC cr
-			draw-text-box :DC :pos get-face-obj widget yes
+			draw-text-box :DC :pos GET-RED-FACE(widget) yes
 		]
 		true []
 	]
@@ -306,8 +306,9 @@ window-removed-event: func [
 ;; BUG: `vid.red` fails... back with window-size-allocate handler for resizing
 window-configure-event: func [
 	[cdecl]
-	widget		[handle!]
+	evbox		[handle!]
 	event		[GdkEventConfigure!]
+	widget		[handle!]
 	/local
 		sz		[red-pair!]
 		offset	[red-pair!]
@@ -331,8 +332,9 @@ window-configure-event: func [
 
 window-size-allocate: func [
 	[cdecl]
-	widget		[handle!]
+	evbox		[handle!]
 	rect		[tagRECT]
+	widget		[handle!]
 	/local
 		sz		[red-pair!]
 ][
@@ -346,7 +348,7 @@ window-size-allocate: func [
 range-value-changed: func [
 	[cdecl]
 	range		[handle!]
-	ctx			[node!]
+	widget		[handle!]
 	/local
 		vals	[red-value!]
 		val		[float!]
@@ -358,7 +360,7 @@ range-value-changed: func [
 ][
 	; This event happens on GtkRange widgets including GtkScale.
 	; Will any other widget need this?
-	vals: get-node-values ctx
+	vals: get-face-values widget
 	;type:	as red-word!	vals + FACE_OBJ_TYPE
 	size:	as red-pair!	vals + FACE_OBJ_SIZE
 	pos:	as red-float!	vals + FACE_OBJ_DATA
@@ -380,19 +382,21 @@ range-value-changed: func [
 
 combo-selection-changed: func [
 	[cdecl]
+	evbox		[handle!]
 	widget		[handle!]
-	ctx			[node!]
 	/local
 		idx		[integer!]
 		res		[integer!]
 		text	[c-string!]
+		face	[red-object!]
 ][
 	idx: gtk_combo_box_get_active widget
 	if idx >= 0 [
+		face: GET-RED-FACE(widget)
 		res: make-event widget idx + 1 EVT_SELECT
-		set-selected widget ctx idx + 1
+		set-selected widget face/ctx idx + 1
 		text: gtk_combo_box_text_get_active_text widget
-		set-text widget ctx text
+		set-text widget face/ctx text
 		if res = EVT_DISPATCH [
 			make-event widget idx + 1 EVT_CHANGE
 		]
@@ -401,22 +405,24 @@ combo-selection-changed: func [
 
 text-list-selected-rows-changed: func [
 	[cdecl]
+	evbox		[handle!]
 	widget		[handle!]
-	ctx			[node!]
 	/local
 		idx		[integer!]
 		sel		[handle!]
 		res		[integer!]
 		text	[c-string!]
+		face	[red-object!]
 ][
 	; From now, only single-selection mode
 	sel: gtk_list_box_get_selected_row widget
 	idx: either null? sel [-1][gtk_list_box_row_get_index sel]
 	if idx >= 0 [
+		face: GET-RED-FACE(widget)
 		res: make-event widget idx + 1 EVT_SELECT
-		set-selected widget ctx idx + 1
+		set-selected widget face/ctx idx + 1
 		text: gtk_label_get_text gtk_bin_get_child sel
-		set-text widget ctx text
+		set-text widget face/ctx text
 		if res = EVT_DISPATCH [
 			make-event widget idx + 1 EVT_CHANGE
 		]
@@ -425,19 +431,21 @@ text-list-selected-rows-changed: func [
 
 tab-panel-switch-page: func [
 	[cdecl]
-	widget		[handle!]
+	evbox		[handle!]
 	page		[handle!]
 	idx			[integer!]
-	ctx			[node!]
+	widget		[handle!]
 	/local
 		res		[integer!]
 		text	[c-string!]
+		face	[red-object!]
 ][
 	if idx >= 0 [
+		face: GET-RED-FACE(widget)
 		res: make-event widget idx + 1 EVT_SELECT
-		set-selected widget ctx idx + 1
+		set-selected widget face/ctx idx + 1
 		text: gtk_notebook_get_tab_label_text widget page
-		set-text widget ctx text
+		set-text widget face/ctx text
 		if res = EVT_DISPATCH [
 			make-event widget idx + 1 EVT_CHANGE
 		]
@@ -447,9 +455,9 @@ tab-panel-switch-page: func [
 ; Do not use key-press-event since character would not be printed!
 key-press-event: func [
 	[cdecl]
-	widget		[handle!]
+	evbox		[handle!]
 	event-key	[GdkEventKey!]
-	ctx			[node!]
+	widget		[handle!]
 	return:		[integer!]
 	/local
 		res		[integer!]
@@ -488,9 +496,9 @@ key-press-event: func [
 
 key-release-event: func [
 	[cdecl]
-	widget		[handle!]
+	evbox		[handle!]
 	event-key	[GdkEventKey!]
-	ctx			[node!]
+	widget		[handle!]
 	return:		[integer!]
 	/local
 		key		[integer!]
@@ -509,13 +517,11 @@ field-changed: func [
 	widget		[handle!]
 	/local
 		text	[c-string!]
-		qdata	[handle!]
 		face	[red-object!]
 ][
 	text: gtk_entry_get_text widget
-	qdata: g_object_get_qdata widget red-face-id
-	unless null? qdata [
-		face: as red-object! qdata
+	face: GET-RED-FACE(widget)
+	unless null? face [
 		set-text widget face/ctx text
 		make-event widget 0 EVT_CHANGE
 	]
@@ -523,18 +529,18 @@ field-changed: func [
 
 focus-in-event: func [
 	[cdecl]
-	widget		[handle!]
+	evbox		[handle!]
 	event		[handle!]
-	ctx			[node!]
+	widget		[handle!]
 ][
 	make-event widget 0 EVT_FOCUS
 ]
 
 focus-out-event: func [
 	[cdecl]
-	widget		[handle!]
+	evbox		[handle!]
 	event		[handle!]
-	ctx			[node!]
+	widget		[handle!]
 ][
 	make-event widget 0 EVT_UNFOCUS
 ]
@@ -546,16 +552,14 @@ area-changed: func [
 	/local
 		text	[c-string!]
 		face	[red-object!]
-		qdata	[handle!]
 		start	[GtkTextIter! value]
 		end		[GtkTextIter! value]
 ][
 	; Weirdly, GtkTextIter introduced since I did not simplest solution to get the full content of a GtkTextBuffer!
 	gtk_text_buffer_get_bounds buffer as handle! start as handle! end
 	text: gtk_text_buffer_get_text buffer as handle! start as handle! end no
-	qdata: g_object_get_qdata widget red-face-id
-	unless null? qdata [
-		face: as red-object! qdata
+	face: GET-RED-FACE(widget)
+	unless null? face [
 		set-text widget face/ctx text
 		make-event widget 0 EVT_CHANGE
 	]
@@ -563,14 +567,16 @@ area-changed: func [
 
 area-populate-popup: func [
 	[cdecl]
-	widget		[handle!]
+	evbox		[handle!]
 	hMenu		[handle!]
-	ctx 		[node!]
+	widget		[handle!]
 	/local
+		values	[red-value!]
 		menu	[red-block!]
 ][
+	values: get-face-values widget
+	menu: as red-block! values + FACE_OBJ_MENU
 	;; DEBUG: print ["populate menu for " widget " and menu " hMenu lf]
-	menu: as red-block! get-node-facet ctx FACE_OBJ_MENU
 	append-context-menu menu hMenu widget
 ]
 
@@ -596,9 +602,9 @@ red-timer-action: func [
 
 widget-enter-notify-event: func [
 	[cdecl]
-	widget		[handle!]
+	evbox		[handle!]
 	event		[GdkEventCrossing!]
-	ctx			[node!]
+	widget		[handle!]
 	return:		[integer!]
 	/local
 		flags	[integer!]
@@ -612,9 +618,9 @@ widget-enter-notify-event: func [
 
 widget-leave-notify-event: func [
 	[cdecl]
-	widget		[handle!]
+	evbox		[handle!]
 	event		[GdkEventCrossing!]
-	ctx			[node!]
+	widget		[handle!]
 	return:		[integer!]
 	/local
 		flags	[integer!]
@@ -625,46 +631,11 @@ widget-leave-notify-event: func [
 	0;;no
 ]
 
-container-emit-event: func [
-	[cdecl]
-	widget		[handle!]
-	event		[int-ptr!]
-	/local
-		rect	[tagRECT]
-		evt		[GdkEventButton!]
-		x		[integer!]
-		y		[integer!]
-][
-	evt: as GdkEventButton! event
-	x: as-integer evt/x y: as-integer evt/y
-	rect: 	as tagRECT allocate (size? tagRECT)
-	gtk_widget_get_allocation widget as handle! rect
-
-	;; DEBUG: if evt/type = GDK_BUTTON_PRESS [print ["emit event " widget lf]]
-	if all[x >= rect/x x <= (rect/x + rect/width) y >= rect/y y <= (rect/y + rect/height)][
-		;; DEBUG: if evt/type = GDK_BUTTON_PRESS [print ["emit2 event " widget " event " evt/x "x" evt/y lf "widget size " rect/x "x" rect/y "x" rect/width "x" rect/height lf]]
-		gtk_widget_event real-widget? widget event
-	]
-	free as byte-ptr! rect
-]
-
-container-delegate-to-children: func [
-	[cdecl]
-	widget		[handle!]
-	event		[int-ptr!]
-	ctx			[node!]
-	return:		[integer!]
-][
-	;; DEBUG: print [ "parent -> CONTAINER DELEGATE: " widget lf]
-	gtk_container_foreach widget as-integer :container-emit-event event
-	EVT_DISPATCH
-]
-
 mouse-button-release-event: func [
 	[cdecl]
-	widget		[handle!]
+	evbox		[handle!]
 	event		[GdkEventButton!]
-	ctx			[node!]
+	widget		[handle!]
 	return:		[integer!]
 	/local
 		sym		[integer!]
@@ -728,9 +699,9 @@ mouse-button-release-event: func [
 
 mouse-button-press-event: func [
 	[cdecl]
-	widget		[handle!]
+	evbox		[handle!]
 	event		[GdkEventButton!]
-	ctx			[node!]
+	widget		[handle!]
 	return:		[integer!]
 	/local
 		sym		[integer!]
@@ -777,9 +748,9 @@ mouse-button-press-event: func [
 
 mouse-motion-notify-event: func [
 	[cdecl]
-	widget		[handle!]
+	evbox		[handle!]
 	event		[GdkEventMotion!]
-	ctx			[node!]
+	widget		[handle!]
 	return:		[integer!]
 	/local
 		offset	[red-pair!]
@@ -817,9 +788,9 @@ menu-item-activate: func [
 
 widget-scroll-event: func [
 	[cdecl]
-	widget		[handle!]
+	evbox		[handle!]
 	event		[GdkEventScroll!]
-	ctx			[node!]
+	widget		[handle!]
 	return:		[integer!]
 	/local
 		state	[integer!]

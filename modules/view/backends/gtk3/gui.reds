@@ -10,6 +10,13 @@ Red/System [
 	}
 ]
 
+#define SET-RED-FACE(s d)	[g_object_set_qdata s red-face-id d]
+#define GET-RED-FACE(s)		[as red-object! g_object_get_qdata s red-face-id]
+#define SET-CURSOR(s d)		[g_object_set_qdata s cursor-id d]
+#define GET-CURSOR(s)		[g_object_get_qdata s cursor-id]
+#define SET-EVENT-BOX(s d)	[g_object_set_qdata s event-box-id d]
+#define GET-EVENT-BOX(s)	[g_object_get_qdata s event-box-id]
+
 #include %../keycodes.reds
 #include %gtk.reds
 #include %events.reds
@@ -35,7 +42,7 @@ AppMainMenu:	as handle! 0
 ;; Identifiers for qdata
 red-face-id: 		g_quark_from_string "red-face-id"
 gtk-style-id: 		g_quark_from_string "gtk-style-id"
-_widget-id:			g_quark_from_string "_widget-id"
+event-box-id:		g_quark_from_string "event-box-id"
 real-widget-id:		g_quark_from_string "real-widget-id"
 gtk-container-id:	g_quark_from_string "gtk-container-id"
 red-timer-id:		g_quark_from_string "red-timer-id"
@@ -46,9 +53,6 @@ menu-id:			g_quark_from_string "menu-id"
 no-wait-id:			g_quark_from_string "no-wait-id"
 red-event-id: 		g_quark_from_string "red-event-id"
 cursor-id:			g_quark_from_string "cursor-id"
-
-#define SET-CURSOR(s d)		[g_object_set_qdata s cursor-id d]
-#define GET-CURSOR(s)		[g_object_get_qdata s cursor-id]
 
 group-radio:	as handle! 0
 
@@ -71,49 +75,25 @@ screen-size-y:	0
 get-face-obj: func [
 	handle		[handle!]
 	return:		[red-object!]
-	/local
-		face	[red-object!]
-		qdata	[handle!]
 ][
-	face: as red-object! 0
-	unless null? handle [
-		qdata: g_object_get_qdata handle red-face-id
-		unless null? qdata [
-			face: as red-object! qdata
-		]
-	]
-	face
+	GET-RED-FACE(handle)
 ]
 
 get-face-values: func [
 	handle		[handle!]
 	return:		[red-value!]
 	/local
-		face	[red-object!]
-		qdata	[handle!]
 		values	[red-value!]
+		face	[red-object!]
 ][
 	values: as red-value! 0
 	unless null? handle [
-		qdata: g_object_get_qdata handle red-face-id
-		unless null? qdata [
-			face: as red-object! qdata
+		face: GET-RED-FACE(handle)
+		unless null? face [
 			values: object/get-values face
 		]
 	]
 	values
-]
-
-get-node-values: func [
-	node		[node!]
-	return:		[red-value!]
-	/local
-		ctx		[red-context!]
-		s		[series!]
-][
-	ctx: TO_CTX(node)
-	s: as series! ctx/values/value
-	s/offset
 ]
 
 get-node-facet: func [
@@ -190,22 +170,15 @@ get-widget-data: func [
 ]
 
 ;; GTK basic widget is often embedded in some super widget in order to be contained in some layout widget
-set-_widget: func [
-	widget		[handle!]
-	_widget		[handle!]
-][
-	g_object_set_qdata widget _widget-id _widget
-]
-
-_widget?: func [
+event-box?: func [
 	widget		[handle!]
 	return:		[handle!]
 	/local
-		_widget	[handle!]
+		evbox	[handle!]
 ][
-	_widget: g_object_get_qdata widget _widget-id
-	if null? _widget [_widget: widget]
-	return _widget
+	evbox: g_object_get_qdata widget event-box-id
+	if null? evbox [evbox: widget]
+	return evbox
 ]
 
 ;; Used to delegate event (see handlers.red) for widget that have container for scrollbar (like rich-text)
@@ -488,7 +461,7 @@ debug-show-children: func [
 			; if next widget is on the right of the previous one or there is no overlapping dx becomes 0
 
 			unless null? container [
-				widget_: _widget? child
+				widget_: event-box? child
 
 				gtk_widget_get_allocation widget_ as handle! rect
 				; rmk: rect/x and rect/y are absolute coordinates when offset/x and offset/y are relative coordinates
@@ -633,7 +606,7 @@ adjust-sizes: func [
 				; if next widget is on the right of the previous one or there is no overlapping dx becomes 0
 				if any [ox > offset/x not overlap?] [dx: 0]
 				unless null? container [
-					widget_: _widget? child
+					widget_: event-box? child
 					if debug [ print ["move child: " offset/x "+" dx "("  offset/x + dx ")" " " offset/y lf]]
 					gtk_layout_move container widget_ offset/x + dx  offset/y
 					gtk_widget_get_allocation widget_ as handle! rect
@@ -805,7 +778,7 @@ change-color: func [
 	; ]
 	case [
 		type = area [
-			face: get-face-obj widget
+			face: GET-RED-FACE(widget)
 			font: face-font? face
 			apply-css-styles widget face font type
 			; widget: objc_msgSend [widget sel_getUid "documentView"]
@@ -815,7 +788,7 @@ change-color: func [
 		]
 		true [
 			;; DEBUG: print ["change-color " widget lf]
-			face: get-face-obj widget
+			face: GET-RED-FACE(widget)
 			font: face-font? face
 			apply-css-styles widget face font type
 		]
@@ -830,7 +803,7 @@ change-pane: func [
 		face	[red-object!]
 		tail	[red-object!]
 		widget	[handle!]
-		_widget	[handle!]
+		evbox	[handle!]
 		nb		[integer!]
 		s		[series!]
 		values	[red-value!]
@@ -864,13 +837,13 @@ change-pane: func [
 			if TYPE_OF(face) = TYPE_OBJECT [
 				widget: face-handle? face
 				if widget <> null [
-					_widget: _widget? widget
+					evbox: event-box? widget
 					nb: nb + 1
-					;; DEBUG: print ["add widget" nb ": " widget "(" _widget ") to " parent lf]
-					gtk_container_add parent _widget
+					;; DEBUG: print ["add widget" nb ": " widget "(" evbox ") to " parent lf]
+					gtk_container_add parent evbox
 					values: object/get-values face
 					offset: as red-pair! values + FACE_OBJ_OFFSET
-					gtk_layout_move parent _widget offset/x  offset/y
+					gtk_layout_move parent evbox offset/x  offset/y
 				]
 			]
 			face: face + 1
@@ -925,7 +898,7 @@ change-offset: func [
 	type		[integer!]
 	/local
 		container	[handle!]
-		_widget		[handle!]
+		evbox		[handle!]
 ][
 	;; DEBUG: print ["change-offset type: " get-symbol-name get-widget-symbol widget " " widget " " pos/x "x" pos/y lf]
 	either type = window [
@@ -939,10 +912,10 @@ change-offset: func [
 			; 	g_object_get_qdata widget _widget-id
 			; ][widget]
 
-			_widget: _widget? widget
+			evbox: event-box? widget
 			unless null? container [
-				gtk_layout_move container _widget pos/x pos/y
-				gtk_widget_queue_draw _widget
+				gtk_layout_move container evbox pos/x pos/y
+				gtk_widget_queue_draw evbox
 			]
 		]
 	]
@@ -953,7 +926,7 @@ change-size: func [
 	size		[red-pair!]
 	type		[integer!]
 	/local
-		_widget	[handle!]
+		evbox	[handle!]
 ][
 	;; DEBUG: print ["change-size " get-symbol-name get-widget-symbol widget " " widget " " size/x "x" size/y lf]
 
@@ -964,9 +937,9 @@ change-size: func [
 		gtk_widget_queue_draw widget
 	][
 		 unless null? widget [
-			_widget: _widget? widget
-			gtk_widget_set_size_request _widget size/x size/y
-			unless null? _widget [gtk_widget_queue_resize _widget]
+			evbox: event-box? widget
+			gtk_widget_set_size_request evbox size/x size/y
+			gtk_widget_queue_resize evbox
 		]
 	]
 
@@ -1669,7 +1642,7 @@ OS-make-view: func [
 		caption		[c-string!]
 		len			[integer!]
 		widget		[handle!]
-		_widget		[handle!]
+		evbox		[handle!]
 		winbox		[handle!]
 		buffer		[handle!]
 		container	[handle!]
@@ -1683,7 +1656,7 @@ OS-make-view: func [
 
 	values: object/get-values face
 
-	_widget: as handle! 0 ; widget version with possible scrollview
+	evbox: as handle! 0 ; widget version with possible scrollview
 
 	type:	  as red-word!		values + FACE_OBJ_TYPE
 	str:	  as red-string!	values + FACE_OBJ_TEXT
@@ -1744,10 +1717,10 @@ OS-make-view: func [
 		sym = rich-text [
 			widget: gtk_layout_new null null;gtk_drawing_area_new
 			gtk_layout_set_size widget size/x size/y
-			_widget: gtk_scrolled_window_new null null
-			set-real-widget _widget widget
-			;; DEBUG: print ["rich-text _widget: " _widget lf]
-			gtk_container_add _widget widget
+			evbox: gtk_scrolled_window_new null null
+			set-real-widget evbox widget
+			;; DEBUG: print ["rich-text evbox: " evbox lf]
+			gtk_container_add evbox widget
 		]
 		sym = window [
 			;; DEBUG: print ["win App " GTKApp lf]
@@ -1811,8 +1784,8 @@ OS-make-view: func [
 		sym = text [
 			widget: gtk_label_new caption
 			;; gtk_label_set_width_chars widget ???
-			_widget: gtk_event_box_new null null
-			gtk_container_add _widget widget
+			evbox: gtk_event_box_new null null
+			gtk_container_add evbox widget
 		]
 		sym = field [
 			widget: gtk_entry_new
@@ -1835,8 +1808,8 @@ OS-make-view: func [
 			widget: gtk_text_view_new
 			buffer: gtk_text_view_get_buffer widget
 			unless null? caption [gtk_text_buffer_set_text buffer caption -1]
-			_widget: gtk_scrolled_window_new null null
-			gtk_container_add _widget widget
+			evbox: gtk_scrolled_window_new null null
+			gtk_container_add evbox widget
 		]
 		sym = group-box [
 			widget: gtk_frame_new caption
@@ -1861,11 +1834,11 @@ OS-make-view: func [
 			widget: gtk_list_box_new
 			init-text-list widget data
 			;gtk_list_box_select_row widget gtk_list_box_get_row_at_index widget 0
-			_widget: gtk_scrolled_window_new null null
+			evbox: gtk_scrolled_window_new null null
 			if bits and FACET_FLAGS_NO_BORDER = 0 [
-				gtk_scrolled_window_set_shadow_type _widget 3
+				gtk_scrolled_window_set_shadow_type evbox 3
 			]
-			gtk_container_add _widget widget
+			gtk_container_add evbox widget
 		]
 		any [
 			sym = drop-list
@@ -1890,14 +1863,14 @@ OS-make-view: func [
 
 	;;DEBUG: print [ "New widget " get-symbol-name sym "->" widget lf]
 
+	either null? evbox [evbox: widget][SET-EVENT-BOX(widget evbox)]
 	if all [
 		sym <> window
 		parent <> 0
 	][
 		p-sym: get-widget-symbol as handle! parent
-		either null? _widget [_widget: widget][set-_widget widget _widget ]
 		; TODO: case to replace with either if no more choice
-		;; DEBUG: print ["Parent: " get-symbol-name p-sym " _widget" _widget lf]
+		;; DEBUG: print ["Parent: " get-symbol-name p-sym " evbox" evbox lf]
 
 		container:  as handle! case [
 			p-sym = window [
@@ -1922,25 +1895,25 @@ OS-make-view: func [
 				container? as handle! parent
 			]
 		]
-		;; DEBUG: print ["widget (" get-symbol-name sym "):" widget "[_widget: " _widget "] with parent (" get-symbol-name p-sym ") " as handle! parent " with container (" (get-symbol-name get-widget-symbol container)  ") " container lf]
+		;; DEBUG: print ["widget (" get-symbol-name sym "):" widget "[evbox: " evbox "] with parent (" get-symbol-name p-sym ") " as handle! parent " with container (" (get-symbol-name get-widget-symbol container)  ") " container lf]
 
 		;save gtk_layout container for adjustment since size/x and size/y are not the real sizes in gtk and need to be updated in a second pass
 		set-container widget container
-		if sym = text [set-container _widget container]
-		gtk_widget_set_size_request _widget size/x size/y
-		gtk_layout_put container _widget offset/x offset/y
-		;; DEBUG: print ["make-view: _widget: " offset/x "x" offset/y "x" size/x "x" size/y lf]
+		if sym = text [set-container evbox container]
+		gtk_widget_set_size_request evbox size/x size/y
+		gtk_layout_put container evbox offset/x offset/y
+		;; DEBUG: print ["make-view: evbox: " offset/x "x" offset/y "x" size/x "x" size/y lf]
 	]
 
 	; Deal with actors
-	connect-widget-events widget face sym _widget as int-ptr! parent
+	connect-widget-events widget sym evbox
 
 	unless any[sym = window sym = area][build-context-menu widget menu]
 
 	;-- store the face value in the extra space of the window struct
 	assert TYPE_OF(face) = TYPE_OBJECT					;-- detect corruptions caused by CreateWindow unwanted events
 	store-face-to-obj widget face
-	if sym = text [store-face-to-obj _widget face]
+	if sym = text [store-face-to-obj evbox face]
 
 	change-selection widget as red-integer! values + FACE_OBJ_SELECTED sym
 	change-para widget face as red-object! values + FACE_OBJ_PARA font sym
