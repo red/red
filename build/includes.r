@@ -40,11 +40,6 @@ write %build/bin/sources.r set-cache [
 			%png.red
 			%csv.red
 			%json.red
-			%json/ [
-				%common.red
-				%load-json.red
-				%to-json.red
-			]
 		]
 		%console/ [
 			%auto-complete.red
