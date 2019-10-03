@@ -1,7 +1,79 @@
 Red/System [
     Note: "Auto-generated lexical scanner transitions table"
 ] 
-    transitions: #{
+    #enum lex-states! [
+        S_START 
+        S_BLANK 
+        S_LINE_CMT 
+        S_LINE_STR 
+        S_SKIP_STR 
+        S_M_STRING 
+        S_SKIP_MSTR 
+        S_FILE_1ST 
+        S_FILE 
+        S_SKIP_FILE 
+        S_SLASH 
+        S_SHARP 
+        S_BINARY 
+        S_LINE_CMT2 
+        S_CHAR 
+        S_SKIP_CHAR 
+        S_CONSTRUCT 
+        S_ISSUE 
+        S_NUMBER 
+        S_DOTNUM 
+        S_DECIMAL 
+        S_DEC_SPECIAL 
+        S_TUPLE 
+        S_DATE 
+        S_TIME_1ST 
+        S_TIME 
+        S_PAIR_1ST 
+        S_PAIR 
+        S_MONEY_1ST 
+        S_MONEY 
+        S_MONEY_DEC 
+        S_LESSER 
+        S_TAG 
+        S_TAG_STR 
+        S_SKIP_STR2 
+        S_TAG_STR2 
+        S_SKIP_STR3 
+        S_SIGN 
+        S_WORD 
+        S_WORDSET 
+        S_URL 
+        S_EMAIL 
+        --EXIT_STATES-- 
+        T_EOF 
+        T_ERROR 
+        T_BLK_OP 
+        T_BLK_CL 
+        T_PAR_OP 
+        T_PAR_CL 
+        T_STRING 
+        T_STR_ALT 
+        T_WORD 
+        T_FILE 
+        T_REFINE 
+        T_BINARY 
+        T_CHAR 
+        T_MAP_OP 
+        T_CONS_MK 
+        T_ISSUE 
+        T_PERCENT 
+        T_INTEGER 
+        T_FLOAT 
+        T_TUPLE 
+        T_DATE 
+        T_PAIR 
+        T_TIME 
+        T_MONEY 
+        T_TAG 
+        T_URL 
+        T_EMAIL 
+        T_PATH
+    ] transitions: #{
 01010203030505333408353A0C0D0E0E103A3C3D3D3D3E3F2C412C402C424233
 2021212323263333444501010003030505333408353A0C0C0E0E103A3C3D3D3D
 3E3F2C412C402C42423320212123232633334445120002030305050808080A11

@@ -113,10 +113,15 @@ context [
 		append/only table out
 	]
 
-	template: compose [Red/System [
+	template: compose/deep [Red/System [
 		Note: "Auto-generated lexical scanner transitions table"
 	]
-		transitions: (table)
+	
+	#enum lex-states! [
+		(states)
+	]
+	
+	transitions: (table)
 	]
 
 	write %../runtime/lexer-transitions.reds mold/only template
