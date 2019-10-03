@@ -44,30 +44,108 @@ lexer: context [
 		C_MONEY
 		C_SIGN
 		C_CARET
-		C_UCS2
-		C_UCS4
-		C_NO_OP
+		C_BIN
 		C_WORD
 		C_ILLEGAL
 		C_EOF
 	]
 	
+	#enum class-flags! [
+		C_FLAG_UCS4:		80000000h
+		C_FLAG_UCS2:		40000000h
+		C_FLAG_CARET:		20000000h
+		C_FLAG_DOT:			10000000h
+		C_FLAG_COMMA:		08000000h
+		C_FLAG_COLON:		04000000h
+		C_FLAG_QUOTE:		02000000h
+		C_FLAG_EXP:			01000000h
+		C_FLAG_SHARP:		00800000h
+	]
+	
 	lex-classes: [
-		C_EOF											;-- 00, NUL
-		C_NO_OP											;-- 01
-		C_NO_OP											;-- 02
-		C_NO_OP											;-- 03
-		C_NO_OP											;-- 04
-		C_NO_OP											;-- 05
-		C_NO_OP											;-- 06
-		C_NO_OP											;-- 07
-		C_NO_OP											;-- 08
-		C_BLANK											;-- 09 TAB
-		C_BLANK											;-- 0A LF
-		C_NO_OP											;-- 0B
-		C_NO_OP											;-- 0C
-		C_BLANK											;-- 0D CR
-		;...
+		C_EOF											;-- 00		NUL
+		C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN	;-- 01-08
+		C_BLANK											;-- 09		TAB
+		C_BLANK 										;-- 0A		LF
+		C_BIN											;-- 0B
+		C_BIN											;-- 0C
+		C_BLANK											;-- 0D		CR
+		C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN	;-- 0E-15
+		C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN	;-- 16-1D
+		C_BIN C_BIN										;-- 1E-1F
+		C_BLANK											;-- 20
+		C_WORD											;-- 21		!
+		C_DBL_QUOTE										;-- 22		"
+		C_SHARP											;-- 23		#
+		C_MONEY											;-- 24		$
+		C_PERCENT										;-- 25		%
+		C_WORD											;-- 26		&
+		C_QUOTE											;-- 27		'
+		C_PAREN_OP										;-- 28		(
+		C_PAREN_CL										;-- 29		)
+		C_WORD											;-- 2A		*
+		C_SIGN											;-- 2B		+
+		C_COMMA											;-- 2C		,
+		C_SIGN											;-- 2D		-
+		C_DOT											;-- 2E		.
+		C_SLASH											;-- 2F		/
+		C_ZERO											;-- 30		0
+		C_DIGIT C_DIGIT C_DIGIT C_DIGIT C_DIGIT			;-- 31-35	1-5
+		C_DIGIT C_DIGIT C_DIGIT C_DIGIT					;-- 36-39	6-9
+		C_COLON											;-- 3A		:
+		C_SEMICOL										;-- 3B		;
+		C_LESSER										;-- 3C		<
+		C_WORD											;-- 3D		=
+		C_GREATER										;-- 3E		>
+		C_WORD											;-- 3F		?
+		C_AT											;-- 40		@
+		C_ALPHAX C_ALPHAX C_ALPHAX C_ALPHAX			 	;-- 41-44	A-D
+		C_EXP											;-- 45		E
+		C_ALPHAX										;-- 46		F
+		C_WORD C_WORD C_WORD C_WORD C_WORD C_WORD 		;-- 47-4C	G-L
+		C_WORD C_WORD C_WORD C_WORD C_WORD C_WORD 		;-- 4D-52	M-R
+		C_WORD C_WORD C_WORD C_WORD C_WORD 				;-- 53-57	S-W
+		C_X												;-- 58		X
+		C_WORD C_WORD							 		;-- 59-5A	Y-Z
+		C_BLOCK_OP										;-- 5B		[
+		C_BSLASH										;-- 5C		\
+		C_BLOCK_CL										;-- 5D		]
+		C_CARET											;-- 5E		^
+		C_WORD											;-- 5F		_
+		C_WORD											;-- 60		`
+		C_ALPHAX C_ALPHAX C_ALPHAX C_ALPHAX			 	;-- 61-64	a-d
+		C_EXP											;-- 65		e
+		C_ALPHAX										;-- 66		f
+		C_WORD C_WORD C_WORD C_WORD C_WORD C_WORD 		;-- 67-6C	g-l
+		C_WORD C_WORD C_WORD C_WORD C_WORD C_WORD 		;-- 6D-72	m-r
+		C_WORD C_WORD C_WORD C_WORD C_WORD 				;-- 73-77	s-w
+		C_X												;-- 78		x
+		C_WORD C_WORD							 		;-- 79-7A	y-z
+		C_STRING_OP										;-- 7B		{
+		C_WORD											;-- 7C		|
+		C_STRING_CL										;-- 7D		}
+		C_WORD											;-- 7E		~
+		C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN ;-- 7F-86
+		C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN ;-- 87-8E
+		C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN ;-- 8F-96
+		C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN ;-- 97-9E
+		C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN ;-- 9F-A6
+		C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN ;-- A7-AE
+		C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN ;-- AF-B6
+		C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN ;-- B7-BE
+		C_BIN											;-- BF
+		C_ILLEGAL C_ILLEGAL								;-- C0-C1
+		C_WORD C_WORD C_WORD C_WORD C_WORD C_WORD C_WORD;-- C2-C8
+		C_WORD C_WORD C_WORD C_WORD C_WORD C_WORD C_WORD;-- C9-CF
+		C_WORD C_WORD C_WORD C_WORD C_WORD C_WORD C_WORD;-- D0-D6
+		C_WORD C_WORD C_WORD C_WORD C_WORD C_WORD C_WORD;-- D7-DD
+		C_WORD C_WORD C_WORD C_WORD C_WORD C_WORD C_WORD;-- DE-E4
+		C_WORD C_WORD C_WORD C_WORD C_WORD C_WORD C_WORD;-- E5-EB
+		C_WORD C_WORD C_WORD C_WORD C_WORD C_WORD C_WORD;-- EC-F2
+		C_WORD C_WORD									;-- F3-F4
+		C_ILLEGAL C_ILLEGAL C_ILLEGAL C_ILLEGAL 		;-- F5-F8
+		C_ILLEGAL C_ILLEGAL C_ILLEGAL C_ILLEGAL 		;-- F9-FC
+		C_ILLEGAL C_ILLEGAL C_ILLEGAL			 		;-- FD-FF
 	]
 
 	;; For UTF-8 decoding, uses DFA algorithm: http://bjoern.hoehrmann.de/utf-8/decoder/dfa/#variations
