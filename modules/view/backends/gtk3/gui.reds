@@ -10,8 +10,6 @@ Red/System [
 	}
 ]
 
-#define SET-RED-FACE(s d)	[g_object_set_qdata s red-face-id d]
-#define GET-RED-FACE(s)		[as red-object! g_object_get_qdata s red-face-id]
 #define SET-CURSOR(s d)		[g_object_set_qdata s cursor-id d]
 #define GET-CURSOR(s)		[g_object_get_qdata s cursor-id]
 #define SET-EVENT-BOX(s d)	[g_object_set_qdata s event-box-id d]
@@ -42,7 +40,10 @@ win-cnt:		0
 AppMainMenu:	as handle! 0
 
 ;; Identifiers for qdata
-red-face-id: 		g_quark_from_string "red-face-id"
+red-face-id1:		g_quark_from_string "red-face-id1"
+red-face-id2:		g_quark_from_string "red-face-id2"
+red-face-id3:		g_quark_from_string "red-face-id3"
+red-face-id4:		g_quark_from_string "red-face-id4"
 gtk-style-id: 		g_quark_from_string "gtk-style-id"
 event-box-id:		g_quark_from_string "event-box-id"
 gtk-container-id:	g_quark_from_string "gtk-container-id"
@@ -75,8 +76,15 @@ screen-size-y:	0
 get-face-obj: func [
 	handle		[handle!]
 	return:		[red-object!]
+	/local
+		face	[red-object!]
 ][
-	GET-RED-FACE(handle)
+	face: declare red-object!
+	face/header: as integer! g_object_get_qdata handle red-face-id1
+	face/ctx:	 			 g_object_get_qdata handle red-face-id2
+	face/class:  as integer! g_object_get_qdata handle red-face-id3
+	face/on-set: 			 g_object_get_qdata handle red-face-id4
+	face
 ]
 
 get-face-values: func [
@@ -88,7 +96,7 @@ get-face-values: func [
 ][
 	values: as red-value! 0
 	unless null? handle [
-		face: GET-RED-FACE(handle)
+		face: get-face-obj handle
 		unless null? face [
 			values: object/get-values face
 		]
@@ -738,7 +746,7 @@ change-color: func [
 	; ]
 	case [
 		type = area [
-			face: GET-RED-FACE(widget)
+			face: get-face-obj widget
 			font: face-font? face
 			apply-css-styles widget face font type
 			; widget: objc_msgSend [widget sel_getUid "documentView"]
@@ -748,7 +756,7 @@ change-color: func [
 		]
 		true [
 			;; DEBUG: print ["change-color " widget lf]
-			face: GET-RED-FACE(widget)
+			face: get-face-obj widget
 			font: face-font? face
 			apply-css-styles widget face font type
 		]
@@ -1311,12 +1319,11 @@ get-screen-size: func [
 store-face-to-obj: func [
 	obj			[handle!]
 	face		[red-object!]
-	/local
-		storage	[red-value!]
 ][
-	storage: as red-value! allocate 16					;@@ should delete it when destory widget
-	copy-cell as cell! face storage
-	g_object_set_qdata obj red-face-id as int-ptr! storage
+	g_object_set_qdata obj red-face-id1 as int-ptr! face/header
+	g_object_set_qdata obj red-face-id2				face/ctx
+	g_object_set_qdata obj red-face-id3 as int-ptr! face/class
+	g_object_set_qdata obj red-face-id4				face/on-set
 ]
 
 init-combo-box: func [
