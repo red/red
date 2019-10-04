@@ -16,6 +16,8 @@ Red/System [
 #define GET-CURSOR(s)		[g_object_get_qdata s cursor-id]
 #define SET-EVENT-BOX(s d)	[g_object_set_qdata s event-box-id d]
 #define GET-EVENT-BOX(s)	[g_object_get_qdata s event-box-id]
+#define SET-CONTAINER(s d)	[g_object_set_qdata s gtk-container-id d]
+#define GET-CONTAINER(s)	[g_object_get_qdata s gtk-container-id]
 
 #include %../keycodes.reds
 #include %gtk.reds
@@ -43,12 +45,10 @@ AppMainMenu:	as handle! 0
 red-face-id: 		g_quark_from_string "red-face-id"
 gtk-style-id: 		g_quark_from_string "gtk-style-id"
 event-box-id:		g_quark_from_string "event-box-id"
-real-widget-id:		g_quark_from_string "real-widget-id"
 gtk-container-id:	g_quark_from_string "gtk-container-id"
 red-timer-id:		g_quark_from_string "red-timer-id"
 css-id:				g_quark_from_string "css-id"
 size-id:			g_quark_from_string "size-id"
-real-container-id:	g_quark_from_string "real-container-id"
 menu-id:			g_quark_from_string "menu-id"
 no-wait-id:			g_quark_from_string "no-wait-id"
 red-event-id: 		g_quark_from_string "red-event-id"
@@ -179,46 +179,6 @@ event-box?: func [
 	evbox: g_object_get_qdata widget event-box-id
 	if null? evbox [evbox: widget]
 	return evbox
-]
-
-;; Used to delegate event (see handlers.red) for widget that have container for scrollbar (like rich-text)
-set-real-widget: func [
-	_widget		[handle!]
-	widget		[handle!]
-][
-	g_object_set_qdata _widget real-widget-id widget
-]
-
-real-widget?: func [
-	_widget		[handle!]
-	return:		[handle!]
-	/local
-		widget	[handle!]
-][
-	widget: g_object_get_qdata _widget real-widget-id
-	if null? widget [widget: _widget]
-	return widget
-]
-
-set-container: func [
-	widget		[handle!]
-	container	[handle!]
-][
-	g_object_set_qdata widget gtk-container-id container
-]
-
-container?: func [
-	widget		[handle!]
-	return:		[handle!]
-][
-	g_object_get_qdata widget gtk-container-id
-]
-
-real-container?: func [
-	widget		[handle!]
-	return:		[handle!]
-][
-	g_object_get_qdata widget real-container-id
 ]
 
 gtk-layout?: func [
@@ -441,7 +401,7 @@ debug-show-children: func [
 		if TYPE_OF(face) <> TYPE_OBJECT [print-line "not face object"]
 		widget_: face-handle? face
 
-		either null? widget_ [print-line "null container" container: null][container: container? widget_]
+		either null? widget_ [print-line "null container" container: null][container: GET-CONTAINER(widget_)]
 		print ["container handle: " container lf]
 
 		 sx: 0 sy: 0
@@ -588,7 +548,7 @@ adjust-sizes: func [
 		tail: as red-object! block/rs-tail pane
 		if debug [print ["Parent type: " get-symbol-name sym lf]]
 		child: face-handle? face
-		container: either null? child [null][container? child]
+		container: either null? child [null][GET-CONTAINER(child)]
 		dx: 0 dy: 0
 		ox: 0 oy: 0 sx: 0 sy: 0
 		cpt: 0
@@ -906,7 +866,7 @@ change-offset: func [
 	][
 		unless null? widget [
 			;OS-refresh-window as integer! main-window
-			container: either null? widget [null][container? widget]
+			container: either null? widget [null][GET-CONTAINER(widget)]
 			;; DEBUG: print ["change-offset by" pos lf]
 			; _widget: either type = text [
 			; 	g_object_get_qdata widget _widget-id
@@ -1718,7 +1678,6 @@ OS-make-view: func [
 			widget: gtk_layout_new null null;gtk_drawing_area_new
 			gtk_layout_set_size widget size/x size/y
 			evbox: gtk_scrolled_window_new null null
-			set-real-widget evbox widget
 			;; DEBUG: print ["rich-text evbox: " evbox lf]
 			gtk_container_add evbox widget
 		]
@@ -1755,7 +1714,7 @@ OS-make-view: func [
 			container: gtk_layout_new null null
 			gtk_layout_set_size container size/x size/y
 			gtk_box_pack_start winbox container yes yes 0
-			g_object_set_qdata widget real-container-id container
+			SET-CONTAINER(widget container)
 			;; DEBUG: print ["window is " widget " real container is " container lf]
 			gtk_window_move widget offset/x offset/y
 
@@ -1872,9 +1831,9 @@ OS-make-view: func [
 		; TODO: case to replace with either if no more choice
 		;; DEBUG: print ["Parent: " get-symbol-name p-sym " evbox" evbox lf]
 
-		container:  as handle! case [
+		container: as handle! case [
 			p-sym = window [
-				g_object_get_qdata as handle! parent real-container-id
+				g_object_get_qdata as handle! parent gtk-container-id
 			]
 			any [p-sym = panel p-sym = rich-text p-sym = base] [parent]
 			p-sym = group-box [
@@ -1892,14 +1851,14 @@ OS-make-view: func [
 				;; redirect to the layout of the parent
 				;; WARNING: (since completedly changed code)
 				print ["DEVEL WARNING: <<NORMALLY NOTHING SHOULD GO HERE>>  (ONLY FOR DEVELOPMENT SINCE CODE HAS FULLY CHANGED BUT IMPOSSIBLE TO TEST) " lf]
-				container? as handle! parent
+				g_object_get_qdata as handle! parent gtk-container-id
 			]
 		]
 		;; DEBUG: print ["widget (" get-symbol-name sym "):" widget "[evbox: " evbox "] with parent (" get-symbol-name p-sym ") " as handle! parent " with container (" (get-symbol-name get-widget-symbol container)  ") " container lf]
 
 		;save gtk_layout container for adjustment since size/x and size/y are not the real sizes in gtk and need to be updated in a second pass
-		set-container widget container
-		if sym = text [set-container evbox container]
+		SET-CONTAINER(widget container)
+		if sym = text [SET-CONTAINER(evbox container)]
 		gtk_widget_set_size_request evbox size/x size/y
 		gtk_layout_put container evbox offset/x offset/y
 		;; DEBUG: print ["make-view: evbox: " offset/x "x" offset/y "x" size/x "x" size/y lf]
