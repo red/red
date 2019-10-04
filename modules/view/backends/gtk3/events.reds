@@ -679,8 +679,7 @@ connect-widget-events: function [
 		]
 		sym = text [0]
 		sym = field [
-			buffer: gtk_entry_get_buffer widget
-			gobj_signal_connect(buffer "changed" :field-changed widget)
+			gobj_signal_connect(widget "changed" :field-changed widget)
 			gtk_widget_set_can_focus evbox yes
 			gtk_widget_set_focus_on_click evbox yes
 			gtk_widget_is_focus evbox
@@ -721,7 +720,7 @@ connect-widget-events: function [
 		sym = text-list [
 			;;; Mandatory and can respond to  (ON_SELECT or ON_CHANGE)
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add text-list selected-rows-changed " lf]]
-			gobj_signal_connect(evbox "selected-rows-changed" :text-list-selected-rows-changed widget)
+			gobj_signal_connect(widget "selected-rows-changed" :text-list-selected-rows-changed widget)
 		]
 		any [
 			sym = drop-list
