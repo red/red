@@ -247,10 +247,10 @@ base-draw: func [
 	case [
 		sym = base [render-text cr size vals]
 		sym = rich-text [
-			;; DEBUG: print ["base-draw (rich-text)" widget " face " GET-RED-FACE widget lf]
+			;; DEBUG: print ["base-draw (rich-text)" widget " face " get-face-obj widget lf]
 			pos/x: 0 pos/y: 0
 			init-draw-ctx :DC cr
-			draw-text-box :DC :pos GET-RED-FACE(widget) yes
+			draw-text-box :DC :pos get-face-obj widget yes
 		]
 		true []
 	]
@@ -392,7 +392,7 @@ combo-selection-changed: func [
 ][
 	idx: gtk_combo_box_get_active widget
 	if idx >= 0 [
-		face: GET-RED-FACE(widget)
+		face: get-face-obj widget
 		res: make-event widget idx + 1 EVT_SELECT
 		set-selected widget face/ctx idx + 1
 		text: gtk_combo_box_text_get_active_text widget
@@ -418,7 +418,7 @@ text-list-selected-rows-changed: func [
 	sel: gtk_list_box_get_selected_row widget
 	idx: either null? sel [-1][gtk_list_box_row_get_index sel]
 	if idx >= 0 [
-		face: GET-RED-FACE(widget)
+		face: get-face-obj widget
 		res: make-event widget idx + 1 EVT_SELECT
 		set-selected widget face/ctx idx + 1
 		text: gtk_label_get_text gtk_bin_get_child sel
@@ -441,7 +441,7 @@ tab-panel-switch-page: func [
 		face	[red-object!]
 ][
 	if idx >= 0 [
-		face: GET-RED-FACE(widget)
+		face: get-face-obj widget
 		res: make-event widget idx + 1 EVT_SELECT
 		set-selected widget face/ctx idx + 1
 		text: gtk_notebook_get_tab_label_text widget page
@@ -520,7 +520,7 @@ field-changed: func [
 		face	[red-object!]
 ][
 	text: gtk_entry_get_text widget
-	face: GET-RED-FACE(widget)
+	face: get-face-obj widget
 	unless null? face [
 		set-text widget face/ctx text
 		make-event widget 0 EVT_CHANGE
@@ -558,7 +558,7 @@ area-changed: func [
 	; Weirdly, GtkTextIter introduced since I did not simplest solution to get the full content of a GtkTextBuffer!
 	gtk_text_buffer_get_bounds buffer as handle! start as handle! end
 	text: gtk_text_buffer_get_text buffer as handle! start as handle! end no
-	face: GET-RED-FACE(widget)
+	face: get-face-obj widget
 	unless null? face [
 		set-text widget face/ctx text
 		make-event widget 0 EVT_CHANGE

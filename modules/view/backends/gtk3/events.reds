@@ -50,7 +50,7 @@ make-at: func [
 	/local
 		f	[red-value!]
 ][
-	f: as red-value! g_object_get_qdata widget red-face-id
+	f: as red-value! get-face-obj widget
 	assert f <> null
 	as red-object! copy-cell f as cell! face
 ]
@@ -78,7 +78,7 @@ get-event-window: func [
 ][
 	;; DEBUG: print ["get-event-windows: " evt/type " " evt/msg lf]
 	handle: gtk_widget_get_toplevel as handle! evt/msg
-	as red-value! g_object_get_qdata handle red-face-id
+	as red-value! get-face-obj handle
 ]
 
 get-event-offset: func [
