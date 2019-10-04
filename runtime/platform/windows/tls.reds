@@ -45,14 +45,12 @@ tls: context [
 		ISC_REQ_REPLAY_DETECT or
 		ISC_REQ_CONFIDENTIALITY or
 		ISC_REQ_EXTENDED_ERROR or
-		ISC_REQ_ALLOCATE_MEMORY or
 		ISC_REQ_MANUAL_CRED_VALIDATION or
 		ISC_REQ_STREAM
 
 	sspi-flags-server: ISC_REQ_SEQUENCE_DETECT or
 		ISC_REQ_REPLAY_DETECT or
 		ISC_REQ_CONFIDENTIALITY or
-		ISC_REQ_ALLOCATE_MEMORY or
 		ASC_REQ_EXTENDED_ERROR or
 		ASC_REQ_STREAM
 
@@ -112,7 +110,7 @@ tls: context [
 	][
 		buf: as red-binary! (object/get-values data/port) + port/field-data
 		if TYPE_OF(buf) <> TYPE_BINARY [
-			binary/make-at as cell! buf MAX_SSL_MSG_LENGTH * 2
+			binary/make-at as cell! buf MAX_SSL_MSG_LENGTH * 4
 		]
 		data/send-buf: buf/node
 	]
@@ -206,6 +204,7 @@ tls: context [
 			sec-handle	[SecHandle!]
 			sec-handle2	[SecHandle!]
 			pbuffer		[byte-ptr!]
+			outbuffer	[byte-ptr!]
 			s			[series!]
 			client?		[logic!]
 			state		[integer!]
@@ -222,14 +221,21 @@ tls: context [
 		outbuf-2: outbuf-1 + 1
 
 		buflen: data/buf-len
-?? buflen
+
+		if null? data/security [
+			create data
+			create-credentials as SecHandle! :data/credential null client?
+		]
+
+		s: as series! data/send-buf/value
+		pbuffer: as byte-ptr! s/offset
+		outbuffer: pbuffer + (MAX_SSL_MSG_LENGTH * 2)
+
 		if data/iocp/event = IO_EVT_READ [
 			buflen: data/iocp/transferred
 		]
 
 		if state and IO_STATE_READING <> 0 [
-			s: as series! data/send-buf/value
-			pbuffer: as byte-ptr! s/offset
 			data/iocp/state: state and (not IO_STATE_READING)
 			socket/recv
 						as-integer data/iocp/device
@@ -256,16 +262,13 @@ probe [data/security " " data/credential]
 
 			;-- setup output buffers
 			outbuf-1/BufferType: 2
-			outbuf-1/cbBuffer: 0
-			outbuf-1/pvBuffer: null
+			outbuf-1/cbBuffer: MAX_SSL_MSG_LENGTH * 2
+			outbuf-1/pvBuffer: outbuffer
 			outdesc/ulVersion: 0
 			outdesc/cBuffers: 1
 			outdesc/pBuffers: outbuf-1
 
-			pbuffer: null
 			either null? data/security [
-				create data
-				create-credentials as SecHandle! :data/credential null client?
 				sec-handle: null
 				sec-handle2: as SecHandle! :data/security
 				if client? [indesc: null]
@@ -274,8 +277,6 @@ probe [data/security " " data/credential]
 			][
 				sec-handle: as SecHandle! :data/security
 				sec-handle2: null
-				s: as series! data/send-buf/value
-				pbuffer: as byte-ptr! s/offset
 				inbuf-1/pvBuffer: pbuffer
 			]
 
