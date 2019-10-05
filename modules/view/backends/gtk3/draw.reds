@@ -463,7 +463,7 @@ draw-text-at: func [
 	; either pango-font? [
 		;; print ["draw-text-at: dc/layout: " dc/layout lf]
 	if null? dc/layout [
-		dc/font-desc: pango_font_description_from_string gtk-font
+		dc/font-desc: CREATE-DEFAULT-FONT
 		dc/layout: make-pango-cairo-layout ctx dc/font-desc
 	]
 	;pango-cairo-set-text dc str
@@ -563,7 +563,7 @@ draw-text-box: func [
 	len: -1
 	str: unicode/to-utf8 text :len
 	; default font-desc that can be overloaded in OS-text-box-layout called inside draw-text-box-lines
-	dc/font-desc: pango_font_description_from_string gtk-font
+	dc/font-desc: CREATE-DEFAULT-FONT
 	;;TORM: dc/layout: make-pango-cairo-layout dc/raw dc/font-desc
 
 	;; DEBUG: print ["draw-text-box text: " str  " dc/font-desc: " dc/font-desc  lf]

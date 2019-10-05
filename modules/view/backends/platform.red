@@ -833,6 +833,7 @@ system/view/platform: context [
 					]
 				]
 				macOS [["Menlo" "Arial" "Times"]]
+				Linux [["Droid Sans Mono" "DejaVu Sans" "DejaVu Serif"]]
 			]
 		
 		set [font-fixed font-sans-serif font-serif] reduce fonts

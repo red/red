@@ -121,7 +121,7 @@ get-font: func [
 	/local
 		hFont [handle!]
 ][
-	if TYPE_OF(font) <> TYPE_OBJECT [return default-font]
+	if TYPE_OF(font) <> TYPE_OBJECT [return CREATE-DEFAULT-FONT]
 	hFont: get-font-handle font 0
 	if null? hFont [hFont: make-font face font]
 	hFont
@@ -219,11 +219,10 @@ font-description: func [
 		rgba     [c-string!]
 		fweight  [integer!]
 		fstyle   [integer!]
-		fd	     [handle!]
 
 ][
 	; default font if font is none. TODO: better than gtk-font would be to get the default font system or from red side
-	if TYPE_OF(font) = TYPE_NONE [return default-font]
+	if TYPE_OF(font) = TYPE_NONE [return CREATE-DEFAULT-FONT]
 	values: object/get-values font
 	;name:
 	str: 	as red-string!	values + FONT_OBJ_NAME
@@ -233,14 +232,13 @@ font-description: func [
 	color:	as red-tuple!	values + FONT_OBJ_COLOR
 
 	; font name
-	name: "Arial" ; @@ to change to default font name
-	if TYPE_OF(str) = TYPE_STRING [
+	either TYPE_OF(str) = TYPE_STRING [
 		len: -1
 		name: unicode/to-utf8 str :len
-	]
+	][name: default-font-name]
 
 	; font size
-	fsize: either TYPE_OF(size) = TYPE_INTEGER [size/value][16]
+	fsize: either TYPE_OF(size) = TYPE_INTEGER [size/value][10]
 	;; DEBUG: print ["font-description: fsize -> " fsize lf]
 
 	; font style and weight
@@ -270,9 +268,7 @@ font-description: func [
 		]
 	]
 
-	fd: font-description-create name fsize fweight fstyle
-
-	fd
+	font-description-create name fsize fweight fstyle
 ]
 
 font-description-create: func [
