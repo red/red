@@ -636,10 +636,11 @@ OS-text-box-layout: func [
 	text: as red-string! values + FACE_OBJ_TEXT
 	font: as red-object! values + FACE_OBJ_FONT
 	ft-ok?: TYPE_OF(font) = TYPE_OBJECT ;all[not null? target TYPE_OF(font) = TYPE_OBJECT]
-	hFont: default-font
-	if ft-ok? [
+	either ft-ok? [
 		hFont: get-font-handle font 0
-		if null? hFont [hFont: default-font]
+		if null? hFont [hFont: CREATE-DEFAULT-FONT]
+	][
+		hFont: CREATE-DEFAULT-FONT
 	]
 
 	len: -1

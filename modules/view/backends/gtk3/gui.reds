@@ -16,6 +16,7 @@ Red/System [
 #define GET-EVENT-BOX(s)	[g_object_get_qdata s event-box-id]
 #define SET-CONTAINER(s d)	[g_object_set_qdata s gtk-container-id d]
 #define GET-CONTAINER(s)	[g_object_get_qdata s gtk-container-id]
+#define CREATE-DEFAULT-FONT [font-description-create default-font-name gtk-font-size PANGO_WEIGHT_NORMAL PANGO_STYLE_NORMAL]
 
 #include %../keycodes.reds
 #include %gtk.reds
@@ -59,8 +60,10 @@ group-radio:	as handle! 0
 
 settings:		as handle! 0
 pango-context:	as handle! 0
-gtk-font:		"Sans 13"
 default-font:	as handle! 0
+default-font-name: as c-string! 0
+gtk-font-name:	"Sans"
+gtk-font-size:	10
 
 ; Do not KNOW about this one
 ;;;
@@ -453,6 +456,88 @@ show-gtk-version: func [][
 	print [ "GTK VERSION: " gtk_get_major_version "." gtk_get_minor_version "." gtk_get_micro_version lf]
 ]
 
+parse-font-name: func [
+	str			[c-string!]
+	psize		[int-ptr!]
+	plen		[int-ptr!]
+	return:		[c-string!]
+	/local
+		len		[integer!]
+		len2	[integer!]
+		len3	[integer!]
+][
+	either null? str [
+		len: 0
+	][
+		len: length? str
+	]
+	if any [
+		len < 3
+		str/len < #"0"
+		str/len > #"9"
+	][
+		psize/value: gtk-font-size
+		plen/value: length? gtk-font-name
+		return gtk-font-name
+	]
+	len2: len - 1
+	if str/len2 = #" " [
+		psize/value: as integer! str/len - #"0"
+		plen/value: len - 2
+		return str
+	]
+	len3: len - 2
+	if all [
+		str/len2 >= #"0"
+		str/len2 <= #"9"
+		str/len3 = #" "
+	][
+		psize/value: as integer! str/len - #"0"
+		psize/value: psize/value + (10 * as integer! str/len2 - #"0")
+		plen/value: len - 3
+		return str
+	]
+	psize/value: gtk-font-size
+	plen/value: length? gtk-font-name
+	gtk-font-name
+]
+
+set-defaults: func [
+	/local
+		font	[integer!]
+		str		[c-string!]
+		size	[integer!]
+		len		[integer!]
+][
+	settings: gtk_settings_get_default
+	font: 0
+	g_object_get [settings "gtk-font-name" :font null]
+
+	str: as c-string! font
+	size: 0
+	len: 0
+	str: parse-font-name str :size :len
+
+	string/load-at
+		str
+		len
+		#get system/view/fonts/system
+		UTF-8
+
+	integer/make-at
+		#get system/view/fonts/size
+		size
+
+	unless null? default-font-name [
+		free as byte-ptr! default-font-name
+	]
+	default-font-name: as c-string! allocate len + 1
+	copy-memory as byte-ptr! default-font-name as byte-ptr! str len
+	len: len + 1
+	default-font-name/len: null-byte
+	default-font: CREATE-DEFAULT-FONT
+]
+
 init: func [][
 	show-gtk-version
 	gtk_disable_setlocale
@@ -467,9 +552,9 @@ init: func [][
 
 	screen-size-x: gdk_screen_width
 	screen-size-y: gdk_screen_height
-	default-font: pango_font_description_from_string gtk-font
-	settings: gtk_settings_get_default
-	g_object_set [settings "gtk-font-name" gtk-font  null ]
+
+	set-defaults
+
 	#if type = 'exe [red-gtk-styles]
 	;;;collector/register as int-ptr! :on-gc-mark
 ]
