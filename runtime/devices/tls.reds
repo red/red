@@ -54,12 +54,16 @@ TLS-device: context [
 				]
 			]
 			IO_EVT_ACCEPT	[
-				#either OS = 'Windows [
-					msg: create-red-port p data/accept-sock
-					iocp/bind g-iocp as int-ptr! data/accept-sock
-					socket/acceptex as-integer data/device data
-				][
-
+				if data/state and IO_STATE_TLS_DONE = 0 [
+					#either OS = 'Windows [
+						msg: create-red-port p data/accept-sock
+						iocp/bind g-iocp as int-ptr! data/accept-sock
+						socket/acceptex as-integer data/device data
+					][
+						msg: create-red-port p socket/accept as-integer data/device
+					]
+					tls/negotiate as tls-data! get-tcp-data msg
+					exit
 				]
 			]
 			default [data/event: IO_EVT_NONE]

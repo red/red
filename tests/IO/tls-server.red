@@ -16,11 +16,8 @@ process-data: func [port /local len] [
     unless empty? port/data [
         len: length? port/data
         debug ["--- packet:" length? port/data "of" len]
-        clear port/data
-        insert port #{0f}
-        count: count + 1
-        total: total + len + 4
-        debug [count round (total / 1024 / 1024) "MB"]
+        probe to-string port/data
+        insert port to-binary "hello Red from server"
     ]
 	debug "process-data exit"
 ]

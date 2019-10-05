@@ -13,7 +13,7 @@ total: 0.0
 
 print "Secure TCP client"
 
-client: open tls://127.0.0.1:49503
+client: open tls://127.0.0.1:8123
 
 start: now/precise
 mbps: "?"

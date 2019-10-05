@@ -128,12 +128,13 @@ iocp: context [
 			e: p/events + i
 			data: as iocp-data! e/lpOverlapped
 			data/transferred: e/dwNumberOfBytesTransferred
+			
 probe [data/event " " data/type " " data/state " "]
+
 			if data/type = IOCP_TYPE_TLS [
 				either data/state and IO_STATE_TLS_DONE <> 0 [
 					switch data/event [
 						IO_EVT_READ [
-							probe ["data length received " data/transferred]
 							unless tls/decode as tls-data! data [
 								i: i + 1
 								continue
@@ -145,8 +146,10 @@ probe [data/event " " data/type " " data/state " "]
 						default [0]
 					]
 				][
-					probe "fjdksjfadsjflkdsjafljkdslajfkldas"
-					unless tls/negotiate as tls-data! data [
+					if all [
+						data/event <> IO_EVT_ACCEPT
+						not tls/negotiate as tls-data! data
+					][
 						i: i + 1
 						continue
 					]

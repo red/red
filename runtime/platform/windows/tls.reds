@@ -38,6 +38,7 @@ tls: context [
 	verbose: 0
 
 	cert-client: as CERT_CONTEXT 0
+	cert-server: as CERT_CONTEXT 0
 	user-store: as int-ptr! 0
 	machine-store: as int-ptr! 0
 
@@ -68,7 +69,6 @@ tls: context [
 	][
 		zero-memory as byte-ptr! :scred size? SCHANNEL_CRED
 		scred/dwVersion: 4		;-- SCHANNEL_CRED_VERSION
-		scred/grbitEnabledProtocols: 0800h
 
 		if cert-ctx <> null [
 			ptr/value: as int-ptr! cert-ctx
@@ -76,9 +76,7 @@ tls: context [
 			scred/paCred: as int-ptr! :ptr
 		]
 		
-		flags: SCH_USE_STRONG_CRYPTO
-		if client? [flags: flags or SCH_CRED_NO_DEFAULT_CREDS or SCH_CRED_MANUAL_CRED_VALIDATION]
-		scred/dwFlags: flags
+		scred/dwFlags: SCH_USE_STRONG_CRYPTO
 
 		either client? [flags: 2][flags: 1]		;-- Credential use flags
 		status: platform/SSPI/AcquireCredentialsHandleW
@@ -91,9 +89,11 @@ tls: context [
 			null
 			hcred
 			:expiry
-?? status
+
 		if status <> 0 [
+			flags: status
 			status: GetLastError
+			probe ["status error: " as int-ptr! status " " as int-ptr! status]
 			either status = 8009030Dh [		;-- SEC_E_UNKNOWN_CREDENTIALS
 				status: -1					;-- needs administrator rights
 			][
@@ -124,8 +124,62 @@ tls: context [
 		platform/SSPI/DeleteSecurityContext data/security
 	]
 
-	get-client-credential: func [
+	find-certificate: func [
+		user-store? [logic!]
+		return:		[CERT_CONTEXT]
+		/local
+			cert-ctx	[CERT_CONTEXT]
+			eku			[CERT_ENHKEY_USAGE value]
+			err			[integer!]
+			store		[int-ptr!]
+			flags		[integer!]
+			auth		[ptr-value!]
+	][
+		either user-store? [
+			store: user-store
+			flags: 0001C000h		;-- CERT_STORE_OPEN_EXISTING_FLAG or CERT_STORE_READONLY_FLAG or CERT_SYSTEM_STORE_CURRENT_USER
+			auth/value: as int-ptr! "1.3.6.1.5.5.7.3.2"		;-- szOID_PKIX_KP_CLIENT_AUTH
+		][
+			store: machine-store
+			flags: 0002C000h		;-- CERT_STORE_OPEN_EXISTING_FLAG or CERT_STORE_READONLY_FLAG or CERT_SYSTEM_STORE_LOCAL_MACHINE
+			auth/value: as int-ptr! "1.3.6.1.5.5.7.3.1"		;-- szOID_PKIX_KP_SERVER_AUTH
+		]
+
+		eku/rgpszUsageIdentifier: as c-string! :auth
+		store: CertOpenStore
+			as c-string! 10	;-- CERT_STORE_PROV_SYSTEM
+			0
+			null
+			flags
+			#u16 "My"
+
+		if null? store [
+			err: GetLastError
+			probe ["open Cert store error: " err]
+		]
+		either user-store? [user-store: store][machine-store: store]
+
+		cert-ctx: null
+		eku/cUsageIdentifier: 1
+		while [
+			cert-ctx: CertFindCertificateInStore
+				store
+				1			;-- X509_ASN_ENCODING
+				1			;-- CERT_FIND_OPTIONAL_ENHKEY_USAGE_FLAG
+				000A0000h	;-- CERT_FIND_ENHKEY_USAGE
+				as byte-ptr! :eku
+				cert-ctx
+??  cert-ctx
+			cert-ctx <> null
+		][
+			return cert-ctx
+		]
+		null
+	]
+
+	get-credential: func [
 		data		[tls-data!]
+		user-store? [logic!]
 		return:		[CERT_CONTEXT]
 		/local
 			issuer-list	[SecPkgContext_IssuerListInfoEx! value]
@@ -134,6 +188,8 @@ tls: context [
 			cert-ctx	[CERT_CONTEXT]
 			eku			[CERT_ENHKEY_USAGE value]
 			err			[integer!]
+			store		[int-ptr!]
+			flags		[integer!]
 	][
 		;-- Read list of trusted issuers from schannel.
 		;-- 
@@ -155,32 +211,7 @@ tls: context [
 			0		;-- TBD get certificate by issuer
 
 		][			;-- Select any valid certificate, regardless of issuer
-			user-store: CertOpenStore
-				as c-string! 10	;-- CERT_STORE_PROV_SYSTEM
-				0
-				null
-				0001C000h		;-- CERT_STORE_OPEN_EXISTING_FLAG or CERT_STORE_READONLY_FLAG or CERT_SYSTEM_STORE_CURRENT_USER
-				#u16 "My"
-
-			if null? user-store [
-				err: GetLastError
-				probe ["open Cert store error: " err]
-			]
-			cert-ctx: null
-			eku/cUsageIdentifier: 1
-			eku/rgpszUsageIdentifier: "1.3.6.1.5.5.7.3.2"		;-- szOID_PKIX_KP_CLIENT_AUTH
-			while [
-				cert-ctx: CertFindCertificateInStore
-					user-store
-					1			;-- X509_ASN_ENCODING
-					1			;-- CERT_FIND_OPTIONAL_ENHKEY_USAGE_FLAG
-					000A0000h	;-- CERT_FIND_ENHKEY_USAGE
-					as byte-ptr! :eku
-					cert-ctx
-				cert-ctx <> null
-			][
-				return cert-ctx
-			]
+			return find-certificate user-store?
 		]
 		null
 	]
@@ -209,6 +240,7 @@ tls: context [
 			client?		[logic!]
 			state		[integer!]
 			credential	[SecHandle! value]
+			cert		[CERT_CONTEXT]
 			ctx-size	[SecPkgContext_StreamSizes value]
 	][
 		state: data/iocp/state
@@ -224,15 +256,21 @@ tls: context [
 
 		if null? data/security [
 			create data
-			create-credentials as SecHandle! :data/credential null client?
+			either client? [cert: null][cert: find-certificate no]
+			?? cert
+			create-credentials as SecHandle! :data/credential cert client?
 		]
 
 		s: as series! data/send-buf/value
 		pbuffer: as byte-ptr! s/offset
 		outbuffer: pbuffer + (MAX_SSL_MSG_LENGTH * 2)
 
-		if data/iocp/event = IO_EVT_READ [
-			buflen: data/iocp/transferred
+		switch data/iocp/event [
+			IO_EVT_READ [buflen: data/iocp/transferred]
+			IO_EVT_NONE [
+				state: state or IO_STATE_READING
+			]
+			default [0]
 		]
 
 		if state and IO_STATE_READING <> 0 [
@@ -253,6 +291,7 @@ probe [data/security " " data/credential]
 			;-- setup input buffers
 			inbuf-1/BufferType: 2		;-- SECBUFFER_TOKEN
 			inbuf-1/cbBuffer: buflen
+			inbuf-1/pvBuffer: pbuffer
 			inbuf-2/BufferType: 0		;-- SECBUFFER_EMPTY
 			inbuf-2/cbBuffer: 0
 			inbuf-2/pvBuffer: null
@@ -271,13 +310,14 @@ probe [data/security " " data/credential]
 			either null? data/security [
 				sec-handle: null
 				sec-handle2: as SecHandle! :data/security
-				if client? [indesc: null]
-				inbuf-1/pvBuffer: null
+				if client? [
+					indesc: null
+					inbuf-1/pvBuffer: null
+				]
 				io/pin-memory data/send-buf
 			][
 				sec-handle: as SecHandle! :data/security
 				sec-handle2: null
-				inbuf-1/pvBuffer: pbuffer
 			]
 
 			attr: 0
@@ -371,12 +411,28 @@ probe ["extra-buf: " extra-buf/BufferType]
 					return false
 				]
 				SEC_E_INCOMPLETE_CREDENTIALS [
-					cert-client: get-client-credential data
+					cert-client: get-credential data yes
 					if null? cert-client [return false]
 					create-credentials as SecHandle! :data/credential cert-client client? 
 				]
 				0 [		;-- S_OK
 probe "OK>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
+unless client? [
+					if all [
+						outbuf-1/cbBuffer > 0
+						outbuf-1/pvBuffer <> null
+					][
+						if 0 > socket/send
+							as-integer data/iocp/device
+							outbuf-1/pvBuffer
+							outbuf-1/cbBuffer
+							as iocp-data! data [
+							platform/SSPI/FreeContextBuffer outbuf-1/pvBuffer
+							release-context data
+						]
+						data/iocp/event: IO_EVT_NONE
+					]
+]
 					data/iocp/state: state or IO_STATE_TLS_DONE
 					platform/SSPI/QueryContextAttributesW
 						sec-handle
@@ -390,6 +446,7 @@ probe [
 					data/ctx-header: ctx-size/cbHeader
 					data/ctx-trailer: ctx-size/cbTrailer
 
+					data/buf-len: 0
 					either client? [extra-buf: inbuf-2][extra-buf: outbuf-2]
 					if extra-buf/BufferType = 5 [
 						probe "fjdksafjkldsajf0000000000000000000000000000000000000000"
@@ -400,6 +457,8 @@ probe [
 					][
 						data/iocp/event: IO_EVT_ACCEPT
 					]
+
+					io/pin-memory data/send-buf
 					return true
 				]
 				default [
@@ -522,9 +581,11 @@ probe ["buffer size: " buffer1/cbBuffer " " buffer2/cbBuffer " " buffer3/cbBuffe
 			out-sz	[integer!]
 			buf		[SecBuffer!]
 			i		[integer!]
+			pbuffer	[byte-ptr!]
 	][
 		bin: as red-binary! (object/get-values as red-object! :data/port) + port/field-data
 		s: GET_BUFFER(bin)
+		pbuffer: as byte-ptr! s/offset
 
 		buffer1/BufferType: 1		;-- SECBUFFER_DATA
 		buffer1/cbBuffer: data/iocp/transferred
@@ -549,26 +610,39 @@ probe as int-ptr! status
 			0	[		;-- Wow! success!
 				len: 0
 				buf: :buffer1
-				loop 4 [
+				loop 3 [
+					buf: buf + 1
 					probe ["BufferType: " buf/BufferType]
 					probe ["cbBuffer: " buf/cbBuffer " " buf/pvBuffer]
 					if buf/BufferType = 1 [
 						copy-memory (as byte-ptr! s/offset) + len buf/pvBuffer buf/cbBuffer
 						len: len + buf/cbBuffer
 					]
+				]
+				buf: :buffer1
+				loop 3 [
 					buf: buf + 1
+					if buf/BufferType = 5 [	;-- some leftover, save it
+						0
+					]
 				]
 			]
-			SEC_E_INCOMPLETE_MESSAGE [
-				
-				0
+			SEC_E_INCOMPLETE_MESSAGE [		;-- needs more data
+				len2: data/buf-len + data/iocp/transferred
+				data/buf-len: len2
+				socket/recv
+					as-integer data/iocp/device
+					pbuffer + len2
+					s/size - len2
+					as iocp-data! data
+				return false
 			]
 			00090317h [		;-- SEC_I_CONTEXT_EXPIRED
-				0
+				
 			]
 			default [probe ["error in tls/decode: " as int-ptr! status]]
 		]
-	data/iocp/transferred: len
+		data/iocp/transferred: len
 		true
 	]
 ]
