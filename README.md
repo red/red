@@ -102,6 +102,10 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
     --config [...]                 : Provides compilation settings as a block
                                      of `name: value` pairs.
 
+    --no-compress                  : Omit Redbin format compression.
+
+    --catch                        : Stay in the REPL after the script finishes.
+
     --cli                          : Run the command-line REPL instead of the
                                      graphical console.
 
@@ -111,6 +115,9 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
     --red-only                     : Stop just after Red-level compilation.
                                      Use higher verbose level to see compiler
                                      output. (internal debugging purpose)
+
+    --show-func-map                : Output an address/name map of Red/System 
+                                     functions, for debugging purposes.
                                      
 
 `[command]`
