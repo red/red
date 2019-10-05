@@ -102,6 +102,8 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
     --config [...]                 : Provides compilation settings as a block
                                      of `name: value` pairs.
 
+    --catch                        : Stay in the REPL after the script finishes.
+
     --cli                          : Run the command-line REPL instead of the
                                      graphical console.
 
