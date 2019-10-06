@@ -398,4 +398,6 @@ Red [
 	--test-- "issue-3687-12"
 		--assert "87bcdef64" = find/tail/skip/reverse skip s 6 pattern 3
 
+===end-group===
+
 ~~~end-file~~~
