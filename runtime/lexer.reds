@@ -37,39 +37,39 @@ lexer: context [
 	#define FL_SHARP	[(C_SHARP or C_FLAG_SHARP)]
 
 	#enum character-classes! [
-		C_BLANK
-		C_LINE
-		C_DIGIT
-		C_ZERO
-		C_BLOCK_OP
-		C_BLOCK_CL
-		C_PAREN_OP
-		C_PAREN_CL
-		C_STRING_OP
-		C_STRING_CL
-		C_DBL_QUOTE
-		C_SHARP
-		C_QUOTE
-		C_COLON
-		C_X
-		C_EXP
-		C_ALPHAX
-		C_SLASH
-		C_BSLASH
-		C_LESSER
-		C_GREATER
-		C_PERCENT
-		C_COMMA
-		C_SEMICOL
-		C_AT
-		C_DOT
-		C_MONEY
-		C_SIGN
-		C_CARET
-		C_BIN
-		C_WORD
-		C_ILLEGAL
-		C_EOF
+		C_BLANK											;-- 0
+		C_LINE											;-- 1
+		C_DIGIT											;-- 2
+		C_ZERO											;-- 3
+		C_BLOCK_OP										;-- 4
+		C_BLOCK_CL										;-- 5
+		C_PAREN_OP										;-- 6
+		C_PAREN_CL										;-- 7
+		C_STRING_OP										;-- 8
+		C_STRING_CL										;-- 9
+		C_DBL_QUOTE										;-- 10
+		C_SHARP											;-- 11
+		C_QUOTE											;-- 12
+		C_COLON											;-- 13
+		C_X												;-- 14
+		C_EXP											;-- 15
+		C_ALPHAX										;-- 16
+		C_SLASH											;-- 17
+		C_BSLASH										;-- 18
+		C_LESSER										;-- 19
+		C_GREATER										;-- 20
+		C_PERCENT										;-- 21
+		C_COMMA											;-- 22
+		C_SEMICOL										;-- 23
+		C_AT											;-- 24
+		C_DOT											;-- 25
+		C_MONEY											;-- 26
+		C_SIGN											;-- 27
+		C_CARET											;-- 28
+		C_BIN											;-- 29
+		C_WORD											;-- 30
+		C_ILLEGAL										;-- 31
+		C_EOF											;-- 32
 	]
 
 	lex-classes: [
@@ -231,9 +231,9 @@ lexer: context [
 		err	     [integer!]
 	]
 	
-	scanner!: alias function! [state [state!] return: [byte-ptr!]]
+	scanner!: alias function! [state [state!]]
 
-
+comment {
 	scan-string: func [state [state!] return: [byte-ptr!]
 		/local
 			p [byte-ptr!]
@@ -255,77 +255,204 @@ lexer: context [
 		
 		p
 	]
-
-	scan-alt-string: func [state [state!] return: [byte-ptr!]
-	;	/local
-	][
-		null
-	]
-
-	scan-block: func [state [state!] return: [byte-ptr!]
-	;	/local
-	][
-		null
-	]
-
-	scan-paren: func [state [state!] return: [byte-ptr!]
+}
+	scan-eof: func [state [state!]
 	;	/local
 	][
 		null
 	]
 	
-	scan-paren-close: func [state [state!] return: [byte-ptr!]
-	;	/local
-	][
-		null
-	]
-
-	scan-comment: func [state [state!] return: [byte-ptr!]
-	;	/local
-	][
-		null
-	]
-
-	scan-file: func [state [state!] return: [byte-ptr!]
+	scan-error: func [state [state!]
 	;	/local
 	][
 		null
 	]
 	
-	scan-refinement: func [state [state!] return: [byte-ptr!]
+	scan-block-open: func [state [state!]
 	;	/local
 	][
 		null
 	]
 
-	scan-money: func [state [state!] return: [byte-ptr!]
-	;	/local
-	][
-		null
-	]
-
-	scan-lesser: func [state [state!] return: [byte-ptr!]
-	;	/local
-	][
-		null
-	]
-
-	scan-lit: func [state [state!] return: [byte-ptr!]
+	scan-block-close: func [state [state!]
 	;	/local
 	][
 		null
 	]
 	
-	scan-get: func [state [state!] return: [byte-ptr!]
+	scan-paren-open: func [state [state!]
+	;	/local
+	][
+		null
+	]
+
+	scan-paren-close: func [state [state!]
+	;	/local
+	][
+		null
+	]
+
+	scan-string: func [state [state!]
 	;	/local
 	][
 		null
 	]
 	
-	scan-sharp: func [state [state!] return: [byte-ptr!]
+	scan-string-multi: func [state [state!]
 	;	/local
 	][
 		null
+	]
+	
+	scan-word: func [state [state!]
+	;	/local
+	][
+		null
+	]
+
+	scan-file: func [state [state!]
+	;	/local
+	][
+		null
+	]
+
+	scan-refinement: func [state [state!]
+	;	/local
+	][
+		null
+	]
+
+	scan-binary: func [state [state!]
+	;	/local
+	][
+		null
+	]
+	
+	scan-char: func [state [state!] 
+	;	/local
+	][
+		null
+	]
+	
+	scan-map-open: func [state [state!]
+	;	/local
+	][
+		null
+	]
+	
+	scan-construct: func [state [state!]
+	;	/local
+	][
+		null
+	]
+	
+	scan-issue: func [state [state!]
+	;	/local
+	][
+		null
+	]
+	
+	scan-percent: func [state [state!]
+	;	/local
+	][
+		null
+	]
+	
+	scan-integer: func [state [state!]
+	;	/local
+	][
+		null
+	]
+	
+	scan-float: func [state [state!]
+	;	/local
+	][
+		null
+	]
+	
+	scan-tuple: func [state [state!]
+	;	/local
+	][
+		null
+	]
+	
+	scan-date: func [state [state!]
+	;	/local
+	][
+		null
+	]
+	
+	scan-pair: func [state [state!]
+	;	/local
+	][
+		null
+	]
+	
+	scan-time: func [state [state!]
+	;	/local
+	][
+		null
+	]
+	
+	scan-money: func [state [state!]
+	;	/local
+	][
+		null
+	]
+	
+	scan-tag: func [state [state!]
+	;	/local
+	][
+		null
+	]
+	
+	scan-url: func [state [state!]
+	;	/local
+	][
+		null
+	]
+	
+	scan-email: func [state [state!]
+	;	/local
+	][
+		null
+	]
+	
+	scan-path: func [state [state!]
+	;	/local
+	][
+		null
+	]
+	
+	scanners: [
+		:scan-eof										;-- T_EOF
+		:scan-error										;-- T_ERROR
+		:scan-block-open								;-- T_BLK_OP
+		:scan-block-close								;-- T_BLK_CL
+		:scan-paren-open								;-- T_PAR_OP
+		:scan-paren-close								;-- T_PAR_CL
+		:scan-string									;-- T_STRING
+		:scan-string-multi								;-- T_STR_ALT
+		:scan-word										;-- T_WORD
+		:scan-file										;-- T_FILE
+		:scan-refinement								;-- T_REFINE
+		:scan-binary									;-- T_BINARY
+		:scan-char										;-- T_CHAR
+		:scan-map-open									;-- T_MAP_OP
+		:scan-construct									;-- T_CONS_MK
+		:scan-issue										;-- T_ISSUE
+		:scan-percent									;-- T_PERCENT
+		:scan-integer									;-- T_INTEGER
+		:scan-float										;-- T_FLOAT
+		:scan-tuple										;-- T_TUPLE
+		:scan-date										;-- T_DATE
+		:scan-pair										;-- T_PAIR
+		:scan-time										;-- T_TIME
+		:scan-money										;-- T_MONEY
+		:scan-tag										;-- T_TAG
+		:scan-url										;-- T_URL
+		:scan-email										;-- T_EMAIL
+		:scan-path										;-- T_PATH
 	]
 
 	scan-tokens: func [
@@ -338,19 +465,23 @@ lexer: context [
 			class	[integer!]
 			index	[integer!]
 			state	[integer!]
+			flags	[integer!]
 			line	[integer!]
 			s		[series!]
+			scanner [scanner!]
 	][
 		parent: lex/parent
 		s:  GET_BUFFER(parent)
 		p:  lex/pos
 		state: 0
-		line: 1
+		flags: 0
+		line:  1
 
 		loop lex/remain [
 			cp: 1 + as-integer p/value
-			class: lex-classes/cp		
-			index: state + class + 1
+			class: lex-classes/cp
+			flags: class and FFFFFF00h or flags
+			index: state * 33 + (class and FFh) + 1
 			state: as-integer transitions/index
 			;line: line + line-table/class
 			p: p + 1
@@ -359,7 +490,9 @@ lexer: context [
 
 		lex/remain: as-integer p - lex/pos
 		lex/pos: p
-		
+		index: state - --EXIT_STATES-- + 1
+		scanner: as scanner! scanners/index
+		scanner lex
 		
 	]
 	
@@ -372,7 +505,7 @@ lexer: context [
 			state [state! value]
 	][
 		state/parent: block/make-in dst 100
-		state/buffer: as cell! alloc-big 1000 * size? cell!
+		state/buffer: as cell! allocate 1000 * size? cell!
 		state/buf-head: state/buffer
 		state/buf-tail: state/buffer + 1000
 		state/head: src
@@ -384,6 +517,8 @@ lexer: context [
 		if system/thrown > 0 [
 			0 ; error handling
 		]
+		
+		free as byte-ptr! state/buffer
 	]
 	
 	init: func [][
