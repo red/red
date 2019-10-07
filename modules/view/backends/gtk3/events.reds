@@ -632,28 +632,32 @@ connect-widget-events: function [
 		buffer	[handle!]
 ][
 	;; register red mouse, key event functions
-	connect-common-events evbox widget
+	either sym = text [
+		connect-common-events evbox widget
+	][
+		connect-common-events widget widget
+	]
 
 	case [
 		sym = check [
 			;@@ No click event for check
 			;gobj_signal_connect(widget "clicked" :button-clicked null)
-			gobj_signal_connect(evbox "toggled" :button-toggled widget)
+			gobj_signal_connect(widget "toggled" :button-toggled widget)
 		]
 		sym = radio [
 			;@@ Line below removed because it generates an error and there is no click event for radio
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add radio toggled " lf]]
-			gobj_signal_connect(evbox "toggled" :button-toggled widget)
+			gobj_signal_connect(widget "toggled" :button-toggled widget)
 		]
 		sym = button [
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add button clicked " lf]]
-			gobj_signal_connect(evbox "clicked" :button-clicked widget)
+			gobj_signal_connect(widget "clicked" :button-clicked widget)
 		]
 		sym = base [
-			gobj_signal_connect(evbox "draw" :base-draw widget)
-			gtk_widget_add_events evbox GDK_BUTTON_PRESS_MASK or GDK_BUTTON1_MOTION_MASK or GDK_BUTTON_RELEASE_MASK or GDK_KEY_PRESS_MASK or GDK_KEY_RELEASE_MASK
-			gtk_widget_set_can_focus evbox yes
-			gtk_widget_set_focus_on_click evbox yes
+			gobj_signal_connect(widget "draw" :base-draw widget)
+			gtk_widget_add_events widget GDK_BUTTON_PRESS_MASK or GDK_BUTTON1_MOTION_MASK or GDK_BUTTON_RELEASE_MASK or GDK_KEY_PRESS_MASK or GDK_KEY_RELEASE_MASK
+			gtk_widget_set_can_focus widget yes
+			gtk_widget_set_focus_on_click widget yes
 		]
 		sym = rich-text [
 			gobj_signal_connect(widget "draw" :base-draw widget)
@@ -666,25 +670,25 @@ connect-widget-events: function [
 		]
 		sym = window [
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add window delete-event " lf]]
-			gobj_signal_connect(evbox "delete-event" :window-delete-event widget)
+			gobj_signal_connect(widget "delete-event" :window-delete-event widget)
 			;BUG (make `vid.red` failing): gtk_widget_add_events widget GDK_STRUCTURE_MASK
-			gobj_signal_connect(evbox "configure-event" :window-configure-event widget)
+			gobj_signal_connect(widget "configure-event" :window-configure-event widget)
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add window size-allocate " lf]]
-			gobj_signal_connect(evbox "size-allocate" :window-size-allocate widget)
-			connect-focus-events evbox widget
+			gobj_signal_connect(widget "size-allocate" :window-size-allocate widget)
+			connect-focus-events widget widget
 		]
 		sym = slider [
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add slider value-changed " lf]]
-			gobj_signal_connect(evbox "value-changed" :range-value-changed widget)
+			gobj_signal_connect(widget "value-changed" :range-value-changed widget)
 		]
 		sym = text [0]
 		sym = field [
 			gobj_signal_connect(widget "changed" :field-changed widget)
-			gtk_widget_set_can_focus evbox yes
-			gtk_widget_set_focus_on_click evbox yes
-			gtk_widget_is_focus evbox
-			gtk_widget_grab_focus evbox
-			connect-focus-events evbox widget
+			gtk_widget_set_can_focus widget yes
+			gtk_widget_set_focus_on_click widget yes
+			gtk_widget_is_focus widget
+			gtk_widget_grab_focus widget
+			connect-focus-events widget widget
 		]
 		sym = progress [
 			0
@@ -695,27 +699,27 @@ connect-widget-events: function [
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add area changed " lf]]
 			gobj_signal_connect(buffer "changed" :area-changed widget)
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add area populate-all " lf]]
-			g_object_set [evbox "populate-all" yes widget]
+			g_object_set [widget "populate-all" yes widget]
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add area populate-popup" lf]]
-			gobj_signal_connect(evbox "populate-popup" :area-populate-popup widget)
-			gtk_widget_set_can_focus evbox yes
-			gtk_widget_set_focus_on_click evbox yes
-			gtk_widget_is_focus evbox
-			gtk_widget_grab_focus evbox
-			connect-focus-events evbox widget
+			gobj_signal_connect(widget "populate-popup" :area-populate-popup widget)
+			gtk_widget_set_can_focus widget yes
+			gtk_widget_set_focus_on_click widget yes
+			gtk_widget_is_focus widget
+			gtk_widget_grab_focus widget
+			connect-focus-events widget widget
 		]
 		sym = group-box [
 			0
 		]
 		sym = panel [
-			gobj_signal_connect(evbox "draw" :base-draw widget)
-			gtk_widget_add_events evbox GDK_BUTTON_PRESS_MASK or GDK_BUTTON1_MOTION_MASK or GDK_BUTTON_RELEASE_MASK or GDK_KEY_PRESS_MASK or GDK_KEY_RELEASE_MASK or GDK_FOCUS_CHANGE_MASK
-			gtk_widget_set_can_focus evbox yes
-			gtk_widget_set_focus_on_click evbox yes
+			gobj_signal_connect(widget "draw" :base-draw widget)
+			gtk_widget_add_events widget GDK_BUTTON_PRESS_MASK or GDK_BUTTON1_MOTION_MASK or GDK_BUTTON_RELEASE_MASK or GDK_KEY_PRESS_MASK or GDK_KEY_RELEASE_MASK or GDK_FOCUS_CHANGE_MASK
+			gtk_widget_set_can_focus widget yes
+			gtk_widget_set_focus_on_click widget yes
 		]
 		sym = tab-panel [
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add tab-panel switch-page " lf]]
-			gobj_signal_connect(evbox "switch-page" :tab-panel-switch-page widget)
+			gobj_signal_connect(widget "switch-page" :tab-panel-switch-page widget)
 		]
 		sym = text-list [
 			;;; Mandatory and can respond to  (ON_SELECT or ON_CHANGE)
@@ -728,9 +732,13 @@ connect-widget-events: function [
 		][
 			;;; Mandatory! and can respond to (ON_SELECT or ON_CHANGE)
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add drop-(list|down) changed " lf]]
-			gobj_signal_connect(evbox "changed" :combo-selection-changed widget)
+			gobj_signal_connect(widget "changed" :combo-selection-changed widget)
 		]
 		true [0]
 	]
-	connect-notify-events evbox widget
+	either sym = text [
+		connect-notify-events evbox widget
+	][
+		connect-notify-events widget widget
+	]
 ]

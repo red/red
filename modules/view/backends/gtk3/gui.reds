@@ -46,8 +46,8 @@ red-face-id2:		g_quark_from_string "red-face-id2"
 red-face-id3:		g_quark_from_string "red-face-id3"
 red-face-id4:		g_quark_from_string "red-face-id4"
 gtk-style-id: 		g_quark_from_string "gtk-style-id"
-event-box-id:		g_quark_from_string "event-box-id"
-gtk-container-id:	g_quark_from_string "gtk-container-id"
+event-box-id:		g_quark_from_string "event-box-id"					;-- widget's layout-widget
+gtk-container-id:	g_quark_from_string "gtk-container-id"				;-- widget's parent-widget
 red-timer-id:		g_quark_from_string "red-timer-id"
 css-id:				g_quark_from_string "css-id"
 size-id:			g_quark_from_string "size-id"
@@ -1803,11 +1803,9 @@ OS-make-view: func [
 				gtk_box_pack_start winbox  AppMainMenu no yes 0
 			]
 			gtk_widget_show winbox
-			container: gtk_layout_new null null
-			gtk_layout_set_size container size/x size/y
-			gtk_box_pack_start winbox container yes yes 0
-			SET-CONTAINER(widget container)
-			;; DEBUG: print ["window is " widget " real container is " container lf]
+			evbox: gtk_layout_new null null
+			gtk_layout_set_size evbox size/x size/y
+			gtk_box_pack_start winbox evbox yes yes 0
 			gtk_window_move widget offset/x offset/y
 
 			;; The following line really matters to fix the initial size of the window
@@ -1925,7 +1923,7 @@ OS-make-view: func [
 
 		container: as handle! case [
 			p-sym = window [
-				g_object_get_qdata as handle! parent gtk-container-id
+				g_object_get_qdata as handle! parent event-box-id
 			]
 			any [p-sym = panel p-sym = rich-text p-sym = base] [parent]
 			p-sym = group-box [
