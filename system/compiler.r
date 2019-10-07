@@ -241,6 +241,11 @@ system-dialect: make-profilable context [
 			return catch
 		]
 		
+		array-expr-keywords: compose [
+			'or | 'and  | 'xor | '+ | '- | (to-lit-word "/")
+			| '* | (to-lit-word "%") | (to-lit-word "//")
+		]
+		
 		foreach [word action] keywords [append keywords-list word]
 		foreach [name spec] functions  [append keywords-list name]
 		
@@ -1156,11 +1161,13 @@ system-dialect: make-profilable context [
 		preprocess-array: func [list [block!] /local p s v][
 			parse list [
 				some [
-					p: word! (check-enum-symbol p) :p ['true | 'false] (p/1: do p/1)
+					['true | 'false] (p/1: do p/1)
+					| p: 'null (p/1: 0)
+					| p: word! (check-enum-symbol/strict p) :p
 					| p: paren! :p into [any [
-						s: word! (check-enum-symbol s) | skip
+						array-expr-keywords | s: word! (check-enum-symbol/strict s) | skip
 					]] :p (change p do p/1)
-					| string! | char! | integer! | decimal! | get-word! | p: 'null (p/1: 0)
+					| string! | char! | integer! | decimal! | get-word!
 				] | (throw-error ["invalid literal array content:" mold list])
 			]
 			to paren! list
@@ -3497,13 +3504,15 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		check-enum-symbol: func [code [any-block!] /local value][
-			if all [									;-- if enum, replace it with its integer value
+		check-enum-symbol: func [code [any-block!] /strict /local value][
+			either all [								;-- if enum, replace it with its integer value
 				word? code/1
 				not local-variable? code/1
 				value: get-enumerator resolve-ns code/1
 			][
 				change code value
+			][
+				if strict [throw-error ["unknown identifier in literal array:" code/1]]
 			]
 		]
 		
