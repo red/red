@@ -44,26 +44,26 @@ string: context [
 		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^^"	   #"^(00)" ;-- 5Fh
 	]
 
-	escape-url-chars: [							;-- ESC_NONE: #"^(FF)" ESC_URL: #"^(FE)"
-		#"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" ;-- 07h
-		#"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" ;-- 0Fh
-		#"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" ;-- 17h
-		#"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" ;-- 1Fh
-		#"^(FE)" #"^(FF)" #"^(FE)" #"^(FF)" #"^(FF)" #"^(FE)" #"^(FF)" #"^(FF)" ;-- 27h
-		#"^(FE)" #"^(FE)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" ;-- 2Fh
-		#"^(00)" #"^(01)" #"^(02)" #"^(03)" #"^(04)" #"^(05)" #"^(06)" #"^(07)" ;-- 37h
-		#"^(08)" #"^(09)" #"^(FF)" #"^(FE)" #"^(FE)" #"^(FF)" #"^(FE)" #"^(FF)" ;-- 3Fh
-		#"^(FF)" #"^(0A)" #"^(0B)" #"^(0C)" #"^(0D)" #"^(0E)" #"^(0F)" #"^(FF)" ;-- 47h
-		#"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" ;-- 4Fh
-		#"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" ;-- 57h
-		#"^(FF)" #"^(FF)" #"^(FF)" #"^(FE)" #"^(FF)" #"^(FE)" #"^(FF)" #"^(FF)" ;-- 5Fh
-		#"^(FF)" #"^(0A)" #"^(0B)" #"^(0C)" #"^(0D)" #"^(0E)" #"^(0F)" #"^(FF)" ;-- 67h
-		#"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" ;-- 6Fh
-		#"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" ;-- 77h
-		#"^(FF)" #"^(FF)" #"^(FF)" #"^(FE)" #"^(FF)" #"^(FE)" #"^(FF)" #"^(FF)" ;-- 7Fh
-	]
+	escape-url-chars: #{								;-- ESC_NONE: #"^(FF)" ESC_URL: #"^(FE)"
+		FE FE FE FE FE FE FE FE ;-- 07h
+		FE FE FE FE FE FE FE FE ;-- 0Fh
+		FE FE FE FE FE FE FE FE ;-- 17h
+		FE FE FE FE FE FE FE FE ;-- 1Fh
+		FE FF FE FF FF FE FF FF ;-- 27h
+		FE FE FF FF FF FF FF FF ;-- 2Fh
+		00 01 02 03 04 05 06 07 ;-- 37h
+		08 09 FF FE FE FF FE FF ;-- 3Fh
+		FF 0A 0B 0C 0D 0E 0F FF ;-- 47h
+		FF FF FF FF FF FF FF FF ;-- 4Fh
+		FF FF FF FF FF FF FF FF ;-- 57h
+		FF FF FF FE FF FE FF FF ;-- 5Fh
+		FF 0A 0B 0C 0D 0E 0F FF ;-- 67h
+		FF FF FF FF FF FF FF FF ;-- 6Fh
+		FF FF FF FF FF FF FF FF ;-- 77h
+		FF FF FF FE FF FE FF FF ;-- 7Fh
+	}
 
-	utf8-buffer: [#"^(00)" #"^(00)" #"^(00)" #"^(00)"]
+	utf8-buffer: #{00000000}
 
 	to-float: func [
 		s		[byte-ptr!]
