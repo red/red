@@ -1153,10 +1153,13 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		preprocess-array: func [list [block!]][
+		preprocess-array: func [list [block!] /local p s v][
 			parse list [
 				some [
 					p: word! (check-enum-symbol p) :p ['true | 'false] (p/1: do p/1)
+					| p: paren! :p into [any [
+						s: word! (check-enum-symbol s) | skip
+					]] :p (change p do p/1)
 					| string! | char! | integer! | decimal! | get-word! | p: 'null (p/1: 0)
 				] | (throw-error ["invalid literal array content:" mold list])
 			]
