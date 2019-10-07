@@ -911,7 +911,7 @@ system-dialect: make-profilable context [
 			]
 		]
 
-		get-enumerator: func [name [word!] /value /local pos][
+		get-enumerator: func [name [word!] /local pos][
 			all [
 				pos: find/skip next enumerations name 3		;-- SELECT/SKIP on hash! unreliable!
 				pos/2
@@ -2928,7 +2928,7 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		resolve-ns: func [name [word!] /path /local ctx pos][
+		resolve-ns: func [name [word!] /path /local ctx pos value][
 			unless ns-stack [return name]				;-- no current ns, pass-thru
 
 			if ctx: find/skip sym-ctx-table name 2 [	;-- fetch context candidates
@@ -3539,7 +3539,7 @@ system-dialect: make-profilable context [
 		
 		fetch-expression: func [
 			caller [any-word! issue! none! set-path!]
-			/final /keep /local expr pass value mark
+			/final /keep /local expr pass mark
 		][
 			mark: tail expr-call-stack
 			check-infix-operators
