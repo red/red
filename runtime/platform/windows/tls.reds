@@ -11,6 +11,7 @@ Red/System [
 ]
 
 #define MAX_SSL_MSG_LENGTH				17408
+#define SEC_OK							0
 #define SEC_I_CONTINUE_NEEDED			00090312h
 #define SEC_E_INCOMPLETE_MESSAGE		80090318h
 #define SEC_E_INCOMPLETE_CREDENTIALS	00090320h
@@ -267,7 +268,7 @@ tls: context [
 
 		switch data/iocp/event [
 			IO_EVT_READ [buflen: data/iocp/transferred]
-			IO_EVT_NONE [
+			IO_EVT_ACCEPT [
 				state: state or IO_STATE_READING
 			]
 			default [0]
@@ -361,6 +362,7 @@ probe [data/credential/dwLower " " data/credential/dwUpper]
 
 probe ["ret: " as int-ptr! ret]
 			switch ret [
+				SEC_OK
 				SEC_I_CONTINUE_NEEDED [
 					;-- this error means that information we provided in contextData is not enough to generate SSL token.
 					;-- We'll ask other party for more information by sending our unfinished "token",
@@ -388,7 +390,38 @@ probe "errororjejdlskfjkldjaflkdsjf"
 							release-context data
 						]
 					]
-probe ["extra-buf: " extra-buf/BufferType]
+
+					if ret = SEC_OK [
+	probe "OK>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
+						data/iocp/state: state or IO_STATE_TLS_DONE
+						platform/SSPI/QueryContextAttributesW
+							sec-handle
+							4			;-- SECPKG_ATTR_STREAM_SIZES
+							as byte-ptr! :ctx-size
+	probe [
+		ctx-size/cbHeader " " ctx-size/cbTrailer " " ctx-size/cbMaximumMessage " " ctx-size/cBuffers
+		" " ctx-size/cbBlockSize
+	]
+						data/ctx-max-msg: ctx-size/cbMaximumMessage
+						data/ctx-header: ctx-size/cbHeader
+						data/ctx-trailer: ctx-size/cbTrailer
+
+						data/buf-len: 0
+						either client? [extra-buf: inbuf-2][extra-buf: outbuf-2]
+						if extra-buf/BufferType = 5 [
+							probe "fjdksafjkldsajf0000000000000000000000000000000000000000"
+						]
+
+						either client? [
+							data/iocp/event: IO_EVT_CONNECT
+						][
+							data/iocp/event: IO_EVT_ACCEPT
+						]
+
+						io/pin-memory data/send-buf
+						return true
+					]
+
 					either all [
 						extra-buf/BufferType = 5
 						extra-buf/cbBuffer > 0
@@ -414,52 +447,6 @@ probe ["extra-buf: " extra-buf/BufferType]
 					cert-client: get-credential data yes
 					if null? cert-client [return false]
 					create-credentials as SecHandle! :data/credential cert-client client? 
-				]
-				0 [		;-- S_OK
-probe "OK>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
-unless client? [
-					if all [
-						outbuf-1/cbBuffer > 0
-						outbuf-1/pvBuffer <> null
-					][
-						if 0 > socket/send
-							as-integer data/iocp/device
-							outbuf-1/pvBuffer
-							outbuf-1/cbBuffer
-							as iocp-data! data [
-							platform/SSPI/FreeContextBuffer outbuf-1/pvBuffer
-							release-context data
-						]
-						data/iocp/event: IO_EVT_NONE
-					]
-]
-					data/iocp/state: state or IO_STATE_TLS_DONE
-					platform/SSPI/QueryContextAttributesW
-						sec-handle
-						4			;-- SECPKG_ATTR_STREAM_SIZES
-						as byte-ptr! :ctx-size
-probe [
-	ctx-size/cbHeader " " ctx-size/cbTrailer " " ctx-size/cbMaximumMessage " " ctx-size/cBuffers
-	" " ctx-size/cbBlockSize
-]
-					data/ctx-max-msg: ctx-size/cbMaximumMessage
-					data/ctx-header: ctx-size/cbHeader
-					data/ctx-trailer: ctx-size/cbTrailer
-
-					data/buf-len: 0
-					either client? [extra-buf: inbuf-2][extra-buf: outbuf-2]
-					if extra-buf/BufferType = 5 [
-						probe "fjdksafjkldsajf0000000000000000000000000000000000000000"
-					]
-
-					either client? [
-						data/iocp/event: IO_EVT_CONNECT
-					][
-						data/iocp/event: IO_EVT_ACCEPT
-					]
-
-					io/pin-memory data/send-buf
-					return true
 				]
 				default [
 					probe ["InitializeSecurityContext Error " ret]

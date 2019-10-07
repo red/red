@@ -19,6 +19,7 @@ TLS-device: context [
 			p		[red-object!]
 			msg		[red-object!]
 			td		[tls-data!]
+			data2	[iocp-data!]
 			type	[integer!]
 			bin		[red-binary!]
 			s		[series!]
@@ -54,16 +55,31 @@ TLS-device: context [
 				]
 			]
 			IO_EVT_ACCEPT	[
-				if data/state and IO_STATE_TLS_DONE = 0 [
+probe "accpet in 1111111"
+				either data/state and IO_STATE_TLS_DONE = 0 [
+					;-- swap accepted socket and the server socket
+					;-- we'll do the negotiate through the accepted socket
+					fd: data/accept-sock
+					data/accept-sock: as-integer data/device
+					data/device: as int-ptr! fd
+					iocp/bind g-iocp as int-ptr! fd
+					tls/negotiate as tls-data! data
+					exit
+				][
 					#either OS = 'Windows [
-						msg: create-red-port p data/accept-sock
-						iocp/bind g-iocp as int-ptr! data/accept-sock
-						socket/acceptex as-integer data/device data
+						data2: create-tcp-data p data/accept-sock
+						socket/acceptex data/accept-sock data2
+
+						msg: create-red-port p
+						copy-cell as cell! msg as cell! p
+						io/set-iocp-data msg data
+
+						td: as tls-data! data2
+						p: as red-object! :td/port
 					][
 						msg: create-red-port p socket/accept as-integer data/device
 					]
-					tls/negotiate as tls-data! get-tcp-data msg
-					exit
+					data/event: IO_EVT_NONE
 				]
 			]
 			default [data/event: IO_EVT_NONE]
@@ -74,15 +90,14 @@ TLS-device: context [
 
 	create-red-port: func [
 		proto		[red-object!]
-		sock		[integer!]
 		return:		[red-object!]
+		/local
+			data	[iocp-data!]
 	][
 		proto: port/make none-value object/get-values proto TYPE_NONE
 
 		;; @@ add it to a block, so GC can mark it. Improve it later!!!
 		block/rs-append ports-block as red-value! proto
-		
-		create-tcp-data proto sock
 		proto
 	]
 

@@ -4,8 +4,8 @@ Red [
 
 do [
 
-;debug: :print
-debug: :comment
+debug: :print
+;debug: :comment
 
 total: 0.0
 count: 0

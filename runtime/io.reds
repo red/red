@@ -105,6 +105,17 @@ io: context [
 		either TYPE_OF(state) = TYPE_NONE [null][as iocp-data! state/value]
 	]
 
+	set-iocp-data: func [
+		red-port	[red-object!]
+		data		[iocp-data!]
+		/local
+			state	[red-handle!]
+	][
+		handle/make-at
+			(object/get-values red-port) + port/field-state
+			as-integer data
+	]
+
 	do-events: func [
 		time	[integer!]		;-- milliseconds, -1: infinite time
 	][

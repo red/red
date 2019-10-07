@@ -82,6 +82,8 @@ socket: context [
 			data/accept-addr: alloc0 256
 		]
 
+probe "acceptex in 22222222"
+
 		n: 0
 		data/event: IO_EVT_ACCEPT
 		data/accept-sock: create AF_INET SOCK_STREAM IPPROTO_TCP
