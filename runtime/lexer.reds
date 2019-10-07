@@ -26,15 +26,15 @@ lexer: context [
 		C_FLAG_SHARP:		00800000h
 	]
 	
-	#define F_UCS4		[(C_WORD  or C_FLAG_UCS4)]
-	#define F_UCS2		[(C_WORD  or C_FLAG_UCS2)]
-	#define F_CARET		[(C_CARET or C_FLAG_CARET)]
-	#define F_DOT		[(C_DOT   or C_FLAG_DOT)]
-	#define F_COMMA		[(C_COMMA or C_FLAG_COMMA)]
-	#define F_COLON		[(C_COLON or C_FLAG_COLON)]
-	#define F_QUOTE		[(C_QUOTE or C_FLAG_QUOTE)]
-	#define F_EXP		[(C_EXP   or C_FLAG_EXP)]
-	#define F_SHARP		[(C_SHARP or C_FLAG_SHARP)]
+	#define FL_UCS4		[(C_WORD  or C_FLAG_UCS4)]
+	#define FL_UCS2		[(C_WORD  or C_FLAG_UCS2)]
+	#define FL_CARET	[(C_CARET or C_FLAG_CARET)]
+	#define FL_DOT		[(C_DOT   or C_FLAG_DOT)]
+	#define FL_COMMA	[(C_COMMA or C_FLAG_COMMA)]
+	#define FL_COLON	[(C_COLON or C_FLAG_COLON)]
+	#define FL_QUOTE	[(C_QUOTE or C_FLAG_QUOTE)]
+	#define FL_EXP		[(C_EXP   or C_FLAG_EXP)]
+	#define FL_SHARP	[(C_SHARP or C_FLAG_SHARP)]
 
 	#enum character-classes! [
 		C_BLANK
@@ -86,23 +86,23 @@ lexer: context [
 		C_BLANK											;-- 20
 		C_WORD											;-- 21		!
 		C_DBL_QUOTE										;-- 22		"
-		F_SHARP											;-- 23		#
+		FL_SHARP										;-- 23		#
 		C_MONEY											;-- 24		$
 		C_PERCENT										;-- 25		%
 		C_WORD											;-- 26		&
-		F_QUOTE											;-- 27		'
+		FL_QUOTE										;-- 27		'
 		C_PAREN_OP										;-- 28		(
 		C_PAREN_CL										;-- 29		)
 		C_WORD											;-- 2A		*
 		C_SIGN											;-- 2B		+
-		F_COMMA											;-- 2C		,
+		FL_COMMA										;-- 2C		,
 		C_SIGN											;-- 2D		-
-		F_DOT											;-- 2E		.
+		FL_DOT											;-- 2E		.
 		C_SLASH											;-- 2F		/
 		C_ZERO											;-- 30		0
 		C_DIGIT C_DIGIT C_DIGIT C_DIGIT C_DIGIT			;-- 31-35	1-5
 		C_DIGIT C_DIGIT C_DIGIT C_DIGIT					;-- 36-39	6-9
-		F_COLON											;-- 3A		:
+		FL_COLON										;-- 3A		:
 		C_SEMICOL										;-- 3B		;
 		C_LESSER										;-- 3C		<
 		C_WORD											;-- 3D		=
@@ -110,7 +110,7 @@ lexer: context [
 		C_WORD											;-- 3F		?
 		C_AT											;-- 40		@
 		C_ALPHAX C_ALPHAX C_ALPHAX C_ALPHAX			 	;-- 41-44	A-D
-		F_EXP											;-- 45		E
+		FL_EXP											;-- 45		E
 		C_ALPHAX										;-- 46		F
 		C_WORD C_WORD C_WORD C_WORD C_WORD C_WORD 		;-- 47-4C	G-L
 		C_WORD C_WORD C_WORD C_WORD C_WORD C_WORD 		;-- 4D-52	M-R
@@ -120,11 +120,11 @@ lexer: context [
 		C_BLOCK_OP										;-- 5B		[
 		C_BSLASH										;-- 5C		\
 		C_BLOCK_CL										;-- 5D		]
-		F_CARET											;-- 5E		^
+		FL_CARET										;-- 5E		^
 		C_WORD											;-- 5F		_
 		C_WORD											;-- 60		`
 		C_ALPHAX C_ALPHAX C_ALPHAX C_ALPHAX			 	;-- 61-64	a-d
-		F_EXP											;-- 65		e
+		FL_EXP											;-- 65		e
 		C_ALPHAX										;-- 66		f
 		C_WORD C_WORD C_WORD C_WORD C_WORD C_WORD 		;-- 67-6C	g-l
 		C_WORD C_WORD C_WORD C_WORD C_WORD C_WORD 		;-- 6D-72	m-r
@@ -145,14 +145,16 @@ lexer: context [
 		C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN ;-- B7-BE
 		C_BIN											;-- BF
 		C_ILLEGAL C_ILLEGAL								;-- C0-C1
-		F_UCS2 F_UCS2 F_UCS2 F_UCS2 F_UCS2 F_UCS2 F_UCS2;-- C2-C8
-		F_UCS2 F_UCS2 F_UCS2 F_UCS2 F_UCS2 F_UCS2 F_UCS2;-- C9-CF
-		F_UCS2 F_UCS2 F_UCS2 F_UCS2 F_UCS2 F_UCS2 F_UCS2;-- D0-D6
-		F_UCS2 F_UCS2 F_UCS2 F_UCS2 F_UCS2 F_UCS2 F_UCS2;-- D7-DD
-		F_UCS2 F_UCS2 F_UCS2 F_UCS2 F_UCS2 F_UCS2 F_UCS2;-- DE-E4
-		F_UCS2 F_UCS2 F_UCS2 F_UCS2 F_UCS2 F_UCS2 F_UCS2;-- E5-EB
-		F_UCS2 F_UCS2 F_UCS2 F_UCS2 C_WORD C_WORD C_WORD;-- EC-F2
-		F_UCS4 F_UCS4									;-- F3-F4
+		FL_UCS2 FL_UCS2 FL_UCS2 FL_UCS2 FL_UCS2 FL_UCS2 ;-- C2-C7
+		FL_UCS2 FL_UCS2 FL_UCS2 FL_UCS2 FL_UCS2 FL_UCS2 ;-- C8-CD
+		FL_UCS2 FL_UCS2	FL_UCS2 FL_UCS2 FL_UCS2 FL_UCS2 ;-- CE-D3
+		FL_UCS2 FL_UCS2 FL_UCS2 FL_UCS2 FL_UCS2 FL_UCS2 ;-- D4-D9
+		FL_UCS2 FL_UCS2 FL_UCS2 FL_UCS2	FL_UCS2 FL_UCS2 ;-- DA-DF
+		FL_UCS2 FL_UCS2 FL_UCS2 FL_UCS2 FL_UCS2	FL_UCS2 ;-- E0-E5
+		FL_UCS2 FL_UCS2 FL_UCS2 FL_UCS2 FL_UCS2 FL_UCS2 ;-- E6-EB
+		FL_UCS2 FL_UCS2 FL_UCS2 FL_UCS2					;-- EC-EF
+		C_WORD C_WORD C_WORD							;-- F0-F2
+		FL_UCS4 FL_UCS4									;-- F3-F4
 		C_ILLEGAL C_ILLEGAL C_ILLEGAL C_ILLEGAL 		;-- F5-F8
 		C_ILLEGAL C_ILLEGAL C_ILLEGAL C_ILLEGAL 		;-- F9-FC
 		C_ILLEGAL C_ILLEGAL C_ILLEGAL			 		;-- FD-FF
