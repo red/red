@@ -15,16 +15,16 @@ lexer: context [
 	#include %lexer-transitions.reds
 		
 	#enum class-flags! [
-		C_FLAG_UCS4:		80000000h
-		C_FLAG_UCS2:		40000000h
-		C_FLAG_CARET:		20000000h
-		C_FLAG_DOT:			10000000h
-		C_FLAG_COMMA:		08000000h
-		C_FLAG_COLON:		04000000h
-		C_FLAG_QUOTE:		02000000h
-		C_FLAG_EXP:			01000000h
-		C_FLAG_SHARP:		00800000h
-		C_FLAG_EOF:			00400000h
+		C_FLAG_UCS4:	80000000h
+		C_FLAG_UCS2:	40000000h
+		C_FLAG_CARET:	20000000h
+		C_FLAG_DOT:		10000000h
+		C_FLAG_COMMA:	08000000h
+		C_FLAG_COLON:	04000000h
+		C_FLAG_QUOTE:	02000000h
+		C_FLAG_EXP:		01000000h
+		C_FLAG_SHARP:	00800000h
+		C_FLAG_EOF:		00400000h
 	]
 	
 	#define FL_UCS4		[(C_WORD  or C_FLAG_UCS4)]
@@ -118,7 +118,7 @@ lexer: context [
 		C_WORD											;-- 5F		_
 		C_WORD											;-- 60		`
 		C_ALPHAX C_ALPHAX C_ALPHAX C_ALPHAX			 	;-- 61-64	a-d
-		FL_EXP											;-- 65		e
+		(C_EXP or C_FLAG_EXP)							;-- 65		e
 		C_ALPHAX										;-- 66		f
 		C_WORD C_WORD C_WORD C_WORD C_WORD C_WORD 		;-- 67-6C	g-l
 		C_WORD C_WORD C_WORD C_WORD C_WORD C_WORD 		;-- 6D-72	m-r
