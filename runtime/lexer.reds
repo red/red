@@ -24,17 +24,11 @@ lexer: context [
 		C_FLAG_QUOTE:		02000000h
 		C_FLAG_EXP:			01000000h
 		C_FLAG_SHARP:		00800000h
+		C_FLAG_EOF:			00400000h
 	]
 	
 	#define FL_UCS4		[(C_WORD  or C_FLAG_UCS4)]
 	#define FL_UCS2		[(C_WORD  or C_FLAG_UCS2)]
-	#define FL_CARET	[(C_CARET or C_FLAG_CARET)]
-	#define FL_DOT		[(C_DOT   or C_FLAG_DOT)]
-	#define FL_COMMA	[(C_COMMA or C_FLAG_COMMA)]
-	#define FL_COLON	[(C_COLON or C_FLAG_COLON)]
-	#define FL_QUOTE	[(C_QUOTE or C_FLAG_QUOTE)]
-	#define FL_EXP		[(C_EXP   or C_FLAG_EXP)]
-	#define FL_SHARP	[(C_SHARP or C_FLAG_SHARP)]
 
 	#enum character-classes! [
 		C_BLANK											;-- 0
@@ -73,7 +67,7 @@ lexer: context [
 	]
 
 	lex-classes: [
-		C_EOF											;-- 00		NUL
+		(C_EOF or C_FLAG_EOF)							;-- 00		NUL
 		C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN	;-- 01-08
 		C_BLANK											;-- 09		TAB
 		C_BLANK 										;-- 0A		LF
@@ -86,23 +80,23 @@ lexer: context [
 		C_BLANK											;-- 20
 		C_WORD											;-- 21		!
 		C_DBL_QUOTE										;-- 22		"
-		FL_SHARP										;-- 23		#
+		(C_SHARP or C_FLAG_SHARP)						;-- 23		#
 		C_MONEY											;-- 24		$
 		C_PERCENT										;-- 25		%
 		C_WORD											;-- 26		&
-		FL_QUOTE										;-- 27		'
+		(C_QUOTE or C_FLAG_QUOTE)						;-- 27		'
 		C_PAREN_OP										;-- 28		(
 		C_PAREN_CL										;-- 29		)
 		C_WORD											;-- 2A		*
 		C_SIGN											;-- 2B		+
-		FL_COMMA										;-- 2C		,
+		(C_COMMA or C_FLAG_COMMA)						;-- 2C		,
 		C_SIGN											;-- 2D		-
-		FL_DOT											;-- 2E		.
+		(C_DOT or C_FLAG_DOT)							;-- 2E		.
 		C_SLASH											;-- 2F		/
 		C_ZERO											;-- 30		0
 		C_DIGIT C_DIGIT C_DIGIT C_DIGIT C_DIGIT			;-- 31-35	1-5
 		C_DIGIT C_DIGIT C_DIGIT C_DIGIT					;-- 36-39	6-9
-		FL_COLON										;-- 3A		:
+		(C_COLON or C_FLAG_COLON)						;-- 3A		:
 		C_SEMICOL										;-- 3B		;
 		C_LESSER										;-- 3C		<
 		C_WORD											;-- 3D		=
@@ -110,7 +104,7 @@ lexer: context [
 		C_WORD											;-- 3F		?
 		C_AT											;-- 40		@
 		C_ALPHAX C_ALPHAX C_ALPHAX C_ALPHAX			 	;-- 41-44	A-D
-		FL_EXP											;-- 45		E
+		(C_EXP or C_FLAG_EXP)							;-- 45		E
 		C_ALPHAX										;-- 46		F
 		C_WORD C_WORD C_WORD C_WORD C_WORD C_WORD 		;-- 47-4C	G-L
 		C_WORD C_WORD C_WORD C_WORD C_WORD C_WORD 		;-- 4D-52	M-R
@@ -120,7 +114,7 @@ lexer: context [
 		C_BLOCK_OP										;-- 5B		[
 		C_BSLASH										;-- 5C		\
 		C_BLOCK_CL										;-- 5D		]
-		FL_CARET										;-- 5E		^
+		(C_CARET or C_FLAG_CARET)						;-- 5E		^
 		C_WORD											;-- 5F		_
 		C_WORD											;-- 60		`
 		C_ALPHAX C_ALPHAX C_ALPHAX C_ALPHAX			 	;-- 61-64	a-d
