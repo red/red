@@ -301,7 +301,7 @@ comment {
 	scan-word: func [state [state!]
 	;	/local
 	][
-		null
+		probe "word!"
 	]
 
 	scan-file: func [state [state!]
@@ -355,13 +355,13 @@ comment {
 	scan-integer: func [state [state!]
 	;	/local
 	][
-		null
+		probe "integer!"
 	]
 	
 	scan-float: func [state [state!]
 	;	/local
 	][
-		null
+		probe "float!"
 	]
 	
 	scan-tuple: func [state [state!]
@@ -462,6 +462,7 @@ comment {
 			flags	[integer!]
 			line	[integer!]
 			s		[series!]
+			term?	[logic!]
 			scanner [scanner!]
 	][
 		parent: lex/parent
@@ -470,6 +471,7 @@ comment {
 		state: 0
 		flags: 0
 		line:  1
+		term?: no
 
 		loop lex/remain [
 			cp: 1 + as-integer p/value
@@ -479,12 +481,18 @@ comment {
 			state: as-integer transitions/index
 			;line: line + line-table/class
 			p: p + 1
-			if state > --EXIT_STATES-- [break]
+			if state > --EXIT_STATES-- [term?: yes break]
+		]
+
+		unless term? [
+			index: state * 33 + C_EOF + 1
+			state: as-integer transitions/index
 		]
 
 		lex/remain: as-integer p - lex/pos
 		lex/pos: p
-		index: state - --EXIT_STATES-- + 1
+
+		index: state - --EXIT_STATES--
 		scanner: as scanner! scanners/index
 		scanner lex
 		
