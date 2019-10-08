@@ -341,6 +341,8 @@ window-size-allocate: func [
 	;; DEBUG: print ["window-size-allocate rect: " rect/x "x" rect/y "x" rect/width "x" rect/height     lf]
 	sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE
 	if any [rect/width <> sz/x rect/height <> sz/y] [
+		sz/x: rect/width
+		sz/y: rect/height
 		make-event widget 0 EVT_SIZING
 	]
 ]
