@@ -16,7 +16,7 @@ Red/System [
 #define GET-EVENT-BOX(s)	[g_object_get_qdata s event-box-id]
 #define SET-CONTAINER(s d)	[g_object_set_qdata s gtk-container-id d]
 #define GET-CONTAINER(s)	[g_object_get_qdata s gtk-container-id]
-#define CREATE-DEFAULT-FONT [font-description-create default-font-name gtk-font-size PANGO_WEIGHT_NORMAL PANGO_STYLE_NORMAL]
+#define CREATE-DEFAULT-FONT [font-description-create default-font-name default-font-size PANGO_WEIGHT_NORMAL PANGO_STYLE_NORMAL]
 
 #include %../keycodes.reds
 #include %gtk.reds
@@ -62,6 +62,7 @@ settings:		as handle! 0
 pango-context:	as handle! 0
 default-font:	as handle! 0
 default-font-name: as c-string! 0
+default-font-size: 0
 gtk-font-name:	"Sans"
 gtk-font-size:	10
 
@@ -535,6 +536,7 @@ set-defaults: func [
 	copy-memory as byte-ptr! default-font-name as byte-ptr! str len
 	len: len + 1
 	default-font-name/len: null-byte
+	default-font-size: size
 	default-font: CREATE-DEFAULT-FONT
 ]
 

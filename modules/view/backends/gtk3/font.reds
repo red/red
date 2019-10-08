@@ -238,7 +238,7 @@ font-description: func [
 	][name: default-font-name]
 
 	; font size
-	fsize: either TYPE_OF(size) = TYPE_INTEGER [size/value][10]
+	fsize: either TYPE_OF(size) = TYPE_INTEGER [size/value][default-font-size]
 	;; DEBUG: print ["font-description: fsize -> " fsize lf]
 
 	; font style and weight
