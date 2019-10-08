@@ -20,13 +20,62 @@ tls: context [
 	server-ctx: as int-ptr! 0
 	client-ctx: as int-ptr! 0
 
+	create-private-key: func [
+		return: [int-ptr!]
+		/local
+			bn	[int-ptr!]
+			rsa [int-ptr!]
+			prv [int-ptr!]
+	][
+		bn: BN_new
+		?? bn
+		BN_set_word bn 17
+		rsa: RSA_new
+		?? rsa
+		RSA_generate_key_ex rsa 2048 bn null
+		prv: EVP_PKEY_new
+		EVP_PKEY_set1_RSA prv rsa
+		RSA_free rsa
+		BN_free bn
+		?? prv
+		return prv
+	]
+
+	create-certificate: func [
+		pkey	[int-ptr!]		;-- private key
+		return: [int-ptr!]
+		/local
+			cert	[int-ptr!]
+			name	[int-ptr!]
+	][
+		cert: X509_new
+		?? cert
+		ASN1_INTEGER_set X509_get_serialNumber cert 1
+		X509_time_adj_ex X509_getm_notBefore cert 0 0 0
+		X509_time_adj_ex X509_getm_notAfter cert 365 0 0
+		X509_set_pubkey cert pkey
+		
+		name: X509_get_subject_name cert
+		?? name
+		X509_NAME_add_entry_by_txt name "C" 1001h "CA" -1 -1 0
+		X509_NAME_add_entry_by_txt name "O" 1001h "Red Language" -1 -1 0
+		X509_NAME_add_entry_by_txt name "CN" 1001h "localhost" -1 -1 0
+		probe X509_set_issuer_name cert name
+
+		probe X509_sign cert pkey EVP_sha1
+		cert
+	]
+
 	create: func [
 		td		[tls-data!]
 		client? [logic!]
 		/local
-			ctx	[int-ptr!]
-			ssl [int-ptr!]
-			fd	[integer!]
+			ctx		[int-ptr!]
+			ssl		[int-ptr!]
+			fd		[integer!]
+			err		[integer!]
+			pk		[int-ptr!]
+			cert	[int-ptr!]
 	][
 		if null? td/ssl [
 			either client? [
@@ -34,7 +83,24 @@ tls: context [
 				?? client-ctx
 				ctx: client-ctx
 			][
-				if null? server-ctx [server-ctx: SSL_CTX_new TLS_server_method]
+				if null? server-ctx [
+					server-ctx: SSL_CTX_new TLS_server_method
+					;probe SSL_CTX_use_certificate_chain_file server-ctx "certificate.crt"
+					;if zero? SSL_CTX_use_PrivateKey_file server-ctx "private.key" 1 [ ;-- X509_FILETYPE_PEM
+					pk: create-private-key
+					cert: create-certificate pk
+					probe SSL_CTX_use_certificate server-ctx cert
+					probe SSL_CTX_use_PrivateKey server-ctx pk
+						while [
+							err: ERR_get_error
+							err <> 0
+						][
+							probe ERR_error_string  err null
+							?? err
+						]
+					;]
+					probe SSL_CTX_check_private_key server-ctx
+				]
 				ctx: server-ctx
 			]
 			ssl: SSL_new ctx
@@ -44,7 +110,9 @@ tls: context [
 
 			fd: as-integer td/iocp/device
 			?? fd
-			probe SSL_set_fd ssl fd
+			if zero? SSL_set_fd ssl fd [
+				probe "SSL_set_fd error"
+			]
 			either client? [
 				SSL_set_connect_state ssl
 			][
@@ -60,6 +128,7 @@ tls: context [
 			state [integer!]
 	][
 		state: td/iocp/state
+?? state
 		either zero? state [
 			iocp/add td/iocp/io-port as-integer td/iocp/device evt or EPOLLET as iocp-data! td
 		][

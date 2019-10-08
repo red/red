@@ -52,6 +52,7 @@ iocp-data!: alias struct! [
 	write-buflen	[integer!]		
 	type			[integer!]			;@@ change it to uint16
 	state			[integer!]			;@@ change it to uint16
+	accept-sock		[integer!]
 	pending-read	[pending-data!]
 	pending-write	[pending-data!]
 ]
@@ -189,11 +190,13 @@ iocp: context [
 			i		[integer!]
 			e		[epoll_event!]
 			data	[iocp-data!]
+			td		[tls-data!]
 			n		[integer!]
 			err		[integer!]
 			sock	[integer!]
 			datalen [integer!]
 			state	[integer!]
+			fd		[integer!]
 			#if OS = 'macOS [
 			filter	[integer!]
 			flags	[integer!]
@@ -273,14 +276,20 @@ iocp: context [
 					data/type = IOCP_TYPE_TLS
 					state and IO_STATE_TLS_DONE = 0
 				][
-					if data/event = IO_EVT_CONNECT [
-						tls/create as tls-data! data yes
+					td: as tls-data! data
+					if null? td/ssl [
+						if data/event = IO_EVT_CONNECT [
+							tls/create as tls-data! data yes
+						]
+						if data/event = IO_EVT_ACCEPT [
+							fd: socket/accept as-integer data/device
+probe ["iocp accept-sock: " fd]
+							data/accept-sock: as-integer data/device
+							data/device: as int-ptr! fd
+							data/state: 0
+							tls/create td no
+						]
 					]
-					;if data/event = IO_EVT_ACCEPT [
-					;	fd: socket/accept as-integer data/device
-					;	msg: create-red-port p fd
-					;	tls/create td no
-					;]
 					unless tls/negotiate as tls-data! data [
 						i: i + 1
 						continue

@@ -570,6 +570,122 @@ errno: as int-ptr! 0
 		TLS_server_method: "TLS_server_method" [
 			return: [int-ptr!]
 		]
+		SSL_CTX_build_cert_chain: "SSL_CTX_build_cert_chain" [
+			ctx		[int-ptr!]
+			flags	[integer!]
+			return: [integer!]
+		]
+		SSL_CTX_use_certificate_chain_file: "SSL_CTX_use_certificate_chain_file" [
+			ctx		[int-ptr!]
+			file	[c-string!]
+			return: [integer!]
+		]
+		SSL_CTX_use_PrivateKey_file: "SSL_CTX_use_PrivateKey_file" [
+			ctx		[int-ptr!]
+			file	[c-string!]
+			flags	[integer!]
+			return: [integer!]
+		]
+		SSL_CTX_use_PrivateKey: "SSL_CTX_use_PrivateKey" [
+			ctx		[int-ptr!]
+			pkey	[int-ptr!]
+			return: [integer!]
+		]
+		SSL_CTX_use_certificate: "SSL_CTX_use_certificate" [
+			ctx		[int-ptr!]
+			x		[int-ptr!]
+			return: [integer!]
+		]
+		SSL_CTX_check_private_key: "SSL_CTX_check_private_key" [
+			ctx		[int-ptr!]
+			return: [integer!]
+		]
+		EVP_PKEY_new: "EVP_PKEY_new" [return: [int-ptr!]]
+		EVP_PKEY_free: "EVP_PKEY_free" [key [int-ptr!]]
+		EVP_PKEY_set1_RSA: "EVP_PKEY_set1_RSA" [
+			pkey	[int-ptr!]
+			key		[int-ptr!]
+			return: [integer!]
+		]
+		RSA_new: "RSA_new" [return: [int-ptr!]]
+		RSA_free: "RSA_free" [rsa [int-ptr!]]
+		RSA_generate_key_ex: "RSA_generate_key_ex" [
+			rsa		[int-ptr!]
+			bits	[integer!]
+			e		[int-ptr!]
+			cb		[int-ptr!]
+			return: [integer!]
+		]
+		BN_new: "BN_new" [return: [int-ptr!]]
+		BN_free: "BN_free" [a [int-ptr!]]
+		BN_set_word: "BN_set_word" [
+			a		[int-ptr!]
+			w		[integer!]
+			return: [integer!]
+		]
+		X509_new: "X509_new" [
+			return: [int-ptr!]
+		]
+		X509_free: "X509_free" [
+			a		[int-ptr!]
+		]
+		X509_get_serialNumber: "X509_get_serialNumber" [
+			a		[int-ptr!]
+			return: [int-ptr!]
+		]
+		ASN1_INTEGER_set: "ASN1_INTEGER_set" [
+			a		[int-ptr!]
+			v		[integer!]
+			return: [integer!]
+		]
+		X509_getm_notBefore: "X509_getm_notBefore" [
+			x		[int-ptr!]
+			return: [int-ptr!]
+		]
+		X509_getm_notAfter: "X509_getm_notAfter" [
+			x		[int-ptr!]
+			return: [int-ptr!]
+		]
+		X509_time_adj_ex: "X509_time_adj_ex" [
+			t		[int-ptr!]
+			day		[integer!]
+			sec		[integer!]
+			tm		[integer!]
+			return: [int-ptr!]
+		]
+		X509_set_pubkey: "X509_set_pubkey" [
+			x		[int-ptr!]
+			pkey	[int-ptr!]
+			return: [integer!]
+		]
+		X509_get_subject_name: "X509_get_subject_name" [
+			x		[int-ptr!]
+			return: [int-ptr!]
+		]
+		X509_NAME_add_entry_by_txt: "X509_NAME_add_entry_by_txt" [
+			name	[int-ptr!]
+			a		[c-string!]
+			b		[integer!]
+			full	[c-string!]
+			c		[integer!]
+			d		[integer!]
+			e		[integer!]
+			return: [integer!]
+		]
+		X509_set_issuer_name: "X509_set_issuer_name" [
+			x		[int-ptr!]
+			name	[int-ptr!]
+			return: [integer!]
+		]
+		X509_sign: "X509_sign" [
+			x		[int-ptr!]
+			pkey	[int-ptr!]
+			m		[int-ptr!]
+			return: [integer!]
+		]
+		EVP_sha1: "EVP_sha1" [
+			return: [int-ptr!]
+		]
 		SSL_new: "SSL_new" [
 			ctx		[int-ptr!]
 			return: [int-ptr!]
@@ -616,6 +732,12 @@ errno: as int-ptr! 0
 			buf		[byte-ptr!]
 			num		[integer!]
 			return:	[integer!]
+		]
+		ERR_get_error: "ERR_get_error" [return: [integer!]]
+		ERR_error_string: "ERR_error_string" [
+			e		[integer!]
+			buf		[c-string!]
+			return: [c-string!]
 		]
 	]
 ]

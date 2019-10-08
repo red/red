@@ -66,19 +66,20 @@ probe "accpet in 1111111"
 					tls/negotiate as tls-data! data
 					exit
 				][
+					data2: create-tcp-data p data/accept-sock
 					#either OS = 'Windows [
-						data2: create-tcp-data p data/accept-sock
 						socket/acceptex data/accept-sock data2
-
-						msg: create-red-port p
-						copy-cell as cell! msg as cell! p
-						io/set-iocp-data msg data
-
-						td: as tls-data! data2
-						p: as red-object! :td/port
 					][
-						msg: create-red-port p socket/accept as-integer data/device
+						data2/state: EPOLLIN
 					]
+
+					msg: create-red-port p
+					copy-cell as cell! msg as cell! p
+					io/set-iocp-data msg data
+
+					td: as tls-data! data2
+					p: as red-object! :td/port
+
 					data/event: IO_EVT_NONE
 				]
 			]
