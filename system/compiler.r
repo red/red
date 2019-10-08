@@ -244,6 +244,7 @@ system-dialect: make-profilable context [
 		array-expr-keywords: compose [
 			'or | 'and  | 'xor | '+ | '- | (to-lit-word "/")
 			| '* | (to-lit-word "%") | (to-lit-word "//")
+			| (to-lit-word "<<") | (to-lit-word ">>") | (to-lit-word ">>>")
 		]
 		
 		foreach [word action] keywords [append keywords-list word]
