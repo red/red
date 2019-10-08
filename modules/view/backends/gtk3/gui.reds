@@ -365,7 +365,7 @@ debug-show-children: func [
 		widget_		[handle!]
 		child		[handle!]
 		container	[handle!]
-		rect		[tagRECT]
+		rect		[tagRECT value]
 		sx			[integer!]
 		sy			[integer!]
 		offset		[red-pair!]
@@ -404,8 +404,6 @@ debug-show-children: func [
 
 	sym: 	symbol/resolve type/symbol
 
-	rect: 	as tagRECT allocate (size? tagRECT)
-
 	if all [TYPE_OF(pane) = TYPE_BLOCK 0 <> block/rs-length? pane] [
 		face: as red-object! block/rs-head pane
 		tail: as red-object! block/rs-tail pane
@@ -416,7 +414,7 @@ debug-show-children: func [
 		either null? widget_ [print-line "null container" container: null][container: GET-CONTAINER(widget_)]
 		print ["container handle: " container lf]
 
-		 sx: 0 sy: 0
+		sx: 0 sy: 0
 		cpt: 0
 		while [face < tail][
 			cpt: cpt + 1
@@ -445,7 +443,6 @@ debug-show-children: func [
 		]
 		if debug [print-line "Pane end"]
 	]
-	free as byte-ptr! rect
 ]
 
 ; on-gc-mark: does [
@@ -607,7 +604,7 @@ adjust-sizes: func [
 		widget_		[handle!]
 		child		[handle!]
 		container	[handle!]
-		rect		[tagRECT]
+		rect		[tagRECT value]
 		dx			[integer!]
 		dy			[integer!]
 		ox			[integer!]
@@ -635,8 +632,6 @@ adjust-sizes: func [
 	pane: 	as red-block! values + FACE_OBJ_PANE
 
 	sym: 	symbol/resolve type/symbol
-
-	rect: 	as tagRECT allocate (size? tagRECT)
 
 	if all [TYPE_OF(pane) = TYPE_BLOCK 0 <> block/rs-length? pane] [
 		face: as red-object! block/rs-head pane
@@ -680,7 +675,6 @@ adjust-sizes: func [
 		]
 		if debug [print-line "Pane end"]
 	]
-	free as byte-ptr! rect
 ]
 
 remove-widget-timer: func [
