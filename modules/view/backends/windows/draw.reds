@@ -372,6 +372,9 @@ draw-begin: func [
 			graphics: 0
 			GdipCreateFromHDC dc :graphics
 			SelectObject dc GetStockObject NULL_BRUSH
+			SelectObject dc default-font
+
+			update-gdiplus-font-color ctx ctx/pen-color			
 		]
 	]
 
@@ -1660,7 +1663,10 @@ OS-draw-text: func [
 
 	len: -1
 	str: unicode/to-utf16-len text :len no
-	either ctx/on-image? [
+	either any [
+		ctx/on-image?
+		ctx/other/GDI+?
+	][
 		x: 0
 		rect: as RECT_STRUCT_FLOAT32 :x
 		rect/x: as float32! pos/x
