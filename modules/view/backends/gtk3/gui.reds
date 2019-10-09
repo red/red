@@ -16,6 +16,8 @@ Red/System [
 #define GET-EVENT-BOX(s)	[g_object_get_qdata s event-box-id]
 #define SET-CONTAINER(s d)	[g_object_set_qdata s gtk-container-id d]
 #define GET-CONTAINER(s)	[g_object_get_qdata s gtk-container-id]
+#define SET-RESIZING(s d)	[g_object_set_qdata s resizing-id d]
+#define GET-RESIZING(s)		[g_object_get_qdata s resizing-id]
 #define CREATE-DEFAULT-FONT [font-description-create default-font-name default-font-size PANGO_WEIGHT_NORMAL PANGO_STYLE_NORMAL]
 
 #include %../keycodes.reds
@@ -53,8 +55,9 @@ css-id:				g_quark_from_string "css-id"
 size-id:			g_quark_from_string "size-id"
 menu-id:			g_quark_from_string "menu-id"
 no-wait-id:			g_quark_from_string "no-wait-id"
-red-event-id: 		g_quark_from_string "red-event-id"
+red-event-id:		g_quark_from_string "red-event-id"
 cursor-id:			g_quark_from_string "cursor-id"
+resizing-id:		g_quark_from_string "resizing-id"
 
 group-radio:	as handle! 0
 

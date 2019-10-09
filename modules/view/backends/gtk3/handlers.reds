@@ -303,32 +303,30 @@ window-removed-event: func [
 	;; DEBUG[view/no-wait]: print ["=> exit-loop: " count/value lf]
 ]
 
-;; BUG: `vid.red` fails... back with window-size-allocate handler for resizing
-window-configure-event: func [
+window-event:  func [
 	[cdecl]
 	evbox		[handle!]
-	event		[GdkEventConfigure!]
+	event		[GdkEventAny!]
 	widget		[handle!]
+	return:		[integer!]
 	/local
-		sz		[red-pair!]
-		offset	[red-pair!]
-		x		[integer!]
-		y		[integer!]
+		h		[handle!]
 ][
-	;;DEBUG: print [ "window-resizing " event/x "x" event/y " " event/width "x" event/height lf]
-
-	; Set the offset when window is moved
-	offset: (as red-pair! get-face-values widget) + FACE_OBJ_OFFSET
-	x: 0 y: 0 gtk_window_get_position widget :x :y
-	;; DEBUG: print ["offset: " x "x" y lf]
-	offset/x: x offset/y: y
-
-	sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE
-	if any [event/width <> sz/x event/height <> sz/y] [
-		make-event widget 0 EVT_SIZE
+	if event/type = 13 [				;-- GDK_PROXIMITY_OUT
+		h: as handle! 1
+		SET-RESIZING(widget h)
 	]
+	if event/type = 12 [				;-- GDK_PROXIMITY_IN
+		h: GET-RESIZING(widget)
+		unless null? h [
+			make-event widget 0 EVT_SIZING
+			make-event widget 0 EVT_SIZE
+		]
+		h: as handle! 0
+		SET-RESIZING(widget h)
+	]
+	EVT_DISPATCH
 ]
-
 
 window-size-allocate: func [
 	[cdecl]
@@ -337,13 +335,22 @@ window-size-allocate: func [
 	widget		[handle!]
 	/local
 		sz		[red-pair!]
+		h		[handle!]
 ][
 	;; DEBUG: print ["window-size-allocate rect: " rect/x "x" rect/y "x" rect/width "x" rect/height     lf]
 	sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE
-	if any [rect/width <> sz/x rect/height <> sz/y] [
+	if any [
+		sz/x <> rect/width
+		sz/y <> rect/height
+	][
 		sz/x: rect/width
 		sz/y: rect/height
-		make-event widget 0 EVT_SIZING
+		h: GET-RESIZING(widget)
+		either null? h [
+			make-event widget 0 EVT_SIZE
+		][
+			make-event widget 0 EVT_SIZING
+		]
 	]
 ]
 
