@@ -46,102 +46,102 @@ tagRECT: alias struct! [
 ]
 
 GdkEventAny!: alias struct! [
-	type          [integer!]
-  window        [int-ptr!]
-  send_event    [byte!]
+	type		[integer!]
+	window		[int-ptr!]
+	send_event	[byte!]
 ]
 
 GdkEventKey!: alias struct! [
-  type          [integer!]
-  window        [int-ptr!]
-  send_event    [byte!]
-  time          [integer!]
-  state         [integer!]
-  keyval        [integer!]
-  length        [integer!]
-  string        [c-string!]
-  keycode1      [byte!]
-  keycode2		[byte!]
-  group			[byte!]
-  is_modifier 	[integer!]
+	type		[integer!]
+	window		[int-ptr!]
+	send_event	[byte!]
+	time		[integer!]
+	state		[integer!]
+	keyval		[integer!]
+	length		[integer!]
+	string		[c-string!]
+	keycode1	[byte!]
+	keycode2	[byte!]
+	group		[byte!]
+	is_modifier	[integer!]
 ]
 GdkEventMotion!: alias struct! [
-  type 			[integer!]
-  window		[int-ptr!]
-  send_event	[byte!]
-  time 			[integer!]
-  x				[float!]
-  y				[float!]
-  axes			[float-ptr!]
-  state			[integer!]
-  is_hint1		[byte!]
-  is_hint2		[byte!]
-  device		[int-ptr!]
-  x_root		[float!]
-  y_root		[float!]
+	type 		[integer!]
+	window		[int-ptr!]
+	send_event	[byte!]
+	time 		[integer!]
+	x			[float!]
+	y			[float!]
+	axes		[float-ptr!]
+	state		[integer!]
+	is_hint1	[byte!]
+	is_hint2	[byte!]
+	device		[int-ptr!]
+	x_root		[float!]
+	y_root		[float!]
 ]
 
 GdkEventButton!: alias struct! [
-  type 			[integer!]
-  window		[int-ptr!]
-  send_event	[byte!]
-  time 			[integer!]
-  x				[float!]
-  y				[float!]
-  axes			[float-ptr!]
-  state			[integer!]
-  button		[integer!]
-  device		[int-ptr!]
-  x_root		[float!]
-  y_root		[float!]
+	type 		[integer!]
+	window		[int-ptr!]
+	send_event	[byte!]
+	time		[integer!]
+	x			[float!]
+	y			[float!]
+	axes		[float-ptr!]
+	state		[integer!]
+	button		[integer!]
+	device		[int-ptr!]
+	x_root		[float!]
+	y_root		[float!]
 ]
 
 GdkEventCrossing!: alias struct! [
-  type 			[integer!]
-  window		[int-ptr!]
-  send_event	[byte!]
-  subwindow		[int-ptr!]
-  time 			[integer!]
-  x				[float!]
-  y				[float!]
-  x_root		[float!]
-  y_root		[float!]
-  axes			[float-ptr!]
-  state			[integer!]
-  is_hint1		[byte!]
-  is_hint2		[byte!]
-  device		[int-ptr!]
-  mode			[integer!]
-  detail		[integer!]
-  focus 		[logic!]
-  state 		[integer!]
+	type 		[integer!]
+	window		[int-ptr!]
+	send_event	[byte!]
+	subwindow	[int-ptr!]
+	time 		[integer!]
+	x			[float!]
+	y			[float!]
+	x_root		[float!]
+	y_root		[float!]
+	axes		[float-ptr!]
+	state		[integer!]
+	is_hint1	[byte!]
+	is_hint2	[byte!]
+	device		[int-ptr!]
+	mode		[integer!]
+	detail		[integer!]
+	focus		[logic!]
+	state		[integer!]
 ]
 
 GdkEventConfigure!: alias struct! [
-  type			[integer!]
-  window		[handle!]
-  send_event	[byte!]
-  x				[integer!]
-  y				[integer!]
-  width			[integer!]
-  height		[integer!]
+	type		[integer!]
+	window		[handle!]
+	send_event	[byte!]
+	x			[integer!]
+	y			[integer!]
+	width		[integer!]
+	height		[integer!]
 ]
 
 GdkEventScroll!: alias struct! [
-  type				[integer!]
-  window			[handle!]
-  send_event		[byte!]
-  time				[integer!]
-  x					[float!]
-  y					[float!]
-  state				[integer!]
-  direction			[integer!]
-  device			[handle!]
-  x_root			[float!]
-  y_root			[float!]
-  delta_x			[float!]
-  delta_y			[float!]
-  is_stop 			[integer!]
+	type		[integer!]
+	window		[handle!]
+	send_event	[byte!]
+	time		[integer!]
+	x			[float!]
+	y			[float!]
+	state		[integer!]
+	direction	[integer!]
+	device		[handle!]
+	x_root		[float!]
+	y_root		[float!]
+	delta_x		[float!]
+	delta_y		[float!]
+	is_stop		[integer!]
 ]
 
 #enum GdkScrollDirection! [
@@ -153,29 +153,29 @@ GdkEventScroll!: alias struct! [
 ]
 
 #enum GGApplicationFlags! [
-  G_APPLICATION_FLAGS_NONE: 0
-  G_APPLICATION_IS_SERVICE: 1
-  G_APPLICATION_IS_LAUNCHER: 2
-  G_APPLICATION_HANDLES_OPEN: 4
-  G_APPLICATION_HANDLES_COMMAND_LINE: 8
-  G_APPLICATION_SEND_ENVIRONMENT: 16
-  G_APPLICATION_NON_UNIQUE: 32
+	G_APPLICATION_FLAGS_NONE: 0
+	G_APPLICATION_IS_SERVICE: 1
+	G_APPLICATION_IS_LAUNCHER: 2
+	G_APPLICATION_HANDLES_OPEN: 4
+	G_APPLICATION_HANDLES_COMMAND_LINE: 8
+	G_APPLICATION_SEND_ENVIRONMENT: 16
+	G_APPLICATION_NON_UNIQUE: 32
 ]
 
 #enum GdkModifierType! [
-  GDK_SHIFT_MASK: 		1
-  GDK_LOCK_MASK: 			2
-  GDK_CONTROL_MASK: 	4
-  GDK_MOD1_MASK: 			8
-  GDK_MOD5_MASK: 			128
-  GDK_BUTTON1_MASK: 	256
-  GDK_BUTTON2_MASK: 	512
-  GDK_BUTTON3_MASK: 	1024
-  GDK_BUTTON4_MASK: 	2048
-  GDK_BUTTON5_MASK: 	4096
-	GDK_SUPER_MASK: 		67108864
-  GDK_HYPER_MASK: 		134217728
-  GDK_META_MASK: 			268435456
+	GDK_SHIFT_MASK:		1
+	GDK_LOCK_MASK:		2
+	GDK_CONTROL_MASK:	4
+	GDK_MOD1_MASK:		8
+	GDK_MOD5_MASK:		128
+	GDK_BUTTON1_MASK:	256
+	GDK_BUTTON2_MASK:	512
+	GDK_BUTTON3_MASK:	1024
+	GDK_BUTTON4_MASK:	2048
+	GDK_BUTTON5_MASK:	4096
+	GDK_SUPER_MASK:		67108864
+	GDK_HYPER_MASK:		134217728
+	GDK_META_MASK:		268435456
 ]
 #enum GdkEventType! [
 	GDK_NOTHING: -1
@@ -232,32 +232,32 @@ GdkEventScroll!: alias struct! [
 ]
 
 #enum GdkEventMask! [
-  GDK_EXPOSURE_MASK:             2
-  GDK_POINTER_MOTION_MASK:       4
-  GDK_POINTER_MOTION_HINT_MASK:  8
-  GDK_BUTTON_MOTION_MASK:        16
-  GDK_BUTTON1_MOTION_MASK:       32
-  GDK_BUTTON2_MOTION_MASK:       64
-  GDK_BUTTON3_MOTION_MASK:       128
-  GDK_BUTTON_PRESS_MASK:         256
-  GDK_BUTTON_RELEASE_MASK:       512
-  GDK_KEY_PRESS_MASK:            1024
-  GDK_KEY_RELEASE_MASK:          2048
-  GDK_ENTER_NOTIFY_MASK:         4096
-  GDK_LEAVE_NOTIFY_MASK:         8192
-  GDK_FOCUS_CHANGE_MASK:         16384
-  GDK_STRUCTURE_MASK:            32768
-  GDK_PROPERTY_CHANGE_MASK:      65536
-  GDK_VISIBILITY_NOTIFY_MASK:    131072
-  GDK_PROXIMITY_IN_MASK:         262144
-  GDK_PROXIMITY_OUT_MASK:        524288
-  GDK_SUBSTRUCTURE_MASK:         1048576
-  GDK_SCROLL_MASK:               2097152
-  GDK_TOUCH_MASK:                4194304
-  GDK_SMOOTH_SCROLL_MASK:        8388608
-  GDK_TOUCHPAD_GESTURE_MASK:     16777216
-  GDK_TABLET_PAD_MASK:           33554432
-  ;;GDK_ALL_EVENTS_MASK:           fffffffeh
+	GDK_EXPOSURE_MASK:             2
+	GDK_POINTER_MOTION_MASK:       4
+	GDK_POINTER_MOTION_HINT_MASK:  8
+	GDK_BUTTON_MOTION_MASK:        16
+	GDK_BUTTON1_MOTION_MASK:       32
+	GDK_BUTTON2_MOTION_MASK:       64
+	GDK_BUTTON3_MOTION_MASK:       128
+	GDK_BUTTON_PRESS_MASK:         256
+	GDK_BUTTON_RELEASE_MASK:       512
+	GDK_KEY_PRESS_MASK:            1024
+	GDK_KEY_RELEASE_MASK:          2048
+	GDK_ENTER_NOTIFY_MASK:         4096
+	GDK_LEAVE_NOTIFY_MASK:         8192
+	GDK_FOCUS_CHANGE_MASK:         16384
+	GDK_STRUCTURE_MASK:            32768
+	GDK_PROPERTY_CHANGE_MASK:      65536
+	GDK_VISIBILITY_NOTIFY_MASK:    131072
+	GDK_PROXIMITY_IN_MASK:         262144
+	GDK_PROXIMITY_OUT_MASK:        524288
+	GDK_SUBSTRUCTURE_MASK:         1048576
+	GDK_SCROLL_MASK:               2097152
+	GDK_TOUCH_MASK:                4194304
+	GDK_SMOOTH_SCROLL_MASK:        8388608
+	GDK_TOUCHPAD_GESTURE_MASK:     16777216
+	GDK_TABLET_PAD_MASK:           33554432
+	;;GDK_ALL_EVENTS_MASK:           fffffffeh
 ]
 
 GtkTextIter!: alias struct! [
