@@ -669,10 +669,10 @@ connect-widget-events: function [
 			connect-focus-events widget widget
 		]
 		sym = window [
+			gobj_signal_connect(widget "event" :window-event widget)
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add window delete-event " lf]]
 			gobj_signal_connect(widget "delete-event" :window-delete-event widget)
 			;BUG (make `vid.red` failing): gtk_widget_add_events widget GDK_STRUCTURE_MASK
-			gobj_signal_connect(widget "event" :window-event widget)
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add window size-allocate " lf]]
 			gobj_signal_connect(widget "size-allocate" :window-size-allocate widget)
 			connect-focus-events widget widget

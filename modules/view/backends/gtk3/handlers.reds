@@ -312,18 +312,22 @@ window-event:  func [
 	/local
 		h		[handle!]
 ][
-	if event/type = 13 [				;-- GDK_PROXIMITY_OUT
-		h: as handle! 1
-		SET-RESIZING(widget h)
-	]
-	if event/type = 12 [				;-- GDK_PROXIMITY_IN
-		h: GET-RESIZING(widget)
-		unless null? h [
-			make-event widget 0 EVT_SIZING
-			make-event widget 0 EVT_SIZE
+	h: GET-STARTRESIZE(widget)
+	unless null? h [
+		if event/type = 13 [				;-- GDK_PROXIMITY_OUT
+			h: as handle! 1
+			SET-RESIZING(widget h)
 		]
-		h: as handle! 0
-		SET-RESIZING(widget h)
+		if event/type = 12 [				;-- GDK_PROXIMITY_IN
+			h: GET-RESIZING(widget)
+			unless null? h [
+				make-event widget 0 EVT_SIZING
+				make-event widget 0 EVT_SIZE
+			]
+			h: as handle! 0
+			SET-RESIZING(widget h)
+			SET-STARTRESIZE(widget h)
+		]
 	]
 	EVT_DISPATCH
 ]
@@ -339,6 +343,11 @@ window-size-allocate: func [
 ][
 	;; DEBUG: print ["window-size-allocate rect: " rect/x "x" rect/y "x" rect/width "x" rect/height     lf]
 	sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE
+	h: GET-STARTRESIZE(widget)
+	if null? h [
+		h: as handle! 1
+		SET-STARTRESIZE(widget h)
+	]
 	if any [
 		sz/x <> rect/width
 		sz/y <> rect/height

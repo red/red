@@ -10,15 +10,20 @@ Red/System [
 	}
 ]
 
-#define SET-CURSOR(s d)		[g_object_set_qdata s cursor-id d]
-#define GET-CURSOR(s)		[g_object_get_qdata s cursor-id]
-#define SET-EVENT-BOX(s d)	[g_object_set_qdata s event-box-id d]
-#define GET-EVENT-BOX(s)	[g_object_get_qdata s event-box-id]
-#define SET-CONTAINER(s d)	[g_object_set_qdata s gtk-container-id d]
-#define GET-CONTAINER(s)	[g_object_get_qdata s gtk-container-id]
-#define SET-RESIZING(s d)	[g_object_set_qdata s resizing-id d]
-#define GET-RESIZING(s)		[g_object_get_qdata s resizing-id]
-#define CREATE-DEFAULT-FONT [font-description-create default-font-name default-font-size PANGO_WEIGHT_NORMAL PANGO_STYLE_NORMAL]
+#define SET-CURSOR(s d)			[g_object_set_qdata s cursor-id d]
+#define GET-CURSOR(s)			[g_object_get_qdata s cursor-id]
+#define SET-EVENT-BOX(s d)		[g_object_set_qdata s event-box-id d]
+#define GET-EVENT-BOX(s)		[g_object_get_qdata s event-box-id]
+#define SET-CONTAINER(s d)		[g_object_set_qdata s gtk-container-id d]
+#define GET-CONTAINER(s)		[g_object_get_qdata s gtk-container-id]
+#define SET-RESIZING(s d)		[g_object_set_qdata s resizing-id d]
+#define GET-RESIZING(s)			[g_object_get_qdata s resizing-id]
+#define SET-STARTRESIZE(s d)	[g_object_set_qdata s start-resize-id d]
+#define GET-STARTRESIZE(s)		[g_object_get_qdata s start-resize-id]
+
+#define CREATE-DEFAULT-FONT		[
+	font-description-create default-font-name default-font-size PANGO_WEIGHT_NORMAL PANGO_STYLE_NORMAL
+]
 
 #include %../keycodes.reds
 #include %gtk.reds
@@ -58,6 +63,7 @@ no-wait-id:			g_quark_from_string "no-wait-id"
 red-event-id:		g_quark_from_string "red-event-id"
 cursor-id:			g_quark_from_string "cursor-id"
 resizing-id:		g_quark_from_string "resizing-id"
+start-resize-id:	g_quark_from_string "start-resize-id"
 
 group-radio:	as handle! 0
 
