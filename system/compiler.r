@@ -3463,6 +3463,7 @@ system-dialect: make-profilable context [
 				][
 					emitter/logic-to-integer expr/1		;-- runtime logic! conversion before storing
 				]
+				if all [not variable boxed][last-type: boxed/type] ;-- enforces type casting on calling expression
 				if all [
 					variable boxed						;-- process casting if result assigned to variable
 					find [logic! integer! float! float32! float64!] last-type/1
@@ -3489,7 +3490,7 @@ system-dialect: make-profilable context [
 				not find expr-call-stack set-word!
 				not find expr-call-stack set-path!
 			][
-				emitter/target/emit-float-trash-last	;-- avoid leaving a x86 FPU slot occupied,
+				emitter/target/emit-float-trash-last	;-- avoid leaving a x87 FPU slot occupied,
 			]											;-- if return value is not used.
 			
 			;-- storing result if assignement required
