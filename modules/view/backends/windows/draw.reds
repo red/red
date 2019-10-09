@@ -165,7 +165,7 @@ update-gdiplus-brush: func [ctx [draw-ctx!] /local handle [integer!]][
 		ctx/gp-brush: 0
 	]
 	if ctx/brush? [
-		GdipCreateSolidFill to-gdiplus-color ctx/brush-color :handle
+		GdipCreateSolidFill to-gdiplus-color-fixed ctx/brush-color :handle
 		ctx/gp-brush: handle
 	]
 ]
