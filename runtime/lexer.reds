@@ -25,6 +25,7 @@ lexer: context [
 		C_FLAG_EXP:		01000000h
 		C_FLAG_SHARP:	00800000h
 		C_FLAG_EOF:		00400000h
+		C_FLAG_SIGN:	00200000h
 	]
 	
 	#define FL_UCS4		[(C_WORD  or C_FLAG_UCS4)]
@@ -88,9 +89,9 @@ lexer: context [
 		C_PAREN_OP										;-- 28		(
 		C_PAREN_CL										;-- 29		)
 		C_WORD											;-- 2A		*
-		C_SIGN											;-- 2B		+
+		(C_SIGN	or C_FLAG_SIGN)							;-- 2B		+
 		(C_COMMA or C_FLAG_COMMA)						;-- 2C		,
-		C_SIGN											;-- 2D		-
+		(C_SIGN	or C_FLAG_SIGN)							;-- 2D		-
 		(C_DOT or C_FLAG_DOT)							;-- 2E		.
 		C_SLASH											;-- 2F		/
 		C_ZERO											;-- 30		0
@@ -215,204 +216,225 @@ lexer: context [
 	]
 	
 	state!: alias struct! [
-		parent   [red-block!]							;-- any-block! accepted
+		stack    [red-block!]							;-- any-block! accepted
 		buffer	 [red-value!]							;-- special buffer for hatching any-blocks
-		buf-head [red-value!]
+		buf-pos  [red-value!]
 		buf-tail [red-value!]
-		head     [byte-ptr!]
-		remain   [integer!]
-		pos      [byte-ptr!]
+		input    [byte-ptr!]
+		in-len   [integer!]
+		in-pos   [byte-ptr!]
 		err	     [integer!]
 	]
 	
-	scanner!: alias function! [state [state!]]
+	scanner!: alias function! [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]]
 
-comment {
-	scan-string: func [state [state!] return: [byte-ptr!]
-		/local
-			p [byte-ptr!]
-			e [byte-ptr!]
-			c [byte!]
-	][
-		p: state/pos
-		e: state/pos + state/remain
-		while [c: p/value all [p < e c <> #"^""]][
-			either c = #"^^" [p: p + 2][
-				if c = #"^/" [state/pos: p throw LEX_ERR_STRING]
-				p: p + 1
-			]
+
+	alloc-slot: func [s [state!] return: [red-value!] /local slot [red-value!]][
+		if s/buf-pos >= s/buf-tail [
+			0 ;TBD: expand
 		]
-		
-		e: p
-		p: state/pos
-		;decode/converte the string
-		
-		p
+		slot: s/buf-pos
+		s/buf-pos: s/buf-pos + 1
+		slot
 	]
-}
-	scan-eof: func [state [state!]
+
+	scan-eof: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 	;	/local
 	][
 		null
 	]
 	
-	scan-error: func [state [state!]
+	scan-error: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 	;	/local
 	][
 		null
 	]
 	
-	scan-block-open: func [state [state!]
+	scan-block-open: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 	;	/local
 	][
 		null
 	]
 
-	scan-block-close: func [state [state!]
+	scan-block-close: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 	;	/local
 	][
 		null
 	]
 	
-	scan-paren-open: func [state [state!]
+	scan-paren-open: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 	;	/local
 	][
 		null
 	]
 
-	scan-paren-close: func [state [state!]
+	scan-paren-close: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 	;	/local
 	][
 		null
 	]
 
-	scan-string: func [state [state!]
+	scan-string: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 	;	/local
 	][
 		null
 	]
 	
-	scan-string-multi: func [state [state!]
+	scan-string-multi: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 	;	/local
 	][
 		null
 	]
 	
-	scan-word: func [state [state!]
+	scan-word: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 	;	/local
 	][
 		probe "word!"
 	]
 
-	scan-file: func [state [state!]
+	scan-file: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 	;	/local
 	][
 		null
 	]
 
-	scan-refinement: func [state [state!]
+	scan-refinement: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 	;	/local
 	][
 		null
 	]
 
-	scan-binary: func [state [state!]
+	scan-binary: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 	;	/local
 	][
 		null
 	]
 	
-	scan-char: func [state [state!] 
+	scan-char: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 	;	/local
 	][
 		null
 	]
 	
-	scan-map-open: func [state [state!]
+	scan-map-open: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 	;	/local
 	][
 		null
 	]
 	
-	scan-construct: func [state [state!]
+	scan-construct: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 	;	/local
 	][
 		null
 	]
 	
-	scan-issue: func [state [state!]
+	scan-issue: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 	;	/local
 	][
 		null
 	]
 	
-	scan-percent: func [state [state!]
+	scan-percent: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 	;	/local
 	][
 		null
 	]
-	
-	scan-integer: func [state [state!]
-	;	/local
+		
+	scan-integer: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+		/local
+			p	[byte-ptr!]
+			len [integer!]
+			i	[integer!]
 	][
-		probe "integer!"
+		p: s
+		if flags and C_FLAG_SIGN <> 0 [p: p + 1]		;-- skip sign if present
+		
+		if (as-integer e - p) = 1 [						;-- fast path for 1-digit integers
+			i: as-integer p/value - #"0"
+			if s/value = #"-" [i: 0 - i]
+			integer/make-at alloc-slot state i
+			exit
+		]
+		len: as-integer e - p
+		if len > 10 [
+			scan-float state s e flags					;-- overflow, fall back on float
+			exit
+		]
+		i: 0
+		either flags and C_FLAG_QUOTE = 0 [				;-- no quote, faster path
+			loop len [
+				i: 10 * i + as-integer (p/1 - #"0")
+				p: p + 1
+			]
+		][												;-- process with quote(s)
+			loop len [
+				if e/1 <> #"'" [i: 10 * i + as-integer (p/1 - #"0")]
+				p: p + 1
+			]
+		]
+		assert p = e
+		if s/value = #"-" [i: 0 - i]
+		
+		integer/make-at alloc-slot state i
+probe ["integer!: " i]
+		state/in-pos: e									;-- reset the input position to delimiter byte
 	]
 	
-	scan-float: func [state [state!]
+	scan-float: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 	;	/local
 	][
 		probe "float!"
 	]
 	
-	scan-tuple: func [state [state!]
+	scan-tuple: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 	;	/local
 	][
 		null
 	]
 	
-	scan-date: func [state [state!]
+	scan-date: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 	;	/local
 	][
 		null
 	]
 	
-	scan-pair: func [state [state!]
+	scan-pair: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 	;	/local
 	][
 		null
 	]
 	
-	scan-time: func [state [state!]
+	scan-time: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 	;	/local
 	][
 		null
 	]
 	
-	scan-money: func [state [state!]
+	scan-money: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 	;	/local
 	][
 		null
 	]
 	
-	scan-tag: func [state [state!]
+	scan-tag: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 	;	/local
 	][
 		null
 	]
 	
-	scan-url: func [state [state!]
+	scan-url: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 	;	/local
 	][
 		null
 	]
 	
-	scan-email: func [state [state!]
+	scan-email: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 	;	/local
 	][
 		null
 	]
 	
-	scan-path: func [state [state!]
+	scan-path: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 	;	/local
 	][
 		null
@@ -452,9 +474,10 @@ comment {
 	scan-tokens: func [
 		lex [state!]
 		/local
-			parent	[red-block!]
+			stack	[red-block!]
 			p		[byte-ptr!]
 			e		[byte-ptr!]
+			start	[byte-ptr!]
 			cp		[integer!]
 			class	[integer!]
 			index	[integer!]
@@ -463,41 +486,39 @@ comment {
 			line	[integer!]
 			s		[series!]
 			term?	[logic!]
-			scanner [scanner!]
+			do-scan [scanner!]
 	][
-		parent: lex/parent
-		s:  GET_BUFFER(parent)
-		p:  lex/pos
+		stack: lex/stack
+		s:  GET_BUFFER(stack)
+		p:  lex/in-pos
 		state: 0
 		flags: 0
 		line:  1
 		term?: no
+		start: p
 
-		loop lex/remain [
+		loop lex/in-len [
 			cp: 1 + as-integer p/value
 			class: lex-classes/cp
 			flags: class and FFFFFF00h or flags
 			index: state * 33 + (class and FFh) + 1
 			state: as-integer transitions/index
 			;line: line + line-table/class
-			p: p + 1
 			if state > --EXIT_STATES-- [term?: yes break]
+			p: p + 1
 		]
-
 		unless term? [
 			index: state * 33 + C_EOF + 1
 			state: as-integer transitions/index
 		]
-
-		lex/remain: as-integer p - lex/pos
-		lex/pos: p
-
+		lex/in-len: lex/in-len - as-integer (p - start)
+		lex/in-pos: p
 		index: state - --EXIT_STATES--
-		scanner: as scanner! scanners/index
-		scanner lex
+		do-scan: as scanner! scanners/index
+		do-scan lex start p flags
 		
 	]
-	
+
 	scan: func [
 		dst [red-block!]								;-- destination block
 		src [byte-ptr!]									;-- UTF-8 buffer
@@ -506,14 +527,14 @@ comment {
 			stack [red-block!]
 			state [state! value]
 	][
-		state/parent: block/make-in dst 100
-		state/buffer: as cell! allocate 1000 * size? cell!
-		state/buf-head: state/buffer
-		state/buf-tail: state/buffer + 1000
-		state/head: src
-		state/remain: len
-		state/pos:  src
-		state/err:  0
+		state/stack:	block/make-in dst 100
+		state/buffer:	as cell! allocate 1000 * size? cell!
+		state/buf-pos:	state/buffer
+		state/buf-tail:	state/buffer + 1000
+		state/input:	src
+		state/in-len:	len
+		state/in-pos:	src
+		state/err:		0
 		
 		catch LEX_ERROR [scan-tokens state]
 		if system/thrown > 0 [
