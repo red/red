@@ -1512,6 +1512,20 @@ init-text-list: func [
 	]
 ]
 
+font-size?: func [
+	font		[red-object!]
+	return:		[integer!]
+	/local
+		values	[red-value!]
+		size	[red-integer!]
+][
+	if TYPE_OF(font) <> TYPE_OBJECT [return default-font-size]
+	values: object/get-values font
+	size:	as red-integer!	values + FONT_OBJ_SIZE
+	if TYPE_OF(size) <> TYPE_INTEGER [return default-font-size]
+	size/value
+]
+
 update-scroller: func [
 	scroller	[red-object!]
 	flag		[integer!]
@@ -1845,7 +1859,7 @@ OS-make-view: func [
 			widget: gtk_entry_new
 			buffer: gtk_entry_get_buffer widget
 			unless null? caption [gtk_entry_buffer_set_text buffer caption -1]
-			gtk_entry_set_width_chars widget size/x / 10
+			gtk_entry_set_width_chars widget size/x / font-size? font
 			set-hint-text widget as red-block! values + FACE_OBJ_OPTIONS
 			if bits and FACET_FLAGS_PASSWORD <> 0 [gtk_entry_set_visibility widget no]
 		]
@@ -1901,7 +1915,11 @@ OS-make-view: func [
 			widget: either sym = drop-list [gtk_combo_box_text_new][gtk_combo_box_text_new_with_entry]
 			init-combo-box widget data caption sym = drop-list
 			;; TODO: improve it but better than nothing from now otherwise it is uggly!
-			if sym = drop-down[gtk_entry_set_width_chars gtk_bin_get_child widget (size/x - 20) / 10 ] ; 10 here the size of the font... TODO: to improve later!
+			if sym = drop-down [
+				value: size/x / (font-size? font)
+				if value > 2 [value - 2]
+				gtk_entry_set_width_chars gtk_bin_get_child widget value
+			]
 			gtk_combo_box_set_active widget 0
 		]
 		true [
