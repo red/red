@@ -664,7 +664,6 @@ connect-widget-events: function [
 			gtk_widget_add_events widget GDK_BUTTON_PRESS_MASK or GDK_BUTTON1_MOTION_MASK or GDK_BUTTON_RELEASE_MASK or GDK_KEY_PRESS_MASK or GDK_KEY_RELEASE_MASK
 			gtk_widget_set_can_focus widget yes
 			gtk_widget_set_focus_on_click widget yes
-			gtk_widget_is_focus widget
 			gtk_widget_grab_focus widget
 			connect-focus-events widget widget
 		]
@@ -686,7 +685,6 @@ connect-widget-events: function [
 			gobj_signal_connect(widget "changed" :field-changed widget)
 			gtk_widget_set_can_focus widget yes
 			gtk_widget_set_focus_on_click widget yes
-			gtk_widget_is_focus widget
 			gtk_widget_grab_focus widget
 			connect-focus-events widget widget
 		]
@@ -704,7 +702,6 @@ connect-widget-events: function [
 			gobj_signal_connect(widget "populate-popup" :area-populate-popup widget)
 			gtk_widget_set_can_focus widget yes
 			gtk_widget_set_focus_on_click widget yes
-			gtk_widget_is_focus widget
 			gtk_widget_grab_focus widget
 			connect-focus-events widget widget
 		]

@@ -509,7 +509,7 @@ key-press-event: func [
 		][res: make-event widget key or flags EVT_KEY]
 	]
 	;; DEBUG: print ["key-press end" lf]
-	EVT_DISPATCH
+	res
 ]
 
 key-release-event: func [
@@ -631,7 +631,6 @@ widget-enter-notify-event: func [
 
 	flags: check-flags event/type event/state
 	make-event widget flags EVT_OVER
-	0;;no
 ]
 
 widget-leave-notify-event: func [
@@ -646,7 +645,6 @@ widget-leave-notify-event: func [
 	;; DEBUG: print [ "LEAVE: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
 	flags: check-flags event/type event/state
 	make-event widget flags or EVT_FLAG_AWAY EVT_OVER
-	0;;no
 ]
 
 mouse-button-release-event: func [
@@ -771,6 +769,7 @@ mouse-motion-notify-event: func [
 	widget		[handle!]
 	return:		[integer!]
 	/local
+		res		[integer!]
 		offset	[red-pair!]
 		x		[float!]
 		y		[float!]
@@ -778,7 +777,7 @@ mouse-motion-notify-event: func [
 		flags	[integer!]
 ][
 	;; DEBUG: print [ "mouse -> MOTION: " widget " x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root " drag? " draggable? widget lf]
-
+	res: EVT_DISPATCH
 	evt-motion/x_new: as-integer event/x
 	evt-motion/y_new: as-integer event/y
 	evt-motion/x_root: event/x_root
@@ -786,10 +785,10 @@ mouse-motion-notify-event: func [
 	wflags: get-flags (as red-block! get-face-values widget) + FACE_OBJ_FLAGS
 	if wflags and FACET_FLAGS_ALL_OVER <> 0 [
 		flags: check-flags event/type event/state
-		make-event widget flags EVT_OVER
+		res: make-event widget flags EVT_OVER
 	]
 	;; DEBUG: print ["mouse-motion-notify-event:  down? " (event/state and GDK_BUTTON1_MASK <> 0) " " (flags and EVT_FLAG_DOWN <> 0) lf]
-	EVT_DISPATCH ;;no
+	res
 ]
 
 menu-item-activate: func [
@@ -811,13 +810,13 @@ widget-scroll-event: func [
 	widget		[handle!]
 	return:		[integer!]
 	/local
-		state	[integer!]
+		res	[integer!]
 ][
 	;; DEBUG: print ["scroll-event: " event/direction " " event/delta_x " " event/delta_y lf]
-	state: 0
+	res: EVT_DISPATCH
 	g_object_set_qdata widget red-event-id as handle! event
 	if any[event/delta_y < -0.01 event/delta_y > 0.01][
-		state: make-event widget check-down-flags event/state EVT_WHEEL
+		res: make-event widget check-down-flags event/state EVT_WHEEL
 	]
-	state
+	res
 ]
