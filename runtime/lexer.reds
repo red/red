@@ -216,25 +216,29 @@ lexer: context [
 	]
 	
 	state!: alias struct! [
-		stack    [red-block!]							;-- any-block! accepted
-		buffer	 [red-value!]							;-- special buffer for hatching any-blocks
-		buf-pos  [red-value!]
-		buf-tail [red-value!]
-		input    [byte-ptr!]
-		in-len   [integer!]
-		in-pos   [byte-ptr!]
-		err	     [integer!]
+		stack     [red-block!]							;-- any-block! accepted
+		buffer    [red-value!]							;-- static or dynamic stash buffer (for recursive calls)
+		buf-tail  [red-value!]
+		buf-slots [integer!]
+		input     [byte-ptr!]
+		in-len    [integer!]
+		in-pos    [byte-ptr!]
+		err	      [integer!]
 	]
 	
 	scanner!: alias function! [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]]
 
+	stash: as cell! 0									;-- special buffer for hatching any-blocks series
+	stash-size: 1000									;-- pre-allocated cells	number
+	depth: 0											;-- recursive calls depth
 
 	alloc-slot: func [s [state!] return: [red-value!] /local slot [red-value!]][
-		if s/buf-pos >= s/buf-tail [
+		if s/buffer + s/buf-slots <= s/buf-tail [
+			assert false
 			0 ;TBD: expand
 		]
-		slot: s/buf-pos
-		s/buf-pos: s/buf-pos + 1
+		slot: s/buf-tail
+		s/buf-tail: s/buf-tail + 1
 		slot
 	]
 
@@ -287,9 +291,12 @@ lexer: context [
 	]
 	
 	scan-word: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
-	;	/local
+		/local
+			cell [cell!]
 	][
 		probe "word!"
+		cell: alloc-slot state
+		cell/header: TYPE_NONE
 	]
 
 	scan-file: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
@@ -381,9 +388,12 @@ probe ["integer!: " i]
 	]
 	
 	scan-float: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
-	;	/local
+		/local
+			cell [cell!]
 	][
 		probe "float!"
+		cell: alloc-slot state
+		cell/header: TYPE_NONE
 	]
 	
 	scan-tuple: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
@@ -474,7 +484,6 @@ probe ["integer!: " i]
 	scan-tokens: func [
 		lex [state!]
 		/local
-			stack	[red-block!]
 			p		[byte-ptr!]
 			e		[byte-ptr!]
 			start	[byte-ptr!]
@@ -488,64 +497,79 @@ probe ["integer!: " i]
 			term?	[logic!]
 			do-scan [scanner!]
 	][
-		stack: lex/stack
-		s:  GET_BUFFER(stack)
-		p:  lex/in-pos
-		state: 0
-		flags: 0
+		p: lex/in-pos
 		line:  1
-		term?: no
-		start: p
 
-		loop lex/in-len [
-			cp: 1 + as-integer p/value
-			class: lex-classes/cp
-			flags: class and FFFFFF00h or flags
-			index: state * 33 + (class and FFh) + 1
-			state: as-integer transitions/index
-			;line: line + line-table/class
-			if state > --EXIT_STATES-- [term?: yes break]
-			p: p + 1
+		until [
+			flags: 0
+			term?: no
+			state: S_START
+			start: p
+			
+			loop lex/in-len [
+				cp: 1 + as-integer p/value
+				class: lex-classes/cp
+				flags: class and FFFFFF00h or flags
+				index: state * 33 + (class and FFh) + 1
+				state: as-integer transitions/index
+				;line: line + line-table/class
+				if state > --EXIT_STATES-- [term?: yes break]
+				p: p + 1
+			]
+			unless term? [
+				index: state * 33 + C_EOF + 1
+				state: as-integer transitions/index
+			]
+			lex/in-len: lex/in-len - as-integer (p - start)
+			lex/in-pos: p
+			index: state - --EXIT_STATES--
+			do-scan: as scanner! scanners/index
+			do-scan lex start p flags
+			lex/in-len <= 1 
 		]
-		unless term? [
-			index: state * 33 + C_EOF + 1
-			state: as-integer transitions/index
-		]
-		lex/in-len: lex/in-len - as-integer (p - start)
-		lex/in-pos: p
-		index: state - --EXIT_STATES--
-		do-scan: as scanner! scanners/index
-		do-scan lex start p flags
 		
 	]
 
 	scan: func [
-		dst [red-block!]								;-- destination block
+		dst [red-value!]								;-- destination slot
 		src [byte-ptr!]									;-- UTF-8 buffer
 		len [integer!]									;-- buffer size in bytes
 		/local
-			stack [red-block!]
+			blk	  [red-block!]
+			slots [integer!]
+			s	  [series!]
 			state [state! value]
 	][
-		state/stack:	block/make-in dst 100
-		state/buffer:	as cell! allocate 1000 * size? cell!
-		state/buf-pos:	state/buffer
-		state/buf-tail:	state/buffer + 1000
-		state/input:	src
-		state/in-len:	len
-		state/in-pos:	src
-		state/err:		0
+		depth: depth + 1
+		
+		state/stack:	 null
+		state/buffer:	 stash							;TBD: support dyn buffer case
+		state/buf-tail:	 stash
+		state/buf-slots: stash-size						;TBD: support dyn buffer case
+		state/input:	 src
+		state/in-len:	 len
+		state/in-pos:	 src
+		state/err:		 0
 		
 		catch LEX_ERROR [scan-tokens state]
 		if system/thrown > 0 [
 			0 ; error handling
 		]
-		
-		free as byte-ptr! state/buffer
+		if null? state/stack [
+			slots: (as-integer state/buf-tail - state/buffer) >> 4
+			blk: block/make-at as red-block! dst slots
+			s: GET_BUFFER(blk)
+			copy-memory 
+				as byte-ptr! s/offset
+				as byte-ptr! state/buffer
+				slots << 4
+			s/tail: s/offset + slots
+		]
+		depth: depth - 1
 	]
 	
 	init: func [][
-	
+		stash: as cell! allocate stash-size * size? cell!
 	]
 
 ]

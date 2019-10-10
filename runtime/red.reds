@@ -229,6 +229,7 @@ red: context [
 		ext-process/init
 		
 		stack/init
+		lexer/init
 		redbin/boot-load system/boot-data no
 		
 		#if debug? = yes [
