@@ -197,6 +197,7 @@ system-dialect: make-profilable context [
 					find aliased-types value
 					all [v: resolve-ns value v <> value enum-type? v pos/1: v]	;-- rewrite the type to prefix it
 					all [enum-type? value pos/1: 'integer!]
+					find pc reduce [to-set-word value 'alias]	
 				][throw false]							;-- stop parsing if unresolved type			
 			) opt 'value
 		]		
