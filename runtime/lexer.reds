@@ -28,8 +28,8 @@ lexer: context [
 		C_FLAG_SIGN:	00200000h
 	]
 	
-	#define FL_UCS4		[(C_WORD  or C_FLAG_UCS4)]
-	#define FL_UCS2		[(C_WORD  or C_FLAG_UCS2)]
+	#define FL_UCS4		[(C_WORD or C_FLAG_UCS4)]
+	#define FL_UCS2		[(C_WORD or C_FLAG_UCS2)]
 
 	#enum character-classes! [
 		C_BLANK											;-- 0
