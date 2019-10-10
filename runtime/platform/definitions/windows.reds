@@ -363,11 +363,59 @@ tagPOINT: alias struct! [
 	y		[integer!]	
 ]
 
+CRYPT_INTEGER_BLOB: alias struct! [
+	cbData	[integer!]
+	pbData	[byte-ptr!]
+]
+
+CRYPT_ALGORITHM_IDENTIFIER: alias struct! [
+	pszObjId	[c-string!]
+	Parameters	[CRYPT_INTEGER_BLOB value]
+]
+
+CRYPT_BIT_BLOB: alias struct! [
+	cbData		[integer!]
+	pbData		[byte-ptr!]
+	cUnusedBits	[integer!]
+]
+
+CERT_PUBLIC_KEY_INFO: alias struct! [
+	Algorithm	[CRYPT_ALGORITHM_IDENTIFIER value]
+	PublicKey	[CRYPT_BIT_BLOB value]
+]
+
+CERT_INFO!: alias struct! [
+	dwVersion			[integer!]
+	SerialNumber		[CRYPT_INTEGER_BLOB value]
+	SignatureAlgorithm	[CRYPT_ALGORITHM_IDENTIFIER value]
+	Issuer				[CRYPT_INTEGER_BLOB value]
+	NotBefore			[tagFILETIME value]
+	NotAfter			[tagFILETIME value]
+	Subject				[CRYPT_INTEGER_BLOB value]
+	SubjectPublicKeyInfo [CERT_PUBLIC_KEY_INFO value]
+	IssuerUniqueId		[CRYPT_BIT_BLOB value]
+	SubjectUniqueId		[CRYPT_BIT_BLOB value]
+	cExtension			[integer!]
+	rgExtension			[int-ptr!]
+]
+
+BCRYPT_ECCKEY_BLOB: alias struct! [
+	dwMagic		[integer!]
+	cbKey		[integer!]
+]
+
+CRYPT_ECC_PRIVATE_KEY_INFO: alias struct! [
+	dwVersion	[integer!]				;-- ecPrivKeyVer1(1)
+	PrivateKey	[CRYPT_INTEGER_BLOB value] ;-- d
+	szCurveOid	[c-string!]				;-- Optional
+	PublicKey	[CRYPT_BIT_BLOB value]	;-- Optional (x, y)
+]
+
 CERT_CONTEXT: alias struct! [
 	dwCertEncodingType	[integer!]
 	pbCertEncoded		[byte!]
 	cbCertEncoded		[integer!]
-	pCertInfo			[int-ptr!]
+	pCertInfo			[CERT_INFO!]
 	hCertStore			[int-ptr!]
 ]
 
@@ -1047,6 +1095,52 @@ SecurityFunctionTableW: alias struct! [
 			pvFindPara			[byte-ptr!]
 			pPrevCertContext	[CERT_CONTEXT]
 			return:				[CERT_CONTEXT]
+		]
+		CertCreateCertificateContext: "CertCreateCertificateContext" [
+			dwCertEncodingType	[integer!]
+			pbCertEncoded		[byte-ptr!]
+			cbCertEncode		[integer!]
+			return:				[CERT_CONTEXT]
+		]
+		CryptStringToBinaryA: "CryptStringToBinaryA" [
+			pszString			[byte-ptr!]
+			cchString			[integer!]
+			dwFlags				[integer!]
+			pbBinary			[byte-ptr!]
+			pcbBinary			[int-ptr!]
+			pdwSkip				[int-ptr!]
+			pdwFlags			[int-ptr!]
+			return:				[logic!]
+		]
+		CryptDecodeObjectEx: "CryptDecodeObjectEx" [
+			dwCertEncodingType	[integer!]
+			lpszStructType		[c-string!]
+			pbEncoded			[byte-ptr!]
+			cbEncoded			[integer!]
+			dwFlags				[integer!]
+			pDecodePara			[int-ptr!]
+			pvStructInfo		[byte-ptr!]
+			pcbStructInf		[int-ptr!]
+			return:				[logic!]
+		]
+	]
+	"ncrypt.dll" stdcall [
+		NCryptOpenStorageProvider: "NCryptOpenStorageProvider" [
+			phProvider			[ptr-ptr!]
+			pszProviderName		[c-string!]
+			dwFlag				[integer!]
+			return:				[integer!]
+		]
+		NCryptImportKey: "NCryptImportKey" [
+			hProvider			[int-ptr!]
+			hImportKey			[int-ptr!]
+			pszBlobType			[c-string!]
+			ParameterList		[int-ptr!]
+			phKey				[ptr-ptr!]
+			pbData				[byte-ptr!]
+			cbData				[int-ptr!]
+			dwFlag				[integer!]
+			return:				[integer!]
 		]
 	]
 ]

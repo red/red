@@ -17,6 +17,12 @@ Red/System [
 #define SEC_E_INCOMPLETE_CREDENTIALS	00090320h
 #define SEC_I_RENEGOTIATE				00090321h
 
+#define ECC_256_MAGIC_NUMBER			20h
+#define ECC_384_MAGIC_NUMBER			30h
+#define BCRYPT_ECDSA_PRIVATE_P256_MAGIC 32534345h  ;-- ECS2
+#define BCRYPT_ECDSA_PRIVATE_P384_MAGIC 34534345h  ;-- ECS4
+#define BCRYPT_ECDSA_PRIVATE_P521_MAGIC 36534345h  ;-- ECS6
+
 #define SecIsValidHandle(x)	[
 	all [x/dwLower <> (as int-ptr! -1) x/dwUpper <> (as int-ptr! -1)]
 ]
@@ -55,6 +61,171 @@ tls: context [
 		ISC_REQ_CONFIDENTIALITY or
 		ASC_REQ_EXTENDED_ERROR or
 		ASC_REQ_STREAM
+
+	cert-to-bin: func [
+		cert		[byte-ptr!]
+		len			[integer!]
+		ret-len		[int-ptr!]
+		return:		[byte-ptr!]
+		/local
+			result	[byte-ptr!]
+	][
+		either CryptStringToBinaryA cert len 7 null ret-len null null [
+			result: allocate ret-len/value
+			CryptStringToBinaryA cert len 7 result ret-len null null
+			result
+		][
+			probe "cert-to-bin failed"
+			null
+		]
+	]
+
+	decode-cert: func [
+		private-key	[byte-ptr!]
+		key-len		[integer!]
+		blob-size	[int-ptr!]
+		cert-type	[int-ptr!]
+		return:		[byte-ptr!]
+		/local
+			result		[byte-ptr!]
+			key-type	[integer!]
+			blob-sz		[integer!]
+	][
+		result: null
+		key-type: 43		;-- PKCS_RSA_PRIVATE_KEY
+		blob-sz: 0
+
+		unless CryptDecodeObjectEx
+				00010001h
+				as c-string! key-type
+				private-key
+				key-len
+				0 null null
+				:blob-sz [
+			key-type: 82	;-- X509_ECC_PRIVATE_KEY
+			unless CryptDecodeObjectEx
+					00010001h
+					as c-string! key-type
+					private-key
+					key-len
+					0 null null
+					:blob-sz [
+				key-type: 0
+			]
+		]
+
+		if key-type <> 0 [
+			result: allocate blob-size
+			CryptDecodeObjectEx
+				00010001h
+				as c-string! key-type
+				private-key
+				key-len
+				0 null
+				result
+				:blob-sz
+			blob-size/value: blob-sz
+			cert-type/value: key-type
+		]
+		result
+	]
+
+	link-private-key: func [
+		ctx			[CERT_CONTEXT]
+		blob		[byte-ptr!]
+		type		[integer!]
+		return:		[integer!]
+		/local
+			status		[integer!]
+			pub-blob	[CRYPT_BIT_BLOB]
+			key-info	[CRYPT_ECC_PRIVATE_KEY_INFO]
+			pub-size	[integer!]
+			priv-size	[integer!]
+			blob-size	[integer!]
+			pub-buf		[byte-ptr!]
+			priv-buf	[byte-ptr!]
+			key-blob	[BCRYPT_ECCKEY_BLOB]
+	][
+		L"ECCPRIVATEBLOB"
+		L"RSAPRIVATEBLOB"
+		pub-blob: ctx/pCertInfo/SubjectPublicKeyInfo/PublicKey
+		key-info: as CRYPT_ECC_PRIVATE_KEY_INFO blob
+		pub-size: pub-blob/cbData - 1
+		priv-size: key-info/PrivateKey/cbData
+		blob-size: pub-size + priv-size + size? BCRYPT_ECCKEY_BLOB
+		pub-buf: pub-blob/pbData + 1
+		priv-buf: key-info/PrivateKey/pbData
+		key-blob: as BCRYPT_ECCKEY_BLOB allocate blob-size
+
+		if key-blob <> null [
+			key-blob/dwMagic: switch priv-size [
+				ECC_256_MAGIC_NUMBER [BCRYPT_ECDSA_PRIVATE_P256_MAGIC]
+				ECC_384_MAGIC_NUMBER [BCRYPT_ECDSA_PRIVATE_P384_MAGIC]
+				default [BCRYPT_ECDSA_PRIVATE_P521_MAGIC]
+			]
+			key-blob/cbKey: priv-size
+			copy-memory as byte-ptr! (key-blob + 1) pub-buf pub-size
+			copy-memory (as byte-ptr! key-blob + 1) + pub-size priv-buf priv-size
+
+			
+		]
+	]
+
+	load-cert: func [
+		cert		[c-string!]
+		pkey		[c-string!]
+		return:		[CERT_CONTEXT]
+		/local
+			cert-bin	[byte-ptr!]
+			pkey-bin	[byte-ptr!]
+			decoded		[byte-ptr!]
+			file		[integer!]
+			size		[integer!]
+			len			[integer!]
+			buffer		[byte-ptr!]
+			key-type	[integer!]
+			ctx			[CERT_CONTEXT]
+	][
+		file: simple-io/open-file cert simple-io/RIO_READ no
+		if file < 0 [
+			probe ["cannot read file: " cert]
+			return null
+		]
+		size: simple-io/file-size? file
+		buffer: allocate size
+		len: read-data file buffer size
+		close-file file
+
+		cert-bin: cert-to-bin buffer len :size
+		ctx: CertCreateCertificateContext 00010001h cert-bin size
+		if null? ctx [
+			probe "CertCreateCertificateContext failed"
+			return null
+		]
+
+		free buffer
+		free cert-bin
+		file: simple-io/open-file pkey simple-io/RIO_READ no
+		if file < 0 [
+			probe ["cannot read file: " pkey]
+			return ctx
+		]
+		size: simple-io/file-size? file
+		buffer: allocate size
+		len: read-data file buffer size
+		close-file file
+
+		key-type: 0
+		pkey-bin: cert-to-bin buffer len :size
+		decoded: decode-cert pkey-bin size :len :key-type
+		if decoded <> null [
+			either key-type = 43 [		;-- PKCS_RSA_PRIVATE_KEY
+				set-
+			][
+				
+			]
+		]
+	]
 
 	create-credentials: func [
 		hcred		[SecHandle!]		;-- OUT: Security handle in hcred
@@ -148,7 +319,7 @@ tls: context [
 
 		eku/rgpszUsageIdentifier: as c-string! :auth
 		store: CertOpenStore
-			as c-string! 10	;-- CERT_STORE_PROV_SYSTEM
+			as c-string! 10			;-- CERT_STORE_PROV_SYSTEM
 			0
 			null
 			flags
