@@ -68,7 +68,7 @@ lexer: context [
 	]
 	
 	skip-table: #{
-		0101010000000000000000000000000000000000000000000000000000000000
+		0101000000000000000000000000000000000000000000000000000000000000
 		0000000000000000000000000000000000000000000000000000000000000000
 		00000000000000
 	}
@@ -285,9 +285,35 @@ lexer: context [
 	]
 
 	scan-string: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
-	;	/local
+		/local
+			str  [red-string!]
+			ser	 [series!]
+			len	 [integer!]
 	][
-		null
+		s: s + 1										;-- skip start delimiter
+		len: as-integer e - s
+		
+		case [
+			flags and C_FLAG_UCS4 <> 0 [
+				
+			]
+			flags and C_FLAG_UCS2 <> 0 [
+				
+			]
+			true [										;-- UCS1
+				str: string/make-at alloc-slot state len 1
+				ser: GET_BUFFER(str)
+				
+				either flags and C_FLAG_CARET = 0 [		;-- fast path when no escape sequence
+					copy-memory as byte-ptr! ser/offset as byte-ptr! s len
+					ser/tail: as cell! (as byte-ptr! ser/offset) + len
+				][										;-- with escape sequence(s)
+					0
+				]
+			]
+		]
+		state/in-pos: e + 1								;-- skip ending delimiter
+		state/in-len: state/in-len - 1
 	]
 	
 	scan-string-multi: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
@@ -504,13 +530,12 @@ lexer: context [
 			term?	[logic!]
 			do-scan [scanner!]
 	][
-		p: lex/in-pos
 		line:  1
-
 		until [
 			flags: 0
 			term?: no
 			state: S_START
+			p: lex/in-pos
 			start: p
 			offset: 0
 			
@@ -532,9 +557,11 @@ lexer: context [
 			]
 			lex/in-len: lex/in-len - as-integer (p - start)
 			lex/in-pos: p
+			
 			index: state - --EXIT_STATES--
 			do-scan: as scanner! scanners/index
 			do-scan lex start + offset p flags
+			
 			lex/in-len <= 1 
 		]
 		
