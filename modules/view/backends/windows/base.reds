@@ -132,6 +132,7 @@ render-base: func [
 	if all [
 		group-box <> type
 		window <> type
+		panel <> type
 		render-text values hWnd hDC :rc null null
 	][
 		res: true
