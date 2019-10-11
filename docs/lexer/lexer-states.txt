@@ -1,6 +1,5 @@
 
 S_START
-S_BLANK
 S_LINE_CMT
 S_LINE_STR
 S_SKIP_STR
@@ -132,8 +131,7 @@ delimit14: # | ' | < | % | ^
 hexa: C_ZERO | C_DIGIT | C_ALPHAX
 
 
-S_START->ws->S_BLANK->ws->S_BLANK
-              \->not(ws)->S_START
+S_START->ws->S_START
          
 S_START->";"->S_LINE_CMT->not(lf)->S_LINE_CMT
                \->lf->S_START
