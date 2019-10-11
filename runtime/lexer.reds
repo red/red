@@ -367,16 +367,16 @@ lexer: context [
 		][
 			len: as-integer e - p
 			if len > 10 [
-				scan-float state s e flags					;-- overflow, fall back on float
+				scan-float state s e flags				;-- overflow, fall back on float
 				exit
 			]
 			i: 0
-			either flags and C_FLAG_QUOTE = 0 [				;-- no quote, faster path
+			either flags and C_FLAG_QUOTE = 0 [			;-- no quote, faster path
 				loop len [
 					i: 10 * i + as-integer (p/1 - #"0")
 					p: p + 1
 				]
-			][												;-- process with quote(s)
+			][											;-- process with quote(s)
 				loop len [
 					if e/1 <> #"'" [i: 10 * i + as-integer (p/1 - #"0")]
 					p: p + 1
@@ -391,11 +391,15 @@ lexer: context [
 	
 	scan-float: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
-			cell [cell!]
+			fl	[red-float!]
+			err	[integer!]
 	][
-		probe "float!"
-		cell: alloc-slot state
-		cell/header: TYPE_NONE
+		err: 0
+		fl: as red-float! alloc-slot state
+		fl/header: TYPE_FLOAT
+		fl/value: red-dtoa/string-to-float s e :err
+		if err <> 0 [throw LEX_ERROR]
+		state/in-pos: e									;-- reset the input position to delimiter byte
 	]
 	
 	scan-tuple: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
