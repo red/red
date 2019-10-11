@@ -68,7 +68,7 @@ lexer: context [
 	]
 	
 	skip-table: #{
-		0001010000000000000000000000000000000000000000000000000000000000
+		0101010000000000000000000000000000000000000000000000000000000000
 		0000000000000000000000000000000000000000000000000000000000000000
 		00000000000000
 	}
@@ -362,32 +362,29 @@ lexer: context [
 		p: s
 		if flags and C_FLAG_SIGN <> 0 [p: p + 1]		;-- skip sign if present
 		
-		if (as-integer e - p) = 1 [						;-- fast path for 1-digit integers
-			i: as-integer p/value - #"0"
-			if s/value = #"-" [i: 0 - i]
-			integer/make-at alloc-slot state i
-			exit
-		]
-		len: as-integer e - p
-		if len > 10 [
-			scan-float state s e flags					;-- overflow, fall back on float
-			exit
-		]
-		i: 0
-		either flags and C_FLAG_QUOTE = 0 [				;-- no quote, faster path
-			loop len [
-				i: 10 * i + as-integer (p/1 - #"0")
-				p: p + 1
+		either (as-integer e - p) = 1 [					;-- fast path for 1-digit integers
+			i: as-integer (p/value - #"0")
+		][
+			len: as-integer e - p
+			if len > 10 [
+				scan-float state s e flags					;-- overflow, fall back on float
+				exit
 			]
-		][												;-- process with quote(s)
-			loop len [
-				if e/1 <> #"'" [i: 10 * i + as-integer (p/1 - #"0")]
-				p: p + 1
+			i: 0
+			either flags and C_FLAG_QUOTE = 0 [				;-- no quote, faster path
+				loop len [
+					i: 10 * i + as-integer (p/1 - #"0")
+					p: p + 1
+				]
+			][												;-- process with quote(s)
+				loop len [
+					if e/1 <> #"'" [i: 10 * i + as-integer (p/1 - #"0")]
+					p: p + 1
+				]
 			]
+			assert p = e
 		]
-		assert p = e
 		if s/value = #"-" [i: 0 - i]
-		
 		integer/make-at alloc-slot state i
 probe ["integer!: " i]
 		state/in-pos: e									;-- reset the input position to delimiter byte
