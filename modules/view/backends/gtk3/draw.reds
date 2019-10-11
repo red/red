@@ -513,17 +513,10 @@ draw-text-box-lines: func [
 		dc/font-color
 	]
 
-	lc: either TYPE_OF(tbox) = TYPE_OBJECT [
-	 	;; DEBUG: print ["draw-text-box-lines: " as int-ptr! dc lf]			;-- text-box!
-		 as layout-ctx! OS-text-box-layout tbox as int-ptr! dc clr yes
-	 ][
-	 	null
-	 ]
+	if TYPE_OF(tbox) <> TYPE_OBJECT [exit]
 
+	lc: as layout-ctx! OS-text-box-layout tbox as int-ptr! dc clr yes
 	unless null? lc/layout [
-
-		pango-layout-set-text lc size
-
 		set-source-color ctx clr
 		;; DEBUG: print ["set-source-color: " ctx " " clr lf]
 
