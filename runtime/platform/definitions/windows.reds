@@ -411,6 +411,35 @@ CRYPT_ECC_PRIVATE_KEY_INFO: alias struct! [
 	PublicKey	[CRYPT_BIT_BLOB value]	;-- Optional (x, y)
 ]
 
+CRYPT_KEY_PROV_PARAM: alias struct! [
+	dwParam		[integer!]
+	pbData		[byte-ptr!]
+	cbData		[integer!]
+	dwFlags		[integer!]
+]
+
+CRYPT_KEY_PROV_INFO: alias struct! [
+	pwszContainerName	[c-string!]
+	pwszProvName		[c-string!]
+	dwProvType			[integer!]
+	dwFlags				[integer!]
+	cProvParam			[integer!]
+	rgProvParam			[CRYPT_KEY_PROV_PARAM]
+	dwKeySpec			[integer!]
+]
+
+BCryptBuffer!: alias struct! [
+	cbBuffer	[integer!]		;-- Length of buffer, in bytes
+	BufferType	[integer!]		;-- Buffer type
+	pvBuffer	[byte-ptr!]		;-- Pointer to buffer
+]
+
+BCryptBufferDesc!: alias struct! [
+	ulVersion	[integer!]		;-- Version number
+	cBuffers	[integer!]		;-- Number of buffers
+	pBuffers	[BCryptBuffer!]	;-- Pointer to array of buffers
+]
+
 CERT_CONTEXT: alias struct! [
 	dwCertEncodingType	[integer!]
 	pbCertEncoded		[byte!]
@@ -1102,6 +1131,13 @@ SecurityFunctionTableW: alias struct! [
 			cbCertEncode		[integer!]
 			return:				[CERT_CONTEXT]
 		]
+		CertSetCertificateContextProperty: "CertSetCertificateContextProperty" [
+			ctx					[CERT_CONTEXT]
+			propID				[integer!]
+			dwFlags				[integer!]
+			pvData				[byte-ptr!]
+			return:				[logic!]
+		]
 		CryptStringToBinaryA: "CryptStringToBinaryA" [
 			pszString			[byte-ptr!]
 			cchString			[integer!]
@@ -1141,6 +1177,10 @@ SecurityFunctionTableW: alias struct! [
 			cbData				[int-ptr!]
 			dwFlag				[integer!]
 			return:				[integer!]
+		]
+		NCryptFreeObject: "NCryptFreeObject" [
+			x				[int-ptr!]
+			return:			[integer!]
 		]
 	]
 ]

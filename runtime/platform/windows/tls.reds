@@ -130,6 +130,14 @@ tls: context [
 		result
 	]
 
+	link-rsa-key: func [
+		ctx		[CERT_CONTEXT]
+		blob	[byte-ptr!]
+		size	[integer!]
+	][
+		;TBD
+	]
+
 	link-private-key: func [
 		ctx			[CERT_CONTEXT]
 		blob		[byte-ptr!]
@@ -145,9 +153,18 @@ tls: context [
 			pub-buf		[byte-ptr!]
 			priv-buf	[byte-ptr!]
 			key-blob	[BCRYPT_ECCKEY_BLOB]
+			provider	[ptr-value!]
+			nc-buf		[BCryptBuffer! value]
+			nc-desc		[BCryptBufferDesc! value]
+			prov-info	[CRYPT_KEY_PROV_INFO value]
+			h-key		[ptr-value!]
+			type-str	[c-string!]
 	][
-		L"ECCPRIVATEBLOB"
-		L"RSAPRIVATEBLOB"
+		either type = 43 [
+			type-str: #u16 "RSAPRIVATEBLOB"
+		][
+			type-str: #u16 "ECCPRIVATEBLOB"
+		]
 		pub-blob: ctx/pCertInfo/SubjectPublicKeyInfo/PublicKey
 		key-info: as CRYPT_ECC_PRIVATE_KEY_INFO blob
 		pub-size: pub-blob/cbData - 1
@@ -167,7 +184,41 @@ tls: context [
 			copy-memory as byte-ptr! (key-blob + 1) pub-buf pub-size
 			copy-memory (as byte-ptr! key-blob + 1) + pub-size priv-buf priv-size
 
-			
+			either zero? NCryptOpenStorageProvider
+				provider
+				#u16 "Microsoft Software Key Storage Provider"
+				0 [
+				nc-buf/cbBuffer: 11 * 2	;-- bytes of the pvBuffer
+				nc-buf/BufferType: 45	;-- NCRYPTBUFFER_PKCS_KEY_NAME
+				nc-buf/pvBuffer: #u16 "RedAliasKey"
+				nc-desc/ulVersion: 0
+				nc-desc/cBuffers: 1
+				nc-desc/pBuffers: nc-buf
+
+				zero-memory as byte-ptr! :prov-info size? CRYPT_KEY_PROV_INFO
+				prov-info/pwszContainerName: #u16 "RedAliasKey"
+				prov-info/pwszProvName: #u16 "Microsoft Software Key Storage Provider"
+
+				if zero? NCryptImportKey
+					provider/value
+					0
+					type-str
+					nc-desc
+					h-key
+					key-blob
+					blob-size
+					80h	[	;-- NCRYPT_OVERWRITE_KEY_FLAG
+					NCryptFreeObject h-key/value
+				]
+
+				NCryptFreeObject provider/value
+				unless CertSetCertificateContextProperty ctx 2 0 prov-info [
+					probe "CertSetCertificateContextProperty failed"
+				]
+				free key-blob
+			][
+				probe "NCryptOpenStorageProvider failed"
+			]
 		]
 	]
 
@@ -219,12 +270,11 @@ tls: context [
 		pkey-bin: cert-to-bin buffer len :size
 		decoded: decode-cert pkey-bin size :len :key-type
 		if decoded <> null [
-			either key-type = 43 [		;-- PKCS_RSA_PRIVATE_KEY
-				set-
-			][
-				
-			]
+			link-private-key ctx decoded key-type
 		]
+		free buffer
+		free pkey-bin
+		free decoded
 	]
 
 	create-credentials: func [
