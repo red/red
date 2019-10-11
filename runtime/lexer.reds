@@ -359,7 +359,6 @@ lexer: context [
 			len [integer!]
 			i	[integer!]
 	][
-probe as-c-string s
 		p: s
 		if flags and C_FLAG_SIGN <> 0 [p: p + 1]		;-- skip sign if present
 		
@@ -518,11 +517,9 @@ probe ["integer!: " i]
 			loop lex/in-len [
 				cp: 1 + as-integer p/value
 				class: lex-classes/cp
-probe ["char: " as-integer p/value " class: " class]
 				flags: class and FFFFFF00h or flags
 				index: state * 33 + (class and FFh) + 1
 				state: as-integer transitions/index
-?? state
 				index: state + 1
 				offset: offset + as-integer skip-table/index
 				;line: line + line-table/class
