@@ -363,7 +363,7 @@ lexer: context [
 		if flags and C_FLAG_SIGN <> 0 [p: p + 1]		;-- skip sign if present
 		
 		either (as-integer e - p) = 1 [					;-- fast path for 1-digit integers
-			i: as-integer (p/value - #"0")
+			i: as-integer (p/1 - #"0")
 		][
 			len: as-integer e - p
 			if len > 10 [
@@ -386,7 +386,6 @@ lexer: context [
 		]
 		if s/value = #"-" [i: 0 - i]
 		integer/make-at alloc-slot state i
-probe ["integer!: " i]
 		state/in-pos: e									;-- reset the input position to delimiter byte
 	]
 	
@@ -564,13 +563,17 @@ probe ["integer!: " i]
 		]
 		if null? state/stack [
 			slots: (as-integer state/buf-tail - state/buffer) >> 4
-			blk: block/make-at as red-block! dst slots
-			s: GET_BUFFER(blk)
-			copy-memory 
-				as byte-ptr! s/offset
-				as byte-ptr! state/buffer
-				slots << 4
-			s/tail: s/offset + slots
+			either zero? slots [
+				blk: block/make-at as red-block! dst 1
+			][
+				blk: block/make-at as red-block! dst slots
+				s: GET_BUFFER(blk)
+				copy-memory 
+					as byte-ptr! s/offset
+					as byte-ptr! state/buffer
+					slots << 4
+				s/tail: s/offset + slots
+			]
 		]
 		depth: depth - 1
 	]
