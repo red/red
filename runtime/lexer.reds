@@ -66,12 +66,18 @@ lexer: context [
 		C_ILLEGAL										;-- 31
 		C_EOF											;-- 32
 	]
+	
+	skip-table: #{
+		0001010000000000000000000000000000000000000000000000000000000000
+		0000000000000000000000000000000000000000000000000000000000000000
+		00000000000000
+	}
 
 	lex-classes: [
 		(C_EOF or C_FLAG_EOF)							;-- 00		NUL
 		C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN	;-- 01-08
 		C_BLANK											;-- 09		TAB
-		C_BLANK 										;-- 0A		LF
+		C_LINE 											;-- 0A		LF
 		C_BIN											;-- 0B
 		C_BIN											;-- 0C
 		C_BLANK											;-- 0D		CR
@@ -353,6 +359,7 @@ lexer: context [
 			len [integer!]
 			i	[integer!]
 	][
+probe as-c-string s
 		p: s
 		if flags and C_FLAG_SIGN <> 0 [p: p + 1]		;-- skip sign if present
 		
@@ -493,6 +500,7 @@ probe ["integer!: " i]
 			state	[integer!]
 			flags	[integer!]
 			line	[integer!]
+			offset	[integer!]
 			s		[series!]
 			term?	[logic!]
 			do-scan [scanner!]
@@ -505,13 +513,18 @@ probe ["integer!: " i]
 			term?: no
 			state: S_START
 			start: p
+			offset: 0
 			
 			loop lex/in-len [
 				cp: 1 + as-integer p/value
 				class: lex-classes/cp
+probe ["char: " as-integer p/value " class: " class]
 				flags: class and FFFFFF00h or flags
 				index: state * 33 + (class and FFh) + 1
 				state: as-integer transitions/index
+?? state
+				index: state + 1
+				offset: offset + as-integer skip-table/index
 				;line: line + line-table/class
 				if state > --EXIT_STATES-- [term?: yes break]
 				p: p + 1
@@ -524,7 +537,7 @@ probe ["integer!: " i]
 			lex/in-pos: p
 			index: state - --EXIT_STATES--
 			do-scan: as scanner! scanners/index
-			do-scan lex start p flags
+			do-scan lex start + offset p flags
 			lex/in-len <= 1 
 		]
 		
