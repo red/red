@@ -3467,8 +3467,8 @@ system-dialect: make-profilable context [
 				if all [not variable boxed][last-type: boxed/type] ;-- enforces type casting on calling expression
 				if all [
 					variable boxed						;-- process casting if result assigned to variable
-					find [logic! integer! float! float32! float64!] last-type/1
-					find [logic! integer! float! float32! float64!] boxed/type	;-- fixes #967
+					find [logic! byte! integer! float! float32! float64!] last-type/1
+					find [logic! byte! integer! float! float32! float64!] boxed/type	;-- fixes #967
 					last-type/1 <> boxed/type
 				][
 					emitter/target/emit-casting boxed no ;-- insert runtime type casting if required
