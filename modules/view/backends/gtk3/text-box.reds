@@ -35,6 +35,20 @@ layout-ctx-init: func [
 	lc/attr-list: pango_attr_list_new
 ]
 
+utf8-to-bytes: func [
+	text		[c-string!]
+	len			[integer!]
+	return:		[integer!]
+	/local
+		end		[c-string!]
+][
+	end: text
+	loop len [
+		end: unicode/utf8-next-char end
+	]
+	as integer! end - text
+]
+
 OS-text-box-color: func [
 	dc			[handle!]
 	layout		[handle!]
@@ -43,6 +57,8 @@ OS-text-box-color: func [
 	color		[integer!]
 	/local
 		lc		[layout-ctx!]
+		s		[integer!]
+		e		[integer!]
 		a		[integer!]
 		r		[integer!]
 		g		[integer!]
@@ -50,18 +66,20 @@ OS-text-box-color: func [
 		attr	[PangoAttribute!]
 ][
 	lc: as layout-ctx! layout
+	s: utf8-to-bytes lc/text pos
+	e: utf8-to-bytes lc/text + s len
 	a: color >> 24 and FFh
 	r: color >> 16 and FFh
 	g: color >> 8 and FFh
 	b: color and FFh
 	attr: pango_attr_foreground_new r g b
-	attr/start: pos
-	attr/end: pos + len
+	attr/start: s
+	attr/end: e
 	pango_attr_list_insert lc/attr-list attr
 
 	attr: pango_attr_foreground_alpha_new a
-	attr/start: pos
-	attr/end: pos + len
+	attr/start: s
+	attr/end: e
 	pango_attr_list_insert lc/attr-list attr
 ]
 
@@ -73,6 +91,8 @@ OS-text-box-background: func [
 	color		[integer!]
 	/local
 		lc		[layout-ctx!]
+		s		[integer!]
+		e		[integer!]
 		a		[integer!]
 		r		[integer!]
 		g		[integer!]
@@ -80,18 +100,20 @@ OS-text-box-background: func [
 		attr	[PangoAttribute!]
 ][
 	lc: as layout-ctx! layout
+	s: utf8-to-bytes lc/text pos
+	e: utf8-to-bytes lc/text + s len
 	a: color >> 24 and FFh
 	r: color >> 16 and FFh
 	g: color >> 8 and FFh
 	b: color and FFh
 	attr: pango_attr_background_new r g b
-	attr/start: pos
-	attr/end: pos + len
+	attr/start: s
+	attr/end: e
 	pango_attr_list_insert lc/attr-list attr
 
 	attr: pango_attr_background_alpha_new a
-	attr/start: pos
-	attr/end: pos + len
+	attr/start: s
+	attr/end: e
 	pango_attr_list_insert lc/attr-list attr
 ]
 
@@ -102,12 +124,16 @@ OS-text-box-weight: func [
 	weight		[integer!]
 	/local
 		lc		[layout-ctx!]
+		s		[integer!]
+		e		[integer!]
 		attr	[PangoAttribute!]
 ][
 	lc: as layout-ctx! layout
+	s: utf8-to-bytes lc/text pos
+	e: utf8-to-bytes lc/text + s len
 	attr: pango_attr_weight_new weight
-	attr/start: pos
-	attr/end: pos + len
+	attr/start: s
+	attr/end: e
 	pango_attr_list_insert lc/attr-list attr
 ]
 
@@ -117,12 +143,16 @@ OS-text-box-italic: func [
 	len			[integer!]
 	/local
 		lc		[layout-ctx!]
+		s		[integer!]
+		e		[integer!]
 		attr	[PangoAttribute!]
 ][
 	lc: as layout-ctx! layout
+	s: utf8-to-bytes lc/text pos
+	e: utf8-to-bytes lc/text + s len
 	attr: pango_attr_style_new PANGO_STYLE_ITALIC
-	attr/start: pos
-	attr/end: pos + len
+	attr/start: s
+	attr/end: e
 	pango_attr_list_insert lc/attr-list attr
 ]
 
@@ -134,12 +164,16 @@ OS-text-box-underline: func [
 	tail		[red-value!]
 	/local
 		lc		[layout-ctx!]
+		s		[integer!]
+		e		[integer!]
 		attr	[PangoAttribute!]
 ][
 	lc: as layout-ctx! layout
+	s: utf8-to-bytes lc/text pos
+	e: utf8-to-bytes lc/text + s len
 	attr: pango_attr_underline_new PANGO_UNDERLINE_SINGLE
-	attr/start: pos
-	attr/end: pos + len
+	attr/start: s
+	attr/end: e
 	pango_attr_list_insert lc/attr-list attr
 ]
 
@@ -150,12 +184,16 @@ OS-text-box-strikeout: func [
 	opts		[red-value!]
 	/local
 		lc		[layout-ctx!]
+		s		[integer!]
+		e		[integer!]
 		attr	[PangoAttribute!]
 ][
 	lc: as layout-ctx! layout
+	s: utf8-to-bytes lc/text pos
+	e: utf8-to-bytes lc/text + s len
 	attr: pango_attr_strikethrough_new true
-	attr/start: pos
-	attr/end: pos + len
+	attr/start: s
+	attr/end: e
 	pango_attr_list_insert lc/attr-list attr
 ]
 
@@ -177,17 +215,21 @@ OS-text-box-font-name: func [
 	name		[red-string!]
 	/local
 		lc		[layout-ctx!]
+		s		[integer!]
+		e		[integer!]
 		len2	[integer!]
 		str		[c-string!]
 		attr	[PangoAttribute!]
 ][
 	lc: as layout-ctx! layout
+	s: utf8-to-bytes lc/text pos
+	e: utf8-to-bytes lc/text + s len
 
 	len2: -1
 	str: unicode/to-utf8 name :len2
 	attr: pango_attr_family_new str
-	attr/start: pos
-	attr/end: pos + len
+	attr/start: s
+	attr/end: e
 	pango_attr_list_insert lc/attr-list attr
 ]
 
@@ -199,12 +241,16 @@ OS-text-box-font-size: func [
 	size	[float!]
 	/local
 		lc		[layout-ctx!]
+		s		[integer!]
+		e		[integer!]
 		attr	[PangoAttribute!]
 ][
 	lc: as layout-ctx! layout
+	s: utf8-to-bytes lc/text pos
+	e: utf8-to-bytes lc/text + s len
 	attr: pango_attr_size_new as integer! size
-	attr/start: pos
-	attr/end: pos + len
+	attr/start: s
+	attr/end: e
 	pango_attr_list_insert lc/attr-list attr
 ]
 
