@@ -103,9 +103,7 @@ Red/System [
 		text			[c-string!]
 		text-len		[integer!]
 		text-pos		[integer!]
-		text-markup		[handle!]
-		closed-tags		[handle!]
-		tag-list		[handle!]
+		attr-list		[handle!]
 	]
 ]
 
