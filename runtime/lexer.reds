@@ -226,7 +226,7 @@ lexer: context [
 	]
 	
 	state!: alias struct! [
-		stack     [red-block!]							;-- any-block! accepted
+		stack     [red-block!]							;-- pairs of (offset,type)
 		buffer    [red-value!]							;-- static or dynamic stash buffer (for recursive calls)
 		buf-tail  [red-value!]
 		buf-slots [integer!]
@@ -239,6 +239,7 @@ lexer: context [
 	scanner!: alias function! [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]]
 
 	stash: as cell! 0									;-- special buffer for hatching any-blocks series
+	stack: as red-block! 0								;-- nested series stack
 	stash-size: 1000									;-- pre-allocated cells	number
 	depth: 0											;-- recursive calls depth
 
@@ -248,8 +249,28 @@ lexer: context [
 			0 ;TBD: expand
 		]
 		slot: s/buf-tail
+		slot/header: TYPE_UNSET
 		s/buf-tail: s/buf-tail + 1
 		slot
+	]
+	
+	store-any-block: func [slot [cell!] src [cell!] items [integer!] type [integer!]
+		/local
+			blk [red-block!]
+			s	[series!]
+	][
+		either zero? items [
+			block/make-at as red-block! slot 1
+		][
+			blk: block/make-at as red-block! slot items
+			blk/header: type
+			s: GET_BUFFER(blk)
+			copy-memory 
+				as byte-ptr! s/offset
+				as byte-ptr! src
+				items << 4
+			s/tail: s/offset + items
+		]
 	]
 
 	scan-eof: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
@@ -265,15 +286,47 @@ lexer: context [
 	]
 	
 	scan-block-open: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
-	;	/local
+		/local
+			p [red-pair!]
 	][
-		null
+		p: as red-pair! ALLOC_TAIL(state/stack)
+		p/header: TYPE_PAIR
+		p/x: (as-integer state/buf-tail - state/buffer) >> 4
+		p/y: TYPE_BLOCK
+		
+		alloc-slot state								;-- reserve slot for new block value
+		state/buffer: state/buf-tail
+		
+		state/in-pos: e + 1								;-- skip delimiter
+		state/in-len: state/in-len - 1
 	]
 
 	scan-block-close: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
-	;	/local
+		/local	
+			p	[red-pair!]
+			new	[red-value!]
+			len	[integer!]
+			ser	[series!]
 	][
-		null
+		ser: GET_BUFFER(state/stack)
+		p: as red-pair! ser/tail - 1
+		assert TYPE_OF(p) = TYPE_PAIR
+		if p/y <> TYPE_BLOCK [
+			0 ; error
+		]
+
+		len: (as-integer state/buf-tail - state/buffer) >> 4
+		new: state/buffer - 1
+		state/buf-tail: state/buffer
+		state/buffer: new - p/x
+
+		store-any-block new state/buf-tail len p/y
+	
+		ser/tail: as cell! p
+		assert ser/offset <= ser/tail
+		
+		state/in-pos: e + 1								;-- skip ending delimiter
+		state/in-len: state/in-len - 1
 	]
 	
 	scan-paren-open: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
@@ -293,25 +346,58 @@ lexer: context [
 			str  [red-string!]
 			ser	 [series!]
 			len	 [integer!]
+			unit [integer!]
+			cp	 [integer!]
+			p	 [byte-ptr!]
+			p4	 [int-ptr!]
 	][
 		s: s + 1										;-- skip start delimiter
 		len: as-integer e - s
+		unit: 1 << (flags >>> 30)
+		if unit > 4 [unit: 4]
+
+		str: string/make-at alloc-slot state len unit
+		ser: GET_BUFFER(str)
 		
-		case [
-			flags and C_FLAG_UCS4 <> 0 [
-				
-			]
-			flags and C_FLAG_UCS2 <> 0 [
-				
-			]
-			true [										;-- UCS1
-				str: string/make-at alloc-slot state len 1
-				ser: GET_BUFFER(str)
-				
+		switch unit [
+			UCS-1 [
 				either flags and C_FLAG_CARET = 0 [		;-- fast path when no escape sequence
-					copy-memory as byte-ptr! ser/offset as byte-ptr! s len
+					copy-memory as byte-ptr! ser/offset s len
 					ser/tail: as cell! (as byte-ptr! ser/offset) + len
 				][										;-- with escape sequence(s)
+					0
+				]
+			]
+			UCS-2 [
+				either flags and C_FLAG_CARET = 0 [		;-- fast path when no escape sequence
+					cp: 0
+					p: as byte-ptr! ser/offset
+					while [s < e][
+						s: decode-utf8-char s :cp
+						if cp = -1 [
+							0 ; throw error
+						]
+						p/1: as-byte cp and FFh
+						p/2: as-byte cp >> 8
+						p: p + 2
+					]
+				][
+					0
+				]
+			]
+			UCS-4 [
+				either flags and C_FLAG_CARET = 0 [		;-- fast path when no escape sequence
+					cp: 0
+					p4: as int-ptr! ser/offset
+					while [s < e][
+						s: decode-utf8-char s :cp
+						if cp = -1 [
+							0 ; throw error
+						]
+						p4/value: cp
+						p4: p4 + 1
+					]
+				][
 					0
 				]
 			]
@@ -588,7 +674,7 @@ lexer: context [
 	][
 		depth: depth + 1
 		
-		state/stack:	 null
+		state/stack:	 stack
 		state/buffer:	 stash							;TBD: support dyn buffer case
 		state/buf-tail:	 stash
 		state/buf-slots: stash-size						;TBD: support dyn buffer case
@@ -601,25 +687,18 @@ lexer: context [
 		if system/thrown > 0 [
 			0 ; error handling
 		]
-		if null? state/stack [
-			slots: (as-integer state/buf-tail - state/buffer) >> 4
-			either zero? slots [
-				blk: block/make-at as red-block! dst 1
-			][
-				blk: block/make-at as red-block! dst slots
-				s: GET_BUFFER(blk)
-				copy-memory 
-					as byte-ptr! s/offset
-					as byte-ptr! state/buffer
-					slots << 4
-				s/tail: s/offset + slots
-			]
-		]
+		assert block/rs-tail? state/stack					;-- stack should be empty
+
+	
+		slots: (as-integer state/buf-tail - state/buffer) >> 4
+		store-any-block dst state/buffer slots TYPE_BLOCK
+		
 		depth: depth - 1
 	]
 	
 	init: func [][
 		stash: as cell! allocate stash-size * size? cell!
+		stack: block/make-in root 20
 	]
 
 ]
