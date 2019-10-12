@@ -292,7 +292,7 @@ lexer: context [
 		p: as red-pair! ALLOC_TAIL(state/stack)
 		p/header: TYPE_PAIR
 		p/x: (as-integer state/buf-tail - state/buffer) >> 4
-		p/y: TYPE_BLOCK
+		p/y: either s/1 = #"(" [TYPE_PAREN][TYPE_BLOCK]
 		
 		alloc-slot state								;-- reserve slot for new block value
 		state/buffer: state/buf-tail
@@ -303,15 +303,18 @@ lexer: context [
 
 	scan-block-close: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local	
-			p	[red-pair!]
-			new	[red-value!]
-			len	[integer!]
-			ser	[series!]
+			p	 [red-pair!]
+			new	 [red-value!]
+			len	 [integer!]
+			type [integer!]
+			ser	 [series!]
 	][
 		ser: GET_BUFFER(state/stack)
 		p: as red-pair! ser/tail - 1
 		assert TYPE_OF(p) = TYPE_PAIR
-		if p/y <> TYPE_BLOCK [
+		
+		type: either s/1 = #")" [TYPE_PAREN][TYPE_BLOCK]
+		if p/y <> type [
 			0 ; error
 		]
 
@@ -320,25 +323,13 @@ lexer: context [
 		state/buf-tail: state/buffer
 		state/buffer: new - p/x
 
-		store-any-block new state/buf-tail len p/y
+		store-any-block new state/buf-tail len type
 	
 		ser/tail: as cell! p
 		assert ser/offset <= ser/tail
 		
 		state/in-pos: e + 1								;-- skip ending delimiter
 		state/in-len: state/in-len - 1
-	]
-	
-	scan-paren-open: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
-	;	/local
-	][
-		null
-	]
-
-	scan-paren-close: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
-	;	/local
-	][
-		null
 	]
 
 	scan-string: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
@@ -577,8 +568,8 @@ lexer: context [
 		:scan-error										;-- T_ERROR
 		:scan-block-open								;-- T_BLK_OP
 		:scan-block-close								;-- T_BLK_CL
-		:scan-paren-open								;-- T_PAR_OP
-		:scan-paren-close								;-- T_PAR_CL
+		:scan-block-open								;-- T_PAR_OP
+		:scan-block-close								;-- T_PAR_CL
 		:scan-string									;-- T_STRING
 		:scan-string-multi								;-- T_STR_ALT
 		:scan-word										;-- T_WORD
