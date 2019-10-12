@@ -455,9 +455,17 @@ lexer: context [
 	]
 	
 	scan-percent: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
-	;	/local
+		/local
+			fl [red-float!]
 	][
-		null
+		assert e/1 = #"%"
+		scan-float state s e flags
+		fl: as red-float! state/buf-tail - 1
+		fl/header: TYPE_PERCENT
+		fl/value: fl/value / 100.0
+		
+		state/in-pos: e + 1								;-- skip ending delimiter
+		state/in-len: state/in-len - 1
 	]
 		
 	scan-integer: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
