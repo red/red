@@ -67,6 +67,10 @@ lexer: context [
 		C_EOF											;-- 32
 	]
 	
+	line-table: #{
+		000100000000000000000000000000000000000000000000000000000000000000
+	}
+	
 	skip-table: #{
 		0101000000000000000000000000000000000000000000000000000000000000
 		0000000000000000000000000000000000000000000000000000000000000000
@@ -543,11 +547,16 @@ lexer: context [
 				cp: 1 + as-integer p/value
 				class: lex-classes/cp
 				flags: class and FFFFFF00h or flags
+				
 				index: state * 33 + (class and FFh) + 1
 				state: as-integer transitions/index
+				
 				index: state + 1
 				offset: offset + as-integer skip-table/index
-				;line: line + line-table/class
+				
+				index: class and FFh + 1
+				line: line + line-table/index
+				
 				if state > --EXIT_STATES-- [term?: yes break]
 				p: p + 1
 			]
