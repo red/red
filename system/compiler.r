@@ -304,11 +304,11 @@ system-dialect: make-profilable context [
 			quit-on-error
 		]
 		
-		throw-warning: func [msg [string! block!] /near][
+		throw-warning: func [msg [string! block!] /near value][
 			print [
 				"*** Warning:" 	reform msg
 				"^/*** in:" 	mold script
-				"^/*** at:" 	mold copy/part any [all [near back pc] pc] 8
+				"^/*** at:" 	mold copy/part any [all [near any [find/only/reverse pc value back pc]] pc] 8
 			]
 		]
 		
