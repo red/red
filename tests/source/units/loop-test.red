@@ -57,14 +57,6 @@ Red [
 		--assert 50 = rcm-n
 		unset [rcm-i rcm-n]
 
-	--test-- "repeat return values"
-		;-- see also #973, but repeat body should not return the counter itself
-		rrv-f: func [] [repeat rrv-i 2 [rrv-i * 10]]	;-- =20
-		rrv-b: copy []
-		repeat rrv-j 5 [append rrv-b rrv-f]
-		--assert rrv-b = [20 20 20 20 20]
-		unset [rrv-f rrv-b rrv-j rrv-i]
-
 ===end-group===
 
 ===start-group=== "basic until tests"
