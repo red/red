@@ -2420,13 +2420,15 @@ red: context [
 		insert-lf -5
 		insert-lf -7
 		emit-stack-reset
-		
+
+		emit [integer/push 0]		
 		emit-open-frame 'repeat
 		emit compose/deep [
 			while [
 				;-- set word 1 + get word
 				;-- TBD: set word next get word
-				(set-cnt) (cnt) + 1
+				(set-cnt) 1 + integer/get stack/arguments - 1	;-- fixes #3361
+				integer/make-at stack/arguments - 1 (cnt)
 				;-- (get word) < value
 				;-- TBD: not tail? get word
 				(cnt) <= (lim)
