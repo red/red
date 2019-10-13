@@ -2742,6 +2742,28 @@ b}
 		--assert equal? ["1" ""] split "1^/" #"^/"
 		--assert equal? ["1" "2" ""] split "1^/2^/" #"^/"
 
+	--test-- "#2232"
+		--assert 'ok = (a: 'ok 1 :a)
+		--assert 'ok = (a: 'ok 1 + 1 :a)
+		--assert 'ok = (a: 'ok 1 + 1 probe :a)
+		--assert equal? 'ok (a: 'ok 1 + 1 :a)
+		--assert equal? 'ok (a: 'ok 1 + 1 :a)
+
+		n: func [/a][100]
+		res: n - (1 n/a)
+		--assert zero? res
+		--assert n - (1 n/a) = 0
+		--assert (n - (1 n/a)) = 0
+
+		--assert zero? n - (x: 0 n)
+		--assert zero? n - (x: 0 n/a)
+		--assert zero? n - (x: 123 n/a)
+		--assert zero? n - (1 + 2 n/a)
+		--assert equal? [100] reduce [(1 + 2 n/a)]
+
+		--assert equal? [3 100] reduce [1 + 2 n/a]
+		--assert equal? [100 100 123 3] reduce [(123 n/a) (1 + 2 n/a) (n/a 123) (n/a 1 + 2)]
+
 	--test-- "#2234"
 		m2234: #(a 1 b 2)
 		remove/key m2234 'a
@@ -2763,6 +2785,17 @@ b}
 		bu3603: reduce [()]
 		rest3603: none
 		--assert bu3603 = back change block3603: [] do/next block3603 'rest3603
+
+	--test-- "#3362"
+		do [											;-- FIXME: compiler doesn't like this
+			spec3362-1: [return 100]
+			spec3362-2: [exit]
+			--assert 100 =  context spec3362-1
+			--assert unset? context spec3362-2
+			--assert 100 =  context [return 100]
+			--assert unset? context [exit]
+			unset [spec3362-1 spec3362-2]
+		]
 
 	--test-- "#3739"
 		reactor3739: func [spec] [make deep-reactor! spec]
@@ -2807,28 +2840,6 @@ comment {
 			]
 		]
 }
-
-	--test-- "#2232"
-		--assert 'ok = (a: 'ok 1 :a)
-		--assert 'ok = (a: 'ok 1 + 1 :a)
-		--assert 'ok = (a: 'ok 1 + 1 probe :a)
-		--assert equal? 'ok (a: 'ok 1 + 1 :a)
-		--assert equal? 'ok (a: 'ok 1 + 1 :a)
-
-		n: func [/a][100]
-		res: n - (1 n/a)
-		--assert zero? res
-		--assert n - (1 n/a) = 0
-		--assert (n - (1 n/a)) = 0
-
-		--assert zero? n - (x: 0 n)
-		--assert zero? n - (x: 0 n/a)
-		--assert zero? n - (x: 123 n/a)
-		--assert zero? n - (1 + 2 n/a)
-		--assert equal? [100] reduce [(1 + 2 n/a)]
-
-		--assert equal? [3 100] reduce [1 + 2 n/a]
-		--assert equal? [100 100 123 3] reduce [(123 n/a) (1 + 2 n/a) (n/a 123) (n/a 1 + 2)]
 
 ===end-group===
 
