@@ -1193,12 +1193,12 @@ Red [
 
 	--test-- "#973"
 		a973: func [] [
-			repeat i 2 [i]
+			repeat i973 2 [i973 * 10]					;-- don't return the counter itself to better catch regressions
 		]
 		b973: copy []
-		repeat j 2 [append b973 a973]
-		--assert equal? [2 2] b973
-		unset [a973 b973]
+		repeat j983 2 [append b973 a973]
+		--assert equal? [20 20] b973
+		unset [a973 b973 i973 j973]
 
 	--test-- "#974"
 		--assert not error? try [random 3]

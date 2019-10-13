@@ -44,6 +44,29 @@ Red [
   
 ===end-group===
 
+===start-group=== "advanced repeat tests"
+
+	--test-- "repeat counter mess"
+  		rcm-n: 0
+		repeat rcm-i 10 [
+			repeat rcm-i 5 [
+				rcm-i: rcm-i + 3
+				rcm-n: rcm-n + 1
+			]
+		]
+		--assert 50 = rcm-n
+		unset [rcm-i rcm-n]
+
+	--test-- "repeat return values"
+		;-- see also #973, but repeat body should not return the counter itself
+		rrv-f: func [] [repeat rrv-i 2 [rrv-i * 10]]	;-- =20
+		rrv-b: copy []
+		repeat rrv-j 5 [append rrv-b rrv-f]
+		--assert rrv-b = [20 20 20 20 20]
+		unset [rrv-f rrv-b rrv-j rrv-i]
+
+===end-group===
+
 ===start-group=== "basic until tests"
 
   --test-- "bu1"
@@ -221,7 +244,7 @@ Red [
     issue427-f
   --assert 15 = issue427-acc
 
-  --test-- "issue #3361"
+	--test-- "issue #3361"
   		s3361: copy []
 		f3361: func [n /local i] [
 			repeat i 3 [
@@ -232,7 +255,8 @@ Red [
 		]
 		f3361 1
 		--assert s3361 = [1 1  2 1 2 2  3 1 3 2 3 3  2 3  1 2 1 3]
-  
+		unset [f3361 s3361]
+
 ===end-group===
     
 ~~~end-file~~~
