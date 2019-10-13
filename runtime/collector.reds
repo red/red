@@ -173,7 +173,11 @@ collector: context [
 						]
 					]
 				]
-				TYPE_SYMBOL
+				TYPE_SYMBOL [
+					series: as red-series! value
+					keep as node! series/extra
+					if series/node <> null [keep series/node]
+				]
 				TYPE_STRING
 				TYPE_URL 
 				TYPE_FILE

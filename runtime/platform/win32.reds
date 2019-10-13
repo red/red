@@ -194,6 +194,12 @@ platform: context [
 				return:		[integer!]
 			]
 			__iob_func: "__iob_func" [return: [int-ptr!]]
+			strnicmp: "_strnicmp" [
+				s1			[byte-ptr!]
+				s2			[byte-ptr!]
+				len			[integer!]
+				return:		[integer!]
+			]
 		]
 		"kernel32.dll" stdcall [
 			VirtualAlloc: "VirtualAlloc" [
