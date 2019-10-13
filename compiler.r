@@ -2442,6 +2442,7 @@ red: context [
 		pop-call
 		insert last output reduce [action name cnt]
 		new-line last output on
+		emit [copy-cell stack/arguments stack/arguments - 1]	;-- override the counter with the body result
 		emit-close-frame
 		emit-close-frame
 		depth: depth - 1

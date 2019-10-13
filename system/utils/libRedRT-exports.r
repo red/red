@@ -133,6 +133,7 @@
 	red/integer/get-any*
 	red/integer/get*
 	red/integer/get
+	red/integer/make-at
 	red/integer/form-signed
 	red/logic/get
 	red/float/get
