@@ -465,7 +465,7 @@ lexer: context [
 			either s/4 = #"(" [							;-- note: #"^(" not allowed
 				c: as-integer s/5
 				pos: c >>> 3 + 1
-				bit: as-byte 1 << c and 7
+				bit: as-byte 1 << (c and 7)
 				either char-names-1st/pos and bit = null-byte [ ;-- hex escaped char
 					p: s + 4
 					c: 0
@@ -506,7 +506,7 @@ lexer: context [
 			][
 				c: as-integer s/4
 				pos: c >>> 3 + 1
-				bit: as-byte 1 << c and 7
+				bit: as-byte 1 << (c and 7)
 				either char-special/pos and bit = null-byte [ ;-- "regular" escaped char
 					if any [s/4 < #"^(40)" #"^(5F)" < s/4][throw LEX_ERROR]
 					c: as-integer s/4 - #"@"
