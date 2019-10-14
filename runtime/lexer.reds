@@ -462,10 +462,10 @@ lexer: context [
 		
 		either s/3 = #"^^" [
 			if len = 3 [throw LEX_ERROR]				;-- #"^"
-			c: as-integer s/5
-			pos: c >>> 3 + 1
-			bit: as-byte 1 << c and 7
 			either s/4 = #"(" [							;-- note: #"^(" not allowed
+				c: as-integer s/5
+				pos: c >>> 3 + 1
+				bit: as-byte 1 << c and 7
 				either char-names-1st/pos and bit = null-byte [ ;-- hex escaped char
 					p: s + 4
 					c: 0
@@ -504,7 +504,13 @@ lexer: context [
 					if any [res <> 0 src/skip <> #")"][throw LEX_ERROR]
 				]
 			][
-				either char-special/pos and bit = null-byte [ ;-- escaped special char
+				c: as-integer s/4
+				pos: c >>> 3 + 1
+				bit: as-byte 1 << c and 7
+				either char-special/pos and bit = null-byte [ ;-- "regular" escaped char
+					if any [s/4 < #"^(40)" #"^(5F)" < s/4][throw LEX_ERROR]
+					c: as-integer s/4 - #"@"
+				][										;-- escaped special char
 					c: as-integer switch s/4 [
 						#"/"  [#"^/"]
 						#"-"  [#"^-"]
@@ -515,9 +521,6 @@ lexer: context [
 						#"~"  [#"^~"]
 						default [assert false]
 					]
-				][										;-- "regular" escaped char
-					if any [s/4 < #"^(40)" #"^(5F)" < s/4][throw LEX_ERROR]
-					c: as-integer s/4 - #"@"
 				]
 			]
 		][												;-- simple char
