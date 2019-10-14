@@ -26,6 +26,7 @@ lexer: context [
 		C_FLAG_SHARP:	00800000h
 		C_FLAG_EOF:		00400000h
 		C_FLAG_SIGN:	00200000h
+		C_FLAG_NOSTORE: 00000100h
 	]
 	
 	#define FL_UCS4		[(C_WORD or C_FLAG_UCS4)]
@@ -471,6 +472,7 @@ lexer: context [
 	]
 		
 	scan-integer: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+		return: [integer!]
 		/local
 			p	[byte-ptr!]
 			len [integer!]
@@ -485,7 +487,7 @@ lexer: context [
 			len: as-integer e - p
 			if len > 10 [
 				scan-float state s e flags				;-- overflow, fall back on float
-				exit
+				return 0
 			]
 			i: 0
 			either flags and C_FLAG_QUOTE = 0 [			;-- no quote, faster path
@@ -502,8 +504,11 @@ lexer: context [
 			assert p = e
 		]
 		if s/value = #"-" [i: 0 - i]
-		integer/make-at alloc-slot state i
+		if flags and C_FLAG_NOSTORE = 0 [
+			integer/make-at alloc-slot state i
+		]
 		state/in-pos: e									;-- reset the input position to delimiter byte
+		i
 	]
 	
 	scan-float: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
@@ -532,9 +537,24 @@ lexer: context [
 	]
 	
 	scan-pair: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
-	;	/local
+		/local
+			index [integer!]
+			class [integer!]
+			p	  [byte-ptr!]
 	][
-		null
+		p: s
+		until [
+			p: p + 1									;-- x separator cannot be at start
+			index: 1 + as-integer p/1
+			class: lex-classes/index
+			class = C_X
+		]
+		pair/make-at 
+			alloc-slot state
+			scan-integer state s p flags or C_FLAG_NOSTORE
+			scan-integer state p + 1 e flags or C_FLAG_NOSTORE
+
+		state/in-pos: e									;-- reset the input position to delimiter byte
 	]
 	
 	scan-time: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
