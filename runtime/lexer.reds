@@ -444,6 +444,7 @@ lexer: context [
 			char  [red-char!]
 			p	  [byte-ptr!]
 			src	  [byte-ptr!]
+			word  [c-string!]
 			len	  [integer!]
 			c	  [integer!]
 			pos	  [integer!]
@@ -456,15 +457,14 @@ lexer: context [
 			bit	  [byte!]
 	][
 		assert all [s/1 = #"#" s/2 = #"^"" e/1 = #"^""]
-		
 		len: as-integer e - s
-		if len = 3 [throw LEX_ERROR]					;-- #""
+		if len = 2 [throw LEX_ERROR]					;-- #""
 		
 		either s/3 = #"^^" [
-			if len = 4 [throw LEX_ERROR]				;-- #"^"
+			if len = 3 [throw LEX_ERROR]				;-- #"^"
 			c: as-integer s/5
 			pos: c >>> 3 + 1
-			bit: as-byte c and 7
+			bit: as-byte 1 << c and 7
 			either s/4 = #"(" [							;-- note: #"^(" not allowed
 				either char-names-1st/pos and bit = null-byte [ ;-- hex escaped char
 					p: s + 4
@@ -490,32 +490,34 @@ lexer: context [
 					cp: s/5
 					if cp < #"a" [cp: cp or #"^(20)"]
 					src: s + 5
-					res: switch cp [
-						#"n" [c: 00h skip: 4 platform/strnicmp src as byte-ptr! "ull" 3]
-						#"b" [c: 08h skip: 4 platform/strnicmp src as byte-ptr! "ack" 3]
-						#"t" [c: 09h skip: 3 platform/strnicmp src as byte-ptr! "ab"  2]
-						#"l" [c: 0Ah skip: 4 platform/strnicmp src as byte-ptr! "ine" 3]
-						#"p" [c: 0Ch skip: 4 platform/strnicmp src as byte-ptr! "age" 3]
-						#"e" [c: 1Bh skip: 3 platform/strnicmp src as byte-ptr! "sc"  2]
-						#"d" [c: 7Fh skip: 3 platform/strnicmp src as byte-ptr! "el"  2]
-						default [assert false 0]
+					word: switch cp [
+						#"n" [c: 00h skip: 4 "ull"]
+						#"b" [c: 08h skip: 4 "ack"]
+						#"t" [c: 09h skip: 3 "ab" ]
+						#"l" [c: 0Ah skip: 4 "ine"]
+						#"p" [c: 0Ch skip: 4 "age"]
+						#"e" [c: 1Bh skip: 3 "sc" ]
+						#"d" [c: 7Fh skip: 3 "el" ]
+						default [assert false null]
 					]
+					res: platform/strnicmp src as byte-ptr! word skip - 1
 					if any [res <> 0 src/skip <> #")"][throw LEX_ERROR]
 				]
 			][
 				either char-special/pos and bit = null-byte [ ;-- escaped special char
-					c: as-integer switch s/5 [
+					c: as-integer switch s/4 [
 						#"/"  [#"^/"]
 						#"-"  [#"^-"]
 						#"^"" [#"^""]
-						#"{"  [#"{"]
-						#"}"  [#"}"]
+						#"{"  [#"{" ]
+						#"}"  [#"}" ]
 						#"^^" [#"^^"]
 						#"~"  [#"^~"]
 						default [assert false]
 					]
 				][										;-- "regular" escaped char
-					c: as-integer s/5 - #"@"
+					if any [s/4 < #"^(40)" #"^(5F)" < s/4][throw LEX_ERROR]
+					c: as-integer s/4 - #"@"
 				]
 			]
 		][												;-- simple char
@@ -824,7 +826,6 @@ lexer: context [
 			0 ; error handling
 		]
 		assert block/rs-tail? state/stack					;-- stack should be empty
-
 	
 		slots: (as-integer state/buf-tail - state/buffer) >> 4
 		store-any-block dst state/buffer slots TYPE_BLOCK
