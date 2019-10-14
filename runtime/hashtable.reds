@@ -1277,7 +1277,7 @@ _hashtable: context [
 		if h/n-occupied >= h/upper-bound [			;-- update the hash table
 			vsize: either h/n-buckets > (h/size << 1) [-1][1]
 			n-buckets: h/n-buckets + vsize
-			resize node n-buckets
+			resize node n-buckets << 4
 		]
 
 		blk-node: as series! h/blk/value
@@ -1303,7 +1303,6 @@ _hashtable: context [
 				step: 0
 				last: i
 				while [
-					;del?: _BUCKET_IS_DEL(flags ii sh)
 					find?: _BUCKET_IS_NOT_EMPTY(flags ii sh)
 					find?
 				][
@@ -1311,11 +1310,9 @@ _hashtable: context [
 					s: as series! k/cache/value
 					len2: as-integer (s/tail - s/offset)
 					either any [
-						;del?
 						len2 <> len
 						0 <> compare-cstr as byte-ptr! s/offset cstr len strict?
 					][
-						;if del? [site: i]
 						i: i + step and mask
 						_HT_CAL_FLAG_INDEX(i ii sh)
 						i: i + 1
@@ -1324,59 +1321,40 @@ _hashtable: context [
 					][break]
 				]
 				x: i
-				;if x = n-buckets [
-					;x: either all [
-					;	_BUCKET_IS_EMPTY(flags ii sh)
-					;	site <> n-buckets
-					;][site][i]
-				;]
 			]
 			either find? [break][xx: x strict?: no]
 		]
 
-		new?: yes
 		_HT_CAL_FLAG_INDEX((x - 1) ii sh)
-		case [
-			_BUCKET_IS_EMPTY(flags ii sh) [
+		either _BUCKET_IS_EMPTY(flags ii sh) [
+			k: as red-symbol! alloc-tail blk-node
+			keys/x: idx
+			len2: -1
+		][
+			len2: keys/x + 1
+			either strict? [return len2][
 				k: as red-symbol! alloc-tail blk-node
-				keys/x: idx
-				_BUCKET_SET_BOTH_FALSE(flags ii sh)
-				h/size: h/size + 1
-				h/n-occupied: h/n-occupied + 1
-				len2: -1
-			]
-			;_BUCKET_IS_DEL(flags ii sh) [
-			;	k: as red-symbol! blk + keys/x
-			;	_BUCKET_SET_BOTH_FALSE(flags ii sh)
-			;	h/size: h/size + 1
-			;]
-			true [
-				len2: keys/x + 1
-				either strict? [
-					new?: no
-					k: as red-symbol! blk + (len2 - 1)
-				][
-					k: as red-symbol! alloc-tail blk-node
-					_HT_CAL_FLAG_INDEX((xx - 1) ii sh)
-					keys/xx: idx
-					_BUCKET_SET_BOTH_FALSE(flags ii sh)
-					h/size: h/size + 1
-					h/n-occupied: h/n-occupied + 1
-				]
+				_HT_CAL_FLAG_INDEX((xx - 1) ii sh)
+				keys/xx: idx
 			]
 		]
 
-		if new? [
-			k/header: TYPE_UNSET
-			node: alloc-bytes len
-			s: as series! node/value
-			copy-memory as byte-ptr! s/offset cstr len
-			s/tail: as red-value! (as byte-ptr! s/offset) + len
-			k/cache: node
-			k/node: null
-			k/alias: len2
-			k/header: TYPE_SYMBOL
-		]
+		_BUCKET_SET_BOTH_FALSE(flags ii sh)
+		h/size: h/size + 1
+		h/n-occupied: h/n-occupied + 1
+
+		blk-node: as series! h/blk/value
+		blk: as red-symbol! blk-node/offset
+
+		k/header: TYPE_UNSET
+		node: alloc-bytes len
+		s: as series! node/value
+		copy-memory as byte-ptr! s/offset cstr len
+		s/tail: as red-value! (as byte-ptr! s/offset) + len
+		k/cache: node
+		k/node: null
+		k/alias: len2
+		k/header: TYPE_SYMBOL
 
 		(as-integer k - blk) >> 4 + 1
 	]
