@@ -525,9 +525,34 @@ lexer: context [
 	]
 	
 	scan-tuple: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
-	;	/local
+		/local
+			cell [cell!]
+			i	 [integer!]
+			pos  [integer!]
+			tp	 [byte-ptr!]
+			p	 [byte-ptr!]
 	][
-		null
+		cell: alloc-slot state
+		tp: (as byte-ptr! cell) + 4
+		pos: 0
+		i: 0
+		p: s
+
+		loop as-integer e - s [
+			either p/1 = #"." [
+				pos: pos + 1
+				if any [i < 0 i > 255 pos > 12][throw LEX_ERROR]
+				tp/pos: as byte! i
+				i: 0
+			][
+				i: i * 10 + as-integer (p/1 - #"0")
+			]
+			p: p + 1
+		]
+		pos: pos + 1									;-- last number
+		tp/pos: as byte! i
+		cell/header: TYPE_TUPLE or (pos << 19)
+		state/in-pos: e									;-- reset the input position to delimiter byte
 	]
 	
 	scan-date: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
