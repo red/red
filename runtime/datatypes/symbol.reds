@@ -60,7 +60,6 @@ symbol: context [
 			id	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "symbol/make-alt"]]
-		probe "make-alt ........................."
 		1
 	]
 
