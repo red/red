@@ -407,12 +407,27 @@ lexer: context [
 	scan-word: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
 			cell [cell!]
+			type [integer!]
 	][
+		type: TYPE_WORD
+		if flags and C_FLAG_COLON <> 0 [
+			case [
+				s/1 = #":" [s: s + 1 type: TYPE_GET_WORD]
+				e/0 = #":" [e: e - 1 type: TYPE_SET_WORD]
+				true	   [throw LEX_ERROR]
+			]
+		]
+		if flags and C_FLAG_QUOTE <> 0 [
+			if s/1 = #"'" [s: s + 1 type: TYPE_LIT_WORD]
+		]
 		cell: alloc-slot state
-		word/make-at
-			symbol/make-alt-utf8 s as-integer e - s
-			cell
-		;cell/header: TYPE_WORD
+		word/make-at symbol/make-alt-utf8 s as-integer e - s cell
+		cell/header: type
+	
+		if type = TYPE_SET_WORD [
+			state/in-pos: e + 1						;-- skip ending delimiter
+			state/in-len: state/in-len - 1		
+		]
 	]
 
 	scan-file: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
