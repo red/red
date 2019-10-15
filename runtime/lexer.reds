@@ -77,6 +77,12 @@ lexer: context [
 		0000000000000000000000000000000000000000000000000000000000000000
 		00000000000000
 	}
+	
+	;-- Bit-array for BDELNPTbdelnpt
+	char-names-1st: #{0000000000000000345011003450110000000000000000000000000000000000}
+
+	;-- Bit-array for /-~^{}"
+	char-special: #{0000000004A00000000000400000006800000000000000000000000000000000}
 
 	lex-classes: [
 		(C_EOF or C_FLAG_EOF)							;-- 00		NUL
@@ -273,6 +279,86 @@ lexer: context [
 			s/tail: s/offset + items
 		]
 	]
+	
+	scan-escaped-char: func [s [byte-ptr!] e [byte-ptr!] return: [integer!]
+		/local
+			p	  [byte-ptr!]
+			src	  [byte-ptr!]
+			word  [c-string!]
+			len	  [integer!]
+			c	  [integer!]
+			pos	  [integer!]
+			pow	  [integer!]
+			index [integer!]
+			class [integer!]
+			skip  [integer!]
+			res	  [integer!]
+			cp	  [byte!]
+			bit	  [byte!]
+	][
+		either s/1 = #"(" [							;-- note: #"^(" not allowed
+			c: as-integer s/2
+			pos: c >>> 3 + 1
+			bit: as-byte 1 << (c and 7)
+			either char-names-1st/pos and bit = null-byte [ ;-- hex escaped char
+				p: s + 1
+				c: 0
+				cp: as byte! 0
+				pow: 0
+				while [any [p/1 <> #")" p < e]][
+					if p/1 <> #"0" [
+						index: 1 + as-integer p/1
+						class: lex-classes/index
+						switch class [
+							C_DIGIT  [cp: p/1 - #"0"]
+							C_ALPHAX [cp: either p/1 < #"a" [p/1 - #"a"][p/1 - #"A"] cp: cp + 10]
+							default  [throw LEX_ERROR]
+						]
+						c: c + ((as-integer cp) << pow)
+					]
+					pow: pow + 4
+					p: p + 1
+				]
+				if any [p = e p/1 <> #")"][throw LEX_ERROR]
+			][										;-- named escaped char
+				cp: s/2
+				if cp < #"a" [cp: cp or #"^(20)"]
+				src: s + 2
+				word: switch cp [
+					#"n" [c: 00h skip: 4 "ull"]
+					#"b" [c: 08h skip: 4 "ack"]
+					#"t" [c: 09h skip: 3 "ab" ]
+					#"l" [c: 0Ah skip: 4 "ine"]
+					#"p" [c: 0Ch skip: 4 "age"]
+					#"e" [c: 1Bh skip: 3 "sc" ]
+					#"d" [c: 7Fh skip: 3 "el" ]
+					default [assert false null]
+				]
+				res: platform/strnicmp src as byte-ptr! word skip - 1
+				if any [res <> 0 src/skip <> #")"][throw LEX_ERROR]
+			]
+			c
+		][
+			c: as-integer s/1
+			pos: c >>> 3 + 1
+			bit: as-byte 1 << (c and 7)
+			either char-special/pos and bit = null-byte [ ;-- "regular" escaped char
+				if any [s/1 < #"^(40)" #"^(5F)" < s/1][throw LEX_ERROR]
+				as-integer s/1 - #"@"
+			][										;-- escaped special char
+				as-integer switch s/1 [
+					#"/"  [#"^/"]
+					#"-"  [#"^-"]
+					#"^"" [#"^""]
+					#"{"  [#"{" ]
+					#"}"  [#"}" ]
+					#"^^" [#"^^"]
+					#"~"  [#"^~"]
+					default [assert false]
+				]
+			]
+		]
+	]
 
 	scan-eof: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 	;	/local
@@ -315,9 +401,7 @@ lexer: context [
 		assert TYPE_OF(p) = TYPE_PAIR
 		
 		type: either s/1 = #")" [TYPE_PAREN][TYPE_BLOCK]
-		if p/y <> type [
-			0 ; error
-		]
+		if p/y <> type [throw LEX_ERROR]
 
 		len: (as-integer state/buf-tail - state/buffer) >> 4
 		new: state/buffer - 1
@@ -350,50 +434,52 @@ lexer: context [
 
 		str: string/make-at alloc-slot state len unit
 		ser: GET_BUFFER(str)
-		
-		switch unit [
-			UCS-1 [
-				either flags and C_FLAG_CARET = 0 [		;-- fast path when no escape sequence
+
+		either flags and C_FLAG_CARET = 0 [				;-- fast path when no escape sequence
+			switch unit [
+				UCS-1 [
 					copy-memory as byte-ptr! ser/offset s len
 					ser/tail: as cell! (as byte-ptr! ser/offset) + len
-				][										;-- with escape sequence(s)
-					0
 				]
-			]
-			UCS-2 [
-				either flags and C_FLAG_CARET = 0 [		;-- fast path when no escape sequence
+				UCS-2 [
 					cp: 0
 					p: as byte-ptr! ser/offset
 					while [s < e][
 						s: decode-utf8-char s :cp
-						if cp = -1 [
-							0 ; throw error
-						]
+						if cp = -1 [throw LEX_ERROR]
 						p/1: as-byte cp and FFh
 						p/2: as-byte cp >> 8
 						p: p + 2
 					]
-				][
-					0
 				]
-			]
-			UCS-4 [
-				either flags and C_FLAG_CARET = 0 [		;-- fast path when no escape sequence
+				UCS-4 [
 					cp: 0
 					p4: as int-ptr! ser/offset
 					while [s < e][
 						s: decode-utf8-char s :cp
-						if cp = -1 [
-							0 ; throw error
-						]
+						if cp = -1 [throw LEX_ERROR]
 						p4/value: cp
 						p4: p4 + 1
 					]
-				][
-					0
+				]
+			]
+		][												;-- with escape sequence(s)
+			;search the first UCS-2 or UCS-4 codepoint => unit
+			;if UCS-2 string and UCS-4 char found => upgrade
+			switch unit [
+				UCS-1 [
+					p: ser/offset
+					while [s < e][
+						c: s/1
+						if c = #"^^" [c: as-byte scan-escaped-char s e]
+						p/value: c
+					][
+						0
+					]
 				]
 			]
 		]
+		
 		state/in-pos: e + 1								;-- skip ending delimiter
 		state/in-len: state/in-len - 1
 	]
@@ -426,7 +512,7 @@ lexer: context [
 	
 		if type = TYPE_SET_WORD [
 			state/in-pos: e + 1						;-- skip ending delimiter
-			state/in-len: state/in-len - 1		
+			state/in-len: state/in-len - 1
 		]
 	]
 
@@ -442,98 +528,21 @@ lexer: context [
 		null
 	]
 	
-	;-- Bit-array for BDELNPTbdelnpt
-	char-names-1st: #{0000000000000000345011003450110000000000000000000000000000000000}
-	
-	;-- Bit-array for /-~^{}"
-	char-special: #{0000000004A00000000000400000006800000000000000000000000000000000}
-	
 	scan-char: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
 			char  [red-char!]
-			p	  [byte-ptr!]
-			src	  [byte-ptr!]
-			word  [c-string!]
 			len	  [integer!]
 			c	  [integer!]
-			pos	  [integer!]
-			pow	  [integer!]
-			index [integer!]
-			class [integer!]
-			skip  [integer!]
-			res	  [integer!]
-			cp	  [byte!]
-			bit	  [byte!]
 	][
 		assert all [s/1 = #"#" s/2 = #"^"" e/1 = #"^""]
 		len: as-integer e - s
 		if len = 2 [throw LEX_ERROR]					;-- #""
 		
-		either s/3 = #"^^" [
+		c: either s/3 = #"^^" [
 			if len = 3 [throw LEX_ERROR]				;-- #"^"
-			either s/4 = #"(" [							;-- note: #"^(" not allowed
-				c: as-integer s/5
-				pos: c >>> 3 + 1
-				bit: as-byte 1 << (c and 7)
-				either char-names-1st/pos and bit = null-byte [ ;-- hex escaped char
-					p: s + 4
-					c: 0
-					cp: as byte! 0
-					pow: 0
-					while [any [p/1 <> #")" p < e]][
-						if p/1 <> #"0" [
-							index: 1 + as-integer p/1
-							class: lex-classes/index
-							switch class [
-								C_DIGIT  [cp: p/1 - #"0"]
-								C_ALPHAX [cp: either p/1 < #"a" [p/1 - #"a"][p/1 - #"A"] cp: cp + 10]
-								default  [throw LEX_ERROR]
-							]
-							c: c + ((as-integer cp) << pow)
-						]
-						pow: pow + 4
-						p: p + 1
-					]
-					if any [p = e p/1 <> #")"][throw LEX_ERROR]
-				][										;-- named escaped char
-					cp: s/5
-					if cp < #"a" [cp: cp or #"^(20)"]
-					src: s + 5
-					word: switch cp [
-						#"n" [c: 00h skip: 4 "ull"]
-						#"b" [c: 08h skip: 4 "ack"]
-						#"t" [c: 09h skip: 3 "ab" ]
-						#"l" [c: 0Ah skip: 4 "ine"]
-						#"p" [c: 0Ch skip: 4 "age"]
-						#"e" [c: 1Bh skip: 3 "sc" ]
-						#"d" [c: 7Fh skip: 3 "el" ]
-						default [assert false null]
-					]
-					res: platform/strnicmp src as byte-ptr! word skip - 1
-					if any [res <> 0 src/skip <> #")"][throw LEX_ERROR]
-				]
-			][
-				c: as-integer s/4
-				pos: c >>> 3 + 1
-				bit: as-byte 1 << (c and 7)
-				either char-special/pos and bit = null-byte [ ;-- "regular" escaped char
-					if any [s/4 < #"^(40)" #"^(5F)" < s/4][throw LEX_ERROR]
-					c: as-integer s/4 - #"@"
-				][										;-- escaped special char
-					c: as-integer switch s/4 [
-						#"/"  [#"^/"]
-						#"-"  [#"^-"]
-						#"^"" [#"^""]
-						#"{"  [#"{" ]
-						#"}"  [#"}" ]
-						#"^^" [#"^^"]
-						#"~"  [#"^~"]
-						default [assert false]
-					]
-				]
-			]
+			scan-escaped-char s e 
 		][												;-- simple char
-			c: as-integer s/3
+			as-integer s/3
 		]
 		char: as red-char! alloc-slot state
 		char/header: TYPE_CHAR
