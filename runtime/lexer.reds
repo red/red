@@ -436,12 +436,6 @@ lexer: context [
 		null
 	]
 
-	scan-refinement: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
-	;	/local
-	][
-		null
-	]
-
 	scan-binary: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 	;	/local
 	][
@@ -561,15 +555,17 @@ lexer: context [
 		null
 	]
 	
-	scan-issue: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-ref-issue: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
 			cell [cell!]
+			type [integer!]
 	][
-		assert s/1 = #"#"
+		type: either s/1 = #"#" [TYPE_ISSUE][assert s/1 = #"/" TYPE_REFINEMENT]
 		s: s + 1
 		cell: alloc-slot state
 		word/make-at symbol/make-alt-utf8 s as-integer e - s cell
-		cell/header: TYPE_ISSUE
+		cell/header: type
+		state/in-pos: e									;-- reset the input position to delimiter byte
 	]
 	
 	scan-percent: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
@@ -744,12 +740,12 @@ lexer: context [
 		:scan-string-multi								;-- T_STR_ALT
 		:scan-word										;-- T_WORD
 		:scan-file										;-- T_FILE
-		:scan-refinement								;-- T_REFINE
+		:scan-ref-issue									;-- T_REFINE
 		:scan-binary									;-- T_BINARY
 		:scan-char										;-- T_CHAR
 		:scan-map-open									;-- T_MAP_OP
 		:scan-construct									;-- T_CONS_MK
-		:scan-issue										;-- T_ISSUE
+		:scan-ref-issue									;-- T_ISSUE
 		:scan-percent									;-- T_PERCENT
 		:scan-integer									;-- T_INTEGER
 		:scan-float										;-- T_FLOAT
@@ -818,9 +814,9 @@ lexer: context [
 			do-scan: as scanner! scanners/index
 			do-scan lex start + offset p flags
 			
-			lex/in-len <= 1 
+			lex/in-len <= 0
 		]
-		
+		assert zero? lex/in-len
 	]
 
 	scan: func [
