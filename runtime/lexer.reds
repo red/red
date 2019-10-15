@@ -562,9 +562,14 @@ lexer: context [
 	]
 	
 	scan-issue: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
-	;	/local
+		/local
+			cell [cell!]
 	][
-		null
+		assert s/1 = #"#"
+		s: s + 1
+		cell: alloc-slot state
+		word/make-at symbol/make-alt-utf8 s as-integer e - s cell
+		cell/header: TYPE_ISSUE
 	]
 	
 	scan-percent: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
