@@ -421,11 +421,12 @@ lexer: context [
 		/local
 			str  [red-string!]
 			ser	 [series!]
+			p	 [byte-ptr!]
+			p4	 [int-ptr!]
 			len	 [integer!]
 			unit [integer!]
 			cp	 [integer!]
-			p	 [byte-ptr!]
-			p4	 [int-ptr!]
+			c	 [byte!]
 	][
 		s: s + 1										;-- skip start delimiter
 		len: as-integer e - s
@@ -468,7 +469,7 @@ lexer: context [
 			;if UCS-2 string and UCS-4 char found => upgrade
 			switch unit [
 				UCS-1 [
-					p: ser/offset
+					p: as byte-ptr! ser/offset
 					while [s < e][
 						c: s/1
 						if c = #"^^" [c: as-byte scan-escaped-char s e]
