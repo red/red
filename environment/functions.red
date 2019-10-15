@@ -237,6 +237,7 @@ replace: function [
 		any [not any-string? :pattern tag? :pattern]
 		any-string? series
 		not block? :pattern
+		not bitset? :pattern
 	] [
 		pattern: form pattern
 	]
