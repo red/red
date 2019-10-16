@@ -340,11 +340,11 @@ lexer: context [
 			c: as-integer s/1
 			pos: c >>> 3 + 1
 			bit: as-byte 1 << (c and 7)
-			c: either char-special/pos and bit = null-byte [ ;-- "regular" escaped char
+			either char-special/pos and bit = null-byte [ ;-- "regular" escaped char
 				if any [s/1 < #"^(40)" #"^(5F)" < s/1][throw LEX_ERROR]
-				as-integer s/1 - #"@"
+				c: as-integer s/1 - #"@"
 			][										;-- escaped special char
-				switch s/1 [
+				c: switch s/1 [
 					#"/"  [0Ah]
 					#"-"  [09h]
 					#"^"" [22h]
