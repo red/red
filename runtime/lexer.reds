@@ -238,7 +238,7 @@ lexer: context [
 		buf-tail  [red-value!]
 		buf-slots [integer!]
 		input     [byte-ptr!]
-		in-len    [integer!]
+		in-end    [byte-ptr!]
 		in-pos    [byte-ptr!]
 		err	      [integer!]
 	]
@@ -386,7 +386,6 @@ lexer: context [
 		state/buffer: state/buf-tail
 		
 		state/in-pos: e + 1								;-- skip delimiter
-		state/in-len: state/in-len - 1
 	]
 
 	scan-block-close: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
@@ -415,7 +414,6 @@ lexer: context [
 		assert ser/offset <= ser/tail
 		
 		state/in-pos: e + 1								;-- skip ending delimiter
-		state/in-len: state/in-len - 1
 	]
 
 	scan-string: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
@@ -562,7 +560,6 @@ lexer: context [
 			assert (as byte-ptr! ser/offset) + ser/size > as byte-ptr! ser/tail
 		]
 		state/in-pos: e + 1								;-- skip ending delimiter
-		state/in-len: state/in-len - 1
 	]
 	
 	scan-string-multi: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
@@ -591,10 +588,7 @@ lexer: context [
 		word/make-at symbol/make-alt-utf8 s as-integer e - s cell
 		cell/header: type
 	
-		if type = TYPE_SET_WORD [
-			state/in-pos: e + 1						;-- skip ending delimiter
-			state/in-len: state/in-len - 1
-		]
+		if type = TYPE_SET_WORD [state/in-pos: e + 1]	;-- skip ending delimiter
 	]
 
 	scan-file: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
@@ -633,7 +627,6 @@ lexer: context [
 		char/value: c
 		
 		state/in-pos: e + 1								;-- skip ending delimiter
-		state/in-len: state/in-len - 1
 	]
 	
 	scan-map-open: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
@@ -672,7 +665,6 @@ lexer: context [
 		fl/value: fl/value / 100.0
 		
 		state/in-pos: e + 1								;-- skip ending delimiter
-		state/in-len: state/in-len - 1
 	]
 		
 	scan-integer: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
@@ -879,7 +871,7 @@ lexer: context [
 			start: p
 			offset: 0
 			
-			loop lex/in-len [
+			loop as-integer lex/in-end - p [
 				cp: 1 + as-integer p/value
 				class: lex-classes/cp
 				flags: class and FFFFFF00h or flags
@@ -900,16 +892,15 @@ lexer: context [
 				index: state * 33 + C_EOF + 1
 				state: as-integer transitions/index
 			]
-			lex/in-len: lex/in-len - as-integer (p - start)
 			lex/in-pos: p
 			
 			index: state - --EXIT_STATES--
 			do-scan: as scanner! scanners/index
 			do-scan lex start + offset p flags
 			
-			lex/in-len <= 0
+			lex/in-pos >= lex/in-end
 		]
-		assert zero? lex/in-len
+		assert lex/in-pos = lex/in-end
 	]
 
 	scan: func [
@@ -929,7 +920,7 @@ lexer: context [
 		state/buf-tail:	 stash
 		state/buf-slots: stash-size						;TBD: support dyn buffer case
 		state/input:	 src
-		state/in-len:	 len
+		state/in-end:	 src + len
 		state/in-pos:	 src
 		state/err:		 0
 		
