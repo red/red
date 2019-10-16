@@ -1123,7 +1123,7 @@ string: context [
 	
 	make-at: func [
 		slot	[red-value!]
-		size 	[integer!]								;-- number of bytes to pre-allocate
+		size 	[integer!]								;-- number of codepoints to pre-allocate
 		unit	[integer!]
 		return:	[red-string!]
 		/local 
@@ -1132,7 +1132,7 @@ string: context [
 		str: as red-string! slot
 		str/header: TYPE_UNSET
 		str/head:	0
-		str/node:	alloc-bytes size << (unit >> 1)
+		str/node:	alloc-codepoints size unit
 		str/cache:	null
 		str/header: TYPE_STRING
 		str

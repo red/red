@@ -1042,6 +1042,18 @@ alloc-bytes: func [
 ]
 
 ;-------------------------------------------
+;-- Wrapper on alloc-series for codepoints buffer allocation
+;-------------------------------------------
+alloc-codepoints: func [
+	size	[integer!]						;-- number of codepoints slots to preallocate
+	unit	[integer!]
+	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
+][
+	if zero? size [size: 16 >> (unit >> 1)]
+	alloc-series size unit 0				;-- optimize by default for tail insertion
+]
+
+;-------------------------------------------
 ;-- Wrapper on alloc-series for byte-filled buffer allocation
 ;-------------------------------------------
 alloc-bytes-filled: func [
