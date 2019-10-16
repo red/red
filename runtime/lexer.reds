@@ -288,7 +288,6 @@ lexer: context [
 			len	  [integer!]
 			c	  [integer!]
 			pos	  [integer!]
-			pow	  [integer!]
 			index [integer!]
 			class [integer!]
 			skip  [integer!]
@@ -300,13 +299,12 @@ lexer: context [
 			c: as-integer s/2
 			pos: c >>> 3 + 1
 			bit: as-byte 1 << (c and 7)
-			either char-names-1st/pos and bit = null-byte [ ;-- hex escaped char
+			either char-names-1st/pos and bit = null-byte [ ;-- hex escaped char @@ "e" as 1st!
 				p: s + 1
 				c: 0
 				cb: as byte! 0
-				pow: 0
-				while [any [p/1 <> #")" p < e]][
-					if p/1 <> #"0" [
+				while [all [p/1 <> #")" p < e]][
+					either p/1 = #"0" [c: c << 4][
 						index: 1 + as-integer p/1
 						class: lex-classes/index
 						switch class [
@@ -314,9 +312,8 @@ lexer: context [
 							C_ALPHAX [cb: either p/1 < #"a" [p/1 - #"a"][p/1 - #"A"] cb: cb + 10]
 							default  [throw LEX_ERROR]
 						]
-						c: c + ((as-integer cb) << pow)
+						c: c << 4 + as-integer cb
 					]
-					pow: pow + 4
 					p: p + 1
 				]
 				if any [p = e p/1 <> #")"][throw LEX_ERROR]
@@ -347,15 +344,15 @@ lexer: context [
 				if any [s/1 < #"^(40)" #"^(5F)" < s/1][throw LEX_ERROR]
 				as-integer s/1 - #"@"
 			][										;-- escaped special char
-				as-integer switch s/1 [
-					#"/"  [#"^/"]
-					#"-"  [#"^-"]
-					#"^"" [#"^""]
-					#"{"  [#"{" ]
-					#"}"  [#"}" ]
-					#"^^" [#"^^"]
-					#"~"  [#"^~"]
-					default [assert false]
+				switch s/1 [
+					#"/"  [0Ah]
+					#"-"  [09h]
+					#"^"" [22h]
+					#"{"  [7Bh]
+					#"}"  [7Dh]
+					#"^^" [5Eh]
+					#"~"  [7Fh]
+					default [assert false 0]
 				]
 			]
 			p: s + 1
@@ -423,35 +420,33 @@ lexer: context [
 
 	scan-string: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
-			str  [red-string!]
-			ser	 [series!]
-			p	 [byte-ptr!]
-			pos	 [byte-ptr!]
-			p4	 [int-ptr!]
-			len	 [integer!]
-			unit [integer!]
-			index[integer!]
-			class[integer!]
-			cp	 [integer!]
-			w?	 [logic!]
-			c	 [byte!]
+			str    [red-string!]
+			ser	   [series!]
+			p	   [byte-ptr!]
+			pos	   [byte-ptr!]
+			p4	   [int-ptr!]
+			len	   [integer!]
+			unit   [integer!]
+			index  [integer!]
+			class  [integer!]
+			digits [integer!]
+			extra  [integer!]
+			cp	   [integer!]
+			w?	   [logic!]
+			c	   [byte!]
 	][
 		s: s + 1										;-- skip start delimiter
 		len: as-integer e - s
 		unit: 1 << (flags >>> 30)
 		if unit > 4 [unit: 4]
 
-		str: string/make-at alloc-slot state len unit
-		ser: GET_BUFFER(str)
-
 		either flags and C_FLAG_CARET = 0 [				;-- fast path when no escape sequence
+			str: string/make-at alloc-slot state len unit
+			ser: GET_BUFFER(str)
 			switch unit [
-				UCS-1 [
-					copy-memory as byte-ptr! ser/offset s len
-					ser/tail: as cell! (as byte-ptr! ser/offset) + len
-				]
+				UCS-1 [copy-memory as byte-ptr! ser/offset s len]
 				UCS-2 [
-					cp: 0
+					cp: -1
 					p: as byte-ptr! ser/offset
 					while [s < e][
 						s: decode-utf8-char s :cp
@@ -462,7 +457,7 @@ lexer: context [
 					]
 				]
 				UCS-4 [
-					cp: 0
+					cp: -1
 					p4: as int-ptr! ser/offset
 					while [s < e][
 						s: decode-utf8-char s :cp
@@ -472,69 +467,72 @@ lexer: context [
 					]
 				]
 			]
+			ser/tail: as cell! (as byte-ptr! ser/offset) + (len << (unit >> 1))
 		][												;-- with escape sequence(s)
-			;search the first UCS-2 or UCS-4 codepoint => unit
-			;if UCS-2 string and UCS-4 char found => upgrade
+			;-- prescan the string for determining unit and accurate final codepoints count
+			extra: 0									;-- count extra bytes used by escape sequences
 			if unit < UCS-4 [
 				p: s
+				;-- check if any escaped codepoint requires higher unit
 				while [p < e][
-					if p/1 = #"^^" [
+					either p/1 = #"^^" [
 						p: p + 1
-						if all [p < e p/1 = #"("][
+						either all [p + 1 < e p/1 = #"("][
 							p: p + 1
 							pos: p
 							w?: no
-							while [all [p < e p/1 <> #")"]][
-								index: 1 + p/1
+							while [all [not w? p < e p/1 <> #")"]][
+								index: 1 + as-integer p/1
 								class: lex-classes/index
 								switch class [
 									C_DIGIT C_ZERO C_ALPHAX [0]
-									default [w?: yes]
+									default [w?: yes]	;-- early exit if not an hex value
 								]
 								p: p + 1
 							]
-							unless w? [
-								len: as-integer p - pos
-								if unit = UCS-1 [
-									if len > 2 [
-										ser: unicode/Latin1-to-UCS2 ser
-										unit: UCS-2
-									]
-									if len > 4 [
-										ser: unicode/Latin1-to-UCS4 ser
-										unit: UCS-4
-									]
-								]
-								if all [unit = UCS-2 len > 4][
-									ser: unicode/UCS2-to-UCS4 ser
-									unit: UCS-4
-								]
+							if all [w? p < e p/1 <> #")"][ ;-- finish counting characters if early exit
+								while [all [p < e p/1 <> #")"]][p: p + 1]
 							]
+							digits: as-integer p - pos
+							extra: extra + digits + 2	;-- account for parens + content
+							unless w? [
+								if unit = UCS-1 [
+									if digits > 2 [unit: UCS-2]
+									if digits > 4 [unit: UCS-4]
+								]
+								if all [unit = UCS-2 digits > 4][unit: UCS-4]
+							]
+						][
+							extra: extra + 1
+							p: p + 1
 						]
-					]
-					p: p + 1
+					][p: p + 1]
 				]
 			]
 			
+			str: string/make-at alloc-slot state len - extra unit
+			ser: GET_BUFFER(str)
 			switch unit [
 				UCS-1 [
 					p: as byte-ptr! ser/offset
 					while [s < e][
 						either s/1 = #"^^" [
-							s: scan-escaped-char s e :cp
+							s: scan-escaped-char s + 1 e :cp
 							p/value: as-byte cp
 						][
 							p/value: s/1
 							s: s + 1
 						]
+						p: p + 1
 					]
+					ser/tail: as cell! p
 				]
 				UCS-2 [
-					cp: 0
+					cp: -1
 					p: as byte-ptr! ser/offset
 					while [s < e][
 						s: either s/1 = #"^^" [
-							scan-escaped-char s e :cp
+							scan-escaped-char s + 1 e :cp
 						][
 							decode-utf8-char s :cp
 						]
@@ -543,13 +541,14 @@ lexer: context [
 						p/2: as-byte cp >> 8
 						p: p + 2
 					]
+					ser/tail: as cell! p
 				]
 				UCS-4 [
-					cp: 0
+					cp: -1
 					p4: as int-ptr! ser/offset
 					while [s < e][
 						s: either s/1 = #"^^" [
-							scan-escaped-char s e :cp
+							scan-escaped-char s + 1 e :cp
 						][
 							decode-utf8-char s :cp
 						]
@@ -557,8 +556,10 @@ lexer: context [
 						p4/value: cp
 						p4: p4 + 1
 					]
+					ser/tail: as cell! p4
 				]
 			]
+			assert (as byte-ptr! ser/offset) + ser/size > as byte-ptr! ser/tail
 		]
 		state/in-pos: e + 1								;-- skip ending delimiter
 		state/in-len: state/in-len - 1
@@ -621,10 +622,12 @@ lexer: context [
 		either s/3 = #"^^" [
 			if len = 3 [throw LEX_ERROR]				;-- #"^"
 			c: -1
-			scan-escaped-char s e :c
+			scan-escaped-char s + 3 e :c
 		][												;-- simple char
 			c: as-integer s/3
 		]
+		if c > 0010FFFFh [throw LEX_ERROR]
+		
 		char: as red-char! alloc-slot state
 		char/header: TYPE_CHAR
 		char/value: c
