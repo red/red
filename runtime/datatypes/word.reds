@@ -110,10 +110,8 @@ word: context [
 			s	[series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/from"]]
-		
-		ctx: TO_CTX(node)
-		s: as series! ctx/symbols/value
-		as red-word! s/offset + index
+
+		_hashtable/get-ctx-word TO_CTX(node) index
 	]
 	
 	at: func [
@@ -123,7 +121,6 @@ word: context [
 		/local
 			ctx	[red-context!]
 			idx [integer!]
-			s	[series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/at"]]
 
@@ -132,8 +129,7 @@ word: context [
 		either idx < 0 [
 			_context/add-global sym
 		][
-			s: as series! ctx/symbols/value
-			as red-word! s/offset + idx
+			_hashtable/get-ctx-word ctx idx
 		]
 	]
 	
@@ -165,7 +161,7 @@ word: context [
 
 		ctx: TO_CTX(node)
 		if null? ctx/values [
-			s: as series! ctx/symbols/value
+			s: _hashtable/get-ctx-words ctx
 			fire [TO_ERROR(script not-defined) s/offset + index]
 		]
 		

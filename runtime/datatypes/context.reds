@@ -17,33 +17,20 @@ _context: context [
 		ctx		[red-context!]
 		sym		[integer!]
 		case?	[logic!]
-		return:	[integer!]								;-- value > 0: success, value = -1: failure
-		/local
-			series	[series!]
-			list	[red-word!]
-			end		[red-word!]
+		return:	[integer!]		;-- value > 0: success, value = -1: failure
 	][
-		series: as series! ctx/symbols/value
-		list:   as red-word! series/offset
-		end:    as red-word! series/tail
-		
-		either case? [
-			sym: symbol/resolve sym
-			while [list < end][
-				if sym = symbol/resolve list/symbol [
-					return (as-integer list - as red-word! series/offset) >> 4	;@@ log2(size? cell!) hardcoded
-				]
-				list: list + 1
-			]
-		][
-			while [list < end][
-				if sym = list/symbol [
-					return (as-integer list - as red-word! series/offset) >> 4	;@@ log2(size? cell!) hardcoded
-				]
-				list: list + 1
-			]
-		]
-		-1												;-- search failed
+		_hashtable/get-ctx-symbol ctx/symbols sym case? null null
+	]
+
+	find-or-store: func [		;-- find a symbol, if not found, store it.
+		ctx		[red-context!]
+		sym		[integer!]
+		case?	[logic!]
+		w-ctx	[node!]			;-- word/ctx
+		new-id	[int-ptr!]
+		return:	[integer!]		;-- word index in the context
+	][
+		_hashtable/get-ctx-symbol ctx/symbols sym case? w-ctx new-id
 	]
 	
 	set-global: func [
@@ -112,34 +99,25 @@ _context: context [
 			value [cell!]
 			s  	  [series!]
 			id	  [integer!]
+			new-id [integer!]
 	][
+		new-id: 0
 		ctx: TO_CTX(global-ctx)
-		id: find-word ctx sym case?
-		s: as series! ctx/symbols/value
-		
+		id: find-or-store ctx sym case? global-ctx :new-id
+
 		if id <> -1 [
-			word: as red-word! s/offset + id	;-- word already defined in global context
+			word: _hashtable/get-ctx-word ctx id
 			if all [case? store? word/symbol <> sym][
 				word: as red-word! copy-cell as red-value! word ALLOC_TAIL(root)
 				word/symbol: sym
 			]
 			return word
 		]
-		
-		s: as series! ctx/symbols/value
-		word: as red-word! alloc-tail s
-		word/header: TYPE_WORD							;-- implicit reset of all header flags
-		word/ctx: 	 global-ctx
-		word/symbol: sym
-		s: as series! ctx/symbols/value
 
-		id: either positive? symbol/get-alias-id sym [		;-- alias, fetch original id
-			find-word ctx sym yes
-		][
-			(as-integer s/tail - s/offset) >> 4 - 1		;-- index is zero-base
+		word: _hashtable/get-ctx-word ctx new-id
+		if positive? symbol/get-alias-id sym [	;-- alias, fetch original id
+			word/index: find-word ctx sym yes
 		]
-
-		word/index:  id
 
 		value: alloc-tail as series! ctx/values/value
 		value/header: TYPE_UNSET
@@ -152,23 +130,14 @@ _context: context [
 		value	[red-value!]
 		return: [red-value!]
 		/local
-			w	[red-word!]
-			s  	[series!]
-			id	[integer!]
+			id		[integer!]
+			new-id	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/add-with"]]
 
-		id: find-word ctx word/symbol yes
+		new-id: 0
+		id: find-or-store ctx word/symbol yes ctx/self :new-id
 		if id <> -1 [return null]
-
-		s: as series! ctx/symbols/value
-		id: (as-integer s/tail - s/offset) >> 4			;-- index is zero-base
-		w: as red-word! alloc-tail s
-		copy-cell as cell! word as cell! w
-		w/ctx: ctx/self
-		w/index: id
-		
-		s: as series! ctx/symbols/value					;-- refreshing pointer after alloc-tail
 		copy-cell value alloc-tail as series! ctx/values/value
 	]
 
@@ -177,30 +146,21 @@ _context: context [
 		word 	[red-word!]
 		return:	[integer!]
 		/local
-			sym	  [cell!]
-			value [cell!]
-			s  	  [series!]
-			id	  [integer!]
+			id		[integer!]
+			new-id	[integer!]
+			value	[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/add"]]
-		
-		id: find-word ctx word/symbol yes
-		if id <> -1 [return id]
-		
-		s: as series! ctx/symbols/value
-		id: (as-integer s/tail - s/offset) >> 4			;-- index is zero-base
 
-		sym: alloc-tail s
-		copy-cell as cell! word sym
-		sym/header: TYPE_WORD							;-- force word! type
-		word: as red-word! sym
-		word/index: id
-		
+		new-id: 0
+		id: find-or-store ctx word/symbol yes word/ctx :new-id
+		if id <> -1 [return id]
+
 		unless ON_STACK?(ctx) [
 			value: alloc-tail as series! ctx/values/value
 			value/header: TYPE_UNSET
 		]
-		id
+		new-id
 	]
 	
 	set-integer: func [
@@ -356,7 +316,7 @@ _context: context [
 		obj: as red-object! slot
 		node: obj/ctx
 		ctx: TO_CTX(node)
-		src: as series! ctx/symbols/value
+		src: _hashtable/get-ctx-words ctx
 		slots: (as-integer (src/tail - src/offset)) >> 4
 		
 		new: create 
@@ -365,7 +325,7 @@ _context: context [
 			ctx/header and flag-self-mask  <> 0
 		
 		ctx: TO_CTX(new)
-		dst: as series! ctx/symbols/value
+		dst: _hashtable/get-ctx-words ctx
 		dst/tail: dst/offset + slots
 		sym: as red-word! dst/offset
 		
@@ -402,7 +362,7 @@ _context: context [
 		slot: alloc-tail as series! node/value			;-- allocate a slot for obj/func back-reference
 		slot/header: TYPE_UNSET
 		cell/header: TYPE_UNSET							;-- implicit reset of all header flags	
-		symbols: alloc-cells slots						;@@ create the node! on native stack, so it can be marked by GC
+		symbols: _hashtable/init slots null HASH_TABLE_SYMBOL 1	;@@ create the node! on native stack, so it can be marked by GC
 		cell/self: node
 
 		either stack? [
@@ -425,24 +385,21 @@ _context: context [
 		return:	[node!]
 		/local
 			new		[node!]
-			symbols	[node!]
 			ctx		[red-context!]
 			cell	[red-value!]
 			end		[red-value!]
-			slot	[red-word!]
+			w		[red-word!]
 			s		[series!]
 			type	[integer!]
 			i		[integer!]
 	][
 		new: create block/rs-length? spec stack? self?
 		ctx: TO_CTX(new)
-		symbols: ctx/symbols
-		
 		s: GET_BUFFER(spec)
 		cell: s/offset
 		end: s/tail
+
 		i: 0
-		
 		while [cell < end][
 			type: TYPE_OF(cell)
 			if any [									;TBD: use typeset/any-word?
@@ -451,11 +408,8 @@ _context: context [
 				type = TYPE_LIT_WORD
 				type = TYPE_REFINEMENT
 			][											;-- add new word to context
-				slot: as red-word! alloc-tail as series! symbols/value
-				copy-cell cell as red-value! slot
-				slot/header: TYPE_WORD
-				slot/ctx: new
-				slot/index: i
+				w: as red-word! cell
+				find-or-store ctx w/symbol yes new :type
 				i: i + 1
 			]
 			cell: cell + 1
@@ -561,7 +515,7 @@ _context: context [
 		tail: s/tail
 		assert cell <= tail
 		
-		s: as series! ctx/symbols/value
+		s: _hashtable/get-ctx-words ctx
 		base: s/tail - s/offset
 
 		while [cell < tail][
@@ -570,7 +524,7 @@ _context: context [
 			]
 			cell: cell + 1
 		]
-		s: as series! ctx/symbols/value					;-- refresh s after possible expansion
+		s: _hashtable/get-ctx-words ctx					;-- refresh s after possible expansion
 		s/tail - s/offset > base						;-- TRUE: new words added
 	]
 	

@@ -107,7 +107,7 @@ collector: context [
 		;probe "context"
 		if keep node [
 			ctx: TO_CTX(node)
-			keep ctx/symbols
+			_hashtable/mark ctx/symbols
 			unless ON_STACK?(ctx) [mark-block-node ctx/values]
 		]
 	]
@@ -207,7 +207,7 @@ collector: context [
 					#if debug? = yes [if verbose > 1 [print "context"]]
 					ctx: as red-context! value
 					;keep ctx/self
-					mark-block-node ctx/symbols
+					_hashtable/mark ctx/symbols
 					unless ON_STACK?(ctx) [mark-block-node ctx/values]
 				]
 				TYPE_HASH

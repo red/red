@@ -175,14 +175,16 @@ _hashtable: context [
 			val	 [red-value!]
 			end	 [red-value!]
 			node [node!]
+			type [integer!]
 	][
 		collector/keep table
 		s: as series! table/value
 		h: as hashtable! s/offset
-		if h/type = HASH_TABLE_HASH [collector/keep h/indexes]
+		type: h/type
+		if type = HASH_TABLE_HASH [collector/keep h/indexes]
 		collector/keep h/flags
 		collector/keep h/keys
-		if h/type = HASH_TABLE_INTEGER [collector/keep h/blk]
+		if type > 1 [collector/keep h/blk]
 	]
 
 	sweep: func [
@@ -257,6 +259,8 @@ _hashtable: context [
 		/local sym [red-string!] s [series!]
 	][
 		switch TYPE_OF(key) [
+			TYPE_INTEGER [key/data2]
+			TYPE_WORD	[symbol/resolve key/data2]
 			TYPE_SYMBOL [hash-symbol as red-symbol! key]
 			TYPE_STRING
 			TYPE_FILE
@@ -265,23 +269,18 @@ _hashtable: context [
 			TYPE_EMAIL [
 				hash-string as red-string! key case?
 			]
-			TYPE_CHAR
-			TYPE_INTEGER [key/data2]
+			TYPE_CHAR [key/data2]
 			TYPE_FLOAT
 			TYPE_PAIR
 			TYPE_PERCENT
 			TYPE_TIME [
 				murmur3-x86-32 (as byte-ptr! key) + 8 8
 			]
-			TYPE_WORD
 			TYPE_SET_WORD
 			TYPE_LIT_WORD
 			TYPE_GET_WORD
 			TYPE_REFINEMENT
-			TYPE_ISSUE [
-				s: GET_BUFFER(symbols)
-				hash-symbol as red-symbol! s/offset + key/data2 - 1
-			]
+			TYPE_ISSUE [symbol/resolve key/data2]
 			TYPE_BINARY [
 				sym: as red-string! key
 				s: GET_BUFFER(sym)
@@ -1083,6 +1082,27 @@ _hashtable: context [
 		new
 	]
 
+	copy-to: func [
+		node	[node!]
+		dst		[node!]
+		return: [node!]
+		/local s [series!] h [hashtable!] ss [series!] hh [hashtable!] blk [node!]
+	][
+		s: as series! node/value
+		h: as hashtable! s/offset
+
+		ss: as series! dst/value
+		hh: as hashtable! ss/offset
+		blk: hh/blk
+
+		copy-memory as byte-ptr! hh as byte-ptr! h size? hashtable!
+		hh/blk: blk
+		hh/flags: copy-series as series! h/flags/value
+		hh/keys: copy-series as series! h/keys/value
+		
+		dst
+	]
+
 	clear: func [								;-- only for clear hash! datatype
 		node	[node!]
 		head	[integer!]
@@ -1357,5 +1377,124 @@ _hashtable: context [
 		k/header: TYPE_SYMBOL
 
 		(as-integer k - blk) >> 4 + 1
+	]
+
+	get-ctx-symbol: func [
+		node		[node!]
+		key			[integer!]				;-- symbol id
+		case?		[logic!]				;-- YES: case insensitive
+		ctx			[node!]					;-- if cxt <> null, create a new word in the context
+		new-id		[int-ptr!]
+		return:		[integer!]
+		/local
+			s		[series!]
+			h		[hashtable!]
+			i		[integer!]
+			flags	[int-ptr!]
+			last	[integer!]
+			mask	[integer!]
+			step	[integer!]
+			keys	[int-ptr!]
+			ii		[integer!]
+			hash	[integer!]
+			kk		[integer!]
+			sh		[integer!]
+			blk		[red-word!]
+			k		[red-word!]
+			sym		[integer!]
+	][
+		s: as series! node/value
+		h: as hashtable! s/offset
+
+		if all [ctx <> null h/n-occupied >= h/upper-bound][			;-- update the hash table
+			i: either h/n-buckets > (h/size << 1) [-1][1]
+			kk: h/n-buckets + i
+			resize node kk << 4
+		]
+
+		s: as series! h/keys/value
+		keys: as int-ptr! s/offset
+		s: as series! h/flags/value
+		flags: as int-ptr! s/offset
+		s: as series! h/blk/value
+		blk: as red-word! s/offset
+
+		hash: symbol/resolve key
+		kk: either case? [hash][key]
+		mask: h/n-buckets - 1
+		i: hash and mask
+		_HT_CAL_FLAG_INDEX(i ii sh)
+		i: i + 1
+		last: i
+		step: 0
+		while [_BUCKET_IS_NOT_EMPTY(flags ii sh)][ 
+			k: blk + keys/i
+			sym: either case? [symbol/resolve k/symbol][k/symbol]
+			either kk <> sym [
+				i: i + step and mask
+				_HT_CAL_FLAG_INDEX(i ii sh)
+				i: i + 1
+				step: step + 1
+				if i = last [assert 0 = 1 break]		;-- should not happen
+			][break]
+		]
+
+		either ctx <> null [
+			either _BUCKET_IS_EMPTY(flags ii sh) [
+				_BUCKET_SET_BOTH_FALSE(flags ii sh)
+				h/size: h/size + 1
+				h/n-occupied: h/n-occupied + 1
+				ii: (as-integer s/tail - s/offset) >> 4	;-- index is zero-base
+				keys/i: ii
+
+				k: as red-word! alloc-tail s
+				k/header: TYPE_WORD						;-- force word! type
+				k/index: ii
+				k/ctx: ctx
+				k/symbol: key
+				new-id/value: ii
+				-1
+			][new-id/value: keys/i keys/i]
+		][
+			either _BUCKET_IS_EMPTY(flags ii sh) [-1][keys/i]
+		]
+	]
+
+	get-ctx-word: func [
+		ctx		[red-context!]
+		idx		[integer!]				;-- word index
+		return:	[red-word!]
+		/local
+			s	[series!]
+			h	[hashtable!]
+	][
+		s: as series! ctx/symbols/value
+		h: as hashtable! s/offset
+		s: as series! h/blk/value 
+		as red-word! s/offset + idx
+	]
+
+	get-ctx-words: func [
+		ctx		[red-context!]
+		return:	[series!]
+		/local
+			s	[series!]
+			h	[hashtable!]
+	][
+		s: as series! ctx/symbols/value
+		h: as hashtable! s/offset
+		as series! h/blk/value 
+	]
+
+	get-ctx-symbols: func [
+		ctx		[red-context!]
+		return:	[node!]
+		/local
+			s	[series!]
+			h	[hashtable!]
+	][
+		s: as series! ctx/symbols/value
+		h: as hashtable! s/offset
+		h/blk
 	]
 ]

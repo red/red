@@ -162,20 +162,14 @@ redbin: context [
 			s/tail: s/offset + slots
 		]
 
-		symbols: ctx/symbols
 		data: data + 2
 		i: 0
 
 		while [slots > 0][
 			sym: table + data/1
 			;-- create the words entries in the symbol table of the context
-			slot: 		 as red-word! alloc-tail as series! symbols/value
-			slot/header: TYPE_WORD
-			slot/ctx: 	 new
-			slot/symbol: sym/1
-			slot/index:  i
+			_context/find-or-store ctx sym/1 yes new :i
 			
-			i: i + 1
 			data: data + 1
 			slots: slots - 1
 		]

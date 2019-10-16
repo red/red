@@ -152,7 +152,7 @@ ownership: context [
 					tail:  s/tail
 					cycles/push ctx/values
 					
-					s: as series! ctx/symbols/value
+					s: _hashtable/get-ctx-words ctx
 					word: as red-word! s/offset
 					
 					while [value < tail][
