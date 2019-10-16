@@ -280,7 +280,7 @@ lexer: context [
 		]
 	]
 	
-	scan-escaped-char: func [s [byte-ptr!] e [byte-ptr!] return: [integer!]
+	scan-escaped-char: func [s [byte-ptr!] e [byte-ptr!] cp [int-ptr!] return: [byte-ptr!]
 		/local
 			p	  [byte-ptr!]
 			src	  [byte-ptr!]
@@ -293,7 +293,7 @@ lexer: context [
 			class [integer!]
 			skip  [integer!]
 			res	  [integer!]
-			cp	  [byte!]
+			cb	  [byte!]
 			bit	  [byte!]
 	][
 		either s/1 = #"(" [							;-- note: #"^(" not allowed
@@ -303,28 +303,29 @@ lexer: context [
 			either char-names-1st/pos and bit = null-byte [ ;-- hex escaped char
 				p: s + 1
 				c: 0
-				cp: as byte! 0
+				cb: as byte! 0
 				pow: 0
 				while [any [p/1 <> #")" p < e]][
 					if p/1 <> #"0" [
 						index: 1 + as-integer p/1
 						class: lex-classes/index
 						switch class [
-							C_DIGIT  [cp: p/1 - #"0"]
-							C_ALPHAX [cp: either p/1 < #"a" [p/1 - #"a"][p/1 - #"A"] cp: cp + 10]
+							C_DIGIT  [cb: p/1 - #"0"]
+							C_ALPHAX [cb: either p/1 < #"a" [p/1 - #"a"][p/1 - #"A"] cb: cb + 10]
 							default  [throw LEX_ERROR]
 						]
-						c: c + ((as-integer cp) << pow)
+						c: c + ((as-integer cb) << pow)
 					]
 					pow: pow + 4
 					p: p + 1
 				]
 				if any [p = e p/1 <> #")"][throw LEX_ERROR]
+				p: p + 1							;-- skip )
 			][										;-- named escaped char
-				cp: s/2
-				if cp < #"a" [cp: cp or #"^(20)"]
+				cb: s/2
+				if cb < #"a" [cb: cb or #"^(20)"]
 				src: s + 2
-				word: switch cp [
+				word: switch cb [
 					#"n" [c: 00h skip: 4 "ull"]
 					#"b" [c: 08h skip: 4 "ack"]
 					#"t" [c: 09h skip: 3 "ab" ]
@@ -336,13 +337,13 @@ lexer: context [
 				]
 				res: platform/strnicmp src as byte-ptr! word skip - 1
 				if any [res <> 0 src/skip <> #")"][throw LEX_ERROR]
+				p: src + skip
 			]
-			c
 		][
 			c: as-integer s/1
 			pos: c >>> 3 + 1
 			bit: as-byte 1 << (c and 7)
-			either char-special/pos and bit = null-byte [ ;-- "regular" escaped char
+			c: either char-special/pos and bit = null-byte [ ;-- "regular" escaped char
 				if any [s/1 < #"^(40)" #"^(5F)" < s/1][throw LEX_ERROR]
 				as-integer s/1 - #"@"
 			][										;-- escaped special char
@@ -357,7 +358,10 @@ lexer: context [
 					default [assert false]
 				]
 			]
+			p: s + 1
 		]
+		cp/value: c
+		p
 	]
 
 	scan-eof: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
@@ -422,10 +426,14 @@ lexer: context [
 			str  [red-string!]
 			ser	 [series!]
 			p	 [byte-ptr!]
+			pos	 [byte-ptr!]
 			p4	 [int-ptr!]
 			len	 [integer!]
 			unit [integer!]
+			index[integer!]
+			class[integer!]
 			cp	 [integer!]
+			w?	 [logic!]
 			c	 [byte!]
 	][
 		s: s + 1										;-- skip start delimiter
@@ -467,20 +475,91 @@ lexer: context [
 		][												;-- with escape sequence(s)
 			;search the first UCS-2 or UCS-4 codepoint => unit
 			;if UCS-2 string and UCS-4 char found => upgrade
+			if unit < UCS-4 [
+				p: s
+				while [p < e][
+					if p/1 = #"^^" [
+						p: p + 1
+						if all [p < e p/1 = #"("][
+							p: p + 1
+							pos: p
+							w?: no
+							while [all [p < e p/1 <> #")"]][
+								index: 1 + p/1
+								class: lex-classes/index
+								switch class [
+									C_DIGIT C_ZERO C_ALPHAX [0]
+									default [w?: yes]
+								]
+								p: p + 1
+							]
+							unless w? [
+								len: as-integer p - pos
+								if unit = UCS-1 [
+									if len > 2 [
+										ser: unicode/Latin1-to-UCS2 ser
+										unit: UCS-2
+									]
+									if len > 4 [
+										ser: unicode/Latin1-to-UCS4 ser
+										unit: UCS-4
+									]
+								]
+								if all [unit = UCS-2 len > 4][
+									ser: unicode/UCS2-to-UCS4 ser
+									unit: UCS-4
+								]
+							]
+						]
+					]
+					p: p + 1
+				]
+			]
+			
 			switch unit [
 				UCS-1 [
 					p: as byte-ptr! ser/offset
 					while [s < e][
-						c: s/1
-						if c = #"^^" [c: as-byte scan-escaped-char s e]
-						p/value: c
-					][
-						0
+						either s/1 = #"^^" [
+							s: scan-escaped-char s e :cp
+							p/value: as-byte cp
+						][
+							p/value: s/1
+							s: s + 1
+						]
+					]
+				]
+				UCS-2 [
+					cp: 0
+					p: as byte-ptr! ser/offset
+					while [s < e][
+						s: either s/1 = #"^^" [
+							scan-escaped-char s e :cp
+						][
+							decode-utf8-char s :cp
+						]
+						if cp = -1 [throw LEX_ERROR]
+						p/1: as-byte cp and FFh
+						p/2: as-byte cp >> 8
+						p: p + 2
+					]
+				]
+				UCS-4 [
+					cp: 0
+					p4: as int-ptr! ser/offset
+					while [s < e][
+						s: either s/1 = #"^^" [
+							scan-escaped-char s e :cp
+						][
+							decode-utf8-char s :cp
+						]
+						if cp = -1 [throw LEX_ERROR]
+						p4/value: cp
+						p4: p4 + 1
 					]
 				]
 			]
 		]
-		
 		state/in-pos: e + 1								;-- skip ending delimiter
 		state/in-len: state/in-len - 1
 	]
@@ -504,7 +583,7 @@ lexer: context [
 				true	   [throw LEX_ERROR]
 			]
 		]
-		if flags and C_FLAG_QUOTE <> 0 [
+		if flags and C_FLAG_QUOTE <> 0 [			;@@ remove this check?
 			if s/1 = #"'" [s: s + 1 type: TYPE_LIT_WORD]
 		]
 		cell: alloc-slot state
@@ -539,11 +618,12 @@ lexer: context [
 		len: as-integer e - s
 		if len = 2 [throw LEX_ERROR]					;-- #""
 		
-		c: either s/3 = #"^^" [
+		either s/3 = #"^^" [
 			if len = 3 [throw LEX_ERROR]				;-- #"^"
-			scan-escaped-char s e 
+			c: -1
+			scan-escaped-char s e :c
 		][												;-- simple char
-			as-integer s/3
+			c: as-integer s/3
 		]
 		char: as red-char! alloc-slot state
 		char/header: TYPE_CHAR
