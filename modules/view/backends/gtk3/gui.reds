@@ -286,17 +286,6 @@ set-widget-child: func [
 	]
 ]
 
-set-widget-size: func [
-	widget		[handle!]
-	size		[red-pair!]
-][
-	either g_type_check_instance_is_a widget gtk_layout_get_type [
-		gtk_layout_set_size widget size/x size/y
-	][
-		gtk_widget_set_size_request widget size/x size/y
-	]
-]
-
 set-widget-offset: func [
 	parent		[handle!]
 	widget		[handle!]
@@ -965,10 +954,10 @@ change-size: func [
 		sym: symbol/resolve ntype/symbol
 		layout: get-face-layout widget values sym
 		if layout <> widget [
-			set-widget-size layout size
+			gtk_widget_set_size_request layout size/x size/y
 			gtk_widget_queue_resize layout
 		]
-		set-widget-size widget size
+		gtk_widget_set_size_request widget size/x size/y
 		gtk_widget_queue_resize widget
 	]
 ]
@@ -1721,9 +1710,11 @@ OS-make-view: func [
 		]
 		sym = base [
 			widget: gtk_layout_new null null
+			gtk_layout_set_size widget size/x size/y
 		]
 		sym = rich-text [
 			widget: gtk_layout_new null null
+			gtk_layout_set_size widget size/x size/y
 			container: gtk_scrolled_window_new null null
 			gtk_container_add container widget
 		]
@@ -1825,6 +1816,7 @@ OS-make-view: func [
 		]
 		sym = panel [
 			widget: gtk_layout_new null null
+			gtk_layout_set_size widget size/x size/y
 		]
 		sym = tab-panel [
 			widget: gtk_notebook_new
