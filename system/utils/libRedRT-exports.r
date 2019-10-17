@@ -119,7 +119,7 @@
 	red/set-word/push-local
 
 	red/_context/get
-	red/_context/clone
+	red/_context/clone-words
 	red/_context/set-integer
 
 	red/object/duplicate

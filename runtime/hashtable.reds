@@ -20,6 +20,9 @@ Red/System [
 #define HASH_TABLE_SYMBOL	2
 #define HASH_TABLE_INTEGER	3
 
+#define HASH_SYMBOL_BLOCK	1
+#define HASH_SYMBOL_CONTEXT	2
+
 #define _HT_HASH_UPPER		0.77
 
 #define _BUCKET_IS_EMPTY(flags i s)			[flags/i >> s and 2 = 2]
@@ -375,6 +378,30 @@ _hashtable: context [
 		node
 	]
 
+	copy-context: func [
+		ctx		[red-context!]
+		node	[node!]
+		return: [node!]
+		/local
+			s	[series!]
+			h	[hashtable!]
+			ss	[series!]
+			hh	[hashtable!]
+	][
+		s: as series! ctx/symbols/value
+		h: as hashtable! s/offset
+
+		ss: as series! node/value
+		hh: as hashtable! s/offset
+
+		copy-memory as byte-ptr! hh as byte-ptr! h size? hashtable!
+		hh/blk: copy-series as series! h/blk/value
+		hh/flags: copy-series as series! h/flags/value
+		hh/keys: copy-series as series! h/keys/value
+
+		node
+	]
+
 	init: func [
 		size	[integer!]
 		blk		[red-block!]
@@ -394,14 +421,18 @@ _hashtable: context [
 			skip		[integer!]
 	][
 		node: _alloc-bytes-filled size? hashtable! #"^(00)"
+		if type = HASH_TABLE_SYMBOL [
+			if null? str-buffer [str-buffer: allocate str-buffer-sz]
+			if all [vsize = HASH_SYMBOL_CONTEXT blk <> null][
+				return copy-context as red-context! blk node
+			]
+			size: size << 4
+		]
+
 		s: as series! node/value
 		h: as hashtable! s/offset
 		h/type: type
 		if type = HASH_TABLE_INTEGER [h/indexes: as node! vsize + 1 << 4]
-		if type = HASH_TABLE_SYMBOL [
-			if null? str-buffer [str-buffer: allocate str-buffer-sz]
-			size: size << 4
-		]
 
 		if size < 32 [size: 32]
 		fsize: as-float size
@@ -1080,27 +1111,6 @@ _hashtable: context [
 		hh/keys: copy-series as series! h/keys/value
 		hh/blk: blk
 		new
-	]
-
-	copy-to: func [
-		node	[red-context!]
-		dst		[red-context!]
-		return: [red-context!]
-		/local s [series!] h [hashtable!] ss [series!] hh [hashtable!] blk [node!]
-	][
-		s: as series! node/symbols/value
-		h: as hashtable! s/offset
-
-		ss: as series! dst/symbols/value
-		hh: as hashtable! ss/offset
-		blk: hh/blk
-
-		copy-memory as byte-ptr! hh as byte-ptr! h size? hashtable!
-		hh/blk: blk
-		hh/flags: copy-series as series! h/flags/value
-		hh/keys: copy-series as series! h/keys/value
-		
-		dst
 	]
 
 	clear: func [								;-- only for clear hash! datatype

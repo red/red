@@ -146,7 +146,7 @@ redbin: context [
 
 		if values? [values: data + 2 + slots]
 		
-		new: _context/create slots stack? self?
+		new: _context/create slots stack? self? null
 		obj: as red-object! ALLOC_TAIL(parent)			;-- use an object to store the ctx node
 		obj/header: TYPE_OBJECT
 		obj/ctx:	new

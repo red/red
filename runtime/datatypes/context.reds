@@ -299,7 +299,7 @@ _context: context [
 		get-in word TO_CTX(node)
 	]
 	
-	clone: func [
+	clone-words: func [		;-- clone a context. only copy words, without values
 		slot	[red-block!]
 		return: [node!]
 		/local
@@ -323,22 +323,14 @@ _context: context [
 			slots
 			ctx/header and flag-series-stk <> 0
 			ctx/header and flag-self-mask  <> 0
-		
-		_hashtable/copy-to ctx TO_CTX(new)
-		dst: _hashtable/get-ctx-words TO_CTX(new)
-		dst/tail: dst/offset + slots
-		sym: as red-word! dst/offset
-		
-		copy-memory
-			as byte-ptr! sym
-			as byte-ptr! src/offset
-			slots << 4
+			ctx
 
-		while [slots > 0][
+		sym: as red-word! _hashtable/get-ctx-word TO_CTX(new) 0
+		loop slots [
 			sym/ctx: new
 			sym: sym + 1
-			slots: slots - 1
 		]
+
 		obj/ctx: new
 		new
 	]
@@ -347,6 +339,7 @@ _context: context [
 		slots	[integer!]							;-- max number of words in the context
 		stack?	[logic!]							;-- TRUE: alloc values on stack, FALSE: alloc them from heap
 		self?	[logic!]
+		proto	[red-context!]						;-- if proto <> null, copy all the words in the proto context
 		return:	[node!]
 		/local
 			cell [red-context!]
@@ -362,7 +355,7 @@ _context: context [
 		slot: alloc-tail as series! node/value			;-- allocate a slot for obj/func back-reference
 		slot/header: TYPE_UNSET
 		cell/header: TYPE_UNSET							;-- implicit reset of all header flags	
-		symbols: _hashtable/init slots null HASH_TABLE_SYMBOL 1	;@@ create the node! on native stack, so it can be marked by GC
+		symbols: _hashtable/init slots as red-block! proto HASH_TABLE_SYMBOL HASH_SYMBOL_CONTEXT ;@@ create the node! on native stack, so it can be marked by GC
 		cell/self: node
 
 		either stack? [
@@ -393,7 +386,7 @@ _context: context [
 			type	[integer!]
 			i		[integer!]
 	][
-		new: create block/rs-length? spec stack? self?
+		new: create block/rs-length? spec stack? self? null
 		ctx: TO_CTX(new)
 		s: GET_BUFFER(spec)
 		cell: s/offset
@@ -482,22 +475,6 @@ _context: context [
 		]
 		cycles/pop
 		body
-	]
-	
-	set-context-each: func [
-		s	 [series!]
-		node [node!]
-		/local
-			p	 [red-word!]
-			tail [red-word!]
-	][
-		p:	  as red-word! s/offset 
-		tail: as red-word! s/tail
-
-		while [p < tail][
-			p/ctx: node
-			p: p + 1
-		]
 	]
 	
 	collect-set-words: func [

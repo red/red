@@ -846,7 +846,7 @@ object: context [
 			s [series!]
 	][
 		obj/header: TYPE_UNSET
-		obj/ctx:	_context/create slots no yes
+		obj/ctx:	_context/create slots no yes null
 		obj/class:	0
 		obj/on-set: null
 		obj/header: TYPE_OBJECT
@@ -1282,6 +1282,8 @@ object: context [
 			size  [integer!]
 			slots [integer!]
 			type  [integer!]
+			sym	  [red-word!]
+			w-ctx [node!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/copy"]]
 		
@@ -1298,24 +1300,24 @@ object: context [
 		
 		copy-cell as cell! obj as cell! new
 		new/header: TYPE_UNSET
-		new/ctx: _context/create slots no yes
+		new/ctx: _context/create slots no yes ctx
 		new/class: obj/class
 		new/header: TYPE_OBJECT
-		nctx: GET_CTX(new)
 
+		nctx: GET_CTX(new)
 		copy-cell as red-value! new as red-value! nctx + 1	;-- set back-reference
 
 		node: save-self-object new
 		
 		if size <= 0 [return new]						;-- empty object!
-		
+
 		;-- process SYMBOLS
-		_hashtable/copy-to ctx nctx
-		src: _hashtable/get-ctx-words ctx
-		dst: _hashtable/get-ctx-words nctx
-		copy-memory as byte-ptr! dst/offset as byte-ptr! src/offset size
-		dst/tail: dst/offset + slots
-		_context/set-context-each dst new/ctx
+		sym: _hashtable/get-ctx-word nctx 0
+		w-ctx: new/ctx
+		loop slots [
+			sym/ctx: w-ctx
+			sym: sym + 1
+		]
 
 		;-- process VALUES
 		src: as series! ctx/values/value
