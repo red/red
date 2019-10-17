@@ -1083,15 +1083,15 @@ _hashtable: context [
 	]
 
 	copy-to: func [
-		node	[node!]
-		dst		[node!]
-		return: [node!]
+		node	[red-context!]
+		dst		[red-context!]
+		return: [red-context!]
 		/local s [series!] h [hashtable!] ss [series!] hh [hashtable!] blk [node!]
 	][
-		s: as series! node/value
+		s: as series! node/symbols/value
 		h: as hashtable! s/offset
 
-		ss: as series! dst/value
+		ss: as series! dst/symbols/value
 		hh: as hashtable! ss/offset
 		blk: hh/blk
 

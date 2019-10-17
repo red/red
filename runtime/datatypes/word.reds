@@ -283,9 +283,12 @@ word: context [
 		/local
 			s	[series!]
 			str [red-string!]
+			sym [red-value!]
 	][
 		s: GET_BUFFER(symbols)
-		str: as red-string! stack/push s/offset + w/symbol - 1
+		sym: s/offset + w/symbol - 1
+		symbol/make-red-string as red-symbol! sym
+		str: as red-string! stack/push sym
 		str/header: TYPE_STRING
 		str/head: 0
 		str/cache: null
@@ -299,11 +302,13 @@ word: context [
 			buf	[series!]
 			s   [c-string!]
 			cp  [integer!]
+			n	[integer!]
 			c   [byte!]
 	][
+		n: 0
 		sym: symbol/get w/symbol
-		buf: as series! sym/node/value
-		cp: string/get-char as byte-ptr! buf/offset GET_UNIT(buf)
+		buf: as series! sym/cache/value
+		cp: unicode/decode-utf8-char as c-string! buf/offset :n
 		if cp > 127 [exit]
 		c: as-byte cp
 		

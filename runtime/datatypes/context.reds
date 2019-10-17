@@ -324,8 +324,8 @@ _context: context [
 			ctx/header and flag-series-stk <> 0
 			ctx/header and flag-self-mask  <> 0
 		
-		ctx: TO_CTX(new)
-		dst: _hashtable/get-ctx-words ctx
+		_hashtable/copy-to ctx TO_CTX(new)
+		dst: _hashtable/get-ctx-words TO_CTX(new)
 		dst/tail: dst/offset + slots
 		sym: as red-word! dst/offset
 		

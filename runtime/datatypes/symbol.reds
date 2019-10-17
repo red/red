@@ -56,11 +56,11 @@ symbol: context [
 		len		[integer!]		;-- -1: use the whole string
 		return:	[integer!]
 		/local
-			sym	[red-symbol!]
-			id	[integer!]
+			s	[c-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "symbol/make-alt"]]
-		1
+		s: unicode/to-utf8 str :len
+		make-alt-utf8 as byte-ptr! s len
 	]
 
 	make-alt-utf8: func [
@@ -85,9 +85,12 @@ symbol: context [
 		return:	[red-symbol!]
 		/local
 			s	[series!]
+			sym [red-symbol!]
 	][
 		s: GET_BUFFER(symbols)
-		as red-symbol! s/offset + id - 1
+		sym: as red-symbol! s/offset + id - 1
+		make-red-string sym
+		sym
 	]
 	
 	resolve: func [

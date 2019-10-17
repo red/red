@@ -1310,7 +1310,7 @@ object: context [
 		if size <= 0 [return new]						;-- empty object!
 		
 		;-- process SYMBOLS
-		_hashtable/copy-to ctx/symbols nctx/symbols
+		_hashtable/copy-to ctx nctx
 		src: _hashtable/get-ctx-words ctx
 		dst: _hashtable/get-ctx-words nctx
 		copy-memory as byte-ptr! dst/offset as byte-ptr! src/offset size
