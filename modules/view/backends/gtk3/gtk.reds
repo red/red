@@ -1163,6 +1163,9 @@ GPtrArray!: alias struct! [
 			type		[integer!]
 			return:		[handle!]
 		]
+		gtk_window_activate_focus: "gtk_window_activate_focus" [
+			window		[handle!]
+		]
 		gtk_window_set_title: "gtk_window_set_title" [
 			window		[handle!]
 			title		[c-string!]
@@ -1234,27 +1237,31 @@ GPtrArray!: alias struct! [
 			event		[handle!]
 		]
 		gtk_window_get_focus: "gtk_window_get_focus" [
-			window 		[handle!]
-			return: 	[handle!]
+			window		[handle!]
+			return:		[handle!]
 		]
 		gtk_window_set_focus: "gtk_window_set_focus" [
-			window 		[handle!]
-			widget	 	[handle!]
+			window		[handle!]
+			widget		[handle!]
 		]
 		gtk_window_get_default_widget: "gtk_window_get_default_widget" [
-			window 		[handle!]
-			return:	 	[handle!]
+			window		[handle!]
+			return:		[handle!]
 		]
 		gtk_window_set_default: "gtk_window_set_default" [
-			window 			[handle!]
-			default_widget	[handle!]
+			window		[handle!]
+			default		[handle!]
+		]
+		gtk_window_set_keep_above: "gtk_window_set_keep_above" [
+			window		[handle!]
+			setting		[logic!]
 		]
 		gtk_offscreen_window_new: "gtk_offscreen_window_new" [
 			return:		[handle!]
 		]
 		gtk_offscreen_window_get_pixbuf: "gtk_offscreen_window_get_pixbuf" [
-			window 			[handle!]
-			return: 	[handle!]
+			window		[handle!]
+			return:		[handle!]
 		]
 		gtk_propagate_event: "gtk_propagate_event" [
 			widget		[handle!]
@@ -1279,7 +1286,7 @@ GPtrArray!: alias struct! [
 		gtk_widget_event: "gtk_widget_event" [
 			widget		[handle!]
 			event		[handle!]
-			return: 	[logic!]
+			return:		[logic!]
 		]
 		gtk_widget_queue_draw: "gtk_widget_queue_draw" [
 			widget		[handle!]

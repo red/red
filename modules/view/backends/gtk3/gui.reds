@@ -336,6 +336,24 @@ set-widget-child-offset: func [
 	]
 ]
 
+show-widget: func [
+	widget		[handle!]
+	/local
+		values	[red-value!]
+		type	[red-word!]
+		sym		[integer!]
+		layout	[handle!]
+][
+	values: get-face-values widget
+	type: as red-word! values + FACE_OBJ_TYPE
+	sym: symbol/resolve type/symbol
+	layout: get-face-layout widget values sym
+	if layout <> widget [
+		gtk_widget_show layout
+	]
+	gtk_widget_show widget
+]
+
 set-view-no-wait: func [
 	window		[handle!]
 	key			[logic!]
@@ -1606,28 +1624,15 @@ OS-refresh-window: func [
 ][
 	if widget <> 0 [								;-- view engine should make sure a valid handle, but it not
 		gtk_widget_queue_draw as handle! widget
-		OS-show-window widget
 	]
 ]
 
 OS-show-window: func [
 	widget		[integer!]
-	/local
-		handle	[handle!]
-		values	[red-value!]
-		type	[red-word!]
-		sym		[integer!]
-		layout	[handle!]
 ][
-	handle: as handle! widget
-	values: get-face-values handle
-	type: as red-word! values + FACE_OBJ_TYPE
-	sym: symbol/resolve type/symbol
-	layout: get-face-layout handle values sym
-	if layout <> handle [
-		gtk_widget_show layout
-	]
-	gtk_widget_show handle
+	show-widget as handle! widget
+	set-selected-focus as handle! widget
+	gtk_window_set_keep_above as handle! widget true
 ]
 
 OS-make-view: func [
