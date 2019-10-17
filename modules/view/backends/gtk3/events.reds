@@ -626,17 +626,19 @@ connect-notify-events: function [
 
 connect-widget-events: function [
 	widget		[handle!]
+	values		[red-value!]
 	sym			[integer!]
-	evbox		[handle!]
 	/local
+		evbox	[handle!]
 		buffer	[handle!]
 ][
+	evbox: get-face-evbox widget values sym
 	;; register red mouse, key event functions
-	either sym = text [
-		connect-common-events evbox widget
-	][
-		connect-common-events widget widget
-	]
+	connect-common-events evbox widget
+	connect-notify-events evbox widget
+
+	gtk_widget_set_can_focus widget yes
+	gtk_widget_set_focus_on_click widget yes
 
 	case [
 		sym = check [
@@ -655,13 +657,9 @@ connect-widget-events: function [
 		]
 		sym = base [
 			gobj_signal_connect(widget "draw" :base-draw widget)
-			gtk_widget_set_can_focus widget yes
-			gtk_widget_set_focus_on_click widget yes
 		]
 		sym = rich-text [
 			gobj_signal_connect(widget "draw" :base-draw widget)
-			gtk_widget_set_can_focus widget yes
-			gtk_widget_set_focus_on_click widget yes
 			gtk_widget_grab_focus widget
 			connect-focus-events widget widget
 		]
@@ -681,8 +679,6 @@ connect-widget-events: function [
 		sym = text [0]
 		sym = field [
 			gobj_signal_connect(widget "changed" :field-changed widget)
-			gtk_widget_set_can_focus widget yes
-			gtk_widget_set_focus_on_click widget yes
 			gtk_widget_grab_focus widget
 			connect-focus-events widget widget
 		]
@@ -698,8 +694,6 @@ connect-widget-events: function [
 			g_object_set [widget "populate-all" yes widget]
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add area populate-popup" lf]]
 			gobj_signal_connect(widget "populate-popup" :area-populate-popup widget)
-			gtk_widget_set_can_focus widget yes
-			gtk_widget_set_focus_on_click widget yes
 			gtk_widget_grab_focus widget
 			connect-focus-events widget widget
 		]
@@ -708,8 +702,6 @@ connect-widget-events: function [
 		]
 		sym = panel [
 			gobj_signal_connect(widget "draw" :base-draw widget)
-			gtk_widget_set_can_focus widget yes
-			gtk_widget_set_focus_on_click widget yes
 		]
 		sym = tab-panel [
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add tab-panel switch-page " lf]]
@@ -729,10 +721,5 @@ connect-widget-events: function [
 			gobj_signal_connect(widget "changed" :combo-selection-changed widget)
 		]
 		true [0]
-	]
-	either sym = text [
-		connect-notify-events evbox widget
-	][
-		connect-notify-events widget widget
 	]
 ]

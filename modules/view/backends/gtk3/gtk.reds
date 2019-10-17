@@ -621,6 +621,11 @@ GPtrArray!: alias struct! [
 			len 		[integer!]
 			return:		[c-string!]
 		]
+		g_type_check_instance_is_a: "g_type_check_instance_is_a" [
+			handle		[handle!]
+			gtype		[integer!]
+			return:		[logic!]
+		]
 	;; ]
 	;; LIBGDK-file cdecl [
 		gdk_screen_width: "gdk_screen_width" [
@@ -813,8 +818,8 @@ GPtrArray!: alias struct! [
 		]
 		g_strsplit: "g_strsplit" [
 			str 		[c-string!]
-      delim		[c-string!]
-      tokens	[integer!]
+			delim		[c-string!]
+			tokens	[integer!]
 			return:	[handle!]
 		]
 		g_strsplit_set: "g_strsplit_set" [
@@ -1503,53 +1508,56 @@ GPtrArray!: alias struct! [
 			return:		[handle!]
 		]
 		gtk_box_pack_start: "gtk_box_pack_start" [
-			box				[handle!]
+			box			[handle!]
 			widget		[handle!]
 			expand		[logic!]
-			fill			[logic!]
+			fill		[logic!]
 			padding		[integer!]
 		]
 		gtk_fixed_new: "gtk_fixed_new" [
 			return:		[handle!]
 		]
 		gtk_fixed_put: "gtk_fixed_put" [
-			fixed			[handle!]
+			fixed		[handle!]
 			widget		[handle!]
-			x					[integer!]
-			y					[integer!]
+			x				[integer!]
+			y				[integer!]
 		]
 		gtk_fixed_move: "gtk_fixed_move" [
-			fixed			[handle!]
+			fixed		[handle!]
 			widget		[handle!]
-			x					[integer!]
-			y					[integer!]
+			x			[integer!]
+			y			[integer!]
+		]
+		gtk_layout_get_type: "gtk_layout_get_type" [
+			return:		[integer!]
 		]
 		gtk_layout_new: "gtk_layout_new" [
-			hadj			[handle!]
-			vadj			[handle!]
+			hadj		[handle!]
+			vadj		[handle!]
 			return:		[handle!]
 		]
 		gtk_layout_put: "gtk_layout_put" [
 			layout		[handle!]
 			widget		[handle!]
-			x					[integer!]
-			y					[integer!]
+			x			[integer!]
+			y			[integer!]
 		]
 		gtk_layout_move: "gtk_layout_move" [
 			layout		[handle!]
 			widget		[handle!]
-			x					[integer!]
-			y					[integer!]
+			x			[integer!]
+			y			[integer!]
 		]
 		gtk_layout_set_size: "gtk_layout_set_size" [
 			layout		[handle!]
-			w					[integer!]
-			h					[integer!]
+			w			[integer!]
+			h			[integer!]
 		]
 		gtk_layout_get_size: "gtk_layout_get_size" [
 			layout		[handle!]
-			w					[int-ptr!]
-			h					[int-ptr!]
+			w			[int-ptr!]
+			h			[int-ptr!]
 		]
 		gtk_layout_get_bin_window: "gtk_layout_get_bin_window" [
 			layout		[handle!]
