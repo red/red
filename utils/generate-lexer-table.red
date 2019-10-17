@@ -61,27 +61,26 @@ context [
 		T_PAR_OP						;-- 46
 		T_PAR_CL						;-- 47
 		T_STRING						;-- 48
-		T_STR_ALT						;-- 49
-		T_WORD							;-- 50
-		T_FILE							;-- 51
-		T_REFINE						;-- 52
-		T_BINARY						;-- 53
-		T_CHAR							;-- 54
-		T_MAP_OP						;-- 55
-		T_CONS_MK						;-- 56
-		T_ISSUE							;-- 57
-		T_PERCENT						;-- 58
-		T_INTEGER						;-- 59
-		T_FLOAT							;-- 60
-		T_TUPLE							;-- 61
-		T_DATE							;-- 62
-		T_PAIR							;-- 63
-		T_TIME							;-- 64
-		T_MONEY							;-- 65
-		T_TAG							;-- 66
-		T_URL							;-- 67
-		T_EMAIL							;-- 68
-		T_PATH							;-- 69
+		T_WORD							;-- 49
+		T_FILE							;-- 50
+		T_REFINE						;-- 51
+		T_BINARY						;-- 52
+		T_CHAR							;-- 53
+		T_MAP_OP						;-- 54
+		T_CONS_MK						;-- 55
+		T_ISSUE							;-- 56
+		T_PERCENT						;-- 57
+		T_INTEGER						;-- 58
+		T_FLOAT							;-- 59
+		T_TUPLE							;-- 60
+		T_DATE							;-- 61
+		T_PAIR							;-- 62
+		T_TIME							;-- 63
+		T_MONEY							;-- 64
+		T_TAG							;-- 65
+		T_URL							;-- 66
+		T_EMAIL							;-- 67
+		T_PATH							;-- 68
 	]
 
 	CSV-table: %../docs/lexer/lexer-FSM.csv

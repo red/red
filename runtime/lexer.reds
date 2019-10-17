@@ -562,12 +562,6 @@ lexer: context [
 		state/in-pos: e + 1								;-- skip ending delimiter
 	]
 	
-	scan-string-multi: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
-	;	/local
-	][
-		null
-	]
-	
 	scan-word: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
 			cell [cell!]
@@ -822,7 +816,6 @@ lexer: context [
 		:scan-block-open								;-- T_PAR_OP
 		:scan-block-close								;-- T_PAR_CL
 		:scan-string									;-- T_STRING
-		:scan-string-multi								;-- T_STR_ALT
 		:scan-word										;-- T_WORD
 		:scan-file										;-- T_FILE
 		:scan-ref-issue									;-- T_REFINE

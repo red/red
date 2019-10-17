@@ -48,7 +48,6 @@ T_BLK_CL
 T_PAR_OP
 T_PAR_CL
 T_STRING
-T_STR_ALT
 T_WORD
 T_FILE
 T_REFINE
@@ -147,7 +146,7 @@ S_START->dbl-quote->S_LINE_STR->not("^"|dbl-quote)->S_LINE_STR
 
 S_START->"{"->S_M_STRING->not("^"|"}")->S_M_STRING
                \->"^"->S_SKIP_MSTR->*->S_M_STRING
-                \->"}"->T_STR_ALT
+                \->"}"->T_STRING
 
 S_START->"/"->S_SLASH->not(delimit1)->S_SLASH
                \->delimit1->T_REFINE
