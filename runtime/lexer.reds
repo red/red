@@ -68,6 +68,23 @@ lexer: context [
 		C_EOF											;-- 32
 	]
 	
+	#enum bin16-char-classes! [
+		C_BIN_SKIP										;-- 0
+		C_BIN_BLANK										;-- 1
+		C_BIN_LINE										;-- 2
+		C_BIN_HEXA										;-- 3
+		C_BIN_CMT										;-- 4
+	]
+	
+	#enum bin16-states! [
+		S_BIN_START										;-- 0
+		S_BIN_1ST										;-- 1
+		S_BIN_CMT										;-- 2
+		S_BIN_FINAL_STATES								;-- 3
+		T_BIN_BYTE										;-- 4
+		T_BIN_ERROR										;-- 5
+	]
+	
 	line-table: #{
 		000100000000000000000000000000000000000000000000000000000000000000
 	}
@@ -76,6 +93,34 @@ lexer: context [
 		0101000000000000000000000000000000000000000000000000000000000000
 		0000000000000000000000000000000000000000000000000000000000000000
 		00000000000000
+	}
+	
+	bin16-classes: #{
+		0000000000000000000102000001000000000000000000000000000000000000
+		0100000000000000000000000000000003030303030303030303000400000000
+		0003030303030300000000000000000000000000000000000000000000000000
+		0003030303030300000000000000000000000000000000000000000000000000
+		0000000000000000000000000000000000000000000000000000000000000000
+		0000000000000000000000000000000000000000000000000000000000000000
+		0000000000000000000000000000000000000000000000000000000000000000
+		0000000000000000000000000000000000000000000000000000000000000000
+	}
+	
+	bin16-FSM: #{
+		0000000102
+		0505050405
+		0202000202
+	}
+	
+	hexa-table: #{
+		0000000000000000000000000000000000000000000000000000000000000000
+		0000000000000000000000000000000000010203040506070809000000000000
+		000A0B0C0D0E0F00000000000000000000000000000000000000000000000000
+		000A0B0C0D0E0F00000000000000000000000000000000000000000000000000
+		0000000000000000000000000000000000000000000000000000000000000000
+		0000000000000000000000000000000000000000000000000000000000000000
+		0000000000000000000000000000000000000000000000000000000000000000
+		0000000000000000000000000000000000000000000000000000000000000000
 	}
 	
 	;-- Bit-array for BDELNPTbdelnpt
@@ -309,6 +354,7 @@ lexer: context [
 						class: lex-classes/index
 						switch class [
 							C_DIGIT  [cb: p/1 - #"0"]
+							C_EXP
 							C_ALPHAX [cb: either p/1 < #"a" [p/1 - #"a"][p/1 - #"A"] cb: cb + 10]
 							default  [throw LEX_ERROR]
 						]
@@ -483,7 +529,7 @@ lexer: context [
 								index: 1 + as-integer p/1
 								class: lex-classes/index
 								switch class [
-									C_DIGIT C_ZERO C_ALPHAX [0]
+									C_DIGIT C_ZERO C_ALPHAX C_EXP [0]
 									default [w?: yes]	;-- early exit if not an hex value
 								]
 								p: p + 1
@@ -592,9 +638,73 @@ lexer: context [
 	]
 
 	scan-binary: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
-	;	/local
+		/local
+			bin	   [red-binary!]
+			p	   [byte-ptr!]
+			pos	   [byte-ptr!]
+			ser	   [series!]
+			c	   [integer!]
+			len    [integer!]
+			size   [integer!]
+			base   [integer!]
+			index  [integer!]
+			class  [integer!]
+			fstate [integer!]
 	][
-		null
+		either s/1 = #"#" [base: 16][					;-- default base
+			base: 0
+			while [s/1 <> #"#"][						;-- decode head base value
+				base: base * 10 + as-integer s/1 - #"0"
+				s: s + 1
+			]
+		]
+		assert s/2 = #"{"
+		s: s + 2										;-- skip #{
+		len: as-integer e - s
+		
+		size: switch base [								;-- precalc required buffer size in bytes
+			16 [len / 2]
+			64 [len + 3 * 3 / 4]
+			2  [len / 8]
+			default [throw LEX_ERROR 0]
+		]
+		bin: binary/make-at alloc-slot state size
+		ser: GET_BUFFER(bin)
+		p: as byte-ptr! ser/offset
+	
+		switch base [
+			16 [
+				while [s < e][
+					fstate: S_BIN_START
+					pos: s
+					until [								;-- scans 2 hex characters, skip the rest
+						index: 1 + as-integer s/1
+						class: as-integer bin16-classes/index
+						s: s + 1
+						index: fstate * 5 + class + 1
+						fstate: as-integer bin16-FSM/index
+						any [fstate - S_BIN_FINAL_STATES > 0 s >= e]
+					]
+					if fstate = T_BIN_ERROR [throw LEX_ERROR]
+					index: 1 + as-integer pos/1			;-- converts the 2 hex chars using tables
+					c: as-integer hexa-table/index
+					index: 1 + as-integer pos/2
+					p/value: as byte! c << 4 or as-integer hexa-table/index
+					p: p + 1
+				]
+				ser/tail: as cell! p
+			]
+			64 [
+				0
+			]
+			2 [
+				0
+			]
+			default [assert false 0]
+		]
+		assert (as byte-ptr! ser/offset) + ser/size > as byte-ptr! ser/tail
+		
+		state/in-pos: e + 1								;-- skip ending delimiter
 	]
 	
 	scan-char: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]

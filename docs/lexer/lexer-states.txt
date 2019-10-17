@@ -1,4 +1,7 @@
 
+=== Lexical Scanner FSM
+
+
 S_START
 S_LINE_CMT
 S_LINE_STR
@@ -261,3 +264,34 @@ S_START->not(delimit6)->S_WORD->not(delimit5)->S_WORD
                                   \->"$"->S_MONEY
                                    \->","|"#"|"%"->T_ERROR
                                    
+
+
+=== Binary16 FSM
+
+
+S_BIN_START										;-- 0
+S_BIN_1ST										;-- 1
+S_BIN_CMT										;-- 2
+S_BIN_FINAL_STATES								;-- 3
+T_BIN_BYTE										;-- 4
+T_BIN_ERROR										;-- 5
+
+
+C_BIN_SKIP	 : all the rest						;-- 0
+C_BIN_BLANK	 : space, tab, cr					;-- 1
+C_BIN_LINE	 : lf								;-- 2
+C_BIN_HEXA	 : 0-9, a-f, A-F					;-- 3
+C_BIN_CMT	 : ;								;-- 4
+
+
+hexa: 0-9, a-f, A-F
+blan: space, tab, cr
+
+
+S_BIN_START->hexa->S_BIN_1ST->hexa->T_BIN_BYTE
+     \                  \->not(hexa)->T_BIN_ERROR
+      \
+       \->blank->S_BIN_START
+        \
+         \->;->S_BIN_CMT->lf->S_BIN_START
+                    \->not(lf)->S_BIN_CMT
