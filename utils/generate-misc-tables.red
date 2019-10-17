@@ -1,5 +1,5 @@
 Red [
-	Title:   "Red runtime lexer"
+	Title:   "Binary tables and bit-arrays generator for the lexer"
 	Author:  "Nenad Rakocevic"
 	File: 	 %generate-misc-tables.red
 	Tabs:	 4
@@ -10,7 +10,6 @@ Red [
 	}
 ]
 
-
 gen-bitarray: function [list][
 	append/dup out: make binary! 32 null 32
 
@@ -19,7 +18,8 @@ gen-bitarray: function [list][
 		bit: 1 << ((to-integer c) // 8)
 		out/:pos: out/:pos or bit
 	]
-	?? out
+	print ["--gen-bitarray-- for" mold list]
+	probe out
 ]
 
 bin-classes: [
@@ -68,7 +68,7 @@ gen-hexa-table: function [][
 	probe out
 ]
 
-gen-bitarray probe "BDELNPTbdelnpt"
-gen-bitarray probe {/-~^^{}"}
+gen-bitarray "BDELNPTbdelnpt"
+gen-bitarray {/-~^^{}"}
 gen-bin16-table
 gen-hexa-table
