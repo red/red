@@ -41,7 +41,6 @@ exit-loop:		0
 ;;;close-window?:	no
 ;;;win-array:		declare red-vector!
 win-cnt:		0
-AppMainMenu:	as handle! 0
 
 ;; Identifiers for qdata
 red-face-id1:		g_quark_from_string "red-face-id1"
@@ -1739,13 +1738,11 @@ OS-make-view: func [
 
 			winbox: gtk_box_new GTK_ORIENTATION_VERTICAL  0
 			gtk_container_add widget winbox
-			if all [						;@@ application menu ?
-				null? AppMainMenu
-				menu-bar? menu window
-			][
-				AppMainMenu: gtk_menu_bar_new
-				build-menu menu AppMainMenu widget
-				gtk_box_pack_start winbox  AppMainMenu no yes 0
+			if menu-bar? menu window [
+				hMenu: gtk_menu_bar_new
+				gtk_widget_show hMenu
+				build-menu menu hMenu widget
+				gtk_box_pack_start winbox hMenu no yes 0
 			]
 			gtk_widget_show winbox
 			container: gtk_layout_new null null
