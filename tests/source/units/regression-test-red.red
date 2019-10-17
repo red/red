@@ -1392,7 +1392,7 @@ Red [
 		e1116: try [sin1116]
 		--assert true? all [
 			error? e1116
-			not equal? '<anon> e1116/arg3
+			not equal? "<anon>" mold e1116/arg3
 		]
 
 	--test-- "#1119"
