@@ -392,7 +392,7 @@ _hashtable: context [
 		h: as hashtable! s/offset
 
 		ss: as series! node/value
-		hh: as hashtable! s/offset
+		hh: as hashtable! ss/offset
 
 		copy-memory as byte-ptr! hh as byte-ptr! h size? hashtable!
 		hh/blk: copy-series as series! h/blk/value

@@ -2048,7 +2048,7 @@ red: context [
 
 		unless all [empty? locals-stack not iterator-pending?][	;-- in a function or iteration block
 			emit compose [
-				(to set-word! ctx) _context/clone get-root (blk-idx) ;-- rebuild context
+				(to set-word! ctx) _context/clone-words get-root (blk-idx) ;-- rebuild context
 			]
 			insert-lf -3
 		]
