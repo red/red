@@ -305,7 +305,7 @@ Red [
 
 	--test-- "load a<=>"
 		--assert error? res: try [load "a<=>"]
-		--assert to logic! find/match form res {*** Syntax Error: invalid value at "<=>"^/*** Where:}
+		--assert to logic! find/match form res {*** Syntax Error: invalid word! at "a<=>"^/*** Where:}
 
 	--test-- "load a</=>"
 		--assert not error? res: try [load "a</=>"]

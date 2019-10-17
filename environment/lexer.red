@@ -315,6 +315,7 @@ system/lexer: context [
 		end   [string!]
 		type  [datatype!]
 	][
+		if (index? start) = (index? end) [throw-error [type back start]]
 		store stack make-word start end type
 	]
 

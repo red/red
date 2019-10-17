@@ -649,6 +649,7 @@ Red [
 		clear ro2-o/c
 		clear ro2-o/d
 		clear ro2-o/e
+		ro2-o: none
 		recycle
 		
 		ro2-mem2: stats
