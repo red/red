@@ -155,9 +155,16 @@ S_START->"/"->S_SLASH->not(delimit1)->S_SLASH
                \->delimit1->T_REFINE
 
 S_START->"%"->S_FILE_1ST->not(delimit8)->S_FILE->not(delimit1)->S_FILE
-               \                          \->"^"->S_SKIP_FILE->*->S_FILE
-                \                          \->delimit1->T_FILE
-                 \->delimit8->T_WORD
+               \                          \->"%"->S_FILE_HEX1->hexa->S_FILE_HEX2->hexa->S_FILE
+                \                          \        \                 \->not(hexa)->T_ERROR
+                 \                          \        \->not(hexa)->T_ERROR
+                  \                          \
+                   \                          \->delimit1->T_FILE
+                    \
+                     \->dbl-quote->S_FILE_STR->not(dbl-quote)->S_FILE_STR
+                      \             \->dbl-quote->T_FILE
+                       \
+                        \->delimit8->T_WORD
                  
                  
 S_START->"#"->S_SHARP->"{"->S_BINARY->hexa|ws->S_BINARY
@@ -285,7 +292,7 @@ C_BIN_CMT	 : ;								;-- 4
 
 
 hexa: 0-9, a-f, A-F
-blan: space, tab, cr
+blank: space, tab, cr
 
 
 S_BIN_START->hexa->S_BIN_1ST->hexa->T_BIN_BYTE

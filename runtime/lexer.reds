@@ -8,6 +8,11 @@ Red/System [
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
+	Notes: {
+		See %docs/lexer/ for FSM descriptions.
+		See %utils/generate-lexer-table.red for include file generation.
+		See %utils/generate-misc-tables.red for various tables and bit-arrays generation.
+	}
 ]
 
 lexer: context [
@@ -749,9 +754,16 @@ lexer: context [
 	]
 
 	scan-file: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
-	;	/local
+		/local
+			file [red-file!]
 	][
-		null
+		if s/2 = #"^"" [s: s + 1]
+		flags: flags and not C_FLAG_CARET				;-- ensures that caret flag is not set
+		scan-string state s e flags
+		file: as red-file! state/buf-tail - 1
+		file/header: TYPE_FILE
+		if s/1 = #"^"" [assert e/1 = #"^"" e: e + 1]
+		state/in-pos: e 								;-- reset the input position to delimiter byte
 	]
 
 	scan-binary: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
