@@ -644,6 +644,7 @@ lexer: context [
 			pos	   [byte-ptr!]
 			ser	   [series!]
 			c	   [integer!]
+			cnt	   [integer!]
 			len    [integer!]
 			size   [integer!]
 			base   [integer!]
@@ -698,7 +699,26 @@ lexer: context [
 				0
 			]
 			2 [
-				0
+				while [s < e][
+					c: 0
+					cnt: 8
+					while [all [cnt > 0 s < e]][
+						switch s/1 [
+							#"0" #"1" [
+								c: c << 1 + as-integer s/1 - #"0"
+								cnt: cnt - 1
+								s: s + 1
+							]
+							#"^-" #"^/" #" " #"^M" [s: s + 1]
+							#";" [until [s: s + 1 any [s/1 = #"^/" s = e]]]
+							default [throw LEX_ERROR]
+						]
+					]
+					if all [cnt <> 0 cnt <> 8][throw LEX_ERROR]
+					p/value: as byte! c
+					p: p + 1
+				]
+				ser/tail: as cell! p
 			]
 			default [assert false 0]
 		]
