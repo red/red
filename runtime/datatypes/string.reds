@@ -71,7 +71,7 @@ string: context [
 		e		[int-ptr!]
 		return: [float!]
 	][
-		red-dtoa/string-to-float s s + len e
+		dtoa/to-float s s + len e
 	]
 
 	byte-to-hex: func [
