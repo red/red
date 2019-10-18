@@ -400,6 +400,7 @@ lexer: context [
 		accum: 0
 		flip: 0
 		while [s < e][
+			if s/1 = #";" [until [s: s + 1 any [s/1 = #"^/" s = e]]] ;-- skip comments
 			index: 1 + as-integer s/1
 			val: as-integer binary/debase64/index
 			either val < 40h [
