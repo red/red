@@ -325,6 +325,68 @@ lexer: context [
 		]
 	]
 	
+	decode-2: func [s [byte-ptr!] e [byte-ptr!] ser [series!]
+		/local
+			p	[byte-ptr!]
+			c	[integer!]
+			cnt	[integer!]
+	][
+		p: as byte-ptr! ser/offset
+		
+		while [s < e][
+			c: 0
+			cnt: 8
+			while [all [cnt > 0 s < e]][
+				switch s/1 [
+					#"0" #"1" [
+						c: c << 1 + as-integer s/1 - #"0"
+						cnt: cnt - 1
+						s: s + 1
+					]
+					#"^-" #"^/" #" " #"^M" [s: s + 1]
+					#";" [until [s: s + 1 any [s/1 = #"^/" s = e]]]
+					default [throw LEX_ERROR]
+				]
+			]
+			if all [cnt <> 0 cnt <> 8][throw LEX_ERROR]
+			p/value: as byte! c
+			p: p + 1
+		]
+		ser/tail: as cell! p
+	]
+	
+	decode-16: func [s [byte-ptr!] e [byte-ptr!] ser [series!]
+		/local
+			p	   [byte-ptr!]
+			pos	   [byte-ptr!]
+			c	   [integer!]
+			index  [integer!]
+			class  [integer!]
+			fstate [integer!]
+	][
+		p: as byte-ptr! ser/offset
+		
+		while [s < e][
+			fstate: S_BIN_START
+			pos: s
+			until [								;-- scans 2 hex characters, skip the rest
+				index: 1 + as-integer s/1
+				class: as-integer bin16-classes/index
+				s: s + 1
+				index: fstate * 5 + class + 1
+				fstate: as-integer bin16-FSM/index
+				any [fstate - S_BIN_FINAL_STATES > 0 s >= e]
+			]
+			if fstate = T_BIN_ERROR [throw LEX_ERROR]
+			index: 1 + as-integer pos/1			;-- converts the 2 hex chars using tables
+			c: as-integer hexa-table/index
+			index: 1 + as-integer pos/2
+			p/value: as byte! c << 4 or as-integer hexa-table/index
+			p: p + 1
+		]
+		ser/tail: as cell! p
+	]
+	
 	scan-escaped-char: func [s [byte-ptr!] e [byte-ptr!] cp [int-ptr!] return: [byte-ptr!]
 		/local
 			p	  [byte-ptr!]
@@ -639,18 +701,11 @@ lexer: context [
 
 	scan-binary: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
-			bin	   [red-binary!]
-			p	   [byte-ptr!]
-			pos	   [byte-ptr!]
-			ser	   [series!]
-			c	   [integer!]
-			cnt	   [integer!]
-			len    [integer!]
-			size   [integer!]
-			base   [integer!]
-			index  [integer!]
-			class  [integer!]
-			fstate [integer!]
+			bin	 [red-binary!]
+			ser	 [series!]
+			len	 [integer!]
+			size [integer!]
+			base [integer!]
 	][
 		either s/1 = #"#" [base: 16][					;-- default base
 			base: 0
@@ -671,59 +726,13 @@ lexer: context [
 		]
 		bin: binary/make-at alloc-slot state size
 		ser: GET_BUFFER(bin)
-		p: as byte-ptr! ser/offset
-	
 		switch base [
-			16 [
-				while [s < e][
-					fstate: S_BIN_START
-					pos: s
-					until [								;-- scans 2 hex characters, skip the rest
-						index: 1 + as-integer s/1
-						class: as-integer bin16-classes/index
-						s: s + 1
-						index: fstate * 5 + class + 1
-						fstate: as-integer bin16-FSM/index
-						any [fstate - S_BIN_FINAL_STATES > 0 s >= e]
-					]
-					if fstate = T_BIN_ERROR [throw LEX_ERROR]
-					index: 1 + as-integer pos/1			;-- converts the 2 hex chars using tables
-					c: as-integer hexa-table/index
-					index: 1 + as-integer pos/2
-					p/value: as byte! c << 4 or as-integer hexa-table/index
-					p: p + 1
-				]
-				ser/tail: as cell! p
-			]
-			64 [
-				0
-			]
-			2 [
-				while [s < e][
-					c: 0
-					cnt: 8
-					while [all [cnt > 0 s < e]][
-						switch s/1 [
-							#"0" #"1" [
-								c: c << 1 + as-integer s/1 - #"0"
-								cnt: cnt - 1
-								s: s + 1
-							]
-							#"^-" #"^/" #" " #"^M" [s: s + 1]
-							#";" [until [s: s + 1 any [s/1 = #"^/" s = e]]]
-							default [throw LEX_ERROR]
-						]
-					]
-					if all [cnt <> 0 cnt <> 8][throw LEX_ERROR]
-					p/value: as byte! c
-					p: p + 1
-				]
-				ser/tail: as cell! p
-			]
+			16 [decode-16 s e ser]
+			64 [0]
+			 2 [decode-2 s e ser]
 			default [assert false 0]
 		]
 		assert (as byte-ptr! ser/offset) + ser/size > as byte-ptr! ser/tail
-		
 		state/in-pos: e + 1								;-- skip ending delimiter
 	]
 	
