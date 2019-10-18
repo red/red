@@ -387,6 +387,60 @@ lexer: context [
 		ser/tail: as cell! p
 	]
 	
+	decode-64: func [s [byte-ptr!] e [byte-ptr!] ser [series!]
+		/local
+			p	  [byte-ptr!]
+			c	  [integer!]
+			val   [integer!]
+			accum [integer!]
+			flip  [integer!]
+			index [integer!]
+	][
+		p: as byte-ptr! ser/offset
+		accum: 0
+		flip: 0
+		while [s < e][
+			index: 1 + as-integer s/1
+			val: as-integer binary/debase64/index
+			either val < 40h [
+				either s/1 <> #"=" [
+					accum: accum << 6 + val
+					flip: flip + 1
+					if flip = 4 [
+						p/1: as-byte accum >> 16
+						p/2: as-byte accum >> 8
+						p/3: as-byte accum
+						p: p + 3
+						accum: 0
+						flip: 0
+					]
+				][										;-- special padding: "="
+					s: s + 1
+					case [
+						flip = 3 [
+							p/1: as-byte accum >> 10
+							p/2: as-byte accum >> 2
+							p: p + 2
+							flip: 0
+						]
+						flip = 2 [
+							s: s + 1
+							p/1: as-byte accum >> 4
+							p: p + 1
+							flip: 0
+						]
+						true [throw LEX_ERROR]
+					]
+					break
+				]
+			][
+				if val = 80h [throw LEX_ERROR]
+			]
+			s: s + 1
+		]
+		ser/tail: as red-value! p
+	]
+	
 	scan-escaped-char: func [s [byte-ptr!] e [byte-ptr!] cp [int-ptr!] return: [byte-ptr!]
 		/local
 			p	  [byte-ptr!]
@@ -728,8 +782,8 @@ lexer: context [
 		ser: GET_BUFFER(bin)
 		switch base [
 			16 [decode-16 s e ser]
-			64 [0]
-			 2 [decode-2 s e ser]
+			64 [decode-64 s e ser]
+			 2 [decode-2  s e ser]
 			default [assert false 0]
 		]
 		assert (as byte-ptr! ser/offset) + ser/size > as byte-ptr! ser/tail
