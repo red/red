@@ -895,7 +895,7 @@ alloc-series-buffer: func [
 		sz		 [integer!]
 		flag-big [integer!]
 ][
-	assert positive? usize
+	assert not negative? usize
 	size: round-to usize * unit size? cell!	;-- size aligned to cell! size
 
 	frame: memory/s-active
