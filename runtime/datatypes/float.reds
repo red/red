@@ -124,8 +124,7 @@ float: context [
 				sprintf [s "%.7g" f]
 			]
 			type = FORM_TIME [									;-- microsecond precision
-				either f < 10.0 [s0: "%.7g"][s0: "%.8g"]
-				sprintf [s s0 f]
+				s: dtoa/form-float f 6 no
 			]
 			type = FORM_PERCENT [
 				sprintf [s "%.13g" f]
@@ -187,7 +186,7 @@ float: context [
 						tried?: yes
 						s: case [
 							type = FORM_FLOAT_32 ["%.5g"]
-							type = FORM_TIME	 ["%.6g"]
+							type = FORM_TIME	 ["%.5g"]
 							true				 ["%.14g"]
 						]
 						sprintf [s0 s f]
@@ -605,7 +604,7 @@ float: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "float/mold"]]
 
-		s: red-dtoa/form-float fl/value 0 yes
+		s: dtoa/form-float fl/value 0 yes
 		string/concatenate-literal buffer s
 		part - length? s							;@@ optimize by removing length?
 	]

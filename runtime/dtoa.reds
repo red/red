@@ -64,7 +64,7 @@ Red/System [
 #define DTOA_BIG_0			[(FRAC_MASK1 or (DBL_MAX_EXP + DTOA_BIAS - 1 * DTOA_EXP_MSK1))]
 #define DTOA_BIG_1			FFFFFFFFh
 
-red-dtoa: context [
+dtoa: context [
 	P05:  [5 25 125]
 	DTOA_TENS: [
 		1e0 1e1 1e2 1e3 1e4 1e5 1e6 1e7 1e8 1e9
@@ -1382,7 +1382,7 @@ red-dtoa: context [
 		STRTOD_BREAK
 	]
 
-	string-to-float: func [
+	to-float: func [
 		start	[byte-ptr!]
 		end		[byte-ptr!]
 		ret		[int-ptr!]
