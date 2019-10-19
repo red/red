@@ -71,6 +71,7 @@ Red [
 			--assert ii2 = read-clipboard
 			unset 'ii2
 
+		unless unset? :draw [
 		--test-- "image-io-3"
 			ii3: draw make image! [100x100 0.200.200.200] [pen purple line-width 5 circle 50x50 40]
 			--assert false <> write-clipboard ii3
@@ -82,6 +83,7 @@ Red [
 			--assert false <> write-clipboard iil1
 			--assert iil1 = read-clipboard
 			unset 'iil1
+		]
 
 	]];; do [if system/platform = 'Windows [
 
