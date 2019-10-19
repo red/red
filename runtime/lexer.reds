@@ -1045,9 +1045,14 @@ lexer: context [
 	]
 	
 	scan-tag: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
-	;	/local
+		/local
+			cell [cell!]
 	][
-		null
+		flags: flags and not C_FLAG_CARET				;-- clears caret flag
+		scan-string state s e flags
+		cell: state/buf-tail - 1
+		set-type cell TYPE_TAG							;-- preserve header's flags
+		state/in-pos: e + 1								;-- skip ending delimiter
 	]
 	
 	scan-url: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
