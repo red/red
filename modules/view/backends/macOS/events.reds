@@ -486,8 +486,13 @@ make-event: func [
 	]
 
 	state: EVT_DISPATCH
-
-	#call [system/view/awake gui-evt]
+	stack/mark-try-all words/_anon
+	catch CATCH_ALL_EXCEPTIONS [
+		#call [system/view/awake gui-evt]
+		stack/unwind
+	]
+	stack/adjust-post-try
+	if system/thrown <> 0 [system/thrown: 0]
 
 	res: as red-word! stack/arguments
 	if TYPE_OF(res) = TYPE_WORD [
