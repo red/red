@@ -1070,9 +1070,15 @@ lexer: context [
 	]
 	
 	scan-email: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
-	;	/local
+		/local
+			cell [cell!]
+			p	 [byte-ptr!]
 	][
-		null
+		flags: flags and not C_FLAG_CARET				;-- clears caret flag
+		scan-string state s - 1 e flags					;-- compensate for lack of starting delimiter
+		cell: state/buf-tail - 1
+		set-type cell TYPE_EMAIL						;-- preserve header's flags
+		state/in-pos: e 								;-- reset the input position to delimiter byte
 	]
 	
 	scan-path: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
