@@ -20,8 +20,8 @@ lexer: context [
 	#include %lexer-transitions.reds
 		
 	#enum class-flags! [
-		C_FLAG_UCS4:	80000000h
-		C_FLAG_UCS2:	40000000h
+		C_FLAG_UCS4:	80000000h						;-- at least one UCS-4 char detected
+		C_FLAG_UCS2:	40000000h						;-- at least one UCS-2 char detected
 		C_FLAG_CARET:	20000000h
 		C_FLAG_DOT:		10000000h
 		C_FLAG_COMMA:	08000000h
@@ -31,7 +31,8 @@ lexer: context [
 		C_FLAG_SHARP:	00800000h
 		C_FLAG_EOF:		00400000h
 		C_FLAG_SIGN:	00200000h
-		C_FLAG_NOSTORE: 00000100h
+		C_FLAG_ESC_HEX: 00000200h						;-- percent-escaped mode
+		C_FLAG_NOSTORE: 00000100h						;-- do not store decoded value
 	]
 	
 	#define FL_UCS4		[(C_WORD or C_FLAG_UCS4)]
@@ -447,6 +448,38 @@ lexer: context [
 		ser/tail: as red-value! p
 	]
 	
+	scan-percent-char: func [s [byte-ptr!] e [byte-ptr!] cp [int-ptr!] return: [byte-ptr!]
+		/local
+			p	  [byte-ptr!]
+			c	  [integer!]
+			index [integer!]
+			class [integer!]
+			cb	  [byte!]
+	][
+		c: 0
+		cb: as byte! 0
+		loop 2 [
+			either s/1 = #"0" [c: c << 4][
+				index: 1 + as-integer s/1
+				class: lex-classes/index
+				switch class [
+					C_DIGIT  [cb: s/1 - #"0"]
+					C_EXP
+					C_ALPHAX [
+						cb: either s/1 < #"a" [s/1 - #"a"][s/1 - #"A"]
+						cb: cb + 10
+					]
+					default  [throw LEX_ERROR]
+				]
+				c: c << 4 + as-integer cb
+			]
+			s: s + 1
+			if s = e [throw LEX_ERROR]
+		]
+		cp/value: c
+		s
+	]
+	
 	scan-escaped-char: func [s [byte-ptr!] e [byte-ptr!] cp [int-ptr!] return: [byte-ptr!]
 		/local
 			p	  [byte-ptr!]
@@ -477,7 +510,10 @@ lexer: context [
 						switch class [
 							C_DIGIT  [cb: p/1 - #"0"]
 							C_EXP
-							C_ALPHAX [cb: either p/1 < #"a" [p/1 - #"a"][p/1 - #"A"] cb: cb + 10]
+							C_ALPHAX [
+								cb: either p/1 < #"a" [p/1 - #"a"][p/1 - #"A"]
+								cb: cb + 10
+							]
 							default  [throw LEX_ERROR]
 						]
 						c: c << 4 + as-integer cb
@@ -598,6 +634,7 @@ lexer: context [
 			digits [integer!]
 			extra  [integer!]
 			cp	   [integer!]
+			esc	   [byte!]
 			w?	   [logic!]
 			c	   [byte!]
 	][
@@ -637,7 +674,7 @@ lexer: context [
 		][												;-- with escape sequence(s)
 			;-- prescan the string for determining unit and accurate final codepoints count
 			extra: 0									;-- count extra bytes used by escape sequences
-			if unit < UCS-4 [
+			if all [unit < UCS-4 flags and C_FLAG_ESC_HEX = 0][
 				p: s
 				;-- check if any escaped codepoint requires higher unit
 				while [p < e][
@@ -675,6 +712,7 @@ lexer: context [
 					][p: p + 1]
 				]
 			]
+			esc: either flags and C_FLAG_ESC_HEX = 0 [#"^^"][#"%"]
 			
 			str: string/make-at alloc-slot state len - extra unit
 			ser: GET_BUFFER(str)
@@ -682,8 +720,12 @@ lexer: context [
 				UCS-1 [
 					p: as byte-ptr! ser/offset
 					while [s < e][
-						either s/1 = #"^^" [
-							s: scan-escaped-char s + 1 e :cp
+						either s/1 = esc [
+							s: either esc = #"^^" [
+								scan-escaped-char s + 1 e :cp
+							][
+								scan-percent-char s + 1 e :cp
+							]
 							p/value: as-byte cp
 						][
 							p/value: s/1
@@ -697,8 +739,12 @@ lexer: context [
 					cp: -1
 					p: as byte-ptr! ser/offset
 					while [s < e][
-						s: either s/1 = #"^^" [
-							scan-escaped-char s + 1 e :cp
+						s: either s/1 = esc [
+							either esc = #"^^" [
+								scan-escaped-char s + 1 e :cp
+							][
+								scan-percent-char s + 1 e :cp
+							]
 						][
 							decode-utf8-char s :cp
 						]
@@ -713,8 +759,12 @@ lexer: context [
 					cp: -1
 					p4: as int-ptr! ser/offset
 					while [s < e][
-						s: either s/1 = #"^^" [
-							scan-escaped-char s + 1 e :cp
+						s: either s/1 = esc [
+							either esc = #"^^" [
+								scan-escaped-char s + 1 e :cp
+							][
+								scan-percent-char s + 1 e :cp
+							]
 						][
 							decode-utf8-char s :cp
 						]
@@ -755,13 +805,17 @@ lexer: context [
 
 	scan-file: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
-			file [red-file!]
+			cell [cell!]
+			p	 [byte-ptr!]
 	][
-		if s/2 = #"^"" [s: s + 1]
-		flags: flags and not C_FLAG_CARET				;-- ensures that caret flag is not set
+		flags: flags and not C_FLAG_CARET				;-- clears caret flag
+		either s/2 = #"^"" [s: s + 1][					;-- skip "
+			p: s until [p: p + 1 any [p/1 = #"%" p = e]] ;-- check if any %xx 
+			if p < e [flags: flags or C_FLAG_ESC_HEX or C_FLAG_CARET]
+		]
 		scan-string state s e flags
-		file: as red-file! state/buf-tail - 1
-		file/header: TYPE_FILE
+		cell: state/buf-tail - 1
+		set-type cell TYPE_FILE							;-- preserve header's flags
 		if s/1 = #"^"" [assert e/1 = #"^"" e: e + 1]
 		state/in-pos: e 								;-- reset the input position to delimiter byte
 	]
