@@ -1120,6 +1120,9 @@ binary: context [
 			len		  [integer!]
 			added	  [integer!]
 			tail?	  [logic!]
+			bin'	  [red-binary! value]
+			value'	  [red-value! value]
+			part-arg' [red-value! value]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/insert"]]
 
@@ -1132,8 +1135,10 @@ binary: context [
 				int: as red-integer! part-arg
 				int/value
 			][
-				bin2: as red-binary! part-arg
-				src: as red-block! value
+				_series/trim-head-into as red-series! value as red-series! value'
+				_series/trim-head-into as red-series! part-arg as red-series! part-arg'
+				bin2: as red-binary! part-arg'
+				src: as red-block! value'
 				unless all [
 					TYPE_OF(bin2) = TYPE_OF(src)
 					bin2/node = src/node
@@ -1150,15 +1155,15 @@ binary: context [
 			dup-n: cnt
 		]
 
-		s: GET_BUFFER(bin)
+		s: _series/trim-head-into as red-series! bin as red-series! bin'
 		tail?: any [
-			(as-integer s/tail - s/offset) >> (log-b GET_UNIT(s)) = bin/head
+			(as-integer s/tail - s/offset) >> (log-b GET_UNIT(s)) = bin'/head
 			append?
 		]
 
 		either TYPE_OF(value) = TYPE_BLOCK [		;@@ replace it with: typeset/any-block?
-			src: as red-block! value
-			s2: GET_BUFFER(src)
+			s2: _series/trim-head-into as red-series! value as red-series! value'
+			src: as red-block! value'
 			cell:  s2/offset + src/head
 			limit: cell + block/rs-length? src
 			if cell = limit [return as red-value! bin]
@@ -1213,18 +1218,20 @@ binary: context [
 		added: 0
 		while [not zero? cnt][					;-- /dup support
 			either tail? [
-				rs-append bin data len
+				rs-append bin' data len
 			][
-				rs-insert bin added data len
+				rs-insert bin' added data len
 			]
 			added: added + len
 			cnt: cnt - 1
 		]
 		unless append? [
-			bin/head: bin/head + added
-			s: GET_BUFFER(bin)
-			assert (as byte-ptr! s/offset) + (bin/head << (log-b GET_UNIT(s))) <= as byte-ptr! s/tail
+			bin'/head: bin'/head + added
+			if bin/head < bin'/head [bin/head: bin'/head]
+			s: GET_BUFFER(bin')
+			assert (as byte-ptr! s/offset) + (bin'/head << (log-b GET_UNIT(s))) <= as byte-ptr! s/tail
 		]
+		bin/node: bin'/node
 		as red-value! bin
 	]
 
@@ -1237,15 +1244,18 @@ binary: context [
 		all?		[logic!]
 		with-arg	[red-value!]
 		return:		[red-series!]
+		/local bin' [red-binary! value]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/trim"]]
 
+		_series/trim-head-into as red-series! bin as red-series! bin'
 		case [
-			any  [all? OPTION?(with-arg)] [string/trim-with as red-string! bin with-arg]
+			any  [all? OPTION?(with-arg)] [string/trim-with as red-string! bin' with-arg]
 			any  [auto? lines?][--NOT_IMPLEMENTED--]
-			true [trim-head-tail bin head? tail?]
+			true [trim-head-tail bin' head? tail?]
 		]
-		ownership/check as red-value! bin words/_trim null bin/head 0
+		ownership/check as red-value! bin' words/_trim null bin'/head 0
+		assert bin/node = bin'/node
 		as red-series! bin
 	]
 
