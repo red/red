@@ -1071,6 +1071,7 @@ _hashtable: context [
 		/local s [series!] h [hashtable!] flags [int-ptr!] i [integer!]
 			ii [integer!] sh [integer!] indexes [int-ptr!]
 	][
+		assert size >= 0
 		if zero? size [exit]
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -1109,6 +1110,7 @@ _hashtable: context [
 			n [integer!] keys [int-ptr!] index [int-ptr!] part [integer!]
 			flags [int-ptr!] ii [integer!] sh [integer!]
 	][
+		assert size >= 0
 		s: as series! node/value
 		h: as hashtable! s/offset
 		assert h/indexes <> null

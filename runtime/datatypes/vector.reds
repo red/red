@@ -961,6 +961,9 @@ vector: context [
 			part	  [integer!]
 			added	  [integer!]
 			tail?	  [logic!]
+			vec'	  [red-vector! value]
+			value'	  [red-value! value]
+			part-arg' [red-value! value]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "vector/insert"]]
 
@@ -973,8 +976,10 @@ vector: context [
 				int: as red-integer! part-arg
 				int/value
 			][
-				sp: as red-vector! part-arg
-				src: as red-block! value
+				_series/trim-head-into as red-series! value as red-series! value'
+				_series/trim-head-into as red-series! part-arg as red-series! part-arg'
+				sp: as red-vector! part-arg'
+				src: as red-block! value'
 				unless all [
 					TYPE_OF(sp) = TYPE_OF(src)
 					sp/node = src/node
@@ -991,16 +996,16 @@ vector: context [
 			dup-n: cnt
 		]
 
-		s: GET_BUFFER(vec)
+		s: _series/trim-head-into as red-series! vec as red-series! vec'
 		tail?: any [
-			(as-integer s/tail - s/offset) >> (log-b GET_UNIT(s)) = vec/head
+			(as-integer s/tail - s/offset) >> (log-b GET_UNIT(s)) = vec'/head
 			append?
 		]
 
 		while [not zero? cnt][							;-- /dup support
 			either TYPE_OF(value) = TYPE_BLOCK [		;@@ replace it with: typeset/any-block?
-				src: as red-block! value
-				s2: GET_BUFFER(src)
+				s2: _series/trim-head-into as red-series! value as red-series! value'
+				src: as red-block! value'
 				cell:  s2/offset + src/head
 				limit: cell + block/rs-length? src
 			][
@@ -1011,9 +1016,9 @@ vector: context [
 			
 			while [all [cell < limit added <> part]][	;-- multiple values case
 				either tail? [
-					rs-append vec cell
+					rs-append vec' cell
 				][
-					rs-insert vec vec/head + added cell
+					rs-insert vec' vec'/head + added cell
 				]
 				added: added + 1
 				cell: cell + 1
@@ -1022,10 +1027,12 @@ vector: context [
 		]
 		unless append? [
 			added: added * dup-n
-			vec/head: vec/head + added
-			s: GET_BUFFER(vec)
-			assert (as byte-ptr! s/offset) + (vec/head << (log-b GET_UNIT(s))) <= as byte-ptr! s/tail
+			vec'/head: vec'/head + added
+			if vec/head < vec'/head [vec/head: vec'/head]
+			s: GET_BUFFER(vec')
+			assert (as byte-ptr! s/offset) + (vec'/head << (log-b GET_UNIT(s))) <= as byte-ptr! s/tail
 		]
+		vec/node: vec'/node
 		as red-value! vec
 	]
 
