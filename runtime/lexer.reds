@@ -1147,7 +1147,7 @@ lexer: context [
 			]
 			close-block state type yes
 		][
-			state/in-pos: e + 1								;-- skip /
+			state/in-pos: e + 1							;-- skip /
 		]
 	]
 	
