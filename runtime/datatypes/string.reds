@@ -2187,6 +2187,7 @@ string: context [
 		/local
 			src		  [red-block!]
 			cell	  [red-value!]
+			start	  [red-value!]
 			limit	  [red-value!]
 			int		  [red-integer!]
 			char	  [red-char!]
@@ -2253,8 +2254,8 @@ string: context [
 			str'/head
 		]
 		
-		while [not zero? cnt][							;-- /dup support
-			type: TYPE_OF(value)
+		type: TYPE_OF(value)
+		unless zero? cnt [
 			either any [								;@@ replace it with: typeset/any-list?
 				type = TYPE_BLOCK
 				type = TYPE_PAREN
@@ -2262,12 +2263,15 @@ string: context [
 			][
 				s2: _series/trim-head-into as red-series! value as red-series! value'
 				src: as red-block! value'
-				cell:  s2/offset + src/head
-				limit: cell + block/rs-length? src
+				start:  s2/offset + src/head
+				limit: start + block/rs-length? src
 			][
-				cell:  value
+				start: value
 				limit: value + 1
 			]
+		]
+		while [not zero? cnt][							;-- /dup support
+			cell: start
 			rest: 0
 			added: 0
 			while [

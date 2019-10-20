@@ -2592,6 +2592,9 @@ Red [
 		blk3: change blk1 [9 8 7 6 5 4 3]
 		--assert empty? blk3
 		--assert 8 = length? blk
+    --test-- "change-blk-4"
+        --assert (reduce [()]) = head change [] ()
+        --assert (reduce [()]) = head change b: [] ()
 
 	--test-- "change-str-1"
 		str: "abcde"
@@ -2623,6 +2626,10 @@ Red [
 	--test-- "change-str-7"
 		str: "我ab/cd"
 		--assert "-cd" = back change/part skip str 3 "-" skip str 4
+    --test-- "change-str-8"
+        str: "a"
+        --assert "" = change/part str "1" next str
+        --assert "1" = str
 
 	--test-- "change-bin-1"
 		bin: #{12345678}

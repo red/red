@@ -605,10 +605,13 @@ _series: context [
 		blk?: ANY_BLOCK?(type)
 
 		ser2: as red-series! value
-		values?: either all [only? blk?][no][
+		values?: either all [only? blk?] [no] [
 			left: TYPE_OF(value)
-			self?: ser/node = ser2/node					;-- ser and value are the same series
-			ANY_BLOCK?(left)
+			self?: all [
+				ANY_SERIES?(left)
+				ser/node = ser2/node					;-- ser and value are the same series
+			]
+			values?: ANY_BLOCK?(left)
 		]
 
 		items: either any [self? values?][
@@ -651,13 +654,14 @@ _series: context [
 		if all [
 			zero? part
 			limit = cell
-		][return ser]									;-- early exit if nothing to change
+		][
+		return ser]									;-- early exit if nothing to change
 
 		either any [blk? self?][
 			new-part: items * cnt
 			new-size: size - part + new-part
 			n: new-size << unit
-			ownership/check as red-value! ser words/_change null head part
+			if part > 0 [ownership/check as red-value! ser words/_change null head part]
 			if n > s/size [s: expand-series s n << 1]
 			dst: (as byte-ptr! s/offset) + (head << unit)
 			src: as byte-ptr! cell
@@ -708,8 +712,9 @@ _series: context [
 				;@@ FIXME: this is sub-optimal for long trails
 				if all [trail-bytes > 0 part > 0] [
 					move-memory dst dst + bytes1 trail-bytes
-					s/tail: as cell! dst + trail-bytes
 				]
+				assert trail-bytes >= 0
+				s/tail: as cell! dst + trail-bytes
 			]
 			if cnt > 0 [
 				items: switch type [
