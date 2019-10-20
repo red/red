@@ -143,6 +143,20 @@ platform: context [
 		SuppressExternalCodecs		[integer!]
 	]
 
+	tagSYSTEM_INFO: alias struct! [
+		wProcessorArchitecture		[integer!]
+		dwPageSize					[integer!]
+		lpMinimumApplicationAddress	[int-ptr!]
+		lpMaximumApplicationAddress	[int-ptr!]
+		dwActiveProcessorMask		[int-ptr!]
+		dwNumberOfProcessors		[integer!]
+		dwProcessorType				[integer!]
+		dwAllocationGranularity		[integer!]
+		wProcessor					[integer!]
+			;wProcessorLevel		[uint16!]
+			;wProcessorRevision		[uint16!]
+	]
+
 	tagFILETIME: alias struct! [
 		dwLowDateTime	[integer!]
 		dwHighDateTime	[integer!]
@@ -181,6 +195,7 @@ platform: context [
 
 	gdiplus-token: 0
 	page-size: 4096
+	alloc-granularity: 4096
 
 	#import [
 		LIBC-file cdecl [
@@ -202,6 +217,9 @@ platform: context [
 			]
 		]
 		"kernel32.dll" stdcall [
+			GetSystemInfo: "GetSystemInfo" [
+				si			[tagSYSTEM_INFO]
+			]
 			VirtualAlloc: "VirtualAlloc" [
 				address		[byte-ptr!]
 				size		[integer!]
@@ -440,8 +458,7 @@ platform: context [
 		]
 	]
 
-	init-gdiplus: func [/local startup-input][
-		startup-input: declare GdiplusStartupInput!
+	init-gdiplus: func [/local startup-input [GdiplusStartupInput! value]][
 		startup-input/GdiplusVersion: 1
 		startup-input/DebugEventCallback: 0
 		startup-input/SuppressBackgroundThread: 0
@@ -589,7 +606,13 @@ platform: context [
 	;-------------------------------------------
 	;-- Do platform-specific initialization tasks
 	;-------------------------------------------
-	init: func [/local h [int-ptr!]] [
+	init: func [/local h [int-ptr!] si [tagSYSTEM_INFO value]][
+		GetSystemInfo :si
+		if si/dwPageSize > 0 [page-size: si/dwPageSize]
+		if si/dwAllocationGranularity > 0 [
+			alloc-granularity: si/dwAllocationGranularity
+		]
+
 		init-gdiplus
 		#either libRed? = no [
 			CoInitializeEx 0 COINIT_APARTMENTTHREADED
