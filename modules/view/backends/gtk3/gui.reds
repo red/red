@@ -1207,10 +1207,6 @@ change-selection: func [
 		type = window [
 			switch TYPE_OF(int) [
 				TYPE_OBJECT [set-selected-focus widget]
-				TYPE_NONE	[; as in windows but not sure!
-					;; DEVEL: print ["DEVEL WARNING: 'change-selection windows' since not sure this is valid"]
-					gtk_widget_grab_focus widget
-				]
 				default [0]
 			]
 		]

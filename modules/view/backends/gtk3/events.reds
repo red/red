@@ -637,9 +637,6 @@ connect-widget-events: function [
 	connect-common-events evbox widget
 	connect-notify-events evbox widget
 
-	gtk_widget_set_can_focus widget yes
-	gtk_widget_set_focus_on_click widget yes
-
 	case [
 		sym = check [
 			;@@ No click event for check
@@ -657,9 +654,15 @@ connect-widget-events: function [
 		]
 		sym = base [
 			gobj_signal_connect(widget "draw" :base-draw widget)
+			gtk_widget_set_can_focus widget yes
+			gtk_widget_set_focus_on_click widget yes
+			gtk_widget_grab_focus widget
+			connect-focus-events widget widget
 		]
 		sym = rich-text [
 			gobj_signal_connect(widget "draw" :base-draw widget)
+			gtk_widget_set_can_focus widget yes
+			gtk_widget_set_focus_on_click widget yes
 			gtk_widget_grab_focus widget
 			connect-focus-events widget widget
 		]
@@ -670,6 +673,9 @@ connect-widget-events: function [
 			;BUG (make `vid.red` failing): gtk_widget_add_events widget GDK_STRUCTURE_MASK
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add window size-allocate " lf]]
 			gobj_signal_connect(widget "size-allocate" :window-size-allocate widget)
+			gtk_widget_set_can_focus widget yes
+			gtk_widget_set_focus_on_click widget yes
+			gtk_widget_grab_focus widget
 			connect-focus-events widget widget
 		]
 		sym = slider [
@@ -679,6 +685,8 @@ connect-widget-events: function [
 		sym = text [0]
 		sym = field [
 			gobj_signal_connect(widget "changed" :field-changed widget)
+			gtk_widget_set_can_focus widget yes
+			gtk_widget_set_focus_on_click widget yes
 			gtk_widget_grab_focus widget
 			connect-focus-events widget widget
 		]
@@ -694,6 +702,8 @@ connect-widget-events: function [
 			g_object_set [widget "populate-all" yes widget]
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add area populate-popup" lf]]
 			gobj_signal_connect(widget "populate-popup" :area-populate-popup widget)
+			gtk_widget_set_can_focus widget yes
+			gtk_widget_set_focus_on_click widget yes
 			gtk_widget_grab_focus widget
 			connect-focus-events widget widget
 		]
