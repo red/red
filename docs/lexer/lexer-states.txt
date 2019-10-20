@@ -266,10 +266,10 @@ S_START->not(delimit6)->S_WORD->not(delimit5)->S_WORD
                               \->"@"->S_EMAIL->not(delimit7|"@"|"/"|">"|","|"^"|"$"|":"|"'"|"#")->S_EMAIL
                                \       \->delimit7->T_EMAIL
                                 \       \->"@"|">"|","|"^"|"$"|":"|"'"|"#"->T_ERROR
-                                \
-                                 \->"/"->T_PATH
-                                  \->"$"->S_MONEY
-                                   \->","|"#"|"%"->T_ERROR
+                                 \
+                                  \->"/"->T_PATH
+                                   \->"$"->S_MONEY
+                                    \->","|"#"|"%"->T_ERROR
                                    
 
 

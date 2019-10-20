@@ -98,7 +98,7 @@ lexer: context [
 	skip-table: #{
 		0101000000000000000000000000000000000000000000000000000000000000
 		0000000000000000000000000000000000000000000000000000000000000000
-		00000000000000
+		00000000000000000000
 	}
 	
 	bin16-classes: #{
@@ -284,14 +284,16 @@ lexer: context [
 	]
 	
 	state!: alias struct! [
-		stack     [red-block!]							;-- pairs of (offset,type)
-		buffer    [red-value!]							;-- static or dynamic stash buffer (for recursive calls)
+		stack	  [red-block!]							;-- pairs of (offset,type)
+		buffer	  [red-value!]							;-- static or dynamic stash buffer (for recursive calls)
 		buf-tail  [red-value!]
 		buf-slots [integer!]
-		input     [byte-ptr!]
-		in-end    [byte-ptr!]
-		in-pos    [byte-ptr!]
-		err	      [integer!]
+		input	  [byte-ptr!]
+		in-end	  [byte-ptr!]
+		in-pos	  [byte-ptr!]
+		err		  [integer!]
+		entry	  [integer!]							;-- entry state for the FSM
+		path?	  [logic!]								;-- TRUE: loading an any-path!
 	]
 	
 	scanner!: alias function! [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]]
@@ -328,6 +330,50 @@ lexer: context [
 				as byte-ptr! src
 				items << 4
 			s/tail: s/offset + items
+		]
+	]
+	
+	open-block: func [state [state!] type [integer!] /local	p [red-pair!]][
+		p: as red-pair! ALLOC_TAIL(state/stack)
+		p/header: TYPE_PAIR
+		p/x: (as-integer state/buf-tail - state/buffer) >> 4
+		p/y: type
+		alloc-slot state								;-- reserve slot for new block value
+		state/buffer: state/buf-tail
+		state/entry: S_START
+		state/path?: no
+	]
+
+	close-block: func [state [state!] type [integer!] force? [logic!]
+		/local	
+			p	 [red-pair!]
+			new	 [red-value!]
+			len	 [integer!]
+			ser	 [series!]
+	][
+		ser: GET_BUFFER(state/stack)
+		p: as red-pair! ser/tail - 1
+		assert TYPE_OF(p) = TYPE_PAIR
+		if all [not force? p/y <> type][throw LEX_ERROR]
+		len: (as-integer state/buf-tail - state/buffer) >> 4
+		new: state/buffer - 1
+		state/buf-tail: state/buffer
+		state/buffer: new - p/x
+		
+		store-any-block new state/buf-tail len type
+		
+		ser/tail: as cell! p
+		assert ser/offset <= ser/tail
+		p: as red-pair! ser/tail - 1					;-- get parent series
+		either all [
+			ser/offset <= p
+			not any [p/y = TYPE_BLOCK p/y = TYPE_PAREN p/y = TYPE_MAP]
+		][												;-- any-path! case
+			state/path?: yes
+			state/entry: S_PATH
+		][
+			state/path?: no
+			state/entry: S_START
 		]
 	]
 	
@@ -579,45 +625,21 @@ lexer: context [
 	
 	scan-block-open: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
-			p [red-pair!]
+			type [integer!]
 	][
-		p: as red-pair! ALLOC_TAIL(state/stack)
-		p/header: TYPE_PAIR
-		p/x: (as-integer state/buf-tail - state/buffer) >> 4
-		p/y: either s/1 = #"(" [TYPE_PAREN][TYPE_BLOCK]
-		
-		alloc-slot state								;-- reserve slot for new block value
-		state/buffer: state/buf-tail
-		
+		type: either s/1 = #"(" [TYPE_PAREN][TYPE_BLOCK]
+		open-block state type
 		state/in-pos: e + 1								;-- skip delimiter
 	]
 
 	scan-block-close: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
-		/local	
-			p	 [red-pair!]
-			new	 [red-value!]
-			len	 [integer!]
+		/local
 			type [integer!]
-			ser	 [series!]
 	][
-		ser: GET_BUFFER(state/stack)
-		p: as red-pair! ser/tail - 1
-		assert TYPE_OF(p) = TYPE_PAIR
-		
 		type: either s/1 = #")" [TYPE_PAREN][TYPE_BLOCK]
-		if p/y <> type [throw LEX_ERROR]
-
-		len: (as-integer state/buf-tail - state/buffer) >> 4
-		new: state/buffer - 1
-		state/buf-tail: state/buffer
-		state/buffer: new - p/x
-
-		store-any-block new state/buf-tail len type
-	
-		ser/tail: as cell! p
-		assert ser/offset <= ser/tail
-		
-		state/in-pos: e + 1								;-- skip ending delimiter
+		close-block state type no
+		e: either all [state/path? e/2 = #"/"][e + 2][e + 1]
+		state/in-pos: e									;-- skip ending delimiter and eventual /
 	]
 
 	scan-string: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
@@ -671,7 +693,7 @@ lexer: context [
 				]
 			]
 			ser/tail: as cell! (as byte-ptr! ser/offset) + (len << (unit >> 1))
-		][												;-- with escape sequence(s)
+		][
 			;-- prescan the string for determining unit and accurate final codepoints count
 			extra: 0									;-- count extra bytes used by escape sequences
 			if all [unit < UCS-4 flags and C_FLAG_ESC_HEX = 0][
@@ -793,9 +815,8 @@ lexer: context [
 				true	   [throw LEX_ERROR]
 			]
 		]
-		if flags and C_FLAG_QUOTE <> 0 [			;@@ remove this check?
-			if s/1 = #"'" [s: s + 1 type: TYPE_LIT_WORD]
-		]
+		if s/1 = #"'" [s: s + 1 type: TYPE_LIT_WORD]
+
 		cell: alloc-slot state
 		word/make-at symbol/make-alt-utf8 s as-integer e - s cell
 		cell/header: type
@@ -1081,10 +1102,53 @@ lexer: context [
 		state/in-pos: e 								;-- reset the input position to delimiter byte
 	]
 	
-	scan-path: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
-	;	/local
+	scan-path-open: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+		/local
+			type [integer!]
 	][
-		null
+		type: switch s/1 [
+			#"'" [s: s + 1 TYPE_LIT_PATH]
+			#":" [s: s + 1 TYPE_GET_PATH]
+			default [TYPE_PATH]
+		]
+		open-block state type							;-- open a new path series
+		scan-word state s e flags						;-- load the head word
+		state/entry: S_PATH								;-- overwrites the S_START set by open-block
+		state/path?: yes								;-- overwrites the no value set by open-block
+		state/in-pos: e + 1								;-- skip /
+	]
+	
+	scan-path-item: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+		/local
+			slot	[cell!]
+			p		[red-pair!]
+			ser		[series!]
+			type	[integer!]
+			cp		[integer!]
+			close?	[logic!]
+			force?	[logic!]
+	][
+		close?: either e >= state/in-end [yes][			;-- EOF reached
+			cp: 1 + as-integer e/1
+			switch lex-classes/cp and FFh [
+				C_BLANK C_LINE C_BLOCK_OP C_BLOCK_CL
+				C_PAREN_OP C_PAREN_CL C_STRING_OP C_DBL_QUOTE [yes]
+				default [no]
+			]
+		]
+		either close? [
+			ser: GET_BUFFER(state/stack)
+			p: as red-pair! ser/tail - 1
+			type: p/y
+			if all [e < state/in-end e/1 = #":"][
+				slot: state/buf-tail - 1
+				if TYPE_OF(slot) = TYPE_SET_WORD [set-type slot TYPE_WORD]
+				type: TYPE_SET_PATH
+			]
+			close-block state type yes
+		][
+			state/in-pos: e + 1								;-- skip /
+		]
 	]
 	
 	scanners: [
@@ -1114,7 +1178,7 @@ lexer: context [
 		:scan-tag										;-- T_TAG
 		:scan-url										;-- T_URL
 		:scan-email										;-- T_EMAIL
-		:scan-path										;-- T_PATH
+		:scan-path-open									;-- T_PATH
 	]
 
 	scan-tokens: func [
@@ -1138,7 +1202,7 @@ lexer: context [
 		until [
 			flags: 0
 			term?: no
-			state: S_START
+			state: lex/entry
 			p: lex/in-pos
 			start: p
 			offset: 0
@@ -1169,6 +1233,7 @@ lexer: context [
 			index: state - --EXIT_STATES--
 			do-scan: as scanner! scanners/index
 			do-scan lex start + offset p flags
+			if lex/path? [scan-path-item lex start + offset p flags]
 			
 			lex/in-pos >= lex/in-end
 		]
@@ -1195,6 +1260,7 @@ lexer: context [
 		state/in-end:	 src + len
 		state/in-pos:	 src
 		state/err:		 0
+		state/entry:	 S_START
 		
 		catch LEX_ERROR [scan-tokens state]
 		if system/thrown > 0 [
