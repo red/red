@@ -284,16 +284,16 @@ lexer: context [
 	]
 	
 	state!: alias struct! [
-		buffer	  [red-value!]							;-- static or dynamic stash buffer (for recursive calls)
-		head	  [red-value!]
-		tail	  [red-value!]
-		buf-slots [integer!]
-		input	  [byte-ptr!]
-		in-end	  [byte-ptr!]
-		in-pos	  [byte-ptr!]
-		err		  [integer!]
-		entry	  [integer!]							;-- entry state for the FSM
-		path?	  [logic!]								;-- TRUE: loading an any-path!
+		buffer	[red-value!]							;-- static or dynamic stash buffer (for recursive calls)
+		head	[red-value!]
+		tail	[red-value!]
+		slots	[integer!]
+		input	[byte-ptr!]
+		in-end	[byte-ptr!]
+		in-pos	[byte-ptr!]
+		err		[integer!]
+		entry	[integer!]								;-- entry state for the FSM
+		path?	[logic!]								;-- TRUE: loading an any-path!
 	]
 	
 	scanner!: alias function! [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]]
@@ -303,7 +303,7 @@ lexer: context [
 	depth: 0											;-- recursive calls depth
 
 	alloc-slot: func [state [state!] return: [red-value!] /local slot [red-value!]][
-		if state/head + state/buf-slots <= state/tail [
+		if state/head + state/slots <= state/tail [
 			assert false
 			0 ;TBD: expand
 		]
@@ -1244,15 +1244,15 @@ lexer: context [
 	][
 		depth: depth + 1
 		
-		state/buffer:	 stash							;TBD: support dyn buffer case
-		state/head:		 stash
-		state/tail:		 stash
-		state/buf-slots: stash-size						;TBD: support dyn buffer case
-		state/input:	 src
-		state/in-end:	 src + len
-		state/in-pos:	 src
-		state/err:		 0
-		state/entry:	 S_START
+		state/buffer: stash								;TBD: support dyn buffer case
+		state/head:	  stash
+		state/tail:	  stash
+		state/slots:  stash-size						;TBD: support dyn buffer case
+		state/input:  src
+		state/in-end: src + len
+		state/in-pos: src
+		state/err:	  0
+		state/entry:  S_START
 		
 		catch LEX_ERROR [scan-tokens state]
 		if system/thrown > 0 [
