@@ -290,7 +290,7 @@ copy: make action! [[
 
 find: make action! [[
 		"Returns the series where a value is found, or NONE"
-		series	 [series! bitset! typeset! any-object! map! none!]
+		series	 [series! bitset! typeset! map! none!]
 		value 	 [any-type!]
 		/part "Limit the length of the search"
 			length [number! series!]
