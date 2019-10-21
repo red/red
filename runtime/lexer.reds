@@ -284,9 +284,9 @@ lexer: context [
 	]
 	
 	state!: alias struct! [
-		stack	  [red-block!]							;-- pairs of (offset,type)
 		buffer	  [red-value!]							;-- static or dynamic stash buffer (for recursive calls)
-		buf-tail  [red-value!]
+		head	  [red-value!]
+		tail	  [red-value!]
 		buf-slots [integer!]
 		input	  [byte-ptr!]
 		in-end	  [byte-ptr!]
@@ -299,18 +299,17 @@ lexer: context [
 	scanner!: alias function! [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]]
 
 	stash: as cell! 0									;-- special buffer for hatching any-blocks series
-	stack: as red-block! 0								;-- nested series stack
 	stash-size: 1000									;-- pre-allocated cells	number
 	depth: 0											;-- recursive calls depth
 
-	alloc-slot: func [s [state!] return: [red-value!] /local slot [red-value!]][
-		if s/buffer + s/buf-slots <= s/buf-tail [
+	alloc-slot: func [state [state!] return: [red-value!] /local slot [red-value!]][
+		if state/head + state/buf-slots <= state/tail [
 			assert false
 			0 ;TBD: expand
 		]
-		slot: s/buf-tail
+		slot: state/tail
 		slot/header: TYPE_UNSET
-		s/buf-tail: s/buf-tail + 1
+		state/tail: state/tail + 1
 		slot
 	]
 	
@@ -333,40 +332,35 @@ lexer: context [
 		]
 	]
 	
-	open-block: func [state [state!] type [integer!] /local	p [red-pair!]][
-		p: as red-pair! ALLOC_TAIL(state/stack)
-		p/header: TYPE_PAIR
-		p/x: (as-integer state/buf-tail - state/buffer) >> 4
+	open-block: func [state [state!] type [integer!] /local	p [red-pair!] len [integer!]][
+		len: (as-integer state/tail - state/head) >> 4
+		p: as red-pair! alloc-slot state
+		p/header: TYPE_PAIR								;-- use the slot for stack info
+		p/x: len
 		p/y: type
-		alloc-slot state								;-- reserve slot for new block value
-		state/buffer: state/buf-tail
+		
+		state/head: state/tail
 		state/entry: S_START
 		state/path?: no
 	]
 
 	close-block: func [state [state!] type [integer!] force? [logic!]
 		/local	
-			p	 [red-pair!]
-			new	 [red-value!]
-			len	 [integer!]
-			ser	 [series!]
+			p	[red-pair!]
+			len	[integer!]
 	][
-		ser: GET_BUFFER(state/stack)
-		p: as red-pair! ser/tail - 1
-		assert TYPE_OF(p) = TYPE_PAIR
+		p: as red-pair! state/head - 1
+		assert all [state/buffer <= p TYPE_OF(p) = TYPE_PAIR]
 		if all [not force? p/y <> type][throw LEX_ERROR]
-		len: (as-integer state/buf-tail - state/buffer) >> 4
-		new: state/buffer - 1
-		state/buf-tail: state/buffer
-		state/buffer: new - p/x
+		len: (as-integer state/tail - state/head) >> 4
+		state/tail: state/head
+		state/head: as cell! p - p/x
 		
-		store-any-block new state/buf-tail len type
+		store-any-block as cell! p state/tail len type
 		
-		ser/tail: as cell! p
-		assert ser/offset <= ser/tail
-		p: as red-pair! ser/tail - 1					;-- get parent series
+		p: as red-pair! state/head - 1					;-- get parent series
 		either all [
-			ser/offset <= p
+			state/buffer <= p
 			not any [p/y = TYPE_BLOCK p/y = TYPE_PAREN p/y = TYPE_MAP]
 		][												;-- any-path! case
 			state/path?: yes
@@ -835,7 +829,7 @@ lexer: context [
 			if p < e [flags: flags or C_FLAG_ESC_HEX or C_FLAG_CARET]
 		]
 		scan-string state s e flags
-		cell: state/buf-tail - 1
+		cell: state/tail - 1
 		set-type cell TYPE_FILE							;-- preserve header's flags
 		if s/1 = #"^"" [assert e/1 = #"^"" e: e + 1]
 		state/in-pos: e 								;-- reset the input position to delimiter byte
@@ -935,7 +929,7 @@ lexer: context [
 	][
 		assert e/1 = #"%"
 		scan-float state s e flags
-		fl: as red-float! state/buf-tail - 1
+		fl: as red-float! state/tail - 1
 		fl/header: TYPE_PERCENT
 		fl/value: fl/value / 100.0
 		
@@ -1071,7 +1065,7 @@ lexer: context [
 	][
 		flags: flags and not C_FLAG_CARET				;-- clears caret flag
 		scan-string state s e flags
-		cell: state/buf-tail - 1
+		cell: state/tail - 1
 		set-type cell TYPE_TAG							;-- preserve header's flags
 		state/in-pos: e + 1								;-- skip ending delimiter
 	]
@@ -1085,7 +1079,7 @@ lexer: context [
 		p: s while [all [p/1 <> #"%" p < e]][p: p + 1] 	;-- check if any %xx 
 		if p < e [flags: flags or C_FLAG_ESC_HEX or C_FLAG_CARET]
 		scan-string state s - 1 e flags					;-- compensate for lack of starting delimiter
-		cell: state/buf-tail - 1
+		cell: state/tail - 1
 		set-type cell TYPE_URL							;-- preserve header's flags
 		state/in-pos: e 								;-- reset the input position to delimiter byte
 	]
@@ -1097,7 +1091,7 @@ lexer: context [
 	][
 		flags: flags and not C_FLAG_CARET				;-- clears caret flag
 		scan-string state s - 1 e flags					;-- compensate for lack of starting delimiter
-		cell: state/buf-tail - 1
+		cell: state/tail - 1
 		set-type cell TYPE_EMAIL						;-- preserve header's flags
 		state/in-pos: e 								;-- reset the input position to delimiter byte
 	]
@@ -1122,7 +1116,6 @@ lexer: context [
 		/local
 			slot	[cell!]
 			p		[red-pair!]
-			ser		[series!]
 			type	[integer!]
 			cp		[integer!]
 			close?	[logic!]
@@ -1137,11 +1130,10 @@ lexer: context [
 			]
 		]
 		either close? [
-			ser: GET_BUFFER(state/stack)
-			p: as red-pair! ser/tail - 1
+			p: as red-pair! state/head - 1
 			type: p/y
 			if all [e < state/in-end e/1 = #":"][
-				slot: state/buf-tail - 1
+				slot: state/tail - 1
 				if TYPE_OF(slot) = TYPE_SET_WORD [set-type slot TYPE_WORD]
 				type: TYPE_SET_PATH
 			]
@@ -1252,9 +1244,9 @@ lexer: context [
 	][
 		depth: depth + 1
 		
-		state/stack:	 stack
 		state/buffer:	 stash							;TBD: support dyn buffer case
-		state/buf-tail:	 stash
+		state/head:		 stash
+		state/tail:		 stash
 		state/buf-slots: stash-size						;TBD: support dyn buffer case
 		state/input:	 src
 		state/in-end:	 src + len
@@ -1266,17 +1258,14 @@ lexer: context [
 		if system/thrown > 0 [
 			0 ; error handling
 		]
-		assert block/rs-tail? state/stack					;-- stack should be empty
-	
-		slots: (as-integer state/buf-tail - state/buffer) >> 4
-		store-any-block dst state/buffer slots TYPE_BLOCK
+		slots: (as-integer state/tail - state/head) >> 4
+		store-any-block dst state/head slots TYPE_BLOCK
 		
 		depth: depth - 1
 	]
 	
 	init: func [][
 		stash: as cell! allocate stash-size * size? cell!
-		stack: block/make-in root 20
 	]
 
 ]
