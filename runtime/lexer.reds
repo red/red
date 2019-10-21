@@ -511,7 +511,7 @@ lexer: context [
 		index: 1 + as-integer s/2
 		c2: as-integer hexa-table/index					;-- decode low nibble
 		if any [c = -1 c2 = -1][throw LEX_ERROR]
-		cp/value: c c << 4 or c2
+		cp/value: c << 4 or c2
 		s + 2
 	]
 	
