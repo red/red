@@ -2630,6 +2630,10 @@ Red [
         str: "a"
         --assert "" = change/part str "1" next str
         --assert "1" = str
+    ;@@ FIXME: #4099
+    ; --test-- "change-str-9"                             ;-- issue #4099
+    ;     --assert "" = change next s: "/\" reduce [s s s]
+    ;     --assert "//\/\/\" = s
 
 	--test-- "change-bin-1"
 		bin: #{12345678}
@@ -2652,6 +2656,11 @@ Red [
 		bin: change bin [a b]
 		--assert #{9033} = bin
 		--assert #{61629033} = head bin
+    ;@@ FIXME: #4099
+    ; --test-- "change-bin-6"                             ;-- issue #4099
+    ;     --assert #{} = change next t: copy s: #{0110} reduce [s s s]
+    ;     --assert #{} = change next s reduce [s s s]
+    ;     --assert t = s
 
 	--test-- "change-vec-1"
 		vec: make vector! [1 2 3 4]
@@ -2737,6 +2746,11 @@ Red [
 		--assert #"b" = last str
 		--assert empty? str2
 
+    ;@@ FIXME: #4099
+    ; --test-- "change/dup-str-3"                         ;-- issue #4099
+    ;     --assert "" = change/dup next s: "/\" reduce [s s s] 2
+    ;     --assert "//\/\/\/\/\/\" = s
+
 	--test-- "change/dup-bin-1"
 		bin: #{12345678}
 		bin1: change/dup bin #"x" 3
@@ -2749,6 +2763,12 @@ Red [
 		--assert 205 = last bin
 		--assert empty? bin2
 
+    ;@@ FIXME: #4099
+    ; --test-- "change/dup-bin-3"                         ;-- issue #4099
+    ;     --assert #{} = change/dup next t: copy s: #{0110} reduce [s s s] 3
+    ;     --assert #{} = change/dup next s reduce [s s s] 3
+    ;     --assert t = s
+
 	--test-- "change/dup-vec-1"
 		vec: make vector! [1 2 3 4]
 		vec1: change/dup vec 5 3
@@ -2760,6 +2780,7 @@ Red [
 		change/dup hs [x y] 2
 		--assert 'y = select hs 'x
 		--assert 3  = select hs 2
+
 ===end-group===
 
 ===start-group=== "change/part"
@@ -2994,6 +3015,11 @@ Red [
         --assert "e" = change/part/dup skip s: "abcde" 4 "!" -3 0
         --assert "ae" = s
 
+    ;@@ FIXME: #4099
+    ; --test-- "change/part-str-19"                       ;-- issue #4099
+    ;     --assert "\" = change/part/dup next s: "/\" reduce [s s s] 0 2
+    ;     --assert "//\/\/\/\/\/\\" = s
+
 	--test-- "change/part-bin-1"
 		bin: #{12345678}
 		bin1: change/part bin #"x" 3
@@ -3017,7 +3043,13 @@ Red [
 		--assert val = first bin3
 		--assert 5 = length? bin
 		--assert 120 = first bin
-	;--test-- "change/part-vec-1"
+
+    ;@@ FIXME: #4099
+    ; --test-- "change/part-bin-5"                        ;-- issue #4099
+    ;     t: copy s: #{0110}
+    ;     --assert #{} = change/part/dup next t reduce [s s s] 0 3
+    ;     --assert #{} = change/part/dup next s reduce [s s s] 0 3
+    ;     --assert t = s
 
 	--test-- "change/part-hash-1"
 		hs: make hash! [a b c 1 2 3]
@@ -3035,12 +3067,11 @@ Red [
         --assert (make hash! [1 2 3]) = change/part b: make hash! [1 2 3] tail b b
         --assert (make hash! [1 2 3]) = b
 
-    ;@@ FIXME: hash table troubles
-    ; --test-- "change/part-hash-4"                       ;-- issue #4088
-    ;     --assert (make hash! [1 2 3]) = probe change/part b: make hash! [1 2 3] next b b
-    ;     --assert (make hash! [2 3 1 2 3]) = probe b
-    ;     --assert (make hash! [2 3 1 2 3]) = probe change/part b next b b
-    ;     --assert (make hash! [3 1 2 3 2 3 1 2 3]) = probe b
+    --test-- "change/part-hash-4"                       ;-- issue #4088
+        --assert (make hash! [1 2 3]) = change/part b: make hash! [1 2 3] next b b
+        --assert (make hash! [2 3 1 2 3]) = b
+        --assert (make hash! [2 3 1 2 3]) = change/part b next b b
+        --assert (make hash! [3 1 2 3 2 3 1 2 3]) = b
 
     --test-- "change/part-hash-5"                       ;-- issue #4088
         --assert (make hash! [3]) = change/part next b: make hash! [1 2 3] b skip b 2
