@@ -46,6 +46,10 @@ Red/System [
 #define MI_PAGE_FLAG_ALIGNED	2
 
 mimalloc: context [
+
+	ptr-ptr!: alias struct! [value [int-ptr!]]
+	#define ptr-value! [ptr-ptr! value]
+
 	#enum delayed-free! [
 		NO_DELAYED_FREE
 		USE_DELAYED_FREE
@@ -303,18 +307,17 @@ mimalloc: context [
 			td	[thread-data!]
 	][
 		hp: heap-default
-		either hp/thread-id = 0 [
+		either null? hp/thread-id [
 			heap-default: heap-main
 		][
 			thread-id-cnt: thread-id-cnt + 1
-			td: OS-mem-alloc size? thread-data! yes stats-main
+			td: as thread-data! OS-mem-alloc size? thread-data! yes stats-main
 			tld: td/tld
 			hp: td/heap
-			hp/thread_id: thread-id-cnt
+			hp/thread-id: as int-ptr! thread-id-cnt
 			hp/tld: tld
-			tld/heap-backing: heap
+			tld/heap-backing: hp
 			tld/segments/stats: tld/stats
-			heap-
 		]
 	]
 
@@ -323,5 +326,41 @@ mimalloc: context [
 			bheap	[heap!]
 	][
 		
+	]
+
+	;== main allocation function
+	heap-alloc: func [
+		heap	[heap!]
+		size	[integer!]
+	][
+		assert heap <> null
+		either size <= (128 * size? int-ptr!) [
+			heap-alloc-small heap size
+		][
+			heap-alloc-generic heap size
+		]
+	]
+
+	heap-alloc-small: func [
+		heap	[heap!]
+		size	[integer!]
+		return: [page!]
+		/local
+			idx	[integer!]
+			p	[ptr-ptr!]
+	][
+		idx: (size - 1 + size? int-ptr!) / size? int-ptr!
+		p: (as ptr-ptr! :heap/pages-direct) + idx
+		as page! p/value
+	]
+
+	heap-alloc-generic: func [
+		heap	[heap!]
+		size	[integer!]
+		return: [page!]
+		/local
+			idx		[integer!]
+	][
+		null
 	]
 ]
