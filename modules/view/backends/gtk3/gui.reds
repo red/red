@@ -10,6 +10,8 @@ Red/System [
 	}
 ]
 
+#define SET-CONTAINER(s d)		[g_object_set_qdata s container-id d]
+#define GET-CONTAINER(s)		[g_object_get_qdata s container-id]
 #define SET-CURSOR(s d)			[g_object_set_qdata s cursor-id d]
 #define GET-CURSOR(s)			[g_object_get_qdata s cursor-id]
 #define SET-RESIZING(s d)		[g_object_set_qdata s resizing-id d]
@@ -49,7 +51,7 @@ red-face-id2:		g_quark_from_string "red-face-id2"
 red-face-id3:		g_quark_from_string "red-face-id3"
 red-face-id4:		g_quark_from_string "red-face-id4"
 gtk-style-id: 		g_quark_from_string "gtk-style-id"
-win-layout-id:		g_quark_from_string "win-layout-id"
+container-id:		g_quark_from_string "container-id"
 red-timer-id:		g_quark_from_string "red-timer-id"
 css-id:				g_quark_from_string "css-id"
 size-id:			g_quark_from_string "size-id"
@@ -224,7 +226,7 @@ get-face-layout: func [
 			sym = area
 			sym = text-list
 		][
-			gtk_widget_get_parent widget
+			GET-CONTAINER(widget)
 		]
 		true [
 			widget
@@ -261,7 +263,7 @@ set-widget-child: func [
 	clayout: get-face-layout widget cvalues csym
 	case [
 		sym = window [
-			playout: g_object_get_qdata parent win-layout-id
+			playout: GET-CONTAINER(parent)
 			gtk_layout_put playout clayout x y
 			true
 		]
@@ -831,7 +833,7 @@ change-pane: func [
 
 	layout: case [
 		type = window [
-			g_object_get_qdata parent win-layout-id
+			GET-CONTAINER(parent)
 		]
 		type = group-box [
 			gtk_bin_get_child parent
@@ -1138,7 +1140,7 @@ change-data: func [
 			;;DEBUG: print ["text-list updated" lf]
 			gtk_container_foreach widget as-integer :remove-entry widget
 			init-text-list widget as red-block! data selected
-			gtk_widget_show_all widget
+			gtk_widget_show widget
 		]
 		any [type = drop-list type = drop-down][
 			init-combo-box widget as red-block! data null type = drop-list
@@ -1265,7 +1267,7 @@ set-logic-state: func [
 		state/value: check?
 		either check? [-1][0]
 	][
-		as-integer state/value							;-- returns 0/1, matches the messages
+		as-integer state/value								;-- returns 0/1, matches the messages
 	]
 	gtk_toggle_button_set_active widget as logic! value
 	if value = -1 [gtk_toggle_button_set_inconsistent widget true]
@@ -1650,6 +1652,8 @@ OS-make-view: func [
 		null
 	]
 
+	container: null
+
 	case [
 		sym = check [
 			widget: gtk_check_button_new_with_label caption
@@ -1705,7 +1709,6 @@ OS-make-view: func [
 			container: gtk_layout_new null null
 			gtk_layout_set_size container size/x size/y
 			gtk_widget_show container
-			g_object_set_qdata widget win-layout-id container
 			gtk_box_pack_start winbox container yes yes 0
 			gtk_window_move widget offset/x offset/y
 
@@ -1769,9 +1772,9 @@ OS-make-view: func [
 			widget: gtk_frame_new caption
 			gtk_frame_set_shadow_type widget 3
 			gtk_frame_set_label_align widget 0.5 0.5		; Todo: does not seem to work
-			container: gtk_layout_new null null
-			gtk_widget_show container
-			gtk_container_add widget container
+			buffer: gtk_layout_new null null
+			gtk_widget_show buffer
+			gtk_container_add widget buffer
 		]
 		sym = panel [
 			widget: gtk_layout_new null null
@@ -1783,7 +1786,6 @@ OS-make-view: func [
 		sym = text-list [
 			widget: gtk_list_box_new
 			init-text-list widget data selected
-			;gtk_list_box_select_row widget gtk_list_box_get_row_at_index widget 0
 			container: gtk_scrolled_window_new null null
 			if bits and FACET_FLAGS_NO_BORDER = 0 [
 				gtk_scrolled_window_set_shadow_type container 3
@@ -1810,6 +1812,7 @@ OS-make-view: func [
 		]
 	]
 
+	unless null? container [SET-CONTAINER(widget container)]
 	;-- store the face value in the extra space of the window struct
 	assert TYPE_OF(face) = TYPE_OBJECT
 	store-face-to-obj widget face

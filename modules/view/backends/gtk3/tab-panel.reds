@@ -76,7 +76,6 @@ update-tabs: func [
 	part		[integer!]
 	/local
 		widget	[handle!]
-		parent	[handle!]
 		str		[red-string!]
 ][
 	widget: get-face-handle face
