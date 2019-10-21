@@ -293,7 +293,6 @@ lexer: context [
 		in-pos	[byte-ptr!]
 		err		[integer!]
 		entry	[integer!]								;-- entry state for the FSM
-		path?	[logic!]								;-- TRUE: loading an any-path!
 	]
 	
 	scanner!: alias function! [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]]
@@ -341,7 +340,6 @@ lexer: context [
 		
 		state/head: state/tail							;-- points just after p
 		state/entry: S_START
-		state/path?: no
 	]
 
 	close-block: func [state [state!] type [integer!] force? [logic!]
@@ -363,10 +361,8 @@ lexer: context [
 			state/buffer <= p
 			not any [p/y = TYPE_BLOCK p/y = TYPE_PAREN p/y = TYPE_MAP]
 		][												;-- any-path! case
-			state/path?: yes
 			state/entry: S_PATH
 		][
-			state/path?: no
 			state/entry: S_START
 		]
 	]
@@ -805,7 +801,7 @@ lexer: context [
 			case [
 				s/1 = #":" [s: s + 1 type: TYPE_GET_WORD]
 				e/0 = #":" [e: e - 1 type: TYPE_SET_WORD]
-				all [e/1 = #":" state/path?][0]			;-- do nothing if in a path
+				all [e/1 = #":" state/entry = S_PATH][0] ;-- do nothing if in a path
 				true	   [throw LEX_ERROR]
 			]
 		]
@@ -1108,7 +1104,6 @@ lexer: context [
 		open-block state type							;-- open a new path series
 		scan-word state s e flags						;-- load the head word
 		state/entry: S_PATH								;-- overwrites the S_START set by open-block
-		state/path?: yes								;-- overwrites the no value set by open-block
 		state/in-pos: e + 1								;-- skip /
 	]
 	
@@ -1224,8 +1219,8 @@ lexer: context [
 			do-scan: as scanner! scanners/index
 			do-scan lex start + offset p flags
 			
-			if all [lex/path? state <> T_PATH][
-				scan-path-item lex start + offset lex/in-pos flags
+			if all [lex/entry = S_PATH state <> T_PATH][
+				scan-path-item lex start + offset lex/in-pos flags ;-- lex/in-pos could have changed
 			]
 			lex/in-pos >= lex/in-end
 		]
