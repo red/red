@@ -115,7 +115,7 @@ tls: context [
 		]
 
 		if key-type <> 0 [
-			result: allocate blob-size
+			result: allocate blob-size/value
 			CryptDecodeObjectEx
 				00010001h
 				as c-string! key-type
@@ -142,7 +142,6 @@ tls: context [
 		ctx			[CERT_CONTEXT]
 		blob		[byte-ptr!]
 		type		[integer!]
-		return:		[integer!]
 		/local
 			status		[integer!]
 			pub-blob	[CRYPT_BIT_BLOB]
@@ -190,7 +189,7 @@ tls: context [
 				0 [
 				nc-buf/cbBuffer: 11 * 2	;-- bytes of the pvBuffer
 				nc-buf/BufferType: 45	;-- NCRYPTBUFFER_PKCS_KEY_NAME
-				nc-buf/pvBuffer: #u16 "RedAliasKey"
+				nc-buf/pvBuffer: as byte-ptr! #u16 "RedAliasKey"
 				nc-desc/ulVersion: 0
 				nc-desc/cBuffers: 1
 				nc-desc/pBuffers: nc-buf
@@ -201,21 +200,21 @@ tls: context [
 
 				if zero? NCryptImportKey
 					provider/value
-					0
+					null
 					type-str
-					nc-desc
+					as int-ptr! :nc-desc
 					h-key
-					key-blob
-					blob-size
+					as byte-ptr! key-blob
+					:blob-size
 					80h	[	;-- NCRYPT_OVERWRITE_KEY_FLAG
 					NCryptFreeObject h-key/value
 				]
 
 				NCryptFreeObject provider/value
-				unless CertSetCertificateContextProperty ctx 2 0 prov-info [
+				unless CertSetCertificateContextProperty ctx 2 0 as byte-ptr! :prov-info [
 					probe "CertSetCertificateContextProperty failed"
 				]
-				free key-blob
+				free as byte-ptr! key-blob
 			][
 				probe "NCryptOpenStorageProvider failed"
 			]
@@ -244,8 +243,8 @@ tls: context [
 		]
 		size: simple-io/file-size? file
 		buffer: allocate size
-		len: read-data file buffer size
-		close-file file
+		len: simple-io/read-data file buffer size
+		simple-io/close-file file
 
 		cert-bin: cert-to-bin buffer len :size
 		ctx: CertCreateCertificateContext 00010001h cert-bin size
@@ -263,8 +262,8 @@ tls: context [
 		]
 		size: simple-io/file-size? file
 		buffer: allocate size
-		len: read-data file buffer size
-		close-file file
+		len: simple-io/read-data file buffer size
+		simple-io/close-file file
 
 		key-type: 0
 		pkey-bin: cert-to-bin buffer len :size
@@ -275,6 +274,7 @@ tls: context [
 		free buffer
 		free pkey-bin
 		free decoded
+		ctx
 	]
 
 	create-credentials: func [
