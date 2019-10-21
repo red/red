@@ -339,7 +339,7 @@ lexer: context [
 		p/x: len
 		p/y: type
 		
-		state/head: state/tail
+		state/head: state/tail							;-- points just after p
 		state/entry: S_START
 		state/path?: no
 	]
@@ -356,7 +356,7 @@ lexer: context [
 		state/tail: state/head
 		state/head: as cell! p - p/x
 		
-		store-any-block as cell! p state/tail len type
+		store-any-block as cell! p state/tail len type	;-- p slot gets overwritten here
 		
 		p: as red-pair! state/head - 1					;-- get parent series
 		either all [
@@ -632,8 +632,7 @@ lexer: context [
 	][
 		type: either s/1 = #")" [TYPE_PAREN][TYPE_BLOCK]
 		close-block state type no
-		e: either all [state/path? e/2 = #"/"][e + 2][e + 1]
-		state/in-pos: e									;-- skip ending delimiter and eventual /
+		state/in-pos: e	+ 1								;-- skip ending delimiter
 	]
 
 	scan-string: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
@@ -806,6 +805,7 @@ lexer: context [
 			case [
 				s/1 = #":" [s: s + 1 type: TYPE_GET_WORD]
 				e/0 = #":" [e: e - 1 type: TYPE_SET_WORD]
+				all [e/1 = #":" state/path?][0]			;-- do nothing if in a path
 				true	   [throw LEX_ERROR]
 			]
 		]
@@ -1101,8 +1101,8 @@ lexer: context [
 			type [integer!]
 	][
 		type: switch s/1 [
-			#"'" [s: s + 1 TYPE_LIT_PATH]
-			#":" [s: s + 1 TYPE_GET_PATH]
+			#"'" [s: s + 1 flags: flags and not C_FLAG_QUOTE TYPE_LIT_PATH]
+			#":" [s: s + 1 flags: flags and not C_FLAG_COLON TYPE_GET_PATH]
 			default [TYPE_PATH]
 		]
 		open-block state type							;-- open a new path series
@@ -1114,17 +1114,15 @@ lexer: context [
 	
 	scan-path-item: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
-			slot	[cell!]
 			p		[red-pair!]
 			type	[integer!]
 			cp		[integer!]
 			close?	[logic!]
-			force?	[logic!]
 	][
 		close?: either e >= state/in-end [yes][			;-- EOF reached
 			cp: 1 + as-integer e/1
 			switch lex-classes/cp and FFh [
-				C_BLANK C_LINE C_BLOCK_OP C_BLOCK_CL
+				C_BLANK C_LINE C_BLOCK_OP C_BLOCK_CL C_COLON
 				C_PAREN_OP C_PAREN_CL C_STRING_OP C_DBL_QUOTE [yes]
 				default [no]
 			]
@@ -1133,12 +1131,12 @@ lexer: context [
 			p: as red-pair! state/head - 1
 			type: p/y
 			if all [e < state/in-end e/1 = #":"][
-				slot: state/tail - 1
-				if TYPE_OF(slot) = TYPE_SET_WORD [set-type slot TYPE_WORD]
 				type: TYPE_SET_PATH
+				state/in-pos: e + 1						;-- skip :
 			]
 			close-block state type yes
 		][
+			if all [e < state/in-end e/1 = #":"][throw LEX_ERROR] ;-- set-words not allowed inside paths
 			state/in-pos: e + 1							;-- skip /
 		]
 	]
@@ -1225,8 +1223,10 @@ lexer: context [
 			index: state - --EXIT_STATES--
 			do-scan: as scanner! scanners/index
 			do-scan lex start + offset p flags
-			if lex/path? [scan-path-item lex start + offset p flags]
 			
+			if all [lex/path? state <> T_PATH][
+				scan-path-item lex start + offset lex/in-pos flags
+			]
 			lex/in-pos >= lex/in-end
 		]
 		assert lex/in-pos = lex/in-end
@@ -1256,7 +1256,7 @@ lexer: context [
 		
 		catch LEX_ERROR [scan-tokens state]
 		if system/thrown > 0 [
-			0 ; error handling
+			probe "Syntax error"						;TBD: error handling
 		]
 		slots: (as-integer state/tail - state/head) >> 4
 		store-any-block dst state/head slots TYPE_BLOCK
