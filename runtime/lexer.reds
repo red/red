@@ -100,6 +100,10 @@ lexer: context [
 		0000000000000000000000000000000000000000000000000000000000000000
 		00000000000000000000
 	}
+
+	path-ending: #{
+		010100000101010101000100000100000000000000010001000000000000000001
+	}
 	
 	bin16-classes: #{
 		0000000000000000000102000001000000000000000000000000000000000000
@@ -1112,15 +1116,13 @@ lexer: context [
 			p		[red-pair!]
 			type	[integer!]
 			cp		[integer!]
+			index	[integer!]
 			close?	[logic!]
 	][
 		close?: either e >= state/in-end [yes][			;-- EOF reached
 			cp: 1 + as-integer e/1
-			switch lex-classes/cp and FFh [
-				C_BLANK C_LINE C_BLOCK_OP C_BLOCK_CL C_COLON
-				C_PAREN_OP C_PAREN_CL C_STRING_OP C_DBL_QUOTE [yes]
-				default [no]
-			]
+			index: lex-classes/cp and FFh + 1			;-- query the class of ending character
+			as-logic path-ending/index					;-- lookup if the character class is ending path
 		]
 		either close? [
 			p: as red-pair! state/head - 1
