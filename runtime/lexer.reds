@@ -138,6 +138,16 @@ lexer: context [
 
 	;-- Bit-array for /-~^{}"
 	char-special: #{0000000004A00000000000400000006800000000000000000000000000000000}
+	
+	escape-names: [
+		"null"	4	00h
+		"back"	4	08h
+		"tab" 	3	09h
+		"line"	4	0Ah
+		"page"	4	0Ch
+		"esc" 	3	1Bh
+		"del" 	3	7Fh
+	]
 
 	lex-classes: [
 		(C_EOF or C_FLAG_EOF)							;-- 00		NUL
@@ -509,13 +519,11 @@ lexer: context [
 		/local
 			p	  [byte-ptr!]
 			src	  [byte-ptr!]
-			word  [c-string!]
 			len	  [integer!]
 			c	  [integer!]
 			pos	  [integer!]
 			index [integer!]
-			skip  [integer!]
-			res	  [integer!]
+			entry [int-ptr!]
 			cb	  [byte!]
 			bit	  [byte!]
 	][
@@ -537,22 +545,17 @@ lexer: context [
 				if any [p = e p/1 <> #")" (as-integer p - s) > 7][throw LEX_ERROR] ;-- limit of 6 hexa characters.
 				p: p + 1								;-- skip )
 			][											;-- named escaped char
-				cb: s/2
-				if cb < #"a" [cb: cb or #"^(20)"]
-				src: s + 2
-				word: switch cb [
-					#"n" [c: 00h skip: 4 "ull"]
-					#"b" [c: 08h skip: 4 "ack"]
-					#"t" [c: 09h skip: 3 "ab" ]
-					#"l" [c: 0Ah skip: 4 "ine"]
-					#"p" [c: 0Ch skip: 4 "age"]
-					#"e" [c: 1Bh skip: 3 "sc" ]
-					#"d" [c: 7Fh skip: 3 "el" ]
-					default [assert false null]
+				src: s + 1								;-- skip (
+				entry: escape-names
+				loop 7 [
+					if zero? platform/strnicmp src as byte-ptr! entry/1 entry/2 [break]
+					entry: entry + 3
 				]
-				res: platform/strnicmp src as byte-ptr! word skip - 1
-				if any [res <> 0 src/skip <> #")"][throw LEX_ERROR]
-				p: src + skip
+				assert escape-names + (7 * 3) > entry 
+				len: entry/2 + 1
+				if src/len <> #")" [throw LEX_ERROR]
+				c: entry/3
+				p: src + len
 			]
 		][
 			c: as-integer s/1
