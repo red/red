@@ -331,6 +331,7 @@ Red/System [
 #define FLAG_NOT?(s)		(s/flags and flag-bitset-not <> 0)
 #define SET_RETURN(value)	[stack/set-last as red-value! value]
 #define TO_ERROR(cat id)	[#in system/catalog/errors cat #in system/catalog/errors/cat id]
+#define VALID_BUFFER?(buf)	[not zero? (buf/flags and series-in-use)]	;-- checks if buffer hasn't been freed
 
 #define PLATFORM_TO_CSTR(cstr str len) [	;-- len in bytes
 	len: -1
