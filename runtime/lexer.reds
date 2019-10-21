@@ -537,7 +537,7 @@ lexer: context [
 				cb: as byte! 0
 				while [all [p/1 <> #")" p < e]][
 					index: 1 + as-integer p/1			;-- converts the 2 hex chars using a lookup table
-					cb: hexa-table/index				;-- decode nibble
+					cb: hexa-table/index				;-- decode one nibble at a time
 					if cb = #"^(FF)" [throw LEX_ERROR]
 					c: c << 4 + as-integer cb
 					p: p + 1
@@ -603,13 +603,28 @@ lexer: context [
 		state/in-pos: e + 1								;-- skip delimiter
 	]
 
-	scan-block-close: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-block-close: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]][
+		close-block state TYPE_BLOCK no
+		state/in-pos: e	+ 1								;-- skip ]
+	]
+	
+	scan-paren-close: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
+			p	 [red-pair!]
+			blk	 [red-block!]
 			type [integer!]
 	][
-		type: either s/1 = #")" [TYPE_PAREN][TYPE_BLOCK]
-		close-block state type no
-		state/in-pos: e	+ 1								;-- skip ending delimiter
+		p: as red-pair! state/head - 1
+		assert p >= state/buffer
+		type: p/y
+		close-block state type yes
+		
+		if type = TYPE_MAP [
+			blk: as red-block! p
+			blk/header: TYPE_BLOCK						;-- forces a block type
+			map/make-at as cell! blk blk block/rs-length? blk
+		]
+		state/in-pos: e	+ 1								;-- skip )
 	]
 
 	scan-string: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
@@ -875,10 +890,9 @@ lexer: context [
 		state/in-pos: e + 1								;-- skip ending delimiter
 	]
 	
-	scan-map-open: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
-	;	/local
-	][
-		null
+	scan-map-open: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]][
+		open-block state TYPE_MAP
+		state/in-pos: e + 1								;-- skip (
 	]
 	
 	scan-construct: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
@@ -1121,7 +1135,7 @@ lexer: context [
 		:scan-block-open								;-- T_BLK_OP
 		:scan-block-close								;-- T_BLK_CL
 		:scan-block-open								;-- T_PAR_OP
-		:scan-block-close								;-- T_PAR_CL
+		:scan-paren-close								;-- T_PAR_CL
 		:scan-string									;-- T_STRING
 		:scan-word										;-- T_WORD
 		:scan-file										;-- T_FILE
