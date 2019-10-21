@@ -493,10 +493,9 @@ free-handles: func [
 	state/header: TYPE_NONE
 ]
 
-; on-gc-mark: does [
-; 	collector/keep flags-blk/node
-; 	collector/keep win-array/node
-; ]
+on-gc-mark: does [
+	collector/keep flags-blk/node
+]
 
 show-gtk-version: func [][
 	print [ "GTK VERSION: " gtk_get_major_version "." gtk_get_minor_version "." gtk_get_micro_version lf]
@@ -595,7 +594,6 @@ init: func [][
 		probe "ERROR: GTK: Cannot acquire main context" halt
 	]
 	g_application_register GTKApp null null
-	;;;vector/make-at as red-value! win-array 8 TYPE_INTEGER 4
 
 	screen-size-x: gdk_screen_width
 	screen-size-y: gdk_screen_height
@@ -603,7 +601,7 @@ init: func [][
 	set-defaults
 
 	#if type = 'exe [red-gtk-styles]
-	;;;collector/register as int-ptr! :on-gc-mark
+	collector/register as int-ptr! :on-gc-mark
 ]
 
 get-symbol-name: function [
@@ -1197,8 +1195,7 @@ change-selection: func [
 	; 		]
 	; 	]
 		type = text-list [
-			item: gtk_list_box_get_row_at_index widget idx
-			gtk_list_box_select_row widget item
+			select-text-list widget idx
 		]
 		any [type = drop-list type = drop-down][
 			gtk_combo_box_set_active widget idx
@@ -1720,6 +1717,10 @@ OS-make-view: func [
 			][
 				gtk_window_set_decorated widget yes
 			]
+		]
+		sym = camera [
+			widget: gtk_layout_new null null
+			gtk_layout_set_size widget size/x size/y
 		]
 		sym = slider [
 			vertical?: size/y > size/x

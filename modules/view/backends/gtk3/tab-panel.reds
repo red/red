@@ -40,8 +40,8 @@ select-tab: func [
 	widget		[handle!]
 	int			[red-integer!]
 	/local
-		nb	[integer!]
-		idx [integer!]
+		nb		[integer!]
+		idx		[integer!]
 ][
 	nb: gtk_notebook_get_n_pages widget
 	idx: int/value

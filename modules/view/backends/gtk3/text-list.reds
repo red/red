@@ -10,6 +10,18 @@ Red/System [
 	}
 ]
 
+select-text-list: func [
+	widget		[handle!]
+	int			[integer!]
+	/local
+		item	[handle!]
+][
+	item: gtk_list_box_get_row_at_index widget int
+	unless null? item [
+		gtk_list_box_select_row widget item
+	]
+]
+
 init-text-list: func [
 	widget		[handle!]
 	data		[red-block!]
@@ -21,7 +33,6 @@ init-text-list: func [
 		len		[integer!]
 		label	[handle!]
 		type	[integer!]
-		item	[handle!]
 ][
 	if any [
 		TYPE_OF(data) = TYPE_BLOCK
@@ -37,6 +48,7 @@ init-text-list: func [
 				len: -1
 				val: unicode/to-utf8 str :len
 				label: gtk_label_new val
+				gtk_widget_show label
 				gtk_widget_set_halign label 1				;-- GTK_ALIGN_START
 				gtk_container_add widget label
 			]
@@ -48,8 +60,7 @@ init-text-list: func [
 		selected/header: TYPE_INTEGER
 		selected/value: -1
 	][
-		item: gtk_list_box_get_row_at_index widget selected/value
-		gtk_list_box_select_row widget item
+		select-text-list widget selected/value
 	]
 ]
 
