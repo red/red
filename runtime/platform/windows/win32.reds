@@ -83,7 +83,7 @@ platform: context [
 		as c-string! path
 	]
 
-	wait: func [time [integer!]][Sleep time]
+	wait: func [time [integer!]][OS-Sleep time]
 
 	set-current-dir: func [
 		path	[c-string!]

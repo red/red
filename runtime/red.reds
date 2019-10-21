@@ -24,7 +24,8 @@ red: context [
 		FreeBSD  [#include %platform/freebsd/freebsd.reds]
 		#default [#include %platform/linux/linux.reds]	;-- Linux or Android
 	]
-	
+
+	#include %queue.reds
 	#include %threads.reds
 	#include %allocator.reds
 	#include %crush.reds
@@ -147,6 +148,7 @@ red: context [
 		boot?: yes
 		dyn-print/init
 		platform/init
+		threadpool/init
 		_random/init
 		init-mem										;@@ needs a local context
 		

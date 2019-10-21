@@ -10,6 +10,10 @@ Red/System [
 	}
 ]
 
+;#define handle! int-ptr!
+;#include %queue.reds
+;#include %platform/definitions.reds
+
 thread-func!: alias function! [
 	udata	[int-ptr!]			;-- user data
 	return: [integer!]
@@ -75,6 +79,18 @@ thread: context [
 				return:		[logic!]
 			]
 		]
+	]
+
+	processor-count: func [
+		return: [integer!]
+		/local
+			info [tagSYSTEM_INFO value]
+			n	 [integer!]
+	][
+		set-memory as byte-ptr! :info null-byte size? tagSYSTEM_INFO
+		GetNativeSystemInfo :info
+		n: info/dwNumberOfProcessors		;-- maximum number of threads
+		either zero? n [1][n]
 	]
 
 	start: func [
@@ -299,3 +315,153 @@ thread: context [
 ]
 
 ]
+
+threadpool: context [
+	task!: alias struct! [
+		handler		[int-ptr!]	;-- thread-func!
+		data		[int-ptr!]	;-- user data
+		status		[integer!]	;-- status of the task
+	]
+
+	worker!: alias struct! [
+		running?	[logic!]
+		idle-tm		[integer!]	;-- if a worker idle too long, exit it
+		handle		[handle!]	;-- thread handle
+	]
+
+	tasks: as queue! 0
+	workers: as ptr-ptr! 0
+	n-worker: 0
+	n-max: 0
+
+	worker-func: func [
+		#if OS <> 'Windows [[cdecl]]
+		self	[worker!]
+		/local
+			task	[task!]
+			handler	[thread-func!]
+	][
+		while [self/running?][
+			task: as task! queue/pop tasks
+			either task <> null [
+				self/idle-tm: 0
+				handler: as thread-func! task/handler
+				handler task/data
+			][
+				self/idle-tm: self/idle-tm + 1
+				OS-Sleep 1
+			]
+		]
+	]
+	
+	init: func [][
+		tasks: queue/create 2000
+		n-max: -1 + thread/processor-count		;-- max count - 1
+		workers: as ptr-ptr! allocate n-max * size? int-ptr!
+	]
+
+	add-worker: func [/local w [worker!] pp [ptr-ptr!]][
+		w: as worker! allocate size? worker!
+		w/running?: yes
+		w/idle-tm: 0
+		pp: (as ptr-ptr! workers) + n-worker
+		pp/value: as int-ptr! w
+		n-worker: n-worker + 1
+		w/handle: thread/start as int-ptr! :worker-func as int-ptr! w 0
+	]
+
+	add-task: func [
+		handler [int-ptr!]
+		data	[int-ptr!]
+		return: [logic!]
+		/local
+			task	[task!]
+			res		[logic!]
+	][
+		task: as task! allocate size? task!
+		task/handler: handler
+		task/data: data
+		res: queue/push tasks as int-ptr! task
+		if all [
+			n-worker < n-max
+			2 < queue/size tasks
+		][
+			add-worker
+		]
+		res
+	]
+
+	wait: func [
+		/local
+			pp	[ptr-ptr!]
+			w	[worker!]
+			n	[integer!]
+			ret [integer!]
+			sz	[integer!]
+	][
+		until [
+			n: 0
+			sz: queue/size tasks
+			while [n < n-worker][
+				pp: (as ptr-ptr! workers) + n
+				w: as worker! pp/value
+				ret: 0
+				thread/wait w/handle -1 :ret
+				if sz <= (n-max * 2) [w/running?: no]
+				n: n + 1
+			]
+			zero? queue/size tasks
+		]
+	]
+
+	destroy: func [][]
+]
+
+comment {
+func1: func [data [int-ptr!]][
+	probe "1"
+	OS-Sleep 10000
+	probe "11"
+]
+
+func2: func [data [int-ptr!]][
+	probe "2"
+	OS-Sleep 10000
+	probe "22"
+]
+
+func3: func [data [int-ptr!]][
+	probe "3"
+	OS-Sleep 10000
+	probe "33"
+]
+
+funcN: func [data [int-ptr!]][
+	probe data/value
+	OS-Sleep 2000
+	probe data/value * 2
+]
+
+test: func [
+	/local
+		n	[integer!]
+		p	[int-ptr!]
+][
+	threadpool/init
+	threadpool/add-task as int-ptr! :func1 null
+	threadpool/add-task as int-ptr! :func2 null
+	threadpool/add-task as int-ptr! :func3 null
+	n: 3
+	loop 100 [
+		n: n + 1
+		p: as int-ptr! allocate size? int-ptr!
+		p/value: n
+		threadpool/add-task as int-ptr! :funcN p
+	]
+	probe "waiting..."
+	threadpool/wait
+	probe "done"
+]
+
+test
+}

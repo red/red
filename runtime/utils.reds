@@ -66,7 +66,7 @@ Red/System [
 	][
 		set-memory as byte-ptr! :info null-byte size? tagSYSTEM_INFO
 		GetNativeSystemInfo :info
-		n: info/dwNumberOfProcessors
+		n: info/dwNumberOfProcessors		;-- maximum number of threads
 		either zero? n [1][n]
 	]
 ][

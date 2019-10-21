@@ -729,7 +729,7 @@ SecurityFunctionTableW: alias struct! [
 			tz				[tagTIME_ZONE_INFORMATION]
 			return:			[integer!]
 		]
-		Sleep: "Sleep" [
+		OS-Sleep: "Sleep" [
 			dwMilliseconds	[integer!]
 		]
 		lstrlen: "lstrlenW" [
