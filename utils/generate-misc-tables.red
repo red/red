@@ -57,11 +57,11 @@ gen-hexa-table: function [][
 	
 	repeat i 256 [
 		c: to-char i - 1
-		append out to-char case [
-			find digit c [c - #"0"]
-			find upper c [c - #"A" + 10]
-			find lower c [c - #"a" + 10]
-			'else		 [0]
+		append out case [
+			find digit c [to-char c - #"0"]
+			find upper c [to-char c - #"A" + 10]
+			find lower c [to-char c - #"a" + 10]
+			'else		 [#{FF}]
 		]
 	]
 	print "--gen-hexa-table-- (lexer/hexa-table)"

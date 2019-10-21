@@ -123,14 +123,14 @@ lexer: context [
 	}
 	
 	hexa-table: #{
-		0000000000000000000000000000000000000000000000000000000000000000
-		0000000000000000000000000000000000010203040506070809000000000000
-		000A0B0C0D0E0F00000000000000000000000000000000000000000000000000
-		000A0B0C0D0E0F00000000000000000000000000000000000000000000000000
-		0000000000000000000000000000000000000000000000000000000000000000
-		0000000000000000000000000000000000000000000000000000000000000000
-		0000000000000000000000000000000000000000000000000000000000000000
-		0000000000000000000000000000000000000000000000000000000000000000
+		FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+		FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00010203040506070809FFFFFFFFFFFF
+		FF0A0B0C0D0E0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+		FF0A0B0C0D0E0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+		FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+		FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+		FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+		FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 	}
 	
 	;-- Bit-array for BDELNPTbdelnpt
@@ -490,34 +490,19 @@ lexer: context [
 	
 	scan-percent-char: func [s [byte-ptr!] e [byte-ptr!] cp [int-ptr!] return: [byte-ptr!]
 		/local
-			p	  [byte-ptr!]
 			c	  [integer!]
+			c2	  [integer!]
 			index [integer!]
-			class [integer!]
-			cb	  [byte!]
 	][
+		if s + 1 >= e [throw LEX_ERROR]
 		c: 0
-		cb: as byte! 0
-		loop 2 [
-			either s/1 = #"0" [c: c << 4][
-				index: 1 + as-integer s/1
-				class: lex-classes/index
-				switch class [
-					C_DIGIT  [cb: s/1 - #"0"]
-					C_EXP
-					C_ALPHAX [
-						cb: either s/1 < #"a" [s/1 - #"a"][s/1 - #"A"]
-						cb: cb + 10
-					]
-					default  [throw LEX_ERROR]
-				]
-				c: c << 4 + as-integer cb
-			]
-			s: s + 1
-			if s = e [throw LEX_ERROR]
-		]
-		cp/value: c
-		s
+		index: 1 + as-integer s/1						;-- converts the 2 hex chars using a lookup table
+		c: as-integer hexa-table/index					;-- decode high nibble
+		index: 1 + as-integer s/2
+		c2: as-integer hexa-table/index					;-- decode low nibble
+		if any [c = -1 c2 = -1][throw LEX_ERROR]
+		cp/value: c c << 4 or c2
+		s + 2
 	]
 	
 	scan-escaped-char: func [s [byte-ptr!] e [byte-ptr!] cp [int-ptr!] return: [byte-ptr!]
@@ -529,13 +514,12 @@ lexer: context [
 			c	  [integer!]
 			pos	  [integer!]
 			index [integer!]
-			class [integer!]
 			skip  [integer!]
 			res	  [integer!]
 			cb	  [byte!]
 			bit	  [byte!]
 	][
-		either s/1 = #"(" [							;-- note: #"^(" not allowed
+		either s/1 = #"(" [								;-- note: #"^(" not allowed
 			c: as-integer s/2
 			pos: c >>> 3 + 1
 			bit: as-byte 1 << (c and 7)
@@ -544,25 +528,15 @@ lexer: context [
 				c: 0
 				cb: as byte! 0
 				while [all [p/1 <> #")" p < e]][
-					either p/1 = #"0" [c: c << 4][
-						index: 1 + as-integer p/1
-						class: lex-classes/index
-						switch class [
-							C_DIGIT  [cb: p/1 - #"0"]
-							C_EXP
-							C_ALPHAX [
-								cb: either p/1 < #"a" [p/1 - #"a"][p/1 - #"A"]
-								cb: cb + 10
-							]
-							default  [throw LEX_ERROR]
-						]
-						c: c << 4 + as-integer cb
-					]
+					index: 1 + as-integer p/1			;-- converts the 2 hex chars using a lookup table
+					cb: hexa-table/index				;-- decode nibble
+					if cb = #"^(FF)" [throw LEX_ERROR]
+					c: c << 4 + as-integer cb
 					p: p + 1
 				]
 				if any [p = e p/1 <> #")"][throw LEX_ERROR]
-				p: p + 1							;-- skip )
-			][										;-- named escaped char
+				p: p + 1								;-- skip )
+			][											;-- named escaped char
 				cb: s/2
 				if cb < #"a" [cb: cb or #"^(20)"]
 				src: s + 2
@@ -587,7 +561,7 @@ lexer: context [
 			either char-special/pos and bit = null-byte [ ;-- "regular" escaped char
 				if any [s/1 < #"^(40)" #"^(5F)" < s/1][throw LEX_ERROR]
 				c: as-integer s/1 - #"@"
-			][										;-- escaped special char
+			][											;-- escaped special char
 				c: switch s/1 [
 					#"/"  [0Ah]
 					#"-"  [09h]
