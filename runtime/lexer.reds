@@ -534,7 +534,7 @@ lexer: context [
 					c: c << 4 + as-integer cb
 					p: p + 1
 				]
-				if any [p = e p/1 <> #")"][throw LEX_ERROR]
+				if any [p = e p/1 <> #")" (as-integer p - s) > 7][throw LEX_ERROR] ;-- limit of 6 hexa characters.
 				p: p + 1								;-- skip )
 			][											;-- named escaped char
 				cb: s/2
