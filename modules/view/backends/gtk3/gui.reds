@@ -829,8 +829,6 @@ change-pane: func [
 		offset	[red-pair!]
 
 ][
-	;; DEBUG: print ["change-pane " get-symbol-name type lf]
-
 	layout: case [
 		type = window [
 			GET-CONTAINER(parent)
@@ -851,12 +849,11 @@ change-pane: func [
 	]
 
 	unless null? layout [
-		list: as GList! gtk_container_get_children parent
+		list: as GList! gtk_container_get_children layout
 		child: list
 		while [not null? child][
-			g_object_ref child/data						;-- to avoid destruction before removing from container
-			gtk_container_remove parent child/data
-			;; DEBUG: print ["removed widget" nb ": " child/data " to " parent lf]
+			g_object_ref child/data								;-- to avoid destruction before removing from container
+			gtk_container_remove layout child/data
 			child: child/next
 		]
 		g_list_free as int-ptr! list
@@ -1852,7 +1849,6 @@ OS-make-view: func [
 
 	change-color widget as red-tuple! values + FACE_OBJ_COLOR sym
 
-	;; USELESS: if sym <> window [gtk_widget_show widget]
 	stack/unwind
 	as-integer widget
 ]
