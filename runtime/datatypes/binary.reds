@@ -180,7 +180,7 @@ binary: context [
 			as-integer (as byte-ptr! s/tail) - p
 		s/tail: as cell! (as byte-ptr! s/tail) + part
 
-		copy-memory p data part
+		move-memory p data part
 		p
 	]
 
@@ -204,7 +204,7 @@ binary: context [
 			p: (as byte-ptr! s/offset) + bin/head + offset
 		]
 
-		copy-memory p data part
+		move-memory p data part
 
 		if p + part > (as byte-ptr! s/tail) [s/tail: as cell! p + part]
 		p

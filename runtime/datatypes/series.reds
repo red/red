@@ -654,15 +654,20 @@ _series: context [
 		if all [
 			zero? part
 			limit = cell
-		][
-		return ser]									;-- early exit if nothing to change
+		][return ser]									;-- early exit if nothing to change
 
 		either any [blk? self?][
 			new-part: items * cnt
 			new-size: size - part + new-part
 			n: new-size << unit
 			if part > 0 [ownership/check as red-value! ser words/_change null head part]
-			if n > s/size [s: expand-series s n << 1]
+			if n > s/size [
+				s: expand-series s n << 1
+				if self? [								;-- cell no longer points to a valid buffer
+					cell:  as cell! (as byte-ptr! s/offset) + as-integer cell - s2/offset
+					limit: cell + items
+				]
+			]
 			dst: (as byte-ptr! s/offset) + (head << unit)
 			src: as byte-ptr! cell
 			bytes1: part << unit

@@ -1086,8 +1086,8 @@ free-series: func [
 	assert not null? (as byte-ptr! node/value)
 	
 	series: as series-buffer! node/value
-	assert not zero? (series/flags and not series-in-use) ;-- ensure that 'used bit is set
-	series/flags: series/flags and series-free-mask		  ;-- clear 'used bit (enough to free the series)
+	assert not zero? (series/flags and series-in-use)	;-- ensure that 'used bit is set
+	series/flags: series/flags and series-free-mask		;-- clear 'used bit (enough to free the series)
 	
 	if frame/heap = as series-buffer! (		;-- test if series is on top of heap
 		(as byte-ptr! node/value) +  series/size + size? series-buffer!
@@ -1126,7 +1126,7 @@ expand-series: func [
 
 	node: series/node
 	new: alloc-series-buffer new-sz / units units 0
-	series: as series-buffer! node/value
+	assert series = as series-buffer! node/value
 	big?: new/flags and flag-series-big <> 0
 	
 	node/value: as-integer new		;-- link node to new series buffer
@@ -1145,8 +1145,8 @@ expand-series: func [
 		as byte-ptr! series/offset
 		series/size
 	
-	assert not zero? (series/flags and not series-in-use) ;-- ensure that 'used bit is set
-	series/flags: series/flags xor series-in-use		  ;-- clear 'used bit (enough to free the series)	
+	assert not zero? (series/flags and series-in-use)	;-- ensure that 'used bit is set
+	series/flags: series/flags xor series-in-use		;-- clear 'used bit (enough to free the series)	
 	new	
 ]
 
