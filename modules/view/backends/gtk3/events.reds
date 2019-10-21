@@ -699,7 +699,7 @@ connect-widget-events: function [
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add area changed " lf]]
 			gobj_signal_connect(buffer "changed" :area-changed widget)
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add area populate-all " lf]]
-			g_object_set [widget "populate-all" yes widget]
+			g_object_set [widget "populate-all" yes null]
 			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add area populate-popup" lf]]
 			gobj_signal_connect(widget "populate-popup" :area-populate-popup widget)
 			gtk_widget_set_can_focus widget yes

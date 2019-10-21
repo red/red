@@ -33,6 +33,7 @@ Red/System [
 #include %handlers.reds
 #include %comdlgs.reds
 #include %tab-panel.reds
+#include %text-list.reds
 
 GTKApp:			as handle! 0
 GTKApp-Ctx: 	0
@@ -1084,20 +1085,22 @@ change-text: func [
 ]
 
 change-data: func [
-	widget		[handle!]
-	values		[red-value!]
+	widget			[handle!]
+	values			[red-value!]
 	/local
-		data	[red-value!]
-		word	[red-word!]
-		size	[red-pair!]
-		f		[red-float!]
-		str		[red-string!]
-		caption	[c-string!]
-		type	[integer!]
-		len		[integer!]
+		data		[red-value!]
+		word		[red-word!]
+		selected	[red-integer!]
+		size		[red-pair!]
+		f			[red-float!]
+		str			[red-string!]
+		caption		[c-string!]
+		type		[integer!]
+		len			[integer!]
 ][
 	data: as red-value! values + FACE_OBJ_DATA
 	word: as red-word! values + FACE_OBJ_TYPE
+	selected: as red-integer! values + FACE_OBJ_SELECTED
 	type: word/symbol
 
 	;;DEBUG: print ["change-data: " get-symbol-name type lf]
@@ -1134,7 +1137,7 @@ change-data: func [
 		][
 			;;DEBUG: print ["text-list updated" lf]
 			gtk_container_foreach widget as-integer :remove-entry widget
-			init-text-list widget as red-block! data
+			init-text-list widget as red-block! data selected
 			gtk_widget_show_all widget
 		]
 		any [type = drop-list type = drop-down][
@@ -1420,44 +1423,6 @@ remove-entry: func [
 	container	[int-ptr!]
 ][
 	gtk_container_remove container widget
-]
-
-init-text-list: func [
-	widget		[handle!]
-	data		[red-block!]
-	/local
-		str		[red-string!]
-		tail	[red-string!]
-		val		[c-string!]
-		len		[integer!]
-		label	[handle!]
-		type	[integer!]
-][
-	if any [
-		TYPE_OF(data) = TYPE_BLOCK
-		TYPE_OF(data) = TYPE_HASH
-		TYPE_OF(data) = TYPE_MAP
-	][
-		;; DEBUG: print ["init-text-list" lf]
-		str:  as red-string! block/rs-head data
-		tail: as red-string! block/rs-tail data
-
-		if str = tail [exit]
-
-		while [str < tail][
-			type: TYPE_OF(str)
-			;; DEBUG: print ["type " type lf]
-			if ANY_STRING?(type) [
-				len: -1
-				val: unicode/to-utf8 str :len
-				label: gtk_label_new val
-				;; DEBUG: print ["Add elt: " val lf]
-				gtk_widget_set_halign label 1		;-- GTK_ALIGN_START
-				gtk_container_add widget label
-			]
-			str: str + 1
-		]
-	]
 ]
 
 font-size?: func [
@@ -1777,7 +1742,6 @@ OS-make-view: func [
 			buffer: gtk_entry_get_buffer widget
 			unless null? caption [
 				gtk_entry_buffer_set_text buffer caption -1
-				gtk_widget_show buffer
 			]
 			gtk_entry_set_width_chars widget size/x / font-size? font
 			set-hint-text widget as red-block! values + FACE_OBJ_OPTIONS
@@ -1797,7 +1761,6 @@ OS-make-view: func [
 			buffer: gtk_text_view_get_buffer widget
 			unless null? caption [
 				gtk_text_buffer_set_text buffer caption -1
-				gtk_widget_show buffer
 			]
 			container: gtk_scrolled_window_new null null
 			gtk_container_add container widget
@@ -1819,7 +1782,7 @@ OS-make-view: func [
 		]
 		sym = text-list [
 			widget: gtk_list_box_new
-			init-text-list widget data
+			init-text-list widget data selected
 			;gtk_list_box_select_row widget gtk_list_box_get_row_at_index widget 0
 			container: gtk_scrolled_window_new null null
 			if bits and FACET_FLAGS_NO_BORDER = 0 [
