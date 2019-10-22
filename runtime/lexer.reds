@@ -148,6 +148,15 @@ lexer: context [
 		"esc" 	3	1Bh
 		"del" 	3	7Fh
 	]
+	
+	cons-syntax: [
+	;--- word --- length -- value ---
+		"true"		4		true
+		"false"		5		false
+		"none!"		5		TYPE_NONE
+		"none"		4		TYPE_NONE
+		;... to be eventually completed
+	]
 
 	lex-classes: [
 		(C_EOF or C_FLAG_EOF)							;-- 00		NUL
@@ -864,7 +873,7 @@ lexer: context [
 			default [assert false 0]
 		]
 		assert (as byte-ptr! ser/offset) + ser/size > as byte-ptr! ser/tail
-		state/in-pos: e + 1								;-- skip ending delimiter
+		state/in-pos: e + 1								;-- skip }
 	]
 	
 	scan-char: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
@@ -890,7 +899,7 @@ lexer: context [
 		char/header: TYPE_CHAR
 		char/value: c
 		
-		state/in-pos: e + 1								;-- skip ending delimiter
+		state/in-pos: e + 1								;-- skip "
 	]
 	
 	scan-map-open: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]][
@@ -899,9 +908,33 @@ lexer: context [
 	]
 	
 	scan-construct: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
-	;	/local
+		/local
+			dt		[red-datatype!]
+			p		[int-ptr!]
+			dtypes	[int-ptr!]
+			end		[int-ptr!]
+			len		[integer!]
 	][
-		null
+		s: s + 2										;-- skip #[
+		p: cons-syntax
+		dtypes: p + (3 * 2)
+		end: p + (3 * 4)								;-- point to end of array
+		loop 4 [
+			if zero? platform/strnicmp s as byte-ptr! p/1 p/2 [break]
+			p: p + 3
+		]
+		if p = end [throw LEX_ERROR]					;-- no match, error case
+		len: p/2 + 1
+		if s/len <> #"]" [throw LEX_ERROR]
+		
+		dt: as red-datatype! alloc-slot state
+		either p < dtypes [
+			dt/header: TYPE_LOGIC
+			dt/value: p/3
+		][
+			dt/header: p/3
+		]
+		state/in-pos: e + 1								;-- skip ]
 	]
 	
 	scan-ref-issue: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
