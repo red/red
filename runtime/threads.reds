@@ -10,9 +10,9 @@ Red/System [
 	}
 ]
 
-;#define handle! int-ptr!
-;#include %queue.reds
-;#include %platform/definitions.reds
+#define handle! int-ptr!
+#include %queue.reds
+#include %platform/definitions.reds
 
 thread-func!: alias function! [
 	udata	[int-ptr!]			;-- user data
@@ -329,10 +329,39 @@ threadpool: context [
 		handle		[handle!]	;-- thread handle
 	]
 
+	worker0!: alias struct! [
+		running?	[logic!]
+		event		[handle!]
+		handle		[handle!]
+	]
+
 	tasks: as queue! 0
-	workers: as ptr-ptr! 0
+	workers: as worker! 0
 	n-worker: 0
 	n-max: 0
+
+	worker0-func: func [		;-- worker 0 never exit
+		#if OS <> 'Windows [[cdecl]]
+		self	[worker0!]
+		/local
+			task	[task!]
+			handler	[thread-func!]
+			r		[integer!]
+	][
+		while [self/running?][
+			#either OS = 'Windows [
+				r: WaitForSingleObject self/event -1
+				assert r <> -1
+			][
+				platform/wait 1000
+			]
+			task: as task! queue/pop tasks
+			if task <> null [
+				handler: as thread-func! task/handler
+				handler task/data
+			]
+		]
+	]
 
 	worker-func: func [
 		#if OS <> 'Windows [[cdecl]]
@@ -340,6 +369,7 @@ threadpool: context [
 		/local
 			task	[task!]
 			handler	[thread-func!]
+			cnt		[integer!]
 	][
 		while [self/running?][
 			task: as task! queue/pop tasks
@@ -348,26 +378,37 @@ threadpool: context [
 				handler: as thread-func! task/handler
 				handler task/data
 			][
-				self/idle-tm: self/idle-tm + 1
-				OS-Sleep 1
+				cnt: self/idle-tm + 1
+				either cnt = 30000 [
+					self/running?: no
+					cnt: 0
+				][
+					OS-Sleep 1
+				]
+				self/idle-tm: cnt
 			]
 		]
 	]
 	
 	init: func [][
 		tasks: queue/create 2000
-		n-max: -1 + thread/processor-count		;-- max count - 1
-		workers: as ptr-ptr! allocate n-max * size? int-ptr!
+		n-max: -2 + thread/processor-count		;-- max count - 2
+		workers: as worker! allocate n-max * size? worker!
+		zero-memory as byte-ptr! workers n-max * size? worker!
 	]
 
-	add-worker: func [/local w [worker!] pp [ptr-ptr!]][
-		w: as worker! allocate size? worker!
-		w/running?: yes
-		w/idle-tm: 0
-		pp: (as ptr-ptr! workers) + n-worker
-		pp/value: as int-ptr! w
-		n-worker: n-worker + 1
-		w/handle: thread/start as int-ptr! :worker-func as int-ptr! w 0
+	add-worker: func [/local w [worker!] find? [logic!]][
+		w: workers
+		find?: no
+		loop n-max [		;-- find a free worker
+			either w/running? [find?: yes break][w: w + 1]
+		]
+		if find? [
+			n-worker: n-worker + 1
+			w/running?: yes
+			w/idle-tm: 0
+			w/handle: thread/start as int-ptr! :worker-func as int-ptr! w 0
+		]
 	]
 
 	add-task: func [
@@ -393,7 +434,6 @@ threadpool: context [
 
 	wait: func [
 		/local
-			pp	[ptr-ptr!]
 			w	[worker!]
 			n	[integer!]
 			ret [integer!]
@@ -402,13 +442,13 @@ threadpool: context [
 		until [
 			n: 0
 			sz: queue/size tasks
-			while [n < n-worker][
-				pp: (as ptr-ptr! workers) + n
-				w: as worker! pp/value
+			w: workers
+			while [all [w/running? n < n-worker]][
 				ret: 0
 				thread/wait w/handle -1 :ret
 				if sz <= (n-max * 2) [w/running?: no]
 				n: n + 1
+				w: w + 1
 			]
 			zero? queue/size tasks
 		]

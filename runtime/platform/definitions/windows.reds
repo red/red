@@ -645,6 +645,21 @@ SecurityFunctionTableW: alias struct! [
 		]
 	]
 	"kernel32.dll" stdcall [
+		CreateEventA: "CreateEventA" [
+			lpAttr		[SECURITY_ATTRIBUTES]
+			ManualReset	[logic!]
+			Initial		[logic!]
+			lpName		[c-string!]
+			return:		[handle!]
+		]
+		SetEvent: "SetEvent" [
+			hEvent		[handle!]
+			return:		[logic!]
+		]
+		ResetEvent: "ResetEvent" [
+			hEvent		[handle!]
+			return:		[logic!]
+		]
 		VirtualAlloc: "VirtualAlloc" [
 			address		[byte-ptr!]
 			size		[integer!]
