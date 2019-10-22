@@ -337,6 +337,7 @@ threadpool: context [
 
 	tasks: as queue! 0
 	workers: as worker! 0
+	worker0: declare worker0!
 	n-worker: 0
 	n-max: 0
 
@@ -353,9 +354,10 @@ threadpool: context [
 				r: WaitForSingleObject self/event -1
 				assert r <> -1
 			][
-				platform/wait 1000
+				platform/wait 1
 			]
 			task: as task! queue/pop tasks
+			assert task <> null
 			if task <> null [
 				handler: as thread-func! task/handler
 				handler task/data
@@ -381,9 +383,10 @@ threadpool: context [
 				cnt: self/idle-tm + 1
 				either cnt = 30000 [
 					self/running?: no
+					system/atomic/sub :n-worker 1
 					cnt: 0
 				][
-					OS-Sleep 1
+					platform/wait 1
 				]
 				self/idle-tm: cnt
 			]
@@ -392,19 +395,20 @@ threadpool: context [
 	
 	init: func [][
 		tasks: queue/create 2000
-		n-max: -2 + thread/processor-count		;-- max count - 2
+		n-max: -1 + thread/processor-count
 		workers: as worker! allocate n-max * size? worker!
 		zero-memory as byte-ptr! workers n-max * size? worker!
+		worker0/running?: no
 	]
 
-	add-worker: func [/local w [worker!] find? [logic!]][
+	add-worker: func [/local w [worker!]][
 		w: workers
-		find?: no
 		loop n-max [		;-- find a free worker
-			either w/running? [find?: yes break][w: w + 1]
+			either w/running? [w: w + 1][break]
 		]
-		if find? [
+		if workers + n-max <> w [
 			n-worker: n-worker + 1
+			if w/handle <> null [thread/detach w/handle]
 			w/running?: yes
 			w/idle-tm: 0
 			w/handle: thread/start as int-ptr! :worker-func as int-ptr! w 0
@@ -418,68 +422,76 @@ threadpool: context [
 		/local
 			task	[task!]
 			res		[logic!]
+			sz		[integer!]
 	][
 		task: as task! allocate size? task!
 		task/handler: handler
 		task/data: data
 		res: queue/push tasks as int-ptr! task
-		if all [
-			n-worker < n-max
-			2 < queue/size tasks
+		either 1 < queue/size tasks [
+			if n-worker < n-max [add-worker]
 		][
-			add-worker
+			unless worker0/running? [
+				worker0/running?: yes
+				worker0/event: CreateEventA null no no null		;-- auto-reset event
+				worker0/handle: thread/start
+					as int-ptr! :worker0-func as int-ptr! worker0 0
+			]
+			SetEvent worker0/event
 		]
 		res
 	]
 
-	wait: func [
-		/local
-			w	[worker!]
-			n	[integer!]
-			ret [integer!]
-			sz	[integer!]
-	][
+	wait: func [][
 		until [
-			n: 0
-			sz: queue/size tasks
-			w: workers
-			while [all [w/running? n < n-worker]][
-				ret: 0
-				thread/wait w/handle -1 :ret
-				if sz <= (n-max * 2) [w/running?: no]
-				n: n + 1
-				w: w + 1
-			]
+			platform/wait 50
 			zero? queue/size tasks
 		]
 	]
 
-	destroy: func [][]
+	destroy: func [			;-- destroy the thread pool even there are tasks left
+		/local w [worker!]
+	][
+		if worker0/running? [
+			worker0/running?: no
+			thread/kill worker0/handle
+			thread/detach worker0/handle
+		]
+		loop n-max [
+			w: workers
+			if w/running? [
+				w/running?: no
+				thread/kill w/handle
+			]
+			if w/handle <> null [thread/detach w/handle]
+			w: w + 1
+		]
+		queue/destroy tasks
+		free as byte-ptr! workers
+	]
 ]
 
 comment {
 func1: func [data [int-ptr!]][
 	probe "1"
-	OS-Sleep 10000
+	OS-Sleep 20000
 	probe "11"
 ]
 
 func2: func [data [int-ptr!]][
 	probe "2"
-	OS-Sleep 10000
+	OS-Sleep 20000
 	probe "22"
 ]
 
 func3: func [data [int-ptr!]][
 	probe "3"
-	OS-Sleep 10000
+	OS-Sleep 20000
 	probe "33"
 ]
 
 funcN: func [data [int-ptr!]][
-	probe data/value
-	OS-Sleep 2000
-	probe data/value * 2
+	OS-Sleep 1000
 ]
 
 test: func [

@@ -10,7 +10,7 @@ Red/System [
 	}
 ]
 
-wait: func [time [integer!]][usleep time]
+wait: func [time [integer!]][usleep time * 1000]
 
 ;-------------------------------------------
 ;-- Print a UCS-4 string to console
