@@ -345,32 +345,42 @@ lexer: context [
 		]
 	]
 	
-	open-block: func [state [state!] type [integer!] /local	p [red-pair!] len [integer!]][
+	open-block: func [state [state!] type [integer!] hint [integer!] 
+		/local p [red-point!] len [integer!]
+	][
 		len: (as-integer state/tail - state/head) >> 4
-		p: as red-pair! alloc-slot state
-		p/header: TYPE_PAIR								;-- use the slot for stack info
+		p: as red-point! alloc-slot state
+		p/header: TYPE_POINT							;-- use the slot for stack info
 		p/x: len
 		p/y: type
+		p/z: hint
 		
 		state/head: state/tail							;-- points just after p
 		state/entry: S_START
 	]
 
-	close-block: func [state [state!] type [integer!] force? [logic!]
+	close-block: func [state [state!] type [integer!] final [integer!]
+		return: [integer!]
 		/local	
-			p	[red-pair!]
-			len	[integer!]
+			p	  [red-point!]
+			len	  [integer!]
+			hint  [integer!]
 	][
-		p: as red-pair! state/head - 1
-		assert all [state/buffer <= p TYPE_OF(p) = TYPE_PAIR]
-		if all [not force? p/y <> type][throw LEX_ERROR]
+		p: as red-point! state/head - 1
+		assert all [state/buffer <= p TYPE_OF(p) = TYPE_POINT]
+		either type = -1 [
+			type: either final = -1 [p/y][final]
+		][
+			if p/y <> type [throw LEX_ERROR]
+		]
 		len: (as-integer state/tail - state/head) >> 4
 		state/tail: state/head
 		state/head: as cell! p - p/x
+		hint: p/z
 		
 		store-any-block as cell! p state/tail len type	;-- p slot gets overwritten here
 		
-		p: as red-pair! state/head - 1					;-- get parent series
+		p: as red-point! state/head - 1					;-- get parent series
 		either all [
 			state/buffer <= p
 			not any [p/y = TYPE_BLOCK p/y = TYPE_PAREN p/y = TYPE_MAP]
@@ -379,6 +389,7 @@ lexer: context [
 		][
 			state/entry: S_START
 		]
+		hint
 	]
 	
 	decode-2: func [s [byte-ptr!] e [byte-ptr!] ser [series!]
@@ -599,29 +610,21 @@ lexer: context [
 			type [integer!]
 	][
 		type: either s/1 = #"(" [TYPE_PAREN][TYPE_BLOCK]
-		open-block state type
+		open-block state type -1
 		state/in-pos: e + 1								;-- skip delimiter
 	]
 
 	scan-block-close: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]][
-		close-block state TYPE_BLOCK no
+		close-block state TYPE_BLOCK -1
 		state/in-pos: e	+ 1								;-- skip ]
 	]
 	
 	scan-paren-close: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
-			p	 [red-pair!]
 			blk	 [red-block!]
-			type [integer!]
 	][
-		p: as red-pair! state/head - 1
-		assert p >= state/buffer
-		type: p/y
-		close-block state type yes
-		
-		if type = TYPE_MAP [
-			blk: as red-block! p
-			blk/header: TYPE_BLOCK						;-- forces a block type
+		if TYPE_MAP = close-block state TYPE_PAREN -1 [
+			blk: as red-block! state/tail - 1
 			map/make-at as cell! blk blk block/rs-length? blk
 		]
 		state/in-pos: e	+ 1								;-- skip )
@@ -891,7 +894,7 @@ lexer: context [
 	]
 	
 	scan-map-open: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]][
-		open-block state TYPE_MAP
+		open-block state TYPE_PAREN TYPE_MAP
 		state/in-pos: e + 1								;-- skip (
 	]
 	
@@ -1096,7 +1099,7 @@ lexer: context [
 			#":" [s: s + 1 flags: flags and not C_FLAG_COLON TYPE_GET_PATH]
 			default [TYPE_PATH]
 		]
-		open-block state type							;-- open a new path series
+		open-block state type -1						;-- open a new path series
 		scan-word state s e flags						;-- load the head word
 		state/entry: S_PATH								;-- overwrites the S_START set by open-block
 		state/in-pos: e + 1								;-- skip /
@@ -1104,7 +1107,6 @@ lexer: context [
 	
 	scan-path-item: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
-			p		[red-pair!]
 			type	[integer!]
 			cp		[integer!]
 			index	[integer!]
@@ -1116,13 +1118,11 @@ lexer: context [
 			as-logic path-ending/index					;-- lookup if the character class is ending path
 		]
 		either close? [
-			p: as red-pair! state/head - 1
-			type: p/y
-			if all [e < state/in-end e/1 = #":"][
-				type: TYPE_SET_PATH
+			type: either all [e < state/in-end e/1 = #":"][
 				state/in-pos: e + 1						;-- skip :
-			]
-			close-block state type yes
+				TYPE_SET_PATH
+			][-1]
+			close-block state -1 type
 		][
 			if all [e < state/in-end e/1 = #":"][throw LEX_ERROR] ;-- set-words not allowed inside paths
 			state/in-pos: e + 1							;-- skip /
