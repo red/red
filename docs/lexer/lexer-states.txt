@@ -1,6 +1,5 @@
 
-=== Lexical Scanner FSM
-
+=== Lexical Scanner FSM ===
 
 S_START
 S_LINE_CMT
@@ -43,6 +42,11 @@ S_WORD
 S_WORDSET
 S_URL
 S_EMAIL
+S_PATH
+S_PATH_NUM
+S_PATH_WORD
+S_PATH_SHARP
+S_PATH_SIGN
 --EXIT_STATES--
 T_EOF
 T_ERROR
@@ -273,7 +277,51 @@ S_START->not(delimit6)->S_WORD->not(delimit5)->S_WORD
                                    
 
 
-=== Binary16 FSM
+S_PATH->ws|";"|"["|"]"|"{"|"/"|"%"->T_ERROR
+S_PATH->"("->T_PAR_OP
+S_PATH->")"->T_PAR_CL
+S_PATH->dbl-quote->S_LINE_STR
+
+S_PATH->"#"->S_PATH_SHARP->dbl-quote->S_CHAR
+              \->not(delimit9)->S_ISSUE->not(delimit1)->S_ISSUE
+               \                 \->delimit1->T_ISSUE
+                \->delimit9->T_ERROR
+
+S_PATH->digit->S_PATH_NUM->digit|"'"->S_PATH_NUM
+                 \->delimit10->T_INTEGER
+                  \->"%"->T_PERCENT
+                   \->"."->S_DOTNUM
+                    \->"x"|"X"->S_PAIR_1ST->digit->S_PAIR->digit|"."|"e"|"E"->S_PAIR
+                     \           \->else->T_ERROR    \->delimit10->T_PAIR
+                      \                               \->else->T_ERROR
+                       \
+                        \->"e"|"E"->S_DECIMAL
+                         \->else->T_ERROR
+                         
+S_PATH->"<"->S_LESSER
+
+S_PATH->"+"|"-"->S_PATH_SIGN->digit->S_PATH_NUM
+                   \->"$"->S_MONEY
+                    \->delimit14->T_ERROR
+                     \->else->S_WORD
+                        
+S_PATH->"$"->S_MONEY_1ST
+
+S_PATH->not(delimit6)->S_PATH_WORD->not(delimit5)->S_PATH_WORD
+                         \->delimit7->T_WORD
+                          \
+                           \->":"->T_WORD
+                            \
+                             \->"@"->S_EMAIL->not(delimit7|"@"|"/"|">"|","|"^"|"$"|":"|"'"|"#")->S_EMAIL
+                              \       \->delimit7->T_EMAIL
+                               \       \->"@"|">"|","|"^"|"$"|":"|"'"|"#"->T_ERROR
+                                \
+                                 \->"/"->T_WORD
+                                  \->"$"->S_MONEY
+                                   \->","|"#"|"%"->T_ERROR
+
+
+=== Binary16 FSM ===
 
 
 S_BIN_START										;-- 0
@@ -302,3 +350,4 @@ S_BIN_START->hexa->S_BIN_1ST->hexa->T_BIN_BYTE
         \
          \->;->S_BIN_CMT->lf->S_BIN_START
                     \->not(lf)->S_BIN_CMT
+        
