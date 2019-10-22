@@ -58,34 +58,36 @@ context [
 		S_PATH							;-- 43
 		S_PATH_NUM						;--	44
 		S_PATH_WORD						;-- 45
-		--EXIT_STATES--					;-- 46
-		T_EOF							;-- 47
-		T_ERROR							;-- 48
-		T_BLK_OP						;-- 49
-		T_BLK_CL						;-- 50
-		T_PAR_OP						;-- 51
-		T_PAR_CL						;-- 52
-		T_STRING						;-- 53
-		T_WORD							;-- 54
-		T_FILE							;-- 55
-		T_REFINE						;-- 56
-		T_BINARY						;-- 57
-		T_CHAR							;-- 58
-		T_MAP_OP						;-- 59
-		T_CONS_MK						;-- 60
-		T_ISSUE							;-- 61
-		T_PERCENT						;-- 62
-		T_INTEGER						;-- 63
-		T_FLOAT							;-- 64
-		T_TUPLE							;-- 65
-		T_DATE							;-- 66
-		T_PAIR							;-- 67
-		T_TIME							;-- 68
-		T_MONEY							;-- 69
-		T_TAG							;-- 70
-		T_URL							;-- 71
-		T_EMAIL							;-- 72
-		T_PATH							;-- 73
+		S_PATH_SHARP					;--	46
+		S_PATH_SIGN						;--	47
+		--EXIT_STATES--					;-- 48
+		T_EOF							;-- 49
+		T_ERROR							;-- 50
+		T_BLK_OP						;-- 51
+		T_BLK_CL						;-- 52
+		T_PAR_OP						;-- 53
+		T_PAR_CL						;-- 54
+		T_STRING						;-- 55
+		T_WORD							;-- 56
+		T_FILE							;-- 57
+		T_REFINE						;-- 58
+		T_BINARY						;-- 59
+		T_CHAR							;-- 60
+		T_MAP_OP						;-- 61
+		T_CONS_MK						;-- 62
+		T_ISSUE							;-- 63
+		T_PERCENT						;-- 64
+		T_INTEGER						;-- 65
+		T_FLOAT							;-- 66
+		T_TUPLE							;-- 67
+		T_DATE							;-- 68
+		T_PAIR							;-- 69
+		T_TIME							;-- 70
+		T_MONEY							;-- 71
+		T_TAG							;-- 72
+		T_URL							;-- 73
+		T_EMAIL							;-- 74
+		T_PATH							;-- 75
 	]
 
 	CSV-table: %../docs/lexer/lexer-FSM.csv
