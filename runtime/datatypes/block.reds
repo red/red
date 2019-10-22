@@ -362,11 +362,11 @@ block: context [
 	][
 		if size < 0 [size: 1]
 		
-		blk/header: TYPE_UNSET
+		set-type as cell! blk TYPE_UNSET				;-- preserve eventual newline flag
 		blk/head: 	0
 		blk/node: 	alloc-cells size
 		blk/extra:  0
-		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
+		set-type as cell! blk TYPE_BLOCK
 		blk
 	]
 

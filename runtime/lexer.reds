@@ -314,6 +314,8 @@ lexer: context [
 		input	[byte-ptr!]
 		in-end	[byte-ptr!]
 		in-pos	[byte-ptr!]
+		line	[integer!]								;-- current line number
+		nline	[integer!]								;-- new lines count for new token
 		err		[integer!]
 		entry	[integer!]								;-- entry state for the FSM
 	]
@@ -331,6 +333,7 @@ lexer: context [
 		]
 		slot: state/tail
 		slot/header: TYPE_UNSET
+		if state/nline > 0 [slot/header: slot/header or flag-new-line]
 		state/tail: state/tail + 1
 		slot
 	]
@@ -344,7 +347,7 @@ lexer: context [
 			block/make-at as red-block! slot 1
 		][
 			blk: block/make-at as red-block! slot items
-			blk/header: type
+			blk/header: blk/header and type-mask or type
 			s: GET_BUFFER(blk)
 			copy-memory 
 				as byte-ptr! s/offset
@@ -359,7 +362,7 @@ lexer: context [
 	][
 		len: (as-integer state/tail - state/head) >> 4
 		p: as red-point! alloc-slot state
-		p/header: TYPE_POINT							;-- use the slot for stack info
+		set-type as cell! p TYPE_POINT					;-- use the slot for stack info
 		p/x: len
 		p/y: type
 		p/z: hint
@@ -817,7 +820,7 @@ lexer: context [
 
 		cell: alloc-slot state
 		word/make-at symbol/make-alt-utf8 s as-integer e - s cell
-		cell/header: type
+		set-type cell type
 	
 		if type = TYPE_SET_WORD [state/in-pos: e + 1]	;-- skip ending delimiter
 	]
@@ -896,7 +899,7 @@ lexer: context [
 		if c > 0010FFFFh [throw LEX_ERROR]
 		
 		char: as red-char! alloc-slot state
-		char/header: TYPE_CHAR
+		set-type as cell! char TYPE_CHAR
 		char/value: c
 		
 		state/in-pos: e + 1								;-- skip "
@@ -929,10 +932,10 @@ lexer: context [
 		
 		dt: as red-datatype! alloc-slot state
 		either p < dtypes [
-			dt/header: TYPE_LOGIC
+			set-type as cell! dt TYPE_LOGIC
 			dt/value: p/3
 		][
-			dt/header: p/3
+			set-type as cell! dt p/3
 		]
 		state/in-pos: e + 1								;-- skip ]
 	]
@@ -946,7 +949,7 @@ lexer: context [
 		s: s + 1
 		cell: alloc-slot state
 		word/make-at symbol/make-alt-utf8 s as-integer e - s cell
-		cell/header: type
+		set-type cell type
 		state/in-pos: e									;-- reset the input position to delimiter byte
 	]
 	
@@ -957,7 +960,7 @@ lexer: context [
 		assert e/1 = #"%"
 		scan-float state s e flags
 		fl: as red-float! state/tail - 1
-		fl/header: TYPE_PERCENT
+		set-type as cell! fl TYPE_PERCENT
 		fl/value: fl/value / 100.0
 		
 		state/in-pos: e + 1								;-- skip ending delimiter
@@ -1010,7 +1013,7 @@ lexer: context [
 	][
 		err: 0
 		fl: as red-float! alloc-slot state
-		fl/header: TYPE_FLOAT
+		set-type as cell! fl TYPE_FLOAT
 		fl/value: red-dtoa/string-to-float s e :err
 		if err <> 0 [throw LEX_ERROR]
 		state/in-pos: e									;-- reset the input position to delimiter byte
@@ -1043,7 +1046,7 @@ lexer: context [
 		]
 		pos: pos + 1									;-- last number
 		tp/pos: as byte! i
-		cell/header: TYPE_TUPLE or (pos << 19)
+		cell/header: cell/header and type-mask or TYPE_TUPLE or (pos << 19)
 		state/in-pos: e									;-- reset the input position to delimiter byte
 	]
 	
@@ -1204,6 +1207,7 @@ lexer: context [
 			state	[integer!]
 			flags	[integer!]
 			line	[integer!]
+			mark	[integer!]
 			offset	[integer!]
 			s		[series!]
 			term?	[logic!]
@@ -1216,6 +1220,7 @@ lexer: context [
 			state: lex/entry
 			p: lex/in-pos
 			start: p
+			mark: line
 			offset: 0
 			
 			loop as-integer lex/in-end - p [
@@ -1240,6 +1245,8 @@ lexer: context [
 				state: as-integer transitions/index
 			]
 			lex/in-pos: p
+			lex/line: line
+			lex/nline: line - mark
 			
 			index: state - --EXIT_STATES--
 			do-scan: as scanner! scanners/index

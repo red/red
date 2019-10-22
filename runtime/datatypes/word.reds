@@ -49,7 +49,7 @@ word: context [
 			cell [red-word!]
 	][
 		cell: as red-word! pos
-		cell/header: TYPE_WORD							;-- implicit reset of all header flags
+		set-type pos TYPE_WORD
 		cell/ctx: 	 global-ctx
 		cell/symbol: id
 		cell/index:  _context/add TO_CTX(global-ctx) cell

@@ -1130,11 +1130,11 @@ string: context [
 			str	[red-string!]
 	][
 		str: as red-string! slot
-		str/header: TYPE_UNSET
+		set-type slot TYPE_UNSET
 		str/head:	0
 		str/node:	alloc-codepoints size unit
 		str/cache:	null
-		str/header: TYPE_STRING
+		set-type slot TYPE_STRING
 		str
 	]
 	

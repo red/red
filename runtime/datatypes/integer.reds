@@ -285,7 +285,7 @@ integer: context [
 			int [red-integer!]
 	][
 		int: as red-integer! slot
-		int/header: TYPE_INTEGER
+		set-type slot TYPE_INTEGER
 		int/value: value
 		int
 	]

@@ -894,10 +894,10 @@ binary: context [
 			bin	[red-binary!]
 	][
 		bin: as red-binary! slot
-		bin/header: TYPE_UNSET
+		set-type slot TYPE_UNSET
 		bin/head: 0
 		bin/node: alloc-bytes size
-		bin/header: TYPE_BINARY
+		set-type slot TYPE_BINARY
 		bin
 	]
 

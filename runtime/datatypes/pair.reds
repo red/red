@@ -80,7 +80,7 @@ pair: context [
 		#if debug? = yes [if verbose > 0 [print-line "pair/make-at"]]
 		
 		pair: as red-pair! slot
-		pair/header: TYPE_PAIR
+		set-type slot TYPE_PAIR
 		pair/x: x
 		pair/y: y
 		pair
