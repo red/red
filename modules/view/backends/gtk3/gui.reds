@@ -10,19 +10,6 @@ Red/System [
 	}
 ]
 
-#define SET-CONTAINER(s d)		[g_object_set_qdata s container-id d]
-#define GET-CONTAINER(s)		[g_object_get_qdata s container-id]
-#define SET-CURSOR(s d)			[g_object_set_qdata s cursor-id d]
-#define GET-CURSOR(s)			[g_object_get_qdata s cursor-id]
-#define SET-RESIZING(s d)		[g_object_set_qdata s resizing-id d]
-#define GET-RESIZING(s)			[g_object_get_qdata s resizing-id]
-#define SET-STARTRESIZE(s d)	[g_object_set_qdata s start-resize-id d]
-#define GET-STARTRESIZE(s)		[g_object_get_qdata s start-resize-id]
-
-#define CREATE-DEFAULT-FONT		[
-	font-description-create default-font-name default-font-size PANGO_WEIGHT_NORMAL PANGO_STYLE_NORMAL
-]
-
 #include %../keycodes.reds
 #include %gtk.reds
 #include %events.reds
@@ -45,28 +32,10 @@ exit-loop:		0
 ;;;win-array:		declare red-vector!
 win-cnt:		0
 
-;; Identifiers for qdata
-red-face-id1:		g_quark_from_string "red-face-id1"
-red-face-id2:		g_quark_from_string "red-face-id2"
-red-face-id3:		g_quark_from_string "red-face-id3"
-red-face-id4:		g_quark_from_string "red-face-id4"
-gtk-style-id: 		g_quark_from_string "gtk-style-id"
-container-id:		g_quark_from_string "container-id"
-red-timer-id:		g_quark_from_string "red-timer-id"
-css-id:				g_quark_from_string "css-id"
-size-id:			g_quark_from_string "size-id"
-menu-id:			g_quark_from_string "menu-id"
-no-wait-id:			g_quark_from_string "no-wait-id"
-red-event-id:		g_quark_from_string "red-event-id"
-cursor-id:			g_quark_from_string "cursor-id"
-resizing-id:		g_quark_from_string "resizing-id"
-start-resize-id:	g_quark_from_string "start-resize-id"
-
 group-radio:	as handle! 0
 
 settings:		as handle! 0
 pango-context:	as handle! 0
-default-font:	as handle! 0
 default-font-name: as c-string! 0
 default-font-size: 0
 gtk-font-name:	"Sans"
@@ -392,35 +361,17 @@ get-text-size: func [
 ][
 	if null? pango-context [pango-context: gdk_pango_context_get]
 	size: declare tagSIZE
+	if null? hFont [hFont: default-attrs]
 
-	text: either TYPE_OF(str) = TYPE_STRING [
-		len: -1
-		unicode/to-utf8 str :len
-	][
-		null
-	]
+	len: -1
+	text: unicode/to-utf8 str :len
 
-	width: 0 height: 0
-
-	;;; get pango_context
-	;  from widget first
-	; widget: face-handle? face
-	; pc: as handle! 0 pl: as handle! 0
-	; unless null? widget [
-	; 	pc: gtk_widget_get_pango_context widget
-	; 	unless null? pc [pl: pango_layout_new pc ];seems more natural than pango-context
-	; ]
-	; globally otherwise
-	;if null? pl [
-		pl: pango_layout_new pango-context
-	;]
-
-
+	pl: pango_layout_new pango-context
 	pango_layout_set_text pl text -1
-	pango_layout_set_font_description pl hFont
+	pango_layout_set_attributes pl hFont
+	width: 0 height: 0
 	pango_layout_get_pixel_size pl :width :height
 	g_object_unref pl
-;	unless null? pc [g_object_unref pc]
 
 	size/width: width
 	size/height: height
@@ -430,21 +381,6 @@ get-text-size: func [
 		pair/y: size/height
 	]
 	size
-]
-
-to-bgr: func [
-	node		[node!]
-	pos			[integer!]
-	return:		[integer!]									;-- 00bbggrr format or -1 if not found
-	/local
-		color	[red-tuple!]
-][
-	color: as red-tuple! get-node-facet node pos
-	either TYPE_OF(color) = TYPE_TUPLE [
-		color/array1 and 00FFFFFFh
-	][
-		-1
-	]
 ]
 
 free-handles: func [
@@ -581,7 +517,7 @@ set-defaults: func [
 	len: len + 1
 	default-font-name/len: null-byte
 	default-font-size: size
-	default-font: CREATE-DEFAULT-FONT
+	set-default-font default-font-name default-font-size
 ]
 
 init: func [][
@@ -780,35 +716,20 @@ change-color: func [
 	color		[red-tuple!]
 	type		[integer!]
 	/local
-		clr		[integer!]
 		t		[integer!]
 		face	[red-object!]
+		values	[red-value!]
 		font	[red-object!]
 ][
-	;; DEBUG: print ["change-color "  widget " " get-symbol-name type lf]
 	t: TYPE_OF(color)
 	if all [t <> TYPE_NONE t <> TYPE_TUPLE][exit]
-	; if transparent-color? color [
-	; 	objc_msgSend [widget sel_getUid "setDrawsBackground:" no]
-	; 	exit
-	; ]
-	case [
-		type = area [
-			face: get-face-obj widget
-			font: face-font? face
-			apply-css-styles widget face font type
-			; widget: objc_msgSend [widget sel_getUid "documentView"]
-			; clr: either t = TYPE_NONE [00FFFFFFh][color/array1]
-			; set-caret-color widget clr
-			; if t = TYPE_NONE [clr: objc_msgSend [objc_getClass "NSColor" sel_getUid "textBackgroundColor"]]
-		]
-		true [
-			;; DEBUG: print ["change-color " widget lf]
-			face: get-face-obj widget
-			font: face-font? face
-			apply-css-styles widget face font type
-		]
-	]
+	;-- TBD: need to be improved
+	face: get-face-obj widget
+	values: object/get-values face
+	font: as red-object! values + FACE_OBJ_FONT
+	free-font font
+	make-font null font
+	set-font widget face values
 ]
 
 change-pane: func [
@@ -877,31 +798,9 @@ change-pane: func [
 change-font: func [
 	widget		[handle!]
 	face		[red-object!]
-	font		[red-object!]
-	type		[integer!]
-	return:		[logic!]
-	/local
-		; css		 [c-string!]
-		; provider [handle!]
-		hFont	[handle!]
+	values		[red-value!]
 ][
-	;; DEBUG: print ["change-font " widget " " get-symbol-name type lf]
-	if TYPE_OF(font) <> TYPE_OBJECT [return no]
-
-	; provider: get-styles-provider widget
-
-	; ;; update the style (including font color) gtk_css_provider is much more easier to apply than older interface to manage all the styles
-	; css: ""
-	; css: css-styles face font type
-
-	; unless null? provider [gtk_css_provider_load_from_data provider css -1 null]
-
-	apply-css-styles widget face font type
-
-	;; Update the pango_font_description hFont (directly used by get-text-size)
-	make-font face font
-
-	yes
+	set-font widget face values
 ]
 
 change-offset: func [
@@ -1814,6 +1713,7 @@ OS-make-view: func [
 	;-- store the face value in the extra space of the window struct
 	assert TYPE_OF(face) = TYPE_OBJECT
 	store-face-to-obj widget face
+	change-font widget face values
 
 	if sym <> window [
 		if parent <> 0 [
@@ -1843,12 +1743,10 @@ OS-make-view: func [
 
 	;; TODO: NOT SURE the if is necessary!
 	if sym <> base [
-		change-font widget face font sym
+		change-font widget face values
 	]
 
 	if TYPE_OF(rate) <> TYPE_NONE [change-rate widget rate]
-
-	change-color widget as red-tuple! values + FACE_OBJ_COLOR sym
 
 	stack/unwind
 	as-integer widget
@@ -1949,7 +1847,7 @@ OS-update-view: func [
 		change-rate widget values + FACE_OBJ_RATE
 	]
 	if flags and FACET_FLAG_FONT <> 0 [
-		change-font widget face as red-object! values + FACE_OBJ_FONT type
+		change-font widget face values
 	]
 	if flags and FACET_FLAG_PARA <> 0 [
 		change-para

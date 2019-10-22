@@ -21,6 +21,7 @@ Red/System [
 
 #define G_ASCII_DTOSTR_BUF_SIZE	39
 
+
 RECT_STRUCT: alias struct! [
 	left		[integer!]
 	top			[integer!]
@@ -738,21 +739,21 @@ GPtrArray!: alias struct! [
 		]
 		g_main_context_pending: "g_main_context_pending" [
 			context		[integer!]
-			return: 	[logic!]
+			return:		[logic!]
 		]
 		g_main_context_is_owner: "g_main_context_is_owner" [
 			context		[integer!]
-			return: 	[logic!]
+			return:		[logic!]
 		]
 		g_main_current_source: "g_main_current_source" [
 			return:		[handle!]
 		]
 		g_list_length: "g_list_length" [
-			list			[int-ptr!]
+			list		[int-ptr!]
 			return:		[integer!]
 		]
 		g_list_free: "g_list_free" [
-			list			[int-ptr!]
+			list		[int-ptr!]
 		]
 		g_list_nth_data: "g_list_nth_data" [
 			list		[handle!]
@@ -762,20 +763,20 @@ GPtrArray!: alias struct! [
 		g_list_append: "g_list_append" [
 			list		[handle!]
 			data		[handle!]
-			return: 	[handle!]
+			return:		[handle!]
 		]
 		g_list_prepend: "g_list_prepend" [
 			list		[handle!]
 			data		[handle!]
-			return: 	[handle!]
+			return:		[handle!]
 		]
 		g_list_first: "g_list_first" [
 			list		[handle!]
-			return: 	[handle!]
+			return:		[handle!]
 		]
 		g_list_last: "g_list_last" [
 			list		[handle!]
-			return: 	[handle!]
+			return:		[handle!]
 		]
 		g_list_delete_link: "g_list_delete_link" [
 			list		[handle!]
@@ -783,10 +784,10 @@ GPtrArray!: alias struct! [
 			return: 	[handle!]
 		]
 		g_list_insert_sorted: "g_list_insert_sorted" [
-			list			[handle!]
-			data			[handle!]
+			list		[handle!]
+			data		[handle!]
 			comp-func	[integer!]
-			return: 	[handle!]
+			return:		[handle!]
 		]
 		g_ascii_dtostr: "g_ascii_dtostr" [
 			buffer		[c-string!]
@@ -799,37 +800,37 @@ GPtrArray!: alias struct! [
 			return:		[c-string!]
 		]
 		g_strdup: "g_strdup" [
-			str		[c-string!]
-			return:	[c-string!]
+			str			[c-string!]
+			return:		[c-string!]
 		]
 		g_strndup: "g_strndup"[
-			str		[c-string!]
-			n		[integer!]
-			return:	[c-string!]
+			str			[c-string!]
+			n			[integer!]
+			return:		[c-string!]
 		]
 		g_strconcat: "g_strconcat" [
 			[variadic]
-			return:	[c-string!]
+			return:		[c-string!]
 		]
 		g_strcmp0: "g_strcmp0" [
 			str			[c-string!]
 			str2		[c-string!]
-			return: [integer!]
+			return:		[integer!]
 		]
 		g_strsplit: "g_strsplit" [
-			str 		[c-string!]
+			str			[c-string!]
 			delim		[c-string!]
-			tokens	[integer!]
-			return:	[handle!]
+			tokens		[integer!]
+			return:		[handle!]
 		]
 		g_strsplit_set: "g_strsplit_set" [
 			str 		[c-string!]
 			delim		[c-string!]
-			tokens	[integer!]
-			return:	[handle!]
+			tokens		[integer!]
+			return:		[handle!]
 		]
 		g_free: "g_free" [
-			ptr		[handle!]
+			ptr			[handle!]
 		]
 		g_strfreev: "g_strfreev" [
 			str_array	[handle!]
@@ -861,6 +862,9 @@ GPtrArray!: alias struct! [
 			text	[c-string!]
 			len 	[integer!]
 			return: [GString!]
+		]
+		g_string_append_printf: "g_string_append_printf" [
+			[variadic]
 		]
 		g_string_free: "g_string_free" [
 			str		[GString!]
@@ -1509,6 +1513,10 @@ GPtrArray!: alias struct! [
 			frame		[handle!]
 			shadow		[integer!]
 		]
+		gtk_frame_get_label_widget: "gtk_frame_get_label_widget" [
+			frame		[handle!]
+			return:		[handle!]
+		]
 		gtk_box_new: "gtk_box_new" [
 			orient		[GtkOrientation!]
 			spacing		[integer!]
@@ -1696,7 +1704,15 @@ GPtrArray!: alias struct! [
 		]
 		gtk_label_set_line_wrap: "gtk_label_set_line_wrap" [
 			widget		[handle!]
-			wrap			[logic!]
+			wrap		[logic!]
+		]
+		gtk_label_set_angle: "gtk_label_set_angle" [
+			widget		[handle!]
+			angle		[float!]
+		]
+		gtk_label_set_attributes: "gtk_label_set_attributes" [
+			widget		[handle!]
+			list		[handle!]
 		]
 		gtk_event_box_new: "gtk_event_box_new" [
 			return: 	[handle!]
@@ -1730,16 +1746,20 @@ GPtrArray!: alias struct! [
 		]
 		gtk_entry_set_placeholder_text: "gtk_entry_set_placeholder_text" [
 			buffer		[handle!]
-			text			[c-string!]
+			text		[c-string!]
 		]
 		gtk_entry_set_visibility: "gtk_entry_set_visibility" [
-			entry			[handle!]
+			entry		[handle!]
 			visible		[logic!]
 		]
 		gtk_entry_buffer_set_text: "gtk_entry_buffer_set_text" [
 			buffer		[handle!]
 			text		[c-string!]
 			len			[integer!]
+		]
+		gtk_entry_set_attributes: "gtk_entry_set_attributes" [
+			entry		[handle!]
+			list		[handle!]
 		]
 		gtk_editable_select_region: "gtk_editable_select_region" [
 			entry		[handle!]
@@ -2843,3 +2863,32 @@ GPtrArray!: alias struct! [
 		]
 	]
 ]
+
+;; Identifiers for qdata
+red-face-id1:		g_quark_from_string "red-face-id1"
+red-face-id2:		g_quark_from_string "red-face-id2"
+red-face-id3:		g_quark_from_string "red-face-id3"
+red-face-id4:		g_quark_from_string "red-face-id4"
+gtk-style-id: 		g_quark_from_string "gtk-style-id"
+container-id:		g_quark_from_string "container-id"
+red-timer-id:		g_quark_from_string "red-timer-id"
+css-id:				g_quark_from_string "css-id"
+size-id:			g_quark_from_string "size-id"
+menu-id:			g_quark_from_string "menu-id"
+no-wait-id:			g_quark_from_string "no-wait-id"
+red-event-id:		g_quark_from_string "red-event-id"
+cursor-id:			g_quark_from_string "cursor-id"
+resizing-id:		g_quark_from_string "resizing-id"
+start-resize-id:	g_quark_from_string "start-resize-id"
+
+
+#define SET-CONTAINER(s d)		[g_object_set_qdata s container-id d]
+#define GET-CONTAINER(s)		[g_object_get_qdata s container-id]
+#define SET-CURSOR(s d)			[g_object_set_qdata s cursor-id d]
+#define GET-CURSOR(s)			[g_object_get_qdata s cursor-id]
+#define SET-RESIZING(s d)		[g_object_set_qdata s resizing-id d]
+#define GET-RESIZING(s)			[g_object_get_qdata s resizing-id]
+#define SET-STARTRESIZE(s d)	[g_object_set_qdata s start-resize-id d]
+#define GET-STARTRESIZE(s)		[g_object_get_qdata s start-resize-id]
+#define SET-CSS(s d)			[g_object_set_qdata s css-id d]
+#define GET-CSS(s)				[g_object_get_qdata s css-id]

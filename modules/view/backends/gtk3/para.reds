@@ -38,7 +38,7 @@ change-para: func [
 			type = text
 		][
 			if TYPE_OF(font) = TYPE_OBJECT [
-				change-font widget face font type
+				change-font widget face object/get-values face
 			]
 			gtk_widget_set_halign widget (flags and FFFFh) + 1
 			gtk_label_set_justify widget (flags and FFFFh)
@@ -46,7 +46,7 @@ change-para: func [
 		]
 		type = area [
 			if TYPE_OF(font) = TYPE_OBJECT [
-				change-font widget face font type
+				change-font widget face object/get-values face
 			]
 			gtk_text_view_set_justification widget (flags and FFFFh)
 			gtk_text_view_set_wrap_mode widget either (flags and FFFF0000h <> 0) [GTK_WRAP_WORD][GTK_WRAP_NONE]

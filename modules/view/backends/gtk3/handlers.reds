@@ -90,27 +90,26 @@ render-text: func [
 	/local
 		text	[red-string!]
 		font	[red-object!]
+		attrs	[handle!]
 		para	[red-object!]
 		flags	[integer!]
+		layout	[handle!]
 		len		[integer!]
 		str		[c-string!]
-		line	[integer!]
-		x		[float!]
-		y		[float!]
-		temp	[float!]
-		;te		[cairo_text_extents_t!]
-		;fe		[cairo_font_extents_t!]
+		pline	[handle!]
 		lx		[integer!]
 		ly		[integer!]
+		x		[float!]
+		y		[float!]
 		rect	[tagRECT value]
 		lrect	[tagRECT value]
-		pline	[handle!]
-		pc		[handle!]
-		lpc		[handle!]
-		fd		[handle!]
 ][
 	text: as red-string! values + FACE_OBJ_TEXT
 	if TYPE_OF(text) <> TYPE_STRING [exit]
+
+
+	font: as red-object! values + FACE_OBJ_FONT
+	attrs: get-attrs null font
 
 	;; DEBUG: print ["render-text: " cr lf]
 	para: as red-object! values + FACE_OBJ_PARA
@@ -120,28 +119,19 @@ render-text: func [
 		0005h										;-- center or middle
 	]
 
+	layout: pango_cairo_create_layout cr
 	cairo_save cr
 
-	; The pango_cairo way
-	pc: pango_cairo_create_context cr
-	lpc: pango_cairo_create_layout cr
+	len: -1
+	str: unicode/to-utf8 text :len
+	pango_layout_set_text layout str -1
+	pango_layout_set_attributes layout attrs
 
-	font: as red-object! values + FACE_OBJ_FONT
-	fd: font-description font
-	pango_layout_set_font_description lpc fd
-	if TYPE_OF(text) = TYPE_STRING [
-		len: -1
-		str: unicode/to-utf8 text :len
-	]
-	;; DEBUG: print ["render-text " str " size: " size/x "x" size/y " flags: " flags lf]
+	pango_cairo_update_layout cr layout
 
-	pango_layout_set_text lpc str -1
-	cairo_set_source_rgba cr 0.0 0.0 0.0 0.5
-	pango_cairo_update_layout cr lpc
-
-	pline: pango_layout_get_line lpc 0
+	pline: pango_layout_get_line layout 0
 	pango_layout_line_get_pixel_extents pline rect lrect
-	ly: (pango_layout_get_line_count lpc) * lrect/height
+	ly: (pango_layout_get_line_count layout) * lrect/height
 	lx: lrect/width
 
 	case [
@@ -158,42 +148,9 @@ render-text: func [
 	;; DEBUG: print [lx "x" ly " and (" x "," y ")" lf]
 
 	cairo_move_to cr x y
-
-	pango_cairo_show_layout cr lpc
-
+	pango_cairo_show_layout cr layout
 	cairo_stroke cr
 	cairo_restore cr
-
-; @@ The cairo way (alternative) does not work for me after too many attempt
-; 	if TYPE_OF(text) = TYPE_STRING [
-; 		len: -1
-; 		str: unicode/to-utf8 text :len
-; 		te: as cairo_text_extents_t! allocate (size? cairo_text_extents_t!)
-; 		cairo_text_extents cr str as handle! te
-; 		fe: as cairo_font_extents_t! allocate (size? cairo_font_extents_t!)
-; 		cairo_font_extents cr as handle! fe
-; 		x: 0.5 - te/x_bearing - (te/width / 2.0)
-; 		y: 0.5 - fe/descent + (fe/height / 2.0)
-; 		free as byte-ptr! te
-; 		free as byte-ptr! fe
-; 	]
-
-; 	cairo_scale cr 170.0 40.0
-; 	;set-source-color cr 0
-; 	cairo_set_source_rgba cr 0.0 0.0 0.0 0.5
-
-; 	font: as red-object! values + FACE_OBJ_FONT
-; 	either TYPE_OF(font) = TYPE_OBJECT [
-; 		  select-cairo-font cr font
-; 	][
-; 		0
-; 	]
-
-; 	;cairo_move_to(cr, w/2 - extents.width/2, h/2);
-; 	cairo_move_to cr x y
-; print [ "hi-str: <" str ">" lf]
-; 	cairo_show_text cr str
-
 ]
 
 base-draw: func [

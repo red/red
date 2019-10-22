@@ -14,6 +14,80 @@ Red/System [
 
 draw-state!: alias struct! [mat [handle!]]
 
+make-pango-cairo-font: func [
+	dc			[draw-ctx!]
+	font		[red-object!]
+	/local
+		values	[red-value!]
+		value	[red-value!]
+		quality	[integer!]
+		bool	[red-logic!]
+		word	[red-word!]
+][
+	free-pango-cairo-font dc
+	dc/font-attrs: create-pango-attrs null font
+	dc/font-opts: cairo_font_options_create
+	dc/layout: pango_cairo_create_layout dc/raw
+	pango_layout_set_attributes dc/layout dc/font-attrs
+
+	values: object/get-values font
+	value: values + FONT_OBJ_ANTI-ALIAS?
+	quality: switch TYPE_OF(value) [
+		TYPE_LOGIC [
+			bool: as red-logic! value
+			either bool/value [
+				CAIRO_ANTIALIAS_SUBPIXEL
+			][
+				CAIRO_ANTIALIAS_NONE
+			]
+		]
+		TYPE_WORD [
+			word: as red-word! value
+			either ClearType = symbol/resolve word/symbol [
+				CAIRO_ANTIALIAS_BEST
+			][
+				CAIRO_ANTIALIAS_NONE
+			]
+		]
+		default [CAIRO_ANTIALIAS_DEFAULT]
+	]
+	cairo_font_options_set_antialias dc/font-opts quality
+]
+
+free-pango-cairo-font: func [
+	dc		[draw-ctx!]
+][
+	unless null? dc/font-attrs [
+		pango_attr_list_unref dc/font-attrs
+		dc/font-attrs: null
+	]
+	unless null? dc/font-opts [
+		cairo_font_options_destroy dc/font-opts
+		dc/font-opts: null
+	]
+	unless null? dc/layout [
+		g_object_unref dc/layout
+		dc/layout: null
+	]
+]
+
+
+pango-cairo-set-text: func [
+	dc		[draw-ctx!]
+	text	[c-string!]
+][
+	pango-layout-set-text dc/layout text dc/font-attrs
+]
+
+pango-layout-set-text: func [
+	layout	[handle!]
+	text	[c-string!]
+	attrs	[handle!]
+][
+	pango_layout_set_text layout text -1
+	pango_layout_set_attributes layout attrs
+]
+
 set-source-color: func [
 	cr			[handle!]
 	color		[integer!]
@@ -52,11 +126,9 @@ init-draw-ctx: func [
 	ctx/brush?:			no
 	ctx/pattern:		null
 
-	ctx/font-desc: null ;default-font
-	ctx/layout: null ; make-pango-cairo-layout cr ctx/font-desc
+	ctx/font-attrs:		null
+	ctx/layout:			null
 	ctx/font-opts:		null
-	ctx/font-underline?: no
-	ctx/font-strike?: 	no
 ]
 
 draw-begin: func [
@@ -433,134 +505,69 @@ OS-draw-font: func [
 	dc		[draw-ctx!]
 	font	[red-object!]
 ][
-	; either pango-font? [
-		make-pango-cairo-font dc font
-	; ][
-		; make-cairo-draw-font dc font
-	; ]
+	make-pango-cairo-font dc font
 ]
 
 draw-text-at: func [
-	dc		[draw-ctx!]
-	text	[red-string!]
-	color	[integer!]
-	x		[integer!]
-	y		[integer!]
+	cr			[handle!]
+	text		[red-string!]
+	attrs		[handle!]
+	opts		[handle!]
+	x			[integer!]
+	y			[integer!]
 	/local
-		len     [integer!]
+		len		[integer!]
 		str		[c-string!]
-		ctx 	[handle!]
-		pl		[handle!]
-		width	[integer!]
-		height	[integer!]
-		size	[integer!]
+		layout	[handle!]
 ][
-	ctx: dc/raw
-
+	cairo_save cr
+	cairo_move_to cr as-float x as-float y
 	len: -1
 	str: unicode/to-utf8 text :len
-	;; print ["draw-text-at: " str " at " x "x" y   lf]
-	; either pango-font? [
-		;; print ["draw-text-at: dc/layout: " dc/layout lf]
-	if null? dc/layout [
-		dc/font-desc: CREATE-DEFAULT-FONT
-		dc/layout: make-pango-cairo-layout ctx dc/font-desc
-	]
-	;pango-cairo-set-text dc str
-	pango-layout-context-set-text dc/layout dc str
-	;; print ["pango-cairo-set-text: " dc " " str lf]
-	set-source-color ctx color
-	;; print ["set-source-color: " ctx " " color lf]
-
-	pango_cairo_update_layout ctx dc/layout
-
-	size: 0
-	size: pango_font_description_get_size dc/font-desc
-	;; DEBUG: print ["pango_font_description_get_size: dc/font-desc: " dc/font-desc " size: " size lf]
-	cairo_move_to ctx as-float x
-					(as-float y) + ((as-float size) / PANGO_SCALE)
-	pl: pango_layout_get_line_readonly dc/layout 0
-	pango_cairo_show_layout_line ctx pl
-
-	;pango_cairo_show_layout ctx dc/layout
-
-	do-paint dc
-
+	layout: pango_cairo_create_layout cr
+	pango_layout_set_text layout str -1
+	pango_layout_set_attributes layout attrs
+	pango_cairo_context_set_font_options layout opts
+	pango_cairo_update_layout cr layout
+	pango_cairo_show_layout cr layout
+	g_object_unref layout
+	cairo_restore cr
 ]
-
-draw-text-box-lines: func [
-	dc 		[draw-ctx!]
-	line	[c-string!]
-	pos		[red-pair!]
-	size 	[red-pair!]
-	tbox 	[red-object!]
-	/local
-		lc 		[layout-ctx!]
-		ctx		[handle!]
-		clr		[integer!]
-		pl		[handle!]
-		width	[integer!]
-		height	[integer!]
-		sizef 	[float!]
-		gstr	[GString!]
-		irect	[tagRECT value]
-		lrect	[tagRECT value]
-][
-	ctx: dc/raw
-
-	clr: either null? dc [0][
-		;;TODO: objc_msgSend [dc/font-attrs sel_getUid "objectForKey:" NSForegroundColorAttributeName]
-		dc/font-color
-	]
-
-	if TYPE_OF(tbox) <> TYPE_OBJECT [exit]
-
-	lc: as layout-ctx! OS-text-box-layout tbox as int-ptr! dc clr yes
-	unless null? lc/layout [
-		set-source-color ctx clr
-		;; DEBUG: print ["set-source-color: " ctx " " clr lf]
-
-		cairo_move_to ctx as-float pos/x (as-float pos/y) ; + sizef
-		pango_cairo_show_layout ctx lc/layout
-
-		free-pango-cairo-font dc
-
-		;; DEBUG: print ["free pango"  lf]
-		do-paint dc
-	]
-]
-
 
 draw-text-box: func [
-	dc		[draw-ctx!]
-	pos		[red-pair!]
-	tbox	[red-object!]
-	catch?	[logic!]
+	dc			[draw-ctx!]
+	pos			[red-pair!]
+	tbox		[red-object!]
+	catch?		[logic!]
 	/local
 		values	[red-value!]
 		text	[red-string!]
-		lc		[layout-ctx!]
-		len		[integer!]
-		str		[c-string!]
-		size 	[red-pair!]
+		state	[red-block!]
+		layout?	[logic!]
+		bool	[red-logic!]
+		clr		[integer!]
+		int		[red-integer!]
+		layout	[handle!]
 ][
-	;; DEBUG: print ["draw-text-box: " tbox lf]
 	values: object/get-values tbox
 	text: as red-string! values + FACE_OBJ_TEXT
 	if TYPE_OF(text) <> TYPE_STRING [exit]
 
-	size: as red-pair! values + FACE_OBJ_SIZE
+	state: as red-block! values + FACE_OBJ_EXT3
+	layout?: yes
+	if TYPE_OF(state) = TYPE_BLOCK [
+		bool: as red-logic! (block/rs-tail state) - 1
+		layout?: bool/value
+	]
+	if layout? [
+		clr: 0										;-- TBD
+		OS-text-box-layout tbox null clr catch?
+	]
 
-	;; DEBUG: print ["pos : " pos/x "x" pos/y " size: " size/x "x" size/y lf]
-
-	len: -1
-	str: unicode/to-utf8 text :len
-	; default font-desc that can be overloaded in OS-text-box-layout called inside draw-text-box-lines
-	dc/font-desc: CREATE-DEFAULT-FONT
-	;;TORM: dc/layout: make-pango-cairo-layout dc/raw dc/font-desc
-
-	;; DEBUG: print ["draw-text-box text: " str  " dc/font-desc: " dc/font-desc  lf]
-	draw-text-box-lines dc str pos size tbox
+	int: as red-integer! block/rs-head state
+	layout: as handle! int/value
+	cairo_move_to dc/raw as-float pos/x as-float pos/y
+	pango_cairo_show_layout dc/raw layout
 ]
 
 OS-draw-text: func [
@@ -571,13 +578,11 @@ OS-draw-text: func [
 	return: [logic!]
 ][
 	either TYPE_OF(text) = TYPE_STRING [
-		draw-text-at dc text dc/font-color pos/x pos/y
+		draw-text-at dc/raw text dc/font-attrs dc/font-opts pos/x pos/y
 	][
-		;; DEBUG: print ["OS-draw-text: " pos/x "x" pos/y lf]
 		draw-text-box dc pos as red-object! text catch?
 	]
 
-	;; DEBUG: print ["OS-draw-text end" lf]
 	true
 ]
 
