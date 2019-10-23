@@ -481,7 +481,7 @@ date: context [
 		]
 	]
 
-	set-all: func[
+	set-all: func [
 		dt     [red-date!]
 		year   [integer!]
 		month  [integer!]
