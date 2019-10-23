@@ -160,8 +160,11 @@ probe "UDP event-handler"
 
 		fd: socket/create AF_INET SOCK_DGRAM IPPROTO_UDP
 		iocp/bind g-iocp as int-ptr! fd
+		socket/bind fd 0 AF_INET
+
 		n: -1
 		addr: unicode/to-utf8 host :n
+		socket/uconnect fd addr num/value AF_INET
 		create-udp-data port fd addr num/value
 	]
 
@@ -253,10 +256,8 @@ probe "UDP event-handler"
 		data: get-udp-data port
 		data/send-buf: bin/node
 
-		socket/usend
+		socket/send
 			as-integer data/iocp/device
-			as sockaddr_in! data/addr
-			data/addr-sz
 			binary/rs-head bin
 			binary/rs-length? bin
 			as iocp-data! data
@@ -271,7 +272,7 @@ probe "UDP event-handler"
 		types		[red-value!]
 		return:		[red-value!]
 		/local
-			data	[udp-data!]
+			data	[iocp-data!]
 			buf		[red-binary!]
 			s		[series!]
 	][
@@ -282,14 +283,8 @@ probe "UDP event-handler"
 		buf/head: 0
 		io/pin-memory buf/node
 		s: GET_BUFFER(buf)
-		data: as udp-data! get-udp-data red-port
-		socket/urecv
-			as-integer data/iocp/device
-			as byte-ptr! s/offset
-			s/size
-			as sockaddr_in! :data/addr
-			:data/addr-sz
-			as sockdata! data
+		data: as iocp-data! get-udp-data red-port
+		socket/recv as-integer data/device as byte-ptr! s/offset s/size data
 		as red-value! red-port
 	]
 

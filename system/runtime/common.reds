@@ -42,6 +42,12 @@ Red/System [
 #define float-ptr!    [pointer! [float!]]
 #define float32-ptr!  [pointer! [float32!]]
 
+;@@ change it >
+#define uint!		  integer!
+#define long!		  integer!		;-- 32bit in 32bit OS, 64bit in 64bit OS
+#define ulong!		  integer!	
+;@@ change it <
+
 ptr-ptr!: alias struct! [value [int-ptr!]]
 #define ptr-value!	  [ptr-ptr! value]
 

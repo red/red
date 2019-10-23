@@ -82,8 +82,6 @@ socket: context [
 			data/accept-addr: alloc0 256
 		]
 
-probe "acceptex in 22222222"
-
 		n: 0
 		data/event: IO_EVT_ACCEPT
 		data/accept-sock: create AF_INET SOCK_STREAM IPPROTO_TCP
@@ -112,11 +110,28 @@ probe "acceptex in 22222222"
 		saddr/sa_data1: 0
 		saddr/sa_data2: 0
 		ConnectEx: as ConnectEx! ConnectEx-func
-?? sock
-		ret: ConnectEx sock as int-ptr! :saddr size? saddr null 0 :n as int-ptr! data
-?? ret		
+		ret: ConnectEx sock as int-ptr! :saddr size? saddr null 0 :n as int-ptr! data	
 	]
 
+	uconnect: func [
+		sock		[integer!]
+		addr		[c-string!]
+		port		[integer!]
+		type		[integer!]
+		/local
+			n		[integer!]
+			ret		[integer!]
+			saddr	[sockaddr_in! value]
+	][
+		n: 0
+		port: htons port
+		saddr/sin_family: port << 16 or type
+		saddr/sin_addr: inet_addr addr
+		saddr/sa_data1: 0
+		saddr/sa_data2: 0
+		ret: WSAConnect sock :saddr size? saddr null null null null
+	]
+	
 	send: func [
 		sock		[integer!]
 		buffer		[byte-ptr!]

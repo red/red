@@ -149,6 +149,17 @@ WSADATA!: alias struct! [					;-- varies from 32bit to 64bit, for 32bit: 400 byt
 	lpVendorInfo	[c-string!]
 ]
 
+FLOWSPEC!: alias struct! [
+	TokenRate		[uint!]
+	TokenBucketSize	[uint!]
+	PeakBandwidth	[uint!]
+	Latency			[uint!]
+	DelayVariation	[uint!]
+	ServiceType		[uint!]
+	MaxSduSize		[uint!]
+	MinimumPolicedSize [uint!]
+]
+
 WSAPROTOCOL_INFOW: alias struct! [
 	dwServiceFlags1		[integer!]
 	dwServiceFlags2		[integer!]
@@ -980,6 +991,16 @@ SecurityFunctionTableW: alias struct! [
 			dwFlags			[integer!]
 			return:			[integer!]
 		]
+		WSAConnect: "WSAConnect" [
+			s				[ulong!]
+			name			[sockaddr_in!]
+			namelen			[integer!]
+			lpCallerData	[WSABUF!]
+			lpCalleeData	[WSABUF!]
+			lpSQOS			[FLOWSPEC!]
+			lpGQOS			[FLOWSPEC!]
+			return:			[integer!]
+		]
 		WSASend: "WSASend" [
 			s					[integer!]
 			lpBuffers			[WSABUF!]
@@ -1092,6 +1113,14 @@ SecurityFunctionTableW: alias struct! [
 			optname		[integer!]
 			optval		[c-string!]
 			optlen		[integer!]
+			return:		[integer!]
+		]
+		getsockopt: "getsockopt" [
+			s			[integer!]
+			level		[integer!]
+			optname		[integer!]
+			optval		[c-string!]
+			optlen		[int-ptr!]
 			return:		[integer!]
 		]
 	]

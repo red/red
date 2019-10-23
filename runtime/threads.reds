@@ -10,10 +10,6 @@ Red/System [
 	}
 ]
 
-#define handle! int-ptr!
-#include %queue.reds
-#include %platform/definitions.reds
-
 thread-func!: alias function! [
 	udata	[int-ptr!]			;-- user data
 	return: [integer!]
