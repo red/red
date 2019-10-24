@@ -31,6 +31,8 @@ udp-device: context [
 			type	[integer!]
 			bin		[red-binary!]
 			s		[series!]
+			ser1	[red-series!]
+			ser2	[red-series!]
 	][
 		udp: as udp-data! data
 		p: as red-object! :udp/port
@@ -42,14 +44,14 @@ probe "UDP event-handler"
 				bin: as red-binary! (object/get-values p) + port/field-data
 				s: GET_BUFFER(bin)
 				probe ["read data: " data/transferred]
+probe as c-string! s/offset
 				s/tail: as cell! (as byte-ptr! s/tail) + data/transferred
 				io/unpin-memory bin/node
-				msg: create-red-port p -1 udp/addr
 				#if OS = 'Windows [
 					either data/accept-sock = PENDING_IO_FLAG [
 						free as byte-ptr! data
 					][
-						data/event: IO_EVT_NONE
+						data/event: IO_EVT_NONE 
 					]
 				]
 			]
@@ -63,6 +65,16 @@ probe "UDP event-handler"
 					]
 				]
 			]
+			IO_EVT_ACCEPT	[ 
+				msg: create-red-port p udp
+				ser1: as red-series! (object/get-values p) + port/field-data
+				ser2: as red-series! (object/get-values msg) + port/field-data
+				s: GET_BUFFER(ser1)
+				probe ["read data in accept: " data/transferred]
+				s/tail: as cell! (as byte-ptr! s/tail) + data/transferred
+				io/unpin-memory ser1/node
+				_series/copy ser1 ser2 null no null
+			]
 			default [data/event: IO_EVT_NONE]
 		]
 
@@ -71,20 +83,21 @@ probe "UDP event-handler"
 
 	create-red-port: func [
 		proto		[red-object!]
-		sock		[integer!]
-		addr		[sockaddr_in6!]
+		data		[udp-data!]
 		return:		[red-object!]
 		/local
-			data	[udp-data!]
+			fd		[integer!]
 	][
 		proto: port/make none-value object/get-values proto TYPE_NONE
 
 		;; @@ add it to a block, so GC can mark it. Improve it later!!!
 		block/rs-append ports-block as red-value! proto
 
-		data: as udp-data! io/create-socket-data proto sock as int-ptr! :event-handler size? udp-data!
-		;#if OS <> 'Windows [data/iocp/type: SOCK_DGRAM]
-
+		fd: socket/create AF_INET SOCK_DGRAM IPPROTO_UDP
+		iocp/bind g-iocp as int-ptr! fd
+		WSAConnect fd as sockaddr_in! :data/addr data/addr-sz null null null null
+		data: as udp-data! io/create-socket-data proto fd as int-ptr! :event-handler size? udp-data!
+		data/iocp/type: IOCP_TYPE_UDP
 		proto
 	]
 
@@ -160,8 +173,6 @@ probe "UDP event-handler"
 
 		fd: socket/create AF_INET SOCK_DGRAM IPPROTO_UDP
 		iocp/bind g-iocp as int-ptr! fd
-		socket/bind fd 0 AF_INET
-
 		n: -1
 		addr: unicode/to-utf8 host :n
 		socket/uconnect fd addr num/value AF_INET
@@ -174,13 +185,39 @@ probe "UDP event-handler"
 		/local
 			fd	[integer!]
 			acp [integer!]
+			d	[udp-data!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "udp server"]]
 
 		fd: socket/create AF_INET SOCK_DGRAM IPPROTO_UDP
-		create-udp-data port fd null num/value
+		d: create-udp-data port fd null num/value
 		socket/bind fd num/value AF_INET
 		iocp/bind g-iocp as int-ptr! fd
+		copy-from port d
+		d/iocp/event: IO_EVT_ACCEPT
+	]
+
+	copy-from: func [
+		red-port	[red-object!]
+		data		[udp-data!]
+		/local
+			buf		[red-binary!]
+			s		[series!]
+	][
+		buf: as red-binary! (object/get-values red-port) + port/field-data
+		if TYPE_OF(buf) <> TYPE_BINARY [
+			binary/make-at as cell! buf SOCK_READBUF_SZ
+		]
+		buf/head: 0
+		io/pin-memory buf/node
+		s: GET_BUFFER(buf)
+		socket/urecv
+			as-integer data/iocp/device
+			as byte-ptr! s/offset
+			s/size
+			as sockaddr_in! :data/addr
+			:data/addr-sz
+			as sockdata! data
 	]
 
 	;-- actions

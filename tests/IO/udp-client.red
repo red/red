@@ -13,8 +13,7 @@ total: 0.0
 
 print "UDP client"
 
-udp-port: open udp://192.168.160.1:65335
-
+udp-port: open udp://192.168.100.3:54750
 ;b: make binary! size: 80000
 ;loop size [append b random 255]
 ;insert b skip (to binary! length? b) 4
@@ -24,12 +23,12 @@ mbps: "?"
 
 b: to-binary "hello udp 123"
 udp-port/awake: func [event /local port] [
-    debug ["=== Client event:" event/type]
+    ;debug ["=== Client event:" event/type]
     port: event/port
     switch event/type [
         read [
 	        probe "client read done"
-	        probe port/data
+	        probe to-string port/data
         ]
         wrote [
 	        probe "client write done"

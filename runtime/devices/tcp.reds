@@ -52,7 +52,7 @@ tcp-device: context [
 					]
 				]
 			]
-			IO_EVT_ACCEPT	[
+			IO_EVT_ACCEPT	[ 
 				#either OS = 'Windows [
 					msg: create-red-port p data/accept-sock
 					iocp/bind g-iocp as int-ptr! data/accept-sock
