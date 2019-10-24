@@ -374,9 +374,24 @@ S_TZ_M
 F_TZ_MM
 
 
+C_DT_DIGIT			0-9
+C_DT_ALPHA			a-z, A-Z
+C_DT_SLASH			/
+C_DT_DASH			-
+C_DT_PLUS			+
+C_DT_COLON			:
+C_DT_DOT			.
+C_DT_T				T
+C_DT_W				W
+C_DT_Z				Z
+C_DT_ILLEGAL		all the rest
+C_DT_EOF			EOF
+
 sep: / | -
+digit: 0-9
 letter: a-z, A-Z
 sign: + | -
+eof: EOF
 
 S_DT_START->digit->S_DT_D->digit->S_DT_DD->digit->S_DT_YYY->digit->F_DT_YEARL->"/"->F_DT_YEARL
                     \              \               \                \->"-"->F_DT_YEAR2   
