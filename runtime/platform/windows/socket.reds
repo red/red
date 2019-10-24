@@ -200,12 +200,18 @@ socket: context [
 		data		[sockdata!]
 		/local
 			wsbuf	[WSABUF! value]
+			res		[integer!]
 	][
 		wsbuf/len: length
 		wsbuf/buf: buffer
 		data/iocp/event: IO_EVT_READ
-		if 0 <> WSARecvFrom sock :wsbuf 1 null :data/flags addr addr-sz as OVERLAPPED! data null [
-			exit
+		?? addr
+		probe addr-sz/value
+		res: WSARecvFrom sock :wsbuf 1 null :data/flags addr addr-sz as OVERLAPPED! data null
+		?? res
+		if res <> 0 [
+			res: WSAGetLastError
+			?? res
 		]
 	]
 

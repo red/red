@@ -18,7 +18,7 @@ udp-device: context [
 		port		[red-object! value]		;-- red port! cell
 		flags		[integer!]
 		send-buf	[node!]					;-- send buffer
-		addr		[sockaddr_in6!]			;-- IPv4 or IPv6 address
+		addr		[sockaddr_in6! value]	;-- IPv4 or IPv6 address
 		addr-sz		[integer!]
 	]
 
@@ -95,7 +95,10 @@ probe as c-string! s/offset
 
 		fd: socket/create AF_INET SOCK_DGRAM IPPROTO_UDP
 		iocp/bind g-iocp as int-ptr! fd
-		WSAConnect fd as sockaddr_in! :data/addr data/addr-sz null null null null
+		probe "create red port"
+		dump4 :data/addr
+		probe data/addr-sz
+		probe WSAConnect fd as sockaddr_in! :data/addr data/addr-sz null null null null
 		data: as udp-data! io/create-socket-data proto fd as int-ptr! :event-handler size? udp-data!
 		data/iocp/type: IOCP_TYPE_UDP
 		proto
@@ -115,7 +118,7 @@ probe as c-string! s/offset
 		data/iocp/type: IOCP_TYPE_UDP
 
 		;@@ TBD add IPv6 support
-		data/addr-sz: size? sockaddr_in!
+		data/addr-sz: size? sockaddr_in6!
 		saddr: as sockaddr_in! :data/addr
 		num: htons num
 		saddr/sin_family: num << 16 or AF_INET
@@ -191,7 +194,8 @@ probe as c-string! s/offset
 
 		fd: socket/create AF_INET SOCK_DGRAM IPPROTO_UDP
 		d: create-udp-data port fd null num/value
-		socket/bind fd num/value AF_INET
+		probe ["size.... " d/addr-sz]
+		probe socket/bind fd num/value AF_INET
 		iocp/bind g-iocp as int-ptr! fd
 		copy-from port d
 		d/iocp/event: IO_EVT_ACCEPT

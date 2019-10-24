@@ -1078,6 +1078,7 @@ SecurityFunctionTableW: alias struct! [
 			lpCompletionRoutine	[int-ptr!]
 			return:				[integer!]
 		]
+		WSAGetLastError: "WSAGetLastError" [return: [integer!]]
 		closesocket: "closesocket" [
 			s			[integer!]
 			return:		[integer!]

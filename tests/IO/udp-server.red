@@ -26,7 +26,7 @@ new-event: func [event] [
 new-client: func [port /local data] [
 	debug ["=== New client ==="]
     port/awake: :new-event
-    insert port "Hello UDP from Red"
+    insert port "Hello UDP from Red server"
 ]
 
 server: open udp://:58180
