@@ -535,7 +535,7 @@ draw-text-at: func [
 ]
 
 draw-text-box: func [
-	dc			[draw-ctx!]
+	cr			[handle!]
 	pos			[red-pair!]
 	tbox		[red-object!]
 	catch?		[logic!]
@@ -566,8 +566,8 @@ draw-text-box: func [
 
 	int: as red-integer! block/rs-head state
 	layout: as handle! int/value
-	cairo_move_to dc/raw as-float pos/x as-float pos/y
-	pango_cairo_show_layout dc/raw layout
+	cairo_move_to cr as-float pos/x as-float pos/y
+	pango_cairo_show_layout cr layout
 ]
 
 OS-draw-text: func [
@@ -580,9 +580,8 @@ OS-draw-text: func [
 	either TYPE_OF(text) = TYPE_STRING [
 		draw-text-at dc/raw text dc/font-attrs dc/font-opts pos/x pos/y
 	][
-		draw-text-box dc pos as red-object! text catch?
+		draw-text-box dc/raw pos as red-object! text catch?
 	]
-
 	true
 ]
 

@@ -723,13 +723,12 @@ change-color: func [
 ][
 	t: TYPE_OF(color)
 	if all [t <> TYPE_NONE t <> TYPE_TUPLE][exit]
-	;-- TBD: need to be improved
 	face: get-face-obj widget
 	values: object/get-values face
 	font: as red-object! values + FACE_OBJ_FONT
 	free-font font
-	make-font null font
-	set-font widget face values
+	make-font face font
+	set-css widget face values
 ]
 
 change-pane: func [
@@ -800,7 +799,7 @@ change-font: func [
 	face		[red-object!]
 	values		[red-value!]
 ][
-	set-font widget face values
+	set-css widget face values
 ]
 
 change-offset: func [
@@ -1713,6 +1712,7 @@ OS-make-view: func [
 	;-- store the face value in the extra space of the window struct
 	assert TYPE_OF(face) = TYPE_OBJECT
 	store-face-to-obj widget face
+	make-styles-provider widget
 	change-font widget face values
 
 	if sym <> window [
@@ -1735,16 +1735,9 @@ OS-make-view: func [
 	change-para widget face para font sym
 	change-enabled widget enabled?/value sym
 
-	make-styles-provider widget
-
 	parse-common-opts widget face as red-block! values + FACE_OBJ_OPTIONS sym
 	; save the previous group-radio state as a global variable
 	group-radio: either sym = radio [widget][as handle! 0]
-
-	;; TODO: NOT SURE the if is necessary!
-	if sym <> base [
-		change-font widget face values
-	]
 
 	if TYPE_OF(rate) <> TYPE_NONE [change-rate widget rate]
 

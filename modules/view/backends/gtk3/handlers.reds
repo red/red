@@ -85,12 +85,15 @@ button-toggled: func [
 
 render-text: func [
 	cr			[handle!]
+	face		[red-object!]
 	size		[red-pair!]
 	values		[red-value!]
 	/local
 		text	[red-string!]
+		color	[red-tuple!]
 		font	[red-object!]
 		attrs	[handle!]
+		new?	[logic!]
 		para	[red-object!]
 		flags	[integer!]
 		layout	[handle!]
@@ -107,9 +110,14 @@ render-text: func [
 	text: as red-string! values + FACE_OBJ_TEXT
 	if TYPE_OF(text) <> TYPE_STRING [exit]
 
-
+	color: as red-tuple! values + FACE_OBJ_COLOR
 	font: as red-object! values + FACE_OBJ_FONT
-	attrs: get-attrs null font
+	attrs: get-attrs face font
+	new?: false
+	if null? attrs [
+		new?: true
+		attrs: create-simple-attrs default-font-name default-font-size color
+	]
 
 	;; DEBUG: print ["render-text: " cr lf]
 	para: as red-object! values + FACE_OBJ_PARA
@@ -151,6 +159,10 @@ render-text: func [
 	pango_cairo_show_layout cr layout
 	cairo_stroke cr
 	cairo_restore cr
+
+	if new? [
+		free-pango-attrs attrs
+	]
 ]
 
 base-draw: func [
@@ -160,38 +172,38 @@ base-draw: func [
 	widget		[handle!]
 	return:		[logic!]
 	/local
-		vals	[red-value!]
+		face	[red-object!]
+		values	[red-value!]
 		draw	[red-block!]
-		clr		[red-tuple!]
 		img		[red-image!]
 		size	[red-pair!]
 		type	[red-word!]
+		font	[red-object!]
+		color	[red-tuple!]
 		sym		[integer!]
 		pos		[red-pair! value]
 		DC		[draw-ctx! value]
 		drawDC	[draw-ctx!]
 ][
-	;; DEBUG: print ["base-draw " widget " " gtk_widget_get_allocated_width widget "x" gtk_widget_get_allocated_height widget lf]
-
-	vals: get-face-values widget
-	img:  as red-image! vals + FACE_OBJ_IMAGE
-	draw: as red-block! vals + FACE_OBJ_DRAW
-	clr:  as red-tuple! vals + FACE_OBJ_COLOR
-	size: as red-pair! vals + FACE_OBJ_SIZE
-	type: as red-word! vals + FACE_OBJ_TYPE
+	face: get-face-obj widget
+	values: object/get-values face
+	img:  as red-image! values + FACE_OBJ_IMAGE
+	draw: as red-block! values + FACE_OBJ_DRAW
+	size: as red-pair! values + FACE_OBJ_SIZE
+	type: as red-word! values + FACE_OBJ_TYPE
+	font: as red-object! values + FACE_OBJ_FONT
+	color: as red-tuple! values + FACE_OBJ_COLOR
 	sym: symbol/resolve type/symbol
 
-	if TYPE_OF(clr) = TYPE_TUPLE [
-		;; DEBUG: print ["base-draw color" (clr/array1 >>> 24 and FFh)  "x" (clr/array1 >> 16 and FFh ) "x" (clr/array1 >> 8 and FFh ) "x" (clr/array1 and FFh ) lf]
-
-		;;;  OLD and DOES NOT WORK
-		; cairo_save cr
-		; set-source-color cr clr/array1
-		; cairo_paint cr								;-- paint background
-		; cairo_restore cr
-		;cairo_save cr
-		gtk_render_background gtk_widget_get_style_context widget cr 0.0 0.0  as float! size/x as float! size/y
-		;cairo_restore cr
+	if TYPE_OF(color) = TYPE_TUPLE [
+		free-font font
+		make-font face font
+		set-css widget face values
+		gtk_render_background
+				gtk_widget_get_style_context widget
+				cr
+				0.0 0.0
+				as float! size/x as float! size/y
 	]
 
 	if TYPE_OF(img) = TYPE_IMAGE [
@@ -202,21 +214,17 @@ base-draw: func [
 	]
 
 	case [
-		sym = base [render-text cr size vals]
+		sym = base [render-text cr face size values]
 		sym = rich-text [
-			;; DEBUG: print ["base-draw (rich-text)" widget " face " get-face-obj widget lf]
 			pos/x: 0 pos/y: 0
-			init-draw-ctx :DC cr
-			draw-text-box :DC :pos get-face-obj widget yes
+			draw-text-box cr :pos get-face-obj widget yes
 		]
 		true []
 	]
 
 	either TYPE_OF(draw) = TYPE_BLOCK [
-		;; DEBUG: print ["do-draw in base-draw" lf]
 		do-draw cr null draw no yes yes yes
 	][
-		;; DEBUG: print ["base-draw: draw not a block" lf]
 		system/thrown: 0
 		drawDC: declare draw-ctx!								;@@ should declare it on stack
 		draw-begin drawDC cr null no no
@@ -225,7 +233,6 @@ base-draw: func [
 		draw/header: TYPE_NONE
 		draw-end drawDC cr no no no
 	]
-	;; DEBUG: print ["base-draw " widget lf]
 
 	false
 ]

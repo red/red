@@ -22,20 +22,87 @@ set-default-font: func [
 	unless null? default-attrs [
 		pango_attr_list_unref default-attrs
 	]
-	default-attrs: pango_attr_list_new
-	attr: pango_attr_family_new name
-	pango_attr_list_insert default-attrs attr
-	attr: pango_attr_size_new PANGO_SCALE * size
-	pango_attr_list_insert default-attrs attr
+	default-attrs: create-simple-attrs name size null
 
 	unless null? default-css [
 		g_string_free default-css true
 	]
-	default-css: g_string_sized_new 64
-	g_string_append default-css "* {"
-	g_string_append_printf [default-css { font-family: "%s";} name]
-	g_string_append_printf [default-css { font-size: %dpt;} size]
-	g_string_append default-css "}"
+	default-css: create-simple-css name size null
+]
+
+create-simple-attrs: func [
+	name		[c-string!]
+	size		[integer!]
+	color		[red-tuple!]
+	return:		[handle!]
+	/local
+		list	[handle!]
+		attr	[PangoAttribute!]
+		rgb		[integer!]
+		alpha?	[integer!]
+		r		[integer!]
+		g		[integer!]
+		b		[integer!]
+		a		[integer!]
+][
+	list: pango_attr_list_new
+	attr: pango_attr_family_new name
+	pango_attr_list_insert list attr
+	attr: pango_attr_size_new PANGO_SCALE * size
+	pango_attr_list_insert list attr
+
+	if all [
+		not null? color
+		TYPE_OF(color) = TYPE_TUPLE
+	][
+		alpha?: 0
+		rgb: get-color-int color :alpha?
+		r: 0 g: 0 b: 0 a: 0
+		color-u8-to-u16 rgb :r :g :b :a
+		attr: pango_attr_foreground_new r g b
+		pango_attr_list_insert list attr
+		attr: pango_attr_foreground_alpha_new a
+		pango_attr_list_insert list attr
+	]
+	list
+]
+
+create-simple-css: func [
+	name		[c-string!]
+	size		[integer!]
+	color		[red-tuple!]
+	return:		[GString!]
+	/local
+		css		[GString!]
+		rgb		[integer!]
+		alpha?	[integer!]
+		r		[integer!]
+		g		[integer!]
+		b		[integer!]
+		a		[float!]
+][
+	css: g_string_sized_new 64
+	g_string_append css "* {"
+	g_string_append_printf [css { font-family: "%s";} name]
+	g_string_append_printf [css { font-size: %dpt;} size]
+
+	if all [
+		not null? color
+		TYPE_OF(color) = TYPE_TUPLE
+	][
+		alpha?: 0
+		rgb: get-color-int color :alpha?
+		b: rgb >> 16 and FFh
+		g: rgb >> 8 and FFh
+		r: rgb and FFh
+		a: 1.0
+		if alpha? = 1 [
+			a: (as float! 255 - (rgb >>> 24)) / 255.0
+		]
+		g_string_append_printf [css { background-color: rgba(%d, %d, %d, %.3f);} r g b a]
+	]
+	g_string_append css "}"
+	css
 ]
 
 set-label-attrs: func [
@@ -255,14 +322,14 @@ create-css: func [
 	if TYPE_OF(color) = TYPE_TUPLE [
 		alpha?: 0
 		rgb: get-color-int color :alpha?
-		b: rgb >> 18 and FFh
-		g: rgb >> 16 and FFh
+		b: rgb >> 16 and FFh
+		g: rgb >> 8 and FFh
 		r: rgb and FFh
 		a: 1.0
 		if alpha? = 1 [
 			a: (as float! 255 - (rgb >>> 24)) / 255.0
 		]
-		g_string_append_printf [css { color: rgba(%d, %d, %d, %.1f);} r g b a]
+		g_string_append_printf [css { color: rgba(%d, %d, %d, %.3f);} r g b a]
 	]
 
 	;-- ? GTK3 warnings
@@ -309,14 +376,14 @@ create-css: func [
 		if TYPE_OF(color) = TYPE_TUPLE [
 			alpha?: 0
 			rgb: get-color-int color :alpha?
-			b: rgb >> 18 and FFh
-			g: rgb >> 16 and FFh
+			b: rgb >> 16 and FFh
+			g: rgb >> 8 and FFh
 			r: rgb and FFh
 			a: 1.0
 			if alpha? = 1 [
 				a: (as float! 255 - (rgb >>> 24)) / 255.0
 			]
-			g_string_append_printf [css { background-color: rgba(%d, %d, %d, %.1f);} r g b a]
+			g_string_append_printf [css { background-color: rgba(%d, %d, %d, %.3f);} r g b a]
 		]
 	]
 
@@ -446,6 +513,9 @@ make-font: func [
 	font		[red-object!]
 	return:		[handle!]
 ][
+	if TYPE_OF(font) <> TYPE_OBJECT [
+		return null
+	]
 	make-css face font
 	make-attrs face font
 ]
@@ -475,7 +545,7 @@ get-attrs: func [
 	/local
 		hFont	[handle!]
 ][
-	if TYPE_OF(font) <> TYPE_OBJECT [return default-attrs]
+	if TYPE_OF(font) <> TYPE_OBJECT [return null]
 	hFont: get-font-handle font 0
 	if null? hFont [hFont: make-attrs face font]
 	hFont
@@ -488,7 +558,7 @@ get-css: func [
 	/local
 		css		[GString!]
 ][
-	if TYPE_OF(font) <> TYPE_OBJECT [return default-css]
+	if TYPE_OF(font) <> TYPE_OBJECT [return null]
 	css: as GString! get-font-handle font 1
 	if null? css [css: make-css face font]
 	css
@@ -520,17 +590,29 @@ set-font: func [
 	values		[red-value!]
 	/local
 		font	[red-object!]
+		color	[red-tuple!]
 		hFont	[handle!]
+		newF?	[logic!]
 		css		[GString!]
-		state	[red-block!]
-		handle	[red-handle!]
+		newC?	[logic!]
 		type	[red-word!]
 		sym		[integer!]
 		label	[handle!]
 ][
 	font: as red-object! values + FACE_OBJ_FONT
+	color: as red-tuple! values + FACE_OBJ_COLOR
 	hFont: get-attrs face font
+	newF?: false
+	if null? hFont [
+		newF?: true
+		hFont: create-simple-attrs default-font-name default-font-size color
+	]
 	css: get-css face font
+	newC?: false
+	if null? css [
+		newC?: true
+		css: create-simple-css default-font-name default-font-size color
+	]
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
 	case [
@@ -555,6 +637,40 @@ set-font: func [
 		true [
 			apply-css-styles widget css
 		]
+	]
+	if newF? [
+		free-pango-attrs hFont
+	]
+	if newC? [
+		free-css css
+	]
+]
+
+set-css: func [
+	widget		[handle!]
+	face		[red-object!]
+	values		[red-value!]
+	/local
+		font	[red-object!]
+		color	[red-tuple!]
+		css		[GString!]
+		newC?	[logic!]
+		handle	[red-handle!]
+		type	[red-word!]
+		sym		[integer!]
+		label	[handle!]
+][
+	font: as red-object! values + FACE_OBJ_FONT
+	color: as red-tuple! values + FACE_OBJ_COLOR
+	css: get-css face font
+	newC?: false
+	if null? css [
+		newC?: true
+		css: create-simple-css default-font-name default-font-size color
+	]
+	apply-css-styles widget css
+	if newC? [
+		free-css css
 	]
 ]
 
@@ -588,20 +704,13 @@ make-styles-provider: func [
 	g_object_set_qdata widget gtk-style-id prov
 ]
 
-get-styles-provider: func [
-	widget		[handle!]
-	return:		[handle!]
-][
-	g_object_get_qdata widget gtk-style-id
-]
-
 apply-css-styles: func [
 	widget		[handle!]
 	css			[GString!]
 	/local
 		prov	[handle!]
 ][
-	prov: get-styles-provider widget
+	prov: g_object_get_qdata widget gtk-style-id
 	gtk_css_provider_load_from_data prov css/str -1 null
 ]
 
