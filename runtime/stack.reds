@@ -104,6 +104,11 @@ stack: context [										;-- call stack
 		
 		body-symbol: words/_body/symbol
 		anon-symbol: words/_anon/symbol
+
+		#if debug? = yes [
+			memguard/ignore-node arg-stk/node
+			memguard/enabled?: yes
+		]
 	]
 	
 	mark: func [

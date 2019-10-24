@@ -28,10 +28,10 @@ Red/System [
 #define _BUCKET_IS_NOT_DEL(flags i s)		[flags/i >> s and 1 <> 1]
 #define _BUCKET_IS_EITHER(flags i s)		[flags/i >> s and 3 > 0]
 #define _BUCKET_IS_HAS_KEY(flags i s)		[flags/i >> s and 3 = 0]
-#define _BUCKET_SET_DEL_TRUE(flags i s)		[flags/i: 1 << s or flags/i]
-#define _BUCKET_SET_DEL_FALSE(flags i s)	[flags/i: (not 1 << s) and flags/i]
-#define _BUCKET_SET_EMPTY_FALSE(flags i s)	[flags/i: (not 2 << s) and flags/i]
-#define _BUCKET_SET_BOTH_FALSE(flags i s)	[flags/i: (not 3 << s) and flags/i]
+#define _BUCKET_SET_DEL_TRUE(flags i s)		[MEMGUARD_PCHK( (flags + i - 1) ) flags/i: 1 << s or flags/i]
+#define _BUCKET_SET_DEL_FALSE(flags i s)	[MEMGUARD_PCHK( (flags + i - 1) ) flags/i: (not 1 << s) and flags/i]
+#define _BUCKET_SET_EMPTY_FALSE(flags i s)	[MEMGUARD_PCHK( (flags + i - 1) ) flags/i: (not 2 << s) and flags/i]
+#define _BUCKET_SET_BOTH_FALSE(flags i s)	[MEMGUARD_PCHK( (flags + i - 1) ) flags/i: (not 3 << s) and flags/i]
 
 #define _HT_CAL_FLAG_INDEX(i idx shift) [
 	idx: i >> 4 + 1
@@ -297,10 +297,14 @@ _hashtable: context [
 		skip	[integer!]
 		/local s [series!] h [hashtable!] i [integer!] end [red-value!]
 			value [red-value!] key [red-value!]
+			MEMGUARD_TOKEN
 	][
+		MEMGUARD_MARK
+		; MEMGUARD_ADDNODE(node)
 		s: as series! node/value
 		h: as hashtable! s/offset
 
+		MEMGUARD_ADDNODE(h/blk)
 		s: as series! h/blk/value
 		end: s/tail
 		i: head
@@ -314,6 +318,7 @@ _hashtable: context [
 					map/preprocess-key value
 					put node value
 				][
+					MEMGUARD_PCHK( (key + 1) )
 					copy-cell value + 1 key + 1
 					move-memory 
 						as byte-ptr! value
@@ -328,6 +333,7 @@ _hashtable: context [
 			]
 			i: i + skip
 		]
+		MEMGUARD_BACK
 	]
 
 	_alloc-bytes: func [
@@ -468,6 +474,7 @@ _hashtable: context [
 			int?		[logic!]
 			int-key		[int-ptr!]
 			new-flags-node [node!]
+			MEMGUARD_TOKEN
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -475,8 +482,10 @@ _hashtable: context [
 		int?: h/type = HASH_TABLE_INTEGER
 		s: as series! h/blk/value
 		blk: s/offset
+
 		s: as series! h/flags/value
 		flags: as int-ptr! s/offset
+
 		n-buckets: h/n-buckets
 		j: 0
 		new-buckets: round-up new-buckets
@@ -495,6 +504,10 @@ _hashtable: context [
 		if zero? j [
 			s: as series! h/keys/value
 			keys: as int-ptr! s/offset
+			MEMGUARD_MARK
+			MEMGUARD_ADDNODE(h/keys)
+			MEMGUARD_ADDNODE(h/flags)
+			MEMGUARD_ADDNODE(new-flags-node)
 			until [
 				_HT_CAL_FLAG_INDEX(j ii sh)
 				j: j + 1
@@ -525,6 +538,7 @@ _hashtable: context [
 							i <= n-buckets
 							_BUCKET_IS_HAS_KEY(flags ii sh)
 						][
+							MEMGUARD_PCHK( (keys + i - 1) )
 							tmp: keys/i keys/i: idx idx: tmp
 							_BUCKET_SET_DEL_TRUE(flags ii sh)
 						][
@@ -541,6 +555,7 @@ _hashtable: context [
 			h/n-buckets: new-buckets
 			h/n-occupied: h/size
 			h/upper-bound: new-size
+			MEMGUARD_BACK
 		]
 	]
 
@@ -554,6 +569,7 @@ _hashtable: context [
 			hash [integer!] n-buckets [integer!] flags [int-ptr!] ii [integer!]
 			sh [integer!] blk [byte-ptr!] idx [integer!] del? [logic!] k [int-ptr!]
 			vsize [integer!] blk-node [series!] len [integer!] value [red-value!]
+			MEMGUARD_TOKEN
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -610,10 +626,17 @@ _hashtable: context [
 			]
 		]
 		_HT_CAL_FLAG_INDEX((x - 1) ii sh)
+		
+		MEMGUARD_MARK
+		MEMGUARD_ADDNODE(h/flags)
+		MEMGUARD_ADDNODE(h/keys)
+		MEMGUARD_ADDNODE(h/blk)
 		case [
 			_BUCKET_IS_EMPTY(flags ii sh) [
 				k: as int-ptr! alloc-tail-unit blk-node vsize
+				MEMGUARD_PCHK( (k + 1) )
 				k/2: key
+				MEMGUARD_PCHK( (keys + x - 1) )
 				keys/x: len
 				_BUCKET_SET_BOTH_FALSE(flags ii sh)
 				h/size: h/size + 1
@@ -621,6 +644,7 @@ _hashtable: context [
 			]
 			_BUCKET_IS_DEL(flags ii sh) [
 				k: as int-ptr! blk + keys/x
+				MEMGUARD_PCHK( (k + 1) )
 				k/2: key
 				_BUCKET_SET_BOTH_FALSE(flags ii sh)
 				h/size: h/size + 1
@@ -633,6 +657,7 @@ _hashtable: context [
 			value/header: TYPE_UNSET
 			value: value + 1
 		]
+		MEMGUARD_BACK
 		(as cell! k) + 1
 	]
 
@@ -644,6 +669,7 @@ _hashtable: context [
 			s [series!] h [hashtable!] i [integer!] flags [int-ptr!] last [integer!]
 			mask [integer!] step [integer!] keys [int-ptr!] hash [integer!]
 			ii [integer!] sh [integer!] blk [byte-ptr!] k [int-ptr!]
+			MEMGUARD_TOKEN
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -654,8 +680,10 @@ _hashtable: context [
 
 		s: as series! h/keys/value
 		keys: as int-ptr! s/offset
+
 		s: as series! h/flags/value
 		flags: as int-ptr! s/offset
+
 		mask: h/n-buckets - 1
 		hash: key
 		i: hash and mask
@@ -681,7 +709,10 @@ _hashtable: context [
 		]
 
 		either _BUCKET_IS_EITHER(flags ii sh) [null][
+			MEMGUARD_MARK
+			MEMGUARD_ADDNODE(h/flags)
 			_BUCKET_SET_DEL_TRUE(flags ii sh)
+			MEMGUARD_BACK
 			h/size: h/size - 1
 			(as cell! blk + keys/i) + 1
 		]
@@ -705,8 +736,10 @@ _hashtable: context [
 
 		s: as series! h/keys/value
 		keys: as int-ptr! s/offset
+
 		s: as series! h/flags/value
 		flags: as int-ptr! s/offset
+
 		mask: h/n-buckets - 1
 		hash: key
 		i: hash and mask
@@ -746,6 +779,7 @@ _hashtable: context [
 			hash [integer!] n-buckets [integer!] flags [int-ptr!] ii [integer!]
 			sh [integer!] continue? [logic!] blk [red-value!] idx [integer!]
 			type [integer!] del? [logic!] indexes [int-ptr!] k [red-value!]
+			MEMGUARD_TOKEN
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -768,8 +802,12 @@ _hashtable: context [
 
 		s: as series! h/keys/value
 		keys: as int-ptr! s/offset
+		MEMGUARD_MARK
+		MEMGUARD_ADDNODE(h/keys)
+
 		s: as series! h/flags/value
 		flags: as int-ptr! s/offset
+
 		n-buckets: h/n-buckets + 1
 		x:	  n-buckets
 		site: n-buckets
@@ -796,6 +834,7 @@ _hashtable: context [
 			][
 				if del? [site: i]
 				if type = HASH_TABLE_HASH [
+					MEMGUARD_PCHK( (keys + i - 1) )
 					k: blk + (keys/i and 7FFFFFFFh)
 					if all [
 						TYPE_OF(k) = TYPE_OF(key)
@@ -817,19 +856,24 @@ _hashtable: context [
 			]
 		]
 		_HT_CAL_FLAG_INDEX((x - 1) ii sh)
+
+		MEMGUARD_ADDNODE(h/flags)
 		either _BUCKET_IS_EMPTY(flags ii sh) [
+			MEMGUARD_PCHK( (keys + x - 1) )
 			keys/x: idx
 			_BUCKET_SET_BOTH_FALSE(flags ii sh)
 			h/size: h/size + 1
 			h/n-occupied: h/n-occupied + 1
 		][
 			if _BUCKET_IS_DEL(flags ii sh) [
+				MEMGUARD_PCHK( (keys + x - 1) )
 				keys/x: idx
 				_BUCKET_SET_BOTH_FALSE(flags ii sh)
 				h/size: h/size + 1
 			]
 		]
 		if type = HASH_TABLE_HASH [
+			MEMGUARD_ADDNODE(h/indexes)
 			s: as series! h/indexes/value
 			if s/size >> 2 = idx [
 				s: expand-series-filled s s/size << 1 #"^(FF)"
@@ -837,8 +881,10 @@ _hashtable: context [
 			]
 			indexes: as int-ptr! s/offset
 			idx: idx + 1
+			MEMGUARD_PCHK( (indexes + idx - 1) )
 			indexes/idx: x
 		]
+		MEMGUARD_BACK
 		key
 	]
 
@@ -1022,6 +1068,7 @@ _hashtable: context [
 		key		[red-value!]
 		/local s [series!] h [hashtable!] i [integer!] ii [integer!]
 			sh [integer!] flags [int-ptr!] indexes [int-ptr!]
+			MEMGUARD_TOKEN
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -1039,7 +1086,10 @@ _hashtable: context [
 			indexes: as int-ptr! s/offset
 			i: indexes/i - 1
 			_HT_CAL_FLAG_INDEX(i ii sh)
+			MEMGUARD_MARK
+			MEMGUARD_ADDNODE(h/flags)
 			_BUCKET_SET_DEL_TRUE(flags ii sh)
+			MEMGUARD_BACK
 		]
 		h/size: h/size - 1
 	]
@@ -1070,6 +1120,7 @@ _hashtable: context [
 		size	[integer!]
 		/local s [series!] h [hashtable!] flags [int-ptr!] i [integer!]
 			ii [integer!] sh [integer!] indexes [int-ptr!]
+			MEMGUARD_TOKEN
 	][
 		assert size >= 0
 		if zero? size [exit]
@@ -1082,6 +1133,8 @@ _hashtable: context [
 		flags: as int-ptr! s/offset
 		s: as series! h/indexes/value
 		indexes: (as int-ptr! s/offset) + head
+		MEMGUARD_MARK
+		MEMGUARD_ADDNODE(h/flags)
 		until [
 			i: indexes/value - 1
 			assert i >= 0
@@ -1092,6 +1145,7 @@ _hashtable: context [
 			size: size - 1
 			zero? size
 		]
+		MEMGUARD_BACK
 	]
 
 	destroy: func [
@@ -1109,17 +1163,22 @@ _hashtable: context [
 		/local s [series!] h [hashtable!] indexes [int-ptr!] i [integer!]
 			n [integer!] keys [int-ptr!] index [int-ptr!] part [integer!]
 			flags [int-ptr!] ii [integer!] sh [integer!]
+		MEMGUARD_TOKEN
 	][
 		assert size >= 0
+		MEMGUARD_MARK
+		; MEMGUARD_ADDNODE(node)
 		s: as series! node/value
 		h: as hashtable! s/offset
 		assert h/indexes <> null
 		assert h/n-buckets > 0
 
+		MEMGUARD_ADDNODE(h/keys)
 		s: as series! h/keys/value
 		keys: as int-ptr! s/offset
 		ii: head							;-- save head
 
+		MEMGUARD_ADDNODE(h/indexes)
 		s: as series! h/indexes/value
 		indexes: as int-ptr! s/offset
 
@@ -1127,6 +1186,7 @@ _hashtable: context [
 		while [n > 0][
 			index: indexes + head
 			i: index/value
+			MEMGUARD_PCHK( (keys + i - 1) )
 			keys/i: keys/i + offset
 			head: head + 1
 			n: n - 1
@@ -1136,6 +1196,7 @@ _hashtable: context [
 			head: ii						;-- restore head
 			either negative? offset [		;-- need to delete some entries
 				part: offset
+				MEMGUARD_ADDNODE(h/flags)				;-- for bucket-del
 				s: as series! h/flags/value
 				flags: as int-ptr! s/offset
 				while [negative? part][
@@ -1158,6 +1219,7 @@ _hashtable: context [
 				as byte-ptr! indexes + head
 				size * 4
 		]
+		MEMGUARD_BACK
 	]
 
 	move: func [
@@ -1167,11 +1229,15 @@ _hashtable: context [
 		items	[integer!]
 		/local s [series!] h [hashtable!] indexes [int-ptr!]
 			index [integer!] part [integer!] head [integer!] temp [byte-ptr!]
+			MEMGUARD_TOKEN
 	][
 		if all [src <= dst dst < (src + items)][exit]
 
+		MEMGUARD_MARK
+		; MEMGUARD_ADDNODE(node)
 		s: as series! node/value
 		h: as hashtable! s/offset
+		MEMGUARD_ADDNODE(h/indexes)
 		s: as series! h/indexes/value
 		indexes: as int-ptr! s/offset
 
@@ -1192,12 +1258,16 @@ _hashtable: context [
 		if dst > src [dst: dst - items + 1]
 		items: items * 4
 		temp: allocate items
+		MEMGUARD_ADDRANGE(temp items)
+
 		copy-memory temp as byte-ptr! indexes + src items
 		move-memory
 			as byte-ptr! (indexes + head + index)
 			as byte-ptr! indexes + head
 			part * 4
 		copy-memory as byte-ptr! indexes + dst temp items
+
+		MEMGUARD_BACK
 		free temp
 	]
 ]

@@ -333,6 +333,7 @@ string: context [
 		skip: unit * skip
 		head: (as byte-ptr! s/offset) + (str/head << (log-b unit))
 		tail: as byte-ptr! s/tail
+
 		while [head < tail][
 			c1: get-char head unit
 			unless case? [
@@ -432,6 +433,7 @@ string: context [
 			unit	[integer!]
 			head	[byte-ptr!]
 			tail	[byte-ptr!]
+			MEMGUARD_TOKEN
 	][
 		assert offset >= 0
 		assert part > 0
@@ -443,6 +445,8 @@ string: context [
 
 		if head >= tail [return str]					;-- early exit if nothing to remove
 
+		MEMGUARD_MARK
+		MEMGUARD_ADD(str)
 		part: part << (unit >> 1)
 		if head + part < tail [
 			move-memory 
@@ -451,6 +455,7 @@ string: context [
 				as-integer tail - head - part
 		]
 		s/tail: as red-value! tail - part
+		MEMGUARD_BACK
 		str
 	]
 
@@ -462,18 +467,21 @@ string: context [
 			p	 [byte-ptr!]
 			p4	 [int-ptr!]
 			node [node!]
+			MEMGUARD_TOKEN
 	][
+		MEMGUARD_MARK
+		MEMGUARD_ADDNODE(s/node)
 		switch GET_UNIT(s) [
 			Latin1 [
 				case [
 					cp <= FFh [
 						node: s/node
 						p: alloc-tail-unit s 1
+						MEMGUARD_PCHK(p)
 						p/1: as-byte cp
 						s: as series! node/value
 					]
 					cp <= FFFFh [
-						p: as byte-ptr! s/offset
 						s: unicode/Latin1-to-UCS2 s
 						s: append-char s cp
 					]
@@ -487,7 +495,9 @@ string: context [
 				either cp <= FFFFh [
 					node: s/node
 					p: alloc-tail-unit s 2
+					MEMGUARD_PCHK(p)
 					p/1: as-byte (cp and FFh)
+					MEMGUARD_PCHK((p + 1))
 					p/2: as-byte (cp >> 8)
 					s: as series! node/value
 				][
@@ -498,10 +508,12 @@ string: context [
 			UCS-4 [
 				node: s/node
 				p4: as int-ptr! alloc-tail-unit s 4
+				MEMGUARD_PCHK(p4)
 				p4/1: cp
 				s: as series! node/value
 			]
 		]
+		MEMGUARD_BACK
 		s										;-- refresh s address
 	]
 
@@ -545,7 +557,10 @@ string: context [
 		/local
 			p	 [byte-ptr!]
 			unit [integer!]
+			MEMGUARD_TOKEN
 	][
+		MEMGUARD_MARK
+		MEMGUARD_ADDNODE(s/node)
 		switch GET_UNIT(s) [
 			Latin1 [
 				case [
@@ -572,6 +587,7 @@ string: context [
 		s/tail: as cell! (as byte-ptr! s/tail) + unit
 		
 		poke-char s p cp
+		MEMGUARD_BACK
 		s
 	]
 	
@@ -584,6 +600,7 @@ string: context [
 			unit	[integer!]
 			head	[byte-ptr!]
 			tail	[byte-ptr!]
+			MEMGUARD_TOKEN
 	][
 		assert offset >= 0
 		
@@ -594,6 +611,8 @@ string: context [
 
 		if head >= tail [return str]					;-- early exit if nothing to remove
 
+		MEMGUARD_MARK
+		MEMGUARD_ADD(str)
 		if head + unit < tail [
 			move-memory 
 				head
@@ -601,6 +620,7 @@ string: context [
 				as-integer tail - head - unit
 		]
 		s/tail: as red-value! tail - unit
+		MEMGUARD_BACK
 		str
 	]
 	
@@ -611,11 +631,15 @@ string: context [
 		return: [series!]
 		/local
 			p4	[int-ptr!]
+			MEMGUARD_TOKEN
 	][
+		MEMGUARD_MARK
+		MEMGUARD_ADDNODE(s/node)
 		switch GET_UNIT(s) [
 			Latin1 [
 				case [
 					cp <= FFh [
+						MEMGUARD_PCHK(p)
 						p/1: as-byte cp
 					]
 					cp <= FFFFh [
@@ -634,7 +658,9 @@ string: context [
 			]
 			UCS-2 [
 				either cp <= FFFFh [
+					MEMGUARD_PCHK(p)
 					p/1: as-byte (cp and FFh)
+					MEMGUARD_PCHK((p + 1))
 					p/2: as-byte (cp >> 8)
 				][
 					p: p - (as byte-ptr! s/offset)			;-- calc index value
@@ -645,9 +671,11 @@ string: context [
 			]
 			UCS-4 [
 				p4: as int-ptr! p
+				MEMGUARD_PCHK(p4)
 				p4/1: cp
 			]
 		]
+		MEMGUARD_BACK
 		s
 	]
 	
@@ -933,12 +961,17 @@ string: context [
 			h2	  [integer!]
 			diff? [logic!]
 			same? [logic!]
+			MEMGUARD_TOKEN
 	][
 		s1: GET_BUFFER(str1)
 		s2: GET_BUFFER(str2)
 		unit1: GET_UNIT(s1)
 		unit2: GET_UNIT(s2)
 		diff?: unit1 <> unit2
+
+		MEMGUARD_MARK
+		MEMGUARD_ADD(str1)
+		MEMGUARD_ADD(str2)
 
 		case [											;-- harmonize both encodings
 			unit1 < unit2 [
@@ -969,8 +1002,6 @@ string: context [
 			]
 			true [true]									;@@ catch-all case to make compiler happy
 		]
-		assert VALID_BUFFER?(s1)
-		assert VALID_BUFFER?(s2)
 		
 		h1: either TYPE_OF(str1) = TYPE_SYMBOL [0][str1/head << (log-b unit1)]	;-- make symbol! used as string! pass safely
 		h2: either TYPE_OF(str2) = TYPE_SYMBOL [0][str2/head << (log-b unit2)]	;-- make symbol! used as string! pass safely
@@ -978,7 +1009,7 @@ string: context [
 		size2: (as-integer s2/tail - s2/offset) - h2 >> (log-b unit2)
 		if all [part >= 0 part < size2][size2: part]
 		size: unit1 * size2
-		if size <= 0 [exit]
+		if size <= 0 [MEMGUARD_BACK exit]
 
 		size1: (as-integer s1/tail - s1/offset) + size
 		if s1/size < size1 [
@@ -991,7 +1022,7 @@ string: context [
 			move-memory									;-- make space
 				(as byte-ptr! s1/offset) + h1 + offset + size
 				(as byte-ptr! s1/offset) + h1 + offset
-				(as-integer s1/tail - s1/offset) - h1
+				(as-integer s1/tail - s1/offset) - h1 - offset
 		]
 
 		tail: as byte-ptr! s1/tail
@@ -1028,6 +1059,8 @@ string: context [
 		]
 		if mode = MODE_INSERT [p: tail + size] 
 		if all [mode = MODE_OVERWRITE p < tail][p: tail]
+
+		MEMGUARD_BACK
 		s1/tail: as cell! p
 	]
 
@@ -2344,7 +2377,6 @@ string: context [
 			if str/head < str'/head [str/head: str'/head]
 		]
 		stack/pop 1										;-- pop the FORM slot
-		str/node: str'/node
 		as red-value! str
 	]
 
@@ -2518,7 +2550,10 @@ string: context [
 			append-lf?	[logic!]
 			outside? 	[logic!]
 			skip?		[logic!]
+			MEMGUARD_TOKEN
 	][
+		MEMGUARD_MARK
+		MEMGUARD_ADD(str)
 		append-lf?: no
 		s:    GET_BUFFER(str)
 		unit: GET_UNIT(s)
@@ -2584,6 +2619,7 @@ string: context [
 			poke-char s cur 10
 			cur: cur + 1
 		]
+		MEMGUARD_BACK
 		s/tail: as red-value! cur
 	]
 	

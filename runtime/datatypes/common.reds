@@ -80,8 +80,8 @@ alloc-tail-unit: func [
 	]
 	
 	p: as byte-ptr! s/tail
-	;-- ensure that cell is within series upper boundary
-	assert p < ((as byte-ptr! s + 1) + s/size)
+	;-- ensure that unit is within series upper boundary
+	assert p + unit <= ((as byte-ptr! s + 1) + s/size)
 	
 	s/tail: as cell! p + unit							;-- move tail to next unit slot
 	p
@@ -93,6 +93,7 @@ copy-cell: func [
 	return: [red-value!]
 ][
 	if src = dst [return dst]
+	MEMGUARD_UNCHECKED
 	copy-memory											;@@ optimize for 16 bytes copying
 		as byte-ptr! dst
 		as byte-ptr! src
@@ -119,6 +120,7 @@ copy-part: func [		;-- copy part of the series!
 	buf: as series! new/value
 	buf/flags: s/flags and not flag-series-owned
 	offset: offset << (log-b unit)
+	MEMGUARD_UNCHECKED
 	copy-memory
 		as byte-ptr! buf/offset
 		(as byte-ptr! s/offset) + offset

@@ -128,12 +128,15 @@ _series: context [
 			temp [byte-ptr!]
 			idx	 [byte-ptr!]
 			head [byte-ptr!]
+			MEMGUARD_TOKEN
 	][
 		#if debug? = yes [if verbose > 0 [print-line "series/random"]]
 
 		either seed? [
 			ser/header: TYPE_UNSET				;-- TODO: calc series to seed.
 		][
+			MEMGUARD_MARK
+			MEMGUARD_ADD(ser)
 			s: GET_BUFFER(ser)
 			unit: GET_UNIT(s)
 			head: (as byte-ptr! s/offset) + (ser/head << (log-b unit))
@@ -172,7 +175,9 @@ _series: context [
 				while [size > 0][
 					idx: head + (_random/rand % size << (log-b unit))
 					if idx <> head [
+						MEMGUARD_UNCHECKED
 						copy-memory temp head unit
+
 						copy-memory head idx unit
 						copy-memory idx temp unit
 					]
@@ -180,6 +185,7 @@ _series: context [
 					size: size - 1
 				]
 			]
+			MEMGUARD_BACK
 			ownership/check as red-value! ser words/_random null ser/head len
 		]
 		as red-value! ser
@@ -424,6 +430,7 @@ _series: context [
 			cell  [red-value!]
 			origin' [red-series! value]
 			target' [red-series! value]
+			MEMGUARD_TOKEN
 	][
 		s:    trim-head-into origin origin'
 		unit: GET_UNIT(s)
@@ -444,18 +451,27 @@ _series: context [
 			part: part << (log-b unit)
 		]
 		
+		MEMGUARD_MARK
+		MEMGUARD_ADD(origin)
+		MEMGUARD_ADD(target)
+
 		type1: TYPE_OF(origin')
 		either origin'/node = target/node [				;-- same series case
 			trim-head-into target target'
 			dst: (as byte-ptr! s/offset) + (target'/head << (log-b unit))
-			if src = dst [return as red-value! target]	;-- early exit if no move is required
+			if src = dst [								;-- early exit if no move is required
+				MEMGUARD_BACK
+				return as red-value! target
+			]
 			if all [dst > src dst <> tail part > (as-integer tail - dst)][
+				MEMGUARD_BACK
 				return as red-value! origin
 			]
 			if dst > tail [dst: tail]					;-- avoid overflows if part is too big
 			ownership/check as red-value! target' words/_move null origin'/head items
 
 			temp: allocate part							;@@ suboptimal for unit < 16
+			MEMGUARD_UNCHECKED
 			copy-memory	temp src part
 			either dst > src [							;-- slide in-between elements
 				end: src + part
@@ -485,6 +501,7 @@ _series: context [
 				all [ANY_BLOCK?(type1)  ANY_STRING?(type2)]
 				all [ANY_STRING?(type1)	ANY_BLOCK?(type2)]
 			][
+				MEMGUARD_BACK
 				fire [TO_ERROR(script move-bad) datatype/push type1 datatype/push type2]
 			]
 			ownership/check as red-value! target words/_move null origin'/head items
@@ -498,9 +515,11 @@ _series: context [
 					type2 = TYPE_BINARY
 					type2 = TYPE_VECTOR
 				][
+					MEMGUARD_BACK
 					fire [TO_ERROR(script move-bad) datatype/push type1 datatype/push type2]
 				]
 				string/move-chars as red-string! origin' as red-string! target' part
+				MEMGUARD_BACK
 				return as red-value! target
 			]
 			;-- make enough space in target
@@ -537,8 +556,7 @@ _series: context [
 			index: target'/head
 		]
 		ownership/check as red-value! target' words/_moved null index items
-		target/node: target'/node
-		; origin/node: origin'/node
+		MEMGUARD_BACK
 		as red-value! origin
 	]
 	
@@ -568,6 +586,7 @@ _series: context [
 			n			[integer!]
 			left		[integer!]
 			type		[integer!]
+			vtype		[integer!]
 			head		[integer!]
 			src			[byte-ptr!]
 			dst			[byte-ptr!]
@@ -585,6 +604,7 @@ _series: context [
 			self?		[logic!]
 			divided?	[logic!]
 			cnt			[integer!]
+			MEMGUARD_TOKEN
 	][
 		cnt: 1
 		if OPTION?(dup-arg) [
@@ -604,14 +624,15 @@ _series: context [
 		type: TYPE_OF(ser)
 		blk?: ANY_BLOCK?(type)
 
+		vtype: TYPE_OF(value)
 		ser2: as red-series! value
+		; #if debug? = yes [if ANY_SERIES?(vtype) [MEMGUARD_ADDRO(ser2)]]
 		values?: either all [only? blk?] [no] [
-			left: TYPE_OF(value)
 			self?: all [
-				ANY_SERIES?(left)
+				ANY_SERIES?(vtype)
 				ser/node = ser2/node					;-- ser and value are the same series
 			]
-			values?: ANY_BLOCK?(left)
+			values?: ANY_BLOCK?(vtype)
 		]
 
 		items: either any [self? values?][
@@ -651,10 +672,10 @@ _series: context [
 		left: size - head
 		if part > left [part: left]
 
-		if all [
-			zero? part
-			limit = cell
-		][return ser]									;-- early exit if nothing to change
+		if all [zero? part limit = cell] [return ser]	;-- early exit if nothing to change
+
+		MEMGUARD_MARK
+		MEMGUARD_ADD(ser)
 
 		either any [blk? self?][
 			new-part: items * cnt
@@ -777,6 +798,8 @@ _series: context [
 		]
 		ownership/check as red-value! ser words/_changed null head new-part
 		ser/head: head + new-part											;-- set head after the change
+
+		MEMGUARD_BACK
 		ser
 	]
 
@@ -812,6 +835,7 @@ _series: context [
 			pos	   [byte-ptr!]
 			unit   [integer!]
 			char   [red-char!]
+			MEMGUARD_TOKEN
 	][
 		#if debug? = yes [if verbose > 0 [print-line "series/poke"]]
 
@@ -831,6 +855,8 @@ _series: context [
 				integer/push index
 			]
 		][
+			MEMGUARD_MARK
+			MEMGUARD_ADD(ser)
 			pos: (as byte-ptr! s/offset) + (offset << (log-b unit))
 			switch TYPE_OF(ser) [
 				TYPE_BLOCK								;@@ any-block?
@@ -845,13 +871,15 @@ _series: context [
 				TYPE_BINARY [binary/set-value pos data]
 				TYPE_VECTOR [
 					if TYPE_OF(data) <> ser/extra [
+						MEMGUARD_BACK
 						fire [TO_ERROR(script invalid-arg) data]
 					]
-					vector/set-value pos data unit
+					vector/set-value pos data unit		;@@ FIXME: this can fire
 				]
 				default [								;@@ ANY-STRING!
 					char: as red-char! data
 					if TYPE_OF(char) <> TYPE_CHAR [
+						MEMGUARD_BACK
 						fire [TO_ERROR(script invalid-arg) char]
 					]
 					string/poke-char s pos char/value
@@ -859,6 +887,7 @@ _series: context [
 			]
 			ownership/check as red-value! ser words/_poke data offset 1
 			stack/set-last data
+			MEMGUARD_BACK
 		]
 		data
 	]
@@ -878,6 +907,7 @@ _series: context [
 			int		[red-integer!]
 			ser2	[red-series!]
 			hash	[red-hash!]
+			MEMGUARD_TOKEN
 	][
 		s:    GET_BUFFER(ser)
 		unit: GET_UNIT(s)
@@ -915,6 +945,9 @@ _series: context [
 
 		if head >= tail [return ser]						;-- early exit if nothing to remove
 
+		MEMGUARD_MARK
+		MEMGUARD_ADD(ser)
+
 		ownership/check as red-value! ser words/_remove null ser/head items
 		
 		either head + part < tail [
@@ -934,6 +967,8 @@ _series: context [
 			s/tail: as red-value! head
 		]
 		ownership/check as red-value! ser words/_removed null ser/head 0
+
+		MEMGUARD_BACK
 		ser
 	]
 
@@ -955,6 +990,7 @@ _series: context [
 			hash?	[logic!]
 			hash	[red-hash!]
 			table	[node!]
+			MEMGUARD_TOKEN
 	][
 		s:    GET_BUFFER(ser)
 		unit: GET_UNIT(s)
@@ -987,6 +1023,9 @@ _series: context [
 			ser/head: part
 			part: 0
 		]
+
+		MEMGUARD_MARK
+		MEMGUARD_ADD(ser)
 		
 		hash?: TYPE_OF(ser) = TYPE_HASH
 		if hash? [
@@ -997,7 +1036,9 @@ _series: context [
 		tail: tail - unit								;-- point to last value
 		temp: as byte-ptr! :val
 		while [head < tail][							;-- TODO: optimise it according to unit
+			MEMGUARD_UNCHECKED
 			copy-memory temp head unit
+
 			copy-memory head tail unit
 			copy-memory tail temp unit
 			if hash? [
@@ -1010,6 +1051,8 @@ _series: context [
 			tail: tail - unit
 		]
 		ownership/check as red-value! ser words/_reverse null ser/head items
+
+		MEMGUARD_BACK
 		ser
 	]
 
@@ -1036,6 +1079,7 @@ _series: context [
 			part2	[integer!]
 			ser'	[red-series! value]
 			part-arg'	[red-value! value]
+			MEMGUARD_TOKEN
 	][
 		#if debug? = yes [if verbose > 0 [print-line "series/take"]]
 		s: trim-head-into ser ser'
@@ -1101,11 +1145,17 @@ _series: context [
 		buffer/flags: s/flags							;@@ filter flags?
 		tail: as byte-ptr! s/tail
 
-		ser2: as red-series! stack/push*
-		ser2/header: TYPE_OF(ser)
-		ser2/extra:  either TYPE_OF(ser) = TYPE_VECTOR [ser'/extra][0]
+		ser2: as red-series! stack/push*				;-- this corrupts `ser`
+		ser: null
+
+		ser2/header: TYPE_OF(ser')
+		ser2/extra:  either TYPE_OF(ser') = TYPE_VECTOR [ser'/extra][0]
 		ser2/node:  node
 		ser2/head:  0
+
+		MEMGUARD_MARK
+		MEMGUARD_ADD(ser')
+		MEMGUARD_ADD(ser2)
 
 		ownership/check as red-value! ser' words/_take null head part2
 
@@ -1125,7 +1175,7 @@ _series: context [
 		s/tail: as cell! tail - bytes
 
 		ser'/head: head
-		if TYPE_OF(ser) = TYPE_HASH [
+		if TYPE_OF(ser') = TYPE_HASH [
 			hash: as red-hash! ser'
 			_hashtable/refresh hash/table 0 - part ser'/head + part size - ser'/head - part yes
 			hash: as red-hash! ser2
@@ -1135,8 +1185,7 @@ _series: context [
 		]
 		
 		ownership/check as red-value! ser' words/_taken null ser'/head 0
-		ser/node: ser'/node								;-- could have been relocated
-
+		MEMGUARD_BACK
 		as red-value! ser2
 	]
 
@@ -1194,6 +1243,7 @@ _series: context [
 			type	[integer!]
 			flag	[integer!]
 			len		[integer!]
+			MEMGUARD_TOKEN
 	][
 		#if debug? = yes [if verbose > 0 [print-line "series/copy"]]
 
@@ -1241,6 +1291,10 @@ _series: context [
 		buffer/flags: s/flags							;@@ filter flags?
 		buffer/flags: buffer/flags and not flag-series-owned
 
+		MEMGUARD_MARK
+		MEMGUARD_ADDNODE(node)
+		; MEMGUARD_ADDRO(ser)
+
 		unless zero? part [
 			offset: offset << (log-b unit)
 			copy-memory
@@ -1256,6 +1310,7 @@ _series: context [
 		new/head:   0
 		new/extra:  either type = TYPE_VECTOR [ser/extra][0]
 
+		MEMGUARD_BACK
 		as red-series! new
 	]
 	
