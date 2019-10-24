@@ -328,11 +328,21 @@ S_DT_D
 S_DT_DD
 S_DT_YYY
 F_DT_YEARL
+F_DT_YEAR2
 F_DT_DAYL
 S_DT_YM
 S_DT_YMM
 F_DT_YMONTH
-F_DT_YMONTH
+F_DT_DDD
+S_DT_YV
+S_DT_YW
+S_DT_YWW
+F_DT_WEEK
+S_DT_W
+S_DT_WW
+F_DT_YWW
+S_DT_WD
+F_DT_YWWD
 S_DT_YMON
 S_DT_YMD
 S_DT_YMDD
@@ -384,9 +394,11 @@ F_DT_YEARL2->digit->S_DT_YM
  \->letter->S_DT_YMON
   \->"W"->S_DT_YV->digit->S_DT_YW->digit->S_DT_YWW->eof->F_DT_WEEK
   
-F_DT_WEEK
+F_DT_WEEK->digit->S_DT_W->digit->S_DT_WW->eof->F_DT_YWW
+                                  \->digit->S_DT_WD->eof->F_DT_YWWD
+                                             \->"T"->S_TM_START
 
-F_DT_DDD
+F_DT_DDD->"T"->S_TM_START
 
 
 F_DT_YMONTH->digit->S_DT_YMD->digit->S_DT_YMDD->sep|eof->F_DT_YMDAY
