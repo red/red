@@ -915,6 +915,8 @@ string: context [
 			s2	  [series!]
 			unit1 [integer!]
 			unit2 [integer!]
+			type1 [integer!]
+			type2 [integer!]
 			size  [integer!]
 			size1 [integer!]
 			size2 [integer!]
@@ -929,6 +931,10 @@ string: context [
 			diff? [logic!]
 			same? [logic!]
 	][
+		type1: TYPE_OF(str1)
+		type2: TYPE_OF(str2)
+		assert any [type1 = TYPE_SYMBOL ANY_STRING?(type1)]
+		assert any [type2 = TYPE_SYMBOL ANY_STRING?(type2)]
 		s1: GET_BUFFER(str1)
 		s2: GET_BUFFER(str2)
 		unit1: GET_UNIT(s1)
@@ -965,8 +971,8 @@ string: context [
 			true [true]									;@@ catch-all case to make compiler happy
 		]
 		
-		h1: either TYPE_OF(str1) = TYPE_SYMBOL [0][str1/head << (log-b unit1)]	;-- make symbol! used as string! pass safely
-		h2: either TYPE_OF(str2) = TYPE_SYMBOL [0][str2/head << (log-b unit2)]	;-- make symbol! used as string! pass safely
+		h1: either type1 = TYPE_SYMBOL [0][str1/head << (log-b unit1)]	;-- make symbol! used as string! pass safely
+		h2: either type2 = TYPE_SYMBOL [0][str2/head << (log-b unit2)]	;-- make symbol! used as string! pass safely
 		
 		size2: (as-integer s2/tail - s2/offset) - h2 >> (log-b unit2)
 		if all [part >= 0 part < size2][size2: part]
