@@ -336,34 +336,16 @@ range-value-changed: func [
 	range		[handle!]
 	widget		[handle!]
 	/local
-		vals	[red-value!]
-		val		[float!]
-		size	[red-pair!]
-		;	type  [red-word!]
+		values	[red-value!]
 		pos		[red-float!]
-		;	sym   [integer!]
-		max		[float!]
+		value	[float!]
 ][
-	; This event happens on GtkRange widgets including GtkScale.
-	; Will any other widget need this?
-	vals: get-face-values widget
-	;type:	as red-word!	vals + FACE_OBJ_TYPE
-	size:	as red-pair!	vals + FACE_OBJ_SIZE
-	pos:	as red-float!	vals + FACE_OBJ_DATA
+	values: get-face-values widget
+	pos: as red-float! values + FACE_OBJ_DATA
 
-	;sym:	symbol/resolve type/symbol
-
-	;if type = slider [
-	val: gtk_range_get_value range
-	either size/y > size/x [
-		max: as-float size/y
-		val: max - val
-	][
-		max: as-float size/x
-	]
-	pos/value: val / max
+	value: gtk_range_get_value range
+	pos/value: value / 100.0
 	make-event range 0 EVT_CHANGE
-	;]
 ]
 
 combo-selection-changed: func [

@@ -1292,6 +1292,10 @@ GPtrArray!: alias struct! [
 			event		[handle!]
 			return:		[logic!]
 		]
+		gtk_widget_draw: "gtk_widget_draw" [
+			widget		[handle!]
+			cr			[handle!]
+		]
 		gtk_widget_queue_draw: "gtk_widget_queue_draw" [
 			widget		[handle!]
 		]
@@ -1803,6 +1807,10 @@ GPtrArray!: alias struct! [
 			range		[handle!]
 			return:		[float!]
 		]
+		gtk_range_set_inverted: "gtk_range_set_inverted" [
+			range		[handle!]
+			bool		[logic!]
+		]
 		gtk_progress_bar_new: "gtk_progress_bar_new" [
 			return:		[handle!]
 		]
@@ -2285,9 +2293,8 @@ GPtrArray!: alias struct! [
 			return:		[handle!]
 		]
 
-
-
 		gtk_widget_get_pango_context: "gtk_widget_get_pango_context" [
+			widget		[handle!]
 			return:		[handle!]
 		]
 

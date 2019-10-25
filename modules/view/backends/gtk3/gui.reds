@@ -1006,16 +1006,14 @@ change-data: func [
 			TYPE_OF(data) = TYPE_PERCENT
 		][
 			f: as red-float! data
-			gtk_progress_bar_set_fraction widget  f/value
+			gtk_progress_bar_set_fraction widget f/value
 		]
 		all [
 			type = slider
 			TYPE_OF(data) = TYPE_PERCENT
 		][
 			f: as red-float! data
-			size: as red-pair! values + FACE_OBJ_SIZE
-			len: either size/x > size/y [size/x][size/y]
-			gtk_range_set_value widget f/value * (as-float len)
+			gtk_range_set_value widget f/value * 100.0
 		]
 		type = check [
 			set-logic-state widget as red-logic! data yes
@@ -1622,11 +1620,12 @@ OS-make-view: func [
 		]
 		sym = slider [
 			vertical?: size/y > size/x
-			value: either vertical? [size/y][size/x]
-			widget: gtk_scale_new_with_range vertical? 0.0 as float! value 1.0
-			value: get-position-value as red-float! data value
-			if vertical? [value: size/y - value]
-			gtk_range_set_value widget as float! value
+			widget: gtk_scale_new_with_range vertical? 0.0 100.0 1.0
+			if vertical? [
+				gtk_range_set_inverted widget yes
+			]
+			fvalue: get-fraction-value as red-float! data
+			gtk_range_set_value widget fvalue * 100.0
 			gtk_scale_set_has_origin widget no
 			gtk_scale_set_draw_value widget no
 		]
