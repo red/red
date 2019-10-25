@@ -498,9 +498,6 @@ OS-draw-ellipse: func [
 	do-paint dc
 ]
 
-;;; TODO: Remove this when pango-cairo is the only choice! SOON!
-; pango-font?: yes ; switch to yes to switch to pango-cairo instead of toy cairo
-
 OS-draw-font: func [
 	dc		[draw-ctx!]
 	font	[red-object!]
@@ -527,7 +524,7 @@ draw-text-at: func [
 	layout: pango_cairo_create_layout cr
 	pango_layout_set_text layout str -1
 	pango_layout_set_attributes layout attrs
-	pango_cairo_context_set_font_options layout opts
+	pango_cairo_context_set_font_options pango_layout_get_context layout opts
 	pango_cairo_update_layout cr layout
 	pango_cairo_show_layout cr layout
 	g_object_unref layout

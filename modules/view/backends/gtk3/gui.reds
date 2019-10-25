@@ -728,7 +728,7 @@ change-color: func [
 	font: as red-object! values + FACE_OBJ_FONT
 	free-font font
 	make-font face font
-	set-css widget face values
+	set-font widget face values
 ]
 
 change-pane: func [
@@ -799,7 +799,7 @@ change-font: func [
 	face		[red-object!]
 	values		[red-value!]
 ][
-	set-css widget face values
+	set-font widget face values
 ]
 
 change-offset: func [

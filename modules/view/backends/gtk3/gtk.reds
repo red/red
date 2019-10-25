@@ -1690,6 +1690,9 @@ GPtrArray!: alias struct! [
 			label		[c-string!]
 			return:		[handle!]
 		]
+		gtk_label_get_type: "gtk_label_get_type" [
+			return:		[integer!]
+		]
 		gtk_label_get_text: "gtk_label_get_text" [
 			widget		[handle!]
 			return:		[c-string!]
@@ -2894,5 +2897,3 @@ start-resize-id:	g_quark_from_string "start-resize-id"
 #define GET-RESIZING(s)			[g_object_get_qdata s resizing-id]
 #define SET-STARTRESIZE(s d)	[g_object_set_qdata s start-resize-id d]
 #define GET-STARTRESIZE(s)		[g_object_get_qdata s start-resize-id]
-#define SET-CSS(s d)			[g_object_set_qdata s css-id d]
-#define GET-CSS(s)				[g_object_get_qdata s css-id]

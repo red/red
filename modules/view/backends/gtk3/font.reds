@@ -114,7 +114,10 @@ set-label-attrs: func [
 		int		[red-integer!]
 		angle	[integer!]
 ][
-	unless null? font [
+	if all [
+		not null? font
+		TYPE_OF(font) = TYPE_OBJECT
+	][
 		values: object/get-values font
 
 		int: as red-integer! values + FONT_OBJ_ANGLE
@@ -625,7 +628,12 @@ set-font: func [
 			sym = radio
 		][
 			label: gtk_bin_get_child widget
-			set-label-attrs label font hFont
+			;-- some button maybe have empty label
+			either g_type_check_instance_is_a label gtk_label_get_type [
+				set-label-attrs label font hFont
+			][
+				apply-css-styles widget css
+			]
 		]
 		sym = field [
 			gtk_entry_set_attributes widget hFont
