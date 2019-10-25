@@ -948,10 +948,10 @@ GPtrArray!: alias struct! [
 		]
 		gdk_window_get_device_position: "gdk_window_get_device_position" [
 			window			[handle!]
- 			device			[handle!]
-   			x				[int-ptr!]
+			device			[handle!]
+			x				[int-ptr!]
 			y				[int-ptr!]
- 			mask			[handle!]
+			mask			[handle!]
 			return:			[handle!]
 		]
 		gdk_window_invalidate_rect: "gdk_window_invalidate_rect" [
@@ -2665,12 +2665,12 @@ GPtrArray!: alias struct! [
 		]
 		pango_parse_markup: "pango_parse_markup" [
 			markup_text		[c-string!]
-            length 			[integer!]
-            accel_marker	[integer!] 	;gunichar=guint32
-            attr_list		[handle!] 	;[pointer! [handle!]]
-            text			[handle!] 	;[pointer! [c-string!]]
-            accel_char		[integer!] 	;gunichar=gunit32
-            error			[handle!]
+			length 			[integer!]
+			accel_marker	[integer!] 	;gunichar=guint32
+			attr_list		[handle!] 	;[pointer! [handle!]]
+			text			[handle!] 	;[pointer! [c-string!]]
+			accel_char		[integer!] 	;gunichar=gunit32
+			error			[handle!]
 			return: 		[logic!]
 		]
 		pango_attr_list_new: "pango_attr_list_new" [
@@ -2679,14 +2679,14 @@ GPtrArray!: alias struct! [
  		pango_attr_list_ref: "pango_attr_list_ref" [
 			 attrs 		[handle!]
 			 return: 	[handle!]
-		 ]
+		]
  		pango_attr_list_unref: "pango_attr_list_unref" [
 			 attrs 		[handle!]
-		 ]
+		]
 		pango_attr_list_copy: "pango_attr_list_copy" [
 			attrs 		[handle!]
 			return: 	[handle!]
-		 ]
+		]
 		pango_attr_list_insert: "pango_attr_list_insert" [
 			attrs 		[handle!]
 			attr 		[PangoAttribute!]
