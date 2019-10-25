@@ -1385,6 +1385,10 @@ GPtrArray!: alias struct! [
 		gtk_widget_grab_default: "gtk_widget_grab_default" [
 			widget		[handle!]
 		]
+		gtk_widget_has_grab: "gtk_widget_has_grab" [
+			widget		[handle!]
+			return:		[logic!]
+		]
 		gtk_widget_set_size_request: "gtk_widget_set_size_request" [
 			widget		[handle!]
 			width		[integer!]

@@ -234,6 +234,10 @@ base-draw: func [
 		draw-end drawDC cr no no no
 	]
 
+	if null? gtk_container_get_children widget [
+		return true
+	]
+
 	false
 ]
 
@@ -514,8 +518,24 @@ focus-in-event: func [
 	evbox		[handle!]
 	event		[handle!]
 	widget		[handle!]
+	return:		[logic!]
+	/local
+		face	[red-object!]
+		values	[red-value!]
+		type	[red-word!]
+		int		[red-integer!]
+		sym		[integer!]
 ][
+	face: get-face-obj widget
+	values: object/get-values face
+	type: as red-word! values + FACE_OBJ_TYPE
+	int: as red-integer! values + FACE_OBJ_SELECTED
+	sym: symbol/resolve type/symbol
+	change-selection widget int sym
 	make-event widget 0 EVT_FOCUS
+	
+	if sym = window [return false]
+	true
 ]
 
 focus-out-event: func [
@@ -523,8 +543,21 @@ focus-out-event: func [
 	evbox		[handle!]
 	event		[handle!]
 	widget		[handle!]
+	return:		[logic!]
+	/local
+		face	[red-object!]
+		values	[red-value!]
+		type	[red-word!]
+		sym		[integer!]
 ][
+	face: get-face-obj widget
+	values: object/get-values face
+	type: as red-word! values + FACE_OBJ_TYPE
+	sym: symbol/resolve type/symbol
 	make-event widget 0 EVT_UNFOCUS
+
+	if sym = window [return false]
+	true
 ]
 
 area-changed: func [
