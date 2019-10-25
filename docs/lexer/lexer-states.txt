@@ -341,45 +341,48 @@ F_DT_WEEK
 S_DT_WD
 F_DT_YWWD
 S_DT_YMON
-S_DT_YMD
-S_DT_YMDD
-F_DT_YMDAY
+F_DT_YMD
+F_DT_YMDD
 S_DT_DM
 S_DT_DMM
 F_DT_DMONTH
 S_DT_DMON
-S_DT_DMY
-S_DT_DMYY
-S_DT_DMYYY
-S_DT_DMYYYY
-F_DT_DMYEAR
-F_DT_YMDAY
+F_DT_DMY
+F_DT_DMYY
+F_DT_DMYYY
+F_DT_DMYYYY
 S_TM_START
-S_TM_H
+F_TM_H
 F_TM_HH
-F_TM_HH
-S_TM_M
+S_TM_HM
+F_TM_M
 F_TM_MM
-S_TM_S
+S_TM_HMS
+F_TM_S
 F_TM_SS
-S_TM_N
-F_TM_NNN
+F_TM_N1
+F_TM_N
 S_TZ_START
 S_TZ_H
 F_TZ_HH
+F_TZ_HM
 S_TZ_M
-F_TZ_MM
-
+---FINAL-STATES--
+T_TM_NZ
+T_TZ_H
+T_TZ_HH
+T_TZ_M
+T_TZ_MM
 
 C_DT_DIGIT			0-9
 C_DT_LETTER			abcdefghijlmnoprstuvy, ABCDEFGHIJLMNOPRSUVY
 C_DT_SLASH			/
 C_DT_DASH			-
+C_DT_T				T
+C_DT_W				W
 C_DT_PLUS			+
 C_DT_COLON			:
 C_DT_DOT			.
-C_DT_T				T
-C_DT_W				W
 C_DT_Z				Z
 C_DT_ILLEGAL		all the rest
 C_DT_EOF			EOF
@@ -407,41 +410,42 @@ F_DT_YEARL2->digit->S_DT_YM
  \->letter->S_DT_YMON
   \->"W"->S_DT_YV->digit->S_DT_YW->digit->S_DT_YWW->eof->F_DT_WEEK
                                            \->digit->S_DT_WD->eof->F_DT_YWWD
-                                            \->"T"->S_TM_START
+                                            \         \->"T"->S_TM_START
+                                             \->"T"->S_TM_START
 
 F_DT_DDD->"T"->S_TM_START
 
-
-F_DT_YMONTH->digit->S_DT_YMD->digit->S_DT_YMDD->sep|eof->F_DT_YMDAY
-                     \->sep|eof->F_DT_YMDAY
+F_DT_YMONTH->digit->F_DT_YMD->digit->F_DT_YMDD->dtsep->S_TM_START
+                     \->dtsep->S_TM_START
 
 F_DT_DAYL->digit->S_DT_DM->digit->S_DT_DMM->sep->F_DT_DMONTH
  \                 \->sep->F_DT_DMONTH
   \->letter->S_DT_DMON->letter->S_DT_DMON
               \->sep->F_DT_DMONTH
 
-F_DT_DMONTH->digit->F_DT_DMYEAR->digit->F_DT_DMYEAR->digit->F_DT_DMYEAR->digit->F_DT_DMYEAR
-                     \                \                 \->sep->S_TM_START
-                      \                \->sep->S_TM_START
-                       \->sep->S_TM_START
-                      
+F_DT_DMONTH->digit->F_DT_DMY->digit->F_DT_DMYY->digit->F_DT_DMYYY->digit->F_DT_DMYYYY->dtsep->S_TM_START
+                     \                \                 \->dtsep->S_TM_START
+                      \                \->dtsep->S_TM_START
+                       \->dtsep->S_TM_START
 
-S_TM_START->digit->S_TM_H->digit->F_TM_HH->":"->F_TM_HH
-F_TM_HH->digit->S_TM_M->digit->F_TM_MM->":"->F_TM_MM
-F_TM_MM->digit->S_TM_S->digit->F_TM_SS->":"->F_TM_SS
+S_TM_START->digit->F_TM_H->digit->F_TM_HH->":"->S_TM_HM
+                                   \->digit->F_TM_M
 
-F_TM_SS->"."->S_TM_N->digit->S_TM_N
- \             \->"Z"|eof->F_TM_NNN
-  \
-   \->sign->S_TZ_START
- 
-F_TM_NNN->sign->S_TZ_START
+S_TM_HM->digit->F_TM_M->digit->F_TM_MM->":"->S_TM_HMS
+                                \->digit->F_TM_S
 
-S_TZ_START->digit->S_TZ_H->digit->F_TZ_HH->":"->F_TZ_HH
-                    \->":"|eof->F_TZ_HH
+S_TM_HMS->digit->F_TM_S->digit->F_TM_SS->"."->F_TM_N1->digit->F_TM_N->digit->F_TM_N
+                                 \                             \->"Z"|eof->T_TM_NZ
+                                  \                             \->sign->S_TZ_START
+                                   \->sign->S_TZ_START
 
-F_TZ_HH->digit->S_TZ_M->digit->F_TZ_MM
-                 \->eof->F_TZ_MM
+S_TZ_START->digit->S_TZ_H->digit->F_TZ_HH->":"->F_TZ_HM
+                    \              \->eof->T_TZ_HH
+                     \->":"->F_TZ_HM
+                      \->eof->T_TZ_H
+
+F_TZ_HM->digit->S_TZ_M->digit->T_TZ_MM
+                 \->eof->T_TZ_M
 
 
 
