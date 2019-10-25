@@ -1726,6 +1726,10 @@ GPtrArray!: alias struct! [
 			text		[c-string!]
 			len			[integer!]
 		]
+		gtk_entry_set_has_frame: "gtk_entry_set_has_frame" [
+			entry		[handle!]
+			has-frame	[logic!]
+		]
 		gtk_editable_select_region: "gtk_editable_select_region" [
 			entry		[handle!]
 			start		[integer!]
