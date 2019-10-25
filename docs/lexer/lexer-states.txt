@@ -338,9 +338,6 @@ S_DT_YV
 S_DT_YW
 S_DT_YWW
 F_DT_WEEK
-S_DT_W
-S_DT_WW
-F_DT_YWW
 S_DT_WD
 F_DT_YWWD
 S_DT_YMON
@@ -375,7 +372,7 @@ F_TZ_MM
 
 
 C_DT_DIGIT			0-9
-C_DT_ALPHA			a-z, A-Z
+C_DT_LETTER			abcdefghijlmnoprstuvy, ABCDEFGHIJLMNOPRSUVY
 C_DT_SLASH			/
 C_DT_DASH			-
 C_DT_PLUS			+
@@ -388,13 +385,14 @@ C_DT_ILLEGAL		all the rest
 C_DT_EOF			EOF
 
 sep: / | -
+dtsep: / | T
 digit: 0-9
-letter: a-z, A-Z
+letter: abcdefghijlmnoprstuvy, ABCDEFGHIJLMNOPRSUVY
 sign: + | -
 eof: EOF
 
 S_DT_START->digit->S_DT_D->digit->S_DT_DD->digit->S_DT_YYY->digit->F_DT_YEARL->"/"->F_DT_YEARL
-                    \              \               \                \->"-"->F_DT_YEAR2   
+                    \              \               \                \->"-"->F_DT_YEARL2   
                      \              \               \->sep->F_DT_YEARL
                       \              \->sep->F_DT_DAYL
                        \->sep->F_DT_DAYL
@@ -408,10 +406,8 @@ F_DT_YEARL->digit->S_DT_YM->digit->S_DT_YMM->sep->F_DT_YMONTH
 F_DT_YEARL2->digit->S_DT_YM
  \->letter->S_DT_YMON
   \->"W"->S_DT_YV->digit->S_DT_YW->digit->S_DT_YWW->eof->F_DT_WEEK
-  
-F_DT_WEEK->digit->S_DT_W->digit->S_DT_WW->eof->F_DT_YWW
-                                  \->digit->S_DT_WD->eof->F_DT_YWWD
-                                             \->"T"->S_TM_START
+                                           \->digit->S_DT_WD->eof->F_DT_YWWD
+                                            \->"T"->S_TM_START
 
 F_DT_DDD->"T"->S_TM_START
 
@@ -419,18 +415,16 @@ F_DT_DDD->"T"->S_TM_START
 F_DT_YMONTH->digit->S_DT_YMD->digit->S_DT_YMDD->sep|eof->F_DT_YMDAY
                      \->sep|eof->F_DT_YMDAY
 
-F_DT_DAYL-->digit->S_DT_DM->digit->S_DT_DMM->sep->F_DT_DMONTH
+F_DT_DAYL->digit->S_DT_DM->digit->S_DT_DMM->sep->F_DT_DMONTH
  \                 \->sep->F_DT_DMONTH
   \->letter->S_DT_DMON->letter->S_DT_DMON
               \->sep->F_DT_DMONTH
 
-F_DT_DMONTH->digit->S_DT_DMY->digit->S_DT_DMYY->digit->S_DT_DMYYY->digit->S_DT_DMYYYY->sep|eof->F_DT_DMYEAR
-                     \                \                 \->sep|eof->F_DT_DMYEAR
-                      \                \->sep|eof->F_DT_DMYEAR
-                       \->sep|eof->F_DT_DMYEAR
+F_DT_DMONTH->digit->F_DT_DMYEAR->digit->F_DT_DMYEAR->digit->F_DT_DMYEAR->digit->F_DT_DMYEAR
+                     \                \                 \->sep->S_TM_START
+                      \                \->sep->S_TM_START
+                       \->sep->S_TM_START
                       
-
-F_DT_YMDAY->"/"|"T"->S_TM_START
 
 S_TM_START->digit->S_TM_H->digit->F_TM_HH->":"->F_TM_HH
 F_TM_HH->digit->S_TM_M->digit->F_TM_MM->":"->F_TM_MM
