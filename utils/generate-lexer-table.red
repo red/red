@@ -89,61 +89,74 @@ context [
 		T_EMAIL							;-- 74
 		T_PATH							;-- 75
 	]
-	
+;trash		1
+;year   	2
+;month  	3
+;day    	4
+;hour   	5
+;minute 	6
+;second 	7
+;nsec		8
+;week		9
+;weekday	10
+;tz-hour	11
+;tz-min		12
+
 	date-states: [
-		S_DT_START						;-- 0
-		S_DT_D							;--	1
-		S_DT_DD							;--	2
-		S_DT_YYY						;--	3
-		F_DT_YEARL						;--	4
-		F_DT_YEARL2						;--	5
-		F_DT_DAYL						;--	6
-		S_DT_YM							;--	7
-		S_DT_YMM						;--	8
-		F_DT_YMONTH						;--	9
-		F_DT_DDD						;--	10
-		S_DT_YV							;--	11
-		S_DT_YW							;--	12
-		S_DT_YWW						;--	13
-		F_DT_WEEK						;--	14
-		S_DT_WD							;--	15
-		F_DT_YWWD						;--	16
-		S_DT_YMON						;--	17
-		F_DT_YMD						;--	18
-		F_DT_YMDD						;--	19
-		S_DT_DM							;--	20
-		S_DT_DMM						;--	21
-		F_DT_DMONTH						;--	22
-		S_DT_DMON						;--	23
-		F_DT_DMY						;--	24
-		F_DT_DMYY						;--	25
-		F_DT_DMYYY						;--	26
-		F_DT_DMYYYY						;--	27
-		S_TM_START						;--	28
-		F_TM_H							;--	29
-		F_TM_HH							;--	30
-		S_TM_HM							;--	31
-		F_TM_M							;--	32
-		F_TM_MM							;--	33
-		S_TM_HMS						;--	34
-		F_TM_S							;--	35
-		F_TM_SS							;--	36
-		F_TM_N1							;--	37
-		F_TM_N							;--	38
-		S_TZ_START						;--	39
-		S_TZ_H							;--	40
-		F_TZ_HH							;--	41
-		F_TZ_HM							;--	42
-		S_TZ_M							;--	43
-		--FINAL-STATES--				;--	44
-		T_DT_ERROR						;-- 45
-		T_DT_YMDAY						;-- 46
-		T_DT_DMYEAR						;-- 47
-		T_TM_NZ							;--	48
-		T_TZ_H							;--	49
-		T_TZ_HH							;-- 50
-		T_TZ_M							;-- 51
-		T_TZ_MM							;-- 52
+	;-- state ----------- reset? -- field --
+		S_DT_START			1		1		;-- 0
+		S_DT_D				1		4		;--	1
+		S_DT_DD				1		4		;--	2
+		S_DT_YYY			1		2		;--	3
+		F_DT_YEARL			0		2		;--	4
+		F_DT_YEARL2			0		2		;--	5
+		F_DT_DAYL			0		4		;--	6
+		S_DT_YM				1		3		;--	7
+		S_DT_YMM			1		3		;--	8
+		F_DT_YMONTH			0		3		;--	9
+		F_DT_DDD			0		4		;--	10
+		S_DT_YV				1		9		;--	11
+		S_DT_YW				1		9		;--	12
+		S_DT_YWW			1		9		;--	13
+		F_DT_WEEK			0		9		;--	14
+		S_DT_WD				1		10		;--	15
+		F_DT_YWWD			0		10		;--	16
+		S_DT_YMON			1		3		;--	17
+		F_DT_YMD			1		4		;--	18
+		F_DT_YMDD			0		4		;--	19
+		S_DT_DM				1		3		;--	20
+		S_DT_DMM			1		3		;--	21
+		F_DT_DMONTH			0		3		;--	22
+		S_DT_DMON			1		3		;--	23
+		F_DT_DMY			1		2		;--	24
+		F_DT_DMYY			1		2		;--	25
+		F_DT_DMYYY			1		2		;--	26
+		F_DT_DMYYYY			0		2		;--	27
+		S_TM_START			0		1		;--	28
+		F_TM_H				1		5		;--	29
+		F_TM_HH				1		5		;--	30
+		S_TM_HM				0		5		;--	31
+		F_TM_M				1		6		;--	32
+		F_TM_MM				1		6		;--	33
+		S_TM_HMS			0		6		;--	34
+		F_TM_S				1		7		;--	35
+		F_TM_SS				0		7		;--	36
+		F_TM_N1				1		8		;--	37
+		F_TM_N				1		8		;--	38
+		S_TZ_START			0		1		;--	39
+		S_TZ_H				1		11		;--	40
+		F_TZ_HH				1		11		;--	41
+		F_TZ_HM				0		12		;--	42
+		S_TZ_M				1		12		;--	43
+		--FINAL-STATES--	0		1		;--	44
+		T_DT_ERROR			0		1		;-- 45
+		T_DT_YMDAY			0		1		;-- 46
+		T_DT_DMYEAR			0		1		;-- 47
+		T_TM_NZ				0		1		;--	48
+		T_TZ_H				0		1		;--	49
+		T_TZ_HH				0		1		;-- 50
+		T_TZ_M				0		1		;-- 51
+		T_TZ_MM				0		1		;-- 52
 	]
 
 	CSV-table: %../docs/lexer/lexer-FSM.csv
@@ -188,16 +201,20 @@ context [
 
 	;-- Generate the date table content
 	dt-table: make binary! 2000
+	reset-table: make binary! 100
+	fields-table: make binary! 100
 
 	foreach line next matrix [
 		out: make block! 50	
 		foreach s next line [
 			either pos: find date-states to-word s [
-				append out (index? pos) - 1
+				append out ((2 + index? pos) / 3) - 1
 			][
 				do make error! form reduce ["Error: state" s "not found"]
 			]
 		]
+		append reset-table to-char pick 0x31 (select date-states to-word line/1) = 1
+		append fields-table to-char third find date-states to-word line/1
 		append/only dt-table out
 	]
 
@@ -210,8 +227,12 @@ context [
 	]
 	
 	#enum date-states! [
-		(date-states)
+		(extract date-states 3)
 	]
+	
+	fields-table: (fields-table)
+	
+	reset-table: (reset-table)
 	
 	date-transitions: (dt-table)
 	

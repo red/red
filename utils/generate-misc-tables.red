@@ -68,7 +68,69 @@ gen-hexa-table: function [][
 	probe out
 ]
 
+bin-classes: [
+		C_DT_DIGIT			;-- 0		0-9
+		C_DT_LETTER			;-- 1		abcdefghijlmnoprstuvy, ABCDEFGHIJLMNOPRSUVY
+		C_DT_SLASH			;-- 2		/
+		C_DT_DASH			;-- 3		-
+		C_DT_T				;-- 4		T
+		C_DT_W				;-- 5		W
+		C_DT_PLUS			;-- 6		+
+		C_DT_COLON			;-- 7		:
+		C_DT_DOT			;-- 8		.
+		C_DT_Z				;-- 9		Z
+		C_DT_ILLEGAL		;-- 10		all the rest
+		C_DT_EOF			;-- 11		EOF
+]
+
+gen-date-table: function [][
+	out: make binary! 256
+	digit: charset "0123456789"
+	letter: charset "abcdefghijlmnoprstuvyABCDEFGHIJLMNOPRSUVY"
+	
+	repeat i 256 [
+		c: to-char i - 1
+		append out to-char case [
+			find digit c	[0]
+			find letter c	[1]
+			c = #"/"    	[2]
+			c = #"-"    	[3]
+			c = #"T"    	[4]
+			c = #"W"    	[5]
+			c = #"+"    	[6]
+			c = #":"    	[7]
+			c = #"."	 	[8]
+			c = #"Z"	 	[9]
+			'else			[10]
+		]
+	]
+	print "--gen-date-classes-table-- (lexer/date-classes)"
+	probe out
+]
+
+gen-date-calc-table: function [][
+	out: make binary! 256
+	digit: charset "0123456789"
+	letter: charset "abcdefghijlmnoprstuvABCDEFGHIJLMNOPRSUV"
+	yY: charset "yY"
+	
+	repeat i 256 [
+		c: to-char i - 1
+		append out to-char case [
+			find digit c	[to-char c - #"0"]
+			find letter c	[to-char c]
+			c = #"y"    	[3]
+			c = #"Y"    	[13]
+			'else			[0]
+		]
+	]
+	print "--gen-date-cumul-table-- (lexer/date-cumul)"
+	probe out
+]
+
 gen-bitarray "BDELNPTbdelnpt"
 gen-bitarray {/-~^^{}"}
 gen-bin16-table
 gen-hexa-table
+gen-date-table
+gen-date-calc-table

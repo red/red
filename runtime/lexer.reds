@@ -157,6 +157,28 @@ lexer: context [
 		"none"		4		TYPE_NONE
 		;... to be eventually completed
 	]
+	
+	date-cumul: #{
+		0000000000000000000000000000000000000000000000000000000000000000
+		0000000000000000000000000000000000010203040506070809000000000000
+		004142434445464748494A004C4D4E4F5000525300555600000D000000000000
+		006162636465666768696A006C6D6E6F70007273747576000003000000000000
+		0000000000000000000000000000000000000000000000000000000000000000
+		0000000000000000000000000000000000000000000000000000000000000000
+		0000000000000000000000000000000000000000000000000000000000000000
+		0000000000000000000000000000000000000000000000000000000000000000
+	}
+	
+	date-classes: #{
+		0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A
+		0A0A0A0A0A0A0A0A0A0A0A060A03080200000000000000000000070A0A0A0A0A
+		0A010101010101010101010A01010101010A0101040101050A01090A0A0A0A0A
+		0A010101010101010101010A01010101010A01010101010A0A010A0A0A0A0A0A
+		0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A
+		0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A
+		0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A
+		0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A
+	}
 
 	lex-classes: [
 		(C_EOF or C_FLAG_EOF)							;-- 00		NUL
@@ -1049,11 +1071,62 @@ lexer: context [
 		cell/header: cell/header and type-mask or TYPE_TUPLE or (pos << 19)
 		state/in-pos: e									;-- reset the input position to delimiter byte
 	]
-	
-	scan-date: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
-	;	/local
+
+	scan-date: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+		/local
+			cell [cell!]
+			field [int-ptr!]
+			state [integer!]
+			class [integer!]
+			index [integer!]
+			cp	  [integer!]
+			c	  [integer!]
+			pos	  [integer!]
+			shift [integer!]
 	][
-		null
+probe "scan-date"
+probe as-c-string s
+probe as-c-string e
+		field: system/stack/allocate 12
+		c: 0
+		state: S_DT_START
+		loop as-integer e - s [
+probe ["--- " s/1 " ---"]
+			cp: 1 + as-integer s/1
+			class: as-integer date-classes/cp
+?? class
+			index: state * 12 + class + 1
+			state: as-integer date-transitions/index
+?? state
+?? cp
+			c: c * 10 + as-integer date-cumul/cp
+?? c
+			index: state + 1
+			pos: as-integer fields-table/index
+			field/pos: c
+?? index
+			shift: as-integer reset-table/index
+			c: c >>> shift
+			s: s + 1
+?? c
+		]
+		probe [
+			"trash: "	field/1
+			"^/year : " field/2
+			"^/month: " field/3
+			"^/day  : " field/4
+			"^/hour : " field/5
+			"^/min  : " field/6
+			"^/sec  : " field/7
+			"^/nano : " field/8
+			"^/week : " field/9
+			"^/wday : " field/10
+			"^/TZ-h : " field/11
+			"^/TZ-m : " field/12
+		]
+		system/stack/free 12
+		cell: alloc-slot lex
+		cell/header: TYPE_NONE
 	]
 	
 	scan-pair: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
