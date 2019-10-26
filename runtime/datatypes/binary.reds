@@ -274,6 +274,8 @@ binary: context [
 			end		[byte-ptr!]
 			type	[integer!]
 			same?	[logic!]
+			bin1'	[red-binary! value]
+			bin2'	[red-binary! value]
 	][
 		type: TYPE_OF(bin2)
 		if all [
@@ -291,10 +293,11 @@ binary: context [
 			any [op = COMP_EQUAL op = COMP_FIND op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
 		][return 0]
 
-		s1: GET_BUFFER(bin1)
-		s2: GET_BUFFER(bin2)
-		len1: rs-length? bin1
-		len2: rs-length? bin2
+		;@@ FIXME: temporary solution - to avoid rs-length? destroying the `head` of bin1-2
+		s1: _series/trim-head-into as red-series! bin1 as red-series! bin1'
+		s2: _series/trim-head-into as red-series! bin2 as red-series! bin2'
+		len1: rs-length? bin1'
+		len2: rs-length? bin2'
 		end: as byte-ptr! s2/tail
 
 		either match? [
@@ -315,8 +318,8 @@ binary: context [
 			]
 		]
 
-		p1: (as byte-ptr! s1/offset) + bin1/head
-		p2: (as byte-ptr! s2/offset) + bin2/head
+		p1: (as byte-ptr! s1/offset) + bin1'/head
+		p2: (as byte-ptr! s2/offset) + bin2'/head
 
 		while [all [p2 < end p1/1 = p2/1]][
 			p1: p1 + 1

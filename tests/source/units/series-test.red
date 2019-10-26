@@ -7,8 +7,9 @@ Red [
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
+;-- NOTE: MOVE tests are in %move-test.red
+
 #include  %../../../quick-test/quick-test.red
-; qt-verbose: yes
 
 ~~~start-file~~~ "series"
 
@@ -256,7 +257,41 @@ Red [
   --test-- "series-pick-26"
   	sp26-b: [4 7 9 [11] test /ref 'red]
   	--assert 'red = pick sp26-b 7
-  	
+
+    --test-- "series-pick-27"
+        cs: charset "abc"
+        --assert yes = pick cs #"a"
+        --assert no = pick cs #"d"
+
+    --test-- "series-pick-28"
+        cs: charset "abc"
+        --assert yes = pick cs "a"
+        --assert yes = pick cs "cab"
+        --assert no = pick cs "d"
+        --assert no = pick cs "Ca"
+        --assert no = pick cs "caq"
+
+    --test-- "series-pick-29"
+        im: make image! [2x2 #{001122 334455 667788 99AABB}]
+        --assert 0.17.34.0     = pick im 1x1
+        --assert 51.68.85.0    = pick im 2x1
+        --assert 102.119.136.0 = pick im 1x2
+        --assert 153.170.187.0 = pick im 2x2
+
+    --test-- "series-pick-30"
+        --assert 1 = pick [1 2] yes
+        --assert 2 = pick [1 2] no
+
+    --test-- "series-pick-31"                           ;-- issue #3369
+        a: "12345678"
+        b: skip a 6
+        remove/part a 4
+        --assert none? pick b 1
+        --assert none? pick b 2
+        --assert none? pick b -1
+        --assert none? pick b -2
+        ;@@ FIXME: what will `pick b -3` be?
+
 ===end-group===
 
 ===start-group=== "series-equal"
@@ -336,6 +371,7 @@ Red [
         --assert b == #{}
         --assert #{} = b
         --assert #{} == b
+        --assert same? b b
         --assert (index? b) <> (index? tail a)
         --assert not same? b tail a
         --assert not same? tail a b
@@ -433,7 +469,58 @@ Red [
 	--test-- "series-select-22"
 		ss22-b: [1x2 0 3x4 1]
 		--assert 0 = select ss22-b 1x2
-		
+
+    --test-- "series-select-23"                         ;-- issue #3369
+        a: "12345678"
+        b: skip a 2
+        c: skip a 6
+        d: tail a
+        remove/part a 4
+        --assert none?  select b #"6"
+        --assert #"8" = select b #"7"
+        --assert none?  select b #"8"
+        --assert none?  select c #"6"
+        --assert none?  select c #"7"
+        --assert none?  select c #"8"
+        ; --assert #"8" = select/part/reverse c #"7" b    ;@@ FIXME: #4106
+        --assert none?  select/part/reverse c #"8" b
+        --assert none?  select/part c #"7" d
+        --assert none?  select/part c #"8" d
+
+    --test-- "series-select-24"                         ;-- issue #3369
+        a: [1 2 3 4 5 6 7 8]
+        b: skip a 2
+        c: skip a 6
+        d: tail a
+        remove/part a 4
+        --assert none? select b 6
+        --assert 8   = select b 7
+        --assert none? select b 8
+        --assert none? select c 6
+        --assert none? select c 7
+        --assert none? select c 8
+        ; --assert 8   = select/part/reverse c 7 b        ;@@ FIXME: #4106
+        --assert none? select/part/reverse c 8 b
+        --assert none? select/part c 7 d
+        --assert none? select/part c 8 d
+
+    --test-- "series-select-25"                         ;-- issue #3369
+        a: make hash! [1 2 3 4 5 6 7 8]
+        b: skip a 2
+        c: skip a 6
+        d: tail a
+        remove/part a 4
+        --assert none? select b 6
+        --assert 8   = select b 7
+        --assert none? select b 8
+        --assert none? select c 6
+        --assert none? select c 7
+        --assert none? select c 8
+        ; --assert 8   = select/part/reverse c 7 b        ;@@ FIXME: #4106
+        --assert none? select/part/reverse c 8 b
+        --assert none? select/part c 7 d
+        --assert none? select/part c 8 d
+
 ===end-group===
 
 ===start-group=== "append"
@@ -1446,15 +1533,15 @@ Red [
 
 ===start-group=== "max/min"			;-- have some overlap with lesser tests
 
-	--test-- "max1"
+	--test-- "max-str"
 		--assert "abe"  = max "abc" "abe"
 		--assert "abcd" = max "abc" "abcd"
 
-	--test-- "min1"
+	--test-- "min-str"
 		--assert ""		= min "" 	"abcdef"
 		--assert "abc"	= min "abc" "abcd"
 
-	--test-- "max2"					;@@ need to add tests for word!, path!
+	--test-- "max-blk"					;@@ need to add tests for word!, path!
 		blk1: [1 1.0 #"a" "ab" %ab/cd [] [2] (1 2)]
 		blk2: [1 1.0 #"a" "ab" %ab/cd [] [2] (1 3)]
 		--assert blk2 = max blk1 blk2
@@ -1468,6 +1555,25 @@ Red [
 	--test-- "min-bin"
 		--assert #{0102} = min #{0102} #{0203}
 		--assert #{010203} = min #{01020304} #{010203}
+
+    --test-- "min-max-3369"                             ;-- issue #3369
+        foreach a reduce [
+            "12345678"
+            [1 2 3 4 5 6 7 8]
+            make binary! [1 2 3 4 5 6 7 8]
+            make hash!   [1 2 3 4 5 6 7 8]
+            make vector! [1 2 3 4 5 6 7 8]
+        ][
+            b: skip a 2
+            c: skip a 6
+            remove/part a 4
+            --assert same? b max a b
+            --assert same? a max a c
+            --assert same? b max b c
+            --assert same? a min a b
+            --assert same? c min a c
+            --assert same? c min b c
+        ]
 
 ===end-group===
 
@@ -3239,6 +3345,21 @@ Red [
 		res: random/only #{AA}
 		--assert integer? res
 		--assert 170 = res
+
+    --test-- "ser-random-2"                             ;-- issue #3369
+        a: "12345678"
+        b: skip a 2
+        c: skip a 6
+        remove/part a 4
+        --assert not none? find a random/only a
+        --assert not none? find a random/only b
+        --assert not none? find b random/only b
+        --assert none?  random/only c
+        --assert empty? random c
+        --assert empty? c
+        --assert "5678" = a
+        --assert 2 = length? random b
+        --assert not none? find/match a "56"
 
 ===end-group===
 

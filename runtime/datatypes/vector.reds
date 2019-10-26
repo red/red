@@ -883,6 +883,8 @@ vector: context [
 			f1		[float!]
 			f2		[float!]
 			same?	[logic!]
+			vec1'	[red-vector! value]
+			vec2'	[red-vector! value]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "vector/compare"]]
 
@@ -899,12 +901,12 @@ vector: context [
 			any [op = COMP_EQUAL op = COMP_FIND op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
 		][return 0]
 		
-		s1: GET_BUFFER(vec1)
-		s2: GET_BUFFER(vec2)
+		s1: _series/trim-head-into as red-series! vec1 as red-series! vec1'
+		s2: _series/trim-head-into as red-series! vec2 as red-series! vec2'
 		unit1: GET_UNIT(s1)
 		unit2: GET_UNIT(s2)
-		len1: rs-length? vec1
-		len2: rs-length? vec2
+		len1: rs-length? vec1'
+		len2: rs-length? vec2'
 
 		end: as byte-ptr! s2/tail
 
@@ -920,9 +922,9 @@ vector: context [
 			if zero? len1 [return 0]					;-- shortcut exit for empty vector!
 		]
 
-		type: vec1/type
-		p1: (as byte-ptr! s1/offset) + (vec1/head << (log-b unit1))
-		p2: (as byte-ptr! s2/offset) + (vec2/head << (log-b unit2))
+		type: vec1'/type
+		p1: (as byte-ptr! s1/offset) + (vec1'/head << (log-b unit1))
+		p2: (as byte-ptr! s2/offset) + (vec2'/head << (log-b unit2))
 
 		switch type [
 			TYPE_CHAR
