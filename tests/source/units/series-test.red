@@ -272,17 +272,10 @@ Red [
         --assert no = pick cs "caq"
 
     --test-- "series-pick-29"
-        im: make image! [2x2 #{001122 334455 667788 99AABB}]
-        --assert 0.17.34.0     = pick im 1x1
-        --assert 51.68.85.0    = pick im 2x1
-        --assert 102.119.136.0 = pick im 1x2
-        --assert 153.170.187.0 = pick im 2x2
-
-    --test-- "series-pick-30"
         --assert 1 = pick [1 2] yes
         --assert 2 = pick [1 2] no
 
-    --test-- "series-pick-31"                           ;-- issue #3369
+    --test-- "series-pick-30"                           ;-- issue #3369
         a: "12345678"
         b: skip a 6
         remove/part a 4
