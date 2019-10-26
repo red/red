@@ -8,34 +8,26 @@ debug: :print
 ;debug: :comment
 
 total: 0.0
-count: 0
-
-new-event: func [event] [
-    debug ["=== Subport event:" event/type]
-    switch event/type [
-        read  [
-	        probe "read done"
-	        probe to-string event/port/data
-        ]
-        wrote [copy event/port]
-        close [close event/port return true]
-    ]
-    false
-]
-
-new-client: func [port /local data] [
-	debug ["=== New client ==="]
-    port/awake: :new-event
-    insert port "Hello UDP from Red server"
-]
+count: 49
+msg: to-binary "Hello from Server "
 
 server: open udp://:58180
 
-server/awake: func [event] [
-    if event/type = 'accept [
-	    probe to-string event/port/data
-	    new-client event/port
-	]
+server/awake: func [event /local port] [
+    debug ["=== Event:" event/type]
+    port: event/port
+    switch event/type [
+        read  [
+	        probe "read done"
+	        probe to-string port/data
+	        insert port rejoin [msg count]
+	        count: count + 1
+        ]
+        wrote [
+	        if count < 58 [copy port]
+	    ]
+        close [close port return true]
+    ]
     false
 ]
 

@@ -215,6 +215,15 @@ socket: context [
 		]
 	]
 
+	set-option: func [
+		fd			[integer!]
+		name		[integer!]
+		value		[integer!]
+	][
+		probe "set-option"
+		probe setsockopt fd SOL_SOCKET name as c-string! :value size? integer!
+	]
+
 	close: func [
 		sock	[integer!]
 	][

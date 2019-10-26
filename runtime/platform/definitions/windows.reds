@@ -97,6 +97,7 @@ Red/System [
 #define WAIT_OBJECT_0					0
 
 #define FIONBIO							8004667Eh
+#define SOL_SOCKET						FFFFh
 
 #define INVALID_HANDLE					[as int-ptr! -1]
 

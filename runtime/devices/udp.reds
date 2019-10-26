@@ -43,9 +43,8 @@ probe "UDP event-handler"
 			IO_EVT_READ	[
 				bin: as red-binary! (object/get-values p) + port/field-data
 				s: GET_BUFFER(bin)
-				probe ["read data: " data/transferred]
-probe as c-string! s/offset
-				s/tail: as cell! (as byte-ptr! s/tail) + data/transferred
+probe ["read data: " data/transferred]
+				s/tail: as cell! (as byte-ptr! s/offset) + data/transferred
 				io/unpin-memory bin/node
 				#if OS = 'Windows [
 					either data/accept-sock = PENDING_IO_FLAG [
@@ -65,43 +64,10 @@ probe as c-string! s/offset
 					]
 				]
 			]
-			IO_EVT_ACCEPT	[ 
-				msg: create-red-port p udp
-				ser1: as red-series! (object/get-values p) + port/field-data
-				ser2: as red-series! (object/get-values msg) + port/field-data
-				s: GET_BUFFER(ser1)
-				probe ["read data in accept: " data/transferred]
-				s/tail: as cell! (as byte-ptr! s/tail) + data/transferred
-				io/unpin-memory ser1/node
-				_series/copy ser1 ser2 null no null
-			]
 			default [data/event: IO_EVT_NONE]
 		]
 
 		io/call-awake p msg type
-	]
-
-	create-red-port: func [
-		proto		[red-object!]
-		data		[udp-data!]
-		return:		[red-object!]
-		/local
-			fd		[integer!]
-	][
-		proto: port/make none-value object/get-values proto TYPE_NONE
-
-		;; @@ add it to a block, so GC can mark it. Improve it later!!!
-		block/rs-append ports-block as red-value! proto
-
-		fd: socket/create AF_INET SOCK_DGRAM IPPROTO_UDP
-		iocp/bind g-iocp as int-ptr! fd
-		probe "create red port"
-		dump4 :data/addr
-		probe data/addr-sz
-		probe WSAConnect fd as sockaddr_in! :data/addr data/addr-sz null null null null
-		data: as udp-data! io/create-socket-data proto fd as int-ptr! :event-handler size? udp-data!
-		data/iocp/type: IOCP_TYPE_UDP
-		proto
 	]
 
 	create-udp-data: func [
@@ -132,6 +98,16 @@ probe as c-string! s/offset
 		data
 	]
 
+	copy-udp-data: func [
+		data	[udp-data!]
+		return:	[udp-data!]
+		/local
+			d	[byte-ptr!]
+	][
+		d: allocate size? udp-data!
+		as udp-data! copy-memory d as byte-ptr! data size? udp-data!
+	]
+
 	get-udp-data: func [
 		red-port	[red-object!]
 		return:		[udp-data!]
@@ -151,11 +127,8 @@ probe as c-string! s/offset
 			either data/event = IO_EVT_NONE [		;-- we can reuse this one
 				as udp-data! data
 			][										;-- needs to create a new one
-				new: as udp-data! alloc0 size? udp-data!
-				new/iocp/event-handler: as iocp-event-handler! :event-handler
-				new/iocp/device: data/device
+				new: copy-udp-data as udp-data! data
 				new/iocp/accept-sock: PENDING_IO_FLAG ;-- use it as a flag to indicate pending data
-				copy-cell as cell! red-port as cell! :new/port
 				new
 			]
 		][
@@ -171,15 +144,18 @@ probe as c-string! s/offset
 			fd		[integer!]
 			n		[integer!]
 			addr	[c-string!]
+			data	[iocp-data!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "udp client"]]
 
 		fd: socket/create AF_INET SOCK_DGRAM IPPROTO_UDP
+		
 		iocp/bind g-iocp as int-ptr! fd
 		n: -1
 		addr: unicode/to-utf8 host :n
 		socket/uconnect fd addr num/value AF_INET
-		create-udp-data port fd addr num/value
+		data: as iocp-data! create-udp-data port fd addr num/value
+		data/state: IO_STATE_CLIENT
 	]
 
 	udp-server: func [
@@ -188,40 +164,14 @@ probe as c-string! s/offset
 		/local
 			fd	[integer!]
 			acp [integer!]
-			d	[udp-data!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "udp server"]]
 
 		fd: socket/create AF_INET SOCK_DGRAM IPPROTO_UDP
-		d: create-udp-data port fd null num/value
-		probe ["size.... " d/addr-sz]
-		probe socket/bind fd num/value AF_INET
+		create-udp-data port fd null num/value
+		socket/bind fd num/value AF_INET
 		iocp/bind g-iocp as int-ptr! fd
-		copy-from port d
-		d/iocp/event: IO_EVT_ACCEPT
-	]
-
-	copy-from: func [
-		red-port	[red-object!]
-		data		[udp-data!]
-		/local
-			buf		[red-binary!]
-			s		[series!]
-	][
-		buf: as red-binary! (object/get-values red-port) + port/field-data
-		if TYPE_OF(buf) <> TYPE_BINARY [
-			binary/make-at as cell! buf SOCK_READBUF_SZ
-		]
-		buf/head: 0
-		io/pin-memory buf/node
-		s: GET_BUFFER(buf)
-		socket/urecv
-			as-integer data/iocp/device
-			as byte-ptr! s/offset
-			s/size
-			as sockaddr_in! :data/addr
-			:data/addr-sz
-			as sockdata! data
+		copy port null null no null
 	]
 
 	;-- actions
@@ -297,11 +247,21 @@ probe as c-string! s/offset
 		data: get-udp-data port
 		data/send-buf: bin/node
 
-		socket/send
-			as-integer data/iocp/device
-			binary/rs-head bin
-			binary/rs-length? bin
-			as iocp-data! data
+		either data/iocp/state <> IO_STATE_CLIENT [
+			socket/usend
+				as-integer data/iocp/device
+				as sockaddr_in! :data/addr
+				data/addr-sz
+				binary/rs-head bin
+				binary/rs-length? bin
+				as iocp-data! data
+		][
+			socket/send
+				as-integer data/iocp/device
+				binary/rs-head bin
+				binary/rs-length? bin
+				as iocp-data! data
+		]
 		as red-value! port
 	]
 
@@ -314,18 +274,31 @@ probe as c-string! s/offset
 		return:		[red-value!]
 		/local
 			data	[iocp-data!]
+			udp		[udp-data!]
 			buf		[red-binary!]
 			s		[series!]
+			res [integer!]
 	][
 		buf: as red-binary! (object/get-values red-port) + port/field-data
 		if TYPE_OF(buf) <> TYPE_BINARY [
-			binary/make-at as cell! buf SOCK_READBUF_SZ
+			binary/make-at as cell! buf 1024
 		]
 		buf/head: 0
 		io/pin-memory buf/node
 		s: GET_BUFFER(buf)
-		data: as iocp-data! get-udp-data red-port
-		socket/recv as-integer data/device as byte-ptr! s/offset s/size data
+		udp: get-udp-data red-port
+		data: as iocp-data! udp
+		either data/state <> IO_STATE_CLIENT [
+			socket/urecv
+				as-integer data/device
+				as byte-ptr! s/offset
+				s/size
+				as sockaddr_in! :udp/addr
+				:udp/addr-sz
+				as sockdata! data
+		][
+			socket/recv as-integer data/device as byte-ptr! s/offset s/size data
+		]
 		as red-value! red-port
 	]
 
