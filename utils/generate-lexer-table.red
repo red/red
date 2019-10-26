@@ -89,8 +89,65 @@ context [
 		T_EMAIL							;-- 74
 		T_PATH							;-- 75
 	]
+	
+	date-states: [
+		S_DT_START						;-- 0
+		S_DT_D							;--	1
+		S_DT_DD							;--	2
+		S_DT_YYY						;--	3
+		F_DT_YEARL						;--	4
+		F_DT_YEARL2						;--	5
+		F_DT_DAYL						;--	6
+		S_DT_YM							;--	7
+		S_DT_YMM						;--	8
+		F_DT_YMONTH						;--	9
+		F_DT_DDD						;--	10
+		S_DT_YV							;--	11
+		S_DT_YW							;--	12
+		S_DT_YWW						;--	13
+		F_DT_WEEK						;--	14
+		S_DT_WD							;--	15
+		F_DT_YWWD						;--	16
+		S_DT_YMON						;--	17
+		F_DT_YMD						;--	18
+		F_DT_YMDD						;--	19
+		S_DT_DM							;--	20
+		S_DT_DMM						;--	21
+		F_DT_DMONTH						;--	22
+		S_DT_DMON						;--	23
+		F_DT_DMY						;--	24
+		F_DT_DMYY						;--	25
+		F_DT_DMYYY						;--	26
+		F_DT_DMYYYY						;--	27
+		S_TM_START						;--	28
+		F_TM_H							;--	29
+		F_TM_HH							;--	30
+		S_TM_HM							;--	31
+		F_TM_M							;--	32
+		F_TM_MM							;--	33
+		S_TM_HMS						;--	34
+		F_TM_S							;--	35
+		F_TM_SS							;--	36
+		F_TM_N1							;--	37
+		F_TM_N							;--	38
+		S_TZ_START						;--	39
+		S_TZ_H							;--	40
+		F_TZ_HH							;--	41
+		F_TZ_HM							;--	42
+		S_TZ_M							;--	43
+		--FINAL-STATES--				;--	44
+		T_DT_ERROR						;-- 45
+		T_DT_YMDAY						;-- 46
+		T_DT_DMYEAR						;-- 47
+		T_TM_NZ							;--	48
+		T_TZ_H							;--	49
+		T_TZ_HH							;-- 50
+		T_TZ_M							;-- 51
+		T_TZ_MM							;-- 52
+	]
 
 	CSV-table: %../docs/lexer/lexer-FSM.csv
+	date-table: %../docs/lexer/lexer-FSM.csv
 	;-- Read states from CSV file
 	csv: read CSV-table
 
@@ -102,9 +159,9 @@ context [
 	;-- Decode CSV
 	matrix: load-csv/with read CSV-table first sep
 
+	;-- Generate the lexer table content
 	table: make binary! 2000
-
-	;-- Generate the table content
+	
 	foreach line next matrix [
 		out: make block! 50	
 		foreach s next line [	
@@ -116,6 +173,33 @@ context [
 		]
 		append/only table out
 	]
+	
+	date-table: %../docs/lexer/date-FSM.csv
+	;-- Read states from CSV file
+	csv: read date-table
+
+	;-- Determine CSV separator
+	sep: [#";" 0 #"," 0]
+	parse csv [some [#";" (sep/2: sep/2 + 1) | #"," (sep/4: sep/4 + 1) | skip]]
+	sort/skip/all/compare sep 2 func [a b][a/2 < b/2]
+
+	;-- Decode CSV
+	matrix: load-csv/with read date-table first sep
+
+	;-- Generate the date table content
+	dt-table: make binary! 2000
+
+	foreach line next matrix [
+		out: make block! 50	
+		foreach s next line [
+			either pos: find date-states to-word s [
+				append out (index? pos) - 1
+			][
+				do make error! form reduce ["Error: state" s "not found"]
+			]
+		]
+		append/only dt-table out
+	]
 
 	template: compose/deep [Red/System [
 		Note: "Auto-generated lexical scanner transitions table"
@@ -124,6 +208,12 @@ context [
 	#enum lex-states! [
 		(states)
 	]
+	
+	#enum date-states! [
+		(date-states)
+	]
+	
+	date-transitions: (dt-table)
 	
 	transitions: (table)
 	]
