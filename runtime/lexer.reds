@@ -1102,7 +1102,7 @@ lexer: context [
 			month [integer!]
 	][
 probe "scan-date"
-		field: system/stack/allocate 12
+		field: system/stack/allocate/zero 12
 		c: 0
 		state: S_DT_START
 		loop as-integer e - s [
@@ -1153,7 +1153,7 @@ probe "scan-date"
 			]
 			field/3: month
 		]
-;comment {
+comment {
 		probe [
 			"-----------------"
 			"^/trash: "	field/1
@@ -1169,10 +1169,16 @@ probe "scan-date"
 			"^/TZ-h : " field/11
 			"^/TZ-m : " field/12
 		]
-;}
-		system/stack/free 12
-		cell: alloc-slot lex
-		cell/header: TYPE_NONE
+}		
+		date/set-all
+			 as red-date! alloc-slot lex
+			 field/2									;-- year 
+			 field/3									;-- month
+			 field/4									;-- day  
+			 field/5									;-- hour 
+			 field/6									;-- min  
+			 field/7									;-- sec  
+			 field/8									;-- nano
 	]
 	
 	scan-pair: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
