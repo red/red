@@ -111,16 +111,17 @@ gen-date-table: function [][
 gen-date-calc-table: function [][
 	out: make binary! 256
 	digit: charset "0123456789"
-	letter: charset "abcdefghijlmnoprstuvABCDEFGHIJLMNOPRSUV"
+	lower: charset "abcdefghijlmnoprsuv"				;-- forces t and T to be zero (separator)
+	upper: charset "ABCDEFGHIJLMNOPRSUV"
 	yY: charset "yY"
 	
 	repeat i 256 [
 		c: to-char i - 1
 		append out to-char case [
 			find digit c	[to-char c - #"0"]
-			find letter c	[to-char c]
-			c = #"y"    	[3]
-			c = #"Y"    	[13]
+			find lower c	[to-char c - 32]
+			find upper c	[to-char c]
+			find yY c    	[3]
 			'else			[0]
 		]
 	]

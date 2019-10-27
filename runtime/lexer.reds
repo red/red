@@ -177,8 +177,8 @@ lexer: context [
 	date-cumul: #{
 		0000000000000000000000000000000000000000000000000000000000000000
 		0000000000000000000000000000000000010203040506070809000000000000
-		004142434445464748494A004C4D4E4F5000525300555600000D000000000000
-		006162636465666768696A006C6D6E6F70007273747576000003000000000000
+		004142434445464748494A004C4D4E4F50005253005556000003000000000000
+		004142434445464748494A004C4D4E4F50005253005556000003000000000000
 		0000000000000000000000000000000000000000000000000000000000000000
 		0000000000000000000000000000000000000000000000000000000000000000
 		0000000000000000000000000000000000000000000000000000000000000000
@@ -1099,42 +1099,61 @@ lexer: context [
 			c	  [integer!]
 			pos	  [integer!]
 			shift [integer!]
+			month [integer!]
 	][
 probe "scan-date"
-probe as-c-string s
-probe as-c-string e
 		field: system/stack/allocate 12
 		c: 0
 		state: S_DT_START
 		loop as-integer e - s [
-probe ["--- " s/1 " ---"]
+;probe ["--- " s/1 " ---"]
 			cp: 1 + as-integer s/1
 			class: as-integer date-classes/cp
-?? class
-			index: state * 12 + class + 1
+;?? class
+			index: state * (size? date-char-classes!) + class + 1
 			state: as-integer date-transitions/index
 			
 			index: state + 1
 			pos: as-integer fields-table/index
 			field/pos: c
-?? state
-?? cp
+;?? state
+;?? cp
 			c: c * 10 + as-integer date-cumul/cp
-?? c
+;?? c
 			shift: as-integer reset-table/index
 			c: c >>> shift
 			s: s + 1
-?? c
+;?? c
 		]
 		
-		index: state * 12 + C_DT_EOF + 1
+		index: state * (size? date-char-classes!) + C_DT_EOF + 1
 		state: as-integer date-transitions/index
-?? state
+;?? state
 		index: state + 1
 		pos: as-integer fields-table/index
-?? pos
+;?? pos
 		field/pos: c
 		
+		month: field/3
+		if any [month > 12 month < 1][					;-- month as a word	
+			month: switch month [						;-- convert hashed word to correct value
+				8128 81372323	[1]
+				7756 776512323	[2]
+				8432 843942		[3]
+				7382 739006		[4]
+				8353			[5]						;-- "May" has no longer form
+				8328 83349		[6]
+				8326 83263		[7]
+				7421 7430330	[8]
+				9070 480839780	[9]
+				8570 85786372	[10]
+				8676 868374372	[11]
+				7557 756474372	[12]
+				default 		[throw LEX_ERROR 0]
+			]
+			field/3: month
+		]
+;comment {
 		probe [
 			"-----------------"
 			"^/trash: "	field/1
@@ -1150,6 +1169,7 @@ probe ["--- " s/1 " ---"]
 			"^/TZ-h : " field/11
 			"^/TZ-m : " field/12
 		]
+;}
 		system/stack/free 12
 		cell: alloc-slot lex
 		cell/header: TYPE_NONE
