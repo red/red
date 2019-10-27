@@ -423,7 +423,7 @@ system-dialect: make-profilable context [
 			none
 		]
 		
-		system-action?: func [path [path!] /local expr port-type op ret?][
+		system-action?: func [path [path!] /local expr port-type op ret? z?][
 			if path/1 = 'system [
 				switch/default path/2 [
 					stack [
@@ -434,10 +434,10 @@ system-dialect: make-profilable context [
 								if any [none? last-type last-type/1 <> 'integer!][
 									throw-error "system/stack/allocate expects an integer! argument"
 								]
-								emitter/target/emit-alloc-stack
+								emitter/target/emit-alloc-stack z?: path/4 = 'zero
 								emitter/target/emit-get-stack
 								last-type: [pointer! [integer!]]
-								true
+								any [z? none? path/4]
 							]
 							free [
 								pc: next pc
