@@ -74,6 +74,21 @@ lexer: context [
 		C_EOF											;-- 32
 	]
 	
+	#enum date-char-classes! [
+		C_DT_DIGIT										;-- 0
+		C_DT_LETTER										;-- 1
+		C_DT_SLASH										;-- 2
+		C_DT_DASH										;-- 3
+		C_DT_T											;-- 4
+		C_DT_W											;-- 5
+		C_DT_PLUS										;-- 6
+		C_DT_COLON										;-- 7
+		C_DT_DOT										;-- 8
+		C_DT_Z											;-- 9
+		C_DT_ILLEGAL									;-- 10
+		C_DT_EOF										;-- 11
+	]
+	
 	#enum bin16-char-classes! [
 		C_BIN_SKIP										;-- 0
 		C_BIN_BLANK										;-- 1
@@ -1097,21 +1112,31 @@ probe ["--- " s/1 " ---"]
 ?? class
 			index: state * 12 + class + 1
 			state: as-integer date-transitions/index
+			
+			index: state + 1
+			pos: as-integer fields-table/index
+			field/pos: c
 ?? state
 ?? cp
 			c: c * 10 + as-integer date-cumul/cp
 ?? c
-			index: state + 1
-			pos: as-integer fields-table/index
-			field/pos: c
-?? index
 			shift: as-integer reset-table/index
 			c: c >>> shift
 			s: s + 1
 ?? c
 		]
+		
+		index: state * 12 + C_DT_EOF + 1
+		state: as-integer date-transitions/index
+?? state
+		index: state + 1
+		pos: as-integer fields-table/index
+?? pos
+		field/pos: c
+		
 		probe [
-			"trash: "	field/1
+			"-----------------"
+			"^/trash: "	field/1
 			"^/year : " field/2
 			"^/month: " field/3
 			"^/day  : " field/4

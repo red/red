@@ -337,9 +337,7 @@ F_DT_DDD
 S_DT_YV
 S_DT_YW
 S_DT_YWW
-F_DT_WEEK
 S_DT_WD
-F_DT_YWWD
 S_DT_YMON
 F_DT_YMD
 F_DT_YMDD
@@ -368,8 +366,11 @@ F_TZ_HH
 F_TZ_HM
 S_TZ_M
 --FINAL-STATES--
+T_DT_ERROR
 T_DT_YMDAY
 T_DT_DMYEAR
+T_DT_WEEK
+T_DT_YWWD
 T_TM_NZ
 T_TZ_H
 T_TZ_HH
@@ -410,8 +411,8 @@ F_DT_YEARL->digit->S_DT_YM->digit->S_DT_YMM->sep->F_DT_YMONTH
 
 F_DT_YEARL2->digit->S_DT_YM
  \->letter->S_DT_YMON
-  \->"W"->S_DT_YV->digit->S_DT_YW->digit->S_DT_YWW->eof->F_DT_WEEK
-                                           \->digit->S_DT_WD->eof->F_DT_YWWD
+  \->"W"->S_DT_YV->digit->S_DT_YW->digit->S_DT_YWW->eof->T_DT_WEEK
+                                           \->digit->S_DT_WD->eof->T_DT_YWWD
                                             \         \->"T"->S_TM_START
                                              \->"T"->S_TM_START
 
