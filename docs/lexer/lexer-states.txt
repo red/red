@@ -327,6 +327,7 @@ S_DT_START
 S_DT_D
 S_DT_DD
 S_DT_YYY
+S_DT_YYYY
 F_DT_YEARL
 F_DT_YEAR2
 F_DT_DAYL
@@ -397,7 +398,7 @@ letter: abcdefghijlmnoprstuvy, ABCDEFGHIJLMNOPRSUVY
 sign: + | -
 eof: EOF
 
-S_DT_START->digit->S_DT_D->digit->S_DT_DD->digit->S_DT_YYY->digit->F_DT_YEARL->"/"->F_DT_YEARL
+S_DT_START->digit->S_DT_D->digit->S_DT_DD->digit->S_DT_YYY->digit->S_DT_YYYY->"/"->F_DT_YEARL
                     \              \               \                \->"-"->F_DT_YEARL2   
                      \              \               \->sep->F_DT_YEARL
                       \              \->sep->F_DT_DAYL
