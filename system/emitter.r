@@ -684,19 +684,12 @@ emitter: make-profilable context [
 	]
 	
 	get-size: func [type [block! word!] value][
-		either word? type [
-			datatypes/:type
-		][
-			either 'array! = first head type [
-				second head type
-			][
-				switch/default type/1 [
-					c-string! [reduce ['+ 1 reduce ['length? value]]]
-					struct!   [member-offset? type/2 none]
-				][
-					select datatypes type/1
-				]
-			]
+		case [
+			word? type 					[datatypes/:type]
+			'array! = first head type	[second head type]
+			type/1 = 'c-string!			[reduce ['+ 1 reduce ['length? value]]]
+			type/1 = 'struct!			[member-offset? type/2 none]
+			'else						[select datatypes type/1]
 		]
 	]
 	
