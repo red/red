@@ -904,6 +904,11 @@ system-dialect: make-profilable context [
 			]
 		]
 		
+		enum-name?: func [name [word!]][
+			if ns-path [name: ns-prefix name]
+			to-logic find/skip enumerations name 3		;-- SELECT/SKIP on hash! unreliable!
+		]	
+		
 		enum-type?: func [name [word!] /local type][
 			all [
 				type: find/skip enumerations name 3		;-- SELECT/SKIP on hash! unreliable!
@@ -923,6 +928,13 @@ system-dialect: make-profilable context [
 				pos: find/skip next enumerations name 3		;-- SELECT/SKIP on hash! unreliable!
 				pos/2
 			]
+		]
+		
+		count-enum: func [name [word!] /local c][
+			if ns-path [name: ns-prefix name]
+			c: 0
+			foreach [id n v] enumerations [if name = id [c: c + 1]]
+			c
 		]
 		
 		set-enumerator: func [
@@ -2266,6 +2278,10 @@ system-dialect: make-profilable context [
 			pc: next pc
 			if path? expr: pc/1 [expr: to word! form expr]
 			
+			if all [word? expr enum-name? expr][
+				pc: next pc
+				return count-enum expr
+			]
 			either all [
 				word? expr
 				type: any [
