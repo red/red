@@ -104,7 +104,8 @@ C_SEMICOL   : ;
 C_AT        : @
 C_DOT       : .
 C_MONEY     : $
-C_SIGN      : +, -
+C_PLUS      : +
+C_MINUS     : -
 C_CARET     : ^
 C_BIN       : 0x01-0x08, 0x11, 0x12, 0x14-0x1F
 C_WORD      : all the rest

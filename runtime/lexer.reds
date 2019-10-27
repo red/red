@@ -66,12 +66,13 @@ lexer: context [
 		C_AT											;-- 24
 		C_DOT											;-- 25
 		C_MONEY											;-- 26
-		C_SIGN											;-- 27
-		C_CARET											;-- 28
-		C_BIN											;-- 29
-		C_WORD											;-- 30
-		C_ILLEGAL										;-- 31
-		C_EOF											;-- 32
+		C_PLUS											;-- 27
+		C_MINUS											;-- 28
+		C_CARET											;-- 29
+		C_BIN											;-- 30
+		C_WORD											;-- 31
+		C_ILLEGAL										;-- 32
+		C_EOF											;-- 33
 	]
 	
 	#enum date-char-classes! [
@@ -217,9 +218,9 @@ lexer: context [
 		C_PAREN_OP										;-- 28		(
 		C_PAREN_CL										;-- 29		)
 		C_WORD											;-- 2A		*
-		(C_SIGN	or C_FLAG_SIGN)							;-- 2B		+
+		(C_PLUS	or C_FLAG_SIGN)							;-- 2B		+
 		(C_COMMA or C_FLAG_COMMA)						;-- 2C		,
-		(C_SIGN	or C_FLAG_SIGN)							;-- 2D		-
+		(C_MINUS or C_FLAG_SIGN)						;-- 2D		-
 		(C_DOT or C_FLAG_DOT)							;-- 2E		.
 		C_SLASH											;-- 2F		/
 		C_ZERO											;-- 30		0
@@ -1326,7 +1327,7 @@ probe ["--- " s/1 " ---"]
 				class: lex-classes/cp
 				flags: class and FFFFFF00h or flags
 				
-				index: state * 33 + (class and FFh) + 1
+				index: state * (size? character-classes!) + (class and FFh) + 1
 				state: as-integer transitions/index
 				
 				index: state + 1
@@ -1339,7 +1340,7 @@ probe ["--- " s/1 " ---"]
 				p: p + 1
 			]
 			unless term? [
-				index: state * 33 + C_EOF + 1
+				index: state * (size? character-classes!) + C_EOF + 1
 				state: as-integer transitions/index
 			]
 			lex/in-pos: p
