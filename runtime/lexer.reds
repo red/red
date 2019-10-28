@@ -1346,9 +1346,8 @@ comment {
 			
 			loop as-integer lex/in-end - p [
 				cp: as-integer p/value
-				class: lex-classes/cp
-				flags: class and FFFFFF00h or flags
-				class: class and FFh
+				flags: lex-classes/cp and FFFFFF00h or flags
+				class: lex-classes/cp and FFh
 				
 				index: state * (size? character-classes!) + class
 				state: as-integer transitions/index
