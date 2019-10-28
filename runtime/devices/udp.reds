@@ -13,15 +13,6 @@ Red/System [
 udp-device: context [
 	verbose: 1
 
-	udp-data!: alias struct! [
-		iocp		[iocp-data! value]
-		port		[red-object! value]		;-- red port! cell
-		flags		[integer!]
-		send-buf	[node!]					;-- send buffer
-		addr		[sockaddr_in6! value]	;-- IPv4 or IPv6 address
-		addr-sz		[integer!]
-	]
-
 	event-handler: func [
 		data		[iocp-data!]
 		/local
@@ -153,9 +144,11 @@ probe ["read data: " data/transferred]
 		iocp/bind g-iocp as int-ptr! fd
 		n: -1
 		addr: unicode/to-utf8 host :n
-		socket/uconnect fd addr num/value AF_INET
 		data: as iocp-data! create-udp-data port fd addr num/value
-		data/state: IO_STATE_CLIENT
+		#if OS = 'Windows [
+			data/state: IO_STATE_CLIENT
+			socket/uconnect fd addr num/value AF_INET
+		]
 	]
 
 	udp-server: func [
@@ -247,14 +240,15 @@ probe ["read data: " data/transferred]
 		data: get-udp-data port
 		data/send-buf: bin/node
 
+	#either OS = 'Windows [
 		either data/iocp/state <> IO_STATE_CLIENT [
 			socket/usend
 				as-integer data/iocp/device
-				as sockaddr_in! :data/addr
+				as sockaddr_in6! :data/addr
 				data/addr-sz
 				binary/rs-head bin
 				binary/rs-length? bin
-				as iocp-data! data
+				as iocp-data! data 
 		][
 			socket/send
 				as-integer data/iocp/device
@@ -262,6 +256,13 @@ probe ["read data: " data/transferred]
 				binary/rs-length? bin
 				as iocp-data! data
 		]
+	][
+		socket/send
+			as-integer data/iocp/device
+			binary/rs-head bin
+			binary/rs-length? bin
+			as iocp-data! data
+	]
 		as red-value! port
 	]
 
@@ -277,7 +278,6 @@ probe ["read data: " data/transferred]
 			udp		[udp-data!]
 			buf		[red-binary!]
 			s		[series!]
-			res [integer!]
 	][
 		buf: as red-binary! (object/get-values red-port) + port/field-data
 		if TYPE_OF(buf) <> TYPE_BINARY [
@@ -288,17 +288,21 @@ probe ["read data: " data/transferred]
 		s: GET_BUFFER(buf)
 		udp: get-udp-data red-port
 		data: as iocp-data! udp
+	#either OS = 'Windows [
 		either data/state <> IO_STATE_CLIENT [
 			socket/urecv
 				as-integer data/device
 				as byte-ptr! s/offset
 				s/size
-				as sockaddr_in! :udp/addr
+				as sockaddr_in6! :udp/addr
 				:udp/addr-sz
 				as sockdata! data
 		][
 			socket/recv as-integer data/device as byte-ptr! s/offset s/size data
 		]
+	][
+		socket/recv as-integer data/device as byte-ptr! s/offset s/size data	
+	]
 		as red-value! red-port
 	]
 

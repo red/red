@@ -43,6 +43,15 @@ iocp-data!: alias struct! [
 	accept-addr		[byte-ptr!]
 ]
 
+udp-data!: alias struct! [
+	iocp		[iocp-data! value]
+	port		[red-object! value]		;-- red port! cell
+	flags		[integer!]
+	send-buf	[node!]					;-- send buffer
+	addr		[sockaddr_in6! value]	;-- IPv4 or IPv6 address
+	addr-sz		[integer!]
+]
+
 iocp: context [
 	verbose: 0
 

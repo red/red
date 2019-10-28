@@ -57,18 +57,6 @@ Red/System [
 		]
 		as red-value! map/make-at as red-value! blk blk len
 	]
-
-	processor-count: func [
-		return: [integer!]
-		/local
-			info [tagSYSTEM_INFO value]
-			n	 [integer!]
-	][
-		set-memory as byte-ptr! :info null-byte size? tagSYSTEM_INFO
-		GetNativeSystemInfo :info
-		n: info/dwNumberOfProcessors		;-- maximum number of threads
-		either zero? n [1][n]
-	]
 ][
 	get-cmdline-args: func [
 		return: [red-value!]
@@ -158,17 +146,6 @@ Red/System [
 			len: block/rs-length? blk
 		]
 		as red-value! map/make-at as red-value! blk blk len
-	]
-
-	processor-count: func [
-		return: [integer!]
-		/local
-			n	 [integer!]
-	][
-		n: sysconf _SC_NPROCESSORS_ONLN
-		if zero? n [n: sysconf _SC_NPROCESSORS_CONF]
-		if zero? n [n: 1]
-		n
 	]
 ]
 

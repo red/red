@@ -14,6 +14,7 @@ Red/System [
 ]
 
 #define IO_STATE_TLS_DONE		1000h
+#define IO_STATE_CLIENT			2000h
 #define IO_STATE_READING		4000h
 #define IO_STATE_WRITING		8000h
 #define IO_STATE_PENDING_READ	4001h		;-- READING or EPOLLIN
@@ -62,6 +63,15 @@ tls-data!: alias struct! [
 	port		[red-object! value]		;-- red port! cell
 	send-buf	[node!]					;-- send buffer
 	ssl			[int-ptr!]
+]
+
+udp-data!: alias struct! [
+	iocp		[iocp-data! value]
+	port		[red-object! value]		;-- red port! cell
+	flags		[integer!]
+	send-buf	[node!]					;-- send buffer
+	addr		[sockaddr_in6! value]	;-- IPv4 or IPv6 address
+	addr-sz		[integer!]
 ]
 
 iocp: context [
@@ -138,6 +148,7 @@ iocp: context [
 		return: [integer!]
 		/local
 			tls [tls-data!]
+			udp [udp-data!]
 	][
 		probe ["read-io " data/type]
 		switch data/type [
@@ -148,7 +159,16 @@ iocp: context [
 				tls: as tls-data! data
 				SSL_read tls/ssl data/read-buf data/read-buflen
 			]
-			IOCP_TYPE_UDP [0]
+			IOCP_TYPE_UDP [
+				udp: as udp-data! data
+				libC.recvfrom
+					as-integer data/device
+					data/read-buf
+					data/read-buflen
+					0
+					as sockaddr_in6! :udp/addr
+					:udp/addr-sz
+			]
 		]
 	]
 
@@ -157,6 +177,7 @@ iocp: context [
 		return: [integer!]
 		/local
 			tls [tls-data!]
+			udp [udp-data!]
 	][
 		probe ["write-io " data/type]
 		switch data/type [
@@ -167,7 +188,16 @@ iocp: context [
 				tls: as tls-data! data
 				SSL_write tls/ssl data/write-buf data/write-buflen
 			]
-			IOCP_TYPE_UDP [0]
+			IOCP_TYPE_UDP [
+				udp: as udp-data! data
+				libC.sendto
+					as-integer data/device
+					data/write-buf
+					data/write-buflen
+					0
+					as sockaddr_in6! :udp/addr
+					udp/addr-sz
+			]
 		]
 	]
 

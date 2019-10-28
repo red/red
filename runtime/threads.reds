@@ -235,6 +235,17 @@ thread: context [
 		]
 	]
 
+	processor-count: func [
+		return: [integer!]
+		/local
+			n	 [integer!]
+	][
+		n: sysconf _SC_NPROCESSORS_ONLN
+		if zero? n [n: sysconf _SC_NPROCESSORS_CONF]
+		if zero? n [n: 1]
+		n
+	]
+
 	start: func [
 		routine [int-ptr!]
 		args	[int-ptr!]
@@ -427,6 +438,7 @@ threadpool: context [
 		either 1 < queue/size tasks [
 			if n-worker < n-max [add-worker]
 		][
+		#either OS = 'Windows [
 			unless worker0/running? [
 				worker0/running?: yes
 				worker0/event: CreateEventA null no no null		;-- auto-reset event
@@ -434,6 +446,7 @@ threadpool: context [
 					as int-ptr! :worker0-func as int-ptr! worker0 0
 			]
 			SetEvent worker0/event
+		][0]
 		]
 		res
 	]

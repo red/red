@@ -71,6 +71,7 @@ Red/System [
 #define S_IWGRP		16
 #define S_IROTH		4
 
+#define SOL_SOCKET	1
 #define	DT_DIR		#"^(04)"
 
 #define BFFM_SETEXPANDED 1130
@@ -345,22 +346,56 @@ timespec!: alias struct! [
 		LibC.send: "send" [
 			fd			[integer!]
 			buf			[byte-ptr!]
-			len			[integer!]
+			len			[ulong!]
 			flags		[integer!]
-			return:		[integer!]
+			return:		[long!]
 		]
 		libC.recv: "recv" [
 			fd			[integer!]
 			buf			[byte-ptr!]
-			len			[integer!]
+			len			[ulong!]
 			flags		[integer!]
-			return:		[integer!]
+			return:		[long!]
+		]
+		libC.recvfrom: "recvfrom" [
+			fd			[integer!]
+			buf			[byte-ptr!]
+			len			[ulong!]
+			flags		[integer!]
+			addr		[sockaddr_in6!]
+			addrlen		[int-ptr!]
+			return:		[long!]
+		]
+		libC.sendto: "sendto" [
+			fd			[integer!]
+			buf			[byte-ptr!]
+			len			[ulong!]
+			flags		[integer!]
+			addr		[sockaddr_in6!]
+			addrlen		[integer!]
+			return:		[long!]
 		]
 		sendfile: "sendfile" [
 			out_fd		[integer!]
 			in_fd		[integer!]
 			offset		[int-ptr!]
 			count		[integer!]
+			return:		[integer!]
+		]
+		setsockopt: "setsockopt" [
+			s			[integer!]
+			level		[integer!]
+			optname		[integer!]
+			optval		[c-string!]
+			optlen		[integer!]
+			return:		[integer!]
+		]
+		getsockopt: "getsockopt" [
+			s			[integer!]
+			level		[integer!]
+			optname		[integer!]
+			optval		[byte-ptr!]
+			optlen		[int-ptr!]
 			return:		[integer!]
 		]
 		htons: "htons" [

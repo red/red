@@ -223,24 +223,34 @@ probe ["socket/read: " n]
 
 	usend: func [	;-- for UDP
 		sock		[integer!]
-		addr		[sockaddr_in!]
+		addr		[sockaddr_in6!]
 		addr-sz		[integer!]
 		buffer		[byte-ptr!]
 		length		[integer!]
 		data		[iocp-data!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "socket/usend"]]
+		libC.sendto sock buffer length 0 addr addr-sz
 	]
 
 	urecv: func [
 		sock		[integer!]
 		buffer		[byte-ptr!]
 		length		[integer!]
-		addr		[sockaddr_in!]
+		addr		[sockaddr_in6!]
 		addr-sz		[int-ptr!]
 		data		[sockdata!]
 	][
 
+	]
+
+	set-option: func [
+		fd			[integer!]
+		name		[integer!]
+		value		[integer!]
+	][
+		probe "set-option"
+		probe setsockopt fd SOL_SOCKET name as c-string! :value size? integer!
 	]
 
 	close: func [
