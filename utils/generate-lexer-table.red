@@ -131,33 +131,35 @@ context [
 		F_DT_DMYY			1		2		;--	24
 		F_DT_DMYYY			1		2		;--	25
 		F_DT_DMYYYY			1		2		;--	26
-		S_TM_START			0		1		;--	27
-		F_TM_H				1		5		;--	28
-		F_TM_HH				1		5		;--	29
-		S_TM_HM				0		5		;--	30
-		F_TM_M				1		6		;--	31
-		F_TM_MM				1		6		;--	32
-		S_TM_HMS			0		6		;--	33
-		F_TM_S				1		7		;--	34
-		F_TM_SS				1		7		;--	35
-		F_TM_N1				0		8		;--	36
-		F_TM_N				1		8		;--	37
-		S_TZ_START			0		1		;--	38
-		S_TZ_H				1		11		;--	39
-		F_TZ_HH				1		11		;--	40
-		F_TZ_HM				0		12		;--	41
-		S_TZ_M				1		12		;--	42
-		--FINAL-STATES--	0		1		;--	43
+		S_TM_START			0		4		;--	27
+		S_TM_START2			0		2		;--	28
+		F_TM_H				1		5		;--	29
+		F_TM_HH				1		5		;--	30
+		S_TM_HM				0		5		;--	31
+		F_TM_M				1		6		;--	32
+		F_TM_MM				1		6		;--	33
+		S_TM_HMS			0		6		;--	34
+		F_TM_S				1		7		;--	35
+		F_TM_SS				1		7		;--	36
+		F_TM_N1				0		8		;--	37
+		F_TM_N				1		8		;--	38
+		S_TZ_START			0		4		;--	39
+		S_TZ_H				1		11		;--	40
+		F_TZ_HH				1		11		;--	41
+		F_TZ_HM				0		12		;--	42
+		S_TZ_M				1		12		;--	43
 		T_DT_ERROR			0		1		;-- 44
 		T_DT_YMDAY			0		4		;-- 45
 		T_DT_DMYEAR			0		2		;-- 46
 		T_DT_YWWD			0		10		;--	47
 		T_DT_WEEK			0		9		;--	48
-		T_TM_NZ				0		8		;--	49
-		T_TZ_H				0		11		;--	50
-		T_TZ_HH				0		11		;-- 51
-		T_TZ_M				0		12		;-- 52
-		T_TZ_MM				0		12		;-- 53
+		T_TM_HM				0		6		;--	49
+		T_TM_HMS			0		7		;-- 50
+		T_TM_NZ				0		8		;--	51
+		T_TZ_H				0		11		;--	52
+		T_TZ_HH				0		11		;-- 53
+		T_TZ_M				0		12		;-- 54
+		T_TZ_MM				0		12		;-- 55
 	]
 
 	CSV-table: %../docs/lexer/lexer-FSM.csv

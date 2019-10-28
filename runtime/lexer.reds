@@ -1090,7 +1090,6 @@ lexer: context [
 
 	scan-date: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
-			cell [cell!]
 			field [int-ptr!]
 			state [integer!]
 			class [integer!]
@@ -1098,10 +1097,9 @@ lexer: context [
 			cp	  [integer!]
 			c	  [integer!]
 			pos	  [integer!]
-			shift [integer!]
 			month [integer!]
 	][
-probe "scan-date"
+;probe "scan-date"
 		field: system/stack/allocate/zero 12
 		c: 0
 		state: S_DT_START
@@ -1118,10 +1116,10 @@ probe "scan-date"
 			field/pos: c
 ;?? state
 ;?? cp
-			c: c * 10 + as-integer date-cumul/cp
+			c: either null-byte = reset-table/index [
+				 c * 10 + as-integer date-cumul/cp
+			][0]
 ;?? c
-			shift: as-integer reset-table/index
-			c: c >>> shift
 			s: s + 1
 ;?? c
 		]
@@ -1352,14 +1350,15 @@ comment {
 				cp: 1 + as-integer p/value
 				class: lex-classes/cp
 				flags: class and FFFFFF00h or flags
+				class: class and FFh
 				
-				index: state * (size? character-classes!) + (class and FFh) + 1
+				index: state * (size? character-classes!) + class + 1
 				state: as-integer transitions/index
 				
 				index: state + 1
 				offset: offset + as-integer skip-table/index
 				
-				index: class and FFh + 1
+				index: class + 1
 				line: line + line-table/index
 				
 				if state > --EXIT_STATES-- [term?: yes break]

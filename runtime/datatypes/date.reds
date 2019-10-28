@@ -501,7 +501,7 @@ date: context [
 		  + (60.0   * as float! minute)
 		  + (         as float! second)
 		  + (1e-9   * as float! nsec)
-		dt/header: TYPE_DATE
+		set-type as red-value! dt TYPE_DATE				;-- preserve eventual flags in the header
 		dt/date: d
 		dt/time: t
 	]
