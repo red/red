@@ -745,7 +745,7 @@ lexer: context [
 							pos: p
 							w?: no
 							while [all [not w? p < e p/1 <> #")"]][
-								index: 1 + as-integer p/1
+								index: as-integer p/1
 								class: lex-classes/index
 								switch class [
 									C_DIGIT C_ZERO C_ALPHAX C_EXP [0]
@@ -1105,18 +1105,17 @@ lexer: context [
 		state: S_DT_START
 		loop as-integer e - s [
 ;probe ["--- " s/1 " ---"]
-			cp: 1 + as-integer s/1
+			cp: as-integer s/1
 			class: as-integer date-classes/cp
 ;?? class
-			index: state * (size? date-char-classes!) + class + 1
+			index: state * (size? date-char-classes!) + class
 			state: as-integer date-transitions/index
 			
-			index: state + 1
-			pos: as-integer fields-table/index
+			pos: as-integer fields-table/state
 			field/pos: c
 ;?? state
 ;?? cp
-			c: either null-byte = reset-table/index [
+			c: either null-byte = reset-table/state [
 				 c * 10 + as-integer date-cumul/cp
 			][0]
 ;?? c
@@ -1124,11 +1123,10 @@ lexer: context [
 ;?? c
 		]
 		
-		index: state * (size? date-char-classes!) + C_DT_EOF + 1
+		index: state * (size? date-char-classes!) + C_DT_EOF
 		state: as-integer date-transitions/index
 ;?? state
-		index: state + 1
-		pos: as-integer fields-table/index
+		pos: as-integer fields-table/state
 ;?? pos
 		field/pos: c
 		
@@ -1188,7 +1186,7 @@ comment {
 		p: s
 		until [
 			p: p + 1									;-- x separator cannot be at start
-			index: 1 + as-integer p/1
+			index: as-integer p/1
 			class: lex-classes/index
 			class = C_X
 		]
@@ -1272,7 +1270,7 @@ comment {
 			close?	[logic!]
 	][
 		close?: either e >= state/in-end [yes][			;-- EOF reached
-			cp: 1 + as-integer e/1
+			cp: as-integer e/1
 			index: lex-classes/cp and FFh + 1			;-- query the class of ending character
 			as-logic path-ending/index					;-- lookup if the character class is ending path
 		]
@@ -1347,25 +1345,22 @@ comment {
 			offset: 0
 			
 			loop as-integer lex/in-end - p [
-				cp: 1 + as-integer p/value
+				cp: as-integer p/value
 				class: lex-classes/cp
 				flags: class and FFFFFF00h or flags
 				class: class and FFh
 				
-				index: state * (size? character-classes!) + class + 1
+				index: state * (size? character-classes!) + class
 				state: as-integer transitions/index
 				
-				index: state + 1
-				offset: offset + as-integer skip-table/index
-				
-				index: class + 1
-				line: line + line-table/index
+				offset: offset + as-integer skip-table/state
+				line: line + line-table/class
 				
 				if state > --EXIT_STATES-- [term?: yes break]
 				p: p + 1
 			]
 			unless term? [
-				index: state * (size? character-classes!) + C_EOF + 1
+				index: state * (size? character-classes!) + C_EOF
 				state: as-integer transitions/index
 			]
 			lex/in-pos: p
@@ -1418,6 +1413,18 @@ comment {
 	
 	init: func [][
 		stash: as cell! allocate stash-size * size? cell!
+		
+		;-- switch following tables to zero-based indexing
+		lex-classes: lex-classes + 1
+		transitions: transitions + 1
+		skip-table: skip-table + 1
+		line-table: line-table + 1
+		
+		date-classes: date-classes + 1
+		date-transitions: date-transitions + 1
+		date-cumul: date-cumul + 1
+		fields-table: fields-table + 1
+		reset-table: reset-table + 1
 	]
 
 ]
