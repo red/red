@@ -85,32 +85,39 @@ button-toggled: func [
 
 render-text: func [
 	cr			[handle!]
+	face		[red-object!]
 	size		[red-pair!]
 	values		[red-value!]
 	/local
 		text	[red-string!]
+		color	[red-tuple!]
 		font	[red-object!]
+		attrs	[handle!]
+		new?	[logic!]
 		para	[red-object!]
 		flags	[integer!]
+		layout	[handle!]
 		len		[integer!]
 		str		[c-string!]
-		line	[integer!]
-		x		[float!]
-		y		[float!]
-		temp	[float!]
-		;te		[cairo_text_extents_t!]
-		;fe		[cairo_font_extents_t!]
+		pline	[handle!]
 		lx		[integer!]
 		ly		[integer!]
+		x		[float!]
+		y		[float!]
 		rect	[tagRECT value]
 		lrect	[tagRECT value]
-		pline	[handle!]
-		pc		[handle!]
-		lpc		[handle!]
-		fd		[handle!]
 ][
 	text: as red-string! values + FACE_OBJ_TEXT
 	if TYPE_OF(text) <> TYPE_STRING [exit]
+
+	color: as red-tuple! values + FACE_OBJ_COLOR
+	font: as red-object! values + FACE_OBJ_FONT
+	attrs: get-attrs face font
+	new?: false
+	if null? attrs [
+		new?: true
+		attrs: create-simple-attrs default-font-name default-font-size color
+	]
 
 	;; DEBUG: print ["render-text: " cr lf]
 	para: as red-object! values + FACE_OBJ_PARA
@@ -120,28 +127,19 @@ render-text: func [
 		0005h										;-- center or middle
 	]
 
+	layout: pango_cairo_create_layout cr
 	cairo_save cr
 
-	; The pango_cairo way
-	pc: pango_cairo_create_context cr
-	lpc: pango_cairo_create_layout cr
+	len: -1
+	str: unicode/to-utf8 text :len
+	pango_layout_set_text layout str -1
+	pango_layout_set_attributes layout attrs
 
-	font: as red-object! values + FACE_OBJ_FONT
-	fd: font-description font
-	pango_layout_set_font_description lpc fd
-	if TYPE_OF(text) = TYPE_STRING [
-		len: -1
-		str: unicode/to-utf8 text :len
-	]
-	;; DEBUG: print ["render-text " str " size: " size/x "x" size/y " flags: " flags lf]
+	pango_cairo_update_layout cr layout
 
-	pango_layout_set_text lpc str -1
-	cairo_set_source_rgba cr 0.0 0.0 0.0 0.5
-	pango_cairo_update_layout cr lpc
-
-	pline: pango_layout_get_line lpc 0
+	pline: pango_layout_get_line layout 0
 	pango_layout_line_get_pixel_extents pline rect lrect
-	ly: (pango_layout_get_line_count lpc) * lrect/height
+	ly: (pango_layout_get_line_count layout) * lrect/height
 	lx: lrect/width
 
 	case [
@@ -158,42 +156,13 @@ render-text: func [
 	;; DEBUG: print [lx "x" ly " and (" x "," y ")" lf]
 
 	cairo_move_to cr x y
-
-	pango_cairo_show_layout cr lpc
-
+	pango_cairo_show_layout cr layout
 	cairo_stroke cr
 	cairo_restore cr
 
-; @@ The cairo way (alternative) does not work for me after too many attempt
-; 	if TYPE_OF(text) = TYPE_STRING [
-; 		len: -1
-; 		str: unicode/to-utf8 text :len
-; 		te: as cairo_text_extents_t! allocate (size? cairo_text_extents_t!)
-; 		cairo_text_extents cr str as handle! te
-; 		fe: as cairo_font_extents_t! allocate (size? cairo_font_extents_t!)
-; 		cairo_font_extents cr as handle! fe
-; 		x: 0.5 - te/x_bearing - (te/width / 2.0)
-; 		y: 0.5 - fe/descent + (fe/height / 2.0)
-; 		free as byte-ptr! te
-; 		free as byte-ptr! fe
-; 	]
-
-; 	cairo_scale cr 170.0 40.0
-; 	;set-source-color cr 0
-; 	cairo_set_source_rgba cr 0.0 0.0 0.0 0.5
-
-; 	font: as red-object! values + FACE_OBJ_FONT
-; 	either TYPE_OF(font) = TYPE_OBJECT [
-; 		  select-cairo-font cr font
-; 	][
-; 		0
-; 	]
-
-; 	;cairo_move_to(cr, w/2 - extents.width/2, h/2);
-; 	cairo_move_to cr x y
-; print [ "hi-str: <" str ">" lf]
-; 	cairo_show_text cr str
-
+	if new? [
+		free-pango-attrs attrs
+	]
 ]
 
 base-draw: func [
@@ -203,38 +172,38 @@ base-draw: func [
 	widget		[handle!]
 	return:		[logic!]
 	/local
-		vals	[red-value!]
+		face	[red-object!]
+		values	[red-value!]
 		draw	[red-block!]
-		clr		[red-tuple!]
 		img		[red-image!]
 		size	[red-pair!]
 		type	[red-word!]
+		font	[red-object!]
+		color	[red-tuple!]
 		sym		[integer!]
 		pos		[red-pair! value]
 		DC		[draw-ctx! value]
 		drawDC	[draw-ctx!]
 ][
-	;; DEBUG: print ["base-draw " widget " " gtk_widget_get_allocated_width widget "x" gtk_widget_get_allocated_height widget lf]
-
-	vals: get-face-values widget
-	img:  as red-image! vals + FACE_OBJ_IMAGE
-	draw: as red-block! vals + FACE_OBJ_DRAW
-	clr:  as red-tuple! vals + FACE_OBJ_COLOR
-	size: as red-pair! vals + FACE_OBJ_SIZE
-	type: as red-word! vals + FACE_OBJ_TYPE
+	face: get-face-obj widget
+	values: object/get-values face
+	img:  as red-image! values + FACE_OBJ_IMAGE
+	draw: as red-block! values + FACE_OBJ_DRAW
+	size: as red-pair! values + FACE_OBJ_SIZE
+	type: as red-word! values + FACE_OBJ_TYPE
+	font: as red-object! values + FACE_OBJ_FONT
+	color: as red-tuple! values + FACE_OBJ_COLOR
 	sym: symbol/resolve type/symbol
 
-	if TYPE_OF(clr) = TYPE_TUPLE [
-		;; DEBUG: print ["base-draw color" (clr/array1 >>> 24 and FFh)  "x" (clr/array1 >> 16 and FFh ) "x" (clr/array1 >> 8 and FFh ) "x" (clr/array1 and FFh ) lf]
-
-		;;;  OLD and DOES NOT WORK
-		; cairo_save cr
-		; set-source-color cr clr/array1
-		; cairo_paint cr								;-- paint background
-		; cairo_restore cr
-		;cairo_save cr
-		gtk_render_background gtk_widget_get_style_context widget cr 0.0 0.0  as float! size/x as float! size/y
-		;cairo_restore cr
+	if TYPE_OF(color) = TYPE_TUPLE [
+		free-font font
+		make-font face font
+		set-css widget face values
+		gtk_render_background
+				gtk_widget_get_style_context widget
+				cr
+				0.0 0.0
+				as float! size/x as float! size/y
 	]
 
 	if TYPE_OF(img) = TYPE_IMAGE [
@@ -245,21 +214,17 @@ base-draw: func [
 	]
 
 	case [
-		sym = base [render-text cr size vals]
+		sym = base [render-text cr face size values]
 		sym = rich-text [
-			;; DEBUG: print ["base-draw (rich-text)" widget " face " get-face-obj widget lf]
 			pos/x: 0 pos/y: 0
-			init-draw-ctx :DC cr
-			draw-text-box :DC :pos get-face-obj widget yes
+			draw-text-box cr :pos get-face-obj widget yes
 		]
 		true []
 	]
 
 	either TYPE_OF(draw) = TYPE_BLOCK [
-		;; DEBUG: print ["do-draw in base-draw" lf]
 		do-draw cr null draw no yes yes yes
 	][
-		;; DEBUG: print ["base-draw: draw not a block" lf]
 		system/thrown: 0
 		drawDC: declare draw-ctx!								;@@ should declare it on stack
 		draw-begin drawDC cr null no no
@@ -268,7 +233,10 @@ base-draw: func [
 		draw/header: TYPE_NONE
 		draw-end drawDC cr no no no
 	]
-	;; DEBUG: print ["base-draw " widget lf]
+
+	if null? gtk_container_get_children widget [
+		return true
+	]
 
 	false
 ]
@@ -368,34 +336,16 @@ range-value-changed: func [
 	range		[handle!]
 	widget		[handle!]
 	/local
-		vals	[red-value!]
-		val		[float!]
-		size	[red-pair!]
-		;	type  [red-word!]
+		values	[red-value!]
 		pos		[red-float!]
-		;	sym   [integer!]
-		max		[float!]
+		value	[float!]
 ][
-	; This event happens on GtkRange widgets including GtkScale.
-	; Will any other widget need this?
-	vals: get-face-values widget
-	;type:	as red-word!	vals + FACE_OBJ_TYPE
-	size:	as red-pair!	vals + FACE_OBJ_SIZE
-	pos:	as red-float!	vals + FACE_OBJ_DATA
+	values: get-face-values widget
+	pos: as red-float! values + FACE_OBJ_DATA
 
-	;sym:	symbol/resolve type/symbol
-
-	;if type = slider [
-	val: gtk_range_get_value range
-	either size/y > size/x [
-		max: as-float size/y
-		val: max - val
-	][
-		max: as-float size/x
-	]
-	pos/value: val / max
+	value: gtk_range_get_value range
+	pos/value: value / 100.0
 	make-event range 0 EVT_CHANGE
-	;]
 ]
 
 combo-selection-changed: func [
@@ -485,18 +435,14 @@ key-press-event: func [
 		face	[red-object!]
 		qdata	[handle!]
 ][
-	;; DEBUG: print ["key-press-event: " event-key/keyval lf]
 	if event-key/keyval > FFFFh [return EVT_DISPATCH]
 	key: translate-key event-key/keyval
 	flags: 0 ;either char-key? as-byte key [0][80000000h]	;-- special key or not
 	flags: flags or check-extra-keys event-key/state
 
-	;; DEBUG: print ["key: " key " flags: " flags " key or flags: " key or flags lf]
 
 	res: make-event widget key or flags EVT_KEY_DOWN
-	;; DEBUG: print ["field press res " res lf]
 	if res <> EVT_NO_DISPATCH [
-		;; DEBUG: print ["special-key=" special-key " key=" key lf]
 		either special-key <> -1 [
 			switch key and FFFFh [
 				RED_VK_SHIFT	RED_VK_CONTROL
@@ -508,8 +454,7 @@ key-press-event: func [
 			]
 		][res: make-event widget key or flags EVT_KEY]
 	]
-	;; DEBUG: print ["key-press end" lf]
-	res
+	EVT_NO_DISPATCH
 ]
 
 key-release-event: func [
@@ -527,6 +472,7 @@ key-release-event: func [
 	flags: 0 ;either char-key? as-byte key [0][80000000h]	;-- special key or not
 	flags: flags or check-extra-keys event-key/state
 	make-event widget key or flags EVT_KEY_UP
+	EVT_NO_DISPATCH
 ]
 
 field-changed: func [
@@ -550,8 +496,24 @@ focus-in-event: func [
 	evbox		[handle!]
 	event		[handle!]
 	widget		[handle!]
+	return:		[logic!]
+	/local
+		face	[red-object!]
+		values	[red-value!]
+		type	[red-word!]
+		int		[red-integer!]
+		sym		[integer!]
 ][
+	face: get-face-obj widget
+	values: object/get-values face
+	type: as red-word! values + FACE_OBJ_TYPE
+	int: as red-integer! values + FACE_OBJ_SELECTED
+	sym: symbol/resolve type/symbol
+	change-selection widget int sym
 	make-event widget 0 EVT_FOCUS
+	
+	if sym = window [return false]
+	true
 ]
 
 focus-out-event: func [
@@ -559,8 +521,21 @@ focus-out-event: func [
 	evbox		[handle!]
 	event		[handle!]
 	widget		[handle!]
+	return:		[logic!]
+	/local
+		face	[red-object!]
+		values	[red-value!]
+		type	[red-word!]
+		sym		[integer!]
 ][
+	face: get-face-obj widget
+	values: object/get-values face
+	type: as red-word! values + FACE_OBJ_TYPE
+	sym: symbol/resolve type/symbol
 	make-event widget 0 EVT_UNFOCUS
+
+	if sym = window [return false]
+	true
 ]
 
 area-changed: func [

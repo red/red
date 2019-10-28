@@ -24,17 +24,6 @@ Red/System [
 max-line-cnt:  0
 
 
-layout-ctx-init: func [
-	lc 			[layout-ctx!]
-	text 		[c-string!]
-	text-len	[integer!]
-][
-	lc/text: text
-	lc/text-len: text-len
-	lc/text-pos: 0
-	lc/attr-list: pango_attr_list_new
-]
-
 utf8-to-bytes: func [
 	text		[c-string!]
 	len			[integer!]
@@ -58,7 +47,7 @@ color-u8-to-u16: func [
 	/local
 		t		[integer!]
 ][
-	t: color >> 24 and FFh
+	t: color >>> 24 and FFh
 	a/value: t << 8 + t
 	t: color >> 16 and FFh
 	b/value: t << 8 + t
@@ -92,12 +81,12 @@ OS-text-box-color: func [
 	attr: pango_attr_foreground_new r g b
 	attr/start: s
 	attr/end: s + e
-	pango_attr_list_insert lc/attr-list attr
+	pango_attr_list_change lc/attrs attr
 
 	attr: pango_attr_foreground_alpha_new a
 	attr/start: s
 	attr/end: s + e
-	pango_attr_list_insert lc/attr-list attr
+	pango_attr_list_change lc/attrs attr
 ]
 
 OS-text-box-background: func [
@@ -124,12 +113,12 @@ OS-text-box-background: func [
 	attr: pango_attr_background_new r g b
 	attr/start: s
 	attr/end: s + e
-	pango_attr_list_insert lc/attr-list attr
+	pango_attr_list_change lc/attrs attr
 
 	attr: pango_attr_background_alpha_new a
 	attr/start: s
 	attr/end: s + e
-	pango_attr_list_insert lc/attr-list attr
+	pango_attr_list_change lc/attrs attr
 ]
 
 OS-text-box-weight: func [
@@ -149,7 +138,7 @@ OS-text-box-weight: func [
 	attr: pango_attr_weight_new weight
 	attr/start: s
 	attr/end: s + e
-	pango_attr_list_insert lc/attr-list attr
+	pango_attr_list_change lc/attrs attr
 ]
 
 OS-text-box-italic: func [
@@ -168,7 +157,7 @@ OS-text-box-italic: func [
 	attr: pango_attr_style_new PANGO_STYLE_ITALIC
 	attr/start: s
 	attr/end: s + e
-	pango_attr_list_insert lc/attr-list attr
+	pango_attr_list_change lc/attrs attr
 ]
 
 OS-text-box-underline: func [
@@ -189,7 +178,7 @@ OS-text-box-underline: func [
 	attr: pango_attr_underline_new PANGO_UNDERLINE_SINGLE
 	attr/start: s
 	attr/end: s + e
-	pango_attr_list_insert lc/attr-list attr
+	pango_attr_list_change lc/attrs attr
 ]
 
 OS-text-box-strikeout: func [
@@ -209,7 +198,7 @@ OS-text-box-strikeout: func [
 	attr: pango_attr_strikethrough_new true
 	attr/start: s
 	attr/end: s + e
-	pango_attr_list_insert lc/attr-list attr
+	pango_attr_list_change lc/attrs attr
 ]
 
 OS-text-box-border: func [
@@ -245,15 +234,15 @@ OS-text-box-font-name: func [
 	attr: pango_attr_family_new str
 	attr/start: s
 	attr/end: s + e
-	pango_attr_list_insert lc/attr-list attr
+	pango_attr_list_change lc/attrs attr
 ]
 
 OS-text-box-font-size: func [
-	nsfont	[handle!]
-	layout	[handle!]
-	pos		[integer!]
-	len		[integer!]
-	size	[float!]
+	dc			[handle!]
+	layout		[handle!]
+	pos			[integer!]
+	len			[integer!]
+	size		[float!]
 	/local
 		lc		[layout-ctx!]
 		s		[integer!]
@@ -266,7 +255,7 @@ OS-text-box-font-size: func [
 	attr: pango_attr_size_new PANGO_SCALE * as integer! size
 	attr/start: s
 	attr/end: s + e
-	pango_attr_list_insert lc/attr-list attr
+	pango_attr_list_change lc/attrs attr
 ]
 
 OS-text-box-metrics: func [
@@ -348,133 +337,75 @@ OS-text-box-metrics: func [
 OS-text-box-layout: func [
 	box			[red-object!]
 	target		[int-ptr!]
-	ft-clr		[integer!]
+	ft-clr		[integer!]				;-- TBD: to replace font color
 	catch?		[logic!]
 	return:		[handle!]
 	/local
-		hWnd	[handle!]
 		values	[red-value!]
-		size	[red-pair!]
-		rstate	[red-integer!]
-		bool	[red-logic!]
-		state	[red-block!]
-		styles	[red-block!]
-		pval	[red-value!]
-		vec		[red-vector!]
-		obj		[red-object!]
-		w		[integer!]
-		h		[integer!]
-		dc		[draw-ctx!]
-		lc		[layout-ctx!]
-		cached?	[logic!]
-		force?	[logic!]
-		font	[red-object!]
-		hFont	[handle!]
-		clr		[integer!]
 		text	[red-string!]
-		len		[integer!]
+		state	[red-block!]
+		size	[red-pair!]
+		font	[red-object!]
+		cached?	[logic!]
+		attrs	[handle!]
+		int		[red-integer!]
+		layout	[handle!]
+		para	[handle!]
+		bool	[red-logic!]
+		lc		[layout-ctx!]
 		str		[c-string!]
-		pc		[handle!]
-		ft-ok?	[logic!]
+		len		[integer!]
+		styles	[red-block!]
 ][
-	;; DEBUG: print ["OS-text-box-layout: " box " " face-handle? box " target: " target lf]
 	values: object/get-values box
-	state: as red-block! values + FACE_OBJ_EXT3
-	cached?: TYPE_OF(state) = TYPE_BLOCK
-	;; DEBUG: print ["cached?: " cached? " state: " state lf]
-	force?: either cached? [
-		rstate: as red-integer! block/rs-head state
-		bool: as red-logic! rstate + 1
-		;; DEBUG: print ["rstate: " rstate " -> " rstate/value " bool: " bool " -> " bool/value  lf]
-		bool/value
-	][true]
-	;; DEBUG: print ["force?: " force? lf]
 
-	lc: declare layout-ctx! ; this is not dynamic but lc/layout would change dynamically for each rich-text
 	text: as red-string! values + FACE_OBJ_TEXT
+	state: as red-block! values + FACE_OBJ_EXT3
+	size: as red-pair! values + FACE_OBJ_SIZE
 	font: as red-object! values + FACE_OBJ_FONT
-	ft-ok?: TYPE_OF(font) = TYPE_OBJECT ;all[not null? target TYPE_OF(font) = TYPE_OBJECT]
-	either ft-ok? [
-		hFont: get-font-handle font 0
-		if null? hFont [hFont: CREATE-DEFAULT-FONT]
+	attrs: create-pango-attrs box font
+	cached?: TYPE_OF(state) = TYPE_BLOCK
+
+	either cached? [
+		int: as red-integer! block/rs-head state
+		layout: as handle! int/value
+		int: int + 1 para: as handle! int/value
+		bool: as red-logic! int + 2
+		bool/value: false
 	][
-		hFont: CREATE-DEFAULT-FONT
+		para: null
+		if null? pango-context [
+			pango-context: gdk_pango_context_get
+		]
+		layout: pango_layout_new pango-context
+
+		block/make-at state 4
+		integer/make-in state as integer! layout
+		integer/make-in state as integer! para
+		none/make-in state
+		logic/make-in state false
 	]
 
 	len: -1
 	str: unicode/to-utf8 text :len
-
-	layout-ctx-init lc str len
-
-	;; DEBUG: print ["OS-text-box-layout lc/text: " lc/text " " lc/text-len lf]
-
-	size: as red-pair! values + FACE_OBJ_SIZE
-
-	either force? [
-		;; create lc/layout
-		;; DEBUG: print ["create layout: " target  lf]
-		either null? target [
-			either cached? [lc/layout: as handle! rstate/value]
-			[
-				; this is when OS-text-box-metrics is used before drawing
-				if null? pango-context [pango-context: gdk_pango_context_get]
-				lc/layout: pango_layout_new pango-context
-				;; DEBUG: print ["rich-text layout: " lc/layout " " pango_font_description_get_family hFont " " pango_font_description_get_size hFont lf]
-			]
-		][
-			dc: as draw-ctx! target
-			dc/font-desc: hFont
-			lc/layout: make-pango-cairo-layout dc/raw dc/font-desc
-			;; DEBUG: print ["rich-text layout with target: " lc/layout lf]
-		]
-		;; DEBUG: print ["with  target: " target " lc/layout: " lc/layout lf]
-		either cached? [
-			rstate/value: as integer! lc/layout
-			bool/value: false
-			;; DEBUG: print ["lc/layout force to be updated: " lc/layout " bool: " bool/value lf]
-		][
-			block/make-at state 3 									;maybe more later
-			;; DEBUG: print ["lc/layout newly created: " lc/layout lf]
-			integer/make-in state as integer! lc/layout				; handle for lc/layout
-			logic/make-in state either null? target [true][false] 	; force build lc/layout
-			logic/make-in state true								; possible use for redraw used in gui.red/update-richtext
-		]
-	][
-		lc/layout: as handle! rstate/value
-		;; DEBUG: print ["lc/layout cached: " lc/layout lf]
-	]
-	pango_layout_set_font_description lc/layout hFont
+	pango_layout_set_width layout PANGO_SCALE * size/x
+	pango_layout_set_height layout PANGO_SCALE * size/y
+	pango_layout_set_wrap layout PANGO_WRAP_WORD_CHAR			;-- TBD: apply para
+	pango_layout_set_text layout str -1
 
 	styles: as red-block! values + FACE_OBJ_DATA
 	if all [
 		TYPE_OF(styles) = TYPE_BLOCK
 		1 < block/rs-length? styles
 	][
+		;-- this is not dynamic but lc/layout would change dynamically for each rich-text
+		lc: declare layout-ctx!
+		lc/layout: layout
+		lc/text: str
+		lc/attrs: attrs
 		parse-text-styles target as handle! lc styles 7FFFFFFFh catch?
 	]
-	pango-layout-set-text lc size
-	as handle! lc
-]
-
-pango-layout-apply-attr: func [
-	lc		[layout-ctx!]
-][
-	pango_layout_set_text lc/layout lc/text -1
-	unless null? lc/attr-list [
-		pango_layout_set_attributes lc/layout lc/attr-list
-		pango_attr_list_unref lc/attr-list
-		lc/attr-list: null
-	]
-]
-
-pango-layout-set-text: func [
-	lc		[layout-ctx!]
-	size	[red-pair!]
-][
-	unless null? lc [
-		pango-layout-apply-attr lc
-		pango_layout_set_width lc/layout PANGO_SCALE * size/x
-		pango_layout_set_height lc/layout PANGO_SCALE * size/y
-		pango_layout_set_wrap lc/layout PANGO_WRAP_WORD_CHAR
-	]
+	pango_layout_set_attributes layout attrs
+	free-pango-attrs attrs
+	layout
 ]

@@ -90,20 +90,15 @@ Red/System [
 		pattern			[int-ptr!]
 		on-image?		[logic!]
 		shape-curve?	[logic!]
-		; pango-cairo
-		font-desc		[handle!]
-		font-opts		[handle!]	
-		font-underline?	[logic!]
-		font-strike?	[logic!]
-		layout			[handle!] ; Only for draw not for rich-text
+		font-attrs		[handle!]					;-- pango attrs for fonts
+		font-opts		[handle!]					;-- cairo opts for fonts
+		layout			[handle!]					;-- Only for draw not for rich-text
 	]
 
 	layout-ctx!: alias struct! [
-		layout			[handle!] ; Only for rich-text
+		layout			[handle!]					;-- Only for rich-text
 		text			[c-string!]
-		text-len		[integer!]
-		text-pos		[integer!]
-		attr-list		[handle!]
+		attrs			[handle!]
 	]
 ]
 
@@ -119,7 +114,7 @@ Red/System [
 
 	draw-ctx!: alias struct! [
 		raw				[int-ptr!]					;-- OS drawing object: CGContext
-		matrix          [CGAffineTransform! value]
+		matrix			[CGAffineTransform! value]
 		pen-join		[integer!]
 		pen-cap			[integer!]
 		pen-width		[float32!]
