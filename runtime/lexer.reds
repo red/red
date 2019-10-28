@@ -1353,7 +1353,7 @@ comment {
 				state: as-integer transitions/index
 				
 				offset: offset + as-integer skip-table/state
-				line: line + line-table/class
+				line: line + as-integer line-table/class
 				
 				if state > --EXIT_STATES-- [term?: yes break]
 				p: p + 1
