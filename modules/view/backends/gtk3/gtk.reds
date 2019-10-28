@@ -1771,6 +1771,7 @@ GPtrArray!: alias struct! [
 		gtk_entry_set_has_frame: "gtk_entry_set_has_frame" [
 			entry		[handle!]
 			has-frame	[logic!]
+		]
 		gtk_entry_set_attributes: "gtk_entry_set_attributes" [
 			entry		[handle!]
 			list		[handle!]
