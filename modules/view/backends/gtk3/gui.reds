@@ -203,6 +203,24 @@ get-face-layout: func [
 	]
 ]
 
+get-face-child-layout: func [
+	widget		[handle!]
+	sym			[integer!]
+	return:		[handle!]
+][
+	case [
+		sym = window [
+			GET-CONTAINER(widget)
+		]
+		sym = group-box [
+			gtk_bin_get_child widget
+		]
+		true [
+			widget
+		]
+	]
+]
+
 set-widget-child: func [
 	parent		[handle!]
 	widget		[handle!]
@@ -280,6 +298,7 @@ set-widget-child-offset: func [
 		values	[red-value!]
 		ntype	[red-word!]
 		sym		[integer!]
+		cparent	[handle!]
 ][
 	either type = window [
 		gtk_window_move widget pos/x pos/y
@@ -292,7 +311,11 @@ set-widget-child-offset: func [
 			set-widget-offset layout widget 0 0
 		]
 		unless null? parent [
-			set-widget-offset parent layout pos/x pos/y
+			values: get-face-values parent
+			ntype: as red-word! values + FACE_OBJ_TYPE
+			sym: symbol/resolve ntype/symbol
+			cparent: get-face-child-layout parent sym
+			set-widget-offset cparent layout pos/x pos/y
 		]
 	]
 ]
@@ -804,30 +827,14 @@ change-font: func [
 
 change-offset: func [
 	widget		[handle!]
+	values		[red-value!]
 	pos			[red-pair!]
 	type		[integer!]
 	/local
 		parent	[handle!]
-		layout	[handle!]
-		values	[red-value!]
-		ntype	[red-word!]
-		sym		[integer!]
 ][
-	either type = window [
-		gtk_window_move widget pos/x pos/y
-	][
-		values: get-face-values widget
-		ntype: as red-word! values + FACE_OBJ_TYPE
-		sym: symbol/resolve ntype/symbol
-		parent: get-face-parent widget values sym
-		layout: get-face-layout widget values sym
-		if layout <> widget [
-			set-widget-offset layout widget 0 0
-		]
-		unless null? parent [
-			set-widget-offset parent layout pos/x pos/y
-		]
-	]
+	parent: get-face-parent widget values type
+	set-widget-child-offset parent widget pos type
 ]
 
 change-size: func [
@@ -1787,7 +1794,7 @@ OS-update-view: func [
 	flags: int/value
 
 	if flags and FACET_FLAG_OFFSET <> 0 [
-		change-offset widget as red-pair! values + FACE_OBJ_OFFSET type
+		change-offset widget values as red-pair! values + FACE_OBJ_OFFSET type
 	]
 	if flags and FACET_FLAG_SIZE <> 0 [
 		change-size widget as red-pair! values + FACE_OBJ_SIZE type
