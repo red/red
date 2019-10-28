@@ -21,6 +21,7 @@ Red/System [
 
 #define G_ASCII_DTOSTR_BUF_SIZE	39
 
+
 RECT_STRUCT: alias struct! [
 	left		[integer!]
 	top			[integer!]
@@ -621,6 +622,11 @@ GPtrArray!: alias struct! [
 			len 		[integer!]
 			return:		[c-string!]
 		]
+		g_type_check_instance_is_a: "g_type_check_instance_is_a" [
+			handle		[handle!]
+			gtype		[integer!]
+			return:		[logic!]
+		]
 	;; ]
 	;; LIBGDK-file cdecl [
 		gdk_screen_width: "gdk_screen_width" [
@@ -733,21 +739,21 @@ GPtrArray!: alias struct! [
 		]
 		g_main_context_pending: "g_main_context_pending" [
 			context		[integer!]
-			return: 	[logic!]
+			return:		[logic!]
 		]
 		g_main_context_is_owner: "g_main_context_is_owner" [
 			context		[integer!]
-			return: 	[logic!]
+			return:		[logic!]
 		]
 		g_main_current_source: "g_main_current_source" [
 			return:		[handle!]
 		]
 		g_list_length: "g_list_length" [
-			list			[int-ptr!]
+			list		[int-ptr!]
 			return:		[integer!]
 		]
 		g_list_free: "g_list_free" [
-			list			[int-ptr!]
+			list		[int-ptr!]
 		]
 		g_list_nth_data: "g_list_nth_data" [
 			list		[handle!]
@@ -757,20 +763,20 @@ GPtrArray!: alias struct! [
 		g_list_append: "g_list_append" [
 			list		[handle!]
 			data		[handle!]
-			return: 	[handle!]
+			return:		[handle!]
 		]
 		g_list_prepend: "g_list_prepend" [
 			list		[handle!]
 			data		[handle!]
-			return: 	[handle!]
+			return:		[handle!]
 		]
 		g_list_first: "g_list_first" [
 			list		[handle!]
-			return: 	[handle!]
+			return:		[handle!]
 		]
 		g_list_last: "g_list_last" [
 			list		[handle!]
-			return: 	[handle!]
+			return:		[handle!]
 		]
 		g_list_delete_link: "g_list_delete_link" [
 			list		[handle!]
@@ -778,10 +784,10 @@ GPtrArray!: alias struct! [
 			return: 	[handle!]
 		]
 		g_list_insert_sorted: "g_list_insert_sorted" [
-			list			[handle!]
-			data			[handle!]
+			list		[handle!]
+			data		[handle!]
 			comp-func	[integer!]
-			return: 	[handle!]
+			return:		[handle!]
 		]
 		g_ascii_dtostr: "g_ascii_dtostr" [
 			buffer		[c-string!]
@@ -794,37 +800,37 @@ GPtrArray!: alias struct! [
 			return:		[c-string!]
 		]
 		g_strdup: "g_strdup" [
-			str		[c-string!]
-			return:	[c-string!]
+			str			[c-string!]
+			return:		[c-string!]
 		]
 		g_strndup: "g_strndup"[
-			str		[c-string!]
-			n		[integer!]
-			return:	[c-string!]
+			str			[c-string!]
+			n			[integer!]
+			return:		[c-string!]
 		]
 		g_strconcat: "g_strconcat" [
 			[variadic]
-			return:	[c-string!]
+			return:		[c-string!]
 		]
 		g_strcmp0: "g_strcmp0" [
 			str			[c-string!]
 			str2		[c-string!]
-			return: [integer!]
+			return:		[integer!]
 		]
 		g_strsplit: "g_strsplit" [
-			str 		[c-string!]
-      delim		[c-string!]
-      tokens	[integer!]
-			return:	[handle!]
+			str			[c-string!]
+			delim		[c-string!]
+			tokens		[integer!]
+			return:		[handle!]
 		]
 		g_strsplit_set: "g_strsplit_set" [
 			str 		[c-string!]
 			delim		[c-string!]
-			tokens	[integer!]
-			return:	[handle!]
+			tokens		[integer!]
+			return:		[handle!]
 		]
 		g_free: "g_free" [
-			ptr		[handle!]
+			ptr			[handle!]
 		]
 		g_strfreev: "g_strfreev" [
 			str_array	[handle!]
@@ -856,6 +862,9 @@ GPtrArray!: alias struct! [
 			text	[c-string!]
 			len 	[integer!]
 			return: [GString!]
+		]
+		g_string_append_printf: "g_string_append_printf" [
+			[variadic]
 		]
 		g_string_free: "g_string_free" [
 			str		[GString!]
@@ -1158,6 +1167,9 @@ GPtrArray!: alias struct! [
 			type		[integer!]
 			return:		[handle!]
 		]
+		gtk_window_activate_focus: "gtk_window_activate_focus" [
+			window		[handle!]
+		]
 		gtk_window_set_title: "gtk_window_set_title" [
 			window		[handle!]
 			title		[c-string!]
@@ -1229,27 +1241,31 @@ GPtrArray!: alias struct! [
 			event		[handle!]
 		]
 		gtk_window_get_focus: "gtk_window_get_focus" [
-			window 		[handle!]
-			return: 	[handle!]
+			window		[handle!]
+			return:		[handle!]
 		]
 		gtk_window_set_focus: "gtk_window_set_focus" [
-			window 		[handle!]
-			widget	 	[handle!]
+			window		[handle!]
+			widget		[handle!]
 		]
 		gtk_window_get_default_widget: "gtk_window_get_default_widget" [
-			window 		[handle!]
-			return:	 	[handle!]
+			window		[handle!]
+			return:		[handle!]
 		]
 		gtk_window_set_default: "gtk_window_set_default" [
-			window 			[handle!]
-			default_widget	[handle!]
+			window		[handle!]
+			default		[handle!]
+		]
+		gtk_window_set_keep_above: "gtk_window_set_keep_above" [
+			window		[handle!]
+			setting		[logic!]
 		]
 		gtk_offscreen_window_new: "gtk_offscreen_window_new" [
 			return:		[handle!]
 		]
 		gtk_offscreen_window_get_pixbuf: "gtk_offscreen_window_get_pixbuf" [
-			window 			[handle!]
-			return: 	[handle!]
+			window		[handle!]
+			return:		[handle!]
 		]
 		gtk_propagate_event: "gtk_propagate_event" [
 			widget		[handle!]
@@ -1274,7 +1290,11 @@ GPtrArray!: alias struct! [
 		gtk_widget_event: "gtk_widget_event" [
 			widget		[handle!]
 			event		[handle!]
-			return: 	[logic!]
+			return:		[logic!]
+		]
+		gtk_widget_draw: "gtk_widget_draw" [
+			widget		[handle!]
+			cr			[handle!]
 		]
 		gtk_widget_queue_draw: "gtk_widget_queue_draw" [
 			widget		[handle!]
@@ -1368,6 +1388,10 @@ GPtrArray!: alias struct! [
 		]
 		gtk_widget_grab_default: "gtk_widget_grab_default" [
 			widget		[handle!]
+		]
+		gtk_widget_has_grab: "gtk_widget_has_grab" [
+			widget		[handle!]
+			return:		[logic!]
 		]
 		gtk_widget_set_size_request: "gtk_widget_set_size_request" [
 			widget		[handle!]
@@ -1497,59 +1521,66 @@ GPtrArray!: alias struct! [
 			frame		[handle!]
 			shadow		[integer!]
 		]
+		gtk_frame_get_label_widget: "gtk_frame_get_label_widget" [
+			frame		[handle!]
+			return:		[handle!]
+		]
 		gtk_box_new: "gtk_box_new" [
 			orient		[GtkOrientation!]
 			spacing		[integer!]
 			return:		[handle!]
 		]
 		gtk_box_pack_start: "gtk_box_pack_start" [
-			box				[handle!]
+			box			[handle!]
 			widget		[handle!]
 			expand		[logic!]
-			fill			[logic!]
+			fill		[logic!]
 			padding		[integer!]
 		]
 		gtk_fixed_new: "gtk_fixed_new" [
 			return:		[handle!]
 		]
 		gtk_fixed_put: "gtk_fixed_put" [
-			fixed			[handle!]
+			fixed		[handle!]
 			widget		[handle!]
-			x					[integer!]
-			y					[integer!]
+			x				[integer!]
+			y				[integer!]
 		]
 		gtk_fixed_move: "gtk_fixed_move" [
-			fixed			[handle!]
+			fixed		[handle!]
 			widget		[handle!]
-			x					[integer!]
-			y					[integer!]
+			x			[integer!]
+			y			[integer!]
+		]
+		gtk_layout_get_type: "gtk_layout_get_type" [
+			return:		[integer!]
 		]
 		gtk_layout_new: "gtk_layout_new" [
-			hadj			[handle!]
-			vadj			[handle!]
+			hadj		[handle!]
+			vadj		[handle!]
 			return:		[handle!]
 		]
 		gtk_layout_put: "gtk_layout_put" [
 			layout		[handle!]
 			widget		[handle!]
-			x					[integer!]
-			y					[integer!]
+			x			[integer!]
+			y			[integer!]
 		]
 		gtk_layout_move: "gtk_layout_move" [
 			layout		[handle!]
 			widget		[handle!]
-			x					[integer!]
-			y					[integer!]
+			x			[integer!]
+			y			[integer!]
 		]
 		gtk_layout_set_size: "gtk_layout_set_size" [
 			layout		[handle!]
-			w					[integer!]
-			h					[integer!]
+			w			[integer!]
+			h			[integer!]
 		]
 		gtk_layout_get_size: "gtk_layout_get_size" [
 			layout		[handle!]
-			w					[int-ptr!]
-			h					[int-ptr!]
+			w			[int-ptr!]
+			h			[int-ptr!]
 		]
 		gtk_layout_get_bin_window: "gtk_layout_get_bin_window" [
 			layout		[handle!]
@@ -1663,6 +1694,9 @@ GPtrArray!: alias struct! [
 			label		[c-string!]
 			return:		[handle!]
 		]
+		gtk_label_get_type: "gtk_label_get_type" [
+			return:		[integer!]
+		]
 		gtk_label_get_text: "gtk_label_get_text" [
 			widget		[handle!]
 			return:		[c-string!]
@@ -1681,7 +1715,15 @@ GPtrArray!: alias struct! [
 		]
 		gtk_label_set_line_wrap: "gtk_label_set_line_wrap" [
 			widget		[handle!]
-			wrap			[logic!]
+			wrap		[logic!]
+		]
+		gtk_label_set_angle: "gtk_label_set_angle" [
+			widget		[handle!]
+			angle		[float!]
+		]
+		gtk_label_set_attributes: "gtk_label_set_attributes" [
+			widget		[handle!]
+			list		[handle!]
 		]
 		gtk_event_box_new: "gtk_event_box_new" [
 			return: 	[handle!]
@@ -1715,16 +1757,20 @@ GPtrArray!: alias struct! [
 		]
 		gtk_entry_set_placeholder_text: "gtk_entry_set_placeholder_text" [
 			buffer		[handle!]
-			text			[c-string!]
+			text		[c-string!]
 		]
 		gtk_entry_set_visibility: "gtk_entry_set_visibility" [
-			entry			[handle!]
+			entry		[handle!]
 			visible		[logic!]
 		]
 		gtk_entry_buffer_set_text: "gtk_entry_buffer_set_text" [
 			buffer		[handle!]
 			text		[c-string!]
 			len			[integer!]
+		]
+		gtk_entry_set_attributes: "gtk_entry_set_attributes" [
+			entry		[handle!]
+			list		[handle!]
 		]
 		gtk_editable_select_region: "gtk_editable_select_region" [
 			entry		[handle!]
@@ -1760,6 +1806,10 @@ GPtrArray!: alias struct! [
 		gtk_range_get_value: "gtk_range_get_value" [
 			range		[handle!]
 			return:		[float!]
+		]
+		gtk_range_set_inverted: "gtk_range_set_inverted" [
+			range		[handle!]
+			bool		[logic!]
 		]
 		gtk_progress_bar_new: "gtk_progress_bar_new" [
 			return:		[handle!]
@@ -2243,9 +2293,8 @@ GPtrArray!: alias struct! [
 			return:		[handle!]
 		]
 
-
-
 		gtk_widget_get_pango_context: "gtk_widget_get_pango_context" [
+			widget		[handle!]
 			return:		[handle!]
 		]
 
@@ -2828,3 +2877,30 @@ GPtrArray!: alias struct! [
 		]
 	]
 ]
+
+;; Identifiers for qdata
+red-face-id1:		g_quark_from_string "red-face-id1"
+red-face-id2:		g_quark_from_string "red-face-id2"
+red-face-id3:		g_quark_from_string "red-face-id3"
+red-face-id4:		g_quark_from_string "red-face-id4"
+gtk-style-id: 		g_quark_from_string "gtk-style-id"
+container-id:		g_quark_from_string "container-id"
+red-timer-id:		g_quark_from_string "red-timer-id"
+css-id:				g_quark_from_string "css-id"
+size-id:			g_quark_from_string "size-id"
+menu-id:			g_quark_from_string "menu-id"
+no-wait-id:			g_quark_from_string "no-wait-id"
+red-event-id:		g_quark_from_string "red-event-id"
+cursor-id:			g_quark_from_string "cursor-id"
+resizing-id:		g_quark_from_string "resizing-id"
+start-resize-id:	g_quark_from_string "start-resize-id"
+
+
+#define SET-CONTAINER(s d)		[g_object_set_qdata s container-id d]
+#define GET-CONTAINER(s)		[g_object_get_qdata s container-id]
+#define SET-CURSOR(s d)			[g_object_set_qdata s cursor-id d]
+#define GET-CURSOR(s)			[g_object_get_qdata s cursor-id]
+#define SET-RESIZING(s d)		[g_object_set_qdata s resizing-id d]
+#define GET-RESIZING(s)			[g_object_get_qdata s resizing-id]
+#define SET-STARTRESIZE(s d)	[g_object_set_qdata s start-resize-id d]
+#define GET-STARTRESIZE(s)		[g_object_get_qdata s start-resize-id]

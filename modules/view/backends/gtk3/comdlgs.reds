@@ -36,7 +36,16 @@ _request-file: func [
 		ret		[red-value!]
 ][
 	ret: as red-value! none-value
-	widget: gtk_file_chooser_dialog_new ["FileChooserDialog" null either dir? [GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER][GTK_FILE_CHOOSER_ACTION_OPEN] "Cancel" GTK_RESPONSE_CANCEL "Open" GTK_RESPONSE_ACCEPT null]
+	widget: gtk_file_chooser_dialog_new [
+		"FileChooserDialog"
+		null
+		either dir? [GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER][GTK_FILE_CHOOSER_ACTION_OPEN]
+		"Cancel"
+		GTK_RESPONSE_CANCEL
+		"Open"
+		GTK_RESPONSE_ACCEPT
+		null
+	]
 	gobj_signal_connect(widget "file-activated" :request-file-double-clicked null)
 	unless null? main-window [gtk_window_set_transient_for widget main-window]
 	resp: gtk_dialog_run widget
@@ -81,33 +90,29 @@ OS-request-font: func [
 	return:			[red-object!]
 	/local
 		widget		[handle!]
-		fd 			[handle!]
-		values		[red-value!]
-		style		[red-block!]
-		size		[integer!]
-		cstr		[c-string!]
-		str 		[red-string!]
-		manager		[integer!]
-		trait		[integer!]
-		bold?		[logic!]
+		fd			[handle!]
 		resp		[integer!]
-		fd-sel 		[handle!]
+		cstr		[c-string!]
+		size		[integer!]
+		values		[red-value!]
+		str			[red-string!]
+		style		[red-block!]
+		bold?		[logic!]
 ][
 	widget: gtk_font_chooser_dialog_new "Font" null
-	if all[TYPE_OF(selected) = TYPE_OBJECT][
-		fd-sel: get-font-handle selected 0
-		;; DEBUG: print ["fd-sel: " pango_font_description_get_family fd-sel " " pango_font_description_get_size fd-sel lf]
-		gtk_font_chooser_set_font_desc widget fd-sel
+	if TYPE_OF(selected) = TYPE_OBJECT [
+		fd: create-pango-font selected
+		gtk_font_chooser_set_font_desc widget fd
+		free-pango-font fd
 	]
 	resp: gtk_dialog_run widget
-	;; print ["resp: " resp lf]
 	either resp = -5 [
 		fd: gtk_font_chooser_get_font_desc widget
 		cstr: pango_font_description_get_family fd
 		size: length? cstr
 		values: object/get-values font
 		str: string/make-at values + FONT_OBJ_NAME size Latin1
-        unicode/load-utf8-stream cstr size str null
+		unicode/load-utf8-stream cstr size str null
 
 		size: pango_font_description_get_size fd
 		integer/make-at values + FONT_OBJ_SIZE size / PANGO_SCALE
@@ -127,7 +132,6 @@ OS-request-font: func [
 				word/make-at _italic as red-value! style
 			]
 		]
-		set-font-handle font fd
 	][
 		font/header: TYPE_NONE
 	]
