@@ -1651,6 +1651,7 @@ OS-make-view: func [
 			gtk_entry_set_width_chars widget size/x / font-size? font
 			set-hint-text widget as red-block! values + FACE_OBJ_OPTIONS
 			if bits and FACET_FLAGS_PASSWORD <> 0 [gtk_entry_set_visibility widget no]
+			gtk_entry_set_has_frame widget (bits and FACET_FLAGS_NO_BORDER = 0)
 		]
 		sym = progress [
 			widget: gtk_progress_bar_new
@@ -1766,6 +1767,7 @@ OS-update-view: func [
 		s		[series!]
 		widget	[handle!]
 		flags	[integer!]
+		flags-flags	[integer!]
 		type	[integer!]
 ][
 	;; DEBUG: print ["OS-update-view" lf]
@@ -1819,13 +1821,13 @@ OS-update-view: func [
 		change-selection widget int2 type
 	]
 	if flags and FACET_FLAG_FLAGS <> 0 [
-		flags: get-flags as red-block! values + FACE_OBJ_FLAGS
-		if all[
-			type = field
-			flags and FACET_FLAGS_PASSWORD <> 0
-		][
-			;; DEBUG: print ["password flag activated for field" lf]
-			gtk_entry_set_visibility widget no
+		flags-flags: get-flags as red-block! values + FACE_OBJ_FLAGS
+		if type = field [
+			if flags-flags and FACET_FLAGS_PASSWORD <> 0 [
+				;; DEBUG: print ["password flag activated for field" lf]
+				gtk_entry_set_visibility widget no
+			]
+			gtk_entry_set_has_frame widget (flags-flags and FACET_FLAGS_NO_BORDER = 0)
 		]
 	]
 	if flags and FACET_FLAG_DRAW  <> 0 [
