@@ -639,6 +639,19 @@ SecurityFunctionTableW: alias struct! [
 	QueryCredentialsAttributesExW [int-ptr!]
 ]
 
+DNS_HEADER: alias struct! [
+	Xid				[integer!]
+	QuestionCount	[integer!]
+	;AnswerCount
+	NameServerCount	[integer!]
+	;AdditionalCount
+]
+
+DNS_MESSAGE_BUFFER: alias struct! [
+    MessageHead		[DNS_HEADER value]
+    MessageBody		[integer!]
+]
+
 #import [
 	LIBC-file cdecl [
 		_setmode: "_setmode" [
@@ -1079,7 +1092,6 @@ SecurityFunctionTableW: alias struct! [
 			lpCompletionRoutine	[int-ptr!]
 			return:				[integer!]
 		]
-		WSAGetLastError: "WSAGetLastError" [return: [integer!]]
 		closesocket: "closesocket" [
 			s			[integer!]
 			return:		[integer!]
@@ -1124,6 +1136,32 @@ SecurityFunctionTableW: alias struct! [
 			optval		[c-string!]
 			optlen		[int-ptr!]
 			return:		[integer!]
+		]
+	]
+	"dnsapi.dll" stdcall [
+		DnsQueryConfig: "DnsQueryConfig" [
+			Config			[integer!]
+			Flag			[integer!]
+			pwsAdapterName	[c-string!]
+			pReserved		[byte-ptr!]
+			pBuffer			[int-ptr!]
+			pBufLen			[int-ptr!]
+			return:			[integer!]
+		]
+		DnsWriteQuestionToBuffer_UTF8: "DnsWriteQuestionToBuffer_UTF8" [
+			pDnsBuffer		[byte-ptr!]
+			pdwBufferSize	[int-ptr!]
+			pszName			[c-string!]
+			wType			[integer!]
+			Xid				[integer!]
+			fRecursionDesired [logic!]
+			return:			[logic!]
+		]
+		DnsExtractRecordsFromMessage_UTF8: "DnsExtractRecordsFromMessage_UTF8" [
+			pDnsBuffer		[DNS_MESSAGE_BUFFER]
+			wMessageLength	[integer!]
+			ppRecord		[int-ptr!]
+			return:			[integer!]
 		]
 	]
 	"gdiplus.dll" stdcall [
