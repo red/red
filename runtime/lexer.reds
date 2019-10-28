@@ -746,7 +746,7 @@ lexer: context [
 							w?: no
 							while [all [not w? p < e p/1 <> #")"]][
 								index: as-integer p/1
-								class: lex-classes/index
+								class: lex-classes/index and FFh ;-- mask the flags
 								switch class [
 									C_DIGIT C_ZERO C_ALPHAX C_EXP [0]
 									default [w?: yes]	;-- early exit if not an hex value
