@@ -549,31 +549,6 @@ post-quit-msg: func [
 	exit-loop: exit-loop - 1
 ]
 
-;;------------- centralize here connection handlers
-;; The goal is to only connect gtk handlers only when actor is provided
-;; Rmk: Specific development for rich-text with panel parent with on-over actor for rich-text
-;; 		The panel needs to receive the event otherwise the rich-text can't receive the event with the associated actor.
-;;		A delegation connection is provided to do so.
-
-#enum DebugConnect! [
-	DEBUG_CONNECT_NONE: 			0
-	DEBUG_CONNECT_WIDGET: 			1
-	DEBUG_CONNECT_COMMON: 			2
-	DEBUG_CONNECT_NOTIFY: 			4
-	DEBUG_CONNECT_RESPOND_KEY: 		8
-	DEBUG_CONNECT_RESPOND_MOUSE: 	16
-	DEBUG_CONNECT_RESPOND_WINDOW: 	32
-	DEBUG_CONNECT_ALL_ADD:      63
-	DEBUG_CONNECT_RESPOND_EVENT: 	65536
-	DEBUG_CONNECT_ALL:				131071
-]
-
-;; DEBUG mode: NONE vs ALL vs ALL_ADD
-debug-connect-level: DEBUG_CONNECT_NONE
-;debug-connect-level: DEBUG_CONNECT_ALL_ADD
-
-debug-connect?: func [level [integer!] return: [logic!]][debug-connect-level and level <> 0]
-
 ;; TODO: before finding better solution!!!!
 ;; container-type? is now only restricted to rich-text (cf gui.red)
 ;; since
@@ -606,12 +581,21 @@ connect-common-events: function [
 ]
 
 connect-focus-events: function [
+	evbox		[handle!]
 	widget		[handle!]
-	data		[int-ptr!]
+	sym			[integer!]
 ][
-	assert widget <> null
-	gobj_signal_connect(widget "focus-in-event" :focus-in-event data)
-	gobj_signal_connect(widget "focus-out-event" :focus-out-event data)
+	if any [
+		sym = base
+		sym = rich-text
+		sym = field
+		sym = area
+	][
+		gtk_widget_set_can_focus widget yes
+		gtk_widget_set_focus_on_click widget yes
+		gobj_signal_connect(evbox "focus-in-event" :focus-in-event widget)
+		gobj_signal_connect(evbox "focus-out-event" :focus-out-event widget)
+	]
 ]
 
 connect-notify-events: function [
@@ -634,61 +618,41 @@ connect-widget-events: function [
 ][
 	evbox: get-face-evbox widget values sym
 	;; register red mouse, key event functions
-	connect-common-events evbox widget
+	if sym <> window [
+		connect-common-events evbox widget
+	]
 	connect-notify-events evbox widget
+	connect-focus-events evbox widget sym 
 
 	case [
 		sym = check [
 			;@@ No click event for check
-			;gobj_signal_connect(widget "clicked" :button-clicked null)
 			gobj_signal_connect(widget "toggled" :button-toggled widget)
 		]
 		sym = radio [
-			;@@ Line below removed because it generates an error and there is no click event for radio
-			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add radio toggled " lf]]
 			gobj_signal_connect(widget "toggled" :button-toggled widget)
 		]
 		sym = button [
-			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add button clicked " lf]]
 			gobj_signal_connect(widget "clicked" :button-clicked widget)
 		]
 		sym = base [
 			gobj_signal_connect(widget "draw" :base-draw widget)
-			gtk_widget_set_can_focus widget yes
-			gtk_widget_set_focus_on_click widget yes
-			gtk_widget_grab_focus widget
-			connect-focus-events widget widget
 		]
 		sym = rich-text [
 			gobj_signal_connect(widget "draw" :base-draw widget)
-			gtk_widget_set_can_focus widget yes
-			gtk_widget_set_focus_on_click widget yes
-			gtk_widget_grab_focus widget
-			connect-focus-events widget widget
 		]
 		sym = window [
 			gobj_signal_connect(widget "event" :window-event widget)
-			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add window delete-event " lf]]
 			gobj_signal_connect(widget "delete-event" :window-delete-event widget)
 			;BUG (make `vid.red` failing): gtk_widget_add_events widget GDK_STRUCTURE_MASK
-			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add window size-allocate " lf]]
 			gobj_signal_connect(widget "size-allocate" :window-size-allocate widget)
-			gtk_widget_set_can_focus widget yes
-			gtk_widget_set_focus_on_click widget yes
-			gtk_widget_grab_focus widget
-			connect-focus-events widget widget
 		]
 		sym = slider [
-			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add slider value-changed " lf]]
 			gobj_signal_connect(widget "value-changed" :range-value-changed widget)
 		]
 		sym = text [0]
 		sym = field [
 			gobj_signal_connect(widget "changed" :field-changed widget)
-			gtk_widget_set_can_focus widget yes
-			gtk_widget_set_focus_on_click widget yes
-			gtk_widget_grab_focus widget
-			connect-focus-events widget widget
 		]
 		sym = progress [
 			0
@@ -696,16 +660,9 @@ connect-widget-events: function [
 		sym = area [
 			; _widget is here buffer
 			buffer: gtk_text_view_get_buffer widget
-			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add area changed " lf]]
 			gobj_signal_connect(buffer "changed" :area-changed widget)
-			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add area populate-all " lf]]
 			g_object_set [widget "populate-all" yes null]
-			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add area populate-popup" lf]]
 			gobj_signal_connect(widget "populate-popup" :area-populate-popup widget)
-			gtk_widget_set_can_focus widget yes
-			gtk_widget_set_focus_on_click widget yes
-			gtk_widget_grab_focus widget
-			connect-focus-events widget widget
 		]
 		sym = group-box [
 			0
@@ -714,12 +671,10 @@ connect-widget-events: function [
 			gobj_signal_connect(widget "draw" :base-draw widget)
 		]
 		sym = tab-panel [
-			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add tab-panel switch-page " lf]]
 			gobj_signal_connect(widget "switch-page" :tab-panel-switch-page widget)
 		]
 		sym = text-list [
 			;;; Mandatory and can respond to  (ON_SELECT or ON_CHANGE)
-			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add text-list selected-rows-changed " lf]]
 			gobj_signal_connect(widget "selected-rows-changed" :text-list-selected-rows-changed widget)
 		]
 		any [
@@ -727,7 +682,6 @@ connect-widget-events: function [
 			sym = drop-down
 		][
 			;;; Mandatory! and can respond to (ON_SELECT or ON_CHANGE)
-			;; DEBUG: if debug-connect? DEBUG_CONNECT_WIDGET [print ["Add drop-(list|down) changed " lf]]
 			gobj_signal_connect(widget "changed" :combo-selection-changed widget)
 		]
 		true [0]

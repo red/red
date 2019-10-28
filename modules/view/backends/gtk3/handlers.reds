@@ -435,18 +435,14 @@ key-press-event: func [
 		face	[red-object!]
 		qdata	[handle!]
 ][
-	;; DEBUG: print ["key-press-event: " event-key/keyval lf]
 	if event-key/keyval > FFFFh [return EVT_DISPATCH]
 	key: translate-key event-key/keyval
 	flags: 0 ;either char-key? as-byte key [0][80000000h]	;-- special key or not
 	flags: flags or check-extra-keys event-key/state
 
-	;; DEBUG: print ["key: " key " flags: " flags " key or flags: " key or flags lf]
 
 	res: make-event widget key or flags EVT_KEY_DOWN
-	;; DEBUG: print ["field press res " res lf]
 	if res <> EVT_NO_DISPATCH [
-		;; DEBUG: print ["special-key=" special-key " key=" key lf]
 		either special-key <> -1 [
 			switch key and FFFFh [
 				RED_VK_SHIFT	RED_VK_CONTROL
@@ -458,8 +454,7 @@ key-press-event: func [
 			]
 		][res: make-event widget key or flags EVT_KEY]
 	]
-	;; DEBUG: print ["key-press end" lf]
-	res
+	EVT_NO_DISPATCH
 ]
 
 key-release-event: func [
@@ -477,6 +472,7 @@ key-release-event: func [
 	flags: 0 ;either char-key? as-byte key [0][80000000h]	;-- special key or not
 	flags: flags or check-extra-keys event-key/state
 	make-event widget key or flags EVT_KEY_UP
+	EVT_NO_DISPATCH
 ]
 
 field-changed: func [
