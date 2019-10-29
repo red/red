@@ -31,6 +31,7 @@ lexer: context [
 		C_FLAG_SHARP:	00800000h
 		C_FLAG_EOF:		00400000h
 		C_FLAG_SIGN:	00200000h
+		C_FLAG_TM_ONLY: 00000400h						;-- only scan a time! value
 		C_FLAG_ESC_HEX: 00000200h						;-- percent-escaped mode
 		C_FLAG_NOSTORE: 00000100h						;-- do not store decoded value
 	]
@@ -1089,6 +1090,7 @@ lexer: context [
 	]
 
 	scan-date: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+		return: [int-ptr!]
 		/local
 			field [int-ptr!]
 			state [integer!]
@@ -1098,11 +1100,13 @@ lexer: context [
 			c	  [integer!]
 			pos	  [integer!]
 			month [integer!]
+			time? [logic!]
 	][
-;probe "scan-date"
+		time?: flags and C_FLAG_TM_ONLY <> 0
 		field: system/stack/allocate/zero 12
 		c: 0
-		state: S_DT_START
+		state: either time? [S_TM_START][S_DT_START]
+		
 		loop as-integer e - s [
 ;probe ["--- " s/1 " ---"]
 			cp: as-integer s/1
@@ -1120,36 +1124,46 @@ lexer: context [
 			][0]
 ;?? c
 			s: s + 1
-;?? c
 		]
-		
 		index: state * (size? date-char-classes!) + C_DT_EOF
 		state: as-integer date-transitions/index
 ;?? state
 		pos: as-integer fields-table/state
 ;?? pos
 		field/pos: c
+		;; TBD: add error state processing
 		
-		month: field/3
-		if any [month > 12 month < 1][					;-- month as a word	
-			month: switch month [						;-- convert hashed word to correct value
-				8128 81372323	[1]
-				7756 776512323	[2]
-				8432 843942		[3]
-				7382 739006		[4]
-				8353			[5]						;-- "May" has no longer form
-				8328 83349		[6]
-				8326 83263		[7]
-				7421 7430330	[8]
-				9070 480839780	[9]
-				8570 85786372	[10]
-				8676 868374372	[11]
-				7557 756474372	[12]
-				default 		[throw LEX_ERROR 0]
+		unless time? [
+			month: field/3
+			if any [month > 12 month < 1][				;-- month as a word	
+				month: switch month [					;-- convert hashed word to correct value
+					8128 81372323	[1]
+					7756 776512323	[2]
+					8432 843942		[3]
+					7382 739006		[4]
+					8353			[5]					;-- "May" has no longer form
+					8328 83349		[6]
+					8326 83263		[7]
+					7421 7430330	[8]
+					9070 480839780	[9]
+					8570 85786372	[10]
+					8676 868374372	[11]
+					7557 756474372	[12]
+					default 		[throw LEX_ERROR 0]
+				]
+				field/3: month
 			]
-			field/3: month
+			date/set-all
+				 as red-date! alloc-slot lex
+				 field/2								;-- year 
+				 field/3								;-- month
+				 field/4								;-- day  
+				 field/5								;-- hour 
+				 field/6								;-- min  
+				 field/7								;-- sec  
+				 field/8								;-- nano
 		]
-comment {
+;comment {
 		probe [
 			"-----------------"
 			"^/trash: "	field/1
@@ -1165,16 +1179,9 @@ comment {
 			"^/TZ-h : " field/11
 			"^/TZ-m : " field/12
 		]
-}		
-		date/set-all
-			 as red-date! alloc-slot lex
-			 field/2									;-- year 
-			 field/3									;-- month
-			 field/4									;-- day  
-			 field/5									;-- hour 
-			 field/6									;-- min  
-			 field/7									;-- sec  
-			 field/8									;-- nano
+;}		
+		lex/in-pos: e									;-- reset the input position to delimiter byte
+		field											;-- return field pointer for scan-time
 	]
 	
 	scan-pair: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
@@ -1199,9 +1206,20 @@ comment {
 	]
 	
 	scan-time: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
-	;	/local
+		/local
+			field [int-ptr!]
+			tm	  [float!]
 	][
-		null
+		field: scan-date state s e flags or C_FLAG_TM_ONLY ;-- field is on freed stack frame
+		
+		if any [field/11 <> 0 field/12 <> 0][throw LEX_ERROR] ;-- TZ info rejection
+
+		tm: (3600.0 * as float! field/5)
+		  + (60.0   * as float! field/6)
+		  + (         as float! field/7)
+		  + (1e-9   * as float! field/8)
+
+		time/make-at tm alloc-slot state				;-- field array is not usable after this call
 	]
 	
 	scan-money: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]

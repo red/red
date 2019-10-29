@@ -170,7 +170,7 @@ context [
 	;-- Determine CSV separator
 	sep: [#";" 0 #"," 0]
 	parse csv [some [#";" (sep/2: sep/2 + 1) | #"," (sep/4: sep/4 + 1) | skip]]
-	sort/skip/all/compare sep 2 func [a b][a/2 < b/2]
+	sort/skip/all/compare sep 2 func [a b][a/2 > b/2]
 
 	;-- Decode CSV
 	matrix: load-csv/with read CSV-table first sep
@@ -197,7 +197,7 @@ context [
 	;-- Determine CSV separator
 	sep: [#";" 0 #"," 0]
 	parse csv [some [#";" (sep/2: sep/2 + 1) | #"," (sep/4: sep/4 + 1) | skip]]
-	sort/skip/all/compare sep 2 func [a b][a/2 < b/2]
+	sort/skip/all/compare sep 2 func [a b][a/2 > b/2]
 
 	;-- Decode CSV
 	matrix: load-csv/with read date-table first sep
