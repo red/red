@@ -61,6 +61,20 @@ sockaddr_in6!: alias struct! [
 	sin_scope_id [integer!]
 ]
 
+addrinfo!: alias struct! [
+	ai_flags		[integer!]
+	ai_family		[integer!]
+	ai_socktype		[integer!]
+	ai_protocol		[integer!]
+	ai_addrlen		[ulong!]
+	ai_canonname	[c-string!]
+	ai_addr			[sockaddr_in!]
+	ai_blob			[byte-ptr!]
+	ai_bloblen		[ulong!]
+	ai_provider		[int-ptr!]
+	ai_next			[addrinfo!]
+]
+
 ;=== platform specific definitions ===
 
 #either OS = 'Windows [

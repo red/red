@@ -47,6 +47,14 @@ iocp-data!: alias struct! [
 	IOCP_DATA_FIELDS
 ]
 
+sockdata!: alias struct! [
+	iocp		[iocp-data! value]
+	port		[red-object! value]		;-- red port! cell
+	flags		[integer!]
+	send-buf	[node!]					;-- send buffer
+	addrinfo	[int-ptr!]
+]
+
 udp-data!: alias struct! [
 	iocp		[iocp-data! value]
 	port		[red-object! value]		;-- red port! cell
@@ -59,7 +67,7 @@ udp-data!: alias struct! [
 dns-data!: alias struct! [
 	IOCP_DATA_FIELDS
 	port		[red-object! value]		;-- red port! cell
-	
+	addrinfo	[addrinfo!]
 ]
 
 iocp: context [

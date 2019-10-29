@@ -31,68 +31,13 @@ dns-device: context [
 		type: data/event
 probe "dns event-handler"
 		switch type [
-			IO_EVT_READ	[
-				bin: as red-binary! (object/get-values p) + port/field-data
-				s: GET_BUFFER(bin)
-				probe ["read data: " data/transferred]
-probe as c-string! s/offset
-				s/tail: as cell! (as byte-ptr! s/tail) + data/transferred
-				io/unpin-memory bin/node
-				#if OS = 'Windows [
-					either data/accept-sock = PENDING_IO_FLAG [
-						free as byte-ptr! data
-					][
-						data/event: IO_EVT_NONE 
-					]
-				]
-			]
-			IO_EVT_WRITE	[
-				io/unpin-memory dns/send-buf
-				#if OS = 'Windows [
-					either data/accept-sock = PENDING_IO_FLAG [
-						free as byte-ptr! data
-					][
-						data/event: IO_EVT_NONE
-					]
-				]
-			]
-			IO_EVT_ACCEPT	[ 
-				msg: create-red-port p dns
-				ser1: as red-series! (object/get-values p) + port/field-data
-				ser2: as red-series! (object/get-values msg) + port/field-data
-				s: GET_BUFFER(ser1)
-				probe ["read data in accept: " data/transferred]
-				s/tail: as cell! (as byte-ptr! s/tail) + data/transferred
-				io/unpin-memory ser1/node
-				_series/copy ser1 ser2 null no null
+			IO_EVT_RESOLVED	[
+				probe "resolved"
 			]
 			default [data/event: IO_EVT_NONE]
 		]
 
 		io/call-awake p msg type
-	]
-
-	create-red-port: func [
-		proto		[red-object!]
-		data		[dns-data!]
-		return:		[red-object!]
-		/local
-			fd		[integer!]
-	][
-		proto: port/make none-value object/get-values proto TYPE_NONE
-
-		;; @@ add it to a block, so GC can mark it. Improve it later!!!
-		block/rs-append ports-block as red-value! proto
-
-		fd: socket/create AF_INET SOCK_DGRAM IPPROTO_dns
-		iocp/bind g-iocp as int-ptr! fd
-		probe "create red port"
-		dump4 :data/addr
-		probe data/addr-sz
-		probe WSAConnect fd as sockaddr_in! :data/addr data/addr-sz null null null null
-		data: as dns-data! io/create-socket-data proto fd as int-ptr! :event-handler size? dns-data!
-		data/iocp/type: IOCP_TYPE_dns
-		proto
 	]
 
 	create-dns-data: func [
@@ -154,7 +99,7 @@ probe as c-string! s/offset
 		]
 	]
 
-	dns-client: func [
+	make-resolver: func [
 		port	[red-object!]
 		host	[red-string!]
 		num		[red-integer!]
@@ -169,50 +114,7 @@ probe as c-string! s/offset
 		iocp/bind g-iocp as int-ptr! fd
 		n: -1
 		addr: unicode/to-utf8 host :n
-		socket/uconnect fd addr num/value AF_INET
 		create-dns-data port fd addr num/value
-	]
-
-	dns-server: func [
-		port	[red-object!]
-		num		[red-integer!]
-		/local
-			fd	[integer!]
-			acp [integer!]
-			d	[dns-data!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "dns server"]]
-
-		fd: socket/create AF_INET SOCK_DGRAM IPPROTO_dns
-		d: create-dns-data port fd null num/value
-		probe ["size.... " d/addr-sz]
-		probe socket/bind fd num/value AF_INET
-		iocp/bind g-iocp as int-ptr! fd
-		copy-from port d
-		d/iocp/event: IO_EVT_ACCEPT
-	]
-
-	copy-from: func [
-		red-port	[red-object!]
-		data		[dns-data!]
-		/local
-			buf		[red-binary!]
-			s		[series!]
-	][
-		buf: as red-binary! (object/get-values red-port) + port/field-data
-		if TYPE_OF(buf) <> TYPE_BINARY [
-			binary/make-at as cell! buf SOCK_READBUF_SZ
-		]
-		buf/head: 0
-		io/pin-memory buf/node
-		s: GET_BUFFER(buf)
-		socket/urecv
-			as-integer data/iocp/device
-			as byte-ptr! s/offset
-			s/size
-			as sockaddr_in! :data/addr
-			:data/addr-sz
-			as sockdata! data
 	]
 
 	;-- actions
@@ -243,11 +145,8 @@ probe as c-string! s/offset
 		host:	as red-string! values + 2
 		num:	as red-integer! values + 3		;-- port number
 
-		either zero? string/rs-length? host [	;-- e.g. open dns://:8000
-			dns-server red-port num
-		][
-			dns-client red-port host num
-		]
+		make-resolver red-port host num
+
 		as red-value! red-port
 	]
 
@@ -277,23 +176,7 @@ probe as c-string! s/offset
 			bin		[red-binary!]
 			n		[integer!]
 	][
-probe "dns/inser"
-		switch TYPE_OF(value) [
-			TYPE_BINARY [
-				bin: as red-binary! value
-				io/pin-memory bin/node
-			]
-			default [return as red-value! port]
-		]
-
-		data: get-dns-data port
-		data/send-buf: bin/node
-
-		socket/send
-			as-integer data/iocp/device
-			binary/rs-head bin
-			binary/rs-length? bin
-			as iocp-data! data
+probe "dns/insert"
 		as red-value! port
 	]
 
@@ -309,15 +192,6 @@ probe "dns/inser"
 			buf		[red-binary!]
 			s		[series!]
 	][
-		buf: as red-binary! (object/get-values red-port) + port/field-data
-		if TYPE_OF(buf) <> TYPE_BINARY [
-			binary/make-at as cell! buf SOCK_READBUF_SZ
-		]
-		buf/head: 0
-		io/pin-memory buf/node
-		s: GET_BUFFER(buf)
-		data: as iocp-data! get-dns-data red-port
-		socket/recv as-integer data/device as byte-ptr! s/offset s/size data
 		as red-value! red-port
 	]
 

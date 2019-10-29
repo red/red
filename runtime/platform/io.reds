@@ -15,6 +15,7 @@ SOCK_READBUF_SZ: 8192			;-- 8KB
 #enum iocp-type! [
 	IOCP_TYPE_TCP:		0
 	IOCP_TYPE_UDP:		1
+	IOCP_TYPE_DNS:		2
 	IOCP_TYPE_TLS:		10h
 ]
 

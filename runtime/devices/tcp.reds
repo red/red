@@ -61,6 +61,9 @@ tcp-device: context [
 					msg: create-red-port p socket/accept as-integer data/device
 				]
 			]
+			IO_EVT_RESOLVED [
+				0 ;tcp-client p addr num
+			]
 			default [data/event: IO_EVT_NONE]
 		]
 
@@ -122,12 +125,10 @@ tcp-device: context [
 
 	tcp-client: func [
 		port	[red-object!]
-		host	[red-string!]
-		num		[red-integer!]
+		host	[c-string!]
+		num		[integer!]
 		/local
-			fd		[integer!]
-			n		[integer!]
-			addr	[c-string!]
+			fd	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tcp client"]]
 
@@ -135,9 +136,7 @@ tcp-device: context [
 		iocp/bind g-iocp as int-ptr! fd
 		socket/bind fd 0 AF_INET
 
-		n: -1
-		addr: unicode/to-utf8 host :n
-		socket/connect fd addr num/value AF_INET create-tcp-data port fd
+		socket/connect fd host num AF_INET create-tcp-data port fd
 	]
 
 	tcp-server: func [
@@ -153,6 +152,40 @@ tcp-device: context [
 		socket/bind fd num/value AF_INET
 		socket/listen fd 1024 create-tcp-data port fd
 		iocp/bind g-iocp as int-ptr! fd
+	]
+
+	resolve-name: func [
+		red-port	[red-object!]
+		name		[c-string!]
+		/local
+			data	[sockdata!]
+			hints	[addrinfo! value]
+			timeout [timeval! value]
+			res		[integer!]
+			info	[addrinfo!]
+	][
+		data: as sockdata! create-tcp-data red-port 0
+		data/iocp/type: IOCP_TYPE_DNS
+
+		zero-memory as byte-ptr! :hints size? addrinfo!
+		hints/ai_family: AF_INET
+		hints/ai_socktype: SOCK_STREAM
+		hints/ai_protocol: IPPROTO_TCP
+
+		timeout/tv_sec: 10
+		timeout/tv_usec: 0
+		either win8+? [
+			res: GetAddrInfoExW name null NS_DNS null :hints :data/addrinfo :timeout as OVERLAPPED! data null null
+		][
+			res: GetAddrInfoExW name null NS_DNS null :hints :data/addrinfo null null null null
+			info: as addrinfo! data/addrinfo
+			while [info <> null][
+				dump4 info
+				dump4 info/ai_addr
+				info: info/ai_next
+			]
+		]
+		?? res
 	]
 
 	;-- actions
@@ -171,6 +204,9 @@ tcp-device: context [
 			state	[red-handle!]
 			host	[red-string!]
 			num		[red-integer!]
+			n		[integer!]
+			addr	[c-string!]
+			addrbuf [sockaddr_in6! value]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tcp/open"]]
 
@@ -186,7 +222,13 @@ tcp-device: context [
 		either zero? string/rs-length? host [	;-- e.g. open tcp://:8000
 			tcp-server red-port num
 		][
-			tcp-client red-port host num
+			n: -1
+			addr: unicode/to-utf8 host :n
+			either 1 = inet_pton AF_INET addr :addrbuf [
+				tcp-client red-port addr num/value
+			][
+				resolve-name red-port unicode/to-utf16 host
+			]
 		]
 		as red-value! red-port
 	]

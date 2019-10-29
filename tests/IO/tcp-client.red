@@ -13,7 +13,7 @@ total: 0.0
 
 print "TCP client"
 
-client: open tcp://127.0.0.1:8123
+client: open tcp://baidu.com:8123
 
 b: make binary! size: 80000
 loop size [append b random 255]

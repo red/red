@@ -14,13 +14,6 @@ Red/System [
 
 #define PENDING_IO_FLAG		1
 
-sockdata!: alias struct! [
-	iocp		[iocp-data! value]
-	port		[red-object! value]		;-- red port! cell
-	flags		[integer!]
-	send-buf	[node!]					;-- send buffer
-]
-
 socket: context [
 	verbose: 1
 

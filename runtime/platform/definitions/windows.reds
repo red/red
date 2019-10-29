@@ -98,6 +98,7 @@ Red/System [
 
 #define FIONBIO							8004667Eh
 #define SOL_SOCKET						FFFFh
+#define NS_DNS							12
 
 #define INVALID_HANDLE					[as int-ptr! -1]
 
@@ -1064,12 +1065,21 @@ DNS_MESSAGE_BUFFER: alias struct! [
 			pServiceName		[c-string!]
 			dwNameSpace			[integer!]
 			lpNspId				[int-ptr!]
-			pHints				[int-ptr!]
+			pHints				[addrinfo!]
 			ppResult			[int-ptr!]
 			timeout				[timeval!]
 			lpOverlapped		[OVERLAPPED!]
 			lpCompletionRoutine	[int-ptr!]
 			lpNameHandle		[int-ptr!]
+			return:				[integer!]
+		]
+		FreeAddrInfoEx: "FreeAddrInfoEx" [
+			pAddInfoEx			[ptr-ptr!]
+		]
+		inet_pton: "inet_pton" [
+			Family				[integer!]
+			pszAddrString		[c-string!]
+			pAddrBuf			[sockaddr_in6!]
 			return:				[integer!]
 		]
 		WSAWaitForMultipleEvents: "WSAWaitForMultipleEvents" [

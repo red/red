@@ -160,6 +160,9 @@ check-arg-type: func [
 
 #switch OS [
 	Windows [
+
+	win8+?: no
+
 	__get-OS-info: func [
 		/local
 			obj		[red-object!]
@@ -181,6 +184,13 @@ check-arg-type: func [
 		ver/szCSDVersion: 0
 		GetVersionEx :ver
 
+		win8+?: any [
+			ver/dwMajorVersion >= 10				;-- Win 10+
+			all [									;-- Win 8, Win 8.1
+				ver/dwMajorVersion >= 6
+				ver/dwMinorVersion >= 2
+			]
+		]
 		server?: ver/wProductType <> #"^(01)"
 		str: string/load-at "Windows " 8 val UTF-8
 		name: switch ver/dwMajorVersion [
