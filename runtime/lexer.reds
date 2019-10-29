@@ -31,6 +31,7 @@ lexer: context [
 		C_FLAG_SHARP:	00800000h
 		C_FLAG_EOF:		00400000h
 		C_FLAG_SIGN:	00200000h
+		C_FLAG_DTIME:	00000400h						;-- time value is part of a date/time
 		C_FLAG_ESC_HEX: 00000200h						;-- percent-escaped mode
 		C_FLAG_NOSTORE: 00000100h						;-- do not store decoded value
 	]
@@ -82,12 +83,19 @@ lexer: context [
 		C_DT_DASH										;-- 3
 		C_DT_T											;-- 4
 		C_DT_W											;-- 5
-		C_DT_PLUS										;-- 6
-		C_DT_COLON										;-- 7
-		C_DT_DOT										;-- 8
-		C_DT_Z											;-- 9
-		C_DT_ILLEGAL									;-- 10
-		C_DT_EOF										;-- 11
+		C_DT_ILLEGAL									;-- 6
+		C_DT_EOF										;-- 7
+	]
+	
+	#enum time-char-classes! [
+		C_TM_DIGIT										;-- 0
+		C_TM_DASH										;-- 1
+		C_TM_PLUS										;-- 2
+		C_TM_COLON										;-- 3
+		C_TM_DOT										;-- 4
+		C_TM_Z											;-- 5
+		C_TM_ILLEGAL									;-- 6
+		C_TM_EOF										;-- 7
 	]
 	
 	#enum bin16-char-classes! [
@@ -186,14 +194,25 @@ lexer: context [
 	}
 	
 	date-classes: #{
-		0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A
-		0A0A0A0A0A0A0A0A0A0A0A060A03080200000000000000000000070A0A0A0A0A
-		0A010101010101010101010A01010101010A0101040101050A01090A0A0A0A0A
-		0A010101010101010101010A01010101010A01010101010A0A010A0A0A0A0A0A
-		0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A
-		0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A
-		0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A
-		0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A
+		0606060606060606060606060606060606060606060606060606060606060606
+		0606060606060606060606060603060200000000000000000000060606060606
+		0601010101010101010101060101010101060101040101050601060606060606
+		0601010101010101010101060101010101060101010101060601060606060606
+		0606060606060606060606060606060606060606060606060606060606060606
+		0606060606060606060606060606060606060606060606060606060606060606
+		0606060606060606060606060606060606060606060606060606060606060606
+		0606060606060606060606060606060606060606060606060606060606060606
+	}
+	
+	time-classes: #{
+		0606060606060606060606060606060606060606060606060606060606060606
+		0606060606060606060606020601040600000000000000000000030606060606
+		0606060606060606060606060606060606060606060606060606050606060606
+		0606060606060606060606060606060606060606060606060606060606060606
+		0606060606060606060606060606060606060606060606060606060606060606
+		0606060606060606060606060606060606060606060606060606060606060606
+		0606060606060606060606060606060606060606060606060606060606060606
+		0606060606060606060606060606060606060606060606060606060606060606
 	}
 
 	lex-classes: [
@@ -1098,37 +1117,34 @@ lexer: context [
 			c	  [integer!]
 			pos	  [integer!]
 			month [integer!]
+			term? [logic!]
 	][
-;probe "scan-date"
 		field: system/stack/allocate/zero 12
 		c: 0
 		state: S_DT_START
 		loop as-integer e - s [
-;probe ["--- " s/1 " ---"]
 			cp: as-integer s/1
 			class: as-integer date-classes/cp
-;?? class
+			
 			index: state * (size? date-char-classes!) + class
 			state: as-integer date-transitions/index
-			
+		
 			pos: as-integer fields-table/state
 			field/pos: c
-;?? state
-;?? cp
-			c: either null-byte = reset-table/state [
-				 c * 10 + as-integer date-cumul/cp
-			][0]
-;?? c
-			s: s + 1
-;?? c
-		]
 		
-		index: state * (size? date-char-classes!) + C_DT_EOF
-		state: as-integer date-transitions/index
-;?? state
-		pos: as-integer fields-table/state
-;?? pos
-		field/pos: c
+			c: either reset-table/state <> null-byte [0][
+				 c * 10 + as-integer date-cumul/cp
+			]
+			s: s + 1
+			term?: state >= T_TM_START
+			if term? [break]
+		]
+		unless term? [
+			index: state * (size? date-char-classes!) + C_DT_EOF
+			state: as-integer date-transitions/index
+			pos: as-integer fields-table/state
+			field/pos: c
+		]
 		
 		month: field/3
 		if any [month > 12 month < 1][					;-- month as a word	
@@ -1149,6 +1165,10 @@ lexer: context [
 			]
 			field/3: month
 		]
+		if any [state = T_TM_START state = T_TM_START2][
+			scan-time lex s e flags or C_FLAG_DTIME field + 3
+		]
+		
 comment {
 		probe [
 			"-----------------"
@@ -1198,10 +1218,50 @@ comment {
 		state/in-pos: e									;-- reset the input position to delimiter byte
 	]
 	
-	scan-time: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
-	;	/local
+	scan-time: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!] dt-fields [int-ptr!]
+		/local
+			field [int-ptr!]
+			state [integer!]
+			class [integer!]
+			index [integer!]
+			cp	  [integer!]
+			c	  [integer!]
+			pos	  [integer!]
+			t	  [float!]
+			dtime?[logic!]
 	][
-		null
+		dtime?: flags and C_FLAG_DTIME <> 0
+		field: either dtime? [dt-fields][system/stack/allocate/zero 7]
+		c: 0
+		state: S_TM_START
+		loop as-integer e - s [	
+			cp: as-integer s/1
+			class: as-integer time-classes/cp
+			
+			index: state * (size? time-char-classes!) + class
+			state: as-integer time-transitions/index
+			
+			pos: as-integer fields-tm-table/state
+			field/pos: c
+			c: either reset-tm-table/state <> null-byte [0][
+				 c * 10 + as-integer date-cumul/cp
+			]
+			s: s + 1
+		]
+		index: state * (size? time-char-classes!) + C_TM_EOF
+		state: as-integer time-transitions/index
+		pos: as-integer fields-tm-table/state
+		field/pos: c
+		
+		unless dtime? [
+			if any [field/6 <> 0 field/7 <> 0][throw LEX_ERROR]
+			
+			t:  (3600.0 * as float! field/2)
+			  + (60.0   * as float! field/3)
+			  + (         as float! field/4)
+			  + (1e-9   * as float! field/5)
+			time/make-at t alloc-slot lex
+		]
 	]
 	
 	scan-money: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
@@ -1424,6 +1484,11 @@ comment {
 		date-cumul: date-cumul + 1
 		fields-table: fields-table + 1
 		reset-table: reset-table + 1
+		
+		time-classes: time-classes + 1
+		time-transitions: time-transitions + 1
+		fields-tm-table: fields-tm-table + 1
+		reset-tm-table: reset-tm-table + 1
 	]
 
 ]

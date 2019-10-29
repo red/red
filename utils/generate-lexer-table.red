@@ -93,6 +93,9 @@ context [
 ;year   	2
 ;month  	3
 ;day    	4
+;week		5
+;weekday	6
+
 ;hour   	5
 ;minute 	6
 ;second 	7
@@ -101,6 +104,14 @@ context [
 ;weekday	10
 ;tz-hour	11
 ;tz-min		12
+
+;trash		1
+;hour   	2
+;minute 	3
+;second 	4
+;nsec		5
+;tz-hour	6
+;tz-min		7
 
 	date-states: [
 	;-- state ----------- reset -- field --
@@ -116,10 +127,10 @@ context [
 		S_DT_YMM			1		3		;--	9
 		F_DT_YMONTH			0		3		;--	10
 		F_DT_DDD			1		4		;--	11
-		S_DT_YV				1		9		;--	12
-		S_DT_YW				1		9		;--	13
-		S_DT_YWW			1		9		;--	14
-		S_DT_WD				1		10		;--	15
+		S_DT_YV				1		5		;--	12
+		S_DT_YW				1		5		;--	13
+		S_DT_YWW			1		5		;--	14
+		S_DT_WD				1		6		;--	15
 		S_DT_YMON			1		3		;--	16
 		F_DT_YMD			1		4		;--	17
 		F_DT_YMDD			1		4		;--	18
@@ -131,39 +142,45 @@ context [
 		F_DT_DMYY			1		2		;--	24
 		F_DT_DMYYY			1		2		;--	25
 		F_DT_DMYYYY			1		2		;--	26
-		S_TM_START			0		4		;--	27
-		S_TM_START2			0		2		;--	28
-		F_TM_H				1		5		;--	29
-		F_TM_HH				1		5		;--	30
-		S_TM_HM				0		5		;--	31
-		F_TM_M				1		6		;--	32
-		F_TM_MM				1		6		;--	33
-		S_TM_HMS			0		6		;--	34
-		F_TM_S				1		7		;--	35
-		F_TM_SS				1		7		;--	36
-		F_TM_N1				0		8		;--	37
-		F_TM_N				1		8		;--	38
-		S_TZ_START			0		4		;--	39
-		S_TZ_H				1		11		;--	40
-		F_TZ_HH				1		11		;--	41
-		F_TZ_HM				0		12		;--	42
-		S_TZ_M				1		12		;--	43
-		T_DT_ERROR			0		1		;-- 44
-		T_DT_YMDAY			0		4		;-- 45
-		T_DT_DMYEAR			0		2		;-- 46
-		T_DT_YWWD			0		10		;--	47
-		T_DT_WEEK			0		9		;--	48
-		T_TM_HM				0		6		;--	49
-		T_TM_HMS			0		7		;-- 50
-		T_TM_NZ				0		8		;--	51
-		T_TZ_H				0		11		;--	52
-		T_TZ_HH				0		11		;-- 53
-		T_TZ_M				0		12		;-- 54
-		T_TZ_MM				0		12		;-- 55
+		T_TM_START			0		4		;--	27
+		T_TM_START2			0		2		;--	28
+		T_TZ_START			0		4		;--	29
+		T_DT_ERROR			0		1		;-- 30
+		T_DT_YMDAY			0		4		;-- 31
+		T_DT_DMYEAR			0		2		;-- 32
+		T_DT_YWWD			0		6		;--	33
+		T_DT_WEEK			0		5		;--	34
+	]
+	
+	time-states: [
+	;-- state ----------- reset -- field --
+		S_TM_START			0		1		;-- 0
+		F_TM_H				1		2		;--	1
+		F_TM_HH				1		2		;--	2
+		S_TM_HM				0		2		;--	3
+		F_TM_M				1		3		;--	4
+		F_TM_MM				1		3		;--	5
+		S_TM_HMS			0		3		;--	6
+		F_TM_S				1		4		;--	7
+		F_TM_SS				1		4		;--	8
+		F_TM_N1				0		5		;--	9
+		F_TM_N				1		5		;--	10
+		S_TZ_START			0		1		;--	11
+		S_TZ_H				1		6		;--	12
+		F_TZ_HH				1		6		;--	13
+		F_TZ_HM				0		7		;--	14
+		S_TZ_M				1		7		;--	15
+		T_TM_ERROR			0		1		;-- 16
+		T_TM_HM				0		3		;--	17
+		T_TM_HMS			0		4		;-- 18
+		T_TM_NZ				0		5		;--	19
+		T_TZ_H				0		6		;--	20
+		T_TZ_HH				0		6		;-- 21
+		T_TZ_M				0		7		;-- 22
+		T_TZ_MM				0		7		;-- 23
 	]
 
 	CSV-table: %../docs/lexer/lexer-FSM.csv
-	date-table: %../docs/lexer/lexer-FSM.csv
 	;-- Read states from CSV file
 	csv: read CSV-table
 
@@ -184,12 +201,13 @@ context [
 			either pos: find states to-word s [
 				append out (index? pos) - 1
 			][
-				do make error! form reduce ["Error: state" s "not found"]
+				do make error! form reduce ["Error: lexer state" s "not found"]
 			]
 		]
 		append/only table out
 	]
 	
+	;--------------------------------------------------------------------------
 	date-table: %../docs/lexer/date-FSM.csv
 	;-- Read states from CSV file
 	csv: read date-table
@@ -218,11 +236,49 @@ context [
 			either pos: find date-states to-word s [
 				append out ((2 + index? pos) / 3) - 1
 			][
-				do make error! form reduce ["Error: state" s "not found"]
+				do make error! form reduce ["Error: date state" s "not found"]
 			]
 		]
 		append/only dt-table out
 	]
+	
+	;--------------------------------------------------------------------------
+	time-table: %../docs/lexer/time-FSM.csv
+	;-- Read states from CSV file
+	csv: read time-table
+
+	;-- Determine CSV separator
+	sep: [#";" 0 #"," 0]
+	parse csv [some [#";" (sep/2: sep/2 + 1) | #"," (sep/4: sep/4 + 1) | skip]]
+	sort/skip/all/compare sep 2 func [a b][a/2 < b/2]
+
+	;-- Decode CSV
+	matrix: load-csv/with read time-table first sep
+
+	;-- Generate the date tables
+	tm-table: make binary! 2000
+	reset-tm-table: make binary! 100
+	fields-tm-table: make binary! 100
+
+	foreach [state reset pos] time-states [
+		append reset-tm-table to-char pick 0x31 reset = 1
+		append fields-tm-table to-char pos
+	]
+
+	foreach line next matrix [
+		out: make block! 50	
+		foreach s next line [
+			either pos: find time-states to-word s [
+				append out ((2 + index? pos) / 3) - 1
+			][
+				do make error! form reduce ["Error: time state" s "not found"]
+			]
+		]
+		append/only tm-table out
+	]
+	
+
+
 
 	template: compose/deep [Red/System [
 		Note: "Auto-generated lexical scanner transitions table"
@@ -236,9 +292,19 @@ context [
 		(extract date-states 3)
 	]
 	
+	#enum time-states! [
+		(extract time-states 3)
+	]
+	
+	fields-tm-table: (fields-tm-table)
+	
+	reset-tm-table: (reset-tm-table)
+	
 	fields-table: (fields-table)
 	
 	reset-table: (reset-table)
+	
+	time-transitions: (tm-table)
 	
 	date-transitions: (dt-table)
 	
