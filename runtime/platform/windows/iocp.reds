@@ -67,7 +67,11 @@ udp-data!: alias struct! [
 dns-data!: alias struct! [
 	IOCP_DATA_FIELDS
 	port		[red-object! value]		;-- red port! cell
-	addrinfo	[addrinfo!]
+	flags		[integer!]
+	send-buf	[node!]
+	addr		[sockaddr_in6! value]	;-- IPv4 or IPv6 address
+	addr-sz		[integer!]
+	addrinfo	[int-ptr!]
 ]
 
 iocp: context [
@@ -161,30 +165,52 @@ probe [data " " data/event " " data/type " " data/state " "]
 
 			evt: data/event
 
-			if data/type = IOCP_TYPE_TLS [
-				either data/state and IO_STATE_TLS_DONE <> 0 [
+			switch data/type [
+				IOCP_TYPE_DNS [
 					switch evt [
+						IO_EVT_WRITE [
+							dns/recv as dns-data! data
+							i: i + 1
+							continue
+						]
 						IO_EVT_READ [
-							unless tls/decode as tls-data! data [
+							either dns/parse-data as dns-data! data [
+								data/event: IO_EVT_LOOKUP
+							][
 								i: i + 1
 								continue
 							]
 						]
-						IO_EVT_WRITE [
-							0
-						]
 						default [0]
 					]
-				][
-					if all [
-						evt <> IO_EVT_ACCEPT
-						not tls/negotiate as tls-data! data
+				]
+				IOCP_TYPE_TLS [
+					either data/state and IO_STATE_TLS_DONE <> 0 [
+						switch evt [
+							IO_EVT_READ [
+								unless tls/decode as tls-data! data [
+									i: i + 1
+									continue
+								]
+							]
+							IO_EVT_WRITE [
+								0
+							]
+							default [0]
+						]
 					][
-						i: i + 1
-						continue
+						if all [
+							evt <> IO_EVT_ACCEPT
+							not tls/negotiate as tls-data! data
+						][
+							i: i + 1
+							continue
+						]
 					]
 				]
+				default [0]
 			]
+
 			if evt > 0 [data/event-handler as int-ptr! data]
 			i: i + 1
 		]

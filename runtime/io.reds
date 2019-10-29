@@ -19,7 +19,7 @@ Red/System [
 	IO_EVT_ACCEPT:		16
 	IO_EVT_CONNECT:		32
 	IO_EVT_WROTE:		64
-	IO_EVT_RESOLVED:	128
+	IO_EVT_LOOKUP:		128
 	IO_EVT_PULSE:		256
 	;-- more IO Events
 	;-- IO_EVT...

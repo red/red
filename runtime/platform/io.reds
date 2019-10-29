@@ -21,6 +21,7 @@ SOCK_READBUF_SZ: 8192			;-- 8KB
 
 #either OS = 'Windows [
 	#include %windows/iocp.reds
+	#include %windows/dns.reds
 	#include %windows/tls.reds
 	#include %windows/socket.reds
 ][

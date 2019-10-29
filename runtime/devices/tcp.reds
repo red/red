@@ -61,7 +61,7 @@ tcp-device: context [
 					msg: create-red-port p socket/accept as-integer data/device
 				]
 			]
-			IO_EVT_RESOLVED [
+			IO_EVT_LOOKUP [
 				0 ;tcp-client p addr num
 			]
 			default [data/event: IO_EVT_NONE]
@@ -163,6 +163,7 @@ tcp-device: context [
 			timeout [timeval! value]
 			res		[integer!]
 			info	[addrinfo!]
+			buf		[red-binary!]
 	][
 		data: as sockdata! create-tcp-data red-port 0
 		data/iocp/type: IOCP_TYPE_DNS
@@ -177,13 +178,14 @@ tcp-device: context [
 		either win8+? [
 			res: GetAddrInfoExW name null NS_DNS null :hints :data/addrinfo :timeout as OVERLAPPED! data null null
 		][
-			res: GetAddrInfoExW name null NS_DNS null :hints :data/addrinfo null null null null
-			info: as addrinfo! data/addrinfo
-			while [info <> null][
-				dump4 info
-				dump4 info/ai_addr
-				info: info/ai_next
+			buf: as red-binary! (object/get-values red-port) + port/field-data
+			if TYPE_OF(buf) <> TYPE_BINARY [
+				binary/make-at as cell! buf SOCK_READBUF_SZ
 			]
+			data/send-buf: buf/node
+			dns/GetAddrInfo name 53 AF_INET as dns-data! data
+			;res: GetAddrInfoExW name null NS_DNS null :hints :data/addrinfo null null null null
+			;info: as addrinfo! data/addrinfo
 		]
 		?? res
 	]
@@ -227,7 +229,7 @@ tcp-device: context [
 			either 1 = inet_pton AF_INET addr :addrbuf [
 				tcp-client red-port addr num/value
 			][
-				resolve-name red-port unicode/to-utf16 host
+				resolve-name red-port addr
 			]
 		]
 		as red-value! red-port

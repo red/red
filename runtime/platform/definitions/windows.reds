@@ -1147,6 +1147,10 @@ DNS_MESSAGE_BUFFER: alias struct! [
 			optlen		[int-ptr!]
 			return:		[integer!]
 		]
+		ntohs: "ntohs" [
+			netshort	[uint16!]
+			return:		[uint16!]
+		]
 	]
 	"dnsapi.dll" stdcall [
 		DnsQueryConfig: "DnsQueryConfig" [
@@ -1170,7 +1174,7 @@ DNS_MESSAGE_BUFFER: alias struct! [
 		DnsExtractRecordsFromMessage_UTF8: "DnsExtractRecordsFromMessage_UTF8" [
 			pDnsBuffer		[DNS_MESSAGE_BUFFER]
 			wMessageLength	[integer!]
-			ppRecord		[int-ptr!]
+			ppRecord		[ptr-ptr!]
 			return:			[integer!]
 		]
 	]

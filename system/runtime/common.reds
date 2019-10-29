@@ -43,6 +43,8 @@ Red/System [
 #define float32-ptr!  [pointer! [float32!]]
 
 ;@@ change it >
+#define int16!		  integer!
+#define uint16!		  integer!
 #define uint!		  integer!
 #define long!		  integer!		;-- 32bit in 32bit OS, 64bit in 64bit OS
 #define ulong!		  integer!	

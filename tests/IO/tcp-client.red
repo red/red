@@ -4,6 +4,8 @@ Red [
 
 do [
 
+recycle/off
+
 ;debug: :print
 debug: :comment
 
@@ -13,7 +15,7 @@ total: 0.0
 
 print "TCP client"
 
-client: open tcp://baidu.com:8123
+client: open tcp://www.baidu.com:8123
 
 b: make binary! size: 80000
 loop size [append b random 255]
