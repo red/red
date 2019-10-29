@@ -26,7 +26,7 @@ iocp!: alias struct! [
 	evt-cnt [integer!]
 ]
 
-iocp-data!: alias struct! [
+#define IOCP_DATA_FIELDS [
 	Internal		[int-ptr!]				;-- inline OVERLAPPED struct begin
 	InternalHigh	[int-ptr!]
 	Offset			[integer!]				;-- or Pointer [int-ptr!]
@@ -40,7 +40,11 @@ iocp-data!: alias struct! [
 	state			[integer!]
 	transferred		[integer!]				;-- number of bytes transferred
 	accept-sock		[integer!]
-	accept-addr		[byte-ptr!]
+	accept-addr		[byte-ptr!]	
+]
+
+iocp-data!: alias struct! [
+	IOCP_DATA_FIELDS
 ]
 
 udp-data!: alias struct! [
@@ -50,6 +54,12 @@ udp-data!: alias struct! [
 	send-buf	[node!]					;-- send buffer
 	addr		[sockaddr_in6! value]	;-- IPv4 or IPv6 address
 	addr-sz		[integer!]
+]
+
+dns-data!: alias struct! [
+	IOCP_DATA_FIELDS
+	port		[red-object! value]		;-- red port! cell
+	
 ]
 
 iocp: context [

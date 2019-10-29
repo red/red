@@ -175,7 +175,7 @@ socket: context [
 
 	usend: func [	;-- for UDP
 		sock		[integer!]
-		addr		[sockaddr_in!]
+		addr		[sockaddr_in6!]
 		addr-sz		[integer!]
 		buffer		[byte-ptr!]
 		length		[integer!]
@@ -195,7 +195,7 @@ socket: context [
 		sock		[integer!]
 		buffer		[byte-ptr!]
 		length		[integer!]
-		addr		[sockaddr_in!]
+		addr		[sockaddr_in6!]
 		addr-sz		[int-ptr!]
 		data		[sockdata!]
 		/local
@@ -210,7 +210,7 @@ socket: context [
 		res: WSARecvFrom sock :wsbuf 1 null :data/flags addr addr-sz as OVERLAPPED! data null
 		?? res
 		if res <> 0 [
-			res: WSAGetLastError
+			res: GetLastError
 			?? res
 		]
 	]
