@@ -47,7 +47,8 @@ _request-file: func [
 		null
 	]
 	gobj_signal_connect(widget "file-activated" :request-file-double-clicked null)
-	unless null? main-window [gtk_window_set_transient_for widget main-window]
+	window: find-active-window
+	unless null? window [gtk_window_set_transient_for widget window]
 	resp: gtk_dialog_run widget
 	if resp = GTK_RESPONSE_ACCEPT [
 		cstr: gtk_file_chooser_get_filename widget

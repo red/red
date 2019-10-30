@@ -627,6 +627,12 @@ GPtrArray!: alias struct! [
 			gtype		[integer!]
 			return:		[logic!]
 		]
+		g_application_run: "g_application_run" [
+			app			[handle!]
+			argc		[integer!]
+			argv		[int-ptr!]
+			return:		[integer!]
+		]
 	;; ]
 	;; LIBGDK-file cdecl [
 		gdk_screen_width: "gdk_screen_width" [
@@ -749,45 +755,55 @@ GPtrArray!: alias struct! [
 			return:		[handle!]
 		]
 		g_list_length: "g_list_length" [
-			list		[int-ptr!]
+			list		[GList!]
 			return:		[integer!]
 		]
 		g_list_free: "g_list_free" [
-			list		[int-ptr!]
+			list		[GList!]
 		]
 		g_list_nth_data: "g_list_nth_data" [
-			list		[handle!]
+			list		[GList!]
 			nth 		[integer!]
 			return:		[handle!]
 		]
 		g_list_append: "g_list_append" [
-			list		[handle!]
+			list		[GList!]
 			data		[handle!]
-			return:		[handle!]
+			return:		[GList!]
 		]
 		g_list_prepend: "g_list_prepend" [
-			list		[handle!]
+			list		[GList!]
 			data		[handle!]
-			return:		[handle!]
+			return:		[GList!]
 		]
 		g_list_first: "g_list_first" [
-			list		[handle!]
-			return:		[handle!]
+			list		[GList!]
+			return:		[GList!]
 		]
 		g_list_last: "g_list_last" [
-			list		[handle!]
-			return:		[handle!]
+			list		[GList!]
+			return:		[GList!]
 		]
 		g_list_delete_link: "g_list_delete_link" [
-			list		[handle!]
-			link		[handle!]
-			return: 	[handle!]
+			list		[GList!]
+			link		[GList!]
+			return:		[GList!]
 		]
 		g_list_insert_sorted: "g_list_insert_sorted" [
-			list		[handle!]
+			list		[GList!]
 			data		[handle!]
 			comp-func	[integer!]
-			return:		[handle!]
+			return:		[GList!]
+		]
+		g_list_remove: "g_list_remove" [
+			list		[GList!]
+			data		[handle!]
+			return:		[GList!]
+		]
+		g_list_find: "g_list_find" [
+			list		[GList!]
+			data		[handle!]
+			return:		[GList!]
 		]
 		g_ascii_dtostr: "g_ascii_dtostr" [
 			buffer		[c-string!]
@@ -891,82 +907,82 @@ GPtrArray!: alias struct! [
 	;; ]
 	;; LIBGTK-file cdecl [
 		gtk_get_major_version: "gtk_get_major_version" [
-			return: 		[integer!]
+			return:		[integer!]
 		]
 		gtk_get_minor_version: "gtk_get_minor_version" [
-			return: 		[integer!]
+			return:		[integer!]
 		]
 		gtk_get_micro_version: "gtk_get_micro_version" [
-			return: 		[integer!]
+			return:		[integer!]
 		]
 		gdk_cursor_new_from_pixbuf: "gdk_cursor_new_from_pixbuf" [
-			display			[handle!]
-			pixbuf			[handle!]
-			x				[integer!]
-			y				[integer!]
-			return:			[handle!]
+			display		[handle!]
+			pixbuf		[handle!]
+			x			[integer!]
+			y			[integer!]
+			return:		[handle!]
 		]
 		gdk_cursor_new_from_name: "gdk_cursor_new_from_name" [
-			display			[handle!]
-			name			[c-string!]
-			return:			[handle!]
+			display		[handle!]
+			name		[c-string!]
+			return:		[handle!]
 		]
 		gtk_get_current_event_time: "gtk_get_current_event_time" [
-			return:			[integer!]
+			return:		[integer!]
 		]
 		gtk_get_current_event_state: "gtk_get_current_event_state" [
-			state			[int-ptr!]
+			state		[int-ptr!]
 		]
 		gtk_get_current_event: "gtk_get_current_event" [
-			return:			[handle!]
+			return:		[handle!]
 		]
 		gtk_get_current_event_device: "gtk_get_current_event_device" [
-			return: 		[handle!]
+			return:		[handle!]
 		]
 		gtk_get_event_widget: "gtk_get_event_widget" [
-			event				[handle!]
-			return:			[handle!]
+			event		[handle!]
+			return:		[handle!]
 		]
 		gdk_event_get: "gdk_event_get" [
-			return:			[handle!]
+			return:		[handle!]
 		]
 		gdk_event_peek: "gdk_event_peek" [
-			return:			[handle!]
+			return:		[handle!]
 		]
 		gdk_event_copy: "gdk_event_copy" [
-			event			[handle!]
-			return:			[handle!]
+			event		[handle!]
+			return:		[handle!]
 		]
 		gdk_event_free: " gdk_event_free" [
-			event			[handle!]
+			event		[handle!]
 		]
 		gdk_event_get_scroll_deltas: "gdk_event_get_scroll_deltas" [
-			event			[handle!]
-			dx				[float-ptr!]
-			dy				[float-ptr!]
-			return:			[integer!]
+			event		[handle!]
+			dx			[float-ptr!]
+			dy			[float-ptr!]
+			return:		[integer!]
 		]
 
 		gdk_event_get_scroll_direction: "gdk_event_get_scroll_direction" [
-			event			[handle!]
-			direction		[int-ptr!]
+			event		[handle!]
+			direction	[int-ptr!]
 		]
 		gdk_window_get_display: "gdk_window_get_display" [
-			window			[handle!]
-			return: 		[handle!]
+			window		[handle!]
+			return:		[handle!]
 		]
 		gdk_window_get_device_position: "gdk_window_get_device_position" [
-			window			[handle!]
-			device			[handle!]
-			x				[int-ptr!]
-			y				[int-ptr!]
-			mask			[handle!]
-			return:			[handle!]
+			window		[handle!]
+			device		[handle!]
+			x			[int-ptr!]
+			y			[int-ptr!]
+			mask		[handle!]
+			return:		[handle!]
 		]
 		gdk_window_invalidate_rect: "gdk_window_invalidate_rect" [
-			window				[handle!]
-			rect				[tagRECT]
-			invalidate_children	[logic!]
+			window		[handle!]
+			rect		[tagRECT]
+			invalid		[logic!]
 		]
 		gtk_application_new: "gtk_application_new" [
 			app-id		[c-string!]
@@ -975,7 +991,7 @@ GPtrArray!: alias struct! [
 		]
 		gtk_application_get_windows: "gtk_application_get_windows" [
 			app			[handle!]
-			return:		[int-ptr!]
+			return:		[GList!]
 		]
 		gtk_application_get_active_window: "gtk_application_get_active_window" [
 			app			[handle!]
@@ -992,6 +1008,9 @@ GPtrArray!: alias struct! [
 		gtk_application_remove_window: "gtk_application_remove_window" [
 			app			[handle!]
 			window		[handle!]
+		]
+		g_application_quit: "g_application_quit" [
+			app			[handle!]
 		]
 		gtk_menu_bar_new: "gtk_menu_bar_new" [
 			return:		[handle!]
@@ -1158,10 +1177,14 @@ GPtrArray!: alias struct! [
 		gtk_main: "gtk_main" []
 		gtk_main_quit: "gtk_main_quit" []
 		gtk_main_iteration: "gtk_main_iteration" [
-			return: 	[logic!]
+			return:		[logic!]
+		]
+		gtk_main_iteration_do: "gtk_main_iteration_do" [
+			block?		[logic!]
+			return:		[logic!]
 		]
 		gtk_events_pending: "gtk_events_pending" [
-			return: 	[logic!]
+			return:		[logic!]
 		]
 		gtk_window_new: "gtk_window_new" [
 			type		[integer!]
@@ -2893,7 +2916,7 @@ red-timer-id:		g_quark_from_string "red-timer-id"
 css-id:				g_quark_from_string "css-id"
 size-id:			g_quark_from_string "size-id"
 menu-id:			g_quark_from_string "menu-id"
-no-wait-id:			g_quark_from_string "no-wait-id"
+post-quit-id:		g_quark_from_string "post-quit-id"
 red-event-id:		g_quark_from_string "red-event-id"
 cursor-id:			g_quark_from_string "cursor-id"
 resizing-id:		g_quark_from_string "resizing-id"
@@ -2908,3 +2931,5 @@ start-resize-id:	g_quark_from_string "start-resize-id"
 #define GET-RESIZING(s)			[g_object_get_qdata s resizing-id]
 #define SET-STARTRESIZE(s d)	[g_object_set_qdata s start-resize-id d]
 #define GET-STARTRESIZE(s)		[g_object_get_qdata s start-resize-id]
+#define SET-POST-QUIT(s d)		[g_object_set_qdata s post-quit-id d]
+#define GET-POST-QUIT(s)		[g_object_get_qdata s post-quit-id]

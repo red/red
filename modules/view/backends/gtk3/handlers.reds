@@ -251,27 +251,7 @@ window-delete-event: func [
 	no
 ]
 
-; window-destroy: func [
-; 	[cdecl]
-; 	widget	[handle!]
-; ][
-; 	;; DEBUG: print ["window-destroy" lf]
-; 	;;remove-all-timers widget
-; 	make-event widget 0 EVT_CLOSE
-; ]
-
-window-removed-event: func [
-	[cdecl]
-	app			[handle!]
-	widget		[handle!]
-	count		[int-ptr!]
-][
-	;; DEBUG[view/no-wait]: print ["App " app " removed window " widget "exit-loop: " exit-loop " win-cnt: " win-cnt " main-window? " main-window = widget]
-	unless view-no-wait? widget [count/value: count/value - 1]
-	;; DEBUG[view/no-wait]: print ["=> exit-loop: " count/value lf]
-]
-
-window-event:  func [
+window-event: func [
 	[cdecl]
 	evbox		[handle!]
 	event		[GdkEventAny!]
@@ -428,13 +408,21 @@ key-press-event: func [
 	widget		[handle!]
 	return:		[integer!]
 	/local
+		face	[red-object!]
+		values	[red-value!]
+		type	[red-word!]
+		sym		[integer!]
 		res		[integer!]
 		key		[integer!]
 		flags	[integer!]
 		text	[c-string!]
-		face	[red-object!]
 		qdata	[handle!]
 ][
+	face: get-face-obj widget
+	values: object/get-values face
+	type: as red-word! values + FACE_OBJ_TYPE
+	sym: symbol/resolve type/symbol
+
 	if event-key/keyval > FFFFh [return EVT_DISPATCH]
 	key: translate-key event-key/keyval
 	flags: 0 ;either char-key? as-byte key [0][80000000h]	;-- special key or not
@@ -454,6 +442,9 @@ key-press-event: func [
 			]
 		][res: make-event widget key or flags EVT_KEY]
 	]
+	if sym = field [
+		return EVT_DISPATCH
+	]
 	EVT_NO_DISPATCH
 ]
 
@@ -464,14 +455,26 @@ key-release-event: func [
 	widget		[handle!]
 	return:		[integer!]
 	/local
+		face	[red-object!]
+		values	[red-value!]
+		type	[red-word!]
+		sym		[integer!]
 		key		[integer!]
 		flags	[integer!]
 ][
+	face: get-face-obj widget
+	values: object/get-values face
+	type: as red-word! values + FACE_OBJ_TYPE
+	sym: symbol/resolve type/symbol
+
 	if event-key/keyval > FFFFh [return EVT_DISPATCH]
 	key: translate-key event-key/keyval
 	flags: 0 ;either char-key? as-byte key [0][80000000h]	;-- special key or not
 	flags: flags or check-extra-keys event-key/state
 	make-event widget key or flags EVT_KEY_UP
+	if sym = field [
+		return EVT_DISPATCH
+	]
 	EVT_NO_DISPATCH
 ]
 
@@ -489,6 +492,7 @@ field-changed: func [
 		set-text widget face/ctx text
 		make-event widget 0 EVT_CHANGE
 	]
+	EVT_NO_DISPATCH
 ]
 
 focus-in-event: func [

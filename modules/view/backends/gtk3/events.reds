@@ -399,46 +399,53 @@ make-event: func [
 ]
 
 do-events: func [
-	no-wait? [logic!]
-	return:  [logic!]
+	no-wait?	[logic!]
+	return:		[logic!]
 	/local
-		msg? 	[logic!]
-		event	[GdkEventAny!]
-		widget	[handle!]
-		; state	[GdkModifierType!]
-		; source	[handle!]
+		msg?	[logic!]
+		list	[GList!]
+		win		[handle!]
+		v		[handle!]
+		c1		[integer!]
+		c2		[integer!]
 ][
+	win: find-active-window
+	if null? win [return no]
+	v: as handle! 0
+	SET-POST-QUIT(win v)
+
 	msg?: no
-
-	set-view-no-wait gtk_application_get_active_window GTKApp no-wait?
-
-	;@@ Improve it!!!
-	;@@ as we cannot access gapplication->priv->use_count
-	;@@ we use a global value to simulate it
-
-	;; DEBUG: print ["do-events no-wait? " no-wait? lf]
-
-	;; Initially normally uncommented: the exit-loop is also decremented in destroy for supposed no-wait view!
-	unless no-wait? [
-		exit-loop: exit-loop + 1
+	until [
+		if gtk_events_pending [
+			msg?: yes
+			c1: get-window-count
+			gtk_main_iteration_do not no-wait?
+			if check-quit-msg [
+				break
+			]
+			c2: get-window-count
+			if c2 < c1 [break]
+		]
+		no-wait?
 	]
-
-	while [exit-loop > 0][
-		if g_main_context_iteration GTKApp-Ctx not no-wait? [msg?: yes]
-		if no-wait? [break]
-	]
-
-	while [g_main_context_iteration GTKApp-Ctx false][	;-- consume leftover event
-		msg?: yes
-		if no-wait? [break]
-	]
-
 	msg?
 ]
 
+post-quit-msg: func [
+	/local
+		win		[handle!]
+		v		[handle!]
+][
+	win: find-active-window
+	v: as handle! 1
+	SET-POST-QUIT(win v)
+	gtk_widget_queue_draw win
+]
+
+
 check-extra-keys: func [
-	state	[integer!]
-	return: [integer!]
+	state		[integer!]
+	return:		[integer!]
 	/local
 		key		[integer!]
 ][
@@ -450,8 +457,8 @@ check-extra-keys: func [
 ]
 
 check-extra-buttons: func [
-	state	[integer!]
-	return:	[integer!]
+	state		[integer!]
+	return:		[integer!]
 	/local
 		buttons	[integer!]
 ][
@@ -463,10 +470,10 @@ check-extra-buttons: func [
 ]
 
 check-down-flags: func [
-	state  [integer!]
-	return: [integer!]
+	state		[integer!]
+	return:		[integer!]
 	/local
-		flags [integer!]
+		flags	[integer!]
 ][
 	flags: 0
 	if state and GDK_BUTTON1_MASK <> 0 [flags: flags or EVT_FLAG_DOWN]
@@ -480,11 +487,11 @@ check-down-flags: func [
 ]
 
 check-flags: func [
-	type   	[integer!]
-	state  	[integer!]
-	return: [integer!]
+	type		[integer!]
+	state		[integer!]
+	return:		[integer!]
 	/local
-		flags [integer!]
+		flags	[integer!]
 ][
 	flags: 0
 	;;[flags: flags or EVT_FLAG_AX2_DOWN]
@@ -502,10 +509,10 @@ check-flags: func [
 ]
 
 translate-key: func [
-	keycode [integer!]
-	return: [integer!]
+	keycode		[integer!]
+	return:		[integer!]
 	/local
-		key 		[integer!]
+		key			[integer!]
 		special?	[logic!]
 ][
 	;; DEBUG: print ["keycode: " keycode lf]
@@ -539,14 +546,6 @@ translate-key: func [
 	special-key: either special? [key][-1]
 	;; DEBUG: 	print [" key: " key " special?=" special?  lf]
 	key
-]
-
-post-quit-msg: func [
-	/local
-		e	[integer!]
-		tm	[float!]
-][
-	exit-loop: exit-loop - 1
 ]
 
 ;; TODO: before finding better solution!!!!
