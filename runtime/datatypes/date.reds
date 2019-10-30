@@ -503,9 +503,11 @@ date: context [
 			zone[integer!]
 			neg?[logic!]
 	][
-		if all [day >= 100 day > year][i: year year: day day: i]	;-- allow year to be first
-
-		set-type slot TYPE_DATE				;-- preserve eventual flags in the header
+		if year < 100 [									;-- expand short yy forms
+			d: either year < 50 [2000][1900]
+			year: year + d
+		]
+		set-type slot TYPE_DATE							;-- preserve eventual flags in the header
 		dt: as red-date! slot
 		dt/date: DATE_SET_YEAR(0 year)
 		set-month dt month

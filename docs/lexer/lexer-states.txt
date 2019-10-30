@@ -92,6 +92,7 @@ C_SHARP     : #
 C_QUOTE     : '
 C_COLON     : :
 C_X         : x, X
+C_X         : T
 C_EXP       : e, E
 C_ALPHAX    : a-f, A-F
 C_SLASH     : /
@@ -214,7 +215,7 @@ S_START->digit->S_NUMBER->digit|"'"->S_NUMBER
                                    \       \->delimit11->T_FLOAT
                                     \       \->else->T_ERROR
                                      \
-                                      \->"/"->S_DATE->not(delimit13)->S_DATE
+                                      \->"/"|"T"->S_DATE->not(delimit13)->S_DATE
                                        \       \->delimit13->T_DATE
                                         \
                                          \->":"->S_TIME_1ST->digit->S_TIME->digit|":"|"."->S_TIME
@@ -406,17 +407,18 @@ S_DT_START->digit->S_DT_D->digit->S_DT_DD->digit->S_DT_YYY->digit->S_DT_YYYY->"/
                        \->sep->F_DT_DAYL
                       
 F_DT_YEARL->digit->S_DT_YM->digit->S_DT_YMM->sep->F_DT_YMONTH
- \                  \               \->digit->F_DT_DDD
-  \                  \->sep->F_DT_YMONTH
-   \->letter->S_DT_YMON->letter->S_DT_YMON
-               \->sep->F_DT_YMONTH
+ \                  \->sep->F_DT_YMONTH
+  \->letter->S_DT_YMON->letter->S_DT_YMON
+              \->sep->F_DT_YMONTH
 
-F_DT_YEARL2->digit->S_DT_YM
- \->letter->S_DT_YMON
-  \->"W"->S_DT_YV->digit->S_DT_YW->digit->S_DT_YWW->eof->T_DT_WEEK
-                                           \->digit->S_DT_WD->eof->T_DT_YWWD
-                                            \         \->"T"->S_TM_START
-                                             \->"T"->S_TM_START
+F_DT_YEARL2->digit->S_DT_YM2->digit->S_DT_YMM2->sep->F_DT_YMONTH
+ \                   \                \->digit->F_DT_DDD
+  \                   \->sep->F_DT_YMONTH
+   \->letter->S_DT_YMON
+    \->"W"->S_DT_YV->digit->S_DT_YW->digit->S_DT_YWW->eof->T_DT_WEEK
+                                             \->digit->S_DT_WD->eof->T_DT_YWWD
+                                              \         \->"T"->S_TM_START
+                                               \->"T"->S_TM_START
 
 F_DT_DDD->"T"->S_TM_START
 

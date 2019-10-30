@@ -55,25 +55,26 @@ lexer: context [
 		C_QUOTE											;-- 12
 		C_COLON											;-- 13
 		C_X												;-- 14
-		C_EXP											;-- 15
-		C_ALPHAX										;-- 16
-		C_SLASH											;-- 17
-		C_BSLASH										;-- 18
-		C_LESSER										;-- 19
-		C_GREATER										;-- 20
-		C_PERCENT										;-- 21
-		C_COMMA											;-- 22
-		C_SEMICOL										;-- 23
-		C_AT											;-- 24
-		C_DOT											;-- 25
-		C_MONEY											;-- 26
-		C_PLUS											;-- 27
-		C_MINUS											;-- 28
-		C_CARET											;-- 29
-		C_BIN											;-- 30
-		C_WORD											;-- 31
-		C_ILLEGAL										;-- 32
-		C_EOF											;-- 33
+		C_T												;-- 15
+		C_EXP											;-- 16
+		C_ALPHAX										;-- 17
+		C_SLASH											;-- 18
+		C_BSLASH										;-- 19
+		C_LESSER										;-- 20
+		C_GREATER										;-- 21
+		C_PERCENT										;-- 22
+		C_COMMA											;-- 23
+		C_SEMICOL										;-- 24
+		C_AT											;-- 25
+		C_DOT											;-- 26
+		C_MONEY											;-- 27
+		C_PLUS											;-- 28
+		C_MINUS											;-- 29
+		C_CARET											;-- 30
+		C_BIN											;-- 31
+		C_WORD											;-- 32
+		C_ILLEGAL										;-- 33
+		C_EOF											;-- 34
 	]
 	
 	#enum date-char-classes! [
@@ -239,7 +240,9 @@ lexer: context [
 		C_ALPHAX										;-- 46		F
 		C_WORD C_WORD C_WORD C_WORD C_WORD C_WORD 		;-- 47-4C	G-L
 		C_WORD C_WORD C_WORD C_WORD C_WORD C_WORD 		;-- 4D-52	M-R
-		C_WORD C_WORD C_WORD C_WORD C_WORD 				;-- 53-57	S-W
+		C_WORD											;-- 53		S
+		C_T												;-- 54		T
+		C_WORD C_WORD C_WORD			 				;-- 55-57	U-W
 		C_X												;-- 58		X
 		C_WORD C_WORD							 		;-- 59-5A	Y-Z
 		C_BLOCK_OP										;-- 5B		[
@@ -1092,6 +1095,7 @@ lexer: context [
 	scan-date: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		return: [int-ptr!]
 		/local
+			dt	  [red-date!]
 			field [int-ptr!]
 			state [integer!]
 			class [integer!]
@@ -1102,7 +1106,9 @@ lexer: context [
 			month [integer!]
 			time? [logic!]
 	][
-probe "scan-date"
+;probe "scan-date"
+;probe as-c-string s
+;probe as-c-string e
 		time?: flags and C_FLAG_TM_ONLY <> 0
 		field: system/stack/allocate/zero 12
 		c: 0
@@ -1115,25 +1121,46 @@ probe "scan-date"
 ;?? class
 			index: state * (size? date-char-classes!) + class
 			state: as-integer date-transitions/index
-			
+				
 			pos: as-integer fields-table/state
 			field/pos: c
+;probe ["field: " c]
+;?? pos	
 ;?? state
 ;?? cp
-			c: either null-byte = reset-table/state [
-				 c * 10 + as-integer date-cumul/cp
-			][0]
+			if null-byte = reset-table/state [c: 0]
+			c: c * 10 + as-integer date-cumul/cp
 ;?? c
 			s: s + 1
 		]
-		index: state * (size? date-char-classes!) + C_DT_EOF
-		state: as-integer date-transitions/index
+		if state <= T_DT_ERROR [
+			if state = T_DT_ERROR [throw LEX_ERROR]		;-- check here for performance reason
+			
+			index: state * (size? date-char-classes!) + C_DT_EOF
+			state: as-integer date-transitions/index
 ;?? state
-		pos: as-integer fields-table/state
+			pos: as-integer fields-table/state
 ;?? pos
-		field/pos: c
-		;; TBD: add error state processing
-		
+			field/pos: c
+		]
+
+comment {
+		probe [
+			"-----------------"
+			"^/trash: "	field/1
+			"^/year : " field/2
+			"^/month: " field/3
+			"^/day  : " field/4
+			"^/hour : " field/5
+			"^/min  : " field/6
+			"^/sec  : " field/7
+			"^/nano : " field/8
+			"^/week : " field/9
+			"^/wday : " field/10
+			"^/TZ-h : " field/11
+			"^/TZ-m : " field/12
+		]
+}			
 		unless time? [
 			month: field/3
 			if any [month > 12 month < 1][				;-- month as a word	
@@ -1152,10 +1179,10 @@ probe "scan-date"
 					7557 756474372	[12]
 					default 		[throw LEX_ERROR 0]
 				]
-				field/3: month
-			]
-			date/set-all
-				 as red-date! alloc-slot lex
+				field/3: month							;;TBD: add accurate spelling check
+			]		
+			dt: date/make-at
+				 alloc-slot lex
 				 field/2								;-- year 
 				 field/3								;-- month
 				 field/4								;-- day  
@@ -1163,24 +1190,13 @@ probe "scan-date"
 				 field/6								;-- min  
 				 field/7								;-- sec  
 				 field/8								;-- nano
+				 field/11								;-- TZ hour
+				 field/12								;-- TZ min
+				 state >= T_TM_HM						;-- time was provided
+			
+			if null? dt [throw LEX_ERROR]
 		]
-comment {
-		probe [
-			"-----------------"
-			"^/trash: "	field/1
-			"^/year : " field/2
-			"^/month: " field/3
-			"^/day  : " field/4
-			"^/hour : " field/5
-			"^/min  : " field/6
-			"^/sec  : " field/7
-			"^/nano : " field/8
-			"^/week : " field/9
-			"^/wday : " field/10
-			"^/TZ-h : " field/11
-			"^/TZ-m : " field/12
-		]
-}
+
 		lex/in-pos: e									;-- reset the input position to delimiter byte
 		field											;-- return field pointer for scan-time
 	]

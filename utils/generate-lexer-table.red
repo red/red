@@ -114,52 +114,57 @@ context [
 		F_DT_DAYL			0		4		;--	7
 		S_DT_YM				1		3		;--	8
 		S_DT_YMM			1		3		;--	9
-		F_DT_YMONTH			0		3		;--	10
-		F_DT_DDD			1		4		;--	11
-		S_DT_YV				1		9		;--	12
-		S_DT_YW				1		9		;--	13
-		S_DT_YWW			1		9		;--	14
-		S_DT_WD				1		10		;--	15
-		S_DT_YMON			1		3		;--	16
-		F_DT_YMD			1		4		;--	17
-		F_DT_YMDD			1		4		;--	18
-		S_DT_DM				1		3		;--	19
-		S_DT_DMM			1		3		;--	20
-		F_DT_DMONTH			0		3		;--	21
-		S_DT_DMON			1		3		;--	22
-		F_DT_DMY			1		2		;--	23
-		F_DT_DMYY			1		2		;--	24
-		F_DT_DMYYY			1		2		;--	25
-		F_DT_DMYYYY			1		2		;--	26
-		S_TM_START			0		4		;--	27
-		S_TM_START2			0		2		;--	28
-		F_TM_H				1		5		;--	29
-		F_TM_HH				1		5		;--	30
-		S_TM_HM				0		5		;--	31
-		F_TM_M				1		6		;--	32
-		F_TM_MM				1		6		;--	33
-		S_TM_HMS			0		6		;--	34
-		F_TM_S				1		7		;--	35
-		F_TM_SS				1		7		;--	36
-		F_TM_N1				0		8		;--	37
-		F_TM_N				1		8		;--	38
-		S_TZ_START			0		4		;--	39
-		S_TZ_H				1		11		;--	40
-		F_TZ_HH				1		11		;--	41
-		F_TZ_HM				0		12		;--	42
-		S_TZ_M				1		12		;--	43
-		T_DT_ERROR			0		1		;-- 44
-		T_DT_YMDAY			0		4		;-- 45
-		T_DT_DMYEAR			0		2		;-- 46
-		T_DT_YWWD			0		10		;--	47
-		T_DT_WEEK			0		9		;--	48
-		T_TM_HM				0		6		;--	49
-		T_TM_HMS			0		7		;-- 50
-		T_TM_NZ				0		8		;--	51
-		T_TZ_H				0		11		;--	52
-		T_TZ_HH				0		11		;-- 53
-		T_TZ_M				0		12		;-- 54
-		T_TZ_MM				0		12		;-- 55
+		S_DT_YM2			1		3		;-- 10	
+		S_DT_YMM2			1		3		;--	11
+		F_DT_YMONTH			0		3		;--	12
+		F_DT_DDD			1		4		;--	13
+		S_DT_YV				1		9		;--	14
+		S_DT_YW				1		9		;--	15
+		S_DT_YWW			1		9		;--	16
+		S_DT_WD				1		10		;--	17
+		S_DT_YMON			1		3		;--	18
+		F_DT_YMD			1		4		;--	19
+		F_DT_YMDD			1		4		;--	20
+		S_DT_DM				1		3		;--	21
+		S_DT_DMM			1		3		;--	22
+		F_DT_DMONTH			0		3		;--	23
+		S_DT_DMON			1		3		;--	24
+		F_DT_DMY			1		2		;--	25
+		F_DT_DMYY			1		2		;--	26
+		F_DT_DMYYY			1		2		;--	27
+		F_DT_DMYYYY			1		2		;--	28
+		S_TM_START			0		4		;--	29
+		S_TM_START2			0		2		;--	30
+		F_TM_H				1		5		;--	31
+		F_TM_HH				1		5		;--	32
+		S_TM_HM				0		5		;--	33
+		F_TM_M				1		6		;--	34
+		F_TM_MM				1		6		;--	35
+		S_TM_HMS			0		6		;--	36
+		F_TM_S				1		7		;--	37
+		F_TM_SS				1		7		;--	38
+		F_TM_N1				0		8		;--	39
+		F_TM_N				1		8		;--	40
+		S_TM_HMZ			0		6		;--	41
+		S_TM_HMSZ			0		7		;--	42
+		S_TM_HMSNZ			0		8		;--	43
+		S_TZ_H				1		11		;--	44
+		F_TZ_HH				1		11		;--	45
+		F_TZ_HM				0		11		;--	46
+		S_TZ_M				1		12		;--	47
+		T_DT_ERROR			0		1		;-- 48
+		T_DT_YMDAY			0		4		;-- 49
+		T_DT_DMYEAR			0		2		;-- 50
+		T_DT_YDDD			0		4		;--	51
+		T_DT_YWWD			0		10		;--	52
+		T_DT_WEEK			0		9		;--	53
+		T_TM_HM				0		6		;--	54
+		T_TM_HMS			0		7		;-- 55
+		T_TM_NZ				0		8		;--	56
+		T_TZ_H				0		11		;--	57
+		T_TZ_HH				0		11		;-- 58
+		T_TZ_M				0		12		;-- 59
+		T_TZ_MM				0		12		;-- 60
 	]
 
 	CSV-table: %../docs/lexer/lexer-FSM.csv
@@ -208,7 +213,7 @@ context [
 	fields-table: make binary! 100
 	
 	foreach [state reset pos] date-states [
-		append reset-table to-char pick 0x31 reset = 1
+		append reset-table to-char reset
 		append fields-table to-char pos
 	]
 

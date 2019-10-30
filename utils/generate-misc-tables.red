@@ -68,19 +68,19 @@ gen-hexa-table: function [][
 	probe out
 ]
 
-bin-classes: [
-		C_DT_DIGIT			;-- 0		0-9
-		C_DT_LETTER			;-- 1		abcdefghijlmnoprstuvy, ABCDEFGHIJLMNOPRSUVY
-		C_DT_SLASH			;-- 2		/
-		C_DT_DASH			;-- 3		-
-		C_DT_T				;-- 4		T
-		C_DT_W				;-- 5		W
-		C_DT_PLUS			;-- 6		+
-		C_DT_COLON			;-- 7		:
-		C_DT_DOT			;-- 8		.
-		C_DT_Z				;-- 9		Z
-		C_DT_ILLEGAL		;-- 10		all the rest
-		C_DT_EOF			;-- 11		EOF
+date-classes: [
+	C_DT_DIGIT			;-- 0		0-9
+	C_DT_LETTER			;-- 1		abcdefghijlmnoprstuvy, ABCDEFGHIJLMNOPRSUVY
+	C_DT_SLASH			;-- 2		/
+	C_DT_DASH			;-- 3		-
+	C_DT_T				;-- 4		T
+	C_DT_W				;-- 5		W
+	C_DT_PLUS			;-- 6		+
+	C_DT_COLON			;-- 7		:
+	C_DT_DOT			;-- 8		.
+	C_DT_Z				;-- 9		Z
+	C_DT_ILLEGAL		;-- 10		all the rest
+	C_DT_EOF			;-- 11		EOF
 ]
 
 gen-date-table: function [][
