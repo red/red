@@ -10,12 +10,6 @@ Red/System [
 	}
 ]
 
-sockdata!: alias struct! [
-	iocp		[iocp-data! value]
-	port		[red-object! value]		;-- red port! cell
-	send-buf	[node!]					;-- send buffer
-]
-
 socket: context [
 	verbose: 1
 
@@ -128,6 +122,7 @@ socket: context [
 		buffer		[byte-ptr!]
 		length		[integer!]
 		data		[iocp-data!]
+		return:		[integer!]
 		/local
 			n		[integer!]
 			io-port	[iocp!]
@@ -135,12 +130,12 @@ socket: context [
 	][
 		;#if debug? = yes [if verbose > 0 [print-line "socket/send"]]
 
-probe ["socket/write/event: " data/event]
+probe ["socket/write/event: " data/event " " data/state]
 
 		state: data/state
 		if state and IO_STATE_PENDING_WRITE = IO_STATE_PENDING_WRITE [
 			iocp/add-pending data buffer length IO_EVT_WRITE
-			exit
+			return -1
 		]
 
 		data/write-buf: buffer
@@ -169,6 +164,7 @@ probe ["socket/write: " length " " n]
 			data/write-buf: buffer + n
 			data/write-buflen: length - n
 		]
+		n
 	]
 
 	recv: func [

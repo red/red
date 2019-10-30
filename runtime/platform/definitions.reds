@@ -40,6 +40,8 @@ Red/System [
 
 #define AF_INET			2				;-- internetwork: UDP, TCP, etc.
 
+#define DNS_PACKET_SZ	512
+
 sockaddr_in!: alias struct! [			;-- 16 bytes
 	sin_family	[integer!]				;-- family and port
 	sin_addr	[integer!]

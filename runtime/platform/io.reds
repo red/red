@@ -26,6 +26,7 @@ SOCK_READBUF_SZ: 8192			;-- 8KB
 	#include %windows/socket.reds
 ][
 	#include %POSIX/iocp.reds
+	#include %POSIX/dns.reds
 	#include %POSIX/tls.reds
 	#include %POSIX/socket.reds
 ]

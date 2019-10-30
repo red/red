@@ -168,26 +168,13 @@ tcp-device: context [
 		data: as sockdata! create-tcp-data red-port 0
 		data/iocp/type: IOCP_TYPE_DNS
 
-		zero-memory as byte-ptr! :hints size? addrinfo!
-		hints/ai_family: AF_INET
-		hints/ai_socktype: SOCK_STREAM
-		hints/ai_protocol: IPPROTO_TCP
-
-		timeout/tv_sec: 10
-		timeout/tv_usec: 0
-		either win8+? [
-			res: GetAddrInfoExW name null NS_DNS null :hints :data/addrinfo :timeout as OVERLAPPED! data null null
-		][
-			buf: as red-binary! (object/get-values red-port) + port/field-data
-			if TYPE_OF(buf) <> TYPE_BINARY [
-				binary/make-at as cell! buf SOCK_READBUF_SZ
-			]
-			data/send-buf: buf/node
-			dns/GetAddrInfo name 53 AF_INET as dns-data! data
-			;res: GetAddrInfoExW name null NS_DNS null :hints :data/addrinfo null null null null
-			;info: as addrinfo! data/addrinfo
+		buf: as red-binary! (object/get-values red-port) + port/field-data
+		if TYPE_OF(buf) <> TYPE_BINARY [
+			binary/make-at as cell! buf SOCK_READBUF_SZ
 		]
-		?? res
+		probe "resolve-name"
+		data/send-buf: buf/node
+		dns/getaddrinfo name 53 AF_INET as dns-data! data
 	]
 
 	;-- actions

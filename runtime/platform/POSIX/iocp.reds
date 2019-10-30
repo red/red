@@ -41,7 +41,7 @@ pending-data!: alias struct! [
 	buflen			[integer!]
 ]
 
-iocp-data!: alias struct! [
+#define IOCP_DATA_FIELDS [
 	io-port			[iocp!]				;--	iocp! handle
 	device			[handle!]			;-- device handle. e.g. socket
 	event-handler	[iocp-event-handler!]
@@ -58,6 +58,19 @@ iocp-data!: alias struct! [
 	pending-write	[pending-data!]
 ]
 
+iocp-data!: alias struct! [
+	IOCP_DATA_FIELDS
+]
+
+sockdata!: alias struct! [
+	iocp		[iocp-data! value]
+	port		[red-object! value]		;-- red port! cell
+	send-buf	[node!]					;-- send buffer
+	addr		[sockaddr_in6! value]	;-- IPv4 or IPv6 address
+	addr-sz		[integer!]
+	addrinfo	[int-ptr!]
+]
+
 tls-data!: alias struct! [
 	iocp		[iocp-data! value]
 	port		[red-object! value]		;-- red port! cell
@@ -68,10 +81,18 @@ tls-data!: alias struct! [
 udp-data!: alias struct! [
 	iocp		[iocp-data! value]
 	port		[red-object! value]		;-- red port! cell
-	flags		[integer!]
 	send-buf	[node!]					;-- send buffer
 	addr		[sockaddr_in6! value]	;-- IPv4 or IPv6 address
 	addr-sz		[integer!]
+]
+
+dns-data!: alias struct! [
+	IOCP_DATA_FIELDS
+	port		[red-object! value]		;-- red port! cell
+	send-buf	[node!]
+	addr		[sockaddr_in6! value]	;-- IPv4 or IPv6 address
+	addr-sz		[integer!]
+	addrinfo	[int-ptr!]
 ]
 
 iocp: context [
@@ -159,7 +180,7 @@ iocp: context [
 				tls: as tls-data! data
 				SSL_read tls/ssl data/read-buf data/read-buflen
 			]
-			IOCP_TYPE_UDP [
+			IOCP_TYPE_UDP IOCP_TYPE_DNS [
 				udp: as udp-data! data
 				libC.recvfrom
 					as-integer data/device
@@ -188,7 +209,7 @@ iocp: context [
 				tls: as tls-data! data
 				SSL_write tls/ssl data/write-buf data/write-buflen
 			]
-			IOCP_TYPE_UDP [
+			IOCP_TYPE_UDP IOCP_TYPE_DNS [
 				udp: as udp-data! data
 				libC.sendto
 					as-integer data/device
@@ -278,6 +299,15 @@ iocp: context [
 ?? n
 				loop n [
 					data: as iocp-data! deque/take queue
+					if data/type = IOCP_TYPE_DNS [
+						either data/event = IO_EVT_WRITE [
+							dns/recv as dns-data! data
+						][
+							dns/parse-data as dns-data! data
+						]
+						continue
+					]
+
 					#if debug? = yes [probe ["pluse event: " data/event]]
 					data/event-handler as int-ptr! data
 				]
@@ -339,7 +369,11 @@ probe ["read data: " n]
 						data/state: state and (not IO_STATE_READING)
 						data/transferred: n
 						data/event: IO_EVT_READ
-						data/event-handler as int-ptr! data
+						either data/type = IOCP_TYPE_DNS [
+							dns/parse-data as dns-data! data
+						][
+							data/event-handler as int-ptr! data
+						]
 					][
 						0 ;TBD
 					]
@@ -364,6 +398,10 @@ probe ["read data: " n]
 					][
 						0 ;; TBD
 					]
+				]
+				if data/type = IOCP_TYPE_DNS [
+					i: i + 1
+					continue
 				]
 				if data/event > IO_EVT_WRITE [
 					data/event-handler as int-ptr! data

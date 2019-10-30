@@ -1177,6 +1177,10 @@ DNS_MESSAGE_BUFFER: alias struct! [
 			ppRecord		[ptr-ptr!]
 			return:			[integer!]
 		]
+		DnsFree: "DnsFree" [
+			pData			[byte-ptr!]
+			type			[integer!]
+		]
 	]
 	"gdiplus.dll" stdcall [
 		GdiplusStartup: "GdiplusStartup" [

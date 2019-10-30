@@ -113,6 +113,42 @@ timespec!: alias struct! [
 	nsec	[integer!] ;Nanoseconds
 ]
 
+ns_rr!: alias struct! [		;-- size: 1044 (32bit) 1048 (64bit)
+	name	[byte!]			;-- 1025 bytes array
+	;uint16_t	type;		;-- offset: 1026
+	;uint16_t	rr_class;	;-- offset: 1028
+	;uint32_t	ttl;		;-- offset: 1032
+	;uint16_t	rdlength;	;-- offset: 1036
+	;const u_char *	rdata;	;-- offset: 1040
+]
+
+ns_msg!: alias struct! [	;-- size: 48 (32bit) 
+	msg			[c-string!]
+	eom			[c-string!]
+	id			[uint16!]
+	;flags		[uint16!]
+	counts		[integer!]
+	counts2		[integer!]
+	sections	[byte-ptr!]
+	sections2	[byte-ptr!]
+	sections3	[byte-ptr!]
+	sections4	[byte-ptr!]
+	sect		[integer!]
+	rrnum		[integer!]
+	msg_ptr		[c-string!]
+]
+
+res_state!: alias struct! [	;-- size: 512 bytes
+	retrans		[integer!]
+	retry		[integer!]
+	options		[ulong!]
+	nscount		[integer!]
+	nsaddr1		[sockaddr_in!]
+	nsaddr2		[sockaddr_in!]
+	nsaddr3		[sockaddr_in!]
+	id			[integer!]
+]
+
 #switch OS [							;-- loading OS-specific bindings
 	macOS	 [#include %darwin.reds]
 	FreeBSD  [#include %freebsd.reds]
@@ -122,6 +158,50 @@ timespec!: alias struct! [
 
 #import [
 	LIBC-file cdecl [
+		res_ninit: "__res_ninit" [
+			statep		[int-ptr!]
+			return:		[integer!]
+		]
+		res_nclose: "__res_nclose" [
+			statep		[int-ptr!]
+		]
+		res_nmkquery: "__res_nmkquery" [
+			statep		[int-ptr!]
+			options		[integer!]
+			dname		[c-string!]
+			class		[integer!]
+			type		[integer!]
+			data		[byte-ptr!]
+			datalen		[integer!]
+			newrr		[byte-ptr!]
+			buf			[byte-ptr!]
+			buflen		[integer!]
+			return:		[integer!]
+		]
+		ns_initparse: "ns_initparse" [
+			buf			[byte-ptr!]
+			buflen		[integer!]
+			pmsg		[ns_msg!]
+			return:		[integer!]
+		]
+		ns_msg_getflag: "ns_msg_getflag" [
+			msg			[ns_msg! value]
+			flag		[integer!]
+			return:		[integer!]
+		]
+		ns_parserr: "ns_parserr" [
+			pmsg		[ns_msg!]
+			section		[integer!]
+			index		[integer!]
+			rr			[ns_rr!]
+			return:		[integer!]
+		]
+		inet_pton: "inet_pton" [
+			Family				[integer!]
+			pszAddrString		[c-string!]
+			pAddrBuf			[sockaddr_in6!]
+			return:				[integer!]
+		]
 		strncmp: "strncmp" [
 			str1		[c-string!]
 			str2		[c-string!]
