@@ -24,32 +24,18 @@ Red/System [
 #include %tab-panel.reds
 #include %text-list.reds
 
-GTKApp:			as handle! 0
-GTKApp-Ctx: 	0
-exit-loop:		0
+settings:			as handle! 0
+pango-context:		as handle! 0
+default-font-name:	as c-string! 0
+default-font-size:	0
+gtk-font-name:		"Sans"
+gtk-font-size:		10
+group-radio:		as handle! 0
 
-;;;close-window?:	no
-;;;win-array:		declare red-vector!
-win-cnt:		0
-
-group-radio:	as handle! 0
-
-settings:		as handle! 0
-pango-context:	as handle! 0
-default-font-name: as c-string! 0
-default-font-size: 0
-gtk-font-name:	"Sans"
-gtk-font-size:	10
-
-; Do not KNOW about this one
-;;;
-main-window:	as handle! 0
-last-window:	as handle! 0
-
-log-pixels-x:	0
-log-pixels-y:	0
-screen-size-x:	0
-screen-size-y:	0
+log-pixels-x:		0
+log-pixels-y:		0
+screen-size-x:		0
+screen-size-y:		0
 
 get-face-obj: func [
 	handle		[handle!]
@@ -338,22 +324,6 @@ show-widget: func [
 	gtk_widget_show widget
 ]
 
-set-view-no-wait: func [
-	window		[handle!]
-	key			[logic!]
-][
-	; usually a view/no-wait call at most twice do-events and at least one do-events with no-wait? = true
-	;; DEBUG[view/no-wait]: print ["view-no-wait? window " window " => "  key lf]
-	g_object_set_qdata window no-wait-id as int-ptr! either key [1][0]
-]
-
-view-no-wait?: func [
-	window		[handle!]
-	return:		[logic!]
-][
-	all[1 = as integer! g_object_get_qdata window no-wait-id window <> main-window]
-]
-
 get-child-from-xy: func [
 	parent		[handle!]
 	x			[integer!]
@@ -407,7 +377,7 @@ get-text-size: func [
 ]
 
 free-handles: func [
-	widget		[integer!]
+	widget		[handle!]
 	force?		[logic!]
 	/local
 		values	[red-value!]
@@ -420,17 +390,12 @@ free-handles: func [
 		sym		[integer!]
 		handle	[handle!]
 ][
-	values: get-face-values as handle! widget
+	values: get-face-values widget
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
 
-	;;;if all [sym = window not force?][
-	;;;	close-window?: yes
-	;;;	vector/rs-append-int win-array widget
-	;;;]
-
 	rate: values + FACE_OBJ_RATE
-	if TYPE_OF(rate) <> TYPE_NONE [change-rate as handle! widget none-value]
+	if TYPE_OF(rate) <> TYPE_NONE [change-rate widget none-value]
 
 	pane: as red-block! values + FACE_OBJ_PANE
 	if TYPE_OF(pane) = TYPE_BLOCK [
@@ -438,14 +403,13 @@ free-handles: func [
 		tail: as red-object! block/rs-tail pane
 		while [face < tail][
 			handle: face-handle? face
-			unless null? handle [free-handles as-integer handle force?]
+			unless null? handle [free-handles handle force?]
 			face: face + 1
 		]
 	]
 
 	if sym = window [
-		win-cnt: win-cnt - 1
-		post-quit-msg
+		gtk_widget_destroy widget
 	]
 
 	state: values + FACE_OBJ_STATE
@@ -543,16 +507,151 @@ set-defaults: func [
 	set-default-font default-font-name default-font-size
 ]
 
+get-window-count: func [
+	return:		[integer!]
+	/local
+		pane	[red-block!]
+		face	[red-object!]
+		num		[integer!]
+		count	[integer!]
+		win		[handle!]
+		ret		[integer!]
+][
+	pane: as red-block! #get system/view/screens		;-- screens list
+	if null? pane [return null]
+	
+	face: as red-object! block/rs-head pane				;-- 1st screen
+	if null? face [return null]	
+	
+	pane: as red-block! (object/get-values face) + FACE_OBJ_PANE ;-- windows list
+	
+	ret: 0
+	num: pane/head + block/rs-length? pane
+	if all [
+		TYPE_OF(pane) = TYPE_BLOCK
+		0 < num
+	][
+		count: num - 1
+		loop num [
+			win: face-handle? as red-object! block/rs-abs-at pane count
+			unless null? win [
+				ret: ret + 1
+			] 
+			count: count - 1
+		]
+	]
+	ret
+]
+
+check-quit-msg: func [
+	return:		[logic!]
+	/local
+		pane	[red-block!]
+		face	[red-object!]
+		num		[integer!]
+		count	[integer!]
+		win		[handle!]
+		v		[handle!]
+][
+	pane: as red-block! #get system/view/screens		;-- screens list
+	if null? pane [return null]
+	
+	face: as red-object! block/rs-head pane				;-- 1st screen
+	if null? face [return null]	
+	
+	pane: as red-block! (object/get-values face) + FACE_OBJ_PANE ;-- windows list
+	
+	num: pane/head + block/rs-length? pane
+	either all [
+		TYPE_OF(pane) = TYPE_BLOCK
+		0 < num
+	][
+		count: num - 1
+		loop num [
+			win: face-handle? as red-object! block/rs-abs-at pane count
+			unless null? win [
+				if as logic! GET-POST-QUIT(win) [
+					v: as handle! 0
+					SET-POST-QUIT(win v)
+					return true
+				]
+			] 
+			count: count - 1
+		]
+		false
+	][
+		true
+	]
+]
+
+find-active-window: func [
+	return:		[handle!]
+	/local
+		pane	[red-block!]
+		face	[red-object!]
+		num		[integer!]
+		count	[integer!]
+		win		[handle!]
+		ret		[handle!]
+][
+	pane: as red-block! #get system/view/screens		;-- screens list
+	if null? pane [return null]
+	
+	face: as red-object! block/rs-head pane				;-- 1st screen
+	if null? face [return null]	
+	
+	pane: as red-block! (object/get-values face) + FACE_OBJ_PANE ;-- windows list
+	
+	num: pane/head + block/rs-length? pane
+	either all [
+		TYPE_OF(pane) = TYPE_BLOCK
+		0 < num
+	][
+		ret: face-handle? as red-object! (block/rs-tail pane) - 1
+		count: num - 1
+		loop num [
+			win: face-handle? as red-object! block/rs-abs-at pane count
+			unless null? win [
+				if gtk_window_is_active win [
+					return win
+				]
+			] 
+			count: count - 1
+		]
+		ret
+	][
+		null
+	]
+]
+
+find-last-window: func [
+	return:		[handle!]
+	/local
+		pane	[red-block!]
+		face	[red-object!]
+][
+	pane: as red-block! #get system/view/screens		;-- screens list
+	if null? pane [return null]
+	
+	face: as red-object! block/rs-head pane				;-- 1st screen
+	if null? face [return null]	
+	
+	pane: as red-block! (object/get-values face) + FACE_OBJ_PANE ;-- windows list
+	
+	either all [
+		TYPE_OF(pane) = TYPE_BLOCK
+		0 < (pane/head + block/rs-length? pane)
+	][
+		face-handle? as red-object! (block/rs-tail pane) - 1
+	][
+		null
+	]
+]
+
 init: func [][
 	show-gtk-version
 	gtk_disable_setlocale
-	GTKApp: gtk_application_new RED_GTK_APP_ID G_APPLICATION_NON_UNIQUE
-	gobj_signal_connect(GTKApp "window-removed" :window-removed-event :exit-loop)
-	GTKApp-Ctx: g_main_context_default
-	unless g_main_context_acquire GTKApp-Ctx [
-		probe "ERROR: GTK: Cannot acquire main context" halt
-	]
-	g_application_register GTKApp null null
+	gtk_init null null
 
 	screen-size-x: gdk_screen_width
 	screen-size-y: gdk_screen_height
@@ -797,7 +896,7 @@ change-pane: func [
 			gtk_container_remove layout child/data
 			child: child/next
 		]
-		g_list_free as int-ptr! list
+		g_list_free list
 
 		s: GET_BUFFER(pane)
 		face: as red-object! s/offset + pane/head
@@ -1581,13 +1680,7 @@ OS-make-view: func [
 			gtk_container_add container widget
 		]
 		sym = window [
-			win-cnt: win-cnt + 1
 			widget: gtk_window_new 0
-			last-window: widget
-			if win-cnt = 1 [
-				main-window: widget
-			]
-			gtk_application_add_window GTKApp widget
 
 			if bits and FACET_FLAGS_MODAL <> 0 [
 				gtk_window_set_modal widget yes
@@ -1915,15 +2008,6 @@ OS-destroy-view: func [
 	handle: face-handle? face
 	values: object/get-values face
 	flags: get-flags as red-block! values + FACE_OBJ_FLAGS
-	either handle <> main-window [
-		;; DEBUG: if flags and FACET_FLAGS_MODAL <> 0 [print ["modal "]] print ["window: " handle " (main-window: " main-window ") closing... win-cnt: " win-cnt " exit-loop: " exit-loop lf ]
-
-		;gtk_window_close handle ;; NOT ENOUGH SINCE THIS IS EQUIVALENT TO CLICKING CLOSE BUTTON
-		gtk_widget_destroy handle
-		win-cnt: win-cnt - 1
-	][
-
-	;; DEBUG: print ["closing main window win-cnt: " win-cnt " exit-loop: " exit-loop lf]
 
 	obj: as red-object! values + FACE_OBJ_FONT
 	if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj FONT_OBJ_PARENT]
@@ -1931,16 +2015,10 @@ OS-destroy-view: func [
 	obj: as red-object! values + FACE_OBJ_PARA
 	if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj PARA_OBJ_PARENT]
 
-	;;g_main_context_release GTKApp-Ctx
-	;; DEBUG:
-
 	;; TODO: This can be useless now!
 	remove-all-timers handle
 
-	;; DEBUG: print ["BYE! win: " win-cnt " (" handle ")" lf]
-
-	free-handles as-integer handle no
-	]
+	free-handles handle no
 ]
 
 OS-update-facet: func [
