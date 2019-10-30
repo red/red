@@ -346,6 +346,7 @@ OS-text-box-layout: func [
 		state	[red-block!]
 		size	[red-pair!]
 		font	[red-object!]
+		color	[red-tuple!]
 		cached?	[logic!]
 		attrs	[handle!]
 		int		[red-integer!]
@@ -363,7 +364,7 @@ OS-text-box-layout: func [
 	state: as red-block! values + FACE_OBJ_EXT3
 	size: as red-pair! values + FACE_OBJ_SIZE
 	font: as red-object! values + FACE_OBJ_FONT
-	attrs: create-pango-attrs box font
+	color: as red-tuple! values + FACE_OBJ_COLOR
 	cached?: TYPE_OF(state) = TYPE_BLOCK
 
 	either cached? [
@@ -385,7 +386,11 @@ OS-text-box-layout: func [
 		none/make-in state
 		logic/make-in state false
 	]
-
+	attrs: either TYPE_OF(font) = TYPE_BLOCK [
+		create-pango-attrs box font
+	][
+		create-simple-attrs default-font-name default-font-size color
+	]
 	len: -1
 	str: unicode/to-utf8 text :len
 	pango_layout_set_width layout PANGO_SCALE * size/x
