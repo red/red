@@ -480,6 +480,67 @@ date: context [
 			dt/time: to-utc-time t v
 		]
 	]
+	
+	make-at: func [
+		slot	[red-value!]
+		year	[integer!]
+		month	[integer!]
+		day		[integer!]
+		hour	[integer!]
+		min		[integer!]
+		sec		[integer!]
+		nsec	[integer!]
+		tz-h	[integer!]
+		tz-m	[integer!]
+		time?	[logic!]
+		return: [red-date!]
+		/local
+			dt	[red-date!]
+			t	[float!]
+			d	[integer!]
+			h	[integer!]
+			i	[integer!]
+			zone[integer!]
+			neg?[logic!]
+	][
+		if all [day >= 100 day > year][i: year year: day day: i]	;-- allow year to be first
+
+		set-type slot TYPE_DATE				;-- preserve eventual flags in the header
+		dt: as red-date! slot
+		dt/date: DATE_SET_YEAR(0 year)
+		set-month dt month
+		dt/date: days-to-date day + date-to-days dt/date 0 time?
+		
+		t:  (3600.0 * as float! hour)
+		  + (60.0   * as float! min)
+		  + (         as float! sec)
+		  + (1e-9   * as float! nsec)
+
+		set-time dt t no
+
+		d: dt/date
+		h: time/get-hours t
+		if any [
+			year  <> DATE_GET_YEAR(d)
+			month <> DATE_GET_MONTH(d)
+			day   <> DATE_GET_DAY(d)
+			all [t <> 0.0 any [
+				h < 0 h > 23
+				min <> time/get-minutes dt/time
+			]]
+			all [t = 0.0 any [
+				hour <> time/get-hours dt/time
+				min  <> time/get-minutes dt/time
+			]]
+		][return null]
+
+		neg?: either tz-h < 0 [tz-h: 0 - tz-h yes][no]
+		zone: tz-h << 2 and 7Fh or tz-m
+		if neg? [zone: DATE_SET_ZONE_NEG(zone)]
+		dt/date: DATE_SET_ZONE(dt/date zone)
+		set-time dt dt/time yes
+		dt
+	]
 
 	set-all: func [
 		dt     [red-date!]

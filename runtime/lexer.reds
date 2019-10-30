@@ -1102,6 +1102,7 @@ lexer: context [
 			month [integer!]
 			time? [logic!]
 	][
+probe "scan-date"
 		time?: flags and C_FLAG_TM_ONLY <> 0
 		field: system/stack/allocate/zero 12
 		c: 0
@@ -1163,7 +1164,7 @@ lexer: context [
 				 field/7								;-- sec  
 				 field/8								;-- nano
 		]
-;comment {
+comment {
 		probe [
 			"-----------------"
 			"^/trash: "	field/1
@@ -1179,7 +1180,7 @@ lexer: context [
 			"^/TZ-h : " field/11
 			"^/TZ-m : " field/12
 		]
-;}		
+}
 		lex/in-pos: e									;-- reset the input position to delimiter byte
 		field											;-- return field pointer for scan-time
 	]
