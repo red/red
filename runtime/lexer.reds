@@ -1121,7 +1121,9 @@ lexer: context [
 ;?? class
 			index: state * (size? date-char-classes!) + class
 			state: as-integer date-transitions/index
-				
+
+			c: c * 10 + as-integer date-cumul/cp
+			
 			pos: as-integer fields-table/state
 			field/pos: c
 ;probe ["field: " c]
@@ -1129,7 +1131,7 @@ lexer: context [
 ;?? state
 ;?? cp
 			if null-byte = reset-table/state [c: 0]
-			c: c * 10 + as-integer date-cumul/cp
+
 ;?? c
 			s: s + 1
 		]
@@ -1180,7 +1182,7 @@ comment {
 					default 		[throw LEX_ERROR 0]
 				]
 				field/3: month							;;TBD: add accurate spelling check
-			]		
+			]
 			dt: date/make-at
 				 alloc-slot lex
 				 field/2								;-- year 

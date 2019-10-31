@@ -537,7 +537,7 @@ date: context [
 		][return null]
 
 		neg?: either tz-h < 0 [tz-h: 0 - tz-h yes][no]
-		zone: tz-h << 2 and 7Fh or tz-m
+		zone: tz-h << 2 and 7Fh or (tz-m / 15)
 		if neg? [zone: DATE_SET_ZONE_NEG(zone)]
 		dt/date: DATE_SET_ZONE(dt/date zone)
 		set-time dt dt/time yes
