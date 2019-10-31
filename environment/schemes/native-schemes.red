@@ -30,3 +30,10 @@ register-scheme/native make system/standard/scheme [
 	name: 'UDP
 	title: "UDP scheme implementation"
 ] actor
+
+actor: #system [handle/push file-device/table]
+
+register-scheme/native make system/standard/scheme [
+	name: 'FILE
+	title: "FILE scheme implementation"
+] actor

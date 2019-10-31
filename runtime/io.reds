@@ -16,11 +16,12 @@ Red/System [
 	IO_EVT_READ:		2
 	IO_EVT_WRITE:		4
 	IO_EVT_CLOSE:		8
-	IO_EVT_ACCEPT:		16
-	IO_EVT_CONNECT:		32
-	IO_EVT_WROTE:		64
-	IO_EVT_LOOKUP:		128
-	IO_EVT_PULSE:		256
+	IO_EVT_ACCEPT:		10h
+	IO_EVT_CONNECT:		20h
+	IO_EVT_WROTE:		40h
+	IO_EVT_LOOKUP:		80h
+	IO_EVT_EOF:			0100h
+	IO_EVT_PULSE:		0200h
 	;-- more IO Events
 	;-- IO_EVT...
 ]
@@ -153,3 +154,4 @@ io: context [
 #include %devices/tcp.reds
 #include %devices/tls.reds
 #include %devices/udp.reds
+#include %devices/file.reds

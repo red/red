@@ -74,6 +74,13 @@ dns-data!: alias struct! [
 	addrinfo	[int-ptr!]
 ]
 
+file-data!: alias struct! [
+	IOCP_DATA_FIELDS
+	port		[red-object! value]		;-- red port! cell
+	flags		[integer!]
+	buffer		[node!]					;-- buffer node!
+]
+
 iocp: context [
 	verbose: 0
 
@@ -108,7 +115,7 @@ iocp: context [
 		data	[iocp-data!]
 		return:	[logic!]
 	][
-		0 <> PostQueuedCompletionStatus p/port 0 null as OVERLAPPED! data
+		0 <> PostQueuedCompletionStatus p/port data/transferred null as OVERLAPPED! data
 	]
 
 	bind: func [

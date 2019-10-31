@@ -177,6 +177,7 @@ simple-io: context [
 			len: 0
 			res: ReadFile file buffer size :len null
 			res: either zero? res [-1][len]
+			probe GetLastError
 		][
 			res: LibC.read file buffer size
 		]

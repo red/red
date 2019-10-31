@@ -14,8 +14,6 @@ Red/System [
 #define DnsTypeA						1
 #define DnsTypeAAAA 					28
 
-#define DNS_PACKET_SZ					512
-
 dns: context [
 	server-list: as int-ptr! 0
 	server-idx: 0

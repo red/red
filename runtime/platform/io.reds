@@ -16,6 +16,7 @@ SOCK_READBUF_SZ: 8192			;-- 8KB
 	IOCP_TYPE_TCP:		0
 	IOCP_TYPE_UDP:		1
 	IOCP_TYPE_DNS:		2
+	IOCP_TYPE_FILE:		3
 	IOCP_TYPE_TLS:		10h
 ]
 
@@ -24,6 +25,7 @@ SOCK_READBUF_SZ: 8192			;-- 8KB
 	#include %windows/dns.reds
 	#include %windows/tls.reds
 	#include %windows/socket.reds
+	;#include %windows/file.reds
 ][
 	#include %POSIX/iocp.reds
 	#include %POSIX/dns.reds
