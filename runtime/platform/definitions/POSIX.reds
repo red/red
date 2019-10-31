@@ -193,7 +193,7 @@ res_state!: alias struct! [	;-- size: 512 bytes
 			pmsg		[ns_msg!]
 			section		[integer!]
 			index		[integer!]
-			rr			[ns_rr!]
+			rr			[byte-ptr!]
 			return:		[integer!]
 		]
 		inet_pton: "inet_pton" [

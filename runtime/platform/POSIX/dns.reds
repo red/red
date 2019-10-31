@@ -95,12 +95,14 @@ probe dns-data/type
 			server	[int-ptr!]
 			dns-addr [sockaddr_in!]
 			port	[integer!]
-			record	[ns_rr!]
+			record	[byte-ptr!]
 			msg		[ns_msg! value]
 			blob-sz	[integer!]
 			blob	[byte-ptr!]
 			n		[integer!]
 			i		[integer!]
+			type	[int-ptr!]
+			rdata	[int-ptr!]
 	][
 		io/unpin-memory data/send-buf
 		s: as series! data/send-buf/value
@@ -113,16 +115,22 @@ dump4 :msg
 		n: msg/counts >>> 16
 		?? n
 
-		blob-sz: (size? addrinfo!) + (size? sockaddr_in!) * n
-		blob: allocate blob-sz
-		
-		record: as ns_rr! system/stack/allocate 262
+		record: as byte-ptr! system/stack/allocate 262
 		i: 0
 		while [i < n][
-		probe ns_parserr msg 1 i record
-		i: i + 1
-dump4 record
-]
+			if 0 <> ns_parserr msg 1 i record [break]
+			i: i + 1
+			type: as int-ptr! record + 1026
+			switch type/value and FFFFh [
+				1	[		;-- IPv4 address
+					rdata: as int-ptr! record + 1040
+				]
+				28	[		;-- IPv6 address
+					0
+				]
+				default [0]
+			]
+		]
 		no
 	]
 ]
