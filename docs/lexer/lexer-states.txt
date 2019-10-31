@@ -416,8 +416,8 @@ F_DT_YEARL2->digit->S_DT_YM2->digit->S_DT_YMM2->sep->F_DT_YMONTH
   \                   \->sep->F_DT_YMONTH
    \->letter->S_DT_YMON
     \->"W"->S_DT_YV->digit->S_DT_YW->digit->S_DT_YWW->eof->T_DT_WEEK
-                                             \->digit->S_DT_WD->eof->T_DT_YWWD
-                                              \         \->"T"->S_TM_START
+                                             \->"-"->S_DT_YWD->digit->S_DT_WD->eof->T_DT_YWWD
+                                              \                        \->"T"->S_TM_START
                                                \->"T"->S_TM_START
 
 F_DT_DDD->"T"->S_TM_START

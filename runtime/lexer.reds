@@ -1105,66 +1105,39 @@ lexer: context [
 			pos	  [integer!]
 			month [integer!]
 			time? [logic!]
+			week? [logic!]
+			wday? [logic!]
+			yday? [logic!]
 	][
-;probe "scan-date"
-;probe as-c-string s
-;probe as-c-string e
 		time?: flags and C_FLAG_TM_ONLY <> 0
-		field: system/stack/allocate/zero 12
+		field: system/stack/allocate/zero 13
 		c: 0
 		state: either time? [S_TM_START][S_DT_START]
 		
 		loop as-integer e - s [
-;probe ["--- " s/1 " ---"]
 			cp: as-integer s/1
 			class: as-integer date-classes/cp
-;?? class
 			index: state * (size? date-char-classes!) + class
 			state: as-integer date-transitions/index
-
 			c: c * 10 + as-integer date-cumul/cp
-			
 			pos: as-integer fields-table/state
 			field/pos: c
-;probe ["field: " c]
-;?? pos	
-;?? state
-;?? cp
 			if null-byte = reset-table/state [c: 0]
-
-;?? c
 			s: s + 1
 		]
 		if state <= T_DT_ERROR [
 			if state = T_DT_ERROR [throw LEX_ERROR]		;-- check here for performance reason
-			
 			index: state * (size? date-char-classes!) + C_DT_EOF
 			state: as-integer date-transitions/index
-;?? state
 			pos: as-integer fields-table/state
-;?? pos
 			field/pos: c
-		]
-
-comment {
-		probe [
-			"-----------------"
-			"^/trash: "	field/1
-			"^/year : " field/2
-			"^/month: " field/3
-			"^/day  : " field/4
-			"^/hour : " field/5
-			"^/min  : " field/6
-			"^/sec  : " field/7
-			"^/nano : " field/8
-			"^/week : " field/9
-			"^/wday : " field/10
-			"^/TZ-h : " field/11
-			"^/TZ-m : " field/12
-		]
-}			
+		]		
 		unless time? [
-			month: field/3
+			week?: any [state = T_DT_WEEK field/9  <> 0]
+			wday?: any [state = T_DT_YWWD field/10 <> 0]
+			yday?: any [state = T_DT_YDDD field/13 <> 0]
+			month: either any [week? wday? yday?][1][field/3]
+
 			if any [month > 12 month < 1][				;-- month as a word	
 				month: switch month [					;-- convert hashed word to correct value
 					8128 81372323	[1]
@@ -1181,8 +1154,9 @@ comment {
 					7557 756474372	[12]
 					default 		[throw LEX_ERROR 0]
 				]
-				field/3: month							;;TBD: add accurate spelling check
 			]
+			field/3: month								;;TBD: add accurate spelling check
+			
 			dt: date/make-at
 				 alloc-slot lex
 				 field/2								;-- year 
@@ -1197,8 +1171,14 @@ comment {
 				 state >= T_TM_HM						;-- time was provided
 			
 			if null? dt [throw LEX_ERROR]
+			if any [week? wday?][date/set-isoweek dt field/9]	;-- yyyy-Www
+			if wday? [
+				c: field/10
+				if any [c < 1 c > 7][throw LEX_ERROR]	;-- yyyy-Www-d
+				date/set-weekday dt c
+			]
+			if yday? [date/set-yearday dt field/13]		;-- yyyy-ddd
 		]
-
 		lex/in-pos: e									;-- reset the input position to delimiter byte
 		field											;-- return field pointer for scan-time
 	]
