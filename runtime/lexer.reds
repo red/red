@@ -1109,9 +1109,9 @@ lexer: context [
 			wday? [logic!]
 			yday? [logic!]
 	][
-		time?: flags and C_FLAG_TM_ONLY <> 0
-		field: system/stack/allocate/zero 13
-		c: 0
+		c: 0											;-- accumulator (numbers decoding)
+		time?: flags and C_FLAG_TM_ONLY <> 0			;-- called from scan-time?
+		field: system/stack/allocate/zero 13			;-- date/time fields array
 		state: either time? [S_TM_START][S_DT_START]
 		
 		loop as-integer e - s [
@@ -1125,7 +1125,7 @@ lexer: context [
 			if null-byte = reset-table/state [c: 0]
 			s: s + 1
 		]
-		if state <= T_DT_ERROR [
+		if state <= T_DT_ERROR [						;-- if no terminal state reached, forces EOF input
 			if state = T_DT_ERROR [throw LEX_ERROR]		;-- check here for performance reason
 			index: state * (size? date-char-classes!) + C_DT_EOF
 			state: as-integer date-transitions/index
