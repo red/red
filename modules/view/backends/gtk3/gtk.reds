@@ -610,16 +610,36 @@ GPtrArray!: alias struct! [
 			ts 			[integer!]
 			handler		[integer!]
 			data		[int-ptr!]
-			return: 	[integer!]
+			return:		[integer!]
+		]
+		g_timer_new: "g_timer_new" [
+			return:		[handle!]
+		]
+		g_timer_start: "g_timer_start" [
+			timer		[handle!]
+		]
+		g_timer_stop: "g_timer_stop" [
+			timer		[handle!]
+		]
+		g_timer_continue: "g_timer_continue" [
+			timer		[handle!]
+		]
+		g_timer_elapsed: "g_timer_elapsed" [
+			timer		[handle!]
+			ms			[int-ptr!]
+			return:		[float!]
+		]
+		g_timer_destroy: "g_timer_destroy" [
+			timer		[handle!]
 		]
 		g_idle_add: "g_idle_add" [
 			handler		[integer!]
 			data		[int-ptr!]
-			return: 	[integer!]
+			return:		[integer!]
 		]
 		g_markup_escape_text: "g_markup_escape_text" [
-			text 		[c-string!]
-			len 		[integer!]
+			text		[c-string!]
+			len			[integer!]
 			return:		[c-string!]
 		]
 		g_type_check_instance_is_a: "g_type_check_instance_is_a" [
@@ -1293,6 +1313,10 @@ GPtrArray!: alias struct! [
 		gtk_propagate_event: "gtk_propagate_event" [
 			widget		[handle!]
 			event		[handle!]
+		]
+		gtk_widget_destroyed: "gtk_widget_destroyed" [
+			widget		[handle!]
+			pointer		[int-ptr!]
 		]
 		gtk_widget_get_window: "gtk_widget_get_window" [
 			widget		[handle!]
