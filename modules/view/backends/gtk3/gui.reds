@@ -1593,7 +1593,6 @@ OS-show-window: func [
 ][
 	show-widget as handle! widget
 	set-selected-focus as handle! widget
-	gtk_window_set_keep_above as handle! widget true
 ]
 
 OS-make-view: func [
