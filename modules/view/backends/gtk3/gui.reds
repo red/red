@@ -389,6 +389,8 @@ free-handles: func [
 		rate	[red-value!]
 		sym		[integer!]
 		handle	[handle!]
+		timer	[handle!]
+		sec		[float!]
 ][
 	values: get-face-values widget
 	type: as red-word! values + FACE_OBJ_TYPE
@@ -410,6 +412,17 @@ free-handles: func [
 
 	if sym = window [
 		gtk_widget_destroy widget
+		;-- TBD: don't know why widget has been destroyed, but still need do event loop
+		;-- otherwise the window can't be closed
+		timer: g_timer_new
+		g_timer_start timer
+		forever [
+			gtk_main_iteration_do no
+			sec: g_timer_elapsed timer null
+			if sec > 0.001 [break]
+		]
+		g_timer_stop timer
+		g_timer_destroy timer
 	]
 
 	state: values + FACE_OBJ_STATE
@@ -2004,7 +2017,6 @@ OS-destroy-view: func [
 		obj		[red-object!]
 		flags	[integer!]
 ][
-	;; DEBUG: print ["OS-destroy-view" lf]
 	handle: face-handle? face
 	values: object/get-values face
 	flags: get-flags as red-block! values + FACE_OBJ_FLAGS
