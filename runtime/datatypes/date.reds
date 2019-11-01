@@ -533,6 +533,7 @@ date: context [
 		tz-h	[integer!]
 		tz-m	[integer!]
 		time?	[logic!]
+		neg-TZ? [logic!]
 		return: [red-date!]
 		/local
 			dt	[red-date!]
@@ -540,47 +541,26 @@ date: context [
 			d	[integer!]
 			h	[integer!]
 			i	[integer!]
-			zone[integer!]
-			neg?[logic!]
+			z   [integer!]
 	][
 		if year < 100 [									;-- expand short yy forms
 			d: either year < 50 [2000][1900]
 			year: year + d
 		]
-		set-type slot TYPE_DATE							;-- preserve eventual flags in the header
-		dt: as red-date! slot
-		dt/date: DATE_SET_YEAR(0 year)
-		set-month dt month
-		dt/date: days-to-date day + date-to-days dt/date 0 time?
-		
-		t:  (3600.0 * as float! hour)
-		  + (60.0   * as float! min)
-		  + (         as float! sec)
-		  + (1e-9   * as float! nsec)
-
-		set-time dt t no
-
-		d: dt/date
-		h: time/get-hours t
 		if any [
-			year  <> DATE_GET_YEAR(d)
-			month <> DATE_GET_MONTH(d)
-			day   <> DATE_GET_DAY(d)
-			all [t <> 0.0 any [
-				h < 0 h > 23
-				min <> time/get-minutes dt/time
-			]]
-			all [t = 0.0 any [
-				hour <> time/get-hours dt/time
-				min  <> time/get-minutes dt/time
-			]]
+			day > 31 month > 12 year > 9999
+			tz-h > 15 tz-h < -15						;-- out of range TZ
+			hour > 23 min > 59 sec > 59
+			all [day = 29 month = 2 not leap-year? year]
 		][return null]
-
-		neg?: either tz-h < 0 [tz-h: 0 - tz-h yes][no]
-		zone: tz-h << 2 and 7Fh or (tz-m / 15)
-		if neg? [zone: DATE_SET_ZONE_NEG(zone)]
-		dt/date: DATE_SET_ZONE(dt/date zone)
-		set-time dt dt/time yes
+		
+		dt: as red-date! slot
+		set-all dt year month day hour min sec nsec
+		
+		z: tz-h << 2 and 7Fh or (tz-m / 15)
+		if neg-TZ? [z: DATE_SET_ZONE_NEG(z)]
+		dt/date: DATE_SET_ZONE(dt/date z)
+		unless time? [dt/date: DATE_CLEAR_TIME_FLAG(dt/date)]
 		dt
 	]
 

@@ -1101,7 +1101,7 @@ lexer: context [
 		return: [int-ptr!]
 		/local
 			dt	  [red-date!]
-			ms	  [byte-ptr!]
+			p	  [byte-ptr!]
 			me	  [byte-ptr!]
 			m	  [int-ptr!]
 			field [int-ptr!]
@@ -1117,6 +1117,7 @@ lexer: context [
 			week? [logic!]
 			wday? [logic!]
 			yday? [logic!]
+			neg?  [logic!]
 	][
 		c: 0											;-- accumulator (numbers decoding)
 		time?: flags and C_FLAG_TM_ONLY <> 0			;-- called from scan-time?
@@ -1148,21 +1149,23 @@ lexer: context [
 			wday?: any [state = T_DT_YWWD field/10 <> 0]
 			yday?: any [state = T_DT_YDDD field/13 <> 0]
 			month: either any [week? wday? yday?][1][
-				ms: as byte-ptr! field/14 + 1
+				p:  as byte-ptr! field/14 + 1
 				me: as byte-ptr! field/15
 				either null? me [field/3][				;-- month is numeric
-					len: as-integer me - ms + 1
+					len: as-integer me - p + 1
 					if any [len < 3 len > 9][throw LEX_ERROR] ;-- invalid month name
 					m: months
 					loop 12 [
-						if zero? platform/strnicmp ms as byte-ptr! m/1 len [break]
+						if zero? platform/strnicmp p as byte-ptr! m/1 len [break]
 						m: m + 1
 					]
 					if months + 12 = m [throw LEX_ERROR] ;-- invalid month name
 					(as-integer m - months) >> 2 + 1
 				]
 			]
-			field/3: month								;;TBD: add accurate spelling check
+			field/3: month
+			p: as byte-ptr! field/16
+			neg?: all [p <> null p/1 = #"-"]
 			
 			dt: date/make-at
 				 alloc-slot lex
@@ -1175,7 +1178,8 @@ lexer: context [
 				 field/8								;-- nano
 				 field/11								;-- TZ hour
 				 field/12								;-- TZ min
-				 state >= T_TM_HM						;-- time was provided
+				 state >= T_TM_HM						;-- date/time input
+				 neg?									;-- negative TZ flag
 			
 			if null? dt [throw LEX_ERROR]
 			if any [week? wday?][date/set-isoweek dt field/9]	;-- yyyy-Www
