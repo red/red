@@ -225,7 +225,7 @@ context [
 		out: make block! 50	
 		foreach s next line [
 			either pos: find date-states to-word s [
-				append out ((2 + index? pos) / 4) - 1
+				append out ((3 + index? pos) / 4) - 1
 			][
 				do make error! form reduce ["Error: state" s "not found"]
 			]

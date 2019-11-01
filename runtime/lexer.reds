@@ -1385,6 +1385,7 @@ lexer: context [
 			lex/line: line
 			lex/nline: line - mark
 			
+			assert start + offset <= p
 			index: state - --EXIT_STATES--
 			do-scan: as scanner! scanners/index
 			do-scan lex start + offset p flags
@@ -1442,6 +1443,7 @@ lexer: context [
 		date-transitions: date-transitions + 1
 		date-cumul: date-cumul + 1
 		fields-table: fields-table + 1
+		fields-ptr-table: fields-ptr-table + 1
 		reset-table: reset-table + 1
 	]
 
