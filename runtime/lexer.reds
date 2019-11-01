@@ -1098,7 +1098,7 @@ lexer: context [
 	]
 
 	scan-date: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
-		return: [lexer-dt-array!]
+		return: [lexer-dt-array!]						;-- return field pointer for scan-time
 		/local
 			cell  [cell!]
 			dt	  [red-date!]
@@ -1117,9 +1117,9 @@ lexer: context [
 			time? [logic!]
 			neg?  [logic!]
 	][
-		c: 0											;-- accumulator (numbers decoding)
+		c: 0											;-- accumulator (fields decoding)
 		time?: flags and C_FLAG_TM_ONLY <> 0			;-- called from scan-time?
-		field: system/stack/allocate/zero 16 			;-- date/time fields array
+		field: system/stack/allocate/zero 17 			;-- date/time fields array
 		state: either time? [S_TM_START][S_DT_START]
 
 		loop as-integer e - s [
@@ -1164,8 +1164,13 @@ lexer: context [
 				]
 				if df/yday <> 0 [date/set-yearday dt df/yday] ;-- yyyy-ddd
 			][
+				p: as byte-ptr! df/month-begin
+				me: as byte-ptr! df/sep2
+				if df/month-begin or df/sep2 <> 0 [
+					if any [null? p null? me p/1 <> me/1][throw LEX_ERROR] ;-- inconsistent separator
+				]
 				if df/month-end <> 0 [					;-- if month is named
-					p: as byte-ptr! df/month-begin + 1	;-- name start
+					p: p + 1							;-- name start
 					me: as byte-ptr! df/month-end		;-- name end
 					len: as-integer me - p + 1
 					if any [len < 3 len > 9][throw LEX_ERROR] ;-- invalid month name
@@ -1353,7 +1358,7 @@ lexer: context [
 			term?	[logic!]
 			do-scan [scanner!]
 	][
-		line:  1
+		line: 1
 		until [
 			flags: 0
 			term?: no

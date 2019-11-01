@@ -356,5 +356,6 @@ lexer-dt-array!: alias struct! [
 	yday		[integer!]
 	month-begin	[integer!]
 	month-end	[integer!]
+	sep2		[integer!]
 	TZ-sign		[integer!]
 ]

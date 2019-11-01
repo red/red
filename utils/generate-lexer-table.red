@@ -106,7 +106,8 @@ context [
 	;yearday	13
 	;word-start 14
 	;word-end   15
-	;TZ-sign    16
+	;sep2		16
+	;TZ-sign    17
 	;-- state ----------- reset -- field -- ptr --
 		S_DT_START			1		4		1		;-- 0
 		S_DT_D				1		4		1		;--	1
@@ -120,7 +121,7 @@ context [
 		S_DT_YMM			0		3		1		;--	9
 		S_DT_YM2			1		3		1		;-- 10
 		S_DT_YMM2			1		3		1		;--	11
-		F_DT_YMONTH			0		1		1		;--	12
+		F_DT_YMONTH			0		1		16		;--	12
 		F_DT_DDD			0		13		1		;--	13
 		S_DT_YV				0		11		1		;--	14
 		S_DT_YW				1		11		1		;--	15
@@ -132,7 +133,7 @@ context [
 		F_DT_YMDD			0		4		1		;--	21
 		S_DT_DM				1		3		1		;--	22
 		S_DT_DMM			0		3		1		;--	23
-		F_DT_DMONTH			0		1		1		;--	24
+		F_DT_DMONTH			0		1		16		;--	24
 		S_DT_DMON			1		3		15		;--	25
 		F_DT_DMY			1		2		1		;--	26
 		F_DT_DMYY			1		2		1		;--	27
@@ -149,7 +150,7 @@ context [
 		F_TM_SS				0		7		1		;--	38
 		F_TM_N1				0		1		1		;--	39
 		F_TM_N				1		8		1		;--	40
-		S_TM_HMZ			0		1		16		;--	41
+		S_TM_HMZ			0		1		17		;--	41
 		S_TZ_H				1		9		1		;--	42
 		F_TZ_HH				0		9		1		;--	43
 		F_TZ_HM				0		1		1		;--	44
