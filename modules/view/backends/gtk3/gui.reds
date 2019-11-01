@@ -902,7 +902,7 @@ change-pane: func [
 	]
 
 	unless null? layout [
-		list: as GList! gtk_container_get_children layout
+		list: gtk_container_get_children layout
 		child: list
 		while [not null? child][
 			g_object_ref child/data								;-- to avoid destruction before removing from container
@@ -958,6 +958,12 @@ change-size: func [
 		ntype	[red-word!]
 		sym		[integer!]
 		layout	[handle!]
+		str		[red-string!]
+		list	[GList!]
+		label	[handle!]
+		pl		[handle!]
+		x		[integer!]
+		y		[integer!]
 ][
 	either type = window [
 		gtk_window_set_default_size widget size/x size/y
@@ -974,6 +980,20 @@ change-size: func [
 		]
 		gtk_widget_set_size_request widget size/x size/y
 		gtk_widget_queue_resize widget
+
+		if type = panel [
+			str: as red-string! values + FACE_OBJ_TEXT
+			if TYPE_OF(str) = TYPE_STRING [
+				list: gtk_container_get_children widget
+				label: list/data
+				pl: gtk_label_get_layout label
+				x: 0 y: 0
+				pango_layout_get_pixel_size pl :x :y
+				x: either size/x > x [size/x - x / 2][0]
+				y: either size/y > y [size/y - y / 2][0]
+				gtk_layout_move widget label x y
+			]
+		]
 	]
 ]
 
@@ -1619,6 +1639,7 @@ OS-make-view: func [
 		flags		[integer!]
 		bits		[integer!]
 		rate		[red-value!]
+		color		[red-tuple!]
 		sym			[integer!]
 		p-sym		[integer!]
 		caption		[c-string!]
@@ -1632,6 +1653,11 @@ OS-make-view: func [
 		fvalue		[float!]
 		vertical?	[logic!]
 		rfvalue		[red-float!]
+		attrs		[handle!]
+		newF?		[logic!]
+		layout		[handle!]
+		x			[integer!]
+		y			[integer!]
 ][
 	stack/mark-native words/_body
 
@@ -1650,6 +1676,7 @@ OS-make-view: func [
 	selected: as red-integer!	values + FACE_OBJ_SELECTED
 	para:	  as red-object!	values + FACE_OBJ_PARA
 	rate: 	  as red-value!		values + FACE_OBJ_RATE
+	color:	  as red-tuple!		values + FACE_OBJ_COLOR
 
 	bits: 	  get-flags as red-block! values + FACE_OBJ_FLAGS
 	sym: 	  symbol/resolve type/symbol
@@ -1827,6 +1854,30 @@ OS-make-view: func [
 	store-face-to-obj widget face
 	make-styles-provider widget
 	change-font widget face values
+
+	if all [
+		sym = panel
+		not null? caption
+	][
+		attrs: get-attrs face font
+		newF?: false
+		if null? attrs [
+			newF?: true
+			attrs: create-simple-attrs default-font-name default-font-size color
+		]
+		buffer: gtk_label_new caption
+		gtk_widget_show buffer
+		set-label-attrs buffer font attrs
+		layout: gtk_label_get_layout buffer
+		x: 0 y: 0
+		pango_layout_get_pixel_size layout :x :y
+		x: either size/x > x [size/x - x / 2][0]
+		y: either size/y > y [size/y - y / 2][0]
+		gtk_layout_put widget buffer x y
+		if newF? [
+			free-pango-attrs attrs
+		]
+	]
 
 	if sym <> window [
 		if parent <> 0 [
