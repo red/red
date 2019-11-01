@@ -20,7 +20,6 @@ Red/System [
 	IO_EVT_CONNECT:		20h
 	IO_EVT_WROTE:		40h
 	IO_EVT_LOOKUP:		80h
-	IO_EVT_EOF:			0100h
 	IO_EVT_PULSE:		0200h
 	;-- more IO Events
 	;-- IO_EVT...
@@ -62,16 +61,28 @@ io: context [
 		op			[io-event-type!]
 		/local
 			evt		[red-event! value]
+			actor	[red-function!]
+			count	[integer!]
 	][
 		evt/header: TYPE_EVENT
 		evt/type: EVT_CATEGORY_IO << 16 or op
 		evt/msg: as byte-ptr! msg
 
 		;-- call port/awake: func [event [event!]][]
-		stack/mark-func words/_awake red-port/ctx
-		stack/push as red-value! :evt
-		port/call-function red-port words/_awake
-		stack/reset
+		actor: as red-function! object/rs-select red-port as red-value! words/_awake
+		if TYPE_OF(actor) = TYPE_FUNCTION [
+			stack/mark-func words/_awake red-port/ctx
+			stack/push as red-value! :evt
+			count: _function/calc-arity null actor 0
+			if positive? count [_function/init-locals count]
+			_function/call actor red-port/ctx
+			stack/unwind-last
+			stack/reset
+		]
+		;stack/mark-func words/_awake red-port/ctx
+		;stack/push as red-value! :evt
+		;port/call-function red-port words/_awake
+		;stack/reset
 	]
 
 	create-socket-data: func [

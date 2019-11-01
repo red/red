@@ -93,10 +93,12 @@ probe ["read data: " data/transferred]
 			either data/event = IO_EVT_NONE [		;-- we can reuse this one
 				as file-data! data
 			][										;-- needs to create a new one
-				null
-				;new: copy-file-data as file-data! data
-				;new/accept-sock: PENDING_IO_FLAG ;-- use it as a flag to indicate pending data
-				;new
+				new: as file-data! alloc0 size? file-data!
+				new/event-handler: as iocp-event-handler! :event-handler
+				new/device: data/device
+				new/accept-sock: PENDING_IO_FLAG	;-- use it as a flag to indicate pending data
+				copy-cell as cell! red-port as cell! :new/port
+				new
 			]
 		][
 			as file-data! state/value
@@ -106,13 +108,13 @@ probe ["read data: " data/transferred]
 	open-file: func [
 		port		[red-object!]
 		pathname	[c-string!]
-		new?		[logic!]
+		flags		[integer!]
 		/local
 			fd		[integer!]
 			data	[file-data!]
 	][
 		dump4 pathname
-		fd: simple-io/open-file pathname 1 yes
+		fd: simple-io/open-file pathname flags yes
 ?? fd
 probe simple-io/file-size? fd
 		data: create-file-data port fd
@@ -128,6 +130,24 @@ probe simple-io/file-size? fd
 	][
 		s: as series! data/buffer/value
 		len: simple-io/read-data as-integer data/device as byte-ptr! s/offset 1024 * 64
+		if zero? len[data/event: IO_EVT_ERROR]
+		data/transferred: len
+		iocp/post g-iocp as iocp-data! data
+	]
+
+	write-file: func [
+		data		[file-data!]
+		/local
+			s		[series!]
+			len		[integer!]
+	][
+		s: as series! data/buffer/value
+		len: as-integer s/tail - s/offset
+		len: simple-io/write-data as-integer data/device as byte-ptr! s/offset len
+		if len < 0 [
+			len: 0
+			data/event: IO_EVT_ERROR
+		]
 		data/transferred: len
 		iocp/post g-iocp as iocp-data! data
 	]
@@ -147,6 +167,7 @@ probe simple-io/file-size? fd
 			spec	[red-object!]
 			state	[red-handle!]
 			fpath	[red-string!]
+			flags	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "file/open"]]
 
@@ -159,7 +180,9 @@ probe simple-io/file-size? fd
 		fpath:	as red-string! values + 4
 
 		string/concatenate fpath as red-string! values + 5 -1 0 yes no
-		open-file red-port file/to-OS-path fpath new?
+		flags: 1
+		if write? [flags: 2]
+		open-file red-port file/to-OS-path fpath flags
 		as red-value! red-port
 	]
 
@@ -199,6 +222,9 @@ probe simple-io/file-size? fd
 
 		data: get-file-data port
 		data/buffer: bin/node
+		data/event: IO_EVT_WRITE
+
+		threadpool/add-task as int-ptr! :write-file as int-ptr! data
 
 		as red-value! port
 	]
