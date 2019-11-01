@@ -1114,9 +1114,6 @@ lexer: context [
 			len	  [integer!]
 			month [integer!]
 			time? [logic!]
-			week? [logic!]
-			wday? [logic!]
-			yday? [logic!]
 			neg?  [logic!]
 	][
 		c: 0											;-- accumulator (numbers decoding)
@@ -1145,13 +1142,38 @@ lexer: context [
 			field/pos: c
 		]		
 		unless time? [
-			week?: any [state = T_DT_WEEK field/9  <> 0]
-			wday?: any [state = T_DT_YWWD field/10 <> 0]
-			yday?: any [state = T_DT_YDDD field/13 <> 0]
-			month: either any [week? wday? yday?][1][
-				p:  as byte-ptr! field/14 + 1
-				me: as byte-ptr! field/15
-				either null? me [field/3][				;-- month is numeric
+			p: as byte-ptr! field/16
+			neg?: all [p <> null p/1 = #"-"]			;-- detect negative TZ
+			
+			either any [field/9 <> 0 field/10 <> 0 field/13 <> 0][ ;-- special ISO formats
+				dt: date/make-at
+					 alloc-slot lex
+					 field/2							;-- year
+					 1									;-- month
+					 1									;-- day
+					 field/5							;-- hour
+					 field/6							;-- min
+					 field/7							;-- sec
+					 field/8							;-- nano
+					 field/11							;-- TZ hour
+					 field/12							;-- TZ min
+					 state >= T_TM_HM					;-- date/time input
+					 neg?								;-- negative TZ flag
+			
+				if null? dt [throw LEX_ERROR]
+				if any [field/9 <> 0 field/10 <> 0][	;-- yyyy-Www
+					date/set-isoweek dt field/9
+				]
+				c: field/10
+				if c <> 0 [								;-- yyyy-Www-d
+					if any [c < 1 c > 7][throw LEX_ERROR]
+					date/set-weekday dt c
+				]
+				if field/13 <> 0 [date/set-yearday dt field/13]	;-- yyyy-ddd
+			][
+				if field/15 <> 0 [						;-- month is named
+					me: as byte-ptr! field/15			;-- name end
+					p: as byte-ptr! field/14 + 1		;-- name start
 					len: as-integer me - p + 1
 					if any [len < 3 len > 9][throw LEX_ERROR] ;-- invalid month name
 					m: months
@@ -1160,35 +1182,24 @@ lexer: context [
 						m: m + 1
 					]
 					if months + 12 = m [throw LEX_ERROR] ;-- invalid month name
-					(as-integer m - months) >> 2 + 1
+					field/3: (as-integer m - months) >> 2 + 1
 				]
+				dt: date/make-at
+					 alloc-slot lex
+					 field/2							;-- year 
+					 field/3							;-- month
+					 field/4							;-- day  
+					 field/5							;-- hour 
+					 field/6							;-- min  
+					 field/7							;-- sec  
+					 field/8							;-- nano
+					 field/11							;-- TZ hour
+					 field/12							;-- TZ min
+					 state >= T_TM_HM					;-- date/time input
+					 neg?								;-- negative TZ flag
+
+				if null? dt [throw LEX_ERROR]
 			]
-			field/3: month
-			p: as byte-ptr! field/16
-			neg?: all [p <> null p/1 = #"-"]
-			
-			dt: date/make-at
-				 alloc-slot lex
-				 field/2								;-- year 
-				 field/3								;-- month
-				 field/4								;-- day  
-				 field/5								;-- hour 
-				 field/6								;-- min  
-				 field/7								;-- sec  
-				 field/8								;-- nano
-				 field/11								;-- TZ hour
-				 field/12								;-- TZ min
-				 state >= T_TM_HM						;-- date/time input
-				 neg?									;-- negative TZ flag
-			
-			if null? dt [throw LEX_ERROR]
-			if any [week? wday?][date/set-isoweek dt field/9]	;-- yyyy-Www
-			if wday? [
-				c: field/10
-				if any [c < 1 c > 7][throw LEX_ERROR]	;-- yyyy-Www-d
-				date/set-weekday dt c
-			]
-			if yday? [date/set-yearday dt field/13]		;-- yyyy-ddd
 		]
 		lex/in-pos: e									;-- reset the input position to delimiter byte
 		field											;-- return field pointer for scan-time
