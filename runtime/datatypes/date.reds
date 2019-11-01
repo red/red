@@ -560,7 +560,11 @@ date: context [
 		z: tz-h << 2 and 7Fh or (tz-m / 15)
 		if neg-TZ? [z: DATE_SET_ZONE_NEG(z)]
 		dt/date: DATE_SET_ZONE(dt/date z)
-		unless time? [dt/date: DATE_CLEAR_TIME_FLAG(dt/date)]
+		either time? [
+			dt/time: to-utc-time dt/time DATE_GET_ZONE(dt/date)
+		][
+			dt/date: DATE_CLEAR_TIME_FLAG(dt/date)
+		]
 		dt
 	]
 
@@ -573,7 +577,9 @@ date: context [
 		minute [integer!]
 		second [integer!]
 		nsec   [integer!] 
-		/local d t
+		/local 
+			d [integer!]
+			t [float!]
 	][
 		d: 0 t: 0.0
 		d: DATE_SET_YEAR(d year)
@@ -586,7 +592,7 @@ date: context [
 		  + (1e-9   * as float! nsec)
 		set-type as red-value! dt TYPE_DATE				;-- preserve eventual flags in the header
 		dt/date: d
-		dt/time: t
+		dt/time: t										;-- !! not converted to UTC !!
 	]
 	
 	create: func [
