@@ -133,7 +133,7 @@ context [
 		S_DT_DM				1		3		1		;--	22
 		S_DT_DMM			0		3		1		;--	23
 		F_DT_DMONTH			0		1		1		;--	24
-		S_DT_DMON			1		3		1		;--	25
+		S_DT_DMON			1		3		15		;--	25
 		F_DT_DMY			1		2		1		;--	26
 		F_DT_DMYY			1		2		1		;--	27
 		F_DT_DMYYY			1		2		1		;--	28

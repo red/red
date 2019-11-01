@@ -176,6 +176,11 @@ lexer: context [
 		;... to be eventually completed
 	]
 	
+	months: [
+		"January" "February" "March" "April" "May" "June" "July"
+		"August" "September" "October" "November" "December"
+	]
+	
 	date-cumul: #{
 		0000000000000000000000000000000000000000000000000000000000000000
 		0000000000000000000000000000000000010203040506070809000000000000
@@ -1096,6 +1101,9 @@ lexer: context [
 		return: [int-ptr!]
 		/local
 			dt	  [red-date!]
+			ms	  [byte-ptr!]
+			me	  [byte-ptr!]
+			m	  [int-ptr!]
 			field [int-ptr!]
 			state [integer!]
 			class [integer!]
@@ -1103,6 +1111,7 @@ lexer: context [
 			cp	  [integer!]
 			c	  [integer!]
 			pos	  [integer!]
+			len	  [integer!]
 			month [integer!]
 			time? [logic!]
 			week? [logic!]
@@ -1138,23 +1147,19 @@ lexer: context [
 			week?: any [state = T_DT_WEEK field/9  <> 0]
 			wday?: any [state = T_DT_YWWD field/10 <> 0]
 			yday?: any [state = T_DT_YDDD field/13 <> 0]
-			month: either any [week? wday? yday?][1][field/3]
-
-			if any [month > 12 month < 1][				;-- month as a word	
-				month: switch month [					;-- convert hashed word to correct value
-					8128 81372323	[1]
-					7756 776512323	[2]
-					8432 843942		[3]
-					7382 739006		[4]
-					8353			[5]					;-- "May" has no longer form
-					8328 83349		[6]
-					8326 83263		[7]
-					7421 7430330	[8]
-					9070 480839780	[9]
-					8570 85786372	[10]
-					8676 868374372	[11]
-					7557 756474372	[12]
-					default 		[throw LEX_ERROR 0]
+			month: either any [week? wday? yday?][1][
+				ms: as byte-ptr! field/14 + 1
+				me: as byte-ptr! field/15
+				either null? me [field/3][				;-- month is numeric
+					len: as-integer me - ms + 1
+					if any [len < 3 len > 9][throw LEX_ERROR] ;-- invalid month name
+					m: months
+					loop 12 [
+						if zero? platform/strnicmp ms as byte-ptr! m/1 len [break]
+						m: m + 1
+					]
+					if months + 12 = m [throw LEX_ERROR] ;-- invalid month name
+					(as-integer m - months) >> 2 + 1
 				]
 			]
 			field/3: month								;;TBD: add accurate spelling check
