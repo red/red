@@ -1499,33 +1499,33 @@ GPtrArray!: alias struct! [
 			return:		[handle!]
 		]
 		gtk_widget_destroy: "gtk_widget_destroy" [
-			widget 	[handle!]
+			widget		[handle!]
 		]
 		gtk_widget_create_pango_layout: "gtk_widget_create_pango_layout" [
-			widget 	[handle!]
-			text	[c-string!]
-			return:	[handle!]
+			widget		[handle!]
+			text		[c-string!]
+			return:		[handle!]
 		]
 		gtk_widget_create_pango_context: "gtk_widget_create_pango_context" [
-			widget 	[handle!]
-			return: [handle!]
+			widget		[handle!]
+			return:		[handle!]
 		]
 		gtk_widget_add_events: "gtk_widget_add_events" [
-			widget 	[handle!]
-			mask 	[integer!]
+			widget		[handle!]
+			mask		[integer!]
 		]
 		gtk_widget_get_events: "gtk_widget_get_events" [
-			widget 	[handle!]
-			return: [integer!]
+			widget		[handle!]
+			return:		[integer!]
 		]
 		gtk_widget_override_font: "gtk_widget_override_font" [
-			widget	[handle!]
-			fd		[handle!]
+			widget		[handle!]
+			fd			[handle!]
 		]
 		gtk_widget_override_color: "gtk_widget_override_color" [
-			widget	[handle!]
-			state	[integer!]
-			color	[handle!]
+			widget		[handle!]
+			state		[integer!]
+			color		[handle!]
 		]
 		gtk_container_add: "gtk_container_add" [
 			container	[handle!]
@@ -1533,7 +1533,7 @@ GPtrArray!: alias struct! [
 		]
 		gtk_container_get_children: "gtk_container_get_children" [
 			container	[handle!]
-			return:		[int-ptr!]
+			return:		[GList!]
 		]
 		gtk_container_foreach: "gtk_container_foreach" [
 			container	[handle!]
@@ -1771,6 +1771,10 @@ GPtrArray!: alias struct! [
 		gtk_label_set_attributes: "gtk_label_set_attributes" [
 			widget		[handle!]
 			list		[handle!]
+		]
+		gtk_label_get_layout: "gtk_label_get_layout" [
+			label		[handle!]
+			return:		[handle!]
 		]
 		gtk_event_box_new: "gtk_event_box_new" [
 			return: 	[handle!]
