@@ -59,9 +59,9 @@ create-simple-attrs: func [
 		rgb: get-color-int color :alpha?
 		r: 0 g: 0 b: 0 a: 0
 		color-u8-to-u16 rgb :r :g :b :a
-		attr: pango_attr_foreground_new r g b
+		attr: pango_attr_background_new r g b
 		pango_attr_list_insert list attr
-		attr: pango_attr_foreground_alpha_new a
+		attr: pango_attr_background_alpha_new a
 		pango_attr_list_insert list attr
 	]
 	list
