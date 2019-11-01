@@ -1111,9 +1111,9 @@ lexer: context [
 	][
 		c: 0											;-- accumulator (numbers decoding)
 		time?: flags and C_FLAG_TM_ONLY <> 0			;-- called from scan-time?
-		field: system/stack/allocate/zero 13			;-- date/time fields array
+		field: system/stack/allocate/zero 16 			;-- date/time fields array
 		state: either time? [S_TM_START][S_DT_START]
-		
+
 		loop as-integer e - s [
 			cp: as-integer s/1
 			class: as-integer date-classes/cp
@@ -1122,6 +1122,8 @@ lexer: context [
 			c: c * 10 + as-integer date-cumul/cp
 			pos: as-integer fields-table/state
 			field/pos: c
+			pos: as-integer fields-ptr-table/state
+			field/pos: as-integer s
 			if null-byte = reset-table/state [c: 0]
 			s: s + 1
 		]
