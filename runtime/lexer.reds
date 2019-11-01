@@ -1098,7 +1098,7 @@ lexer: context [
 	]
 
 	scan-date: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
-		return: [int-ptr!]
+		return: [lexer-dt-array!]
 		/local
 			cell  [cell!]
 			dt	  [red-date!]
@@ -1141,9 +1141,9 @@ lexer: context [
 			state: as-integer date-transitions/index
 			pos: as-integer fields-table/state
 			field/pos: c
-		]		
+		]
+		df: as lexer-dt-array! field + 1
 		unless time? [
-			df: as lexer-dt-array! field + 1 
 			p: as byte-ptr! df/TZ-sign
 			neg?: all [p <> null p/1 = #"-"]			;-- detect negative TZ
 			cell: alloc-slot lex
@@ -1182,7 +1182,7 @@ lexer: context [
 			]
 		]
 		lex/in-pos: e									;-- reset the input position to delimiter byte
-		field											;-- return field pointer for scan-time
+		df												;-- return field pointer for scan-time
 	]
 	
 	scan-pair: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
@@ -1208,17 +1208,17 @@ lexer: context [
 	
 	scan-time: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
-			field [int-ptr!]
+			field [lexer-dt-array!]
 			tm	  [float!]
 	][
-		field: scan-date state s e flags or C_FLAG_TM_ONLY ;-- field is on freed stack frame
+		field: as lexer-dt-array! scan-date state s e flags or C_FLAG_TM_ONLY ;-- field is on freed stack frame
 		
-		if any [field/9 <> 0 field/10 <> 0][throw LEX_ERROR] ;-- TZ info rejection
+		if any [field/tz-h <> 0 field/tz-m <> 0][throw LEX_ERROR] ;-- TZ info rejection
 
-		tm: (3600.0 * as float! field/5)
-		  + (60.0   * as float! field/6)
-		  + (         as float! field/7)
-		  + (1e-9   * as float! field/8)
+		tm: (3600.0 * as float! field/hour)
+		  + (60.0   * as float! field/min)
+		  + (         as float! field/sec)
+		  + (1e-9   * as float! field/nsec)
 
 		time/make-at tm alloc-slot state				;-- field array is not usable after this call
 	]
