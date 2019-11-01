@@ -338,3 +338,23 @@ Red/System [
 	IMAGE_JPEG
 	IMAGE_TIFF
 ]
+
+;=== Misc definitions ===
+
+lexer-dt-array!: alias struct! [
+	year		[integer!]
+	month		[integer!]
+	day			[integer!]
+	hour		[integer!]
+	min			[integer!]
+	sec			[integer!]
+	nsec		[integer!]
+	tz-h		[integer!]
+	tz-m		[integer!]
+	week		[integer!]
+	wday		[integer!]
+	yday		[integer!]
+	month-begin	[integer!]
+	month-end	[integer!]
+	TZ-sign		[integer!]
+]

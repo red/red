@@ -99,10 +99,10 @@ context [
 	;minute 	6
 	;second 	7
 	;nsec		8
-	;week		9
-	;weekday	10
-	;tz-hour	11
-	;tz-min		12
+	;tz-hour	9
+	;tz-min		10
+	;week		11
+	;weekday	12
 	;yearday	13
 	;word-start 14
 	;word-end   15
@@ -122,11 +122,11 @@ context [
 		S_DT_YMM2			1		3		1		;--	11
 		F_DT_YMONTH			0		1		1		;--	12
 		F_DT_DDD			0		13		1		;--	13
-		S_DT_YV				0		9		1		;--	14
-		S_DT_YW				1		9		1		;--	15
-		S_DT_YWW			1		9		1		;--	16
+		S_DT_YV				0		11		1		;--	14
+		S_DT_YW				1		11		1		;--	15
+		S_DT_YWW			1		11		1		;--	16
 		S_DT_YWD			0		1		1		;--	17
-		S_DT_WD				1		10		1		;--	18
+		S_DT_WD				1		12		1		;--	18
 		S_DT_YMON			1		3		15		;--	19
 		F_DT_YMD			1		4		1		;--	20
 		F_DT_YMDD			0		4		1		;--	21
@@ -150,10 +150,10 @@ context [
 		F_TM_N1				0		1		1		;--	39
 		F_TM_N				1		8		1		;--	40
 		S_TM_HMZ			0		1		16		;--	41
-		S_TZ_H				1		11		1		;--	42
-		F_TZ_HH				0		11		1		;--	43
+		S_TZ_H				1		9		1		;--	42
+		F_TZ_HH				0		9		1		;--	43
 		F_TZ_HM				0		1		1		;--	44
-		S_TZ_M				1		12		1		;--	45
+		S_TZ_M				1		10		1		;--	45
 		T_DT_ERROR			0		1		1		;-- 46
 		T_DT_YMDAY			0		1		1		;-- 47
 		T_DT_DMYEAR			0		1		1		;-- 48
@@ -163,10 +163,10 @@ context [
 		T_TM_HM				0		1		1		;--	52
 		T_TM_HMS			0		1		1		;-- 53
 		T_TM_NZ				0		8		1		;--	54
-		T_TZ_H				0		11		1		;--	55
-		T_TZ_HH				0		11		1		;-- 56
-		T_TZ_M				0		12		1		;-- 57
-		T_TZ_MM				0		12		1		;-- 58
+		T_TZ_H				0		9		1		;--	55
+		T_TZ_HH				0		9		1		;-- 56
+		T_TZ_M				0		10		1		;-- 57
+		T_TZ_MM				0		10		1		;-- 58
 	]
 
 	CSV-table: %../docs/lexer/lexer-FSM.csv

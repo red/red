@@ -1100,7 +1100,9 @@ lexer: context [
 	scan-date: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		return: [int-ptr!]
 		/local
+			cell  [cell!]
 			dt	  [red-date!]
+			df	  [lexer-dt-array!]
 			p	  [byte-ptr!]
 			me	  [byte-ptr!]
 			m	  [int-ptr!]
@@ -1112,7 +1114,6 @@ lexer: context [
 			c	  [integer!]
 			pos	  [integer!]
 			len	  [integer!]
-			month [integer!]
 			time? [logic!]
 			neg?  [logic!]
 	][
@@ -1142,38 +1143,30 @@ lexer: context [
 			field/pos: c
 		]		
 		unless time? [
-			p: as byte-ptr! field/16
+			df: as lexer-dt-array! field + 1 
+			p: as byte-ptr! df/TZ-sign
 			neg?: all [p <> null p/1 = #"-"]			;-- detect negative TZ
+			cell: alloc-slot lex
 			
-			either any [field/9 <> 0 field/10 <> 0 field/13 <> 0][ ;-- special ISO formats
-				dt: date/make-at
-					 alloc-slot lex
-					 field/2							;-- year
-					 1									;-- month
-					 1									;-- day
-					 field/5							;-- hour
-					 field/6							;-- min
-					 field/7							;-- sec
-					 field/8							;-- nano
-					 field/11							;-- TZ hour
-					 field/12							;-- TZ min
-					 state >= T_TM_HM					;-- date/time input
-					 neg?								;-- negative TZ flag
-			
+			either df/week or df/wday or df/yday <> 0 [ ;-- special ISO formats
+				df/month: 1								;-- ensures valid month (will be changed later)
+				df/day: 1								;-- ensures valid day   (will be changed later)
+				dt: date/make-at cell df state >= T_TM_HM neg? ;-- create red-date!
 				if null? dt [throw LEX_ERROR]
-				if any [field/9 <> 0 field/10 <> 0][	;-- yyyy-Www
-					date/set-isoweek dt field/9
+				
+				if df/week or df/wday <> 0 [			;-- yyyy-Www
+					date/set-isoweek dt df/week
 				]
-				c: field/10
+				c: df/wday
 				if c <> 0 [								;-- yyyy-Www-d
 					if any [c < 1 c > 7][throw LEX_ERROR]
 					date/set-weekday dt c
 				]
-				if field/13 <> 0 [date/set-yearday dt field/13]	;-- yyyy-ddd
+				if df/yday <> 0 [date/set-yearday dt df/yday] ;-- yyyy-ddd
 			][
-				if field/15 <> 0 [						;-- month is named
-					me: as byte-ptr! field/15			;-- name end
-					p: as byte-ptr! field/14 + 1		;-- name start
+				if df/month-end <> 0 [					;-- if month is named
+					p: as byte-ptr! df/month-begin + 1	;-- name start
+					me: as byte-ptr! df/month-end		;-- name end
 					len: as-integer me - p + 1
 					if any [len < 3 len > 9][throw LEX_ERROR] ;-- invalid month name
 					m: months
@@ -1182,22 +1175,9 @@ lexer: context [
 						m: m + 1
 					]
 					if months + 12 = m [throw LEX_ERROR] ;-- invalid month name
-					field/3: (as-integer m - months) >> 2 + 1
+					df/month: (as-integer m - months) >> 2 + 1
 				]
-				dt: date/make-at
-					 alloc-slot lex
-					 field/2							;-- year 
-					 field/3							;-- month
-					 field/4							;-- day  
-					 field/5							;-- hour 
-					 field/6							;-- min  
-					 field/7							;-- sec  
-					 field/8							;-- nano
-					 field/11							;-- TZ hour
-					 field/12							;-- TZ min
-					 state >= T_TM_HM					;-- date/time input
-					 neg?								;-- negative TZ flag
-
+				dt: date/make-at cell df state >= T_TM_HM neg? ;-- create red-date!
 				if null? dt [throw LEX_ERROR]
 			]
 		]
@@ -1233,7 +1213,7 @@ lexer: context [
 	][
 		field: scan-date state s e flags or C_FLAG_TM_ONLY ;-- field is on freed stack frame
 		
-		if any [field/11 <> 0 field/12 <> 0][throw LEX_ERROR] ;-- TZ info rejection
+		if any [field/9 <> 0 field/10 <> 0][throw LEX_ERROR] ;-- TZ info rejection
 
 		tm: (3600.0 * as float! field/5)
 		  + (60.0   * as float! field/6)
