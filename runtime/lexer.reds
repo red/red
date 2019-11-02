@@ -373,6 +373,18 @@ lexer: context [
 	stash-size: 1000									;-- pre-allocated cells	number
 	depth: 0											;-- recursive calls depth
 
+	throw-error: func [lex [state!] s [byte-ptr!] e [byte-ptr!] type [integer!]
+		/local
+			pos [red-string!]
+			len	[integer!]
+	][
+		e: either s + 40 < e [s + 40][e]
+		len: as-integer e - s
+		pos: string/load as-c-string s len UTF-8
+		lex/tail: lex/buffer							;-- clear accumulated values
+		fire [TO_ERROR(syntax invalid) datatype/push type pos]
+	]
+	
 	alloc-slot: func [state [state!] return: [red-value!] /local slot [red-value!]][
 		if state/head + state/slots <= state/tail [
 			assert false
@@ -451,13 +463,15 @@ lexer: context [
 		hint
 	]
 	
-	decode-2: func [s [byte-ptr!] e [byte-ptr!] ser [series!]
+	decode-2: func [lex [state!] s [byte-ptr!] e [byte-ptr!] ser [series!]
 		/local
+			b	[byte-ptr!]
 			p	[byte-ptr!]
 			c	[integer!]
 			cnt	[integer!]
 	][
 		p: as byte-ptr! ser/offset
+		b: s
 		
 		while [s < e][
 			c: 0
@@ -471,17 +485,17 @@ lexer: context [
 					]
 					#"^-" #"^/" #" " #"^M" [s: s + 1]
 					#";" [until [s: s + 1 any [s/1 = #"^/" s = e]]]
-					default [throw LEX_ERROR]
+					default [throw-error lex b e TYPE_BINARY]
 				]
 			]
-			if all [cnt <> 0 cnt <> 8][throw LEX_ERROR]
+			if all [cnt <> 0 cnt <> 8][throw-error lex b e TYPE_BINARY]
 			p/value: as byte! c
 			p: p + 1
 		]
 		ser/tail: as cell! p
 	]
 	
-	decode-16: func [s [byte-ptr!] e [byte-ptr!] ser [series!]
+	decode-16: func [lex [state!] s [byte-ptr!] e [byte-ptr!] ser [series!]
 		/local
 			p	   [byte-ptr!]
 			pos	   [byte-ptr!]
@@ -513,7 +527,7 @@ lexer: context [
 		ser/tail: as cell! p
 	]
 	
-	decode-64: func [s [byte-ptr!] e [byte-ptr!] ser [series!]
+	decode-64: func [lex [state!] s [byte-ptr!] e [byte-ptr!] ser [series!]
 		/local
 			p	  [byte-ptr!]
 			c	  [integer!]
@@ -889,7 +903,7 @@ lexer: context [
 		state/in-pos: e 								;-- reset the input position to delimiter byte
 	]
 
-	scan-binary: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-binary: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
 			bin	 [red-binary!]
 			ser	 [series!]
@@ -914,16 +928,16 @@ lexer: context [
 			2  [len / 8]
 			default [throw LEX_ERROR 0]
 		]
-		bin: binary/make-at alloc-slot state size
+		bin: binary/make-at alloc-slot lex size
 		ser: GET_BUFFER(bin)
 		switch base [
-			16 [decode-16 s e ser]
-			64 [decode-64 s e ser]
-			 2 [decode-2  s e ser]
+			16 [decode-16 lex s e ser]
+			64 [decode-64 lex s e ser]
+			 2 [decode-2  lex s e ser]
 			default [assert false 0]
 		]
 		assert (as byte-ptr! ser/offset) + ser/size > as byte-ptr! ser/tail
-		state/in-pos: e + 1								;-- skip }
+		lex/in-pos: e + 1								;-- skip }
 	]
 	
 	scan-char: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
@@ -1103,6 +1117,7 @@ lexer: context [
 			cell  [cell!]
 			dt	  [red-date!]
 			df	  [lexer-dt-array!]
+			b	  [byte-ptr!]
 			p	  [byte-ptr!]
 			me	  [byte-ptr!]
 			m	  [int-ptr!]
@@ -1118,6 +1133,7 @@ lexer: context [
 			neg?  [logic!]
 	][
 		c: 0											;-- accumulator (fields decoding)
+		b: s
 		time?: flags and C_FLAG_TM_ONLY <> 0			;-- called from scan-time?
 		field: system/stack/allocate/zero 17 			;-- date/time fields array
 		state: either time? [S_TM_START][S_DT_START]
@@ -1136,7 +1152,7 @@ lexer: context [
 			s: s + 1
 		]
 		if state <= T_DT_ERROR [						;-- if no terminal state reached, forces EOF input
-			if state = T_DT_ERROR [throw LEX_ERROR]		;-- check here for performance reason
+			if state = T_DT_ERROR [throw-error lex b e TYPE_DATE] ;-- check here for performance reason
 			index: state * (size? date-char-classes!) + C_DT_EOF
 			state: as-integer date-transitions/index
 			pos: as-integer fields-table/state
@@ -1152,14 +1168,14 @@ lexer: context [
 				df/month: 1								;-- ensures valid month (will be changed later)
 				df/day: 1								;-- ensures valid day   (will be changed later)
 				dt: date/make-at cell df state >= T_TM_HM neg? ;-- create red-date!
-				if null? dt [throw LEX_ERROR]
+				if null? dt [throw-error lex b e TYPE_DATE]
 				
 				if df/week or df/wday <> 0 [			;-- yyyy-Www
 					date/set-isoweek dt df/week
 				]
 				c: df/wday
 				if c <> 0 [								;-- yyyy-Www-d
-					if any [c < 1 c > 7][throw LEX_ERROR]
+					if any [c < 1 c > 7][throw-error lex b e TYPE_DATE]
 					date/set-weekday dt c
 				]
 				if df/yday <> 0 [date/set-yearday dt df/yday] ;-- yyyy-ddd
@@ -1167,23 +1183,25 @@ lexer: context [
 				p: as byte-ptr! df/month-begin
 				me: as byte-ptr! df/sep2
 				if df/month-begin or df/sep2 <> 0 [
-					if any [null? p null? me p/1 <> me/1][throw LEX_ERROR] ;-- inconsistent separator
+					if any [null? p null? me p/1 <> me/1][
+						throw-error lex b e TYPE_DATE	;-- inconsistent separator
+					]
 				]
 				if df/month-end <> 0 [					;-- if month is named
 					p: p + 1							;-- name start
 					me: as byte-ptr! df/month-end		;-- name end
 					len: as-integer me - p + 1
-					if any [len < 3 len > 9][throw LEX_ERROR] ;-- invalid month name
+					if any [len < 3 len > 9][throw-error lex b e TYPE_DATE] ;-- invalid month name
 					m: months
 					loop 12 [
 						if zero? platform/strnicmp p as byte-ptr! m/1 len [break]
 						m: m + 1
 					]
-					if months + 12 = m [throw LEX_ERROR] ;-- invalid month name
+					if months + 12 = m [throw-error lex b e TYPE_DATE] ;-- invalid month name
 					df/month: (as-integer m - months) >> 2 + 1
 				]
 				dt: date/make-at cell df state >= T_TM_HM neg? ;-- create red-date!
-				if null? dt [throw LEX_ERROR]
+				if null? dt [throw-error lex b e TYPE_DATE]
 			]
 		]
 		lex/in-pos: e									;-- reset the input position to delimiter byte
