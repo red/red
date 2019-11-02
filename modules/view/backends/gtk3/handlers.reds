@@ -170,7 +170,7 @@ base-draw: func [
 	evbox		[handle!]
 	cr			[handle!]
 	widget		[handle!]
-	return:		[logic!]
+	return:		[integer!]
 	/local
 		face	[red-object!]
 		values	[red-value!]
@@ -234,21 +234,21 @@ base-draw: func [
 		draw-end drawDC cr no no no
 	]
 
-	if null? gtk_container_get_children widget [
-		return true
-	]
+	;if null? gtk_container_get_children widget [
+	;	return EVT_NO_DISPATCH
+	;]
 
-	false
+	EVT_DISPATCH
 ]
 
 window-delete-event: func [
 	[cdecl]
 	widget		[handle!]
-	return:		[logic!]
+	return:		[integer!]
 ][
 	;; DEBUG: print ["window-delete-event" lf]
 	make-event widget 0 EVT_CLOSE
-	no
+	EVT_DISPATCH
 ]
 
 window-event: func [
@@ -418,6 +418,7 @@ key-press-event: func [
 		text	[c-string!]
 		qdata	[handle!]
 ][
+	if evbox <> gtk_get_event_widget as handle! event-key [return EVT_NO_DISPATCH]
 	face: get-face-obj widget
 	values: object/get-values face
 	type: as red-word! values + FACE_OBJ_TYPE
@@ -442,10 +443,7 @@ key-press-event: func [
 			]
 		][res: make-event widget key or flags EVT_KEY]
 	]
-	if sym = field [
-		return EVT_DISPATCH
-	]
-	EVT_NO_DISPATCH
+	res
 ]
 
 key-release-event: func [
@@ -462,6 +460,7 @@ key-release-event: func [
 		key		[integer!]
 		flags	[integer!]
 ][
+	if evbox <> gtk_get_event_widget as handle! event-key [return EVT_NO_DISPATCH]
 	face: get-face-obj widget
 	values: object/get-values face
 	type: as red-word! values + FACE_OBJ_TYPE
@@ -472,10 +471,6 @@ key-release-event: func [
 	flags: 0 ;either char-key? as-byte key [0][80000000h]	;-- special key or not
 	flags: flags or check-extra-keys event-key/state
 	make-event widget key or flags EVT_KEY_UP
-	if sym = field [
-		return EVT_DISPATCH
-	]
-	EVT_NO_DISPATCH
 ]
 
 field-changed: func [
@@ -492,7 +487,6 @@ field-changed: func [
 		set-text widget face/ctx text
 		make-event widget 0 EVT_CHANGE
 	]
-	EVT_NO_DISPATCH
 ]
 
 focus-in-event: func [
@@ -500,7 +494,7 @@ focus-in-event: func [
 	evbox		[handle!]
 	event		[handle!]
 	widget		[handle!]
-	return:		[logic!]
+	return:		[integer!]
 	/local
 		face	[red-object!]
 		values	[red-value!]
@@ -508,6 +502,7 @@ focus-in-event: func [
 		int		[red-integer!]
 		sym		[integer!]
 ][
+	if evbox <> gtk_get_event_widget event [return EVT_NO_DISPATCH]
 	face: get-face-obj widget
 	values: object/get-values face
 	type: as red-word! values + FACE_OBJ_TYPE
@@ -515,9 +510,6 @@ focus-in-event: func [
 	sym: symbol/resolve type/symbol
 	change-selection widget int sym
 	make-event widget 0 EVT_FOCUS
-	
-	if sym = window [return false]
-	true
 ]
 
 focus-out-event: func [
@@ -525,21 +517,19 @@ focus-out-event: func [
 	evbox		[handle!]
 	event		[handle!]
 	widget		[handle!]
-	return:		[logic!]
+	return:		[integer!]
 	/local
 		face	[red-object!]
 		values	[red-value!]
 		type	[red-word!]
 		sym		[integer!]
 ][
+	if evbox <> gtk_get_event_widget event [return EVT_NO_DISPATCH]
 	face: get-face-obj widget
 	values: object/get-values face
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
 	make-event widget 0 EVT_UNFOCUS
-
-	if sym = window [return false]
-	true
 ]
 
 area-changed: func [
@@ -579,22 +569,13 @@ area-populate-popup: func [
 
 red-timer-action: func [
 	[cdecl]
-	self	[handle!]
-	return: [integer!]
+	self		[handle!]
+	return:		[logic!]
 	/local
 		timer	[int-ptr!]
 ][
-	; timer: get-widget-timer self
-	; either null? timer [
-	;either null? main-window [no]
-	;[
-	 	make-event self 0 EVT_TIME
-	 	1
-	;];[
-	; 	print ["timer for widget " self " will stop!" lf]
-	; 	remove-widget-timer self
-	; 	no ; this removes the timer
-	; ]
+	make-event self 0 EVT_TIME
+	true
 ]
 
 widget-enter-notify-event: func [
@@ -606,8 +587,7 @@ widget-enter-notify-event: func [
 	/local
 		flags	[integer!]
 ][
-	;; DEBUG: print [ "ENTER: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
-
+	if evbox <> gtk_get_event_widget as handle! event [return EVT_NO_DISPATCH]
 	flags: check-flags event/type event/state
 	make-event widget flags EVT_OVER
 ]
@@ -621,7 +601,7 @@ widget-leave-notify-event: func [
 	/local
 		flags	[integer!]
 ][
-	;; DEBUG: print [ "LEAVE: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
+	if evbox <> gtk_get_event_widget as handle! event [return EVT_NO_DISPATCH]
 	flags: check-flags event/type event/state
 	make-event widget flags or EVT_FLAG_AWAY EVT_OVER
 ]
@@ -643,6 +623,7 @@ mouse-button-release-event: func [
 		flags	[integer!]
 		ev		[integer!]
 ][
+	if evbox <> gtk_get_event_widget as handle! event [return EVT_NO_DISPATCH]
 	sym: get-widget-symbol widget
 	if sym = field [
 		if event/button = GDK_BUTTON_PRIMARY [
@@ -704,9 +685,7 @@ mouse-button-press-event: func [
 		hMenu	[handle!]
 		ev		[integer!]
 ][
-	;; DEBUG: print [ "mouse -> BUTTON-PRESS: " widget " ("  ") x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root " drag? " draggable? widget lf]
-	; evt-motion/state: yes
-	; evt-motion/cpt: 0
+	if evbox <> gtk_get_event_widget as handle! event [return EVT_NO_DISPATCH]
 	sym: get-widget-symbol widget
 
 	if gtk_widget_get_focus_on_click widget [
@@ -748,15 +727,13 @@ mouse-motion-notify-event: func [
 	widget		[handle!]
 	return:		[integer!]
 	/local
-		res		[integer!]
 		offset	[red-pair!]
 		x		[float!]
 		y		[float!]
 		wflags	[integer!]
 		flags	[integer!]
 ][
-	;; DEBUG: print [ "mouse -> MOTION: " widget " x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root " drag? " draggable? widget lf]
-	res: EVT_DISPATCH
+	if evbox <> gtk_get_event_widget as handle! event [return EVT_NO_DISPATCH]
 	evt-motion/x_new: as-integer event/x
 	evt-motion/y_new: as-integer event/y
 	evt-motion/x_root: event/x_root
@@ -764,10 +741,24 @@ mouse-motion-notify-event: func [
 	wflags: get-flags (as red-block! get-face-values widget) + FACE_OBJ_FLAGS
 	if wflags and FACET_FLAGS_ALL_OVER <> 0 [
 		flags: check-flags event/type event/state
-		res: make-event widget flags EVT_OVER
+		return make-event widget flags EVT_OVER
 	]
-	;; DEBUG: print ["mouse-motion-notify-event:  down? " (event/state and GDK_BUTTON1_MASK <> 0) " " (flags and EVT_FLAG_DOWN <> 0) lf]
-	res
+	EVT_DISPATCH
+]
+
+widget-scroll-event: func [
+	[cdecl]
+	evbox		[handle!]
+	event		[GdkEventScroll!]
+	widget		[handle!]
+	return:		[integer!]
+][
+	if evbox <> gtk_get_event_widget as handle! event [return EVT_NO_DISPATCH]
+	g_object_set_qdata widget red-event-id as handle! event
+	if any [event/delta_y < -0.01 event/delta_y > 0.01][
+		return make-event widget check-down-flags event/state EVT_WHEEL
+	]
+	EVT_DISPATCH
 ]
 
 menu-item-activate: func [
@@ -778,24 +769,5 @@ menu-item-activate: func [
 		key		[integer!]
 ][
 	key: menu-item-key? item
-	;; DEBUG: print ["menu-item activated: " item " with key: " key " on widget " widget  lf]
 	make-event widget key EVT_MENU
-]
-
-widget-scroll-event: func [
-	[cdecl]
-	evbox		[handle!]
-	event		[GdkEventScroll!]
-	widget		[handle!]
-	return:		[integer!]
-	/local
-		res	[integer!]
-][
-	;; DEBUG: print ["scroll-event: " event/direction " " event/delta_x " " event/delta_y lf]
-	res: EVT_DISPATCH
-	g_object_set_qdata widget red-event-id as handle! event
-	if any[event/delta_y < -0.01 event/delta_y > 0.01][
-		res: make-event widget check-down-flags event/state EVT_WHEEL
-	]
-	res
 ]

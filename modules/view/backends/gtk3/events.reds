@@ -368,32 +368,15 @@ make-event: func [
 	]
 	stack/adjust-post-try
 	if system/thrown <> 0 [system/thrown: 0]
-	;; DEBUG: print ["make-event result:" res lf]
 	type: TYPE_OF(res)
 	if  ANY_WORD?(type) [
 		sym: symbol/resolve res/symbol
-		;; DEBUG: print ["make-event symbol:" get-symbol-name sym lf]
 		case [
 			sym = done [state: EVT_NO_DISPATCH]			;-- prevent other high-level events
 			sym = stop [state: EVT_NO_DISPATCH]			;-- prevent all other events
 			true 	   [0]								;-- ignore others
 		]
 	]
-
-	; #call [system/view/awake gui-evt]
-	; res: as red-word! stack/arguments
-
-	; if TYPE_OF(res) = TYPE_WORD [
-	; 	sym: symbol/resolve res/symbol
-	; 	;; DEBUG:
-	; 	print ["make-events result:" sym lf]
-
-	; 	case [
-	; 		sym = done [state: EVT_DISPATCH]			;-- prevent other high-level events
-	; 		sym = stop [state: EVT_NO_DISPATCH]			;-- prevent all other events
-	; 		true 	   [0]								;-- ignore others
-	; 	]
-	; ]
 
 	state
 ]
@@ -558,7 +541,6 @@ connect-common-events: function [
 	widget		[handle!]
 	data		[int-ptr!]
 ][
-	assert widget <> null
 	gtk_widget_add_events widget GDK_BUTTON_PRESS_MASK
 	gobj_signal_connect(widget "button-press-event" :mouse-button-press-event data)
 	
@@ -601,7 +583,6 @@ connect-notify-events: function [
 	widget		[handle!]
 	data		[int-ptr!]
 ][
-	assert widget <> null
 	gtk_widget_add_events widget GDK_ENTER_NOTIFY_MASK or GDK_LEAVE_NOTIFY_MASK
 	gobj_signal_connect(widget "enter-notify-event" :widget-enter-notify-event data)
 	gobj_signal_connect(widget "leave-notify-event" :widget-leave-notify-event data)
