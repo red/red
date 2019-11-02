@@ -1425,9 +1425,8 @@ lexer: context [
 				state: as-integer transitions/index
 				
 				offset: offset + as-integer skip-table/state
-				line: line + as-integer line-table/class
-				
 				if state > --EXIT_STATES-- [term?: yes break]
+				line: line + as-integer line-table/class
 				p: p + 1
 			]
 			unless term? [
