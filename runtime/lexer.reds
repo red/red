@@ -376,16 +376,19 @@ lexer: context [
 
 	throw-error: func [lex [state!] s [byte-ptr!] e [byte-ptr!] type [integer!]
 		/local
-			pos [red-string!]
-			len	[integer!]
+			pos  [red-string!]
+			line [red-integer!]
+			len	 [integer!]
 	][
 		e: either s + 40 < e [s + 40][e]				;FIXME: accurately find the 40th codepoint position
 		len: as-integer e - s
 		pos: string/load as-c-string s len UTF-8
+		line: integer/push lex/line
 		lex/tail: lex/buffer							;-- clear accumulated values
+		
 		switch type [
-			ERR_BAD_CHAR 	 [fire [TO_ERROR(syntax bad-char) pos]]
-			ERR_MALCONSTRUCT [fire [TO_ERROR(syntax malconstruct) pos]]
+			ERR_BAD_CHAR 	 [fire [TO_ERROR(syntax bad-char) line pos]]
+			ERR_MALCONSTRUCT [fire [TO_ERROR(syntax malconstruct) line pos]]
 			ERR_MISSING		 [
 				type: switch lex/closing [
 					TYPE_BLOCK [as-integer #"]"]
@@ -393,9 +396,9 @@ lexer: context [
 					TYPE_PAREN [as-integer #")"]
 					default [assert false 0]			;-- should not happen
 				]
-				fire [TO_ERROR(syntax missing) char/push type pos]
+				fire [TO_ERROR(syntax missing) line char/push type pos]
 			]
-			default [fire [TO_ERROR(syntax invalid) datatype/push type pos]]
+			default [fire [TO_ERROR(syntax invalid) line datatype/push type pos]]
 		]
 	]
 	

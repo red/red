@@ -86,13 +86,13 @@ system: context [
 			syntax: object [
 				code:				200
 				type:				"Syntax Error"
-				invalid:			["invalid" :arg1 "at" :arg2]
-				missing:			["missing" :arg1 "at" :arg2]
+				invalid:			["(line" :arg1 ") invalid" :arg2 "at" :arg3]
+				missing:			["(line" :arg1 ") missing" :arg2 "at" :arg3]
 				no-header:			["script is missing a Red header:" :arg1]
 				no-rs-header:		["script is missing a Red/System header:" :arg1]
 				bad-header:			["script header is not valid:" :arg1]
-				malconstruct:		["invalid construction spec:" :arg1]
-				bad-char:			["invalid character in:" :arg1]
+				malconstruct:		["(line" :arg1 ") invalid construction spec:" :arg2]
+				bad-char:			["(line" :arg1 ") invalid character in:" :arg2]
 			]
 			script: object [
 				code:				300
