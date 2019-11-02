@@ -348,9 +348,9 @@ lexer: context [
 	]
 	
 	#enum errors! [
-		LEX_ERR_STRING: 1
-		
-		LEX_ERROR										;-- keep it last
+		ERR_BAD_CHAR: 	  -1
+		ERR_MALCONSTRUCT: -2
+		ERR_MISSING: 	  -3
 	]
 	
 	state!: alias struct! [
@@ -363,8 +363,9 @@ lexer: context [
 		in-pos	[byte-ptr!]
 		line	[integer!]								;-- current line number
 		nline	[integer!]								;-- new lines count for new token
-		err		[integer!]
 		entry	[integer!]								;-- entry state for the FSM
+		exit	[integer!]								;-- exit state for the FSM
+		closing [integer!]								;-- any-block! expected closing delimiter type 
 	]
 	
 	scanner!: alias function! [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]]
@@ -378,11 +379,24 @@ lexer: context [
 			pos [red-string!]
 			len	[integer!]
 	][
-		e: either s + 40 < e [s + 40][e]
+		e: either s + 40 < e [s + 40][e]				;FIXME: accurately find the 40th codepoint position
 		len: as-integer e - s
 		pos: string/load as-c-string s len UTF-8
 		lex/tail: lex/buffer							;-- clear accumulated values
-		fire [TO_ERROR(syntax invalid) datatype/push type pos]
+		switch type [
+			ERR_BAD_CHAR 	 [fire [TO_ERROR(syntax bad-char) pos]]
+			ERR_MALCONSTRUCT [fire [TO_ERROR(syntax malconstruct) pos]]
+			ERR_MISSING		 [
+				type: switch lex/closing [
+					TYPE_BLOCK [as-integer #"]"]
+					TYPE_MAP
+					TYPE_PAREN [as-integer #")"]
+					default [assert false 0]			;-- should not happen
+				]
+				fire [TO_ERROR(syntax missing) char/push type pos]
+			]
+			default [fire [TO_ERROR(syntax invalid) datatype/push type pos]]
+		]
 	]
 	
 	alloc-slot: func [state [state!] return: [red-value!] /local slot [red-value!]][
@@ -416,63 +430,66 @@ lexer: context [
 		]
 	]
 	
-	open-block: func [state [state!] type [integer!] hint [integer!] 
-		/local p [red-point!] len [integer!]
+	open-block: func [lex [state!] type [integer!] hint [integer!] 
+		/local 
+			p	[red-point!]
+			len [integer!]
 	][
-		len: (as-integer state/tail - state/head) >> 4
-		p: as red-point! alloc-slot state
+		len: (as-integer lex/tail - lex/head) >> 4
+		p: as red-point! alloc-slot lex
 		set-type as cell! p TYPE_POINT					;-- use the slot for stack info
 		p/x: len
 		p/y: type
 		p/z: hint
 		
-		state/head: state/tail							;-- points just after p
-		state/entry: S_START
+		lex/head: lex/tail								;-- points just after p
+		lex/entry: S_START
 	]
 
-	close-block: func [state [state!] type [integer!] final [integer!]
+	close-block: func [lex [state!] s [byte-ptr!] e [byte-ptr!] type [integer!] final [integer!]
 		return: [integer!]
 		/local	
 			p	  [red-point!]
 			len	  [integer!]
 			hint  [integer!]
 	][
-		p: as red-point! state/head - 1
-		assert all [state/buffer <= p TYPE_OF(p) = TYPE_POINT]
+		p: as red-point! lex/head - 1
+		assert all [lex/buffer <= p TYPE_OF(p) = TYPE_POINT]
 		either type = -1 [
 			type: either final = -1 [p/y][final]
 		][
-			if p/y <> type [throw LEX_ERROR]
+			if p/y <> type [
+				lex/closing: type
+				throw-error lex s e ERR_MISSING
+			]
 		]
-		len: (as-integer state/tail - state/head) >> 4
-		state/tail: state/head
-		state/head: as cell! p - p/x
+		len: (as-integer lex/tail - lex/head) >> 4
+		lex/tail: lex/head
+		lex/head: as cell! p - p/x
 		hint: p/z
 		
-		store-any-block as cell! p state/tail len type	;-- p slot gets overwritten here
+		store-any-block as cell! p lex/tail len type	;-- p slot gets overwritten here
 		
-		p: as red-point! state/head - 1					;-- get parent series
+		p: as red-point! lex/head - 1					;-- get parent series
 		either all [
-			state/buffer <= p
+			lex/buffer <= p
 			not any [p/y = TYPE_BLOCK p/y = TYPE_PAREN p/y = TYPE_MAP]
 		][												;-- any-path! case
-			state/entry: S_PATH
+			lex/entry: S_PATH
 		][
-			state/entry: S_START
+			lex/entry: S_START
 		]
 		hint
 	]
 	
-	decode-2: func [lex [state!] s [byte-ptr!] e [byte-ptr!] ser [series!]
+	decode-2: func [s [byte-ptr!] e [byte-ptr!] ser [series!]
+		return: [byte-ptr!]								;-- null: ok, not null: error position
 		/local
-			b	[byte-ptr!]
 			p	[byte-ptr!]
 			c	[integer!]
 			cnt	[integer!]
 	][
 		p: as byte-ptr! ser/offset
-		b: s
-		
 		while [s < e][
 			c: 0
 			cnt: 8
@@ -485,17 +502,19 @@ lexer: context [
 					]
 					#"^-" #"^/" #" " #"^M" [s: s + 1]
 					#";" [until [s: s + 1 any [s/1 = #"^/" s = e]]]
-					default [throw-error lex b e TYPE_BINARY]
+					default [return s]
 				]
 			]
-			if all [cnt <> 0 cnt <> 8][throw-error lex b e TYPE_BINARY]
+			if all [cnt <> 0 cnt <> 8][return s]
 			p/value: as byte! c
 			p: p + 1
 		]
 		ser/tail: as cell! p
+		null
 	]
 	
-	decode-16: func [lex [state!] s [byte-ptr!] e [byte-ptr!] ser [series!]
+	decode-16: func [s [byte-ptr!] e [byte-ptr!] ser [series!]
+		return: [byte-ptr!]								;-- null: ok, not null: error position
 		/local
 			p	   [byte-ptr!]
 			pos	   [byte-ptr!]
@@ -505,11 +524,10 @@ lexer: context [
 			fstate [integer!]
 	][
 		p: as byte-ptr! ser/offset
-		
 		while [s < e][
 			fstate: S_BIN_START
 			pos: s
-			until [								;-- scans 2 hex characters, skip the rest
+			until [										;-- scans 2 hex characters, skip the rest
 				index: 1 + as-integer s/1
 				class: as-integer bin16-classes/index
 				s: s + 1
@@ -517,17 +535,19 @@ lexer: context [
 				fstate: as-integer bin16-FSM/index
 				any [fstate - S_BIN_FINAL_STATES > 0 s >= e]
 			]
-			if fstate = T_BIN_ERROR [throw LEX_ERROR]
-			index: 1 + as-integer pos/1			;-- converts the 2 hex chars using tables
+			if fstate = T_BIN_ERROR [return s]
+			index: 1 + as-integer pos/1					;-- converts the 2 hex chars using tables
 			c: as-integer hexa-table/index
 			index: 1 + as-integer pos/2
 			p/value: as byte! c << 4 or as-integer hexa-table/index
 			p: p + 1
 		]
 		ser/tail: as cell! p
+		null
 	]
 	
-	decode-64: func [lex [state!] s [byte-ptr!] e [byte-ptr!] ser [series!]
+	decode-64: func [s [byte-ptr!] e [byte-ptr!] ser [series!]
+		return: [byte-ptr!]								;-- null: ok, not null: error position
 		/local
 			p	  [byte-ptr!]
 			c	  [integer!]
@@ -570,36 +590,37 @@ lexer: context [
 							p: p + 1
 							flip: 0
 						]
-						true [throw LEX_ERROR]
+						true [return s]
 					]
 					break
 				]
-			][
-				if val = 80h [throw LEX_ERROR]
-			]
+			][if val = 80h [return s]]
 			s: s + 1
 		]
 		ser/tail: as red-value! p
+		null
 	]
 	
-	scan-percent-char: func [s [byte-ptr!] e [byte-ptr!] cp [int-ptr!] return: [byte-ptr!]
+	scan-percent-char: func [s [byte-ptr!] e [byte-ptr!] cp [int-ptr!]
+		return: [byte-ptr!]								;-- -1 if error
 		/local
 			c	  [integer!]
 			c2	  [integer!]
 			index [integer!]
 	][
-		if s + 1 >= e [throw LEX_ERROR]
+		if s + 1 >= e [cp/value: -1 return s]
 		c: 0
 		index: 1 + as-integer s/1						;-- converts the 2 hex chars using a lookup table
 		c: as-integer hexa-table/index					;-- decode high nibble
 		index: 1 + as-integer s/2
 		c2: as-integer hexa-table/index					;-- decode low nibble
-		if any [c = -1 c2 = -1][throw LEX_ERROR]
+		if any [c = -1 c2 = -1][cp/value: -1 return s]
 		cp/value: c << 4 or c2
 		s + 2
 	]
 	
-	scan-escaped-char: func [s [byte-ptr!] e [byte-ptr!] cp [int-ptr!] return: [byte-ptr!]
+	scan-escaped-char: func [s [byte-ptr!] e [byte-ptr!] cp [int-ptr!]
+		return: [byte-ptr!]								;-- -1 if error
 		/local
 			p	  [byte-ptr!]
 			src	  [byte-ptr!]
@@ -622,11 +643,13 @@ lexer: context [
 				while [all [p/1 <> #")" p < e]][
 					index: 1 + as-integer p/1			;-- converts the 2 hex chars using a lookup table
 					cb: hexa-table/index				;-- decode one nibble at a time
-					if cb = #"^(FF)" [throw LEX_ERROR]
+					if cb = #"^(FF)" [cp/value: -1 return p]
 					c: c << 4 + as-integer cb
 					p: p + 1
 				]
-				if any [p = e p/1 <> #")" (as-integer p - s) > 7][throw LEX_ERROR] ;-- limit of 6 hexa characters.
+				if any [p = e p/1 <> #")" (as-integer p - s) > 7][ ;-- limit of 6 hexa characters
+					cp/value: -1 return s
+				]
 				p: p + 1								;-- skip )
 			][											;-- named escaped char
 				src: s + 1								;-- skip (
@@ -637,7 +660,7 @@ lexer: context [
 				]
 				assert escape-names + (7 * 3) > entry 
 				len: entry/2 + 1
-				if src/len <> #")" [throw LEX_ERROR]
+				if src/len <> #")" [cp/value: -1 return src]
 				c: entry/3
 				p: src + len
 			]
@@ -646,7 +669,7 @@ lexer: context [
 			pos: c >>> 3 + 1
 			bit: as-byte 1 << (c and 7)
 			either char-special/pos and bit = null-byte [ ;-- "regular" escaped char
-				if any [s/1 < #"^(40)" #"^(5F)" < s/1][throw LEX_ERROR]
+				if any [s/1 < #"^(40)" #"^(5F)" < s/1][cp/value: -1 return s]
 				c: as-integer s/1 - #"@"
 			][											;-- escaped special char
 				c: switch s/1 [
@@ -666,16 +689,13 @@ lexer: context [
 		p
 	]
 
-	scan-eof: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
-	;	/local
-	][
+	scan-eof: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]][
+		assert false									;-- should not happen (for now)
 		null
 	]
 	
-	scan-error: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
-	;	/local
-	][
-		null
+	scan-error: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]][
+		throw-error lex s e ERR_BAD_CHAR
 	]
 	
 	scan-block-open: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
@@ -688,7 +708,7 @@ lexer: context [
 	]
 
 	scan-block-close: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]][
-		close-block state TYPE_BLOCK -1
+		close-block state s e TYPE_BLOCK -1
 		state/in-pos: e	+ 1								;-- skip ]
 	]
 	
@@ -696,14 +716,14 @@ lexer: context [
 		/local
 			blk	 [red-block!]
 	][
-		if TYPE_MAP = close-block state TYPE_PAREN -1 [
+		if TYPE_MAP = close-block state s e TYPE_PAREN -1 [
 			blk: as red-block! state/tail - 1
 			map/make-at as cell! blk blk block/rs-length? blk
 		]
 		state/in-pos: e	+ 1								;-- skip )
 	]
 
-	scan-string: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-string: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
 			str    [red-string!]
 			ser	   [series!]
@@ -717,6 +737,7 @@ lexer: context [
 			digits [integer!]
 			extra  [integer!]
 			cp	   [integer!]
+			type   [integer!]
 			esc	   [byte!]
 			w?	   [logic!]
 			c	   [byte!]
@@ -725,9 +746,10 @@ lexer: context [
 		len: as-integer e - s
 		unit: 1 << (flags >>> 30)
 		if unit > 4 [unit: 4]
+		type: TYPE_STRING
 
 		either flags and C_FLAG_CARET = 0 [				;-- fast path when no escape sequence
-			str: string/make-at alloc-slot state len unit
+			str: string/make-at alloc-slot lex len unit
 			ser: GET_BUFFER(str)
 			switch unit [
 				UCS-1 [copy-memory as byte-ptr! ser/offset s len]
@@ -736,7 +758,7 @@ lexer: context [
 					p: as byte-ptr! ser/offset
 					while [s < e][
 						s: decode-utf8-char s :cp
-						if cp = -1 [throw LEX_ERROR]
+						if cp = -1 [throw-error lex s e type]
 						p/1: as-byte cp and FFh
 						p/2: as-byte cp >> 8
 						p: p + 2
@@ -747,7 +769,7 @@ lexer: context [
 					p4: as int-ptr! ser/offset
 					while [s < e][
 						s: decode-utf8-char s :cp
-						if cp = -1 [throw LEX_ERROR]
+						if cp = -1 [throw-error lex s e type]
 						p4/value: cp
 						p4: p4 + 1
 					]
@@ -797,7 +819,7 @@ lexer: context [
 			]
 			esc: either flags and C_FLAG_ESC_HEX = 0 [#"^^"][#"%"]
 			
-			str: string/make-at alloc-slot state len - extra unit
+			str: string/make-at alloc-slot lex len - extra unit
 			ser: GET_BUFFER(str)
 			switch unit [
 				UCS-1 [
@@ -809,6 +831,7 @@ lexer: context [
 							][
 								scan-percent-char s + 1 e :cp
 							]
+							if cp = -1 [throw-error lex s e type]
 							p/value: as-byte cp
 						][
 							p/value: s/1
@@ -831,7 +854,7 @@ lexer: context [
 						][
 							decode-utf8-char s :cp
 						]
-						if cp = -1 [throw LEX_ERROR]
+						if cp = -1 [throw-error lex s e type]
 						p/1: as-byte cp and FFh
 						p/2: as-byte cp >> 8
 						p: p + 2
@@ -851,7 +874,7 @@ lexer: context [
 						][
 							decode-utf8-char s :cp
 						]
-						if cp = -1 [throw LEX_ERROR]
+						if cp = -1 [throw-error lex s e type]
 						p4/value: cp
 						p4: p4 + 1
 					]
@@ -860,10 +883,10 @@ lexer: context [
 			]
 			assert (as byte-ptr! ser/offset) + ser/size > as byte-ptr! ser/tail
 		]
-		state/in-pos: e + 1								;-- skip ending delimiter
+		lex/in-pos: e + 1								;-- skip ending delimiter
 	]
 	
-	scan-word: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-word: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
 			cell [cell!]
 			type [integer!]
@@ -873,17 +896,17 @@ lexer: context [
 			case [
 				s/1 = #":" [s: s + 1 type: TYPE_GET_WORD]
 				e/0 = #":" [e: e - 1 type: TYPE_SET_WORD]
-				all [e/1 = #":" state/entry = S_PATH][0] ;-- do nothing if in a path
-				true	   [throw LEX_ERROR]
+				all [e/1 = #":" lex/entry = S_PATH][0]	;-- do nothing if in a path
+				true	   [throw-error lex s e type]
 			]
 		]
 		if s/1 = #"'" [s: s + 1 type: TYPE_LIT_WORD]
 
-		cell: alloc-slot state
+		cell: alloc-slot lex
 		word/make-at symbol/make-alt-utf8 s as-integer e - s cell
 		set-type cell type
 	
-		if type = TYPE_SET_WORD [state/in-pos: e + 1]	;-- skip ending delimiter
+		if type = TYPE_SET_WORD [lex/in-pos: e + 1]		;-- skip ending delimiter
 	]
 
 	scan-file: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
@@ -906,6 +929,7 @@ lexer: context [
 	scan-binary: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
 			bin	 [red-binary!]
+			err	 [byte-ptr!]
 			ser	 [series!]
 			len	 [integer!]
 			size [integer!]
@@ -926,21 +950,22 @@ lexer: context [
 			16 [len / 2]
 			64 [len + 3 * 3 / 4]
 			2  [len / 8]
-			default [throw LEX_ERROR 0]
+			default [throw-error lex s e TYPE_BINARY 0]
 		]
 		bin: binary/make-at alloc-slot lex size
 		ser: GET_BUFFER(bin)
-		switch base [
-			16 [decode-16 lex s e ser]
-			64 [decode-64 lex s e ser]
-			 2 [decode-2  lex s e ser]
-			default [assert false 0]
+		err: switch base [
+			16 [decode-16 s e ser]
+			64 [decode-64 s e ser]
+			 2 [decode-2  s e ser]
+			default [assert false null]
 		]
+		if err <> null [throw-error lex err e TYPE_BINARY]
 		assert (as byte-ptr! ser/offset) + ser/size > as byte-ptr! ser/tail
 		lex/in-pos: e + 1								;-- skip }
 	]
 	
-	scan-char: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-char: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
 			char  [red-char!]
 			len	  [integer!]
@@ -948,22 +973,22 @@ lexer: context [
 	][
 		assert all [s/1 = #"#" s/2 = #"^"" e/1 = #"^""]
 		len: as-integer e - s
-		if len = 2 [throw LEX_ERROR]					;-- #""
+		if len = 2 [throw-error lex s e TYPE_CHAR]		;-- #""
 		
 		either s/3 = #"^^" [
-			if len = 3 [throw LEX_ERROR]				;-- #"^"
+			if len = 3 [throw-error lex s e TYPE_CHAR]	;-- #"^"
 			c: -1
 			scan-escaped-char s + 3 e :c
 		][												;-- simple char
 			c: as-integer s/3
 		]
-		if c > 0010FFFFh [throw LEX_ERROR]
+		if any [c > 0010FFFFh c = -1][throw-error lex s e TYPE_CHAR]
 		
-		char: as red-char! alloc-slot state
+		char: as red-char! alloc-slot lex
 		set-type as cell! char TYPE_CHAR
 		char/value: c
 		
-		state/in-pos: e + 1								;-- skip "
+		lex/in-pos: e + 1								;-- skip "
 	]
 	
 	scan-map-open: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]][
@@ -971,7 +996,7 @@ lexer: context [
 		state/in-pos: e + 1								;-- skip (
 	]
 	
-	scan-construct: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-construct: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
 			dt		[red-datatype!]
 			p		[int-ptr!]
@@ -987,18 +1012,18 @@ lexer: context [
 			if zero? platform/strnicmp s as byte-ptr! p/1 p/2 [break]
 			p: p + 3
 		]
-		if p = end [throw LEX_ERROR]					;-- no match, error case
+		if p = end [throw-error lex s e ERR_MALCONSTRUCT] ;-- no match, error case
 		len: p/2 + 1
-		if s/len <> #"]" [throw LEX_ERROR]
+		if s/len <> #"]" [throw-error lex s e ERR_MALCONSTRUCT]
 		
-		dt: as red-datatype! alloc-slot state
+		dt: as red-datatype! alloc-slot lex
 		either p < dtypes [
 			set-type as cell! dt TYPE_LOGIC
 			dt/value: p/3
 		][
 			set-type as cell! dt p/3
 		]
-		state/in-pos: e + 1								;-- skip ]
+		lex/in-pos: e + 1								;-- skip ]
 	]
 	
 	scan-ref-issue: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
@@ -1067,20 +1092,20 @@ lexer: context [
 		i
 	]
 	
-	scan-float: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-float: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
 			fl	[red-float!]
 			err	[integer!]
 	][
 		err: 0
-		fl: as red-float! alloc-slot state
+		fl: as red-float! alloc-slot lex
 		set-type as cell! fl TYPE_FLOAT
 		fl/value: red-dtoa/string-to-float s e :err
-		if err <> 0 [throw LEX_ERROR]
-		state/in-pos: e									;-- reset the input position to delimiter byte
+		if err <> 0 [throw-error lex s e TYPE_FLOAT]
+		lex/in-pos: e									;-- reset the input position to delimiter byte
 	]
 	
-	scan-tuple: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-tuple: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
 			cell [cell!]
 			i	 [integer!]
@@ -1088,7 +1113,7 @@ lexer: context [
 			tp	 [byte-ptr!]
 			p	 [byte-ptr!]
 	][
-		cell: alloc-slot state
+		cell: alloc-slot lex
 		tp: (as byte-ptr! cell) + 4
 		pos: 0
 		i: 0
@@ -1097,7 +1122,7 @@ lexer: context [
 		loop as-integer e - s [
 			either p/1 = #"." [
 				pos: pos + 1
-				if any [i < 0 i > 255 pos > 12][throw LEX_ERROR]
+				if any [i < 0 i > 255 pos > 12][throw-error lex s e TYPE_TUPLE]
 				tp/pos: as byte! i
 				i: 0
 			][
@@ -1108,7 +1133,7 @@ lexer: context [
 		pos: pos + 1									;-- last number
 		tp/pos: as byte! i
 		cell/header: cell/header and type-mask or TYPE_TUPLE or (pos << 19)
-		state/in-pos: e									;-- reset the input position to delimiter byte
+		lex/in-pos: e									;-- reset the input position to delimiter byte
 	]
 
 	scan-date: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
@@ -1229,21 +1254,21 @@ lexer: context [
 		state/in-pos: e									;-- reset the input position to delimiter byte
 	]
 	
-	scan-time: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-time: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
 			field [lexer-dt-array!]
 			tm	  [float!]
 	][
-		field: as lexer-dt-array! scan-date state s e flags or C_FLAG_TM_ONLY ;-- field is on freed stack frame
+		field: as lexer-dt-array! scan-date lex s e flags or C_FLAG_TM_ONLY ;-- field is on freed stack frame
 		
-		if any [field/tz-h <> 0 field/tz-m <> 0][throw LEX_ERROR] ;-- TZ info rejection
+		if any [field/tz-h <> 0 field/tz-m <> 0][throw-error lex s e TYPE_TIME] ;-- TZ info rejection
 
 		tm: (3600.0 * as float! field/hour)
 		  + (60.0   * as float! field/min)
 		  + (         as float! field/sec)
 		  + (1e-9   * as float! field/nsec)
 
-		time/make-at tm alloc-slot state				;-- field array is not usable after this call
+		time/make-at tm alloc-slot lex					;-- field array is not usable after this call
 	]
 	
 	scan-money: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
@@ -1304,27 +1329,29 @@ lexer: context [
 		state/in-pos: e + 1								;-- skip /
 	]
 	
-	scan-path-item: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-path-item: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
 			type	[integer!]
 			cp		[integer!]
 			index	[integer!]
 			close?	[logic!]
 	][
-		close?: either e >= state/in-end [yes][			;-- EOF reached
+		close?: either e >= lex/in-end [yes][			;-- EOF reached
 			cp: as-integer e/1
 			index: lex-classes/cp and FFh + 1			;-- query the class of ending character
 			as-logic path-ending/index					;-- lookup if the character class is ending path
 		]
 		either close? [
-			type: either all [e < state/in-end e/1 = #":"][
-				state/in-pos: e + 1						;-- skip :
+			type: either all [e < lex/in-end e/1 = #":"][
+				lex/in-pos: e + 1						;-- skip :
 				TYPE_SET_PATH
 			][-1]
-			close-block state -1 type
+			close-block lex s e -1 type
 		][
-			if all [e < state/in-end e/1 = #":"][throw LEX_ERROR] ;-- set-words not allowed inside paths
-			state/in-pos: e + 1							;-- skip /
+			if all [e < lex/in-end e/1 = #":"][
+				throw-error lex s e TYPE_PATH			;-- set-words not allowed inside paths
+			]
+			lex/in-pos: e + 1							;-- skip /
 		]
 	]
 	
@@ -1404,11 +1431,14 @@ lexer: context [
 				index: state * (size? character-classes!) + C_EOF
 				state: as-integer transitions/index
 			]
-			lex/in-pos: p
-			lex/line: line
-			lex/nline: line - mark
-			
+			assert state <= T_PATH
 			assert start + offset <= p
+			
+			lex/in-pos: p
+			lex/line:   line
+			lex/nline:  line - mark
+			lex/exit:   state
+			
 			index: state - --EXIT_STATES--
 			do-scan: as scanner! scanners/index
 			do-scan lex start + offset p flags
@@ -1440,13 +1470,10 @@ lexer: context [
 		state/input:  src
 		state/in-end: src + len
 		state/in-pos: src
-		state/err:	  0
 		state/entry:  S_START
 		
-		catch LEX_ERROR [scan-tokens state]
-		if system/thrown > 0 [
-			probe "Syntax error"						;TBD: error handling
-		]
+		scan-tokens state
+
 		slots: (as-integer state/tail - state/head) >> 4
 		store-any-block dst state/head slots TYPE_BLOCK
 		
