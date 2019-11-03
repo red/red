@@ -354,7 +354,8 @@ lexer: context [
 	]
 	
 	state!: alias struct! [
-		buffer	[red-value!]							;-- static or dynamic stash buffer (for recursive calls)
+		next	[state!]								;-- link to next state! structure (recursive calls)
+		buffer	[red-value!]							;-- static or dynamic stash buffer (recursive calls)
 		head	[red-value!]
 		tail	[red-value!]
 		slots	[integer!]
@@ -372,6 +373,7 @@ lexer: context [
 
 	stash: as cell! 0									;-- special buffer for hatching any-blocks series
 	stash-size: 1000									;-- pre-allocated cells	number
+	root-state: as state! 0								;-- global entry point to state struct list
 	depth: 0											;-- recursive calls depth
 
 	throw-error: func [lex [state!] s [byte-ptr!] e [byte-ptr!] type [integer!]
@@ -400,6 +402,15 @@ lexer: context [
 				fire [TO_ERROR(syntax missing) line char/push type pos]
 			]
 			default [fire [TO_ERROR(syntax invalid) line datatype/push type pos]]
+		]
+	]
+	
+	mark-buffers: func [/local s [state!]][
+		s: root-state
+		until [
+			collector/mark-values s/buffer s/tail
+			s: s/next
+			null? s
 		]
 	]
 	
@@ -1480,8 +1491,10 @@ lexer: context [
 			s	  [series!]
 			lex	  [state! value]
 	][
+		if zero? depth [root-state: lex]
 		depth: depth + 1
 		
+		lex/next:	null								;-- last element of the states linked list
 		lex/buffer: stash								;TBD: support dyn buffer case
 		lex/head:	stash
 		lex/tail:	stash
@@ -1497,6 +1510,7 @@ lexer: context [
 		store-any-block dst lex/head slots TYPE_BLOCK
 		
 		depth: depth - 1
+		if zero? depth [root-state: null]
 	]
 	
 	init: func [][

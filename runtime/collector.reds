@@ -330,6 +330,7 @@ collector: context [
 		#if debug? = yes [if verbose > 1 [probe "marking globals"]]
 		keep case-folding/upper-to-lower/node
 		keep case-folding/lower-to-upper/node
+		lexer/mark-buffers
 
 		#if debug? = yes [if verbose > 1 [probe "marking path parent"]]
 		obj: object/path-parent
