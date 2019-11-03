@@ -385,6 +385,7 @@ lexer: context [
 		pos: string/load as-c-string s len UTF-8
 		line: integer/push lex/line
 		lex/tail: lex/buffer							;-- clear accumulated values
+		depth: depth - 1
 		
 		switch type [
 			ERR_BAD_CHAR 	 [fire [TO_ERROR(syntax bad-char) line pos]]
@@ -402,10 +403,26 @@ lexer: context [
 		]
 	]
 	
-	alloc-slot: func [lex [state!] return: [red-value!] /local slot [red-value!]][
-		if lex/head + lex/slots <= lex/tail [
-			assert false
-			0 ;TBD: expand
+	alloc-slot: func [lex [state!] return: [red-value!]
+		/local 
+			slot   [red-value!]
+			size   [integer!]
+			deltaH [integer!]
+			deltaT [integer!]
+	][
+		size: lex/slots
+		if lex/head + size <= lex/tail [
+			deltaH: (as-integer lex/head - lex/buffer) >> 4
+			deltaT: (as-integer lex/tail - lex/buffer) >> 4
+			lex/slots: size * 2
+			lex/buffer: as cell! realloc as byte-ptr! lex/buffer lex/slots << 4
+			if null? lex/buffer [fire [TO_ERROR(internal no-memory)]]
+			lex/head: lex/buffer + deltaH
+			lex/tail: lex/buffer + deltaT
+			if depth = 1 [
+				stash: lex/buffer
+				stash-size: lex/slots
+			]
 		]
 		slot: lex/tail
 		slot/header: TYPE_UNSET
