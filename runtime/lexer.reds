@@ -1302,10 +1302,9 @@ lexer: context [
 		time/make-at tm alloc-slot lex					;-- field array is not usable after this call
 	]
 	
-	scan-money: func [state [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
-	;	/local
-	][
-		null
+	scan-money: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]][
+		;;TBD: implement this function once money! type is done
+		throw-error lex s e ERR_BAD_CHAR
 	]
 	
 	scan-tag: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
