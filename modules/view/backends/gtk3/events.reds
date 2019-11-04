@@ -407,7 +407,10 @@ do-events: func [
 				break
 			]
 			c2: get-window-count
-			if c2 < c1 [break]
+			if all [
+				c2 > 1
+				c2 < c1
+			][break]
 		]
 		no-wait?
 	]
