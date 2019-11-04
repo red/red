@@ -1006,8 +1006,6 @@ change-size: func [
 		ntype	[red-word!]
 		sym		[integer!]
 		layout	[handle!]
-		str		[red-string!]
-		list	[GList!]
 		label	[handle!]
 		pl		[handle!]
 		x		[integer!]
@@ -1030,17 +1028,14 @@ change-size: func [
 		gtk_widget_queue_resize widget
 
 		if type = panel [
-			str: as red-string! values + FACE_OBJ_TEXT
-			if TYPE_OF(str) = TYPE_STRING [
-				list: gtk_container_get_children widget
-				label: list/data
+			label: GET-CAPTION(widget)
+			unless null? label [
 				pl: gtk_label_get_layout label
 				x: 0 y: 0
 				pango_layout_get_pixel_size pl :x :y
 				x: either size/x > x [size/x - x / 2][0]
 				y: either size/y > y [size/y - y / 2][0]
 				gtk_layout_move widget label x y
-				g_list_free list
 			]
 		]
 	]
@@ -1925,6 +1920,7 @@ OS-make-view: func [
 		if newF? [
 			free-pango-attrs attrs
 		]
+		SET-CAPTION(widget buffer)
 	]
 
 	if sym <> window [

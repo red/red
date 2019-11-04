@@ -2966,6 +2966,7 @@ red-event-id:		g_quark_from_string "red-event-id"
 cursor-id:			g_quark_from_string "cursor-id"
 resizing-id:		g_quark_from_string "resizing-id"
 start-resize-id:	g_quark_from_string "start-resize-id"
+caption-id:			g_quark_from_string "caption-id"
 
 
 #define SET-CONTAINER(s d)		[g_object_set_qdata s container-id d]
@@ -2978,3 +2979,5 @@ start-resize-id:	g_quark_from_string "start-resize-id"
 #define GET-STARTRESIZE(s)		[g_object_get_qdata s start-resize-id]
 #define SET-POST-QUIT(s d)		[g_object_set_qdata s post-quit-id d]
 #define GET-POST-QUIT(s)		[g_object_get_qdata s post-quit-id]
+#define SET-CAPTION(s d)		[g_object_set_qdata s caption-id d]
+#define GET-CAPTION(s)			[g_object_get_qdata s caption-id]
