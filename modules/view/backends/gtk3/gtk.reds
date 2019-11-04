@@ -21,6 +21,8 @@ Red/System [
 
 #define G_ASCII_DTOSTR_BUF_SIZE	39
 
+#define G_TYPE_MAKE_FUNDAMENTAL(x) [x << 2]
+#define G_TYPE_INT		24 ;[G_TYPE_MAKE_FUNDAMENTAL(6)]
 
 RECT_STRUCT: alias struct! [
 	left		[integer!]
@@ -651,6 +653,15 @@ GPtrArray!: alias struct! [
 			app			[handle!]
 			argc		[integer!]
 			argv		[int-ptr!]
+			return:		[integer!]
+		]
+		g_value_init: "g_value_init" [
+			value		[handle!]
+			type		[integer!]
+			return:		[handle!]
+		]
+		g_value_get_int: "g_value_get_int" [
+			value		[handle!]
 			return:		[integer!]
 		]
 	;; ]
@@ -1550,6 +1561,12 @@ GPtrArray!: alias struct! [
 		]
 		gtk_container_child_set: "gtk_container_child_set" [
 			[variadic]
+		]
+		gtk_container_child_get_property: "gtk_container_child_get_property" [
+			container	[handle!]
+			widget		[handle!]
+			prop		[c-string!]
+			value		[int-ptr!]
 		]
 		gtk_frame_new: "gtk_frame_new" [
 			label		[c-string!]
