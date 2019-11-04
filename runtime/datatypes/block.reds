@@ -1114,8 +1114,8 @@ block: context [
 				copy-cell value slot
 				if hash? [_hashtable/put hash/table slot]
 			]
-			ownership/check as red-value! blk words/_put slot blk/head + 1 1
 			MEMGUARD_BACK
+			ownership/check as red-value! blk words/_put slot blk/head + 1 1
 		]
 		value
 	]
@@ -1356,8 +1356,8 @@ block: context [
 			_sort/qsort     as byte-ptr! head len width op flags cmp
 		]
 		collector/active?: saved
-		ownership/check as red-value! blk words/_sort null blk/head 0
 		MEMGUARD_BACK
+		ownership/check as red-value! blk words/_sort null blk/head 0
 		blk
 	]
 		
@@ -1518,7 +1518,6 @@ block: context [
 				cell: cell + 1
 			]
 		]
-		ownership/check as red-value! blk' action value index part
 		
 		either append? [blk/head: 0][
 			blk'/head: blk'/head + slots
@@ -1529,6 +1528,8 @@ block: context [
 			if blk/head < blk'/head [blk/head: blk'/head]
 		]
 		MEMGUARD_BACK
+
+		ownership/check as red-value! blk' action value index part
 		as red-value! blk
 	]
 
@@ -1637,10 +1638,10 @@ block: context [
 			_hashtable/delete hash/table as red-value! h2
 			_hashtable/put hash/table as red-value! h2
 		]
+		MEMGUARD_BACK
+
 		ownership/check as red-value! blk1 words/_swap null blk1/head 1
 		ownership/check as red-value! blk2 words/_swap null blk2/head 1
-
-		MEMGUARD_BACK
 		blk1
 	]
 
@@ -1678,8 +1679,8 @@ block: context [
 			value: value + 1
 		]
 		if s/tail > cur [s/tail: cur]
-		ownership/check as red-value! blk words/_trim null blk/head 0
 		MEMGUARD_BACK
+		ownership/check as red-value! blk words/_trim null blk/head 0
 		as red-series! blk
 	]
 

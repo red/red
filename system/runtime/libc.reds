@@ -187,6 +187,11 @@ Red/System [
 			last-token: last-token - 1
 			until [0 = pop]
 		]
+		reset: does [									;-- use it when memguard stack can't be preserved
+			top: list
+			last-token: 0
+			flag-skip-next: no
+		]
 		
 		ignore-node: func [node [int-ptr!]] [
 			;@@ TBD: stack of intervals?

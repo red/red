@@ -337,6 +337,7 @@ Red/System [
 	#define MEMGUARD_TOKEN			[mgtoken [integer!]]		;-- goes into function spec
 	#define MEMGUARD_MARK			[mgtoken: memguard/mark]
 	#define MEMGUARD_BACK			[memguard/back mgtoken]
+	#define MEMGUARD_RESET			[memguard/reset]
 	#define MEMGUARD_UNCHECKED		[memguard/flag-skip-next: yes]
 	#define MEMGUARD_ADD(srs)		[memguard-add-series as red-series! srs]
 	#define MEMGUARD_ADDRO(srs)		[0] ;[memguard-add-series as red-series! srs]	;@@ TBD - readonly
@@ -352,6 +353,7 @@ Red/System [
 	#define MEMGUARD_TOKEN			[]
 	#define MEMGUARD_MARK			[]
 	#define MEMGUARD_BACK			[]
+	#define MEMGUARD_RESET			[]
 	#define MEMGUARD_UNCHECKED		[]
 	#define MEMGUARD_ADD(srs)		[]
 	#define MEMGUARD_ADDRO(srs)		[]

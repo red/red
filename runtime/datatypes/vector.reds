@@ -467,7 +467,7 @@ vector: context [
 					fl: as red-float! right
 					f2: fl/value
 				]
-				default [MEMGUARD_BACK --NOT_IMPLEMENTED--]
+				default [--NOT_IMPLEMENTED--]
 			]
 			while [i < len][
 				f1: get-value-float p unit
@@ -495,7 +495,7 @@ vector: context [
 					f1: fl/value
 					v2: as-integer f1
 				]
-				default [MEMGUARD_BACK --NOT_IMPLEMENTED--]
+				default [--NOT_IMPLEMENTED--]
 			]
 			while [i < len][
 				v1: get-value-int as int-ptr! p unit

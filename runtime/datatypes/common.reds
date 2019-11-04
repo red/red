@@ -181,7 +181,8 @@ fire: func [
 	arg1: null
 	arg2: null
 	arg3: null
-	
+
+	MEMGUARD_RESET										;-- otherwise it'll crash it most certainly
 	count: count - 2
 	unless zero? count [
 		arg1: as red-value! list/3

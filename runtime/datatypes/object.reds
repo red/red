@@ -1289,6 +1289,7 @@ object: context [
 			size  [integer!]
 			slots [integer!]
 			type  [integer!]
+			MEMGUARD_TOKEN
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/copy"]]
 		
@@ -1316,8 +1317,10 @@ object: context [
 		
 		if size <= 0 [return new]						;-- empty object!
 		
+		MEMGUARD_MARK
 		;-- process SYMBOLS
 		dst: as series! nctx/symbols/value
+		MEMGUARD_ADDNODE(dst/node)
 		copy-memory as byte-ptr! dst/offset as byte-ptr! src/offset size
 		dst/tail: dst/offset + slots
 		_context/set-context-each dst new/ctx
@@ -1325,6 +1328,7 @@ object: context [
 		;-- process VALUES
 		src: as series! ctx/values/value
 		dst: as series! nctx/values/value
+		MEMGUARD_ADDNODE(dst/node)
 		copy-memory as byte-ptr! dst/offset as byte-ptr! src/offset size
 		dst/tail: dst/offset + slots
 		
@@ -1367,6 +1371,7 @@ object: context [
 				value: value + 1
 			]
 		]
+		MEMGUARD_BACK
 		new
 	]
 	

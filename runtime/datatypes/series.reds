@@ -468,6 +468,8 @@ _series: context [
 				return as red-value! origin
 			]
 			if dst > tail [dst: tail]					;-- avoid overflows if part is too big
+
+			;@@ FIXME: this may crash MEMGUARD due to operations on non marked memory
 			ownership/check as red-value! target' words/_move null origin'/head items
 
 			temp: allocate part							;@@ suboptimal for unit < 16
@@ -501,9 +503,9 @@ _series: context [
 				all [ANY_BLOCK?(type1)  ANY_STRING?(type2)]
 				all [ANY_STRING?(type1)	ANY_BLOCK?(type2)]
 			][
-				MEMGUARD_BACK
 				fire [TO_ERROR(script move-bad) datatype/push type1 datatype/push type2]
 			]
+			;@@ FIXME: this may crash MEMGUARD due to operations on non marked memory
 			ownership/check as red-value! target words/_move null origin'/head items
 			
 			s2: trim-head-into target target'
@@ -515,7 +517,6 @@ _series: context [
 					type2 = TYPE_BINARY
 					type2 = TYPE_VECTOR
 				][
-					MEMGUARD_BACK
 					fire [TO_ERROR(script move-bad) datatype/push type1 datatype/push type2]
 				]
 				string/move-chars as red-string! origin' as red-string! target' part
@@ -555,8 +556,8 @@ _series: context [
 			]
 			index: target'/head
 		]
-		ownership/check as red-value! target' words/_moved null index items
 		MEMGUARD_BACK
+		ownership/check as red-value! target' words/_moved null index items
 		as red-value! origin
 	]
 	
@@ -681,7 +682,10 @@ _series: context [
 			new-part: items * cnt
 			new-size: size - part + new-part
 			n: new-size << unit
-			if part > 0 [ownership/check as red-value! ser words/_change null head part]
+			if part > 0 [
+				;@@ FIXME: this may crash MEMGUARD due to operations on non marked memory
+				ownership/check as red-value! ser words/_change null head part
+			]
 			if n > s/size [
 				s: expand-series s n << 1
 				if self? [								;-- cell no longer points to a valid buffer
@@ -796,10 +800,10 @@ _series: context [
 			cell: as cell! s/offset + head
 			loop new-size - head [_hashtable/put table cell  cell: cell + 1]
 		]
-		ownership/check as red-value! ser words/_changed null head new-part
-		ser/head: head + new-part											;-- set head after the change
 
 		MEMGUARD_BACK
+		ownership/check as red-value! ser words/_changed null head new-part
+		ser/head: head + new-part											;-- set head after the change
 		ser
 	]
 
@@ -871,7 +875,6 @@ _series: context [
 				TYPE_BINARY [binary/set-value pos data]
 				TYPE_VECTOR [
 					if TYPE_OF(data) <> ser/extra [
-						MEMGUARD_BACK
 						fire [TO_ERROR(script invalid-arg) data]
 					]
 					vector/set-value pos data unit		;@@ FIXME: this can fire
@@ -879,15 +882,14 @@ _series: context [
 				default [								;@@ ANY-STRING!
 					char: as red-char! data
 					if TYPE_OF(char) <> TYPE_CHAR [
-						MEMGUARD_BACK
 						fire [TO_ERROR(script invalid-arg) char]
 					]
 					string/poke-char s pos char/value
 				]
 			]
+			MEMGUARD_BACK
 			ownership/check as red-value! ser words/_poke data offset 1
 			stack/set-last data
-			MEMGUARD_BACK
 		]
 		data
 	]
@@ -945,11 +947,11 @@ _series: context [
 
 		if head >= tail [return ser]						;-- early exit if nothing to remove
 
+		ownership/check as red-value! ser words/_remove null ser/head items
+		
 		MEMGUARD_MARK
 		MEMGUARD_ADD(ser)
 
-		ownership/check as red-value! ser words/_remove null ser/head items
-		
 		either head + part < tail [
 			move-memory
 				head
@@ -966,9 +968,9 @@ _series: context [
 		][
 			s/tail: as red-value! head
 		]
-		ownership/check as red-value! ser words/_removed null ser/head 0
 
 		MEMGUARD_BACK
+		ownership/check as red-value! ser words/_removed null ser/head 0
 		ser
 	]
 
@@ -1050,9 +1052,9 @@ _series: context [
 			head: head + unit
 			tail: tail - unit
 		]
-		ownership/check as red-value! ser words/_reverse null ser/head items
 
 		MEMGUARD_BACK
+		ownership/check as red-value! ser words/_reverse null ser/head items
 		ser
 	]
 
@@ -1153,11 +1155,11 @@ _series: context [
 		ser2/node:  node
 		ser2/head:  0
 
+		ownership/check as red-value! ser' words/_take null head part2
+
 		MEMGUARD_MARK
 		MEMGUARD_ADD(ser')
 		MEMGUARD_ADD(ser2)
-
-		ownership/check as red-value! ser' words/_take null head part2
 
 		offset: (as byte-ptr! s/offset) + (head << (log-b unit))
 		copy-memory
@@ -1184,8 +1186,8 @@ _series: context [
 			hash/header: TYPE_HASH
 		]
 		
-		ownership/check as red-value! ser' words/_taken null ser'/head 0
 		MEMGUARD_BACK
+		ownership/check as red-value! ser' words/_taken null ser'/head 0
 		as red-value! ser2
 	]
 
