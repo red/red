@@ -21,22 +21,23 @@ Red/System [
 ;-- sizes for 32-bit, multiply by two for 64-bit
 #define MI_SMALL_PAGE_SHIFT		[(13 + MI_PTR_SHIFT)]			;-- 32kb
 #define MI_MEDIUM_PAGE_SHIFT	[(3 + MI_SMALL_PAGE_SHIFT)]		;-- 256kb
-#define MI_SEGMENT_SHIFT		[(10 + MI_SMALL_PAGE_SHIFT)]	;-- 32mb
+#define MI_LARGE_PAGE_SHIFT		[(3 + MI_MEDIUM_PAGE_SHIFT)]	;-- 2MB
+#define MI_SEGMENT_SHIFT		MI_LARGE_PAGE_SHIFT				;-- 2MB
 
 ;-- Derived constants
 #define MI_SEGMENT_SIZE			[(1 << MI_SEGMENT_SHIFT)]
 #define MI_SEGMENT_MASK			[(MI_SEGMENT_SIZE - 1)]
-#define MI_PAGES_PER_SEGMENT	[(MI_SEGMENT_SIZE / MI_SMALL_PAGE_SHIFT)] ;-- 1024
 
 #define MI_SMALL_PAGE_SIZE		[(1 << MI_SMALL_PAGE_SHIFT)]
 #define MI_MEDIUM_PAGE_SIZE		[(1 << MI_MEDIUM_PAGE_SHIFT)]
+#define MI_LARGE_PAGE_SIZE		[(1 << MI_LARGE_PAGE_SHIFT)]
 
-#define MI_SMALL_OBJ_SIZE_MAX	[(MI_SMALL_PAGE_SIZE / 8)]	;-- 4kb on 32-bit
+#define MI_SMALL_OBJ_SIZE_MAX	[(MI_SMALL_PAGE_SIZE / 4)]	;-- 4kb on 32-bit
 
 #define MI_MEDIUM_OBJ_SIZE_MAX	[(MI_MEDIUM_PAGE_SIZE / 4)]	;-- 64kb on 32-bit
 #define MI_MEDIUM_OBJ_WSIZE_MAX	[(MI_MEDIUM_OBJ_SIZE_MAX / MI_PTR_SIZE)]  ;-- 32kb on 32-bit
 
-#define MI_LARGE_OBJ_SIZE_MAX	[(MI_SEGMENT_SIZE / 4)]		;-- 8mb on 32-bit
+#define MI_LARGE_OBJ_SIZE_MAX	[(MI_SEGMENT_SIZE / 4)]
 #define MI_LARGE_OBJ_WSIZE_MAX	[(MI_LARGE_OBJ_SIZE_MAX / MI_PTR_SIZE)]
 
 #define MI_MAX_ALIGN_SIZE  16
@@ -46,9 +47,6 @@ Red/System [
 #define MI_PAGE_FLAG_ALIGNED	2
 
 mimalloc: context [
-
-	ptr-ptr!: alias struct! [value [int-ptr!]]
-	#define ptr-value! [ptr-ptr! value]
 
 	#enum delayed-free! [
 		NO_DELAYED_FREE
@@ -64,22 +62,19 @@ mimalloc: context [
 	]
 
 	block!: alias struct! [		;-- free lists contains blocks
-		next [integer!]
+		next [block!]
 	]
 
 	page!: alias struct! [
-		count			[integer!]
-		offset			[integer!]
-		reset?			[logic!]
-		committed		[logic!]
+		idx				[integer!]
+		flags			[integer!]
 		capacity		[integer!]
 		reserved		[integer!]
-		flags			[integer!]
 		free-blocks		[block!]
 		used			[integer!]
 		local-free		[block!]
-		thread-freed	[integer!]
-		thread-free		[block!]
+		;thread-freed	[integer!]
+		;thread-free	[block!]
 		block-size		[integer!]
 		heap			[heap!]
 		next			[page!]
@@ -87,16 +82,16 @@ mimalloc: context [
 	]
 
 	segment!: alias struct! [
+		id				[integer!]
 		next			[segment!]
 		abandoned_next	[segment!]
 		abandoned		[integer!]
 		used			[integer!]
-		n-pages			[integer!]
-		n-infos			[integer!]
-		allow-decommit? [logic!]
-		commit-mask		[int-ptr!]
+		capacity		[integer!]
+		info-size		[integer!]
+		page-shift		[integer!]
 		thread-id		[int-ptr!]
-		page-count		[integer!]
+		page-kind		[integer!]
 		pages			[page!]
 	]
 
@@ -139,18 +134,9 @@ mimalloc: context [
 		p73  [page-queue! value] p74  [page-queue! value]
 	]
 
-	span!: alias struct! [
-		first		[page!]
-		last		[page!]
-		count		[integer!]
-	]
-
-	span-array!: alias struct! [
-		p1   [span! value] p2   [span! value] p3   [span! value] p4   [span! value] p5   [span! value] p6   [span! value] p7   [span! value] p8   [span! value]
-		p9   [span! value] p10  [span! value] p11  [span! value] p12  [span! value] p13  [span! value] p14  [span! value] p15  [span! value] p16  [span! value]
-		p17  [span! value] p18  [span! value] p19  [span! value] p20  [span! value] p21  [span! value] p22  [span! value] p23  [span! value] p24  [span! value]
-		p25  [span! value] p26  [span! value] p27  [span! value] p28  [span! value] p29  [span! value] p30  [span! value] p31  [span! value] p32  [span! value]
-		p33  [span! value] p34  [span! value] p35  [span! value] p36  [span! value]
+	segment-queue!: alias struct! [
+		first		[segment!]
+		last		[segment!]
 	]
 
 	stat-info!: alias struct! [
@@ -166,10 +152,11 @@ mimalloc: context [
 	]
 
 	segments-tld!: alias struct! [
-		spans		[span-array! value]
+		small-free	[segment-queue!]
+		medium-free	[segment-queue!]
 		count		[integer!]
 		peak-count	[integer!]
-		size		[integer!]
+		current-size [integer!]
 		peak-size	[integer!]
 		cache-count [integer!]
 		cache-size	[integer!]
@@ -213,8 +200,19 @@ mimalloc: context [
 			;wProcessorRevision		[uint16!]
 	]
 
+	thread-callback!: alias function! [lpData [int-ptr!]]
+
 	#import [
 		"kernel32.dll" stdcall [
+			FlsAlloc: "FlsAlloc" [
+				lpCallback	[int-ptr!]
+				return:		[integer!]
+			]
+			FlsSetValue: "FlsSetValue" [
+				dwFlsIndex	[integer!]
+				lpFlsData	[int-ptr!]
+				return:		[logic!]
+			]
 			GetSystemInfo: "GetSystemInfo" [
 				si			[tagSYSTEM_INFO]
 			]
@@ -234,9 +232,12 @@ mimalloc: context [
 		]
 	]
 
+	#define WORD_SIZE?(size) [(size - 1 + size? int-ptr!) / size? int-ptr!]
+
 	page-size: 4096
 	alloc-granularity: 4096
 
+	empty-page: declare page!
 	stats-main: declare stats!
 	heap-main: declare heap!
 	tld-main: declare tld!
@@ -276,28 +277,17 @@ mimalloc: context [
 
 	thread-id-cnt: 0 ;func [return: [int-ptr!]][as int-ptr! heap-default]
 
+	init-thread: func [][
+		init-heap
+	]
+
 	init-process: func [
 		/local
 			h	[heap!]
 	][
-		h: heap-default
-		
-	]
-
-	init-thread: func [
-		/local
-			h	[heap!]
-	][
-		
-	]
-
-	init: func [/local si [tagSYSTEM_INFO value]][
-		GetSystemInfo :si
-		if si/dwPageSize > 0 [page-size: si/dwPageSize]
-		if si/dwAllocationGranularity > 0 [
-			alloc-granularity: si/dwAllocationGranularity
-		]
-		zero-memory as byte-ptr! heap-default size? heap!
+		h: heap-main
+		zero-memory as byte-ptr! h size? heap!
+		init-thread
 	]
 
 	init-heap: func [
@@ -306,7 +296,7 @@ mimalloc: context [
 			tld	[tld!]
 			td	[thread-data!]
 	][
-		hp: heap-default
+		hp: heap-main
 		either null? hp/thread-id [
 			heap-default: heap-main
 		][
@@ -321,20 +311,89 @@ mimalloc: context [
 		]
 	]
 
+	init: func [/local si [tagSYSTEM_INFO value]][
+		GetSystemInfo :si
+		if si/dwPageSize > 0 [page-size: si/dwPageSize]
+		if si/dwAllocationGranularity > 0 [
+			alloc-granularity: si/dwAllocationGranularity
+		]
+		init-process
+	]
+
 	create-heap: func [
+		return: [heap!]
 		/local
-			bheap	[heap!]
+			h	[heap!]
 	][
+		null
+	]
+
+	segment-alloc: func [
+		required	[ulong!]
+		kind		[page-kind!]
+		page-shift	[integer!]
+		tld			[segments-tld!]
+		return:		[segment!]
+		/local
+			page-sz		[integer!]
+			capacity	[integer!]
+	][
+		page-sz: 1 << page-shift
+		capacity: MI_SEGMENT_SIZE
+	]
+
+	segment-page-alloc: func [
+		kind	[page-kind!]
+		shift	[integer!]
+		tld		[segments-tld!]
+		/local
+			qe	[segment-queue!]
+			seg [segment!]
+	][
+		qe: either kind = MI_PAGE_SMALL [tld/small-free][tld/medium-free]
+		if null? qe/first [
+			seg: 
+		]
+	]
+
+	queue-find-page: func [
+		heap	[heap!]
+		qe		[page-queue!]
+		return: [page!]
+	][
+		;-- TBD search in page queue
+
+		;-- get a fresh page
 		
 	]
 
-	;== main allocation function
+	;== allocation functions
+
+	page-alloc: func [
+		heap	[heap!]
+		page	[page!]
+		size	[ulong!]
+		return:	[byte-ptr!]
+		/local
+			blk	[block!]
+	][
+		blk: page/free-blocks
+		either blk <> null [
+			page/free-blocks: blk/next		;-- pop from the free list
+			page/used: page/used + 1
+			as byte-ptr! blk
+		][
+			heap-alloc-generic heap size
+		]
+	]
+
 	heap-alloc: func [
 		heap	[heap!]
-		size	[integer!]
+		size	[integer!]	;-- bytes
+		return: [byte-ptr!]
 	][
 		assert heap <> null
-		either size <= (128 * size? int-ptr!) [
+		either size <= (128 * size? int-ptr!) [	;-- fast path
 			heap-alloc-small heap size
 		][
 			heap-alloc-generic heap size
@@ -344,23 +403,56 @@ mimalloc: context [
 	heap-alloc-small: func [
 		heap	[heap!]
 		size	[integer!]
-		return: [page!]
+		return: [byte-ptr!]
 		/local
 			idx	[integer!]
 			p	[ptr-ptr!]
 	][
-		idx: (size - 1 + size? int-ptr!) / size? int-ptr!
+		idx: WORD_SIZE?(size)
 		p: (as ptr-ptr! :heap/pages-direct) + idx
-		as page! p/value
+		page-alloc heap as page! p/value size
 	]
 
 	heap-alloc-generic: func [
-		heap	[heap!]
-		size	[integer!]
-		return: [page!]
+		heap		[heap!]
+		size		[integer!]
+		return:		[byte-ptr!]
 		/local
+			page	[page!]
+			wsize	[integer!]
 			idx		[integer!]
+			qe		[page-queue!]
 	][
-		null
+		;-- try to find a free page in page queue
+		wsize: WORD_SIZE?(size)
+		case [
+			wsize <= 1 [idx: 1]
+			wsize <= 4 [idx: wsize + 1 and FFFEh]
+			true [
+				if wsize <= 16 [wsize: wsize + 3 and FFFCh]
+				wsize: wsize - 1
+				idx: log-b wsize
+				idx: idx << 2 + (wsize >> (idx - 2) and 3) - 3
+			]
+		]
+		qe: (as page-queue! :heap/pages) + idx
+		page: qe/first
+		if page <> null [
+			;-- TBD collect page
+
+			if null? page/free-blocks [
+				page: queue-find-page qe
+			]
+		][
+			page: queue-find-page heap qe
+		]
+		page-alloc heap page size		
+	]
+
+	malloc: func [
+		size	[ulong!]
+		return: [byte-ptr!]
+	][
+		heap-alloc heap-default size
 	]
 ]
