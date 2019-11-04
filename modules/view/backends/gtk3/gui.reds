@@ -349,6 +349,8 @@ insert-widget: func [
 		gtk_layout_put layout widget x y
 		gtk_layout_put layout sibling nx ny
 		g_object_unref sibling
+	]
+	unless null? list [
 		g_list_free list
 	]
 ]
