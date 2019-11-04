@@ -364,6 +364,7 @@ lexer: context [
 		in-pos	[byte-ptr!]
 		line	[integer!]								;-- current line number
 		nline	[integer!]								;-- new lines count for new token
+		type	[integer!]								;-- sub-type in a typeclass
 		entry	[integer!]								;-- entry state for the FSM
 		exit	[integer!]								;-- exit state for the FSM
 		closing [integer!]								;-- any-block! expected closing delimiter type 
@@ -777,7 +778,7 @@ lexer: context [
 		len: as-integer e - s
 		unit: 1 << (flags >>> 30)
 		if unit > 4 [unit: 4]
-		type: TYPE_STRING
+		type: either lex/type = -1 [TYPE_STRING][lex/type]
 
 		either flags and C_FLAG_CARET = 0 [				;-- fast path when no escape sequence
 			str: string/make-at alloc-slot lex len unit
@@ -914,6 +915,7 @@ lexer: context [
 			]
 			assert (as byte-ptr! ser/offset) + ser/size > as byte-ptr! ser/tail
 		]
+		if type <> TYPE_STRING [set-type as cell! str type]
 		lex/in-pos: e + 1								;-- skip ending delimiter
 	]
 	
@@ -942,7 +944,6 @@ lexer: context [
 
 	scan-file: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
-			cell [cell!]
 			p	 [byte-ptr!]
 	][
 		flags: flags and not C_FLAG_CARET				;-- clears caret flag
@@ -950,9 +951,8 @@ lexer: context [
 			p: s until [p: p + 1 any [p/1 = #"%" p = e]] ;-- check if any %xx 
 			if p < e [flags: flags or C_FLAG_ESC_HEX or C_FLAG_CARET]
 		]
+		lex/type: TYPE_FILE
 		scan-string lex s e flags
-		cell: lex/tail - 1
-		set-type cell TYPE_FILE							;-- preserve header's flags
 		if s/1 = #"^"" [assert e/1 = #"^"" e: e + 1]
 		lex/in-pos: e 									;-- reset the input position to delimiter byte
 	]
@@ -1178,6 +1178,7 @@ lexer: context [
 			me	  [byte-ptr!]
 			m	  [int-ptr!]
 			field [int-ptr!]
+			type  [integer!]
 			state [integer!]
 			class [integer!]
 			index [integer!]
@@ -1208,7 +1209,10 @@ lexer: context [
 			s: s + 1
 		]
 		if state <= T_DT_ERROR [						;-- if no terminal state reached, forces EOF input
-			if state = T_DT_ERROR [throw-error lex b e TYPE_DATE] ;-- check here for performance reason
+			if state = T_DT_ERROR [				 		;-- check here for performance reason
+				type: either time? [TYPE_TIME][TYPE_DATE]
+				throw-error lex b e type
+			]
 			index: state * (size? date-char-classes!) + C_DT_EOF
 			state: as-integer date-transitions/index
 			pos: as-integer fields-table/state
@@ -1307,40 +1311,32 @@ lexer: context [
 		throw-error lex s e ERR_BAD_CHAR
 	]
 	
-	scan-tag: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
-		/local
-			cell [cell!]
-	][
+	scan-tag: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]][
 		flags: flags and not C_FLAG_CARET				;-- clears caret flag
+		lex/type: TYPE_TAG
 		scan-string lex s e flags
-		cell: lex/tail - 1
-		set-type cell TYPE_TAG							;-- preserve header's flags
 		lex/in-pos: e + 1								;-- skip ending delimiter
 	]
 	
 	scan-url: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
-			cell [cell!]
-			p	 [byte-ptr!]
+			p [byte-ptr!]
 	][
 		flags: flags and not C_FLAG_CARET				;-- clears caret flag
 		p: s while [all [p/1 <> #"%" p < e]][p: p + 1] 	;-- check if any %xx 
 		if p < e [flags: flags or C_FLAG_ESC_HEX or C_FLAG_CARET]
+		lex/type: TYPE_URL
 		scan-string lex s - 1 e flags					;-- compensate for lack of starting delimiter
-		cell: lex/tail - 1
-		set-type cell TYPE_URL							;-- preserve header's flags
 		lex/in-pos: e 									;-- reset the input position to delimiter byte
 	]
 	
 	scan-email: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
-			cell [cell!]
-			p	 [byte-ptr!]
+			p [byte-ptr!]
 	][
 		flags: flags and not C_FLAG_CARET				;-- clears caret flag
+		lex/type: TYPE_EMAIL
 		scan-string lex s - 1 e flags					;-- compensate for lack of starting delimiter
-		cell: lex/tail - 1
-		set-type cell TYPE_EMAIL						;-- preserve header's flags
 		lex/in-pos: e 									;-- reset the input position to delimiter byte
 	]
 	
@@ -1467,6 +1463,7 @@ lexer: context [
 			lex/line:   line
 			lex/nline:  line - mark
 			lex/exit:   state
+			lex/type:	-1
 			
 			index: state - --EXIT_STATES--
 			do-scan: as scanner! scanners/index
@@ -1502,6 +1499,7 @@ lexer: context [
 		lex/in-end: src + len
 		lex/in-pos: src
 		lex/entry:  S_START
+		lex/type:	-1
 		
 		scan-tokens lex
 
