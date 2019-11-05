@@ -389,13 +389,11 @@ do-events: func [
 		list	[GList!]
 		win		[handle!]
 		v		[handle!]
-		c1		[integer!]
-		c2		[integer!]
 ][
-	win: find-active-window
+	win: find-last-window
 	if null? win [return no]
-	v: as handle! 0
-	SET-POST-QUIT(win v)
+	v: as handle! 1
+	SET-IN-LOOP(win v)
 
 	msg?: no
 	either no-wait? [
@@ -406,16 +404,11 @@ do-events: func [
 		msg?: yes
 	]
 	until [
-		c1: get-window-count
 		gtk_main_iteration_do not no-wait?
-		if check-quit-msg [
+		unless g_type_check_instance_is_a win gtk_window_get_type [
 			break
 		]
-		c2: get-window-count
-		if all [
-			c2 > 1
-			c2 < c1
-		][break]
+		unless as logic! GET-IN-LOOP(win) [break]
 		no-wait?
 	]
 	msg?
@@ -426,9 +419,9 @@ post-quit-msg: func [
 		win		[handle!]
 		v		[handle!]
 ][
-	win: find-active-window
-	v: as handle! 1
-	SET-POST-QUIT(win v)
+	win: find-last-window
+	v: as handle! 0
+	SET-IN-LOOP(win v)
 	gtk_widget_queue_draw win
 ]
 
