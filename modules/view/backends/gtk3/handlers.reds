@@ -400,7 +400,6 @@ tab-panel-switch-page: func [
 	]
 ]
 
-; Do not use key-press-event since character would not be printed!
 key-press-event: func [
 	[cdecl]
 	evbox		[handle!]
@@ -408,6 +407,7 @@ key-press-event: func [
 	widget		[handle!]
 	return:		[integer!]
 	/local
+		win		[handle!]
 		face	[red-object!]
 		values	[red-value!]
 		type	[red-word!]
@@ -418,7 +418,8 @@ key-press-event: func [
 		text	[c-string!]
 		qdata	[handle!]
 ][
-	if evbox <> gtk_get_event_widget as handle! event-key [return EVT_NO_DISPATCH]
+	win: gtk_get_event_widget as handle! event-key
+	if evbox <> gtk_window_get_focus win [return EVT_NO_DISPATCH]
 	face: get-face-obj widget
 	values: object/get-values face
 	type: as red-word! values + FACE_OBJ_TYPE
@@ -453,6 +454,7 @@ key-release-event: func [
 	widget		[handle!]
 	return:		[integer!]
 	/local
+		win		[handle!]
 		face	[red-object!]
 		values	[red-value!]
 		type	[red-word!]
@@ -460,7 +462,8 @@ key-release-event: func [
 		key		[integer!]
 		flags	[integer!]
 ][
-	if evbox <> gtk_get_event_widget as handle! event-key [return EVT_NO_DISPATCH]
+	win: gtk_get_event_widget as handle! event-key
+	if evbox <> gtk_window_get_focus win [return EVT_NO_DISPATCH]
 	face: get-face-obj widget
 	values: object/get-values face
 	type: as red-word! values + FACE_OBJ_TYPE
