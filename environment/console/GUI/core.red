@@ -847,18 +847,6 @@ object [
 		ctrl?: event/ctrl?
 		shift?: event/shift?
 		char: event/key
-		#if config/debug? [
-			debug-print ["char: -"  char "- "  
-			switch/default char [
-				#"^M"	["M"] #"^H"	["H"] #"^-"	["-"]
-				left	["left"] right	["right"] up ["up"] down ["down"]
-				insert	["insert"] delete	["delete"]
-				#"^A" home	["home"] #"^E" end	["end"] #"^C"	["C"] #"^V"	["V"]
-				#"^X"	["X"] #"^Z"	["Z"] #"^Y"	["Y"] #"^["	["["] #"^~"	["~"]				;-- Ctrl + Backspace
-				#"^L"	["L"] #"^K"
-			]["none"]
-			lf]
-		]
 		#if config/OS = 'macOS [
 		if find event/flags 'command [
 			char: switch char [
