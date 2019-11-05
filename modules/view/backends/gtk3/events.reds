@@ -398,20 +398,24 @@ do-events: func [
 	SET-POST-QUIT(win v)
 
 	msg?: no
-	until [
+	either no-wait? [
 		if gtk_events_pending [
 			msg?: yes
-			c1: get-window-count
-			gtk_main_iteration_do not no-wait?
-			if check-quit-msg [
-				break
-			]
-			c2: get-window-count
-			if all [
-				c2 > 1
-				c2 < c1
-			][break]
 		]
+	][
+		msg?: yes
+	]
+	until [
+		c1: get-window-count
+		gtk_main_iteration_do not no-wait?
+		if check-quit-msg [
+			break
+		]
+		c2: get-window-count
+		if all [
+			c2 > 1
+			c2 < c1
+		][break]
 		no-wait?
 	]
 	msg?
