@@ -83,15 +83,16 @@ context [
 		T_PERCENT						;-- 68
 		T_INTEGER						;-- 69
 		T_FLOAT							;-- 70
-		T_TUPLE							;-- 71
-		T_DATE							;-- 72
-		T_PAIR							;-- 73
-		T_TIME							;-- 74
-		T_MONEY							;-- 75
-		T_TAG							;-- 76
-		T_URL							;-- 77
-		T_EMAIL							;-- 78
-		T_PATH							;-- 79
+		T_FLOAT_SP						;-- 71
+		T_TUPLE							;-- 72
+		T_DATE							;-- 73
+		T_PAIR							;-- 74
+		T_TIME							;-- 75
+		T_MONEY							;-- 76
+		T_TAG							;-- 77
+		T_URL							;-- 78
+		T_EMAIL							;-- 79
+		T_PATH							;-- 80
 	]
 	
 	date-states: [

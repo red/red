@@ -116,7 +116,7 @@ lexer: context [
 	skip-table: #{
 		0101000000000000000000000000000000000000000000000000000000000000
 		0000000000000000000000000000000000000000000000000000000000000000
-		00000000000000000000000000000000
+		0000000000000000000000000000000000
 	}
 
 	path-ending: #{
@@ -1156,6 +1156,30 @@ lexer: context [
 		lex/in-pos: e									;-- reset the input position to delimiter byte
 	]
 	
+	scan-float-special: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+		/local
+			fl	 [red-float!]
+			p	 [byte-ptr!]
+			f	 [float!]
+			neg? [logic!]
+	][
+		p: s
+		neg?: either p/1 = #"-" [p: p + 1 yes][no]
+		if any [p/1 <> #"1" p/2 <> #"." p/3 <> #"#"][throw-error lex s e TYPE_FLOAT]
+		p: p + 3
+		either zero? platform/strnicmp p as byte-ptr! "NAN" 3 [f: 1.#NAN][
+			either zero? platform/strnicmp p as byte-ptr! "INF" 3 [
+				f: either neg? [-1.#INF][1.#INF]
+			][
+				throw-error lex s e TYPE_FLOAT
+			]
+		]
+		fl: as red-float! alloc-slot lex
+		set-type as cell! fl TYPE_FLOAT
+		fl/value: f
+		lex/in-pos: e									;-- reset the input position to delimiter byte
+	]
+	
 	scan-tuple: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
 			cell [cell!]
@@ -1422,6 +1446,7 @@ lexer: context [
 		:scan-percent									;-- T_PERCENT
 		:scan-integer									;-- T_INTEGER
 		:scan-float										;-- T_FLOAT
+		:scan-float-special								;-- T_FLOAT_SP
 		:scan-tuple										;-- T_TUPLE
 		:scan-date										;-- T_DATE
 		:scan-pair										;-- T_PAIR

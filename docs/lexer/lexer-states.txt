@@ -70,6 +70,7 @@ T_ISSUE
 T_PERCENT
 T_INTEGER
 T_FLOAT
+T_FLOAT_SP
 T_TUPLE
 T_DATE
 T_PAIR
@@ -214,7 +215,7 @@ S_START->digit->S_NUMBER->digit|"'"->S_NUMBER
                            \       \                \->else->T_ERROR
                             \       \
                              \       \->"#"->S_DEC_SPECIAL->not(delimit12)->S_DEC_SPECIAL
-                              \       \       \->delimit12->T_FLOAT
+                              \       \       \->delimit12->T_FLOAT_SP
                                \       \
                                 \       \->"%"->T_PERCENT
                                  \       \->"x"|"X"->S_PAIR_1ST
