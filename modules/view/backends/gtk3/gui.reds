@@ -881,7 +881,6 @@ change-pane: func [
 			gtk_container_remove layout child/data
 			child: child/next
 		]
-		g_list_free list
 
 		s: GET_BUFFER(pane)
 		face: as red-object! s/offset + pane/head
@@ -898,6 +897,15 @@ change-pane: func [
 				]
 			]
 			face: face + 1
+		]
+
+		child: list
+		while [not null? child][
+			g_object_unref child/data
+			child: child/next
+		]
+		unless null? list [
+			g_list_free list
 		]
 	]
 ]
