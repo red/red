@@ -55,6 +55,8 @@ T_BLK_CL
 T_PAR_OP
 T_PAR_CL
 T_STRING
+T_MSTR_OP
+T_MSTR_CL
 T_WORD
 T_FILE
 T_REFINE
@@ -153,9 +155,12 @@ S_START->dbl-quote->S_LINE_STR->not("^"|dbl-quote)->S_LINE_STR
                      \->"^"->S_SKIP_STR->*->S_LINE_STR
                       \->dbl-quote->T_STRING
 
-S_START->"{"->S_M_STRING->not("^"|"}")->S_M_STRING
+S_START->"{"->T_MSTR_OP
+
+S_M_STRING->not("^"|"}")->S_M_STRING
                \->"^"->S_SKIP_MSTR->*->S_M_STRING
-                \->"}"->T_STRING
+                \->"{"->T_MSTR_OP
+                 \->"}"->T_MSTR_CL
 
 S_START->"/"->S_SLASH->not(delimit1)->S_SLASH
                \->delimit1->T_REFINE

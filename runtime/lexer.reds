@@ -116,7 +116,7 @@ lexer: context [
 	skip-table: #{
 		0101000000000000000000000000000000000000000000000000000000000000
 		0000000000000000000000000000000000000000000000000000000000000000
-		00000000000000000000
+		00000000000000000000000000
 	}
 
 	path-ending: #{
@@ -354,20 +354,23 @@ lexer: context [
 	]
 	
 	state!: alias struct! [
-		next	[state!]								;-- link to next state! structure (recursive calls)
-		buffer	[red-value!]							;-- static or dynamic stash buffer (recursive calls)
-		head	[red-value!]
-		tail	[red-value!]
-		slots	[integer!]
-		input	[byte-ptr!]
-		in-end	[byte-ptr!]
-		in-pos	[byte-ptr!]
-		line	[integer!]								;-- current line number
-		nline	[integer!]								;-- new lines count for new token
-		type	[integer!]								;-- sub-type in a typeclass
-		entry	[integer!]								;-- entry state for the FSM
-		exit	[integer!]								;-- exit state for the FSM
-		closing [integer!]								;-- any-block! expected closing delimiter type 
+		next		[state!]							;-- link to next state! structure (recursive calls)
+		buffer		[red-value!]						;-- static or dynamic stash buffer (recursive calls)
+		head		[red-value!]
+		tail		[red-value!]
+		slots		[integer!]
+		input		[byte-ptr!]
+		in-end		[byte-ptr!]
+		in-pos		[byte-ptr!]
+		line		[integer!]							;-- current line number
+		nline		[integer!]							;-- new lines count for new token
+		type		[integer!]							;-- sub-type in a typeclass
+		entry		[integer!]							;-- entry state for the FSM
+		exit		[integer!]							;-- exit state for the FSM
+		closing		[integer!]							;-- any-block! expected closing delimiter type 
+		mstr-s		[byte-ptr!]							;-- multiline string saved start position
+		mstr-nest	[integer!]							;-- multiline string nested {} counting
+		mstr-flags	[integer!]							;-- multiline string accumulated flags
 	]
 	
 	scanner!: alias function! [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]]
@@ -741,7 +744,7 @@ lexer: context [
 
 	scan-block-close: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]][
 		close-block lex s e TYPE_BLOCK -1
-		lex/in-pos: e	+ 1								;-- skip ]
+		lex/in-pos: e + 1								;-- skip ]
 	]
 	
 	scan-paren-close: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
@@ -752,7 +755,7 @@ lexer: context [
 			blk: as red-block! lex/tail - 1
 			map/make-at as cell! blk blk block/rs-length? blk
 		]
-		lex/in-pos: e	+ 1								;-- skip )
+		lex/in-pos: e + 1								;-- skip )
 	]
 
 	scan-string: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
@@ -917,6 +920,23 @@ lexer: context [
 		]
 		if type <> TYPE_STRING [set-type as cell! str type]
 		lex/in-pos: e + 1								;-- skip ending delimiter
+	]
+
+	scan-mstring-open: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]][
+		if zero? lex/mstr-nest [lex/mstr-s: s]
+		lex/mstr-nest: lex/mstr-nest + 1
+		lex/mstr-flags: lex/mstr-flags or flags
+		lex/entry: S_M_STRING
+		lex/in-pos: e + 1								;-- skip {
+	]
+	
+	scan-mstring-close: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]][
+		lex/mstr-nest: lex/mstr-nest - 1
+		if zero? lex/mstr-nest [
+			scan-string lex lex/mstr-s e lex/mstr-flags or flags
+			lex/entry: S_START
+		]
+		lex/in-pos: e + 1								;-- skip }
 	]
 	
 	scan-word: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
@@ -1389,6 +1409,8 @@ lexer: context [
 		:scan-block-open								;-- T_PAR_OP
 		:scan-paren-close								;-- T_PAR_CL
 		:scan-string									;-- T_STRING
+		:scan-mstring-open								;-- T_MSTR_OP (multiline string)
+		:scan-mstring-close								;-- T_MSTR_CL (multiline string)
 		:scan-word										;-- T_WORD
 		:scan-file										;-- T_FILE
 		:scan-ref-issue									;-- T_REFINE
@@ -1490,16 +1512,17 @@ lexer: context [
 		if zero? depth [root-state: lex]
 		depth: depth + 1
 		
-		lex/next:	null								;-- last element of the states linked list
-		lex/buffer: stash								;TBD: support dyn buffer case
-		lex/head:	stash
-		lex/tail:	stash
-		lex/slots:  stash-size							;TBD: support dyn buffer case
-		lex/input:  src
-		lex/in-end: src + len
-		lex/in-pos: src
-		lex/entry:  S_START
-		lex/type:	-1
+		lex/next:		null							;-- last element of the states linked list
+		lex/buffer:		stash							;TBD: support dyn buffer case
+		lex/head:		stash
+		lex/tail:		stash
+		lex/slots:		stash-size						;TBD: support dyn buffer case
+		lex/input:		src
+		lex/in-end:		src + len
+		lex/in-pos:		src
+		lex/entry:		S_START
+		lex/type:		-1
+		lex/mstr-nest:	0
 		
 		scan-tokens lex
 

@@ -68,26 +68,28 @@ context [
 		T_PAR_OP						;-- 53
 		T_PAR_CL						;-- 54
 		T_STRING						;-- 55
-		T_WORD							;-- 56
-		T_FILE							;-- 57
-		T_REFINE						;-- 58
-		T_BINARY						;-- 59
-		T_CHAR							;-- 60
-		T_MAP_OP						;-- 61
-		T_CONS_MK						;-- 62
-		T_ISSUE							;-- 63
-		T_PERCENT						;-- 64
-		T_INTEGER						;-- 65
-		T_FLOAT							;-- 66
-		T_TUPLE							;-- 67
-		T_DATE							;-- 68
-		T_PAIR							;-- 69
-		T_TIME							;-- 70
-		T_MONEY							;-- 71
-		T_TAG							;-- 72
-		T_URL							;-- 73
-		T_EMAIL							;-- 74
-		T_PATH							;-- 75
+		T_MSTR_OP						;-- 56
+		T_MSTR_CL						;-- 57
+		T_WORD							;-- 58
+		T_FILE							;-- 59
+		T_REFINE						;-- 60
+		T_BINARY						;-- 61
+		T_CHAR							;-- 62
+		T_MAP_OP						;-- 63
+		T_CONS_MK						;-- 64
+		T_ISSUE							;-- 65
+		T_PERCENT						;-- 66
+		T_INTEGER						;-- 67
+		T_FLOAT							;-- 68
+		T_TUPLE							;-- 69
+		T_DATE							;-- 70
+		T_PAIR							;-- 71
+		T_TIME							;-- 72
+		T_MONEY							;-- 73
+		T_TAG							;-- 74
+		T_URL							;-- 75
+		T_EMAIL							;-- 76
+		T_PATH							;-- 77
 	]
 	
 	date-states: [
