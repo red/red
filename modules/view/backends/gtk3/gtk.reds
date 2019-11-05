@@ -1221,6 +1221,9 @@ GPtrArray!: alias struct! [
 			type		[integer!]
 			return:		[handle!]
 		]
+		gtk_window_get_type: "gtk_window_get_type" [
+			return:		[integer!]
+		]
 		gtk_window_activate_focus: "gtk_window_activate_focus" [
 			window		[handle!]
 		]
@@ -2961,13 +2964,12 @@ red-timer-id:		g_quark_from_string "red-timer-id"
 css-id:				g_quark_from_string "css-id"
 size-id:			g_quark_from_string "size-id"
 menu-id:			g_quark_from_string "menu-id"
-post-quit-id:		g_quark_from_string "post-quit-id"
 red-event-id:		g_quark_from_string "red-event-id"
 cursor-id:			g_quark_from_string "cursor-id"
 resizing-id:		g_quark_from_string "resizing-id"
 start-resize-id:	g_quark_from_string "start-resize-id"
 caption-id:			g_quark_from_string "caption-id"
-
+in-loop-id:			g_quark_from_string "in-loop-id"
 
 #define SET-CONTAINER(s d)		[g_object_set_qdata s container-id d]
 #define GET-CONTAINER(s)		[g_object_get_qdata s container-id]
@@ -2977,7 +2979,7 @@ caption-id:			g_quark_from_string "caption-id"
 #define GET-RESIZING(s)			[g_object_get_qdata s resizing-id]
 #define SET-STARTRESIZE(s d)	[g_object_set_qdata s start-resize-id d]
 #define GET-STARTRESIZE(s)		[g_object_get_qdata s start-resize-id]
-#define SET-POST-QUIT(s d)		[g_object_set_qdata s post-quit-id d]
-#define GET-POST-QUIT(s)		[g_object_get_qdata s post-quit-id]
 #define SET-CAPTION(s d)		[g_object_set_qdata s caption-id d]
 #define GET-CAPTION(s)			[g_object_get_qdata s caption-id]
+#define SET-IN-LOOP(s d)		[g_object_set_qdata s in-loop-id d]
+#define GET-IN-LOOP(s)			[g_object_get_qdata s in-loop-id]

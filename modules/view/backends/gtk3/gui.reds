@@ -569,83 +569,6 @@ set-defaults: func [
 	set-default-font default-font-name default-font-size
 ]
 
-get-window-count: func [
-	return:		[integer!]
-	/local
-		pane	[red-block!]
-		face	[red-object!]
-		num		[integer!]
-		count	[integer!]
-		win		[handle!]
-		ret		[integer!]
-][
-	pane: as red-block! #get system/view/screens		;-- screens list
-	if null? pane [return null]
-	
-	face: as red-object! block/rs-head pane				;-- 1st screen
-	if null? face [return null]	
-	
-	pane: as red-block! (object/get-values face) + FACE_OBJ_PANE ;-- windows list
-	
-	ret: 0
-	num: pane/head + block/rs-length? pane
-	if all [
-		TYPE_OF(pane) = TYPE_BLOCK
-		0 < num
-	][
-		count: num - 1
-		loop num [
-			win: face-handle? as red-object! block/rs-abs-at pane count
-			unless null? win [
-				ret: ret + 1
-			] 
-			count: count - 1
-		]
-	]
-	ret
-]
-
-check-quit-msg: func [
-	return:		[logic!]
-	/local
-		pane	[red-block!]
-		face	[red-object!]
-		num		[integer!]
-		count	[integer!]
-		win		[handle!]
-		v		[handle!]
-][
-	pane: as red-block! #get system/view/screens		;-- screens list
-	if null? pane [return null]
-	
-	face: as red-object! block/rs-head pane				;-- 1st screen
-	if null? face [return null]	
-	
-	pane: as red-block! (object/get-values face) + FACE_OBJ_PANE ;-- windows list
-	
-	num: pane/head + block/rs-length? pane
-	either all [
-		TYPE_OF(pane) = TYPE_BLOCK
-		0 < num
-	][
-		count: num - 1
-		loop num [
-			win: face-handle? as red-object! block/rs-abs-at pane count
-			unless null? win [
-				if as logic! GET-POST-QUIT(win) [
-					v: as handle! 0
-					SET-POST-QUIT(win v)
-					return true
-				]
-			] 
-			count: count - 1
-		]
-		false
-	][
-		true
-	]
-]
-
 find-active-window: func [
 	return:		[handle!]
 	/local
@@ -656,13 +579,13 @@ find-active-window: func [
 		win		[handle!]
 		ret		[handle!]
 ][
-	pane: as red-block! #get system/view/screens		;-- screens list
+	pane: as red-block! #get system/view/screens					;-- screens list
 	if null? pane [return null]
 	
-	face: as red-object! block/rs-head pane				;-- 1st screen
+	face: as red-object! block/rs-head pane							;-- 1st screen
 	if null? face [return null]	
 	
-	pane: as red-block! (object/get-values face) + FACE_OBJ_PANE ;-- windows list
+	pane: as red-block! (object/get-values face) + FACE_OBJ_PANE	;-- windows list
 	
 	num: pane/head + block/rs-length? pane
 	either all [
@@ -692,13 +615,13 @@ find-last-window: func [
 		pane	[red-block!]
 		face	[red-object!]
 ][
-	pane: as red-block! #get system/view/screens		;-- screens list
+	pane: as red-block! #get system/view/screens					;-- screens list
 	if null? pane [return null]
 	
-	face: as red-object! block/rs-head pane				;-- 1st screen
+	face: as red-object! block/rs-head pane							;-- 1st screen
 	if null? face [return null]	
 	
-	pane: as red-block! (object/get-values face) + FACE_OBJ_PANE ;-- windows list
+	pane: as red-block! (object/get-values face) + FACE_OBJ_PANE	;-- windows list
 	
 	either all [
 		TYPE_OF(pane) = TYPE_BLOCK
