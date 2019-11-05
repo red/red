@@ -38,6 +38,8 @@ S_SKIP_STR2
 S_TAG_STR2
 S_SKIP_STR3
 S_SIGN
+S_DOTWORD
+S_DOTDEC
 S_WORD
 S_WORDSET
 S_URL
@@ -201,15 +203,15 @@ S_START->"#"->S_SHARP->"{"->S_BINARY->hexa|ws->S_BINARY
 S_START->digit->S_NUMBER->digit|"'"->S_NUMBER
                  \->delimit10->T_INTEGER
                   \->"%"->T_PERCENT
-                   \->"."->S_DOTNUM->digit->S_DECIMAL->digit|"e"|"E"|"'"->S_DECIMAL
-                    \       \                 \->"."->S_TUPLE->digit|"."->S_TUPLE
-                     \       \                 \       \->delimit11->T_TUPLE
-                      \       \                 \       \->else->T_ERROR
-                       \       \                 \
-                        \       \                 \->"%"->T_PERCENT
-                         \       \                 \->"x"|"X"->S_PAIR_1ST
-                          \       \                 \->delimit11->T_FLOAT
-                           \       \                 \->else->T_ERROR
+                   \->"."->S_DOTNUM->digit->S_DECIMAL->digit|"e"|"E"|"+"|"-"|"'"->S_DECIMAL
+                    \       \                \->"."->S_TUPLE->digit|"."->S_TUPLE
+                     \       \                \       \->delimit11->T_TUPLE
+                      \       \                \       \->else->T_ERROR
+                       \       \                \
+                        \       \                \->"%"->T_PERCENT
+                         \       \                \->"x"|"X"->S_PAIR_1ST
+                          \       \                \->delimit11->T_FLOAT
+                           \       \                \->else->T_ERROR
                             \       \
                              \       \->"#"->S_DEC_SPECIAL->not(delimit12)->S_DEC_SPECIAL
                               \       \       \->delimit12->T_FLOAT
@@ -221,20 +223,33 @@ S_START->digit->S_NUMBER->digit|"'"->S_NUMBER
                                     \       \->else->T_ERROR
                                      \
                                       \->"/"|"T"->S_DATE->not(delimit13)->S_DATE
-                                       \       \->delimit13->T_DATE
+                                       \           \->delimit13->T_DATE
                                         \
                                          \->":"->S_TIME_1ST->digit->S_TIME->digit|":"|"."->S_TIME
                                           \       \->else->T_ERROR   \->delimit11->T_TIME
                                            \                          \->else->T_ERROR
                                             \
                                              \->"x"|"X"->S_PAIR_1ST->digit->S_PAIR->digit|"."|"e"|"E"->S_PAIR
-                                              \           \->else->T_ERROR    \->delimit10->T_PAIR
-                                               \                               \->else->T_ERROR
+                                              \           \->else->T_ERROR   \->delimit10->T_PAIR
+                                               \                              \->else->T_ERROR
                                                 \
                                                  \->"#"->S_SHARP
                                                   \->"@"->S_EMAIL
                                                    \->"e"|"E"->S_DECIMAL
                                                     \->else->T_ERROR
+
+
+S_START->"."->S_DOTWORD->digit->S_DOTDEC->digit|"e"|"E"|"+"|"-"|"'"->S_DOTDEC
+               \                \->"%"->T_PERCENT
+                \                \->"x"|"X"->S_PAIR_1ST
+                 \                \->delimit11->T_FLOAT
+                  \                \->else->T_ERROR
+                   \                  
+                    \->not(delimit5)->S_WORD
+                     \->":"->S_WORDSET
+                      \->"@"->S_EMAIL
+                       \->"/"->T_PATH
+                        \->","|"#"|"%"|"$"->T_ERROR 
 
 
 S_START->"<"->S_LESSER
@@ -255,8 +270,9 @@ S_START->"<"->S_LESSER
 
 S_START->"+"|"-"->S_SIGN->digit->S_NUMBER
                    \->"$"->S_MONEY
-                    \->delimit14->T_ERROR
-                     \->else->S_WORD
+                    \"."->S_DOTWORD
+                     \->delimit14->T_ERROR
+                      \->else->S_WORD
 
 
 S_START->"$"->S_MONEY_1ST->digit->S_MONEY->digit|"'"->S_MONEY
