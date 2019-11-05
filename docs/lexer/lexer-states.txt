@@ -97,7 +97,7 @@ C_SHARP     : #
 C_QUOTE     : '
 C_COLON     : :
 C_X         : x, X
-C_X         : T
+C_T         : T
 C_EXP       : e, E
 C_ALPHAX    : a-f, A-F
 C_SLASH     : /
