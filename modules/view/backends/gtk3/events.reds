@@ -43,6 +43,392 @@ evt-motion: context [
 	sensitiv:	3
 ]
 
+char-keys: [
+	1000C400h C0FF0080h E0FFFF7Fh 0000F7FFh 00000000h 3F000000h 1F000080h 00FC7F38h
+]
+
+keycode-special: [
+	;-- FF00h
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_BACK			;-- FF08h
+	RED_VK_TAB			;-- FF09h
+	RED_VK_BACKTAB		;-- FF0Ah
+	RED_VK_CLEAR		;-- FF0Bh
+	RED_VK_UNKNOWN
+	RED_VK_RETURN		;-- FF0Dh
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	;-- FF10h
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_PAUSE		;-- FF13h
+	RED_VK_SCROLL		;-- FF14h
+	RED_VK_UNKNOWN		;-- GDK_KEY_Sys_Req
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_ESCAPE		;-- FF1Bh
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	;-- FF20h
+	RED_VK_UNKNOWN		;-- GDK_KEY_Multi_key
+	RED_VK_KANJI		;-- FF21h
+	RED_VK_UNKNOWN		;-- GDK_KEY_Muhenkan
+	RED_VK_UNKNOWN		;-- GDK_KEY_Henkan_Mode
+	RED_VK_UNKNOWN		;-- GDK_KEY_Romaji
+	RED_VK_UNKNOWN		;-- GDK_KEY_Hiragana
+	RED_VK_UNKNOWN		;-- GDK_KEY_Katakana
+	RED_VK_UNKNOWN		;-- GDK_KEY_Hiragana_Katakana
+	RED_VK_UNKNOWN		;-- GDK_KEY_Zenkaku
+	RED_VK_UNKNOWN		;-- GDK_KEY_Hankaku
+	RED_VK_UNKNOWN		;-- GDK_KEY_Zenkaku_Hankaku
+	RED_VK_UNKNOWN		;-- GDK_KEY_Touroku
+	RED_VK_UNKNOWN		;-- GDK_KEY_Massyo
+	RED_VK_UNKNOWN		;-- GDK_KEY_Kana_Lock
+	RED_VK_UNKNOWN		;-- GDK_KEY_Kana_Shift
+	RED_VK_UNKNOWN		;-- GDK_KEY_Eisu_Shift
+	;-- FF30h
+	RED_VK_UNKNOWN		;-- GDK_KEY_Eisu_toggle
+	RED_VK_HANGUL		;-- GDK_KEY_Hangul
+	RED_VK_UNKNOWN		;-- GDK_KEY_Hangul (FF31h ~ FF3Fh)
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	;-- FF40h
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	;-- FF50h
+	RED_VK_HOME			;-- FF50h
+	RED_VK_LEFT			;-- FF51h
+	RED_VK_UP			;-- FF52h
+	RED_VK_RIGHT		;-- FF53h
+	RED_VK_DOWN			;-- FF54h
+	RED_VK_PRIOR		;-- FF55h
+	RED_VK_NEXT			;-- FF56h
+	RED_VK_END			;-- FF57h
+	RED_VK_UNKNOWN		;-- GDK_KEY_Begin
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	;-- FF60h
+	RED_VK_SELECT		;-- FF60h
+	RED_VK_PRINT		;-- FF61h
+	RED_VK_EXECUTE		;-- FF62h
+	RED_VK_INSERT		;-- FF63h
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN		;-- GDK_KEY_Undo
+	RED_VK_UNKNOWN		;-- GDK_KEY_Redo
+	RED_VK_MENU			;-- FF67h
+	RED_VK_UNKNOWN		;-- GDK_KEY_Find
+	RED_VK_UNKNOWN		;-- GDK_KEY_Cancel
+	RED_VK_HELP			;-- FF6Ah
+	RED_VK_UNKNOWN		;-- GDK_KEY_Break
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	;-- FF70h
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_MODECHANGE	;-- FF7Eh (GDK_KEY_Mode_switch)
+	RED_VK_NUMLOCK		;-- FF7Fh
+	;-- FF80h
+	RED_VK_SPACE		;-- FF80h
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_TAB			;-- FF89h
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_RETURN		;-- FF8Dh
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	;-- FF90h
+	RED_VK_UNKNOWN
+	RED_VK_F1			;-- FF91h
+	RED_VK_F2			;-- FF92h
+	RED_VK_F3			;-- FF93h
+	RED_VK_F4			;-- FF94h
+	RED_VK_HOME			;-- FF95h
+	RED_VK_LEFT			;-- FF96h
+	RED_VK_UP			;-- FF97h
+	RED_VK_RIGHT		;-- FF98h
+	RED_VK_DOWN			;-- FF99h
+	RED_VK_PRIOR		;-- FF9Ah
+	RED_VK_NEXT			;-- FF9Bh
+	RED_VK_END			;-- FF9Ch
+	RED_VK_UNKNOWN		;-- GDK_KEY_KP_Begin
+	RED_VK_INSERT		;-- FF9Eh
+	RED_VK_DELETE		;-- FF9Fh
+	;-- FFA0h
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_MULTIPLY		;-- FFAAh
+	RED_VK_ADD			;-- FFABh
+	RED_VK_SEPARATOR	;-- FFACh
+	RED_VK_SUBTRACT		;-- FFADh
+	RED_VK_DECIMAL		;-- FFAEh
+	RED_VK_DIVIDE		;-- FFAFh
+	;-- FFB0h
+	RED_VK_NUMPAD0		;-- FFB0h
+	RED_VK_NUMPAD1		;-- FFB1h
+	RED_VK_NUMPAD2		;-- FFB2h
+	RED_VK_NUMPAD3		;-- FFB3h
+	RED_VK_NUMPAD4		;-- FFB4h
+	RED_VK_NUMPAD5		;-- FFB5h
+	RED_VK_NUMPAD6		;-- FFB6h
+	RED_VK_NUMPAD7		;-- FFB7h
+	RED_VK_NUMPAD8		;-- FFB8h
+	RED_VK_NUMPAD9		;-- FFB9h
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN		;-- GDK_KEY_KP_Equal
+	RED_VK_F1			;-- FFBEh
+	RED_VK_F2			;-- FFBFh
+	;-- FFC0h
+	RED_VK_F3			;-- FFC0h
+	RED_VK_F4			;-- FFC1h
+	RED_VK_F5			;-- FFC2h
+	RED_VK_F6			;-- FFC3h
+	RED_VK_F7			;-- FFC4h
+	RED_VK_F8			;-- FFC5h
+	RED_VK_F9			;-- FFC6h
+	RED_VK_F10			;-- FFC7h
+	RED_VK_F11			;-- FFC8h
+	RED_VK_F12			;-- FFC9h
+	RED_VK_F13			;-- FFCAh
+	RED_VK_F14			;-- FFCBh
+	RED_VK_F15			;-- FFCCh
+	RED_VK_F16			;-- FFCDh
+	RED_VK_F17			;-- FFCEh
+	RED_VK_F18			;-- FFCFh
+	;-- FFD0h
+	RED_VK_F19			;-- FFD0h
+	RED_VK_F20			;-- FFD1h
+	RED_VK_F21			;-- FFD2h
+	RED_VK_F22			;-- FFD3h
+	RED_VK_F23			;-- FFD4h
+	RED_VK_F24			;-- FFD5h
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	;-- FFE0h
+	RED_VK_UNKNOWN		;-- GDK_KEY_F35
+	RED_VK_LSHIFT		;-- FFE1h
+	RED_VK_RSHIFT		;-- FFE2h
+	RED_VK_LCONTROL		;-- FFE3h
+	RED_VK_RCONTROL		;-- FFE4h
+	RED_VK_CAPITAL		;-- FFE5h
+	RED_VK_SHIFT		;-- FFE6h
+	RED_VK_LWIN			;-- FFE7h
+	RED_VK_RWIN			;-- FFE8h
+	RED_VK_LMENU		;-- FFE9h
+	RED_VK_RMENU		;-- FFEAh
+	RED_VK_UNKNOWN		;-- GDK_KEY_Super_L
+	RED_VK_UNKNOWN		;-- GDK_KEY_Super_R
+	RED_VK_UNKNOWN		;-- GDK_KEY_Hyper_L
+	RED_VK_UNKNOWN		;-- GDK_KEY_Hyper_R
+	RED_VK_UNKNOWN		;-- FFEFh
+	;-- FFF0h
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_UNKNOWN
+	RED_VK_DELETE		;-- FFFFh
+]
+
+keycode-ascii: [
+	;-- 20h
+	RED_VK_SPACE		;-- 20h
+	RED_VK_UNKNOWN		;-- GDK_KEY_exclam
+	RED_VK_OEM_7		;-- 22h (GDK_KEY_quotedbl)
+	RED_VK_OEM_MINUS	;-- 23h (GDK_KEY_numbersign)
+	RED_VK_UNKNOWN		;-- GDK_KEY_dollar
+	RED_VK_UNKNOWN		;-- GDK_KEY_percent
+	RED_VK_UNKNOWN		;-- GDK_KEY_ampersand
+	RED_VK_UNKNOWN		;-- GDK_KEY_apostrophe
+	RED_VK_UNKNOWN		;-- GDK_KEY_quoteright
+	RED_VK_UNKNOWN		;-- GDK_KEY_parenleft
+	RED_VK_UNKNOWN		;-- GDK_KEY_parenright
+	RED_VK_UNKNOWN		;-- GDK_KEY_asterisk
+	RED_VK_OEM_PLUS		;-- 2Bh
+	RED_VK_OEM_COMMA	;-- 2Ch
+	RED_VK_OEM_MINUS	;-- 2Dh
+	RED_VK_OEM_PERIOD	;-- 2Eh
+	RED_VK_OEM_2		;-- 2Fh (GDK_KEY_slash)
+	;-- 30h
+	RED_VK_0			;-- 30h
+	RED_VK_1			;-- 31h
+	RED_VK_2			;-- 32h
+	RED_VK_3			;-- 33h
+	RED_VK_4			;-- 34h
+	RED_VK_5			;-- 35h
+	RED_VK_6			;-- 36h
+	RED_VK_7			;-- 37h
+	RED_VK_8			;-- 38h
+	RED_VK_9			;-- 39h
+	RED_VK_OEM_1		;-- 3Ah (GDK_KEY_colon)
+	RED_VK_OEM_1		;-- 3Bh (GDK_KEY_semicolon)
+	RED_VK_UNKNOWN		;-- GDK_KEY_less
+	RED_VK_UNKNOWN		;-- GDK_KEY_equal
+	RED_VK_UNKNOWN		;-- GDK_KEY_greater
+	RED_VK_UNKNOWN		;-- GDK_KEY_question
+	;-- 40h
+	RED_VK_UNKNOWN		;-- GDK_KEY_at
+	RED_VK_A			;-- 41h
+	RED_VK_B			;-- 42h
+	RED_VK_C			;-- 43h
+	RED_VK_D			;-- 44h
+	RED_VK_E			;-- 45h
+	RED_VK_F			;-- 46h
+	RED_VK_G			;-- 47h
+	RED_VK_H			;-- 48h
+	RED_VK_I			;-- 49h
+	RED_VK_J			;-- 4Ah
+	RED_VK_K			;-- 4Bh
+	RED_VK_L			;-- 4Ch
+	RED_VK_M			;-- 4Dh
+	RED_VK_N			;-- 4Eh
+	RED_VK_O			;-- 4Fh
+	;-- 50h
+	RED_VK_P			;-- 50h
+	RED_VK_Q			;-- 51h
+	RED_VK_R			;-- 52h
+	RED_VK_S			;-- 53h
+	RED_VK_T			;-- 54h
+	RED_VK_U			;-- 55h
+	RED_VK_V			;-- 56h
+	RED_VK_W			;-- 57h
+	RED_VK_X			;-- 58h
+	RED_VK_Y			;-- 59h
+	RED_VK_Z			;-- 5Ah
+	RED_VK_UNKNOWN		;-- GDK_KEY_bracketleft
+	RED_VK_UNKNOWN		;-- GDK_KEY_backslash
+	RED_VK_UNKNOWN		;-- GDK_KEY_bracketright
+	RED_VK_UNKNOWN		;-- GDK_KEY_asciicircum
+	RED_VK_UNKNOWN		;-- GDK_KEY_underscore
+	;-- 60h
+	RED_VK_UNKNOWN		;-- GDK_KEY_quoteleft
+	RED_VK_A			;-- 61h
+	RED_VK_B			;-- 62h
+	RED_VK_C			;-- 63h
+	RED_VK_D			;-- 64h
+	RED_VK_E			;-- 65h
+	RED_VK_F			;-- 66h
+	RED_VK_G			;-- 67h
+	RED_VK_H			;-- 68h
+	RED_VK_I			;-- 69h
+	RED_VK_J			;-- 6Ah
+	RED_VK_K			;-- 6Bh
+	RED_VK_L			;-- 6Ch
+	RED_VK_M			;-- 6Dh
+	RED_VK_N			;-- 6Eh
+	RED_VK_O			;-- 6Fh
+	;-- 70h
+	RED_VK_P			;-- 70h
+	RED_VK_Q			;-- 71h
+	RED_VK_R			;-- 72h
+	RED_VK_S			;-- 73h
+	RED_VK_T			;-- 74h
+	RED_VK_U			;-- 75h
+	RED_VK_V			;-- 76h
+	RED_VK_W			;-- 77h
+	RED_VK_X			;-- 78h
+	RED_VK_Y			;-- 79h
+	RED_VK_Z			;-- 7Ah
+	RED_VK_UNKNOWN		;-- GDK_KEY_braceleft
+	RED_VK_UNKNOWN		;-- GDK_KEY_bar
+	RED_VK_UNKNOWN		;-- GDK_KEY_braceright
+	RED_VK_UNKNOWN		;-- GDK_KEY_asciitilde
+	RED_VK_UNKNOWN
+	;-- 80h
+]
+
 make-at: func [
 	widget	[handle!]
 	face	[red-object!]
@@ -142,10 +528,9 @@ get-event-key: func [
 	evt		[red-event!]
 	return: [red-value!]
 	/local
-		char 		[red-char!]
-		code 		[integer!]
-		res	 		[red-value!]
-		special?	[logic!]
+		code		[integer!]
+		char		[red-char!]
+		res			[red-value!]
 ][
 	as red-value! switch evt/type [
 		EVT_KEY
@@ -153,11 +538,8 @@ get-event-key: func [
 		EVT_KEY_DOWN [
 			res: null
 			code: evt/flags
-			special?: code and 80000000h <> 0
 			code: code and FFFFh
-			;; DEBUG: print ["key-code=" code " flags=" evt/flags " special?=" special? " shift=" (evt/flags and EVT_FLAG_SHIFT_DOWN <> 0) lf]
-			either special? [
-				special-key: code
+			if special-key = -1 [
 				res: as red-value! switch code [
 					RED_VK_PRIOR	[_page-up]
 					RED_VK_NEXT		[_page-down]
@@ -191,19 +573,17 @@ get-event-key: func [
 					RED_VK_APPS		[_right-command]
 					default			[null]
 				]
-			][special-key: -1]
-			if null? res [
-				res: either all [special?  evt/type = EVT_KEY][
-					as red-value! none-value
+			]
+			either null? res [
+				either all [special-key = -1 evt/type = EVT_KEY][
+					none-value
 				][
-					;; DEBUG: print ["key-code2=" code " flags=" evt/flags " special-key=" special-key " special?=" special? " shift=" (evt/flags and EVT_FLAG_SHIFT_DOWN <> 0) lf]
 					char: as red-char! stack/push*
 					char/header: TYPE_CHAR
 					char/value: code
 					as red-value! char
 				]
-			]
-			res
+			][res]
 		]
 		EVT_SCROLL [
 			code: evt/flags
@@ -425,6 +805,15 @@ post-quit-msg: func [
 	gtk_widget_queue_draw win
 ]
 
+char-key?: func [
+	key			[byte!]									;-- virtual key code
+	return:		[logic!]
+	/local
+		slot	[byte-ptr!]
+][
+	slot: (as byte-ptr! char-keys) + as-integer (key >>> 3)
+	slot/value and (as-byte (80h >> as-integer (key and as-byte 7))) <> null-byte
+]
 
 check-extra-keys: func [
 	state		[integer!]
@@ -495,40 +884,28 @@ translate-key: func [
 	keycode		[integer!]
 	return:		[integer!]
 	/local
-		key			[integer!]
-		special?	[logic!]
+		pos		[integer!]
 ][
-	;; DEBUG: print ["keycode: " keycode lf]
-	keycode: either gdk_keyval_is_upper keycode [gdk_keyval_to_upper keycode][gdk_keyval_to_lower keycode]
-	;; DEBUG: print [" translate-key: keycode: " keycode lf]
-	special?: no
-	key: case [
-		all[keycode >= 20h keycode <= 5Ah][keycode]; RED_VK_SPACE to RED_VK_Z
-		all[keycode >= 5Bh keycode <= 60h][keycode]
-		all[keycode >= 61h keycode <= 7Ah][keycode]; RED_VK_a to RED_VK_z
-		all[keycode >= 7Bh keycode <= 7Dh][keycode];
-		all[keycode >= A0h keycode <= FFh][keycode];
-		all[keycode >= FFBEh keycode <= FFD5h][special?: yes keycode + RED_VK_F1 - FFBEh]		;RED_VK_F1 to RED_VK_F24
-		all[keycode >= FF51h keycode <= FF54h][special?: yes keycode + RED_VK_LEFT - FF51h]		;RED_VK_LEFT to RED_VK_DOWN
-		all[keycode >= FF55h keycode <= FF57h][special?: yes keycode + RED_VK_PRIOR - FF51h]	;RED_VK_PRIOR to RED_VK_END
-		keycode = FF0Dh	[special?: no RED_VK_RETURN]
-		keycode = FF1Bh [special?: yes RED_VK_ESCAPE]
-		keycode = FF50h [special?: yes RED_VK_HOME]
-		keycode = FFE5h [special?: yes RED_VK_NUMLOCK]
-		keycode = FF08h [special?: no RED_VK_BACK]
-		keycode = FF09h [special?: no RED_VK_TAB]
-		keycode = FFE1h [special?: yes RED_VK_LSHIFT]
-		keycode = FFE2h [special?: yes RED_VK_RSHIFT]
-		keycode = FFE3h [special?: yes RED_VK_LCONTROL]
-		keycode = FFE4h [special?: yes RED_VK_RCONTROL]
-		keycode = FFFFh [special?: yes RED_VK_DELETE]
-		;@@ To complete!
-		true [RED_VK_UNKNOWN]
+	keycode: either gdk_keyval_is_upper keycode [
+		gdk_keyval_to_upper keycode
+	][
+		gdk_keyval_to_lower keycode
 	]
-	if special? [key: key or 80000000h]
-	special-key: either special? [key][-1]
-	;; DEBUG: 	print [" key: " key " special?=" special?  lf]
-	key
+	if all [
+		keycode >= 20h
+		keycode <= 7Fh
+	][
+		pos: keycode - 20h + 1
+		return keycode-ascii/pos
+	]
+	if all [
+		keycode >= FF00h
+		keycode <= FFFFh
+	][
+		pos: keycode - FF00h + 1
+		return keycode-special/pos
+	]
+	RED_VK_UNKNOWN
 ]
 
 ;; TODO: before finding better solution!!!!
