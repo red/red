@@ -702,6 +702,10 @@ GPtrArray!: alias struct! [
 			code		[integer!]
 			return:		[logic!]
 		]
+		gdk_keyval_to_unicode: "gdk_keyval_to_unicode" [
+			code		[integer!]
+			return:		[integer!]
+		]
 		gdk_atom_intern_static_string: "gdk_atom_intern_static_string" [
 			name 		[c-string!]
 			return:		[handle!]
