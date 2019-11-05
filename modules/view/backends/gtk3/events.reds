@@ -554,7 +554,7 @@ connect-common-events: function [
 	gtk_widget_add_events widget GDK_BUTTON_RELEASE_MASK
 	gobj_signal_connect(widget "button-release-event" :mouse-button-release-event data)
 
-	gtk_widget_add_events widget GDK_KEY_PRESS_MASK or GDK_FOCUS_CHANGE_MASK
+	gtk_widget_add_events widget GDK_KEY_PRESS_MASK
 	gobj_signal_connect(widget "key-press-event" :key-press-event data)
 
 	gtk_widget_add_events widget GDK_KEY_RELEASE_MASK
@@ -570,13 +570,14 @@ connect-focus-events: function [
 	sym			[integer!]
 ][
 	if any [
-		sym = base
 		sym = rich-text
 		sym = field
 		sym = area
 	][
 		gtk_widget_set_can_focus widget yes
 		gtk_widget_set_focus_on_click widget yes
+		gtk_widget_grab_focus widget
+		gtk_widget_add_events widget GDK_FOCUS_CHANGE_MASK
 		gobj_signal_connect(evbox "focus-in-event" :focus-in-event widget)
 		gobj_signal_connect(evbox "focus-out-event" :focus-out-event widget)
 	]
@@ -600,7 +601,7 @@ connect-widget-events: function [
 		buffer	[handle!]
 ][
 	evbox: get-face-evbox widget values sym
-	;; register red mouse, key event functions
+	;-- register red mouse, key event functions
 	if sym <> window [
 		connect-common-events evbox widget
 	]
@@ -609,7 +610,6 @@ connect-widget-events: function [
 
 	case [
 		sym = check [
-			;@@ No click event for check
 			gobj_signal_connect(widget "toggled" :button-toggled widget)
 		]
 		sym = radio [
@@ -641,7 +641,6 @@ connect-widget-events: function [
 			0
 		]
 		sym = area [
-			; _widget is here buffer
 			buffer: gtk_text_view_get_buffer widget
 			gobj_signal_connect(buffer "changed" :area-changed widget)
 			g_object_set [widget "populate-all" yes null]
