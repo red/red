@@ -2965,9 +2965,7 @@ red-face-id4:		g_quark_from_string "red-face-id4"
 gtk-style-id: 		g_quark_from_string "gtk-style-id"
 container-id:		g_quark_from_string "container-id"
 red-timer-id:		g_quark_from_string "red-timer-id"
-css-id:				g_quark_from_string "css-id"
-size-id:			g_quark_from_string "size-id"
-menu-id:			g_quark_from_string "menu-id"
+menu-key-id:		g_quark_from_string "menu-key-id"
 red-event-id:		g_quark_from_string "red-event-id"
 cursor-id:			g_quark_from_string "cursor-id"
 resizing-id:		g_quark_from_string "resizing-id"
@@ -2987,3 +2985,5 @@ in-loop-id:			g_quark_from_string "in-loop-id"
 #define GET-CAPTION(s)			[g_object_get_qdata s caption-id]
 #define SET-IN-LOOP(s d)		[g_object_set_qdata s in-loop-id d]
 #define GET-IN-LOOP(s)			[g_object_get_qdata s in-loop-id]
+#define SET-MENU-KEY(s d)		[g_object_set_qdata s menu-key-id d]
+#define GET-MENU-KEY(s)			[g_object_get_qdata s menu-key-id]
