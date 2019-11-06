@@ -1314,6 +1314,13 @@ lexer: context [
 						throw-error lex b e TYPE_DATE	;-- inconsistent separator
 					]
 				]
+				if df/year < 100 [						;-- expand short yy forms
+					me: (as byte-ptr! df/sep2) + 3
+					unless all [me < e (as-integer me/1 - #"0") <= 9][ ;-- check if year field has 2 digits
+						c: either df/year < 50 [2000][1900]
+						df/year: df/year + c
+					]
+				]
 				if df/month-end <> 0 [					;-- if month is named
 					p: p + 1							;-- name start
 					me: as byte-ptr! df/month-end		;-- name end

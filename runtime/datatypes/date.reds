@@ -536,10 +536,6 @@ date: context [
 	][
 		year: date/year
 		tz-h: date/tz-h
-		if year < 100 [									;-- expand short yy forms
-			d: either year < 50 [2000][1900]
-			year: year + d
-		]
 		if any [
 			date/day > 31 date/month > 12 year > 9999
 			tz-h > 15 tz-h < -15						;-- out of range TZ
