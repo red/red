@@ -775,14 +775,7 @@ do-events: func [
 	v: as handle! 1
 	SET-IN-LOOP(win v)
 
-	msg?: no
-	either no-wait? [
-		if gtk_events_pending [
-			msg?: yes
-		]
-	][
-		msg?: yes
-	]
+	msg?: any [not no-wait? gtk_events_pending]
 	until [
 		gtk_main_iteration_do not no-wait?
 		unless g_type_check_instance_is_a win gtk_window_get_type [
