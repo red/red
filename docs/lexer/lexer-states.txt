@@ -237,14 +237,20 @@ S_START->digit->S_NUMBER->digit|"'"->S_NUMBER
                                                  \->"#"->S_SHARP
                                                   \->"@"->S_EMAIL
                                                    \->"e"|"E"->S_DECIMAL
-                                                    \->else->T_ERROR
+                                                    \->"E"->S_DECX->digit->S_DECX
+                                                     \       \->alphaU->S_HEX
+                                                      \       \->"h"->T_HEX
+                                                       \       \->delimit11->T_FLOAT
+                                                        \->alphaU->S_HEX
+                                                         \->"h"->T_HEX
+                                                          \->else->T_ERROR
 
 
 S_START->"."->S_DOTWORD->digit->S_DOTDEC->digit|"e"|"E"|"+"|"-"|"'"->S_DOTDEC
-               \                \->"%"->T_PERCENT
-                \                \->"x"|"X"->S_PAIR_1ST
-                 \                \->delimit11->T_FLOAT
-                  \                \->else->T_ERROR
+               \                 \->"%"->T_PERCENT
+                \                 \->"x"|"X"->S_PAIR_1ST
+                 \                 \->delimit11->T_FLOAT
+                  \                 \->else->T_ERROR
                    \                  
                     \->not(delimit5)->S_WORD
                      \->":"->S_WORDSET
@@ -284,21 +290,29 @@ S_START->"$"->S_MONEY_1ST->digit->S_MONEY->digit|"'"->S_MONEY
                                        \->delimit3->T_MONEY
                                         \->else->T_ERROR
 
-                                   
-S_START->not(delimit6)->S_WORD->not(delimit5)->S_WORD
-                         \->delimit7->T_WORD
-                          \
-                           \->":"->S_WORDSET->not(delimit7)->S_URL->not(delimit7)->S_URL
-                            \       \->delimit7->T_WORD       \->delimit7->T_URL
-                             \
-                              \->"@"->S_EMAIL->not(delimit7|"@"|"/"|">"|","|"^"|"$"|":"|"'"|"#")->S_EMAIL
-                               \       \->delimit7->T_EMAIL
-                                \       \->"@"|">"|","|"^"|"$"|":"|"'"|"#"->T_ERROR
-                                 \
-                                  \->"/"->T_PATH
-                                   \->"$"->S_MONEY
-                                    \->","|"#"|"%"->T_ERROR
-                                   
+
+S_START->not(delimit6)->S_WORD->not(delimit5|alphaU|digit|"E")->S_WORD
+                         \->alphaU|digit|"E"->S_HEX->alphaU|digit|"E"->S_HEX
+                          \                    \->delimit7->T_WORD
+                           \                    \->":"->S_WORDSET
+                            \                    \->"@"->S_EMAIL
+                             \                    \->"/"->T_PATH
+                              \                    \->"$"->S_MONEY
+                               \                    \->","|"#"|"%"->T_ERROR
+                                \                    \->"h"->T_HEX
+                                 \       
+                                  \->delimit7->T_WORD
+                                   \
+                                    \->":"->S_WORDSET->not(delimit7)->S_URL->not(delimit7)->S_URL
+                                     \       \->delimit7->T_WORD       \->delimit7->T_URL
+                                      \
+                                       \->"@"->S_EMAIL->not(delimit7|"@"|"/"|">"|","|"^"|"$"|":"|"'"|"#")->S_EMAIL
+                                        \       \->delimit7->T_EMAIL
+                                         \       \->"@"|">"|","|"^"|"$"|":"|"'"|"#"->T_ERROR
+                                          \
+                                           \->"/"->T_PATH
+                                            \->"$"->S_MONEY
+                                             \->","|"#"|"%"->T_ERROR
 
 
 S_PATH->ws|";"|"["|"]"|"{"|"/"|"%"->T_ERROR
