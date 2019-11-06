@@ -379,6 +379,9 @@ lexer: context [
 	stash-size: 1000									;-- pre-allocated cells	number
 	root-state: as state! 0								;-- global entry point to state struct list
 	depth: 0											;-- recursive calls depth
+	
+	min-integer: as byte-ptr! "-2147483648"				;-- used in scan-integer
+	
 
 	throw-error: func [lex [state!] s [byte-ptr!] e [byte-ptr!] type [integer!]
 		/local
@@ -1141,8 +1144,14 @@ lexer: context [
 			]
 			assert p = e
 			if o? [
-				scan-float lex s e flags				;-- overflow, fall back on float
-				return 0
+				len: as-integer e - s					;-- include sign in len now
+				either all [len = 11 zero? compare-memory s min-integer len][
+					i: 80000000h
+					s: s + 1							;-- ensure that the 0 subtraction does not occur
+				][
+					scan-float lex s e flags			;-- overflow, fall back on float
+					return 0
+				]
 			]
 		]
 		if s/value = #"-" [i: 0 - i]
