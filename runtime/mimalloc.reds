@@ -36,7 +36,7 @@ Red/System [
 
 #define MI_SMALL_OBJ_SIZE_MAX	[(MI_SMALL_PAGE_SIZE / 4)]	;-- 8kb on 32-bit
 #define MI_MEDIUM_OBJ_SIZE_MAX	[(MI_MEDIUM_PAGE_SIZE / 4)]	;-- 64kb on 32-bit
-#define MI_LARGE_OBJ_SIZE_MAX	[(LARGE_PAGE_SIZE / 2)]		;-- 1mb on 32-bit
+#define MI_LARGE_OBJ_SIZE_MAX	[(MI_LARGE_PAGE_SIZE / 2)]		;-- 1mb on 32-bit
 
 #define MI_MEDIUM_OBJ_WSIZE_MAX	[(MI_MEDIUM_OBJ_SIZE_MAX / MI_PTR_SIZE)]  ;-- 16kb on 32-bit
 #define MI_LARGE_OBJ_WSIZE_MAX	[(MI_LARGE_OBJ_SIZE_MAX / MI_PTR_SIZE)]
@@ -375,7 +375,7 @@ mimalloc: context [
 			pp: pp + 1
 		]
 
-		p: as int-ptr! :h/pages
+		p: :h/pages
 		p/3: 4
 		p/6:   4      p/9:   8      p/12: 12 p/15: 16 p/18: 20 p/21: 24 p/24: 28 p/27: 32 
 		p/30:  40     p/33:  48     p/36: 56 p/39: 64 p/42: 80 p/45: 96 p/48: 112 p/51: 128 
@@ -465,13 +465,14 @@ mimalloc: context [
 			round-to required + isize MI_PAGE_HUGE_ALIGN
 		]
 
-		;segment: OS-alloc
-		null
+		segment: as segment! OS-alloc-aligned segment-sz MI_SEGMENT_SIZE yes tld/stats
+		segment
 	]
 
 	segment-page-alloc: func [
 		kind		[page-kind!]
 		tld			[segments-tld!]
+		return: 	[page!]
 		/local
 			sq		[segment-queue!]
 			seg		[segment!]
@@ -479,8 +480,9 @@ mimalloc: context [
 	][
 		sq: either kind = MI_PAGE_SMALL [tld/small-free][tld/medium-free]
 		if null? sq/first [
-			seg: segment-alloc 
+			seg: segment-alloc 0 kind 2 tld
 		]
+		null
 	]
 
 	queue-find-page: func [
@@ -489,14 +491,29 @@ mimalloc: context [
 		return:		[page!]
 		/local
 			page	[page!]
+			blk-sz	[integer!]
 	][
 		;-- TBD search in page queue
 
 		;-- get a fresh page
-		page: pg/first
+		page: pq/first
 		if null? page [
-			page: segment-page-alloc heap pq
+			blk-sz: pq/block-size
+?? blk-sz
+			case [
+				blk-sz <= MI_SMALL_OBJ_SIZE_MAX [
+					
+				]
+				blk-sz <= MI_MEDIUM_OBJ_SIZE_MAX [
+					
+				]
+				blk-sz <= MI_LARGE_OBJ_SIZE_MAX [
+					
+				]
+			]
+			page: segment-page-alloc MI_PAGE_SMALL heap/tld/segments
 		]
+		page
 	]
 
 	;== allocation functions
@@ -573,7 +590,7 @@ mimalloc: context [
 			;-- TBD collect page
 
 			if null? page/free-blocks [
-				page: queue-find-page qe
+				page: queue-find-page heap qe
 			]
 		][
 			page: queue-find-page heap qe
