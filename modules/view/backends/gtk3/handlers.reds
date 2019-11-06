@@ -425,22 +425,20 @@ key-press-event: func [
 	sym: symbol/resolve type/symbol
 
 	key: translate-key event-key/keyval
-	key2: gdk_keyval_to_unicode event-key/keyval
 	flags: check-extra-keys event-key/state
-	either all [
-		key2 > 0
-		key2 <= FFFFh
-	][
-		special-key: 0
-		res: make-event widget key2 or flags EVT_KEY_DOWN
-		if res <> EVT_NO_DISPATCH [
+	special-key: either char-key? as-byte key [0][-1]		;-- special key or not
+	res: make-event widget key or flags EVT_KEY_DOWN
+	if res <> EVT_NO_DISPATCH [
+		key2: gdk_keyval_to_unicode event-key/keyval
+		if all [
+			key2 > 0
+			key2 <= FFFFh
+		][
+			special-key: 0
 			return make-event widget key2 or flags EVT_KEY
 		]
-	][
-		special-key: either char-key? as-byte key [0][-1]		;-- special key or not
-		res: make-event widget key or flags EVT_KEY_DOWN
-		if res <> EVT_NO_DISPATCH [
-			return make-event widget key or flags EVT_KEY
+		if key <> 0 [
+			res: make-event widget key or flags EVT_KEY
 		]
 	]
 	res
@@ -460,7 +458,6 @@ key-release-event: func [
 		sym		[integer!]
 		key		[integer!]
 		flags	[integer!]
-		key2	[integer!]
 ][
 	win: gtk_get_event_widget as handle! event-key
 	if evbox <> gtk_window_get_focus win [return EVT_NO_DISPATCH]
@@ -470,18 +467,9 @@ key-release-event: func [
 	sym: symbol/resolve type/symbol
 
 	key: translate-key event-key/keyval
-	key2: gdk_keyval_to_unicode event-key/keyval
 	flags: check-extra-keys event-key/state
-	either all [
-		key2 > 0
-		key2 <= FFFFh
-	][
-		special-key: 0
-		make-event widget key2 or flags EVT_KEY_DOWN
-	][
-		special-key: either char-key? as-byte key [0][-1]		;-- special key or not
-		make-event widget key or flags EVT_KEY_DOWN
-	]
+	special-key: either char-key? as-byte key [0][-1]		;-- special key or not
+	make-event widget key or flags EVT_KEY_UP
 ]
 
 field-changed: func [
