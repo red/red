@@ -13,20 +13,6 @@ Red/System [
 menu-x:			0
 menu-y:			0
 
-menu-item-key: func [
-	item	[handle!]
-	key		[integer!]
-][
-	g_object_set_qdata item menu-id as int-ptr! key
-]
-
-menu-item-key?: func [
-	item		[handle!]
-	return: 	[integer!]
-][
-	as integer! g_object_get_qdata item menu-id
-]
-
 build-menu: func [
 	menu	[red-block!]
 	hMenu	[handle!]
@@ -40,19 +26,15 @@ build-menu: func [
 		next		[red-value!]
 		str			[red-string!]
 		w			[red-word!]
+		v			[handle!]
 		len			[integer!]
 		title	 	[c-string!]
-		key		 	[c-string!]
-		action	 	[integer!]
 ][
 	if TYPE_OF(menu) <> TYPE_BLOCK [return null]
 
-	;; DEBUG: print ["Menu: " hMenu " with target: " target lf]
 	value: block/rs-head menu
 	tail:  block/rs-tail menu
 
-	key:  ""
-	;action: red-menu-action:
 	while [value < tail][
 		switch TYPE_OF(value) [
 			TYPE_STRING [
@@ -64,11 +46,11 @@ build-menu: func [
 
 				item: gtk_menu_item_new_with_label title
 				gtk_widget_show item
+				gobj_signal_connect(item "activate" :menu-item-activate target)
 
 				if next < tail [
 					switch TYPE_OF(next) [
 						TYPE_BLOCK [
-							;; DEBUG: print ["add sub-menu" lf]
 							sub-menu: gtk_menu_new
 							gtk_widget_show sub-menu
 							build-menu as red-block! next sub-menu target
@@ -77,9 +59,8 @@ build-menu: func [
 						]
 						TYPE_WORD [
 							w: as red-word! next
-							menu-item-key item w/symbol
-							;; DEBUG: print ["item " item " connected to " target " with key " w/symbol lf]
-							gobj_signal_connect(item "activate" :menu-item-activate target)
+							v: as handle! w/symbol
+							SET-MENU-KEY(item v)
 							value: value + 1
 						]
 						default [0]
@@ -100,21 +81,6 @@ build-menu: func [
 	hMenu
 ]
 
-context-menu: func [
-	widget	[handle!]
-	hMenu	[handle!]
-][
-	;; DEBUG: print ["context menu " hMenu " added to " widget lf]
-	g_object_set_qdata widget menu-id hMenu
-]
-
-context-menu?: func [
-	widget		[handle!]
-	return: 	[handle!]
-][
-	g_object_get_qdata widget menu-id
-]
-
 build-context-menu: func [
 	widget	[handle!]
 	menu	[red-block!]
@@ -126,7 +92,7 @@ build-context-menu: func [
 		hMenu: gtk_menu_new
 		;; DEBUG: print ["hMenu " hMenu lf]
 		build-menu menu hMenu widget
-		context-menu widget hMenu
+		SET-MENU-KEY(widget hMenu)
 	]
 ]
 

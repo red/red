@@ -694,13 +694,13 @@ mouse-button-press-event: func [
 
 	;; DEBUG: print ["with button " event/button lf]
 	if  event/button = GDK_BUTTON_SECONDARY  [
-		hMenu: context-menu? widget
+		hMenu: GET-MENU-KEY(widget)
 		;; DEBUG: print ["widget " widget " with menu " hMenu lf]
 		unless null? hMenu [
 			menu-x: as-integer event/x
 			menu-y: as-integer event/y
 			;; DEBUG: print ["menu pointer : " menu-x "x" menu-y lf]
-			gtk_menu_popup_at_pointer hMenu	 as handle! event
+			gtk_menu_popup_at_pointer hMenu as handle! event
 			return EVT_NO_DISPATCH
 		]
 
@@ -767,6 +767,6 @@ menu-item-activate: func [
 	/local
 		key		[integer!]
 ][
-	key: menu-item-key? item
+	key: as integer! GET-MENU-KEY(item)
 	make-event widget key EVT_MENU
 ]
