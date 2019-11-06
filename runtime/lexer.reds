@@ -1109,6 +1109,7 @@ lexer: context [
 			p	[byte-ptr!]
 			len [integer!]
 			i	[integer!]
+			o?  [logic!]
 	][
 		p: s
 		if flags and C_FLAG_SIGN <> 0 [p: p + 1]		;-- skip sign if present
@@ -1122,18 +1123,27 @@ lexer: context [
 				return 0
 			]
 			i: 0
+			o?: no
 			either flags and C_FLAG_QUOTE = 0 [			;-- no quote, faster path
 				loop len [
 					i: 10 * i + as-integer (p/1 - #"0")
+					o?: o? or system/cpu/overflow?
 					p: p + 1
 				]
 			][											;-- process with quote(s)
 				loop len [
-					if e/1 <> #"'" [i: 10 * i + as-integer (p/1 - #"0")]
+					if e/1 <> #"'" [
+						i: 10 * i + as-integer (p/1 - #"0")
+						o?: o? or system/cpu/overflow?
+					]
 					p: p + 1
 				]
 			]
 			assert p = e
+			if o? [
+				scan-float lex s e flags				;-- overflow, fall back on float
+				return 0
+			]
 		]
 		if s/value = #"-" [i: 0 - i]
 		if flags and C_FLAG_NOSTORE = 0 [
