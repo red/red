@@ -543,9 +543,12 @@ lexer: context [
 					default [return s]
 				]
 			]
-			if all [cnt <> 0 cnt <> 8][return s]
-			p/value: as byte! c
-			p: p + 1
+			either zero? cnt [
+				p/value: as byte! c
+				p: p + 1
+			][
+				if cnt <> 8 [return s]
+			]
 		]
 		ser/tail: as cell! p
 		null
@@ -1144,7 +1147,7 @@ lexer: context [
 			]
 			assert p = e
 			if o? [
-				len: as-integer e - s					;-- include sign in len now
+				len: as-integer e - s					;-- account for sign in len now
 				either all [len = 11 zero? compare-memory s min-integer len][
 					i: 80000000h
 					s: s + 1							;-- ensure that the 0 subtraction does not occur
