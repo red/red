@@ -14,6 +14,8 @@ Red/System [
 	}
 ]
 
+#include %tools.reds
+
 #define MI_PTR_SHIFT	2										;-- 32 bits system
 #define MI_PTR_SIZE		[(1 << MI_PTR_SHIFT)]
 
@@ -35,13 +37,12 @@ Red/System [
 #define MI_SMALL_OBJ_SIZE_MAX	[(MI_SMALL_PAGE_SIZE / 4)]	;-- 8kb on 32-bit
 #define MI_MEDIUM_OBJ_SIZE_MAX	[(MI_MEDIUM_PAGE_SIZE / 4)]	;-- 64kb on 32-bit
 #define MI_LARGE_OBJ_SIZE_MAX	[(LARGE_PAGE_SIZE / 2)]		;-- 1mb on 32-bit
-#define MI_MEDIUM_OBJ_WSIZE_MAX	[(MI_MEDIUM_OBJ_SIZE_MAX / MI_PTR_SIZE)]  ;-- 16kb on 32-bit
 
-#define MI_LARGE_OBJ_SIZE_MAX	[(MI_SEGMENT_SIZE / 4)]
+#define MI_MEDIUM_OBJ_WSIZE_MAX	[(MI_MEDIUM_OBJ_SIZE_MAX / MI_PTR_SIZE)]  ;-- 16kb on 32-bit
 #define MI_LARGE_OBJ_WSIZE_MAX	[(MI_LARGE_OBJ_SIZE_MAX / MI_PTR_SIZE)]
 
 #define MI_MAX_ALIGN_SIZE		16
-#define MI_PAGE_HUGE_ALIGN		256 * 1024
+#define MI_PAGE_HUGE_ALIGN		262144
 
 #define MI_MAX_PAGE_OFFSET		[((MI_MEDIUM_PAGE_SIZE / MI_SMALL_PAGE_SIZE) - 1)]
 
@@ -226,10 +227,10 @@ mimalloc: context [
 				size		[integer!]
 				type		[integer!]
 				protection	[integer!]
-				return:		[int-ptr!]
+				return:		[byte-ptr!]
 			]
 			VirtualFree: "VirtualFree" [
-				address 	[int-ptr!]
+				address 	[byte-ptr!]
 				size		[integer!]
 				type		[integer!]
 				return:		[integer!]
@@ -239,7 +240,7 @@ mimalloc: context [
 
 	#define MI_WORD_SIZE?(size) [(size - 1 + size? int-ptr!) / size? int-ptr!]
 
-	page-size: 4096
+	os-page-size: 4096
 	alloc-granularity: 4096
 
 	empty-page: declare page!
@@ -259,11 +260,11 @@ mimalloc: context [
 
 	;== OS memory APIs
 
-	OS-mem-alloc: func [
+	OS-alloc: func [
 		size	[integer!]
 		commit?	[logic!]
 		stats	[stats!]
-		return: [int-ptr!]
+		return: [byte-ptr!]
 		/local
 			flags [integer!]
 	][
@@ -272,14 +273,84 @@ mimalloc: context [
 		VirtualAlloc null size flags 4			;-- PAGE_READWRITE
 	]
 
-	OS-mem-free: func [
-		addr	[int-ptr!]
+	OS-alloc-at: func [
+		addr	[byte-ptr!]
+		size	[integer!]
+		commit?	[logic!]
+		stats	[stats!]
+		return: [byte-ptr!]
+		/local
+			flags [integer!]
+	][
+		flags: 2000h							;-- MEM_RESERVE
+		if commit? [flags: 3000h]				;-- MEM_RESERVE or MEM_COMMIT
+		VirtualAlloc addr size flags 4			;-- PAGE_READWRITE
+	]
+
+	OS-free: func [
+		addr	[byte-ptr!]
 		size	[integer!]
 		stats	[stats!]
 	][
 		if zero? VirtualFree addr 0 8000h [		;-- MEM_RELEASE: 0x8000
 			throw 7FFFFFF6h
 		]
+	]
+
+	OS-decommit: func [
+		addr	[byte-ptr!]
+		size	[integer!]
+		stats	[stats!]
+		return: [logic!]
+		/local
+			s	[byte-ptr!]
+			e	[byte-ptr!]
+			sz	[integer!]
+	][
+		s: as byte-ptr! round-to as-integer addr os-page-size
+		e: as byte-ptr! (as-integer addr) + size / os-page-size * os-page-size
+		sz: as-integer e - s
+		either sz > 0 [
+			0 <> VirtualFree s sz 4000h			;-- MEM_DECOMMIT: 0x4000
+		][true]
+	]
+
+	OS-alloc-aligned: func [
+		size	[integer!]
+		align	[integer!]
+		commit?	[logic!]
+		stats	[stats!]
+		return: [byte-ptr!]
+		/local
+			p	[byte-ptr!]
+			p2	[byte-ptr!]
+			sz	[integer!]
+	][
+		size: round-to size os-page-size
+		p: OS-alloc size commit? stats
+		if null? p [return null]
+
+		if (as-integer p) % align <> 0 [		;-- not aligned
+			OS-free p size stats
+			sz: size + align
+			loop 3 [
+				p: OS-alloc sz commit? stats
+				if null? p [return null]
+				if (as-integer p) % align = 0 [
+					OS-decommit p + size align stats
+					break
+				]
+				OS-free p sz stats
+				p2: as byte-ptr! round-to as-integer p align
+				p: OS-alloc-at p2 size commit? stats
+				if p = p2 [break]
+				if p <> null [
+					OS-free p size stats
+					p: null
+				]
+			]
+		]
+		p
 	]
 
 	;== Init functions
@@ -331,7 +402,7 @@ mimalloc: context [
 			heap-default: heap-main
 		][
 			thread-id-cnt: thread-id-cnt + 1
-			td: as thread-data! OS-mem-alloc size? thread-data! yes stats-main
+			td: as thread-data! OS-alloc size? thread-data! yes stats-main
 			tld: td/tld
 			hp: td/heap
 			hp/thread-id: as int-ptr! thread-id-cnt
@@ -343,7 +414,7 @@ mimalloc: context [
 
 	init: func [/local si [tagSYSTEM_INFO value]][
 		GetSystemInfo :si
-		if si/dwPageSize > 0 [page-size: si/dwPageSize]
+		if si/dwPageSize > 0 [os-page-size: si/dwPageSize]
 		if si/dwAllocationGranularity > 0 [
 			alloc-granularity: si/dwAllocationGranularity
 		]
@@ -394,7 +465,8 @@ mimalloc: context [
 			round-to required + isize MI_PAGE_HUGE_ALIGN
 		]
 
-		segment: OS-mem-alloc
+		;segment: OS-alloc
+		null
 	]
 
 	segment-page-alloc: func [
@@ -405,8 +477,8 @@ mimalloc: context [
 			seg		[segment!]
 			sz		[integer!]
 	][
-		qe: either kind = MI_PAGE_SMALL [tld/small-free][tld/medium-free]
-		if null? qe/first [
+		sq: either kind = MI_PAGE_SMALL [tld/small-free][tld/medium-free]
+		if null? sq/first [
 			seg: segment-alloc 
 		]
 	]
