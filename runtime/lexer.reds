@@ -455,7 +455,8 @@ lexer: context [
 			s	[series!]
 	][
 		either zero? items [
-			block/make-at as red-block! slot 1
+			blk: block/make-at as red-block! slot 1
+			blk/header: blk/header and type-mask or type
 		][
 			blk: block/make-at as red-block! slot items
 			blk/header: blk/header and type-mask or type
@@ -505,7 +506,7 @@ lexer: context [
 		lex/tail: lex/head
 		lex/head: as cell! p - p/x
 		hint: p/z
-		
+	
 		store-any-block as cell! p lex/tail len type	;-- p slot gets overwritten here
 		
 		p: as red-point! lex/head - 1					;-- get parent series
