@@ -21,6 +21,7 @@ S_ISSUE
 S_NUMBER
 S_DOTNUM
 S_DECIMAL
+S_DECX
 S_DEC_SPECIAL
 S_TUPLE
 S_DATE
@@ -31,6 +32,7 @@ S_PAIR
 S_MONEY_1ST
 S_MONEY
 S_MONEY_DEC
+S_HEX
 S_LESSER
 S_TAG
 S_TAG_STR
@@ -80,6 +82,7 @@ T_TAG
 T_URL
 T_EMAIL
 T_PATH
+T_HEX
 
 
 C_BLANK     : space, tab, cr
@@ -99,7 +102,7 @@ C_COLON     : :
 C_X         : x, X
 C_T         : T
 C_EXP       : e, E
-C_ALPHAX    : a-f, A-F
+C_ALPHAX    : a-d,f, A-D,F
 C_SLASH     : /
 C_BSLASH    : \
 C_LESSER    : <
@@ -117,11 +120,6 @@ C_BIN       : 0x01-0x08, 0x11, 0x12, 0x14-0x1F
 C_WORD      : all the rest
 C_ILLEGAL   : 0xC0-0xC1, 0xF5-0xFF
 C_EOF       : NUL
-
-
-;":"->S_CLASS_GET    => set as high-bits flag
-;"'"->S_CLASS_LIT    => set as high-bits flag
-
 
 
 ws: space | tab | cr | lf
@@ -142,7 +140,7 @@ delimit13: [ | ] | ( | ) | { | } | " | % | ws | ; | < | # | @ | ^
 delimit14: # | ' | < | % | ^
 
 hexa: C_ZERO | C_DIGIT | C_ALPHAX
-
+alphaU: A, B, C, D, F
 
 S_START->ws->S_START
          
@@ -291,28 +289,30 @@ S_START->"$"->S_MONEY_1ST->digit->S_MONEY->digit|"'"->S_MONEY
                                         \->else->T_ERROR
 
 
-S_START->not(delimit6)->S_WORD->not(delimit5|alphaU|digit|"E")->S_WORD
-                         \->alphaU|digit|"E"->S_HEX->alphaU|digit|"E"->S_HEX
-                          \                    \->delimit7->T_WORD
-                           \                    \->":"->S_WORDSET
-                            \                    \->"@"->S_EMAIL
-                             \                    \->"/"->T_PATH
-                              \                    \->"$"->S_MONEY
-                               \                    \->","|"#"|"%"->T_ERROR
-                                \                    \->"h"->T_HEX
-                                 \       
-                                  \->delimit7->T_WORD
-                                   \
-                                    \->":"->S_WORDSET->not(delimit7)->S_URL->not(delimit7)->S_URL
-                                     \       \->delimit7->T_WORD       \->delimit7->T_URL
-                                      \
-                                       \->"@"->S_EMAIL->not(delimit7|"@"|"/"|">"|","|"^"|"$"|":"|"'"|"#")->S_EMAIL
-                                        \       \->delimit7->T_EMAIL
-                                         \       \->"@"|">"|","|"^"|"$"|":"|"'"|"#"->T_ERROR
-                                          \
-                                           \->"/"->T_PATH
-                                            \->"$"->S_MONEY
-                                             \->","|"#"|"%"->T_ERROR
+S_START->alphaU|"E"->S_HEX->alphaU|digit|"E"->S_HEX
+                       \->delimit7->T_WORD
+                        \->":"->S_WORDSET
+                         \->"@"->S_EMAIL
+                          \->"/"->T_PATH
+                           \->"$"->S_MONEY
+                            \->"h"->T_HEX
+                             \->","|"#"|"%"->T_ERROR
+                              \->not(delimit5)->S_WORD
+                              
+
+S_START->not(delimit6)->S_WORD->not(delimit5)->S_WORD
+                         \->delimit7->T_WORD
+                          \
+                           \->":"->S_WORDSET->not(delimit7)->S_URL->not(delimit7)->S_URL
+                            \       \->delimit7->T_WORD       \->delimit7->T_URL
+                             \
+                              \->"@"->S_EMAIL->not(delimit7|"@"|"/"|">"|","|"^"|"$"|":"|"'"|"#")->S_EMAIL
+                               \       \->delimit7->T_EMAIL
+                                \       \->"@"|">"|","|"^"|"$"|":"|"'"|"#"->T_ERROR
+                                 \
+                                  \->"/"->T_PATH
+                                   \->"$"->S_MONEY
+                                    \->","|"#"|"%"->T_ERROR
 
 
 S_PATH->ws|";"|"["|"]"|"{"|"/"|"%"->T_ERROR
