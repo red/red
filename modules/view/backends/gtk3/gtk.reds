@@ -1002,6 +1002,11 @@ GPtrArray!: alias struct! [
 			event		[handle!]
 			direction	[int-ptr!]
 		]
+		gdk_window_get_position: "gdk_window_get_position" [
+			window		[handle!]
+			x			[int-ptr!]
+			y			[int-ptr!]
+		]
 		gdk_window_get_display: "gdk_window_get_display" [
 			window		[handle!]
 			return:		[handle!]

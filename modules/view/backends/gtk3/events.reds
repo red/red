@@ -34,13 +34,11 @@ flags-blk/node:		alloc-cells 4
 
 ; used to save old position of pointer in widget-motion-notify-event handler
 evt-motion: context [
-	state:		no
+	pressed:	no
 	x_root:		0.0
 	y_root:		0.0
 	x_new:	 	0
 	y_new:		0
-	cpt:		0
-	sensitiv:	3
 ]
 
 char-keys: [
