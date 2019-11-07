@@ -587,6 +587,7 @@ widget-enter-notify-event: func [
 		flags	[integer!]
 ][
 	if evbox <> gtk_get_event_widget as handle! event [return EVT_NO_DISPATCH]
+	if evt-motion/pressed [return EVT_NO_DISPATCH]
 	flags: check-flags event/type event/state
 	make-event widget flags EVT_OVER
 ]
@@ -601,6 +602,7 @@ widget-leave-notify-event: func [
 		flags	[integer!]
 ][
 	if evbox <> gtk_get_event_widget as handle! event [return EVT_NO_DISPATCH]
+	if evt-motion/pressed [return EVT_NO_DISPATCH]
 	flags: check-flags event/type event/state
 	make-event widget flags or EVT_FLAG_AWAY EVT_OVER
 ]
@@ -624,41 +626,43 @@ mouse-button-release-event: func [
 ][
 	if evbox <> gtk_get_event_widget as handle! event [return EVT_NO_DISPATCH]
 	sym: get-widget-symbol widget
-	if sym = field [
-		if event/button = GDK_BUTTON_PRIMARY [
-			x: -1 y: -1
-			if gtk_editable_get_selection_bounds widget :x :y [
-				;; DEBUG: print ["from " x " to " y lf ]
-				sel: as red-pair! (get-face-values widget) + FACE_OBJ_SELECTED
-				either x = y [sel/header: TYPE_NONE][
-					sel/header: TYPE_PAIR
-					sel/x: x + 1
-					sel/y: y
-				]
-				make-event widget 0 EVT_SELECT
-			]
-		]
-	]
-	if sym = area [
-		if event/button = GDK_BUTTON_PRIMARY [
-			buffer: gtk_text_view_get_buffer widget
-			if gtk_text_buffer_get_selection_bounds buffer as handle! start as handle! end [
+
+	if event/button = GDK_BUTTON_PRIMARY [
+		case [
+			sym = field [
 				x: -1 y: -1
-				x: gtk_text_iter_get_offset as handle! start
-				y: gtk_text_iter_get_offset as handle! end
-				;; DEBUG: print ["from " x " to " y lf ]
-				sel: as red-pair! (get-face-values widget) + FACE_OBJ_SELECTED
-				either x = y [sel/header: TYPE_NONE][
-					sel/header: TYPE_PAIR
-					sel/x: x + 1
-					sel/y: y
+				if gtk_editable_get_selection_bounds widget :x :y [
+					;; DEBUG: print ["from " x " to " y lf ]
+					sel: as red-pair! (get-face-values widget) + FACE_OBJ_SELECTED
+					either x = y [sel/header: TYPE_NONE][
+						sel/header: TYPE_PAIR
+						sel/x: x + 1
+						sel/y: y
+					]
+					make-event widget 0 EVT_SELECT
 				]
-				make-event widget 0 EVT_SELECT
 			]
+			sym = area [
+				buffer: gtk_text_view_get_buffer widget
+				if gtk_text_buffer_get_selection_bounds buffer as handle! start as handle! end [
+					x: -1 y: -1
+					x: gtk_text_iter_get_offset as handle! start
+					y: gtk_text_iter_get_offset as handle! end
+					;; DEBUG: print ["from " x " to " y lf ]
+					sel: as red-pair! (get-face-values widget) + FACE_OBJ_SELECTED
+					either x = y [sel/header: TYPE_NONE][
+						sel/header: TYPE_PAIR
+						sel/x: x + 1
+						sel/y: y
+					]
+					make-event widget 0 EVT_SELECT
+				]
+			]
+			true [0]
 		]
+		evt-motion/pressed: no
 	]
-	evt-motion/state: yes
-	evt-motion/cpt: 0
+
 	evt-motion/x_root: event/x_root
 	evt-motion/y_root: event/y_root
 	evt-motion/x_new: as-integer event/x
@@ -692,18 +696,18 @@ mouse-button-press-event: func [
 		gtk_widget_grab_focus widget
 	]
 
-	;; DEBUG: print ["with button " event/button lf]
-	if  event/button = GDK_BUTTON_SECONDARY  [
+	if event/button = GDK_BUTTON_PRIMARY [
+		evt-motion/pressed: yes
+	]
+
+	if event/button = GDK_BUTTON_SECONDARY [
 		hMenu: GET-MENU-KEY(widget)
-		;; DEBUG: print ["widget " widget " with menu " hMenu lf]
 		unless null? hMenu [
 			menu-x: as-integer event/x
 			menu-y: as-integer event/y
-			;; DEBUG: print ["menu pointer : " menu-x "x" menu-y lf]
 			gtk_menu_popup_at_pointer hMenu as handle! event
 			return EVT_NO_DISPATCH
 		]
-
 	]
 
 	evt-motion/x_root: event/x_root
@@ -726,23 +730,20 @@ mouse-motion-notify-event: func [
 	widget		[handle!]
 	return:		[integer!]
 	/local
-		offset	[red-pair!]
+		wflags	[integer!]
 		x		[float!]
 		y		[float!]
-		wflags	[integer!]
 		flags	[integer!]
 ][
 	if evbox <> gtk_get_event_widget as handle! event [return EVT_NO_DISPATCH]
+	wflags: get-flags (as red-block! get-face-values widget) + FACE_OBJ_FLAGS
+	if wflags and FACET_FLAGS_ALL_OVER = 0 [return EVT_DISPATCH]
 	evt-motion/x_new: as-integer event/x
 	evt-motion/y_new: as-integer event/y
 	evt-motion/x_root: event/x_root
 	evt-motion/y_root: event/y_root
-	wflags: get-flags (as red-block! get-face-values widget) + FACE_OBJ_FLAGS
-	if wflags and FACET_FLAGS_ALL_OVER <> 0 [
-		flags: check-flags event/type event/state
-		return make-event widget flags EVT_OVER
-	]
-	EVT_DISPATCH
+	flags: check-flags event/type event/state
+	make-event widget flags EVT_OVER
 ]
 
 widget-scroll-event: func [
