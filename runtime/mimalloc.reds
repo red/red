@@ -368,6 +368,8 @@ mimalloc: context [
 		h: heap-main
 		zero-memory as byte-ptr! empty-page size? page!
 		zero-memory as byte-ptr! h size? heap!
+		zero-memory as byte-ptr! tld-main size? tld!
+		h/tld: tld-main
 
 		pp: as ptr-ptr! :h/pages-direct
 		loop 130 [
@@ -460,6 +462,7 @@ mimalloc: context [
 			capacity: 1
 		]
 		mini-sz: capacity - 1 * (size? page!) + (size? segment!) + 16	;-- padding
+?? mini-sz
 		isize: round-to mini-sz 16 * MI_MAX_ALIGN_SIZE
 		segment-sz: either zero? required [MI_SEGMENT_SIZE][
 			round-to required + isize MI_PAGE_HUGE_ALIGN
@@ -477,12 +480,16 @@ mimalloc: context [
 			sq		[segment-queue!]
 			seg		[segment!]
 			sz		[integer!]
+			shift	[integer!]
 	][
+		shift: MI_SEGMENT_SHIFT
 		sq: either kind = MI_PAGE_SMALL [tld/small-free][tld/medium-free]
-		if null? sq/first [
-			seg: segment-alloc 0 kind 2 tld
+		
+		if null? sq [
+			seg: segment-alloc 0 kind shift tld
+?? seg
 		]
-		null
+		as page! seg
 	]
 
 	queue-find-page: func [
@@ -492,6 +499,7 @@ mimalloc: context [
 		/local
 			page	[page!]
 			blk-sz	[integer!]
+			kind	[page-kind!]
 	][
 		;-- TBD search in page queue
 
@@ -502,16 +510,16 @@ mimalloc: context [
 ?? blk-sz
 			case [
 				blk-sz <= MI_SMALL_OBJ_SIZE_MAX [
-					
+					kind: MI_PAGE_SMALL
 				]
 				blk-sz <= MI_MEDIUM_OBJ_SIZE_MAX [
-					
+					kind: MI_PAGE_MEDIUM
 				]
 				blk-sz <= MI_LARGE_OBJ_SIZE_MAX [
-					
+					kind: MI_PAGE_LARGE
 				]
 			]
-			page: segment-page-alloc MI_PAGE_SMALL heap/tld/segments
+			page: segment-page-alloc kind heap/tld/segments
 		]
 		page
 	]
@@ -605,3 +613,6 @@ mimalloc: context [
 		heap-alloc heap-default size
 	]
 ]
+
+mimalloc/init
+probe mimalloc/malloc 1
