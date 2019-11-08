@@ -662,40 +662,7 @@ get-symbol-name: function [
 	sym			[integer!]
 	return:		[c-string!]
 ][
-	case [
-		sym = check ["check"]
-		sym = radio ["radio"]
-		sym = button ["button"]
-		sym = base  ["base"]
-		sym = window ["window"]
-		sym = slider ["slider"]
-		sym = text ["text"]
-		sym = field ["field"]
-		sym = progress ["progress"]
-		sym = area ["area"]
-		sym = group-box ["group-box"]
-		sym = panel ["panel"]
-		sym = tab-panel ["tab-panel"]
-		sym = text-list ["text-list"]
-		sym = drop-list ["drop-list"]
-		sym = drop-down ["drop-down"]
-		sym = rich-text ["rich-text"]
-		sym = done ["done"]
-		sym = stop ["stop"]
-		sym = _image ["image"]
-
-		sym = facets/pane ["facets/pane"]
-
-		sym = words/_remove/symbol	["words/remove"]
-		sym = words/_take/symbol	["words/take"]
-		sym = words/_clear/symbol	["words/clear"]
-		sym = words/_insert/symbol	["words/insert"]
-		sym = words/_poke/symbol	["words/poke"]
-		sym = words/_moved/symbol	["words/moved"]
-		sym = words/_changed/symbol	["words/changed"]
-
-		true ["undefined"]
-	]
+	symbol/get-c-string sym
 ]
 
 remove-widget-timer: func [
