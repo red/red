@@ -311,6 +311,21 @@ window-size-allocate: func [
 	]
 ]
 
+widget-realize: func [
+	[cdecl]
+	evbox		[handle!]
+	widget		[handle!]
+	/local
+		cursor	[handle!]
+		win		[handle!]
+][
+	cursor: GET-CURSOR(widget)
+	unless null? cursor [
+		win: gtk_widget_get_window widget
+		gdk_window_set_cursor win cursor
+	]
+]
+
 range-value-changed: func [
 	[cdecl]
 	range		[handle!]

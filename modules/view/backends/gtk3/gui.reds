@@ -952,42 +952,6 @@ change-size: func [
 	]
 ]
 
-init-all-children: func [
-	widget		[handle!]
-	/local
-		values	[red-value!]
-		pane	[red-block!]
-		cursor	[handle!]
-		win		[handle!]
-		face	[red-object!]
-		tail	[red-object!]
-		child	[handle!]
-][
-	values: get-face-values widget
-	pane: 	as red-block! values + FACE_OBJ_PANE
-
-	cursor: GET-CURSOR(widget)
-	unless null? cursor [
-		win: gtk_widget_get_window widget
-		unless null? win [
-			gdk_window_set_cursor win cursor
-		]
-	]
-
-	if all [TYPE_OF(pane) = TYPE_BLOCK 0 <> block/rs-length? pane] [
-		face: as red-object! block/rs-head pane
-		tail: as red-object! block/rs-tail pane
-
-		while [face < tail][
-			child: face-handle? face
-			unless null? child [
-				init-all-children child
-			]
-			face: face + 1
-		]
-	]
-]
-
 change-visible: func [
 	widget		[handle!]
 	show?		[logic!]

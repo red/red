@@ -971,7 +971,9 @@ connect-widget-events: function [
 		connect-common-events evbox widget
 	]
 	connect-notify-events evbox widget
-	connect-focus-events evbox widget sym 
+	connect-focus-events evbox widget sym
+
+	gobj_signal_connect(evbox "realize" :widget-realize widget)
 
 	case [
 		sym = check [
