@@ -118,9 +118,9 @@ lexer: context [
 	}
 	
 	skip-table: #{
-		0101000000000000000000000000000000000000000000000000000000000000
+		0100000000000000000000000000000000000000000000000000000000000000
 		0000000000000000000000000000000000000000000000000000000000000000
-		0000000000000000000000000000000000000000
+		000000000000000000000000000000000000000000
 	}
 
 	path-ending: #{
@@ -1459,6 +1459,12 @@ lexer: context [
 		lex/in-pos: e + 1								;-- skip h
 	]
 	
+	scan-comment: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]][
+		;TBD: trigger an event
+		lex/in-pos: e + 1								;-- skip lf
+	]
+
+	
 	scan-path-item: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
 			type	[integer!]
@@ -1517,6 +1523,7 @@ lexer: context [
 		:scan-email										;-- T_EMAIL
 		:scan-path-open									;-- T_PATH
 		:scan-hex										;-- T_HEX
+		:scan-comment									;-- T_CMT
 	]
 
 	scan-tokens: func [

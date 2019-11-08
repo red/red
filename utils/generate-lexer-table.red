@@ -96,6 +96,7 @@ context [
 		T_EMAIL							;-- 81
 		T_PATH							;-- 82
 		T_HEX							;-- 83
+		T_CMT							;-- 84
 	]
 	
 	date-states: [

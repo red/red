@@ -83,6 +83,7 @@ T_URL
 T_EMAIL
 T_PATH
 T_HEX
+T_CMT
 
 
 C_BLANK     : space, tab, cr
@@ -148,7 +149,7 @@ alphaU: A, B, C, D, F
 S_START->ws->S_START
          
 S_START->";"->S_LINE_CMT->not(lf)->S_LINE_CMT
-               \->lf->S_START
+               \->lf->T_CMT
 
 S_START->"["->T_BLK_OP
 S_START->"]"->T_BLK_CL
