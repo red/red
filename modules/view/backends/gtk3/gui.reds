@@ -822,6 +822,8 @@ change-pane: func [
 	type		[integer!]
 	/local
 		layout	[handle!]
+		win		[handle!]
+		focus	[handle!]
 		list	[GList!]
 		child	[GList!]
 		s		[series!]
@@ -852,6 +854,8 @@ change-pane: func [
 	]
 
 	unless null? layout [
+		win: gtk_widget_get_toplevel parent
+		focus: gtk_window_get_focus win
 		list: gtk_container_get_children layout
 		child: list
 		while [not null? child][
@@ -885,6 +889,7 @@ change-pane: func [
 		unless null? list [
 			g_list_free list
 		]
+		gtk_widget_grab_focus focus
 	]
 ]
 
@@ -1321,7 +1326,7 @@ init-combo-box: func [
 	combo		[handle!]
 	data		[red-block!]
 	caption		[c-string!]
-	drop-list?	[logic!] ;to remove if unused
+	drop-list?	[logic!]
 	/local
 		str		[red-string!]
 		tail	[red-string!]
@@ -1338,13 +1343,11 @@ init-combo-box: func [
 		tail: as red-string! block/rs-tail data
 
 		size: block/rs-length? data
-		;; DEBUG: print ["combo-size: " size lf]
 
 		;remove all items
 		gtk_combo_box_text_remove_all combo
 
 		if str = tail [exit]
-
 		while [str < tail][
 			if TYPE_OF(str) = TYPE_STRING [
 				len: -1
@@ -1354,17 +1357,6 @@ init-combo-box: func [
 			str: str + 1
 		]
 	]
-
-	;len: objc_msgSend [combo sel_getUid "numberOfItems"]
-	;if zero? len [objc_msgSend [combo sel_getUid "setStringValue:" NSString("")]]
-
-	;either drop-list? [
-	;	objc_msgSend [combo sel_getUid "setEditable:" false]
-	;][
-	;	if caption <> 0 [
-	;		objc_msgSend [combo sel_getUid "setStringValue:" caption]
-	;	]
-	;]
 ]
 
 remove-entry: func [
