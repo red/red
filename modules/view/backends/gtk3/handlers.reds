@@ -311,6 +311,21 @@ window-size-allocate: func [
 	]
 ]
 
+widget-realize: func [
+	[cdecl]
+	evbox		[handle!]
+	widget		[handle!]
+	/local
+		cursor	[handle!]
+		win		[handle!]
+][
+	cursor: GET-CURSOR(widget)
+	unless null? cursor [
+		win: gtk_widget_get_window widget
+		gdk_window_set_cursor win cursor
+	]
+]
+
 range-value-changed: func [
 	[cdecl]
 	range		[handle!]
@@ -501,7 +516,7 @@ focus-in-event: func [
 		int		[red-integer!]
 		sym		[integer!]
 ][
-	if evbox <> gtk_get_event_widget event [return EVT_NO_DISPATCH]
+	if evbox <> gtk_get_event_widget event [return EVT_DISPATCH]
 	face: get-face-obj widget
 	values: object/get-values face
 	type: as red-word! values + FACE_OBJ_TYPE
@@ -509,6 +524,7 @@ focus-in-event: func [
 	sym: symbol/resolve type/symbol
 	change-selection widget int sym
 	make-event widget 0 EVT_FOCUS
+	EVT_DISPATCH
 ]
 
 focus-out-event: func [
@@ -523,12 +539,13 @@ focus-out-event: func [
 		type	[red-word!]
 		sym		[integer!]
 ][
-	if evbox <> gtk_get_event_widget event [return EVT_NO_DISPATCH]
+	if evbox <> gtk_get_event_widget event [return EVT_DISPATCH]
 	face: get-face-obj widget
 	values: object/get-values face
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
 	make-event widget 0 EVT_UNFOCUS
+	EVT_DISPATCH
 ]
 
 area-changed: func [

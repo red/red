@@ -137,6 +137,18 @@ symbol: context [
 		as red-symbol! s/offset + id - 1
 	]
 	
+	get-c-string: func [
+		id		[integer!]
+		return:	[c-string!]
+		/local
+			sym	[red-symbol!]
+			s	[series!]
+	][
+		sym: get id
+		s: as series! sym/node/value
+		as c-string! s/offset
+	]
+
 	resolve: func [
 		id		[integer!]
 		return:	[integer!]

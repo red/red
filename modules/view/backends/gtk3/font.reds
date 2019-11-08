@@ -640,7 +640,11 @@ set-font: func [
 		]
 		sym = group-box [
 			label: gtk_frame_get_label_widget widget
-			set-label-attrs label font hFont
+			either null? label [
+				apply-css-styles widget css
+			][
+				set-label-attrs label font hFont
+			]
 		]
 		true [
 			apply-css-styles widget css
