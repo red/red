@@ -56,25 +56,28 @@ lexer: context [
 		C_COLON											;-- 13
 		C_X												;-- 14
 		C_T												;-- 15
-		C_EXP											;-- 16
-		C_ALPHAX										;-- 17
-		C_SLASH											;-- 18
-		C_BSLASH										;-- 19
-		C_LESSER										;-- 20
-		C_GREATER										;-- 21
-		C_PERCENT										;-- 22
-		C_COMMA											;-- 23
-		C_SEMICOL										;-- 24
-		C_AT											;-- 25
-		C_DOT											;-- 26
-		C_MONEY											;-- 27
-		C_PLUS											;-- 28
-		C_MINUS											;-- 29
-		C_CARET											;-- 30
-		C_BIN											;-- 31
-		C_WORD											;-- 32
-		C_ILLEGAL										;-- 33
-		C_EOF											;-- 34
+		C_H												;-- 16
+		C_E_LOW											;-- 17
+		C_E_UP											;-- 18
+		C_ALPHAL										;-- 19
+		C_ALPHAU										;-- 20
+		C_SLASH											;-- 21
+		C_BSLASH										;-- 22
+		C_LESSER										;-- 23
+		C_GREATER										;-- 24
+		C_PERCENT										;-- 25
+		C_COMMA											;-- 26
+		C_SEMICOL										;-- 27
+		C_AT											;-- 28
+		C_DOT											;-- 29
+		C_MONEY											;-- 30
+		C_PLUS											;-- 31
+		C_MINUS											;-- 32
+		C_CARET											;-- 33
+		C_BIN											;-- 34
+		C_WORD											;-- 35
+		C_ILLEGAL										;-- 36
+		C_EOF											;-- 37
 	]
 	
 	#enum date-char-classes! [
@@ -110,17 +113,19 @@ lexer: context [
 	]
 	
 	line-table: #{
-		000100000000000000000000000000000000000000000000000000000000000000
+		0001000000000000000000000000000000000000000000000000000000000000
+		000000000000
 	}
 	
 	skip-table: #{
 		0101000000000000000000000000000000000000000000000000000000000000
 		0000000000000000000000000000000000000000000000000000000000000000
-		0000000000000000000000000000000000
+		0000000000000000000000000000000000000000
 	}
 
 	path-ending: #{
-		010100000101010101000100000100000000000000010001000000000000000001
+		0101000001010101010001000001000000000000000000010000000100000000
+		000000000101
 	}
 	
 	bin16-classes: #{
@@ -240,9 +245,9 @@ lexer: context [
 		C_GREATER										;-- 3E		>
 		C_WORD											;-- 3F		?
 		C_AT											;-- 40		@
-		C_ALPHAX C_ALPHAX C_ALPHAX C_ALPHAX			 	;-- 41-44	A-D
-		(C_EXP or C_FLAG_EXP)							;-- 45		E
-		C_ALPHAX										;-- 46		F
+		C_ALPHAU C_ALPHAU C_ALPHAU C_ALPHAU			 	;-- 41-44	A-D
+		(C_E_UP or C_FLAG_EXP)							;-- 45		E
+		C_ALPHAU										;-- 46		F
 		C_WORD C_WORD C_WORD C_WORD C_WORD C_WORD 		;-- 47-4C	G-L
 		C_WORD C_WORD C_WORD C_WORD C_WORD C_WORD 		;-- 4D-52	M-R
 		C_WORD											;-- 53		S
@@ -256,10 +261,12 @@ lexer: context [
 		(C_CARET or C_FLAG_CARET)						;-- 5E		^
 		C_WORD											;-- 5F		_
 		C_WORD											;-- 60		`
-		C_ALPHAX C_ALPHAX C_ALPHAX C_ALPHAX			 	;-- 61-64	a-d
-		(C_EXP or C_FLAG_EXP)							;-- 65		e
-		C_ALPHAX										;-- 66		f
-		C_WORD C_WORD C_WORD C_WORD C_WORD C_WORD 		;-- 67-6C	g-l
+		C_ALPHAL C_ALPHAL C_ALPHAL C_ALPHAL			 	;-- 61-64	a-d
+		(C_E_LOW or C_FLAG_EXP)							;-- 65		e
+		C_ALPHAL										;-- 66		f
+		C_WORD											;-- 67		g
+		C_H												;-- 68		h
+		C_WORD C_WORD C_WORD C_WORD 					;-- 69-6C	i-l
 		C_WORD C_WORD C_WORD C_WORD C_WORD C_WORD 		;-- 6D-72	m-r
 		C_WORD C_WORD C_WORD C_WORD C_WORD 				;-- 73-77	s-w
 		C_X												;-- 78		x
@@ -681,7 +688,7 @@ lexer: context [
 			either char-names-1st/pos and bit = null-byte [ ;-- hex escaped char @@ "e" as 1st!
 				p: s + 1
 				c: 0
-				cb: as byte! 0
+				cb: null-byte
 				while [all [p/1 <> #")" p < e]][
 					index: 1 + as-integer p/1			;-- converts the 2 hex chars using a lookup table
 					cb: hexa-table/index				;-- decode one nibble at a time
@@ -835,7 +842,7 @@ lexer: context [
 								index: as-integer p/1
 								class: lex-classes/index and FFh ;-- mask the flags
 								switch class [
-									C_DIGIT C_ZERO C_ALPHAX C_EXP [0]
+									C_DIGIT C_ZERO C_ALPHAU C_ALPHAL C_E_UP C_E_LOW [0]
 									default [w?: yes]	;-- early exit if not an hex value
 								]
 								p: p + 1
@@ -1455,6 +1462,29 @@ lexer: context [
 		]
 	]
 	
+	scan-hex: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+		/local
+			int	  [red-integer!]
+			index [integer!]
+			i	  [integer!]
+			cb	  [byte!]
+	][
+		i: 0
+		cb: null-byte
+		while [s < e][
+			index: 1 + as-integer s/1					;-- converts the 2 hex chars using a lookup table
+			cb: hexa-table/index						;-- decode one nibble at a time
+			assert cb <> #"^(FF)"
+			i: i << 4 + as-integer cb
+			s: s + 1
+		]
+		assert all [s = e s/1 = #"h"]
+		int: as red-integer! alloc-slot lex
+		set-type as cell! int TYPE_INTEGER
+		int/value: i
+		lex/in-pos: e + 1								;-- skip h
+	]
+	
 	scanners: [
 		:scan-eof										;-- T_EOF
 		:scan-error										;-- T_ERROR
@@ -1486,6 +1516,7 @@ lexer: context [
 		:scan-url										;-- T_URL
 		:scan-email										;-- T_EMAIL
 		:scan-path-open									;-- T_PATH
+		:scan-hex										;-- T_HEX
 	]
 
 	scan-tokens: func [
@@ -1533,7 +1564,7 @@ lexer: context [
 				index: state * (size? character-classes!) + C_EOF
 				state: as-integer transitions/index
 			]
-			assert state <= T_PATH
+			assert state <= T_HEX
 			assert start + offset <= p
 			
 			lex/in-pos: p

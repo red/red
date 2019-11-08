@@ -101,8 +101,11 @@ C_QUOTE     : '
 C_COLON     : :
 C_X         : x, X
 C_T         : T
-C_EXP       : e, E
-C_ALPHAX    : a-d,f, A-D,F
+C_H         : h
+C_E_LOW     : e
+C_E_UP      : E
+C_ALPHAL    : a-d,f
+C_ALPHAU    : A-D,F
 C_SLASH     : /
 C_BSLASH    : \
 C_LESSER    : <
@@ -234,9 +237,9 @@ S_START->digit->S_NUMBER->digit|"'"->S_NUMBER
                                                 \
                                                  \->"#"->S_SHARP
                                                   \->"@"->S_EMAIL
-                                                   \->"e"|"E"->S_DECIMAL
+                                                   \->"e"->S_DECIMAL
                                                     \->"E"->S_DECX->digit->S_DECX
-                                                     \       \->alphaU->S_HEX
+                                                     \       \->alphaU|"E"->S_HEX
                                                       \       \->"h"->T_HEX
                                                        \       \->delimit11->T_FLOAT
                                                         \->alphaU->S_HEX
