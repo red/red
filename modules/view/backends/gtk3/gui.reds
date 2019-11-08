@@ -482,10 +482,6 @@ on-gc-mark: does [
 	collector/keep flags-blk/node
 ]
 
-show-gtk-version: func [][
-	print [ "GTK VERSION: " gtk_get_major_version "." gtk_get_minor_version "." gtk_get_micro_version lf]
-]
-
 parse-font-name: func [
 	str			[c-string!]
 	psize		[int-ptr!]
@@ -633,8 +629,23 @@ find-last-window: func [
 	]
 ]
 
+get-os-version: func [
+	/local
+		major	[integer!]
+		minor	[integer!]
+		micro	[integer!]
+		ver		[red-tuple!]
+][
+	major: gtk_get_major_version
+	minor: gtk_get_minor_version
+	micro: gtk_get_micro_version
+	ver: as red-tuple! #get system/view/platform/version
+	ver/header: TYPE_TUPLE or (3 << 19)
+	ver/array1: micro << 16 or (minor << 8) or major
+]
+
 init: func [][
-	show-gtk-version
+	get-os-version
 	gtk_disable_setlocale
 	gtk_init null null
 
