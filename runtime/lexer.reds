@@ -1436,6 +1436,29 @@ lexer: context [
 		lex/in-pos: e + 1								;-- skip /
 	]
 	
+	scan-hex: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+		/local
+			int	  [red-integer!]
+			index [integer!]
+			i	  [integer!]
+			cb	  [byte!]
+	][
+		i: 0
+		cb: null-byte
+		while [s < e][
+			index: 1 + as-integer s/1					;-- converts the 2 hex chars using a lookup table
+			cb: hexa-table/index						;-- decode one nibble at a time
+			assert cb <> #"^(FF)"
+			i: i << 4 + as-integer cb
+			s: s + 1
+		]
+		assert all [s = e s/1 = #"h"]
+		int: as red-integer! alloc-slot lex
+		set-type as cell! int TYPE_INTEGER
+		int/value: i
+		lex/in-pos: e + 1								;-- skip h
+	]
+	
 	scan-path-item: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
 			type	[integer!]
@@ -1461,30 +1484,7 @@ lexer: context [
 			lex/in-pos: e + 1							;-- skip /
 		]
 	]
-	
-	scan-hex: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
-		/local
-			int	  [red-integer!]
-			index [integer!]
-			i	  [integer!]
-			cb	  [byte!]
-	][
-		i: 0
-		cb: null-byte
-		while [s < e][
-			index: 1 + as-integer s/1					;-- converts the 2 hex chars using a lookup table
-			cb: hexa-table/index						;-- decode one nibble at a time
-			assert cb <> #"^(FF)"
-			i: i << 4 + as-integer cb
-			s: s + 1
-		]
-		assert all [s = e s/1 = #"h"]
-		int: as red-integer! alloc-slot lex
-		set-type as cell! int TYPE_INTEGER
-		int/value: i
-		lex/in-pos: e + 1								;-- skip h
-	]
-	
+
 	scanners: [
 		:scan-eof										;-- T_EOF
 		:scan-error										;-- T_ERROR
