@@ -738,10 +738,7 @@ lexer: context [
 		p
 	]
 
-	scan-eof: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]][
-		assert false									;-- should not happen (for now)
-		null
-	]
+	scan-eof: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]][]
 	
 	scan-error: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]][
 		throw-error lex s e ERR_BAD_CHAR
