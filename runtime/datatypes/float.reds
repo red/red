@@ -88,12 +88,16 @@ float: context [
 		/local
 			s		[c-string!]
 			s0		[c-string!]
+			p0		[c-string!]
+			p		[c-string!]
+			p1		[c-string!]
+			dot?	[logic!]
 			d		[int64!]
 			w0		[integer!]
-			n		[integer!]
 			temp	[float!]
+			tried?	[logic!]
+			pretty? [logic!]
 			percent? [logic!]
-			add-0?	[logic!]
 	][
 		d: as int64! :f
 		w0: d/int2												;@@ Use little endian. Watch out big endian !
@@ -109,35 +113,114 @@ float: context [
 		]
 
 		percent?: any [type = FORM_PERCENT type = FORM_PERCENT_32]
-		add-0?: any [type = FORM_FLOAT_64 type = FORM_FLOAT_32]
-
 		if pretty-print? [
 			temp: abs f
 			if temp < DBL_EPSILON [return either percent? ["0%"]["0.0"]]
 		]
 
-		n: case [
-			any [
-				type = FORM_FLOAT_32
-				type = FORM_PERCENT_32
-				type = FORM_TIME
-			][7]
-			type = FORM_PERCENT [13]
-			true [0]
+		s: "0000000000000000000000000000000"					;-- 32 bytes wide, big enough.
+		case [
+			any [type = FORM_FLOAT_32 type = FORM_PERCENT_32][
+				sprintf [s "%.7g" f]
+			]
+			type = FORM_TIME [									;-- microsecond precision
+				s: dtoa/form-float f 6 no
+			]
+			type = FORM_PERCENT [
+				sprintf [s "%.13g" f]
+			]
+			true [
+				s/17: #"0"
+				s/18: #"0"
+				sprintf [s "%.16g" f]
+			]
 		]
-		s: red-dtoa/form-float f n add-0?
 
-		if percent? [
-			s0: s
+		tried?: no
+		s0: s
+		until [
+			p:    null
+			p1:   null
+			dot?: no
+
 			until [
+				if s/1 = #"." [dot?: yes]
+				if s/1 = #"e" [
+					p: s
+					until [
+						s: s + 1
+						s/1 > #"0"
+					]
+					p1: s
+				]
 				s: s + 1
 				s/1 = #"^@"
 			]
+
+			if pretty-print? [									;-- prettify output if needed
+				pretty?: no
+				either p = null [								;-- No "E" notation
+					w0: as-integer s - s0
+					if w0 > 16 [
+						p0: either s0/1 = #"-" [s0 + 1][s0]
+						if any [
+							p0/1 <> #"0"
+							all [p0/1 = #"0" w0 > 17]
+						][
+							p0: s - 2
+							pretty?: yes
+						]
+					]
+				][
+					if (as-integer p - s0) > 16 [				;-- the number of digits = 16
+						p0: p - 2
+						pretty?: yes
+					]
+				]
+
+				if all [pretty? not tried?][
+					if any [									;-- correct '01' or '99' pattern
+						all [p0/2 = #"1" p0/1 = #"0"]
+						all [p0/2 = #"9" p0/1 = #"9"]
+					][
+						tried?: yes
+						s: case [
+							type = FORM_FLOAT_32 ["%.5g"]
+							type = FORM_TIME	 ["%.5g"]
+							true				 ["%.14g"]
+						]
+						sprintf [s0 s f]
+						s: s0
+					]
+				]
+			]
+			s0 <> s
+		]
+
+		if p1 <> null [											;-- remove #"+" and leading zero
+			p0: p
+			either p/2 = #"-" [p: p + 2][p: p + 1]
+			move-memory as byte-ptr! p as byte-ptr! p1 as-integer s - p1
+			s: p + as-integer s - p1
+			s/1: #"^@"
+			p: p0
+		]
+		either percent? [
 			s/1: #"%"
 			s/2: #"^@"
-			s: s0
+		][
+			if all [not dot? type <> FORM_TIME][				;-- added tailing ".0"
+				either p = null [
+					p: s
+				][
+					move-memory as byte-ptr! p + 2 as byte-ptr! p as-integer s - p
+				]
+				p/1: #"."
+				p/2: #"0"
+				s/3: #"^@"
+			]
 		]
-		s
+		s0
 	]
 
 	do-math-op: func [
@@ -516,10 +599,14 @@ float: context [
 		part 	[integer!]
 		indent	[integer!]		
 		return: [integer!]
+		/local
+			s	[c-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "float/mold"]]
 
-		form fl buffer arg part
+		s: dtoa/form-float fl/value 0 yes
+		string/concatenate-literal buffer s
+		part - length? s							;@@ optimize by removing length?
 	]
 
 	NaN?: func [

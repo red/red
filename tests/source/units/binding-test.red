@@ -101,5 +101,7 @@
 	--test-- "#581"
 		--assert 1 = do load {S: 1 S}
 
+===end-group===
+
 ~~~end-file~~~
 

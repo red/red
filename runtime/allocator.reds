@@ -15,6 +15,8 @@ Red/System [
 	COLLECTOR_RELEASE						;-- will release empty frames to OS
 ]
 
+#define SERIES_BUFFER_PADDING	4
+
 int-array!: alias struct! [ptr [int-ptr!]]
 
 ;-- cell header bits layout --
@@ -455,7 +457,7 @@ update-series: func [
 		s/node/value: as-integer s			;-- update the node pointer to the new series address
 		s/offset: as cell! (as byte-ptr! s/offset) - offset	;-- update offset and tail pointers
 		s/tail:   as cell! (as byte-ptr! s/tail) - offset
-		s: as series! (as byte-ptr! s + 1) + s/size
+		s: as series! (as byte-ptr! s + 1) + s/size + SERIES_BUFFER_PADDING
 		tail <= as byte-ptr! s
 	]
 ]
@@ -495,7 +497,7 @@ compact-series-frame: func [
 			;probe ["search live from: " s]
 			free-node s/node
 			while [							;-- search for a live series
-				s: as series! (as byte-ptr! s + 1) + s/size
+				s: as series! (as byte-ptr! s + 1) + s/size + SERIES_BUFFER_PADDING
 				tail?: s >= heap
 				mark?: s/flags and flag-gc-mark <> 0
 				not any [mark? tail?]
@@ -509,7 +511,7 @@ compact-series-frame: func [
 			;probe ["search gap from: " s]
 			until [							;-- search for a gap
 				s/flags: s/flags and not flag-gc-mark	;-- clear mark flag
-				s: as series! (as byte-ptr! s + 1) + s/size
+				s: as series! (as byte-ptr! s + 1) + s/size + SERIES_BUFFER_PADDING
 				tail?: s >= heap
 				any [s/flags and flag-gc-mark = 0 tail?]
 			]
@@ -526,7 +528,7 @@ compact-series-frame: func [
 				
 				if refs < tail [			;-- update pointers on native stack
 					while [all [refs < tail (as byte-ptr! refs/1) < src]][refs: refs + 2]
-					while [all [refs < tail (as byte-ptr! refs/1) <= (src + size)]][
+					while [all [refs < tail (as byte-ptr! refs/1) < (src + size)]][
 						ptr: as int-ptr! refs/2
 						ptr/value: ptr/value - delta
 						refs: refs + 2
@@ -594,7 +596,7 @@ cross-compact-frame: func [
 			if dst = null [dst: as byte-ptr! s]
 			free-node s/node
 			while [							;-- search for a live series
-				s: as series! (as byte-ptr! s + 1) + s/size
+				s: as series! (as byte-ptr! s + 1) + s/size + SERIES_BUFFER_PADDING
 				tail?: s >= heap
 				mark?: s/flags and flag-gc-mark <> 0
 				not any [mark? tail?]
@@ -608,9 +610,9 @@ cross-compact-frame: func [
 			until [							;-- search for a gap
 				s/flags: s/flags and not flag-gc-mark	;-- clear mark flag
 				size2: size
-				size: size + s/size + size? series-buffer!
+				size: SERIES_BUFFER_PADDING + size + s/size + size? series-buffer!
 				ss: s						;-- save previous series pointer
-				s: as series! (as byte-ptr! s + 1) + s/size
+				s: as series! (as byte-ptr! s + 1) + s/size + SERIES_BUFFER_PADDING
 				tail?: s >= heap
 				any [
 					all [cross? size >= free-sz]
@@ -657,7 +659,7 @@ cross-compact-frame: func [
 				update-series as series! dst2 delta size
 				if refs < tail [			;-- update pointers on native stack
 					while [all [refs < tail (as byte-ptr! refs/1) < src]][refs: refs + 2]
-					while [all [refs < tail (as byte-ptr! refs/1) <= (src + size)]][
+					while [all [refs < tail (as byte-ptr! refs/1) < (src + size)]][
 						ptr: as int-ptr! refs/2
 						ptr/value: ptr/value - delta
 						refs: refs + 2
@@ -687,7 +689,7 @@ in-range?: func [
 ][
 	frm: memory/s-head
 	until [
-		if all [(as int-ptr! frm + 1) <= p p <= as int-ptr! frm/tail][return yes]
+		if all [(as int-ptr! frm + 1) <= p p < as int-ptr! frm/tail][return yes]
 		frm: frm/next
 		frm = null
 	]
@@ -824,7 +826,7 @@ collect-frames: func [
 		until [
 			either s/flags and flag-gc-mark = 0 [prin "x "][prin "o "]
 			probe [s ": unit=" GET_UNIT(s) " size=" s/size]
-			s: as series! (as byte-ptr! s + 1) + s/size
+			s: as series! (as byte-ptr! s + 1) + s/size + SERIES_BUFFER_PADDING
 			s >= heap
 		]
 
@@ -861,7 +863,7 @@ collect-frames: func [
 				dump4 s
 				halt
 			]
-			s: as series! (as byte-ptr! s + 1) + s/size
+			s: as series! (as byte-ptr! s + 1) + s/size + SERIES_BUFFER_PADDING
 		]
 
 	]
@@ -899,7 +901,9 @@ alloc-series-buffer: func [
 	size: round-to usize * unit size? cell!	;-- size aligned to cell! size
 
 	frame: memory/s-active
-	sz: size + size? series-buffer!			;-- add series header size
+	;-- add series header size + (extra padding 4 bytes)
+	;-- extra space between two adjacent series-buffer!s (ensure s1/tail <> s2)
+	sz: SERIES_BUFFER_PADDING + size + size? series-buffer!
 	flag-big: 0
 	
 	either sz >= memory/s-max [				;-- alloc a big frame if too big for series frames
@@ -1102,7 +1106,7 @@ free-series: func [
 	series/flags: series/flags and series-free-mask		  ;-- clear 'used bit (enough to free the series)
 	
 	if frame/heap = as series-buffer! (		;-- test if series is on top of heap
-		(as byte-ptr! node/value) +  series/size + size? series-buffer!
+		(as byte-ptr! series) + SERIES_BUFFER_PADDING + series/size + size? series-buffer!
 	) [
 		frame/heap: series					;-- cheap collecting of last allocated series
 	]
