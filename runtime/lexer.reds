@@ -1571,7 +1571,7 @@ lexer: context [
 				index: state * (size? character-classes!) + C_EOF
 				state: as-integer transitions/index
 			]
-			assert state <= T_HEX
+			assert state <= T_CMT
 			assert start + offset <= p
 			
 			lex/in-pos: p
