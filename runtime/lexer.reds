@@ -946,9 +946,12 @@ lexer: context [
 	
 	scan-mstring-close: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]][
 		lex/mstr-nest: lex/mstr-nest - 1
-		if zero? lex/mstr-nest [
+
+		either zero? lex/mstr-nest [
 			scan-string lex lex/mstr-s e lex/mstr-flags or flags
 			lex/entry: S_START
+		][
+			if e + 1 = lex/in-end [throw-error lex s e TYPE_STRING]
 		]
 		lex/in-pos: e + 1								;-- skip }
 	]
