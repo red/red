@@ -1184,7 +1184,7 @@ lexer: context [
 		err: 0
 		fl: as red-float! alloc-slot lex
 		set-type as cell! fl TYPE_FLOAT
-		fl/value: red-dtoa/string-to-float s e :err
+		fl/value: dtoa/to-float s e :err
 		if err <> 0 [throw-error lex s e TYPE_FLOAT]
 		lex/in-pos: e									;-- reset the input position to delimiter byte
 	]
