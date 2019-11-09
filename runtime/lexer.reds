@@ -1149,7 +1149,7 @@ lexer: context [
 				]
 			][											;-- process with quote(s)
 				loop len [
-					if e/1 <> #"'" [
+					if p/1 <> #"'" [
 						i: 10 * i + as-integer (p/1 - #"0")
 						o?: o? or system/cpu/overflow?
 					]
