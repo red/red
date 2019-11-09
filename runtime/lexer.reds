@@ -436,7 +436,7 @@ lexer: context [
 			deltaT [integer!]
 	][
 		size: lex/slots
-		if lex/head + size <= lex/tail [
+		if lex/buffer + size <= lex/tail [
 			deltaH: (as-integer lex/head - lex/buffer) >> 4
 			deltaT: (as-integer lex/tail - lex/buffer) >> 4
 			lex/slots: size * 2
@@ -452,7 +452,7 @@ lexer: context [
 		slot: lex/tail
 		slot/header: TYPE_UNSET
 		if lex/nline > 0 [slot/header: slot/header or flag-new-line]
-		lex/tail: lex/tail + 1
+		lex/tail: slot + 1
 		slot
 	]
 	
