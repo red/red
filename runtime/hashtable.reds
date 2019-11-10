@@ -1303,7 +1303,7 @@ _hashtable: context [
 			hash [integer!] n-buckets [integer!] flags [int-ptr!] ii [integer!]
 			sh [integer!] blk [red-symbol!] idx [integer!] del? [logic!] k [red-symbol!]
 			vsize [integer!] blk-node [series!] find? [logic!] xx [integer!] new? [logic!]
-			len2 [integer!] strict? [logic!]
+			len2 [integer!] strict? [logic!] p [byte-ptr!]
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -1381,10 +1381,13 @@ _hashtable: context [
 		blk: as red-symbol! blk-node/offset
 
 		k/header: TYPE_UNSET
-		node: alloc-bytes len
+		node: alloc-bytes len + 1		;-- add NUL bytes to make it compatible with C string
 		s: as series! node/value
-		copy-memory as byte-ptr! s/offset cstr len
-		s/tail: as red-value! (as byte-ptr! s/offset) + len
+		p: as byte-ptr! s/offset
+		copy-memory p cstr len
+		p: p + len
+		p/1: null-byte
+		s/tail: as red-value! p
 		k/cache: node
 		k/node: null
 		k/alias: len2

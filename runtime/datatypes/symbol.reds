@@ -32,24 +32,6 @@ symbol: context [
 			sym/node: unicode/load-utf8 as c-string! s/offset as-integer s/tail - s/offset
 		]
 	]
-	
-	;internalize: func [
-	;	src		 [c-string!]
-	;	return:  [node!]
-	;	/local
-	;		node [node!]
-	;		dst  [c-string!]
-	;		s	 [series!]
-	;		len	 [integer!]
-	;][
-	;	len: 1 + length? src
-	;	node: alloc-bytes len 							;@@ TBD: mark this buffer as protected!
-	;	s: as series! node/value
-	;	dst: as c-string! s/offset
-		
-	;	copy-memory as byte-ptr! dst as byte-ptr! src len
-	;	node
-	;]
 
 	make-alt: func [
 		str 	[red-string!]
