@@ -2095,21 +2095,6 @@ natives: context [
 			TYPE_OBJECT [--NOT_IMPLEMENTED--]
 		]
 	]
-	
-	recycle*: func [
-		check? [logic!]
-		on?    [integer!]
-		off?   [integer!]
-	][
-		#typecheck [on? off?]
-		
-		case [
-			on?  > -1 [collector/active?: yes]
-			off? > -1 [collector/active?: no]
-			true	  [collector/do-mark-sweep]
-		]
-		unset/push-last
-	]
 
 	to-local-file*: func [
 		check? [logic!]
@@ -2726,6 +2711,42 @@ natives: context [
 		if res <> 0 [fire [TO_ERROR(script invalid-data)]]
 		s/tail: as cell! (buf + dstlen)
 		stack/set-last as red-value! dst
+	]
+	
+	
+	recycle*: func [
+		check? [logic!]
+		on?    [integer!]
+		off?   [integer!]
+	][
+		#typecheck [on? off?]
+
+		case [
+			on?  > -1 [collector/active?: yes]
+			off? > -1 [collector/active?: no]
+			true	  [collector/do-mark-sweep]
+		]
+		unset/push-last
+	]
+	
+	transcode*: func [
+		check? [logic!]
+		one?   [logic!]
+		only?  [logic!]
+		trap?  [logic!]
+		part?  [logic!]
+		into?  [logic!]
+		/local
+			bin	 [red-binary!]
+			slot [red-value!]
+	][
+		#typecheck [one? only? part?]
+		
+		bin: as red-binary! stack/arguments
+		slot: stack/push*
+		lexer/scan slot binary/rs-head bin binary/rs-length? bin
+
+		stack/set-last slot
 	]
 
 	;--- Natives helper functions ---
@@ -3345,6 +3366,7 @@ natives: context [
 			:compress*
 			:decompress*
 			:recycle*
+			:transcode*
 		]
 	]
 

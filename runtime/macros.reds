@@ -247,6 +247,7 @@ Red/System [
 	NAT_COMPRESS
 	NAT_DECOMPRESS
 	NAT_RECYCLE
+	NAT_TRANSCODE
 ]
 
 #enum math-op! [
