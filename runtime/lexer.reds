@@ -1096,7 +1096,10 @@ lexer: context [
 			cell [cell!]
 			type [integer!]
 	][
-		type: either s/1 = #"#" [TYPE_ISSUE][assert s/1 = #"/" TYPE_REFINEMENT]
+		type: either s/1 = #"#" [TYPE_ISSUE][
+			assert s/1 = #"/"
+			either s + 1 = e [s: s - 1 TYPE_WORD][TYPE_REFINEMENT]
+		]
 		s: s + 1
 		cell: alloc-slot lex
 		word/make-at symbol/make-alt-utf8 s as-integer e - s cell
