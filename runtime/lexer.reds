@@ -65,19 +65,20 @@ lexer: context [
 		C_BSLASH										;-- 22
 		C_LESSER										;-- 23
 		C_GREATER										;-- 24
-		C_PERCENT										;-- 25
-		C_COMMA											;-- 26
-		C_SEMICOL										;-- 27
-		C_AT											;-- 28
-		C_DOT											;-- 29
-		C_MONEY											;-- 30
-		C_PLUS											;-- 31
-		C_MINUS											;-- 32
-		C_CARET											;-- 33
-		C_BIN											;-- 34
-		C_WORD											;-- 35
-		C_ILLEGAL										;-- 36
-		C_EOF											;-- 37
+		C_EQUAL											;-- 25
+		C_PERCENT										;-- 26
+		C_COMMA											;-- 27
+		C_SEMICOL										;-- 28
+		C_AT											;-- 29
+		C_DOT											;-- 30
+		C_MONEY											;-- 31
+		C_PLUS											;-- 32
+		C_MINUS											;-- 33
+		C_CARET											;-- 34
+		C_BIN											;-- 35
+		C_WORD											;-- 36
+		C_ILLEGAL										;-- 37
+		C_EOF											;-- 38
 	]
 	
 	#enum date-char-classes! [
@@ -114,7 +115,7 @@ lexer: context [
 	
 	line-table: #{
 		0001000000000000000000000000000000000000000000000000000000000000
-		000000000000
+		0000000000000000
 	}
 	
 	skip-table: #{
@@ -124,8 +125,8 @@ lexer: context [
 	}
 
 	path-ending: #{
-		0101000001010101010001000001000000000000000000010000000100000000
-		000000000101
+		0101000001010101010001000001000000000000000000010000000001000000
+		00000000000101
 	}
 	
 	bin16-classes: #{
@@ -241,7 +242,7 @@ lexer: context [
 		(C_COLON or C_FLAG_COLON)						;-- 3A		:
 		C_SEMICOL										;-- 3B		;
 		C_LESSER										;-- 3C		<
-		C_WORD											;-- 3D		=
+		C_EQUAL											;-- 3D		=
 		C_GREATER										;-- 3E		>
 		C_WORD											;-- 3F		?
 		C_AT											;-- 40		@
@@ -1622,8 +1623,8 @@ lexer: context [
 		
 		scan-tokens lex
 
-		slots: (as-integer lex/tail - lex/head) >> 4
-		store-any-block dst lex/head slots TYPE_BLOCK
+		slots: (as-integer lex/tail - lex/buffer) >> 4
+		store-any-block dst lex/buffer slots TYPE_BLOCK
 		
 		depth: depth - 1
 		if zero? depth [root-state: null]

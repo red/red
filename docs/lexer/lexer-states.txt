@@ -114,6 +114,7 @@ C_SLASH     : /
 C_BSLASH    : \
 C_LESSER    : <
 C_GREATER   : >
+C_EQUAL     : =
 C_PERCENT   : %
 C_COMMA     : ,
 C_SEMICOL   : ;
@@ -265,8 +266,8 @@ S_START->"."->S_DOTWORD->digit->S_DOTDEC->digit|"e"|"E"|"+"|"-"|"'"->S_DOTDEC
 
 
 S_START->"<"->S_LESSER
-               \->delimit1|">"->T_WORD
-                \->"<"->T_ERROR
+               \->delimit1->T_WORD
+                \->">"|"<"|"="->S_WORD
                  \->else->S_TAG
                            \->dbl-quote->S_TAG_STR->not("^"|dbl-quote)->S_TAG_STR
                             \              \->"^"->S_SKIP_STR2->*->S_TAG_STR
