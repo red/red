@@ -421,11 +421,14 @@ lexer: context [
 	]
 	
 	mark-buffers: func [/local s [state!]][
-		s: root-state
-		until [
-			collector/mark-values s/buffer s/tail
-			s: s/next
-			null? s
+		if root-state <> null [
+			s: root-state
+			until [
+				assert s/buffer < s/tail
+				collector/mark-values s/buffer s/tail
+				s: s/next
+				null? s
+			]
 		]
 	]
 	
