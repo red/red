@@ -387,17 +387,21 @@ _hashtable: context [
 			h	[hashtable!]
 			ss	[series!]
 			hh	[hashtable!]
+			b	[node!]
+			k	[node!]
+			a	[logic!]
 	][
 		s: as series! ctx/symbols/value
 		h: as hashtable! s/offset
 
 		ss: as series! node/value
 		hh: as hashtable! ss/offset
-
 		copy-memory as byte-ptr! hh as byte-ptr! h size? hashtable!
-		hh/blk: copy-series as series! h/blk/value
+		b: copy-series as series! h/blk/value
+		hh/blk: b
+		k: copy-series as series! h/keys/value
+		hh/keys: k
 		hh/flags: copy-series as series! h/flags/value
-		hh/keys: copy-series as series! h/keys/value
 
 		node
 	]
