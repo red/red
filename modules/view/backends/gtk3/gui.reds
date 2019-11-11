@@ -1763,7 +1763,6 @@ OS-make-view: func [
 	assert TYPE_OF(face) = TYPE_OBJECT
 	store-face-to-obj widget face
 	make-styles-provider widget
-	change-font widget face values
 
 	if all [
 		sym = panel
@@ -1807,7 +1806,7 @@ OS-make-view: func [
 	connect-widget-events widget values sym
 
 	change-selection widget selected sym
-	change-para widget face para font sym
+	change-font widget face values
 	change-enabled widget enabled?/value sym
 
 	parse-common-opts widget face as red-block! values + FACE_OBJ_OPTIONS sym
@@ -1919,12 +1918,7 @@ OS-update-view: func [
 		change-font widget face values
 	]
 	if flags and FACET_FLAG_PARA <> 0 [
-		change-para
-			widget
-			face
-			as red-object! values + FACE_OBJ_PARA
-			as red-object! values + FACE_OBJ_FONT
-			type
+		change-para widget face values
 	]
 	;if flags and FACET_FLAG_MENU <> 0 [
 	;	menu: as red-block! values + FACE_OBJ_MENU
