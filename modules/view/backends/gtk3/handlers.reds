@@ -95,7 +95,9 @@ render-text: func [
 		attrs	[handle!]
 		new?	[logic!]
 		para	[red-object!]
-		flags	[integer!]
+		pvalues	[red-value!]
+		hsym	[integer!]
+		vsym	[integer!]
 		layout	[handle!]
 		len		[integer!]
 		str		[c-string!]
@@ -119,12 +121,14 @@ render-text: func [
 		attrs: create-simple-attrs default-font-name default-font-size color
 	]
 
-	;; DEBUG: print ["render-text: " cr lf]
 	para: as red-object! values + FACE_OBJ_PARA
-	flags: either TYPE_OF(para) = TYPE_OBJECT [		;@@ TBD set alignment attribute
-		get-para-flags base para
+	either TYPE_OF(para) = TYPE_OBJECT [
+		pvalues: object/get-values para
+		hsym: get-para-hsym pvalues
+		vsym: get-para-vsym pvalues
 	][
-		0005h										;-- center or middle
+		hsym: _para/center
+		vsym: _para/middle
 	]
 
 	layout: pango_cairo_create_layout cr
@@ -143,17 +147,15 @@ render-text: func [
 	lx: lrect/width
 
 	case [
-		flags and 0001h <> 0 [x: (as-float (size/x - lx)) / 2.0]	; center
-		flags and 0002h <> 0 [x: as-float (size/x - lx)] 			; right
-		true [x: 0.0]			 									; left
+		hsym = _para/center [x: (as-float (size/x - lx)) / 2.0]
+		hsym = _para/right [x: as-float (size/x - lx)]
+		true [x: 0.0]
 	]
 	case [
-		flags and 0004h <> 0 [y: (as-float (size/y - ly)) / 2.0]	; middle
-		flags and 0008h <> 0 [y: as-float (size/y - ly)] 			; bottom
-		true [y: 0.0] 												; top
+		vsym = _para/middle [y: (as-float (size/y - ly)) / 2.0]
+		vsym = _para/bottom [y: as-float (size/y - ly)]
+		true [y: 0.0]
 	]
-
-	;; DEBUG: print [lx "x" ly " and (" x "," y ")" lf]
 
 	cairo_move_to cr x y
 	pango_cairo_show_layout cr layout

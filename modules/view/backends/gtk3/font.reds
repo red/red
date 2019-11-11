@@ -128,6 +128,107 @@ set-label-attrs: func [
 	gtk_label_set_attributes label hfont
 ]
 
+
+set-label-para: func [
+	label		[handle!]
+	hsym		[integer!]
+	vsym		[integer!]
+	wrap?		[logic!]
+][
+	case [
+		hsym = _para/left [
+			gtk_label_set_justify label GTK_JUSTIFY_LEFT
+		]
+		hsym = _para/right [
+			gtk_label_set_justify label GTK_JUSTIFY_RIGHT
+		]
+		true [
+			gtk_label_set_justify label GTK_JUSTIFY_CENTER
+		]
+	]
+	case [
+		vsym = _para/top [
+			gtk_widget_set_halign label GTK_ALIGN_START
+		]
+		vsym = _para/bottom [
+			gtk_widget_set_halign label GTK_ALIGN_END
+		]
+		true [
+			gtk_widget_set_halign label GTK_ALIGN_CENTER
+		]
+	]
+	gtk_label_set_line_wrap label wrap?
+]
+
+set-entry-para: func [
+	entry		[handle!]
+	hsym		[integer!]
+	vsym		[integer!]
+	wrap?		[logic!]
+	/local
+		layout	[handle!]
+][
+	layout: gtk_entry_get_layout entry
+	case [
+		hsym = _para/left [
+			pango_layout_set_alignment layout PANGO_ALIGN_LEFT
+		]
+		hsym = _para/right [
+			pango_layout_set_alignment layout PANGO_ALIGN_RIGHT
+		]
+		true [
+			pango_layout_set_alignment layout PANGO_ALIGN_CENTER
+		]
+	]
+	case [
+		vsym = _para/top [
+			gtk_widget_set_halign entry GTK_ALIGN_START
+		]
+		vsym = _para/bottom [
+			gtk_widget_set_halign entry GTK_ALIGN_END
+		]
+		true [
+			gtk_widget_set_halign entry GTK_ALIGN_CENTER
+		]
+	]
+	if wrap? [
+		pango_layout_set_wrap layout PANGO_WRAP_WORD
+	]
+]
+
+set-textview-para: func [
+	widget		[handle!]
+	hsym		[integer!]
+	vsym		[integer!]
+	wrap?		[logic!]
+][
+	case [
+		hsym = _para/left [
+			gtk_text_view_set_justification widget GTK_JUSTIFY_LEFT
+		]
+		hsym = _para/right [
+			gtk_text_view_set_justification widget GTK_JUSTIFY_RIGHT
+		]
+		true [
+			gtk_text_view_set_justification widget GTK_JUSTIFY_CENTER
+		]
+	]
+	case [
+		vsym = _para/top [
+			gtk_widget_set_halign widget GTK_ALIGN_START
+		]
+		vsym = _para/bottom [
+			gtk_widget_set_halign widget GTK_ALIGN_END
+		]
+		true [
+			gtk_widget_set_halign widget GTK_ALIGN_CENTER
+		]
+	]
+
+	gtk_text_view_set_wrap_mode widget
+		either wrap? [GTK_WRAP_WORD][GTK_WRAP_NONE]
+]
+
 ;-- create pango attributes
 ;-- `angle` need to be set on label
 ;-- `anti-alias` need to be set by cairo
@@ -594,16 +695,24 @@ set-font: func [
 	/local
 		font	[red-object!]
 		color	[red-tuple!]
+		para	[red-object!]
 		hFont	[handle!]
 		newF?	[logic!]
 		css		[GString!]
 		newC?	[logic!]
 		type	[red-word!]
 		sym		[integer!]
+		pvalues	[red-value!]
+		wrap?	[logic!]
+		hsym	[integer!]
+		vsym	[integer!]
 		label	[handle!]
 ][
 	font: as red-object! values + FACE_OBJ_FONT
 	color: as red-tuple! values + FACE_OBJ_COLOR
+	para: as red-object! values + FACE_OBJ_PARA
+
+
 	hFont: get-attrs face font
 	newF?: false
 	if null? hFont [
@@ -618,8 +727,19 @@ set-font: func [
 	]
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
+	either TYPE_OF(para) = TYPE_OBJECT [
+		pvalues: object/get-values para
+		wrap?: get-para-wrap pvalues
+		hsym: get-para-hsym pvalues
+		vsym: get-para-vsym pvalues
+	][
+		wrap?: no
+		hsym: _para/left
+		vsym: _para/middle
+	]
 	case [
 		sym = text [
+			set-label-para widget hsym vsym wrap?
 			set-label-attrs widget font hFont
 		]
 		any [
@@ -630,12 +750,14 @@ set-font: func [
 			label: gtk_bin_get_child widget
 			;-- some button maybe have empty label
 			either g_type_check_instance_is_a label gtk_label_get_type [
+				set-label-para label hsym vsym wrap?
 				set-label-attrs label font hFont
 			][
 				apply-css-styles widget css
 			]
 		]
 		sym = field [
+			set-entry-para widget hsym vsym wrap?
 			gtk_entry_set_attributes widget hFont
 		]
 		sym = group-box [
@@ -643,8 +765,13 @@ set-font: func [
 			either null? label [
 				apply-css-styles widget css
 			][
+				set-label-para label hsym vsym wrap?
 				set-label-attrs label font hFont
 			]
+		]
+		sym = area [
+			set-textview-para widget hsym vsym wrap?
+			apply-css-styles widget css
 		]
 		true [
 			apply-css-styles widget css
