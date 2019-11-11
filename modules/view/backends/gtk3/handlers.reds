@@ -708,11 +708,6 @@ mouse-button-press-event: func [
 	if evbox <> gtk_get_event_widget as handle! event [return EVT_NO_DISPATCH]
 	sym: get-widget-symbol widget
 
-	if gtk_widget_get_focus_on_click widget [
-		;; DEBUG: print ["grab focus on mouse " widget lf]
-		gtk_widget_grab_focus widget
-	]
-
 	if event/button = GDK_BUTTON_PRIMARY [
 		evt-motion/pressed: yes
 	]
