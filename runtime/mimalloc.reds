@@ -1,5 +1,5 @@
 Red/System [
-	Title:   "Red fixed memory allocator"
+	Title:   "mimalloc memory allocator"
 	Author:  "Xie Qingtian"
 	File: 	 %mimalloc.reds
 	Tabs:	 4
@@ -36,7 +36,7 @@ Red/System [
 
 #define MI_SMALL_OBJ_SIZE_MAX	[(MI_SMALL_PAGE_SIZE / 4)]	;-- 8kb on 32-bit
 #define MI_MEDIUM_OBJ_SIZE_MAX	[(MI_MEDIUM_PAGE_SIZE / 4)]	;-- 64kb on 32-bit
-#define MI_LARGE_OBJ_SIZE_MAX	[(MI_LARGE_PAGE_SIZE / 2)]		;-- 1mb on 32-bit
+#define MI_LARGE_OBJ_SIZE_MAX	[(MI_LARGE_PAGE_SIZE / 2)]	;-- 1mb on 32-bit
 
 #define MI_MEDIUM_OBJ_WSIZE_MAX	[(MI_MEDIUM_OBJ_SIZE_MAX / MI_PTR_SIZE)]  ;-- 16kb on 32-bit
 #define MI_LARGE_OBJ_WSIZE_MAX	[(MI_LARGE_OBJ_SIZE_MAX / MI_PTR_SIZE)]
@@ -52,6 +52,13 @@ Red/System [
 #define MI_BIN_HUGE		73
 
 mimalloc: context [
+
+	#enum page-flags! [
+		PAGE_FLAG_IN_USE:		1
+		PAGE_FLAG_RESET:		2
+		PAGE_FLAG_COMMITED:		4
+		PAGE_FLAG_ZERO:			8
+	]
 
 	#enum delayed-free! [
 		NO_DELAYED_FREE
@@ -94,11 +101,12 @@ mimalloc: context [
 		abandoned		[integer!]
 		used			[integer!]
 		capacity		[integer!]
+		size			[integer!]
 		info-size		[integer!]
 		page-shift		[integer!]
 		thread-id		[int-ptr!]
 		page-kind		[integer!]
-		pages			[page!]
+		pages			[page! value]
 	]
 
 	page-queue!: alias struct! [
@@ -185,11 +193,6 @@ mimalloc: context [
 		thread-id		[int-ptr!]
 		page-count		[integer!]
 		reclaim?		[logic!]
-	]
-
-	thread-data!: alias struct! [
-		heap			[heap! value]
-		tld				[tld! value]
 	]
 
 	tagSYSTEM_INFO: alias struct! [
@@ -378,16 +381,25 @@ mimalloc: context [
 		]
 
 		p: :h/pages
-		p/3: 4
-		p/6:   4      p/9:   8      p/12: 12 p/15: 16 p/18: 20 p/21: 24 p/24: 28 p/27: 32 
-		p/30:  40     p/33:  48     p/36: 56 p/39: 64 p/42: 80 p/45: 96 p/48: 112 p/51: 128 
-		p/54:  160    p/57:  192    p/60: 224 p/63: 256 p/66: 320 p/69: 384 p/72: 448 p/75: 512 
-		p/78:  640    p/81:  768    p/84: 896 p/87: 1024 p/90: 1280 p/93: 1536 p/96: 1792 p/99: 2048 
-		p/102: 2560   p/105: 3072   p/108: 3584 p/111: 4096 p/114: 5120 p/117: 6144 p/120: 7168 p/123: 8192 
-		p/126: 10240  p/129: 12288  p/132: 14336 p/135: 16384 p/138: 20480 p/141: 24576 p/144: 28672 p/147: 32768 
-		p/150: 40960  p/153: 49152  p/156: 57344 p/159: 65536 p/162: 81920 p/165: 98304 p/168: 114688 p/171: 131072 
-		p/174: 163840 p/177: 196608 p/180: 229376 p/183: 262144 p/186: 327680 p/189: 393216 p/192: 458752 p/195: 524288 
-		p/198: 655360 p/201: 786432 p/204: 917504 p/207: 1048576 p/210: 1310720 p/213: 1572864 p/216: 1835008 p/219: 2097152
+		p/3:   4
+		p/6:   4       p/9:   8      p/12:  12     p/15:  16      p/18:  20
+		p/21:  24      p/24:  28     p/27:  32 
+		p/30:  40      p/33:  48     p/36:  56     p/39:  64      p/42:  80
+		p/45:  96      p/48:  112    p/51:  128 
+		p/54:  160     p/57:  192    p/60:  224    p/63:  256     p/66:  320
+		p/69:  384     p/72:  448    p/75:  512 
+		p/78:  640     p/81:  768    p/84:  896    p/87:  1024    p/90:  1280
+		p/93:  1536    p/96:  1792   p/99:  2048 
+		p/102: 2560    p/105: 3072   p/108: 3584   p/111: 4096    p/114: 5120
+		p/117: 6144    p/120: 7168   p/123: 8192 
+		p/126: 10240   p/129: 12288  p/132: 14336  p/135: 16384   p/138: 20480
+		p/141: 24576   p/144: 28672  p/147: 32768 
+		p/150: 40960   p/153: 49152  p/156: 57344  p/159: 65536   p/162: 81920
+		p/165: 98304   p/168: 114688 p/171: 131072 
+		p/174: 163840  p/177: 196608 p/180: 229376 p/183: 262144  p/186: 327680
+		p/189: 393216  p/192: 458752 p/195: 524288 
+		p/198: 655360  p/201: 786432 p/204: 917504 p/207: 1048576 p/210: 1310720
+		p/213: 1572864 p/216: 1835008 p/219: 2097152
 		p/222: 1048580 p/225: 1048584
 
 		init-thread
@@ -397,20 +409,12 @@ mimalloc: context [
 		/local
 			hp	[heap!]
 			tld	[tld!]
-			td	[thread-data!]
 	][
 		hp: heap-main
 		either null? hp/thread-id [
 			heap-default: heap-main
 		][
 			thread-id-cnt: thread-id-cnt + 1
-			td: as thread-data! OS-alloc size? thread-data! yes stats-main
-			tld: td/tld
-			hp: td/heap
-			hp/thread-id: as int-ptr! thread-id-cnt
-			hp/tld: tld
-			tld/heap-backing: hp
-			tld/segments/stats: tld/stats
 		]
 	]
 
@@ -431,13 +435,54 @@ mimalloc: context [
 		null
 	]
 
-	mem-alloc-aligned: func [
-		size	[ulong!]
-		align	[ulong!]
-		tld		[tld!]
-		return: [byte-ptr!]
+	page-init: func [
+		heap		[heap!]
+		page		[page!]
 	][
 		
+	]
+
+	page-alloc-in: func [
+		seg			[segment!]
+		tld			[segments-tld!]
+		return:		[page!]
+		/local
+			page	[page!]
+			i		[integer!]
+			n		[integer!]
+			psize	[integer!]
+			p		[byte-ptr!]
+			blk-sz	[integer!]
+			adjust	[integer!]
+	][
+		n: seg/capacity
+		i: 0
+		until [
+			page: (as page! :seg/pages) + i
+			i: i + 1
+			if page/flags and PAGE_FLAG_IN_USE <> 0 [
+				psize: either seg/page-kind = MI_PAGE_HUGE [
+					seg/size
+				][
+					1 << seg/page-shift
+				]
+				p: (as byte-ptr! seg) + (page/idx * psize)
+				if zero? page/idx [		;-- the first page starts after the segment info
+					p: p + seg/info-size
+					psize: psize - seg/info-size
+					blk-sz: page/block-size
+					if all [blk-sz > 0 seg/page-kind <= MI_PAGE_MEDIUM] [
+						;adjust: blk-sz - (p % blk-sz)
+						0
+					]
+				]
+				break
+			]
+			i = n
+		]
+		page/flags: page/flags or PAGE_FLAG_IN_USE
+		seg/used: seg/used + 1
+		page
 	]
 
 
@@ -454,6 +499,8 @@ mimalloc: context [
 			isize		[integer!]
 			segment-sz	[integer!]
 			segment		[segment!]
+			page		[page!]
+			i			[integer!]
 	][
 		either kind <> MI_PAGE_LARGE [
 			page-sz: 1 << page-shift
@@ -469,6 +516,20 @@ mimalloc: context [
 		]
 
 		segment: as segment! OS-alloc-aligned segment-sz MI_SEGMENT_SIZE yes tld/stats
+		zero-memory as byte-ptr! segment size? segment!
+		segment/page-kind: kind
+		segment/capacity: capacity
+		segment/page-shift: page-shift
+		segment/size: segment-sz
+		segment/info-size: isize
+		i: 0
+		until [
+			page: (as page! :segment/pages) + i
+			page/idx: i
+			page/flags: 0
+			i: i + 1
+			i = capacity
+		]
 		segment
 	]
 
@@ -487,9 +548,15 @@ mimalloc: context [
 		
 		if null? sq [
 			seg: segment-alloc 0 kind shift tld
-?? seg
+			seg/next: null
+			either sq/last <> null [
+				sq/last/next seg
+			][
+				sq/first: seg
+			]
+			sq/last: seg
 		]
-		as page! seg
+		page-alloc-in seg tld
 	]
 
 	queue-find-page: func [
