@@ -394,6 +394,7 @@ lexer: context [
 			line [red-integer!]
 			len	 [integer!]
 	][
+		e: lex/in-end
 		e: either s + 40 < e [s + 40][e]				;FIXME: accurately find the 40th codepoint position
 		len: as-integer e - s
 		pos: string/load as-c-string s len UTF-8
