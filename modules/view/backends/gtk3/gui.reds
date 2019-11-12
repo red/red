@@ -628,6 +628,34 @@ find-last-window: func [
 	]
 ]
 
+last-face-type?: func [
+	face		[red-object!]
+	parent		[handle!]
+	sym			[integer!]
+	return:		[logic!]
+	/local
+		pface	[red-object!]
+		pane	[red-block!]
+		head	[red-object!]
+		tail	[red-object!]
+		type	[red-word!]
+][
+	pface: get-face-obj parent
+	;if TYPE_OF(pface) <> TYPE_OBJECT [return true]
+	pane: as red-block! (object/get-values pface) + FACE_OBJ_PANE
+	head: as red-object! block/rs-head pane
+	tail: as red-object! block/rs-tail pane
+	while [tail > head][
+		tail: tail - 1
+		if tail/ctx = face/ctx [return true]
+		type: as red-word! get-node-facet tail/ctx FACE_OBJ_TYPE
+		if sym = symbol/resolve type/symbol [
+			return false
+		]
+	]
+	true
+]
+
 get-os-version: func [
 	/local
 		major	[integer!]
@@ -1807,6 +1835,11 @@ OS-make-view: func [
 
 	; Deal with actors
 	connect-widget-events widget values sym
+	if sym = radio [
+		if last-face-type? face as handle! parent sym [
+			connect-radio-toggled-events face widget as handle! parent
+		]
+	]
 
 	change-selection widget selected sym
 	change-font widget face values
