@@ -30,7 +30,6 @@ default-font-name:	as c-string! 0
 default-font-size:	0
 gtk-font-name:		"Sans"
 gtk-font-size:		10
-group-radio:		as handle! 0
 
 log-pixels-x:		0
 log-pixels-y:		0
@@ -1565,7 +1564,8 @@ OS-make-view: func [
 		rfvalue		[red-float!]
 		attrs		[handle!]
 		newF?		[logic!]
-		layout		[handle!]
+		handle		[handle!]
+		fradio		[handle!]
 		x			[integer!]
 		y			[integer!]
 ][
@@ -1606,10 +1606,13 @@ OS-make-view: func [
 			set-logic-state widget as red-logic! data no
 		]
 		sym = radio [
-			widget: either null? group-radio [
-				gtk_radio_button_new_with_label null caption
+			handle: as handle! parent
+			fradio: GET-FIRST-RADIO(handle)
+			either null? fradio [
+				widget: gtk_radio_button_new_with_label null caption
+				SET-FIRST-RADIO(handle widget)
 			][
-				gtk_radio_button_new_with_label_from_widget group-radio caption
+				widget: gtk_radio_button_new_with_label_from_widget fradio caption
 			]
 			set-logic-state widget as red-logic! data no
 		]
@@ -1777,9 +1780,9 @@ OS-make-view: func [
 		buffer: gtk_label_new caption
 		gtk_widget_show buffer
 		set-label-attrs buffer font attrs
-		layout: gtk_label_get_layout buffer
+		handle: gtk_label_get_layout buffer
 		x: 0 y: 0
-		pango_layout_get_pixel_size layout :x :y
+		pango_layout_get_pixel_size handle :x :y
 		x: either size/x > x [size/x - x / 2][0]
 		y: either size/y > y [size/y - y / 2][0]
 		gtk_layout_put widget buffer x y
@@ -1810,8 +1813,6 @@ OS-make-view: func [
 	change-enabled widget enabled?/value sym
 
 	parse-common-opts widget face as red-block! values + FACE_OBJ_OPTIONS sym
-	; save the previous group-radio state as a global variable
-	group-radio: either sym = radio [widget][as handle! 0]
 
 	if TYPE_OF(rate) <> TYPE_NONE [change-rate widget rate]
 

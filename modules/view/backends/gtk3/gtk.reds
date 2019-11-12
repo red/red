@@ -2977,6 +2977,7 @@ resizing-id:		g_quark_from_string "resizing-id"
 start-resize-id:	g_quark_from_string "start-resize-id"
 caption-id:			g_quark_from_string "caption-id"
 in-loop-id:			g_quark_from_string "in-loop-id"
+first-radio-id:		g_quark_from_string "first-radio-id"
 
 #define SET-CONTAINER(s d)		[g_object_set_qdata s container-id d]
 #define GET-CONTAINER(s)		[g_object_get_qdata s container-id]
@@ -2992,3 +2993,5 @@ in-loop-id:			g_quark_from_string "in-loop-id"
 #define GET-IN-LOOP(s)			[g_object_get_qdata s in-loop-id]
 #define SET-MENU-KEY(s d)		[g_object_set_qdata s menu-key-id d]
 #define GET-MENU-KEY(s)			[g_object_get_qdata s menu-key-id]
+#define SET-FIRST-RADIO(s d)	[g_object_set_qdata s first-radio-id d]
+#define GET-FIRST-RADIO(s)		[g_object_get_qdata s first-radio-id]
