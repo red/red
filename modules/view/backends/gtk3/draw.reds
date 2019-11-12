@@ -579,6 +579,7 @@ OS-draw-text: func [
 	][
 		draw-text-box dc/raw pos as red-object! text catch?
 	]
+	do-paint dc
 	true
 ]
 
