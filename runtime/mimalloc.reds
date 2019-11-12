@@ -168,8 +168,8 @@ mimalloc: context [
 	]
 
 	segments-tld!: alias struct! [
-		small-free	[segment-queue!]
-		medium-free	[segment-queue!]
+		small-free	[segment-queue! value]
+		medium-free	[segment-queue! value]
 		count		[integer!]
 		peak-count	[integer!]
 		current-size [integer!]
@@ -447,11 +447,12 @@ mimalloc: context [
 			n		[integer!]
 			blk		[block!]
 			last	[block!]
-			next	[block!]
+			nxt		[block!]
 	][
 		seg: PTR-TO-SEGMENT(page)
 		psize: page/reserved
 		p: (as byte-ptr! seg) + (page/idx * psize)
+?? p
 		if zero? page/idx [
 			p: p + seg/info-size
 			psize: psize - seg/info-size
@@ -460,12 +461,14 @@ mimalloc: context [
 		blk: as block! p
 		last: as block! p + (n - 1 * blk-sz)
 		loop n [
-			next: as block! (as byte-ptr! blk) + blk-sz
-			blk/next: next
-			blk: next
+			nxt: as block! (as byte-ptr! blk) + blk-sz
+			blk/next: nxt
+			blk: nxt
 		]
+		last/next: null
 		page/reserved: n
 		page/capacity: n
+		page/free-blocks: as block! p
 	]
 
 	page-alloc-in: func [
@@ -574,30 +577,48 @@ probe MI_SEGMENT_SIZE
 			sz		[integer!]
 	][
 		sq: either kind = MI_PAGE_SMALL [tld/small-free][tld/medium-free]
-		?? sq
-		if null? sq [
+		if null? sq/first [
 			seg: segment-alloc 0 kind shift tld
 			seg/next: null
-			;either sq/last <> null [
-			;	sq/last/next seg
-			;][
-			;	sq/first: seg
-			;]
-			;sq/last: seg
+			either sq/last <> null [
+				sq/last/next seg
+			][
+				sq/first: seg
+			]
+			sq/last: seg
 		]
-		?? seg
 		page-alloc-in seg tld
+	]
+
+	big-page-alloc: func [
+		size		[integer!]
+		kind		[page-kind!]
+		shift		[integer!]
+		tld			[segments-tld!]
+		return:		[page!]
+		/local
+			seg		[segment!]
+			page	[page!]
+	][
+		seg: segment-alloc size kind shift tld
+		if null? seg [return null]
+		seg/used: 1
+		page: as page! :seg/pages
+		page/flags: PAGE_FLAG_IN_USE
+		page
 	]
 
 	queue-find-page: func [
 		heap		[heap!]
 		pq			[page-queue!]
+		size		[integer!]
 		return:		[page!]
 		/local
 			page	[page!]
 			blk-sz	[integer!]
 			kind	[page-kind!]
 			shift	[integer!]
+			seg-tld	[segments-tld!]
 	][
 		;-- TBD search in page queue
 
@@ -605,23 +626,32 @@ probe MI_SEGMENT_SIZE
 		page: pq/first
 		if null? page [
 			blk-sz: pq/block-size
+			seg-tld: heap/tld/segments
 ?? blk-sz
-			case [
+			page: case [
 				blk-sz <= MI_SMALL_OBJ_SIZE_MAX [
-					kind: MI_PAGE_SMALL
-					shift: MI_SMALL_PAGE_SHIFT
+					segment-page-alloc MI_PAGE_SMALL MI_SMALL_PAGE_SHIFT seg-tld
 				]
 				blk-sz <= MI_MEDIUM_OBJ_SIZE_MAX [
-					kind: MI_PAGE_MEDIUM
-					shift: MI_MEDIUM_PAGE_SHIFT
+					segment-page-alloc MI_PAGE_MEDIUM MI_MEDIUM_PAGE_SHIFT seg-tld
 				]
 				blk-sz <= MI_LARGE_OBJ_SIZE_MAX [
-					kind: MI_PAGE_LARGE
-					shift: MI_LARGE_PAGE_SHIFT
+					big-page-alloc 0 MI_PAGE_LARGE MI_LARGE_PAGE_SHIFT seg-tld
+				]
+				true [
+					big-page-alloc size MI_PAGE_HUGE MI_SEGMENT_SHIFT seg-tld
 				]
 			]
-			page: segment-page-alloc kind shift heap/tld/segments
 			page-init page blk-sz
+			page/heap: heap
+			page/next: pq/first
+			page/prev: null
+			either pq/first <> null [
+				pq/first/prev: page
+			][
+				pq/last: page
+			]
+			pq/first: page
 		]
 		page
 	]
@@ -637,6 +667,7 @@ probe MI_SEGMENT_SIZE
 			blk	[block!]
 	][
 		blk: page/free-blocks
+?? blk
 		either blk <> null [
 			page/free-blocks: blk/next		;-- pop from the free list
 			page/used: page/used + 1
@@ -687,6 +718,7 @@ probe MI_SEGMENT_SIZE
 		case [
 			wsize <= 1 [idx: 1]
 			wsize <= 4 [idx: wsize + 1 and FFFEh]
+			wsize > MI_LARGE_OBJ_WSIZE_MAX [idx: MI_BIN_HUGE]
 			true [
 				if wsize <= 16 [wsize: wsize + 3 and FFFCh]
 				wsize: wsize - 1
@@ -700,10 +732,10 @@ probe MI_SEGMENT_SIZE
 			;-- TBD collect page
 
 			if null? page/free-blocks [
-				page: queue-find-page heap qe
+				page: queue-find-page heap qe size
 			]
 		][
-			page: queue-find-page heap qe
+			page: queue-find-page heap qe size
 		]
 		page-alloc heap page size		
 	]
