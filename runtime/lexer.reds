@@ -1046,7 +1046,7 @@ lexer: context [
 			default [assert false null]
 		]
 		if err <> null [throw-error lex err e TYPE_BINARY]
-		assert (as byte-ptr! ser/offset) + ser/size > as byte-ptr! ser/tail
+		assert (as byte-ptr! ser/offset) + ser/size >= as byte-ptr! ser/tail
 		lex/in-pos: e + 1								;-- skip }
 	]
 	
@@ -1397,7 +1397,9 @@ lexer: context [
 		/local
 			field [lexer-dt-array!]
 			tm	  [float!]
+			neg?  [logic!]
 	][
+		if s/1 = #"-" [neg?: yes s: s + 1]
 		field: as lexer-dt-array! scan-date lex s e flags or C_FLAG_TM_ONLY ;-- field is on freed stack frame
 		
 		if any [field/tz-h <> 0 field/tz-m <> 0][throw-error lex s e TYPE_TIME] ;-- TZ info rejection
@@ -1407,6 +1409,7 @@ lexer: context [
 		  + (         as float! field/sec)
 		  + (1e-9   * as float! field/nsec)
 
+		if neg? [tm: 0.0 - tm]
 		time/make-at tm alloc-slot lex					;-- field array is not usable after this call
 	]
 	

@@ -236,9 +236,9 @@ S_START->digit->S_NUMBER->digit|"'"->S_NUMBER
                                           \       \->else->T_ERROR   \->delimit11->T_TIME
                                            \                          \->else->T_ERROR
                                             \
-                                             \->"x"|"X"->S_PAIR_1ST->digit->S_PAIR->digit|"."|"e"|"E"->S_PAIR
-                                              \           \->else->T_ERROR   \->delimit10->T_PAIR
-                                               \                              \->else->T_ERROR
+                                             \->"x"|"X"->S_PAIR_1ST->digit|sign->S_PAIR->digit|"."|"e"|"E"->S_PAIR
+                                              \           \->else->T_ERROR        \->delimit10->T_PAIR
+                                               \                                   \->else->T_ERROR
                                                 \
                                                  \->"#"->S_SHARP
                                                   \->"@"->S_EMAIL
