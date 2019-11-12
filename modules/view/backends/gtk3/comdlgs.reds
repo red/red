@@ -59,6 +59,7 @@ _request-file: func [
 		set-type ret TYPE_FILE
 	]
 	gtk_widget_destroy widget
+	while [gtk_events_pending][gtk_main_iteration]
 	ret
 ]
 
