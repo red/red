@@ -161,6 +161,7 @@ render-text: func [
 	pango_cairo_show_layout cr layout
 	cairo_stroke cr
 	cairo_restore cr
+	g_object_unref layout
 
 	if new? [
 		free-pango-attrs attrs
