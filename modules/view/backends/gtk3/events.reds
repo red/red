@@ -905,7 +905,7 @@ translate-key: func [
 ;; 1) it is required in makedoc/easy-VID-rt.red
 ;; 2) it is too slow when used in ast.red for base widget (too much delegations).
 
-connect-common-events: function [
+connect-common-events: func [
 	widget		[handle!]
 	data		[int-ptr!]
 ][
@@ -929,7 +929,7 @@ connect-common-events: function [
 	gobj_signal_connect(widget "scroll-event" :widget-scroll-event data)
 ]
 
-connect-focus-events: function [
+connect-focus-events: func [
 	evbox		[handle!]
 	widget		[handle!]
 	sym			[integer!]
@@ -948,7 +948,7 @@ connect-focus-events: function [
 	]
 ]
 
-connect-notify-events: function [
+connect-notify-events: func [
 	widget		[handle!]
 	data		[int-ptr!]
 ][
@@ -957,7 +957,35 @@ connect-notify-events: function [
 	gobj_signal_connect(widget "leave-notify-event" :widget-leave-notify-event data)
 ]
 
-connect-widget-events: function [
+connect-radio-toggled-events: func [
+	face		[red-object!]
+	last		[handle!]
+	parent		[handle!]
+	/local
+		pface	[red-object!]
+		pane	[red-block!]
+		head	[red-object!]
+		tail	[red-object!]
+		handle	[handle!]
+][
+	gobj_signal_connect(last "toggled" :button-toggled last)
+	pface: get-face-obj parent
+	;if TYPE_OF(pface) <> TYPE_OBJECT [exit]
+	pane: as red-block! (object/get-values pface) + FACE_OBJ_PANE
+	head: as red-object! block/rs-head pane
+	tail: as red-object! block/rs-tail pane
+	while [head < tail][
+		handle: face-handle? head
+		unless null? handle [
+			if radio = get-widget-symbol handle [
+				gobj_signal_connect(handle "toggled" :button-toggled handle)
+			]
+		]
+		head: head + 1
+	]
+]
+
+connect-widget-events: func [
 	widget		[handle!]
 	values		[red-value!]
 	sym			[integer!]
@@ -980,7 +1008,7 @@ connect-widget-events: function [
 			gobj_signal_connect(widget "toggled" :button-toggled widget)
 		]
 		sym = radio [
-			gobj_signal_connect(widget "toggled" :button-toggled widget)
+			0
 		]
 		sym = button [
 			gobj_signal_connect(widget "clicked" :button-clicked widget)
