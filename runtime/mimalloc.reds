@@ -51,6 +51,8 @@ Red/System [
 
 #define MI_BIN_HUGE		73
 
+#define PTR-TO-SEGMENT(p)		[as segment! (as-integer p) and (not MI_SEGMENT_MASK)]
+
 mimalloc: context [
 
 	#enum page-flags! [
@@ -81,8 +83,8 @@ mimalloc: context [
 	page!: alias struct! [
 		idx				[integer!]
 		flags			[integer!]
-		capacity		[integer!]
-		reserved		[integer!]
+		capacity		[integer!]	;-- number of blocks committed
+		reserved		[integer!]	;-- number of blocks reserved in memory
 		free-blocks		[block!]
 		used			[integer!]
 		local-free		[block!]
@@ -436,10 +438,34 @@ mimalloc: context [
 	]
 
 	page-init: func [
-		heap		[heap!]
 		page		[page!]
+		blk-sz		[integer!]
+		/local
+			seg		[segment!]
+			p		[byte-ptr!]
+			psize	[integer!]
+			n		[integer!]
+			blk		[block!]
+			last	[block!]
+			next	[block!]
 	][
-		
+		seg: PTR-TO-SEGMENT(page)
+		psize: page/reserved
+		p: (as byte-ptr! seg) + (page/idx * psize)
+		if zero? page/idx [
+			p: p + seg/info-size
+			psize: psize - seg/info-size
+		]
+		n: psize / blk-sz
+		blk: as block! p
+		last: as block! p + (n - 1 * blk-sz)
+		loop n [
+			next: as block! (as byte-ptr! blk) + blk-sz
+			blk/next: next
+			blk: next
+		]
+		page/reserved: n
+		page/capacity: n
 	]
 
 	page-alloc-in: func [
@@ -456,16 +482,18 @@ mimalloc: context [
 			adjust	[integer!]
 	][
 		n: seg/capacity
+?? n
 		i: 0
 		until [
 			page: (as page! :seg/pages) + i
 			i: i + 1
-			if page/flags and PAGE_FLAG_IN_USE <> 0 [
+			if page/flags and PAGE_FLAG_IN_USE = 0 [
 				psize: either seg/page-kind = MI_PAGE_HUGE [
 					seg/size
 				][
 					1 << seg/page-shift
 				]
+				page/reserved: psize
 				p: (as byte-ptr! seg) + (page/idx * psize)
 				if zero? page/idx [		;-- the first page starts after the segment info
 					p: p + seg/info-size
@@ -485,7 +513,6 @@ mimalloc: context [
 		page
 	]
 
-
 	segment-alloc: func [
 		required	[ulong!]
 		kind		[page-kind!]
@@ -502,8 +529,11 @@ mimalloc: context [
 			page		[page!]
 			i			[integer!]
 	][
+?? kind
 		either kind <> MI_PAGE_LARGE [
 			page-sz: 1 << page-shift
+?? page-sz
+probe MI_SEGMENT_SIZE
 			capacity: MI_SEGMENT_SIZE / page-sz
 		][
 			capacity: 1
@@ -535,27 +565,27 @@ mimalloc: context [
 
 	segment-page-alloc: func [
 		kind		[page-kind!]
+		shift		[integer!]
 		tld			[segments-tld!]
 		return: 	[page!]
 		/local
 			sq		[segment-queue!]
 			seg		[segment!]
 			sz		[integer!]
-			shift	[integer!]
 	][
-		shift: MI_SEGMENT_SHIFT
 		sq: either kind = MI_PAGE_SMALL [tld/small-free][tld/medium-free]
-		
+		?? sq
 		if null? sq [
 			seg: segment-alloc 0 kind shift tld
 			seg/next: null
-			either sq/last <> null [
-				sq/last/next seg
-			][
-				sq/first: seg
-			]
-			sq/last: seg
+			;either sq/last <> null [
+			;	sq/last/next seg
+			;][
+			;	sq/first: seg
+			;]
+			;sq/last: seg
 		]
+		?? seg
 		page-alloc-in seg tld
 	]
 
@@ -567,6 +597,7 @@ mimalloc: context [
 			page	[page!]
 			blk-sz	[integer!]
 			kind	[page-kind!]
+			shift	[integer!]
 	][
 		;-- TBD search in page queue
 
@@ -578,15 +609,19 @@ mimalloc: context [
 			case [
 				blk-sz <= MI_SMALL_OBJ_SIZE_MAX [
 					kind: MI_PAGE_SMALL
+					shift: MI_SMALL_PAGE_SHIFT
 				]
 				blk-sz <= MI_MEDIUM_OBJ_SIZE_MAX [
 					kind: MI_PAGE_MEDIUM
+					shift: MI_MEDIUM_PAGE_SHIFT
 				]
 				blk-sz <= MI_LARGE_OBJ_SIZE_MAX [
 					kind: MI_PAGE_LARGE
+					shift: MI_LARGE_PAGE_SHIFT
 				]
 			]
-			page: segment-page-alloc kind heap/tld/segments
+			page: segment-page-alloc kind shift heap/tld/segments
+			page-init page blk-sz
 		]
 		page
 	]
