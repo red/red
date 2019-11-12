@@ -27,8 +27,9 @@ _request-file: func [
 	dir?		[logic!]
 	return:		[red-value!]
 	/local
-		window	[handle!]
 		widget 	[handle!]
+		window	[handle!]
+		new?	[logic!]
 		resp	[integer!]
 		cstr	[c-string!]
 		size	[integer!]
@@ -48,7 +49,13 @@ _request-file: func [
 	]
 	gobj_signal_connect(widget "file-activated" :request-file-double-clicked null)
 	window: find-active-window
-	unless null? window [gtk_window_set_transient_for widget window]
+	new?: false
+	if null? window [
+		window: gtk_window_new 0
+		gtk_widget_hide window
+		new?: true
+	]
+	gtk_window_set_transient_for widget window
 	resp: gtk_dialog_run widget
 	if resp = GTK_RESPONSE_ACCEPT [
 		cstr: gtk_file_chooser_get_filename widget
@@ -59,6 +66,9 @@ _request-file: func [
 		set-type ret TYPE_FILE
 	]
 	gtk_widget_destroy widget
+	if new? [
+		gtk_widget_destroy window
+	]
 	while [gtk_events_pending][gtk_main_iteration]
 	ret
 ]
@@ -86,20 +96,22 @@ OS-request-file: func [
 ]
 
 OS-request-font: func [
-	font			[red-object!]
-	selected		[red-object!]
-	mono?			[logic!]
-	return:			[red-object!]
+	font		[red-object!]
+	selected	[red-object!]
+	mono?		[logic!]
+	return:		[red-object!]
 	/local
-		widget		[handle!]
-		fd			[handle!]
-		resp		[integer!]
-		cstr		[c-string!]
-		size		[integer!]
-		values		[red-value!]
-		str			[red-string!]
-		style		[red-block!]
-		bold?		[logic!]
+		widget	[handle!]
+		window	[handle!]
+		new?	[logic!]
+		fd		[handle!]
+		resp	[integer!]
+		cstr	[c-string!]
+		size	[integer!]
+		values	[red-value!]
+		str		[red-string!]
+		style	[red-block!]
+		bold?	[logic!]
 ][
 	widget: gtk_font_chooser_dialog_new "Font" null
 	if TYPE_OF(selected) = TYPE_OBJECT [
@@ -107,6 +119,14 @@ OS-request-font: func [
 		gtk_font_chooser_set_font_desc widget fd
 		free-pango-font fd
 	]
+	window: find-active-window
+	new?: false
+	if null? window [
+		window: gtk_window_new 0
+		gtk_widget_hide window
+		new?: true
+	]
+	gtk_window_set_transient_for widget window
 	resp: gtk_dialog_run widget
 	either resp = -5 [
 		fd: gtk_font_chooser_get_font_desc widget
@@ -138,6 +158,9 @@ OS-request-font: func [
 		font/header: TYPE_NONE
 	]
 	gtk_widget_destroy widget
+	if new? [
+		gtk_widget_destroy window
+	]
 	; This trick really matters to end the loop when in the red-console
 	while [gtk_events_pending][gtk_main_iteration]
 
