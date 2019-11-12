@@ -1092,7 +1092,7 @@ lexer: context [
 		s: s + 2										;-- skip #[
 		p: cons-syntax
 		dtypes: p + (3 * 2)
-		end: p + (3 * 4)								;-- point to end of array
+		end: p + size? cons-syntax						;-- point to end of array
 		loop 4 [
 			if zero? platform/strnicmp s as byte-ptr! p/1 p/2 [break]
 			p: p + 3
