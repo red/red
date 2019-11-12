@@ -738,8 +738,7 @@ lexer: context [
 			pos: c >>> 3 + 1
 			bit: as-byte 1 << (c and 7)
 			either char-special/pos and bit = null-byte [ ;-- "regular" escaped char
-				if any [s/1 < #"^(40)" #"^(5F)" < s/1][cp/value: -1 return s]
-				c: as-integer s/1 - #"@"
+				if any [s/1 < #"^(40)" #"^(5F)" < s/1][c: as-integer s/1 - #"@"]
 			][											;-- escaped special char
 				c: switch s/1 [
 					#"/"  [0Ah]
