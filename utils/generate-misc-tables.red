@@ -129,7 +129,6 @@ gen-date-calc-table: function [][
 	probe out
 ]
 
-gen-bitarray "BDELNPTbdelnpt"
 gen-bitarray {/-~^^{}"}
 gen-bin16-table
 gen-hexa-table

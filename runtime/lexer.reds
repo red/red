@@ -157,9 +157,6 @@ lexer: context [
 		FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 	}
 	
-	;-- Bit-array for BDELNPTbdelnpt
-	char-names-1st: #{0000000000000000345011003450110000000000000000000000000000000000}
-
 	;-- Bit-array for /-~^{}"
 	char-special: #{0000000004A00000000000400000006800000000000000000000000000000000}
 	
@@ -686,36 +683,54 @@ lexer: context [
 			bit	  [byte!]
 	][
 		either s/1 = #"(" [								;-- note: #"^(" not allowed
-			c: as-integer s/2
-			pos: c >>> 3 + 1
-			bit: as-byte 1 << (c and 7)
-			either char-names-1st/pos and bit = null-byte [ ;-- hex escaped char @@ "e" as 1st!
-				p: s + 1
-				c: 0
-				cb: null-byte
-				while [all [p/1 <> #")" p < e]][
-					index: 1 + as-integer p/1			;-- converts the 2 hex chars using a lookup table
-					cb: hexa-table/index				;-- decode one nibble at a time
-					if cb = #"^(FF)" [cp/value: -1 return p]
+			case [
+				s/3 = #")" [							;-- fast-paths for 1 or 2 hex chars
+					index: 1 + as-integer s/2
+					cb: hexa-table/index
+					if cb = #"^(FF)" [cp/value: -1 return s]
+					c: as-integer cb
+					p: s + 3
+				]
+				s/4 = #")" [
+					index: 1 + as-integer s/2
+					cb: hexa-table/index
+					if cb = #"^(FF)" [cp/value: -1 return s]
+					c: as-integer cb
+					index: 1 + as-integer s/3
+					cb: hexa-table/index
+					if cb = #"^(FF)" [cp/value: -1 return s]
 					c: c << 4 + as-integer cb
-					p: p + 1
+					p: s + 4
 				]
-				if any [p = e p/1 <> #")" (as-integer p - s) > 7][ ;-- limit of 6 hexa characters
-					cp/value: -1 return s
+				true [
+					src: s + 1							;-- skip (
+					entry: escape-names
+					loop 7 [							;-- try to match an escape name
+						if zero? platform/strnicmp src as byte-ptr! entry/1 entry/2 [break]
+						entry: entry + 3
+					]
+					either escape-names + (size? escape-names) > entry [
+						len: entry/2 + 1
+						if src/len <> #")" [cp/value: -1 return src]
+						c: entry/3
+						p: src + len
+					][									;-- not a name, fall back on hex value decoding
+						p: s + 1						;-- skip (
+						c: 0
+						cb: null-byte
+						while [all [p/1 <> #")" p < e]][
+							index: 1 + as-integer p/1	;-- converts the 2 hex chars using a lookup table
+							cb: hexa-table/index		;-- decode one nibble at a time
+							if cb = #"^(FF)" [cp/value: -1 return p]
+							c: c << 4 + as-integer cb
+							p: p + 1
+						]
+						if any [p = e p/1 <> #")" (as-integer p - s) > 7][ ;-- limit of 6 hexa characters
+							cp/value: -1 return s
+						]
+						p: p + 1						;-- skip )
+					]
 				]
-				p: p + 1								;-- skip )
-			][											;-- named escaped char
-				src: s + 1								;-- skip (
-				entry: escape-names
-				loop 7 [
-					if zero? platform/strnicmp src as byte-ptr! entry/1 entry/2 [break]
-					entry: entry + 3
-				]
-				assert escape-names + (7 * 3) > entry 
-				len: entry/2 + 1
-				if src/len <> #")" [cp/value: -1 return src]
-				c: entry/3
-				p: src + len
 			]
 		][
 			c: as-integer s/1
@@ -931,7 +946,7 @@ lexer: context [
 					ser/tail: as cell! p4
 				]
 			]
-			assert (as byte-ptr! ser/offset) + ser/size > as byte-ptr! ser/tail
+			assert (as byte-ptr! ser/offset) + ser/size >= as byte-ptr! ser/tail
 		]
 		if type <> TYPE_STRING [set-type as cell! str type]
 		lex/in-pos: e + 1								;-- skip ending delimiter
@@ -950,6 +965,7 @@ lexer: context [
 
 		either zero? lex/mstr-nest [
 			scan-string lex lex/mstr-s e lex/mstr-flags or flags
+			lex/mstr-s: null
 			lex/entry: S_START
 		][
 			if e + 1 = lex/in-end [throw-error lex s e TYPE_STRING]
