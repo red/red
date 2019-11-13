@@ -1541,7 +1541,6 @@ lexer: context [
 	
 	scan-comment: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]][
 		;TBD: trigger an event
-		lex/in-pos: e + 1								;-- skip lf
 	]
 
 	
