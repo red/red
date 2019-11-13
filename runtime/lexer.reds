@@ -1439,6 +1439,7 @@ lexer: context [
 	scan-time: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
 			p	 [byte-ptr!]
+			mark [byte-ptr!]
 			err	 [integer!]
 			hour [integer!]
 			min	 [integer!]
@@ -1454,14 +1455,20 @@ lexer: context [
 		p: p + 1
 		
 		min: 0
+		mark: p
 		p: grab-integer p e flags :min :err
-		if any [err <> 0 all [p + 1 < e p/1 <> #":"]][throw-error lex s e TYPE_TIME]
+		if any [err <> 0 min < 0][throw-error lex s e TYPE_TIME]
 		p: p + 1
 	
 		if p < e [
-			if flags and C_FLAG_EXP <> 0 [throw-error lex s e TYPE_TIME]
+			if any [all [p/0 <> #"." p/0 <> #":"] flags and C_FLAG_EXP <> 0][throw-error lex s e TYPE_TIME]
+			if p/0 = #"." [
+				min: hour
+				hour: 0
+				p: mark
+			]
 			tm: dtoa/to-float p e :err
-			if err <> 0 [throw-error lex s e TYPE_TIME]
+			if any [err <> 0 tm < 0.0][throw-error lex s e TYPE_TIME]
 		]
 		
 		tm: (3600.0 * as-float hour) + (60.0 * as-float min) + tm
