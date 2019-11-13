@@ -356,6 +356,7 @@ lexer: context [
 		ERR_BAD_CHAR: 	  -1
 		ERR_MALCONSTRUCT: -2
 		ERR_MISSING: 	  -3
+		LEX_INT_OVERFLOW: -4
 	]
 	
 	state!: alias struct! [
@@ -651,6 +652,48 @@ lexer: context [
 		ser/tail: as red-value! p
 		null
 	]
+	
+	grab-integer: func [s [byte-ptr!] e [byte-ptr!] flags [integer!] dst [int-ptr!] err [int-ptr!]
+		return: [byte-ptr!]
+		/local
+			p	 [byte-ptr!]
+			len	 [integer!]
+			i	 [integer!]
+			c	 [integer!]
+			neg? [logic!]
+			o?	 [logic!]
+	][
+		p: s
+		neg?: p/1 = #"-"
+		if neg? [p: p + 1]
+
+		i: 0
+		o?: no
+		while [p < e][
+			c: as-integer (p/1 - #"0")
+			either all [c >= 0 c <= 9][
+				i: 10 * i + c
+				o?: o? or system/cpu/overflow?
+			][
+				if p/1 <> #"'" [break]				;-- allow ' in integers
+			]
+			p: p + 1
+		]
+		if o? [
+			len: as-integer p - s					;-- account for sign in len now
+			either all [len = 11 zero? compare-memory s min-integer len][
+				i: 80000000h
+				neg?: no							;-- ensure that the 0 subtraction does not occur
+			][
+				err/value: LEX_INT_OVERFLOW
+				return p
+			]
+		]
+		if neg? [i: 0 - i]
+		dst/value: i
+		p
+	]
+
 	
 	scan-percent-char: func [s [byte-ptr!] e [byte-ptr!] cp [int-ptr!]
 		return: [byte-ptr!]								;-- -1 if error
@@ -1395,24 +1438,35 @@ lexer: context [
 	
 	scan-time: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
-			field [lexer-dt-array!]
-			tm	  [float!]
-			neg?  [logic!]
+			p	 [byte-ptr!]
+			err	 [integer!]
+			hour [integer!]
+			min	 [integer!]
+			len	 [integer!]
+			tm	 [float!]
 	][
-		neg?: s/1 = #"-"
-		if neg? [s: s + 1]
-		
-		field: as lexer-dt-array! scan-date lex s e flags or C_FLAG_TM_ONLY ;-- field is on freed stack frame
-		
-		if any [field/tz-h <> 0 field/tz-m <> 0][throw-error lex s e TYPE_TIME] ;-- TZ info rejection
+		p: s
+		err:  0
+		hour: 0
 
-		tm: (3600.0 * as float! field/hour)
-		  + (60.0   * as float! field/min)
-		  + (         as float! field/sec)
-		  + (1e-9   * as float! field/nsec)
-
-		if neg? [tm: 0.0 - tm]
-		time/make-at tm alloc-slot lex					;-- field array is not usable after this call
+		p: grab-integer p e flags :hour :err
+		if any [err <> 0 p/1 <> #":"][throw-error lex s e TYPE_TIME]
+		p: p + 1
+		
+		min: 0
+		p: grab-integer p e flags :min :err
+		if any [err <> 0 all [p + 1 < e p/1 <> #":"]][throw-error lex s e TYPE_TIME]
+		p: p + 1
+	
+		if p < e [
+			if flags and C_FLAG_EXP <> 0 [throw-error lex s e TYPE_TIME]
+			tm: dtoa/to-float p e :err
+			if err <> 0 [throw-error lex s e TYPE_TIME]
+		]
+		
+		tm: (3600.0 * as-float hour) + (60.0 * as-float min) + tm
+		if hour < 0 [tm: 0.0 - tm]
+		time/make-at tm alloc-slot lex
 	]
 	
 	scan-money: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]][
