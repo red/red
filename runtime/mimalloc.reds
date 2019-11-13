@@ -46,10 +46,9 @@ Red/System [
 
 #define MI_MAX_PAGE_OFFSET		[((MI_MEDIUM_PAGE_SIZE / MI_SMALL_PAGE_SIZE) - 1)]
 
-#define MI_PAGE_FLAG_FULL		1
-#define MI_PAGE_FLAG_ALIGNED	2
-
 #define MI_BIN_HUGE		73
+
+#define MI_SMALL_SIZE_MAX		[(128 * size? int-ptr!)]
 
 #define PTR-TO-SEGMENT(p)		[as segment! (as-integer p) and (not MI_SEGMENT_MASK)]
 
@@ -59,7 +58,8 @@ mimalloc: context [
 		PAGE_FLAG_IN_USE:		1
 		PAGE_FLAG_RESET:		2
 		PAGE_FLAG_COMMITED:		4
-		PAGE_FLAG_ZERO:			8
+		PAGE_FLAG_USED:			8
+		PAGE_FLAG_IN_FULL:		10h
 	]
 
 	#enum delayed-free! [
@@ -88,8 +88,8 @@ mimalloc: context [
 		free-blocks		[block!]
 		used			[integer!]
 		local-free		[block!]
-		;thread-freed	[integer!]
-		;thread-free	[block!]
+		thread-freed	[integer!]
+		thread-free		[block!]
 		block-size		[integer!]
 		heap			[heap!]
 		next			[page!]
@@ -608,6 +608,103 @@ probe MI_SEGMENT_SIZE
 		page
 	]
 
+	update-pages-direct: func [
+		heap		[heap!]
+		queue		[page-queue!]
+		/local
+			size	[integer!]
+			page	[page!]
+			start	[integer!]
+			idx		[integer!]
+			i		[integer!]
+			pp		[ptr-ptr!]
+			p-page	[ptr-ptr!]
+			bin		[integer!]
+			prev	[page-queue!]
+			pages	[page-queue!]
+	][
+		size: queue/block-size
+		if size > MI_SMALL_SIZE_MAX [exit]
+
+		page: queue/first
+		if null? page [page: empty-page]
+
+		idx: MI_WORD_SIZE?(size)
+		pp: as ptr-ptr! :heap/pages-direct
+		p-page: pp + idx
+		if p-page/value = (as int-ptr! page) [exit]
+
+		either idx <= 1 [
+			start: 0
+		][
+			pages: as page-queue! :heap/pages
+			bin: slot-idx? size
+			prev: queue - 1
+			while [
+				all [
+					prev > pages
+					bin = slot-idx? prev/block-size
+				]
+			][
+				prev: prev - 1
+			]
+			start: MI_WORD_SIZE?(prev/block-size)
+			start: start + 1
+			if start > idx [start: idx]
+		]
+
+		i: start
+		while [i <= idx][
+			p-page: pp + i
+			p-page/value: as int-ptr! page
+			i: i + 1
+		]
+	]
+
+	page-queue-remove: func [
+		queue		[page-queue!]
+		page		[page!]
+	][
+		if page/prev <> null [page/prev/next: page/next]
+		if page/next <> null [page/next/prev: page/prev]
+		if page = queue/last [queue/last: page/prev]
+		if page = queue/first [
+			queue/first: page/next
+			update-pages-direct page/heap queue
+		]
+		page/heap/page-count: page/heap/page-count - 1
+		page/next: null
+		page/prev: null
+		page/heap: null
+		page/flags: page/flags and (not PAGE_FLAG_IN_FULL)
+	]
+
+	segment-page-free: func [
+		page		[page!]
+		force?		[logic!]
+		tld			[segments-tld!]
+		/local
+			seg		[segment!]
+	][
+		seg: PTR-TO-SEGMENT(page)
+		zero-memory (as byte-ptr! page) + 8 (size? page!) - 8
+		seg/used: seg/used - 1
+		either zero? seg/used [
+			0
+		][
+			0
+		]
+	]
+
+	page-free: func [		;-- free a page with no more free blocks
+		page		[page!]
+		queue		[page-queue!]
+		force?		[logic!]
+	][
+		page-queue-remove queue page
+		segment-page-free page force? page/heap/tld/segments
+	]
+
 	queue-find-page: func [
 		heap		[heap!]
 		pq			[page-queue!]
@@ -615,12 +712,38 @@ probe MI_SEGMENT_SIZE
 		return:		[page!]
 		/local
 			page	[page!]
+			next	[page!]
+			rpage	[page!]
+			free-n	[integer!]
+			count	[integer!]
 			blk-sz	[integer!]
 			kind	[page-kind!]
 			shift	[integer!]
 			seg-tld	[segments-tld!]
 	][
-		;-- TBD search in page queue
+		;-- search in page queue
+		rpage: null
+		count: 0
+		free-n: 0
+		page: pq/first
+		while [page <> null][
+			next: page/next
+			count: count + 1
+
+			page-collect page false
+			if page/free-blocks <> null [
+				;-- If all blocks are free, we might retire this page instead.
+				;-- do this at most 8 times to bound allocation time.
+				;-- (note: this can happen if a page was earlier not retired due
+				;-- to having neighbours that were mostly full or due to concurrent frees)
+				either all [free-n < 8 page/used = page/thread-freed][
+					free-n: free-n + 1
+					if rpage <> null [0]
+				][
+					break
+				]
+			]
+		]
 
 		;-- get a fresh page
 		page: pq/first
@@ -683,7 +806,7 @@ probe MI_SEGMENT_SIZE
 		return: [byte-ptr!]
 	][
 		assert heap <> null
-		either size <= (128 * size? int-ptr!) [	;-- fast path
+		either size <= MI_SMALL_SIZE_MAX [	;-- fast path
 			heap-alloc-small heap size
 		][
 			heap-alloc-generic heap size
@@ -703,17 +826,20 @@ probe MI_SEGMENT_SIZE
 		page-alloc heap as page! p/value size
 	]
 
-	heap-alloc-generic: func [
+	deferred-free: func [
 		heap		[heap!]
+		force?		[logic!]
+	][
+		
+	]
+
+	slot-idx?: func [
 		size		[integer!]
-		return:		[byte-ptr!]
+		return:		[integer!]
 		/local
-			page	[page!]
 			wsize	[integer!]
 			idx		[integer!]
-			qe		[page-queue!]
 	][
-		;-- try to find a free page in page queue
 		wsize: MI_WORD_SIZE?(size)
 		case [
 			wsize <= 1 [idx: 1]
@@ -726,17 +852,72 @@ probe MI_SEGMENT_SIZE
 				idx: idx << 2 + (wsize >> (idx - 2) and 3) - 3
 			]
 		]
-		qe: (as page-queue! :heap/pages) + idx
-		page: qe/first
-		either page <> null [
-			;-- TBD collect page
+		idx
+	]
 
-			if null? page/free-blocks [
-				page: queue-find-page heap qe size
+	page-collect: func [
+		page		[page!]
+		force?		[logic!]
+		/local
+			b		[block!]
+			next	[block!]
+	][
+		;-- TBD collect the thread free list
+
+		;-- collect the local free list
+		if page/local-free <> null [
+			either null? page/free-blocks [
+				page/free-blocks: page/local-free
+				page/local-free: null
+				page/flags: page/flags or PAGE_FLAG_USED
+			][
+				if force? [
+					b: page/local-free
+					while [
+						next: b/next
+						next <> null
+					][
+						b: next
+					]
+					b/next: page/free-blocks
+					page/free-blocks: page/local-free
+					page/local-free: null
+					page/flags: page/flags or PAGE_FLAG_USED
+				]
 			]
-		][
-			page: queue-find-page heap qe size
 		]
+	]
+
+	heap-alloc-generic: func [
+		heap		[heap!]
+		size		[integer!]
+		return:		[byte-ptr!]
+		/local
+			page	[page!]
+			idx		[integer!]
+			qe		[page-queue!]
+	][
+		deferred-free heap false	;-- call potential deferred free routine
+		;delayed-free heap			;-- free pages from other threads
+
+		either size <= MI_LARGE_OBJ_SIZE_MAX [
+			idx: slot-idx? size
+			qe: (as page-queue! :heap/pages) + idx
+			page: qe/first
+			either page <> null [	;-- try to find a free page in page queue
+				page-collect page false
+
+				if null? page/free-blocks [
+					page: queue-find-page heap qe size
+				]
+			][
+				page: queue-find-page heap qe size
+			]			
+		][
+			size: round-to size 64 * 1024		;-- round to 64kb aligned
+			page: null
+		]
+
 		page-alloc heap page size		
 	]
 
