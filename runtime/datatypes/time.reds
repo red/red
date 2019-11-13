@@ -76,8 +76,8 @@ time: context [
 			t [red-time!]
 	][
 		t: as red-time! cell
-		t/header: TYPE_TIME
-		t/time:   time
+		set-type cell TYPE_TIME
+		t/time: time
 		t
 	]
 	
