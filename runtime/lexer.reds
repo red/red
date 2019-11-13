@@ -31,7 +31,6 @@ lexer: context [
 		C_FLAG_SHARP:	00800000h
 		C_FLAG_EOF:		00400000h
 		C_FLAG_SIGN:	00200000h
-		C_FLAG_TM_ONLY: 00000400h						;-- only scan a time! value
 		C_FLAG_ESC_HEX: 00000200h						;-- percent-escaped mode
 		C_FLAG_NOSTORE: 00000100h						;-- do not store decoded value
 	]
@@ -1308,7 +1307,6 @@ lexer: context [
 	]
 
 	scan-date: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
-		return: [lexer-dt-array!]						;-- return field pointer for scan-time
 		/local
 			cell  [cell!]
 			dt	  [red-date!]
@@ -1326,14 +1324,12 @@ lexer: context [
 			c	  [integer!]
 			pos	  [integer!]
 			len	  [integer!]
-			time? [logic!]
 			neg?  [logic!]
 	][
 		c: 0											;-- accumulator (fields decoding)
 		b: s
-		time?: flags and C_FLAG_TM_ONLY <> 0			;-- called from scan-time?
 		field: system/stack/allocate/zero 17 			;-- date/time fields array
-		state: either time? [S_TM_START][S_DT_START]
+		state: S_DT_START
 
 		loop as-integer e - s [
 			cp: as-integer s/1
@@ -1349,70 +1345,65 @@ lexer: context [
 			s: s + 1
 		]
 		if state <= T_DT_ERROR [						;-- if no terminal state reached, forces EOF input
-			if state = T_DT_ERROR [				 		;-- check here for performance reason
-				type: either time? [TYPE_TIME][TYPE_DATE]
-				throw-error lex b e type
-			]
+			if state = T_DT_ERROR [throw-error lex b e TYPE_DATE]
 			index: state * (size? date-char-classes!) + C_DT_EOF
 			state: as-integer date-transitions/index
 			pos: as-integer fields-table/state
 			field/pos: c
 		]
 		df: as lexer-dt-array! field + 1
-		unless time? [
-			p: as byte-ptr! df/TZ-sign
-			neg?: all [p <> null p/1 = #"-"]			;-- detect negative TZ
-			cell: alloc-slot lex
-			
-			either df/week or df/wday or df/yday <> 0 [ ;-- special ISO formats
-				df/month: 1								;-- ensures valid month (will be changed later)
-				df/day: 1								;-- ensures valid day   (will be changed later)
-				dt: date/make-at cell df state >= T_TM_HM neg? ;-- create red-date!
-				if null? dt [throw-error lex b e TYPE_DATE]
-				
-				if df/week or df/wday <> 0 [			;-- yyyy-Www
-					date/set-isoweek dt df/week
-				]
-				c: df/wday
-				if c <> 0 [								;-- yyyy-Www-d
-					if any [c < 1 c > 7][throw-error lex b e TYPE_DATE]
-					date/set-weekday dt c
-				]
-				if df/yday <> 0 [date/set-yearday dt df/yday] ;-- yyyy-ddd
-			][
-				p: as byte-ptr! df/month-begin
-				me: as byte-ptr! df/sep2
-				if df/month-begin or df/sep2 <> 0 [
-					if any [null? p null? me p/1 <> me/1][
-						throw-error lex b e TYPE_DATE	;-- inconsistent separator
-					]
-				]
-				if df/year < 100 [						;-- expand short yy forms
-					me: (as byte-ptr! df/sep2) + 3
-					unless all [me < e (as-integer me/1 - #"0") <= 9][ ;-- check if year field has 2 digits
-						c: either df/year < 50 [2000][1900]
-						df/year: df/year + c
-					]
-				]
-				if df/month-end <> 0 [					;-- if month is named
-					p: p + 1							;-- name start
-					me: as byte-ptr! df/month-end		;-- name end
-					len: as-integer me - p + 1
-					if any [len < 3 len > 9][throw-error lex b e TYPE_DATE] ;-- invalid month name
-					m: months
-					loop 12 [
-						if zero? platform/strnicmp p as byte-ptr! m/1 len [break]
-						m: m + 1
-					]
-					if months + 12 = m [throw-error lex b e TYPE_DATE] ;-- invalid month name
-					df/month: (as-integer m - months) >> 2 + 1
-				]
-				dt: date/make-at cell df state >= T_TM_HM neg? ;-- create red-date!
-				if null? dt [throw-error lex b e TYPE_DATE]
+
+		p: as byte-ptr! df/TZ-sign
+		neg?: all [p <> null p/1 = #"-"]			;-- detect negative TZ
+		cell: alloc-slot lex
+
+		either df/week or df/wday or df/yday <> 0 [ ;-- special ISO formats
+			df/month: 1								;-- ensures valid month (will be changed later)
+			df/day: 1								;-- ensures valid day   (will be changed later)
+			dt: date/make-at cell df state >= T_TM_HM neg? ;-- create red-date!
+			if null? dt [throw-error lex b e TYPE_DATE]
+
+			if df/week or df/wday <> 0 [			;-- yyyy-Www
+				date/set-isoweek dt df/week
 			]
+			c: df/wday
+			if c <> 0 [								;-- yyyy-Www-d
+				if any [c < 1 c > 7][throw-error lex b e TYPE_DATE]
+				date/set-weekday dt c
+			]
+			if df/yday <> 0 [date/set-yearday dt df/yday] ;-- yyyy-ddd
+		][
+			p: as byte-ptr! df/month-begin
+			me: as byte-ptr! df/sep2
+			if df/month-begin or df/sep2 <> 0 [
+				if any [null? p null? me p/1 <> me/1][
+					throw-error lex b e TYPE_DATE	;-- inconsistent separator
+				]
+			]
+			if df/year < 100 [						;-- expand short yy forms
+				me: (as byte-ptr! df/sep2) + 3
+				unless all [me < e (as-integer me/1 - #"0") <= 9][ ;-- check if year field has 2 digits
+					c: either df/year < 50 [2000][1900]
+					df/year: df/year + c
+				]
+			]
+			if df/month-end <> 0 [					;-- if month is named
+				p: p + 1							;-- name start
+				me: as byte-ptr! df/month-end		;-- name end
+				len: as-integer me - p + 1
+				if any [len < 3 len > 9][throw-error lex b e TYPE_DATE] ;-- invalid month name
+				m: months
+				loop 12 [
+					if zero? platform/strnicmp p as byte-ptr! m/1 len [break]
+					m: m + 1
+				]
+				if months + 12 = m [throw-error lex b e TYPE_DATE] ;-- invalid month name
+				df/month: (as-integer m - months) >> 2 + 1
+			]
+			dt: date/make-at cell df state >= T_TM_HM neg? ;-- create red-date!
+			if null? dt [throw-error lex b e TYPE_DATE]
 		]
 		lex/in-pos: e									;-- reset the input position to delimiter byte
-		df												;-- return field pointer for scan-time
 	]
 	
 	scan-pair: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
