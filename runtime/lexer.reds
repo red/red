@@ -1399,7 +1399,9 @@ lexer: context [
 			tm	  [float!]
 			neg?  [logic!]
 	][
-		if s/1 = #"-" [neg?: yes s: s + 1]
+		neg?: s/1 = #"-"
+		if neg? [s: s + 1]
+		
 		field: as lexer-dt-array! scan-date lex s e flags or C_FLAG_TM_ONLY ;-- field is on freed stack frame
 		
 		if any [field/tz-h <> 0 field/tz-m <> 0][throw-error lex s e TYPE_TIME] ;-- TZ info rejection
