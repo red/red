@@ -693,6 +693,30 @@ lexer: context [
 		p
 	]
 
+	grab-digits: func [s [byte-ptr!] e [byte-ptr!] max [integer!] dst [int-ptr!] err [int-ptr!]
+		return: [byte-ptr!]
+		/local
+			p [byte-ptr!]
+			i [integer!]
+			c [integer!]
+	][
+		i: 0
+		if s = e [err/value: -2 return s]				;-- buffer end's reached
+		
+		while [all [s < e max > 0]][
+			c: as-integer (s/1 - #"0")
+			either all [c >= 0 c <= 9][
+				i: 10 * i + c
+			][
+				err/value: -1
+				return s
+			]
+			s: s + 1
+			max: max - 1
+		]
+		dst/value: i
+		s
+	]
 	
 	scan-percent-char: func [s [byte-ptr!] e [byte-ptr!] cp [int-ptr!]
 		return: [byte-ptr!]								;-- -1 if error
@@ -1306,7 +1330,51 @@ lexer: context [
 		lex/in-pos: e									;-- reset the input position to delimiter byte
 	]
 
+
 	scan-date: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+		/local
+	][
+		p: s
+		err:   0
+		year:  0
+		month: 0
+		day:   0
+
+		cp: as-integer s/1
+		class: as-integer date-classes/cp
+		
+		p: grab-digits p e 4 :year :err
+		sep: p/1
+		if err <> 0 [throw-error lex s e TYPE_TIME]
+		if all [sep >= #"0" sep <= #"9"][
+			p: grab-digits p e 2 :month :err
+			p: grab-digits p e 2 :day :err
+			if any [err <> 0 p/1 <> #"T"][throw-error lex s e TYPE_TIME]
+			p: grab-digits p e 2 :hour :err
+			p: grab-digits p e 2 :min :err
+			if p/1 <> #"Z" [
+				p: grab-digits p e 2 :min :err
+			]
+		]
+		
+		
+		sep?: any [sep = #"-" sep = #"/"]
+		if sep? [p: p + 1]
+	
+		p: grab-digits p e 2 :month :err
+		if err <> 0 [
+			unless sep? [throw-error lex s e TYPE_TIME]
+			;named month
+			0
+		]
+		if p/1 <> sep [throw-error lex s e TYPE_TIME]
+		p: p + 1
+		
+		
+	
+	]
+
+	scan-date2: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
 			cell  [cell!]
 			dt	  [red-date!]
