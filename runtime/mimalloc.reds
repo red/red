@@ -42,12 +42,14 @@ Red/System [
 #define MI_LARGE_OBJ_WSIZE_MAX	[(MI_LARGE_OBJ_SIZE_MAX / MI_PTR_SIZE)]
 
 #define MI_MAX_ALIGN_SIZE		16
-#define MI_PAGE_HUGE_ALIGN		262144
+#define MI_PAGE_HUGE_ALIGN		262144		;-- 256KB
 
 #define MI_MAX_PAGE_OFFSET		[((MI_MEDIUM_PAGE_SIZE / MI_SMALL_PAGE_SIZE) - 1)]
 
-#define MI_BIN_HUGE		73
-#define MI_BIN_FULL		74
+#define MI_BIN_HUGE		70
+#define MI_BIN_FULL		71
+#define MI_HUGE_SIZE	1835008
+#define MI_FULL_SIZE	2097152
 
 #define MI_SMALL_SIZE_MAX		[(128 * size? int-ptr!)]
 
@@ -157,7 +159,6 @@ mimalloc: context [
 		p49  [page-queue! value] p50  [page-queue! value] p51  [page-queue! value] p52  [page-queue! value] p53  [page-queue! value] p54  [page-queue! value] p55  [page-queue! value] p56  [page-queue! value]
 		p57  [page-queue! value] p58  [page-queue! value] p59  [page-queue! value] p60  [page-queue! value] p61  [page-queue! value] p62  [page-queue! value] p63  [page-queue! value] p64  [page-queue! value]
 		p65  [page-queue! value] p66  [page-queue! value] p67  [page-queue! value] p68  [page-queue! value] p69  [page-queue! value] p70  [page-queue! value] p71  [page-queue! value] p72  [page-queue! value]
-		p73  [page-queue! value] p74  [page-queue! value] p75  [page-queue! value]
 	]
 
 	segment-queue!: alias struct! [
@@ -409,8 +410,7 @@ mimalloc: context [
 		p/174: 163840  p/177: 196608 p/180: 229376 p/183: 262144  p/186: 327680
 		p/189: 393216  p/192: 458752 p/195: 524288 
 		p/198: 655360  p/201: 786432 p/204: 917504 p/207: 1048576 p/210: 1310720
-		p/213: 1572864 p/216: 1835008 p/219: 2097152
-		p/222: 1048580 p/225: 1048584
+		p/213: MI_HUGE_SIZE p/216: MI_FULL_SIZE
 
 		init-thread
 	]
@@ -613,6 +613,7 @@ probe MI_SEGMENT_SIZE
 		if null? seg [return null]
 		seg/used: 1
 		page: as page! :seg/pages
+		page/reserved: size
 		page/flags: PAGE_FLAG_IN_USE
 		page
 	]
@@ -686,6 +687,37 @@ probe MI_SEGMENT_SIZE
 		page/prev: null
 		page/heap: null
 		page/flags: page/flags and (not PAGE_FLAG_IN_FULL)
+	]
+
+	page-queue-add-from: func [
+		to		[page-queue!]
+		from	[page-queue!]
+		page	[page!]
+	][
+		;-- remove the page from the `from` queue
+		if page/prev <> null [page/prev/next: page/next]
+		if page/next <> null [page/next/prev: page/prev]
+		if page = from/last [from/last: page/prev]
+		if page = from/first [
+			from/first: page/next
+			update-pages-direct page/heap from
+		]
+
+		;-- add the page to the `to` queue
+		page/prev: to/last
+		page/next: null
+		either to/last <> null [
+			to/last/next: page
+		][
+			to/first: page
+			update-pages-direct page/heap to
+		]
+		to/last: page
+		either to/block-size <> MI_FULL_SIZE [
+			page/flags: page/flags and (not PAGE_FLAG_IN_FULL)
+		][
+			page/flags: page/flags or PAGE_FLAG_IN_FULL
+		]
 	]
 
 	cache-segment: func [		;-- cache some segments
@@ -765,6 +797,7 @@ probe MI_SEGMENT_SIZE
 			kind	[page-kind!]
 			shift	[integer!]
 			seg-tld	[segments-tld!]
+			qfull	[page-queue!]
 	][
 		;-- search in page queue
 		rpage: null
@@ -797,7 +830,10 @@ probe MI_SEGMENT_SIZE
 
 			;; 3. if the page is completely full, move it to the `pages-full` queue
 			;;    so we don't visit long-lived pages too often
-			;; TBD
+			if page/flags and PAGE_FLAG_IN_FULL = 0 [
+				qfull: (as page-queue! :heap/pages) + MI_BIN_FULL
+				page-queue-add-from qfull pq page
+			]
 
 			page: next
 		]
@@ -959,7 +995,7 @@ probe MI_SEGMENT_SIZE
 		size		[integer!]
 		return:		[byte-ptr!]
 		/local
-			page	[page!]
+			page	[page!] 
 			idx		[integer!]
 			qe		[page-queue!]
 	][
@@ -981,13 +1017,27 @@ probe MI_SEGMENT_SIZE
 			]			
 		][
 			size: round-to size 64 * 1024		;-- round to 64kb aligned
-			page: null
+			page: big-page-alloc size MI_PAGE_HUGE MI_SEGMENT_SHIFT heap/tld/segments
+			page-init page size
 		]
 
 		page-alloc heap page size		
 	]
 
-
+	page-unfull: func [				;-- move it from the full list back to regular list
+		page		[page!]
+		/local
+			heap	[heap!]
+			qfull	[page-queue!]
+			qe		[page-queue!]
+			idx		[integer!]
+	][
+		heap: page/heap
+		qfull: (as page-queue! :heap/pages) + MI_BIN_FULL
+		idx: slot-idx? page/block-size
+		qe: (as page-queue! :heap/pages) + idx
+		page-queue-add-from qe qfull page
+	]
 
 	free: func [
 		p		[byte-ptr!]
@@ -1027,7 +1077,7 @@ probe MI_SEGMENT_SIZE
 				page-free page pq false
 			]
 			page/flags and PAGE_FLAG_IN_FULL <> 0 [	;-- page in pages-full queue
-			
+				page-unfull page
 			]
 			true [0]
 		]
