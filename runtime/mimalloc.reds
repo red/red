@@ -47,10 +47,19 @@ Red/System [
 #define MI_MAX_PAGE_OFFSET		[((MI_MEDIUM_PAGE_SIZE / MI_SMALL_PAGE_SIZE) - 1)]
 
 #define MI_BIN_HUGE		73
+#define MI_BIN_FULL		74
 
 #define MI_SMALL_SIZE_MAX		[(128 * size? int-ptr!)]
 
-#define PTR-TO-SEGMENT(p)		[as segment! (as-integer p) and (not MI_SEGMENT_MASK)]
+#define MI_WORD_SIZE?(size) [(size - 1 + size? int-ptr!) / size? int-ptr!]
+#define PTR_TO_SEGMENT(p)		[as segment! (as-integer p) and (not MI_SEGMENT_MASK)]
+#define GET_SEGMENT_QUEUE(kind tld) [
+	switch kind [
+		MI_PAGE_SMALL [tld/small-free]
+		MI_PAGE_MEDIUM [tld/medium-free]
+		default [null]
+	]
+]
 
 mimalloc: context [
 
@@ -73,7 +82,7 @@ mimalloc: context [
 		MI_PAGE_SMALL	;-- small blocks go into 32kb pages inside a segment
 		MI_PAGE_MEDIUM	;-- medium blocks go into 256kb pages inside a segment
 		MI_PAGE_LARGE	;-- larger blocks go into a page of just one block
-		MI_PAGE_HUGE	;-- more than 2MB
+		MI_PAGE_HUGE	;-- blocks more than 1MB
 	]
 
 	block!: alias struct! [		;-- free lists contains blocks
@@ -99,6 +108,7 @@ mimalloc: context [
 	segment!: alias struct! [
 		id				[integer!]
 		next			[segment!]
+		prev			[segment!]
 		abandoned_next	[segment!]
 		abandoned		[integer!]
 		used			[integer!]
@@ -106,7 +116,7 @@ mimalloc: context [
 		size			[integer!]
 		info-size		[integer!]
 		page-shift		[integer!]
-		thread-id		[int-ptr!]
+		thread-id		[ulong!]
 		page-kind		[integer!]
 		pages			[page! value]
 	]
@@ -192,7 +202,7 @@ mimalloc: context [
 		pages-direct	[pages-direct! value]
 		pages			[pages-array! value]
 		delayed-free	[block!]
-		thread-id		[int-ptr!]
+		thread-id		[ulong!]
 		page-count		[integer!]
 		reclaim?		[logic!]
 	]
@@ -242,8 +252,6 @@ mimalloc: context [
 			]
 		]
 	]
-
-	#define MI_WORD_SIZE?(size) [(size - 1 + size? int-ptr!) / size? int-ptr!]
 
 	os-page-size: 4096
 	alloc-granularity: 4096
@@ -413,7 +421,7 @@ mimalloc: context [
 			tld	[tld!]
 	][
 		hp: heap-main
-		either null? hp/thread-id [
+		either zero? hp/thread-id [
 			heap-default: heap-main
 		][
 			thread-id-cnt: thread-id-cnt + 1
@@ -449,7 +457,7 @@ mimalloc: context [
 			last	[block!]
 			nxt		[block!]
 	][
-		seg: PTR-TO-SEGMENT(page)
+		seg: PTR_TO_SEGMENT(page)
 		psize: page/reserved
 		p: (as byte-ptr! seg) + (page/idx * psize)
 ?? p
@@ -580,6 +588,7 @@ probe MI_SEGMENT_SIZE
 		if null? sq/first [
 			seg: segment-alloc 0 kind shift tld
 			seg/next: null
+			seg/prev: sq/last
 			either sq/last <> null [
 				sq/last/next seg
 			][
@@ -679,20 +688,56 @@ probe MI_SEGMENT_SIZE
 		page/flags: page/flags and (not PAGE_FLAG_IN_FULL)
 	]
 
+	cache-segment: func [		;-- cache some segments
+		segment		[segment!]
+		tld			[segments-tld!]
+		return:		[logic!]	;-- YES: cached, NO: cache is full
+	][
+		no
+	]
+
 	segment-page-free: func [
 		page		[page!]
 		force?		[logic!]
 		tld			[segments-tld!]
 		/local
 			seg		[segment!]
+			qe		[segment-queue!]
 	][
-		seg: PTR-TO-SEGMENT(page)
+		seg: PTR_TO_SEGMENT(page)
 		zero-memory (as byte-ptr! page) + 8 (size? page!) - 8
 		seg/used: seg/used - 1
 		either zero? seg/used [
-			0
+			qe: GET_SEGMENT_QUEUE(seg/page-kind tld)
+			if all [
+				qe <> null
+				any [seg/next <> null seg/prev <> null qe/first = seg]
+			][
+				if seg/prev <> null [seg/prev/next: seg/next]
+				if seg/next <> null [seg/next/prev: seg/prev]
+				if seg = qe/first [qe/first: seg/next]
+				if seg = qe/last [qe/last: seg/prev]
+				seg/next: null
+				seg/prev: null
+			]
+			if any [
+				force?
+				cache-segment seg tld
+			][	;-- return it to the OS
+				seg/thread-id: 0
+				OS-free as byte-ptr! seg seg/size tld/stats
+			]
 		][
-			0
+			if seg/used + 1 = seg/capacity [	;-- move back to free lists
+				seg/next: null
+				seg/prev: qe/last
+				either qe/last <> null [
+					qe/last/next seg
+				][
+					qe/first: seg
+				]
+				qe/last: seg
+			]
 		]
 	]
 
@@ -730,7 +775,10 @@ probe MI_SEGMENT_SIZE
 			next: page/next
 			count: count + 1
 
+			;; 1. collect freed blocks by us and other threads
 			page-collect page false
+
+			;; 2. if the page contains free blocks
 			if page/free-blocks <> null [
 				;-- If all blocks are free, we might retire this page instead.
 				;-- do this at most 8 times to bound allocation time.
@@ -738,15 +786,30 @@ probe MI_SEGMENT_SIZE
 				;-- to having neighbours that were mostly full or due to concurrent frees)
 				either all [free-n < 8 page/used = page/thread-freed][
 					free-n: free-n + 1
-					if rpage <> null [0]
+					if rpage <> null [page-free rpage pq false]
+					rpage: page
+					page: next
+					continue
 				][
 					break
 				]
 			]
+
+			;; 3. if the page is completely full, move it to the `pages-full` queue
+			;;    so we don't visit long-lived pages too often
+			;; TBD
+
+			page: next
 		]
 
+		if null? page [
+			page: rpage
+			rpage: null
+		]
+
+		if rpage <> null [page-free rpage pq false]
+
 		;-- get a fresh page
-		page: pq/first
 		if null? page [
 			blk-sz: pq/block-size
 			seg-tld: heap/tld/segments
@@ -775,6 +838,9 @@ probe MI_SEGMENT_SIZE
 				pq/last: page
 			]
 			pq/first: page
+
+			update-pages-direct heap pq
+			heap/page-count: heap/page-count + 1
 		]
 		page
 	]
@@ -919,6 +985,52 @@ probe MI_SEGMENT_SIZE
 		]
 
 		page-alloc heap page size		
+	]
+
+
+
+	free: func [
+		p		[byte-ptr!]
+		/local
+			seg		[segment!]
+			tid		[ulong!]
+			page	[page!]
+			diff	[integer!]
+			idx		[integer!]
+			blk		[block!]
+			i		[integer!]
+			pq		[page-queue!]
+			heap	[heap!]
+	][
+		seg: PTR_TO_SEGMENT(p)
+		if null? seg [exit]
+
+		;tid: thread-id?
+		diff: as-integer p - (as byte-ptr! seg)
+		idx: diff >> seg/page-shift
+		page: (as page! :seg/pages) + idx
+
+		blk: as block! p
+		blk/next: page/local-free
+		page/local-free: blk
+		page/used: page/used - 1
+
+		case [
+			page/used = page/thread-freed [			;-- the page is empty
+				;-- TBD: don't retire too often..
+				;-- (or we end up retiring and re-allocating most of the time)
+				idx: either page/flags and PAGE_FLAG_IN_FULL <> 0 [MI_BIN_FULL][
+					slot-idx? page/block-size
+				]
+				heap: page/heap
+				pq: (as page-queue! :heap/pages) + idx
+				page-free page pq false
+			]
+			page/flags and PAGE_FLAG_IN_FULL <> 0 [	;-- page in pages-full queue
+			
+			]
+			true [0]
+		]
 	]
 
 	malloc: func [
