@@ -270,7 +270,12 @@ mimalloc: context [
 		loop size [dest/value: #"^@" dest: dest + 1]
 	]
 
-	thread-id-cnt: 0 ;func [return: [int-ptr!]][as int-ptr! heap-default]
+	thread-id?: func [return: [ulong!]][
+		#inline [
+			#{64A118000000}		;-- mov eax, DWORD PTR fs:24 (NtCurrentTeb)
+			return: [ulong!]
+		]
+	]
 
 	;== OS memory APIs
 
@@ -424,7 +429,7 @@ mimalloc: context [
 		either zero? hp/thread-id [
 			heap-default: heap-main
 		][
-			thread-id-cnt: thread-id-cnt + 1
+			0
 		]
 	]
 
@@ -1092,4 +1097,5 @@ probe MI_SEGMENT_SIZE
 ]
 
 mimalloc/init
+probe mimalloc/thread-id?
 probe mimalloc/malloc 1
