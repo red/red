@@ -693,29 +693,41 @@ lexer: context [
 		p
 	]
 
-	grab-digits: func [s [byte-ptr!] e [byte-ptr!] max [integer!] dst [int-ptr!] err [int-ptr!]
+	grab-digits: func [s [byte-ptr!] e [byte-ptr!] exact [integer!] max [integer!] dst [int-ptr!] err [int-ptr!]
 		return: [byte-ptr!]
 		/local
 			p [byte-ptr!]
 			i [integer!]
 			c [integer!]
 	][
-		i: 0
 		if s = e [err/value: -2 return s]				;-- buffer end's reached
+		p: s
+		i: 0
 		
-		while [all [s < e max > 0]][
-			c: as-integer (s/1 - #"0")
+		while [all [p < e max > 0]][
+			c: as-integer (p/1 - #"0")
 			either all [c >= 0 c <= 9][
 				i: 10 * i + c
 			][
-				err/value: -1
-				return s
+				break
 			]
-			s: s + 1
+			p: p + 1
 			max: max - 1
 		]
+		if any [p = s all [exact > 0 exact <> as-integer p - s]][err/value: -1]
 		dst/value: i
-		s
+		p
+	]
+	
+	grab-float: func [s [byte-ptr!] e [byte-ptr!] dst [float-ptr!] err [int-ptr!]
+		return: [byte-ptr!]
+		/local
+			p [byte-ptr!]
+	][
+		p: s
+		while [all [p < e any [all [p/1 >= #"0" p/1 <= #"9"] p/1 = #"."]]][p: p + 1]
+		dst/value: dtoa/to-float s p err
+		p
 	]
 	
 	scan-percent-char: func [s [byte-ptr!] e [byte-ptr!] cp [int-ptr!]
@@ -1333,57 +1345,144 @@ lexer: context [
 
 	scan-date: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
 		/local
+			p	  [byte-ptr!]
+			me	  [byte-ptr!]
+			m	  [int-ptr!]
+			err	  [integer!]
+			year  [integer!]
+			month [integer!]
+			day	  [integer!]
+			hour  [integer!]
+			min	  [integer!]
+			tz-h  [integer!]
+			tz-m  [integer!]
+			len	  [integer!]
+			ylen  [integer!]
+			dlen  [integer!]
+			sec	  [float!]
+			tm	  [float!]
+			sep	  [byte!]
+			time? [logic!]
+			TZ?	  [logic!]
+			neg?  [logic!]
 	][
 		p: s
 		err:   0
 		year:  0
 		month: 0
 		day:   0
+		hour:  0
+		min:   0
+		tz-h:  0
+		tz-m:  0
+		sec:   0.0
+		tm:	   0.0
+		time?: no
+		TZ?:   no
 		
-		p: grab-digits p e 4 :year :err
-		sep: p/1
+		me: p
+		p: grab-digits p e 0 4 :year :err
+		ylen: as-integer p - me
 		if err <> 0 [throw-error lex s e TYPE_DATE]
+		sep: p/1
 		either all [sep >= #"0" sep <= #"9"][			;-- ISO dates
-			p: grab-digits p e 2 :month :err			;@@ should be 2 digits exactly!
-			p: grab-digits p e 2 :day :err
-			if any [err <> 0 p/1 <> #"T"][throw-error lex s e TYPE_DATE]
-			p: grab-digits p e 2 :hour :err
-			p: grab-digits p e 2 :min :err
-			if err <> 0 [throw-error lex s e TYPE_DATE]
-			either p/1 = #"Z" [
-				store-date
-			][
-				p: grab-digits p e 2 :sec :err
-				either p/1 = #"Z" [
-					store-date
-				][
-					either any [p/1 = #"+" p/1 = #"-"][
-						negZ?: p/1 = #"-"
+			p: grab-digits p e 2 2 :month :err
+			if any [err <> 0 p = e][throw-error lex s e TYPE_DATE]
+			p: grab-digits p e 2 2 :day :err
+			if any [err <> 0 p = e p/1 <> #"T"][throw-error lex s e TYPE_DATE]
+			time?: yes
+			p: p + 1
+			p: grab-digits p e 2 2 :hour :err
+			if any [err <> 0 p = e][throw-error lex s e TYPE_DATE]
+			p: grab-digits p e 2 2 :min :err
+			if any [err <> 0 p = e][throw-error lex s e TYPE_DATE]
+			if p/1 <> #"Z" [
+				p: grab-float p e :sec :err
+				if all [p < e p/1 <> #"Z"][
+					TZ?: yes
+					neg?: p/1 = #"-"
+					either any [p/1 = #"+" neg?][
 						p: p + 1
-						p: grab-digits p e 2 :TZ-h :err
+						p: grab-digits p e 2 2 :TZ-h :err
 						if err <> 0 [throw-error lex s e TYPE_DATE]
-						p: p + 1
-						p: grab-digits p e 2 :TZ-m :err
+						if neg? [TZ-h: 0 - TZ-h]
+						p: grab-digits p e 2 2 :TZ-m :err
+						if err <> 0 [throw-error lex s e TYPE_DATE]
 					][
 						throw-error lex s e TYPE_DATE
 					]
 				]
 			]
 		][
-			sep?: any [sep = #"-" sep = #"/"]
-			if sep? [p: p + 1]
-
-			p: grab-digits p e 2 :month :err
+			if all [sep <> #"-" sep <> #"/"][throw-error lex s e TYPE_DATE]
+			p: p + 1
+			p: grab-digits p e 0 2 :month :err
 			if err <> 0 [
-				unless sep? [throw-error lex s e TYPE_DATE]
-				;named month
-				0
+				me: p
+				while [all [me < e me/1 <> sep]][me: me + 1]
+				len: as-integer me - p
+				if any [len < 3 len > 9][throw-error lex s e TYPE_DATE] ;-- invalid month name
+				m: months
+				loop 12 [
+					if zero? platform/strnicmp p as byte-ptr! m/1 len [break]
+					m: m + 1
+				]
+				if months + 12 = m [throw-error lex s e TYPE_DATE] ;-- invalid month name
+				month: (as-integer m - months) >> 2 + 1
+				err: 0
+				p: me
 			]
 			if p/1 <> sep [throw-error lex s e TYPE_DATE]
 			p: p + 1
-			p: grab-digits p e 2 :day :err
+			me: p
+			p: grab-digits p e 0 4 :day :err			;-- could be year also
+			dlen: as-integer p - me
+			if err <> 0 [throw-error lex s e TYPE_DATE]
+			if day > year [len: day day: year year: len ylen: dlen]
+			if all [year < 100 ylen <= 2][				;-- expand short yy forms
+				ylen: either year < 50 [2000][1900]
+				year: year + ylen
+			]
+			if all [p < e any [p/1 = #"/" p/1 = #"T"]][
+				time?: yes
+				p: p + 1
+				p: grab-digits p e 0 2 :hour :err
+				if any [err <> 0 p = e p/1 <> #":"][throw-error lex s e TYPE_DATE]
+				p: p + 1
+				p: grab-digits p e 0 2 :min :err
+				if err <> 0 [throw-error lex s e TYPE_DATE]
+				if p < e [
+					if p/1 = #":" [p: grab-float p + 1 e :sec :err]
+					if all [p < e p/1 <> #"Z"][
+						neg?: p/1 = #"-"
+						either any [p/1 = #"+" neg?][
+							p: p + 1
+							p: grab-digits p e 0 2 :TZ-h :err
+							if neg? [TZ-h: 0 - TZ-h]
+							if err <> 0 [throw-error lex s e TYPE_DATE]
+							if p < e [
+								if p/1 = #":" [p: p + 1]
+								p: grab-digits p e 0 2 :TZ-m :err
+							]
+						][
+							throw-error lex s e TYPE_DATE
+						]
+					]
+				]
+			]
 		]
-	
+		if time? [tm: (3600.0 * as-float hour) + (60.0 * as-float min) + sec]
+		
+		if any [
+			day > 31 month > 12 year > 9999 year < -9999
+			tz-h > 15 tz-h < -15						;-- out of range TZ
+			hour > 23 min > 59 sec >= 60.0
+			all [day = 29 month = 2 not date/leap-year? year]
+		][
+			throw-error lex s e TYPE_DATE
+		]	
+		date/make-at2 alloc-slot lex year month day tm tz-h tz-m time? TZ?
+		lex/in-pos: e									;-- reset the input position to delimiter byte
 	]
 
 	scan-date2: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
