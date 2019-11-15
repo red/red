@@ -1339,38 +1339,50 @@ lexer: context [
 		year:  0
 		month: 0
 		day:   0
-
-		cp: as-integer s/1
-		class: as-integer date-classes/cp
 		
 		p: grab-digits p e 4 :year :err
 		sep: p/1
-		if err <> 0 [throw-error lex s e TYPE_TIME]
-		if all [sep >= #"0" sep <= #"9"][
-			p: grab-digits p e 2 :month :err
+		if err <> 0 [throw-error lex s e TYPE_DATE]
+		either all [sep >= #"0" sep <= #"9"][			;-- ISO dates
+			p: grab-digits p e 2 :month :err			;@@ should be 2 digits exactly!
 			p: grab-digits p e 2 :day :err
-			if any [err <> 0 p/1 <> #"T"][throw-error lex s e TYPE_TIME]
+			if any [err <> 0 p/1 <> #"T"][throw-error lex s e TYPE_DATE]
 			p: grab-digits p e 2 :hour :err
 			p: grab-digits p e 2 :min :err
-			if p/1 <> #"Z" [
-				p: grab-digits p e 2 :min :err
+			if err <> 0 [throw-error lex s e TYPE_DATE]
+			either p/1 = #"Z" [
+				store-date
+			][
+				p: grab-digits p e 2 :sec :err
+				either p/1 = #"Z" [
+					store-date
+				][
+					either any [p/1 = #"+" p/1 = #"-"][
+						negZ?: p/1 = #"-"
+						p: p + 1
+						p: grab-digits p e 2 :TZ-h :err
+						if err <> 0 [throw-error lex s e TYPE_DATE]
+						p: p + 1
+						p: grab-digits p e 2 :TZ-m :err
+					][
+						throw-error lex s e TYPE_DATE
+					]
+				]
 			]
+		][
+			sep?: any [sep = #"-" sep = #"/"]
+			if sep? [p: p + 1]
+
+			p: grab-digits p e 2 :month :err
+			if err <> 0 [
+				unless sep? [throw-error lex s e TYPE_DATE]
+				;named month
+				0
+			]
+			if p/1 <> sep [throw-error lex s e TYPE_DATE]
+			p: p + 1
+			p: grab-digits p e 2 :day :err
 		]
-		
-		
-		sep?: any [sep = #"-" sep = #"/"]
-		if sep? [p: p + 1]
-	
-		p: grab-digits p e 2 :month :err
-		if err <> 0 [
-			unless sep? [throw-error lex s e TYPE_TIME]
-			;named month
-			0
-		]
-		if p/1 <> sep [throw-error lex s e TYPE_TIME]
-		p: p + 1
-		
-		
 	
 	]
 
