@@ -63,6 +63,20 @@ Red/System [
 	]
 ]
 
+#define MI_THREAD_ID [
+	#either OS = 'Windows [
+		#inline [
+			#{64A118000000}		;-- mov eax, DWORD PTR fs:24 (NtCurrentTeb)
+			return: [ulong!]
+		]
+	][
+		#inline [
+			#{65A100000000}		;-- mov eax, gs:0x0
+			return: [ulong!]
+		]
+	]
+]
+
 mimalloc: context [
 
 	#enum page-flags! [
@@ -192,6 +206,8 @@ mimalloc: context [
 	]
 
 	tld!: alias struct! [	;-- Thread local data
+		heartbeat		[ulong!]
+		recurse?		[logic!]
 		heap-backing	[heap!]
 		segments		[segments-tld! value]
 		idx				[integer!]
@@ -208,48 +224,68 @@ mimalloc: context [
 		reclaim?		[logic!]
 	]
 
-	tagSYSTEM_INFO: alias struct! [
-		wProcessorArchitecture		[integer!]
-		dwPageSize					[integer!]
-		lpMinimumApplicationAddress	[int-ptr!]
-		lpMaximumApplicationAddress	[int-ptr!]
-		dwActiveProcessorMask		[int-ptr!]
-		dwNumberOfProcessors		[integer!]
-		dwProcessorType				[integer!]
-		dwAllocationGranularity		[integer!]
-		wProcessor					[integer!]
-			;wProcessorLevel		[uint16!]
-			;wProcessorRevision		[uint16!]
+	thread-data!: alias struct! [
+		heap			[heap! value]
+		tld				[tld! value]
 	]
 
-	thread-callback!: alias function! [lpData [int-ptr!]]
+	#either OS = 'Windows [
+		tagSYSTEM_INFO: alias struct! [
+			wProcessorArchitecture		[integer!]
+			dwPageSize					[integer!]
+			lpMinimumApplicationAddress	[int-ptr!]
+			lpMaximumApplicationAddress	[int-ptr!]
+			dwActiveProcessorMask		[int-ptr!]
+			dwNumberOfProcessors		[integer!]
+			dwProcessorType				[integer!]
+			dwAllocationGranularity		[integer!]
+			wProcessor					[integer!]
+				;wProcessorLevel		[uint16!]
+				;wProcessorRevision		[uint16!]
+		]
 
-	#import [
-		"kernel32.dll" stdcall [
-			FlsAlloc: "FlsAlloc" [
-				lpCallback	[int-ptr!]
-				return:		[integer!]
+		#import [
+			"kernel32.dll" stdcall [
+				FlsAlloc: "FlsAlloc" [
+					lpCallback	[int-ptr!]
+					return:		[integer!]
+				]
+				FlsSetValue: "FlsSetValue" [
+					dwFlsIndex	[integer!]
+					lpFlsData	[int-ptr!]
+					return:		[logic!]
+				]
+				GetSystemInfo: "GetSystemInfo" [
+					si			[tagSYSTEM_INFO]
+				]
+				VirtualAlloc: "VirtualAlloc" [
+					address		[byte-ptr!]
+					size		[integer!]
+					type		[integer!]
+					protection	[integer!]
+					return:		[byte-ptr!]
+				]
+				VirtualFree: "VirtualFree" [
+					address 	[byte-ptr!]
+					size		[integer!]
+					type		[integer!]
+					return:		[integer!]
+				]
 			]
-			FlsSetValue: "FlsSetValue" [
-				dwFlsIndex	[integer!]
-				lpFlsData	[int-ptr!]
-				return:		[logic!]
-			]
-			GetSystemInfo: "GetSystemInfo" [
-				si			[tagSYSTEM_INFO]
-			]
-			VirtualAlloc: "VirtualAlloc" [
-				address		[byte-ptr!]
-				size		[integer!]
-				type		[integer!]
-				protection	[integer!]
-				return:		[byte-ptr!]
-			]
-			VirtualFree: "VirtualFree" [
-				address 	[byte-ptr!]
-				size		[integer!]
-				type		[integer!]
-				return:		[integer!]
+		]
+	][
+		#import [
+			LIBPTHREAD-file cdecl [
+				pthread_key_create: "pthread_key_create" [
+					key			[ulong!]
+					destructor	[int-ptr!]
+					return:		[integer!]
+				]
+				pthread_setspecific: "pthread_setspecific" [
+					key			[ulong!]
+					value		[int-ptr!]
+					return:		[integer!]
+				]
 			]
 		]
 	]
@@ -263,18 +299,13 @@ mimalloc: context [
 	tld-main: declare tld!
 	heap-default: as heap! 0
 
+	FLS-key: 0
+
 	zero-memory: func [
 		dest	[byte-ptr!]
 		size	[integer!]
 	][
 		loop size [dest/value: #"^@" dest: dest + 1]
-	]
-
-	thread-id?: func [return: [ulong!]][
-		#inline [
-			#{64A118000000}		;-- mov eax, DWORD PTR fs:24 (NtCurrentTeb)
-			return: [ulong!]
-		]
 	]
 
 	;== OS memory APIs
@@ -372,10 +403,32 @@ mimalloc: context [
 		p
 	]
 
+	thread-done-func: func [
+		#if OS <> 'Windows [[cdecl]]
+		value	[int-ptr!]
+		/local
+			id	[ulong!]
+	][
+		if null? value [exit]
+
+		;TBD Free the thread local default heap
+		;id: MI_THREAD_ID
+		;heap-default: either id = heap-main/thread-id [heap-main][0]
+	]
+
 	;== Init functions
 
-	init-thread: func [][
+	init-thread: func [/local id [ulong!]][
 		init-heap
+
+		;-- set hooks for our `thread-done-func`
+		id: MI_THREAD_ID
+		id: id or 1
+		#either OS = 'Windows [
+			FlsSetValue FLS-key as int-ptr! id
+		][
+			pthread_setspecific FLS-key as int-ptr! id
+		]
 	]
 
 	init-process: func [
@@ -389,6 +442,14 @@ mimalloc: context [
 		zero-memory as byte-ptr! h size? heap!
 		zero-memory as byte-ptr! tld-main size? tld!
 		h/tld: tld-main
+		h/thread-id: MI_THREAD_ID
+		heap-default: h
+
+		#either OS = 'Windows [
+			FLS-key: FlsAlloc as int-ptr! :thread-done-func
+		][
+			pthread_key_create :FLS-key as int-ptr! :thread-done-func
+		]
 
 		pp: as ptr-ptr! :h/pages-direct
 		loop 130 [
@@ -424,10 +485,12 @@ mimalloc: context [
 		/local
 			hp	[heap!]
 			tld	[tld!]
+			id	[ulong!]
 	][
 		hp: heap-main
-		either zero? hp/thread-id [
-			heap-default: heap-main
+		id: MI_THREAD_ID
+		either hp/thread-id = id [		;-- main thread
+			0 ;heap-default: heap-main	;-- uncomment it once we have thread local variable support
 		][
 			0
 		]
@@ -498,11 +561,9 @@ mimalloc: context [
 			adjust	[integer!]
 	][
 		n: seg/capacity
-?? n
 		i: 0
 		until [
 			page: (as page! :seg/pages) + i
-			i: i + 1
 			if page/flags and PAGE_FLAG_IN_USE = 0 [
 				psize: either seg/page-kind = MI_PAGE_HUGE [
 					seg/size
@@ -522,11 +583,25 @@ mimalloc: context [
 				]
 				break
 			]
+			i: i + 1
 			i = n
 		]
-		page/flags: page/flags or PAGE_FLAG_IN_USE
-		seg/used: seg/used + 1
+		assert i <> n
 		page
+	]
+
+	segment-cache-pop: func [
+		tld			[segments-tld!]
+		return:		[segment!]
+		/local
+			seg		[segment!]
+	][
+		seg: tld/cache
+		if null? seg [return null]
+		tld/cache-count: tld/cache-count - 1
+		tld/cache: seg/next
+		seg/next: null
+		seg
 	]
 
 	segment-alloc: func [
@@ -545,24 +620,30 @@ mimalloc: context [
 			page		[page!]
 			i			[integer!]
 	][
-?? kind
-		either kind <> MI_PAGE_LARGE [
+		either kind < MI_PAGE_LARGE [
 			page-sz: 1 << page-shift
-?? page-sz
-probe MI_SEGMENT_SIZE
 			capacity: MI_SEGMENT_SIZE / page-sz
 		][
 			capacity: 1
 		]
 		mini-sz: capacity - 1 * (size? page!) + (size? segment!) + 16	;-- padding
-?? mini-sz
 		isize: round-to mini-sz 16 * MI_MAX_ALIGN_SIZE
 		segment-sz: either zero? required [MI_SEGMENT_SIZE][
 			round-to required + isize MI_PAGE_HUGE_ALIGN
 		]
 
-		segment: as segment! OS-alloc-aligned segment-sz MI_SEGMENT_SIZE yes tld/stats
-		zero-memory as byte-ptr! segment size? segment!
+		;-- TBD: try to get it from the cache first
+		segment: segment-cache-pop tld
+
+		either segment <> null [
+			0 ;TBD: commit if segment is uncommited
+		][
+			segment: as segment! OS-alloc-aligned segment-sz MI_SEGMENT_SIZE yes tld/stats
+		]
+
+		;-- initialize segment
+		zero-memory (as byte-ptr! segment) + 4 (size? segment!) - 4		;-- skip id
+
 		segment/page-kind: kind
 		segment/capacity: capacity
 		segment/page-shift: page-shift
@@ -588,6 +669,7 @@ probe MI_SEGMENT_SIZE
 			sq		[segment-queue!]
 			seg		[segment!]
 			sz		[integer!]
+			page	[page!]
 	][
 		sq: either kind = MI_PAGE_SMALL [tld/small-free][tld/medium-free]
 		if null? sq/first [
@@ -601,7 +683,13 @@ probe MI_SEGMENT_SIZE
 			]
 			sq/last: seg
 		]
-		page-alloc-in seg tld
+		page: page-alloc-in seg tld
+		page/flags: page/flags or PAGE_FLAG_IN_USE
+		seg/used: seg/used + 1
+		if seg/used = seg/capacity [	;-- no more free pages, remove from the queue
+			segment-queue-remove seg tld
+		]
+		page
 	]
 
 	big-page-alloc: func [
@@ -616,6 +704,8 @@ probe MI_SEGMENT_SIZE
 	][
 		seg: segment-alloc size kind shift tld
 		if null? seg [return null]
+
+		if kind = MI_PAGE_HUGE [seg/thread-id: 0]
 		seg/used: 1
 		page: as page! :seg/pages
 		page/reserved: size
@@ -673,6 +763,26 @@ probe MI_SEGMENT_SIZE
 			p-page: pp + i
 			p-page/value: as int-ptr! page
 			i: i + 1
+		]
+	]
+
+	segment-queue-remove: func [
+		seg			[segment!]
+		tld			[segments-tld!]
+		/local
+			qe		[segment-queue!]
+	][
+		qe: GET_SEGMENT_QUEUE(seg/page-kind tld)
+		if all [
+			qe <> null
+			any [seg/next <> null seg/prev <> null qe/first = seg]
+		][
+			if seg/prev <> null [seg/prev/next: seg/next]
+			if seg/next <> null [seg/next/prev: seg/prev]
+			if seg = qe/first [qe/first: seg/next]
+			if seg = qe/last [qe/last: seg/prev]
+			seg/next: null
+			seg/prev: null
 		]
 	]
 
@@ -745,18 +855,7 @@ probe MI_SEGMENT_SIZE
 		zero-memory (as byte-ptr! page) + 8 (size? page!) - 8
 		seg/used: seg/used - 1
 		either zero? seg/used [
-			qe: GET_SEGMENT_QUEUE(seg/page-kind tld)
-			if all [
-				qe <> null
-				any [seg/next <> null seg/prev <> null qe/first = seg]
-			][
-				if seg/prev <> null [seg/prev/next: seg/next]
-				if seg/next <> null [seg/next/prev: seg/prev]
-				if seg = qe/first [qe/first: seg/next]
-				if seg = qe/last [qe/last: seg/prev]
-				seg/next: null
-				seg/prev: null
-			]
+			segment-queue-remove seg tld
 			if any [
 				force?
 				cache-segment seg tld
@@ -766,6 +865,7 @@ probe MI_SEGMENT_SIZE
 			]
 		][
 			if seg/used + 1 = seg/capacity [	;-- move back to free lists
+				qe: GET_SEGMENT_QUEUE(seg/page-kind tld)
 				seg/next: null
 				seg/prev: qe/last
 				either qe/last <> null [
@@ -936,8 +1036,46 @@ probe MI_SEGMENT_SIZE
 	deferred-free: func [
 		heap		[heap!]
 		force?		[logic!]
+		/local
+			tld		[tld!]
 	][
-		
+		tld: heap/tld
+		tld/heartbeat: tld/heartbeat + 1
+		unless tld/recurse? [
+			tld/recurse?: yes
+			;TBD do GC
+			tld/recurse?: no
+		]
+	]
+
+	heap-delayed-free: func [
+		heap		[heap!]
+		/local
+			blk		[block!]
+			next	[block!]
+			dfree	[block!]
+			df		[int-ptr!]
+			blk2	[integer!]
+			seg		[segment!]
+			page	[page!]
+			diff	[integer!]
+			idx		[integer!]
+	][
+		df: :heap/delayed-free
+		until [				;-- take over the list
+			blk: heap/delayed-free
+			blk2: as-integer blk
+			any [
+				null? blk
+				system/atomic/cas df blk2 0
+			]
+		]
+
+		while [blk <> null][
+			next: blk/next
+			free as byte-ptr! blk		;@@
+			blk: next
+		]
 	]
 
 	slot-idx?: func [
@@ -1005,7 +1143,7 @@ probe MI_SEGMENT_SIZE
 			qe		[page-queue!]
 	][
 		deferred-free heap false	;-- call potential deferred free routine
-		;delayed-free heap			;-- free pages from other threads
+		heap-delayed-free heap		;-- free pages from other threads
 
 		either size <= MI_LARGE_OBJ_SIZE_MAX [
 			idx: slot-idx? size
@@ -1060,7 +1198,7 @@ probe MI_SEGMENT_SIZE
 		seg: PTR_TO_SEGMENT(p)
 		if null? seg [exit]
 
-		;tid: thread-id?
+		tid: MI_THREAD_ID
 		diff: as-integer p - (as byte-ptr! seg)
 		idx: diff >> seg/page-shift
 		page: (as page! :seg/pages) + idx
@@ -1097,5 +1235,4 @@ probe MI_SEGMENT_SIZE
 ]
 
 mimalloc/init
-probe mimalloc/thread-id?
 probe mimalloc/malloc 1
