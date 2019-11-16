@@ -1391,8 +1391,7 @@ lexer: context [
 			p: grab-digits p e 2 2 :day :err
 			if any [err <> 0 p = e p/1 <> #"T"][throw-error lex s e TYPE_DATE]
 			time?: yes
-			p: p + 1
-			p: grab-digits p e 2 2 :hour :err
+			p: grab-digits p + 1 e 2 2 :hour :err
 			if any [err <> 0 p = e][throw-error lex s e TYPE_DATE]
 			p: grab-digits p e 2 2 :min :err
 			if any [err <> 0 p = e][throw-error lex s e TYPE_DATE]
@@ -1402,8 +1401,7 @@ lexer: context [
 					TZ?: yes
 					neg?: p/1 = #"-"
 					either any [p/1 = #"+" neg?][
-						p: p + 1
-						p: grab-digits p e 2 2 :TZ-h :err
+						p: grab-digits p + 1 e 2 2 :TZ-h :err
 						if err <> 0 [throw-error lex s e TYPE_DATE]
 						if neg? [TZ-h: 0 - TZ-h]
 						p: grab-digits p e 2 2 :TZ-m :err
@@ -1415,8 +1413,16 @@ lexer: context [
 			]
 		][
 			if all [sep <> #"-" sep <> #"/"][throw-error lex s e TYPE_DATE]
-			p: p + 1
-			p: grab-digits p e 0 2 :month :err
+
+			either all [sep = #"-" ylen = 4 p/2 = #"W"][
+				p: grab-digits p + 2 e 2 2 :week :err
+				if err <> 0 [throw-error lex s e TYPE_DATE]
+				if all [p < e p/1 = #"-"][
+					p: grab-digits p + 2 e 1 1 :wday :err
+				]
+			]
+
+			p: grab-digits p + 1 e 0 2 :month :err
 			if err <> 0 [
 				me: p
 				while [all [me < e me/1 <> sep]][me: me + 1]
@@ -1445,19 +1451,16 @@ lexer: context [
 			]
 			if all [p < e any [p/1 = #"/" p/1 = #"T"]][
 				time?: yes
-				p: p + 1
-				p: grab-digits p e 0 2 :hour :err
+				p: grab-digits p + 1 e 0 2 :hour :err
 				if any [err <> 0 p = e p/1 <> #":"][throw-error lex s e TYPE_DATE]
-				p: p + 1
-				p: grab-digits p e 0 2 :min :err
+				p: grab-digits p + 1 e 0 2 :min :err
 				if err <> 0 [throw-error lex s e TYPE_DATE]
 				if p < e [
 					if p/1 = #":" [p: grab-float p + 1 e :sec :err]
 					if all [p < e p/1 <> #"Z"][
 						neg?: p/1 = #"-"
 						either any [p/1 = #"+" neg?][
-							p: p + 1
-							p: grab-digits p e 0 2 :TZ-h :err
+							p: grab-digits p + 1 e 0 2 :TZ-h :err
 							if neg? [TZ-h: 0 - TZ-h]
 							if err <> 0 [throw-error lex s e TYPE_DATE]
 							if p < e [
