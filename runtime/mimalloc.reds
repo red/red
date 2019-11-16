@@ -77,9 +77,13 @@ Red/System [
 	]
 ]
 
+#define MI_DEBUG(msg) [#if debug? = yes [if verbose > 0 [print-line msg]]]
+
 #define MI_MAX_CACHE			8
 
 mimalloc: context [
+
+	verbose: 1
 
 	#enum page-flags! [
 		PAGE_FLAG_IN_USE:		1
@@ -248,6 +252,9 @@ mimalloc: context [
 
 		#import [
 			"kernel32.dll" stdcall [
+				Sleep: "Sleep" [
+					dwMilliseconds	[integer!]
+				]
 				FlsAlloc: "FlsAlloc" [
 					lpCallback	[int-ptr!]
 					return:		[integer!]
@@ -693,7 +700,8 @@ mimalloc: context [
 			page	[page!]
 	][
 		sq: either kind = MI_PAGE_SMALL [tld/small-free][tld/medium-free]
-		if null? sq/first [
+		seg: sq/first
+		if null? seg [
 			seg: segment-alloc 0 kind shift tld
 			seg/next: null
 			seg/prev: sq/last
@@ -861,6 +869,8 @@ mimalloc: context [
 		tld			[segments-tld!]
 		return:		[logic!]	;-- YES: cached, NO: cache is full
 	][
+		MI_DEBUG("cache-segment")
+
 		if any [
 			segment/size <> MI_SEGMENT_SIZE
 			tld/cache-count = MI_MAX_CACHE
@@ -880,6 +890,8 @@ mimalloc: context [
 			seg		[segment!]
 			qe		[segment-queue!]
 	][
+		MI_DEBUG("segment-page-free")
+
 		seg: PTR_TO_SEGMENT(page)
 		zero-memory (as byte-ptr! page) + 8 (size? page!) - 8
 		seg/used: seg/used - 1
@@ -1206,6 +1218,8 @@ mimalloc: context [
 			qe		[page-queue!]
 			idx		[integer!]
 	][
+		MI_DEBUG("page-unfull")
+
 		heap: page/heap
 		qfull: (as page-queue! :heap/pages) + MI_BIN_FULL
 		idx: slot-idx? page/block-size
@@ -1267,21 +1281,37 @@ mimalloc: context [
 		size	[ulong!]
 		return: [byte-ptr!]
 	][
+		assert size > 0
 		heap-alloc heap-default size
 	]
 ]
 
-test: func [/local p [byte-ptr!]][
+test: func [/local p [byte-ptr!] arr [int-ptr!] n [integer!]][
 	mimalloc/init
-	p: mimalloc/malloc 1
+	n: 1
+	arr: system/stack/allocate 100
+	loop 100 [
+		p: mimalloc/malloc 1024
+		arr/n: as-integer p
+		n: n + 1
+	]
+	probe as byte-ptr! arr/1
 	?? p
-	mimalloc/free p
+	mimalloc/Sleep 5000
+	n: 1
+	loop 99 [
+		p: as byte-ptr! arr/n
+		mimalloc/free p
+		n: n + 1
+	]
 	?? p
 	probe 2222
-	p: mimalloc/malloc 1
+	mimalloc/Sleep 5000
+	p: mimalloc/malloc 1024 * 64
 	?? p
 	mimalloc/free p
 	?? p
+	mimalloc/Sleep 15000
 
 	probe 444444
 	p: mimalloc/malloc 1024 * 1024
