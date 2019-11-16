@@ -1671,7 +1671,9 @@ parser: context [
 							]
 							PARSE_SAVE_SERIES
 							before: input/head
-							if word? [value: _context/get as red-word! value]
+							if all [word? TYPE_OF(value) = TYPE_WORD][
+								value: _context/get as red-word! value
+							]
 							actions/insert input value null as-logic max null no
 							input/head: saved + (input/head - before)
 							if s-top <> null [stack/top: s-top]
