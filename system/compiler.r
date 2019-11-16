@@ -1953,6 +1953,24 @@ system-dialect: make-profilable context [
 			append emitter/code-buf code
 		]
 		
+		expand-setwords: has [list p lit? value out][
+			list: []
+			;-- collect all set-words except last one
+			p: pc
+			while [set-word? p/2][append list p/1 p: next p]
+			;-- set each one to a literal value or to the pointer variable (the last one)
+			lit?: find [integer! decimal! char! logic!] type?/word p/2
+			value: either any [lit? find [true false] p/2][p/2][to-word p/1]
+			
+			remove/part pc p							;-- remove all the extra set-words
+			p: skip pc 2								;-- skip the last set-word/value
+			out: []
+			foreach w list [repend out [w value]]		;-- construct the extra set-word/value pairs
+			insert p out								;-- inject them
+			clear out
+			clear list
+		]
+		
 		comp-chunked: func [body [block!]][
 			emitter/chunks/start
 			do body
@@ -2727,6 +2745,7 @@ system-dialect: make-profilable context [
 		]
 		
 		comp-assignment: has [name value n enum ns local?][
+			if all [set-word? pc/1 set-word? pc/2][expand-setwords]
 			push-call name: pc/1
 			pc: next pc
 			if set-word? name [
@@ -2742,9 +2761,9 @@ system-dialect: make-profilable context [
 				local?: local-variable? n
 				unless any [locals local?][store-ns-symbol n]
 				
-				if find [set-word! set-path!] type?/word pc/1 [
+				if set-path? pc/1 [
 					backtrack name
-					throw-error "cascading assignments not supported"
+					throw-error "cascading path assignments not supported"
 				]
 				unless all [local? n = 'context][		;-- explicitly allow 'context name for local variables
 					check-keywords n					;-- forbid keywords redefinition
