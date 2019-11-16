@@ -182,6 +182,17 @@ gzip-compress: func [
 		res		[integer!]
 		crc		[integer!]
 ][
+	;-- check if data is already compressed
+	if all [src-len > 2 src/1 = #"^(1F)" src/2 = #"^(8B)" src/3 = #"^(08)"][
+		dest-len/value: src-len
+		either dest-len/value < src-len [
+			return DEFLATE-GZIP-LEN
+		][
+			copy-memory dest src src-len
+			return DEFLATE-GZIP-OK
+		]
+	]
+	
 	if dest-len/1 < 18 [
 		dest-len/1: 18 + src-len
 		return DEFLATE-GZIP-BUFF
