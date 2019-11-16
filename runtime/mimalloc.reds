@@ -551,11 +551,9 @@ mimalloc: context [
 			p: p + seg/info-size
 			psize: psize - seg/info-size
 		]
-?? psize
-?? blk-sz
 		page/block-size: blk-sz
 		n: psize / blk-sz
-?? n
+
 		blk: as block! p
 		last: as block! p + (n - 1 * blk-sz)
 		loop n [
@@ -680,7 +678,6 @@ mimalloc: context [
 			i: i + 1
 			i = capacity
 		]
-		?? segment
 		segment
 	]
 
@@ -883,12 +880,10 @@ mimalloc: context [
 			seg		[segment!]
 			qe		[segment-queue!]
 	][
-		probe "segment-page-free"
 		seg: PTR_TO_SEGMENT(page)
-		?? seg
 		zero-memory (as byte-ptr! page) + 8 (size? page!) - 8
 		seg/used: seg/used - 1
-probe seg/used
+
 		either zero? seg/used [
 			segment-queue-remove seg tld
 			if any [
@@ -921,10 +916,7 @@ probe seg/used
 			heap	[heap!]
 	][
 		heap: page/heap
-		probe "page-queue-remove"
-		?? queue
 		page-queue-remove queue page
-		probe "fjdkfjldsafkldsfjdskfjaslkdfjdskalfksdf"
 		segment-page-free page force? heap/tld/segments
 	]
 
@@ -995,7 +987,6 @@ probe seg/used
 		if null? page [
 			blk-sz: pq/block-size
 			seg-tld: heap/tld/segments
-?? blk-sz
 			page: case [
 				blk-sz <= MI_SMALL_OBJ_SIZE_MAX [
 					segment-page-alloc MI_PAGE_SMALL MI_SMALL_PAGE_SHIFT seg-tld
@@ -1011,8 +1002,6 @@ probe seg/used
 				]
 			]
 			page-init page blk-sz
-			?? page
-			?? heap
 			page/heap: heap
 			page/next: pq/first
 			page/prev: null
@@ -1201,7 +1190,6 @@ probe seg/used
 				page: queue-find-page heap qe size
 			]			
 		][
-probe "alloc huge block............"
 			size: round-to size 64 * 1024		;-- round to 64kb aligned
 			page: big-page-alloc size MI_PAGE_HUGE MI_SEGMENT_SHIFT heap/tld/segments
 			page-init page size
@@ -1240,14 +1228,12 @@ probe "alloc huge block............"
 	][
 		seg: PTR_TO_SEGMENT(p)
 		if null? seg [exit]
-?? seg
+
 		;tid: MI_THREAD_ID
 		diff: as-integer p - (as byte-ptr! seg)
 		idx: diff >> seg/page-shift
-?? idx
 		page: (as page! :seg/pages) + idx
-?? page
-probe page/local-free
+
 		blk: as block! p
 		blk/next: page/local-free
 		page/local-free: blk
@@ -1285,25 +1271,29 @@ probe page/local-free
 	]
 ]
 
-mimalloc/init
-p: mimalloc/malloc 1
-?? p
-mimalloc/free p
-?? p
-probe 2222
-p: mimalloc/malloc 1
-?? p
-mimalloc/free p
-?? p
+test: func [/local p [byte-ptr!]][
+	mimalloc/init
+	p: mimalloc/malloc 1
+	?? p
+	mimalloc/free p
+	?? p
+	probe 2222
+	p: mimalloc/malloc 1
+	?? p
+	mimalloc/free p
+	?? p
 
-probe 444444
-p: mimalloc/malloc 1024 * 1024
-?? p
-mimalloc/free p
-?? p
+	probe 444444
+	p: mimalloc/malloc 1024 * 1024
+	?? p
+	mimalloc/free p
+	?? p
 
-probe 555555
-p: mimalloc/malloc 1024 * 1100
-?? p
-mimalloc/free p
-?? p
+	probe 555555
+	p: mimalloc/malloc 1024 * 1100
+	?? p
+	mimalloc/free p
+	?? p
+]
+
+test
