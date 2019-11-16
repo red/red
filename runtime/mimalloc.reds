@@ -77,6 +77,8 @@ Red/System [
 	]
 ]
 
+#define MI_MAX_CACHE			8
+
 mimalloc: context [
 
 	#enum page-flags! [
@@ -419,7 +421,7 @@ mimalloc: context [
 	;== Init functions
 
 	init-thread: func [/local id [ulong!]][
-		init-heap
+		init-default-heap
 
 		;-- set hooks for our `thread-done-func`
 		id: MI_THREAD_ID
@@ -434,15 +436,11 @@ mimalloc: context [
 	init-process: func [
 		/local
 			h	[heap!]
-			p	[int-ptr!]
-			pp	[ptr-ptr!]
 	][
 		h: heap-main
 		zero-memory as byte-ptr! empty-page size? page!
-		zero-memory as byte-ptr! h size? heap!
 		zero-memory as byte-ptr! tld-main size? tld!
 		h/tld: tld-main
-		h/thread-id: MI_THREAD_ID
 		heap-default: h
 
 		#either OS = 'Windows [
@@ -451,13 +449,48 @@ mimalloc: context [
 			pthread_key_create :FLS-key as int-ptr! :thread-done-func
 		]
 
-		pp: as ptr-ptr! :h/pages-direct
+		init-thread
+	]
+
+	init-default-heap: func [
+		/local
+			hp	[heap!]
+			tld	[tld!]
+			id	[ulong!]
+	][
+		hp: heap-main
+		id: MI_THREAD_ID
+		either hp/thread-id = id [		;-- main thread
+			0 ;heap-default: heap-main	;-- uncomment it once we have thread local variable support
+		][
+			0
+		]
+
+		init-heap hp
+	]
+
+	init: func [/local si [tagSYSTEM_INFO value]][
+		GetSystemInfo :si
+		if si/dwPageSize > 0 [os-page-size: si/dwPageSize]
+		if si/dwAllocationGranularity > 0 [
+			alloc-granularity: si/dwAllocationGranularity
+		]
+		init-process
+	]
+
+	init-heap: func [
+		hp		[heap!]
+		/local
+			p	[int-ptr!]
+			pp	[ptr-ptr!]
+	][
+		pp: as ptr-ptr! :hp/pages-direct
 		loop 130 [
 			pp/value: as int-ptr! empty-page
 			pp: pp + 1
 		]
 
-		p: :h/pages
+		p: :hp/pages
 		p/3:   4
 		p/6:   4       p/9:   8      p/12:  12     p/15:  16      p/18:  20
 		p/21:  24      p/24:  28     p/27:  32 
@@ -478,39 +511,25 @@ mimalloc: context [
 		p/198: 655360  p/201: 786432 p/204: 917504 p/207: 1048576 p/210: 1310720
 		p/213: MI_HUGE_SIZE p/216: MI_FULL_SIZE
 
-		init-thread
-	]
-
-	init-heap: func [
-		/local
-			hp	[heap!]
-			tld	[tld!]
-			id	[ulong!]
-	][
-		hp: heap-main
-		id: MI_THREAD_ID
-		either hp/thread-id = id [		;-- main thread
-			0 ;heap-default: heap-main	;-- uncomment it once we have thread local variable support
-		][
-			0
-		]
-	]
-
-	init: func [/local si [tagSYSTEM_INFO value]][
-		GetSystemInfo :si
-		if si/dwPageSize > 0 [os-page-size: si/dwPageSize]
-		if si/dwAllocationGranularity > 0 [
-			alloc-granularity: si/dwAllocationGranularity
-		]
-		init-process
+		hp/thread-id: MI_THREAD_ID
+		hp/delayed-free: null
+		hp/page-count: 0
+		hp/reclaim?: no
 	]
 
 	create-heap: func [
 		return: [heap!]
 		/local
+			hb	[heap!]
 			h	[heap!]
 	][
-		null
+		hb: heap-default/tld/heap-backing
+		h: as heap! heap-alloc hb size? heap!
+		if h = null [return null]
+
+		init-heap h
+		h/tld: hb/tld
+		h
 	]
 
 	page-init: func [
@@ -528,12 +547,15 @@ mimalloc: context [
 		seg: PTR_TO_SEGMENT(page)
 		psize: page/reserved
 		p: (as byte-ptr! seg) + (page/idx * psize)
-?? p
 		if zero? page/idx [
 			p: p + seg/info-size
 			psize: psize - seg/info-size
 		]
+?? psize
+?? blk-sz
+		page/block-size: blk-sz
 		n: psize / blk-sz
+?? n
 		blk: as block! p
 		last: as block! p + (n - 1 * blk-sz)
 		loop n [
@@ -591,11 +613,13 @@ mimalloc: context [
 	]
 
 	segment-cache-pop: func [
+		size		[ulong!]
 		tld			[segments-tld!]
 		return:		[segment!]
 		/local
 			seg		[segment!]
 	][
+		if all [size <> 0 size <> MI_SEGMENT_SIZE][return null]
 		seg: tld/cache
 		if null? seg [return null]
 		tld/cache-count: tld/cache-count - 1
@@ -632,8 +656,7 @@ mimalloc: context [
 			round-to required + isize MI_PAGE_HUGE_ALIGN
 		]
 
-		;-- TBD: try to get it from the cache first
-		segment: segment-cache-pop tld
+		segment: segment-cache-pop segment-sz tld
 
 		either segment <> null [
 			0 ;TBD: commit if segment is uncommited
@@ -657,6 +680,7 @@ mimalloc: context [
 			i: i + 1
 			i = capacity
 		]
+		?? segment
 		segment
 	]
 
@@ -708,7 +732,7 @@ mimalloc: context [
 		if kind = MI_PAGE_HUGE [seg/thread-id: 0]
 		seg/used: 1
 		page: as page! :seg/pages
-		page/reserved: size
+		page/reserved: seg/size
 		page/flags: PAGE_FLAG_IN_USE
 		page
 	]
@@ -840,7 +864,15 @@ mimalloc: context [
 		tld			[segments-tld!]
 		return:		[logic!]	;-- YES: cached, NO: cache is full
 	][
-		no
+		if any [
+			segment/size <> MI_SEGMENT_SIZE
+			tld/cache-count = MI_MAX_CACHE
+		][return no]
+
+		segment/next: tld/cache
+		tld/cache: segment
+		tld/cache-count: tld/cache-count + 1
+		true
 	]
 
 	segment-page-free: func [
@@ -851,14 +883,17 @@ mimalloc: context [
 			seg		[segment!]
 			qe		[segment-queue!]
 	][
+		probe "segment-page-free"
 		seg: PTR_TO_SEGMENT(page)
+		?? seg
 		zero-memory (as byte-ptr! page) + 8 (size? page!) - 8
 		seg/used: seg/used - 1
+probe seg/used
 		either zero? seg/used [
 			segment-queue-remove seg tld
 			if any [
 				force?
-				cache-segment seg tld
+				not cache-segment seg tld
 			][	;-- return it to the OS
 				seg/thread-id: 0
 				OS-free as byte-ptr! seg seg/size tld/stats
@@ -882,9 +917,15 @@ mimalloc: context [
 		page		[page!]
 		queue		[page-queue!]
 		force?		[logic!]
+		/local
+			heap	[heap!]
 	][
+		heap: page/heap
+		probe "page-queue-remove"
+		?? queue
 		page-queue-remove queue page
-		segment-page-free page force? page/heap/tld/segments
+		probe "fjdkfjldsafkldsfjdskfjaslkdfjdskalfksdf"
+		segment-page-free page force? heap/tld/segments
 	]
 
 	queue-find-page: func [
@@ -970,6 +1011,8 @@ mimalloc: context [
 				]
 			]
 			page-init page blk-sz
+			?? page
+			?? heap
 			page/heap: heap
 			page/next: pq/first
 			page/prev: null
@@ -997,7 +1040,6 @@ mimalloc: context [
 			blk	[block!]
 	][
 		blk: page/free-blocks
-?? blk
 		either blk <> null [
 			page/free-blocks: blk/next		;-- pop from the free list
 			page/used: page/used + 1
@@ -1159,6 +1201,7 @@ mimalloc: context [
 				page: queue-find-page heap qe size
 			]			
 		][
+probe "alloc huge block............"
 			size: round-to size 64 * 1024		;-- round to 64kb aligned
 			page: big-page-alloc size MI_PAGE_HUGE MI_SEGMENT_SHIFT heap/tld/segments
 			page-init page size
@@ -1197,12 +1240,14 @@ mimalloc: context [
 	][
 		seg: PTR_TO_SEGMENT(p)
 		if null? seg [exit]
-
-		tid: MI_THREAD_ID
+?? seg
+		;tid: MI_THREAD_ID
 		diff: as-integer p - (as byte-ptr! seg)
 		idx: diff >> seg/page-shift
+?? idx
 		page: (as page! :seg/pages) + idx
-
+?? page
+probe page/local-free
 		blk: as block! p
 		blk/next: page/local-free
 		page/local-free: blk
@@ -1212,12 +1257,18 @@ mimalloc: context [
 			page/used = page/thread-freed [			;-- the page is empty
 				;-- TBD: don't retire too often..
 				;-- (or we end up retiring and re-allocating most of the time)
-				idx: either page/flags and PAGE_FLAG_IN_FULL <> 0 [MI_BIN_FULL][
-					slot-idx? page/block-size
+
+				either seg/page-kind <> MI_PAGE_HUGE [
+					idx: either page/flags and PAGE_FLAG_IN_FULL <> 0 [MI_BIN_FULL][
+						slot-idx? page/block-size
+					]
+					heap: page/heap
+					pq: (as page-queue! :heap/pages) + idx
+					page-free page pq false
+				][
+					heap: heap-default
+					segment-page-free page true heap/tld/segments
 				]
-				heap: page/heap
-				pq: (as page-queue! :heap/pages) + idx
-				page-free page pq false
 			]
 			page/flags and PAGE_FLAG_IN_FULL <> 0 [	;-- page in pages-full queue
 				page-unfull page
@@ -1235,4 +1286,24 @@ mimalloc: context [
 ]
 
 mimalloc/init
-probe mimalloc/malloc 1
+p: mimalloc/malloc 1
+?? p
+mimalloc/free p
+?? p
+probe 2222
+p: mimalloc/malloc 1
+?? p
+mimalloc/free p
+?? p
+
+probe 444444
+p: mimalloc/malloc 1024 * 1024
+?? p
+mimalloc/free p
+?? p
+
+probe 555555
+p: mimalloc/malloc 1024 * 1100
+?? p
+mimalloc/free p
+?? p
