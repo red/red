@@ -2009,9 +2009,9 @@ system-dialect: make-profilable context [
 				throw-error "?? needs a word as argument"
 			]
 			out: next next compose/deep [
-				2 (to pair! reduce [calc-line 1])		;-- hidden line offset header
+				2 (as-pair calc-line 1)					;-- hidden line offset header
 				print-line [
-					2 (to pair! reduce [calc-line 1])	;-- hidden line offset header
+					2 (as-pair calc-line 1)				;-- hidden line offset header
 					(join name ": ") (name)
 				]
 			]
