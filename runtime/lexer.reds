@@ -1367,18 +1367,9 @@ lexer: context [
 			neg?  [logic!]
 	][
 		p: s
-		err:   0
-		year:  0
-		month: 0
-		day:   0
-		hour:  0
-		min:   0
-		tz-h:  0
-		tz-m:  0
-		sec:   0.0
-		tm:	   0.0
-		time?: no
-		TZ?:   no
+		err: year: month: day: hour: min: tz-h: tz-m: 0
+		sec: tm: 0.0
+		time?: TZ?: no
 		
 		me: p
 		p: grab-digits p e 0 4 :year :err
@@ -1414,13 +1405,13 @@ lexer: context [
 		][
 			if all [sep <> #"-" sep <> #"/"][throw-error lex s e TYPE_DATE]
 
-			either all [sep = #"-" ylen = 4 p/2 = #"W"][
-				p: grab-digits p + 2 e 2 2 :week :err
-				if err <> 0 [throw-error lex s e TYPE_DATE]
-				if all [p < e p/1 = #"-"][
-					p: grab-digits p + 2 e 1 1 :wday :err
-				]
-			]
+			;either all [sep = #"-" ylen = 4 p/2 = #"W"][
+			;	p: grab-digits p + 2 e 2 2 :week :err
+			;	if err <> 0 [throw-error lex s e TYPE_DATE]
+			;	if all [p < e p/1 = #"-"][
+			;		p: grab-digits p + 2 e 1 1 :wday :err
+			;	]
+			;]
 
 			p: grab-digits p + 1 e 0 2 :month :err
 			if err <> 0 [
