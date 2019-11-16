@@ -157,9 +157,9 @@ gzip-uncompress: func [
 	res: deflate/uncompress dest dest-len start c
 	if res <> 0 [return res]
 
-	if dlen <> dest-len/1 [
+	either dlen > dest-len/1 [
 		return INFLATE-GZIP-HDR
-	]
+	][dest-len/1: dlen]
 
 	;--check CRC32 checksum
 	c: crypto/CRC32 dest dlen
@@ -188,16 +188,17 @@ gzip-compress: func [
 	]
 	dstart: dest
 	dend: dest + dest-len/1
-	dest/1: #"^(1F)"
-	dest/2: #"^(8B)"
-	dest/3: #"^(08)"
-	dest/4: #"^(00)"
-	dest/5: #"^(00)"
+	;-- header
+	dest/1: #"^(1F)"			;-- ID1
+	dest/2: #"^(8B)"			;-- ID2
+	dest/3: #"^(08)"			;-- CM (compression method)
+	dest/4: #"^(00)"			;-- FLG
+	dest/5: #"^(00)"			;-- MTIME (4 bytes)
 	dest/6: #"^(00)"
 	dest/7: #"^(00)"
 	dest/8: #"^(00)"
-	dest/9: #"^(04)"
-	dest/10: #"^(04)"
+	dest/9: #"^(04)"			;-- XFL
+	dest/10: #"^(04)"			;-- OS
 	dest: dest + 10
 	dest-len/1: dest-len/1 - 10
 	res: deflate/compress dest dest-len src src-len
