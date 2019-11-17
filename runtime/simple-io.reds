@@ -1032,7 +1032,6 @@ simple-io: context [
 		filename	[red-file!]
 		return:		[red-block!]
 		/local
-			info
 			buf		[byte-ptr!]
 			p		[byte-ptr!]
 			name	[byte-ptr!]
@@ -1043,6 +1042,7 @@ simple-io: context [
 			i		[integer!]
 			cp		[byte!]
 			s		[series!]
+			info
 	][
 		len: string/rs-length? as red-string! filename
 		len: filename/head + len - 1
