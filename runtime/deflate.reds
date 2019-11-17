@@ -292,6 +292,7 @@ deflate: context [
 			st		[DEFLATE! value]
 			dst		[byte-ptr!]
 			dend	[byte-ptr!]
+			istart	[byte-ptr!]
 			iend	[byte-ptr!]
 			dict	[int-ptr!]
 			ptr		[byte-ptr!]
@@ -309,6 +310,7 @@ deflate: context [
 		st/bits: 0 st/cnt: 0
 		dst: out
 		dend: dst + out-size/1
+		istart: in
 		iend: in + in-size
 
 		dst: write dst dend st 1 1
@@ -317,47 +319,61 @@ deflate: context [
 			ptr: in
 			h: hash in
 			ents: dict + (h and DICT_MASK * CACHE_SIZE)
-			i: 0
-			while [i < CACHE_SIZE][
-				pos: i + 1
-				sub: as byte-ptr! ents/pos
-				if all [
-					sub <> null
-					in > sub
-					in < (sub + MAX_OFF)
-					0 = compare-memory in sub MIN_MATCH
-				][
-					s: sub + MIN_MATCH
-					dist: as integer! in - sub
-					len: MIN_MATCH
-					in: in + len
-					while [
-						all [
-							s/1 = in/1
-							len < MAX_MATCH
-						]
+			either all [
+				MIN_MATCH <= as integer! in - istart
+				MIN_MATCH <= as integer! iend - in
+			][
+				i: 0
+				while [i < CACHE_SIZE][
+					pos: i + 1
+					sub: as byte-ptr! ents/pos
+					if all [
+						sub <> null
+						in > sub
+						in < (sub + MAX_OFF)
+						0 = compare-memory in sub MIN_MATCH
 					][
-						len: len + 1
-						s: s + 1
-						in: in + 1
+						s: sub + MIN_MATCH
+						dist: as integer! in - sub
+						len: MIN_MATCH
+						in: in + len
+						while [
+							all [
+								s/1 = in/1
+								len < MAX_MATCH
+								in < iend
+							]
+						][
+							len: len + 1
+							s: s + 1
+							in: in + 1
+						]
+						dst: match dst dend st dist len
+						break
 					]
-					dst: match dst dend st dist len
-					break
+					i: i + 1
 				]
-				i: i + 1
-			]
-			if i = CACHE_SIZE [
+				if i = CACHE_SIZE [
+					dst: lit dst dend st as integer! in/1
+					in: in + 1
+				]
+			][
 				dst: lit dst dend st as integer! in/1
 				in: in + 1
 			]
+
 			c: hash2 in
 			pos: c and CACHE_MASK + 1
 			ents/pos: as integer! ptr
 		]
 
+		;-- block end
 		dst: write dst dend st 0 7
-		dst: write dst dend st 2 10
-		dst: write dst dend st 2 3
+		;dst: write dst dend st 2 10
+		;dst: write dst dend st 2 3
+		if st/bits < 8 [
+			dst: write dst dend st 0 8 - st/bits
+		]
 		out-size/value: as integer! dst - out
 		if dst > dend [
 			return DEFLATE-NO-MEM

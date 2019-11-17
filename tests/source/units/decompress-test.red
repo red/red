@@ -51,6 +51,16 @@ Red [
 	--test-- "zlib"
 		--assert data = to string! decompress/zlib compress/zlib to binary! data 0
 
+	--test-- "cascaded"
+		;-- gzip format only compressed once
+		--assert data = to string! decompress compress compress data
+		--assert data = to string! decompress compress compress compress data
+		;-- deflate/zlib format support nested call
+		--assert data = to string! decompress/deflate decompress/deflate compress/deflate compress/deflate data 0 0
+		--assert data = to string! decompress/deflate decompress/deflate decompress/deflate compress/deflate compress/deflate compress/deflate data 0 0 0
+		--assert data = to string! decompress/zlib decompress/zlib compress/zlib compress/zlib data 0 0
+		--assert data = to string! decompress/zlib decompress/zlib decompress/zlib compress/zlib compress/zlib compress/zlib data 0 0 0
+
 ===end-group===
 
 ~~~end-file~~~
