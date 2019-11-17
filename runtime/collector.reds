@@ -288,13 +288,13 @@ collector: context [
 			p		[int-ptr!]
 			obj		[red-object!]
 			w		[red-word!]
-			cb
 		#if debug? = yes [
 			file	[c-string!]
 			saved	[integer!]
 			buf		[c-string!]
 			tm tm1
 		]
+			cb
 	][
 		#if debug? = yes [if verbose > 1 [
 			#if OS = 'Windows [platform/dos-console?: no]
