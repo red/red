@@ -391,14 +391,23 @@ lexer: context [
 	throw-error: func [lex [state!] s [byte-ptr!] e [byte-ptr!] type [integer!]
 		/local
 			pos  [red-string!]
-			line [red-integer!]
+			line [red-string!]
+			p	 [byte-ptr!]
 			len	 [integer!]
 	][
 		e: lex/in-end
-		e: either s + 40 < e [s + 40][e]				;FIXME: accurately find the 40th codepoint position
-		len: as-integer e - s
+		len: 0
+		p: s
+		while [all [p < e p/1 <> #"^/" s + 30 > p]][p: decode-utf8-char p :len]
+		if p > e [p: e]
+		len: as-integer p - s
 		pos: string/load as-c-string s len UTF-8
-		line: integer/push lex/line
+		
+		line: string/rs-make-at stack/push* 20
+		string/concatenate-literal line "(line "
+		string/concatenate-literal line integer/form-signed lex/line
+		string/append-char GET_BUFFER(line) as-integer #")"
+		
 		lex/tail: lex/buffer							;-- clear accumulated values
 		depth: depth - 1
 		
