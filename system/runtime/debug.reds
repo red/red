@@ -68,8 +68,9 @@ __print-debug-line: func [
 ;-------------------------------------------
 __print-debug-stack: func [
 	address [byte-ptr!]						;-- memory address where the runtime error happened
-	/local 
-		ret funcs records nb next end top frame s value lines pf [float-ptr!]
+	/local
+		pf [float-ptr!]
+		ret funcs records nb next end top frame s value lines
 		unused base
 ][
 	funcs:	as byte-ptr! __debug-funcs

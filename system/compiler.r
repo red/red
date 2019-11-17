@@ -1652,13 +1652,24 @@ system-dialect: make-profilable context [
 			]
 		]
 		
+		expand-func-specs: func [spec /local pos p type][
+			unless block? spec [exit]					;-- let check-specs report it
+			parse spec [any [
+				pos: word! some word! p: block! (
+					type: p/1
+					while [not block? pos/2][pos: insert/only next pos type]
+				) | skip
+			]]
+		]
+		
 		fetch-func: func [name /local specs type cc attribs][
 			name: to word! name
 			store-ns-symbol name
 			if ns-path [add-ns-symbol pc/-1]
 			if ns-path [name: ns-prefix name]
 			check-func-name name
-			check-specs name specs: pc/2
+			expand-func-specs specs: pc/2
+			check-specs name specs
 			specs: copy specs
 			clear-docstrings specs
 			
