@@ -282,6 +282,63 @@ mimalloc: context [
 				]
 			]
 		]
+
+		;== OS memory APIs
+
+		OS-alloc: func [
+			size	[integer!]
+			commit?	[logic!]
+			stats	[stats!]
+			return: [byte-ptr!]
+			/local
+				flags [integer!]
+		][
+			flags: 2000h							;-- MEM_RESERVE
+			if commit? [flags: 3000h]				;-- MEM_RESERVE or MEM_COMMIT
+			VirtualAlloc null size flags 4			;-- PAGE_READWRITE
+		]
+
+		OS-alloc-at: func [
+			addr	[byte-ptr!]
+			size	[integer!]
+			commit?	[logic!]
+			stats	[stats!]
+			return: [byte-ptr!]
+			/local
+				flags [integer!]
+		][
+			flags: 2000h							;-- MEM_RESERVE
+			if commit? [flags: 3000h]				;-- MEM_RESERVE or MEM_COMMIT
+			VirtualAlloc addr size flags 4			;-- PAGE_READWRITE
+		]
+
+		OS-free: func [
+			addr	[byte-ptr!]
+			size	[integer!]
+			stats	[stats!]
+		][
+			if zero? VirtualFree addr 0 8000h [		;-- MEM_RELEASE: 0x8000
+				throw 7FFFFFF6h
+			]
+		]
+
+		OS-decommit: func [
+			addr	[byte-ptr!]
+			size	[integer!]
+			stats	[stats!]
+			return: [logic!]
+			/local
+				s	[byte-ptr!]
+				e	[byte-ptr!]
+				sz	[integer!]
+		][
+			s: as byte-ptr! round-to as-integer addr os-page-size
+			e: as byte-ptr! (as-integer addr) + size / os-page-size * os-page-size
+			sz: as-integer e - s
+			either sz > 0 [
+				0 <> VirtualFree s sz 4000h			;-- MEM_DECOMMIT: 0x4000
+			][true]
+		]
 	][
 		#import [
 			LIBPTHREAD-file cdecl [
@@ -296,6 +353,54 @@ mimalloc: context [
 					return:		[integer!]
 				]
 			]
+		]
+
+		OS-alloc: func [
+			size	[integer!]
+			commit?	[logic!]
+			stats	[stats!]
+			return: [byte-ptr!]
+			/local
+				flags [integer!]
+		][
+			flags: either commit? [MMAP_PROT_RW][0]
+			platform/mmap null size flags MMAP_MAP_PRIVATE or MMAP_MAP_ANONYMOUS -1 0
+		]
+
+		OS-alloc-at: func [
+			addr	[byte-ptr!]
+			size	[integer!]
+			commit?	[logic!]
+			stats	[stats!]
+			return: [byte-ptr!]
+			/local
+				flags [integer!]
+		][
+			flags: either commit? [MMAP_PROT_RW][0]
+			platform/mmap addr size flags MMAP_MAP_PRIVATE or MMAP_MAP_ANONYMOUS -1 0
+		]
+
+		OS-free: func [
+			addr	[byte-ptr!]
+			size	[integer!]
+			stats	[stats!]
+		][
+			if -1 = platform/munmap addr size [
+				throw 7FFFFFF6h
+			]
+		]
+
+		OS-decommit: func [
+			addr	[byte-ptr!]
+			size	[integer!]
+			stats	[stats!]
+			return: [logic!]
+			/local
+				s	[byte-ptr!]
+				e	[byte-ptr!]
+				sz	[integer!]
+		][
+			true
 		]
 	]
 
@@ -317,65 +422,8 @@ mimalloc: context [
 		loop size [dest/value: #"^@" dest: dest + 1]
 	]
 
-	;== OS memory APIs
-
-	OS-alloc: func [
-		size	[integer!]
-		commit?	[logic!]
-		stats	[stats!]
-		return: [byte-ptr!]
-		/local
-			flags [integer!]
-	][
-		flags: 2000h							;-- MEM_RESERVE
-		if commit? [flags: 3000h]				;-- MEM_RESERVE or MEM_COMMIT
-		VirtualAlloc null size flags 4			;-- PAGE_READWRITE
-	]
-
-	OS-alloc-at: func [
-		addr	[byte-ptr!]
-		size	[integer!]
-		commit?	[logic!]
-		stats	[stats!]
-		return: [byte-ptr!]
-		/local
-			flags [integer!]
-	][
-		flags: 2000h							;-- MEM_RESERVE
-		if commit? [flags: 3000h]				;-- MEM_RESERVE or MEM_COMMIT
-		VirtualAlloc addr size flags 4			;-- PAGE_READWRITE
-	]
-
-	OS-free: func [
-		addr	[byte-ptr!]
-		size	[integer!]
-		stats	[stats!]
-	][
-		if zero? VirtualFree addr 0 8000h [		;-- MEM_RELEASE: 0x8000
-			throw 7FFFFFF6h
-		]
-	]
-
-	OS-decommit: func [
-		addr	[byte-ptr!]
-		size	[integer!]
-		stats	[stats!]
-		return: [logic!]
-		/local
-			s	[byte-ptr!]
-			e	[byte-ptr!]
-			sz	[integer!]
-	][
-		s: as byte-ptr! round-to as-integer addr os-page-size
-		e: as byte-ptr! (as-integer addr) + size / os-page-size * os-page-size
-		sz: as-integer e - s
-		either sz > 0 [
-			0 <> VirtualFree s sz 4000h			;-- MEM_DECOMMIT: 0x4000
-		][true]
-	]
-
 	OS-alloc-aligned: func [
-		size	[integer!]
+		size	[ulong!]
 		align	[integer!]
 		commit?	[logic!]
 		stats	[stats!]
@@ -383,7 +431,9 @@ mimalloc: context [
 		/local
 			p	[byte-ptr!]
 			p2	[byte-ptr!]
-			sz	[integer!]
+			sz	[ulong!]
+			pre-sz	[ulong!]
+			post-sz	[ulong!]
 	][
 		size: round-to size os-page-size
 		p: OS-alloc size commit? stats
@@ -392,6 +442,8 @@ mimalloc: context [
 		if (as-integer p) % align <> 0 [		;-- not aligned
 			OS-free p size stats
 			sz: size + align
+
+			#either OS = 'Windows [
 			loop 3 [
 				p: OS-alloc sz commit? stats
 				if null? p [return null]
@@ -407,6 +459,17 @@ mimalloc: context [
 					OS-free p size stats
 					p: null
 				]
+			]][
+
+			p: OS-alloc sz commit? stats
+			if null? p [return null]
+			p2: as byte-ptr! round-to as-integer p align
+			pre-sz: as ulong! p2 - p
+			post-sz: sz - pre-sz - size
+			if pre-sz > 0 [OS-free p pre-sz stats]
+			if post-sz > 0 [OS-free p2 + size post-sz stats]
+			p: p2
+
 			]
 		]
 		p
@@ -1297,7 +1360,7 @@ test: func [/local p [byte-ptr!] arr [int-ptr!] n [integer!]][
 	]
 	probe as byte-ptr! arr/1
 	?? p
-	mimalloc/Sleep 5000
+
 	n: 1
 	loop 99 [
 		p: as byte-ptr! arr/n
@@ -1306,12 +1369,11 @@ test: func [/local p [byte-ptr!] arr [int-ptr!] n [integer!]][
 	]
 	?? p
 	probe 2222
-	mimalloc/Sleep 5000
+
 	p: mimalloc/malloc 1024 * 64
 	?? p
 	mimalloc/free p
 	?? p
-	mimalloc/Sleep 15000
 
 	probe 444444
 	p: mimalloc/malloc 1024 * 1024
