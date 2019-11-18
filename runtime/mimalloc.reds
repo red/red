@@ -14,8 +14,11 @@ Red/System [
 	}
 ]
 
-#include %tools.reds
+#define handle! int-ptr!
 
+#include %tools.reds
+#include %threads.reds
+	
 #define MI_PTR_SHIFT	2										;-- 32 bits system
 #define MI_PTR_SIZE		[(1 << MI_PTR_SHIFT)]
 
@@ -283,7 +286,13 @@ mimalloc: context [
 			]
 		]
 
-		;== OS memory APIs
+		OS-init: func [/local si [tagSYSTEM_INFO value]][
+			GetSystemInfo :si
+			if si/dwPageSize > 0 [os-page-size: si/dwPageSize]
+			if si/dwAllocationGranularity > 0 [
+				alloc-granularity: si/dwAllocationGranularity
+			]
+		]
 
 		OS-alloc: func [
 			size	[integer!]
@@ -341,9 +350,15 @@ mimalloc: context [
 		]
 	][
 		#import [
+			LIBC-file cdecl [
+				sysconf: "sysconf" [
+					property	[integer!]
+					return:		[integer!]
+				]
+			]
 			LIBPTHREAD-file cdecl [
 				pthread_key_create: "pthread_key_create" [
-					key			[ulong!]
+					key			[int-ptr!]
 					destructor	[int-ptr!]
 					return:		[integer!]
 				]
@@ -352,6 +367,48 @@ mimalloc: context [
 					value		[int-ptr!]
 					return:		[integer!]
 				]
+			]
+		]
+
+		#define MMAP_PROT_RW		03h				;-- PROT_READ | PROT_WRITE
+		#define MMAP_PROT_RWX		07h				;-- PROT_READ | PROT_WRITE | PROT_EXEC
+
+		#define MMAP_MAP_SHARED     01h
+		#define MMAP_MAP_PRIVATE    02h
+		#define MMAP_MAP_ANONYMOUS  20h
+
+		#either OS = 'Android [
+			#define SC_PAGE_SIZE	28h
+		][
+			#define SC_PAGE_SIZE	1Eh
+		]
+
+		#define SYSCALL_MMAP2		192
+		#define SYSCALL_MUNMAP		91
+		#define SYSCALL_MMAP		SYSCALL_MMAP2
+
+		#syscall [
+			mmap: SYSCALL_MMAP [
+				address		[byte-ptr!]
+				size		[integer!]
+				protection	[integer!]
+				flags		[integer!]
+				fd			[integer!]
+				offset		[integer!]
+				return:		[byte-ptr!]
+			]
+			munmap: SYSCALL_MUNMAP [
+				address		[byte-ptr!]
+				size		[integer!]
+				return:		[integer!]
+			]
+		]
+
+		OS-init: func [/local psize [integer!]][
+			psize: sysconf SC_PAGE_SIZE
+			if psize > 0 [
+				os-page-size: psize
+				alloc-granularity: psize
 			]
 		]
 
@@ -364,7 +421,7 @@ mimalloc: context [
 				flags [integer!]
 		][
 			flags: either commit? [MMAP_PROT_RW][0]
-			platform/mmap null size flags MMAP_MAP_PRIVATE or MMAP_MAP_ANONYMOUS -1 0
+			mmap null size flags MMAP_MAP_PRIVATE or MMAP_MAP_ANONYMOUS -1 0
 		]
 
 		OS-alloc-at: func [
@@ -377,7 +434,7 @@ mimalloc: context [
 				flags [integer!]
 		][
 			flags: either commit? [MMAP_PROT_RW][0]
-			platform/mmap addr size flags MMAP_MAP_PRIVATE or MMAP_MAP_ANONYMOUS -1 0
+			mmap addr size flags MMAP_MAP_PRIVATE or MMAP_MAP_ANONYMOUS -1 0
 		]
 
 		OS-free: func [
@@ -385,7 +442,7 @@ mimalloc: context [
 			size	[integer!]
 			stats	[stats!]
 		][
-			if -1 = platform/munmap addr size [
+			if -1 = munmap addr size [
 				throw 7FFFFFF6h
 			]
 		]
@@ -539,12 +596,8 @@ mimalloc: context [
 		init-heap hp
 	]
 
-	init: func [/local si [tagSYSTEM_INFO value]][
-		GetSystemInfo :si
-		if si/dwPageSize > 0 [os-page-size: si/dwPageSize]
-		if si/dwAllocationGranularity > 0 [
-			alloc-granularity: si/dwAllocationGranularity
-		]
+	init: func [][
+		OS-init
 		init-process
 	]
 
