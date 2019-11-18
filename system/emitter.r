@@ -48,6 +48,7 @@ emitter: make-profilable context [
 		c-string!	4	-				;-- 32-bit, 8 for 64-bit
 		struct!		4	-				;-- 32-bit, 8 for 64-bit ; struct! passed by reference
 		function!	4	-				;-- 32-bit, 8 for 64-bit
+		subroutine!	4	-				;-- 32-bit, 8 for 64-bit
 	]
 	
 	datatype-ID: [

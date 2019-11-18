@@ -90,6 +90,8 @@ system-dialect: make-profilable context [
 		expr-call-stack: make block! 1					;-- simple stack of nested calls for a given expression
 		loop-stack:		 make block! 1					;-- keep track of in-loop state
 		locals-init: 	 []								;-- currently compiler function locals variable init list
+		subroutines:	 make block! 20					;-- subroutines definitions: [name [offset ret-type] ...]
+		in-subroutine?:	 no								;-- YES: current code is in a subroutine
 		func-name:	 	 none							;-- currently compiled function name
 		func-locals-sz:	 none							;-- currently compiled function locals size on stack
 		user-code?:		 no
@@ -367,6 +369,7 @@ system-dialect: make-profilable context [
 				pos: find locals /local
 				pos: find next pos name
 				not find locals-init name
+				not in-subroutine?
 			]
 		]
 		
@@ -833,6 +836,7 @@ system-dialect: make-profilable context [
 				path!	 [resolve-path-type value]
 				block!	 [
 					if value/1 = 'not [return get-type value/2]	;-- special case for NOT multitype native
+					if all [subroutines type: select subroutines value/1][return type/1]
 					
 					either 'op = second get-function-spec value/1 [
 						either base-type? type: get-return-type/check value/1 [
@@ -1430,7 +1434,7 @@ system-dialect: make-profilable context [
 						) rule
 						opt string!
 					]
-					pos: opt [/local copy locs some [pos: word! opt [into type-spec]]] ;-- local variables definition
+					pos: opt [/local copy locs some [pos: word! opt [into ['subroutine! | type-spec]]]] ;-- local variables definition
 				]
 			][
 				throw-error rejoin ["invalid definition for function " name ": " mold pos]
@@ -1962,6 +1966,48 @@ system-dialect: make-profilable context [
 			]
 			unless binary? code [throw-error "#inline directive requires a binary! argument"]
 			append emitter/code-buf code
+		]
+
+		preprocess-subroutines: func [spec [block!] body [block!]
+			/local rule p type name code expr chunks chunk ret offset pos
+		][
+			clear subroutines
+			subs: clear []
+			parse body rule: [
+				any [
+					p: set-word! block! (
+						all [
+							block? type: select spec to-word p/1
+							'subroutine! = type/1
+							repend subroutines [to-word p/1 p/2]
+							remove/part p 2
+						]
+					) :p
+					| p: block! :p into rule
+					| skip
+				]
+			]
+			unless empty? subroutines [
+				subs: subroutines
+				chunks: none
+				pos: emitter/tail-ptr
+				until [
+					set [name code] subs
+					in-subroutine?: yes
+					fetch-into reduce [code][
+						set [expr chunk] comp-block-chunked
+						ret: comp-chunked [emitter/target/emit-return]
+						subs/2: reduce [pos get-type expr]
+						emitter/chunks/join chunk ret
+						pos: pos + length? chunk/1
+						either chunks [emitter/chunks/join chunks chunk][chunks: chunk] ;-- accumulate chunks
+					]
+					in-subroutine?: no
+					tail? subs: skip subs 2
+				]
+				offset: emitter/branch/over chunks		;-- prepend the jump at beginning
+				emitter/merge chunks					;-- commit all the subroutines to code buffer
+			]
 		]
 		
 		expand-setwords: has [list p lit? value out][
@@ -3057,7 +3103,7 @@ system-dialect: make-profilable context [
 							all [						;-- block local function pointers
 								block? type: select locals name
 								type: resolve-aliased type
-								'function! <> type/1
+								not find [subroutine! function!] type/1
 							]
 							not block? type				;-- pass-thru
 						]
@@ -3072,6 +3118,13 @@ system-dialect: make-profilable context [
 					]
 					last-type: resolve-type name
 					unless check [also name pc: next pc]
+				]
+				all [
+					locals
+					block? type: select locals name
+					type/1 = 'subroutine!
+				][
+					also reduce [name] pc: next pc		;-- mimic a function call
 				]
 				type: enum-type? name [
 					last-type: type
@@ -3288,6 +3341,12 @@ system-dialect: make-profilable context [
 			if slots  [emitter/target/emit-release-stack slots]
 			res
 		]
+		
+		comp-call-sub: func [expr [block!]][
+			spec: select subroutines expr/1
+			emitter/target/emit-call-sub expr/1 spec/1
+			spec/2
+		]
 				
 		comp-path-assign: func [
 			set-path [set-path!] expr casted [block! none!] store? [logic!]
@@ -3326,7 +3385,7 @@ system-dialect: make-profilable context [
 				throw-error [
 					"type mismatch on setting path:" to path! set-path
 					"^/*** expected:" mold type
-					"^/*** found:" mold any [casted new]
+					"^/***    found:" mold any [casted new]
 				]
 			]
 			if store? [
@@ -3413,7 +3472,7 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		comp-expression: func [expr keep? [logic!] /local variable boxed casting new? type spec store?][
+		comp-expression: func [expr keep? [logic!] /local variable boxed casting new? type spec store? subrc?][
 			store?: no
 			
 			;-- preprocessing expression
@@ -3436,6 +3495,7 @@ system-dialect: make-profilable context [
 				expr: either any-float? boxed/type [cast/quiet expr][cast expr]
 				if object? expr [comp-expression expr keep?]
 			]
+			subrc?: all [subroutines block? expr word? expr/1 find subroutines expr/1] ;-- subroutine call detection
 			
 			;-- dead expressions elimination
 			if all [
@@ -3464,7 +3524,7 @@ system-dialect: make-profilable context [
 
 			;-- emitting expression code
 			either block? expr [
-				type: comp-call expr/1 next expr 		;-- function call case (recursive)
+				type: either subrc? [comp-call-sub expr][comp-call expr/1 next expr] ;-- function call case (recursive)
 				if type [last-type: type]				;-- set last-type if not already set
 			][
 				last-type: either not any [
@@ -3490,7 +3550,7 @@ system-dialect: make-profilable context [
 			]
 			
 			;-- postprocessing result
-			if block? expr [							;-- if expr is a function call
+			if all [block? expr not subrc?][			;-- if expr is a function call
 				all [
 					variable
 					'value = last last-type				;-- for a struct passed by value
@@ -3529,6 +3589,7 @@ system-dialect: make-profilable context [
 				not variable
 				block? expr
 				word? expr/1
+				not subrc?
 				any-float? get-return-type/check expr/1
 				any [
 					not find functions/(expr/1)/4 return-def	 ;-- clean if no return value
@@ -3713,6 +3774,7 @@ system-dialect: make-profilable context [
 			func-name: name
 			set [args-sz local-sz] emitter/enter name locals ;-- build function prolog
 			func-locals-sz: local-sz
+			preprocess-subroutines spec body
 			pc: body
 			
 			expr: comp-dialect							;-- compile function's body

@@ -2041,6 +2041,17 @@ make-profilable make target-class [
 		]
 	]
 	
+	emit-return: does [
+		if verbose >= 3 [print ">>>emitting RET from subroutine"]
+		emit #{C3}									;-- RET
+	]
+	
+	emit-call-sub: func [name [word!] offset [integer!]][
+		if verbose >= 3 [print [">>>emitting CALL subroutine" name]]
+		emit #{E8}									;-- CALL NEAR disp
+		emit to-bin32 offset - emitter/tail-ptr		;-- 32-bit relative displacement
+	]
+	
 	emit-cdecl-pop: func [spec [block!] args [block!] /local size slots][
 		size: emitter/arguments-size? spec/4
 		if all [
