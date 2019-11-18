@@ -50,13 +50,6 @@ get-face-obj: func [
 	face
 ]
 
-is-face?: func [
-	handle		[handle!]
-	return:		[logic!]
-][
-	TYPE_OBJECT = (get-type-mask and as integer! g_object_get_qdata handle red-face-id1)
-]
-
 get-face-values: func [
 	handle		[handle!]
 	return:		[red-value!]
@@ -217,7 +210,6 @@ set-widget-child: func [
 	parent		[handle!]
 	widget		[handle!]
 	offset		[red-pair!]
-	trans?		[logic!]
 	return:		[logic!]
 	/local
 		sym		[integer!]
@@ -244,12 +236,12 @@ set-widget-child: func [
 	case [
 		sym = window [
 			playout: GET-CONTAINER(parent)
-			insert-widget playout clayout x y trans?
+			gtk_layout_put playout clayout x y
 			true
 		]
 		sym = group-box [
 			playout: gtk_bin_get_child parent
-			insert-widget playout clayout x y trans?
+			gtk_layout_put playout clayout x y
 			true
 		]
 		any [
@@ -257,7 +249,7 @@ set-widget-child: func [
 			sym = rich-text
 			sym = panel
 		][
-			insert-widget parent clayout x y trans?
+			gtk_layout_put parent clayout x y
 			true
 		]
 		sym = tab-panel [
@@ -310,47 +302,6 @@ set-widget-child-offset: func [
 			cparent: get-face-child-layout parent sym
 			set-widget-offset cparent layout pos/x pos/y
 		]
-	]
-]
-
-insert-widget: func [
-	layout		[handle!]
-	widget		[handle!]
-	x			[integer!]
-	y			[integer!]
-	trans?		[logic!]
-	/local
-		list	[GList!]
-		last	[GList!]
-		sibling	[handle!]
-		gvalue	[handle!]
-		nx		[integer!]
-		ny		[integer!]
-][
-	list: gtk_container_get_children layout
-	either any [
-		null? list
-		not trans?
-	][
-		gtk_layout_put layout widget x y
-	][
-		last: g_list_last list
-		sibling: last/data
-		gvalue: system/stack/allocate 5
-		set-memory as byte-ptr! gvalue null-byte 20
-		g_value_init gvalue G_TYPE_INT
-		gtk_container_child_get_property layout sibling "x" gvalue
-		nx: g_value_get_int gvalue
-		gtk_container_child_get_property layout sibling "y" gvalue
-		ny: g_value_get_int gvalue
-		g_object_ref sibling
-		gtk_container_remove layout sibling
-		gtk_layout_put layout widget x y
-		gtk_layout_put layout sibling nx ny
-		g_object_unref sibling
-	]
-	unless null? list [
-		g_list_free list
 	]
 ]
 
@@ -859,7 +810,7 @@ change-pane: func [
 		widget	[handle!]
 		values	[red-value!]
 		offset	[red-pair!]
-		color	[red-tuple!]
+
 ][
 	layout: case [
 		type = window [
@@ -901,8 +852,7 @@ change-pane: func [
 				if widget <> null [
 					values: object/get-values face
 					offset: as red-pair! values + FACE_OBJ_OFFSET
-					color: as red-tuple! values + FACE_OBJ_COLOR
-					set-widget-child parent widget offset TYPE_OF(color) <> TYPE_TUPLE
+					set-widget-child parent widget offset
 				]
 			]
 			face: face + 1
@@ -1822,7 +1772,7 @@ OS-make-view: func [
 
 	if sym <> window [
 		if parent <> 0 [
-			unless set-widget-child as handle! parent widget offset TYPE_OF(color) <> TYPE_TUPLE [
+			unless set-widget-child as handle! parent widget offset [
 				fire [TO_ERROR(script face-type) type]
 			]
 		]
