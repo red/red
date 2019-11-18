@@ -1489,6 +1489,10 @@ GPtrArray!: alias struct! [
 			widget		[handle!]
 			return: 	[integer!]
 		]
+		gtk_widget_get_can_focus: "gtk_widget_get_can_focus" [
+			widget		[handle!]
+			return:		[logic!]
+		]
 		gtk_widget_set_can_focus: "gtk_widget_set_can_focus" [
 			widget		[handle!]
 			focus		[logic!]
@@ -2978,6 +2982,7 @@ start-resize-id:	g_quark_from_string "start-resize-id"
 caption-id:			g_quark_from_string "caption-id"
 in-loop-id:			g_quark_from_string "in-loop-id"
 first-radio-id:		g_quark_from_string "first-radio-id"
+resend-event-id:	g_quark_from_string "resend-event-id"
 
 #define SET-CONTAINER(s d)		[g_object_set_qdata s container-id d]
 #define GET-CONTAINER(s)		[g_object_get_qdata s container-id]
@@ -2995,3 +3000,5 @@ first-radio-id:		g_quark_from_string "first-radio-id"
 #define GET-MENU-KEY(s)			[g_object_get_qdata s menu-key-id]
 #define SET-FIRST-RADIO(s d)	[g_object_set_qdata s first-radio-id d]
 #define GET-FIRST-RADIO(s)		[g_object_get_qdata s first-radio-id]
+#define SET-RESEND-EVENT(s d)	[g_object_set_qdata s resend-event-id d]
+#define GET-RESEND-EVENT(s)		[g_object_get_qdata s resend-event-id]
