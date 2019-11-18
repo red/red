@@ -254,6 +254,120 @@ window-delete-event: func [
 	EVT_DISPATCH
 ]
 
+base-event-after: func [
+	[cdecl]
+	evbox		[handle!]
+	event		[GdkEventAny!]
+	widget		[handle!]
+	/local
+		etype	[integer!]
+		face	[red-object!]
+		values	[red-value!]
+		type	[red-word!]
+		color	[red-tuple!]
+		offset	[red-pair!]
+		parent	[red-object!]
+		sym		[integer!]
+		hparent	[handle!]
+		pane	[red-block!]
+		head	[red-object!]
+		tail	[red-object!]
+		target	[handle!]
+		offset2	[red-pair!]
+		dx		[float!]
+		dy		[float!]
+		motion	[GdkEventMotion!]
+		button	[GdkEventButton!]
+		key		[GdkEventKey!]
+		win		[handle!]
+][
+	etype: event/type
+	unless any [
+		etype = GDK_MOTION_NOTIFY
+		etype = GDK_BUTTON_PRESS
+		etype = GDK_2BUTTON_PRESS
+		etype = GDK_3BUTTON_PRESS
+		etype = GDK_BUTTON_RELEASE
+		etype = GDK_KEY_PRESS
+		etype = GDK_KEY_RELEASE
+	][exit]
+	face: get-face-obj widget
+	values: object/get-values face
+	type: as red-word! values + FACE_OBJ_TYPE
+	color: as red-tuple! values + FACE_OBJ_COLOR
+	offset: as red-pair! values + FACE_OBJ_OFFSET
+	parent: as red-object! values + FACE_OBJ_PARENT
+	sym: symbol/resolve type/symbol
+
+	if all [
+		sym = base
+		TYPE_OF(color) = TYPE_NONE
+	][
+		hparent: get-face-handle parent
+		pane: as red-block! (object/get-values parent) + FACE_OBJ_PANE
+		head: as red-object! block/rs-head pane
+		tail: as red-object! block/rs-tail pane
+		while [tail > head][
+			tail: tail - 1
+			if tail/ctx = face/ctx [
+				while [tail > head][
+					tail: tail - 1
+					target: face-handle? tail
+					if null? target [
+						continue
+					]
+					offset2: as red-pair! (object/get-values tail) + FACE_OBJ_OFFSET
+					case [
+						etype = GDK_MOTION_NOTIFY [
+							motion: as GdkEventMotion! event
+							dx: as float! offset/x - offset2/x
+							dy: as float! offset/y - offset2/y
+							motion/x: motion/x + dx
+							motion/y: motion/y + dy
+							motion/x_root: motion/x_root + dx
+							motion/y_root: motion/y_root + dy
+							gtk_widget_event target as handle! event
+							SET-RESEND-EVENT(target target)
+						]
+						any [
+							etype = GDK_BUTTON_PRESS
+							etype = GDK_2BUTTON_PRESS
+							etype = GDK_3BUTTON_PRESS
+							etype = GDK_BUTTON_RELEASE
+						][
+							button: as GdkEventButton! event
+							dx: as float! offset/x - offset2/x
+							dy: as float! offset/y - offset2/y
+							button/x: button/x + dx
+							button/y: button/y + dy
+							button/x_root: button/x_root + dx
+							button/y_root: button/y_root + dy
+							gtk_widget_event target as handle! event
+							SET-RESEND-EVENT(target target)
+						]
+						any [
+							etype = GDK_KEY_PRESS
+							etype = GDK_KEY_RELEASE
+						][
+							win: gtk_get_event_widget as handle! event
+							if all [
+								evbox = gtk_window_get_focus win
+								gtk_widget_get_can_focus target
+							][
+								gtk_widget_grab_focus target
+								gtk_widget_event target as handle! event
+								SET-RESEND-EVENT(target target)
+							]
+						]
+					]
+					exit
+				]
+				exit
+			]
+		]
+	]
+]
+
 window-event: func [
 	[cdecl]
 	evbox		[handle!]
@@ -435,8 +549,13 @@ key-press-event: func [
 		flags	[integer!]
 		key2	[integer!]
 ][
-	win: gtk_get_event_widget as handle! event-key
-	if evbox <> gtk_window_get_focus win [return EVT_NO_DISPATCH]
+	either null? GET-RESEND-EVENT(evbox) [
+		win: gtk_get_event_widget as handle! event-key
+		if evbox <> gtk_window_get_focus win [return EVT_NO_DISPATCH]
+	][
+		SET-RESEND-EVENT(evbox null)
+	]
+
 	face: get-face-obj widget
 	values: object/get-values face
 	type: as red-word! values + FACE_OBJ_TYPE
@@ -477,8 +596,12 @@ key-release-event: func [
 		key		[integer!]
 		flags	[integer!]
 ][
-	win: gtk_get_event_widget as handle! event-key
-	if evbox <> gtk_window_get_focus win [return EVT_NO_DISPATCH]
+	either null? GET-RESEND-EVENT(evbox) [
+		win: gtk_get_event_widget as handle! event-key
+		if evbox <> gtk_window_get_focus win [return EVT_NO_DISPATCH]
+	][
+		SET-RESEND-EVENT(evbox null)
+	]
 	face: get-face-obj widget
 	values: object/get-values face
 	type: as red-word! values + FACE_OBJ_TYPE
@@ -644,7 +767,11 @@ mouse-button-release-event: func [
 		flags	[integer!]
 		ev		[integer!]
 ][
-	if evbox <> gtk_get_event_widget as handle! event [return EVT_NO_DISPATCH]
+	either null? GET-RESEND-EVENT(evbox) [
+		if evbox <> gtk_get_event_widget as handle! event [return EVT_NO_DISPATCH]
+	][
+		SET-RESEND-EVENT(evbox null)
+	]
 	sym: get-widget-symbol widget
 
 	if event/button = GDK_BUTTON_PRIMARY [
@@ -708,7 +835,11 @@ mouse-button-press-event: func [
 		hMenu	[handle!]
 		ev		[integer!]
 ][
-	if evbox <> gtk_get_event_widget as handle! event [return EVT_NO_DISPATCH]
+	either null? GET-RESEND-EVENT(evbox) [
+		if evbox <> gtk_get_event_widget as handle! event [return EVT_NO_DISPATCH]
+	][
+		SET-RESEND-EVENT(evbox null)
+	]
 	sym: get-widget-symbol widget
 
 	if event/button = GDK_BUTTON_PRIMARY [
@@ -750,7 +881,11 @@ mouse-motion-notify-event: func [
 		y		[float!]
 		flags	[integer!]
 ][
-	if evbox <> gtk_get_event_widget as handle! event [return EVT_NO_DISPATCH]
+	either null? GET-RESEND-EVENT(evbox) [
+		if evbox <> gtk_get_event_widget as handle! event [return EVT_NO_DISPATCH]
+	][
+		SET-RESEND-EVENT(evbox null)
+	]
 	wflags: get-flags (as red-block! get-face-values widget) + FACE_OBJ_FLAGS
 	if wflags and FACET_FLAGS_ALL_OVER = 0 [return EVT_DISPATCH]
 	evt-motion/x_new: as-integer event/x

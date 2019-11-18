@@ -1015,6 +1015,8 @@ connect-widget-events: func [
 		]
 		sym = base [
 			gobj_signal_connect(widget "draw" :base-draw widget)
+			;-- transparent widget need propagate events to sibling
+			gobj_signal_connect(widget "event-after" :base-event-after widget)
 		]
 		sym = rich-text [
 			gobj_signal_connect(widget "draw" :base-draw widget)
