@@ -2348,7 +2348,10 @@ system-dialect: make-profilable context [
 						throw-error ["invalid struct syntax:" mold pos]
 					]
 				]
-				function! [check-specs 'pointer pc/3]
+				function! [
+					expand-func-specs pc/3
+					check-specs 'pointer pc/3
+				]
 			]
 			pc: skip pc 3
 			none
