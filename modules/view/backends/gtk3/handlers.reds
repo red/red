@@ -244,16 +244,6 @@ base-draw: func [
 	EVT_DISPATCH
 ]
 
-window-delete-event: func [
-	[cdecl]
-	widget		[handle!]
-	return:		[integer!]
-][
-	;; DEBUG: print ["window-delete-event" lf]
-	make-event widget 0 EVT_CLOSE
-	EVT_DISPATCH
-]
-
 base-event-after: func [
 	[cdecl]
 	evbox		[handle!]
@@ -368,31 +358,24 @@ base-event-after: func [
 	]
 ]
 
-window-event: func [
+window-delete-event: func [
 	[cdecl]
-	evbox		[handle!]
-	event		[GdkEventAny!]
 	widget		[handle!]
 	return:		[integer!]
-	/local
-		h		[handle!]
 ][
-	h: GET-STARTRESIZE(widget)
-	unless null? h [
-		if event/type = 13 [				;-- GDK_PROXIMITY_OUT
-			h: as handle! 1
-			SET-RESIZING(widget h)
-		]
-		if event/type = 12 [				;-- GDK_PROXIMITY_IN
-			h: GET-RESIZING(widget)
-			unless null? h [
-				make-event widget 0 EVT_SIZING
-				make-event widget 0 EVT_SIZE
-			]
-			h: as handle! 0
-			SET-RESIZING(widget h)
-			SET-STARTRESIZE(widget h)
-		]
+	make-event widget 0 EVT_CLOSE
+	EVT_DISPATCH
+]
+
+window-configure-event: func [
+	[cdecl]
+	evbox		[handle!]
+	event		[GdkEventConfigure!]
+	widget		[handle!]
+	return:		[integer!]
+][
+	unless null? GET-STARTRESIZE(widget) [
+		SET-RESIZING(widget widget)
 	]
 	EVT_DISPATCH
 ]
@@ -404,14 +387,10 @@ window-size-allocate: func [
 	widget		[handle!]
 	/local
 		sz		[red-pair!]
-		h		[handle!]
 ][
-	;; DEBUG: print ["window-size-allocate rect: " rect/x "x" rect/y "x" rect/width "x" rect/height     lf]
 	sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE
-	h: GET-STARTRESIZE(widget)
-	if null? h [
-		h: as handle! 1
-		SET-STARTRESIZE(widget h)
+	if null? GET-STARTRESIZE(widget) [
+		SET-STARTRESIZE(widget widget)
 	]
 	if any [
 		sz/x <> rect/width
@@ -419,8 +398,7 @@ window-size-allocate: func [
 	][
 		sz/x: rect/width
 		sz/y: rect/height
-		h: GET-RESIZING(widget)
-		either null? h [
+		either null? GET-RESIZING(widget) [
 			make-event widget 0 EVT_SIZE
 		][
 			make-event widget 0 EVT_SIZING
@@ -648,6 +626,15 @@ focus-in-event: func [
 	type: as red-word! values + FACE_OBJ_TYPE
 	int: as red-integer! values + FACE_OBJ_SELECTED
 	sym: symbol/resolve type/symbol
+	if sym = window [
+		unless null? GET-RESIZING(widget) [
+			make-event widget 0 EVT_SIZING
+			make-event widget 0 EVT_SIZE
+		]
+		SET-RESIZING(widget null)
+		SET-STARTRESIZE(widget null)
+		return EVT_DISPATCH
+	]
 	change-selection widget int sym
 	make-event widget 0 EVT_FOCUS
 	EVT_DISPATCH
@@ -670,6 +657,9 @@ focus-out-event: func [
 	values: object/get-values face
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
+	if sym = window [
+		return EVT_DISPATCH
+	]
 	make-event widget 0 EVT_UNFOCUS
 	EVT_DISPATCH
 ]
