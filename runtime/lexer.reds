@@ -319,10 +319,7 @@ lexer: context [
 		cp		[int-ptr!]
 		return: [byte-ptr!]
 		/local
-			state [integer!]
-			byte  [integer!]
-			idx	  [integer!]
-			type  [integer!]
+			state byte idx type [integer!]
 	][
 		state: 0
 		forever [
@@ -378,7 +375,7 @@ lexer: context [
 		mstr-flags	[integer!]							;-- multiline string accumulated flags
 	]
 	
-	scanner!: alias function! [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]]
+	scanner!: alias function! [lex [state!] s e [byte-ptr!] flags [integer!]]
 
 	stash: as cell! 0									;-- special buffer for hatching any-blocks series
 	stash-size: 1000									;-- pre-allocated cells	number
@@ -388,7 +385,7 @@ lexer: context [
 	min-integer: as byte-ptr! "-2147483648"				;-- used in scan-integer
 	
 
-	throw-error: func [lex [state!] s [byte-ptr!] e [byte-ptr!] type [integer!]
+	throw-error: func [lex [state!] s e [byte-ptr!] type [integer!]
 		/local
 			pos  [red-string!]
 			line [red-string!]
@@ -441,10 +438,8 @@ lexer: context [
 	
 	alloc-slot: func [lex [state!] return: [red-value!]
 		/local 
-			slot   [red-value!]
-			size   [integer!]
-			deltaH [integer!]
-			deltaT [integer!]
+			slot [red-value!]
+			size deltaH deltaT [integer!]
 	][
 		size: lex/slots
 		if lex/buffer + size <= lex/tail [
@@ -503,12 +498,11 @@ lexer: context [
 		lex/entry: S_START
 	]
 
-	close-block: func [lex [state!] s [byte-ptr!] e [byte-ptr!] type [integer!] final [integer!]
+	close-block: func [lex [state!] s e [byte-ptr!] type [integer!] final [integer!]
 		return: [integer!]
 		/local	
-			p	  [red-point!]
-			len	  [integer!]
-			hint  [integer!]
+			p [red-point!]
+			len	hint [integer!]
 	][
 		p: as red-point! lex/head - 1
 		assert all [lex/buffer <= p TYPE_OF(p) = TYPE_POINT]
@@ -539,7 +533,7 @@ lexer: context [
 		hint
 	]
 	
-	decode-2: func [s [byte-ptr!] e [byte-ptr!] ser [series!]
+	decode-2: func [s e [byte-ptr!] ser [series!]
 		return: [byte-ptr!]								;-- null: ok, not null: error position
 		/local
 			p	[byte-ptr!]
@@ -573,15 +567,11 @@ lexer: context [
 		null
 	]
 	
-	decode-16: func [s [byte-ptr!] e [byte-ptr!] ser [series!]
+	decode-16: func [s e [byte-ptr!] ser [series!]
 		return: [byte-ptr!]								;-- null: ok, not null: error position
 		/local
-			p	   [byte-ptr!]
-			pos	   [byte-ptr!]
-			c	   [integer!]
-			index  [integer!]
-			class  [integer!]
-			fstate [integer!]
+			p pos [byte-ptr!]
+			c index class fstate [integer!]
 	][
 		p: as byte-ptr! ser/offset
 		while [s < e][
@@ -606,15 +596,11 @@ lexer: context [
 		null
 	]
 	
-	decode-64: func [s [byte-ptr!] e [byte-ptr!] ser [series!]
+	decode-64: func [s e [byte-ptr!] ser [series!]
 		return: [byte-ptr!]								;-- null: ok, not null: error position
 		/local
-			p	  [byte-ptr!]
-			c	  [integer!]
-			val   [integer!]
-			accum [integer!]
-			flip  [integer!]
-			index [integer!]
+			p [byte-ptr!]
+			val accum flip index [integer!]
 	][
 		p: as byte-ptr! ser/offset
 		accum: 0
@@ -661,15 +647,12 @@ lexer: context [
 		null
 	]
 	
-	grab-integer: func [s [byte-ptr!] e [byte-ptr!] flags [integer!] dst [int-ptr!] err [int-ptr!]
+	grab-integer: func [s e [byte-ptr!] flags [integer!] dst err [int-ptr!]
 		return: [byte-ptr!]
 		/local
-			p	 [byte-ptr!]
-			len	 [integer!]
-			i	 [integer!]
-			c	 [integer!]
-			neg? [logic!]
-			o?	 [logic!]
+			p [byte-ptr!]
+			len i c [integer!]
+			neg? o? [logic!]
 	][
 		p: s
 		neg?: p/1 = #"-"
@@ -702,12 +685,11 @@ lexer: context [
 		p
 	]
 
-	grab-digits: func [s [byte-ptr!] e [byte-ptr!] exact [integer!] max [integer!] dst [int-ptr!] err [int-ptr!]
+	grab-digits: func [s e [byte-ptr!] exact max [integer!] dst err [int-ptr!]
 		return: [byte-ptr!]
 		/local
 			p [byte-ptr!]
-			i [integer!]
-			c [integer!]
+			i c [integer!]
 	][
 		if s = e [err/value: -2 return s]				;-- buffer end's reached
 		p: s
@@ -728,7 +710,7 @@ lexer: context [
 		p
 	]
 	
-	grab-float: func [s [byte-ptr!] e [byte-ptr!] dst [float-ptr!] err [int-ptr!]
+	grab-float: func [s e [byte-ptr!] dst [float-ptr!] err [int-ptr!]
 		return: [byte-ptr!]
 		/local
 			p [byte-ptr!]
@@ -739,12 +721,10 @@ lexer: context [
 		p
 	]
 	
-	scan-percent-char: func [s [byte-ptr!] e [byte-ptr!] cp [int-ptr!]
+	scan-percent-char: func [s e [byte-ptr!] cp [int-ptr!]
 		return: [byte-ptr!]								;-- -1 if error
 		/local
-			c	  [integer!]
-			c2	  [integer!]
-			index [integer!]
+			c c2 index [integer!]
 	][
 		if s + 1 >= e [cp/value: -1 return s]
 		c: 0
@@ -757,18 +737,13 @@ lexer: context [
 		s + 2
 	]
 	
-	scan-escaped-char: func [s [byte-ptr!] e [byte-ptr!] cp [int-ptr!]
+	scan-escaped-char: func [s e [byte-ptr!] cp [int-ptr!]
 		return: [byte-ptr!]								;-- -1 if error
 		/local
-			p	  [byte-ptr!]
-			src	  [byte-ptr!]
-			len	  [integer!]
-			c	  [integer!]
-			pos	  [integer!]
-			index [integer!]
-			entry [int-ptr!]
-			cb	  [byte!]
-			bit	  [byte!]
+			p src  [byte-ptr!]
+			len	c pos index [integer!]
+			entry  [int-ptr!]
+			cb bit [byte!]
 	][
 		either s/1 = #"(" [								;-- note: #"^(" not allowed
 			case [
@@ -844,13 +819,13 @@ lexer: context [
 		p
 	]
 
-	scan-eof: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]][]
+	scan-eof: func [lex [state!] s e [byte-ptr!] flags [integer!]][]
 	
-	scan-error: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]][
+	scan-error: func [lex [state!] s e [byte-ptr!] flags [integer!]][
 		throw-error lex s e ERR_BAD_CHAR
 	]
 	
-	scan-block-open: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-block-open: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
 			type [integer!]
 	][
@@ -859,12 +834,12 @@ lexer: context [
 		lex/in-pos: e + 1								;-- skip delimiter
 	]
 
-	scan-block-close: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]][
+	scan-block-close: func [lex [state!] s e [byte-ptr!] flags [integer!]][
 		close-block lex s e TYPE_BLOCK -1
 		lex/in-pos: e + 1								;-- skip ]
 	]
 	
-	scan-paren-close: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-paren-close: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
 			blk	 [red-block!]
 	][
@@ -875,7 +850,7 @@ lexer: context [
 		lex/in-pos: e + 1								;-- skip )
 	]
 
-	scan-string: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-string: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
 			str    [red-string!]
 			ser	   [series!]
@@ -1039,7 +1014,7 @@ lexer: context [
 		lex/in-pos: e + 1								;-- skip ending delimiter
 	]
 
-	scan-mstring-open: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]][
+	scan-mstring-open: func [lex [state!] s e [byte-ptr!] flags [integer!]][
 		if zero? lex/mstr-nest [lex/mstr-s: s]
 		lex/mstr-nest: lex/mstr-nest + 1
 		lex/mstr-flags: lex/mstr-flags or flags
@@ -1047,7 +1022,7 @@ lexer: context [
 		lex/in-pos: e + 1								;-- skip {
 	]
 	
-	scan-mstring-close: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]][
+	scan-mstring-close: func [lex [state!] s e [byte-ptr!] flags [integer!]][
 		lex/mstr-nest: lex/mstr-nest - 1
 
 		either zero? lex/mstr-nest [
@@ -1060,7 +1035,7 @@ lexer: context [
 		lex/in-pos: e + 1								;-- skip }
 	]
 	
-	scan-word: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-word: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
 			cell [cell!]
 			type [integer!]
@@ -1083,7 +1058,7 @@ lexer: context [
 		if type = TYPE_SET_WORD [lex/in-pos: e + 1]		;-- skip ending delimiter
 	]
 
-	scan-file: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-file: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
 			p	 [byte-ptr!]
 	][
@@ -1098,7 +1073,7 @@ lexer: context [
 		lex/in-pos: e 									;-- reset the input position to delimiter byte
 	]
 
-	scan-binary: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-binary: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
 			bin	 [red-binary!]
 			err	 [byte-ptr!]
@@ -1137,7 +1112,7 @@ lexer: context [
 		lex/in-pos: e + 1								;-- skip }
 	]
 	
-	scan-char: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-char: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
 			char  [red-char!]
 			len	  [integer!]
@@ -1163,12 +1138,12 @@ lexer: context [
 		lex/in-pos: e + 1								;-- skip "
 	]
 	
-	scan-map-open: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]][
+	scan-map-open: func [lex [state!] s e [byte-ptr!] flags [integer!]][
 		open-block lex TYPE_PAREN TYPE_MAP
 		lex/in-pos: e + 1								;-- skip (
 	]
 	
-	scan-construct: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-construct: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
 			dt		[red-datatype!]
 			p		[int-ptr!]
@@ -1198,7 +1173,7 @@ lexer: context [
 		lex/in-pos: e + 1								;-- skip ]
 	]
 	
-	scan-ref-issue: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-ref-issue: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
 			cell [cell!]
 			type [integer!]
@@ -1214,7 +1189,7 @@ lexer: context [
 		lex/in-pos: e									;-- reset the input position to delimiter byte
 	]
 	
-	scan-percent: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-percent: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
 			fl [red-float!]
 	][
@@ -1227,7 +1202,7 @@ lexer: context [
 		lex/in-pos: e + 1								;-- skip ending delimiter
 	]
 		
-	scan-integer: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-integer: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		return: [integer!]
 		/local
 			p	[byte-ptr!]
@@ -1283,7 +1258,7 @@ lexer: context [
 		i
 	]
 	
-	scan-float: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-float: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
 			fl	[red-float!]
 			err	[integer!]
@@ -1296,7 +1271,7 @@ lexer: context [
 		lex/in-pos: e									;-- reset the input position to delimiter byte
 	]
 	
-	scan-float-special: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-float-special: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
 			fl	 [red-float!]
 			p	 [byte-ptr!]
@@ -1320,7 +1295,7 @@ lexer: context [
 		lex/in-pos: e									;-- reset the input position to delimiter byte
 	]
 	
-	scan-tuple: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-tuple: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
 			cell [cell!]
 			i	 [integer!]
@@ -1352,7 +1327,7 @@ lexer: context [
 	]
 
 
-	scan-date: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-date: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
 			p	  [byte-ptr!]
 			me	  [byte-ptr!]
@@ -1488,7 +1463,7 @@ lexer: context [
 		lex/in-pos: e									;-- reset the input position to delimiter byte
 	]
 
-	scan-date2: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-date2: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
 			cell  [cell!]
 			dt	  [red-date!]
@@ -1588,7 +1563,7 @@ lexer: context [
 		lex/in-pos: e									;-- reset the input position to delimiter byte
 	]
 	
-	scan-pair: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-pair: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
 			index [integer!]
 			class [integer!]
@@ -1609,7 +1584,7 @@ lexer: context [
 		lex/in-pos: e									;-- reset the input position to delimiter byte
 	]
 	
-	scan-time: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-time: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
 			p	 [byte-ptr!]
 			mark [byte-ptr!]
@@ -1649,19 +1624,19 @@ lexer: context [
 		time/make-at tm alloc-slot lex
 	]
 	
-	scan-money: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]][
+	scan-money: func [lex [state!] s e [byte-ptr!] flags [integer!]][
 		;;TBD: implement this function once money! type is done
 		throw-error lex s e ERR_BAD_CHAR
 	]
 	
-	scan-tag: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]][
+	scan-tag: func [lex [state!] s e [byte-ptr!] flags [integer!]][
 		flags: flags and not C_FLAG_CARET				;-- clears caret flag
 		lex/type: TYPE_TAG
 		scan-string lex s e flags
 		lex/in-pos: e + 1								;-- skip ending delimiter
 	]
 	
-	scan-url: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-url: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
 			p [byte-ptr!]
 	][
@@ -1673,7 +1648,7 @@ lexer: context [
 		lex/in-pos: e 									;-- reset the input position to delimiter byte
 	]
 	
-	scan-email: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-email: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
 			p [byte-ptr!]
 	][
@@ -1683,7 +1658,7 @@ lexer: context [
 		lex/in-pos: e 									;-- reset the input position to delimiter byte
 	]
 	
-	scan-path-open: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-path-open: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
 			type [integer!]
 	][
@@ -1698,7 +1673,7 @@ lexer: context [
 		lex/in-pos: e + 1								;-- skip /
 	]
 	
-	scan-hex: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-hex: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
 			int	  [red-integer!]
 			index [integer!]
@@ -1721,12 +1696,12 @@ lexer: context [
 		lex/in-pos: e + 1								;-- skip h
 	]
 	
-	scan-comment: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]][
+	scan-comment: func [lex [state!] s e [byte-ptr!] flags [integer!]][
 		;TBD: trigger an event
 	]
 
 	
-	scan-path-item: func [lex [state!] s [byte-ptr!] e [byte-ptr!] flags [integer!]
+	scan-path-item: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
 			type	[integer!]
 			cp		[integer!]
