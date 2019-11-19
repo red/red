@@ -1976,11 +1976,14 @@ system-dialect: make-profilable context [
 			parse body rule: [
 				any [
 					p: set-word! block! (
-						all [
-							block? type: select spec to-word p/1
-							'subroutine! = type/1
-							repend subroutines [to-word p/1 p/2]
-							remove/part p 2
+						any [
+							all [
+								block? type: select spec to-word p/1
+								'subroutine! = type/1
+								repend subroutines [to-word p/1 p/2]
+								remove/part p 2
+							]
+							p: skip p 2
 						]
 					) :p
 					| p: block! :p into rule
