@@ -766,12 +766,10 @@ do-events: func [
 		msg?	[logic!]
 		list	[GList!]
 		win		[handle!]
-		v		[handle!]
 ][
 	win: find-last-window
 	if null? win [return no]
-	v: as handle! 1
-	SET-IN-LOOP(win v)
+	SET-IN-LOOP(win win)
 
 	msg?: any [not no-wait? gtk_events_pending]
 	until [
@@ -779,7 +777,7 @@ do-events: func [
 		unless g_type_check_instance_is_a win gtk_window_get_type [
 			break
 		]
-		unless as logic! GET-IN-LOOP(win) [break]
+		if null? GET-IN-LOOP(win) [break]
 		no-wait?
 	]
 	msg?
@@ -788,11 +786,9 @@ do-events: func [
 post-quit-msg: func [
 	/local
 		win		[handle!]
-		v		[handle!]
 ][
 	win: find-last-window
-	v: as handle! 0
-	SET-IN-LOOP(win v)
+	SET-IN-LOOP(win null)
 	gtk_widget_queue_draw win
 ]
 
