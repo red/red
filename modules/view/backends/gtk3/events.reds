@@ -1022,10 +1022,12 @@ connect-widget-events: func [
 			gobj_signal_connect(widget "draw" :base-draw widget)
 		]
 		sym = window [
-			gobj_signal_connect(widget "event" :window-event widget)
 			gobj_signal_connect(widget "delete-event" :window-delete-event widget)
-			;BUG (make `vid.red` failing): gtk_widget_add_events widget GDK_STRUCTURE_MASK
 			gobj_signal_connect(widget "size-allocate" :window-size-allocate widget)
+			gtk_widget_add_events widget GDK_FOCUS_CHANGE_MASK
+			gobj_signal_connect(widget "focus-in-event" :focus-in-event widget)
+			gobj_signal_connect(widget "focus-out-event" :focus-out-event widget)
+			gobj_signal_connect(widget "configure-event" :window-configure-event widget)
 		]
 		sym = slider [
 			gobj_signal_connect(widget "value-changed" :range-value-changed widget)
