@@ -1402,11 +1402,13 @@ mimalloc: context [
 	]
 ]
 
+#define TEST_MAX 800
+
 test: func [/local p [byte-ptr!] arr [int-ptr!] n [integer!]][
 	mimalloc/init
 	n: 1
-	arr: system/stack/allocate 100
-	loop 100 [
+	arr: system/stack/allocate TEST_MAX
+	loop TEST_MAX [
 		p: mimalloc/malloc 1024
 		arr/n: as-integer p
 		n: n + 1
@@ -1415,7 +1417,7 @@ test: func [/local p [byte-ptr!] arr [int-ptr!] n [integer!]][
 	?? p
 
 	n: 1
-	loop 99 [
+	loop TEST_MAX [
 		p: as byte-ptr! arr/n
 		mimalloc/free p
 		n: n + 1
@@ -1423,9 +1425,20 @@ test: func [/local p [byte-ptr!] arr [int-ptr!] n [integer!]][
 	?? p
 	probe 2222
 
-	p: mimalloc/malloc 1024 * 64
+	n: 1
+	loop TEST_MAX [
+		p: mimalloc/malloc 1024 * 64
+		arr/n: as-integer p
+		n: n + 1
+	]
 	?? p
-	mimalloc/free p
+
+	n: 1
+	loop TEST_MAX [
+		p: as byte-ptr! arr/n
+		mimalloc/free p
+		n: n + 1
+	]
 	?? p
 
 	probe 444444
@@ -1435,10 +1448,11 @@ test: func [/local p [byte-ptr!] arr [int-ptr!] n [integer!]][
 	?? p
 
 	probe 555555
-	p: mimalloc/malloc 1024 * 1100
+	p: mimalloc/malloc 1024 * 2048
 	?? p
 	mimalloc/free p
 	?? p
+	mimalloc/Sleep 20 * 1000
 ]
 
 test
