@@ -836,7 +836,7 @@ system-dialect: make-profilable context [
 				path!	 [resolve-path-type value]
 				block!	 [
 					if value/1 = 'not [return get-type value/2]	;-- special case for NOT multitype native
-					if all [subroutines type: select subroutines value/1][return type/1]
+					if all [subroutines type: select subroutines value/1][return type/2]
 					
 					either 'op = second get-function-spec value/1 [
 						either base-type? type: get-return-type/check value/1 [
@@ -1995,9 +1995,11 @@ system-dialect: make-profilable context [
 					set [name code] subs
 					in-subroutine?: yes
 					fetch-into reduce [code][
-						set [expr chunk] comp-block-chunked
-						ret: comp-chunked [emitter/target/emit-return]
-						subs/2: reduce [pos get-type expr]
+						chunk: comp-chunked [emitter/target/emit-init-sub]
+						set [expr body] comp-block-chunked ;-- compiles subroutine's body
+						emitter/chunks/join chunk body
+						ret: comp-chunked [emitter/target/emit-return-sub]
+						subs/2: reduce [pos get-type expr make block! 4] ;-- [start-ptr type [call-sites]]
 						emitter/chunks/join chunk ret
 						pos: pos + length? chunk/1
 						either chunks [emitter/chunks/join chunks chunk][chunks: chunk] ;-- accumulate chunks
@@ -3344,7 +3346,7 @@ system-dialect: make-profilable context [
 		
 		comp-call-sub: func [expr [block!]][
 			spec: select subroutines expr/1
-			emitter/target/emit-call-sub expr/1 spec/1
+			emitter/target/emit-call-sub expr/1 spec
 			spec/2
 		]
 				
@@ -3798,11 +3800,12 @@ system-dialect: make-profilable context [
 			]
 			emitter/leave name locals args-sz local-sz ret ;-- build function epilog
 			remove-func-pointers
+			unless empty? subroutines [emitter/resolve-subrc-points subroutines]
 			clear locals-init
 			locals: func-name: func-locals-sz: none
 		]
 		
-		comp-natives: does [			
+		comp-natives: does [
 			foreach [name spec body origin ns nss user?] natives [
 				if verbose >= 2 [
 					print [

@@ -785,6 +785,13 @@ emitter: make-profilable context [
 		foreach ptr exits [target/patch-jump-point code-buf ptr end]
 	]
 	
+	resolve-subrc-points: func [subs [block!]][
+		foreach [name spec] subs [
+			foreach ptr spec/3 [target/patch-sub-call code-buf ptr ptr - spec/1]
+		]
+		clear subs
+	]
+
 	calc-locals-offsets: func [spec [block!] /local total var sz extra][
 		total: negate extra: target/locals-offset
 		while [not tail? spec: next spec][

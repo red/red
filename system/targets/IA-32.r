@@ -1298,6 +1298,10 @@ make-profilable make target-class [
 		emit #{58} 									;-- POP eax
 		emit #{83E801}								;-- SUB eax, 1
 	]
+
+	patch-sub-call: func [buffer [binary!] ptr [integer!] offset [integer!]][
+		change at buffer ptr to-bin32 negate offset + 4 - 2
+	]
 	
 	patch-jump-back: func [buffer [binary!] offset [integer!]][
 		change at buffer offset to-bin32 negate offset + 4 - 1
@@ -2041,15 +2045,15 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-return: does [
+	emit-return-sub: does [
 		if verbose >= 3 [print ">>>emitting RET from subroutine"]
 		emit #{C3}									;-- RET
 	]
 	
-	emit-call-sub: func [name [word!] offset [integer!]][
+	emit-call-sub: func [name [word!] spec [block!]][
 		if verbose >= 3 [print [">>>emitting CALL subroutine" name]]
 		emit #{E8}									;-- CALL NEAR disp
-		emit to-bin32 offset - emitter/tail-ptr		;-- 32-bit relative displacement
+		emit-reloc-addr spec						;-- 32-bit relative displacement
 	]
 	
 	emit-cdecl-pop: func [spec [block!] args [block!] /local size slots][
