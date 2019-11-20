@@ -149,10 +149,13 @@ vector: context [
 			s	  [series!]
 			p	  [byte-ptr!]
 			unit  [integer!]
+			MEMGUARD_TOKEN
 	][
 		if vec/type <> TYPE_OF(value) [
 			fire [TO_ERROR(script invalid-arg) value]
 		]
+		MEMGUARD_MARK
+		MEMGUARD_ADD(vec)
 
 		s: GET_BUFFER(vec)
 		unit: GET_UNIT(s)
@@ -170,6 +173,7 @@ vector: context [
 		s/tail: as cell! (as byte-ptr! s/tail) + unit
 
 		set-value p value unit
+		MEMGUARD_BACK
 		s
 	]
 
@@ -245,6 +249,7 @@ vector: context [
 			TYPE_INTEGER [ 			;-- char! and integer! structs are overlapping
 				int: as red-integer! value
 				p4: as int-ptr! p
+				MEMGUARD_RANGECHK(p unit)
 				p4/value: switch unit [
 					1 [int/value and FFh or (p4/value and FFFFFF00h)]
 					2 [int/value and FFFFh or (p4/value and FFFF0000h)]
@@ -254,6 +259,7 @@ vector: context [
 			TYPE_FLOAT
 			TYPE_PERCENT [
 				f: as red-float! value
+				MEMGUARD_RANGECHK(p unit)
 				either unit = 8 [
 					pf: as pointer! [float!] p
 					pf/value: f/value
@@ -297,12 +303,15 @@ vector: context [
 			int  [red-integer!]
 			f	 [red-float!]
 			slot [red-value!]
+			MEMGUARD_TOKEN
 	][
 		type: vec/type
 		block/make-at blk rs-length? vec
 		s: GET_BUFFER(blk)
 		slot: s/offset
 		s/tail: slot + rs-length? vec
+		MEMGUARD_MARK
+		MEMGUARD_ADD(blk)		;@@ TBD: add vec as R/O
 
 		s: GET_BUFFER(vec)
 		unit: GET_UNIT(s)
@@ -310,6 +319,7 @@ vector: context [
 		end: as byte-ptr! s/tail
 
 		while [p < end][
+			MEMGUARD_PCHK(slot)
 			switch type [
 				TYPE_INTEGER
 				TYPE_CHAR [
@@ -326,6 +336,7 @@ vector: context [
 			slot: slot + 1
 			p: p + unit
 		]
+		MEMGUARD_BACK
 		blk
 	]
 
@@ -434,6 +445,7 @@ vector: context [
 			pf32	[pointer! [float32!]]
 			int		[red-integer!]
 			fl		[red-float!]
+			MEMGUARD_TOKEN
 	][
 		s: GET_BUFFER(left)
 		unit: GET_UNIT(s)
@@ -442,6 +454,8 @@ vector: context [
 		type: TYPE_OF(right)
 		i: 0
 
+		MEMGUARD_MARK
+		MEMGUARD_ADD(left)
 		either any [left/type = TYPE_FLOAT left/type = TYPE_PERCENT] [
 			switch type [
 				TYPE_INTEGER [
@@ -458,6 +472,7 @@ vector: context [
 			while [i < len][
 				f1: get-value-float p unit
 				f1: float/do-math-op f1 f2 op
+				MEMGUARD_RANGECHK(p unit)
 				either unit = 8 [
 					pf: as pointer! [float!] p
 					pf/value: f1
@@ -485,6 +500,7 @@ vector: context [
 			while [i < len][
 				v1: get-value-int as int-ptr! p unit
 				v1: integer/do-math-op v1 v2 op
+				MEMGUARD_RANGECHK(p unit)
 				switch unit [
 					1 [p/value: as-byte v1]
 					2 [p/1: as-byte v1 p/2: as-byte v1 >> 8]
@@ -494,6 +510,7 @@ vector: context [
 				p: p + unit
 			]
 		]
+		MEMGUARD_BACK
 		as red-value! left
 	]
 
@@ -523,6 +540,7 @@ vector: context [
 			f2		[float!]
 			pf		[pointer! [float!]]
 			pf32	[pointer! [float32!]]
+			MEMGUARD_TOKEN
 	][
 		left: as red-vector! stack/arguments
 		right: left + 1
@@ -550,6 +568,8 @@ vector: context [
 		buffer: as series! node/value
 		buffer/flags: buffer/flags and flag-unit-mask or unit
 		buffer/tail: as cell! (as byte-ptr! buffer/offset) + (len1 << (log-b unit))
+		MEMGUARD_MARK
+		MEMGUARD_ADDNODE(node)
 
 		i: 0
 		p:  as byte-ptr! buffer/offset
@@ -558,6 +578,7 @@ vector: context [
 				f1: get-value-float p1 unit1
 				f2: get-value-float p2 unit2
 				f1: float/do-math-op f1 f2 type
+				MEMGUARD_RANGECHK(p unit)
 				either unit = 8 [
 					pf: as pointer! [float!] p
 					pf/value: f1
@@ -575,6 +596,7 @@ vector: context [
 				v1: get-value-int as int-ptr! p1 unit1
 				v2: get-value-int as int-ptr! p2 unit2
 				v1: integer/do-math-op v1 v2 type
+				MEMGUARD_RANGECHK(p unit)
 				switch unit [
 					1 [p/value: as-byte v1]
 					2 [p/1: as-byte v1 p/2: as-byte v1 >> 8]
@@ -588,6 +610,7 @@ vector: context [
 		]
 		left/node: node
 		left/head: 0
+		MEMGUARD_BACK
 		as red-value! left
 	]
 	
@@ -860,6 +883,8 @@ vector: context [
 			f1		[float!]
 			f2		[float!]
 			same?	[logic!]
+			vec1'	[red-vector! value]
+			vec2'	[red-vector! value]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "vector/compare"]]
 
@@ -876,12 +901,12 @@ vector: context [
 			any [op = COMP_EQUAL op = COMP_FIND op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
 		][return 0]
 		
-		s1: GET_BUFFER(vec1)
-		s2: GET_BUFFER(vec2)
+		s1: _series/trim-head-into as red-series! vec1 as red-series! vec1'
+		s2: _series/trim-head-into as red-series! vec2 as red-series! vec2'
 		unit1: GET_UNIT(s1)
 		unit2: GET_UNIT(s2)
-		len1: rs-length? vec1
-		len2: rs-length? vec2
+		len1: rs-length? vec1'
+		len2: rs-length? vec2'
 
 		end: as byte-ptr! s2/tail
 
@@ -897,9 +922,9 @@ vector: context [
 			if zero? len1 [return 0]					;-- shortcut exit for empty vector!
 		]
 
-		type: vec1/type
-		p1: (as byte-ptr! s1/offset) + (vec1/head << (log-b unit1))
-		p2: (as byte-ptr! s2/offset) + (vec2/head << (log-b unit2))
+		type: vec1'/type
+		p1: (as byte-ptr! s1/offset) + (vec1'/head << (log-b unit1))
+		p2: (as byte-ptr! s2/offset) + (vec2'/head << (log-b unit2))
 
 		switch type [
 			TYPE_CHAR
@@ -961,6 +986,9 @@ vector: context [
 			part	  [integer!]
 			added	  [integer!]
 			tail?	  [logic!]
+			vec'	  [red-vector! value]
+			value'	  [red-value! value]
+			part-arg' [red-value! value]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "vector/insert"]]
 
@@ -973,8 +1001,10 @@ vector: context [
 				int: as red-integer! part-arg
 				int/value
 			][
-				sp: as red-vector! part-arg
-				src: as red-block! value
+				_series/trim-head-into as red-series! value as red-series! value'
+				_series/trim-head-into as red-series! part-arg as red-series! part-arg'
+				sp: as red-vector! part-arg'
+				src: as red-block! value'
 				unless all [
 					TYPE_OF(sp) = TYPE_OF(src)
 					sp/node = src/node
@@ -991,16 +1021,16 @@ vector: context [
 			dup-n: cnt
 		]
 
-		s: GET_BUFFER(vec)
+		s: _series/trim-head-into as red-series! vec as red-series! vec'
 		tail?: any [
-			(as-integer s/tail - s/offset) >> (log-b GET_UNIT(s)) = vec/head
+			(as-integer s/tail - s/offset) >> (log-b GET_UNIT(s)) = vec'/head
 			append?
 		]
 
 		while [not zero? cnt][							;-- /dup support
 			either TYPE_OF(value) = TYPE_BLOCK [		;@@ replace it with: typeset/any-block?
-				src: as red-block! value
-				s2: GET_BUFFER(src)
+				s2: _series/trim-head-into as red-series! value as red-series! value'
+				src: as red-block! value'
 				cell:  s2/offset + src/head
 				limit: cell + block/rs-length? src
 			][
@@ -1011,9 +1041,9 @@ vector: context [
 			
 			while [all [cell < limit added <> part]][	;-- multiple values case
 				either tail? [
-					rs-append vec cell
+					rs-append vec' cell
 				][
-					rs-insert vec vec/head + added cell
+					rs-insert vec' vec'/head + added cell
 				]
 				added: added + 1
 				cell: cell + 1
@@ -1022,9 +1052,10 @@ vector: context [
 		]
 		unless append? [
 			added: added * dup-n
-			vec/head: vec/head + added
-			s: GET_BUFFER(vec)
-			assert (as byte-ptr! s/offset) + (vec/head << (log-b GET_UNIT(s))) <= as byte-ptr! s/tail
+			vec'/head: vec'/head + added
+			if vec/head < vec'/head [vec/head: vec'/head]
+			s: GET_BUFFER(vec')
+			assert (as byte-ptr! s/offset) + (vec'/head << (log-b GET_UNIT(s))) <= as byte-ptr! s/tail
 		]
 		as red-value! vec
 	]

@@ -160,6 +160,7 @@ block: context [
 			size   [integer!]
 			type   [integer!]
 			empty? [logic!]
+			MEMGUARD_TOKEN
 	][
 		assert any [
 			TYPE_OF(blk) = TYPE_HASH
@@ -187,39 +188,44 @@ block: context [
 		new/header:	TYPE_BLOCK
 
 		unless empty? [
+			MEMGUARD_MARK
+			MEMGUARD_ADD(new)
+			MEMGUARD_ADDRO(blk)
 			target: GET_BUFFER(new)
 			copy-memory
 				as byte-ptr! target/offset
 				as byte-ptr! value
 				size << 4
 			target/tail: target/offset + size
-		]
-		
-		if all [deep? not empty?][
-			value: target/offset
-			tail: value + size
-			while [value < tail][
-				type: TYPE_OF(value)
-				if any [
-					type = TYPE_BLOCK
-					all [
-						any? 
-						any [
-							type = TYPE_PATH
-							type = TYPE_SET_PATH
-							type = TYPE_GET_PATH
-							type = TYPE_LIT_PATH
-							type = TYPE_PAREN
+
+			if deep? [
+				value: target/offset
+				tail: value + size
+				while [value < tail][
+					type: TYPE_OF(value)
+					if any [
+						type = TYPE_BLOCK
+						all [
+							any? 
+							any [
+								type = TYPE_PATH
+								type = TYPE_SET_PATH
+								type = TYPE_GET_PATH
+								type = TYPE_LIT_PATH
+								type = TYPE_PAREN
+							]
 						]
+					][
+						result: clone as red-block! value yes any?
+						result/header: value/header
+						MEMGUARD_PCHK(value)
+						copy-cell as red-value! result value
+						stack/pop 1
 					]
-				][
-					result: clone as red-block! value yes any?
-					result/header: value/header
-					copy-cell as red-value! result value
-					stack/pop 1
+					value: value + 1
 				]
-				value: value + 1
 			]
+			MEMGUARD_BACK
 		]
 		new/header: TYPE_OF(blk)
 		new
@@ -233,7 +239,12 @@ block: context [
 			head   [red-value!]
 			s	   [series!]
 			size   [integer!]
+			MEMGUARD_TOKEN
 	][
+		assert TYPE_OF(blk) <> TYPE_HASH
+
+		MEMGUARD_MARK
+		MEMGUARD_ADD(blk)
 		s: GET_BUFFER(blk)
 		size: as-integer s/tail + 1 - s/offset
 		if size > s/size [s: expand-series s size * 2]
@@ -245,8 +256,10 @@ block: context [
 			as-integer s/tail - head
 			
 		s/tail: s/tail + 1	
+		MEMGUARD_PCHK(head)
 		copy-cell value head
 		blk/head: blk/head + 1
+		MEMGUARD_BACK
 		blk
 	]
 	
@@ -514,6 +527,8 @@ block: context [
 		/local
 			s1	   [series!]
 			s2	   [series!]
+			head1  [integer!]
+			head2  [integer!]
 			size1  [integer!]
 			size2  [integer!]
 			type1  [integer!]
@@ -537,8 +552,13 @@ block: context [
 
 		s1: GET_BUFFER(blk1)
 		s2: GET_BUFFER(blk2)
-		size1: (as-integer s1/tail - s1/offset) >> 4 - blk1/head
-		size2: (as-integer s2/tail - s2/offset) >> 4 - blk2/head
+		size1: (as-integer s1/tail - s1/offset) >> 4
+		size2: (as-integer s2/tail - s2/offset) >> 4
+		;-- after `same?` is ruled out, equality comparisons should consider indexes past the tail as at tail
+		head1: either blk1/head <= size1 [blk1/head][size1]
+		head2: either blk2/head <= size2 [blk2/head][size2]
+		size1: size1 - head1
+		size2: size2 - head2
 
 		if size1 <> size2 [										;-- shortcut exit for different sizes
 			if any [
@@ -548,8 +568,8 @@ block: context [
 
 		if zero? size1 [return 0]								;-- shortcut exit for empty blocks
 
-		value1: s1/offset + blk1/head
-		value2: s2/offset + blk2/head
+		value1: s1/offset + head1
+		value2: s2/offset + head2
 		len: either size1 < size2 [size1][size2]
 		n: 0
 
@@ -1062,6 +1082,7 @@ block: context [
 			hash? [logic!]
 			hash  [red-hash!]
 			put?  [logic!]
+			MEMGUARD_TOKEN
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/put"]]
 
@@ -1077,6 +1098,8 @@ block: context [
 				_hashtable/put hash/table value
 			]
 		][
+			MEMGUARD_MARK
+			MEMGUARD_ADD(blk)
 			s: GET_BUFFER(blk)
 			slot: s/offset + blk/head + 1
 			either slot >= s/tail [
@@ -1087,9 +1110,11 @@ block: context [
 				put?: 0 <> actions/compare-value slot value COMP_FIND
 			]
 			if put? [
+				MEMGUARD_PCHK(slot)
 				copy-cell value slot
 				if hash? [_hashtable/put hash/table slot]
 			]
+			MEMGUARD_BACK
 			ownership/check as red-value! blk words/_put slot blk/head + 1 1
 		]
 		value
@@ -1231,24 +1256,26 @@ block: context [
 			op		[integer!]
 			flags	[integer!]
 			offset	[integer!]
+			width	[integer!]
 			saved	[logic!]
+			part'	[red-value! value]
+			MEMGUARD_TOKEN
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/sort"]]
 
 		step: 1
 		flags: 0
-		s: GET_BUFFER(blk)
+		s: _series/trim-head as red-series! blk
 		head: s/offset + blk/head
-		if head = s/tail [return blk]					;-- early exit if nothing to reverse
 		len: rs-length? blk
 
 		if OPTION?(part) [
 			len2: either TYPE_OF(part) = TYPE_INTEGER [
 				int: as red-integer! part
-				if int/value <= 0 [return blk]			;-- early exit if part <= 0
 				int/value
 			][
-				blk2: as red-block! part
+				_series/trim-head-into as red-series! part as red-series! part'
+				blk2: as red-block! part'
 				unless all [
 					TYPE_OF(blk2) = TYPE_OF(blk)		;-- handles ANY-STRING!
 					blk2/node = blk/node
@@ -1258,15 +1285,19 @@ block: context [
 				blk2/head - blk/head
 			]
 			if len2 < len [
-				len: len2
 				if negative? len2 [
 					len2: 0 - len2
 					blk/head: blk/head - len2
-					len: either negative? blk/head [blk/head: 0 0][len2]
-					head: head - len
+					if negative? blk/head [
+						len2: len2 + blk/head
+						blk/head: 0
+					]
+					head: head - len2
 				]
+				len: len2
 			]
 		]
+		if head >= s/tail [return blk]					;-- early exit if nothing to sort
 
 		if OPTION?(skip) [
 			assert TYPE_OF(skip) = TYPE_INTEGER
@@ -1311,14 +1342,21 @@ block: context [
 				]
 			]
 		]
+
+		MEMGUARD_MARK
+		MEMGUARD_ADD(blk)
 		saved: collector/active?
 		collector/active?: no							;-- turn off GC
+		width: step * (size? red-value!)
+		assert (len * width) >= 0
+		MEMGUARD_RANGECHK( head (len * width) )
 		either stable? [
-			_sort/mergesort as byte-ptr! head len step * (size? red-value!) op flags cmp
+			_sort/mergesort as byte-ptr! head len width op flags cmp
 		][
-			_sort/qsort as byte-ptr! head len step * (size? red-value!) op flags cmp
+			_sort/qsort     as byte-ptr! head len width op flags cmp
 		]
 		collector/active?: saved
+		MEMGUARD_BACK
 		ownership/check as red-value! blk words/_sort null blk/head 0
 		blk
 	]
@@ -1343,7 +1381,6 @@ block: context [
 			int		[red-integer!]
 			b		[red-block!]
 			s		[series!]
-			h		[integer!]
 			cnt		[integer!]
 			part	[integer!]
 			size	[integer!]
@@ -1353,6 +1390,10 @@ block: context [
 			tail?	[logic!]
 			hash?	[logic!]
 			action	[red-word!]
+			blk'	[red-block! value]
+			value'	[red-value! value]
+			part-arg' [red-value! value]
+			MEMGUARD_TOKEN
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/insert"]]
 		
@@ -1369,8 +1410,10 @@ block: context [
 				int: as red-integer! part-arg
 				int/value
 			][
-				b: as red-block! part-arg
-				src: as red-block! value
+				_series/trim-head-into as red-series! value as red-series! value'
+				_series/trim-head-into as red-series! part-arg as red-series! part-arg'
+				b: as red-block! part-arg'
+				src: as red-block! value'
 				unless all [
 					TYPE_OF(b) = TYPE_OF(src)
 					b/node = src/node
@@ -1386,6 +1429,8 @@ block: context [
 			if negative? cnt [return as red-value! blk]
 		]
 		
+		MEMGUARD_MARK
+		MEMGUARD_ADD(blk)
 		values?: all [
 			not only?									;-- /only support
 			any [
@@ -1399,39 +1444,37 @@ block: context [
 			]
 		]
 		size: either values? [
-			src: as red-block! value
+			MEMGUARD_ADDRO(value)
+			_series/trim-head-into as red-series! value as red-series! value'
+			src: as red-block! value'
 			rs-length? src
 		][
 			1
 		]
 		if any [negative? part part > size][part: size] ;-- truncate if off-range part value
 		
-		s: GET_BUFFER(blk)
-		if s/offset + blk/head > s/tail [				;-- Past-end index adjustment
-			blk/head: (as-integer s/tail - s/offset) >> 4
-		]
-		h: blk/head
-		tail?: any [(s/offset + h = s/tail) append?]
+		s: _series/trim-head-into as red-series! blk as red-series! blk'
+		tail?: any [(s/offset + blk'/head = s/tail) append?]
 		slots: part * cnt
 		index: either append? [
 			action: words/_append
 			(as-integer s/tail - s/offset) >> 4
 		][
 			action: words/_insert
-			h
+			blk'/head
 		]
 		
 		unless tail? [									;TBD: process head? case separately
 			size: as-integer s/tail + slots - s/offset
 			if size > s/size [s: expand-series s size * 2]
-			head: s/offset + h
+			head: s/offset + blk'/head
 			move-memory									;-- make space
 				as byte-ptr! head + slots
 				as byte-ptr! head
 				as-integer s/tail - head
 
 			if hash? [
-				_hashtable/refresh table slots h (as-integer s/tail - head) >> 4 yes
+				_hashtable/refresh table slots blk'/head (as-integer s/tail - head) >> 4 yes
 			]
 			s/tail: s/tail + slots
 		]
@@ -1444,11 +1487,12 @@ block: context [
 
 				either tail? [
 					while [cell < limit][				;-- multiple values case
-						copy-cell cell ALLOC_TAIL(blk)
+						copy-cell cell ALLOC_TAIL(blk')
 						cell: cell + 1
 					]
 				][
 					while [cell < limit][				;-- multiple values case
+						MEMGUARD_PCHK(head)
 						copy-cell cell head
 						head: head + 1
 						cell: cell + 1
@@ -1456,8 +1500,9 @@ block: context [
 				]
 			][											;-- single value case
 				either tail? [
-					copy-cell value ALLOC_TAIL(blk)
+					copy-cell value ALLOC_TAIL(blk')
 				][
+					MEMGUARD_PCHK(head)
 					copy-cell value head
 					head: head + 1
 				]
@@ -1466,22 +1511,25 @@ block: context [
 		]
 
 		if hash? [
-			s: GET_BUFFER(blk)
-			cell: either tail? [s/tail - slots][s/offset + h]
+			s: GET_BUFFER(blk')
+			cell: either tail? [s/tail - slots][s/offset + blk'/head]
 			loop slots [
 				_hashtable/put table cell
 				cell: cell + 1
 			]
 		]
-		ownership/check as red-value! blk action value index part
 		
 		either append? [blk/head: 0][
-			blk/head: h + slots
-			s: GET_BUFFER(blk)
-			if s/offset + blk/head > s/tail [			;-- check for past-end caused by object event
-				blk/head: (as-integer s/tail - s/offset) >> 4 ;-- adjust offset to series' tail
+			blk'/head: blk'/head + slots
+			s: GET_BUFFER(blk')
+			if s/offset + blk'/head > s/tail [			;-- check for past-end caused by object event
+				blk'/head: (as-integer s/tail - s/offset) >> 4 ;-- adjust offset to series' tail
 			]
+			if blk/head < blk'/head [blk/head: blk'/head]
 		]
+		MEMGUARD_BACK
+
+		ownership/check as red-value! blk' action value index part
 		as red-value! blk
 	]
 
@@ -1543,6 +1591,7 @@ block: context [
 			type2	[integer!]
 			hash	[red-hash!]
 			table	[node!]
+			MEMGUARD_TOKEN
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/swap"]]
 
@@ -1555,16 +1604,21 @@ block: context [
 
 		s: GET_BUFFER(blk1)
 		h1: as int-ptr! s/offset + blk1/head
-		if s/tail = as red-value! h1 [return blk1]		;-- early exit if nothing to swap
+		if s/tail <= as red-value! h1 [return blk1]		;-- early exit if nothing to swap
 
 		s: GET_BUFFER(blk2)
 		h2: as int-ptr! s/offset + blk2/head
-		if s/tail = as red-value! h2 [return blk1]		;-- early exit if nothing to swap
+		if s/tail <= as red-value! h2 [return blk1]		;-- early exit if nothing to swap
 
+		MEMGUARD_MARK
+		MEMGUARD_ADD(blk1)
+		MEMGUARD_ADD(blk2)
 		i: 0
 		until [
 			tmp: h1/value
+			MEMGUARD_PCHK(h1)
 			h1/value: h2/value
+			MEMGUARD_PCHK(h2)
 			h2/value: tmp
 			h1: h1 + 1
 			h2: h2 + 1
@@ -1584,6 +1638,8 @@ block: context [
 			_hashtable/delete hash/table as red-value! h2
 			_hashtable/put hash/table as red-value! h2
 		]
+		MEMGUARD_BACK
+
 		ownership/check as red-value! blk1 words/_swap null blk1/head 1
 		ownership/check as red-value! blk2 words/_swap null blk2/head 1
 		blk1
@@ -1602,21 +1658,28 @@ block: context [
 			s		[series!]
 			value	[red-value!]
 			cur		[red-value!]
+			MEMGUARD_TOKEN
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/trim"]]
 
+		MEMGUARD_MARK
+		MEMGUARD_ADD(blk)
 		s: GET_BUFFER(blk)
 		value: s/offset + blk/head
 		cur: value
 
 		while [value < s/tail][
 			if TYPE_OF(value) <> TYPE_NONE [
-				unless value = cur [copy-cell value cur]
+				unless value = cur [
+					MEMGUARD_PCHK(cur)
+					copy-cell value cur
+				]
 				cur: cur + 1
 			]
 			value: value + 1
 		]
-		s/tail: cur
+		if s/tail > cur [s/tail: cur]
+		MEMGUARD_BACK
 		ownership/check as red-value! blk words/_trim null blk/head 0
 		as red-series! blk
 	]

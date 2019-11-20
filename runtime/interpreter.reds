@@ -617,7 +617,10 @@ interpreter: context [
 							size: (as-integer (as int-ptr! s/tail) - p) / 4
 							ref-array: system/stack/top - size
 							system/stack/top: ref-array		;-- reserve space on native stack for refs array
-							copy-memory as byte-ptr! ref-array as byte-ptr! p size * 4
+							if size > 0 [
+								MEMGUARD_UNCHECKED
+								copy-memory as byte-ptr! ref-array as byte-ptr! p size * 4
+							]
 						]
 						default [assert false]				;-- trap it, if stack corrupted 
 					]

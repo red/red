@@ -7,6 +7,8 @@ Red [
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
+;-- NOTE: MOVE tests are in %move-test.red
+
 #include  %../../../quick-test/quick-test.red
 
 ~~~start-file~~~ "series"
@@ -133,6 +135,15 @@ Red [
   	--assert 1 = first back next make hash! [1 2 3 4 5]
   --test-- "series-back-13"
  	 --assert 1 = first back next next #{00010203}
+
+    --test-- "series-back-14"                           ;-- issue #3369
+        a: "12345678"
+        b: skip a 6
+        remove/part a 4
+        --assert 7 = index? b
+        --assert 6 = index? back b
+        --assert 5 = index? back back b
+
 ===end-group===
 
 ===start-group=== "tail"
@@ -148,6 +159,14 @@ Red [
   	--assert none = pick tail hs-ser-2 1
   --test-- "series-tail-5"
   	--assert #{02} = back tail #{0102}
+
+    --test-- "series-tail-6"                            ;-- issue #3369
+        a: "12345678"
+        b: skip a 6
+        remove/part a 4
+        --assert 7 = index? b
+        --assert 5 = index? tail b
+
 ===end-group===
 
 ===start-group=== "pick"
@@ -238,7 +257,134 @@ Red [
   --test-- "series-pick-26"
   	sp26-b: [4 7 9 [11] test /ref 'red]
   	--assert 'red = pick sp26-b 7
-  	
+
+    --test-- "series-pick-27"
+        cs: charset "abc"
+        --assert yes = pick cs #"a"
+        --assert no = pick cs #"d"
+
+    --test-- "series-pick-28"
+        cs: charset "abc"
+        --assert yes = pick cs "a"
+        --assert yes = pick cs "cab"
+        --assert no = pick cs "d"
+        --assert no = pick cs "Ca"
+        --assert no = pick cs "caq"
+
+    --test-- "series-pick-29"
+        --assert 1 = pick [1 2] yes
+        --assert 2 = pick [1 2] no
+
+    --test-- "series-pick-30"                           ;-- issue #3369
+        a: "12345678"
+        b: skip a 6
+        remove/part a 4
+        --assert none? pick b 1
+        --assert none? pick b 2
+        --assert none? pick b -1
+        --assert none? pick b -2
+        ;@@ FIXME: what will `pick b -3` be?
+
+===end-group===
+
+===start-group=== "series-equal"
+
+  --test-- "series-equal-1"
+  --assert [] = []
+  
+  --test-- "series-equal-2"
+    se2-b: []
+  --assert [] = se2-b
+  
+  --test-- "series-equal-3"
+    se3-b: []
+  --assert se3-b = []
+  
+  --test-- "series-equal-4"
+    se4-b: [1]
+  --assert se4-b = [1]
+  
+  --test-- "series-equal-5"
+    se5-b: ["abcde"]
+  --assert se5-b = ["abcde"]
+
+  --test-- "series-equal-6"
+  --assert #{} = #{}
+
+  --test-- "series-equal-7"
+  --assert #{01} = next #{0001}
+
+  --test-- "series-equal-8"
+  --assert (make hash! []) = make hash! []
+
+  --test-- "series-equal-9"
+  --assert (make hash! [a 2 b 4]) = make hash! [a 2 b 4]
+
+  --test-- "series-equal-10"
+    se10-h: make hash! []
+    append se10-h [a 2 b 4]
+  --assert se10-h = make hash! [a 2 b 4]
+
+    --test-- "series-equal-11"                          ;-- issue #3369
+        a: "12345678"
+        b: skip a 6
+        remove/part a 4
+        --assert a = "5678"
+        --assert "5678" = a
+        --assert b = ""
+        --assert b == ""
+        --assert "" = b
+        --assert "" == b
+        --assert (index? b) <> (index? tail a)
+        --assert not same? b tail a
+        --assert not same? tail a b
+        --assert 7 = index? b
+
+    --test-- "series-equal-12"                          ;-- issue #3369
+        a: [1 2 3 4 5 6 7 8]
+        b: skip a 6
+        remove/part a 4
+        --assert a = [5 6 7 8]
+        --assert [5 6 7 8] = a
+        --assert b = []
+        --assert b == []
+        --assert [] = b
+        --assert [] == b
+        --assert (index? b) <> (index? tail a)
+        --assert not same? b tail a
+        --assert not same? tail a b
+
+    --test-- "series-equal-13"                          ;-- issue #3369
+        a: #{01 02 03 04 05 06 07 08}
+        b: skip a 6
+        remove/part a 4
+        --assert a = #{05 06 07 08}
+        --assert #{05 06 07 08} = a
+        --assert b = #{}
+        --assert b == #{}
+        --assert #{} = b
+        --assert #{} == b
+        --assert same? b b
+        --assert (index? b) <> (index? tail a)
+        --assert not same? b tail a
+        --assert not same? tail a b
+        --assert 7 = index? b
+
+    --test-- "series-equal-14"                          ;-- issue #3369
+        a: make vector! [1 2 3 4 5 6 7 8]
+        b: skip a 6
+        remove/part a 4
+        --assert a = make vector! [5 6 7 8]
+        --assert (make vector! [5 6 7 8]) = a
+        --assert b = make vector! []
+        --assert b == make vector! []
+        --assert (make vector! []) = b
+        --assert (make vector! []) == b
+        --assert (index? b) <> (index? tail a)
+        --assert not same? b tail a
+        --assert not same? tail a b
+        --assert 7 = index? b
+
 ===end-group===
 
 ===start-group=== "select"
@@ -316,7 +462,58 @@ Red [
 	--test-- "series-select-22"
 		ss22-b: [1x2 0 3x4 1]
 		--assert 0 = select ss22-b 1x2
-		
+
+    --test-- "series-select-23"                         ;-- issue #3369
+        a: "12345678"
+        b: skip a 2
+        c: skip a 6
+        d: tail a
+        remove/part a 4
+        --assert none?  select b #"6"
+        --assert #"8" = select b #"7"
+        --assert none?  select b #"8"
+        --assert none?  select c #"6"
+        --assert none?  select c #"7"
+        --assert none?  select c #"8"
+        ; --assert #"8" = select/part/reverse c #"7" b    ;@@ FIXME: #4106
+        --assert none?  select/part/reverse c #"8" b
+        --assert none?  select/part c #"7" d
+        --assert none?  select/part c #"8" d
+
+    --test-- "series-select-24"                         ;-- issue #3369
+        a: [1 2 3 4 5 6 7 8]
+        b: skip a 2
+        c: skip a 6
+        d: tail a
+        remove/part a 4
+        --assert none? select b 6
+        --assert 8   = select b 7
+        --assert none? select b 8
+        --assert none? select c 6
+        --assert none? select c 7
+        --assert none? select c 8
+        ; --assert 8   = select/part/reverse c 7 b        ;@@ FIXME: #4106
+        --assert none? select/part/reverse c 8 b
+        --assert none? select/part c 7 d
+        --assert none? select/part c 8 d
+
+    --test-- "series-select-25"                         ;-- issue #3369
+        a: make hash! [1 2 3 4 5 6 7 8]
+        b: skip a 2
+        c: skip a 6
+        d: tail a
+        remove/part a 4
+        --assert none? select b 6
+        --assert 8   = select b 7
+        --assert none? select b 8
+        --assert none? select c 6
+        --assert none? select c 7
+        --assert none? select c 8
+        ; --assert 8   = select/part/reverse c 7 b        ;@@ FIXME: #4106
+        --assert none? select/part/reverse c 8 b
+        --assert none? select/part c 7 d
+        --assert none? select/part c 8 d
+
 ===end-group===
 
 ===start-group=== "append"
@@ -400,6 +597,103 @@ Red [
   --assert #{C3A9} = append/part #{} "ébc" 2
   --assert #{C3A96263} = append #{} "ébc"
 
+    --test-- "series-append-27"                         ;-- issue #3369
+        a: "12345678"
+        b: skip a 6
+        remove/part a 4
+        append a "999"
+        --assert a = "5678999"
+        --assert b = "9"
+
+    --test-- "series-append-28"                         ;-- issue #3369
+        a: "12345678"
+        b: skip a 6
+        remove/part a 4
+        append/part a a b
+        --assert a = "56785678"
+        --assert b = "78"
+
+    --test-- "series-append-29"                         ;-- issue #3369
+        a: "12345678"
+        b: skip a 6
+        remove/part a 4
+        append/part a b a
+        --assert a = "5678"
+        --assert b = ""
+
+    --test-- "series-append-30"                         ;-- issue #3369
+        a: [1 2 3 4 5 6 7 8]
+        b: skip a 6
+        remove/part a 4
+        append a [9 9 9]
+        --assert a = [5 6 7 8 9 9 9]
+        --assert b = [9]
+
+    --test-- "series-append-31"                         ;-- issue #3369
+        a: [1 2 3 4 5 6 7 8]
+        b: skip a 6
+        remove/part a 4
+        append/part a a b
+        --assert a = [5 6 7 8 5 6 7 8]
+        --assert b = [7 8]
+
+    --test-- "series-append-32"                         ;-- issue #3369
+        a: [1 2 3 4 5 6 7 8]
+        b: skip a 6
+        remove/part a 4
+        append/part a b a
+        --assert a = [5 6 7 8]
+        --assert b = []
+
+    --test-- "series-append-33"                         ;-- issue #3369
+        a: to-binary [1 2 3 4 5 6 7 8]
+        b: skip a 6
+        remove/part a 4
+        append a [9 9 9]
+        --assert a = to-binary [5 6 7 8 9 9 9]
+        --assert b = to-binary [9]
+
+    --test-- "series-append-34"                         ;-- issue #3369
+        a: to-binary [1 2 3 4 5 6 7 8]
+        b: skip a 6
+        remove/part a 4
+        append/part a a b
+        --assert a = to-binary [5 6 7 8 5 6 7 8]
+        --assert b = to-binary [7 8]
+
+    --test-- "series-append-35"                         ;-- issue #3369
+        a: to-binary [1 2 3 4 5 6 7 8]
+        b: skip a 6
+        remove/part a 4
+        append/part a b a
+        --assert a = to-binary [5 6 7 8]
+        --assert b = to-binary []
+
+    --test-- "series-append-36"                         ;-- issue #3369
+        a: make vector! [1 2 3 4 5 6 7 8]
+        b: skip a 6
+        remove/part a 4
+        append a [9 9 9]
+        --assert a = make vector! [5 6 7 8 9 9 9]
+        --assert b = make vector! [9]
+
+    ;@@ FIXME: no vector support
+    ; --test-- "series-append-37"
+    ;     a: make vector! [1 2 3 4 5 6 7 8]
+    ;     b: skip a 6
+    ;     remove/part a 4
+    ;     append/part a a b
+    ;     --assert a = make vector! [5 6 7 8 5 6 7 8]
+    ;     --assert b = make vector! [7 8]
+
+    ; --test-- "series-append-38"
+    ;     a: make vector! [1 2 3 4 5 6 7 8]
+    ;     b: skip a 6
+    ;     remove/part a 4
+    ;     append/part a b a
+    ;     --assert a = make vector! [5 6 7 8]
+    ;     --assert b = make vector! []
+
 ===end-group===
 
 ===start-group=== "series-put"
@@ -417,51 +711,66 @@ Red [
     put sp-3 'b 3
   --assert sp-3 = make hash! [a 1 b 3]
 
+    --test-- "series-put-4"                             ;-- issue #3369
+        a: [1 2 3 4 5 6 7 8]
+        b: skip a 6
+        remove/part a 4
+        put b 1 'x
+        --assert a = [5 6 7 8 1 x]
+        --assert b = []
+        put b 1 'x
+        --assert a = [5 6 7 8 1 x 1 x]
+        --assert b = [1 x]
+        put b 1 'y
+        --assert a = [5 6 7 8 1 x 1 y]
+        --assert b = [1 y]
+
+    --test-- "series-put-5"                             ;-- issue #3369
+        a: [1 2 3 4 5 6 7 8]
+        b: skip a 6
+        remove/part a 4
+        put a 5 'x
+        --assert a = [5 x 7 8]
+        --assert b = []
+        put a 1 'y
+        --assert a = [5 x 7 8 1 y]
+        --assert b = []
+        put a 'y 'z
+        --assert a = [5 x 7 8 1 y z]
+        --assert b = [z]
+
+    --test-- "series-put-6"                             ;-- issue #3369
+        a: make hash! [1 2 3 4 5 6 7 8]
+        b: skip a 6
+        remove/part a 4
+        put b 1 'x
+        --assert a = make hash! [5 6 7 8 1 x]
+        --assert b = make hash! []
+        put b 1 'x
+        --assert a = make hash! [5 6 7 8 1 x 1 x]
+        --assert b = make hash! [1 x]
+        put b 1 'y
+        --assert a = make hash! [5 6 7 8 1 x 1 y]
+        --assert b = make hash! [1 y]
+
+    --test-- "series-put-7"                             ;-- issue #3369
+        a: make hash! [1 2 3 4 5 6 7 8]
+        b: skip a 6
+        remove/part a 4
+        put a 5 'x
+        --assert a = make hash! [5 x 7 8]
+        --assert b = make hash! []
+        put a 1 'y
+        --assert a = make hash! [5 x 7 8 1 y]
+        --assert b = make hash! []
+        put a 'y 'z
+        --assert a = make hash! [5 x 7 8 1 y z]
+        --assert b = make hash! [z]
+
   --test-- "series-put-issue 3567"
 	v: [a 1 c]
 	put v 'c 3
 	--assert v = [a 1 c 3]
-===end-group===
-
-===start-group=== "series-equal"
-
-  --test-- "series-equal-1"
-  --assert [] = []
-  
-  --test-- "series-equal-2"
-    se2-b: []
-  --assert [] = se2-b
-  
-  --test-- "series-equal-3"
-    se3-b: []
-  --assert se3-b = []
-  
-  --test-- "series-equal-4"
-    se4-b: [1]
-  --assert se4-b = [1]
-  
-  --test-- "series-equal-5"
-    se5-b: ["abcde"]
-  --assert se5-b = ["abcde"]
-
-  --test-- "series-equal-6"
-  --assert #{} = #{}
-
-  --test-- "series-equal-7"
-  --assert #{01} = next #{0001}
-
-  --test-- "series-equal-8"
-  --assert (make hash! []) = make hash! []
-
-  --test-- "series-equal-9"
-  --assert (make hash! [a 2 b 4]) = make hash! [a 2 b 4]
-
-  --test-- "series-equal-10"
-    se10-h: make hash! []
-    append se10-h [a 2 b 4]
-  --assert se10-h = make hash! [a 2 b 4]
-
-  
 ===end-group===
 
 ===start-group=== "series-find"
@@ -789,7 +1098,38 @@ Red [
 		put sf-105 'a 1
 		--assert (make hash! [a 1]) = find sf-105 'a
 
+    --test-- "series-find-106"                          ;-- issue #3369
+        a: "12345678"
+        b: skip a 6
+        c: tail a
+        remove/part a 4
+        --assert none? find b "7"
+        --assert none? find/part b "7" c
+        --assert none? find/part c "7" b
+        --assert not none? find/part a "7" b
 		
+    --test-- "series-find-107"                          ;-- issue #3369
+        a: [1 2 3 4 5 6 7 8]
+        b: skip a 6
+        c: tail a
+        remove/part a 4
+        --assert none? find b [7]
+        --assert none? find/part b [7] c
+        --assert none? find/part c [7] b
+        --assert not none? find/part a [7] b
+
+    ;@@ FIXME: #4091
+    ; --test-- "series-find-108"                          ;-- issue #3369
+    ;     a: make hash! [1 2 3 4 5 6 7 8]
+    ;     b: skip a 6
+    ;     c: tail a
+    ;     remove/part a 4
+    ;     --assert     none? probe find b make hash! [7]
+    ;     --assert not none? probe find a make hash! [7]
+    ;     --assert     none? probe find/part b make hash! [7] c
+    ;     --assert     none? probe find/part c make hash! [7] b
+    ;     --assert not none? probe find/part a make hash! [7] b
+        
 ===end-group===
 
 ===start-group=== "remove"
@@ -833,6 +1173,25 @@ Red [
 		blk: [a 1 1 b 2 2 c 3 3]
 		--assert [a 1 1 c 3 3] =  remove/key/part blk 'b 2
 
+    --test-- "remove-blk-10"                            ;-- issue #3369
+        a: [1 2 3 4 5 6 7 8]
+        b: skip a 2
+        c: c': skip a 6
+        d: tail a
+        remove/part a 4
+        --assert same? c remove c'                      ;-- docstring says "returns on the same index"
+        --assert a = [5 6 7 8]
+        --assert c = []
+        --assert 7 = index? remove/part c d
+        --assert a = [5 6 7 8]
+        --assert c = []
+        --assert 3 = index? remove/part b c
+        --assert a = [5 6]
+        --assert b = []
+        --assert 7 = index? remove/part c a
+        --assert a = [5 6]
+        --assert b = []
+
 	--test-- "remove-hash-1"
 		hs-remove-1: make hash! [a 2 3]
 		--assert (make hash! [2 3]) = remove hs-remove-1
@@ -865,6 +1224,25 @@ Red [
 	--test-- "remove-hash-7"
 		hs: make hash! [a 1 1 b 2 2 c 3 3]
 		--assert (make hash! [a 1 1 c 3 3]) =  remove/key/part hs 'b 2
+
+    --test-- "remove-hash-8"                            ;-- issue #3369
+        a: make hash! [1 2 3 4 5 6 7 8]
+        b: skip a 2
+        c: c': skip a 6
+        d: tail a
+        remove/part a 4
+        --assert same? c remove c'                      ;-- docstring says "returns on the same index"
+        --assert a = make hash! [5 6 7 8]
+        --assert c = make hash! []
+        --assert 7 = index? remove/part c d
+        --assert a = make hash! [5 6 7 8]
+        --assert c = make hash! []
+        --assert 3 = index? remove/part b c
+        --assert a = make hash! [5 6]
+        --assert b = make hash! []
+        --assert 7 = index? remove/part c a
+        --assert a = make hash! [5 6]
+        --assert b = make hash! []
 
 	--test-- "remove-str-1"
 		a: "123"
@@ -902,6 +1280,25 @@ Red [
 		--assert "" = remove back tail a
 		--assert "str12" = head a
 
+    --test-- "remove-str-9"                             ;-- issue #3369
+        a: "12345678"
+        b: skip a 2
+        c: c': skip a 6
+        d: tail a
+        remove/part a 4
+        --assert same? c remove c'                      ;-- docstring says "returns on the same index"
+        --assert a = "5678"
+        --assert c = ""
+        --assert 7 = index? remove/part c d
+        --assert a = "5678"
+        --assert c = ""
+        --assert 3 = index? remove/part b c
+        --assert a = "56"
+        --assert b = ""
+        --assert 7 = index? remove/part c a
+        --assert a = "56"
+        --assert b = ""
+
 	--test-- "remove-bin-1"
 		b: #{00010203}
 		--assert #{010203} = remove b
@@ -911,6 +1308,44 @@ Red [
 		--assert #{000203} = head remove next #{00010203}
 	--test-- "remove-bin-4"
 		--assert #{0003} = head remove/part next #{00010203} 2
+
+    --test-- "remove-bin-5"                             ;-- issue #3369
+        a: to-binary [1 2 3 4 5 6 7 8]
+        b: skip a 2
+        c: c': skip a 6
+        d: tail a
+        remove/part a 4
+        --assert same? c remove c'                      ;-- docstring says "returns on the same index"
+        --assert a = to-binary [5 6 7 8]
+        --assert c = to-binary []
+        --assert 7 = index? remove/part c d
+        --assert a = to-binary [5 6 7 8]
+        --assert c = to-binary []
+        --assert 3 = index? remove/part b c
+        --assert a = to-binary [5 6]
+        --assert b = to-binary []
+        --assert 7 = index? remove/part c a
+        --assert a = to-binary [5 6]
+        --assert b = to-binary []
+
+    --test-- "remove-vec-1"                             ;-- issue #3369
+        a: make vector! [1 2 3 4 5 6 7 8]
+        b: skip a 2
+        c: c': skip a 6
+        d: tail a
+        remove/part a 4
+        --assert same? c remove c'                      ;-- docstring says "returns on the same index"
+        --assert a = make vector! [5 6 7 8]
+        --assert c = make vector! []
+        --assert 7 = index? remove/part c d
+        --assert a = make vector! [5 6 7 8]
+        --assert c = make vector! []
+        --assert 3 = index? remove/part b c
+        --assert a = make vector! [5 6]
+        --assert b = make vector! []
+        --assert 7 = index? remove/part c a
+        --assert a = make vector! [5 6]
+        --assert b = make vector! []
 
 ===end-group===
 
@@ -966,6 +1401,19 @@ Red [
 		--assert empty? clear #{0102}
 	--test-- "clear-12"
 		--assert #{01} = head clear next #{010203}
+
+    --test-- "clear-13"                                 ;-- issue #3369
+        a: "12345678"
+        b: skip a 2
+        c: skip b 4
+        --assert 3 = index? clear b
+        --assert 3 = index? b
+        --assert 7 = index? clear c
+        --assert 7 = index? c
+        --assert a = "12"
+        --assert b = ""
+        --assert c = ""
+
 ===end-group===
 
 ===start-group=== "at"
@@ -1017,34 +1465,76 @@ Red [
 		code: [print "Hello"]
 		--assert 'print = first replace code "Hello" "Cheers"
 		--assert "Cheers" = second code
-	--test-- "replace-str"
+
+    --test-- "replace-block-2"                          ;-- issue #3369
+        a: [1 2 3 4 5 6 7 8]
+        b: skip a 6
+        remove/part a 4
+        --assert [] = replace/all b 7 9
+        --assert [5 6 7 8] = a
+        --assert [5 6 9 8] = replace/all a 7 9
+
+    --test-- "replace-hash-1"                           ;-- issue #3369
+        a: make hash! [1 2 3 4 5 6 7 8]
+        b: skip a 6
+        remove/part a 4
+        --assert (make hash! []) = replace/all b 7 9
+        --assert (make hash! [5 6 7 8]) = a
+        --assert (make hash! [5 6 9 8]) = replace/all a 7 9
+
+    --test-- "replace-vector-1"                         ;-- issue #3369
+        a: make vector! [1 2 3 4 5 6 7 8]
+        b: skip a 6
+        remove/part a 4
+        --assert (make vector! []) = replace/all b 7 9
+        --assert (make vector! [5 6 7 8]) = a
+        --assert (make vector! [5 6 9 8]) = replace/all a 7 9
+
+	--test-- "replace-str-1"
 		--assert "Xbab" = replace "abab" #"a" #"X"
 		--assert "XbXb" = replace/all "abab" #"a" #"X"
 		--assert "Xab" = replace "abab" "ab" "X"
 		--assert "abab" = replace/all "abab" #"a" #"a"
 
-	--test-- "replace-bin"
+    --test-- "replace-str-2"                            ;-- issue #3369
+        a: "12345678"
+        b: skip a 6
+        remove/part a 4
+        --assert "" = replace/all b "7" "9"
+        --assert "5678" = a
+        --assert "5698" = replace/all a "7" "9"
+        ; --assert "5998" = replace/all a 6 9
+    
+	--test-- "replace-bin-1"
 		--assert #{FF0201} = replace #{010201} #{01} #{FF}
 		--assert #{FF02FF} = replace/all #{010201} #{01} #{FF}
 		--assert #{FF03}   = replace #{010203} #{0102} #{FF}
 		--assert #{FFFFFF03} = replace #{010203} #{0102} #{FFFFFF}
 
+    --test-- "replace-bin-2"                            ;-- issue #3369
+        a: to-binary [1 2 3 4 5 6 7 8]
+        b: skip a 6
+        remove/part a 4
+        --assert #{} = replace/all b #{07} #{09}
+        --assert (to-binary [5 6 7 8]) = a
+        --assert (to-binary [5 6 9 8]) = replace/all a #{07} #{09}
+
 	--test-- "replace-bitset-issue-#3132"
 		--assert "s" = replace/all "test" charset [#"t" #"e"] ""
-	
+
 ===end-group===
 
 ===start-group=== "max/min"			;-- have some overlap with lesser tests
 
-	--test-- "max1"
+	--test-- "max-str"
 		--assert "abe"  = max "abc" "abe"
 		--assert "abcd" = max "abc" "abcd"
 
-	--test-- "min1"
+	--test-- "min-str"
 		--assert ""		= min "" 	"abcdef"
 		--assert "abc"	= min "abc" "abcd"
 
-	--test-- "max2"					;@@ need to add tests for word!, path!
+	--test-- "max-blk"					;@@ need to add tests for word!, path!
 		blk1: [1 1.0 #"a" "ab" %ab/cd [] [2] (1 2)]
 		blk2: [1 1.0 #"a" "ab" %ab/cd [] [2] (1 3)]
 		--assert blk2 = max blk1 blk2
@@ -1058,6 +1548,25 @@ Red [
 	--test-- "min-bin"
 		--assert #{0102} = min #{0102} #{0203}
 		--assert #{010203} = min #{01020304} #{010203}
+
+    --test-- "min-max-3369"                             ;-- issue #3369
+        foreach a reduce [
+            "12345678"
+            [1 2 3 4 5 6 7 8]
+            make binary! [1 2 3 4 5 6 7 8]
+            make hash!   [1 2 3 4 5 6 7 8]
+            make vector! [1 2 3 4 5 6 7 8]
+        ][
+            b: skip a 2
+            c: skip a 6
+            remove/part a 4
+            --assert same? b max a b
+            --assert same? a max a c
+            --assert same? b max b c
+            --assert same? a min a b
+            --assert same? c min a c
+            --assert same? c min b c
+        ]
 
 ===end-group===
 
@@ -1079,6 +1588,22 @@ Red [
 		s: "abcdef"
 		p: next next next s
 		--assert "cbadef" = reverse/part s p
+
+    --test-- "reverse-str-6"                            ;-- issue #3369
+        a: "12345678"
+        b: skip a 2
+        c: c': skip a 6
+        remove/part a 4
+        --assert 7 = index? reverse c                   ;-- docstring says "returns at same position"
+        --assert same? c' reverse c
+        --assert c = ""
+        --assert a = "5678"
+        --assert "87" = reverse b
+        --assert a = "5687"
+        --assert "78" = reverse/part b c
+        --assert 7 = index? c
+        --assert 3 = index? b
+        --assert a = "5678"
 
 	--test-- "reverse-file-1"			;-- inherit from string!
 		--assert %321cba = reverse/part %abc123 6
@@ -1162,10 +1687,77 @@ Red [
 		--assert b = c: take/deep a
 		--assert b <> remove c
 
-	--test-- "take-blk-5"
+	--test-- "take-blk-10"
 		a: [1 2 3]
 		--assert [1 2 3] = take/part a 22
 		--assert [] = a
+
+    --test-- "take-blk-11"                              ;-- issue #3369
+        a: [1 2 3 4 5 6 7 8]
+        b: skip a 2
+        c: skip a 6
+        d: tail a
+        remove/part a 4
+        --assert none? take c
+        --assert [] = take/part c d
+        --assert [] = take/part d c
+        --assert none? take/last c
+        --assert [7 8] = take/part c b
+        --assert 7 = index? c
+        --assert [] = take/part b c
+        --assert [5 6 7 8] = append a [7 8]
+        --assert [7 8] = take/part b c
+        --assert [5 6] = a
+        --assert 6 = take/last a
+
+    --test-- "take-blk-12"                              ;-- issue #3369
+        a: [1 2 3 4 5 6 7 8]
+        b: skip a 2
+        c: skip a 6
+        d: tail a
+        remove/part a 4
+        --assert [] = take/part/last c d
+        --assert [] = take/part/last d c
+        --assert [] = take/part/last b c
+        --assert [] = take/part/last c b
+        --assert [] = take/part/last a d
+        --assert [] = take/part/last d a
+        --assert [7 8] = take/part/last b a
+        --assert [5 6 7 8] = append a [7 8]
+        --assert [7 8] = take/part/last a b
+        --assert [5 6 7 8] = append a [7 8]
+        --assert [7 8] = take/part/last a 2
+        --assert [5 6 7 8] = append a [7 8]
+        --assert [7 8] = take/part/last c 2
+        --assert [] = take/part/last c 0
+        --assert [] = take/part/last c -2
+        --assert [] = take/part/last b -2
+        --assert [] = take/part/last a -2
+        --assert 7 = index? c
+
+    --test-- "take-blk-13"                              ;-- issue #4078
+        --assert [     ] = take/part      s: [1 2 3]    -1
+        --assert [1    ] = take/part skip s: [1 2 3] 1  -1
+        --assert [2    ] = take/part skip s: [1 2 3] 2  -1
+        --assert [3    ] = take/part skip s: [1 2 3] 3  -1
+        --assert [1    ] = take/part skip s: [1 2 3] 1  -2
+        --assert [1 2  ] = take/part skip s: [1 2 3] 2  -2
+        --assert [2 3  ] = take/part skip s: [1 2 3] 3  -2
+        --assert [1    ] = take/part skip s: [1 2 3] 1  -3
+        --assert [1 2  ] = take/part skip s: [1 2 3] 2  -3
+        --assert [1 2 3] = take/part skip s: [1 2 3] 3  -3
+        --assert [1    ] = take/part      s: [1 2 3]    skip s 1
+        --assert [1    ] = take/part skip s: [1 2 3] 1       s
+        --assert [2    ] = take/part skip s: [1 2 3] 1  skip s 2
+        --assert [2    ] = take/part skip s: [1 2 3] 2  skip s 1
+        --assert [3    ] = take/part skip s: [1 2 3] 2  skip s 3
+        --assert [3    ] = take/part skip s: [1 2 3] 3  skip s 2
+        --assert [1 2  ] = take/part      s: [1 2 3]    skip s 2
+        --assert [1 2  ] = take/part skip s: [1 2 3] 2       s
+        --assert [2 3  ] = take/part skip s: [1 2 3] 1  skip s 3
+        --assert [2 3  ] = take/part skip s: [1 2 3] 3  skip s 1
+        --assert [1 2 3] = take/part      s: [1 2 3]    skip s 3
+        --assert [1 2 3] = take/part skip s: [1 2 3] 3       s
 
 	--test-- "take-str-1"
 		a: "123"
@@ -1215,6 +1807,72 @@ Red [
 		--assert "123" = take/part a 22
 		--assert "" = a
 
+    --test-- "take-str-11"                              ;-- issue #3369
+        a: "12345678"
+        b: skip a 2
+        c: skip a 6
+        d: tail a
+        remove/part a 4
+        --assert none? take c
+        --assert "" = take/part c d
+        --assert "" = take/part d c
+        --assert none? take/last c
+        --assert "78" = take/part c b
+        --assert 7 = index? c
+        --assert "5678" = append a "78"
+        --assert "78" = take/part b c
+        --assert "56" = a
+        --assert #"6" = take/last a
+
+    --test-- "take-str-12"                              ;-- issue #3369
+        a: "12345678"
+        b: skip a 2
+        c: skip a 6
+        d: tail a
+        remove/part a 4
+        --assert "" = take/part/last c d
+        --assert "" = take/part/last d c
+        --assert "" = take/part/last b c
+        --assert "" = take/part/last c b
+        --assert "" = take/part/last a d
+        --assert "" = take/part/last d a
+        --assert "78" = take/part/last b a
+        --assert "5678" = append a "78"
+        --assert "78" = take/part/last a b
+        --assert "5678" = append a "78"
+        --assert "78" = take/part/last a 2
+        --assert "5678" = append a "78"
+        --assert "78" = take/part/last c 2
+        --assert "" = take/part/last c 0
+        --assert "" = take/part/last c -2
+        --assert "" = take/part/last b -2
+        --assert "" = take/part/last a -2
+        --assert 7 = index? c
+
+    --test-- "take-str-13"                              ;-- issue #4078
+        --assert ""    = take/part      s: "123"    -1
+        --assert "1"   = take/part skip s: "123" 1  -1
+        --assert "2"   = take/part skip s: "123" 2  -1
+        --assert "3"   = take/part skip s: "123" 3  -1
+        --assert "1"   = take/part skip s: "123" 1  -2
+        --assert "12"  = take/part skip s: "123" 2  -2
+        --assert "23"  = take/part skip s: "123" 3  -2
+        --assert "1"   = take/part skip s: "123" 1  -3
+        --assert "12"  = take/part skip s: "123" 2  -3
+        --assert "123" = take/part skip s: "123" 3  -3
+        --assert "1"   = take/part      s: "123"    skip s 1
+        --assert "1"   = take/part skip s: "123" 1       s
+        --assert "2"   = take/part skip s: "123" 1  skip s 2
+        --assert "2"   = take/part skip s: "123" 2  skip s 1
+        --assert "3"   = take/part skip s: "123" 2  skip s 3
+        --assert "3"   = take/part skip s: "123" 3  skip s 2
+        --assert "12"  = take/part      s: "123"    skip s 2
+        --assert "12"  = take/part skip s: "123" 2       s
+        --assert "23"  = take/part skip s: "123" 1  skip s 3
+        --assert "23"  = take/part skip s: "123" 3  skip s 1
+        --assert "123" = take/part      s: "123"    skip s 3
+        --assert "123" = take/part skip s: "123" 3       s
+
 	--test-- "take-hash-1"
 		h: make hash! [1 2 3]
 		--assert 1 = take h
@@ -1230,6 +1888,78 @@ Red [
 		h: make hash! [1 2 3]
 		--assert 2 = take next h
 		--assert 3 = select h 1
+
+    --test-- "take-hash-4"
+        a: make hash! [1 2 3]
+        --assert none? take tail a
+        --assert (make hash! []) = take/part tail a tail a
+
+    --test-- "take-hash-5"                              ;-- issue #3369
+        a: make hash! [1 2 3 4 5 6 7 8]
+        b: skip a 2
+        c: skip a 6
+        d: tail a
+        remove/part a 4
+        --assert none? take c
+        --assert (make hash! []) = take/part c d
+        --assert (make hash! []) = take/part d c
+        --assert none? take/last c
+        --assert (make hash! [7 8]) = take/part c b
+        --assert 7 = index? c
+        --assert (make hash! [5 6 7 8]) = append a make hash! [7 8]
+        --assert (make hash! [7 8]) = take/part b c
+        --assert (make hash! [5 6]) = a
+        --assert 6 = take/last a
+        --assert (make hash! [5]) = a
+
+    --test-- "take-hash-6"                              ;-- issue #3369
+        a: make hash! [1 2 3 4 5 6 7 8]
+        b: skip a 2
+        c: skip a 6
+        d: tail a
+        remove/part a 4
+        --assert (make hash! []) = take/part/last c d
+        --assert (make hash! []) = take/part/last d c
+        --assert (make hash! []) = take/part/last b c
+        --assert (make hash! []) = take/part/last c b
+        --assert (make hash! []) = take/part/last a d
+        --assert (make hash! []) = take/part/last d a
+        --assert (make hash! [7 8]) = take/part/last b a
+        --assert (make hash! [5 6 7 8]) = append a make hash! [7 8]
+        --assert (make hash! [7 8]) = take/part/last a b
+        --assert (make hash! [5 6 7 8]) = append a make hash! [7 8]
+        --assert (make hash! [7 8]) = take/part/last a 2
+        --assert (make hash! [5 6 7 8]) = append a make hash! [7 8]
+        --assert (make hash! [7 8]) = take/part/last c 2
+        --assert (make hash! []) = take/part/last c 0
+        --assert (make hash! []) = take/part/last c -2
+        --assert (make hash! []) = take/part/last b -2
+        --assert (make hash! []) = take/part/last a -2
+        --assert 7 = index? c
+
+    --test-- "take-hash-7"                              ;-- issue #4078
+        --assert (make hash! [     ]) = take/part      s: make hash! [1 2 3]    -1
+        --assert (make hash! [1    ]) = take/part skip s: make hash! [1 2 3] 1  -1
+        --assert (make hash! [2    ]) = take/part skip s: make hash! [1 2 3] 2  -1
+        --assert (make hash! [3    ]) = take/part skip s: make hash! [1 2 3] 3  -1
+        --assert (make hash! [1    ]) = take/part skip s: make hash! [1 2 3] 1  -2
+        --assert (make hash! [1 2  ]) = take/part skip s: make hash! [1 2 3] 2  -2
+        --assert (make hash! [2 3  ]) = take/part skip s: make hash! [1 2 3] 3  -2
+        --assert (make hash! [1    ]) = take/part skip s: make hash! [1 2 3] 1  -3
+        --assert (make hash! [1 2  ]) = take/part skip s: make hash! [1 2 3] 2  -3
+        --assert (make hash! [1 2 3]) = take/part skip s: make hash! [1 2 3] 3  -3
+        --assert (make hash! [1    ]) = take/part      s: make hash! [1 2 3]    skip s 1
+        --assert (make hash! [1    ]) = take/part skip s: make hash! [1 2 3] 1       s
+        --assert (make hash! [2    ]) = take/part skip s: make hash! [1 2 3] 1  skip s 2
+        --assert (make hash! [2    ]) = take/part skip s: make hash! [1 2 3] 2  skip s 1
+        --assert (make hash! [3    ]) = take/part skip s: make hash! [1 2 3] 2  skip s 3
+        --assert (make hash! [3    ]) = take/part skip s: make hash! [1 2 3] 3  skip s 2
+        --assert (make hash! [1 2  ]) = take/part      s: make hash! [1 2 3]    skip s 2
+        --assert (make hash! [1 2  ]) = take/part skip s: make hash! [1 2 3] 2       s
+        --assert (make hash! [2 3  ]) = take/part skip s: make hash! [1 2 3] 1  skip s 3
+        --assert (make hash! [2 3  ]) = take/part skip s: make hash! [1 2 3] 3  skip s 1
+        --assert (make hash! [1 2 3]) = take/part      s: make hash! [1 2 3]    skip s 3
+        --assert (make hash! [1 2 3]) = take/part skip s: make hash! [1 2 3] 3       s
 
 	--test-- "take-bin-1"
 		b: #{0102}
@@ -1274,6 +2004,93 @@ Red [
 		--assert #{0203} = take/part/last b next b
 		--assert #{01} = b
 
+    --test-- "take-bin-10"                              ;-- issue #3369
+        a: make binary! [1 2 3 4 5 6 7 8]
+        b: skip a 2
+        c: skip a 6
+        d: tail a
+        remove/part a 4
+        --assert none? take c
+        --assert (make binary! []) = take/part c d
+        --assert (make binary! []) = take/part d c
+        --assert none? take/last c
+        --assert (make binary! [7 8]) = take/part c b
+        --assert 7 = index? c
+        --assert (make binary! [5 6 7 8]) = append a make binary! [7 8]
+        --assert (make binary! [7 8]) = take/part b c
+        --assert (make binary! [5 6]) = a
+        --assert 6 = take/last a
+        --assert (make binary! [5]) = a
+
+    --test-- "take-bin-11"                              ;-- issue #3369
+        a: make binary! [1 2 3 4 5 6 7 8]
+        b: skip a 2
+        c: skip a 6
+        d: tail a
+        remove/part a 4
+        --assert (make binary! []) = take/part/last c d
+        --assert (make binary! []) = take/part/last d c
+        --assert (make binary! []) = take/part/last b c
+        --assert (make binary! []) = take/part/last c b
+        --assert (make binary! []) = take/part/last a d
+        --assert (make binary! []) = take/part/last d a
+        --assert (make binary! [7 8]) = take/part/last b a
+        --assert (make binary! [5 6 7 8]) = append a make binary! [7 8]
+        --assert (make binary! [7 8]) = take/part/last a b
+        --assert (make binary! [5 6 7 8]) = append a make binary! [7 8]
+        --assert (make binary! [7 8]) = take/part/last a 2
+        --assert (make binary! [5 6 7 8]) = append a make binary! [7 8]
+        --assert (make binary! [7 8]) = take/part/last c 2
+        --assert (make binary! []) = take/part/last c 0
+        --assert (make binary! []) = take/part/last c -2
+        --assert (make binary! []) = take/part/last b -2
+        --assert (make binary! []) = take/part/last a -2
+        --assert 7 = index? c
+
+    ;@@ FIXME: no vector support
+    ; --test-- "take-vector-1"
+    ;     a: make vector! [1 2 3 4 5 6 7 8]
+    ;     b: skip a 2
+    ;     c: skip a 6
+    ;     d: tail a
+    ;     remove/part a 4
+    ;     --assert none? take c
+    ;     --assert none? take/part c d
+    ;     --assert none? take/part d c
+    ;     --assert none? take/last c
+    ;     --assert none? take/part c b
+    ;     --assert 7 = index? c
+    ;     --assert (make vector! [5 6 7 8]) = append a make vector! [7 8]
+    ;     --assert (make vector! [7 8]) = take/part b c
+    ;     --assert (make vector! [5 6]) = a
+    ;     --assert 6 = take/last a
+    ;     --assert (make vector! [5]) = a
+
+    ; --test-- "take-vector-2"
+    ;     a: make vector! [1 2 3 4 5 6 7 8]
+    ;     b: skip a 2
+    ;     c: skip a 6
+    ;     d: tail a
+    ;     remove/part a 4
+    ;     --assert (make vector! []) = take/part/last c d
+    ;     --assert (make vector! []) = take/part/last d c
+    ;     --assert (make vector! []) = take/part/last b c
+    ;     --assert (make vector! []) = take/part/last c b
+    ;     --assert (make vector! []) = take/part/last a d
+    ;     --assert (make vector! []) = take/part/last d a
+    ;     --assert (make vector! [7 8]) = take/part/last b a
+    ;     --assert (make vector! [5 6 7 8]) = append a make vector! [7 8]
+    ;     --assert (make vector! [7 8]) = take/part/last a b
+    ;     --assert (make vector! [5 6 7 8]) = append a make vector! [7 8]
+    ;     --assert (make vector! [7 8]) = take/part/last a 2
+    ;     --assert (make vector! [5 6 7 8]) = append a make vector! [7 8]
+    ;     --assert (make vector! [7 8]) = take/part/last c 2
+    ;     --assert (make vector! []) = take/part/last c 0
+    ;     --assert (make vector! []) = take/part/last c -2
+    ;     --assert (make vector! []) = take/part/last b -2
+    ;     --assert (make vector! []) = take/part/last a -2
+    ;     --assert 7 = index? c
+
 ===end-group===
 
 ===start-group=== "swap"
@@ -1298,6 +2115,19 @@ Red [
 	--test-- "swap-str-4"
 		--assert "123" = swap "123" ""
 
+    --test-- "swap-str-5"                               ;-- issue #3369
+        a: "12345678"
+        b: skip a 2
+        c: skip a 6
+        d: tail a
+        remove/part a 4
+        --assert "" = swap c d
+        --assert "" = swap c b
+        --assert "5678" = swap a c
+        --assert "5678" = swap a d
+        --assert   "58" = swap b a
+        --assert "5678" = swap a b
+
 	--test-- "swap-blk-1"
 		a: [1 2]
 		b: [a b]
@@ -1315,6 +2145,19 @@ Red [
 	--test-- "swap-blk-3"
 		--assert [1 a] = swap [1 a] []
 
+    --test-- "swap-blk-4"                               ;-- issue #3369
+        a: [1 2 3 4 5 6 7 8]
+        b: skip a 2
+        c: skip a 6
+        d: tail a
+        remove/part a 4
+        --assert [] = swap c d
+        --assert [] = swap c b
+        --assert [5 6 7 8] = swap a c
+        --assert [5 6 7 8] = swap a d
+        --assert     [5 8] = swap b a
+        --assert [5 6 7 8] = swap a b
+
 	--test-- "swap-hash-1"
 		a: make hash! [1 2]
 		b: make hash! [a b]
@@ -1322,13 +2165,53 @@ Red [
 		--assert 2 = a/a
 		--assert 'b = select b 1
 
-	--test-- "swap-bin"
+    --test-- "swap-hash-2"                              ;-- issue #3369
+        a: make hash! [1 2 3 4 5 6 7 8]
+        b: skip a 2
+        c: skip a 6
+        d: tail a
+        remove/part a 4
+        --assert (make hash! []) = swap c d
+        --assert (make hash! []) = swap c b
+        --assert (make hash! [5 6 7 8]) = swap a c
+        --assert (make hash! [5 6 7 8]) = swap a d
+        --assert (make hash!     [5 8]) = swap b a
+        --assert (make hash! [5 6 7 8]) = swap a b
+
+	--test-- "swap-bin-1"
 		a: #{0102}
 		b: #{0304}					;-- 𠃌 = #"^(200CC)"
 		--assert #{0302} = swap a b
 		--assert #{0302} = a
 		--assert #{0104} = b
 		--assert #{0104} = swap b #{}
+
+    --test-- "swap-bin-2"                               ;-- issue #3369
+        a: make binary! [1 2 3 4 5 6 7 8]
+        b: skip a 2
+        c: skip a 6
+        d: tail a
+        remove/part a 4
+        --assert (make binary! []) = swap c d
+        --assert (make binary! []) = swap c b
+        --assert (make binary! [5 6 7 8]) = swap a c
+        --assert (make binary! [5 6 7 8]) = swap a d
+        --assert (make binary!     [5 8]) = swap b a
+        --assert (make binary! [5 6 7 8]) = swap a b
+
+    ;@@FIXME: no vector support
+    ; --test-- "swap-vector-1"
+    ;     a: make vector! [1 2 3 4 5 6 7 8]
+    ;     b: skip a 2
+    ;     c: skip a 6
+    ;     d: tail a
+    ;     remove/part a 4
+    ;     --assert (make vector! []) = swap c d
+    ;     --assert (make vector! []) = swap c b
+    ;     --assert (make vector! [5 6 7 8]) = swap a c
+    ;     --assert (make vector! [5 6 7 8]) = swap a d
+    ;     --assert (make vector!     [5 8]) = swap b a
+    ;     --assert (make vector! [5 6 7 8]) = swap a b
 
 ===end-group===
 
@@ -1370,8 +2253,50 @@ Red [
 	--test-- "trim-str-11"
 		--assert "    ^-1^/    b2^-  ^/  c3  ^/  ^/^/" = trim/with copy mstr 97
 
+    --test-- "trim-str-12"                              ;-- issue #3369
+        a: " 2 4 6 8"
+        b: skip a 2
+        c: skip a 6
+        d: tail a
+        remove/part a 4
+        --assert ""   = trim d
+        --assert ""   = trim c
+        --assert "8"  = trim b
+        --assert 3    = index? b
+        --assert " 68"= a
+        --assert "68" = trim a
+        --assert "68" = a
+
+    --test-- "trim-str-13"                              ;-- issue #3369
+        a: " 2 4 6 8"
+        b: skip a 2
+        c: skip a 6
+        d: tail a
+        remove/part a 4
+        --assert ""   = trim/with d "1234"
+        --assert 9    = index? d
+        --assert " 6 8" = trim/with a c
+        --assert " 6 8" = a
+        --assert 7    = index? c
+        --assert "46" = trim/with "468" b
+        --assert 3    = index? b
+
 	--test-- "trim-block-1"
 		--assert [1 2] = trim [#[none] 1 #[none] 2 #[none]]
+
+    --test-- "trim-block-2"                             ;-- issue #3369
+        a: reduce [none 2 none 4 none 6 none 8]
+        b: skip a 2
+        c: skip a 6
+        d: tail a
+        remove/part a 4
+        --assert []   = trim d
+        --assert []   = trim c
+        --assert [8]  = trim b
+        --assert 3    = index? b
+        --assert [#[none] 6 8] = a
+        --assert [6 8] = trim a
+        --assert [6 8] = a
 
 	--test-- "trim-bin-1"
 		--assert #{} = trim #{00}
@@ -1384,6 +2309,35 @@ Red [
 
 	--test-- "trim-bin-4"
 		--assert #{00001234} = trim/tail #{000012340000}
+
+    --test-- "trim-bin-5"                               ;-- issue #3369
+        a: #{00 02 00 04 00 06 00 08}
+        b: skip a 2
+        c: skip a 6
+        d: tail a
+        remove/part a 4
+        --assert #{}   = trim d
+        --assert #{}   = trim c
+        --assert #{08} = trim b
+        --assert 3     = index? b
+        --assert #{000608} = a
+        --assert #{0608}   = trim a
+        --assert #{0608}   = a
+
+    --test-- "trim-bin-6"                               ;-- issue #3369
+        a: #{00 02 00 04 00 06 00 08}
+        b: skip a 2
+        c: skip a 6
+        d: tail a
+        remove/part a 4
+        --assert #{}  = trim/with d #{0a0b0c0d}
+        --assert 9    = index? d
+        --assert #{00060008} = trim/with a c
+        --assert #{00060008} = a
+        --assert 7    = index? c
+        --assert #{0406} = trim/with #{040608} b
+        --assert 3    = index? b
+
 ===end-group===
 
 ===start-group=== "sort"
@@ -1407,6 +2361,39 @@ Red [
 		--assert "1cd2ab3ef4gh" = sort/skip a 3
 		--assert "12abcd3ef4gh" = sort/part a 6
 		--assert "34efgh" = sort/part skip a 6 tail a
+
+    --test-- "sort-str-5"                               ;-- issue #3369
+        a: "12345678"
+        b: skip a 2
+        c: skip a 6
+        remove/part a 4
+        --assert "" = sort c
+        --assert 7 = index? c
+        --assert "87"   = sort/reverse b
+        --assert "5687" = a
+        --assert "8765" = sort/reverse a
+        --assert "56"   = sort/part c b
+        --assert "65"   = sort/part/reverse b c
+        --assert "7865" = sort/part b -2
+        --assert "7865" = a
+
+    --test-- "sort-str-6"                               ;-- issue #4083
+        --assert "4321" = sort/part skip s: "4321" -100 s
+        --assert "4321" = sort/part skip s: "4321" 0 s
+        --assert "4321" = sort/part skip s: "4321" 1 s
+        --assert "3421" = sort/part skip s: "4321" 2 s
+        --assert "2341" = sort/part skip s: "4321" 3 s
+        --assert "1234" = sort/part skip s: "4321" 4 s
+        --assert "1234" = sort/part skip s: "4321" 100 s
+
+    --test-- "sort-str-7"                               ;-- issue #4083
+        --assert   "12" = sort/part skip s: "4321" 2 100
+        --assert   "12" = sort/part skip s: "4321" 2 2
+        --assert   "21" = sort/part skip s: "4321" 2 1
+        --assert   "21" = sort/part skip s: "4321" 2 0
+        --assert  "321" = sort/part skip s: "4321" 2 -1
+        --assert "3421" = sort/part skip s: "4321" 2 -2
+        --assert "3421" = sort/part skip s: "4321" 2 -100
 
 	--test-- "sort-blk-1"
 		a: [bc 799 ab2 42 bb1 321.3 "Mo" "Curly" "Larry" -24 0 321.8] 
@@ -1448,6 +2435,90 @@ Red [
 		--assert [1 2 3 4 5 6] = sort/compare [1 2 3 4 5 6] func [a b] [a < b]
 		--assert [6 5 4 3 2 1] = sort/compare [1 2 3 4 5 6] func [a b] [a > b]
 		
+    --test-- "sort-blk-5"                               ;-- issue #3369
+        a: [1 2 3 4 5 6 7 8]
+        b: skip a 2
+        c: skip a 6
+        remove/part a 4
+        --assert [] = sort c
+        --assert 7 = index? c
+        --assert [8 7]     = sort/reverse b
+        --assert [5 6 8 7] = a
+        --assert [8 7 6 5] = sort/reverse a
+        --assert [5 6]     = sort/part c b
+        --assert [6 5]     = sort/part/reverse b c
+        --assert 3 = index? b
+        --assert [7 8 6 5] = sort/part b -2
+        --assert [7 8 6 5] = a
+
+    --test-- "sort-blk-6"                               ;-- issue #4083
+        --assert [4 3 2 1] = sort/part skip s: [4 3 2 1] -100 s
+        --assert [4 3 2 1] = sort/part skip s: [4 3 2 1] 0 s
+        --assert [4 3 2 1] = sort/part skip s: [4 3 2 1] 1 s
+        --assert [3 4 2 1] = sort/part skip s: [4 3 2 1] 2 s
+        --assert [2 3 4 1] = sort/part skip s: [4 3 2 1] 3 s
+        --assert [1 2 3 4] = sort/part skip s: [4 3 2 1] 4 s
+        --assert [1 2 3 4] = sort/part skip s: [4 3 2 1] 100 s
+
+    --test-- "sort-blk-7"                               ;-- issue #4083
+        --assert [    1 2] = sort/part skip s: [4 3 2 1] 2 100
+        --assert [    1 2] = sort/part skip s: [4 3 2 1] 2 2
+        --assert [    2 1] = sort/part skip s: [4 3 2 1] 2 1
+        --assert [    2 1] = sort/part skip s: [4 3 2 1] 2 0
+        --assert [  3 2 1] = sort/part skip s: [4 3 2 1] 2 -1
+        --assert [3 4 2 1] = sort/part skip s: [4 3 2 1] 2 -2
+        --assert [3 4 2 1] = sort/part skip s: [4 3 2 1] 2 -100
+
+    --test-- "sort-hash-1"                              ;-- issue #3369
+        a: make hash! [1 2 3 4 5 6 7 8]
+        b: skip a 2
+        c: skip a 6
+        remove/part a 4
+        --assert (make hash! []) = sort c
+        --assert 7 = index? c
+        --assert (make hash! [8 7]    ) = sort/reverse b
+        --assert (make hash! [5 6 8 7]) = a
+        --assert (make hash! [8 7 6 5]) = sort/reverse a
+        --assert (make hash! [5 6]    ) = sort/part c b
+        --assert (make hash! [6 5]    ) = sort/part/reverse b c
+        --assert 3 = index? b
+        --assert (make hash! [7 8 6 5]) = sort/part b -2
+        --assert (make hash! [7 8 6 5]) = a
+
+    --test-- "sort-hash-2"                              ;-- issue #4083
+        --assert (make hash! [4 3 2 1]) = sort/part skip s: make hash! [4 3 2 1] -100 s
+        --assert (make hash! [4 3 2 1]) = sort/part skip s: make hash! [4 3 2 1] 0 s
+        --assert (make hash! [4 3 2 1]) = sort/part skip s: make hash! [4 3 2 1] 1 s
+        --assert (make hash! [3 4 2 1]) = sort/part skip s: make hash! [4 3 2 1] 2 s
+        --assert (make hash! [2 3 4 1]) = sort/part skip s: make hash! [4 3 2 1] 3 s
+        --assert (make hash! [1 2 3 4]) = sort/part skip s: make hash! [4 3 2 1] 4 s
+        --assert (make hash! [1 2 3 4]) = sort/part skip s: make hash! [4 3 2 1] 100 s
+
+    --test-- "sort-hash-3"                              ;-- issue #4083
+        --assert (make hash! [    1 2]) = sort/part skip s: make hash! [4 3 2 1] 2 100
+        --assert (make hash! [    1 2]) = sort/part skip s: make hash! [4 3 2 1] 2 2
+        --assert (make hash! [    2 1]) = sort/part skip s: make hash! [4 3 2 1] 2 1
+        --assert (make hash! [    2 1]) = sort/part skip s: make hash! [4 3 2 1] 2 0
+        --assert (make hash! [  3 2 1]) = sort/part skip s: make hash! [4 3 2 1] 2 -1
+        --assert (make hash! [3 4 2 1]) = sort/part skip s: make hash! [4 3 2 1] 2 -2
+        --assert (make hash! [3 4 2 1]) = sort/part skip s: make hash! [4 3 2 1] 2 -100
+
+    --test-- "sort-vector-1"                            ;-- issue #3369
+        a: make vector! [1 2 3 4 5 6 7 8]
+        b: skip a 2
+        c: skip a 6
+        remove/part a 4
+        --assert (make vector! []) = sort c
+        --assert 7 = index? c
+        --assert (make vector! [8 7]    ) = sort/reverse b
+        --assert (make vector! [5 6 8 7]) = a
+        --assert (make vector! [8 7 6 5]) = sort/reverse a
+        --assert (make vector! [5 6]    ) = sort/part c b
+        --assert (make vector! [6 5]    ) = sort/part/reverse b c
+        --assert 3 = index? b
+        --assert (make vector! [7 8 6 5]) = sort/part b -2
+        --assert (make vector! [7 8 6 5]) = a
+
 ===end-group===
 
 ===start-group=== "path access"	
@@ -1484,15 +2555,63 @@ Red [
 
 ===start-group=== "set operations"	
 
-	--test-- "set-op-blk"
-		a: [1 3 2 4]
-		b: [3 4 5 4 6]
-		--assert [3 4 5 6]		= unique b
-		--assert [1 3 2 4 5 6]	= union a b
-		--assert [3 4]			= intersect a b
-		--assert [1 2 5 6]		= difference a b
-		--assert [1 2]			= exclude a b
-		--assert [5 6]			= exclude b a
+    --test-- "set-op-blk"
+        a: [1 3 2 4]
+        b: [3 4 5 4 6]
+        --assert [3 4 5 6]      = unique b
+        --assert [1 3 2 4 5 6]  = union a b
+        --assert [3 4]          = intersect a b
+        --assert [1 2 5 6]      = difference a b
+        --assert [1 2]          = exclude a b
+        --assert [5 6]          = exclude b a
+
+    --test-- "set-op-blk-2"
+        a: [1 2 3 4 5 6 7 8]
+        b: skip a 2
+        c: skip a 6
+        remove/part a 4
+        --assert []        = unique c
+        --assert [7 8]     = unique b
+        --assert [5 6 7 8] = unique a
+        --assert [5 6 7 8] = union a b
+        --assert [7 8]     = union c b
+        --assert [7 8]     = intersect a b
+        --assert [7 8]     = intersect b a
+        --assert [5 6]     = difference a b
+        --assert [5 6]     = difference b a
+        --assert [5 6]     = exclude a b
+        --assert []        = exclude b a
+
+    ;@@ FIXME: #4086
+    ; --test-- "set-op-hash-1"
+    ;     a: make hash! [5 6 7 8]
+    ;     b: skip a 2
+    ;     --assert (make hash! [7 8]    ) = unique b
+    ;     --assert (make hash! [5 6 7 8]) = unique a
+    ;     --assert (make hash! [5 6 7 8]) = union a b
+    ;     --assert (make hash! [7 8]    ) = intersect a b
+    ;     --assert (make hash! [7 8]    ) = intersect b a
+    ;     --assert (make hash! [5 6]    ) = difference a b
+    ;     --assert (make hash! [5 6]    ) = difference b a
+    ;     --assert (make hash! [5 6]    ) = exclude a b
+    ;     --assert (make hash! []       ) = exclude b a
+
+    ; --test-- "set-op-hash-2"
+    ;     a: make hash! [1 2 3 4 5 6 7 8]
+    ;     b: skip a 2
+    ;     c: skip a 6
+    ;     remove/part a 4
+    ;     --assert (make hash! []       ) = unique c
+    ;     --assert (make hash! [7 8]    ) = unique b
+    ;     --assert (make hash! [5 6 7 8]) = unique a
+    ;     --assert (make hash! [5 6 7 8]) = union a b
+    ;     --assert (make hash! [7 8]    ) = union c b
+    ;     --assert (make hash! [7 8]    ) = intersect a b
+    ;     --assert (make hash! [7 8]    ) = intersect b a
+    ;     --assert (make hash! [5 6]    ) = difference a b
+    ;     --assert (make hash! [5 6]    ) = difference b a
+    ;     --assert (make hash! [5 6]    ) = exclude a b
+    ;     --assert (make hash! []       ) = exclude b a
 
 	--test-- "set-op-str"
 		a: "CBAD"
@@ -1503,6 +2622,31 @@ Red [
 		--assert "BAEF"		= difference a b
 		--assert "BA"		= exclude a b
 		--assert "EF"		= exclude b a
+
+    --test-- "set-op-str-2"
+        --assert "" = intersect "" "a"
+        --assert "" = unique ""
+        --assert "" = union "" ""
+        --assert "" = intersect "" ""
+        --assert "" = difference "" ""
+        --assert "" = exclude "" ""
+
+    --test-- "set-op-str-3"
+        a: "12345678"
+        b: skip a 2
+        c: skip a 6
+        remove/part a 4
+        --assert ""     = unique c
+        --assert "78"   = unique b
+        --assert "5678" = unique a
+        --assert "5678" = union a b
+        --assert "78"   = union c b
+        --assert "78"   = intersect a b
+        --assert "78"   = intersect b a
+        --assert "56"   = difference a b
+        --assert "56"   = difference b a
+        --assert "56"   = exclude a b
+        --assert ""     = exclude b a
 
 	--test-- "set-op-bitset"
 		a: make bitset! [1 2 3 4]
@@ -1537,14 +2681,19 @@ Red [
 		blk1: change blk 6
 		--assert [2 3] = blk1
 		--assert 6 = first blk
+        --assert [6 2 3] = blk
 	--test-- "change-blk-2"
 		blk2: change blk1 [a b]
 		--assert empty? blk2
 		--assert 'a = first blk1
+        --assert [6 a b] = blk
 	--test-- "change-blk-3"
 		blk3: change blk1 [9 8 7 6 5 4 3]
 		--assert empty? blk3
 		--assert 8 = length? blk
+    --test-- "change-blk-4"
+        --assert (reduce [()]) = head change [] ()
+        --assert (reduce [()]) = head change b: [] ()
 
 	--test-- "change-str-1"
 		str: "abcde"
@@ -1576,6 +2725,14 @@ Red [
 	--test-- "change-str-7"
 		str: "我ab/cd"
 		--assert "-cd" = back change/part skip str 3 "-" skip str 4
+    --test-- "change-str-8"
+        str: "a"
+        --assert "" = change/part str "1" next str
+        --assert "1" = str
+    ;@@ FIXME: #4099
+    ; --test-- "change-str-9"                             ;-- issue #4099
+    ;     --assert "" = change next s: "/\" reduce [s s s]
+    ;     --assert "//\/\/\" = s
 
 	--test-- "change-bin-1"
 		bin: #{12345678}
@@ -1598,6 +2755,11 @@ Red [
 		bin: change bin [a b]
 		--assert #{9033} = bin
 		--assert #{61629033} = head bin
+    ;@@ FIXME: #4099
+    ; --test-- "change-bin-6"                             ;-- issue #4099
+    ;     --assert #{} = change next t: copy s: #{0110} reduce [s s s]
+    ;     --assert #{} = change next s reduce [s s s]
+    ;     --assert t = s
 
 	--test-- "change-vec-1"
 		vec: make vector! [1 2 3 4]
@@ -1683,6 +2845,11 @@ Red [
 		--assert #"b" = last str
 		--assert empty? str2
 
+    ;@@ FIXME: #4099
+    ; --test-- "change/dup-str-3"                         ;-- issue #4099
+    ;     --assert "" = change/dup next s: "/\" reduce [s s s] 2
+    ;     --assert "//\/\/\/\/\/\" = s
+
 	--test-- "change/dup-bin-1"
 		bin: #{12345678}
 		bin1: change/dup bin #"x" 3
@@ -1695,6 +2862,12 @@ Red [
 		--assert 205 = last bin
 		--assert empty? bin2
 
+    ;@@ FIXME: #4099
+    ; --test-- "change/dup-bin-3"                         ;-- issue #4099
+    ;     --assert #{} = change/dup next t: copy s: #{0110} reduce [s s s] 3
+    ;     --assert #{} = change/dup next s reduce [s s s] 3
+    ;     --assert t = s
+
 	--test-- "change/dup-vec-1"
 		vec: make vector! [1 2 3 4]
 		vec1: change/dup vec 5 3
@@ -1706,6 +2879,7 @@ Red [
 		change/dup hs [x y] 2
 		--assert 'y = select hs 'x
 		--assert 3  = select hs 2
+
 ===end-group===
 
 ===start-group=== "change/part"
@@ -1734,6 +2908,97 @@ Red [
 		--assert 5 = length? blk
 		--assert 'x = first blk
 
+    --test-- "change/part-blk-5"                        ;-- issue #4087
+        --assert []      = change/part b: [] b b
+        --assert [1 2 3] = change/part b: [1 2 3] tail b b
+        --assert [1 2 3] = b
+
+    --test-- "change/part-blk-6"                        ;-- issue #4088
+        --assert [1 2 3] = change/part b: [1 2 3] next b b
+        --assert [2 3 1 2 3] = b
+        --assert [2 3 1 2 3] = change/part b next b b
+        --assert [3 1 2 3 2 3 1 2 3] = b
+
+    --test-- "change/part-blk-7"                        ;-- issue #4088
+        --assert [3] = change/part next b: [1 2 3] b skip b 2
+        --assert [1 1 2 3 3] = b
+        --assert [5] = change/part next b: [1 2 3 4 5] skip b 3 skip b 4
+        --assert [1 4 5 5] = b
+
+    --test-- "change/part-blk-8"                        ;-- issue #4088
+        a: [x . . . . . . x]
+        --assert [. . . x] = change/part (skip a 2) a 2
+        --assert [x . x . . . . . . x . . . x] = a
+    --test-- "change/part-blk-9"                        ;-- issue #4088
+        a: [x . . . . . . x]
+        --assert [. . . . . x] = change/part a a 2
+        --assert [x . . . . . . x . . . . . x] = a
+    --test-- "change/part-blk-10"                       ;-- issue #4088
+        a: [x . . . . . . x]
+        --assert [. . . x] = change/part (skip a 2) as path! a 2
+        --assert [x . x . . . . . . x . . . x] = a
+    --test-- "change/part-blk-11"                       ;-- issue #4088
+        a: [x . . . . . . x]
+        --assert [. . . . . x] = change/part a as path! a 2
+        --assert [x . . . . . . x . . . . . x] = a
+
+    --test-- "change/part-blk-12"                       ;-- issue #4088
+        a: [x . . . . x]
+        --assert [. x] = change/part/dup (skip a 2) a 2 2
+        --assert [x . x . . . . x x . . . . x . x] = a
+    --test-- "change/part-blk-13"                       ;-- issue #4088
+        a: [x . . . . x]
+        --assert [. . . x] = change/part/dup a a 2 2
+        --assert [x . . . . x x . . . . x . . . x] = a
+    --test-- "change/part-blk-14"                       ;-- issue #4088
+        a: [x . . . . x]
+        --assert [. x] = change/part/dup (skip a 2) as path! a 2 2
+        --assert [x . x . . . . x x . . . . x . x] = a
+    --test-- "change/part-blk-15"                       ;-- issue #4088
+        a: [x . . . . x]
+        --assert [. . . x] = change/part/dup a as path! a 2 2
+        --assert [x . . . . x x . . . . x . . . x] = a
+
+    --test-- "change/part-blk-16"                       ;-- issue #3369
+        a: [1 2 3 4 5 6 7 8]
+        b: skip a 2
+        c: skip a 6
+        d: tail a
+        remove/part a 4
+        --assert []            = change/part c b 2
+        --assert [7 8 7 8]     = b
+        --assert [5 6 7 8 7 8] = a
+        --assert []            = change/part skip b 2 c 20
+        --assert [7 8]         = b
+        --assert [5 6 7 8]     = a
+        --assert []            = change/part c b b
+        --assert [7 8]         = b
+        --assert [5 6 7 8]     = a
+
+    --test-- "change/part-blk-17"                       ;-- issue #3369
+        a: [0 0 1 2 3 4 5 6 7 8]
+        b: skip a 2
+        c: skip a 6
+        d: tail a
+        remove/part a 6
+        --assert []                = change/part/dup c b 2 2
+        --assert [7 8 7 8 7 8]     = b
+        --assert [5 6 7 8 7 8 7 8] = a
+        --assert []                = change/part/dup skip b 2 d 20 300
+        --assert [7 8]             = b
+        --assert [5 6 7 8]         = a
+        --assert []                = change/part/dup c b b 3
+        --assert [7 8 7 8 7 8]     = b
+        --assert [5 6 7 8 7 8 7 8] = a
+
+    --test-- "change/part-blk-18"                       ;-- issue #4088
+        --assert [e]   = change/part/dup s: [a b c d e] [!] 4 0
+        --assert [e]   = s
+        --assert [e]   = change/part/dup s: [a b c d e] [!] 4 -1
+        --assert [e]   = s
+        --assert [e]   = change/part/dup skip s: [a b c d e] 4 [!] -3 0
+        --assert [a e] = s
+
 	--test-- "change/part-str-1"
 		str: "1234"
 		str1: change/part str #"x" 3
@@ -1758,6 +3023,102 @@ Red [
 		--assert 5 = length? str
 		--assert #"x" = first str
 
+    --test-- "change/part-str-5"                        ;-- issue #4087
+        --assert ""    = change/part s: "" s s
+        --assert "123" = change/part s: "123" tail s s
+        --assert "123" = s
+
+    --test-- "change/part-str-6"                        ;-- issue #4088
+        --assert "123" = change/part s: "123" next s s
+        --assert "23123" = s
+        --assert "23123" = change/part s next s s
+        --assert "312323123" = s
+
+    --test-- "change/part-str-7"                        ;-- issue #4088
+        --assert "3" = change/part next s: "123" s skip s 2
+        --assert "11233" = s
+        --assert "5" = change/part next s: "12345" skip s 3 skip s 4
+        --assert "1455" = s
+
+    --test-- "change/part-str-8"                        ;-- issue #4088
+        a: "[......]"
+        --assert "...]" = change/part (skip a 2) a 2
+        --assert "[.[......]...]" = a
+    --test-- "change/part-str-9"                        ;-- issue #4088
+        a: "[......]"
+        --assert ".....]" = change/part a a 2
+        --assert "[......].....]" = a
+    --test-- "change/part-str-10"                       ;-- issue #4088
+        a: "[......]"
+        --assert "...]" = change/part (skip a 2) as file! a 2
+        --assert "[.[......]...]" = a
+    --test-- "change/part-str-11"                       ;-- issue #4088
+        a: "[......]"
+        --assert ".....]" = change/part a as file! a 2
+        --assert "[......].....]" = a
+
+    --test-- "change/part-str-12"                       ;-- issue #4088
+        a: "[....]"
+        --assert ".]" = change/part/dup (skip a 2) a 2 2
+        --assert "[.[....][....].]" = a
+    --test-- "change/part-str-13"                       ;-- issue #4088
+        a: "[....]"
+        --assert "...]" = change/part/dup a a 2 2
+        --assert "[....][....]...]" = a
+    --test-- "change/part-str-14"                       ;-- issue #4088
+        a: "[....]"
+        --assert ".]" = change/part/dup (skip a 2) as file! a 2 2
+        --assert "[.[....][....].]" = a
+    --test-- "change/part-str-15"                       ;-- issue #4088
+        a: "[....]"
+        --assert "...]" = change/part/dup a as file! a 2 2
+        --assert "[....][....]...]" = a
+
+    --test-- "change/part-str-16"                       ;-- issue #3369
+        a: "12345678"
+        b: skip a 2
+        c: skip a 6
+        d: tail a
+        remove/part a 4
+        --assert "" = change/part c b 2
+        --assert "7878" = b
+        --assert "567878" = a
+        --assert "" = change/part skip b 2 c 20
+        --assert "78" = b
+        --assert "5678" = a
+        --assert "" = change/part c b b
+        --assert "78" = b
+        --assert "5678" = a
+
+    --test-- "change/part-str-17"                       ;-- issue #3369
+        a: "0012345678"
+        b: skip a 2
+        c: skip a 6
+        d: tail a
+        remove/part a 6
+        --assert "" = change/part/dup c b 2 2
+        --assert "787878" = b
+        --assert "56787878" = a
+        --assert "" = change/part/dup skip b 2 d 20 300
+        --assert "78" = b
+        --assert "5678" = a
+        --assert "" = change/part/dup c b b 3
+        --assert "787878" = b
+        --assert "56787878" = a
+
+    --test-- "change/part-str-18"                       ;-- issue #4088
+        --assert "e" = change/part/dup s: "abcde" "!" 4 0
+        --assert "e" = s
+        --assert "e" = change/part/dup s: "abcde" "!" 4 -1
+        --assert "e" = s
+        --assert "e" = change/part/dup skip s: "abcde" 4 "!" -3 0
+        --assert "ae" = s
+
+    ;@@ FIXME: #4099
+    ; --test-- "change/part-str-19"                       ;-- issue #4099
+    ;     --assert "\" = change/part/dup next s: "/\" reduce [s s s] 0 2
+    ;     --assert "//\/\/\/\/\/\\" = s
+
 	--test-- "change/part-bin-1"
 		bin: #{12345678}
 		bin1: change/part bin #"x" 3
@@ -1781,7 +3142,13 @@ Red [
 		--assert val = first bin3
 		--assert 5 = length? bin
 		--assert 120 = first bin
-	;--test-- "change/part-vec-1"
+
+    ;@@ FIXME: #4099
+    ; --test-- "change/part-bin-5"                        ;-- issue #4099
+    ;     t: copy s: #{0110}
+    ;     --assert #{} = change/part/dup next t reduce [s s s] 0 3
+    ;     --assert #{} = change/part/dup next s reduce [s s s] 0 3
+    ;     --assert t = s
 
 	--test-- "change/part-hash-1"
 		hs: make hash! [a b c 1 2 3]
@@ -1793,6 +3160,82 @@ Red [
 		--assert none = select hs 'x
 		--assert 'y = select hs 'p
 		--assert 3  = select hs 2
+
+    --test-- "change/part-hash-3"                       ;-- issue #4087
+        --assert (make hash! []     ) = change/part b: make hash! [] b b
+        --assert (make hash! [1 2 3]) = change/part b: make hash! [1 2 3] tail b b
+        --assert (make hash! [1 2 3]) = b
+
+    --test-- "change/part-hash-4"                       ;-- issue #4088
+        --assert (make hash! [1 2 3]) = change/part b: make hash! [1 2 3] next b b
+        --assert (make hash! [2 3 1 2 3]) = b
+        --assert (make hash! [2 3 1 2 3]) = change/part b next b b
+        --assert (make hash! [3 1 2 3 2 3 1 2 3]) = b
+
+    --test-- "change/part-hash-5"                       ;-- issue #4088
+        --assert (make hash! [3]) = change/part next b: make hash! [1 2 3] b skip b 2
+        --assert (make hash! [1 1 2 3 3]) = b
+        --assert (make hash! [5]) = change/part next b: make hash! [1 2 3 4 5] skip b 3 skip b 4
+        --assert (make hash! [1 4 5 5]) = b
+
+    --test-- "change/part-hash-6"                        ;-- issue #4088
+        a: make hash! [x . . . . . . x]
+        --assert (make hash! [. . . x]) = change/part (skip a 2) a 2
+        --assert (make hash! [x . x . . . . . . x . . . x]) = a
+    --test-- "change/part-hash-7"                        ;-- issue #4088
+        a: make hash! [x . . . . . . x]
+        --assert (make hash! [. . . . . x]) = change/part a a 2
+        --assert (make hash! [x . . . . . . x . . . . . x]) = a
+
+    --test-- "change/part-hash-8"                       ;-- issue #4088
+        a: make hash! [x . . . . x]
+        --assert (make hash! [. x]) = change/part/dup (skip a 2) a 2 2
+        --assert (make hash! [x . x . . . . x x . . . . x . x]) = a
+    --test-- "change/part-hash-9"                       ;-- issue #4088
+        a: make hash! [x . . . . x]
+        --assert (make hash! [. . . x]) = change/part/dup a a 2 2
+        --assert (make hash! [x . . . . x x . . . . x . . . x]) = a
+
+    --test-- "change/part-hash-10"                      ;-- issue #3369
+        a: make hash! [1 2 3 4 5 6 7 8]
+        b: skip a 2
+        c: skip a 6
+        d: tail a
+        remove/part a 4
+        --assert (make hash! []           ) = change/part c b 2
+        --assert (make hash! [7 8 7 8]    ) = b
+        --assert (make hash! [5 6 7 8 7 8]) = a
+        --assert (make hash! []           ) = change/part skip b 2 c 20
+        --assert (make hash! [7 8]        ) = b
+        --assert (make hash! [5 6 7 8]    ) = a
+        --assert (make hash! []           ) = change/part c b b
+        --assert (make hash! [7 8]        ) = b
+        --assert (make hash! [5 6 7 8]    ) = a
+
+    --test-- "change/part-hash-11"                      ;-- issue #3369
+        a: make hash! [0 0 1 2 3 4 5 6 7 8]
+        b: skip a 2
+        c: skip a 6
+        d: tail a
+        remove/part a 6
+        --assert (make hash! []               ) = change/part/dup c b 2 2
+        --assert (make hash! [7 8 7 8 7 8]    ) = b
+        --assert (make hash! [5 6 7 8 7 8 7 8]) = a
+        --assert (make hash! []               ) = change/part/dup skip b 2 d 20 300
+        --assert (make hash! [7 8]            ) = b
+        --assert (make hash! [5 6 7 8]        ) = a
+        --assert (make hash! []               ) = change/part/dup c b b 3
+        --assert (make hash! [7 8 7 8 7 8]    ) = b
+        --assert (make hash! [5 6 7 8 7 8 7 8]) = a
+
+    --test-- "change/part-hash-12"                       ;-- issue #4088
+        --assert (make hash! [e]  ) = change/part/dup s: make hash! [a b c d e] [!] 4 0
+        --assert (make hash! [e]  ) = s
+        --assert (make hash! [e]  ) = change/part/dup s: make hash! [a b c d e] [!] 4 -1
+        --assert (make hash! [e]  ) = s
+        --assert (make hash! [e]  ) = change/part/dup skip s: make hash! [a b c d e] 4 make hash! [!] -3 0
+        --assert (make hash! [a e]) = s
+
 ===end-group===
 
 ===start-group=== "copy"
@@ -1807,7 +3250,7 @@ Red [
 		c2-a: next c2-a
 		--assert not equal? c2-a c2-b
 
-	--test-- "copy-3"
+	--test-- "copy-3"                                   ;-- issue #3369
 		a: "12345678"
 		b: skip a 6
 		c: tail a
@@ -1833,6 +3276,61 @@ Red [
 		--assert empty? copy/part a -4
 		--assert "3456" = copy/part b -4
 		--assert "123456" = copy/part b -10
+
+    --test-- "copy-5"                                   ;-- issue #3369
+        a: [1 2 3 4 5 6 7 8]
+        b: skip a 6
+        c: tail a
+        d: skip a 2
+        remove/part a 4
+        --assert [5 6 7 8] = a
+        --assert empty? b
+        --assert empty? copy b
+        --assert empty? c
+        --assert empty? copy c
+        --assert [7 8] = d
+        --assert [7 8] = copy d
+        --assert [7 8] = copy/part d b
+        --assert [7 8] = copy/part b d
+        clear a
+        --assert empty? d
+        --assert empty? copy d
+        --assert empty? copy/part d b
+
+    --test-- "copy-6"
+        a: [1 2 3 4 5 6 7 8]
+        b: skip a 6
+        --assert empty? copy/part a -4
+        --assert [3 4 5 6] = copy/part b -4
+        --assert [1 2 3 4 5 6] = copy/part b -10
+
+    --test-- "copy-7"                                   ;-- issue #3369
+        a: make hash! [1 2 3 4 5 6 7 8]
+        b: skip a 6
+        c: tail a
+        d: skip a 2
+        remove/part a 4
+        --assert (make hash! [5 6 7 8]) = a
+        --assert empty? b
+        --assert empty? copy b
+        --assert empty? c
+        --assert empty? copy c
+        --assert (make hash! [7 8]) = d
+        --assert (make hash! [7 8]) = copy d
+        --assert (make hash! [7 8]) = copy/part d b
+        --assert (make hash! [7 8]) = copy/part b d
+        clear a
+        --assert empty? d
+        --assert empty? copy d
+        --assert empty? copy/part d b
+
+    --test-- "copy-8"
+        a: make hash! [1 2 3 4 5 6 7 8]
+        b: skip a 6
+        --assert empty? copy/part a -4
+        --assert (make hash! [3 4 5 6]) = copy/part b -4
+        --assert (make hash! [1 2 3 4 5 6]) = copy/part b -10
+
 ===end-group===
 
 ===start-group=== "random"
@@ -1840,6 +3338,21 @@ Red [
 		res: random/only #{AA}
 		--assert integer? res
 		--assert 170 = res
+
+    --test-- "ser-random-2"                             ;-- issue #3369
+        a: "12345678"
+        b: skip a 2
+        c: skip a 6
+        remove/part a 4
+        --assert not none? find a random/only a
+        --assert not none? find a random/only b
+        --assert not none? find b random/only b
+        --assert none?  random/only c
+        --assert empty? random c
+        --assert empty? c
+        --assert "5678" = a
+        --assert 2 = length? random b
+        --assert not none? find/match a "56"
 
 ===end-group===
 

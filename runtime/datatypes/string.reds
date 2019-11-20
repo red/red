@@ -333,6 +333,7 @@ string: context [
 		skip: unit * skip
 		head: (as byte-ptr! s/offset) + (str/head << (log-b unit))
 		tail: as byte-ptr! s/tail
+
 		while [head < tail][
 			c1: get-char head unit
 			unless case? [
@@ -432,6 +433,7 @@ string: context [
 			unit	[integer!]
 			head	[byte-ptr!]
 			tail	[byte-ptr!]
+			MEMGUARD_TOKEN
 	][
 		assert offset >= 0
 		assert part > 0
@@ -443,6 +445,8 @@ string: context [
 
 		if head >= tail [return str]					;-- early exit if nothing to remove
 
+		MEMGUARD_MARK
+		MEMGUARD_ADD(str)
 		part: part << (unit >> 1)
 		if head + part < tail [
 			move-memory 
@@ -451,6 +455,7 @@ string: context [
 				as-integer tail - head - part
 		]
 		s/tail: as red-value! tail - part
+		MEMGUARD_BACK
 		str
 	]
 
@@ -462,18 +467,21 @@ string: context [
 			p	 [byte-ptr!]
 			p4	 [int-ptr!]
 			node [node!]
+			MEMGUARD_TOKEN
 	][
+		MEMGUARD_MARK
+		MEMGUARD_ADDNODE(s/node)
 		switch GET_UNIT(s) [
 			Latin1 [
 				case [
 					cp <= FFh [
 						node: s/node
 						p: alloc-tail-unit s 1
+						MEMGUARD_PCHK(p)
 						p/1: as-byte cp
 						s: as series! node/value
 					]
 					cp <= FFFFh [
-						p: as byte-ptr! s/offset
 						s: unicode/Latin1-to-UCS2 s
 						s: append-char s cp
 					]
@@ -487,7 +495,9 @@ string: context [
 				either cp <= FFFFh [
 					node: s/node
 					p: alloc-tail-unit s 2
+					MEMGUARD_PCHK(p)
 					p/1: as-byte (cp and FFh)
+					MEMGUARD_PCHK((p + 1))
 					p/2: as-byte (cp >> 8)
 					s: as series! node/value
 				][
@@ -498,10 +508,12 @@ string: context [
 			UCS-4 [
 				node: s/node
 				p4: as int-ptr! alloc-tail-unit s 4
+				MEMGUARD_PCHK(p4)
 				p4/1: cp
 				s: as series! node/value
 			]
 		]
+		MEMGUARD_BACK
 		s										;-- refresh s address
 	]
 
@@ -545,7 +557,10 @@ string: context [
 		/local
 			p	 [byte-ptr!]
 			unit [integer!]
+			MEMGUARD_TOKEN
 	][
+		MEMGUARD_MARK
+		MEMGUARD_ADDNODE(s/node)
 		switch GET_UNIT(s) [
 			Latin1 [
 				case [
@@ -572,6 +587,7 @@ string: context [
 		s/tail: as cell! (as byte-ptr! s/tail) + unit
 		
 		poke-char s p cp
+		MEMGUARD_BACK
 		s
 	]
 	
@@ -584,6 +600,7 @@ string: context [
 			unit	[integer!]
 			head	[byte-ptr!]
 			tail	[byte-ptr!]
+			MEMGUARD_TOKEN
 	][
 		assert offset >= 0
 		
@@ -594,6 +611,8 @@ string: context [
 
 		if head >= tail [return str]					;-- early exit if nothing to remove
 
+		MEMGUARD_MARK
+		MEMGUARD_ADD(str)
 		if head + unit < tail [
 			move-memory 
 				head
@@ -601,6 +620,7 @@ string: context [
 				as-integer tail - head - unit
 		]
 		s/tail: as red-value! tail - unit
+		MEMGUARD_BACK
 		str
 	]
 	
@@ -611,11 +631,15 @@ string: context [
 		return: [series!]
 		/local
 			p4	[int-ptr!]
+			MEMGUARD_TOKEN
 	][
+		MEMGUARD_MARK
+		MEMGUARD_ADDNODE(s/node)
 		switch GET_UNIT(s) [
 			Latin1 [
 				case [
 					cp <= FFh [
+						MEMGUARD_PCHK(p)
 						p/1: as-byte cp
 					]
 					cp <= FFFFh [
@@ -634,7 +658,9 @@ string: context [
 			]
 			UCS-2 [
 				either cp <= FFFFh [
+					MEMGUARD_PCHK(p)
 					p/1: as-byte (cp and FFh)
+					MEMGUARD_PCHK((p + 1))
 					p/2: as-byte (cp >> 8)
 				][
 					p: p - (as byte-ptr! s/offset)			;-- calc index value
@@ -645,9 +671,11 @@ string: context [
 			]
 			UCS-4 [
 				p4: as int-ptr! p
+				MEMGUARD_PCHK(p4)
 				p4/1: cp
 			]
 		]
+		MEMGUARD_BACK
 		s
 	]
 	
@@ -720,15 +748,21 @@ string: context [
 		s2: GET_BUFFER(str2)
 		unit1: GET_UNIT(s1)
 		unit2: GET_UNIT(s2)
-		head1: either TYPE_OF(str1) = TYPE_SYMBOL [0][str1/head]
+		size1: (as-integer s1/tail - s1/offset) >> (log-b unit1)
+		;-- after `same?` is ruled out, equality comparisons should consider indexes past the tail as at tail
+		either TYPE_OF(str1) = TYPE_SYMBOL [head1: 0][
+			head1: either str1/head <= size1 [str1/head][size1]
+		]
 		head2: either TYPE_OF(str2) = TYPE_SYMBOL [0][str2/head]
-		size1: (as-integer s1/tail - s1/offset) >> (log-b unit1) - head1
+		size1: size1 - head1
 		sc: as red-slice! str2
 		either all [TYPE_OF(sc) = TYPE_SLICE sc/length >= 0][
 			size2: sc/length
 			end: (as byte-ptr! s2/offset) + (head2 + size2 << (log-b unit2))
 		][
-			size2: (as-integer s2/tail - s2/offset) >> (log-b unit2) - head2
+			size2: (as-integer s2/tail - s2/offset) >> (log-b unit2)
+			if head2 > size2 [head2: size2]
+			size2: size2 - head2
 			end: as byte-ptr! s2/tail						;-- only one "end" is needed
 		]
 
@@ -914,6 +948,8 @@ string: context [
 			s2	  [series!]
 			unit1 [integer!]
 			unit2 [integer!]
+			type1 [integer!]
+			type2 [integer!]
 			size  [integer!]
 			size1 [integer!]
 			size2 [integer!]
@@ -926,12 +962,22 @@ string: context [
 			h1	  [integer!]
 			h2	  [integer!]
 			diff? [logic!]
+			same? [logic!]
+			MEMGUARD_TOKEN
 	][
+		type1: TYPE_OF(str1)
+		type2: TYPE_OF(str2)
+		assert any [type1 = TYPE_SYMBOL ANY_STRING?(type1)]
+		assert any [type2 = TYPE_SYMBOL ANY_STRING?(type2)]
 		s1: GET_BUFFER(str1)
 		s2: GET_BUFFER(str2)
 		unit1: GET_UNIT(s1)
 		unit2: GET_UNIT(s2)
 		diff?: unit1 <> unit2
+
+		MEMGUARD_MARK
+		MEMGUARD_ADD(str1)
+		MEMGUARD_ADD(str2)
 
 		case [											;-- harmonize both encodings
 			unit1 < unit2 [
@@ -963,22 +1009,26 @@ string: context [
 			true [true]									;@@ catch-all case to make compiler happy
 		]
 		
-		h1: either TYPE_OF(str1) = TYPE_SYMBOL [0][str1/head << (log-b unit1)]	;-- make symbol! used as string! pass safely
-		h2: either TYPE_OF(str2) = TYPE_SYMBOL [0][str2/head << (log-b unit2)]	;-- make symbol! used as string! pass safely
+		h1: either type1 = TYPE_SYMBOL [0][str1/head << (log-b unit1)]	;-- make symbol! used as string! pass safely
+		h2: either type2 = TYPE_SYMBOL [0][str2/head << (log-b unit2)]	;-- make symbol! used as string! pass safely
 		
 		size2: (as-integer s2/tail - s2/offset) - h2 >> (log-b unit2)
 		if all [part >= 0 part < size2][size2: part]
 		size: unit1 * size2
-		if size <= 0 [exit]
+		if size <= 0 [MEMGUARD_BACK exit]
 
 		size1: (as-integer s1/tail - s1/offset) + size
-		if s1/size < size1 [s1: expand-series s1 size1 * 2]
+		if s1/size < size1 [
+			same?: s1 = s2
+			s1: expand-series s1 size1 * 2
+			if same? [s2: s1]
+		]
 
 		if mode = MODE_INSERT [
 			move-memory									;-- make space
 				(as byte-ptr! s1/offset) + h1 + offset + size
 				(as byte-ptr! s1/offset) + h1 + offset
-				(as-integer s1/tail - s1/offset) - h1
+				(as-integer s1/tail - s1/offset) - h1 - offset
 		]
 
 		tail: as byte-ptr! s1/tail
@@ -988,6 +1038,7 @@ string: context [
 			(as byte-ptr! s1/offset) + (offset << (log-b unit1)) + h1
 		]
 		either all [keep? diff?][
+			assert s1 <> s2
 			p2: (as byte-ptr! s2/offset) + h2
 			limit: p2 + (size2 << (log-b unit2))
 			while [p2 < limit][
@@ -1005,11 +1056,17 @@ string: context [
 				p2: p2 + unit2
 			]
 		][
-			copy-memory	p (as byte-ptr! s2/offset) + h2 size
+			either s1 = s2 [
+				move-memory p (as byte-ptr! s2/offset) + h2 size
+			][
+				copy-memory p (as byte-ptr! s2/offset) + h2 size
+			]
 			p: p + size
 		]
 		if mode = MODE_INSERT [p: tail + size] 
 		if all [mode = MODE_OVERWRITE p < tail][p: tail]
+
+		MEMGUARD_BACK
 		s1/tail: as cell! p
 	]
 
@@ -2064,9 +2121,10 @@ string: context [
 			flags	[integer!]
 			mult	[integer!]
 			offset	[integer!]
+			part'	[red-value! value]
 	][
 		step: 1
-		s: GET_BUFFER(str)
+		s: _series/trim-head as red-series! str
 		unit: GET_UNIT(s)
 		mult: log-b unit
 		buffer: (as byte-ptr! s/offset) + (str/head << mult)
@@ -2078,7 +2136,8 @@ string: context [
 				int: as red-integer! part
 				int/value
 			][
-				str2: as red-string! part
+				_series/trim-head-into as red-series! part as red-series! part'
+				str2: as red-string! part'
 				unless all [
 					TYPE_OF(str2) = TYPE_OF(str)		;-- handles ANY-STRING!
 					str2/node = str/node
@@ -2088,13 +2147,16 @@ string: context [
 				str2/head - str/head
 			]
 			if len2 < len [
-				len: len2
 				if negative? len2 [
 					len2: 0 - len2
 					str/head: str/head - len2
-					len: either negative? str/head [str/head: 0 0][len2]
-					buffer: buffer - (len << mult)
+					if negative? str/head [
+						len2: len2 + str/head
+						str/head: 0
+					]
+					buffer: buffer - (len2 << mult)
 				]
+				len: len2
 			]
 		]
 
@@ -2113,7 +2175,7 @@ string: context [
 
 		cmp: either all [
 			TYPE_OF(str) = TYPE_VECTOR
-			(as-integer str/cache) = TYPE_FLOAT					;-- vec/type
+			(as-integer str/cache) = TYPE_FLOAT		;-- vec/type
 		][
 			switch unit [
 				4 [as-integer :compare-float32]
@@ -2176,6 +2238,7 @@ string: context [
 		/local
 			src		  [red-block!]
 			cell	  [red-value!]
+			start	  [red-value!]
 			limit	  [red-value!]
 			int		  [red-integer!]
 			char	  [red-char!]
@@ -2194,20 +2257,24 @@ string: context [
 			index	  [integer!]
 			tail?	  [logic!]
 			action	  [red-word!]
+			str'      [red-string! value]
+			value'    [red-value! value]
+			part-arg' [red-value! value]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/insert"]]
 
 		dup-n: 1
 		cnt:  1
 		part: -1
-		
 		if OPTION?(part-arg) [
 			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
 				int: as red-integer! part-arg
 				int/value
 			][
-				sp: as red-string! part-arg
-				form-buf: as red-string! value
+				_series/trim-head-into as red-series! value as red-series! value'
+				_series/trim-head-into as red-series! part-arg as red-series! part-arg'
+				form-buf: as red-string! value'
+				sp: as red-string! part-arg'
 				unless all [
 					TYPE_OF(sp) = TYPE_OF(form-buf)
 					sp/node = form-buf/node
@@ -2227,32 +2294,35 @@ string: context [
 		form-slot: stack/push*							;-- reserve space for FORMing incompatible values
 		form-slot/header: TYPE_UNSET
 		
-		s: GET_BUFFER(str)
+		s: _series/trim-head-into as red-series! str as red-series! str'
 		len: (as-integer s/tail - s/offset) >> (log-b GET_UNIT(s))
-		tail?: any [len = str/head append?]
+		tail?: any [len = str'/head append?]
 		index: either append? [
 			action: words/_append
 			len
 		][
 			action: words/_insert
-			str/head
+			str'/head
 		]
 		
-		while [not zero? cnt][							;-- /dup support
-			type: TYPE_OF(value)
+		type: TYPE_OF(value)
+		unless zero? cnt [
 			either any [								;@@ replace it with: typeset/any-list?
 				type = TYPE_BLOCK
 				type = TYPE_PAREN
 				type = TYPE_HASH
 			][
-				src: as red-block! value
-				s2: GET_BUFFER(src)
-				cell:  s2/offset + src/head
-				limit: cell + block/rs-length? src
+				s2: _series/trim-head-into as red-series! value as red-series! value'
+				src: as red-block! value'
+				start:  s2/offset + src/head
+				limit: start + block/rs-length? src
 			][
-				cell:  value
+				start: value
 				limit: value + 1
 			]
+		]
+		while [not zero? cnt][							;-- /dup support
+			cell: start
 			rest: 0
 			added: 0
 			while [
@@ -2262,11 +2332,11 @@ string: context [
 				
 				either type = TYPE_CHAR [
 					char: as red-char! cell
-					s: GET_BUFFER(str)
+					s: GET_BUFFER(str')
 					either tail? [
 						append-char s char/value
 					][
-						insert-char s str/head + added char/value
+						insert-char s str'/head + added char/value
 					]
 					added: added + 1
 				][
@@ -2289,9 +2359,9 @@ string: context [
 						if rest > len [rest: len]
 					]
 					either tail? [
-						concatenate str form-buf rest 0 no no
+						concatenate str' form-buf rest 0 no no
 					][
-						concatenate str form-buf rest added no yes
+						concatenate str' form-buf rest added no yes
 					]
 					added: added + rest
 				]
@@ -2300,16 +2370,17 @@ string: context [
 			cnt: cnt - 1
 		]
 		if part < 0 [part: 1]							;-- ownership/check needs part >= 0
-		ownership/check as red-value! str action value index part
+		ownership/check as red-value! str' action value index part
 		
 		either append? [str/head: 0][
 			added: added * dup-n
-			str/head: str/head + added
-			s: GET_BUFFER(str)
+			str'/head: str'/head + added
+			s: GET_BUFFER(str')
 			part: log-b GET_UNIT(s)
-			if (as byte-ptr! s/offset) + (str/head << part) > as byte-ptr! s/tail [ ;-- check for past-end caused by object event
-				str/head: (as-integer s/tail - s/offset) >> part  ;-- adjust offset to series' tail
+			if (as byte-ptr! s/offset) + (str'/head << part) > as byte-ptr! s/tail [ ;-- check for past-end caused by object event
+				str'/head: (as-integer s/tail - s/offset) >> part  ;-- adjust offset to series' tail
 			]
+			if str/head < str'/head [str/head: str'/head]
 		]
 		stack/pop 1										;-- pop the FORM slot
 		as red-value! str
@@ -2333,12 +2404,12 @@ string: context [
 		s1:    GET_BUFFER(str1)
 		unit1: GET_UNIT(s1)
 		head1: (as byte-ptr! s1/offset) + (str1/head << (log-b unit1))
-		if head1 = as byte-ptr! s1/tail [return str1]				;-- early exit if nothing to swap
+		if head1 >= as byte-ptr! s1/tail [return str1]				;-- early exit if nothing to swap
 
 		s2:    GET_BUFFER(str2)
 		unit2: GET_UNIT(s2)
 		head2: (as byte-ptr! s2/offset) + (str2/head << (log-b unit2))
-		if head2 = as byte-ptr! s2/tail [return str1]				;-- early exit if nothing to swap
+		if head2 >= as byte-ptr! s2/tail [return str1]				;-- early exit if nothing to swap
 
 		char1: get-char head1 unit1
 		char2: get-char head2 unit2
@@ -2366,6 +2437,7 @@ string: context [
 			find?	[logic!]
 			str2	[red-string!]
 			with-chars	[int-ptr!]
+			with-arg'	[red-string! value]
 	][
 		with-chars: [9 10 13 32]						;-- default chars for /ALL [TAB LF CR SPACE]
 		with-chars/1: 9
@@ -2383,8 +2455,8 @@ string: context [
 				]
 				TYPE_BINARY
 				TYPE_STRING [
-					str2: as red-string! with-arg
-					s:    GET_BUFFER(str2)
+					s: _series/trim-head-into as red-series! with-arg as red-series! with-arg'
+					str2: as red-string! with-arg'
 					unit: GET_UNIT(s)
 					head: (as byte-ptr! s/offset) + (str2/head << (log-b unit))
 					tail: as byte-ptr! s/tail
@@ -2407,6 +2479,7 @@ string: context [
 		]
 
 		s:    GET_BUFFER(str)
+		assert (as-integer s/tail - s/offset) >= str/head
 		unit: GET_UNIT(s)
 		head: (as byte-ptr! s/offset) + (str/head << (log-b unit))
 		tail: as byte-ptr! s/tail
@@ -2483,7 +2556,10 @@ string: context [
 			append-lf?	[logic!]
 			outside? 	[logic!]
 			skip?		[logic!]
+			MEMGUARD_TOKEN
 	][
+		MEMGUARD_MARK
+		MEMGUARD_ADD(str)
 		append-lf?: no
 		s:    GET_BUFFER(str)
 		unit: GET_UNIT(s)
@@ -2549,6 +2625,7 @@ string: context [
 			poke-char s cur 10
 			cur: cur + 1
 		]
+		MEMGUARD_BACK
 		s/tail: as red-value! cur
 	]
 	
@@ -2598,16 +2675,19 @@ string: context [
 		all?		[logic!]
 		with-arg	[red-value!]
 		return:		[red-series!]
+		/local str'	[red-string! value]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/trim"]]
 
+		_series/trim-head-into as red-series! str as red-series! str'
 		case [
-			any [all? OPTION?(with-arg)] [trim-with str with-arg]
+			any [all? OPTION?(with-arg)] [trim-with str' with-arg]
 			auto? [--NOT_IMPLEMENTED--]
-			lines? [trim-lines str]
-			true  [trim-head-tail str head? tail?]
+			lines? [trim-lines str']
+			true  [trim-head-tail str' head? tail?]
 		]
-		ownership/check as red-value! str words/_trim null str/head 0
+		ownership/check as red-value! str' words/_trim null str'/head 0
+		assert str/node = str'/node
 		as red-series! str
 	]
 
@@ -2620,12 +2700,12 @@ string: context [
 		/local
 			s			[series!]
 			added		[integer!]
+			len			[integer!]
 			type		[integer!]
 			char		[red-char!]
 			form-buf	[red-string!]
 			form-slot	[red-value!]
 	][
-		s: GET_BUFFER(str)
 		form-slot: stack/push*				;-- reserve space for FORMing incompatible values
 		form-slot/header: TYPE_UNSET
 		added: 0
@@ -2634,6 +2714,7 @@ string: context [
 			type: TYPE_OF(cell)
 			either type = TYPE_CHAR [
 				char: as red-char! cell
+				s: GET_BUFFER(str)
 				either part? [				;-- /part will insert extra elements
 					s: insert-char s str/head + added char/value
 				][
@@ -2654,12 +2735,13 @@ string: context [
 					form-buf: rs-make-at form-slot 16
 					actions/form cell form-buf null 0
 				]
+				len: rs-length? form-buf				;-- form-buf can be changed by overwrite/concatenate
 				either part? [
 					concatenate str form-buf -1 added yes yes
 				][
 					overwrite str form-buf -1 added yes
 				]
-				added: added + rs-length? form-buf
+				added: added + len
 			]
 			cell: cell + 1
 		]
@@ -2712,6 +2794,7 @@ string: context [
 		len: _series/get-length ser1 no
 		if op = OP_UNION [len: len + _series/get-length ser2 no]
 		new: as red-series! rs-make-at stack/push* len
+		if zero? len [return new]						;-- early exit if nothing to do
 		s2: GET_BUFFER(new)
 		n: 2
 

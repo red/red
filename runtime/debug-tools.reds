@@ -309,5 +309,17 @@ memory-info: func [
 		assert series = frame/heap
 		print lf
 	]
+
+	memguard-add-series: func [							;-- convenience wrapper (libc cannot use structs from runtime)
+		rs	[red-series!]
+		/local s [series!] t [integer!]
+	][
+		assert not zero? as-integer rs
+		t: TYPE_OF(rs)
+		assert any [ANY_SERIES?(t) t = TYPE_SYMBOL]
+		s: GET_BUFFER(rs)
+		assert VALID_BUFFER?(s)
+		memguard/add-node rs/node
+	]
 	
 ]

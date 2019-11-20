@@ -124,12 +124,14 @@ unicode: context [
 			s	 [series!]
 			beg  [byte-ptr!]
 			buf	 [byte-ptr!]
+			bsz  [integer!]
 			p	 [byte-ptr!]
 			p4	 [int-ptr!]
 			tail [byte-ptr!]
 			unit [integer!]
 			cp	 [integer!]
 			part [integer!]
+			MEMGUARD_TOKEN
 	][
 		s:	  GET_BUFFER(str)
 		unit: GET_UNIT(s)
@@ -138,8 +140,11 @@ unicode: context [
 		unless len/value = -1 [
 			if len/value < part [part: len/value]
 		]
-		buf: as byte-ptr! get-cache str unit << 1 * (1 + part)
+		bsz: unit << 1 * (1 + part)
+		buf: as byte-ptr! get-cache str bsz
 		beg: buf
+		MEMGUARD_MARK
+		MEMGUARD_ADDRANGE(buf bsz)
 
 		p:	  string/rs-head str
 		tail: p + (part << (unit >> 1))
@@ -152,6 +157,7 @@ unicode: context [
 			]
 			#if OS = 'Windows [
 				if all [convert? cp = as-integer lf][
+					MEMGUARD_PCHK(buf)
 					buf/1: cr
 					buf: buf + 1
 				]
@@ -159,9 +165,11 @@ unicode: context [
 			buf: buf + cp-to-utf8 cp buf
 			p: p + unit
 		]
+		MEMGUARD_PCHK(buf)
 		buf/1: null-byte
 
 		len/value: as-integer buf - beg
+		MEMGUARD_BACK
 		str/cache
 	]
 	
@@ -174,9 +182,12 @@ unicode: context [
 			base [byte-ptr!]
 			src  [byte-ptr!]
 			dst  [byte-ptr!]
+			MEMGUARD_TOKEN
 	][
 		#if debug? = yes [if verbose > 0 [print-line "unicode/Latin1-to-UCS2"]]
 
+		MEMGUARD_MARK
+		MEMGUARD_ADDNODE(s/node)
 		used: as-integer s/tail - s/offset
 		used: used << 1
 		new: used + 2								;-- reserve one more for edge cases
@@ -190,10 +201,12 @@ unicode: context [
 		while [src > base][								;-- in-place conversion
 			src: src - 1
 			dst: dst - 2
+			MEMGUARD_RANGECHK(dst 2)
 			dst/1: src/1
 			dst/2: null-byte
 		]
 		s/flags: s/flags and flag-unit-mask or UCS-2	;-- s/unit: UCS-2
+		MEMGUARD_BACK
 		s
 	]
 	
@@ -206,9 +219,12 @@ unicode: context [
 			base [byte-ptr!]
 			src  [byte-ptr!]
 			dst  [int-ptr!]
+			MEMGUARD_TOKEN
 	][
 		#if debug? = yes [if verbose > 0 [print-line "unicode/Latin1-to-UCS4"]]
 
+		MEMGUARD_MARK
+		MEMGUARD_ADDNODE(s/node)
 		used: as-integer s/tail - s/offset
 		used: used << 2
 		new: used + 4								;-- reserve one more for edge cases
@@ -222,9 +238,11 @@ unicode: context [
 		while [src > base][								;-- in-place conversion
 			src: src - 1
 			dst: dst - 1
+			MEMGUARD_PCHK(dst)
 			dst/value: as-integer src/1
 		]
 		s/flags: s/flags and flag-unit-mask or UCS-4	;-- s/unit: UCS-4
+		MEMGUARD_BACK
 		s
 	]
 	
@@ -237,9 +255,12 @@ unicode: context [
 			base [byte-ptr!]
 			src  [byte-ptr!]
 			dst  [int-ptr!]
+			MEMGUARD_TOKEN
 	][
 		#if debug? = yes [if verbose > 0 [print-line "unicode/UCS2-to-UCS4"]]
 
+		MEMGUARD_MARK
+		MEMGUARD_ADDNODE(s/node)
 		used: as-integer s/tail - s/offset	
 		used: used << 1
 		new: used + 4								;-- reserve one more for edge cases
@@ -253,9 +274,11 @@ unicode: context [
 		while [src > base][								;-- in-place conversion
 			src: src - 2
 			dst: dst - 1
+			MEMGUARD_PCHK(dst)
 			dst/value: (as-integer src/2) << 8 + src/1
 		]
 		s/flags: s/flags and flag-unit-mask or UCS-4	;-- s/unit: UCS-4
+		MEMGUARD_BACK
 		s
 	]
 	
@@ -375,6 +398,7 @@ unicode: context [
 			cp	   [integer!]							;-- computed codepoint
 			count  [integer!]
 			used   [integer!]
+			MEMGUARD_TOKEN
 	][
 		#if debug? = yes [if verbose > 0 [print-line "unicode/load-utf8-buffer"]]
 
@@ -431,10 +455,15 @@ unicode: context [
 				]
 				cp: as-integer lf
 			]
+
+			;-- MEMGUARD NOTE: decode-utf8-char can fire an exception, so better not wrap it
+			MEMGUARD_MARK
+			MEMGUARD_ADDNODE(node)
 			switch unit [
 				Latin1 [
 					case [
 						cp <= FFh [
+							MEMGUARD_PCHK(buf1)
 							buf1/value: as-byte cp
 							buf1: buf1 + 1
 							assert buf1 <= end			;-- should not happen if we're good
@@ -446,6 +475,7 @@ unicode: context [
 							buf1: as byte-ptr! s/tail
 							end:  (as byte-ptr! s/offset) + s/size
 
+							MEMGUARD_RANGECHK(buf1 2)
 							buf1/1: as-byte cp and FFh
 							buf1/2: as-byte cp >> 8
 							buf1: buf1 + 2
@@ -457,6 +487,7 @@ unicode: context [
 							buf4: as int-ptr! s/tail
 							end:  (as byte-ptr! s/offset) + s/size
 
+							MEMGUARD_PCHK(buf4)
 							buf4/value: cp
 							buf4: buf4 + 1
 						]
@@ -470,6 +501,7 @@ unicode: context [
 						buf4: as int-ptr! s/tail
 						end:  (as byte-ptr! s/offset) + s/size
 						
+						MEMGUARD_PCHK(buf4)
 						buf4/value: cp
 						buf4: buf4 + 1
 					][
@@ -479,6 +511,7 @@ unicode: context [
 							buf1: as byte-ptr! s/tail
 							end: (as byte-ptr! s/offset) + s/size
 						]
+						MEMGUARD_RANGECHK(buf1 2)
 						buf1/1: as-byte cp and FFh
 						buf1/2: as-byte cp >> 8
 						buf1: buf1 + 2
@@ -491,12 +524,14 @@ unicode: context [
 						buf4: as int-ptr! s/tail
 						end: (as byte-ptr! s/offset) + s/size
 					]
+					MEMGUARD_PCHK(buf4)
 					buf4/value: cp
 					buf4: buf4 + 1
 				]
 			]
 			count: count - used
 			src: src + used
+			MEMGUARD_BACK
 			zero? count
 		] 												;-- end until
 		
@@ -588,6 +623,7 @@ unicode: context [
 			c	 [integer!]
 			cp	 [integer!]
 			len	 [integer!]
+			MEMGUARD_TOKEN
 	][
 		if null? src [
 			assert not null? str
@@ -613,12 +649,16 @@ unicode: context [
 		p: as byte-ptr! s/offset
 		cnt: size
 
+		MEMGUARD_MARK
+		MEMGUARD_ADDNODE(node)
+
 		switch unit [
 			Latin1 [
 				while [cnt > 0][
 					either all [cr? src/1 = #"^M" src/2 = null-byte][
 						size: size - 1
 					][
+						MEMGUARD_PCHK(p)
 						p/value: src/1
 						p: p + 1
 					]
@@ -632,6 +672,7 @@ unicode: context [
 						either all [src/1 = #"^M" src/2 = null-byte][
 							size: size - 1
 						][
+							MEMGUARD_RANGECHK(p 2)
 							p/1: src/1
 							p/2: src/2
 							p: p + 2
@@ -660,6 +701,7 @@ unicode: context [
 							print "*** Input Error: invalid UTF-16LE codepoint"
 							halt 
 						]
+						MEMGUARD_PCHK(p4)
 						p4/value: c << 8 + src/1 and 03FFh or cp + 00010000h  ;-- trail surrogate decoding
 						p4: p4 + 1
 						size: size - 1
@@ -667,6 +709,7 @@ unicode: context [
 						either all [cr? src/1 = #"^M" c = 0][
 							size: size - 1
 						][
+							MEMGUARD_PCHK(p4)
 							p4/value: c << 8 + src/1
 							p4: p4 + 1
 						]
@@ -677,6 +720,8 @@ unicode: context [
 			]
 		]
 		s/tail: as cell! (as byte-ptr! s/offset) + (size * unit)
+
+		MEMGUARD_BACK
 		node
 	]
 
@@ -689,6 +734,7 @@ unicode: context [
 	][
 		case [
 			cp < 00010000h [
+				MEMGUARD_RANGECHK(buf 2)
 				buf/1: as-byte cp
 				buf/2: as-byte cp >> 8
 				1
@@ -696,6 +742,7 @@ unicode: context [
 			cp < 00110000h [
 				cp: cp - 00010000h
 				unit: cp >> 10 or D800h
+				MEMGUARD_RANGECHK(buf 4)
 				buf/1: as-byte unit
 				buf/2: as-byte unit >> 8
 				unit: cp and 03FFh or DC00h
@@ -727,12 +774,14 @@ unicode: context [
 			head [byte-ptr!]
 			src  [byte-ptr!]
 			dst  [byte-ptr!]
+			dsz  [integer!]
 			tail [byte-ptr!]
 			part [integer!]
 			size [integer!]
 			unit [integer!]
 			cp	 [integer!]
 			p4	 [int-ptr!]
+			MEMGUARD_TOKEN
 	][
 		s:	  GET_BUFFER(str)
 		unit: GET_UNIT(s)
@@ -744,18 +793,23 @@ unicode: context [
 		src: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
 		tail: src + (part << (unit >> 1))
 
-		head: as byte-ptr! get-cache str size + count-extras src tail unit
+		dsz: size + count-extras src tail unit
+		head: as byte-ptr! get-cache str dsz
 		dst: head
 
+		MEMGUARD_MARK
+		MEMGUARD_ADDRANGE(dst dsz)
 		switch unit [
 			Latin1 [
 				while [src < tail][						;-- in-place conversion
 					if all [cr? src/1 = #"^/"][
+						MEMGUARD_RANGECHK(dst 2)
 						dst/1: #"^M"
 						dst/2: null-byte
 						dst: dst + 2
 						part: part + 1
 					]
+					MEMGUARD_RANGECHK(dst 2)
 					dst/1: src/1
 					dst/2: null-byte
 					src: src + 1
@@ -766,11 +820,13 @@ unicode: context [
 				either cr? [
 					while [src < tail][					;-- in-place conversion
 						if all [src/1 = #"^/" src/2 = null-byte][
+							MEMGUARD_RANGECHK(dst 2)
 							dst/1: #"^M"
 							dst/2: null-byte
 							dst: dst + 2
 							part: part + 1
 						]
+						MEMGUARD_RANGECHK(dst 2)
 						dst/1: src/1
 						dst/2: src/2
 						src: src + 2
@@ -789,11 +845,13 @@ unicode: context [
 					case [
 						cp < 00010000h [
 							if all [cr? cp = 10][		;-- check for LF
+								MEMGUARD_RANGECHK(dst 2)
 								dst/1: #"^M"
 								dst/2: null-byte
 								dst: dst + 2
 								part: part + 1
 							]
+							MEMGUARD_RANGECHK(dst 2)
 							dst/1: as-byte cp
 							dst/2: as-byte cp >> 8
 							dst: dst + 2
@@ -801,6 +859,7 @@ unicode: context [
 						cp < 00110000h [
 							cp: cp - 00010000h
 							unit: cp >> 10 or D800h
+							MEMGUARD_RANGECHK(dst 4)
 							dst/1: as-byte unit
 							dst/2: as-byte unit >> 8
 							unit: cp and 03FFh or DC00h
@@ -810,12 +869,13 @@ unicode: context [
 							dst: dst + 4
 							part: part + 1
 						]
-						true [print "Error: to-utf16 codepoint overflow" return null]
+						true [print "Error: to-utf16 codepoint overflow" MEMGUARD_BACK return null]
 					]
 					src: src + 4
 				]
 			]
 		]
+		MEMGUARD_RANGECHK(dst 2)
 		dst/1: null-byte
 		dst/2: null-byte
 		len/value: part
@@ -824,6 +884,7 @@ unicode: context [
 			s: as series! str/cache/value
 			assert head + s/size > dst					;-- detect buffer overflow
 		]
+		MEMGUARD_BACK
 		as-c-string head
 	]
 	
@@ -860,6 +921,7 @@ unicode: context [
 			cnt  [integer!]
 			unit [integer!]
 			cp	 [integer!]
+			MEMGUARD_TOKEN
 	][
 		if null? src [
 			assert not null? str
@@ -877,6 +939,8 @@ unicode: context [
 			unit: GET_UNIT(s)
 			if size > s/size [s: expand-series s size]
 		]
+		MEMGUARD_MARK
+		MEMGUARD_ADDNODE(node)
 
 		buf1: as byte-ptr! s/offset
 		buf4: as int-ptr! buf1
@@ -898,6 +962,7 @@ unicode: context [
 			]
 			switch unit [
 				Latin1 [
+					MEMGUARD_PCHK(buf1)
 					buf1/value: as-byte cp
 					buf1: buf1 + 1
 					assert buf1 <= end				;-- should not happen if we're good
@@ -910,6 +975,7 @@ unicode: context [
 						end: (as byte-ptr! s/offset) + s/size
 						src: as-c-string (as series! str/cache/value) + 1
 					]
+					MEMGUARD_RANGECHK(buf1 2)
 					buf1/1: as-byte cp
 					buf1/2: null-byte
 					buf1: buf1 + 2
@@ -922,6 +988,7 @@ unicode: context [
 						end: (as byte-ptr! s/offset) + s/size
 						src: as-c-string (as series! str/cache/value) + 1
 					]
+					MEMGUARD_PCHK(buf4)
 					buf4/value: cp
 					buf4: buf4 + 1
 				]
@@ -933,6 +1000,7 @@ unicode: context [
 		
 		s/tail: as cell! either unit = UCS-4 [buf4][buf1]
 		assert s/size >= as-integer (s/tail - s/offset)
+		MEMGUARD_BACK
 		node
 	]
 ]

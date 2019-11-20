@@ -134,7 +134,10 @@ fill: func [
 		cnt		 [integer!]
 		byte4	 [integer!]
 		aligned? [logic!]
+		MEMGUARD_TOKEN
 ][
+	MEMGUARD_MARK
+	MEMGUARD_ADDRANGE2(p end)
 	cnt: (as-integer p) and 3
 	unless zero? cnt [						;-- preprocess unaligned beginning
 		while [cnt > 0][p/cnt: byte cnt: cnt - 1]
@@ -157,6 +160,7 @@ fill: func [
 		cnt: (as-integer end) and 3	
 		while [cnt > 0][end/cnt: byte cnt: cnt - 1]
 	]
+	MEMGUARD_BACK
 ]
 
 ;-------------------------------------------
@@ -523,6 +527,7 @@ compact-series-frame: func [
 				size: as-integer (as byte-ptr! s) - src
 				delta: as-integer src - dst
 				;probe ["move src=" src ", dst=" dst ", size=" size]
+				MEMGUARD_UNCHECKED
 				move-memory dst	src size
 				update-series as series! dst delta size
 				
@@ -655,6 +660,7 @@ cross-compact-frame: func [
 			]
 
 			if update? [
+				MEMGUARD_UNCHECKED
 				move-memory dst2 src size
 				update-series as series! dst2 delta size
 				if refs < tail [			;-- update pointers on native stack
@@ -708,11 +714,14 @@ extract-stack-refs: func [
 		p	  [int-ptr!]
 		refs  [int-ptr!]
 		tail  [int-ptr!]
+		MEMGUARD_TOKEN
 ][
 	top:  system/stack/top
 	stk:  stk-bottom
 	refs: memory/stk-refs
 	tail: refs + (memory/stk-sz * 2)
+	MEMGUARD_MARK
+	MEMGUARD_ADDRANGE2(refs tail)
 	
 	;probe ["native stack slots: " (as-integer stk - top) >> 2]
 	until [
@@ -734,7 +743,11 @@ extract-stack-refs: func [
 					memory/stk-refs: refs
 					tail: refs + (memory/stk-sz * 2)
 					refs: tail - 2000
+					MEMGUARD_BACK						;-- forget the old refs range
+					MEMGUARD_MARK
+					MEMGUARD_ADDRANGE2(refs tail)
 				]
+				MEMGUARD_RANGECHK(refs 2)
 				refs/1: as-integer p	;-- pointer inside a frame				
 				refs/2: as-integer stk	;-- pointer address on stack
 				refs: refs + 2
@@ -759,6 +772,7 @@ extract-stack-refs: func [
 		;	refs = tail
 		;]
 	]
+	MEMGUARD_BACK
 ]
 
 collect-frames: func [
@@ -897,7 +911,7 @@ alloc-series-buffer: func [
 		sz		 [integer!]
 		flag-big [integer!]
 ][
-	assert positive? usize
+	assert not negative? usize
 	size: round-to usize * unit size? cell!	;-- size aligned to cell! size
 
 	frame: memory/s-active
@@ -1090,8 +1104,8 @@ free-series: func [
 	assert not null? (as byte-ptr! node/value)
 	
 	series: as series-buffer! node/value
-	assert not zero? (series/flags and not series-in-use) ;-- ensure that 'used bit is set
-	series/flags: series/flags and series-free-mask		  ;-- clear 'used bit (enough to free the series)
+	assert not zero? (series/flags and series-in-use)	;-- ensure that 'used bit is set
+	series/flags: series/flags and series-free-mask		;-- clear 'used bit (enough to free the series)
 	
 	if frame/heap = as series-buffer! (		;-- test if series is on top of heap
 		(as byte-ptr! series) + SERIES_BUFFER_PADDING + series/size + size? series-buffer!
@@ -1130,7 +1144,7 @@ expand-series: func [
 
 	node: series/node
 	new: alloc-series-buffer new-sz / units units 0
-	series: as series-buffer! node/value
+	assert series = as series-buffer! node/value
 	big?: new/flags and flag-series-big <> 0
 	
 	node/value: as-integer new		;-- link node to new series buffer
@@ -1144,13 +1158,14 @@ expand-series: func [
 	if big? [new/flags: new/flags or flag-series-big]	;@@ to be improved
 	
 	;TBD: honor flag-ins-head and flag-ins-tail when copying!	
+	MEMGUARD_UNCHECKED
 	copy-memory 							;-- copy old series in new buffer
 		as byte-ptr! new/offset
 		as byte-ptr! series/offset
 		series/size
 	
-	assert not zero? (series/flags and not series-in-use) ;-- ensure that 'used bit is set
-	series/flags: series/flags xor series-in-use		  ;-- clear 'used bit (enough to free the series)	
+	assert not zero? (series/flags and series-in-use)	;-- ensure that 'used bit is set
+	series/flags: series/flags xor series-in-use		;-- clear 'used bit (enough to free the series)	
 	new	
 ]
 
@@ -1197,6 +1212,7 @@ copy-series: func [
 	new/tail: as cell! (as byte-ptr! new/offset) + (as-integer s/tail - s/offset)
 	
 	unless zero? s/size [
+		MEMGUARD_UNCHECKED
 		copy-memory 
 			as byte-ptr! new/offset
 			as byte-ptr! s/offset

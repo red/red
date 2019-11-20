@@ -167,7 +167,10 @@ binary: context [
 			s	  [series!]
 			p	  [byte-ptr!]
 			size  [integer!]
+			MEMGUARD_TOKEN
 	][
+		MEMGUARD_MARK
+		MEMGUARD_ADD(bin)
 		s: GET_BUFFER(bin)
 
 		size: part + (as-integer s/tail - s/offset)
@@ -180,7 +183,8 @@ binary: context [
 			as-integer (as byte-ptr! s/tail) - p
 		s/tail: as cell! (as byte-ptr! s/tail) + part
 
-		copy-memory p data part
+		move-memory p data part
+		MEMGUARD_BACK
 		p
 	]
 
@@ -194,7 +198,10 @@ binary: context [
 			s	  [series!]
 			p	  [byte-ptr!]
 			added [integer!]
+			MEMGUARD_TOKEN
 	][
+		MEMGUARD_MARK
+		MEMGUARD_ADD(bin)
 		s: GET_BUFFER(bin)
 		p: (as byte-ptr! s/offset) + bin/head + offset
 
@@ -204,9 +211,9 @@ binary: context [
 			p: (as byte-ptr! s/offset) + bin/head + offset
 		]
 
-		copy-memory p data part
-
+		move-memory p data part
 		if p + part > (as byte-ptr! s/tail) [s/tail: as cell! p + part]
+		MEMGUARD_BACK
 		p
 	]
 
@@ -267,6 +274,8 @@ binary: context [
 			end		[byte-ptr!]
 			type	[integer!]
 			same?	[logic!]
+			bin1'	[red-binary! value]
+			bin2'	[red-binary! value]
 	][
 		type: TYPE_OF(bin2)
 		if all [
@@ -284,10 +293,11 @@ binary: context [
 			any [op = COMP_EQUAL op = COMP_FIND op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
 		][return 0]
 
-		s1: GET_BUFFER(bin1)
-		s2: GET_BUFFER(bin2)
-		len1: rs-length? bin1
-		len2: rs-length? bin2
+		;@@ FIXME: temporary solution - to avoid rs-length? destroying the `head` of bin1-2
+		s1: _series/trim-head-into as red-series! bin1 as red-series! bin1'
+		s2: _series/trim-head-into as red-series! bin2 as red-series! bin2'
+		len1: rs-length? bin1'
+		len2: rs-length? bin2'
 		end: as byte-ptr! s2/tail
 
 		either match? [
@@ -308,8 +318,8 @@ binary: context [
 			]
 		]
 
-		p1: (as byte-ptr! s1/offset) + bin1/head
-		p2: (as byte-ptr! s2/offset) + bin2/head
+		p1: (as byte-ptr! s1/offset) + bin1'/head
+		p2: (as byte-ptr! s2/offset) + bin2'/head
 
 		while [all [p2 < end p1/1 = p2/1]][
 			p1: p1 + 1
@@ -387,6 +397,7 @@ binary: context [
 				char: as red-char! value
 				int: char/value
 				data: as byte-ptr! :int
+				MEMGUARD_PCHK(p)
 				p/value: data/value
 			]
 			default [fire [TO_ERROR(script invalid-arg) value]]
@@ -477,6 +488,7 @@ binary: context [
 			zero-cnt	[integer!]
 			dig256		[integer!]
 			tmp-div		[integer!]
+			MEMGUARD_TOKEN
 	][
 		temp: allocate len
 		copy-memory temp p len
@@ -484,6 +496,8 @@ binary: context [
 		node: alloc-bytes len * 2
 		s: as series! node/value
 		bin: as byte-ptr! s/offset
+		MEMGUARD_MARK
+		MEMGUARD_ADDNODE(node)
 
 		zero-cnt: 1
 		while [
@@ -531,6 +545,7 @@ binary: context [
 
 		free temp
 		s/tail: as red-value! (bin + len)
+		MEMGUARD_BACK
 		node
 	]
 
@@ -545,15 +560,19 @@ binary: context [
 			i		[integer!]
 			node	[node!]
 			buf		[byte-ptr!]
+			MEMGUARD_TOKEN
 	][
 		node: alloc-bytes 4 * len / 3 + (2 * (len / 32) + 5)
 		s: as series! node/value
 		buf: as byte-ptr! s/offset
+		MEMGUARD_MARK
+		MEMGUARD_ADDNODE(node)
 
 		while [len >= 3][
 			b1: as-integer p/1
 			b2: as-integer p/2
 			i: b1 >> 2 + 1
+			MEMGUARD_RANGECHK(buf 4)
 			buf/value: enbase64/i
 			buf: buf + 1
 			i: b1 << 4 and 30h or (b2 >> 4) + 1
@@ -574,6 +593,7 @@ binary: context [
 			b1: as-integer p/1
 			b2: as-integer p/2
 			i: b1 >> 2 + 1
+			MEMGUARD_RANGECHK(buf 4)
 			buf/1: enbase64/i
 			i: b1 << 4 and 30h
 			if len > 1 [i: b2 >> 4 or i]
@@ -587,6 +607,7 @@ binary: context [
 			buf: buf + 4
 		]
 		s/tail: as cell! buf
+		MEMGUARD_BACK
 		node
 	]
 
@@ -655,6 +676,7 @@ binary: context [
 			zero-cnt	[integer!]
 			dig256		[integer!]
 			tmp-div		[integer!]
+			MEMGUARD_TOKEN
 	][
 		temp: allocate len
 
@@ -679,6 +701,8 @@ binary: context [
 		node: alloc-bytes len
 		s: as series! node/value
 		bin: as byte-ptr! s/offset
+		MEMGUARD_MARK
+		MEMGUARD_ADDNODE(node)
 
 		zero-cnt: 1
 		while [
@@ -720,6 +744,7 @@ binary: context [
 
 		free temp
 		s/tail: as red-value! (bin + len)
+		MEMGUARD_BACK
 		node
 	]
 
@@ -736,12 +761,16 @@ binary: context [
 			flip [integer!]
 			node [node!]
 			bin	 [byte-ptr!]
+			MEMGUARD_TOKEN
 	][
 		node: alloc-bytes len + 3 * 3 / 4
 		s: as series! node/value
 		bin: as byte-ptr! s/offset
 		accum: 0
 		flip: 0
+		MEMGUARD_MARK
+		MEMGUARD_ADDNODE(node)
+
 		while [len > 0] [
 			c: string/get-char p unit
 			BINARY_SKIP_COMMENT
@@ -753,6 +782,7 @@ binary: context [
 					accum: accum << 6 + val
 					flip: flip + 1
 					if flip = 4 [
+						MEMGUARD_RANGECHK(bin 3)
 						bin/1: as-byte accum >> 16
 						bin/2: as-byte accum >> 8
 						bin/3: as-byte accum
@@ -765,6 +795,7 @@ binary: context [
 					len: len - 1
 					case [
 						flip = 3 [
+							MEMGUARD_RANGECHK(bin 2)
 							bin/1: as-byte accum >> 10
 							bin/2: as-byte accum >> 2
 							bin: bin + 2
@@ -772,20 +803,22 @@ binary: context [
 						]
 						flip = 2 [
 							p: p + unit
+							MEMGUARD_PCHK(bin)
 							bin/1: as-byte accum >> 4
 							bin: bin + 1
 							flip: 0
 						]
-						true [return null]
+						true [MEMGUARD_BACK return null]
 					]
 					break
 				]
-			][if val = 80h [return null]]
+			][if val = 80h [MEMGUARD_BACK return null]]
 
 			p: p + unit
 			len: len - 1
 		]
 		s/tail: as red-value! bin
+		MEMGUARD_BACK
 		node
 	]
 
@@ -920,13 +953,17 @@ binary: context [
 			slot [red-value!]
 			bin  [red-binary!]
 			s	 [series!]
+			MEMGUARD_TOKEN
 	][
 		slot: either null = blk [stack/push*][ALLOC_TAIL(blk)]
 		bin: make-at slot size
 		
+		MEMGUARD_MARK
+		MEMGUARD_ADD(bin)
 		s: GET_BUFFER(bin)
 		copy-memory as byte-ptr! s/offset src size
 		s/tail: as cell! (as byte-ptr! s/tail) + size
+		MEMGUARD_BACK
 		bin
 	]
 	
@@ -948,7 +985,10 @@ binary: context [
 			cur			[byte-ptr!]
 			head		[byte-ptr!]
 			tail		[byte-ptr!]
+			MEMGUARD_TOKEN
 	][
+		MEMGUARD_MARK
+		MEMGUARD_ADD(bin)
 		s:    GET_BUFFER(bin)
 		head: (as byte-ptr! s/offset) + bin/head
 		tail: as byte-ptr! s/tail
@@ -976,6 +1016,7 @@ binary: context [
 			move-memory cur head (as-integer tail - head)
 		]
 		cur: cur + (as-integer tail - head)
+		MEMGUARD_BACK
 		s/tail: as red-value! cur
 	]
 
@@ -1120,6 +1161,9 @@ binary: context [
 			len		  [integer!]
 			added	  [integer!]
 			tail?	  [logic!]
+			bin'	  [red-binary! value]
+			value'	  [red-value! value]
+			part-arg' [red-value! value]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/insert"]]
 
@@ -1132,8 +1176,10 @@ binary: context [
 				int: as red-integer! part-arg
 				int/value
 			][
-				bin2: as red-binary! part-arg
-				src: as red-block! value
+				_series/trim-head-into as red-series! value as red-series! value'
+				_series/trim-head-into as red-series! part-arg as red-series! part-arg'
+				bin2: as red-binary! part-arg'
+				src: as red-block! value'
 				unless all [
 					TYPE_OF(bin2) = TYPE_OF(src)
 					bin2/node = src/node
@@ -1150,15 +1196,15 @@ binary: context [
 			dup-n: cnt
 		]
 
-		s: GET_BUFFER(bin)
+		s: _series/trim-head-into as red-series! bin as red-series! bin'
 		tail?: any [
-			(as-integer s/tail - s/offset) >> (log-b GET_UNIT(s)) = bin/head
+			(as-integer s/tail - s/offset) >> (log-b GET_UNIT(s)) = bin'/head
 			append?
 		]
 
 		either TYPE_OF(value) = TYPE_BLOCK [		;@@ replace it with: typeset/any-block?
-			src: as red-block! value
-			s2: GET_BUFFER(src)
+			s2: _series/trim-head-into as red-series! value as red-series! value'
+			src: as red-block! value'
 			cell:  s2/offset + src/head
 			limit: cell + block/rs-length? src
 			if cell = limit [return as red-value! bin]
@@ -1213,18 +1259,20 @@ binary: context [
 		added: 0
 		while [not zero? cnt][					;-- /dup support
 			either tail? [
-				rs-append bin data len
+				rs-append bin' data len
 			][
-				rs-insert bin added data len
+				rs-insert bin' added data len
 			]
 			added: added + len
 			cnt: cnt - 1
 		]
 		unless append? [
-			bin/head: bin/head + added
-			s: GET_BUFFER(bin)
-			assert (as byte-ptr! s/offset) + (bin/head << (log-b GET_UNIT(s))) <= as byte-ptr! s/tail
+			bin'/head: bin'/head + added
+			if bin/head < bin'/head [bin/head: bin'/head]
+			s: GET_BUFFER(bin')
+			assert (as byte-ptr! s/offset) + (bin'/head << (log-b GET_UNIT(s))) <= as byte-ptr! s/tail
 		]
+		bin/node: bin'/node
 		as red-value! bin
 	]
 
@@ -1237,15 +1285,18 @@ binary: context [
 		all?		[logic!]
 		with-arg	[red-value!]
 		return:		[red-series!]
+		/local bin' [red-binary! value]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/trim"]]
 
+		_series/trim-head-into as red-series! bin as red-series! bin'
 		case [
-			any  [all? OPTION?(with-arg)] [string/trim-with as red-string! bin with-arg]
+			any  [all? OPTION?(with-arg)] [string/trim-with as red-string! bin' with-arg]
 			any  [auto? lines?][--NOT_IMPLEMENTED--]
-			true [trim-head-tail bin head? tail?]
+			true [trim-head-tail bin' head? tail?]
 		]
-		ownership/check as red-value! bin words/_trim null bin/head 0
+		ownership/check as red-value! bin' words/_trim null bin'/head 0
+		assert bin/node = bin'/node
 		as red-series! bin
 	]
 
@@ -1344,6 +1395,7 @@ binary: context [
 			p		[byte-ptr!]
 			p1		[byte-ptr!]
 			p2		[byte-ptr!]
+			MEMGUARD_TOKEN
 	][
 		left: as red-binary! stack/arguments
 		right: left + 1
@@ -1352,6 +1404,9 @@ binary: context [
 			fire [TO_ERROR(script invalid-arg) right]
 		]
 
+		MEMGUARD_MARK
+		MEMGUARD_ADDRO(left)
+		MEMGUARD_ADDRO(right)
 		s1: GET_BUFFER(left)
 		s2: GET_BUFFER(right)
 		p1: (as byte-ptr! s1/offset) + left/head
@@ -1366,6 +1421,7 @@ binary: context [
 		node: alloc-bytes len
 		buffer: as series! node/value
 		buffer/tail: as cell! (as byte-ptr! buffer/offset) + len
+		MEMGUARD_ADDNODE(node)
 
 		i: 0
 		p: as byte-ptr! buffer/offset
@@ -1386,6 +1442,7 @@ binary: context [
 		]
 		left/node: node
 		left/head: 0
+		MEMGUARD_BACK
 		left
 	]
 

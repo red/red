@@ -30,7 +30,7 @@ Red/System [
 			size		[integer!]
 			return:		[byte-ptr!]
 		]
-		move-memory: "memmove" [
+		#either debug? = yes [libc.move-memory:][move-memory:] "memmove" [
 			target		[byte-ptr!]
 			source		[byte-ptr!]
 			size		[integer!]
@@ -152,6 +152,171 @@ Red/System [
 ]
 
 #if debug? = yes [
+
+	memguard: context [
+		enabled?: no
+
+		list: as int-ptr! allocate 4096
+		tail:		list + 1024
+		top:		list
+
+		ignored: as int-ptr! allocate 256
+		ignored/1: 0
+
+		last-token: 0
+		flag-skip-next: no
+
+		push: func [v [integer!]][
+			assert top < tail
+			top/value: v
+			top: top + 1
+		]
+		pop: func [return: [integer!]][
+			assert top > list
+			top: top - 1
+			top/value
+		]
+
+		mark: func [return: [integer!]] [
+			push 0
+			last-token: last-token + 1
+			last-token
+		]
+		back: func [token [integer!]] [
+			assert token = last-token					;-- `back` should have a corresponding `mark`
+			last-token: last-token - 1
+			until [0 = pop]
+		]
+		reset: does [									;-- use it when memguard stack can't be preserved
+			top: list
+			last-token: 0
+			flag-skip-next: no
+		]
+		
+		ignore-node: func [node [int-ptr!]] [
+			;@@ TBD: stack of intervals?
+			assert not zero? as-integer node
+			assert zero? ignored/1
+			ignored/1: as-integer node
+		]
+
+		ignored?: func [h [byte-ptr!] t [byte-ptr!] return: [logic!]
+			/local s [int-ptr!] ih [byte-ptr!] it [byte-ptr!]
+		][
+			unless enabled? [return yes]
+			s: as int-ptr! ignored/1
+			s: as int-ptr! s/value
+			assert not zero? ignored/1
+			ih: as byte-ptr! s/4
+			it: ih + s/3
+			assert not zero? as-integer ih
+			assert not zero? as-integer it
+			all [ih <= h t <= it]
+		]
+
+		add-node: func [node [int-ptr!]][
+			push as-integer node						;-- node/value is series!
+		]
+
+		add-range: func [h [byte-ptr!] t [byte-ptr!]][
+			push 0 - as-integer h
+			push 0 - as-integer t
+		]
+
+		get-next-region: func [
+			&p [int-ptr!]								;-- in/out: stack pointer
+			&h [int-ptr!]								;-- out: head
+			&t [int-ptr!]								;-- out: tail
+			&n [int-ptr!]								;-- out: node (if any, else zero)
+			return: [logic!]							;-- true if the region exists
+			/local p [int-ptr!] n [int-ptr!] s [int-ptr!]
+		][
+			p: as int-ptr! &p/value
+			p: p - 1
+			assert p >= list
+			case [
+				zero? p/value [return no]				;-- end of the marked space
+				p/value > 0 [							;-- node found
+					n: as int-ptr! p/value
+					s: as int-ptr! n/value
+					&n/value: as-integer n
+					&h/value: s/4							;-- series!/offset
+					&t/value: &h/value + s/3				;-- series!/offset + series!/size
+				]
+				true [									;-- fixed range
+					&t/value: 0 - p/value
+					p: p - 1
+					assert not zero? p/value
+					assert p >= list
+					&h/value: 0 - p/value
+					&n/value: 0
+				]
+			]
+			assert &t/value >= &h/value
+			&p/value: as-integer p
+			yes
+		]
+
+		check-range: func [
+			hd	[byte-ptr!]
+			tl	[byte-ptr!]
+			return: [logic!]							;-- yes if region is allowed
+			/local
+				reg-hd [integer!] reg-tl [integer!] node [integer!]
+				s [int-ptr!] p [integer!] heading? [logic!]
+		][
+			reg-hd: 0  reg-tl: 0  node: 0
+
+			assert hd <= tl
+			if top = list [return yes]					;-- do not do checks outside of mark/back scope
+			if ignored? hd tl [return yes]
+			
+			assert enabled?
+			p: as-integer top
+			heading?: no
+			while [get-next-region :p :reg-hd :reg-tl :node][
+				assert reg-tl >= reg-hd
+
+				if all [reg-hd <= as-integer hd tl <= as byte-ptr! reg-tl] [return yes]		;-- all OK
+
+				if all [reg-hd <= as-integer hd hd <= as byte-ptr! reg-tl] [
+					print-line  "*** MEMGUARD ALERT: over the tail access detected"
+					print-line ["    registered series:^-" as byte-ptr! reg-hd ".." as byte-ptr! reg-tl]
+					print-line ["    requested region: ^-" hd ".." tl]
+					dump-regions
+					assert 1 = 0
+				]
+
+				if all [reg-hd <= as-integer tl tl <= as byte-ptr! reg-tl] [
+					print-line  "*** MEMGUARD ALERT: before the head access detected"
+					print-line ["    registered series:^-" as byte-ptr! reg-hd ".." as byte-ptr! reg-tl]
+					print-line ["    requested region: ^-" hd ".." tl]
+					dump-regions
+					assert 1 = 0
+				]
+			]
+			print-line  "*** MEMGUARD ALERT: access to unallowed memory region detected"
+			print-line ["    requested region: ^-" hd ".." tl]
+			dump-regions
+			assert 1 = 0
+			no
+		]
+
+		dump-regions: func [/local p [integer!] h [integer!] t [integer!] n [integer!] i [integer!]] [
+			h: 0  t: 0  n: 0  i: 1
+			print-line "  * Defined regions so far are:"
+			p: as-integer top
+			while [get-next-region :p :h :t :n] [
+				either zero? n [
+					print-line ["^-^-" i "^-" as byte-ptr! h ".." as byte-ptr! t " (fixed)"]
+				][
+					print-line ["^-^-" i "^-" as byte-ptr! h ".." as byte-ptr! t " (node=" as byte-ptr! n ")"]
+				]
+				i: i + 1
+			]
+		]
+	]
+
 	copy-memory: func [ 
 		target		[byte-ptr!]
 		source		[byte-ptr!]
@@ -163,7 +328,22 @@ Red/System [
 			(target + size) <= source
 			(source + size) <= target
 		]
+		; memguard/check-range source source + size
+		unless memguard/flag-skip-next [memguard/check-range target target + size]
+		memguard/flag-skip-next: no
 		libc.copy-memory target source size
+	]
+
+	move-memory: func [ 
+		target		[byte-ptr!]
+		source		[byte-ptr!]
+		size		[integer!]				;; number of bytes to copy
+		return:		[byte-ptr!]
+	][
+		; memguard/check-range source source + size
+		unless memguard/flag-skip-next [memguard/check-range target target + size]
+		memguard/flag-skip-next: no
+		libc.move-memory target source size
 	]
 ]
 

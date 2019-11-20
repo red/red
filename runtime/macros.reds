@@ -331,6 +331,40 @@ Red/System [
 #define FLAG_NOT?(s)		(s/flags and flag-bitset-not <> 0)
 #define SET_RETURN(value)	[stack/set-last as red-value! value]
 #define TO_ERROR(cat id)	[#in system/catalog/errors cat #in system/catalog/errors/cat id]
+#define VALID_BUFFER?(buf)	[not zero? (buf/flags and series-in-use)]	;-- checks if buffer hasn't been freed
+
+#either debug? = yes [
+	#define MEMGUARD_TOKEN			[mgtoken [integer!]]		;-- goes into function spec
+	#define MEMGUARD_MARK			[mgtoken: memguard/mark]
+	#define MEMGUARD_BACK			[memguard/back mgtoken]
+	#define MEMGUARD_RESET			[memguard/reset]
+	#define MEMGUARD_UNCHECKED		[memguard/flag-skip-next: yes]
+	#define MEMGUARD_ADD(srs)		[memguard-add-series as red-series! srs]
+	#define MEMGUARD_ADDRO(srs)		[0] ;[memguard-add-series as red-series! srs]	;@@ TBD - readonly
+	#define MEMGUARD_ADDNODE(n)		[memguard/add-node n]
+	#define MEMGUARD_ADDNODERO(n)	[0]							;@@ TBD - readonly
+	;-- as-integer below is used to silence compiler warnings when pointer is byte-ptr already
+	#define MEMGUARD_ADDRANGE(s n)	[memguard/add-range   as byte-ptr! 0 + as-integer s  as byte-ptr! n + as-integer s]
+	#define MEMGUARD_ADDRANGE2(s e)	[memguard/add-range   as byte-ptr! 0 + as-integer s  as byte-ptr! 0 + as-integer e]
+	#define MEMGUARD_RANGECHK(s n)	[memguard/check-range as byte-ptr! 0 + as-integer s  as byte-ptr! n + as-integer s]
+	; #define MEMGUARD_RANGECHK2(s e)	[memguard/check-range as byte-ptr! 0 + as-integer s  as byte-ptr! 0 + as-integer e]
+	#define MEMGUARD_PCHK(p)		[memguard/check-range as byte-ptr! 0 + as-integer p  as byte-ptr! 0 + as-integer p + 1]
+][
+	#define MEMGUARD_TOKEN			[]
+	#define MEMGUARD_MARK			[]
+	#define MEMGUARD_BACK			[]
+	#define MEMGUARD_RESET			[]
+	#define MEMGUARD_UNCHECKED		[]
+	#define MEMGUARD_ADD(srs)		[]
+	#define MEMGUARD_ADDRO(srs)		[]
+	#define MEMGUARD_ADDNODE(n)		[]
+	#define MEMGUARD_ADDNODERO(n)	[]
+	#define MEMGUARD_ADDRANGE(s n)	[]
+	#define MEMGUARD_ADDRANGE2(s e)	[]
+	#define MEMGUARD_RANGECHK(s n)	[]
+	; #define MEMGUARD_RANGECHK2(s e)	[]
+	#define MEMGUARD_PCHK(p)		[]
+]
 
 #define PLATFORM_TO_CSTR(cstr str len) [	;-- len in bytes
 	len: -1
