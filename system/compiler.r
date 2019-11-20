@@ -3523,7 +3523,8 @@ system-dialect: make-profilable context [
 						'logic! <> first get-type expr
 					]
 					all [
-						block? expr
+						block? expr 
+						not subrc?
 						functions/(decorate-fun expr/1)/2 = 'op	;-- math expression
 						any [							;-- no return value, or return value type <> logic!
 							not type: find functions/(expr/1)/4 return-def
