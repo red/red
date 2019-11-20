@@ -91,7 +91,7 @@ system-dialect: make-profilable context [
 		loop-stack:		 make block! 1					;-- keep track of in-loop state
 		locals-init: 	 []								;-- currently compiler function locals variable init list
 		subroutines:	 make block! 20					;-- subroutines definitions: [name [offset ret-type] ...]
-		in-subroutine?:	 no								;-- YES: current code is in a subroutine
+		in-subroutine?:	 no								;-- YES|subroutine name: current code is in a subroutine
 		func-name:	 	 none							;-- currently compiled function name
 		func-locals-sz:	 none							;-- currently compiled function locals size on stack
 		user-code?:		 no
@@ -1996,7 +1996,7 @@ system-dialect: make-profilable context [
 				pos: emitter/tail-ptr
 				until [
 					set [name code] subs
-					in-subroutine?: yes
+					in-subroutine?: name
 					fetch-into reduce [code][
 						chunk: comp-chunked [emitter/target/emit-init-sub]
 						set [expr body] comp-block-chunked ;-- compiles subroutine's body
@@ -3132,6 +3132,9 @@ system-dialect: make-profilable context [
 					block? type: select locals name
 					type/1 = 'subroutine!
 				][
+					if name = in-subroutine? [
+						throw-error ["infinite recursion in subroutine:" name]
+					]
 					also reduce [name] pc: next pc		;-- mimic a function call
 				]
 				type: enum-type? name [
