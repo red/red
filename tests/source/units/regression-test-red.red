@@ -2634,6 +2634,12 @@ b}
 	; --test-- "#2133"
 		; OPEN
 
+	--test-- "#2145"
+		--assert "0:09:00" = probe form 00:09:00
+		--assert "0:01:00" = probe form 00:00:01 * 60
+		t2145: 0:00:00 loop 60 [t2145: t2145 + 1]
+		--assert "0:01:00" = probe form t2145
+
 	--test-- "#2136"
 		blk2136: copy []
 		insert/dup blk2136 0 3
