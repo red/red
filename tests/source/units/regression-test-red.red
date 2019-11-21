@@ -2635,10 +2635,10 @@ b}
 		; OPEN
 
 	--test-- "#2145"
-		--assert "0:09:00" = probe form 00:09:00
-		--assert "0:01:00" = probe form 00:00:01 * 60
+		--assert "0:09:00" = form 00:09:00
+		--assert "0:01:00" = form 00:00:01 * 60
 		t2145: 0:00:00 loop 60 [t2145: t2145 + 1]
-		--assert "0:01:00" = probe form t2145
+		--assert "0:01:00" = form t2145
 
 	--test-- "#2136"
 		blk2136: copy []
@@ -2787,11 +2787,6 @@ b}
 		--assert not error? try [3151391351465.995 // 1.0]
 		unset 'true?
 
-	--test-- "#3603"
-		bu3603: reduce [()]
-		rest3603: none
-		--assert bu3603 = back change block3603: [] do/next block3603 'rest3603
-
 	--test-- "#3362"
 		do [											;-- FIXME: compiler doesn't like this
 			spec3362-1: [return 100]
@@ -2802,6 +2797,20 @@ b}
 			--assert unset? context [exit]
 			unset [spec3362-1 spec3362-2]
 		]
+
+	--test-- "#3407"
+		--assert "0:00:00.1"      = form 0:00:01 / 10
+		--assert "0:00:00.01"     = form 0:00:01 / 100
+		--assert "0:00:00.001"    = form 0:00:01 / 1000
+		--assert "0:00:00.0001"   = form 0:00:01 / 10000
+		--assert "0:00:00.00001"  = form 0:00:01 / 100000
+		--assert "0:00:00.000001" = form 0:00:01 / 1000000
+		--assert "0:00:00"        = form 0:00:01 / 10000000
+
+	--test-- "#3603"
+		bu3603: reduce [()]
+		rest3603: none
+		--assert bu3603 = back change block3603: [] do/next block3603 'rest3603
 
 	--test-- "#3739"
 		reactor3739: func [spec] [make deep-reactor! spec]
