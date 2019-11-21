@@ -529,6 +529,9 @@ key-press-event: func [
 ][
 	either null? GET-RESEND-EVENT(evbox) [
 		win: gtk_get_event_widget as handle! event-key
+		unless g_type_check_instance_is_a win gtk_window_get_type [
+			return EVT_DISPATCH
+		]
 		if evbox <> gtk_window_get_focus win [return EVT_NO_DISPATCH]
 	][
 		SET-RESEND-EVENT(evbox null)
