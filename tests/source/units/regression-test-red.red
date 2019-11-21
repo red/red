@@ -2781,6 +2781,30 @@ b}
 		--assert not error? try [3151391351465.995 // 1.0]
 		unset 'true?
 
+	--test-- "#3385"
+		refs3385: [utc precise time year month day yearday weekday zone date]
+		types3385: reduce [
+		    date!		;21-Nov-2019/18:14:33.1411
+		    time!		;18:14:33
+		    integer!	;2019
+		    integer!	;11
+		    integer!	;21
+		    integer!	;325
+		    integer!	;4
+		    time!		;0:00:00
+		    date!		;21-Nov-2019
+		    time!		;21:14:33.1411
+		]    			; rest is none!
+		i3385: 1
+		forall refs3385 [
+			foreach ref3385 next refs3385 [
+				path3385: as path! reduce ['now refs3385/1 ref3385]
+				--assert types3385/:i3385 = attempt [type? do path3385]
+				i3385: i3385 + 1
+			]
+		]
+
+
 	--test-- "#3603"
 		bu3603: reduce [()]
 		rest3603: none
