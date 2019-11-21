@@ -1994,6 +1994,7 @@ system-dialect: make-profilable context [
 				subs: subroutines
 				chunks: none
 				pos: emitter/tail-ptr
+				chunks: emitter/chunks/empty
 				until [
 					set [name code] subs
 					in-subroutine?: name
@@ -2002,16 +2003,18 @@ system-dialect: make-profilable context [
 						set [expr body] comp-block-chunked ;-- compiles subroutine's body
 						emitter/chunks/join chunk body
 						ret: comp-chunked [emitter/target/emit-return-sub]
+						
 						subs/2: reduce [pos get-type expr make block! 4] ;-- [start-ptr type [call-sites]]
 						emitter/chunks/join chunk ret
 						pos: pos + length? chunk/1
-						either chunks [emitter/chunks/join chunks chunk][chunks: chunk] ;-- accumulate chunks
+						emitter/chunks/join chunks chunk ;-- accumulate chunks
 					]
 					in-subroutine?: no
 					tail? subs: skip subs 2
 				]
 				offset: emitter/branch/over chunks		;-- prepend the jump at beginning
 				emitter/merge chunks					;-- commit all the subroutines to code buffer
+				foreach [name spec] head subs [spec/1: spec/1 + offset]
 			]
 		]
 		

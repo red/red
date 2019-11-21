@@ -1300,7 +1300,7 @@ make-profilable make target-class [
 	]
 
 	patch-sub-call: func [buffer [binary!] ptr [integer!] offset [integer!]][
-		change at buffer ptr to-bin32 negate offset + 4 - 2
+		change at buffer ptr to-bin32 negate offset + 5 - 1
 	]
 	
 	patch-jump-back: func [buffer [binary!] offset [integer!]][
