@@ -2195,8 +2195,9 @@ string: context [
 				]
 			]
 		]
+		if zero? len [return str]						;-- early exit if nothing to sort
 
-		if OPTION?(skip) [
+		either OPTION?(skip) [
 			assert TYPE_OF(skip) = TYPE_INTEGER
 			step: skip/value
 			if any [
@@ -2207,6 +2208,8 @@ string: context [
 				ERR_INVALID_REFINEMENT_ARG(refinements/_skip skip)
 			]
 			if step > 1 [len: len / step]
+		][
+			if all? [fire [TO_ERROR(script bad-refines)]]
 		]
 
 		cmp: either all [
@@ -2243,6 +2246,9 @@ string: context [
 					op: as-integer comparator
 				]
 				TYPE_INTEGER [
+					if any [all? not OPTION?(skip)] [
+						fire [TO_ERROR(script bad-refines)]
+					]
 					int: as red-integer! comparator
 					offset: int/value
 					if any [offset < 1 offset > step][
