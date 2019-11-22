@@ -77,7 +77,7 @@ Red/System [
 
 #if OS = 'Linux [
 	draw-ctx!: alias struct! [
-		raw				[int-ptr!]
+		cr				[handle!]
 		pen-join		[integer!]
 		pen-cap			[integer!]
 		pen-width		[float!]
@@ -87,12 +87,11 @@ Red/System [
 		font-color		[integer!]
 		pen?			[logic!]
 		brush?			[logic!]
-		pattern			[int-ptr!]
+		grad-pen		[handle!]
 		on-image?		[logic!]
 		shape-curve?	[logic!]
 		font-attrs		[handle!]					;-- pango attrs for fonts
 		font-opts		[handle!]					;-- cairo opts for fonts
-		layout			[handle!]					;-- Only for draw not for rich-text
 	]
 
 	layout-ctx!: alias struct! [
