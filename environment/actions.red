@@ -458,7 +458,7 @@ sort: make action! [[
 			comparator [integer! block! any-function!]
 		/part "Sort only part of a series"
 			length [number! series!]
-		/all "Compare all fields"
+		/all "Compare all fields (used with /skip)"
 		/reverse "Reverse sort order"
 		/stable "Stable sorting"
 		return:  [series!]
