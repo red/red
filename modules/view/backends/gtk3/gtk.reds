@@ -2523,6 +2523,9 @@ GPtrArray!: alias struct! [
 		cairo_restore: "cairo_restore" [
 			cr			[handle!]
 		]
+		cairo_stroke_preserve: "cairo_stroke_preserve" [
+			cr			[handle!]
+		]
 		cairo_set_source_rgba: "cairo_set_source_rgba" [
 			cr			[handle!]
 			red			[float!]
@@ -2572,6 +2575,10 @@ GPtrArray!: alias struct! [
 			cr			[handle!]
 			antialias	[integer!]
 		]
+		cairo_pattern_set_matrix: "cairo_pattern_set_matrix" [
+			pattern		[handle!]
+			matrix		[cairo_matrix_t!]
+		]
 		cairo_pattern_create_linear: "cairo_pattern_create_linear" [
 			x0			[float!]
 			y0			[float!]
@@ -2606,9 +2613,6 @@ GPtrArray!: alias struct! [
 		cairo_identity_matrix: "cairo_identity_matrix" [
 			cr			[handle!]
 		]
-		cairo_stroke_preserve: "cairo_stroke_preserve" [
-			cr			[handle!]
-		]
 		cairo_get_matrix: "cairo_get_matrix" [
 			cr			[handle!]
 			mat			[cairo_matrix_t!]
@@ -2620,6 +2624,65 @@ GPtrArray!: alias struct! [
 		cairo_transform: "cairo_transform" [
 			cr			[handle!]
 			mat			[cairo_matrix_t!]
+		]
+		cairo_matrix_init: "cairo_matrix_init" [
+			matrix		[cairo_matrix_t!]
+			xx			[float!]
+			yx			[float!]
+			xy			[float!]
+			yy			[float!]
+			x0			[float!]
+			y0			[float!]
+		]
+		cairo_matrix_init_identity: "cairo_matrix_init_identity" [
+			matrix		[cairo_matrix_t!]
+		]
+		cairo_matrix_init_translate: "cairo_matrix_init_translate" [
+			matrix		[cairo_matrix_t!]
+			tx			[float!]
+			ty			[float!]
+		]
+		cairo_matrix_init_scale: "cairo_matrix_init_scale" [
+			matrix		[cairo_matrix_t!]
+			sx			[float!]
+			sy			[float!]
+		]
+		cairo_matrix_init_rotate: "cairo_matrix_init_rotate" [
+			matrix		[cairo_matrix_t!]
+			rad			[float!]
+		]
+		cairo_matrix_translate: "cairo_matrix_translate" [
+			matrix		[cairo_matrix_t!]
+			tx			[float!]
+			ty			[float!]
+		]
+		cairo_matrix_scale: "cairo_matrix_scale" [
+			matrix		[cairo_matrix_t!]
+			sx			[float!]
+			sy			[float!]
+		]
+		cairo_matrix_rotate: "cairo_matrix_rotate" [
+			matrix		[cairo_matrix_t!]
+			rad			[float!]
+		]
+		cairo_matrix_invert: "cairo_matrix_invert" [
+			matrix		[cairo_matrix_t!]
+			return:		[integer!]
+		]
+		cairo_matrix_multiply: "cairo_matrix_multiply" [
+			res			[cairo_matrix_t!]
+			a			[cairo_matrix_t!]
+			b			[cairo_matrix_t!]
+		]
+		cairo_matrix_transform_distance: "cairo_matrix_transform_distance" [
+			matrix		[cairo_matrix_t!]
+			dx			[int-ptr!]
+			dy			[int-ptr!]
+		]
+		cairo_matrix_transform_point: "cairo_matrix_transform_point" [
+			matrix		[cairo_matrix_t!]
+			dx			[int-ptr!]
+			dy			[int-ptr!]
 		]
 		; Related to draw text with cairo (no succes for base widget) replaced by pango_cairo
 		cairo_select_font_face: "cairo_select_font_face" [
