@@ -1841,7 +1841,7 @@ make-profilable make target-class [
 	patch-sub-call: func [buffer [binary!] ptr [integer!] offset [integer!]][
 		change 
 			at buffer ptr
-			reverse to-bin24 shift negate offset + 4 2
+			reverse to-bin24 shift negate offset + 8 2
 	]	
 	
 	patch-jump-back: func [buffer [binary!] offset [integer!]][
