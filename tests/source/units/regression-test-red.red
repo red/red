@@ -2781,11 +2781,6 @@ b}
 		--assert not error? try [3151391351465.995 // 1.0]
 		unset 'true?
 
-	--test-- "#3603"
-		bu3603: reduce [()]
-		rest3603: none
-		--assert bu3603 = back change block3603: [] do/next block3603 'rest3603
-
 	--test-- "#3362"
 		do [											;-- FIXME: compiler doesn't like this
 			spec3362-1: [return 100]
@@ -2796,6 +2791,21 @@ b}
 			--assert unset? context [exit]
 			unset [spec3362-1 spec3362-2]
 		]
+
+	--test-- "#3561"
+		a: reduce ['b does [1 + 2] 'x 'y]
+		--assert do [3 = a/b]							;-- do[] else compiler will not eval `does [1 + 2]`
+		--assert 3 = do 'a/b
+		--assert 3 = do quote a/b
+		--assert 'a/b = do quote 'a/b
+		--assert 'y = a/x
+		--assert 'y = do 'a/x
+		--assert 'y = do quote a/x
+
+	--test-- "#3603"
+		bu3603: reduce [()]
+		rest3603: none
+		--assert bu3603 = back change block3603: [] do/next block3603 'rest3603
 
 	--test-- "#3739"
 		reactor3739: func [spec] [make deep-reactor! spec]
