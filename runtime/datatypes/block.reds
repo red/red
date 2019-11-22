@@ -1250,13 +1250,11 @@ block: context [
 		flags: 0
 		s: GET_BUFFER(blk)
 		head: s/offset + blk/head
-		if head = s/tail [return blk]					;-- early exit if nothing to reverse
 		len: rs-length? blk
 
 		if OPTION?(part) [
 			len2: either TYPE_OF(part) = TYPE_INTEGER [
 				int: as red-integer! part
-				if int/value <= 0 [return blk]			;-- early exit if part <= 0
 				int/value
 			][
 				blk2: as red-block! part
@@ -1278,8 +1276,9 @@ block: context [
 				]
 			]
 		]
+		if zero? len [return blk]						;-- early exit if nothing to sort
 
-		if OPTION?(skip) [
+		either OPTION?(skip) [
 			assert TYPE_OF(skip) = TYPE_INTEGER
 			step: skip/value
 			if any [
@@ -1290,6 +1289,8 @@ block: context [
 				ERR_INVALID_REFINEMENT_ARG(refinements/_skip skip)
 			]
 			if step > 1 [len: len / step]
+		][
+			if all? [fire [TO_ERROR(script bad-refines)]]
 		]
 
 		if reverse? [flags: flags or sort-reverse-mask]
@@ -1307,6 +1308,9 @@ block: context [
 					op: as-integer comparator
 				]
 				TYPE_INTEGER [
+					if any [all? not OPTION?(skip)] [
+						fire [TO_ERROR(script bad-refines)]
+					]
 					int: as red-integer! comparator
 					offset: int/value
 					if any [offset < 1 offset > step][
@@ -1322,7 +1326,7 @@ block: context [
 				]
 			]
 		][
-			if all [all? OPTION?(skip)] [
+			if all? [
 				flags: flags or sort-all-mask
 				flags: step << 2 or flags
 			]
