@@ -1103,22 +1103,33 @@ block: context [
 		return:  [integer!]
 		/local
 			offset	[integer!]
+			count	[integer!]
 			res		[integer!]
 			temp	[red-value!]
 			action-compare
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/compare-value"]]
 
-		offset: flags >>> 1
-		value1: value1 + offset
-		value2: value2 + offset
+		either flags and sort-all-mask = sort-all-mask [
+			count: flags >>> 2
+		][
+			count: 1
+			offset: flags >>> 2
+			value1: value1 + offset
+			value2: value2 + offset
+		]
 		if flags and sort-reverse-mask = sort-reverse-mask [
 			temp: value1 value1: value2 value2: temp
 		]
-		action-compare: DISPATCH_COMPARE(value1)
+		loop count [
+			action-compare: DISPATCH_COMPARE(value1)
+			res: action-compare value1 value2 op
+			if res = -2 [res: TYPE_OF(value1) - TYPE_OF(value2)]
 
-		res: action-compare value1 value2 op
-		if res = -2 [res: TYPE_OF(value1) - TYPE_OF(value2)]
+			unless zero? res [break]
+			value1: value1 + 1
+			value2: value2 + 1
+		]
 		res
 	]
 
@@ -1285,7 +1296,7 @@ block: context [
 		op: either case? [COMP_CASE_SORT][COMP_SORT]
 		cmp: as-integer :compare-value
 
-		if OPTION?(comparator) [
+		either OPTION?(comparator) [
 			switch TYPE_OF(comparator) [
 				TYPE_FUNCTION [
 					if all [all? OPTION?(skip)] [
@@ -1304,11 +1315,16 @@ block: context [
 							comparator
 						]
 					]
-					flags: offset - 1 << 1 or flags
+					flags: offset - 1 << 2 or flags
 				]
 				default [
 					ERR_INVALID_REFINEMENT_ARG(refinements/compare comparator)
 				]
+			]
+		][
+			if all [all? OPTION?(skip)] [
+				flags: flags or sort-all-mask
+				flags: step << 2 or flags
 			]
 		]
 		saved: collector/active?
