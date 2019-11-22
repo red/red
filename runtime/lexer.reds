@@ -852,22 +852,13 @@ lexer: context [
 
 	scan-string: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
+			len unit index class digits extra cp type [integer!]
 			str    [red-string!]
 			ser	   [series!]
-			p	   [byte-ptr!]
-			pos	   [byte-ptr!]
+			p pos  [byte-ptr!]
 			p4	   [int-ptr!]
-			len	   [integer!]
-			unit   [integer!]
-			index  [integer!]
-			class  [integer!]
-			digits [integer!]
-			extra  [integer!]
-			cp	   [integer!]
-			type   [integer!]
-			esc	   [byte!]
+			esc	c  [byte!]
 			w?	   [logic!]
-			c	   [byte!]
 	][
 		s: s + 1										;-- skip start delimiter
 		len: as-integer e - s
@@ -1060,7 +1051,7 @@ lexer: context [
 
 	scan-file: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
-			p	 [byte-ptr!]
+			p [byte-ptr!]
 	][
 		flags: flags and not C_FLAG_CARET				;-- clears caret flag
 		either s/2 = #"^"" [s: s + 1][					;-- skip "
@@ -1078,9 +1069,7 @@ lexer: context [
 			bin	 [red-binary!]
 			err	 [byte-ptr!]
 			ser	 [series!]
-			len	 [integer!]
-			size [integer!]
-			base [integer!]
+			len size base [integer!]
 	][
 		either s/1 = #"#" [base: 16][					;-- default base
 			base: 0
@@ -1115,8 +1104,7 @@ lexer: context [
 	scan-char: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
 			char  [red-char!]
-			len	  [integer!]
-			c	  [integer!]
+			len	c [integer!]
 	][
 		assert all [s/1 = #"#" s/2 = #"^"" e/1 = #"^""]
 		len: as-integer e - s
@@ -1146,10 +1134,8 @@ lexer: context [
 	scan-construct: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
 			dt		[red-datatype!]
-			p		[int-ptr!]
-			dtypes	[int-ptr!]
-			end		[int-ptr!]
 			len		[integer!]
+			p dtypes end [int-ptr!]
 	][
 		s: s + 2										;-- skip #[
 		p: cons-syntax
@@ -1205,10 +1191,9 @@ lexer: context [
 	scan-integer: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		return: [integer!]
 		/local
-			p	[byte-ptr!]
-			len [integer!]
-			i	[integer!]
-			o?  [logic!]
+			p	  [byte-ptr!]
+			len i [integer!]
+			o?	  [logic!]
 	][
 		p: s
 		if flags and C_FLAG_SIGN <> 0 [p: p + 1]		;-- skip sign if present
@@ -1327,16 +1312,21 @@ lexer: context [
 
 	scan-date: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
-			err year month day hour min tz-h tz-m len ylen dlen value [integer!]
-			do-error check-err check-all grab2 grab2r grab2-max [subroutine!]
-			p me			[byte-ptr!]
-			m 	 			[int-ptr!]
-			sec	tm			[float!]
-			time? TZ? neg?	[logic!]
-			sep				[byte!]
+			err year month day hour min tz-h tz-m len ylen dlen value
+			week wday yday 	 [integer!]
+			do-error check-err check-all grab2 grab2r grab2-max grab-time-TZ
+			store-date grab4 [subroutine!]
+			dt				 [red-date!]
+			p me			 [byte-ptr!]
+			m 	 			 [int-ptr!]
+			sec	tm			 [float!]
+			time? TZ? neg?	 [logic!]
+			sep				 [byte!]
 	][
 		p: s
-		err: year: month: day: hour: min: tz-h: tz-m: 0
+		dt: null 
+		me: null
+		err: year: month: day: hour: min: tz-h: tz-m: week: wday: yday: 0
 		sec: tm: 0.0
 		time?: TZ?: no
 		
@@ -1358,10 +1348,41 @@ lexer: context [
 			check-err
 			value
 		]
+		grab4: [
+			me: p
+			p: grab-digits p e 0 4 :value :err
+			check-err
+			value
+		]
+		grab-time-TZ: [
+			time?: yes
+			hour: grab2-max
+			if p/1 <> #":" [do-error]
+			min: grab2-max
+			if p < e [
+				if p/1 = #":" [p: grab-float p + 1 e :sec :err]
+				if all [p < e p/1 <> #"Z"][
+					neg?: p/1 = #"-"
+					either any [p/1 = #"+" neg?][
+						TZ-h: grab2-max
+						if neg? [TZ-h: 0 - TZ-h]
+						if p < e [
+							if p/1 = #":" [p: p + 1]
+							p: grab-digits p e 0 2 :TZ-m :err
+						]
+					][
+						do-error
+					]
+				]
+			]
+			tm: (3600.0 * as-float hour) + (60.0 * as-float min) + sec
+		]
+		store-date: [
+			dt: date/make-at2 alloc-slot lex year month day tm tz-h tz-m time? TZ?
+			lex/in-pos: e								;-- reset the input position to delimiter byte
+		]
 		
-		me: p
-		p: grab-digits p e 0 4 :year :err
-		check-err
+		year: grab4
 		ylen: as-integer p - me
 		sep: p/1
 		either all [sep >= #"0" sep <= #"9"][			;-- ISO dates
@@ -1388,17 +1409,39 @@ lexer: context [
 				]
 			]
 		][
-			if all [sep <> #"-" sep <> #"/"][do-error]
+			either sep = #"-" [
+				if all [ylen = 4 p/2 = #"W"][
+					day: month: 1
+					p: p + 2
+					week: grab2r
+					if all [p < e p/1 = #"-"][
+						p: grab-digits p + 1 e 1 1 :wday :err
+					]
+					if all [p < e p/1 = #"T"][grab-time-TZ]
+					store-date
+					if week or wday <> 0 [date/set-isoweek dt week]	;-- yyyy-Www
+					if wday <> 0 [
+						if any [wday < 1 wday > 7][do-error]
+						date/set-weekday dt wday			;-- yyyy-Www-d
+					]
+					exit
+				]
+				me: p + 1
+				p: grab-digits me e 0 3 :month :err
+				if all [zero? err 3 = as-integer p - me][
+					if zero? month [do-error]
+					yday: month
+					day: month: 1
+					if all [p < e p/1 = #"T"][grab-time-TZ]
+					store-date
+					date/set-yearday dt yday			;-- yyyy-ddd
+					exit
+				]
+			][
+				if sep <> #"/" [do-error]
+				p: grab-digits p + 1 e 0 2 :month :err
+			]
 
-			;if all [sep = #"-" ylen = 4 p/2 = #"W"][
-			;	p: grab-digits p + 2 e 2 2 :week :err
-			;	if err <> 0 [do-error]
-			;	if all [p < e p/1 = #"-"][
-			;		p: grab-digits p + 2 e 1 1 :wday :err
-			;	]
-			;]
-
-			p: grab-digits p + 1 e 0 2 :month :err
 			if err <> 0 [
 				me: p
 				while [all [me < e me/1 <> sep]][me: me + 1]
@@ -1416,40 +1459,15 @@ lexer: context [
 			]
 			if p/1 <> sep [do-error]
 			p: p + 1
-			me: p
-			p: grab-digits p e 0 4 :day :err			;-- could be year also
-			check-err
+			day: grab4									;-- could be year also
 			dlen: as-integer p - me
 			if day > year [len: day day: year year: len ylen: dlen]
 			if all [year < 100 ylen <= 2][				;-- expand short yy forms
 				ylen: either year < 50 [2000][1900]
 				year: year + ylen
 			]
-			if all [p < e any [p/1 = #"/" p/1 = #"T"]][
-				time?: yes
-				hour: grab2-max
-				if p/1 <> #":" [do-error]
-				min: grab2-max
-				if p < e [
-					if p/1 = #":" [p: grab-float p + 1 e :sec :err]
-					if all [p < e p/1 <> #"Z"][
-						neg?: p/1 = #"-"
-						either any [p/1 = #"+" neg?][
-							TZ-h: grab2-max
-							if neg? [TZ-h: 0 - TZ-h]
-							if p < e [
-								if p/1 = #":" [p: p + 1]
-								p: grab-digits p e 0 2 :TZ-m :err
-							]
-						][
-							do-error
-						]
-					]
-				]
-			]
+			if all [p < e any [p/1 = #"/" p/1 = #"T"]][grab-time-TZ]
 		]
-		if time? [tm: (3600.0 * as-float hour) + (60.0 * as-float min) + sec]
-		
 		if any [
 			day > 31 month > 12 year > 9999 year < -9999
 			tz-h > 15 tz-h < -15						;-- out of range TZ
@@ -1458,8 +1476,7 @@ lexer: context [
 		][
 			do-error
 		]
-		date/make-at2 alloc-slot lex year month day tm tz-h tz-m time? TZ?
-		lex/in-pos: e									;-- reset the input position to delimiter byte
+		store-date
 	]
 
 	scan-date2: func [lex [state!] s e [byte-ptr!] flags [integer!]
