@@ -1297,11 +1297,9 @@ lexer: context [
 	
 	scan-tuple: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
-			cell [cell!]
-			i	 [integer!]
-			pos  [integer!]
-			tp	 [byte-ptr!]
-			p	 [byte-ptr!]
+			cell  [cell!]
+			i pos [integer!]
+			tp p  [byte-ptr!]
 	][
 		cell: alloc-slot lex
 		tp: (as byte-ptr! cell) + 4
@@ -1329,69 +1327,65 @@ lexer: context [
 
 	scan-date: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
-			p	  [byte-ptr!]
-			me	  [byte-ptr!]
-			m	  [int-ptr!]
-			err	  [integer!]
-			year  [integer!]
-			month [integer!]
-			day	  [integer!]
-			hour  [integer!]
-			min	  [integer!]
-			tz-h  [integer!]
-			tz-m  [integer!]
-			len	  [integer!]
-			ylen  [integer!]
-			dlen  [integer!]
-			sec	  [float!]
-			tm	  [float!]
-			sep	  [byte!]
-			time? [logic!]
-			TZ?	  [logic!]
-			neg?  [logic!]
+			err year month day hour min tz-h tz-m len ylen dlen value [integer!]
+			do-error check-err check-all grab2 grab2r [subroutine!]
+			p me			[byte-ptr!]
+			m 	 			[int-ptr!]
+			sec	tm			[float!]
+			time? TZ? neg?	[logic!]
+			sep				[byte!]
 	][
 		p: s
 		err: year: month: day: hour: min: tz-h: tz-m: 0
 		sec: tm: 0.0
 		time?: TZ?: no
 		
+		do-error:  [throw-error lex s e TYPE_DATE]
+		check-err: [if err <> 0 [do-error]]
+		check-all: [if any [err <> 0 p = e][do-error]]
+		grab2: [
+			p: grab-digits p e 2 2 :value :err
+			check-all
+			value
+		]
+		grab2r: [
+			p: grab-digits p e 2 2 :value :err
+			check-err
+			value
+		]
 		me: p
 		p: grab-digits p e 0 4 :year :err
+		check-err
 		ylen: as-integer p - me
-		if err <> 0 [throw-error lex s e TYPE_DATE]
 		sep: p/1
 		either all [sep >= #"0" sep <= #"9"][			;-- ISO dates
-			p: grab-digits p e 2 2 :month :err
-			if any [err <> 0 p = e][throw-error lex s e TYPE_DATE]
-			p: grab-digits p e 2 2 :day :err
-			if any [err <> 0 p = e p/1 <> #"T"][throw-error lex s e TYPE_DATE]
+			month: grab2
+			day:   grab2
+			if p/1 <> #"T" [do-error]
 			time?: yes
-			p: grab-digits p + 1 e 2 2 :hour :err
-			if any [err <> 0 p = e][throw-error lex s e TYPE_DATE]
-			p: grab-digits p e 2 2 :min :err
-			if any [err <> 0 p = e][throw-error lex s e TYPE_DATE]
+			p: p + 1
+			hour: grab2
+			min:  grab2
 			if p/1 <> #"Z" [
 				p: grab-float p e :sec :err
 				if all [p < e p/1 <> #"Z"][
 					TZ?: yes
 					neg?: p/1 = #"-"
 					either any [p/1 = #"+" neg?][
-						p: grab-digits p + 1 e 2 2 :TZ-h :err
-						if err <> 0 [throw-error lex s e TYPE_DATE]
+						TZ-h: grab2r
 						if neg? [TZ-h: 0 - TZ-h]
-						p: grab-digits p e 2 2 :TZ-m :err
-						if err <> 0 [throw-error lex s e TYPE_DATE]
+						TZ-m: grab2r
 					][
-						throw-error lex s e TYPE_DATE
+						do-error
 					]
 				]
 			]
 		][
-			if all [sep <> #"-" sep <> #"/"][throw-error lex s e TYPE_DATE]
+			if all [sep <> #"-" sep <> #"/"][do-error]
 
-			;either all [sep = #"-" ylen = 4 p/2 = #"W"][
+			;if all [sep = #"-" ylen = 4 p/2 = #"W"][
 			;	p: grab-digits p + 2 e 2 2 :week :err
-			;	if err <> 0 [throw-error lex s e TYPE_DATE]
+			;	if err <> 0 [do-error]
 			;	if all [p < e p/1 = #"-"][
 			;		p: grab-digits p + 2 e 1 1 :wday :err
 			;	]
@@ -1402,23 +1396,23 @@ lexer: context [
 				me: p
 				while [all [me < e me/1 <> sep]][me: me + 1]
 				len: as-integer me - p
-				if any [len < 3 len > 9][throw-error lex s e TYPE_DATE] ;-- invalid month name
+				if any [len < 3 len > 9][do-error] ;-- invalid month name
 				m: months
 				loop 12 [
 					if zero? platform/strnicmp p as byte-ptr! m/1 len [break]
 					m: m + 1
 				]
-				if months + 12 = m [throw-error lex s e TYPE_DATE] ;-- invalid month name
+				if months + 12 = m [do-error] ;-- invalid month name
 				month: (as-integer m - months) >> 2 + 1
 				err: 0
 				p: me
 			]
-			if p/1 <> sep [throw-error lex s e TYPE_DATE]
+			if p/1 <> sep [do-error]
 			p: p + 1
 			me: p
 			p: grab-digits p e 0 4 :day :err			;-- could be year also
+			check-err
 			dlen: as-integer p - me
-			if err <> 0 [throw-error lex s e TYPE_DATE]
 			if day > year [len: day day: year year: len ylen: dlen]
 			if all [year < 100 ylen <= 2][				;-- expand short yy forms
 				ylen: either year < 50 [2000][1900]
@@ -1427,9 +1421,10 @@ lexer: context [
 			if all [p < e any [p/1 = #"/" p/1 = #"T"]][
 				time?: yes
 				p: grab-digits p + 1 e 0 2 :hour :err
-				if any [err <> 0 p = e p/1 <> #":"][throw-error lex s e TYPE_DATE]
+				check-err
+				if p/1 <> #":" [do-error]
 				p: grab-digits p + 1 e 0 2 :min :err
-				if err <> 0 [throw-error lex s e TYPE_DATE]
+				check-err
 				if p < e [
 					if p/1 = #":" [p: grab-float p + 1 e :sec :err]
 					if all [p < e p/1 <> #"Z"][
@@ -1437,13 +1432,13 @@ lexer: context [
 						either any [p/1 = #"+" neg?][
 							p: grab-digits p + 1 e 0 2 :TZ-h :err
 							if neg? [TZ-h: 0 - TZ-h]
-							if err <> 0 [throw-error lex s e TYPE_DATE]
+							check-err
 							if p < e [
 								if p/1 = #":" [p: p + 1]
 								p: grab-digits p e 0 2 :TZ-m :err
 							]
 						][
-							throw-error lex s e TYPE_DATE
+							do-error
 						]
 					]
 				]
@@ -1457,8 +1452,8 @@ lexer: context [
 			hour > 23 min > 59 sec >= 60.0
 			all [day = 29 month = 2 not date/leap-year? year]
 		][
-			throw-error lex s e TYPE_DATE
-		]	
+			do-error
+		]
 		date/make-at2 alloc-slot lex year month day tm tz-h tz-m time? TZ?
 		lex/in-pos: e									;-- reset the input position to delimiter byte
 	]
