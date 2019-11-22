@@ -462,10 +462,9 @@ Red [
 		; TODO: example throws strange compiler error
 
 	--test-- "#497"
-		; FIXME: still unsolved
-		;b: [1]
-		;p: 'b/1
-		;--assert equal? 1 do p
+		b: [1]
+		p: 'b/1
+		--assert equal? 1 do p
 
 	--test-- "#498"
 		--assert  equal? {{""}} mold mold {}
