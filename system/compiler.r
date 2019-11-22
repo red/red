@@ -1969,7 +1969,7 @@ system-dialect: make-profilable context [
 		]
 
 		preprocess-subroutines: func [spec [block!] body [block!]
-			/local rule p type name code expr chunks chunk ret offset pos
+			/local rule p type name code expr chunks chunk ret offset base
 		][
 			clear subroutines
 			subs: clear []
@@ -1993,7 +1993,7 @@ system-dialect: make-profilable context [
 			unless empty? subroutines [
 				subs: subroutines
 				chunks: none
-				pos: emitter/tail-ptr
+				base:   emitter/tail-ptr
 				chunks: emitter/chunks/empty
 				until [
 					set [name code] subs
@@ -2001,12 +2001,10 @@ system-dialect: make-profilable context [
 					fetch-into reduce [code][
 						chunk: comp-chunked [emitter/target/emit-init-sub]
 						set [expr body] comp-block-chunked ;-- compiles subroutine's body
+						subs/2: reduce [base + length? chunks/1 get-type expr make block! 4] ;-- [start-ptr type [call-sites]]
 						emitter/chunks/join chunk body
 						ret: comp-chunked [emitter/target/emit-return-sub]
-						
-						subs/2: reduce [pos get-type expr make block! 4] ;-- [start-ptr type [call-sites]]
 						emitter/chunks/join chunk ret
-						pos: pos + length? chunk/1
 						emitter/chunks/join chunks chunk ;-- accumulate chunks
 					]
 					in-subroutine?: no
