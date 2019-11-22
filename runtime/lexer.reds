@@ -1403,13 +1403,13 @@ lexer: context [
 				me: p
 				while [all [me < e me/1 <> sep]][me: me + 1]
 				len: as-integer me - p
-				if any [len < 3 len > 9][do-error] ;-- invalid month name
+				if any [len < 3 len > 9][do-error]		;-- invalid month name
 				m: months
 				loop 12 [
 					if zero? platform/strnicmp p as byte-ptr! m/1 len [break]
 					m: m + 1
 				]
-				if months + 12 = m [do-error] ;-- invalid month name
+				if months + 12 = m [do-error]			;-- invalid month name
 				month: (as-integer m - months) >> 2 + 1
 				err: 0
 				p: me
