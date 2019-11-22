@@ -1328,7 +1328,7 @@ lexer: context [
 	scan-date: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
 			err year month day hour min tz-h tz-m len ylen dlen value [integer!]
-			do-error check-err check-all grab2 grab2r [subroutine!]
+			do-error check-err check-all grab2 grab2r grab2-max [subroutine!]
 			p me			[byte-ptr!]
 			m 	 			[int-ptr!]
 			sec	tm			[float!]
@@ -1353,6 +1353,12 @@ lexer: context [
 			check-err
 			value
 		]
+		grab2-max: [
+			p: grab-digits p + 1 e 0 2 :value :err
+			check-err
+			value
+		]
+		
 		me: p
 		p: grab-digits p e 0 4 :year :err
 		check-err
@@ -1372,6 +1378,7 @@ lexer: context [
 					TZ?: yes
 					neg?: p/1 = #"-"
 					either any [p/1 = #"+" neg?][
+						p: p + 1
 						TZ-h: grab2r
 						if neg? [TZ-h: 0 - TZ-h]
 						TZ-m: grab2r
@@ -1420,19 +1427,16 @@ lexer: context [
 			]
 			if all [p < e any [p/1 = #"/" p/1 = #"T"]][
 				time?: yes
-				p: grab-digits p + 1 e 0 2 :hour :err
-				check-err
+				hour: grab2-max
 				if p/1 <> #":" [do-error]
-				p: grab-digits p + 1 e 0 2 :min :err
-				check-err
+				min: grab2-max
 				if p < e [
 					if p/1 = #":" [p: grab-float p + 1 e :sec :err]
 					if all [p < e p/1 <> #"Z"][
 						neg?: p/1 = #"-"
 						either any [p/1 = #"+" neg?][
-							p: grab-digits p + 1 e 0 2 :TZ-h :err
+							TZ-h: grab2-max
 							if neg? [TZ-h: 0 - TZ-h]
-							check-err
 							if p < e [
 								if p/1 = #":" [p: p + 1]
 								p: grab-digits p e 0 2 :TZ-m :err
