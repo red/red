@@ -884,8 +884,7 @@ path-thru: function [
 	so: system/options
 	unless so/thru-cache [make-dir/deep so/thru-cache: append copy so/cache %cache/]
 
-	hash: checksum form url 'MD5
-	file: head (remove back tail remove remove (form hash))
+	file: checksum form url 'MD5
 	path: dirize append copy so/thru-cache copy/part file 2
 	unless exists? path [make-dir path] 
 	append path file
