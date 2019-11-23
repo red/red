@@ -391,7 +391,7 @@ Red [
   --assert 6 = select hs-append-1 'c
 
   --test-- "series-append-25"
-  --assert "a#{6263}" = append "a" #{6263}
+  --assert "a6263" = append "a" #{6263}
   --assert #{6162} = append #{} "ab"
 
   --test-- "series-append-26"
