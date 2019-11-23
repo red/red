@@ -1311,37 +1311,6 @@ dtoa: context [
 		BIGCOMP_BREAK
 	]
 
-	parse-exponent: func [
-		s		[byte-ptr!]
-		end		[byte-ptr!]
-		return: [integer!]
-		/local
-			c	 [byte!]
-			n	 [integer!]
-			neg? [logic!]
-	][
-		neg?: no
-
-		c: s/1
-		if any [
-			c = #"+"
-			c = #"-"
-		][
-			neg?: c = #"-"
-			s: s + 1
-		]
-
-		n: 0
-		until [
-			c: s/1 - #"0"
-			n: n * 10
-			n: n + c
-			s: s + 1
-			s = end
-		]
-		either neg? [0 - n][n]
-	]
-
 	#define STRTOD_UNDERFLOW [return 0.0]
 
 	to-float: func [
@@ -1354,8 +1323,8 @@ dtoa: context [
 			rv rv0 aadj2 aadj aadj1 adj [float!]
 			bb bb1 bd bd0 bs delta [big-int!]
 			bbe bb2 bb5 bd2 bd5 bs2 dsign e e1 w0 w1 ndigits fraclen
-			i j k nd nd0 odd y z L [integer!]
-			neg? next? [logic!]
+			i j k nd nd0 odd y z L n [integer!]
+			neg? next? e-neg? [logic!]
 			s s0 s1 [byte-ptr!]
 			d d0 d2 [int64!]
 			c  [byte!]
@@ -1479,14 +1448,33 @@ dtoa: context [
 		e: 0
 		if any [c = #"e" c = #"E"][
 			s: s + 1
-			e: parse-exponent s end
+			e-neg?: no
+
+			c: s/1
+			if any [
+				c = #"+"
+				c = #"-"
+			][
+				e-neg?: c = #"-"
+				s: s + 1
+			]
+
+			n: 0
+			until [
+				c: s/1 - #"0"
+				n: n * 10
+				n: n + c
+				s: s + 1
+				s = end
+			]
+			e: either e-neg? [0 - n][n]
 		]
 
 		e: e - (nd - nd0)
 		if nd0 <= 0 [nd0: nd]
 
 		;-- finish parsing
-		if ret <> null [ret/value: 0]
+		if ret <> null [ret/value: as-integer s <> end]
 
 		if zero? nd [return either neg? [d/int2: 80000000h rv][0.0]]
 
