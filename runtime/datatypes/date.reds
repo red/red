@@ -556,6 +556,7 @@ date: context [
 			dt/time: to-utc-time tm DATE_GET_ZONE(dt/date)
 		][
 			dt/date: DATE_CLEAR_TIME_FLAG(dt/date)
+			dt/time: 0.0
 		]
 		dt
 	]

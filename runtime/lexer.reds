@@ -1282,7 +1282,7 @@ lexer: context [
 			err year month day hour min tz-h tz-m len ylen dlen value
 			week wday yday 	 [integer!]
 			do-error check-err check-all grab2 grab2r grab2-max grab-time-TZ
-			store-date grab4 [subroutine!]
+			store-date grab4 calc-time [subroutine!]
 			dt				 [red-date!]
 			p me			 [byte-ptr!]
 			m 	 			 [int-ptr!]
@@ -1300,6 +1300,7 @@ lexer: context [
 		do-error:  [throw-error lex s e TYPE_DATE]
 		check-err: [if err <> 0 [do-error]]
 		check-all: [if any [err <> 0 p = e][do-error]]
+		calc-time: [tm: (3600.0 * as-float hour) + (60.0 * as-float min) + sec]
 		grab2: [										;-- grab int from 2 digits exactly
 			p: grab-digits p e 2 2 :value :err
 			check-all									;-- bound error check
@@ -1329,7 +1330,7 @@ lexer: context [
 			if p/1 <> #":" [do-error]
 			min: grab2-max
 			if p < e [
-				if p/1 = #":" [p: grab-float p + 1 e :sec :err]
+				if p/1 = #":" [p: grab-float p + 1 e :sec :err check-err]
 				if all [p < e p/1 <> #"Z"][
 					neg?: p/1 = #"-"
 					either any [p/1 = #"+" neg?][
@@ -1344,7 +1345,7 @@ lexer: context [
 					]
 				]
 			]
-			tm: (3600.0 * as-float hour) + (60.0 * as-float min) + sec
+			calc-time
 		]
 		store-date: [
 			dt: date/make-at alloc-slot lex year month day tm tz-h tz-m time? TZ?
@@ -1364,6 +1365,7 @@ lexer: context [
 			min:  grab2
 			if p/1 <> #"Z" [							;-- yyymmddThhmmZ
 				p: grab-float p e :sec :err
+				check-err
 				if all [p < e p/1 <> #"Z"][
 					TZ?: yes
 					neg?: p/1 = #"-"
@@ -1377,6 +1379,7 @@ lexer: context [
 					]
 				]
 			]
+			calc-time
 		][
 			either sep = #"-" [
 				if all [ylen = 4 p/2 = #"W"][			;-- yyyy-Www
@@ -1430,7 +1433,9 @@ lexer: context [
 			p: p + 1
 			day: grab4									;-- could be year also
 			dlen: as-integer p - me
-			if day > year [len: day day: year year: len ylen: dlen] ;-- swap day<=>year
+			if any [dlen > ylen day > year][
+				len: day day: year year: len ylen: dlen ;-- swap day <=> year
+			]
 			if all [year < 100 ylen <= 2][				;-- expand short yy forms
 				ylen: either year < 50 [2000][1900]
 				year: year + ylen
