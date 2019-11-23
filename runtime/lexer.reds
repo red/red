@@ -1345,7 +1345,7 @@ lexer: context [
 			tm: (3600.0 * as-float hour) + (60.0 * as-float min) + sec
 		]
 		store-date: [
-			dt: date/make-at2 alloc-slot lex year month day tm tz-h tz-m time? TZ?
+			dt: date/make-at alloc-slot lex year month day tm tz-h tz-m time? TZ?
 			lex/in-pos: e								;-- reset the input position to delimiter byte
 		]
 		

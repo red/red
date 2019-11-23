@@ -523,42 +523,6 @@ date: context [
 	
 	make-at: func [
 		slot	[red-value!]
-		date	[lexer-dt-array!]
-		time?	[logic!]
-		neg-TZ? [logic!]
-		return: [red-date!]
-		/local
-			year [integer!]
-			tz-h [integer!]
-			dt	 [red-date!]
-			d	 [integer!]
-			z    [integer!]
-	][
-		year: date/year
-		tz-h: date/tz-h
-		if any [
-			date/day > 31 date/month > 12 year > 9999
-			tz-h > 15 tz-h < -15						;-- out of range TZ
-			date/hour > 23 date/min > 59 date/sec > 59
-			all [date/day = 29 date/month = 2 not leap-year? year]
-		][return null]
-		
-		dt: as red-date! slot
-		set-all dt year date/month date/day date/hour date/min date/sec date/nsec
-		
-		z: tz-h << 2 and 7Fh or (date/tz-m / 15)
-		if neg-TZ? [z: DATE_SET_ZONE_NEG(z)]
-		dt/date: DATE_SET_ZONE(dt/date z)
-		either time? [
-			dt/time: to-utc-time dt/time DATE_GET_ZONE(dt/date)
-		][
-			dt/date: DATE_CLEAR_TIME_FLAG(dt/date)
-		]
-		dt
-	]
-
-	make-at2: func [
-		slot	[red-value!]
 		year	[integer!]
 		month	[integer!]
 		day		[integer!]
