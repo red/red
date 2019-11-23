@@ -748,15 +748,6 @@ dtoa: context [
 		f - 6755399441055744.0
 	]
 
-	#define DTOA_RETERN_1 [
-		Bfree b
-		s/1: #"^@"
-		decpt/value: k + 1
-		sign/value: as-integer sign?
-		length/value: as-integer s - s0
-		return s0
-	]
-
 	#define DTOA_RETERN [
 		Bfree SS
 		if mhi <> null [
@@ -765,7 +756,7 @@ dtoa: context [
 			]
 			Bfree mhi
 		]
-		DTOA_RETERN_1
+		DTOA_RETURN_1
 	]
 
 	#define DTOA_ROUND_OFF [
@@ -793,13 +784,14 @@ dtoa: context [
 		add-0?	[logic!]
 		return: [c-string!]
 		/local
-			mlo [big-int!]
-			mhi [big-int!]
-			SS 	[big-int!]
-			fsave bbits b2 b5 be dig i j j1
-			k k0 ki k_check m2 m5 s2 s5 kf
-			spec_case L denorm x d d2 sign?
-			b b1 delta ds s s0 w0 w1 ww0 ilim
+			b b1 mlo mhi SS delta [big-int!]
+			s s0 [c-string!]
+			DTOA_RETURN_1 [subroutine!]
+			fsave ds kf [float!]
+			bbits b2 b5 be i j j1 k k0 ki m2 m5 s2 s5 L x w0 w1 ww0 ilim [integer!]
+			sign? spec_case denorm k_check [logic!]
+			d d2 [int64!]
+			dig [byte!]
 	][
 		s0:    "-000000000000000000000000000000"		;-- 32 bits including ending null char
 		s:     s0 + 1
@@ -814,6 +806,15 @@ dtoa: context [
 		w0:    WORD_0(d)
 		w1:    WORD_1(d)
 
+		DTOA_RETURN_1: [
+			Bfree b
+			s/1: #"^@"
+			decpt/value: k + 1
+			sign/value: as-integer sign?
+			length/value: as-integer s - s0
+			return s0
+		]
+	
 		either zero? (w0 and DTOA_SIGN_BIT) [
 			sign?: no
 		][
@@ -940,7 +941,7 @@ dtoa: context [
 				i: i + 1
 				f: f * 10.0
 			]
-			DTOA_RETERN_1
+			DTOA_RETURN_1
 		]
 
 		m2: b2
@@ -1224,18 +1225,6 @@ dtoa: context [
 		]
 	]
 
-	#define BIGCOMP_BREAK [
-		Bfree b
-		Bfree d
-		if any [
-			dd > 0
-			all [zero? dd odd <> 0]
-		][
-			f/value: f/value + sulp f/value bc
-		]
-		exit
-	]
-
 	bigcomp: func [
 		rv		[int64!]
 		s0		[byte-ptr!]
@@ -1254,7 +1243,20 @@ dtoa: context [
 			p2	[integer!]
 			p5	[integer!]
 			dd	[integer!]
+			BIGCOMP_BREAK [subroutine!]
 	][
+		BIGCOMP_BREAK: [
+			Bfree b
+			Bfree d
+			if any [
+				dd > 0
+				all [zero? dd odd <> 0]
+			][
+				f/value: f/value + sulp f/value bc
+			]
+			exit
+		]
+
 		f:   as pointer! [float!] rv
 		nd:  bc/nd
 		nd0: bc/nd0
@@ -1483,7 +1485,7 @@ dtoa: context [
 		if nd0 <= 0 [nd0: nd]
 
 		;-- finish parsing
-		if ret <> null [ret/value: -1]
+		if ret <> null [ret/value: 0]
 
 		if zero? nd [return either neg? [d/int2: 80000000h rv][0.0]]
 
