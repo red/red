@@ -1699,14 +1699,10 @@ Red [
 		--assert logic? false
 
 	--test-- "#1477"
-		; not sure if spawning lots of files is a good idea for a general test script
-		; FIXME: perhaps there should be a dedicated script for this
-		; commenting this out for now 			-- hiiamboris
-
-		; write %test.txt ""
-		; write/append %test.txt "hi"
-		; write/append %test.txt "there"
-		; --assert equal? "hithere" read %test.txt
+		write qt-tmp-file ""
+		write/append qt-tmp-file "hi"
+		write/append qt-tmp-file "there"
+		--assert equal? "hithere" read qt-tmp-file
 
 	; --test-- "#1479"
 		; GUI
@@ -2476,12 +2472,8 @@ b}
 		--assert error? try [set 'vv2021 first reduce [()]]
 	
 	--test-- "#2024"
-		; not sure if spawning lots of files is a good idea for a general test script
-		; FIXME: perhaps there should be a dedicated script for this
-		; commenting this out for now 			-- hiiamboris
-		
-		; write %test.txt "abcdef"
-		; --assert equal? "bcdef" read/seek %test.txt 1
+		write qt-tmp-file "abcdef"
+		--assert equal? "bcdef" read/seek qt-tmp-file 1
 
 	--test-- "#2031"
 		--assert equal? ["1" "3" "" "3" "" ""] split "1,3,.3,," charset ".,"
@@ -2520,17 +2512,13 @@ b}
 		; GUI
 
 	; --test-- "#2072"
-		; not sure if spawning lots of files is a good idea for a general test script
-		; FIXME: perhaps there should be a dedicated script for this
-		; commenting this out for now 			-- hiiamboris
-
-		; m: make map! 10
-		; a: [1 2 3]
-		; m/a: a
-		; save %file m
-		; n: load %file
-		; --assert equal? m n
-		; unset [a m n]
+		m2072: make map! 10
+		a2072: [1 2 3]
+		m2072/a: a2072
+		save qt-tmp-file m2072
+		n2072: load qt-tmp-file
+		--assert equal? m2072 n2072
+		unset [a2072 m2072 n2072]
 
 	--test-- "#2077"
 		; NOTE: shouldn't override the `sum` func, or next tests using it may fail
@@ -2569,31 +2557,33 @@ b}
 		; TODO
 
 	--test-- "#2097"
-		; not sure if spawning lots of files is a good idea for a general test script
-		; FIXME: perhaps there should be a dedicated script for this
-		; commenting this out for now 			-- hiiamboris
-
-		; write %test.bin #{00000000}
-		; write/seek %test.bin #{AAAA} 2
-		; --assert equal? #{0000AAAA} read/binary %test.bin
-		; write/seek %test.bin #{BBBB} 0
-		; --assert equal? #{BBBBAAAA} read/binary %test.bin
+		write qt-tmp-file #{00000000}
+		write/seek qt-tmp-file #{AAAA} 2
+		--assert equal? #{0000AAAA} read/binary qt-tmp-file
+		write/seek qt-tmp-file #{BBBB} 0
+		--assert equal? #{BBBBAAAA} read/binary qt-tmp-file
 
 	; --test-- "#2098"
 		; GUI
 
 	--test-- "#2099"
-		; not sure if spawning lots of files is a good idea for a general test script
-		; FIXME: perhaps there should be a dedicated script for this
-		; moreover, rebol.com was down for some time when I tested this
-		; so `original` better be defined as a binary
-		; commenting this out for now 			-- hiiamboris
-
-		; original: read/binary http://www.rebol.com/how-to/graphics/button.gif
-		; write/binary %button.gif original
-		; saved: read/binary %button.gif
-		; --assert equal? saved original
-		; unset [original saved]
+		;-- rebol.com can be down - shouldn't affect tests
+		; original2072: read/binary http://www.rebol.com/how-to/graphics/button.gif
+		;-- this is just the fragment of the original binary:
+		original2072: #{
+			47494638396146002600F700000000000E0E0E0F00041700061C1C1C1F00071F
+			090F2700092F000B33333336091437000D3E000F3E091641414144383B470011
+			4E0013510E1E55001459333C5D00166338426500186F001B712A3B73172D7500
+			1C773343786B6E7A09247C4A567F001F81747782052383001F833C4D84465585
+			3C4E860E2B87002087616A89253D8982848A0E2B8D00228E17338E747A93384E
+			940023949494957D83958B8E96616D976F799A0E2F9A5D6C9E00269E9E9EA005
+			2AA48B91A49498A60027A70028A7A2A3A86F7DA87D87A89499AA9EA1AB0029AB
+			6A7AACACACAD052DADA2A5B09EA2B0B0B0B3A2A6B3ACAEB47483B4A7AAB5002B
+		}
+		write/binary qt-tmp-file original2072
+		saved2072: read/binary qt-tmp-file
+		--assert equal? saved2072 original2072
+		unset [original2072 saved2072]
 
 	; --test-- "#2104"
 		; console behaviour - #1995
@@ -2803,11 +2793,13 @@ b}
 		write qt-tmp-file {Hello Red append x3588 "try"^/Red [] append x3588 "Hoi!"}
 		do qt-tmp-file
 		--assert x3588 = ["Hoi!"]
-		
+		unset 'x3588
+
 	--test-- "#3603"
 		bu3603: reduce [()]
 		rest3603: none
 		--assert bu3603 = back change block3603: [] do/next block3603 'rest3603
+		unset [bu3603 rest3603 block3603]
 
 	--test-- "#3739"
 		reactor3739: func [spec] [make deep-reactor! spec]
