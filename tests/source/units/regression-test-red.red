@@ -2781,10 +2781,11 @@ b}
 		--assert not error? try [3151391351465.995 // 1.0]
 		unset 'true?
 
-	--test-- "#3603"
-		bu3603: reduce [()]
-		rest3603: none
-		--assert bu3603 = back change block3603: [] do/next block3603 'rest3603
+	--test-- "#2431"									;-- FIXME: add `load` tests when it's fixed
+		write qt-tmp-file {Red []}
+		--assert unset? do qt-tmp-file					;-- should skip the header
+		write qt-tmp-file {Red [] Red []}
+		--assert [] = do qt-tmp-file					;-- should skip the 1st header only
 
 	--test-- "#3362"
 		do [											;-- FIXME: compiler doesn't like this
@@ -2796,6 +2797,17 @@ b}
 			--assert unset? context [exit]
 			unset [spec3362-1 spec3362-2]
 		]
+
+	--test-- "#3588"
+		x3588: []
+		write qt-tmp-file {Hello Red append x3588 "try"^/Red [] append x3588 "Hoi!"}
+		do qt-tmp-file
+		--assert x3588 = ["Hoi!"]
+		
+	--test-- "#3603"
+		bu3603: reduce [()]
+		rest3603: none
+		--assert bu3603 = back change block3603: [] do/next block3603 'rest3603
 
 	--test-- "#3739"
 		reactor3739: func [spec] [make deep-reactor! spec]

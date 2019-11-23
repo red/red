@@ -108,7 +108,13 @@ test
 ; ===end-group===
 
 ===start-group=== "Red regressions #3501 - #4000"
-	
+
+	--test-- "#3670"
+		write qt-tmp-file "1 + 2"
+		--compile-and-run qt-temp-file
+		--assert not compiler-error?
+		--assert syntax-error?
+
 	;; for this test it doesn't matter if it errors out or outputs a result
 	--test-- "#3714"
 		
