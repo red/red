@@ -884,10 +884,10 @@ path-thru: function [
 	so: system/options
 	unless so/thru-cache [make-dir/deep so/thru-cache: append copy so/cache %cache/]
 
-	file: checksum form url 'MD5
-	path: dirize append copy so/thru-cache copy/part file 2
+	hash: form checksum form url 'MD5
+	path: dirize append copy so/thru-cache copy/part hash 2
 	unless exists? path [make-dir path] 
-	append path file
+	append path hash
 ]
 
 exists-thru?: function [
