@@ -108,6 +108,10 @@ test
 ; ===end-group===
 
 ===start-group=== "Red regressions #3501 - #4000"
+
+	--test-- "#3624"
+		--compile-and-run-this-red {probe replace/case/all quote :a/b/A/a/B [a] 'x}
+		--assert qt/output = ":x/b/A/x/B^/"
 	
 	;; for this test it doesn't matter if it errors out or outputs a result
 	--test-- "#3714"
