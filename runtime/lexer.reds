@@ -1333,22 +1333,22 @@ lexer: context [
 		do-error:  [throw-error lex s e TYPE_DATE]
 		check-err: [if err <> 0 [do-error]]
 		check-all: [if any [err <> 0 p = e][do-error]]
-		grab2: [
+		grab2: [										;-- grab int from 2 digits exactly
 			p: grab-digits p e 2 2 :value :err
-			check-all
+			check-all									;-- bound error check
 			value
 		]
-		grab2r: [
+		grab2r: [										;-- grab int from 2 digits exactly
 			p: grab-digits p e 2 2 :value :err
-			check-err
+			check-err									;-- just check int err
 			value
 		]
-		grab2-max: [
+		grab2-max: [									;-- grab int from 2 digits max
 			p: grab-digits p + 1 e 0 2 :value :err
 			check-err
 			value
 		]
-		grab4: [
+		grab4: [										;-- grab int from 4 digits max
 			me: p
 			p: grab-digits p e 0 4 :value :err
 			check-err
@@ -1382,23 +1382,23 @@ lexer: context [
 			lex/in-pos: e								;-- reset the input position to delimiter byte
 		]
 		
-		year: grab4
+		year: grab4										;-- year or day
 		ylen: as-integer p - me
 		sep: p/1
 		either all [sep >= #"0" sep <= #"9"][			;-- ISO dates
 			month: grab2
 			day:   grab2
-			if p/1 <> #"T" [do-error]
+			if p/1 <> #"T" [do-error]					;-- yyyymmddT...
 			time?: yes
 			p: p + 1
 			hour: grab2
 			min:  grab2
-			if p/1 <> #"Z" [
+			if p/1 <> #"Z" [							;-- yyymmddThhmmZ
 				p: grab-float p e :sec :err
 				if all [p < e p/1 <> #"Z"][
 					TZ?: yes
 					neg?: p/1 = #"-"
-					either any [p/1 = #"+" neg?][
+					either any [p/1 = #"+" neg?][		;-- yyymmddThhmm+-hhmm
 						p: p + 1
 						TZ-h: grab2r
 						if neg? [TZ-h: 0 - TZ-h]
@@ -1410,19 +1410,19 @@ lexer: context [
 			]
 		][
 			either sep = #"-" [
-				if all [ylen = 4 p/2 = #"W"][
+				if all [ylen = 4 p/2 = #"W"][			;-- yyyy-Www
 					day: month: 1
 					p: p + 2
 					week: grab2r
-					if all [p < e p/1 = #"-"][
+					if all [p < e p/1 = #"-"][			;-- yyyy-Www-d
 						p: grab-digits p + 1 e 1 1 :wday :err
 					]
 					if all [p < e p/1 = #"T"][grab-time-TZ]
 					store-date
-					if week or wday <> 0 [date/set-isoweek dt week]	;-- yyyy-Www
+					if week or wday <> 0 [date/set-isoweek dt week]
 					if wday <> 0 [
 						if any [wday < 1 wday > 7][do-error]
-						date/set-weekday dt wday			;-- yyyy-Www-d
+						date/set-weekday dt wday
 					]
 					exit
 				]
@@ -1439,10 +1439,10 @@ lexer: context [
 				]
 			][
 				if sep <> #"/" [do-error]
-				p: grab-digits p + 1 e 0 2 :month :err
+				p: grab-digits p + 1 e 0 2 :month :err	;-- yy/mm or dd/mm
 			]
 
-			if err <> 0 [
+			if err <> 0 [								;-- try to match a month name
 				me: p
 				while [all [me < e me/1 <> sep]][me: me + 1]
 				len: as-integer me - p
@@ -1454,14 +1454,14 @@ lexer: context [
 				]
 				if months + 12 = m [do-error]			;-- invalid month name
 				month: (as-integer m - months) >> 2 + 1
-				err: 0
+				err: 0									;-- reset eventual error from int month grabing
 				p: me
 			]
 			if p/1 <> sep [do-error]
 			p: p + 1
 			day: grab4									;-- could be year also
 			dlen: as-integer p - me
-			if day > year [len: day day: year year: len ylen: dlen]
+			if day > year [len: day day: year year: len ylen: dlen] ;-- swap day<=>year
 			if all [year < 100 ylen <= 2][				;-- expand short yy forms
 				ylen: either year < 50 [2000][1900]
 				year: year + ylen
