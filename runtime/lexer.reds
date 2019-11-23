@@ -79,22 +79,7 @@ lexer: context [
 		C_ILLEGAL										;-- 37
 		C_EOF											;-- 38
 	]
-	
-	#enum date-char-classes! [
-		C_DT_DIGIT										;-- 0
-		C_DT_LETTER										;-- 1
-		C_DT_SLASH										;-- 2
-		C_DT_DASH										;-- 3
-		C_DT_T											;-- 4
-		C_DT_W											;-- 5
-		C_DT_PLUS										;-- 6
-		C_DT_COLON										;-- 7
-		C_DT_DOT										;-- 8
-		C_DT_Z											;-- 9
-		C_DT_ILLEGAL									;-- 10
-		C_DT_EOF										;-- 11
-	]
-	
+		
 	#enum bin16-char-classes! [
 		C_BIN_SKIP										;-- 0
 		C_BIN_BLANK										;-- 1
@@ -182,28 +167,6 @@ lexer: context [
 		"January" "February" "March" "April" "May" "June" "July"
 		"August" "September" "October" "November" "December"
 	]
-	
-	date-cumul: #{
-		0000000000000000000000000000000000000000000000000000000000000000
-		0000000000000000000000000000000000010203040506070809000000000000
-		004142434445464748494A004C4D4E4F50005253005556000003000000000000
-		004142434445464748494A004C4D4E4F50005253005556000003000000000000
-		0000000000000000000000000000000000000000000000000000000000000000
-		0000000000000000000000000000000000000000000000000000000000000000
-		0000000000000000000000000000000000000000000000000000000000000000
-		0000000000000000000000000000000000000000000000000000000000000000
-	}
-	
-	date-classes: #{
-		0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A
-		0A0A0A0A0A0A0A0A0A0A0A060A03080200000000000000000000070A0A0A0A0A
-		0A010101010101010101010A01010101010A0101040101050A01090A0A0A0A0A
-		0A010101010101010101010A01010101010A01010101010A0A010A0A0A0A0A0A
-		0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A
-		0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A
-		0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A
-		0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A
-	}
 
 	lex-classes: [
 		(C_EOF or C_FLAG_EOF)							;-- 00		NUL
@@ -1477,106 +1440,6 @@ lexer: context [
 			do-error
 		]
 		store-date
-	]
-
-	scan-date2: func [lex [state!] s e [byte-ptr!] flags [integer!]
-		/local
-			cell  [cell!]
-			dt	  [red-date!]
-			df	  [lexer-dt-array!]
-			b	  [byte-ptr!]
-			p	  [byte-ptr!]
-			me	  [byte-ptr!]
-			m	  [int-ptr!]
-			field [int-ptr!]
-			type  [integer!]
-			state [integer!]
-			class [integer!]
-			index [integer!]
-			cp	  [integer!]
-			c	  [integer!]
-			pos	  [integer!]
-			len	  [integer!]
-			neg?  [logic!]
-	][
-		c: 0											;-- accumulator (fields decoding)
-		b: s
-		field: system/stack/allocate/zero 17 			;-- date/time fields array
-		state: S_DT_START
-
-		loop as-integer e - s [
-			cp: as-integer s/1
-			class: as-integer date-classes/cp
-			index: state * (size? date-char-classes!) + class
-			state: as-integer date-transitions/index
-			c: c * 10 + as-integer date-cumul/cp
-			pos: as-integer fields-table/state
-			field/pos: c
-			pos: as-integer fields-ptr-table/state
-			field/pos: as-integer s
-			if null-byte = reset-table/state [c: 0]
-			s: s + 1
-		]
-		if state <= T_DT_ERROR [						;-- if no terminal state reached, forces EOF input
-			if state = T_DT_ERROR [throw-error lex b e TYPE_DATE]
-			index: state * (size? date-char-classes!) + C_DT_EOF
-			state: as-integer date-transitions/index
-			pos: as-integer fields-table/state
-			field/pos: c
-		]
-		df: as lexer-dt-array! field + 1
-
-		p: as byte-ptr! df/TZ-sign
-		neg?: all [p <> null p/1 = #"-"]			;-- detect negative TZ
-		cell: alloc-slot lex
-
-		either df/week or df/wday or df/yday <> 0 [ ;-- special ISO formats
-			df/month: 1								;-- ensures valid month (will be changed later)
-			df/day: 1								;-- ensures valid day   (will be changed later)
-			dt: date/make-at cell df state >= T_TM_HM neg? ;-- create red-date!
-			if null? dt [throw-error lex b e TYPE_DATE]
-
-			if df/week or df/wday <> 0 [			;-- yyyy-Www
-				date/set-isoweek dt df/week
-			]
-			c: df/wday
-			if c <> 0 [								;-- yyyy-Www-d
-				if any [c < 1 c > 7][throw-error lex b e TYPE_DATE]
-				date/set-weekday dt c
-			]
-			if df/yday <> 0 [date/set-yearday dt df/yday] ;-- yyyy-ddd
-		][
-			p: as byte-ptr! df/month-begin
-			me: as byte-ptr! df/sep2
-			if df/month-begin or df/sep2 <> 0 [
-				if any [null? p null? me p/1 <> me/1][
-					throw-error lex b e TYPE_DATE	;-- inconsistent separator
-				]
-			]
-			if df/year < 100 [						;-- expand short yy forms
-				me: (as byte-ptr! df/sep2) + 3
-				unless all [me < e (as-integer me/1 - #"0") <= 9][ ;-- check if year field has 2 digits
-					c: either df/year < 50 [2000][1900]
-					df/year: df/year + c
-				]
-			]
-			if df/month-end <> 0 [					;-- if month is named
-				p: p + 1							;-- name start
-				me: as byte-ptr! df/month-end		;-- name end
-				len: as-integer me - p + 1
-				if any [len < 3 len > 9][throw-error lex b e TYPE_DATE] ;-- invalid month name
-				m: months
-				loop 12 [
-					if zero? platform/strnicmp p as byte-ptr! m/1 len [break]
-					m: m + 1
-				]
-				if months + 12 = m [throw-error lex b e TYPE_DATE] ;-- invalid month name
-				df/month: (as-integer m - months) >> 2 + 1
-			]
-			dt: date/make-at cell df state >= T_TM_HM neg? ;-- create red-date!
-			if null? dt [throw-error lex b e TYPE_DATE]
-		]
-		lex/in-pos: e									;-- reset the input position to delimiter byte
 	]
 	
 	scan-pair: func [lex [state!] s e [byte-ptr!] flags [integer!]
