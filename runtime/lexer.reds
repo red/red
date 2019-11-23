@@ -1316,10 +1316,12 @@ lexer: context [
 			value
 		]
 		grab4: [										;-- grab int from 4 digits max
+			neg?: p/1 = #"-"
+			if neg? [p: p + 1]
 			me: p
 			p: grab-digits p e 0 4 :value :err
 			check-err
-			value
+			either neg? [0 - value][value]
 		]
 		grab-time-TZ: [
 			time?: yes
