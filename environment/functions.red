@@ -501,7 +501,7 @@ save: function [
 		file? where [write where data]
 		url?  where [write where data]
 		none? where [data]
-		'else		[append where data]
+		'else		[append where mold data]
 	]
 ]
 
