@@ -872,7 +872,7 @@ dtoa: context [
 
 		ds: f - 1.5 * 0.289529654602168 + 0.1760912590558 + ((as-float i) * 0.301029995663981)
 		f: fsave
-		k: as-integer ds
+		k: as-integer floor ds			;@@ Optimize it
 
 		k_check: yes
 		if all [k >= 0 k <= TEN_PMAX] [
@@ -910,7 +910,7 @@ dtoa: context [
 			ds: DTOA_TENS/ki
 			forever [
 				i: 1
-				L: as-integer (f / ds)
+				L: as-integer f / ds
 				f: f - (ds * uint-to-float L)
 				s/1: #"0" + as byte! L
 				s: s + 1
@@ -1388,21 +1388,15 @@ dtoa: context [
 		ret		[int-ptr!]
 		return: [float!]
 		/local
-			rv	[float!]
-			rv0 [float!]
-			aadj2 [float!]
-			bbe [integer!]
-			bb	[big-int!]
-			bb1	[big-int!]
-			bd	[big-int!]
-			bd0	[big-int!]
-			bs	[big-int!]
-			delta [big-int!]
-			bc	[cmp-info! value]
-			bb2 bb5 bd2 bd5 bs2 c dsign e e1
-			i j k nd nd0 odd neg? s s0 s1
-			aadj aadj1 adj y z next?
-			L d d0 d2 w0 w1 ndigits fraclen
+			rv rv0 aadj2 aadj aadj1 adj [float!]
+			bb bb1 bd bd0 bs delta [big-int!]
+			bbe bb2 bb5 bd2 bd5 bs2 dsign e e1 w0 w1 ndigits fraclen
+			i j k nd nd0 odd y z L [integer!]
+			neg? next? [logic!]
+			s s0 s1 [byte-ptr!]
+			d d0 d2 [int64!]
+			c  [byte!]
+			bc [cmp-info! value]
 	][
 		bb:        null
 		bb1:       null
@@ -1489,7 +1483,7 @@ dtoa: context [
 		if nd0 <= 0 [nd0: nd]
 
 		;-- finish parsing
-		;if ret <> null [ret/value: s]
+		if ret <> null [ret/value: -1]
 
 		if zero? nd [return either neg? [d/int2: 80000000h rv][0.0]]
 
