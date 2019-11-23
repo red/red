@@ -1602,37 +1602,34 @@ lexer: context [
 	
 	scan-time: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
-			p	 [byte-ptr!]
-			mark [byte-ptr!]
-			err	 [integer!]
-			hour [integer!]
-			min	 [integer!]
-			len	 [integer!]
-			tm	 [float!]
+			err hour min len [integer!]
+			p mark [byte-ptr!]
+			tm [float!]
+			do-error [subroutine!]
 	][
 		p: s
-		err:  0
-		hour: 0
+		err: hour: 0
+		do-error: [throw-error lex s e TYPE_TIME]
 
 		p: grab-integer p e flags :hour :err
-		if any [err <> 0 p/1 <> #":"][throw-error lex s e TYPE_TIME]
+		if any [err <> 0 p/1 <> #":"][do-error]
 		p: p + 1
 		
 		min: 0
 		mark: p
 		p: grab-integer p e flags :min :err
-		if any [err <> 0 min < 0][throw-error lex s e TYPE_TIME]
+		if any [err <> 0 min < 0][do-error]
 		p: p + 1
 	
 		if p < e [
-			if any [all [p/0 <> #"." p/0 <> #":"] flags and C_FLAG_EXP <> 0][throw-error lex s e TYPE_TIME]
+			if any [all [p/0 <> #"." p/0 <> #":"] flags and C_FLAG_EXP <> 0][do-error]
 			if p/0 = #"." [
 				min: hour
 				hour: 0
 				p: mark
 			]
 			tm: dtoa/to-float p e :err
-			if any [err <> 0 tm < 0.0][throw-error lex s e TYPE_TIME]
+			if any [err <> 0 tm < 0.0][do-error]
 		]
 		
 		tm: (3600.0 * as-float hour) + (60.0 * as-float min) + tm
@@ -1886,13 +1883,6 @@ lexer: context [
 		transitions: transitions + 1
 		skip-table: skip-table + 1
 		line-table: line-table + 1
-		
-		date-classes: date-classes + 1
-		date-transitions: date-transitions + 1
-		date-cumul: date-cumul + 1
-		fields-table: fields-table + 1
-		fields-ptr-table: fields-ptr-table + 1
-		reset-table: reset-table + 1
 	]
 
 ]
