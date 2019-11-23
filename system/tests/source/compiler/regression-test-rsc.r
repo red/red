@@ -22,8 +22,8 @@ compilation-error?: does [true? find qt/comp-output "*** Compilation Error"]
 loading-error: func [value] [found? find qt/comp-output join "*** Loading Error: " value]
 compilation-error: func [value] [found? find qt/comp-output join "*** Compilation Error: " value]
 syntax-error: func [value] [found? find qt/comp-output join "*** Syntax Error: " value]
--test-: :--test--
---test--: func [value] [probe value -test- value]
+; -test-: :--test--
+; --test--: func [value] [probe value -test- value]
 
 ===start-group=== "Red/System regressions #1 - #1000"
 
