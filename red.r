@@ -249,14 +249,13 @@ redc: context [
 	]
 
 	red-system?: func [file [file!] /local ws rs?][
-		ws: charset " ^-^/^M"
+		ws: charset " ^-^M^/"
 		parse/all/case read file [
 			some [
 				thru "Red"
 				opt ["/System" (rs?: yes)]
 				any ws
 				#"[" (return to logic! rs?)
-				to end
 			]
 		]
 		no
