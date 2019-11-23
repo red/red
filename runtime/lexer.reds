@@ -354,6 +354,7 @@ lexer: context [
 			line [red-string!]
 			p	 [byte-ptr!]
 			len	 [integer!]
+			c	 [byte!]
 	][
 		e: lex/in-end
 		len: 0
@@ -375,10 +376,11 @@ lexer: context [
 			ERR_BAD_CHAR 	 [fire [TO_ERROR(syntax bad-char) line pos]]
 			ERR_MALCONSTRUCT [fire [TO_ERROR(syntax malconstruct) line pos]]
 			ERR_MISSING		 [
+				c: either lex/in-pos < lex/in-end [lex/in-pos/1][lex/in-pos/0]
 				type: switch lex/closing [
-					TYPE_BLOCK [as-integer #"]"]
+					TYPE_BLOCK [as-integer either c = #"]" [#"["][#"]"]]
 					TYPE_MAP
-					TYPE_PAREN [as-integer #")"]
+					TYPE_PAREN [as-integer either c = #")" [#"("][#")"]]
 					default [assert false 0]			;-- should not happen
 				]
 				fire [TO_ERROR(syntax missing) line char/push type pos]
@@ -466,16 +468,18 @@ lexer: context [
 		/local	
 			p [red-point!]
 			len	hint [integer!]
+			do-error [subroutine!]
 	][
+		do-error: [
+			lex/closing: type
+			throw-error lex s e ERR_MISSING
+		]
 		p: as red-point! lex/head - 1
-		assert all [lex/buffer <= p TYPE_OF(p) = TYPE_POINT]
+		unless all [lex/buffer <= p TYPE_OF(p) = TYPE_POINT][do-error]
 		either type = -1 [
 			type: either final = -1 [p/y][final]
 		][
-			if p/y <> type [
-				lex/closing: type
-				throw-error lex s e ERR_MISSING
-			]
+			if p/y <> type [do-error]
 		]
 		len: (as-integer lex/tail - lex/head) >> 4
 		lex/tail: lex/head
