@@ -111,9 +111,11 @@ test
 
 	--test-- "#3670"
 		write qt-tmp-file "1 + 2"
-		--compile-and-run qt-temp-file
-		--assert not compiler-error?
-		--assert syntax-error?
+		qt/source-file?: yes
+		qt/compile qt-temp-file
+		qt/run/pgm qt-temp-file
+		--assert probe not compiler-error?
+		--assert probe syntax-error "Invalid Red program"
 
 	;; for this test it doesn't matter if it errors out or outputs a result
 	--test-- "#3714"
