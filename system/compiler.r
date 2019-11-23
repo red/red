@@ -751,6 +751,8 @@ system-dialect: make-profilable context [
 				local?: all [locals select locals name]
 				select-globals name
 			]
+			if all [local? not block? type][throw-error ["unknown type for local variable" name]]
+			
 			if all [not type pos: select functions decorate-fun name][
 				if mark: find pos: pos/4 /local [
 					pos: copy/part pos mark			;-- remove locals
