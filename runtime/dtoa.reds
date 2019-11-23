@@ -748,33 +748,6 @@ dtoa: context [
 		f - 6755399441055744.0
 	]
 
-	#define DTOA_RETERN [
-		Bfree SS
-		if mhi <> null [
-			if all [mlo <> null mlo <> mhi][
-				Bfree mlo
-			]
-			Bfree mhi
-		]
-		DTOA_RETURN_1
-	]
-
-	#define DTOA_ROUND_OFF [
-		while [
-			s: s - 1
-			s/1 = #"9"
-		][
-			if s = s0 [
-				k: k + 1
-				s/1: #"1"
-				s: s + 1
-				DTOA_RETERN
-			]
-		]
-		s/1: s/1 + 1
-		s: s + 1
-	]
-
 	float-to-ascii: func [
 		f		[float!]
 		ndigits	[integer!]		;-- ndigits <= 0: mode 0 ndigits > 0: mode 4
@@ -786,7 +759,7 @@ dtoa: context [
 		/local
 			b b1 mlo mhi SS delta [big-int!]
 			s s0 [c-string!]
-			DTOA_RETURN_1 [subroutine!]
+			DTOA_RETURN_1 DTOA_RETURN DTOA_ROUND_OFF [subroutine!]
 			fsave ds kf [float!]
 			bbits b2 b5 be i j j1 k k0 ki m2 m5 s2 s5 L x w0 w1 ww0 ilim [integer!]
 			sign? spec_case denorm k_check [logic!]
@@ -813,6 +786,33 @@ dtoa: context [
 			sign/value: as-integer sign?
 			length/value: as-integer s - s0
 			return s0
+		]
+
+		DTOA_RETURN: [
+			Bfree SS
+			if mhi <> null [
+				if all [mlo <> null mlo <> mhi][
+					Bfree mlo
+				]
+				Bfree mhi
+			]
+			DTOA_RETURN_1
+		]
+
+		DTOA_ROUND_OFF: [
+			while [
+				s: s - 1
+				s/1 = #"9"
+			][
+				if s = s0 [
+					k: k + 1
+					s/1: #"1"
+					s: s + 1
+					DTOA_RETURN
+				]
+			]
+			s/1: s/1 + 1
+			s: s + 1
 		]
 	
 		either zero? (w0 and DTOA_SIGN_BIT) [
@@ -1027,7 +1027,7 @@ dtoa: context [
 				if j > 0 [dig: dig + 1]
 				s/1: dig
 				s: s + 1
-				DTOA_RETERN
+				DTOA_RETURN
 			]
 
 			if any [
@@ -1055,7 +1055,7 @@ dtoa: context [
 				]
 				s/1: dig
 				s: s + 1
-				DTOA_RETERN
+				DTOA_RETURN
 			]
 
 			if j1 > 0 [
@@ -1066,7 +1066,7 @@ dtoa: context [
 				]
 				s/1: dig + 1
 				s: s + 1
-				DTOA_RETERN
+				DTOA_RETURN
 			]
 
 			s/1: dig
@@ -1099,7 +1099,7 @@ dtoa: context [
 			]
 			s: s + 1
 		]
-		DTOA_RETERN
+		DTOA_RETURN
 	]
 
 	string-to-big: func [
@@ -1342,47 +1342,7 @@ dtoa: context [
 		either neg? [0 - n][n]
 	]
 
-	#define STRTOD_RETURN [return either neg? [0.0 - rv][rv]]
-
-	#define STRTOD_OVERFLOW [
-		d/int2: DTOA_EXP_MASK
-		d/int1: 0
-		STRTOD_RETURN
-	]
-
 	#define STRTOD_UNDERFLOW [return 0.0]
-
-	#define STRTOD_BREAK [
-		Bfree bb
-		Bfree bd
-		Bfree bs
-		Bfree bd0
-		Bfree delta
-		if bc/nd > nd [
-			bigcomp d s0 bc
-		]
-		if bc/scale <> 0 [
-			d0/int2: DTOA_EXP_1 - (2 * 53 * DTOA_EXP_MSK1)
-			d0/int1: 0
-			rv: rv * rv0
-		]
-		STRTOD_RETURN
-	]
-
-	#define STRTOD_DROP_DOWN [
-		if bc/scale <> 0 [
-			L: d/int2 and DTOA_EXP_MASK
-			if L <= (2 * 53 + 1 * DTOA_EXP_MSK1) [
-				if L > (53 + 2 * DTOA_EXP_MSK1) [STRTOD_BREAK]
-				if bc/nd > nd [STRTOD_BREAK]
-				STRTOD_UNDERFLOW
-			]
-		]
-		L: d/int2 and DTOA_EXP_MASK - DTOA_EXP_MSK1
-		d/int2: L or BNDRY_MASK1
-		d/int1: FFFFFFFFh
-		STRTOD_BREAK
-	]
 
 	to-float: func [
 		start	[byte-ptr!]
@@ -1390,6 +1350,7 @@ dtoa: context [
 		ret		[int-ptr!]
 		return: [float!]
 		/local
+			STRTOD_RETURN STRTOD_OVERFLOW STRTOD_BREAK STRTOD_DROP_DOWN [subroutine!]
 			rv rv0 aadj2 aadj aadj1 adj [float!]
 			bb bb1 bd bd0 bs delta [big-int!]
 			bbe bb2 bb5 bd2 bd5 bs2 dsign e e1 w0 w1 ndigits fraclen
@@ -1417,6 +1378,46 @@ dtoa: context [
 		s:         start
 		c:         s/1
 		ret/value: 0
+
+		STRTOD_RETURN: [return either neg? [0.0 - rv][rv]]
+
+		STRTOD_OVERFLOW: [
+			d/int2: DTOA_EXP_MASK
+			d/int1: 0
+			STRTOD_RETURN
+		]
+
+		STRTOD_BREAK: [
+			Bfree bb
+			Bfree bd
+			Bfree bs
+			Bfree bd0
+			Bfree delta
+			if bc/nd > nd [
+				bigcomp d s0 bc
+			]
+			if bc/scale <> 0 [
+				d0/int2: DTOA_EXP_1 - (2 * 53 * DTOA_EXP_MSK1)
+				d0/int1: 0
+				rv: rv * rv0
+			]
+			STRTOD_RETURN
+		]
+
+		STRTOD_DROP_DOWN: [
+			if bc/scale <> 0 [
+				L: d/int2 and DTOA_EXP_MASK
+				if L <= (2 * 53 + 1 * DTOA_EXP_MSK1) [
+					if L > (53 + 2 * DTOA_EXP_MSK1) [STRTOD_BREAK]
+					if bc/nd > nd [STRTOD_BREAK]
+					STRTOD_UNDERFLOW
+				]
+			]
+			L: d/int2 and DTOA_EXP_MASK - DTOA_EXP_MSK1
+			d/int2: L or BNDRY_MASK1
+			d/int1: FFFFFFFFh
+			STRTOD_BREAK
+		]
 
 		if any [
 			c = #"+"
