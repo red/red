@@ -471,6 +471,13 @@ cairo_matrix_t!: alias struct! [
 	y0		[float!]
 ]
 
+#enum cairo_extend_t! [
+	CAIRO_EXTEND_NONE
+	CAIRO_EXTEND_REPEAT
+	CAIRO_EXTEND_REFLECT
+	CAIRO_EXTEND_PAD
+]
+
 ; @@ cairo structures to remove if pango_cairo is enough to draw text on cairo
 ; cairo_text_extents_t!: alias struct! [
 ;  	x_bearing	[float!]
@@ -2582,6 +2589,10 @@ GPtrArray!: alias struct! [
 		cairo_pattern_set_matrix: "cairo_pattern_set_matrix" [
 			pattern		[handle!]
 			matrix		[cairo_matrix_t!]
+		]
+		cairo_pattern_set_extend: "cairo_pattern_set_extend" [
+			pattern		[handle!]
+			extend		[cairo_extend_t!]
 		]
 		cairo_pattern_create_linear: "cairo_pattern_create_linear" [
 			x0			[float!]
