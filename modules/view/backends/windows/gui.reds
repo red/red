@@ -528,6 +528,8 @@ update-selection: func [
 		sel/header: TYPE_NONE
 	][
 		sel/header: TYPE_PAIR
+		assert begin <= end
+		adjust-selection values :begin :end -1
 		sel/x: begin + 1								;-- one-based positionq
 		sel/y: end										;-- points past the last selected, so no need + 1
 	]
@@ -1813,18 +1815,79 @@ extend-area-limit: func [
 	]
 ]
 
+adjust-selection: func [
+	values	[red-value!]
+	bgn		[int-ptr!]
+	end		[int-ptr!]
+	inc		[integer!]									;-- +1 to increase, -1 to decrease
+	/local
+		quote	[integer!]
+		nl		[integer!]
+		unit	[integer!]
+		unit-b	[integer!]
+		cp		[integer!]
+		size	[integer!]
+		str		[red-string!]
+		s		[series!]
+		head	[byte-ptr!]
+		tail	[byte-ptr!]
+		p		[byte-ptr!]
+		p-bgn	[byte-ptr!]
+		p-end	[byte-ptr!]
+][
+	assert bgn/value <= end/value
+
+	str: as red-string! values + FACE_OBJ_TEXT
+	if TYPE_OF(str) <> TYPE_STRING [exit]
+	s: GET_BUFFER(str)
+	unit: GET_UNIT(s)
+	unit-b: log-b unit
+	head: (as byte-ptr! s/offset) + (str/head << unit-b)
+	tail: as byte-ptr! s/tail
+
+	either inc > 0 [
+		p-bgn: head + (bgn/1 << unit-b)
+		p-end: head + (end/1 << unit-b)
+		quote: 0  nl: 0
+		string/sniff-chars head  p-bgn unit :quote :nl
+		bgn/1: bgn/1 + nl
+		string/sniff-chars p-bgn p-end unit :quote :nl
+		end/1: end/1 + nl
+	][
+		p: head
+		while [p < tail] [
+			cp: string/get-char p unit
+			if cp = as-integer #"^/" [
+				size: p - head >> unit-b
+				case [
+					size > end/1	[break]
+					size > bgn/1	[end/1: end/1 - 1]
+					true	[bgn/1: bgn/1 - 1  end/1: end/1 - 1]
+				]
+			]
+			p: p + unit
+		]
+	]
+]
+
 select-text: func [
 	hWnd   [handle!]
 	values [red-value!]
 	/local
-		sel	   [red-pair!]
-		begin  [integer!]
-		end	   [integer!]
+		sel		[red-pair!]
+		begin	[integer!]
+		end		[integer!]
 ][
 	sel: as red-pair! values + FACE_OBJ_SELECTED
 	either TYPE_OF(sel) = TYPE_PAIR [
-		begin: sel/x - 1
-		end: sel/y										;-- should point past the last selected char
+		either sel/x <= sel/y [
+			begin: sel/x - 1
+			end: sel/y									;-- should point past the last selected char
+		][
+			begin: sel/y - 1
+			end: sel/x
+		]
+		adjust-selection values :begin :end 1
 	][
 		begin: 0
 		end:   0
