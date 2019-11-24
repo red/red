@@ -900,7 +900,7 @@ OS-draw-grad-pen-old: func [
 ]
 
 OS-draw-grad-pen: func [
-	ctx			[draw-ctx!]
+	dc			[draw-ctx!]
 	type		[integer!]
 	stops		[red-value!]
 	count		[integer!]
@@ -909,8 +909,88 @@ OS-draw-grad-pen: func [
 	focal?		[logic!]
 	spread		[integer!]
 	brush?		[logic!]
+	/local
+		point	[red-pair!]
+		x		[float!]
+		y		[float!]
+		pattern	[handle!]
+		delta	[float!]
+		p		[float!]
+		head	[red-value!]
+		next	[red-value!]
+		clr		[red-tuple!]
+		n		[integer!]
+		r		[float!]
+		g		[float!]
+		b		[float!]
+		a		[float!]
+		f		[red-float!]
 ][
+	pattern: case [
+		type = linear [
+			either skip-pos? [
+				cairo_pattern_create_linear 0.0 0.0 1.0 1.0
+			][
+				point: as red-pair! positions
+				x: as float! point/x
+				y: as float! point/y
+				point: point + 1
+				cairo_pattern_create_linear x y as float! point/x as float! point/y
+			]
+		]
+		any [ type = radial type = diamond ][
+			either skip-pos? [
+				cairo_pattern_create_radial 0.0 0.0 0.0 0.0 0.0 1.0
+			][
+				either type = radial [
+					point: as red-pair! positions
+					x: as float! point/x
+					y: as float! point/y
+					p: get-float as red-integer! point + 1
+					cairo_pattern_create_radial x y 0.0 x y p
+				][
+					cairo_pattern_create_linear 0.0 0.0 1.0 1.0
+				]
+			]
+		]
+		true [
+			cairo_pattern_create_linear 0.0 0.0 1.0 1.0
+		]
+	]
 
+	delta: as-float count - 1
+	delta: 1.0 / delta
+	p: 0.0
+	head: as red-value! stops
+	loop count [
+		clr: as red-tuple! either TYPE_OF(head) = TYPE_WORD [_context/get as red-word! head][head]
+		n: clr/array1
+		r: as-float n and FFh
+		r: r / 255.0
+		g: as-float n >> 8 and FFh
+		g: g / 255.0
+		b: as-float n >> 16 and FFh
+		b: b / 255.0
+		a: as-float 255 - (n >>> 24)
+		a: a / 255.0
+		next: head + 1
+		if TYPE_OF(next) = TYPE_FLOAT [head: next f: as red-float! head p: f/value]
+		cairo_pattern_add_color_stop_rgba pattern p r g b a
+		p: p + delta
+		head: head + 1
+	]
+
+	cairo_pattern_set_extend pattern
+		case [
+			spread = _pad       [CAIRO_EXTEND_PAD]
+			spread = _repeat    [CAIRO_EXTEND_REPEAT]
+			spread = _reflect   [CAIRO_EXTEND_REFLECT]
+			true [CAIRO_EXTEND_NONE]
+		]
+
+	if brush? [dc/brush?: yes]				;-- set brush, or set pen
+	unless null? dc/grad-pen [cairo_pattern_destroy dc/grad-pen]
+	dc/grad-pen: pattern
 ]
 
 OS-matrix-rotate: func [
