@@ -862,13 +862,15 @@ OS-draw-grad-pen-old: func [
 		n: n + 1
 	]
 	cairo_matrix_init matrix 1.0 0.0 0.0 1.0 0.0 0.0
-	cairo_pattern_set_matrix pattern matrix
 	if rotate? [
-		cairo_matrix_rotate matrix angle
+		p:  PI / 180.0
+		cairo_matrix_rotate matrix p * angle
 	]
 	if scale? [
 		cairo_matrix_scale matrix x y
 	]
+	cairo_matrix_invert matrix
+	cairo_pattern_set_matrix pattern matrix
 
 	delta: as-float count - 1
 	delta: 1.0 / delta
