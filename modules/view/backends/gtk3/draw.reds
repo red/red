@@ -218,6 +218,7 @@ OS-draw-box: func [
 		y		[float!]
 		w		[float!]
 		h		[float!]
+		tf		[float!]
 		degrees [float!]
 ][
 	cr: dc/cr
@@ -236,9 +237,10 @@ OS-draw-box: func [
 	h: as-float lower/y - upper/y
 
 	either radius <> null [
-		t: as-integer either w > h [h][w]
-		rad: as-float radius/value * 2
-		if rad > as float! t [rad: as float! t]
+		tf: either w > h [h][w]
+		tf: tf / 2.0
+		rad: as-float radius/value
+		if rad > tf [rad: tf]
 
 		degrees: pi / 180.0
 		cairo_new_sub_path cr
@@ -607,7 +609,11 @@ OS-draw-arc: func [
 	closed?: angle < end
 
 	cairo_save cr
-	unless closed? [dc/brush?: no]
+	either closed? [
+		cairo_move_to cr cx cy
+	][
+		cairo_new_sub_path cr
+	]
 	cairo_translate cr cx    cy
 	cairo_scale     cr rad-x rad-y
 	either sweep < 0 [
