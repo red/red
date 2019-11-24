@@ -912,5 +912,7 @@ menu-item-activate: func [
 		key		[integer!]
 ][
 	key: as integer! GET-MENU-KEY(item)
-	make-event widget key EVT_MENU
+	if key <> 0 [
+		make-event widget key EVT_MENU
+	]
 ]
