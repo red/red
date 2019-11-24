@@ -95,6 +95,13 @@ dns-data!: alias struct! [
 	addrinfo	[int-ptr!]
 ]
 
+file-data!: alias struct! [
+	IOCP_DATA_FIELDS
+	port		[red-object! value]		;-- red port! cell
+	flags		[integer!]
+	buffer		[node!]					;-- buffer node!
+]
+
 iocp: context [
 	verbose: 0
 
