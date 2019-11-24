@@ -2070,6 +2070,10 @@ GPtrArray!: alias struct! [
 			path		[c-string!]
 			error		[handle!]
 		]
+		gtk_css_provider_to_string: "gtk_css_provider_to_string" [
+			provider	[handle!]
+			return:		[c-string!]
+		]
 		gtk_style_context_add_provider: "gtk_style_context_add_provider" [
 			context		[handle!]
 			provider	[handle!]
