@@ -1395,7 +1395,6 @@ OS-draw-shape-arc: func [
 		cx			[float32!]
 		cy			[float32!]
 		cf			[float32!]
-		angle-len	[float32!]
 		radius-x	[float32!]
 		radius-y	[float32!]
 		theta		[float32!]
@@ -1415,10 +1414,11 @@ OS-draw-shape-arc: func [
 		sign		[float32!]
 		rad-check	[float32!]
 		pi2			[float32!]
+		matrix		[cairo_matrix_t! value]
 ][
 	cr: dc/cr
 	last-x: 0.0 last-y: 0.0
-	if 1 = cairo_has_current_point cr[
+	if 1 = cairo_has_current_point cr [
 		cairo_get_current_point cr :last-x :last-y
 	]
 	p1-x: as float32! last-x p1-y: as float32! last-y
@@ -1458,48 +1458,41 @@ OS-draw-shape-arc: func [
 	center-x: (cos-val * cx) - (sin-val * cy) + ((p1-x + p2-x) / as float32! 2.0)
 	center-y: (sin-val * cx) + (cos-val * cy) + ((p1-y + p2-y) / as float32! 2.0)
 
-
-	;-- transform our ellipse into the unit circle
-	; m: CGAffineTransformMakeScale (as float! 1.0) / radius-x (as float! 1.0) / radius-y
-	; m: CGAffineTransformRotate m (as float! 0.0) - theta
-	; m: CGAffineTransformTranslate m (as float! 0.0) - center-x (as float! 0.0) - center-y
-
-	; pt1/x: p1-x pt1/y: p1-y
-	; pt2/x: p2-x pt2/y: p2-y
-	; pt1: CGPointApplyAffineTransform pt1 m
-	; pt2: CGPointApplyAffineTransform pt2 m
+	cairo_matrix_init_scale matrix 1.0 / as float! radius-x 1.0 / as float! radius-y
+	cairo_matrix_rotate matrix 0.0 - as float! theta
+	cairo_matrix_translate matrix 0.0 - as float! center-x 0.0 - as float! center-y
+	last-x: as float! p1-x
+	last-y: as float! p1-y
+	cairo_matrix_transform_point matrix :last-x :last-y
+	p1-x: as float32! last-x
+	p1-y: as float32! last-y
+	last-x: as float! p2-x
+	last-y: as float! p2-y
+	cairo_matrix_transform_point matrix :last-x :last-y
+	p2-x: as float32! last-x
+	p2-y: as float32! last-y
 
 	;-- calculate angles
 	cx: atan2f p1-y p1-x
 	cy: atan2f p2-y p2-x
-	angle-len: cy - cx
-	either sweep? [
-		if angle-len < as float32! 0.0 [
-			angle-len: angle-len + pi2
-		]
-	][
-		if angle-len > as float32! 0.0 [
-			angle-len: angle-len - pi2
-		]
-	]
 
-	;-- construct the inverse transform
-	; m: CGAffineTransformMakeTranslation center-x center-y
-	; m: CGAffineTransformRotate m theta
-	; m: CGAffineTransformScale m radius-x radius-y
-	; CGPathAddRelativeArc ctx/path :m as float32! 0.0 as float32! 0.0 as float32! 1.0 cx angle-len
 	cairo_save cr
 	cairo_new_sub_path cr
 	cairo_translate cr as float! center-x as float! center-y
+	cairo_rotate    cr as float! theta
 	cairo_scale     cr as float! radius-x as float! radius-y
-	cairo_arc cr 0.0 0.0 1.0 as float! cx as float! cy
+	either sweep? [
+		cairo_arc cr 0.0 0.0 1.0 as float! cx as float! cy
+	][
+		cairo_arc_negative cr 0.0 0.0 1.0 as float! cx as float! cy
+	]
 	cairo_restore cr
 ]
 
 OS-draw-shape-close: func [
 	dc			[draw-ctx!]
 ][
-	cairo_close_path dc/cr
+	;cairo_close_path dc/cr
 ]
 
 OS-draw-brush-bitmap: func [
