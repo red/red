@@ -89,6 +89,8 @@ Red/System [
 		brush?			[logic!]
 		grad-pen		[handle!]
 		on-image?		[logic!]
+		control-x		[float32!]
+		control-y		[float32!]
 		shape-curve?	[logic!]
 		font-attrs		[handle!]					;-- pango attrs for fonts
 		font-opts		[handle!]					;-- cairo opts for fonts
