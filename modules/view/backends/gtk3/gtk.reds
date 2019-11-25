@@ -2590,6 +2590,10 @@ GPtrArray!: alias struct! [
 			pattern		[handle!]
 			matrix		[cairo_matrix_t!]
 		]
+		cairo_pattern_get_matrix: "cairo_pattern_get_matrix" [
+			pattern		[handle!]
+			matrix		[cairo_matrix_t!]
+		]
 		cairo_pattern_set_extend: "cairo_pattern_set_extend" [
 			pattern		[handle!]
 			extend		[cairo_extend_t!]
