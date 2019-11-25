@@ -300,19 +300,19 @@ Red [
 
 ===end-group===
 
-
-===start-group=== "load issue #2438"
-
-	--test-- "load a<=>"
-		--assert error? res: try [load "a<=>"]
-		--assert to logic! find/match form res {*** Syntax Error: invalid word! at "a<=>"^/*** Where:}
-
-	--test-- "load a</=>"
-		--assert not error? res: try [load "a</=>"]
-		--assert word? :res/1
-		--assert tag?  :res/2
-
-===end-group===
+;;  OBSOLETE test related to a specific lexer implementation.
+;===start-group=== "load issue #2438"
+;
+;	--test-- "load a<=>"
+;		--assert error? res: try [load "a<=>"]
+;		--assert to logic! find/match form res {*** Syntax Error: invalid word! at "a<=>"^/*** Where:}
+;
+;	--test-- "load a</=>"
+;		--assert not error? res: try [load "a</=>"]
+;		--assert word? :res/1
+;		--assert tag?  :res/2
+;
+;===end-group===
 
 ===start-group=== "load issue #3717"
 	--test-- "load ) 1"
