@@ -995,68 +995,95 @@ OS-draw-grad-pen: func [
 
 OS-matrix-rotate: func [
 	dc			[draw-ctx!]
-	pen			[integer!]
+	pen-fill	[integer!]
 	angle		[red-integer!]
 	center		[red-pair!]
 	/local
 		cr		[handle!]
 		rad		[float!]
+		matrix	[cairo_matrix_t! value]
 ][
 	cr: dc/cr
 	rad: PI / 180.0 * get-float angle
-	if angle <> as red-integer! center [
-		cairo_translate cr as float! center/x
-					   as float! center/y
-	]
-	cairo_rotate cr rad
-	if angle <> as red-integer! center [
-		cairo_translate cr as float! (0 - center/x)
-					as float! (0 - center/y)
+	either pen-fill = -1 [
+		if angle <> as red-integer! center [
+			cairo_translate cr as float! center/x
+						as float! center/y
+		]
+		cairo_rotate cr rad
+		if angle <> as red-integer! center [
+			cairo_translate cr as float! (0 - center/x)
+						as float! (0 - center/y)
+		]
+	][
+		cairo_pattern_get_matrix dc/grad-pen matrix
+		cairo_matrix_rotate matrix rad
+		cairo_pattern_set_matrix dc/grad-pen matrix
 	]
 ]
 
 OS-matrix-scale: func [
 	dc			[draw-ctx!]
-	pen			[integer!]
+	pen-fill	[integer!]
 	sx			[red-integer!]
 	sy			[red-integer!]
+	/local
+		matrix	[cairo_matrix_t! value]
 ][
-	cairo_scale dc/cr as float! get-float32 sx
-					  as float! get-float32 sy
+	either pen-fill <> -1 [
+		cairo_pattern_get_matrix dc/grad-pen matrix
+		cairo_matrix_scale matrix get-float sx get-float sy
+		cairo_pattern_set_matrix dc/grad-pen matrix
+	][
+		cairo_scale dc/cr get-float sx get-float sy
+	]
 ]
 
 OS-matrix-translate: func [
 	dc			[draw-ctx!]
-	pen			[integer!]
+	pen-fill	[integer!]
 	x			[integer!]
 	y			[integer!]
+	/local
+		matrix	[cairo_matrix_t! value]
 ][
-	cairo_translate dc/cr as-float x
-						  as-float y
+	either pen-fill <> -1 [
+		cairo_pattern_get_matrix dc/grad-pen matrix
+		cairo_matrix_translate matrix as-float x as-float y
+		cairo_pattern_set_matrix dc/grad-pen matrix
+	][
+		cairo_translate dc/cr as-float x as-float y
+	]
 ]
 
 OS-matrix-skew: func [
 	dc			[draw-ctx!]
-	pen			[integer!]
+	pen-fill	[integer!]
 	sx			[red-integer!]
 	sy			[red-integer!]
 	/local
-		m		[integer!]
-		x		[float32!]
-		y		[float32!]
-		u		[float32!]
-		z		[float32!]
+		m		[cairo_matrix_t! value]
+		matrix	[cairo_matrix_t! value]
+		res		[cairo_matrix_t! value]
 ][
-	m: 0
-	u: as float32! 1.0
-	z: as float32! 0.0
-	x: as float32! tan degree-to-radians get-float sx TYPE_TANGENT
-	y: as float32! either sx = sy [0.0][tan degree-to-radians get-float sy TYPE_TANGENT]
+	m/xx: 1.0
+	m/yx: either sx = sy [0.0][tan degree-to-radians get-float sy TYPE_TANGENT]
+	m/xy: tan degree-to-radians get-float sx TYPE_TANGENT
+	m/yy: 1.0
+	m/x0: 0.0
+	m/y0: 0.0
+	either pen-fill <> -1 [
+		cairo_pattern_get_matrix dc/grad-pen matrix
+		cairo_matrix_multiply res matrix m
+		cairo_pattern_set_matrix dc/grad-pen res
+	][
+		cairo_transform dc/cr m
+	]
 ]
 
 OS-matrix-transform: func [
 	dc			[draw-ctx!]
-	pen			[integer!]
+	pen-fill	[integer!]
 	center		[red-pair!]
 	scale		[red-integer!]
 	translate	[red-pair!]
@@ -1088,33 +1115,61 @@ OS-matrix-pop: func [
 
 OS-matrix-reset: func [
 	dc			[draw-ctx!]
-	pen			[integer!]
+	pen-fill	[integer!]
+	/local
+		matrix	[cairo_matrix_t! value]
 ][
-	cairo_identity_matrix dc/cr
+	either pen-fill <> -1 [
+		cairo_pattern_get_matrix dc/grad-pen matrix
+		cairo_matrix_init_identity matrix
+		cairo_pattern_set_matrix dc/grad-pen matrix
+	][
+		cairo_identity_matrix dc/cr
+	]
 ]
 
 OS-matrix-invert: func [
 	dc			[draw-ctx!]
-	pen			[integer!]
-][]
+	pen-fill	[integer!]
+	/local
+		matrix	[cairo_matrix_t! value]
+][
+	either pen-fill <> -1 [
+		cairo_pattern_get_matrix dc/grad-pen matrix
+		cairo_matrix_invert matrix
+		cairo_pattern_set_matrix dc/grad-pen matrix
+	][
+		cairo_get_matrix dc/cr matrix
+		cairo_matrix_invert matrix
+		cairo_set_matrix dc/cr matrix
+	]
+]
 
 OS-matrix-set: func [
 	dc			[draw-ctx!]
-	pen			[integer!]
+	pen-fill	[integer!]
 	blk			[red-block!]
 	/local
 		m		[cairo_matrix_t! value]
 		val		[red-integer!]
+		matrix	[cairo_matrix_t! value]
+		res		[cairo_matrix_t! value]
 ][
 	m: null
 	val: as red-integer! block/rs-head blk
-    m/xx: get-float val
-    m/yx: get-float val + 1
-    m/xy: get-float val + 2
-    m/yy: get-float val + 3
-    m/x0: get-float val + 4
-    m/y0: get-float val + 5
-	cairo_transform dc/cr :m ; Weirdly it is not cairo_set_matrix because it is a global change!
+	m/xx: get-float val
+	m/yx: get-float val + 1
+	m/xy: get-float val + 2
+	m/yy: get-float val + 3
+	m/x0: get-float val + 4
+	m/y0: get-float val + 5
+	either pen-fill <> -1 [
+		cairo_pattern_get_matrix dc/grad-pen matrix
+		cairo_matrix_multiply res matrix m
+		cairo_pattern_set_matrix dc/grad-pen res
+	][
+		cairo_transform dc/cr m
+	]
 ]
 
 OS-set-matrix-order: func [
