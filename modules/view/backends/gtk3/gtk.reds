@@ -2695,13 +2695,13 @@ GPtrArray!: alias struct! [
 		]
 		cairo_matrix_transform_distance: "cairo_matrix_transform_distance" [
 			matrix		[cairo_matrix_t!]
-			dx			[int-ptr!]
-			dy			[int-ptr!]
+			dx			[float-ptr!]
+			dy			[float-ptr!]
 		]
 		cairo_matrix_transform_point: "cairo_matrix_transform_point" [
 			matrix		[cairo_matrix_t!]
-			dx			[int-ptr!]
-			dy			[int-ptr!]
+			dx			[float-ptr!]
+			dy			[float-ptr!]
 		]
 		; Related to draw text with cairo (no succes for base widget) replaced by pango_cairo
 		cairo_select_font_face: "cairo_select_font_face" [
