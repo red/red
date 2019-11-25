@@ -45,12 +45,14 @@ S_SKIP_STR3
 S_SIGN
 S_DOTWORD
 S_DOTDEC
+S_WORD_1ST
 S_WORD
 S_WORDSET
 S_URL
 S_EMAIL
 S_PATH
 S_PATH_NUM
+S_PATH_W1ST
 S_PATH_WORD
 S_PATH_SHARP
 S_PATH_SIGN
@@ -306,7 +308,8 @@ S_START->alphaU|"E"->S_HEX->alphaU|digit|"E"->S_HEX
                             \->"h"->T_HEX
                              \->","|"#"|"%"->T_ERROR
                               \->not(delimit5)->S_WORD
-                              
+
+S_START->"'"|":"->S_WORD_1ST->not(delimit6)->S_WORD
 
 S_START->not(delimit6)->S_WORD->not(delimit5)->S_WORD
                          \->delimit7->T_WORD
@@ -352,6 +355,8 @@ S_PATH->"+"|"-"->S_PATH_SIGN->digit->S_PATH_NUM
                      \->else->S_WORD
                         
 S_PATH->"$"->S_MONEY_1ST
+
+S_PATH->"'"|":"->S_PATH_W1ST->not(delimit6)->S_PATH_WORD
 
 S_PATH->not(delimit6)->S_PATH_WORD->not(delimit5)->S_PATH_WORD
                          \->delimit7->T_WORD
