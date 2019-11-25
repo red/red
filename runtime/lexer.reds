@@ -1709,6 +1709,8 @@ lexer: context [
 			]
 			lex/in-pos >= lex/in-end
 		]
+		
+		if lex/entry = S_M_STRING [throw-error lex start lex/in-end TYPE_STRING]
 		assert lex/in-pos = lex/in-end
 	]
 
