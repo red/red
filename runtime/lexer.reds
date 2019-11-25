@@ -1650,22 +1650,15 @@ lexer: context [
 	]
 
 	scan-tokens: func [
-		lex [state!]
+		lex  [state!]
+		one? [logic!]
 		/local
-			p		[byte-ptr!]
-			e		[byte-ptr!]
-			start	[byte-ptr!]
-			cp		[integer!]
-			class	[integer!]
-			index	[integer!]
-			state	[integer!]
-			flags	[integer!]
-			line	[integer!]
-			mark	[integer!]
-			offset	[integer!]
-			s		[series!]
-			term?	[logic!]
-			do-scan [scanner!]
+			cp class index state flags line	mark offset	[integer!]
+			slot	  [red-value!]
+			p e	start [byte-ptr!]
+			s		  [series!]
+			term?	  [logic!]
+			do-scan   [scanner!]
 	][
 		line: 1
 		until [
@@ -1710,15 +1703,20 @@ lexer: context [
 			if all [lex/entry = S_PATH state <> T_PATH][
 				scan-path-item lex start + offset lex/in-pos flags ;-- lex/in-pos could have changed
 			]
+			if one? [
+				slot: lex/tail - 1
+				if any [slot <= lex/head TYPE_OF(slot) <> TYPE_POINT][exit]
+			]
 			lex/in-pos >= lex/in-end
 		]
 		assert lex/in-pos = lex/in-end
 	]
 
 	scan: func [
-		dst [red-value!]								;-- destination slot
-		src [byte-ptr!]									;-- UTF-8 buffer
-		len [integer!]									;-- buffer size in bytes
+		dst   [red-value!]								;-- destination slot
+		src   [byte-ptr!]								;-- UTF-8 buffer
+		len   [integer!]								;-- buffer size in bytes
+		one?  [logic!]									;-- scan only one value
 		/local
 			blk	  [red-block!]
 			slots [integer!]
@@ -1740,10 +1738,15 @@ lexer: context [
 		lex/type:		-1
 		lex/mstr-nest:	0
 		
-		scan-tokens lex
+		scan-tokens lex one?
 
 		slots: (as-integer lex/tail - lex/buffer) >> 4
-		store-any-block dst lex/buffer slots TYPE_BLOCK
+		
+		either all [one? slots > 0][
+			copy-cell lex/buffer dst					;-- copy first loaded value only
+		][
+			store-any-block dst lex/buffer slots TYPE_BLOCK
+		]
 		
 		depth: depth - 1
 		if zero? depth [root-state: null]

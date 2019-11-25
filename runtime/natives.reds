@@ -2731,20 +2731,23 @@ natives: context [
 	
 	transcode*: func [
 		check? [logic!]
-		one?   [logic!]
-		only?  [logic!]
-		trap?  [logic!]
-		part?  [logic!]
-		into?  [logic!]
+		part   [integer!]
+		into   [integer!]
 		/local
 			bin	 [red-binary!]
 			slot [red-value!]
+			len  [integer!]
 	][
-		#typecheck [one? only? part?]
+		#typecheck [part into]
 		
 		bin: as red-binary! stack/arguments
 		slot: stack/push*
-		lexer/scan slot binary/rs-head bin binary/rs-length? bin
+		len: binary/rs-length? bin
+		;if OPTION?(part) [
+		;	
+		;]
+		
+		lexer/scan slot binary/rs-head bin len no
 
 		stack/set-last slot
 	]

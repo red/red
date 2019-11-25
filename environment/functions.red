@@ -409,7 +409,7 @@ load: function [
 					return do [codec/decode source]
 				]
 			]
-			source: read source
+			source: read/binary source
 		]
 		url!	[
 			source: read/info/binary source
@@ -422,15 +422,16 @@ load: function [
 					]
 				]
 			][return none]
-			source: to string! source/3
+			source: source/3
 		]
-		binary! [source: to string! source]				;-- For text: UTF-8 encoding TBD: load image in binary form
+		string! [source: to binary! source]
 	][source]
 
 	result: case [
-		part  [system/lexer/transcode/part source out trap length]
-		next  [set position system/lexer/transcode/one source out trap]
-		'else [system/lexer/transcode source out trap]
+		part  [system/lexer/transcode/part to-string source out trap length]
+		next  [set position system/lexer/transcode/one to-string source out trap]
+		trap  [system/lexer/transcode to-string source out trap]
+		'else [out: transcode source]
 	]
 	either trap [result][
 		unless :all [if 1 = length? out [out: out/1]]
