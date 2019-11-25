@@ -706,7 +706,48 @@ errno: as int-ptr! 0
 ]
 
 #either OS = 'macOS [
-	#define LIBSSL-file "libssl.dylib"
+	#define LIBSSL-file "libssl.44.dylib"
+
+	X509_VAL!: alias struct! [
+		notBefore		[int-ptr!]
+		notAfter		[int-ptr!]
+	]
+	X509_CINF!: alias struct! [
+		version			[int-ptr!]
+		serialNumber	[int-ptr!]
+		signature		[int-ptr!]
+		issuer			[int-ptr!]
+		validity		[X509_VAL!]
+		subject			[int-ptr!]
+		key				[int-ptr!]
+		issuerUID		[int-ptr!]
+		subjectUID		[int-ptr!]
+		extensions		[int-ptr!]
+		enc				[int-ptr!]
+	]
+	X509!: alias struct! [
+		cert_info	[X509_CINF!]
+		sig_alg		[int-ptr!]
+		;; more fields
+	]
+	X509_getm_notBefore: func [
+		cert		[int-ptr!]
+		return:		[int-ptr!]
+		/local
+			x		[X509!]
+	][
+		x: as X509! cert
+		x/cert_info/validity/notBefore
+	]
+	X509_getm_notAfter: func [
+		cert		[int-ptr!]
+		return:		[int-ptr!]
+		/local
+			x		[X509!]
+	][
+		x: as X509! cert
+		x/cert_info/validity/notAfter
+	]
 ][
 	#define LIBSSL-file "libssl.so"
 ]
@@ -791,6 +832,7 @@ errno: as int-ptr! 0
 			v		[integer!]
 			return: [integer!]
 		]
+		#if OS <> 'macOS [
 		X509_getm_notBefore: "X509_getm_notBefore" [
 			x		[int-ptr!]
 			return: [int-ptr!]
@@ -798,7 +840,7 @@ errno: as int-ptr! 0
 		X509_getm_notAfter: "X509_getm_notAfter" [
 			x		[int-ptr!]
 			return: [int-ptr!]
-		]
+		]]
 		X509_time_adj_ex: "X509_time_adj_ex" [
 			t		[int-ptr!]
 			day		[integer!]
