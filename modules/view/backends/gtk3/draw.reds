@@ -1193,6 +1193,7 @@ OS-set-clip: func [
 OS-draw-shape-beginpath: func [
 	dc			[draw-ctx!]
 ][
+	cairo_move_to dc/cr 0.0 0.0
 ]
 
 OS-draw-shape-endpath: func [
@@ -1278,67 +1279,75 @@ draw-curve: func [
 	short?		[logic!]
 	num			[integer!]				;--	number of points
 	/local
-		dx		[float!]
-		dy		[float!]
-		p3y		[float!]
-		p3x		[float!]
-		p2y		[float!]
-		p2x		[float!]
-		p1y		[float!]
-		p1x		[float!]
-		pf		[float-ptr!]
+		dx		[float32!]
+		dy		[float32!]
+		p3y		[float32!]
+		p3x		[float32!]
+		p2y		[float32!]
+		p2x		[float32!]
+		p1y		[float32!]
+		p1x		[float32!]
+		pf		[float32-ptr!]
 		pt		[red-pair!]
+		last-x	[float!]
+		last-y	[float!]
 ][
 	pt: start + 1
-	p1x: as-float start/x
-	p1y: as-float start/y
-	p2x: as-float pt/x
-	p2y: as-float pt/y
+	p1x: as float32! start/x
+	p1y: as float32! start/y
+	p2x: as float32! pt/x
+	p2y: as float32! pt/y
 	if num = 3 [					;-- cubic Bézier
 		pt: start + 2
-		p3x: as-float pt/x
-		p3y: as-float pt/y
+		p3x: as float32! pt/x
+		p3y: as float32! pt/y
 	]
 
-	; dx: dc/last-pt-x
-	; dy: dc/last-pt-y
-	; if rel? [
-	; 	pf: :p1x
-	; 	loop num [
-	; 		pf/1: pf/1 + dx			;-- x
-	; 		pf/2: pf/2 + dy			;-- y
-	; 		pf: pf + 2
-	; 	]
-	; ]
+	last-x: 0.0 last-y: 0.0
+	if 1 = cairo_has_current_point dc/cr [
+		cairo_get_current_point dc/cr :last-x :last-y
+	]
+	dx: as float32! last-x
+	dy: as float32! last-y
+	if rel? [
+		pf: :p1x
+		loop num [
+			pf/1: pf/1 + dx			;-- x
+			pf/2: pf/2 + dy			;-- y
+			pf: pf + 2
+		]
+	]
 
-	; if short? [
-	; 	either dc/shape-curve? [
-	; 		;-- The control point is assumed to be the reflection of the control point
-	; 		;-- on the previous command relative to the current point
-	; 		p1x: dx * 2.0 - dc/control-x
-	; 		p1y: dy * 2.0 - dc/control-y
-	; 	][
-	; 		;-- if previous command is not curve/curv/qcurve/qcurv, use current point
-	; 		p1x: dx
-	; 		p1y: dy
-	; 	]
-	; ]
+	if short? [
+		either dc/shape-curve? [
+			;-- The control point is assumed to be the reflection of the control point
+			;-- on the previous command relative to the current point
+			p1x: dx * 2.0 - dc/control-x
+			p1y: dy * 2.0 - dc/control-y
+		][
+			;-- if previous command is not curve/curv/qcurve/qcurv, use current point
+			p1x: dx
+			p1y: dy
+		]
+	]
 
 	dc/shape-curve?: yes
 	either num = 3 [				;-- cubic Bézier
-		either rel? [cairo_rel_curve_to dc/cr p1x p1y p2x p2y p3x p3y]
-		[cairo_curve_to dc/cr p1x p1y p2x p2y p3x p3y]
-		; dc/control-x: p2x
-		; dc/control-y: p2y
-		; dc/last-pt-x: p3x
-		; dc/last-pt-y: p3y
+		cairo_curve_to dc/cr
+			as float! p1x as float! p1y
+			as float! p2x as float! p2y
+			as float! p3x as float! p3y
+		dc/control-x: p2x
+		dc/control-y: p2y
 	][								;-- quadratic Bézier
-		;CGPathAddQuadCurveToPoint dc/path null p1x p1y p2x p2y
-		; dc/control-x: p1x
-		; dc/control-y: p1y
-		; dc/last-pt-x: p2x
-		; dc/last-pt-y: p2y
-		0
+		cairo_curve_to dc/cr
+			(2.0 / 3.0 * as float! p1x) + (1.0 / 3.0 * as float! dx)
+			(2.0 / 3.0 * as float! p1y) + (1.0 / 3.0 * as float! dy)
+			(2.0 / 3.0 * as float! p2x) + (1.0 / 3.0 * as float! p1x)
+			(2.0 / 3.0 * as float! p2y) + (1.0 / 3.0 * as float! p1y)
+			as float! p2x as float! p2y
+		dc/control-x: p1x
+		dc/control-y: p1y
 	]
 ]
 
