@@ -451,18 +451,17 @@ object [
 		]
 	]
 
-	jump-word: func [left? [logic!] return: [integer!] /local start n][
+	jump-word: func [left? [logic!] return: [integer!] /local n dlm wc here p][
+		dlm: charset {/\^^[](){}"@:; ^-}				;-- word delimiters
+		wc: negate dlm
+		here: skip line pos
 		either left? [
-			start: find/reverse/tail skip line pos #" "
-			either start [
-				n: (index? start) - pos - index? line
-				if all [zero? n pos <> 0][n: -1]
-			][n: pos]
+			rev: reverse copy/part head line here
+			parse rev [any dlm any wc p:]
+			n: offset? p rev
 		][
-			start: find skip line pos #" "
-			unless start [start: tail line]
-			n: (index? start) - pos - index? line
-			if all [zero? n pos <> length? line][n: 1]
+			parse here [any dlm any wc p:]
+			n: offset? here p
 		]
 		n
 	]
@@ -784,38 +783,36 @@ object [
 	delete-text: func [
 		ctrl?	[logic!]
 		/backward
-		/local n idx s del?
+		/local n idx s del? rev dlm wc p here
 	][
 		if delete-selected [exit]
 
+		dlm: charset {/\^^[](){}"@:; ^-}				;-- word delimiters
+		wc: negate dlm
 		del?: no
-		if all [not backward pos <> 0][
-			if #" " = pick line pos [ctrl?: no]
-			either ctrl? [
-				idx: index? line
-				start-idx: find/reverse/tail skip line pos #" "
-				either all [start-idx (index? start-idx) > idx][
-					n: pos + idx - index? start-idx
-				][
-					start-idx: line
-					n: pos
-				]
-				pos: pos - n
-				s: take/part start-idx n
-				reduce/into [pos s] undo-stack
-			][
-				pos: pos - 1
-				s: take skip line pos
-				reduce/into [pos s] undo-stack
+		here: skip line pos
+		n: 1
+		if all [backward pos <> 0][
+			if ctrl? [
+				rev: reverse copy/part head line here
+				parse rev [any dlm any wc p:]
+				n: offset? rev p
+			]
+			pos: pos - n
+			del?: yes
+		]
+		if all [not backward pos < length? line][
+			if ctrl? [
+				parse here [any dlm any wc p:]
+				n: offset? here p
 			]
 			del?: yes
 		]
-		if all [backward pos < length? line][
-			s: take skip line pos
+		if del? [
+			s: take/part skip line pos n
 			reduce/into [pos s] undo-stack
-			del?: yes
+			clear selects clear redo-stack
 		]
-		if del? [clear selects clear redo-stack]
 	]
 
 	clean: func [][
@@ -863,14 +860,15 @@ object [
 		]]
 		switch/default char [
 			#"^M"	[exit-ask-loop]					;-- ENTER key
-			#"^H"	[delete-text ctrl?]
+			#"^H"	[delete-text/backward ctrl?]	;-- both Backspace and Ctrl+H
+			#"^~"	[delete-text/backward yes]		;-- Ctrl + Backspace
 			#"^-"	[unless empty? line [do-completion line char]]
 			left	[move-caret/event -1 event]
 			right	[move-caret/event 1 event]
 			up		[either ctrl? [scroll-lines  1][fetch-history 'prev]]
 			down	[either ctrl? [scroll-lines -1][fetch-history 'next]]
 			insert	[if event/shift? [paste exit]]
-			delete	[delete-text/backward ctrl?]
+			delete	[either event/shift? [cut][delete-text ctrl?]]
 			#"^A" home	[if shift? [select-text 0 - pos] pos: 0]
 			#"^E" end	[
 				if shift? [select-text (length? line) - pos]
@@ -882,7 +880,6 @@ object [
 			#"^Z"	[undo undo-stack redo-stack]
 			#"^Y"	[undo redo-stack undo-stack]
 			#"^["	[exit-ask-loop/escape]
-			#"^~"	[delete-text yes]				;-- Ctrl + Backspace
 			#"^L"	[clean]
 			#"^K"	[clear line pos: 0]				;-- delete the whole line
 		][
