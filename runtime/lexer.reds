@@ -1265,7 +1265,7 @@ lexer: context [
 		loop as-integer e - s [
 			either p/1 = #"." [
 				pos: pos + 1
-				if any [i < 0 i > 255 pos > 12][throw-error lex s e TYPE_TUPLE]
+				if any [i < 0 i > 255 pos > 12 p/2 = #"."][throw-error lex s e TYPE_TUPLE]
 				tp/pos: as byte! i
 				i: 0
 			][
