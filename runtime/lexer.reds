@@ -1131,7 +1131,10 @@ lexer: context [
 			cell [cell!]
 			type [integer!]
 	][
-		type: either s/1 = #"#" [TYPE_ISSUE][
+		type: either s/1 = #"#" [
+			if s + 1 = e [throw-error lex s e TYPE_ISSUE]
+			TYPE_ISSUE
+		][
 			assert s/1 = #"/"
 			either s + 1 = e [s: s - 1 TYPE_WORD][TYPE_REFINEMENT]
 		]
