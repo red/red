@@ -34,7 +34,7 @@ TLS-device: context [
 			IO_EVT_READ	[
 				bin: as red-binary! (object/get-values p) + port/field-data
 				s: GET_BUFFER(bin)
-				s/tail: as cell! (as byte-ptr! s/tail) + data/transferred
+				s/tail: as cell! (as byte-ptr! s/offset) + data/transferred
 				io/unpin-memory bin/node
 				#if OS = 'Windows [
 					either data/accept-sock = PENDING_IO_FLAG [
