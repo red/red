@@ -40,7 +40,7 @@ dns: context [
 			assert zero? res_ninit gstate
 		]
 		state: gstate
-dump4 state
+
 		domain: either domain = AF_INET [1][28]
 		buffer: allocate DNS_PACKET_SZ
 		len: res_nmkquery state 0 addr 1 domain null 0 null buffer DNS_PACKET_SZ
