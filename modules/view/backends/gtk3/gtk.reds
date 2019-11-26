@@ -2403,22 +2403,28 @@ GPtrArray!: alias struct! [
 
 	;; LIBCAIRO-file cdecl [
 		cairo_create: "cairo_create" [
-			surf			[handle!]
+			surf		[handle!]
 			return:		[handle!]
 		]
 
 		cairo_destroy: "cairo_destroy" [
 			cr			[handle!]
 		]
-
+		cairo_push_group: "cairo_push_group" [
+			cr			[handle!]
+		]
+		cairo_pop_group: "cairo_pop_group" [
+			cr			[handle!]
+			return:		[handle!]
+		]
 		cairo_clip: "cairo_clip" [
 			cr			[handle!]
 		]
 
 		cairo_line_to: "cairo_line_to" [
 			cr			[handle!]
-			x				[float!]
-			y				[float!]
+			x			[float!]
+			y			[float!]
 		]
 
 		cairo_rel_line_to: "cairo_rel_line_to" [
@@ -2586,6 +2592,10 @@ GPtrArray!: alias struct! [
 			cr			[handle!]
 			antialias	[integer!]
 		]
+		cairo_pattern_get_type: "cairo_pattern_get_type" [
+			pattern		[handle!]
+			return:		[integer!]
+		]
 		cairo_pattern_set_matrix: "cairo_pattern_set_matrix" [
 			pattern		[handle!]
 			matrix		[cairo_matrix_t!]
@@ -2621,6 +2631,9 @@ GPtrArray!: alias struct! [
 			green		[float!]
 			blue		[float!]
 			alpha		[float!]
+		]
+		cairo_pattern_create_mesh: "cairo_pattern_create_mesh" [
+			return:		[handle!]
 		]
 		cairo_pattern_destroy: "cairo_pattern_destroy" [
 			pattern		[handle!]
