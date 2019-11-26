@@ -23,6 +23,7 @@ redc: context [
 	win-version:	none								;-- Windows version extracted from "ver" command
 	SSE3?:			yes
 
+	Linux?:    system/version/4 = 4
 	Windows?:  system/version/4 = 3
 	macOS?:    system/version/4 = 2
 	load-lib?: any [encap? find system/components 'Library]
@@ -459,7 +460,7 @@ redc: context [
 			]
 
 			source: copy read-cache console/:con-ui
-			if all [any [Windows? macOS?] not gui?][insert find/tail source #"[" "Needs: 'View^/"]
+			if all [any [Windows? macOS? Linux?] not gui?][insert find/tail source #"[" "Needs: 'View^/"]
 
 			files: [%auto-complete.red %engine.red %help.red]
 			foreach f files [write temp-dir/:f read-cache console-root/:f]
@@ -533,7 +534,7 @@ redc: context [
 		]
 		
 		script: switch/default opts/OS [	;-- empty script for the lib
-			Windows macOS [ [[Needs: View]] ]
+			Windows macOS Linux [ [[Needs: View]] ]
 		][ [[]] ]
 		
 		result: red/compile script opts
