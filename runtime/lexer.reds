@@ -1007,8 +1007,10 @@ lexer: context [
 				true	   [throw-error lex s e type]
 			]
 		]
-		if s/1 = #"'" [s: s + 1 type: TYPE_LIT_WORD]
-
+		if s/1 = #"'" [
+			if type = TYPE_SET_WORD [throw-error lex s e TYPE_LIT_WORD]
+			s: s + 1 type: TYPE_LIT_WORD
+		]
 		cell: alloc-slot lex
 		word/make-at symbol/make-alt-utf8 s as-integer e - s cell
 		set-type cell type
