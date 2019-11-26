@@ -1014,6 +1014,7 @@ OS-matrix-rotate: func [
 	/local
 		cr		[handle!]
 		rad		[float!]
+		pattern	[handle!]
 		matrix	[cairo_matrix_t! value]
 ][
 	cr: dc/cr
@@ -1029,9 +1030,12 @@ OS-matrix-rotate: func [
 						as float! (0 - center/y)
 		]
 	][
-		cairo_pattern_get_matrix dc/grad-pen matrix
-		cairo_matrix_rotate matrix rad
-		cairo_pattern_set_matrix dc/grad-pen matrix
+		pattern: either pen-fill = pen [dc/grad-pen][dc/grad-brush]
+		unless null? pattern [
+			cairo_pattern_get_matrix pattern matrix
+			cairo_matrix_rotate matrix rad
+			cairo_pattern_set_matrix pattern matrix
+		]
 	]
 ]
 
@@ -1041,12 +1045,16 @@ OS-matrix-scale: func [
 	sx			[red-integer!]
 	sy			[red-integer!]
 	/local
+		pattern	[handle!]
 		matrix	[cairo_matrix_t! value]
 ][
 	either pen-fill <> -1 [
-		cairo_pattern_get_matrix dc/grad-pen matrix
-		cairo_matrix_scale matrix get-float sx get-float sy
-		cairo_pattern_set_matrix dc/grad-pen matrix
+		pattern: either pen-fill = pen [dc/grad-pen][dc/grad-brush]
+		unless null? pattern [
+			cairo_pattern_get_matrix pattern matrix
+			cairo_matrix_scale matrix get-float sx get-float sy
+			cairo_pattern_set_matrix pattern matrix
+		]
 	][
 		cairo_scale dc/cr get-float sx get-float sy
 	]
@@ -1058,12 +1066,16 @@ OS-matrix-translate: func [
 	x			[integer!]
 	y			[integer!]
 	/local
+		pattern	[handle!]
 		matrix	[cairo_matrix_t! value]
 ][
 	either pen-fill <> -1 [
-		cairo_pattern_get_matrix dc/grad-pen matrix
-		cairo_matrix_translate matrix as-float x as-float y
-		cairo_pattern_set_matrix dc/grad-pen matrix
+		pattern: either pen-fill = pen [dc/grad-pen][dc/grad-brush]
+		unless null? pattern [
+			cairo_pattern_get_matrix pattern matrix
+			cairo_matrix_translate matrix as-float x as-float y
+			cairo_pattern_set_matrix pattern matrix
+		]
 	][
 		cairo_translate dc/cr as-float x as-float y
 	]
@@ -1075,6 +1087,7 @@ OS-matrix-skew: func [
 	sx			[red-integer!]
 	sy			[red-integer!]
 	/local
+		pattern	[handle!]
 		m		[cairo_matrix_t! value]
 		matrix	[cairo_matrix_t! value]
 		res		[cairo_matrix_t! value]
@@ -1086,9 +1099,12 @@ OS-matrix-skew: func [
 	m/x0: 0.0
 	m/y0: 0.0
 	either pen-fill <> -1 [
-		cairo_pattern_get_matrix dc/grad-pen matrix
-		cairo_matrix_multiply res matrix m
-		cairo_pattern_set_matrix dc/grad-pen res
+		pattern: either pen-fill = pen [dc/grad-pen][dc/grad-brush]
+		unless null? pattern [
+			cairo_pattern_get_matrix pattern matrix
+			cairo_matrix_multiply res matrix m
+			cairo_pattern_set_matrix pattern res
+		]
 	][
 		cairo_transform dc/cr m
 	]
@@ -1107,9 +1123,9 @@ OS-matrix-transform: func [
 	rotate: as red-integer! either center + 1 = scale [center][center + 1]
 	center?: rotate <> center
 
-	OS-matrix-rotate dc pen rotate center
-	OS-matrix-scale dc pen scale scale + 1
-	OS-matrix-translate dc pen translate/x translate/y
+	OS-matrix-rotate dc pen-fill rotate center
+	OS-matrix-scale dc pen-fill scale scale + 1
+	OS-matrix-translate dc pen-fill translate/x translate/y
 ]
 
 OS-matrix-push: func [
@@ -1130,12 +1146,16 @@ OS-matrix-reset: func [
 	dc			[draw-ctx!]
 	pen-fill	[integer!]
 	/local
+		pattern	[handle!]
 		matrix	[cairo_matrix_t! value]
 ][
 	either pen-fill <> -1 [
-		cairo_pattern_get_matrix dc/grad-pen matrix
-		cairo_matrix_init_identity matrix
-		cairo_pattern_set_matrix dc/grad-pen matrix
+		pattern: either pen-fill = pen [dc/grad-pen][dc/grad-brush]
+		unless null? pattern [
+			cairo_pattern_get_matrix pattern matrix
+			cairo_matrix_init_identity matrix
+			cairo_pattern_set_matrix pattern matrix
+		]
 	][
 		cairo_identity_matrix dc/cr
 	]
@@ -1145,12 +1165,16 @@ OS-matrix-invert: func [
 	dc			[draw-ctx!]
 	pen-fill	[integer!]
 	/local
+		pattern	[handle!]
 		matrix	[cairo_matrix_t! value]
 ][
 	either pen-fill <> -1 [
-		cairo_pattern_get_matrix dc/grad-pen matrix
-		cairo_matrix_invert matrix
-		cairo_pattern_set_matrix dc/grad-pen matrix
+		pattern: either pen-fill = pen [dc/grad-pen][dc/grad-brush]
+		unless null? pattern [
+			cairo_pattern_get_matrix pattern matrix
+			cairo_matrix_invert matrix
+			cairo_pattern_set_matrix pattern matrix
+		]
 	][
 		cairo_get_matrix dc/cr matrix
 		cairo_matrix_invert matrix
@@ -1163,6 +1187,7 @@ OS-matrix-set: func [
 	pen-fill	[integer!]
 	blk			[red-block!]
 	/local
+		pattern	[handle!]
 		m		[cairo_matrix_t! value]
 		val		[red-integer!]
 		matrix	[cairo_matrix_t! value]
@@ -1177,9 +1202,12 @@ OS-matrix-set: func [
 	m/x0: get-float val + 4
 	m/y0: get-float val + 5
 	either pen-fill <> -1 [
-		cairo_pattern_get_matrix dc/grad-pen matrix
-		cairo_matrix_multiply res matrix m
-		cairo_pattern_set_matrix dc/grad-pen res
+		pattern: either pen-fill = pen [dc/grad-pen][dc/grad-brush]
+		unless null? pattern [
+			cairo_pattern_get_matrix pattern matrix
+			cairo_matrix_multiply res matrix m
+			cairo_pattern_set_matrix pattern res
+		]
 	][
 		cairo_transform dc/cr m
 	]
