@@ -88,6 +88,7 @@ Red/System [
 		pen?			[logic!]
 		brush?			[logic!]
 		grad-pen		[handle!]
+		grad-brush		[handle!]
 		on-image?		[logic!]
 		control-x		[float32!]
 		control-y		[float32!]

@@ -64,6 +64,7 @@ init-draw-ctx: func [
 	ctx/pen?:			yes
 	ctx/brush?:			no
 	ctx/grad-pen:		null
+	ctx/grad-brush:		null
 
 	ctx/font-attrs:		null
 	ctx/font-opts:		null
@@ -105,19 +106,15 @@ do-draw-path: func [
 	cr: dc/cr
 	if dc/brush? [
 		cairo_save cr
-		either null? dc/grad-pen [
+		either null? dc/grad-brush [
 			set-source-color cr dc/brush-color
 		][
-			cairo_set_source cr dc/grad-pen
+			cairo_set_source cr dc/grad-brush
 		]
 		cairo_fill_preserve cr
 		cairo_restore cr
 	]
-	either dc/pen? [
-		cairo_stroke cr
-	][
-		cairo_new_path cr
-	]
+	do-draw-pen dc
 ]
 
 do-draw-pen: func [
@@ -170,6 +167,10 @@ OS-draw-pen: func [
 	alpha?		[logic!]
 ][
 	dc/pen?: not off?
+	unless null? dc/grad-pen [
+		cairo_pattern_destroy dc/grad-pen
+		dc/grad-pen: null
+	]
 	if all [not off? dc/pen-color <> color][
 		dc/pen-color: color
 		dc/font-color: color
@@ -184,9 +185,9 @@ OS-draw-fill-pen: func [
 	alpha?		[logic!]
 ][
 	dc/brush?: not off?
-	unless null? dc/grad-pen [
-		cairo_pattern_destroy dc/grad-pen
-		dc/grad-pen: null
+	unless null? dc/grad-brush [
+		cairo_pattern_destroy dc/grad-brush
+		dc/grad-brush: null
 	]
 	if dc/brush-color <> color [
 		dc/brush-color: color
@@ -894,9 +895,15 @@ OS-draw-grad-pen-old: func [
 		head: head + 1
 	]
 
-	if brush? [dc/brush?: yes]				;-- set brush, or set pen
-	unless null? dc/grad-pen [cairo_pattern_destroy dc/grad-pen]
-	dc/grad-pen: pattern
+	dc/brush?: brush?
+	dc/pen?: not brush?
+	either brush? [
+		unless null? dc/grad-brush [cairo_pattern_destroy dc/grad-brush]
+		dc/grad-brush: pattern
+	][
+		unless null? dc/grad-pen [cairo_pattern_destroy dc/grad-pen]
+		dc/grad-pen: pattern
+	]
 ]
 
 OS-draw-grad-pen: func [
@@ -988,9 +995,15 @@ OS-draw-grad-pen: func [
 			true [CAIRO_EXTEND_NONE]
 		]
 
-	if brush? [dc/brush?: yes]				;-- set brush, or set pen
-	unless null? dc/grad-pen [cairo_pattern_destroy dc/grad-pen]
-	dc/grad-pen: pattern
+	dc/brush?: brush?
+	dc/pen?: not brush?
+	either brush? [
+		unless null? dc/grad-brush [cairo_pattern_destroy dc/grad-brush]
+		dc/grad-brush: pattern
+	][
+		unless null? dc/grad-pen [cairo_pattern_destroy dc/grad-pen]
+		dc/grad-pen: pattern
+	]
 ]
 
 OS-matrix-rotate: func [
@@ -1542,4 +1555,63 @@ OS-draw-brush-pattern: func [
 	mode		[red-word!]
 	block		[red-block!]
 	brush?		[logic!]
-][]
+	/local
+		cr		[handle!]
+		x		[integer!]
+		y		[integer!]
+		w		[integer!]
+		h		[integer!]
+		wrap	[integer!]
+		pattern	[handle!]
+		matrix	[cairo_matrix_t! value]
+][
+	cr: dc/cr
+	w: size/x
+	h: size/y
+	either crop-1 = null [
+		x: 0
+		y: 0
+	][
+		x: crop-1/x
+		y: crop-1/y
+	]
+	either crop-2 = null [
+		w: w - x
+		h: h - y
+	][
+		w: either ( x + crop-2/x ) > w [ w - x ][ crop-2/x ]
+		h: either ( y + crop-2/y ) > h [ h - y ][ crop-2/y ]
+	]
+	wrap: tile
+	unless mode = null [wrap: symbol/resolve mode/symbol]
+	case [
+		any [wrap = flip-x wrap = flip-y] [w: w * 2]
+		wrap = flip-xy [w: w * 2 h: h * 2]
+		true []
+	]
+	cairo_push_group cr
+	do-draw cr null block no no yes yes
+	if wrap = flip-x [
+		cairo_scale cr -1.0 1.0
+		do-draw cr null block no no yes yes
+	]
+	if wrap = flip-y [
+		cairo_matrix_init matrix 1.0 0.0 0.0 -1.0 as float! w as float! h
+		cairo_transform cr matrix
+		do-draw cr null block no no yes yes
+	]
+	pattern: cairo_pop_group cr
+	;pattern: cairo_pattern_create_mesh 
+	;-- TBD: wrap mode
+	cairo_pattern_set_extend pattern CAIRO_EXTEND_PAD;CAIRO_EXTEND_REPEAT
+
+	dc/brush?: brush?
+	dc/pen?: not brush?
+	either brush? [
+		unless null? dc/grad-brush [cairo_pattern_destroy dc/grad-brush]
+		dc/grad-brush: pattern
+	][
+		unless null? dc/grad-pen [cairo_pattern_destroy dc/grad-pen]
+		dc/grad-pen: pattern
+	]
+]
