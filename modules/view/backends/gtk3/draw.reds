@@ -1183,9 +1183,30 @@ OS-set-clip: func [
 	dc			[draw-ctx!]
 	upper		[red-pair!]
 	lower		[red-pair!]
+	rect?		[logic!]
+	mode		[integer!]
+	/local
+		cr		[handle!]
+		t		[integer!]
+		x1		[integer!]
+		x2		[integer!]
+		y1		[integer!]
+		y2		[integer!]
 ][
-	print ["set-clip!" lf]
-	0
+	cr: dc/cr
+	if rect? [
+		if upper/x > lower/x [t: upper/x upper/x: lower/x lower/x: t]
+		if upper/y > lower/y [t: upper/y upper/y: lower/y lower/y: t]
+
+		x1: upper/x
+		y1: upper/y
+		x2: lower/x
+		y2: lower/y
+		cairo_rectangle cr
+			as float! x1 as float! y1
+			as float! x2 - x1 as float! y2 - y1
+	]
+	cairo_clip cr
 ]
 
 ;-- shape sub command --
