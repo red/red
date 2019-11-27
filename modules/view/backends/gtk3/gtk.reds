@@ -462,6 +462,15 @@ PangoAttribute!: alias struct! [
 	CAIRO_ANTIALIAS_BEST
 ]
 
+#enum cairo_pattern_type_t! [
+	CAIRO_PATTERN_TYPE_SOLID
+	CAIRO_PATTERN_TYPE_SURFACE
+	CAIRO_PATTERN_TYPE_LINEAR
+	CAIRO_PATTERN_TYPE_RADIAL
+	CAIRO_PATTERN_TYPE_MESH
+	CAIRO_PATTERN_TYPE_RASTER_SOURCE
+]
+
 cairo_matrix_t!: alias struct! [
 	xx		[float!]
 	yx		[float!]
@@ -2608,6 +2617,10 @@ GPtrArray!: alias struct! [
 			pattern		[handle!]
 			extend		[cairo_extend_t!]
 		]
+		cairo_pattern_get_extend: "cairo_pattern_get_extend" [
+			pattern		[handle!]
+			return:		[cairo_extend_t!]
+		]
 		cairo_pattern_create_linear: "cairo_pattern_create_linear" [
 			x0			[float!]
 			y0			[float!]
@@ -2631,6 +2644,21 @@ GPtrArray!: alias struct! [
 			green		[float!]
 			blue		[float!]
 			alpha		[float!]
+		]
+		cairo_pattern_get_color_stop_count: "cairo_pattern_get_color_stop_count" [
+			pattern		[handle!]
+			cnt			[int-ptr!]
+			return:		[integer!]
+		]
+		cairo_pattern_get_color_stop_rgba: "cairo_pattern_get_color_stop_rgba" [
+			pattern		[handle!]
+			index		[integer!]
+			offset		[float-ptr!]
+			r			[float-ptr!]
+			g			[float-ptr!]
+			b			[float-ptr!]
+			a			[float-ptr!]
+			return:		[integer!]
 		]
 		cairo_pattern_create_mesh: "cairo_pattern_create_mesh" [
 			return:		[handle!]

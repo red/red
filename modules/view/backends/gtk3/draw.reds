@@ -135,6 +135,309 @@ do-draw-pen: func [
 	]
 ]
 
+copy-gradiant-props: func [
+	grad		[handle!]
+	ngrad		[handle!]
+	/local
+		cnt		[integer!]
+		index	[integer!]
+		offset	[float!]
+		r		[float!]
+		g		[float!]
+		b		[float!]
+		a		[float!]
+		mode	[integer!]
+][
+	cnt: 0
+	cairo_pattern_get_color_stop_count grad :cnt
+	index: 0
+	loop cnt [
+		offset: 0.0 r: 0.0 g: 0.0 b: 0.0 a: 0.0
+		cairo_pattern_get_color_stop_rgba grad index
+			:offset :r :g :b :a
+		cairo_pattern_add_color_stop_rgba ngrad offset r g b a
+		index: index + 1
+	]
+	mode: cairo_pattern_get_extend grad
+	cairo_pattern_set_extend ngrad mode
+]
+
+check-grad-line: func [
+	grad		[handle!]
+	point		[red-pair!]
+	end			[red-pair!]
+	return:		[handle!]
+	/local
+		type	[integer!]
+		ngrad	[handle!]
+		x		[float32!]
+		y		[float32!]
+		px		[float32!]
+		py		[float32!]
+		delta	[float32!]
+][
+	type: cairo_pattern_get_type grad
+	case [
+		type = CAIRO_PATTERN_TYPE_LINEAR [
+			ngrad: cairo_pattern_create_linear
+					as float! point/x as float! point/y
+					as float! end/x as float! point/y
+		]
+		type = CAIRO_PATTERN_TYPE_RADIAL [
+			x: as float32! point/x
+			y: as float32! point/y
+			px: (as float32! end/x) - x
+			py: (as float32! end/y) - y
+			delta: (px * px) + (py * py)
+			delta: sqrtf delta
+			px: (as float32! end/x) + x
+			py: (as float32! end/y) + y
+			px: px / 2.0 py: py / 2.0
+			ngrad: cairo_pattern_create_radial
+					as float! px as float! py 0.0
+					as float! px as float! py as float! delta
+		]
+		true [return null]
+	]
+
+	copy-gradiant-props grad ngrad
+	ngrad
+]
+
+check-grad-pen-line: func [
+	dc			[draw-ctx!]
+	point		[red-pair!]
+	end			[red-pair!]
+	/local
+		ngrad	[handle!]
+][
+	if all [
+		dc/pen?
+		not null? dc/grad-pen
+		dc/gpen-resize?
+	][
+		ngrad: check-grad-line dc/grad-pen point end
+		unless null? ngrad [
+			cairo_pattern_destroy dc/grad-pen
+			dc/grad-pen: ngrad
+			dc/gpen-resize?: false
+		]
+	]
+]
+
+check-grad-brush-line: func [
+	dc			[draw-ctx!]
+	point		[red-pair!]
+	end			[red-pair!]
+	/local
+		ngrad	[handle!]
+][
+	if all [
+		dc/brush?
+		not null? dc/grad-brush
+		dc/gbrush-resize?
+	][
+		ngrad: check-grad-line dc/grad-brush point end
+		unless null? ngrad [
+			cairo_pattern_destroy dc/grad-brush
+			dc/grad-brush: ngrad
+			dc/gbrush-resize?: false
+		]
+	]
+]
+
+get-shape-center: func [
+	start		[red-pair!]
+	end			[red-pair!]
+	cx			[int-ptr!]
+	cy			[int-ptr!]
+	d			[int-ptr!]
+	/local
+		point	[red-pair!]
+		dx		[integer!]
+		dy		[integer!]
+		x0		[integer!]
+		y0		[integer!]
+		x1		[integer!]
+		y1		[integer!]
+		a		[integer!]
+		r		[integer!]
+		signedArea	[float!]
+		centroid-x	[float!]
+		centroid-y	[float!]
+][
+	;-- implementation taken from http://stackoverflow.com/questions/2792443/finding-the-centroid-of-a-polygon
+	x0: 0 y0: 0 x1: 0 y1: 0
+	a: 0 signedArea: 0.0
+	centroid-x: 0.0 centroid-y: 0.0
+	point: start
+	while [point <= end] [
+		x0: point/x
+		y0: point/y
+		point: point + 1
+		x1: point/x
+		y1: point/y
+		a: x0 * y1 - (x1 * y0)
+		signedArea: signedArea + as-float a
+		centroid-x: centroid-x + as-float ((x0 + x1) * a)
+		centroid-y: centroid-y + as-float ((y0 + y1) * a)
+	]
+	x0: point/x
+	y0: point/y
+	x1: start/x
+	y1: start/y
+	a: x0 * y1 - (x1 * y0)
+	signedArea: signedArea + as-float a
+	centroid-x: centroid-x + as-float ((x0 + x1) * a)
+	centroid-y: centroid-y + as-float ((y0 + y1) * a)
+
+	signedArea: signedArea * 0.5
+	centroid-x: centroid-x / (signedArea * 6.0)
+	centroid-y: centroid-y / (signedArea * 6.0)
+
+	cx/value: as-integer centroid-x
+	cy/value: as-integer centroid-y
+	;-- take biggest distance
+	d/value: 0
+	point: start
+	while [point <= end] [
+		dx: cx/value - point/x
+		dy: cy/value - point/y
+		r: as-integer sqrt as-float ( dx * dx + ( dy * dy ) )
+		if r > d/value [ d/value: r ]
+		point: point + 1
+	]
+]
+
+check-grad-brush-box: func [
+	dc			[draw-ctx!]
+	point		[red-pair!]
+	end			[red-pair!]
+	/local
+		type	[integer!]
+		cx		[integer!]
+		cy		[integer!]
+		d		[integer!]
+		ngrad	[handle!]
+][
+	if all [
+		dc/brush?
+		not null? dc/grad-brush
+		dc/gbrush-resize?
+	][
+		type: cairo_pattern_get_type dc/grad-brush
+		case [
+			type = CAIRO_PATTERN_TYPE_LINEAR [
+				ngrad: check-grad-line dc/grad-brush point end
+			]
+			type = CAIRO_PATTERN_TYPE_RADIAL [
+				cx: 0 cy: 0 d: 0
+				get-shape-center point end :cx :cy :d
+				ngrad: cairo_pattern_create_radial
+						as float! cx as float! cy 0.0
+						as float! cx as float! cy as float! d
+
+				copy-gradiant-props dc/grad-brush ngrad
+			]
+			true [exit]
+		]
+
+		unless null? ngrad [
+			cairo_pattern_destroy dc/grad-brush
+			dc/grad-brush: ngrad
+			dc/gbrush-resize?: false
+		]
+	]
+]
+
+check-grad-pen-arc: func [
+	dc			[draw-ctx!]
+	x			[float!]
+	y			[float!]
+	radius		[float!]
+	/local
+		type	[integer!]
+		ngrad	[handle!]
+		ex		[float!]
+		ey		[float!]
+][
+	if all [
+		dc/pen?
+		not null? dc/grad-pen
+		dc/gpen-resize?
+	][
+		type: cairo_pattern_get_type dc/grad-pen
+		case [
+			type = CAIRO_PATTERN_TYPE_LINEAR [
+				ex: x + radius
+				ex: ex * pi
+				ey: y + radius
+				ey: ey * pi
+				ngrad: cairo_pattern_create_linear
+					x y ex ey
+				copy-gradiant-props dc/grad-pen ngrad
+			]
+			type = CAIRO_PATTERN_TYPE_RADIAL [
+				ngrad: cairo_pattern_create_radial
+						x y 0.0
+						x y radius
+				copy-gradiant-props dc/grad-pen ngrad
+			]
+			true [exit]
+		]
+
+		unless null? ngrad [
+			cairo_pattern_destroy dc/grad-pen
+			dc/grad-pen: ngrad
+			dc/gpen-resize?: false
+		]
+	]
+]
+
+check-grad-brush-arc: func [
+	dc			[draw-ctx!]
+	x			[float!]
+	y			[float!]
+	radius		[float!]
+	/local
+		type	[integer!]
+		ngrad	[handle!]
+		ex		[float!]
+		ey		[float!]
+][
+	if all [
+		dc/brush?
+		not null? dc/grad-brush
+		dc/gbrush-resize?
+	][
+		type: cairo_pattern_get_type dc/grad-brush
+		case [
+			type = CAIRO_PATTERN_TYPE_LINEAR [
+				ex: x + radius
+				ex: ex * pi
+				ey: y + radius
+				ey: ey * pi
+				ngrad: cairo_pattern_create_linear
+					x y ex ey
+				copy-gradiant-props dc/grad-brush ngrad
+			]
+			type = CAIRO_PATTERN_TYPE_RADIAL [
+				ngrad: cairo_pattern_create_radial
+						x y 0.0
+						x y radius
+				copy-gradiant-props dc/grad-brush ngrad
+			]
+			true [exit]
+		]
+
+		unless null? ngrad [
+			cairo_pattern_destroy dc/grad-brush
+			dc/grad-brush: ngrad
+			dc/gbrush-resize?: false
+		]
+	]
+]
+
 OS-draw-anti-alias: func [
 	dc			[draw-ctx!]
 	on?			[logic!]
@@ -147,16 +450,18 @@ OS-draw-line: func [
 	point		[red-pair!]
 	end			[red-pair!]
 	/local
+		iter	[red-pair!]
 		cr		[handle!]
 ][
 	cr: dc/cr
 	cairo_move_to cr as-float point/x as-float point/y
-	point: point + 1
+	iter: point + 1
 
-	while [point <= end][
-		cairo_line_to cr as-float point/x as-float point/y
-		point: point + 1
+	while [iter <= end][
+		cairo_line_to cr as-float iter/x as-float iter/y
+		iter: iter + 1
 	]
+	check-grad-pen-line dc point end
 	do-draw-pen dc
 ]
 
@@ -253,6 +558,8 @@ OS-draw-box: func [
 	][
 		cairo_rectangle cr x y w h
 	]
+	check-grad-pen-line dc upper lower
+	check-grad-brush-box dc upper lower
 	do-draw-path dc
 ]
 
@@ -265,6 +572,8 @@ OS-draw-triangle: func [
 		start: start + 1
 	]
 	cairo_close_path dc/cr								;-- close the triangle
+	check-grad-pen-line dc start start + 2
+	check-grad-brush-box dc start start + 2
 	do-draw-path dc
 ]
 
@@ -279,6 +588,8 @@ OS-draw-polygon: func [
 		start > end
 	]
 	cairo_close_path dc/cr
+	check-grad-pen-line dc start end
+	check-grad-brush-box dc start end
 	do-draw-path dc
 ]
 
@@ -379,6 +690,8 @@ OS-draw-spline: func [
 			end
 	]
 
+	check-grad-pen-line dc start end
+	check-grad-brush-box dc start end
 	do-draw-path dc
 ]
 
@@ -430,6 +743,9 @@ OS-draw-circle: func [
 					as-float rad-y
 	cairo_arc cr 0.0 0.0 1.0 0.0 2.0 * pi
 	cairo_restore cr
+	if rad-x < rad-y [rad-x: rad-y]
+	check-grad-pen-arc dc as float! center/x as float! center/y as float! rad-x
+	check-grad-brush-arc dc as float! center/x as float! center/y as float! rad-x
 	do-draw-path dc
 ]
 
@@ -441,18 +757,25 @@ OS-draw-ellipse: func [
 		cr		[handle!]
 		rad-x	[integer!]
 		rad-y	[integer!]
+		cx		[integer!]
+		cy		[integer!]
 ][
 	cr: dc/cr
 	rad-x: diameter/x / 2
 	rad-y: diameter/y / 2
+	cx: upper/x + rad-x
+	cy: upper/y + rad-y
 
 	cairo_save cr
-	cairo_translate cr as-float upper/x + rad-x
-						as-float upper/y + rad-y
+	cairo_translate cr as-float cx
+					   as-float cy
 	cairo_scale cr as-float rad-x
 					as-float rad-y
 	cairo_arc cr 0.0 0.0 1.0 0.0 2.0 * pi
 	cairo_restore cr
+	if rad-x < rad-y [rad-x: rad-y]
+	check-grad-pen-arc dc as float! cx as float! cy as float! rad-x
+	check-grad-brush-arc dc as float! cx as float! cy as float! rad-x
 	do-draw-path dc
 ]
 
@@ -625,6 +948,9 @@ OS-draw-arc: func [
 	if closed? [
 		cairo_close_path cr
 	]
+	if rad-x < rad-y [rad-x: rad-y]
+	check-grad-pen-arc dc cx cy rad-x
+	check-grad-brush-arc dc cx cy rad-x
 	cairo_restore cr
 	either closed? [
 		do-draw-path dc
@@ -659,6 +985,7 @@ OS-draw-curve: func [
 					   as-float p2/y
 					   as-float p3/x
 					   as-float p3/y
+	check-grad-pen-line dc start start + 2
 	do-draw-pen dc
 ]
 
@@ -895,14 +1222,16 @@ OS-draw-grad-pen-old: func [
 		head: head + 1
 	]
 
-	dc/brush?: brush?
-	dc/pen?: not brush?
 	either brush? [
+		dc/brush?: yes
 		unless null? dc/grad-brush [cairo_pattern_destroy dc/grad-brush]
 		dc/grad-brush: pattern
+		dc/gbrush-resize?: no
 	][
+		dc/pen?: yes
 		unless null? dc/grad-pen [cairo_pattern_destroy dc/grad-pen]
 		dc/grad-pen: pattern
+		dc/gpen-resize?: no
 	]
 ]
 
@@ -917,6 +1246,7 @@ OS-draw-grad-pen: func [
 	spread		[integer!]
 	brush?		[logic!]
 	/local
+		resize?	[logic!]
 		point	[red-pair!]
 		x		[float!]
 		y		[float!]
@@ -933,9 +1263,11 @@ OS-draw-grad-pen: func [
 		a		[float!]
 		f		[red-float!]
 ][
+	resize?: false
 	pattern: case [
 		type = linear [
 			either skip-pos? [
+				resize?: true
 				cairo_pattern_create_linear 0.0 0.0 1.0 1.0
 			][
 				point: as red-pair! positions
@@ -947,6 +1279,7 @@ OS-draw-grad-pen: func [
 		]
 		any [ type = radial type = diamond ][
 			either skip-pos? [
+				resize?: true
 				cairo_pattern_create_radial 0.0 0.0 0.0 0.0 0.0 1.0
 			][
 				either type = radial [
@@ -956,11 +1289,13 @@ OS-draw-grad-pen: func [
 					p: get-float as red-integer! point + 1
 					cairo_pattern_create_radial x y 0.0 x y p
 				][
+					resize?: true
 					cairo_pattern_create_linear 0.0 0.0 1.0 1.0
 				]
 			]
 		]
 		true [
+			resize?: true
 			cairo_pattern_create_linear 0.0 0.0 1.0 1.0
 		]
 	]
@@ -995,14 +1330,16 @@ OS-draw-grad-pen: func [
 			true [CAIRO_EXTEND_NONE]
 		]
 
-	dc/brush?: brush?
-	dc/pen?: not brush?
 	either brush? [
+		dc/brush?: yes
 		unless null? dc/grad-brush [cairo_pattern_destroy dc/grad-brush]
 		dc/grad-brush: pattern
+		dc/gbrush-resize?: resize?
 	][
+		dc/pen?: yes
 		unless null? dc/grad-pen [cairo_pattern_destroy dc/grad-pen]
 		dc/grad-pen: pattern
+		dc/gpen-resize?: resize?
 	]
 ]
 
@@ -1633,13 +1970,15 @@ OS-draw-brush-pattern: func [
 	;-- TBD: wrap mode
 	cairo_pattern_set_extend pattern CAIRO_EXTEND_PAD;CAIRO_EXTEND_REPEAT
 
-	dc/brush?: brush?
-	dc/pen?: not brush?
 	either brush? [
+		dc/brush?: yes
 		unless null? dc/grad-brush [cairo_pattern_destroy dc/grad-brush]
 		dc/grad-brush: pattern
+		dc/gbrush-resize?: no
 	][
+		dc/pen?: yes
 		unless null? dc/grad-pen [cairo_pattern_destroy dc/grad-pen]
 		dc/grad-pen: pattern
+		dc/gpen-resize?: no
 	]
 ]
