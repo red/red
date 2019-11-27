@@ -55,7 +55,6 @@ TLS-device: context [
 				]
 			]
 			IO_EVT_ACCEPT	[
-probe "accpet in 1111111"
 				either data/state and IO_STATE_TLS_DONE = 0 [
 					;-- swap accepted socket and the server socket
 					;-- we'll do the negotiate through the accepted socket

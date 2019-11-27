@@ -110,8 +110,6 @@ socket: context [
 		either zero? LibC.connect sock as int-ptr! :saddr size? saddr [
 			iocp/post data/io-port data
 		][
-			probe errno/value
-			probe "connect async"
 			data/state: EPOLLOUT
 			iocp/add data/io-port sock EPOLLOUT or EPOLLET data
 		]
@@ -130,8 +128,6 @@ socket: context [
 	][
 		;#if debug? = yes [if verbose > 0 [print-line "socket/send"]]
 
-probe ["socket/write/event: " data/event " " data/state]
-
 		state: data/state
 		if state and IO_STATE_PENDING_WRITE = IO_STATE_PENDING_WRITE [
 			iocp/add-pending data buffer length IO_EVT_WRITE
@@ -141,8 +137,6 @@ probe ["socket/write/event: " data/event " " data/state]
 		data/write-buf: buffer
 		data/write-buflen: length
 		n: iocp/write-io data
-
-probe ["socket/write: " length " " n]
 
 		io-port: data/io-port
 		either n = length [
@@ -186,7 +180,7 @@ probe ["socket/write: " length " " n]
 		data/read-buf: buffer
 		data/read-buflen: length
 		n: iocp/read-io data
-probe ["socket/read: " n]
+
 		case [
 			n > 0 [
 				data/event: IO_EVT_READ
@@ -245,8 +239,7 @@ probe ["socket/read: " n]
 		name		[integer!]
 		value		[integer!]
 	][
-		probe "set-option"
-		probe setsockopt fd SOL_SOCKET name as c-string! :value size? integer!
+		setsockopt fd SOL_SOCKET name as c-string! :value size? integer!
 	]
 
 	close: func [

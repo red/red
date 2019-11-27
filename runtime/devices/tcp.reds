@@ -172,7 +172,6 @@ tcp-device: context [
 		if TYPE_OF(buf) <> TYPE_BINARY [
 			binary/make-at as cell! buf SOCK_READBUF_SZ
 		]
-		probe "resolve-name"
 		data/send-buf: buf/node
 		dns/getaddrinfo name 53 AF_INET as dns-data! data
 	]

@@ -51,14 +51,12 @@ deque: context [
 		/local
 			idx	[integer!]
 	][
-		probe ["deque/push, queue size: " queue/size]
 		if queue/capacity = queue/size [
 			make-space queue 1
 		]
 		idx: queue/offset + queue/size and (queue/capacity - 1) + 1
 		queue/data/idx: as-integer value
 		queue/size: queue/size + 1
-		probe "end....."
 	]
 
 	pop: func [
@@ -97,7 +95,6 @@ deque: context [
 		/local
 			idx	[integer!]
 	][
-		probe ["deque/take, queue size: " queue/size]
 		assert queue/size > 0
 		idx: queue/offset + 1
 		queue/offset: idx and (queue/capacity - 1)

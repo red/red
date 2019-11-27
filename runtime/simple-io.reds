@@ -176,12 +176,10 @@ simple-io: context [
 		#either OS = 'Windows [
 			len: 0
 			res: ReadFile file buffer size :len null
-			res: either zero? res [-1][len]
-			probe GetLastError
+			either zero? res [-1][len]
 		][
-			res: LibC.read file buffer size
+			LibC.read file buffer size
 		]
-		res
 	]
 
 	write-data: func [

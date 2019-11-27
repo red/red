@@ -143,7 +143,6 @@ socket: context [
 
 		unless zero? WSASend sock :wsbuf 1 null 0 as OVERLAPPED! data null [	;-- error
 			err: GetLastError
-			?? err
 			either ERROR_IO_PENDING = err [return ERROR_IO_PENDING][return -1]
 		]
 		0
@@ -198,14 +197,8 @@ socket: context [
 		wsbuf/len: length
 		wsbuf/buf: buffer
 		data/iocp/event: IO_EVT_READ
-		?? addr
-		probe addr-sz/value
-		res: WSARecvFrom sock :wsbuf 1 null :data/flags addr addr-sz as OVERLAPPED! data null
-		?? res
-		if res <> 0 [
-			res: GetLastError
-			?? res
-		]
+
+		WSARecvFrom sock :wsbuf 1 null :data/flags addr addr-sz as OVERLAPPED! data null
 	]
 
 	set-option: func [
@@ -213,8 +206,7 @@ socket: context [
 		name		[integer!]
 		value		[integer!]
 	][
-		probe "set-option"
-		probe setsockopt fd SOL_SOCKET name as c-string! :value size? integer!
+		setsockopt fd SOL_SOCKET name as c-string! :value size? integer!
 	]
 
 	close: func [

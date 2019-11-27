@@ -115,8 +115,6 @@ probe ["read data: " data/transferred]
 	][
 		dump4 pathname
 		fd: simple-io/open-file pathname flags yes
-?? fd
-probe simple-io/file-size? fd
 		data: create-file-data port fd
 		data/event: IO_EVT_CONNECT
 		if fd > 0 [iocp/post g-iocp as iocp-data! data]

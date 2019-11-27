@@ -28,16 +28,13 @@ tls: context [
 			prv [int-ptr!]
 	][
 		bn: BN_new
-		?? bn
 		BN_set_word bn 17
 		rsa: RSA_new
-		?? rsa
 		RSA_generate_key_ex rsa 2048 bn null
 		prv: EVP_PKEY_new
 		EVP_PKEY_set1_RSA prv rsa
 		RSA_free rsa
 		BN_free bn
-		?? prv
 		return prv
 	]
 
@@ -49,20 +46,18 @@ tls: context [
 			name	[int-ptr!]
 	][
 		cert: X509_new
-		?? cert
 		ASN1_INTEGER_set X509_get_serialNumber cert 1
 		X509_time_adj_ex X509_getm_notBefore cert 0 0 0
 		X509_time_adj_ex X509_getm_notAfter cert 365 0 0
 		X509_set_pubkey cert pkey
 		
 		name: X509_get_subject_name cert
-		?? name
 		X509_NAME_add_entry_by_txt name "C" 1001h "CA" -1 -1 0
 		X509_NAME_add_entry_by_txt name "O" 1001h "Red Language" -1 -1 0
 		X509_NAME_add_entry_by_txt name "CN" 1001h "localhost" -1 -1 0
-		probe X509_set_issuer_name cert name
+		X509_set_issuer_name cert name
 
-		probe X509_sign cert pkey EVP_sha1
+		X509_sign cert pkey EVP_sha1
 		cert
 	]
 
@@ -80,7 +75,6 @@ tls: context [
 		if null? td/ssl [
 			either client? [
 				if null? client-ctx [client-ctx: SSL_CTX_new TLS_client_method]
-				?? client-ctx
 				ctx: client-ctx
 			][
 				if null? server-ctx [
@@ -89,27 +83,25 @@ tls: context [
 					;if zero? SSL_CTX_use_PrivateKey_file server-ctx "private.key" 1 [ ;-- X509_FILETYPE_PEM
 					pk: create-private-key
 					cert: create-certificate pk
-					probe SSL_CTX_use_certificate server-ctx cert
-					probe SSL_CTX_use_PrivateKey server-ctx pk
+					SSL_CTX_use_certificate server-ctx cert
+					SSL_CTX_use_PrivateKey server-ctx pk
 						while [
 							err: ERR_get_error
 							err <> 0
 						][
-							probe ERR_error_string  err null
-							?? err
+							probe ERR_error_string err null
 						]
 					;]
-					probe SSL_CTX_check_private_key server-ctx
+					SSL_CTX_check_private_key server-ctx
 				]
 				ctx: server-ctx
 			]
 			ssl: SSL_new ctx
-			?? ssl
+
 			td/ssl: ssl
 			if null? ssl [probe "SSL_new failed" exit]
 
 			fd: as-integer td/iocp/device
-			?? fd
 			if zero? SSL_set_fd ssl fd [
 				probe "SSL_set_fd error"
 			]
@@ -128,7 +120,6 @@ tls: context [
 			state [integer!]
 	][
 		state: td/iocp/state
-?? state
 		either zero? state [
 			iocp/add td/iocp/io-port as-integer td/iocp/device evt or EPOLLET as iocp-data! td
 		][
@@ -145,21 +136,15 @@ tls: context [
 			ssl [int-ptr!]
 			ret [integer!]
 	][
-		probe "negotiate...................."
 		ssl: td/ssl
-		?? ssl
 		ret: SSL_do_handshake ssl
-		?? ret
 		either ret = 1 [td/iocp/state: IO_STATE_TLS_DONE yes][
 			ret: SSL_get_error ssl ret
-			?? ret
 			switch ret [
 				SSL_ERROR_WANT_READ [
-					probe "want read"
 					update-td td EPOLLIN
 				]
 				SSL_ERROR_WANT_WRITE [
-					probe "want write"
 					update-td td EPOLLOUT
 				]
 				default [probe "error when do handshake"]

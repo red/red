@@ -114,7 +114,7 @@ dump4 buffer
 
 		header: as DNS_HEADER s/offset
 		res: header/Xid and FFFFh
-probe ntohs res
+
 		header/Xid: header/Xid and FFFF0000h or ntohs res
 		w1: ntohs header/QuestionCount and FFFFh
 		w2: ntohs header/QuestionCount >>> 16
@@ -123,9 +123,6 @@ probe ntohs res
 		w2: ntohs header/NameServerCount >>> 16
 		header/NameServerCount: w2 << 16 or w1	
 		
-dump4 header
-
-probe data/transferred
 		res: DnsExtractRecordsFromMessage_UTF8 as DNS_MESSAGE_BUFFER header data/transferred :pp
 ?? res
 		if res <> 0 [
@@ -142,7 +139,6 @@ probe data/transferred
 			]
 			return no
 		]
-probe "fjdkjfdkasljfklsdjfkjdskafklsdjfkfdksjfklsadjfklsjklfdjk"
 		server: pp/value
 		until [
 		addr: as addrinfo! server

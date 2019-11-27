@@ -29,12 +29,10 @@ udp-device: context [
 		p: as red-object! :udp/port
 		msg: p
 		type: data/event
-probe "UDP event-handler"
 		switch type [
 			IO_EVT_READ	[
 				bin: as red-binary! (object/get-values p) + port/field-data
 				s: GET_BUFFER(bin)
-probe ["read data: " data/transferred]
 				s/tail: as cell! (as byte-ptr! s/offset) + data/transferred
 				io/unpin-memory bin/node
 				#if OS = 'Windows [

@@ -391,7 +391,6 @@ tls: context [
 				000A0000h	;-- CERT_FIND_ENHKEY_USAGE
 				as byte-ptr! :eku
 				cert-ctx
-??  cert-ctx
 			cert-ctx <> null
 		][
 			return cert-ctx
@@ -479,7 +478,6 @@ tls: context [
 		if null? data/security [
 			create data
 			either client? [cert: null][cert: find-certificate no]
-			?? cert
 			create-credentials as SecHandle! :data/credential cert client?
 		]
 
@@ -505,8 +503,6 @@ tls: context [
 			return false
 		]
 
-?? buflen
-probe [data/security " " data/credential]
 		indesc: as SecBufferDesc! :_indesc
 
 		forever [
@@ -543,12 +539,6 @@ probe [data/security " " data/credential]
 			]
 
 			attr: 0
-?? client?
-?? sec-handle
-?? indesc
-?? outdesc
-?? sec-handle2
-probe [data/credential/dwLower " " data/credential/dwUpper]
 			either client? [
 				ret: platform/SSPI/InitializeSecurityContextW
 					data/credential
@@ -563,7 +553,6 @@ probe [data/credential/dwLower " " data/credential/dwUpper]
 					outdesc
 					:attr
 					:expiry
-?? ret
 			][
 				outbuf-2/BufferType: 0		;-- SECBUFFER_EMPTY
 				outbuf-2/cbBuffer: 0
@@ -581,7 +570,6 @@ probe [data/credential/dwLower " " data/credential/dwUpper]
 					:expiry
 			]
 
-probe ["ret: " as int-ptr! ret]
 			switch ret [
 				SEC_OK
 				SEC_I_CONTINUE_NEEDED [
@@ -595,7 +583,6 @@ probe ["ret: " as int-ptr! ret]
 					][
 						extra-buf: outbuf-2
 					]
-probe outbuf-1/cbBuffer
 					if all [
 						outbuf-1/cbBuffer > 0
 						outbuf-1/pvBuffer <> null
@@ -606,23 +593,17 @@ probe outbuf-1/cbBuffer
 							outbuf-1/pvBuffer
 							outbuf-1/cbBuffer
 							as iocp-data! data [
-probe "errororjejdlskfjkldjaflkdsjf"
 							platform/SSPI/FreeContextBuffer outbuf-1/pvBuffer
 							release-context data
 						]
 					]
 
 					if ret = SEC_OK [
-	probe "OK>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
 						data/iocp/state: state or IO_STATE_TLS_DONE
 						platform/SSPI/QueryContextAttributesW
 							sec-handle
 							4			;-- SECPKG_ATTR_STREAM_SIZES
 							as byte-ptr! :ctx-size
-	probe [
-		ctx-size/cbHeader " " ctx-size/cbTrailer " " ctx-size/cbMaximumMessage " " ctx-size/cBuffers
-		" " ctx-size/cbBlockSize
-	]
 						data/ctx-max-msg: ctx-size/cbMaximumMessage
 						data/ctx-header: ctx-size/cbHeader
 						data/ctx-trailer: ctx-size/cbTrailer
@@ -630,7 +611,7 @@ probe "errororjejdlskfjkldjaflkdsjf"
 						data/buf-len: 0
 						either client? [extra-buf: inbuf-2][extra-buf: outbuf-2]
 						if extra-buf/BufferType = 5 [
-							probe "fjdksafjkldsajf0000000000000000000000000000000000000000"
+							0
 						]
 
 						either client? [
@@ -730,9 +711,7 @@ probe "errororjejdlskfjkldjaflkdsjf"
 				0
 				sbin
 				0
-			?? status
 			if status <> 0 [return 0]
-probe ["buffer size: " buffer1/cbBuffer " " buffer2/cbBuffer " " buffer3/cbBuffer]
 			out-sz: buffer1/cbBuffer + buffer2/cbBuffer + buffer3/cbBuffer
 			size: size + len2
 		]
@@ -755,16 +734,13 @@ probe ["buffer size: " buffer1/cbBuffer " " buffer2/cbBuffer " " buffer3/cbBuffe
 
 		s: as series! data/send-buf/value
 		outbuf: as byte-ptr! s/offset
-?? length
 		length: encode outbuf buffer length data
-?? length
 		wsbuf/len: length
 		wsbuf/buf: outbuf
 		data/iocp/event: IO_EVT_WRITE
 
 		unless zero? WSASend sock :wsbuf 1 null 0 as OVERLAPPED! data null [	;-- error
 			err: GetLastError
-			?? err
 			either ERROR_IO_PENDING = err [return ERROR_IO_PENDING][return -1]
 		]
 		0
@@ -798,7 +774,6 @@ probe ["buffer size: " buffer1/cbBuffer " " buffer2/cbBuffer " " buffer3/cbBuffe
 		buffer1/BufferType: 1		;-- SECBUFFER_DATA
 		buffer1/cbBuffer: data/iocp/transferred
 		buffer1/pvBuffer: as byte-ptr! s/offset
-dump4 buffer1/pvBuffer
  
 		buffer2/BufferType: 0
 		buffer3/BufferType: 0
@@ -813,15 +788,12 @@ dump4 buffer1/pvBuffer
 			sbin
 			0
 			null
-probe as int-ptr! status
 		switch status [
 			0	[		;-- Wow! success!
 				len: 0
 				buf: :buffer1
 				loop 3 [
 					buf: buf + 1
-					probe ["BufferType: " buf/BufferType]
-					probe ["cbBuffer: " buf/cbBuffer " " buf/pvBuffer]
 					if buf/BufferType = 1 [
 						copy-memory (as byte-ptr! s/offset) + len buf/pvBuffer buf/cbBuffer
 						len: len + buf/cbBuffer

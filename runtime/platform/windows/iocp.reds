@@ -162,16 +162,12 @@ iocp: context [
 		]
 
 		i: 0
-?? cnt
 		while [i < cnt][
 			e: p/events + i
 			data: as iocp-data! e/lpOverlapped
 			data/transferred: e/dwNumberOfBytesTransferred
-			
-probe [data " " data/event " " data/type " " data/state " "]
 
 			evt: data/event
-
 			switch data/type [
 				IOCP_TYPE_DNS [
 					switch evt [

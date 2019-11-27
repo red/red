@@ -37,7 +37,6 @@ io: context [
 		evt		[red-event!]
 		return: [red-value!]
 	][
-		probe ["get-event-type: " evt/type and FFFFh]
 		as red-value! switch (evt/type and FFFFh) [
 			IO_EVT_ACCEPT	[words/_accept]
 			IO_EVT_CONNECT	[words/_connect]

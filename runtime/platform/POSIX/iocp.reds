@@ -178,7 +178,6 @@ iocp: context [
 			tls [tls-data!]
 			udp [udp-data!]
 	][
-		probe ["read-io " data/type]
 		switch data/type [
 			IOCP_TYPE_TCP [
 				LibC.recv as-integer data/device data/read-buf data/read-buflen 0
@@ -207,7 +206,6 @@ iocp: context [
 			tls [tls-data!]
 			udp [udp-data!]
 	][
-		probe ["write-io " data/type]
 		switch data/type [
 			IOCP_TYPE_TCP [
 				LibC.send as-integer data/device data/write-buf data/write-buflen 0
@@ -287,7 +285,6 @@ iocp: context [
 		if all [cnt < 0 errno/value = EINTR][return 0]
 	]
 
-?? cnt
 		if cnt = p/nevents [		;-- TBD: extend events buffer
 			0
 		]
@@ -303,7 +300,7 @@ iocp: context [
 
 				p/posted?: no
 				n: queue/size
-?? n
+
 				loop n [
 					data: as iocp-data! deque/take queue
 					if data/type = IOCP_TYPE_DNS [
@@ -322,9 +319,9 @@ iocp: context [
 			#either OS = 'macOS [
 				filter: e/filter and FFFFh
 				flags: e/filter >>> 16
-				probe ["ready event: " filter " " flags]
+				;probe ["ready event: " filter " " flags]
 			][
-				probe ["ready event: " e/events]
+				;probe ["ready event: " e/events]
 			]
 				
 				state: data/state
@@ -350,7 +347,6 @@ iocp: context [
 						]
 						if data/event = IO_EVT_ACCEPT [
 							fd: socket/accept as-integer data/device
-probe ["iocp accept-sock: " fd]
 							data/accept-sock: as-integer data/device
 							data/device: as int-ptr! fd
 							data/state: 0
@@ -368,11 +364,7 @@ probe ["iocp accept-sock: " fd]
 					state and IO_STATE_READING <> 0
 				][
 					either null? data/pending-read [
-probe [data/device " " data/read-buf " " data/read-buflen]
-						;n: LibC.recv sock data/read-buf data/read-buflen 0
 						n: read-io data
-probe errno/value
-probe ["read data: " n]
 						data/state: state and (not IO_STATE_READING)
 						data/transferred: n
 						data/event: IO_EVT_READ
@@ -391,7 +383,6 @@ probe ["read data: " n]
 				][
 					either null? data/pending-write [
 						datalen: data/write-buflen
-						;n: LibC.send sock data/write-buf datalen 0
 						n: write-io data
 						either n = datalen [
 							data/state: state and (not IO_STATE_WRITING)
