@@ -1600,9 +1600,6 @@ lexer: context [
 			index	[integer!]
 			close?	[logic!]
 	][
-		if all [e < lex/in-end e/1 = #":"][
-			throw-error lex s e TYPE_PATH			;-- set-words not allowed inside paths
-		]
 		close?: either e >= lex/in-end [yes][			;-- EOF reached
 			cp: as-integer e/1
 			index: lex-classes/cp and FFh + 1			;-- query the class of ending character
@@ -1610,11 +1607,17 @@ lexer: context [
 		]
 		either close? [
 			type: either all [e < lex/in-end e/1 = #":"][
+				if all [e + 1 < lex/in-end e/2 = #"/"][ ;-- detect :/ illegal sequence
+					throw-error lex s e TYPE_PATH
+				]
 				lex/in-pos: e + 1						;-- skip :
 				TYPE_SET_PATH
 			][-1]
 			close-block lex s e -1 type
 		][
+			if all [e < lex/in-end e/1 = #":"][
+				throw-error lex s e TYPE_PATH			;-- set-words not allowed inside paths
+			]
 			lex/in-pos: e + 1							;-- skip /
 		]
 	]
