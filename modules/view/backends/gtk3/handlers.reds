@@ -413,10 +413,15 @@ widget-realize: func [
 	/local
 		cursor	[handle!]
 		win		[handle!]
+		parent	[handle!]
 ][
 	cursor: GET-CURSOR(widget)
 	unless null? cursor [
 		win: gtk_widget_get_window widget
+		if null? win [
+			parent: gtk_widget_get_parent widget
+			win: gtk_widget_get_window parent
+		]
 		gdk_window_set_cursor win cursor
 	]
 ]
