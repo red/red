@@ -874,7 +874,12 @@ change-font: func [
 	widget		[handle!]
 	face		[red-object!]
 	values		[red-value!]
+	/local
+		font	[red-object!]
 ][
+	font: as red-object! values + FACE_OBJ_FONT
+	free-font font
+	make-font face font
 	set-font widget face values
 ]
 
