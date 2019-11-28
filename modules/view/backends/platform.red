@@ -726,16 +726,10 @@ system/view/platform: context [
 				drop-down:		[0x3   2x3 regular 0x3 2x3 small 0x3 1x3 mini 0x2 1x3]
 				drop-list:		[0x3   2x3 regular 0x3 2x3 small 0x3 1x3 mini 0x2 1x3]
 			]
-			; GTK branch (similar to macOS from now)
 			Linux [
-				button:			[2x2   2x3 regular 6x6 4x7 small 5x5 4x6 mini 1x1 0x1]
-				regular:		[6x6   4x7]
-				small:			[5x5   4x6]
-				mini:			[1x1   0x1]
-				group-box:		[3x3   0x4]
-				tab-panel:		[7x7  6x10]
-				drop-down:		[0x3   2x3 regular 0x3 2x3 small 0x3 1x3 mini 0x2 1x3]
-				drop-list:		[0x3   2x3 regular 0x3 2x3 small 0x3 1x3 mini 0x2 1x3]
+				button:			[1x1   1x1]
+				tab-panel:		[0x2   0x1]
+				group-box:		[0x0   0x1]
 			]
 		]]
 		extend system/view/metrics/paddings [#switch config/OS [
@@ -757,15 +751,14 @@ system/view/platform: context [
 				group-box:		[0x8  4x18]
 				drop-list:		[14x26 0x0 regular 14x26 0x0 small 11x22 0x0 mini 11x22 0x0]
 			]
-			; GTK backend (similar to macOS from now)
 			Linux [
-				button:			[11x11 0x0 regular 14x14 0x0 small 11x11 0x0 mini 11x11 0x0]
+				button:			[11x11 0x0]
 				check:			[20x0  3x1]
 				radio:			[20x0  1x1]
 				text:			[3x3   0x0]
 				field:			[3x3   0x0]
 				group-box:		[0x8  4x18]
-				drop-list:		[14x26 0x0 regular 14x26 0x0 small 11x22 0x0 mini 11x22 0x0]
+				drop-list:		[54x54 0x0]
 			]
 		]]
 		#switch config/OS [
@@ -795,6 +788,16 @@ system/view/platform: context [
 				]
 			]
  			Linux	[
+				 extend system/view/metrics/def-heights [
+					button:		29
+					check:		20
+					radio:		19
+					text:		17
+					field:		35
+					drop-down:	35
+					drop-list:	33
+					progress:	14
+				]
 			]
 		]
 		
@@ -808,9 +811,8 @@ system/view/platform: context [
 			macOS [
 			
 			]
-			; GTK Backends
 			Linux [
-
+				colors/area: white
 			]
 		]
 
