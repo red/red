@@ -1190,7 +1190,7 @@ block: context [
 		switch TYPE_OF(res) [
 			TYPE_LOGIC [
 				bool: as red-logic! res
-				either bool/value [-1][1]
+				either bool/value [1][-1]
 			]
 			TYPE_INTEGER [
 				int: as red-integer! res
@@ -1204,8 +1204,8 @@ block: context [
 					true [0]
 				]
 			]
-			TYPE_NONE [1]
-			default [-1]
+			TYPE_NONE [-1]
+			default   [1]
 		]
 	]
 

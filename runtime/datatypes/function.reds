@@ -249,6 +249,7 @@ _function: context [
 				RED_THROWN_BREAK
 				RED_THROWN_CONTINUE
 				RED_THROWN_THROW	[re-throw]			;-- let exception pass through
+				RED_THROWN_EXIT
 				RED_THROWN_RETURN	[stack/unwind-last]
 				default [0]								;-- else, do nothing
 			]

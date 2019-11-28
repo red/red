@@ -1401,9 +1401,9 @@ OS-matrix-transform: func [
 	rotate: as red-integer! either center + 1 = scale [center][center + 1]
 	center?: rotate <> center
 
-	OS-matrix-rotate dc pen rotate center
-	OS-matrix-scale dc pen scale scale + 1
 	_OS-matrix-translate dc/raw translate/x translate/y
+	OS-matrix-scale dc pen scale scale + 1
+	OS-matrix-rotate dc pen rotate center
 ]
 
 OS-matrix-push: func [dc [draw-ctx!] state [draw-state!]][

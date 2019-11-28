@@ -2350,7 +2350,9 @@ system-dialect: make-profilable context [
 		
 		process-logic-encoding: func [expr invert? [logic!]][	;-- preprocess logic values
 			case [
-				logic? expr [ [#[true]] ]
+				logic? expr [
+					reduce [not invert?]
+				]
 				find [word! path!] type?/word expr  [
 					emitter/target/emit-integer-operation '= [<last> 0]
 					reduce [not invert?]

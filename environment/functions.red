@@ -233,7 +233,12 @@ replace: function [
 		]
 		return series
 	]
-	if system/words/all [any [char? :pattern tag? :pattern] any-string? series] [
+	if system/words/all [
+		any [not any-string? :pattern tag? :pattern]
+		any-string? series
+		not block? :pattern
+		not bitset? :pattern
+	] [
 		pattern: form pattern
 	]
 	either system/words/all [any-string? :series block? :pattern] [
@@ -400,7 +405,7 @@ load: function [
 		file!	[
 			suffix: suffix? source
 			foreach [name codec] system/codecs [
-				if (find codec/suffixes suffix) [		;@@ temporary required until dyn-stack implemented
+				if find codec/suffixes suffix [
 					return do [codec/decode source]
 				]
 			]
@@ -411,7 +416,7 @@ load: function [
 			either source/1 = 200 [
 				foreach [name codec] system/codecs [
 					foreach mime codec/mime-type [
-						if (find source/2/Content-Type mold mime) [
+						if find source/2/Content-Type mold mime [
 							return do [codec/decode source/3]
 						]
 					]

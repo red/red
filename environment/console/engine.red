@@ -217,7 +217,10 @@ system/console: context [
 				not unset? :result [
 					if error? set/any 'err try [		;-- catch eventual MOLD errors
 						limit: size/x - 13
-						if limit <= length? result: mold/part :result limit [ ;-- optimized for width = 72
+						result: either float? :result [form/part :result limit][
+							mold/part :result limit
+						]
+						if limit <= length? result [ ;-- optimized for width = 72
 							clear back tail result
 							append result "..."
 						]
