@@ -630,6 +630,7 @@ OS-image: context [
 		path: file/to-OS-path src ; DOES NOT WORK as in macOS: simple-io/to-NSURL src yes
 		;; DEBUG: print [ "load-image: " path lf]
 		pixbuf: gdk_pixbuf_new_from_file path null
+		if null? pixbuf [return null]
 		w: gdk_pixbuf_get_width pixbuf h: gdk_pixbuf_get_height pixbuf
 		;; DEBUG: print ["pixbuf: " pixbuf ", wxh: " w "x" h lf]
 		;buf: gdk_pixbuf_get_pixels pixbuf
