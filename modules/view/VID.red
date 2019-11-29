@@ -39,7 +39,6 @@ system/view/VID: context [
 				Cancel-OK
 			]
 			Linux [
-				Cancel-OK
 			]
 		]
 		user: []
