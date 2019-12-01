@@ -1860,8 +1860,8 @@ adjust-selection: func [
 			if cp = as-integer #"^/" [
 				size: (as-integer p - head) >> unit-b
 				case [
-					size > end/1	[break]
-					size > bgn/1	[end/1: end/1 - 1]
+					size >= end/1	[break]
+					size >= bgn/1	[end/1: end/1 - 1]
 					true	[bgn/1: bgn/1 - 1  end/1: end/1 - 1]
 				]
 			]
