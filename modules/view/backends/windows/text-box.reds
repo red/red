@@ -3,7 +3,7 @@ Red/System [
 	Author: "Xie Qingtian"
 	File: 	%text-box.reds
 	Tabs: 	4
-	Dependency: %draw-d2d.reds
+	Dependency: %draw.reds
 	Rights: "Copyright (C) 2016 Xie Qingtian. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.

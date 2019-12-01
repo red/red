@@ -189,7 +189,7 @@ write %build/bin/sources.r set-cache [
 					%classes.reds
 					%comdlgs.reds
 					%direct2d.reds
-					%draw-d2d.reds
+					%draw-gdi.reds
 					%draw.reds
 					%events.reds
 					%font.reds

@@ -46,8 +46,11 @@ Red/System [
 #include %tab-panel.reds
 #include %text-list.reds
 #include %button.reds
-#include %draw-d2d.reds
-#include %draw.reds
+#either legacy = none [
+	#include %draw.reds
+][
+	#include %draw-gdi.reds ;-- for WinXP
+]
 #include %comdlgs.reds
 
 exit-loop:		0

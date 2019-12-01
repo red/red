@@ -2897,3 +2897,33 @@ utf16-length?: func [
 	while [any [s/1 <> null-byte s/2 <> null-byte]][s: s + 2]
 	(as-integer s - base) >>> 1							;-- do not count the terminal zero
 ]
+
+to-gdiplus-color: func [
+	color	[integer!]
+	return: [integer!]
+	/local
+		red   [integer!]
+		green [integer!]
+		blue  [integer!]
+		alpha [integer!]
+][
+	red: color and FFh << 16
+	green: color and FF00h
+	blue: color >> 16 and FFh
+	alpha: FF000000h and not color
+	red or green or blue or alpha
+]
+
+;-- see https://stackoverflow.com/questions/4258295/aero-how-to-draw-solid-opaque-colors-on-glass
+;   and https://stackoverflow.com/questions/5647322/gdi-font-rendering-especially-in-layered-windows
+;   GDI+ is often buggy when alpha=255 (fully opaque)
+to-gdiplus-color-fixed: func [
+	color	[integer!]
+	return: [integer!]
+	/local
+		r   [integer!]
+][
+	r: to-gdiplus-color color
+	if r >>> 24 = FFh [r: r xor 01000000h]
+	r
+]

@@ -702,14 +702,6 @@ Red/System [
 				state	[draw-state! value]
 				clip-mode	[integer!]
 				m-order		[integer!]
-				pen-clr		[integer!]
-				brush-clr	[integer!]
-				pen-join	[integer!]
-				pen-cap		[integer!]
-				pen?		[logic!]
-				brush?		[logic!]
-				a-pen?		[logic!]
-				a-brush?	[logic!]
 		][
 			cmd:  block/rs-head cmds
 			tail: block/rs-tail cmds
