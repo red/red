@@ -1858,7 +1858,7 @@ adjust-selection: func [
 		while [p < tail] [
 			cp: string/get-char p unit
 			if cp = as-integer #"^/" [
-				size: p - head >> unit-b
+				size: (as-integer p - head) >> unit-b
 				case [
 					size > end/1	[break]
 					size > bgn/1	[end/1: end/1 - 1]
