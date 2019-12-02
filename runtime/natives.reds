@@ -3145,6 +3145,7 @@ natives: context [
 		
 		result: loop? series
 		if result [
+			if TYPE_OF(series) = TYPE_MAP [fire [TO_ERROR(script invalid-arg) word]]
 			_context/set word actions/pick series 1 null
 			series/head: series/head + 1
 		]
