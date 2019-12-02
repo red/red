@@ -436,7 +436,7 @@ BaseWndProc: func [
 	lParam	[integer!]
 	return: [integer!]
 	/local
-		target	[int-ptr!]
+		target	[ptr-ptr!]
 		this	[this!]
 		rt		[ID2D1HwndRenderTarget]
 		flags	[integer!]
@@ -464,7 +464,7 @@ BaseWndProc: func [
 					update-base hWnd null null get-face-values hWnd
 				]
 			][
-				target: as int-ptr! GetWindowLong hWnd wc-offset - 24
+				target: as ptr-ptr! GetWindowLong hWnd wc-offset - 24
 				if target <> null [
 					this: as this! target/value
 					rt: as ID2D1HwndRenderTarget this/vtbl

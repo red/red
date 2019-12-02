@@ -247,7 +247,7 @@ ID2D1Factory: alias struct! [
 	CreateStrokeStyle				[integer!]
 	CreateDrawingStateBlock			[integer!]
 	CreateWicBitmapRenderTarget		[integer!]
-	CreateHwndRenderTarget			[function! [this [this!] properties [D2D1_RENDER_TARGET_PROPERTIES] hwndProperties [D2D1_HWND_RENDER_TARGET_PROPERTIES] target [int-ptr!] return: [integer!]]]
+	CreateHwndRenderTarget			[function! [this [this!] properties [D2D1_RENDER_TARGET_PROPERTIES] hwndProperties [D2D1_HWND_RENDER_TARGET_PROPERTIES] target [ptr-ptr!] return: [integer!]]]
 	CreateDxgiSurfaceRenderTarget	[integer!]
 	CreateDCRenderTarget			[function! [this [this!] properties [D2D1_RENDER_TARGET_PROPERTIES] target [int-ptr!] return: [integer!]]]
 ]
@@ -653,14 +653,14 @@ D2D1CreateFactory!: alias function! [
 	type		[integer!]
 	riid		[int-ptr!]
 	options		[int-ptr!]		;-- opt
-	factory		[int-ptr!]
+	factory		[ptr-ptr!]
 	return:		[integer!]
 ]
 
 DWriteCreateFactory!: alias function! [
 	type		[integer!]
 	iid			[int-ptr!]
-	factory		[int-ptr!]
+	factory		[ptr-ptr!]
 	return:		[integer!]
 ]
 
@@ -711,7 +711,7 @@ DX-init: func [
 	/local
 		str					[red-string!]
 		hr					[integer!]
-		factory 			[integer!]
+		factory 			[ptr-value!]
 		dll					[handle!]
 		options				[integer!]
 		D2D1CreateFactory	[D2D1CreateFactory!]
@@ -729,14 +729,13 @@ DX-init: func [
 	dw-locale-name: as c-string! allocate 85
 	GetUserDefaultLocaleName dw-locale-name 85
 
-	factory: 0
 	options: 0													;-- debugLevel
 	hr: D2D1CreateFactory 0 IID_ID2D1Factory :options :factory	;-- D2D1_FACTORY_TYPE_SINGLE_THREADED: 0
 	assert zero? hr
-	d2d-factory: as this! factory
+	d2d-factory: as this! factory/value
 	hr: DWriteCreateFactory 0 IID_IDWriteFactory :factory		;-- DWRITE_FACTORY_TYPE_SHARED: 0
 	assert zero? hr
-	dwrite-factory: as this! factory
+	dwrite-factory: as this! factory/value
 	str: string/rs-make-at ALLOC_TAIL(root) 1024
 	dwrite-str-cache: str/node
 ]
@@ -767,21 +766,24 @@ to-dx-color: func [
 ]
 
 d2d-release-target: func [
-	target	[int-ptr!]
+	target	[ptr-ptr!]
 	/local
 		rt		[ID2D1HwndRenderTarget]
 		brushes [int-ptr!]
 		cnt		[integer!]
 		this	[this!]
 		obj		[IUnknown]
+		pp		[ptr-ptr!]
 ][
-	brushes: as int-ptr! target/2
-	cnt: target/3
+	pp: target + 1
+	brushes: pp/value
+	pp: target + 2
+	cnt: as-integer pp/value
 	loop cnt [
 		COM_SAFE_RELEASE_OBJ(obj brushes/2)
 		brushes: brushes + 2
 	]
-	this: as this! target/1
+	this: as this! target/value
 	rt: as ID2D1HwndRenderTarget this/vtbl
 	rt/Release this
 	free as byte-ptr! target
@@ -803,7 +805,7 @@ create-hwnd-render-target: func [
 		left		[integer!]
 		factory		[ID2D1Factory]
 		rt			[ID2D1HwndRenderTarget]
-		target		[integer!]
+		target		[ptr-value!]
 		hr			[integer!]
 ][
 	left: 0 top: 0 right: 0 bottom: 0
@@ -818,26 +820,30 @@ create-hwnd-render-target: func [
 	props/dpiX: as float32! log-pixels-x
 	props/dpiY: as float32! log-pixels-y
 
-	target: 0
 	factory: as ID2D1Factory d2d-factory/vtbl
 	hr: factory/CreateHwndRenderTarget d2d-factory :props hprops :target
 	if hr <> 0 [return null]
-	as this! target
+	as this! target/value
 ]
 
 get-hwnd-render-target: func [
 	hWnd	[handle!]
-	return:	[int-ptr!]
+	return:	[ptr-ptr!]
 	/local
-		target	[int-ptr!]
+		target	[ptr-ptr!]
+		pp		[ptr-ptr!]
 ][
-	target: as int-ptr! GetWindowLong hWnd wc-offset - 24
+	target: as ptr-ptr! GetWindowLong hWnd wc-offset - 24
 	if null? target [
-		target: as int-ptr! allocate 4 * size? int-ptr!
-		target/1: as-integer create-hwnd-render-target hWnd
-		target/2: as-integer allocate D2D_MAX_BRUSHES * 2 * size? int-ptr!
-		target/3: 0
-		target/4: 0			;-- for text-box! background color
+		pp: as ptr-ptr! allocate 4 * size? int-ptr!
+		target: pp
+		pp/value: as int-ptr! create-hwnd-render-target hWnd
+		pp: pp + 1
+		pp/value: as int-ptr! allocate D2D_MAX_BRUSHES * 2 * size? int-ptr!
+		pp: pp + 1
+		pp/value: null
+		pp: pp + 1
+		pp/value: null		;-- for text-box! background color
 		SetWindowLong hWnd wc-offset - 24 as-integer target
 	]
 	target

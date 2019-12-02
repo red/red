@@ -29,7 +29,7 @@ draw-begin: func [
 		m		[D2D_MATRIX_3X2_F]
 		bg-clr	[integer!]
 		brush	[integer!]
-		target	[int-ptr!]
+		target	[ptr-ptr!]
 		brushes [int-ptr!]
 		pbrush	[ID2D1SolidColorBrush]
 		d3d-clr [D3DCOLORVALUE]
@@ -47,7 +47,7 @@ draw-begin: func [
 	target: get-hwnd-render-target hWnd
 	this: as this! target/value
 	ctx/dc: as handle! this
-	ctx/brushes: target
+	ctx/brushes: as int-ptr! target
 
 	rt: as ID2D1HwndRenderTarget this/vtbl
 	rt/SetTextAntialiasMode this 1				;-- ClearType
@@ -110,7 +110,7 @@ draw-end: func [
 	switch hr [
 		COM_S_OK [ValidateRect hWnd null]
 		D2DERR_RECREATE_TARGET [
-			d2d-release-target ctx/brushes
+			d2d-release-target as ptr-ptr! ctx/brushes
 			ctx/dc: null
 			SetWindowLong hWnd wc-offset - 24 0
 			InvalidateRect hWnd null 0

@@ -632,7 +632,7 @@ free-faces: func [
 			dc: GetWindowLong handle wc-offset - 24
 			if dc <> 0 [
 				either (GetWindowLong handle wc-offset - 12) and BASE_FACE_IME <> 0 [
-					d2d-release-target as int-ptr! dc
+					d2d-release-target as ptr-ptr! dc
 				][											;-- caret
 					DestroyCaret
 				]

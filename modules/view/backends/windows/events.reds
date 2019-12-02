@@ -980,7 +980,7 @@ update-window: func [
 				][
 					len: GetWindowLong hWnd wc-offset - 24
 					if len <> 0 [
-						d2d-release-target as int-ptr! len
+						d2d-release-target as ptr-ptr! len
 						SetWindowLong hWnd wc-offset - 24 0
 					]
 				]
@@ -1034,7 +1034,7 @@ WndProc: func [
 	lParam	[integer!]
 	return: [integer!]
 	/local
-		target [int-ptr!]
+		target [ptr-ptr!]
 		this   [this!]
 		rt	   [ID2D1HwndRenderTarget]
 		res	   [integer!]
@@ -1089,7 +1089,7 @@ WndProc: func [
 		WM_MOVE
 		WM_SIZE [
 			if (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D <> 0 [
-				target: as int-ptr! GetWindowLong hWnd wc-offset - 24
+				target: as ptr-ptr! GetWindowLong hWnd wc-offset - 24
 				if target <> null [
 					this: as this! target/value
 					rt: as ID2D1HwndRenderTarget this/vtbl
@@ -1416,7 +1416,7 @@ WndProc: func [
 			if hidden-hwnd <> null [
 				values: (get-face-values hidden-hwnd) + FACE_OBJ_EXT3
 				values/header: TYPE_NONE
-				target: as int-ptr! GetWindowLong hidden-hwnd wc-offset - 24
+				target: as ptr-ptr! GetWindowLong hidden-hwnd wc-offset - 24
 				if target <> null [d2d-release-target target]
 				SetWindowLong hidden-hwnd wc-offset - 24 0
 			]
