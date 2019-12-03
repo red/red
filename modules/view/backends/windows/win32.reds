@@ -12,7 +12,11 @@ Red/System [
 
 #if dev-mode? = yes [
 	#include %../../../../runtime/platform/COM.reds
-	#include %../../../../runtime/platform/image-gdiplus.reds
+	#ether legacy = none [
+		#include %../../../../runtime/platform/image-wic.reds
+	][
+		#include %../../../../runtime/platform/image-gdiplus.reds
+	]
 ]
 
 #define NM_CUSTOMDRAW			-12

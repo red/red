@@ -164,6 +164,7 @@ write %build/bin/sources.r set-cache [
 			%syllable.reds
 			%win32.reds
 			%COM.reds
+			%image-wic.reds
 			%image-gdiplus.reds
 			%image-quartz.reds
 			%win32-ansi.reds

@@ -241,6 +241,35 @@ OS-image: context [
 		]
 	]
 
+	get-pixel-format: func [
+		image		[integer!]
+		format		[int-ptr!]
+		return:		[integer!]
+	][
+		GdipGetImagePixelFormat image format
+	]
+
+	create-bitmap-from-scan0: func [
+		width		[integer!]
+		height		[integer!]
+		stride		[integer!]
+		format		[integer!]
+		scan0		[byte-ptr!]
+		bitmap		[int-ptr!]
+		return:		[integer!]
+	][
+		GdipCreateBitmapFromScan0 width height stride format scan0 bitmap
+	]
+
+	create-bitmap-from-gdidib: func [
+		bmi			[byte-ptr!]
+		data		[byte-ptr!]
+		bitmap		[int-ptr!]
+		return:		[integer!]
+	][
+		GdipCreateBitmapFromGdiDib bmi data bitmap
+	]
+
 	width?: func [
 		handle		[int-ptr!]
 		return:		[integer!]

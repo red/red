@@ -341,6 +341,18 @@ IPropertyBag: alias struct! [
 			return:	[integer!]
 		]
 	]
+	"rpcrt4.dll" stdcall [
+		UuidFromString: "UuidFromStringA" [
+			StringUuid		[c-string!]
+			Uuid			[tagGUID]
+			return:			[integer!]
+		]
+		UuidToString: "UuidToStringA" [
+			Uuid			[tagGUID]
+			StringUuid		[int-ptr!]
+			return:			[integer!]
+		]
+	]
 ]
 
 init-variant: func [
