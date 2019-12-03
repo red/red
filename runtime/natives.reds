@@ -281,15 +281,17 @@ natives: context [
 	foreach*: func [
 		check? [logic!]
 		/local
-			value [red-value!]
-			body  [red-block!]
-			size  [integer!]
+			value  [red-value!]
+			series [red-value!]
+			body   [red-block!]
+			size   [integer!]
 	][
 		#typecheck foreach
 		value: stack/arguments
+		series: stack/arguments + 1
 		body: as red-block! stack/arguments + 2
 		
-		stack/push stack/arguments + 1					;-- copy arguments to stack top in reverse order
+		stack/push series								;-- copy arguments to stack top in reverse order
 		stack/push value								;-- (required by foreach-next)
 		
 		stack/mark-loop words/_body
@@ -310,6 +312,8 @@ natives: context [
 				]
 			]
 		][
+			if TYPE_OF(series) = TYPE_MAP [fire [TO_ERROR(script invalid-arg) value]]
+			
 			while [foreach-next][						;-- foreach <word!>
 				stack/reset
 				catch RED_THROWN_BREAK	[interpreter/eval body no]
@@ -3145,7 +3149,6 @@ natives: context [
 		
 		result: loop? series
 		if result [
-			if TYPE_OF(series) = TYPE_MAP [fire [TO_ERROR(script invalid-arg) word]]
 			_context/set word actions/pick series 1 null
 			series/head: series/head + 1
 		]
