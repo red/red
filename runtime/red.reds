@@ -49,7 +49,13 @@ red: context [
 	;-- ]
 	;--------------------------------------------
 	#switch OS [
-		Windows  [#include %platform/image-gdiplus.reds]
+		Windows  [
+			#either legacy = none [
+				#include %platform/image-wic.reds
+			][
+				#include %platform/image-gdiplus.reds
+			]
+		]
 		Syllable []
 		macOS	 [#include %platform/image-quartz.reds]
 		FreeBSD  []

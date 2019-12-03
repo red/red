@@ -279,10 +279,10 @@ clipboard: context [
 							hdr/BlueMask  = 000000FFh
 						][								;-- can copy the data directly
 							if hdr/Height < 0 [hdr/Height: 0 - hdr/Height]
-							assert all [0 = OS-image/GdipGetImagePixelFormat bmp :i  i = PixelFormat32bppARGB]
-							OS-image/GdipCreateBitmapFromScan0 hdr/Width hdr/Height 0 PixelFormat32bppARGB p :bmp
+							assert all [0 = OS-image/get-pixel-format bmp :i  i = PixelFormat32bppARGB]
+							OS-image/create-bitmap-from-scan0 hdr/Width hdr/Height 0 PixelFormat32bppARGB p :bmp
 						][								;-- will have to convert, losing the alpha data if any
-							OS-image/GdipCreateBitmapFromGdiDib
+							OS-image/create-bitmap-from-gdidib
 								p  p + hdr/Size + (hdr/ClrUsed * 4) + hdr/ProfileSize  :bmp
 						]
 						val: as red-value! image/init-image as red-image! stack/push* as int-ptr! bmp
