@@ -187,6 +187,7 @@ base-draw: func [
 		pos		[red-pair! value]
 		DC		[draw-ctx! value]
 		drawDC	[draw-ctx!]
+		css		[GString!]
 ][
 	face: get-face-obj widget
 	values: object/get-values face
@@ -198,16 +199,27 @@ base-draw: func [
 	color: as red-tuple! values + FACE_OBJ_COLOR
 	sym: symbol/resolve type/symbol
 
-	if TYPE_OF(color) = TYPE_TUPLE [
+	either all [
+		TYPE_OF(color) = TYPE_TUPLE
+		not all [
+			TUPLE_SIZE?(color) = 4
+			color/array1 and FF000000h = FF000000h
+		]
+	][
 		free-font font
 		make-font face font
 		set-css widget face values
-		gtk_render_background
-				gtk_widget_get_style_context widget
-				cr
-				0.0 0.0
-				as float! size/x as float! size/y
+	][
+		css: create-trans-css
+		apply-css-styles widget css
+		free-css css
 	]
+
+	gtk_render_background
+			gtk_widget_get_style_context widget
+			cr
+			0.0 0.0
+			as float! size/x as float! size/y
 
 	if TYPE_OF(img) = TYPE_IMAGE [
 		;; DEBUG: print ["base-draw, GDK-draw-image: " 0 "x" 0 "x" size/x "x" size/y lf]
@@ -244,6 +256,19 @@ base-draw: func [
 	EVT_DISPATCH
 ]
 
+transparent-base?: func [
+	color	[red-tuple!]
+	return: [logic!]
+][
+	either all [
+		TYPE_OF(color) = TYPE_TUPLE
+		any [
+			TUPLE_SIZE?(color) = 3 
+			color/array1 and FF000000h = 0
+		]
+	][false][true]
+]
+
 base-event-after: func [
 	[cdecl]
 	evbox		[handle!]
@@ -264,6 +289,7 @@ base-event-after: func [
 		tail	[red-object!]
 		target	[handle!]
 		offset2	[red-pair!]
+		size2	[red-pair!]
 		dx		[float!]
 		dy		[float!]
 		motion	[GdkEventMotion!]
@@ -291,7 +317,7 @@ base-event-after: func [
 
 	if all [
 		sym = base
-		TYPE_OF(color) = TYPE_NONE
+		transparent-base? color
 	][
 		hparent: get-face-handle parent
 		pane: as red-block! (object/get-values parent) + FACE_OBJ_PANE
@@ -307,6 +333,13 @@ base-event-after: func [
 						continue
 					]
 					offset2: as red-pair! (object/get-values tail) + FACE_OBJ_OFFSET
+					size2: as red-pair! (object/get-values tail) + FACE_OBJ_SIZE
+					unless all [
+						offset/x >= offset2/x
+						offset/x <= (offset2/x + size2/x)
+						offset/y >= offset2/y
+						offset/y <= (offset2/y + size2/y)
+					][continue]
 					case [
 						etype = GDK_MOTION_NOTIFY [
 							motion: as GdkEventMotion! event
