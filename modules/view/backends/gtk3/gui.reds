@@ -1797,7 +1797,7 @@ OS-make-view: func [
 	]
 
 	change-selection widget selected sym
-	change-font widget face values
+	if sym <> base [change-font widget face values]
 	change-enabled widget enabled?/value sym
 
 	parse-common-opts widget face as red-block! values + FACE_OBJ_OPTIONS sym

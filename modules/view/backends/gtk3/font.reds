@@ -54,6 +54,10 @@ create-simple-attrs: func [
 	if all [
 		not null? color
 		TYPE_OF(color) = TYPE_TUPLE
+		not all [
+			TUPLE_SIZE?(color) = 4
+			color/array1 and FF000000h = FF000000h
+		]
 	][
 		alpha?: 0
 		rgb: get-color-int color :alpha?
@@ -89,6 +93,10 @@ create-simple-css: func [
 	if all [
 		not null? color
 		TYPE_OF(color) = TYPE_TUPLE
+		not all [
+			TUPLE_SIZE?(color) = 4
+			color/array1 and FF000000h = FF000000h
+		]
 	][
 		alpha?: 0
 		rgb: get-color-int color :alpha?
@@ -101,6 +109,18 @@ create-simple-css: func [
 		]
 		g_string_append_printf [css { background-color: rgba(%d, %d, %d, %.3f);} r g b a]
 	]
+	g_string_append css "}"
+	css
+]
+
+create-trans-css: func [
+	return:		[GString!]
+	/local
+		css		[GString!]
+][
+	css: g_string_sized_new 64
+	g_string_append css "* {"
+	g_string_append css { background-color: transparent;}
 	g_string_append css "}"
 	css
 ]
@@ -289,7 +309,13 @@ create-pango-attrs: func [
 
 	unless null? face [
 		color: as red-tuple! (object/get-values face) + FACE_OBJ_COLOR
-		if TYPE_OF(color) = TYPE_TUPLE [
+		if all [
+			TYPE_OF(color) = TYPE_TUPLE
+			not all [
+				TUPLE_SIZE?(color) = 4
+				color/array1 and FF000000h = FF000000h
+			]
+		][
 			alpha?: 0
 			rgb: get-color-int color :alpha?
 			r: 0 g: 0 b: 0 a: 0
@@ -477,7 +503,13 @@ create-css: func [
 
 	unless null? face [
 		color: as red-tuple! (object/get-values face) + FACE_OBJ_COLOR
-		if TYPE_OF(color) = TYPE_TUPLE [
+		if all [
+			TYPE_OF(color) = TYPE_TUPLE
+			not all [
+				TUPLE_SIZE?(color) = 4
+				color/array1 and FF000000h = FF000000h
+			]
+		][
 			alpha?: 0
 			rgb: get-color-int color :alpha?
 			b: rgb >> 16 and FFh
