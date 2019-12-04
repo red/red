@@ -48,6 +48,7 @@ color-u8-to-u16: func [
 		t		[integer!]
 ][
 	t: color >>> 24 and FFh
+	t: FFh - t
 	a/value: t << 8 + t
 	t: color >> 16 and FFh
 	b/value: t << 8 + t
