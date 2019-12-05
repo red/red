@@ -1891,11 +1891,9 @@ OS-update-view: func [
 		; 0
 	]
 	if flags and FACET_FLAG_COLOR <> 0 [
-		;; DEBUG: print ["FACET_FLAG_COLOR " get-symbol-name type lf]
-		;;;if type = base [
-			;; DEBUG: print ["FACET_FLAG_COLOR " widget  lf]
+		if type <> base [
 			change-color widget as red-tuple! values + FACE_OBJ_COLOR type
-		;;;]
+		]
 	]
 	if all [flags and FACET_FLAG_PANE <> 0 type <> tab-panel][
 		change-pane widget as red-block! values + FACE_OBJ_PANE type
@@ -1904,7 +1902,9 @@ OS-update-view: func [
 		change-rate widget values + FACE_OBJ_RATE
 	]
 	if flags and FACET_FLAG_FONT <> 0 [
-		change-font widget face values
+		if type <> base [
+			change-font widget face values
+		]
 	]
 	if flags and FACET_FLAG_PARA <> 0 [
 		change-para widget face values
