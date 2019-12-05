@@ -347,6 +347,7 @@ OS-text-box-layout: func [
 		state	[red-block!]
 		size	[red-pair!]
 		font	[red-object!]
+		parent	[red-object!]
 		cached?	[logic!]
 		attrs	[handle!]
 		int		[red-integer!]
@@ -364,6 +365,8 @@ OS-text-box-layout: func [
 	state: as red-block! values + FACE_OBJ_EXT3
 	size: as red-pair! values + FACE_OBJ_SIZE
 	font: as red-object! values + FACE_OBJ_FONT
+	parent: as red-object! values + FACE_OBJ_PARENT
+	styles: as red-block! values + FACE_OBJ_DATA
 	cached?: TYPE_OF(state) = TYPE_BLOCK
 
 	either cached? [
@@ -385,7 +388,13 @@ OS-text-box-layout: func [
 		none/make-in state
 		logic/make-in state false
 	]
-	attrs: either TYPE_OF(font) = TYPE_BLOCK [
+	if all [
+		TYPE_OF(font) <> TYPE_OBJECT
+		TYPE_OF(parent) = TYPE_OBJECT
+	][
+		font: as red-object! (object/get-values parent) + FACE_OBJ_FONT
+	]
+	attrs: either TYPE_OF(font) = TYPE_OBJECT [
 		create-pango-attrs null font
 	][
 		create-simple-attrs default-font-name default-font-size null
@@ -397,7 +406,6 @@ OS-text-box-layout: func [
 	pango_layout_set_wrap layout PANGO_WRAP_WORD_CHAR			;-- TBD: apply para
 	pango_layout_set_text layout str -1
 
-	styles: as red-block! values + FACE_OBJ_DATA
 	if all [
 		TYPE_OF(styles) = TYPE_BLOCK
 		1 < block/rs-length? styles
