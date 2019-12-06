@@ -205,7 +205,12 @@ red: context [
 		handle/init
 		date/init
 		port/init
-		#if OS = 'Windows [image/init]					;-- temporary
+		#if OS = 'Windows [								;-- temporary
+			#if legacy = none [
+				OS-image/init
+			]
+			image/init
+		]
 		#if OS = 'macOS   [image/init]					;-- temporary
 		
 		actions/init

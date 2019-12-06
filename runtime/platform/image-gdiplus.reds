@@ -52,12 +52,6 @@ Red/System [
 
 OS-image: context [
 
-	CLSID_BMP_ENCODER:  [557CF400h 11D31A04h 0000739Ah 2EF31EF8h]
-	CLSID_JPEG_ENCODER: [557CF401h 11D31A04h 0000739Ah 2EF31EF8h]
-	CLSID_GIF_ENCODER:  [557CF402h 11D31A04h 0000739Ah 2EF31EF8h]
-	CLSID_TIFF_ENCODER: [557CF405h 11D31A04h 0000739Ah 2EF31EF8h]
-	CLSID_PNG_ENCODER:  [557CF406h 11D31A04h 0000739Ah 2EF31EF8h]
-
 	RECT!: alias struct! [
 		left	[integer!]
 		top		[integer!]
@@ -91,14 +85,6 @@ OS-image: context [
 			]
 			GlobalUnlock: "GlobalUnlock" [
 				hMem		[integer!]
-				return:		[integer!]
-			]
-		]
-		"ole32.dll" stdcall [
-			CreateStreamOnHGlobal: "CreateStreamOnHGlobal" [
-				hMem		[integer!]
-				fAutoDel	[logic!]
-				ppstm		[int-ptr!]
 				return:		[integer!]
 			]
 		]
@@ -249,6 +235,19 @@ OS-image: context [
 		GdipGetImagePixelFormat image format
 	]
 
+	fixed-format?: func [
+		format		[integer!]
+		return:		[logic!]
+	][
+		format = PixelFormat32bppARGB
+	]
+
+	fixed-format: func [
+		return:		[integer!]
+	][
+		PixelFormat32bppARGB
+	]
+
 	create-bitmap-from-scan0: func [
 		width		[integer!]
 		height		[integer!]
@@ -334,14 +333,30 @@ OS-image: context [
 
 	get-data: func [
 		handle		[integer!]
+		width		[int-ptr!]
+		height		[int-ptr!]
 		stride		[int-ptr!]
 		return:		[int-ptr!]
 		/local
 			bitmap	[BitmapData!]
 	][
 		bitmap: as BitmapData! handle
+		width/value: bitmap/width
+		height/value: bitmap/height
 		stride/value: bitmap/stride
 		as int-ptr! bitmap/scan0
+	]
+
+	get-data-pixel-format: func [
+		handle		[integer!]
+		format		[int-ptr!]
+		return:		[integer!]
+		/local
+			bitmap	[BitmapData!]
+	][
+		bitmap: as BitmapData! handle
+		format/value: bitmap/pixelFormat
+		0
 	]
 
 	get-pixel: func [

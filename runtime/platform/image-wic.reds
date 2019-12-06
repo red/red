@@ -10,22 +10,6 @@ Red/System [
 	}
 ]
 
-
-#define PixelFormatIndexed			00010000h ;-- Indexes into a palette
-#define PixelFormatGDI				00020000h ;-- Is a GDI-supported format
-#define PixelFormatAlpha			00040000h ;-- Has an alpha component
-#define PixelFormatPAlpha			00080000h ;-- Pre-multiplied alpha
-#define PixelFormatExtended			00100000h ;-- Extended color 16 bits/channel
-#define PixelFormatCanonical		00200000h
-
-#define PixelFormatUndefined		0
-#define PixelFormatDontCare			0
-
-#define PixelFormat32bppARGB		2498570   ;-- [10 or (32 << 8) or PixelFormatAlpha or PixelFormatGDI or PixelFormatCanonical]
-#define PixelFormat32bppPARGB		925707    ;-- [11 or (32 << 8) or PixelFormatAlpha or PixelFormatPAlpha or PixelFormatGDI]
-#define PixelFormat32bppCMYK		8207	  ;-- [15 or (32 << 8)]
-#define PixelFormatMax				16
-
 #define WICBitmapLockRead			00000001h
 #define WICBitmapLockWrite			00000002h
 
@@ -34,17 +18,46 @@ Red/System [
 #define WICBitmapCacheOnLoad		2
 #define WICBITMAPCREATECACHEOPTION_FORCE_DWORD	7FFFFFFFh
 
+#define GMEM_MOVEABLE	2
+
 OS-image: context [
 
 	wic-factory: as this! 0
 	GUID_WICPixelFormat32bppBGRA: declare tagGUID
 	GUID_WICPixelFormat32bppPBGRA: declare tagGUID
+	GUID_ContainerFormatBmp: declare tagGUID
+	GUID_ContainerFormatPng: declare tagGUID
+	GUID_ContainerFormatJpeg: declare tagGUID
+	GUID_ContainerFormatTiff: declare tagGUID
+	GUID_ContainerFormatGif: declare tagGUID
 
 	RECT!: alias struct! [
 		x	[integer!]
 		y	[integer!]
 		w	[integer!]
 		h	[integer!]
+	]
+
+	#import [
+		"kernel32.dll" stdcall [
+			GlobalAlloc: "GlobalAlloc" [
+				flags		[integer!]
+				size		[integer!]
+				return:		[integer!]
+			]
+			GlobalFree: "GlobalFree" [
+				hMem		[integer!]
+				return:		[integer!]
+			]
+			GlobalLock: "GlobalLock" [
+				hMem		[integer!]
+				return:		[byte-ptr!]
+			]
+			GlobalUnlock: "GlobalUnlock" [
+				hMem		[integer!]
+				return:		[integer!]
+			]
+		]
 	]
 
 	IWICImagingFactory: alias struct! [
@@ -121,7 +134,7 @@ OS-image: context [
 		SetPalette					[function! [this [this!] pIPalette [int-ptr!] return: [integer!]]]
 		SetThumbnail				[function! [this [this!] pIThumbnail [int-ptr!] return: [integer!]]]
 		WritePixels					[function! [this [this!] count [integer!] stride [integer!] size [integer!] buffer [byte-ptr!] return: [integer!]]]
-		WriteSource					[function! [this [this!] piBitmapSource [int-ptr!] prc [int-ptr!] return: [integer!]]]
+		WriteSource					[function! [this [this!] piBitmapSource [int-ptr!] prc [RECT!] return: [integer!]]]
 		Commit						[function! [this [this!] return: [integer!]]]
 		GetMetadataQueryWriter		[function! [this [this!] ppIMetaReader [ptr-ptr!] return: [integer!]]]
 	]
@@ -137,7 +150,7 @@ OS-image: context [
 		SetPalette					[function! [this [this!] pIPalette [int-ptr!] return: [integer!]]]
 		SetThumbnail				[function! [this [this!] pIThumbnail [int-ptr!] return: [integer!]]]
 		SetPreview					[function! [this [this!] pIPreview [int-ptr!] return: [integer!]]]
-		CreateNewFrame				[function! [this [this!] ppIFrameEnc [ptr-ptr!] ppIEncOpts [ptr-ptr!] return: [integer!]]]
+		CreateNewFrame				[function! [this [this!] ppIFrameEnc [interface!] ppIEncOpts [int-ptr!] return: [integer!]]]
 		Commit						[function! [this [this!] return: [integer!]]]
 		GetMetadataQueryWriter		[function! [this [this!] ppIMetaWriter [ptr-ptr!] return: [integer!]]]
 	]
@@ -228,6 +241,12 @@ OS-image: context [
 		UuidFromString "EC5EC8A9-C395-4314-9C77-54D7A935FF70" :IID_IWICImagingFactory
 		UuidFromString "6FDDC324-4E03-4BFE-B185-3D77768DC90F" GUID_WICPixelFormat32bppBGRA
 		UuidFromString "6FDDC324-4E03-4BFE-B185-3D77768DC910" GUID_WICPixelFormat32bppPBGRA
+		UuidFromString "0AF1D87E-FCFE-4188-BDEB-A7906471CBE3" GUID_ContainerFormatBmp
+		UuidFromString "1B7CFAF4-713F-473C-BBCD-6137425FAEAF" GUID_ContainerFormatPng
+		UuidFromString "19E4A5AA-5662-4FC5-A0C0-1758028E1057" GUID_ContainerFormatJpeg
+		UuidFromString "163BCC30-E2E9-4F0B-961D-A3E9FDB788A3" GUID_ContainerFormatTiff
+		UuidFromString "1F8A5601-7D4D-4CBD-9C82-1BC8D4EEB9A5" GUID_ContainerFormatGif
+
 		hr: CoCreateInstance as int-ptr! CLSID_WICImagingFactory 0 CLSCTX_INPROC_SERVER as int-ptr! IID_IWICImagingFactory :II
 		if hr = 0 [
 			wic-factory: as this! II/ptr
@@ -238,20 +257,57 @@ OS-image: context [
 		image		[integer!]
 		format		[int-ptr!]
 		return:		[integer!]
+		/local
+			this	[this!]
+			IB		[IWICBitmap]
+			guid	[tagGUID value]
+			ret		[integer!]
 	][
-		0
+		this: as this! image
+		IB: as IWICBitmap this/vtbl
+		ret: IB/GetPixelFormat this as int-ptr! :guid
+		format/value: either all [
+			guid/data1 = GUID_WICPixelFormat32bppBGRA/data1
+			guid/data2 = GUID_WICPixelFormat32bppBGRA/data2
+			guid/data3 = GUID_WICPixelFormat32bppBGRA/data3
+			guid/data4 = GUID_WICPixelFormat32bppBGRA/data4
+		][1][0]
+		ret
+	]
+
+	fixed-format?: func [
+		format		[integer!]
+		return:		[logic!]
+	][
+		format = 1
+	]
+
+	fixed-format: func [
+		return:		[integer!]
+	][
+		1
 	]
 
 	create-bitmap-from-scan0: func [
 		width		[integer!]
 		height		[integer!]
 		stride		[integer!]
-		format		[integer!]
+		format		[integer!]								;-- only support GUID_WICPixelFormat32bppBGRA for now
 		scan0		[byte-ptr!]
 		bitmap		[int-ptr!]
 		return:		[integer!]
+		/local
+			IFAC	[IWICImagingFactory]
+			size	[integer!]
+			bmp		[interface! value]
+			ret		[integer!]
 	][
-		0
+		IFAC: as IWICImagingFactory wic-factory/vtbl
+		if stride = 0 [stride: width * 4]
+		size: stride * height
+		ret: IFAC/CreateBitmapFromMemory wic-factory width height as integer! GUID_WICPixelFormat32bppBGRA stride size scan0 :bmp
+		bitmap/value: as integer! bmp/ptr
+		ret
 	]
 
 	create-bitmap-from-gdidib: func [
@@ -331,6 +387,8 @@ OS-image: context [
 
 	get-data: func [
 		handle		[integer!]
+		width		[int-ptr!]
+		height		[int-ptr!]
 		stride		[int-ptr!]
 		return:		[int-ptr!]
 		/local
@@ -341,10 +399,33 @@ OS-image: context [
 	][
 		this: as this! handle
 		lock: as IWICBitmapLock this/vtbl
-
+		lock/GetSize this width height
+		lock/GetStride this stride
 		size: 0 data: 0
 		lock/GetDataPointer this :size :data
 		as int-ptr! data
+	]
+
+	get-data-pixel-format: func [
+		handle		[integer!]
+		format		[int-ptr!]
+		return:		[integer!]
+		/local
+			this	[this!]
+			lock	[IWICBitmapLock]
+			guid	[tagGUID value]
+			ret		[integer!]
+	][
+		this: as this! handle
+		lock: as IWICBitmapLock this/vtbl
+		ret: lock/GetPixelFormat this as int-ptr! :guid
+		format/value: either all [
+			guid/data1 = GUID_WICPixelFormat32bppBGRA/data1
+			guid/data2 = GUID_WICPixelFormat32bppBGRA/data2
+			guid/data3 = GUID_WICPixelFormat32bppBGRA/data3
+			guid/data4 = GUID_WICPixelFormat32bppBGRA/data4
+		][1][0]
+		ret
 	]
 
 	get-pixel: func [
@@ -444,7 +525,6 @@ OS-image: context [
 	][
 		this: as this! img/node
 		IB: as IWICBitmap this/vtbl
-		if null? wic-factory [init]
 		IFAC: as IWICImagingFactory wic-factory/vtbl
 		IFAC/CreateBitmapScaler wic-factory :iscale
 		sthis: as this! iscale/ptr
@@ -474,14 +554,16 @@ OS-image: context [
 			conv	[IWICFormatConverter]
 			bitmap	[interface! value]
 	][
-		if null? wic-factory [init]
 		IFAC: as IWICImagingFactory wic-factory/vtbl
 		IFAC/CreateDecoderFromFilename wic-factory file/to-OS-path src null GENERIC_READ 0 :II
 		this: as this! II/ptr
 		dec: as IWICBitmapDecoder this/vtbl
 		count: 0
 		dec/GetFrameCount this :count
-		if count < 1 [return null]
+		if count < 1 [
+			dec/Release this
+			return null
+		]
 		dec/GetFrame this 0 :iframe
 		fthis: as this! iframe/ptr
 		frame: as IWICBitmapFrameDecode fthis/vtbl
@@ -524,7 +606,6 @@ OS-image: context [
 			g		[integer!]
 	][
 		if any [zero? width zero? height][return null]
-		if null? wic-factory [init]
 		IFAC: as IWICImagingFactory wic-factory/vtbl
 		IFAC/CreateBitmap wic-factory width height as int-ptr! GUID_WICPixelFormat32bppBGRA WICBitmapCacheOnLoad :bitmap
 		bthis: as this! bitmap/ptr
@@ -567,17 +648,147 @@ OS-image: context [
 	]
 
 	load-binary: func [
-		data	[byte-ptr!]
-		len		[integer!]
-		return: [node!]
-	][null]
+		data		[byte-ptr!]
+		len			[integer!]
+		return:		[node!]
+		/local
+			hMem	[integer!]
+			p		[byte-ptr!]
+			s		[integer!]
+			IFAC	[IWICImagingFactory]
+			idec	[interface! value]
+			dthis	[this!]
+			dec		[IWICBitmapDecoder]
+			count	[integer!]
+			iframe	[interface! value]
+			fthis	[this!]
+			frame	[IWICBitmapFrameDecode]
+			iconv	[interface! value]
+			cthis	[this!]
+			conv	[IWICFormatConverter]
+			bitmap	[interface! value]
+	][
+		hMem: GlobalAlloc GMEM_MOVEABLE len
+		p: GlobalLock hMem
+		copy-memory p data len
+		GlobalUnlock hMem
+
+		s: 0
+		CreateStreamOnHGlobal hMem true :s
+
+		IFAC: as IWICImagingFactory wic-factory/vtbl
+		IFAC/CreateDecoderFromStream wic-factory as int-ptr! s null 1 :idec
+		dthis: as this! idec/ptr
+		dec: as IWICBitmapDecoder dthis/vtbl
+		count: 0
+		dec/GetFrameCount dthis :count
+		if count < 1 [
+			dec/Release dthis
+			return null
+		]
+		dec/GetFrame dthis 0 :iframe
+		fthis: as this! iframe/ptr
+		frame: as IWICBitmapFrameDecode fthis/vtbl
+		IFAC/CreateFormatConverter wic-factory :iconv
+		cthis: as this! iconv/ptr
+		conv: as IWICFormatConverter cthis/vtbl
+		conv/Initialize cthis as int-ptr! fthis as int-ptr! GUID_WICPixelFormat32bppBGRA 0 null 0.0 0
+		IFAC/CreateBitmapFromSource wic-factory as int-ptr! cthis 0 :bitmap
+
+		conv/Release cthis
+		frame/Release fthis
+		dec/Release dthis
+		as int-ptr! bitmap/ptr
+	]
 
 	encode: func [
-		image	[red-image!]
-		slot	[red-value!]
-		format	[integer!]
-		return: [red-value!]
-	][null]
+		image		[red-image!]
+		slot		[red-value!]
+		format		[integer!]
+		return:		[red-value!]
+		/local
+			bin		[red-binary!]
+			s		[series!]
+			clsid	[tagGUID]
+			stream	[IStream]
+			storage [IStorage]
+			stat	[tagSTATSTG]
+			IStm	[interface!]
+			ISto	[interface!]
+			len		[integer!]
+			hr		[integer!]
+			IFAC	[IWICImagingFactory]
+			ienc	[interface! value]
+			ethis	[this!]
+			enc		[IWICBitmapEncoder]
+			iframe	[interface! value]
+			fthis	[this!]
+			frame	[IWICBitmapFrameEncode]
+			prop	[integer!]
+			rect	[RECT! value]
+	][
+		switch format [
+			IMAGE_BMP  [clsid: GUID_ContainerFormatBmp]
+			IMAGE_PNG  [clsid: GUID_ContainerFormatPng]
+			IMAGE_GIF  [clsid: GUID_ContainerFormatGif]
+			IMAGE_JPEG [clsid: GUID_ContainerFormatJpeg]
+			IMAGE_TIFF [clsid: GUID_ContainerFormatTiff]
+			default    [probe "Cannot find image encoder" return null]
+		]
+
+		ISto: declare interface!
+		IStm: declare interface!
+		stat: declare tagSTATSTG
+		hr: StgCreateDocfile
+			null
+			STGM_READWRITE or STGM_CREATE or STGM_SHARE_EXCLUSIVE or STGM_DELETEONRELEASE 
+			0
+			ISto
+		storage: as IStorage ISto/ptr/vtbl
+		hr: storage/CreateStream
+			ISto/ptr
+			#u16 "RedImageStream"
+			STGM_READWRITE or STGM_SHARE_EXCLUSIVE
+			0
+			0
+			IStm
+		IFAC: as IWICImagingFactory wic-factory/vtbl
+		hr: IFAC/CreateEncoder wic-factory as int-ptr! clsid null :ienc
+		ethis: as this! ienc/ptr
+		enc: as IWICBitmapEncoder ethis/vtbl
+		hr: enc/Initialize ethis as int-ptr! IStm/ptr 2
+		prop: 0
+		hr: enc/CreateNewFrame ethis :iframe :prop
+		fthis: as this! iframe/ptr
+		frame: as IWICBitmapFrameEncode fthis/vtbl
+		rect/x: 0 rect/y: 0
+		rect/w: IMAGE_WIDTH(image/size)
+		rect/h: IMAGE_HEIGHT(image/size)
+		hr: frame/Initialize fthis null
+		hr: frame/WriteSource fthis image/node rect
+		hr: frame/Commit fthis
+		hr: enc/Commit ethis
+		frame/Release fthis
+		enc/Release ethis
+		stream: as IStream IStm/ptr/vtbl
+		stream/Stat IStm/ptr stat 1
+		len: stat/cbSize_low
+
+		bin: as red-binary! slot
+		bin/header: TYPE_UNSET
+		bin/head: 0
+		bin/node: alloc-bytes len
+		bin/header: TYPE_BINARY
+		
+		s: GET_BUFFER(bin)
+		s/tail: as cell! (as byte-ptr! s/tail) + len
+
+		stream/Seek IStm/ptr 0 0 0 0 0
+		stream/Read IStm/ptr as byte-ptr! s/offset len :hr
+		stream/Release IStm/ptr
+		storage/Release ISto/ptr
+		as red-value! bin
+	]
 
 	clone: func [
 		src			[red-image!]
@@ -621,7 +832,6 @@ OS-image: context [
 		offset: src/head
 		this: as this! src/node
 		IB: as IWICBitmap this/vtbl
-		if null? wic-factory [init]
 		IFAC: as IWICImagingFactory wic-factory/vtbl
 		if all [zero? offset not part?][
 			IFAC/CreateBitmapFromSource wic-factory as int-ptr! this 0 :bitmap
