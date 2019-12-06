@@ -513,6 +513,8 @@ Red [
 			img		[red-image!]
 			rgb		[byte-ptr!]
 			sz		[integer!]
+			w		[integer!]
+			h		[integer!]
 			stride	[integer!]
 			bitmap	[integer!]
 			data	[int-ptr!]
@@ -535,9 +537,10 @@ Red [
 		img/node: OS-image/make-image width height rgb null null
 		
 		if format = RGBA_BUFFER [
+			w: 0 h: 0
 			stride: 0
 			bitmap: OS-image/lock-bitmap img yes
-			data: OS-image/get-data bitmap :stride
+			data: OS-image/get-data bitmap :w :h :stride
 			copy-memory as byte-ptr! data src sz * 4
 			OS-image/unlock-bitmap img bitmap
 		]
