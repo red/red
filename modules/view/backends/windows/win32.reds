@@ -2800,6 +2800,21 @@ XFORM!: alias struct! [
 			return:		[logic!]
 		]
 	]
+	"d3d11.dll" stdcall [
+		D3D11CreateDevice: "D3D11CreateDevice" [
+			adapter		[int-ptr!]
+			DriverType	[integer!]
+			Software	[int-ptr!]
+			Flags		[integer!]
+			pFeatures	[int-ptr!]
+			Features	[integer!]
+			SDKVersion	[integer!]
+			ppDevice	[ptr-ptr!]
+			pFeatLevel	[int-ptr!]
+			ppContext	[ptr-ptr!]
+			return:		[integer!]
+		]
+	]
 	"ole32.dll" stdcall [
 		CoTaskMemFree: "CoTaskMemFree" [
 			pv		[integer!]
