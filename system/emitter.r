@@ -323,7 +323,7 @@ emitter: make-profilable context [
 			get-word! [
 				spec: any [
 					select symbols to word! value
-					all [compiler/ns-path select symbols compiler/ns-prefix to word! value]
+					all [compiler/ns-path get-func-ref compiler/ns-prefix to word! value]
 				]
 				unless spec/4 [append/only spec make block! 1]
 				append spec/4 index? tail data-buf
