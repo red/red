@@ -19,7 +19,7 @@ draw-begin: func [
 	hWnd		[handle!]
 	/local
 		this	[this!]
-		rt		[ID2D1HwndRenderTarget]
+		dc		[ID2D1DeviceContext]
 		_11		[integer!]
 		_12		[integer!]
 		_21		[integer!]
@@ -37,6 +37,7 @@ draw-begin: func [
 		clr		[red-tuple!]
 		text	[red-string!]
 		pos		[red-pair! value]
+		render	[render-target!]
 ][
 	zero-memory as byte-ptr! ctx size? draw-ctx!
 	ctx/pen-width:	as float32! 1.0
@@ -45,34 +46,36 @@ draw-begin: func [
 	ctx/font-color:	-1
 
 	target: get-hwnd-render-target hWnd
-	this: as this! target/value
-	ctx/dc: as handle! this
+	ctx/dc: as int-ptr! d2d-ctx
 	ctx/brushes: as int-ptr! target
 
-	rt: as ID2D1HwndRenderTarget this/vtbl
-	rt/SetTextAntialiasMode this 1				;-- ClearType
+	this: d2d-ctx
+	render: as render-target! target/value
+	dc: as ID2D1DeviceContext this/vtbl
+	dc/SetTextAntialiasMode this 1				;-- ClearType
+	dc/SetTarget this render/bitmap
 
-	rt/BeginDraw this
+	dc/BeginDraw this
 	_11: 0 _12: 0 _21: 0 _22: 0 _31: 0 _32: 0
 	m: as D2D_MATRIX_3X2_F :_32
 	m/_11: as float32! 1.0
 	m/_22: as float32! 1.0
-	rt/SetTransform this m						;-- set to identity matrix
+	dc/SetTransform this m						;-- set to identity matrix
 
 	values: get-face-values hWnd
 	clr: as red-tuple! values + FACE_OBJ_COLOR
 	bg-clr: either TYPE_OF(clr) = TYPE_TUPLE [clr/array1][-1]
 	if bg-clr <> -1 [							;-- paint background
-		rt/Clear this to-dx-color bg-clr null
+		dc/Clear this to-dx-color bg-clr null
 	]
 
 	d3d-clr: to-dx-color ctx/pen-color null
 	brush: 0
-	rt/CreateSolidColorBrush this d3d-clr null :brush
+	dc/CreateSolidColorBrush this d3d-clr null :brush
 	ctx/pen: brush
 
 	brush: 0
-	rt/CreateSolidColorBrush this d3d-clr null :brush
+	dc/CreateSolidColorBrush this d3d-clr null :brush
 	ctx/brush: brush
 
 	text: as red-string! values + FACE_OBJ_TEXT
@@ -97,13 +100,21 @@ draw-end: func [
 	ctx		[draw-ctx!]
 	hWnd	[handle!]
 	/local
-		this [this!]
-		rt	 [ID2D1HwndRenderTarget]
-		hr	 [integer!]
+		this	[this!]
+		dc		[ID2D1DeviceContext]
+		sc		[IDXGISwapChain1]
+		rt		[render-target!]
+		hr		[integer!]
 ][
 	this: as this! ctx/dc
-	rt: as ID2D1HwndRenderTarget this/vtbl
-	hr: rt/EndDraw this null null
+	dc: as ID2D1DeviceContext this/vtbl
+	hr: dc/EndDraw this null null
+	dc/SetTarget this null
+
+	rt: as render-target! ctx/brushes/value
+	this: rt/swapchain
+	sc: as IDXGISwapChain1 this/vtbl
+	sc/Present this 0 0
 
 	release-d2d ctx
 
@@ -274,14 +285,14 @@ OS-draw-line: func [
 		pt0		[red-pair!]
 		pt1		[red-pair!]
 		this	[this!]
-		rt		[ID2D1HwndRenderTarget]
+		dc		[ID2D1DeviceContext]
 ][
 	this: as this! ctx/dc
-	rt: as ID2D1HwndRenderTarget this/vtbl
+	dc: as ID2D1DeviceContext this/vtbl
 	pt0:  point
 
 	while [pt1: pt0 + 1 pt1 <= end][
-		rt/DrawLine
+		dc/DrawLine
 			this
 			as float32! pt0/x as float32! pt0/y
 			as float32! pt1/x as float32! pt1/y
@@ -331,7 +342,7 @@ OS-draw-box: func [
 	/local
 		this	[this!]
 		rt		[ID2D1HwndRenderTarget]
-		rc		[D2D_RECT_F value]
+		rc		[RECT32! value]
 ][
 	this: as this! ctx/dc
 	rt: as ID2D1HwndRenderTarget this/vtbl
