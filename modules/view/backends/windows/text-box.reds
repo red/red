@@ -24,23 +24,25 @@ line-metrics: as DWRITE_LINE_METRICS 0
 max-line-cnt: 0
 
 OS-text-box-color: func [
-	dc		[handle!]
+	target	[handle!]
 	layout	[handle!]
 	pos		[integer!]
 	len		[integer!]
 	color	[integer!]
 	/local
 		this	[this!]
-		rt		[ID2D1HwndRenderTarget]
+		rt		[render-target!]
+		dc		[ID2D1DeviceContext]
 		dl		[IDWriteTextLayout]
 		brush	[integer!]
 ][
-	brush: select-brush dc + 1 color
+	brush: select-brush target + 1 color
 	if zero? brush [
-		this: as this! dc/value
-		rt: as ID2D1HwndRenderTarget this/vtbl
-		rt/CreateSolidColorBrush this to-dx-color color null null :brush
-		put-brush dc + 1 color brush
+		rt: as render-target! target/value
+		this: rt/dc
+		dc: as ID2D1DeviceContext this/vtbl
+		dc/CreateSolidColorBrush this to-dx-color color null null :brush
+		put-brush target + 1 color brush
 	]
 
 	this: as this! layout
@@ -49,28 +51,30 @@ OS-text-box-color: func [
 ]
 
 OS-text-box-background: func [
-	dc		[handle!]
+	target	[handle!]
 	layout	[handle!]
 	pos		[integer!]
 	len		[integer!]
 	color	[integer!]
 	/local
 		this	[this!]
-		rt		[ID2D1HwndRenderTarget]
+		rt		[render-target!]
+		dc		[ID2D1DeviceContext]
 		cache	[red-vector!]
 		brush	[integer!]
 ][
-	cache: as red-vector! dc/4
+	cache: as red-vector! target/4
 	if null? cache [
 		cache: vector/make-at ALLOC_TAIL(root) 128 TYPE_INTEGER 4
-		dc/4: as-integer cache
+		target/4: as-integer cache
 	]
-	brush: select-brush dc + 1 color
+	brush: select-brush target + 1 color
 	if zero? brush [
-		this: as this! dc/value
-		rt: as ID2D1HwndRenderTarget this/vtbl
-		rt/CreateSolidColorBrush this to-dx-color color null null :brush
-		put-brush dc + 1 color brush
+		rt: as render-target! target/value
+		this: rt/dc
+		dc: as ID2D1DeviceContext this/vtbl
+		dc/CreateSolidColorBrush this to-dx-color color null null :brush
+		put-brush target + 1 color brush
 	]
 	vector/rs-append-int cache pos
 	vector/rs-append-int cache len
@@ -370,7 +374,7 @@ txt-box-draw-background: func [
 	layout	[this!]
 	/local
 		this		[this!]
-		rt			[ID2D1HwndRenderTarget]
+		dc			[ID2D1DeviceContext]
 		styles		[red-vector!]
 		line-cnt	[integer!]
 		dl			[IDWriteTextLayout]
@@ -393,8 +397,8 @@ txt-box-draw-background: func [
 		zero? vector/rs-length? styles
 	][exit]
 
-	this: as this! target/value
-	rt: as ID2D1HwndRenderTarget this/vtbl
+	this: d2d-ctx
+	dc: as ID2D1DeviceContext this/vtbl
 	dl: as IDWriteTextLayout layout/vtbl
 
 	line-cnt: 0
@@ -426,7 +430,7 @@ txt-box-draw-background: func [
 			rc/bottom: as float32! top + height
 			rc/top: as float32! top
 			rc/left: as float32! left
-			rt/FillRectangle this rc p/3
+			dc/FillRectangle this rc p/3
 			hit: hit + 1
 		]
 		p: p + 3

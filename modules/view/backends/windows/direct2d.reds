@@ -1053,6 +1053,7 @@ GetUserDefaultLocaleName!: alias function! [
 ]
 
 render-target!: alias struct! [
+	dc				[this!]
 	bitmap			[this!]
 	swapchain		[this!]
 	dcomp-device	[this!]
@@ -1331,6 +1332,7 @@ create-render-target: func [
 	assert hr = 0
 	
 	rt: as render-target! allocate size? render-target!
+	rt/dc: d2d-ctx
 	rt/swapchain: as this! int
 	rt/bitmap: as this! bmp
 
@@ -1376,9 +1378,10 @@ d2d-release-target: func [
 		COM_SAFE_RELEASE_OBJ(obj brushes/2)
 		brushes: brushes + 2
 	]
-	this: as this! target/value
-	rt: as ID2D1HwndRenderTarget this/vtbl
-	rt/Release this
+	;TBD
+	;this: as this! target/value
+	;rt: as ID2D1HwndRenderTarget this/vtbl
+	;rt/Release this
 	free as byte-ptr! target
 ]
 

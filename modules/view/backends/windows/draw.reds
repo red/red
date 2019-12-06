@@ -17,6 +17,10 @@ draw-state!: alias struct! [unused [integer!]]
 draw-begin: func [
 	ctx			[draw-ctx!]
 	hWnd		[handle!]
+	img			[red-image!]
+	on-graphic? [logic!]
+	paint?		[logic!]
+	return: 	[draw-ctx!]
 	/local
 		this	[this!]
 		dc		[ID2D1DeviceContext]
@@ -83,6 +87,7 @@ draw-begin: func [
 		pos/x: 0 pos/y: 0
 		OS-draw-text ctx pos as red-string! get-face-obj hWnd yes
 	]
+	ctx
 ]
 
 release-d2d: func [
@@ -97,8 +102,11 @@ release-d2d: func [
 ]
 
 draw-end: func [
-	ctx		[draw-ctx!]
-	hWnd	[handle!]
+	ctx			[draw-ctx!]
+	hWnd		[handle!]
+	on-graphic? [logic!]
+	cache?		[logic!]
+	paint?		[logic!]
 	/local
 		this	[this!]
 		dc		[ID2D1DeviceContext]
@@ -159,12 +167,12 @@ OS-draw-text: func [
 	return:	[logic!]
 	/local
 		this	[this!]
-		rt		[ID2D1HwndRenderTarget]
+		dc		[ID2D1DeviceContext]
 		layout	[this!]
 		fmt		[this!]
 ][
 	this: as this! ctx/dc
-	rt: as ID2D1HwndRenderTarget this/vtbl
+	dc: as ID2D1DeviceContext this/vtbl
 
 	layout: either TYPE_OF(text) = TYPE_OBJECT [				;-- text-box!
 		OS-text-box-layout as red-object! text ctx/brushes 0 yes
@@ -173,7 +181,7 @@ OS-draw-text: func [
 		create-text-layout text fmt 0 0
 	]
 	txt-box-draw-background ctx/brushes pos layout
-	rt/DrawTextLayout this as float32! pos/x as float32! pos/y layout ctx/pen 0
+	dc/DrawTextLayout this as float32! pos/x as float32! pos/y layout ctx/pen 0
 	true
 ]
 
