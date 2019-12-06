@@ -47,6 +47,7 @@
 	red/stack/set-last
 
 	red/interpreter/eval-path
+	red/lexer/scan
 
 	red/none/push-last
 
@@ -373,6 +374,7 @@
 	red/natives/compress*
 	red/natives/decompress*
 	red/natives/recycle*
+	red/natives/transcode*
 ][
 	red/object/path-parent	cell!
 	red/object/field-parent	cell!
