@@ -191,6 +191,30 @@ OS-image: context [
 		GetPixelFormat				[function! [this [this!] pPixelFormat [int-ptr!] return: [integer!]]]
 	]
 
+	IWICBitmapScaler: alias struct! [
+		QueryInterface				[QueryInterface!]
+		AddRef						[AddRef!]
+		Release						[Release!]
+		GetSize						[function! [this [this!] pWidth [int-ptr!] pHeight [int-ptr!] return: [integer!]]]
+		GetPixelFormat				[function! [this [this!] pPixelFormat [int-ptr!] return: [integer!]]]
+		GetResolution				[function! [this [this!] pX [float-ptr!] pY [float-ptr!] return: [integer!]]]
+		CopyPalette					[function! [this [this!] pIPalette [int-ptr!] return: [integer!]]]
+		CopyPixels					[function! [this [this!] prc [int-ptr!] stride [integer!] size [integer!] buffer [byte-ptr!] return: [integer!]]]
+		Initialize					[function! [this [this!] pISource [int-ptr!] w [integer!] h [integer!] mode [integer!] return: [integer!]]]
+	]
+
+	IWICBitmapClipper: alias struct! [
+		QueryInterface				[QueryInterface!]
+		AddRef						[AddRef!]
+		Release						[Release!]
+		GetSize						[function! [this [this!] pWidth [int-ptr!] pHeight [int-ptr!] return: [integer!]]]
+		GetPixelFormat				[function! [this [this!] pPixelFormat [int-ptr!] return: [integer!]]]
+		GetResolution				[function! [this [this!] pX [float-ptr!] pY [float-ptr!] return: [integer!]]]
+		CopyPalette					[function! [this [this!] pIPalette [int-ptr!] return: [integer!]]]
+		CopyPixels					[function! [this [this!] prc [int-ptr!] stride [integer!] size [integer!] buffer [byte-ptr!] return: [integer!]]]
+		Initialize					[function! [this [this!] pISource [int-ptr!] rec [RECT!] return: [integer!]]]
+	]
+
 	init: func [
 		/local
 			CLSID_WICImagingFactory	[tagGUID value]
@@ -327,23 +351,109 @@ OS-image: context [
 		bitmap		[node!]
 		index		[integer!]				;-- zero-based
 		return:		[integer!]
-	][0]
+		/local
+			this	[this!]
+			IB		[IWICBitmap]
+			w		[integer!]
+			h		[integer!]
+			rect	[RECT! value]
+			ilock	[interface! value]
+			lthis	[this!]
+			lock	[IWICBitmapLock]
+			size	[integer!]
+			data	[integer!]
+			scan0	[int-ptr!]
+			ret		[integer!]
+	][
+		this: as this! bitmap
+		IB: as IWICBitmap this/vtbl
+		w: 0 h: 0
+		IB/GetSize this :w :h
+		rect/x: 0 rect/y: 0 rect/w: w rect/h: h
+		IB/Lock this rect WICBitmapLockRead :ilock
+		lthis: as this! ilock/ptr
+		lock: as IWICBitmapLock lthis/vtbl
+		size: 0 data: 0
+		lock/GetDataPointer lthis :size :data
+		scan0: as int-ptr! data
+		scan0: scan0 + index
+		ret: scan0/1
+		lock/Release lthis
+		ret
+	]
 
 	set-pixel: func [
 		bitmap		[node!]
 		index		[integer!]				;-- zero-based
 		color		[integer!]
 		return:		[integer!]
-	][0]
+		/local
+			this	[this!]
+			IB		[IWICBitmap]
+			w		[integer!]
+			h		[integer!]
+			rect	[RECT! value]
+			ilock	[interface! value]
+			lthis	[this!]
+			lock	[IWICBitmapLock]
+			size	[integer!]
+			data	[integer!]
+			scan0	[int-ptr!]
+	][
+		this: as this! bitmap
+		IB: as IWICBitmap this/vtbl
+		w: 0 h: 0
+		IB/GetSize this :w :h
+		rect/x: 0 rect/y: 0 rect/w: w rect/h: h
+		IB/Lock this rect WICBitmapLockRead :ilock
+		lthis: as this! ilock/ptr
+		lock: as IWICBitmapLock lthis/vtbl
+		size: 0 data: 0
+		lock/GetDataPointer lthis :size :data
+		scan0: as int-ptr! data
+		scan0: scan0 + index
+		scan0/1: color
+		lock/Release lthis
+		0
+	]
 
-	delete: func [img [red-image!]][]
+	delete: func [
+		img			[red-image!]
+		/local
+			this	[this!]
+			IB		[IWICBitmap]
+	][
+		this: as this! img/node
+		IB: as IWICBitmap this/vtbl
+		IB/Release this
+	]
 
 	resize: func [
-		img		[red-image!]
-		width	[integer!]
-		height	[integer!]
-		return: [integer!]
-	][0]
+		img			[red-image!]
+		width		[integer!]
+		height		[integer!]
+		return:		[integer!]
+		/local
+			this	[this!]
+			IB		[IWICBitmap]
+			IFAC	[IWICImagingFactory]
+			iscale	[interface! value]
+			sthis	[this!]
+			scale	[IWICBitmapScaler]
+			bitmap	[interface! value]
+	][
+		this: as this! img/node
+		IB: as IWICBitmap this/vtbl
+		if null? wic-factory [init]
+		IFAC: as IWICImagingFactory wic-factory/vtbl
+		IFAC/CreateBitmapScaler wic-factory :iscale
+		sthis: as this! iscale/ptr
+		scale: as IWICBitmapScaler sthis/vtbl
+		scale/Initialize sthis as int-ptr! this width height 0		;-- NearestNeighbor
+		IFAC/CreateBitmapFromSource wic-factory as int-ptr! sthis 0 :bitmap
+		scale/Release sthis
+		as integer! bitmap/ptr
+	]
 
 	load-image: func [
 		src			[red-string!]
@@ -470,11 +580,95 @@ OS-image: context [
 	][null]
 
 	clone: func [
-		src		[red-image!]
-		dst		[red-image!]
-		part	[integer!]
-		size	[red-pair!]
-		part?	[logic!]
-		return: [red-image!]
-	][null]
+		src			[red-image!]
+		dst			[red-image!]
+		part		[integer!]
+		size		[red-pair!]
+		part?		[logic!]
+		return:		[red-image!]
+		/local
+			width	[integer!]
+			height	[integer!]
+			offset	[integer!]
+			this	[this!]
+			IB		[IWICBitmap]
+			IFAC	[IWICImagingFactory]
+			bitmap	[interface! value]
+			x		[integer!]
+			y		[integer!]
+			w		[integer!]
+			h		[integer!]
+			handle	[node!]
+			iclip	[interface! value]
+			cthis	[this!]
+			clip	[IWICBitmapClipper]
+			rect	[RECT! value]
+	][
+		width: IMAGE_WIDTH(src/size)
+		height: IMAGE_HEIGHT(src/size)
+
+		if any [
+			width <= 0
+			height <= 0
+		][
+			dst/size: 0
+			dst/header: TYPE_IMAGE
+			dst/head: 0
+			dst/node: as node! 0
+			return dst
+		]
+
+		offset: src/head
+		this: as this! src/node
+		IB: as IWICBitmap this/vtbl
+		if null? wic-factory [init]
+		IFAC: as IWICImagingFactory wic-factory/vtbl
+		if all [zero? offset not part?][
+			IFAC/CreateBitmapFromSource wic-factory as int-ptr! this 0 :bitmap
+			dst/size: src/size
+			dst/header: TYPE_IMAGE
+			dst/head: 0
+			dst/node: as node! bitmap/ptr
+			return dst
+		]
+
+		x: offset % width
+		y: offset / width
+		either all [part? TYPE_OF(size) = TYPE_PAIR][
+			w: width - x
+			h: height - y
+			if size/x < w [w: size/x]
+			if size/y < h [h: size/y]
+		][
+			either zero? part [
+				w: 0 h: 0
+			][
+				either part < width [h: 1 w: part][
+					h: part / width
+					w: width
+				]
+			]
+		]
+		either any [
+			w <= 0
+			h <= 0
+		][
+			dst/size: 0
+			dst/node: null
+		][
+			IFAC/CreateBitmapClipper wic-factory :iclip
+			cthis: as this! iclip/ptr
+			clip: as IWICBitmapClipper cthis/vtbl
+			rect/x: x rect/y: y
+			rect/w: w rect/h: h
+			clip/Initialize cthis as int-ptr! this rect
+			IFAC/CreateBitmapFromSource wic-factory as int-ptr! cthis 0 :bitmap
+			clip/Release cthis
+			dst/node: as node! bitmap/ptr
+			dst/size: h << 16 or w
+		]
+		dst/header: TYPE_IMAGE
+		dst/head: 0
+		dst
+	]
 ]
