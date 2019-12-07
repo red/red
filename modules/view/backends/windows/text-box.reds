@@ -38,7 +38,7 @@ OS-text-box-color: func [
 ][
 	brush: select-brush target + 1 color
 	if zero? brush [
-		rt: as render-target! target/value
+		rt: as render-target! target
 		this: rt/dc
 		dc: as ID2D1DeviceContext this/vtbl
 		dc/CreateSolidColorBrush this to-dx-color color null null :brush
@@ -63,14 +63,14 @@ OS-text-box-background: func [
 		cache	[red-vector!]
 		brush	[integer!]
 ][
-	cache: as red-vector! target/4
+	rt: as render-target! target
+	cache: rt/styles
 	if null? cache [
 		cache: vector/make-at ALLOC_TAIL(root) 128 TYPE_INTEGER 4
-		target/4: as-integer cache
+		rt/styles: cache
 	]
 	brush: select-brush target + 1 color
 	if zero? brush [
-		rt: as render-target! target/value
 		this: rt/dc
 		dc: as ID2D1DeviceContext this/vtbl
 		dc/CreateSolidColorBrush this to-dx-color color null null :brush
@@ -284,7 +284,7 @@ OS-text-box-metrics: func [
 
 OS-text-box-layout: func [
 	box		[red-object!]
-	target	[int-ptr!]
+	target	[render-target!]
 	ft-clr	[integer!]
 	catch?	[logic!]
 	return: [this!]
@@ -319,7 +319,7 @@ OS-text-box-layout: func [
 			]
 			hWnd: hidden-hwnd
 		]
-		target: as int-ptr! get-hwnd-render-target hWnd
+		target: get-hwnd-render-target hWnd
 	]
 
 	either TYPE_OF(state) = TYPE_BLOCK [
@@ -339,7 +339,7 @@ OS-text-box-layout: func [
 	]
 
 	handle/make-at pval + 1 as-integer target
-	vec: as red-vector! target/4
+	vec: target/styles
 	if vec <> null [vector/rs-clear vec]
 
 	set-text-format fmt as red-object! values + FACE_OBJ_PARA
@@ -363,7 +363,7 @@ OS-text-box-layout: func [
 		TYPE_OF(styles) = TYPE_BLOCK
 		1 < block/rs-length? styles
 	][
-		parse-text-styles target as handle! layout styles 7FFFFFFFh catch?
+		parse-text-styles as int-ptr! target as handle! layout styles 7FFFFFFFh catch?
 	]
 	layout
 ]

@@ -255,40 +255,65 @@ Red/System [
 		pattern-image-pen		[integer!]
 	]
 
-	draw-ctx!: alias struct! [
-		dc				[int-ptr!]								;-- OS drawing object
-		hwnd			[int-ptr!]								;-- Window's handle
-		pen				[integer!]
-		brush			[integer!]
-		pen-join		[integer!]
-		pen-cap			[integer!]
-		pen-width		[float32!]
-		pen-style		[integer!]
-		pen-color		[integer!]								;-- 00bbggrr format
-		brush-color		[integer!]								;-- 00bbggrr format
-		font-color		[integer!]
-		bitmap			[int-ptr!]
-		brushes			[int-ptr!]
-		graphics		[integer!]								;-- gdiplus graphics
-		gp-state		[integer!]
-		gp-pen			[integer!]								;-- gdiplus pen
-		gp-pen-type 	[brush-type!]							;-- gdiplus pen type (for texture, another set of transformation functions must be applied)
-		gp-pen-saved	[integer!]
-		gp-brush		[integer!]								;-- gdiplus brush
-		gp-brush-type 	[brush-type!]							;-- gdiplus brush type (for texture, another set of transformation functions must be applied)
-		gp-font			[integer!]								;-- gdiplus font
-		gp-font-brush	[integer!]
-		gp-matrix		[integer!]
-		gp-path			[integer!]
-		image-attr		[integer!]								;-- gdiplus image attributes
-		scale-ratio		[float32!]
-		pen?			[logic!]
-		brush?			[logic!]
-		on-image?		[logic!]								;-- drawing on image?
-		alpha-pen?		[logic!]
-		alpha-brush?	[logic!]
-		font-color?		[logic!]
-		other 			[other!]
+	#either legacy = none [
+		draw-ctx!: alias struct! [
+			dc				[ptr-ptr!]
+			target			[int-ptr!]
+			hwnd			[int-ptr!]			;-- Window's handle
+			pen				[integer!]
+			brush			[integer!]
+			pen-join		[integer!]
+			pen-cap			[integer!]
+			pen-width		[float32!]
+			pen-style		[integer!]
+			pen-color		[integer!]
+			brush-color		[integer!]
+			font-color		[integer!]
+			bitmap			[int-ptr!]
+			scale-ratio		[float32!]
+			pen?			[logic!]
+			brush?			[logic!]
+			on-image?		[logic!]			;-- drawing on image?
+			alpha-pen?		[logic!]
+			alpha-brush?	[logic!]
+			font-color?		[logic!]
+		]
+	][
+		draw-ctx!: alias struct! [
+			dc				[int-ptr!]			;-- OS drawing object
+			hwnd			[int-ptr!]			;-- Window's handle
+			pen				[integer!]
+			brush			[integer!]
+			pen-join		[integer!]
+			pen-cap			[integer!]
+			pen-width		[float32!]
+			pen-style		[integer!]
+			pen-color		[integer!]			;-- 00bbggrr format
+			brush-color		[integer!]			;-- 00bbggrr format
+			font-color		[integer!]
+			bitmap			[int-ptr!]
+			brushes			[int-ptr!]
+			graphics		[integer!]			;-- gdiplus graphics
+			gp-state		[integer!]
+			gp-pen			[integer!]			;-- gdiplus pen
+			gp-pen-type 	[brush-type!]		;-- gdiplus pen type (for texture, another set of transformation functions must be applied)
+			gp-pen-saved	[integer!]
+			gp-brush		[integer!]			;-- gdiplus brush
+			gp-brush-type 	[brush-type!]		;-- gdiplus brush type (for texture, another set of transformation functions must be applied)
+			gp-font			[integer!]			;-- gdiplus font
+			gp-font-brush	[integer!]
+			gp-matrix		[integer!]
+			gp-path			[integer!]
+			image-attr		[integer!]			;-- gdiplus image attributes
+			scale-ratio		[float32!]
+			pen?			[logic!]
+			brush?			[logic!]
+			on-image?		[logic!]			;-- drawing on image?
+			alpha-pen?		[logic!]
+			alpha-brush?	[logic!]
+			font-color?		[logic!]
+			other 			[other!]
+		]
 	]
 ][
 	#define O_RDONLY	0

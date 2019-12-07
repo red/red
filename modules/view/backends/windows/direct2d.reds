@@ -1054,6 +1054,9 @@ GetUserDefaultLocaleName!: alias function! [
 
 render-target!: alias struct! [
 	dc				[this!]
+	brushes			[int-ptr!]
+	brushes-cnt		[uint!]
+	styles			[red-vector!]
 	bitmap			[this!]
 	swapchain		[this!]
 	dcomp-device	[this!]
@@ -1273,9 +1276,8 @@ create-dcomp: func [
 
 create-render-target: func [
 	hWnd		[handle!]
-	return:		[render-target!]
+	rt			[render-target!]
 	/local
-		rt		[render-target!]
 		rc		[RECT_STRUCT value]
 		desc	[DXGI_SWAP_CHAIN_DESC1 value]
 		dxgi	[IDXGIFactory2]
@@ -1331,7 +1333,6 @@ create-render-target: func [
 	hr: d2d/CreateBitmapFromDxgiSurface d2d-ctx as int-ptr! buf props :bmp
 	assert hr = 0
 	
-	rt: as render-target! allocate size? render-target!
 	rt/dc: d2d-ctx
 	rt/swapchain: as this! int
 	rt/bitmap: as this! bmp
@@ -1424,22 +1425,16 @@ create-hwnd-render-target: func [
 
 get-hwnd-render-target: func [
 	hWnd	[handle!]
-	return:	[ptr-ptr!]
+	return:	[render-target!]
 	/local
-		target	[ptr-ptr!]
-		pp		[ptr-ptr!]
+		target	[render-target!]
 ][
-	target: as ptr-ptr! GetWindowLong hWnd wc-offset - 24
+	target: as render-target! GetWindowLong hWnd wc-offset - 24
 	if null? target [
-		pp: as ptr-ptr! allocate 4 * size? int-ptr!
-		target: pp
-		pp/value: as int-ptr! create-render-target hWnd
-		pp: pp + 1
-		pp/value: as int-ptr! allocate D2D_MAX_BRUSHES * 2 * size? int-ptr!
-		pp: pp + 1
-		pp/value: null
-		pp: pp + 1
-		pp/value: null		;-- for text-box! background color
+		target: as render-target! allocate size? render-target!
+		zero-memory as byte-ptr! target size? render-target!
+		create-render-target hWnd target
+		target/brushes: as int-ptr! allocate D2D_MAX_BRUSHES * 2 * size? int-ptr!
 		SetWindowLong hWnd wc-offset - 24 as-integer target
 	]
 	target
@@ -1712,7 +1707,7 @@ draw-text-d2d: func [
 
 	this: create-dc-render-target dc rc
 	rt: as ID2D1DCRenderTarget this/vtbl
-	rt/SetTextAntialiasMode this 1					;-- ClearType
+	;rt/SetTextAntialiasMode this 1					;-- ClearType
 
 	rt/BeginDraw this
 	_11: 0 _12: 0 _21: 0 _22: 0 _31: 0 _32: 0
