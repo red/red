@@ -33,7 +33,7 @@ draw-begin: func [
 		m		[D2D_MATRIX_3X2_F]
 		bg-clr	[integer!]
 		brush	[integer!]
-		target	[ptr-ptr!]
+		target	[render-target!]
 		brushes [int-ptr!]
 		pbrush	[ID2D1SolidColorBrush]
 		d3d-clr [D3DCOLORVALUE]
@@ -41,7 +41,6 @@ draw-begin: func [
 		clr		[red-tuple!]
 		text	[red-string!]
 		pos		[red-pair! value]
-		render	[render-target!]
 ][
 	zero-memory as byte-ptr! ctx size? draw-ctx!
 	ctx/pen-width:	as float32! 1.0
@@ -49,15 +48,14 @@ draw-begin: func [
 	ctx/hwnd:		hWnd
 	ctx/font-color:	-1
 
-	target: get-hwnd-render-target hWnd
-	ctx/dc: as int-ptr! d2d-ctx
-	ctx/brushes: as int-ptr! target
-
 	this: d2d-ctx
-	render: as render-target! target/value
+	target: get-hwnd-render-target hWnd
+	ctx/dc: as ptr-ptr! this
+	ctx/target: as int-ptr! target
+
 	dc: as ID2D1DeviceContext this/vtbl
-	dc/SetTextAntialiasMode this 1				;-- ClearType
-	dc/SetTarget this render/bitmap
+	;dc/SetTextAntialiasMode this 1				;-- ClearType
+	dc/SetTarget this target/bitmap
 
 	dc/BeginDraw this
 	_11: 0 _12: 0 _21: 0 _22: 0 _31: 0 _32: 0
@@ -114,12 +112,12 @@ draw-end: func [
 		rt		[render-target!]
 		hr		[integer!]
 ][
-	this: as this! ctx/dc
+	rt: as render-target! ctx/target
+	this: rt/dc
 	dc: as ID2D1DeviceContext this/vtbl
 	hr: dc/EndDraw this null null
 	dc/SetTarget this null
 
-	rt: as render-target! ctx/brushes/value
 	this: rt/swapchain
 	sc: as IDXGISwapChain1 this/vtbl
 	sc/Present this 0 0
@@ -129,7 +127,7 @@ draw-end: func [
 	switch hr [
 		COM_S_OK [ValidateRect hWnd null]
 		D2DERR_RECREATE_TARGET [
-			d2d-release-target as ptr-ptr! ctx/brushes
+			d2d-release-target as ptr-ptr! rt
 			ctx/dc: null
 			SetWindowLong hWnd wc-offset - 24 0
 			InvalidateRect hWnd null 0
@@ -175,12 +173,12 @@ OS-draw-text: func [
 	dc: as ID2D1DeviceContext this/vtbl
 
 	layout: either TYPE_OF(text) = TYPE_OBJECT [				;-- text-box!
-		OS-text-box-layout as red-object! text ctx/brushes 0 yes
+		OS-text-box-layout as red-object! text as render-target! ctx/target 0 yes
 	][
 		fmt: as this! create-text-format as red-object! text null
 		create-text-layout text fmt 0 0
 	]
-	txt-box-draw-background ctx/brushes pos layout
+	txt-box-draw-background ctx/target pos layout
 	dc/DrawTextLayout this as float32! pos/x as float32! pos/y layout ctx/pen 0
 	true
 ]
