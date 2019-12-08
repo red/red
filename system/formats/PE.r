@@ -677,7 +677,7 @@ context [
 		code-refs: make block! 1000
 		data-refs: make block! 100
 		foreach [name spec] job/symbols [
-			either all [spec/1 = 'global block? spec/4][
+			either all [find [global native] spec/1 block? spec/4][
 				foreach ref spec/4 [append data-refs ref]
 			][
 				foreach ref spec/3 [append code-refs ref]
