@@ -466,11 +466,12 @@ BaseWndProc: func [
 			][
 				target: as ptr-ptr! GetWindowLong hWnd wc-offset - 24
 				if target <> null [
-					this: as this! target/value
-					rt: as ID2D1HwndRenderTarget this/vtbl
-					w: WIN32_LOWORD(lParam)
-					flags: WIN32_HIWORD(lParam)
-					rt/Resize this as tagSIZE :w
+					;TBD resize
+					;this: as this! target/value
+					;rt: as ID2D1HwndRenderTarget this/vtbl
+					;w: WIN32_LOWORD(lParam)
+					;flags: WIN32_HIWORD(lParam)
+					;rt/Resize this as tagSIZE :w
 					InvalidateRect hWnd null 1
 				]
 			]

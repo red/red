@@ -88,13 +88,12 @@ draw-begin: func [
 	ctx
 ]
 
-release-d2d: func [
-	ctx		[draw-ctx!]
+release-ctx: func [
+	ctx			[draw-ctx!]
 	/local
 		IUnk [IUnknown]
 		this [this!]
 ][
-	;;TBD release all brushes when D2DERR_RECREATE_TARGET or exit the process
 	COM_SAFE_RELEASE_OBJ(IUnk ctx/pen)
 	COM_SAFE_RELEASE_OBJ(IUnk ctx/brush)
 ]
@@ -115,19 +114,19 @@ draw-end: func [
 	rt: as render-target! ctx/target
 	this: rt/dc
 	dc: as ID2D1DeviceContext this/vtbl
-	hr: dc/EndDraw this null null
+	dc/EndDraw this null null
 	dc/SetTarget this null
 
 	this: rt/swapchain
 	sc: as IDXGISwapChain1 this/vtbl
-	sc/Present this 0 0
-
-	release-d2d ctx
+	hr: sc/Present this 0 0
 
 	switch hr [
 		COM_S_OK [ValidateRect hWnd null]
-		D2DERR_RECREATE_TARGET [
-			d2d-release-target as ptr-ptr! rt
+		DXGI_ERROR_DEVICE_REMOVED
+		DXGI_ERROR_DEVICE_RESET [
+			release-ctx ctx
+			d2d-release-target rt
 			ctx/dc: null
 			SetWindowLong hWnd wc-offset - 24 0
 			InvalidateRect hWnd null 0
