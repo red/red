@@ -30,6 +30,8 @@ dwrite-str-cache: as node! 0
 #define D2D_MAX_BRUSHES 64
 
 #define D2DERR_RECREATE_TARGET 8899000Ch
+#define DXGI_ERROR_DEVICE_REMOVED 887A0005h
+#define DXGI_ERROR_DEVICE_RESET	887A0007h
 #define FLT_MAX	[as float32! 3.402823466e38]
 
 IID_IDXGISurface:		 [CAFCB56Ch 48896AC3h 239E47BFh EC60D2BBh]
@@ -1095,10 +1097,12 @@ put-brush: func [
 		cnt		[integer!]
 ][
 	cnt: target/2
-	brushes: (as int-ptr! target/1) + (cnt * 2)
-	brushes/1: color
-	brushes/2: brush
-	target/2: cnt + 1 % D2D_MAX_BRUSHES
+	if cnt < D2D_MAX_BRUSHES [
+		brushes: (as int-ptr! target/1) + (cnt * 2)
+		brushes/1: color
+		brushes/2: brush
+		target/2: cnt + 1
+	]
 ]
 
 DX-init: func [
@@ -1111,14 +1115,6 @@ DX-init: func [
 		D2D1CreateFactory	[D2D1CreateFactory!]
 		DWriteCreateFactory [DWriteCreateFactory!]
 		GetUserDefaultLocaleName [GetUserDefaultLocaleName!]
-		d2d					[ID2D1Factory]
-		d3d					[ID3D11Device]
-		d2d-dev				[ID2D1Device]
-		dxgi				[IDXGIDevice1]
-		adapter				[IDXGIAdapter]
-		ctx					[ptr-value!]
-		unk					[IUnknown]
-		d2d-device			[this!]
 ][
 	dll: LoadLibraryA "d2d1.dll"
 	if null? dll [winxp?: yes exit]
@@ -1131,12 +1127,40 @@ DX-init: func [
 	dw-locale-name: as c-string! allocate 85
 	GetUserDefaultLocaleName dw-locale-name 85
 
+	;-- create D2D factory
+	options: 0													;-- debugLevel
+	hr: D2D1CreateFactory 0 IID_ID2D1Factory1 :options :factory	;-- D2D1_FACTORY_TYPE_SINGLE_THREADED: 0
+	assert zero? hr
+	d2d-factory: as this! factory/value
+
+	;-- create DWrite factory
+	hr: DWriteCreateFactory 0 IID_IDWriteFactory :factory		;-- DWRITE_FACTORY_TYPE_SHARED: 0
+	assert zero? hr
+	dwrite-factory: as this! factory/value
+	str: string/rs-make-at ALLOC_TAIL(root) 1024
+	dwrite-str-cache: str/node
+
+	DX-create-dev
+]
+
+DX-create-dev: func [
+	/local
+		factory 			[ptr-value!]
+		d2d					[ID2D1Factory]
+		d3d					[ID3D11Device]
+		d2d-dev				[ID2D1Device]
+		dxgi				[IDXGIDevice1]
+		adapter				[IDXGIAdapter]
+		ctx					[ptr-value!]
+		unk					[IUnknown]
+		d2d-device			[this!]
+		hr					[integer!]
+		dll					[handle!]
+][
 	if win8+? [
 		dll: LoadLibraryA "dcomp.dll"
 		pfnDCompositionCreateDevice2: GetProcAddress dll "DCompositionCreateDevice2"
 	]
-
-	options: 0													;-- debugLevel
 
 	hr: D3D11CreateDevice
 		null
@@ -1159,10 +1183,6 @@ DX-init: func [
 	hr: d3d/QueryInterface d3d-device IID_IDXGIDevice1 as interface! :factory	
 	assert zero? hr
 	dxgi-device: as this! factory/value
-
-	hr: D2D1CreateFactory 0 IID_ID2D1Factory1 :options :factory	;-- D2D1_FACTORY_TYPE_SINGLE_THREADED: 0
-	assert zero? hr
-	d2d-factory: as this! factory/value
 
 	;-- get system DPI
 	d2d: as ID2D1Factory d2d-factory/vtbl
@@ -1195,15 +1215,19 @@ DX-init: func [
 	assert zero? hr
 	dxgi-factory: as this! factory/value
 
-	hr: DWriteCreateFactory 0 IID_IDWriteFactory :factory		;-- DWRITE_FACTORY_TYPE_SHARED: 0
-	assert zero? hr
-	dwrite-factory: as this! factory/value
-	str: string/rs-make-at ALLOC_TAIL(root) 1024
-	dwrite-str-cache: str/node
-
 	COM_SAFE_RELEASE(unk dxgi-device)
 	COM_SAFE_RELEASE(unk d2d-device)
-	COM_SAFE_RELEASE(unk dxgi-adapter)
+	COM_SAFE_RELEASE(unk dxgi-adapter)	
+]
+
+DX-release-dev: func [
+	/local
+		unk		[IUnknown]
+][
+	COM_SAFE_RELEASE(unk d2d-ctx)
+	COM_SAFE_RELEASE(unk d3d-ctx)
+	COM_SAFE_RELEASE(unk d3d-device)
+	COM_SAFE_RELEASE(unk dxgi-factory)
 ]
 
 DX-cleanup: func [/local unk [IUnknown]][
@@ -1362,27 +1386,26 @@ to-dx-color: func [
 ]
 
 d2d-release-target: func [
-	target	[ptr-ptr!]
+	target	[render-target!]
 	/local
 		rt		[ID2D1HwndRenderTarget]
 		brushes [int-ptr!]
 		cnt		[integer!]
 		this	[this!]
 		obj		[IUnknown]
-		pp		[ptr-ptr!]
 ][
-	pp: target + 1
-	brushes: pp/value
-	pp: target + 2
-	cnt: as-integer pp/value
+	brushes: target/brushes
+	cnt: target/brushes-cnt
+	target/brushes-cnt: 0
 	loop cnt [
 		COM_SAFE_RELEASE_OBJ(obj brushes/2)
 		brushes: brushes + 2
 	]
-	;TBD
-	;this: as this! target/value
-	;rt: as ID2D1HwndRenderTarget this/vtbl
-	;rt/Release this
+	COM_SAFE_RELEASE(obj target/bitmap)
+	COM_SAFE_RELEASE(obj target/swapchain)
+	COM_SAFE_RELEASE(obj target/dcomp-visual)
+	COM_SAFE_RELEASE(obj target/dcomp-target)
+	COM_SAFE_RELEASE(obj target/dcomp-device)
 	free as byte-ptr! target
 ]
 
@@ -1431,8 +1454,7 @@ get-hwnd-render-target: func [
 ][
 	target: as render-target! GetWindowLong hWnd wc-offset - 24
 	if null? target [
-		target: as render-target! allocate size? render-target!
-		zero-memory as byte-ptr! target size? render-target!
+		target: as render-target! alloc0 size? render-target!
 		create-render-target hWnd target
 		target/brushes: as int-ptr! allocate D2D_MAX_BRUSHES * 2 * size? int-ptr!
 		SetWindowLong hWnd wc-offset - 24 as-integer target
