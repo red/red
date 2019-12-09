@@ -335,32 +335,32 @@ IDXGISwapChain1: alias struct! [
 	QueryInterface					[QueryInterface!]
 	AddRef							[AddRef!]
 	Release							[Release!]
-	SetPrivateData					[integer!]
-	SetPrivateDataInterface			[integer!]
-	GetPrivateData					[integer!]
+	SetPrivateData					[int-ptr!]
+	SetPrivateDataInterface			[int-ptr!]
+	GetPrivateData					[int-ptr!]
 	GetParent						[function! [this [this!] riid [int-ptr!] parent [int-ptr!] return: [integer!]]]
 	GetDevice						[function! [this [this!] riid [int-ptr!] device [int-ptr!] return: [integer!]]]
 	Present							[function! [this [this!] SyncInterval [integer!] PresentFlags [integer!] return: [integer!]]]
 	GetBuffer						[function! [this [this!] idx [integer!] riid [int-ptr!] buffer [int-ptr!] return: [integer!]]]
-	SetFullscreenState				[integer!]
-	GetFullscreenState				[integer!]
-	GetDesc							[integer!]
-	ResizeBuffers					[integer!]
-	ResizeTarget					[integer!]
-	GetContainingOutput				[integer!]
-	GetFrameStatistics				[integer!]
-	GetLastPresentCount				[integer!]
-	GetDesc1						[integer!]
-	GetFullscreenDesc				[integer!]
-	GetHwnd							[integer!]
-	GetCoreWindow					[integer!]
+	SetFullscreenState				[int-ptr!]
+	GetFullscreenState				[int-ptr!]
+	GetDesc							[int-ptr!]
+	ResizeBuffers					[function! [this [this!] count [uint!] width [uint!] height [uint!] format [integer!] flags [uint!] return: [integer!]]]
+	ResizeTarget					[int-ptr!]
+	GetContainingOutput				[int-ptr!]
+	GetFrameStatistics				[int-ptr!]
+	GetLastPresentCount				[int-ptr!]
+	GetDesc1						[int-ptr!]
+	GetFullscreenDesc				[int-ptr!]
+	GetHwnd							[int-ptr!]
+	GetCoreWindow					[int-ptr!]
 	Present1						[function! [this [this!] SyncInterval [integer!] PresentFlags [integer!] pPresentParameters [DXGI_PRESENT_PARAMETERS] return: [integer!]]]
-	IsTemporaryMonoSupported		[integer!]
-	GetRestrictToOutput				[integer!]
-	SetBackgroundColor				[integer!]
-	GetBackgroundColor				[integer!]
-	SetRotation						[integer!]
-	GetRotation						[integer!]
+	IsTemporaryMonoSupported		[int-ptr!]
+	GetRestrictToOutput				[int-ptr!]
+	SetBackgroundColor				[int-ptr!]
+	GetBackgroundColor				[int-ptr!]
+	SetRotation						[int-ptr!]
+	GetRotation						[int-ptr!]
 ]
 
 IDCompositionDevice: alias struct! [
@@ -417,7 +417,6 @@ IDCompositionVisual: alias struct! [
 	SetCompositeMode				[integer!]
 
 ]
-
 
 IDCompositionTarget: alias struct! [
 	QueryInterface					[QueryInterface!]
@@ -1143,6 +1142,66 @@ DX-init: func [
 	DX-create-dev
 ]
 
+DX-create-buffer: func [
+	rt			[render-target!]
+	swapchain	[this!]
+	/local
+		sc		[IDXGISwapChain1]
+		this	[this!]
+		hr		[integer!]
+		buf		[integer!]
+		props	[D2D1_BITMAP_PROPERTIES1 value]
+		bmp		[integer!]
+		d2d		[ID2D1DeviceContext]
+		unk		[IUnknown]
+][
+	;-- get back buffer from the swap chain
+	this: as this! swapchain
+	sc: as IDXGISwapChain1 this/vtbl
+	buf: 0
+	hr: sc/GetBuffer this 0 IID_IDXGISurface :buf
+	assert zero? hr
+
+	;-- create a bitmap from the buffer
+	props/format: 87		;-- DXGI_FORMAT_B8G8R8A8_UNORM
+	props/alphaMode: 1		;-- D2D1_ALPHA_MODE_PREMULTIPLIED
+	props/dpiX: dpi-x
+	props/dpiY: dpi-y
+	props/options: 3		;-- D2D1_BITMAP_OPTIONS_TARGET or D2D1_BITMAP_OPTIONS_CANNOT_DRAW
+	props/colorContext: null
+	bmp: 0
+	d2d: as ID2D1DeviceContext d2d-ctx/vtbl
+	d2d/setDpi d2d-ctx dpi-x dpi-y
+	hr: d2d/CreateBitmapFromDxgiSurface d2d-ctx as int-ptr! buf props :bmp
+	assert hr = 0
+	
+	rt/dc: d2d-ctx
+	rt/swapchain: swapchain
+	rt/bitmap: as this! bmp
+
+	COM_SAFE_RELEASE_OBJ(unk buf)
+]
+
+DX-resize-buffer: func [
+	rt				[render-target!]
+	width			[uint!]
+	height			[uint!]
+	/local
+		unk			[IUnknown]
+		this		[this!]
+		sc			[IDXGISwapChain1]
+		hr			[integer!]
+][
+	COM_SAFE_RELEASE(unk rt/bitmap)
+
+	this: rt/swapchain
+	sc: as IDXGISwapChain1 this/vtbl
+	hr: sc/ResizeBuffers this 0 width height 87 0
+	if hr <> 0 [probe "resizing failed" exit]
+
+	DX-create-buffer rt this
+]
+
 DX-create-dev: func [
 	/local
 		factory 			[ptr-value!]
@@ -1253,7 +1312,6 @@ pixel-to-logical: func [
 create-dcomp: func [
 	target			[render-target!]
 	hWnd			[handle!]
-	d2d-dc			[ID2D1DeviceContext]
 	/local
 		dev			[integer!]
 		d2d-device	[this!]
@@ -1264,9 +1322,11 @@ create-dcomp: func [
 		this		[this!]
 		tg			[this!]
 		visual		[IDCompositionVisual]
+		d2d-dc		[ID2D1DeviceContext]
 		DCompositionCreateDevice2 [DCompositionCreateDevice2!]
 ][
 	dev: 0
+	d2d-dc: as ID2D1DeviceContext d2d-ctx/vtbl
 	d2d-dc/GetDevice d2d-ctx :dev
 	d2d-device: as this! dev
 	DCompositionCreateDevice2: as DCompositionCreateDevice2! pfnDCompositionCreateDevice2
@@ -1312,7 +1372,6 @@ create-render-target: func [
 		buf		[integer!]
 		props	[D2D1_BITMAP_PROPERTIES1 value]
 		bmp		[integer!]
-		d2d		[ID2D1DeviceContext]
 		unk		[IUnknown]
 ][
 	GetClientRect hWnd :rc
@@ -1338,31 +1397,9 @@ create-render-target: func [
 	]
 	assert zero? hr
 
-	;-- get back buffer from the swap chain
-	this: as this! int
-	sc: as IDXGISwapChain1 this/vtbl
-	hr: sc/GetBuffer this 0 IID_IDXGISurface :buf
-	assert zero? hr
+	DX-create-buffer rt as this! int
 
-	;-- create a bitmap from the buffer
-	props/format: 87		;-- DXGI_FORMAT_B8G8R8A8_UNORM
-	props/alphaMode: 1		;-- D2D1_ALPHA_MODE_PREMULTIPLIED
-	props/dpiX: dpi-x
-	props/dpiY: dpi-y
-	props/options: 3		;-- D2D1_BITMAP_OPTIONS_TARGET or D2D1_BITMAP_OPTIONS_CANNOT_DRAW
-	props/colorContext: null
-	bmp: 0
-	d2d: as ID2D1DeviceContext d2d-ctx/vtbl
-	d2d/setDpi d2d-ctx dpi-x dpi-y
-	hr: d2d/CreateBitmapFromDxgiSurface d2d-ctx as int-ptr! buf props :bmp
-	assert hr = 0
-	
-	rt/dc: d2d-ctx
-	rt/swapchain: as this! int
-	rt/bitmap: as this! bmp
-
-	COM_SAFE_RELEASE_OBJ(unk buf)
-	if win8+? [create-dcomp rt hWnd d2d]
+	if win8+? [create-dcomp rt hWnd]
 	rt
 ]
 

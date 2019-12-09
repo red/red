@@ -436,7 +436,7 @@ BaseWndProc: func [
 	lParam	[integer!]
 	return: [integer!]
 	/local
-		target	[ptr-ptr!]
+		target	[render-target!]
 		this	[this!]
 		rt		[ID2D1HwndRenderTarget]
 		flags	[integer!]
@@ -464,14 +464,9 @@ BaseWndProc: func [
 					update-base hWnd null null get-face-values hWnd
 				]
 			][
-				target: as ptr-ptr! GetWindowLong hWnd wc-offset - 24
+				target: as render-target! GetWindowLong hWnd wc-offset - 24
 				if target <> null [
-					;TBD resize
-					;this: as this! target/value
-					;rt: as ID2D1HwndRenderTarget this/vtbl
-					;w: WIN32_LOWORD(lParam)
-					;flags: WIN32_HIWORD(lParam)
-					;rt/Resize this as tagSIZE :w
+					DX-resize-buffer target WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
 					InvalidateRect hWnd null 1
 				]
 			]

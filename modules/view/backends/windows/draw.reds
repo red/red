@@ -129,6 +129,7 @@ draw-end: func [
 			d2d-release-target rt
 			ctx/dc: null
 			SetWindowLong hWnd wc-offset - 24 0
+			DX-create-dev
 			InvalidateRect hWnd null 0
 		]
 		default [
