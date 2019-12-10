@@ -139,8 +139,8 @@ gui-console-ctx: context [
 	show-caret: func [][unless caret/enabled? [caret/enabled?: yes]]
 
 	setup-faces: does [
-		console/pane: reduce [caret]
-		append win/pane reduce [console tips]
+		;console/pane: reduce [caret]
+		append win/pane reduce [console caret tips]
 		win/menu: [
 			"File" [
 				"Run..."			run-file
