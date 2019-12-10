@@ -925,7 +925,7 @@ make-profilable make target-class [
 	]
 	
 	emit-store: func [
-		name [word!] value [char! logic! integer! word! string! paren! tag! get-word! decimal! issue!]
+		name [word!] value [char! logic! integer! word! string! binary! paren! tag! get-word! decimal! issue!]
 		spec [block! none!]
 		/by-value slots [integer!]
 		/local store-dword type offset
@@ -1017,7 +1017,8 @@ make-profilable make target-class [
 				]
 			]
 			string!
-			paren! [
+			paren!
+			binary! [
 				either PIC? [
 					emit-variable name
 						#{A3}						;-- MOV [name], eax		; global
