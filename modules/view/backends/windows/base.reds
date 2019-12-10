@@ -130,9 +130,7 @@ render-base: func [
 
 	type: symbol/resolve w/symbol
 	if all [
-		group-box <> type
-		window <> type
-		panel <> type
+		type = base
 		render-text values hWnd hDC :rc null null
 	][
 		res: true
@@ -164,7 +162,9 @@ render-text: func [
 		GdipCreateFromHDC hDC :graphic
 		; GdipSetSmoothingMode graphic GDIPLUS_ANTIALIAS
 		; using GDI+ text rendering instead of GDI, see #2503 and #3465
+		scale-graphic graphic
 		update-base-text hWnd graphic hDC text font para rc/right - rc/left rc/bottom - rc/top bbox
+		GdipResetWorldTransform graphic
 		GdipDeleteGraphics graphic
 		res: true
 	]
@@ -718,6 +718,17 @@ transparent-base?: func [
 	][false][true]
 ]
 
+scale-graphic: func [
+	graphic		[integer!]
+	/local
+		ratio	[float32!]
+][
+	if dpi-factor <> 100 [
+		ratio: (as float32! dpi-factor) / (as float32! 100.0)
+		GdipScaleWorldTransform graphic ratio ratio GDIPLUS_MATRIX_PREPEND
+	]
+]
+
 update-base: func [
 	hWnd	[handle!]
 	parent	[handle!]
@@ -770,13 +781,14 @@ update-base: func [
 	hBitmap: CreateCompatibleBitmap hScreen width height
 	SelectObject hBackDC hBitmap
 	GdipCreateFromHDC hBackDC :graphic
-
+	scale-graphic graphic
 	if TYPE_OF(color) = TYPE_TUPLE [				;-- update background
 		update-base-background graphic color width height
 	]
 	GdipSetSmoothingMode graphic GDIPLUS_ANTIALIAS
 	update-base-image graphic img width height
 	update-base-text hWnd graphic hBackDC text font para width height null
+	GdipResetWorldTransform graphic
 	do-draw null as red-image! graphic cmds yes no no yes
 
 	ptSrc/x: 0

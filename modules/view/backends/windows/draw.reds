@@ -1626,14 +1626,14 @@ OS-draw-font: func [
 	]
 
 	SelectObject ctx/dc hFont
+	update-gdiplus-font ctx
 	ctx/font-color?: either TYPE_OF(color) = TYPE_TUPLE [
 		SetTextColor ctx/dc color/array1
-		if ctx/on-image? [update-gdiplus-font-color ctx color/array1]
+		update-gdiplus-font-color ctx color/array1
 		yes
 	][
 		no
 	]
-	if ctx/on-image? [update-gdiplus-font ctx]
 ]
 
 OS-draw-text: func [
