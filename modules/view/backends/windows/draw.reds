@@ -347,21 +347,21 @@ OS-draw-box: func [
 	lower		[red-pair!]
 	/local
 		this	[this!]
-		rt		[ID2D1HwndRenderTarget]
+		dc		[ID2D1DeviceContext]
 		rc		[RECT32! value]
 ][
 	this: as this! ctx/dc
-	rt: as ID2D1HwndRenderTarget this/vtbl
+	dc: as ID2D1DeviceContext this/vtbl
 
 	rc/right: as float32! lower/x
 	rc/bottom: as float32! lower/y
 	rc/left: as float32! upper/x
 	rc/top: as float32! upper/y
 	if ctx/brush? [
-		rt/FillRectangle this rc ctx/brush 
+		dc/FillRectangle this rc ctx/brush 
 	]
 	if ctx/pen? [
-		rt/DrawRectangle this rc ctx/pen ctx/pen-width ctx/pen-style
+		dc/DrawRectangle this rc ctx/pen ctx/pen-width ctx/pen-style
 	]
 ]
 
@@ -405,11 +405,11 @@ OS-draw-circle: func [
 	radius [red-integer!]
 	/local
 		this	[this!]
-		rt		[ID2D1HwndRenderTarget]
+		dc		[ID2D1DeviceContext]
 		ellipse [D2D1_ELLIPSE]
 ][
 	this: as this! ctx/dc
-	rt: as ID2D1HwndRenderTarget this/vtbl
+	dc: as ID2D1DeviceContext this/vtbl
 
 	ellipse: declare D2D1_ELLIPSE
 	ellipse/x: as float32! center/x
@@ -417,10 +417,10 @@ OS-draw-circle: func [
 	ellipse/radiusX: get-float32 radius
 	ellipse/radiusY: ellipse/radiusX
 	if ctx/brush? [
-		rt/FillEllipse this ellipse ctx/brush
+		dc/FillEllipse this ellipse ctx/brush
 	]
 	if ctx/pen? [
-		rt/DrawEllipse this ellipse ctx/pen ctx/pen-width ctx/pen-style
+		dc/DrawEllipse this ellipse ctx/pen ctx/pen-width ctx/pen-style
 	]
 ]
 
