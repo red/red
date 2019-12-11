@@ -14,6 +14,9 @@ Red/System [
 
 draw-state!: alias struct! [mat [handle!]]
 
+#define MAX_COLORS				256		;-- max number of colors for gradient
+
+
 free-pango-cairo-font: func [
 	dc		[draw-ctx!]
 ][
@@ -47,11 +50,15 @@ set-source-color: func [
 	cairo_set_source_rgba cr r g b a
 ]
 
-;; TODO: only used for rich-text that I think need much less than that
-;; certainly create
-init-draw-ctx: func [
-	ctx		[draw-ctx!]
-	cr		[handle!]
+draw-begin: func [
+	ctx			[draw-ctx!]
+	cr			[handle!]
+	img			[red-image!]
+	on-graphic?	[logic!]
+	pattern?	[logic!]
+	return:		[draw-ctx!]
+	/local
+		grad	[gradient!]
 ][
 	ctx/cr:				cr
 	ctx/pen-width:		1.0
@@ -63,26 +70,27 @@ init-draw-ctx: func [
 	ctx/font-color:		0
 	ctx/pen?:			yes
 	ctx/brush?:			no
-	ctx/grad-pen:		null
-	ctx/grad-brush:		null
+
+	grad: ctx/grad-pen
+	grad/on?: off
+	grad/matrix-on?: off
+	grad/count: 0
+	grad/offset-on?: off
+	grad/focal-on?: off
+	grad/pattern-on?: off
+
+	grad: ctx/grad-brush
+	grad/on?: off
+	grad/matrix-on?: off
+	grad/count: 0
+	grad/offset-on?: off
+	grad/focal-on?: off
+	grad/pattern-on?: off
 
 	ctx/font-attrs:		null
 	ctx/font-opts:		null
-]
-
-draw-begin: func [
-	ctx			[draw-ctx!]
-	cr			[handle!]
-	img			[red-image!]
-	on-graphic?	[logic!]
-	pattern?	[logic!]
-	return:		[draw-ctx!]
-][
-	;; DEBUG: print ["draw-begin : " on-graphic? " " pattern?  lf]
-	init-draw-ctx ctx cr
 
 	cairo_set_line_width cr 1.0
-	;; DEBUG: print ["draw-begin: set-source-color black" lf]
 	set-source-color cr 0
 	ctx
 ]
@@ -96,6 +104,25 @@ draw-end: func [
 ][
 	cairo_identity_matrix dc/cr
 	free-pango-cairo-font dc
+	if dc/grad-pen/on? [
+		free-gradient dc/grad-pen
+		dc/grad-pen/on?: off
+	]
+	if dc/grad-brush/on? [
+		free-gradient dc/grad-brush
+		dc/grad-brush/on?: off
+	]
+]
+
+free-gradient: func [
+	grad		[gradient!]
+][
+	grad/matrix-on?: off
+	if grad/pattern-on? [
+		cairo_pattern_destroy grad/pattern
+		grad/pattern-on?: off
+	]
+	free as byte-ptr! grad/colors
 ]
 
 do-draw-path: func [
@@ -106,10 +133,13 @@ do-draw-path: func [
 	cr: dc/cr
 	if dc/brush? [
 		cairo_save cr
-		either null? dc/grad-brush [
-			set-source-color cr dc/brush-color
+		either all [
+			dc/grad-brush/on?
+			dc/grad-brush/pattern-on?
 		][
-			cairo_set_source cr dc/grad-brush
+			cairo_set_source cr dc/grad-brush/pattern
+		][
+			set-source-color cr dc/brush-color
 		]
 		cairo_fill_preserve cr
 		cairo_restore cr
@@ -125,8 +155,11 @@ do-draw-pen: func [
 	cr: dc/cr
 	either dc/pen? [
 		cairo_save cr
-		unless null? dc/grad-pen [
-			cairo_set_source cr dc/grad-pen
+		if all [
+			dc/grad-pen/on?
+			dc/grad-pen/pattern-on?
+		][
+			cairo_set_source cr dc/grad-pen/pattern
 		]
 		cairo_stroke cr
 		cairo_restore cr
@@ -135,306 +168,498 @@ do-draw-pen: func [
 	]
 ]
 
-copy-gradiant-props: func [
-	grad		[handle!]
-	ngrad		[handle!]
+line-distance: func [
+	x1			[integer!]
+	y1			[integer!]
+	x2			[integer!]
+	y2			[integer!]
+	return:		[float32!]
 	/local
-		cnt		[integer!]
-		index	[integer!]
-		offset	[float!]
-		r		[float!]
-		g		[float!]
-		b		[float!]
-		a		[float!]
-		mode	[integer!]
-][
-	cnt: 0
-	cairo_pattern_get_color_stop_count grad :cnt
-	index: 0
-	loop cnt [
-		offset: 0.0 r: 0.0 g: 0.0 b: 0.0 a: 0.0
-		cairo_pattern_get_color_stop_rgba grad index
-			:offset :r :g :b :a
-		cairo_pattern_add_color_stop_rgba ngrad offset r g b a
-		index: index + 1
-	]
-	mode: cairo_pattern_get_extend grad
-	cairo_pattern_set_extend ngrad mode
-]
-
-check-grad-line: func [
-	grad		[handle!]
-	point		[red-pair!]
-	end			[red-pair!]
-	return:		[handle!]
-	/local
-		type	[integer!]
-		ngrad	[handle!]
 		x		[float32!]
 		y		[float32!]
 		px		[float32!]
 		py		[float32!]
 		delta	[float32!]
 ][
-	type: cairo_pattern_get_type grad
-	case [
-		type = CAIRO_PATTERN_TYPE_LINEAR [
-			ngrad: cairo_pattern_create_linear
-					as float! point/x as float! point/y
-					as float! end/x as float! point/y
-		]
-		type = CAIRO_PATTERN_TYPE_RADIAL [
-			x: as float32! point/x
-			y: as float32! point/y
-			px: (as float32! end/x) - x
-			py: (as float32! end/y) - y
-			delta: (px * px) + (py * py)
-			delta: sqrtf delta
-			px: (as float32! end/x) + x
-			py: (as float32! end/y) + y
-			px: px / 2.0 py: py / 2.0
-			ngrad: cairo_pattern_create_radial
-					as float! px as float! py 0.0
-					as float! px as float! py as float! delta
-		]
-		true [return null]
-	]
-
-	copy-gradiant-props grad ngrad
-	ngrad
+	x: as float32! x1
+	y: as float32! y1
+	px: (as float32! x2) - x
+	py: (as float32! y2) - y
+	delta: (px * px) + (py * py)
+	sqrtf delta
 ]
 
-check-grad-pen-line: func [
-	dc			[draw-ctx!]
-	point		[red-pair!]
-	end			[red-pair!]
+update-pattern: func [
+	grad		[gradient!]
+	pattern		[handle!]
+	cx			[float!]
+	cy			[float!]
 	/local
-		ngrad	[handle!]
+		matrix	[cairo_matrix_t!]
+		m		[cairo_matrix_t! value]
+		res		[cairo_matrix_t! value]
+		color	[int-ptr!]
+		pos		[float32-ptr!]
+		r		[float!]
+		g		[float!]
+		b		[float!]
+		a		[float!]
+		p		[float!]
 ][
-	if all [
-		dc/pen?
-		not null? dc/grad-pen
-		dc/gpen-resize?
+	cairo_matrix_init_translate m 0.0 - cx 0.0 - cy
+	either grad/matrix-on? [
+		matrix: as cairo_matrix_t! grad/matrix
+		cairo_matrix_multiply res matrix m
+		copy-memory as byte-ptr! matrix as byte-ptr! res size? cairo_matrix_t!
+		cairo_pattern_set_matrix pattern matrix
 	][
-		ngrad: check-grad-line dc/grad-pen point end
-		unless null? ngrad [
-			cairo_pattern_destroy dc/grad-pen
-			dc/grad-pen: ngrad
-			dc/gpen-resize?: false
-		]
+		cairo_pattern_set_matrix pattern m
 	]
-]
+	cairo_pattern_set_extend pattern 
+		case [
+			grad/spread = _pad       [CAIRO_EXTEND_PAD]
+			grad/spread = _repeat    [CAIRO_EXTEND_REPEAT]
+			grad/spread = _reflect   [CAIRO_EXTEND_REFLECT]
+			true [CAIRO_EXTEND_REPEAT]								;-- default spread
+		]
 
-check-grad-brush-line: func [
-	dc			[draw-ctx!]
-	point		[red-pair!]
-	end			[red-pair!]
-	/local
-		ngrad	[handle!]
-][
-	if all [
-		dc/brush?
-		not null? dc/grad-brush
-		dc/gbrush-resize?
-	][
-		ngrad: check-grad-line dc/grad-brush point end
-		unless null? ngrad [
-			cairo_pattern_destroy dc/grad-brush
-			dc/grad-brush: ngrad
-			dc/gbrush-resize?: false
-		]
+	color: grad/colors
+	pos: grad/colors-pos
+	unless grad/zero-base? [
+		color: color + 1
+		pos: pos + 1
 	]
+	loop grad/count [
+		r: as-float color/1 and FFh
+		r: r / 255.0
+		g: as-float color/1 >> 8 and FFh
+		g: g / 255.0
+		b: as-float color/1 >> 16 and FFh
+		b: b / 255.0
+		a: as-float 255 - (color/1 >>> 24)
+		a: a / 255.0
+		p: as float! pos/1
+		cairo_pattern_add_color_stop_rgba pattern p r g b a
+		color: color + 1
+		pos: pos + 1
+	]
+	either grad/pattern-on? [
+		cairo_pattern_destroy grad/pattern
+	][
+		grad/pattern-on?: on
+	]
+	grad/pattern: pattern
 ]
 
 get-shape-center: func [
-	start		[red-pair!]
-	end			[red-pair!]
-	cx			[int-ptr!]
-	cy			[int-ptr!]
-	d			[int-ptr!]
+	start			[red-pair!]
+	end				[red-pair!]
+	cx				[float32-ptr!]
+	cy				[float32-ptr!]
+	d				[float32-ptr!]
 	/local
-		point	[red-pair!]
-		dx		[integer!]
-		dy		[integer!]
-		x0		[integer!]
-		y0		[integer!]
-		x1		[integer!]
-		y1		[integer!]
-		a		[integer!]
-		r		[integer!]
-		signedArea	[float!]
-		centroid-x	[float!]
-		centroid-y	[float!]
+		point		[red-pair!]
+		dx			[float32!]
+		dy			[float32!]
+		x0			[float32!]
+		y0			[float32!]
+		x1			[float32!]
+		y1			[float32!]
+		a			[float32!]
+		r			[float32!]
+		signedArea	[float32!]
+		centroid-x	[float32!]
+		centroid-y	[float32!]
 ][
 	;-- implementation taken from http://stackoverflow.com/questions/2792443/finding-the-centroid-of-a-polygon
-	x0: 0 y0: 0 x1: 0 y1: 0
-	a: 0 signedArea: 0.0
-	centroid-x: 0.0 centroid-y: 0.0
+	signedArea: as float32! 0.0
+	centroid-x: as float32! 0.0 centroid-y: as float32! 0.0
 	point: start
-	while [point <= end] [
-		x0: point/x
-		y0: point/y
+	while [point <= end][
+		x0: as float32! point/x
+		y0: as float32! point/y
 		point: point + 1
-		x1: point/x
-		y1: point/y
+		x1: as float32! point/x
+		y1: as float32! point/y
 		a: x0 * y1 - (x1 * y0)
-		signedArea: signedArea + as-float a
-		centroid-x: centroid-x + as-float ((x0 + x1) * a)
-		centroid-y: centroid-y + as-float ((y0 + y1) * a)
+		signedArea: signedArea + a
+		centroid-x: centroid-x + ((x0 + x1) * a)
+		centroid-y: centroid-y + ((y0 + y1) * a)
 	]
-	x0: point/x
-	y0: point/y
-	x1: start/x
-	y1: start/y
-	a: x0 * y1 - (x1 * y0)
-	signedArea: signedArea + as-float a
-	centroid-x: centroid-x + as-float ((x0 + x1) * a)
-	centroid-y: centroid-y + as-float ((y0 + y1) * a)
 
-	signedArea: signedArea * 0.5
-	centroid-x: centroid-x / (signedArea * 6.0)
-	centroid-y: centroid-y / (signedArea * 6.0)
+	signedArea: signedArea * as float32! 0.5
+	centroid-x: centroid-x / (signedArea * as float32! 6.0)
+	centroid-y: centroid-y / (signedArea * as float32! 6.0)
 
-	cx/value: as-integer centroid-x
-	cy/value: as-integer centroid-y
-	;-- take biggest distance
-	d/value: 0
-	point: start
-	while [point <= end] [
-		dx: cx/value - point/x
-		dy: cy/value - point/y
-		r: as-integer sqrt as-float ( dx * dx + ( dy * dy ) )
-		if r > d/value [ d/value: r ]
-		point: point + 1
+	cx/value: centroid-x
+	cy/value: centroid-y
+
+	if d <> null [
+		;-- take biggest distance
+		d/value: as float32! 0.0
+		point: start
+		while [point <= end][
+			dx: centroid-x - as float32! point/x
+			dy: centroid-y - as float32! point/y
+			r: sqrtf dx * dx + ( dy * dy )
+			if r > d/value [ d/value: r ]
+			point: point + 1
+		]
 	]
 ]
 
-check-grad-brush-box: func [
-	dc			[draw-ctx!]
+check-grad-points: func [
+	grad		[gradient!]
+	upper-x		[integer!]
+	upper-y		[integer!]
+	lower-x		[integer!]
+	lower-y		[integer!]
+	/local
+		pattern	[handle!]
+		t		[integer!]
+		x1		[float!]
+		y1		[float!]
+		r1		[float!]
+		x2		[float!]
+		y2		[float!]
+		r2		[float!]
+		delta	[float32!]
+		px		[float32!]
+		py		[float32!]
+][
+	unless grad/on? [exit]
+	pattern: null
+	case [
+		grad/type = linear [
+			either grad/offset-on? [
+				x1: as float! upper-x + grad/offset/x
+				y1: as float! upper-y + grad/offset/y
+				x2: as float! upper-x + grad/offset2/x
+				y2: as float! upper-y + grad/offset2/y
+			][
+				x1: as float! upper-x y1: as float! upper-y
+				x2: as float! lower-x y2: as float! lower-y
+			]
+			pattern: cairo_pattern_create_linear 0.0 0.0 x2 - x1 y2 - y1
+		]
+		grad/type = radial [
+			if upper-x > lower-x [
+				t: lower-x
+				lower-x: upper-x
+				upper-x: t
+			]
+			if upper-y > lower-y [
+				t: lower-y
+				lower-y: upper-y
+				upper-y: t
+			]
+			either grad/offset-on? [
+				either grad/focal-on? [
+					x1: as float! upper-x + grad/focal/x
+					y1: as float! upper-y + grad/focal/y
+					x2: as float! upper-x + grad/offset/x
+					y2: as float! upper-y + grad/offset/y
+					r2: as float! grad/offset2/x
+					delta: line-distance grad/offset/x grad/offset/y grad/focal/x grad/focal/y
+					r1: as float! delta
+					either r1 >= r2 [
+						r1: 0.0
+					][
+						r1: r2 - r1
+					]
+				][
+					x1: as float! upper-x + grad/offset/x
+					y1: as float! upper-y + grad/offset/y
+					x2: x1
+					y2: y1
+					r1: 0.0
+					r2: as float! grad/offset2/x
+				]
+			][
+				delta: line-distance upper-x upper-y lower-x lower-y
+				px: as float32! lower-x + upper-x
+				py: as float32! lower-y + upper-y
+				x1: as float! px
+				x1: x1 / 2.0
+				y1: as float! py
+				y1: y1 / 2.0
+				x2: x1 y2: y1
+				r1: 0.0
+				r2: as float! delta
+			]
+			pattern: cairo_pattern_create_radial 0.0 0.0 r1 x2 - x1 y2 - y1 r2
+		]
+		true [0]
+	]
+	unless null? pattern [
+		update-pattern grad pattern x1 y1
+	]
+]
+
+check-grad-line: func [
+	grad		[gradient!]
+	upper		[red-pair!]
+	lower		[red-pair!]
+][
+	check-grad-points grad upper/x upper/y lower/x lower/y
+]
+
+check-grad-brush-lines: func [
+	grad		[gradient!]
 	point		[red-pair!]
 	end			[red-pair!]
 	/local
-		type	[integer!]
-		cx		[integer!]
-		cy		[integer!]
-		d		[integer!]
-		ngrad	[handle!]
+		pattern	[handle!]
+		next	[red-pair!]
+		x1		[float!]
+		y1		[float!]
+		r1		[float!]
+		x2		[float!]
+		y2		[float!]
+		r2		[float!]
+		cx		[float32!]
+		cy		[float32!]
+		d		[float32!]
+		x0		[float!]
+		y0		[float!]
+		delta	[float32!]
 ][
-	if all [
-		dc/brush?
-		not null? dc/grad-brush
-		dc/gbrush-resize?
-	][
-		type: cairo_pattern_get_type dc/grad-brush
-		case [
-			type = CAIRO_PATTERN_TYPE_LINEAR [
-				ngrad: check-grad-line dc/grad-brush point end
+	unless grad/on? [exit]
+	pattern: null
+	case [
+		grad/type = linear [
+			either grad/offset-on? [
+				x1: as float! point/x + grad/offset/x
+				y1: as float! point/y + grad/offset/y
+				x2: as float! point/x + grad/offset2/x
+				y2: as float! point/y + grad/offset2/y
+			][
+				x1: as float! point/x y1: as float! point/y
+				next: point + 1
+				x2: as float! next/x  y2: as float! next/y
 			]
-			type = CAIRO_PATTERN_TYPE_RADIAL [
-				cx: 0 cy: 0 d: 0
-				get-shape-center point end :cx :cy :d
-				ngrad: cairo_pattern_create_radial
-						as float! cx as float! cy 0.0
-						as float! cx as float! cy as float! d
-
-				copy-gradiant-props dc/grad-brush ngrad
+			pattern: cairo_pattern_create_linear 0.0 0.0 x2 - x1 y2 - y1
+		]
+		grad/type = radial [
+			cx: as float32! 0.0
+			cy: cx
+			d: cx
+			get-shape-center point end :cx :cy :d
+			either grad/offset-on? [
+				x0: as float! cx - d
+				y0: as float! cy - d
+				either grad/focal-on? [
+					x1: x0 + as float! grad/focal/x
+					y1: y0 + as float! grad/focal/y
+					x2: x0 + as float! grad/offset/x
+					y2: y0 + as float! grad/offset/y
+					r2: as float! grad/offset2/x
+					delta: line-distance grad/offset/x grad/offset/y grad/focal/x grad/focal/y
+					r1: as float! delta
+					either r1 >= r2 [
+						r1: 0.0
+					][
+						r1: r2 - r1
+					]
+				][
+					x1: x0 + as float! grad/offset/x
+					y1: y0 + as float! grad/offset/y
+					r1: 0.0
+					x2: x1
+					y2: y1
+					r2: as float! grad/offset2/x
+				]
+			][
+				x1: as float! cx
+				y1: as float! cy
+				r1: 0.0
+				x2: x1
+				y2: y1
+				r2: as float! d
 			]
-			true [exit]
+			pattern: cairo_pattern_create_radial 0.0 0.0 r1 x2 - x1 y2 - y1 r2
 		]
-
-		unless null? ngrad [
-			cairo_pattern_destroy dc/grad-brush
-			dc/grad-brush: ngrad
-			dc/gbrush-resize?: false
-		]
+		true [0]
+	]
+	unless null? pattern [
+		update-pattern grad pattern x1 y1
 	]
 ]
 
-check-grad-pen-arc: func [
-	dc			[draw-ctx!]
-	x			[float!]
-	y			[float!]
-	radius		[float!]
+check-grad-arc-radial: func [
+	grad		[gradient!]
+	ax			[float!]
+	ay			[float!]
+	ar			[float!]
 	/local
-		type	[integer!]
-		ngrad	[handle!]
-		ex		[float!]
-		ey		[float!]
+		pattern	[handle!]
+		x0		[float!]
+		y0		[float!]
+		x1		[float!]
+		y1		[float!]
+		r1		[float!]
+		x2		[float!]
+		y2		[float!]
+		r2		[float!]
+		delta	[float32!]
 ][
-	if all [
-		dc/pen?
-		not null? dc/grad-pen
-		dc/gpen-resize?
-	][
-		type: cairo_pattern_get_type dc/grad-pen
-		case [
-			type = CAIRO_PATTERN_TYPE_LINEAR [
-				ex: x + radius
-				ex: ex * pi
-				ey: y + radius
-				ey: ey * pi
-				ngrad: cairo_pattern_create_linear
-					x y ex ey
-				copy-gradiant-props dc/grad-pen ngrad
-			]
-			type = CAIRO_PATTERN_TYPE_RADIAL [
-				ngrad: cairo_pattern_create_radial
-						x y 0.0
-						x y radius
-				copy-gradiant-props dc/grad-pen ngrad
-			]
-			true [exit]
-		]
+	unless grad/on? [exit]
+	unless grad/type = radial [exit]
+	pattern: null
 
-		unless null? ngrad [
-			cairo_pattern_destroy dc/grad-pen
-			dc/grad-pen: ngrad
-			dc/gpen-resize?: false
+	x0: ax - ar
+	y0: ay - ar
+	either grad/offset-on? [
+		either grad/focal-on? [
+			x1: x0 + as float! grad/focal/x
+			y1: y0 + as float! grad/focal/y
+			x2: x0 + as float! grad/offset/x
+			y2: y0 + as float! grad/offset/y
+			r2: as float! grad/offset2/x
+			delta: line-distance grad/offset/x grad/offset/y grad/focal/x grad/focal/y
+			r1: as float! delta
+			either r1 >= r2 [
+				r1: 0.0
+			][
+				r1: r2 - r1
+			]
+		][
+			x1: x0 + as float! grad/offset/x
+			y1: y0 + as float! grad/offset/y
+			r1: 0.0
+			x2: x1
+			y2: y1
+			r2: as float! grad/offset2/x
 		]
+	][
+		x1: ax
+		y1: ay
+		r1: 0.0
+		x2: x1
+		y2: y1
+		r2: ar
+	]
+	pattern: cairo_pattern_create_radial 0.0 0.0 r1 x2 - x1 y2 - y1 r2
+
+	unless null? pattern [
+		update-pattern grad pattern x1 y1
 	]
 ]
 
-check-grad-brush-arc: func [
-	dc			[draw-ctx!]
-	x			[float!]
-	y			[float!]
-	radius		[float!]
+check-grad-box-radial: func [
+	grad		[gradient!]
+	upper		[red-pair!]
+	lower		[red-pair!]
 	/local
-		type	[integer!]
-		ngrad	[handle!]
-		ex		[float!]
-		ey		[float!]
+		pattern	[handle!]
+		x0		[float!]
+		y0		[float!]
+		x1		[float!]
+		y1		[float!]
+		r1		[float!]
+		x2		[float!]
+		y2		[float!]
+		r2		[float!]
+		delta	[float32!]
+		w		[integer!]
+		h		[integer!]
 ][
-	if all [
-		dc/brush?
-		not null? dc/grad-brush
-		dc/gbrush-resize?
-	][
-		type: cairo_pattern_get_type dc/grad-brush
-		case [
-			type = CAIRO_PATTERN_TYPE_LINEAR [
-				ex: x + radius
-				ex: ex * pi
-				ey: y + radius
-				ey: ey * pi
-				ngrad: cairo_pattern_create_linear
-					x y ex ey
-				copy-gradiant-props dc/grad-brush ngrad
-			]
-			type = CAIRO_PATTERN_TYPE_RADIAL [
-				ngrad: cairo_pattern_create_radial
-						x y 0.0
-						x y radius
-				copy-gradiant-props dc/grad-brush ngrad
-			]
-			true [exit]
-		]
+	unless grad/on? [exit]
+	unless grad/type = radial [exit]
+	pattern: null
 
-		unless null? ngrad [
-			cairo_pattern_destroy dc/grad-brush
-			dc/grad-brush: ngrad
-			dc/gbrush-resize?: false
+	x0: as float! either upper/x < lower/x [upper/x][lower/x]
+	y0: as float! either upper/y < lower/y [upper/y][lower/y]
+
+	either grad/offset-on? [
+		either grad/focal-on? [
+			x1: x0 + as float! grad/focal/x
+			y1: y0 + as float! grad/focal/y
+			x2: x0 + as float! grad/offset/x
+			y2: y0 + as float! grad/offset/y
+			r2: as float! grad/offset2/x
+			delta: line-distance grad/offset/x grad/offset/y grad/focal/x grad/focal/y
+			r1: as float! delta
+			either r1 >= r2 [
+				r1: 0.0
+			][
+				r1: r2 - r1
+			]
+		][
+			x1: x0 + as float! grad/offset/x
+			y1: y0 + as float! grad/offset/y
+			r1: 0.0
+			x2: x1
+			y2: y1
+			r2: as float! grad/offset2/x
 		]
+	][
+		x1: as float! upper/x + lower/x
+		y1: as float! upper/y + lower/y
+		x1: x1 / 2.0
+		y1: y1 / 2.0
+		r1: 0.0
+		x2: x1
+		y2: y1
+		w: either upper/x < lower/x [
+			lower/x - upper/x
+		][
+			upper/x - lower/x
+		]
+		h: either upper/y < lower/y [
+			lower/y - upper/y
+		][
+			upper/y - lower/y
+		]
+		r2: as float! either w > h [w][h]
+		r2: r2 / 2.0
+	]
+	pattern: cairo_pattern_create_radial 0.0 0.0 r1 x2 - x1 y2 - y1 r2
+
+	unless null? pattern [
+		update-pattern grad pattern x1 y1
+	]
+]
+
+check-grad-box: func [
+	grad		[gradient!]
+	upper		[red-pair!]
+	lower		[red-pair!]
+][
+	case [
+		grad/type = linear [
+			;-- the windows backend use horizontal linear gradient default,
+			;-- maybe should use diagonal line
+			check-grad-points grad upper/x upper/y lower/x upper/y
+		]
+		grad/type = radial [
+			check-grad-box-radial grad upper lower
+		]
+		true [0]
+	]
+]
+
+check-grad-circle: func [
+	grad		[gradient!]
+	cx			[float!]
+	cy			[float!]
+	rx			[float!]
+	ry			[float!]
+	/local
+		r		[float!]
+][
+	case [
+		grad/type = linear [
+			check-grad-points grad
+				as integer! cx - rx as integer! cy - ry
+				as integer! cx + rx as integer! cy + ry
+		]
+		grad/type = radial [
+			r: rx
+			if rx > ry [r: ry]
+			check-grad-arc-radial grad cx cy r
+		]
+		true [0]
 	]
 ]
 
@@ -461,7 +686,7 @@ OS-draw-line: func [
 		cairo_line_to cr as-float iter/x as-float iter/y
 		iter: iter + 1
 	]
-	check-grad-pen-line dc point end
+	check-grad-line dc/grad-pen point end
 	do-draw-pen dc
 ]
 
@@ -472,9 +697,12 @@ OS-draw-pen: func [
 	alpha?		[logic!]
 ][
 	dc/pen?: not off?
-	unless null? dc/grad-pen [
-		cairo_pattern_destroy dc/grad-pen
-		dc/grad-pen: null
+	if dc/grad-pen/on? [
+		if dc/grad-pen/pattern-on? [
+			cairo_pattern_destroy dc/grad-pen/pattern
+		]
+		dc/grad-pen/pattern-on?: off
+		dc/grad-pen/on?: off
 	]
 	if all [not off? dc/pen-color <> color][
 		dc/pen-color: color
@@ -490,9 +718,12 @@ OS-draw-fill-pen: func [
 	alpha?		[logic!]
 ][
 	dc/brush?: not off?
-	unless null? dc/grad-brush [
-		cairo_pattern_destroy dc/grad-brush
-		dc/grad-brush: null
+	if dc/grad-brush/on? [
+		if dc/grad-brush/pattern-on? [
+			cairo_pattern_destroy dc/grad-brush/pattern
+		]
+		dc/grad-brush/pattern-on?: off
+		dc/grad-brush/on?: off
 	]
 	if dc/brush-color <> color [
 		dc/brush-color: color
@@ -558,8 +789,8 @@ OS-draw-box: func [
 	][
 		cairo_rectangle cr x y w h
 	]
-	check-grad-pen-line dc upper lower
-	check-grad-brush-box dc upper lower
+	check-grad-box dc/grad-pen upper lower
+	check-grad-box dc/grad-brush upper lower
 	do-draw-path dc
 ]
 
@@ -572,8 +803,8 @@ OS-draw-triangle: func [
 		start: start + 1
 	]
 	cairo_close_path dc/cr								;-- close the triangle
-	check-grad-pen-line dc start start + 2
-	check-grad-brush-box dc start start + 2
+	check-grad-line dc/grad-pen start start + 1
+	check-grad-brush-lines dc/grad-brush start start + 2
 	do-draw-path dc
 ]
 
@@ -588,8 +819,8 @@ OS-draw-polygon: func [
 		start > end
 	]
 	cairo_close_path dc/cr
-	check-grad-pen-line dc start end
-	check-grad-brush-box dc start end
+	check-grad-line dc/grad-pen start start + 1
+	check-grad-brush-lines dc/grad-brush start end
 	do-draw-path dc
 ]
 
@@ -690,8 +921,8 @@ OS-draw-spline: func [
 			end
 	]
 
-	check-grad-pen-line dc start end
-	check-grad-brush-box dc start end
+	check-grad-line dc/grad-pen start start + 1
+	check-grad-brush-lines dc/grad-brush start end
 	do-draw-path dc
 ]
 
@@ -743,9 +974,8 @@ OS-draw-circle: func [
 					as-float rad-y
 	cairo_arc cr 0.0 0.0 1.0 0.0 2.0 * pi
 	cairo_restore cr
-	if rad-x < rad-y [rad-x: rad-y]
-	check-grad-pen-arc dc as float! center/x as float! center/y as float! rad-x
-	check-grad-brush-arc dc as float! center/x as float! center/y as float! rad-x
+	check-grad-circle dc/grad-pen as float! center/x as float! center/y as float! rad-x as float! rad-y
+	check-grad-circle dc/grad-brush as float! center/x as float! center/y as float! rad-x as float! rad-y
 	do-draw-path dc
 ]
 
@@ -773,9 +1003,8 @@ OS-draw-ellipse: func [
 					as-float rad-y
 	cairo_arc cr 0.0 0.0 1.0 0.0 2.0 * pi
 	cairo_restore cr
-	if rad-x < rad-y [rad-x: rad-y]
-	check-grad-pen-arc dc as float! cx as float! cy as float! rad-x
-	check-grad-brush-arc dc as float! cx as float! cy as float! rad-x
+	check-grad-circle dc/grad-pen as float! cx as float! cy as float! rad-x as float! rad-y
+	check-grad-circle dc/grad-brush as float! cx as float! cy as float! rad-x as float! rad-y
 	do-draw-path dc
 ]
 
@@ -948,9 +1177,8 @@ OS-draw-arc: func [
 	if closed? [
 		cairo_close_path cr
 	]
-	if rad-x < rad-y [rad-x: rad-y]
-	check-grad-pen-arc dc cx cy rad-x
-	check-grad-brush-arc dc cx cy rad-x
+	check-grad-circle dc/grad-pen cx cy rad-x rad-y
+	check-grad-circle dc/grad-brush cx cy rad-x rad-y
 	cairo_restore cr
 	either closed? [
 		do-draw-path dc
@@ -985,7 +1213,7 @@ OS-draw-curve: func [
 					   as-float p2/y
 					   as-float p3/x
 					   as-float p3/y
-	check-grad-pen-line dc start start + 2
+	check-grad-line dc/grad-pen start start + 2
 	do-draw-pen dc
 ]
 
@@ -1154,37 +1382,73 @@ OS-draw-grad-pen-old: func [
 	count		[integer!]					;-- number of the colors
 	brush?		[logic!]
 	/local
+		w		[integer!]
+		h		[integer!]
+		int		[red-integer!]
+		grad	[gradient!]
+		nums	[integer!]
+		pc		[int-ptr!]
 		x		[float!]
 		y		[float!]
-		start	[float!]
-		stop	[float!]
-		pattern	[handle!]
-		int		[red-integer!]
+		n		[integer!]
 		f		[red-float!]
+		rotate?	[logic!]
+		scale?	[logic!]
 		head	[red-value!]
 		next	[red-value!]
 		clr		[red-tuple!]
-		n		[integer!]
 		delta	[float!]
 		p		[float!]
 		angle	[float!]
-		rotate?	[logic!]
-		scale?	[logic!]
-		matrix	[cairo_matrix_t! value]
+		matrix	[cairo_matrix_t!]
+		color	[int-ptr!]
+		last-c	[int-ptr!]
+		pos		[float32-ptr!]
+		last-p	[float32-ptr!]
 ][
-	x: as-float offset/x
-	y: as-float offset/y
-
 	int: as red-integer! offset + 1
-	start: as-float int/value
+	w: int/value
 	int: int + 1
-	stop: as-float int/value
+	h: int/value
 
-	pattern: either type = linear [
-		cairo_pattern_create_linear x + start y x + stop y
+	grad: either brush? [
+		dc/brush?: yes
+		dc/grad-brush
 	][
-		cairo_pattern_create_radial x y start x y stop
+		dc/pen?: yes
+		dc/grad-pen
 	]
+	unless grad/on? [
+		nums: 2 * MAX_COLORS
+		pc: as int-ptr! allocate nums * size? integer!
+		grad/colors: pc
+		grad/colors-pos: as float32-ptr! pc + MAX_COLORS
+		grad/on?: on
+	]
+	grad/spread: mode
+	grad/type: type
+	grad/count: 0
+
+	case [
+		type = linear [
+			grad/offset-on?: on
+			grad/offset/x: offset/x + w
+			grad/offset/y: offset/y + w
+			grad/offset2/x: offset/x + h
+			grad/offset2/y: offset/y + h
+		]
+		type = radial [
+			grad/offset-on?: on
+			grad/offset/x: offset/x
+			grad/offset/y: offset/y
+			grad/offset2/x: h					;-- bigger radius
+			grad/offset2/y: w					;-- smaller radius
+		]
+		true [
+			grad/offset-on?: off
+		]
+	]
+	grad/focal-on?: off
 
 	n: 0
 	rotate?: no
@@ -1206,50 +1470,57 @@ OS-draw-grad-pen-old: func [
 		]
 		n: n + 1
 	]
-	cairo_matrix_init matrix 1.0 0.0 0.0 1.0 0.0 0.0
-	if rotate? [
-		p:  PI / 180.0
-		cairo_matrix_rotate matrix p * angle
+	matrix: as cairo_matrix_t! grad/matrix
+	cairo_matrix_init_identity matrix
+	if any [rotate? scale?][
+		grad/matrix-on?: on
+		if rotate? [
+			p: PI / 180.0
+			p: p * angle
+			cairo_matrix_rotate matrix 0.0 - p
+		]
+		if scale? [
+			x: 1.0 / x
+			y: 1.0 / y
+			cairo_matrix_scale matrix x y
+		]
 	]
-	if scale? [
-		cairo_matrix_scale matrix x y
-	]
-	cairo_matrix_invert matrix
-	cairo_pattern_set_matrix pattern matrix
 
+	color: grad/colors + 1
+	pos: grad/colors-pos + 1
 	delta: as-float count - 1
 	delta: 1.0 / delta
 	p: 0.0
 	head: as red-value! int
 	loop count [
 		clr: as red-tuple! either TYPE_OF(head) = TYPE_WORD [_context/get as red-word! head][head]
+		color/value: clr/array1
 		next: head + 1
-		n: clr/array1
-		x: as-float n and FFh
-		x: x / 255.0
-		y: as-float n >> 8 and FFh
-		y: y / 255.0
-		start: as-float n >> 16 and FFh
-		start: start / 255.0
-		stop: as-float 255 - (n >>> 24)
-		stop: stop / 255.0
 		if TYPE_OF(next) = TYPE_FLOAT [head: next f: as red-float! head p: f/value]
-		cairo_pattern_add_color_stop_rgba pattern p x y start stop
-		p: p + delta
+		pos/value: as float32! p
+		if next <> head [p: p + delta]
 		head: head + 1
+		color: color + 1
+		pos: pos + 1
 	]
 
-	either brush? [
-		dc/brush?: yes
-		unless null? dc/grad-brush [cairo_pattern_destroy dc/grad-brush]
-		dc/grad-brush: pattern
-		dc/gbrush-resize?: no
-	][
-		dc/pen?: yes
-		unless null? dc/grad-pen [cairo_pattern_destroy dc/grad-pen]
-		dc/grad-pen: pattern
-		dc/gpen-resize?: no
+	grad/zero-base?: no
+	last-p: pos - 1
+	last-c: color - 1
+	pos: pos - count
+	color: color - count
+	if pos/value > as float32! 0.0 [			;-- first one should be always 0.0
+		grad/colors-pos/value: as float32! 0.0
+		grad/colors/value: color/value
+		count: count + 1
+		grad/zero-base?: yes
 	]
+	if last-p/value < as float32! 1.0 [			;-- last one should be always 1.0
+		last-c/2: last-c/value
+		last-p/2: as float32! 1.0
+		count: count + 1
+	]
+	grad/count: count
 ]
 
 OS-draw-grad-pen: func [
@@ -1263,101 +1534,117 @@ OS-draw-grad-pen: func [
 	spread		[integer!]
 	brush?		[logic!]
 	/local
-		resize?	[logic!]
+		grad	[gradient!]
+		nums	[integer!]
+		pc		[int-ptr!]
 		point	[red-pair!]
-		x		[float!]
-		y		[float!]
-		pattern	[handle!]
-		delta	[float!]
 		p		[float!]
+		delta	[float!]
 		head	[red-value!]
 		next	[red-value!]
 		clr		[red-tuple!]
-		n		[integer!]
-		r		[float!]
-		g		[float!]
-		b		[float!]
-		a		[float!]
 		f		[red-float!]
+		matrix	[cairo_matrix_t!]
+		color	[int-ptr!]
+		last-c	[int-ptr!]
+		pos		[float32-ptr!]
+		last-p	[float32-ptr!]
 ][
-	resize?: false
-	pattern: case [
+
+	grad: either brush? [
+		dc/brush?: yes
+		dc/grad-brush
+	][
+		dc/pen?: yes
+		dc/grad-pen
+	]
+	unless grad/on? [
+		nums: 2 * MAX_COLORS
+		pc: as int-ptr! allocate nums * size? integer!
+		grad/colors: pc
+		grad/colors-pos: as float32-ptr! pc + MAX_COLORS
+		grad/on?: on
+	]
+	grad/spread: spread
+	grad/type: type
+	grad/count: 0
+
+	grad/focal-on?: off
+	case [
 		type = linear [
 			either skip-pos? [
-				resize?: true
-				cairo_pattern_create_linear 0.0 0.0 1.0 1.0
+				grad/offset-on?: off
 			][
+				grad/offset-on?: on
 				point: as red-pair! positions
-				x: as float! point/x
-				y: as float! point/y
+				grad/offset/x: point/x
+				grad/offset/y: point/y
 				point: point + 1
-				cairo_pattern_create_linear x y as float! point/x as float! point/y
+				grad/offset2/x: point/x
+				grad/offset2/y: point/y
 			]
 		]
-		any [ type = radial type = diamond ][
+		type = radial [
 			either skip-pos? [
-				resize?: true
-				cairo_pattern_create_radial 0.0 0.0 0.0 0.0 0.0 1.0
+				grad/offset-on?: off
 			][
-				either type = radial [
-					point: as red-pair! positions
-					x: as float! point/x
-					y: as float! point/y
-					p: get-float as red-integer! point + 1
-					cairo_pattern_create_radial x y 0.0 x y p
-				][
-					resize?: true
-					cairo_pattern_create_linear 0.0 0.0 1.0 1.0
+				grad/offset-on?: on
+				point: as red-pair! positions
+				grad/offset/x: point/x
+				grad/offset/y: point/y
+				p: get-float as red-integer! point + 1
+				grad/offset2/x: as integer! p
+				if focal? [
+					grad/focal-on?: on
+					point: point + 2
+					grad/focal/x: point/x
+					grad/focal/y: point/y
 				]
 			]
 		]
 		true [
-			resize?: true
-			cairo_pattern_create_linear 0.0 0.0 1.0 1.0
+			grad/offset-on?: off
 		]
 	]
 
+	matrix: as cairo_matrix_t! grad/matrix
+	cairo_matrix_init_identity matrix
+
+	color: grad/colors + 1
+	pos: grad/colors-pos + 1
 	delta: as-float count - 1
 	delta: 1.0 / delta
 	p: 0.0
-	head: as red-value! stops
+	head: stops
 	loop count [
 		clr: as red-tuple! either TYPE_OF(head) = TYPE_WORD [_context/get as red-word! head][head]
-		n: clr/array1
-		r: as-float n and FFh
-		r: r / 255.0
-		g: as-float n >> 8 and FFh
-		g: g / 255.0
-		b: as-float n >> 16 and FFh
-		b: b / 255.0
-		a: as-float 255 - (n >>> 24)
-		a: a / 255.0
+		color/value: clr/array1
 		next: head + 1
 		if TYPE_OF(next) = TYPE_FLOAT [head: next f: as red-float! head p: f/value]
-		cairo_pattern_add_color_stop_rgba pattern p r g b a
-		p: p + delta
+		pos/value: as float32! p
+		if next <> head [p: p + delta]
 		head: head + 1
+		color: color + 1
+		pos: pos + 1
 	]
 
-	cairo_pattern_set_extend pattern
-		case [
-			spread = _pad       [CAIRO_EXTEND_PAD]
-			spread = _repeat    [CAIRO_EXTEND_REPEAT]
-			spread = _reflect   [CAIRO_EXTEND_REFLECT]
-			true [CAIRO_EXTEND_NONE]
-		]
-
-	either brush? [
-		dc/brush?: yes
-		unless null? dc/grad-brush [cairo_pattern_destroy dc/grad-brush]
-		dc/grad-brush: pattern
-		dc/gbrush-resize?: resize?
-	][
-		dc/pen?: yes
-		unless null? dc/grad-pen [cairo_pattern_destroy dc/grad-pen]
-		dc/grad-pen: pattern
-		dc/gpen-resize?: resize?
+	grad/zero-base?: no
+	last-p: pos - 1
+	last-c: color - 1
+	pos: pos - count
+	color: color - count
+	if pos/value > as float32! 0.0 [			;-- first one should be always 0.0
+		grad/colors-pos/value: as float32! 0.0
+		grad/colors/value: color/value
+		count: count + 1
+		grad/zero-base?: yes
 	]
+	if last-p/value < as float32! 1.0 [			;-- last one should be always 1.0
+		last-c/2: last-c/value
+		last-p/2: as float32! 1.0
+		count: count + 1
+	]
+	grad/count: count
 ]
 
 OS-matrix-rotate: func [
@@ -1368,8 +1655,8 @@ OS-matrix-rotate: func [
 	/local
 		cr		[handle!]
 		rad		[float!]
-		pattern	[handle!]
-		matrix	[cairo_matrix_t! value]
+		grad	[gradient!]
+		matrix	[cairo_matrix_t!]
 ][
 	cr: dc/cr
 	rad: PI / 180.0 * get-float angle
@@ -1384,11 +1671,11 @@ OS-matrix-rotate: func [
 						as float! (0 - center/y)
 		]
 	][
-		pattern: either pen-fill = pen [dc/grad-pen][dc/grad-brush]
-		unless null? pattern [
-			cairo_pattern_get_matrix pattern matrix
-			cairo_matrix_rotate matrix rad
-			cairo_pattern_set_matrix pattern matrix
+		grad: either pen-fill = pen [dc/grad-pen][dc/grad-brush]
+		if grad/on? [
+			matrix: as cairo_matrix_t! grad/matrix
+			grad/matrix-on?: on
+			cairo_matrix_rotate matrix 0.0 - rad
 		]
 	]
 ]
@@ -1399,15 +1686,21 @@ OS-matrix-scale: func [
 	sx			[red-integer!]
 	sy			[red-integer!]
 	/local
-		pattern	[handle!]
-		matrix	[cairo_matrix_t! value]
+		grad	[gradient!]
+		matrix	[cairo_matrix_t!]
+		x		[float!]
+		y		[float!]
 ][
 	either pen-fill <> -1 [
-		pattern: either pen-fill = pen [dc/grad-pen][dc/grad-brush]
-		unless null? pattern [
-			cairo_pattern_get_matrix pattern matrix
-			cairo_matrix_scale matrix get-float sx get-float sy
-			cairo_pattern_set_matrix pattern matrix
+		grad: either pen-fill = pen [dc/grad-pen][dc/grad-brush]
+		if grad/on? [
+			matrix: as cairo_matrix_t! grad/matrix
+			grad/matrix-on?: on
+			x: get-float sx
+			y: get-float sy
+			x: 1.0 / x
+			y: 1.0 / y
+			cairo_matrix_scale matrix x y
 		]
 	][
 		cairo_scale dc/cr get-float sx get-float sy
@@ -1420,15 +1713,15 @@ OS-matrix-translate: func [
 	x			[integer!]
 	y			[integer!]
 	/local
-		pattern	[handle!]
-		matrix	[cairo_matrix_t! value]
+		grad	[gradient!]
+		matrix	[cairo_matrix_t!]
 ][
 	either pen-fill <> -1 [
-		pattern: either pen-fill = pen [dc/grad-pen][dc/grad-brush]
-		unless null? pattern [
-			cairo_pattern_get_matrix pattern matrix
-			cairo_matrix_translate matrix as-float x as-float y
-			cairo_pattern_set_matrix pattern matrix
+		grad: either pen-fill = pen [dc/grad-pen][dc/grad-brush]
+		if grad/on? [
+			matrix: as cairo_matrix_t! grad/matrix
+			grad/matrix-on?: on
+			cairo_matrix_translate matrix 0.0 - as-float x 0.0 - as-float y
 		]
 	][
 		cairo_translate dc/cr as-float x as-float y
@@ -1441,9 +1734,9 @@ OS-matrix-skew: func [
 	sx			[red-integer!]
 	sy			[red-integer!]
 	/local
-		pattern	[handle!]
+		grad	[gradient!]
 		m		[cairo_matrix_t! value]
-		matrix	[cairo_matrix_t! value]
+		matrix	[cairo_matrix_t!]
 		res		[cairo_matrix_t! value]
 ][
 	m/xx: 1.0
@@ -1453,11 +1746,14 @@ OS-matrix-skew: func [
 	m/x0: 0.0
 	m/y0: 0.0
 	either pen-fill <> -1 [
-		pattern: either pen-fill = pen [dc/grad-pen][dc/grad-brush]
-		unless null? pattern [
-			cairo_pattern_get_matrix pattern matrix
+		grad: either pen-fill = pen [dc/grad-pen][dc/grad-brush]
+		if grad/on? [
+			matrix: as cairo_matrix_t! grad/matrix
+			grad/matrix-on?: on
+			m/yx: 0.0 - m/yx
+			m/xy: 0.0 - m/xy
 			cairo_matrix_multiply res matrix m
-			cairo_pattern_set_matrix pattern res
+			copy-memory as byte-ptr! matrix as byte-ptr! res size? cairo_matrix_t!
 		]
 	][
 		cairo_transform dc/cr m
@@ -1500,15 +1796,15 @@ OS-matrix-reset: func [
 	dc			[draw-ctx!]
 	pen-fill	[integer!]
 	/local
-		pattern	[handle!]
-		matrix	[cairo_matrix_t! value]
+		grad	[gradient!]
+		matrix	[cairo_matrix_t!]
 ][
 	either pen-fill <> -1 [
-		pattern: either pen-fill = pen [dc/grad-pen][dc/grad-brush]
-		unless null? pattern [
-			cairo_pattern_get_matrix pattern matrix
+		grad: either pen-fill = pen [dc/grad-pen][dc/grad-brush]
+		if grad/on? [
+			matrix: as cairo_matrix_t! grad/matrix
+			grad/matrix-on?: on
 			cairo_matrix_init_identity matrix
-			cairo_pattern_set_matrix pattern matrix
 		]
 	][
 		cairo_identity_matrix dc/cr
@@ -1519,15 +1815,15 @@ OS-matrix-invert: func [
 	dc			[draw-ctx!]
 	pen-fill	[integer!]
 	/local
-		pattern	[handle!]
-		matrix	[cairo_matrix_t! value]
+		grad	[gradient!]
+		matrix	[cairo_matrix_t!]
 ][
 	either pen-fill <> -1 [
-		pattern: either pen-fill = pen [dc/grad-pen][dc/grad-brush]
-		unless null? pattern [
-			cairo_pattern_get_matrix pattern matrix
+		grad: either pen-fill = pen [dc/grad-pen][dc/grad-brush]
+		if grad/on? [
+			matrix: as cairo_matrix_t! grad/matrix
+			grad/matrix-on?: on
 			cairo_matrix_invert matrix
-			cairo_pattern_set_matrix pattern matrix
 		]
 	][
 		cairo_get_matrix dc/cr matrix
@@ -1541,10 +1837,10 @@ OS-matrix-set: func [
 	pen-fill	[integer!]
 	blk			[red-block!]
 	/local
-		pattern	[handle!]
+		grad	[gradient!]
 		m		[cairo_matrix_t! value]
 		val		[red-integer!]
-		matrix	[cairo_matrix_t! value]
+		matrix	[cairo_matrix_t!]
 		res		[cairo_matrix_t! value]
 ][
 	m: null
@@ -1556,11 +1852,13 @@ OS-matrix-set: func [
 	m/x0: get-float val + 4
 	m/y0: get-float val + 5
 	either pen-fill <> -1 [
-		pattern: either pen-fill = pen [dc/grad-pen][dc/grad-brush]
-		unless null? pattern [
-			cairo_pattern_get_matrix pattern matrix
+		grad: either pen-fill = pen [dc/grad-pen][dc/grad-brush]
+		if grad/on? [
+			matrix: as cairo_matrix_t! grad/matrix
+			grad/matrix-on?: on
+			cairo_matrix_invert m
 			cairo_matrix_multiply res matrix m
-			cairo_pattern_set_matrix pattern res
+			copy-memory as byte-ptr! matrix as byte-ptr! res size? cairo_matrix_t!
 		]
 	][
 		cairo_transform dc/cr m
@@ -1971,31 +2269,19 @@ OS-draw-brush-pattern: func [
 		wrap = flip-xy [w: w * 2 h: h * 2]
 		true []
 	]
-	cairo_push_group cr
-	do-draw cr null block no no yes yes
-	if wrap = flip-x [
-		cairo_scale cr -1.0 1.0
-		do-draw cr null block no no yes yes
-	]
-	if wrap = flip-y [
-		cairo_matrix_init matrix 1.0 0.0 0.0 -1.0 as float! w as float! h
-		cairo_transform cr matrix
-		do-draw cr null block no no yes yes
-	]
-	pattern: cairo_pop_group cr
+	;cairo_push_group cr
+	;do-draw cr null block no no yes yes
+	;if wrap = flip-x [
+	;	cairo_scale cr -1.0 1.0
+	;	do-draw cr null block no no yes yes
+	;]
+	;if wrap = flip-y [
+	;	cairo_matrix_init matrix 1.0 0.0 0.0 -1.0 as float! w as float! h
+	;	cairo_transform cr matrix
+	;	do-draw cr null block no no yes yes
+	;]
+	;pattern: cairo_pop_group cr
 	;pattern: cairo_pattern_create_mesh 
 	;-- TBD: wrap mode
-	cairo_pattern_set_extend pattern CAIRO_EXTEND_PAD;CAIRO_EXTEND_REPEAT
-
-	either brush? [
-		dc/brush?: yes
-		unless null? dc/grad-brush [cairo_pattern_destroy dc/grad-brush]
-		dc/grad-brush: pattern
-		dc/gbrush-resize?: no
-	][
-		dc/pen?: yes
-		unless null? dc/grad-pen [cairo_pattern_destroy dc/grad-pen]
-		dc/grad-pen: pattern
-		dc/gpen-resize?: no
-	]
+	;cairo_pattern_set_extend pattern CAIRO_EXTEND_PAD;CAIRO_EXTEND_REPEAT
 ]
