@@ -251,16 +251,12 @@ OS-image: context [
 
 	get-data: func [
 		handle		[integer!]
-		width		[int-ptr!]
-		height		[int-ptr!]
 		stride		[int-ptr!]
 		return:		[int-ptr!]
 		/local
 			node	[img-node!]
 	][
 		node: as img-node! handle
-		width/value: IMAGE_WIDTH(node/size)
-		height/value: IMAGE_HEIGHT(node/size)
 		stride/value: width/value * 4
 		node/buffer
 	]

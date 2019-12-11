@@ -18,15 +18,12 @@ image: context [
 		bitmap	[int-ptr!]
 		return: [int-ptr!]
 		/local
-			w		[integer!]
-			h		[integer!]
 			stride	[integer!]
 			data	[int-ptr!]
 	][
-		w: 0 h: 0
 		stride: 0
 		bitmap/value: OS-image/lock-bitmap img yes
-		OS-image/get-data bitmap/value :w :h :stride
+		OS-image/get-data bitmap/value :stride
 	]
 
 	release-buffer: func [
@@ -181,8 +178,6 @@ image: context [
 			bin		[red-binary!]
 			s		[series!]
 			p		[byte-ptr!]
-			w		[integer!]
-			h		[integer!]
 			stride	[integer!]
 			bitmap	[integer!]
 			i		[integer!]
@@ -202,10 +197,9 @@ image: context [
 		s/tail: as cell! (as byte-ptr! s/tail) + bytes
 		p: as byte-ptr! s/offset
 
-		w: 0 h: 0
 		stride: 0
 		bitmap: OS-image/lock-bitmap img no
-		data: OS-image/get-data bitmap :w :h :stride
+		data: OS-image/get-data bitmap :stride
 
 		either type = EXTRACT_ARGB [
 			copy-memory p as byte-ptr! data bytes
@@ -239,8 +233,6 @@ image: context [
 			sz		[integer!]
 			s		[series!]
 			p		[byte-ptr!]
-			w		[integer!]
-			h		[integer!]
 			stride	[integer!]
 			bitmap	[integer!]
 			pixel	[integer!]
@@ -256,10 +248,9 @@ image: context [
 		if zero? sz [return bin]
 
 		offset: img/head
-		w: 0 h: 0
 		stride: 0
 		bitmap: OS-image/lock-bitmap img yes
-		data: OS-image/get-data bitmap :w :h :stride
+		data: OS-image/get-data bitmap :stride
 		end: data + sz
 
 		type: TYPE_OF(bin)
@@ -495,8 +486,6 @@ image: context [
 			count	[integer!]
 			bitmap	[integer!]
 			data	[int-ptr!]
-			w		[integer!]
-			h		[integer!]
 			stride	[integer!]
 			size	[integer!]
 			end		[int-ptr!]
@@ -523,10 +512,9 @@ image: context [
 			return part - 5
 		]
 
-		w: 0 h: 0
 		stride: 0
 		bitmap: OS-image/lock-bitmap img no
-		data: OS-image/get-data bitmap :w :h :stride
+		data: OS-image/get-data bitmap :stride
 		end: data + (width * height)
 		data: data + img/head
 		size: as-integer end - data
@@ -758,8 +746,6 @@ image: context [
 		/local
 			type  [integer!]
 			res   [integer!]
-			w	  [integer!]
-			h	  [integer!]
 			bmp1  [integer!]
 			bmp2  [integer!]
 			same? [logic!]
@@ -792,13 +778,12 @@ image: context [
 				][
 					res: 1
 				][
-					w: 0 h: 0
 					type: 0
 					bmp1: OS-image/lock-bitmap arg1 no
 					bmp2: OS-image/lock-bitmap arg2 no
 					res: compare-memory
-						as byte-ptr! OS-image/get-data bmp1 :w :h :type
-						as byte-ptr! OS-image/get-data bmp2 :w :h :type
+						as byte-ptr! OS-image/get-data bmp1 :type
+						as byte-ptr! OS-image/get-data bmp2 :type
 						IMAGE_WIDTH(arg1/size) * IMAGE_HEIGHT(arg2/size) * 4
 					OS-image/unlock-bitmap arg1 bmp1
 					OS-image/unlock-bitmap arg2 bmp2

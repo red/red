@@ -333,16 +333,12 @@ OS-image: context [
 
 	get-data: func [
 		handle		[integer!]
-		width		[int-ptr!]
-		height		[int-ptr!]
 		stride		[int-ptr!]
 		return:		[int-ptr!]
 		/local
 			bitmap	[BitmapData!]
 	][
 		bitmap: as BitmapData! handle
-		width/value: bitmap/width
-		height/value: bitmap/height
 		stride/value: bitmap/stride
 		as int-ptr! bitmap/scan0
 	]

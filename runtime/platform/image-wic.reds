@@ -387,8 +387,6 @@ OS-image: context [
 
 	get-data: func [
 		handle		[integer!]
-		width		[int-ptr!]
-		height		[int-ptr!]
 		stride		[int-ptr!]
 		return:		[int-ptr!]
 		/local
@@ -399,7 +397,6 @@ OS-image: context [
 	][
 		this: as this! handle
 		lock: as IWICBitmapLock this/vtbl
-		lock/GetSize this width height
 		lock/GetStride this stride
 		size: 0 data: 0
 		lock/GetDataPointer this :size :data
