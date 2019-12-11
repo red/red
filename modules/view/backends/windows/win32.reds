@@ -2382,12 +2382,12 @@ XFORM!: alias struct! [
 		]
 		GdipCreateFromHWND: "GdipCreateFromHWND" [
 			hwnd		[handle!]
-			graphics	[GpGraphics!]
+			graphics	[int-ptr!]
 			return:		[integer!]
 		]
 		GdipCreateFromHDC: "GdipCreateFromHDC" [
 			hDC			[handle!]
-			graphics	[GpGraphics!]
+			graphics	[int-ptr!]
 			return:		[integer!]
 		]
 		GdipDeleteGraphics: "GdipDeleteGraphics" [
