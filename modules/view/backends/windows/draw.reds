@@ -748,15 +748,14 @@ OS-draw-shape-endpath: func [
 	result: true
 
 	either ctx/other/GDI+? [
-		count: 0
-		GdipGetPointCount ctx/gp-path :count
-		if count > 0 [
+		if ctx/gp-path <> 0 [
 			check-gradient-shape ctx                          ;-- check for gradient
 			check-texture-shape ctx
 			if close? [ GdipClosePathFigure ctx/gp-path ]
 			GdipDrawPath ctx/graphics ctx/gp-pen ctx/gp-path
 			GdipFillPath ctx/graphics ctx/gp-brush ctx/gp-path
 			GdipDeletePath ctx/gp-path
+			ctx/gp-path: 0
 		]
 	][
 		dc: ctx/dc
@@ -2063,6 +2062,11 @@ check-texture-shape: func [
 		path-data	[PATHDATA]
 		pt2F		[POINT_2F]
 ][
+	if any [
+		ctx/gp-pen-type = BRUSH_TYPE_NORMAL
+		ctx/gp-brush-type = BRUSH_TYPE_NORMAL
+	][exit]
+
 	;-- flatten path to get a polygon aproximation
 	new-path: 0
 	GdipClonePath ctx/gp-path :new-path
@@ -2086,6 +2090,7 @@ check-texture-shape: func [
 	]
 	check-texture-poly ctx points count
 	;-- free allocated resources
+	GdipDeletePath new-path
 	free as byte-ptr! points
 	free as byte-ptr! path-data/points
 	free path-data/types
@@ -2891,6 +2896,7 @@ _check-gradient-shape: func [
 	]
 	_check-gradient-poly ctx gradient points count
 	;-- free allocated resources
+	GdipDeletePath new-path
 	free as byte-ptr! points
 	free as byte-ptr! gradient/path-data/points
 	free gradient/path-data/types
