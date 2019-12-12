@@ -454,13 +454,7 @@ check-grad-brush-lines: func [
 					x2: x0 + as float! grad/offset/x
 					y2: y0 + as float! grad/offset/y
 					r2: as float! grad/offset2/x
-					delta: line-distance grad/offset/x grad/offset/y grad/focal/x grad/focal/y
-					r1: as float! delta
-					either r1 >= r2 [
-						r1: 0.0
-					][
-						r1: r2 - r1
-					]
+					r1: 0.0
 				][
 					x1: x0 + as float! grad/offset/x
 					y1: y0 + as float! grad/offset/y
@@ -516,13 +510,7 @@ check-grad-arc-radial: func [
 			x2: x0 + as float! grad/offset/x
 			y2: y0 + as float! grad/offset/y
 			r2: as float! grad/offset2/x
-			delta: line-distance grad/offset/x grad/offset/y grad/focal/x grad/focal/y
-			r1: as float! delta
-			either r1 >= r2 [
-				r1: 0.0
-			][
-				r1: r2 - r1
-			]
+			r1: 0.0
 		][
 			x1: x0 + as float! grad/offset/x
 			y1: y0 + as float! grad/offset/y
@@ -568,8 +556,8 @@ check-grad-box-radial: func [
 	unless grad/type = radial [exit]
 	pattern: null
 
-	x0: as float! either upper/x < lower/x [upper/x][lower/x]
-	y0: as float! either upper/y < lower/y [upper/y][lower/y]
+	x0: either upper/x < lower/x [as float! upper/x][as float! lower/x]
+	y0: either upper/y < lower/y [as float! upper/y][as float! lower/y]
 
 	either grad/offset-on? [
 		either grad/focal-on? [
@@ -578,13 +566,7 @@ check-grad-box-radial: func [
 			x2: x0 + as float! grad/offset/x
 			y2: y0 + as float! grad/offset/y
 			r2: as float! grad/offset2/x
-			delta: line-distance grad/offset/x grad/offset/y grad/focal/x grad/focal/y
-			r1: as float! delta
-			either r1 >= r2 [
-				r1: 0.0
-			][
-				r1: r2 - r1
-			]
+			r1: 0.0
 		][
 			x1: x0 + as float! grad/offset/x
 			y1: y0 + as float! grad/offset/y
@@ -611,7 +593,7 @@ check-grad-box-radial: func [
 		][
 			upper/y - lower/y
 		]
-		r2: as float! either w > h [w][h]
+		r2: either w > h [as float! w][as float! h]
 		r2: r2 / 2.0
 	]
 	pattern: cairo_pattern_create_radial 0.0 0.0 r1 x2 - x1 y2 - y1 r2
