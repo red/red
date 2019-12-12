@@ -162,9 +162,7 @@ render-text: func [
 		GdipCreateFromHDC hDC :graphic
 		; GdipSetSmoothingMode graphic GDIPLUS_ANTIALIAS
 		; using GDI+ text rendering instead of GDI, see #2503 and #3465
-		scale-graphic graphic
 		update-base-text hWnd graphic hDC text font para rc/right - rc/left rc/bottom - rc/top bbox
-		GdipResetWorldTransform graphic
 		GdipDeleteGraphics graphic
 		res: true
 	]
@@ -689,6 +687,7 @@ update-base-text: func [
 	rect/width: as float32! dpi-unscale width
 	rect/height: as float32! dpi-unscale height
 
+	scale-graphic graphic
 	either bbox = null [
 		if default-color [clr: GetSysColor COLOR_WINDOWTEXT]
 		gdiclr: to-gdiplus-color-fixed clr
@@ -699,6 +698,7 @@ update-base-text: func [
 		rect/height: as float32! 1e6	;-- allow some room for rendering, otherwise stops at height
 		GdipMeasureString graphic unicode/to-utf16 text -1 hFont :rect format bbox null null
 	]
+	GdipResetWorldTransform graphic
 
 	GdipDeleteStringFormat format
 	GdipDeleteFont hFont
@@ -781,14 +781,12 @@ update-base: func [
 	hBitmap: CreateCompatibleBitmap hScreen width height
 	SelectObject hBackDC hBitmap
 	GdipCreateFromHDC hBackDC :graphic
-	scale-graphic graphic
 	if TYPE_OF(color) = TYPE_TUPLE [				;-- update background
 		update-base-background graphic color width height
 	]
 	GdipSetSmoothingMode graphic GDIPLUS_ANTIALIAS
 	update-base-image graphic img width height
 	update-base-text hWnd graphic hBackDC text font para width height null
-	GdipResetWorldTransform graphic
 	do-draw null as red-image! graphic cmds yes no no yes
 
 	ptSrc/x: 0
