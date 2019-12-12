@@ -142,7 +142,8 @@ Red/System [
 #define TCM_SETCURFOCUS		1330h
 #define TCM_INSERTITEMW		133Eh
 
-#define MCN_SELECT			1000h
+#define MCN_SELECT			FFFFFD16h
+
 #define MCM_GETCURSEL       1001h
 #define MCM_SETCURSEL		1002h
 
