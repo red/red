@@ -334,10 +334,10 @@ base-event-after: func [
 					offset2: as red-pair! (object/get-values tail) + FACE_OBJ_OFFSET
 					size2: as red-pair! (object/get-values tail) + FACE_OBJ_SIZE
 					unless all [
-						offset/x >= offset2/x
-						offset/x <= (offset2/x + size2/x)
-						offset/y >= offset2/y
-						offset/y <= (offset2/y + size2/y)
+						offset/x > offset2/x
+						offset/x < (offset2/x + size2/x)
+						offset/y > offset2/y
+						offset/y < (offset2/y + size2/y)
 					][continue]
 					case [
 						etype = GDK_MOTION_NOTIFY [
