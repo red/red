@@ -15,8 +15,11 @@ jobs:
         $output = "$Env:GITHUB_WORKSPACE\rebview.exe"
         (New-Object System.Net.WebClient).DownloadFile($url, $output)
     - name: run view test
-      run: |
-        rebview.exe -qws tests\run-view-tests.r --batch
-        type quick-test\quick-test.log
+      run: rebview.exe -qws tests\run-view-tests.r --batch
       shell: cmd
 
+    - uses: actions/upload-artifact@v1
+      if: failure()
+      with:
+        name: quick-test.log
+        path: quick-test/quick-test.log
