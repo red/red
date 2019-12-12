@@ -402,9 +402,7 @@ img-black?: func [
 	any [
 		empty? nonzero: trim im/rgb						;-- trivial case - all black
 		all [											;-- or try to apply tolerance
-			tolrel: any [tolrel 0.0]
-			tolabs: any [tolabs 0.0]
-			any [tolrel > 0 tolabs > 0]
+			any [all [tolrel tolrel > 0] all [tolabs tolabs > 0]]
 			about?/tol to-integer last sort nonzero  0  tolrel tolabs
 		]
 	]
@@ -829,10 +827,12 @@ test-same-text-size?: func [
 	im1 [image!] im2 [image!] /local s bs1 bs2 sz1 sz2
 ] [
 	unless all [
-		bs1: text-bounds? im1  sz1: as-pair  im1/size/x * (bs1/3 - bs1/1)  im1/size/y * (bs1/4 - bs1/2)
-		bs2: text-bounds? im2  sz2: as-pair  im2/size/x * (bs2/3 - bs2/1)  im2/size/y * (bs2/4 - bs2/2)
-		about?/tol sz1/x sz2/x 0 1	;-- allow 1px of error max
-		about?/tol sz1/y sz2/y 0 1
+		bs1: text-bounds? im1
+		bs2: text-bounds? im2
+		sz1: as-pair  round im1/size/x * (bs1/3 - bs1/1)  round im1/size/y * (bs1/4 - bs1/2)
+		sz2: as-pair  round im2/size/x * (bs2/3 - bs2/1)  round im2/size/y * (bs2/4 - bs2/2)
+		about?/tol sz1/x sz2/x 8% 1	;-- allow 8% + 1px of error - W10 has different proofing for unrotated text
+		about?/tol sz1/y sz2/y 8% 1
 	] [
 		s: form reduce [
 			"expected text to be of equal size on these images, got" sz1 "vs" sz2
