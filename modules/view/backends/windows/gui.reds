@@ -1444,6 +1444,9 @@ OS-make-view: func [
 		sym = camera [
 			class: #u16 "RedCamera"
 		]
+		sym = calendar [
+			class: #u16 "RedCalendar"
+		]
 		sym = window [
 			class: #u16 "RedWindow"
 			flags: WS_CAPTION or WS_CLIPCHILDREN

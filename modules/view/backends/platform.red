@@ -246,6 +246,7 @@ system/view/platform: context [
 			caret:			symbol/make "caret"
 			scroller:		symbol/make "scroller"
 			rich-text:		symbol/make "rich-text"
+			calendar:		symbol/make "calendar"
 
 			---:			symbol/make "---"
 			done:			symbol/make "done"
