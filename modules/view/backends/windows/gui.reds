@@ -1620,6 +1620,11 @@ OS-make-view: func [
 			init-base-face handle parent values alpha?
 			SetWindowLong handle wc-offset - 12 BASE_FACE_D2D or BASE_FACE_IME
 		]
+		sym = calendar [
+			if TYPE_OF(data) = TYPE_DATE [
+				change-calendar handle as red-date! data
+			]
+		]
 		sym = window [
 			init-window handle
 			SetWindowLong handle wc-offset - 20 as-integer focused
