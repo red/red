@@ -11,7 +11,7 @@ Red/System [
 ]
 
 with [platform][
-	calendar-change: func [
+	change-calendar: func [
 		hWnd [handle!]
 		date [red-date!]
 		/local

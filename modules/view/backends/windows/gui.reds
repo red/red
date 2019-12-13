@@ -2121,7 +2121,7 @@ change-data: func [
 			set-tabs hWnd get-face-values hWnd
 		]
 		all [type = calendar TYPE_OF(data) = TYPE_DATE][
-			calendar-change hWnd as red-date! data
+			change-calendar hWnd as red-date! data
 		]
 		type = text-list [
 			if TYPE_OF(data) = TYPE_BLOCK [
