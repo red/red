@@ -2062,7 +2062,7 @@ check-texture-shape: func [
 		path-data	[PATHDATA]
 		pt2F		[POINT_2F]
 ][
-	if any [
+	if all [
 		ctx/gp-pen-type = BRUSH_TYPE_NORMAL
 		ctx/gp-brush-type = BRUSH_TYPE_NORMAL
 	][exit]
