@@ -46,6 +46,7 @@ Red/System [
 #include %tab-panel.reds
 #include %text-list.reds
 #include %button.reds
+#include %calendar.reds
 #include %draw-d2d.reds
 #include %draw.reds
 #include %comdlgs.reds
@@ -2113,6 +2114,9 @@ change-data: func [
 		]
 		type = tab-panel [
 			set-tabs hWnd get-face-values hWnd
+		]
+		all [type = calendar TYPE_OF(data) = TYPE_DATE][
+			calendar-change hWnd as red-date! data
 		]
 		type = text-list [
 			if TYPE_OF(data) = TYPE_BLOCK [
