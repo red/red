@@ -1617,11 +1617,14 @@ OS-draw-font: func [
 	state: as red-block! vals + FONT_OBJ_STATE
 	color: as red-tuple! vals + FONT_OBJ_COLOR
 
-	hFont: as handle! either TYPE_OF(state) = TYPE_BLOCK [
-		handle: as red-handle! block/rs-head state
-		handle/value
-	][
-		make-font get-face-obj ctx/hwnd font
+	hFont: null
+	if TYPE_OF(state) = TYPE_BLOCK [
+		handle: as red-handle! (block/rs-head state) + 2
+		if TYPE_OF(handle) = TYPE_HANDLE [hFont: as handle! handle/value]
+	]
+
+	if null? hFont [
+		hFont: OS-make-font get-face-obj ctx/hwnd font no
 	]
 
 	SelectObject ctx/dc hFont

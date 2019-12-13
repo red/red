@@ -687,7 +687,6 @@ update-base-text: func [
 	rect/width: as float32! dpi-unscale width
 	rect/height: as float32! dpi-unscale height
 
-	scale-graphic graphic
 	either bbox = null [
 		if default-color [clr: GetSysColor COLOR_WINDOWTEXT]
 		gdiclr: to-gdiplus-color-fixed clr
@@ -698,7 +697,6 @@ update-base-text: func [
 		rect/height: as float32! 1e6	;-- allow some room for rendering, otherwise stops at height
 		GdipMeasureString graphic unicode/to-utf16 text -1 hFont :rect format bbox null null
 	]
-	GdipResetWorldTransform graphic
 
 	GdipDeleteStringFormat format
 	GdipDeleteFont hFont
