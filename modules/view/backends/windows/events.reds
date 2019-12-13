@@ -1225,6 +1225,7 @@ WndProc: func [
 			switch nmhdr/code [
 				TCN_SELCHANGING [return process-tab-select nmhdr/hWndFrom]
 				TCN_SELCHANGE	[process-tab-change nmhdr/hWndFrom]
+				MCN_SELECT      [process-calendar-change nmhdr/hWndFrom]
 				NM_CUSTOMDRAW	[
 					res: process-custom-draw wParam lParam
 					if res <> 0 [return res]
