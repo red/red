@@ -120,7 +120,7 @@ Red [
 		init: [unless face/image [face/image: make image! face/size]]
 	]
 	calendar: [
-		default-actor: on-select
-		template: [type: 'calendar size: 206x167]
+		default-actor: on-change
+		template: [type: 'calendar size: 206x149]
 	]
 )
