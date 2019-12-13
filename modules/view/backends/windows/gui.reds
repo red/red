@@ -1441,6 +1441,7 @@ OS-make-view: func [
 		]
 		sym = calendar [
 			class: #u16 "RedCalendar"
+			flags: flags or MCS_NOTODAY or MCS_NOTODAYCIRCLE
 		]
 		sym = window [
 			class: #u16 "RedWindow"
