@@ -3,7 +3,7 @@ name: CI
 on: [push]
 
 jobs:
-  build:
+  View:
 
     runs-on: windows-latest
     
@@ -21,5 +21,26 @@ jobs:
     - uses: actions/upload-artifact@v1
       if: failure()
       with:
-        name: quick-test.log
+        name: view-test-log
+        path: quick-test/quick-test.log
+
+  Regression:
+
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+    - name: setup red repo
+      run: |
+        $url = "http://static.red-lang.org/build/rebview.exe"
+        $output = "$Env:GITHUB_WORKSPACE\rebview.exe"
+        (New-Object System.Net.WebClient).DownloadFile($url, $output)
+    - name: run regression test
+      run: rebview.exe -qws tests\run-regression-tests.r --batch
+      shell: cmd
+
+    - uses: actions/upload-artifact@v1
+      if: failure()
+      with:
+        name: regression-test-log
         path: quick-test/quick-test.log

@@ -1,6 +1,6 @@
 REBOL [
 	Title:   "Builds and Runs the Red Tests"
-	File: 	 %run-view-test.r
+	File: 	 %run-regression-tests.r
 	Author:  "Xie Qingtian"
 	Version: 0.5.0
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
@@ -29,10 +29,14 @@ print ["This test started at" start-time]
 
 qt/script-header: "Red []"
 
-***start-run-quiet*** "Red/View Test Suite"
+***start-run-quiet*** "Red Regression Test Suite"
 
-===start-group=== "View Engine Tests"
-	--run-test-file-quiet %source/view/base-self-test.red
+===start-group=== "Red Compiler Regression Tests"
+	--run-script-quiet %source/compiler/regression-test-redc-1.r
+	--run-script-quiet %source/compiler/regression-test-redc-2.r
+	--run-script-quiet %source/compiler/regression-test-redc-3.r
+	--run-script-quiet %source/compiler/regression-test-redc-4.r
+	--run-script-quiet %source/compiler/regression-test-redc-5.r
 ===end-group===
 
 ***end-run-quiet***
