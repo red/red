@@ -148,7 +148,6 @@ Red/System [
 #define MCS_NOSELCHANGEONNAV 0100h
 
 #define MCN_SELCHANGE		FFFFFD13h
-#define MCN_SELECT			FFFFFD16h
 
 #define MCM_GETCURSEL       1001h
 #define MCM_SETCURSEL		1002h
