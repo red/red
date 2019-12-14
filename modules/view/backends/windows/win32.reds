@@ -315,7 +315,7 @@ Red/System [
 #define WM_RBUTTONUP		0205h
 #define WM_MBUTTONDOWN		0207h
 #define WM_MBUTTONUP		0208h
-#define	WM_MOUSEWHELL		020Ah
+#define	WM_MOUSEWHEEL		020Ah
 #define WM_ENTERMENULOOP	0211h
 #define WM_SIZING			0214h
 #define WM_MOVING			0216h
