@@ -12,35 +12,35 @@ Red/System [
 
 with [platform][
 	change-calendar: func [
-		hWnd [handle!]
-		date [red-date!]
+		handle [handle!]
+		date   [red-date!]
 		/local
-			st [tagSYSTEMTIME]
+			time [tagSYSTEMTIME]
 	][
-		st: declare tagSYSTEMTIME		
-		st/year-month: get-year-month date/date
-		st/week-day: get-day date/date
+		time: declare tagSYSTEMTIME		
+		time/year-month: get-year-month date/date
+		time/week-day: get-day date/date
 
-		SendMessage hWnd MCM_SETCURSEL 0 as integer! st
+		SendMessage handle MCM_SETCURSEL 0 as integer! time
 	]
 
 	process-calendar-change: func [
-		hWnd [handle!]
+		handle [handle!]
 		/local
 			slot  [red-value!]
-			st    [tagSYSTEMTIME]
+			time  [tagSYSTEMTIME]
 			year  [integer!]
 			month [integer!]
 			day   [integer!]
 	][
-		st: declare tagSYSTEMTIME
-		SendMessage hWnd MCM_GETCURSEL 0 as integer! st
+		time: declare tagSYSTEMTIME
+		SendMessage handle MCM_GETCURSEL 0 as integer! time
 		
-		year:  cap WIN32_LOWORD(st/year-month) 			;-- possible overflow: Win32 1601:30827, Red -16384:16383
-		month: WIN32_HIWORD(st/year-month)
-		day:   WIN32_HIWORD(st/week-day)
+		year:  cap WIN32_LOWORD(time/year-month) 			;-- possible overflow: Win32 1601:30827, Red -16384:16383
+		month: WIN32_HIWORD(time/year-month)
+		day:   WIN32_HIWORD(time/week-day)
 		
-		current-msg/hWnd: hWnd
+		current-msg/hWnd: handle
 		
 		slot: get-facet current-msg FACE_OBJ_DATA
 		date/make-at slot year month day 0.0 0 0 no no
