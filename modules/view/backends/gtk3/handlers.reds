@@ -280,6 +280,7 @@ base-event-after: func [
 		type	[red-word!]
 		color	[red-tuple!]
 		offset	[red-pair!]
+		size	[red-pair!]
 		parent	[red-object!]
 		sym		[integer!]
 		hparent	[handle!]
@@ -311,6 +312,7 @@ base-event-after: func [
 	type: as red-word! values + FACE_OBJ_TYPE
 	color: as red-tuple! values + FACE_OBJ_COLOR
 	offset: as red-pair! values + FACE_OBJ_OFFSET
+	size: as red-pair! values + FACE_OBJ_SIZE
 	parent: as red-object! values + FACE_OBJ_PARENT
 	sym: symbol/resolve type/symbol
 
@@ -334,10 +336,10 @@ base-event-after: func [
 					offset2: as red-pair! (object/get-values tail) + FACE_OBJ_OFFSET
 					size2: as red-pair! (object/get-values tail) + FACE_OBJ_SIZE
 					unless all [
-						offset/x >= offset2/x
-						offset/x <= (offset2/x + size2/x)
-						offset/y >= offset2/y
-						offset/y <= (offset2/y + size2/y)
+						offset/x + size/x > offset2/x
+						offset2/x + size2/x > offset/x
+						offset/y + size/y > offset2/y
+						offset2/y + size2/y > offset/y
 					][continue]
 					case [
 						etype = GDK_MOTION_NOTIFY [
