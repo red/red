@@ -331,6 +331,7 @@ lexer: context [
 		nline		[integer!]							;-- new lines count for new token
 		type		[integer!]							;-- sub-type in a typeclass
 		entry		[integer!]							;-- entry state for the FSM
+		prev		[integer!]							;-- previous state before forced EOF transition
 		exit		[integer!]							;-- exit state for the FSM
 		closing		[integer!]							;-- any-block! expected closing delimiter type 
 		mstr-s		[byte-ptr!]							;-- multiline string saved start position
@@ -789,8 +790,13 @@ lexer: context [
 
 	scan-eof: func [lex [state!] s e [byte-ptr!] flags [integer!]][]
 	
-	scan-error: func [lex [state!] s e [byte-ptr!] flags [integer!]][
-		throw-error lex s e ERR_BAD_CHAR
+	scan-error: func [lex [state!] s e [byte-ptr!] flags [integer!] /local type index [integer!]][
+		either lex/prev < --EXIT_STATES-- [
+			index: lex/prev + 1
+			throw-error lex s e as-integer prev-table/index
+		][
+			throw-error lex s e ERR_BAD_CHAR
+		]
 	]
 	
 	scan-block-open: func [lex [state!] s e [byte-ptr!] flags [integer!]
@@ -1627,7 +1633,7 @@ lexer: context [
 		lex  [state!]
 		one? [logic!]
 		/local
-			cp class index state flags line	mark offset	[integer!]
+			cp class index state prev flags line mark offset [integer!]
 			slot	  [red-value!]
 			p e	start [byte-ptr!]
 			s		  [series!]
@@ -1639,6 +1645,7 @@ lexer: context [
 			flags: 0
 			term?: no
 			state: lex/entry
+			prev: state
 			p: lex/in-pos
 			start: p
 			mark: line
@@ -1648,16 +1655,16 @@ lexer: context [
 				cp: as-integer p/value
 				flags: lex-classes/cp and FFFFFF00h or flags
 				class: lex-classes/cp and FFh
-				
 				index: state * (size? character-classes!) + class
+				prev: state
 				state: as-integer transitions/index
-				
 				offset: offset + as-integer skip-table/state
 				if state > --EXIT_STATES-- [term?: yes break]
 				line: line + as-integer line-table/class
 				p: p + 1
 			]
 			unless term? [
+				prev: state
 				index: state * (size? character-classes!) + C_EOF
 				state: as-integer transitions/index
 			]
@@ -1668,6 +1675,7 @@ lexer: context [
 			lex/line:   line
 			lex/nline:  line - mark
 			lex/exit:   state
+			lex/prev:	prev
 			lex/type:	-1
 			
 			index: state - --EXIT_STATES--

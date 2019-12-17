@@ -61,7 +61,9 @@ Red/System [
 	TYPE_DATE											;-- 2F		47
 	TYPE_PORT											;-- 30		48
 	TYPE_IMAGE											;-- 31		49		;-- needs to be last
-	TYPE_EVENT											
+	TYPE_EVENT
+	
+	TYPE_MONEY
 	TYPE_CLOSURE
 	TYPE_SLICE
 	TYPE_TOTAL_COUNT									;-- keep tabs on number of datatypes.
