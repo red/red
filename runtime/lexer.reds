@@ -340,6 +340,7 @@ lexer: context [
 	
 	scanner!: alias function! [lex [state!] s e [byte-ptr!] flags [integer!]]
 
+	scanners: as int-ptr! 0								;-- scan functions jump table (dynamically filled)
 	stash: as cell! 0									;-- special buffer for hatching any-blocks series
 	stash-size: 1000									;-- pre-allocated cells	number
 	root-state: as state! 0								;-- global entry point to state struct list
@@ -1622,41 +1623,6 @@ lexer: context [
 		]
 	]
 
-	scanners: [
-		:scan-eof										;-- T_EOF
-		:scan-error										;-- T_ERROR
-		:scan-block-open								;-- T_BLK_OP
-		:scan-block-close								;-- T_BLK_CL
-		:scan-block-open								;-- T_PAR_OP
-		:scan-paren-close								;-- T_PAR_CL
-		:scan-string									;-- T_STRING
-		:scan-mstring-open								;-- T_MSTR_OP (multiline string)
-		:scan-mstring-close								;-- T_MSTR_CL (multiline string)
-		:scan-word										;-- T_WORD
-		:scan-file										;-- T_FILE
-		:scan-ref-issue									;-- T_REFINE
-		:scan-binary									;-- T_BINARY
-		:scan-char										;-- T_CHAR
-		:scan-map-open									;-- T_MAP_OP
-		:scan-construct									;-- T_CONS_MK
-		:scan-ref-issue									;-- T_ISSUE
-		:scan-percent									;-- T_PERCENT
-		:scan-integer									;-- T_INTEGER
-		:scan-float										;-- T_FLOAT
-		:scan-float-special								;-- T_FLOAT_SP
-		:scan-tuple										;-- T_TUPLE
-		:scan-date										;-- T_DATE
-		:scan-pair										;-- T_PAIR
-		:scan-time										;-- T_TIME
-		:scan-money										;-- T_MONEY
-		:scan-tag										;-- T_TAG
-		:scan-url										;-- T_URL
-		:scan-email										;-- T_EMAIL
-		:scan-path-open									;-- T_PATH
-		:scan-hex										;-- T_HEX
-		:scan-comment									;-- T_CMT
-	]
-
 	scan-tokens: func [
 		lex  [state!]
 		one? [logic!]
@@ -1762,6 +1728,18 @@ lexer: context [
 		if zero? depth [root-state: null]
 	]
 	
+	set-jump-table: func [[variadic] count [integer!] list [int-ptr!] /local i [integer!] s [int-ptr!]][
+		scanners: as int-ptr! allocate count * size? int-ptr!
+		s: scanners
+		until [
+			s/value: list/value
+			list: list + 1
+			count: count - 1
+			s: s + 1
+			zero? count
+		]
+	]
+	
 	init: func [][
 		stash: as cell! allocate stash-size * size? cell!
 		
@@ -1770,6 +1748,41 @@ lexer: context [
 		transitions: transitions + 1
 		skip-table: skip-table + 1
 		line-table: line-table + 1
+		
+		set-jump-table [
+			:scan-eof									;-- T_EOF
+			:scan-error									;-- T_ERROR
+			:scan-block-open							;-- T_BLK_OP
+			:scan-block-close							;-- T_BLK_CL
+			:scan-block-open							;-- T_PAR_OP
+			:scan-paren-close							;-- T_PAR_CL
+			:scan-string								;-- T_STRING
+			:scan-mstring-open							;-- T_MSTR_OP (multiline string)
+			:scan-mstring-close							;-- T_MSTR_CL (multiline string)
+			:scan-word									;-- T_WORD
+			:scan-file									;-- T_FILE
+			:scan-ref-issue								;-- T_REFINE
+			:scan-binary								;-- T_BINARY
+			:scan-char									;-- T_CHAR
+			:scan-map-open								;-- T_MAP_OP
+			:scan-construct								;-- T_CONS_MK
+			:scan-ref-issue								;-- T_ISSUE
+			:scan-percent								;-- T_PERCENT
+			:scan-integer								;-- T_INTEGER
+			:scan-float									;-- T_FLOAT
+			:scan-float-special							;-- T_FLOAT_SP
+			:scan-tuple									;-- T_TUPLE
+			:scan-date									;-- T_DATE
+			:scan-pair									;-- T_PAIR
+			:scan-time									;-- T_TIME
+			:scan-money									;-- T_MONEY
+			:scan-tag									;-- T_TAG
+			:scan-url									;-- T_URL
+			:scan-email									;-- T_EMAIL
+			:scan-path-open								;-- T_PATH
+			:scan-hex									;-- T_HEX
+			:scan-comment								;-- T_CMT
+		]
 	]
 
 ]
