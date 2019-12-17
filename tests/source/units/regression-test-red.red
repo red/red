@@ -1415,10 +1415,10 @@ Red [
 
 	--test-- "#1136"
 		e1136: try [load {a: func [][set 'b: 1]}]
-		--assert not not all [
+		--assert to logic! all [
 			equal? e1136/type 'syntax
 			equal? e1136/id 'invalid
-			equal? e1136/arg1 lit-word!
+			equal? e1136/arg2 lit-word!
 		]
 
 	comment { probe should be mocked for this test
