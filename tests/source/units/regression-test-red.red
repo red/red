@@ -1619,12 +1619,12 @@ Red [
 		e1396: try [load {(5+2)}]
 		--assert all [
 			equal? e1396/id 'invalid
-			equal? e1396/arg1 integer!
+			equal? e1396/arg2 integer!
 		]
 		e1396: try [load {[5+2]}]
 		--assert all [
 			equal? e1396/id 'invalid
-			equal? e1396/arg1 integer!
+			equal? e1396/arg2 integer!
 		]
 
 	--test-- "#1416"
@@ -1987,22 +1987,25 @@ Red [
 
 	--test-- "#1750"
 		e1750: try [load "2#{FF}"]
-		--assert all [
+		--assert to-logic all [
+			error? :e1750
 			equal? e1750/type 'syntax
 			equal? e1750/id 'invalid
-			equal? e1750/arg1 binary!
+			equal? e1750/arg2 binary!
 		]
 		e1750: try [load "64#{AA}"]
-		--assert all [
+		--assert to-logic all [
+			error? :e1750
 			equal? e1750/type 'syntax
 			equal? e1750/id 'invalid
-			equal? e1750/arg1 binary!
+			equal? e1750/arg2 binary!
 		]
 		e1750: try [load "4#{0}"]
-		--assert all [
+		--assert to-logic all [
+			error? :e1750
 			equal? e1750/type 'syntax
 			equal? e1750/id 'invalid
-			equal? e1750/arg1 integer!
+			equal? e1750/arg2 binary!
 		]
 		not error? try [load "16#{AA}"]
 		unset 'e1750
@@ -2717,7 +2720,7 @@ b}
 
 	--test-- "#2195"
 		e2195: try [load "system/options/"]
-		--assert equal? "system/options/" e2195/arg2
+		--assert equal? "system/options/" e2195/arg3
 		unset 'e2195
 
 	--test-- "#2196"

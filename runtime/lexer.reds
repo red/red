@@ -327,6 +327,7 @@ lexer: context [
 		input		[byte-ptr!]
 		in-end		[byte-ptr!]
 		in-pos		[byte-ptr!]
+		in-path		[byte-ptr!]							;-- records beginning of scanned path
 		line		[integer!]							;-- current line number
 		nline		[integer!]							;-- new lines count for new token
 		type		[integer!]							;-- sub-type in a typeclass
@@ -612,6 +613,7 @@ lexer: context [
 			][if val = 80h [return s]]
 			s: s + 1
 		]
+		if flip <> 0 [return s]
 		ser/tail: as red-value! p
 		null
 	]
@@ -793,7 +795,9 @@ lexer: context [
 	scan-error: func [lex [state!] s e [byte-ptr!] flags [integer!] /local type index [integer!]][
 		either lex/prev < --EXIT_STATES-- [
 			index: lex/prev + 1
-			throw-error lex s e as-integer prev-table/index
+			index: as-integer prev-table/index
+			if zero? index [index: ERR_BAD_CHAR]		;-- fallback when no specific type detected
+			throw-error lex s e index
 		][
 			throw-error lex s e ERR_BAD_CHAR
 		]
@@ -1561,6 +1565,7 @@ lexer: context [
 		/local
 			type [integer!]
 	][
+		lex/in-path: s
 		type: switch s/1 [
 			#"'" [s: s + 1 flags: flags and not C_FLAG_QUOTE TYPE_LIT_PATH]
 			#":" [s: s + 1 flags: flags and not C_FLAG_COLON TYPE_GET_PATH]
@@ -1615,16 +1620,16 @@ lexer: context [
 		either close? [
 			type: either all [e < lex/in-end e/1 = #":"][
 				if all [e + 1 < lex/in-end e/2 = #"/"][ ;-- detect :/ illegal sequence
-					throw-error lex s e TYPE_PATH
+					throw-error lex lex/in-path e TYPE_PATH
 				]
 				lex/in-pos: e + 1						;-- skip :
 				TYPE_SET_PATH
 			][-1]
 			close-block lex s e -1 type
+			lex/in-path: null
 		][
-			if all [e < lex/in-end e/1 = #":"][
-				throw-error lex s e TYPE_PATH			;-- set-words not allowed inside paths
-			]
+			if e + 1 = lex/in-end [throw-error lex lex/in-path e TYPE_PATH] ;-- incomplete path error
+			if e/1 = #":" [throw-error lex lex/in-path e TYPE_PATH] ;-- set-words not allowed inside paths
 			lex/in-pos: e + 1							;-- skip /
 		]
 	]
@@ -1718,6 +1723,7 @@ lexer: context [
 		lex/input:		src
 		lex/in-end:		src + len
 		lex/in-pos:		src
+		lex/in-path:	null
 		lex/entry:		S_START
 		lex/type:		-1
 		lex/mstr-nest:	0
