@@ -154,8 +154,9 @@ fill: func [
 	]
 	
 	unless aligned? [						;-- postprocess unaligned ending
-		cnt: (as-integer end) and 3	
-		while [cnt > 0][end/cnt: byte cnt: cnt - 1]
+		cnt: (as-integer end) and 3
+		p: as byte-ptr! p4
+		while [cnt > 0][p/cnt: byte cnt: cnt - 1]
 	]
 ]
 

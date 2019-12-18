@@ -186,9 +186,9 @@ init-graph: func [
 	cam		[camera!]
 	idx		[integer!]
 	/local
-		IB		[interface!]
-		IG		[interface!]
-		ICap	[interface!]
+		IB		[interface! value]
+		IG		[interface! value]
+		ICap	[interface! value]
 		graph	[IGraphBuilder]
 		moniker [IMoniker]
 		builder [ICaptureGraphBuilder2]
@@ -196,10 +196,6 @@ init-graph: func [
 		dev-ptr [int-ptr!]
 		dev		[this!]
 ][
-	IB:   declare interface!
-	IG:   declare interface!
-	ICap: declare interface!
-
 	hr: CoCreateInstance CLSID_CaptureGraphBuilder2 0 1 IID_ICaptureGraphBuilder2 IB
 	builder: as ICaptureGraphBuilder2 IB/ptr/vtbl
 	cam/builder: IB/ptr
@@ -229,17 +225,16 @@ build-preview-graph: func [
 	return:		[integer!]
 	/local
 		filter	[this!]
-		IVM		[interface!]
+		IVM		[interface! value]
 		graph	[IGraphBuilder]
 		builder [ICaptureGraphBuilder2]
 		video	[IVideoWindow]
 		hr		[integer!]
-		rect	[RECT_STRUCT]
+		rect	[RECT_STRUCT value]
 ][
 	builder: as ICaptureGraphBuilder2 cam/builder/vtbl
 	graph:   as IGraphBuilder cam/graph/vtbl
 	filter:  as this! cam/v-filter
-	IVM:	 declare interface!
 
 	hr: builder/RenderStream cam/builder PIN_CATEGORY_PREVIEW MEDIATYPE_Interleaved filter null null
 	case [
@@ -256,7 +251,6 @@ build-preview-graph: func [
 	]
 	hr: graph/QueryInterface cam/graph IID_IVideoWindow IVM
 	either zero? hr [
-		rect: declare RECT_STRUCT
 		GetClientRect hWnd rect
 		video: as IVideoWindow IVM/ptr/vtbl
 		video/put_Owner IVM/ptr hWnd
@@ -276,13 +270,12 @@ toggle-preview: func [
 	handle		[handle!]
 	enabled?	[logic!]
 	/local
-		this	[interface!]
+		this	[interface! value]
 		cam		[camera!]
 		graph	[IGraphBuilder]
 		mc		[IMediaControl]
 		hr		[integer!]
 ][
-	this: declare interface!
 	cam: as camera! GetWindowLong handle wc-offset - 4
 	if cam = null [exit]
 	graph: as IGraphBuilder cam/graph/vtbl
@@ -327,11 +320,11 @@ collect-camera: func [
 	return:		[integer!]
 	/local
 		hr		[integer!]
-		var		[tagVARIANT]
-		IDev	[interface!]
-		IEnum	[interface!]
-		IM		[interface!]
-		IBag	[interface!]
+		var		[tagVARIANT value]
+		IDev	[interface! value]
+		IEnum	[interface! value]
+		IM		[interface! value]
+		IBag	[interface! value]
 		dev		[ICreateDevEnum]
 		em		[IEnumMoniker]
 		moniker [IMoniker]
@@ -343,11 +336,6 @@ collect-camera: func [
 		fetched [integer!]
 		cnt		[integer!]
 ][
-	IDev:  declare interface!
-	IEnum: declare interface!
-	IM:    declare interface!
-	IBag:  declare interface!
-
 	hr: CoCreateInstance CLSID_SystemDeviceEnum 0 1 IID_ICreateDevEnum IDev
 	if hr <> 0 [probe "Error Creating Device Enumerator" return 0]
 
@@ -361,7 +349,6 @@ collect-camera: func [
 	dev/Release IDev/ptr
 
 	em: as IEnumMoniker IEnum/ptr/vtbl
-	var: declare tagVARIANT
 	var/data1: 8 << 16									;-- var.vt = VT_BSTR
 	dev-ptr: (as int-ptr! cam) + 4
 	fetched: 0

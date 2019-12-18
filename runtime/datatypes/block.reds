@@ -742,7 +742,17 @@ block: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/compare"]]
 		
-		if TYPE_OF(blk2) <> TYPE_OF(blk1) [RETURN_COMPARE_OTHER]
+		if TYPE_OF(blk2) <> TYPE_OF(blk1) [
+			unless all [
+				op = COMP_STRICT_EQUAL_WORD
+				any [
+					all [TYPE_OF(blk1) = TYPE_PATH TYPE_OF(blk2) = TYPE_LIT_PATH]
+					all [TYPE_OF(blk2) = TYPE_PATH TYPE_OF(blk1) = TYPE_LIT_PATH]
+				]
+			][
+				RETURN_COMPARE_OTHER
+			]
+		]
 		compare-each blk1 blk2 op
 	]
 	

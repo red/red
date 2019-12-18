@@ -1326,6 +1326,7 @@ parser: context [
 							end?: any [zero? len all [positive? part input/head >= part]]
 							state: ST_CHECK_PENDING
 						]
+						TYPE_PATH [PARSE_ERROR [TO_ERROR(script parse-rule) value]]
 						default [						;-- try to match a literal value
 							state: ST_MATCH
 						]
@@ -1671,7 +1672,9 @@ parser: context [
 							]
 							PARSE_SAVE_SERIES
 							before: input/head
-							if word? [value: _context/get as red-word! value]
+							if all [word? TYPE_OF(value) = TYPE_WORD][
+								value: _context/get as red-word! value
+							]
 							actions/insert input value null as-logic max null no
 							input/head: saved + (input/head - before)
 							if s-top <> null [stack/top: s-top]
