@@ -1617,6 +1617,8 @@ lexer: context [
 			index: lex-classes/cp and FFh + 1			;-- query the class of ending character
 			as-logic path-ending/index					;-- lookup if the character class is ending path
 		]
+		assert lex/in-path <> null
+		
 		either close? [
 			type: either all [e < lex/in-end e/1 = #":"][
 				if all [e + 1 < lex/in-end e/2 = #"/"][ ;-- detect :/ illegal sequence
