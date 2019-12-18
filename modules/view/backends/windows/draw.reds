@@ -369,6 +369,14 @@ OS-draw-box: func [
 OS-draw-triangle: func [		;@@ TBD merge this function with OS-draw-polygon
 	ctx			[draw-ctx!]
 	start		[red-pair!]
+][
+	OS-draw-polygon ctx start start + 2
+]
+
+OS-draw-polygon: func [
+	ctx			[draw-ctx!]
+	start		[red-pair!]
+	end			[red-pair!]
 	/local
 		d2d		[ID2D1Factory]
 		path	[ptr-value!]
@@ -393,11 +401,12 @@ OS-draw-triangle: func [		;@@ TBD merge this function with OS-draw-polygon
 	point/x: as float32! start/x
 	point/y: as float32! start/y
 	gsink/BeginFigure sthis point 1			;-- D2D1_FIGURE_BEGIN_HOLLOW
-	loop 2 [
-		start: start + 1
+	start: start + 1
+	while [start <= end] [
 		point/x: as float32! start/x
 		point/y: as float32! start/y
 		gsink/AddLine sthis point
+		start: start + 1
 	]
 	gsink/EndFigure sthis 1					;-- D2D1_FIGURE_END_CLOSED
 
@@ -413,14 +422,6 @@ OS-draw-triangle: func [		;@@ TBD merge this function with OS-draw-polygon
 		dc/DrawGeometry this as int-ptr! pthis ctx/pen ctx/pen-width ctx/pen-style
 	]
 	gpath/Release pthis
-]
-
-OS-draw-polygon: func [
-	ctx		[draw-ctx!]
-	start	[red-pair!]
-	end		[red-pair!]
-][
-
 ]
 
 OS-draw-spline: func [
