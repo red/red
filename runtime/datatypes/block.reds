@@ -1511,7 +1511,6 @@ block: context [
 		blk: as red-block! _series/take blk part-arg deep? last?
 		s: GET_BUFFER(blk)
 
-		ownership/check as red-value! blk words/_take null blk/head 1
 		if deep? [
 			slot: s/offset
 			until [
@@ -1535,7 +1534,6 @@ block: context [
 		][
 			copy-cell as cell! s/offset as cell! blk
 		]
-		ownership/check as red-value! blk words/_taken null blk/head 0
 		as red-value! blk
 	]
 
