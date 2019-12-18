@@ -44,6 +44,7 @@ draw-begin: func [
 ][
 	zero-memory as byte-ptr! ctx size? draw-ctx!
 	ctx/pen-width:	as float32! 1.0
+	ctx/pen-style:	0
 	ctx/pen?:		yes
 	ctx/hwnd:		hWnd
 	ctx/font-color:	-1
@@ -366,10 +367,52 @@ OS-draw-box: func [
 ]
 
 OS-draw-triangle: func [		;@@ TBD merge this function with OS-draw-polygon
-	ctx		[draw-ctx!]
-	start	[red-pair!]
+	ctx			[draw-ctx!]
+	start		[red-pair!]
+	/local
+		d2d		[ID2D1Factory]
+		path	[ptr-value!]
+		hr		[integer!]
+		pthis	[this!]
+		gpath	[ID2D1PathGeometry]
+		sink	[ptr-value!]
+		sthis	[this!]
+		gsink	[ID2D1GeometrySink]
+		point	[D2D_POINT_2F value]
+		this	[this!]
+		dc		[ID2D1DeviceContext]
 ][
+	d2d: as ID2D1Factory d2d-factory/vtbl
+	hr: d2d/CreatePathGeometry d2d-factory :path
+	pthis: as this! path/value
+	gpath: as ID2D1PathGeometry pthis/vtbl
+	hr: gpath/Open pthis :sink
+	sthis: as this! sink/value
+	gsink: as ID2D1GeometrySink sthis/vtbl
 
+	point/x: as float32! start/x
+	point/y: as float32! start/y
+	gsink/BeginFigure sthis point 1			;-- D2D1_FIGURE_BEGIN_HOLLOW
+	loop 2 [
+		start: start + 1
+		point/x: as float32! start/x
+		point/y: as float32! start/y
+		gsink/AddLine sthis point
+	]
+	gsink/EndFigure sthis 1					;-- D2D1_FIGURE_END_CLOSED
+
+	hr: gsink/Close sthis
+	gsink/Release sthis
+
+	this: as this! ctx/dc
+	dc: as ID2D1DeviceContext this/vtbl
+	if ctx/brush? [
+		dc/FillGeometry this as int-ptr! pthis ctx/brush null
+	]
+	if ctx/pen? [
+		dc/DrawGeometry this as int-ptr! pthis ctx/pen ctx/pen-width ctx/pen-style
+	]
+	gpath/Release pthis
 ]
 
 OS-draw-polygon: func [

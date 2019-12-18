@@ -60,6 +60,35 @@ RECT32!: alias struct! [
 	bottom		[float32!]
 ]
 
+D2D1_SIZE_F: alias struct! [
+	width		[float32!]
+	height		[float32!]
+]
+
+D2D_POINT_2F: alias struct! [
+	x			[float32!]
+	y			[float32!]
+]
+
+D2D1_BEZIER_SEGMENT: alias struct! [
+	point1		[D2D_POINT_2F value]
+	point2		[D2D_POINT_2F value]
+	point3		[D2D_POINT_2F value]
+]
+
+D2D1_QUADRATIC_BEZIER_SEGMENT: alias struct! [
+	point1		[D2D_POINT_2F value]
+	point2		[D2D_POINT_2F value]
+]
+
+D2D1_ARC_SEGMENT: alias struct! [
+	point		[D2D_POINT_2F value]
+	size		[D2D1_SIZE_F value]
+	angle		[float32!]
+	direction	[integer!]
+	arcSize		[integer!]
+]
+
 D2D_MATRIX_3X2_F: alias struct! [
 	_11			[float32!]
 	_12			[float32!]
@@ -436,7 +465,7 @@ ID2D1Factory: alias struct! [
 	CreateEllipseGeometry			[integer!]
 	CreateGeometryGroup				[integer!]
 	CreateTransformedGeometry		[integer!]
-	CreatePathGeometry				[integer!]
+	CreatePathGeometry				[function! [this [this!] pathGeometry [ptr-ptr!] return: [integer!]]]
 	CreateStrokeStyle				[integer!]
 	CreateDrawingStateBlock			[integer!]
 	CreateWicBitmapRenderTarget		[integer!]
@@ -556,8 +585,8 @@ ID2D1DeviceContext: alias struct! [
 	FillRoundedRectangle			[integer!]
 	DrawEllipse						[DrawEllipse*]
 	FillEllipse						[FillEllipse*]
-	DrawGeometry					[integer!]
-	FillGeometry					[integer!]
+	DrawGeometry					[function! [this [this!] geometry [int-ptr!] brush [integer!] strokeWidth [float32!] style [integer!] return: [integer!]]]
+	FillGeometry					[function! [this [this!] geometry [int-ptr!] brush [integer!] opacityBrush [integer!] return: [integer!]]]
 	FillMesh						[integer!]
 	FillOpacityMask					[integer!]
 	DrawBitmap						[integer!]
@@ -750,6 +779,48 @@ ID2D1DCRenderTarget: alias struct! [
 	GetMaximumBitmapSize			[integer!]
 	IsSupported						[integer!]
 	BindDC							[function! [this [this!] hDC [handle!] rect [RECT_STRUCT] return: [integer!]]]
+]
+
+ID2D1PathGeometry: alias struct! [
+	QueryInterface					[QueryInterface!]
+	AddRef							[AddRef!]
+	Release							[Release!]
+	GetFactory						[integer!]
+	GetBounds						[integer!]
+	GetWidenedBounds				[integer!]
+	StrokeContainsPoint				[integer!]
+	FillContainsPoint				[integer!]
+	CompareWithGeometry				[integer!]
+	Simplify						[integer!]
+	Tessellate						[integer!]
+	CombineWithGeometry				[integer!]
+	Outline							[integer!]
+	ComputeArea						[integer!]
+	ComputeLength					[integer!]
+	ComputePointAtLength			[integer!]
+	Widen							[integer!]
+	Open							[function! [this [this!] sink [ptr-ptr!] return: [integer!]]]
+	Stream							[function! [this [this!] sink [ptr-ptr!] return: [integer!]]]
+	GetSegmentCount					[function! [this [this!] count [int-ptr!] return: [integer!]]]
+	GetFigureCount					[function! [this [this!] count [int-ptr!] return: [integer!]]]
+]
+
+ID2D1GeometrySink: alias struct! [
+	QueryInterface					[QueryInterface!]
+	AddRef							[AddRef!]
+	Release							[Release!]
+	SetFillMode						[function! [this [this!] fill_mode [integer!] return: [integer!]]]
+	SetSegmentFlags					[function! [this [this!] vertexFlags [integer!] return: [integer!]]]
+	BeginFigure						[function! [this [this!] startPoint [D2D_POINT_2F value] figureBegin [integer!] return: [integer!]]]
+	AddLines						[function! [this [this!] points [D2D_POINT_2F] pointsCount [integer!] return: [integer!]]]
+	AddBeziers						[function! [this [this!] beziers [D2D1_BEZIER_SEGMENT] beziersCount [integer!] return: [integer!]]]
+	EndFigure						[function! [this [this!] figureEnd [integer!] return: [integer!]]]
+	Close							[function! [this [this!] return: [integer!]]]
+	AddLine							[function! [this [this!] point [D2D_POINT_2F value] return: [integer!]]]
+	AddBezier						[function! [this [this!] beziers [D2D1_BEZIER_SEGMENT] return: [integer!]]]
+	AddQuadraticBezier				[function! [this [this!] bezier [D2D1_QUADRATIC_BEZIER_SEGMENT] return: [integer!]]]
+	AddQuadraticBeziers				[function! [this [this!] beziers [D2D1_QUADRATIC_BEZIER_SEGMENT] beziersCount [integer!] return: [integer!]]]
+	AddArc							[function! [this [this!] arc [D2D1_ARC_SEGMENT] return: [integer!]]]
 ]
 
 ;-- Direct Write
