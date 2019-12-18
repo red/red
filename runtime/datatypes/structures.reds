@@ -321,7 +321,7 @@ red-date!: alias struct! [
 red-time!: alias struct! [
 	header 	[integer!]								;-- cell header
 	padding	[integer!]								;-- for compatibility with date!
-	time	[float!]								;-- 64-bit float
+	time	[float!]								;-- 64-bit float, in seconds
 ]
 
 red-handle!: alias struct! [
