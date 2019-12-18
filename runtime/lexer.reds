@@ -374,6 +374,7 @@ lexer: context [
 		
 		lex/tail: lex/buffer							;-- clear accumulated values
 		depth: depth - 1
+		if zero? depth [root-state: null]
 		
 		switch type [
 			ERR_BAD_CHAR 	 [fire [TO_ERROR(syntax bad-char) line pos]]
