@@ -113,6 +113,32 @@ D2D1_GRADIENT_STOP: alias struct! [
 	a			[float32!]
 ]
 
+#enum D2D1_CAP_STYLE [
+	D2D1_CAP_STYLE_FLAT
+	D2D1_CAP_STYLE_SQUARE
+	D2D1_CAP_STYLE_ROUND
+	D2D1_CAP_STYLE_TRIANGLE
+	D2D1_CAP_STYLE_FORCE_DWORD: -1
+]
+
+#enum D2D1_LINE_JOIN [
+	D2D1_LINE_JOIN_MITER
+	D2D1_LINE_JOIN_BEVEL
+	D2D1_LINE_JOIN_ROUND
+	D2D1_LINE_JOIN_MITER_OR_BEVEL
+	D2D1_LINE_JOIN_FORCE_DWORD: -1
+]
+
+D2D1_STROKE_STYLE_PROPERTIES: alias struct! [
+	startCap	[integer!]
+	endCap		[integer!]
+	dashCap		[integer!]
+	lineJoin	[integer!]
+	miterLimit	[float32!]
+	dashStyle	[integer!]
+	dashOffset	[float32!]
+]
+
 D2D1_RENDER_TARGET_PROPERTIES: alias struct! [
 	type		[integer!]
 	format		[integer!]
@@ -466,7 +492,7 @@ ID2D1Factory: alias struct! [
 	CreateGeometryGroup				[integer!]
 	CreateTransformedGeometry		[integer!]
 	CreatePathGeometry				[function! [this [this!] pathGeometry [ptr-ptr!] return: [integer!]]]
-	CreateStrokeStyle				[integer!]
+	CreateStrokeStyle				[function! [this [this!] props [D2D1_STROKE_STYLE_PROPERTIES] dashes [float32-ptr!] count [integer!] style [ptr-ptr!] return: [integer!]]]
 	CreateDrawingStateBlock			[integer!]
 	CreateWicBitmapRenderTarget		[integer!]
 	CreateHwndRenderTarget			[function! [this [this!] properties [D2D1_RENDER_TARGET_PROPERTIES] hwndProperties [D2D1_HWND_RENDER_TARGET_PROPERTIES] target [ptr-ptr!] return: [integer!]]]
@@ -821,6 +847,12 @@ ID2D1GeometrySink: alias struct! [
 	AddQuadraticBezier				[function! [this [this!] bezier [D2D1_QUADRATIC_BEZIER_SEGMENT] return: [integer!]]]
 	AddQuadraticBeziers				[function! [this [this!] beziers [D2D1_QUADRATIC_BEZIER_SEGMENT] beziersCount [integer!] return: [integer!]]]
 	AddArc							[function! [this [this!] arc [D2D1_ARC_SEGMENT] return: [integer!]]]
+]
+
+ID2D1StrokeStyle: alias struct! [
+	QueryInterface					[QueryInterface!]
+	AddRef							[AddRef!]
+	Release							[Release!]
 ]
 
 ;-- Direct Write

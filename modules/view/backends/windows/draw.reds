@@ -44,10 +44,13 @@ draw-begin: func [
 ][
 	zero-memory as byte-ptr! ctx size? draw-ctx!
 	ctx/pen-width:	as float32! 1.0
+	ctx/pen-join: D2D1_LINE_JOIN_MITER
+	ctx/pen-cap: D2D1_CAP_STYLE_FLAT
 	ctx/pen-style:	0
 	ctx/pen?:		yes
 	ctx/hwnd:		hWnd
 	ctx/font-color:	-1
+	update-pen-style ctx
 
 	this: d2d-ctx
 	target: get-hwnd-render-target hWnd
@@ -112,6 +115,7 @@ draw-end: func [
 		rt		[render-target!]
 		hr		[integer!]
 ][
+	release-pen-style ctx
 	rt: as render-target! ctx/target
 	this: rt/dc
 	dc: as ID2D1DeviceContext this/vtbl
@@ -137,6 +141,43 @@ draw-end: func [
 			0		;@@ TBD log error!!!
 		]
 	]
+]
+
+release-pen-style: func [
+	ctx			[draw-ctx!]
+	/local
+		sthis	[this!]
+		style	[ID2D1StrokeStyle]
+][
+	if ctx/pen-style <> 0 [
+		sthis: as this! ctx/pen-style
+		style: as ID2D1StrokeStyle sthis/vtbl
+		style/Release sthis
+		ctx/pen-style: 0
+	]
+]
+
+update-pen-style: func [
+	ctx			[draw-ctx!]
+	/local
+		prop	[D2D1_STROKE_STYLE_PROPERTIES value]
+		d2d		[ID2D1Factory]
+		hr		[integer!]
+		style	[ptr-value!]
+][
+	release-pen-style ctx
+
+	prop/startCap: ctx/pen-cap
+	prop/endCap: ctx/pen-cap
+	prop/dashCap: ctx/pen-cap
+	prop/lineJoin: ctx/pen-join
+	prop/miterLimit: as float32! 1.0
+	prop/dashStyle: 0
+	prop/dashOffset: as float32! 0.0
+
+	d2d: as ID2D1Factory d2d-factory/vtbl
+	hr: d2d/CreateStrokeStyle d2d-factory prop null 0 :style
+	ctx/pen-style: as integer! style/value
 ]
 
 OS-draw-pen: func [
@@ -305,7 +346,7 @@ OS-draw-line: func [
 			as float32! pt1/x as float32! pt1/y
 			ctx/pen
 			ctx/pen-width
-			0
+			ctx/pen-style
 		pt0: pt0 + 1
 	]
 ]
@@ -818,17 +859,36 @@ OS-draw-curve: func [
 ]
 
 OS-draw-line-join: func [
-	ctx		[draw-ctx!]
-	style	[integer!]
+	ctx			[draw-ctx!]
+	style		[integer!]
+	/local
+		mode	[integer!]
 ][
-
+	case [
+		style = miter		[mode: D2D1_LINE_JOIN_MITER]
+		style = miter-bevel [mode: D2D1_LINE_JOIN_MITER_OR_BEVEL]
+		style = _round		[mode: D2D1_LINE_JOIN_ROUND]
+		style = bevel		[mode: D2D1_LINE_JOIN_BEVEL]
+		true				[mode: D2D1_LINE_JOIN_MITER]
+	]
+	ctx/pen-join: mode
+	update-pen-style ctx
 ]
 
 OS-draw-line-cap: func [
-	ctx		[draw-ctx!]
-	style	[integer!]
+	ctx			[draw-ctx!]
+	style		[integer!]
+	/local
+		mode	[integer!]
 ][
-
+	case [
+		style = flat		[mode: D2D1_CAP_STYLE_FLAT]
+		style = square		[mode: D2D1_CAP_STYLE_SQUARE]
+		style = _round		[mode: D2D1_CAP_STYLE_ROUND]
+		true				[mode: D2D1_CAP_STYLE_FLAT]
+	]
+	ctx/pen-cap: mode
+	update-pen-style ctx
 ]
 
 OS-draw-image: func [
