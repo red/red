@@ -772,7 +772,7 @@ lexer: context [
 			pos: c >>> 3 + 1
 			bit: as-byte 1 << (c and 7)
 			either char-special/pos and bit = null-byte [ ;-- "regular" escaped char
-				if any [s/1 < #"^(40)" #"^(5F)" < s/1][c: as-integer s/1 - #"@"]
+				if all [#"^(40)" < s/1 s/1 < #"^(5F)"][c: as-integer s/1 - #"@"]
 			][											;-- escaped special char
 				c: switch s/1 [
 					#"/"  [0Ah]
@@ -998,6 +998,7 @@ lexer: context [
 		either zero? lex/mstr-nest [
 			scan-string lex lex/mstr-s e lex/mstr-flags or flags
 			lex/mstr-s: null
+			lex/mstr-flags: 0
 			lex/entry: S_START
 		][
 			if e + 1 = lex/in-end [throw-error lex s e TYPE_STRING]
@@ -1009,6 +1010,7 @@ lexer: context [
 		/local
 			cell [cell!]
 			type [integer!]
+			p	 [byte-ptr!]
 	][
 		type: TYPE_WORD
 		if flags and C_FLAG_COLON <> 0 [
@@ -1022,6 +1024,11 @@ lexer: context [
 		if s/1 = #"'" [
 			if type = TYPE_SET_WORD [throw-error lex s e TYPE_LIT_WORD]
 			s: s + 1 type: TYPE_LIT_WORD
+		]
+		if s/1 = #"/" [									;-- //...
+			p: s + 1
+			while [all [p < e p/1 = #"/"]][p: p + 1]
+			if p < e [throw-error lex s e TYPE_REFINEMENT]
 		]
 		cell: alloc-slot lex
 		word/make-at symbol/make-alt-utf8 s as-integer e - s cell
@@ -1144,13 +1151,22 @@ lexer: context [
 		/local
 			cell [cell!]
 			type [integer!]
+			p	 [byte-ptr!]
 	][
 		type: either s/1 = #"#" [
 			if s + 1 = e [throw-error lex s e TYPE_ISSUE]
 			TYPE_ISSUE
 		][
 			assert s/1 = #"/"
-			either s + 1 = e [s: s - 1 TYPE_WORD][TYPE_REFINEMENT]
+			either s + 1 = e [s: s - 1 TYPE_WORD][
+				either s/2 = #"/" [						;-- //...
+					scan-word lex s e flags
+					exit
+					0
+				][
+					TYPE_REFINEMENT
+				]
+			]
 		]
 		s: s + 1
 		cell: alloc-slot lex
@@ -1730,6 +1746,7 @@ lexer: context [
 		lex/entry:		S_START
 		lex/type:		-1
 		lex/mstr-nest:	0
+		lex/mstr-flags: 0
 		
 		scan-tokens lex one?
 
