@@ -746,11 +746,75 @@ OS-draw-arc: func [
 ]
 
 OS-draw-curve: func [
-	ctx		[draw-ctx!]
-	start	[red-pair!]
-	end		[red-pair!]
+	ctx			[draw-ctx!]
+	start		[red-pair!]
+	end			[red-pair!]
+	/local
+		cp1x	[float32!]
+		cp1y	[float32!]
+		cp2x	[float32!]
+		cp2y	[float32!]
+		p2		[red-pair!]
+		p3		[red-pair!]
+		ps		[D2D1_BEZIER_SEGMENT value]
+		d2d		[ID2D1Factory]
+		path	[ptr-value!]
+		hr		[integer!]
+		pthis	[this!]
+		gpath	[ID2D1PathGeometry]
+		sink	[ptr-value!]
+		sthis	[this!]
+		gsink	[ID2D1GeometrySink]
+		point	[D2D_POINT_2F value]
+		this	[this!]
+		dc		[ID2D1DeviceContext]
 ][
+	p2: start + 1
+	p3: start + 2
 
+	either 2 = ((as-integer end - start) >> 4) [		;-- p0, p1, p2  -->  p0, (p0 + 2p1) / 3, (2p1 + p2) / 3, p2
+		cp1x: (as float32! p2/x << 1 + start/x) / as float32! 3.0
+		cp1y: (as float32! p2/y << 1 + start/y) / as float32! 3.0
+		cp2x: (as float32! p2/x << 1 + p3/x) / as float32! 3.0
+		cp2y: (as float32! p2/y << 1 + p3/y) / as float32! 3.0
+	][
+		cp1x: as float32! p2/x
+		cp1y: as float32! p2/y
+		cp2x: as float32! p3/x
+		cp2y: as float32! p3/y
+	]
+	ps/point1/x: cp1x
+	ps/point1/y: cp1y
+	ps/point2/x: cp2x
+	ps/point2/y: cp2y
+	ps/point3/x: as float32! end/x
+	ps/point3/y: as float32! end/y
+
+	d2d: as ID2D1Factory d2d-factory/vtbl
+	hr: d2d/CreatePathGeometry d2d-factory :path
+	pthis: as this! path/value
+	gpath: as ID2D1PathGeometry pthis/vtbl
+	hr: gpath/Open pthis :sink
+	sthis: as this! sink/value
+	gsink: as ID2D1GeometrySink sthis/vtbl
+
+	point/x: as float32! start/x
+	point/y: as float32! start/y
+	gsink/BeginFigure sthis point 1				;-- D2D1_FIGURE_BEGIN_HOLLOW
+	hr: gsink/AddBezier sthis ps
+	gsink/EndFigure sthis 0
+	hr: gsink/Close sthis
+	gsink/Release sthis
+
+	this: as this! ctx/dc
+	dc: as ID2D1DeviceContext this/vtbl
+	if ctx/brush? [
+		dc/FillGeometry this as int-ptr! pthis ctx/brush null
+	]
+	if ctx/pen? [
+		dc/DrawGeometry this as int-ptr! pthis ctx/pen ctx/pen-width ctx/pen-style
+	]
+	gpath/Release pthis
 ]
 
 OS-draw-line-join: func [
