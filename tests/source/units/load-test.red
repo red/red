@@ -119,6 +119,7 @@ Red [
 	--test-- "load-word-17"	--assert strict-equal? first [:a] load ":a"
 	--test-- "load-word-18"	--assert strict-equal? first ['a] load "'a"
 	--test-- "load-word-19" --assert strict-equal? first [œ∑´®†] load "œ∑´®†"
+	--test-- "load-word-20" --assert word? load "//"
 	
 ===end-group===
 
@@ -317,25 +318,25 @@ Red [
 ===start-group=== "load issue #3717"
 	--test-- "load ) 1"
 		--assert error? res: try [load ")"]
-		--assert to logic! find/match form res {*** Syntax Error: missing #"(" at ")"^/*** Where}
+		--assert to logic! find/match form res {*** Syntax Error: (line 1) missing ( at )^/*** Where}
 
 	--test-- "load ) 2"
 		--assert error? res: try [load "a)"]
-		--assert to logic! find/match form res {*** Syntax Error: missing #"(" at ")"^/*** Where}
+		--assert to logic! find/match form res {*** Syntax Error: (line 1) missing ( at )^/*** Where}
 
 	--test-- "load ) 3"
 		--assert error? res: try [load "a)b"]
-		--assert to logic! find/match form res {*** Syntax Error: missing #"(" at ")b"^/*** Where}
+		--assert to logic! find/match form res {*** Syntax Error: (line 1) missing ( at )b^/*** Where}
 
 	--test-- "load ) 4"
 		--assert error? res: try [load "())b"]
-		--assert to logic! find/match form res {*** Syntax Error: missing #"(" at ")b"^/*** Where}
+		--assert to logic! find/match form res {*** Syntax Error: (line 1) missing ( at )b^/*** Where}
 
 	--test-- "load ) 5"
 		res: load/trap "())b"
 		--assert [()] = res/1
 		--assert "b" = res/2
-		--assert to logic! find/match form res/3 {*** Syntax Error: missing #"(" at ")b"^/*** Where}
+		--assert to logic! find/match form res/3 {*** Syntax Error: (line 1) missing ( at )b^/*** Where}
 
 	--test-- "load ) 6"
 		s: "())b"
@@ -348,25 +349,25 @@ Red [
 
 	--test-- "load ] 1"
 		--assert error? res: try [load "]"]
-		--assert to logic! find/match form res {*** Syntax Error: missing #"[" at "]"^/*** Where}
+		--assert to logic! find/match form res {*** Syntax Error: (line 1) missing [ at ]^/*** Where}
 
 	--test-- "load ] 2"
 		--assert error? res: try [load "a]"]
-		--assert to logic! find/match form res {*** Syntax Error: missing #"[" at "]"^/*** Where}
+		--assert to logic! find/match form res {*** Syntax Error: (line 1) missing [ at ]^/*** Where}
 
 	--test-- "load ] 3"
 		--assert error? res: try [load "a]b"]
-		--assert to logic! find/match form res {*** Syntax Error: missing #"[" at "]b"^/*** Where}
+		--assert to logic! find/match form res {*** Syntax Error: (line 1) missing [ at ]b^/*** Where}
 
 	--test-- "load ] 4"
 		--assert error? res: try [load "[]]b"]
-		--assert to logic! find/match form res {*** Syntax Error: missing #"[" at "]b"^/*** Where}
+		--assert to logic! find/match form res {*** Syntax Error: (line 1) missing [ at ]b^/*** Where}
 
 	--test-- "load ] 5"
 		res: load/trap "[]]b"
 		--assert [[]] = res/1
 		--assert "b" = res/2
-		--assert to logic! find/match form res/3 {*** Syntax Error: missing #"[" at "]b"^/*** Where}
+		--assert to logic! find/match form res/3 {*** Syntax Error: (line 1) missing [ at ]b^/*** Where}
 
 	--test-- "load ] 6"
 		s: "[]]b"
@@ -379,25 +380,25 @@ Red [
 
 	--test-- "load } 1"
 		--assert error? res: try [load "}"]
-		--assert to logic! find/match form res {*** Syntax Error: missing #"{" at "}"^/*** Where}
+		--assert to logic! find/match form res {*** Syntax Error: (line 1) invalid character at ^}^/*** Where}
 
 	--test-- "load } 2"
 		--assert error? res: try [load "a}"]
-		--assert to logic! find/match form res {*** Syntax Error: missing #"{" at "}"^/*** Where}
+		--assert to logic! find/match form res {*** Syntax Error: (line 1) invalid character at ^}^/*** Where}
 
 	--test-- "load } 3"
 		--assert error? res: try [load "a}b"]
-		--assert to logic! find/match form res {*** Syntax Error: missing #"{" at "}b"^/*** Where}
+		--assert to logic! find/match form res {*** Syntax Error: (line 1) invalid character at ^}b^/*** Where}
 
 	--test-- "load } 4"
 		--assert error? res: try [load "{}}b"]
-		--assert to logic! find/match form res {*** Syntax Error: missing #"{" at "}b"^/*** Where}
+		--assert to logic! find/match form res {*** Syntax Error: (line 1) invalid character at ^}b^/*** Where}
 
 	--test-- "load } 5"
 		res: load/trap "{}}b"
 		--assert [""] = res/1
 		--assert "b" = res/2
-		--assert to logic! find/match form res/3 {*** Syntax Error: missing #"{" at "}b"^/*** Where}
+		--assert to logic! find/match form res/3 {*** Syntax Error: (line 1) invalid character at ^}b^/*** Where}
 
 	--test-- "load } 6"
 		s: "{}}b"
