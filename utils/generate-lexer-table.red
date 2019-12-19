@@ -24,7 +24,7 @@ context [
 		S_FILE_HEX1			TYPE_FILE			;-- 8
 		S_FILE_HEX2			TYPE_FILE			;-- 9
 		S_FILE_STR			TYPE_FILE			;-- 10
-		S_SLASH				TYPE_PATH			;-- 11
+		S_SLASH				TYPE_REFINEMENT		;-- 11
 		S_SHARP				TYPE_ISSUE			;-- 12
 		S_BINARY			TYPE_BINARY			;-- 13
 		S_LINE_CMT2			TYPE_VALUE			;-- 14
