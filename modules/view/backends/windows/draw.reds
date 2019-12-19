@@ -652,11 +652,97 @@ OS-draw-font: func [
 ]
 
 OS-draw-arc: func [
-	ctx	   [draw-ctx!]
-	center [red-pair!]
-	end	   [red-value!]
+	ctx				[draw-ctx!]
+	center			[red-pair!]
+	end				[red-value!]
+	/local
+		cx			[float32!]
+		cy			[float32!]
+		rad			[float32!]
+		radius		[red-pair!]
+		rad-x		[float32!]
+		rad-y		[float32!]
+		begin		[red-integer!]
+		angle-begin [float32!]
+		angle		[red-integer!]
+		sweep		[integer!]
+		i			[integer!]
+		angle-end	[float32!]
+		start-x		[float32!]
+		start-y		[float32!]
+		end-x		[float32!]
+		end-y		[float32!]
+		closed?		[logic!]
+		d2d			[ID2D1Factory]
+		path		[ptr-value!]
+		hr			[integer!]
+		pthis		[this!]
+		gpath		[ID2D1PathGeometry]
+		sink		[ptr-value!]
+		sthis		[this!]
+		gsink		[ID2D1GeometrySink]
+		point		[D2D_POINT_2F value]
+		this		[this!]
+		dc			[ID2D1DeviceContext]
+		arc			[D2D1_ARC_SEGMENT value]
 ][
+	cx: as float32! center/x
+	cy: as float32! center/y
+	rad: (as float32! PI) / as float32! 180.0
 
+	radius: center + 1
+	rad-x: as float32! radius/x
+	rad-y: as float32! radius/y
+	begin: as red-integer! radius + 1
+	angle-begin: rad * as float32! begin/value
+	angle: begin + 1
+	sweep: angle/value
+	i: begin/value + sweep
+	angle-end: rad * as float32! i
+	start-x: as float32! cos as float! angle-begin
+	start-x: cx + (rad-x * start-x)
+	start-y: as float32! sin as float! angle-begin
+	start-y: cx + (rad-y * start-y)
+	end-x: as float32! cos as float! angle-end
+	end-x: cx + (rad-x * end-x)
+	end-y: as float32! sin as float! angle-end
+	end-y: cx + (rad-y * end-y)
+
+	closed?: angle < end
+
+	d2d: as ID2D1Factory d2d-factory/vtbl
+	hr: d2d/CreatePathGeometry d2d-factory :path
+	pthis: as this! path/value
+	gpath: as ID2D1PathGeometry pthis/vtbl
+	hr: gpath/Open pthis :sink
+	sthis: as this! sink/value
+	gsink: as ID2D1GeometrySink sthis/vtbl
+
+	point/x: start-x
+	point/y: start-y
+	gsink/BeginFigure sthis point 1				;-- D2D1_FIGURE_BEGIN_HOLLOW
+	arc/point/x: end-x
+	arc/point/y: end-y
+	arc/size/width: rad-x
+	arc/size/height: rad-y
+	arc/angle: as float32! 0.0
+	arc/direction: 1							;-- D2D1_SWEEP_DIRECTION_CLOCKWISE
+	arc/arcSize: either sweep >= 180 [1][0]
+	hr: gsink/AddArc sthis arc
+	gsink/EndFigure sthis either closed? [1][0]
+
+	hr: gsink/Close sthis
+	gsink/Release sthis
+
+	this: as this! ctx/dc
+	dc: as ID2D1DeviceContext this/vtbl
+	if ctx/brush? [
+		dc/FillGeometry this as int-ptr! pthis ctx/brush null
+	]
+	if ctx/pen? [
+		dc/DrawGeometry this as int-ptr! pthis ctx/pen ctx/pen-width ctx/pen-style
+	]
+	gpath/Release pthis
 ]
 
 OS-draw-curve: func [
