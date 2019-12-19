@@ -400,7 +400,7 @@ OS-draw-polygon: func [
 
 	point/x: as float32! start/x
 	point/y: as float32! start/y
-	gsink/BeginFigure sthis point 1			;-- D2D1_FIGURE_BEGIN_HOLLOW
+	gsink/BeginFigure sthis point 1				;-- D2D1_FIGURE_BEGIN_HOLLOW
 	start: start + 1
 	while [start <= end] [
 		point/x: as float32! start/x
@@ -408,7 +408,7 @@ OS-draw-polygon: func [
 		gsink/AddLine sthis point
 		start: start + 1
 	]
-	gsink/EndFigure sthis 1					;-- D2D1_FIGURE_END_CLOSED
+	gsink/EndFigure sthis 1						;-- D2D1_FIGURE_END_CLOSED
 
 	hr: gsink/Close sthis
 	gsink/Release sthis
@@ -424,13 +424,140 @@ OS-draw-polygon: func [
 	gpath/Release pthis
 ]
 
-OS-draw-spline: func [
-	ctx		[draw-ctx!]
-	start	[red-pair!]
-	end		[red-pair!]
-	closed? [logic!]
-][
+spline-delta: 1.0 / 25.0
 
+do-spline-step: func [
+	sthis		[this!]
+	p0			[red-pair!]
+	p1			[red-pair!]
+	p2			[red-pair!]
+	p3			[red-pair!]
+	/local
+		gsink	[ID2D1GeometrySink]
+		t		[float!]
+		t2		[float!]
+		t3		[float!]
+		x		[float!]
+		y		[float!]
+		point	[D2D_POINT_2F value]
+][
+		gsink: as ID2D1GeometrySink sthis/vtbl
+		t: 0.0
+		loop 25 [
+			t: t + spline-delta
+			t2: t * t
+			t3: t2 * t
+
+			x:
+			   2.0 * (as-float p1/x) + ((as-float p2/x) - (as-float p0/x) * t) +
+			   ((2.0 * (as-float p0/x) - (5.0 * (as-float p1/x)) + (4.0 * (as-float p2/x)) - (as-float p3/x)) * t2) +
+			   (3.0 * ((as-float p1/x) - (as-float p2/x)) + (as-float p3/x) - (as-float p0/x) * t3) * 0.5
+			y:
+			   2.0 * (as-float p1/y) + ((as-float p2/y) - (as-float p0/y) * t) +
+			   ((2.0 * (as-float p0/y) - (5.0 * (as-float p1/y)) + (4.0 * (as-float p2/y)) - (as-float p3/y)) * t2) +
+			   (3.0 * ((as-float p1/y) - (as-float p2/y)) + (as-float p3/y) - (as-float p0/y) * t3) * 0.5
+			point/x: as float32! x
+			point/y: as float32! y
+			gsink/AddLine sthis point
+		]
+]
+
+OS-draw-spline: func [
+	ctx			[draw-ctx!]
+	start		[red-pair!]
+	end			[red-pair!]
+	closed?		[logic!]
+	/local
+		d2d		[ID2D1Factory]
+		path	[ptr-value!]
+		hr		[integer!]
+		pthis	[this!]
+		gpath	[ID2D1PathGeometry]
+		sink	[ptr-value!]
+		sthis	[this!]
+		gsink	[ID2D1GeometrySink]
+		point	[D2D_POINT_2F value]
+		this	[this!]
+		dc		[ID2D1DeviceContext]
+		pt		[red-pair!]
+		stop	[red-pair!]
+][
+	if (as-integer end - start) >> 4 = 1 [		;-- two points input
+		OS-draw-line ctx start end				;-- draw a line
+		exit
+	]
+
+	d2d: as ID2D1Factory d2d-factory/vtbl
+	hr: d2d/CreatePathGeometry d2d-factory :path
+	pthis: as this! path/value
+	gpath: as ID2D1PathGeometry pthis/vtbl
+	hr: gpath/Open pthis :sink
+	sthis: as this! sink/value
+	gsink: as ID2D1GeometrySink sthis/vtbl
+
+	point/x: as float32! start/x
+	point/y: as float32! start/y
+	gsink/BeginFigure sthis point 1				;-- D2D1_FIGURE_BEGIN_HOLLOW
+
+	either closed? [
+		do-spline-step sthis
+			end
+			start
+			start + 1
+			start + 2
+	][
+		do-spline-step sthis
+			start
+			start
+			start + 1
+			start + 2
+	]
+
+	pt: start
+	stop: end - 3
+
+	while [pt <= stop] [
+		do-spline-step sthis
+			pt
+			pt + 1
+			pt + 2
+			pt + 3
+		pt: pt + 1
+	]
+
+	either closed? [
+		do-spline-step sthis
+			end - 2
+			end - 1
+			end
+			start
+		do-spline-step sthis
+			end - 1
+			end
+			start
+			start + 1
+		gsink/EndFigure sthis 1						;-- D2D1_FIGURE_END_CLOSED
+	][
+		do-spline-step sthis
+			end - 2
+			end - 1
+			end
+			end
+		gsink/EndFigure sthis 0						;-- D2D1_FIGURE_END_OPEN
+	]
+
+	hr: gsink/Close sthis
+	gsink/Release sthis
+
+	this: as this! ctx/dc
+	dc: as ID2D1DeviceContext this/vtbl
+	if ctx/brush? [
+		dc/FillGeometry this as int-ptr! pthis ctx/brush null
+	]
+	if ctx/pen? [
+		dc/DrawGeometry this as int-ptr! pthis ctx/pen ctx/pen-width ctx/pen-style
+	]
+	gpath/Release pthis
 ]
 
 do-draw-ellipse: func [
