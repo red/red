@@ -966,8 +966,30 @@ OS-matrix-rotate: func [
 	pen-fill	[integer!]
 	angle		[red-integer!]
 	center		[red-pair!]
+	/local
+		rad		[float!]
+		this	[this!]
+		dc		[ID2D1DeviceContext]
+		m		[D2D_MATRIX_3X2_F value]
+		t		[D2D_MATRIX_3X2_F value]
 ][
-
+	rad: PI / 180.0 * get-float angle
+	either pen-fill = -1 [
+		this: as this! ctx/dc
+		dc: as ID2D1DeviceContext this/vtbl
+		dc/GetTransform this :m
+		either angle <> as red-integer! center [
+			matrix2d/translate :m as float32! center/x as float32! center/y :t
+			matrix2d/rotate :t as float32! rad :m
+			matrix2d/translate :m as float32! 0 - center/x as float32! 0 - center/y :t
+		][
+			matrix2d/rotate :m as float32! rad :t
+		]
+		dc/SetTransform this :t
+	][
+		;-- TBD
+		exit
+	]
 ]
 
 OS-matrix-scale: func [
@@ -975,8 +997,22 @@ OS-matrix-scale: func [
 	pen-fill	[integer!]
 	sx			[red-integer!]
 	sy			[red-integer!]
+	/local
+		this	[this!]
+		dc		[ID2D1DeviceContext]
+		m		[D2D_MATRIX_3X2_F value]
+		t		[D2D_MATRIX_3X2_F value]
 ][
-
+	either pen-fill = -1 [
+		this: as this! ctx/dc
+		dc: as ID2D1DeviceContext this/vtbl
+		dc/GetTransform this :m
+		matrix2d/scale :m get-float32 sx get-float32 sy :t
+		dc/SetTransform this :t
+	][
+		;-- TBD
+		exit
+	]
 ]
 
 OS-matrix-translate: func [
@@ -984,17 +1020,49 @@ OS-matrix-translate: func [
 	pen-fill	[integer!]
 	x			[integer!]
 	y			[integer!]
+	/local
+		this	[this!]
+		dc		[ID2D1DeviceContext]
+		m		[D2D_MATRIX_3X2_F value]
+		t		[D2D_MATRIX_3X2_F value]
 ][
-
+	either pen-fill = -1 [
+		this: as this! ctx/dc
+		dc: as ID2D1DeviceContext this/vtbl
+		dc/GetTransform this :m
+		matrix2d/translate :m as float32! x as float32! y :t
+		dc/SetTransform this :t
+	][
+		;-- TBD
+		exit
+	]
 ]
 
 OS-matrix-skew: func [
-	ctx		    [draw-ctx!]
-	pen-fill    [integer!]
+	ctx			[draw-ctx!]
+	pen-fill	[integer!]
 	sx			[red-integer!]
 	sy			[red-integer!]
+	/local
+		this	[this!]
+		dc		[ID2D1DeviceContext]
+		m		[D2D_MATRIX_3X2_F value]
+		t		[D2D_MATRIX_3X2_F value]
+		x		[float32!]
+		y		[float32!]
 ][
-
+	x: as float32! degree-to-radians get-float sx TYPE_TANGENT
+	y: as float32! degree-to-radians get-float sy TYPE_TANGENT
+	either pen-fill = -1 [
+		this: as this! ctx/dc
+		dc: as ID2D1DeviceContext this/vtbl
+		dc/GetTransform this :m
+		matrix2d/skew :m x y :t
+		dc/SetTransform this :t
+	][
+		;-- TBD
+		exit
+	]
 ]
 
 OS-matrix-transform: func [
@@ -1003,8 +1071,16 @@ OS-matrix-transform: func [
 	center		[red-pair!]
 	scale		[red-integer!]
 	translate	[red-pair!]
+	/local
+		rotate	[red-integer!]
+		center?	[logic!]
 ][
-	
+	rotate: as red-integer! either center + 1 = scale [center][center + 1]
+	center?: rotate <> center
+
+	OS-matrix-rotate ctx pen-fill rotate center
+	OS-matrix-scale ctx pen-fill scale scale + 1
+	OS-matrix-translate ctx pen-fill translate/x translate/y
 ]
 
 OS-matrix-push: func [ctx [draw-ctx!] state [draw-state!]][
@@ -1016,24 +1092,69 @@ OS-matrix-pop: func [ctx [draw-ctx!] state [draw-state!]][]
 OS-matrix-reset: func [
 	ctx			[draw-ctx!]
 	pen-fill	[integer!]
+	/local
+		this	[this!]
+		dc		[ID2D1DeviceContext]
+		m		[D2D_MATRIX_3X2_F value]
 ][
-	
+	either pen-fill = -1 [
+		this: as this! ctx/dc
+		dc: as ID2D1DeviceContext this/vtbl
+		dc/GetTransform this :m
+		matrix2d/identity :m
+		dc/SetTransform this :m
+	][
+		;-- TBD
+		exit
+	]
 ]
 
 OS-matrix-invert: func [
 	ctx			[draw-ctx!]
 	pen-fill	[integer!]
-
+	/local
+		this	[this!]
+		dc		[ID2D1DeviceContext]
+		m		[D2D_MATRIX_3X2_F value]
+		t		[D2D_MATRIX_3X2_F value]
 ][
-
+	either pen-fill = -1 [
+		this: as this! ctx/dc
+		dc: as ID2D1DeviceContext this/vtbl
+		dc/GetTransform this :m
+		matrix2d/invert :m :t
+		dc/SetTransform this :t
+	][
+		;-- TBD
+		exit
+	]
 ]
 
 OS-matrix-set: func [
 	ctx			[draw-ctx!]
 	pen-fill	[integer!]
 	blk			[red-block!]
+	/local
+		val		[red-integer!]
+		this	[this!]
+		dc		[ID2D1DeviceContext]
+		m		[D2D_MATRIX_3X2_F value]
 ][
-	
+	val: as red-integer! block/rs-head blk
+	m/_11: get-float32 val
+	m/_12: get-float32 val + 1
+	m/_21: get-float32 val + 2
+	m/_22: get-float32 val + 3
+	m/_31: get-float32 val + 4
+	m/_32: get-float32 val + 5
+	either pen-fill = -1 [
+		this: as this! ctx/dc
+		dc: as ID2D1DeviceContext this/vtbl
+		dc/SetTransform this :m
+	][
+		;-- TBD
+		exit
+	]
 ]
 
 OS-set-matrix-order: func [
