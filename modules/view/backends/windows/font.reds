@@ -212,23 +212,31 @@ free-font: func [
 	/local
 		state [red-block!]
 		hFont [handle!]
+		h2	  [handle!]
 		this  [this!]
 		obj   [IUnknown]
 		n	  [integer!]
+		free? [logic!]
 ][
 	unless winxp? [
 		this: as this! get-font-handle font 1
 		COM_SAFE_RELEASE(obj this)
 	]
 	n: 0
+	free?: no
+	h2: null
 	loop 2 [
 		hFont: get-font-handle font n
-		if hFont <> null [
+		if all [hFont <> null hFont <> h2][
 			DeleteObject hFont
-			state: as red-block! (object/get-values font) + FONT_OBJ_STATE
-			state/header: TYPE_NONE
+			h2: hFont
+			free?: yes
 		]
 		n: 2
+	]
+	if free? [
+		state: as red-block! (object/get-values font) + FONT_OBJ_STATE
+		state/header: TYPE_NONE
 	]
 ]
 
