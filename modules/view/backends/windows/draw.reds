@@ -24,13 +24,7 @@ draw-begin: func [
 	/local
 		this	[this!]
 		dc		[ID2D1DeviceContext]
-		_11		[integer!]
-		_12		[integer!]
-		_21		[integer!]
-		_22		[integer!]
-		_31		[integer!]
-		_32		[integer!]
-		m		[D2D_MATRIX_3X2_F]
+		m		[D2D_MATRIX_3X2_F value]
 		bg-clr	[integer!]
 		brush	[integer!]
 		target	[render-target!]
@@ -63,11 +57,8 @@ draw-begin: func [
 	dc/SetAntialiasMode this 0					;-- D2D1_ANTIALIAS_MODE_PER_PRIMITIVE
 
 	dc/BeginDraw this
-	_11: 0 _12: 0 _21: 0 _22: 0 _31: 0 _32: 0
-	m: as D2D_MATRIX_3X2_F :_32
-	m/_11: as float32! 1.0
-	m/_22: as float32! 1.0
-	dc/SetTransform this m						;-- set to identity matrix
+	matrix2d/identity m
+	dc/SetTransform this :m						;-- set to identity matrix
 
 	values: get-face-values hWnd
 	clr: as red-tuple! values + FACE_OBJ_COLOR

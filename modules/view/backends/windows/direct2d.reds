@@ -1168,6 +1168,22 @@ render-target!: alias struct! [
 	dcomp-visual	[this!]
 ]
 
+#import [
+	"d2d1.dll" stdcall [
+		D2D1CreateFactory: "D2D1CreateFactory" [
+			type		[integer!]
+			riid		[int-ptr!]
+			options		[int-ptr!]		;-- opt
+			factory		[ptr-ptr!]
+			return:		[integer!]
+		]
+		D2D1InvertMatrix: "D2D1InvertMatrix" [
+			matrix		[D2D_MATRIX_3X2_F]
+			return:		[logic!]
+		]
+	]
+]
+
 #define ConvertPointSizeToDIP(size)		(as float32! 96 * size / 72)
 
 select-brush: func [
@@ -1214,13 +1230,9 @@ DX-init: func [
 		factory 			[ptr-value!]
 		dll					[handle!]
 		options				[integer!]
-		D2D1CreateFactory	[D2D1CreateFactory!]
 		DWriteCreateFactory [DWriteCreateFactory!]
 		GetUserDefaultLocaleName [GetUserDefaultLocaleName!]
 ][
-	dll: LoadLibraryA "d2d1.dll"
-	if null? dll [winxp?: yes exit]
-	D2D1CreateFactory: as D2D1CreateFactory! GetProcAddress dll "D2D1CreateFactory"
 	dll: LoadLibraryA "DWrite.dll"
 	if null? dll [winxp?: yes exit]
 	DWriteCreateFactory: as DWriteCreateFactory! GetProcAddress dll "DWriteCreateFactory"
@@ -1854,13 +1866,7 @@ draw-text-d2d: func [
 		brush	[integer!]
 		color	[red-tuple!]
 		clr		[integer!]
-		_11		[integer!]
-		_12		[integer!]
-		_21		[integer!]
-		_22		[integer!]
-		_31		[integer!]
-		_32		[integer!]
-		m		[D2D_MATRIX_3X2_F]
+		m		[D2D_MATRIX_3X2_F value]
 ][
 	fmt: as this! create-text-format font null
 	set-text-format fmt para
@@ -1872,11 +1878,8 @@ draw-text-d2d: func [
 	;rt/SetTextAntialiasMode this 1					;-- ClearType
 
 	rt/BeginDraw this
-	_11: 0 _12: 0 _21: 0 _22: 0 _31: 0 _32: 0
-	m: as D2D_MATRIX_3X2_F :_32
-	m/_11: as float32! 1.0
-	m/_22: as float32! 1.0
-	rt/SetTransform this m							;-- set to identity matrix
+	matrix2d/identity m
+	rt/SetTransform this :m							;-- set to identity matrix
 
 	clr: either TYPE_OF(font) = TYPE_OBJECT [
 		color: as red-tuple! (object/get-values font) + FONT_OBJ_COLOR

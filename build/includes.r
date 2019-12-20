@@ -190,6 +190,7 @@ write %build/bin/sources.r set-cache [
 					%classes.reds
 					%comdlgs.reds
 					%direct2d.reds
+					%matrix2d.reds
 					%draw-gdi.reds
 					%draw.reds
 					%events.reds

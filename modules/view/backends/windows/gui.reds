@@ -34,6 +34,7 @@ Red/System [
 
 #include %win32.reds
 #include %direct2d.reds
+#include %matrix2d.reds
 #include %classes.reds
 #include %events.reds
 
