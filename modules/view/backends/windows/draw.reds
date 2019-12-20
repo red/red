@@ -60,6 +60,7 @@ draw-begin: func [
 	dc: as ID2D1DeviceContext this/vtbl
 	;dc/SetTextAntialiasMode this 1				;-- ClearType
 	dc/SetTarget this target/bitmap
+	dc/SetAntialiasMode this 0					;-- D2D1_ANTIALIAS_MODE_PER_PRIMITIVE
 
 	dc/BeginDraw this
 	_11: 0 _12: 0 _21: 0 _22: 0 _31: 0 _32: 0
@@ -319,10 +320,15 @@ OS-draw-shape-arc: func [
 ]
 
 OS-draw-anti-alias: func [
-	ctx [draw-ctx!]
-	on? [logic!]
+	ctx			[draw-ctx!]
+	on?			[logic!]
+	/local
+		this	[this!]
+		dc		[ID2D1DeviceContext]
 ][
-
+	this: as this! ctx/dc
+	dc: as ID2D1DeviceContext this/vtbl
+	dc/SetAntialiasMode this either on? [0][1]
 ]
 
 OS-draw-line: func [

@@ -621,7 +621,7 @@ ID2D1DeviceContext: alias struct! [
 	DrawGlyphRun					[integer!]
 	SetTransform					[SetTransform*]
 	GetTransform					[integer!]
-	SetAntialiasMode				[integer!]
+	SetAntialiasMode				[function! [this [this!] mode [integer!]]]
 	GetAntialiasMode				[integer!]
 	SetTextAntialiasMode			[function! [this [this!] mode [integer!]]]
 	GetTextAntialiasMode			[integer!]
