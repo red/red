@@ -2731,24 +2731,42 @@ natives: context [
 	
 	transcode*: func [
 		check? [logic!]
+		next   [integer!]
 		part   [integer!]
 		into   [integer!]
 		/local
-			bin	 [red-binary!]
-			slot [red-value!]
-			len  [integer!]
+			bin	   [red-binary!]
+			slot   [red-value!]
+			blk	   [red-block!]
+			s	   [series!]
+			offset [integer!]
+			len	   [integer!]
+			next?  [logic!]
 	][
-		#typecheck [part into]
+		#typecheck [next part into]
 		
+		next?: next > -1
 		bin: as red-binary! stack/arguments
 		slot: stack/push*
+		if next? [
+			blk: block/preallocate as red-block! slot 2 no
+			s: GET_BUFFER(blk)
+			s/tail: s/offset + 2
+			slot: s/offset
+		]
 		len: binary/rs-length? bin
+		offset: 0
 		;if OPTION?(part) [
 		;	
 		;]
 		
-		lexer/scan slot binary/rs-head bin len no
+		lexer/scan slot binary/rs-head bin len next? :offset
 
+		if next? [
+			bin: as red-binary! copy-cell as red-value! bin s/offset + 1
+			bin/head: bin/head + offset
+			slot: as red-value! blk
+		]
 		stack/set-last slot
 	]
 

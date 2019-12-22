@@ -1723,8 +1723,9 @@ lexer: context [
 	scan: func [
 		dst   [red-value!]								;-- destination slot
 		src   [byte-ptr!]								;-- UTF-8 buffer
-		len   [integer!]								;-- buffer size in bytes
-		one?  [logic!]									;-- scan only one value
+		size  [integer!]								;-- buffer size in bytes
+		one?  [logic!]									;-- scan a single value
+		len   [int-ptr!]								;-- return the consumed input length
 		/local
 			blk	  [red-block!]
 			slots [integer!]
@@ -1740,7 +1741,7 @@ lexer: context [
 		lex/tail:		stash
 		lex/slots:		stash-size						;TBD: support dyn buffer case
 		lex/input:		src
-		lex/in-end:		src + len
+		lex/in-end:		src + size
 		lex/in-pos:		src
 		lex/in-path:	null
 		lex/entry:		S_START
@@ -1757,6 +1758,7 @@ lexer: context [
 		][
 			store-any-block dst lex/buffer slots TYPE_BLOCK
 		]
+		len/value: as-integer lex/in-pos - lex/input
 		
 		depth: depth - 1
 		if zero? depth [root-state: null]

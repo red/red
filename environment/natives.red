@@ -911,12 +911,14 @@ recycle: make native! [[
 transcode: make native! [[
 		"Translates UTF-8 binary source to values. Returns one or several values in a block"
 		src	 [binary!]	"UTF-8 input buffer"
+		/next			"Translate next complete value (blocks as single value)"
 		/part			"Translates only part of the input buffer"
 			length [integer! binary!] "Length in bytes or tail position"
 		/into			"Optionally provides an output block"
 			dst	 [block! none!]
 		;/trace
 		;	callback [function! [...]]
+		return: [block!]
 	]
 	#get-definition NAT_TRANSCODE
 ]

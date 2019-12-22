@@ -369,6 +369,25 @@ block: context [
 		set-type as cell! blk TYPE_BLOCK
 		blk
 	]
+	
+	preallocate: func [
+		blk		[red-block!]
+		size	[integer!]
+		fixed?	[logic!]								;-- alloc fixed cells instead of unset ones.
+		return: [red-block!]
+	][
+		if size < 0 [size: 1]
+		blk/header: TYPE_UNSET
+		blk/head: 	0
+		either fixed? [
+			blk/node: alloc-fixed-series size 16 0
+		][
+			blk/node: alloc-unset-cells size 16 0
+		]
+		blk/extra:  0
+		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
+		blk	
+	]
 
 	make-fixed: func [
 		parent	[red-block!]
@@ -390,14 +409,7 @@ block: context [
 			]
 			as red-block! ALLOC_TAIL(parent)
 		]
-
-		if size < 0 [size: 1]
-		blk/header: TYPE_UNSET
-		blk/head: 	0
-		blk/node: 	alloc-fixed-series size 16 0
-		blk/extra:  0
-		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
-		blk
+		preallocate blk size yes
 	]
 
 	make-in: func [
