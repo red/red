@@ -256,6 +256,12 @@ Red/System [
 	]
 
 	#either legacy = none [
+		sub-path!: alias struct! [
+			path			[integer!]
+			sink			[integer!]
+			last-pt-x		[float32!]
+			last-pt-y		[float32!]
+		]
 		draw-ctx!: alias struct! [
 			dc				[ptr-ptr!]
 			target			[int-ptr!]
@@ -277,6 +283,7 @@ Red/System [
 			alpha-pen?		[logic!]
 			alpha-brush?	[logic!]
 			font-color?		[logic!]
+			sub				[sub-path! value]
 		]
 	][
 		draw-ctx!: alias struct! [

@@ -219,30 +219,113 @@ OS-draw-text: func [
 
 OS-draw-shape-beginpath: func [
 	ctx			[draw-ctx!]
+	/local
+		d2d		[ID2D1Factory]
+		path	[ptr-value!]
+		hr		[integer!]
+		pthis	[this!]
+		gpath	[ID2D1PathGeometry]
+		sink	[ptr-value!]
+		sthis	[this!]
+		gsink	[ID2D1GeometrySink]
+		vpoint	[D2D_POINT_2F value]
 ][
+	d2d: as ID2D1Factory d2d-factory/vtbl
+	hr: d2d/CreatePathGeometry d2d-factory :path
+	pthis: as this! path/value
+	gpath: as ID2D1PathGeometry pthis/vtbl
+	hr: gpath/Open pthis :sink
+	sthis: as this! sink/value
+	gsink: as ID2D1GeometrySink sthis/vtbl
 
+	ctx/sub/path: as integer! pthis
+	ctx/sub/sink: as integer! sthis
+	ctx/sub/last-pt-x: as float32! 0.0
+	ctx/sub/last-pt-y: as float32! 0.0
+	vpoint/x: ctx/sub/last-pt-x
+	vpoint/y: ctx/sub/last-pt-y
+	gsink/BeginFigure sthis vpoint 1				;-- D2D1_FIGURE_BEGIN_HOLLOW
 ]
 
 OS-draw-shape-endpath: func [
 	ctx			[draw-ctx!]
 	close?		[logic!]
 	return:		[logic!]
+	/local
+		pthis	[this!]
+		gpath	[ID2D1PathGeometry]
+		sthis	[this!]
+		gsink	[ID2D1GeometrySink]
+		hr		[integer!]
+		this	[this!]
+		dc		[ID2D1DeviceContext]
 ][
+	pthis: as this! ctx/sub/path
+	gpath: as ID2D1PathGeometry pthis/vtbl
+	sthis: as this! ctx/sub/sink
+	gsink: as ID2D1GeometrySink sthis/vtbl
 
+	gsink/EndFigure sthis either close? [1][0]
+
+	hr: gsink/Close sthis
+	gsink/Release sthis
+
+	this: as this! ctx/dc
+	dc: as ID2D1DeviceContext this/vtbl
+	if ctx/brush? [
+		dc/FillGeometry this as int-ptr! pthis ctx/brush null
+	]
+	if ctx/pen? [
+		dc/DrawGeometry this as int-ptr! pthis ctx/pen ctx/pen-width ctx/pen-style
+	]
+	gpath/Release pthis
+
+	ctx/sub/path: 0
+	ctx/sub/sink: 0
+	true
 ]
 
 OS-draw-shape-close: func [
-	ctx		[draw-ctx!]
+	ctx			[draw-ctx!]
+	/local
+		sthis	[this!]
+		gsink	[ID2D1GeometrySink]
+		vpoint	[D2D_POINT_2F value]
 ][
-
+	sthis: as this! ctx/sub/sink
+	gsink: as ID2D1GeometrySink sthis/vtbl
+	gsink/EndFigure sthis 1
+	vpoint/x: ctx/sub/last-pt-x
+	vpoint/y: ctx/sub/last-pt-y
+	gsink/BeginFigure sthis vpoint 1				;-- D2D1_FIGURE_BEGIN_HOLLOW
 ]
 
 OS-draw-shape-moveto: func [
-	ctx		[draw-ctx!]
-	coord	[red-pair!]
-	rel?	[logic!]
+	ctx			[draw-ctx!]
+	coord		[red-pair!]
+	rel?		[logic!]
+	/local
+		dx		[float32!]
+		dy		[float32!]
+		sthis	[this!]
+		gsink	[ID2D1GeometrySink]
+		vpoint	[D2D_POINT_2F value]
 ][
-
+	dx: as float32! coord/x
+	dy: as float32! coord/y
+	either rel? [
+		ctx/sub/last-pt-x: ctx/sub/last-pt-x + dx
+		ctx/sub/last-pt-y: ctx/sub/last-pt-y + dy
+	][
+		ctx/sub/last-pt-x: dx
+		ctx/sub/last-pt-y: dy
+	]
+	sthis: as this! ctx/sub/sink
+	gsink: as ID2D1GeometrySink sthis/vtbl
+	gsink/EndFigure sthis 0
+	vpoint/x: ctx/sub/last-pt-x
+	vpoint/y: ctx/sub/last-pt-y
+	gsink/BeginFigure sthis vpoint 1				;-- D2D1_FIGURE_BEGIN_HOLLOW
 ]
 
 OS-draw-shape-line: func [
@@ -250,8 +333,39 @@ OS-draw-shape-line: func [
 	start		[red-pair!]
 	end			[red-pair!]
 	rel?		[logic!]
+	/local
+		sthis	[this!]
+		gsink	[ID2D1GeometrySink]
+		vpoint	[D2D_POINT_2F value]
+		dx		[float32!]
+		dy		[float32!]
+		x		[float32!]
+		y		[float32!]
+		pair	[red-pair!]
 ][
+	sthis: as this! ctx/sub/sink
+	gsink: as ID2D1GeometrySink sthis/vtbl
 
+	dx: ctx/sub/last-pt-x
+	dy: ctx/sub/last-pt-y
+	pair: start
+	while [pair <= end][
+		x: as float32! pair/x
+		y: as float32! pair/y
+		if rel? [
+			x: x + dx
+			y: y + dy
+			dx: x
+			dy: y
+		]
+		vpoint/x: x
+		vpoint/y: y
+		gsink/AddLine sthis vpoint
+		pair: pair + 1
+	]
+
+	ctx/sub/last-pt-x: x
+	ctx/sub/last-pt-y: y
 ]
 
 OS-draw-shape-axis: func [
@@ -259,9 +373,29 @@ OS-draw-shape-axis: func [
 	start		[red-value!]
 	end			[red-value!]
 	rel?		[logic!]
-	hline		[logic!]
+	hline?		[logic!]
+	/local
+		sthis	[this!]
+		gsink	[ID2D1GeometrySink]
+		len		[float32!]
+		sx		[float32!]
+		sy		[float32!]
+		vpoint	[D2D_POINT_2F value]
 ][
+	sthis: as this! ctx/sub/sink
+	gsink: as ID2D1GeometrySink sthis/vtbl
 
+	len: get-float32 as red-integer! start
+	sx: ctx/sub/last-pt-x
+	sy: ctx/sub/last-pt-y
+	either hline? [
+		ctx/sub/last-pt-x: either rel? [sx + len][len]
+	][
+		ctx/sub/last-pt-y: either rel? [sy + len][len]
+	]
+	vpoint/x: ctx/sub/last-pt-x
+	vpoint/y: ctx/sub/last-pt-y
+	gsink/AddLine sthis vpoint
 ]
 
 OS-draw-shape-curve: func [
