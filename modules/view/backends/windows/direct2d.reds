@@ -53,11 +53,16 @@ D3DCOLORVALUE: alias struct! [
 	a			[float32!]
 ]
 
-RECT32!: alias struct! [
+RECT_F!: alias struct! [
 	left		[float32!]
 	top			[float32!]
 	right		[float32!]
 	bottom		[float32!]
+]
+
+SIZE_U!: alias struct! [
+	width		[uint32!]
+	height		[uint32!]
 ]
 
 D2D1_SIZE_F: alias struct! [
@@ -246,7 +251,7 @@ DrawLine*: alias function! [
 
 DrawRectangle*: alias function! [
 	this		[this!]
-	rect		[RECT32!]
+	rect		[RECT_F!]
 	brush		[integer!]
 	strokeWidth [float32!]
 	strokeStyle [integer!]
@@ -254,7 +259,7 @@ DrawRectangle*: alias function! [
 
 FillRectangle*: alias function! [
 	this		[this!]
-	rect		[RECT32!]
+	rect		[RECT_F!]
 	brush		[integer!]
 ]
 
@@ -359,6 +364,32 @@ ID2D1GradientStopCollection: alias struct! [
 	GetGradientStops				[integer!]
 	GetColorInterpolationGamma		[integer!]
 	GetExtendMode					[integer!]
+]
+
+ID2D1Properties: alias struct! [
+	QueryInterface					[QueryInterface!]
+	AddRef							[AddRef!]
+	Release							[Release!]
+	GetPropertyCount				[int-ptr!]
+	GetPropertyName					[int-ptr!]
+	GetPropertyNameLength			[int-ptr!]
+	GetType							[int-ptr!]
+	GetPropertyIndex				[int-ptr!]
+	SetValueByName					[int-ptr!]
+	SetValue						[int-ptr!]
+	GetValueByName					[int-ptr!]
+	GetValue						[int-ptr!]
+	GetValueSize					[int-ptr!]
+	GetSubProperties				[int-ptr!]
+]
+
+ID2D1Effect: alias struct! [
+	Base							[ID2D1Properties value]
+	SetInput						[function! [this [this!] idx [uint32!] input [int-ptr!] invalidate [logic!]]]
+	SetInputCount					[function! [this [this!] count [uint32!] return: [integer!]]]
+	GetInput						[function! [this [this!] idx [uint32!] input [ptr-ptr!]]]
+	GetInputCount					[function! [this [this!] return: [integer!]]]
+	GetOutput						[function! [this [this!] idx [uint!] output [ptr-ptr!]]]
 ]
 
 IDXGIDevice1: alias struct! [
@@ -593,6 +624,32 @@ ID3D11Device: alias struct! [
 	GetExceptionMode				[integer!]
 ]
 
+CreateBitmap*: alias function! [
+	this		[this!]
+	size		[SIZE_U! value]
+	sourceData	[int-ptr!]
+	pitch		[uint32!]
+	properties	[D2D1_BITMAP_PROPERTIES1]
+	bitmap		[ptr-ptr!]
+	return:		[integer!]
+]
+
+CreateEffect*: alias function! [
+	this		[this!]
+	effectID	[tagGUID]
+	effect		[ptr-ptr!]
+	return:		[integer!]
+]
+
+DrawImage*: alias function! [
+	this		[this!]
+	image		[int-ptr!]
+	offset		[D2D_POINT_2F]
+	rect		[RECT_F!]
+	interpola	[integer!]
+	composite	[integer!]
+]
+
 ID2D1DeviceContext: alias struct! [
 	QueryInterface					[QueryInterface!]
 	AddRef							[AddRef!]
@@ -639,7 +696,7 @@ ID2D1DeviceContext: alias struct! [
 	Flush							[integer!]
 	SaveDrawingState				[integer!]
 	RestoreDrawingState				[integer!]
-	PushAxisAlignedClip				[function! [this [this!] rc [RECT32!] mode [integer!]]]
+	PushAxisAlignedClip				[function! [this [this!] rc [RECT_F!] mode [integer!]]]
 	PopAxisAlignedClip				[function! [this [this!]]]
 	Clear							[function! [this [this!] color [D3DCOLORVALUE]]]
 	BeginDraw						[function! [this [this!]]]
@@ -651,16 +708,16 @@ ID2D1DeviceContext: alias struct! [
 	GetPixelSize					[integer!]
 	GetMaximumBitmapSize			[integer!]
 	IsSupported						[integer!]
-    CtxCreateBitmap					[integer!]
-    CtxCreateBitmapFromWicBitmap	[integer!]
+    CreateBitmap2					[CreateBitmap*]
+    CreateBitmapFromWicBitmap2		[integer!]
     CreateColorContext						[integer!]
     CreateColorContextFromFilename			[integer!]
     CreateColorContextFromWicColorContext	[integer!]
     CreateBitmapFromDxgiSurface		[function! [this [this!] surface [int-ptr!] props [D2D1_BITMAP_PROPERTIES1] bitmap [int-ptr!] return: [integer!]]]
-    CreateEffect					[integer!]
-    CtxCreateGradientStopCollection	[integer!]
+    CreateEffect					[CreateEffect*]
+    CreateGradientStopCollection2	[integer!]
     CreateImageBrush				[integer!]
-    CtxCreateBitmapBrush			[integer!]
+    CreateBitmapBrush2				[integer!]
     CreateCommandList				[integer!]
     IsDxgiFormatSupported			[integer!]
     IsBufferPrecisionSupported		[integer!]
@@ -676,16 +733,16 @@ ID2D1DeviceContext: alias struct! [
     GetPrimitiveBlend				[integer!]
     SetUnitMode						[integer!]
     GetUnitMode						[integer!]
-    CtxDrawGlyphRun					[integer!]
-    DrawImage						[integer!]
+    DrawGlyphRun2					[integer!]
+    DrawImage						[DrawImage*]
     DrawGdiMetafile					[integer!]
-    CtxDrawBitmap					[integer!]
-    CtxPushLayer					[integer!]
+    DrawBitmap2						[integer!]
+    PushLayer2						[integer!]
     InvalidateEffectInputRectangle	[integer!]
     GetEffectInvalidRectangleCount	[integer!]
     GetEffectInvalidRectangles		[integer!]
     GetEffectRequiredInputRectangles [integer!]
-    CtxFillOpacityMask				[integer!]
+    FillOpacityMask2				[integer!]
 ]
 
 ID2D1HwndRenderTarget: alias struct! [

@@ -389,7 +389,7 @@ txt-box-draw-background: func [
 		width		[integer!]
 		top			[integer!]
 		left		[integer!]
-		rc			[RECT32!]
+		rc			[RECT_F!]
 ][
 	styles: as red-vector! target/4
 	if any [
@@ -412,7 +412,7 @@ txt-box-draw-background: func [
 	hits: as DWRITE_HIT_TEST_METRICS line-metrics
 
 	left: 0
-	rc: as RECT32! :left
+	rc: as RECT_F! :left
 	x: as float32! pos/x
 	y: as float32! pos/y
 	s: GET_BUFFER(styles)

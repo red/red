@@ -610,7 +610,7 @@ OS-draw-box: func [
 	/local
 		this	[this!]
 		dc		[ID2D1DeviceContext]
-		rc		[RECT32! value]
+		rc		[RECT_F! value]
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
