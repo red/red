@@ -242,6 +242,7 @@ OS-draw-shape-beginpath: func [
 	ctx/sub/sink: as integer! sthis
 	ctx/sub/last-pt-x: as float32! 0.0
 	ctx/sub/last-pt-y: as float32! 0.0
+	ctx/sub/shape-curve?: no
 	vpoint/x: ctx/sub/last-pt-x
 	vpoint/y: ctx/sub/last-pt-y
 	gsink/BeginFigure sthis vpoint 1				;-- D2D1_FIGURE_BEGIN_HOLLOW
@@ -326,6 +327,7 @@ OS-draw-shape-moveto: func [
 	vpoint/x: ctx/sub/last-pt-x
 	vpoint/y: ctx/sub/last-pt-y
 	gsink/BeginFigure sthis vpoint 1				;-- D2D1_FIGURE_BEGIN_HOLLOW
+	ctx/sub/shape-curve?: no
 ]
 
 OS-draw-shape-line: func [
@@ -366,6 +368,7 @@ OS-draw-shape-line: func [
 
 	ctx/sub/last-pt-x: x
 	ctx/sub/last-pt-y: y
+	ctx/sub/shape-curve?: no
 ]
 
 OS-draw-shape-axis: func [
@@ -398,13 +401,99 @@ OS-draw-shape-axis: func [
 	gsink/AddLine sthis vpoint
 ]
 
+draw-curve: func [
+	ctx			[draw-ctx!]
+	start		[red-pair!]
+	end			[red-pair!]
+	rel?		[logic!]
+	short?		[logic!]
+	num			[integer!]				;--	number of points
+	/local
+		dx		[float32!]
+		dy		[float32!]
+		p3y		[float32!]
+		p3x		[float32!]
+		p2y		[float32!]
+		p2x		[float32!]
+		p1y		[float32!]
+		p1x		[float32!]
+		pf		[float32-ptr!]
+		pt		[red-pair!]
+		sthis	[this!]
+		gsink	[ID2D1GeometrySink]
+		bezier	[D2D1_BEZIER_SEGMENT value]
+		qbezier	[D2D1_QUADRATIC_BEZIER_SEGMENT value]
+][
+	pt: start + 1
+	p1x: as float32! start/x
+	p1y: as float32! start/y
+	p2x: as float32! pt/x
+	p2y: as float32! pt/y
+	if num = 3 [					;-- cubic Bézier
+		pt: start + 2
+		p3x: as float32! pt/x
+		p3y: as float32! pt/y
+	]
+
+	dx: ctx/sub/last-pt-x
+	dy: ctx/sub/last-pt-y
+	if rel? [
+		pf: :p1x
+		loop num [
+			pf/1: pf/1 + dx			;-- x
+			pf/2: pf/2 + dy			;-- y
+			pf: pf + 2
+		]
+	]
+
+	if short? [
+		either ctx/sub/shape-curve? [
+			;-- The control point is assumed to be the reflection of the control point
+			;-- on the previous command relative to the current point
+			p1x: dx * (as float32! 2.0) - ctx/sub/control-x
+			p1y: dy * (as float32! 2.0) - ctx/sub/control-y
+		][
+			;-- if previous command is not curve/curv/qcurve/qcurv, use current point
+			p1x: dx
+			p1y: dy
+		]
+	]
+
+	ctx/sub/shape-curve?: yes
+	sthis: as this! ctx/sub/sink
+	gsink: as ID2D1GeometrySink sthis/vtbl
+	either num = 3 [				;-- cubic Bézier
+		bezier/point1/x: p1x
+		bezier/point1/y: p1y
+		bezier/point2/x: p2x
+		bezier/point2/y: p2y
+		bezier/point3/x: p3x
+		bezier/point3/y: p3y
+		gsink/AddBezier sthis bezier
+		ctx/sub/control-x: p2x
+		ctx/sub/control-y: p2y
+		ctx/sub/last-pt-x: p3x
+		ctx/sub/last-pt-y: p3y
+	][								;-- quadratic Bézier
+		qbezier/point1/x: p1x
+		qbezier/point1/y: p1y
+		qbezier/point2/x: p2x
+		qbezier/point2/y: p2y
+		gsink/AddQuadraticBezier sthis qbezier
+		ctx/sub/control-x: p1x
+		ctx/sub/control-y: p1y
+		ctx/sub/last-pt-x: p2x
+		ctx/sub/last-pt-y: p2y
+	]
+]
+
 OS-draw-shape-curve: func [
 	ctx		[draw-ctx!]
 	start	[red-pair!]
 	end		[red-pair!]
 	rel?	[logic!]
 ][
-
+	draw-curve ctx start end rel? no 3
 ]
 
 OS-draw-shape-qcurve: func [
@@ -413,7 +502,7 @@ OS-draw-shape-qcurve: func [
 	end		[red-pair!]
 	rel?	[logic!]
 ][
-
+	draw-curve ctx start end rel? no 2
 ]
 
 OS-draw-shape-curv: func [
@@ -422,7 +511,7 @@ OS-draw-shape-curv: func [
 	end		[red-pair!]
 	rel?	[logic!]
 ][
-
+	draw-curve ctx start - 1 end rel? yes 3
 ]
 
 OS-draw-shape-qcurv: func [
@@ -431,7 +520,7 @@ OS-draw-shape-qcurv: func [
 	end		[red-pair!]
 	rel?	[logic!]
 ][
-
+	draw-curve ctx start - 1 end rel? yes 2
 ]
 
 OS-draw-shape-arc: func [

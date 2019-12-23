@@ -261,6 +261,9 @@ Red/System [
 			sink			[integer!]
 			last-pt-x		[float32!]
 			last-pt-y		[float32!]
+			shape-curve?	[logic!]
+			control-x		[float32!]
+			control-y		[float32!]
 		]
 		draw-ctx!: alias struct! [
 			dc				[ptr-ptr!]
