@@ -36,7 +36,7 @@ with [platform][
 		time: declare tagSYSTEMTIME
 		SendMessage handle MCM_GETCURSEL 0 as integer! time
 		
-		year:  cap WIN32_LOWORD(time/year-month) 			;-- possible overflow: Win32 1601:30827, Red -16384:16383
+		year:  cap WIN32_LOWORD(time/year-month)
 		month: WIN32_HIWORD(time/year-month)
 		day:   WIN32_HIWORD(time/week-day)
 		
@@ -56,6 +56,7 @@ with [platform][
 		return DATE_GET_DAY(date) << 16 and FFFF0000h
 	]
 	
+	;-- possible overflow: Win32 1601:30827, Red -16384:16383
 	cap: func [year [integer!] return: [integer!]][
 		if year < 1601  [year: 1601]
 		if year > 16383 [year: 16383]

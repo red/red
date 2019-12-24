@@ -142,7 +142,6 @@ Red/System [
 #define TCM_SETCURFOCUS		1330h
 #define TCM_INSERTITEMW		133Eh
 
-
 #define MCS_NOTODAYCIRCLE	08h
 #define MCS_NOTODAY			10h
 #define MCS_NOSELCHANGEONNAV 0100h
@@ -151,6 +150,7 @@ Red/System [
 
 #define MCM_GETCURSEL       1001h
 #define MCM_SETCURSEL		1002h
+#define MCM_SETCOLOR		100Ah
 
 #define TCIF_TEXT			0001h
 
