@@ -429,7 +429,7 @@ load: function [
 
 	result: case [
 		part  [system/lexer/transcode/part to-string source out trap length]
-		trap  [system/lexer/transcode to-string source out trap]
+		;trap  [system/lexer/transcode to-string source out trap]
 		next  [
 			out: transcode/next source
 			set position skip any [src source] count-chars source out/2
