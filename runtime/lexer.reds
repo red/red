@@ -1709,10 +1709,7 @@ lexer: context [
 			if all [lex/entry = S_PATH state <> T_PATH][
 				scan-path-item lex start + offset lex/in-pos flags ;-- lex/in-pos could have changed
 			]
-			if one? [
-				slot: lex/tail - 1
-				if any [slot <= lex/head TYPE_OF(slot) <> TYPE_POINT][exit]
-			]
+			if all [one? state <> T_BLK_OP state <> T_PAR_OP state <> T_MSTR_OP][exit]
 			lex/in-pos >= lex/in-end
 		]
 		

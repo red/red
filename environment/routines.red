@@ -114,6 +114,27 @@ as-ipv4: routine [
 
 as-rgba: :as-ipv4
 
+count-chars: routine [
+	"Count UTF-8 encoded characters between two positions in a binary series"
+	start   [binary!]
+	pos	    [binary!]
+	return: [integer!]
+	/local
+		p tail [byte-ptr!]
+		c len  [integer!]
+		s	   [series!]
+][
+	s: GET_BUFFER(start)
+	p:    (as byte-ptr! s/offset) + start/head
+	tail: (as byte-ptr! s/offset) + pos/head
+	c: len: 0
+	while [p < tail][
+		p: lexer/decode-utf8-char p :len
+		c: c + 1
+	]
+	c
+]
+
 ;-- Temporary definition --
 
 read-clipboard: routine [

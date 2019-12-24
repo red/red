@@ -424,13 +424,17 @@ load: function [
 			][return none]
 			source: source/3
 		]
-		string! [source: to binary! source]
+		string! [source: to binary! src: source]
 	][source]
 
 	result: case [
 		part  [system/lexer/transcode/part to-string source out trap length]
-		next  [set position system/lexer/transcode/one to-string source out trap]
 		trap  [system/lexer/transcode to-string source out trap]
+		next  [
+			out: transcode/next source
+			set position skip any [src source] count-chars source out/2
+			return either :all [reduce [out/1]][out/1]
+		]
 		'else [out: transcode source]
 	]
 	either trap [result][
