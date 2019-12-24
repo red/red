@@ -15,6 +15,21 @@ Red/System [
 ;-- _21 _22 0.0
 ;-- _31 _32 1.0
 
+;-- vector:
+;-- i = [_11 _12 0.0]T
+;-- j = [_21 _22 0.0]T
+;-- j = [_31 _32 1.0]T
+
+;-- base fomula:
+;-- p1 = p * M
+
+;-- compose transform
+;-- 1. translate M1
+;-- 2. rotate M2
+;-- 3; translate M3
+;-- result:
+;-- M = M1 * M2 * M3
+
 matrix2d: context [
 	identity: func [
 		m		[D2D_MATRIX_3X2_F]
@@ -95,22 +110,6 @@ matrix2d: context [
 		identity t
 		t/_12: as float32! tan as float! x
 		t/_21: as float32! tan as float! y
-		mul t m r
-	]
-
-	affine: func [
-		m		[D2D_MATRIX_3X2_F]
-		x		[float32!]						;-- x-axis rotate angle
-		y		[float32!]						;-- y-axis rotate angle, but with negative direction
-		r		[D2D_MATRIX_3X2_F]
-		/local
-			t	[D2D_MATRIX_3X2_F value]
-	][
-		identity t
-		t/_11: as float32! cos as float! x
-		t/_12: as float32! sin as float! x
-		t/_21: as float32! cos as float! y
-		t/_22: as float32! sin as float! y
 		mul t m r
 	]
 
