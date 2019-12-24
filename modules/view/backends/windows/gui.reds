@@ -1611,7 +1611,7 @@ OS-make-view: func [
 			set-hint-text handle options
 			if TYPE_OF(selected) <> TYPE_NONE [change-selection handle selected values]
 		]
-		sym = area	 [
+		sym = area [
 			set-area-options handle options
 			change-text handle values sym
 			if TYPE_OF(selected) <> TYPE_NONE [change-selection handle selected values]
@@ -1621,9 +1621,7 @@ OS-make-view: func [
 			SetWindowLong handle wc-offset - 12 BASE_FACE_D2D or BASE_FACE_IME
 		]
 		sym = calendar [
-			if TYPE_OF(data) = TYPE_DATE [
-				change-calendar handle as red-date! data
-			]
+			if TYPE_OF(data) = TYPE_DATE [change-calendar handle as red-date! data]
 		]
 		sym = window [
 			init-window handle
