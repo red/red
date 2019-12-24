@@ -202,7 +202,6 @@ test
 	--test-- "#3891"
 		--compile-and-run-this-red {probe load "a<=>"}
 		--assert not crashed?
-		--assert syntax-error?
 
 
 ===end-group===

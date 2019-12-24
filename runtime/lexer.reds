@@ -31,6 +31,8 @@ lexer: context [
 		C_FLAG_SHARP:	00800000h
 		C_FLAG_EOF:		00400000h
 		C_FLAG_SIGN:	00200000h
+		C_FLAG_LESSER:	00100000h
+		C_FLAG_GREATER: 00080000h
 		C_FLAG_ESC_HEX: 00000200h						;-- percent-escaped mode
 		C_FLAG_NOSTORE: 00000100h						;-- do not store decoded value
 	]
@@ -200,9 +202,9 @@ lexer: context [
 		C_DIGIT C_DIGIT C_DIGIT C_DIGIT					;-- 36-39	6-9
 		(C_COLON or C_FLAG_COLON)						;-- 3A		:
 		C_SEMICOL										;-- 3B		;
-		C_LESSER										;-- 3C		<
+		(C_LESSER or C_FLAG_LESSER)						;-- 3C		<
 		C_EQUAL											;-- 3D		=
-		C_GREATER										;-- 3E		>
+		(C_GREATER or C_FLAG_GREATER)					;-- 3E		>
 		C_WORD											;-- 3F		?
 		C_AT											;-- 40		@
 		C_ALPHAU C_ALPHAU C_ALPHAU C_ALPHAU			 	;-- 41-44	A-D
@@ -349,6 +351,7 @@ lexer: context [
 	depth: 0											;-- recursive calls depth
 	
 	min-integer: as byte-ptr! "-2147483648"				;-- used in scan-integer
+	flags-LG: C_FLAG_LESSER or C_FLAG_GREATER
 	
 
 	throw-error: func [lex [state!] s e [byte-ptr!] type [integer!]
@@ -1009,9 +1012,27 @@ lexer: context [
 	scan-word: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
 			cell [cell!]
-			type [integer!]
-			p	 [byte-ptr!]
+			cp type class index [integer!]
+			p pos [byte-ptr!]
 	][
+		if flags and flags-LG = flags-LG [				;-- handle word<tag> cases
+			p: s
+			while [all [p < e p/1 <> #"<"]][p: p + 1]	;-- search <
+			if p + 1 < e [
+				pos: p
+				p: p + 1
+				cp: as-integer p/1						;-- check for valid tag
+				class: lex-classes/cp and FFh
+				index: S_LESSER * (size? character-classes!) + class ;-- simulate transition from S_LESSER
+				if (as-integer transitions/index) = S_TAG [	  ;-- check if valid tag starting is recognized
+					while [all [p < e p/1 <> #">"]][p: p + 1] ;-- search >
+					if p < e [
+						e: pos							;-- cut the word before <
+						lex/in-pos: pos					;-- resume scanning from <
+					]
+				]
+			]
+		]
 		type: TYPE_WORD
 		if flags and C_FLAG_COLON <> 0 [
 			case [
