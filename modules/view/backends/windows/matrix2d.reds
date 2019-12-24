@@ -114,6 +114,17 @@ matrix2d: context [
 		mul t m r
 	]
 
+	transform-point: func [
+		m		[D2D_MATRIX_3X2_F]
+		x		[float32!]
+		y		[float32!]
+		px		[float32-ptr!]
+		py		[float32-ptr!]
+	][
+		px/value: (x * m/_11) + (y * m/_21) + m/_31
+		py/value: (x * m/_12) + (y * m/_22) + m/_32
+	]
+
 	invert: func [
 		m		[D2D_MATRIX_3X2_F]
 		r		[D2D_MATRIX_3X2_F]

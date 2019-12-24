@@ -488,49 +488,85 @@ draw-curve: func [
 ]
 
 OS-draw-shape-curve: func [
-	ctx		[draw-ctx!]
-	start	[red-pair!]
-	end		[red-pair!]
-	rel?	[logic!]
+	ctx			[draw-ctx!]
+	start		[red-pair!]
+	end			[red-pair!]
+	rel?		[logic!]
 ][
 	draw-curve ctx start end rel? no 3
 ]
 
 OS-draw-shape-qcurve: func [
-	ctx		[draw-ctx!]
-	start	[red-pair!]
-	end		[red-pair!]
-	rel?	[logic!]
+	ctx			[draw-ctx!]
+	start		[red-pair!]
+	end			[red-pair!]
+	rel?		[logic!]
 ][
 	draw-curve ctx start end rel? no 2
 ]
 
 OS-draw-shape-curv: func [
-	ctx		[draw-ctx!]
-	start	[red-pair!]
-	end		[red-pair!]
-	rel?	[logic!]
+	ctx			[draw-ctx!]
+	start		[red-pair!]
+	end			[red-pair!]
+	rel?		[logic!]
 ][
 	draw-curve ctx start - 1 end rel? yes 3
 ]
 
 OS-draw-shape-qcurv: func [
-	ctx		[draw-ctx!]
-	start	[red-pair!]
-	end		[red-pair!]
-	rel?	[logic!]
+	ctx			[draw-ctx!]
+	start		[red-pair!]
+	end			[red-pair!]
+	rel?		[logic!]
 ][
 	draw-curve ctx start - 1 end rel? yes 2
 ]
 
 OS-draw-shape-arc: func [
-	ctx		[draw-ctx!]
-	end		[red-pair!]
-	sweep?	[logic!]
-	large?	[logic!]
-	rel?	[logic!]
+	ctx			[draw-ctx!]
+	end			[red-pair!]
+	sweep?		[logic!]
+	large?		[logic!]
+	rel?		[logic!]
+	/local
+		item		[red-integer!]
+		p1-x		[float32!]
+		p1-y		[float32!]
+		p2-x		[float32!]
+		p2-y		[float32!]
+		radius-x	[float32!]
+		radius-y	[float32!]
+		theta		[float32!]
+		arc			[D2D1_ARC_SEGMENT value]
+		sthis		[this!]
+		gsink		[ID2D1GeometrySink]
 ][
+	;-- parse arguments
+	p1-x: ctx/sub/last-pt-x
+	p1-y: ctx/sub/last-pt-y
+	p2-x: either rel? [ p1-x + as float32! end/x ][ as float32! end/x ]
+	p2-y: either rel? [ p1-y + as float32! end/y ][ as float32! end/y ]
+	ctx/sub/last-pt-x: p2-x
+	ctx/sub/last-pt-y: p2-y
+	item: as red-integer! end + 1
+	radius-x: get-float32 item
+	item: item + 1
+	radius-y: get-float32 item
+	item: item + 1
+	theta: get-float32 item
 
+	arc/point/x: p2-x
+	arc/point/y: p2-y
+	arc/size/width: radius-x
+	arc/size/height: radius-y
+	arc/angle: theta
+	arc/direction: either sweep? [1][0]
+	arc/arcSize: either large? [1][0]
+
+	sthis: as this! ctx/sub/sink
+	gsink: as ID2D1GeometrySink sthis/vtbl
+	gsink/AddArc sthis arc
 ]
 
 OS-draw-anti-alias: func [
