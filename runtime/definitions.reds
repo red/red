@@ -171,6 +171,8 @@ Red/System [
 		BRUSH_TYPE_TEXTURE
 	]
 
+	this!: alias struct! [vtbl [int-ptr!]]
+
 	tagPAINTSTRUCT: alias struct! [
 		hdc			 [handle!]
 		fErase		 [integer!]
@@ -286,6 +288,7 @@ Red/System [
 			alpha-pen?		[logic!]
 			alpha-brush?	[logic!]
 			font-color?		[logic!]
+			text-format		[this!]
 			sub				[sub-path! value]
 		]
 	][

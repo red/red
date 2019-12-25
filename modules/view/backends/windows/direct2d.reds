@@ -1937,7 +1937,7 @@ draw-text-d2d: func [
 
 	this: create-dc-render-target dc rc
 	rt: as ID2D1DCRenderTarget this/vtbl
-	;rt/SetTextAntialiasMode this 1					;-- ClearType
+	rt/SetTextAntialiasMode this 1					;-- ClearType
 
 	rt/BeginDraw this
 	matrix2d/identity m

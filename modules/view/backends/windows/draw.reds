@@ -52,7 +52,7 @@ draw-begin: func [
 	ctx/target: as int-ptr! target
 
 	dc: as ID2D1DeviceContext this/vtbl
-	;dc/SetTextAntialiasMode this 1				;-- ClearType
+	dc/SetTextAntialiasMode this 1				;-- ClearType
 	dc/SetTarget this target/bitmap
 	dc/SetAntialiasMode this 0					;-- D2D1_ANTIALIAS_MODE_PER_PRIMITIVE
 
@@ -163,7 +163,7 @@ update-pen-style: func [
 	prop/endCap: ctx/pen-cap
 	prop/dashCap: ctx/pen-cap
 	prop/lineJoin: ctx/pen-join
-	prop/miterLimit: as float32! 1.0
+	prop/miterLimit: as float32! 10.0
 	prop/dashStyle: 0
 	prop/dashOffset: as float32! 0.0
 
@@ -201,7 +201,6 @@ OS-draw-text: func [
 		this	[this!]
 		dc		[ID2D1DeviceContext]
 		layout	[this!]
-		fmt		[this!]
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
@@ -209,8 +208,7 @@ OS-draw-text: func [
 	layout: either TYPE_OF(text) = TYPE_OBJECT [				;-- text-box!
 		OS-text-box-layout as red-object! text as render-target! ctx/target 0 yes
 	][
-		fmt: as this! create-text-format as red-object! text null
-		create-text-layout text fmt 0 0
+		create-text-layout text ctx/text-format 0 0
 	]
 	txt-box-draw-background ctx/target pos layout
 	dc/DrawTextLayout this as float32! pos/x as float32! pos/y layout ctx/pen 0
@@ -581,6 +579,58 @@ OS-draw-anti-alias: func [
 	dc/SetAntialiasMode this either on? [0][1]
 ]
 
+_OS-draw-polygon: func [
+	ctx			[draw-ctx!]
+	start		[red-pair!]
+	end			[red-pair!]
+	close?		[logic!]
+	/local
+		d2d		[ID2D1Factory]
+		path	[ptr-value!]
+		hr		[integer!]
+		pthis	[this!]
+		gpath	[ID2D1PathGeometry]
+		sink	[ptr-value!]
+		sthis	[this!]
+		gsink	[ID2D1GeometrySink]
+		point	[D2D_POINT_2F value]
+		this	[this!]
+		dc		[ID2D1DeviceContext]
+][
+	d2d: as ID2D1Factory d2d-factory/vtbl
+	hr: d2d/CreatePathGeometry d2d-factory :path
+	pthis: as this! path/value
+	gpath: as ID2D1PathGeometry pthis/vtbl
+	hr: gpath/Open pthis :sink
+	sthis: as this! sink/value
+	gsink: as ID2D1GeometrySink sthis/vtbl
+
+	point/x: as float32! start/x
+	point/y: as float32! start/y
+	gsink/BeginFigure sthis point 1				;-- D2D1_FIGURE_BEGIN_HOLLOW
+	start: start + 1
+	while [start <= end] [
+		point/x: as float32! start/x
+		point/y: as float32! start/y
+		gsink/AddLine sthis point
+		start: start + 1
+	]
+	gsink/EndFigure sthis as-integer close?		;-- D2D1_FIGURE_END_CLOSED
+
+	hr: gsink/Close sthis
+	gsink/Release sthis
+
+	this: as this! ctx/dc
+	dc: as ID2D1DeviceContext this/vtbl
+	if ctx/brush? [
+		dc/FillGeometry this as int-ptr! pthis ctx/brush null
+	]
+	if ctx/pen? [
+		dc/DrawGeometry this as int-ptr! pthis ctx/pen ctx/pen-width ctx/pen-style
+	]
+	gpath/Release pthis
+]
+
 OS-draw-line: func [
 	ctx	   [draw-ctx!]
 	point  [red-pair!]
@@ -593,9 +643,10 @@ OS-draw-line: func [
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
-	pt0:  point
+	pt0: point
+	pt1: pt0 + 1
 
-	while [pt1: pt0 + 1 pt1 <= end][
+	either pt1 = end [
 		dc/DrawLine
 			this
 			as float32! pt0/x as float32! pt0/y
@@ -603,7 +654,8 @@ OS-draw-line: func [
 			ctx/pen
 			ctx/pen-width
 			ctx/pen-style
-		pt0: pt0 + 1
+	][
+		_OS-draw-polygon ctx point end no
 	]
 ]
 
@@ -674,51 +726,8 @@ OS-draw-polygon: func [
 	ctx			[draw-ctx!]
 	start		[red-pair!]
 	end			[red-pair!]
-	/local
-		d2d		[ID2D1Factory]
-		path	[ptr-value!]
-		hr		[integer!]
-		pthis	[this!]
-		gpath	[ID2D1PathGeometry]
-		sink	[ptr-value!]
-		sthis	[this!]
-		gsink	[ID2D1GeometrySink]
-		point	[D2D_POINT_2F value]
-		this	[this!]
-		dc		[ID2D1DeviceContext]
 ][
-	d2d: as ID2D1Factory d2d-factory/vtbl
-	hr: d2d/CreatePathGeometry d2d-factory :path
-	pthis: as this! path/value
-	gpath: as ID2D1PathGeometry pthis/vtbl
-	hr: gpath/Open pthis :sink
-	sthis: as this! sink/value
-	gsink: as ID2D1GeometrySink sthis/vtbl
-
-	point/x: as float32! start/x
-	point/y: as float32! start/y
-	gsink/BeginFigure sthis point 1				;-- D2D1_FIGURE_BEGIN_HOLLOW
-	start: start + 1
-	while [start <= end] [
-		point/x: as float32! start/x
-		point/y: as float32! start/y
-		gsink/AddLine sthis point
-		start: start + 1
-	]
-	gsink/EndFigure sthis 1						;-- D2D1_FIGURE_END_CLOSED
-
-	hr: gsink/Close sthis
-	gsink/Release sthis
-
-	this: as this! ctx/dc
-	dc: as ID2D1DeviceContext this/vtbl
-	if ctx/brush? [
-		dc/FillGeometry this as int-ptr! pthis ctx/brush null
-	]
-	if ctx/pen? [
-		dc/DrawGeometry this as int-ptr! pthis ctx/pen ctx/pen-width ctx/pen-style
-	]
-	gpath/Release pthis
+	_OS-draw-polygon ctx start end yes
 ]
 
 spline-delta: 1.0 / 25.0
@@ -945,7 +954,7 @@ OS-draw-font: func [
 	ctx		[draw-ctx!]
 	font	[red-object!]
 ][
-
+	ctx/text-format: as this! create-text-format font null
 ]
 
 OS-draw-arc: func [

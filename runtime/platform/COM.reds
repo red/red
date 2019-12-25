@@ -101,8 +101,6 @@ tagSTATSTG: alias struct! [
 	reserved		[integer!]
 ]
 
-this!: alias struct! [vtbl [int-ptr!]]
-
 interface!: alias struct! [
 	ptr [this!]
 ]
