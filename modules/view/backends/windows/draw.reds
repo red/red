@@ -999,11 +999,11 @@ OS-draw-arc: func [
 	start-x: as float32! cos as float! angle-begin
 	start-x: cx + (rad-x * start-x)
 	start-y: as float32! sin as float! angle-begin
-	start-y: cx + (rad-y * start-y)
+	start-y: cy + (rad-y * start-y)
 	end-x: as float32! cos as float! angle-end
 	end-x: cx + (rad-x * end-x)
 	end-y: as float32! sin as float! angle-end
-	end-y: cx + (rad-y * end-y)
+	end-y: cy + (rad-y * end-y)
 
 	closed?: angle < end
 
@@ -1359,7 +1359,7 @@ OS-matrix-reset: func [
 	either pen-fill = -1 [
 		this: as this! ctx/dc
 		dc: as ID2D1DeviceContext this/vtbl
-		dc/GetTransform this :m
+		;dc/GetTransform this :m
 		matrix2d/identity :m
 		dc/SetTransform this :m
 	][

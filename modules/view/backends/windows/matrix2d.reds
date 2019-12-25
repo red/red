@@ -38,7 +38,7 @@ matrix2d: context [
 		m/_12: as float32! 0.0
 		m/_21: as float32! 0.0
 		m/_22: as float32! 1.0
-		m/_31: as float32! 1.0
+		m/_31: as float32! 0.0
 		m/_32: as float32! 0.0
 	]
 
