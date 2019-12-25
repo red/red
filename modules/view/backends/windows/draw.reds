@@ -1238,9 +1238,9 @@ OS-matrix-rotate: func [
 		dc: as ID2D1DeviceContext this/vtbl
 		dc/GetTransform this :m
 		either angle <> as red-integer! center [
-			matrix2d/translate :m as float32! center/x as float32! center/y :t
-			matrix2d/rotate :t as float32! rad :m
 			matrix2d/translate :m as float32! 0 - center/x as float32! 0 - center/y :t
+			matrix2d/rotate :t as float32! rad :m
+			matrix2d/translate :m as float32! center/x as float32! center/y :t
 		][
 			matrix2d/rotate :m as float32! rad :t
 		]
@@ -1397,7 +1397,9 @@ OS-matrix-set: func [
 		val		[red-integer!]
 		this	[this!]
 		dc		[ID2D1DeviceContext]
+		m0		[D2D_MATRIX_3X2_F value]
 		m		[D2D_MATRIX_3X2_F value]
+		t		[D2D_MATRIX_3X2_F value]
 ][
 	val: as red-integer! block/rs-head blk
 	m/_11: get-float32 val
@@ -1409,7 +1411,9 @@ OS-matrix-set: func [
 	either pen-fill = -1 [
 		this: as this! ctx/dc
 		dc: as ID2D1DeviceContext this/vtbl
-		dc/SetTransform this :m
+		dc/GetTransform this :m0
+		matrix2d/mul m0 m t
+		dc/SetTransform this :t
 	][
 		;-- TBD
 		exit

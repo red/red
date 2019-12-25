@@ -26,7 +26,7 @@ Red/System [
 ;-- compose transform
 ;-- 1. translate M1
 ;-- 2. rotate M2
-;-- 3; translate M3
+;-- 3. translate M3
 ;-- result:
 ;-- M = M1 * M2 * M3
 
@@ -42,7 +42,6 @@ matrix2d: context [
 		m/_32: as float32! 0.0
 	]
 
-	;-- c: l * r
 	mul: func [
 		l		[D2D_MATRIX_3X2_F]
 		r		[D2D_MATRIX_3X2_F]
@@ -67,7 +66,7 @@ matrix2d: context [
 		identity t
 		t/_31: x
 		t/_32: y
-		mul t m r
+		mul m t r
 	]
 
 	scale: func [
@@ -81,7 +80,7 @@ matrix2d: context [
 		identity t
 		t/_11: x
 		t/_22: y
-		mul t m r
+		mul m t r
 	]
 
 	rotate: func [
@@ -96,7 +95,7 @@ matrix2d: context [
 		t/_12: as float32! sin as float! angle
 		t/_21: (as float32! 0.0) - t/_12
 		t/_22: t/_11
-		mul t m r
+		mul m t r
 	]
 
 	skew: func [
@@ -110,7 +109,7 @@ matrix2d: context [
 		identity t
 		t/_12: as float32! tan as float! x
 		t/_21: as float32! tan as float! y
-		mul t m r
+		mul m t r
 	]
 
 	transform-point: func [
