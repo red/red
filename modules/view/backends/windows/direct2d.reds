@@ -65,7 +65,7 @@ SIZE_U!: alias struct! [
 	height		[uint32!]
 ]
 
-D2D1_SIZE_F: alias struct! [
+SIZE_F!: alias struct! [
 	width		[float32!]
 	height		[float32!]
 ]
@@ -88,7 +88,7 @@ D2D1_QUADRATIC_BEZIER_SEGMENT: alias struct! [
 
 D2D1_ARC_SEGMENT: alias struct! [
 	point		[D2D_POINT_2F value]
-	size		[D2D1_SIZE_F value]
+	size		[SIZE_F! value]
 	angle		[float32!]
 	direction	[integer!]
 	arcSize		[integer!]
@@ -624,11 +624,27 @@ ID3D11Device: alias struct! [
 	GetExceptionMode				[integer!]
 ]
 
+CreateSharedBitmap*: alias function! [
+	riid		[tagGUID]
+	data		[byte-ptr!]
+	properties	[D2D1_BITMAP_PROPERTIES1]
+	bitmap		[ptr-ptr!]
+	return:		[integer!]
+]
+
 CreateBitmap*: alias function! [
 	this		[this!]
 	size		[SIZE_U! value]
 	sourceData	[int-ptr!]
 	pitch		[uint32!]
+	properties	[D2D1_BITMAP_PROPERTIES1]
+	bitmap		[ptr-ptr!]
+	return:		[integer!]
+]
+
+CreateBitmapFromWicBitmap*: alias function! [
+	this		[this!]
+	source		[int-ptr!]
 	properties	[D2D1_BITMAP_PROPERTIES1]
 	bitmap		[ptr-ptr!]
 	return:		[integer!]
@@ -657,13 +673,13 @@ ID2D1DeviceContext: alias struct! [
 	GetFactory						[integer!]
 	CreateBitmap					[integer!]
 	CreateBitmapFromWicBitmap		[integer!]
-	CreateSharedBitmap				[integer!]
+	CreateSharedBitmap				[CreateSharedBitmap*]
 	CreateBitmapBrush				[integer!]
 	CreateSolidColorBrush			[CreateSolidColorBrush*]
 	CreateGradientStopCollection	[CreateGradientStopCollection*]
 	CreateLinearGradientBrush		[integer!]
 	CreateRadialGradientBrush		[CreateRadialGradientBrush*]
-	CreateCompatibleRenderTarget	[integer!]
+	CreateCompatibleRenderTarget	[function! [this [this!] size [SIZE_F! value] target [ptr-ptr!] return: [integer!]]]
 	CreateLayer						[integer!]
 	CreateMesh						[integer!]
 	DrawLine						[DrawLine*]
@@ -709,7 +725,7 @@ ID2D1DeviceContext: alias struct! [
 	GetMaximumBitmapSize			[integer!]
 	IsSupported						[integer!]
     CreateBitmap2					[CreateBitmap*]
-    CreateBitmapFromWicBitmap2		[integer!]
+    CreateBitmapFromWicBitmap2		[CreateBitmapFromWicBitmap*]
     CreateColorContext						[integer!]
     CreateColorContextFromFilename			[integer!]
     CreateColorContextFromWicColorContext	[integer!]
