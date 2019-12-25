@@ -43,7 +43,6 @@ draw-begin: func [
 	ctx/pen-style:	0
 	ctx/pen?:		yes
 	ctx/hwnd:		hWnd
-	ctx/font-color:	-1
 	update-pen-style ctx
 
 	this: d2d-ctx
@@ -183,6 +182,7 @@ OS-draw-pen: func [
 	if any [ctx/pen-color <> color ctx/pen? = off?][
 		ctx/pen?: not off?
 		ctx/pen-color: color
+		unless ctx/font-color? [ctx/font-color: color]	;-- if no font, use pen color for text color
 		if ctx/pen? [
 			this: as this! ctx/pen
 			brush: as ID2D1SolidColorBrush this/vtbl
@@ -201,6 +201,9 @@ OS-draw-text: func [
 		this	[this!]
 		dc		[ID2D1DeviceContext]
 		layout	[this!]
+		brush	[ID2D1SolidColorBrush]
+		color?	[logic!]
+		pen		[this!]
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
@@ -208,10 +211,23 @@ OS-draw-text: func [
 	layout: either TYPE_OF(text) = TYPE_OBJECT [				;-- text-box!
 		OS-text-box-layout as red-object! text as render-target! ctx/target 0 yes
 	][
+		if null? ctx/text-format [
+			ctx/text-format: as this! create-text-format as red-object! text null
+		]
 		create-text-layout text ctx/text-format 0 0
+	]
+	color?: no
+	if ctx/font-color <> ctx/pen-color [
+		pen: as this! ctx/pen
+		brush: as ID2D1SolidColorBrush pen/vtbl
+		brush/SetColor pen to-dx-color ctx/font-color null
+		color?: yes
 	]
 	txt-box-draw-background ctx/target pos layout
 	dc/DrawTextLayout this as float32! pos/x as float32! pos/y layout ctx/pen 0
+	if color? [
+		brush/SetColor pen to-dx-color ctx/pen-color null
+	]
 	true
 ]
 
@@ -953,8 +969,16 @@ OS-draw-ellipse: func [
 OS-draw-font: func [
 	ctx		[draw-ctx!]
 	font	[red-object!]
+	/local
+		clr [red-tuple!]
 ][
 	ctx/text-format: as this! create-text-format font null
+	;-- set font color
+	clr: as red-tuple! (object/get-values font) + FONT_OBJ_COLOR
+	if TYPE_OF(clr) = TYPE_TUPLE [
+		ctx/font-color: clr/array1
+		ctx/font-color?: yes
+	]
 ]
 
 OS-draw-arc: func [
