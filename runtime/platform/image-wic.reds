@@ -961,6 +961,22 @@ OS-image: context [
 		bitmap
 	]
 
+	from-HBITMAP: func [
+		hBitmap		[integer!]
+		return:		[red-image!]
+		/local
+			IFAC	[IWICImagingFactory]
+			bitmap	[interface! value]
+			hr		[integer!]
+	][
+		IFAC: as IWICImagingFactory wic-factory/vtbl
+		hr: IFAC/CreateBitmapFromHBITMAP wic-factory as int-ptr! hBitmap null 0 :bitmap
+		if hr < 0 [
+			return as red-image! none-value
+		]
+		image/init-image as red-image! stack/push* as int-ptr! bitmap/ptr
+	]
+
 	to-gpbitmap: func [
 		image		[red-image!]
 		return:		[integer!]

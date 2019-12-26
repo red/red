@@ -2532,7 +2532,6 @@ OS-to-image: func [
 		width	[integer!]
 		height	[integer!]
 		bmp		[handle!]
-		bitmap	[integer!]
 		img		[red-image!]
 		word	[red-word!]
 		size	[red-pair!]
@@ -2584,12 +2583,7 @@ OS-to-image: func [
 		]
 	]
 
-	bitmap: 0
-	GdipCreateBitmapFromHBITMAP bmp 0 :bitmap
-
-	either zero? bitmap [img: as red-image! none-value][
-		img: image/init-image as red-image! stack/push* as int-ptr! bitmap
-	]
+	img: OS-image/from-HBITMAP as integer! bmp
 
     if screen? [DeleteDC mdc]				;-- we delete it in Draw when print window
     DeleteObject bmp

@@ -747,6 +747,17 @@ OS-image: context [
 		bitmap
 	]
 
+	from-HBITMAP: func [
+		hBitmap		[integer!]
+		return:		[red-image!]
+	][
+		bitmap: 0
+		GdipCreateBitmapFromHBITMAP hBitmap 0 :bitmap
+		if zero? bitmap [return as red-image! none-value]
+
+		image/init-image as red-image! stack/push* as int-ptr! bitmap
+	]
+
 	to-gpbitmap: func [
 		image		[red-image!]
 		return:		[integer!]
