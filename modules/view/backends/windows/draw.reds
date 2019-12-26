@@ -1208,10 +1208,10 @@ OS-draw-image: func [
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
 	ithis: OS-image/to-pbgra image
-	IB: as IUnknown ithis
+	IB: as IUnknown ithis/vtbl
 	dc/CreateBitmapFromWicBitmap2 this as int-ptr! ithis null :bmp
 	bthis: as this! bmp/value
-	d2db: as IUnknown bthis
+	d2db: as IUnknown bthis/vtbl
 	either null? start [x: 0 y: 0][x: start/x y: start/y]
 	case [
 		start = end [
@@ -1244,9 +1244,8 @@ OS-draw-image: func [
 		dc/DrawBitmap2 this as int-ptr! bthis dst as float32! 1.0 1 null null
 	]
 
-	;-- the bitmap can't be released here, otherwise will crash the app
-	;d2db/Release bthis
-	;IB/Release ithis
+	d2db/Release bthis
+	IB/Release ithis
 ]
 
 
