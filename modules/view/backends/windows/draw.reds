@@ -1189,8 +1189,64 @@ OS-draw-image: func [
 	border?		[logic!]
 	crop1		[red-pair!]
 	pattern		[red-word!]
+	/local
+		this	[this!]
+		dc		[ID2D1DeviceContext]
+		ithis	[this!]
+		IB		[IUnknown]
+		bmp		[ptr-value!]
+		bthis	[this!]
+		d2db	[IUnknown]
+		x		[integer!]
+		y		[integer!]
+		width	[integer!]
+		height	[integer!]
+		dst		[RECT_F! value]
+		src		[RECT_F! value]
+		crop2	[red-pair!]
 ][
+	this: as this! ctx/dc
+	dc: as ID2D1DeviceContext this/vtbl
+	ithis: OS-image/to-pbgra image
+	IB: as IUnknown ithis
+	dc/CreateBitmapFromWicBitmap2 this as int-ptr! ithis null :bmp
+	bthis: as this! bmp/value
+	d2db: as IUnknown bthis
+	either null? start [x: 0 y: 0][x: start/x y: start/y]
+	case [
+		start = end [
+			width:  IMAGE_WIDTH(image/size)
+			height: IMAGE_HEIGHT(image/size)
+		]
+		start + 1 = end [					;-- two control points
+			width: end/x - x
+			height: end/y - y
+		]
+		start + 2 = end [0]					;@@ TBD three control points
+		true [0]							;@@ TBD four control points
+	]
 
+	dst/left: as float32! x
+	dst/top: as float32! y
+	dst/right: as float32! x + width
+	dst/bottom: as float32! y + height
+
+	either crop1 <> null [
+		crop2: crop1 + 1
+		src/left: as float32! crop1/x
+		src/top: as float32! crop1/y
+		src/right: as float32! crop1/x + crop2/x
+		src/bottom: as float32! crop1/y + crop2/y
+		;-- D2D1_INTERPOLATION_MODE_DEFINITION_LINEAR
+		dc/DrawBitmap2 this as int-ptr! bthis dst as float32! 1.0 1 src null
+	][
+		;-- D2D1_INTERPOLATION_MODE_DEFINITION_LINEAR
+		dc/DrawBitmap2 this as int-ptr! bthis dst as float32! 1.0 1 null null
+	]
+
+	;-- the bitmap can't be released here, otherwise will crash the app
+	;d2db/Release bthis
+	;IB/Release ithis
 ]
 
 

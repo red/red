@@ -666,6 +666,16 @@ DrawImage*: alias function! [
 	composite	[integer!]
 ]
 
+DrawBitmap*: alias function! [
+	this		[this!]
+	bmp			[int-ptr!]
+	dst			[RECT_F!]
+	opacity		[float32!]
+	mode		[integer!]
+	src			[RECT_F!]
+	trans		[int-ptr!]
+]
+
 ID2D1DeviceContext: alias struct! [
 	QueryInterface					[QueryInterface!]
 	AddRef							[AddRef!]
@@ -752,7 +762,7 @@ ID2D1DeviceContext: alias struct! [
     DrawGlyphRun2					[integer!]
     DrawImage						[DrawImage*]
     DrawGdiMetafile					[integer!]
-    DrawBitmap2						[integer!]
+    DrawBitmap2						[DrawBitmap*]
     PushLayer2						[integer!]
     InvalidateEffectInputRectangle	[integer!]
     GetEffectInvalidRectangleCount	[integer!]

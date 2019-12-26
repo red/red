@@ -878,4 +878,28 @@ OS-image: context [
 		dst/head: 0
 		dst
 	]
+
+	to-pbgra: func [
+		image		[red-image!]
+		return:		[this!]
+		/local
+			this	[this!]
+			IB		[IWICBitmap]
+			IFAC	[IWICImagingFactory]
+			iconv	[interface! value]
+			cthis	[this!]
+			conv	[IWICFormatConverter]
+			bitmap	[interface! value]
+	][
+		this: as this! image/node
+		IB: as IWICBitmap this/vtbl
+		IFAC: as IWICImagingFactory wic-factory/vtbl
+		IFAC/CreateFormatConverter wic-factory :iconv
+		cthis: as this! iconv/ptr
+		conv: as IWICFormatConverter cthis/vtbl
+		conv/Initialize cthis as int-ptr! this as int-ptr! GUID_WICPixelFormat32bppPBGRA 0 null 0.0 0
+		IFAC/CreateBitmapFromSource wic-factory as int-ptr! cthis 0 :bitmap
+		conv/Release cthis
+		as this! bitmap/ptr
+	]
 ]
