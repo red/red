@@ -1578,7 +1578,6 @@ do-events: func [
 			DispatchMessage :msg
 			current-msg: saved
 		]
-		if no-wait? [return msg?]
 	]
 	unless no-wait? [
 		exit-loop: exit-loop - 1
