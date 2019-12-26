@@ -719,7 +719,7 @@ ID2D1DeviceContext: alias struct! [
 	GetTags							[integer!]
 	PushLayer						[integer!]
 	PopLayer						[integer!]
-	Flush							[integer!]
+	Flush							[function! [this [this!] tag1 [int-ptr!] tag2 [int-ptr!]]]
 	SaveDrawingState				[integer!]
 	RestoreDrawingState				[integer!]
 	PushAxisAlignedClip				[function! [this [this!] rc [RECT_F!] mode [integer!]]]

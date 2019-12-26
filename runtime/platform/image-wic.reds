@@ -899,7 +899,6 @@ OS-image: context [
 			iconv	[interface! value]
 			cthis	[this!]
 			conv	[IWICFormatConverter]
-			bitmap	[interface! value]
 	][
 		this: as this! image/node
 		IB: as IWICBitmap this/vtbl
@@ -908,9 +907,7 @@ OS-image: context [
 		cthis: as this! iconv/ptr
 		conv: as IWICFormatConverter cthis/vtbl
 		conv/Initialize cthis as int-ptr! this as int-ptr! GUID_WICPixelFormat32bppPBGRA 0 null 0.0 0
-		IFAC/CreateBitmapFromSource wic-factory as int-ptr! cthis 0 :bitmap
-		conv/Release cthis
-		as this! bitmap/ptr
+		as this! cthis
 	]
 
 	to-HBITMAP:  func [
