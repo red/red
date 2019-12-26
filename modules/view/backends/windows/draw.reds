@@ -12,7 +12,17 @@ Red/System [
 
 #include %text-box.reds
 
-draw-state!: alias struct! [unused [integer!]]
+draw-state!: alias struct! [
+	block		[this!]
+	pen-clr		[integer!]
+	brush-clr	[integer!]
+	pen-join	[integer!]
+	pen-cap		[integer!]
+	pen?		[logic!]
+	brush?		[logic!]
+	a-pen?		[logic!]
+	a-brush?	[logic!]
+]
 
 draw-begin: func [
 	ctx			[draw-ctx!]
@@ -1456,11 +1466,56 @@ OS-matrix-transform: func [
 	OS-matrix-translate ctx pen-fill translate/x translate/y
 ]
 
-OS-draw-state-push: func [ctx [draw-ctx!] state [draw-state!]][
-
+OS-draw-state-push: func [
+	ctx		[draw-ctx!]
+	state	[draw-state!]
+	/local
+		factory	[ID2D1Factory]
+		blk		[ptr-value!]
+		this	[this!]
+		dc		[ID2D1DeviceContext]
+][
+	factory: as ID2D1Factory d2d-factory/vtbl
+	if 0 <> factory/CreateDrawingStateBlock d2d-factory null null :blk [
+		;TBD error!!!
+		probe "OS-draw-state-push failed"
+		exit
+	]
+	this: as this! ctx/dc
+	dc: as ID2D1DeviceContext this/vtbl
+	dc/SaveDrawingState this as this! blk/value
+	state/block: as this! blk/value
+	state/pen-clr: ctx/pen-color
+	state/brush-clr: ctx/brush-color
+	state/pen-join: ctx/pen-join
+	state/pen-cap: ctx/pen-cap
+	state/pen?: ctx/pen?
+	state/brush?: ctx/brush?
+	state/a-pen?: ctx/alpha-pen?
+	state/a-brush?: ctx/alpha-brush?
 ]
 
-OS-draw-state-pop: func [ctx [draw-ctx!] state [draw-state!]][]
+OS-draw-state-pop: func [
+	ctx		[draw-ctx!]
+	state	[draw-state!]
+	/local
+		this	[this!]
+		dc		[ID2D1DeviceContext]
+		IUnk	[IUnknown]
+][
+	this: as this! ctx/dc
+	dc: as ID2D1DeviceContext this/vtbl
+	dc/RestoreDrawingState this state/block
+	COM_SAFE_RELEASE(IUnk state/block)
+	ctx/pen-color: state/pen-clr
+	ctx/brush-color: state/brush-clr
+	ctx/pen-join: state/pen-join
+	ctx/pen-cap: state/pen-cap
+	ctx/pen?: state/pen?
+	ctx/brush?: state/brush?
+	ctx/alpha-pen?: state/a-pen?
+	ctx/alpha-brush?: state/a-brush?
+]
 
 OS-matrix-reset: func [
 	ctx			[draw-ctx!]

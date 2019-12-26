@@ -290,6 +290,7 @@ Red/System [
 			alpha-brush?	[logic!]
 			font-color?		[logic!]
 			text-format		[this!]
+			state			[this!]				;-- current draw state
 			sub				[sub-path! value]
 		]
 	][
