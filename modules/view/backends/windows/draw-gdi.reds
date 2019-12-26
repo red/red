@@ -3432,7 +3432,7 @@ OS-matrix-transform: func [
 	]
 ]
 
-OS-matrix-push: func [ctx [draw-ctx!] state [draw-state!] /local s][
+OS-draw-state-push: func [ctx [draw-ctx!] state [draw-state!] /local s][
 	s: 0
 	GdipSaveGraphics ctx/graphics :s
 	state/gstate: s
@@ -3446,7 +3446,7 @@ OS-matrix-push: func [ctx [draw-ctx!] state [draw-state!] /local s][
 	state/a-brush?: ctx/alpha-brush?
 ]
 
-OS-matrix-pop: func [ctx [draw-ctx!] state [draw-state!]][
+OS-draw-state-pop: func [ctx [draw-ctx!] state [draw-state!]][
 	GdipRestoreGraphics ctx/graphics state/gstate
 	ctx/pen-join: state/pen-join
 	ctx/pen-cap: state/pen-cap

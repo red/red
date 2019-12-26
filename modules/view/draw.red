@@ -878,10 +878,10 @@ Red/System [
 								]
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
-									OS-matrix-push DC :state
+									OS-draw-state-push DC :state
 									OS-set-clip DC as red-pair! start as red-pair! value rect? clip-mode
 									parse-draw DC as red-block! cmd catch?
-									OS-matrix-pop DC :state
+									OS-draw-state-pop DC :state
 								][
 									OS-set-clip DC as red-pair! start as red-pair! value rect? clip-mode
 								]
@@ -906,10 +906,10 @@ Red/System [
 								DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
-									OS-matrix-push DC :state
+									OS-draw-state-push DC :state
 									OS-matrix-rotate DC sym as red-integer! start as red-pair! cmd - 1
 									parse-draw DC as red-block! cmd catch?
-									OS-matrix-pop DC :state
+									OS-draw-state-pop DC :state
 								][
 									OS-matrix-rotate DC sym as red-integer! start as red-pair! cmd
 								]
@@ -919,10 +919,10 @@ Red/System [
 								loop 2 [DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)]
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
-									OS-matrix-push DC :state
+									OS-draw-state-push DC :state
 									OS-matrix-scale DC sym as red-integer! start as red-integer! cmd - 1
 									parse-draw DC as red-block! cmd catch?
-									OS-matrix-pop DC :state
+									OS-draw-state-pop DC :state
 								][
 									OS-matrix-scale DC sym as red-integer! start as red-integer! cmd
 								]
@@ -933,10 +933,10 @@ Red/System [
 								point: as red-pair! start
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
-									OS-matrix-push DC :state
+									OS-draw-state-push DC :state
 									OS-matrix-translate DC sym point/x point/y
 									parse-draw DC as red-block! cmd catch?
-									OS-matrix-pop DC :state
+									OS-draw-state-pop DC :state
 								][
 									OS-matrix-translate DC sym point/x point/y
 								]
@@ -947,10 +947,10 @@ Red/System [
 								DRAW_FETCH_OPT_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
-									OS-matrix-push DC :state
+									OS-draw-state-push DC :state
 									OS-matrix-skew DC sym as red-integer! start as red-integer! cmd - 1
 									parse-draw DC as red-block! cmd catch?
-									OS-matrix-pop DC :state
+									OS-draw-state-pop DC :state
 								][
 									OS-matrix-skew DC sym as red-integer! start as red-integer! cmd
 								]
@@ -964,7 +964,7 @@ Red/System [
 								DRAW_FETCH_VALUE(TYPE_PAIR)
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
-									OS-matrix-push DC :state
+									OS-draw-state-push DC :state
 									OS-matrix-transform
 										DC
 										sym
@@ -972,7 +972,7 @@ Red/System [
 										as red-integer! value
 										as red-pair! cmd - 1
 									parse-draw DC as red-block! cmd catch?
-									OS-matrix-pop DC :state
+									OS-draw-state-pop DC :state
 								][
 									OS-matrix-transform
 										DC
@@ -984,9 +984,9 @@ Red/System [
 							]
 							sym = _push [							;@@ push is a keyword in R/S
 								DRAW_FETCH_VALUE(TYPE_BLOCK)
-								OS-matrix-push DC :state
+								OS-draw-state-push DC :state
 								parse-draw DC as red-block! start catch?
-								OS-matrix-pop DC :state
+								OS-draw-state-pop DC :state
 							]
 							sym = matrix [
 								DRAW_FETCH_OPT_TRANSFORM

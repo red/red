@@ -1406,7 +1406,7 @@ OS-matrix-transform: func [
 	OS-matrix-rotate dc pen rotate center
 ]
 
-OS-matrix-push: func [dc [draw-ctx!] state [draw-state!]][
+OS-draw-state-push: func [dc [draw-ctx!] state [draw-state!]][
 	CGContextSaveGState dc/raw
 	state/pen-clr: dc/pen-color
 	state/brush-clr: dc/brush-color
@@ -1418,7 +1418,7 @@ OS-matrix-push: func [dc [draw-ctx!] state [draw-state!]][
 	state/a-brush?: dc/grad-brush?
 ]
 
-OS-matrix-pop: func [dc [draw-ctx!] state [draw-state!]][
+OS-draw-state-pop: func [dc [draw-ctx!] state [draw-state!]][
 	CGContextRestoreGState dc/raw
 	dc/pen-color: state/pen-clr
 	dc/brush-color: state/brush-clr
