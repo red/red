@@ -644,7 +644,7 @@ CreateBitmap*: alias function! [
 
 CreateBitmapFromWicBitmap*: alias function! [
 	this		[this!]
-	source		[int-ptr!]
+	source		[this!]
 	properties	[D2D1_BITMAP_PROPERTIES1]
 	bitmap		[ptr-ptr!]
 	return:		[integer!]

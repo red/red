@@ -35,6 +35,9 @@ draw-begin: func [
 		clr		[red-tuple!]
 		text	[red-string!]
 		pos		[red-pair! value]
+		bmp		[ptr-value!]
+		wic-bmp	[this!]
+		IUnk	[IUnknown]
 ][
 	zero-memory as byte-ptr! ctx size? draw-ctx!
 	ctx/pen-width:	as float32! 1.0
@@ -46,11 +49,27 @@ draw-begin: func [
 	update-pen-style ctx
 
 	this: d2d-ctx
-	target: get-hwnd-render-target hWnd
+	dc: as ID2D1DeviceContext this/vtbl
+
+	either hWnd <> null [
+		target: get-hwnd-render-target hWnd
+	][
+		wic-bmp: OS-image/to-pbgra img
+		;-- create a bitmap target
+		target: as render-target! alloc0 size? render-target!
+		target/brushes: as int-ptr! allocate D2D_MAX_BRUSHES * 2 * size? int-ptr!
+		if 0 <> dc/CreateBitmapFromWicBitmap2 this wic-bmp null bmp [
+			;TBD error!!!
+			probe "CreateBitmapFromWicBitmap2 failed in draw-begin"
+			return ctx
+		]
+		ctx/image: img/node
+		target/bitmap: as this! bmp/value
+		COM_SAFE_RELEASE(IUnk wic-bmp)
+	]
 	ctx/dc: as ptr-ptr! this
 	ctx/target: as int-ptr! target
 
-	dc: as ID2D1DeviceContext this/vtbl
 	dc/SetTextAntialiasMode this 1				;-- ClearType
 	dc/SetTarget this target/bitmap
 	dc/SetAntialiasMode this 0					;-- D2D1_ANTIALIAS_MODE_PER_PRIMITIVE
@@ -58,13 +77,6 @@ draw-begin: func [
 	dc/BeginDraw this
 	matrix2d/identity m
 	dc/SetTransform this :m						;-- set to identity matrix
-
-	values: get-face-values hWnd
-	clr: as red-tuple! values + FACE_OBJ_COLOR
-	bg-clr: either TYPE_OF(clr) = TYPE_TUPLE [clr/array1][-1]
-	if bg-clr <> -1 [							;-- paint background
-		dc/Clear this to-dx-color bg-clr null
-	]
 
 	d3d-clr: to-dx-color ctx/pen-color null
 	brush: 0
@@ -75,10 +87,19 @@ draw-begin: func [
 	dc/CreateSolidColorBrush this d3d-clr null :brush
 	ctx/brush: brush
 
-	text: as red-string! values + FACE_OBJ_TEXT
-	if TYPE_OF(text) = TYPE_STRING [
-		pos/x: 0 pos/y: 0
-		OS-draw-text ctx pos as red-string! get-face-obj hWnd yes
+	if hWnd <> null [
+		values: get-face-values hWnd
+		clr: as red-tuple! values + FACE_OBJ_COLOR
+		bg-clr: either TYPE_OF(clr) = TYPE_TUPLE [clr/array1][-1]
+		if bg-clr <> -1 [							;-- paint background
+			dc/Clear this to-dx-color bg-clr null
+		]
+
+		text: as red-string! values + FACE_OBJ_TEXT
+		if TYPE_OF(text) = TYPE_STRING [
+			pos/x: 0 pos/y: 0
+			OS-draw-text ctx pos as red-string! get-face-obj hWnd yes
+		]
 	]
 	ctx
 ]
@@ -107,30 +128,35 @@ draw-end: func [
 		hr		[integer!]
 ][
 	release-pen-style ctx
-	rt: as render-target! ctx/target
-	this: rt/dc
+	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
 	dc/EndDraw this null null
 	dc/SetTarget this null
 
-	this: rt/swapchain
-	sc: as IDXGISwapChain1 this/vtbl
-	hr: sc/Present this 0 0
+	rt: as render-target! ctx/target
+	either hWnd <> null [
+		this: rt/swapchain
+		sc: as IDXGISwapChain1 this/vtbl
+		hr: sc/Present this 0 0
 
-	switch hr [
-		COM_S_OK [ValidateRect hWnd null]
-		DXGI_ERROR_DEVICE_REMOVED
-		DXGI_ERROR_DEVICE_RESET [
-			release-ctx ctx
-			d2d-release-target rt
-			ctx/dc: null
-			SetWindowLong hWnd wc-offset - 24 0
-			DX-create-dev
-			InvalidateRect hWnd null 0
+		switch hr [
+			COM_S_OK [ValidateRect hWnd null]
+			DXGI_ERROR_DEVICE_REMOVED
+			DXGI_ERROR_DEVICE_RESET [
+				release-ctx ctx
+				d2d-release-target rt
+				ctx/dc: null
+				SetWindowLong hWnd wc-offset - 24 0
+				DX-create-dev
+				InvalidateRect hWnd null 0
+			]
+			default [
+				0		;@@ TBD log error!!!
+			]
 		]
-		default [
-			0		;@@ TBD log error!!!
-		]
+	][			;-- draw on image!
+		;TBD save rt/bitmap to ctx/image
+		d2d-release-target rt
 	]
 ]
 
@@ -1209,7 +1235,7 @@ OS-draw-image: func [
 	dc: as ID2D1DeviceContext this/vtbl
 	ithis: OS-image/to-pbgra image
 	IB: as IUnknown ithis/vtbl
-	dc/CreateBitmapFromWicBitmap2 this as int-ptr! ithis null :bmp
+	dc/CreateBitmapFromWicBitmap2 this ithis null :bmp
 	bthis: as this! bmp/value
 	d2db: as IUnknown bthis/vtbl
 	either null? start [x: 0 y: 0][x: start/x y: start/y]

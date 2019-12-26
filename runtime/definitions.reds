@@ -281,6 +281,7 @@ Red/System [
 			brush-color		[integer!]
 			font-color		[integer!]
 			bitmap			[int-ptr!]
+			image			[int-ptr!]			;-- original image handle
 			scale-ratio		[float32!]
 			pen?			[logic!]
 			brush?			[logic!]
