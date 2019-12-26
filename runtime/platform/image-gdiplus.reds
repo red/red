@@ -746,4 +746,15 @@ OS-image: context [
 		GdipCreateHBITMAPFromBitmap as-integer img/node :bitmap 0
 		bitmap
 	]
+
+	to-gpbitmap: func [
+		image		[red-image!]
+		return:		[integer!]
+	][
+		as integer! image/node
+	]
+
+	release-gpbitmap: func [
+		bitmap		[integer!]
+	][]
 ]

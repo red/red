@@ -581,9 +581,13 @@ update-base-image: func [
 	img			[red-image!]
 	width		[integer!]
 	height		[integer!]
+	/local
+		bitmap	[integer!]
 ][
 	if TYPE_OF(img) = TYPE_IMAGE [
-		GdipDrawImageRectI graphic as-integer img/node 0 0 width height
+		bitmap: OS-image/to-gpbitmap img
+		GdipDrawImageRectI graphic bitmap 0 0 width height
+		OS-image/release-gpbitmap bitmap
 	]
 ]
 

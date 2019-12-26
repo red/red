@@ -31,6 +31,8 @@ OS-image: context [
 	GUID_ContainerFormatTiff: declare tagGUID
 	GUID_ContainerFormatGif: declare tagGUID
 
+	#define PixelFormat32bppARGB		2498570
+
 	RECT!: alias struct! [
 		x	[integer!]
 		y	[integer!]
@@ -65,6 +67,21 @@ OS-image: context [
 				planes		[integer!]
 				bitcount	[integer!]
 				lpBits		[byte-ptr!]
+				return:		[integer!]
+			]
+		]
+		"gdiplus.dll" stdcall [
+			GdipCreateBitmapFromScan0: "GdipCreateBitmapFromScan0" [
+				width		[integer!]
+				height		[integer!]
+				stride		[integer!]
+				format		[integer!]
+				scan0		[byte-ptr!]
+				bitmap		[int-ptr!]
+				return:		[integer!]
+			]
+			GdipDisposeImage: "GdipDisposeImage" [
+				image		[integer!]
 				return:		[integer!]
 			]
 		]
@@ -910,7 +927,7 @@ OS-image: context [
 		as this! cthis
 	]
 
-	to-HBITMAP:  func [
+	to-HBITMAP: func [
 		image		[red-image!]
 		return:		[integer!]
 		/local
@@ -942,5 +959,46 @@ OS-image: context [
 		bitmap: CreateBitmap w h 1 32 as byte-ptr! data
 		lock/Release lthis
 		bitmap
+	]
+
+	to-gpbitmap: func [
+		image		[red-image!]
+		return:		[integer!]
+		/local
+			this	[this!]
+			IB		[IWICBitmap]
+			w		[integer!]
+			h		[integer!]
+			rect	[RECT! value]
+			ilock	[interface! value]
+			lthis	[this!]
+			lock	[IWICBitmapLock]
+			size	[integer!]
+			data	[integer!]
+			bitmap	[integer!]
+	][
+		this: as this! image/node
+		IB: as IWICBitmap this/vtbl
+		w: IMAGE_WIDTH(image/size)
+		h: IMAGE_HEIGHT(image/size)
+		rect/x: 0
+		rect/y: 0
+		rect/w: w
+		rect/h: h
+		IB/Lock this rect WICBitmapLockRead :ilock
+		lthis: as this! ilock/ptr
+		lock: as IWICBitmapLock lthis/vtbl
+		size: 0 data: 0
+		lock/GetDataPointer lthis :size :data
+		bitmap: 0
+		GdipCreateBitmapFromScan0 w h w * 4 PixelFormat32bppARGB as byte-ptr! data :bitmap
+		lock/Release lthis
+		bitmap
+	]
+
+	release-gpbitmap: func [
+		bitmap		[integer!]
+	][
+		GdipDisposeImage bitmap
 	]
 ]
