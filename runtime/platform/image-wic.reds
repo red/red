@@ -58,6 +58,16 @@ OS-image: context [
 				return:		[integer!]
 			]
 		]
+		"gdi32.dll" stdcall [
+			CreateBitmap: "CreateBitmap" [
+				width		[integer!]
+				height		[integer!]
+				planes		[integer!]
+				bitcount	[integer!]
+				lpBits		[byte-ptr!]
+				return:		[integer!]
+			]
+		]
 	]
 
 	IWICImagingFactory: alias struct! [
@@ -901,5 +911,39 @@ OS-image: context [
 		IFAC/CreateBitmapFromSource wic-factory as int-ptr! cthis 0 :bitmap
 		conv/Release cthis
 		as this! bitmap/ptr
+	]
+
+	to-HBITMAP:  func [
+		image		[red-image!]
+		return:		[integer!]
+		/local
+			this	[this!]
+			IB		[IWICBitmap]
+			w		[integer!]
+			h		[integer!]
+			rect	[RECT! value]
+			ilock	[interface! value]
+			lthis	[this!]
+			lock	[IWICBitmapLock]
+			size	[integer!]
+			data	[integer!]
+			bitmap	[integer!]
+	][
+		this: as this! image/node
+		IB: as IWICBitmap this/vtbl
+		w: IMAGE_WIDTH(image/size)
+		h: IMAGE_HEIGHT(image/size)
+		rect/x: 0
+		rect/y: 0
+		rect/w: w
+		rect/h: h
+		IB/Lock this rect WICBitmapLockRead :ilock
+		lthis: as this! ilock/ptr
+		lock: as IWICBitmapLock lthis/vtbl
+		size: 0 data: 0
+		lock/GetDataPointer lthis :size :data
+		bitmap: CreateBitmap w h 1 32 as byte-ptr! data
+		lock/Release lthis
+		bitmap
 	]
 ]
