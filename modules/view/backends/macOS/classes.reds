@@ -145,6 +145,8 @@ add-camera-handler: func [class [integer!]][
 	0
 ]
 
+add-calendar-handler: func [class [integer!]][0]
+
 add-tabview-handler: func [class [integer!]][
 	class_addMethod class sel_getUid "tabView:shouldSelectTabViewItem:" as-integer :tabview-should-select "B@:@@"
 ]
@@ -326,6 +328,7 @@ register-classes: does [
 	make-super-class "RedPopUpButton"	"NSPopUpButton"			as-integer :add-droplist-handler STORE_FACE_FLAG
 	make-super-class "RedTableView"		"NSTableView"			as-integer :add-table-view-handler STORE_FACE_FLAG
 	make-super-class "RedCamera"		"NSView"				as-integer :add-camera-handler STORE_FACE_FLAG
+	make-super-class "RedCalendar"		"NSDatePicker"			as-integer :add-calendar-handler STORE_FACE_FLAG
 	make-super-class "RedTabView"		"NSTabView"				as-integer :add-tabview-handler STORE_FACE_FLAG
 	make-super-class "RedOpenPanel"		"NSOpenPanel"			as-integer :add-filedialog-handler EXTRA_DATA_FLAG
 	make-super-class "RedSavePanel"		"NSSavePanel"			as-integer :add-filedialog-handler EXTRA_DATA_FLAG

@@ -1793,6 +1793,7 @@ OS-make-view: func [
 			class: "RedBox"
 		]
 		sym = camera [class: "RedCamera"]
+		sym = calendar [class: "RedCalendar"]
 		true [											;-- search in user-defined classes
 			p: find-class type
 			either null? p [
@@ -1939,6 +1940,11 @@ OS-make-view: func [
 		]
 		sym = camera [
 			init-camera obj rc data
+		]
+		sym = calendar [
+			objc_msgSend [obj sel_getUid "setDatePickerMode:" NSDatePickerModeSingle]
+			objc_msgSend [obj sel_getUid "setDatePickerStyle:" NSDatePickerStyleClockAndCalendar]
+			objc_msgSend [obj sel_getUid "setDatePickerElements:" NSDatePickerElementFlagYearMonthDay]
 		]
 		true [											;-- search in user-defined classes
 			if p <> null [
