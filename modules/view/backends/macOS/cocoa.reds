@@ -122,6 +122,10 @@ Red/System [
 #define NSTrackingInVisibleRect				512
 #define NSTrackingEnabledDuringMouseDrag	1024
 
+#define NSDatePickerModeSingle				0
+#define NSDatePickerStyleClockAndCalendar 	1
+#define NSDatePickerElementFlagYearMonthDay 00E0h
+
 #define kCGLineJoinMiter			0
 #define kCGLineJoinRound			1
 #define kCGLineJoinBevel			2
