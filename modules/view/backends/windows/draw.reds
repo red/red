@@ -1304,7 +1304,6 @@ OS-draw-brush-bitmap: func [
 		wrap	[integer!]
 		wrap-x	[integer!]
 		wrap-y	[integer!]
-		result	[integer!]
 		props	[D2D1_IMAGE_BRUSH_PROPERTIES value]
 		this	[this!]
 		dc		[ID2D1DeviceContext]
@@ -1350,10 +1349,10 @@ OS-draw-brush-bitmap: func [
 		]
 	]
 
-	props/sourceRectangle/left: as float32! x
-	props/sourceRectangle/top: as float32! y
-	props/sourceRectangle/right: as float32! xx
-	props/sourceRectangle/bottom: as float32! yy
+	props/left: as float32! x
+	props/top: as float32! y
+	props/right: as float32! xx
+	props/bottom: as float32! yy
 	props/extendModeX: wrap-x
 	props/extendModeY: wrap-y
 	props/interpolationMode: 1		;-- MODE_LINEAR
@@ -1364,10 +1363,10 @@ OS-draw-brush-bitmap: func [
 	dc/CreateBitmapFromWicBitmap2 this ithis null :bmp
 	dc/CreateImageBrush this as this! bmp/value :props null :brush
 	either brush? [
-		ctx/brush: brush
+		ctx/brush: as this! brush/value
 		ctx/brush-type: DRAW_BRUSH_IMAGE
 	][
-		ctx/pen: brush
+		ctx/pen: as this! brush/value
 		ctx/pen-type: DRAW_BRUSH_IMAGE
 	]
 ]

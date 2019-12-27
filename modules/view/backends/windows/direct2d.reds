@@ -199,7 +199,11 @@ D2D1_BITMAP_BRUSH_PROPERTIES1: alias struct! [
 ]
 
 D2D1_IMAGE_BRUSH_PROPERTIES: alias struct! [
-	sourceRectangle	[RECT_F! value]
+	;sourceRectangle	[RECT_F! value]
+	left			[float32!]
+	top				[float32!]
+	right			[float32!]
+	bottom			[float32!]
 	extendModeX		[D2D1_EXTEND_MODE]
 	extendModeY		[D2D1_EXTEND_MODE]
 	interpolationMode [integer!]
