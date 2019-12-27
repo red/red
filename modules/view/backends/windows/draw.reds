@@ -1292,8 +1292,55 @@ OS-draw-brush-bitmap: func [
 	crop-2	[red-pair!]
 	mode	[red-word!]
 	brush?	[logic!]
+	/local
+		x		[integer!]
+		y		[integer!]
+		width	[integer!]
+		height	[integer!]
+		wrap-x	[integer!]
+		wrap-y	[integer!]
+		result	[integer!]
+		props	[D2D1_BITMAP_BRUSH_PROPERTIES1 value]
 ][
+	width:  OS-image/width? img/node
+	height: OS-image/height? img/node
+	either crop-1 = null [
+		x: 0
+		y: 0
+	][
+		x: crop-1/x
+		y: crop-1/y
+	]
+	either crop-2 = null [
+		width:  width - x
+		height: height - y
+	][
+		width:  either ( x + crop-2/x ) > width [ width - x ][ crop-2/x ]
+		height: either ( y + crop-2/y ) > height [ height - y ][ crop-2/y ]
+	]
 
+	wrap-x: D2D1_EXTEND_MODE_WRAP
+	wrap-y: D2D1_EXTEND_MODE_WRAP
+	unless mode = null [
+		wrap: symbol/resolve mode/symbol
+		case [
+			wrap = flip-x [ wrap-x: D2D1_EXTEND_MODE_MIRROR ]
+			wrap = flip-y [ wrap-y: D2D1_EXTEND_MODE_MIRROR ]
+			wrap = flip-xy [
+				wrap-x: D2D1_EXTEND_MODE_MIRROR
+				wrap-y: D2D1_EXTEND_MODE_MIRROR
+			]
+			wrap = clamp [
+				wrap-x: D2D1_EXTEND_MODE_CLAMP
+				wrap-y: D2D1_EXTEND_MODE_CLAMP
+			]
+			true [0]
+		]
+	]
+
+	props/extendModeX: wrap-x
+	props/extendModeY: wrap-y
+	props/interpolationMode: 1		;-- MODE_LINEAR
 ]
 
 OS-draw-brush-pattern: func [

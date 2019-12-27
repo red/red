@@ -195,6 +195,24 @@ DXGI_SWAP_CHAIN_DESC1: alias struct! [
     Flags			[integer!]
 ]
 
+#enum D2D1_EXTEND_MODE [
+	D2D1_EXTEND_MODE_CLAMP
+	D2D1_EXTEND_MODE_WRAP
+	D2D1_EXTEND_MODE_MIRROR
+	D2D1_EXTEND_MODE_FORCE_DWORD: -1
+]
+
+D2D1_BITMAP_BRUSH_PROPERTIES1: alias struct! [
+    extendModeX		[D2D1_EXTEND_MODE]
+    extendModeY		[D2D1_EXTEND_MODE]
+    interpolationMode	[integer!]
+]
+
+D2D1_BRUSH_PROPERTIES: alias struct! [
+    opacity			[float32!]
+    transform		[D2D_MATRIX_3X2_F value]
+]
+
 D2D1_BITMAP_PROPERTIES1: alias struct! [
 	format			[integer!]
 	alphaMode		[integer!]
@@ -625,9 +643,19 @@ ID3D11Device: alias struct! [
 ]
 
 CreateSharedBitmap*: alias function! [
+	this		[this!]
 	riid		[tagGUID]
 	data		[byte-ptr!]
 	properties	[D2D1_BITMAP_PROPERTIES1]
+	bitmap		[ptr-ptr!]
+	return:		[integer!]
+]
+
+CreateBitmapBrush*: alias function! [
+	this		[this!]
+	bitmap		[this!]
+	properties	[D2D1_BITMAP_BRUSH_PROPERTIES1]
+	brushProp	[D2D1_BRUSH_PROPERTIES]
 	bitmap		[ptr-ptr!]
 	return:		[integer!]
 ]
@@ -684,7 +712,7 @@ DrawBitmap*: alias function! [
 	CreateBitmap					[integer!]
 	CreateBitmapFromWicBitmap		[integer!]
 	CreateSharedBitmap				[CreateSharedBitmap*]
-	CreateBitmapBrush				[integer!]
+	CreateBitmapBrush				[CreateBitmapBrush*]
 	CreateSolidColorBrush			[CreateSolidColorBrush*]
 	CreateGradientStopCollection	[CreateGradientStopCollection*]
 	CreateLinearGradientBrush		[integer!]
@@ -747,7 +775,7 @@ ID2D1DeviceContext: alias struct! [
     CreateEffect					[CreateEffect*]
     CreateGradientStopCollection2	[integer!]
     CreateImageBrush				[integer!]
-    CreateBitmapBrush2				[integer!]
+    CreateBitmapBrush2				[CreateBitmapBrush*]
     CreateCommandList				[integer!]
     IsDxgiFormatSupported			[integer!]
     IsBufferPrecisionSupported		[integer!]
