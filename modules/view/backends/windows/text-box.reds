@@ -41,7 +41,7 @@ OS-text-box-color: func [
 		rt: as render-target! target
 		this: rt/dc
 		dc: as ID2D1DeviceContext this/vtbl
-		dc/CreateSolidColorBrush this to-dx-color color null null :brush
+		dc/CreateSolidColorBrush this to-dx-color color null null as ptr-ptr! :brush
 		put-brush target + 1 color brush
 	]
 
@@ -73,7 +73,7 @@ OS-text-box-background: func [
 	if zero? brush [
 		this: rt/dc
 		dc: as ID2D1DeviceContext this/vtbl
-		dc/CreateSolidColorBrush this to-dx-color color null null :brush
+		dc/CreateSolidColorBrush this to-dx-color color null null as ptr-ptr! :brush
 		put-brush target + 1 color brush
 	]
 	vector/rs-append-int cache pos
@@ -430,7 +430,7 @@ txt-box-draw-background: func [
 			rc/bottom: as float32! top + height
 			rc/top: as float32! top
 			rc/left: as float32! left
-			dc/FillRectangle this rc p/3
+			dc/FillRectangle this rc as this! p/3
 			hit: hit + 1
 		]
 		p: p + 3

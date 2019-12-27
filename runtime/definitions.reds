@@ -172,6 +172,7 @@ Red/System [
 	]
 
 	this!: alias struct! [vtbl [int-ptr!]]
+	com-ptr!: alias struct! [value [this!]]
 
 	tagPAINTSTRUCT: alias struct! [
 		hdc			 [handle!]
@@ -271,8 +272,8 @@ Red/System [
 			dc				[ptr-ptr!]
 			target			[int-ptr!]
 			hwnd			[int-ptr!]			;-- Window's handle
-			pen				[integer!]
-			brush			[integer!]
+			pen				[this!]
+			brush			[this!]
 			pen-join		[integer!]
 			pen-cap			[integer!]
 			pen-width		[float32!]
@@ -283,11 +284,9 @@ Red/System [
 			bitmap			[int-ptr!]
 			image			[int-ptr!]			;-- original image handle
 			scale-ratio		[float32!]
-			pen?			[logic!]
-			brush?			[logic!]
+			pen-type		[integer!]
+			brush-type		[integer!]
 			on-image?		[logic!]			;-- drawing on image?
-			alpha-pen?		[logic!]
-			alpha-brush?	[logic!]
 			font-color?		[logic!]
 			text-format		[this!]
 			state			[this!]				;-- current draw state

@@ -164,7 +164,7 @@ update-gdiplus-brush: func [ctx [draw-ctx!] /local handle [integer!]][
 		GdipDeleteBrush ctx/gp-brush
 		ctx/gp-brush: 0
 	]
-	if ctx/brush? [
+	if ctx/brush-type <> DRAW_BRUSH_NONE [
 		GdipCreateSolidFill to-gdiplus-color-fixed ctx/brush-color :handle
 		ctx/gp-brush: handle
 	]
@@ -1388,7 +1388,7 @@ OS-draw-triangle: func [		;@@ TBD merge this function with OS-draw-polygon
 	either ctx/other/GDI+? [
 		check-gradient-poly ctx ctx/other/edges 3
 		check-texture-poly ctx ctx/other/edges 3
-		if ctx/brush? [
+		if ctx/brush-type <> DRAW_BRUSH_NONE [
 			GdipFillPolygonI
 				ctx/graphics
 				ctx/gp-brush
@@ -1434,7 +1434,7 @@ OS-draw-polygon: func [
 	either ctx/other/GDI+? [
 		check-gradient-poly ctx ctx/other/edges nb
 		check-texture-poly ctx ctx/other/edges nb
-		if ctx/brush? [
+		if ctx/brush-type <> DRAW_BRUSH_NONE [
 			GdipFillPolygonI
 				ctx/graphics
 				ctx/gp-brush
@@ -1477,7 +1477,7 @@ OS-draw-spline: func [
 
 	unless ctx/other/GDI+? [update-gdiplus-modes ctx]					;-- force to use GDI+
 
-	if ctx/brush? [
+	if ctx/brush-type <> DRAW_BRUSH_NONE [
 		GdipFillClosedCurveI
 			ctx/graphics
 			ctx/gp-brush
@@ -1501,7 +1501,7 @@ do-draw-ellipse: func [
 ][
 	either ctx/other/GDI+? [
 		check-gradient-ellipse ctx x y width height
-		if ctx/brush? [
+		if ctx/brush-type <> DRAW_BRUSH_NONE [
 			GdipFillEllipseI
 				ctx/graphics
 				ctx/gp-brush
@@ -1705,7 +1705,7 @@ OS-draw-arc: func [
 
 	either ctx/other/GDI+? [
 		either closed? [
-			if ctx/brush? [
+			if ctx/brush-type <> DRAW_BRUSH_NONE [
 				GdipFillPieI
 					ctx/graphics
 					ctx/gp-brush

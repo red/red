@@ -161,16 +161,6 @@ D2D1_HWND_RENDER_TARGET_PROPERTIES: alias struct! [
 	presentOptions		[integer!]
 ]
 
-D2D1_BRUSH_PROPERTIES: alias struct! [
-	opacity				[float32!]
-	transform._11		[float32!]
-	transform._12		[float32!]
-	transform._21		[float32!]
-	transform._22		[float32!]
-	transform._31		[float32!]
-	transform._32		[float32!]
-]
-
 D2D1_RADIAL_GRADIENT_BRUSH_PROPERTIES: alias struct! [
 	center.x			[float32!]
 	center.y			[float32!]
@@ -203,14 +193,21 @@ DXGI_SWAP_CHAIN_DESC1: alias struct! [
 ]
 
 D2D1_BITMAP_BRUSH_PROPERTIES1: alias struct! [
-    extendModeX		[D2D1_EXTEND_MODE]
-    extendModeY		[D2D1_EXTEND_MODE]
-    interpolationMode	[integer!]
+	extendModeX		[D2D1_EXTEND_MODE]
+	extendModeY		[D2D1_EXTEND_MODE]
+	interpolationMode [integer!]
+]
+
+D2D1_IMAGE_BRUSH_PROPERTIES: alias struct! [
+	sourceRectangle	[RECT_F! value]
+	extendModeX		[D2D1_EXTEND_MODE]
+	extendModeY		[D2D1_EXTEND_MODE]
+	interpolationMode [integer!]
 ]
 
 D2D1_BRUSH_PROPERTIES: alias struct! [
-    opacity			[float32!]
-    transform		[D2D_MATRIX_3X2_F value]
+	opacity			[float32!]
+	transform		[D2D_MATRIX_3X2_F value]
 ]
 
 D2D1_BITMAP_PROPERTIES1: alias struct! [
@@ -233,7 +230,7 @@ CreateSolidColorBrush*: alias function! [
 	this		[this!]
 	color		[D3DCOLORVALUE]
 	properties	[D2D1_BRUSH_PROPERTIES]
-	brush		[int-ptr!]
+	brush		[ptr-ptr!]
 	return:		[integer!]
 ]
 
@@ -242,7 +239,7 @@ CreateRadialGradientBrush*: alias function! [
 	gprops		[D2D1_RADIAL_GRADIENT_BRUSH_PROPERTIES]
 	props		[D2D1_BRUSH_PROPERTIES]
 	stops		[integer!]
-	brush		[int-ptr!]
+	brush		[ptr-ptr!]
 	return:		[integer!]
 ]
 
@@ -262,7 +259,7 @@ DrawLine*: alias function! [
 	pt0.y		[float32!]
 	pt1.x		[float32!]
 	pt1.y		[float32!]
-	brush		[integer!]
+	brush		[this!]
 	width		[float32!]
 	style		[integer!]
 ]
@@ -270,7 +267,7 @@ DrawLine*: alias function! [
 DrawRectangle*: alias function! [
 	this		[this!]
 	rect		[RECT_F!]
-	brush		[integer!]
+	brush		[this!]
 	strokeWidth [float32!]
 	strokeStyle [integer!]
 ]
@@ -278,13 +275,13 @@ DrawRectangle*: alias function! [
 FillRectangle*: alias function! [
 	this		[this!]
 	rect		[RECT_F!]
-	brush		[integer!]
+	brush		[this!]
 ]
 
 DrawEllipse*: alias function! [
 	this		[this!]
 	ellipse		[D2D1_ELLIPSE]
-	brush		[integer!]
+	brush		[this!]
 	width		[float32!]
 	style		[integer!]
 ]
@@ -292,7 +289,7 @@ DrawEllipse*: alias function! [
 FillEllipse*: alias function! [
 	this		[this!]
 	ellipse		[D2D1_ELLIPSE]
-	brush		[integer!]
+	brush		[this!]
 ]
 
 DrawTextLayout*: alias function! [
@@ -300,7 +297,7 @@ DrawTextLayout*: alias function! [
 	x			[float32!]
 	y			[float32!]
 	layout		[this!]
-	brush		[integer!]
+	brush		[this!]
 	options		[integer!]
 ]
 
@@ -651,12 +648,21 @@ CreateSharedBitmap*: alias function! [
 	return:		[integer!]
 ]
 
+CreateImageBrush*: alias function! [
+	this		[this!]
+	bitmap		[this!]
+	properties	[D2D1_IMAGE_BRUSH_PROPERTIES]
+	brushProp	[D2D1_BRUSH_PROPERTIES]
+	brush		[ptr-ptr!]
+	return:		[integer!]
+]
+
 CreateBitmapBrush*: alias function! [
 	this		[this!]
 	bitmap		[this!]
 	properties	[D2D1_BITMAP_BRUSH_PROPERTIES1]
 	brushProp	[D2D1_BRUSH_PROPERTIES]
-	bitmap		[ptr-ptr!]
+	brush		[ptr-ptr!]
 	return:		[integer!]
 ]
 
@@ -727,8 +733,8 @@ DrawBitmap*: alias function! [
 	FillRoundedRectangle			[integer!]
 	DrawEllipse						[DrawEllipse*]
 	FillEllipse						[FillEllipse*]
-	DrawGeometry					[function! [this [this!] geometry [int-ptr!] brush [integer!] strokeWidth [float32!] style [integer!] return: [integer!]]]
-	FillGeometry					[function! [this [this!] geometry [int-ptr!] brush [integer!] opacityBrush [integer!] return: [integer!]]]
+	DrawGeometry					[function! [this [this!] geometry [int-ptr!] brush [this!] strokeWidth [float32!] style [integer!] return: [integer!]]]
+	FillGeometry					[function! [this [this!] geometry [int-ptr!] brush [this!] opacityBrush [this!] return: [integer!]]]
 	FillMesh						[integer!]
 	FillOpacityMask					[integer!]
 	DrawBitmap						[integer!]
@@ -774,7 +780,7 @@ ID2D1DeviceContext: alias struct! [
     CreateBitmapFromDxgiSurface		[function! [this [this!] surface [int-ptr!] props [D2D1_BITMAP_PROPERTIES1] bitmap [int-ptr!] return: [integer!]]]
     CreateEffect					[CreateEffect*]
     CreateGradientStopCollection2	[integer!]
-    CreateImageBrush				[integer!]
+    CreateImageBrush				[CreateImageBrush*]
     CreateBitmapBrush2				[CreateBitmapBrush*]
     CreateCommandList				[integer!]
     IsDxgiFormatSupported			[integer!]
@@ -1871,7 +1877,7 @@ draw-text-d2d: func [
 		obj		[IUnknown]
 		rt		[ID2D1DCRenderTarget]
 		dwrite	[IDWriteFactory]
-		brush	[integer!]
+		brush	[ptr-value!]
 		color	[red-tuple!]
 		clr		[integer!]
 		m		[D2D_MATRIX_3X2_F value]
@@ -1895,12 +1901,11 @@ draw-text-d2d: func [
 	][
 		0											;-- black
 	]
-	brush: 0
 	rt/CreateSolidColorBrush this to-dx-color clr null null :brush
-	rt/DrawTextLayout this as float32! 0.0 as float32! 0.0 layout brush 0
+	rt/DrawTextLayout this as float32! 0.0 as float32! 0.0 layout as this! brush/value 0
 	rt/EndDraw this null null
 
-	this2: as this! brush
+	this2: as this! brush/value
 	COM_SAFE_RELEASE(obj this2)
 	COM_SAFE_RELEASE(obj layout)
 	COM_SAFE_RELEASE(obj fmt)

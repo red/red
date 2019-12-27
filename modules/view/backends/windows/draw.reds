@@ -18,10 +18,15 @@ draw-state!: alias struct! [
 	brush-clr	[integer!]
 	pen-join	[integer!]
 	pen-cap		[integer!]
-	pen?		[logic!]
-	brush?		[logic!]
-	a-pen?		[logic!]
-	a-brush?	[logic!]
+	pen-type	[integer!]
+	brush-type	[integer!]
+]
+
+#enum DRAW-BRUSH-TYPE! [
+	DRAW_BRUSH_NONE
+	DRAW_BRUSH_COLOR
+	DRAW_BRUSH_IMAGE
+	DRAW_BRUSH_GRADIENT
 ]
 
 draw-begin: func [
@@ -36,7 +41,7 @@ draw-begin: func [
 		dc		[ID2D1DeviceContext]
 		m		[D2D_MATRIX_3X2_F value]
 		bg-clr	[integer!]
-		brush	[integer!]
+		brush	[ptr-value!]
 		target	[render-target!]
 		brushes [int-ptr!]
 		pbrush	[ID2D1SolidColorBrush]
@@ -54,7 +59,7 @@ draw-begin: func [
 	ctx/pen-join: D2D1_LINE_JOIN_MITER
 	ctx/pen-cap: D2D1_CAP_STYLE_FLAT
 	ctx/pen-style:	0
-	ctx/pen?:		yes
+	ctx/pen-type:	DRAW_BRUSH_COLOR
 	ctx/hwnd:		hWnd
 	update-pen-style ctx
 
@@ -89,13 +94,11 @@ draw-begin: func [
 	dc/SetTransform this :m						;-- set to identity matrix
 
 	d3d-clr: to-dx-color ctx/pen-color null
-	brush: 0
 	dc/CreateSolidColorBrush this d3d-clr null :brush
-	ctx/pen: brush
+	ctx/pen: as this! brush/value
 
-	brush: 0
 	dc/CreateSolidColorBrush this d3d-clr null :brush
-	ctx/brush: brush
+	ctx/brush: as this! brush/value
 
 	if hWnd <> null [
 		values: get-face-values hWnd
@@ -118,10 +121,9 @@ release-ctx: func [
 	ctx			[draw-ctx!]
 	/local
 		IUnk [IUnknown]
-		this [this!]
 ][
-	COM_SAFE_RELEASE_OBJ(IUnk ctx/pen)
-	COM_SAFE_RELEASE_OBJ(IUnk ctx/brush)
+	COM_SAFE_RELEASE(IUnk ctx/pen)
+	COM_SAFE_RELEASE(IUnk ctx/brush)
 ]
 
 draw-end: func [
@@ -215,11 +217,11 @@ OS-draw-pen: func [
 		this	[this!]
 		brush	[ID2D1SolidColorBrush]
 ][
-	if any [ctx/pen-color <> color ctx/pen? = off?][
-		ctx/pen?: not off?
-		ctx/pen-color: color
+	if any [ctx/pen-color <> color ctx/pen-type = as-integer off?][
+		ctx/pen-type: as-integer not off?
 		unless ctx/font-color? [ctx/font-color: color]	;-- if no font, use pen color for text color
-		if ctx/pen? [
+		if ctx/pen-type <> DRAW_BRUSH_NONE [
+			ctx/pen-color: color
 			this: as this! ctx/pen
 			brush: as ID2D1SolidColorBrush this/vtbl
 			brush/SetColor this to-dx-color color null
@@ -323,10 +325,10 @@ OS-draw-shape-endpath: func [
 
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
-	if ctx/brush? [
+	if ctx/brush-type <> DRAW_BRUSH_NONE [
 		dc/FillGeometry this as int-ptr! pthis ctx/brush null
 	]
-	if ctx/pen? [
+	if ctx/pen-type <> DRAW_BRUSH_NONE [
 		dc/DrawGeometry this as int-ptr! pthis ctx/pen ctx/pen-width ctx/pen-style
 	]
 	gpath/Release pthis
@@ -674,10 +676,10 @@ _OS-draw-polygon: func [
 
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
-	if ctx/brush? [
+	if ctx/brush-type <> DRAW_BRUSH_NONE [
 		dc/FillGeometry this as int-ptr! pthis ctx/brush null
 	]
-	if ctx/pen? [
+	if ctx/pen-type <> DRAW_BRUSH_NONE [
 		dc/DrawGeometry this as int-ptr! pthis ctx/pen ctx/pen-width ctx/pen-style
 	]
 	gpath/Release pthis
@@ -720,10 +722,10 @@ OS-draw-fill-pen: func [
 		this	[this!]
 		brush	[ID2D1SolidColorBrush]
 ][
-	if any [ctx/brush-color <> color ctx/brush? = off?][
-		ctx/brush?: not off?
-		ctx/brush-color: color
-		if ctx/brush? [
+	if any [ctx/brush-color <> color ctx/brush-type = as-integer off?][
+		ctx/brush-type: as-integer not off?
+		if ctx/brush-type <> DRAW_BRUSH_NONE [
+			ctx/brush-color: color
 			this: as this! ctx/brush
 			brush: as ID2D1SolidColorBrush this/vtbl
 			brush/SetColor this to-dx-color color null
@@ -759,10 +761,10 @@ OS-draw-box: func [
 	rc/bottom: as float32! lower/y
 	rc/left: as float32! upper/x
 	rc/top: as float32! upper/y
-	if ctx/brush? [
+	if ctx/brush-type <> DRAW_BRUSH_NONE [
 		dc/FillRectangle this rc ctx/brush 
 	]
-	if ctx/pen? [
+	if ctx/pen-type <> DRAW_BRUSH_NONE [
 		dc/DrawRectangle this rc ctx/pen ctx/pen-width ctx/pen-style
 	]
 ]
@@ -909,10 +911,10 @@ OS-draw-spline: func [
 
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
-	if ctx/brush? [
+	if ctx/brush-type <> DRAW_BRUSH_NONE [
 		dc/FillGeometry this as int-ptr! pthis ctx/brush null
 	]
-	if ctx/pen? [
+	if ctx/pen-type <> DRAW_BRUSH_NONE [
 		dc/DrawGeometry this as int-ptr! pthis ctx/pen ctx/pen-width ctx/pen-style
 	]
 	gpath/Release pthis
@@ -946,10 +948,10 @@ do-draw-ellipse: func [
 	ellipse/y: cy + ry
 	ellipse/radiusX: rx
 	ellipse/radiusY: ry
-	if ctx/brush? [
+	if ctx/brush-type <> DRAW_BRUSH_NONE [
 		dc/FillEllipse this ellipse ctx/brush
 	]
-	if ctx/pen? [
+	if ctx/pen-type <> DRAW_BRUSH_NONE [
 		dc/DrawEllipse this ellipse ctx/pen ctx/pen-width ctx/pen-style
 	]
 ]
@@ -1102,10 +1104,10 @@ OS-draw-arc: func [
 
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
-	if ctx/brush? [
+	if ctx/brush-type <> DRAW_BRUSH_NONE [
 		dc/FillGeometry this as int-ptr! pthis ctx/brush null
 	]
-	if ctx/pen? [
+	if ctx/pen-type <> DRAW_BRUSH_NONE [
 		dc/DrawGeometry this as int-ptr! pthis ctx/pen ctx/pen-width ctx/pen-style
 	]
 	gpath/Release pthis
@@ -1174,10 +1176,10 @@ OS-draw-curve: func [
 
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
-	if ctx/brush? [
+	if ctx/brush-type <> DRAW_BRUSH_NONE [
 		dc/FillGeometry this as int-ptr! pthis ctx/brush null
 	]
-	if ctx/pen? [
+	if ctx/pen-type <> DRAW_BRUSH_NONE [
 		dc/DrawGeometry this as int-ptr! pthis ctx/pen ctx/pen-width ctx/pen-style
 	]
 	gpath/Release pthis
@@ -1293,14 +1295,22 @@ OS-draw-brush-bitmap: func [
 	mode	[red-word!]
 	brush?	[logic!]
 	/local
-		x		[integer!]
-		y		[integer!]
 		width	[integer!]
 		height	[integer!]
+		x		[integer!]
+		y		[integer!]
+		xx		[integer!]
+		yy		[integer!]
+		wrap	[integer!]
 		wrap-x	[integer!]
 		wrap-y	[integer!]
 		result	[integer!]
-		props	[D2D1_BITMAP_BRUSH_PROPERTIES1 value]
+		props	[D2D1_IMAGE_BRUSH_PROPERTIES value]
+		this	[this!]
+		dc		[ID2D1DeviceContext]
+		ithis	[this!]
+		bmp		[ptr-value!]
+		brush	[ptr-value!]
 ][
 	width:  OS-image/width? img/node
 	height: OS-image/height? img/node
@@ -1312,11 +1322,13 @@ OS-draw-brush-bitmap: func [
 		y: crop-1/y
 	]
 	either crop-2 = null [
-		width:  width - x
-		height: height - y
+		xx: width
+		yy: height
 	][
-		width:  either ( x + crop-2/x ) > width [ width - x ][ crop-2/x ]
-		height: either ( y + crop-2/y ) > height [ height - y ][ crop-2/y ]
+		xx: crop-2/x
+		yy: crop-2/y
+		if xx > width [xx: width]
+		if yy > height [yy: height]
 	]
 
 	wrap-x: D2D1_EXTEND_MODE_WRAP
@@ -1338,9 +1350,26 @@ OS-draw-brush-bitmap: func [
 		]
 	]
 
+	props/sourceRectangle/left: as float32! x
+	props/sourceRectangle/top: as float32! y
+	props/sourceRectangle/right: as float32! xx
+	props/sourceRectangle/bottom: as float32! yy
 	props/extendModeX: wrap-x
 	props/extendModeY: wrap-y
 	props/interpolationMode: 1		;-- MODE_LINEAR
+
+	this: as this! ctx/dc
+	dc: as ID2D1DeviceContext this/vtbl
+	ithis: OS-image/to-pbgra img
+	dc/CreateBitmapFromWicBitmap2 this ithis null :bmp
+	dc/CreateImageBrush this as this! bmp/value :props null :brush
+	either brush? [
+		ctx/brush: brush
+		ctx/brush-type: DRAW_BRUSH_IMAGE
+	][
+		ctx/pen: brush
+		ctx/pen-type: DRAW_BRUSH_IMAGE
+	]
 ]
 
 OS-draw-brush-pattern: func [
@@ -1355,7 +1384,6 @@ OS-draw-brush-pattern: func [
 
 ]
 
-
 OS-draw-grad-pen-old: func [
 	ctx			[draw-ctx!]
 	type		[integer!]
@@ -1364,7 +1392,7 @@ OS-draw-grad-pen-old: func [
 	count		[integer!]					;-- number of the colors
 	brush?		[logic!]
 ][
-
+	;Deprecated
 ]
 
 OS-draw-grad-pen: func [
@@ -1536,10 +1564,8 @@ OS-draw-state-push: func [
 	state/brush-clr: ctx/brush-color
 	state/pen-join: ctx/pen-join
 	state/pen-cap: ctx/pen-cap
-	state/pen?: ctx/pen?
-	state/brush?: ctx/brush?
-	state/a-pen?: ctx/alpha-pen?
-	state/a-brush?: ctx/alpha-brush?
+	state/pen-type: ctx/pen-type
+	state/brush-type: ctx/brush-type
 ]
 
 OS-draw-state-pop: func [
@@ -1558,10 +1584,9 @@ OS-draw-state-pop: func [
 	ctx/brush-color: state/brush-clr
 	ctx/pen-join: state/pen-join
 	ctx/pen-cap: state/pen-cap
-	ctx/pen?: state/pen?
-	ctx/brush?: state/brush?
-	ctx/alpha-pen?: state/a-pen?
-	ctx/alpha-brush?: state/a-brush?
+	ctx/pen-type: state/pen-type
+	ctx/brush-type: state/brush-type
+	;TBD: set pen and brush
 ]
 
 OS-matrix-reset: func [
