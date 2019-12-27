@@ -2730,6 +2730,10 @@ Red [
 		--assert parse/part %234 ["23" to end] 3
 		repeat i 4 [--assert parse/part "12" ["1" to [end]] i]
 
+	--test-- "#4101"
+		--assert parse [a/b] ['a/b]
+		--assert error? try [parse [a/b] [a/b]]
+
 ===end-group===
     
 ~~~end-file~~~

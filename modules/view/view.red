@@ -691,6 +691,12 @@ do-events: function [
 	]
 ]
 
+stop-events: function [
+	"Stop the last opened event loop"
+][
+	system/view/platform/exit-event-loop
+]
+
 do-safe: func ["Internal Use Only" code [block!] /local result][
 	if error? set/any 'result try/all code [print :result]
 	get/any 'result
