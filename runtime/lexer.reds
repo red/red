@@ -344,6 +344,7 @@ lexer: context [
 	
 	scanner!: alias function! [lex [state!] s e [byte-ptr!] flags [integer!]]
 
+	utf8-buffer: as byte-ptr! 0
 	scanners: as int-ptr! 0								;-- scan functions jump table (dynamically filled)
 	stash: as cell! 0									;-- special buffer for hatching any-blocks series
 	stash-size: 1000									;-- pre-allocated cells	number
@@ -1781,6 +1782,27 @@ lexer: context [
 		depth: depth - 1
 		if zero? depth [root-state: null]
 	]
+
+	load-string: func [
+		dst   [red-value!]								;-- destination slot
+		str	 [red-string!]
+		size [integer!]
+		one? [logic!]
+		len	 [int-ptr!]
+		/local
+			s [series!]
+			unit buf-size [integer!]
+	][
+		s: GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		buf-size: (string/rs-length? str) * unit
+		if buf-size > 100'000 [
+			free utf8-buffer
+			utf8-buffer: allocate buf-size
+		]
+		size: unicode/to-utf8-buffer str utf8-buffer size
+		scan dst utf8-buffer size one? len
+	]
 	
 	set-jump-table: func [[variadic] count [integer!] list [int-ptr!] /local i [integer!] s [int-ptr!]][
 		scanners: as int-ptr! allocate count * size? int-ptr!
@@ -1796,6 +1818,7 @@ lexer: context [
 	
 	init: func [][
 		stash: as cell! allocate stash-size * size? cell!
+		utf8-buffer: allocate 100'000
 		
 		;-- switch following tables to zero-based indexing
 		lex-classes: lex-classes + 1

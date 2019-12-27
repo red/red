@@ -165,6 +165,53 @@ unicode: context [
 		str/cache
 	]
 	
+	to-utf8-buffer: func [
+		str		[red-string!]
+		buf		[byte-ptr!]
+		len		[integer!]								;-- len = -1 convert all chars
+		return: [integer!]
+		/local
+			beg p tail [byte-ptr!]
+			unit cp part   [integer!]
+			p4 [int-ptr!]
+			s  [series!]
+	][
+		s:	  GET_BUFFER(str)
+		unit: GET_UNIT(s)
+
+		part: string/rs-length? str
+		if all [len <> -1 len < part][part: len]
+		
+		beg:  buf
+		p:	  string/rs-head str
+		tail: p + (part << (unit >> 1))
+
+		switch unit [
+			Latin1 [
+				while [p < tail][
+					buf: buf + cp-to-utf8 as-integer p/value buf
+					p: p + 1
+				]
+			]
+			UCS-2  [
+				while [p < tail][
+					cp: (as-integer p/2) << 8 + p/1
+					buf: buf + cp-to-utf8 cp buf
+					p: p + 2
+				]
+			]
+			UCS-4  [
+				p4: as int-ptr! p
+				while [p4 < as int-ptr! tail][
+					buf: buf + cp-to-utf8 p4/value buf
+					p4: p4 + 1
+				]
+			]
+		]
+		buf/1: null-byte
+		as-integer buf - beg
+	]
+	
 	Latin1-to-UCS2: func [
 		s		 [series!]
 		return:	 [series!]
