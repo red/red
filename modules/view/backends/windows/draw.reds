@@ -1218,6 +1218,50 @@ OS-draw-line-cap: func [
 	update-pen-style ctx
 ]
 
+create-4p-matrix: func [
+	size		[SIZE_F!]
+	ul			[D2D_POINT_2F]
+	ur			[D2D_POINT_2F]
+	ll			[D2D_POINT_2F]
+	lr			[D2D_POINT_2F]
+	m			[MATRIX_4x4_F!]
+	/local
+		s		[MATRIX_4x4_F! value]
+		a		[MATRIX_4x4_F! value]
+		b		[MATRIX_4x4_F! value]
+		c		[MATRIX_4x4_F! value]
+		den		[float32!]
+		t1		[float32!]
+		t2		[float32!]
+][
+	matrix4x4/identity s
+	s/_11: (as float32! 1.0) / size/width
+	s/_22: (as float32! 1.0) / size/height
+
+	matrix4x4/identity a
+	a/_41: ul/x
+	a/_42: ul/y
+	a/_11: ur/x - ul/x
+	a/_12: ur/y - ul/y
+	a/_21: ll/x - ul/x
+	a/_22: ll/y - ul/y
+
+	matrix4x4/identity b
+	den: a/_11 * a/_22 - (a/_12 * a/_21)
+	t1: a/_22 * lr/x - (a/_21 * lr/y) + (a/_21 * a/_42) - (a/_22 * a/_41)
+	t1: t1 / den
+	t2: a/_11 * lr/y - (a/_12 * lr/x) + (a/_12 * a/_41) - (a/_11 * a/_42)
+	t2: t2 / den
+	b/_11: t1 / (t1 + t2 - as float32! 1.0)
+	b/_22: t2 / (t1 + t2 - as float32! 1.0)
+	b/_14: b/_11 - as float32! 1.0
+	b/_24: b/_22 - as float32! 1.0
+
+	matrix4x4/identity c
+	matrix4x4/mul s b c
+	matrix4x4/mul c a m
+]
+
 OS-draw-image: func [
 	ctx			[draw-ctx!]
 	image		[red-image!]
@@ -1239,8 +1283,18 @@ OS-draw-image: func [
 		y		[integer!]
 		width	[integer!]
 		height	[integer!]
-		dst		[RECT_F! value]
-		src		[RECT_F! value]
+		pt		[red-pair!]
+		size	[SIZE_F! value]
+		ul		[D2D_POINT_2F value]
+		ur		[D2D_POINT_2F value]
+		ll		[D2D_POINT_2F value]
+		lr		[D2D_POINT_2F value]
+		m		[MATRIX_4x4_F! value]
+		trans	[int-ptr!]
+		dst*	[RECT_F! value]
+		dst		[RECT_F!]
+		src*	[RECT_F! value]
+		src		[RECT_F!]
 		crop2	[red-pair!]
 ][
 	this: as this! ctx/dc
@@ -1251,36 +1305,78 @@ OS-draw-image: func [
 	bthis: as this! bmp/value
 	d2db: as IUnknown bthis/vtbl
 	either null? start [x: 0 y: 0][x: start/x y: start/y]
-	case [
-		start = end [
-			width:  IMAGE_WIDTH(image/size)
-			height: IMAGE_HEIGHT(image/size)
-		]
-		start + 1 = end [					;-- two control points
-			width: end/x - x
-			height: end/y - y
-		]
-		start + 2 = end [0]					;@@ TBD three control points
-		true [0]							;@@ TBD four control points
-	]
-
-	dst/left: as float32! x
-	dst/top: as float32! y
-	dst/right: as float32! x + width
-	dst/bottom: as float32! y + height
+	width:  IMAGE_WIDTH(image/size)
+	height: IMAGE_HEIGHT(image/size)
 
 	either crop1 <> null [
 		crop2: crop1 + 1
-		src/left: as float32! crop1/x
-		src/top: as float32! crop1/y
-		src/right: as float32! crop1/x + crop2/x
-		src/bottom: as float32! crop1/y + crop2/y
-		;-- D2D1_INTERPOLATION_MODE_DEFINITION_LINEAR
-		dc/DrawBitmap2 this as int-ptr! bthis dst as float32! 1.0 1 src null
+		src*/left: as float32! crop1/x
+		src*/top: as float32! crop1/y
+		src*/right: as float32! crop1/x + crop2/x
+		src*/bottom: as float32! crop1/y + crop2/y
+		src: :src*
+		size/width: as float32! crop2/x
+		size/height: as float32! crop2/y
 	][
-		;-- D2D1_INTERPOLATION_MODE_DEFINITION_LINEAR
-		dc/DrawBitmap2 this as int-ptr! bthis dst as float32! 1.0 1 null null
+		src: null
+		size/width: as float32! width
+		size/height: as float32! height
 	]
+
+	trans: null
+	dst: null
+	case [
+		start = end [
+			dst*/left: as float32! x
+			dst*/top: as float32! y
+			dst*/right: as float32! x + width
+			dst*/bottom: as float32! y + height
+			dst: :dst*
+		]
+		start + 1 = end [					;-- two control points
+			dst*/left: as float32! x
+			dst*/top: as float32! y
+			dst*/right: as float32! end/x
+			dst*/bottom: as float32! end/y
+			dst: :dst*
+		]
+		start + 2 = end [
+			pt: start
+			ul/x: as float32! pt/x
+			ul/y: as float32! pt/y
+			pt: start + 1
+			ur/x: as float32! pt/x
+			ur/y: as float32! pt/y
+			pt: start + 2
+			ll/x: as float32! pt/x
+			ll/y: as float32! pt/y
+			;-- not support ll == lr
+			lr/x: as float32! pt/x + 1
+			lr/y: as float32! pt/y
+			create-4p-matrix size ul ur ll lr m
+			trans: as int-ptr! :m
+		]
+		start + 3 = end [
+			pt: start
+			ul/x: as float32! pt/x
+			ul/y: as float32! pt/y
+			pt: start + 1
+			ur/x: as float32! pt/x
+			ur/y: as float32! pt/y
+			pt: start + 2
+			ll/x: as float32! pt/x
+			ll/y: as float32! pt/y
+			pt: start + 3
+			lr/x: as float32! pt/x
+			lr/y: as float32! pt/y
+			create-4p-matrix size ul ur ll lr m
+			trans: as int-ptr! :m
+		]
+		true [0]
+	]
+
+	;-- D2D1_INTERPOLATION_MODE_DEFINITION_LINEAR
+	dc/DrawBitmap2 this as int-ptr! bthis dst as float32! 1.0 1 src trans
 
 	d2db/Release bthis
 	IB/Release ithis
