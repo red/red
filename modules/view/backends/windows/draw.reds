@@ -126,6 +126,7 @@ release-ctx: func [
 ][
 	COM_SAFE_RELEASE(IUnk ctx/pen)
 	COM_SAFE_RELEASE(IUnk ctx/brush)
+	release-pen-style ctx
 ]
 
 draw-end: func [
@@ -141,14 +142,15 @@ draw-end: func [
 		rt		[render-target!]
 		hr		[integer!]
 ][
-	release-pen-style ctx
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
 	dc/EndDraw this null null
 	dc/SetTarget this null
 
+	release-ctx ctx		;@@ Possible improvement: cache resources for window target
+
 	rt: as render-target! ctx/target
-	either hWnd <> null [
+	either hWnd <> null [	;-- window target
 		this: rt/swapchain
 		sc: as IDXGISwapChain1 this/vtbl
 		hr: sc/Present this 0 0
@@ -157,7 +159,6 @@ draw-end: func [
 			COM_S_OK [ValidateRect hWnd null]
 			DXGI_ERROR_DEVICE_REMOVED
 			DXGI_ERROR_DEVICE_RESET [
-				release-ctx ctx
 				d2d-release-target rt
 				ctx/dc: null
 				SetWindowLong hWnd wc-offset - 24 0
@@ -165,10 +166,10 @@ draw-end: func [
 				InvalidateRect hWnd null 0
 			]
 			default [
-				0		;@@ TBD log error!!!
+				0			;@@ TBD log error!!!
 			]
 		]
-	][			;-- draw on image!
+	][						;-- image! target
 		;TBD save rt/bitmap to ctx/image
 		d2d-release-target rt
 	]
@@ -231,10 +232,9 @@ OS-draw-pen: func [
 		dc/CreateSolidColorBrush this d3d-clr null :pen
 		ctx/pen: as this! pen/value
 		ctx/pen-color: color
-		ctx/pen-type: as-integer not off?
 	]
+	ctx/pen-type: as-integer not off?
 	if ctx/pen-color <> color [
-		ctx/pen-type: as-integer not off?
 		unless ctx/font-color? [ctx/font-color: color]	;-- if no font, use pen color for text color
 		if ctx/pen-type <> DRAW_BRUSH_NONE [
 			ctx/pen-color: color
@@ -750,10 +750,9 @@ OS-draw-fill-pen: func [
 		dc/CreateSolidColorBrush this d3d-clr null :pen
 		ctx/brush: as this! pen/value
 		ctx/brush-color: color
-		ctx/brush-type: as-integer not off?
 	]
+	ctx/brush-type: as-integer not off?
 	if ctx/brush-color <> color [
-		ctx/brush-type: as-integer not off?
 		if ctx/brush-type <> DRAW_BRUSH_NONE [
 			ctx/brush-color: color
 			this: ctx/brush
@@ -1507,6 +1506,7 @@ OS-draw-brush-bitmap: func [
 		this	[this!]
 		ithis	[this!]
 		bmp		[ptr-value!]
+		unk		[IUnknown]
 ][
 	width:  OS-image/width? img/node
 	height: OS-image/height? img/node
@@ -1515,6 +1515,9 @@ OS-draw-brush-bitmap: func [
 	ithis: OS-image/to-pbgra img
 	dc/CreateBitmapFromWicBitmap2 this ithis null :bmp
 	_OS-draw-brush-bitmap ctx as this! bmp/value width height crop-1 crop-2 mode brush?
+	COM_SAFE_RELEASE(unk ithis)
+	ithis: as this! bmp/value
+	COM_SAFE_RELEASE(unk ithis)
 ]
 
 OS-draw-brush-pattern: func [
@@ -1546,6 +1549,7 @@ OS-draw-brush-pattern: func [
 	dc/SetTarget this old-rt/value
 
 	_OS-draw-brush-bitmap ctx cthis size/x size/y crop-1 crop-2 mode brush?
+	cmd/Release cthis
 ]
 
 OS-draw-grad-pen-old: func [
@@ -1556,7 +1560,7 @@ OS-draw-grad-pen-old: func [
 	count		[integer!]					;-- number of the colors
 	brush?		[logic!]
 ][
-	;Deprecated
+	;Deprecated, no need to implement it.
 ]
 
 OS-draw-grad-pen: func [
