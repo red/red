@@ -1681,6 +1681,7 @@ OS-draw-state-pop: func [
 	ctx/pen-cap: state/pen-cap
 	ctx/pen-type: state/pen-type
 	ctx/brush-type: state/brush-type
+	update-pen-style ctx
 	;TBD: set pen and brush
 ]
 
