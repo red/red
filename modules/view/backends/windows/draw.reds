@@ -1382,17 +1382,16 @@ OS-draw-image: func [
 	IB/Release ithis
 ]
 
-
-OS-draw-brush-bitmap: func [
+_OS-draw-brush-bitmap: func [
 	ctx		[draw-ctx!]
-	img		[red-image!]
+	bmp		[this!]
+	width	[integer!]
+	height	[integer!]
 	crop-1	[red-pair!]
 	crop-2	[red-pair!]
 	mode	[red-word!]
 	brush?	[logic!]
 	/local
-		width	[integer!]
-		height	[integer!]
 		x		[integer!]
 		y		[integer!]
 		xx		[integer!]
@@ -1403,12 +1402,8 @@ OS-draw-brush-bitmap: func [
 		props	[D2D1_IMAGE_BRUSH_PROPERTIES value]
 		this	[this!]
 		dc		[ID2D1DeviceContext]
-		ithis	[this!]
-		bmp		[ptr-value!]
 		brush	[ptr-value!]
 ][
-	width:  OS-image/width? img/node
-	height: OS-image/height? img/node
 	either crop-1 = null [
 		x: 0
 		y: 0
@@ -1455,9 +1450,7 @@ OS-draw-brush-bitmap: func [
 
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
-	ithis: OS-image/to-pbgra img
-	dc/CreateBitmapFromWicBitmap2 this ithis null :bmp
-	dc/CreateImageBrush this as this! bmp/value :props null :brush
+	dc/CreateImageBrush this bmp :props null :brush
 	either brush? [
 		ctx/brush: as this! brush/value
 		ctx/brush-type: DRAW_BRUSH_IMAGE
@@ -1465,6 +1458,30 @@ OS-draw-brush-bitmap: func [
 		ctx/pen: as this! brush/value
 		ctx/pen-type: DRAW_BRUSH_IMAGE
 	]
+]
+
+OS-draw-brush-bitmap: func [
+	ctx		[draw-ctx!]
+	img		[red-image!]
+	crop-1	[red-pair!]
+	crop-2	[red-pair!]
+	mode	[red-word!]
+	brush?	[logic!]
+	/local
+		width	[integer!]
+		height	[integer!]
+		dc		[ID2D1DeviceContext]
+		this	[this!]
+		ithis	[this!]
+		bmp		[ptr-value!]
+][
+	width:  OS-image/width? img/node
+	height: OS-image/height? img/node
+	this: as this! ctx/dc
+	dc: as ID2D1DeviceContext this/vtbl
+	ithis: OS-image/to-pbgra img
+	dc/CreateBitmapFromWicBitmap2 this ithis null :bmp
+	_OS-draw-brush-bitmap ctx as this! bmp/value width height crop-1 crop-2 mode brush?
 ]
 
 OS-draw-brush-pattern: func [
@@ -1475,8 +1492,27 @@ OS-draw-brush-pattern: func [
 	mode	[red-word!]
 	block	[red-block!]
 	brush?	[logic!]
+	/local
+		dc		[ID2D1DeviceContext]
+		this	[this!]
+		list	[com-ptr! value]
+		cthis	[this!]
+		cmd		[ID2D1CommandList]
+		old-rt	[com-ptr! value]
 ][
+	this: as this! ctx/dc
+	dc: as ID2D1DeviceContext this/vtbl
+	dc/CreateCommandList this :list
+	cthis: list/value
 
+	dc/GetTarget this :old-rt
+	dc/SetTarget this cthis
+	parse-draw ctx block no
+	cmd: as ID2D1CommandList cthis/vtbl
+	cmd/Close cthis
+	dc/SetTarget this old-rt/value
+
+	_OS-draw-brush-bitmap ctx cthis size/x size/y crop-1 crop-2 mode brush?
 ]
 
 OS-draw-grad-pen-old: func [

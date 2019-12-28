@@ -411,6 +411,15 @@ ID2D1Effect: alias struct! [
 	GetOutput						[function! [this [this!] idx [uint!] output [ptr-ptr!]]]
 ]
 
+ID2D1CommandList: alias struct! [
+	QueryInterface					[QueryInterface!]
+	AddRef							[AddRef!]
+	Release							[Release!]
+	GetFactory						[integer!]
+	Stream							[int-ptr!]
+	Close							[function! [this [this!] return: [integer!]]]
+]
+
 IDXGIDevice1: alias struct! [
 	QueryInterface					[QueryInterface!]
 	AddRef							[AddRef!]
@@ -786,7 +795,7 @@ ID2D1DeviceContext: alias struct! [
     CreateGradientStopCollection2	[integer!]
     CreateImageBrush				[CreateImageBrush*]
     CreateBitmapBrush2				[CreateBitmapBrush*]
-    CreateCommandList				[integer!]
+    CreateCommandList				[function! [this [this!] cmd [com-ptr!] return: [integer!]]]
     IsDxgiFormatSupported			[integer!]
     IsBufferPrecisionSupported		[integer!]
     GetImageLocalBounds				[integer!]
@@ -794,7 +803,7 @@ ID2D1DeviceContext: alias struct! [
     GetGlyphRunWorldBounds			[integer!]
     GetDevice						[function! [this [this!] dev [int-ptr!]]]
     SetTarget						[function! [this [this!] bmp [this!]]]
-    GetTarget						[integer!]
+    GetTarget						[function! [this [this!] bmp [com-ptr!]]]
     SetRenderingControls			[integer!]
     GetRenderingControls			[integer!]
     SetPrimitiveBlend				[integer!]
