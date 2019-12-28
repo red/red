@@ -27,6 +27,13 @@ Red/System [
 	]
 ]
 
+#define COM_ADD_REF(interface this) [
+	if this <> null [
+		interface: as IUnknown this/vtbl
+		interface/AddRef this
+	]
+]
+
 #define COM_S_OK				0
 
 #define COM_SUCCEEDED(hr)		[hr >= 0]

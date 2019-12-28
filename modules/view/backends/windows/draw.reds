@@ -20,6 +20,8 @@ draw-state!: alias struct! [
 	pen-cap		[integer!]
 	pen-type	[integer!]
 	brush-type	[integer!]
+	pen			[this!]
+	brush		[this!]
 ]
 
 #enum DRAW-BRUSH-TYPE! [
@@ -216,8 +218,22 @@ OS-draw-pen: func [
 	/local
 		this	[this!]
 		brush	[ID2D1SolidColorBrush]
+		unk		[IUnknown]
+		d3d-clr [D3DCOLORVALUE]
+		pen		[ptr-value!]
+		dc		[ID2D1DeviceContext]
 ][
-	if any [ctx/pen-color <> color ctx/pen-type = as-integer off?][
+	if ctx/pen-type <> DRAW_BRUSH_COLOR [
+		this: as this! ctx/dc
+		dc: as ID2D1DeviceContext this/vtbl
+		COM_SAFE_RELEASE(unk ctx/pen)
+		d3d-clr: to-dx-color color null
+		dc/CreateSolidColorBrush this d3d-clr null :pen
+		ctx/pen: as this! pen/value
+		ctx/pen-color: color
+		ctx/pen-type: as-integer not off?
+	]
+	if ctx/pen-color <> color [
 		ctx/pen-type: as-integer not off?
 		unless ctx/font-color? [ctx/font-color: color]	;-- if no font, use pen color for text color
 		if ctx/pen-type <> DRAW_BRUSH_NONE [
@@ -721,12 +737,26 @@ OS-draw-fill-pen: func [
 	/local
 		this	[this!]
 		brush	[ID2D1SolidColorBrush]
+		unk		[IUnknown]
+		d3d-clr [D3DCOLORVALUE]
+		pen		[ptr-value!]
+		dc		[ID2D1DeviceContext]
 ][
-	if any [ctx/brush-color <> color ctx/brush-type = as-integer off?][
+	if ctx/brush-type <> DRAW_BRUSH_COLOR [
+		this: as this! ctx/dc
+		dc: as ID2D1DeviceContext this/vtbl
+		COM_SAFE_RELEASE(unk ctx/brush)
+		d3d-clr: to-dx-color color null
+		dc/CreateSolidColorBrush this d3d-clr null :pen
+		ctx/brush: as this! pen/value
+		ctx/brush-color: color
+		ctx/brush-type: as-integer not off?
+	]
+	if ctx/brush-color <> color [
 		ctx/brush-type: as-integer not off?
 		if ctx/brush-type <> DRAW_BRUSH_NONE [
 			ctx/brush-color: color
-			this: as this! ctx/brush
+			this: ctx/brush
 			brush: as ID2D1SolidColorBrush this/vtbl
 			brush/SetColor this to-dx-color color null
 		]
@@ -1403,6 +1433,7 @@ _OS-draw-brush-bitmap: func [
 		this	[this!]
 		dc		[ID2D1DeviceContext]
 		brush	[ptr-value!]
+		unk		[IUnknown]
 ][
 	either crop-1 = null [
 		x: 0
@@ -1452,9 +1483,11 @@ _OS-draw-brush-bitmap: func [
 	dc: as ID2D1DeviceContext this/vtbl
 	dc/CreateImageBrush this bmp :props null :brush
 	either brush? [
+		COM_SAFE_RELEASE(unk ctx/brush)
 		ctx/brush: as this! brush/value
 		ctx/brush-type: DRAW_BRUSH_IMAGE
 	][
+		COM_SAFE_RELEASE(unk ctx/pen)
 		ctx/pen: as this! brush/value
 		ctx/pen-type: DRAW_BRUSH_IMAGE
 	]
@@ -1680,6 +1713,7 @@ OS-draw-state-push: func [
 		blk		[ptr-value!]
 		this	[this!]
 		dc		[ID2D1DeviceContext]
+		unk		[IUnknown]
 ][
 	factory: as ID2D1Factory d2d-factory/vtbl
 	if 0 <> factory/CreateDrawingStateBlock d2d-factory null null :blk [
@@ -1697,6 +1731,10 @@ OS-draw-state-push: func [
 	state/pen-cap: ctx/pen-cap
 	state/pen-type: ctx/pen-type
 	state/brush-type: ctx/brush-type
+	state/pen: ctx/pen
+	state/brush: ctx/brush
+	COM_ADD_REF(unk state/pen)
+	COM_ADD_REF(unk state/brush)
 ]
 
 OS-draw-state-pop: func [
@@ -1717,8 +1755,11 @@ OS-draw-state-pop: func [
 	ctx/pen-cap: state/pen-cap
 	ctx/pen-type: state/pen-type
 	ctx/brush-type: state/brush-type
+	COM_SAFE_RELEASE(IUnk ctx/pen)
+	COM_SAFE_RELEASE(IUnk ctx/brush)
+	ctx/pen: state/pen
+	ctx/brush: state/brush
 	update-pen-style ctx
-	;TBD: set pen and brush
 ]
 
 OS-matrix-reset: func [
