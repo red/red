@@ -984,6 +984,9 @@ change-data: func [
 		type = rich-text [
 			objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
 		]
+		all [type = calendar TYPE_OF(data) = TYPE_DATE][
+			objc_msgSend [hWnd sel_getUid "setDateValue:" to-NSDate as red-date! data]
+		]
 		true [0]										;-- default, do nothing
 	]
 ]
@@ -1174,21 +1177,56 @@ init-combo-box: func [
 	]
 ]
 
+to-NSDate: func [
+	date 	[red-date!]
+	return: [integer!]
+	/local
+		components [integer!]
+		calendar   [integer!]
+		NSDate 	   [integer!]
+][	
+	components: objc_msgSend [
+		objc_msgSend [objc_getClass "NSDateComponents" sel_getUid "alloc"]
+		sel_getUid "init"
+	]
+	
+	objc_msgSend [components sel_getUid "setDay:" DATE_GET_DAY(date/date)]
+	objc_msgSend [components sel_getUid "setMonth:" DATE_GET_MONTH(date/date)]
+	objc_msgSend [components sel_getUid "setYear:" DATE_GET_YEAR(date/date)]
+	
+	calendar: objc_msgSend [
+		objc_msgSend [objc_getClass "NSCalendar" sel_getUid "alloc"]
+		sel_getUid "initWithCalendarIdentifier:"
+		NSString("gregorian")
+	]
+	
+	NSDate: objc_msgSend [calendar sel_getUid "dateFromComponents:" components]
+	objc_msgSend [components sel_getUid "release"]
+	objc_msgSend [calendar sel_getUid "release"]
+	
+	return NSDate
+]
+
 init-calendar: func [
 	calendar [integer!]
-	/local
-		today [integer!]
+	data	 [red-value!]
 ][
 	objc_msgSend [calendar sel_getUid "setDatePickerMode:" NSDatePickerModeSingle]
 	objc_msgSend [calendar sel_getUid "setDatePickerStyle:" NSDatePickerStyleClockAndCalendar]
 	objc_msgSend [calendar sel_getUid "setDatePickerElements:" NSDatePickerElementFlagYearMonthDay]
 	
-	today: objc_msgSend [objc_getClass "NSDate" sel_getUid "date"]
-	objc_msgSend [calendar sel_getUid "setDateValue:" today]
-	
 	objc_msgSend [calendar sel_getUid "setTarget:" calendar]
 	objc_msgSend [calendar sel_getUid "setAction:" sel_getUid "calendar-change:"]
 	objc_msgSend [calendar sel_getUid "sendActionOn:" NSLeftMouseDown]
+	
+	objc_msgSend [
+		calendar
+		sel_getUid "setDateValue:" either TYPE_OF(data) = TYPE_DATE [
+			to-NSDate as red-date! data
+		][
+			objc_msgSend [objc_getClass "NSDate" sel_getUid "date"]
+		]
+	]
 ]
 
 init-window: func [
@@ -1964,7 +2002,7 @@ OS-make-view: func [
 			init-camera obj rc data
 		]
 		sym = calendar [
-			init-calendar obj
+			init-calendar obj as red-value! data
 		]
 		true [											;-- search in user-defined classes
 			if p <> null [
