@@ -798,7 +798,7 @@ OS-draw-box: func [
 	]
 ]
 
-OS-draw-triangle: func [		;@@ TBD merge this function with OS-draw-polygon
+OS-draw-triangle: func [
 	ctx			[draw-ctx!]
 	start		[red-pair!]
 ][

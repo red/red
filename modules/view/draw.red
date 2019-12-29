@@ -594,13 +594,11 @@ Red/System [
 							sym = move [
 								DRAW_FETCH_VALUE(TYPE_PAIR)
 								OS-draw-shape-moveto DC as red-pair! cmd rel?
-								close?: no
 							]
 							sym = line [
 								DRAW_FETCH_VALUE(TYPE_PAIR)
 								DRAW_FETCH_SOME_PAIR
 								OS-draw-shape-line DC as red-pair! start as red-pair! cmd rel?
-								close?: yes
 							]
 							any [sym = line-width sym = line-join sym = line-cap][
 								cmd: check-line DC cmds start tail cmd sym catch?
@@ -608,7 +606,6 @@ Red/System [
 							any [ sym = hline sym = vline ][
 								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
 								OS-draw-shape-axis DC start cmd rel? (sym = hline)
-								close?: yes
 							]
 							sym = _arc [
 								sweep?: false
@@ -632,30 +629,25 @@ Red/System [
 									]
 								]
 								OS-draw-shape-arc DC as red-pair! start sweep? large? rel?
-								close?: yes
 							]
 							sym = curve [
 								DRAW_FETCH_SOME_PAIR
 								if (as-integer cmd - start) < 32 [throw-draw-error cmds cmd - 2 catch?]
 								OS-draw-shape-curve DC as red-pair! start as red-pair! cmd rel?
-								close?: yes
 							]
 							sym = curv [
 								DRAW_FETCH_SOME_PAIR
 								if (as-integer cmd - start) < 16 [throw-draw-error cmds cmd - 1 catch?]
 								OS-draw-shape-curv DC as red-pair! start as red-pair! cmd rel?
-								close?: yes
 							]
 							sym = qcurve [
 								DRAW_FETCH_SOME_PAIR
 								if (as-integer cmd - start) < 16 [throw-draw-error cmds cmd - 1 catch?]
 								OS-draw-shape-qcurve DC as red-pair! start as red-pair! cmd rel?
-								close?: yes
 							]
 							sym = qcurv [
 								DRAW_FETCH_SOME_PAIR
 								OS-draw-shape-qcurv DC as red-pair! start as red-pair! cmd rel?
-								close?: yes
 							]
 							sym = close-shape [OS-draw-shape-close DC]
 							true [ throw-draw-error cmds cmd catch? ]
