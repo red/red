@@ -543,6 +543,15 @@ slider-change: func [
 	make-event self 0 EVT_CHANGE
 ]
 
+calendar-change: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	sender	[integer!]
+][
+	make-event self 0 EVT_CHANGE
+]
+
 set-selected: func [
 	obj [integer!]
 	idx [integer!]
