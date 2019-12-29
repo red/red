@@ -317,7 +317,8 @@ lexer: context [
 		ERR_BAD_CHAR: 	  -1
 		ERR_MALCONSTRUCT: -2
 		ERR_MISSING: 	  -3
-		LEX_INT_OVERFLOW: -4
+		ERR_CLOSING: 	  -4
+		LEX_INT_OVERFLOW: -5
 	]
 	
 	state!: alias struct! [
@@ -344,6 +345,7 @@ lexer: context [
 	
 	scanner!: alias function! [lex [state!] s e [byte-ptr!] flags [integer!]]
 
+	utf8-bufsize: 100'000
 	utf8-buffer: as byte-ptr! 0
 	scanners: as int-ptr! 0								;-- scan functions jump table (dynamically filled)
 	stash: as cell! 0									;-- special buffer for hatching any-blocks series
@@ -383,8 +385,11 @@ lexer: context [
 		switch type [
 			ERR_BAD_CHAR 	 [fire [TO_ERROR(syntax bad-char) line pos]]
 			ERR_MALCONSTRUCT [fire [TO_ERROR(syntax malconstruct) line pos]]
+			ERR_CLOSING
 			ERR_MISSING		 [
-				c: either lex/in-pos < lex/in-end [lex/in-pos/1][lex/in-pos/0]
+				c: either type = ERR_CLOSING [#"_"][	;-- force a closing character
+					either lex/in-pos < lex/in-end [lex/in-pos/1][lex/in-pos/0] ;-- guess opening/closing
+				]
 				type: switch lex/closing [
 					TYPE_BLOCK [as-integer either c = #"]" [#"["][#"]"]]
 					TYPE_MAP
@@ -464,8 +469,8 @@ lexer: context [
 		p: as red-point! alloc-slot lex
 		set-type as cell! p TYPE_POINT					;-- use the slot for stack info
 		p/x: len
-		p/y: type
-		p/z: hint
+		p/y: type << 16 or (hint and FFFFh)
+		p/z: as-integer lex/in-pos - lex/input			;-- opening delimiter offset saved (error handling)
 		
 		lex/head: lex/tail								;-- points just after p
 		lex/entry: S_START
@@ -475,7 +480,7 @@ lexer: context [
 		return: [integer!]
 		/local	
 			p [red-point!]
-			len	hint [integer!]
+			len	hint stype [integer!]
 			do-error [subroutine!]
 	][
 		do-error: [
@@ -483,23 +488,24 @@ lexer: context [
 			throw-error lex s e ERR_MISSING
 		]
 		p: as red-point! lex/head - 1
+		stype: p/y >> 16
 		unless all [lex/buffer <= p TYPE_OF(p) = TYPE_POINT][do-error]
 		either type = -1 [
-			type: either final = -1 [p/y][final]
+			type: either final = -1 [stype][final]
 		][
-			if p/y <> type [do-error]
+			if stype <> type [do-error]
 		]
 		len: (as-integer lex/tail - lex/head) >> 4
 		lex/tail: lex/head
 		lex/head: as cell! p - p/x
-		hint: p/z
-	
+		hint: p/y and FFFFh << 16 >> 16
+
 		store-any-block as cell! p lex/tail len type	;-- p slot gets overwritten here
 		
 		p: as red-point! lex/head - 1					;-- get parent series
 		either all [
 			lex/buffer <= p
-			not any [p/y = TYPE_BLOCK p/y = TYPE_PAREN p/y = TYPE_MAP]
+			not any [stype = TYPE_BLOCK stype = TYPE_PAREN stype = TYPE_MAP]
 		][												;-- any-path! case
 			lex/entry: S_PATH
 		][
@@ -1747,6 +1753,7 @@ lexer: context [
 		len   [int-ptr!]								;-- return the consumed input length
 		/local
 			blk	  [red-block!]
+			p	  [red-point!]
 			slots [integer!]
 			s	  [series!]
 			lex	  [state! value]
@@ -1771,7 +1778,13 @@ lexer: context [
 		scan-tokens lex one?
 
 		slots: (as-integer lex/tail - lex/buffer) >> 4
-		
+		if slots > 0 [
+			p: as red-point! either lex/buffer < lex/head [lex/head - 1][lex/buffer]
+			if TYPE_OF(p) = TYPE_POINT [
+				lex/closing: p/y >> 16
+				throw-error lex lex/input + p/z lex/in-end ERR_CLOSING
+			]
+		]
 		either all [one? slots > 0][
 			copy-cell lex/buffer dst					;-- copy first loaded value only
 		][
@@ -1784,23 +1797,28 @@ lexer: context [
 	]
 
 	load-string: func [
-		dst   [red-value!]								;-- destination slot
+		dst  [red-value!]								;-- destination slot
 		str	 [red-string!]
 		size [integer!]
 		one? [logic!]
 		len	 [int-ptr!]
 		/local
 			s [series!]
-			unit buf-size [integer!]
+			unit buf-size ignore [integer!]
 	][
+		ignore: 0
 		s: GET_BUFFER(str)
 		unit: GET_UNIT(s)
-		buf-size: (string/rs-length? str) * unit
-		if buf-size > 100'000 [
+		
+		if size = -1 [size: string/rs-length? str]
+		buf-size: size * unit
+		if buf-size > utf8-bufsize [
 			free utf8-buffer
 			utf8-buffer: allocate buf-size
+			utf8-bufsize: buf-size
 		]
 		size: unicode/to-utf8-buffer str utf8-buffer size
+		if null? len [len: :ignore]
 		scan dst utf8-buffer size one? len
 	]
 	
@@ -1818,7 +1836,7 @@ lexer: context [
 	
 	init: func [][
 		stash: as cell! allocate stash-size * size? cell!
-		utf8-buffer: allocate 100'000
+		utf8-buffer: allocate utf8-bufsize
 		
 		;-- switch following tables to zero-based indexing
 		lex-classes: lex-classes + 1
