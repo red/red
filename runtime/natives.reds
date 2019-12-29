@@ -532,7 +532,6 @@ natives: context [
 			cframe [byte-ptr!]
 			arg	   [red-value!]
 			do-arg [red-value!]
-			str	   [red-string!]
 			slot   [red-value!]
 			blk	   [red-block!]
 			job	   [red-value!]
@@ -556,8 +555,7 @@ natives: context [
 					stack/set-last arg + 1
 				]
 				TYPE_STRING [
-					str: as red-string! arg
-					#call [system/lexer/transcode str none no]
+					lexer/load-string arg as red-string! arg -1 no null
 					DO_EVAL_BLOCK
 				]
 				TYPE_URL 
