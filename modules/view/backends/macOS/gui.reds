@@ -1174,6 +1174,23 @@ init-combo-box: func [
 	]
 ]
 
+init-calendar: func [
+	calendar [integer!]
+	/local
+		today [integer!]
+][
+	objc_msgSend [calendar sel_getUid "setDatePickerMode:" NSDatePickerModeSingle]
+	objc_msgSend [calendar sel_getUid "setDatePickerStyle:" NSDatePickerStyleClockAndCalendar]
+	objc_msgSend [calendar sel_getUid "setDatePickerElements:" NSDatePickerElementFlagYearMonthDay]
+	
+	today: objc_msgSend [objc_getClass "NSDate" sel_getUid "date"]
+	objc_msgSend [calendar sel_getUid "setDateValue:" today]
+	
+	objc_msgSend [calendar sel_getUid "setTarget:" calendar]
+	objc_msgSend [calendar sel_getUid "setAction:" sel_getUid "calendar-change:"]
+	objc_msgSend [calendar sel_getUid "sendActionOn:" NSLeftMouseDown]
+]
+
 init-window: func [
 	face	[red-object!]
 	window	[integer!]
@@ -1942,9 +1959,7 @@ OS-make-view: func [
 			init-camera obj rc data
 		]
 		sym = calendar [
-			objc_msgSend [obj sel_getUid "setDatePickerMode:" NSDatePickerModeSingle]
-			objc_msgSend [obj sel_getUid "setDatePickerStyle:" NSDatePickerStyleClockAndCalendar]
-			objc_msgSend [obj sel_getUid "setDatePickerElements:" NSDatePickerElementFlagYearMonthDay]
+			init-calendar obj
 		]
 		true [											;-- search in user-defined classes
 			if p <> null [
