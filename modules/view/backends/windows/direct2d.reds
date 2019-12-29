@@ -242,7 +242,7 @@ CreateRadialGradientBrush*: alias function! [
 	this		[this!]
 	gprops		[D2D1_RADIAL_GRADIENT_BRUSH_PROPERTIES]
 	props		[D2D1_BRUSH_PROPERTIES]
-	stops		[integer!]
+	stops		[this!]
 	brush		[ptr-ptr!]
 	return:		[integer!]
 ]
@@ -253,7 +253,7 @@ CreateGradientStopCollection*: alias function! [
 	stopsCount	[integer!]
 	gamma		[integer!]
 	extendMode	[integer!]
-	stops-ptr	[int-ptr!]
+	stops-ptr	[com-ptr!]
 	return:		[integer!]
 ]
 

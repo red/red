@@ -31,6 +31,8 @@ draw-state!: alias struct! [
 	DRAW_BRUSH_GRADIENT
 ]
 
+grad-stops: as D2D1_GRADIENT_STOP allocate 256 * size? D2D1_GRADIENT_STOP
+
 draw-begin: func [
 	ctx			[draw-ctx!]
 	hWnd		[handle!]
@@ -1565,16 +1567,94 @@ OS-draw-grad-pen-old: func [
 
 OS-draw-grad-pen: func [
 	ctx			[draw-ctx!]
-	mode		[integer!]
+	type		[integer!]
 	stops		[red-value!]
 	count		[integer!]
-	skip-pos	[logic!]
+	skip-pos?	[logic!]
 	positions	[red-value!]
 	focal?		[logic!]
 	spread		[integer!]
 	brush?		[logic!]
+	/local
+		dc		[ID2D1DeviceContext]
+		this	[this!]
+		unk		[IUnknown]
+		gprops	[D2D1_RADIAL_GRADIENT_BRUSH_PROPERTIES value]
+		gstops	[D2D1_GRADIENT_STOP]
+		x		[float!]
+		y		[float!]
+		start	[float!]
+		stop	[float!]
+		brush	[ptr-value!]
+		int		[red-integer!]
+		f		[red-float!]
+		head	[red-value!]
+		next	[red-value!]
+		clr		[red-tuple!]
+		n		[integer!]
+		delta	[float!]
+		p		[float!]
+		wrap	[integer!]
+		sc		[com-ptr! value]
+		pt		[red-pair!]
 ][
+	this: as this! ctx/dc
+	dc: as ID2D1DeviceContext this/vtbl
 
+	gstops: grad-stops
+	n: count - 1
+	delta: as float! n
+	delta: 1.0 / delta
+	p: 0.0
+	head: stops
+	loop count [
+		clr: as red-tuple! either TYPE_OF(head) = TYPE_WORD [_context/get as red-word! head][head]
+		next: head + 1
+		to-dx-color clr/array1 as D3DCOLORVALUE (as int-ptr! gstops) + 1
+		if TYPE_OF(next) = TYPE_FLOAT [head: next f: as red-float! head p: f/value]
+		gstops/position: as float32! p
+		if next <> head [p: p + delta]
+		head: head + 1
+		gstops: gstops + 1
+	]
+
+	case [
+		spread = _pad		[wrap: 0]
+		spread = _repeat	[wrap: 1]
+		spread = _reflect	[wrap: 2]
+		true [wrap: 0]
+	]
+
+	either type = linear [
+		0
+	][
+		dc/CreateGradientStopCollection this grad-stops count 0 wrap :sc
+		unless skip-pos? [
+			pt: as red-pair! positions
+			gprops/center.x: as float32! pt/x
+			gprops/center.y: as float32! pt/y
+			gprops/radius.x: get-float32 as red-integer! pt + 1
+			gprops/radius.y: gprops/radius.x
+			if focal? [
+				pt: pt + 2
+				gprops/offset.x: as float32! pt/x
+				gprops/offset.x: as float32! pt/y
+			]
+		]
+		dc/CreateRadialGradientBrush this gprops null sc/value :brush
+	]
+
+	COM_SAFE_RELEASE(unk sc/value)
+
+	either brush? [
+		COM_SAFE_RELEASE(unk ctx/brush)
+		ctx/brush: as this! brush/value
+		ctx/brush-type: DRAW_BRUSH_GRADIENT
+	][
+		COM_SAFE_RELEASE(unk ctx/pen)
+		ctx/pen: as this! brush/value
+		ctx/pen-type: DRAW_BRUSH_GRADIENT
+	]
 ]
 
 OS-set-clip: func [
