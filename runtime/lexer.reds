@@ -1750,6 +1750,7 @@ lexer: context [
 		src   [byte-ptr!]								;-- UTF-8 buffer
 		size  [integer!]								;-- buffer size in bytes
 		one?  [logic!]									;-- scan a single value
+		wrap? [logic!]									;-- force returned loaded value(s) in a block
 		len   [int-ptr!]								;-- return the consumed input length
 		/local
 			blk	  [red-block!]
@@ -1785,7 +1786,7 @@ lexer: context [
 				throw-error lex lex/input + p/z lex/in-end ERR_CLOSING
 			]
 		]
-		either all [one? slots > 0][
+		either all [one? not wrap? slots > 0][
 			copy-cell lex/buffer dst					;-- copy first loaded value only
 		][
 			store-any-block dst lex/buffer slots TYPE_BLOCK
@@ -1797,11 +1798,12 @@ lexer: context [
 	]
 
 	load-string: func [
-		dst  [red-value!]								;-- destination slot
-		str	 [red-string!]
-		size [integer!]
-		one? [logic!]
-		len	 [int-ptr!]
+		dst   [red-value!]								;-- destination slot
+		str	  [red-string!]
+		size  [integer!]
+		one?  [logic!]
+		wrap? [logic!]
+		len	  [int-ptr!]
 		/local
 			s [series!]
 			unit buf-size ignore [integer!]
@@ -1819,7 +1821,7 @@ lexer: context [
 		]
 		size: unicode/to-utf8-buffer str utf8-buffer size
 		if null? len [len: :ignore]
-		scan dst utf8-buffer size one? len
+		scan dst utf8-buffer size one? wrap? len
 	]
 	
 	set-jump-table: func [[variadic] count [integer!] list [int-ptr!] /local i [integer!] s [int-ptr!]][

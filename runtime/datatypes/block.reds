@@ -642,23 +642,18 @@ block: context [
 		spec	[red-value!]
 		type	[integer!]
 		return: [red-block!]
-		/local
-			str [red-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/to"]]
 
 		switch TYPE_OF(spec) [
-			TYPE_OBJECT [object/reflect as red-object! spec words/body]
-			TYPE_MAP	[map/reflect as red-hash! spec words/body]
-			TYPE_VECTOR [vector/to-block as red-vector! spec proto]
-			TYPE_STRING [
-				str: as red-string! spec
-				#call [system/lexer/transcode str none no]
-			]
-			TYPE_TYPESET [typeset/to-block as red-typeset! spec proto]
+			TYPE_OBJECT   [object/reflect as red-object! spec words/body]
+			TYPE_MAP	  [map/reflect as red-hash! spec words/body]
+			TYPE_VECTOR   [vector/to-block as red-vector! spec proto]
+			TYPE_STRING   [lexer/load-string as red-value! proto as red-string! spec -1 no no null]
+			TYPE_TYPESET  [typeset/to-block as red-typeset! spec proto]
 			TYPE_ANY_PATH
 			TYPE_ANY_LIST [proto: clone as red-block! spec no no]
-			default [rs-append make-at proto 1 spec]
+			default		  [rs-append make-at proto 1 spec]
 		]
 		proto/header: type
 		proto
