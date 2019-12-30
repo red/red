@@ -23,8 +23,8 @@ with [platform][
 
 		SendMessage handle MCM_SETCURSEL 0 as integer! time
 	]
-
-	process-calendar-change: func [
+	
+	sync-calendar: func [
 		handle [handle!]
 		/local
 			slot  [red-value!]
@@ -44,7 +44,21 @@ with [platform][
 		
 		slot: get-facet current-msg FACE_OBJ_DATA
 		date/make-at slot year month day 0.0 0 0 no no
-		
+	]
+	
+	init-calendar: func [
+		handle [handle!]
+		data   [red-value!]
+	][
+		either TYPE_OF(data) = TYPE_DATE [
+			change-calendar handle as red-date! data
+		][
+			sync-calendar handle
+		]
+	]
+	
+	process-calendar-change: func [handle [handle!]][
+		sync-calendar handle
 		make-event current-msg 0 EVT_CHANGE
 	]
 	

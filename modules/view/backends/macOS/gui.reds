@@ -1207,6 +1207,38 @@ to-NSDate: func [
 	return NSDate
 ]
 
+sync-calendar: func [
+	handle [integer!]
+	/local
+		slot 	   [red-value!]
+		calendar   [integer!]
+		components [integer!]
+		day 	   [integer!]
+		month 	   [integer!]
+		year	   [integer!]
+][
+	calendar: objc_msgSend [
+		objc_msgSend [objc_getClass "NSCalendar" sel_getUid "alloc"]
+		sel_getUid "initWithCalendarIdentifier:"
+		NSString("gregorian")
+	]
+	
+	components: objc_msgSend [
+		calendar sel_getUid "components:fromDate:"
+		NSCalendarUnitDay or NSCalendarUnitMonth or NSCalendarUnitYear
+		objc_msgSend [handle sel_getUid "dateValue"]
+	]
+	
+	day:   objc_msgSend [components sel_getUid "day"]
+	month: objc_msgSend [components sel_getUid "month"]
+	year:  objc_msgSend [components sel_getUid "year"]
+	
+	slot: (get-face-values handle) + FACE_OBJ_DATA
+	date/make-at slot year month day 0.0 0 0 no no
+	
+	objc_msgSend [calendar sel_getUid "release"]
+]
+
 init-calendar: func [
 	calendar [integer!]
 	data	 [red-value!]
@@ -1221,12 +1253,15 @@ init-calendar: func [
 	
 	objc_msgSend [
 		calendar
-		sel_getUid "setDateValue:" either TYPE_OF(data) = TYPE_DATE [
+		sel_getUid "setDateValue:"
+		either TYPE_OF(data) = TYPE_DATE [
 			to-NSDate as red-date! data
 		][
 			objc_msgSend [objc_getClass "NSDate" sel_getUid "date"]
 		]
 	]
+	
+	unless TYPE_OF(data) = TYPE_DATE [sync-calendar calendar]
 ]
 
 init-window: func [
