@@ -1954,3 +1954,45 @@ OS-set-matrix-order: func [
 ][
 
 ]
+
+OS-draw-shadow: func [
+	ctx		[draw-ctx!]
+	offset	[red-pair!]
+	blur	[integer!]
+	spread	[integer!]
+	color	[integer!]
+	inset?	[logic!]
+	/local
+		s		[shadow!]
+		ss		[shadow!]
+		chain?	[logic!]
+][
+	chain?: ctx/shadow?
+	ctx/shadow?: TYPE_OF(offset) = TYPE_PAIR
+	either ctx/shadow? [
+		either chain? [
+			s: as shadow! allocate size? shadow!
+			ss: ctx/shadows/next
+			either null? ss [ctx/shadows/next: s][
+				ss/next: s
+			]
+		][
+			s: ctx/shadows
+			s/next: null
+		]
+		s/offset-x: offset/x
+		s/offset-y: offset/y
+		s/blur: blur
+		s/spread: spread
+		s/color: color
+		s/inset?: inset?
+	][
+		ss: ctx/shadows/next
+		while [ss <> null][
+			s: ss
+			ss: ss/next
+			free as byte-ptr! s
+		]
+		ctx/shadows/next: null
+	]
+]

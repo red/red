@@ -29,6 +29,7 @@ dwrite-str-cache: as node! 0
 
 #define D2D_MAX_BRUSHES 64
 
+#define DXGI_FORMAT_A8_UNORM 65
 #define D2DERR_RECREATE_TARGET 8899000Ch
 #define DXGI_ERROR_DEVICE_REMOVED 887A0005h
 #define DXGI_ERROR_DEVICE_RESET	887A0007h
@@ -1532,8 +1533,6 @@ create-render-target: func [
 		this	[this!]
 		hr		[integer!]
 		buf		[integer!]
-		props	[D2D1_BITMAP_PROPERTIES1 value]
-		bmp		[integer!]
 		unk		[IUnknown]
 ][
 	GetClientRect hWnd :rc
@@ -1977,4 +1976,30 @@ render-target-lost?: func [
 	rt/BeginDraw target
 	rt/Clear target to-dx-color 0 null
 	0 <> rt/EndDraw target null null
+]
+
+create-bitmap: func [
+	this	[this!]
+	width	[uint32!]
+	height	[uint32!]
+	format	[integer!]
+	return: [this!]
+	/local
+		dc		[ID2D1DeviceContext]
+		props	[D2D1_BITMAP_PROPERTIES1 value]
+		sz		[SIZE_U! value]
+		bitmap	[ptr-value!]
+][
+	props/format: format
+	props/alphaMode: 1
+	props/dpiX: dpi-x
+	props/dpiY: dpi-y
+	props/options: 1		;-- D2D1_BITMAP_OPTIONS_TARGET
+	props/colorContext: null
+
+	sz/width: width
+	sz/height: height
+	dc: as ID2D1DeviceContext this/vtbl
+	dc/CreateBitmap2 this sz null 0 props :bitmap
+	as this! bitmap/value
 ]

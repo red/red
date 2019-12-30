@@ -268,6 +268,17 @@ Red/System [
 			control-x		[float32!]
 			control-y		[float32!]
 		]
+
+		shadow!: alias struct! [
+			offset-x		[integer!]
+			offset-y		[integer!]
+			blur			[integer!]
+			spread			[integer!]
+			color			[integer!]
+			inset?			[logic!]
+			next			[shadow!]
+		]
+
 		draw-ctx!: alias struct! [
 			dc				[ptr-ptr!]
 			target			[int-ptr!]
@@ -289,9 +300,11 @@ Red/System [
 			grad-type		[integer!]			;-- gradient type: radial, linear
 			on-image?		[logic!]			;-- drawing on image?
 			font-color?		[logic!]
+			shadow?			[logic!]
 			text-format		[this!]
 			state			[this!]				;-- current draw state
 			sub				[sub-path! value]
+			shadows			[shadow! value]
 		]
 	][
 		draw-ctx!: alias struct! [

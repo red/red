@@ -84,6 +84,8 @@ Red/System [
 		flip-y:         symbol/make "flip-y"
 		flip-xy:        symbol/make "flip-xy"
 		clamp:          symbol/make "clamp"
+		_shadow:		symbol/make "shadow"
+		_inset:			symbol/make "inset"
 
 		throw-draw-error: func [
 			cmds   [red-block!]
@@ -679,6 +681,7 @@ Red/System [
 				crop-s	[red-pair!]
 				blk		[red-block!]
 				color	[red-tuple!]
+				int		[red-integer!]
 				sym		[integer!]
 				mode	[integer!]
 				rgb		[integer!]
@@ -694,6 +697,9 @@ Red/System [
 				state	[draw-state! value]
 				clip-mode	[integer!]
 				m-order		[integer!]
+				blur	[integer!]
+				spread	[integer!]
+				inset?	[logic!]
 		][
 			cmd:  block/rs-head cmds
 			tail: block/rs-tail cmds
@@ -841,6 +847,39 @@ Red/System [
 									]
 								]
 								OS-draw-image DC as red-image! start point end color border? crop-s pattern
+							]
+							sym = _shadow [
+								DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_WORD)
+								if TYPE_OF(start) = TYPE_WORD [
+									word: as red-word! start
+									sym: symbol/resolve word/symbol
+									if sym <> _off [
+										throw-draw-error cmds start catch?
+									]
+								]
+								inset?: no
+								blur: 0
+								spread: 0
+								rgb: 0
+								DRAW_FETCH_OPT_VALUE(TYPE_INTEGER)	;-- blur radius
+								if pos = cmd [
+									int: as red-integer! pos
+									blur: int/value
+									DRAW_FETCH_OPT_VALUE(TYPE_INTEGER) ;-- spread radius
+									if pos = cmd [
+										int: as red-integer! pos
+										spread: int/value
+									]
+								]
+								DRAW_FETCH_OPT_VALUE(TYPE_TUPLE)
+								if pos = cmd [cmd: cmd - 1 DRAW_FETCH_TUPLE]
+								DRAW_FETCH_OPT_VALUE(TYPE_WORD)
+								if pos = cmd [
+									word: as red-word! pos
+									sym: symbol/resolve word/symbol
+									either sym = _inset [inset?: yes][cmd: cmd - 1]
+								]
+								OS-draw-shadow DC as red-pair! start blur spread rgb inset?
 							]
 							sym = clip [
 								rect?: false
