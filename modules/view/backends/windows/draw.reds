@@ -29,6 +29,7 @@ draw-state!: alias struct! [
 	DRAW_BRUSH_COLOR
 	DRAW_BRUSH_IMAGE
 	DRAW_BRUSH_GRADIENT
+	DRAW_BRUSH_GRADIENT_SMART
 ]
 
 grad-stops: as D2D1_GRADIENT_STOP allocate 256 * size? D2D1_GRADIENT_STOP
@@ -651,6 +652,26 @@ OS-draw-anti-alias: func [
 	dc/SetAntialiasMode this either on? [0][1]
 ]
 
+calculate-gradient-pos: func [
+	brush		[this!]
+	path		[this!]
+	type		[integer!]
+	/local
+		radial	[ID2D1RadialGradientBrush]
+][
+	either type = linear [
+		0
+	][
+		radial: as ID2D1RadialGradientBrush brush/vtbl
+		;@@ get the centroid of the shape or just use the center of the bounding box?
+		;@@ check how does SVG or other graphic libraries do it.
+		;radial/SetCenter brush
+		;radial/SetGradientOriginOffset brush
+		;radial/SetRadiusX brush
+		;radial/SetRadiusY brush
+	]
+]
+
 _OS-draw-polygon: func [
 	ctx			[draw-ctx!]
 	start		[red-pair!]
@@ -695,9 +716,15 @@ _OS-draw-polygon: func [
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
 	if ctx/brush-type <> DRAW_BRUSH_NONE [
+		if ctx/brush-type = DRAW_BRUSH_GRADIENT_SMART [
+			calculate-gradient-pos ctx/brush pthis ctx/grad-type
+		]
 		dc/FillGeometry this as int-ptr! pthis ctx/brush null
 	]
 	if ctx/pen-type <> DRAW_BRUSH_NONE [
+		if ctx/pen-type = DRAW_BRUSH_GRADIENT_SMART [
+			calculate-gradient-pos ctx/pen pthis ctx/grad-type
+		]
 		dc/DrawGeometry this as int-ptr! pthis ctx/pen ctx/pen-width ctx/pen-style
 	]
 	gpath/Release pthis
@@ -1597,6 +1624,7 @@ OS-draw-grad-pen: func [
 		wrap	[integer!]
 		sc		[com-ptr! value]
 		pt		[red-pair!]
+		gtype	[integer!]
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
@@ -1625,11 +1653,13 @@ OS-draw-grad-pen: func [
 		true [wrap: 0]
 	]
 
+	ctx/grad-type: type
 	either type = linear [
 		0
 	][
 		dc/CreateGradientStopCollection this grad-stops count 0 wrap :sc
-		unless skip-pos? [
+		either skip-pos? [gtype: DRAW_BRUSH_GRADIENT_SMART][
+			gtype: DRAW_BRUSH_GRADIENT
 			pt: as red-pair! positions
 			gprops/center.x: as float32! pt/x
 			gprops/center.y: as float32! pt/y
@@ -1649,11 +1679,11 @@ OS-draw-grad-pen: func [
 	either brush? [
 		COM_SAFE_RELEASE(unk ctx/brush)
 		ctx/brush: as this! brush/value
-		ctx/brush-type: DRAW_BRUSH_GRADIENT
+		ctx/brush-type: gtype
 	][
 		COM_SAFE_RELEASE(unk ctx/pen)
 		ctx/pen: as this! brush/value
-		ctx/pen-type: DRAW_BRUSH_GRADIENT
+		ctx/pen-type: gtype
 	]
 ]
 

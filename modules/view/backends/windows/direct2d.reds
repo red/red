@@ -315,6 +315,26 @@ GetTransform*: alias function! [
 	transform	[D2D_MATRIX_3X2_F]
 ]
 
+SetCenter*: alias function! [
+	this		[this!]
+	center		[D2D_POINT_2F value]
+]
+
+SetGradientOriginOffset*: alias function! [
+	this		[this!]
+	Offset		[D2D_POINT_2F value]
+]
+
+SetRadiusX*: alias function! [
+	this		[this!]
+	x			[float32!]
+]
+
+SetRadiusY*: alias function! [
+	this		[this!]
+	y			[float32!]
+]
+
 Resize*: alias function! [
 	this		[this!]
 	pixelSize	[tagSIZE]
@@ -363,10 +383,10 @@ ID2D1RadialGradientBrush: alias struct! [
 	SetTransform				[SetTransform*]
 	GetOpacity					[integer!]
 	GetTransform				[GetTransform*]
-	SetCenter					[integer!]
-	SetGradientOriginOffset		[integer!]
-	SetRadiusX					[integer!]
-	SetRadiusY					[integer!]
+	SetCenter					[SetCenter*]
+	SetGradientOriginOffset		[SetGradientOriginOffset*]
+	SetRadiusX					[SetRadiusX*]
+	SetRadiusY					[SetRadiusY*]
 	GetCenter					[integer!]
 	GetGradientOriginOffset		[integer!]
 	GetRadiusX					[integer!]
