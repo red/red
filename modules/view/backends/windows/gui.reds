@@ -313,8 +313,8 @@ get-text-size: func [
 	size/height: as integer! ceil as float! bbox/height
 
 	if pair <> null [
-		pair/x: as integer! ceil as float! bbox/width
-		pair/y: as integer! ceil as float! bbox/height
+		pair/x: as integer! ceil as float! bbox/width  * 100 / dpi-factor
+		pair/y: as integer! ceil as float! bbox/height * 100 / dpi-factor
 	]
 
 	size
@@ -1447,7 +1447,7 @@ OS-make-view: func [
 		]
 		sym = calendar [
 			class: #u16 "RedCalendar"
-			flags: flags or MCS_NOTODAY or MCS_NOTODAYCIRCLE or MCS_NOSELCHANGEONNAV
+			flags: flags or MCS_NOTODAY or MCS_NOSELCHANGEONNAV
 		]
 		sym = window [
 			class: #u16 "RedWindow"
