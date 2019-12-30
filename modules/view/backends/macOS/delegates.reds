@@ -548,34 +548,8 @@ calendar-change: func [
 	self   [integer!]
 	cmd	   [integer!]
 	sender [integer!]
-	/local
-		slot 	   [red-value!]
-		calendar   [integer!]
-		components [integer!]
-		day 	   [integer!]
-		month 	   [integer!]
-		year	   [integer!]
 ][	
-	calendar: objc_msgSend [
-		objc_msgSend [objc_getClass "NSCalendar" sel_getUid "alloc"]
-		sel_getUid "initWithCalendarIdentifier:"
-		NSString("gregorian")
-	]
-	
-	components: objc_msgSend [
-		calendar sel_getUid "components:fromDate:"
-		NSCalendarUnitDay or NSCalendarUnitMonth or NSCalendarUnitYear
-		objc_msgSend [self sel_getUid "dateValue"]
-	]
-	
-	day:   objc_msgSend [components sel_getUid "day"]
-	month: objc_msgSend [components sel_getUid "month"]
-	year:  objc_msgSend [components sel_getUid "year"]
-	
-	slot: (get-face-values self) + FACE_OBJ_DATA
-	date/make-at slot year month day 0.0 0 0 no no
-	
-	objc_msgSend [calendar sel_getUid "release"]
+	sync-calendar self
 	make-event self 0 EVT_CHANGE
 ]
 

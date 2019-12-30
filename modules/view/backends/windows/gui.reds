@@ -1621,7 +1621,7 @@ OS-make-view: func [
 			SetWindowLong handle wc-offset - 12 BASE_FACE_D2D or BASE_FACE_IME
 		]
 		sym = calendar [
-			if TYPE_OF(data) = TYPE_DATE [change-calendar handle as red-date! data]
+			init-calendar handle data
 		]
 		sym = window [
 			init-window handle
