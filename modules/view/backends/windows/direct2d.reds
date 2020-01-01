@@ -266,7 +266,7 @@ DrawLine*: alias function! [
 	pt1.y		[float32!]
 	brush		[this!]
 	width		[float32!]
-	style		[integer!]
+	style		[this!]
 ]
 
 DrawRectangle*: alias function! [
@@ -274,7 +274,7 @@ DrawRectangle*: alias function! [
 	rect		[RECT_F!]
 	brush		[this!]
 	strokeWidth [float32!]
-	strokeStyle [integer!]
+	strokeStyle [this!]
 ]
 
 FillRectangle*: alias function! [
@@ -288,7 +288,7 @@ DrawEllipse*: alias function! [
 	ellipse		[D2D1_ELLIPSE]
 	brush		[this!]
 	width		[float32!]
-	style		[integer!]
+	style		[this!]
 ]
 
 FillEllipse*: alias function! [
@@ -767,7 +767,7 @@ DrawBitmap*: alias function! [
 	FillRoundedRectangle			[integer!]
 	DrawEllipse						[DrawEllipse*]
 	FillEllipse						[FillEllipse*]
-	DrawGeometry					[function! [this [this!] geometry [int-ptr!] brush [this!] strokeWidth [float32!] style [integer!] return: [integer!]]]
+	DrawGeometry					[function! [this [this!] geometry [int-ptr!] brush [this!] strokeWidth [float32!] style [this!] return: [integer!]]]
 	FillGeometry					[function! [this [this!] geometry [int-ptr!] brush [this!] opacityBrush [this!] return: [integer!]]]
 	FillMesh						[integer!]
 	FillOpacityMask					[integer!]

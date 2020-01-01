@@ -288,7 +288,7 @@ Red/System [
 			pen-join		[integer!]
 			pen-cap			[integer!]
 			pen-width		[float32!]
-			pen-style		[integer!]
+			pen-style		[this!]
 			pen-color		[integer!]
 			brush-color		[integer!]
 			font-color		[integer!]

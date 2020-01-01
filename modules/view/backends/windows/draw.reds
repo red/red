@@ -63,7 +63,7 @@ draw-begin: func [
 	ctx/pen-width:	as float32! 1.0
 	ctx/pen-join: D2D1_LINE_JOIN_MITER
 	ctx/pen-cap: D2D1_CAP_STYLE_FLAT
-	ctx/pen-style:	0
+	ctx/pen-style:	null
 	ctx/pen-type:	DRAW_BRUSH_COLOR
 	ctx/hwnd:		hWnd
 	update-pen-style ctx
@@ -125,7 +125,7 @@ draw-begin: func [
 release-ctx: func [
 	ctx			[draw-ctx!]
 	/local
-		IUnk [IUnknown]
+		IUnk	[IUnknown]
 ][
 	COM_SAFE_RELEASE(IUnk ctx/pen)
 	COM_SAFE_RELEASE(IUnk ctx/brush)
@@ -181,14 +181,10 @@ draw-end: func [
 release-pen-style: func [
 	ctx			[draw-ctx!]
 	/local
-		sthis	[this!]
-		style	[ID2D1StrokeStyle]
+		IUnk	[IUnknown]
 ][
-	if ctx/pen-style <> 0 [
-		sthis: as this! ctx/pen-style
-		style: as ID2D1StrokeStyle sthis/vtbl
-		style/Release sthis
-		ctx/pen-style: 0
+	unless null? ctx/pen-style [
+		COM_SAFE_RELEASE(IUnk ctx/pen-style)
 	]
 ]
 
@@ -212,7 +208,7 @@ update-pen-style: func [
 
 	d2d: as ID2D1Factory d2d-factory/vtbl
 	hr: d2d/CreateStrokeStyle d2d-factory prop null 0 :style
-	ctx/pen-style: as integer! style/value
+	ctx/pen-style: as this! style/value
 ]
 
 OS-draw-pen: func [
