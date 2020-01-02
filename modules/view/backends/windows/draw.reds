@@ -296,27 +296,14 @@ set-linear-points: func [
 		lin		[ID2D1LinearGradientBrush]
 		pt		[D2D_POINT_2F value]
 ][
+	if type <> DRAW_BRUSH_GRADIENT_SMART [exit]
 	lin: as ID2D1LinearGradientBrush brush/vtbl
-	if type = DRAW_BRUSH_GRADIENT_SMART [
-		pt/x: upper-x
-		pt/y: upper-y
-		lin/SetStartPoint brush pt
-		pt/x: lower-x
-		pt/y: lower-y
-		lin/SetEndPoint brush pt
-		exit
-	]
-	if type = DRAW_BRUSH_GRADIENT [
-		lin/GetStartPoint brush :pt
-		pt/x: pt/x + upper-x
-		pt/y: pt/y + upper-y
-		lin/SetStartPoint brush pt
-		lin/GetEndPoint brush :pt
-		pt/x: pt/x + upper-x
-		pt/y: pt/x + upper-y
-		lin/SetEndPoint brush pt
-		exit
-	]
+	pt/x: upper-x
+	pt/y: upper-y
+	lin/SetStartPoint brush pt
+	pt/x: lower-x
+	pt/y: lower-y
+	lin/SetEndPoint brush pt
 ]
 
 set-radial-points: func [
@@ -332,34 +319,21 @@ set-radial-points: func [
 		t1		[float32!]
 		t2		[float32!]
 ][
+	if type <> DRAW_BRUSH_GRADIENT_SMART [exit]
 	rad: as ID2D1RadialGradientBrush brush/vtbl
-	if type = DRAW_BRUSH_GRADIENT_SMART [
-		pt/x: upper-x + lower-x / as float32! 2.0
-		pt/y: upper-y + lower-y / as float32! 2.0
-		rad/SetCenter brush pt
-		pt/x: as float32! 0.0
-		pt/y: as float32! 0.0
-		rad/SetGradientOriginOffset brush pt
-		t1: lower-x - upper-x
-		t1: t1 / as float32! 2.0
-		t2: lower-y - upper-y
-		t2: t2 / as float32! 2.0
-		if t1 > t2 [t1: t2]
-		rad/SetRadiusX brush t1
-		rad/SetRadiusY brush t1
-		exit
-	]
-	if type = DRAW_BRUSH_GRADIENT [
-		rad/GetCenter brush :pt
-		pt/x: pt/x + upper-x
-		pt/y: pt/y + upper-y
-		rad/SetCenter brush pt
-		rad/GetGradientOriginOffset brush :pt
-		pt/x: pt/x + upper-x
-		pt/y: pt/y + upper-y
-		rad/SetGradientOriginOffset brush pt
-		exit
-	]
+	pt/x: upper-x + lower-x / as float32! 2.0
+	pt/y: upper-y + lower-y / as float32! 2.0
+	rad/SetCenter brush pt
+	pt/x: as float32! 0.0
+	pt/y: as float32! 0.0
+	rad/SetGradientOriginOffset brush pt
+	t1: lower-x - upper-x
+	t1: t1 / as float32! 2.0
+	t2: lower-y - upper-y
+	t2: t2 / as float32! 2.0
+	if t1 > t2 [t1: t2]
+	rad/SetRadiusX brush t1
+	rad/SetRadiusY brush t1
 ]
 
 check-grad-points: func [
@@ -373,6 +347,7 @@ check-grad-points: func [
 	/local
 		t		[float32!]
 ][
+	if type <> DRAW_BRUSH_GRADIENT_SMART [exit]
 	if upper-x > lower-x [
 		t: upper-x
 		upper-x: lower-x
@@ -399,6 +374,7 @@ check-grad-rect: func [
 	grad-type	[integer!]
 	bounds		[RECT_F!]
 ][
+	if type <> DRAW_BRUSH_GRADIENT_SMART [exit]
 	check-grad-points
 		brush type grad-type
 		bounds/left bounds/top bounds/right bounds/bottom
@@ -411,6 +387,7 @@ check-grad-line: func [
 	start		[red-pair!]
 	end			[red-pair!]
 ][
+	if type <> DRAW_BRUSH_GRADIENT_SMART [exit]
 	check-grad-points
 		brush type grad-type
 		as float32! start/x as float32! start/y
@@ -940,11 +917,21 @@ OS-draw-box: func [
 	rc/left: as float32! upper/x
 	rc/top: as float32! upper/y
 	if ctx/brush-type <> DRAW_BRUSH_NONE [
-		check-grad-rect ctx/brush ctx/brush-type ctx/brush-grad-type rc
+		either ctx/brush-grad-type = linear [
+			check-grad-points ctx/brush ctx/brush-type ctx/brush-grad-type
+				rc/left rc/top rc/right rc/top
+		][
+			check-grad-rect ctx/brush ctx/brush-type ctx/brush-grad-type rc
+		]
 		dc/FillRectangle this rc ctx/brush 
 	]
 	if ctx/pen-type <> DRAW_BRUSH_NONE [
-		check-grad-rect ctx/pen ctx/pen-type ctx/pen-grad-type rc
+		either ctx/pen-grad-type = linear [
+			check-grad-points ctx/pen ctx/pen-type ctx/pen-grad-type
+				rc/left rc/top rc/right rc/top
+		][
+			check-grad-rect ctx/pen ctx/pen-type ctx/pen-grad-type rc
+		]
 		dc/DrawRectangle this rc ctx/pen ctx/pen-width ctx/pen-style
 	]
 ]
