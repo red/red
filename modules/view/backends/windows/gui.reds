@@ -289,8 +289,20 @@ get-text-size: func [
 		size 	[tagSIZE]
 		rc 		[RECT_STRUCT value]
 		bbox 	[RECT_STRUCT_FLOAT32 value]
+		screens	[red-block!]
+		screen1	[red-object!]
 ][
 	size: declare tagSIZE
+
+	if null? face [
+		screens: as red-block! #get system/view/screens		;-- screens list
+		if null? screens [fire [TO_ERROR(script face-type) screens]]
+		
+		screen1: as red-object! block/rs-head screens
+		if null? screen1 [fire [TO_ERROR(script face-type) screen1]]
+
+		face: screen1
+	]
 
 	;-- possibly null if hwnd wasn't stored in `state` yet (upon face creation)
 	;  in this case hwnd=0 is of the screen, while `para` can still be applied from the face/ctx

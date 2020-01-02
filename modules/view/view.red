@@ -41,6 +41,15 @@ size-text: function [
 	]
 ]
 
+size-string: function [
+	"Returns the area size of the text, as when used in Draw block. Wrapping and padding not supported."
+	font	[object!]		"Font object"
+	text	[string!]		"Text to measure"
+	return:	[pair! none!]	"Return the text's size or NONE if failed"
+][
+	system/view/platform/size-string font text
+]
+
 caret-to-offset: function [
 	"Given a text position, returns the corresponding coordinate relative to the top-left of the layout box"
 	face	[object!]

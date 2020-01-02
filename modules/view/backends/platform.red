@@ -577,6 +577,35 @@ system/view/platform: context [
 		
 		gui/get-text-size face text hFont pair
 	]
+
+	size-string:  routine [
+		font  [object!]
+		value
+		/local
+			text   [red-string!]
+			pair   [red-pair!]
+			state  [red-block!]
+			hFont  [int-ptr!]							;-- handle!
+	][
+		switch TYPE_OF(value) [
+			TYPE_STRING [text: as red-string! value]
+			default     [fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(value)]]
+		]
+		if TYPE_OF(text) <> TYPE_STRING [
+			SET_RETURN(none-value)
+			exit
+		]
+
+		hFont: either TYPE_OF(font) = TYPE_OBJECT [
+			state: as red-block! (object/get-values font) + gui/FONT_OBJ_STATE
+			either TYPE_OF(state) <> TYPE_BLOCK [gui/make-font null font][gui/get-font-handle font 0]
+		][
+			null
+		]
+		pair: as red-pair! stack/arguments
+		pair/header: TYPE_PAIR
+		gui/get-text-size null text hFont pair
+	]
 	
 	on-change-facet: routine [
 		owner  [object!]
