@@ -307,11 +307,11 @@ set-linear-points: func [
 		exit
 	]
 	if type = DRAW_BRUSH_GRADIENT [
-		pt: lin/GetStartPoint brush
+		lin/GetStartPoint brush :pt
 		pt/x: pt/x + upper-x
 		pt/y: pt/y + upper-y
 		lin/SetStartPoint brush pt
-		pt: lin/GetEndPoint brush
+		lin/GetEndPoint brush :pt
 		pt/x: pt/x + upper-x
 		pt/y: pt/x + upper-y
 		lin/SetEndPoint brush pt
@@ -350,11 +350,11 @@ set-radial-points: func [
 		exit
 	]
 	if type = DRAW_BRUSH_GRADIENT [
-		pt: rad/GetCenter brush
+		rad/GetCenter brush :pt
 		pt/x: pt/x + upper-x
 		pt/y: pt/y + upper-y
 		rad/SetCenter brush pt
-		pt: rad/GetGradientOriginOffset brush
+		rad/GetGradientOriginOffset brush :pt
 		pt/x: pt/x + upper-x
 		pt/y: pt/y + upper-y
 		rad/SetGradientOriginOffset brush pt

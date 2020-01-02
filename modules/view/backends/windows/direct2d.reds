@@ -339,7 +339,7 @@ SetCenter*: alias function! [
 
 GetCenter*: alias function! [
 	this		[this!]
-	return:		[D2D_POINT_2F value]
+	center		[D2D_POINT_2F]
 ]
 
 SetGradientOriginOffset*: alias function! [
@@ -349,7 +349,7 @@ SetGradientOriginOffset*: alias function! [
 
 GetGradientOriginOffset*: alias function! [
 	this		[this!]
-	return:		[D2D_POINT_2F value]
+	Offset		[D2D_POINT_2F]
 ]
 
 SetRadiusX*: alias function! [
@@ -420,8 +420,8 @@ ID2D1LinearGradientBrush: alias struct! [
 	ID2D1Brush
 	SetStartPoint		[function! [this [this!] startPoint [D2D_POINT_2F value]]]
 	SetEndPoint			[function! [this [this!] endPoint [D2D_POINT_2F value]]]
-	GetStartPoint		[function! [this [this!] return: [D2D_POINT_2F value]]]
-	GetEndPoint			[function! [this [this!] return: [D2D_POINT_2F value]]]
+	GetStartPoint		[function! [this [this!] startPoint [D2D_POINT_2F]]]
+	GetEndPoint			[function! [this [this!] startPoint [D2D_POINT_2F]]]
 	GetGradientStopCollection	[function! [this [this!] stop [ptr-ptr!]]]
 ]
 
