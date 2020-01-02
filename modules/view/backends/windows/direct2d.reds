@@ -162,6 +162,13 @@ D2D1_HWND_RENDER_TARGET_PROPERTIES: alias struct! [
 	presentOptions		[integer!]
 ]
 
+D2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES: alias struct! [
+	startPoint.x		[float32!]
+	startPoint.y		[float32!]
+	endPoint.x			[float32!]
+	endPoint.y			[float32!]
+]
+
 D2D1_RADIAL_GRADIENT_BRUSH_PROPERTIES: alias struct! [
 	center.x			[float32!]
 	center.y			[float32!]
@@ -239,12 +246,21 @@ CreateSolidColorBrush*: alias function! [
 	return:		[integer!]
 ]
 
+CreateLinearGradientBrush*: alias function! [
+	this		[this!]
+	gprops		[D2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES]
+	props		[D2D1_BRUSH_PROPERTIES]
+	stops		[this!]
+	brush		[com-ptr!]
+	return:		[integer!]
+]
+
 CreateRadialGradientBrush*: alias function! [
 	this		[this!]
 	gprops		[D2D1_RADIAL_GRADIENT_BRUSH_PROPERTIES]
 	props		[D2D1_BRUSH_PROPERTIES]
 	stops		[this!]
-	brush		[ptr-ptr!]
+	brush		[com-ptr!]
 	return:		[integer!]
 ]
 
@@ -321,9 +337,19 @@ SetCenter*: alias function! [
 	center		[D2D_POINT_2F value]
 ]
 
+GetCenter*: alias function! [
+	this		[this!]
+	return:		[D2D_POINT_2F value]
+]
+
 SetGradientOriginOffset*: alias function! [
 	this		[this!]
 	Offset		[D2D_POINT_2F value]
+]
+
+GetGradientOriginOffset*: alias function! [
+	this		[this!]
+	return:		[D2D_POINT_2F value]
 ]
 
 SetRadiusX*: alias function! [
@@ -331,9 +357,19 @@ SetRadiusX*: alias function! [
 	x			[float32!]
 ]
 
+GetRadiusX*: alias function! [
+	this		[this!]
+	return:		[float32!]
+]
+
 SetRadiusY*: alias function! [
 	this		[this!]
 	y			[float32!]
+]
+
+GetRadiusY*: alias function! [
+	this		[this!]
+	return:		[float32!]
 ]
 
 Resize*: alias function! [
@@ -362,7 +398,14 @@ CreateSwapChainForComposition*: alias function! [
 	return:				[integer!]
 ]
 
-ID2D1SolidColorBrush: alias struct! [
+#define ID2D1Resource [
+	QueryInterface		[QueryInterface!]
+	AddRef				[AddRef!]
+	Release				[Release!]
+	GetFactory			[integer!]
+]
+
+#define ID2D1Brush [
 	QueryInterface		[QueryInterface!]
 	AddRef				[AddRef!]
 	Release				[Release!]
@@ -371,27 +414,33 @@ ID2D1SolidColorBrush: alias struct! [
 	SetTransform		[SetTransform*]
 	GetOpacity			[integer!]
 	GetTransform		[GetTransform*]
+]
+
+ID2D1LinearGradientBrush: alias struct! [
+	ID2D1Brush
+	SetStartPoint		[function! [this [this!] startPoint [D2D_POINT_2F value]]]
+	SetEndPoint			[function! [this [this!] endPoint [D2D_POINT_2F value]]]
+	GetStartPoint		[function! [this [this!] return: [D2D_POINT_2F value]]]
+	GetEndPoint			[function! [this [this!] return: [D2D_POINT_2F value]]]
+	GetGradientStopCollection	[function! [this [this!] stop [ptr-ptr!]]]
+]
+
+ID2D1SolidColorBrush: alias struct! [
+	ID2D1Brush
 	SetColor			[function! [this [this!] color [D3DCOLORVALUE]]]
 	GetColor			[integer!]
 ]
 
 ID2D1RadialGradientBrush: alias struct! [
-	QueryInterface				[QueryInterface!]
-	AddRef						[AddRef!]
-	Release						[Release!]
-	GetFactory					[integer!]
-	SetOpacity					[integer!]
-	SetTransform				[SetTransform*]
-	GetOpacity					[integer!]
-	GetTransform				[GetTransform*]
+	ID2D1Brush
 	SetCenter					[SetCenter*]
 	SetGradientOriginOffset		[SetGradientOriginOffset*]
 	SetRadiusX					[SetRadiusX*]
 	SetRadiusY					[SetRadiusY*]
-	GetCenter					[integer!]
-	GetGradientOriginOffset		[integer!]
-	GetRadiusX					[integer!]
-	GetRadiusY					[integer!]
+	GetCenter					[GetCenter*]
+	GetGradientOriginOffset		[GetGradientOriginOffset*]
+	GetRadiusX					[GetRadiusX*]
+	GetRadiusY					[GetRadiusY*]
 	GetGradientStopCollection	[integer!]
 ]
 
@@ -755,7 +804,7 @@ DrawBitmap*: alias function! [
 	CreateBitmapBrush				[CreateBitmapBrush*]
 	CreateSolidColorBrush			[CreateSolidColorBrush*]
 	CreateGradientStopCollection	[CreateGradientStopCollection*]
-	CreateLinearGradientBrush		[integer!]
+	CreateLinearGradientBrush		[CreateLinearGradientBrush*]
 	CreateRadialGradientBrush		[CreateRadialGradientBrush*]
 	CreateCompatibleRenderTarget	[function! [this [this!] size [SIZE_F! value] target [ptr-ptr!] return: [integer!]]]
 	CreateLayer						[integer!]
@@ -860,7 +909,7 @@ ID2D1PathGeometry: alias struct! [
 	AddRef							[AddRef!]
 	Release							[Release!]
 	GetFactory						[integer!]
-	GetBounds						[integer!]
+	GetBounds						[function! [this [this!] trans [D2D_MATRIX_3X2_F] bounds [RECT_F!] return: [integer!]]]
 	GetWidenedBounds				[integer!]
 	StrokeContainsPoint				[integer!]
 	FillContainsPoint				[integer!]

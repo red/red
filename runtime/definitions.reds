@@ -297,7 +297,8 @@ Red/System [
 			scale-ratio		[float32!]
 			pen-type		[integer!]
 			brush-type		[integer!]
-			grad-type		[integer!]			;-- gradient type: radial, linear
+			pen-grad-type	[integer!]			;-- gradient type: radial, linear
+			brush-grad-type	[integer!]			;-- gradient type: radial, linear
 			on-image?		[logic!]			;-- drawing on image?
 			font-color?		[logic!]
 			shadow?			[logic!]
