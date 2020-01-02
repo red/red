@@ -13,6 +13,9 @@ height: 100
 step-x: 10
 step-y: 30
 
+box-start: 0x0
+box-stop: 0x0
+
 bitmap-1: make image! 30x30
 draw bitmap-1 [line 0x0 30x30]
 bitmap-2: make image! 30x30
@@ -113,22 +116,35 @@ drawings: [
             ( as-pair start-x + width start-y + height )
 
         text ( as-pair start-x + (1 * (width + step-x)) start-y - 20 ) "0.1, 0.8, 1.0; 50x0"
-        fill-pen linear red 0.1 green 0.8 blue 1.0 0x0 50x0
-        box 
-            ( as-pair start-x + (1 * (width + step-x)) start-y ) 
-            ( as-pair start-x + width + (1 * (width + step-x)) start-y + height )
+        fill-pen linear red 0.1 green 0.8 blue 1.0
+            (
+                box-start: as-pair start-x + (1 * (width + step-x)) start-y 
+                box-stop: as-pair start-x + width + (1 * (width + step-x)) start-y + height
+                box-start + 0x0
+            )
+            (box-start + 50x0)
+        box (box-start) (box-stop)
 
         text ( as-pair start-x + (2 * (width + step-x)) start-y - 20 ) "0.1, 0.8, 1.0; 50x50"
-        fill-pen linear red 0.1 green 0.8 blue 1.0 0x0 50x50
-        box 
-            ( as-pair start-x + (2 * (width + step-x)) start-y ) 
-            ( as-pair start-x + width + (2 * (width + step-x)) start-y + height )
+        fill-pen linear red 0.1 green 0.8 blue 1.0
+            (
+                box-start: as-pair start-x + (2 * (width + step-x)) start-y 
+                box-stop: as-pair start-x + width + (2 * (width + step-x)) start-y + height
+                box-start + 0x0
+            )
+            (box-start + 50x50)
+        box (box-start) (box-stop)
 
         text ( as-pair start-x + (3 * (width + step-x)) start-y - 20 ) "0.1, 0.8, 1.0; 50x0 reflect"
-        fill-pen linear red 0.1 green 0.8 blue 1.0 0x0 50x0 reflect
-        box 
-            ( as-pair start-x + (3 * (width + step-x)) start-y ) 
-            ( as-pair start-x + width + (3 * (width + step-x)) start-y + height )
+        fill-pen linear red 0.1 green 0.8 blue 1.0
+            (
+                box-start: as-pair start-x + (3 * (width + step-x)) start-y 
+                box-stop: as-pair start-x + width + (3 * (width + step-x)) start-y + height
+                box-start + 0x0
+            )
+            (box-start + 50x0)
+            reflect
+        box (box-start) (box-stop)
 
 
         text ( as-pair start-x start-y + (1 * (height + step-y)) - 20 ) "no stops"
@@ -138,22 +154,35 @@ drawings: [
             ( as-pair start-x + width start-y + height +(1 * (height + step-y)) )
 
         text ( as-pair start-x + (1 * (width + step-x)) start-y + (1 * (height + step-y)) - 20 ) "no stops; 50x0"
-        fill-pen linear red green blue 0x0 50x0
-        box 
-            ( as-pair start-x + (1 * (width + step-x)) start-y + (1 * (height + step-y)) ) 
-            ( as-pair start-x + width + (1 * (width + step-x)) start-y + height +(1 * (height + step-y)) )
+        fill-pen linear red green blue
+            (
+                box-start: as-pair start-x + (1 * (width + step-x)) start-y + (1 * (height + step-y))
+                box-stop: as-pair start-x + width + (1 * (width + step-x)) start-y + height + (1 * (height + step-y))
+                box-start + 0x0
+            )
+            (box-start + 50x0)
+        box (box-start) (box-stop)
 
         text ( as-pair start-x + (2 * (width + step-x)) start-y + (1 * (height + step-y)) - 20 ) "no stops; 50x50"
-        fill-pen linear red green blue 0x0 50x50
-        box 
-            ( as-pair start-x + (2 * (width + step-x)) start-y + (1 * (height + step-y)) ) 
-            ( as-pair start-x + width + (2 * (width + step-x)) start-y + height +(1 * (height + step-y)) )
+        fill-pen linear red green blue
+            (
+                box-start: as-pair start-x + (2 * (width + step-x)) start-y + (1 * (height + step-y))
+                box-stop: as-pair start-x + width + (2 * (width + step-x)) start-y + height + (1 * (height + step-y))
+                box-start + 0x0
+            )
+            (box-start + 50x50)
+        box (box-start) (box-stop)
 
         text ( as-pair start-x + (3 * (width + step-x)) start-y + (1 * (height + step-y)) - 20 ) "no stops; 50x0 reflect"
-        fill-pen linear red green blue 0x0 50x0 reflect
-        box 
-            ( as-pair start-x + (3 * (width + step-x)) start-y + (1 * (height + step-y)) ) 
-            ( as-pair start-x + width + (3 * (width + step-x)) start-y + height +(1 * (height + step-y)) )
+        fill-pen linear red green blue
+            (
+                box-start: as-pair start-x + (3 * (width + step-x)) start-y + (1 * (height + step-y))
+                box-stop: as-pair start-x + width + (3 * (width + step-x)) start-y + height + (1 * (height + step-y))
+                box-start + 0x0
+            )
+            (box-start + 50x0)
+            reflect
+        box (box-start) (box-stop)
 
         
         text ( as-pair start-x start-y + (2 * (height + step-y)) - 20 ) "no stops; scale 2 1"
