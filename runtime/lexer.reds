@@ -16,6 +16,7 @@ Red/System [
 ]
 
 lexer: context [
+	verbose: 0
 
 	#include %lexer-transitions.reds
 		
@@ -1704,12 +1705,14 @@ lexer: context [
 			offset: 0
 			
 			loop as-integer lex/in-end - p [
+				#if debug? = yes [probe ["=== " p/1 " ==="]]
 				cp: as-integer p/value
 				flags: lex-classes/cp and FFFFFF00h or flags
 				class: lex-classes/cp and FFh
 				index: state * (size? character-classes!) + class
 				prev: state
 				state: as-integer transitions/index
+				#if debug? = yes [if verbose > 0 [?? state]]
 				offset: offset + as-integer skip-table/state
 				if state > --EXIT_STATES-- [term?: yes break]
 				line: line + as-integer line-table/class
@@ -1719,6 +1722,7 @@ lexer: context [
 				prev: state
 				index: state * (size? character-classes!) + C_EOF
 				state: as-integer transitions/index
+				#if debug? = yes [if verbose > 0 [?? state]]
 			]
 			assert state <= T_CMT
 			assert start + offset <= p
