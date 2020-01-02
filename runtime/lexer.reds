@@ -504,6 +504,7 @@ lexer: context [
 		store-any-block as cell! p lex/tail len type	;-- p slot gets overwritten here
 		
 		p: as red-point! lex/head - 1					;-- get parent series
+		stype: p/y >> 16
 		either all [
 			lex/buffer <= p
 			not any [stype = TYPE_BLOCK stype = TYPE_PAREN stype = TYPE_MAP]
