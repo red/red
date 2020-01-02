@@ -18,8 +18,8 @@ with [platform][
 			time [tagSYSTEMTIME]
 	][
 		time: declare tagSYSTEMTIME		
-		time/year-month: get-year-month date/date
-		time/week-day: get-day date/date
+		time/year-month: get-year-month date
+		time/week-day: get-day date
 
 		SendMessage handle MCM_SETCURSEL 0 as integer! time
 	]
@@ -62,12 +62,12 @@ with [platform][
 		make-event current-msg 0 EVT_CHANGE
 	]
 	
-	get-year-month: func [date [integer!] return: [integer!]][
-		return DATE_GET_MONTH(date) << 16 or cap DATE_GET_YEAR(date)
+	get-year-month: func [date [red-date!] return: [integer!]][
+		return DATE_GET_MONTH(date/date) << 16 or cap DATE_GET_YEAR(date/date)
 	]
 	
-	get-day: func [date [integer!] return: [integer!]][
-		return DATE_GET_DAY(date) << 16 and FFFF0000h
+	get-day: func [date [red-date!] return: [integer!]][
+		return DATE_GET_DAY(date/date) << 16 and FFFF0000h
 	]
 	
 	;-- possible overflow: Win32 1601:30827, Red -16384:16383
