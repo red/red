@@ -57,6 +57,17 @@ with [platform][
 		]
 	]
 	
+	update-calendar-color: func [
+		handle [handle!]
+		color  [red-value!]
+	][
+		switch TYPE_OF(color) [
+			TYPE_TUPLE [SendMessage handle MCM_SETCOLOR 0 color/data1]
+			TYPE_NONE  [SendMessage handle MCM_SETCOLOR 0 00FFFFFFh]
+			default    [0]
+		]
+	]
+	
 	process-calendar-change: func [handle [handle!]][
 		sync-calendar handle
 		make-event current-msg 0 EVT_CHANGE

@@ -1336,7 +1336,7 @@ OS-make-view: func [
 	selected: as red-integer!	values + FACE_OBJ_SELECTED
 	para:	  as red-object!	values + FACE_OBJ_PARA
 	rate:	  					values + FACE_OBJ_RATE
-	options:   as red-block!	values + FACE_OBJ_OPTIONS
+	options:  as red-block!		values + FACE_OBJ_OPTIONS
 	
 	bits: 	  get-flags as red-block! values + FACE_OBJ_FLAGS
 
@@ -1626,7 +1626,8 @@ OS-make-view: func [
 			SetWindowLong handle wc-offset - 12 BASE_FACE_D2D or BASE_FACE_IME
 		]
 		sym = calendar [
-			init-calendar handle data
+			init-calendar handle as red-value! data
+			update-calendar-color handle as red-value! values + FACE_OBJ_COLOR
 		]
 		sym = window [
 			init-window handle
@@ -2348,6 +2349,7 @@ OS-update-view: func [
 		int		[red-integer!]
 		int2	[red-integer!]
 		bool	[red-logic!]
+		color	[red-tuple!]
 		s		[series!]
 		hWnd	[handle!]
 		flags	[integer!]
@@ -2413,10 +2415,14 @@ OS-update-view: func [
 		]
 	]
 	if flags and FACET_FLAG_COLOR <> 0 [
-		either type = base [
-			update-base hWnd GetParent hWnd null values
-		][
-			InvalidateRect hWnd null 1
+		case [
+			type = base [
+				update-base hWnd GetParent hWnd null values
+			]
+			type = calendar [
+				update-calendar-color hWnd as red-value! values + FACE_OBJ_COLOR
+			]
+			true [InvalidateRect hWnd null 1]
 		]
 	]
 	if flags and FACET_FLAG_PANE <> 0 [
