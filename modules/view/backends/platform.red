@@ -287,6 +287,9 @@ system/view/platform: context [
 			_hand:			symbol/make "hand"
 			_I-beam:		symbol/make "I-beam"
 			_cross:			symbol/make "cross"
+			_resize-ns:		symbol/make "resize-ns"
+			_resize-we:		symbol/make "resize-we"
+			_resize-ew:		symbol/make "resize-ew"
 
 			on-over:		symbol/make "on-over"
 			_actors:		word/load "actors"
