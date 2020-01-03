@@ -394,6 +394,69 @@ check-grad-line: func [
 		as float32! end/x as float32! end/y
 ]
 
+set-linear-transform: func [
+	brush		[this!]
+	/local
+		lin		[ID2D1LinearGradientBrush]
+		pt		[D2D_POINT_2F value]
+		m		[D2D_MATRIX_3X2_F value]
+		t		[D2D_MATRIX_3X2_F value]
+		r		[D2D_MATRIX_3X2_F value]
+][
+	lin: as ID2D1LinearGradientBrush brush/vtbl
+	lin/GetStartPoint brush :pt
+	matrix2d/identity :m
+	m/_31: pt/x
+	m/_32: pt/y
+	lin/GetTransform brush :t
+	matrix2d/mul :m :t :r
+	m/_31: (as float32! 0.0) - pt/x
+	m/_32: (as float32! 0.0) - pt/y
+	matrix2d/mul :r :m :t
+	lin/SetTransform brush :t
+]
+
+set-radial-transform: func [
+	brush		[this!]
+	/local
+		rad		[ID2D1RadialGradientBrush]
+		pt		[D2D_POINT_2F value]
+		m		[D2D_MATRIX_3X2_F value]
+		t		[D2D_MATRIX_3X2_F value]
+		r		[D2D_MATRIX_3X2_F value]
+][
+	rad: as ID2D1RadialGradientBrush brush/vtbl
+	rad/GetCenter brush :pt
+	matrix2d/identity :m
+	m/_31: pt/x
+	m/_32: pt/y
+	rad/GetTransform brush :t
+	matrix2d/mul :m :t :r
+	m/_31: (as float32! 0.0) - pt/x
+	m/_32: (as float32! 0.0) - pt/y
+	matrix2d/mul :r :m :t
+	rad/SetTransform brush :t
+]
+
+transform-grad: func [
+	brush		[this!]
+	type		[integer!]
+	grad-type	[integer!]
+][
+	if all [
+		type <> DRAW_BRUSH_GRADIENT
+		type <> DRAW_BRUSH_GRADIENT_SMART
+	][exit]
+	if grad-type = linear [
+		set-linear-transform brush
+		exit
+	]
+	if grad-type = radial [
+		set-radial-transform brush
+		exit
+	]
+]
+
 OS-draw-shape-beginpath: func [
 	ctx			[draw-ctx!]
 	/local
@@ -457,10 +520,12 @@ OS-draw-shape-endpath: func [
 	dc: as ID2D1DeviceContext this/vtbl
 	if ctx/brush-type <> DRAW_BRUSH_NONE [
 		check-grad-rect ctx/brush ctx/brush-type ctx/brush-grad-type bounds
+		transform-grad ctx/brush ctx/brush-type ctx/brush-grad-type
 		dc/FillGeometry this as int-ptr! pthis ctx/brush null
 	]
 	if ctx/pen-type <> DRAW_BRUSH_NONE [
 		check-grad-rect ctx/pen ctx/pen-type ctx/pen-grad-type bounds
+		transform-grad ctx/pen ctx/pen-type ctx/pen-grad-type
 		dc/DrawGeometry this as int-ptr! pthis ctx/pen ctx/pen-width ctx/pen-style
 	]
 	gpath/Release pthis
@@ -815,10 +880,12 @@ _OS-draw-polygon: func [
 	dc: as ID2D1DeviceContext this/vtbl
 	if ctx/brush-type <> DRAW_BRUSH_NONE [
 		check-grad-rect ctx/brush ctx/brush-type ctx/brush-grad-type bounds
+		transform-grad ctx/brush ctx/brush-type ctx/brush-grad-type
 		dc/FillGeometry this as int-ptr! pthis ctx/brush null
 	]
 	if ctx/pen-type <> DRAW_BRUSH_NONE [
 		check-grad-rect ctx/pen ctx/pen-type ctx/pen-grad-type bounds
+		transform-grad ctx/pen ctx/pen-type ctx/pen-grad-type
 		dc/DrawGeometry this as int-ptr! pthis ctx/pen ctx/pen-width ctx/pen-style
 	]
 	gpath/Release pthis
@@ -842,6 +909,7 @@ OS-draw-line: func [
 	either pt1 = end [
 		if ctx/pen-type <> DRAW_BRUSH_NONE [
 			check-grad-line ctx/pen ctx/pen-type ctx/pen-grad-type pt0 pt1
+			transform-grad ctx/pen ctx/pen-type ctx/pen-grad-type
 			dc/DrawLine
 				this
 				as float32! pt0/x as float32! pt0/y
@@ -923,6 +991,7 @@ OS-draw-box: func [
 		][
 			check-grad-rect ctx/brush ctx/brush-type ctx/brush-grad-type rc
 		]
+		transform-grad ctx/brush ctx/brush-type ctx/brush-grad-type
 		dc/FillRectangle this rc ctx/brush 
 	]
 	if ctx/pen-type <> DRAW_BRUSH_NONE [
@@ -932,6 +1001,7 @@ OS-draw-box: func [
 		][
 			check-grad-rect ctx/pen ctx/pen-type ctx/pen-grad-type rc
 		]
+		transform-grad ctx/pen ctx/pen-type ctx/pen-grad-type
 		dc/DrawRectangle this rc ctx/pen ctx/pen-width ctx/pen-style
 	]
 ]
@@ -1085,10 +1155,12 @@ OS-draw-spline: func [
 	dc: as ID2D1DeviceContext this/vtbl
 	if ctx/brush-type <> DRAW_BRUSH_NONE [
 		check-grad-rect ctx/brush ctx/brush-type ctx/brush-grad-type bounds
+		transform-grad ctx/brush ctx/brush-type ctx/brush-grad-type
 		dc/FillGeometry this as int-ptr! pthis ctx/brush null
 	]
 	if ctx/pen-type <> DRAW_BRUSH_NONE [
 		check-grad-rect ctx/pen ctx/pen-type ctx/pen-grad-type bounds
+		transform-grad ctx/pen ctx/pen-type ctx/pen-grad-type
 		dc/DrawGeometry this as int-ptr! pthis ctx/pen ctx/pen-width ctx/pen-style
 	]
 	gpath/Release pthis
@@ -1357,10 +1429,12 @@ OS-draw-curve: func [
 	dc: as ID2D1DeviceContext this/vtbl
 	if ctx/brush-type <> DRAW_BRUSH_NONE [
 		check-grad-rect ctx/brush ctx/brush-type ctx/brush-grad-type bounds
+		transform-grad ctx/brush ctx/brush-type ctx/brush-grad-type
 		dc/FillGeometry this as int-ptr! pthis ctx/brush null
 	]
 	if ctx/pen-type <> DRAW_BRUSH_NONE [
 		check-grad-rect ctx/pen ctx/pen-type ctx/pen-grad-type bounds
+		transform-grad ctx/pen ctx/pen-type ctx/pen-grad-type
 		dc/DrawGeometry this as int-ptr! pthis ctx/pen ctx/pen-width ctx/pen-style
 	]
 	gpath/Release pthis
@@ -1844,6 +1918,8 @@ OS-matrix-rotate: func [
 		dc		[ID2D1DeviceContext]
 		m		[D2D_MATRIX_3X2_F value]
 		t		[D2D_MATRIX_3X2_F value]
+		bthis	[this!]
+		brush	[ID2D1Brush]
 ][
 	rad: PI / 180.0 * get-float angle
 	either pen-fill = -1 [
@@ -1859,8 +1935,29 @@ OS-matrix-rotate: func [
 		]
 		dc/SetTransform this :t
 	][
-		;-- TBD
-		exit
+		either pen-fill = pen [
+			if all [
+				ctx/pen-type <> DRAW_BRUSH_GRADIENT
+				ctx/pen-type <> DRAW_BRUSH_GRADIENT_SMART
+			][exit]
+			bthis: ctx/pen
+		][
+			if all [
+				ctx/brush-type <> DRAW_BRUSH_GRADIENT
+				ctx/brush-type <> DRAW_BRUSH_GRADIENT_SMART
+			][exit]
+			bthis: ctx/brush
+		]
+		brush: as ID2D1Brush bthis/vtbl
+		brush/GetTransform bthis :m
+		either angle <> as red-integer! center [
+			matrix2d/translate :m as float32! 0 - center/x as float32! 0 - center/y :t
+			matrix2d/rotate :t as float32! rad :m
+			matrix2d/translate :m as float32! center/x as float32! center/y :t
+		][
+			matrix2d/rotate :m as float32! rad :t
+		]
+		brush/SetTransform bthis :t
 	]
 ]
 
@@ -1874,6 +1971,8 @@ OS-matrix-scale: func [
 		dc		[ID2D1DeviceContext]
 		m		[D2D_MATRIX_3X2_F value]
 		t		[D2D_MATRIX_3X2_F value]
+		bthis	[this!]
+		brush	[ID2D1Brush]
 ][
 	either pen-fill = -1 [
 		this: as this! ctx/dc
@@ -1882,8 +1981,23 @@ OS-matrix-scale: func [
 		matrix2d/scale :m get-float32 sx get-float32 sy :t
 		dc/SetTransform this :t
 	][
-		;-- TBD
-		exit
+		either pen-fill = pen [
+			if all [
+				ctx/pen-type <> DRAW_BRUSH_GRADIENT
+				ctx/pen-type <> DRAW_BRUSH_GRADIENT_SMART
+			][exit]
+			bthis: ctx/pen
+		][
+			if all [
+				ctx/brush-type <> DRAW_BRUSH_GRADIENT
+				ctx/brush-type <> DRAW_BRUSH_GRADIENT_SMART
+			][exit]
+			bthis: ctx/brush
+		]
+		brush: as ID2D1Brush bthis/vtbl
+		brush/GetTransform bthis :m
+		matrix2d/scale :m get-float32 sx get-float32 sy :t
+		brush/SetTransform bthis :t
 	]
 ]
 
@@ -1897,6 +2011,8 @@ OS-matrix-translate: func [
 		dc		[ID2D1DeviceContext]
 		m		[D2D_MATRIX_3X2_F value]
 		t		[D2D_MATRIX_3X2_F value]
+		bthis	[this!]
+		brush	[ID2D1Brush]
 ][
 	either pen-fill = -1 [
 		this: as this! ctx/dc
@@ -1905,8 +2021,23 @@ OS-matrix-translate: func [
 		matrix2d/translate :m as float32! x as float32! y :t
 		dc/SetTransform this :t
 	][
-		;-- TBD
-		exit
+		either pen-fill = pen [
+			if all [
+				ctx/pen-type <> DRAW_BRUSH_GRADIENT
+				ctx/pen-type <> DRAW_BRUSH_GRADIENT_SMART
+			][exit]
+			bthis: ctx/pen
+		][
+			if all [
+				ctx/brush-type <> DRAW_BRUSH_GRADIENT
+				ctx/brush-type <> DRAW_BRUSH_GRADIENT_SMART
+			][exit]
+			bthis: ctx/brush
+		]
+		brush: as ID2D1Brush bthis/vtbl
+		brush/GetTransform bthis :m
+		matrix2d/translate :m as float32! x as float32! y :t
+		brush/SetTransform bthis :t
 	]
 ]
 
@@ -1922,6 +2053,8 @@ OS-matrix-skew: func [
 		t		[D2D_MATRIX_3X2_F value]
 		x		[float32!]
 		y		[float32!]
+		bthis	[this!]
+		brush	[ID2D1Brush]
 ][
 	x: as float32! degree-to-radians get-float sx TYPE_TANGENT
 	y: as float32! degree-to-radians get-float sy TYPE_TANGENT
@@ -1932,8 +2065,23 @@ OS-matrix-skew: func [
 		matrix2d/skew :m x y :t
 		dc/SetTransform this :t
 	][
-		;-- TBD
-		exit
+		either pen-fill = pen [
+			if all [
+				ctx/pen-type <> DRAW_BRUSH_GRADIENT
+				ctx/pen-type <> DRAW_BRUSH_GRADIENT_SMART
+			][exit]
+			bthis: ctx/pen
+		][
+			if all [
+				ctx/brush-type <> DRAW_BRUSH_GRADIENT
+				ctx/brush-type <> DRAW_BRUSH_GRADIENT_SMART
+			][exit]
+			bthis: ctx/brush
+		]
+		brush: as ID2D1Brush bthis/vtbl
+		brush/GetTransform bthis :m
+		matrix2d/skew :m x y :t
+		brush/SetTransform bthis :t
 	]
 ]
 
@@ -2019,6 +2167,8 @@ OS-matrix-reset: func [
 		this	[this!]
 		dc		[ID2D1DeviceContext]
 		m		[D2D_MATRIX_3X2_F value]
+		bthis	[this!]
+		brush	[ID2D1Brush]
 ][
 	either pen-fill = -1 [
 		this: as this! ctx/dc
@@ -2027,8 +2177,22 @@ OS-matrix-reset: func [
 		matrix2d/identity :m
 		dc/SetTransform this :m
 	][
-		;-- TBD
-		exit
+		either pen-fill = pen [
+			if all [
+				ctx/pen-type <> DRAW_BRUSH_GRADIENT
+				ctx/pen-type <> DRAW_BRUSH_GRADIENT_SMART
+			][exit]
+			bthis: ctx/pen
+		][
+			if all [
+				ctx/brush-type <> DRAW_BRUSH_GRADIENT
+				ctx/brush-type <> DRAW_BRUSH_GRADIENT_SMART
+			][exit]
+			bthis: ctx/brush
+		]
+		brush: as ID2D1Brush bthis/vtbl
+		matrix2d/identity :m
+		brush/SetTransform bthis :m
 	]
 ]
 
@@ -2040,6 +2204,8 @@ OS-matrix-invert: func [
 		dc		[ID2D1DeviceContext]
 		m		[D2D_MATRIX_3X2_F value]
 		t		[D2D_MATRIX_3X2_F value]
+		bthis	[this!]
+		brush	[ID2D1Brush]
 ][
 	either pen-fill = -1 [
 		this: as this! ctx/dc
@@ -2048,8 +2214,23 @@ OS-matrix-invert: func [
 		matrix2d/invert :m :t
 		dc/SetTransform this :t
 	][
-		;-- TBD
-		exit
+		either pen-fill = pen [
+			if all [
+				ctx/pen-type <> DRAW_BRUSH_GRADIENT
+				ctx/pen-type <> DRAW_BRUSH_GRADIENT_SMART
+			][exit]
+			bthis: ctx/pen
+		][
+			if all [
+				ctx/brush-type <> DRAW_BRUSH_GRADIENT
+				ctx/brush-type <> DRAW_BRUSH_GRADIENT_SMART
+			][exit]
+			bthis: ctx/brush
+		]
+		brush: as ID2D1Brush bthis/vtbl
+		brush/GetTransform bthis :m
+		matrix2d/invert :m :t
+		brush/SetTransform bthis :t
 	]
 ]
 
@@ -2064,6 +2245,8 @@ OS-matrix-set: func [
 		m0		[D2D_MATRIX_3X2_F value]
 		m		[D2D_MATRIX_3X2_F value]
 		t		[D2D_MATRIX_3X2_F value]
+		bthis	[this!]
+		brush	[ID2D1Brush]
 ][
 	val: as red-integer! block/rs-head blk
 	m/_11: get-float32 val
@@ -2079,8 +2262,23 @@ OS-matrix-set: func [
 		matrix2d/mul m0 m t
 		dc/SetTransform this :t
 	][
-		;-- TBD
-		exit
+		either pen-fill = pen [
+			if all [
+				ctx/pen-type <> DRAW_BRUSH_GRADIENT
+				ctx/pen-type <> DRAW_BRUSH_GRADIENT_SMART
+			][exit]
+			bthis: ctx/pen
+		][
+			if all [
+				ctx/brush-type <> DRAW_BRUSH_GRADIENT
+				ctx/brush-type <> DRAW_BRUSH_GRADIENT_SMART
+			][exit]
+			bthis: ctx/brush
+		]
+		brush: as ID2D1Brush bthis/vtbl
+		brush/GetTransform bthis :m0
+		matrix2d/mul m0 m t
+		brush/SetTransform bthis :t
 	]
 ]
 

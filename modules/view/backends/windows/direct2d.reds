@@ -405,7 +405,7 @@ CreateSwapChainForComposition*: alias function! [
 	GetFactory			[integer!]
 ]
 
-#define ID2D1Brush [
+#define ID2D1Brush* [
 	QueryInterface		[QueryInterface!]
 	AddRef				[AddRef!]
 	Release				[Release!]
@@ -416,8 +416,12 @@ CreateSwapChainForComposition*: alias function! [
 	GetTransform		[GetTransform*]
 ]
 
+ID2D1Brush: alias struct! [
+	ID2D1Brush*
+]
+
 ID2D1LinearGradientBrush: alias struct! [
-	ID2D1Brush
+	ID2D1Brush*
 	SetStartPoint		[function! [this [this!] startPoint [D2D_POINT_2F value]]]
 	SetEndPoint			[function! [this [this!] endPoint [D2D_POINT_2F value]]]
 	GetStartPoint		[function! [this [this!] startPoint [D2D_POINT_2F]]]
@@ -426,13 +430,13 @@ ID2D1LinearGradientBrush: alias struct! [
 ]
 
 ID2D1SolidColorBrush: alias struct! [
-	ID2D1Brush
+	ID2D1Brush*
 	SetColor			[function! [this [this!] color [D3DCOLORVALUE]]]
 	GetColor			[integer!]
 ]
 
 ID2D1RadialGradientBrush: alias struct! [
-	ID2D1Brush
+	ID2D1Brush*
 	SetCenter					[SetCenter*]
 	SetGradientOriginOffset		[SetGradientOriginOffset*]
 	SetRadiusX					[SetRadiusX*]
