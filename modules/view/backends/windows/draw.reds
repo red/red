@@ -406,12 +406,12 @@ set-linear-transform: func [
 	lin: as ID2D1LinearGradientBrush brush/vtbl
 	lin/GetStartPoint brush :pt
 	matrix2d/identity :m
-	m/_31: pt/x
-	m/_32: pt/y
-	lin/GetTransform brush :t
-	matrix2d/mul :m :t :r
 	m/_31: (as float32! 0.0) - pt/x
 	m/_32: (as float32! 0.0) - pt/y
+	lin/GetTransform brush :t
+	matrix2d/mul :m :t :r
+	m/_31: pt/x
+	m/_32: pt/y
 	matrix2d/mul :r :m :t
 	lin/SetTransform brush :t
 ]
@@ -428,12 +428,12 @@ set-radial-transform: func [
 	rad: as ID2D1RadialGradientBrush brush/vtbl
 	rad/GetCenter brush :pt
 	matrix2d/identity :m
-	m/_31: pt/x
-	m/_32: pt/y
-	rad/GetTransform brush :t
-	matrix2d/mul :m :t :r
 	m/_31: (as float32! 0.0) - pt/x
 	m/_32: (as float32! 0.0) - pt/y
+	rad/GetTransform brush :t
+	matrix2d/mul :m :t :r
+	m/_31: pt/x
+	m/_32: pt/y
 	matrix2d/mul :r :m :t
 	rad/SetTransform brush :t
 ]
@@ -2057,7 +2057,7 @@ OS-matrix-skew: func [
 		brush	[ID2D1Brush]
 ][
 	x: as float32! degree-to-radians get-float sx TYPE_TANGENT
-	y: as float32! degree-to-radians get-float sy TYPE_TANGENT
+	y: either sx = sy [as float32! 0.0][as float32! degree-to-radians get-float sy TYPE_TANGENT]
 	either pen-fill = -1 [
 		this: as this! ctx/dc
 		dc: as ID2D1DeviceContext this/vtbl
