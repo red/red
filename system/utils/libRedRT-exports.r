@@ -391,7 +391,6 @@
 	red/string/to-hex
 	red/integer/make-in
 	red/logic/make-in
-	red/OS-image/to-pixbuf
 	red/string/make-at
 	red/unicode/load-utf8-buffer
 	red/unicode/utf8-next-char
@@ -405,12 +404,10 @@
 	red/block/select-word
 	red/block/find
 	red/_series/remove
-	red/OS-image/load-pixbuf
 	red/image/init-image
 	red/OS-image/lock-bitmap
 	red/OS-image/get-data
 	red/OS-image/unlock-bitmap
-	red/OS-image/buffer-argb-to-abgr
 	red/ownership/check
 	red/report
 	red/_context/set
