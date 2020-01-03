@@ -85,10 +85,10 @@ with [platform][
 		return DATE_GET_DAY(date/date) << 16 and FFFF0000h
 	]
 	
-	;-- possible overflow: Win32 1601:30827, Red -16384:16383
+	;-- possible overflow: Win32 1601:30827, Red -9999:9999
 	cap: func [year [integer!] return: [integer!]][
-		if year < 1601  [year: 1601]
-		if year > 16383 [year: 16383]
+		if year < 1601 [year: 1601]
+		if year > 9999 [year: 9999]
 		return year
 	]
 ]
