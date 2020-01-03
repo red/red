@@ -1177,6 +1177,12 @@ init-combo-box: func [
 	]
 ]
 
+cap-year: func [year [integer!] return: [integer!]][
+	if year < 1601 [year: 1601]
+	if year > 9999 [year: 9999]
+	return year
+]
+
 to-NSDate: func [
 	date 	[red-date!]
 	return: [integer!]
@@ -1192,7 +1198,7 @@ to-NSDate: func [
 	
 	objc_msgSend [components sel_getUid "setDay:" DATE_GET_DAY(date/date)]
 	objc_msgSend [components sel_getUid "setMonth:" DATE_GET_MONTH(date/date)]
-	objc_msgSend [components sel_getUid "setYear:" DATE_GET_YEAR(date/date)]
+	objc_msgSend [components sel_getUid "setYear:" cap-year DATE_GET_YEAR(date/date)]
 	
 	calendar: objc_msgSend [
 		objc_msgSend [objc_getClass "NSCalendar" sel_getUid "alloc"]
@@ -1242,6 +1248,8 @@ sync-calendar: func [
 init-calendar: func [
 	calendar [integer!]
 	data	 [red-value!]
+	/local
+		slot [red-value!]
 ][
 	objc_msgSend [calendar sel_getUid "setDatePickerMode:" NSDatePickerModeSingle]
 	objc_msgSend [calendar sel_getUid "setDatePickerStyle:" NSDatePickerStyleClockAndCalendar]
@@ -1250,6 +1258,12 @@ init-calendar: func [
 	objc_msgSend [calendar sel_getUid "setTarget:" calendar]
 	objc_msgSend [calendar sel_getUid "setAction:" sel_getUid "calendar-change:"]
 	objc_msgSend [calendar sel_getUid "sendActionOn:" NSLeftMouseDown]
+	
+	slot: declare red-value!
+	date/make-at slot 1601 01 01 0.0 0 0 no no
+	objc_msgSend [calendar sel_getUid "setMinDate:" to-NSDate as red-date! slot]
+	date/make-at slot 9999 12 31 0.0 0 0 no no
+	objc_msgSend [calendar sel_getUid "setMaxDate:" to-NSDate as red-date! slot]
 	
 	objc_msgSend [
 		calendar
