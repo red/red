@@ -439,7 +439,7 @@ face!: object [				;-- keep in sync with facet! enum
 						all [options options/default]
 					]
 				]
-				if 'data = word [
+				if word = 'data [
 					either data [
 						if string? text [modify text 'owned none]
 						set-quiet 'text form data		;@@ use form/into (avoids rebinding)
