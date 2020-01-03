@@ -25,7 +25,6 @@ write %build/bin/sources.r set-cache [
 		;%css-colors.red
 		%datatypes.red
 		%functions.red
-		%lexer.red
 		%natives.red
 		%networking.red
 		%operators.red

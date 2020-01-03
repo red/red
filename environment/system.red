@@ -401,7 +401,10 @@ system: context [
 		]
 	]
 	
-	lexer:		none
+	lexer: context [
+		pre-load: none
+	]
+	
 	console:	none
 	view:		none
 	reactivity: none

@@ -20,7 +20,6 @@ Red [
 	#include %environment/colors.red
 	#include %environment/functions.red
 	#include %environment/system.red
-	#include %environment/lexer.red
 	#include %environment/operators.red
 
 	#register-intrinsics

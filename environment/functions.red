@@ -425,6 +425,7 @@ load: function [
 			source: source/3
 		]
 	]
+	if pre-load: :system/lexer/pre-load [do [pre-load source length]]
 
 	out: case [
 		part  [transcode/part source length]

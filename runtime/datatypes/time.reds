@@ -81,13 +81,6 @@ time: context [
 		t
 	]
 	
-	box: func [
-		time	[float!]								;-- in nanoseconds
-		return: [red-time!]
-	][
-		make-at time stack/arguments
-	]
-	
 	push: func [
 		time	[float!]								;-- in nanoseconds
 		return: [red-time!]
