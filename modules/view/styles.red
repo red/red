@@ -121,6 +121,6 @@ Red [
 	]
 	calendar: [
 		default-actor: on-change
-		template: [type: 'calendar size: 206x149]
+		template: [type: 'calendar size: 206x167]
 	]
 )
