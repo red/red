@@ -1706,7 +1706,7 @@ lexer: context [
 			offset: 0
 			
 			loop as-integer lex/in-end - p [
-				#if debug? = yes [probe ["=== " p/1 " ==="]]
+				#if debug? = yes [if verbose > 0 [probe ["=== " p/1 " ==="]]]
 				cp: as-integer p/value
 				flags: lex-classes/cp and FFFFFF00h or flags
 				class: lex-classes/cp and FFh

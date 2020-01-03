@@ -401,7 +401,7 @@ load: function [
 	]
 	unless out [out: make block! 10]
 	
-	switch/default type?/word source [
+	switch type?/word source [
 		file!	[
 			suffix: suffix? source
 			foreach [name codec] system/codecs [
@@ -424,20 +424,18 @@ load: function [
 			][return none]
 			source: source/3
 		]
-		string! [source: to binary! src: source]
-	][source]
+	]
 
-	result: case [
-		part  [system/lexer/transcode/part to-string source out trap length]
+	out: case [
+		part  [transcode/part source length]
 		;trap  [system/lexer/transcode to-string source out trap]
 		next  [
-			out: transcode/next source
-			set position skip any [src source] count-chars source out/2
+			set position second out: transcode/next source
 			return either :all [reduce [out/1]][out/1]
 		]
-		'else [out: transcode source]
+		'else [transcode source]
 	]
-	either trap [result][
+	either trap [out][
 		unless :all [if 1 = length? out [out: out/1]]
 		out
 	]

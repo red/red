@@ -2730,18 +2730,18 @@ natives: context [
 		part   [integer!]
 		into   [integer!]
 		/local
-			bin	   [red-binary!]
-			slot   [red-value!]
-			blk	   [red-block!]
-			s	   [series!]
-			offset [integer!]
-			len	   [integer!]
-			next?  [logic!]
+			offset len type [integer!]
+			slot arg [red-value!]
+			bin	bin2 [red-binary!]
+			int	  [red-integer!]
+			str	  [red-string!]
+			blk	  [red-block!]
+			s	  [series!]
+			next? [logic!]
 	][
 		#typecheck [next part into]
 		
 		next?: next > -1
-		bin: as red-binary! stack/arguments
 		slot: stack/push*
 		if next? [
 			blk: block/preallocate as red-block! slot 2 no
@@ -2749,14 +2749,40 @@ natives: context [
 			s/tail: s/offset + 2
 			slot: s/offset
 		]
-		len: binary/rs-length? bin
 		offset: 0
-		;if OPTION?(part) [
-		;	
-		;]
+		len: -1
+		bin: as red-binary! stack/arguments
+		type: TYPE_OF(bin)
+		arg: stack/arguments + part
 		
-		lexer/scan slot binary/rs-head bin len next? no :offset
-
+		if OPTION?(arg) [
+			switch TYPE_OF(arg) [
+				TYPE_INTEGER [
+					int: as red-integer! arg
+					len: int/value
+				]
+				TYPE_BINARY [
+					if type <> TYPE_BINARY [fire [TO_ERROR(script not-same-type)]]
+					bin2: as red-binary! arg
+					len: bin2/head - bin/head
+				]
+				TYPE_STRING [
+					if type <> TYPE_STRING [fire [TO_ERROR(script not-same-type)]]
+					str: as red-string! arg
+					len: str/head - bin/head
+				]
+				default [0]
+			]
+			if len < 0 [len: 0]
+		]
+		either type = TYPE_BINARY [
+			if len < 0 [len: binary/rs-length? bin]
+			lexer/scan slot binary/rs-head bin len next? no :offset
+		][
+			str: as red-string! bin
+			if len < 0 [len: string/rs-length? str]
+			lexer/load-string slot str len next? no :offset
+		]
 		if next? [
 			bin: as red-binary! copy-cell as red-value! bin s/offset + 1
 			bin/head: bin/head + offset

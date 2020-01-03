@@ -910,7 +910,7 @@ recycle: make native! [[
 
 transcode: make native! [[
 		"Translates UTF-8 binary source to values. Returns one or several values in a block"
-		src	 [binary!]	"UTF-8 input buffer"
+		src	 [binary! string!]	"UTF-8 input buffer; string argument will be UTF-8 encoded"
 		/next			"Translate next complete value (blocks as single value)"
 		/part			"Translates only part of the input buffer"
 			length [integer! binary!] "Length in bytes or tail position"
