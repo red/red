@@ -60,12 +60,16 @@ with [platform][
 	update-calendar-color: func [
 		handle [handle!]
 		color  [red-value!]
+		/local
+			colorref [integer!]
 	][
 		switch TYPE_OF(color) [
-			TYPE_TUPLE [SendMessage handle MCM_SETCOLOR 0 color/data1]
-			TYPE_NONE  [SendMessage handle MCM_SETCOLOR 0 00FFFFFFh]
+			TYPE_TUPLE [colorref: color/data1]
+			TYPE_NONE  [colorref: 00FFFFFFh]
 			default    [0]
 		]
+		
+		SendMessage handle MCM_SETCOLOR 0 colorref 			;-- MCSC_BACKGROUND
 	]
 	
 	process-calendar-change: func [handle [handle!]][
