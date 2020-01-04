@@ -483,7 +483,7 @@ OS-draw-shape-beginpath: func [
 	ctx/sub/shape-curve?: no
 	vpoint/x: ctx/sub/last-pt-x
 	vpoint/y: ctx/sub/last-pt-y
-	gsink/BeginFigure sthis vpoint 1				;-- D2D1_FIGURE_BEGIN_HOLLOW
+	gsink/BeginFigure sthis vpoint as-integer ctx/brush-type = DRAW_BRUSH_NONE
 ]
 
 OS-draw-shape-endpath: func [
@@ -545,7 +545,7 @@ OS-draw-shape-close: func [
 	gsink/EndFigure sthis 1
 	vpoint/x: ctx/sub/last-pt-x
 	vpoint/y: ctx/sub/last-pt-y
-	gsink/BeginFigure sthis vpoint 1				;-- D2D1_FIGURE_BEGIN_HOLLOW
+	gsink/BeginFigure sthis vpoint as-integer ctx/brush-type = DRAW_BRUSH_NONE
 ]
 
 OS-draw-shape-moveto: func [
@@ -573,7 +573,7 @@ OS-draw-shape-moveto: func [
 	gsink/EndFigure sthis 0
 	vpoint/x: ctx/sub/last-pt-x
 	vpoint/y: ctx/sub/last-pt-y
-	gsink/BeginFigure sthis vpoint 1				;-- D2D1_FIGURE_BEGIN_HOLLOW
+	gsink/BeginFigure sthis vpoint as-integer ctx/brush-type = DRAW_BRUSH_NONE
 	ctx/sub/shape-curve?: no
 ]
 
@@ -858,7 +858,7 @@ _OS-draw-polygon: func [
 
 	point/x: as float32! start/x
 	point/y: as float32! start/y
-	gsink/BeginFigure sthis point 1				;-- D2D1_FIGURE_BEGIN_HOLLOW
+	gsink/BeginFigure sthis point as-integer ctx/brush-type = DRAW_BRUSH_NONE
 	start: start + 1
 	while [start <= end] [
 		point/x: as float32! start/x
@@ -1094,7 +1094,7 @@ OS-draw-spline: func [
 
 	point/x: as float32! start/x
 	point/y: as float32! start/y
-	gsink/BeginFigure sthis point 1				;-- D2D1_FIGURE_BEGIN_HOLLOW
+	gsink/BeginFigure sthis point as-integer ctx/brush-type = DRAW_BRUSH_NONE
 
 	either closed? [
 		do-spline-step sthis
@@ -1332,7 +1332,7 @@ OS-draw-arc: func [
 
 	point/x: start-x
 	point/y: start-y
-	gsink/BeginFigure sthis point 1				;-- D2D1_FIGURE_BEGIN_HOLLOW
+	gsink/BeginFigure sthis point as-integer ctx/brush-type = DRAW_BRUSH_NONE
 	arc/point/x: end-x
 	arc/point/y: end-y
 	arc/size/width: rad-x
@@ -1414,7 +1414,7 @@ OS-draw-curve: func [
 
 	point/x: as float32! start/x
 	point/y: as float32! start/y
-	gsink/BeginFigure sthis point 1				;-- D2D1_FIGURE_BEGIN_HOLLOW
+	gsink/BeginFigure sthis point as-integer ctx/brush-type = DRAW_BRUSH_NONE
 	hr: gsink/AddBezier sthis ps
 	gsink/EndFigure sthis 0
 	hr: gsink/Close sthis
