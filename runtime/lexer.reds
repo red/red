@@ -108,7 +108,7 @@ lexer: context [
 	skip-table: #{
 		0100000000000000000000000000000000000000000000000000000000000000
 		0000000000000000000000000000000000000000000000000000000000000000
-		0000000000000000000000000000000000000000000000
+		000000000000000000000000000000000000000000000000
 	}
 
 	path-ending: #{
@@ -1626,13 +1626,17 @@ lexer: context [
 	
 	scan-hex: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
-			int	  [red-integer!]
-			index [integer!]
-			i	  [integer!]
-			cb	  [byte!]
+			int		[red-integer!]
+			i index [integer!]
+			cb		[byte!]
 	][
 		i: 0
 		cb: null-byte
+		if e/1 <> #"h" [e: e - 1]						;-- when coming from number states
+		assert e/1 = #"h"
+		if all [any [s/1 < #"0" s/1 > #"9"] s + 1 >= e][
+			throw-error lex s e TYPE_WORD
+		]
 		while [s < e][
 			index: 1 + as-integer s/1					;-- converts the 2 hex chars using a lookup table
 			cb: hexa-table/index						;-- decode one nibble at a time
