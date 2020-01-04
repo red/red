@@ -820,8 +820,8 @@ DrawBitmap*: alias function! [
 	FillRoundedRectangle			[integer!]
 	DrawEllipse						[DrawEllipse*]
 	FillEllipse						[FillEllipse*]
-	DrawGeometry					[function! [this [this!] geometry [int-ptr!] brush [this!] strokeWidth [float32!] style [this!] return: [integer!]]]
-	FillGeometry					[function! [this [this!] geometry [int-ptr!] brush [this!] opacityBrush [this!] return: [integer!]]]
+	DrawGeometry					[function! [this [this!] geometry [this!] brush [this!] strokeWidth [float32!] style [this!] return: [integer!]]]
+	FillGeometry					[function! [this [this!] geometry [this!] brush [this!] opacityBrush [this!] return: [integer!]]]
 	FillMesh						[integer!]
 	FillOpacityMask					[integer!]
 	DrawBitmap						[integer!]
@@ -1277,6 +1277,19 @@ render-target!: alias struct! [
 			options		[int-ptr!]		;-- opt
 			factory		[ptr-ptr!]
 			return:		[integer!]
+		]
+		D2D1MakeRotateMatrix: "D2D1MakeRotateMatrix" [
+			angle		[float32!]		;-- in degrees
+			cx			[float32!]		;-- center x
+			cy			[float32!]		;-- center y
+			matrix		[D2D_MATRIX_3X2_F]
+		]
+		D2D1MakeSkewMatrix: "D2D1MakeSkewMatrix" [
+			angleX		[float32!]		;-- in degrees
+			angleY		[float32!]		;-- in degrees
+			cx			[float32!]		;-- center x
+			cy			[float32!]		;-- center y
+			matrix		[D2D_MATRIX_3X2_F]
 		]
 		D2D1InvertMatrix: "D2D1InvertMatrix" [
 			matrix		[D2D_MATRIX_3X2_F]

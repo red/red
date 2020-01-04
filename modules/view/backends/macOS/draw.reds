@@ -13,8 +13,6 @@ Red/System [
 #include %text-box.reds
 
 #define DRAW_FLOAT_MAX		[as float32! 3.4e38]
-#define F32_0				[as float32! 0.0]
-#define F32_1				[as float32! 1.0]
 
 max-colors: 256												;-- max number of colors for gradient
 max-edges: 1000												;-- max number of edges for a polygon

@@ -85,30 +85,28 @@ matrix2d: context [
 
 	rotate: func [
 		m		[D2D_MATRIX_3X2_F]
-		angle	[float32!]
+		angle	[float32!]	;-- The clockwise rotation angle, in degrees
+		cx		[float32!]	;-- center x
+		cy		[float32!]	;-- center y
 		r		[D2D_MATRIX_3X2_F]
 		/local
 			t	[D2D_MATRIX_3X2_F value]
 	][
-		identity t
-		t/_11: as float32! cos as float! angle
-		t/_12: as float32! sin as float! angle
-		t/_21: (as float32! 0.0) - t/_12
-		t/_22: t/_11
+		D2D1MakeRotateMatrix angle cx cy :t
 		mul m t r
 	]
 
 	skew: func [
 		m		[D2D_MATRIX_3X2_F]
-		x		[float32!]						;-- x-axis rotate angle
-		y		[float32!]						;-- y-axis rotate angle, but with negative direction
+		x		[float32!]	;-- measured in degrees counterclockwise from the y-axis.
+		y		[float32!]	;-- measured in degrees counterclockwise from the x-axis.
+		cx		[float32!]	;-- center x
+		cy		[float32!]	;-- center y
 		r		[D2D_MATRIX_3X2_F]
 		/local
 			t	[D2D_MATRIX_3X2_F value]
 	][
-		identity t
-		t/_12: as float32! tan as float! x
-		t/_21: as float32! tan as float! y
+		D2D1MakeSkewMatrix x y cx cy :t
 		mul m t r
 	]
 

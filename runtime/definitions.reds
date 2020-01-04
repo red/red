@@ -75,6 +75,9 @@ Red/System [
 	EXTRACT_ARGB
 ]
 
+#define F32_0	[as float32! 0.0]
+#define F32_1	[as float32! 1.0]
+
 #if OS = 'macOS [
 	CGAffineTransform!: alias struct! [
 		a		[float32!]
@@ -307,8 +310,6 @@ Red/System [
 			brush-type		[integer!]
 			pen-grad-type	[integer!]			;-- gradient type: radial, linear
 			brush-grad-type	[integer!]			;-- gradient type: radial, linear
-			pen-matrix		[matrix3x2! value]
-			brush-matrix	[matrix3x2! value]
 			on-image?		[logic!]			;-- drawing on image?
 			font-color?		[logic!]
 			shadow?			[logic!]
