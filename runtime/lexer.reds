@@ -331,7 +331,6 @@ lexer: context [
 		input		[byte-ptr!]
 		in-end		[byte-ptr!]
 		in-pos		[byte-ptr!]
-		in-path		[byte-ptr!]							;-- records beginning of scanned path
 		line		[integer!]							;-- current line number
 		nline		[integer!]							;-- new lines count for new token
 		type		[integer!]							;-- sub-type in a typeclass
@@ -362,12 +361,19 @@ lexer: context [
 		/local
 			pos  [red-string!]
 			line [red-string!]
+			po	 [red-point!]
 			p	 [byte-ptr!]
 			len	 [integer!]
 			c	 [byte!]
 	][
 		e: lex/in-end
 		len: 0
+		if null? s [									;-- determine token's start
+			either lex/head = lex/buffer [s: lex/input][
+				po: as red-point! lex/head - 1			;-- take start of the parent series
+				either TYPE_OF(po) <> TYPE_POINT [s: lex/input][s: lex/input + po/z]
+			]
+		]
 		p: s
 		while [all [p < e p/1 <> #"^/" s + 30 > p]][p: decode-utf8-char p :len]
 		if p > e [p: e]
@@ -461,17 +467,18 @@ lexer: context [
 		]
 	]
 	
-	open-block: func [lex [state!] type [integer!] hint [integer!] 
+	open-block: func [lex [state!] type [integer!] hint [integer!] pos [byte-ptr!]
 		/local 
 			p	[red-point!]
 			len [integer!]
 	][
+		if null? pos [pos: lex/in-pos]
 		len: (as-integer lex/tail - lex/head) >> 4
 		p: as red-point! alloc-slot lex
 		set-type as cell! p TYPE_POINT					;-- use the slot for stack info
 		p/x: len
 		p/y: type << 16 or (hint and FFFFh)
-		p/z: as-integer lex/in-pos - lex/input			;-- opening delimiter offset saved (error handling)
+		p/z: as-integer pos - lex/input					;-- opening delimiter offset saved (error handling)
 		
 		lex/head: lex/tail								;-- points just after p
 		lex/entry: S_START
@@ -821,7 +828,7 @@ lexer: context [
 			type [integer!]
 	][
 		type: either s/1 = #"(" [TYPE_PAREN][TYPE_BLOCK]
-		open-block lex type -1
+		open-block lex type -1 null
 		lex/in-pos: e + 1								;-- skip delimiter
 	]
 
@@ -1145,7 +1152,7 @@ lexer: context [
 	]
 	
 	scan-map-open: func [lex [state!] s e [byte-ptr!] flags [integer!]][
-		open-block lex TYPE_PAREN TYPE_MAP
+		open-block lex TYPE_PAREN TYPE_MAP null
 		lex/in-pos: e + 1								;-- skip (
 	]
 	
@@ -1610,15 +1617,16 @@ lexer: context [
 	
 	scan-path-open: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
+			pos  [byte-ptr!]
 			type [integer!]
 	][
-		lex/in-path: s
+		pos: s
 		type: switch s/1 [
 			#"'" [s: s + 1 flags: flags and not C_FLAG_QUOTE TYPE_LIT_PATH]
 			#":" [s: s + 1 flags: flags and not C_FLAG_COLON TYPE_GET_PATH]
 			default [TYPE_PATH]
 		]
-		open-block lex type -1							;-- open a new path series
+		open-block lex type -1 pos						;-- open a new path series
 		scan-word lex s e flags							;-- load the head word
 		lex/entry: S_PATH								;-- overwrites the S_START set by open-block
 		lex/in-pos: e + 1								;-- skip /
@@ -1668,21 +1676,19 @@ lexer: context [
 			index: lex-classes/cp and FFh + 1			;-- query the class of ending character
 			as-logic path-ending/index					;-- lookup if the character class is ending path
 		]
-		assert lex/in-path <> null
 		
 		either close? [
 			type: either all [e < lex/in-end e/1 = #":"][
 				if all [e + 1 < lex/in-end e/2 = #"/"][ ;-- detect :/ illegal sequence
-					throw-error lex lex/in-path e TYPE_PATH
+					throw-error lex null e TYPE_PATH
 				]
 				lex/in-pos: e + 1						;-- skip :
 				TYPE_SET_PATH
 			][-1]
 			close-block lex s e -1 type
-			lex/in-path: null
 		][
-			if e + 1 = lex/in-end [throw-error lex lex/in-path e TYPE_PATH] ;-- incomplete path error
-			if e/1 = #":" [throw-error lex lex/in-path e TYPE_PATH] ;-- set-words not allowed inside paths
+			if e + 1 = lex/in-end [throw-error lex null e TYPE_PATH] ;-- incomplete path error
+			if e/1 = #":" [throw-error lex null e TYPE_PATH] ;-- set-words not allowed inside paths
 			lex/in-pos: e + 1							;-- skip /
 		]
 	]
@@ -1779,7 +1785,6 @@ lexer: context [
 		lex/input:		src
 		lex/in-end:		src + size
 		lex/in-pos:		src
-		lex/in-path:	null
 		lex/entry:		S_START
 		lex/type:		-1
 		lex/mstr-nest:	0
