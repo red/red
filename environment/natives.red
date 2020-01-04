@@ -916,8 +916,15 @@ transcode: make native! [[
 			length [integer! binary!] "Length in bytes or tail position"
 		/into			"Optionally provides an output block"
 			dst	 [block! none!]
-		;/trace
-		;	callback [function! [...]]
+		/trace
+			callback [function! [
+				event	[word!]
+				input	[binary! string!]
+				type	[datatype!]
+				range	[pair!]
+				value	[any-type!]
+				return: [logic!]
+			]]
 		return: [block!]
 	]
 	#get-definition NAT_TRANSCODE

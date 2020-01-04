@@ -322,6 +322,14 @@ lexer: context [
 		LEX_INT_OVERFLOW: -5
 	]
 	
+	#enum events! [
+		EVT_SCAN										;-- after a token has been extracted
+		EVT_LOAD										;-- after a token has been converted to a Red value
+		EVT_OPEN										;-- when a nested any-block or map is opened
+		EVT_CLOSE										;-- when a nested any-block or map is closed
+		EVT_ERROR										;-- when a scanning error occurs
+	]
+	
 	state!: alias struct! [
 		next		[state!]							;-- link to next state! structure (recursive calls)
 		buffer		[red-value!]						;-- static or dynamic stash buffer (recursive calls)
