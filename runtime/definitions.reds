@@ -278,6 +278,14 @@ Red/System [
 			inset?			[logic!]
 			next			[shadow!]
 		]
+		matrix3x2!: alias struct! [
+			_11				[float32!]
+			_12				[float32!]
+			_21				[float32!]
+			_22				[float32!]
+			_31				[float32!]
+			_32				[float32!]
+		]
 
 		draw-ctx!: alias struct! [
 			dc				[ptr-ptr!]
@@ -299,6 +307,8 @@ Red/System [
 			brush-type		[integer!]
 			pen-grad-type	[integer!]			;-- gradient type: radial, linear
 			brush-grad-type	[integer!]			;-- gradient type: radial, linear
+			pen-matrix		[matrix3x2! value]
+			brush-matrix	[matrix3x2! value]
 			on-image?		[logic!]			;-- drawing on image?
 			font-color?		[logic!]
 			shadow?			[logic!]
