@@ -50,6 +50,7 @@ calc-brush-position: func [
 		t1		[float32!]
 		t2		[float32!]
 		m		[D2D_MATRIX_3X2_F value]
+		tmp		[D2D_MATRIX_3X2_F value]
 		result	[D2D_MATRIX_3X2_F value]
 ][
 	if upper-x > lower-x [
@@ -65,18 +66,15 @@ calc-brush-position: func [
 	case [
 		grad-type = linear [
 			lin: as ID2D1LinearGradientBrush brush/vtbl
-			pt/x: upper-x
-			pt/y: upper-y
+			pt/x: F32_0
+			pt/y: F32_0
 			lin/SetStartPoint brush pt
-			pt/x: lower-x
-			pt/y: upper-y
+			pt/x: lower-x - upper-x
+			pt/y: F32_0
 			lin/SetEndPoint brush pt
 		]
 		grad-type = radial [
 			rad: as ID2D1RadialGradientBrush brush/vtbl
-			pt/x: upper-x + lower-x / as float32! 2.0
-			pt/y: upper-y + lower-y / as float32! 2.0
-			rad/SetCenter brush pt
 			pt/x: as float32! 0.0
 			pt/y: as float32! 0.0
 			rad/SetGradientOriginOffset brush pt
@@ -84,17 +82,24 @@ calc-brush-position: func [
 			t1: t1 / as float32! 2.0
 			t2: lower-y - upper-y
 			t2: t2 / as float32! 2.0
+			pt/x: t1
+			pt/y: t2
+			rad/SetCenter brush pt
 			if t1 > t2 [t1: t2]
 			rad/SetRadiusX brush t1
 			rad/SetRadiusY brush t1
 		]
-		true [	;-- bitmap brush
-			b: as ID2D1Brush brush/vtbl
-			b/GetTransform brush :m
-			matrix2d/translate :m upper-x upper-y :result
-			b/SetTransform brush :result
-		]
+		true [0]
 	]
+	;-- apply matrix transformation
+	b: as ID2D1Brush brush/vtbl
+	b/GetTransform brush :m
+	;matrix2d/post-translate :m upper-x upper-y :result
+	matrix2d/identity :tmp
+	tmp/_31: upper-x
+	tmp/_32: upper-y
+	matrix2d/mul :m :tmp :result
+	b/SetTransform brush :result
 ]
 
 draw-geometry: func [
@@ -2088,12 +2093,12 @@ OS-matrix-set: func [
 		this: as this! ctx/dc
 		dc: as ID2D1DeviceContext this/vtbl
 		dc/GetTransform this :m0
-		matrix2d/mul m0 m t
+		matrix2d/mul m m0 t
 		dc/SetTransform this :t
 	][
 		BEGIN_MATRIX_BRUSH
 		brush/GetTransform bthis :m0
-		matrix2d/mul m0 m t
+		matrix2d/mul m m0 t
 		brush/SetTransform bthis :t
 	]
 ]
