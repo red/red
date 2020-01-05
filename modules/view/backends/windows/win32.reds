@@ -495,6 +495,7 @@ Red/System [
 #define TextRenderingHintClearTypeGridFit	5
 
 #define SRCCOPY					00CC0020h
+#define CAPTUREBLT				40000000h
 
 #define ILC_COLOR24				18h
 #define ILC_COLOR32				20h

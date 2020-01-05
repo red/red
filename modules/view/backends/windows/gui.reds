@@ -2565,7 +2565,7 @@ OS-to-image: func [
 	SelectObject mdc bmp
 
 	either screen? [
-		BitBlt mdc 0 0 width height hScreen rc/left rc/top SRCCOPY
+		BitBlt mdc 0 0 width height hScreen rc/left rc/top SRCCOPY or CAPTUREBLT
 	][
 		either win8+? [
 			PrintWindow hWnd mdc 2
