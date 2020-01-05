@@ -42,10 +42,10 @@ matrix2d: context [
 		m/_32: as float32! 0.0
 	]
 
-	mul: func [
-		l		[D2D_MATRIX_3X2_F]
-		r		[D2D_MATRIX_3X2_F]
-		c		[D2D_MATRIX_3X2_F]
+	mul: func [		;-- c = l * r
+		l	[D2D_MATRIX_3X2_F]	;-- left
+		r	[D2D_MATRIX_3X2_F]	;-- right
+		c	[D2D_MATRIX_3X2_F]	;-- result
 	][
 		c/_11: l/_11 * r/_11 + (l/_12 * r/_21)
 		c/_12: l/_11 * r/_12 + (l/_12 * r/_22)
@@ -66,7 +66,7 @@ matrix2d: context [
 		identity t
 		t/_31: x
 		t/_32: y
-		mul m t r
+		mul t m r
 	]
 
 	scale: func [
@@ -80,7 +80,7 @@ matrix2d: context [
 		identity t
 		t/_11: x
 		t/_22: y
-		mul m t r
+		mul t m r
 	]
 
 	rotate: func [
@@ -93,7 +93,7 @@ matrix2d: context [
 			t	[D2D_MATRIX_3X2_F value]
 	][
 		D2D1MakeRotateMatrix angle cx cy :t
-		mul m t r
+		mul t m r
 	]
 
 	skew: func [
@@ -107,7 +107,7 @@ matrix2d: context [
 			t	[D2D_MATRIX_3X2_F value]
 	][
 		D2D1MakeSkewMatrix x y cx cy :t
-		mul m t r
+		mul t m r
 	]
 
 	transform-point: func [
