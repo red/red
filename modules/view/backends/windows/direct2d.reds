@@ -71,24 +71,19 @@ SIZE_F!: alias struct! [
 	height		[float32!]
 ]
 
-D2D_POINT_2F: alias struct! [
-	x			[float32!]
-	y			[float32!]
-]
-
 D2D1_BEZIER_SEGMENT: alias struct! [
-	point1		[D2D_POINT_2F value]
-	point2		[D2D_POINT_2F value]
-	point3		[D2D_POINT_2F value]
+	point1		[POINT_2F value]
+	point2		[POINT_2F value]
+	point3		[POINT_2F value]
 ]
 
 D2D1_QUADRATIC_BEZIER_SEGMENT: alias struct! [
-	point1		[D2D_POINT_2F value]
-	point2		[D2D_POINT_2F value]
+	point1		[POINT_2F value]
+	point2		[POINT_2F value]
 ]
 
 D2D1_ARC_SEGMENT: alias struct! [
-	point		[D2D_POINT_2F value]
+	point		[POINT_2F value]
 	size		[SIZE_F! value]
 	angle		[float32!]
 	direction	[integer!]
@@ -334,22 +329,22 @@ GetTransform*: alias function! [
 
 SetCenter*: alias function! [
 	this		[this!]
-	center		[D2D_POINT_2F value]
+	center		[POINT_2F value]
 ]
 
 GetCenter*: alias function! [
 	this		[this!]
-	center		[D2D_POINT_2F]
+	center		[POINT_2F]
 ]
 
 SetGradientOriginOffset*: alias function! [
 	this		[this!]
-	Offset		[D2D_POINT_2F value]
+	Offset		[POINT_2F value]
 ]
 
 GetGradientOriginOffset*: alias function! [
 	this		[this!]
-	Offset		[D2D_POINT_2F]
+	Offset		[POINT_2F]
 ]
 
 SetRadiusX*: alias function! [
@@ -422,10 +417,10 @@ ID2D1Brush: alias struct! [
 
 ID2D1LinearGradientBrush: alias struct! [
 	ID2D1Brush*
-	SetStartPoint		[function! [this [this!] startPoint [D2D_POINT_2F value]]]
-	SetEndPoint			[function! [this [this!] endPoint [D2D_POINT_2F value]]]
-	GetStartPoint		[function! [this [this!] startPoint [D2D_POINT_2F]]]
-	GetEndPoint			[function! [this [this!] startPoint [D2D_POINT_2F]]]
+	SetStartPoint		[function! [this [this!] startPoint [POINT_2F value]]]
+	SetEndPoint			[function! [this [this!] endPoint [POINT_2F value]]]
+	GetStartPoint		[function! [this [this!] startPoint [POINT_2F]]]
+	GetEndPoint			[function! [this [this!] startPoint [POINT_2F]]]
 	GetGradientStopCollection	[function! [this [this!] stop [ptr-ptr!]]]
 ]
 
@@ -781,7 +776,7 @@ CreateEffect*: alias function! [
 DrawImage*: alias function! [
 	this		[this!]
 	image		[int-ptr!]
-	offset		[D2D_POINT_2F]
+	offset		[POINT_2F]
 	rect		[RECT_F!]
 	interpola	[integer!]
 	composite	[integer!]
@@ -938,12 +933,12 @@ ID2D1GeometrySink: alias struct! [
 	Release							[Release!]
 	SetFillMode						[function! [this [this!] fill_mode [integer!] return: [integer!]]]
 	SetSegmentFlags					[function! [this [this!] vertexFlags [integer!] return: [integer!]]]
-	BeginFigure						[function! [this [this!] startPoint [D2D_POINT_2F value] figureBegin [integer!] return: [integer!]]]
-	AddLines						[function! [this [this!] points [D2D_POINT_2F] pointsCount [integer!] return: [integer!]]]
+	BeginFigure						[function! [this [this!] startPoint [POINT_2F value] figureBegin [integer!] return: [integer!]]]
+	AddLines						[function! [this [this!] points [POINT_2F] pointsCount [integer!] return: [integer!]]]
 	AddBeziers						[function! [this [this!] beziers [D2D1_BEZIER_SEGMENT] beziersCount [integer!] return: [integer!]]]
 	EndFigure						[function! [this [this!] figureEnd [integer!] return: [integer!]]]
 	Close							[function! [this [this!] return: [integer!]]]
-	AddLine							[function! [this [this!] point [D2D_POINT_2F value] return: [integer!]]]
+	AddLine							[function! [this [this!] point [POINT_2F value] return: [integer!]]]
 	AddBezier						[function! [this [this!] beziers [D2D1_BEZIER_SEGMENT] return: [integer!]]]
 	AddQuadraticBezier				[function! [this [this!] bezier [D2D1_QUADRATIC_BEZIER_SEGMENT] return: [integer!]]]
 	AddQuadraticBeziers				[function! [this [this!] beziers [D2D1_QUADRATIC_BEZIER_SEGMENT] beziersCount [integer!] return: [integer!]]]

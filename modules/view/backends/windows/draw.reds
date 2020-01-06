@@ -12,18 +12,6 @@ Red/System [
 
 #include %text-box.reds
 
-draw-state!: alias struct! [
-	block		[this!]
-	pen-clr		[integer!]
-	brush-clr	[integer!]
-	pen-join	[integer!]
-	pen-cap		[integer!]
-	pen-type	[integer!]
-	brush-type	[integer!]
-	pen			[this!]
-	brush		[this!]
-]
-
 #enum DRAW-BRUSH-TYPE! [
 	DRAW_BRUSH_NONE
 	DRAW_BRUSH_COLOR
@@ -37,6 +25,7 @@ grad-stops: as D2D1_GRADIENT_STOP allocate 256 * size? D2D1_GRADIENT_STOP
 calc-brush-position: func [
 	brush		[this!]
 	grad-type	[integer!]
+	offset		[POINT_2F]
 	upper-x		[float32!]
 	upper-y		[float32!]
 	lower-x		[float32!]
@@ -46,11 +35,10 @@ calc-brush-position: func [
 		b		[ID2D1Brush]
 		lin		[ID2D1LinearGradientBrush]
 		rad		[ID2D1RadialGradientBrush]
-		pt		[D2D_POINT_2F value]
+		pt		[POINT_2F value]
 		t1		[float32!]
 		t2		[float32!]
 		m		[D2D_MATRIX_3X2_F value]
-		tmp		[D2D_MATRIX_3X2_F value]
 		result	[D2D_MATRIX_3X2_F value]
 ][
 	if upper-x > lower-x [
@@ -94,12 +82,11 @@ calc-brush-position: func [
 	;-- apply matrix transformation
 	b: as ID2D1Brush brush/vtbl
 	b/GetTransform brush :m
-	;matrix2d/post-translate :m upper-x upper-y :result
-	matrix2d/identity :tmp
-	tmp/_31: upper-x
-	tmp/_32: upper-y
-	;-- TBD
-	matrix2d/mul :m :tmp :result no  ;not ctx/pre-order?
+	t1: upper-x - offset/x
+	t2: upper-y - offset/y
+	offset/x: t1
+	offset/y: t2
+	matrix2d/translate :m t1 t2 :result no
 	b/SetTransform brush :result
 ]
 
@@ -123,6 +110,7 @@ draw-geometry: func [
 		calc-brush-position
 			ctx/brush
 			ctx/brush-grad-type
+			ctx/brush-offset
 			bounds/left bounds/top bounds/right bounds/bottom
 		dc/FillGeometry this path ctx/brush null
 	][
@@ -138,6 +126,7 @@ draw-geometry: func [
 		calc-brush-position
 			ctx/pen
 			ctx/pen-grad-type
+			ctx/pen-offset
 			bounds/left bounds/top bounds/right bounds/bottom
 		dc/DrawGeometry this path ctx/pen ctx/pen-width ctx/pen-style
 	][
@@ -412,7 +401,7 @@ OS-draw-shape-beginpath: func [
 		sink	[ptr-value!]
 		sthis	[this!]
 		gsink	[ID2D1GeometrySink]
-		vpoint	[D2D_POINT_2F value]
+		vpoint	[POINT_2F value]
 ][
 	d2d: as ID2D1Factory d2d-factory/vtbl
 	hr: d2d/CreatePathGeometry d2d-factory :path
@@ -469,7 +458,7 @@ OS-draw-shape-close: func [
 	/local
 		sthis	[this!]
 		gsink	[ID2D1GeometrySink]
-		vpoint	[D2D_POINT_2F value]
+		vpoint	[POINT_2F value]
 ][
 	sthis: as this! ctx/sub/sink
 	gsink: as ID2D1GeometrySink sthis/vtbl
@@ -488,7 +477,7 @@ OS-draw-shape-moveto: func [
 		dy		[float32!]
 		sthis	[this!]
 		gsink	[ID2D1GeometrySink]
-		vpoint	[D2D_POINT_2F value]
+		vpoint	[POINT_2F value]
 ][
 	dx: as float32! coord/x
 	dy: as float32! coord/y
@@ -516,7 +505,7 @@ OS-draw-shape-line: func [
 	/local
 		sthis	[this!]
 		gsink	[ID2D1GeometrySink]
-		vpoint	[D2D_POINT_2F value]
+		vpoint	[POINT_2F value]
 		dx		[float32!]
 		dy		[float32!]
 		x		[float32!]
@@ -561,7 +550,7 @@ OS-draw-shape-axis: func [
 		len		[float32!]
 		sx		[float32!]
 		sy		[float32!]
-		vpoint	[D2D_POINT_2F value]
+		vpoint	[POINT_2F value]
 ][
 	sthis: as this! ctx/sub/sink
 	gsink: as ID2D1GeometrySink sthis/vtbl
@@ -773,7 +762,7 @@ _OS-draw-polygon: func [
 		sink	[ptr-value!]
 		sthis	[this!]
 		gsink	[ID2D1GeometrySink]
-		point	[D2D_POINT_2F value]
+		point	[POINT_2F value]
 		m		[D2D_MATRIX_3X2_F value]
 		bounds	[RECT_F! value]
 		this	[this!]
@@ -825,6 +814,7 @@ OS-draw-line: func [
 			calc-brush-position
 				ctx/pen
 				ctx/pen-grad-type
+				ctx/pen-offset
 				as float32! pt0/x as float32! pt0/y as float32! pt1/x as float32! pt1/y
 		]
 		if ctx/pen-type <> DRAW_BRUSH_NONE [
@@ -906,6 +896,7 @@ OS-draw-box: func [
 		calc-brush-position
 			ctx/brush
 			ctx/brush-grad-type
+			ctx/brush-offset
 			rc/left rc/top rc/right rc/bottom
 		dc/FillRectangle this rc ctx/brush 
 	][
@@ -917,6 +908,7 @@ OS-draw-box: func [
 		calc-brush-position
 			ctx/pen
 			ctx/pen-grad-type
+			ctx/pen-offset
 			rc/left rc/top rc/right rc/bottom
 		dc/DrawRectangle this rc ctx/pen ctx/pen-width ctx/pen-style
 	][
@@ -956,7 +948,7 @@ do-spline-step: func [
 		t3		[float!]
 		x		[float!]
 		y		[float!]
-		point	[D2D_POINT_2F value]
+		point	[POINT_2F value]
 ][
 		gsink: as ID2D1GeometrySink sthis/vtbl
 		t: 0.0
@@ -993,7 +985,7 @@ OS-draw-spline: func [
 		sink	[ptr-value!]
 		sthis	[this!]
 		gsink	[ID2D1GeometrySink]
-		point	[D2D_POINT_2F value]
+		point	[POINT_2F value]
 		m		[D2D_MATRIX_3X2_F value]
 		bounds	[RECT_F! value]
 		this	[this!]
@@ -1105,6 +1097,7 @@ do-draw-ellipse: func [
 		calc-brush-position
 			ctx/brush
 			ctx/brush-grad-type
+			ctx/brush-offset
 			cx cy cx + dx cy + dy
 		dc/FillEllipse this ellipse ctx/brush
 	][
@@ -1116,6 +1109,7 @@ do-draw-ellipse: func [
 		calc-brush-position
 			ctx/pen
 			ctx/pen-grad-type
+			ctx/pen-offset
 			cx cy cx + dx cy + dy
 		dc/DrawEllipse this ellipse ctx/pen ctx/pen-width ctx/pen-style
 	][
@@ -1218,7 +1212,7 @@ OS-draw-arc: func [
 		sink		[ptr-value!]
 		sthis		[this!]
 		gsink		[ID2D1GeometrySink]
-		point		[D2D_POINT_2F value]
+		point		[POINT_2F value]
 		this		[this!]
 		dc			[ID2D1DeviceContext]
 		arc			[D2D1_ARC_SEGMENT value]
@@ -1302,7 +1296,7 @@ OS-draw-curve: func [
 		sink	[ptr-value!]
 		sthis	[this!]
 		gsink	[ID2D1GeometrySink]
-		point	[D2D_POINT_2F value]
+		point	[POINT_2F value]
 		m		[D2D_MATRIX_3X2_F value]
 		bounds	[RECT_F! value]
 		this	[this!]
@@ -1383,10 +1377,10 @@ OS-draw-line-cap: func [
 
 create-4p-matrix: func [
 	size		[SIZE_F!]
-	ul			[D2D_POINT_2F]
-	ur			[D2D_POINT_2F]
-	ll			[D2D_POINT_2F]
-	lr			[D2D_POINT_2F]
+	ul			[POINT_2F]
+	ur			[POINT_2F]
+	ll			[POINT_2F]
+	lr			[POINT_2F]
 	m			[MATRIX_4x4_F!]
 	/local
 		s		[MATRIX_4x4_F! value]
@@ -1448,10 +1442,10 @@ OS-draw-image: func [
 		height	[integer!]
 		pt		[red-pair!]
 		size	[SIZE_F! value]
-		ul		[D2D_POINT_2F value]
-		ur		[D2D_POINT_2F value]
-		ll		[D2D_POINT_2F value]
-		lr		[D2D_POINT_2F value]
+		ul		[POINT_2F value]
+		ur		[POINT_2F value]
+		ll		[POINT_2F value]
+		lr		[POINT_2F value]
 		m		[MATRIX_4x4_F! value]
 		trans	[int-ptr!]
 		dst*	[RECT_F! value]
@@ -1986,14 +1980,7 @@ OS-draw-state-push: func [
 	dc: as ID2D1DeviceContext this/vtbl
 	dc/SaveDrawingState this as this! blk/value
 	state/block: as this! blk/value
-	state/pen-clr: ctx/pen-color
-	state/brush-clr: ctx/brush-color
-	state/pen-join: ctx/pen-join
-	state/pen-cap: ctx/pen-cap
-	state/pen-type: ctx/pen-type
-	state/brush-type: ctx/brush-type
-	state/pen: ctx/pen
-	state/brush: ctx/brush
+	copy-memory as byte-ptr! :state/pen as byte-ptr! :ctx/pen size? draw-state!
 	COM_ADD_REF(unk state/pen)
 	COM_ADD_REF(unk state/brush)
 ]
@@ -2010,16 +1997,9 @@ OS-draw-state-pop: func [
 	dc: as ID2D1DeviceContext this/vtbl
 	dc/RestoreDrawingState this state/block
 	COM_SAFE_RELEASE(IUnk state/block)
-	ctx/pen-color: state/pen-clr
-	ctx/brush-color: state/brush-clr
-	ctx/pen-join: state/pen-join
-	ctx/pen-cap: state/pen-cap
-	ctx/pen-type: state/pen-type
-	ctx/brush-type: state/brush-type
 	COM_SAFE_RELEASE(IUnk ctx/pen)
 	COM_SAFE_RELEASE(IUnk ctx/brush)
-	ctx/pen: state/pen
-	ctx/brush: state/brush
+	copy-memory as byte-ptr! :ctx/pen as byte-ptr! :state/pen size? draw-state!
 	update-pen-style ctx
 ]
 

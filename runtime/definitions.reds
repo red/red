@@ -290,26 +290,36 @@ Red/System [
 			_32				[float32!]
 		]
 
-		draw-ctx!: alias struct! [
-			dc				[ptr-ptr!]
-			target			[int-ptr!]
-			hwnd			[int-ptr!]			;-- Window's handle
+		#define DRAW_STATE_DATA [
 			pen				[this!]
 			brush			[this!]
-			pen-join		[integer!]
-			pen-cap			[integer!]
-			pen-width		[float32!]
-			pen-style		[this!]
+			pen-type		[integer!]
+			brush-type		[integer!]
 			pen-color		[integer!]
 			brush-color		[integer!]
 			font-color		[integer!]
+			pen-join		[integer!]
+			pen-cap			[integer!]
+			pen-grad-type	[integer!]
+			brush-grad-type	[integer!]
+			pen-offset		[POINT_2F value]
+			brush-offset	[POINT_2F value]
+		]
+
+		draw-state!: alias struct! [
+			block			[this!]
+			DRAW_STATE_DATA
+		]
+
+		draw-ctx!: alias struct! [
+			dc				[ptr-ptr!]
+			DRAW_STATE_DATA
+			target			[int-ptr!]
+			hwnd			[int-ptr!]			;-- Window's handle
+			pen-width		[float32!]
+			pen-style		[this!]
 			bitmap			[int-ptr!]
 			image			[int-ptr!]			;-- original image handle
-			scale-ratio		[float32!]
-			pen-type		[integer!]
-			brush-type		[integer!]
-			pen-grad-type	[integer!]			;-- gradient type: radial, linear
-			brush-grad-type	[integer!]			;-- gradient type: radial, linear
 			pre-order?		[logic!]			;-- matrix order, default pre-order for row-major vector
 			on-image?		[logic!]			;-- drawing on image?
 			font-color?		[logic!]
