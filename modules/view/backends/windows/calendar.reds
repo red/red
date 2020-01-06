@@ -42,7 +42,7 @@ with [platform][
 		
 		current-msg/hWnd: handle
 		
-		slot: get-facet current-msg FACE_OBJ_DATA
+		slot: get-facet current-msg FACE_OBJ_SELECTED
 		date/make-at slot year month day 0.0 0 0 no no
 	]
 	

@@ -1239,7 +1239,7 @@ sync-calendar: func [
 	month: objc_msgSend [components sel_getUid "month"]
 	year:  objc_msgSend [components sel_getUid "year"]
 	
-	slot: (get-face-values handle) + FACE_OBJ_DATA
+	slot: (get-face-values handle) + FACE_OBJ_SELECTED
 	date/make-at slot year month day 0.0 0 0 no no
 	
 	objc_msgSend [calendar sel_getUid "release"]
