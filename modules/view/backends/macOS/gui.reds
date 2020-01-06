@@ -1747,10 +1747,15 @@ parse-common-opts: func [
 					][
 						sym: symbol/resolve w/symbol
 						cur: case [
-							sym = _I-beam	["IBeamCursor"]
-							sym = _hand		["pointingHandCursor"]
-							sym = _cross	["crosshairCursor"]
-							true			["arrowCursor"]
+							sym = _I-beam	 ["IBeamCursor"]
+							sym = _hand		 ["pointingHandCursor"]
+							sym = _cross	 ["crosshairCursor"]
+							sym = _resize-ns ["resizeUpDownCursor"]
+							any [
+								sym = _resize-ew
+								sym = _resize-we
+							]				 ["resizeLeftRightCursor"]
+							true			 ["arrowCursor"]
 						]
 						hcur: objc_msgSend [objc_getClass "NSCursor" sel_getUid cur]
 					]

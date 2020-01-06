@@ -80,6 +80,7 @@ system/view/VID: context [
 	process-reactors: function [/local res][
 		set 'res try/all [
 			foreach [f blk later?] reactors [
+				blk: copy/deep blk
 				either f [
 					bind blk ctx: context [face: f]
 					either later? [react/later/with blk ctx][react/with blk ctx]

@@ -1107,7 +1107,7 @@ Red [
 		
 		TRAP_ERRORS(names/redRemove [
 			stack/push as red-value! series
-			actions/remove* -1
+			actions/remove* -1 -1
 			stack/unwind-last
 		])
 	]
