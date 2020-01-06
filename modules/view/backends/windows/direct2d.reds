@@ -42,6 +42,7 @@ IID_ID2D1Factory1:		 [BB12D362h 4B9ADAEEh BA141DAAh 1FFA1C40h]
 IID_IDWriteFactory:		 [B859EE5Ah 4B5BD838h DC1AE8A2h 48DB937Dh]
 IID_IDXGIFactory2:		 [50C83A1Ch 4C48E072h 3036B087h D0A636FAh]
 IID_IDCompositionDevice: [C37EA93Ah 450DE7AAh 46976FB1h F30704CBh]
+CLSID_D2D1UnPremultiply: [FB9AC489h 41EDAD8Dh 63BB9999h F710D147h]
 
 D2D1_FACTORY_OPTIONS: alias struct! [
 	debugLevel	[integer!]
@@ -769,7 +770,7 @@ CreateBitmapFromWicBitmap*: alias function! [
 CreateEffect*: alias function! [
 	this		[this!]
 	effectID	[tagGUID]
-	effect		[ptr-ptr!]
+	effect		[com-ptr!]
 	return:		[integer!]
 ]
 
