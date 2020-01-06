@@ -73,6 +73,7 @@ with [platform][
 	]
 	
 	process-calendar-change: func [handle [handle!]][
+		make-event current-msg 0 EVT_SELECT
 		sync-calendar handle
 		make-event current-msg 0 EVT_CHANGE
 	]
