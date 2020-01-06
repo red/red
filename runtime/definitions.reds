@@ -310,6 +310,7 @@ Red/System [
 			brush-type		[integer!]
 			pen-grad-type	[integer!]			;-- gradient type: radial, linear
 			brush-grad-type	[integer!]			;-- gradient type: radial, linear
+			pre-order?		[logic!]			;-- matrix order, default pre-order for row-major vector
 			on-image?		[logic!]			;-- drawing on image?
 			font-color?		[logic!]
 			shadow?			[logic!]

@@ -42,11 +42,23 @@ matrix2d: context [
 		m/_32: as float32! 0.0
 	]
 
+	;-- Mc = Ml * Mr for pre? = false
+	;-- Mc = Mr * Ml for pre? = true
+	;-- this lib use row-major order, so the default flag pre? = false
 	mul: func [
-		l		[D2D_MATRIX_3X2_F]
-		r		[D2D_MATRIX_3X2_F]
+		_l		[D2D_MATRIX_3X2_F]
+		_r		[D2D_MATRIX_3X2_F]
 		c		[D2D_MATRIX_3X2_F]
+		pre?	[logic!]
+		/local
+			l	[D2D_MATRIX_3X2_F]
+			r	[D2D_MATRIX_3X2_F]
 	][
+		either pre? [
+			l: _r r: _l
+		][
+			l: _l r: _r
+		]
 		c/_11: l/_11 * r/_11 + (l/_12 * r/_21)
 		c/_12: l/_11 * r/_12 + (l/_12 * r/_22)
 		c/_21: l/_21 * r/_11 + (l/_22 * r/_21)
@@ -60,13 +72,14 @@ matrix2d: context [
 		x		[float32!]
 		y		[float32!]
 		r		[D2D_MATRIX_3X2_F]
+		pre?	[logic!]
 		/local
 			t	[D2D_MATRIX_3X2_F value]
 	][
 		identity t
 		t/_31: x
 		t/_32: y
-		mul m t r
+		mul m t r pre?
 	]
 
 	scale: func [
@@ -74,13 +87,14 @@ matrix2d: context [
 		x		[float32!]
 		y		[float32!]
 		r		[D2D_MATRIX_3X2_F]
+		pre?	[logic!]
 		/local
 			t	[D2D_MATRIX_3X2_F value]
 	][
 		identity t
 		t/_11: x
 		t/_22: y
-		mul m t r
+		mul m t r pre?
 	]
 
 	rotate: func [
@@ -89,11 +103,12 @@ matrix2d: context [
 		cx		[float32!]	;-- center x
 		cy		[float32!]	;-- center y
 		r		[D2D_MATRIX_3X2_F]
+		pre?	[logic!]
 		/local
 			t	[D2D_MATRIX_3X2_F value]
 	][
 		D2D1MakeRotateMatrix angle cx cy :t
-		mul m t r
+		mul m t r pre?
 	]
 
 	skew: func [
@@ -103,13 +118,16 @@ matrix2d: context [
 		cx		[float32!]	;-- center x
 		cy		[float32!]	;-- center y
 		r		[D2D_MATRIX_3X2_F]
+		pre?	[logic!]
 		/local
 			t	[D2D_MATRIX_3X2_F value]
 	][
 		D2D1MakeSkewMatrix x y cx cy :t
-		mul m t r
+		mul m t r pre?
 	]
 
+
+	;-- Assuming row vectors, this is equivalent to `p * M`
 	transform-point: func [
 		m		[D2D_MATRIX_3X2_F]
 		x		[float32!]

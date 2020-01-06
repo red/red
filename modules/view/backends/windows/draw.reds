@@ -98,7 +98,8 @@ calc-brush-position: func [
 	matrix2d/identity :tmp
 	tmp/_31: upper-x
 	tmp/_32: upper-y
-	matrix2d/mul :m :tmp :result
+	;-- TBD
+	matrix2d/mul :m :tmp :result no  ;not ctx/pre-order?
 	b/SetTransform brush :result
 ]
 
@@ -218,6 +219,8 @@ draw-begin: func [
 	dc/CreateSolidColorBrush this d3d-clr null :brush
 	ctx/brush: as this! brush/value
 	ctx/brush-type:	DRAW_BRUSH_NONE
+
+	ctx/pre-order?: yes
 
 	if hWnd <> null [
 		values: get-face-values hWnd
@@ -1853,12 +1856,12 @@ OS-matrix-rotate: func [
 		this: as this! ctx/dc
 		dc: as ID2D1DeviceContext this/vtbl
 		dc/GetTransform this :m
-		matrix2d/rotate :m rad cx cy :t
+		matrix2d/rotate :m rad cx cy :t ctx/pre-order?
 		dc/SetTransform this :t
 	][
 		BEGIN_MATRIX_BRUSH
 		brush/GetTransform bthis :m
-		matrix2d/rotate :m rad cx cy :t
+		matrix2d/rotate :m rad cx cy :t ctx/pre-order?
 		brush/SetTransform bthis :t
 	]
 ]
@@ -1880,12 +1883,12 @@ OS-matrix-scale: func [
 		this: as this! ctx/dc
 		dc: as ID2D1DeviceContext this/vtbl
 		dc/GetTransform this :m
-		matrix2d/scale :m get-float32 sx get-float32 sy :t
+		matrix2d/scale :m get-float32 sx get-float32 sy :t ctx/pre-order?
 		dc/SetTransform this :t
 	][
 		BEGIN_MATRIX_BRUSH
 		brush/GetTransform bthis :m
-		matrix2d/scale :m get-float32 sx get-float32 sy :t
+		matrix2d/scale :m get-float32 sx get-float32 sy :t ctx/pre-order?
 		brush/SetTransform bthis :t
 	]
 ]
@@ -1907,12 +1910,12 @@ OS-matrix-translate: func [
 		this: as this! ctx/dc
 		dc: as ID2D1DeviceContext this/vtbl
 		dc/GetTransform this :m
-		matrix2d/translate :m as float32! x as float32! y :t
+		matrix2d/translate :m as float32! x as float32! y :t ctx/pre-order?
 		dc/SetTransform this :t
 	][
 		BEGIN_MATRIX_BRUSH
 		brush/GetTransform bthis :m
-		matrix2d/translate :m as float32! x as float32! y :t
+		matrix2d/translate :m as float32! x as float32! y :t ctx/pre-order?
 		brush/SetTransform bthis :t
 	]
 ]
@@ -1933,17 +1936,17 @@ OS-matrix-skew: func [
 		brush	[ID2D1Brush]
 ][
 	x: get-float32 sx
-	y: get-float32 sy
+	y: F32_0 - get-float32 sy
 	either pen-fill = -1 [
 		this: as this! ctx/dc
 		dc: as ID2D1DeviceContext this/vtbl
 		dc/GetTransform this :m
-		matrix2d/skew :m x y F32_0 F32_0 :t
+		matrix2d/skew :m x y F32_0 F32_0 :t ctx/pre-order?
 		dc/SetTransform this :t
 	][
 		BEGIN_MATRIX_BRUSH
 		brush/GetTransform bthis :m
-		matrix2d/skew :m x y F32_0 F32_0 :t
+		matrix2d/skew :m x y F32_0 F32_0 :t ctx/pre-order?
 		brush/SetTransform bthis :t
 	]
 ]
@@ -2093,12 +2096,12 @@ OS-matrix-set: func [
 		this: as this! ctx/dc
 		dc: as ID2D1DeviceContext this/vtbl
 		dc/GetTransform this :m0
-		matrix2d/mul m m0 t
+		matrix2d/mul m0 m t ctx/pre-order?
 		dc/SetTransform this :t
 	][
 		BEGIN_MATRIX_BRUSH
 		brush/GetTransform bthis :m0
-		matrix2d/mul m m0 t
+		matrix2d/mul m0 m t ctx/pre-order?
 		brush/SetTransform bthis :t
 	]
 ]
@@ -2107,7 +2110,11 @@ OS-set-matrix-order: func [
 	ctx		[draw-ctx!]
 	order	[integer!]
 ][
-
+	case [
+		order = _append [ ctx/pre-order?: no ]
+		order = prepend [ ctx/pre-order?: yes ]
+		true [ ctx/pre-order?: yes ]
+	]
 ]
 
 OS-draw-shadow: func [
