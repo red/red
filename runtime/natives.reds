@@ -555,7 +555,7 @@ natives: context [
 					stack/set-last arg + 1
 				]
 				TYPE_STRING [
-					lexer/load-string arg as red-string! arg -1 no no null
+					lexer/load-string arg as red-string! arg -1 no no null null as red-string! arg
 					DO_EVAL_BLOCK
 				]
 				TYPE_URL 
@@ -2714,7 +2714,7 @@ natives: context [
 		on?    [integer!]
 		off?   [integer!]
 	][
-		#typecheck [on? off?]
+		#typecheck [recycle on? off?]
 
 		case [
 			on?  > -1 [collector/active?: yes]
@@ -2729,6 +2729,7 @@ natives: context [
 		next   [integer!]
 		part   [integer!]
 		into   [integer!]
+		trace  [integer!]
 		/local
 			offset len type [integer!]
 			slot arg [red-value!]
@@ -2736,11 +2737,12 @@ natives: context [
 			int	  [red-integer!]
 			str	  [red-string!]
 			blk	  [red-block!]
+			fun	  [red-function!]
 			s	  [series!]
 			next? [logic!]
 	][
-		#typecheck [next part into]
-		
+		#typecheck [transcode next part into trace]
+
 		next?: next > -1
 		slot: stack/push*
 		if next? [
@@ -2754,6 +2756,7 @@ natives: context [
 		bin: as red-binary! stack/arguments
 		type: TYPE_OF(bin)
 		arg: stack/arguments + part
+		fun: either trace < 0 [null][stack/arguments + trace]
 		
 		if OPTION?(arg) [
 			switch TYPE_OF(arg) [
@@ -2777,11 +2780,11 @@ natives: context [
 		]
 		either type = TYPE_BINARY [
 			if len < 0 [len: binary/rs-length? bin]
-			lexer/scan slot binary/rs-head bin len next? no :offset
+			lexer/scan slot binary/rs-head bin len next? no :offset fun as red-series! bin
 		][
 			str: as red-string! bin
 			if len < 0 [len: string/rs-length? str]
-			lexer/load-string slot str len next? no :offset
+			lexer/load-string slot str len next? no :offset fun as red-series! str
 		]
 		if next? [
 			bin: as red-binary! copy-cell as red-value! bin s/offset + 1

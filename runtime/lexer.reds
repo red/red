@@ -314,6 +314,18 @@ lexer: context [
 		as byte-ptr! 0									;-- never reached, just make compiler happy
 	]
 	
+	;-- Count UTF-8 encoded characters between two positions in a binary buffer
+	count-chars: func [s e [byte-ptr!] return: [integer!]
+		/local c len [integer!]
+	][
+		c: len: 0
+		while [s < e][
+			s: lexer/decode-utf8-char s :len
+			c: c + 1
+		]
+		c
+	]
+	
 	#enum errors! [
 		ERR_BAD_CHAR: 	  -1
 		ERR_MALCONSTRUCT: -2
@@ -349,6 +361,9 @@ lexer: context [
 		mstr-s		[byte-ptr!]							;-- multiline string saved start position
 		mstr-nest	[integer!]							;-- multiline string nested {} counting
 		mstr-flags	[integer!]							;-- multiline string accumulated flags
+		fun-ptr		[red-function!]						;-- callback function pointer or NULL
+		fun-locs	[integer!]							;-- number of local words in callback function
+		in-series	[red-series!]						;-- optional back reference to input series
 	]
 	
 	scanner!: alias function! [lex [state!] s e [byte-ptr!] flags [integer!]]
@@ -417,12 +432,53 @@ lexer: context [
 		]
 	]
 	
+	fire-event: func [
+		lex		[state!]
+		event   [red-word!]
+		type	[integer!]
+		value	[red-value!]
+		s		[byte-ptr!]
+		e		[byte-ptr!]
+		return: [logic!]
+		/local
+			len x y [integer!]
+			res	  [red-value!]
+			blk	  [red-block!]
+			loop? [logic!]
+	][
+		stack/mark-func words/_body	lex/fun-ptr/ctx		;@@ find something more adequate
+		stack/push as red-value! event
+		stack/push as red-value! lex/in-series
+		blk: as red-block! #get system/lexer/exit-states
+		either TYPE_OF(blk) <> TYPE_BLOCK [none/push][
+			stack/push block/rs-abs-at blk type - 1		;-- 1-base access
+		]
+		either all [lex/in-series <> null TYPE_OF(lex/in-series) <> TYPE_BINARY][
+			x: count-chars lex/input s
+			y: x + count-chars s e
+		][
+			x: as-integer s - lex/input
+			y: as-integer e - lex/input
+		]
+		pair/push x + 1 y + 1 							;-- 1-base series positions
+		either null? value [none/push][stack/push value]
+		if lex/fun-locs > 0 [_function/init-locals 1 + lex/fun-locs]	;-- +1 for /local refinement
+
+		catch RED_THROWN_ERROR [_function/call lex/fun-ptr global-ctx]	;FIXME: hardcoded origin context
+		if system/thrown <> 0 [re-throw]
+
+		loop?: logic/top-true?
+		stack/unwind
+		loop?
+	]
+	
 	mark-buffers: func [/local s [state!]][
 		if root-state <> null [
 			s: root-state
 			until [
 				assert s/buffer < s/tail
 				collector/mark-values s/buffer s/tail
+				if s/in-series <> null [collector/keep s/in-series/node]
 				s: s/next
 				null? s
 			]
@@ -1754,6 +1810,7 @@ lexer: context [
 			lex/type:	-1
 			
 			index: state - --EXIT_STATES--
+			if lex/fun-ptr <> null [fire-event lex words/scan index null start + offset lex/in-pos]
 			do-scan: as scanner! scanners/index
 			do-scan lex start + offset p flags
 			
@@ -1775,6 +1832,8 @@ lexer: context [
 		one?  [logic!]									;-- scan a single value
 		wrap? [logic!]									;-- force returned loaded value(s) in a block
 		len   [int-ptr!]								;-- return the consumed input length
+		fun	  [red-function!]							;-- optional callback function
+		ser	  [red-series!]								;-- optional input series back-reference
 		/local
 			blk	  [red-block!]
 			p	  [red-point!]
@@ -1797,6 +1856,11 @@ lexer: context [
 		lex/type:		-1
 		lex/mstr-nest:	0
 		lex/mstr-flags: 0
+		lex/fun-ptr:	fun
+		lex/fun-locs:	0
+		lex/in-series:	ser
+		
+		if fun <> null [lex/fun-locs: _function/count-locals fun/spec 0 no]
 		
 		scan-tokens lex one?
 
@@ -1826,6 +1890,7 @@ lexer: context [
 		one?  [logic!]
 		wrap? [logic!]
 		len	  [int-ptr!]
+		fun	  [red-function!]							;-- optional callback function
 		/local
 			s [series!]
 			unit buf-size ignore [integer!]
@@ -1843,7 +1908,7 @@ lexer: context [
 		]
 		size: unicode/to-utf8-buffer str utf8-buffer size
 		if null? len [len: :ignore]
-		scan dst utf8-buffer size one? wrap? len
+		scan dst utf8-buffer size one? wrap? len fun as red-series! str
 	]
 	
 	set-jump-table: func [[variadic] count [integer!] list [int-ptr!] /local i [integer!] s [int-ptr!]][

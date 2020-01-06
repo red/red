@@ -351,7 +351,7 @@ load-value: func [
 		blk	  [red-block!]
 		value [red-value!]
 ][
-	lexer/load-string stack/arguments str -1 yes yes null
+	lexer/load-string stack/arguments str -1 yes yes null null as red-series! str
 
 	blk: as red-block! stack/arguments
 	assert TYPE_OF(blk) = TYPE_BLOCK
@@ -678,6 +678,7 @@ words: context [
 	_multiply:		as red-word! 0
 	_browse:		as red-word! 0
 	
+	;-- I/O actions
 	_open:			as red-word! 0
 	_create:		as red-word! 0
 	_close:			as red-word! 0
@@ -688,6 +689,10 @@ words: context [
 	_rename:		as red-word! 0
 	_update:		as red-word! 0
 	_write:			as red-word! 0
+	
+	;-- lexer events
+	scan:			as red-word! 0
+	load:			as red-word! 0
 	
 	errors: context [
 		_throw:		as red-word! 0
@@ -923,6 +928,10 @@ words: context [
 		_rename:		word/load "rename"
 		_update:		word/load "update"
 		_write:			word/load "write"
+		
+		;-- lexer events
+		scan:			word/load "scan"
+		load:			word/load "load"
 		
 		errors/throw:	 word/load "throw"
 		errors/note:	 word/load "note"

@@ -920,7 +920,7 @@ transcode: make native! [[
 			callback [function! [
 				event	[word!]
 				input	[binary! string!]
-				type	[datatype!]
+				type	[word! datatype!]
 				range	[pair!]
 				value	[any-type!]
 				return: [logic!]
