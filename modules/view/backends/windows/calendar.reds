@@ -62,14 +62,16 @@ with [platform][
 		color  [red-value!]
 		/local
 			colorref [integer!]
-	][
+			painted? [logic!]
+	][	
+		painted?: yes
 		switch TYPE_OF(color) [
 			TYPE_TUPLE [colorref: color/data1]
-			TYPE_NONE  [colorref: 00FFFFFFh]
-			default    [0]
+			TYPE_NONE  [colorref: GetSysColor COLOR_3DFACE]				;-- same as panel
+			default    [painted?: no]
 		]
 		
-		SendMessage handle MCM_SETCOLOR 0 colorref 			;-- MCSC_BACKGROUND
+		if painted? [SendMessage handle MCM_SETCOLOR 0 colorref] 		;-- MCSC_BACKGROUND
 	]
 	
 	process-calendar-change: func [handle [handle!]][
@@ -85,7 +87,6 @@ with [platform][
 		return DATE_GET_DAY(date/date) << 16 and FFFF0000h
 	]
 	
-	;-- possible overflow: Win32 1601:30827, Red -9999:9999
 	cap: func [year [integer!] return: [integer!]][
 		if year < 1601 [year: 1601]
 		if year > 9999 [year: 9999]
