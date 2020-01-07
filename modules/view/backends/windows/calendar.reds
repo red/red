@@ -42,7 +42,7 @@ with [platform][
 		
 		current-msg/hWnd: handle
 		
-		slot: get-facet current-msg FACE_OBJ_SELECTED
+		slot: get-facet current-msg FACE_OBJ_DATA
 		date/make-at slot year month day 0.0 0 0 no no
 	]
 	
@@ -73,7 +73,6 @@ with [platform][
 	]
 	
 	process-calendar-change: func [handle [handle!]][
-		make-event current-msg 0 EVT_SELECT
 		sync-calendar handle
 		make-event current-msg 0 EVT_CHANGE
 	]

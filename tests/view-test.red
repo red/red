@@ -872,11 +872,8 @@ win/pane: reduce [
 	calendar: make face! [
 		type: 'calendar offset: 750x450 size: 300x300 color: rebolor
 		actors: object [
-			on-select: func [face [object!] event [event!]][
-				print ["Previous date:" face/selected]
-			]
 			on-change: func [face [object!] event [event!]][
-				print ["New date:" face/selected]
+				print ["Selected date:" face/data]
 			]
 		]
 	]
@@ -884,8 +881,8 @@ win/pane: reduce [
 		type: 'button offset: 750x750 size: 90x30 text: "Previous month"
 		actors: object [
 			on-click: func [face [object!] event [event!]][
-				if date? calendar/selected [
-					calendar/selected/month: calendar/selected/month - 1
+				if date? calendar/data [
+					calendar/data/month: calendar/data/month - 1
 					show calendar
 				]
 			]
@@ -895,8 +892,8 @@ win/pane: reduce [
 		type: 'button offset: 960x750 size: 90x30 text: "Next week"
 		actors: object [
 			on-click: func [face [object!] event [event!]][
-				if date? calendar/selected [
-					calendar/selected: calendar/selected + 7
+				if date? calendar/data [
+					calendar/data: calendar/data + 7
 					show calendar
 				]
 			]

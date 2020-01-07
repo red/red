@@ -549,7 +549,6 @@ calendar-change: func [
 	cmd	   [integer!]
 	sender [integer!]
 ][	
-	make-event self 0 EVT_SELECT
 	sync-calendar self
 	make-event self 0 EVT_CHANGE
 ]
