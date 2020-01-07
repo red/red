@@ -717,6 +717,7 @@ system/view/platform: context [
 				button:			[1x1   1x1]				;-- LeftxRight TopxBottom
 				tab-panel:		[0x2   0x1]
 				group-box:		[0x0   0x1]
+				calendar:		[1x0   0x0]
 			]
 			macOS [
 				button:			[2x2   2x3 regular 6x6 4x7 small 5x5 4x6 mini 1x1 0x1]
