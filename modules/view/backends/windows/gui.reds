@@ -1626,7 +1626,7 @@ OS-make-view: func [
 			SetWindowLong handle wc-offset - 12 BASE_FACE_D2D or BASE_FACE_IME
 		]
 		sym = calendar [
-			init-calendar handle as red-value! data
+			init-calendar handle as red-value! selected
 			update-calendar-color handle as red-value! values + FACE_OBJ_COLOR
 		]
 		sym = window [
@@ -2005,7 +2005,7 @@ change-image: func [
 
 change-selection: func [
 	hWnd   [handle!]
-	int	   [red-integer!]								;-- can be also none! | object! | percent!
+	int	   [red-integer!]								;-- can be also none! | object! | percent! | date!
 	values [red-value!]
 	/local
 		type [red-word!]
@@ -2036,6 +2036,9 @@ change-selection: func [
 					toggle-preview hWnd true
 				]
 			]
+		]
+		all [sym = calendar TYPE_OF(int) = TYPE_DATE][
+			change-calendar hWnd as red-date! int
 		]
 		sym = text-list [
 			SendMessage hWnd LB_SETCURSEL int/value - 1 0
@@ -2123,9 +2126,6 @@ change-data: func [
 		]
 		type = tab-panel [
 			set-tabs hWnd get-face-values hWnd
-		]
-		all [type = calendar TYPE_OF(data) = TYPE_DATE][
-			change-calendar hWnd as red-date! data
 		]
 		type = text-list [
 			if TYPE_OF(data) = TYPE_BLOCK [
