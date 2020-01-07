@@ -738,7 +738,7 @@ system/view/platform: context [
 				button:			[8x8   0x0]
 				drop-down:		[0x7   0x0]
 				drop-list:		[0x7   0x0]
-				calendar:		[67x0 19x0]
+				calendar:		[21x0 1x0]
 			]
 			macOS [
 				button:			[11x11 0x0 regular 14x14 0x0 small 11x11 0x0 mini 11x11 0x0]

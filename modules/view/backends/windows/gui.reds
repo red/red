@@ -1447,7 +1447,7 @@ OS-make-view: func [
 		]
 		sym = calendar [
 			class: #u16 "RedCalendar"
-			flags: flags or MCS_NOSELCHANGEONNAV
+			flags: flags or MCS_NOSELCHANGEONNAV or MCS_NOTODAY or 0080h			;-- undocumented flag for compacting calendar cell's padding
 		]
 		sym = window [
 			class: #u16 "RedWindow"
