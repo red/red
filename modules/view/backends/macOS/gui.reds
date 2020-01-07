@@ -984,13 +984,16 @@ change-data: func [
 		type = rich-text [
 			objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
 		]
+		all [type = calendar TYPE_OF(data) = TYPE_DATE][
+			objc_msgSend [hWnd sel_getUid "setDateValue:" to-NSDate as red-date! data]
+		]
 		true [0]										;-- default, do nothing
 	]
 ]
 
 change-selection: func [
 	hWnd   [integer!]
-	int	   [red-integer!]								;-- can be also none! | object! | percent! | date!
+	int	   [red-integer!]								;-- can be also none! | object!
 	type   [integer!]
 	/local
 		idx [integer!]
@@ -1028,9 +1031,6 @@ change-selection: func [
 				select-camera hWnd idx
 				toggle-preview hWnd true
 			]
-		]
-		all [type = calendar TYPE_OF(int) = TYPE_DATE][
-			objc_msgSend [hWnd sel_getUid "setDateValue:" to-NSDate as red-date! int]
 		]
 		type = text-list [
 			hWnd: objc_msgSend [hWnd sel_getUid "documentView"]
@@ -1239,7 +1239,7 @@ sync-calendar: func [
 	month: objc_msgSend [components sel_getUid "month"]
 	year:  objc_msgSend [components sel_getUid "year"]
 	
-	slot: (get-face-values handle) + FACE_OBJ_SELECTED
+	slot: (get-face-values handle) + FACE_OBJ_DATA
 	date/make-at slot year month day 0.0 0 0 no no
 	
 	objc_msgSend [calendar sel_getUid "release"]
@@ -2051,7 +2051,7 @@ OS-make-view: func [
 			init-camera obj rc data
 		]
 		sym = calendar [
-			init-calendar obj as red-value! values + FACE_OBJ_SELECTED
+			init-calendar obj as red-value! data
 		]
 		true [											;-- search in user-defined classes
 			if p <> null [

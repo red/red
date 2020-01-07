@@ -344,6 +344,7 @@ system/view/VID: context [
 							pair!	 [unless opts/size  [opts/size:  value]]
 							string!	 [unless opts/text  [opts/text:  value]]
 							logic!
+							date!
 							percent! [unless opts/data  [opts/data:  value] yes]
 							image!	 [unless opts/image [opts/image: value]]
 							tuple!	 [
@@ -351,11 +352,6 @@ system/view/VID: context [
 									add-flag opts 'font 'color value
 								][
 									opts/color: value
-								]
-							]
-							date! [
-								if all ['calendar = face/type not opts/selected][
-									opts/selected: value
 								]
 							]
 							integer! [
