@@ -1524,11 +1524,10 @@ OS-draw-image: func [
 			ur/x: as float32! pt/x
 			ur/y: as float32! pt/y
 			pt: start + 2
-			ll/x: as float32! pt/x
-			ll/y: as float32! pt/y
-			;-- not support ll == lr
-			lr/x: as float32! pt/x + 1
+			lr/x: as float32! pt/x
 			lr/y: as float32! pt/y
+			ll/x: ul/x
+			ll/y: lr/y
 			create-4p-matrix size ul ur ll lr m
 			trans: as int-ptr! :m
 		]
@@ -1540,11 +1539,11 @@ OS-draw-image: func [
 			ur/x: as float32! pt/x
 			ur/y: as float32! pt/y
 			pt: start + 2
-			ll/x: as float32! pt/x
-			ll/y: as float32! pt/y
-			pt: start + 3
 			lr/x: as float32! pt/x
 			lr/y: as float32! pt/y
+			pt: start + 3
+			ll/x: as float32! pt/x
+			ll/y: as float32! pt/y
 			create-4p-matrix size ul ur ll lr m
 			trans: as int-ptr! :m
 		]
