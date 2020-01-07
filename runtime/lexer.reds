@@ -1741,9 +1741,8 @@ lexer: context [
 	]
 	
 	scan-comment: func [lex [state!] s e [byte-ptr!] flags [integer!]][
-		;TBD: trigger an event
+		if lex/fun-ptr <> null [fire-event lex words/_open T_CMT - --EXIT_STATES-- null s e]
 	]
-
 	
 	scan-path-item: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
@@ -1816,7 +1815,7 @@ lexer: context [
 				#if debug? = yes [if verbose > 0 [?? state]]
 			]
 			s: start + offset
-			assert state <= T_EMAIL
+			assert state <= T_HEX
 			assert s <= p
 			
 			lex/in-pos: p
@@ -1969,7 +1968,6 @@ lexer: context [
 			:scan-map-open								;-- T_MAP_OP
 			:scan-path-open								;-- T_PATH
 			:scan-construct								;-- T_CONS_MK
-			:scan-hex									;-- T_HEX
 			:scan-comment								;-- T_CMT
 			:scan-string								;-- T_STRING
 			:scan-word									;-- T_WORD
@@ -1990,6 +1988,7 @@ lexer: context [
 			:scan-tag									;-- T_TAG
 			:scan-url									;-- T_URL
 			:scan-email									;-- T_EMAIL
+			:scan-hex									;-- T_HEX
 		]
 	]
 

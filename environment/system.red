@@ -406,8 +406,8 @@ system: context [
 		
 		exit-states: [
 			eof error! block! block! paren! paren! string! string! map! path! any-type!
-			hex comment string!	word! file! refinement!	binary! char! issue! percent!
-			integer! float! float! tuple! date! pair! time! money! tag! url! email! 
+			comment string!	word! file! refinement!	binary! char! issue! percent!
+			integer! float! float! tuple! date! pair! time! money! tag! url! email! hex
 		]
 	]
 	

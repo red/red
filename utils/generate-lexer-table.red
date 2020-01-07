@@ -80,27 +80,27 @@ context [
 		T_MAP_OP			-					;-- 64
 		T_PATH				-					;-- 65
 		T_CONS_MK			-					;-- 66
-		T_HEX				-					;-- 67
-		T_CMT				-					;-- 68
-		T_STRING			-					;-- 69
-		T_WORD				-					;-- 70
-		T_FILE				-					;-- 71
-		T_REFINE			-					;-- 72
-		T_BINARY			-					;-- 73
-		T_CHAR				-					;-- 74
-		T_ISSUE				-					;-- 75
-		T_PERCENT			-					;-- 76
-		T_INTEGER			-					;-- 77
-		T_FLOAT				-					;-- 78
-		T_FLOAT_SP			-					;-- 79
-		T_TUPLE				-					;-- 80
-		T_DATE				-					;-- 81
-		T_PAIR				-					;-- 82
-		T_TIME				-					;-- 83
-		T_MONEY				-					;-- 84
-		T_TAG				-					;-- 85
-		T_URL				-					;-- 86
-		T_EMAIL				-					;-- 87
+		T_CMT				-					;-- 67
+		T_STRING			-					;-- 68
+		T_WORD				-					;-- 69
+		T_FILE				-					;-- 70
+		T_REFINE			-					;-- 71
+		T_BINARY			-					;-- 72
+		T_CHAR				-					;-- 73
+		T_ISSUE				-					;-- 74
+		T_PERCENT			-					;-- 75
+		T_INTEGER			-					;-- 76
+		T_FLOAT				-					;-- 77
+		T_FLOAT_SP			-					;-- 78
+		T_TUPLE				-					;-- 79
+		T_DATE				-					;-- 80
+		T_PAIR				-					;-- 81
+		T_TIME				-					;-- 82
+		T_MONEY				-					;-- 83
+		T_TAG				-					;-- 84
+		T_URL				-					;-- 85
+		T_EMAIL				-					;-- 86
+		T_HEX				-					;-- 87
 	]
 
 	CSV-table: %../docs/lexer/lexer-FSM.csv

@@ -694,6 +694,7 @@ words: context [
 	_scan:			as red-word! 0
 	_load:			as red-word! 0
 	_error:			as red-word! 0
+	_comment:		as red-word! 0
 	
 	errors: context [
 		_throw:		as red-word! 0
@@ -934,6 +935,7 @@ words: context [
 		_scan:			word/load "scan"
 		_load:			word/load "load"
 		_error:			word/load "error"
+		_comment:		word/load "comment"
 		
 		errors/throw:	 word/load "throw"
 		errors/note:	 word/load "note"
