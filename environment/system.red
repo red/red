@@ -405,9 +405,9 @@ system: context [
 		pre-load: none
 		
 		exit-states: [
-			eof error! block! block! paren! paren! string! string! string! word! file! refinement!
-			binary! char! map! any-type! issue! percent! integer! float! float! tuple! date! pair!
-			time! money! tag! url! email! path! hex comment
+			eof error! block! block! paren! paren! string! string! map! path! any-type!
+			hex comment string!	word! file! refinement!	binary! char! issue! percent!
+			integer! float! float! tuple! date! pair! time! money! tag! url! email! 
 		]
 	]
 	

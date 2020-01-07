@@ -691,8 +691,9 @@ words: context [
 	_write:			as red-word! 0
 	
 	;-- lexer events
-	scan:			as red-word! 0
-	load:			as red-word! 0
+	_scan:			as red-word! 0
+	_load:			as red-word! 0
+	_error:			as red-word! 0
 	
 	errors: context [
 		_throw:		as red-word! 0
@@ -930,8 +931,9 @@ words: context [
 		_write:			word/load "write"
 		
 		;-- lexer events
-		scan:			word/load "scan"
-		load:			word/load "load"
+		_scan:			word/load "scan"
+		_load:			word/load "load"
+		_error:			word/load "error"
 		
 		errors/throw:	 word/load "throw"
 		errors/note:	 word/load "note"

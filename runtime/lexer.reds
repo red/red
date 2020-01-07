@@ -442,16 +442,22 @@ lexer: context [
 		return: [logic!]
 		/local
 			len x y [integer!]
+			ser	  [red-series!]
 			res	  [red-value!]
 			blk	  [red-block!]
-			loop? [logic!]
+			cont? [logic!]
 	][
 		stack/mark-func words/_body	lex/fun-ptr/ctx		;@@ find something more adequate
-		stack/push as red-value! event
-		stack/push as red-value! lex/in-series
-		blk: as red-block! #get system/lexer/exit-states
-		either TYPE_OF(blk) <> TYPE_BLOCK [none/push][
-			stack/push block/rs-abs-at blk type - 1		;-- 1-base access
+		stack/push as red-value! event					;-- event
+		ser: as red-series! stack/push as red-value! lex/in-series ;-- input
+		
+		either any [event = words/_scan event = words/_error][;-- type
+			blk: as red-block! #get system/lexer/exit-states
+			either TYPE_OF(blk) <> TYPE_BLOCK [none/push][
+				stack/push block/rs-abs-at blk type - 1		;-- 1-based access
+			]
+		][
+			datatype/push type
 		]
 		either all [lex/in-series <> null TYPE_OF(lex/in-series) <> TYPE_BINARY][
 			x: count-chars lex/input s
@@ -460,16 +466,17 @@ lexer: context [
 			x: as-integer s - lex/input
 			y: as-integer e - lex/input
 		]
-		pair/push x + 1 y + 1 							;-- 1-base series positions
-		either null? value [none/push][stack/push value]
-		if lex/fun-locs > 0 [_function/init-locals 1 + lex/fun-locs]	;-- +1 for /local refinement
+		ser/head: y										;-- 0-based offset
+		integer/push lex/line							;-- line number
+		either null? value [pair/push x + 1 y + 1][stack/push value] ;-- token
 
+		if lex/fun-locs > 0 [_function/init-locals 1 + lex/fun-locs]	;-- +1 for /local refinement
 		catch RED_THROWN_ERROR [_function/call lex/fun-ptr global-ctx]	;FIXME: hardcoded origin context
 		if system/thrown <> 0 [re-throw]
 
-		loop?: logic/top-true?
+		cont?: logic/top-true?
 		stack/unwind
-		loop?
+		cont?
 	]
 	
 	mark-buffers: func [/local s [state!]][
@@ -892,11 +899,13 @@ lexer: context [
 			type [integer!]
 	][
 		type: either s/1 = #"(" [TYPE_PAREN][TYPE_BLOCK]
+		if lex/fun-ptr <> null [fire-event lex words/_open type null s e]
 		open-block lex type -1 null
 		lex/in-pos: e + 1								;-- skip delimiter
 	]
 
 	scan-block-close: func [lex [state!] s e [byte-ptr!] flags [integer!]][
+		if lex/fun-ptr <> null [fire-event lex words/_close TYPE_BLOCK null s e]
 		close-block lex s e TYPE_BLOCK -1
 		lex/in-pos: e + 1								;-- skip ]
 	]
@@ -905,6 +914,7 @@ lexer: context [
 		/local
 			blk	 [red-block!]
 	][
+		if lex/fun-ptr <> null [fire-event lex words/_open TYPE_PAREN null s e]
 		if TYPE_MAP = close-block lex s e TYPE_PAREN -1 [
 			blk: as red-block! lex/tail - 1
 			map/make-at as cell! blk blk block/rs-length? blk
@@ -1073,20 +1083,27 @@ lexer: context [
 		lex/mstr-flags: lex/mstr-flags or flags
 		lex/entry: S_M_STRING
 		lex/in-pos: e + 1								;-- skip {
+		if lex/fun-ptr <> null [fire-event lex words/_open TYPE_STRING null s e]
 	]
 	
 	scan-mstring-close: func [lex [state!] s e [byte-ptr!] flags [integer!]][
 		lex/mstr-nest: lex/mstr-nest - 1
 
 		either zero? lex/mstr-nest [
+			if lex/fun-ptr <> null [fire-event lex words/_close TYPE_STRING null s e]
 			scan-string lex lex/mstr-s e lex/mstr-flags or flags
 			lex/mstr-s: null
 			lex/mstr-flags: 0
 			lex/entry: S_START
+			lex/in-pos: e + 1								;-- skip }
+			
+			if lex/fun-ptr <> null [
+				unless fire-event lex words/_load TYPE_STRING lex/tail - 1 s lex/in-pos [lex/tail: lex/tail - 1]
+			]
 		][
 			if e + 1 = lex/in-end [throw-error lex s e TYPE_STRING]
+			lex/in-pos: e + 1								;-- skip }
 		]
-		lex/in-pos: e + 1								;-- skip }
 	]
 	
 	scan-word: func [lex [state!] s e [byte-ptr!] flags [integer!]
@@ -1762,11 +1779,10 @@ lexer: context [
 		one? [logic!]
 		/local
 			cp class index state prev flags line mark offset [integer!]
-			slot	  [red-value!]
-			p e	start [byte-ptr!]
-			s		  [series!]
-			term?	  [logic!]
-			do-scan   [scanner!]
+			p e	start s [byte-ptr!]
+			slot		[cell!]
+			term? load?	[logic!]
+			do-scan		[scanner!]
 	][
 		line: 1
 		until [
@@ -1799,8 +1815,9 @@ lexer: context [
 				state: as-integer transitions/index
 				#if debug? = yes [if verbose > 0 [?? state]]
 			]
-			assert state <= T_CMT
-			assert start + offset <= p
+			s: start + offset
+			assert state <= T_EMAIL
+			assert s <= p
 			
 			lex/in-pos: p
 			lex/line:   line
@@ -1808,14 +1825,21 @@ lexer: context [
 			lex/exit:   state
 			lex/prev:	prev
 			lex/type:	-1
+			load?:		yes
 			
 			index: state - --EXIT_STATES--
-			if lex/fun-ptr <> null [fire-event lex words/scan index null start + offset lex/in-pos]
-			do-scan: as scanner! scanners/index
-			do-scan lex start + offset p flags
-			
-			if all [lex/entry = S_PATH state <> T_PATH][
-				scan-path-item lex start + offset lex/in-pos flags ;-- lex/in-pos could have changed
+			if lex/fun-ptr <> null [load?: fire-event lex words/_scan index null s lex/in-pos]
+			if load? [
+				do-scan: as scanner! scanners/index
+				do-scan lex s p flags
+
+				if all [state >= T_STRING lex/fun-ptr <> null][ ;-- for < T_STRING, events are triggered from scan-*
+					slot: lex/tail - 1
+					unless fire-event lex words/_load TYPE_OF(slot) slot s lex/in-pos [lex/tail: slot]
+				]
+				if all [lex/entry = S_PATH state <> T_PATH][
+					scan-path-item lex s lex/in-pos flags	;-- lex/in-pos could have changed
+				]
 			]
 			if all [one? state <> T_BLK_OP state <> T_PAR_OP state <> T_MSTR_OP][exit]
 			lex/in-pos >= lex/in-end
@@ -1940,16 +1964,19 @@ lexer: context [
 			:scan-block-close							;-- T_BLK_CL
 			:scan-block-open							;-- T_PAR_OP
 			:scan-paren-close							;-- T_PAR_CL
-			:scan-string								;-- T_STRING
 			:scan-mstring-open							;-- T_MSTR_OP (multiline string)
 			:scan-mstring-close							;-- T_MSTR_CL (multiline string)
+			:scan-map-open								;-- T_MAP_OP
+			:scan-path-open								;-- T_PATH
+			:scan-construct								;-- T_CONS_MK
+			:scan-hex									;-- T_HEX
+			:scan-comment								;-- T_CMT
+			:scan-string								;-- T_STRING
 			:scan-word									;-- T_WORD
 			:scan-file									;-- T_FILE
 			:scan-ref-issue								;-- T_REFINE
 			:scan-binary								;-- T_BINARY
 			:scan-char									;-- T_CHAR
-			:scan-map-open								;-- T_MAP_OP
-			:scan-construct								;-- T_CONS_MK
 			:scan-ref-issue								;-- T_ISSUE
 			:scan-percent								;-- T_PERCENT
 			:scan-integer								;-- T_INTEGER
@@ -1963,9 +1990,6 @@ lexer: context [
 			:scan-tag									;-- T_TAG
 			:scan-url									;-- T_URL
 			:scan-email									;-- T_EMAIL
-			:scan-path-open								;-- T_PATH
-			:scan-hex									;-- T_HEX
-			:scan-comment								;-- T_CMT
 		]
 	]
 

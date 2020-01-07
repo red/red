@@ -921,8 +921,8 @@ transcode: make native! [[
 				event	[word!]
 				input	[binary! string!]
 				type	[word! datatype!]
-				range	[pair!]
-				value	[any-type!]
+				line	[integer!]
+				token
 				return: [logic!]
 			]]
 		return: [block!]
