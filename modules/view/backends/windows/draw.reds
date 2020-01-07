@@ -82,11 +82,23 @@ calc-brush-position: func [
 	;-- apply matrix transformation
 	b: as ID2D1Brush brush/vtbl
 	b/GetTransform brush :m
-	t1: upper-x - offset/x
-	t2: upper-y - offset/y
-	offset/x: t1
-	offset/y: t2
-	matrix2d/translate :m t1 t2 :result no
+	offset/x: upper-x
+	offset/y: upper-y
+	matrix2d/translate :m upper-x upper-y :result no
+	b/SetTransform brush :result
+]
+
+post-process-brush: func [
+	brush		[this!]
+	offset		[POINT_2F]
+	/local
+		b		[ID2D1Brush]
+		m		[D2D_MATRIX_3X2_F value]
+		result	[D2D_MATRIX_3X2_F value]
+][
+	b: as ID2D1Brush brush/vtbl
+	b/GetTransform brush :m
+	matrix2d/translate :m (F32_0) - offset/x (F32_0) - offset/y :result no
 	b/SetTransform brush :result
 ]
 
@@ -113,6 +125,7 @@ draw-geometry: func [
 			ctx/brush-offset
 			bounds/left bounds/top bounds/right bounds/bottom
 		dc/FillGeometry this path ctx/brush null
+		post-process-brush ctx/brush ctx/brush-offset
 	][
 		if ctx/brush-type <> DRAW_BRUSH_NONE [
 			dc/FillGeometry this path ctx/brush null
@@ -129,6 +142,7 @@ draw-geometry: func [
 			ctx/pen-offset
 			bounds/left bounds/top bounds/right bounds/bottom
 		dc/DrawGeometry this path ctx/pen ctx/pen-width ctx/pen-style
+		post-process-brush ctx/pen ctx/pen-offset
 	][
 		if ctx/pen-type <> DRAW_BRUSH_NONE [
 			dc/DrawGeometry this path ctx/pen ctx/pen-width ctx/pen-style
@@ -816,9 +830,10 @@ OS-draw-line: func [
 				ctx/pen-grad-type
 				ctx/pen-offset
 				as float32! pt0/x as float32! pt0/y as float32! pt1/x as float32! pt1/y
+			post-process-brush ctx/pen ctx/pen-offset
 		]
 		if ctx/pen-type <> DRAW_BRUSH_NONE [
-			dc/DrawLine
+			dc/DrawLine 
 				this
 				as float32! pt0/x as float32! pt0/y
 				as float32! pt1/x as float32! pt1/y
@@ -898,7 +913,8 @@ OS-draw-box: func [
 			ctx/brush-grad-type
 			ctx/brush-offset
 			rc/left rc/top rc/right rc/bottom
-		dc/FillRectangle this rc ctx/brush 
+		dc/FillRectangle this rc ctx/brush
+		post-process-brush ctx/brush ctx/brush-offset
 	][
 		if ctx/brush-type <> DRAW_BRUSH_NONE [
 			dc/FillRectangle this rc ctx/brush 
@@ -911,6 +927,7 @@ OS-draw-box: func [
 			ctx/pen-offset
 			rc/left rc/top rc/right rc/bottom
 		dc/DrawRectangle this rc ctx/pen ctx/pen-width ctx/pen-style
+		post-process-brush ctx/pen ctx/pen-offset
 	][
 		if ctx/pen-type <> DRAW_BRUSH_NONE [
 			dc/DrawRectangle this rc ctx/pen ctx/pen-width ctx/pen-style
@@ -1100,6 +1117,7 @@ do-draw-ellipse: func [
 			ctx/brush-offset
 			cx cy cx + dx cy + dy
 		dc/FillEllipse this ellipse ctx/brush
+		post-process-brush ctx/brush ctx/brush-offset
 	][
 		if ctx/brush-type <> DRAW_BRUSH_NONE [
 			dc/FillEllipse this ellipse ctx/brush
@@ -1112,6 +1130,7 @@ do-draw-ellipse: func [
 			ctx/pen-offset
 			cx cy cx + dx cy + dy
 		dc/DrawEllipse this ellipse ctx/pen ctx/pen-width ctx/pen-style
+		post-process-brush ctx/pen ctx/pen-offset
 	][
 		if ctx/pen-type <> DRAW_BRUSH_NONE [
 			dc/DrawEllipse this ellipse ctx/pen ctx/pen-width ctx/pen-style
@@ -1930,7 +1949,7 @@ OS-matrix-skew: func [
 		brush	[ID2D1Brush]
 ][
 	x: get-float32 sx
-	y: F32_0 - get-float32 sy
+	y: get-float32 sy
 	either pen-fill = -1 [
 		this: as this! ctx/dc
 		dc: as ID2D1DeviceContext this/vtbl
