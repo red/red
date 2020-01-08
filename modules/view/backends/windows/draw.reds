@@ -284,7 +284,7 @@ draw-end: func [
 			DXGI_ERROR_DEVICE_RESET [
 				d2d-release-target rt
 				ctx/dc: null
-				SetWindowLong hWnd wc-offset - 24 0
+				SetWindowLong hWnd wc-offset - 32 0
 				DX-create-dev
 				InvalidateRect hWnd null 0
 			]
@@ -830,7 +830,6 @@ OS-draw-line: func [
 				ctx/pen-grad-type
 				ctx/pen-offset
 				as float32! pt0/x as float32! pt0/y as float32! pt1/x as float32! pt1/y
-			post-process-brush ctx/pen ctx/pen-offset
 		]
 		if ctx/pen-type <> DRAW_BRUSH_NONE [
 			dc/DrawLine 
@@ -840,6 +839,9 @@ OS-draw-line: func [
 				ctx/pen
 				ctx/pen-width
 				ctx/pen-style
+		]
+		if ctx/pen-type > DRAW_BRUSH_GRADIENT [
+			post-process-brush ctx/pen ctx/pen-offset
 		]
 	][
 		_OS-draw-polygon ctx point end no

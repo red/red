@@ -13,9 +13,9 @@ Red/System [
 ;; ===== Extra slots usage in Window structs =====
 ;;
 ;;		-60  :							<- TOP
+;;		-32  : Direct2D render target
 ;;		-28  : Cursor handle
-;;		-24  : Direct2D target interface
-;;			   base-layered: caret's owner handle
+;;		-24  : base-layered: caret's owner handle
 ;;		-20  : evolved-base-layered: child handle, window: previous focused handle
 ;;		-16  : base-layered: owner handle, window: border width and height
 ;;		-12  : base-layered: clipped? flag, caret? flag, d2d? flag, ime? flag
@@ -626,17 +626,10 @@ free-faces: func [
 			]
 		]
 		any [sym = window sym = panel sym = base sym = rich-text][
-			if zero? (WS_EX_LAYERED and GetWindowLong handle GWL_EXSTYLE) [
-				dc: GetWindowLong handle wc-offset - 4
-				if dc <> 0 [DeleteDC as handle! dc]			;-- delete cached dc
-			]
-			dc: GetWindowLong handle wc-offset - 24
-			if dc <> 0 [
-				either (GetWindowLong handle wc-offset - 12) and BASE_FACE_IME <> 0 [
-					d2d-release-target as render-target! dc
-				][											;-- caret
-					DestroyCaret
-				]
+			dc: GetWindowLong handle wc-offset - 32
+			if dc <> 0 [d2d-release-target as render-target! dc]
+			if (GetWindowLong handle wc-offset - 12) and BASE_FACE_IME <> 0 [
+				DestroyCaret
 			]
 		]
 		true [
@@ -907,7 +900,7 @@ init-window: func [										;-- post-creation settings
 ][
 	SetWindowLong handle wc-offset - 4 0
 	SetWindowLong handle wc-offset - 16 0
-	SetWindowLong handle wc-offset - 24 0
+	SetWindowLong handle wc-offset - 32 0
 ]
 
 get-selected-handle: func [
@@ -1569,7 +1562,7 @@ OS-make-view: func [
 		]
 		panel? [
 			adjust-parent handle as handle! parent offset/x offset/y
-			SetWindowLong handle wc-offset - 24 0
+			SetWindowLong handle wc-offset - 32 0
 		]
 		sym = slider [
 			vertical?: size/y > size/x

@@ -36,6 +36,7 @@ init-base-face: func [
 	SetWindowLong handle wc-offset - 16 parent
 	SetWindowLong handle wc-offset - 20 0
 	SetWindowLong handle wc-offset - 24 0
+	SetWindowLong handle wc-offset - 32 0
 	pt/x: dpi-scale offset/x
 	pt/y: dpi-scale offset/y
 	either alpha? [
@@ -464,7 +465,7 @@ BaseWndProc: func [
 					update-base hWnd null null get-face-values hWnd
 				]
 			][
-				target: as render-target! GetWindowLong hWnd wc-offset - 24
+				target: as render-target! GetWindowLong hWnd wc-offset - 32
 				if target <> null [
 					DX-resize-buffer target WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
 					InvalidateRect hWnd null 1

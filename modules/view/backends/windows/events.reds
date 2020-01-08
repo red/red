@@ -978,10 +978,10 @@ update-window: func [
 					type = rich-text
 					(GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D <> 0
 				][
-					len: GetWindowLong hWnd wc-offset - 24
+					len: GetWindowLong hWnd wc-offset - 32
 					if len <> 0 [
 						d2d-release-target as render-target! len
-						SetWindowLong hWnd wc-offset - 24 0
+						SetWindowLong hWnd wc-offset - 32 0
 					]
 				]
 				type = group-box [
@@ -1089,7 +1089,7 @@ WndProc: func [
 		WM_MOVE
 		WM_SIZE [
 			if (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D <> 0 [
-				target: as render-target! GetWindowLong hWnd wc-offset - 24
+				target: as render-target! GetWindowLong hWnd wc-offset - 32
 				if target <> null [
 					DX-resize-buffer target WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
 					InvalidateRect hWnd null 1
@@ -1412,9 +1412,9 @@ WndProc: func [
 			if hidden-hwnd <> null [
 				values: (get-face-values hidden-hwnd) + FACE_OBJ_EXT3
 				values/header: TYPE_NONE
-				target: as render-target! GetWindowLong hidden-hwnd wc-offset - 24
+				target: as render-target! GetWindowLong hidden-hwnd wc-offset - 32
 				if target <> null [d2d-release-target target]
-				SetWindowLong hidden-hwnd wc-offset - 24 0
+				SetWindowLong hidden-hwnd wc-offset - 32 0
 			]
 			RedrawWindow hWnd null null 4 or 1			;-- RDW_ERASE | RDW_INVALIDATE
 		]
