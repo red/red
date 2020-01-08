@@ -171,7 +171,9 @@ draw-begin: func [
 		values	[red-value!]
 		clr		[red-tuple!]
 		text	[red-string!]
+		red-img [red-image!]
 		pos		[red-pair! value]
+		pos2	[red-pair!]
 		bmp		[ptr-value!]
 		wic-bmp	[this!]
 		IUnk	[IUnknown]
@@ -242,10 +244,16 @@ draw-begin: func [
 			dc/Clear this to-dx-color bg-clr null
 		]
 
+		red-img: as red-image! values + FACE_OBJ_IMAGE
+		if TYPE_OF(red-img) = TYPE_IMAGE [
+			pos2: as red-pair! values + FACE_OBJ_SIZE
+			OS-draw-image ctx red-img null pos2 null no null null
+		]
+
 		text: as red-string! values + FACE_OBJ_TEXT
 		if TYPE_OF(text) = TYPE_STRING [
 			pos/x: 0 pos/y: 0
-			OS-draw-text ctx pos as red-string! get-face-obj hWnd yes
+			OS-draw-text ctx :pos as red-string! get-face-obj hWnd yes
 		]
 	]
 	ctx
@@ -1522,7 +1530,10 @@ OS-draw-image: func [
 			dst*/bottom: as float32! y + height
 			dst: :dst*
 		]
-		start + 1 = end [					;-- two control points
+		any [					;-- two control points
+			start + 1 = end
+			all [null? start end <> null]
+		][
 			dst*/left: as float32! x
 			dst*/top: as float32! y
 			dst*/right: as float32! end/x

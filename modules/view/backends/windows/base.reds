@@ -765,29 +765,53 @@ update-base: func [
 	sz:		as red-pair!   values + FACE_OBJ_SIZE
 	width: dpi-scale sz/x
 	height: dpi-scale sz/y
+	ptSrc/x: 0
+	ptSrc/y: 0
+	size: as tagSIZE :width
+	bf/BlendOp: as-byte 0
+	bf/BlendFlags: as-byte 0
+	bf/SourceConstantAlpha: as-byte 255
+	bf/AlphaFormat: as-byte 1
+	flags: 2
 
-	system/thrown: 0
-	catch RED_THROWN_ERROR [
-		draw-begin ctx hWnd as red-image! :pdc yes yes
-		if TYPE_OF(cmds) = TYPE_BLOCK [parse-draw ctx cmds yes]
+	either TYPE_OF(cmds) = TYPE_BLOCK [
+		system/thrown: 0
+		catch RED_THROWN_ERROR [
+			draw-begin ctx hWnd as red-image! :pdc yes yes
+			parse-draw ctx cmds yes
 
-		this: pdc/value
-		rt-dc: as ID2D1GdiInteropRenderTarget this/vtbl
-		rt-dc/GetDC this 0 :hdc
-		ptSrc/x: 0
-		ptSrc/y: 0
-		size: as tagSIZE :width
-		bf/BlendOp: as-byte 0
-		bf/BlendFlags: as-byte 0
-		bf/SourceConstantAlpha: as-byte 255
-		bf/AlphaFormat: as-byte 1
-		flags: 2
-		UpdateLayeredWindow hWnd null ptDst size hdc/value :ptSrc 0 :bf flags
-		rt-dc/ReleaseDC this null
+			this: pdc/value
+			rt-dc: as ID2D1GdiInteropRenderTarget this/vtbl
+			rt-dc/GetDC this 0 :hdc
+			UpdateLayeredWindow hWnd null ptDst size hdc/value :ptSrc 0 :bf flags
+			rt-dc/ReleaseDC this null
 
-		draw-end ctx hWnd yes no yes
+			draw-end ctx hWnd yes no yes
+		]
+		system/thrown: 0
+	][
+		img:	as red-image!  values + FACE_OBJ_IMAGE
+		color:	as red-tuple!  values + FACE_OBJ_COLOR
+		text:	as red-string! values + FACE_OBJ_TEXT
+		font:	as red-object! values + FACE_OBJ_FONT
+		para:	as red-object! values + FACE_OBJ_PARA
+		graphic: 0
+		hBackDC: CreateCompatibleDC hScreen
+		hBitmap: CreateCompatibleBitmap hScreen width height
+		SelectObject hBackDC hBitmap
+		GdipCreateFromHDC hBackDC :graphic
+
+		if TYPE_OF(color) = TYPE_TUPLE [		;-- update background
+			update-base-background graphic color width height
+		]
+		GdipSetSmoothingMode graphic GDIPLUS_ANTIALIAS
+		update-base-image graphic img width height
+		update-base-text hWnd graphic hBackDC text font para width height null
+		UpdateLayeredWindow hWnd null ptDst size hBackDC :ptSrc 0 :bf flags
+		GdipDeleteGraphics graphic
+		DeleteObject hBitmap
+		DeleteDC hBackDC
 	]
-	system/thrown: 0
 ]
 
 
