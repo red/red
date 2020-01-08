@@ -271,14 +271,6 @@ lexer: context [
 		LEX_INT_OVERFLOW: -5
 	]
 	
-	#enum events! [
-		EVT_SCAN										;-- after a token has been extracted
-		EVT_LOAD										;-- after a token has been converted to a Red value
-		EVT_OPEN										;-- when a nested any-block or map is opened
-		EVT_CLOSE										;-- when a nested any-block or map is closed
-		EVT_ERROR										;-- when a scanning error occurs
-	]
-	
 	state!: alias struct! [
 		next		[state!]							;-- link to next state! structure (recursive calls)
 		buffer		[red-value!]						;-- static or dynamic stash buffer (recursive calls)
@@ -305,17 +297,16 @@ lexer: context [
 	
 	scanner!: alias function! [lex [state!] s e [byte-ptr!] flags [integer!]]
 
-	utf8-bufsize: 100'000
-	utf8-buffer: as byte-ptr! 0
-	scanners: as int-ptr! 0								;-- scan functions jump table (dynamically filled)
-	stash: as cell! 0									;-- special buffer for hatching any-blocks series
-	stash-size: 1000									;-- pre-allocated cells	number
-	root-state: as state! 0								;-- global entry point to state struct list
-	depth: 0											;-- recursive calls depth
+	utf8-bufsize:	100'000
+	utf8-buffer:	as byte-ptr! 0
+	scanners:		as int-ptr! 0						;-- scan functions jump table (dynamically filled)
+	stash:			as cell! 0							;-- special buffer for hatching any-blocks series
+	stash-size:		1000								;-- pre-allocated cells	number
+	root-state:		as state! 0							;-- global entry point to state struct list
+	depth:			0									;-- recursive calls depth
 	
 	min-integer: as byte-ptr! "-2147483648"				;-- used in scan-integer
 	flags-LG: C_FLAG_LESSER or C_FLAG_GREATER
-	
 
 	throw-error: func [lex [state!] s e [byte-ptr!] type [integer!]
 		/local
