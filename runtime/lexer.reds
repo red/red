@@ -262,69 +262,6 @@ lexer: context [
 		C_ILLEGAL C_ILLEGAL C_ILLEGAL C_ILLEGAL 		;-- F9-FC
 		C_ILLEGAL C_ILLEGAL C_ILLEGAL			 		;-- FD-FF
 	]
-
-	;; For UTF-8 decoding, uses DFA algorithm: http://bjoern.hoehrmann.de/utf-8/decoder/dfa/#variations
-	
-	utf8d: #{
-		0000000000000000000000000000000000000000000000000000000000000000
-		0000000000000000000000000000000000000000000000000000000000000000
-		0000000000000000000000000000000000000000000000000000000000000000
-		0000000000000000000000000000000000000000000000000000000000000000
-		0101010101010101010101010101010109090909090909090909090909090909
-		0707070707070707070707070707070707070707070707070707070707070707
-		0808020202020202020202020202020202020202020202020202020202020202
-		0A0303030303030303030303030403030B060606050808080808080808080808
-		000C18243C60540C0C0C30480C0C0C0C0C0C0C0C0C0C0C0C0C000C0C0C0C0C00
-		0C000C0C0C180C0C0C0C0C180C180C0C0C0C0C0C0C0C0C180C0C0C0C0C180C0C
-		0C0C0C0C0C180C0C0C0C0C0C0C0C0C240C240C0C0C240C0C0C0C0C240C240C0C
-		0C240C0C0C0C0C0C0C0C0C0C 
-	}
-	
-	decode-utf8-char: func [
-		p		[byte-ptr!]
-		cp		[int-ptr!]
-		return: [byte-ptr!]
-		/local
-			state byte idx type [integer!]
-	][
-		state: 0
-		forever [
-			byte: as-integer p/value
-			idx: byte + 1
-			type: as-integer utf8d/idx
-			
-			idx: 256 + state + type + 1
-			state: as-integer utf8d/idx
-			
-			switch state [
-				0 [										;-- ACCEPT
-					cp/value: FFh >> type and byte
-					return p + 1
-				]
-				12 [									;-- REJECT
-					cp/value: -1
-					return p
-				]
-				default [
-					cp/value: byte and 3Fh or (cp/value << 6)
-					p: p + 1
-				]
-			]
-		]
-		as byte-ptr! 0									;-- never reached, just make compiler happy
-	]
-	
-	;-- Count UTF-8 encoded characters between two positions in a binary buffer
-	count-chars: func [s e [byte-ptr!] return: [integer!]
-		/local c len [integer!]
-	][
-		c: len: 0
-		while [s < e][
-			s: lexer/decode-utf8-char s :len
-			c: c + 1
-		]
-		c
-	]
 	
 	#enum errors! [
 		ERR_BAD_CHAR: 	  -1
@@ -398,7 +335,7 @@ lexer: context [
 			]
 		]
 		p: s
-		while [all [p < e p/1 <> #"^/" s + 30 > p]][p: decode-utf8-char p :len]
+		while [all [p < e p/1 <> #"^/" s + 30 > p]][p: unicode/fast-decode-utf8-char p :len]
 		if p > e [p: e]
 		len: as-integer p - s
 		pos: string/load as-c-string s len UTF-8
@@ -460,8 +397,8 @@ lexer: context [
 			datatype/push type
 		]
 		either all [lex/in-series <> null TYPE_OF(lex/in-series) <> TYPE_BINARY][
-			x: count-chars lex/input s
-			y: x + count-chars s e
+			x: unicode/count-chars lex/input s
+			y: x + unicode/count-chars s e
 		][
 			x: as-integer s - lex/input
 			y: as-integer e - lex/input
@@ -922,6 +859,118 @@ lexer: context [
 		lex/in-pos: e + 1								;-- skip )
 	]
 
+	scan-mstring-open: func [lex [state!] s e [byte-ptr!] flags [integer!]][
+		if zero? lex/mstr-nest [lex/mstr-s: s]
+		lex/mstr-nest: lex/mstr-nest + 1
+		lex/mstr-flags: lex/mstr-flags or flags
+		lex/entry: S_M_STRING
+		lex/in-pos: e + 1								;-- skip {
+		if lex/fun-ptr <> null [fire-event lex words/_open TYPE_STRING null s e]
+	]
+	
+	scan-mstring-close: func [lex [state!] s e [byte-ptr!] flags [integer!]][
+		lex/mstr-nest: lex/mstr-nest - 1
+
+		either zero? lex/mstr-nest [
+			if lex/fun-ptr <> null [fire-event lex words/_close TYPE_STRING null s e]
+			scan-string lex lex/mstr-s e lex/mstr-flags or flags
+			lex/mstr-s: null
+			lex/mstr-flags: 0
+			lex/entry: S_START
+			lex/in-pos: e + 1								;-- skip }
+			
+			if lex/fun-ptr <> null [
+				unless fire-event lex words/_load TYPE_STRING lex/tail - 1 s lex/in-pos [lex/tail: lex/tail - 1]
+			]
+		][
+			if e + 1 = lex/in-end [throw-error lex s e TYPE_STRING]
+			lex/in-pos: e + 1								;-- skip }
+		]
+	]
+	
+	scan-map-open: func [lex [state!] s e [byte-ptr!] flags [integer!]][
+		open-block lex TYPE_PAREN TYPE_MAP null
+		lex/in-pos: e + 1								;-- skip (
+	]
+	
+	scan-path-open: func [lex [state!] s e [byte-ptr!] flags [integer!]
+		/local
+			pos  [byte-ptr!]
+			type [integer!]
+	][
+		pos: s
+		type: switch s/1 [
+			#"'" [s: s + 1 flags: flags and not C_FLAG_QUOTE TYPE_LIT_PATH]
+			#":" [s: s + 1 flags: flags and not C_FLAG_COLON TYPE_GET_PATH]
+			default [TYPE_PATH]
+		]
+		open-block lex type -1 pos						;-- open a new path series
+		scan-word lex s e flags							;-- load the head word
+		lex/entry: S_PATH								;-- overwrites the S_START set by open-block
+		lex/in-pos: e + 1								;-- skip /
+	]
+
+	scan-path-item: func [lex [state!] s e [byte-ptr!] flags [integer!]
+		/local
+			type	[integer!]
+			cp		[integer!]
+			index	[integer!]
+			close?	[logic!]
+	][
+		close?: either e >= lex/in-end [yes][			;-- EOF reached
+			cp: as-integer e/1
+			index: lex-classes/cp and FFh + 1			;-- query the class of ending character
+			as-logic path-ending/index					;-- lookup if the character class is ending path
+		]
+
+		either close? [
+			type: either all [e < lex/in-end e/1 = #":"][
+				if all [e + 1 < lex/in-end e/2 = #"/"][ ;-- detect :/ illegal sequence
+					throw-error lex null e TYPE_PATH
+				]
+				lex/in-pos: e + 1						;-- skip :
+				TYPE_SET_PATH
+			][-1]
+			close-block lex s e -1 type
+		][
+			if e + 1 = lex/in-end [throw-error lex null e TYPE_PATH] ;-- incomplete path error
+			if e/1 = #":" [throw-error lex null e TYPE_PATH] ;-- set-words not allowed inside paths
+			lex/in-pos: e + 1							;-- skip /
+		]
+	]
+			
+	scan-comment: func [lex [state!] s e [byte-ptr!] flags [integer!]][
+		if lex/fun-ptr <> null [fire-event lex words/_open T_CMT - --EXIT_STATES-- null s e]
+	]
+
+	scan-construct: func [lex [state!] s e [byte-ptr!] flags [integer!]
+		/local
+			dt		[red-datatype!]
+			len		[integer!]
+			p dtypes end [int-ptr!]
+	][
+		s: s + 2										;-- skip #[
+		p: cons-syntax
+		dtypes: p + (3 * 2)
+		end: p + size? cons-syntax						;-- point to end of array
+		loop 4 [
+			if zero? platform/strnicmp s as byte-ptr! p/1 p/2 [break]
+			p: p + 3
+		]
+		if p = end [throw-error lex s e ERR_MALCONSTRUCT] ;-- no match, error case
+		len: p/2 + 1
+		if s/len <> #"]" [throw-error lex s e ERR_MALCONSTRUCT]
+
+		dt: as red-datatype! alloc-slot lex
+		either p < dtypes [
+			set-type as cell! dt TYPE_LOGIC
+			dt/value: p/3
+		][
+			set-type as cell! dt p/3
+		]
+		lex/in-pos: e + 1								;-- skip ]
+	]
+	
 	scan-string: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
 			len unit index class digits extra cp type [integer!]
@@ -947,7 +996,7 @@ lexer: context [
 					cp: -1
 					p: as byte-ptr! ser/offset
 					while [s < e][
-						s: decode-utf8-char s :cp
+						s: unicode/fast-decode-utf8-char s :cp
 						if cp = -1 [throw-error lex s e type]
 						p/1: as-byte cp and FFh
 						p/2: as-byte cp >> 8
@@ -958,7 +1007,7 @@ lexer: context [
 					cp: -1
 					p4: as int-ptr! ser/offset
 					while [s < e][
-						s: decode-utf8-char s :cp
+						s: unicode/fast-decode-utf8-char s :cp
 						if cp = -1 [throw-error lex s e type]
 						p4/value: cp
 						p4: p4 + 1
@@ -1008,7 +1057,7 @@ lexer: context [
 				]
 			]
 			esc: either flags and C_FLAG_ESC_HEX = 0 [#"^^"][#"%"]
-			
+
 			str: string/make-at alloc-slot lex len - extra unit
 			ser: GET_BUFFER(str)
 			switch unit [
@@ -1042,7 +1091,7 @@ lexer: context [
 								scan-percent-char s + 1 e :cp
 							]
 						][
-							decode-utf8-char s :cp
+							unicode/fast-decode-utf8-char s :cp
 						]
 						if cp = -1 [throw-error lex s e type]
 						p/1: as-byte cp and FFh
@@ -1062,7 +1111,7 @@ lexer: context [
 								scan-percent-char s + 1 e :cp
 							]
 						][
-							decode-utf8-char s :cp
+							unicode/fast-decode-utf8-char s :cp
 						]
 						if cp = -1 [throw-error lex s e type]
 						p4/value: cp
@@ -1075,35 +1124,6 @@ lexer: context [
 		]
 		if type <> TYPE_STRING [set-type as cell! str type]
 		lex/in-pos: e + 1								;-- skip ending delimiter
-	]
-
-	scan-mstring-open: func [lex [state!] s e [byte-ptr!] flags [integer!]][
-		if zero? lex/mstr-nest [lex/mstr-s: s]
-		lex/mstr-nest: lex/mstr-nest + 1
-		lex/mstr-flags: lex/mstr-flags or flags
-		lex/entry: S_M_STRING
-		lex/in-pos: e + 1								;-- skip {
-		if lex/fun-ptr <> null [fire-event lex words/_open TYPE_STRING null s e]
-	]
-	
-	scan-mstring-close: func [lex [state!] s e [byte-ptr!] flags [integer!]][
-		lex/mstr-nest: lex/mstr-nest - 1
-
-		either zero? lex/mstr-nest [
-			if lex/fun-ptr <> null [fire-event lex words/_close TYPE_STRING null s e]
-			scan-string lex lex/mstr-s e lex/mstr-flags or flags
-			lex/mstr-s: null
-			lex/mstr-flags: 0
-			lex/entry: S_START
-			lex/in-pos: e + 1								;-- skip }
-			
-			if lex/fun-ptr <> null [
-				unless fire-event lex words/_load TYPE_STRING lex/tail - 1 s lex/in-pos [lex/tail: lex/tail - 1]
-			]
-		][
-			if e + 1 = lex/in-end [throw-error lex s e TYPE_STRING]
-			lex/in-pos: e + 1								;-- skip }
-		]
 	]
 	
 	scan-word: func [lex [state!] s e [byte-ptr!] flags [integer!]
@@ -1230,39 +1250,6 @@ lexer: context [
 		char/value: c
 		
 		lex/in-pos: e + 1								;-- skip "
-	]
-	
-	scan-map-open: func [lex [state!] s e [byte-ptr!] flags [integer!]][
-		open-block lex TYPE_PAREN TYPE_MAP null
-		lex/in-pos: e + 1								;-- skip (
-	]
-	
-	scan-construct: func [lex [state!] s e [byte-ptr!] flags [integer!]
-		/local
-			dt		[red-datatype!]
-			len		[integer!]
-			p dtypes end [int-ptr!]
-	][
-		s: s + 2										;-- skip #[
-		p: cons-syntax
-		dtypes: p + (3 * 2)
-		end: p + size? cons-syntax						;-- point to end of array
-		loop 4 [
-			if zero? platform/strnicmp s as byte-ptr! p/1 p/2 [break]
-			p: p + 3
-		]
-		if p = end [throw-error lex s e ERR_MALCONSTRUCT] ;-- no match, error case
-		len: p/2 + 1
-		if s/len <> #"]" [throw-error lex s e ERR_MALCONSTRUCT]
-		
-		dt: as red-datatype! alloc-slot lex
-		either p < dtypes [
-			set-type as cell! dt TYPE_LOGIC
-			dt/value: p/3
-		][
-			set-type as cell! dt p/3
-		]
-		lex/in-pos: e + 1								;-- skip ]
 	]
 	
 	scan-ref-issue: func [lex [state!] s e [byte-ptr!] flags [integer!]
@@ -1696,23 +1683,6 @@ lexer: context [
 		lex/in-pos: e 									;-- reset the input position to delimiter byte
 	]
 	
-	scan-path-open: func [lex [state!] s e [byte-ptr!] flags [integer!]
-		/local
-			pos  [byte-ptr!]
-			type [integer!]
-	][
-		pos: s
-		type: switch s/1 [
-			#"'" [s: s + 1 flags: flags and not C_FLAG_QUOTE TYPE_LIT_PATH]
-			#":" [s: s + 1 flags: flags and not C_FLAG_COLON TYPE_GET_PATH]
-			default [TYPE_PATH]
-		]
-		open-block lex type -1 pos						;-- open a new path series
-		scan-word lex s e flags							;-- load the head word
-		lex/entry: S_PATH								;-- overwrites the S_START set by open-block
-		lex/in-pos: e + 1								;-- skip /
-	]
-	
 	scan-hex: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
 			int		[red-integer!]
@@ -1738,39 +1708,6 @@ lexer: context [
 		set-type as cell! int TYPE_INTEGER
 		int/value: i
 		lex/in-pos: e + 1								;-- skip h
-	]
-	
-	scan-comment: func [lex [state!] s e [byte-ptr!] flags [integer!]][
-		if lex/fun-ptr <> null [fire-event lex words/_open T_CMT - --EXIT_STATES-- null s e]
-	]
-	
-	scan-path-item: func [lex [state!] s e [byte-ptr!] flags [integer!]
-		/local
-			type	[integer!]
-			cp		[integer!]
-			index	[integer!]
-			close?	[logic!]
-	][
-		close?: either e >= lex/in-end [yes][			;-- EOF reached
-			cp: as-integer e/1
-			index: lex-classes/cp and FFh + 1			;-- query the class of ending character
-			as-logic path-ending/index					;-- lookup if the character class is ending path
-		]
-		
-		either close? [
-			type: either all [e < lex/in-end e/1 = #":"][
-				if all [e + 1 < lex/in-end e/2 = #"/"][ ;-- detect :/ illegal sequence
-					throw-error lex null e TYPE_PATH
-				]
-				lex/in-pos: e + 1						;-- skip :
-				TYPE_SET_PATH
-			][-1]
-			close-block lex s e -1 type
-		][
-			if e + 1 = lex/in-end [throw-error lex null e TYPE_PATH] ;-- incomplete path error
-			if e/1 = #":" [throw-error lex null e TYPE_PATH] ;-- set-words not allowed inside paths
-			lex/in-pos: e + 1							;-- skip /
-		]
 	]
 
 	scan-tokens: func [

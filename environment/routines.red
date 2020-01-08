@@ -129,7 +129,7 @@ count-chars: routine [
 	tail: (as byte-ptr! s/offset) + pos/head
 	c: len: 0
 	while [p < tail][
-		p: lexer/decode-utf8-char p :len
+		p: unicode/fast-decode-utf8-char p :len
 		c: c + 1
 	]
 	c

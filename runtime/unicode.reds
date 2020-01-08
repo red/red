@@ -23,6 +23,68 @@ unicode: context [
 	;	3Fh				; U+003F = question mark
 	;	BFh				; U+00BF = inverted question mark
 	;	DC00h + b1		; U+DCxx where xx = b1 (never a Unicode codepoint)
+	
+	;; DFA algorithm: http://bjoern.hoehrmann.de/utf-8/decoder/dfa/#variations
+	utf8d: #{
+		0000000000000000000000000000000000000000000000000000000000000000
+		0000000000000000000000000000000000000000000000000000000000000000
+		0000000000000000000000000000000000000000000000000000000000000000
+		0000000000000000000000000000000000000000000000000000000000000000
+		0101010101010101010101010101010109090909090909090909090909090909
+		0707070707070707070707070707070707070707070707070707070707070707
+		0808020202020202020202020202020202020202020202020202020202020202
+		0A0303030303030303030303030403030B060606050808080808080808080808
+		000C18243C60540C0C0C30480C0C0C0C0C0C0C0C0C0C0C0C0C000C0C0C0C0C00
+		0C000C0C0C180C0C0C0C0C180C180C0C0C0C0C0C0C0C0C180C0C0C0C0C180C0C
+		0C0C0C0C0C180C0C0C0C0C0C0C0C0C240C240C0C0C240C0C0C0C0C240C240C0C
+		0C240C0C0C0C0C0C0C0C0C0C 
+	}
+
+	fast-decode-utf8-char: func [
+		p		[byte-ptr!]
+		cp		[int-ptr!]
+		return: [byte-ptr!]
+		/local
+			state byte idx type [integer!]
+	][
+		state: 0
+		forever [
+			byte: as-integer p/value
+			idx: byte + 1
+			type: as-integer utf8d/idx
+
+			idx: 256 + state + type + 1
+			state: as-integer utf8d/idx
+
+			switch state [
+				0 [										;-- ACCEPT
+					cp/value: FFh >> type and byte
+					return p + 1
+				]
+				12 [									;-- REJECT
+					cp/value: -1
+					return p
+				]
+				default [
+					cp/value: byte and 3Fh or (cp/value << 6)
+					p: p + 1
+				]
+			]
+		]
+		as byte-ptr! 0									;-- never reached, just make compiler happy
+	]
+
+	;-- Count UTF-8 encoded characters between two positions in a binary buffer
+	count-chars: func [s e [byte-ptr!] return: [integer!]
+		/local c len [integer!]
+	][
+		c: len: 0
+		while [s < e][
+			s: fast-decode-utf8-char s :len
+			c: c + 1
+		]
+		c
+	]
 
 	latin1-idx: [
 		0402h 0403h 201Ah 0453h 201Eh 2026h 2020h 2021h
