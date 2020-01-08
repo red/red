@@ -394,7 +394,7 @@ lexer: context [
 				stack/push block/rs-abs-at blk type - 1		;-- 1-based access
 			]
 		][
-			datatype/push type
+			either zero? type [none/push][datatype/push type]
 		]
 		either all [lex/in-series <> null TYPE_OF(lex/in-series) <> TYPE_BINARY][
 			x: unicode/count-chars lex/input s
@@ -481,6 +481,7 @@ lexer: context [
 			len [integer!]
 	][
 		if null? pos [pos: lex/in-pos]
+		if lex/fun-ptr <> null [unless fire-event lex words/_open type null pos pos [exit]]
 		len: (as-integer lex/tail - lex/head) >> 4
 		p: as red-point! alloc-slot lex
 		set-type as cell! p TYPE_POINT					;-- use the slot for stack info
@@ -504,13 +505,14 @@ lexer: context [
 			throw-error lex s e ERR_MISSING
 		]
 		p: as red-point! lex/head - 1
+		if lex/fun-ptr <> null [
+			type: either all [lex/buffer <= p TYPE_OF(p) = TYPE_POINT][p/y >> 16][0]
+			unless fire-event lex words/_close type null s e [return 0]
+		]
 		stype: p/y >> 16
 		unless all [lex/buffer <= p TYPE_OF(p) = TYPE_POINT][do-error]
-		either type = -1 [
-			type: either final = -1 [stype][final]
-		][
-			if stype <> type [do-error]
-		]
+		either type = -1 [type: either final = -1 [stype][final]][if stype <> type [do-error]]
+		
 		len: (as-integer lex/tail - lex/head) >> 4
 		lex/tail: lex/head
 		lex/head: as cell! p - p/x
@@ -821,6 +823,8 @@ lexer: context [
 	scan-eof: func [lex [state!] s e [byte-ptr!] flags [integer!]][]
 	
 	scan-error: func [lex [state!] s e [byte-ptr!] flags [integer!] /local type index [integer!]][
+		if lex/fun-ptr <> null [unless fire-event lex words/_error TYPE_ERROR null s e [exit]]
+		
 		either lex/prev < --EXIT_STATES-- [
 			index: lex/prev + 1
 			index: as-integer prev-table/index
@@ -831,18 +835,13 @@ lexer: context [
 		]
 	]
 	
-	scan-block-open: func [lex [state!] s e [byte-ptr!] flags [integer!]
-		/local
-			type [integer!]
-	][
+	scan-block-open: func [lex [state!] s e [byte-ptr!] flags [integer!] /local	type [integer!]][
 		type: either s/1 = #"(" [TYPE_PAREN][TYPE_BLOCK]
-		if lex/fun-ptr <> null [fire-event lex words/_open type null s e]
 		open-block lex type -1 null
 		lex/in-pos: e + 1								;-- skip delimiter
 	]
 
 	scan-block-close: func [lex [state!] s e [byte-ptr!] flags [integer!]][
-		if lex/fun-ptr <> null [fire-event lex words/_close TYPE_BLOCK null s e]
 		close-block lex s e TYPE_BLOCK -1
 		lex/in-pos: e + 1								;-- skip ]
 	]
@@ -851,7 +850,6 @@ lexer: context [
 		/local
 			blk	 [red-block!]
 	][
-		if lex/fun-ptr <> null [fire-event lex words/_open TYPE_PAREN null s e]
 		if TYPE_MAP = close-block lex s e TYPE_PAREN -1 [
 			blk: as red-block! lex/tail - 1
 			map/make-at as cell! blk blk block/rs-length? blk
@@ -860,32 +858,27 @@ lexer: context [
 	]
 
 	scan-mstring-open: func [lex [state!] s e [byte-ptr!] flags [integer!]][
+		if lex/fun-ptr <> null [fire-event lex words/_open TYPE_STRING null s e]
 		if zero? lex/mstr-nest [lex/mstr-s: s]
 		lex/mstr-nest: lex/mstr-nest + 1
 		lex/mstr-flags: lex/mstr-flags or flags
 		lex/entry: S_M_STRING
 		lex/in-pos: e + 1								;-- skip {
-		if lex/fun-ptr <> null [fire-event lex words/_open TYPE_STRING null s e]
 	]
 	
 	scan-mstring-close: func [lex [state!] s e [byte-ptr!] flags [integer!]][
+		if lex/fun-ptr <> null [fire-event lex words/_close TYPE_STRING null s e]
 		lex/mstr-nest: lex/mstr-nest - 1
 
 		either zero? lex/mstr-nest [
-			if lex/fun-ptr <> null [fire-event lex words/_close TYPE_STRING null s e]
 			scan-string lex lex/mstr-s e lex/mstr-flags or flags
 			lex/mstr-s: null
 			lex/mstr-flags: 0
 			lex/entry: S_START
-			lex/in-pos: e + 1								;-- skip }
-			
-			if lex/fun-ptr <> null [
-				unless fire-event lex words/_load TYPE_STRING lex/tail - 1 s lex/in-pos [lex/tail: lex/tail - 1]
-			]
 		][
 			if e + 1 = lex/in-end [throw-error lex s e TYPE_STRING]
-			lex/in-pos: e + 1								;-- skip }
 		]
+		lex/in-pos: e + 1								;-- skip }
 	]
 	
 	scan-map-open: func [lex [state!] s e [byte-ptr!] flags [integer!]][
