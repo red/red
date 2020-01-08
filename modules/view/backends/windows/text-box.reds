@@ -319,7 +319,7 @@ OS-text-box-layout: func [
 			]
 			hWnd: hidden-hwnd
 		]
-		target: get-hwnd-render-target hWnd
+		target: get-hwnd-render-target hWnd no
 	]
 
 	either TYPE_OF(state) = TYPE_BLOCK [

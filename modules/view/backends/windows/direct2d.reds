@@ -42,6 +42,7 @@ IID_ID2D1Factory1:		 [BB12D362h 4B9ADAEEh BA141DAAh 1FFA1C40h]
 IID_IDWriteFactory:		 [B859EE5Ah 4B5BD838h DC1AE8A2h 48DB937Dh]
 IID_IDXGIFactory2:		 [50C83A1Ch 4C48E072h 3036B087h D0A636FAh]
 IID_IDCompositionDevice: [C37EA93Ah 450DE7AAh 46976FB1h F30704CBh]
+IID_IDGdiInterop: 		 [E0DB51C3h 4BAE6F77h 75E4D5B3h 3858B309h]
 CLSID_D2D1UnPremultiply: [FB9AC489h 41EDAD8Dh 63BB9999h F710D147h]
 
 D2D1_FACTORY_OPTIONS: alias struct! [
@@ -794,7 +795,7 @@ DrawBitmap*: alias function! [
 ]
 
 #define ID2D1RenderTarget [
-	QueryInterface					[QueryInterface!]
+	QueryInterface					[function! [this [this!] riid [int-ptr!] ppvObject [com-ptr!] return: [integer!]]]
 	AddRef							[AddRef!]
 	Release							[Release!]
 	GetFactory						[integer!]
@@ -890,6 +891,14 @@ ID2D1DeviceContext: alias struct! [
     GetEffectInvalidRectangles		[integer!]
     GetEffectRequiredInputRectangles [integer!]
     FillOpacityMask2				[integer!]
+]
+
+ID2D1GdiInteropRenderTarget: alias struct! [
+	QueryInterface					[QueryInterface!]
+	AddRef							[AddRef!]
+	Release							[Release!]
+	GetDC							[function! [this [this!] mode [integer!] hDC [ptr-ptr!] return: [integer!]]]
+	ReleaseDC						[function! [this [this!] update [RECT_STRUCT] return: [integer!]]]
 ]
 
 ID2D1HwndRenderTarget: alias struct! [
@@ -1626,6 +1635,22 @@ create-render-target: func [
 	rt
 ]
 
+create-bitmap-target: func [
+	hWnd		[handle!]
+	rt			[render-target!]
+	/local
+		rc		[RECT_STRUCT value]
+		this	[this!]
+		unk		[IUnknown]
+		d2d		[ID2D1DeviceContext]
+][
+	GetClientRect hWnd :rc
+
+	d2d: as ID2D1DeviceContext d2d-ctx/vtbl	
+	rt/dc: d2d-ctx
+	rt/bitmap: create-d2d-bitmap d2d-ctx rc/right - rc/left rc/bottom - rc/top 9
+]
+
 to-dx-color: func [
 	color	[integer!]
 	clr-ptr [D3DCOLORVALUE]
@@ -1706,15 +1731,20 @@ create-hwnd-render-target: func [
 ]
 
 get-hwnd-render-target: func [
-	hWnd	[handle!]
-	return:	[render-target!]
+	hWnd		[handle!]
+	layered?	[logic!]
+	return:		[render-target!]
 	/local
 		target	[render-target!]
 ][
 	target: as render-target! GetWindowLong hWnd wc-offset - 32
 	if null? target [
 		target: as render-target! alloc0 size? render-target!
-		create-render-target hWnd target
+		either layered? [
+			create-bitmap-target hwnd target
+		][
+			create-render-target hWnd target
+		]
 		target/brushes: as int-ptr! allocate D2D_MAX_BRUSHES * 2 * size? int-ptr!
 		SetWindowLong hWnd wc-offset - 32 as-integer target
 	]
@@ -2039,11 +2069,11 @@ render-target-lost?: func [
 	0 <> rt/EndDraw target null null
 ]
 
-create-bitmap: func [
+create-d2d-bitmap: func [
 	this	[this!]
 	width	[uint32!]
 	height	[uint32!]
-	format	[integer!]
+	options	[integer!]
 	return: [this!]
 	/local
 		dc		[ID2D1DeviceContext]
@@ -2051,11 +2081,11 @@ create-bitmap: func [
 		sz		[SIZE_U! value]
 		bitmap	[ptr-value!]
 ][
-	props/format: format
+	props/format: 87
 	props/alphaMode: 1
 	props/dpiX: dpi-x
 	props/dpiY: dpi-y
-	props/options: 1		;-- D2D1_BITMAP_OPTIONS_TARGET
+	props/options: options
 	props/colorContext: null
 
 	sz/width: width

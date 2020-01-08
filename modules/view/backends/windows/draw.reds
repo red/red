@@ -175,6 +175,9 @@ draw-begin: func [
 		bmp		[ptr-value!]
 		wic-bmp	[this!]
 		IUnk	[IUnknown]
+		gdi		[com-ptr! value]
+		pp		[com-ptr!]
+		pdc		[this!]
 ][
 	zero-memory as byte-ptr! ctx size? draw-ctx!
 	ctx/pen-width:	as float32! 1.0
@@ -188,7 +191,7 @@ draw-begin: func [
 	dc: as ID2D1DeviceContext this/vtbl
 
 	either hWnd <> null [
-		target: get-hwnd-render-target hWnd
+		target: get-hwnd-render-target hWnd on-graphic?
 	][
 		wic-bmp: OS-image/to-pbgra img
 		;-- create a bitmap target
@@ -206,11 +209,17 @@ draw-begin: func [
 	ctx/dc: as ptr-ptr! this
 	ctx/target: as int-ptr! target
 
+	dc/BeginDraw this
+	if on-graphic? [
+		dc/QueryInterface this IID_IDGdiInterop :gdi
+		pp: as com-ptr! img
+		pp/value: gdi/value
+	]
+
 	dc/SetTextAntialiasMode this 1				;-- ClearType
 	dc/SetTarget this target/bitmap
 	dc/SetAntialiasMode this 0					;-- D2D1_ANTIALIAS_MODE_PER_PRIMITIVE
 
-	dc/BeginDraw this
 	matrix2d/identity m
 	dc/SetTransform this :m						;-- set to identity matrix
 
@@ -271,6 +280,8 @@ draw-end: func [
 	dc/SetTarget this null
 
 	release-ctx ctx		;@@ Possible improvement: cache resources for window target
+
+	if on-graphic? [exit]
 
 	rt: as render-target! ctx/target
 	either hWnd <> null [	;-- window target
