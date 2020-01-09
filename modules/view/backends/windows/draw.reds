@@ -1727,12 +1727,141 @@ OS-draw-brush-pattern: func [
 OS-draw-grad-pen-old: func [
 	ctx			[draw-ctx!]
 	type		[integer!]
-	mode		[integer!]
+	spread		[integer!]
 	offset		[red-pair!]
 	count		[integer!]					;-- number of the colors
 	brush?		[logic!]
+	/local
+		x		[integer!]
+		y		[integer!]
+		int		[red-integer!]
+		start	[integer!]
+		stop	[integer!]
+		n		[integer!]
+		rotate? [logic!]
+		scale?	[logic!]
+		sx		[float32!]
+		sy		[float32!]
+		p		[float!]
+		f		[red-float!]
+		angle	[float32!]
+		delta	[float!]
+		gstops	[D2D1_GRADIENT_STOP]
+		head	[red-value!]
+		next	[red-value!]
+		clr		[red-tuple!]
+		wrap	[integer!]
+		dc		[ID2D1DeviceContext]
+		this	[this!]
+		sc		[com-ptr! value]
+		brush	[com-ptr! value]
+		bthis	[this!]
+		ibrush	[ID2D1Brush]
+		gprops	[D2D1_RADIAL_GRADIENT_BRUSH_PROPERTIES value]
+		lprops	[D2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES value]
+		unk		[IUnknown]
+		m		[D2D_MATRIX_3X2_F value]
+		t		[D2D_MATRIX_3X2_F value]
 ][
-	;Deprecated, no need to implement it.
+	x: offset/x
+	y: offset/y
+
+	int: as red-integer! offset + 1
+	start: int/value
+	int: int + 1
+	stop: int/value
+
+	n: 0
+	rotate?: no
+	scale?: no
+	sy: as float32! 1.0
+	while [
+		int: int + 1
+		n < 3
+	][								;-- fetch angle, scale-x and scale-y (optional)
+		switch TYPE_OF(int) [
+			TYPE_INTEGER	[p: as-float int/value]
+			TYPE_FLOAT		[f: as red-float! int p: f/value]
+			default			[break]
+		]
+		switch n [
+			0	[if p <> 0.0 [angle: as float32! p rotate?: yes]]
+			1	[if p <> 1.0 [sx: as float32! p scale?: yes]]
+			2	[if p <> 1.0 [sy: as float32! p scale?: yes]]
+		]
+		n: n + 1
+	]
+
+	gstops: grad-stops
+	n: count - 1
+	delta: as float! n
+	delta: 1.0 / delta
+	p: 0.0
+	head: as red-value! int
+	loop count [
+		clr: as red-tuple! either TYPE_OF(head) = TYPE_WORD [_context/get as red-word! head][head]
+		next: head + 1
+		to-dx-color clr/array1 as D3DCOLORVALUE (as int-ptr! gstops) + 1
+		if TYPE_OF(next) = TYPE_FLOAT [head: next f: as red-float! head p: f/value]
+		gstops/position: as float32! p
+		if next <> head [p: p + delta]
+		head: head + 1
+		gstops: gstops + 1
+	]
+
+	case [
+		spread = _pad		[wrap: 0]
+		spread = _repeat	[wrap: 1]
+		spread = _reflect	[wrap: 2]
+		true [wrap: 0]
+	]
+
+	this: as this! ctx/dc
+	dc: as ID2D1DeviceContext this/vtbl
+	dc/CreateGradientStopCollection this grad-stops count 0 wrap :sc
+	either type = linear [
+		lprops/startPoint.x: as float32! x + start
+		lprops/startPoint.y: as float32! y
+		lprops/endPoint.x: as float32! x + stop
+		lprops/endPoint.y: as float32! y
+		dc/CreateLinearGradientBrush this lprops null sc/value :brush
+	][
+		gprops/center.x: as float32! x
+		gprops/center.y: as float32! y
+		gprops/radius.x: as float32! stop - start
+		gprops/radius.y: gprops/radius.x
+		gprops/offset.x: as float32! 0.0
+		gprops/offset.x: as float32! 0.0
+		dc/CreateRadialGradientBrush this gprops null sc/value :brush
+	]
+
+	bthis: brush/value
+	ibrush: as ID2D1Brush bthis/vtbl
+	ibrush/GetTransform bthis :m
+	matrix2d/identity :m
+	if rotate? [
+		matrix2d/rotate :m angle F32_0 F32_0 :t ctx/pre-order?
+		copy-memory as byte-ptr! :m as byte-ptr! :t size? D2D_MATRIX_3X2_F
+	]
+	if scale? [
+		matrix2d/scale :m sx sy :t ctx/pre-order?
+		copy-memory as byte-ptr! :m as byte-ptr! :t size? D2D_MATRIX_3X2_F
+	]
+	ibrush/SetTransform bthis :m
+
+	COM_SAFE_RELEASE(unk sc/value)
+
+	either brush? [
+		COM_SAFE_RELEASE(unk ctx/brush)
+		ctx/brush: bthis
+		ctx/brush-type: DRAW_BRUSH_GRADIENT
+		ctx/brush-grad-type: type
+	][
+		COM_SAFE_RELEASE(unk ctx/pen)
+		ctx/pen: bthis
+		ctx/pen-type: DRAW_BRUSH_GRADIENT
+		ctx/pen-grad-type: type
+	]
 ]
 
 OS-draw-grad-pen: func [
