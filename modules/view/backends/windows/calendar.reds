@@ -40,10 +40,11 @@ with [platform][
 		month: WIN32_HIWORD(time/year-month)
 		day:   WIN32_HIWORD(time/week-day)
 		
-		current-msg/hWnd: handle
-		
-		slot: get-facet current-msg FACE_OBJ_DATA
-		date/make-at slot year month day 0.0 0 0 no no
+		unless null? current-msg [
+            current-msg/hWnd: handle
+            slot: get-facet current-msg FACE_OBJ_DATA
+            date/make-at slot year month day 0.0 0 0 no no
+        ]
 	]
 	
 	init-calendar: func [
