@@ -46,6 +46,7 @@ Red/System [
 #include %tab-panel.reds
 #include %text-list.reds
 #include %button.reds
+#include %calendar.reds
 #include %draw-d2d.reds
 #include %draw.reds
 #include %comdlgs.reds
@@ -528,6 +529,8 @@ update-selection: func [
 		sel/header: TYPE_NONE
 	][
 		sel/header: TYPE_PAIR
+		assert begin <= end
+		adjust-selection values :begin :end -1
 		sel/x: begin + 1								;-- one-based positionq
 		sel/y: end										;-- points past the last selected, so no need + 1
 	]
@@ -1237,10 +1240,15 @@ parse-common-opts: func [
 					][
 						sym: symbol/resolve w/symbol
 						sym: case [
-							sym = _I-beam	[IDC_IBEAM]
-							sym = _hand		[32649]			;-- IDC_HAND
-							sym = _cross	[32515]
-							true			[IDC_ARROW]
+							sym = _I-beam		[IDC_IBEAM]
+							sym = _hand			[32649]			;-- IDC_HAND
+							sym = _cross		[32515]
+							sym = _resize-ns	[32645]
+							any [
+								sym = _resize-ew
+								sym = _resize-we
+							]					[32644]
+							true				[IDC_ARROW]
 						]
 						sym: as-integer LoadCursor null sym
 					]
@@ -1328,7 +1336,7 @@ OS-make-view: func [
 	selected: as red-integer!	values + FACE_OBJ_SELECTED
 	para:	  as red-object!	values + FACE_OBJ_PARA
 	rate:	  					values + FACE_OBJ_RATE
-	options:   as red-block!	values + FACE_OBJ_OPTIONS
+	options:  as red-block!		values + FACE_OBJ_OPTIONS
 	
 	bits: 	  get-flags as red-block! values + FACE_OBJ_FLAGS
 
@@ -1436,6 +1444,10 @@ OS-make-view: func [
 		]
 		sym = camera [
 			class: #u16 "RedCamera"
+		]
+		sym = calendar [
+			class: #u16 "RedCalendar"
+			flags: flags or MCS_NOSELCHANGEONNAV or MCS_NOTODAY or MCS_SHORTDAYSOFWEEK
 		]
 		sym = window [
 			class: #u16 "RedWindow"
@@ -1604,7 +1616,7 @@ OS-make-view: func [
 			set-hint-text handle options
 			if TYPE_OF(selected) <> TYPE_NONE [change-selection handle selected values]
 		]
-		sym = area	 [
+		sym = area [
 			set-area-options handle options
 			change-text handle values sym
 			if TYPE_OF(selected) <> TYPE_NONE [change-selection handle selected values]
@@ -1612,6 +1624,10 @@ OS-make-view: func [
 		sym = rich-text [
 			init-base-face handle parent values alpha?
 			SetWindowLong handle wc-offset - 12 BASE_FACE_D2D or BASE_FACE_IME
+		]
+		sym = calendar [
+			init-calendar handle as red-value! data
+			update-calendar-color handle as red-value! values + FACE_OBJ_COLOR
 		]
 		sym = window [
 			init-window handle
@@ -1813,18 +1829,79 @@ extend-area-limit: func [
 	]
 ]
 
+adjust-selection: func [
+	values	[red-value!]
+	bgn		[int-ptr!]
+	end		[int-ptr!]
+	inc		[integer!]									;-- +1 to increase, -1 to decrease
+	/local
+		quote	[integer!]
+		nl		[integer!]
+		unit	[integer!]
+		unit-b	[integer!]
+		cp		[integer!]
+		size	[integer!]
+		str		[red-string!]
+		s		[series!]
+		head	[byte-ptr!]
+		tail	[byte-ptr!]
+		p		[byte-ptr!]
+		p-bgn	[byte-ptr!]
+		p-end	[byte-ptr!]
+][
+	assert bgn/value <= end/value
+
+	str: as red-string! values + FACE_OBJ_TEXT
+	if TYPE_OF(str) <> TYPE_STRING [exit]
+	s: GET_BUFFER(str)
+	unit: GET_UNIT(s)
+	unit-b: log-b unit
+	head: (as byte-ptr! s/offset) + (str/head << unit-b)
+	tail: as byte-ptr! s/tail
+
+	either inc > 0 [
+		p-bgn: head + (bgn/1 << unit-b)
+		p-end: head + (end/1 << unit-b)
+		quote: 0  nl: 0
+		string/sniff-chars head  p-bgn unit :quote :nl
+		bgn/1: bgn/1 + nl
+		string/sniff-chars p-bgn p-end unit :quote :nl
+		end/1: end/1 + nl
+	][
+		p: head
+		while [p < tail] [
+			cp: string/get-char p unit
+			if cp = as-integer #"^/" [
+				size: (as-integer p - head) >> unit-b
+				case [
+					size >= end/1	[break]
+					size >= bgn/1	[end/1: end/1 - 1]
+					true	[bgn/1: bgn/1 - 1  end/1: end/1 - 1]
+				]
+			]
+			p: p + unit
+		]
+	]
+]
+
 select-text: func [
 	hWnd   [handle!]
 	values [red-value!]
 	/local
-		sel	   [red-pair!]
-		begin  [integer!]
-		end	   [integer!]
+		sel		[red-pair!]
+		begin	[integer!]
+		end		[integer!]
 ][
 	sel: as red-pair! values + FACE_OBJ_SELECTED
 	either TYPE_OF(sel) = TYPE_PAIR [
-		begin: sel/x - 1
-		end: sel/y										;-- should point past the last selected char
+		either sel/x <= sel/y [
+			begin: sel/x - 1
+			end: sel/y									;-- should point past the last selected char
+		][
+			begin: sel/y - 1
+			end: sel/x
+		]
+		adjust-selection values :begin :end 1
 	][
 		begin: 0
 		end:   0
@@ -2046,6 +2123,9 @@ change-data: func [
 		]
 		type = tab-panel [
 			set-tabs hWnd get-face-values hWnd
+		]
+		all [type = calendar TYPE_OF(data) = TYPE_DATE][
+			change-calendar hWnd as red-date! data
 		]
 		type = text-list [
 			if TYPE_OF(data) = TYPE_BLOCK [
@@ -2269,6 +2349,7 @@ OS-update-view: func [
 		int		[red-integer!]
 		int2	[red-integer!]
 		bool	[red-logic!]
+		color	[red-tuple!]
 		s		[series!]
 		hWnd	[handle!]
 		flags	[integer!]
@@ -2334,10 +2415,14 @@ OS-update-view: func [
 		]
 	]
 	if flags and FACET_FLAG_COLOR <> 0 [
-		either type = base [
-			update-base hWnd GetParent hWnd null values
-		][
-			InvalidateRect hWnd null 1
+		case [
+			type = base [
+				update-base hWnd GetParent hWnd null values
+			]
+			type = calendar [
+				update-calendar-color hWnd as red-value! values + FACE_OBJ_COLOR
+			]
+			true [InvalidateRect hWnd null 1]
 		]
 	]
 	if flags and FACET_FLAG_PANE <> 0 [
@@ -2497,7 +2582,7 @@ OS-to-image: func [
 	SelectObject mdc bmp
 
 	either screen? [
-		BitBlt mdc 0 0 width height hScreen rc/left rc/top SRCCOPY
+		BitBlt mdc 0 0 width height hScreen rc/left rc/top SRCCOPY or CAPTUREBLT
 	][
 		either win8+? [
 			PrintWindow hWnd mdc 2

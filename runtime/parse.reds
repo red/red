@@ -1326,6 +1326,7 @@ parser: context [
 							end?: any [zero? len all [positive? part input/head >= part]]
 							state: ST_CHECK_PENDING
 						]
+						TYPE_PATH [PARSE_ERROR [TO_ERROR(script parse-rule) value]]
 						default [						;-- try to match a literal value
 							state: ST_MATCH
 						]

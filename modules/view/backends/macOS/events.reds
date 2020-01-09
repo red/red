@@ -609,11 +609,7 @@ do-events: func [
 		event	[int-ptr!]
 ][
 	msg?: no
-	timeout: objc_msgSend [
-		objc_getClass "NSDate"
-		sel_getUid "dateWithTimeIntervalSinceNow:"
-		0.05
-	]
+	timeout: 0
 
 	loop 10 [ ;; FIXME Consume some leftover events. Find a better solution !!!
 		pool: objc_msgSend [objc_getClass "NSAutoreleasePool" sel_getUid "alloc"]

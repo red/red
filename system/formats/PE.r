@@ -703,6 +703,7 @@ context [
 		fh/opt-headers-size: opt-header-size
 		fh/flags:			 to integer! defs/c-flags/executable-image
 									  or defs/c-flags/machine-32bit
+									  or defs/c-flags/large-address-aware
 		
 		unless find job/sections 'reloc	[
 			fh/flags: fh/flags or to integer! defs/c-flags/relocs-stripped
