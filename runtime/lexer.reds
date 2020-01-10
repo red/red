@@ -317,6 +317,7 @@ lexer: context [
 			len	 [integer!]
 			c	 [byte!]
 	][
+		if lex/fun-ptr <> null [unless fire-event lex words/_error TYPE_ERROR null s e [exit]]
 		e: lex/in-end
 		len: 0
 		if null? s [									;-- determine token's start
@@ -375,14 +376,16 @@ lexer: context [
 			blk	  [red-block!]
 			cont? [logic!]
 	][
+		if all [event = words/_scan type = -2][event: words/_error type: TYPE_ERROR]
+		
 		stack/mark-func words/_body	lex/fun-ptr/ctx		;@@ find something more adequate
 		stack/push as red-value! event					;-- event
 		ser: as red-series! stack/push as red-value! lex/in-series ;-- input
 		
-		either any [event = words/_scan event = words/_error][;-- type
+		either type < 0 [								;-- type
 			blk: as red-block! #get system/lexer/exit-states
 			either TYPE_OF(blk) <> TYPE_BLOCK [none/push][
-				stack/push block/rs-abs-at blk type - 1		;-- 1-based access
+				stack/push block/rs-abs-at blk (0 - type) - 1	;-- 1-based access
 			]
 		][
 			either zero? type [none/push][datatype/push type]
@@ -497,7 +500,7 @@ lexer: context [
 		]
 		p: as red-point! lex/head - 1
 		if lex/fun-ptr <> null [
-			type: either all [lex/buffer <= p TYPE_OF(p) = TYPE_POINT][p/y >> 16][0]
+			if all [lex/buffer <= p TYPE_OF(p) = TYPE_POINT][type: p/y >> 16]
 			unless fire-event lex words/_close type null s e [return 0]
 		]
 		stype: p/y >> 16
@@ -814,8 +817,6 @@ lexer: context [
 	scan-eof: func [lex [state!] s e [byte-ptr!] flags [integer!]][]
 	
 	scan-error: func [lex [state!] s e [byte-ptr!] flags [integer!] /local type index [integer!]][
-		if lex/fun-ptr <> null [unless fire-event lex words/_error TYPE_ERROR null s e [exit]]
-		
 		either lex/prev < --EXIT_STATES-- [
 			index: lex/prev + 1
 			index: as-integer prev-table/index
@@ -1114,8 +1115,9 @@ lexer: context [
 		/local
 			cell [cell!]
 			cp type class index [integer!]
-			p pos [byte-ptr!]
+			p pos s-pos e-pos [byte-ptr!]
 	][
+		s-pos: s e-pos: e
 		if flags and flags-LG = flags-LG [				;-- handle word<tag> cases
 			p: s
 			while [all [p < e p/1 <> #"<"]][p: p + 1]	;-- search <
@@ -1152,6 +1154,7 @@ lexer: context [
 			while [all [p < e p/1 = #"/"]][p: p + 1]
 			if p < e [throw-error lex s e TYPE_REFINEMENT]
 		]
+		if lex/fun-ptr <> null [unless fire-event lex words/_scan type null s-pos e-pos [exit]]
 		cell: alloc-slot lex
 		word/make-at symbol/make-alt-utf8 s as-integer e - s cell
 		set-type cell type
@@ -1257,6 +1260,7 @@ lexer: context [
 				]
 			]
 		]
+		if lex/fun-ptr <> null [unless fire-event lex words/_scan type null s e [exit]]
 		s: s + 1
 		cell: alloc-slot lex
 		word/make-at symbol/make-alt-utf8 s as-integer e - s cell
@@ -1748,7 +1752,9 @@ lexer: context [
 			load?:		yes
 			
 			index: state - --EXIT_STATES--
-			if lex/fun-ptr <> null [load?: fire-event lex words/_scan index null s lex/in-pos]
+			if lex/fun-ptr <> null [
+				if state >= T_STRING [load?: fire-event lex words/_scan 0 - index null s lex/in-pos]
+			]
 			if load? [
 				do-scan: as scanner! scanners/index
 				do-scan lex s p flags
@@ -1890,13 +1896,13 @@ lexer: context [
 			:scan-path-open								;-- T_PATH
 			:scan-construct								;-- T_CONS_MK
 			:scan-comment								;-- T_CMT
-			:scan-string								;-- T_STRING
 			:scan-word									;-- T_WORD
-			:scan-file									;-- T_FILE
 			:scan-ref-issue								;-- T_REFINE
+			:scan-ref-issue								;-- T_ISSUE
+			:scan-string								;-- T_STRING
+			:scan-file									;-- T_FILE
 			:scan-binary								;-- T_BINARY
 			:scan-char									;-- T_CHAR
-			:scan-ref-issue								;-- T_ISSUE
 			:scan-percent								;-- T_PERCENT
 			:scan-integer								;-- T_INTEGER
 			:scan-float									;-- T_FLOAT

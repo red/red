@@ -81,13 +81,13 @@ context [
 		T_PATH				-					;-- 65
 		T_CONS_MK			-					;-- 66
 		T_CMT				-					;-- 67
-		T_STRING			-					;-- 68
-		T_WORD				-					;-- 69
-		T_FILE				-					;-- 70
-		T_REFINE			-					;-- 71
-		T_BINARY			-					;-- 72
-		T_CHAR				-					;-- 73
-		T_ISSUE				-					;-- 74
+		T_WORD				-					;-- 68
+		T_REFINE			-					;-- 69
+		T_ISSUE				-					;-- 70
+		T_STRING			-					;-- 71
+		T_FILE				-					;-- 72
+		T_BINARY			-					;-- 73
+		T_CHAR				-					;-- 74
 		T_PERCENT			-					;-- 75
 		T_INTEGER			-					;-- 76
 		T_FLOAT				-					;-- 77
