@@ -955,3 +955,24 @@ menu-item-activate: func [
 		make-event widget key EVT_MENU
 	]
 ]
+
+calendar-changed: func [
+	[cdecl]
+	evbox		[handle!]
+	widget		[handle!]
+	/local
+		face	[red-object!]
+		values	[red-value!]
+		data	[red-value!]
+		year	[integer!]
+		month	[integer!]
+		day		[integer!]
+][
+	face: get-face-obj widget
+	values: object/get-values face
+	data: as red-value! values + FACE_OBJ_DATA
+	year: 0 month: 0 day: 0
+	gtk_calendar_get_date widget :year :month :day
+	date/make-at data year month + 1 day 0.0 0 0 no no
+	make-event widget 0 EVT_CHANGE
+]

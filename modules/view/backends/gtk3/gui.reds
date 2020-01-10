@@ -1654,6 +1654,9 @@ OS-make-view: func [
 			widget: gtk_layout_new null null
 			gtk_layout_set_size widget size/x size/y
 		]
+		sym = calendar [
+			widget: gtk_calendar_new
+		]
 		sym = slider [
 			vertical?: size/y > size/x
 			widget: gtk_scale_new_with_range vertical? 0.0 100.0 1.0

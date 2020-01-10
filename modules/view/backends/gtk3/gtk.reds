@@ -1600,9 +1600,51 @@ GPtrArray!: alias struct! [
 			prop		[c-string!]
 			value		[int-ptr!]
 		]
+		gtk_calendar_new: "gtk_calendar_new" [
+			return:		[handle!]
+		]
+		gtk_calendar_select_month: "gtk_calendar_select_month" [
+			calendar	[handle!]
+			month		[integer!]
+			year		[integer!]
+		]
+		gtk_calendar_select_day: "gtk_calendar_select_day" [
+			calendar	[handle!]
+			day			[integer!]
+		]
+		gtk_calendar_mark_day: "gtk_calendar_mark_day" [
+			calendar	[handle!]
+			day			[integer!]
+		]
+		gtk_calendar_unmark_day: "gtk_calendar_unmark_day" [
+			calendar	[handle!]
+			day			[integer!]
+		]
+		gtk_calendar_get_day_is_marked: "gtk_calendar_get_day_is_marked" [
+			calendar	[handle!]
+			day			[integer!]
+			return:		[logic!]
+		]
+		gtk_calendar_clear_marks: "gtk_calendar_clear_marks" [
+			calendar	[handle!]
+		]
+		gtk_calendar_get_display_options: "gtk_calendar_get_display_options" [
+			calendar	[handle!]
+			return:		[integer!]
+		]
+		gtk_calendar_set_display_options: "gtk_calendar_set_display_options" [
+			calendar	[handle!]
+			flags		[integer!]
+		]
+		gtk_calendar_get_date: "gtk_calendar_get_date" [
+			calendar	[handle!]
+			year		[int-ptr!]
+			month		[int-ptr!]
+			day			[int-ptr!]
+		]
 		gtk_frame_new: "gtk_frame_new" [
 			label		[c-string!]
-			return: 	[handle!]
+			return:		[handle!]
 		]
 		gtk_frame_set_label: "gtk_frame_set_label" [
 			frame		[handle!]

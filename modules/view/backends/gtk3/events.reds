@@ -1035,6 +1035,9 @@ connect-widget-events: func [
 		sym = progress [
 			0
 		]
+		sym = calendar [
+			gobj_signal_connect(widget "day-selected" :calendar-changed widget)
+		]
 		sym = area [
 			buffer: gtk_text_view_get_buffer widget
 			gobj_signal_connect(buffer "changed" :area-changed widget)
