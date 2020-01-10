@@ -1805,6 +1805,14 @@ GPtrArray!: alias struct! [
 			widget		[handle!]
 			label		[c-string!]
 		]
+		gtk_label_set_xalign: "gtk_label_set_xalign" [
+			widget		[handle!]
+			xalign		[float32!]
+		]
+		gtk_label_set_yalign: "gtk_label_set_yalign" [
+			widget		[handle!]
+			yalign		[float32!]
+		]
 		gtk_label_set_justify: "gtk_label_set_justify" [
 			widget		[handle!]
 			justify		[integer!]

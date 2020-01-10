@@ -1744,7 +1744,12 @@ OS-make-view: func [
 		]
 	]
 
-	unless null? container [SET-CONTAINER(widget container)]
+	unless null? container [
+		SET-CONTAINER(widget container)
+		if sym = text [
+			make-styles-provider container
+		]
+	]
 	;-- store the face value in the extra space of the window struct
 	assert TYPE_OF(face) = TYPE_OBJECT
 	store-face-to-obj widget face

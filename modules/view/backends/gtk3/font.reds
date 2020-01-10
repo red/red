@@ -125,6 +125,34 @@ create-trans-css: func [
 	css
 ]
 
+create-background-css: func [
+	color		[red-tuple!]
+	return:		[GString!]
+	/local
+		css		[GString!]
+		rgb		[integer!]
+		alpha?	[integer!]
+		r		[integer!]
+		g		[integer!]
+		b		[integer!]
+		a		[float!]
+][
+	css: g_string_sized_new 64
+	g_string_append css "* {"
+	alpha?: 0
+	rgb: get-color-int color :alpha?
+	b: rgb >> 16 and FFh
+	g: rgb >> 8 and FFh
+	r: rgb and FFh
+	a: 1.0
+	if alpha? = 1 [
+		a: (as float! 255 - (rgb >>> 24)) / 255.0
+	]
+	g_string_append_printf [css { background-color: rgba(%d, %d, %d, %.3f);} r g b a]
+	g_string_append css "}"
+	css
+]
+
 set-label-attrs: func [
 	label		[handle!]
 	font		[red-object!]
@@ -154,29 +182,33 @@ set-label-para: func [
 	hsym		[integer!]
 	vsym		[integer!]
 	wrap?		[logic!]
+	/local
+		f		[float32!]
 ][
 	case [
 		hsym = _para/left [
-			gtk_label_set_justify label GTK_JUSTIFY_LEFT
+			f: as float32! 0.0
 		]
 		hsym = _para/right [
-			gtk_label_set_justify label GTK_JUSTIFY_RIGHT
+			f: as float32! 1.0
 		]
 		true [
-			gtk_label_set_justify label GTK_JUSTIFY_CENTER
+			f: as float32! 0.5
 		]
 	]
+	gtk_label_set_xalign label f
 	case [
 		vsym = _para/top [
-			gtk_widget_set_halign label GTK_ALIGN_START
+			f: as float32! 0.0
 		]
 		vsym = _para/bottom [
-			gtk_widget_set_halign label GTK_ALIGN_END
+			f: as float32! 1.0
 		]
 		true [
-			gtk_widget_set_halign label GTK_ALIGN_CENTER
+			f: as float32! 0.5
 		]
 	]
+	gtk_label_set_yalign label f
 	gtk_label_set_line_wrap label wrap?
 ]
 
@@ -734,6 +766,7 @@ set-font: func [
 		newC?	[logic!]
 		type	[red-word!]
 		sym		[integer!]
+		layout	[handle!]
 		pvalues	[red-value!]
 		wrap?	[logic!]
 		hsym	[integer!]
@@ -759,6 +792,14 @@ set-font: func [
 	]
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
+	layout: get-face-layout widget values sym
+	if all [
+		sym = text
+		layout <> widget
+		TYPE_OF(color) = TYPE_TUPLE
+	][
+		apply-css-styles layout create-background-css color
+	]
 	either TYPE_OF(para) = TYPE_OBJECT [
 		pvalues: object/get-values para
 		wrap?: get-para-wrap pvalues
