@@ -43,6 +43,7 @@ IID_IDWriteFactory:		 [B859EE5Ah 4B5BD838h DC1AE8A2h 48DB937Dh]
 IID_IDXGIFactory2:		 [50C83A1Ch 4C48E072h 3036B087h D0A636FAh]
 IID_IDCompositionDevice: [C37EA93Ah 450DE7AAh 46976FB1h F30704CBh]
 IID_IDGdiInterop: 		 [E0DB51C3h 4BAE6F77h 75E4D5B3h 3858B309h]
+IID_ID2D1DeviceContext:	 [E8F7FE7Ah 466D191Ch 569795ADh 98A9BD78h]
 CLSID_D2D1UnPremultiply: [FB9AC489h 41EDAD8Dh 63BB9999h F710D147h]
 
 D2D1_FACTORY_OPTIONS: alias struct! [
@@ -629,7 +630,7 @@ ID2D1Factory: alias struct! [
 	CreatePathGeometry				[function! [this [this!] pathGeometry [ptr-ptr!] return: [integer!]]]
 	CreateStrokeStyle				[function! [this [this!] props [D2D1_STROKE_STYLE_PROPERTIES] dashes [float32-ptr!] count [integer!] style [ptr-ptr!] return: [integer!]]]
 	CreateDrawingStateBlock			[function! [this [this!] desc [this!] param [this!] block [ptr-ptr!] return: [integer!]]]
-	CreateWicBitmapRenderTarget		[integer!]
+	CreateWicBitmapRenderTarget		[function! [this [this!] target [this!] properties [D2D1_RENDER_TARGET_PROPERTIES] bmp [com-ptr!] return: [integer!]]]
 	CreateHwndRenderTarget			[function! [this [this!] properties [D2D1_RENDER_TARGET_PROPERTIES] hwndProperties [D2D1_HWND_RENDER_TARGET_PROPERTIES] target [ptr-ptr!] return: [integer!]]]
 	CreateDxgiSurfaceRenderTarget	[integer!]
 	CreateDCRenderTarget			[function! [this [this!] properties [D2D1_RENDER_TARGET_PROPERTIES] target [int-ptr!] return: [integer!]]]

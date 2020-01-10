@@ -174,12 +174,14 @@ draw-begin: func [
 		red-img [red-image!]
 		pos		[red-pair! value]
 		pos2	[red-pair!]
-		bmp		[ptr-value!]
+		rt		[com-ptr! value]
 		wic-bmp	[this!]
 		IUnk	[IUnknown]
 		gdi		[com-ptr! value]
 		pp		[com-ptr!]
 		pdc		[this!]
+		props	[D2D1_RENDER_TARGET_PROPERTIES value]
+		factory [ID2D1Factory]
 ][
 	zero-memory as byte-ptr! ctx size? draw-ctx!
 	ctx/pen-width:	as float32! 1.0
@@ -194,19 +196,27 @@ draw-begin: func [
 
 	either hWnd <> null [
 		target: get-hwnd-render-target hWnd on-graphic?
+		dc/SetTarget this target/bitmap
+		dc/setDpi this dpi-x dpi-y
 	][
-		wic-bmp: OS-image/to-pbgra img
+		wic-bmp: OS-image/get-wicbitmap img
 		;-- create a bitmap target
 		target: as render-target! alloc0 size? render-target!
 		target/brushes: as int-ptr! allocate D2D_MAX_BRUSHES * 2 * size? int-ptr!
-		if 0 <> dc/CreateBitmapFromWicBitmap2 this wic-bmp null bmp [
+
+		zero-memory as byte-ptr! :props size? D2D1_RENDER_TARGET_PROPERTIES
+		factory: as ID2D1Factory d2d-factory/vtbl
+		if 0 <> factory/CreateWicBitmapRenderTarget d2d-factory wic-bmp :props :rt [
 			;TBD error!!!
-			probe "CreateBitmapFromWicBitmap2 failed in draw-begin"
+			probe "CreateWicBitmapRenderTarget failed in draw-begin"
 			return ctx
 		]
 		ctx/image: img/node
-		target/bitmap: as this! bmp/value
-		COM_SAFE_RELEASE(IUnk wic-bmp)
+		this: rt/value
+		dc: as ID2D1DeviceContext this/vtbl
+		dc/QueryInterface this IID_ID2D1DeviceContext :rt	;-- Query ID2D1DeviceContext interface
+		this: rt/value
+		dc: as ID2D1DeviceContext this/vtbl
 	]
 	ctx/dc: as ptr-ptr! this
 	ctx/target: as int-ptr! target
@@ -219,7 +229,6 @@ draw-begin: func [
 	]
 
 	dc/SetTextAntialiasMode this 1				;-- ClearType
-	dc/SetTarget this target/bitmap
 	dc/SetAntialiasMode this 0					;-- D2D1_ANTIALIAS_MODE_PER_PRIMITIVE
 
 	matrix2d/identity m
@@ -285,7 +294,7 @@ draw-end: func [
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
 	dc/EndDraw this null null
-	dc/SetTarget this null
+	if hWnd <> null [dc/SetTarget this null]
 
 	release-ctx ctx		;@@ Possible improvement: cache resources for window target
 
@@ -312,8 +321,8 @@ draw-end: func [
 			]
 		]
 	][						;-- image! target
-		;TBD save rt/bitmap to ctx/image
 		d2d-release-target rt
+		dc/Release this
 	]
 ]
 
@@ -1496,7 +1505,7 @@ OS-draw-image: func [
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
-	ithis: OS-image/to-pbgra image
+	ithis: OS-image/get-handle image
 	IB: as IUnknown ithis/vtbl
 	dc/CreateBitmapFromWicBitmap2 this ithis null :bmp
 	bthis: as this! bmp/value
@@ -1684,7 +1693,7 @@ OS-draw-brush-bitmap: func [
 	height: OS-image/height? img/node
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
-	ithis: OS-image/to-pbgra img
+	ithis: OS-image/get-handle img
 	dc/CreateBitmapFromWicBitmap2 this ithis null :bmp
 	_OS-draw-brush-bitmap ctx as this! bmp/value width height crop-1 crop-2 mode brush?
 	COM_SAFE_RELEASE(unk ithis)
