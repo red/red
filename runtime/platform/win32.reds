@@ -461,7 +461,11 @@ platform: context [
 		as c-string! path
 	]
 
-	wait: func [time [integer!]][Sleep time]
+	wait: func [time [float!]][							;-- seconds
+		time: time * 1000.0								;-- milliseconds
+		if time < 1.0 [time: 1.0]
+		Sleep as-integer time
+	]
 
 	set-current-dir: func [
 		path	[c-string!]

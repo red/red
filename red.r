@@ -630,7 +630,7 @@ redc: context [
 				]
 				cmd: copy "-r libRed/libRed.red"
 				if all [not tail? next args args/2 = "stdcall"][
-					insert at cmd 3 " --config [export-ABI: 'stdcall]"
+					insert at cmd 3 { --config "[export-ABI: 'stdcall]"}
 				]
 				parse-options cmd
 			]

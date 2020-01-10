@@ -11,9 +11,18 @@ Red/System [
 ]
 
 make-font: func [
-	face	[red-object!]
-	font	[red-object!]
-	return: [handle!]
+	face		[red-object!]
+	font		[red-object!]
+	return:		[handle!]
+][
+	OS-make-font face font yes
+]
+
+OS-make-font: func [
+	face		[red-object!]
+	font		[red-object!]
+	scaling?	[logic!]
+	return:		[handle!]
 	/local
 		values	[red-value!]
 		int		[red-integer!]
@@ -38,7 +47,8 @@ make-font: func [
 	
 	int: as red-integer! values + FONT_OBJ_SIZE
 	height: either TYPE_OF(int) <> TYPE_INTEGER [0][
-		0 - (int/value * log-pixels-y / 72)
+		len: either scaling? [log-pixels-y][96]
+		0 - (int/value * len / 72)
 	]
 
 	int: as red-integer! values + FONT_OBJ_ANGLE
@@ -117,11 +127,17 @@ make-font: func [
 
 	blk: as red-block! values + FONT_OBJ_STATE
 	either TYPE_OF(blk) <> TYPE_BLOCK [
-		block/make-at blk 2
+		block/make-at blk 3
 		handle/make-in blk as-integer hFont
 		none/make-in blk								;-- DWrite font
+		either scaling? [
+			none/make-in blk
+		][
+			handle/make-in blk as-integer hFont
+		]
 	][
 		int: as red-integer! block/rs-head blk
+		either scaling? [OS-make-font face font no][int: int + 2]
 		int/header: TYPE_HANDLE
 		int/value: as-integer hFont
 	]
@@ -196,16 +212,29 @@ free-font: func [
 	/local
 		state [red-block!]
 		hFont [handle!]
+		h2	  [handle!]
 		this  [this!]
 		obj   [IUnknown]
+		n	  [integer!]
+		free? [logic!]
 ][
 	unless winxp? [
 		this: as this! get-font-handle font 1
 		COM_SAFE_RELEASE(obj this)
 	]
-	hFont: get-font-handle font 0
-	if hFont <> null [
-		DeleteObject hFont
+	n: 0
+	free?: no
+	h2: null
+	loop 2 [
+		hFont: get-font-handle font n
+		if all [hFont <> null hFont <> h2][
+			DeleteObject hFont
+			h2: hFont
+			free?: yes
+		]
+		n: 2
+	]
+	if free? [
 		state: as red-block! (object/get-values font) + FONT_OBJ_STATE
 		state/header: TYPE_NONE
 	]

@@ -157,8 +157,8 @@ _series: context [
 					head: head + unit
 					size: size - 1
 				]
+				ownership/check as red-value! ser words/_random null ser/head len
 			]
-			ownership/check as red-value! ser words/_random null ser/head len
 		]
 		as red-value! ser
 	]

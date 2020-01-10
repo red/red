@@ -246,6 +246,7 @@ system/view/platform: context [
 			caret:			symbol/make "caret"
 			scroller:		symbol/make "scroller"
 			rich-text:		symbol/make "rich-text"
+			calendar:		symbol/make "calendar"
 
 			---:			symbol/make "---"
 			done:			symbol/make "done"
@@ -287,6 +288,9 @@ system/view/platform: context [
 			_hand:			symbol/make "hand"
 			_I-beam:		symbol/make "I-beam"
 			_cross:			symbol/make "cross"
+			_resize-ns:		symbol/make "resize-ns"
+			_resize-we:		symbol/make "resize-we"
+			_resize-ew:		symbol/make "resize-ew"
 
 			_drag-on:		symbol/make "drag-on"
 			_actors:		word/load "actors"
@@ -715,6 +719,7 @@ system/view/platform: context [
 				button:			[1x1   1x1]				;-- LeftxRight TopxBottom
 				tab-panel:		[0x2   0x1]
 				group-box:		[0x0   0x1]
+				calendar:		[1x0   0x0]
 			]
 			macOS [
 				button:			[2x2   2x3 regular 6x6 4x7 small 5x5 4x6 mini 1x1 0x1]
@@ -741,6 +746,7 @@ system/view/platform: context [
 				button:			[8x8   0x0]
 				drop-down:		[0x7   0x0]
 				drop-list:		[0x7   0x0]
+				calendar:		[21x0 1x0]
 			]
 			macOS [
 				button:			[11x11 0x0 regular 14x14 0x0 small 11x11 0x0 mini 11x11 0x0]

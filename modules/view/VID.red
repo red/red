@@ -83,6 +83,7 @@ system/view/VID: context [
 	process-reactors: function [/local res][
 		set 'res try/all [
 			foreach [f blk later?] reactors [
+				blk: copy/deep blk
 				either f [
 					bind blk ctx: context [face: f]
 					either later? [react/later/with blk ctx][react/with blk ctx]
@@ -346,6 +347,7 @@ system/view/VID: context [
 							pair!	 [unless opts/size  [opts/size:  value]]
 							string!	 [unless opts/text  [opts/text:  value]]
 							logic!
+							date!
 							percent! [unless opts/data  [opts/data:  value] yes]
 							image!	 [unless opts/image [opts/image: value]]
 							tuple!	 [
