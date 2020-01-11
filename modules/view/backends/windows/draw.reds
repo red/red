@@ -222,12 +222,6 @@ draw-begin: func [
 	ctx/target: as int-ptr! target
 
 	dc/BeginDraw this
-	if on-graphic? [
-		dc/QueryInterface this IID_IDGdiInterop :gdi
-		pp: as com-ptr! img
-		pp/value: gdi/value
-	]
-
 	dc/SetTextAntialiasMode this 1				;-- ClearType
 	dc/SetAntialiasMode this 0					;-- D2D1_ANTIALIAS_MODE_PER_PRIMITIVE
 
@@ -249,7 +243,7 @@ draw-begin: func [
 		values: get-face-values hWnd
 		clr: as red-tuple! values + FACE_OBJ_COLOR
 		bg-clr: either TYPE_OF(clr) = TYPE_TUPLE [clr/array1][-1]
-		if bg-clr <> -1 [							;-- paint background
+		if any [on-graphic? bg-clr <> -1][		;-- paint background
 			dc/Clear this to-dx-color bg-clr null
 		]
 
@@ -1481,7 +1475,6 @@ OS-draw-image: func [
 		this	[this!]
 		dc		[ID2D1DeviceContext]
 		ithis	[this!]
-		IB		[IUnknown]
 		bmp		[ptr-value!]
 		bthis	[this!]
 		d2db	[IUnknown]
@@ -1506,7 +1499,6 @@ OS-draw-image: func [
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
 	ithis: OS-image/get-handle image
-	IB: as IUnknown ithis/vtbl
 	dc/CreateBitmapFromWicBitmap2 this ithis null :bmp
 	bthis: as this! bmp/value
 	d2db: as IUnknown bthis/vtbl
@@ -1587,7 +1579,6 @@ OS-draw-image: func [
 	dc/DrawBitmap2 this as int-ptr! bthis dst as float32! 1.0 1 src trans
 
 	d2db/Release bthis
-	IB/Release ithis
 ]
 
 _OS-draw-brush-bitmap: func [

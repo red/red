@@ -744,6 +744,7 @@ update-base: func [
 		ctx		[draw-ctx! value]
 		pdc		[com-ptr! value]
 		this	[this!]
+		dc		[ID2D1DeviceContext]
 		rt-dc	[ID2D1GdiInteropRenderTarget]
 		hdc		[ptr-value!]
 ][
@@ -777,9 +778,12 @@ update-base: func [
 	either TYPE_OF(cmds) = TYPE_BLOCK [
 		system/thrown: 0
 		catch RED_THROWN_ERROR [
-			draw-begin ctx hWnd as red-image! :pdc yes yes
+			draw-begin ctx hWnd null yes yes
 			parse-draw ctx cmds yes
 
+			this: as this! ctx/dc
+			dc: as ID2D1DeviceContext this/vtbl
+			dc/QueryInterface this IID_IDGdiInterop :pdc
 			this: pdc/value
 			rt-dc: as ID2D1GdiInteropRenderTarget this/vtbl
 			rt-dc/GetDC this 0 :hdc
