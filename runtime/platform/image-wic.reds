@@ -279,14 +279,16 @@ OS-image: context [
 		height	[integer!]
 		return: [node!]
 		/local
+			node	[node!]
 			inode	[img-node!]
 	][
-		inode: as img-node! allocate size? img-node!
+		node: alloc-cells 1			;-- 16 bytes
+		inode: as img-node! (as series! node/value) + 1
 		inode/flags: flags
 		inode/handle: handle
 		inode/buffer: buffer
 		inode/size: height << 16 or width
-		as node! inode
+		node
 	]
 
 	to-bgra: func [
@@ -321,7 +323,7 @@ OS-image: context [
 			unk		[IUnknown]
 			h		[this!]
 	][
-		inode: as img-node! img/node
+		inode: as img-node! (as series! img/node/value) + 1
 		h: inode/handle
 		if any [null? h inode/flags and IMG_NODE_MODIFIED <> 0][
 			if h <> null [COM_SAFE_RELEASE(unk h)]
@@ -342,7 +344,7 @@ OS-image: context [
 			IFAC	[IWICImagingFactory]
 			bitmap	[com-ptr! value]
 	][
-		inode: as img-node! img/node
+		inode: as img-node! (as series! img/node/value) + 1
 		h: get-handle img
 		either inode/flags and IMG_NODE_WICBITMAP <> 0 [h][
 			IFAC: as IWICImagingFactory wic-factory/vtbl
@@ -366,7 +368,7 @@ OS-image: context [
 			h		[this!]
 			bitmap	[com-ptr! value]
 	][
-		inode: as img-node! img
+		inode: as img-node! (as series! img/value) + 1
 		h: inode/buffer
 		if inode/flags and IMG_NODE_HAS_BUFFER = 0 [
 			h: to-bgra inode/handle no
@@ -477,7 +479,7 @@ OS-image: context [
 		/local
 			inode	[img-node!]
 	][
-		inode: as img-node! handle
+		inode: as img-node! (as series! handle/value) + 1
 		IMAGE_WIDTH(inode/size)
 	]
 
@@ -487,7 +489,7 @@ OS-image: context [
 		/local
 			inode	[img-node!]
 	][
-		inode: as img-node! handle
+		inode: as img-node! (as series! handle/value) + 1
 		IMAGE_HEIGHT(inode/size)
 	]
 
@@ -506,7 +508,7 @@ OS-image: context [
 		this: get-buffer img/node
 		IB: as IWICBitmap this/vtbl
 		flag: either write? [
-			inode: as img-node! img/node
+			inode: as img-node! (as series! img/node/value) + 1
 			inode/flags: inode/flags or IMG_NODE_MODIFIED
 			WICBitmapLockWrite
 		][WICBitmapLockRead]
@@ -638,7 +640,7 @@ OS-image: context [
 		scan0: scan0 + index
 		scan0/1: color
 		lock/Release lthis
-		inode: as img-node! bitmap
+		inode: as img-node! (as series! bitmap/value) + 1
 		inode/flags: inode/flags or IMG_NODE_MODIFIED
 		0
 	]
@@ -649,10 +651,9 @@ OS-image: context [
 			unk		[IUnknown]
 			inode	[img-node!]
 	][
-		inode: as img-node! img/node
+		inode: as img-node! (as series! img/node/value) + 1
 		COM_SAFE_RELEASE(unk inode/handle)
 		COM_SAFE_RELEASE(unk inode/buffer)
-		free as byte-ptr! inode
 	]
 
 	resize: func [
