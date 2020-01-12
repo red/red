@@ -2132,28 +2132,25 @@ natives: context [
 		/local
 			val		[red-float!]
 			int		[red-integer!]
-			time	[integer!]
-			ftime	[float!]
+			seconds	[float!]
 	][
 		#typecheck [wait all?] ;only?]
 		val: as red-float! stack/arguments
 		switch TYPE_OF(val) [
 			TYPE_INTEGER [
 				int: as red-integer! val
-				time: int/value * #either OS = 'Windows [1000][1000000]
+				seconds: as-float int/value
 			]
 			TYPE_FLOAT [
-				ftime: val/value * #either OS = 'Windows [1000.0][1000000.0]
-				if ftime < 1.0 [ftime: 1.0]
-				time: as-integer ftime
+				seconds: val/value
 			]
 			TYPE_TIME [
-				time: as-integer (val/value * #either OS = 'Windows [1E3][1E6])
+				seconds: val/value
 			]
 			default [fire [TO_ERROR(script invalid-arg) val]]
 		]
 		val/header: TYPE_NONE
-		platform/wait time
+		platform/wait seconds
 	]
 
 	checksum*: func [

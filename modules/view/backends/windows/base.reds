@@ -131,9 +131,7 @@ render-base: func [
 
 	type: symbol/resolve w/symbol
 	if all [
-		group-box <> type
-		window <> type
-		panel <> type
+		type = base
 		render-text values hWnd hDC :rc null null
 	][
 		res: true
@@ -687,8 +685,8 @@ update-base-text: func [
 
 	rect/x: as float32! 0.0
 	rect/y: as float32! 0.0
-	rect/width: as float32! width
-	rect/height: as float32! height
+	rect/width: as float32! dpi-unscale width
+	rect/height: as float32! dpi-unscale height
 
 	either bbox = null [
 		if default-color [clr: GetSysColor COLOR_WINDOWTEXT]
@@ -717,6 +715,17 @@ transparent-base?: func [
 			color/array1 and FF000000h = 0
 		]
 	][false][true]
+]
+
+scale-graphic: func [
+	graphic		[integer!]
+	/local
+		ratio	[float32!]
+][
+	if dpi-factor <> 100 [
+		ratio: (as float32! dpi-factor) / (as float32! 100.0)
+		GdipScaleWorldTransform graphic ratio ratio GDIPLUS_MATRIX_PREPEND
+	]
 ]
 
 update-base: func [

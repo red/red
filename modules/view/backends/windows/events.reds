@@ -1221,6 +1221,7 @@ WndProc: func [
 			switch nmhdr/code [
 				TCN_SELCHANGING [return process-tab-select nmhdr/hWndFrom]
 				TCN_SELCHANGE	[process-tab-change nmhdr/hWndFrom]
+				MCN_SELCHANGE	[process-calendar-change nmhdr/hWndFrom]
 				NM_CUSTOMDRAW	[
 					res: process-custom-draw wParam lParam
 					if res <> 0 [return res]
@@ -1483,7 +1484,7 @@ process: func [
 			if msg/hWnd = hover-saved [hover-saved: null]
 			EVT_DISPATCH
 		]
-		WM_MOUSEWHELL [
+		WM_MOUSEWHEEL [
 			flags: 0
 			if msg/wParam and 08h <> 0 [flags: flags or EVT_FLAG_CTRL_DOWN]		;-- MK_CONTROL
 			if msg/wParam and 04h <> 0 [flags: flags or EVT_FLAG_SHIFT_DOWN]	;-- MK_SHIFT

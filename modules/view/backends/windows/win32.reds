@@ -146,6 +146,16 @@ Red/System [
 #define TCM_SETCURFOCUS		1330h
 #define TCM_INSERTITEMW		133Eh
 
+#define MCS_NOTODAY			10h
+#define MCS_SHORTDAYSOFWEEK 80h
+#define MCS_NOSELCHANGEONNAV 0100h
+
+#define MCN_SELCHANGE		FFFFFD13h
+
+#define MCM_GETCURSEL       1001h
+#define MCM_SETCURSEL		1002h
+#define MCM_SETCOLOR		100Ah
+
 #define TCIF_TEXT			0001h
 
 #define MIIM_STATE			0001h
@@ -309,7 +319,7 @@ Red/System [
 #define WM_RBUTTONUP		0205h
 #define WM_MBUTTONDOWN		0207h
 #define WM_MBUTTONUP		0208h
-#define	WM_MOUSEWHELL		020Ah
+#define	WM_MOUSEWHEEL		020Ah
 #define WM_ENTERMENULOOP	0211h
 #define WM_SIZING			0214h
 #define WM_MOVING			0216h
@@ -499,6 +509,7 @@ Red/System [
 #define TextRenderingHintClearTypeGridFit	5
 
 #define SRCCOPY					00CC0020h
+#define CAPTUREBLT				40000000h
 
 #define ILC_COLOR24				18h
 #define ILC_COLOR32				20h
