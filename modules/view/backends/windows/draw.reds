@@ -481,7 +481,7 @@ OS-draw-shape-endpath: func [
 	sthis: as this! ctx/sub/sink
 	gsink: as ID2D1GeometrySink sthis/vtbl
 
-	gsink/EndFigure sthis either close? [1][0]
+	gsink/EndFigure sthis as-integer close?
 
 	hr: gsink/Close sthis
 	gsink/Release sthis
@@ -1267,8 +1267,7 @@ OS-draw-arc: func [
 		sweep		[integer!]
 		i			[integer!]
 		angle-end	[float32!]
-		start-x		[float32!]
-		start-y		[float32!]
+		pt-start	[POINT_2F value]
 		end-x		[float32!]
 		end-y		[float32!]
 		closed?		[logic!]
@@ -1298,10 +1297,10 @@ OS-draw-arc: func [
 	sweep: angle/value
 	i: begin/value + sweep
 	angle-end: rad * as float32! i
-	start-x: as float32! cos as float! angle-begin
-	start-x: cx + (rad-x * start-x)
-	start-y: as float32! sin as float! angle-begin
-	start-y: cy + (rad-y * start-y)
+	pt-start/x: as float32! cos as float! angle-begin
+	pt-start/x: cx + (rad-x * pt-start/x)
+	pt-start/y: as float32! sin as float! angle-begin
+	pt-start/y: cy + (rad-y * pt-start/y)
 	end-x: as float32! cos as float! angle-end
 	end-x: cx + (rad-x * end-x)
 	end-y: as float32! sin as float! angle-end
@@ -1317,9 +1316,14 @@ OS-draw-arc: func [
 	sthis: as this! sink/value
 	gsink: as ID2D1GeometrySink sthis/vtbl
 
-	point/x: start-x
-	point/y: start-y
-	gsink/BeginFigure sthis point as-integer ctx/brush-type = DRAW_BRUSH_NONE
+	either closed? [
+		point/x: cx point/y: cy
+	][
+		point/x: pt-start/x point/y: pt-start/y
+	]
+	gsink/BeginFigure sthis :point as-integer not closed?
+	if closed? [gsink/AddLine sthis :pt-start]
+
 	arc/point/x: end-x
 	arc/point/y: end-y
 	arc/size/width: rad-x
@@ -1401,7 +1405,7 @@ OS-draw-curve: func [
 
 	point/x: as float32! start/x
 	point/y: as float32! start/y
-	gsink/BeginFigure sthis point as-integer ctx/brush-type = DRAW_BRUSH_NONE
+	gsink/BeginFigure sthis point 1
 	hr: gsink/AddBezier sthis ps
 	gsink/EndFigure sthis 0
 	hr: gsink/Close sthis
