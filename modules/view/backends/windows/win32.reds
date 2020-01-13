@@ -12,7 +12,7 @@ Red/System [
 
 #if dev-mode? = yes [
 	#include %../../../../runtime/platform/COM.reds
-	#ether legacy = none [
+	#either legacy = none [
 		#include %../../../../runtime/platform/image-wic.reds
 	][
 		#include %../../../../runtime/platform/image-gdiplus.reds
