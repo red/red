@@ -1283,6 +1283,10 @@ OS-draw-arc: func [
 		this		[this!]
 		dc			[ID2D1DeviceContext]
 		arc			[D2D1_ARC_SEGMENT value]
+		alpha		[float!]
+		beta		[float!]
+		rx			[float!]
+		ry			[float!]
 ][
 	cx: as float32! center/x
 	cy: as float32! center/y
@@ -1297,6 +1301,27 @@ OS-draw-arc: func [
 	sweep: angle/value
 	i: begin/value + sweep
 	angle-end: rad * as float32! i
+
+	;-- adjust angles for ellipses
+	if rad-x <> rad-y [
+		alpha: as float! angle-begin
+		beta: as float! angle-end
+		rx: as float! rad-x
+		ry: as float! rad-y
+		alpha: atan2 (sin alpha) * rx (cos alpha) * ry
+		beta:  atan2 (sin beta)  * rx (cos beta) * ry
+
+		if PI < fabs beta - alpha [
+			either beta > alpha [
+				beta: beta - (PI * 2.0)
+			][
+				alpha: alpha - (PI * 2.0)
+			]
+		]
+		angle-begin: as float32! alpha
+		angle-end: as float32! beta
+	]
+
 	pt-start/x: as float32! cos as float! angle-begin
 	pt-start/x: cx + (rad-x * pt-start/x)
 	pt-start/y: as float32! sin as float! angle-begin
