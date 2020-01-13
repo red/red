@@ -1642,23 +1642,16 @@ create-render-target: func [
 	desc/SampleCount: 1
 	desc/BufferUsage: 20h	;-- DXGI_USAGE_RENDER_TARGET_OUTPUT
 	desc/BufferCount: 2
-	desc/AlphaMode: 1		;-- DXGI_ALPHA_MODE_PREMULTIPLIED
+	desc/AlphaMode: 0
 	desc/SwapEffect: 3		;-- DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL
 
 	int: 0
 	buf: 0
 	dxgi: as IDXGIFactory2 dxgi-factory/vtbl
-	either win8+? [			;-- use direct composition
-		hr: dxgi/CreateSwapChainForComposition dxgi-factory d3d-device desc null :int
-	][
-		desc/AlphaMode: 0
-		hr: dxgi/CreateSwapChainForHwnd dxgi-factory d3d-device hWnd desc null null :int
-	]
+	hr: dxgi/CreateSwapChainForHwnd dxgi-factory d3d-device hWnd desc null null :int
 	assert zero? hr
 
 	DX-create-buffer rt as this! int
-
-	if win8+? [create-dcomp rt hWnd]
 	rt
 ]
 

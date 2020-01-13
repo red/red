@@ -686,8 +686,8 @@ update-base-text: func [
 
 	rect/x: as float32! 0.0
 	rect/y: as float32! 0.0
-	rect/width: as float32! dpi-unscale width
-	rect/height: as float32! dpi-unscale height
+	rect/width: as float32! width
+	rect/height: as float32! height
 
 	either bbox = null [
 		if default-color [clr: GetSysColor COLOR_WINDOWTEXT]
