@@ -1525,6 +1525,10 @@ OS-set-clip: func [
 	CGContextClip ctx
 ]
 
+OS-clip-end: func [
+	ctx		[draw-ctx!]
+][]
+
 ;-- shape sub command --
 
 OS-draw-shape-beginpath: func [

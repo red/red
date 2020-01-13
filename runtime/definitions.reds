@@ -328,6 +328,7 @@ Red/System [
 			state			[this!]				;-- current draw state
 			sub				[sub-path! value]
 			shadows			[shadow! value]
+			clip-layer		[this!]
 		]
 	][
 		draw-ctx!: alias struct! [

@@ -3266,6 +3266,10 @@ OS-set-clip: func [
 	]
 ]
 
+OS-clip-end: func [
+	ctx		[draw-ctx!]
+][]
+
 OS-matrix-rotate: func [
 	ctx			[draw-ctx!]
 	pen-fill	[integer!]

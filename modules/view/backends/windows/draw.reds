@@ -238,6 +238,7 @@ draw-begin: func [
 	ctx/brush-type:	DRAW_BRUSH_NONE
 
 	ctx/pre-order?: yes
+	ctx/clip-layer: null
 
 	if hWnd <> null [
 		values: get-face-values hWnd
@@ -267,6 +268,9 @@ release-ctx: func [
 	/local
 		IUnk	[IUnknown]
 ][
+	unless null? ctx/clip-layer [
+		COM_SAFE_RELEASE(IUnk ctx/clip-layer)
+	]
 	COM_SAFE_RELEASE(IUnk ctx/pen)
 	COM_SAFE_RELEASE(IUnk ctx/brush)
 	release-pen-style ctx
@@ -1979,8 +1983,74 @@ OS-set-clip: func [
 	l		[red-pair!]
 	rect?	[logic!]
 	mode	[integer!]
+	/local
+		dc		[ID2D1DeviceContext]
+		this	[this!]
+		layer	[ptr-value!]
+		lthis	[this!]
+		hr		[integer!]
+		pthis	[this!]
+		gpath	[ID2D1PathGeometry]
+		sthis	[this!]
+		gsink	[ID2D1GeometrySink]
+		para	[D2D1_LAYER_PARAMETERS1 value]
+		inf4	[integer!]
+		inf3	[integer!]
+		inf2	[integer!]
+		inf1	[integer!]
 ][
+	this: as this! ctx/dc
+	dc: as ID2D1DeviceContext this/vtbl
+	if null? ctx/clip-layer [
+		hr: dc/CreateLayer this null :layer
+		ctx/clip-layer: as this! layer/value
+	]
+	lthis: ctx/clip-layer
 
+	para/mode: 0
+	matrix2d/identity para/trans
+	para/opacity: as float32! 1.0
+	para/brush: null
+	para/opts: 0
+	para/mask: null
+	either rect? [
+		para/bounds/left: as float32! u/x
+		para/bounds/top: as float32! u/y
+		para/bounds/right: as float32! l/x
+		para/bounds/bottom: as float32! l/y
+	][
+		inf1: FF800000h
+		inf2: FF800000h
+		inf3: 7F800000h
+		inf4: 7F800000h
+		copy-memory as byte-ptr! para/bounds as byte-ptr! :inf1 16
+
+		;-- TDB: as the shape path are auto closed, so need a way to reserve path
+		if ctx/sub/path <> 0 [
+			pthis: as this! ctx/sub/path
+			gpath: as ID2D1PathGeometry pthis/vtbl
+			sthis: as this! ctx/sub/sink
+			gsink: as ID2D1GeometrySink sthis/vtbl
+			gsink/EndFigure sthis 1
+			hr: gsink/Close sthis
+			gsink/Release sthis
+
+			para/mask: as int-ptr! pthis
+		]
+	]
+
+	dc/PushLayer2 this :para as int-ptr! lthis
+]
+
+OS-clip-end: func [
+	ctx			[draw-ctx!]
+	/local
+		dc		[ID2D1DeviceContext]
+		this	[this!]
+][
+	this: as this! ctx/dc
+	dc: as ID2D1DeviceContext this/vtbl
+	dc/PopLayer this
 ]
 
 #define BEGIN_MATRIX_BRUSH [

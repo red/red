@@ -795,6 +795,32 @@ DrawBitmap*: alias function! [
 	trans		[int-ptr!]
 ]
 
+D2D1_LAYER_PARAMETERS1: alias struct! [
+	bounds		[RECT_F! value]
+	mask		[int-ptr!]
+	mode		[integer!]
+	trans		[D2D_MATRIX_3X2_F value]
+	opacity		[float32!]
+	brush		[int-ptr!]
+	opts		[integer!]
+]
+
+PushLayer*: alias function! [
+	this		[this!]
+	param		[D2D1_LAYER_PARAMETERS1]
+	layer		[int-ptr!]
+]
+
+CombineWithGeometry*: alias function! [
+	this		[this!]
+	input		[int-ptr!]
+	mode		[integer!]
+	trans		[D2D_MATRIX_3X2_F]
+	flat		[float32!]
+	sink		[int-ptr!]
+	return:		[integer!]
+]
+
 #define ID2D1RenderTarget [
 	QueryInterface					[function! [this [this!] riid [int-ptr!] ppvObject [com-ptr!] return: [integer!]]]
 	AddRef							[AddRef!]
@@ -809,7 +835,7 @@ DrawBitmap*: alias function! [
 	CreateLinearGradientBrush		[CreateLinearGradientBrush*]
 	CreateRadialGradientBrush		[CreateRadialGradientBrush*]
 	CreateCompatibleRenderTarget	[function! [this [this!] size [SIZE_F! value] target [ptr-ptr!] return: [integer!]]]
-	CreateLayer						[integer!]
+	CreateLayer						[function! [this [this!] size [SIZE_F!] layer [ptr-ptr!] return: [integer!]]]
 	CreateMesh						[integer!]
 	DrawLine						[DrawLine*]
 	DrawRectangle					[DrawRectangle*]
@@ -837,7 +863,7 @@ DrawBitmap*: alias function! [
 	SetTags							[integer!]
 	GetTags							[integer!]
 	PushLayer						[integer!]
-	PopLayer						[integer!]
+	PopLayer						[function! [this [this!]]]
 	Flush							[function! [this [this!] tag1 [int-ptr!] tag2 [int-ptr!]]]
 	SaveDrawingState				[function! [this [this!] block [this!]]]
 	RestoreDrawingState				[function! [this [this!] block [this!]]]
@@ -886,7 +912,7 @@ ID2D1DeviceContext: alias struct! [
     DrawImage						[DrawImage*]
     DrawGdiMetafile					[integer!]
     DrawBitmap2						[DrawBitmap*]
-    PushLayer2						[integer!]
+    PushLayer2						[PushLayer*]
     InvalidateEffectInputRectangle	[integer!]
     GetEffectInvalidRectangleCount	[integer!]
     GetEffectInvalidRectangles		[integer!]
@@ -926,7 +952,7 @@ ID2D1PathGeometry: alias struct! [
 	CompareWithGeometry				[integer!]
 	Simplify						[integer!]
 	Tessellate						[integer!]
-	CombineWithGeometry				[integer!]
+	CombineWithGeometry				[CombineWithGeometry*]
 	Outline							[integer!]
 	ComputeArea						[integer!]
 	ComputeLength					[integer!]
