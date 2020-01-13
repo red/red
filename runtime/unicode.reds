@@ -85,6 +85,18 @@ unicode: context [
 		]
 		c
 	]
+	
+	;-- Skips a given amount of UTF-8 encoded characters in a binary buffer
+	skip-chars: func [s e [byte-ptr!] c [integer!] return: [byte-ptr!]
+		/local len [integer!] p [byte-ptr!]
+	][
+		len: 0
+		while [all [c > 0 s < e]][
+			s: fast-decode-utf8-char s :len
+			c: c - 1
+		]
+		s
+	]
 
 	latin1-idx: [
 		0402h 0403h 201Ah 0453h 201Eh 2026h 2020h 2021h

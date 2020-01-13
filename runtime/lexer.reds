@@ -405,6 +405,14 @@ lexer: context [
 		catch RED_THROWN_ERROR [_function/call lex/fun-ptr global-ctx]	;FIXME: hardcoded origin context
 		if system/thrown <> 0 [re-throw]
 
+		if ser/head <> y [
+			lex/in-series/head: ser/head
+			either TYPE_OF(ser) = TYPE_BINARY [
+				lex/in-pos: lex/input + ser/head
+			][
+				lex/in-pos: unicode/skip-chars lex/input lex/in-end ser/head
+			]
+		]
 		cont?: logic/top-true?
 		stack/unwind
 		cont?
