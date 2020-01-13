@@ -1060,6 +1060,7 @@ OS-image: context [
 
 	to-gpbitmap: func [
 		image		[red-image!]
+		ilock		[com-ptr!]
 		return:		[integer!]
 		/local
 			this	[this!]
@@ -1067,7 +1068,6 @@ OS-image: context [
 			w		[integer!]
 			h		[integer!]
 			rect	[RECT! value]
-			ilock	[com-ptr! value]
 			lthis	[this!]
 			lock	[IWICBitmapLock]
 			size	[integer!]
@@ -1082,20 +1082,27 @@ OS-image: context [
 		rect/y: 0
 		rect/w: w
 		rect/h: h
-		IB/Lock this rect WICBitmapLockRead :ilock
+		IB/Lock this rect WICBitmapLockRead ilock
 		lthis: ilock/value
 		lock: as IWICBitmapLock lthis/vtbl
 		size: 0 data: 0
 		lock/GetDataPointer lthis :size :data
 		bitmap: 0
+		;-- GdipCreateBitmapFromScan0 uses data without copying it
 		GdipCreateBitmapFromScan0 w h w * 4 PixelFormat32bppARGB as byte-ptr! data :bitmap
-		lock/Release lthis
 		bitmap
 	]
 
 	release-gpbitmap: func [
 		bitmap		[integer!]
+		ilock		[com-ptr!]
+		/local
+			lthis	[this!]
+			lock	[IWICBitmapLock]
 	][
 		GdipDisposeImage bitmap
+		lthis: ilock/value
+		lock: as IWICBitmapLock lthis/vtbl
+		lock/Release lthis
 	]
 ]

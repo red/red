@@ -582,11 +582,12 @@ update-base-image: func [
 	height		[integer!]
 	/local
 		bitmap	[integer!]
+		lock	[com-ptr! value]
 ][
 	if TYPE_OF(img) = TYPE_IMAGE [
-		bitmap: OS-image/to-gpbitmap img
+		bitmap: OS-image/to-gpbitmap img :lock
 		GdipDrawImageRectI graphic bitmap 0 0 width height
-		OS-image/release-gpbitmap bitmap
+		OS-image/release-gpbitmap bitmap :lock
 	]
 ]
 
