@@ -64,6 +64,15 @@ RECT_F!: alias struct! [
 	bottom		[float32!]
 ]
 
+ROUNDED_RECT_F!: alias struct! [
+	left		[float32!]
+	top			[float32!]
+	right		[float32!]
+	bottom		[float32!]
+	radiusX		[float32!]
+	radiusY		[float32!]
+]
+
 SIZE_U!: alias struct! [
 	width		[uint32!]
 	height		[uint32!]
@@ -294,6 +303,20 @@ DrawRectangle*: alias function! [
 FillRectangle*: alias function! [
 	this		[this!]
 	rect		[RECT_F!]
+	brush		[this!]
+]
+
+DrawRoundedRectangle*: alias function! [
+	this		[this!]
+	rect		[ROUNDED_RECT_F!]
+	brush		[this!]
+	strokeWidth [float32!]
+	strokeStyle [this!]
+]
+
+FillRoundedRectangle*: alias function! [
+	this		[this!]
+	rect		[ROUNDED_RECT_F!]
 	brush		[this!]
 ]
 
@@ -840,8 +863,8 @@ CombineWithGeometry*: alias function! [
 	DrawLine						[DrawLine*]
 	DrawRectangle					[DrawRectangle*]
 	FillRectangle					[FillRectangle*]
-	DrawRoundedRectangle			[integer!]
-	FillRoundedRectangle			[integer!]
+	DrawRoundedRectangle			[DrawRoundedRectangle*]
+	FillRoundedRectangle			[FillRoundedRectangle*]
 	DrawEllipse						[DrawEllipse*]
 	FillEllipse						[FillEllipse*]
 	DrawGeometry					[function! [this [this!] geometry [this!] brush [this!] strokeWidth [float32!] style [this!] return: [integer!]]]

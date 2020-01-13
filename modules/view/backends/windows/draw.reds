@@ -926,41 +926,62 @@ OS-draw-box: func [
 	/local
 		this	[this!]
 		dc		[ID2D1DeviceContext]
-		rc		[RECT_F! value]
+		t		[integer!]
+		rc		[ROUNDED_RECT_F! value]
+		radius	[red-integer!]
+		type	[integer!]
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
+
+	radius: null
+	if TYPE_OF(lower) = TYPE_INTEGER [
+		radius: as red-integer! lower
+		rc/radiusX: as float32! radius/value
+		rc/radiusY: rc/radiusX
+		lower:  lower - 1
+	]
+	if upper/x > lower/x [t: upper/x upper/x: lower/x lower/x: t]
+	if upper/y > lower/y [t: upper/y upper/y: lower/y lower/y: t]
 
 	rc/right: as float32! lower/x
 	rc/bottom: as float32! lower/y
 	rc/left: as float32! upper/x
 	rc/top: as float32! upper/y
-	either ctx/brush-type > DRAW_BRUSH_GRADIENT [		;-- fill-pen
+
+	type: ctx/brush-type
+	if type > DRAW_BRUSH_GRADIENT [		;-- fill-pen
 		calc-brush-position
 			ctx/brush
 			ctx/brush-grad-type
 			ctx/brush-offset
 			rc/left rc/top rc/right rc/bottom
-		dc/FillRectangle this rc ctx/brush
-		post-process-brush ctx/brush ctx/brush-offset
-	][
-		if ctx/brush-type <> DRAW_BRUSH_NONE [
-			dc/FillRectangle this rc ctx/brush 
+	]
+	if type <> DRAW_BRUSH_NONE [
+		either null? radius [
+			dc/FillRectangle this as RECT_F! :rc ctx/brush
+		][
+			dc/FillRoundedRectangle this :rc ctx/brush
 		]
 	]
-	either ctx/pen-type > DRAW_BRUSH_GRADIENT [
+	if type > DRAW_BRUSH_GRADIENT [post-process-brush ctx/brush ctx/brush-offset]
+
+	type: ctx/pen-type
+	if type > DRAW_BRUSH_GRADIENT [
 		calc-brush-position
 			ctx/pen
 			ctx/pen-grad-type
 			ctx/pen-offset
 			rc/left rc/top rc/right rc/bottom
-		dc/DrawRectangle this rc ctx/pen ctx/pen-width ctx/pen-style
-		post-process-brush ctx/pen ctx/pen-offset
-	][
-		if ctx/pen-type <> DRAW_BRUSH_NONE [
-			dc/DrawRectangle this rc ctx/pen ctx/pen-width ctx/pen-style
+	]
+	if type <> DRAW_BRUSH_NONE [
+		either null? radius [
+			dc/DrawRectangle this as RECT_F! :rc ctx/pen ctx/pen-width ctx/pen-style
+		][
+			dc/DrawRoundedRectangle this :rc ctx/pen ctx/pen-width ctx/pen-style
 		]
 	]
+	if type > DRAW_BRUSH_GRADIENT [post-process-brush ctx/pen ctx/pen-offset]
 ]
 
 OS-draw-triangle: func [
