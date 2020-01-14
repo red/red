@@ -375,11 +375,18 @@ lexer: context [
 			ser	  [red-series!]
 			res	  [red-value!]
 			blk	  [red-block!]
+			int	  [red-integer!]
+			more  [series!]
+			ctx	  [node!]
 			cont? [logic!]
 	][
 		if all [event = words/_scan type = -2][event: words/_error type: TYPE_ERROR]
+
+		more: as series! lex/fun-ptr/more/value
+		int: as red-integer! more/offset + 4
+		ctx: either TYPE_OF(int) = TYPE_INTEGER [as node! int/value][lex/fun-ptr/ctx]
 		
-		stack/mark-func words/_body	lex/fun-ptr/ctx		;@@ find something more adequate
+		stack/mark-func words/_body	ctx
 		stack/push as red-value! event					;-- event
 		ser: as red-series! stack/push as red-value! lex/in-series ;-- input
 		
