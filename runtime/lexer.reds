@@ -269,6 +269,7 @@ lexer: context [
 		ERR_MISSING: 	  -3
 		ERR_CLOSING: 	  -4
 		LEX_INT_OVERFLOW: -5
+		LEX_ERR:		  10
 	]
 	
 	state!: alias struct! [
@@ -317,7 +318,7 @@ lexer: context [
 			len	 [integer!]
 			c	 [byte!]
 	][
-		if lex/fun-ptr <> null [unless fire-event lex words/_error TYPE_ERROR null s e [exit]]
+		if lex/fun-ptr <> null [unless fire-event lex words/_error TYPE_ERROR null s e [throw LEX_ERR]]
 		e: lex/in-end
 		len: 0
 		if null? s [									;-- determine token's start
@@ -1765,7 +1766,7 @@ lexer: context [
 			]
 			if load? [
 				do-scan: as scanner! scanners/index
-				do-scan lex s p flags
+				catch LEX_ERR [do-scan lex s p flags]
 
 				if all [state >= T_STRING lex/fun-ptr <> null][ ;-- for < T_STRING, events are triggered from scan-*
 					slot: lex/tail - 1
@@ -1779,7 +1780,7 @@ lexer: context [
 			lex/in-pos >= lex/in-end
 		]
 		
-		if lex/entry = S_M_STRING [throw-error lex start lex/in-end TYPE_STRING]
+		if lex/entry = S_M_STRING [catch LEX_ERR [throw-error lex start lex/in-end TYPE_STRING]]
 		assert lex/in-pos = lex/in-end
 	]
 
@@ -1793,14 +1794,19 @@ lexer: context [
 		fun	  [red-function!]							;-- optional callback function
 		ser	  [red-series!]								;-- optional input series back-reference
 		/local
-			blk	  [red-block!]
-			p	  [red-point!]
-			slots [integer!]
-			s	  [series!]
-			lex	  [state! value]
+			blk	  	 [red-block!]
+			p	  	 [red-point!]
+			slots 	 [integer!]
+			s	  	 [series!]
+			lex	  	 [state! value]
+			clean-up [subroutine!]
 	][
 		if zero? depth [root-state: lex]
 		depth: depth + 1
+		clean-up: [
+			depth: depth - 1
+			if zero? depth [root-state: null]
+		]
 		
 		lex/next:		null							;-- last element of the states linked list
 		lex/buffer:		stash							;TBD: support dyn buffer case
@@ -1827,7 +1833,8 @@ lexer: context [
 			p: as red-point! either lex/buffer < lex/head [lex/head - 1][lex/buffer]
 			if TYPE_OF(p) = TYPE_POINT [
 				lex/closing: p/y >> 16
-				throw-error lex lex/input + p/z lex/in-end ERR_CLOSING
+				catch LEX_ERR [throw-error lex lex/input + p/z lex/in-end ERR_CLOSING]
+				if system/thrown <> 0 [dst/header: TYPE_NONE clean-up exit]
 			]
 		]
 		either all [one? not wrap? slots > 0][
@@ -1836,9 +1843,7 @@ lexer: context [
 			store-any-block dst lex/buffer slots TYPE_BLOCK
 		]
 		len/value: as-integer lex/in-pos - lex/input
-		
-		depth: depth - 1
-		if zero? depth [root-state: null]
+		clean-up
 	]
 
 	load-string: func [
