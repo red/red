@@ -674,10 +674,17 @@ parser: context [
 			len	  [integer!]
 			saved [red-value!]
 			res	  [red-value!]
+			int	  [red-integer!]
+			more  [series!]
+			ctx	  [node!]
 	][
 		PARSE_SAVE_SERIES
 		saved: stack/top
 		stack/top: stack/top + 1						;-- keep last value from paren expression
+
+		more: as series! fun/more/value
+		int: as red-integer! more/offset + 4
+		ctx: either TYPE_OF(int) = TYPE_INTEGER [as node! int/value][global-ctx]
 
 		stack/mark-func words/_body	fun/ctx				;@@ find something more adequate
 		stack/push as red-value! event
@@ -687,7 +694,7 @@ parser: context [
 		stack/push as red-value! rules
 		if positive? locals [_function/init-locals 1 + locals]	;-- +1 for /local refinement
 		
-		catch RED_THROWN_ERROR [_function/call fun global-ctx]	;FIXME: hardcoded origin context
+		catch RED_THROWN_ERROR [_function/call fun ctx]
 
 		PARSE_RESTORE_SERIES							;-- restore localy saved series/head first
 		if system/thrown <> 0 [reset saved? re-throw]
