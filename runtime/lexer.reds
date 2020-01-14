@@ -386,7 +386,7 @@ lexer: context [
 		int: as red-integer! more/offset + 4
 		ctx: either TYPE_OF(int) = TYPE_INTEGER [as node! int/value][global-ctx]
 		
-		stack/mark-func words/_body	ctx
+		stack/mark-func words/_body	lex/fun-ptr/ctx
 		stack/push as red-value! event					;-- event
 		ser: as red-series! stack/push as red-value! lex/in-series ;-- input
 		
