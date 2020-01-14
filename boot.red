@@ -18,11 +18,11 @@ Red [
 	#include %environment/routines.red
 	#include %environment/scalars.red
 	#include %environment/colors.red
+	
+	#register-intrinsics
 	#include %environment/functions.red
 	#include %environment/system.red
 	#include %environment/operators.red
-
-	#register-intrinsics
 
 	#include %environment/codecs/png.red
 	#include %environment/codecs/jpeg.red

@@ -300,55 +300,57 @@ charset: func [
 	make bitset! spec
 ]
 
-p-indent: make string! 30								;@@ to be put in a local context
-
-on-parse-event: func [
-	"Standard parse/trace callback used by PARSE-TRACE"
-	event	[word!]   "Trace events: push, pop, fetch, match, iterate, paren, end"
-	match?	[logic!]  "Result of last matching operation"
-	rule	[block!]  "Current rule at current position"
-	input	[series!] "Input series at next position to match"
-	stack	[block!]  "Internal parse rules stack"
-	return: [logic!]  "TRUE: continue parsing, FALSE: stop and exit parsing"
-][
-	switch event [
-		push  [
-			print [p-indent "-->"]
-			append p-indent "  "
-		]
-		pop	  [
-			clear back back tail p-indent
-			print [p-indent "<--"]
-		]
-		fetch [
-			print [
-				p-indent "match:" mold/flat/part rule 50 newline
-				p-indent "input:" mold/flat/part input 50 p-indent
-			]
-		]
-		match [print [p-indent "==>" pick ["matched" "not matched"]  match?]]
-		end   [print ["return:" match?]]
-	]
-	true
-]
-
-parse-trace: func [
-	"Wrapper for parse/trace using the default event processor"
-	input [series!]
-	rules [block!]
-	/case "Uses case-sensitive comparison"
-	/part "Limit to a length or position"
-		limit [integer!]
-	return: [logic! block!]
-][
-	clear p-indent
-	either case [
-		parse/case/trace input rules :on-parse-event
+context [
+	p-indent: make string! 30
+	
+	on-parse-event: func [
+		"Standard parse/trace callback used by PARSE-TRACE"
+		event	[word!]   "Trace events: push, pop, fetch, match, iterate, paren, end"
+		match?	[logic!]  "Result of last matching operation"
+		rule	[block!]  "Current rule at current position"
+		input	[series!] "Input series at next position to match"
+		stack	[block!]  "Internal parse rules stack"
+		return: [logic!]  "TRUE: continue parsing, FALSE: stop and exit parsing"
 	][
-		either part [
-			parse/part/trace input rules limit :on-parse-event
+		switch event [
+			push  [
+				print [p-indent "-->"]
+				append p-indent "  "
+			]
+			pop	  [
+				clear back back tail p-indent
+				print [p-indent "<--"]
+			]
+			fetch [
+				print [
+					p-indent "match:" mold/flat/part rule 50 newline
+					p-indent "input:" mold/flat/part input 50 p-indent
+				]
+			]
+			match [print [p-indent "==>" pick ["matched" "not matched"]  match?]]
+			end   [print ["return:" match?]]
+		]
+		true
+	]
+
+	set 'parse-trace func [
+		"Wrapper for parse/trace using the default event processor"
+		input [series!]
+		rules [block!]
+		/case "Uses case-sensitive comparison"
+		/part "Limit to a length or position"
+			limit [integer!]
+		return: [logic! block!]
+	][
+		clear p-indent
+		either case [
+			parse/case/trace input rules :on-parse-event
 		][
-			parse/trace input rules :on-parse-event
+			either part [
+				parse/part/trace input rules limit :on-parse-event
+			][
+				parse/trace input rules :on-parse-event
+			]
 		]
 	]
 ]
