@@ -375,9 +375,16 @@ lexer: context [
 			ser	  [red-series!]
 			res	  [red-value!]
 			blk	  [red-block!]
+			int	  [red-integer!]
+			more  [series!]
+			ctx	  [node!]
 			cont? [logic!]
 	][
 		if all [event = words/_scan type = -2][event: words/_error type: TYPE_ERROR]
+
+		more: as series! lex/fun-ptr/more/value
+		int: as red-integer! more/offset + 4
+		ctx: either TYPE_OF(int) = TYPE_INTEGER [as node! int/value][global-ctx]
 		
 		stack/mark-func words/_body	lex/fun-ptr/ctx		;@@ find something more adequate
 		stack/push as red-value! event					;-- event
@@ -403,7 +410,7 @@ lexer: context [
 		either null? value [pair/push x + 1 y + 1][stack/push value] ;-- token
 
 		if lex/fun-locs > 0 [_function/init-locals 1 + lex/fun-locs]	;-- +1 for /local refinement
-		catch RED_THROWN_ERROR [_function/call lex/fun-ptr global-ctx]	;FIXME: hardcoded origin context
+		catch RED_THROWN_ERROR [_function/call lex/fun-ptr ctx]
 		if system/thrown <> 0 [re-throw]
 
 		if ser/head <> y [
