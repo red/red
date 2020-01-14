@@ -1125,10 +1125,6 @@ OS-draw-arc: func [
 		sweep		[integer!]
 		i			[integer!]
 		closed?		[logic!]
-		alpha		[float!]
-		beta		[float!]
-		rx			[float!]
-		ry			[float!]
 ][
 	cr: dc/cr
 	cx: as float! center/x
@@ -1147,22 +1143,16 @@ OS-draw-arc: func [
 
 	;-- adjust angles for ellipses
 	if rad-x <> rad-y [
-		alpha: angle-begin
-		beta: angle-end
-		rx: rad-x
-		ry: rad-y
-		alpha: atan2 (sin alpha) * rx (cos alpha) * ry
-		beta:  atan2 (sin beta)  * rx (cos beta) * ry
+		angle-begin: atan2 (sin angle-begin) * rad-x (cos angle-begin) * rad-y
+		angle-end:   atan2 (sin angle-end)  * rad-x (cos angle-end) * rad-y
 
-		if PI < fabs beta - alpha [
-			either beta > alpha [
-				beta: beta - (PI * 2.0)
+		if PI < fabs angle-end - angle-begin [
+			either angle-end > angle-begin [
+				angle-end: angle-end - (PI * 2.0)
 			][
-				alpha: alpha - (PI * 2.0)
+				angle-begin: angle-begin - (PI * 2.0)
 			]
 		]
-		angle-begin: alpha
-		angle-end: beta
 	]
 
 	closed?: angle < end
