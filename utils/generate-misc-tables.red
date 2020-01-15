@@ -23,7 +23,7 @@ gen-bitarray: function [list][
 ]
 
 bin-classes: [
-	C_BIN_SKIP										;-- 0
+	C_BIN_ILLEGAL									;-- 0
 	C_BIN_BLANK										;-- 1
 	C_BIN_LINE										;-- 2
 	C_BIN_HEXA										;-- 3

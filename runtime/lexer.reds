@@ -84,7 +84,7 @@ lexer: context [
 	]
 		
 	#enum bin16-char-classes! [
-		C_BIN_SKIP										;-- 0
+		C_BIN_ILLEGAL									;-- 0
 		C_BIN_BLANK										;-- 1
 		C_BIN_LINE										;-- 2
 		C_BIN_HEXA										;-- 3
@@ -128,7 +128,7 @@ lexer: context [
 	}
 	
 	bin16-FSM: #{
-		0000000102
+		0500000102
 		0505050405
 		0202000202
 	}
@@ -595,7 +595,7 @@ lexer: context [
 				fstate: as-integer bin16-FSM/index
 				any [fstate - S_BIN_FINAL_STATES > 0 s >= e]
 			]
-			if fstate = T_BIN_ERROR [return s]
+			if fstate = T_BIN_ERROR [return s - 1]
 			index: 1 + as-integer pos/1					;-- converts the 2 hex chars using tables
 			c: as-integer hexa-table/index
 			index: 1 + as-integer pos/2
