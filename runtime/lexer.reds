@@ -376,6 +376,7 @@ lexer: context [
 			res	  [red-value!]
 			blk	  [red-block!]
 			int	  [red-integer!]
+			name  [names!]
 			more  [series!]
 			ctx	  [node!]
 			cont? [logic!]
@@ -393,10 +394,15 @@ lexer: context [
 		either type < 0 [								;-- type
 			blk: as red-block! #get system/lexer/exit-states
 			either TYPE_OF(blk) <> TYPE_BLOCK [none/push][
-				stack/push block/rs-abs-at blk (0 - type) - 1	;-- 1-based access
+				stack/push block/rs-abs-at blk (0 - type) - 1 ;-- 1-based access
 			]
 		][
-			either zero? type [none/push][datatype/push type]
+			either event = words/_scan [
+				name: name-table + type
+				stack/push as red-value! name/word
+			][
+				either zero? type [none/push][datatype/push type]
+			]
 		]
 		either all [lex/in-series <> null TYPE_OF(lex/in-series) <> TYPE_BINARY][
 			x: unicode/count-chars lex/input s
@@ -409,7 +415,7 @@ lexer: context [
 		integer/push lex/line							;-- line number
 		either null? value [pair/push x + 1 y + 1][stack/push value] ;-- token
 
-		if lex/fun-locs > 0 [_function/init-locals 1 + lex/fun-locs]	;-- +1 for /local refinement
+		if lex/fun-locs > 0 [_function/init-locals 1 + lex/fun-locs] ;-- +1 for /local refinement
 		catch RED_THROWN_ERROR [_function/call lex/fun-ptr ctx]
 		if system/thrown <> 0 [re-throw]
 
