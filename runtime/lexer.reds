@@ -1817,8 +1817,10 @@ lexer: context [
 		if zero? depth [root-state: lex]
 		depth: depth + 1
 		clean-up: [
+			system/thrown: 0
 			depth: depth - 1
 			if zero? depth [root-state: null]
+			len/value: as-integer lex/in-pos - lex/input
 		]
 		
 		lex/next:		null							;-- last element of the states linked list
@@ -1855,7 +1857,6 @@ lexer: context [
 		][
 			store-any-block dst lex/buffer slots TYPE_BLOCK
 		]
-		len/value: as-integer lex/in-pos - lex/input
 		clean-up
 	]
 
