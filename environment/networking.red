@@ -59,7 +59,7 @@ url-parser: object [
 	
 	;-- URL Grammar
 	url-rules:   [scheme-part hier-part opt query opt fragment]	; mark: (print mark) 
-	scheme-part: [copy =scheme [alpha some scheme-char] #":"]
+	scheme-part: [copy =scheme [alpha any scheme-char] #":"]
 	hier-part:   ["//" authority path-abempty | path-absolute | path-rootless | path-empty]
 
 	;   The authority component is preceded by a double slash ("//") and is
@@ -71,7 +71,7 @@ url-parser: object [
 	user-info:	[
 					;mark: (print mold mark)
 					copy =user-info [any [unreserved | pct-encoded | sub-delims | #":"] #"@"]
-					;(print mold =user-info)
+					;(print ["user-info:" mold =user-info])
 					(take/last =user-info)
 				]
 
@@ -98,6 +98,7 @@ url-parser: object [
 	;!! path-noscheme is only used in relative URIs, which aren't supported here yet.
 	;path-noscheme: [copy =path [segment-nz-nc any-segments]]			; (print ["path-no-scheme:" mold =path])
 	path-rootless: [copy =path [segment-nz any-segments]] 				; (print ["path-rootless:" mold =path])
+
 	path-empty:    [none]
 				  
 	any-segments:  [any [#"/" segment]]
