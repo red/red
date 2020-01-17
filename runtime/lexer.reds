@@ -491,7 +491,7 @@ lexer: context [
 		]
 	]
 	
-	open-block: func [lex [state!] type [integer!] hint [integer!] pos [byte-ptr!]
+	open-block: func [lex [state!] type [integer!] pos [byte-ptr!]
 		/local 
 			p	[red-point!]
 			len [integer!]
@@ -502,51 +502,56 @@ lexer: context [
 		p: as red-point! alloc-slot lex
 		set-type as cell! p TYPE_POINT					;-- use the slot for stack info
 		p/x: len
-		p/y: type << 16 or (hint and FFFFh)
+		p/y: type
 		p/z: as-integer pos - lex/input					;-- opening delimiter offset saved (error handling)
-		
 		lex/head: lex/tail								;-- points just after p
 		lex/entry: S_START
 	]
 
-	close-block: func [lex [state!] s e [byte-ptr!] type [integer!] final [integer!]
+	close-block: func [lex [state!] s e [byte-ptr!] type [integer!]
 		return: [integer!]
 		/local	
 			p [red-point!]
-			len	hint stype [integer!]
+			len	stype t [integer!]
 			do-error [subroutine!]
+			point?	 [logic!]
 	][
 		do-error: [
 			lex/closing: type
 			throw-error lex s e ERR_MISSING
 		]
 		p: as red-point! lex/head - 1
+		point?: all [lex/buffer <= p TYPE_OF(p) = TYPE_POINT]
 		if lex/fun-ptr <> null [
-			if all [lex/buffer <= p TYPE_OF(p) = TYPE_POINT][type: p/y >> 16]
-			unless fire-event lex words/_close type null s e [return 0]
+			t: either point? [p/y][type]
+			unless fire-event lex words/_close t null s e [return 0]
 		]
-		stype: p/y >> 16
-		unless all [lex/buffer <= p TYPE_OF(p) = TYPE_POINT][do-error]
-		either type = -1 [type: either final = -1 [stype][final]][if stype <> type [do-error]]
+		unless point? [do-error]						;-- postpone error checking after callback call
+		stype: p/y
+		either type = -1 [type: stype][					;-- no closing type provided, use saved one
+			if all [
+				type <> TYPE_SET_PATH					;-- let set-path override saved type
+				not all [stype = TYPE_MAP type = TYPE_PAREN];-- paren can close a map
+				stype <> type							;-- saved type <> closing type => error
+			][do-error]
+		]
 		
 		len: (as-integer lex/tail - lex/head) >> 4
 		lex/tail: lex/head
 		lex/head: as cell! p - p/x
-		hint: p/y and FFFFh << 16 >> 16
-
 		store-any-block as cell! p lex/tail len type	;-- p slot gets overwritten here
 		
 		p: as red-point! lex/head - 1					;-- get parent series
-		stype: p/y >> 16
+		type: p/y
 		either all [
 			lex/buffer <= p
-			not any [stype = TYPE_BLOCK stype = TYPE_PAREN stype = TYPE_MAP]
+			not any [type = TYPE_BLOCK type = TYPE_PAREN type = TYPE_MAP]
 		][												;-- any-path! case
 			lex/entry: S_PATH
 		][
 			lex/entry: S_START
 		]
-		hint
+		stype
 	]
 	
 	decode-2: func [s e [byte-ptr!] ser [series!]
@@ -851,12 +856,12 @@ lexer: context [
 	
 	scan-block-open: func [lex [state!] s e [byte-ptr!] flags [integer!] /local	type [integer!]][
 		type: either s/1 = #"(" [TYPE_PAREN][TYPE_BLOCK]
-		open-block lex type -1 null
+		open-block lex type null
 		lex/in-pos: e + 1								;-- skip delimiter
 	]
 
 	scan-block-close: func [lex [state!] s e [byte-ptr!] flags [integer!]][
-		close-block lex s e TYPE_BLOCK -1
+		close-block lex s e TYPE_BLOCK
 		lex/in-pos: e + 1								;-- skip ]
 	]
 	
@@ -864,7 +869,7 @@ lexer: context [
 		/local
 			blk	 [red-block!]
 	][
-		if TYPE_MAP = close-block lex s e TYPE_PAREN -1 [
+		if TYPE_MAP = close-block lex s e TYPE_PAREN [
 			blk: as red-block! lex/tail - 1
 			map/make-at as cell! blk blk block/rs-length? blk
 		]
@@ -896,7 +901,7 @@ lexer: context [
 	]
 	
 	scan-map-open: func [lex [state!] s e [byte-ptr!] flags [integer!]][
-		open-block lex TYPE_PAREN TYPE_MAP null
+		open-block lex TYPE_MAP null
 		lex/in-pos: e + 1								;-- skip (
 	]
 	
@@ -911,7 +916,7 @@ lexer: context [
 			#":" [s: s + 1 flags: flags and not C_FLAG_COLON TYPE_GET_PATH]
 			default [TYPE_PATH]
 		]
-		open-block lex type -1 pos						;-- open a new path series
+		open-block lex type pos							;-- open a new path series
 		scan-word lex s e flags							;-- load the head word
 		lex/entry: S_PATH								;-- overwrites the S_START set by open-block
 		lex/in-pos: e + 1								;-- skip /
@@ -938,7 +943,7 @@ lexer: context [
 				lex/in-pos: e + 1						;-- skip :
 				TYPE_SET_PATH
 			][-1]
-			close-block lex s e -1 type
+			close-block lex s e type
 		][
 			if e + 1 = lex/in-end [throw-error lex null e TYPE_PATH] ;-- incomplete path error
 			if e/1 = #":" [throw-error lex null e TYPE_PATH] ;-- set-words not allowed inside paths
