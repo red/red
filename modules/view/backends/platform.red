@@ -75,7 +75,8 @@ system/view/platform: context [
 			
 			#enum flags-flag! [
 				FACET_FLAGS_ALL_OVER:	00000001h
-
+				
+				FACET_FLAGS_TRISTATE:	00020000h
 				FACET_FLAGS_SCROLLABLE:	00040000h
 				FACET_FLAGS_PASSWORD:	00080000h
 
@@ -278,6 +279,7 @@ system/view/platform: context [
 			no-buttons:		symbol/make "no-buttons"
 			modal:			symbol/make "modal"
 			popup:			symbol/make "popup"
+			tri-state:		symbol/make "tri-state"
 			scrollable:		symbol/make "scrollable"
 			password:		symbol/make "password"
 
