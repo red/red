@@ -1852,7 +1852,7 @@ lexer: context [
 		if slots > 0 [
 			p: as red-point! either lex/buffer < lex/head [lex/head - 1][lex/buffer]
 			if TYPE_OF(p) = TYPE_POINT [
-				lex/closing: p/y >> 16
+				lex/closing: p/y
 				catch LEX_ERR [throw-error lex lex/input + p/z lex/in-end ERR_CLOSING]
 				if system/thrown <> 0 [dst/header: TYPE_NONE clean-up exit]
 			]
