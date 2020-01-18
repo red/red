@@ -81,15 +81,15 @@ context [
 		T_PATH				-					;-- 65
 		T_CONS_MK			-					;-- 66
 		T_CMT				-					;-- 67
-		T_WORD				-					;-- 68
-		T_REFINE			-					;-- 69
-		T_ISSUE				TYPE_ISSUE			;-- 70
-		T_STRING			TYPE_STRING			;-- 71
-		T_FILE				TYPE_FILE			;-- 72
-		T_BINARY			TYPE_BINARY			;-- 73
-		T_CHAR				TYPE_CHAR			;-- 74
-		T_PERCENT			TYPE_PERCENT		;-- 75
-		T_INTEGER			-					;-- 76
+		T_INTEGER			-					;-- 68 
+		T_WORD				-					;-- 69
+		T_REFINE			-					;-- 70
+		T_ISSUE				TYPE_ISSUE			;-- 71
+		T_STRING			TYPE_STRING			;-- 72
+		T_FILE				TYPE_FILE			;-- 73
+		T_BINARY			TYPE_BINARY			;-- 74
+		T_CHAR				TYPE_CHAR			;-- 75
+		T_PERCENT			TYPE_PERCENT		;-- 76
 		T_FLOAT				TYPE_FLOAT			;-- 77
 		T_FLOAT_SP			TYPE_FLOAT			;-- 78
 		T_TUPLE				TYPE_TUPLE			;-- 79

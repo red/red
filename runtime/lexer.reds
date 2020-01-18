@@ -1310,17 +1310,25 @@ lexer: context [
 		fl: as red-float! lex/tail - 1
 		set-type as cell! fl TYPE_PERCENT
 		fl/value: fl/value / 100.0
-		
 		lex/in-pos: e + 1								;-- skip ending delimiter
 	]
 		
 	scan-integer: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		return: [integer!]
 		/local
-			p	  [byte-ptr!]
-			len i [integer!]
-			o?	  [logic!]
+			o? root? evt? [logic!]
+			p		[byte-ptr!]
+			len i 	[integer!]	
+			promote [subroutine!]
 	][
+		root?: flags and C_FLAG_NOSTORE = 0				;-- scan-integer is not called by another scanner function
+		evt?: all [root? lex/fun-ptr <> null]
+		promote: [
+			if all [evt? not fire-event lex words/_scan TYPE_FLOAT null s e][return 0]
+			scan-float lex s e flags					;-- overflow, fall back on float
+			if all [evt? not fire-event lex words/_load TYPE_FLOAT lex/tail - 1 s e][lex/tail: lex/tail - 1]
+			return 0
+		]
 		p: s
 		if flags and C_FLAG_SIGN <> 0 [p: p + 1]		;-- skip sign if present
 		
@@ -1328,10 +1336,7 @@ lexer: context [
 			i: as-integer (p/1 - #"0")
 		][
 			len: as-integer e - p
-			if len > 10 [
-				scan-float lex s e flags				;-- overflow, fall back on float
-				return 0
-			]
+			if len > 10 [promote]
 			i: 0
 			o?: no
 			either flags and C_FLAG_QUOTE = 0 [			;-- no quote, faster path
@@ -1356,17 +1361,16 @@ lexer: context [
 					i: 80000000h
 					s: s + 1							;-- ensure that the 0 subtraction does not occur
 				][
-					scan-float lex s e flags			;-- overflow, fall back on float
-					return 0
+					promote
 				]
 			]
 		]
+		if all [evt? not fire-event lex words/_scan TYPE_INTEGER null s e][return 0]
 		if s/value = #"-" [i: 0 - i]
-		if flags and C_FLAG_NOSTORE = 0 [
-			integer/make-at alloc-slot lex i
-		]
+		if root? [integer/make-at alloc-slot lex i]
 		lex/scanned: TYPE_INTEGER
 		lex/in-pos: e									;-- reset the input position to delimiter byte
+		if all [evt? not fire-event lex words/_load TYPE_INTEGER lex/tail - 1 s e][lex/tail: lex/tail - 1]
 		i
 	]
 	
@@ -1942,6 +1946,7 @@ lexer: context [
 			:scan-path-open								;-- T_PATH
 			:scan-construct								;-- T_CONS_MK
 			:scan-comment								;-- T_CMT
+			:scan-integer								;-- T_INTEGER
 			:scan-word									;-- T_WORD
 			:scan-ref-issue								;-- T_REFINE
 			:scan-ref-issue								;-- T_ISSUE
@@ -1950,7 +1955,6 @@ lexer: context [
 			:scan-binary								;-- T_BINARY
 			:scan-char									;-- T_CHAR
 			:scan-percent								;-- T_PERCENT
-			:scan-integer								;-- T_INTEGER
 			:scan-float									;-- T_FLOAT
 			:scan-float-special							;-- T_FLOAT_SP
 			:scan-tuple									;-- T_TUPLE
