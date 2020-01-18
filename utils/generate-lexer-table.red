@@ -76,31 +76,31 @@ context [
 		T_PAR_OP			-					;-- 60
 		T_PAR_CL			-					;-- 61
 		T_MSTR_OP			-					;-- 62
-		T_MSTR_CL			-					;-- 63
+		T_MSTR_CL			TYPE_STRING			;-- 63
 		T_MAP_OP			-					;-- 64
 		T_PATH				-					;-- 65
 		T_CONS_MK			-					;-- 66
 		T_CMT				-					;-- 67
 		T_WORD				-					;-- 68
 		T_REFINE			-					;-- 69
-		T_ISSUE				-					;-- 70
-		T_STRING			-					;-- 71
-		T_FILE				-					;-- 72
-		T_BINARY			-					;-- 73
-		T_CHAR				-					;-- 74
-		T_PERCENT			-					;-- 75
+		T_ISSUE				TYPE_ISSUE			;-- 70
+		T_STRING			TYPE_STRING			;-- 71
+		T_FILE				TYPE_FILE			;-- 72
+		T_BINARY			TYPE_BINARY			;-- 73
+		T_CHAR				TYPE_CHAR			;-- 74
+		T_PERCENT			TYPE_PERCENT		;-- 75
 		T_INTEGER			-					;-- 76
-		T_FLOAT				-					;-- 77
-		T_FLOAT_SP			-					;-- 78
-		T_TUPLE				-					;-- 79
-		T_DATE				-					;-- 80
-		T_PAIR				-					;-- 81
-		T_TIME				-					;-- 82
-		T_MONEY				-					;-- 83
-		T_TAG				-					;-- 84
-		T_URL				-					;-- 85
-		T_EMAIL				-					;-- 86
-		T_HEX				-					;-- 87
+		T_FLOAT				TYPE_FLOAT			;-- 77
+		T_FLOAT_SP			TYPE_FLOAT			;-- 78
+		T_TUPLE				TYPE_TUPLE			;-- 79
+		T_DATE				TYPE_DATE			;-- 80
+		T_PAIR				TYPE_PAIR			;-- 81
+		T_TIME				TYPE_TIME			;-- 82
+		T_MONEY				TYPE_MONEY			;-- 83
+		T_TAG				TYPE_TAG			;-- 84
+		T_URL				TYPE_URL			;-- 85
+		T_EMAIL				TYPE_EMAIL			;-- 86
+		T_HEX				TYPE_INTEGER		;-- 87
 	]
 
 	CSV-table: %../docs/lexer/lexer-FSM.csv
@@ -130,15 +130,12 @@ context [
 		append/only table out
 	]
 	
-	;-- Generate the prev-table content
-	prev-table: make binary! 2000
+	;-- Generate the type-table content
+	type-table: make binary! 2000
 	types: load %../runtime/macros.reds
 	types: select types 'datatypes!
 	
-	foreach [s t] states [
-		if s = '--EXIT_STATES-- [break]
-		append prev-table (index? find types t) - 1
-	]
+	foreach [s t] states [append type-table either t = '- [0][(index? find types t) - 1]]
 	
 	template: compose/deep [Red/System [
 		Note: "Auto-generated lexical scanner transitions table"
@@ -148,7 +145,7 @@ context [
 		(extract states 2)
 	]
 	
-	prev-table: (prev-table)
+	type-table: (type-table)
 		
 	transitions: (table)
 	]
