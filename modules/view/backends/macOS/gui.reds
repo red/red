@@ -423,6 +423,7 @@ get-flags: func [
 			sym = no-buttons [flags: flags or FACET_FLAGS_NO_BTNS]
 			sym = modal		 [flags: flags or FACET_FLAGS_MODAL]
 			sym = popup		 [flags: flags or FACET_FLAGS_POPUP]
+			sym = tri-state  [flags: flags or FACET_FLAGS_TRISTATE]
 			sym = scrollable [flags: flags or FACET_FLAGS_SCROLLABLE]
 			sym = password	 [flags: flags or FACET_FLAGS_PASSWORD]
 			true			 [fire [TO_ERROR(script invalid-arg) word]]
@@ -1986,6 +1987,9 @@ OS-make-view: func [
 		]
 		any [sym = button sym = check sym = radio][
 			if sym <> button [
+				if all [sym = check bits and FACET_FLAGS_TRISTATE <> 0][
+					objc_msgSend [obj sel_getUid "setAllowsMixedState:" yes]
+				]
 				objc_msgSend [obj sel_getUid "setButtonType:" flags]
 				set-logic-state obj as red-logic! data no
 			]

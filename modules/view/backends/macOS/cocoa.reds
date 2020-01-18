@@ -67,6 +67,10 @@ Red/System [
 #define NSAtBottom					5
 #define NSBelowBottom				6
 
+#define NSMixedState				-1
+#define NSOffState					0
+#define NSOnState					1
+
 #define NSLeftMouseDown				1
 #define NSLeftMouseUp				2
 #define NSRightMouseDown			3
