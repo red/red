@@ -984,6 +984,7 @@ get-flags: func [
 			sym = no-buttons [flags: flags or FACET_FLAGS_NO_BTNS]
 			sym = modal		 [flags: flags or FACET_FLAGS_MODAL]
 			sym = popup		 [flags: flags or FACET_FLAGS_POPUP]
+			sym = tri-state  [flags: flags or FACET_FLAGS_TRISTATE]
 			sym = scrollable [flags: flags or FACET_FLAGS_SCROLLABLE]
 			sym = password	 [flags: flags or FACET_FLAGS_PASSWORD]
 			true			 [fire [TO_ERROR(script invalid-arg) word]]
@@ -1304,6 +1305,7 @@ OS-make-view: func [
 		ws-flags  [integer!]
 		bits	  [integer!]
 		sym		  [integer!]
+		state	  [integer!]
 		class	  [c-string!]
 		caption   [c-string!]
 		value	  [integer!]
@@ -1366,7 +1368,8 @@ OS-make-view: func [
 		]
 		sym = check [
 			class: #u16 "RedButton"
-			flags: flags or WS_TABSTOP or BS_AUTOCHECKBOX
+			state: either bits and FACET_FLAGS_TRISTATE <> 0 [BS_AUTO3STATE][BS_AUTOCHECKBOX]
+			flags: flags or WS_TABSTOP or state
 		]
 		sym = radio [
 			class: #u16 "RedButton"
