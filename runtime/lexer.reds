@@ -1792,9 +1792,11 @@ lexer: context [
 			lex/scanned: as-integer type-table/state
 		
 			index: state - --EXIT_STATES--
-			load?: either lex/fun-ptr = null [any [not one? ld?]][
-				either state >= T_STRING [fire-event lex words/_scan 0 - index null s lex/in-pos][yes]
-			]
+			load?: either state >= T_STRING [
+				either lex/fun-ptr = null [any [not one? ld?]][
+					fire-event lex words/_scan 0 - index null s lex/in-pos
+				]
+			][yes]
 			if load? [
 				do-scan: as scanner! scanners/index
 				catch LEX_ERR [do-scan lex s p flags]
@@ -1863,19 +1865,21 @@ lexer: context [
 		
 		scan-tokens lex one? load?
 
-		slots: (as-integer lex/tail - lex/buffer) >> 4
-		if slots > 0 [
-			p: as red-point! either lex/buffer < lex/head [lex/head - 1][lex/buffer]
-			if TYPE_OF(p) = TYPE_POINT [
-				lex/closing: p/y
-				catch LEX_ERR [throw-error lex lex/input + p/z lex/in-end ERR_CLOSING]
-				if system/thrown <> 0 [dst/header: TYPE_NONE clean-up return lex/scanned]
+		if load? [
+			slots: (as-integer lex/tail - lex/buffer) >> 4
+			if slots > 0 [
+				p: as red-point! either lex/buffer < lex/head [lex/head - 1][lex/buffer]
+				if TYPE_OF(p) = TYPE_POINT [
+					lex/closing: p/y
+					catch LEX_ERR [throw-error lex lex/input + p/z lex/in-end ERR_CLOSING]
+					if system/thrown <> 0 [dst/header: TYPE_NONE clean-up return lex/scanned]
+				]
 			]
-		]
-		either all [one? not wrap? slots > 0][
-			copy-cell lex/buffer dst					;-- copy first loaded value only
-		][
-			store-any-block dst lex/buffer slots TYPE_BLOCK
+			either all [one? not wrap? slots > 0][
+				copy-cell lex/buffer dst				;-- copy first loaded value only
+			][
+				store-any-block dst lex/buffer slots TYPE_BLOCK
+			]
 		]
 		clean-up
 		lex/scanned
