@@ -369,20 +369,57 @@ init: func [
 ]
 
 set-logic-state: func [
-	hWnd   [integer!]
+	handle [integer!]
 	state  [red-logic!]
 	check? [logic!]
 	/local
-		value [integer!]
+		values [red-block!]
+		flags  [integer!]
+		type   [integer!]
+		value  [integer!]
+		tri?   [logic!]
 ][
-	value: either TYPE_OF(state) <> TYPE_LOGIC [
-		state/header: TYPE_LOGIC
-		state/value: check?
-		either check? [-1][0]
-	][
-		as-integer state/value							;-- returns 0/1, matches the messages
+	if check? [
+		values: as red-block! get-face-values handle
+		flags: get-flags as red-block! values + FACE_OBJ_FLAGS
+		tri?: flags and FACET_FLAGS_TRISTATE <> 0
 	]
-	objc_msgSend [hWnd sel_getUid "setState:"  value]
+	
+	type: TYPE_OF(state)
+	value: either all [check? tri? type = TYPE_NONE][NSMixedState][
+		as integer! switch type [
+			TYPE_NONE  [false]
+			TYPE_LOGIC [state/value]					;-- returns 0/1, matches the state flag
+			default	   [true]
+		]
+	]
+
+	objc_msgSend [handle sel_getUid "setState:" value]
+]
+
+get-logic-state: func [
+	handle 	[integer!]
+	return: [logic!]									;-- TRUE: change in state
+	/local
+		bool  [red-logic!]
+		state [integer!]
+		type  [integer!]
+		value [logic!]
+][
+	bool: as red-logic! (get-face-values handle) + FACE_OBJ_DATA
+	state: objc_msgSend [handle sel_getUid "state"]
+	
+	type: TYPE_OF(bool)
+	value: bool/value
+
+	either state = NSMixedState [
+		bool/header: TYPE_NONE
+	][
+		bool/header: TYPE_LOGIC
+		bool/value: state = NSOnState
+	]
+		
+	any [type <> TYPE_OF(bool) value <> bool/value]
 ]
 
 get-flags: func [
@@ -1982,11 +2019,9 @@ OS-make-view: func [
 					objc_msgSend [obj sel_getUid "setAllowsMixedState:" yes]
 				]
 				objc_msgSend [obj sel_getUid "setButtonType:" flags]
-				set-logic-state obj as red-logic! data no
+				set-logic-state obj as red-logic! data sym = check
 			]
-			if TYPE_OF(img) = TYPE_IMAGE [
-				change-image obj img sym
-			]
+			if TYPE_OF(img) = TYPE_IMAGE [change-image obj img sym]
 			if caption <> 0 [objc_msgSend [obj sel_getUid "setTitle:" caption]]
 			;objc_msgSend [obj sel_getUid "setTarget:" obj]
 			;objc_msgSend [obj sel_getUid "setAction:" sel_getUid "button-click:"]

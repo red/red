@@ -401,36 +401,26 @@ on-flags-changed: func [
 ]
 
 button-click: func [
-	self	[integer!]
+	[cdecl]
+	self [integer!]
 	/local
 		w		[red-word!]
 		values	[red-value!]
-		bool	[red-logic!]
 		type 	[integer!]
-		state	[integer!]
-		change? [logic!]
-][
-	make-event self 0 EVT_CLICK
+		event	[integer!]
+][	
 	values: get-face-values self
 	w: as red-word! values + FACE_OBJ_TYPE
 	type: symbol/resolve w/symbol
-	if any [
-		type = check
-		type = radio
-	][
-		bool: as red-logic! values + FACE_OBJ_DATA
-		state: objc_msgSend [self sel_getUid "state"]
-		change?: either state = -1 [
-			type: TYPE_OF(bool)
-			bool/header: TYPE_NONE							;-- NONE indicates undeterminate
-			bool/header <> type
-		][
-			change?: bool/value								;-- save the old value
-			bool/value: as logic! state
-			bool/value <> change?
-		]
-		if change? [make-event self 0 EVT_CHANGE]
+	
+	event: case [
+		type = button [EVT_CLICK]
+		type = radio  [get-logic-state self EVT_CLICK]		;-- gets converted to CHANGE by high-level event handler 
+		type = check  [get-logic-state self EVT_CHANGE]
+		true [0]
 	]
+	
+	unless zero? event [make-event self 0 event]
 ]
 
 empty-func: func [
