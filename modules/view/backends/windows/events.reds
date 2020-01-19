@@ -621,6 +621,7 @@ process-command-event: func [
 		int	   [red-integer!]
 		idx	   [integer!]
 		res	   [integer!]
+		sym    [integer!]
 		saved  [handle!]
 		child  [handle!]
 		evt	   [integer!]
@@ -638,18 +639,36 @@ process-command-event: func [
 	switch WIN32_HIWORD(wParam) [
 		BN_CLICKED [
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
-			current-msg/hWnd: child						;-- force child handle
-			evt: either type/symbol <> check [EVT_CLICK][
-				get-logic-state current-msg
-				EVT_CHANGE
+			sym: symbol/resolve type/symbol
+			current-msg/hWnd: child							;-- force child handle
+			
+			evt: case [
+				sym = button [EVT_CLICK]
+				sym = check [
+					get-logic-state current-msg
+					EVT_CHANGE
+				]
+				all [
+					sym = radio								;-- ignore double-click (fixes #4246)
+					BST_CHECKED <> (BST_CHECKED and as integer! SendMessage child BM_GETSTATE 0 0)
+				][
+					get-logic-state current-msg
+					EVT_CLICK								;-- gets converted to CHANGE by high-level event handler
+				]
+				true [0]
 			]
-			make-event current-msg 0 evt				;-- should be *after* get-facet call (Windows closing on click case)
+			
+			unless zero? evt [make-event current-msg 0 evt]	;-- should be *after* get-facet call (Windows closing on click case)
 		]
 		BN_UNPUSHED [
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
 			if type/symbol = radio [
 				current-msg/hWnd: child					;-- force child handle
-				make-event current-msg 0 EVT_CHANGE
+				
+				;-- ignore double-click (fixes #4246)
+				unless BST_UNCHECKED <> as integer! SendMessage child BM_GETSTATE 0 0 [
+					make-event current-msg 0 EVT_CHANGE
+				]
 			]
 		]
 		EN_CHANGE [											;-- sent also by CreateWindow
@@ -719,7 +738,10 @@ process-command-event: func [
 		CBN_EDITCHANGE [
 			current-msg/hWnd: child						;-- force Combobox handle
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
-			unless type/symbol = text-list [
+			unless any[
+				type/symbol = text-list
+				type/symbol = radio						;-- ignore radio button (fixes #4246)
+			][
 				make-event current-msg -1 EVT_CHANGE
 			]
 		]

@@ -342,6 +342,8 @@ Red/System [
 
 #define BM_GETCHECK			F0h
 #define BM_SETCHECK			F1h
+#define BM_GETSTATE			F2h
+#define BM_SETSTATE			F3h
 #define BM_SETSTYLE			F4h
 #define BM_SETIMAGE			F7h
 
@@ -351,6 +353,8 @@ Red/System [
 #define BST_UNCHECKED		0
 #define BST_CHECKED			1
 #define BST_INDETERMINATE	2
+#define BST_PUSHED			4
+#define BST_FOCUS			8
 
 #define VK_SHIFT			10h
 #define VK_CONTROL			11h
