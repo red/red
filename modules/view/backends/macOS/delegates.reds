@@ -155,7 +155,6 @@ button-mouse-down: func [
 				make-event self 0 EVT_LEFT_UP
 				if inside? [
 					inside?: false
-					objc_msgSend [self sel_getUid "setNextState"]
 					button-click self
 				]
 			]
@@ -413,10 +412,19 @@ button-click: func [
 	w: as red-word! values + FACE_OBJ_TYPE
 	type: symbol/resolve w/symbol
 	
+	if type <> radio [objc_msgSend [self sel_getUid "setNextState"]]
+	
 	event: case [
 		type = button [EVT_CLICK]
-		type = radio  [get-logic-state self EVT_CLICK]		;-- gets converted to CHANGE by high-level event handler 
 		type = check  [get-logic-state self EVT_CHANGE]
+		all [
+			type = radio
+			NSOffState = objc_msgSend [self sel_getUid "state"] ;-- ignore double-click (fixes #4246)
+		][
+			objc_msgSend [self sel_getUid "setNextState"]		;-- gets converted to CHANGE by high-level event handler
+			get-logic-state self
+			EVT_CLICK
+		]
 		true [0]
 	]
 	
