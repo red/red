@@ -401,28 +401,20 @@ set-logic-state: func [
 ]
 
 get-logic-state: func [
-	handle 	[integer!]
-	return: [logic!]									;-- TRUE: change in state
+	handle [integer!]
 	/local
 		bool  [red-logic!]
 		state [integer!]
-		type  [integer!]
-		value [logic!]
 ][
 	bool: as red-logic! (get-face-values handle) + FACE_OBJ_DATA
 	state: objc_msgSend [handle sel_getUid "state"]
 	
-	type: TYPE_OF(bool)
-	value: bool/value
-
 	either state = NSMixedState [
 		bool/header: TYPE_NONE
 	][
 		bool/header: TYPE_LOGIC
 		bool/value: state = NSOnState
 	]
-		
-	any [type <> TYPE_OF(bool) value <> bool/value]
 ]
 
 get-flags: func [
