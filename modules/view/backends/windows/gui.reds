@@ -1007,19 +1007,13 @@ get-flags: func [
 ]
 
 get-logic-state: func [
-	msg 	[tagMSG]
-	return: [logic!]				;-- TRUE if state has changed
+	msg [tagMSG]
 	/local
 		bool  [red-logic!]
 		state [integer!]
-		type  [integer!]
-		value [logic!]
 ][
 	bool: as red-logic! get-facet msg FACE_OBJ_DATA
 	state: as-integer SendMessage msg/hWnd BM_GETCHECK 0 0
-	
-	type: TYPE_OF(bool)
-	value: bool/value
 
 	either state = BST_INDETERMINATE [
 		bool/header: TYPE_NONE
@@ -1027,8 +1021,6 @@ get-logic-state: func [
 		bool/header: TYPE_LOGIC
 		bool/value: state = BST_CHECKED
 	]
-	
-	any [type <> TYPE_OF(bool) value <> bool/value]
 ]
 
 get-selected: func [
