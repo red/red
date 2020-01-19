@@ -937,15 +937,27 @@ set-logic-state: func [
 	state  [red-logic!]
 	check? [logic!]
 	/local
-		value [integer!]
-][
-	value: either TYPE_OF(state) <> TYPE_LOGIC [
-		state/header: TYPE_LOGIC
-		state/value: check?
-		either check? [BST_INDETERMINATE][false]
-	][
-		as-integer state/value							;-- returns 0/1, matches the messages
+		values [red-block!]
+		flags  [integer!]
+		type   [integer!]
+		value  [integer!]
+		tri?   [logic!]
+][	
+	if check? [
+		values: as red-block! object/get-values get-face-obj hWnd
+		flags: get-flags as red-block! values + FACE_OBJ_FLAGS
+		tri?: flags and FACET_FLAGS_TRISTATE <> 0
 	]
+	
+	type: TYPE_OF(state)
+	value: either all [check? tri? type = TYPE_NONE][BST_INDETERMINATE][
+		as integer! switch type [
+			TYPE_NONE  [false]
+			TYPE_LOGIC [state/value]					;-- returns 0/1, matches the state flag
+			default	   [true]
+		]
+	]
+
 	SendMessage hWnd BM_SETCHECK value 0
 ]
 
@@ -995,26 +1007,28 @@ get-flags: func [
 ]
 
 get-logic-state: func [
-	msg		[tagMSG]
-	return: [logic!]									;-- TRUE if state has changed
+	msg 	[tagMSG]
+	return: [logic!]				;-- TRUE if state has changed
 	/local
 		bool  [red-logic!]
 		state [integer!]
-		otype [integer!]
-		obool [logic!]
+		type  [integer!]
+		value [logic!]
 ][
 	bool: as red-logic! get-facet msg FACE_OBJ_DATA
 	state: as-integer SendMessage msg/hWnd BM_GETCHECK 0 0
+	
+	type: TYPE_OF(bool)
+	value: bool/value
 
 	either state = BST_INDETERMINATE [
-		otype: TYPE_OF(bool)
-		bool/header: TYPE_NONE							;-- NONE indicates undeterminate
-		bool/header <> otype
+		bool/header: TYPE_NONE
 	][
-		obool: bool/value
+		bool/header: TYPE_LOGIC
 		bool/value: state = BST_CHECKED
-		bool/value <> obool
 	]
+	
+	any [type <> TYPE_OF(bool) value <> bool/value]
 ]
 
 get-selected: func [
@@ -1610,7 +1624,7 @@ OS-make-view: func [
 			value: get-position-value as red-float! data 100
 			SendMessage handle PBM_SETPOS value 0
 		]
-		sym = check [set-logic-state handle as red-logic! data no]
+		sym = check [set-logic-state handle as red-logic! data yes]
 		sym = radio [set-logic-state handle as red-logic! data no]
 		any [
 			sym = drop-down
