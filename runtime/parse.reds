@@ -196,6 +196,28 @@ parser: context [
 		actions/compare value2 value comp-op
 	]
 	
+	match-datatype?: func [
+		input	[red-binary!]
+		dt		[red-datatype!]
+		dt-type [integer!]
+		return:	[logic!]
+		/local
+			len type size [integer!]
+			s		[series!]
+			buf pos	[byte-ptr!]
+			match?	[logic!]
+	][
+		len: 0
+		s: GET_BUFFER(input)
+		buf: (as byte-ptr! s/offset) + input/head
+		size: as-integer (as byte-ptr! s/tail) - buf
+		type: lexer/scan null buf size yes no no :len null null
+		
+		match?: either dt-type = TYPE_TYPESET [BS_TEST_BIT_ALT(dt type)][type = dt/value]
+		if match? [_series/rs-skip as red-series! input len - 1] ;-- -1 to account for later rs-skip
+		match?
+	]
+	
 	advance: func [
 		str		[red-string!]
 		value	[red-value!]							;-- char! or string! value
@@ -1251,19 +1273,22 @@ parser: context [
 								type = TYPE_URL
 								type = TYPE_TAG
 								type = TYPE_EMAIL
-								type = TYPE_BINARY
 							][
 								PARSE_ERROR [TO_ERROR(script parse-unsupported)]
 							]
 							PARSE_CHECK_INPUT_EMPTY?
 							either end? [match?: false][
 								dt: as red-datatype! value
-								value: block/rs-head input
-								match?: either dt-type = TYPE_TYPESET [
-									type: TYPE_OF(value)
-									BS_TEST_BIT_ALT(dt type)
+								match?: either type = TYPE_BINARY [
+									match-datatype? as red-binary! input dt dt-type
 								][
-									TYPE_OF(value) = dt/value
+									value: block/rs-head input
+									type: TYPE_OF(value)
+									either dt-type = TYPE_TYPESET [
+										BS_TEST_BIT_ALT(dt type)
+									][
+										type = dt/value
+									]
 								]
 								PARSE_TRACE(_match)
 							]
