@@ -369,20 +369,49 @@ init: func [
 ]
 
 set-logic-state: func [
-	hWnd   [integer!]
+	handle [integer!]
 	state  [red-logic!]
 	check? [logic!]
 	/local
-		value [integer!]
+		values [red-block!]
+		flags  [integer!]
+		type   [integer!]
+		value  [integer!]
+		tri?   [logic!]
 ][
-	value: either TYPE_OF(state) <> TYPE_LOGIC [
-		state/header: TYPE_LOGIC
-		state/value: check?
-		either check? [-1][0]
-	][
-		as-integer state/value							;-- returns 0/1, matches the messages
+	if check? [
+		values: as red-block! get-face-values handle
+		flags: get-flags as red-block! values + FACE_OBJ_FLAGS
+		tri?: flags and FACET_FLAGS_TRISTATE <> 0
 	]
-	objc_msgSend [hWnd sel_getUid "setState:"  value]
+	
+	type: TYPE_OF(state)
+	value: either all [check? tri? type = TYPE_NONE][NSMixedState][
+		as integer! switch type [
+			TYPE_NONE  [false]
+			TYPE_LOGIC [state/value]					;-- returns 0/1, matches the state flag
+			default	   [true]
+		]
+	]
+
+	objc_msgSend [handle sel_getUid "setState:" value]
+]
+
+get-logic-state: func [
+	handle [integer!]
+	/local
+		bool  [red-logic!]
+		state [integer!]
+][
+	bool: as red-logic! (get-face-values handle) + FACE_OBJ_DATA
+	state: objc_msgSend [handle sel_getUid "state"]
+	
+	either state = NSMixedState [
+		bool/header: TYPE_NONE
+	][
+		bool/header: TYPE_LOGIC
+		bool/value: state = NSOnState
+	]
 ]
 
 get-flags: func [
@@ -420,6 +449,7 @@ get-flags: func [
 			sym = no-buttons [flags: flags or FACET_FLAGS_NO_BTNS]
 			sym = modal		 [flags: flags or FACET_FLAGS_MODAL]
 			sym = popup		 [flags: flags or FACET_FLAGS_POPUP]
+			sym = tri-state  [flags: flags or FACET_FLAGS_TRISTATE]
 			sym = scrollable [flags: flags or FACET_FLAGS_SCROLLABLE]
 			sym = password	 [flags: flags or FACET_FLAGS_PASSWORD]
 			true			 [fire [TO_ERROR(script invalid-arg) word]]
@@ -1977,12 +2007,13 @@ OS-make-view: func [
 		]
 		any [sym = button sym = check sym = radio][
 			if sym <> button [
+				if all [sym = check bits and FACET_FLAGS_TRISTATE <> 0][
+					objc_msgSend [obj sel_getUid "setAllowsMixedState:" yes]
+				]
 				objc_msgSend [obj sel_getUid "setButtonType:" flags]
-				set-logic-state obj as red-logic! data no
+				set-logic-state obj as red-logic! data sym = check
 			]
-			if TYPE_OF(img) = TYPE_IMAGE [
-				change-image obj img sym
-			]
+			if TYPE_OF(img) = TYPE_IMAGE [change-image obj img sym]
 			if caption <> 0 [objc_msgSend [obj sel_getUid "setTitle:" caption]]
 			;objc_msgSend [obj sel_getUid "setTarget:" obj]
 			;objc_msgSend [obj sel_getUid "setAction:" sel_getUid "button-click:"]
