@@ -1805,7 +1805,7 @@ lexer: context [
 					slot: lex/tail - 1
 					unless fire-event lex words/_load TYPE_OF(slot) slot s lex/in-pos [lex/tail: slot]
 				]
-				if all [lex/entry = S_PATH state <> T_PATH][
+				if all [lex/entry = S_PATH state <> T_PATH state <> T_ERROR][
 					scan-path-item lex s lex/in-pos flags	;-- lex/in-pos could have changed
 				]
 			]
