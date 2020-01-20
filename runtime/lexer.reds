@@ -1270,25 +1270,20 @@ lexer: context [
 		lex/in-pos: e + 1								;-- skip "
 	]
 	
-	scan-ref-issue: func [lex [state!] s e [byte-ptr!] flags [integer!]
+	scan-refinement: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
 			cell [cell!]
 			type [integer!]
 			p	 [byte-ptr!]
 	][
-		type: either s/1 = #"#" [
-			if s + 1 = e [throw-error lex s e TYPE_ISSUE]
-			TYPE_ISSUE
-		][
-			assert s/1 = #"/"
-			either s + 1 = e [s: s - 1 TYPE_WORD][
-				either s/2 = #"/" [						;-- //...
-					scan-word lex s e flags
-					exit
-					0
-				][
-					TYPE_REFINEMENT
-				]
+		assert s/1 = #"/"
+		type: either s + 1 = e [s: s - 1 TYPE_WORD][
+			either s/2 = #"/" [							;-- //...
+				scan-word lex s e flags
+				exit
+				0
+			][
+				TYPE_REFINEMENT
 			]
 		]
 		lex/scanned: type
@@ -1299,6 +1294,19 @@ lexer: context [
 		set-type cell type
 		lex/in-pos: e									;-- reset the input position to delimiter byte
 		if all [lex/fun-ptr <> null not fire-event lex words/_load type cell s - 1 e][lex/tail: cell]
+	]
+	
+	scan-issue: func [lex [state!] s e [byte-ptr!] flags [integer!]
+		/local
+			cell [cell!]
+	][
+		assert s/1 = #"#"
+		s: s + 1
+		if s = e [throw-error lex s - 1 e TYPE_ISSUE]
+		cell: alloc-slot lex
+		word/make-at symbol/make-alt-utf8 s as-integer e - s cell
+		set-type cell TYPE_ISSUE
+		lex/in-pos: e									;-- reset the input position to delimiter byte
 	]
 	
 	scan-percent: func [lex [state!] s e [byte-ptr!] flags [integer!]
@@ -1793,7 +1801,7 @@ lexer: context [
 			lex/scanned: as-integer type-table/state
 		
 			index: state - --EXIT_STATES--
-			load?: either state >= T_STRING [
+			load?: either state >= T_ISSUE [
 				either lex/fun-ptr = null [any [not one? ld?]][
 					fire-event lex words/_scan 0 - index null s lex/in-pos
 				]
@@ -1802,7 +1810,7 @@ lexer: context [
 				do-scan: as scanner! scanners/index
 				catch LEX_ERR [do-scan lex s p flags]
 
-				if all [state >= T_STRING lex/fun-ptr <> null][ ;-- for < T_STRING, events are triggered from scan-*
+				if all [state >= T_ISSUE lex/fun-ptr <> null][ ;-- for < T_ISSUE, events are triggered from scan-*
 					slot: lex/tail - 1
 					unless fire-event lex words/_load TYPE_OF(slot) slot s lex/in-pos [lex/tail: slot]
 				]
@@ -1953,8 +1961,8 @@ lexer: context [
 			:scan-comment								;-- T_CMT
 			:scan-integer								;-- T_INTEGER
 			:scan-word									;-- T_WORD
-			:scan-ref-issue								;-- T_REFINE
-			:scan-ref-issue								;-- T_ISSUE
+			:scan-refinement							;-- T_REFINE
+			:scan-issue									;-- T_ISSUE
 			:scan-string								;-- T_STRING
 			:scan-file									;-- T_FILE
 			:scan-binary								;-- T_BINARY
