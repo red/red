@@ -1871,17 +1871,17 @@ GPtrArray!: alias struct! [
 			button		[handle!]
 			return:		[logic!]
 		]
+		gtk_toggle_button_set_active: "gtk_toggle_button_set_active" [
+			button		[handle!]
+			active?		[logic!]
+		]
 		gtk_toggle_button_get_inconsistent: "gtk_toggle_button_get_inconsistent" [
 			button		[handle!]
 			return:		[logic!]
 		]
-		gtk_toggle_button_set_inconsistent: "gtk_toggle_button_get_inconsistent" [
+		gtk_toggle_button_set_inconsistent: "gtk_toggle_button_set_inconsistent" [
 			button		[handle!]
-			inconsist?	[logic!]
-		]
-		gtk_toggle_button_set_active: "gtk_toggle_button_set_active" [
-			button		[handle!]
-			active?		[logic!]
+			setting		[logic!]
 		]
 		gtk_toggle_button_toggled: "gtk_toggle_button_toggled" [
 			button		[handle!]
