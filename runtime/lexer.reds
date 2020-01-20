@@ -1636,6 +1636,7 @@ lexer: context [
 			scan-integer lex s p flags or C_FLAG_NOSTORE
 			scan-integer lex p + 1 e flags or C_FLAG_NOSTORE
 
+		lex/scanned: TYPE_PAIR							;-- overwrite value set by scan-integer
 		lex/in-pos: e									;-- reset the input position to delimiter byte
 	]
 	
