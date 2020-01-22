@@ -64,22 +64,43 @@ button-clicked: func [
 
 button-toggled: func [
 	[cdecl]
-	evbox		[handle!]
-	button		[handle!]
+	evbox  [handle!]
+	button [handle!]
 	/local
-		bool	[red-logic!]
-		type	[integer!]
-		undetermined? [logic!]
+		values	 [red-value!]
+		bool	 [red-logic!]
+		type	 [red-word!]
+		flags	 [integer!]
+		sym		 [integer!]
+		tri?	 [logic!]
+		toggled? [logic!]
+		mixed?   [logic!]
 ][
-	bool: (as red-logic! get-face-values button) + FACE_OBJ_DATA
-	undetermined?: gtk_toggle_button_get_inconsistent button
-
-	either undetermined? [
-		type: TYPE_OF(bool)
-		bool/header: TYPE_NONE						;-- NONE indicates undeterminate
+	values: get-face-values button
+	bool:   as red-logic! values + FACE_OBJ_DATA
+	type:   as red-word! values + FACE_OBJ_TYPE
+	flags:  get-flags as red-block! values + FACE_OBJ_FLAGS
+	
+	sym:  symbol/resolve type/symbol
+	tri?: flags and FACET_FLAGS_TRISTATE <> 0
+	toggled?: gtk_toggle_button_get_active button
+		
+	either all [sym = check tri?][
+		mixed?: gtk_toggle_button_get_inconsistent button
+		if toggled? [
+			gtk_toggle_button_set_inconsistent button not mixed?			;-- flip on each toggle
+			unless mixed? [													;--		 N		 Y
+				g_signal_handler_block button check-handler					;-- [ ] <-> [v] <-> [-]
+				gtk_toggle_button_set_active button no						;--  |--- emulate ---^
+				g_signal_handler_unblock button check-handler
+				bool/header: TYPE_NONE
+			]
+		]
 	][
-		bool/value: gtk_toggle_button_get_active button
+		bool/header: TYPE_LOGIC
+		bool/value:  toggled?
 	]
+	
 	make-event button 0 EVT_CHANGE
 ]
 
