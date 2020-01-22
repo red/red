@@ -651,6 +651,14 @@ GPtrArray!: alias struct! [
 		g_signal_emit_by_name: "g_signal_emit_by_name" [
 			[variadic]
 		]
+		g_signal_handler_block: "g_signal_handler_block" [
+			object  [handle!]
+			handler [integer!]
+		]
+		g_signal_handler_unblock: "g_signal_handler_unblock" [
+			object  [handle!]
+			handler [integer!]
+		]
 		g_object_ref: "g_object_ref" [
 			object		[int-ptr!]
 			return:		[int-ptr!]
