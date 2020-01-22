@@ -846,6 +846,7 @@ lexer: context [
 	scan-eof: func [lex [state!] s e [byte-ptr!] flags [integer!]][]
 	
 	scan-error: func [lex [state!] s e [byte-ptr!] flags [integer!] /local type index [integer!]][
+		if all [lex/fun-ptr <> null lex/entry = S_PATH][close-block lex s e -1]
 		either lex/prev < --EXIT_STATES-- [
 			index: lex/prev
 			index: as-integer type-table/index
