@@ -1191,21 +1191,39 @@ set-selected-focus: func [
 ]
 
 set-logic-state: func [
-	widget		[handle!]
-	state		[red-logic!]
-	check?		[logic!]
+	widget [handle!]
+	state  [red-logic!]
+	check? [logic!]
 	/local
-		value	[integer!]
+		flags [integer!]
+		type  [integer!]
+		tri?  [logic!]
+		value [logic!]
 ][
-	value: either TYPE_OF(state) <> TYPE_LOGIC [
-		state/header: TYPE_LOGIC
-		state/value: check?
-		either check? [-1][0]
-	][
-		as-integer state/value								;-- returns 0/1, matches the messages
+	if check? [
+		flags: get-flags as red-block! (get-face-values widget) + FACE_OBJ_FLAGS
+		tri?:  flags and FACET_FLAGS_TRISTATE <> 0
+		g_signal_handler_block widget check-handler			;-- suppress signal handler
 	]
-	gtk_toggle_button_set_active widget as logic! value
-	if value = -1 [gtk_toggle_button_set_inconsistent widget true]
+		
+	type: TYPE_OF(state)
+	either all [check? tri? type = TYPE_NONE][		
+		gtk_toggle_button_set_inconsistent widget yes
+		gtk_toggle_button_set_active widget no
+	][
+		value: switch type [
+			TYPE_NONE  [false]
+			TYPE_LOGIC [state/value]						;-- returns 0/1, matches the messages
+			default    [true]
+		]
+		
+		gtk_toggle_button_set_inconsistent widget no
+		gtk_toggle_button_set_active widget value
+	]
+	
+	if check? [
+		g_signal_handler_unblock widget check-handler		;-- resume signal handling
+	]
 ]
 
 get-flags: func [
@@ -1243,6 +1261,7 @@ get-flags: func [
 			sym = no-buttons [flags: flags or FACET_FLAGS_NO_BTNS]
 			sym = modal		 [flags: flags or FACET_FLAGS_MODAL]
 			sym = popup		 [flags: flags or FACET_FLAGS_POPUP]
+			sym = tri-state  [flags: flags or FACET_FLAGS_TRISTATE]
 			sym = scrollable [flags: flags or FACET_FLAGS_SCROLLABLE]
 			sym = password	 [flags: flags or FACET_FLAGS_PASSWORD]
 			true			 [fire [TO_ERROR(script invalid-arg) word]]
@@ -1586,7 +1605,6 @@ OS-make-view: func [
 	case [
 		sym = check [
 			widget: gtk_check_button_new_with_label caption
-			set-logic-state widget as red-logic! data no
 		]
 		sym = radio [
 			handle: as handle! parent
@@ -1795,13 +1813,18 @@ OS-make-view: func [
 	]
 
 	unless any [sym = window sym = area][build-context-menu widget menu]
-
+	
 	; Deal with actors
 	connect-widget-events widget values sym
+	
 	if sym = radio [
 		if last-face-type? face as handle! parent sym [
 			connect-radio-toggled-events face widget as handle! parent
 		]
+	]
+	
+	if sym = check [
+		set-logic-state widget as red-logic! data yes
 	]
 
 	change-selection widget selected sym
