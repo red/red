@@ -23,9 +23,11 @@ Red/System [
 gui-evt: declare red-event!								;-- low-level event value slot
 gui-evt/header: TYPE_EVENT
 
-modal-loop-type: 	0										;-- remanence of last EVT_MOVE or EVT_SIZE
+check-handler: 0										;-- for blocking signal propagation during check's state update
+
+modal-loop-type:	0									;-- remanence of last EVT_MOVE or EVT_SIZE
 zoom-distance:	 	0
-special-key: 		-1										;-- <> -1 if a non-displayable key is pressed
+special-key: 		-1									;-- <> -1 if a non-displayable key is pressed
 
 flags-blk: declare red-block!							;-- static block value for event/flags
 flags-blk/header:	TYPE_BLOCK
@@ -1024,7 +1026,7 @@ connect-widget-events: func [
 
 	case [
 		sym = check [
-			gobj_signal_connect(widget "toggled" :button-toggled widget)
+			check-handler: gobj_signal_connect(widget "toggled" :button-toggled widget)	;-- used to block signal
 		]
 		sym = radio [
 			0
