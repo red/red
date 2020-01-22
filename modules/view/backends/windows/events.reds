@@ -622,6 +622,7 @@ process-command-event: func [
 		idx	   [integer!]
 		res	   [integer!]
 		sym    [integer!]
+		state  [integer!]
 		saved  [handle!]
 		child  [handle!]
 		evt	   [integer!]
@@ -645,6 +646,16 @@ process-command-event: func [
 			evt: case [
 				sym = button [EVT_CLICK]
 				sym = check [
+					if 0 <> (FACET_FLAGS_TRISTATE and get-flags as red-block! get-facet current-msg FACE_OBJ_FLAGS)[
+						state: as integer! SendMessage child BM_GETCHECK 0 0
+						state: switch state [				;-- force [ ] -> [-] -> [v] transition
+							BST_UNCHECKED     [BST_CHECKED]
+							BST_INDETERMINATE [BST_UNCHECKED]
+							BST_CHECKED       [BST_INDETERMINATE]
+							default [0]
+						]
+						SendMessage child BM_SETCHECK state 0
+					]
 					get-logic-state current-msg
 					EVT_CHANGE
 				]
