@@ -302,6 +302,7 @@ lexer: context [
 	utf8-bufsize:	100'000
 	utf8-buffer:	as byte-ptr! 0
 	scanners:		as int-ptr! 0						;-- scan functions jump table (dynamically filled)
+	loaders:		as int-ptr! 0						;-- load functions jump table (dynamically filled)
 	stash:			as cell! 0							;-- special buffer for hatching any-blocks series
 	stash-size:		1000								;-- pre-allocated cells	number
 	root-state:		as state! 0							;-- global entry point to state struct list
@@ -925,7 +926,7 @@ lexer: context [
 		lex/in-pos: e + 1								;-- skip /
 	]
 
-	scan-path-item: func [lex [state!] s e [byte-ptr!] flags [integer!]
+	check-path-end: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
 			type	[integer!]
 			cp		[integer!]
@@ -1802,21 +1803,21 @@ lexer: context [
 			lex/scanned: as-integer type-table/state
 		
 			index: state - --EXIT_STATES--
-			load?: either state >= T_ISSUE [
-				either lex/fun-ptr = null [any [not one? ld?]][
-					fire-event lex words/_scan 0 - index null s lex/in-pos
-				]
-			][yes]
+			do-scan: as scanner! scanners/index
+			if :do-scan <> null [catch LEX_ERR [do-scan lex s p flags]]
+			load?: either lex/fun-ptr = null [any [not one? ld?]][
+				fire-event lex words/_scan 0 - index null s lex/in-pos
+			]
 			if load? [
-				do-scan: as scanner! scanners/index
-				catch LEX_ERR [do-scan lex s p flags]
-
-				if all [state >= T_ISSUE lex/fun-ptr <> null][ ;-- for < T_ISSUE, events are triggered from scan-*
+				do-load: as loader! loaders/index
+				if :do-load <> null [catch LEX_ERR [do-load lex s p flags]]
+				
+				if lex/fun-ptr <> null [
 					slot: lex/tail - 1
 					unless fire-event lex words/_load TYPE_OF(slot) slot s lex/in-pos [lex/tail: slot]
 				]
 				if all [lex/entry = S_PATH state <> T_PATH state <> T_ERROR][
-					scan-path-item lex s lex/in-pos flags	;-- lex/in-pos could have changed
+					check-path-end lex s lex/in-pos flags	;-- lex/in-pos could have changed
 				]
 			]
 			if all [one? lex/scanned > 0 lex/entry <> S_PATH state <> T_PATH lex/tail - 1 = lex/buffer][exit]
@@ -1924,14 +1925,19 @@ lexer: context [
 		scan dst utf8-buffer size one? load? wrap? len fun as red-series! str
 	]
 	
-	set-jump-table: func [[variadic] count [integer!] list [int-ptr!] /local i [integer!] s [int-ptr!]][
+	set-jump-table: func [[variadic] count [integer!] list [int-ptr!] /local i [integer!] s l [int-ptr!]][
+		count: count / 2
 		scanners: as int-ptr! allocate count * size? int-ptr!
+		loaders:  as int-ptr! allocate count * size? int-ptr!
 		s: scanners
+		l: loaders
 		until [
-			s/value: list/value
-			list: list + 1
+			s/value: list/1
+			l/value: list/2
+			list: list + 2
 			count: count - 1
 			s: s + 1
+			l: l + 1
 			zero? count
 		]
 	]
@@ -1943,43 +1949,43 @@ lexer: context [
 		;-- switch following tables to zero-based indexing
 		lex-classes: lex-classes + 1
 		transitions: transitions + 1
-		skip-table: skip-table + 1
-		line-table: line-table + 1
-		type-table: type-table + 1
+		skip-table:  skip-table  + 1
+		line-table:  line-table  + 1
+		type-table:  type-table  + 1
 		
 		set-jump-table [
-			:scan-eof									;-- T_EOF
-			:scan-error									;-- T_ERROR
-			:scan-block-open							;-- T_BLK_OP
-			:scan-block-close							;-- T_BLK_CL
-			:scan-block-open							;-- T_PAR_OP
-			:scan-paren-close							;-- T_PAR_CL
-			:scan-mstring-open							;-- T_MSTR_OP (multiline string)
-			:scan-mstring-close							;-- T_MSTR_CL (multiline string)
-			:scan-map-open								;-- T_MAP_OP
-			:scan-path-open								;-- T_PATH
-			:scan-construct								;-- T_CONS_MK
-			:scan-comment								;-- T_CMT
-			:scan-integer								;-- T_INTEGER
-			:scan-word									;-- T_WORD
-			:scan-refinement							;-- T_REFINE
-			:scan-issue									;-- T_ISSUE
-			:scan-string								;-- T_STRING
-			:scan-file									;-- T_FILE
-			:scan-binary								;-- T_BINARY
-			:scan-char									;-- T_CHAR
-			:scan-percent								;-- T_PERCENT
-			:scan-float									;-- T_FLOAT
-			:scan-float-special							;-- T_FLOAT_SP
-			:scan-tuple									;-- T_TUPLE
-			:scan-date									;-- T_DATE
-			:scan-pair									;-- T_PAIR
-			:scan-time									;-- T_TIME
-			:scan-money									;-- T_MONEY
-			:scan-tag									;-- T_TAG
-			:scan-url									;-- T_URL
-			:scan-email									;-- T_EMAIL
-			:scan-hex									;-- T_HEX
+			:scan-eof			null					;-- T_EOF
+			:scan-error			null					;-- T_ERROR
+			:scan-block-open	null					;-- T_BLK_OP
+			:scan-block-close	null					;-- T_BLK_CL
+			:scan-block-open	null					;-- T_PAR_OP
+			:scan-paren-close	null					;-- T_PAR_CL
+			:scan-mstring-open	null					;-- T_MSTR_OP (multiline string)
+			:scan-mstring-close	null					;-- T_MSTR_CL (multiline string)
+			:scan-map-open		null					;-- T_MAP_OP
+			:scan-path-open		null					;-- T_PATH
+			:scan-construct		null					;-- T_CONS_MK
+			:scan-comment		null					;-- T_CMT
+			:scan-integer		:load-integer			;-- T_INTEGER
+			:scan-word			:load-word				;-- T_WORD
+			:scan-refinement	:load-word				;-- T_REFINE
+			null				:load-word				;-- T_ISSUE
+			null				:load-string			;-- T_STRING
+			null				:load-file				;-- T_FILE
+			null				:load-binary			;-- T_BINARY
+			null				:load-char				;-- T_CHAR
+			null				:load-percent			;-- T_PERCENT
+			null				:load-float				;-- T_FLOAT
+			null				:load-float-special		;-- T_FLOAT_SP
+			null				:load-tuple				;-- T_TUPLE
+			null				:load-date				;-- T_DATE
+			null				:load-pair				;-- T_PAIR
+			null				:load-time				;-- T_TIME
+			null				:load-money				;-- T_MONEY
+			null				:load-tag				;-- T_TAG
+			null				:load-url				;-- T_URL
+			null				:load-email				;-- T_EMAIL
+			null				:load-hex				;-- T_HEX
 		]
 	]
 
