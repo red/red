@@ -676,11 +676,9 @@ process-command-event: func [
 		BN_UNPUSHED [
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
 			if type/symbol = radio [
-				current-msg/hWnd: child					;-- force child handle
-				
-				;-- ignore double-click (fixes #4246)
-				unless BST_UNCHECKED <> as integer! SendMessage child BM_GETSTATE 0 0 [
-					make-event current-msg 0 EVT_CHANGE
+				current-msg/hWnd: child						;-- force child handle
+				unless as logic! SendMessage child BM_GETSTATE 0 0 [
+					make-event current-msg 0 EVT_CHANGE		;-- ignore double-click (fixes #4246)
 				]
 			]
 		]
