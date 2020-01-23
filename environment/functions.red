@@ -820,7 +820,8 @@ clean-path: func [
 		'else [append what-dir file]
 	]
 	if all [dir not dir? file][append file #"/"]
-	
+	if only [return file]
+
 	out: make file! length? file
 	cnt: 0
 	
