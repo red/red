@@ -66,6 +66,10 @@ Red [
 		default-actor: on-down
 		template: [type: 'camera size: 250x250]
 	]
+	calendar: [
+		default-actor: on-change
+		template: [type: 'calendar size: 139x148]
+	]
 	text-list: [
 		default-actor: on-change
 		template: [type: 'text-list size: 100x140]
@@ -118,9 +122,5 @@ Red [
 		default-actor: on-down
 		template: [type: 'base size: 100x100]
 		init: [unless face/image [face/image: make image! face/size]]
-	]
-	calendar: [
-		default-actor: on-change
-		template: [type: 'calendar size: 139x148]
 	]
 )
