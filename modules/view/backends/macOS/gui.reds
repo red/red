@@ -1289,7 +1289,7 @@ init-calendar: func [
 	objc_msgSend [calendar sel_getUid "setDatePickerElements:" NSDatePickerElementFlagYearMonthDay]
 	
 	objc_msgSend [calendar sel_getUid "setTarget:" calendar]
-	objc_msgSend [calendar sel_getUid "setAction:" sel_getUid "calendar-change:"]
+	objc_msgSend [calendar sel_getUid "setAction:" sel_getUid "calendar-change"]
 	objc_msgSend [calendar sel_getUid "sendActionOn:" NSLeftMouseDown]
 	
 	slot: declare red-value!

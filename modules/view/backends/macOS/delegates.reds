@@ -577,8 +577,6 @@ slider-change: func [
 calendar-change: func [
 	[cdecl]
 	self   [integer!]
-	cmd	   [integer!]
-	sender [integer!]
 ][	
 	sync-calendar self
 	make-event self 0 EVT_CHANGE
