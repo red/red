@@ -555,7 +555,7 @@ natives: context [
 					stack/set-last arg + 1
 				]
 				TYPE_STRING [
-					lexer/load-string arg as red-string! arg -1 no yes no null null as red-string! arg
+					lexer/scan-string arg as red-string! arg -1 no yes no null null as red-string! arg
 					DO_EVAL_BLOCK
 				]
 				TYPE_URL 
@@ -2784,7 +2784,7 @@ natives: context [
 		][
 			str: as red-string! bin
 			if len < 0 [len: string/rs-length? str]
-			lexer/load-string slot str len next? yes no :offset fun as red-series! str
+			lexer/scan-string slot str len next? yes no :offset fun as red-series! str
 		]
 		if next? [
 			bin: as red-binary! copy-cell as red-value! bin s/offset + 1

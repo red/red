@@ -81,7 +81,7 @@ context [
 		T_PATH				-					;-- 65
 		T_CONS_MK			-					;-- 66
 		T_CMT				-					;-- 67
-		T_INTEGER			-					;-- 68 
+		T_INTEGER			TYPE_INTEGER		;-- 68 
 		T_WORD				-					;-- 69
 		T_REFINE			-					;-- 70
 		T_ISSUE				TYPE_ISSUE			;-- 71

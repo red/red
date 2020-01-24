@@ -251,7 +251,7 @@ Red [
 		if last-error <> null [return last-error]
 		
 		TRAP_ERRORS(name [
-			lexer/load-string stack/arguments str -1 no yes no null null null
+			lexer/scan-string stack/arguments str -1 no yes no null null null
 			stack/unwind-last
 		])
 	]
