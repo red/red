@@ -12,6 +12,7 @@ select-test.red
 binding-test.red
 evaluation-test.red
 load-test.red
+lexer-test.red
 switch-test.red
 case-test.red
 char-test.red
