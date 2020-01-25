@@ -1798,7 +1798,8 @@ lexer: context [
 			do-scan: as scanner! scanners/index
 			if :do-scan <> null [catch LEX_ERR [do-scan lex s p flags]]
 			load?: either lex/fun-ptr = null [any [not one? ld?]][
-				either state >= T_INTEGER [fire-event lex words/_scan 0 - index null s lex/in-pos][yes]
+				index: either zero? lex/scanned [0 - index][lex/scanned]
+				either state >= T_INTEGER [fire-event lex words/_scan index null s lex/in-pos][yes]
 			]
 			if load? [									;-- Loading stage --
 				index: lex/exit - --EXIT_STATES--
