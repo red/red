@@ -2727,11 +2727,13 @@ natives: context [
 	transcode*: func [
 		check? [logic!]
 		next   [integer!]
+		one    [integer!]
 		part   [integer!]
 		into   [integer!]
 		trace  [integer!]
 		/local
 			offset len type [integer!]
+			next? one? all? [logic!]
 			slot arg [red-value!]
 			bin	bin2 [red-binary!]
 			int	  [red-integer!]
@@ -2739,13 +2741,13 @@ natives: context [
 			blk	  [red-block!]
 			fun	  [red-function!]
 			s	  [series!]
-			next? [logic!]
 	][
-		#typecheck [transcode next part into trace]
+		#typecheck [transcode next one part into trace]
 
+		all?:  one = -1
 		next?: next > -1
 		slot: stack/push*
-		if next? [
+		if all [next? all?][
 			blk: block/preallocate as red-block! slot 2 no
 			s: GET_BUFFER(blk)
 			s/tail: s/offset + 2
@@ -2778,15 +2780,16 @@ natives: context [
 			]
 			if len < 0 [len: 0]
 		]
+		one?: any [next? not all?]
 		either type = TYPE_BINARY [
 			if len < 0 [len: binary/rs-length? bin]
-			lexer/scan slot binary/rs-head bin len next? yes no :offset fun as red-series! bin
+			lexer/scan slot binary/rs-head bin len one? yes no :offset fun as red-series! bin
 		][
 			str: as red-string! bin
 			if len < 0 [len: string/rs-length? str]
-			lexer/scan-string slot str len next? yes no :offset fun as red-series! str
+			lexer/scan-string slot str len one? yes no :offset fun as red-series! str
 		]
-		if next? [
+		if all [next? all?][
 			bin: as red-binary! copy-cell as red-value! bin s/offset + 1
 			bin/head: bin/head + offset
 			slot: as red-value! blk

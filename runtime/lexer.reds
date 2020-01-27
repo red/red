@@ -1830,7 +1830,7 @@ lexer: context [
 		src		[byte-ptr!]								;-- UTF-8 buffer
 		size	[integer!]								;-- buffer size in bytes
 		one?	[logic!]								;-- scan a single value
-		load?	[logic!]								;-- disable value loading, only scanning (one? implied)
+		load?	[logic!]								;-- disable value loading, only scanning
 		wrap?	[logic!]								;-- force returned loaded value(s) in a block
 		len		[int-ptr!]								;-- return the consumed input length
 		fun		[red-function!]							;-- optional callback function
