@@ -11,6 +11,37 @@ Red [
 
 ~~~start-file~~~ "lexer"
 
+===start-group=== "transcode"
+
+	--test-- "tr-1"  --assert [123 456 789] == transcode "123 456 789"
+	--test-- "tr-2"  --assert ["world" 111] == transcode {"world" 111}
+	--test-- "tr-3"  --assert [132 [111] ["world" [456 ["hi"]]] 222] == transcode { 132 [111] ["world" [456 ["hi"]]] 222}
+	--test-- "tr-4"  --assert do {[12.34.210.5.66.88 192.168.0.1 [1.0.0 0.0.255]] == transcode "12.34.210.5.66.88 192.168.0.1 [1.0.0 0.0.255]"}
+	--test-- "tr-5"  --assert [#"r" #"a" #"^/" #"^/" #"f"] == transcode #{2322722220232261222023225E2F222023225E286C696E6529222023225E2836362922}
+	--test-- "tr-6"  --assert [#"r" #"a" #"^/" #"^/" #"f"] == transcode {#"r" #"a" #"^^/" #"^^(line)" #"^^(66)"}
+	--test-- "tr-7"  --assert [#r #abcdc /z /abcdef] == transcode {#r #abcdc /z /abcdef}
+	--test-- "tr-8"  --assert [[/a] [#a]] == transcode "[/a] [#a]"
+
+===end-group===
+===start-group=== "transcode/one"
+	--test-- "tro-1"  --assert 8		== transcode/one "8"
+	--test-- "tro-2"  --assert 123 		== transcode/one "123"
+	--test-- "tro-3"  --assert 123 		== transcode/one " 123 "
+	--test-- "tro-4"  --assert 8		== transcode/one " ;hello^/ 8"
+	--test-- "tro-5"  --assert 'Hello 	== transcode/one "Hello"
+	--test-- "tro-6"  --assert 'Hel我lo	== transcode/one "Hel我lo"
+	--test-- "tro-7"  --assert "world"	== transcode/one {"world"}
+	--test-- "tro-8"  --assert 1.2.3 	== transcode/one "1.2.3"
+	--test-- "tro-10" --assert [1.2.3]	== transcode/one " [1.2.3]"
+	--test-- "tro-11" --assert #"z"		== transcode/one {#"z"}
+	--test-- "tro-12" --assert #"r"		== transcode/one {#"r"}
+	--test-- "tro-13" --assert [#abcde]	== transcode/one "[#abcde]"
+	--test-- "tro-14" --assert "ra^/^(line)^(66)^(10123)" == transcode/one #{2272615E2F5E286C696E65295E283636295E2831303132332922}
+	--test-- "tro-15" --assert "ra^/^(line)^(66)^(10123)" == transcode/one {"ra^^/^^(line)^^(66)^^(10123)"}
+	--test-- "tro-16" --assert "ra^/^(line)^(66)^(12)" == transcode/one {"ra^^/^^(line)^^(66)^^(12)"}
+	--test-- "tro-17" --assert "ra^/^(line)^(66)^(1A3)" == transcode/one {"ra^^/^^(line)^^(66)^^(1A3)"}
+
+===end-group===
 ===start-group=== "transcode/next"
 
 	--test-- "tn-1"
@@ -23,8 +54,6 @@ Red [
 
 
 ===end-group===
-
-
 ===start-group=== "transcode/trace"
 
 	logs: make block! 100
