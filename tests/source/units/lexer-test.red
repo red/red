@@ -13,18 +13,104 @@ Red [
 
 ===start-group=== "transcode"
 
-	--test-- "tr-1"  --assert [123 456 789] == transcode "123 456 789"
-	--test-- "tr-2"  --assert ["world" 111] == transcode {"world" 111}
-	--test-- "tr-3"  --assert [132 [111] ["world" [456 ["hi"]]] 222] == transcode { 132 [111] ["world" [456 ["hi"]]] 222}
-	--test-- "tr-4"  --assert do {[12.34.210.5.66.88 192.168.0.1 [1.0.0 0.0.255]] == transcode "12.34.210.5.66.88 192.168.0.1 [1.0.0 0.0.255]"}
-	--test-- "tr-5"  --assert [#"r" #"a" #"^/" #"^/" #"f"] == transcode #{2322722220232261222023225E2F222023225E286C696E6529222023225E2836362922}
-	--test-- "tr-6"  --assert [#"r" #"a" #"^/" #"^/" #"f"] == transcode {#"r" #"a" #"^^/" #"^^(line)" #"^^(66)"}
-	--test-- "tr-7"  --assert [#r #abcdc /z /abcdef] == transcode {#r #abcdc /z /abcdef}
-	--test-- "tr-8"  --assert [[/a] [#a]] == transcode "[/a] [#a]"
+	--test-- "tr-1"   --assert [123 456 789] == transcode "123 456 789"
+	--test-- "tr-2"   --assert ["world" 111] == transcode {"world" 111}
+	--test-- "tr-3"   --assert [132 [111] ["world" [456 ["hi"]]] 222] == transcode { 132 [111] ["world" [456 ["hi"]]] 222}
+	--test-- "tr-4"   --assert do {[12.34.210.5.66.88 192.168.0.1 [1.0.0 0.0.255]] == transcode "12.34.210.5.66.88 192.168.0.1 [1.0.0 0.0.255]"}
+	--test-- "tr-5"   --assert [#"r" #"a" #"^/" #"^/" #"f"] == transcode #{2322722220232261222023225E2F222023225E286C696E6529222023225E2836362922}
+	--test-- "tr-6"   --assert [#"r" #"a" #"^/" #"^/" #"f"] == transcode {#"r" #"a" #"^^/" #"^^(line)" #"^^(66)"}
+	--test-- "tr-7"   --assert [#r #abcdc /z /abcdef] == transcode {#r #abcdc /z /abcdef}
+	--test-- "tr-8"   --assert [[/a] [#a]] == transcode "[/a] [#a]"
+	--test-- "tr-9"   --assert [123 456 789 82] == transcode "123 456 789 ;hello^/  82"
+	--test-- "tr-10"  --assert [8x5 10x234] == transcode "8x5 10x234 "
+	--test-- "tr-11"  --assert [123 2% 34% 98.765% [456] [789 [8]] 34] == transcode "123 2% 34% 98.765% [456] [789 [;hello^/  8]] 34"
+	--test-- "tr-12"  --assert [123 (456) (789 (8)) 34] == transcode "123 (456) (789 (;hello^/  8)) 34"
+	--test-- "tr-13"  --assert [#"q" #"A"] == transcode { #"q" #"A" }
+	--test-- "tr-14"
+		out: transcode {a: abc: :a :abc 'a 'abc
+			#hello
+			#1abc
+			[#define]
+		}
+		--assert out = [a: abc: :a :abc 'a 'abc
+			#hello
+			#1abc
+			[#define]
+		]
+		nl: reduce [no no no no no no yes yes yes]
+		forall out [--assert nl/1 = new-line? out nl: next nl]
+
+	--test-- "tr-15" --assert [#"@" #" " #"^/"] == transcode {#"^^@" #"^^(20)" #"^^(line)" }
+	--test-- "tr-16"
+		out: transcode {
+			#{33AA}
+			#{eaFF}
+			2#{01100101}
+			2#{0110010100001111}
+			2#{
+				01100101
+				00001110
+			}
+			2#{ ;comment
+				01100101 ;ok
+				00001111    ;another
+			}
+		}
+		--assert out = [#{33AA} #{EAFF} #{65} #{650F} #{650E} #{650F}]
+		forall out [--assert new-line? out --assert binary? out/1]
+
+	--test-- "tr-17"
+		out: transcode {
+			<img src="my>pic.jpg">
+			<a href="index.html">
+			<img src="mypic.jpg" width="150" height="200">
+			<title>
+			<a href="http://www.rebol.com/">
+			;<img src='mypi>c.jpg'>
+		}
+		--assert out = [
+		    <img src="my>pic.jpg"> 
+		    <a href="index.html"> 
+		    <img src="mypic.jpg" width="150" height="200"> 
+		    <title> 
+		    <a href="http://www.rebol.com/"> 
+		    ;<img src='mypi> c.jpg'>
+		]
+		forall out [--assert tag? out/1]
+
+	--test-- "tr-18"
+		out: transcode {
+			http://host.dom/path/file
+			ftp://host.dom/path/file
+			nntp://news.some-isp.net/some.news.group
+			mailto:name@domain
+			file://host/path/file
+			finger://user@host.dom
+			whois://rebol@rs.internic.net
+			daytime://everest.cclabs.missouri.edu
+			pop://user:passwd@host.dom/
+			tcp://host.dom:21
+			dns://host.dom
+		}
+		--assert out = [
+			http://host.dom/path/file 
+			ftp://host.dom/path/file 
+			nntp://news.some-isp.net/some.news.group 
+			mailto:name@domain 
+			file://host/path/file 
+			finger://user@host.dom 
+			whois://rebol@rs.internic.net 
+			daytime://everest.cclabs.missouri.edu 
+			pop://user:passwd@host.dom/ 
+			tcp://host.dom:21 
+			dns://host.dom
+		]
+		forall out [--assert url? out/1]
 
 ===end-group===
 ===start-group=== "transcode/one"
 	--test-- "tro-1"  --assert 8		== transcode/one "8"
+	--test-- "tro-1.1"  --assert 8		== transcode/one "8 "
 	--test-- "tro-2"  --assert 123 		== transcode/one "123"
 	--test-- "tro-3"  --assert 123 		== transcode/one " 123 "
 	--test-- "tro-4"  --assert 8		== transcode/one " ;hello^/ 8"
@@ -40,6 +126,17 @@ Red [
 	--test-- "tro-15" --assert "ra^/^(line)^(66)^(10123)" == transcode/one {"ra^^/^^(line)^^(66)^^(10123)"}
 	--test-- "tro-16" --assert "ra^/^(line)^(66)^(12)" == transcode/one {"ra^^/^^(line)^^(66)^^(12)"}
 	--test-- "tro-17" --assert "ra^/^(line)^(66)^(1A3)" == transcode/one {"ra^^/^^(line)^^(66)^^(1A3)"}
+	--test-- "tro-18" --assert "q^-" == transcode/one {"q^(tab)" }
+	--test-- "tro-19" --assert "abc {hfdjhjdh" == transcode/one "{abc ^^{hfdjhjdh}"
+	--test-- "tro-20" --assert #"q" == transcode/one {#"q" }
+	--test-- "tro-21" --assert 10x234	== transcode/one "10x234"
+	--test-- "tro-22" --assert (quote a:) == transcode/one {a: }
+	--test-- "tro-23" --assert #{000041} == transcode/one {64#{AABB}}
+	--test-- "tro-24" --assert "Hello World!" == to-string transcode/one {64#{SGVsbG8gV29ybGQh}}
+	--test-- "tro-25" --assert %hello.red == transcode/one {%hello.red}
+	--test-- "tro-26" --assert %hello%20world.red == transcode/one {%"hello world.red"}
+	--test-- "tro-27" --assert %hello%20world.red == transcode/one {%hello%20world.red}
+	--test-- "tro-28" --assert <img src="mypic.jpg"> == transcode/one {<img src="mypic.jpg">}
 
 ===end-group===
 ===start-group=== "transcode/next"
