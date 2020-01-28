@@ -56,7 +56,7 @@ Red [
 				00001111    ;another
 			}
 		}
-		--assert out = [#{33AA} #{EAFF} #{65} #{650F} #{650E} #{650F}]
+		--assert out == [#{33AA} #{EAFF} #{65} #{650F} #{650E} #{650F}]
 		forall out [--assert new-line? out --assert binary? out/1]
 
 	--test-- "tr-17"
@@ -68,7 +68,7 @@ Red [
 			<a href="http://www.rebol.com/">
 			;<img src='mypi>c.jpg'>
 		}
-		--assert out = [
+		--assert out == [
 		    <img src="my>pic.jpg"> 
 		    <a href="index.html"> 
 		    <img src="mypic.jpg" width="150" height="200"> 
@@ -92,7 +92,7 @@ Red [
 			tcp://host.dom:21
 			dns://host.dom
 		}
-		--assert out = [
+		--assert out == [
 			http://host.dom/path/file 
 			ftp://host.dom/path/file 
 			nntp://news.some-isp.net/some.news.group 
@@ -106,6 +106,205 @@ Red [
 			dns://host.dom
 		]
 		forall out [--assert url? out/1]
+
+	--test-- "tr-19"
+		out: transcode {
+			%examples.r
+			%big-image.jpg
+			%graphics/amiga.jpg
+			%/c/plug-in/video.r
+			%//sound/goldfinger.mp3
+			%"this file.txt"
+			%"cool movie clip.mpg"
+			%this%20file.txt
+			%cool%20movie%20clip.mpg
+			%dir/file.txt
+			%docs/intro.txt
+			%docs/new/notes.txt
+			%"new mail/inbox.mbx"
+			%.
+			%./
+			%./file.txt
+			%..
+			%../
+			%../script.r
+			%../../plans/schedule.r
+			%/C/docs/file.txt
+			%"/c/program files/qualcomm/eudora mail/out.mbx"
+			%//docs/notes
+		}
+		--assert out == [
+		    %examples.r 
+		    %big-image.jpg 
+		    %graphics/amiga.jpg 
+		    %/c/plug-in/video.r 
+		    %//sound/goldfinger.mp3 
+		    %this%20file.txt 
+		    %cool%20movie%20clip.mpg 
+		    %this%20file.txt 
+		    %cool%20movie%20clip.mpg 
+		    %dir/file.txt 
+		    %docs/intro.txt 
+		    %docs/new/notes.txt 
+		    %new%20mail/inbox.mbx 
+		    %. 
+		    %./ 
+		    %./file.txt 
+		    %.. 
+		    %../ 
+		    %../script.r 
+		    %../../plans/schedule.r 
+		    %/C/docs/file.txt 
+		    %/c/program%20files/qualcomm/eudora%20mail/out.mbx 
+		    %//docs/notes
+		]
+		forall out [--assert file? out/1]
+
+	--test-- "tr-20"
+		--assert (reduce [true false none none]) == transcode {#[true] #[false] #[none] #[none!]}
+
+	--test-- "tr-21"
+		out: transcode {
+			26-jan-2019
+			26-feb-2019
+			26-mar-2019
+			26-apr-2019
+			26-may-2019
+			26-jun-2019
+			26-jul-2019
+			26-aug-2019
+			26-sep-2019
+			26-oct-2019
+			26-nov-2019
+			26-dec-2019
+			26-january-2019
+			26-february-2019
+			26-march-2019
+			26-april-2019
+			26-may-2019
+			26-june-2019
+			26-july-2019
+			26-august-2019
+			26-september-2019
+			26-october-2019
+			26-november-2019
+			26-december-2019
+		}
+		--assert out == [
+		    26-Jan-2019 
+		    26-Feb-2019 
+		    26-Mar-2019 
+		    26-Apr-2019 
+		    26-May-2019 
+		    26-Jun-2019 
+		    26-Jul-2019 
+		    26-Aug-2019 
+		    26-Sep-2019 
+		    26-Oct-2019 
+		    26-Nov-2019 
+		    26-Dec-2019 
+		    26-Jan-2019 
+		    26-Feb-2019 
+		    26-Mar-2019 
+		    26-Apr-2019 
+		    26-May-2019 
+		    26-Jun-2019 
+		    26-Jul-2019 
+		    26-Aug-2019 
+		    26-Sep-2019 
+		    26-Oct-2019 
+		    26-Nov-2019 
+		    26-Dec-2019
+		]
+		forall out [--assert date? out/1]
+
+	--test-- "tr-22"
+		out: transcode {
+			1999-10-5
+			1999/10/5
+			5-10-1999
+			5/10/1999
+			5-October-1999
+			1999-9-11
+			11-9-1999
+			5/sep/2012
+			5-SEPTEMBER-2012
+
+			02/03/04
+			02/03/71
+
+			5/9/2012/6:0
+			5/9/2012/6:00
+			5/9/2012/6:00+8
+			5/9/2012/6:0+0430
+			4/Apr/2000/6:00+8:00
+			1999-10-2/2:00-4:30
+			1/1/1990/12:20:25-6
+
+			2017-07-07T08:22:23+00:00
+			2017-07-07T08:22:23Z
+			20170707T082223Z
+			20170707T0822Z
+			20170707T082223+0530
+
+			2017-W01
+			2017-W23-5
+			2017-W23-5T10:50Z
+			2017-001
+			2017-153T10:50:00-4:00
+		}
+		--assert out == [
+		    5-Oct-1999 
+		    5-Oct-1999 
+		    5-Oct-1999 
+		    5-Oct-1999 
+		    5-Oct-1999 
+		    11-Sep-1999 
+		    11-Sep-1999 
+		    5-Sep-2012 
+		    5-Sep-2012 
+		    2-Mar-2004 
+		    2-Mar-1971 
+		    5-Sep-2012/6:00:00 
+		    5-Sep-2012/6:00:00 
+		    5-Sep-2012/6:00:00+08:00 
+		    5-Sep-2012/6:00:00+04:30 
+		    4-Apr-2000/6:00:00+08:00 
+		    2-Oct-1999/2:00:00-04:30 
+		    1-Jan-1990/12:20:25-06:00 
+		    7-Jul-2017/8:22:23 
+		    7-Jul-2017/8:22:23 
+		    7-Jul-2017/8:22:23 
+		    7-Jul-2017/8:22:00 
+		    7-Jul-2017/8:22:23+05:30 
+		    2-Jan-2017 
+		    9-Jun-2017 
+		    9-Jun-2017/10:50:00 
+		    1-Jan-2017 
+		    2-Jun-2017/10:50:00-04:00
+		]
+		forall out [--assert date? out/1]
+
+	--test-- "tr-23"
+		out: transcode {
+			0:0:3
+			0:0:3.12346
+			insert
+		}
+		--assert out = [
+		    0:00:03 
+		    0:00:03.12346 
+		    insert
+		]
+		--assert time? out/1
+		--assert time? out/2
+		--assert word? out/3
+		forall out [--assert new-line? out]
+
+	--test-- "tr-24" --assert error? try [transcode "#"]
+	--test-- "tr-25" --assert error? try [transcode {a: func [][set 'b: 1]}]
+	--test-- "tr-26" --assert error? try [transcode "1.2..4"]
+
 
 ===end-group===
 ===start-group=== "transcode/one"
@@ -137,6 +336,53 @@ Red [
 	--test-- "tro-26" --assert %hello%20world.red == transcode/one {%"hello world.red"}
 	--test-- "tro-27" --assert %hello%20world.red == transcode/one {%hello%20world.red}
 	--test-- "tro-28" --assert <img src="mypic.jpg"> == transcode/one {<img src="mypic.jpg">}
+
+	--test-- "tro-29" --assert #{00} == transcode/one "#{00} "
+	--test-- "tro-30" --assert #{1234} == transcode/one "#{1234} "
+	--test-- "tro-31" --assert #{FFABCD}== transcode/one "#{FFABCD}"
+	--test-- "tro-32" --assert #{00112233445566778899AABBCCDDEEFFF01A} == transcode/one "#{00112233445566778899AABBCCDDEEFFF01A}"
+	--test-- "tro-33" --assert #{CD} == transcode/one "2#{11001101}"
+	--test-- "tro-34" --assert #{CAFEBABE} == transcode/one "16#{CAFEBABE}"
+	--test-- "tro-35" --assert #{00004108} == transcode/one "64#{AAB  ^/^-^-BCC==}"
+	--test-- "tro-36" --assert "Hello Nice World!" == to-string transcode/one "64#{SGVsbG8gTmljZSBXb3JsZCE=}"
+
+	--test-- "tro-37"
+		p: [
+			a/b aa/b a/1 a/123 a/123/b a/b/1/d/3 a/(b + 2) a/(b + 2)/c a/(b + 2)/456 
+			a/"hi" a/"hi"/456 a/2x3 a/2x3/456 a/2x3/c a/1.234 a/1.234/c
+			a/#"b" a/#"b"/c
+		]		
+		forall p [	
+			--assert p/1 == transcode/one mold p/1
+			--assert (to set-path! p/1) == transcode/one mold to set-path! p/1
+			--assert (to get-path! p/1) == transcode/one mold to get-path! p/1
+			--assert (to lit-path! p/1) == transcode/one mold to lit-path! p/1
+		]
+
+	--test-- "tro-38" --assert 'a/:b/c == transcode/one {a/:b/c}
+	--test-- "tro-39" --assert 26-Oct-2019 == transcode/one "26/10/2019"
+	--test-- "tro-40" --assert 26-Oct-2019 == transcode/one "26-10-2019"
+	--test-- "tro-41" --assert 26-Oct-2019 == transcode/one "2019/10/26"
+	--test-- "tro-42" --assert 26-Oct-2019 == transcode/one "2019-10-26"
+	--test-- "tro-43" --assert error? try [transcode/one "2019-10/26"]
+	--test-- "tro-44" --assert error? try [transcode/one "2019/10-26"]
+	--test-- "tro-45" --assert error? try [transcode/one "26/10-2019"]
+	--test-- "tro-46" --assert error? try [transcode/one "26-10/2019"]
+
+	--test-- "tro-47" --assert 26-Oct-2019/13:28:15 == transcode/one "26-October-2019/13:28:15"
+	--test-- "tro-48" --assert 26-Oct-2019/13:28:15 == transcode/one "2019/10/26/13:28:15"
+	--test-- "tro-49" --assert 13:28 == transcode/one "13:28"
+	--test-- "tro-50" --assert 13:28:15 == transcode/one "13:28:15"
+	--test-- "tro-51" --assert 26-Jan-2019 == transcode/one "26-jan-2019"
+	--test-- "tro-52" --assert 26-Feb-2019 == transcode/one "26-FEB-2019"
+	--test-- "tro-53" --assert 26-Dec-2019 == transcode/one "26/December/2019"
+	--test-- "tro-54" --assert 26-Sep-2019 == transcode/one "2019/Sep/26"
+	--test-- "tro-55" --assert 2-Oct-1999/2:00:00-04:30 == transcode/one "1999-10-2/2:00-4:30"
+
+	--test-- "tro-56" --assert error? try [transcode/one "#"]
+	--test-- "tro-57" --assert error? try [transcode/one "1.2..4"]
+
+	;--test-- "tro-58" --assert {/\^^,[](){}"#%$@:;^/^(70) ^-^M<>} == transcode {{/\^^^^,[](){}"#%$@:;^^/^^(0065)  ^^-^^M<>}}
 
 ===end-group===
 ===start-group=== "transcode/next"
