@@ -22,6 +22,7 @@ lexer: context [
 	pos:	none									;-- source input position (error reporting)
 	mark:	none									;-- use for keeping input cursor at same position
 	path:	none									;-- path input position (error reporting)
+	in-path?: no									;-- flag for path items
 	s:		none									;-- mark start position of new value
 	e:		none									;-- mark end position of new value
 	series: none									;-- temporary hold last stack series
@@ -107,8 +108,8 @@ lexer: context [
 	tag-char:		charset "<>"
 	caret-char:		charset [#"^(40)" - #"^(5F)"]
 	non-printable-char: charset [#"^(00)" - #"^(1F)"]
-	pair-end:		charset {^{"[]();:}
-	integer-end:	charset {^{"[]();:xX<}
+	pair-end:		charset {^{"[]();:/}
+	integer-end:	charset {^{"[]();:xX</}
 	path-end:		charset {^{"[]();}
 	file-end:		charset {^{[]();}
 	date-sep:		charset "/-"
@@ -189,6 +190,8 @@ lexer: context [
 		opt symbol-rule
 	]
 	
+	by-value: [paren! string! integer! pair! char! decimal! issue!]
+	
 	path-rule: [
 		pos: slash :pos (							;-- path detection barrier
 			stack/allocate block! 4
@@ -196,19 +199,21 @@ lexer: context [
 		)
 		some [
 			slash
-			s: [
-				integer-number-rule
+			s: [(in-path?: yes)
+				integer-rule
 				| begin-symbol-rule			(type: word!)
 				| paren-rule 				(type: paren!)
 				| #":" s: begin-symbol-rule	(type: get-word!)
-				;@@ add more datatypes here
+				| line-string 				(value: load-string s e)
+				| char-rule 				(value: decode-UTF8-char value)
 			] (
-				stack/push either type = paren! [	;-- append path element
+				stack/push either find by-value to word! type [ ;-- append path element
 					value
 				][
 					to type copy/part s e
 				]
 				type: path!
+				in-path?: no
 			)
 		]
 		opt [#":" (type: set-path!)]
@@ -422,7 +427,7 @@ lexer: context [
 				mark: [pair-end | ws-no-count | end | (type: pair! throw-error)] :mark
 				(value2/2: load-number copy/part s e value: value2)
 			]
-			opt [#":" [time-rule | (throw-error)]]
+			e: opt [#":" [time-rule | (unless in-path? [throw-error]) :e]]
 	]
 
 	decimal-special: [
