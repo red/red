@@ -107,6 +107,27 @@ Red [
 		]
 		forall out [--assert url? out/1]
 
+	--test-- "tr-18.1"
+		out: transcode {
+		    john@keats.dom
+		    lord@byron.dom
+		    edger@guest.dom
+		    alfred@tennyson.dom
+			info@rebol.com
+			123@number-mail.org
+			my-name.here@an.example-domain.com
+		}
+		--assert out == [
+		    john@keats.dom 
+		    lord@byron.dom 
+		    edger@guest.dom 
+		    alfred@tennyson.dom 
+		    info@rebol.com 
+		    123@number-mail.org 
+		    my-name.here@an.example-domain.com
+		]
+		forall out [--assert email? out/1]
+
 	--test-- "tr-19"
 		out: transcode {
 			%examples.r
@@ -373,6 +394,12 @@ Red [
 	--test-- "tro-48" --assert 26-Oct-2019/13:28:15 == transcode/one "2019/10/26/13:28:15"
 	--test-- "tro-49" --assert 13:28 == transcode/one "13:28"
 	--test-- "tro-50" --assert 13:28:15 == transcode/one "13:28:15"
+	--test-- "tro-5A" 
+		out: transcode/one "10:3:01.456"
+		--assert out/hour = 10
+		--assert out/minute = 3
+		--assertf~= out/second 1.456 1E-3
+
 	--test-- "tro-51" --assert 26-Jan-2019 == transcode/one "26-jan-2019"
 	--test-- "tro-52" --assert 26-Feb-2019 == transcode/one "26-FEB-2019"
 	--test-- "tro-53" --assert 26-Dec-2019 == transcode/one "26/December/2019"
@@ -381,6 +408,17 @@ Red [
 
 	--test-- "tro-56" --assert error? try [transcode/one "#"]
 	--test-- "tro-57" --assert error? try [transcode/one "1.2..4"]
+
+	--test-- "tro-58" --assert (quote (b + 2)) == transcode/one"(b + 2)"
+	--test-- "tro-59" --assert #() == transcode/one {#()}
+	--test-- "tro-60" --assert #(a: 2) == transcode/one {#(a: 2)}
+	--test-- "tro-61" --assert #("b" 2.345) == transcode/one {#("b" 2.345)}
+	--test-- "tro-62" --assert "hel^/lo" == transcode/one {"hel^^/lo"}
+	--test-- "tro-63" --assert "{^/}" == transcode/one {{{^/}}}
+	--test-- "tro-64" --assert 1 == transcode/one "01h"
+	--test-- "tro-65" --assert 2147483647 == transcode/one "7FFFFFFFh"
+	--test-- "tro-66" --assert -1 == transcode/one "FFFFFFFFh"
+	
 
 	;--test-- "tro-58" --assert {/\^^,[](){}"#%$@:;^/^(70) ^-^M<>} == transcode {{/\^^^^,[](){}"#%$@:;^^/^^(0065)  ^^-^^M<>}}
 
