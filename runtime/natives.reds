@@ -2728,26 +2728,29 @@ natives: context [
 		check? [logic!]
 		next   [integer!]
 		one    [integer!]
+		scan   [integer!]
 		part   [integer!]
 		into   [integer!]
 		trace  [integer!]
 		/local
 			offset len type [integer!]
-			next? one? all? [logic!]
+			next? one? all? load? [logic!]
 			slot arg [red-value!]
 			bin	bin2 [red-binary!]
 			int	  [red-integer!]
 			str	  [red-string!]
 			blk	  [red-block!]
+			dt	  [red-datatype!]
 			fun	  [red-function!]
 			s	  [series!]
 	][
-		#typecheck [transcode next one part into trace]
+		#typecheck [transcode next one scan part into trace]
 
-		all?:  one = -1
-		next?: next > -1
+		load?: scan < 0
+		all?:  all [one < 0 load?]
+		next?: next >= 0
 		slot: stack/push*
-		if all [next? all?][
+		if all [next? any [one < 0 not load?]][
 			blk: block/preallocate as red-block! slot 2 no
 			s: GET_BUFFER(blk)
 			s/tail: s/offset + 2
@@ -2780,16 +2783,21 @@ natives: context [
 			]
 			if len < 0 [len: 0]
 		]
-		one?: any [next? not all?]
+		one?: any [next? not all? not load?]
 		either type = TYPE_BINARY [
 			if len < 0 [len: binary/rs-length? bin]
-			lexer/scan slot binary/rs-head bin len one? yes no :offset fun as red-series! bin
+			type: lexer/scan slot binary/rs-head bin len one? load? no :offset fun as red-series! bin
 		][
 			str: as red-string! bin
 			if len < 0 [len: string/rs-length? str]
-			lexer/scan-string slot str len one? yes no :offset fun as red-series! str
+			type: lexer/scan-string slot str len one? load? no :offset fun as red-series! str
 		]
-		if all [next? all?][
+		unless load? [
+			dt: as red-datatype! slot
+			dt/header: TYPE_DATATYPE
+			dt/value: type
+		]
+		if all [next? any [one < 0 not load?]][
 			bin: as red-binary! copy-cell as red-value! bin s/offset + 1
 			bin/head: bin/head + offset
 			slot: as red-value! blk

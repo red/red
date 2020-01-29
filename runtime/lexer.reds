@@ -1880,14 +1880,15 @@ lexer: context [
 	]
 
 	scan-string: func [
-		dst   [red-value!]								;-- destination slot
-		str	  [red-string!]
-		size  [integer!]
-		one?  [logic!]
-		load? [logic!]
-		wrap? [logic!]
-		len	  [int-ptr!]
-		fun	  [red-function!]							;-- optional callback function
+		dst		[red-value!]							;-- destination slot
+		str		[red-string!]
+		size	[integer!]
+		one?	[logic!]
+		load?	[logic!]
+		wrap?	[logic!]
+		len		[int-ptr!]
+		fun		[red-function!]							;-- optional callback function
+		return: [integer!]								;-- scanned type when one? is set, else zero
 		/local
 			s [series!]
 			unit buf-size ignore [integer!]
