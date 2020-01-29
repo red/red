@@ -40,9 +40,7 @@ S_HEX_END
 S_LESSER
 S_TAG
 S_TAG_STR
-S_SKIP_STR2
 S_TAG_STR2
-S_SKIP_STR3
 S_SIGN
 S_DOTWORD
 S_DOTDEC
@@ -273,15 +271,13 @@ S_START->"<"->S_LESSER
                 \->">"|"<"|"="->S_WORD
                  \->else->S_TAG
                            \->dbl-quote->S_TAG_STR->not("^"|dbl-quote)->S_TAG_STR
-                            \              \->"^"->S_SKIP_STR2->*->S_TAG_STR
-                             \              \->dbl-quote->S_TAG
-                              \
-                               \->"'"->S_TAG_STR2->not("^"|"'")->S_TAG_STR2
-							    \       \->"^"->S_SKIP_STR3->*->S_TAG_STR2
-                                 \       \->"'"->S_TAG
-                                  \
-                                   \->">"->T_TAG
-                                    \->else->S_TAG
+                            \              \->dbl-quote->S_TAG
+                             \
+                              \->"'"->S_TAG_STR2->not("^"|"'")->S_TAG_STR2
+                               \       \->"'"->S_TAG
+                                \
+                                 \->">"->T_TAG
+                                  \->else->S_TAG
 
 
 S_START->"+"|"-"->S_SIGN->digit->S_NUMBER
