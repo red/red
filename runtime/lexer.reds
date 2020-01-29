@@ -85,20 +85,10 @@ lexer: context [
 	#enum bin16-char-classes! [
 		C_BIN_ILLEGAL									;-- 0
 		C_BIN_BLANK										;-- 1
-		C_BIN_LINE										;-- 2
-		C_BIN_HEXA										;-- 3
-		C_BIN_CMT										;-- 4
+		C_BIN_HEXA										;-- 2
+		C_BIN_CMT										;-- 3
 	]
-	
-	#enum bin16-states! [
-		S_BIN_START										;-- 0
-		S_BIN_1ST										;-- 1
-		S_BIN_CMT										;-- 2
-		S_BIN_FINAL_STATES								;-- 3
-		T_BIN_BYTE										;-- 4
-		T_BIN_ERROR										;-- 5
-	]
-	
+
 	line-table: #{
 		0001000000000000000000000000000000000000000000000000000000000000
 		0000000000000000
@@ -116,20 +106,14 @@ lexer: context [
 	}
 	
 	bin16-classes: #{
-		0000000000000000000102000001000000000000000000000000000000000000
-		0100000000000000000000000000000003030303030303030303000400000000
-		0003030303030300000000000000000000000000000000000000000000000000
-		0003030303030300000000000000000000000000000000000000000000000000
+		0000000000000000000101000001000000000000000000000000000000000000
+		0100000000000000000000000000000002020202020202020202000300000000
+		0002020202020200000000000000000000000000000000000000000000000000
+		0002020202020200000000000000000000000000000000000000000000000000
 		0000000000000000000000000000000000000000000000000000000000000000
 		0000000000000000000000000000000000000000000000000000000000000000
 		0000000000000000000000000000000000000000000000000000000000000000
 		0000000000000000000000000000000000000000000000000000000000000000
-	}
-	
-	bin16-FSM: #{
-		0500000102
-		0505050405
-		0202000202
 	}
 	
 	hexa-table: #{
@@ -595,27 +579,28 @@ lexer: context [
 	decode-16: func [s e [byte-ptr!] ser [series!]
 		return: [byte-ptr!]								;-- null: ok, not null: error position
 		/local
-			p pos [byte-ptr!]
-			c index class fstate [integer!]
+			p [byte-ptr!]
+			c index class b1 [integer!]
 	][
 		p: as byte-ptr! ser/offset
+		b1: -1
 		while [s < e][
-			fstate: S_BIN_START
-			pos: s
-			until [										;-- scans 2 hex characters, skip the rest
-				index: 1 + as-integer s/1
-				class: as-integer bin16-classes/index
-				s: s + 1
-				index: fstate * 5 + class + 1
-				fstate: as-integer bin16-FSM/index
-				any [fstate - S_BIN_FINAL_STATES > 0 s >= e]
+			index: 1 + as-integer s/1
+			class: as-integer bin16-classes/index
+			switch class [
+				C_BIN_HEXA [
+					either b1 < 0 [b1: index][
+						c: as-integer hexa-table/b1
+						p/value: as byte! c << 4 or as-integer hexa-table/index
+						p: p + 1
+						b1: -1
+					]
+				]
+				C_BIN_CMT	  [until [s: s + 1 any [s/1 = lf s = e]]]
+				C_BIN_ILLEGAL [return s]
+				default		  [0]
 			]
-			if fstate = T_BIN_ERROR [return s - 1]
-			index: 1 + as-integer pos/1					;-- converts the 2 hex chars using tables
-			c: as-integer hexa-table/index
-			index: 1 + as-integer pos/2
-			p/value: as byte! c << 4 or as-integer hexa-table/index
-			p: p + 1
+			s: s + 1
 		]
 		ser/tail: as cell! p
 		null

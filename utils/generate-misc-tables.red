@@ -25,23 +25,21 @@ gen-bitarray: function [list][
 bin-classes: [
 	C_BIN_ILLEGAL									;-- 0
 	C_BIN_BLANK										;-- 1
-	C_BIN_LINE										;-- 2
-	C_BIN_HEXA										;-- 3
-	C_BIN_COMMENT									;-- 4
+	C_BIN_HEXA										;-- 2
+	C_BIN_COMMENT									;-- 3
 ]
 
 gen-bin16-table: function [][
 	out: make binary! 256
-	blank: charset "^-^M "
+	blank: charset "^-^/^M "
 	hexa:  charset [#"A" - #"F" #"a" - #"f" #"0" - #"9"]
 	
 	repeat i 256 [
 		c: to-char i - 1
 		append out to-char case [
 			find blank c [1]
-			c = #"^/"    [2]
-			find hexa c  [3]
-			c = #";"	 [4]
+			find hexa c  [2]
+			c = #";"	 [3]
 			'else		 [0]
 		]
 	]
