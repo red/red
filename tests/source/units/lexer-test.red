@@ -326,6 +326,11 @@ Red [
 	--test-- "tr-25" --assert error? try [transcode {a: func [][set 'b: 1]}]
 	--test-- "tr-26" --assert error? try [transcode "1.2..4"]
 
+	--test-- "tr-27" 
+		out: transcode {
+			--assert 0:00:15.0 == (10:00.0 % 0:45.0)
+		}
+		--assert out == [--assert 0:00:15.0 == (10:00.0 % 0:45.0)]
 
 ===end-group===
 ===start-group=== "transcode/one"
@@ -420,7 +425,6 @@ Red [
 	--test-- "tro-66" --assert -1 == transcode/one "FFFFFFFFh"
 	
 
-	;--test-- "tro-58" --assert {/\^^,[](){}"#%$@:;^/^(70) ^-^M<>} == transcode {{/\^^^^,[](){}"#%$@:;^^/^^(0065)  ^^-^^M<>}}
 
 ===end-group===
 ===start-group=== "transcode/next"
