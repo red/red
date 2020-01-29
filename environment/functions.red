@@ -365,6 +365,15 @@ suffix?: function [
 	][to file! path]
 ]
 
+scan: func [
+	"Returns the guessed type of the first serialized value from the input"
+	buffer  [binary! string!] "Input UTF-8 buffer or string"
+	/next					  "Returns both the type and the input after the value"
+	return: [datatype!]		  "Guessed type"
+][
+	either next [transcode/next/scan buffer][transcode/scan buffer]
+]
+
 load: function [
 	"Returns a value or block of values by reading and evaluating a source"
 	source [file! url! string! binary!]
