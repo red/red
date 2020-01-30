@@ -645,6 +645,10 @@ process-command-event: func [
 			
 			evt: case [
 				sym = button [EVT_CLICK]
+				sym = toggle [
+					get-logic-state current-msg
+					EVT_CHANGE
+				]
 				sym = check [
 					if 0 <> (FACET_FLAGS_TRISTATE and get-flags as red-block! get-facet current-msg FACE_OBJ_FLAGS)[
 						state: as integer! SendMessage child BM_GETCHECK 0 0

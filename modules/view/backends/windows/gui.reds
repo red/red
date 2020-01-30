@@ -2129,8 +2129,11 @@ change-data: func [
 			f: as red-float! data
 			SendMessage hWnd PBM_SETPOS as-integer f/value * 100.0 0
 		]
-		type = check [
-			set-logic-state hWnd as red-logic! data yes
+		any [
+			type = check
+			type = toggle
+		][
+			set-logic-state hWnd as red-logic! data type = check
 		]
 		type = radio [
 			set-logic-state hWnd as red-logic! data no
