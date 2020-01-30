@@ -955,11 +955,12 @@ change-data: func [
 			len: either size/x > size/y [size/x][size/y]
 			objc_msgSend [hWnd sel_getUid "setDoubleValue:" f/value * (as-float len)]
 		]
-		type = check [
-			set-logic-state hWnd as red-logic! data yes
-		]
-		type = radio [
-			set-logic-state hWnd as red-logic! data no
+		any [
+			type = check
+			type = toggle
+			type = radio
+		][
+			set-logic-state hWnd as red-logic! data type = check
 		]
 		type = tab-panel [
 			set-tabs hWnd values
@@ -1817,8 +1818,8 @@ parse-common-opts: func [
 		]
 	]
 
-	if type = button [
-		len: either btn? [NSRegularSquareBezelStyle][NSRoundedBezelStyle]
+	if any [type = button type = toggle][
+		len: either all [btn? type = button][NSRegularSquareBezelStyle][NSRoundedBezelStyle]
 		objc_msgSend [hWnd sel_getUid "setBezelStyle:" len]
 	]
 ]
@@ -1891,7 +1892,9 @@ OS-make-view: func [
 		any [
 			sym = text-list
 			sym = area
-		][class: "RedScrollView"]
+		][
+			class: "RedScrollView"
+		]
 		sym = text [class: "RedTextField"]
 		sym = field [
 			class: either bits and FACET_FLAGS_PASSWORD = 0 ["RedTextField"][
@@ -1900,6 +1903,10 @@ OS-make-view: func [
 		]
 		sym = button [
 			class: "RedButton"
+		]
+		sym = toggle [
+			class: "RedButton"
+			flags: NSPushOnPushOffButton
 		]
 		sym = check [
 			class: "RedButton"
@@ -2005,7 +2012,12 @@ OS-make-view: func [
 			make-text-list face obj rc menu bits and FACET_FLAGS_NO_BORDER = 0
 			integer/make-at values + FACE_OBJ_SELECTED 0
 		]
-		any [sym = button sym = check sym = radio][
+		any [
+			sym = button
+			sym = toggle
+			sym = check
+			sym = radio
+		][
 			if sym <> button [
 				if all [sym = check bits and FACET_FLAGS_TRISTATE <> 0][
 					objc_msgSend [obj sel_getUid "setAllowsMixedState:" yes]
