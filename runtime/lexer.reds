@@ -279,6 +279,7 @@ lexer: context [
 		fun-locs	[integer!]							;-- number of local words in callback function
 		in-series	[red-series!]						;-- optional back reference to input series
 		int-value	[integer!]							;-- decoded integer! value (from scanner to loader)
+		load?		[logic!]							;-- TRUE: load values, else scan only
 	]
 	
 	scanner!: alias function! [lex [state!] s e [byte-ptr!] flags [integer!]]
@@ -305,6 +306,10 @@ lexer: context [
 			len	 [integer!]
 			c	 [byte!]
 	][
+		unless lex/load? [
+			lex/scanned: TYPE_ERROR
+			throw LEX_ERR								;-- bypass errors when scanning only
+		]
 		if lex/fun-ptr <> null [unless fire-event lex words/_error TYPE_ERROR null s e [throw LEX_ERR]]
 		e: lex/in-end
 		len: 0
@@ -1727,16 +1732,16 @@ lexer: context [
 	scan-tokens: func [
 		lex   [state!]
 		one?  [logic!]
-		ld?   [logic!]
 		/local
 			cp class index state prev flags line mark offset [integer!]
+			term? load?	ld? [logic!]
 			p e	start s [byte-ptr!]
 			slot		[cell!]
-			term? load?	[logic!]
 			do-scan		[scanner!]
 			do-load		[loader!]
 	][
 		line: 1
+		ld?: lex/load?
 		until [
 			flags: 0									;-- Scanning stage --
 			term?: no
@@ -1854,6 +1859,7 @@ lexer: context [
 		lex/fun-ptr:	fun
 		lex/fun-locs:	0
 		lex/in-series:	ser
+		lex/load?:		load?
 		
 		if fun <> null [lex/fun-locs: _function/count-locals fun/spec 0 no]
 		
