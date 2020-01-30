@@ -1805,10 +1805,10 @@ lexer: context [
 					check-path-end lex s lex/in-pos flags	;-- lex/in-pos could have changed
 				]
 			]
-			if all [
-				one? lex/scanned > 0 lex/entry <> S_PATH state <> T_PATH
-				any [not ld? lex/tail - 1 = lex/buffer]
-			][exit]										;-- early exit for single value request
+			if all [one? lex/scanned > 0 lex/entry <> S_PATH state <> T_PATH][
+				slot: lex/tail - 1
+				if all [slot = lex/buffer TYPE_OF(slot) <> TYPE_POINT][exit] ;-- early exit for single value request
+			]
 			lex/in-pos >= lex/in-end
 		]
 		if lex/entry = S_M_STRING [catch LEX_ERR [throw-error lex start lex/in-end TYPE_STRING]]
