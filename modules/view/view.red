@@ -435,7 +435,7 @@ face!: object [				;-- keep in sync with facet! enum
 			if find [field text] type [
 				if word = 'text [
 					set-quiet 'data any [
-						all [not empty? new attempt/safer [load new]]
+						all [not empty? new find scalar! scan new attempt/safer [load new]]
 						all [options options/default]
 					]
 				]
