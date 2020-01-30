@@ -1807,7 +1807,10 @@ lexer: context [
 			]
 			if all [one? lex/scanned > 0 lex/entry <> S_PATH state <> T_PATH][
 				slot: lex/tail - 1
-				if all [slot = lex/buffer TYPE_OF(slot) <> TYPE_POINT][exit] ;-- early exit for single value request
+				if any [
+					lex/tail = lex/buffer
+					all [slot = lex/buffer TYPE_OF(slot) <> TYPE_POINT]
+				][exit]									;-- early exit for single value request
 			]
 			lex/in-pos >= lex/in-end
 		]
