@@ -332,6 +332,8 @@ Red [
 		}
 		--assert out == [--assert 0:00:15.0 == (10:00.0 % 0:45.0)]
 
+	--test-- "tr-28" --assert error? try [transcode "2hello"]
+
 ===end-group===
 ===start-group=== "transcode/one"
 	--test-- "tro-1"  --assert 8		== transcode/one "8"
