@@ -1372,6 +1372,10 @@ OS-make-view: func [
 			class: #u16 "RedButton"
 			;flags: flags or BS_PUSHBUTTON
 		]
+		sym = toggle [
+			class: #u16 "RedButton"
+			flags: flags or BS_AUTOCHECKBOX or BS_PUSHLIKE
+		]
 		sym = check [
 			class: #u16 "RedButton"
 			state: either bits and FACET_FLAGS_TRISTATE <> 0 [BS_AUTO3STATE][BS_AUTOCHECKBOX]
@@ -1613,8 +1617,13 @@ OS-make-view: func [
 			value: get-position-value as red-float! data 100
 			SendMessage handle PBM_SETPOS value 0
 		]
-		sym = check [set-logic-state handle as red-logic! data yes]
-		sym = radio [set-logic-state handle as red-logic! data no]
+		any [
+			sym = toggle
+			sym = check
+			sym = radio
+		][
+			set-logic-state handle as red-logic! data sym = check
+		]
 		any [
 			sym = drop-down
 			sym = drop-list

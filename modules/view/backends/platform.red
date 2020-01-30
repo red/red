@@ -228,6 +228,7 @@ system/view/platform: context [
 			screen:			symbol/make "screen"
 			window:			symbol/make "window"
 			button:			symbol/make "button"
+			toggle:			symbol/make "toggle"
 			check:			symbol/make "check"
 			radio:			symbol/make "radio"
 			field:			symbol/make "field"
