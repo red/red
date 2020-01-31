@@ -1227,7 +1227,7 @@ lexer: context [
 		type: lex/scanned
 		assert type > 0
 		
-		if flags and flags-LG = flags-LG [				;-- handle word<tag> cases
+		either flags and flags-LG = flags-LG [			;-- handle word<tag> cases
 			p: s
 			while [all [p < e p/1 <> #"<"]][p: p + 1]	;-- search <
 			if p + 1 < e [
@@ -1242,6 +1242,16 @@ lexer: context [
 						e: pos							;-- cut the word before <
 						lex/in-pos: pos					;-- resume scanning from <
 					]
+				]
+			]
+		][
+			if all [flags and C_FLAG_LESSER <> 0 lex/entry = S_PATH e/0 = #"<"][
+				cell: lex/tail - 1
+				if TYPE_OF(cell) = TYPE_POINT [
+					e: e - 1							;-- handle word</tag> cases
+					lex/in-pos: e 						;-- resume scanning from <
+					lex/entry: S_START					;-- cancel the newly opened path
+					lex/tail: cell
 				]
 			]
 		]

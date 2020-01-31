@@ -334,6 +334,16 @@ Red [
 
 	--test-- "tr-28" --assert error? try [transcode "2hello"]
 
+	--test-- "tr-29"
+		out: transcode "word<tag>"
+		--assert word? out/1
+		--assert tag?  out/2
+
+	--test-- "tr-30"
+		out: transcode "word</tag>"
+		--assert word? out/1
+		--assert tag?  out/2
+
 ===end-group===
 ===start-group=== "transcode/one"
 	--test-- "tro-1"  --assert 8		== transcode/one "8"
