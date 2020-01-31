@@ -1805,7 +1805,7 @@ lexer: context [
 			if all [lex/entry = S_PATH state <> T_PATH state <> T_ERROR][
 				check-path-end lex s lex/in-pos flags	;-- lex/in-pos could have changed
 			]
-			if all [one? lex/scanned > 0 lex/entry <> S_PATH state <> T_PATH][
+			if all [one? lex/scanned > 0 lex/entry <> S_PATH lex/entry <> S_M_STRING state <> T_PATH][
 				slot: lex/tail - 1
 				if any [
 					lex/tail = lex/buffer
