@@ -439,6 +439,33 @@ Red [
 	--test-- "tn-2"
 		--assert [[a] " 123"] == transcode/next "[a] 123"
 
+	--test-- "tn-3"
+		--assert [#(a: 4) " hello"] == out: transcode/next "#(a: 4) hello"
+		--assert map? out/1
+
+===end-group===
+===start-group=== "scan"
+
+	--test-- "scan-1"  --assert (reduce [integer! " hello"]) == scan/next "123 hello"
+	--test-- "scan-2"  --assert (reduce [block!	  " hello"]) == scan/next "[test] hello"
+
+	--test-- "scan-3"  --assert (reduce [percent! " hello"]) == scan/next "123% hello"
+	--test-- "scan-4"  --assert (reduce [integer! " hello"]) == scan/next "123h hello"
+	--test-- "scan-5"  --assert (reduce [tag!	  " hello"]) == scan/next "<p> hello"
+	--test-- "scan-6"  --assert (reduce [char!	  " hello"]) == scan/next {#"p" hello}
+	--test-- "scan-7"  --assert (reduce [binary!  " hello"]) == scan/next {#{23} hello}
+	--test-- "scan-8"  --assert (reduce [string!  " hello"]) == scan/next {"world" hello}
+
+	--test-- "scan-9"  --assert (reduce [set-word! " hello"]) == scan/next "a: hello"
+	--test-- "scan-10" --assert (reduce [word! 	   " hello"]) == scan/next "a hello"
+	--test-- "scan-11" --assert (reduce [lit-word! " hello"]) == scan/next "'a hello"
+	--test-- "scan-12" --assert (reduce [get-word! " hello"]) == scan/next ":a hello"
+
+	--test-- "scan-13" --assert (reduce [map!	   " hello"]) == scan/next "#(a: 4) hello"
+	--test-- "scan-14" --assert (reduce [set-path! " hello"]) == scan/next "a/b: hello"
+	--test-- "scan-15" --assert (reduce [path! 	   " hello"]) == scan/next "a/b hello"
+	--test-- "scan-16" --assert (reduce [lit-path! " hello"]) == scan/next "'a/b hello"
+	--test-- "scan-17" --assert (reduce [get-path! " hello"]) == scan/next ":a/b hello"
 
 ===end-group===
 ===start-group=== "transcode/trace"
