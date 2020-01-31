@@ -105,6 +105,10 @@ lexer: context [
 		00000000000101
 	}
 	
+	ending-skip: #{
+		0000000000000000000000000000000001000101010000000000000001000000
+	}
+	
 	bin16-classes: #{
 		0000000000000000000101000001000000000000000000000000000000000000
 		0100000000000000000000000000000002020202020202020202000300000000
@@ -1813,7 +1817,10 @@ lexer: context [
 				if any [
 					lex/tail = lex/buffer
 					all [slot = lex/buffer TYPE_OF(slot) <> TYPE_POINT]
-				][exit]									;-- early exit for single value request
+				][
+					lex/in-pos: lex/in-pos + as-integer ending-skip/index
+					exit								;-- early exit for single value request
+				]
 			]
 			lex/in-pos >= lex/in-end
 		]
