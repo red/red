@@ -1359,7 +1359,10 @@ font-size?: func [
 	if TYPE_OF(font) <> TYPE_OBJECT [return default-font-size]
 	values: object/get-values font
 	size:	as red-integer!	values + FONT_OBJ_SIZE
-	if TYPE_OF(size) <> TYPE_INTEGER [return default-font-size]
+	if any [
+		TYPE_OF(size) <> TYPE_INTEGER
+		size/value <= 0
+	][print default-font-size return default-font-size]
 	size/value
 ]
 

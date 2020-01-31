@@ -629,7 +629,12 @@ create-pango-font: func [
 		pango_font_description_set_family hFont name
 
 		int: as red-integer! values + FONT_OBJ_SIZE
-		size: either TYPE_OF(int) <> TYPE_INTEGER [default-font-size][
+		size: either any [
+			TYPE_OF(int) <> TYPE_INTEGER
+			int/value <= 0
+		][
+			default-font-size
+		][
 			int/value
 		]
 		pango_font_description_set_size hFont PANGO_SCALE * size
