@@ -97,7 +97,7 @@ lexer: context [
 	skip-table: #{
 		0100000000000000000000000000000000000000000000000000000000000000
 		0000000000000000000000000000000000000000000000000000000000000000
-		0000000000000000000000000000000000000000000000
+		000000000000000000000000000000000000000000000000
 	}
 
 	path-ending: #{
@@ -1002,24 +1002,7 @@ lexer: context [
 			if type = TYPE_SET_WORD [throw-error lex s e TYPE_LIT_WORD]
 			type: TYPE_LIT_WORD
 		]
-		if all [s/1 = #"/" type = TYPE_WORD][			;-- //...
-			p: s + 1
-			while [all [p < e p/1 = #"/"]][p: p + 1]
-			if p < e [throw-error lex s e TYPE_REFINEMENT]
-		]
 		lex/scanned: type
-	]
-	
-	scan-refinement: func [lex [state!] s e [byte-ptr!] flags [integer!]
-		/local
-			type [integer!]
-	][
-		assert s/1 = #"/"
-		type: either s + 1 = e [TYPE_WORD][
-			either s/2 = #"/" [TYPE_WORD][TYPE_REFINEMENT] ;-- //...
-		]
-		lex/scanned: type
-		lex/exit: T_WORD								;-- route to load-word
 	]
 	
 	scan-integer: func [lex [state!] s e [byte-ptr!] flags [integer!]
@@ -1971,7 +1954,7 @@ lexer: context [
 			:scan-comment		null					;-- T_CMT
 			:scan-integer		:load-integer			;-- T_INTEGER
 			:scan-word			:load-word				;-- T_WORD
-			:scan-refinement	:load-word				;-- T_REFINE
+			null				:load-word				;-- T_REFINE
 			null				:load-word				;-- T_ISSUE
 			null				:load-string			;-- T_STRING
 			null				:load-file				;-- T_FILE
