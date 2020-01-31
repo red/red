@@ -865,8 +865,11 @@ lexer: context [
 			blk	 [red-block!]
 	][
 		if TYPE_MAP = close-block lex s e TYPE_PAREN [
-			blk: as red-block! lex/tail - 1
-			map/make-at as cell! blk blk block/rs-length? blk
+			lex/scanned: TYPE_MAP
+			if lex/load? [
+				blk: as red-block! lex/tail - 1
+				map/make-at as cell! blk blk block/rs-length? blk
+			]
 		]
 		lex/in-pos: e + 1								;-- skip )
 	]
