@@ -425,8 +425,17 @@ Red [
 	--test-- "tro-64" --assert 1 == transcode/one "01h"
 	--test-- "tro-65" --assert 2147483647 == transcode/one "7FFFFFFFh"
 	--test-- "tro-66" --assert -1 == transcode/one "FFFFFFFFh"
-	
 
+	--test-- "tro-67" --assert word? out: transcode/one "///" 				--assert "///" = mold out
+	--test-- "tro-68" --assert word? out: transcode/one "////"				--assert "////" = mold out
+	--test-- "tro-69" --assert set-word? out: transcode/one "//////////:"	--assert "//////////:" = mold out
+	--test-- "tro-70" --assert lit-word? out: transcode/one "'//////////"	--assert "'//////////" = mold out
+	--test-- "tro-71" --assert get-word? out: transcode/one "://////////"	--assert "://////////" = mold out
+
+	--test-- "tro-72" --assert lit-word? out: transcode/one "'//"		--assert "'//" = mold out
+	--test-- "tro-73" --assert get-word? out: transcode/one "://"		--assert "://" = mold out
+	--test-- "tro-74" --assert set-word? out: transcode/one "//:"		--assert "//:" = mold out
+	--test-- "tro-75" --assert word? out: transcode/one "//"			--assert "//"  = mold out
 
 ===end-group===
 ===start-group=== "transcode/next"
@@ -466,6 +475,12 @@ Red [
 	--test-- "scan-15" --assert (reduce [path! 	   " hello"]) == scan/next "a/b hello"
 	--test-- "scan-16" --assert (reduce [lit-path! " hello"]) == scan/next "'a/b hello"
 	--test-- "scan-17" --assert (reduce [get-path! " hello"]) == scan/next ":a/b hello"
+
+	--test-- "scan-18" --assert word! = scan "///"
+	--test-- "scan-19" --assert word! =  scan "////"
+	--test-- "scan-20" --assert set-word! =  scan "//////////:"
+	--test-- "scan-21" --assert lit-word! =  scan "'//////////"
+	--test-- "scan-22" --assert get-word! =  scan "://////////"
 
 ===end-group===
 ===start-group=== "transcode/trace"
