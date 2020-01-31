@@ -662,13 +662,13 @@ focus-in-event: func [
 		int		[red-integer!]
 		sym		[integer!]
 ][
-	if evbox <> gtk_get_event_widget event [return EVT_DISPATCH]
 	face: get-face-obj widget
 	values: object/get-values face
 	type: as red-word! values + FACE_OBJ_TYPE
 	int: as red-integer! values + FACE_OBJ_SELECTED
 	sym: symbol/resolve type/symbol
 	if sym = window [
+		if evbox <> gtk_get_event_widget event [return EVT_DISPATCH]
 		unless null? GET-RESIZING(widget) [
 			make-event widget 0 EVT_SIZING
 			make-event widget 0 EVT_SIZE
@@ -694,7 +694,6 @@ focus-out-event: func [
 		type	[red-word!]
 		sym		[integer!]
 ][
-	if evbox <> gtk_get_event_widget event [return EVT_DISPATCH]
 	face: get-face-obj widget
 	values: object/get-values face
 	type: as red-word! values + FACE_OBJ_TYPE
