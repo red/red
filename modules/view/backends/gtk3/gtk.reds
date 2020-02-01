@@ -1278,6 +1278,10 @@ GPtrArray!: alias struct! [
 			window		[handle!]
 			mode		[logic!]
 		]
+		gtk_window_set_type_hint: "gtk_window_set_type_hint" [
+			window		[handle!]
+			mode		[integer!]
+		]
 		gtk_window_move: "gtk_window_move" [
 			window		[handle!]
 			x			[integer!]
@@ -2930,7 +2934,10 @@ GPtrArray!: alias struct! [
 			win 		[handle!]
 			cursor		[handle!]
 		]
-
+		gdk_window_set_decorations: "gdk_window_set_decorations" [
+			window		[handle!]
+			flags		[integer!]
+		]
 		;; Useless since already called inside pango_cairo_create_context
 		; pango_cairo_font_map_get_default: "pango_cairo_font_map_get_default" [
 		; 	return: 	[handle!]
