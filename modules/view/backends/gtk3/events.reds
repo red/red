@@ -1024,6 +1024,7 @@ connect-widget-events: func [
 			gobj_signal_connect(widget "focus-in-event" :focus-in-event widget)
 			gobj_signal_connect(widget "focus-out-event" :focus-out-event widget)
 			gobj_signal_connect(widget "configure-event" :window-configure-event widget)
+			gobj_signal_connect(widget "realize" :window-realize widget)
 		]
 		sym = slider [
 			gobj_signal_connect(widget "value-changed" :range-value-changed widget)
