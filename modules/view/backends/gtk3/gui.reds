@@ -1629,7 +1629,6 @@ OS-make-view: func [
 			]
 			if any [
 				bits and FACET_FLAGS_NO_MIN <> 0
-				bits and FACET_FLAGS_NO_MAX <> 0
 				bits and FACET_FLAGS_NO_BTNS <> 0
 			][
 				gtk_window_set_type_hint widget 5					;-- WINDOW_TYPE_HINT_UTILITY
