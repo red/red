@@ -440,6 +440,25 @@ window-size-allocate: func [
 	]
 ]
 
+window-realize: func [
+	[cdecl]
+	widget [handle!]
+	/local
+		values [red-value!]
+		flags  [integer!]
+		bits   [integer!]
+][
+	values: get-face-values widget
+	flags:  get-flags as red-block! values + FACE_OBJ_FLAGS
+	bits:   1																;-- GDK_DECOR_ALL
+	
+	if flags and FACET_FLAGS_NO_BTNS <> 0 [bits: bits or 16 or 32 or 64]	;-- hide Menu, Min and Max buttons
+	if flags and FACET_FLAGS_NO_MIN  <> 0 [bits: bits or 32]				;-- hide Min button
+	if flags and FACET_FLAGS_NO_MAX  <> 0 [bits: bits or 64]				;-- hide Max button
+	
+	gdk_window_set_decorations gtk_widget_get_window widget bits
+]
+
 widget-realize: func [
 	[cdecl]
 	evbox		[handle!]
