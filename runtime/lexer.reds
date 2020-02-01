@@ -261,10 +261,10 @@ lexer: context [
 	
 	state!: alias struct! [
 		next		[state!]							;-- link to next state! structure (recursive calls)
+		back		[state!]							;-- link to previous state! structure (recursive calls)
 		buffer		[red-value!]						;-- static or dynamic stash buffer (recursive calls)
 		head		[red-value!]
 		tail		[red-value!]
-		slots		[integer!]
 		input		[byte-ptr!]
 		in-end		[byte-ptr!]
 		in-pos		[byte-ptr!]
@@ -296,7 +296,6 @@ lexer: context [
 	stash:			as cell! 0							;-- special buffer for hatching any-blocks series
 	stash-size:		1000								;-- pre-allocated cells	number
 	root-state:		as state! 0							;-- global entry point to state struct list
-	depth:			0									;-- recursive calls depth
 	
 	min-integer: as byte-ptr! "-2147483648"				;-- used in scan-integer
 	flags-LG: C_FLAG_LESSER or C_FLAG_GREATER
@@ -335,8 +334,7 @@ lexer: context [
 		string/append-char GET_BUFFER(line) as-integer #")"
 		
 		lex/tail: lex/buffer							;-- clear accumulated values
-		depth: depth - 1
-		if zero? depth [root-state: null]
+		if null? root-state/next [root-state: null]		;@@ do a proper clean-up before throwing
 		
 		switch type [
 			ERR_BAD_CHAR 	 [fire [TO_ERROR(syntax bad-char) line pos]]
@@ -443,22 +441,22 @@ lexer: context [
 	
 	alloc-slot: func [lex [state!] return: [red-value!]
 		/local 
-			slot [red-value!]
-			size deltaH deltaT [integer!]
+			slot new [red-value!]
+			s [state!]
 	][
-		size: lex/slots
-		if lex/buffer + size <= lex/tail [
-			deltaH: (as-integer lex/head - lex/buffer) >> 4
-			deltaT: (as-integer lex/tail - lex/buffer) >> 4
-			lex/slots: size * 2
-			lex/buffer: as cell! realloc as byte-ptr! lex/buffer lex/slots << 4
-			if null? lex/buffer [fire [TO_ERROR(internal no-memory)]]
-			lex/head: lex/buffer + deltaH
-			lex/tail: lex/buffer + deltaT
-			if depth = 1 [
-				stash: lex/buffer
-				stash-size: lex/slots
+		if stash + stash-size <= lex/tail [
+			stash-size: stash-size * 2
+			new: as cell! realloc as byte-ptr! stash stash-size << 4
+			if null? new [fire [TO_ERROR(internal no-memory)]]
+			s: root-state
+			until [
+				s/buffer: new + ((as-integer s/buffer - stash) >> 4)
+				s/head:	  new + ((as-integer s/head - stash) >> 4)
+				s/tail:	  new + ((as-integer s/tail - stash) >> 4)
+				s: s/next
+				null? s
 			]
+			stash: new
 		]
 		slot: lex/tail
 		slot/header: TYPE_UNSET
@@ -1835,25 +1833,34 @@ lexer: context [
 		/local
 			blk	  	 [red-block!]
 			p	  	 [red-point!]
+			base	 [red-value!]
 			slots 	 [integer!]
 			s	  	 [series!]
+			prev	 [state!]
 			lex	  	 [state! value]
 			clean-up [subroutine!]
 	][
-		if zero? depth [root-state: lex]
-		depth: depth + 1
+		either null? root-state [
+			root-state: lex
+			lex/back: null
+			base: stash
+		][
+			prev: root-state
+			while [prev/next <> null][prev: prev/next]
+			prev/next: lex
+			lex/back: prev
+			base: prev/tail
+		]
 		clean-up: [
 			system/thrown: 0
-			depth: depth - 1
-			if zero? depth [root-state: null]
+			either null? root-state/next [root-state: null][lex/back/next: null]
 			len/value: as-integer lex/in-pos - lex/input
 		]
 		
 		lex/next:		null							;-- last element of the states linked list
-		lex/buffer:		stash							;TBD: support dyn buffer case
-		lex/head:		stash
-		lex/tail:		stash
-		lex/slots:		stash-size						;TBD: support dyn buffer case
+		lex/buffer:		base
+		lex/head:		base
+		lex/tail:		base
 		lex/input:		src
 		lex/in-end:		src + size
 		lex/in-pos:		src
