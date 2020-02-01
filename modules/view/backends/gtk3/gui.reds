@@ -1620,13 +1620,30 @@ OS-make-view: func [
 		]
 		sym = window [
 			widget: gtk_window_new 0
-
+			
 			if bits and FACET_FLAGS_MODAL <> 0 [
 				gtk_window_set_modal widget yes
 			]
+			if any [
+				bits and FACET_FLAGS_NO_TITLE <> 0
+				bits and FACET_FLAGS_NO_BORDER <> 0
+			][
+				gtk_window_set_decorated widget no
+			]
+			if any [
+				bits and FACET_FLAGS_NO_MIN <> 0
+				bits and FACET_FLAGS_NO_MAX <> 0
+				bits and FACET_FLAGS_NO_BTNS <> 0
+			][
+				gtk_window_set_type_hint widget 5					;-- WINDOW_TYPE_HINT_UTILITY
+			]
+			if bits and FACET_FLAGS_NO_BTNS <> 0 [
+				gtk_window_set_deletable widget no					;-- hide Close button
+			]
+			
 			unless null? caption [gtk_window_set_title widget caption]
 
-			winbox: gtk_box_new GTK_ORIENTATION_VERTICAL  0
+			winbox: gtk_box_new GTK_ORIENTATION_VERTICAL 0
 			gtk_container_add widget winbox
 			if menu-bar? menu window [
 				hMenu: gtk_menu_bar_new
@@ -1641,17 +1658,8 @@ OS-make-view: func [
 			gtk_box_pack_start winbox container yes yes 0
 			gtk_window_move widget offset/x offset/y
 
-			;; The following line really matters to fix the initial size of the window
-			gtk_widget_set_size_request widget size/x size/y
+			gtk_widget_set_size_request widget size/x size/y		;-- fix the initial size of the window
 			gtk_window_set_resizable widget (bits and FACET_FLAGS_RESIZE <> 0)
-			either any [
-				bits and FACET_FLAGS_NO_TITLE <> 0
-				bits and FACET_FLAGS_NO_BORDER <> 0
-			][
-				gtk_window_set_decorated widget no
-			][
-				gtk_window_set_decorated widget yes
-			]
 		]
 		sym = camera [
 			widget: gtk_layout_new null null
