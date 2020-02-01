@@ -1362,7 +1362,7 @@ font-size?: func [
 	if any [
 		TYPE_OF(size) <> TYPE_INTEGER
 		size/value <= 0
-	][print default-font-size return default-font-size]
+	][return default-font-size]
 	size/value
 ]
 
