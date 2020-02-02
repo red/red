@@ -262,6 +262,18 @@ system/lexer: context [
 		n
 	]
 
+	make-handle: routine [
+		start	[string!]
+		end		[string!]
+		/local
+			n	  [integer!]
+			value [red-value!]
+	][
+		n: make-hexa start end
+		value: as red-value! integer/box n
+		set-type value TYPE_HANDLE
+	]
+
 	make-char: routine [
 		start	[string!]
 		end		[string!]
@@ -870,6 +882,7 @@ system/lexer: context [
 					| "routine!"	(value: routine!)
 				]
 				| "none" 			(value: none)
+				| "handle!" some ws s: hexa-rule (value: make-handle s e)
 			] pos: any ws #"]"
 		]
 
