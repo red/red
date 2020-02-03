@@ -736,6 +736,7 @@ system/view/platform: context [
 			]
 			Linux [
 				button:			[1x1   1x1]
+				toggle:			[1x1   1x1]
 				tab-panel:		[0x2   0x1]
 				group-box:		[0x0   0x1]
 			]
@@ -762,6 +763,7 @@ system/view/platform: context [
 			]
 			Linux [
 				button:			[11x11 0x0]
+				toggle:			[11x11 0x0]
 				check:			[20x0  3x1]
 				radio:			[20x0  1x1]
 				text:			[3x3   0x0]
@@ -799,6 +801,7 @@ system/view/platform: context [
  			Linux	[
 				 extend system/view/metrics/def-heights [
 					button:		29
+					toggle:		29
 					check:		20
 					radio:		19
 					text:		17
