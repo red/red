@@ -1058,13 +1058,13 @@ change-data: func [
 			f: as red-float! data
 			gtk_range_set_value widget f/value * 100.0
 		]
-		type = check [
-			set-logic-state widget as red-logic! data yes
-		]
 		any [
-			type = radio
+			type = check
 			type = toggle
 		][
+			set-logic-state widget as red-logic! data yes
+		]
+		type = radio [
 			set-logic-state widget as red-logic! data no
 		]
 	; 	type = tab-panel [
@@ -1828,7 +1828,7 @@ OS-make-view: func [
 		]
 	]
 	
-	if sym = check [
+	if any [sym = check sym = toggle][
 		set-logic-state widget as red-logic! data yes
 	]
 

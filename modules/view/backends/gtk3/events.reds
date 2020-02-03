@@ -1002,7 +1002,10 @@ connect-widget-events: func [
 	gobj_signal_connect(evbox "realize" :widget-realize widget)
 
 	case [
-		sym = check [
+		any [
+			sym = check
+			sym = toggle
+		][
 			check-handler: gobj_signal_connect(widget "toggled" :button-toggled widget)	;-- used to block signal
 		]
 		sym = radio [
