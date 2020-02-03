@@ -725,6 +725,7 @@ system/view/platform: context [
 			]
 			macOS [
 				button:			[2x2   2x3 regular 6x6 4x7 small 5x5 4x6 mini 1x1 0x1]
+				toggle:			[2x2   2x3 regular 6x6 4x7 small 5x5 4x6 mini 1x1 0x1]
 				regular:		[6x6   4x7]
 				small:			[5x5   4x6]
 				mini:			[1x1   0x1]
@@ -748,6 +749,7 @@ system/view/platform: context [
 			]
 			macOS [
 				button:			[11x11 0x0 regular 14x14 0x0 small 11x11 0x0 mini 11x11 0x0]
+				toggle:			[11x11 0x0 regular 14x14 0x0 small 11x11 0x0 mini 11x11 0x0]
 				check:			[20x0  3x1]
 				radio:			[20x0  1x1]
 				text:			[3x3   0x0]
