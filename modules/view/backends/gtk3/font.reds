@@ -817,6 +817,7 @@ set-font: func [
 		]
 		any [
 			sym = button
+			sym = toggle
 			sym = check
 			sym = radio
 		][
