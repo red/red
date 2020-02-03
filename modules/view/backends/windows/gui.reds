@@ -1561,11 +1561,16 @@ OS-make-view: func [
 
 	;-- extra initialization
 	case [
-		sym = button	[init-button handle values]
 		sym = camera	[init-camera handle data selected false]
 		sym = text-list [init-text-list handle data selected]
 		sym = base		[init-base-face handle parent values alpha?]
 		sym = tab-panel [set-tabs handle values]
+		any [
+			sym = button
+			sym = toggle
+		][
+			init-button handle values
+		]
 		sym = group-box [
 			flags: flags or WS_GROUP or BS_GROUPBOX
 			hWnd: CreateWindowEx
@@ -2018,7 +2023,7 @@ change-image: func [
 	type	[integer!]
 ][
 	if type = base [update-base hWnd null null values]
-	if type = button [init-button hWnd values]
+	if any [type = button type = toggle][init-button hWnd values]
 ]
 
 change-selection: func [
