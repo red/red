@@ -763,7 +763,7 @@ change-image: func [
 		; 	snap-camera widget
 		; 	until [TYPE_OF(image) = TYPE_IMAGE]			;-- wait
 		; ]
-		any [type = button type = check type = radio][
+		any [type = button type = toggle type = check type = radio][
 			if TYPE_OF(image) = TYPE_IMAGE [
 				img: gtk_image_new_from_pixbuf OS-image/to-pixbuf image
 				gtk_button_set_image widget img
@@ -1009,7 +1009,7 @@ change-text: func [
 				buffer: gtk_entry_get_buffer widget
 				gtk_entry_buffer_set_text buffer cstr -1
 			]
-			any [type = button type = radio type = check] [
+			any [type = button type = toggle type = radio type = check][
 				gtk_button_set_label widget cstr
 			]
 			type = window [
