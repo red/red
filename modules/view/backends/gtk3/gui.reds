@@ -1043,8 +1043,6 @@ change-data: func [
 	selected: as red-integer! values + FACE_OBJ_SELECTED
 	type: word/symbol
 
-	;;DEBUG: print ["change-data: " get-symbol-name type lf]
-
 	case [
 		all [
 			type = progress
@@ -1103,8 +1101,6 @@ change-selection: func [
 		bound	[GtkTextIter! value]
 		buffer	[handle!]
 ][
-	;; DEBUG: print ["change-selection: " widget " (" get-symbol-name type ")" lf]
-
 	if type <> window [
 		idx: either TYPE_OF(int) = TYPE_INTEGER [int/value - 1][-1]
 	]
@@ -1866,7 +1862,6 @@ OS-update-view: func [
 		flags-flags	[integer!]
 		type	[integer!]
 ][
-	;; DEBUG: print ["OS-update-view" lf]
 	ctx: GET_CTX(face)
 	s: as series! ctx/values/value
 	values: s/offset
@@ -1879,7 +1874,6 @@ OS-update-view: func [
 		type = rich-text
 		update-rich-text state as red-block! values + FACE_OBJ_EXT3
 	][
-		;; DEBUG: print ["update-view rich-text" lf]
 		exit
 	]
 
@@ -1920,7 +1914,6 @@ OS-update-view: func [
 		flags-flags: get-flags as red-block! values + FACE_OBJ_FLAGS
 		if type = field [
 			if flags-flags and FACET_FLAGS_PASSWORD <> 0 [
-				;; DEBUG: print ["password flag activated for field" lf]
 				gtk_entry_set_visibility widget no
 			]
 			gtk_entry_set_has_frame widget (flags-flags and FACET_FLAGS_NO_BORDER = 0)
@@ -1928,7 +1921,6 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_DRAW  <> 0 [
 		gtk_widget_queue_draw widget
-		; 0
 	]
 	if flags and FACET_FLAG_COLOR <> 0 [
 		if type <> base [
