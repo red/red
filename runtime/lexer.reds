@@ -289,8 +289,9 @@ lexer: context [
 	scanner!: alias function! [lex [state!] s e [byte-ptr!] flags [integer!]]
 	loader!:  alias function! [lex [state!] s e [byte-ptr!] flags [integer!]]
 
-	utf8-bufsize:	100'000
+	utf8-buf-size:	100'000
 	utf8-buffer:	as byte-ptr! 0
+	utf8-buf-tail:	as byte-ptr! 0
 	scanners:		as int-ptr! 0						;-- scan functions jump table (dynamically filled)
 	loaders:		as int-ptr! 0						;-- load functions jump table (dynamically filled)
 	stash:			as cell! 0							;-- special buffer for hatching any-blocks series
@@ -1909,23 +1910,32 @@ lexer: context [
 		fun		[red-function!]							;-- optional callback function
 		return: [integer!]								;-- scanned type when one? is set, else zero
 		/local
+			unit buf-size ignore type used [integer!]
+			base extra [byte-ptr!]
 			s [series!]
-			unit buf-size ignore [integer!]
 	][
 		ignore: 0
+		extra: null
 		s: GET_BUFFER(str)
 		unit: GET_UNIT(s)
 		
 		if size = -1 [size: string/rs-length? str]
-		buf-size: size * unit
-		if buf-size > utf8-bufsize [
-			free utf8-buffer
-			utf8-buffer: allocate buf-size
-			utf8-bufsize: buf-size
+		buf-size: size * unit							;-- required (upper estimate)
+		used: as-integer utf8-buf-tail - utf8-buffer
+		if buf-size > (utf8-buf-size - used) [
+			extra: allocate buf-size + 1				;-- fallback to a temporary buffer
+			utf8-buf-tail: extra
 		]
-		size: unicode/to-utf8-buffer str utf8-buffer size
+		size: unicode/to-utf8-buffer str utf8-buf-tail size
+		base: utf8-buf-tail
+		utf8-buf-tail: utf8-buf-tail + size + 1			;-- move at tail for new buffer; +1 for terminal NUL
+
 		if null? len [len: :ignore]
-		scan dst utf8-buffer size one? load? wrap? len fun as red-series! str
+		catch RED_THROWN_ERROR [type: scan dst base size one? load? wrap? len fun as red-series! str]
+		utf8-buf-tail: base
+		if extra <> null [free extra]
+		if system/thrown <> 0 [re-throw]				;-- clean place to rethrow errors
+		type
 	]
 	
 	set-jump-tables: func [[variadic] count [integer!] list [int-ptr!] /local i [integer!] s l [int-ptr!]][
@@ -1947,7 +1957,8 @@ lexer: context [
 	
 	init: func [][
 		stash: as cell! allocate stash-size * size? cell!
-		utf8-buffer: allocate utf8-bufsize
+		utf8-buffer: allocate utf8-buf-size
+		utf8-buf-tail: utf8-buffer
 		
 		;-- switch following tables to zero-based indexing
 		lex-classes: lex-classes + 1
