@@ -344,6 +344,11 @@ Red [
 		--assert word? out/1
 		--assert tag?  out/2
 
+	--test-- "tr-31"
+		out: transcode "1 / 3"
+		--assert out == [1 / 3]
+		--assert word? out/2
+
 ===end-group===
 ===start-group=== "transcode/one"
 	--test-- "tro-1"  --assert 8		== transcode/one "8"
@@ -442,10 +447,14 @@ Red [
 	--test-- "tro-70" --assert lit-word? out: transcode/one "'//////////"	--assert "'//////////" = mold out
 	--test-- "tro-71" --assert get-word? out: transcode/one "://////////"	--assert "://////////" = mold out
 
-	--test-- "tro-72" --assert lit-word? out: transcode/one "'//"		--assert "'//" = mold out
-	--test-- "tro-73" --assert get-word? out: transcode/one "://"		--assert "://" = mold out
-	--test-- "tro-74" --assert set-word? out: transcode/one "//:"		--assert "//:" = mold out
-	--test-- "tro-75" --assert word? out: transcode/one "//"			--assert "//"  = mold out
+	--test-- "tro-72" --assert lit-word? out: transcode/one "'//"	--assert "'//" = mold out
+	--test-- "tro-73" --assert get-word? out: transcode/one "://"	--assert "://" = mold out
+	--test-- "tro-74" --assert set-word? out: transcode/one "//:"	--assert "//:" = mold out
+	--test-- "tro-75" --assert word? out: transcode/one "//"		--assert "//"  = mold out
+	--test-- "tro-76" --assert word? out: transcode/one "/"			--assert "/"  = mold out
+	--test-- "tro-77" --assert lit-word? out: transcode/one "'/"	--assert "'/"  = mold out
+	--test-- "tro-78" --assert get-word? out: transcode/one ":/"	--assert ":/"  = mold out
+	--test-- "tro-79" --assert set-word? out: transcode/one "/:"	--assert "/:"  = mold out
 
 ===end-group===
 ===start-group=== "transcode/next"

@@ -1004,6 +1004,21 @@ lexer: context [
 		lex/scanned: type
 	]
 	
+	scan-refinement: func [lex [state!] s e [byte-ptr!] flags [integer!]][
+		case [
+			s + 1 = e [lex/scanned: TYPE_WORD]
+			s + 2 = e [
+				case [
+					s/1 = #"'" [lex/scanned: TYPE_LIT_WORD]
+					s/1 = #":" [lex/scanned: TYPE_GET_WORD]
+					e/0 = #":" [lex/scanned: TYPE_SET_WORD]
+					true [0]
+				]
+			]
+			true [0]
+		]
+	]
+	
 	scan-integer: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		return: [integer!]
 		/local
@@ -1982,7 +1997,7 @@ lexer: context [
 			:scan-comment		null					;-- T_CMT
 			:scan-integer		:load-integer			;-- T_INTEGER
 			:scan-word			:load-word				;-- T_WORD
-			null				:load-word				;-- T_REFINE
+			:scan-refinement	:load-word				;-- T_REFINE
 			null				:load-word				;-- T_ISSUE
 			null				:load-string			;-- T_STRING
 			null				:load-file				;-- T_FILE
