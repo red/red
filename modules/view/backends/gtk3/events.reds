@@ -892,6 +892,10 @@ translate-key: func [
 		pos: keycode - FF00h + 1
 		return keycode-special/pos
 	]
+	;-- simple fix #4267
+	if keycode = FE20h [
+		return RED_VK_TAB
+	]
 	RED_VK_UNKNOWN
 ]
 
