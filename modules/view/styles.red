@@ -42,6 +42,10 @@ Red [
 			tabs: none line-spacing: 'default handles: none
 		]
 	]
+	toggle: [
+		default-actor: on-change
+		template: [type: 'toggle size: 60x25]
+	]
 	check: [
 		default-actor: on-change
 		template: [type: 'check size: 80x25]

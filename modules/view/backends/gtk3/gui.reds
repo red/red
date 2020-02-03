@@ -1063,7 +1063,10 @@ change-data: func [
 		type = check [
 			set-logic-state widget as red-logic! data yes
 		]
-		type = radio [
+		any [
+			type = radio
+			type = toggle
+		][
 			set-logic-state widget as red-logic! data no
 		]
 	; 	type = tab-panel [
@@ -1616,6 +1619,12 @@ OS-make-view: func [
 				widget: gtk_radio_button_new_with_label_from_widget fradio caption
 			]
 			set-logic-state widget as red-logic! data no
+		]
+		sym = toggle [
+			widget: gtk_toggle_button_new_with_label caption
+			if TYPE_OF(img) = TYPE_IMAGE [
+				change-image widget img sym
+			]
 		]
 		sym = button [
 			widget: gtk_button_new_with_label caption
