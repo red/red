@@ -696,6 +696,44 @@ Red [
 			load word! datatype! 1 abc
 		]
 
+	--test-- "tt-11"
+		lex-filter11B: function [
+			event  [word!]
+			input  [string! binary!]
+			type   [datatype! word! none!]
+			line   [integer!]
+			token
+			return: [logic!]
+		][
+			--assert 456 == load "456"
+			--assert [[456] world] == load "[456] world"
+			yes
+		]
+		lex-filter11A: function [
+			event  [word!]
+			input  [string! binary!]
+			type   [datatype! word! none!]
+			line   [integer!]
+			token
+			return: [logic!]
+		][
+			t: tail logs
+			reduce/into [event to-word type to-word type? type line token] tail logs
+			new-line t yes
+			--assert 789 == load "789"
+			--assert [[789] world] == load "[789] world"
+			--assert [123 abc] == transcode/trace "123 abc" :lex-filter11B
+			yes
+		]
+		clear logs
+		--assert [123 abc] == transcode/trace "123 abc" :lex-filter11A
+		--assert logs = [
+			scan integer! word! 1 1x4 
+			load integer! datatype! 1 123 
+			scan word! word! 1 5x8 
+			load word! datatype! 1 abc
+		]
+
 ===end-group===
 
 ~~~end-file~~~
