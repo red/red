@@ -335,7 +335,6 @@ lexer: context [
 		string/append-char GET_BUFFER(line) as-integer #")"
 		
 		lex/tail: lex/buffer							;-- clear accumulated values
-		if null? root-state/next [root-state: null]		;@@ do a proper clean-up before throwing
 		if lex/closing = TYPE_PATH [type: ERR_BAD_CHAR]	;-- forces a better error report
 
 		switch type [
@@ -412,8 +411,7 @@ lexer: context [
 		either null? value [pair/push x + 1 y + 1][stack/push value] ;-- token
 
 		if lex/fun-locs > 0 [_function/init-locals 1 + lex/fun-locs] ;-- +1 for /local refinement
-		catch RED_THROWN_ERROR [_function/call lex/fun-ptr ctx]
-		if system/thrown <> 0 [re-throw]
+		_function/call lex/fun-ptr ctx
 
 		if ser/head <> y [
 			lex/in-series/head: ser/head
@@ -1817,6 +1815,8 @@ lexer: context [
 					]
 				]
 			]
+			system/thrown: 0
+			
 			if all [lex/entry = S_PATH state <> T_PATH state <> T_ERROR][
 				check-path-end lex s lex/in-pos flags	;-- lex/in-pos could have changed
 			]
@@ -1869,7 +1869,6 @@ lexer: context [
 			base: prev/tail
 		]
 		clean-up: [
-			system/thrown: 0
 			either null? root-state/next [root-state: null][lex/back/next: null]
 			len/value: as-integer lex/in-pos - lex/input
 		]
@@ -1893,16 +1892,25 @@ lexer: context [
 		
 		if fun <> null [lex/fun-locs: _function/count-locals fun/spec 0 no]
 		
-		scan-tokens lex one? load?
-
+		catch RED_THROWN_ERROR [scan-tokens lex one? load?]
+		if system/thrown <> 0 [clean-up re-throw]
+		
 		if load? [
 			slots: (as-integer lex/tail - lex/buffer) >> 4
 			if slots > 0 [
 				p: as red-point! either lex/buffer < lex/head [lex/head - 1][lex/buffer]
 				if TYPE_OF(p) = TYPE_POINT [
 					lex/closing: p/y
-					catch LEX_ERR [throw-error lex lex/input + p/z lex/in-end ERR_CLOSING]
-					if system/thrown <> 0 [dst/header: TYPE_NONE clean-up return lex/scanned]
+					catch RED_THROWN_ERROR [throw-error lex lex/input + p/z lex/in-end ERR_CLOSING]
+					either system/thrown <= LEX_ERR [
+						dst/header: TYPE_NONE
+						system/thrown: 0
+						clean-up
+						return lex/scanned
+					][
+						clean-up
+						re-throw
+					]
 				]
 			]
 			either all [one? not wrap? slots > 0][
