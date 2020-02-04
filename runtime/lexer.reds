@@ -336,7 +336,8 @@ lexer: context [
 		
 		lex/tail: lex/buffer							;-- clear accumulated values
 		if null? root-state/next [root-state: null]		;@@ do a proper clean-up before throwing
-		
+		if lex/closing = TYPE_PATH [type: ERR_BAD_CHAR]	;-- forces a better error report
+
 		switch type [
 			ERR_BAD_CHAR 	 [fire [TO_ERROR(syntax bad-char) line pos]]
 			ERR_MALCONSTRUCT [fire [TO_ERROR(syntax malconstruct) line pos]]

@@ -668,6 +668,8 @@ Red [
 		    load word! datatype! 5 world
 		]
 
+	--test-- "tt-8"	
+		--assert error? try [transcode/trace "a: 3 t/" func [e i t l o][true]]
 
 ===end-group===
 
