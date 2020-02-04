@@ -563,7 +563,7 @@ change-size: func [
 		h		[float32!]
 ][
 	rc: make-rect size/x size/y 0 0
-	if all [type = button size/y > 32][
+	if all [any [type = button type = toggle] size/y > 32][
 		objc_msgSend [hWnd sel_getUid "setBezelStyle:" NSRegularSquareBezelStyle]
 	]
 	either type = window [
@@ -1819,7 +1819,7 @@ parse-common-opts: func [
 	]
 
 	if any [type = button type = toggle][
-		len: either all [btn? type = button][NSRegularSquareBezelStyle][NSRoundedBezelStyle]
+		len: either btn? [NSRegularSquareBezelStyle][NSRoundedBezelStyle]
 		objc_msgSend [hWnd sel_getUid "setBezelStyle:" len]
 	]
 ]
