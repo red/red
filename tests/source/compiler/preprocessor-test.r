@@ -96,4 +96,40 @@ REBOL [
 		--assert-printed? "*test9*"
 		--assert-printed? "*test10* foo 5 9"
 
+	--test-- "fetch-next"
+		--compile-and-run-this {
+			Red []
+			prin "*test1* " probe preprocessor/fetch-next []
+			prin "*test2* " probe preprocessor/fetch-next [1 2]
+			prin "*test3* " probe preprocessor/fetch-next [1 + 2 3]
+			prin "*test4* " probe preprocessor/fetch-next [a: 1 + b: 2 3]
+			prin "*test5* " probe preprocessor/fetch-next [+ 1 2 3]
+			b: reduce ['o make object! [f: func [/x y z][]]]
+			prin "*test6* " probe preprocessor/fetch-next [a: 1 + b/o/f 2 3 4]
+			prin "*test7* " probe preprocessor/fetch-next [a: 1 + b/o/f/x 2 3 4]
+			prin "*test8* " probe preprocessor/fetch-next [a: 1 + b/o/f/x 2 3 * 4 * 5 6]
+			b: reduce ['o make object! [f: func [/x 'y :z][]]]
+			f: func [x][]
+			prin "*test9* " probe preprocessor/fetch-next [a: 1 + b/o/f/x f f 4 5 6]
+			prin "*test10* " probe preprocessor/fetch-next [a: 1 + b/o/f/x + * 4 5 6]
+			o: make op! func ['x 'y][]
+			prin "*test11* " probe preprocessor/fetch-next [a: o b: 1]
+			prin "*test12* " probe preprocessor/fetch-next [f o f 1]
+			prin "*test13* " probe preprocessor/fetch-next [b/o/f o b/o/f/x 1 2 3]
+		}
+		
+		--assert-printed? "*test1* []"
+		--assert-printed? "*test2* [2]"
+		--assert-printed? "*test3* [3]"
+		--assert-printed? "*test4* [3]"
+		--assert-printed? "*test5* [2 3]"
+		--assert-printed? "*test6* [2 3 4]"
+		--assert-printed? "*test7* [4]"
+		--assert-printed? "*test8* [6]"
+		--assert-printed? "*test9* [4 5 6]"
+		--assert-printed? "*test10* [4 5 6]"
+		--assert-printed? "*test11* [1]"
+		--assert-printed? "*test12* [1]"
+		--assert-printed? "*test13* [1 2 3]"
+
 ~~~end-file~~~ 
