@@ -234,12 +234,11 @@ Red [
 		--assert (make bitset! #{00000000000000000000000020}) = charset "b"
 ===end-group===
 
-===start-group=== "on-parse-event tests"
-	;TODO
-===end-group===
-
 ===start-group=== "parse-trace tests"
-	;TODO
+	--test-- "#4084"
+		--assert parse/trace "aaa" [1 3 skip] func [e m r i s][true]
+		--assert parse/trace [a a a][0 3 word!] func [e m r i s][true]
+	
 ===end-group===
 
 ===start-group=== "suffix? tests"
@@ -404,8 +403,8 @@ Red [
 	--test-- "clean-path test"
 		--assert %/red-lang.com = clean-path http://red-lang.com
 		--assert (rejoin [what-dir %a]) = clean-path %a
-		--assert %"" = clean-path/only %a
-		--assert %/red-lang.com/ = clean-path/only/dir http://red-lang.com
+		--assert %a = clean-path/only %a
+		--assert http://red-lang.com/ = clean-path/only/dir http://red-lang.com
 ===end-group===
 
 ===start-group=== "split-path tests"
