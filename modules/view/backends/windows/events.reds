@@ -841,6 +841,7 @@ process-custom-draw: func [
 		sym = check
 		sym = radio
 		sym = button
+		sym = toggle
 	][
 		if all [
 			item/dwDrawStage = CDDS_PREPAINT
@@ -1350,7 +1351,7 @@ WndProc: func [
 			]
 		]
 		WM_CTLCOLOREDIT
-		WM_CTLCOLORSTATIC 
+		WM_CTLCOLORSTATIC
 		WM_CTLCOLORLISTBOX [
 			if null? current-msg [init-current-msg]
 			current-msg/hWnd: as handle! lParam			;-- force child handle
