@@ -1056,7 +1056,7 @@ red: context [
 				]
 				path: none
 			][
-				bind path/1 'rebol						;-- force binding to global context
+				path/1: bind path/1 'rebol				;-- force binding to global context
 			]
 		]
 		path
