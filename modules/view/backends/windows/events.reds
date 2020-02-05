@@ -825,10 +825,11 @@ process-custom-draw: func [
 		type	[red-word!]
 		txt		[red-string!]
 		font	[red-object!]
+		para    [red-object!]
 		color	[red-tuple!]
+		flags	[integer!]
 		sym		[integer!]
 		old		[integer!]
-		flags	[integer!]
 		DC		[handle!]
 		rc		[RECT_STRUCT]
 ][
@@ -836,7 +837,8 @@ process-custom-draw: func [
 	values: get-face-values item/hWndFrom
 	type:	as red-word! values + FACE_OBJ_TYPE
 	DC:		item/hdc
-	sym: symbol/resolve type/symbol
+	sym:    symbol/resolve type/symbol
+	
 	if any [
 		sym = check
 		sym = radio
@@ -849,6 +851,7 @@ process-custom-draw: func [
 		][
 			;@@ TBD draw image
 			font: as red-object! values + FACE_OBJ_FONT
+			para: as red-object! values + FACE_OBJ_PARA
 			if TYPE_OF(font) = TYPE_OBJECT [
 				txt: as red-string! values + FACE_OBJ_TEXT
 				values: object/get-values font
@@ -861,14 +864,12 @@ process-custom-draw: func [
 					SetTextColor DC color/array1 and 00FFFFFFh
 				]
 				rc: as RECT_STRUCT (as int-ptr! item) + 5
-				flags: DT_VCENTER or DT_SINGLELINE
-				either sym = button [
-					flags: flags or DT_CENTER
-				][
-					rc/left: rc/left + dpi-scale 16
+				unless any [sym = button sym = toggle][
+					rc/left: rc/left + dpi-scale 16			;-- compensate for invisible check box
 				]
 				if TYPE_OF(txt) = TYPE_STRING [
-					DrawText DC unicode/to-utf16 txt -1 rc flags
+					flags: get-para-flags base para
+					DrawText DC unicode/to-utf16 txt -1 rc flags or DT_SINGLELINE
 				]
 				SetBkMode DC old
 				return CDRF_SKIPDEFAULT
