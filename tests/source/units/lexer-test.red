@@ -456,6 +456,8 @@ Red [
 	--test-- "tro-78" --assert get-word? out: transcode/one ":/"	--assert ":/"  = mold out
 	--test-- "tro-79" --assert set-word? out: transcode/one "/:"	--assert "/:"  = mold out
 
+	--test-- "tro-80" --assert error? try [transcode/one {#"ab"}]
+
 ===end-group===
 ===start-group=== "transcode/next"
 

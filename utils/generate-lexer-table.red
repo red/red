@@ -84,11 +84,11 @@ context [
 		T_INTEGER			TYPE_INTEGER		;-- 68 
 		T_WORD				-					;-- 69
 		T_REFINE			TYPE_REFINEMENT		;-- 70
-		T_ISSUE				TYPE_ISSUE			;-- 71
-		T_STRING			TYPE_STRING			;-- 72
-		T_FILE				TYPE_FILE			;-- 73
-		T_BINARY			TYPE_BINARY			;-- 74
-		T_CHAR				TYPE_CHAR			;-- 75
+		T_CHAR				TYPE_CHAR			;-- 71
+		T_ISSUE				TYPE_ISSUE			;-- 72
+		T_STRING			TYPE_STRING			;-- 73
+		T_FILE				TYPE_FILE			;-- 74
+		T_BINARY			TYPE_BINARY			;-- 75
 		T_PERCENT			TYPE_PERCENT		;-- 76
 		T_FLOAT				TYPE_FLOAT			;-- 77
 		T_FLOAT_SP			TYPE_FLOAT			;-- 78
@@ -136,6 +136,16 @@ context [
 	types: select types 'datatypes!
 	
 	foreach [s t] states [append type-table either t = '- [0][(index? find types t) - 1]]
+
+	;-- Generate the ending-skip table content
+	ending-table: make binary! 2000
+	list: skip find states '--EXIT_STATES-- 2
+	
+	foreach [s t] list [
+		append ending-table pick 1x0 to-logic find [
+			T_STRING T_BINARY T_PERCENT T_TAG
+		] s
+	]
 	
 	template: compose/deep [Red/System [
 		Note: "Auto-generated lexical scanner transitions table"
@@ -144,6 +154,8 @@ context [
 	#enum lex-states! [
 		(extract states 2)
 	]
+	
+	ending-skip: (ending-table)
 	
 	type-table: (type-table)
 		

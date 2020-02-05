@@ -105,10 +105,6 @@ lexer: context [
 		00000000000101
 	}
 	
-	ending-skip: #{
-		0000000000000000000000000000000001000101010000000000000001000000
-	}
-	
 	bin16-classes: #{
 		0000000000000000000101000001000000000000000000000000000000000000
 		0100000000000000000000000000000002020202020202020202000300000000
@@ -282,7 +278,7 @@ lexer: context [
 		fun-ptr		[red-function!]						;-- callback function pointer or NULL
 		fun-locs	[integer!]							;-- number of local words in callback function
 		in-series	[red-series!]						;-- optional back reference to input series
-		int-value	[integer!]							;-- decoded integer! value (from scanner to loader)
+		value		[integer!]							;-- decoded integer! or char! value (from scanner to loader)
 		load?		[logic!]							;-- TRUE: load values, else scan only
 	]
 	
@@ -1067,12 +1063,33 @@ lexer: context [
 		]
 		if s/value = #"-" [i: 0 - i]
 		lex/scanned: TYPE_INTEGER
-		lex/int-value: i
+		lex/value: i
 		i
 	]
 	
+	scan-char: func [lex [state!] s e [byte-ptr!] flags [integer!]
+		/local
+			len	c [integer!]
+	][
+		assert all [s/1 = #"#" s/2 = #"^"" e/1 = #"^""]
+		len: as-integer e - s
+		if len = 2 [throw-error lex s e TYPE_CHAR]		;-- #""
+
+		either s/3 = #"^^" [
+			if len = 3 [throw-error lex s e TYPE_CHAR]	;-- #"^"
+			c: -1
+			scan-escaped-char s + 3 e :c
+		][												;-- simple char
+			if len > 3 [throw-error lex s e TYPE_CHAR]
+			c: as-integer s/3
+		]
+		if any [c > 0010FFFFh c = -1][throw-error lex s e TYPE_CHAR]
+		lex/value: c
+		lex/in-pos: e + 1								;-- skip "
+	]
+	
 	load-integer: func [lex [state!] s e [byte-ptr!] flags [integer!]][
-		integer/make-at alloc-slot lex lex/int-value
+		integer/make-at alloc-slot lex lex/value
 		lex/in-pos: e									;-- reset the input position to delimiter byte
 	]
 	
@@ -1343,27 +1360,11 @@ lexer: context [
 	
 	load-char: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
-			char  [red-char!]
-			len	c [integer!]
+			char [red-char!]
 	][
-		assert all [s/1 = #"#" s/2 = #"^"" e/1 = #"^""]
-		len: as-integer e - s
-		if len = 2 [throw-error lex s e TYPE_CHAR]		;-- #""
-		
-		either s/3 = #"^^" [
-			if len = 3 [throw-error lex s e TYPE_CHAR]	;-- #"^"
-			c: -1
-			scan-escaped-char s + 3 e :c
-		][												;-- simple char
-			c: as-integer s/3
-		]
-		if any [c > 0010FFFFh c = -1][throw-error lex s e TYPE_CHAR]
-		
 		char: as red-char! alloc-slot lex
 		set-type as cell! char TYPE_CHAR
-		char/value: c
-		
-		lex/in-pos: e + 1								;-- skip "
+		char/value: lex/value
 	]
 	
 	load-percent: func [lex [state!] s e [byte-ptr!] flags [integer!]
@@ -2007,11 +2008,11 @@ lexer: context [
 			:scan-integer		:load-integer			;-- T_INTEGER
 			:scan-word			:load-word				;-- T_WORD
 			:scan-refinement	:load-word				;-- T_REFINE
+			:scan-char			:load-char				;-- T_CHAR
 			null				:load-word				;-- T_ISSUE
 			null				:load-string			;-- T_STRING
 			null				:load-file				;-- T_FILE
 			null				:load-binary			;-- T_BINARY
-			null				:load-char				;-- T_CHAR
 			null				:load-percent			;-- T_PERCENT
 			null				:load-float				;-- T_FLOAT
 			null				:load-float-special		;-- T_FLOAT_SP
