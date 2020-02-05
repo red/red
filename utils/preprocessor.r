@@ -141,8 +141,7 @@ preprocessor: context [
 			set/any 'value either i = 1 [get/any first path][select value pick path i]
 			unless any [								;-- select-able types
 				series? get/any 'value
-				any-object? get/any 'value
-				map? get/any 'value
+				find [object! port! error! map!] type?/word get/any 'value
 			][
 				path: copy/part path i
 				break
