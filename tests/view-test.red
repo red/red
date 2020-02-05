@@ -766,8 +766,13 @@ win/pane: reduce [
 		]
 	]
 	make face! [
-		type: 'button offset: 570x440 size: 38x38
+		type: 'toggle offset: 570x440 size: 38x38
 		image: smiley
+		actors: object [
+			on-change: func [face [object!] event [event!]][
+				print [face/type pick "☻☺" face/data]
+			]
+		]
 	]
 	make face! [										;-- clip view for canvas
 		type: 'panel offset: 10x460 size: 300x200
