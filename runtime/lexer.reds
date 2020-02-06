@@ -1069,21 +1069,23 @@ lexer: context [
 	
 	scan-char: func [lex [state!] s e [byte-ptr!] flags [integer!]
 		/local
-			len	c [integer!]
+			len	c 	 [integer!]
+			do-error [subroutine!]
 	][
 		assert all [s/1 = #"#" s/2 = #"^"" e/1 = #"^""]
+		do-error: [throw-error lex s e TYPE_CHAR]
 		len: as-integer e - s
-		if len = 2 [throw-error lex s e TYPE_CHAR]		;-- #""
-
+		if len = 2 [do-error]							;-- #""
+		c: -1
+			
 		either s/3 = #"^^" [
-			if len = 3 [throw-error lex s e TYPE_CHAR]	;-- #"^"
-			c: -1
+			if len = 3 [do-error]						;-- #"^"
 			scan-escaped-char s + 3 e :c
 		][												;-- simple char
-			if len > 3 [throw-error lex s e TYPE_CHAR]
-			c: as-integer s/3
+			s: unicode/fast-decode-utf8-char s + 2 :c
+			if s < e [do-error]
 		]
-		if any [c > 0010FFFFh c = -1][throw-error lex s e TYPE_CHAR]
+		if any [c > 0010FFFFh c = -1][do-error]
 		lex/value: c
 		lex/in-pos: e + 1								;-- skip "
 	]
