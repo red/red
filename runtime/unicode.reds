@@ -39,6 +39,7 @@ unicode: context [
 		0C0C0C0C0C180C0C0C0C0C0C0C0C0C240C240C0C0C240C0C0C0C0C240C240C0C
 		0C240C0C0C0C0C0C0C0C0C0C 
 	}
+	utf8d: utf8d + 1									;-- switch it to 0-base indexing
 
 	fast-decode-utf8-char: func [
 		p		[byte-ptr!]
@@ -48,28 +49,27 @@ unicode: context [
 			state byte idx type [integer!]
 	][
 		state: 0
+		byte: as-integer p/value
+		type: as-integer utf8d/byte
+		cp/value: FFh >> type and byte
+		idx: 256 + state + type
+		state: as-integer utf8d/idx
+		p: p + 1
+		if zero? state [return p]						;-- fast-path for mono-byte codepoint
+		
 		forever [
 			byte: as-integer p/value
-			idx: byte + 1
-			type: as-integer utf8d/idx
-
-			idx: 256 + state + type + 1
-			state: as-integer utf8d/idx
-
+			type: as-integer utf8d/byte
 			switch state [
-				0 [										;-- ACCEPT
-					cp/value: FFh >> type and byte
-					return p + 1
-				]
-				12 [									;-- REJECT
-					cp/value: -1
-					return p
-				]
+				0		[return p]						;-- ACCEPT
+				12		[cp/value: -1 return p]			;-- REJECT
 				default [
 					cp/value: byte and 3Fh or (cp/value << 6)
 					p: p + 1
 				]
 			]
+			idx: 256 + state + type
+			state: as-integer utf8d/idx
 		]
 		as byte-ptr! 0									;-- never reached, just make compiler happy
 	]
