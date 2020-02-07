@@ -1115,7 +1115,10 @@ lexer: context [
 			str: string/make-at alloc-slot lex len unit
 			ser: GET_BUFFER(str)
 			switch unit [
-				UCS-1 [copy-memory as byte-ptr! ser/offset s len]
+				UCS-1 [
+					copy-memory as byte-ptr! ser/offset s len
+					ser/tail: as cell! (as byte-ptr! ser/offset) + len
+				]
 				UCS-2 [
 					cp: -1
 					p: as byte-ptr! ser/offset
@@ -1126,6 +1129,7 @@ lexer: context [
 						p/2: as-byte cp >> 8
 						p: p + 2
 					]
+					ser/tail: as cell! p
 				]
 				UCS-4 [
 					cp: -1
@@ -1136,9 +1140,9 @@ lexer: context [
 						p4/value: cp
 						p4: p4 + 1
 					]
+					ser/tail: as cell! p4
 				]
 			]
-			ser/tail: as cell! (as byte-ptr! ser/offset) + (len << (unit >> 1))
 		][
 			;-- prescan the string for determining unit and accurate final codepoints count
 			extra: 0									;-- count extra bytes used by escape sequences
