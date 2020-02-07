@@ -377,4 +377,35 @@ C_BIN_BLANK	  : space, tab, cr, lf				;-- 1
 C_BIN_HEXA	  : 0-9, a-f, A-F					;-- 2
 C_BIN_CMT	  : ;								;-- 3
 
-        
+=== Float FSM ===
+
+C_FL_ILLEGAL	: all the rest					;-- 0
+C_FL_SIGN		: +, -							;-- 1
+C_FL_DIGIT		: 0-9							;-- 2
+C_FL_EXP		: e, E							;-- 3
+C_FL_DOT		: .								;-- 4
+
+S_FL_START										;-- 0
+S_FL_NUM										;-- 1
+S_FL_DEC										;-- 2
+S_FL_EXP										;-- 3
+S_FL_EXPS										;-- 4
+S_FL_EXPD										;-- 5
+T_FL_FLOAT										;-- 6
+T_FL_ERROR										;-- 7
+
+
+S_FL_START->"+"|"-"->S_FL_START
+
+S_FL_START->"."->S_FL_DEC
+    \->digit->S_FL_NUM->digit->S_FL_NUM
+                  \->"."->S_FL_DEC
+                   \->"e"|"E"->S_FL_EXP
+                   
+S_FL_DEC->digit->S_FL_DEC
+    \->"e"|"E"->S_FL_EXP
+    
+S_FL_EXP->"+"|"-"->S_FL_EXPS->digit->S_FL_EXPD
+	\->digit->S_FL_EXPD
+
+S_FL_EXPD->digit->S_FL_EXPD

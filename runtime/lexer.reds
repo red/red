@@ -88,6 +88,15 @@ lexer: context [
 		C_BIN_HEXA										;-- 2
 		C_BIN_CMT										;-- 3
 	]
+	
+	#enum float-char-classes! [
+		C_FL_ILLEGAL									;-- 0
+		C_FL_SIGN										;-- 1
+		C_FL_DIGIT										;-- 2
+		C_FL_EXP										;-- 3
+		C_FL_DOT										;-- 4
+		C_FL_EOF										;-- 5
+	]
 
 	line-table: #{
 		0001000000000000000000000000000000000000000000000000000000000000
@@ -103,6 +112,13 @@ lexer: context [
 	path-ending: #{
 		0101000001010101010001000001000000000000000000010000000001000000
 		00000000000101
+	}
+	
+	float-classes: #{
+		0000000000000000000000000000000000000000000000000000000000000000
+		0000000000000000000000010001040002020202020202020202000000000000
+		0000000000030000000000000000000000000000000000000000000000000000
+		00000000000300
 	}
 	
 	bin16-classes: #{
@@ -125,6 +141,10 @@ lexer: context [
 		FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 		FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 		FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+	}
+	
+	float-transitions: #{
+		070001070207070701030206070702030706070405070707070705070707070705070706070707070707
 	}
 	
 	;-- Bit-array for /-~^{}"
@@ -1090,6 +1110,24 @@ lexer: context [
 		lex/in-pos: e + 1								;-- skip "
 	]
 	
+	scan-float: func [lex [state!] s e [byte-ptr!] flags [integer!]
+		/local
+			state index class [integer!]
+	][
+		state: 0										;-- S_FL_START
+		until [
+			index: as-integer s/1
+			class: as-integer float-classes/index
+			index: state * (size? float-char-classes!) + class
+			state: as-integer float-transitions/index
+			s: s + 1
+			s = e
+		]
+		index: state * (size? float-char-classes!) + C_FL_EOF
+		state: as-integer float-transitions/index
+		if state = 7 [throw-error lex s e TYPE_FLOAT]	;-- T_FL_ERROR
+	]
+	
 	load-integer: func [lex [state!] s e [byte-ptr!] flags [integer!]][
 		integer/make-at alloc-slot lex lex/value
 		lex/in-pos: e									;-- reset the input position to delimiter byte
@@ -1992,11 +2030,14 @@ lexer: context [
 		utf8-buf-tail: utf8-buffer
 		
 		;-- switch following tables to zero-based indexing
-		lex-classes: lex-classes + 1
-		transitions: transitions + 1
-		skip-table:  skip-table  + 1
-		line-table:  line-table  + 1
-		type-table:  type-table  + 1
+		lex-classes:   lex-classes   + 1
+		transitions:   transitions   + 1
+		skip-table:    skip-table    + 1
+		line-table:    line-table    + 1
+		type-table:    type-table    + 1
+		
+		float-classes:     float-classes     + 1
+		float-transitions: float-transitions + 1
 		
 		set-jump-tables [
 			:scan-eof			null					;-- T_EOF
@@ -2020,7 +2061,7 @@ lexer: context [
 			null				:load-file				;-- T_FILE
 			null				:load-binary			;-- T_BINARY
 			null				:load-percent			;-- T_PERCENT
-			null				:load-float				;-- T_FLOAT
+			:scan-float			:load-float				;-- T_FLOAT
 			null				:load-float-special		;-- T_FLOAT_SP
 			null				:load-tuple				;-- T_TUPLE
 			null				:load-date				;-- T_DATE
