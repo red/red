@@ -1446,7 +1446,10 @@ dtoa: context [
 		nd0: ndigits - fraclen
 
 		e: 0
-		if any [c = #"e" c = #"E"][
+		if all [
+			any [c = #"e" c = #"E"]
+			s + 1 < end
+		][
 			s: s + 1
 			e-neg?: no
 
