@@ -24,6 +24,7 @@ S_ISSUE
 S_NUMBER
 S_DOTNUM
 S_DECIMAL
+S_DECEXP
 S_DECX
 S_DEC_SPECIAL
 S_TUPLE
@@ -211,47 +212,53 @@ S_START->"#"->S_SHARP->"{"->S_BINARY->hexa|ws->S_BINARY
 
 S_START->digit->S_NUMBER->digit|"'"->S_NUMBER
                  \->delimit10->T_INTEGER
-                  \->"%"->T_PERCENT
-                   \->"."->S_DOTNUM->digit->S_DECIMAL->digit|"e"|"E"|"+"|"-"|"'"->S_DECIMAL
-                    \       \                \->"."->S_TUPLE->digit|"."->S_TUPLE
-                     \       \                \       \->delimit11->T_TUPLE
-                      \       \                \       \->else->T_ERROR
-                       \       \                \
-                        \       \                \->"%"->T_PERCENT
-                         \       \                \->"x"|"X"->S_PAIR_1ST
-                          \       \                \->delimit11->T_FLOAT
-                           \       \                \->else->T_ERROR
-                            \       \
-                             \       \->"#"->S_DEC_SPECIAL->not(delimit12)->S_DEC_SPECIAL
-                              \       \       \->delimit12->T_FLOAT_SP
+                  \->"."->S_DOTNUM->digit->S_DECIMAL->digit|"'"->S_DECIMAL
+                   \       \                \->"e"|"E"->S_DECEXP->digit|"+"|"-"|"'"->S_DECEXP
+                    \       \                \           \->delimit11->T_FLOAT
+                     \       \                \           \->else->T_ERROR
+                      \       \                \
+                       \       \                \->"."->S_TUPLE->digit|"."->S_TUPLE
+                        \       \                \       \->delimit11->T_TUPLE
+                         \       \                \       \->else->T_ERROR
+                          \       \                \
+                           \       \                \->"%"->T_PERCENT
+                            \       \                \->"x"|"X"->S_PAIR_1ST
+                             \       \                \->delimit11->T_FLOAT
+                              \       \                \->else->T_ERROR
                                \       \
-                                \       \->"%"->T_PERCENT
-                                 \       \->"x"|"X"->S_PAIR_1ST
-                                  \       \->"e"|"E"|"'"->S_DECIMAL
-                                   \       \->delimit11->T_FLOAT
-                                    \       \->else->T_ERROR
-                                     \
-                                      \->"/"|"T"->S_DATE->not(delimit13)->S_DATE
-                                       \           \->delimit13->T_DATE
+                                \       \->"#"->S_DEC_SPECIAL->not(delimit12)->S_DEC_SPECIAL
+                                 \       \       \->delimit12->T_FLOAT_SP
+                                  \       \
+                                   \       \->"%"->T_PERCENT
+                                    \       \->"x"|"X"->S_PAIR_1ST
+                                     \       \->"e"|"E"|"'"->S_DECEXP
+                                      \       \->delimit11->T_FLOAT
+                                       \       \->else->T_ERROR
                                         \
-                                         \->":"->S_TIME_1ST->digit->S_TIME->digit|":"|"."->S_TIME
-                                          \       \->else->T_ERROR   \->delimit11->T_TIME
-                                           \                          \->else->T_ERROR
-                                            \
-                                             \->"x"|"X"->S_PAIR_1ST->digit|sign->S_PAIR->digit|"."|"e"|"E"->S_PAIR
-                                              \           \->else->T_ERROR        \->delimit10->T_PAIR
-                                               \                                   \->else->T_ERROR
-                                                \
-                                                 \->"#"->S_SHARP
-                                                  \->"@"->S_EMAIL
-                                                   \->"e"->S_DECIMAL
-                                                    \->"E"->S_DECX->digit->S_DECX
-                                                     \       \->alphaU|"E"->S_HEX
-                                                      \       \->"h"->T_HEX
-                                                       \       \->delimit11->T_FLOAT
-                                                        \->alphaU->S_HEX
-                                                         \->"h"->T_HEX
-                                                          \->else->T_ERROR
+                                         \->"/"|"T"->S_DATE->not(delimit13)->S_DATE
+                                          \           \->delimit13->T_DATE
+                                           \
+                                            \->":"->S_TIME_1ST->digit->S_TIME->digit|":"|"."->S_TIME
+                                             \       \->else->T_ERROR   \->delimit11->T_TIME
+                                              \                          \->else->T_ERROR
+                                               \
+                                                \->"x"|"X"->S_PAIR_1ST->digit|sign->S_PAIR->digit|"."|"e"|"E"->S_PAIR
+                                                 \           \->else->T_ERROR        \->delimit10->T_PAIR
+                                                  \                                   \->else->T_ERROR
+                                                   \
+                                                    \->"%"->T_PERCENT
+                                                     \->"#"->S_SHARP
+                                                      \->"@"->S_EMAIL
+                                                       \->"e"->S_DECEXP
+                                                        \->"E"->S_DECX->digit->S_DECX
+                                                         \        \->"+"|"-"->S_DECEXP
+                                                          \        \->alphaU|"E"->S_HEX
+                                                           \        \->"h"->T_HEX
+                                                            \        \->delimit11->T_FLOAT
+                                                             \        \->else->T_ERROR
+                                                              \->alphaU->S_HEX
+                                                               \->"h"->T_HEX
+                                                                \->else->T_ERROR
 
 
 S_START->"."->S_DOTWORD->digit->S_DOTDEC->digit|"e"|"E"|"+"|"-"|"'"->S_DOTDEC
@@ -342,7 +349,7 @@ S_PATH->digit->S_PATH_NUM->digit|"'"->S_PATH_NUM
                      \           \->else->T_ERROR    \->delimit10->T_PAIR
                       \                               \->else->T_ERROR
                        \
-                        \->"e"|"E"->S_DECIMAL
+                        \->"e"|"E"->S_DECEXP
                          \->else->T_ERROR
                          
 S_PATH->"<"->S_LESSER
