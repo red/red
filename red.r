@@ -616,8 +616,11 @@ redc: context [
 	do-build: func [args [block!] /local cmd src][
 		switch/default args/1 [
 			"libRed" [
-				if all [encap? not exists? %libRed/][
-					make-dir path: %libRed/
+				path: %libRed/
+
+				if encap? [
+					unless exists? %libRed/ [make-dir path]
+
 					foreach file [
 						%libRed.def
 						%libRed.red
@@ -627,6 +630,7 @@ redc: context [
 					]
 					write/binary path/libRed.lib read-cache path/libRed.lib
 				]
+
 				cmd: copy "-r libRed/libRed.red"
 				if all [not tail? next args args/2 = "stdcall"][
 					insert at cmd 3 { --config "[export-ABI: 'stdcall]"}
