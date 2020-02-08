@@ -503,6 +503,12 @@ Red [
 	--test-- "scan-21" --assert lit-word! =  scan "'//////////"
 	--test-- "scan-22" --assert get-word! =  scan "://////////"
 
+	--test-- "scan-23"
+		allow: ["1.2" "123.456789" "123." "123." ".1" "1e2" "+1.0" "-1.0" "+1e2" "-1.0e2" "123.e1"]
+		deny:  ["123.." "123.e" "123e" "123E" "1e" "1E" "1e." "-1e" "-1e."]
+		foreach s allow [--test-- s --assert float! = scan s]
+		foreach s deny  [--test-- s --assert error! = scan s]
+
 ===end-group===
 ===start-group=== "transcode/trace"
 
