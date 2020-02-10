@@ -538,7 +538,6 @@ Red [
 		    load  integer!  datatype! 1 1
 		    open  path!     datatype! 1 6x6
 		    load  word!     datatype! 1 b
-		    close path!     datatype! 1 8x8
 		    error error!    datatype! 1 8x8
 		    open  block!    datatype! 1 9x9
 		    close block!    datatype! 1 10x10
@@ -554,7 +553,6 @@ Red [
 		    load  integer!  datatype! 1 1
 		    open  path!     datatype! 1 6x6
 		    load  word!     datatype! 1 b
-		    close path!     datatype! 1 8x8
 		    error error!    datatype! 1 8x8
 		    scan  word!     word!     1 9x10
 		    load  word!     datatype! 1 x

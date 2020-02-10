@@ -518,7 +518,7 @@ lexer: context [
 		lex/entry: S_START
 	]
 
-	close-block: func [lex [state!] s e [byte-ptr!] type [integer!]
+	close-block: func [lex [state!] s e [byte-ptr!] type [integer!] quiet? [logic!]
 		return: [integer!]
 		/local	
 			p [red-point!]
@@ -532,7 +532,7 @@ lexer: context [
 		]
 		p: as red-point! lex/head - 1
 		point?: all [lex/buffer <= p TYPE_OF(p) = TYPE_POINT]
-		if lex/fun-ptr <> null [
+		if all [not quiet? lex/fun-ptr <> null][
 			t: either point? [p/y][type]
 			unless fire-event lex words/_close t null s e [return 0]
 		]
@@ -856,7 +856,7 @@ lexer: context [
 	scan-eof: func [lex [state!] s e [byte-ptr!] flags [integer!]][]
 	
 	scan-error: func [lex [state!] s e [byte-ptr!] flags [integer!] /local type index [integer!]][
-		if all [lex/fun-ptr <> null lex/entry = S_PATH][close-block lex s e -1]
+		if all [lex/fun-ptr <> null lex/entry = S_PATH][close-block lex s e -1 yes]
 		either lex/prev < --EXIT_STATES-- [
 			index: lex/prev
 			index: as-integer type-table/index
@@ -874,7 +874,7 @@ lexer: context [
 	]
 
 	scan-block-close: func [lex [state!] s e [byte-ptr!] flags [integer!]][
-		close-block lex s e TYPE_BLOCK
+		close-block lex s e TYPE_BLOCK no
 		lex/in-pos: e + 1								;-- skip ]
 	]
 	
@@ -882,7 +882,7 @@ lexer: context [
 		/local
 			blk	 [red-block!]
 	][
-		if TYPE_MAP = close-block lex s e TYPE_PAREN [
+		if TYPE_MAP = close-block lex s e TYPE_PAREN no [
 			lex/scanned: TYPE_MAP
 			if lex/load? [
 				blk: as red-block! lex/tail - 1
@@ -958,7 +958,7 @@ lexer: context [
 				lex/in-pos: e + 1						;-- skip :
 				TYPE_SET_PATH
 			][-1]
-			close-block lex s e type
+			close-block lex s e type no
 		][
 			if e + 1 = lex/in-end [throw-error lex null e TYPE_PATH] ;-- incomplete path error
 			if e/1 = #":" [throw-error lex null e TYPE_PATH] ;-- set-words not allowed inside paths
