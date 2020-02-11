@@ -749,6 +749,9 @@ interpreter: context [
 			ctx	  [node!]
 	][
 		name: as red-word! either null? slot [pc - 1][slot]
+;if path <> null [
+;	name: as red-word! (block/rs-tail as red-block! path) - 1
+;]
 		if TYPE_OF(name) <> TYPE_WORD [name: words/_anon]
 		saved: stack/push value							;-- prevent word's value slot to be corrupted #2199
 		
