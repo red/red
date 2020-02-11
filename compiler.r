@@ -447,7 +447,7 @@ red: context [
 				append blk decorate-symbol/no-alias name ;-- local word, point to value slot
 			][
 				append blk [as cell!]
-				append/only blk prefix-exec name		;-- force global word
+				append/only blk duplicate-symbol name
 			]
 		][
 			if new: select-ssa name [name: new]			;@@ add a check for function! type
@@ -468,7 +468,7 @@ red: context [
 				]
 			][
 				append blk [as cell!]
-				append/only blk prefix-exec name
+				append/only blk duplicate-symbol name
 			]
 			
 		]
@@ -835,6 +835,16 @@ red: context [
 			]
 			new-line skip tail sym-table -3 on
 		]
+	]
+	
+	duplicate-symbol: func [name [word!] /local new][
+		new: decorate-symbol to word! append append mold/flat name #"|" get-counter
+		repend symbols [name select symbols name]
+		repend sym-table [
+			to set-word! new 'word/duplicate decorate-symbol name
+		]
+		new-line skip tail sym-table -3 on
+		new
 	]
 	
 	get-symbol-id: func [name [word!]][

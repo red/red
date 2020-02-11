@@ -1135,7 +1135,6 @@ object: context [
 			save-ctx [node!]
 			save-idx [integer!]
 			on-set?  [logic!]
-			rebind?	 [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/eval-path"]]
 		
@@ -1143,9 +1142,7 @@ object: context [
 		if TYPE_OF(word) <> TYPE_WORD [fire [TO_ERROR(script invalid-path) path element]]
 
 		ctx: GET_CTX(parent)
-
-		rebind?: word/ctx <> parent/ctx
-		if rebind? [									;-- bind the word to object's context
+		if word/ctx <> parent/ctx [						;-- bind the word to object's context
 			save-idx: word/index
 			save-ctx: word/ctx
 			word/index: _context/find-word ctx word/symbol yes
@@ -1173,10 +1170,6 @@ object: context [
 					fire [TO_ERROR(script no-value) res]
 				]
 			]
-		]
-		if rebind? [
-			word/index: save-idx
-			word/ctx: save-ctx
 		]
 		res
 	]
