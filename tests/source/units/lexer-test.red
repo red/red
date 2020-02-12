@@ -458,6 +458,16 @@ Red [
 
 	--test-- "tro-80" --assert error? try [transcode/one {#"ab"}]
 
+	--test-- "tro-81" --assert 1.2.3 == transcode/one "1.2.3"
+	--test-- "tro-82" --assert 11.22.33 == transcode/one "11.22.33"
+	--test-- "tro-83" --assert 255.255.255 == transcode/one "255.255.255"
+	--test-- "tro-84" --assert error? try [transcode/one "256.255.255"]
+	--test-- "tro-85" --assert error? try [transcode/one "255.255.256"]
+	--test-- "tro-86" --assert error? try [transcode/one "255.255.256.0"]
+	--test-- "tro-87" --assert error? try [transcode/one "1234.0.0"]
+	--test-- "tro-88" --assert 1.2.3.4.5.6.7.8.9.10.11.12 == transcode/one "1.2.3.4.5.6.7.8.9.10.11.12"
+	--test-- "tro-89" --assert error? try [transcode/one "1.2.3.4.5.6.7.8.9.10.11.12.13"]
+
 ===end-group===
 ===start-group=== "transcode/next"
 
