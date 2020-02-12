@@ -1485,6 +1485,7 @@ lexer: context [
 		]
 		pos: pos + 1									;-- last number
 		tp/pos: as byte! i
+		if any [i < 0 i > 255 pos > 12][throw-error lex s e TYPE_TUPLE]
 		cell/header: cell/header and type-mask or TYPE_TUPLE or (pos << 19)
 		lex/in-pos: e									;-- reset the input position to delimiter byte
 	]
