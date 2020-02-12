@@ -260,10 +260,9 @@ lexer: context [
 		FL_UCS2 FL_UCS2 FL_UCS2 FL_UCS2 FL_UCS2 FL_UCS2 ;-- E6-EB
 		FL_UCS2 FL_UCS2 FL_UCS2 FL_UCS2					;-- EC-EF
 		C_WORD C_WORD C_WORD							;-- F0-F2
-		FL_UCS4 FL_UCS4									;-- F3-F4
-		C_ILLEGAL C_ILLEGAL C_ILLEGAL C_ILLEGAL 		;-- F5-F8
-		C_ILLEGAL C_ILLEGAL C_ILLEGAL C_ILLEGAL 		;-- F9-FC
-		C_ILLEGAL C_ILLEGAL C_ILLEGAL			 		;-- FD-FF
+		FL_UCS4 FL_UCS4 FL_UCS4 FL_UCS4 FL_UCS4			;-- F3-F7
+		C_ILLEGAL C_ILLEGAL C_ILLEGAL C_ILLEGAL 		;-- F8-FB
+		C_ILLEGAL C_ILLEGAL C_ILLEGAL C_ILLEGAL 		;-- FC-FF
 	]
 	
 	#enum errors! [
@@ -2030,11 +2029,11 @@ lexer: context [
 		utf8-buf-tail: utf8-buffer
 		
 		;-- switch following tables to zero-based indexing
-		lex-classes:   lex-classes   + 1
-		transitions:   transitions   + 1
-		skip-table:    skip-table    + 1
-		line-table:    line-table    + 1
-		type-table:    type-table    + 1
+		lex-classes: lex-classes + 1
+		transitions: transitions + 1
+		skip-table:  skip-table  + 1
+		line-table:  line-table  + 1
+		type-table:  type-table  + 1
 		
 		float-classes:     float-classes     + 1
 		float-transitions: float-transitions + 1
