@@ -466,7 +466,7 @@ string: context [
 		switch GET_UNIT(s) [
 			Latin1 [
 				case [
-					cp <= FFh [
+					cp <= 7Fh [
 						node: s/node
 						p: alloc-tail-unit s 1
 						p/1: as-byte cp
@@ -1393,7 +1393,7 @@ string: context [
 	][
 		idx: cp + 1
 		case [
-			any [cp = 1Eh all [all? cp > 7Fh]][
+			any [cp = 1Eh all [80h <= cp cp <= 9Fh] all [all? cp > 7Fh]][
 				append-char GET_BUFFER(buffer) as-integer #"^^"
 				append-char GET_BUFFER(buffer) as-integer #"("
 				concatenate-literal buffer to-hex cp yes
