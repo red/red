@@ -274,6 +274,15 @@ lexer: context [
 		LEX_ERR:		  10
 	]
 	
+	#enum events! [
+		EVT_PRESCAN:	1
+		EVT_SCAN:		2
+		EVT_LOAD:		4
+		EVT_OPEN:		8
+		EVT_CLOSE:		16
+		EVT_ERROR:		32
+	]
+	
 	state!: alias struct! [
 		next		[state!]							;-- link to next state! structure (recursive calls)
 		back		[state!]							;-- link to previous state! structure (recursive calls)
@@ -296,6 +305,7 @@ lexer: context [
 		mstr-flags	[integer!]							;-- multiline string accumulated flags
 		fun-ptr		[red-function!]						;-- callback function pointer or NULL
 		fun-locs	[integer!]							;-- number of local words in callback function
+		fun-evts	[integer!]							;-- bitmap of allowed events
 		in-series	[red-series!]						;-- optional back reference to input series
 		value		[integer!]							;-- decoded integer! or char! value (from scanner to loader)
 		load?		[logic!]							;-- TRUE: load values, else scan only
@@ -312,9 +322,46 @@ lexer: context [
 	stash:			as cell! 0							;-- special buffer for hatching any-blocks series
 	stash-size:		1000								;-- pre-allocated cells	number
 	root-state:		as state! 0							;-- global entry point to state struct list
+	all-events:		3Fh									;-- bit-mask of all events
 	
 	min-integer: as byte-ptr! "-2147483648"				;-- used in scan-integer
 	flags-LG: C_FLAG_LESSER or C_FLAG_GREATER
+	
+	decode-filter: func [fun [red-function!] return: [integer!]
+		/local
+			evts flag sym [integer!]
+			value tail [red-word!]
+			blk		   [red-block!]
+			s		   [series!]
+	][
+		s: as series! fun/more/value
+		blk: as red-block! s/offset
+		if any [TYPE_OF(blk) <> TYPE_BLOCK block/rs-tail? blk][return all-events]
+		blk: as red-block! block/rs-head blk
+		if TYPE_OF(blk) <> TYPE_BLOCK [return all-events]
+		
+		s: GET_BUFFER(blk)
+		value: as red-word! s/offset + blk/head
+		tail:  as red-word! s/tail
+		evts:  0
+		while [value < tail][
+			if TYPE_OF(value) = TYPE_WORD [
+				sym: symbol/resolve value/symbol
+				flag: case [
+					sym = words/_prescan/symbol [EVT_PRESCAN]
+					sym = words/_scan/symbol	[EVT_SCAN]
+					sym = words/_load/symbol	[EVT_LOAD]
+					sym = words/_open/symbol	[EVT_OPEN]
+					sym = words/_close/symbol	[EVT_CLOSE]
+					sym = words/_error/symbol	[EVT_ERROR]
+					true				 		[0]
+				]
+				evts: evts or flag
+			]
+			value: value + 1
+		]
+		evts
+	]
 
 	throw-error: func [lex [state!] s e [byte-ptr!] type [integer!]
 		/local
@@ -329,7 +376,7 @@ lexer: context [
 			lex/scanned: TYPE_ERROR
 			throw LEX_ERR								;-- bypass errors when scanning only
 		]
-		if lex/fun-ptr <> null [unless fire-event lex words/_error TYPE_ERROR null s e [throw LEX_ERR]]
+		if lex/fun-ptr <> null [unless fire-event lex EVT_ERROR TYPE_ERROR null s e [throw LEX_ERR]]
 		e: lex/in-end
 		len: 0
 		if null? s [									;-- determine token's start
@@ -372,33 +419,37 @@ lexer: context [
 		]
 	]
 	
-	fire-event: func [
-		lex		[state!]
-		event   [red-word!]
-		type	[integer!]
-		value	[red-value!]
-		s		[byte-ptr!]
-		e		[byte-ptr!]
-		return: [logic!]
+	fire-event: func [lex [state!] event [events!] type [integer!] value [red-value!] s e [byte-ptr!] return: [logic!]
 		/local
 			len x y [integer!]
 			ser	  [red-series!]
 			res	  [red-value!]
 			blk	  [red-block!]
+			evt   [red-word!]
 			int	  [red-integer!]
 			name  [names!]
 			more  [series!]
 			ctx	  [node!]
 			cont? [logic!]
 	][
-		if all [event = words/_scan type = -2][event: words/_error type: TYPE_ERROR]
+		if lex/fun-evts and event = 0 [return true]
+		if all [event = EVT_SCAN type = -2][event: EVT_ERROR type: TYPE_ERROR]
 
 		more: as series! lex/fun-ptr/more/value
 		int: as red-integer! more/offset + 4
 		ctx: either TYPE_OF(int) = TYPE_INTEGER [as node! int/value][global-ctx]
 		
 		stack/mark-func words/_body	lex/fun-ptr/ctx
-		stack/push as red-value! event					;-- event
+		evt: switch event [
+			EVT_PRESCAN	[words/_prescan]
+			EVT_SCAN	[words/_scan]
+			EVT_LOAD	[words/_load]
+			EVT_OPEN	[words/_open]
+			EVT_CLOSE	[words/_close]
+			EVT_ERROR	[words/_error]
+			default		[assert false null]
+		]
+		stack/push as red-value! evt					;-- event name
 		ser: as red-series! stack/push as red-value! lex/in-series ;-- input
 		
 		either type < 0 [								;-- type
@@ -407,7 +458,7 @@ lexer: context [
 				stack/push block/rs-abs-at blk (0 - type) - 1 ;-- 1-based access
 			]
 		][
-			either event = words/_scan [
+			either event = EVT_SCAN [
 				name: name-table + type
 				stack/push as red-value! name/word
 			][
@@ -506,7 +557,7 @@ lexer: context [
 			len [integer!]
 	][
 		if null? pos [pos: lex/in-pos]
-		if lex/fun-ptr <> null [unless fire-event lex words/_open type null pos pos [exit]]
+		if lex/fun-ptr <> null [unless fire-event lex EVT_OPEN type null pos pos [exit]]
 		len: (as-integer lex/tail - lex/head) >> 4
 		p: as red-point! alloc-slot lex
 		set-type as cell! p TYPE_POINT					;-- use the slot for stack info
@@ -533,7 +584,7 @@ lexer: context [
 		point?: all [lex/buffer <= p TYPE_OF(p) = TYPE_POINT]
 		if all [not quiet? lex/fun-ptr <> null][
 			t: either point? [p/y][type]
-			unless fire-event lex words/_close t null s e [return 0]
+			unless fire-event lex EVT_CLOSE t null s e [return 0]
 		]
 		unless point? [do-error]						;-- postpone error checking after callback call
 		stype: p/y
@@ -892,7 +943,7 @@ lexer: context [
 	]
 
 	scan-mstring-open: func [lex [state!] s e [byte-ptr!] flags [integer!]][
-		if lex/fun-ptr <> null [fire-event lex words/_open TYPE_STRING null s e]
+		if lex/fun-ptr <> null [fire-event lex EVT_OPEN TYPE_STRING null s e]
 		if zero? lex/mstr-nest [lex/mstr-s: s]
 		lex/mstr-nest: lex/mstr-nest + 1
 		lex/mstr-flags: lex/mstr-flags or flags
@@ -901,7 +952,7 @@ lexer: context [
 	]
 	
 	scan-mstring-close: func [lex [state!] s e [byte-ptr!] flags [integer!]][
-		if lex/fun-ptr <> null [fire-event lex words/_close TYPE_STRING null s e]
+		if lex/fun-ptr <> null [fire-event lex EVT_CLOSE TYPE_STRING null s e]
 		lex/mstr-nest: lex/mstr-nest - 1
 
 		either zero? lex/mstr-nest [
@@ -966,7 +1017,7 @@ lexer: context [
 	]
 	
 	scan-comment: func [lex [state!] s e [byte-ptr!] flags [integer!]][
-		if lex/fun-ptr <> null [fire-event lex words/_scan T_CMT - --EXIT_STATES-- null s e]
+		if lex/fun-ptr <> null [fire-event lex EVT_SCAN T_CMT - --EXIT_STATES-- null s e]
 	]
 
 	scan-construct: func [lex [state!] s e [byte-ptr!] flags [integer!]
@@ -1846,14 +1897,14 @@ lexer: context [
 			index: state - --EXIT_STATES--
 			scan?: either lex/fun-ptr = null [not only?][
 				idx: either zero? lex/scanned [0 - index][lex/scanned]
-				fire-event lex words/_prescan idx null s lex/in-pos
+				fire-event lex EVT_PRESCAN idx null s lex/in-pos
 			]
 			if scan? [
 				do-scan: as scanner! scanners/index		;-- Scanning stage --
 				if :do-scan <> null [catch LEX_ERR [do-scan lex s p flags]]
 				load?: either lex/fun-ptr = null [any [not one? ld?]][
 					index: either zero? lex/scanned [0 - index][lex/scanned]
-					either state >= T_INTEGER [fire-event lex words/_scan index null s lex/in-pos][yes]
+					either state >= T_INTEGER [fire-event lex EVT_SCAN index null s lex/in-pos][yes]
 				]
 				if load? [								;-- Loading stage --
 					index: lex/exit - --EXIT_STATES--
@@ -1862,7 +1913,7 @@ lexer: context [
 						catch LEX_ERR [do-load lex s p flags]
 						if lex/fun-ptr <> null [
 							slot: lex/tail - 1
-							unless fire-event lex words/_load TYPE_OF(slot) slot s lex/in-pos [lex/tail: slot]
+							unless fire-event lex EVT_LOAD TYPE_OF(slot) slot s lex/in-pos [lex/tail: slot]
 						]
 					]
 				]
@@ -1943,7 +1994,10 @@ lexer: context [
 		lex/in-series:	ser
 		lex/load?:		all [scan? load?]
 		
-		if fun <> null [lex/fun-locs: _function/count-locals fun/spec 0 no]
+		if fun <> null [
+			lex/fun-locs: _function/count-locals fun/spec 0 no
+			lex/fun-evts: decode-filter fun
+		]
 		
 		catch RED_THROWN_ERROR [scan-tokens lex one? not scan?]
 		if system/thrown <> 0 [clean-up re-throw]

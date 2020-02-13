@@ -23,6 +23,7 @@ highlight: context [
 		return:	[logic!]
 		/local style
 	][
+		[scan error]
 		switch event [
 			scan [
 				if all [type style: select _theme type][
