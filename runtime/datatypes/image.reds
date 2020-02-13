@@ -153,6 +153,7 @@ image: context [
 		format	[integer!]
 		return: [red-value!]
 	][
+		if zero? image/size [fire [TO_ERROR(access bad-media)]]
 		if TYPE_OF(dst) = TYPE_NONE [dst: stack/push*]
 		OS-image/encode image dst format
 	]
