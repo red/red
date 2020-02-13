@@ -538,6 +538,21 @@ Red [
 		any [event <> 'error all [input: next input false]]
 	]
 
+	lex-filtered-logger: function [
+	  event  [word!]
+	  input  [string! binary!]
+	  type   [datatype! word! none!]
+	  line   [integer!]
+	  token
+	  return:  [logic!]
+	][
+		[load error]
+		t: tail logs
+		reduce/into [event to-word type to-word type? type line token] tail logs
+		new-line t yes
+		any [event <> 'error all [input: next input false]]
+	]
+
 	--test-- "tt-1"
 		clear logs
 		--assert (compose [a: 1 (to-path 'b) []]) == transcode/trace "a: 1 b/ []" :lex-logger		
@@ -800,6 +815,54 @@ Red [
 			scan word! word! 1 5x8
 			load word! datatype! 1 abc
 		]
+
+	--test-- "tt-12"
+		clear logs
+		--assert none == transcode/trace "a: 1 #(r: 2) [ x" :lex-filtered-logger
+		--assert logs = [
+			load set-word! datatype! 1 a:
+			load integer! datatype! 1 1
+			load set-word! datatype! 1 r:
+			load integer! datatype! 1 2
+			load word! datatype! 1 x
+			error error! datatype! 1 14x17
+		]
+
+	--test-- "tt-13"
+		lex-filter13: function [
+			event  [word!]
+			input  [string! binary!]
+			type   [datatype! word! none!]
+			line   [integer!]
+			token
+			return: [logic!]
+		][
+			[load open close]
+			t: tail logs
+			reduce/into [event to-word type to-word type? type line token] tail logs
+			new-line t yes
+			switch event [
+				load  [to-logic find [integer! float! pair!] type]
+				open
+				close [no]
+			]
+		]
+
+		clear logs
+		--assert [hello "test" pi world] = transcode/trace "hello ^/123 ^/[^/3x4 {test} 3.14 pi]^/ world" :lex-filter13
+		--assert logs = [
+			load word! datatype! 1 hello
+			load integer! datatype! 2 123
+			open block! datatype! 3 13x13
+			load pair! datatype! 4 3x4
+			open string! datatype! 4 19x19
+			close string! datatype! 4 20x24
+			load float! datatype! 4 3.14
+			load word! datatype! 4 pi
+			close block! datatype! 4 33x33
+			load word! datatype! 5 world
+		]
+
 
 ===end-group===
 
