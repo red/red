@@ -555,7 +555,7 @@ natives: context [
 					stack/set-last arg + 1
 				]
 				TYPE_STRING [
-					lexer/scan-string arg as red-string! arg -1 no yes no null null as red-string! arg
+					lexer/scan-string arg as red-string! arg -1 no yes yes no null null as red-string! arg
 					DO_EVAL_BLOCK
 				]
 				TYPE_URL 
@@ -2728,13 +2728,14 @@ natives: context [
 		check? [logic!]
 		next   [integer!]
 		one    [integer!]
+		prescan[integer!]
 		scan   [integer!]
 		part   [integer!]
 		into   [integer!]
 		trace  [integer!]
 		/local
 			offset len type [integer!]
-			next? one? all? load? [logic!]
+			next? one? all? scan? load? [logic!]
 			slot arg [red-value!]
 			bin	bin2 [red-binary!]
 			int	  [red-integer!]
@@ -2744,8 +2745,9 @@ natives: context [
 			fun	  [red-function!]
 			s	  [series!]
 	][
-		#typecheck [transcode next one scan part into trace]
+		#typecheck [transcode next one prescan scan part into trace]
 
+		scan?: prescan < 0
 		load?: scan < 0
 		all?:  all [one < 0 load?]
 		next?: next >= 0
@@ -2786,13 +2788,13 @@ natives: context [
 		one?: any [next? not all? not load?]
 		either type = TYPE_BINARY [
 			if len < 0 [len: binary/rs-length? bin]
-			type: lexer/scan slot binary/rs-head bin len one? load? no :offset fun as red-series! bin
+			type: lexer/scan slot binary/rs-head bin len one? scan? load? no :offset fun as red-series! bin
 		][
 			str: as red-string! bin
 			if len < 0 [len: string/rs-length? str]
-			type: lexer/scan-string slot str len one? load? no :offset fun as red-series! str
+			type: lexer/scan-string slot str len one? scan? load? no :offset fun as red-series! str
 		]
-		unless load? [
+		if any [not scan? not load?][
 			dt: as red-datatype! slot
 			dt/header: TYPE_DATATYPE
 			dt/value: type

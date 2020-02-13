@@ -1790,9 +1790,10 @@ lexer: context [
 	scan-tokens: func [
 		lex   [state!]
 		one?  [logic!]
+		only? [logic!]									;-- prescan only
 		/local
-			cp class index state prev flags line mark offset [integer!]
-			term? load?	ld? [logic!]
+			cp class index state prev flags line mark offset idx [integer!]
+			term? load?	ld? scan? [logic!]
 			p e	start s [byte-ptr!]
 			slot		[cell!]
 			do-scan		[scanner!]
@@ -1801,7 +1802,7 @@ lexer: context [
 		line: 1
 		ld?: lex/load?
 		until [
-			flags: 0									;-- Scanning stage --
+			flags: 0									;-- Pre-scanning stage --
 			term?: no
 			state: lex/entry
 			prev: state
@@ -1843,27 +1844,33 @@ lexer: context [
 			lex/scanned: as-integer type-table/state
 		
 			index: state - --EXIT_STATES--
-			do-scan: as scanner! scanners/index
-			if :do-scan <> null [catch LEX_ERR [do-scan lex s p flags]]
-			load?: either lex/fun-ptr = null [any [not one? ld?]][
-				index: either zero? lex/scanned [0 - index][lex/scanned]
-				either state >= T_INTEGER [fire-event lex words/_scan index null s lex/in-pos][yes]
+			scan?: either lex/fun-ptr = null [not only?][
+				idx: either zero? lex/scanned [0 - index][lex/scanned]
+				fire-event lex words/_prescan idx null s lex/in-pos
 			]
-			if load? [									;-- Loading stage --
-				index: lex/exit - --EXIT_STATES--
-				do-load: as loader! loaders/index
-				if :do-load <> null [
-					catch LEX_ERR [do-load lex s p flags]
-					if lex/fun-ptr <> null [
-						slot: lex/tail - 1
-						unless fire-event lex words/_load TYPE_OF(slot) slot s lex/in-pos [lex/tail: slot]
+			if scan? [
+				do-scan: as scanner! scanners/index		;-- Scanning stage --
+				if :do-scan <> null [catch LEX_ERR [do-scan lex s p flags]]
+				load?: either lex/fun-ptr = null [any [not one? ld?]][
+					index: either zero? lex/scanned [0 - index][lex/scanned]
+					either state >= T_INTEGER [fire-event lex words/_scan index null s lex/in-pos][yes]
+				]
+				if load? [								;-- Loading stage --
+					index: lex/exit - --EXIT_STATES--
+					do-load: as loader! loaders/index
+					if :do-load <> null [
+						catch LEX_ERR [do-load lex s p flags]
+						if lex/fun-ptr <> null [
+							slot: lex/tail - 1
+							unless fire-event lex words/_load TYPE_OF(slot) slot s lex/in-pos [lex/tail: slot]
+						]
 					]
 				]
-			]
-			system/thrown: 0
-			
-			if all [lex/entry = S_PATH state <> T_PATH state <> T_ERROR][
-				check-path-end lex s lex/in-pos flags	;-- lex/in-pos could have changed
+				system/thrown: 0
+
+				if all [lex/entry = S_PATH state <> T_PATH state <> T_ERROR][
+					check-path-end lex s lex/in-pos flags ;-- lex/in-pos could have changed
+				]
 			]
 			if all [one? lex/scanned > 0 lex/entry <> S_PATH lex/entry <> S_M_STRING state <> T_PATH][
 				slot: lex/tail - 1
@@ -1886,7 +1893,8 @@ lexer: context [
 		src		[byte-ptr!]								;-- UTF-8 buffer
 		size	[integer!]								;-- buffer size in bytes
 		one?	[logic!]								;-- scan a single value
-		load?	[logic!]								;-- disable value loading, only scanning
+		scan?	[logic!]								;-- NO: disable value scanning, only prescanning
+		load?	[logic!]								;-- NO: disable value loading, only scanning
 		wrap?	[logic!]								;-- force returned loaded value(s) in a block
 		len		[int-ptr!]								;-- return the consumed input length
 		fun		[red-function!]							;-- optional callback function
@@ -1933,11 +1941,11 @@ lexer: context [
 		lex/fun-ptr:	fun
 		lex/fun-locs:	0
 		lex/in-series:	ser
-		lex/load?:		load?
+		lex/load?:		all [scan? load?]
 		
 		if fun <> null [lex/fun-locs: _function/count-locals fun/spec 0 no]
 		
-		catch RED_THROWN_ERROR [scan-tokens lex one? load?]
+		catch RED_THROWN_ERROR [scan-tokens lex one? not scan?]
 		if system/thrown <> 0 [clean-up re-throw]
 		
 		if load? [
@@ -1973,6 +1981,7 @@ lexer: context [
 		str		[red-string!]
 		size	[integer!]
 		one?	[logic!]
+		scan?	[logic!]
 		load?	[logic!]
 		wrap?	[logic!]
 		len		[int-ptr!]
@@ -2000,7 +2009,7 @@ lexer: context [
 		utf8-buf-tail: utf8-buf-tail + size + 1			;-- move at tail for new buffer; +1 for terminal NUL
 
 		if null? len [len: :ignore]
-		catch RED_THROWN_ERROR [type: scan dst base size one? load? wrap? len fun as red-series! str]
+		catch RED_THROWN_ERROR [type: scan dst base size one? scan? load? wrap? len fun as red-series! str]
 		utf8-buf-tail: base
 		if extra <> null [free extra]
 		if system/thrown <> 0 [re-throw]				;-- clean place to rethrow errors

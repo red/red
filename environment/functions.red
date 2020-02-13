@@ -369,9 +369,14 @@ scan: func [
 	"Returns the guessed type of the first serialized value from the input"
 	buffer  [binary! string!] "Input UTF-8 buffer or string"
 	/next					  "Returns both the type and the input after the value"
-	return: [datatype!]		  "Guessed type"
+	/fast					  "Fast scanning, returns best guessed type"
+	return: [datatype!]		  "Recognized or guessed type"
 ][
-	either next [transcode/next/scan buffer][transcode/scan buffer]
+	either fast [
+		either next [transcode/next/prescan buffer][transcode/prescan buffer]
+	][
+		either next [transcode/next/scan buffer][transcode/scan buffer]
+	]
 ]
 
 load: function [
