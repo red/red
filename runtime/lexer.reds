@@ -1148,14 +1148,13 @@ lexer: context [
 		if len = 2 [do-error]							;-- #""
 		c: -1
 			
-		either s/3 = #"^^" [
+		s: either s/3 = #"^^" [
 			if len = 3 [do-error]						;-- #"^"
 			scan-escaped-char s + 3 e :c
 		][												;-- simple char
-			s: unicode/fast-decode-utf8-char s + 2 :c
-			if s < e [do-error]
+			unicode/fast-decode-utf8-char s + 2 :c
 		]
-		if any [c > 0010FFFFh c = -1][do-error]
+		if any [c > 0010FFFFh c = -1 s < e][do-error]
 		lex/value: c
 		lex/in-pos: e + 1								;-- skip "
 	]
