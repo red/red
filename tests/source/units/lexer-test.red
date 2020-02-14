@@ -349,6 +349,9 @@ Red [
 		--assert out == [1 / 3]
 		--assert word? out/2
 
+	--test-- "tr-32"
+		--assert [a] == transcode #{610062}				; a^(NUL)b
+
 ===end-group===
 ===start-group=== "transcode/one"
 	--test-- "tro-1"  --assert 8		== transcode/one "8"
@@ -471,6 +474,9 @@ Red [
 	--test-- "tro-90" --assert error? try [transcode/one {#"^(80)abc"}]
 	--test-- "tro-91" --assert error? try [transcode/one {#"^^(80)}]
 	--test-- "tro-92" --assert error? try [transcode/one {#"^(80)}]
+
+	--test-- "tro-93" --assert error? try [transcode/one #{3C6100623E}]		; <a^(NUL)b>
+	--test-- "tro-94" --assert 'a == transcode/one #{610062}				; a^(NUL)b
 
 ===end-group===
 ===start-group=== "transcode/next"

@@ -903,7 +903,7 @@ lexer: context [
 		p
 	]
 
-	scan-eof: func [lex [state!] s e [byte-ptr!] flags [integer!]][]
+	scan-eof: func [lex [state!] s e [byte-ptr!] flags [integer!]][lex/in-pos: lex/in-end]
 	
 	scan-error: func [lex [state!] s e [byte-ptr!] flags [integer!] /local type index [integer!]][
 		if all [lex/fun-ptr <> null lex/entry = S_PATH][close-block lex s e -1 yes]
