@@ -1142,10 +1142,10 @@ lexer: context [
 			len	c 	 [integer!]
 			do-error [subroutine!]
 	][
-		assert all [s/1 = #"#" s/2 = #"^"" e/1 = #"^""]
+		assert all [s/1 = #"#" s/2 = #"^""]
 		do-error: [throw-error lex s e TYPE_CHAR]
 		len: as-integer e - s
-		if len = 2 [do-error]							;-- #""
+		if any [len = 2 e/1 <> #"^""][do-error]			;-- #""
 		c: -1
 			
 		s: either s/3 = #"^^" [

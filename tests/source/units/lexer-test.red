@@ -469,6 +469,8 @@ Red [
 	--test-- "tro-89" --assert error? try [transcode/one "1.2.3.4.5.6.7.8.9.10.11.12.13"]
 
 	--test-- "tro-90" --assert error? try [transcode/one {#"^(80)abc"}]
+	--test-- "tro-91" --assert error? try [transcode/one {#"^^(80)}]
+	--test-- "tro-92" --assert error? try [transcode/one {#"^(80)}]
 
 ===end-group===
 ===start-group=== "transcode/next"
