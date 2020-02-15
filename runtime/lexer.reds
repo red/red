@@ -1080,6 +1080,7 @@ lexer: context [
 					true [0]
 				]
 			]
+			s/1 <> #"/" [throw-error lex s e TYPE_REFINEMENT]
 			true [0]
 		]
 	]
