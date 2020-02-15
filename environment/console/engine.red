@@ -126,6 +126,7 @@ system/console: context [
 				#"[" block-rule
 				| #"{" curly-rule
 				| #"(" paren-rule
+				| #"<" tag-pre-rule
 				| pos: #";" :pos remove [skip [thru lf | to end]]
 				| dbl-quote dbl-quote-rule
 				| #"}" (either #"{" = last delimiters [remove back tail delimiters][return false])
@@ -151,6 +152,7 @@ system/console: context [
 				#"[" block-rule
 				| #"{" curly-rule
 				| #"(" paren-rule
+				| #"<" tag-pre-rule
 				| pos: #";" :pos remove [skip [thru lf | to end]]
 				| dbl-quote dbl-quote-rule
 				| #"]" (either #"[" = last delimiters [remove back tail delimiters][return false])
@@ -169,11 +171,31 @@ system/console: context [
 				| skip
 			]
 		]
+
+		tag-rule: [
+			(append delimiters #"<")
+			any [
+				#"[" block-rule
+				| #"{" curly-rule
+				| #"(" paren-rule
+				| dbl-quote dbl-quote-rule
+				| #"]" (either #"[" = last delimiters [remove back tail delimiters][return false])
+				| #"}" (either #"{" = last delimiters [remove back tail delimiters][return false])
+				| #")" (either #")" = last delimiters [remove back tail delimiters][return false])
+				| #">" (remove back tail delimiters) break
+				| skip
+			]
+		]
+
+		tag-pre-rule: [
+			[ws | #"-" | #"=" | #"<" | #">" | end]
+			| tag-rule
+		]
 		
 		parse buffer [
 			any [
 				escaped
-				| pos: #";" if (#"{" <> last delimiters) :pos remove [skip [thru lf | to end]]
+				| pos: #";" if (all [#"{" <> last delimiters #"<" <> last delimiters]) :pos remove [skip [thru lf | to end]]
 				| #"[" if (#"{" <> last delimiters) block-rule
 				| #"]" if (#"{" <> last delimiters) (either #"[" = last delimiters [remove back tail delimiters][return false])
 				| #"(" if (#"{" <> last delimiters) paren-rule
@@ -181,6 +203,8 @@ system/console: context [
 				| dbl-quote if (#"{" <> last delimiters) dbl-quote-rule
 				| #"{" curly-rule
 				| #"}" (either #"{" = last delimiters [remove back tail delimiters][return false])
+				| #">" if (#"{" <> last delimiters) (either #"<" = last delimiters [remove back tail delimiters][return false])
+				| not ws #"<" if (#"{" <> last delimiters) tag-pre-rule
 				| skip
 			]
 		]
