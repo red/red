@@ -506,7 +506,7 @@ float: context [
 		either seed? [
 			s: f/value
 			sp: as int-ptr! :s
-			_random/srand sp/value
+			_random/srand sp/1 xor sp/2
 			f/header: TYPE_UNSET
 		][
 			s: (as-float _random/rand) / 2147483647.0
