@@ -499,12 +499,14 @@ float: context [
 		return: [red-float!]
 		/local
 			s	[float!]
+			sp	[int-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "float/random"]]
 
 		either seed? [
 			s: f/value
-			_random/srand as-integer s
+			sp: as int-ptr! :s
+			_random/srand sp/value
 			f/header: TYPE_UNSET
 		][
 			s: (as-float _random/rand) / 2147483647.0
