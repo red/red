@@ -331,6 +331,13 @@ red-handle!: alias struct! [
 	_pad	[integer!]	
 ]
 
+red-money!: alias struct! [
+	header 	[integer!]
+	amount1	[integer!]
+	amount2	[integer!]
+	amount3	[integer!]
+]
+
 red-slice!: alias struct! [							;@@ internal use only !!!
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- head index (zero-based)
