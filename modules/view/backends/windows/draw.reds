@@ -284,6 +284,7 @@ draw-begin: func [
 		graphics [integer!]
 		ptrn	 [red-image!]
 		ratio	 [float32!]
+		inode    [img-node!]
 ][
 	zero-memory as byte-ptr! ctx size? draw-ctx!
 	alloc-context ctx
@@ -334,7 +335,8 @@ draw-begin: func [
 			graphics: as-integer img
 		][
 			graphics: 0
-			OS-image/GdipGetImageGraphicsContext as-integer img/node :graphics
+			inode: as img-node! (as series! img/node/value) + 1
+			OS-image/GdipGetImageGraphicsContext inode/handle :graphics
 		]
 		dc: CreateCompatibleDC hScreen
 		SelectObject dc default-font
@@ -1943,7 +1945,9 @@ OS-draw-image: func [
 		crop.h	[integer!]
 		dst		[red-image! value]
 		handle	[integer!]
+		inode	[img-node!]
 ][
+	inode: as img-node! (as series! src/node/value) + 1
 	either any [
 		start + 2 = end
 		start + 3 = end
@@ -1985,10 +1989,10 @@ OS-draw-image: func [
 			true [exit]
 		]
 		either null? crop1 [
-			GdipDrawImageRectI ctx/graphics as-integer src/node x y w h
+			GdipDrawImageRectI ctx/graphics inode/handle x y w h
 		][
 			GdipDrawImageRectRectI
-				ctx/graphics as-integer src/node
+				ctx/graphics inode/handle
 				x y w h
 				crop.x crop.y crop.w crop.h
 				GDIPLUS_UNIT_PIXEL 0 0 0
@@ -2190,9 +2194,11 @@ OS-draw-brush-bitmap: func [
 		texture	[integer!]
 		wrap	[integer!]
 		result	[integer!]
+		inode	[img-node!]
 ][
 	width:  OS-image/width? img/node
 	height: OS-image/height? img/node
+	inode: as img-node! (as series! img/node/value) + 1
 	either crop-1 = null [
 		x: 0
 		y: 0
@@ -2219,7 +2225,7 @@ OS-draw-brush-bitmap: func [
 		]
 	]
 	texture: 0
-	result: GdipCreateTexture2I as-integer img/node wrap x y width height :texture
+	result: GdipCreateTexture2I inode/handle wrap x y width height :texture
 	either brush? [
 		ctx/brush?:         yes
 		ctx/gp-brush:       texture

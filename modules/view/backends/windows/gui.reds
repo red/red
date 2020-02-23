@@ -1240,6 +1240,7 @@ parse-common-opts: func [
 		img		[red-image!]
 		len		[integer!]
 		sym		[integer!]
+		inode	[img-node!]
 ][
 	SetWindowLong hWnd wc-offset - 28 0
 	if TYPE_OF(options) = TYPE_BLOCK [
@@ -1253,7 +1254,8 @@ parse-common-opts: func [
 					w: word + 1
 					either TYPE_OF(w) = TYPE_IMAGE [
 						img: as red-image! w
-						GdipCreateHICONFromBitmap as-integer img/node :sym
+						inode: as img-node! (as series! img/node/value) + 1
+						GdipCreateHICONFromBitmap inode/handle :sym
 					][
 						sym: symbol/resolve w/symbol
 						sym: case [
@@ -2647,7 +2649,7 @@ OS-to-image: func [
 	GdipCreateBitmapFromHBITMAP bmp 0 :bitmap
 
 	either zero? bitmap [img: as red-image! none-value][
-		img: image/init-image as red-image! stack/push* as int-ptr! bitmap
+		img: image/init-image as red-image! stack/push* as int-ptr! OS-image/make-node as node! bitmap
 	]
 
     DeleteDC mdc
