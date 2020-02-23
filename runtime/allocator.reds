@@ -18,6 +18,7 @@ Red/System [
 #define SERIES_BUFFER_PADDING	4
 
 int-array!: alias struct! [ptr [int-ptr!]]
+deallocator!: alias function! [node [int-ptr!]]		;-- used to free OS resources
 
 ;-- cell header bits layout --
 ;	31:		lock							;-- lock series for active thread access only
@@ -55,7 +56,8 @@ cell!: alias struct! [
 ;	19:		complement						;-- complement flag for bitsets
 ;	18:		UTF-16 cache					;-- signifies that the string cache is UTF-16 encoded (UTF-8 by default)
 ;	17:		owned							;-- series is owned by an object
-;	16-3: 	<reserved>
+;	16:		external?						;-- contains an externally owned resource (e.g. an image)
+;	15-5: 	<reserved>
 ;	4-0:	unit							;-- size in bytes of atomic element stored in buffer
 											;-- 0: UTF-8, 1: Latin1/binary, 2: UCS-2, 4: UCS-4, 16: block! cell
 series-buffer!: alias struct! [
@@ -346,9 +348,15 @@ alloc-node: func [
 ;-------------------------------------------
 free-node: func [
 	node [int-ptr!]							;-- node to release
-	/local frame offset
+	/local frame offset s [series!] ip [int-ptr!] defun [deallocator!]
 ][
 	if null? node [exit]					;-- node has been reused by a new expanded series buffer
+	s: as series! node/value
+	if s/flags and flag-series-external <> 0 [	;-- has an externally owned resource?
+		ip: as int-ptr! s + 1
+		defun: as deallocator! ip/value			;-- deallocator must be the 1st value in the buffer
+		defun node								;-- free the resource
+	]
 	
 	frame: memory/n-head					;-- search for right frame from head of the list
 	while [									; @@ could be optimized by searching backward/forward from active frame
