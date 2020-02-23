@@ -109,6 +109,7 @@ render-base: func [
 		graphic	[integer!]
 		type	[integer!]
 		res		[logic!]
+		inode	[img-node!]
 ][
 	graphic: 0
 	res: paint-background hWnd hDC
@@ -119,11 +120,10 @@ render-base: func [
 
 	GetClientRect hWnd :rc
 	if TYPE_OF(img) = TYPE_IMAGE [
+		inode: as img-node! (as series! img/node/value) + 1
 		GdipCreateFromHDC hDC :graphic
 		if zero? GdipDrawImageRectI
-			graphic
-			as-integer img/node
-			0 0
+			graphic inode/handle 0 0
 			rc/right - rc/left rc/bottom - rc/top [res: true]
 		GdipDeleteGraphics graphic
 	]
@@ -583,9 +583,12 @@ update-base-image: func [
 	img			[red-image!]
 	width		[integer!]
 	height		[integer!]
+	/local
+		inode	[img-node!]
 ][
 	if TYPE_OF(img) = TYPE_IMAGE [
-		GdipDrawImageRectI graphic as-integer img/node 0 0 width height
+		inode: as img-node! (as series! img/node/value) + 1
+		GdipDrawImageRectI graphic inode/handle 0 0 width height
 	]
 ]
 

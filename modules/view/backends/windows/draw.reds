@@ -284,6 +284,7 @@ draw-begin: func [
 		graphics [integer!]
 		ptrn	 [red-image!]
 		ratio	 [float32!]
+		inode    [img-node!]
 ][
 	zero-memory as byte-ptr! ctx size? draw-ctx!
 	alloc-context ctx
@@ -334,7 +335,8 @@ draw-begin: func [
 			graphics: as-integer img
 		][
 			graphics: 0
-			OS-image/GdipGetImageGraphicsContext as-integer img/node :graphics
+			inode: as img-node! (as series! img/node/value) + 1
+			OS-image/GdipGetImageGraphicsContext inode/handle :graphics
 		]
 		dc: CreateCompatibleDC hScreen
 		SelectObject dc default-font
@@ -1925,8 +1927,10 @@ OS-draw-image: func [
 		color	[integer!]
 		crop2	[red-pair!]
 		pts		[tagPOINT]
+		inode	[img-node!]
 ][
 	attr: 0
+	inode: as img-node! (as series! image/node/value) + 1
 	if key-color <> null [
 		attr: ctx/image-attr
 		if zero? attr [GdipCreateImageAttributes :attr]
@@ -1963,14 +1967,14 @@ OS-draw-image: func [
 				start: start + 1
 			]
 			GdipDrawImagePointsRectI
-				ctx/graphics as-integer image/node ctx/other/edges 3
+				ctx/graphics inode/handle ctx/other/edges 3
 				0 0 w h GDIPLUS_UNIT_PIXEL attr 0 0
 			exit
 		]
 		true [exit]							;@@ TBD four control points
 	]
 	GdipDrawImageRectRectI
-		ctx/graphics as-integer image/node
+		ctx/graphics inode/handle
 		x y width height src-x src-y w h
 		GDIPLUS_UNIT_PIXEL attr 0 0
 ]
@@ -2169,9 +2173,11 @@ OS-draw-brush-bitmap: func [
 		texture	[integer!]
 		wrap	[integer!]
 		result	[integer!]
+		inode	[img-node!]
 ][
 	width:  OS-image/width? img/node
 	height: OS-image/height? img/node
+	inode: as img-node! (as series! img/node/value) + 1
 	either crop-1 = null [
 		x: 0
 		y: 0
@@ -2198,7 +2204,7 @@ OS-draw-brush-bitmap: func [
 		]
 	]
 	texture: 0
-	result: GdipCreateTexture2I as-integer img/node wrap x y width height :texture
+	result: GdipCreateTexture2I inode/handle wrap x y width height :texture
 	either brush? [
 		ctx/brush?:         yes
 		ctx/gp-brush:       texture

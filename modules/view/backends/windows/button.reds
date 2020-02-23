@@ -28,6 +28,7 @@ init-button: func [
 		sz		[integer!]
 		bitmap	[integer!]
 		hlist	[integer!]
+		inode	[img-node!]
 ][
 	BIL:  declare BUTTON_IMAGELIST
 	imgs: as red-block! facets + FACE_OBJ_IMAGE
@@ -81,7 +82,8 @@ init-button: func [
 				img: img-1
 			]
 			bitmap: 0
-			GdipCreateHBITMAPFromBitmap as-integer img/node :bitmap 0
+			inode: as img-node! (as series! img/node/value) + 1
+			GdipCreateHBITMAPFromBitmap inode/handle :bitmap 0
 			ImageList_Add hlist bitmap 0
 			DeleteObject as handle! bitmap
 			if all [i > 0 i < num][image/delete img]

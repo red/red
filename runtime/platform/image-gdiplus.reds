@@ -50,6 +50,11 @@ Red/System [
 #define GpImage!	int-ptr!
 #define GpGraphics! int-ptr!
 
+img-node!: alias struct! [								;-- imported by View
+	deallocator [integer!]								;-- func to call to free the OS resources
+	handle		[integer!]
+]
+
 OS-image: context [
 
 	CLSID_BMP_ENCODER:  [557CF400h 11D31A04h 0000739Ah 2EF31EF8h]
@@ -242,24 +247,28 @@ OS-image: context [
 	]
 
 	width?: func [
-		handle		[int-ptr!]
+		node		[int-ptr!]
 		return:		[integer!]
 		/local
 			width	[integer!]
+			inode	[img-node!]
 	][
+		inode: as img-node! (as series! node/value) + 1
 		width: 0
-		GdipGetImageWidth as-integer handle :width
+		GdipGetImageWidth inode/handle :width
 		width
 	]
 
 	height?: func [
-		handle		[int-ptr!]
+		node		[int-ptr!]
 		return:		[integer!]
 		/local
 			height	[integer!]
+			inode	[img-node!]
 	][
+		inode: as img-node! (as series! node/value) + 1
 		height: 0
-		GdipGetImageHeight as-integer handle :height
+		GdipGetImageHeight inode/handle :height
 		height
 	]
 
@@ -273,6 +282,7 @@ OS-image: context [
 			mode	[integer!]
 			res		[integer!]
 	][
+		if zero? handle [return 0]
 		data: as BitmapData! allocate size? BitmapData!
 		mode: either write? [3][1]
 		res: GdipBitmapLockBits handle null mode pixelformat data
@@ -280,10 +290,11 @@ OS-image: context [
 	]
 
 	unlock-bitmap-fmt: func [
-		img			[integer!]
+		handle		[integer!]
 		data		[integer!]
 	][
-		GdipBitmapUnlockBits img as BitmapData! data
+		if zero? handle [exit]
+		GdipBitmapUnlockBits handle as BitmapData! data
 		free as byte-ptr! data
 	]
 
@@ -291,26 +302,32 @@ OS-image: context [
 		img			[red-image!]
 		write?		[logic!]
 		return:		[integer!]
+		/local inode [img-node!]
 	][
-		lock-bitmap-fmt as-integer img/node PixelFormat32bppARGB write?
+		inode: as img-node! (as series! img/node/value) + 1
+		lock-bitmap-fmt inode/handle PixelFormat32bppARGB write?
 	]	
 
 	unlock-bitmap: func [
 		img			[red-image!]
 		data		[integer!]
+		/local inode [img-node!]
 	][
-		GdipBitmapUnlockBits as-integer img/node as BitmapData! data
+		inode: as img-node! (as series! img/node/value) + 1
+		if zero? inode/handle [exit]
+		GdipBitmapUnlockBits inode/handle as BitmapData! data
 		free as byte-ptr! data
 	]
 
 	get-data: func [
-		handle		[integer!]
+		bmdata		[integer!]
 		stride		[int-ptr!]
 		return:		[int-ptr!]
 		/local
 			bitmap	[BitmapData!]
 	][
-		bitmap: as BitmapData! handle
+		if zero? bmdata [return null]
+		bitmap: as BitmapData! bmdata
 		stride/value: bitmap/stride
 		as int-ptr! bitmap/scan0
 	]
@@ -322,10 +339,12 @@ OS-image: context [
 		/local
 			width	[integer!]
 			arbg	[integer!]
+			inode	[img-node!]
 	][
+		inode: as img-node! (as series! bitmap/value) + 1
 		width: width? bitmap
 		arbg: 0
-		GdipBitmapGetPixel as-integer bitmap index % width index / width :arbg
+		GdipBitmapGetPixel inode/handle index % width index / width :arbg
 		arbg
 	]
 
@@ -336,13 +355,28 @@ OS-image: context [
 		return:		[integer!]
 		/local
 			width	[integer!]
+			inode	[img-node!]
 	][
+		inode: as img-node! (as series! bitmap/value) + 1
 		width: width? bitmap
-		GdipBitmapSetPixel as-integer bitmap index % width index / width color
+		GdipBitmapSetPixel inode/handle index % width index / width color
 	]
 
 	delete: func [img [red-image!]][
-		GdipDisposeImage as-integer img/node
+		free-buffer img/node
+	]
+
+	free-buffer: func [
+		node [node!]
+		/local inode [img-node!]
+	][
+		unless null? node [
+			inode: as img-node! (as series! node/value) + 1
+			unless zero? inode/handle [
+				GdipDisposeImage inode/handle
+				inode/handle: 0
+			]
+		]
 	]
 
 	resize: func [
@@ -356,25 +390,27 @@ OS-image: context [
 			old-h	[integer!]
 			format	[integer!]
 			bitmap	[integer!]
+			inode	[img-node!]
 	][
+		inode: as img-node! (as series! img/node/value) + 1
 		old-w: IMAGE_WIDTH(img/size)
 		old-h: IMAGE_HEIGHT(img/size)
 
 		graphic: 0
 		format: 0
 		bitmap: 0
-		GdipGetImagePixelFormat as-integer img/node :format
+		GdipGetImagePixelFormat inode/handle :format
 		GdipCreateBitmapFromScan0 width height 0 format null :bitmap
 		GdipGetImageGraphicsContext bitmap :graphic
 		GdipDrawImageRectRectI
 			graphic
-			as-integer img/node
+			inode/handle
 			0 0 width height
 			0 0 old-w old-h
 			2
 			0 0 0
 		GdipDeleteGraphics graphic
-		bitmap
+		as-integer make-node as node! bitmap
 	]
 
 	copy-rect: func [
@@ -454,21 +490,37 @@ OS-image: context [
 			format	[integer!]
 			w		[integer!]
 			h		[integer!]
+			node	[node!]
 	][
 		handle: 0
 		res: GdipCreateBitmapFromFile file/to-OS-path src :handle
-		unless zero? res [return null]
+		node: make-node as node! handle
+		unless zero? res [return node]
 
 		format: 0
 		bitmap: 0
 		GdipGetImagePixelFormat handle :format
-		w: width? as int-ptr! handle
-		h: height? as int-ptr! handle
+		w: width?  node
+		h: height? node
 		GdipCreateBitmapFromScan0 w h 0 format null :bitmap
 		copy bitmap handle h 0 0 format
 
-		GdipDisposeImage handle
-		as int-ptr! bitmap
+		free-buffer node
+		make-node as node! bitmap
+	]
+
+	make-node: func [
+		handle	[node!]
+		return: [node!]
+		/local ser [series!] inode [img-node!] node [node!]
+	][
+		node: alloc-series 8 4 8						;-- make offset point past the internal data (safer)
+		ser: as series! node/value
+		ser/flags: ser/flags or flag-series-external	;-- let GC know there's an OS buffer to be freed
+		inode: as img-node! ser + 1
+		inode/deallocator: as-integer :free-buffer
+		inode/handle:      as-integer handle
+		node
 	]
 
 	make-image: func [
@@ -488,7 +540,7 @@ OS-image: context [
 			bitmap	[integer!]
 			end		[int-ptr!]
 	][
-		if any [zero? width zero? height][return null]
+		if any [zero? width zero? height][return make-node null]
 		bitmap: 0
 		if 0 <> GdipCreateBitmapFromScan0 width height 0 PixelFormat32bppARGB null :bitmap [
 			fire [TO_ERROR(script invalid-arg) pair/push width height]
@@ -520,7 +572,7 @@ OS-image: context [
 		]
 
 		unlock-bitmap-fmt bitmap as-integer data
-		as int-ptr! bitmap
+		make-node as node! bitmap
 	]
 
 	load-binary: func [
@@ -542,7 +594,7 @@ OS-image: context [
 		bmp: 0
 		CreateStreamOnHGlobal hMem true :s
 		GdipCreateBitmapFromStream s :bmp
-		as node! bmp
+		make-node as node! bmp
 	]
 
 	encode: func [
@@ -561,7 +613,9 @@ OS-image: context [
 			ISto	[interface!]
 			len		[integer!]
 			hr		[integer!]
+			inode	[img-node!]
 	][
+		inode: as img-node! (as series! image/node/value) + 1
 		switch format [
 			IMAGE_BMP  [clsid: CLSID_BMP_ENCODER]
 			IMAGE_PNG  [clsid: CLSID_PNG_ENCODER]
@@ -587,7 +641,7 @@ OS-image: context [
 			0
 			0
 			IStm
-		hr: GdipSaveImageToStream as-integer image/node IStm/ptr clsid 0
+		hr: GdipSaveImageToStream inode/handle IStm/ptr clsid 0
 
 		stream: as IStream IStm/ptr/vtbl
 		stream/Stat IStm/ptr stat 1
@@ -627,13 +681,16 @@ OS-image: context [
 			height	[integer!]
 			bmp		[integer!]
 			format	[integer!]
+			inode	[img-node!]
 	][
 		bmp: 0
 		width: IMAGE_WIDTH(src/size)
 		height: IMAGE_HEIGHT(src/size)
 		offset: src/head
 
-		handle: as-integer src/node
+		assert not null? src/node
+		inode: as img-node! (as series! src/node/value) + 1
+		handle: inode/handle
 
 		if any [
 			width <= 0
@@ -642,7 +699,7 @@ OS-image: context [
 			dst/size: 0
 			dst/header: TYPE_IMAGE
 			dst/head: 0
-			dst/node: as node! bmp
+			dst/node: make-node as node! bmp
 			return dst
 		]
 
@@ -651,7 +708,7 @@ OS-image: context [
 			dst/size: src/size
 			dst/header: TYPE_IMAGE
 			dst/head: 0
-			dst/node: as node! bmp
+			dst/node: make-node as node! bmp
 			return dst
 		]
 
@@ -686,7 +743,7 @@ OS-image: context [
 
 		dst/header: TYPE_IMAGE
 		dst/head: 0
-		dst/node: as node! bmp
+		dst/node: make-node as node! bmp
 		dst
 	]
 ]

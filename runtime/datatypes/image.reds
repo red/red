@@ -508,13 +508,15 @@ image: context [
 		string/concatenate-literal buffer formed
 		part: part - system/words/length? formed
 
-		if null? img/node [							;-- empty image
+		assert not null? img/node
+		if width * height = 0 [							;-- empty image
 			string/concatenate-literal buffer " #{}]"
 			return part - 5
 		]
 
 		stride: 0
 		bitmap: OS-image/lock-bitmap img no
+		assert not zero? bitmap
 		data: OS-image/get-data bitmap :stride
 		end: data + (width * height)
 		data: data + img/head
