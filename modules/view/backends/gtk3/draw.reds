@@ -206,7 +206,7 @@ update-pattern: func [
 		a		[float!]
 		p		[float!]
 ][
-	cairo_matrix_init_translate m 0.0 - cx 0.0 - cy
+	cairo_matrix_init_identity m
 	either grad/matrix-on? [
 		matrix: as cairo_matrix_t! grad/matrix
 		cairo_matrix_multiply res matrix m
@@ -332,50 +332,44 @@ check-grad-points: func [
 	case [
 		grad/type = linear [
 			either grad/offset-on? [
-				x1: as float! upper-x + grad/offset/x
-				y1: as float! upper-y + grad/offset/y
-				x2: as float! upper-x + grad/offset2/x
-				y2: as float! upper-y + grad/offset2/y
+				x1: as float! grad/offset/x
+				y1: as float! grad/offset/y
+				x2: as float! grad/offset2/x
+				y2: as float! grad/offset2/y
 			][
 				x1: as float! upper-x y1: as float! upper-y
 				x2: as float! lower-x y2: as float! lower-y
 			]
-			pattern: cairo_pattern_create_linear 0.0 0.0 x2 - x1 y2 - y1
+			pattern: cairo_pattern_create_linear x1 y1 x2 y2
 		]
 		grad/type = radial [
-			if upper-x > lower-x [
-				t: lower-x
-				lower-x: upper-x
-				upper-x: t
-			]
-			if upper-y > lower-y [
-				t: lower-y
-				lower-y: upper-y
-				upper-y: t
-			]
 			either grad/offset-on? [
 				either grad/focal-on? [
-					x1: as float! upper-x + grad/focal/x
-					y1: as float! upper-y + grad/focal/y
-					x2: as float! upper-x + grad/offset/x
-					y2: as float! upper-y + grad/offset/y
-					r2: as float! grad/offset2/x
-					delta: line-distance grad/offset/x grad/offset/y grad/focal/x grad/focal/y
-					r1: as float! delta
-					either r1 >= r2 [
-						r1: 0.0
-					][
-						r1: r2 - r1
-					]
+					x1: as float! grad/focal/x
+					y1: as float! grad/focal/y
+					x2: as float! grad/offset/x
+					y2: as float! grad/offset/y
+					r1: 0.0 ;as float! grad/offset2/x
+					r2: as float! grad/offset2/y
 				][
-					x1: as float! upper-x + grad/offset/x
-					y1: as float! upper-y + grad/offset/y
+					x1: as float! grad/offset/x
+					y1: as float! grad/offset/y
 					x2: x1
 					y2: y1
-					r1: 0.0
-					r2: as float! grad/offset2/x
+					r1: 0.0 ;as float! grad/offset2/x
+					r2: as float! grad/offset2/y
 				]
 			][
+				if upper-x > lower-x [
+					t: lower-x
+					lower-x: upper-x
+					upper-x: t
+				]
+				if upper-y > lower-y [
+					t: lower-y
+					lower-y: upper-y
+					upper-y: t
+				]
 				delta: line-distance upper-x upper-y lower-x lower-y
 				px: as float32! lower-x + upper-x
 				py: as float32! lower-y + upper-y
@@ -387,7 +381,7 @@ check-grad-points: func [
 				r1: 0.0
 				r2: as float! delta
 			]
-			pattern: cairo_pattern_create_radial 0.0 0.0 r1 x2 - x1 y2 - y1 r2
+			pattern: cairo_pattern_create_radial x1 y1 r1 x2 y2 r2
 		]
 		true [0]
 	]
@@ -420,50 +414,45 @@ check-grad-brush-lines: func [
 		cx		[float32!]
 		cy		[float32!]
 		d		[float32!]
-		x0		[float!]
-		y0		[float!]
-		delta	[float32!]
 ][
 	unless grad/on? [exit]
 	pattern: null
 	case [
 		grad/type = linear [
 			either grad/offset-on? [
-				x1: as float! point/x + grad/offset/x
-				y1: as float! point/y + grad/offset/y
-				x2: as float! point/x + grad/offset2/x
-				y2: as float! point/y + grad/offset2/y
+				x1: as float! grad/offset/x
+				y1: as float! grad/offset/y
+				x2: as float! grad/offset2/x
+				y2: as float! grad/offset2/y
 			][
 				x1: as float! point/x y1: as float! point/y
 				next: point + 1
 				x2: as float! next/x  y2: as float! next/y
 			]
-			pattern: cairo_pattern_create_linear 0.0 0.0 x2 - x1 y2 - y1
+			pattern: cairo_pattern_create_linear x1 y1 x2 y2
 		]
 		grad/type = radial [
-			cx: as float32! 0.0
-			cy: cx
-			d: cx
-			get-shape-center point end :cx :cy :d
 			either grad/offset-on? [
-				x0: as float! cx - d
-				y0: as float! cy - d
 				either grad/focal-on? [
-					x1: x0 + as float! grad/focal/x
-					y1: y0 + as float! grad/focal/y
-					x2: x0 + as float! grad/offset/x
-					y2: y0 + as float! grad/offset/y
-					r2: as float! grad/offset2/x
-					r1: 0.0
+					x1: as float! grad/focal/x
+					y1: as float! grad/focal/y
+					x2: as float! grad/offset/x
+					y2: as float! grad/offset/y
+					r1: 0.0 ;as float! grad/offset2/x
+					r2: as float! grad/offset2/y
 				][
-					x1: x0 + as float! grad/offset/x
-					y1: y0 + as float! grad/offset/y
-					r1: 0.0
+					x1: as float! grad/offset/x
+					y1: as float! grad/offset/y
 					x2: x1
 					y2: y1
-					r2: as float! grad/offset2/x
+					r1: 0.0 ;as float! grad/offset2/x
+					r2: as float! grad/offset2/y
 				]
 			][
+				cx: as float32! 0.0
+				cy: cx
+				d: cx
+				get-shape-center point end :cx :cy :d
 				x1: as float! cx
 				y1: as float! cy
 				r1: 0.0
@@ -471,7 +460,7 @@ check-grad-brush-lines: func [
 				y2: y1
 				r2: as float! d
 			]
-			pattern: cairo_pattern_create_radial 0.0 0.0 r1 x2 - x1 y2 - y1 r2
+			pattern: cairo_pattern_create_radial x1 y1 r1 x2 y2 r2
 		]
 		true [0]
 	]
@@ -487,8 +476,6 @@ check-grad-arc-radial: func [
 	ar			[float!]
 	/local
 		pattern	[handle!]
-		x0		[float!]
-		y0		[float!]
 		x1		[float!]
 		y1		[float!]
 		r1		[float!]
@@ -501,33 +488,31 @@ check-grad-arc-radial: func [
 	unless grad/type = radial [exit]
 	pattern: null
 
-	x0: ax - ar
-	y0: ay - ar
 	either grad/offset-on? [
 		either grad/focal-on? [
-			x1: x0 + as float! grad/focal/x
-			y1: y0 + as float! grad/focal/y
-			x2: x0 + as float! grad/offset/x
-			y2: y0 + as float! grad/offset/y
-			r2: as float! grad/offset2/x
-			r1: 0.0
+			x1: as float! grad/focal/x
+			y1: as float! grad/focal/y
+			x2: as float! grad/offset/x
+			y2: as float! grad/offset/y
+			r1: 0.0 ;as float! grad/offset2/x
+			r2: as float! grad/offset2/y
 		][
-			x1: x0 + as float! grad/offset/x
-			y1: y0 + as float! grad/offset/y
-			r1: 0.0
+			x1: as float! grad/offset/x
+			y1: as float! grad/offset/y
 			x2: x1
 			y2: y1
-			r2: as float! grad/offset2/x
+			r1: 0.0 ;as float! grad/offset2/x
+			r2: as float! grad/offset2/y
 		]
 	][
-		x1: ax
-		y1: ay
+		x1: ax - ar
+		y1: ay - ar
 		r1: 0.0
 		x2: x1
 		y2: y1
 		r2: ar
 	]
-	pattern: cairo_pattern_create_radial 0.0 0.0 r1 x2 - x1 y2 - y1 r2
+	pattern: cairo_pattern_create_radial x1 y1 r1 x2 y2 r2
 
 	unless null? pattern [
 		update-pattern grad pattern x1 y1
@@ -540,8 +525,6 @@ check-grad-box-radial: func [
 	lower		[red-pair!]
 	/local
 		pattern	[handle!]
-		x0		[float!]
-		y0		[float!]
 		x1		[float!]
 		y1		[float!]
 		r1		[float!]
@@ -556,24 +539,21 @@ check-grad-box-radial: func [
 	unless grad/type = radial [exit]
 	pattern: null
 
-	x0: either upper/x < lower/x [as float! upper/x][as float! lower/x]
-	y0: either upper/y < lower/y [as float! upper/y][as float! lower/y]
-
 	either grad/offset-on? [
 		either grad/focal-on? [
-			x1: x0 + as float! grad/focal/x
-			y1: y0 + as float! grad/focal/y
-			x2: x0 + as float! grad/offset/x
-			y2: y0 + as float! grad/offset/y
-			r2: as float! grad/offset2/x
-			r1: 0.0
+			x1: as float! grad/focal/x
+			y1: as float! grad/focal/y
+			x2: as float! grad/offset/x
+			y2: as float! grad/offset/y
+			r1: 0.0 ;as float! grad/offset2/x
+			r2: as float! grad/offset2/y
 		][
-			x1: x0 + as float! grad/offset/x
-			y1: y0 + as float! grad/offset/y
-			r1: 0.0
+			x1: as float! grad/offset/x
+			y1: as float! grad/offset/y
 			x2: x1
 			y2: y1
-			r2: as float! grad/offset2/x
+			r1: 0.0 ;as float! grad/offset2/x
+			r2: as float! grad/offset2/y
 		]
 	][
 		x1: as float! upper/x + lower/x
@@ -596,7 +576,7 @@ check-grad-box-radial: func [
 		r2: either w > h [as float! w][as float! h]
 		r2: r2 / 2.0
 	]
-	pattern: cairo_pattern_create_radial 0.0 0.0 r1 x2 - x1 y2 - y1 r2
+	pattern: cairo_pattern_create_radial x1 y1 r1 x2 y2 r2
 
 	unless null? pattern [
 		update-pattern grad pattern x1 y1
@@ -1431,14 +1411,14 @@ OS-draw-grad-pen-old: func [
 			grad/offset/x: offset/x + w
 			grad/offset/y: offset/y + w
 			grad/offset2/x: offset/x + h
-			grad/offset2/y: offset/y + h
+			grad/offset2/y: offset/y + w
 		]
 		type = radial [
 			grad/offset-on?: on
 			grad/offset/x: offset/x
 			grad/offset/y: offset/y
-			grad/offset2/x: h					;-- bigger radius
-			grad/offset2/y: w					;-- smaller radius
+			grad/offset2/x: w					;-- smaller radius
+			grad/offset2/y: h					;-- bigger radius
 		]
 		true [
 			grad/offset-on?: off
@@ -1589,7 +1569,8 @@ OS-draw-grad-pen: func [
 				grad/offset/x: point/x
 				grad/offset/y: point/y
 				p: get-float as red-integer! point + 1
-				grad/offset2/x: as integer! p
+				grad/offset2/x: 0
+				grad/offset2/y: as integer! p
 				if focal? [
 					grad/focal-on?: on
 					point: point + 2
