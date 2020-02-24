@@ -22,6 +22,9 @@ money: context [
 	
 	SIZE_DIGITS: SIZE_BYTES * 2
 	
+	#define HIGH_NIBBLE #"^(0F)"
+	#define LOW_NIBBLE  #"^(F0)"
+	
 	;-- Support --
 	
 	see: func [
@@ -56,6 +59,23 @@ money: context [
 		]
 		
 		yes
+	]
+
+	get-digit: func [
+		amount  [byte-ptr!]
+		index   [integer!]
+		return: [integer!]
+		/local
+			bit byte offset
+			[integer!]
+	][
+		bit:    index and 1
+		byte:   index >>> 1 + bit
+		offset: either as logic! bit [4][0]
+		
+		as integer! amount/byte
+			and (HIGH_NIBBLE << offset)
+			>>> offset
 	]
 
 	make-at: func [
@@ -194,8 +214,22 @@ money: context [
 	
 	round:     STUB
 	
-	even?:     STUB
-	odd?:      STUB
+	even?: func [
+		money   [red-money!]
+		return: [logic!]
+	][
+		not odd? money
+	]
+	
+	odd?: func [
+		money   [red-money!]
+		return: [logic!]
+		/local
+			digit [integer!]
+	][
+		digit: get-digit get-amount money SIZE_DIGITS - SIZE_SCALE
+		as logic! digit and 1
+	]
 
 	init: does [
 		datatype/register [
@@ -222,8 +256,8 @@ money: context [
 				null;:remainder
 				null;:round
 				null;:subtract
-				null;:even?
-				null;:odd?
+			:even?
+			:odd?
 			;-- Bitwise actions --
 			null			;and~
 			null			;complement
