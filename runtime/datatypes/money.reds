@@ -25,23 +25,40 @@ money: context [
 	#define HIGH_NIBBLE #"^(0F)"
 	#define LOW_NIBBLE  #"^(F0)"
 	
-	;-- Support --
+	#define SIGN_MASK   4000h
+	#define SIGN_OFFSET 14
 	
-	see: func [
-		money   [red-money!]
-		return: [red-money!]
-	][
-		dump-memory get-amount money 1 1
-		money
-	]
+	;-- Support --
 	
 	get-sign: func [
 		money   [red-money!]
 		return: [integer!]
 	][
-		money/header and 4000h >> 14
+		money/header and SIGN_MASK >> SIGN_OFFSET
 	]
+	
+	set-sign: func [
+		money   [red-money!]
+		sign    [integer!]
+		return: [red-money!]
+	][
+		money/header: money/header
+			and (FFFFFFFFh - SIGN_MASK)
+			or  (sign << SIGN_OFFSET)
+		money
+	]
+	
+	flip-sign: func [
+		money   [red-money!]
+		return: [red-money!]
+		/local
+			sign [integer!]
+	][
+		sign: as integer! not as logic! get-sign money
+		set-sign money sign
 		
+	]
+	
 	get-amount: func [
 		money   [red-money!]
 		return: [byte-ptr!]
@@ -89,7 +106,7 @@ money: context [
 			money [red-money!]
 	][
 		money: as red-money! slot
-		money/header: TYPE_MONEY or (sign << 14)
+		money/header: TYPE_MONEY or (sign << SIGN_OFFSET)
 		money/amount1: amount1
 		money/amount2: amount2
 		money/amount3: amount3
@@ -203,8 +220,13 @@ money: context [
 	
 	compare:   STUB
 	
-	absolute:  STUB
-	negate:    STUB
+	absolute: func [return: [red-money!]][
+		set-sign as red-money! stack/arguments 0
+	]
+	
+	negate: func [return: [red-money!]][
+		flip-sign as red-money! stack/arguments
+	]
 	
 	add:       STUB
 	subtract:  STUB
@@ -247,11 +269,11 @@ money: context [
 			null			;set-path
 				null;:compare
 			;-- Scalar actions --
-				null;:absolute
+			:absolute
 				null;:add
 				null;:divide
 				null;:multiply
-				null;:negate
+			:negate
 			null			;power
 				null;:remainder
 				null;:round

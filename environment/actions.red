@@ -85,8 +85,8 @@ modify: make action! [[
 
 absolute: make action! [[
 		"Returns the non-negative value"
-		value	 [number! char! pair! time!]
-		return:  [number! char! pair! time!]
+		value	 [number! money! char! pair! time!]
+		return:  [number! money! char! pair! time!]
 	]
 	#get-definition ACT_ABSOLUTE
 ]
@@ -120,8 +120,8 @@ multiply: make action! [[
 
 negate: make action! [[
 		"Returns the opposite (additive inverse) value"
-		number 	 [number! bitset! pair! time!]
-		return:  [number! bitset! pair! time!]
+		number 	 [number! money! bitset! pair! time!]
+		return:  [number! money! bitset! pair! time!]
 	]
 	#get-definition ACT_NEGATE
 ]
