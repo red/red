@@ -45,18 +45,15 @@ money: context [
 		money/header: money/header
 			and (FFFFFFFFh - SIGN_MASK)
 			or  (sign << SIGN_OFFSET)
+		
 		money
 	]
 	
 	flip-sign: func [
 		money   [red-money!]
 		return: [red-money!]
-		/local
-			sign [integer!]
 	][
-		sign: as integer! not as logic! get-sign money
-		set-sign money sign
-		
+		set-sign money as integer! not as logic! get-sign money
 	]
 	
 	get-amount: func [
