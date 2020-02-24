@@ -555,7 +555,7 @@ natives: context [
 					stack/set-last arg + 1
 				]
 				TYPE_STRING [
-					lexer/scan-string arg as red-string! arg -1 no yes yes no null null as red-string! arg
+					lexer/scan-alt arg as red-string! arg -1 no yes yes no null null as red-string! arg
 					DO_EVAL_BLOCK
 				]
 				TYPE_URL 
@@ -2792,7 +2792,7 @@ natives: context [
 		][
 			str: as red-string! bin
 			if len < 0 [len: string/rs-length? str]
-			type: lexer/scan-string slot str len one? scan? load? no :offset fun as red-series! str
+			type: lexer/scan-alt slot str len one? scan? load? no :offset fun as red-series! str
 		]
 		if any [not scan? not load?][
 			dt: as red-datatype! slot

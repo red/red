@@ -48,7 +48,7 @@
 
 	red/interpreter/eval-path
 	red/lexer/scan
-	red/lexer/scan-string
+	red/lexer/scan-alt
 
 	red/none/push-last
 

@@ -1141,6 +1141,42 @@ lexer: context [
 		]
 	]
 	
+	scan-string: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
+		/local
+			len unit cp type [integer!]
+			esc	[byte!]
+	][
+		s: s + 1										;-- skip start delimiter
+		unit: 1 << (flags >>> 30)
+		if unit > 4 [unit: 4]
+		type: either lex/type = -1 [TYPE_STRING][lex/type]
+
+		either flags and C_FLAG_CARET = 0 [				;-- fast path when no escape sequence
+			if unit > UCS-1 [
+				cp: -1
+				while [s < e][
+					s: unicode/fast-decode-utf8-char s :cp
+					if cp = -1 [throw-error lex s e type]
+				]
+			]
+		][
+			cp: -1
+			esc: either flags and C_FLAG_ESC_HEX = 0 [#"^^"][#"%"]
+			while [s < e][
+				s: either s/1 = esc [
+					either esc = #"^^" [
+						scan-escaped-char s + 1 e :cp
+					][
+						scan-percent-char s + 1 e :cp
+					]
+				][
+					unicode/fast-decode-utf8-char s :cp
+				]
+				if cp = -1 [throw-error lex s e type]
+			]
+		]
+	]
+	
 	load-integer: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		return: [integer!]
 		/local
@@ -1425,9 +1461,16 @@ lexer: context [
 			if p < e [flags: flags or C_FLAG_ESC_HEX or C_FLAG_CARET]
 		]
 		lex/type: TYPE_FILE
-		load-string lex s e flags load?
-		if s/1 = #"^"" [assert e/1 = #"^"" e: e + 1]
-		lex/in-pos: e 									;-- reset the input position to delimiter byte
+		either load? [
+			scan-string lex s e flags no
+		][
+			load-string lex s e flags yes
+			if s/1 = #"^"" [
+				if e/1 <> #"^"" [throw-error lex s e TYPE_FILE]
+				e: e + 1
+			]
+			lex/in-pos: e 									;-- reset the input position to delimiter byte
+		]
 	]
 
 	load-binary: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
@@ -1475,26 +1518,30 @@ lexer: context [
 	][
 		assert e/1 = #"%"
 		load-float lex s e flags load?
-		fl: as red-float! lex/tail - 1
-		set-type as cell! fl TYPE_PERCENT
-		fl/value: fl/value / 100.0
+		if load? [
+			fl: as red-float! lex/tail - 1
+			set-type as cell! fl TYPE_PERCENT
+			fl/value: fl/value / 100.0
+		]
 		lex/in-pos: e + 1								;-- skip ending delimiter
 	]
 
 	load-float: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local
 			state index class err [integer!]
+			p	[byte-ptr!]
 			fl	[red-float!]
 			f	[float!]
 	][
+		p: s
 		state: 0										;-- S_FL_START
 		until [	
-			index: as-integer s/1
+			index: as-integer p/1
 			class: as-integer float-classes/index
 			index: state * (size? float-char-classes!) + class
 			state: as-integer float-transitions/index
-			s: s + 1
-			s = e
+			p: p + 1
+			p = e
 		]
 		index: state * (size? float-char-classes!) + C_FL_EOF
 		state: as-integer float-transitions/index
@@ -1687,10 +1734,10 @@ lexer: context [
 					]
 					if all [p < e p/1 = #"T"][grab-time-TZ]
 					store-date
-					if week or wday <> 0 [date/set-isoweek dt week]
+					if all [week or wday <> 0 load?][date/set-isoweek dt week]
 					if wday <> 0 [
 						if any [wday < 1 wday > 7][do-error]
-						date/set-weekday dt wday
+						if load? [date/set-weekday dt wday]
 					]
 					exit
 				]
@@ -1702,7 +1749,7 @@ lexer: context [
 					day: month: 1
 					if all [p < e p/1 = #"T"][grab-time-TZ]
 					store-date
-					date/set-yearday dt yday			;-- yyyy-ddd
+					if load? [date/set-yearday dt yday]	;-- yyyy-ddd
 					exit
 				]
 			][
@@ -1811,10 +1858,12 @@ lexer: context [
 	]
 	
 	load-tag: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
-		flags: flags and not C_FLAG_CARET				;-- clears caret flag
-		lex/type: TYPE_TAG
-		load-string lex s e flags load?
-		lex/in-pos: e + 1								;-- skip ending delimiter
+		if load? [
+			flags: flags and not C_FLAG_CARET			;-- clears caret flag
+			lex/type: TYPE_TAG
+			load-string lex s e flags yes
+			lex/in-pos: e + 1							;-- skip ending delimiter
+		]
 	]
 	
 	load-url: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
@@ -1825,18 +1874,24 @@ lexer: context [
 		p: s while [all [p/1 <> #"%" p < e]][p: p + 1] 	;-- check if any %xx 
 		if p < e [flags: flags or C_FLAG_ESC_HEX or C_FLAG_CARET]
 		lex/type: TYPE_URL
-		load-string lex s - 1 e flags load?				;-- compensate for lack of starting delimiter
-		lex/in-pos: e 									;-- reset the input position to delimiter byte
+		either load? [
+			scan-string lex s - 1 e flags no
+		][
+			load-string lex s - 1 e flags yes			;-- compensate for lack of starting delimiter
+			lex/in-pos: e 								;-- reset the input position to delimiter byte
+		]
 	]
 	
 	load-email: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local
 			p [byte-ptr!]
 	][
-		flags: flags and not C_FLAG_CARET				;-- clears caret flag
-		lex/type: TYPE_EMAIL
-		load-string lex s - 1 e flags load?				;-- compensate for lack of starting delimiter
-		lex/in-pos: e 									;-- reset the input position to delimiter byte
+		if load? [
+			flags: flags and not C_FLAG_CARET			;-- clears caret flag
+			lex/type: TYPE_EMAIL
+			load-string lex s - 1 e flags load?			;-- compensate for lack of starting delimiter
+			lex/in-pos: e 								;-- reset the input position to delimiter byte
+		]
 	]
 	
 	load-hex: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
@@ -1937,7 +1992,7 @@ lexer: context [
 				][
 					if any [not lex/load? lex/fun-ptr = null][
 						if :do-scan = null [do-scan: as scanner! loaders/index]
-						catch LEX_ERR [do-scan lex s p flags lex/load?]
+						catch LEX_ERR [do-scan lex s p flags no]
 						if lex/fun-ptr <> null [
 							index: either zero? lex/scanned [0 - index][lex/scanned]
 							load?: fire-event lex EVT_SCAN index null s lex/in-pos
@@ -2072,7 +2127,7 @@ lexer: context [
 		lex/scanned
 	]
 
-	scan-string: func [
+	scan-alt: func [
 		dst		[red-value!]							;-- destination slot
 		str		[red-string!]
 		size	[integer!]
@@ -2162,7 +2217,7 @@ lexer: context [
 			:scan-refinement	:load-word				;-- T_REFINE
 			null				:load-char				;-- T_CHAR
 			:scan-issue			:load-word				;-- T_ISSUE
-			null				:load-string			;-- T_STRING
+			:scan-string		:load-string			;-- T_STRING
 			null				:load-file				;-- T_FILE
 			null				:load-binary			;-- T_BINARY
 			null				:load-percent			;-- T_PERCENT

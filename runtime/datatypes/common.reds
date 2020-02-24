@@ -351,7 +351,7 @@ load-value: func [
 		blk	  [red-block!]
 		value [red-value!]
 ][
-	lexer/scan-string stack/arguments str -1 yes yes yes yes null null as red-series! str
+	lexer/scan-alt stack/arguments str -1 yes yes yes yes null null as red-series! str
 
 	blk: as red-block! stack/arguments
 	assert TYPE_OF(blk) = TYPE_BLOCK
