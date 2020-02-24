@@ -74,7 +74,14 @@ money: context [
 		
 		yes
 	]
-
+	
+	zero-out: func [amount [byte-ptr!]][
+		loop SIZE_BYTES [
+			amount/value: null-byte
+			amount: amount + 1
+		]
+	]
+	
 	get-digit: func [
 		amount  [byte-ptr!]
 		index   [integer!]
@@ -90,6 +97,24 @@ money: context [
 		as integer! amount/byte
 			and (HIGH_NIBBLE << offset)
 			>>> offset
+	]
+	
+	set-digit: func [
+		amount  [byte-ptr!]
+		index   [integer!]
+		value   [integer!]
+		/local
+			bit byte offset reverse
+			[integer!]
+	][
+		bit:     index and 1
+		byte:    index >>> 1 + bit
+		offset:  either as logic! bit [4][0]
+		reverse: either offset = 0 [4][0]
+		
+		amount/byte: amount/byte
+			and (HIGH_NIBBLE << reverse)
+			or  as byte! (value << offset)
 	]
 
 	make-at: func [
@@ -130,6 +155,34 @@ money: context [
 	][
 		make-at stack/push* sign amount1 amount2 amount3
 	]
+
+	from-integer: func [
+		money   [red-money!]
+		integer [integer!]
+		/local
+			amount
+			[byte-ptr!]
+			start index power digit
+			[integer!]
+	][		
+		if integer = 0 [exit]
+		
+		set-sign money as integer! integer < 0
+			
+		amount: get-amount money
+		start:  SIZE_DIGITS - SIZE_SCALE
+		index:  start
+		power:  0
+		
+		loop 10 [
+			power: as integer! pow 10.0 as float! start - index
+			digit: integer / power // 10
+			
+			unless digit = 0 [set-digit amount index digit]
+			
+			index: index - 1
+		]
+	]
 	
 	;-- Natives --
 	
@@ -162,11 +215,39 @@ money: context [
 			either as logic! get-sign money [-1][+1]
 		]
 	]
-	
+		
 	;-- Actions --
 
-	make:      STUB
-	to:        STUB
+	make: func [
+		proto   [red-value!]
+		spec    [red-value!]
+		type    [integer!]
+		return: [red-money!]
+		/local
+			money   [red-money!]
+			integer [red-integer!]
+	][
+		if TYPE_OF(spec) = TYPE_MONEY [return as red-money! spec]
+		
+		money: as red-money! proto
+		money/header: TYPE_MONEY
+		zero-out get-amount money
+		
+		switch TYPE_OF(spec) [
+			TYPE_INTEGER [
+				integer: as red-integer! spec
+				from-integer money integer/value
+			]
+			TYPE_FLOAT [--NOT_IMPLEMENTED--]
+			default [
+				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_MONEY spec]
+			]
+		]
+		
+		money
+	]
+	
+	;-- to: :make
 
 	form: func [
 		money   [red-money!]
@@ -256,10 +337,10 @@ money: context [
 			TYPE_VALUE
 			"money!"
 			;-- General actions --
-				null;:make
+			:make
 				null;:random
 			null			;reflect
-				null;:to
+			:make
 			:form
 			:mold
 			null			;eval-path
