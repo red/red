@@ -17,6 +17,45 @@ money: context [
 		
 	;-- Support --
 	
+	make-at: func [
+		slot	[red-value!]
+		sign    [integer!]
+		amount1 [integer!]
+		amount2 [integer!]
+		amount3 [integer!]
+		return:	[red-money!]
+		/local
+			money [red-money!]
+	][
+		money: as red-money! slot
+		money/header: TYPE_MONEY or (sign << 14)
+		money/amount1: amount1
+		money/amount2: amount2
+		money/amount3: amount3
+		money
+	]
+	
+	make-in: func [
+		parent  [red-block!]
+		sign    [integer!]
+		amount1 [integer!]
+		amount2 [integer!]
+		amount3 [integer!]
+		return: [red-money!]
+	][
+		make-at ALLOC_TAIL(parent) sign amount1 amount2 amount3
+	]
+	
+	push: func [
+		sign    [integer!]
+		amount1 [integer!]
+		amount2 [integer!]
+		amount3 [integer!]
+		return: [red-money!]
+	][
+		make-at stack/push* sign amount1 amount2 amount3
+	]
+	
 	;-- Natives --
 	
 	negative?: STUB
