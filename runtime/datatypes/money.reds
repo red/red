@@ -20,6 +20,8 @@ money: context [
 		SIZE_SCALE: 05
 	]
 	
+	SIZE_DIGITS: SIZE_BYTES * 2
+	
 	;-- Support --
 	
 	see: func [
@@ -30,13 +32,32 @@ money: context [
 		money
 	]
 	
+	get-sign: func [
+		money   [red-money!]
+		return: [integer!]
+	][
+		money/header and 4000h >> 14
+	]
+		
 	get-amount: func [
 		money   [red-money!]
 		return: [byte-ptr!]
 	][
 		(as byte-ptr! money) + (size? money) - SIZE_BYTES
 	]
-	
+
+	zero-amount?: func [
+		amount  [byte-ptr!]
+		return: [logic!]
+	][
+		loop SIZE_BYTES [
+			unless null-byte = amount/value [return no]
+			amount: amount + 1
+		]
+		
+		yes
+	]
+
 	make-at: func [
 		slot	[red-value!]
 		sign    [integer!]
@@ -81,7 +102,15 @@ money: context [
 	negative?: STUB
 	zero?:     STUB
 	positive?: STUB
-	sign?:     STUB
+	
+	sign?: func [
+		money   [red-money!]
+		return: [integer!]
+	][
+		either zero-amount? get-amount money [0][
+			either as logic! get-sign money [-1][+1]
+		]
+	]
 	
 	;-- Actions --
 
@@ -94,9 +123,29 @@ money: context [
 		arg     [red-value!]
 		part    [integer!]
 		return: [integer!]
+		/local
+			amount [byte-ptr!]
+			sign   [integer!]
 	][
-		see money
-		part
+		amount: get-amount money
+		sign:   sign? money
+		
+		if sign < 0 [
+			string/concatenate-literal buffer "-"
+			part: part - 1
+		]
+		
+		string/concatenate-literal buffer "$"
+		
+		loop SIZE_BYTES [
+			string/concatenate-literal
+				buffer
+				string/byte-to-hex as integer! amount/value
+				
+			amount: amount + 1
+		]
+		
+		part - SIZE_DIGITS - 1
 	]
 	
 	mold: func [
@@ -141,7 +190,7 @@ money: context [
 				null;:random
 			null			;reflect
 				null;:to
-				null;:form
+			:form
 			:mold
 			null			;eval-path
 			null			;set-path
