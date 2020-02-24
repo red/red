@@ -10,6 +10,8 @@ Red/System [
 	}
 ]
 
+#define GAUSSIAN_SCALE_FACTOR 1.87997120597325
+
 #include %text-box.reds
 
 #enum DRAW-BRUSH-TYPE! [
@@ -930,6 +932,23 @@ OS-draw-box: func [
 		rc		[ROUNDED_RECT_F! value]
 		radius	[red-integer!]
 		type	[integer!]
+		bmp		[this!]
+		sbmp	[this!]
+		eff-v	[com-ptr! value]
+		eff-s	[com-ptr! value]
+		eff		[this!]
+		eff2	[this!]
+		effect	[ID2D1Effect]
+		pt		[POINT_2F value]
+		target	[render-target!]
+		output	[com-ptr! value]
+		sigma	[float32!]
+		s		[shadow!]
+		w		[integer!]
+		h		[integer!]
+		spread	[integer!]
+		scale	[float32!]
+		unk		[IUnknown]
 ][
 	this: as this! ctx/dc
 	dc: as ID2D1DeviceContext this/vtbl
@@ -944,10 +963,27 @@ OS-draw-box: func [
 	if upper/x > lower/x [t: upper/x upper/x: lower/x lower/x: t]
 	if upper/y > lower/y [t: upper/y upper/y: lower/y lower/y: t]
 
-	rc/right: as float32! lower/x
-	rc/bottom: as float32! lower/y
-	rc/left: as float32! upper/x
-	rc/top: as float32! upper/y
+	w: lower/x - upper/x
+	h: lower/y - upper/y
+	either ctx/shadow? [
+		scale: dpi-value / as float32! 96.0
+		rc/left: as float32! 0.5
+		rc/top:  as float32! 0.5
+		rc/right:  (as float32! w) + (as float32! 0.5)
+		rc/bottom: (as float32! h) + (as float32! 0.5)
+
+		bmp: create-d2d-bitmap		;-- create an intermediate bitmap
+				this
+				as-integer ceil (as-float w + 1) * scale
+				as-integer ceil (as-float h + 1) * scale
+				1
+		dc/SetTarget this bmp
+	][
+		rc/left: as float32! upper/x
+		rc/top: as float32! upper/y
+		rc/right: as float32! lower/x
+		rc/bottom: as float32! lower/y
+	]
 
 	type: ctx/brush-type
 	if type > DRAW_BRUSH_GRADIENT [		;-- fill-pen
@@ -982,6 +1018,56 @@ OS-draw-box: func [
 		]
 	]
 	if type > DRAW_BRUSH_GRADIENT [post-process-brush ctx/pen ctx/pen-offset]
+
+	if ctx/shadow? [
+		target: as render-target! ctx/target
+		dc/SetTarget this target/bitmap
+
+		s: ctx/shadows
+		until [
+			sbmp: bmp
+			spread: s/spread
+			if spread <> 0 [			;-- scale intput bitmap
+				dc/CreateEffect this CLSID_D2D1Scale :eff-s
+				eff2: eff-s/value
+				effect: as ID2D1Effect eff2/vtbl
+				effect/SetInput eff2 0 bmp true
+				pt/x: (as float32! spread * 2 + w) / (as float32! w)
+				pt/y: (as float32! spread * 2 + h) / (as float32! h)
+				effect/base/setValue eff2 0 0 as byte-ptr! :pt size? POINT_2F
+				effect/GetOutput eff2 :output
+				sbmp: output/value
+			]
+
+			dc/CreateEffect this CLSID_D2D1Shadow :eff-v
+			eff: eff-v/value
+			effect: as ID2D1Effect eff/vtbl
+			effect/SetInput eff 0 sbmp true
+			if spread <> 0 [
+				COM_SAFE_RELEASE(unk sbmp)
+				COM_SAFE_RELEASE(unk eff2)
+			]
+
+			sigma: as float32! (as float! s/blur) / GAUSSIAN_SCALE_FACTOR
+			effect/base/setValue eff 0 0 as byte-ptr! :sigma size? float32!
+			effect/base/setValue eff 1 0 as byte-ptr! to-dx-color s/color null size? D3DCOLORVALUE
+
+			effect/GetOutput eff :output
+			sbmp: output/value
+
+			pt/x: as float32! upper/x + s/offset-x - spread
+			pt/y: as float32! upper/y + s/offset-y - spread
+			dc/DrawImage this sbmp pt null 1 0
+			COM_SAFE_RELEASE(unk sbmp)
+			COM_SAFE_RELEASE(unk eff)
+			s: s/next
+			null? s
+		]
+		pt/x: as float32! upper/x
+		pt/y: as float32! upper/y
+		dc/DrawImage this bmp pt null 1 0
+		COM_SAFE_RELEASE(unk bmp)
+	]
 ]
 
 OS-draw-triangle: func [

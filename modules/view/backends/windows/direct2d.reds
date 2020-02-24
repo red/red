@@ -45,6 +45,8 @@ IID_IDCompositionDevice: [C37EA93Ah 450DE7AAh 46976FB1h F30704CBh]
 IID_IDGdiInterop: 		 [E0DB51C3h 4BAE6F77h 75E4D5B3h 3858B309h]
 IID_ID2D1DeviceContext:	 [E8F7FE7Ah 466D191Ch 569795ADh 98A9BD78h]
 CLSID_D2D1UnPremultiply: [FB9AC489h 41EDAD8Dh 63BB9999h F710D147h]
+CLSID_D2D1Scale:		 [9DAF9369h 4D0E3846h 600C4EA4h D7A53479h]
+CLSID_D2D1Shadow:		 [C67EA361h 4E691863h 5D69DB89h 6B5B9A3Eh]
 
 D2D1_FACTORY_OPTIONS: alias struct! [
 	debugLevel	[integer!]
@@ -490,7 +492,7 @@ ID2D1Properties: alias struct! [
 	GetType							[int-ptr!]
 	GetPropertyIndex				[int-ptr!]
 	SetValueByName					[int-ptr!]
-	SetValue						[int-ptr!]
+	SetValue						[function! [this [this!] idx [uint32!] type [integer!] data [byte-ptr!] datasize [uint32!] return: [integer!]]]
 	GetValueByName					[int-ptr!]
 	GetValue						[int-ptr!]
 	GetValueSize					[int-ptr!]
@@ -499,11 +501,11 @@ ID2D1Properties: alias struct! [
 
 ID2D1Effect: alias struct! [
 	Base							[ID2D1Properties value]
-	SetInput						[function! [this [this!] idx [uint32!] input [int-ptr!] invalidate [logic!]]]
+	SetInput						[function! [this [this!] idx [uint32!] input [this!] invalidate [logic!]]]
 	SetInputCount					[function! [this [this!] count [uint32!] return: [integer!]]]
-	GetInput						[function! [this [this!] idx [uint32!] input [ptr-ptr!]]]
+	GetInput						[function! [this [this!] idx [uint32!] input [com-ptr!]]]
 	GetInputCount					[function! [this [this!] return: [integer!]]]
-	GetOutput						[function! [this [this!] idx [uint!] output [ptr-ptr!]]]
+	GetOutput						[function! [this [this!] output [com-ptr!]]]
 ]
 
 ID2D1CommandList: alias struct! [
@@ -794,14 +796,14 @@ CreateBitmapFromWicBitmap*: alias function! [
 
 CreateEffect*: alias function! [
 	this		[this!]
-	effectID	[tagGUID]
+	effectID	[int-ptr!]
 	effect		[com-ptr!]
 	return:		[integer!]
 ]
 
 DrawImage*: alias function! [
 	this		[this!]
-	image		[int-ptr!]
+	image		[this!]
 	offset		[POINT_2F]
 	rect		[RECT_F!]
 	interpola	[integer!]
