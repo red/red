@@ -143,9 +143,7 @@ context [
 	list: skip find states '--EXIT_STATES-- 2
 	
 	foreach [s t] list [
-		append ending-table pick 1x0 to-logic find [
-			T_STRING T_BINARY T_PERCENT T_TAG
-		] s
+		append ending-table pick 1x0 to-logic find [T_STRING T_TAG] s
 	]
 	
 	template: compose/deep [Red/System [

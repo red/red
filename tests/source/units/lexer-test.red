@@ -398,7 +398,7 @@ Red [
 			a/"hi" a/"hi"/456 a/2x3 a/2x3/456 a/2x3/c a/1.234 a/1.234/c
 			a/#"b" a/#"b"/c
 		]		
-		forall p [	
+		forall p [
 			--assert p/1 == transcode/one mold p/1
 			--assert (to set-path! p/1) == transcode/one mold to set-path! p/1
 			--assert (to get-path! p/1) == transcode/one mold to get-path! p/1
@@ -559,6 +559,7 @@ Red [
 		[load error]
 		t: tail logs
 		reduce/into [event to-word type to-word type? type line token] tail logs
+		print t
 		new-line t yes
 		any [event <> 'error all [input: next input false]]
 	]

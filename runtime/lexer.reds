@@ -298,7 +298,6 @@ lexer: context [
 		scanned		[integer!]							;-- type of first scanned value
 		entry		[integer!]							;-- entry state for the FSM
 		prev		[integer!]							;-- previous state before forced EOF transition
-		exit		[integer!]							;-- exit state for the FSM
 		closing		[integer!]							;-- any-block! expected closing delimiter type 
 		mstr-s		[byte-ptr!]							;-- multiline string saved start position
 		mstr-nest	[integer!]							;-- multiline string nested {} counting
@@ -973,8 +972,7 @@ lexer: context [
 			either load? [
 				load-string lex lex/mstr-s e lex/mstr-flags or flags yes
 			][
-				;scan-string lex lex/mstr-s e lex/mstr-flags or flags no
-				0
+				scan-string lex lex/mstr-s e lex/mstr-flags or flags no
 			]
 			lex/mstr-s: null
 			lex/mstr-flags: 0
@@ -992,6 +990,7 @@ lexer: context [
 	
 	scan-path-open: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local
+			slot [red-value!]
 			type [integer!]
 	][
 		type: switch s/1 [
@@ -1001,9 +1000,14 @@ lexer: context [
 		]
 		open-block lex type s							;-- open a new path series
 		if type <> TYPE_PATH [s: s + 1]
-		lex/exit: T_WORD								;-- load the head word
 		lex/scanned: TYPE_WORD
-		load-word lex s e flags load?
+		if load? [
+			load-word lex s e flags yes
+			if lex/fun-ptr <> null [
+				slot: lex/tail - 1
+				unless fire-event lex EVT_LOAD TYPE_OF(slot) slot s e [lex/tail: slot]
+			]
+		]
 		lex/entry: S_PATH								;-- overwrites the S_START set by open-block
 		lex/in-pos: e + 1								;-- skip /
 	]
@@ -1175,6 +1179,7 @@ lexer: context [
 				if cp = -1 [throw-error lex s e type]
 			]
 		]
+		lex/in-pos: e + 1								;-- skip ending delimiter
 	]
 	
 	load-integer: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
@@ -1824,6 +1829,7 @@ lexer: context [
 	][
 		p: s
 		err: hour: 0
+		tm: 0.0
 		do-error: [throw-error lex s e TYPE_TIME]
 
 		p: grab-integer p e flags :hour :err
@@ -1846,7 +1852,6 @@ lexer: context [
 			tm: dtoa/to-float p e :err
 			if any [err <> 0 tm < 0.0][do-error]
 		]
-		
 		tm: (3600.0 * as-float hour) + (60.0 * as-float min) + tm
 		if hour < 0 [tm: 0.0 - tm]
 		if load? [time/make-at tm alloc-slot lex]
@@ -1862,8 +1867,8 @@ lexer: context [
 			flags: flags and not C_FLAG_CARET			;-- clears caret flag
 			lex/type: TYPE_TAG
 			load-string lex s e flags yes
-			lex/in-pos: e + 1							;-- skip ending delimiter
 		]
+		lex/in-pos: e + 1								;-- skip ending delimiter
 	]
 	
 	load-url: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
@@ -1974,7 +1979,6 @@ lexer: context [
 			lex/in-pos: p
 			lex/line:   line
 			lex/nline:  line - mark
-			lex/exit:   state
 			lex/prev:	prev
 			lex/type:	-1
 			lex/scanned: as-integer type-table/state
@@ -1988,9 +1992,10 @@ lexer: context [
 				load?: any [not one? ld?]
 				do-scan: as scanner! scanners/index
 				either state < T_INTEGER [
-					catch LEX_ERR [do-scan lex s p flags no]
+					catch LEX_ERR [do-scan lex s p flags ld?]
 				][
 					if any [not lex/load? lex/fun-ptr = null][
+					if any [not ld? lex/fun-ptr = null][
 						if :do-scan = null [do-scan: as scanner! loaders/index]
 						catch LEX_ERR [do-scan lex s p flags no]
 						if lex/fun-ptr <> null [
@@ -2026,7 +2031,7 @@ lexer: context [
 					lex/tail = lex/buffer
 					all [slot = lex/buffer TYPE_OF(slot) <> TYPE_POINT]
 				][
-					lex/in-pos: lex/in-pos + as-integer ending-skip/index
+					;lex/in-pos: lex/in-pos + as-integer ending-skip/index
 					exit								;-- early exit for single value request
 				]
 			]
