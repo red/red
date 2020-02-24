@@ -170,16 +170,16 @@ subtract: make action! [[
 
 even?: make action! [[
 		"Returns true if the number is evenly divisible by 2"
-		number 	 [number! char! time!]
-		return:  [number! char! time!]
+		number 	 [number! money! char! time!]
+		return:  [logic!]
 	]
 	#get-definition ACT_EVEN?
 ]
 
 odd?: make action! [[
 		"Returns true if the number has a remainder of 1 when divided by 2"
-		number 	 [number! char! time!]
-		return:  [number! char! time!]
+		number 	 [number! money! char! time!]
+		return:  [logic!]
 	]
 	#get-definition ACT_ODD?
 ]
