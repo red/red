@@ -2841,6 +2841,22 @@ comment {
 		]
 }
 
+	--test-- "#4205 - seed random with precise time!"
+		print "#4205"
+		random-numbers4205: copy []
+		loop 10 [
+			random/seed now/time/precise
+			append random-numbers4205 probe random 10000
+			wait 0.001
+		]
+		anded4205: to integer! #{FFFFFFFF}
+		foreach num4205 random-numbers4205 [
+			probe anded4205: anded4205 and num4205
+		]
+		all-equal?4205: anded4205 = first random-numbers4205
+		--assert not all-equal?4205
+		unset [random-numbers4205 anded4205 num4205 all-equal?4205]
+
 ===end-group===
 
 ~~~end-file~~~
