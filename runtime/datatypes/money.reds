@@ -99,9 +99,26 @@ money: context [
 	
 	;-- Natives --
 	
-	negative?: STUB
-	zero?:     STUB
-	positive?: STUB
+	negative-money?: func [
+		money   [red-money!]
+		return: [logic!]
+	][
+		-1 = sign? money
+	]
+	
+	zero-money?: func [
+		money   [red-money!]
+		return: [logic!]
+	][
+		0 = sign? money
+	]
+	
+	positive-money?: func [
+		money   [red-money!]
+		return: [logic!]
+	][
+		1 = sign? money
+	]
 	
 	sign?: func [
 		money   [red-money!]
