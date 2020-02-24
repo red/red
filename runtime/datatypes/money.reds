@@ -14,8 +14,28 @@ Red/System [
 
 money: context [
 	verbose: 0
-		
+	
+	#enum sizes! [
+		SIZE_BYTES: 11
+		SIZE_SCALE: 05
+	]
+	
 	;-- Support --
+	
+	see: func [
+		money   [red-money!]
+		return: [red-money!]
+	][
+		dump-memory get-amount money 1 1
+		money
+	]
+	
+	get-amount: func [
+		money   [red-money!]
+		return: [byte-ptr!]
+	][
+		(as byte-ptr! money) + (size? money) - SIZE_BYTES
+	]
 	
 	make-at: func [
 		slot	[red-value!]
@@ -68,8 +88,30 @@ money: context [
 	make:      STUB
 	to:        STUB
 
-	form:      STUB
-	mold:      STUB
+	form: func [
+		money   [red-money!]
+		buffer  [red-string!]
+		arg     [red-value!]
+		part    [integer!]
+		return: [integer!]
+	][
+		see money
+		part
+	]
+	
+	mold: func [
+		money   [red-money!]
+		buffer  [red-string!]
+		only?   [logic!]
+		all?    [logic!]
+		flat?   [logic!]
+		arg     [red-value!]
+		part    [integer!]
+		indent  [integer!]		
+		return: [integer!]
+	][
+		form money buffer arg part
+	]
 	
 	random:    STUB
 	
@@ -100,7 +142,7 @@ money: context [
 			null			;reflect
 				null;:to
 				null;:form
-				null;:mold
+			:mold
 			null			;eval-path
 			null			;set-path
 				null;:compare
