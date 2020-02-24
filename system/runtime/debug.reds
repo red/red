@@ -241,7 +241,7 @@ dump-memory: func [
 ]
 
 ;-------------------------------------------
-;-- Dump memory on screen in hex format as array of bytes (handy wrapper on dump-hex)
+;-- Dump memory on screen in hex format as array of bytes (handy wrapper on dump-memory)
 ;-------------------------------------------
 dump-hex: func [
 	address	[byte-ptr!]						;-- memory address where the dump starts
@@ -251,7 +251,7 @@ dump-hex: func [
 ]
 
 ;-------------------------------------------
-;-- Dump memory on screen in hex format as array of 32-bit integers (handy wrapper on dump-hex)
+;-- Dump memory on screen in hex format as array of 32-bit integers (handy wrapper on dump-memory)
 ;-------------------------------------------
 dump-hex4: func [
 	address	[int-ptr!]						;-- memory address where the dump starts
