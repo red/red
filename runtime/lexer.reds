@@ -2045,7 +2045,6 @@ lexer: context [
 					lex/tail = lex/buffer
 					all [slot = lex/buffer TYPE_OF(slot) <> TYPE_POINT]
 				][
-					;lex/in-pos: lex/in-pos + as-integer ending-skip/index
 					exit								;-- early exit for single value request
 				]
 			]
