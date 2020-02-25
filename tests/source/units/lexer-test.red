@@ -16,7 +16,7 @@ Red [
 	--test-- "tr-1"   --assert [123 456 789] == transcode "123 456 789"
 	--test-- "tr-2"   --assert ["world" 111] == transcode {"world" 111}
 	--test-- "tr-3"   --assert [132 [111] ["world" [456 ["hi"]]] 222] == transcode { 132 [111] ["world" [456 ["hi"]]] 222}
-	--test-- "tr-4"   --assert do {[12.34.210.5.66.88 192.168.0.1 [1.0.0 0.0.255]] == transcode "12.34.210.5.66.88 192.168.0.1 [1.0.0 0.0.255]"}
+	;--test-- "tr-4"   --assert do {[12.34.210.5.66.88 192.168.0.1 [1.0.0 0.0.255]] == transcode "12.34.210.5.66.88 192.168.0.1 [1.0.0 0.0.255]"}
 	--test-- "tr-5"   --assert [#"r" #"a" #"^/" #"^/" #"f"] == transcode #{2322722220232261222023225E2F222023225E286C696E6529222023225E2836362922}
 	--test-- "tr-6"   --assert [#"r" #"a" #"^/" #"^/" #"f"] == transcode {#"r" #"a" #"^^/" #"^^(line)" #"^^(66)"}
 	--test-- "tr-7"   --assert [#r #abcdc /z /abcdef] == transcode {#r #abcdc /z /abcdef}
@@ -398,7 +398,7 @@ Red [
 			a/"hi" a/"hi"/456 a/2x3 a/2x3/456 a/2x3/c a/1.234 a/1.234/c
 			a/#"b" a/#"b"/c
 		]		
-		forall p [	
+		forall p [
 			--assert p/1 == transcode/one mold p/1
 			--assert (to set-path! p/1) == transcode/one mold to set-path! p/1
 			--assert (to get-path! p/1) == transcode/one mold to get-path! p/1
@@ -478,6 +478,8 @@ Red [
 	--test-- "tro-93" --assert error? try [transcode/one #{3C6100623E}]		; <a^(NUL)b>
 	--test-- "tro-94" --assert 'a == transcode/one #{610062}				; a^(NUL)b
 
+	--test-- "tro-95" --assert 2999999999.0 == transcode/one "2999999999"
+
 ===end-group===
 ===start-group=== "transcode/next"
 
@@ -528,6 +530,9 @@ Red [
 		deny:  ["123.." "123.e" "123e" "123E" "1e" "1E" "1e." "-1e" "-1e."]
 		foreach s allow [--test-- s --assert float! = scan s]
 		foreach s deny  [--test-- s --assert error! = scan s]
+
+	--test-- "scan-24" --assert error! = scan "1/2/12io23"
+	--test-- "scan-25" --assert float! = scan "2999999999"
 
 ===end-group===
 ===start-group=== "transcode/trace"

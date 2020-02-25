@@ -138,15 +138,7 @@ context [
 	
 	foreach [s t] states [append type-table either t = '- [0][(index? find types t) - 1]]
 
-	;-- Generate the ending-skip table content
-	ending-table: make binary! 2000
-	list: skip find states '--EXIT_STATES-- 2
-	
-	foreach [s t] list [
-		append ending-table pick 1x0 to-logic find [
-			T_STRING T_BINARY T_PERCENT T_TAG
-		] s
-	]
+	;-- Template --
 	
 	template: compose/deep [Red/System [
 		Note: "Auto-generated lexical scanner transitions table"
@@ -155,8 +147,6 @@ context [
 	#enum lex-states! [
 		(extract states 2)
 	]
-	
-	ending-skip: (ending-table)
 	
 	type-table: (type-table)
 		

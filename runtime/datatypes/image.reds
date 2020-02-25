@@ -153,6 +153,7 @@ image: context [
 		format	[integer!]
 		return: [red-value!]
 	][
+		if zero? image/size [fire [TO_ERROR(access bad-media)]]
 		if TYPE_OF(dst) = TYPE_NONE [dst: stack/push*]
 		OS-image/encode image dst format
 	]
@@ -778,15 +779,17 @@ image: context [
 				][
 					res: 1
 				][
-					type: 0
-					bmp1: OS-image/lock-bitmap arg1 no
-					bmp2: OS-image/lock-bitmap arg2 no
-					res: compare-memory
-						as byte-ptr! OS-image/get-data bmp1 :type
-						as byte-ptr! OS-image/get-data bmp2 :type
-						IMAGE_WIDTH(arg1/size) * IMAGE_HEIGHT(arg2/size) * 4
-					OS-image/unlock-bitmap arg1 bmp1
-					OS-image/unlock-bitmap arg2 bmp2
+					either zero? arg1/size [res: 0][
+						type: 0
+						bmp1: OS-image/lock-bitmap arg1 no
+						bmp2: OS-image/lock-bitmap arg2 no
+						res: compare-memory
+							as byte-ptr! OS-image/get-data bmp1 :type
+							as byte-ptr! OS-image/get-data bmp2 :type
+							IMAGE_WIDTH(arg1/size) * IMAGE_HEIGHT(arg2/size) * 4
+						OS-image/unlock-bitmap arg1 bmp1
+						OS-image/unlock-bitmap arg2 bmp2
+					]
 				]
 			]
 			default [

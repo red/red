@@ -128,7 +128,7 @@ OS-make-font: func [
 	blk: as red-block! values + FONT_OBJ_STATE
 	either TYPE_OF(blk) <> TYPE_BLOCK [
 		block/make-at blk 3
-		handle/make-in blk as-integer hFont
+		either scaling? [handle/make-in blk as-integer hFont][none/make-in blk]
 		none/make-in blk								;-- DWrite font
 		either scaling? [
 			none/make-in blk
