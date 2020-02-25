@@ -77,11 +77,13 @@ money: context [
 		yes
 	]
 	
-	zero-out: func [amount [byte-ptr!]][
-		loop SIZE_BYTES [
-			amount/value: null-byte
-			amount: amount + 1
-		]
+	zero-out: func [
+		money [red-money!]
+		all?  [logic!]
+	][
+		money/amount1: either all? [0][money/amount1 and FF000000h]
+		money/amount2: 0
+		money/amount3: 0
 	]
 	
 	get-digit: func [
@@ -168,9 +170,7 @@ money: context [
 			extra start index power digit
 			[integer!]
 	][
-		amount: get-amount money
-		
-		zero-out amount
+		zero-out money yes
 		if int = 0 [return money]
 		
 		set-sign money as integer! int < 0
@@ -178,8 +178,9 @@ money: context [
 		extra: as integer! int = (1 << 31)
 		int:   integer/abs int + extra
 		
-		start: SIZE_DIGITS - SIZE_SCALE
-		index: start
+		amount: get-amount money
+		start:  SIZE_DIGITS - SIZE_SCALE
+		index:  start
 		
 		loop MAX_INT_DIGITS [
 			power: as integer! pow 10.0 as float! start - index
