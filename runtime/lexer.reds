@@ -1130,22 +1130,6 @@ lexer: context [
 		if s = e [throw-error lex s - 1 e TYPE_ISSUE]
 	]
 	
-	scan-refinement: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
-		case [
-			s + 1 = e [lex/scanned: TYPE_WORD]
-			s + 2 = e [
-				case [
-					s/1 = #"'" [lex/scanned: TYPE_LIT_WORD]
-					s/1 = #":" [lex/scanned: TYPE_GET_WORD]
-					e/0 = #":" [lex/scanned: TYPE_SET_WORD]
-					true [0]
-				]
-			]
-			s/1 <> #"/" [throw-error lex s e TYPE_REFINEMENT]
-			true [0]
-		]
-	]
-	
 	scan-string: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local
 			len unit cp type [integer!]
@@ -1468,6 +1452,23 @@ lexer: context [
 		]
 		if type = TYPE_SET_WORD [lex/in-pos: e + 1]		;-- skip ending delimiter
 	]
+	
+	load-refinement: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
+		case [
+			s + 1 = e [lex/scanned: TYPE_WORD]
+			s + 2 = e [
+				case [
+					s/1 = #"'" [lex/scanned: TYPE_LIT_WORD]
+					s/1 = #":" [lex/scanned: TYPE_GET_WORD]
+					e/0 = #":" [lex/scanned: TYPE_SET_WORD]
+					true [0]
+				]
+			]
+			s/1 <> #"/" [throw-error lex s e TYPE_REFINEMENT]
+			true [0]
+		]
+		if load? [load-word lex s e flags yes]
+	]
 
 	load-file: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local
@@ -1480,14 +1481,14 @@ lexer: context [
 		]
 		lex/type: TYPE_FILE
 		either load? [
-			scan-string lex s e flags no
-		][
 			load-string lex s e flags yes
 			if s/1 = #"^"" [
 				if e/1 <> #"^"" [throw-error lex s e TYPE_FILE]
 				e: e + 1
 			]
 			lex/in-pos: e 									;-- reset the input position to delimiter byte
+		][
+			scan-string lex s e flags no
 		]
 	]
 
@@ -1893,10 +1894,10 @@ lexer: context [
 		if p < e [flags: flags or C_FLAG_ESC_HEX or C_FLAG_CARET]
 		lex/type: TYPE_URL
 		either load? [
-			scan-string lex s - 1 e flags no
-		][
 			load-string lex s - 1 e flags yes			;-- compensate for lack of starting delimiter
 			lex/in-pos: e 								;-- reset the input position to delimiter byte
+		][
+			scan-string lex s - 1 e flags no
 		]
 	]
 	
@@ -1947,7 +1948,7 @@ lexer: context [
 		pscan? [logic!]									;-- prescan only
 		/local
 			cp class index state prev flags line mark offset idx [integer!]
-			term? load?	ld? scan? [logic!]
+			term? load?	ld? scan? events? [logic!]
 			p e	start s [byte-ptr!]
 			slot		[cell!]
 			do-scan		[scanner!]
@@ -1955,6 +1956,7 @@ lexer: context [
 	][
 		line: 1
 		ld?: lex/load?
+		events?: lex/fun-ptr <> null
 		until [
 			flags: 0									;-- Pre-scanning stage --
 			term?: no
@@ -1997,7 +1999,7 @@ lexer: context [
 			lex/scanned: as-integer type-table/state
 		
 			index: state - --EXIT_STATES--
-			scan?: either lex/fun-ptr = null [not pscan?][
+			scan?: either not events? [not pscan?][
 				idx: either zero? lex/scanned [0 - index][lex/scanned]
 				fire-event lex EVT_PRESCAN idx null s lex/in-pos
 			]
@@ -2007,10 +2009,10 @@ lexer: context [
 				either state < T_INTEGER [
 					catch LEX_ERR [do-scan lex s p flags ld?]
 				][
-					if any [not ld? lex/fun-ptr = null lex/fun-evts and EVT_SCAN <> 0][
+					if any [not ld? all [events? lex/fun-evts and EVT_SCAN <> 0]][
 						if :do-scan = null [do-scan: as scanner! loaders/index]
 						catch LEX_ERR [do-scan lex s p flags no]
-						if lex/fun-ptr <> null [
+						if events? [
 							idx: either zero? lex/scanned [0 - index][lex/scanned]
 							load?: fire-event lex EVT_SCAN idx null s lex/in-pos
 						]
@@ -2020,7 +2022,7 @@ lexer: context [
 					do-load: as loader! loaders/index
 					if :do-load <> null [
 						catch LEX_ERR [do-load lex s p flags yes]
-						if lex/fun-ptr <> null [
+						if events? [
 							slot: lex/tail - 1
 							unless fire-event lex EVT_LOAD TYPE_OF(slot) slot s lex/in-pos [lex/tail: slot]
 						]
@@ -2227,7 +2229,7 @@ lexer: context [
 			:scan-comment		null					;-- T_CMT
 			null				:load-integer			;-- T_INTEGER
 			:scan-word			:load-word				;-- T_WORD
-			:scan-refinement	:load-word				;-- T_REFINE
+			null				:load-refinement		;-- T_REFINE
 			null				:load-char				;-- T_CHAR
 			:scan-issue			:load-word				;-- T_ISSUE
 			:scan-string		:load-string			;-- T_STRING
