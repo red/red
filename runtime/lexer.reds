@@ -1170,7 +1170,7 @@ lexer: context [
 	load-integer: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		return: [integer!]
 		/local
-			o?		[logic!]
+			o? neg? [logic!]
 			p		[byte-ptr!]
 			len i	[integer!]
 			cell	[cell!]
@@ -1182,8 +1182,11 @@ lexer: context [
 			return 0
 		]
 		p: s
-		if flags and C_FLAG_SIGN <> 0 [p: p + 1]		;-- skip sign if present
-
+		neg?: no
+		if flags and C_FLAG_SIGN <> 0 [
+			neg?: s/1 = #"-"
+			p: p + 1									;-- skip sign when present
+		]
 		either (as-integer e - p) = 1 [					;-- fast path for 1-digit integers
 			i: as-integer (p/1 - #"0")
 		][
@@ -1207,7 +1210,7 @@ lexer: context [
 				]
 			]
 			assert p = e
-			if o? [
+			if any [o? neg? <> (as-logic i and 80000000h)][
 				len: as-integer e - s					;-- account for sign in len now
 				either all [len = 11 zero? compare-memory s min-integer len][
 					i: 80000000h
@@ -1215,7 +1218,7 @@ lexer: context [
 				][promote]
 			]
 		]
-		if s/value = #"-" [i: 0 - i]
+		if neg? [i: 0 - i]
 		lex/scanned: TYPE_INTEGER
 		if load? [
 			cell: alloc-slot lex
