@@ -2100,6 +2100,7 @@ lexer: context [
 		lex/mstr-flags: 0
 		lex/fun-ptr:	fun
 		lex/fun-locs:	0
+		lex/fun-evts:	0
 		lex/in-series:	ser
 		lex/load?:		all [scan? load?]
 		
