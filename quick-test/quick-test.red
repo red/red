@@ -94,10 +94,10 @@ qt-init-file: func [] [
 --test--: func [
   title [string!]
 ][
-  ;if qt-verbose [
+  if qt-verbose [
     prin "--test-- "
     print title
-  ;]
+  ]
   qt-test-name: title
   qt-file-tests: qt-file-tests + 1
 ]

@@ -559,7 +559,6 @@ Red [
 		[load error]
 		t: tail logs
 		reduce/into [event to-word type to-word type? type line token] tail logs
-		print t
 		new-line t yes
 		any [event <> 'error all [input: next input false]]
 	]

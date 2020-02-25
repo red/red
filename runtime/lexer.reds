@@ -1002,6 +1002,7 @@ lexer: context [
 		if type <> TYPE_PATH [s: s + 1]
 		lex/scanned: TYPE_WORD
 		if load? [
+			flags: flags and not C_FLAG_COLON
 			load-word lex s e flags yes
 			if lex/fun-ptr <> null [
 				slot: lex/tail - 1
@@ -1432,9 +1433,21 @@ lexer: context [
 			p pos [byte-ptr!]
 			cell [cell!]
 	][
-		type: lex/scanned
-		assert type > 0
-		
+		either lex/scanned > 0 [type: lex/scanned][
+			type: TYPE_WORD
+			if flags and C_FLAG_COLON <> 0 [
+				case [
+					s/1 = #":" [type: TYPE_GET_WORD]
+					e/0 = #":" [type: TYPE_SET_WORD]
+					all [e/1 = #":" lex/entry = S_PATH][0]	;-- do nothing if in a path
+					true	   [throw-error lex s e type]
+				]
+			]
+			if s/1 = #"'" [
+				if type = TYPE_SET_WORD [throw-error lex s e TYPE_LIT_WORD]
+				type: TYPE_LIT_WORD
+			]
+		]
 		if type <> TYPE_WORD [
 			switch type [
 				TYPE_ISSUE
@@ -1453,7 +1466,7 @@ lexer: context [
 			word/make-at symbol/make-alt-utf8 s as-integer e - s cell
 			set-type cell type
 		]
-		if type = TYPE_SET_WORD [lex/in-pos: e + 1] ;-- skip ending delimiter
+		if type = TYPE_SET_WORD [lex/in-pos: e + 1]		;-- skip ending delimiter
 	]
 
 	load-file: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
@@ -1994,22 +2007,16 @@ lexer: context [
 				either state < T_INTEGER [
 					catch LEX_ERR [do-scan lex s p flags ld?]
 				][
-					if any [not lex/load? lex/fun-ptr = null][
-					if any [not ld? lex/fun-ptr = null][
+					if any [not ld? lex/fun-ptr = null lex/fun-evts and EVT_SCAN <> 0][
 						if :do-scan = null [do-scan: as scanner! loaders/index]
 						catch LEX_ERR [do-scan lex s p flags no]
 						if lex/fun-ptr <> null [
-							index: either zero? lex/scanned [0 - index][lex/scanned]
-							load?: fire-event lex EVT_SCAN index null s lex/in-pos
+							idx: either zero? lex/scanned [0 - index][lex/scanned]
+							load?: fire-event lex EVT_SCAN idx null s lex/in-pos
 						]
 					]
 				]
-				;load?: either lex/fun-ptr = null [any [not one? ld?]][
-				;	index: either zero? lex/scanned [0 - index][lex/scanned]
-				;	either state >= T_INTEGER [fire-event lex EVT_SCAN index null s lex/in-pos][yes]
-				;]
 				if load? [								;-- Loading stage --
-					index: lex/exit - --EXIT_STATES--
 					do-load: as loader! loaders/index
 					if :do-load <> null [
 						catch LEX_ERR [do-load lex s p flags yes]
