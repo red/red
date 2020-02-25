@@ -324,7 +324,6 @@ lexer: context [
 	all-events:		3Fh									;-- bit-mask of all events
 	
 	min-integer: as byte-ptr! "-2147483648"				;-- used in load-integer
-	flags-LG: C_FLAG_LESSER or C_FLAG_GREATER
 	
 	decode-filter: func [fun [red-function!] return: [integer!]
 		/local
@@ -1094,35 +1093,6 @@ lexer: context [
 			type: TYPE_LIT_WORD
 		]
 		lex/scanned: type
-		
-		either flags and flags-LG = flags-LG [			;-- handle word<tag> cases
-			p: s
-			while [all [p < e p/1 <> #"<"]][p: p + 1]	;-- search <
-			if p + 1 < e [
-				pos: p
-				p: p + 1
-				cp: as-integer p/1						;-- check for valid tag
-				class: lex-classes/cp and FFh
-				index: S_LESSER * (size? character-classes!) + class ;-- simulate transition from S_LESSER
-				if (as-integer transitions/index) = S_TAG [	  ;-- check if valid tag starting is recognized
-					while [all [p < e p/1 <> #">"]][p: p + 1] ;-- search >
-					if p < e [
-						e: pos							;-- cut the word before <
-						lex/in-pos: pos					;-- resume scanning from <
-					]
-				]
-			]
-		][
-			if all [flags and C_FLAG_LESSER <> 0 lex/entry = S_PATH e/0 = #"<"][
-				cell: lex/tail - 1
-				if TYPE_OF(cell) = TYPE_POINT [
-					e: e - 1							;-- handle word</tag> cases
-					lex/in-pos: e 						;-- resume scanning from <
-					lex/entry: S_START					;-- cancel the newly opened path
-					lex/tail: cell
-				]
-			]
-		]
 	]
 	
 	scan-issue: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
@@ -1577,7 +1547,6 @@ lexer: context [
 			set-type as cell! fl TYPE_FLOAT
 			fl/value: f
 		]
-		;lex/scanned: TYPE_FLOAT
 		lex/in-pos: e									;-- reset the input position to delimiter byte
 	]
 	
