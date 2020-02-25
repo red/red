@@ -1693,23 +1693,26 @@ lexer: context [
 			min: grab2-max
 			if p < e [
 				if p/1 = #":" [p: grab-float p + 1 e :sec :err check-err]
-				if all [p < e p/1 <> #"Z"][
-					neg?: p/1 = #"-"
-					either any [p/1 = #"+" neg?][
-						TZ-h: grab2-max
-						if neg? [TZ-h: 0 - TZ-h]
-						if p < e [
-							if p/1 = #":" [p: p + 1]
-							p: grab-digits p e 0 2 :TZ-m :err
+				if p < e [
+					either p/1 = #"Z" [p: p + 1][
+						neg?: p/1 = #"-"
+						either any [p/1 = #"+" neg?][
+							TZ-h: grab2-max
+							if neg? [TZ-h: 0 - TZ-h]
+							if p < e [
+								if p/1 = #":" [p: p + 1]
+								p: grab-digits p e 0 2 :TZ-m :err
+							]
+						][
+							do-error
 						]
-					][
-						do-error
 					]
 				]
 			]
 			calc-time
 		]
 		store-date: [
+			if p < e [do-error]
 			if load? [dt: date/make-at alloc-slot lex year month day tm tz-h tz-m time? TZ?]
 			lex/in-pos: e								;-- reset the input position to delimiter byte
 		]
@@ -1725,19 +1728,21 @@ lexer: context [
 			p: p + 1
 			hour: grab2
 			min:  grab2
-			if p/1 <> #"Z" [							;-- yyymmddThhmmZ
+			either p/1 = #"Z" [p: p + 1][				;-- yyymmddThhmmZ
 				p: grab-float p e :sec :err
 				check-err
-				if all [p < e p/1 <> #"Z"][
-					TZ?: yes
-					neg?: p/1 = #"-"
-					either any [p/1 = #"+" neg?][		;-- yyymmddThhmm+-hhmm
-						p: p + 1
-						TZ-h: grab2r
-						if neg? [TZ-h: 0 - TZ-h]
-						TZ-m: grab2r
-					][
-						do-error
+				if p < e [
+					either p/1 = #"Z" [p: p + 1][
+						TZ?: yes
+						neg?: p/1 = #"-"
+						either any [p/1 = #"+" neg?][	;-- yyymmddThhmm+-hhmm
+							p: p + 1
+							TZ-h: grab2r
+							if neg? [TZ-h: 0 - TZ-h]
+							TZ-m: grab2r
+						][
+							do-error
+						]
 					]
 				]
 			]

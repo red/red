@@ -529,6 +529,9 @@ Red [
 		foreach s allow [--test-- s --assert float! = scan s]
 		foreach s deny  [--test-- s --assert error! = scan s]
 
+	--test-- "scan-24"
+		--assert error! = scan "1/2/12io23"
+
 ===end-group===
 ===start-group=== "transcode/trace"
 
