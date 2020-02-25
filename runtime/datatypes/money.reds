@@ -165,25 +165,33 @@ money: context [
 		/local
 			amount
 			[byte-ptr!]
-			start index power digit
+			extra start index power digit
 			[integer!]
-	][		
+	][
+		amount: get-amount money
+		
+		zero-out amount
 		if int = 0 [return money]
 		
 		set-sign money as integer! int < 0
-		int: integer/abs int
 		
-		amount: get-amount money
-		start:  SIZE_DIGITS - SIZE_SCALE
-		index:  start
+		extra: as integer! int = (1 << 31)
+		int:   integer/abs int + extra
+		
+		start: SIZE_DIGITS - SIZE_SCALE
+		index: start
 		
 		loop MAX_INT_DIGITS [
 			power: as integer! pow 10.0 as float! start - index
 			digit: int / power // 10
 			
-			unless digit = 0 [set-digit amount index digit]
+			unless zero? digit [set-digit amount index digit]
 			
 			index: index - 1
+		]
+		
+		unless zero? extra [
+			set-digit amount start extra + get-digit amount start
 		]
 		
 		money
@@ -236,7 +244,6 @@ money: context [
 		
 		money: as red-money! proto
 		money/header: TYPE_MONEY
-		zero-out get-amount money
 		
 		switch TYPE_OF(spec) [
 			TYPE_INTEGER [
