@@ -2022,7 +2022,10 @@ lexer: context [
 			]
 			lex/in-pos >= lex/in-end
 		]
-		if lex/entry = S_M_STRING [catch LEX_ERR [throw-error lex start lex/in-end TYPE_STRING]]
+		if lex/entry = S_M_STRING [
+			catch LEX_ERR [throw-error lex start lex/in-end TYPE_STRING]
+			system/thrown: 0
+		]
 		assert lex/in-pos = lex/in-end
 	]
 
@@ -2090,24 +2093,24 @@ lexer: context [
 		catch RED_THROWN_ERROR [scan-tokens lex one? not scan?]
 		if system/thrown <> 0 [clean-up re-throw]
 		
-		if load? [
-			slots: (as-integer lex/tail - lex/buffer) >> 4
-			if slots > 0 [
-				p: as red-point! either lex/buffer < lex/head [lex/head - 1][lex/buffer]
-				if TYPE_OF(p) = TYPE_POINT [
-					lex/closing: p/y
-					catch RED_THROWN_ERROR [throw-error lex lex/input + p/z lex/in-end ERR_CLOSING]
-					either system/thrown <= LEX_ERR [
-						dst/header: TYPE_NONE
-						system/thrown: 0
-						clean-up
-						return lex/scanned
-					][
-						clean-up
-						re-throw
-					]
+		slots: (as-integer lex/tail - lex/buffer) >> 4
+		if slots > 0 [
+			p: as red-point! either lex/buffer < lex/head [lex/head - 1][lex/buffer]
+			if TYPE_OF(p) = TYPE_POINT [
+				lex/closing: p/y
+				catch RED_THROWN_ERROR [throw-error lex lex/input + p/z lex/in-end ERR_CLOSING]
+				either system/thrown <= LEX_ERR [
+					dst/header: TYPE_NONE
+					system/thrown: 0
+					clean-up
+					return lex/scanned
+				][
+					clean-up
+					re-throw
 				]
 			]
+		]
+		if load? [
 			either all [one? not wrap? slots > 0][
 				copy-cell lex/buffer dst				;-- copy first loaded value only
 			][

@@ -534,6 +534,18 @@ Red [
 	--test-- "scan-24" --assert error! = scan "1/2/12io23"
 	--test-- "scan-25" --assert float! = scan "2999999999"
 
+	--test-- "scan-26" --assert error! = scan "["
+	--test-- "scan-27" --assert error! = scan "]"
+	--test-- "scan-28" --assert error! = scan "("
+	--test-- "scan-29" --assert error! = scan ")"
+	--test-- "scan-30" --assert error! = scan "#("
+	--test-- "scan-31" --assert error! = scan "{"
+	--test-- "scan-32" --assert block! = scan "[]"
+	--test-- "scan-33" --assert paren! = scan "()"
+	--test-- "scan-34" --assert map!   = scan "#()"
+	--test-- "scan-35" --assert string! = scan "{}"
+	--test-- "scan-36" --assert string! = scan {""}
+
 ===end-group===
 ===start-group=== "transcode/trace"
 
