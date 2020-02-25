@@ -73,6 +73,13 @@ integer: context [
 		int
 	]
 	
+	from-money: func [
+		mn      [red-money!]
+		return: [integer!]
+	][
+		money/to-integer mn
+	]
+	
 	from-binary: func [
 		bin		[red-binary!]
 		return: [integer!]
@@ -374,6 +381,7 @@ integer: context [
 		/local
 			int  [red-integer!]
 			fl	 [red-float!]
+			mn   [red-money!]
 			str	 [red-string!]
 			t	 [red-time!]
 			p	 [byte-ptr!]
@@ -399,6 +407,11 @@ integer: context [
 				fl: as red-float! spec
 				if overflow? fl [fire [TO_ERROR(script type-limit) datatype/push TYPE_INTEGER]]
 				int/value: as-integer fl/value
+			]
+			TYPE_MONEY [
+				mn: as red-money! spec
+				if money/overflow? mn [fire [TO_ERROR(script type-limit) datatype/push TYPE_INTEGER]]
+				int/value: from-money mn
 			]
 			TYPE_BINARY [
 				int/value: from-binary as red-binary! spec

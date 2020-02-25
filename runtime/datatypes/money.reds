@@ -78,6 +78,14 @@ money: context [
 		yes
 	]
 	
+	compare-amounts: func [
+		this    [byte-ptr!]
+		that    [byte-ptr!]
+		return: [integer!]
+	][
+		compare-memory this that SIZE_BYTES
+	]
+	
 	zero-out: func [
 		money [red-money!]
 		all?  [logic!]
@@ -96,7 +104,7 @@ money: context [
 			[integer!]
 	][
 		bit:    index and 1
-		byte:   index >>> 1 + bit
+		byte:   index >> 1 + bit
 		offset: either as logic! bit [4][0]
 		
 		as integer! amount/byte
@@ -113,7 +121,7 @@ money: context [
 			[integer!]
 	][
 		bit:     index and 1
-		byte:    index >>> 1 + bit
+		byte:    index >> 1 + bit
 		offset:  either as logic! bit [4][0]
 		reverse: either offset = 0 [4][0]
 		
@@ -121,7 +129,25 @@ money: context [
 			and (HIGH_NIBBLE << reverse)
 			or  as byte! (value << offset)
 	]
-
+	
+	count-digits: func [
+		amount  [byte-ptr!]
+		return: [integer!]
+		/local
+			count [integer!]
+	][
+		count: SIZE_DIGITS
+		loop SIZE_BYTES [
+			either null-byte = amount/value [count: count - 2][
+				count: count - as integer! null-byte = (amount/value and LOW_NIBBLE)
+				break
+			]
+			amount: amount + 1
+		]
+		
+		either zero? count [1][count]
+	]
+	
 	make-at: func [
 		slot	[red-value!]
 		sign    [integer!]
@@ -160,6 +186,66 @@ money: context [
 	][
 		make-at stack/push* sign amount1 amount2 amount3
 	]
+	
+	overflow?: func [
+		money   [red-money!]
+		return: [logic!]
+		/local
+			other
+			[red-money!]
+			amount limit
+			[byte-ptr!]
+			sign count lower bytes
+			[integer!]
+			flag
+			[logic!]
+	][
+		sign: sign? money
+		if zero? sign [return no]
+		
+		amount: get-amount money
+		count:  (count-digits amount) - SIZE_SCALE
+		if count <> MAX_INT_DIGITS [return count > MAX_INT_DIGITS]
+		
+		lower: 1 << 31
+		other: as red-money! stack/push*
+		limit: get-amount other
+		from-integer other either negative? sign [lower][not lower]
+		
+		flag: positive? compare-amounts amount limit
+		stack/pop 1
+		flag
+	]
+	
+	to-integer: func [
+		money   [red-money!]
+		return: [integer!]
+		/local
+			amount
+			[byte-ptr!]
+			sign integer index
+			start power digit
+			[integer!]
+	][
+		sign: sign? money
+		
+		if zero? sign [return sign]
+	
+		amount:  get-amount money
+		integer: 0
+		index:   SIZE_INTEGRAL
+		start:   index
+		
+		loop MAX_INT_DIGITS [
+			digit:   get-digit amount index
+			power:   as integer! pow 10.0 as float! start - index
+			integer: integer + (digit * power)
+			
+			index: index - 1
+		]
+		
+		sign * integer
+	]
 
 	from-integer: func [
 		money   [red-money!]
@@ -180,7 +266,7 @@ money: context [
 		int:   integer/abs int + extra
 		
 		amount: get-amount money
-		start:  SIZE_DIGITS - SIZE_SCALE
+		start:  SIZE_INTEGRAL
 		index:  start
 		
 		loop MAX_INT_DIGITS [
