@@ -28,6 +28,8 @@ money: context [
 	#define SIGN_MASK   4000h
 	#define SIGN_OFFSET 14
 	
+	#define MAX_INT_DIGITS 10
+	
 	;-- Support --
 	
 	get-sign: func [
@@ -158,30 +160,33 @@ money: context [
 
 	from-integer: func [
 		money   [red-money!]
-		integer [integer!]
+		int     [integer!]
+		return: [red-money!]
 		/local
 			amount
 			[byte-ptr!]
 			start index power digit
 			[integer!]
 	][		
-		if integer = 0 [exit]
+		if int = 0 [return money]
 		
-		set-sign money as integer! integer < 0
-			
+		set-sign money as integer! int < 0
+		int: integer/abs int
+		
 		amount: get-amount money
 		start:  SIZE_DIGITS - SIZE_SCALE
 		index:  start
-		power:  0
 		
-		loop 10 [
+		loop MAX_INT_DIGITS [
 			power: as integer! pow 10.0 as float! start - index
-			digit: integer / power // 10
+			digit: int / power // 10
 			
 			unless digit = 0 [set-digit amount index digit]
 			
 			index: index - 1
 		]
+		
+		money
 	]
 	
 	;-- Natives --
