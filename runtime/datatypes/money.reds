@@ -20,7 +20,8 @@ money: context [
 		SIZE_SCALE: 05
 	]
 	
-	SIZE_DIGITS: SIZE_BYTES * 2
+	SIZE_DIGITS:   SIZE_BYTES * 2
+	SIZE_INTEGRAL: SIZE_DIGITS - SIZE_SCALE
 	
 	#define HIGH_NIBBLE #"^(0F)"
 	#define LOW_NIBBLE  #"^(F0)"
@@ -45,7 +46,7 @@ money: context [
 		return: [red-money!]
 	][
 		money/header: money/header
-			and (FFFFFFFFh - SIGN_MASK)
+			and (not SIGN_MASK)
 			or  (sign << SIGN_OFFSET)
 		
 		money
@@ -249,7 +250,7 @@ money: context [
 		switch TYPE_OF(spec) [
 			TYPE_INTEGER [
 				integer: as red-integer! spec
-				from-integer money integer/value
+				money:   from-integer money integer/value
 			]
 			TYPE_FLOAT [--NOT_IMPLEMENTED--]
 			default [
@@ -340,7 +341,7 @@ money: context [
 		/local
 			digit [integer!]
 	][
-		digit: get-digit get-amount money SIZE_DIGITS - SIZE_SCALE
+		digit: get-digit get-amount money SIZE_INTEGRAL
 		as logic! digit and 1
 	]
 
