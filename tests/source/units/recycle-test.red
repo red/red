@@ -644,11 +644,11 @@ Red [
 			d: [ "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20" ]
 			e: [ "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20" ]
 		]
-		clear ro2-o/a
-		clear ro2-o/b
-		clear ro2-o/c
-		clear ro2-o/d
-		clear ro2-o/e
+		clear select ro2-o 'a
+		clear select ro2-o 'b
+		clear select ro2-o 'c
+		clear select ro2-o 'd
+		clear select ro2-o 'e
 		ro2-o: none
 		recycle
 		

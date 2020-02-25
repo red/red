@@ -349,6 +349,9 @@ Red [
 		--assert out == [1 / 3]
 		--assert word? out/2
 
+	--test-- "tr-32"
+		--assert [a] == transcode #{610062}				; a^(NUL)b
+
 ===end-group===
 ===start-group=== "transcode/one"
 	--test-- "tro-1"  --assert 8		== transcode/one "8"
@@ -458,6 +461,23 @@ Red [
 
 	--test-- "tro-80" --assert error? try [transcode/one {#"ab"}]
 
+	--test-- "tro-81" --assert 1.2.3 == transcode/one "1.2.3"
+	--test-- "tro-82" --assert 11.22.33 == transcode/one "11.22.33"
+	--test-- "tro-83" --assert 255.255.255 == transcode/one "255.255.255"
+	--test-- "tro-84" --assert error? try [transcode/one "256.255.255"]
+	--test-- "tro-85" --assert error? try [transcode/one "255.255.256"]
+	--test-- "tro-86" --assert error? try [transcode/one "255.255.256.0"]
+	--test-- "tro-87" --assert error? try [transcode/one "1234.0.0"]
+	--test-- "tro-88" --assert 1.2.3.4.5.6.7.8.9.10.11.12 == transcode/one "1.2.3.4.5.6.7.8.9.10.11.12"
+	--test-- "tro-89" --assert error? try [transcode/one "1.2.3.4.5.6.7.8.9.10.11.12.13"]
+
+	--test-- "tro-90" --assert error? try [transcode/one {#"^(80)abc"}]
+	--test-- "tro-91" --assert error? try [transcode/one {#"^^(80)}]
+	--test-- "tro-92" --assert error? try [transcode/one {#"^(80)}]
+
+	--test-- "tro-93" --assert error? try [transcode/one #{3C6100623E}]		; <a^(NUL)b>
+	--test-- "tro-94" --assert 'a == transcode/one #{610062}				; a^(NUL)b
+
 ===end-group===
 ===start-group=== "transcode/next"
 
@@ -503,6 +523,12 @@ Red [
 	--test-- "scan-21" --assert lit-word! =  scan "'//////////"
 	--test-- "scan-22" --assert get-word! =  scan "://////////"
 
+	--test-- "scan-23"
+		allow: ["1.2" "123.456789" "123." "123." ".1" "1e2" "+1.0" "-1.0" "+1e2" "-1.0e2" "123.e1"]
+		deny:  ["123.." "123.e" "123e" "123E" "1e" "1E" "1e." "-1e" "-1e."]
+		foreach s allow [--test-- s --assert float! = scan s]
+		foreach s deny  [--test-- s --assert error! = scan s]
+
 ===end-group===
 ===start-group=== "transcode/trace"
 
@@ -522,111 +548,160 @@ Red [
 		any [event <> 'error all [input: next input false]]
 	]
 
+	lex-filtered-logger: function [
+	  event  [word!]
+	  input  [string! binary!]
+	  type   [datatype! word! none!]
+	  line   [integer!]
+	  token
+	  return:  [logic!]
+	][
+		[load error]
+		t: tail logs
+		reduce/into [event to-word type to-word type? type line token] tail logs
+		new-line t yes
+		any [event <> 'error all [input: next input false]]
+	]
+
 	--test-- "tt-1"
 		clear logs
-		--assert (compose [a: 1 (to-path 'b) []]) == transcode/trace "a: 1 b/ []" :lex-logger
+		--assert (compose [a: 1 (to-path 'b) []]) == transcode/trace "a: 1 b/ []" :lex-logger		
 		--assert logs = [
-		    scan  set-word! word!     1 1x3
-		    load  set-word! datatype! 1 a:
-		    scan  integer!  word!     1 4x5
-		    load  integer!  datatype! 1 1
-		    open  path!     datatype! 1 6x6
-		    load  word!     datatype! 1 b
-		    close path!     datatype! 1 8x8
-		    error error!    datatype! 1 8x8
-		    open  block!    datatype! 1 9x9
-		    close block!    datatype! 1 10x10
+			prescan word! word! 1 1x3
+			scan set-word! word! 1 1x3
+			load set-word! datatype! 1 a:
+			prescan integer! datatype! 1 4x5
+			scan integer! word! 1 4x5
+			load integer! datatype! 1 1
+			prescan path! word! 1 6x7
+			open path! datatype! 1 6x6
+			load word! datatype! 1 b
+			prescan error! word! 1 8x8
+			error error! datatype! 1 8x8
+			prescan block! word! 1 9x9
+			open block! datatype! 1 9x9
+			prescan block! word! 1 10x10
+			close block! datatype! 1 10x10
 		]
 
 	--test-- "tt-2"
 		clear logs
-		--assert (compose [a: 1 (to-path 'b) x]) == transcode/trace "a: 1 b/ x" :lex-logger
+		--assert (compose [a: 1 (to-path 'b) x]) == transcode/trace "a: 1 b/ x" :lex-logger	
 		--assert logs = [
-		    scan  set-word! word!     1 1x3
-		    load  set-word! datatype! 1 a:
-		    scan  integer!  word!     1 4x5
-		    load  integer!  datatype! 1 1
-		    open  path!     datatype! 1 6x6
-		    load  word!     datatype! 1 b
-		    close path!     datatype! 1 8x8
-		    error error!    datatype! 1 8x8
-		    scan  word!     word!     1 9x10
-		    load  word!     datatype! 1 x
+			prescan word! word! 1 1x3
+			scan set-word! word! 1 1x3
+			load set-word! datatype! 1 a:
+			prescan integer! datatype! 1 4x5
+			scan integer! word! 1 4x5
+			load integer! datatype! 1 1
+			prescan path! word! 1 6x7
+			open path! datatype! 1 6x6
+			load word! datatype! 1 b
+			prescan error! word! 1 8x8
+			error error! datatype! 1 8x8
+			prescan word! word! 1 9x10
+			scan word! word! 1 9x10
+			load word! datatype! 1 x
 		]
 
 	--test-- "tt-3"
 		clear logs
-		--assert none == transcode/trace "a: 1 #(r: 2) [ x" :lex-logger
+		--assert none == transcode/trace "a: 1 #(r: 2) [ x" :lex-logger			
 		--assert logs = [
-		    scan set-word! word! 1 1x3
-		    load set-word! datatype! 1 a:
-		    scan integer! word! 1 4x5
-		    load integer! datatype! 1 1
-		    open map! datatype! 1 7x7
-		    scan set-word! word! 1 8x10
-		    load set-word! datatype! 1 r:
-		    scan integer! word! 1 11x12
-		    load integer! datatype! 1 2
-		    close map! datatype! 1 12x12
-		    open block! datatype! 1 14x14
-		    scan word! word! 1 16x17
-		    load word! datatype! 1 x
-		    error error! datatype! 1 14x17
+		    prescan word! word! 1 1x3
+			scan set-word! word! 1 1x3
+			load set-word! datatype! 1 a:
+			prescan integer! datatype! 1 4x5
+			scan integer! word! 1 4x5
+			load integer! datatype! 1 1
+			prescan map! word! 1 6x7
+			open map! datatype! 1 7x7
+			prescan word! word! 1 8x10
+			scan set-word! word! 1 8x10
+			load set-word! datatype! 1 r:
+			prescan integer! datatype! 1 11x12
+			scan integer! word! 1 11x12
+			load integer! datatype! 1 2
+			prescan paren! word! 1 12x12
+			close map! datatype! 1 12x12
+			prescan block! word! 1 14x14
+			open block! datatype! 1 14x14
+			prescan word! word! 1 16x17
+			scan word! word! 1 16x17
+			load word! datatype! 1 x
+			error error! datatype! 1 14x17
 		]
 
 	--test-- "tt-4"
 		clear logs
-		--assert [a: 1 x] == transcode/trace "a: 1 ) x" :lex-logger
+		--assert [a: 1 x] == transcode/trace "a: 1 ) x" :lex-logger		
 		--assert logs = [
-		    scan set-word! word! 1 1x3
-		    load set-word! datatype! 1 a:
-		    scan integer! word! 1 4x5
-		    load integer! datatype! 1 1
-		    close paren! datatype! 1 6x6
-		    error error! datatype! 1 6x6
-		    scan word! word! 1 8x9
-		    load word! datatype! 1 x
+		    prescan word! word! 1 1x3
+			scan set-word! word! 1 1x3
+			load set-word! datatype! 1 a:
+			prescan integer! datatype! 1 4x5
+			scan integer! word! 1 4x5
+			load integer! datatype! 1 1
+			prescan paren! word! 1 6x6
+			close paren! datatype! 1 6x6
+			error error! datatype! 1 6x6
+			prescan word! word! 1 8x9
+			scan word! word! 1 8x9
+			load word! datatype! 1 x
 		]
 
 	--test-- "tt-5"
 		clear logs
 		--assert [hello 3.14 pi world] == transcode/trace "hello ^/\ 3.14 pi world" :lex-logger
 		--assert logs = [
-		    scan word! word! 1 1x6
-		    load word! datatype! 1 hello
-		    error error! datatype! 2 8x8
-		    scan float! word! 2 10x14
-		    load float! datatype! 2 3.14
-		    scan word! word! 2 15x17
-		    load word! datatype! 2 pi
-		    scan word! word! 2 18x23
-		    load word! datatype! 2 world
+		    prescan word! word! 1 1x6
+			scan word! word! 1 1x6
+			load word! datatype! 1 hello
+			prescan error! word! 2 8x8
+			error error! datatype! 2 8x8
+			prescan float! datatype! 2 10x14
+			scan float! word! 2 10x14
+			load float! datatype! 2 3.14
+			prescan word! word! 2 15x17
+			scan word! word! 2 15x17
+			load word! datatype! 2 pi
+			prescan word! word! 2 18x23
+			scan word! word! 2 18x23
+			load word! datatype! 2 world
 		]
 
 	--test-- "tt-6"
 		clear logs
-		--assert [123 "abc" 123456789123.0 test] == transcode/trace "123 {abc} 123456789123 test" :lex-logger
+		--assert [123 "abc" 123456789123.0 test] == transcode/trace "123 {abc} 123456789123 test" :lex-logger		
 		--assert logs = [
-		    scan integer! word! 1 1x4
-		    load integer! datatype! 1 123
-		    open string! datatype! 1 5x5
-		    close string! datatype! 1 6x9
-		    scan float! word! 1 11x23
-		    load float! datatype! 1 123456789123.0
-		    scan word! word! 1 24x28
-		    load word! datatype! 1 test
+		    prescan integer! datatype! 1 1x4
+			scan integer! word! 1 1x4
+			load integer! datatype! 1 123
+			prescan string! word! 1 5x5
+			open string! datatype! 1 5x5
+			prescan string! datatype! 1 6x9
+			close string! datatype! 1 6x9
+			prescan integer! datatype! 1 11x23
+			scan float! word! 1 11x23
+			load float! datatype! 1 123456789123.0
+			prescan word! word! 1 24x28
+			scan word! word! 1 24x28
+			load word! datatype! 1 test
 		]
 
 	--test-- "tt-7"
 		clear logs
-		--assert [a: 1] == transcode/trace "a: 1 ]" :lex-logger
+		--assert [a: 1] == transcode/trace "a: 1 ]" :lex-logger		
 		--assert logs = [
+			prescan word! word! 1 1x3
 			scan set-word! word! 1 1x3
-		    load set-word! datatype! 1 a:
-		    scan integer! word! 1 4x5
-		    load integer! datatype! 1 1
-		    close block! datatype! 1 6x6
-		    error error! datatype! 1 6x6
+			load set-word! datatype! 1 a:
+			prescan integer! datatype! 1 4x5
+			scan integer! word! 1 4x5
+			load integer! datatype! 1 1
+			prescan block! word! 1 6x6
+			close block! datatype! 1 6x6
+			error error! datatype! 1 6x6
 		]
 
 	--test-- "tt-8"	
@@ -642,32 +717,43 @@ Red [
 			reduce/into [event to-word type to-word type? type line token] tail logs
 			new-line t yes
 			switch event [
+				prescan
 				scan  [yes]
 				load  [to-logic find [integer! float! pair!] type]
-				open  [no]
+				open
 				close [no]
 			]
 		]
 
 		clear logs
-		--assert [hello "test" pi world] = transcode/trace "hello ^/123 ^/[^/3x4 {test} 3.14 pi]^/ world" :lex-filter
+		--assert [hello "test" pi world] = transcode/trace "hello ^/123 ^/[^/3x4 {test} 3.14 pi]^/ world" :lex-filter	
 		--assert logs = [
-		    scan word! word! 1 1x6
-		    load word! datatype! 1 hello
-		    scan integer! word! 2 8x11
-		    load integer! datatype! 2 123
-		    open block! datatype! 3 13x13
-		    scan pair! word! 4 15x18
-		    load pair! datatype! 4 3x4
-		    open string! datatype! 4 19x19
-		    close string! datatype! 4 20x24
-		    scan float! word! 4 26x30
-		    load float! datatype! 4 3.14
-		    scan word! word! 4 31x33
-		    load word! datatype! 4 pi
-		    close block! datatype! 4 33x33
-		    scan word! word! 5 36x41
-		    load word! datatype! 5 world
+			prescan word! word! 1 1x6
+			scan word! word! 1 1x6
+			load word! datatype! 1 hello
+			prescan integer! datatype! 2 8x11
+			scan integer! word! 2 8x11
+			load integer! datatype! 2 123
+			prescan block! word! 3 13x13
+			open block! datatype! 3 13x13
+			prescan pair! datatype! 4 15x18
+			scan pair! word! 4 15x18
+			load pair! datatype! 4 3x4
+			prescan string! word! 4 19x19
+			open string! datatype! 4 19x19
+			prescan string! datatype! 4 20x24
+			close string! datatype! 4 20x24
+			prescan float! datatype! 4 26x30
+			scan float! word! 4 26x30
+			load float! datatype! 4 3.14
+			prescan word! word! 4 31x33
+			scan word! word! 4 31x33
+			load word! datatype! 4 pi
+			prescan block! word! 4 33x33
+			close block! datatype! 4 33x33
+			prescan word! word! 5 36x41
+			scan word! word! 5 36x41
+			load word! datatype! 5 world
 		]
 
 	--test-- "tt-9"	
@@ -690,11 +776,13 @@ Red [
 			yes
 		]
 		clear logs
-		--assert [123 abc] == transcode/trace "123 abc" :lex-filter10
+		--assert [123 abc] == transcode/trace "123 abc" :lex-filter10		
 		--assert logs = [
-			scan integer! word! 1 1x4 
-			load integer! datatype! 1 123 
-			scan word! word! 1 5x8 
+			prescan integer! datatype! 1 1x4
+			scan integer! word! 1 1x4
+			load integer! datatype! 1 123
+			prescan word! word! 1 5x8
+			scan word! word! 1 5x8
 			load word! datatype! 1 abc
 		]
 
@@ -730,11 +818,61 @@ Red [
 		clear logs
 		--assert [123 abc] == transcode/trace "123 abc" :lex-filter11A
 		--assert logs = [
-			scan integer! word! 1 1x4 
-			load integer! datatype! 1 123 
-			scan word! word! 1 5x8 
+			prescan integer! datatype! 1 1x4
+			scan integer! word! 1 1x4
+			load integer! datatype! 1 123
+			prescan word! word! 1 5x8
+			scan word! word! 1 5x8
 			load word! datatype! 1 abc
 		]
+
+	--test-- "tt-12"
+		clear logs
+		--assert none == transcode/trace "a: 1 #(r: 2) [ x" :lex-filtered-logger
+		--assert logs = [
+			load set-word! datatype! 1 a:
+			load integer! datatype! 1 1
+			load set-word! datatype! 1 r:
+			load integer! datatype! 1 2
+			load word! datatype! 1 x
+			error error! datatype! 1 14x17
+		]
+
+	--test-- "tt-13"
+		lex-filter13: function [
+			event  [word!]
+			input  [string! binary!]
+			type   [datatype! word! none!]
+			line   [integer!]
+			token
+			return: [logic!]
+		][
+			[load open close]
+			t: tail logs
+			reduce/into [event to-word type to-word type? type line token] tail logs
+			new-line t yes
+			switch event [
+				load  [to-logic find [integer! float! pair!] type]
+				open
+				close [no]
+			]
+		]
+
+		clear logs
+		--assert [hello "test" pi world] = transcode/trace "hello ^/123 ^/[^/3x4 {test} 3.14 pi]^/ world" :lex-filter13
+		--assert logs = [
+			load word! datatype! 1 hello
+			load integer! datatype! 2 123
+			open block! datatype! 3 13x13
+			load pair! datatype! 4 3x4
+			open string! datatype! 4 19x19
+			close string! datatype! 4 20x24
+			load float! datatype! 4 3.14
+			load word! datatype! 4 pi
+			close block! datatype! 4 33x33
+			load word! datatype! 5 world
+		]
+
 
 ===end-group===
 

@@ -916,11 +916,12 @@ transcode: make native! [[
 		src	 [binary! string!]	"UTF-8 input buffer; string argument will be UTF-8 encoded"
 		/next			"Translate next complete value (blocks as single value)"
 		/one			"Translate next complete value, returns the value only"
+		/prescan		"Prescans only, do not load values. Returns guessed type."
 		/scan			"Scans only, do not load values. Returns recognized type."
 		/part			"Translates only part of the input buffer"
 			length [integer! binary!] "Length in bytes or tail position"
 		/into			"Optionally provides an output block"
-			dst	 [block! none!]
+			dst	[block! none!]
 		/trace
 			callback [function! [
 				event	[word!]

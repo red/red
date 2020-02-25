@@ -355,7 +355,7 @@ stack: context [										;-- call stack
 			sym: base/header >> 8 and FFFFh
 			
 			if all [sym <> body-symbol sym <> anon-symbol][
-				fun: _context/get-global sym
+				fun: _context/get-any sym base/ctx
 				if any [level > 1 TYPE_OF(fun) = TYPE_FUNCTION][
 					part: word/form 
 						word/make-at sym value
@@ -370,7 +370,7 @@ stack: context [										;-- call stack
 				]
 			]
 			base: base + 1
-			base >= top									;-- defensive test
+			base >= top									;-- defensive exit condition
 		]
 		part
 	]

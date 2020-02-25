@@ -19,6 +19,11 @@ Red/System [
 word: context [
 	verbose: 0
 	
+	duplicate: func [w [red-word!] return: [red-word!]][
+		assert red/boot?
+		as red-word! copy-cell as red-value! w ALLOC_TAIL(root)
+	]
+	
 	load-in: func [
 		str 	[c-string!]
 		blk		[red-block!]

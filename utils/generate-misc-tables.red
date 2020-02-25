@@ -66,6 +66,34 @@ gen-hexa-table: function [][
 	probe out
 ]
 
+float-classes: [
+	C_FL_ILLEGAL									;-- 0
+	C_FL_SIGN										;-- 1
+	C_FL_DIGIT										;-- 2
+	C_FL_EXP										;-- 3
+	C_FL_DOT										;-- 4
+	C_FL_EOF										;-- 5
+]
+
+gen-float-classes-table: function [][
+	out: make binary! 256
+	digit: charset [#"0" - #"9"]
+	
+	repeat i 256 [
+		c: to-char i - 1
+		append out case [
+			find digit c [2]
+			c = #"."	 [4]
+			find "+-" c	 [1]
+			find "eE" c	 [3]
+			'else		 [0]
+		]
+	]
+	print "--gen-fl-classes-- (lexer/fl-classes)"
+	probe out
+]
+
 gen-bitarray {/-~^^{}"}
 gen-bin16-table
 gen-hexa-table
+gen-float-classes-table

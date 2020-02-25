@@ -22,7 +22,7 @@ context [
 	
 	UTF8-char:	lexer/UTF8-char
 	chars: 		make block!  10'000
-	decoded: 	make string! 10'000
+	decoded: 	make binary! 10'000
 	nl-flag:	to-integer #{80000000}					;-- header's new-line flag
 	nl?:		no
 
