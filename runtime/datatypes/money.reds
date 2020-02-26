@@ -115,9 +115,9 @@ money: context [
 	]
 	
 	set-digit: func [
-		amount  [byte-ptr!]
-		index   [integer!]
-		value   [integer!]
+		amount [byte-ptr!]
+		index  [integer!]
+		value  [integer!]
 		/local
 			bit byte offset reverse
 			[integer!]
@@ -256,7 +256,7 @@ money: context [
 		/local
 			amount
 			[byte-ptr!]
-			extra start index power digit
+			extra index start power digit
 			[integer!]
 	][
 		zero-out money yes
@@ -268,8 +268,8 @@ money: context [
 		int:   integer/abs int + extra
 		
 		amount: get-amount money
-		start:  SIZE_INTEGRAL
-		index:  start
+		index:  SIZE_INTEGRAL
+		start:  index
 		
 		loop MAX_INT_DIGITS [
 			power: as integer! pow 10.0 as float! start - index

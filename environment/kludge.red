@@ -24,8 +24,8 @@ coin: function [
 		#"$" [
 			some #"0" end (integral: #"0")
 			| any #"0" copy integral [1 digits digit]
-			opt [[dot | comma] copy fractional [1 scale digit]]
-			end
+			  opt [[dot | comma] copy fractional [1 scale digit]]
+			  end
 		]
 	][
 		string: rejoin [
