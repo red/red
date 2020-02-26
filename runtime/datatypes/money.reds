@@ -23,13 +23,15 @@ money: context [
 	SIZE_DIGITS:   SIZE_BYTES * 2
 	SIZE_INTEGRAL: SIZE_DIGITS - SIZE_SCALE
 	
-	#define HIGH_NIBBLE #"^(0F)"
-	#define LOW_NIBBLE  #"^(F0)"
+	HIGH_NIBBLE: #"^(0F)"
+	LOW_NIBBLE:  #"^(F0)"
 	
-	#define SIGN_MASK   4000h
-	#define SIGN_OFFSET 14
+	SIGN_MASK:   4000h
+	SIGN_OFFSET: 14
 	
-	#define MAX_INT_DIGITS 10
+	MAX_INT_DIGITS: 10
+	INT32_MIN: 1 << 31
+	INT32_MAX: not INT32_MIN
 	
 	;-- Support --
 	
@@ -163,6 +165,7 @@ money: context [
 		money/amount1: amount1
 		money/amount2: amount2
 		money/amount3: amount3
+		
 		money
 	]
 	
@@ -195,7 +198,7 @@ money: context [
 			[red-money!]
 			amount limit
 			[byte-ptr!]
-			sign count lower bytes
+			sign count bytes
 			[integer!]
 			flag
 			[logic!]
@@ -207,10 +210,9 @@ money: context [
 		count:  (count-digits amount) - SIZE_SCALE
 		if count <> MAX_INT_DIGITS [return count > MAX_INT_DIGITS]
 		
-		lower: 1 << 31
 		other: as red-money! stack/push*
 		limit: get-amount other
-		from-integer other either negative? sign [lower][not lower]
+		from-integer other either negative? sign [INT32_MIN][INT32_MAX]
 		
 		flag: positive? compare-amounts amount limit
 		stack/pop 1
@@ -258,11 +260,11 @@ money: context [
 			[integer!]
 	][
 		zero-out money yes
-		if int = 0 [return money]
+		if zero? int [return money]
 		
 		set-sign money as integer! int < 0
 		
-		extra: as integer! int = (1 << 31)
+		extra: as integer! int = INT32_MIN
 		int:   integer/abs int + extra
 		
 		amount: get-amount money
