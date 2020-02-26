@@ -364,7 +364,7 @@ _context: context [
 			cell [red-context!]
 			slot [red-value!]
 			node [node!]
-			symbols [node!]
+			vals [node!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/create"]]
 		
@@ -374,17 +374,18 @@ _context: context [
 		slot: alloc-tail as series! node/value			;-- allocate a slot for obj/func back-reference
 		slot/header: TYPE_UNSET
 		cell/header: TYPE_UNSET							;-- implicit reset of all header flags	
-		symbols: _hashtable/init slots as red-block! proto HASH_TABLE_SYMBOL HASH_SYMBOL_CONTEXT ;@@ create the node! on native stack, so it can be marked by GC
 		cell/self: node
 
 		either stack? [
 			cell/values: null							;-- will be set to stack frame dynamically
+			cell/symbols: _hashtable/init slots as red-block! proto HASH_TABLE_SYMBOL HASH_SYMBOL_CONTEXT
 			cell/header: TYPE_CONTEXT or flag-series-stk
 		][
-			cell/values: alloc-unset-cells slots
+			vals: alloc-unset-cells slots	;@@ keep it on native stack, so it can be marked by the GC
+			cell/symbols: _hashtable/init slots as red-block! proto HASH_TABLE_SYMBOL HASH_SYMBOL_CONTEXT
+			cell/values: vals
 			cell/header: TYPE_CONTEXT
 		]
-		cell/symbols: symbols
 
 		if self? [cell/header: cell/header or flag-self-mask]
 		node

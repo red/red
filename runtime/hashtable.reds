@@ -430,7 +430,7 @@ _hashtable: context [
 			if all [vsize = HASH_SYMBOL_CONTEXT blk <> null][
 				return copy-context as red-context! blk node
 			]
-			size: size << 4
+			if size >= 4000 [size: size << 4]		;-- global context
 		]
 
 		s: as series! node/value
@@ -438,7 +438,7 @@ _hashtable: context [
 		h/type: type
 		if type = HASH_TABLE_INTEGER [h/indexes: as node! vsize + 1 << 4]
 
-		if size < 32 [size: 32]
+		if size < 4 [size: 4]
 		fsize: as-float size
 		f-buckets: fsize / _HT_HASH_UPPER
 		skip: either type = HASH_TABLE_MAP [2][1]

@@ -2807,6 +2807,7 @@ natives: context [
 			type: lexer/scan-alt slot str len one? scan? load? no :offset fun as red-series! str
 		]
 		if any [not scan? not load?][
+			assert type > 0
 			dt: as red-datatype! slot
 			dt/header: TYPE_DATATYPE
 			dt/value: type
