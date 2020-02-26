@@ -332,10 +332,10 @@ red-handle!: alias struct! [
 ]
 
 red-money!: alias struct! [
-	header 	[integer!]
-	amount1	[integer!]
-	amount2	[integer!]
-	amount3	[integer!]
+	header 	[integer!]								;-- cell header
+	amount1	[integer!]								;-- 1 bytes for currency index
+	amount2	[integer!]								;-- 11 bytes for BCD encoded amount
+	amount3	[integer!]								;-- (unsigned, packed)
 ]
 
 red-slice!: alias struct! [							;@@ internal use only !!!
