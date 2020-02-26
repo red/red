@@ -545,8 +545,24 @@ Red [
 	--test-- "scan-34" --assert map!   = scan "#()"
 	--test-- "scan-35" --assert string! = scan "{}"
 	--test-- "scan-36" --assert string! = scan {""}
-	--test-- "scan-37" --assert word!   = scan/fast "a"
 
+===end-group===
+===start-group=== "scan/fast"
+
+	--test-- "scan-1" --assert word!  = scan/fast "a"
+	--test-- "scan-2" --assert error! = scan/fast "["
+comment {	
+	--test-- "scan-3" --assert error! = scan/fast "]"
+	--test-- "scan-4" --assert error! = scan/fast "("
+	--test-- "scan-5" --assert error! = scan/fast ")"
+	--test-- "scan-6" --assert error! = scan/fast "#("
+	--test-- "scan-7" --assert error! = scan/fast "^{"
+	--test-- "scan-8" --assert block! = scan/fast "[]"
+	--test-- "scan-9" --assert paren! = scan/fast "()"
+	--test-- "scan-10" --assert map!   = scan/fast "#()"
+	--test-- "scan-11" --assert string! = scan/fast "{}"
+	--test-- "scan-12" --assert string! = scan/fast ^{""^}
+}
 ===end-group===
 ===start-group=== "transcode/trace"
 
