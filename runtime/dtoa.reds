@@ -1408,10 +1408,18 @@ dtoa: context [
 
 		s0: s
 		s1: s
-		while [
+		c: s/1
+		while [true][
+			case [
+				all [c >= #"0" c <= #"9"][s: s + 1]
+				c = #"'" [
+					move-memory s s + 1 as-integer end - s
+					end: end - 1
+				]
+				true [break]
+			]
 			c: s/1
-			all [c >= #"0" c <= #"9"]
-		][s: s + 1]
+		]
 		ndigits: as-integer s - s1
 		fraclen: 0
 
