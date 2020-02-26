@@ -999,7 +999,7 @@ lexer: context [
 		]
 		open-block lex type s							;-- open a new path series
 		if type <> TYPE_PATH [s: s + 1]
-		lex/scanned: TYPE_WORD
+		lex/type: TYPE_WORD
 		if load? [
 			flags: flags and not C_FLAG_COLON
 			load-word lex s e flags yes
@@ -1096,8 +1096,7 @@ lexer: context [
 	]
 	
 	scan-issue: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
-		s: s + 1
-		if s = e [throw-error lex s - 1 e TYPE_ISSUE]
+		if s + 1 = e [throw-error lex s e TYPE_ISSUE]
 	]
 	
 	scan-string: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
@@ -1390,20 +1389,19 @@ lexer: context [
 			p pos [byte-ptr!]
 			cell [cell!]
 	][
-		either lex/scanned > 0 [type: lex/scanned][
-			type: TYPE_WORD
-			if flags and C_FLAG_COLON <> 0 [
-				case [
-					s/1 = #":" [type: TYPE_GET_WORD]
-					e/0 = #":" [type: TYPE_SET_WORD]
-					all [e/1 = #":" lex/entry = S_PATH][0]	;-- do nothing if in a path
-					true	   [throw-error lex s e type]
-				]
+		type: either lex/type > 0 [lex/type][lex/scanned]
+		
+		if flags and C_FLAG_COLON <> 0 [
+			case [
+				s/1 = #":" [type: TYPE_GET_WORD]
+				e/0 = #":" [type: TYPE_SET_WORD]
+				all [e/1 = #":" lex/entry = S_PATH][0]	;-- do nothing if in a path
+				true	   [throw-error lex s e type]
 			]
-			if s/1 = #"'" [
-				if type = TYPE_SET_WORD [throw-error lex s e TYPE_LIT_WORD]
-				type: TYPE_LIT_WORD
-			]
+		]
+		if s/1 = #"'" [
+			if type = TYPE_SET_WORD [throw-error lex s e TYPE_LIT_WORD]
+			type: TYPE_LIT_WORD
 		]
 		if type <> TYPE_WORD [
 			switch type [
@@ -1426,21 +1424,29 @@ lexer: context [
 		if type = TYPE_SET_WORD [lex/in-pos: e + 1]		;-- skip ending delimiter
 	]
 	
-	load-refinement: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
+	load-refinement: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
+		/local type [integer!]
+	][
+		type: TYPE_REFINEMENT
 		case [
-			s + 1 = e [lex/scanned: TYPE_WORD]
+			s + 1 = e [type: TYPE_WORD]
 			s + 2 = e [
 				case [
-					s/1 = #"'" [lex/scanned: TYPE_LIT_WORD]
-					s/1 = #":" [lex/scanned: TYPE_GET_WORD]
-					e/0 = #":" [lex/scanned: TYPE_SET_WORD]
+					s/1 = #"'" [type: TYPE_LIT_WORD]
+					s/1 = #":" [type: TYPE_GET_WORD]
+					e/0 = #":" [type: TYPE_SET_WORD]
 					true [0]
 				]
 			]
 			s/1 <> #"/" [throw-error lex s e TYPE_REFINEMENT]
 			true [0]
 		]
-		if load? [load-word lex s e flags yes]
+		either load? [
+			lex/type: type
+			load-word lex s e flags yes
+		][
+			lex/scanned: type
+		]
 	]
 
 	load-file: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
