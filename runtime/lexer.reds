@@ -374,15 +374,15 @@ lexer: context [
 			lex/scanned: TYPE_ERROR
 			throw LEX_ERR								;-- bypass errors when scanning only
 		]
-		if lex/fun-ptr <> null [unless fire-event lex EVT_ERROR TYPE_ERROR null s e [throw LEX_ERR]]
-		e: lex/in-end
-		len: 0
 		if null? s [									;-- determine token's start
 			either lex/head = lex/buffer [s: lex/input][
 				po: as red-point! lex/head - 1			;-- take start of the parent series
 				either TYPE_OF(po) <> TYPE_POINT [s: lex/input][s: lex/input + po/z]
 			]
 		]
+		if lex/fun-ptr <> null [unless fire-event lex EVT_ERROR TYPE_ERROR null s e [throw LEX_ERR]]
+		e: lex/in-end
+		len: 0
 		p: s
 		while [all [p < e p/1 <> #"^/" s + 30 > p]][p: unicode/fast-decode-utf8-char p :len]
 		if p > e [p: e]
@@ -2001,6 +2001,8 @@ lexer: context [
 						]
 					]
 				]
+				system/thrown: 0
+				
 				if load? [								;-- Loading stage --
 					do-load: as loader! loaders/index
 					if :do-load <> null [
@@ -2097,7 +2099,7 @@ lexer: context [
 		]
 		
 		catch RED_THROWN_ERROR [scan-tokens lex one? not scan?]
-		if system/thrown <> 0 [clean-up re-throw]
+		if system/thrown > LEX_ERR [clean-up re-throw]
 		
 		slots: (as-integer lex/tail - lex/buffer) >> 4
 		if slots > 0 [
