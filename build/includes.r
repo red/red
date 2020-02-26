@@ -84,6 +84,8 @@ write %build/bin/sources.r set-cache [
 		%dtoa.reds
 		%hashtable.reds
 		%interpreter.reds
+		%lexer.reds
+		%lexer-transitions.reds
 		%macros.reds
 		%natives.reds
 		%ownership.reds
