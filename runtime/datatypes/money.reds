@@ -41,6 +41,8 @@ money: context [
 	#define DISPATCH_SIGNS(this that) [switch collate-signs this that]
 	#define SWAP_ARGUMENTS(this that) [use [hold][hold: this this: that that: hold]]
 	
+	#define MONEY_OVERFLOW [fire [TO_ERROR(math overflow)]]
+	
 	SIZE_DIGITS:   SIZE_BYTES * 2
 	SIZE_INTEGRAL: SIZE_DIGITS - SIZE_SCALE
 	
@@ -363,7 +365,174 @@ money: context [
 			either as logic! get-sign money [-1][+1]
 		]
 	]
+	
+	absolute-money: func [
+		money   [red-money!]
+		return: [red-money!]
+	][
+		set-sign money 0
+	]
+	
+	negate-money: func [
+		money   [red-money!]
+		return: [red-money!]
+	][
+		flip-sign money
+	]
+	
+	add-money: func [
+		augend  [red-money!]
+		addend  [red-money!]
+		return: [red-money!]
+		/local
+			left-amount right-amount
+			[byte-ptr!]
+			augend-sign addend-sign
+			index carry left right sum
+			[integer!]
+	][
+		;@@ TBD: take currencies into account
+	
+		augend-sign: sign? augend
+		addend-sign: sign? addend
 		
+		DISPATCH_SIGNS(augend-sign addend-sign)[			
+			SIGN_00
+			SIGN_-0
+			SIGN_+0 [return augend]
+			SIGN_0-
+			SIGN_0+ [return addend]		
+			SIGN_+- [return subtract-money augend absolute-money addend]
+			SIGN_-+ [return subtract-money addend absolute-money augend]
+			default [0]
+		]
+		
+		left-amount:  get-amount augend
+		right-amount: get-amount addend
+		
+		if (get-digit left-amount 1) + (get-digit right-amount 1) > 9 [MONEY_OVERFLOW]
+		
+		index: SIZE_DIGITS
+		carry: 0
+		
+		loop index [
+			left:  get-digit left-amount  index
+			right: get-digit right-amount index
+			
+			sum: left + right + carry
+			carry: sum / 10
+			unless zero? carry [sum: sum + 6 and 0Fh]
+			
+			set-digit left-amount index sum
+		
+			index: index - 1
+		]
+		
+		if as logic! carry [MONEY_OVERFLOW]
+		augend
+	]
+	
+	subtract-money: func [
+		minuend    [red-money!]
+		subtrahend [red-money!]
+		return:    [red-money!]
+		/local
+			left-amount right-amount
+			[byte-ptr!]
+			minuend-sign subtrahend-sign sign
+			index borrow left right difference
+			[integer!]
+			lesser?
+			[logic!]
+	][
+		;@@ TBD: take currencies into account
+	
+		minuend-sign: sign? minuend
+		subtrahend-sign: sign? subtrahend
+		
+		DISPATCH_SIGNS(minuend-sign subtrahend-sign)[			
+			SIGN_00
+			SIGN_0-
+			SIGN_0+ [return negate-money subtrahend]
+			SIGN_-0
+			SIGN_+0 [return minuend]
+			SIGN_-+ [return negate-money add-money absolute-money minuend absolute-money subtrahend]
+			SIGN_+- [return add-money minuend absolute-money subtrahend]
+			
+			SIGN_-- [
+				lesser?: negative? compare-money minuend subtrahend
+				sign: as integer! lesser?
+				
+				minuend: absolute-money minuend
+				subtrahend: absolute-money subtrahend
+				
+				unless lesser? [SWAP_ARGUMENTS(minuend subtrahend)]
+			]
+			
+			SIGN_++ [
+				lesser?: negative? compare-money minuend subtrahend
+				sign: as integer! lesser?
+				
+				if lesser? [SWAP_ARGUMENTS(minuend subtrahend)]
+			]
+		]
+		
+		left-amount:  get-amount minuend
+		right-amount: get-amount subtrahend
+		
+		index:  SIZE_DIGITS
+		borrow: 0
+	
+		loop index [
+			left:  get-digit left-amount  index
+			right: get-digit right-amount index
+			
+			difference: left - right - borrow
+			borrow: as integer! negative? difference
+			if as logic! borrow [difference: difference + 10]
+			
+			set-digit left-amount index difference
+		
+			index: index - 1
+		]
+		
+		set-sign minuend sign
+	]
+	
+	do-math: func [
+		left    [red-money!]
+		right   [red-money!]
+		op      [integer!]
+		return: [red-money!]
+		/local
+			int  [red-integer!]
+	][
+		switch TYPE_OF(right) [
+			TYPE_MONEY [0]
+			TYPE_INTEGER [
+				int:   as red-integer! right
+				right: from-integer int/value
+			]
+			TYPE_FLOAT [--NOT_IMPLEMENTED--]
+			default [
+				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(right)]
+			]
+		]
+		
+		switch op [
+			OP_ADD [return add-money left right]
+			OP_SUB [return subtract-money left right]
+			OP_MUL
+			OP_DIV
+			OP_REM [--NOT_IMPLEMENTED--]
+			default [
+				fire [TO_ERROR (script invalid-type) datatype/push TYPE_OF(left)]
+			]
+		]
+		
+		left
+	]
+	
 	;-- Actions --
 
 	make: func [
@@ -478,15 +647,41 @@ money: context [
 	]
 	
 	absolute: func [return: [red-money!]][
-		set-sign as red-money! stack/arguments 0
+		absolute-money as red-money! stack/arguments
 	]
 	
 	negate: func [return: [red-money!]][
-		flip-sign as red-money! stack/arguments
+		negate-money as red-money! stack/arguments
 	]
 	
-	add:       STUB
-	subtract:  STUB
+	add: func [
+		return: [red-value!]
+		/local
+			left   [red-money!]
+			right  [red-money!]
+			result [red-money!]
+	][
+		left:  as red-money! stack/arguments
+		right: left + 1
+		
+		result: do-math left right OP_ADD
+		SET_RETURN(result)
+	]
+	
+	subtract: func [
+		return: [red-value!]
+		/local
+			left   [red-money!]
+			right  [red-money!]
+			result [red-money!]
+	][
+		left:  as red-money! stack/arguments
+		right: left + 1
+		
+		result: do-math left right OP_SUB
+		SET_RETURN(result)
+	]
+	
 	multiply:  STUB
 	divide:    STUB
 	remainder: STUB
@@ -527,14 +722,14 @@ money: context [
 			:compare
 			;-- Scalar actions --
 			:absolute
-				null;:add
+			:add
 				null;:divide
 				null;:multiply
 			:negate
 			null			;power
 				null;:remainder
 				null;:round
-				null;:subtract
+			:subtract
 			:even?
 			:odd?
 			;-- Bitwise actions --
