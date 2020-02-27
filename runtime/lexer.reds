@@ -2027,7 +2027,7 @@ lexer: context [
 					check-path-end lex s lex/in-pos flags load? ;-- lex/in-pos could have changed
 				]
 			]
-			if all [one? lex/scanned > 0 lex/entry <> S_PATH lex/entry <> S_M_STRING state <> T_PATH][
+			if all [any [one? pscan?] lex/scanned > 0 lex/entry <> S_PATH lex/entry <> S_M_STRING state <> T_PATH][
 				slot: lex/tail - 1
 				if any [
 					lex/tail = lex/buffer
