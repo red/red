@@ -29,9 +29,9 @@ money: context [
 	SIGN_MASK:   4000h
 	SIGN_OFFSET: 14
 	
-	MAX_INT_DIGITS: 10
-	INT32_MIN: 1 << 31
-	INT32_MAX: not INT32_MIN
+	INT32_MAX_DIGITS: 10
+	INT32_MIN_AMOUNT: #{00000002147483648FFFFF}
+	INT32_MAX_AMOUNT: #{00000002147483647FFFFF}
 	
 	;-- Support --
 	
@@ -194,29 +194,20 @@ money: context [
 		money   [red-money!]
 		return: [logic!]
 		/local
-			other
-			[red-money!]
 			amount limit
 			[byte-ptr!]
-			sign count bytes
+			sign count
 			[integer!]
-			flag
-			[logic!]
 	][
 		sign: sign? money
 		if zero? sign [return no]
 		
 		amount: get-amount money
 		count:  (count-digits amount) - SIZE_SCALE
-		if count <> MAX_INT_DIGITS [return count > MAX_INT_DIGITS]
+		if count <> INT32_MAX_DIGITS [return count > INT32_MAX_DIGITS]
 		
-		other: as red-money! stack/push*
-		limit: get-amount other
-		from-integer other either negative? sign [INT32_MIN][INT32_MAX]
-		
-		flag: positive? compare-amounts amount limit
-		stack/pop 1
-		flag
+		limit: either negative? sign [INT32_MIN_AMOUNT][INT32_MAX_AMOUNT]
+		positive? compare-amounts amount limit
 	]
 	
 	to-integer: func [
@@ -238,7 +229,7 @@ money: context [
 		index:   SIZE_INTEGRAL
 		start:   index
 		
-		loop MAX_INT_DIGITS [
+		loop INT32_MAX_DIGITS [
 			digit:   get-digit amount index
 			power:   as integer! pow 10.0 as float! start - index
 			integer: integer + (digit * power)
@@ -262,16 +253,16 @@ money: context [
 		zero-out money yes
 		if zero? int [return money]
 		
-		set-sign money as integer! int < 0
+		set-sign money as integer! negative? int
 		
-		extra: as integer! int = INT32_MIN
+		extra: as integer! int = (1 << 31)
 		int:   integer/abs int + extra
 		
 		amount: get-amount money
 		index:  SIZE_INTEGRAL
 		start:  index
 		
-		loop MAX_INT_DIGITS [
+		loop INT32_MAX_DIGITS [
 			power: as integer! pow 10.0 as float! start - index
 			digit: int / power // 10
 			
