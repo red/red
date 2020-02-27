@@ -1770,7 +1770,7 @@ dtoa: context [
 							STRTOD_BREAK
 						]
 					]
-					not all [zero? (w0 and BNDRY_MASK) zero? w1][
+					all [zero? (w0 and BNDRY_MASK) zero? w1][
 						STRTOD_DROP_DOWN
 					]
 					true []
