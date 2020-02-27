@@ -1933,7 +1933,7 @@ lexer: context [
 		pscan? [logic!]									;-- prescan only
 		/local
 			cp class index state prev flags line mark offset idx [integer!]
-			term? load?	ld? scan? events? [logic!]
+			term? load?	ld? scan? events? err? [logic!]
 			p e	start s [byte-ptr!]
 			slot		[cell!]
 			do-scan		[scanner!]
@@ -1985,9 +1985,11 @@ lexer: context [
 		
 			index: state - --EXIT_STATES--
 			do-scan: as scanner! scanners/index
-			if all [pscan? state < T_INTEGER][
+			if all [pscan? state <= T_STRING][
 				catch LEX_ERR [do-scan lex s p flags no]
+				err?: system/thrown = LEX_ERR
 				system/thrown: 0
+				if err? [exit]
 			]
 			scan?: either not events? [not pscan?][
 				idx: either zero? lex/scanned [0 - index][lex/scanned]
@@ -1995,7 +1997,7 @@ lexer: context [
 			]
 			if scan? [									;-- Scanning stage --
 				load?: any [not one? ld?]
-				either state < T_INTEGER [
+				either state < T_STRING [
 					catch LEX_ERR [do-scan lex s p flags ld?]
 				][
 					if any [not ld? all [events? lex/fun-evts and EVT_SCAN <> 0]][
@@ -2220,12 +2222,12 @@ lexer: context [
 			:scan-path-open		null					;-- T_PATH
 			:scan-construct		null					;-- T_CONS_MK
 			:scan-comment		null					;-- T_CMT
-			null				:load-integer			;-- T_INTEGER
+			:scan-string		:load-string			;-- T_STRING
 			:scan-word			:load-word				;-- T_WORD
+			:scan-issue			:load-word				;-- T_ISSUE
+			null				:load-integer			;-- T_INTEGER
 			null				:load-refinement		;-- T_REFINE
 			null				:load-char				;-- T_CHAR
-			:scan-issue			:load-word				;-- T_ISSUE
-			:scan-string		:load-string			;-- T_STRING
 			null				:load-file				;-- T_FILE
 			null				:load-binary			;-- T_BINARY
 			null				:load-percent			;-- T_PERCENT

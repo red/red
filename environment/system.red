@@ -406,7 +406,7 @@ system: context [
 		
 		exit-states: [
 			eof error! block! block! paren! paren! string! string! map! path! any-type!
-			comment integer! word! refinement! char! issue! string! file! binary! percent!
+			comment string! word! issue! integer! refinement! char! file! binary! percent!
 			float! float! tuple! date! pair! time! money! tag! url! email! hex
 		]
 	]

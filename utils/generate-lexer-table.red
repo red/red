@@ -71,7 +71,7 @@ context [
 		S_PATH_SIGN			TYPE_WORD			;--	55
 		--EXIT_STATES--		-					;-- 56
 		T_EOF				-					;-- 57
-		T_ERROR				-					;-- 58
+		T_ERROR				TYPE_ERROR			;-- 58
 		T_BLK_OP			-					;-- 59
 		T_BLK_CL			-					;-- 60
 		T_PAR_OP			-					;-- 61
@@ -82,12 +82,12 @@ context [
 		T_PATH				-					;-- 66
 		T_CONS_MK			-					;-- 67
 		T_CMT				-					;-- 68
-		T_INTEGER			TYPE_INTEGER		;-- 69 
+		T_STRING			TYPE_STRING			;-- 69
 		T_WORD				TYPE_WORD			;-- 70
-		T_REFINE			TYPE_REFINEMENT		;-- 71
-		T_CHAR				TYPE_CHAR			;-- 72
-		T_ISSUE				TYPE_ISSUE			;-- 73
-		T_STRING			TYPE_STRING			;-- 74
+		T_ISSUE				TYPE_ISSUE			;-- 71
+		T_INTEGER			TYPE_INTEGER		;-- 72 
+		T_REFINE			TYPE_REFINEMENT		;-- 73
+		T_CHAR				TYPE_CHAR			;-- 74
 		T_FILE				TYPE_FILE			;-- 75
 		T_BINARY			TYPE_BINARY			;-- 76
 		T_PERCENT			TYPE_PERCENT		;-- 77
