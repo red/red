@@ -125,7 +125,7 @@ money: context [
 		bit:     index and 1
 		byte:    index >> 1 + bit
 		offset:  either as logic! bit [4][0]
-		reverse: either offset = 0 [4][0]
+		reverse: either zero? offset  [4][0]
 		
 		amount/byte: amount/byte
 			and (HIGH_NIBBLE << reverse)
@@ -216,8 +216,7 @@ money: context [
 		/local
 			amount
 			[byte-ptr!]
-			sign integer index
-			start power digit
+			sign integer index start power digit
 			[integer!]
 	][
 		sign: sign? money
@@ -284,21 +283,21 @@ money: context [
 		money   [red-money!]
 		return: [logic!]
 	][
-		-1 = sign? money
+		negative? sign? money
 	]
 	
 	zero-money?: func [
 		money   [red-money!]
 		return: [logic!]
 	][
-		0 = sign? money
+		zero? sign? money
 	]
 	
 	positive-money?: func [
 		money   [red-money!]
 		return: [logic!]
 	][
-		1 = sign? money
+		positive? sign? money
 	]
 	
 	sign?: func [
@@ -355,7 +354,7 @@ money: context [
 		amount: get-amount money
 		sign:   sign? money
 		
-		if sign < 0 [
+		if negative? sign [
 			string/concatenate-literal buffer "-"
 			part: part - 1
 		]
