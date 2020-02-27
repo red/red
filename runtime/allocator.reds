@@ -916,7 +916,10 @@ alloc-series-buffer: func [
 			if null? frame [
 				collector/do-cycle			;-- launch a GC pass
 				frame: find-space sz
-				if null? frame [
+				if any [
+					null? frame
+					(as-integer frame/tail - frame/heap) < 52428	;- 1MB * 5%
+				][
 					if sz >= memory/s-size [ ;@@ temporary checks
 						memory/s-size: memory/s-max
 					]
