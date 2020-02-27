@@ -93,9 +93,9 @@ absolute: make action! [[
 
 add: make action! [[
 		"Returns the sum of the two values"
-		value1	 [number! char! pair! tuple! vector! time! date!]
-		value2	 [number! char! pair! tuple! vector! time! date!]
-		return:  [number! char! pair! tuple! vector! time! date!]
+		value1	 [scalar! vector!] "The augend"
+		value2	 [scalar! vector!] "The addend"
+		return:  [scalar! vector!] "The sum"
 	]
 	#get-definition ACT_ADD
 ]
@@ -161,9 +161,9 @@ round: make action! [[
 
 subtract: make action! [[
 		"Returns the difference between two values"
-		value1	 [number! char! pair! tuple! vector! time! date!]
-		value2	 [number! char! pair! tuple! vector! time! date!]
-		return:  [number! char! pair! tuple! vector! time! date!]
+		value1	 [scalar! vector!] "The minuend"
+		value2	 [scalar! vector!] "The subtrahend"
+		return:  [scalar! vector!] "The difference"
 	]
 	#get-definition ACT_SUBTRACT
 ]
