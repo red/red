@@ -352,6 +352,28 @@ Red [
 	--test-- "tr-32"
 		--assert [a] == transcode #{610062}				; a^(NUL)b
 
+	--test-- "tr-33"
+		--assert [aa <title> </title>] == out: transcode "aa<title></title>"
+		--assert word? out/1
+		--assert tag?  out/2
+		--assert tag?  out/3
+
+	--test-- "tr-34"
+		--assert [<a > 3] == out: transcode "<a > 3"
+		--assert tag? out/1
+		--assert integer? out/2
+
+	--test-- "tr-35"
+		--assert [<a /> 3] == out: transcode "<a /> 3"
+		--assert tag? out/1
+		--assert integer? out/2
+
+	--test-- "tr-36"
+		--assert (compose [3 < (to-word "a>")]) == out: transcode "3 < a>"
+		--assert integer? out/1
+		--assert word? out/2
+		--assert word? out/3
+
 ===end-group===
 ===start-group=== "transcode/one"
 	--test-- "tro-1"  --assert 8		== transcode/one "8"
@@ -479,6 +501,38 @@ Red [
 	--test-- "tro-94" --assert 'a == transcode/one #{610062}				; a^(NUL)b
 
 	--test-- "tro-95" --assert 2999999999.0 == transcode/one "2999999999"
+
+	--test-- "tro-96"
+		--assert (to-word "<<") == out: transcode/one "<<"
+		--assert word? :out
+
+	--test-- "tro-97"
+		--assert (to-word "<<<") == out: transcode/one "<<<"
+		--assert word? :out
+
+	--test-- "tro-98"
+		--assert (to-word ">>") == out: transcode/one ">>"
+		--assert word? :out
+
+	--test-- "tro-99"
+		--assert (to-word ">>>") == out: transcode/one ">>>"
+		--assert word? :out
+
+	--test-- "tro-100"
+		--assert (to-word "<<<<") == out: transcode/one "<<<<"
+		--assert word? :out
+
+	--test-- "tro-101"
+		--assert (to-word "<=") == out: transcode/one "<="
+		--assert word? :out
+
+	--test-- "tro-102"
+		--assert (to-word ">=") == out: transcode/one ">="
+		--assert word? :out
+
+	--test-- "tro-103"
+		--assert (to-word "<>") == out: transcode/one "<>"
+		--assert word? :out
 
 ===end-group===
 ===start-group=== "transcode/next"
