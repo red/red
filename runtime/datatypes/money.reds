@@ -89,12 +89,15 @@ money: context [
 	]
 	
 	zero-out: func [
-		money [red-money!]
-		all?  [logic!]
+		money   [red-money!]
+		all?    [logic!]
+		return: [red-money!]
 	][
 		money/amount1: either all? [0][money/amount1 and FF000000h]
 		money/amount2: 0
 		money/amount3: 0
+		
+		money
 	]
 	
 	get-digit: func [
@@ -240,16 +243,17 @@ money: context [
 	]
 
 	from-integer: func [
-		money   [red-money!]
 		int     [integer!]
 		return: [red-money!]
 		/local
+			money
+			[red-money!]
 			amount
 			[byte-ptr!]
 			extra index start power digit
 			[integer!]
 	][
-		zero-out money yes
+		money: zero-out as red-money! stack/push* yes
 		if zero? int [return money]
 		
 		set-sign money as integer! negative? int
@@ -328,7 +332,7 @@ money: context [
 		switch TYPE_OF(spec) [
 			TYPE_INTEGER [
 				integer: as red-integer! spec
-				money:   from-integer money integer/value
+				money:   from-integer integer/value
 			]
 			TYPE_FLOAT [--NOT_IMPLEMENTED--]
 			default [
