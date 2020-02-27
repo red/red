@@ -283,6 +283,8 @@ money: context [
 			[integer!]
 	][
 		money: zero-out as red-money! stack/push* yes
+		money/header: TYPE_MONEY
+		
 		if zero? int [return money]
 		
 		set-sign money as integer! negative? int
