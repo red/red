@@ -245,6 +245,12 @@ integer: context [
 			TYPE_INTEGER TYPE_CHAR [
 				left/value: do-math-op left/value right/value op
 			]
+			TYPE_MONEY [
+				left: as red-integer! money/do-math
+					money/from-integer left/value
+					as red-money! right
+					op
+			]
 			TYPE_FLOAT TYPE_PERCENT TYPE_TIME [float/do-math op]
 			TYPE_PAIR
 			TYPE_TUPLE [
