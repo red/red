@@ -71,7 +71,7 @@ context [
 		S_PATH_SIGN			TYPE_WORD			;--	55
 		--EXIT_STATES--		-					;-- 56
 		T_EOF				-					;-- 57
-		T_ERROR				-					;-- 58
+		T_ERROR				TYPE_ERROR			;-- 58
 		T_BLK_OP			-					;-- 59
 		T_BLK_CL			-					;-- 60
 		T_PAR_OP			-					;-- 61

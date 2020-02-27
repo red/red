@@ -556,7 +556,7 @@ Red [
 	--test-- "scan-f5" --assert error! = scan/fast ")"
 	--test-- "scan-f6" --assert error! = scan/fast "#("
 	--test-- "scan-f7" --assert error! = scan/fast "{"
-	;--test-- "scan-f8" --assert error! = scan/fast "}"
+	--test-- "scan-f8" --assert error! = scan/fast "}"
 	--test-- "scan-f9" --assert block!   = scan/fast "[]"
 	--test-- "scan-f10" --assert paren!  = scan/fast "()"
 	--test-- "scan-f11" --assert map!    = scan/fast "#()"
@@ -610,7 +610,7 @@ Red [
 			prescan path! word! 1 6x7
 			open path! datatype! 1 6x6
 			load word! datatype! 1 b
-			prescan error! word! 1 8x8
+			prescan error! datatype! 1 8x8
 			error error! datatype! 1 8x8
 			prescan block! word! 1 9x9
 			open block! datatype! 1 9x9
@@ -631,7 +631,7 @@ Red [
 			prescan path! word! 1 6x7
 			open path! datatype! 1 6x6
 			load word! datatype! 1 b
-			prescan error! word! 1 8x8
+			prescan error! datatype! 1 8x8
 			error error! datatype! 1 8x8
 			prescan word! datatype! 1 9x10
 			scan word! word! 1 9x10
@@ -686,12 +686,12 @@ Red [
 
 	--test-- "tt-5"
 		clear logs
-		--assert [hello 3.14 pi world] == transcode/trace "hello ^/\ 3.14 pi world" :lex-logger
+		--assert [hello 3.14 pi world] == transcode/trace "hello ^/\ 3.14 pi world" :lex-logger	
 		--assert logs = [
 		    prescan word! datatype! 1 1x6
 			scan word! word! 1 1x6
 			load word! datatype! 1 hello
-			prescan error! word! 2 8x8
+			prescan error! datatype! 2 8x8
 			error error! datatype! 2 8x8
 			prescan float! datatype! 2 10x14
 			scan float! word! 2 10x14

@@ -1933,7 +1933,7 @@ lexer: context [
 		pscan? [logic!]									;-- prescan only
 		/local
 			cp class index state prev flags line mark offset idx [integer!]
-			term? load?	ld? scan? events? [logic!]
+			term? load?	ld? scan? events? err? [logic!]
 			p e	start s [byte-ptr!]
 			slot		[cell!]
 			do-scan		[scanner!]
@@ -1987,7 +1987,9 @@ lexer: context [
 			do-scan: as scanner! scanners/index
 			if all [pscan? state < T_INTEGER][
 				catch LEX_ERR [do-scan lex s p flags no]
+				err?: system/thrown = LEX_ERR
 				system/thrown: 0
+				if err? [exit]
 			]
 			scan?: either not events? [not pscan?][
 				idx: either zero? lex/scanned [0 - index][lex/scanned]
