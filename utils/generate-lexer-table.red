@@ -83,7 +83,7 @@ context [
 		T_CONS_MK			-					;-- 67
 		T_CMT				-					;-- 68
 		T_INTEGER			TYPE_INTEGER		;-- 69 
-		T_WORD				-					;-- 70
+		T_WORD				TYPE_WORD			;-- 70
 		T_REFINE			TYPE_REFINEMENT		;-- 71
 		T_CHAR				TYPE_CHAR			;-- 72
 		T_ISSUE				TYPE_ISSUE			;-- 73

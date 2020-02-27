@@ -430,7 +430,7 @@ _hashtable: context [
 			if all [vsize = HASH_SYMBOL_CONTEXT blk <> null][
 				return copy-context as red-context! blk node
 			]
-			if size >= 4000 [size: size << 4]		;-- global context
+			if size >= 4000 [size: size << 1]		;-- global context
 		]
 
 		s: as series! node/value

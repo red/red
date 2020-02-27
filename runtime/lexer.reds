@@ -374,15 +374,15 @@ lexer: context [
 			lex/scanned: TYPE_ERROR
 			throw LEX_ERR								;-- bypass errors when scanning only
 		]
-		if lex/fun-ptr <> null [unless fire-event lex EVT_ERROR TYPE_ERROR null s e [throw LEX_ERR]]
-		e: lex/in-end
-		len: 0
 		if null? s [									;-- determine token's start
 			either lex/head = lex/buffer [s: lex/input][
 				po: as red-point! lex/head - 1			;-- take start of the parent series
 				either TYPE_OF(po) <> TYPE_POINT [s: lex/input][s: lex/input + po/z]
 			]
 		]
+		if lex/fun-ptr <> null [unless fire-event lex EVT_ERROR TYPE_ERROR null s e [throw LEX_ERR]]
+		e: lex/in-end
+		len: 0
 		p: s
 		while [all [p < e p/1 <> #"^/" s + 30 > p]][p: unicode/fast-decode-utf8-char p :len]
 		if p > e [p: e]
@@ -936,7 +936,7 @@ lexer: context [
 	]
 
 	scan-block-close: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
-		close-block lex s e TYPE_BLOCK no
+		catch LEX_ERR [close-block lex s e TYPE_BLOCK no]
 		lex/in-pos: e + 1								;-- skip ]
 	]
 	
@@ -944,11 +944,13 @@ lexer: context [
 		/local
 			blk	 [red-block!]
 	][
-		if TYPE_MAP = close-block lex s e TYPE_PAREN no [
-			lex/scanned: TYPE_MAP
-			if lex/load? [
-				blk: as red-block! lex/tail - 1
-				map/make-at as cell! blk blk block/rs-length? blk
+		catch LEX_ERR [
+			if TYPE_MAP = close-block lex s e TYPE_PAREN no [
+				lex/scanned: TYPE_MAP
+				if lex/load? [
+					blk: as red-block! lex/tail - 1
+					map/make-at as cell! blk blk block/rs-length? blk
+				]
 			]
 		]
 		lex/in-pos: e + 1								;-- skip )
@@ -999,7 +1001,7 @@ lexer: context [
 		]
 		open-block lex type s							;-- open a new path series
 		if type <> TYPE_PATH [s: s + 1]
-		lex/scanned: TYPE_WORD
+		lex/type: TYPE_WORD
 		if load? [
 			flags: flags and not C_FLAG_COLON
 			load-word lex s e flags yes
@@ -1096,8 +1098,7 @@ lexer: context [
 	]
 	
 	scan-issue: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
-		s: s + 1
-		if s = e [throw-error lex s - 1 e TYPE_ISSUE]
+		if s + 1 = e [throw-error lex s e TYPE_ISSUE]
 	]
 	
 	scan-string: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
@@ -1390,20 +1391,19 @@ lexer: context [
 			p pos [byte-ptr!]
 			cell [cell!]
 	][
-		either lex/scanned > 0 [type: lex/scanned][
-			type: TYPE_WORD
-			if flags and C_FLAG_COLON <> 0 [
-				case [
-					s/1 = #":" [type: TYPE_GET_WORD]
-					e/0 = #":" [type: TYPE_SET_WORD]
-					all [e/1 = #":" lex/entry = S_PATH][0]	;-- do nothing if in a path
-					true	   [throw-error lex s e type]
-				]
+		type: either lex/type > 0 [lex/type][lex/scanned]
+		
+		if flags and C_FLAG_COLON <> 0 [
+			case [
+				s/1 = #":" [type: TYPE_GET_WORD]
+				e/0 = #":" [type: TYPE_SET_WORD]
+				all [e/1 = #":" lex/entry = S_PATH][0]	;-- do nothing if in a path
+				true	   [throw-error lex s e type]
 			]
-			if s/1 = #"'" [
-				if type = TYPE_SET_WORD [throw-error lex s e TYPE_LIT_WORD]
-				type: TYPE_LIT_WORD
-			]
+		]
+		if s/1 = #"'" [
+			if type = TYPE_SET_WORD [throw-error lex s e TYPE_LIT_WORD]
+			type: TYPE_LIT_WORD
 		]
 		if type <> TYPE_WORD [
 			switch type [
@@ -1426,21 +1426,29 @@ lexer: context [
 		if type = TYPE_SET_WORD [lex/in-pos: e + 1]		;-- skip ending delimiter
 	]
 	
-	load-refinement: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
+	load-refinement: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
+		/local type [integer!]
+	][
+		type: TYPE_REFINEMENT
 		case [
-			s + 1 = e [lex/scanned: TYPE_WORD]
+			s + 1 = e [type: TYPE_WORD]
 			s + 2 = e [
 				case [
-					s/1 = #"'" [lex/scanned: TYPE_LIT_WORD]
-					s/1 = #":" [lex/scanned: TYPE_GET_WORD]
-					e/0 = #":" [lex/scanned: TYPE_SET_WORD]
+					s/1 = #"'" [type: TYPE_LIT_WORD]
+					s/1 = #":" [type: TYPE_GET_WORD]
+					e/0 = #":" [type: TYPE_SET_WORD]
 					true [0]
 				]
 			]
 			s/1 <> #"/" [throw-error lex s e TYPE_REFINEMENT]
 			true [0]
 		]
-		if load? [load-word lex s e flags yes]
+		either load? [
+			lex/type: type
+			load-word lex s e flags yes
+		][
+			lex/scanned: type
+		]
 	]
 
 	load-file: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
@@ -1976,13 +1984,17 @@ lexer: context [
 			lex/scanned: as-integer type-table/state
 		
 			index: state - --EXIT_STATES--
+			do-scan: as scanner! scanners/index
+			if all [pscan? state < T_INTEGER][
+				catch LEX_ERR [do-scan lex s p flags no]
+				system/thrown: 0
+			]
 			scan?: either not events? [not pscan?][
 				idx: either zero? lex/scanned [0 - index][lex/scanned]
 				fire-event lex EVT_PRESCAN idx null s lex/in-pos
 			]
 			if scan? [									;-- Scanning stage --
 				load?: any [not one? ld?]
-				do-scan: as scanner! scanners/index
 				either state < T_INTEGER [
 					catch LEX_ERR [do-scan lex s p flags ld?]
 				][
@@ -1995,6 +2007,8 @@ lexer: context [
 						]
 					]
 				]
+				system/thrown: 0
+				
 				if load? [								;-- Loading stage --
 					do-load: as loader! loaders/index
 					if :do-load <> null [
@@ -2091,7 +2105,7 @@ lexer: context [
 		]
 		
 		catch RED_THROWN_ERROR [scan-tokens lex one? not scan?]
-		if system/thrown <> 0 [clean-up re-throw]
+		if system/thrown > LEX_ERR [clean-up re-throw]
 		
 		slots: (as-integer lex/tail - lex/buffer) >> 4
 		if slots > 0 [
