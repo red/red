@@ -15,6 +15,8 @@ Red/System [
 money: context [
 	verbose: 0
 	
+	;-- Base --
+	
 	#enum sizes! [
 		SIZE_BYTES: 11
 		SIZE_SCALE: 05
@@ -56,7 +58,7 @@ money: context [
 	INT32_MIN_AMOUNT: #{00000002147483648FFFFF}
 	INT32_MAX_AMOUNT: #{00000002147483647FFFFF}
 	
-	;-- Support --
+	;-- Sign --
 	
 	get-sign: func [
 		money   [red-money!]
@@ -91,6 +93,8 @@ money: context [
 	][
 		this + 1 << 4 or (that + 1)
 	]
+	
+	;-- Amount --
 	
 	get-amount: func [
 		money   [red-money!]
@@ -130,6 +134,8 @@ money: context [
 		
 		money
 	]
+	
+	;-- Digits --
 	
 	get-digit: func [
 		amount  [byte-ptr!]
@@ -184,6 +190,8 @@ money: context [
 		either zero? count [1][count]
 	]
 	
+	;-- Construction --
+	
 	make-at: func [
 		slot	[red-value!]
 		sign    [integer!]
@@ -223,6 +231,8 @@ money: context [
 	][
 		make-at stack/push* sign amount1 amount2 amount3
 	]
+	
+	;-- Conversion --
 	
 	overflow?: func [
 		money   [red-money!]
@@ -313,6 +323,8 @@ money: context [
 		
 		money
 	]
+	
+	;-- Comparison --
 		
 	compare-money: func [
 		this    [red-money!]
@@ -365,6 +377,8 @@ money: context [
 			either as logic! get-sign money [-1][+1]
 		]
 	]
+		
+	;-- Math --
 	
 	absolute-money: func [
 		money   [red-money!]
@@ -427,6 +441,7 @@ money: context [
 		]
 		
 		if as logic! carry [MONEY_OVERFLOW]
+		
 		augend
 	]
 	
