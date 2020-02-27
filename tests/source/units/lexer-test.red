@@ -379,6 +379,7 @@ Red [
 	--test-- "tro-1"  --assert 8		== transcode/one "8"
 	--test-- "tro-1.1"  --assert 8		== transcode/one "8 "
 	--test-- "tro-2"  --assert 123 		== transcode/one "123"
+	--test-- "tro-2.1" --assert -123 	== transcode/one "-123"
 	--test-- "tro-3"  --assert 123 		== transcode/one " 123 "
 	--test-- "tro-4"  --assert 8		== transcode/one " ;hello^/ 8"
 	--test-- "tro-5"  --assert 'Hello 	== transcode/one "Hello"
@@ -533,9 +534,6 @@ Red [
 	--test-- "tro-103"
 		--assert (to-word "<>") == out: transcode/one "<>"
 		--assert word? :out
-
-	--test-- "tro-104" --assert 123 == transcode/one "123"
-	--test-- "tro-105" --assert -123 == transcode/one "-123"
 
 ===end-group===
 ===start-group=== "transcode/next"
