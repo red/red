@@ -318,6 +318,8 @@ money: context [
 			this-sign that-sign
 			[integer!]
 	][
+		;@@ TBD: take currencies into account
+	
 		this-sign: sign? this
 		that-sign: sign? that
 		
