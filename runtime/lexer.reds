@@ -936,7 +936,7 @@ lexer: context [
 	]
 
 	scan-block-close: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
-		close-block lex s e TYPE_BLOCK no
+		catch LEX_ERR [close-block lex s e TYPE_BLOCK no]
 		lex/in-pos: e + 1								;-- skip ]
 	]
 	
@@ -944,11 +944,13 @@ lexer: context [
 		/local
 			blk	 [red-block!]
 	][
-		if TYPE_MAP = close-block lex s e TYPE_PAREN no [
-			lex/scanned: TYPE_MAP
-			if lex/load? [
-				blk: as red-block! lex/tail - 1
-				map/make-at as cell! blk blk block/rs-length? blk
+		catch LEX_ERR [
+			if TYPE_MAP = close-block lex s e TYPE_PAREN no [
+				lex/scanned: TYPE_MAP
+				if lex/load? [
+					blk: as red-block! lex/tail - 1
+					map/make-at as cell! blk blk block/rs-length? blk
+				]
 			]
 		]
 		lex/in-pos: e + 1								;-- skip )
@@ -1982,13 +1984,17 @@ lexer: context [
 			lex/scanned: as-integer type-table/state
 		
 			index: state - --EXIT_STATES--
+			do-scan: as scanner! scanners/index
+			if all [pscan? state < T_INTEGER][
+				catch LEX_ERR [do-scan lex s p flags no]
+				system/thrown: 0
+			]
 			scan?: either not events? [not pscan?][
 				idx: either zero? lex/scanned [0 - index][lex/scanned]
 				fire-event lex EVT_PRESCAN idx null s lex/in-pos
 			]
 			if scan? [									;-- Scanning stage --
 				load?: any [not one? ld?]
-				do-scan: as scanner! scanners/index
 				either state < T_INTEGER [
 					catch LEX_ERR [do-scan lex s p flags ld?]
 				][

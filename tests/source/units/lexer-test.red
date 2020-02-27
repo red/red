@@ -549,20 +549,20 @@ Red [
 ===end-group===
 ===start-group=== "scan/fast"
 
-	--test-- "scan/fast-1" --assert word!  = scan/fast "a"
-comment {	
-	--test-- "scan/fast-2" --assert error! = scan/fast "["
-	--test-- "scan/fast-3" --assert error! = scan/fast "]"
-	--test-- "scan/fast-4" --assert error! = scan/fast "("
-	--test-- "scan/fast-5" --assert error! = scan/fast ")"
-	--test-- "scan/fast-6" --assert error! = scan/fast "#("
-	--test-- "scan/fast-7" --assert error! = scan/fast "^{"
-	--test-- "scan/fast-8" --assert block! = scan/fast "[]"
-	--test-- "scan/fast-9" --assert paren! = scan/fast "()"
-	--test-- "scan/fast-10" --assert map!   = scan/fast "#()"
-	--test-- "scan/fast-11" --assert string! = scan/fast "{}"
-	--test-- "scan/fast-12" --assert string! = scan/fast ^{""^}
-}
+	--test-- "scan-f1" --assert word!  = scan/fast "a"
+	--test-- "scan-f2" --assert error! = scan/fast "["
+	--test-- "scan-f3" --assert error! = scan/fast "]"
+	--test-- "scan-f4" --assert error! = scan/fast "("
+	--test-- "scan-f5" --assert error! = scan/fast ")"
+	--test-- "scan-f6" --assert error! = scan/fast "#("
+	--test-- "scan-f7" --assert error! = scan/fast "{"
+	;--test-- "scan-f8" --assert error! = scan/fast "}"
+	--test-- "scan-f9" --assert block!   = scan/fast "[]"
+	--test-- "scan-f10" --assert paren!  = scan/fast "()"
+	--test-- "scan-f11" --assert map!    = scan/fast "#()"
+	--test-- "scan-f12" --assert string! = scan/fast "{}"
+	--test-- "scan-f13" --assert string! = scan/fast {""}
+
 ===end-group===
 ===start-group=== "transcode/trace"
 
