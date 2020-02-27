@@ -442,7 +442,7 @@ money: context [
 			minuend-sign subtrahend-sign sign
 			index borrow left right difference
 			[integer!]
-			lesser?
+			lesser? flag
 			[logic!]
 	][
 		;@@ TBD: take currencies into account
@@ -458,22 +458,20 @@ money: context [
 			SIGN_+0 [return minuend]
 			SIGN_-+ [return negate-money add-money absolute-money minuend absolute-money subtrahend]
 			SIGN_+- [return add-money minuend absolute-money subtrahend]
-			
-			SIGN_-- [
+			default [
 				lesser?: negative? compare-money minuend subtrahend
 				sign: as integer! lesser?
 				
-				minuend: absolute-money minuend
-				subtrahend: absolute-money subtrahend
+				DISPATCH_SIGNS(minuend-sign subtrahend-sign)[
+					SIGN_++ [flag: lesser?]
+					SIGN_-- [
+						minuend: absolute-money minuend
+						subtrahend: absolute-money subtrahend
+						flag: not lesser?
+					]
+				]
 				
-				unless lesser? [SWAP_ARGUMENTS(minuend subtrahend)]
-			]
-			
-			SIGN_++ [
-				lesser?: negative? compare-money minuend subtrahend
-				sign: as integer! lesser?
-				
-				if lesser? [SWAP_ARGUMENTS(minuend subtrahend)]
+				if flag [SWAP_ARGUMENTS(minuend subtrahend)]
 			]
 		]
 		
