@@ -534,6 +534,9 @@ Red [
 		--assert (to-word "<>") == out: transcode/one "<>"
 		--assert word? :out
 
+	--test-- "tro-104" --assert 123 == transcode/one "123"
+	--test-- "tro-105" --assert -123 == transcode/one "-123"
+
 ===end-group===
 ===start-group=== "transcode/next"
 
@@ -601,6 +604,8 @@ Red [
 	--test-- "scan-36" --assert string! = scan "{}"
 	--test-- "scan-37" --assert string! = scan {""}
 	--test-- "scan-38" --assert word!   = scan "a"
+	--test-- "scan-39" --assert integer! = scan "123"
+	--test-- "scan-40" --assert integer! = scan "-123"
 
 ===end-group===
 ===start-group=== "scan/fast"

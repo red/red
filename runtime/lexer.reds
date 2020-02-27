@@ -1153,11 +1153,9 @@ lexer: context [
 			return 0
 		]
 		p: s
-		neg?: no
-		if flags and C_FLAG_SIGN <> 0 [
-			neg?: s/1 = #"-"
-			p: p + 1									;-- skip sign when present
-		]
+		neg?: s/1 = #"-"
+		if neg? [p: p + 1]								;-- skip sign when present
+		
 		either (as-integer e - p) = 1 [					;-- fast path for 1-digit integers
 			i: as-integer (p/1 - #"0")
 		][
@@ -1181,7 +1179,7 @@ lexer: context [
 				]
 			]
 			assert p = e
-			if any [o? neg? <> (as-logic i and 80000000h)][
+			if any [o? i < 0][
 				len: as-integer e - s					;-- account for sign in len now
 				either all [len = 11 zero? compare-memory s min-integer len][
 					i: 80000000h
@@ -1190,7 +1188,7 @@ lexer: context [
 			]
 		]
 		if neg? [i: 0 - i]
-		lex/scanned: TYPE_INTEGER
+		;lex/scanned: TYPE_INTEGER
 		if load? [
 			cell: alloc-slot lex
 			integer/make-at cell i
