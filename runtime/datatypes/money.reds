@@ -20,6 +20,27 @@ money: context [
 		SIZE_SCALE: 05
 	]
 	
+	#enum signs! [
+	;-- 		 -0+
+	;--			-101
+	;-- 	+1	 012
+	
+		SIGN_--: 00h
+		SIGN_-0: 01h
+		SIGN_-+: 02h
+		
+		SIGN_0-: 10h
+		SIGN_00: 11h
+		SIGN_0+: 12h
+		
+		SIGN_+-: 20h
+		SIGN_+0: 21h
+		SIGN_++: 22h
+	]
+	
+	#define DISPATCH_SIGNS(this that) [switch collate-signs this that]
+	#define SWAP_ARGUMENTS(this that) [use [hold][hold: this this: that that: hold]]
+	
 	SIZE_DIGITS:   SIZE_BYTES * 2
 	SIZE_INTEGRAL: SIZE_DIGITS - SIZE_SCALE
 	
@@ -59,6 +80,14 @@ money: context [
 		return: [red-money!]
 	][
 		set-sign money as integer! not as logic! get-sign money
+	]
+	
+	collate-signs: func [
+		this    [integer!]
+		that    [integer!]
+		return: [integer!]
+	][
+		this + 1 << 4 or (that + 1)
 	]
 	
 	get-amount: func [
@@ -280,8 +309,26 @@ money: context [
 		
 		money
 	]
-	
-	;-- Natives --
+		
+	compare-money: func [
+		this    [red-money!]
+		that    [red-money!]
+		return: [integer!]
+		/local
+			this-sign that-sign
+			[integer!]
+	][
+		this-sign: sign? this
+		that-sign: sign? that
+		
+		DISPATCH_SIGNS(this-sign that-sign)[
+			SIGN_-- [SWAP_ARGUMENTS(this that) 0]
+			SIGN_++ [0]
+			default [return integer/sign? this-sign - that-sign]
+		]
+		
+		integer/sign? compare-amounts get-amount this get-amount that
+	]
 	
 	negative-money?: func [
 		money   [red-money!]
@@ -392,7 +439,39 @@ money: context [
 	
 	random:    STUB
 	
-	compare:   STUB
+	compare: func [
+		money   [red-money!]
+		value   [red-money!]
+		op      [integer!]
+		return: [integer!]
+		/local
+			int [red-integer!]
+	][
+		if all [
+			TYPE_OF(money) <> TYPE_OF(value)
+			any [
+				op = COMP_SORT
+				op = COMP_CASE_SORT
+				op = COMP_FIND
+				op = COMP_SAME
+				op = COMP_STRICT_EQUAL
+			]
+		][
+			return 1
+		]
+		
+		switch TYPE_OF(value) [
+			TYPE_MONEY [0]
+			TYPE_INTEGER [
+				int:   as red-integer! value
+				value: from-integer int/value
+			]
+			TYPE_FLOAT [--NOT_IMPLEMENTED--]
+			default [RETURN_COMPARE_OTHER]
+		]
+		
+		compare-money money value
+	]
 	
 	absolute: func [return: [red-money!]][
 		set-sign as red-money! stack/arguments 0
@@ -441,7 +520,7 @@ money: context [
 			:mold
 			null			;eval-path
 			null			;set-path
-				null;:compare
+			:compare
 			;-- Scalar actions --
 			:absolute
 				null;:add
