@@ -19,6 +19,13 @@ integer: context [
 	][
 		any [fl/value > 2147483647.0 fl/value < -2147483648.0]
 	]
+	
+	sign?: func [
+		integer [integer!]
+		return: [integer!]
+	][
+		SIGN_COMPARE_RESULT(integer 0)
+	]
 
 	abs: func [
 		value	[integer!]
