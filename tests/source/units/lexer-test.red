@@ -540,11 +540,13 @@ Red [
 	--test-- "scan-29" --assert error! = scan ")"
 	--test-- "scan-30" --assert error! = scan "#("
 	--test-- "scan-31" --assert error! = scan "{"
-	--test-- "scan-32" --assert block! = scan "[]"
-	--test-- "scan-33" --assert paren! = scan "()"
-	--test-- "scan-34" --assert map!   = scan "#()"
-	--test-- "scan-35" --assert string! = scan "{}"
-	--test-- "scan-36" --assert string! = scan {""}
+	--test-- "scan-32" --assert error! = scan "}"
+	--test-- "scan-33" --assert block! = scan "[]"
+	--test-- "scan-34" --assert paren! = scan "()"
+	--test-- "scan-35" --assert map!   = scan "#()"
+	--test-- "scan-36" --assert string! = scan "{}"
+	--test-- "scan-37" --assert string! = scan {""}
+	--test-- "scan-38" --assert word!   = scan "a"
 
 ===end-group===
 ===start-group=== "scan/fast"
