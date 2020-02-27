@@ -512,6 +512,12 @@ integer: context [
 				char: as red-char! value2				;@@ could be optimized as integer! and char!
 				right: char/value						;@@ structures are overlapping exactly
 			]
+			TYPE_MONEY [
+				return money/compare
+					money/from-integer left
+					as red-money! value2
+					op
+			]
 			TYPE_FLOAT
 			TYPE_TIME
 			TYPE_PERCENT [
