@@ -391,8 +391,6 @@ money: context [
 			index carry left right sum
 			[integer!]
 	][
-		;@@ TBD: take currencies into account
-	
 		augend-sign: sign? augend
 		addend-sign: sign? addend
 		
@@ -445,8 +443,6 @@ money: context [
 			lesser? flag
 			[logic!]
 	][
-		;@@ TBD: take currencies into account
-	
 		minuend-sign: sign? minuend
 		subtrahend-sign: sign? subtrahend
 		
@@ -501,10 +497,13 @@ money: context [
 		left    [red-money!]
 		right   [red-money!]
 		op      [integer!]
-		return: [red-money!]
+		return: [red-value!]
 		/local
-			int  [red-integer!]
+			int    [red-integer!]
+			result [red-money!]
 	][
+		;@@ TBD: take currencies into account
+	
 		switch TYPE_OF(right) [
 			TYPE_MONEY [0]
 			TYPE_INTEGER [
@@ -517,18 +516,19 @@ money: context [
 			]
 		]
 		
-		switch op [
-			OP_ADD [return add-money left right]
-			OP_SUB [return subtract-money left right]
+		result: switch op [
+			OP_ADD [add-money left right]
+			OP_SUB [subtract-money left right]
 			OP_MUL
 			OP_DIV
-			OP_REM [--NOT_IMPLEMENTED--]
+			OP_REM [--NOT_IMPLEMENTED-- left]
 			default [
 				fire [TO_ERROR (script invalid-type) datatype/push TYPE_OF(left)]
+				left
 			]
 		]
 		
-		left
+		SET_RETURN(result)
 	]
 	
 	;-- Actions --
@@ -657,13 +657,11 @@ money: context [
 		/local
 			left   [red-money!]
 			right  [red-money!]
-			result [red-money!]
 	][
 		left:  as red-money! stack/arguments
 		right: left + 1
 		
-		result: do-math left right OP_ADD
-		SET_RETURN(result)
+		do-math left right OP_ADD
 	]
 	
 	subtract: func [
@@ -671,13 +669,11 @@ money: context [
 		/local
 			left   [red-money!]
 			right  [red-money!]
-			result [red-money!]
 	][
 		left:  as red-money! stack/arguments
 		right: left + 1
 		
-		result: do-math left right OP_SUB
-		SET_RETURN(result)
+		do-math left right OP_SUB
 	]
 	
 	multiply:  STUB
