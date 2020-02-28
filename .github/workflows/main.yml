@@ -14,8 +14,29 @@ jobs:
         $url = "http://static.red-lang.org/build/rebview.exe"
         $output = "$Env:GITHUB_WORKSPACE\rebview.exe"
         (New-Object System.Net.WebClient).DownloadFile($url, $output)
-    - name: run view test
+    - name: run core test
       run: rebview.exe -qws tests\run-core-tests.r --batch
+      shell: cmd
+
+    - uses: actions/upload-artifact@v1
+      if: failure()
+      with:
+        name: core-test-log
+        path: quick-test/quick-test.log
+
+  Core-Debug:
+
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+    - name: setup red repo
+      run: |
+        $url = "http://static.red-lang.org/build/rebview.exe"
+        $output = "$Env:GITHUB_WORKSPACE\rebview.exe"
+        (New-Object System.Net.WebClient).DownloadFile($url, $output)
+    - name: run core test
+      run: rebview.exe -qws tests\run-core-tests.r --batch --debug
       shell: cmd
 
     - uses: actions/upload-artifact@v1
@@ -77,8 +98,29 @@ jobs:
         $url = "http://static.red-lang.org/build/rebview.exe"
         $output = "$Env:GITHUB_WORKSPACE\rebview.exe"
         (New-Object System.Net.WebClient).DownloadFile($url, $output)
-    - name: run view test
-      run: rebview.exe -qws tests\run-all.r --each
+    - name: run each test
+      run: rebview.exe -qws tests\run-core-tests.r --ci-each
+      shell: cmd
+
+    - uses: actions/upload-artifact@v1
+      if: failure()
+      with:
+        name: each-test-log
+        path: quick-test/quick-test.log
+
+  Each-Mode-Debug:
+
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+    - name: setup red repo
+      run: |
+        $url = "http://static.red-lang.org/build/rebview.exe"
+        $output = "$Env:GITHUB_WORKSPACE\rebview.exe"
+        (New-Object System.Net.WebClient).DownloadFile($url, $output)
+    - name: run each test
+      run: rebview.exe -qws tests\run-core-tests.r --ci-each --debug
       shell: cmd
 
     - uses: actions/upload-artifact@v1
@@ -98,8 +140,8 @@ jobs:
         $url = "http://static.red-lang.org/build/rebview.exe"
         $output = "$Env:GITHUB_WORKSPACE\rebview.exe"
         (New-Object System.Net.WebClient).DownloadFile($url, $output)
-    - name: run view test
-      run: rebview.exe -qws system\tests\run-all.r --each
+    - name: run Red/System test
+      run: rebview.exe -qws system\tests\run-all.r --batch
       shell: cmd
 
     - uses: actions/upload-artifact@v1
