@@ -88,6 +88,16 @@ _random: context [
 		state: state >> 18 xor state
 		state
 	]
+
+	rand-secure: func [
+		return:	[integer!]
+		/local
+			i	 [integer!]
+	] [
+		i: 0
+		crypto/urandom (as byte-ptr! :i) 4
+		i and 7FFFFFFFh									;-- range 0-2147483647 inclusive
+	]
 	
 	init: does [
 		table: as int-ptr! allocate MT_RANDOM_STATE_SIZE * size? integer!

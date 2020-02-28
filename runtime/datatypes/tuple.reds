@@ -264,7 +264,9 @@ tuple: context [
 			n: 0
 			until [
 				n: n + 1
-				array/n: as-byte _random/rand % ((as-integer array/n) + 1)
+				array/n: as-byte
+					(either secure? [_random/rand-secure] [_random/rand])
+					% ((as-integer array/n) + 1)
 				n = size
 			]
 		]

@@ -359,7 +359,7 @@ integer: context [
 			int/header: TYPE_UNSET
 		][
 			unless zero? int/value [
-				n: _random/rand % int/value + 1
+				n: (either secure? [_random/rand-secure] [_random/rand]) % int/value + 1
 				int/value: either negative? int/value [0 - n][n]
 			]
 		]

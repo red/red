@@ -195,11 +195,11 @@ pair: context [
 			pair/header: TYPE_UNSET
 		][
 			unless zero? pair/x [
-				n: _random/rand % pair/x + 1
+				n: (either secure? [_random/rand-secure] [_random/rand]) % pair/x + 1
 				pair/x: either negative? pair/x [0 - n][n]
 			]
 			unless zero? pair/y [
-				n: _random/rand % pair/y + 1
+				n: (either secure? [_random/rand-secure] [_random/rand]) % pair/y + 1
 				pair/y: either negative? pair/y [0 - n][n]
 			]
 		]

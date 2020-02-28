@@ -735,10 +735,20 @@ date: context [
 			dt/header: TYPE_UNSET
 		][
 			time?: DATE_GET_TIME_FLAG(d)
-			dt/date: days-to-date _random/rand % date-to-days d DATE_GET_ZONE(d) time?
+			dt/date: days-to-date (either secure? [_random/rand-secure] [_random/rand])
+				% date-to-days d DATE_GET_ZONE(d) time?
 			if time? [
-				dt/date: DATE_SET_ZONE(dt/date _random/rand)
-				s: (as-float _random/rand) / 2147483647.0 * 3600.0
+				dt/date: either secure? [
+					DATE_SET_ZONE(dt/date _random/rand-secure)
+				] [
+					DATE_SET_ZONE(dt/date _random/rand)
+				]
+				s: either secure? [
+					((as-float _random/rand-secure) / 2147483647.0 + (as-float _random/rand-secure))
+						/ (2147483648.0 / 3600.0)
+				] [
+					(as-float _random/rand) / 2147483647.0 * 3600.0
+				]
 				s: (floor s) / 3600.0
 				dt/time: s * 24.0 * time/h-factor
 				set-time dt dt/time yes
