@@ -12,7 +12,10 @@ S_FILE
 S_FILE_HEX1
 S_FILE_HEX2
 S_FILE_STR
-S_SKIP_FILE
+S_HDPER_ST
+S_HERDOC_ST
+S_HDPER_C0
+S_HDPER_CL
 S_SLASH
 S_SHARP
 S_BINARY
@@ -90,6 +93,7 @@ T_EMAIL
 T_PATH
 T_HEX
 T_CMT
+T_RAWSTRING
 
 
 C_BLANK     : space, tab, cr
@@ -187,9 +191,18 @@ S_START->"%"->S_FILE_1ST->not(delimit8)->S_FILE->not(delimit1)->S_FILE
                      \->dbl-quote->S_FILE_STR->not(dbl-quote)->S_FILE_STR
                       \             \->dbl-quote->T_FILE
                        \
-                        \->delimit8->T_WORD
-                 
-                 
+                       	\->"%"->S_HDPER_ST->"%"->S_HDPER_ST
+                       	 \       \->"{"->S_HERDOC_ST
+                       	  \       \->hexa->S_FILE_HEX2
+                       	   \       \->else->T_ERROR
+                       	    \
+                             \->"{"->S_HERDOC_ST->"}"->S_HDPER_C0->"%"->S_HDPER_CL->"%"->S_HDPER_CL
+                              \       \                 \                \->else->T_RAWSTRING
+                               \       \                 \->else->S_HERDOC_ST
+                                \       \->else->S_HERDOC_ST
+                                 \->delimit8->T_WORD
+
+
 S_START->"#"->S_SHARP->"{"->S_BINARY->hexa|ws->S_BINARY
                \             \->";"->S_LINE_CMT2->not(lf)->S_LINE_CMT2
                 \             \        \->lf->S_BINARY

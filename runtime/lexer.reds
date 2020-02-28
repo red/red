@@ -106,7 +106,7 @@ lexer: context [
 	skip-table: #{
 		0100000000000000000000000000000000000000000000000000000000000000
 		0000000000000000000000000000000000000000000000000000000000000000
-		00000000000000000000000000000000000000000000000000
+		0000000000000000000000000000000000000000000000000000000000
 	}
 
 	path-ending: #{
@@ -1946,6 +1946,14 @@ lexer: context [
 		]
 		lex/in-pos: e + 1								;-- skip h
 	]
+	
+	load-rawstring: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
+		;/local
+			
+	][
+		
+		lex/in-pos: e 									;-- reset the input position to delimiter byte
+	]
 
 	scan-tokens: func [
 		lex    [state!]
@@ -1993,7 +2001,7 @@ lexer: context [
 				#if debug? = yes [if verbose > 0 [?? state]]
 			]
 			s: start + offset
-			assert state <= T_HEX
+			assert state <= T_RAWSTRING
 			assert s <= p
 			
 			lex/in-pos: p
@@ -2262,6 +2270,7 @@ lexer: context [
 			null				:load-url				;-- T_URL
 			null				:load-email				;-- T_EMAIL
 			null				:load-hex				;-- T_HEX
+			null				:load-rawstring			;-- T_RAWSTRING
 		]
 	]
 
