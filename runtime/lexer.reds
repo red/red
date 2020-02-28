@@ -1854,9 +1854,31 @@ lexer: context [
 		if load? [time/make-at tm alloc-slot lex]
 	]
 	
-	load-money: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
-		;;TBD: implement this function once money! type is done
-		throw-error lex s e ERR_BAD_CHAR
+	load-money: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
+		/local
+			do-error  [subroutine!]
+			cur	p	  [byte-ptr!]
+			neg? dec? [logic!]
+	][
+		do-error: [throw-error lex s e TYPE_MONEY]
+		p: s
+		neg?: p/1 = #"-"
+		if flags and C_FLAG_SIGN <> 0 [p: p + 1]		;-- skip sign when present
+		cur: p
+		while [cur/1 <> #"$"][cur: cur + 1]				;-- cur is always < e
+		either p = cur [cur: null][
+			if p + 3 <> cur [do-error]
+			p: cur
+		]
+		assert p/1 = #"$"
+		p: p + 1
+		dec?: no
+		while [p < e][
+			if p/1 = #"." [if dec? [do-error] dec?: yes]
+			p: p + 1
+		]
+		lex/in-pos: e + 1								;-- skip ending delimiter
+		;if load? [money/make-at alloc-slot lex cur s e neg?]
 	]
 	
 	load-tag: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
