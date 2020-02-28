@@ -102,18 +102,18 @@ add: make action! [[
 
 divide: make action! [[
 		"Returns the quotient of two values"
-		value1	 [number! char! pair! tuple! vector! time!] "The dividend (numerator)"
-		value2	 [number! char! pair! tuple! vector! time!] "The divisor (denominator)"
-		return:  [number! char! pair! tuple! vector! time!]
+		value1	 [number! money! char! pair! tuple! vector! time!] "The dividend (numerator)"
+		value2	 [number! money! char! pair! tuple! vector! time!] "The divisor (denominator)"
+		return:  [number! money! char! pair! tuple! vector! time!] "The quotient"
 	]
 	#get-definition ACT_DIVIDE
 ]
 
 multiply: make action! [[
 		"Returns the product of two values"
-		value1	 [number! char! pair! tuple! vector! time!]
-		value2	 [number! char! pair! tuple! vector! time!]
-		return:  [number! char! pair! tuple! vector! time!]
+		value1	 [number! money! char! pair! tuple! vector! time!] "The multiplicand"
+		value2	 [number! money! char! pair! tuple! vector! time!] "the multiplier"
+		return:  [number! money! char! pair! tuple! vector! time!] "The product"
 	]
 	#get-definition ACT_MULTIPLY
 ]
@@ -137,9 +137,9 @@ power: make action! [[
 
 remainder: make action! [[
 		"Returns what is left over when one value is divided by another"
-		value1 	 [number! char! pair! tuple! vector! time!]
-		value2 	 [number! char! pair! tuple! vector! time!]
-		return:  [number! char! pair! tuple! vector! time!]
+		value1 	 [number! money! char! pair! tuple! vector! time!] "The dividend (numerator)"
+		value2 	 [number! money! char! pair! tuple! vector! time!] "The divisor (denominator)"
+		return:  [number! money! char! pair! tuple! vector! time!] "The remainder"
 	]
 	#get-definition ACT_REMAINDER
 ]
