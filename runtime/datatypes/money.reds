@@ -691,9 +691,41 @@ money: context [
 		do-math left right OP_SUB
 	]
 	
-	multiply:  STUB
-	divide:    STUB
-	remainder: STUB
+	multiply: func [
+		return: [red-value!]
+		/local
+			left   [red-money!]
+			right  [red-money!]
+	][
+		left:  as red-money! stack/arguments
+		right: left + 1
+		
+		do-math left right OP_MUL
+	]
+	
+	divide: func [
+		return: [red-value!]
+		/local
+			left   [red-money!]
+			right  [red-money!]
+	][
+		left:  as red-money! stack/arguments
+		right: left + 1
+		
+		do-math left right OP_DIV
+	]
+	
+	remainder: func [
+		return: [red-value!]
+		/local
+			left   [red-money!]
+			right  [red-money!]
+	][
+		left:  as red-money! stack/arguments
+		right: left + 1
+		
+		do-math left right OP_REM
+	]
 	
 	round:     STUB
 	
