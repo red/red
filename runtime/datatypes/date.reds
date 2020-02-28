@@ -719,12 +719,10 @@ date: context [
 		return: [red-value!]
 		/local
 			d	  [integer!]
-			n	  [integer!]
-			dd	  [integer!]
-			tz	  [integer!]
 			s	  [float!]
 			d1	  [integer!]
 			time? [logic!]
+			rnd	  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "date/random"]]
 
@@ -735,8 +733,9 @@ date: context [
 			dt/header: TYPE_UNSET
 		][
 			time?: DATE_GET_TIME_FLAG(d)
-			dt/date: days-to-date (either secure? [_random/rand-secure] [_random/rand])
-				% date-to-days d DATE_GET_ZONE(d) time?
+
+			rnd: either secure? [_random/rand-secure] [_random/rand]		;-- a workaround for issue #3620
+			dt/date: days-to-date rnd % (date-to-days d) DATE_GET_ZONE(d) time?
 			if time? [
 				dt/date: either secure? [
 					DATE_SET_ZONE(dt/date _random/rand-secure)

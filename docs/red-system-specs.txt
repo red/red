@@ -2147,7 +2147,14 @@ An alternative way to write it (allowed because all code paths return a value of
  ]
  
  prin ["a is " msg lf]
- 
+
+\note Known problems
+EITHER should not be used as a part of expression, for example this gives incorrect result:
+
+print 1 * 1 + either 0 <> 0 [1][0]
+
+/note
+
 ---loop
 
 Loop over a block of code, decrementing a counter down to zero. LOOP does not return any value, so it cannot be used in an expression.

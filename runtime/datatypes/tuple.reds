@@ -251,6 +251,7 @@ tuple: context [
 			array [byte-ptr!]
 			n	  [integer!]
 			size  [integer!]
+			rnd	  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tuple/random"]]
 
@@ -263,10 +264,9 @@ tuple: context [
 			size: TUPLE_SIZE?(tp)
 			n: 0
 			until [
+				rnd: either secure? [_random/rand-secure] [_random/rand]
 				n: n + 1
-				array/n: as-byte
-					(either secure? [_random/rand-secure] [_random/rand])
-					% ((as-integer array/n) + 1)
+				array/n: as-byte rnd % ((as-integer array/n) + 1)
 				n = size
 			]
 		]
