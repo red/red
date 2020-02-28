@@ -2028,9 +2028,10 @@ Red [
 	; --test-- "#1764"
 		; console behaviour (nonGUI)
 
-	--test-- "#1768"
-		--assert not error? try [load {a: %{test ing.txt}}]
-		--assert equal? [a: % "test ing.txt"] load {a: %{test ing.txt}}
+	;; DEPRECATED: raw string syntax deprecates this test and issue.
+	;--test-- "#1768"
+	;	--assert not error? try [load {a: %{test ing.txt}}]
+	;	--assert equal? [a: % "test ing.txt"] load {a: %{test ing.txt}}
 
 	; --test-- "#1769"
 		; console behaviour
