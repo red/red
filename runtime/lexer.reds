@@ -1153,11 +1153,9 @@ lexer: context [
 			return 0
 		]
 		p: s
-		neg?: no
-		if flags and C_FLAG_SIGN <> 0 [
-			neg?: s/1 = #"-"
-			p: p + 1									;-- skip sign when present
-		]
+		neg?: s/1 = #"-"
+		if flags and C_FLAG_SIGN <> 0 [p: p + 1]		;-- skip sign when present
+		
 		either (as-integer e - p) = 1 [					;-- fast path for 1-digit integers
 			i: as-integer (p/1 - #"0")
 		][
@@ -1181,7 +1179,7 @@ lexer: context [
 				]
 			]
 			assert p = e
-			if any [o? neg? <> (as-logic i and 80000000h)][
+			if any [o? i < 0][
 				len: as-integer e - s					;-- account for sign in len now
 				either all [len = 11 zero? compare-memory s min-integer len][
 					i: 80000000h
@@ -1190,7 +1188,7 @@ lexer: context [
 			]
 		]
 		if neg? [i: 0 - i]
-		lex/scanned: TYPE_INTEGER
+		;lex/scanned: TYPE_INTEGER
 		if load? [
 			cell: alloc-slot lex
 			integer/make-at cell i
@@ -1856,9 +1854,31 @@ lexer: context [
 		if load? [time/make-at tm alloc-slot lex]
 	]
 	
-	load-money: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
-		;;TBD: implement this function once money! type is done
-		throw-error lex s e ERR_BAD_CHAR
+	load-money: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
+		/local
+			do-error  [subroutine!]
+			cur	p	  [byte-ptr!]
+			neg? dec? [logic!]
+	][
+		do-error: [throw-error lex s e TYPE_MONEY]
+		p: s
+		neg?: p/1 = #"-"
+		if flags and C_FLAG_SIGN <> 0 [p: p + 1]		;-- skip sign when present
+		cur: p
+		while [cur/1 <> #"$"][cur: cur + 1]				;-- cur is always < e
+		either p = cur [cur: null][
+			if p + 3 <> cur [do-error]
+			p: cur
+		]
+		assert p/1 = #"$"
+		p: p + 1
+		dec?: no
+		while [p < e][
+			if p/1 = #"." [if dec? [do-error] dec?: yes]
+			p: p + 1
+		]
+		lex/in-pos: e + 1								;-- skip ending delimiter
+		;if load? [money/make-at alloc-slot lex cur s e neg?]
 	]
 	
 	load-tag: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
@@ -2027,7 +2047,7 @@ lexer: context [
 					check-path-end lex s lex/in-pos flags load? ;-- lex/in-pos could have changed
 				]
 			]
-			if all [one? lex/scanned > 0 lex/entry <> S_PATH lex/entry <> S_M_STRING state <> T_PATH][
+			if all [any [one? pscan?] lex/scanned > 0 lex/entry <> S_PATH lex/entry <> S_M_STRING state <> T_PATH][
 				slot: lex/tail - 1
 				if any [
 					lex/tail = lex/buffer
