@@ -473,13 +473,10 @@ money: context [
 				lesser?: negative? compare-money minuend subtrahend
 				sign: as integer! lesser?
 				
-				DISPATCH_SIGNS(minuend-sign subtrahend-sign)[
-					SIGN_++ [flag: lesser?]
-					SIGN_-- [
-						minuend: absolute-money minuend
-						subtrahend: absolute-money subtrahend
-						flag: not lesser?
-					]
+				either positive? minuend-sign [flag: lesser?][
+					minuend: absolute-money minuend
+					subtrahend: absolute-money subtrahend
+					flag: not lesser?
 				]
 				
 				if flag [SWAP_ARGUMENTS(minuend subtrahend)]
