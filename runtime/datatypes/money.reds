@@ -48,6 +48,12 @@ money: context [
 	SIZE_DIGITS:   SIZE_BYTES * 2
 	SIZE_INTEGRAL: SIZE_DIGITS - SIZE_SCALE
 	
+	SIZE_UNNORM: SIZE_DIGITS + SIZE_SCALE
+	SIZE_BUFFER: (SIZE_UNNORM + (SIZE_UNNORM and 1)) >> 1
+	
+	SIZE_SBYTES: (SIZE_BUFFER + size? integer!) - (SIZE_BUFFER // size? integer!)
+	SIZE_SSLOTS: SIZE_SBYTES >> 2
+	
 	HIGH_NIBBLE: #"^(0F)"
 	LOW_NIBBLE:  #"^(F0)"
 	
@@ -133,6 +139,32 @@ money: context [
 		money/amount3: 0
 		
 		money
+	]
+	
+	shift-right: func [
+		amount  [byte-ptr!]
+		size    [integer!]
+		offset  [integer!]
+		return: [byte-ptr!]
+		/local
+			this that
+			[integer!]
+			half
+			[byte!]
+	][
+		loop offset [
+			this: size
+			that: this - 1
+			loop size [
+				half: either that <= 0 [null-byte][amount/that << 4]
+				amount/this: amount/this >>> 4 or half
+				
+				this: this - 1
+				that: that - 1
+			]
+		]
+		
+		amount
 	]
 	
 	;-- Digits --
@@ -505,6 +537,84 @@ money: context [
 		set-sign minuend sign
 	]
 	
+	multiply-money: func [
+		multiplicand [red-money!]
+		multiplier   [red-money!]
+		return:      [red-money!]
+		/local
+			left-amount right-amount product
+			[byte-ptr!]
+			multiplicand-sign multiplier-sign sign
+			left-count right-count
+			delta index1 index2 index3
+			carry left right other prod
+			[integer!]
+	][
+		multiplicand-sign: sign? multiplicand
+		multiplier-sign:   sign? multiplier
+		
+		DISPATCH_SIGNS(multiplicand-sign multiplier-sign)[
+			SIGN_00
+			SIGN_0-
+			SIGN_0+ [return multiplicand]
+			SIGN_+0
+			SIGN_-0 [return multiplier]
+			default [sign: as integer! multiplicand-sign <> multiplier-sign]
+		]
+		
+		left-amount:  get-amount multiplicand
+		right-amount: get-amount multiplier
+		
+		left-count:  count-digits left-amount
+		right-count: count-digits right-amount
+		
+		if (left-count + right-count) > (SIZE_UNNORM + 1) [MONEY_OVERFLOW]
+		
+		product: set-memory
+			as byte-ptr! system/stack/allocate SIZE_SSLOTS
+			null-byte
+			SIZE_SBYTES
+		
+		delta:  SIZE_DIGITS - SIZE_BUFFER << 1
+		index1: SIZE_DIGITS
+		
+		loop right-count [
+			carry:  0
+			index2: SIZE_DIGITS
+			
+			loop left-count [
+				index3: index1 + index2 - delta
+			
+				left:  get-digit left-amount  index2
+				right: get-digit right-amount index1
+				other: get-digit product      index3
+				
+				prod:  left * right + other + carry
+				carry: prod / 10
+				prod:  prod // 10
+				
+				set-digit product index3 prod
+				
+				index2: index2 - 1
+			]
+			
+			set-digit product index3 - 1 carry
+			
+			index1: index1 - 1
+		]
+		
+		unless zero? get-digit product 1 [MONEY_OVERFLOW]
+		
+		;@@ TBD: round to nearest, check underflow
+		shift-right product SIZE_SBYTES SIZE_SCALE
+		copy-memory
+			left-amount
+			product + SIZE_BUFFER - SIZE_BYTES
+			SIZE_BYTES
+		
+		set-sign multiplicand sign
+	]
+	
 	do-math: func [
 		left    [red-money!]
 		right   [red-money!]
@@ -531,7 +641,7 @@ money: context [
 		result: switch op [
 			OP_ADD [add-money left right]
 			OP_SUB [subtract-money left right]
-			OP_MUL
+			OP_MUL [multiply-money left right]
 			OP_DIV
 			OP_REM [--NOT_IMPLEMENTED-- left]
 			default [
@@ -762,7 +872,7 @@ money: context [
 			:absolute
 			:add
 				null;:divide
-				null;:multiply
+			:multiply
 			:negate
 			null			;power
 				null;:remainder
