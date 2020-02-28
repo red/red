@@ -225,6 +225,17 @@ money: context [
 	;-- Construction --
 	
 	make-at: func [
+		slot     [red-value!]
+		currency [byte-ptr!]  ; can be null
+		start    [byte-ptr!]
+		end      [byte-ptr!]
+		sign     [logic!]     ; true: negative
+	;	return:  [red-money!]
+	][
+		0
+	]
+	
+	make~at: func [
 		slot	[red-value!]
 		sign    [integer!]
 		amount1 [integer!]
@@ -251,7 +262,7 @@ money: context [
 		amount3 [integer!]
 		return: [red-money!]
 	][
-		make-at ALLOC_TAIL(parent) sign amount1 amount2 amount3
+		make~at ALLOC_TAIL(parent) sign amount1 amount2 amount3
 	]
 	
 	push: func [
@@ -261,7 +272,7 @@ money: context [
 		amount3 [integer!]
 		return: [red-money!]
 	][
-		make-at stack/push* sign amount1 amount2 amount3
+		make~at stack/push* sign amount1 amount2 amount3
 	]
 	
 	;-- Conversion --
