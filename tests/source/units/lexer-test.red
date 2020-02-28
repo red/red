@@ -380,6 +380,7 @@ Red [
 	--test-- "tro-1.1"  --assert 8		== transcode/one "8 "
 	--test-- "tro-2"  --assert 123 		== transcode/one "123"
 	--test-- "tro-2.1" --assert -123 	== transcode/one "-123"
+	--test-- "tro-2.2" --assert 123 	== transcode/one "+123"
 	--test-- "tro-3"  --assert 123 		== transcode/one " 123 "
 	--test-- "tro-4"  --assert 8		== transcode/one " ;hello^/ 8"
 	--test-- "tro-5"  --assert 'Hello 	== transcode/one "Hello"
@@ -484,7 +485,6 @@ Red [
 
 	--test-- "tro-80" --assert error? try [transcode/one {#"ab"}]
 
-	--test-- "tro-81" --assert 1.2.3 == transcode/one "1.2.3"
 	--test-- "tro-82" --assert 11.22.33 == transcode/one "11.22.33"
 	--test-- "tro-83" --assert 255.255.255 == transcode/one "255.255.255"
 	--test-- "tro-84" --assert error? try [transcode/one "256.255.255"]
@@ -534,6 +534,16 @@ Red [
 	--test-- "tro-103"
 		--assert (to-word "<>") == out: transcode/one "<>"
 		--assert word? :out
+
+	--test-- "tro-104" --assert 1.0 	== transcode/one "1.0"
+	--test-- "tro-105" --assert 123.0 	== transcode/one "123.0"
+	--test-- "tro-106" --assert 1.0 	== transcode/one "+1.0"
+	--test-- "tro-107" --assert -1.0 	== transcode/one "-1.0"
+	--test-- "tro-108" --assert -123.0 	== transcode/one "-123.0"
+	--test-- "tro-109" --assert 123.0 	== transcode/one "+123.0"
+	--test-- "tro-110" --assert -123.0 	== transcode/one "-123."
+	--test-- "tro-111" --assert 123.0 	== transcode/one "123."
+	--test-- "tro-112" --assert 0.5 	== transcode/one ".5"
 
 ===end-group===
 ===start-group=== "transcode/next"
@@ -602,8 +612,23 @@ Red [
 	--test-- "scan-36" --assert string! = scan "{}"
 	--test-- "scan-37" --assert string! = scan {""}
 	--test-- "scan-38" --assert word!   = scan "a"
-	--test-- "scan-39" --assert integer! = scan "123"
-	--test-- "scan-40" --assert integer! = scan "-123"
+	--test-- "scan-39" --assert error!   = scan "[a"
+	--test-- "scan-40" --assert error!   = scan "(a"
+	--test-- "scan-41" --assert block!   = scan "[a]"
+	--test-- "scan-42" --assert paren!   = scan "(a)"
+	--test-- "scan-43" --assert block!   = scan "[a 123]"
+	--test-- "scan-44" --assert paren!   = scan "(a 123)"
+	--test-- "scan-45" --assert integer! = scan "123"
+	--test-- "scan-46" --assert integer! = scan "-123"
+	--test-- "scan-47" --assert float! 	== scan "1.0"
+	--test-- "scan-48" --assert float! 	== scan "123.0"
+	--test-- "scan-49" --assert float! 	== scan "+1.0"
+	--test-- "scan-50" --assert float! 	== scan "-1.0"
+	--test-- "scan-51" --assert float! 	== scan "-123.0"
+	--test-- "scan-52" --assert float! 	== scan "+123.0"
+	--test-- "scan-53" --assert float! 	== scan "-123."
+	--test-- "scan-54" --assert float! 	== scan "123."
+	--test-- "scan-55" --assert float!	== scan ".5"
 
 ===end-group===
 ===start-group=== "scan/fast"
@@ -621,6 +646,24 @@ Red [
 	--test-- "scan-f11" --assert map!    = scan/fast "#()"
 	--test-- "scan-f12" --assert string! = scan/fast "{}"
 	--test-- "scan-f13" --assert string! = scan/fast {""}
+
+	--test-- "scan-39" --assert error!   = scan/fast "[a"
+	--test-- "scan-40" --assert error!   = scan/fast "(a"
+	--test-- "scan-41" --assert block!   = scan/fast "[a]"
+	--test-- "scan-42" --assert paren!   = scan/fast "(a)"
+	--test-- "scan-43" --assert block!   = scan/fast "[a 123]"
+	--test-- "scan-44" --assert paren!   = scan/fast "(a 123)"
+	--test-- "scan-45" --assert integer! = scan/fast "123"
+	--test-- "scan-46" --assert integer! = scan/fast "-123"
+	--test-- "scan-47" --assert float! 	== scan/fast "1.0"
+	--test-- "scan-48" --assert float! 	== scan/fast "123.0"
+	--test-- "scan-49" --assert float! 	== scan/fast "+1.0"
+	--test-- "scan-50" --assert float! 	== scan/fast "-1.0"
+	--test-- "scan-51" --assert float! 	== scan/fast "-123.0"
+	--test-- "scan-52" --assert float! 	== scan/fast "+123.0"
+	--test-- "scan-53" --assert float! 	== scan/fast "-123."
+	--test-- "scan-54" --assert float! 	== scan/fast "123."
+	--test-- "scan-55" --assert float!	== scan/fast ".5"
 
 ===end-group===
 ===start-group=== "transcode/trace"
