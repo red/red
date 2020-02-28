@@ -1154,7 +1154,7 @@ lexer: context [
 		]
 		p: s
 		neg?: s/1 = #"-"
-		if neg? [p: p + 1]								;-- skip sign when present
+		if flags and C_FLAG_SIGN <> 0 [p: p + 1]		;-- skip sign when present
 		
 		either (as-integer e - p) = 1 [					;-- fast path for 1-digit integers
 			i: as-integer (p/1 - #"0")

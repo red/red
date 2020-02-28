@@ -31,13 +31,17 @@ print ["REBOL " system/version]
 start-time: now/precise
 print ["This test started at" start-time]
 
-if debug-mode [qt/compile-flag: " -d "]
+info: ""
+if debug-mode [
+	qt/compile-flag: " -d "
+	info: " (Debug Mode)"
+]
 
 qt/script-header: "Red []"
 
 --setup-temp-files
 
-***start-run-quiet*** "Red Test Suite"
+***start-run-quiet*** join "Red Test Suite" info
 
 do %source/units/run-pre-extra-tests.r
 
