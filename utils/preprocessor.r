@@ -136,13 +136,20 @@ preprocessor: context [
 		arity
 	]
 
-	value-path?: func [path [path!] /local value i] [
+	value-path?: func [path [path!] /local value i item] [
 		repeat i length? path [
-			set/any 'value either i = 1 [get/any first path][select value pick path i]
-			unless any [								;-- select-able types
-				series? get/any 'value
-				find [object! port! error! map!] type?/word get/any 'value
-			][
+			set/any 'value either i = 1 [get/any first path][
+				set/any 'item pick path i
+				case [
+					get-word? :item [set/any 'item get/any to word! item]
+					paren?    :item [set/any 'item do item]
+				]
+				either integer? :item [pick value item][select value :item]
+			]
+			unless find [								;-- select-able types
+				block! paren! path! lit-path! set-path! get-path!
+				object! port! error! map!
+			] type?/word get/any 'value [
 				path: copy/part path i
 				break
 			]
