@@ -147,10 +147,8 @@ money: context [
 		offset  [integer!]
 		return: [byte-ptr!]
 		/local
-			this that
-			[integer!]
-			half
-			[byte!]
+			this that [integer!]
+			half      [byte!]
 	][
 		loop offset [
 			this: size
@@ -174,8 +172,7 @@ money: context [
 		index   [integer!]
 		return: [integer!]
 		/local
-			bit byte offset
-			[integer!]
+			bit byte offset [integer!]
 	][
 		bit:    index and 1
 		byte:   index >> 1 + bit
@@ -191,8 +188,7 @@ money: context [
 		index  [integer!]
 		value  [integer!]
 		/local
-			bit byte offset reverse
-			[integer!]
+			bit byte offset reverse [integer!]
 	][
 		bit:     index and 1
 		byte:    index >> 1 + bit
@@ -284,10 +280,8 @@ money: context [
 		money   [red-money!]
 		return: [logic!]
 		/local
-			amount limit
-			[byte-ptr!]
-			sign count
-			[integer!]
+			amount limit [byte-ptr!]
+			sign count   [integer!]
 	][
 		sign: sign? money
 		if zero? sign [return no]
@@ -304,10 +298,9 @@ money: context [
 		money   [red-money!]
 		return: [integer!]
 		/local
-			amount
-			[byte-ptr!]
-			sign integer index start power digit
-			[integer!]
+			amount             [byte-ptr!]
+			sign integer index
+			start power digit  [integer!]
 	][
 		sign: sign? money
 		
@@ -333,12 +326,10 @@ money: context [
 		int     [integer!]
 		return: [red-money!]
 		/local
-			money
-			[red-money!]
-			amount
-			[byte-ptr!]
-			extra index start power digit
-			[integer!]
+			money             [red-money!]
+			amount            [byte-ptr!]
+			extra index start
+			power digit       [integer!]
 	][
 		money: zero-out as red-money! stack/push* yes
 		money/header: TYPE_MONEY
@@ -377,8 +368,7 @@ money: context [
 		that    [red-money!]
 		return: [integer!]
 		/local
-			this-sign that-sign
-			[integer!]
+			this-sign that-sign [integer!]
 	][
 		;@@ TBD: take currencies into account
 	
@@ -445,11 +435,9 @@ money: context [
 		addend  [red-money!]
 		return: [red-money!]
 		/local
-			left-amount right-amount
-			[byte-ptr!]
+			left-amount right-amount   [byte-ptr!]
 			augend-sign addend-sign
-			index carry left right sum
-			[integer!]
+			index carry left right sum [integer!]
 	][
 		augend-sign: sign? augend
 		addend-sign: sign? addend
@@ -496,13 +484,10 @@ money: context [
 		subtrahend [red-money!]
 		return:    [red-money!]
 		/local
-			left-amount right-amount
-			[byte-ptr!]
+			left-amount right-amount           [byte-ptr!]
 			minuend-sign subtrahend-sign sign
-			index borrow left right difference
-			[integer!]
-			lesser? flag
-			[logic!]
+			index borrow left right difference [integer!]
+			lesser? flag                       [logic!]
 	][
 		minuend-sign: sign? minuend
 		subtrahend-sign: sign? subtrahend
@@ -556,13 +541,11 @@ money: context [
 		multiplier   [red-money!]
 		return:      [red-money!]
 		/local
-			left-amount right-amount product
-			[byte-ptr!]
+			left-amount right-amount product       [byte-ptr!]
 			multiplicand-sign multiplier-sign sign
 			left-count right-count
 			delta index1 index2 index3
-			carry left right other prod
-			[integer!]
+			carry left right other prod            [integer!]
 	][
 		multiplicand-sign: sign? multiplicand
 		multiplier-sign:   sign? multiplier
@@ -791,8 +774,8 @@ money: context [
 	add: func [
 		return: [red-value!]
 		/local
-			left   [red-money!]
-			right  [red-money!]
+			left  [red-money!]
+			right [red-money!]
 	][
 		left:  as red-money! stack/arguments
 		right: left + 1
@@ -803,8 +786,8 @@ money: context [
 	subtract: func [
 		return: [red-value!]
 		/local
-			left   [red-money!]
-			right  [red-money!]
+			left  [red-money!]
+			right [red-money!]
 	][
 		left:  as red-money! stack/arguments
 		right: left + 1
@@ -815,8 +798,8 @@ money: context [
 	multiply: func [
 		return: [red-value!]
 		/local
-			left   [red-money!]
-			right  [red-money!]
+			left  [red-money!]
+			right [red-money!]
 	][
 		left:  as red-money! stack/arguments
 		right: left + 1
@@ -827,8 +810,8 @@ money: context [
 	divide: func [
 		return: [red-value!]
 		/local
-			left   [red-money!]
-			right  [red-money!]
+			left  [red-money!]
+			right [red-money!]
 	][
 		left:  as red-money! stack/arguments
 		right: left + 1
@@ -839,8 +822,8 @@ money: context [
 	remainder: func [
 		return: [red-value!]
 		/local
-			left   [red-money!]
-			right  [red-money!]
+			left  [red-money!]
+			right [red-money!]
 	][
 		left:  as red-money! stack/arguments
 		right: left + 1
