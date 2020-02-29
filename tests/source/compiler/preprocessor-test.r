@@ -116,6 +116,13 @@ REBOL [
 			prin "*test11* " probe preprocessor/fetch-next [a: o b: 1]
 			prin "*test12* " probe preprocessor/fetch-next [f o f 1]
 			prin "*test13* " probe preprocessor/fetch-next [b/o/f o b/o/f/x 1 2 3]
+			i: make image! 10x10 s: "abcd"
+			b: reduce [i s]
+			w1: 'i w2: 's w3: 3
+			prin "*test14* " probe preprocessor/fetch-next [i/size s/3]
+			prin "*test15* " probe preprocessor/fetch-next [s/3]
+			prin "*test16* " probe preprocessor/fetch-next [b/:w1/size b/(w2)/:w3]
+			prin "*test17* " probe preprocessor/fetch-next [b/(w2)/:w3]
 		}
 		
 		--assert-printed? "*test1* []"
@@ -131,5 +138,9 @@ REBOL [
 		--assert-printed? "*test11* [1]"
 		--assert-printed? "*test12* [1]"
 		--assert-printed? "*test13* [1 2 3]"
+		--assert-printed? "*test14* [s/3]"
+		--assert-printed? "*test15* []"
+		--assert-printed? "*test16* [b/(w2)/:w3]"
+		--assert-printed? "*test17* []"
 
 ~~~end-file~~~ 
