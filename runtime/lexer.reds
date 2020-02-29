@@ -1856,9 +1856,9 @@ lexer: context [
 	
 	load-money: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local
-			do-error  [subroutine!]
-			cur	p	  [byte-ptr!]
-			neg? dec? [logic!]
+			do-error    [subroutine!]
+			cur	p st pt [byte-ptr!]
+			neg? dec?   [logic!]
 	][
 		do-error: [throw-error lex s e TYPE_MONEY]
 		p: s
@@ -1871,14 +1871,16 @@ lexer: context [
 			p: cur
 		]
 		assert p/1 = #"$"
+		st: p
 		p: p + 1
 		dec?: no
+		pt: null
 		while [p < e][
-			if p/1 = #"." [if dec? [do-error] dec?: yes]
+			if any [p/1 = #"." p/1 = #","][if dec? [do-error] pt: p dec?: yes]
 			p: p + 1
 		]
 		lex/in-pos: e + 1								;-- skip ending delimiter
-		;if load? [money/make-at alloc-slot lex cur s e neg?]
+		if load? [money/make-at alloc-slot lex neg? cur st pt e]
 	]
 	
 	load-tag: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
