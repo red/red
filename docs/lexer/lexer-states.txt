@@ -309,7 +309,7 @@ S_START->"+"|"-"->S_SIGN->digit->S_NUMBER
 
 
 S_START->"$"->S_MONEY_1ST->digit->S_MONEY->digit|"'"->S_MONEY
-               \->else->T_ERROR    \->"."->S_MONEY_DEC->digit|"'"->S_MONEY_DEC
+               \->else->T_ERROR    \->"."|","->S_MONEY_DEC->digit|"'"->S_MONEY_DEC
                                     \       \->delimit3->T_MONEY
                                      \       \->else->T_ERROR
                                       \
