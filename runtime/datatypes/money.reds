@@ -245,6 +245,7 @@ money: context [
 		convert: [
 			here: here + step
 			until [
+				if here = limit [break]
 				set-digit amount index as integer! here/value - #"0"
 				
 				here:  here + step
