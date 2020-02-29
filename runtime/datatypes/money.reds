@@ -226,13 +226,56 @@ money: context [
 	
 	make-at: func [
 		slot     [red-value!]
-		currency [byte-ptr!]  ; can be null
+		sign     [logic!]
+		currency [byte-ptr!]
 		start    [byte-ptr!]
+		point    [byte-ptr!]
 		end      [byte-ptr!]
-		sign     [logic!]     ; true: negative
-	;	return:  [red-money!]
+		return:  [red-money!]
+		/local
+			convert           [subroutine!]
+			money             [red-money!]
+			here amount limit [byte-ptr!]
+			index stop step   [integer!]
 	][
-		0
+		money: as red-money! slot
+		money/header: TYPE_MONEY
+		
+		zero-out money yes
+		set-sign money as integer! sign
+		;@@ TBD: store currency index
+		amount: get-amount money
+		
+		convert: [
+			here: here + step
+			until [
+				set-digit amount index as integer! here/value - #"0"
+				
+				here:  here + step
+				index: index + step
+				any [index = stop here = limit]
+			]
+		]
+		
+		here:  either null? point [end][point]
+		limit: start
+		index: SIZE_INTEGRAL
+		stop:  0
+		
+		step: -1
+		convert
+		
+		if null? point [return money]
+		
+		here:  point
+		limit: end
+		index: SIZE_INTEGRAL + 1
+		stop:  SIZE_DIGITS + 1
+		
+		step: +1
+		convert
+		
+		money
 	]
 	
 	make~at: func [
