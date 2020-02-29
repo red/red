@@ -24,8 +24,6 @@ Red [
 	#include %environment/system.red
 	#include %environment/operators.red
 
-	#include %environment/kludge.red
-
 	#include %environment/codecs/png.red
 	#include %environment/codecs/jpeg.red
 	#include %environment/codecs/bmp.red
