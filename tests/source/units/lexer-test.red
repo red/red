@@ -374,6 +374,12 @@ Red [
 		--assert word? out/2
 		--assert word? out/3
 
+	--test-- "tr-37" --assert [""] == transcode "%{}%"
+	--test-- "tr-38" --assert [""] == transcode "%%{}%%"
+	--test-- "tr-39" --assert ["a^^b"] == transcode "%{a^^b}%"
+	--test-- "tr-40" --assert ["}"] == transcode "%{^}}%"
+	--test-- "tr-41" --assert ["Nice^^World}% rawstring! "] == transcode "%%{Nice^^World}% rawstring! }%%"
+
 ===end-group===
 ===start-group=== "transcode/one"
 	--test-- "tro-1"  --assert 8		== transcode/one "8"
