@@ -42,7 +42,7 @@ jobs:
     - uses: actions/upload-artifact@v1
       if: failure()
       with:
-        name: core-test-log
+        name: core-debug-test-log
         path: quick-test/quick-test.log
 
   View:
@@ -126,7 +126,7 @@ jobs:
     - uses: actions/upload-artifact@v1
       if: failure()
       with:
-        name: each-test-log
+        name: each-debug-test-log
         path: quick-test/quick-test.log
 
   Red-System-Test:
