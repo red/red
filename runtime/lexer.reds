@@ -1171,9 +1171,11 @@ lexer: context [
 				]
 			][											;-- process with quote(s)
 				loop len [
-					if p/1 <> #"'" [
+					either p/1 <> #"'" [
 						i: 10 * i + as-integer (p/1 - #"0")
 						o?: o? or system/cpu/overflow?
+					][
+						if any [p + 1 = e p/2 = #"'"][throw-error lex s e TYPE_INTEGER]
 					]
 					p: p + 1
 				]
@@ -1188,7 +1190,6 @@ lexer: context [
 			]
 		]
 		if neg? [i: 0 - i]
-		;lex/scanned: TYPE_INTEGER
 		if load? [
 			cell: alloc-slot lex
 			integer/make-at cell i
