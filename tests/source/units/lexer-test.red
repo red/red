@@ -552,10 +552,10 @@ Red [
 	--test-- "tro-112" --assert 0.5 	== transcode/one ".5"
 
 	--test-- "tro-113" --assert error? try [transcode/one "1'''''''''"]
-	--test-- "tro-114" --assert error? try [transcode "1''''''''''"]
-	--test-- "tro-115" --assert error? try [transcode "1'''''''''''"]
-	--test-- "tro-116" --assert error? try [transcode "1'"]
-	--test-- "tro-117" --assert error? try [transcode "1''2"]
+	--test-- "tro-114" --assert error? try [transcode/one "1''''''''''"]
+	--test-- "tro-115" --assert error? try [transcode/one "1'''''''''''"]
+	--test-- "tro-116" --assert error? try [transcode/one "1'"]
+	--test-- "tro-117" --assert error? try [transcode/one "1''2"]
 
 ===end-group===
 ===start-group=== "transcode/next"
