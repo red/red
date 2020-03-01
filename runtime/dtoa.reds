@@ -1316,7 +1316,7 @@ dtoa: context [
 	to-float: func [
 		start	[byte-ptr!]
 		end		[byte-ptr!]
-		ret		[int-ptr!]
+		ret		[int-ptr!]		;-- mandatory
 		return: [float!]
 		/local
 			STRTOD_RETURN STRTOD_OVERFLOW STRTOD_BREAK STRTOD_DROP_DOWN [subroutine!]
@@ -1413,6 +1413,7 @@ dtoa: context [
 			case [
 				all [c >= #"0" c <= #"9"][s: s + 1]
 				c = #"'" [
+					if s/2 = #"'" [ret/value: 1 return rv]
 					move-memory s s + 1 as-integer end - s
 					end: end - 1
 				]
@@ -1485,7 +1486,7 @@ dtoa: context [
 		if nd0 <= 0 [nd0: nd]
 
 		;-- finish parsing
-		if ret <> null [ret/value: as-integer s <> end]
+		ret/value: as-integer s <> end
 
 		if zero? nd [return either neg? [d/int2: 80000000h rv][0.0]]
 
