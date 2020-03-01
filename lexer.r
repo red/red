@@ -568,6 +568,12 @@ lexer: context [
 			| s: any UTF8-filtered-char e: (value: copy/part s e)
 		]
 	]
+	
+	rawstr-rule: [
+		pos: (type: string! cnt: 0 value: none) some [#"%" (cnt: cnt + 1)] #"{" s:
+		some [e: #"}" cnt #"%" (value: copy/part s e) break | skip]
+		(unless value [throw-error])
+	]
 
 	url-rule: [
 		#":" (type: url! stop: [not-url-char | ws-no-count])
@@ -615,6 +621,7 @@ lexer: context [
 			| integer-rule	  (stack/push value)
 			| decimal-rule	  (stack/push load-decimal	 copy/part s e)
 			| tag-rule		  (stack/push to tag!		 copy/part s e)
+			| rawstr-rule	  (stack/push value) 
 			| word-rule		  (stack/push to type value)
 			| lit-word-rule	  (stack/push to type value)
 			| get-word-rule	  (stack/push to type value)

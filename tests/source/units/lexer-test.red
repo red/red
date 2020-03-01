@@ -377,7 +377,7 @@ Red [
 	--test-- "tr-37" --assert [""] == transcode "%{}%"
 	--test-- "tr-38" --assert [""] == transcode "%%{}%%"
 	--test-- "tr-39" --assert ["a^^b"] == transcode "%{a^^b}%"
-	--test-- "tr-40" --assert ["}"] == transcode "%{^}}%"
+	--test-- "tr-40" --assert ["}"] == transcode "%{}}%"
 	--test-- "tr-41" --assert ["Nice^^World}% rawstring! "] == transcode "%%{Nice^^World}% rawstring! }%%"
 
 ===end-group===
