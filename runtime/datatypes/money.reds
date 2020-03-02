@@ -78,10 +78,7 @@ money: context [
 		sign    [integer!]
 		return: [red-money!]
 	][
-		money/header: money/header
-			and (not SIGN_MASK)
-			or  (sign << SIGN_OFFSET)
-		
+		money/header: money/header and (not SIGN_MASK) or (sign << SIGN_OFFSET)
 		money
 	]
 	
@@ -178,7 +175,7 @@ money: context [
 			this: size
 			that: this - 1
 			loop size [
-				half: either that <= 0 [null-byte][amount/that << 4]
+				half: either that < 1 [null-byte][amount/that << 4]
 				amount/this: amount/this >>> 4 or half
 				
 				this: this - 1
@@ -202,9 +199,7 @@ money: context [
 		byte:   index >> 1 + bit
 		offset: either as logic! bit [4][0]
 		
-		as integer! amount/byte
-			and (HIGH_NIBBLE << offset)
-			>>> offset
+		as integer! amount/byte and (HIGH_NIBBLE << offset) >>> offset
 	]
 	
 	set-digit: func [
@@ -219,9 +214,7 @@ money: context [
 		offset:  either as logic! bit [4][0]
 		reverse: either zero? offset  [4][0]
 		
-		amount/byte: amount/byte
-			and (HIGH_NIBBLE << reverse)
-			or  as byte! (value << offset)
+		amount/byte: amount/byte and (HIGH_NIBBLE << reverse) or as byte! (value << offset)
 	]
 	
 	count-digits: func [
@@ -341,8 +334,8 @@ money: context [
 		limit: start
 		index: SIZE_INTEGRAL
 		stop:  0
+		step:  -1
 		
-		step: -1
 		convert
 		
 		if null? point [return money]
@@ -351,8 +344,8 @@ money: context [
 		limit: end
 		index: SIZE_INTEGRAL + 1
 		stop:  SIZE_DIGITS + 1
+		step:  +1
 		
-		step: +1
 		convert
 		
 		money
@@ -383,7 +376,7 @@ money: context [
 		return: [integer!]
 		/local
 			amount             [byte-ptr!]
-			sign integer index
+			sign integer index [integer!]
 			start power digit  [integer!]
 	][
 		sign: sign? money
@@ -412,7 +405,7 @@ money: context [
 		/local
 			money             [red-money!]
 			amount            [byte-ptr!]
-			extra index start
+			extra index start [integer!]
 			power digit       [integer!]
 	][
 		money: zero-out as red-money! stack/push* yes
@@ -520,7 +513,7 @@ money: context [
 		return: [red-money!]
 		/local
 			left-amount right-amount   [byte-ptr!]
-			augend-sign addend-sign
+			augend-sign addend-sign    [integer!]
 			index carry left right sum [integer!]
 	][
 		augend-sign: sign? augend
@@ -569,7 +562,7 @@ money: context [
 		return:    [red-money!]
 		/local
 			left-amount right-amount           [byte-ptr!]
-			minuend-sign subtrahend-sign sign
+			minuend-sign subtrahend-sign sign  [integer!]
 			index borrow left right difference [integer!]
 			lesser? flag                       [logic!]
 	][
@@ -626,10 +619,10 @@ money: context [
 		return:      [red-money!]
 		/local
 			left-amount right-amount product       [byte-ptr!]
-			multiplicand-sign multiplier-sign sign
-			left-count right-count
-			delta index1 index2 index3
-			carry left right other prod            [integer!]
+			multiplicand-sign multiplier-sign sign [integer!]
+			left-count right-count                 [integer!]
+			delta index1 index2 index3             [integer!]
+			carry left right other result          [integer!]
 	][
 		multiplicand-sign: sign? multiplicand
 		multiplier-sign:   sign? multiplier
@@ -670,11 +663,11 @@ money: context [
 				right: get-digit right-amount index1
 				other: get-digit product      index3
 				
-				prod:  left * right + other + carry
-				carry: prod / 10
-				prod:  prod // 10
+				result: left * right + other + carry
+				carry:  result /  10
+				result: result // 10
 				
-				set-digit product index3 prod
+				set-digit product index3 result
 				
 				index2: index2 - 1
 			]
@@ -688,10 +681,7 @@ money: context [
 		
 		;@@ TBD: round to nearest, check underflow
 		shift-right product SIZE_SBYTES SIZE_SCALE
-		copy-memory
-			left-amount
-			product + SIZE_BUFFER - SIZE_BYTES
-			SIZE_BYTES
+		copy-memory left-amount product + SIZE_BUFFER - SIZE_BYTES SIZE_BYTES
 		
 		set-sign multiplicand sign
 	]
@@ -786,8 +776,6 @@ money: context [
 	]
 		
 	do-math: func [
-		left    [red-money!]
-		right   [red-money!]
 		op      [integer!]
 		return: [red-value!]
 		/local
@@ -989,7 +977,7 @@ money: context [
 			:make
 				null;:random
 			null			;reflect
-			:make
+			:make			;-- to
 			:form
 			:mold
 			null			;eval-path
