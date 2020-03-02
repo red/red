@@ -697,7 +697,7 @@ money: context [
 			greater? greatest?              [subroutine!]
 			left-amount right-amount        [byte-ptr!]
 			left-start right-start          [byte-ptr!]
-			quotient old                    [byte-ptr!]
+			quotient hold                   [byte-ptr!]
 			dividend-sign divisor-sign sign [integer!]
 			left-count right-count          [integer!]
 			digits index                    [integer!]
@@ -717,13 +717,19 @@ money: context [
 		
 		left-amount:  get-amount dividend
 		right-amount: get-amount divisor
-		
-		unless only? [shift-left left-amount SIZE_BYTES SIZE_SCALE]
-		
+			
 		left-count:  count-digits left-amount
 		right-count: count-digits right-amount
 		
-		;@@ TBD: overflow heuristics
+		if left-count + (SIZE_SCALE + 1 - right-count) > (SIZE_UNNORM + 1) [MONEY_OVERFLOW]
+		
+		unless any [remainder? only?][
+			hold: left-amount
+			left-amount: set-memory as byte-ptr! system/stack/allocate SIZE_SSLOTS null-byte SIZE_SBYTES
+			copy-memory left-amount hold SIZE_BYTES
+			shift-left left-amount SIZE_SBYTES SIZE_SCALE
+			left-count: left-count + SIZE_SCALE
+		]
 		
 		left-high?:  as logic! left-count  and 1
 		right-high?: as logic! right-count and 1
@@ -766,7 +772,10 @@ money: context [
 		]
 		
 		unless remainder? [
-			unless only? [shift-right quotient SIZE_BYTES SIZE_SCALE]
+			unless only? [
+				left-amount: hold
+				shift-right quotient SIZE_BYTES SIZE_SCALE
+			]
 			copy-memory left-amount quotient SIZE_BYTES
 		]
 		
