@@ -141,6 +141,30 @@ money: context [
 		money
 	]
 	
+	shift-left: func [
+		amount  [byte-ptr!]
+		size    [integer!]
+		offset  [integer!]
+		return: [byte-ptr!]
+		/local
+			this that [integer!]
+			half      [byte!]
+	][
+		loop offset [
+			this: 1
+			that: this + 1
+			loop size [
+				half: either that > size [null-byte][amount/that >>> 4]
+				amount/this: amount/this << 4 or half
+				
+				this: this + 1
+				that: that + 1
+			]
+		]
+		
+		amount
+	]
+	
 	shift-right: func [
 		amount  [byte-ptr!]
 		size    [integer!]
@@ -216,6 +240,66 @@ money: context [
 		]
 		
 		either zero? count [1][count]
+	]
+	
+	;-- Slices --
+	
+	compare-slices: func [
+		this-buffer [byte-ptr!] this-high? [logic!] this-count [integer!]
+		that-buffer [byte-ptr!] that-high? [logic!] that-count [integer!]
+		return: [integer!]
+		/local
+			delta index1 index2 end this that [integer!]
+	][
+		delta: integer/abs this-count - that-count
+		switch integer/sign? this-count - that-count [
+			-1 [index1: 1 - delta index2: 1 end: that-count]
+			00 [index1: 1         index2: 1 end: this-count]
+			+1 [index2: 1 - delta index1: 1 end: this-count]
+			default [0]
+		]
+		
+		index1: index1 + as integer! this-high?
+		index2: index2 + as integer! that-high?
+		
+		until [
+			this: either index1 < 1 [0][get-digit this-buffer index1]
+			that: either index2 < 1 [0][get-digit that-buffer index2]
+		
+			index1: index1 + 1
+			index2: index2 + 1
+			end:    end - 1
+			
+			any [this <> that zero? end]
+		]
+		
+		this - that
+	]
+	
+	subtract-slice: func [
+		this-buffer [byte-ptr!] this-high? [logic!] this-count [integer!]
+		that-buffer [byte-ptr!] that-high? [logic!] that-count [integer!]
+		/local
+			this that borrow difference [integer!]
+	][
+		this-count: this-count + as integer! this-high?
+		that-count: that-count + as integer! that-high?
+		borrow: 0
+		until [
+			this: get-digit this-buffer this-count
+			that: either that-count < 1 [0][get-digit that-buffer that-count]
+			
+			difference: this - that - borrow
+			borrow: as integer! difference < 0
+			if as logic! borrow [difference: difference + 10]
+			
+			set-digit this-buffer this-count difference
+			
+			this-count: this-count - 1
+			that-count: that-count - 1
+			
+			zero? this-count
+		]
 	]
 	
 	;-- Construction --
@@ -612,6 +696,95 @@ money: context [
 		set-sign multiplicand sign
 	]
 	
+	divide-money: func [
+		dividend   [red-money!]
+		divisor    [red-money!]
+		remainder? [logic!]
+		only?      [logic!]
+		return:    [red-money!]
+		/local
+			shift increment subtract        [subroutine!]
+			greater? greatest?              [subroutine!]
+			left-amount right-amount        [byte-ptr!]
+			left-start right-start          [byte-ptr!]
+			quotient old                    [byte-ptr!]
+			dividend-sign divisor-sign sign [integer!]
+			left-count right-count          [integer!]
+			digits index                    [integer!]
+			left-high? right-high?          [logic!]
+	][
+		dividend-sign: sign? dividend
+		divisor-sign:  sign? divisor
+		
+		DISPATCH_SIGNS(dividend-sign divisor-sign)[
+			SIGN_00
+			SIGN_+0
+			SIGN_-0 [fire [TO_ERROR(math zero-divide)]]
+			SIGN_0-
+			SIGN_0+ [return dividend]
+			default [sign: as integer! dividend-sign <> divisor-sign]
+		]
+		
+		left-amount:  get-amount dividend
+		right-amount: get-amount divisor
+		
+		unless only? [shift-left left-amount SIZE_BYTES SIZE_SCALE]
+		
+		left-count:  count-digits left-amount
+		right-count: count-digits right-amount
+		
+		;@@ TBD: overflow heuristics
+		
+		left-high?:  as logic! left-count  and 1
+		right-high?: as logic! right-count and 1
+		
+		left-start:  left-amount  + (SIZE_DIGITS - left-count  >> 1)
+		right-start: right-amount + (SIZE_DIGITS - right-count >> 1)
+		
+		digits: either left-count < right-count [left-count][right-count]
+		
+		index:    SIZE_DIGITS - (integer/abs left-count - right-count) - SIZE_SCALE
+		quotient: set-memory as byte-ptr! system/stack/allocate SIZE_SSLOTS null-byte SIZE_SBYTES
+			
+		shift: [
+			digits: digits + 1
+			index:  index  + 1
+		]
+		subtract: [
+			subtract-slice
+				left-start  left-high?  digits
+				right-start right-high? right-count
+		]
+		increment: [
+			set-digit quotient index (get-digit quotient index) + 1
+		]
+		greater?: [
+			compare-slices
+				right-start right-high? right-count
+				left-start  left-high?  digits
+		]
+		greatest?: [
+			compare-slices
+				right-start right-high? right-count
+				left-start  left-high?  left-count
+		]
+
+		until [
+			either greater? > 0 [either greatest? > 0 [yes][shift no]][
+				subtract increment no
+			]
+		]
+		
+		unless remainder? [
+			unless only? [shift-right quotient SIZE_BYTES SIZE_SCALE]
+			copy-memory left-amount quotient SIZE_BYTES
+		]
+		
+		;@@ TBD: check overflow / underflow
+		
+		set-sign dividend sign
+	]
+		
 	do-math: func [
 		left    [red-money!]
 		right   [red-money!]
@@ -868,11 +1041,11 @@ money: context [
 			;-- Scalar actions --
 			:absolute
 			:add
-				null;:divide
+			:divide
 			:multiply
 			:negate
 			null			;power
-				null;:remainder
+			:remainder
 				null;:round
 			:subtract
 			:even?
