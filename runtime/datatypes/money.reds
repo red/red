@@ -791,16 +791,32 @@ money: context [
 		op      [integer!]
 		return: [red-value!]
 		/local
-			int    [red-integer!]
-			result [red-money!]
+			left right [red-money!]
+			integer    [red-integer!]
+			result     [red-money!]
 	][
+		left:  as red-money! stack/arguments
+		right: left + 1
+	
 		;@@ TBD: take currencies into account
+	
+		switch TYPE_OF(left) [
+			TYPE_MONEY [0]
+			TYPE_INTEGER [
+				integer: as red-integer! left
+				left:    from-integer integer/value
+			]
+			TYPE_FLOAT [--NOT_IMPLEMENTED--]
+			default [
+				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(left)]
+			]
+		]
 	
 		switch TYPE_OF(right) [
 			TYPE_MONEY [0]
 			TYPE_INTEGER [
-				int:   as red-integer! right
-				right: from-integer int/value
+				integer: as red-integer! right
+				right:   from-integer integer/value
 			]
 			TYPE_FLOAT [--NOT_IMPLEMENTED--]
 			default [
@@ -812,8 +828,8 @@ money: context [
 			OP_ADD [add-money left right]
 			OP_SUB [subtract-money left right]
 			OP_MUL [multiply-money left right]
-			OP_DIV
-			OP_REM [--NOT_IMPLEMENTED-- left]
+			OP_DIV [divide-money left right no no]
+			OP_REM [divide-money left right yes no]
 			default [
 				fire [TO_ERROR (script invalid-type) datatype/push TYPE_OF(left)]
 				left
@@ -936,73 +952,14 @@ money: context [
 		compare-money money value
 	]
 	
-	absolute: func [return: [red-money!]][
-		absolute-money as red-money! stack/arguments
-	]
+	absolute: func [return: [red-money!]][absolute-money as red-money! stack/arguments]
+	negate:   func [return: [red-money!]][negate-money as red-money! stack/arguments]
 	
-	negate: func [return: [red-money!]][
-		negate-money as red-money! stack/arguments
-	]
-	
-	add: func [
-		return: [red-value!]
-		/local
-			left  [red-money!]
-			right [red-money!]
-	][
-		left:  as red-money! stack/arguments
-		right: left + 1
-		
-		do-math left right OP_ADD
-	]
-	
-	subtract: func [
-		return: [red-value!]
-		/local
-			left  [red-money!]
-			right [red-money!]
-	][
-		left:  as red-money! stack/arguments
-		right: left + 1
-		
-		do-math left right OP_SUB
-	]
-	
-	multiply: func [
-		return: [red-value!]
-		/local
-			left  [red-money!]
-			right [red-money!]
-	][
-		left:  as red-money! stack/arguments
-		right: left + 1
-		
-		do-math left right OP_MUL
-	]
-	
-	divide: func [
-		return: [red-value!]
-		/local
-			left  [red-money!]
-			right [red-money!]
-	][
-		left:  as red-money! stack/arguments
-		right: left + 1
-		
-		do-math left right OP_DIV
-	]
-	
-	remainder: func [
-		return: [red-value!]
-		/local
-			left  [red-money!]
-			right [red-money!]
-	][
-		left:  as red-money! stack/arguments
-		right: left + 1
-		
-		do-math left right OP_REM
-	]
+	add:       func [return: [red-value!]][do-math OP_ADD]
+	subtract:  func [return: [red-value!]][do-math OP_SUB]
+	multiply:  func [return: [red-value!]][do-math OP_MUL]
+	divide:    func [return: [red-value!]][do-math OP_DIV]
+	remainder: func [return: [red-value!]][do-math OP_REM]
 	
 	round:     STUB
 	
