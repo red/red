@@ -644,10 +644,7 @@ money: context [
 		
 		if (left-count + right-count) > (SIZE_UNNORM + 1) [MONEY_OVERFLOW]
 		
-		product: set-memory
-			as byte-ptr! system/stack/allocate SIZE_SSLOTS
-			null-byte
-			SIZE_SBYTES
+		product: set-memory as byte-ptr! system/stack/allocate SIZE_SSLOTS null-byte SIZE_SBYTES
 		
 		delta:  SIZE_DIGITS - SIZE_BUFFER << 1
 		index1: SIZE_DIGITS
@@ -735,7 +732,7 @@ money: context [
 			left-amount: set-memory as byte-ptr! system/stack/allocate SIZE_SSLOTS null-byte SIZE_SBYTES
 			left-count:  left-count + SIZE_SCALE
 			
-			copy-memory left-amount + (SIZE_SBYTES - SIZE_BYTES) hold SIZE_BYTES
+			copy-memory left-amount + SIZE_SBYTES - SIZE_BYTES hold SIZE_BYTES
 			shift-left left-amount SIZE_SBYTES SIZE_SCALE
 		]
 		
@@ -749,9 +746,9 @@ money: context [
 		
 		index:    size - (integer/abs left-count - right-count) - SIZE_SCALE
 		quotient: set-memory as byte-ptr! system/stack/allocate SIZE_SSLOTS null-byte SIZE_SBYTES
-		buffer: quotient
+		buffer:   quotient
 		
-		if any [remainder? only?][quotient: quotient + SIZE_SBYTES - SIZE_BYTES - 1]
+		if any [remainder? only?][quotient: quotient + SIZE_SBYTES - SIZE_BYTES]
 		
 		shift: [
 			digits: digits + 1
@@ -781,7 +778,7 @@ money: context [
 		unless remainder? [
 			unless only? [
 				shift-right quotient SIZE_SBYTES SIZE_SCALE
-				quotient: quotient + (SIZE_SBYTES - SIZE_BYTES)
+				quotient: quotient + SIZE_SBYTES - SIZE_BYTES
 				left-amount: hold
 			]
 			if zero-amount? quotient [MONEY_OVERFLOW]
@@ -791,7 +788,7 @@ money: context [
 		
 		set-sign dividend sign
 	]
-		
+	
 	do-math: func [
 		op      [integer!]
 		return: [red-value!]
