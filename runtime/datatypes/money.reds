@@ -679,9 +679,10 @@ money: context [
 		
 		unless zero? get-digit product 1 [MONEY_OVERFLOW]
 		
-		;@@ TBD: round to nearest, check underflow
-		shift-right product SIZE_SBYTES SIZE_SCALE
-		copy-memory left-amount product + SIZE_BUFFER - SIZE_BYTES SIZE_BYTES
+		;@@ TBD: check underflow
+		product: product + SIZE_BUFFER - SIZE_BYTES
+		shift-right product SIZE_BYTES SIZE_SCALE
+		copy-memory left-amount product SIZE_BYTES
 		
 		set-sign multiplicand sign
 	]
