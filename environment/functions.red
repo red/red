@@ -559,9 +559,9 @@ pad: func [
 
 mod: func [
 	"Compute a nonnegative remainder of A divided by B"
-	a		[number! char! pair! tuple! vector! time!]
-	b		[number! char! pair! tuple! vector! time!]	"Must be nonzero"
-	return: [number! char! pair! tuple! vector! time!]
+	a		[number! money! char! pair! tuple! vector! time!]
+	b		[number! money! char! pair! tuple! vector! time!]	"Must be nonzero"
+	return: [number! money! char! pair! tuple! vector! time!]
 	/local r
 ][
 	if (r: a % b) < 0 [r: r + b]
@@ -571,9 +571,9 @@ mod: func [
 
 modulo: func [
 	"Wrapper for MOD that handles errors like REMAINDER. Negligible values (compared to A and B) are rounded to zero"
-	a		[number! char! pair! tuple! vector! time!]
-	b		[number! char! pair! tuple! vector! time!]
-	return: [number! char! pair! tuple! vector! time!]
+	a		[number! money! char! pair! tuple! vector! time!]
+	b		[number! money! char! pair! tuple! vector! time!]
+	return: [number! money! char! pair! tuple! vector! time!]
 	/local r
 ][
 	r: mod a absolute b
