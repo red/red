@@ -1021,6 +1021,48 @@ Red [
 			load word! datatype! 5 world
 		]
 
+	--test-- "tt-14"
+		lex-filter14: function [
+			event  [word!]
+			input  [string! binary!]
+			type   [datatype! word! none!]
+			line   [integer!]
+			token
+			return: [logic!]
+		][
+			t: tail logs
+			reduce/into [event to-word type to-word type? type line token] tail logs
+			new-line t yes
+			if event = 'error [input: next input return false]
+			true
+		]
+
+		clear logs
+		--assert none? transcode/trace "a: [b/c/ d/e" :lex-filter14
+		--assert logs = [
+		    prescan word! datatype! 1 1x3
+		    scan set-word! word! 1 1x3
+		    load set-word! datatype! 1 a:
+		    prescan block! word! 1 4x4
+		    open block! datatype! 1 4x4
+		    prescan path! word! 1 5x6
+		    open path! datatype! 1 5x5
+		    load word! datatype! 1 b
+		    prescan word! datatype! 1 7x8
+		    scan word! word! 1 7x8
+		    load word! datatype! 1 c
+		    prescan error! datatype! 1 9x9
+		    error error! datatype! 1 9x9
+		    prescan path! word! 1 10x11
+		    open path! datatype! 1 10x10
+		    load word! datatype! 1 d
+		    prescan word! datatype! 1 12x13
+		    scan word! word! 1 12x13
+		    load word! datatype! 1 e
+		    close path! datatype! 1 12x13
+		    error error! datatype! 1 4x13
+		]
+
 
 ===end-group===
 
