@@ -697,10 +697,10 @@ money: context [
 			greater? greatest?              [subroutine!]
 			left-amount right-amount        [byte-ptr!]
 			left-start right-start          [byte-ptr!]
-			quotient hold                   [byte-ptr!]
+			quotient buffer hold            [byte-ptr!]
 			dividend-sign divisor-sign sign [integer!]
 			left-count right-count          [integer!]
-			size digits index               [integer!]
+			size overflow digits index      [integer!]
 			left-high? right-high?          [logic!]
 	][
 		dividend-sign: sign? dividend
@@ -721,16 +721,17 @@ money: context [
 		left-count:  count-digits left-amount
 		right-count: count-digits right-amount
 		
-		;@@ TBD: overflow heuristics
-		if left-count + (SIZE_SCALE + 1 - right-count) > (SIZE_UNNORM + 1) [MONEY_OVERFLOW]
+		if left-count + (SIZE_SCALE + 1 - right-count) > SIZE_DIGITS [MONEY_OVERFLOW]
 		
 		size: SIZE_DIGITS
+		overflow: SIZE_SBYTES << 1 - SIZE_DIGITS
+		
 		unless any [remainder? only?][
 			size: SIZE_SBYTES << 1
 			hold: left-amount
 			
-			left-count:  left-count + SIZE_SCALE
 			left-amount: set-memory as byte-ptr! system/stack/allocate SIZE_SSLOTS null-byte SIZE_SBYTES
+			left-count:  left-count + SIZE_SCALE
 			
 			copy-memory left-amount + (SIZE_SBYTES - SIZE_BYTES) hold SIZE_BYTES
 			shift-left left-amount SIZE_SBYTES SIZE_SCALE
@@ -746,6 +747,9 @@ money: context [
 		
 		index:    size - (integer/abs left-count - right-count) - SIZE_SCALE
 		quotient: set-memory as byte-ptr! system/stack/allocate SIZE_SSLOTS null-byte SIZE_SBYTES
+		buffer: quotient
+		
+		if any [remainder? only?][quotient: quotient + SIZE_SBYTES - SIZE_BYTES - 1]
 		
 		shift: [
 			digits: digits + 1
@@ -769,12 +773,8 @@ money: context [
 				right-start right-high? right-count
 				left-start  left-high?  left-count
 		]
-
-		until [
-			either greater? > 0 [either greatest? > 0 [yes][shift no]][
-				subtract increment no
-			]
-		]
+		;@@ TBD: bug with subroutines
+		until [either greater? > 0 [either greatest? > 0 [yes][shift no]][subtract increment no]]
 		
 		unless remainder? [
 			unless only? [
@@ -782,10 +782,11 @@ money: context [
 				quotient: quotient + (SIZE_SBYTES - SIZE_BYTES)
 				left-amount: hold
 			]
+			unless zero? get-digit buffer overflow [MONEY_OVERFLOW]
 			copy-memory left-amount quotient SIZE_BYTES
 		]
 		
-		;@@ TBD: check overflow / underflow
+		;@@ TBD: check underflow
 		
 		set-sign dividend sign
 	]
