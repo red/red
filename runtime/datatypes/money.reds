@@ -700,7 +700,7 @@ money: context [
 			quotient hold                   [byte-ptr!]
 			dividend-sign divisor-sign sign [integer!]
 			left-count right-count          [integer!]
-			digits index                    [integer!]
+			size digits index               [integer!]
 			left-high? right-high?          [logic!]
 	][
 		dividend-sign: sign? dividend
@@ -717,31 +717,36 @@ money: context [
 		
 		left-amount:  get-amount dividend
 		right-amount: get-amount divisor
-			
+		
 		left-count:  count-digits left-amount
 		right-count: count-digits right-amount
 		
+		;@@ TBD: overflow heuristics
 		if left-count + (SIZE_SCALE + 1 - right-count) > (SIZE_UNNORM + 1) [MONEY_OVERFLOW]
 		
+		size: SIZE_DIGITS
 		unless any [remainder? only?][
+			size: SIZE_SBYTES << 1
 			hold: left-amount
+			
+			left-count:  left-count + SIZE_SCALE
 			left-amount: set-memory as byte-ptr! system/stack/allocate SIZE_SSLOTS null-byte SIZE_SBYTES
-			copy-memory left-amount hold SIZE_BYTES
+			
+			copy-memory left-amount + (SIZE_SBYTES - SIZE_BYTES) hold SIZE_BYTES
 			shift-left left-amount SIZE_SBYTES SIZE_SCALE
-			left-count: left-count + SIZE_SCALE
 		]
 		
 		left-high?:  as logic! left-count  and 1
 		right-high?: as logic! right-count and 1
 		
-		left-start:  left-amount  + (SIZE_DIGITS - left-count  >> 1)
+		left-start:  left-amount  + (size        - left-count  >> 1)
 		right-start: right-amount + (SIZE_DIGITS - right-count >> 1)
 		
 		digits: either left-count < right-count [left-count][right-count]
 		
-		index:    SIZE_DIGITS - (integer/abs left-count - right-count) - SIZE_SCALE
+		index:    size - (integer/abs left-count - right-count) - SIZE_SCALE
 		quotient: set-memory as byte-ptr! system/stack/allocate SIZE_SSLOTS null-byte SIZE_SBYTES
-			
+		
 		shift: [
 			digits: digits + 1
 			index:  index  + 1
@@ -773,8 +778,9 @@ money: context [
 		
 		unless remainder? [
 			unless only? [
+				shift-right quotient SIZE_SBYTES SIZE_SCALE
+				quotient: quotient + (SIZE_SBYTES - SIZE_BYTES)
 				left-amount: hold
-				shift-right quotient SIZE_BYTES SIZE_SCALE
 			]
 			copy-memory left-amount quotient SIZE_BYTES
 		]
