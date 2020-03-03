@@ -734,8 +734,8 @@ date: context [
 		][
 			time?: DATE_GET_TIME_FLAG(d)
 
-			rnd: either secure? [_random/rand-secure] [_random/rand]		;-- a workaround for issue #3620
-			dt/date: days-to-date rnd % (date-to-days d) DATE_GET_ZONE(d) time?
+			rnd: _random/int-uniform-distr secure? date-to-days d
+			dt/date: days-to-date rnd - 1 DATE_GET_ZONE(d) time?
 			if time? [
 				dt/date: either secure? [
 					DATE_SET_ZONE(dt/date _random/rand-secure)

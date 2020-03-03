@@ -98,7 +98,37 @@ _random: context [
 		crypto/urandom (as byte-ptr! :i) 4
 		i and 7FFFFFFFh									;-- range 0-2147483647 inclusive
 	]
-	
+
+	int-uniform-distr: func [
+		secure?	[logic!]
+		max		[integer!]
+		return:	[integer!]
+		/local
+			mask	 [integer!]
+			rnd		 [integer!]
+			neg?	 [logic!]
+	] [
+		if max = 0 [return 0]
+		either max < 0 [
+			max: 0 - max
+			neg?: true
+		] [
+			neg?: false
+		]
+		mask: 7FFFFFFFh >> (30 - (as-integer floor log-2 as-float (max - 1)))
+		until [
+			rnd: either secure? [rand-secure] [rand]
+			rnd: rnd and mask
+			max > rnd
+		]
+		rnd: rnd + 1
+		either neg? [
+			0 - rnd
+		] [
+			rnd
+		]
+	]
+
 	init: does [
 		table: as int-ptr! allocate MT_RANDOM_STATE_SIZE * size? integer!
 		srand 19650218

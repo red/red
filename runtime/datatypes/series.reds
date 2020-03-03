@@ -119,7 +119,7 @@ _series: context [
 
 			either only? [
 				either positive? size [
-					idx: head + ((either secure? [_random/rand-secure] [_random/rand]) % size << (log-b unit))
+					idx: head + ((-1 + _random/int-uniform-distr secure? size) << (log-b unit))
 					switch TYPE_OF(ser) [
 						TYPE_BLOCK
 						TYPE_HASH
@@ -148,7 +148,7 @@ _series: context [
 				len: size
 				temp: as byte-ptr! :val
 				while [size > 0][
-					idx: head + ((either secure? [_random/rand-secure] [_random/rand]) % size << (log-b unit))
+					idx: head + ((-1 + _random/int-uniform-distr secure? size) << (log-b unit))
 					if idx <> head [
 						copy-memory temp head unit
 						copy-memory head idx unit
