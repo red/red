@@ -794,9 +794,8 @@ money: context [
 		op      [integer!]
 		return: [red-value!]
 		/local
-			left right [red-money!]
-			integer    [red-integer!]
-			result     [red-money!]
+			left right result [red-money!]
+			integer           [red-integer!]
 	][
 		left:  as red-money! stack/arguments
 		right: left + 1
@@ -865,7 +864,7 @@ money: context [
 			]
 			TYPE_FLOAT [--NOT_IMPLEMENTED--]
 			default [
-				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_MONEY spec]
+				fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY spec]
 			]
 		]
 		
