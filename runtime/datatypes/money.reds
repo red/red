@@ -43,7 +43,7 @@ money: context [
 	#define DISPATCH_SIGNS(this that) [switch collate-signs this that]
 	#define SWAP_ARGUMENTS(this that) [use [hold][hold: this this: that that: hold]]
 	
-	#define MONEY_OVERFLOW [fire [TO_ERROR(math overflow)]]
+	#define MONEY_OVERFLOW [fire [TO_ERROR(script type-limit) datatype/push TYPE_MONEY]]
 	
 	SIZE_DIGITS:   SIZE_BYTES * 2
 	SIZE_INTEGRAL: SIZE_DIGITS - SIZE_SCALE
@@ -679,11 +679,12 @@ money: context [
 		
 		unless zero? get-digit product 1 [MONEY_OVERFLOW]
 		
-		;@@ TBD: check underflow
 		product: product + SIZE_BUFFER - SIZE_BYTES
-		shift-right product SIZE_BYTES SIZE_SCALE
-		copy-memory left-amount product SIZE_BYTES
 		
+		shift-right product SIZE_BYTES SIZE_SCALE
+		if zero-amount? product [MONEY_OVERFLOW]
+		
+		copy-memory left-amount product SIZE_BYTES
 		set-sign multiplicand sign
 	]
 	
@@ -783,11 +784,10 @@ money: context [
 				quotient: quotient + (SIZE_SBYTES - SIZE_BYTES)
 				left-amount: hold
 			]
+			if zero-amount? quotient [MONEY_OVERFLOW]
 			unless zero? get-digit buffer overflow [MONEY_OVERFLOW]
 			copy-memory left-amount quotient SIZE_BYTES
 		]
-		
-		;@@ TBD: check underflow
 		
 		set-sign dividend sign
 	]
