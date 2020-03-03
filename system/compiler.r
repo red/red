@@ -2003,7 +2003,7 @@ system-dialect: make-profilable context [
 					in-subroutine?: name
 					fetch-into reduce [code][
 						chunk: comp-chunked [emitter/target/emit-init-sub]
-						set [expr body] comp-block-chunked ;-- compiles subroutine's body
+						set [expr body] comp-block-chunked/bool ;-- compiles subroutine's body
 						subs/2: reduce [base + length? chunks/1 get-type expr make block! 4] ;-- [start-ptr type [call-sites]]
 						emitter/chunks/join chunk body
 						ret: comp-chunked [emitter/target/emit-return-sub]
