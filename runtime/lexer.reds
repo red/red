@@ -487,6 +487,7 @@ lexer: context [
 		]
 		cont?: logic/top-true?
 		stack/unwind
+		stack/pop 1
 		cont?
 	]
 	
