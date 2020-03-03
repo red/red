@@ -487,6 +487,7 @@ lexer: context [
 		]
 		cont?: logic/top-true?
 		stack/unwind
+		stack/pop 1
 		cont?
 	]
 	
@@ -1171,9 +1172,11 @@ lexer: context [
 				]
 			][											;-- process with quote(s)
 				loop len [
-					if p/1 <> #"'" [
+					either p/1 <> #"'" [
 						i: 10 * i + as-integer (p/1 - #"0")
 						o?: o? or system/cpu/overflow?
+					][
+						if any [p + 1 = e p/2 = #"'"][throw-error lex s e TYPE_INTEGER]
 					]
 					p: p + 1
 				]
@@ -1188,7 +1191,6 @@ lexer: context [
 			]
 		]
 		if neg? [i: 0 - i]
-		;lex/scanned: TYPE_INTEGER
 		if load? [
 			cell: alloc-slot lex
 			integer/make-at cell i
@@ -1957,32 +1959,36 @@ lexer: context [
 			do-error [subroutine!]
 			cnt cnt2 [integer!]
 			p q		 [byte-ptr!]
+			match?	 [logic!]
 	][
 		do-error: [throw-error lex s e TYPE_STRING]
 		p: s
-		while [s/1 = #"%"][s: s + 1]
-		cnt: as-integer s - p
+		while [p/1 = #"%"][p: p + 1]
+		cnt: as-integer p - s
 		q: e
 		until [q: q - 1 q/1 <> #"%"]
 		cnt2: as-integer e - q - 1
 		if cnt < cnt2 [do-error]
-		;if cnt > cnt2 [
-			;until [
-			;	if e + 1 >= lex/in-end [do-error]
-			;	
-			;]
-			;while [e/1 <> #"}"][
-			;	e: e + 2
-			;	if e >= lex/in-end [do-error]
-			;]
-			;p: e
-			;while [e/1 = #"%"][s: s + 1]
-		;]	
+		if cnt > cnt2 [									;-- trailing % count too low
+			q: e
+			until [										;-- searching for the right ending sequence
+				if q >= lex/in-end [do-error]
+				while [q/1 <> #"}"][
+					q: q + 1
+					if q + cnt >= lex/in-end [do-error]
+				]
+				q: q + 1
+				match?: yes
+				loop cnt [if q/1 <> #"%" [match?: no break] q: q + 1]
+				match?
+			]
+			q: q - cnt - 1
+		]	
 		if load? [
 			flags: flags and not C_FLAG_CARET			;-- clears caret flag
-			load-string lex s + cnt - 1 e - cnt2 - 1 flags load?	
+			load-string lex p q flags load?	
 		]
-		lex/in-pos: e 									;-- reset the input position to delimiter byte
+		lex/in-pos: q + cnt + 1							;-- reset the input position to delimiter byte
 	]
 
 	scan-tokens: func [
