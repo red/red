@@ -104,7 +104,7 @@ _random: context [
 		max		[integer!]
 		return:	[integer!]
 		/local
-			mask	 [integer!]
+			limit	 [integer!]
 			rnd		 [integer!]
 			neg?	 [logic!]
 	] [
@@ -115,13 +115,12 @@ _random: context [
 		] [
 			neg?: false
 		]
-		mask: 7FFFFFFFh >> (30 - (as-integer floor log-2 as-float (max - 1)))
+		limit: 2147483647 / max * max
 		until [
 			rnd: either secure? [rand-secure] [rand]
-			rnd: rnd and mask
-			max > rnd
+			limit > rnd
 		]
-		rnd: rnd + 1
+		rnd: rnd % max + 1
 		either neg? [
 			0 - rnd
 		] [
