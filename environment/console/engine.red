@@ -114,76 +114,80 @@ system/console: context [
 		]
 	]
 
+	pop-delimiter: does [remove back tail delimiters]
+	match-delimiter: function [c][either c = last delimiters [pop-delimiter true][false]]
+	delimiter-map: reduce [
+		block!		#"["
+		paren!		#"("
+		string!		#"{"
+		map!		#"("
+		path!		#"/"
+		lit-path!	#"/"
+		get-path!	#"/"
+		set-path!	#"/"
+		tag!		#"<"
+	]
+	delimiter-lex: function [
+		event	[word!]
+		input	[string! binary!]
+		type	[datatype! word! none!]
+		line	[integer!]
+		token
+		return:	[logic!]
+		/local	s c
+	][
+		[open close error scan]
+		if event = 'open [
+			append delimiters second find delimiter-map type
+			return false
+		]
+		if event = 'close [
+			unless match-delimiter second find delimiter-map type [
+				do make error! "not match"
+			]
+			return false
+		]
+		if event = 'error [
+			if #"/" = last delimiters [
+				do make error! "path error"
+			]
+			if find "})]" input/1 [
+				do make error! "unmatch"
+			]
+			if token/y > token/x [
+				s: skip input token/x - token/y
+				s: copy/part s input
+				if s/1 = #"<" [
+					append s #">"
+					if tag? try [load s][
+						append delimiters #"<"
+						input: next input
+						return false
+					]
+				]
+				if s/1 = #"%" [
+					c: 1
+					while [s/(c + 1) = #"%"][
+						c: c + 1
+					]
+					if s/(c + 1) = #"{" [
+						append delimiters #"{"
+						input: next input
+						return false
+					]
+				]
+			]
+			input: next input
+			return false
+		]
+		false
+	]
 	check-delimiters: function [
 		buffer	[string!]
-		/extern delimiters
 		return: [logic!]
 	][
-		escaped: [#"^^" skip]
-		block-rule: [
-			(append delimiters #"[")
-			any [
-				#"[" block-rule
-				| #"{" curly-rule
-				| #"(" paren-rule
-				| pos: #";" :pos remove [skip [thru lf | to end]]
-				| dbl-quote dbl-quote-rule
-				| #"}" (either #"{" = last delimiters [remove back tail delimiters][return false])
-				| #")" (either #"(" = last delimiters [remove back tail delimiters][return false])
-				| #"]" (remove back tail delimiters) break
-				| skip
-			]
-		]
-
-		curly-rule: [
-			(append delimiters #"{")
-			any [
-				escaped
-				| #"{" curly-rule
-				| #"}" (remove back tail delimiters) break
-				| skip
-			]
-		]
-
-		paren-rule: [
-			(append delimiters #"(")
-			any [
-				#"[" block-rule
-				| #"{" curly-rule
-				| #"(" paren-rule
-				| pos: #";" :pos remove [skip [thru lf | to end]]
-				| dbl-quote dbl-quote-rule
-				| #"]" (either #"[" = last delimiters [remove back tail delimiters][return false])
-				| #"}" (either #"{" = last delimiters [remove back tail delimiters][return false])
-				| #")" (remove back tail delimiters) break
-				| skip
-			]
-		]
-
-		dbl-quote-rule: [
-			any [
-				[lf | end] (return false)
-				| escaped
-				| dbl-quote break
-				| skip end (return false)
-				| skip
-			]
-		]
-		
-		parse buffer [
-			any [
-				escaped
-				| pos: #";" if (#"{" <> last delimiters) :pos remove [skip [thru lf | to end]]
-				| #"[" if (#"{" <> last delimiters) block-rule
-				| #"]" if (#"{" <> last delimiters) (either #"[" = last delimiters [remove back tail delimiters][return false])
-				| #"(" if (#"{" <> last delimiters) paren-rule
-				| #")" if (#"{" <> last delimiters) (either #"(" = last delimiters [remove back tail delimiters][return false])
-				| dbl-quote if (#"{" <> last delimiters) dbl-quote-rule
-				| #"{" curly-rule
-				| #"}" (either #"{" = last delimiters [remove back tail delimiters][return false])
-				| skip
-			]
-		]
+		clear delimiters
+		if error? try [transcode/trace buffer :delimiter-lex][return false]
 		true
 	]
 	
@@ -246,10 +250,9 @@ system/console: context [
 				print "(escape)"
 			][
 				cue: none
-				res: check-delimiters line
 				append buffer line
 				append buffer lf						;-- needed for multiline modes
-				either res [
+				either check-delimiters buffer [
 					either empty? delimiters [
 						do-command						;-- no delimiters error
 						mode: 'mono
