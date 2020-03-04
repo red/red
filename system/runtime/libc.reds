@@ -139,10 +139,6 @@ Red/System [
 			value		[float!]
 			return:		[float!]
 		]
-		log-2:		"log2" [
-			value		[float!]
-			return:		[float!]
-		]
 		sqrt:		"sqrt" [
 			value		[float!]
 			return:		[float!]

@@ -1798,7 +1798,7 @@ natives: context [
 	][
 		#typecheck log-2
 		f: argument-as-float
-		f/value: log-2 f/value
+		f/value: (log-e f/value) / 0.6931471805599453
 	]
 
 	log-10*: func [
