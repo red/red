@@ -264,7 +264,7 @@ tuple: context [
 			n: 0
 			until [
 				n: n + 1
-				array/n: as-byte (-1 + _random/int-uniform-distr secure? as-integer (array/n + 1))
+				array/n: as-byte (-1 + _random/int-uniform-distr secure? (1 + as-integer array/n))
 				n = size
 			]
 		]
