@@ -923,8 +923,24 @@ money: context [
 	]
 	
 	;-- Actions --
-
+	
 	make: func [
+		proto   [red-value!]
+		spec    [red-value!]
+		type    [integer!]
+		return: [red-money!]
+	][
+		switch TYPE_OF(spec) [
+			TYPE_MONEY  [return as red-money! spec]
+			TYPE_BLOCK  [--NOT_IMPLEMENTED--]
+			TYPE_BINARY [--NOT_IMPLEMENTED--]
+			default [to proto spec type]
+		]
+		
+		as red-money! spec
+	]
+
+	to: func [
 		proto   [red-value!]
 		spec    [red-value!]
 		type    [integer!]
@@ -944,6 +960,7 @@ money: context [
 				money:   from-integer integer/value
 			]
 			TYPE_FLOAT [--NOT_IMPLEMENTED--]
+			TYPE_STRING [--NOT_IMPLEMENTED--]
 			default [
 				fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY spec]
 			]
@@ -952,7 +969,16 @@ money: context [
 		money
 	]
 	
-	;-- to: :make
+	random: func [
+		money   [red-money!]
+		seed?   [logic!]
+		secure? [logic!]
+		only?   [logic!]
+		return: [red-money!]
+	][
+		--NOT_IMPLEMENTED--
+		money
+	]
 	
 	form: func [
 		money   [red-money!]
@@ -960,10 +986,6 @@ money: context [
 		arg     [red-value!]
 		part    [integer!]
 		return: [integer!]
-		/local
-			form-integral [subroutine!]
-			amount end [byte-ptr!]
-			sign count index size-integral [integer!]
 	][
 		form-money money buffer part yes
 	]
@@ -1002,6 +1024,8 @@ money: context [
 		][
 			return 1
 		]
+		
+		;@@ TBD: take currencies into account (strict comparison)
 		
 		switch TYPE_OF(value) [
 			TYPE_MONEY [0]
@@ -1066,7 +1090,7 @@ money: context [
 			:make
 			:random
 			null			;reflect
-			:make			;-- to
+			:to
 			:form
 			:mold
 			null			;eval-path
