@@ -322,6 +322,7 @@ money: context [
 		convert: [
 			here: here + step
 			until [
+				if here/value = #"'" [here: here + step continue]
 				set-digit amount index as integer! here/value - #"0"
 				
 				here:  here + step
