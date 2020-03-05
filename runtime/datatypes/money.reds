@@ -461,9 +461,11 @@ money: context [
 			sign integer index [integer!]
 			start power digit  [integer!]
 	][
+		if overflow? money [fire [TO_ERROR(script type-limit) datatype/push TYPE_INTEGER]]
+	
 		sign: sign? money
 		
-		if zero? sign [return sign]
+		if zero? sign [return 0]
 	
 		amount:  get-amount money
 		integer: 0

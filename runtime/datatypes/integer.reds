@@ -419,9 +419,7 @@ integer: context [
 				int/value: as-integer fl/value
 			]
 			TYPE_MONEY [
-				mn: as red-money! spec
-				if money/overflow? mn [fire [TO_ERROR(script type-limit) datatype/push TYPE_INTEGER]]
-				int/value: from-money mn
+				int/value: from-money as red-money! spec
 			]
 			TYPE_BINARY [
 				int/value: from-binary as red-binary! spec
