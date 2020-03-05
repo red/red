@@ -105,7 +105,7 @@ money: context [
 	][
 		(as byte-ptr! money) + (size? money) - SIZE_BYTES
 	]
-
+	
 	zero-amount?: func [
 		amount  [byte-ptr!]
 		return: [logic!]
@@ -422,7 +422,7 @@ money: context [
 		
 		sign * integer
 	]
-
+	
 	from-integer: func [
 		int     [integer!]
 		return: [red-money!]
@@ -463,7 +463,7 @@ money: context [
 	]
 	
 	;-- Comparison --
-		
+	
 	compare-money: func [
 		this    [red-money!]
 		that    [red-money!]
@@ -514,7 +514,7 @@ money: context [
 			either as logic! get-sign money [-1][+1]
 		]
 	]
-		
+	
 	;-- Math --
 	
 	absolute-money: func [
@@ -536,14 +536,14 @@ money: context [
 		addend  [red-money!]
 		return: [red-money!]
 		/local
-			left-amount right-amount   [byte-ptr!]
-			augend-sign addend-sign    [integer!]
+			this-amount that-amount    [byte-ptr!]
+			this-sign that-sign        [integer!]
 			index carry left right sum [integer!]
 	][
-		augend-sign: sign? augend
-		addend-sign: sign? addend
+		this-sign: sign? augend
+		that-sign: sign? addend
 		
-		DISPATCH_SIGNS(augend-sign addend-sign)[			
+		DISPATCH_SIGNS(this-sign that-sign)[
 			SIGN_00
 			SIGN_-0
 			SIGN_+0 [return augend]
@@ -554,23 +554,23 @@ money: context [
 			default [0]
 		]
 		
-		left-amount:  get-amount augend
-		right-amount: get-amount addend
+		this-amount: get-amount augend
+		that-amount: get-amount addend
 		
-		if (get-digit left-amount 1) + (get-digit right-amount 1) > 9 [MONEY_OVERFLOW]
+		if (get-digit this-amount 1) + (get-digit that-amount 1) > 9 [MONEY_OVERFLOW]
 		
 		index: SIZE_DIGITS
 		carry: 0
 		
 		loop index [
-			left:  get-digit left-amount  index
-			right: get-digit right-amount index
+			left:  get-digit this-amount index
+			right: get-digit that-amount index
 			
-			sum: left + right + carry
+			sum:   left + right + carry
 			carry: sum / 10
 			unless zero? carry [sum: sum + 6 and 0Fh]
 			
-			set-digit left-amount index sum
+			set-digit this-amount index sum
 		
 			index: index - 1
 		]
@@ -585,15 +585,15 @@ money: context [
 		subtrahend [red-money!]
 		return:    [red-money!]
 		/local
-			left-amount right-amount           [byte-ptr!]
-			minuend-sign subtrahend-sign sign  [integer!]
+			this-amount that-amount            [byte-ptr!]
+			this-sign that-sign sign           [integer!]
 			index borrow left right difference [integer!]
 			lesser? flag                       [logic!]
 	][
-		minuend-sign: sign? minuend
-		subtrahend-sign: sign? subtrahend
+		this-sign: sign? minuend
+		that-sign: sign? subtrahend
 		
-		DISPATCH_SIGNS(minuend-sign subtrahend-sign)[			
+		DISPATCH_SIGNS(this-sign that-sign)[			
 			SIGN_00
 			SIGN_0-
 			SIGN_0+ [return negate-money subtrahend]
@@ -605,7 +605,7 @@ money: context [
 				lesser?: negative? compare-money minuend subtrahend
 				sign: as integer! lesser?
 				
-				either positive? minuend-sign [flag: lesser?][
+				either positive? this-sign [flag: lesser?][
 					minuend: absolute-money minuend
 					subtrahend: absolute-money subtrahend
 					flag: not lesser?
@@ -615,21 +615,21 @@ money: context [
 			]
 		]
 		
-		left-amount:  get-amount minuend
-		right-amount: get-amount subtrahend
+		this-amount: get-amount minuend
+		that-amount: get-amount subtrahend
 		
 		index:  SIZE_DIGITS
 		borrow: 0
 	
 		loop index [
-			left:  get-digit left-amount  index
-			right: get-digit right-amount index
+			left:  get-digit this-amount index
+			right: get-digit that-amount index
 			
 			difference: left - right - borrow
 			borrow: as integer! negative? difference
 			if as logic! borrow [difference: difference + 10]
 			
-			set-digit left-amount index difference
+			set-digit this-amount index difference
 		
 			index: index - 1
 		]
@@ -642,47 +642,47 @@ money: context [
 		multiplier   [red-money!]
 		return:      [red-money!]
 		/local
-			left-amount right-amount product       [byte-ptr!]
-			multiplicand-sign multiplier-sign sign [integer!]
-			left-count right-count                 [integer!]
-			delta index1 index2 index3             [integer!]
-			carry left right other result          [integer!]
+			this-amount that-amount product [byte-ptr!]
+			this-sign that-sign sign        [integer!]
+			this-count that-count           [integer!]
+			delta index1 index2 index3      [integer!]
+			carry left right other result   [integer!]
 	][
-		multiplicand-sign: sign? multiplicand
-		multiplier-sign:   sign? multiplier
+		this-sign: sign? multiplicand
+		that-sign: sign? multiplier
 		
-		DISPATCH_SIGNS(multiplicand-sign multiplier-sign)[
+		DISPATCH_SIGNS(this-sign that-sign)[
 			SIGN_00
 			SIGN_0-
 			SIGN_0+ [return multiplicand]
 			SIGN_+0
 			SIGN_-0 [return multiplier]
-			default [sign: as integer! multiplicand-sign <> multiplier-sign]
+			default [sign: as integer! this-sign <> that-sign]
 		]
 		
-		left-amount:  get-amount multiplicand
-		right-amount: get-amount multiplier
+		this-amount: get-amount multiplicand
+		that-amount: get-amount multiplier
 		
-		left-count:  count-digits left-amount
-		right-count: count-digits right-amount
+		this-count: count-digits this-amount
+		that-count: count-digits that-amount
 		
-		if (left-count + right-count) > (SIZE_UNNORM + 1) [MONEY_OVERFLOW]
+		if (this-count + that-count) > (SIZE_UNNORM + 1) [MONEY_OVERFLOW]
 		
 		product: set-memory as byte-ptr! system/stack/allocate SIZE_SSLOTS null-byte SIZE_SBYTES
 		
 		delta:  SIZE_DIGITS - SIZE_BUFFER << 1
 		index1: SIZE_DIGITS
 		
-		loop right-count [
+		loop that-count [
 			carry:  0
 			index2: SIZE_DIGITS
 			
-			loop left-count [
+			loop this-count [
 				index3: index1 + index2 - delta
 			
-				left:  get-digit left-amount  index2
-				right: get-digit right-amount index1
-				other: get-digit product      index3
+				left:  get-digit this-amount index2
+				right: get-digit that-amount index1
+				other: get-digit product     index3
 				
 				result: left * right + other + carry
 				carry:  result /  10
@@ -705,7 +705,7 @@ money: context [
 		shift-right product SIZE_BYTES SIZE_SCALE
 		if zero-amount? product [MONEY_OVERFLOW]
 		
-		copy-memory left-amount product SIZE_BYTES
+		copy-memory this-amount product SIZE_BYTES
 		set-sign multiplicand sign
 	]
 	
@@ -716,59 +716,59 @@ money: context [
 		only?      [logic!]
 		return:    [red-money!]
 		/local
-			shift increment subtract        [subroutine!]
-			greater? greatest?              [subroutine!]
-			left-amount right-amount        [byte-ptr!]
-			left-start right-start          [byte-ptr!]
-			quotient buffer hold            [byte-ptr!]
-			dividend-sign divisor-sign sign [integer!]
-			left-count right-count          [integer!]
-			size overflow digits index      [integer!]
-			left-high? right-high?          [logic!]
+			shift increment subtract   [subroutine!]
+			greater? greatest?         [subroutine!]
+			this-amount that-amount    [byte-ptr!]
+			this-start that-start      [byte-ptr!]
+			quotient buffer hold       [byte-ptr!]
+			this-sign that-sign sign   [integer!]
+			this-count that-count      [integer!]
+			size overflow digits index [integer!]
+			this-high? that-high?      [logic!]
 	][
-		dividend-sign: sign? dividend
-		divisor-sign:  sign? divisor
+		this-sign: sign? dividend
+		that-sign: sign? divisor
 		
-		DISPATCH_SIGNS(dividend-sign divisor-sign)[
+		DISPATCH_SIGNS(this-sign that-sign)[
 			SIGN_00
 			SIGN_+0
 			SIGN_-0 [fire [TO_ERROR(math zero-divide)]]
 			SIGN_0-
 			SIGN_0+ [return dividend]
-			default [sign: as integer! dividend-sign <> divisor-sign]
+			default [sign: as integer! this-sign <> that-sign]
 		]
 		
-		left-amount:  get-amount dividend
-		right-amount: get-amount divisor
+		this-amount: get-amount dividend
+		that-amount: get-amount divisor
 		
-		left-count:  count-digits left-amount
-		right-count: count-digits right-amount
+		this-count: count-digits this-amount
+		that-count: count-digits that-amount
 		
-		if left-count + (SIZE_SCALE + 1 - right-count) > SIZE_DIGITS [MONEY_OVERFLOW]
+		if this-count + (SIZE_SCALE + 1 - that-count) > SIZE_DIGITS [MONEY_OVERFLOW]
 		
 		size: SIZE_DIGITS
 		overflow: SIZE_SBYTES << 1 - SIZE_DIGITS
 		
 		unless any [remainder? only?][
 			size: SIZE_SBYTES << 1
-			hold: left-amount
+			hold: this-amount
 			
-			left-amount: set-memory as byte-ptr! system/stack/allocate SIZE_SSLOTS null-byte SIZE_SBYTES
-			left-count:  left-count + SIZE_SCALE
+			this-amount: set-memory as byte-ptr! system/stack/allocate SIZE_SSLOTS null-byte SIZE_SBYTES
+			this-count:  this-count + SIZE_SCALE
 			
-			copy-memory left-amount + SIZE_SBYTES - SIZE_BYTES hold SIZE_BYTES
-			shift-left left-amount SIZE_SBYTES SIZE_SCALE
+			copy-memory this-amount + SIZE_SBYTES - SIZE_BYTES hold SIZE_BYTES
+			shift-left this-amount SIZE_SBYTES SIZE_SCALE
 		]
 		
-		left-high?:  as logic! left-count  and 1
-		right-high?: as logic! right-count and 1
+		this-high?: as logic! this-count and 1
+		that-high?: as logic! that-count and 1
 		
-		left-start:  left-amount  + (size        - left-count  >> 1)
-		right-start: right-amount + (SIZE_DIGITS - right-count >> 1)
+		this-start: this-amount + (size        - this-count >> 1)
+		that-start: that-amount + (SIZE_DIGITS - that-count >> 1)
 		
-		digits: either left-count < right-count [left-count][right-count]
+		digits: either this-count < that-count [this-count][that-count]
 		
-		index:    size - (integer/abs left-count - right-count) - SIZE_SCALE
+		index:    size - (integer/abs this-count - that-count) - SIZE_SCALE
 		quotient: set-memory as byte-ptr! system/stack/allocate SIZE_SSLOTS null-byte SIZE_SBYTES
 		buffer:   quotient
 		
@@ -780,21 +780,21 @@ money: context [
 		]
 		subtract: [
 			subtract-slice
-				left-start  left-high?  digits
-				right-start right-high? right-count
+				this-start this-high? digits
+				that-start that-high? that-count
 		]
 		increment: [
 			set-digit quotient index (get-digit quotient index) + 1
 		]
 		greater?: [
 			compare-slices
-				right-start right-high? right-count
-				left-start  left-high?  digits
+				that-start that-high? that-count
+				this-start this-high? digits
 		]
 		greatest?: [
 			compare-slices
-				right-start right-high? right-count
-				left-start  left-high?  left-count
+				that-start that-high? that-count
+				this-start this-high? this-count
 		]
 		;@@ TBD: bug with subroutines
 		until [either greater? > 0 [either greatest? > 0 [yes][shift no]][subtract increment no]]
@@ -803,11 +803,11 @@ money: context [
 			unless only? [
 				shift-right quotient SIZE_SBYTES SIZE_SCALE
 				quotient: quotient + SIZE_SBYTES - SIZE_BYTES
-				left-amount: hold
+				this-amount: hold
 			]
 			if zero-amount? quotient [MONEY_OVERFLOW]
 			unless zero? get-digit buffer overflow [MONEY_OVERFLOW]
-			copy-memory left-amount quotient SIZE_BYTES
+			copy-memory this-amount quotient SIZE_BYTES
 		]
 		
 		set-sign dividend sign
@@ -895,7 +895,7 @@ money: context [
 	]
 	
 	;-- to: :make
-
+	
 	form: func [
 		money   [red-money!]
 		buffer  [red-string!]
@@ -913,6 +913,8 @@ money: context [
 			string/concatenate-literal buffer "-"
 			part: part - 1
 		]
+		
+		;@@ TBD: take currency into account
 		
 		string/concatenate-literal buffer "$"
 		
@@ -935,7 +937,7 @@ money: context [
 		flat?   [logic!]
 		arg     [red-value!]
 		part    [integer!]
-		indent  [integer!]		
+		indent  [integer!]
 		return: [integer!]
 	][
 		form money buffer arg part
@@ -1004,7 +1006,7 @@ money: context [
 		digit: get-digit get-amount money SIZE_INTEGRAL
 		as logic! digit and 1
 	]
-
+	
 	init: does [
 		datatype/register [
 			TYPE_MONEY
