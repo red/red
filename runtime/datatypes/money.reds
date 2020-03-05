@@ -18,6 +18,7 @@ money: context [
 	#enum sizes! [
 		SIZE_BYTES: 11
 		SIZE_SCALE: 05
+		SIZE_AFTER: 05
 	]
 	
 	#enum signs! [
@@ -371,6 +372,65 @@ money: context [
 		return:  [red-money!]	
 	][
 		make-at stack/push* sign currency start point end
+	]
+	
+	form-money: func [
+		money   [red-money!]
+		buffer  [red-string!]
+		part    [integer!]
+		group?  [logic!]
+		return: [integer!]
+		/local
+			fill        [subroutine!]
+			amount      [byte-ptr!]
+			sign count  [integer!]
+			index times [integer!]
+	][
+		amount: get-amount money
+		sign:   sign? money
+		
+		if negative? sign [
+			string/concatenate-literal buffer "-"
+			part: part - 1
+		]
+		
+		;@@ TBD: take currency into account
+		
+		string/concatenate-literal buffer "$"
+		
+		count: count-digits amount
+		index: SIZE_DIGITS - count + 1
+		
+		fill: [
+			loop times [
+				string/concatenate-literal
+					buffer
+					integer/form-signed get-digit amount index
+				
+				if all [group? zero? (index + 1 // 3) index <> SIZE_INTEGRAL][
+					string/concatenate-literal buffer "'"
+					part: part - 1
+				]
+				
+				index: index + 1
+				part:  part - 1
+			]		
+		]
+		
+		times: count - SIZE_SCALE
+		either positive? times [fill][
+			string/concatenate-literal buffer "0"
+			index: SIZE_INTEGRAL + 1
+			part:  part - 1
+		]
+		
+		string/concatenate-literal buffer "."
+		
+		group?: no
+		times:  SIZE_AFTER
+		fill
+		
+		part - 2		
 	]
 	
 	;-- Conversion --
@@ -901,30 +961,11 @@ money: context [
 		part    [integer!]
 		return: [integer!]
 		/local
-			amount [byte-ptr!]
-			sign   [integer!]
+			form-integral [subroutine!]
+			amount end [byte-ptr!]
+			sign count index size-integral [integer!]
 	][
-		amount: get-amount money
-		sign:   sign? money
-		
-		if negative? sign [
-			string/concatenate-literal buffer "-"
-			part: part - 1
-		]
-		
-		;@@ TBD: take currency into account
-		
-		string/concatenate-literal buffer "$"
-		
-		loop SIZE_BYTES [
-			string/concatenate-literal
-				buffer
-				string/byte-to-hex as integer! amount/value
-				
-			amount: amount + 1
-		]
-		
-		part - SIZE_DIGITS - 1
+		form-money money buffer part yes
 	]
 	
 	mold: func [
@@ -938,20 +979,9 @@ money: context [
 		indent  [integer!]
 		return: [integer!]
 	][
-		form money buffer arg part
+		form-money money buffer part no
 	]
-	
-	random: func [
-		money   [red-money!]
-		seed?   [logic!]
-		secure? [logic!]
-		only?   [logic!]
-		return: [red-money!]
-	][
-		--NOT_IMPLEMENTED--
-		money
-	]
-	
+		
 	compare: func [
 		money   [red-money!]
 		value   [red-money!]
