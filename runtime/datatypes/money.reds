@@ -352,6 +352,29 @@ money: context [
 		money
 	]
 	
+	make-in: func [
+		parent   [red-block!]
+		sign     [logic!]
+		currency [byte-ptr!]
+		start    [byte-ptr!]
+		point    [byte-ptr!]
+		end      [byte-ptr!]
+		return:  [red-money!]
+	][
+		make-at ALLOC_TAIL(parent) sign currency start point end
+	]
+	
+	push: func [
+		sign     [logic!]
+		currency [byte-ptr!]
+		start    [byte-ptr!]
+		point    [byte-ptr!]
+		end      [byte-ptr!]
+		return:  [red-money!]	
+	][
+		make-at stack/push* sign currency start point end
+	]
+	
 	;-- Conversion --
 	
 	overflow?: func [
