@@ -10,8 +10,6 @@ Red/System [
 	}
 ]
 
-#define STUB [func [][--NOT_IMPLEMENTED--]]
-
 money: context [
 	verbose: 0
 	
@@ -943,7 +941,16 @@ money: context [
 		form money buffer arg part
 	]
 	
-	random:    STUB
+	random: func [
+		money   [red-money!]
+		seed?   [logic!]
+		secure? [logic!]
+		only?   [logic!]
+		return: [red-money!]
+	][
+		--NOT_IMPLEMENTED--
+		money
+	]
 	
 	compare: func [
 		money   [red-money!]
@@ -988,7 +995,20 @@ money: context [
 	divide:    func [return: [red-value!]][do-math OP_DIV]
 	remainder: func [return: [red-value!]][do-math OP_REM]
 	
-	round:     STUB
+	round: func [
+		value      [red-money!]
+		scale      [red-float!]
+		_even?     [logic!]
+		down?      [logic!]
+		half-down? [logic!]
+		floor?     [logic!]
+		ceil?      [logic!]
+		half-ceil? [logic!]
+		return:    [red-money!]
+	][
+		--NOT_IMPLEMENTED--
+		value
+	]
 	
 	even?: func [
 		money   [red-money!]
@@ -1014,7 +1034,7 @@ money: context [
 			"money!"
 			;-- General actions --
 			:make
-				null;:random
+			:random
 			null			;reflect
 			:make			;-- to
 			:form
@@ -1030,7 +1050,7 @@ money: context [
 			:negate
 			null			;power
 			:remainder
-				null;:round
+			:round
 			:subtract
 			:even?
 			:odd?
