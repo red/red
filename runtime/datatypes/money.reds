@@ -522,6 +522,35 @@ money: context [
 		money
 	]
 	
+	from-binary: func [
+		bin     [red-binary!]
+		return: [red-money!]
+		/local
+			bad    [subroutine!]
+			money  [red-money!]
+			head   [byte-ptr!]
+			length [integer!]
+			index  [integer!]
+	][
+		bad: [fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY bin]]
+	
+		length: binary/rs-length? bin
+		if length > SIZE_BYTES [bad]
+		
+		head: binary/rs-head bin
+		index: 1
+		loop length << 1 [
+			if 9 < get-digit head index [bad]
+			index: index + 1
+		]
+		
+		money: zero-out as red-money! stack/push* yes
+		money/header: TYPE_MONEY
+		
+		copy-memory (get-amount money) + SIZE_BYTES - length head length
+		money
+	]
+	
 	;-- Comparison --
 	
 	compare-money: func [
@@ -931,15 +960,17 @@ money: context [
 		spec    [red-value!]
 		type    [integer!]
 		return: [red-money!]
+		/local
+			money [red-money!]
 	][
 		switch TYPE_OF(spec) [
 			TYPE_MONEY  [return as red-money! spec]
 			TYPE_BLOCK  [--NOT_IMPLEMENTED--]
-			TYPE_BINARY [--NOT_IMPLEMENTED--]
+			TYPE_BINARY [money: from-binary as red-binary! spec]
 			default [to proto spec type]
 		]
 		
-		as red-money! spec
+		money
 	]
 
 	to: func [
@@ -964,7 +995,7 @@ money: context [
 			TYPE_FLOAT [--NOT_IMPLEMENTED--]
 			TYPE_STRING [--NOT_IMPLEMENTED--]
 			default [
-				fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY spec]
+				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_MONEY spec]
 			]
 		]
 		
