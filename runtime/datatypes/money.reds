@@ -547,21 +547,20 @@ money: context [
 		bin     [red-binary!]
 		return: [red-money!]
 		/local
-			bad    [subroutine!]
 			money  [red-money!]
 			head   [byte-ptr!]
 			length [integer!]
 			index  [integer!]
 	][
-		bad: [fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY bin]]
-	
 		length: binary/rs-length? bin
-		if length > SIZE_BYTES [bad]
+		if length > SIZE_BYTES [length: SIZE_BYTES]
 		
 		head: binary/rs-head bin
 		index: 1
 		loop length << 1 [
-			if 9 < get-digit head index [bad]
+			if 9 < get-digit head index [
+				fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY bin]
+			]
 			index: index + 1
 		]
 		
