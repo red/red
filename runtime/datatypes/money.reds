@@ -522,6 +522,27 @@ money: context [
 		money
 	]
 	
+	from-float: func [
+		flt     [float!]
+		return: [red-money!]
+		/local
+			formed    [c-string!]
+			start end [byte-ptr!]
+			point     [byte-ptr!]
+			sign      [logic!]
+	][
+		formed: dtoa/form-float flt SIZE_DIGITS yes
+		
+		point: as byte-ptr! formed
+		until [point: point + 1 point/value = #"."]
+		
+		sign:  formed/1 = #"-"
+		start: as byte-ptr! either sign [formed][formed - 1]
+		end:   as byte-ptr! formed + length? formed
+		
+		push sign null start point end
+	]
+	
 	from-binary: func [
 		bin     [red-binary!]
 		return: [red-money!]
@@ -967,7 +988,7 @@ money: context [
 			TYPE_MONEY  [return as red-money! spec]
 			TYPE_BLOCK  [--NOT_IMPLEMENTED--]
 			TYPE_BINARY [money: from-binary as red-binary! spec]
-			default [to proto spec type]
+			default [money: to proto spec type]
 		]
 		
 		money
@@ -981,6 +1002,7 @@ money: context [
 		/local
 			money   [red-money!]
 			integer [red-integer!]
+			float   [red-float!]
 	][
 		if TYPE_OF(spec) = TYPE_MONEY [return as red-money! spec]
 		
@@ -992,7 +1014,10 @@ money: context [
 				integer: as red-integer! spec
 				money:   from-integer integer/value
 			]
-			TYPE_FLOAT [--NOT_IMPLEMENTED--]
+			TYPE_FLOAT [
+				float: as red-float! spec
+				money: from-float float/value
+			]
 			TYPE_STRING [--NOT_IMPLEMENTED--]
 			default [
 				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_MONEY spec]
