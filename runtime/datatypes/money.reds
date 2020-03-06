@@ -571,6 +571,13 @@ money: context [
 		push sign null start point end
 	]
 	
+	to-binary: func [
+		money   [red-money!]
+		return: [red-binary!]
+	][
+		binary/load-in get-amount money SIZE_BYTES null
+	]
+	
 	from-binary: func [
 		bin     [red-binary!]
 		return: [red-money!]
