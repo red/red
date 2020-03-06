@@ -39,7 +39,7 @@ money: context [
 		SIGN_++: 22h
 	]
 	
-	#define DISPATCH_SIGNS(this that) [switch collate-signs this that]
+	#define DISPATCH_SIGNS [switch collate-signs this-sign that-sign]
 	#define SWAP_ARGUMENTS(this that) [use [hold][hold: this this: that that: hold]]
 	
 	#define MONEY_OVERFLOW [fire [TO_ERROR(script type-limit) datatype/push TYPE_MONEY]]
@@ -585,7 +585,7 @@ money: context [
 		this-sign: sign? this
 		that-sign: sign? that
 		
-		DISPATCH_SIGNS(this-sign that-sign)[
+		DISPATCH_SIGNS [
 			SIGN_-- [SWAP_ARGUMENTS(this that) 0]
 			SIGN_++ [0]
 			default [return integer/sign? this-sign - that-sign]
@@ -652,7 +652,7 @@ money: context [
 		this-sign: sign? augend
 		that-sign: sign? addend
 		
-		DISPATCH_SIGNS(this-sign that-sign)[
+		DISPATCH_SIGNS [
 			SIGN_00
 			SIGN_-0
 			SIGN_+0 [return augend]
@@ -702,7 +702,7 @@ money: context [
 		this-sign: sign? minuend
 		that-sign: sign? subtrahend
 		
-		DISPATCH_SIGNS(this-sign that-sign)[			
+		DISPATCH_SIGNS [			
 			SIGN_00
 			SIGN_0-
 			SIGN_0+ [return negate-money subtrahend]
@@ -760,7 +760,7 @@ money: context [
 		this-sign: sign? multiplicand
 		that-sign: sign? multiplier
 		
-		DISPATCH_SIGNS(this-sign that-sign)[
+		DISPATCH_SIGNS [
 			SIGN_00
 			SIGN_0-
 			SIGN_0+ [return multiplicand]
@@ -838,7 +838,7 @@ money: context [
 		this-sign: sign? dividend
 		that-sign: sign? divisor
 		
-		DISPATCH_SIGNS(this-sign that-sign)[
+		DISPATCH_SIGNS [
 			SIGN_00
 			SIGN_+0
 			SIGN_-0 [fire [TO_ERROR(math zero-divide)]]
