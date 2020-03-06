@@ -1867,10 +1867,9 @@ lexer: context [
 		neg?: p/1 = #"-"
 		if flags and C_FLAG_SIGN <> 0 [p: p + 1]		;-- skip sign when present
 		cur: p
-		while [cur/1 <> #"$"][cur: cur + 1]				;-- cur is always < e
+		while [p/1 <> #"$"][p: p + 1]				;-- cur is always < e
 		either p = cur [cur: null][
-			if p + 3 <> cur [do-error]
-			p: cur
+			if cur + 3 <> p [do-error]
 		]
 		assert p/1 = #"$"
 		st: p
