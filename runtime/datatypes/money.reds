@@ -921,13 +921,33 @@ money: context [
 		
 		set-sign dividend sign
 	]
-	
+
+	do-math-op: func [
+		left    [red-money!]
+		right   [red-money!]
+		op      [integer!]
+		return: [red-money!]
+	][
+		switch op [
+			OP_ADD [add-money left right]
+			OP_SUB [subtract-money left right]
+			OP_MUL [multiply-money left right]
+			OP_DIV [divide-money left right no no]
+			OP_REM [divide-money left right yes no]
+			default [
+				fire [TO_ERROR (script invalid-type) datatype/push TYPE_OF(left)]
+				left
+			]
+		]
+	]
+
 	do-math: func [
 		op      [integer!]
 		return: [red-value!]
 		/local
 			left right result [red-money!]
 			integer           [red-integer!]
+			float             [red-float!]
 	][
 		left:  as red-money! stack/arguments
 		right: left + 1
@@ -940,7 +960,10 @@ money: context [
 				integer: as red-integer! left
 				left:    from-integer integer/value
 			]
-			TYPE_FLOAT [--NOT_IMPLEMENTED--]
+			TYPE_FLOAT [
+				float: as red-float! left
+				left:  from-float float/value
+			]
 			default [
 				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(left)]
 			]
@@ -952,27 +975,19 @@ money: context [
 				integer: as red-integer! right
 				right:   from-integer integer/value
 			]
-			TYPE_FLOAT [--NOT_IMPLEMENTED--]
+			TYPE_FLOAT [
+				float: as red-float! right
+				right: from-float float/value
+			]
 			default [
 				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(right)]
 			]
 		]
 		
-		result: switch op [
-			OP_ADD [add-money left right]
-			OP_SUB [subtract-money left right]
-			OP_MUL [multiply-money left right]
-			OP_DIV [divide-money left right no no]
-			OP_REM [divide-money left right yes no]
-			default [
-				fire [TO_ERROR (script invalid-type) datatype/push TYPE_OF(left)]
-				left
-			]
-		]
-		
+		result: do-math-op left right op
 		SET_RETURN(result)
 	]
-	
+		
 	;-- Actions --
 	
 	make: func [
