@@ -606,6 +606,80 @@ money: context [
 		money
 	]
 	
+	from-string: func [
+		str     [red-string!]
+		return: [red-money!]
+		/local
+			bail make       [subroutine!]
+			end? dot?       [subroutine!]
+			digit? letter?  [subroutine!]
+			tail head here  [byte-ptr!]
+			currency digits [byte-ptr!]
+			start point     [byte-ptr!]
+			char            [byte!]
+			sign            [logic!]
+	][
+		bail: [fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY str]]
+		make: [return push sign currency start point tail]
+		
+		end?:    [here >= tail]
+		dot?:    [any [here/value  = #"." here/value  = #","]]
+		digit?:  [all [here/value >= #"0" here/value <= #"9"]]
+		letter?: [
+			any [
+				all [here/value >= #"a" here/value <= #"z"]
+				all [here/value >= #"A" here/value <= #"Z"]
+			]
+		]
+		
+		tail: string/rs-tail str
+		head: string/rs-head str
+		here: head
+		
+		sign: no
+		switch here/value [
+			#"-" [here: here + 1 sign: yes]
+			#"+" [here: here + 1]
+			default [0]
+		]
+		
+		currency: here
+		while [not any [end? here/value = #"$"]][here: here + 1]
+		
+		if end? [here: currency]
+		either here = currency [currency: null][
+			if currency + 3 <> here [bail]
+			loop 3 [here: here - 1 unless letter? [bail]]
+			here: here + 3
+		]
+		
+		start: here - as integer! here/value <> #"$"
+		here:  start + 1
+		
+		until [here: here + 1 any [here = tail here/value <> #"0"]]
+		if any [here = tail dot?][here: here - 1]
+		digits: here
+		
+		until [
+			if here/value = #"'" [here: here + 1 continue]
+			unless digit? [bail]
+			here: here + 1
+			any [end? dot?]
+		]
+		
+		if any [here > tail all [dot? here + 1 = tail]][bail]
+		
+		point: here
+		if SIZE_INTEGRAL < as integer! point - digits [bail]
+		if here = tail [point: null make]
+		here: here + 1
+		
+		until [unless digit? [bail] here: here + 1 end?]
+		if here <> tail [bail]
+		
+		make
+	]
+	
 	;-- Comparison --
 	
 	compare-money: func [
@@ -1049,31 +1123,29 @@ money: context [
 		type    [integer!]
 		return: [red-money!]
 		/local
-			money   [red-money!]
 			integer [red-integer!]
 			float   [red-float!]
 	][
-		if TYPE_OF(spec) = TYPE_MONEY [return as red-money! spec]
-		
-		money: as red-money! proto
-		money/header: TYPE_MONEY
-		
 		switch TYPE_OF(spec) [
+			TYPE_MONEY [
+				return as red-money! spec
+			]
 			TYPE_INTEGER [
 				integer: as red-integer! spec
-				money:   from-integer integer/value
+				from-integer integer/value
 			]
 			TYPE_FLOAT [
 				float: as red-float! spec
-				money: from-float float/value
+				from-float float/value
 			]
-			TYPE_STRING [--NOT_IMPLEMENTED--]
+			TYPE_STRING [
+				from-string as red-string! spec
+			]
 			default [
 				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_MONEY spec]
+				as red-money! proto
 			]
 		]
-		
-		money
 	]
 	
 	random: func [
