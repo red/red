@@ -412,7 +412,14 @@ float: context [
 		fl/value: value
 		fl
 	]
-
+	
+	from-money: func [
+		mn      [red-money!]
+		return: [float!]
+	][
+		money/to-float mn
+	]
+	
 	from-binary: func [
 		bin		[red-binary!]
 		return: [float!]
@@ -539,6 +546,9 @@ float: context [
 			TYPE_CHAR [
 				int: as red-integer! spec
 				proto/value: as-float int/value
+			]
+			TYPE_MONEY [
+				proto/value: from-money as red-money! spec
 			]
 			TYPE_TIME [
 				tm: as red-time! spec

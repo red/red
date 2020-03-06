@@ -522,8 +522,36 @@ money: context [
 		money
 	]
 	
+	to-float: func [
+		money   [red-money!]
+		return: [float!]
+		/local
+			buffer       [red-string!]
+			head         [byte-ptr!]
+			float        [float!]
+			sign delta   [integer!]
+			length error [integer!]
+	][
+		sign: sign? money
+		
+		if zero? sign [return 0.0]
+	
+		buffer: string/make-at stack/push* SIZE_DIGITS + 6 Latin1
+		form-money money buffer 0 no
+		
+		delta:  (string/rs-find buffer as integer! #"$") + 1
+		head:   (string/rs-head buffer) + delta
+		length: (string/rs-length? buffer) - delta
+		
+		error: 0
+		float: string/to-float head length :error
+		stack/pop 1
+		
+		float * as float! sign
+	]
+	
 	from-float: func [
-		flt     [float!]
+		float   [float!]
 		return: [red-money!]
 		/local
 			formed    [c-string!]
@@ -531,7 +559,7 @@ money: context [
 			point     [byte-ptr!]
 			sign      [logic!]
 	][
-		formed: dtoa/form-float flt SIZE_DIGITS yes
+		formed: dtoa/form-float float SIZE_DIGITS yes
 		
 		point: as byte-ptr! formed
 		until [point: point + 1 point/value = #"."]
@@ -1117,7 +1145,7 @@ money: context [
 	]
 	
 	absolute: func [return: [red-money!]][absolute-money as red-money! stack/arguments]
-	negate:   func [return: [red-money!]][negate-money as red-money! stack/arguments]
+	negate:   func [return: [red-money!]][negate-money   as red-money! stack/arguments]
 	
 	add:       func [return: [red-value!]][do-math OP_ADD]
 	subtract:  func [return: [red-value!]][do-math OP_SUB]
