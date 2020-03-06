@@ -719,6 +719,7 @@ float: context [
 		left: value1/value
 
 		switch TYPE_OF(value2) [
+			TYPE_MONEY [return money/compare money/from-float left as red-money! value2 op]
 			TYPE_CHAR
 			TYPE_INTEGER [
 				int: as red-integer! value2

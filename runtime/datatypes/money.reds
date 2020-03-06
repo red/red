@@ -1067,7 +1067,8 @@ money: context [
 		op      [integer!]
 		return: [integer!]
 		/local
-			int [red-integer!]
+			integer [red-integer!]
+			float   [red-float!]
 	][
 		if all [
 			TYPE_OF(money) <> TYPE_OF(value)
@@ -1087,10 +1088,13 @@ money: context [
 		switch TYPE_OF(value) [
 			TYPE_MONEY [0]
 			TYPE_INTEGER [
-				int:   as red-integer! value
-				value: from-integer int/value
+				integer: as red-integer! value
+				value:   from-integer integer/value
 			]
-			TYPE_FLOAT [--NOT_IMPLEMENTED--]
+			TYPE_FLOAT [
+				float: as red-float! value
+				value: from-float float/value
+			]
 			default [RETURN_COMPARE_OTHER]
 		]
 		
