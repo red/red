@@ -524,7 +524,7 @@ object: context [
 			evt1	[integer!]
 			evt2	[integer!]
 			id		[integer!]
-			blank	[byte!]
+			blank	[integer!]
 	][
 		ctx: 	GET_CTX(obj)
 		syms:   as series! ctx/symbols/value
@@ -540,13 +540,13 @@ object: context [
 
 		either flat? [
 			indent?: no
-			blank: space
+			blank: as-integer space
 		][
 			if mold? [
 				string/append-char GET_BUFFER(buffer) as-integer lf
 				part: part - 1
 			]
-			blank: lf
+			blank: as-integer lf
 		]
 		cycles/push obj/ctx
 
@@ -569,7 +569,7 @@ object: context [
 				part: actions/mold value buffer only? all? flat? arg part tabs
 
 				if any [indent? sym + 1 < s-tail][			;-- no final LF when FORMed
-					string/append-char GET_BUFFER(buffer) as-integer blank
+					string/append-char GET_BUFFER(buffer) blank
 					part: part - 1
 				]
 			]
