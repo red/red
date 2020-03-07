@@ -2735,9 +2735,10 @@ Red [
 		--assert error? try [parse [a/b] [a/b]]
 
 	--test-- "#4318"
+		x4318: 0
 		--assert error? try [parse [][copy x4318]]
 		--assert error? try [parse [][set x4318]]
-		--assert unset? :x4318
+		--assert zero? x4318
 
 ===end-group===
     
