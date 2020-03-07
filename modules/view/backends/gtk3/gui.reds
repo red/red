@@ -2128,36 +2128,6 @@ OS-do-draw: func [
 	OS-image/unlock-bitmap image bitmap
 ]
 
-OS-do-draw-OLD: func [
-	image		[red-image!]
-	cmds		[red-block!]
-	/local
-		cr		[handle!]
-		surf	[handle!]
-		w		[integer!]
-		h		[integer!]
-		bitmap	[integer!]
-		data	[int-ptr!]
-		stride	[integer!]
-		pixbuf	[int-ptr!]
-		buf		[byte-ptr!]
-][
-	;; DEBUG: print ["OS-do-draw " image lf]
-	w: IMAGE_WIDTH(image/size)
-	h: IMAGE_HEIGHT(image/size)
-	stride: 0
-	bitmap: OS-image/lock-bitmap image yes
-	data: OS-image/get-data bitmap :stride
-	;stride: cairo_format_stride_for_width CAIRO_FORMAT_ARGB32 w
-	surf: cairo_image_surface_create_for_data as byte-ptr! data CAIRO_FORMAT_ARGB32 w h stride
-	cr: cairo_create surf
-	do-draw cr null cmds no yes yes yes
-	cairo_destroy cr
-	cairo_surface_destroy surf
-	OS-image/buffer-argb-to-abgr data w h
-	OS-image/unlock-bitmap image bitmap
-]
-
 OS-draw-face: func [
 	ctx			[draw-ctx!]
 	cmds		[red-block!]
