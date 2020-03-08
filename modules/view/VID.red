@@ -53,8 +53,6 @@ system/view/VID: context [
 		]
 	]
 	
-	focal-face:	none
-	reactors:	make block! 20
 	debug?: 	no
 	
 	containers: [panel tab-panel group-box]
@@ -77,7 +75,7 @@ system/view/VID: context [
 		]
 	]
 	
-	process-reactors: function [/local res][
+	process-reactors: function [reactors [block!] /local res][
 		set 'res try/all [
 			foreach [f blk later?] reactors [
 				blk: copy/deep blk
@@ -89,7 +87,6 @@ system/view/VID: context [
 				]
 			]
 		]
-		clear reactors									;-- ensures clearing even if reaction fails
 		if error? :res [do res]
 	]
 	
@@ -265,9 +262,8 @@ system/view/VID: context [
 	fetch-expr: func [code [word!]][do/next next get code code]
 	
 	fetch-options: function [
-		face [object!] opts [object!] style [block!] spec [block!] css [block!] styling? [logic!]
+		face [object!] opts [object!] style [block!] spec [block!] css [block!] reactors [block!] styling? [logic!]
 		/no-skip
-		/extern focal-face
 		return: [block!]
 	][
 		opt?: 	 yes
@@ -298,7 +294,7 @@ system/view/VID: context [
 				| 'para		  (opts/para: make any [opts/para para!] fetch-argument obj-spec! spec)
 				| 'wrap		  (opt?: add-flag opts 'para 'wrap? yes)
 				| 'no-wrap	  (add-flag opts 'para 'wrap? no opt?: yes)
-				| 'focus	  (focal-face: face)
+				| 'focus	  (set bind 'focal-face :layout face)
 				| 'font-name  (add-flag opts 'font 'name  fetch-argument string! spec)
 				| 'font-size  (add-flag opts 'font 'size  fetch-argument integer! spec)
 				| 'font-color (add-flag opts 'font 'color pre-load fetch-argument color! spec)
@@ -516,10 +512,10 @@ system/view/VID: context [
 		/styles					"Use an existing styles list"
 			css		  [block!]	"Styles list"
 		/local axis anti								;-- defined in a SET block
-		/extern focal-face
 	][
 		background!:  make typeset! [image! file! url! tuple! word! issue!]
 		list:		  make block! 4						;-- panel's pane block
+		reactors:     make block! 10					;-- reactors of this particular layout
 		local-styles: any [css make block! 2]			;-- panel-local styles definitions
 		pane-size:	  0x0								;-- panel's content dynamic size
 		direction: 	  'across
@@ -664,7 +660,7 @@ system/view/VID: context [
 				if h: select system/view/metrics/def-heights face/type [face/size/y: h]
 				unless styling? [face/parent: panel]
 
-				spec: fetch-options face opts style spec local-styles to-logic styling?
+				spec: fetch-options face opts style spec local-styles reactors to-logic styling?
 				if all [style/init not styling?][do bind style/init 'face]
 				
 				either styling? [
@@ -732,7 +728,7 @@ system/view/VID: context [
 			spec: next spec
 		]
 		do re-align
-		process-reactors								;-- Needs to be after [set name face]
+		process-reactors reactors						;-- Needs to be after [set name face]
 		
 		either size [panel/size: size][
 			if pane-size <> 0x0 [
