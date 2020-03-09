@@ -50,9 +50,9 @@ image-crop: context [
 		sh			[integer!]		;-- height
 		x			[integer!]		;-- start.x
 		y			[integer!]		;-- start.y
-		dst			[byte-ptr!]
 		dw			[integer!]		;-- width
 		dh			[integer!]		;-- height
+		dst			[byte-ptr!]
 		return:		[logic!]
 		/local
 			ss		[integer!]		;-- stride
@@ -89,6 +89,8 @@ image-crop: context [
 		sw			[integer!]		;-- width
 		sh			[integer!]		;-- height
 		vertex		[CROP-VERTEX!]
+		dx			[int-ptr!]
+		dy			[int-ptr!]
 		dw			[int-ptr!]		;-- width
 		dh			[int-ptr!]		;-- height
 		return:		[int-ptr!]
@@ -102,6 +104,7 @@ image-crop: context [
 			rect.y	[integer!]
 			rect.w	[integer!]
 			rect.h	[integer!]
+			size	[integer!]
 			AB		[VECTOR2D! value]
 			BC		[VECTOR2D! value]
 			CD		[VECTOR2D! value]
@@ -144,6 +147,11 @@ image-crop: context [
 		rect.w: as integer! xmax - xmin
 		rect.h: as integer! ymax - ymin
 
+		dx/1: rect.x
+		dy/1: rect.y
+		dw/1: rect.w
+		dh/1: rect.h
+
 		vector2d/from-points AB vertex/v1x vertex/v1y vertex/v2x vertex/v2y
 		vector2d/from-points BC vertex/v2x vertex/v2y vertex/v3x vertex/v3y
 		vector2d/from-points CD vertex/v3x vertex/v3y vertex/v4x vertex/v4y
@@ -155,8 +163,11 @@ image-crop: context [
 
 		src.w: as float! sw
 		src.h: as float! sh
-		
-		rgba: as int-ptr! allocate rect.w * rect.h * 4
+		if rect.w < 0 [rect.w: 0 - rect.w]
+		if rect.h < 0 [rect.h: 0 - rect.h]
+		size: rect.w * rect.h * 4
+		rgba: as int-ptr! allocate size
+		set-memory as byte-ptr! rgba null-byte size
 		i: 0 j: 0
 		loop rect.h [
 			loop rect.w [
@@ -192,8 +203,7 @@ image-crop: context [
 			]
 			i: i + 1
 		]
-		dw/1: rect.w
-		dh/1: rect.h
+
 		rgba
 	]
 
@@ -208,6 +218,8 @@ image-crop: context [
 			vertex	[CROP-VERTEX! value]
 			w		[integer!]
 			h		[integer!]
+			x		[integer!]
+			y		[integer!]
 			p		[int-ptr!]
 	][
 		vertex/v1x: as float32! 0.0
@@ -218,8 +230,8 @@ image-crop: context [
 		vertex/v3y: as float32! dh
 		vertex/v4x: as float32! 0.0
 		vertex/v4y: as float32! dh
-		w: 0 h: 0
-		p: transform src sw sh :vertex :w :h
+		w: 0 h: 0 x: 0 y: 0
+		p: transform src sw sh :vertex :x :y :w :h
 		if null? p [return null]
 		if any [
 			w <> dw

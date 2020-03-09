@@ -23,6 +23,8 @@ GError!: alias struct! [
 	message		[c-string!]
 ]
 
+#include %../image-crop.reds
+
 OS-image: context [
 
 	img-node!: alias struct! [
@@ -236,26 +238,82 @@ OS-image: context [
 		if inode/buffer <> null [free as byte-ptr! inode/buffer inode/buffer: null]
 	]
 
-	; copied from quartz but do not think it is finished
 	resize: func [
 		img		[red-image!]
 		width	[integer!]
 		height	[integer!]
 		return: [integer!]
 		/local
-			graphic [integer!]
 			old-w	[integer!]
 			old-h	[integer!]
-			format	[integer!]
 			bitmap	[integer!]
+			stride	[integer!]
+			src		[int-ptr!]
+			dst		[int-ptr!]
 	][
 		old-w: IMAGE_WIDTH(img/size)
 		old-h: IMAGE_HEIGHT(img/size)
 
-		graphic: 0
-		format: 0
-		bitmap: 0
-		as-integer img/node
+		bitmap: lock-bitmap img no
+		stride: 0
+		src: get-data bitmap :stride
+		dst: image-crop/resize src old-w old-h width height
+		unlock-bitmap img bitmap
+		as integer! make-node null dst IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED width height
+	]
+
+	any-resize: func [
+		img		[red-image!]
+		crop?	[logic!]
+		crop.x	[integer!]
+		crop.y	[integer!]
+		crop.w	[integer!]
+		crop.h	[integer!]
+		vertex	[CROP-VERTEX!]
+		x		[int-ptr!]
+		y		[int-ptr!]
+		w		[int-ptr!]
+		h		[int-ptr!]
+		return: [handle!]
+		/local
+			old-w	[integer!]
+			old-h	[integer!]
+			bitmap	[integer!]
+			src		[int-ptr!]
+			src2	[byte-ptr!]
+			stride	[integer!]
+			dst		[int-ptr!]
+			pixbuf	[handle!]
+			buf		[byte-ptr!]
+			w2		[integer!]
+			h2		[integer!]
+	][
+		old-w: IMAGE_WIDTH(img/size)
+		old-h: IMAGE_HEIGHT(img/size)
+
+		bitmap: lock-bitmap img no
+		stride: 0
+		src: get-data bitmap :stride
+		either crop? [
+			src2: allocate crop.w * crop.h * 4
+			image-crop/crop as byte-ptr! src old-w old-h crop.x crop.y crop.w crop.h src2
+			dst: image-crop/transform as int-ptr! src2 crop.w crop.h vertex x y w h
+			free src2
+		][
+			dst: image-crop/transform src old-w old-h vertex x y w h
+		]
+		unlock-bitmap img bitmap
+		if null? dst [return null]
+		
+		w2: w/1
+		if w2 < 0 [w2: 0 - w2]
+		h2: h/1
+		if h2 < 0 [h2: 0 - h2]
+		pixbuf: gdk_pixbuf_new 0 yes 8 w2 h2
+		buf: gdk_pixbuf_get_pixels pixbuf
+		revert dst as int-ptr! buf w2 * h2 yes
+		free as byte-ptr! dst
+		pixbuf
 	]
 
 	make-node: func [
@@ -454,7 +512,7 @@ OS-image: context [
 			pixbuf: make-pixbuf img
 			unless null? inode/handle [g_object_unref inode/handle]
 			inode/handle: pixbuf
-			inode/flags: IMG_NODE_MODIFIED
+			inode/flags: IMG_NODE_HAS_BUFFER
 		]
 		inode/handle
 	]
