@@ -360,7 +360,7 @@ OS-image: context [
 			][
 				p/4: #"^(FF)"
 			]
-			dst/1: old
+			dst/offset: old
 			offset: offset + 1
 		]
 	]
