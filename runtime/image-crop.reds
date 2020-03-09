@@ -125,6 +125,8 @@ image-crop: context [
 			fy		[float!]
 			ix		[integer!]
 			iy		[integer!]
+			si		[integer!]
+			di		[integer!]
 	][
 		if any [
 			sw <= 0
@@ -170,20 +172,21 @@ image-crop: context [
 		set-memory as byte-ptr! rgba null-byte size
 		i: 0 j: 0
 		loop rect.h [
+			i: 0
 			loop rect.w [
-				fi: as float32! i
-				fj: as float32! j
-				if on-plane? vertex fj fi [
-					vector2d/from-points v vertex/v1x vertex/v1y fj fi
+				fi: as float32! i + rect.x
+				fj: as float32! j + rect.y
+				if on-plane? vertex fi fj [
+					vector2d/from-points v vertex/v1x vertex/v1y fi fj
 					dab: vector2d/cross-product v AB
 					if dab < 0.0 [dab: 0.0 - dab]
-					vector2d/from-points v vertex/v2x vertex/v2y fj fi
+					vector2d/from-points v vertex/v2x vertex/v2y fi fj
 					dbc: vector2d/cross-product v BC
 					if dbc < 0.0 [dbc: 0.0 - dbc]
-					vector2d/from-points v vertex/v3x vertex/v3y fj fi
+					vector2d/from-points v vertex/v3x vertex/v3y fi fj
 					dcd: vector2d/cross-product v CD
 					if dcd < 0.0 [dcd: 0.0 - dcd]
-					vector2d/from-points v vertex/v4x vertex/v4y fj fi
+					vector2d/from-points v vertex/v4x vertex/v4y fi fj
 					dda: vector2d/cross-product v DA
 					if dda < 0.0 [dda: 0.0 - dda]
 					fx: src.w * (dda / (dda + dbc))
@@ -196,12 +199,14 @@ image-crop: context [
 						iy >= 0
 						iy < sh
 					][
-						rgba/1: src/1
+						di: j * rect.w + i + 1
+						si: iy * src.w + ix + 1
+						rgba/di: src/si
 					]
 				]
-				j: j + 1
+				i: i + 1
 			]
-			i: i + 1
+			j: j + 1
 		]
 
 		rgba
