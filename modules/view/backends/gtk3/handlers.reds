@@ -221,10 +221,10 @@ base-draw: func [
 	]
 
 	if TYPE_OF(img) = TYPE_IMAGE [
-		;; DEBUG: print ["base-draw, GDK-draw-image: " 0 "x" 0 "x" size/x "x" size/y lf]
-		;; ONLY WORK for Mandelbrot and raytracer:
-		;; GDK-draw-image cr OS-image/to-argb-pixbuf img 0 0 size/x size/y
-		GDK-draw-image cr OS-image/to-pixbuf img 0 0 size/x size/y
+		cairo_save cr
+		gdk_cairo_set_source_pixbuf cr OS-image/to-pixbuf img 0.0 0.0
+		cairo_paint cr
+		cairo_restore cr
 	]
 
 	case [

@@ -1222,43 +1222,6 @@ OS-draw-line-cap: func [
 		]
 ]
 
-GDK-draw-image: func [
-	cr			[handle!]
-	image		[handle!]
-	x			[integer!]
-	y			[integer!]
-	width		[integer!]
-	height		[integer!]
-	/local
-		img		[handle!]
-		absw	[integer!]
-		absh	[integer!]
-][
-	if any [
-		width = 0
-		height = 0
-	][exit]
-
-	absw: width
-	if width < 0 [absw: 0 - width]
-	absh: height
-	if height < 0 [absh: 0 - height]
-	img: gdk_pixbuf_scale_simple image absw absh 2
-
-	cairo_save cr
-	cairo_translate cr as-float x as-float y
-	if width < 0 [
-		cairo_scale cr -1.0 1.0
-	]
-	if height < 0 [
-		cairo_scale cr 1.0 -1.0
-	]
-	gdk_cairo_set_source_pixbuf cr img 0.0 0.0
-	cairo_paint cr
-	cairo_restore cr
-	g_object_unref img
-]
-
 OS-draw-image: func [
 	dc			[draw-ctx!]
 	image		[red-image!]
@@ -1269,85 +1232,98 @@ OS-draw-image: func [
 	crop1		[red-pair!]
 	pattern		[red-word!]
 	/local
-		cr			[handle!]
-		img			[int-ptr!]
-		bitmap 		[integer!]
-		stride 		[integer!]
-		x			[integer!]
-		y			[integer!]
-		width		[integer!]
-		height		[integer!]
-		w			[float!]
-		h			[float!]
-		crop_x		[float!]
-		crop_y		[float!]
-		crop2		[red-pair!]
-		crop_cr		[handle!]
-		crop_surf	[handle!]
-		crop_xscale	[float!]
-		crop_yscale	[float!]
-		format		[cairo_format_t!]
-		img_w		[float!]
-		img_h		[float!]
-		crop_img_sx	[integer!]
-		crop_img_sy	[integer!]
+		w		[integer!]
+		h		[integer!]
+		vertex	[CROP-VERTEX! value]
+		end2	[red-pair!]
+		vec1	[VECTOR2D! value]
+		vec2	[VECTOR2D! value]
+		vec3	[VECTOR2D! value]
+		rect.x	[integer!]
+		rect.y	[integer!]
+		rect.w	[integer!]
+		rect.h	[integer!]
+		crop2	[red-pair!]
+		pixbuf	[handle!]
+		cr		[handle!]
 ][
-	;; DEBUG: print ["OS-draw-image" lf]
-	img_w:	as float! IMAGE_WIDTH(image/size)
-	img_h:	as float! IMAGE_HEIGHT(image/size)
-	either null? start [x: 0 y: 0][x: start/x y: start/y]
+	w: IMAGE_WIDTH(image/size)
+	h: IMAGE_HEIGHT(image/size)
+
+	either null? start [
+		vertex/v1x: as float32! 0.0
+		vertex/v1y: as float32! 0.0
+	][
+		vertex/v1x: as float32! start/x
+		vertex/v1y: as float32! start/y
+	]
 	case [
 		start = end [
-			width:  as integer! img_w
-			height: as integer! img_h
+			vertex/v2x: vertex/v1x + as float32! w
+			vertex/v2y: vertex/v1y
+			vertex/v3x: vertex/v1x + as float32! w
+			vertex/v3y: vertex/v1y + as float32! h
+			vertex/v4x: vertex/v1x
+			vertex/v4y: vertex/v1y + as float32! h
 		]
 		start + 1 = end [					;-- two control points
-			width: end/x - x
-			height: end/y - y
+			vertex/v2x: as float32! end/x
+			vertex/v2y: vertex/v1y
+			vertex/v3x: as float32! end/x
+			vertex/v3y: as float32! end/y
+			vertex/v4x: vertex/v1x
+			vertex/v4y: as float32! end/y
 		]
-		start + 2 = end [0]					;@@ TBD three control points
-		true [0]							;@@ TBD four control points
+		start + 2 = end [					;-- three control points
+			end2: end + 1
+			vertex/v2x: as float32! end/x
+			vertex/v2y: as float32! end/y
+			vertex/v4x: as float32! end2/x
+			vertex/v4y: as float32! end2/y
+			vector2d/from-points vec1 vertex/v1x vertex/v1y vertex/v2x vertex/v2y
+			vector2d/from-points vec2 vertex/v1x vertex/v1y vertex/v4x vertex/v4y
+			vec3/x: vec1/x + vec2/x
+			vec3/y: vec1/y + vec2/y
+			vertex/v3x: as float32! vec3/x + vertex/v1x
+			vertex/v3y: as float32! vec3/y + vertex/v1y
+		]
+		true [								;-- four control points
+			vertex/v2x: as float32! end/x
+			vertex/v2y: as float32! end/y
+			end: end + 1
+			vertex/v3x: as float32! end/x
+			vertex/v3y: as float32! end/y
+			end: end + 1
+			vertex/v4x: as float32! end/x
+			vertex/v4y: as float32! end/y
+		]
 	]
-	cr: dc/cr
-	;; DEBUG: print ["OS-draw-image: " x "x" y " " width "x" height lf "image: " image lf "original: " IMAGE_WIDTH(image/size) "x" IMAGE_HEIGHT(image/size)  lf]
 
-	img: OS-image/to-pixbuf image
-
-	either crop1 <> null [
-		;; DEBUG: print ["crop1: " crop1/x "x" crop1/y lf]
-		crop_x: as float! crop1/x
-		crop_y: as float! crop1/y
-		crop2: crop1 + 1
-		w: as float! crop2/x
-		h: as float! crop2/y
-		crop_xscale: w / (as float! width)
-		crop_yscale: h / (as float! height)
-		crop_img_sx: as integer! (img_w / crop_xscale)
-		crop_img_sy: as integer! (img_h / crop_yscale)
-		;width: as-integer (w / h * (as float! height))
-		;; DEBUG: print ["cropping dest: " crop_x "x" crop_y "x" w "x" h " img size: " crop_img_sx "x" crop_img_sy lf]
-		img: gdk_pixbuf_scale_simple img crop_img_sx crop_img_sy 2
-		format: CAIRO_FORMAT_RGB24 ;either 3 = gdk_pixbuf_get_n_channels img [CAIRO_FORMAT_RGB24][CAIRO_FORMAT_ARGB32]
-		;; DEBÙG: print ["pixbuf format: " format lf]
-		crop_surf: cairo_image_surface_create format crop_img_sx crop_img_sy
-		crop_cr: cairo_create crop_surf
-    	gdk_cairo_set_source_pixbuf crop_cr img 0.0 0.0
-		cairo_paint crop_cr
-		cairo_destroy crop_cr
-
-		cairo_save cr
-		cairo_translate cr as-float x as-float y
-		cairo_set_source_surface cr crop_surf (0.0 - (crop_x / crop_xscale)) (0.0 - (crop_y / crop_yscale))
-		cairo_rectangle cr 0.0 0.0 as float! width as float! height
-		cairo_fill cr
-		cairo_translate cr as-float (0 - x) as-float (0 - y)
-		cairo_restore cr
-
-		cairo_surface_destroy crop_surf
-		g_object_unref img
+	rect.x: 0
+	rect.y: 0
+	rect.w: 0
+	rect.h: 0
+	either crop1 = null [
+		pixbuf: OS-image/any-resize image no 0 0 0 0 vertex :rect.x :rect.y :rect.w :rect.h
 	][
-		GDK-draw-image cr img x y width height
+		crop2: crop1 + 1
+		pixbuf: OS-image/any-resize image yes crop1/x crop1/y crop2/x crop2/y vertex :rect.x :rect.y :rect.w :rect.h
 	]
+
+	cr: dc/cr
+	cairo_save cr
+	cairo_translate cr as-float rect.x as-float rect.y
+	if rect.w < 0 [
+		cairo_scale cr -1.0 1.0
+	]
+	if rect.h < 0 [
+		cairo_scale cr 1.0 -1.0
+	]
+	gdk_cairo_set_source_pixbuf cr pixbuf 0.0 0.0
+	cairo_paint cr
+	cairo_restore cr
+
+	g_object_unref pixbuf
 ]
 
 OS-draw-grad-pen-old: func [
