@@ -805,10 +805,11 @@ money: context [
 		subtrahend [red-money!]
 		return:    [red-money!]
 		/local
-			this-amount that-amount            [byte-ptr!]
-			this-sign that-sign sign           [integer!]
-			index borrow left right difference [integer!]
-			lesser? flag                       [logic!]
+			this-amount that-amount  [byte-ptr!]
+			this-sign that-sign sign [integer!]
+			index borrow left right  [integer!]
+			difference               [integer!]
+			lesser? flag             [logic!]
 	][
 		this-sign: sign? minuend
 		that-sign: sign? subtrahend
