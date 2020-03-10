@@ -962,7 +962,9 @@ money: context [
 			SIGN_-0 [fire [TO_ERROR(math zero-divide)]]
 			SIGN_0-
 			SIGN_0+ [return dividend]
-			default [sign: as integer! this-sign <> that-sign]
+			default [
+				sign: as integer! either remainder? [negative? this-sign][this-sign <> that-sign]
+			]
 		]
 		
 		this-amount: get-amount dividend
