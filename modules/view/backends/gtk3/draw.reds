@@ -1310,20 +1310,22 @@ OS-draw-image: func [
 		pixbuf: OS-image/any-resize image yes crop1/x crop1/y crop2/x crop2/y vertex :rect.x :rect.y :rect.w :rect.h
 	]
 
-	cr: dc/cr
-	cairo_save cr
-	cairo_translate cr as-float rect.x as-float rect.y
-	if rect.w < 0 [
-		cairo_scale cr -1.0 1.0
-	]
-	if rect.h < 0 [
-		cairo_scale cr 1.0 -1.0
-	]
-	gdk_cairo_set_source_pixbuf cr pixbuf 0.0 0.0
-	cairo_paint cr
-	cairo_restore cr
+	unless null? pixbuf [
+		cr: dc/cr
+		cairo_save cr
+		cairo_translate cr as-float rect.x as-float rect.y
+		if rect.w < 0 [
+			cairo_scale cr -1.0 1.0
+		]
+		if rect.h < 0 [
+			cairo_scale cr 1.0 -1.0
+		]
+		gdk_cairo_set_source_pixbuf cr pixbuf 0.0 0.0
+		cairo_paint cr
+		cairo_restore cr
 
-	g_object_unref pixbuf
+		g_object_unref pixbuf
+	]
 ]
 
 OS-draw-grad-pen-old: func [

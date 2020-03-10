@@ -182,8 +182,6 @@ image-crop: context [
 
 		src.w: as float! sw
 		src.h: as float! sh
-		if rect.w < 0 [rect.w: 0 - rect.w]
-		if rect.h < 0 [rect.h: 0 - rect.h]
 		size: rect.w * rect.h * 4
 		rgba: as int-ptr! allocate size
 		set-memory as byte-ptr! rgba null-byte size

@@ -285,8 +285,6 @@ OS-image: context [
 			dst		[int-ptr!]
 			pixbuf	[handle!]
 			buf		[byte-ptr!]
-			w2		[integer!]
-			h2		[integer!]
 	][
 		old-w: IMAGE_WIDTH(img/size)
 		old-h: IMAGE_HEIGHT(img/size)
@@ -304,14 +302,17 @@ OS-image: context [
 		]
 		unlock-bitmap img bitmap
 		if null? dst [return null]
-		
-		w2: w/1
-		if w2 < 0 [w2: 0 - w2]
-		h2: h/1
-		if h2 < 0 [h2: 0 - h2]
-		pixbuf: gdk_pixbuf_new 0 yes 8 w2 h2
+		if any [
+			w/1 = 0
+			h/1 = 0
+		][
+			free as byte-ptr! dst
+			return null
+		]
+
+		pixbuf: gdk_pixbuf_new 0 yes 8 w/1 h/1
 		buf: gdk_pixbuf_get_pixels pixbuf
-		revert dst as int-ptr! buf w2 * h2 yes
+		revert dst as int-ptr! buf w/1 * h/1 yes
 		free as byte-ptr! dst
 		pixbuf
 	]
