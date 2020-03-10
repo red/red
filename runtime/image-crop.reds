@@ -121,12 +121,29 @@ image-crop: context [
 			dbc		[float!]
 			dcd		[float!]
 			dda		[float!]
-			fx		[float!]
-			fy		[float!]
-			ix		[integer!]
-			iy		[integer!]
+			fx		[float32!]
+			fy		[float32!]
+			x1		[integer!]
+			y1		[integer!]
 			si		[integer!]
 			di		[integer!]
+			x2		[integer!]
+			y2		[integer!]
+			dx1		[float32!]
+			dx2		[float32!]
+			dy1		[float32!]
+			dy2		[float32!]
+			dx1y1	[float32!]
+			dx1y2	[float32!]
+			dx2y1	[float32!]
+			dx2y2	[float32!]
+			ps		[byte-ptr!]
+			pd		[byte-ptr!]
+			ti		[integer!]
+			c1		[float32!]
+			c2		[float32!]
+			c3		[float32!]
+			c4		[float32!]
 	][
 		if any [
 			sw <= 0
@@ -189,19 +206,88 @@ image-crop: context [
 					vector2d/from-points v vertex/v4x vertex/v4y fi fj
 					dda: vector2d/cross-product v DA
 					if dda < 0.0 [dda: 0.0 - dda]
-					fx: src.w * (dda / (dda + dbc))
-					fy: src.h * (dab / (dab + dcd))
-					ix: as integer! fx
-					iy: as integer! fy
+					fx: as float32! src.w * (dda / (dda + dbc))
+					fy: as float32! src.h * (dab / (dab + dcd))
+					x1: as integer! fx
+					y1: as integer! fy
 					if all [
-						ix >= 0
-						ix < sw
-						iy >= 0
-						iy < sh
+						x1 >= 0
+						x1 < sw
+						y1 >= 0
+						y1 < sh
 					][
-						di: j * rect.w + i + 1
-						si: iy * src.w + ix + 1
-						rgba/di: src/si
+						either true [
+							x2: either x1 = (sw - 1) [x1][x1 + 1]
+							y2: either y1 = (sh - 1) [y1][y1 + 1]
+							dx1: fx - as float32! x1
+							if dx1 < as float32! 0.0 [dx1: as float32! 0.0]
+							dx2: dx1
+							dx1: (as float32! 1.0) - dx1
+							dy1: fy - as float32! y1
+							if dy1 < as float32! 0.0 [dy1: as float32! 0.0]
+							dy2: dy1
+							dy1: (as float32! 1.0) - dy1
+							dx1y1: dx1 * dy1
+							dx1y2: dx1 * dy2
+							dx2y1: dx2 * dy1
+							dx2y2: dx2 * dy2
+							di: j * rect.w + i
+							pd: as byte-ptr! (rgba + di)
+
+							si: y1 * sw + x1
+							ps: as byte-ptr! (src + si)
+							ti: as integer! ps/1
+							c1: dx1y1 * as float32! ti
+							ti: as integer! ps/2
+							c2: dx1y1 * as float32! ti
+							ti: as integer! ps/3
+							c3: dx1y1 * as float32! ti
+							ti: as integer! ps/4
+							c4: dx1y1 * as float32! ti
+							si: y1 * sw + x2
+							ps: as byte-ptr! (src + si)
+							ti: as integer! ps/1
+							c1: c1 + (dx2y1 * as float32! ti)
+							ti: as integer! ps/2
+							c2: c2 + (dx2y1 * as float32! ti)
+							ti: as integer! ps/3
+							c3: c3 + (dx2y1 * as float32! ti)
+							ti: as integer! ps/4
+							c4: c4 + (dx2y1 * as float32! ti)
+							si: y2 * sw + x1
+							ps: as byte-ptr! (src + si)
+							ti: as integer! ps/1
+							c1: c1 + (dx1y2 * as float32! ti)
+							ti: as integer! ps/2
+							c2: c2 + (dx1y2 * as float32! ti)
+							ti: as integer! ps/3
+							c3: c3 + (dx1y2 * as float32! ti)
+							ti: as integer! ps/4
+							c4: c4 + (dx1y2 * as float32! ti)
+							si: y2 * sw + x2
+							ps: as byte-ptr! (src + si)
+							ti: as integer! ps/1
+							c1: c1 + (dx2y2 * as float32! ti)
+							ti: as integer! ps/2
+							c2: c2 + (dx2y2 * as float32! ti)
+							ti: as integer! ps/3
+							c3: c3 + (dx2y2 * as float32! ti)
+							ti: as integer! ps/4
+							c4: c4 + (dx2y2 * as float32! ti)
+							ti: as integer! c1
+							pd/1: as byte! ti
+							ti: as integer! c2
+							pd/2: as byte! ti
+							ti: as integer! c3
+							pd/3: as byte! ti
+							ti: as integer! c4
+							pd/4: as byte! ti
+						][
+							;-- simple transform
+							di: j * rect.w + i + 1
+							si: y1 * sw + x1 + 1
+							rgba/di: src/si
+						]
 					]
 				]
 				i: i + 1
