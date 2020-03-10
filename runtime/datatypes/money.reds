@@ -564,6 +564,8 @@ money: context [
 		point: as byte-ptr! formed
 		until [point: point + 1 point/value = #"."]
 		
+		if point/2 = #"#" [fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY float]]
+		
 		sign:  formed/1 = #"-"
 		start: as byte-ptr! either sign [formed][formed - 1]
 		end:   as byte-ptr! formed + length? formed
