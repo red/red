@@ -551,7 +551,7 @@ money: context [
 	]
 	
 	from-float: func [
-		float   [float!]
+		flt     [float!]
 		return: [red-money!]
 		/local
 			formed    [c-string!]
@@ -559,12 +559,14 @@ money: context [
 			point     [byte-ptr!]
 			sign      [logic!]
 	][
-		formed: dtoa/form-float float SIZE_DIGITS yes
+		formed: dtoa/form-float flt SIZE_DIGITS yes
 		
 		point: as byte-ptr! formed
 		until [point: point + 1 point/value = #"."]
 		
-		if point/2 = #"#" [fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY float]]
+		if point/2 = #"#" [
+			fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY float/box flt]
+		]
 		
 		sign:  formed/1 = #"-"
 		start: as byte-ptr! either sign [formed][formed - 1]
