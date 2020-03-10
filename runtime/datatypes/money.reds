@@ -547,6 +547,10 @@ money: context [
 		float: string/to-float head length :error
 		stack/pop 1
 		
+		unless zero? error [
+			fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_FLOAT money]
+		]
+		
 		float * as float! sign
 	]
 	
