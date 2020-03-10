@@ -920,9 +920,9 @@ money: context [
 		
 		unless zero? get-digit product 1 [MONEY_OVERFLOW]
 		
+		shift-right product SIZE_SBYTES SIZE_SCALE
 		product: product + SIZE_BUFFER - SIZE_BYTES
 		
-		shift-right product SIZE_BYTES SIZE_SCALE
 		if zero-amount? product [MONEY_OVERFLOW]
 		
 		copy-memory this-amount product SIZE_BYTES
