@@ -1141,7 +1141,7 @@ money: context [
 				float: as red-float! spec
 				from-float float/value
 			]
-			TYPE_STRING [
+			TYPE_ANY_STRING [
 				from-string as red-string! spec
 			]
 			default [
