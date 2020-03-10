@@ -1234,6 +1234,8 @@ OS-draw-image: func [
 	/local
 		w		[integer!]
 		h		[integer!]
+		w1		[integer!]
+		h1		[integer!]
 		vertex	[CROP-VERTEX! value]
 		end2	[red-pair!]
 		vec1	[VECTOR2D! value]
@@ -1243,6 +1245,10 @@ OS-draw-image: func [
 		rect.y	[integer!]
 		rect.w	[integer!]
 		rect.h	[integer!]
+		crop.x	[integer!]
+		crop.y	[integer!]
+		crop.w	[integer!]
+		crop.h	[integer!]
 		crop2	[red-pair!]
 		pixbuf	[handle!]
 		cr		[handle!]
@@ -1257,14 +1263,32 @@ OS-draw-image: func [
 		vertex/v1x: as float32! start/x
 		vertex/v1y: as float32! start/y
 	]
+	unless null? crop1 [
+		crop2: crop1 + 1
+		crop.x: crop1/x
+		crop.y: crop1/y
+		crop.w: crop2/x
+		crop.h: crop2/y
+		if crop.x + crop.w > w [
+			crop.w: w - crop.x
+		]
+		if crop.y + crop.h > h [
+			crop.h: h - crop.y
+		]
+	]
 	case [
 		start = end [
-			vertex/v2x: vertex/v1x + as float32! w
+			either null? crop1 [
+				w1: w h1: h
+			][
+				w1: crop.w h1: crop.h
+			]
+			vertex/v2x: vertex/v1x + as float32! w1
 			vertex/v2y: vertex/v1y
-			vertex/v3x: vertex/v1x + as float32! w
-			vertex/v3y: vertex/v1y + as float32! h
+			vertex/v3x: vertex/v1x + as float32! w1
+			vertex/v3y: vertex/v1y + as float32! h1
 			vertex/v4x: vertex/v1x
-			vertex/v4y: vertex/v1y + as float32! h
+			vertex/v4y: vertex/v1y + as float32! h1
 		]
 		start + 1 = end [					;-- two control points
 			vertex/v2x: as float32! end/x
@@ -1306,24 +1330,25 @@ OS-draw-image: func [
 	either crop1 = null [
 		pixbuf: OS-image/any-resize image no 0 0 0 0 vertex :rect.x :rect.y :rect.w :rect.h
 	][
-		crop2: crop1 + 1
-		pixbuf: OS-image/any-resize image yes crop1/x crop1/y crop2/x crop2/y vertex :rect.x :rect.y :rect.w :rect.h
+		pixbuf: OS-image/any-resize image yes crop.x crop.y crop.w crop.h vertex :rect.x :rect.y :rect.w :rect.h
 	]
 
-	cr: dc/cr
-	cairo_save cr
-	cairo_translate cr as-float rect.x as-float rect.y
-	if rect.w < 0 [
-		cairo_scale cr -1.0 1.0
-	]
-	if rect.h < 0 [
-		cairo_scale cr 1.0 -1.0
-	]
-	gdk_cairo_set_source_pixbuf cr pixbuf 0.0 0.0
-	cairo_paint cr
-	cairo_restore cr
+	unless null? pixbuf [
+		cr: dc/cr
+		cairo_save cr
+		cairo_translate cr as-float rect.x as-float rect.y
+		if rect.w < 0 [
+			cairo_scale cr -1.0 1.0
+		]
+		if rect.h < 0 [
+			cairo_scale cr 1.0 -1.0
+		]
+		gdk_cairo_set_source_pixbuf cr pixbuf 0.0 0.0
+		cairo_paint cr
+		cairo_restore cr
 
-	g_object_unref pixbuf
+		g_object_unref pixbuf
+	]
 ]
 
 OS-draw-grad-pen-old: func [
