@@ -68,12 +68,16 @@ image-crop: context [
 			y < 0
 			x >= sw
 			y >= sh
-			x + dw >= sw
-			y + dh >= sh
 		][
 			return false
 		]
-		offset: y * ss + x * 4
+		if x + dw > sw [
+			ds: sw - x * 4
+		]
+		if y + dh > sh [
+			dh: sh - y
+		]
+		offset: y * ss + (x * 4)
 		from: src + offset
 		to: dst
 		loop dh [
@@ -182,8 +186,6 @@ image-crop: context [
 
 		src.w: as float! sw
 		src.h: as float! sh
-		if rect.w < 0 [rect.w: 0 - rect.w]
-		if rect.h < 0 [rect.h: 0 - rect.h]
 		size: rect.w * rect.h * 4
 		rgba: as int-ptr! allocate size
 		set-memory as byte-ptr! rgba null-byte size
