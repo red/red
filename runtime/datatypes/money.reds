@@ -1068,46 +1068,62 @@ money: context [
 		op      [integer!]
 		return: [red-value!]
 		/local
-			left right result [red-money!]
-			integer           [red-integer!]
-			float             [red-float!]
+			left right [red-money!]
+			result     [red-value!]
+			int        [red-integer!]
+			flt        [red-float!]
+			left-type  [integer!]
+			right-type [integer!]
 	][
 		left:  as red-money! stack/arguments
 		right: left + 1
+		
+		left-type:  TYPE_OF(left)
+		right-type: TYPE_OF(right)
 	
+		if any [
+			all [op = OP_MUL left-type = TYPE_MONEY right-type = TYPE_MONEY]
+			all [any [op = OP_DIV op = OP_REM] left-type <> TYPE_MONEY right-type = TYPE_MONEY]
+		][
+			fire [TO_ERROR(script invalid-type) datatype/push left-type]
+		]
+		
 		;@@ TBD: take currencies into account
 	
-		switch TYPE_OF(left) [
+		switch left-type [
 			TYPE_MONEY [0]
 			TYPE_INTEGER [
-				integer: as red-integer! left
-				left:    from-integer integer/value
+				int: as red-integer! left
+				left:    from-integer int/value
 			]
 			TYPE_FLOAT [
-				float: as red-float! left
-				left:  from-float float/value
+				flt: as red-float! left
+				left:  from-float flt/value
 			]
 			default [
 				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(left)]
 			]
 		]
 	
-		switch TYPE_OF(right) [
+		switch right-type [
 			TYPE_MONEY [0]
 			TYPE_INTEGER [
-				integer: as red-integer! right
-				right:   from-integer integer/value
+				int: as red-integer! right
+				right:   from-integer int/value
 			]
 			TYPE_FLOAT [
-				float: as red-float! right
-				right: from-float float/value
+				flt: as red-float! right
+				right: from-float flt/value
 			]
 			default [
 				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(right)]
 			]
 		]
 		
-		result: do-math-op left right op
+		result: as red-value! do-math-op left right op
+		if all [op = OP_DIV left-type = TYPE_MONEY right-type = TYPE_MONEY][
+			result: as red-value! float/box to-float as red-money! result
+		]
 		SET_RETURN(result)
 	]
 		
