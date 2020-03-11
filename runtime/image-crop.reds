@@ -188,7 +188,7 @@ image-crop: context [
 		src.h: as float! sh
 		size: rect.w * rect.h * 4
 		rgba: as int-ptr! allocate size
-		set-memory as byte-ptr! rgba null-byte size
+		set-memory as byte-ptr! rgba #"^(FF)" size
 		i: 0 j: 0
 		loop rect.h [
 			i: 0
