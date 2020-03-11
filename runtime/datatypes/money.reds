@@ -558,6 +558,7 @@ money: context [
 		flt     [float!]
 		return: [red-money!]
 		/local
+			money     [red-money!]
 			formed    [c-string!]
 			start end [byte-ptr!]
 			point     [byte-ptr!]
@@ -576,7 +577,9 @@ money: context [
 		start: as byte-ptr! either sign [formed][formed - 1]
 		end:   as byte-ptr! formed + length? formed
 		
-		push sign null start point end
+		money: push sign null start point end
+		if all [0.0 <> flt zero? sign? money][MONEY_OVERFLOW]
+		money
 	]
 	
 	to-binary: func [
