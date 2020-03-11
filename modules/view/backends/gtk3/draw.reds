@@ -1237,7 +1237,7 @@ OS-draw-image: func [
 		w1		[integer!]
 		h1		[integer!]
 		vertex	[CROP-VERTEX! value]
-		end2	[red-pair!]
+		pos		[red-pair!]
 		vec1	[VECTOR2D! value]
 		vec2	[VECTOR2D! value]
 		vec3	[VECTOR2D! value]
@@ -1299,11 +1299,12 @@ OS-draw-image: func [
 			vertex/v4y: as float32! end/y
 		]
 		start + 2 = end [					;-- three control points
-			end2: end + 1
-			vertex/v2x: as float32! end/x
-			vertex/v2y: as float32! end/y
-			vertex/v4x: as float32! end2/x
-			vertex/v4y: as float32! end2/y
+			pos: start + 1
+			vertex/v2x: as float32! pos/x
+			vertex/v2y: as float32! pos/y
+			pos: pos + 1
+			vertex/v4x: as float32! pos/x
+			vertex/v4y: as float32! pos/y
 			vector2d/from-points vec1 vertex/v1x vertex/v1y vertex/v2x vertex/v2y
 			vector2d/from-points vec2 vertex/v1x vertex/v1y vertex/v4x vertex/v4y
 			vec3/x: vec1/x + vec2/x
@@ -1312,14 +1313,15 @@ OS-draw-image: func [
 			vertex/v3y: as float32! vec3/y + vertex/v1y
 		]
 		true [								;-- four control points
-			vertex/v2x: as float32! end/x
-			vertex/v2y: as float32! end/y
-			end: end + 1
-			vertex/v3x: as float32! end/x
-			vertex/v3y: as float32! end/y
-			end: end + 1
-			vertex/v4x: as float32! end/x
-			vertex/v4y: as float32! end/y
+			pos: start + 1
+			vertex/v2x: as float32! pos/x
+			vertex/v2y: as float32! pos/y
+			pos: pos + 1
+			vertex/v4x: as float32! pos/x
+			vertex/v4y: as float32! pos/y
+			pos: pos + 1
+			vertex/v3x: as float32! pos/x
+			vertex/v3y: as float32! pos/y
 		]
 	]
 
