@@ -1327,11 +1327,9 @@ OS-draw-image: func [
 	rect.y: 0
 	rect.w: 0
 	rect.h: 0
-	either crop1 = null [
-		pixbuf: OS-image/any-resize image no 0 0 0 0 vertex :rect.x :rect.y :rect.w :rect.h
-	][
-		pixbuf: OS-image/any-resize image yes crop.x crop.y crop.w crop.h vertex :rect.x :rect.y :rect.w :rect.h
-	]
+	pixbuf: OS-image/any-resize image
+				crop1 <> null crop.x crop.y crop.w crop.h
+				vertex :rect.x :rect.y :rect.w :rect.h
 
 	unless null? pixbuf [
 		cr: dc/cr

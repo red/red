@@ -101,6 +101,8 @@ write %build/bin/sources.r set-cache [
 		%tools.reds
 		%unicode.reds
 		%utils.reds
+		%image-crop.reds
+		%vector2d.reds
 		%datatypes/ [
 			%action.reds
 			%block.reds
