@@ -158,7 +158,7 @@ Red [
 	--test-- "to-5"  --assert 123.456 == to float! to money! 123.456
 	--test-- "to-6"  --assert 2147483647 == to integer! $2147483647
 	--test-- "to-7"  --assert -2147483648 == to integer! -$2147483648
-	--test-- "to-8"  --assert error? try [to integer! $9999999999 ]
+	--test-- "to-8"  --assert error? try [to integer! $9999999999]
 	--test-- "to-9"  --assert 0.00001 == to float! to money! 0.00001
 	--test-- "to-10" --assert error? try [to float! to money! 0.000001]
 	--test-- "to-11" --assert error? try [to money! 0 / 0.0]  ;-- 1.#NaN
@@ -231,8 +231,8 @@ Red [
 	--test-- "multiply-8"  --assert $2.02016 == multiply $8 0.25252
 	--test-- "multiply-9"  --assert $72.05088 == multiply $9.00123 8.00456
 	--test-- "multiply-10" --assert $1303030.30302 == multiply $434343.43434 3
-	--test-- "multiply-11" --assert error? try [multiply $0.12345 0.00001 ]
-	--test-- "multiply-12" --assert error? try [multiply max-money 1.1 ]
+	--test-- "multiply-11" --assert error? try [multiply $0.12345 0.00001]
+	--test-- "multiply-12" --assert error? try [multiply max-money 1.1]
 	--test-- "multiply-13" --assert $999999999999.99999 == multiply -$33333333333333333.33333 -0.00003
 	--test-- "multiply-14" --assert min-money == multiply $33333333333333333.33333 -3
 	--test-- "multiply-15" --assert error? try [multiply $1 $1 ]
@@ -243,13 +243,13 @@ Red [
 	min-money: negate max-money
 	--test-- "divide-1"  --assert 0.0 == divide $0 $1
 	--test-- "divide-2"  --assert $0 == divide $0 1
-	--test-- "divide-3"  --assert error? try [divide $0 0 ]
-	--test-- "divide-4"  --assert error? try [divide 0 $1 ]
+	--test-- "divide-3"  --assert error? try [divide $0 0]
+	--test-- "divide-4"  --assert error? try [divide 0 $1]
 	--test-- "divide-5"  --assert 1.0 == divide -$12345 -$12345
 	--test-- "divide-6"  --assert $2407581171 == divide $4815162342 2
 	--test-- "divide-7"  --assert -$4815162342 == divide $2407581171 -0.5
 	--test-- "divide-8"  --assert -0.25 == divide -$1 $4
-	--test-- "divide-9"  --assert error? try [divide $1234567890123.45678 0.00001 ]
+	--test-- "divide-9"  --assert error? try [divide $1234567890123.45678 0.00001]
 	--test-- "divide-10" --assert $123.45678 == divide $123.45678 1
 	--test-- "divide-11" --assert 123.0 == divide $0.00123 $0.00001
 	--test-- "divide-12" --assert error? try [divide $123 100000000]
@@ -261,10 +261,10 @@ Red [
 ===start-group=== "remainder"
 	max-money: $99999999999999999.99999
 	min-money: negate max-money
-	--test-- "remainder-1"  --assert error? try [remainder $0 0 ]
+	--test-- "remainder-1"  --assert error? try [remainder $0 0]
 	--test-- "remainder-2"  --assert $0 == remainder $0 1
 	--test-- "remainder-3"  --assert $0.456 == remainder $123.456 1
-	--test-- "remainder-4"  --assert error? try [remainder 123.456 $1 ]
+	--test-- "remainder-4"  --assert error? try [remainder 123.456 $1]
 	--test-- "remainder-5"  --assert $5.856 == remainder $321.456 $7.89
 	--test-- "remainder-6"  --assert $2 == remainder $8 3
 	--test-- "remainder-7"  --assert $2 == remainder $8 -3
@@ -292,10 +292,10 @@ Red [
 ===start-group=== "find"
 	--test-- "find-1" --assert none == find [] $123
 	--test-- "find-2" --assert none == find [123 123.0 12300%] $123
-	--test-- "find-3" --assert none == find [$0.00001 ] 0.00001
-	--test-- "find-4" --assert none == find [$1 ] 1
+	--test-- "find-3" --assert none == find [$0.00001] 0.00001
+	--test-- "find-4" --assert none == find [$1] 1
 	--test-- "find-5" --assert 3 = index? find [a b $1 c d] $1
-	--test-- "find-6" --assert last? find [a b c d $0.00001 ] $0.00001
+	--test-- "find-6" --assert last? find [a b c d $0.00001] $0.00001
 ===end-group===
 
 ===start-group=== "generated"
