@@ -142,6 +142,8 @@ image: context [
 			buf2	[int-ptr!]
 			pb		[byte-ptr!]
 			nbuf	[int-ptr!]
+			neg-x?	[logic!]
+			neg-y?	[logic!]
 	][
 		w: IMAGE_WIDTH(src/size)
 		h: IMAGE_HEIGHT(src/size)
@@ -218,6 +220,16 @@ image: context [
 				exit
 			]
 		]
+		neg-x?: no
+		neg-y?: no
+		if vertex/v1x > vertex/v2x [
+			neg-x?: yes
+			image-crop/flip-x vertex vertex/v1x
+		]
+		if vertex/v2y > vertex/v3y [
+			neg-y?: yes
+			image-crop/flip-y vertex vertex/v1y
+		]
 
 		handle: 0
 		buf: acquire-buffer src :handle
@@ -235,6 +247,12 @@ image: context [
 		handle2: 0
 		buf2: acquire-buffer dst :handle2
 		copy-memory as byte-ptr! buf2 as byte-ptr! nbuf rect.w/1 * rect.h/1 * 4
+		if neg-x? [
+			rect.w/1: 0 - rect.w/1
+		]
+		if neg-y? [
+			rect.h/1: 0 - rect.h/1
+		]
 		release-buffer dst handle2 yes
 	]
 
