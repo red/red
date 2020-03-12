@@ -188,7 +188,6 @@ base-draw: func [
 		DC		[draw-ctx! value]
 		drawDC	[draw-ctx!]
 		css		[GString!]
-		h		[handle!]
 ][
 	face: get-face-obj widget
 	values: object/get-values face
@@ -222,12 +221,7 @@ base-draw: func [
 	]
 
 	if TYPE_OF(img) = TYPE_IMAGE [
-		h: OS-image/resize-to-handle img size/x size/y
-		cairo_save cr
-		gdk_cairo_set_source_pixbuf cr h 0.0 0.0
-		cairo_paint cr
-		cairo_restore cr
-		g_object_unref h
+		GDK-draw-image cr OS-image/to-pixbuf img 0 0 size/x size/y
 	]
 
 	case [

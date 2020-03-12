@@ -1222,6 +1222,43 @@ OS-draw-line-cap: func [
 		]
 ]
 
+GDK-draw-image: func [
+	cr			[handle!]
+	image		[handle!]
+	x			[integer!]
+	y			[integer!]
+	width		[integer!]
+	height		[integer!]
+	/local
+		img		[handle!]
+		absw	[integer!]
+		absh	[integer!]
+][
+	if any [
+		width = 0
+		height = 0
+	][exit]
+
+	absw: width
+	if width < 0 [absw: 0 - width]
+	absh: height
+	if height < 0 [absh: 0 - height]
+	img: gdk_pixbuf_scale_simple image absw absh 2
+
+	cairo_save cr
+	cairo_translate cr as-float x as-float y
+	if width < 0 [
+		cairo_scale cr -1.0 1.0
+	]
+	if height < 0 [
+		cairo_scale cr 1.0 -1.0
+	]
+	gdk_cairo_set_source_pixbuf cr img 0.0 0.0
+	cairo_paint cr
+	cairo_restore cr
+	g_object_unref img
+]
+
 OS-draw-image: func [
 	dc			[draw-ctx!]
 	image		[red-image!]
