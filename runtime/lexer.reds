@@ -1867,7 +1867,7 @@ lexer: context [
 		neg?: p/1 = #"-"
 		if flags and C_FLAG_SIGN <> 0 [p: p + 1]		;-- skip sign when present
 		cur: p
-		while [p/1 <> #"$"][p: p + 1]				;-- cur is always < e
+		while [p/1 <> #"$"][p: p + 1]					;-- cur is always < e
 		either p = cur [cur: null][
 			if cur + 3 <> p [do-error]
 		]
@@ -1883,7 +1883,7 @@ lexer: context [
 			]
 			p: p + 1
 		]
-		lex/in-pos: e + 1								;-- skip ending delimiter
+		lex/in-pos: e									;-- reset the input position to delimiter byte
 		if load? [money/make-at alloc-slot lex neg? cur st ds e]
 	]
 	
