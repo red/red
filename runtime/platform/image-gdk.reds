@@ -23,8 +23,6 @@ GError!: alias struct! [
 	message		[c-string!]
 ]
 
-#include %../image-crop.reds
-
 OS-image: context [
 
 	img-node!: alias struct! [
@@ -136,6 +134,13 @@ OS-image: context [
 				[variadic]
 				return: 	[logic!]
 			]
+			gdk_pixbuf_scale_simple: "gdk_pixbuf_scale_simple"  [
+				src			[handle!]
+				dest_width	[integer!]
+				dest_height	[integer!]
+				interp_type	[integer!]
+				return: 	[handle!]
+			]
 			g_object_unref: "g_object_unref" [
 				obj 	[handle!]
 			]
@@ -238,113 +243,18 @@ OS-image: context [
 		if inode/buffer <> null [free as byte-ptr! inode/buffer inode/buffer: null]
 	]
 
-	resize-to-buff: func [
-		img		[red-image!]
-		width	[integer!]
-		height	[integer!]
-		return: [int-ptr!]
-		/local
-			old-w	[integer!]
-			old-h	[integer!]
-			bitmap	[integer!]
-			stride	[integer!]
-			src		[int-ptr!]
-			dst		[int-ptr!]
-	][
-		old-w: IMAGE_WIDTH(img/size)
-		old-h: IMAGE_HEIGHT(img/size)
-
-		bitmap: lock-bitmap img no
-		stride: 0
-		src: get-data bitmap :stride
-		dst: image-crop/resize src old-w old-h width height
-		unlock-bitmap img bitmap
-		dst
-	]
-
-	resize-to-handle: func [
-		img		[red-image!]
-		width	[integer!]
-		height	[integer!]
-		return: [handle!]
-		/local
-			dst		[int-ptr!]
-			pixbuf	[handle!]
-			buf		[byte-ptr!]
-	][
-		dst: resize-to-buff img width height
-		pixbuf: gdk_pixbuf_new 0 yes 8 width height
-		buf: gdk_pixbuf_get_pixels pixbuf
-		revert dst as int-ptr! buf width * height yes
-		free as byte-ptr! dst
-		pixbuf
-	]
-
 	resize: func [
 		img		[red-image!]
 		width	[integer!]
 		height	[integer!]
 		return: [integer!]
 		/local
-			dst		[int-ptr!]
-	][
-		dst: resize-to-buff img width height
-		as integer! make-node null dst IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED width height
-	]
-
-	any-resize: func [
-		img		[red-image!]
-		crop?	[logic!]
-		crop.x	[integer!]
-		crop.y	[integer!]
-		crop.w	[integer!]
-		crop.h	[integer!]
-		vertex	[CROP-VERTEX!]
-		x		[int-ptr!]
-		y		[int-ptr!]
-		w		[int-ptr!]
-		h		[int-ptr!]
-		return: [handle!]
-		/local
-			old-w	[integer!]
-			old-h	[integer!]
-			bitmap	[integer!]
-			src		[int-ptr!]
-			src2	[byte-ptr!]
-			stride	[integer!]
-			dst		[int-ptr!]
 			pixbuf	[handle!]
-			buf		[byte-ptr!]
+			np		[handle!]
 	][
-		old-w: IMAGE_WIDTH(img/size)
-		old-h: IMAGE_HEIGHT(img/size)
-
-		bitmap: lock-bitmap img no
-		stride: 0
-		src: get-data bitmap :stride
-		either crop? [
-			src2: allocate crop.w * crop.h * 4
-			image-crop/crop as byte-ptr! src old-w old-h crop.x crop.y crop.w crop.h src2
-			dst: image-crop/transform as int-ptr! src2 crop.w crop.h vertex x y w h
-			free src2
-		][
-			dst: image-crop/transform src old-w old-h vertex x y w h
-		]
-		unlock-bitmap img bitmap
-		if null? dst [return null]
-		if any [
-			w/1 = 0
-			h/1 = 0
-		][
-			free as byte-ptr! dst
-			return null
-		]
-
-		pixbuf: gdk_pixbuf_new 0 yes 8 w/1 h/1
-		buf: gdk_pixbuf_get_pixels pixbuf
-		revert dst as int-ptr! buf w/1 * h/1 yes
-		free as byte-ptr! dst
-		pixbuf
+		pixbuf: to-pixbuf img
+		np: gdk_pixbuf_scale_simple pixbuf width height 2
+		as integer! make-node np null 0 width height
 	]
 
 	make-node: func [
