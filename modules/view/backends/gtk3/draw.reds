@@ -1261,7 +1261,7 @@ GDK-draw-image: func [
 
 OS-draw-image: func [
 	dc			[draw-ctx!]
-	image		[red-image!]
+	src			[red-image!]
 	start		[red-pair!]
 	end			[red-pair!]
 	key-color	[red-tuple!]
@@ -1269,106 +1269,18 @@ OS-draw-image: func [
 	crop1		[red-pair!]
 	pattern		[red-word!]
 	/local
-		w		[integer!]
-		h		[integer!]
-		w1		[integer!]
-		h1		[integer!]
-		vertex	[CROP-VERTEX! value]
-		pos		[red-pair!]
-		vec1	[VECTOR2D! value]
-		vec2	[VECTOR2D! value]
-		vec3	[VECTOR2D! value]
+		dst		[red-image! value]
 		rect.x	[integer!]
 		rect.y	[integer!]
 		rect.w	[integer!]
 		rect.h	[integer!]
-		crop.x	[integer!]
-		crop.y	[integer!]
-		crop.w	[integer!]
-		crop.h	[integer!]
-		crop2	[red-pair!]
 		pixbuf	[handle!]
 		cr		[handle!]
 ][
-	w: IMAGE_WIDTH(image/size)
-	h: IMAGE_HEIGHT(image/size)
-
-	either null? start [
-		vertex/v1x: as float32! 0.0
-		vertex/v1y: as float32! 0.0
-	][
-		vertex/v1x: as float32! start/x
-		vertex/v1y: as float32! start/y
-	]
-	unless null? crop1 [
-		crop2: crop1 + 1
-		crop.x: crop1/x
-		crop.y: crop1/y
-		crop.w: crop2/x
-		crop.h: crop2/y
-		if crop.x + crop.w > w [
-			crop.w: w - crop.x
-		]
-		if crop.y + crop.h > h [
-			crop.h: h - crop.y
-		]
-	]
-	case [
-		start = end [
-			either null? crop1 [
-				w1: w h1: h
-			][
-				w1: crop.w h1: crop.h
-			]
-			vertex/v2x: vertex/v1x + as float32! w1
-			vertex/v2y: vertex/v1y
-			vertex/v3x: vertex/v1x + as float32! w1
-			vertex/v3y: vertex/v1y + as float32! h1
-			vertex/v4x: vertex/v1x
-			vertex/v4y: vertex/v1y + as float32! h1
-		]
-		start + 1 = end [					;-- two control points
-			vertex/v2x: as float32! end/x
-			vertex/v2y: vertex/v1y
-			vertex/v3x: as float32! end/x
-			vertex/v3y: as float32! end/y
-			vertex/v4x: vertex/v1x
-			vertex/v4y: as float32! end/y
-		]
-		start + 2 = end [					;-- three control points
-			pos: start + 1
-			vertex/v2x: as float32! pos/x
-			vertex/v2y: as float32! pos/y
-			pos: pos + 1
-			vertex/v4x: as float32! pos/x
-			vertex/v4y: as float32! pos/y
-			vector2d/from-points vec1 vertex/v1x vertex/v1y vertex/v2x vertex/v2y
-			vector2d/from-points vec2 vertex/v1x vertex/v1y vertex/v4x vertex/v4y
-			vec3/x: vec1/x + vec2/x
-			vec3/y: vec1/y + vec2/y
-			vertex/v3x: as float32! vec3/x + vertex/v1x
-			vertex/v3y: as float32! vec3/y + vertex/v1y
-		]
-		true [								;-- four control points
-			pos: start + 1
-			vertex/v2x: as float32! pos/x
-			vertex/v2y: as float32! pos/y
-			pos: pos + 1
-			vertex/v4x: as float32! pos/x
-			vertex/v4y: as float32! pos/y
-			pos: pos + 1
-			vertex/v3x: as float32! pos/x
-			vertex/v3y: as float32! pos/y
-		]
-	]
-
-	rect.x: 0
-	rect.y: 0
-	rect.w: 0
-	rect.h: 0
-	pixbuf: OS-image/any-resize image
-				crop1 <> null crop.x crop.y crop.w crop.h
-				vertex :rect.x :rect.y :rect.w :rect.h
+	rect.x: 0 rect.y: 0 rect.w: 0 rect.h: 0
+	image/any-resize src dst crop1 start end :rect.x :rect.y :rect.w :rect.h
+	if dst/header = TYPE_NONE [exit]
+	pixbuf: OS-image/to-pixbuf dst
 
 	unless null? pixbuf [
 		cr: dc/cr
@@ -1384,7 +1296,7 @@ OS-draw-image: func [
 		cairo_paint cr
 		cairo_restore cr
 
-		g_object_unref pixbuf
+		OS-image/delete dst
 	]
 ]
 
