@@ -1269,34 +1269,69 @@ OS-draw-image: func [
 	crop1		[red-pair!]
 	pattern		[red-word!]
 	/local
+		src.w	[integer!]
+		src.h	[integer!]
+		x		[integer!]
+		y		[integer!]
+		w		[integer!]
+		h		[integer!]
+		crop2	[red-pair!]
+		crop.x	[integer!]
+		crop.y	[integer!]
+		crop.w	[integer!]
+		crop.h	[integer!]
 		dst		[red-image! value]
-		rect.x	[integer!]
-		rect.y	[integer!]
-		rect.w	[integer!]
-		rect.h	[integer!]
 		pixbuf	[handle!]
-		cr		[handle!]
 ][
-	rect.x: 0 rect.y: 0 rect.w: 0 rect.h: 0
-	image/any-resize src dst crop1 start end :rect.x :rect.y :rect.w :rect.h
-	if dst/header = TYPE_NONE [exit]
-	pixbuf: OS-image/to-pixbuf dst
-
-	unless null? pixbuf [
-		cr: dc/cr
-		cairo_save cr
-		cairo_translate cr as-float rect.x as-float rect.y
-		if rect.w < 0 [
-			cairo_scale cr -1.0 1.0
-		]
-		if rect.h < 0 [
-			cairo_scale cr 1.0 -1.0
-		]
-		gdk_cairo_set_source_pixbuf cr pixbuf 0.0 0.0
-		cairo_paint cr
-		cairo_restore cr
-
+	either any [
+		start + 2 = end
+		start + 3 = end
+	][
+		x: 0 y: 0 w: 0 h: 0
+		image/any-resize src dst crop1 start end :x :y :w :h
+		if dst/header = TYPE_NONE [exit]
+		pixbuf: OS-image/to-pixbuf dst
+		GDK-draw-image dc/cr pixbuf x y w h
 		OS-image/delete dst
+	][
+		src.w: IMAGE_WIDTH(src/size)
+		src.h: IMAGE_HEIGHT(src/size)
+		either null? start [x: 0 y: 0][x: start/x y: start/y]
+		unless null? crop1 [
+			crop2: crop1 + 1
+			crop.x: crop1/x
+			crop.y: crop1/y
+			crop.w: crop2/x
+			crop.h: crop2/y
+			if crop.x + crop.w > src.w [
+				crop.w: src.w - crop.x
+			]
+			if crop.y + crop.h > src.h [
+				crop.h: src.h - crop.y
+			]
+		]
+		case [
+			start = end [
+				either null? crop1 [
+					w: src.w h: src.h
+				][
+					w: crop.w h: crop.h
+				]
+			]
+			start + 1 = end [
+				w: end/x - x
+				h: end/y - y
+			]
+			true [exit]
+		]
+		pixbuf: OS-image/to-pixbuf src
+		unless null? crop1 [
+			pixbuf: gdk_pixbuf_new_subpixbuf pixbuf crop.x crop.y crop.w crop.h
+		]
+		GDK-draw-image dc/cr pixbuf x y w h
+		unless null? crop1 [
+			g_object_unref pixbuf
+		]
 	]
 ]
 
