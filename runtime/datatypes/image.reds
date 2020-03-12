@@ -10,6 +10,8 @@ Red/System [
 	}
 ]
 
+#include %../image-crop.reds
+
 image: context [
 	verbose: 0
 
