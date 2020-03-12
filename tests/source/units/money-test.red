@@ -282,11 +282,11 @@ Red [
 	--test-- "sort-1"
 		block:  [9 2.0 $4 5.0 $8 7 $3 6.0 2.0 $1 5]
 		result: [$1 2.0 2.0 $3 $4 5 5.0 6.0 7 $8 9]
-		--assert result = sort block
+		--assert result == sort block
 	--test-- "sort-2"
-		block:  [-1 -$8 2 3 -4.0 $7 2 $5 -$6 9]
+		block:  [-1 -$8 2 3.0 -4.0 $7 2 $5 -$6 9]
 		result: [-$8 -$6 -4.0 -1 2 2 3.0 $5 $7 9]
-		--assert result = sort block
+		--assert result == sort block
 ===end-group===
 
 ===start-group=== "find"
