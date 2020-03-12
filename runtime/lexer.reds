@@ -1879,7 +1879,7 @@ lexer: context [
 			if p/1 = #"." [if dec? [do-error] dec?: yes]
 			p: p + 1
 		]
-		lex/in-pos: e + 1								;-- skip ending delimiter
+		lex/in-pos: e 									;-- reset the input position to delimiter byte
 		;if load? [money/make-at alloc-slot lex cur s e neg?]
 	]
 	
