@@ -606,7 +606,7 @@ OS-image: context [
 			src-buf: as byte-ptr! inode0/buffer
 			copy-rect dst-buf w h w * 4 src-buf width height width * 4 x y h
 		][
-			handle: gdk_pixbuf_new_subpixbuf handle0 x y w h
+			handle: gdk_pixbuf_new_subpixbuf gdk_pixbuf_copy handle0 x y w h
 			dst/node: make-node handle null 0 w h
 		]
 		dst/size: h << 16 or w
