@@ -1224,13 +1224,7 @@ money: context [
 	][
 		if all [
 			TYPE_OF(money) <> TYPE_OF(value)
-			any [
-				op = COMP_SORT
-				op = COMP_CASE_SORT
-				op = COMP_FIND
-				op = COMP_SAME
-				op = COMP_STRICT_EQUAL
-			]
+			any [op = COMP_FIND op = COMP_SAME op = COMP_STRICT_EQUAL]
 		][
 			return 1
 		]
