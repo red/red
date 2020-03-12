@@ -29,6 +29,37 @@ float32-min: as float32! -3.40282347E+38
 
 image-crop: context [
 
+	flip-x: func [
+		vertex	[CROP-VERTEX!]
+		x0		[float32!]
+		/local
+			p	[pointer! [float32!]]
+			t	[float32!]
+	][
+		p: as pointer! [float32!] vertex
+		loop 4 [
+			t: x0 * as float32! 2.0
+			p/1: t - p/1
+			p: p + 2
+		]
+	]
+
+	flip-y: func [
+		vertex	[CROP-VERTEX!]
+		y0		[float32!]
+		/local
+			p	[pointer! [float32!]]
+			t	[float32!]
+	][
+		p: as pointer! [float32!] vertex
+		p: p + 1
+		loop 4 [
+			t: y0 * as float32! 2.0
+			p/1: t - p/1
+			p: p + 2
+		]
+	]
+
 	on-plane?: func [
 		vertex	[CROP-VERTEX!]
 		x		[float32!]
