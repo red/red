@@ -226,7 +226,12 @@ Red [
 		--assert 0.5 = math [1 / 2.0]
 		--assert 2 = math [(1 / 2.0) (2 * 1)]
 		--assert 8 = math [(1 / 2) (power 2 3)]
-		--assert none = math/safe [(1 / 0) (power 2 3)]
+		--assert none = attempt [math [(1 / 0) (power 2 3)]]
+		--assert 7 = math [1 + 2 * 3]
+		--assert 9 = math [(1 + 2) * 3]
+		--assert 100000010 = math [10 + 10 ** 2 ** 3]
+		--assert 10 = math [10 + 10 % 2]
+		--assert 1 = math [8 / 5 % 2]
 ===end-group===
 
 ===start-group=== "charset tests"
