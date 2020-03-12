@@ -279,7 +279,7 @@ math: function [
 	datum [block! paren!] "Expression to evaluate"
 	/local match
 ][
-	order: ['** ['* | '/ | '% | '//]]
+	order: ['** ['* | quote / | quote % | quote //]]	;@@ compiler's lexer chokes on '/, '% and '//
 	infix: [skip operator [enter | skip]]
 	
 	tally: [any [enter [fail] | recur [fail] | count [fail] | skip]]
