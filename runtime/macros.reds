@@ -346,9 +346,9 @@ Red/System [
 	;-- as-integer below is used to silence compiler warnings when pointer is byte-ptr already
 	#define MEMGUARD_ADDRANGE(s n)	[memguard/add-range   as byte-ptr! 0 + as-integer s  as byte-ptr! n + as-integer s]
 	#define MEMGUARD_ADDRANGE2(s e)	[memguard/add-range   as byte-ptr! 0 + as-integer s  as byte-ptr! 0 + as-integer e]
-	#define MEMGUARD_RANGECHK(s n)	[memguard/check-range as byte-ptr! 0 + as-integer s  as byte-ptr! n + as-integer s]
+	#define MEMGUARD_RANGECHK(s n)	[assert yes = memguard/check-range as byte-ptr! 0 + as-integer s  as byte-ptr! n + as-integer s]
 	; #define MEMGUARD_RANGECHK2(s e)	[memguard/check-range as byte-ptr! 0 + as-integer s  as byte-ptr! 0 + as-integer e]
-	#define MEMGUARD_PCHK(p)		[memguard/check-range as byte-ptr! 0 + as-integer p  as byte-ptr! 0 + as-integer p + 1]
+	#define MEMGUARD_PCHK(p)		[assert yes = memguard/check-range as byte-ptr! 0 + as-integer p  as byte-ptr! 0 + as-integer p + 1]
 ][
 	#define MEMGUARD_TOKEN			[]
 	#define MEMGUARD_MARK			[]

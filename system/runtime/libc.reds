@@ -298,7 +298,7 @@ Red/System [
 			print-line  "*** MEMGUARD ALERT: access to unallowed memory region detected"
 			print-line ["    requested region: ^-" hd ".." tl]
 			dump-regions
-			assert 1 = 0
+			; assert 1 = 0		;-- better to have assertion in a macro - to report the line number
 			no
 		]
 
@@ -329,7 +329,7 @@ Red/System [
 			(source + size) <= target
 		]
 		; memguard/check-range source source + size
-		unless memguard/flag-skip-next [memguard/check-range target target + size]
+		unless memguard/flag-skip-next [assert yes = memguard/check-range target target + size]
 		memguard/flag-skip-next: no
 		libc.copy-memory target source size
 	]
@@ -341,7 +341,7 @@ Red/System [
 		return:		[byte-ptr!]
 	][
 		; memguard/check-range source source + size
-		unless memguard/flag-skip-next [memguard/check-range target target + size]
+		unless memguard/flag-skip-next [assert yes = memguard/check-range target target + size]
 		memguard/flag-skip-next: no
 		libc.move-memory target source size
 	]
