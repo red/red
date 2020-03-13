@@ -172,10 +172,17 @@ Red [
 ===end-group===
 
 ===start-group=== "make"
-	--test-- "make-1" --assert $12345678901234567.12345 == make money! #{1234567890123456712345 DEADBEEF}
-	--test-- "make-2" --assert $0 == make money! #{}
-	--test-- "make-3" --assert error? try [make money! #{DEADBEEF}]
-	;@@ make money! <block!>
+	--test-- "make-1"  --assert $12345678901234567.12345 == make money! #{1234567890123456712345 DEADBEEF}
+	--test-- "make-2"  --assert $0 == make money! #{}
+	--test-- "make-3"  --assert error? try [make money! #{DEADBEEF}]
+	--test-- "make-4"  --assert error? try [make money! []]
+	--test-- "make-5"  --assert error? try [make money! [CCC]]
+	--test-- "make-6"  --assert error? try [make money! [CCC 1 2 3]]
+	--test-- "make-6"  --assert error? try [make money! [0 123456]]
+	--test-- "make-7"  --assert -$123.00456 == make money! [-123 456]
+	--test-- "make-8"  --assert $123.44444 == make money! [123.32100 12344]
+	--test-- "make-9"  --assert -CCC$123 == make money! [CCC -123]
+	--test-- "make-10" --assert -CCC$123 == make money! [CCC -123 0]
 ===end-group===
 
 ===start-group=== "add"
