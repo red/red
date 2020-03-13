@@ -39,6 +39,14 @@ money: context [
 		SIGN_++: 22h
 	]
 	
+	#enum make-states! [
+		S_START
+		S_CURRENCY
+		S_INTEGRAL
+		S_FRACTIONAL
+		S_END
+	]
+	
 	#define DISPATCH_SIGNS [switch collate-signs this-sign that-sign]
 	#define SWAP_ARGUMENTS(this that) [use [hold][hold: this this: that that: hold]]
 	
@@ -59,6 +67,7 @@ money: context [
 	SIGN_MASK:   4000h
 	SIGN_OFFSET: 14
 	
+	MAX_FRACTIONAL:   99999
 	INT32_MAX_DIGITS: 10
 	INT32_MIN_AMOUNT: #{00000002147483648FFFFF}
 	INT32_MAX_AMOUNT: #{00000002147483647FFFFF}
@@ -305,10 +314,12 @@ money: context [
 		end      [byte-ptr!]
 		return:  [red-money!]
 		/local
-			convert           [subroutine!]
-			money             [red-money!]
-			here amount limit [byte-ptr!]
-			index stop step   [integer!]
+			convert     [subroutine!]
+			money       [red-money!]
+			here amount [byte-ptr!]
+			limit       [byte-ptr!]
+			index stop  [integer!]
+			step        [integer!]
 	][
 		money: as red-money! slot
 		money/header: TYPE_MONEY
@@ -614,6 +625,82 @@ money: context [
 		money/header: TYPE_MONEY
 		
 		copy-memory (get-amount money) + SIZE_BYTES - length head length
+		money
+	]
+		
+	from-block: func [
+		blk     [red-block!]
+		return: [red-money!]
+		/local
+			bail [subroutine!]
+			money fraction [red-money!]
+			int [red-integer!]
+			flt [red-float!]
+			head tail here [red-value!]
+			state type length [integer!]
+			stop? [logic!]
+	][
+		bail: [fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY blk]]
+		
+		length: block/rs-length? blk
+		if any [length < 1 length > 3][bail]
+		
+		head: block/rs-head blk
+		tail: block/rs-tail blk
+		here: head
+		
+		state: S_START
+		stop?: no
+		
+		while [state <> S_END][
+			type: TYPE_OF(here)
+			switch state [
+				S_START [
+					switch type [
+						TYPE_WORD [state: S_CURRENCY]
+						TYPE_INTEGER
+						TYPE_FLOAT [state: S_INTEGRAL]
+						default [bail]
+					]
+				]
+				S_CURRENCY [
+					;@@ TBD: take currency into account
+					here: here + 1
+					if here = tail [bail]
+					state: S_INTEGRAL
+				]
+				S_INTEGRAL [
+					switch type [
+						TYPE_INTEGER [
+							int: as red-integer! here
+							money: from-integer int/value
+						]
+						TYPE_FLOAT [
+							flt: as red-float! here
+							money: from-float flt/value
+						]
+						default [bail]
+					]
+					here: here + 1
+					state: either here = tail [S_END][S_FRACTIONAL]
+				]
+				S_FRACTIONAL [
+					either type <> TYPE_INTEGER [bail][
+						int: as red-integer! here
+						if any [negative? int/value int/value > MAX_FRACTIONAL][bail]
+						
+						fraction: set-sign from-integer int/value get-sign money
+						shift-right get-amount fraction SIZE_BYTES SIZE_SCALE
+						money: add-money money fraction
+						
+						here: here + 1
+						if here <> tail [bail]
+						state: S_END
+					]
+				]
+			]
+		]
+		
 		money
 	]
 	
@@ -1134,17 +1221,12 @@ money: context [
 		spec    [red-value!]
 		type    [integer!]
 		return: [red-money!]
-		/local
-			money [red-money!]
 	][
 		switch TYPE_OF(spec) [
-			TYPE_MONEY  [return as red-money! spec]
-			TYPE_BLOCK  [--NOT_IMPLEMENTED--]
-			TYPE_BINARY [money: from-binary as red-binary! spec]
-			default [money: to proto spec type]
+			TYPE_BLOCK  [from-block as red-block! spec]
+			TYPE_BINARY [from-binary as red-binary! spec]
+			default [to proto spec type]
 		]
-		
-		money
 	]
 
 	to: func [
