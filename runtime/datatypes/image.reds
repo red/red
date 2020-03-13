@@ -10,7 +10,7 @@ Red/System [
 	}
 ]
 
-#include %../image-crop.reds
+#include %../image-utils.reds
 
 image: context [
 	verbose: 0
@@ -126,7 +126,7 @@ image: context [
 			h		[integer!]
 			w1		[integer!]
 			h1		[integer!]
-			vertex	[CROP-VERTEX! value]
+			vertex	[TRANS-VERTEX! value]
 			pos		[red-pair!]
 			vec1	[VECTOR2D! value]
 			vec2	[VECTOR2D! value]
@@ -224,22 +224,22 @@ image: context [
 		neg-y?: no
 		if vertex/v1x > vertex/v2x [
 			neg-x?: yes
-			image-crop/flip-x vertex vertex/v1x
+			image-utils/flip-x vertex vertex/v1x
 		]
 		if vertex/v2y > vertex/v3y [
 			neg-y?: yes
-			image-crop/flip-y vertex vertex/v1y
+			image-utils/flip-y vertex vertex/v1y
 		]
 
 		handle: 0
 		buf: acquire-buffer src :handle
 		either crop1 <> null [
 			pb: allocate crop.w * crop.h * 4
-			image-crop/crop as byte-ptr! buf w h crop.x crop.y crop.w crop.h pb
-			nbuf: image-crop/transform as int-ptr! pb crop.w crop.h vertex rect.x rect.y rect.w rect.h
+			image-utils/crop as byte-ptr! buf w h crop.x crop.y crop.w crop.h pb
+			nbuf: image-utils/transform as int-ptr! pb crop.w crop.h vertex rect.x rect.y rect.w rect.h
 			free pb
 		][
-			nbuf: image-crop/transform buf w h vertex rect.x rect.y rect.w rect.h
+			nbuf: image-utils/transform buf w h vertex rect.x rect.y rect.w rect.h
 		]
 		release-buffer src handle no
 		if null? nbuf [dst/header: TYPE_NONE exit]
@@ -247,13 +247,14 @@ image: context [
 		handle2: 0
 		buf2: acquire-buffer dst :handle2
 		copy-memory as byte-ptr! buf2 as byte-ptr! nbuf rect.w/1 * rect.h/1 * 4
+		release-buffer dst handle2 yes
+		free as byte-ptr! nbuf
 		if neg-x? [
 			rect.w/1: 0 - rect.w/1
 		]
 		if neg-y? [
 			rect.h/1: 0 - rect.h/1
 		]
-		release-buffer dst handle2 yes
 	]
 
 	load-binary: func [
