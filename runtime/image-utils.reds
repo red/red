@@ -1,7 +1,7 @@
 Red/System [
-	Title:	"image-crop"
+	Title:	"image utils"
 	Author: "bitbegin"
-	File: 	%image-crop.reds
+	File: 	%image-utils.reds
 	Note:	"useful functions for image!"
 	Tabs: 	4
 	Rights: "Copyright (C) 2020 Red Foundation. All rights reserved."
@@ -13,7 +13,7 @@ Red/System [
 
 #include %vector2d.reds
 
-CROP-VERTEX!: alias struct! [
+TRANS-VERTEX!: alias struct! [
 	v1x		[float32!]
 	v1y		[float32!]
 	v2x		[float32!]
@@ -27,10 +27,10 @@ CROP-VERTEX!: alias struct! [
 float32-max: as float32!  3.40282347E+38
 float32-min: as float32! -3.40282347E+38
 
-image-crop: context [
+image-utils: context [
 
 	flip-x: func [
-		vertex	[CROP-VERTEX!]
+		vertex	[TRANS-VERTEX!]
 		x0		[float32!]
 		/local
 			p	[pointer! [float32!]]
@@ -45,7 +45,7 @@ image-crop: context [
 	]
 
 	flip-y: func [
-		vertex	[CROP-VERTEX!]
+		vertex	[TRANS-VERTEX!]
 		y0		[float32!]
 		/local
 			p	[pointer! [float32!]]
@@ -61,7 +61,7 @@ image-crop: context [
 	]
 
 	on-plane?: func [
-		vertex	[CROP-VERTEX!]
+		vertex	[TRANS-VERTEX!]
 		x		[float32!]
 		y		[float32!]
 		return:	[logic!]
@@ -77,17 +77,17 @@ image-crop: context [
 
 	crop: func [
 		src			[byte-ptr!]
-		sw			[integer!]		;-- width
-		sh			[integer!]		;-- height
+		sw			[integer!]		;-- src width
+		sh			[integer!]		;-- src height
 		x			[integer!]		;-- start.x
 		y			[integer!]		;-- start.y
-		dw			[integer!]		;-- width
-		dh			[integer!]		;-- height
+		dw			[integer!]		;-- dst width
+		dh			[integer!]		;-- dst height
 		dst			[byte-ptr!]
 		return:		[logic!]
 		/local
-			ss		[integer!]		;-- stride
-			ds		[integer!]		;-- stride
+			ss		[integer!]		;-- src stride
+			ds		[integer!]		;-- dst stride
 			offset	[integer!]
 			from	[byte-ptr!]
 			to		[byte-ptr!]
@@ -121,13 +121,13 @@ image-crop: context [
 
 	transform: func [
 		src			[int-ptr!]
-		sw			[integer!]		;-- width
-		sh			[integer!]		;-- height
-		vertex		[CROP-VERTEX!]
+		sw			[integer!]		;-- src width
+		sh			[integer!]		;-- src height
+		vertex		[TRANS-VERTEX!]
 		dx			[int-ptr!]
 		dy			[int-ptr!]
-		dw			[int-ptr!]		;-- width
-		dh			[int-ptr!]		;-- height
+		dw			[int-ptr!]		;-- dst width
+		dh			[int-ptr!]		;-- dst height
 		return:		[int-ptr!]
 		/local
 			xmin	[float32!]
@@ -339,7 +339,7 @@ image-crop: context [
 		dh			[integer!]		;-- height
 		return:		[int-ptr!]
 		/local
-			vertex	[CROP-VERTEX! value]
+			vertex	[TRANS-VERTEX! value]
 			w		[integer!]
 			h		[integer!]
 			x		[integer!]
