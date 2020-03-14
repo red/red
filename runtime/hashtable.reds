@@ -1125,6 +1125,7 @@ _hashtable: context [
 		while [n > 0][
 			index: indexes + head
 			i: index/value
+			assert i <> -1
 			keys/i: keys/i + offset
 			head: head + 1
 			n: n - 1

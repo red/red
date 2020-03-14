@@ -1374,7 +1374,20 @@ block: context [
 			table: hash/table
 		]
 
-		if OPTION?(part-arg) [
+		values?: all [
+			not only?									;-- /only support
+			any [
+				TYPE_OF(value) = TYPE_BLOCK				;@@ replace it with: typeset/any-block?
+				TYPE_OF(value) = TYPE_PATH				;@@ replace it with: typeset/any-block?
+				TYPE_OF(value) = TYPE_GET_PATH			;@@ replace it with: typeset/any-block?
+				TYPE_OF(value) = TYPE_SET_PATH			;@@ replace it with: typeset/any-block?
+				TYPE_OF(value) = TYPE_LIT_PATH			;@@ replace it with: typeset/any-block?
+				TYPE_OF(value) = TYPE_PAREN				;@@ replace it with: typeset/any-block?
+				TYPE_OF(value) = TYPE_HASH				;@@ replace it with: typeset/any-block?	
+			]
+		]
+
+		if all [OPTION?(part-arg) values?][
 			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
 				int: as red-integer! part-arg
 				int/value
@@ -1390,24 +1403,13 @@ block: context [
 				b/head - src/head
 			]
 		]
+
 		if OPTION?(dup-arg) [
 			int: as red-integer! dup-arg
 			cnt: int/value
 			if negative? cnt [return as red-value! blk]
 		]
 		
-		values?: all [
-			not only?									;-- /only support
-			any [
-				TYPE_OF(value) = TYPE_BLOCK				;@@ replace it with: typeset/any-block?
-				TYPE_OF(value) = TYPE_PATH				;@@ replace it with: typeset/any-block?
-				TYPE_OF(value) = TYPE_GET_PATH			;@@ replace it with: typeset/any-block?
-				TYPE_OF(value) = TYPE_SET_PATH			;@@ replace it with: typeset/any-block?
-				TYPE_OF(value) = TYPE_LIT_PATH			;@@ replace it with: typeset/any-block?
-				TYPE_OF(value) = TYPE_PAREN				;@@ replace it with: typeset/any-block?
-				TYPE_OF(value) = TYPE_HASH				;@@ replace it with: typeset/any-block?	
-			]
-		]
 		size: either values? [
 			src: as red-block! value
 			rs-length? src
