@@ -78,6 +78,7 @@ money: context [
 		money   [red-money!]
 		return: [integer!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/get-sign"]]
 		money/header and SIGN_MASK >> SIGN_OFFSET
 	]
 	
@@ -86,6 +87,8 @@ money: context [
 		sign    [integer!]
 		return: [red-money!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/set-sign"]]
+		
 		money/header: money/header and (not SIGN_MASK) or (sign << SIGN_OFFSET)
 		money
 	]
@@ -94,6 +97,7 @@ money: context [
 		money   [red-money!]
 		return: [red-money!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/flip-sign"]]
 		set-sign money as integer! not as logic! get-sign money
 	]
 	
@@ -102,6 +106,7 @@ money: context [
 		that    [integer!]
 		return: [integer!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/collate-signs"]]
 		this + 1 << 4 or (that + 1)
 	]
 	
@@ -111,6 +116,7 @@ money: context [
 		money   [red-money!]
 		return: [byte-ptr!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/get-amount"]]
 		(as byte-ptr! money) + (size? money) - SIZE_BYTES
 	]
 	
@@ -118,6 +124,8 @@ money: context [
 		amount  [byte-ptr!]
 		return: [logic!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/zero-amount?"]]
+		
 		loop SIZE_BYTES [
 			unless null-byte = amount/value [return no]
 			amount: amount + 1
@@ -131,6 +139,7 @@ money: context [
 		that    [byte-ptr!]
 		return: [integer!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/compare-amounts"]]
 		compare-memory this that SIZE_BYTES
 	]
 	
@@ -139,6 +148,8 @@ money: context [
 		all?    [logic!]
 		return: [red-money!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/zero-out"]]
+		
 		money/amount1: either all? [0][money/amount1 and FF000000h]
 		money/amount2: 0
 		money/amount3: 0
@@ -155,6 +166,8 @@ money: context [
 			this that [integer!]
 			half      [byte!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/shift-left"]]
+		
 		loop offset [
 			this: 1
 			that: this + 1
@@ -179,6 +192,8 @@ money: context [
 			this that [integer!]
 			half      [byte!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/shift-right"]]
+		
 		loop offset [
 			this: size
 			that: this - 1
@@ -203,6 +218,8 @@ money: context [
 		/local
 			bit byte offset [integer!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/get-digit"]]
+		
 		bit:    index and 1
 		byte:   index >> 1 + bit
 		offset: either as logic! bit [4][0]
@@ -217,6 +234,8 @@ money: context [
 		/local
 			bit byte offset reverse [integer!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/set-digit"]]
+		
 		bit:     index and 1
 		byte:    index >> 1 + bit
 		offset:  either as logic! bit [4][0]
@@ -231,6 +250,8 @@ money: context [
 		/local
 			count [integer!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/count-digits"]]
+		
 		count: SIZE_DIGITS
 		loop SIZE_BYTES [
 			either null-byte = amount/value [count: count - 2][
@@ -252,6 +273,8 @@ money: context [
 		/local
 			delta index1 index2 end this that [integer!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/compare-slices"]]
+		
 		delta: integer/abs this-count - that-count
 		switch integer/sign? this-count - that-count [
 			-1 [index1: 1 - delta index2: 1 end: that-count]
@@ -283,6 +306,8 @@ money: context [
 		/local
 			this that borrow difference [integer!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/subtract-slice"]]
+		
 		this-count: this-count + as integer! this-high?
 		that-count: that-count + as integer! that-high?
 		borrow: 0
@@ -321,6 +346,8 @@ money: context [
 			index stop  [integer!]
 			step        [integer!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/make-at"]]
+		
 		money: as red-money! slot
 		money/header: TYPE_MONEY
 		
@@ -371,6 +398,7 @@ money: context [
 		end      [byte-ptr!]
 		return:  [red-money!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/make-in"]]
 		make-at ALLOC_TAIL(parent) sign currency start point end
 	]
 	
@@ -382,6 +410,7 @@ money: context [
 		end      [byte-ptr!]
 		return:  [red-money!]	
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/push"]]
 		make-at stack/push* sign currency start point end
 	]
 	
@@ -397,6 +426,8 @@ money: context [
 			sign count  [integer!]
 			index times [integer!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/form-money"]]
+		
 		amount: get-amount money
 		sign:   sign? money
 		
@@ -453,6 +484,8 @@ money: context [
 			amount limit [byte-ptr!]
 			sign count   [integer!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/overflow?"]]
+		
 		sign: sign? money
 		if zero? sign [return no]
 		
@@ -472,10 +505,11 @@ money: context [
 			sign integer index [integer!]
 			start power digit  [integer!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/to-integer"]]
+		
 		if overflow? money [fire [TO_ERROR(script type-limit) datatype/push TYPE_INTEGER]]
 	
 		sign: sign? money
-		
 		if zero? sign [return 0]
 	
 		amount:  get-amount money
@@ -503,6 +537,8 @@ money: context [
 			extra index start [integer!]
 			power digit       [integer!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/from-integer"]]
+		
 		money: zero-out as red-money! stack/push* yes
 		money/header: TYPE_MONEY
 		
@@ -543,6 +579,8 @@ money: context [
 			sign delta   [integer!]
 			length error [integer!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/to-float"]]
+		
 		sign: sign? money
 		
 		if zero? sign [return 0.0]
@@ -575,6 +613,8 @@ money: context [
 			point     [byte-ptr!]
 			sign      [logic!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/from-float"]]
+		
 		formed: dtoa/form-float flt SIZE_DIGITS yes
 		
 		point: as byte-ptr! formed
@@ -597,6 +637,7 @@ money: context [
 		money   [red-money!]
 		return: [red-binary!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/to-binary"]]
 		binary/load-in get-amount money SIZE_BYTES null
 	]
 	
@@ -609,6 +650,8 @@ money: context [
 			length [integer!]
 			index  [integer!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/from-binary"]]
+		
 		length: binary/rs-length? bin
 		if length > SIZE_BYTES [length: SIZE_BYTES]
 		
@@ -639,6 +682,8 @@ money: context [
 			head tail here    [red-value!]
 			state type length [integer!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/from-block"]]
+		
 		bail: [fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY blk]]
 		
 		length: block/rs-length? blk
@@ -714,6 +759,8 @@ money: context [
 			char            [byte!]
 			sign            [logic!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/from-string"]]
+		
 		bail: [fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY str]]
 		make: [return push sign currency start point tail]
 		
@@ -784,6 +831,8 @@ money: context [
 		/local
 			this-sign that-sign [integer!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/compare-money"]]
+		
 		;@@ TBD: take currencies into account
 	
 		this-sign: sign? this
@@ -802,6 +851,7 @@ money: context [
 		money   [red-money!]
 		return: [logic!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/negative-money?"]]
 		negative? sign? money
 	]
 	
@@ -809,6 +859,7 @@ money: context [
 		money   [red-money!]
 		return: [logic!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/zero-money?"]]
 		zero? sign? money
 	]
 	
@@ -816,6 +867,7 @@ money: context [
 		money   [red-money!]
 		return: [logic!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/positive-money?"]]
 		positive? sign? money
 	]
 	
@@ -823,6 +875,8 @@ money: context [
 		money   [red-money!]
 		return: [integer!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/sign?"]]
+		
 		either zero-amount? get-amount money [0][
 			either as logic! get-sign money [-1][+1]
 		]
@@ -834,6 +888,7 @@ money: context [
 		money   [red-money!]
 		return: [red-money!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/absolute-money"]]
 		set-sign money 0
 	]
 	
@@ -841,6 +896,7 @@ money: context [
 		money   [red-money!]
 		return: [red-money!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/negate-money"]]
 		flip-sign money
 	]
 	
@@ -853,6 +909,8 @@ money: context [
 			this-sign that-sign        [integer!]
 			index carry left right sum [integer!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/add-money"]]
+		
 		this-sign: sign? augend
 		that-sign: sign? addend
 		
@@ -904,6 +962,8 @@ money: context [
 			difference               [integer!]
 			lesser? flag             [logic!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/subtract-money"]]
+		
 		this-sign: sign? minuend
 		that-sign: sign? subtrahend
 		
@@ -962,6 +1022,8 @@ money: context [
 			delta index1 index2 index3      [integer!]
 			carry left right other result   [integer!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/multiply-money"]]
+		
 		this-sign: sign? multiplicand
 		that-sign: sign? multiplier
 		
@@ -1040,6 +1102,8 @@ money: context [
 			size overflow digits index [integer!]
 			this-high? that-high?      [logic!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/divide-money"]]
+		
 		this-sign: sign? dividend
 		that-sign: sign? divisor
 		
@@ -1135,6 +1199,8 @@ money: context [
 		op      [integer!]
 		return: [red-money!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/do-math-op"]]
+		
 		switch op [
 			OP_ADD [add-money left right]
 			OP_SUB [subtract-money left right]
@@ -1159,6 +1225,8 @@ money: context [
 			left-type  [integer!]
 			right-type [integer!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/do-math"]]
+		
 		left:  as red-money! stack/arguments
 		right: left + 1
 		
@@ -1219,6 +1287,8 @@ money: context [
 		type    [integer!]
 		return: [red-money!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/make"]]
+	
 		switch TYPE_OF(spec) [
 			TYPE_BLOCK  [from-block as red-block! spec]
 			TYPE_BINARY [from-binary as red-binary! spec]
@@ -1235,6 +1305,8 @@ money: context [
 			integer [red-integer!]
 			float   [red-float!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/to"]]
+		
 		switch TYPE_OF(spec) [
 			TYPE_MONEY [
 				return as red-money! spec
@@ -1264,6 +1336,7 @@ money: context [
 		only?   [logic!]
 		return: [red-money!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/random"]]
 		--NOT_IMPLEMENTED--
 		money
 	]
@@ -1275,6 +1348,7 @@ money: context [
 		part    [integer!]
 		return: [integer!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/form"]]
 		form-money money buffer part yes
 	]
 	
@@ -1289,6 +1363,7 @@ money: context [
 		indent  [integer!]
 		return: [integer!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/mold"]]
 		form-money money buffer part no
 	]
 		
@@ -1301,6 +1376,8 @@ money: context [
 			integer [red-integer!]
 			float   [red-float!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/compare"]]
+		
 		if all [
 			TYPE_OF(money) <> TYPE_OF(value)
 			any [op = COMP_FIND op = COMP_SAME op = COMP_STRICT_EQUAL]
@@ -1326,14 +1403,40 @@ money: context [
 		compare-money money value
 	]
 	
-	absolute: func [return: [red-money!]][absolute-money as red-money! stack/arguments]
-	negate:   func [return: [red-money!]][negate-money   as red-money! stack/arguments]
+	absolute: func [return: [red-money!]][
+		#if debug? = yes [if verbose > 0 [print-line "money/absolute"]]
+		absolute-money as red-money! stack/arguments
+	]
 	
-	add:       func [return: [red-value!]][do-math OP_ADD]
-	subtract:  func [return: [red-value!]][do-math OP_SUB]
-	multiply:  func [return: [red-value!]][do-math OP_MUL]
-	divide:    func [return: [red-value!]][do-math OP_DIV]
-	remainder: func [return: [red-value!]][do-math OP_REM]
+	negate: func [return: [red-money!]][
+		#if debug? = yes [if verbose > 0 [print-line "money/negate"]]
+		negate-money as red-money! stack/arguments
+	]
+	
+	add: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "money/add"]]	
+		do-math OP_ADD
+	]
+	
+	subtract: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "money/subtract"]]
+		do-math OP_SUB
+	]
+	
+	multiply: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "money/multiply"]]
+		do-math OP_MUL
+	]
+	
+	divide: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "money/divide"]]
+		do-math OP_DIV
+	]
+	
+	remainder: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "money/remainder"]]	
+		do-math OP_REM
+	]
 	
 	round: func [
 		value      [red-money!]
@@ -1346,6 +1449,7 @@ money: context [
 		half-ceil? [logic!]
 		return:    [red-money!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/round"]]
 		--NOT_IMPLEMENTED--
 		value
 	]
@@ -1354,6 +1458,7 @@ money: context [
 		money   [red-money!]
 		return: [logic!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/even?"]]
 		not odd? money
 	]
 	
@@ -1363,6 +1468,8 @@ money: context [
 		/local
 			digit [integer!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "money/odd?"]]
+		
 		digit: get-digit get-amount money SIZE_INTEGRAL
 		as logic! digit and 1
 	]
