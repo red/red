@@ -632,13 +632,12 @@ money: context [
 		blk     [red-block!]
 		return: [red-money!]
 		/local
-			bail [subroutine!]
-			money fraction [red-money!]
-			int [red-integer!]
-			flt [red-float!]
-			head tail here [red-value!]
+			bail              [subroutine!]
+			money fraction    [red-money!]
+			int               [red-integer!]
+			flt               [red-float!]
+			head tail here    [red-value!]
 			state type length [integer!]
-			stop? [logic!]
 	][
 		bail: [fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY blk]]
 		
@@ -650,8 +649,6 @@ money: context [
 		here: head
 		
 		state: S_START
-		stop?: no
-		
 		while [state <> S_END][
 			type: TYPE_OF(here)
 			switch state [
