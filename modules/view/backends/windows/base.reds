@@ -681,6 +681,7 @@ update-base-text: func [
 	GdipCreateStringFormat fflags or 80000000h 0 :format 	;-- 1 << 31 = GDI passthrough
 	GdipSetStringFormatAlign format h-align
 	GdipSetStringFormatLineAlign format v-align
+	GdipSetStringFormatTrimming format 0	;-- TrimmingNone
 
 	rect/x: as float32! 0.0
 	rect/y: as float32! 0.0

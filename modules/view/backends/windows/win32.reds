@@ -2358,6 +2358,11 @@ XFORM!: alias struct! [
 			align		[integer!]
 			return:		[integer!]
 		]
+		GdipSetStringFormatTrimming: "GdipSetStringFormatTrimming" [
+			format		[integer!]
+			trimming	[integer!]
+			return:		[integer!]
+		]
 		GdipCreateFontFromDC: "GdipCreateFontFromDC" [
 			hdc			[integer!]
 			font		[int-ptr!]
