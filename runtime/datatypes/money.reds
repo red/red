@@ -16,15 +16,35 @@ money: context [
 	;-- Base --
 	
 	#enum sizes! [
-		SIZE_BYTES: 11
-		SIZE_SCALE: 05
-		SIZE_AFTER: 05
+		SIZE_BYTES: 11								;-- total number of bytes used to store amount
+		SIZE_SCALE: 05								;-- total number of digits (nibbles) used to store scale (fractional part)
+		SIZE_AFTER: 05								;-- how many digits to print after a decimal separator
 	]
 	
+	SIZE_DIGITS:   SIZE_BYTES * 2					;-- total number of digits (nibbles) used to store amount
+	SIZE_INTEGRAL: SIZE_DIGITS - SIZE_SCALE			;-- size of an integral part (digits)
+	
+	SIZE_UNNORM: SIZE_DIGITS + SIZE_SCALE					;-- size of unnormalized result (digits)
+	SIZE_BUFFER: (SIZE_UNNORM + (SIZE_UNNORM and 1)) >> 1	;-- size of memory portion that stores unnormalized result (bytes)
+	
+	SIZE_SBYTES: (SIZE_BUFFER + size? integer!) - (SIZE_BUFFER // size? integer!)
+	SIZE_SSLOTS: SIZE_SBYTES >> 2					;-- total number of bytes / stack slots allocated to hold unnormalized result
+	
+	HIGH_NIBBLE: #"^(0F)"
+	LOW_NIBBLE:  #"^(F0)"
+	
+	SIGN_MASK:   4000h								;-- used to get/set sign bit in the header
+	SIGN_OFFSET: 14
+	
+	MAX_FRACTIONAL: as integer! (pow 10.0 as float! SIZE_SCALE) - 1.0
+	INT32_MAX_DIGITS: 10
+	INT32_MIN_AMOUNT: #{00000002147483648FFFFF}		;-- 0xF > 0x9, used to subvert comparison
+	INT32_MAX_AMOUNT: #{00000002147483647FFFFF}
+	
 	#enum signs! [
-	;-- 		 -0+
-	;--			-101
-	;-- 	+1	 012
+	;--    sign	 -0+
+	;--	integer	-101
+	;-- 	 +1	 012
 	
 		SIGN_--: 00h
 		SIGN_-0: 01h
@@ -51,26 +71,6 @@ money: context [
 	#define SWAP_ARGUMENTS(this that) [use [hold][hold: this this: that that: hold]]
 	
 	#define MONEY_OVERFLOW [fire [TO_ERROR(script type-limit) datatype/push TYPE_MONEY]]
-	
-	SIZE_DIGITS:   SIZE_BYTES * 2
-	SIZE_INTEGRAL: SIZE_DIGITS - SIZE_SCALE
-	
-	SIZE_UNNORM: SIZE_DIGITS + SIZE_SCALE
-	SIZE_BUFFER: (SIZE_UNNORM + (SIZE_UNNORM and 1)) >> 1
-	
-	SIZE_SBYTES: (SIZE_BUFFER + size? integer!) - (SIZE_BUFFER // size? integer!)
-	SIZE_SSLOTS: SIZE_SBYTES >> 2
-	
-	HIGH_NIBBLE: #"^(0F)"
-	LOW_NIBBLE:  #"^(F0)"
-	
-	SIGN_MASK:   4000h
-	SIGN_OFFSET: 14
-	
-	MAX_FRACTIONAL:   99999
-	INT32_MAX_DIGITS: 10
-	INT32_MIN_AMOUNT: #{00000002147483648FFFFF}
-	INT32_MAX_AMOUNT: #{00000002147483647FFFFF}
 	
 	;-- Sign --
 	
@@ -145,7 +145,7 @@ money: context [
 	
 	zero-out: func [
 		money   [red-money!]
-		all?    [logic!]
+		all?    [logic!]							;-- no: keep currency index
 		return: [red-money!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "money/zero-out"]]
@@ -220,6 +220,8 @@ money: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "money/get-digit"]]
 		
+		assert positive? index
+		
 		bit:    index and 1
 		byte:   index >> 1 + bit
 		offset: either as logic! bit [4][0]
@@ -235,7 +237,10 @@ money: context [
 			bit byte offset reverse [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "money/set-digit"]]
-		
+
+		assert positive? index
+		assert all [value >= 0 value <= 9]
+	
 		bit:     index and 1
 		byte:    index >> 1 + bit
 		offset:  either as logic! bit [4][0]
@@ -261,7 +266,7 @@ money: context [
 			amount: amount + 1
 		]
 		
-		either zero? count [1][count]
+		either zero? count [1][count]				;-- 0 is a single digit
 	]
 	
 	;-- Slices --
@@ -315,7 +320,7 @@ money: context [
 			this: get-digit this-buffer this-count
 			that: either that-count < 1 [0][get-digit that-buffer that-count]
 			
-			difference: this - that - borrow
+			difference: this - that - borrow		;-- assumming this >= that
 			borrow: as integer! difference < 0
 			if as logic! borrow [difference: difference + 10]
 			
@@ -359,7 +364,7 @@ money: context [
 		convert: [
 			here: here + step
 			until [
-				if here/value = #"'" [here: here + step continue]
+				if here/value = #"'" [here: here + step continue]	;-- skip thousands separators
 				set-digit amount index as integer! here/value - #"0"
 				
 				here:  here + step
@@ -368,6 +373,7 @@ money: context [
 			]
 		]
 		
+		;-- integral part
 		here:  either null? point [end][point]
 		limit: start
 		index: SIZE_INTEGRAL
@@ -378,6 +384,7 @@ money: context [
 		
 		if null? point [return money]
 		
+		;-- fractional part
 		here:  point
 		limit: end
 		index: SIZE_INTEGRAL + 1
@@ -472,7 +479,7 @@ money: context [
 		times:  SIZE_AFTER
 		fill
 		
-		part - 2		
+		part - 2									;-- compensate for $ and . characters
 	]
 	
 	;-- Conversion --
@@ -493,7 +500,7 @@ money: context [
 		count:  (count-digits amount) - SIZE_SCALE
 		if count <> INT32_MAX_DIGITS [return count > INT32_MAX_DIGITS]
 		
-		limit: either negative? sign [INT32_MIN_AMOUNT][INT32_MAX_AMOUNT]
+		limit: either negative? sign [INT32_MIN_AMOUNT][INT32_MAX_AMOUNT]	;-- worst case: need to compare amount with constant buffers (equal size)
 		positive? compare-amounts amount limit
 	]
 	
@@ -546,7 +553,7 @@ money: context [
 		
 		set-sign money as integer! negative? int
 		
-		extra: as integer! int = (1 << 31)
+		extra: as integer! int = (1 << 31)			;-- if it's an integer minimum, prevent math overflow
 		int:   integer/abs int + extra
 		
 		amount: get-amount money
@@ -562,7 +569,7 @@ money: context [
 			index: index - 1
 		]
 		
-		unless zero? extra [
+		unless zero? extra [						;-- compensate for overflow prevention
 			set-digit amount start extra + get-digit amount start
 		]
 		
@@ -585,7 +592,7 @@ money: context [
 		
 		if zero? sign [return 0.0]
 	
-		buffer: string/make-at stack/push* SIZE_DIGITS + 6 Latin1
+		buffer: string/make-at stack/push* SIZE_DIGITS + 6 Latin1	;-- max number of digits and -CCC$.
 		form-money money buffer 0 no
 		
 		delta:  (string/rs-find buffer as integer! #"$") + 1
@@ -620,7 +627,7 @@ money: context [
 		point: as byte-ptr! formed
 		until [point: point + 1 point/value = #"."]
 		
-		if point/2 = #"#" [
+		if point/2 = #"#" [							;-- 1.#NaN, 1.#INF
 			fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY float/box flt]
 		]
 		
@@ -629,7 +636,7 @@ money: context [
 		end:   as byte-ptr! formed + length? formed
 		
 		money: push sign null start point end
-		if all [0.0 <> flt zero? sign? money][MONEY_OVERFLOW]
+		if all [0.0 <> flt zero? sign? money][MONEY_OVERFLOW]	;-- underflow on too small float value
 		money
 	]
 	
@@ -653,7 +660,7 @@ money: context [
 		#if debug? = yes [if verbose > 0 [print-line "money/from-binary"]]
 		
 		length: binary/rs-length? bin
-		if length > SIZE_BYTES [length: SIZE_BYTES]
+		if length > SIZE_BYTES [length: SIZE_BYTES]	;-- take only first SIZE_BYTES bytes into account
 		
 		head: binary/rs-head bin
 		index: 1
@@ -778,6 +785,7 @@ money: context [
 		head: string/rs-head str
 		here: head
 		
+		;-- sign
 		sign: no
 		switch here/value [
 			#"-" [here: here + 1 sign: yes]
@@ -785,6 +793,7 @@ money: context [
 			default [0]
 		]
 		
+		;-- currency code
 		currency: here
 		while [not any [end? here/value = #"$"]][here: here + 1]
 		
@@ -798,24 +807,27 @@ money: context [
 		start: here - as integer! here/value <> #"$"
 		here:  start + 1
 		
+		;-- leading zeroes
 		until [here: here + 1 any [here = tail here/value <> #"0"]]
 		if any [here = tail dot?][here: here - 1]
 		digits: here
 		
+		;-- integral part with optional thousands separators
 		until [
 			if here/value = #"'" [here: here + 1 continue]
-			unless digit? [bail]
+			unless digit? [bail]								;-- forbid leading decimal separator
 			here: here + 1
 			any [end? dot?]
 		]
 		
-		if any [here > tail all [dot? here + 1 = tail]][bail]
+		if any [here > tail all [dot? here + 1 = tail]][bail]	;-- forbid trailing decimal separator
 		
 		point: here
 		if SIZE_INTEGRAL < as integer! point - digits [bail]
 		if here = tail [point: null make]
 		here: here + 1
 		
+		;-- fractional part
 		until [unless digit? [bail] here: here + 1 end?]
 		if here <> tail [bail]
 		
@@ -844,7 +856,7 @@ money: context [
 			default [return integer/sign? this-sign - that-sign]
 		]
 		
-		integer/sign? compare-amounts get-amount this get-amount that
+		integer/sign? compare-amounts get-amount this get-amount that	;-- must return strictly -1, 0 or +1
 	]
 	
 	negative-money?: func [
@@ -889,7 +901,7 @@ money: context [
 		return: [red-money!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "money/absolute-money"]]
-		set-sign money 0
+		set-sign money 0							;-- 0: clear sign bit
 	]
 	
 	negate-money: func [
@@ -900,7 +912,7 @@ money: context [
 		flip-sign money
 	]
 	
-	add-money: func [
+	add-money: func [								;-- long addition
 		augend  [red-money!]
 		addend  [red-money!]
 		return: [red-money!]
@@ -928,7 +940,7 @@ money: context [
 		this-amount: get-amount augend
 		that-amount: get-amount addend
 		
-		if (get-digit this-amount 1) + (get-digit that-amount 1) > 9 [MONEY_OVERFLOW]
+		if (get-digit this-amount 1) + (get-digit that-amount 1) > 9 [MONEY_OVERFLOW]	;-- if sum of two most significant digits overflows
 		
 		index: SIZE_DIGITS
 		carry: 0
@@ -951,7 +963,7 @@ money: context [
 		augend
 	]
 	
-	subtract-money: func [
+	subtract-money: func [							;-- long subtraction
 		minuend    [red-money!]
 		subtrahend [red-money!]
 		return:    [red-money!]
@@ -1011,7 +1023,7 @@ money: context [
 		set-sign minuend sign
 	]
 	
-	multiply-money: func [
+	multiply-money: func [							;-- long multiplication
 		multiplicand [red-money!]
 		multiplier   [red-money!]
 		return:      [red-money!]
@@ -1042,7 +1054,7 @@ money: context [
 		this-count: count-digits this-amount
 		that-count: count-digits that-amount
 		
-		if (this-count + that-count) > (SIZE_UNNORM + 1) [MONEY_OVERFLOW]
+		if (this-count + that-count) > (SIZE_UNNORM + 1) [MONEY_OVERFLOW]	;-- if after normalization it won't fit into payload
 		
 		product: set-memory as byte-ptr! system/stack/allocate SIZE_SSLOTS null-byte SIZE_SBYTES
 		
@@ -1074,22 +1086,22 @@ money: context [
 			index1: index1 - 1
 		]
 		
-		unless zero? get-digit product 1 [MONEY_OVERFLOW]
+		unless zero? get-digit product 1 [MONEY_OVERFLOW]	;-- overflowed into most-significant digit
 		
 		shift-right product SIZE_SBYTES SIZE_SCALE
 		product: product + SIZE_BUFFER - SIZE_BYTES
 		
-		if zero-amount? product [MONEY_OVERFLOW]
+		if zero-amount? product [MONEY_OVERFLOW]			;-- got zero product from non-zero factors
 		
 		copy-memory this-amount product SIZE_BYTES
 		set-sign multiplicand sign
 	]
 	
-	divide-money: func [
+	divide-money: func [							;-- shift-and-subtract algorithm
 		dividend   [red-money!]
 		divisor    [red-money!]
-		remainder? [logic!]
-		only?      [logic!]
+		remainder? [logic!]							;-- yes: calculate remainder instead
+		only?      [logic!]							;-- yes: don't approximate fractional part
 		return:    [red-money!]
 		/local
 			shift increment subtract   [subroutine!]
@@ -1124,7 +1136,7 @@ money: context [
 		this-count: count-digits this-amount
 		that-count: count-digits that-amount
 		
-		if this-count + (SIZE_SCALE + 1 - that-count) > SIZE_DIGITS [MONEY_OVERFLOW]
+		if this-count + (SIZE_SCALE + 1 - that-count) > SIZE_DIGITS [MONEY_OVERFLOW]	;-- if after normalization it won't fit into payload
 		
 		size: SIZE_DIGITS
 		overflow: SIZE_SBYTES << 1 - SIZE_DIGITS
@@ -1185,8 +1197,8 @@ money: context [
 				quotient: quotient + SIZE_SBYTES - SIZE_BYTES
 				this-amount: hold
 			]
-			if zero-amount? quotient [MONEY_OVERFLOW]
-			unless zero? get-digit buffer overflow [MONEY_OVERFLOW]
+			if zero-amount? quotient [MONEY_OVERFLOW]				;-- got zero quotient from non-zero dividend
+			unless zero? get-digit buffer overflow [MONEY_OVERFLOW] ;-- overflowed into most-significant digit
 			copy-memory this-amount quotient SIZE_BYTES
 		]
 		
@@ -1209,7 +1221,7 @@ money: context [
 			OP_REM [divide-money left right yes no]
 			default [
 				fire [TO_ERROR (script invalid-type) datatype/push TYPE_OF(left)]
-				left
+				left								;-- pass compiler's type checking
 			]
 		]
 	]
@@ -1276,7 +1288,7 @@ money: context [
 		if all [op = OP_DIV left-type = TYPE_MONEY right-type = TYPE_MONEY][
 			result: as red-value! float/box to-float as red-money! result
 		]
-		SET_RETURN(result)
+		SET_RETURN(result)							;-- some of the operations swap their argument slots
 	]
 		
 	;-- Actions --
@@ -1324,7 +1336,7 @@ money: context [
 			]
 			default [
 				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_MONEY spec]
-				as red-money! proto
+				as red-money! proto					;-- pass compiler's type checking
 			]
 		]
 	]
@@ -1470,7 +1482,7 @@ money: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "money/odd?"]]
 		
-		digit: get-digit get-amount money SIZE_INTEGRAL
+		digit: get-digit get-amount money SIZE_INTEGRAL	;-- check if least significant bit is set
 		as logic! digit and 1
 	]
 	
