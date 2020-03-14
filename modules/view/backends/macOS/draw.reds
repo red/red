@@ -1002,7 +1002,7 @@ CG-draw-image: func [						;@@ use CALayer to get very good performance?
 
 OS-draw-image: func [
 	dc			[draw-ctx!]
-	image		[red-image!]
+	src			[red-image!]
 	start		[red-pair!]
 	end			[red-pair!]
 	key-color	[red-tuple!]
@@ -1010,49 +1010,72 @@ OS-draw-image: func [
 	crop1		[red-pair!]
 	pattern		[red-word!]
 	/local
-		img		[integer!]
-		sub-img [integer!]
+		src.w	[integer!]
+		src.h	[integer!]
 		x		[integer!]
 		y		[integer!]
-		width	[integer!]
-		height	[integer!]
-		w		[float32!]
-		h		[float32!]
-		ww		[float32!]
+		w		[integer!]
+		h		[integer!]
 		crop2	[red-pair!]
+		crop.x	[integer!]
+		crop.y	[integer!]
+		crop.w	[integer!]
+		crop.h	[integer!]
+		dst		[red-image! value]
+		handle	[integer!]
 ][
-	either null? start [x: 0 y: 0][x: start/x y: start/y]
-	case [
-		start = end [
-			width:  IMAGE_WIDTH(image/size)
-			height: IMAGE_HEIGHT(image/size)
+	either any [
+		start + 2 = end
+		start + 3 = end
+	][
+		x: 0 y: 0 w: 0 h: 0
+		image/any-resize src dst crop1 start end :x :y :w :h
+		if dst/header = TYPE_NONE [exit]
+		handle: OS-image/to-cgimage dst
+		CG-draw-image dc/raw handle x y w h
+		OS-image/delete dst
+	][
+		src.w: IMAGE_WIDTH(src/size)
+		src.h: IMAGE_HEIGHT(src/size)
+		either null? start [x: 0 y: 0][x: start/x y: start/y]
+		unless null? crop1 [
+			crop2: crop1 + 1
+			crop.x: crop1/x
+			crop.y: crop1/y
+			crop.w: crop2/x
+			crop.h: crop2/y
+			if crop.x + crop.w > src.w [
+				crop.w: src.w - crop.x
+			]
+			if crop.y + crop.h > src.h [
+				crop.h: src.h - crop.y
+			]
 		]
-		start + 1 = end [					;-- two control points
-			width: end/x - x
-			height: end/y - y
+		case [
+			start = end [
+				either null? crop1 [
+					w: src.w h: src.h
+				][
+					w: crop.w h: crop.h
+				]
+			]
+			start + 1 = end [
+				w: end/x - x
+				h: end/y - y
+			]
+			true [exit]
 		]
-		start + 2 = end [0]					;@@ TBD three control points
-		true [0]							;@@ TBD four control points
+		handle: OS-image/to-cgimage src
+		unless null? crop1 [
+			handle: CGImageCreateWithImageInRect handle
+						as float32! crop.x as float32! crop.y
+						as float32! crop.w as float32! crop.h
+		]
+		CG-draw-image dc/raw handle x y w h
+		unless null? crop1 [
+			CGImageRelease handle
+		]
 	]
-
-	img: OS-image/to-cgimage image
-	if crop1 <> null [
-		crop2: crop1 + 1
-		w: as float32! crop2/x
-		h: as float32! crop2/y
-		ww: w / h * (as float32! height)
-		width: as-integer ww
-		sub-img: CGImageCreateWithImageInRect
-			img
-			as float32! crop1/x
-			as float32! crop1/y
-			w
-			h
-		img: sub-img
-	]
-
-	CG-draw-image dc/raw img x y width height
-	if crop1 <> null [CGImageRelease img]
 ]
 
 fill-gradient-region: func [
