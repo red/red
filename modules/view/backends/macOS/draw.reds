@@ -981,23 +981,41 @@ CG-draw-image: func [						;@@ use CALayer to get very good performance?
 	width		[integer!]
 	height		[integer!]
 	/local
-		rc		[NSRect!]
+		tx		[float32!]
 		ty		[float32!]
+		w		[float32!]
+		h		[float32!]
+		flip-x	[float32!]
+		flip-y	[float32!]
 ][
-	rc: make-rect x y width height
-	ty: rc/y + rc/h
+	either width < 0 [
+		w: as float32! 0 - width
+		flip-x: as float32! -1.0
+	][
+		w: as float32! width
+		flip-x: as float32! 1.0
+	]
+	tx: as float32! x
+	either height < 0 [
+		h: as float32! 0 - height
+		flip-y: as float32! 1.0
+	][
+		h: as float32! height
+		flip-y: as float32! -1.0
+	]
+	ty: as float32! y + height
 	;-- flip coords
 	;; drawing an image or PDF by calling Core Graphics functions directly,
 	;; we must flip the CTM.
 	;; http://stackoverflow.com/questions/506622/cgcontextdrawimage-draws-image-upside-down-when-passed-uiimage-cgimage
-	CGContextTranslateCTM dc as float32! 0.0 ty
-	CGContextScaleCTM dc as float32! 1.0 as float32! -1.0
+	CGContextTranslateCTM dc tx ty
+	CGContextScaleCTM dc flip-x flip-y
 
-	CGContextDrawImage dc rc/x as float32! 0.0 rc/w rc/h image
+	CGContextDrawImage dc as float32! 0.0 as float32! 0.0 w h image
 
 	;-- flip back
-	CGContextScaleCTM dc as float32! 1.0 as float32! -1.0
-	CGContextTranslateCTM dc as float32! 0.0 (as float32! 0.0) - ty
+	CGContextScaleCTM dc flip-x flip-y
+	CGContextTranslateCTM dc (as float32! 0.0) - tx (as float32! 0.0) - ty
 ]
 
 OS-draw-image: func [
