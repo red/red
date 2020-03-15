@@ -1836,6 +1836,7 @@ Red [
 ===end-group===
 
 ===start-group=== "random"
+
 	--test-- "ser-random-1"
 		res: random/only #{AA}
 		--assert integer? res
