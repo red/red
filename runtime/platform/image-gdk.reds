@@ -296,9 +296,7 @@ OS-image: context [
 			b: p/1
 			p/1: p/3
 			p/3: b
-			either alpha? [
-				p/4: #"^(FF)" - p/4
-			][
+			unless alpha? [
 				p/4: #"^(FF)"
 			]
 			dst/offset: old

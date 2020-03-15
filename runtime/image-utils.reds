@@ -219,7 +219,7 @@ image-utils: context [
 		src.h: as float! sh
 		size: rect.w * rect.h * 4
 		rgba: as int-ptr! allocate size
-		set-memory as byte-ptr! rgba #"^(FF)" size
+		set-memory as byte-ptr! rgba #"^(00)" size
 		i: 0 j: 0
 		loop rect.h [
 			i: 0
