@@ -1911,7 +1911,7 @@ OS-draw-line-cap: func [
 
 OS-draw-image: func [
 	ctx			[draw-ctx!]
-	image		[red-image!]
+	src			[red-image!]
 	start		[red-pair!]
 	end			[red-pair!]
 	key-color	[red-tuple!]
@@ -1919,66 +1919,70 @@ OS-draw-image: func [
 	crop1		[red-pair!]
 	pattern		[red-word!]
 	/local
+		src.w	[integer!]
+		src.h	[integer!]
 		x		[integer!]
 		y		[integer!]
-		width	[integer!]
-		height	[integer!]
-		src-x	[integer!]
-		src-y	[integer!]
 		w		[integer!]
 		h		[integer!]
-		attr	[integer!]
-		color	[integer!]
 		crop2	[red-pair!]
-		pts		[tagPOINT]
+		crop.x	[integer!]
+		crop.y	[integer!]
+		crop.w	[integer!]
+		crop.h	[integer!]
+		dst		[red-image! value]
+		handle	[integer!]
 ][
-	attr: 0
-	if key-color <> null [
-		attr: ctx/image-attr
-		if zero? attr [GdipCreateImageAttributes :attr]
-		color: to-gdiplus-color key-color/array1
-		GdipSetImageAttributesColorKeys attr 0 true color color
-	]
-	either crop1 = null [
-		src-x: 0 src-y: 0
-		w: IMAGE_WIDTH(image/size)
-		h: IMAGE_HEIGHT(image/size)
+	either any [
+		start + 2 = end
+		start + 3 = end
 	][
-		crop2: crop1 + 1
-		src-x: crop1/x
-		src-y: crop1/y
-		w: crop2/x
-		h: crop2/y
-	]
-	either null? start [x: 0 y: 0][x: start/x y: start/y]
-	case [
-		start = end [
-			width:  w
-			height: h
-		]
-		start + 1 = end [					;-- two control points
-			width: end/x - x
-			height: end/y - y
-		]
-		start + 2 = end [					;-- three control points
-			pts: ctx/other/edges
-			loop 3 [
-				pts/x: start/x
-				pts/y: start/y
-				pts: pts + 1
-				start: start + 1
+		x: 0 y: 0 w: 0 h: 0
+		image/any-resize src dst crop1 start end :x :y :w :h
+		if dst/header = TYPE_NONE [exit]
+		GdipDrawImageRectI ctx/graphics as-integer dst/node x y w h
+		OS-image/delete dst
+	][
+		src.w: IMAGE_WIDTH(src/size)
+		src.h: IMAGE_HEIGHT(src/size)
+		either null? start [x: 0 y: 0][x: start/x y: start/y]
+		unless null? crop1 [
+			crop2: crop1 + 1
+			crop.x: crop1/x
+			crop.y: crop1/y
+			crop.w: crop2/x
+			crop.h: crop2/y
+			if crop.x + crop.w > src.w [
+				crop.w: src.w - crop.x
 			]
-			GdipDrawImagePointsRectI
-				ctx/graphics as-integer image/node ctx/other/edges 3
-				0 0 w h GDIPLUS_UNIT_PIXEL attr 0 0
-			exit
+			if crop.y + crop.h > src.h [
+				crop.h: src.h - crop.y
+			]
 		]
-		true [exit]							;@@ TBD four control points
+		case [
+			start = end [
+				either null? crop1 [
+					w: src.w h: src.h
+				][
+					w: crop.w h: crop.h
+				]
+			]
+			start + 1 = end [
+				w: end/x - x
+				h: end/y - y
+			]
+			true [exit]
+		]
+		either null? crop1 [
+			GdipDrawImageRectI ctx/graphics as-integer src/node x y w h
+		][
+			GdipDrawImageRectRectI
+				ctx/graphics as-integer src/node
+				x y w h
+				crop.x crop.y crop.w crop.h
+				GDIPLUS_UNIT_PIXEL 0 0 0
+		]
 	]
-	GdipDrawImageRectRectI
-		ctx/graphics as-integer image/node
-		x y width height src-x src-y w h
-		GDIPLUS_UNIT_PIXEL attr 0 0
 ]
 
 check-texture: func [
