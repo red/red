@@ -1849,15 +1849,15 @@ Red [
 		s: "1234567890"
 		r: random copy s
 		--assert s <> r
-		sum: 0 foreach c r [sum: sum + c]
-		--assert sum = 525
+		summed: 0 foreach c r [summed: summed + c]
+		--assert summed = 525
 
 	--test-- "ser-random-4"
 		s: "1234567890"
 		r: random/secure copy s
 		--assert s <> r
-		sum: 0 foreach c r [sum: sum + c]
-		--assert sum = 525
+		summed: 0 foreach c r [summed: summed + c]
+		--assert summed = 525
 
 ===end-group===
 
