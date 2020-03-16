@@ -437,14 +437,16 @@ dehex: make native! [[
 
 negative?: make native! [[
 		"Returns TRUE if the number is negative"
-		number [number! time!]
+		number [number! money! time!]
+		return: [logic!]
 	]
 	#get-definition NAT_NEGATIVE?
 ]
 
 positive?: make native! [[
 		"Returns TRUE if the number is positive"
-		number [number! time!]
+		number [number! money! time!]
+		return: [logic!]
 	]
 	#get-definition NAT_POSITIVE?
 ]
@@ -559,7 +561,7 @@ NaN?: make native! [[
 
 zero?: make native! [[
 		"Returns TRUE if the value is zero"
-		value	[number! pair! time! char! tuple!]
+		value	[number! money! pair! time! char! tuple!]
 		return: [logic!]
 	]
 	#get-definition NAT_ZERO?
@@ -837,7 +839,8 @@ now: make native! [[
 
 sign?: make native! [[
 		"Returns sign of N as 1, 0, or -1 (to use as a multiplier)"
-		number [number! time!]
+		number [number! money! time!]
+		return: [integer!]
 	]
 	#get-definition NAT_SIGN?
 ]

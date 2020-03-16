@@ -19,6 +19,13 @@ integer: context [
 	][
 		any [fl/value > 2147483647.0 fl/value < -2147483648.0]
 	]
+	
+	sign?: func [
+		integer [integer!]
+		return: [integer!]
+	][
+		SIGN_COMPARE_RESULT(integer 0)
+	]
 
 	abs: func [
 		value	[integer!]
@@ -71,6 +78,13 @@ integer: context [
 		int/header: TYPE_INTEGER
 		int/value: value
 		int
+	]
+	
+	from-money: func [
+		mn      [red-money!]
+		return: [integer!]
+	][
+		money/to-integer mn
 	]
 	
 	from-binary: func [
@@ -231,6 +245,9 @@ integer: context [
 			TYPE_INTEGER TYPE_CHAR [
 				left/value: do-math-op left/value right/value op
 			]
+			TYPE_MONEY [
+				left: as red-integer! money/do-math op
+			]
 			TYPE_FLOAT TYPE_PERCENT TYPE_TIME [float/do-math op]
 			TYPE_PAIR
 			TYPE_TUPLE [
@@ -374,6 +391,7 @@ integer: context [
 		/local
 			int  [red-integer!]
 			fl	 [red-float!]
+			mn   [red-money!]
 			str	 [red-string!]
 			t	 [red-time!]
 			p	 [byte-ptr!]
@@ -399,6 +417,9 @@ integer: context [
 				fl: as red-float! spec
 				if overflow? fl [fire [TO_ERROR(script type-limit) datatype/push TYPE_INTEGER]]
 				int/value: as-integer fl/value
+			]
+			TYPE_MONEY [
+				int/value: from-money as red-money! spec
 			]
 			TYPE_BINARY [
 				int/value: from-binary as red-binary! spec
@@ -491,6 +512,12 @@ integer: context [
 			TYPE_CHAR [
 				char: as red-char! value2				;@@ could be optimized as integer! and char!
 				right: char/value						;@@ structures are overlapping exactly
+			]
+			TYPE_MONEY [
+				return money/compare
+					money/from-integer left
+					as red-money! value2
+					op
 			]
 			TYPE_FLOAT
 			TYPE_TIME

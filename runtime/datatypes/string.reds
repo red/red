@@ -1256,6 +1256,9 @@ string: context [
 			proto
 		][
 			either type = TYPE_BINARY [
+				if TYPE_OF(spec) = TYPE_MONEY [
+					fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_BINARY spec]
+				]
 				as red-string! binary/to as red-binary! proto spec type
 			][
 				to as red-value! proto spec type
