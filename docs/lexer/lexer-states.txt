@@ -52,6 +52,7 @@ S_DOTDEC
 S_WORD_1ST
 S_WORD
 S_WORDSET
+S_PERCENT
 S_URL
 S_EMAIL
 S_PATH
@@ -194,13 +195,14 @@ S_START->"%"->S_FILE_1ST->not(delimit8)->S_FILE->not(delimit1)->S_FILE
                        	\->"%"->S_HDPER_ST->"%"->S_HDPER_ST
                        	 \       \->"{"->S_HERDOC_ST
                        	  \       \->hexa->S_FILE_HEX2
-                       	   \       \->else->T_ERROR
-                       	    \
-                             \->"{"->S_HERDOC_ST->"}"->S_HDPER_C0->"%"->S_HDPER_CL->"%"->S_HDPER_CL
-                              \       \                 \                \->else->T_RAWSTRING
-                               \       \                 \->else->S_HERDOC_ST
-                                \       \->else->S_HERDOC_ST
-                                 \->delimit8->T_WORD
+                       	   \       \->delimit7->T_WORD
+                       	    \       \->else->T_ERROR
+                       	     \
+                              \->"{"->S_HERDOC_ST->"}"->S_HDPER_C0->"%"->S_HDPER_CL->"%"->S_HDPER_CL
+                               \       \                 \                \->else->T_RAWSTRING
+                                \       \                 \->else->S_HERDOC_ST
+                                 \       \->else->S_HERDOC_ST
+                                  \->delimit8->T_WORD
 
 
 S_START->"#"->S_SHARP->"{"->S_BINARY->hexa|ws->S_BINARY
@@ -327,7 +329,11 @@ S_START->alphaU|"E"->S_HEX->alphaU|digit|"E"->S_HEX
                              \->","|"#"|"%"->T_ERROR
                               \->not(delimit5)->S_WORD
 
-S_START->"'"|":"->S_WORD_1ST->not(delimit6)->S_WORD
+S_START->"'"|":"->S_WORD_1ST->"%"->S_PERCENT
+                   \                \->":"->T_ERROR
+                    \                \->delimit5->T_WORD
+                     \                \->else->T_ERROR
+                      \->not(delimit6)->S_WORD
 
 S_START->not(delimit6)->S_WORD->not(delimit5)->S_WORD
                          \->delimit7->T_WORD

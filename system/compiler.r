@@ -87,9 +87,9 @@ system-dialect: make-profilable context [
 		locals: 	 	 none							;-- currently compiled function specification block
 		definitions:  	 make block! 100
 		enumerations: 	 make hash! 10
-		expr-call-stack: make block! 1					;-- simple stack of nested calls for a given expression
+		expr-call-stack: make block! 10					;-- simple stack of nested calls for a given expression
 		loop-stack:		 make block! 1					;-- keep track of in-loop state
-		locals-init: 	 []								;-- currently compiler function locals variable init list
+		locals-init: 	 make block! 20					;-- currently compiler function locals variable init list
 		subroutines:	 make block! 20					;-- subroutines definitions: [name [offset ret-type] ...]
 		in-subroutine?:	 no								;-- YES|subroutine name: current code is in a subroutine
 		func-name:	 	 none							;-- currently compiled function name
@@ -4067,9 +4067,19 @@ system-dialect: make-profilable context [
 	clean-up: does [
 		compiler/ns-path: 
 		compiler/ns-stack: 
+		compiler/func-name:
+		compiler/func-locals-sz:
 		compiler/locals: none
-		compiler/resolve-alias?:  yes
-		compiler/user-code?: no
+		
+		compiler/resolve-alias?: yes
+		compiler/user-code?: 	 no
+		compiler/in-subroutine?: no
+		compiler/user-code?: 	 no
+		compiler/in-subroutine?: no
+		
+		compiler/block-level:
+		compiler/catch-level:
+		compiler/verbose: 0
 		
 		clear compiler/imports
 		clear compiler/exports
@@ -4081,6 +4091,10 @@ system-dialect: make-profilable context [
 		clear compiler/enumerations
 		clear compiler/aliased-types
 		clear compiler/user-functions
+		clear compiler/expr-call-stack
+		clear compiler/locals-init
+		clear compiler/loop-stack
+		clear compiler/subroutines
 		clear compiler/debug-lines/records
 		clear compiler/debug-lines/files
 		clear emitter/symbols
