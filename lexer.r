@@ -451,7 +451,12 @@ lexer: context [
 		decimal-number-rule opt [#"%" e: (type: issue!)]
 		sticky-word-rule
 	]
-		
+	
+	money-rule: [
+		(neg?: no) opt [#"-" (neg?: yes) | #"+"] #"$"
+		s: digit any [digit | #"'" digit] opt [[dot | comma] 1 5 digit] e:
+	]
+	
 	block-rule: [#"[" (stack/allocate block! 10) any-value #"]" (value: stack/pop block!)]
 	
 	paren-rule: [#"(" (stack/allocate paren! 10) any-value	#")" (value: stack/pop paren!)]
@@ -632,6 +637,7 @@ lexer: context [
 			| block-rule	  (stack/push value)
 			| paren-rule	  (stack/push value)
 			| string-rule	  (stack/push load-string s e)
+			| money-rule	  (stack/push load-money	 copy/part s e)
 			| map-rule		  (stack/push value)
 			| issue-rule	  (stack/push to issue!		 copy/part s e)
 		]
@@ -814,6 +820,13 @@ lexer: context [
 		d1: make date! reduce [1 1 d/year]
 		wd: d1/weekday
 		d1 + (w - 1 * 7 + (either wd < 5 [1][8]) - wd)
+	]
+	
+	load-money: func [s [string!] /local dec pos][
+		dec: either pos: find s dot [remove pos length? pos][0]
+		insert/dup tail s #"0" 5 - dec 
+		insert/dup s #"0" 22 - length? s
+		append join make issue! 1 + length? s #"$" s
 	]
 	
 	load-tuple: func [s [string!] /local new byte p e][
