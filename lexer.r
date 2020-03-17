@@ -453,8 +453,8 @@ lexer: context [
 	]
 	
 	money-rule: [
-		(neg?: no) opt [#"-" (neg?: yes) | #"+"] #"$"
-		s: digit any [digit | #"'" digit] opt [[dot | comma] 1 5 digit] e:
+		(neg?: no) opt [#"-" (neg?: yes) | #"+"] 
+		s: opt [3 alpha] #"$" digit any [digit | #"'" digit] opt [[dot | comma] 1 5 digit] e:
 	]
 	
 	block-rule: [#"[" (stack/allocate block! 10) any-value #"]" (value: stack/pop block!)]
@@ -627,6 +627,7 @@ lexer: context [
 			| decimal-rule	  (stack/push load-decimal	 copy/part s e)
 			| tag-rule		  (stack/push to tag!		 copy/part s e)
 			| rawstr-rule	  (stack/push value) 
+			| money-rule	  (stack/push load-money s e neg?)
 			| word-rule		  (stack/push to type value)
 			| lit-word-rule	  (stack/push to type value)
 			| get-word-rule	  (stack/push to type value)
@@ -637,7 +638,6 @@ lexer: context [
 			| block-rule	  (stack/push value)
 			| paren-rule	  (stack/push value)
 			| string-rule	  (stack/push load-string s e)
-			| money-rule	  (stack/push load-money	 copy/part s e)
 			| map-rule		  (stack/push value)
 			| issue-rule	  (stack/push to issue!		 copy/part s e)
 		]
@@ -822,10 +822,17 @@ lexer: context [
 		d1 + (w - 1 * 7 + (either wd < 5 [1][8]) - wd)
 	]
 	
-	load-money: func [s [string!] /local dec pos][
+	load-money: func [s [string!] e [string!] neg? [logic!] /local cur dec pos][
+		if s/4 = #"$" [
+			cur: uppercase copy/part s 3
+			s: skip s 3
+		]
+		s: copy/part next s e
 		dec: either pos: find s dot [remove pos length? pos][0]
 		insert/dup tail s #"0" 5 - dec 
 		insert/dup s #"0" 22 - length? s
+		insert s pick "-+" neg?
+		insert s any [cur "..."]
 		append join make issue! 1 + length? s #"$" s
 	]
 	
