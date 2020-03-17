@@ -92,6 +92,13 @@ Red [
 	--test-- "to-integer!-21"		--assert 32400 == to integer! 09:00
 	--test-- "to-integer!-22"		--assert 86399 == to integer! 23:59:59
 	--test-- "to-integer!-23"		--assert 86400 == to integer! 23:59:59.999999
+	--test-- "to-integer!-24"		--assert 0 == to integer! #{}
+	--test-- "to-integer!-25"		--assert 255 == to integer! #{FF}
+	--test-- "to-integer!-26"		--assert -559038737 == to integer! #{DEADBEEF BADCAFEE}
+	--test-- "to-integer!-27"							;-- #4325
+		--assert 0 == to integer! next #{}
+		--assert 255 == to integer! next #{00FF}
+		--assert -559038737 == to integer! skip #{BADCAFEE DEADBEEF} 4
 	
 ===end-group===
 
