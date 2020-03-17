@@ -241,6 +241,16 @@ red: context [
 		clear next mark									;-- remove code at "upper" level
 	]
 	
+	to-nibbles: func [src [string!] /local out][
+		out: make string! 11
+		foreach [high low] src [
+			append out to char! add
+				shift/left (to integer! high - #"0") 4
+				to integer! low - #"0"
+		]
+		out
+	]
+	
 	any-function?: func [value [word!]][
 		find [native! action! op! function! routine!] value
 	]
@@ -281,6 +291,7 @@ red: context [
 	unicode-char?:  func [value][value/1 = #"'"]
 	float-special?: func [value][value/1 = #"."]
 	tuple-value?:	func [value][value/1 = #"~"]
+	money-value?:	func [value][value/1 = #"$"]
 	percent-value?: func [value][#"%" = last value]
 	
 	date-special?:  func [value][all [block? value value/1 = #!date!]]
@@ -1679,7 +1690,7 @@ red: context [
 
 	comp-literal: func [
 		/inactive /with val
-		/local value char? special? percent? map? tuple? dt-special? name w make-block type idx zone
+		/local value char? special? percent? map? tuple? money? dt-special? name w make-block type idx zone
 	][
 		make-block: [
 			value: to block! value
@@ -1701,6 +1712,7 @@ red: context [
 					special?: float-special? value
 					percent?: percent-value? value
 					tuple?:	  tuple-value? value
+					money?:	  money-value? value
 				]
 			]
 			scalar? :value
@@ -1741,6 +1753,13 @@ red: context [
 					emit to integer! copy/part skip bin -4 -4
 					emit to integer! copy/part skip bin -8 -4
 					insert-lf -5
+				]
+				money? [
+					emit 'money/push
+					value: to string! next value
+					emit value/4 = #"-"
+					emit any [all [value/1 = #"." 'null] copy/part value 3]
+					emit to-nibbles copy skip value 4
 				]
 				find [refinement! issue!] type?/word :value [
 					add-symbol w: to word! form value
