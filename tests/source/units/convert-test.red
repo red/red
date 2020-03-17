@@ -456,6 +456,9 @@ Red [
 		--assert #{00} = to binary! make bitset! #{00}
 	--test-- "issue #3636"
 		--assert 97 = pick to binary! append/dup a: "" "a" 1100000 1
+	--test-- "issue #4272"
+		--assert #{DEADBEEF} = to binary! quote (222 173 190 239)
+		--assert #{BADCAFEE} = to binary! make hash! [186 220 175 238]
 ===end-group===
 ===start-group=== "to-block!"
 	--test-- "to-block!-char!"
