@@ -310,6 +310,22 @@ system: context [
 		days: [
 		  "Monday" "Tuesday" "Wednesday" "Thursday" "Friday" "Saturday" "Sunday"
 		]
+		
+		currencies: object [
+			;-- ISO currencies + BTC, ETH, RED
+			base: [
+				AED AFN ALL AMD ANG AOA ARS AUD AWG AZN BAM BBD BDT BTC BGN BHD BIF BMD BND BOB BRL BSD
+				BTN	BWP BYN BZD CAD CDF CHF CKD CLP CNY COP CRC CUC CUP CVE CZK DJF DKK DOP DZD EGP ERN
+				ETB ETH	EUR FJD FKP FOK GBP GEL GGP GHS GIP GMD GNF GTQ GYD HKD HNL HRK HTG HUF IDR ILS
+				IMP INR	IQD IRR ISK JEP JMD JOD JPY KES KGS KHR KID KMF KPW KRW KWD KYD KZT LAK LBP LKR
+				LRD LSL	LYD MAD MDL MGA MKD MMK MNT MOP MRU MUR MVR MWK MXN MYR MZN NAD NGN NIO NOK NPR
+				NZD OMR	PAB PEN PGK PHP PKR PLN PND PRB PYG QAR RED RON RSD RUB RWF SAR SBD SCR SDG SEK
+				SGD SHP SLL	SLS SOS SRD SSP STN SYP SZL THB TJS TMT TND TOP TRY TTD TVD TWD TZS UAH UGX
+				USD UYU UZS	VES VND VUV WST CFA XAF XCD XOF CFP XPF YER ZAR ZMW
+			]
+			;-- User-provided currencies
+			extra: none
+		]
 	]
 	
 	options: context [
@@ -326,6 +342,7 @@ system: context [
 		quiet: 			false
 		binary-base: 	16
 		decimal-digits: 15
+		money-digits:	2
 		module-paths: 	make block! 1
 		file-types: 	none
 		
