@@ -1158,7 +1158,7 @@ binary: context [
 		]
 		
 		type: TYPE_OF(value)
-		either ANY_LIST(type) [
+		either ANY_LIST?(type) [
 			src: as red-block! value
 			s2: GET_BUFFER(src)
 			cell:  s2/offset + src/head
