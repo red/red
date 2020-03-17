@@ -232,6 +232,8 @@ Red [
 		--assert 100000010 = math [10 + 10 ** 2 ** 3]
 		--assert 10 = math [10 + 10 % 2]
 		--assert 1 = math [8 / 5 % 2]
+		--assert 33 = math [1 + 2 ** 3 * 4]
+		--assert 4097 = math [1 + 2 ** (3 * 4)]
 ===end-group===
 
 ===start-group=== "charset tests"
