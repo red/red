@@ -32,6 +32,8 @@ flags-blk/head:		0
 flags-blk/node:		alloc-cells 4
 flags-blk/header:	TYPE_BLOCK
 
+last-mouse-pt: 0
+
 char-keys: [
 	1000C400h C0FF0080h E0FFFF7Fh 0000F7FFh 00000000h 3F000000h 1F000080h 00FC7F38h
 ]
@@ -1450,6 +1452,9 @@ process: func [
 	switch msg/msg [
 		WM_MOUSEMOVE [
 			lParam: msg/lParam
+			if last-mouse-pt = lParam [return EVT_NO_DISPATCH]
+			last-mouse-pt: lParam
+
 			x: WIN32_LOWORD(lParam)
 			y: WIN32_HIWORD(lParam)
 			if any [
