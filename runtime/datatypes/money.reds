@@ -630,12 +630,16 @@ money: context [
 		
 		formed: dtoa/form-float flt SIZE_DIGITS yes
 		
+		print-line formed
+		
 		point: as byte-ptr! formed
 		until [point: point + 1 point/value = #"."]
 		
-		if point/2 = #"#" [							;-- 1.#NaN, 1.#INF
+		if point/2 = #"#" [							;-- 1.#NaN, 1.#INF, -1.#INF
 			fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY float/box flt]
 		]
+		
+		if point/3 = #"e" [MONEY_OVERFLOW]			;-- e-notation for exponents smaller than -7
 		
 		sign:  formed/1 = #"-"
 		start: as byte-ptr! either sign [formed][formed - 1]
