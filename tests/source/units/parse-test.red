@@ -2711,7 +2711,6 @@ Red [
 		parse "bx" [some [not "b" | skip]]
 		--assert true				;-- just check that parse finishes
 
-
 	--test-- "#3357"
 		parse x3357: [][insert ('foo)]
 		--assert x3357 = [foo]
@@ -2739,7 +2738,12 @@ Red [
 		--assert error? try [parse [][copy x4318]]
 		--assert error? try [parse [][set x4318]]
 		--assert zero? x4318
-
+	
+	--test-- "#4194"
+		i4194: make image! 0x0
+		v4194: make vector! 0
+		--assert not parse reduce [i4194][into []]
+		--assert not parse reduce [v4194][into []]
 ===end-group===
     
 ~~~end-file~~~
