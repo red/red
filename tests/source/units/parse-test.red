@@ -2739,6 +2739,23 @@ Red [
 		--assert error? try [parse [][copy x4318]]
 		--assert error? try [parse [][set x4318]]
 		--assert zero? x4318
+	
+	--test-- "#4200"
+		x4200-word:  'foo
+		x4200-block: []
+		x4200-mark:  x4200-block
+		
+		parse x4200-block [x4200-mark: change x4200-mark x4200-word]
+		--assert x4200-block = [foo]
+		clear x4200-block
+		
+		parse x4200-block [x4200-mark: change x4200-mark (x4200-word)]
+		--assert x4200-block = [foo]
+		clear x4200-block
+		
+		parse x4200-block [x4200-mark: change x4200-mark ('foo)]
+		--assert x4200-block = [foo]
+		clear x4200-block
 
 ===end-group===
     
