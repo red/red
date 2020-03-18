@@ -2746,15 +2746,19 @@ Red [
 		x4200-mark:  x4200-block
 		
 		parse x4200-block [x4200-mark: change x4200-mark x4200-word]
-		--assert x4200-block = [foo]
+		--assert x4200-block = [foo]									;-- word's value
 		clear x4200-block
 		
 		parse x4200-block [x4200-mark: change x4200-mark (x4200-word)]
-		--assert x4200-block = [foo]
+		--assert x4200-block = [foo]									;-- result of expression
 		clear x4200-block
 		
 		parse x4200-block [x4200-mark: change x4200-mark ('foo)]
-		--assert x4200-block = [foo]
+		--assert x4200-block = [foo]									;-- result of expression
+		clear x4200-block
+		
+		parse x4200-block [x4200-mark: change x4200-mark #foo]
+		--assert x4200-block = [#foo]									;-- literal value
 		clear x4200-block
 
 ===end-group===
