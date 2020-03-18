@@ -182,6 +182,19 @@ clip-layered-window: func [
 		flags	[integer!]
 ][
 	flags: GetWindowLong hWnd wc-offset - 12
+	if all [						;-- delete window clip region
+		BASE_FACE_CLIPPED and flags <> 0
+		zero? x
+		zero? y
+		size/width = new-width
+		size/height = new-height
+	][
+		SetWindowRgn hWnd null false
+		child: as handle! GetWindowLong hWnd wc-offset - 20
+		if child <> null [SetWindowRgn child null false]
+		SetWindowLong hWnd wc-offset - 12 flags and FFFFFFFEh
+		exit
+	]
 	if any [
 		not zero? x
 		not zero? y
@@ -198,13 +211,6 @@ clip-layered-window: func [
 			SetWindowRgn child rgn false
 		]
 	]
-	if all [
-		BASE_FACE_CLIPPED and flags <> 0
-		zero? x
-		zero? y
-		size/width = new-width
-		size/height = new-height
-	][SetWindowLong hWnd wc-offset - 12 flags and FFFFFFFEh]
 ]
 
 process-layered-region: func [
