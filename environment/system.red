@@ -311,7 +311,7 @@ system: context [
 		  "Monday" "Tuesday" "Wednesday" "Thursday" "Friday" "Saturday" "Sunday"
 		]
 		
-		currencies: object [
+		currencies: context [
 			;-- ISO currencies + BTC, ETH, RED
 			base: [
 				AED AFN ALL AMD ANG AOA ARS AUD AWG AZN BAM BBD BDT BTC BGN BHD BIF BMD BND BOB BRL BSD
