@@ -2740,10 +2740,7 @@ Red [
 		--assert zero? x4318
 	
 	--test-- "#4194"
-		i4194: make image! 0x0
-		v4194: make vector! 0
-		--assert not parse reduce [i4194][into []]
-		--assert not parse reduce [v4194][into []]
+		--assert not parse reduce [make vector! 0][into []]
 ===end-group===
     
 ~~~end-file~~~
