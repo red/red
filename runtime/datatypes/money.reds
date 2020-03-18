@@ -337,11 +337,11 @@ money: context [
 	
 	make-at: func [
 		slot     [red-value!]
-		sign     [logic!]
-		currency [byte-ptr!]
-		start    [byte-ptr!]
-		point    [byte-ptr!]
-		end      [byte-ptr!]
+		sign     [logic!]								;-- yes: negative
+		currency [byte-ptr!]							;-- can be null
+		start    [byte-ptr!]							;-- $ sign
+		point    [byte-ptr!]							;-- can be null if fractional part is not present
+		end      [byte-ptr!]							;-- points past the money literal
 		return:  [red-money!]
 		/local
 			convert     [subroutine!]
@@ -410,22 +410,28 @@ money: context [
 	]
 	
 	push: func [
-		sign     [logic!]
-		currency [byte-ptr!]
-		start    [byte-ptr!]
-		point    [byte-ptr!]
-		end      [byte-ptr!]
-		return:  [red-money!]	
+		sign     [logic!]								;-- yes: negative
+		currency [c-string!]							;-- can be null
+		amount   [c-string!]							;-- always SIZE_BYTES bytes
+		return:  [red-money!]
+		/local
+			money [red-money!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "money/push"]]
-		make-at stack/push* sign currency start point end
+		
+		money: as red-money! set-type stack/push* TYPE_MONEY
+		copy-memory get-amount money as byte-ptr! amount SIZE_BYTES
+		;@@ TBD: take currency into account
+		set-sign money as integer! sign
+		
+		money
 	]
 	
 	form-money: func [
 		money   [red-money!]
 		buffer  [red-string!]
 		part    [integer!]
-		group?  [logic!]
+		group?  [logic!]								;-- yes: decorate amount with thousand's separators
 		return: [integer!]
 		/local
 			fill        [subroutine!]
@@ -635,7 +641,7 @@ money: context [
 		start: as byte-ptr! either sign [formed][formed - 1]
 		end:   as byte-ptr! formed + length? formed
 		
-		money: push sign null start point end
+		money: make-at stack/push* sign null start point end
 		if all [0.0 <> flt zero? sign? money][MONEY_OVERFLOW]	;-- underflow on too small float value
 		money
 	]
@@ -769,7 +775,7 @@ money: context [
 		#if debug? = yes [if verbose > 0 [print-line "money/from-string"]]
 		
 		bail: [fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY str]]
-		make: [return push sign currency start point tail]
+		make: [return make-at stack/push* sign currency start point tail]
 		
 		end?:    [here >= tail]
 		dot?:    [any [here/value  = #"." here/value  = #","]]
