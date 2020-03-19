@@ -112,6 +112,31 @@ money: context [
 		this-sign + 1 << 4 or (that-sign + 1)
 	]
 	
+	;-- Currency --
+	
+	get-currency: func [
+		money   [red-money!]
+		return: [integer!]
+		/local
+			place [byte-ptr!]
+	][
+		place: (get-amount money) - 1
+		as integer! place/value
+	]
+	
+	set-currency: func [
+		money   [red-money!]
+		index   [integer!]
+		return: [red-money!]
+		/local
+			place [byte-ptr!]
+	][
+		assert all [index >= 0 index <= FFh]
+		place: (get-amount money) - 1
+		place/value: as byte! index
+		money
+	]
+	
 	;-- Amount --
 	
 	get-amount: func [
@@ -339,12 +364,15 @@ money: context [
 		end      [byte-ptr!]							;-- points past the money literal
 		return:  [red-money!]
 		/local
-			convert     [subroutine!]
-			money       [red-money!]
-			here amount [byte-ptr!]
-			limit       [byte-ptr!]
-			index stop  [integer!]
-			step        [integer!]
+			convert walk [subroutine!]
+			list         [red-block!]
+			money        [red-money!]
+			head tail    [red-word!]
+			here amount  [byte-ptr!]
+			limit        [byte-ptr!]
+			str          [c-string!]
+			index stop   [integer!]
+			sym step     [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "money/make-at"]]
 		
@@ -353,7 +381,30 @@ money: context [
 		
 		zero-out money yes
 		set-sign money as integer! sign
-		;@@ TBD: store currency index
+		
+		walk: [
+			head: as red-word! block/rs-head list
+			tail: as red-word! block/rs-tail list
+			until [head: head + 1 index: index + 1 any [head = tail head/symbol = sym]]
+			
+			;@@ TBD: walk over extra list also
+			;@@ TBD: better error message
+			if head = tail [fire[TO_ERROR(note no-load) datatype/push TYPE_MONEY]]
+		]
+		
+		;-- currency code
+		unless null? currency [
+			str: "..."									;-- 3 letters
+			copy-memory as byte-ptr! str currency 3
+			sym: symbol/make str
+			
+			list: as red-block! #get system/locale/currencies/base
+			index: 0
+			walk										;@@ assuming it's a non-empty block
+			
+			set-currency money index
+		]
+		
 		amount: get-amount money
 		
 		convert: [
@@ -430,6 +481,10 @@ money: context [
 		return: [integer!]
 		/local
 			fill        [subroutine!]
+			base        [red-block!]
+			sym         [red-string!]
+			word        [red-word!]
+			after       [red-integer!]
 			amount      [byte-ptr!]
 			sign count  [integer!]
 			index times [integer!]
@@ -437,12 +492,22 @@ money: context [
 		amount: get-amount money
 		sign:   sign? money
 		
+		;-- sign
 		if negative? sign [
 			string/concatenate-literal buffer "-"
 			part: part - 1
 		]
 		
-		;@@ TBD: take currency into account
+		;-- currency code
+		index: get-currency money
+		unless zero? index [							;-- generic currency
+			base: as red-block! #get system/locale/currencies/base
+			word: as red-word! block/rs-abs-at base index
+			
+			sym: as red-string! symbol/get word/symbol
+			string/concatenate buffer sym -1 0 yes no
+			part: part - string/rs-length? sym
+		]
 		
 		string/concatenate-literal buffer "$"
 		
@@ -465,6 +530,7 @@ money: context [
 			]		
 		]
 		
+		;-- integral part
 		times: count - SIZE_SCALE
 		either positive? times [fill][
 			string/concatenate-literal buffer "0"
