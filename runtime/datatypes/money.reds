@@ -126,13 +126,15 @@ money: context [
 	zero-amount?: func [
 		amount  [byte-ptr!]
 		return: [logic!]
+		/local
+			rest [int-ptr!]
 	][
-		loop SIZE_BYTES [
+		loop 3 [									;-- SIZE_BYTES - (2 * size? integer!)
 			unless null-byte = amount/value [return no]
 			amount: amount + 1
 		]
-		
-		yes
+		rest: as int-ptr! amount
+		all [rest/1 = 0 rest/2 = 0]
 	]
 	
 	compare-amounts: func [
