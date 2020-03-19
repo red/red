@@ -355,6 +355,18 @@ object: context [
 			stack/top - 2
 	]
 	
+	loc-ctx-fire-on-set*: func [						;-- compiled code entry point
+		parent-ctx [node!]
+		field      [red-word!]
+		/local
+			s	[series!]
+			obj	[red-value!]
+	][
+		s: as series! parent-ctx/value
+		obj: as red-value! s/offset + 1
+		loc-fire-on-set* obj field
+	]
+	
 	fire-on-set*: func [								;-- compiled code entry point
 		parent [red-word!]
 		field  [red-word!]

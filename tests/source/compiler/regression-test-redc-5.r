@@ -1,7 +1,7 @@
 REBOL [
 	Title:   "Regression tests script for Red Compiler"
 	Author:  "Boleslav Březovský"
-	File: 	 %regression-test-redc.r
+	File: 	 %regression-test-redc-5.r
 	Rights:  "Copyright (C) 2016 Boleslav Březovský. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
@@ -204,6 +204,21 @@ test
 		--assert not crashed?
 		--assert syntax-error?
 
+
+===end-group===
+
+===start-group=== "Red regressions #4001 - #4500"
+
+	--test-- "#4190"
+		--compile-and-run-this-red {
+			fc: make face! [
+				fn: does [self/parent: 'boom]
+			]
+			fc/fn
+			print fc/parent
+		}
+		--assert not crashed?
+		--assert true? find qt/output "boom"
 
 ===end-group===
 

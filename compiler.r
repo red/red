@@ -3370,14 +3370,24 @@ red: context [
 					object/fire-on-set*
 				] to logic! local-word? first back back tail path
 				
-				parent: either 2 < length? path [		;-- extract word from parent context
-					breaks: [-12 -9 -6 -1]
-					set [obj fpath] object-access? copy/part path (length? path) - 1
-					ctx: second obj: find objects obj
-					['word/from ctx get-word-index/with pick tail path -2 ctx]
-				][
-					breaks: [-10 -7 -4 -1]				;-- word is in global context
-					[decorate-symbol path/1]
+				parent: case [
+					2 < length? path [						;-- extract word from parent context
+						breaks: [-12 -9 -6 -1]
+						set [obj fpath] object-access? copy/part path (length? path) - 1
+						ctx: second obj: find objects obj
+						['word/from ctx get-word-index/with pick tail path -2 ctx]
+					]
+					self? [									;-- self/field
+						breaks: [-10 -7 -4 -1]
+						set [obj fpath] object-access? copy/part path 1
+						ctx: second obj: find objects obj
+						fire: 'object/loc-ctx-fire-on-set*
+						[ctx]
+					]
+					'else [
+						breaks: [-10 -7 -4 -1]				;-- word is in global context
+						[decorate-symbol path/1]
+					]
 				]
 				repend any [mark last output] compose [
 					fire
