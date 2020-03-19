@@ -167,8 +167,11 @@ Red [
 	--test-- "to-14" --assert "$123.00000" == to string! $123
 	--test-- "to-15" --assert "-$12'345'678'901'234'567.12345" == to string! -$12345678901234567.12345
 	--test-- "to-16" --assert $12'345'678'901'234'567.12345 == to money! <12345678901234567.12345>
-	--test-- "to-17" --assert error? try [to money! "12345679O1234567.12345"]
+	--test-- "to-17" --assert error? try [to money! "123456789O1234567.12345"]
 	--test-- "to-18" --assert -$1 == to money! "-0000000000000000000000000000000001.000000000000000000"
+	--test-- "to-19" --assert $12345678901234568 == to money! 12345678901234567.12345	;-- loosing a wee bit of precision in least significant digit and fractional part (rounding up)
+	--test-- "to-20" --assert error? try [to money! 123456789012345678.0]
+	--test-- "to-21" --assert $0.12345 == to money! 0.12345678901234567890
 ===end-group===
 
 ===start-group=== "make"
