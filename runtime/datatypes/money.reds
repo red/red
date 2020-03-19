@@ -114,6 +114,15 @@ money: context [
 		(as byte-ptr! money) + (size? money) - SIZE_BYTES
 	]
 	
+	set-amount: func [
+		money   [red-money!]
+		amount  [byte-ptr!]
+		return: [red-money!]
+	][
+		copy-memory get-amount money amount SIZE_BYTES
+		money
+	]
+	
 	zero-amount?: func [
 		amount  [byte-ptr!]
 		return: [logic!]
@@ -395,7 +404,7 @@ money: context [
 		#if debug? = yes [if verbose > 0 [print-line "money/push"]]
 		
 		money: as red-money! set-type stack/push* TYPE_MONEY
-		copy-memory get-amount money as byte-ptr! amount SIZE_BYTES
+		set-amount money as byte-ptr! amount
 		;@@ TBD: take currency into account
 		set-sign money as integer! sign
 		
@@ -1044,7 +1053,7 @@ money: context [
 		
 		if zero-amount? product [MONEY_OVERFLOW]			;-- got zero product from non-zero factors
 		
-		copy-memory this-amount product SIZE_BYTES
+		set-amount multiplicand product
 		set-sign multiplicand sign
 	]
 	
@@ -1148,7 +1157,7 @@ money: context [
 			]
 			if zero-amount? quotient [MONEY_OVERFLOW]				;-- got zero quotient from non-zero dividend
 			unless zero? get-digit buffer overflow [MONEY_OVERFLOW] ;-- overflowed into most-significant digit
-			copy-memory this-amount quotient SIZE_BYTES
+			set-amount dividend quotient
 		]
 		
 		set-sign dividend sign
