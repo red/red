@@ -11,6 +11,8 @@ Red [
 
 ~~~start-file~~~ "money"
 
+system/options/money-digits: 5						;-- enforce molding of the whole fractional part
+
 ===start-group=== "zero?"
 	--test-- "zero-1" --assert zero? -$0
 	--test-- "zero-2" --assert zero? +$0
@@ -172,6 +174,7 @@ Red [
 	--test-- "to-19" --assert $12345678901234568 == to money! 12345678901234567.12345	;-- loosing a wee bit of precision in least significant digit and fractional part (rounding up)
 	--test-- "to-20" --assert error? try [to money! 123456789012345678.0]
 	--test-- "to-21" --assert $0.12345 == to money! 0.12345678901234567890
+	--test-- "to-22" --assert "EUR$1'234.56789" == to string! EUR$1234.56789
 ===end-group===
 
 ===start-group=== "make"
@@ -184,8 +187,8 @@ Red [
 	--test-- "make-6"  --assert error? try [make money! [0 123456]]
 	--test-- "make-7"  --assert -$123.00456 == make money! [-123 456]
 	--test-- "make-8"  --assert $123.44444 == make money! [123.32100 12344]
-	--test-- "make-9"  --assert -CCC$123 == make money! [CCC -123]
-	--test-- "make-10" --assert -CCC$123 == make money! [CCC -123 0]
+	--test-- "make-9"  --assert -USD$123 == make money! [USD -123]
+	--test-- "make-10" --assert -EUR$123 == make money! [EUR -123 0]
 ===end-group===
 
 ===start-group=== "add"
@@ -375,4 +378,7 @@ Red [
 	--test-- "generated-4-<=" --assert $35305992.25093 <= -$609764191.14030 == false
 	--test-- "generated-5-<=" --assert $761650628.29928 <= -$188013192.81943 == false
 ===end-group===
+
+system/options/money-digits: 2						;-- put it back where it was
+
 ~~~end-file~~~
