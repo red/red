@@ -688,6 +688,11 @@ lexer: context [
 		top: does [last stk]
 		
 		reset: does [clear stk]
+		
+		clean-up: does [
+			clear stk
+			nl? :no
+		]
 	]
 	
 	throw-error: func [/with msg [string! block!]][
@@ -709,6 +714,7 @@ lexer: context [
 			"^/*** line: " line
 			"^/*** at: " mold copy/part pos 40
 		]
+		stack/clean-up
 		either encap? [quit][halt]
 	]
 
@@ -924,7 +930,8 @@ lexer: context [
 	process: func [src [string! binary!] /local blk][
 		old-line: line: 1
 		count?: yes
-		blk: stack/allocate block! 100				;-- root block		
+		stack/clean-up
+		blk: stack/allocate block! 100				;-- root block
 		src: identify-header src
 		
 		unless parse/all/case src program [throw-error]
