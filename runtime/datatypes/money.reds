@@ -18,7 +18,6 @@ money: context [
 	#enum sizes! [
 		SIZE_BYTES: 11								;-- total number of bytes used to store amount
 		SIZE_SCALE: 05								;-- total number of digits (nibbles) used to store scale (fractional part)
-		SIZE_AFTER: 05								;-- how many digits to print after a decimal separator
 	]
 	
 	SIZE_DIGITS:   SIZE_BYTES * 2					;-- total number of digits (nibbles) used to store amount
@@ -538,11 +537,15 @@ money: context [
 			part:  part - 1
 		]
 		
-		string/concatenate-literal buffer "."
-		
-		group?: no
-		times:  SIZE_AFTER
-		fill
+		;-- fractional part
+		after: as red-integer! #get system/options/money-digits
+		times: after/value
+		if times > 0 [
+			string/concatenate-literal buffer "."
+			if any times > SIZE_SCALE [times: SIZE_SCALE]
+			group?: no
+			fill
+		]
 		
 		part - 2									;-- compensate for $ and . characters
 	]
