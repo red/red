@@ -84,7 +84,7 @@ money: context [
 		money   [red-money!]
 		return: [integer!]
 	][
-		money/header and SIGN_MASK >> SIGN_OFFSET
+		money/header and SIGN_MASK >>> SIGN_OFFSET
 	]
 	
 	set-sign: func [
@@ -92,6 +92,7 @@ money: context [
 		sign    [integer!]
 		return: [red-money!]
 	][
+		assert any [sign = 0 sign = 1]
 		money/header: money/header and (not SIGN_MASK) or (sign << SIGN_OFFSET)
 		money
 	]
