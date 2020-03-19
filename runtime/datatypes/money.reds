@@ -67,8 +67,15 @@ money: context [
 		S_END
 	]
 	
+	#define SWAP_ARGUMENTS(this-argument that-argument) [
+		use [hold][
+			hold: this-argument
+			this-argument: that-argument
+			that-argument: hold
+		]
+	]
+	
 	#define DISPATCH_SIGNS [switch collate-signs this-sign that-sign]
-	#define SWAP_ARGUMENTS(this that) [use [hold][hold: this this: that that: hold]]
 	
 	#define MONEY_OVERFLOW [fire [TO_ERROR(script type-limit) datatype/push TYPE_MONEY]]
 	
@@ -98,11 +105,11 @@ money: context [
 	]
 	
 	collate-signs: func [
-		this    [integer!]
-		that    [integer!]
-		return: [integer!]
+		this-sign [integer!]
+		that-sign [integer!]
+		return:   [integer!]
 	][
-		this + 1 << 4 or (that + 1)
+		this-sign + 1 << 4 or (that-sign + 1)
 	]
 	
 	;-- Amount --
@@ -138,11 +145,11 @@ money: context [
 	]
 	
 	compare-amounts: func [
-		this    [byte-ptr!]
-		that    [byte-ptr!]
-		return: [integer!]
+		this-amount [byte-ptr!]
+		that-amount [byte-ptr!]
+		return:     [integer!]
 	][
-		compare-memory this that SIZE_BYTES
+		compare-memory this-amount that-amount SIZE_BYTES
 	]
 	
 	zero-out: func [
@@ -163,18 +170,19 @@ money: context [
 		offset  [integer!]
 		return: [byte-ptr!]
 		/local
-			this that [integer!]
-			half      [byte!]
+			this-index [integer!]
+			that-index [integer!]
+			half       [byte!]
 	][
 		loop offset [
-			this: 1
-			that: this + 1
+			this-index: 1
+			that-index: this-index + 1
 			loop size [
-				half: either that > size [null-byte][amount/that >>> 4]
-				amount/this: amount/this << 4 or half
+				half: either that-index > size [null-byte][amount/that-index >>> 4]
+				amount/this-index: amount/this-index << 4 or half
 				
-				this: this + 1
-				that: that + 1
+				this-index: this-index + 1
+				that-index: that-index + 1
 			]
 		]
 		
@@ -187,18 +195,19 @@ money: context [
 		offset  [integer!]
 		return: [byte-ptr!]
 		/local
-			this that [integer!]
-			half      [byte!]
+			this-index [integer!]
+			that-index [integer!]
+			half       [byte!]
 	][
 		loop offset [
-			this: size
-			that: this - 1
+			this-index: size
+			that-index: this-index - 1
 			loop size [
-				half: either that < 1 [null-byte][amount/that << 4]
-				amount/this: amount/this >>> 4 or half
+				half: either that-index < 1 [null-byte][amount/that-index << 4]
+				amount/this-index: amount/this-index >>> 4 or half
 				
-				this: this - 1
-				that: that - 1
+				this-index: this-index - 1
+				that-index: that-index - 1
 			]
 		]
 		
@@ -266,7 +275,7 @@ money: context [
 		that-buffer [byte-ptr!] that-high? [logic!] that-count [integer!]
 		return: [integer!]
 		/local
-			delta index1 index2 end this that [integer!]
+			delta index1 index2 end this-digit that-digit [integer!]
 	][
 		delta: integer/abs this-count - that-count
 		switch integer/sign? this-count - that-count [
@@ -280,33 +289,33 @@ money: context [
 		index2: index2 + as integer! that-high?
 		
 		until [
-			this: either index1 < 1 [0][get-digit this-buffer index1]
-			that: either index2 < 1 [0][get-digit that-buffer index2]
+			this-digit: either index1 < 1 [0][get-digit this-buffer index1]
+			that-digit: either index2 < 1 [0][get-digit that-buffer index2]
 		
 			index1: index1 + 1
 			index2: index2 + 1
 			end:    end - 1
 			
-			any [this <> that zero? end]
+			any [this-digit <> that-digit zero? end]
 		]
 		
-		this - that
+		this-digit - that-digit
 	]
 	
 	subtract-slice: func [
 		this-buffer [byte-ptr!] this-high? [logic!] this-count [integer!]
 		that-buffer [byte-ptr!] that-high? [logic!] that-count [integer!]
 		/local
-			this that borrow difference [integer!]
+			this-digit that-digit borrow difference [integer!]
 	][
 		this-count: this-count + as integer! this-high?
 		that-count: that-count + as integer! that-high?
 		borrow: 0
 		until [
-			this: get-digit this-buffer this-count
-			that: either that-count < 1 [0][get-digit that-buffer that-count]
+			this-digit: get-digit this-buffer this-count
+			that-digit: either that-count < 1 [0][get-digit that-buffer that-count]
 			
-			difference: this - that - borrow		;-- assumming this >= that
+			difference: this-digit - that-digit - borrow	;-- assumming this-buffer >= that-buffer 
 			borrow: as integer! difference < 0
 			if as logic! borrow [difference: difference + 10]
 			
@@ -324,7 +333,7 @@ money: context [
 	make-at: func [
 		slot     [red-value!]
 		sign     [logic!]								;-- yes: negative
-		currency [byte-ptr!]							;-- can be null
+		currency [byte-ptr!]							;-- can be null if currency code is not present
 		start    [byte-ptr!]							;-- $ sign
 		point    [byte-ptr!]							;-- can be null if fractional part is not present
 		end      [byte-ptr!]							;-- points past the money literal
@@ -814,24 +823,26 @@ money: context [
 	;-- Comparison --
 	
 	compare-money: func [
-		this    [red-money!]
-		that    [red-money!]
-		return: [integer!]
+		this-money [red-money!]
+		that-money [red-money!]
+		return:    [integer!]
 		/local
 			this-sign that-sign [integer!]
 	][
 		;@@ TBD: take currencies into account
 	
-		this-sign: sign? this
-		that-sign: sign? that
+		this-sign: sign? this-money
+		that-sign: sign? that-money
 		
 		DISPATCH_SIGNS [
-			SIGN_-- [SWAP_ARGUMENTS(this that) 0]
+			SIGN_-- [SWAP_ARGUMENTS(this-money that-money) 0]
 			SIGN_++ [0]
 			default [return integer/sign? this-sign - that-sign]
 		]
 		
-		integer/sign? compare-amounts get-amount this get-amount that	;-- must return strictly -1, 0 or +1
+		integer/sign? compare-amounts				;-- must return strictly -1, 0 or +1
+			get-amount this-money
+			get-amount that-money
 	]
 	
 	negative-money?: func [
