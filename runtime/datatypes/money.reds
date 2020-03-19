@@ -630,7 +630,7 @@ money: context [
 		
 		formed: dtoa/form-float flt SIZE_DIGITS yes
 		
-		print-line formed
+		if (length? formed) > 19 [MONEY_OVERFLOW]				;-- e-notation for exponents larger than 16
 		
 		point: as byte-ptr! formed
 		until [point: point + 1 point/value = #"."]
