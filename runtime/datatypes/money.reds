@@ -476,6 +476,7 @@ money: context [
 		money   [red-money!]
 		buffer  [red-string!]
 		part    [integer!]
+		all?	[logic!]								;-- yes: display all SIZE_SCALE fractional digits
 		group?  [logic!]								;-- yes: decorate amount with thousand's separators
 		return: [integer!]
 		/local
@@ -542,7 +543,7 @@ money: context [
 		times: after/value
 		if times > 0 [
 			string/concatenate-literal buffer "."
-			if any times > SIZE_SCALE [times: SIZE_SCALE]
+			if any [all? times > SIZE_SCALE][times: SIZE_SCALE]
 			group?: no
 			fill
 		]
@@ -653,7 +654,7 @@ money: context [
 		if zero? sign [return 0.0]
 	
 		buffer: string/make-at stack/push* SIZE_DIGITS + 6 Latin1	;-- max number of digits and -CCC$.
-		form-money money buffer 0 no
+		form-money money buffer 0 yes no							;-- take all fractional digits into account
 		
 		delta:  (string/rs-find buffer as integer! #"$") + 1
 		head:   (string/rs-head buffer) + delta
@@ -1397,7 +1398,7 @@ money: context [
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "money/form"]]
-		form-money money buffer part yes
+		form-money money buffer part no yes
 	]
 	
 	mold: func [
@@ -1412,7 +1413,7 @@ money: context [
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "money/mold"]]
-		form-money money buffer part no
+		form-money money buffer part all? no
 	]
 		
 	compare: func [
