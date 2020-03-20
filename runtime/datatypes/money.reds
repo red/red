@@ -179,6 +179,24 @@ money: context [
 		symbol/resolve word/symbol
 	]
 	
+	same-currencies?: func [
+		this-money [red-money!]
+		that-money [red-money!]
+		return:    [logic!]
+		/local
+			this-currency [integer!]
+			that-currency [integer!]
+	][
+		this-currency: get-currency this-money
+		that-currency: get-currency that-money
+	
+		any [
+			zero? this-currency						;-- 0: generic currency
+			zero? that-currency
+			this-currency = that-currency
+		]
+	]
+	
 	;-- Amount --
 	
 	get-amount: func [
@@ -927,8 +945,6 @@ money: context [
 		/local
 			this-sign that-sign [integer!]
 	][
-		;@@ TBD: take currencies into account
-	
 		this-sign: sign? this-money
 		that-sign: sign? that-money
 		
@@ -1462,10 +1478,12 @@ money: context [
 			return 1
 		]
 		
-		;@@ TBD: take currencies into account (strict comparison)
-		
 		switch TYPE_OF(value) [
-			TYPE_MONEY [0]
+			TYPE_MONEY [
+				unless same-currencies? money as red-money! value [
+					fire [TO_ERROR(script wrong-denom) money as red-money! value]
+				]
+			]
 			TYPE_INTEGER [
 				integer: as red-integer! value
 				value:   from-integer integer/value
