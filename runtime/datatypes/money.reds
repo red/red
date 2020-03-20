@@ -137,6 +137,48 @@ money: context [
 		money
 	]
 	
+	get-index: func [
+		sym     [integer!]
+		return: [integer!]							;-- -1: invalid currency code
+		/local
+			list      [red-block!]
+			here      [red-word!]
+			head tail [red-value!]
+			index     [integer!]
+	][
+		list: as red-block! #get system/locale/currencies/base
+		head: block/rs-head list
+		tail: block/rs-tail list
+		here: as red-word! head
+		
+		index: 0
+		until [
+			if sym = symbol/resolve here/symbol [break]
+			index: index + 1
+			here:  here + 1
+			
+			here = tail
+		]
+		
+		;@@ TBD: walk over extra list also
+		either here = tail [-1][index]
+	]
+	
+	get-symbol: func [
+		index   [integer!]
+		return: [integer!]
+		/local
+			base [red-block!]
+			word [red-word!]
+	][
+		assert positive? index
+		base: as red-block! #get system/locale/currencies/base
+		word: as red-word! block/rs-abs-at base index
+		
+		;@@ TBD: walk over extra list also
+		symbol/resolve word/symbol
+	]
+	
 	;-- Amount --
 	
 	get-amount: func [
@@ -364,15 +406,11 @@ money: context [
 		end      [byte-ptr!]							;-- points past the money literal
 		return:  [red-money!]
 		/local
-			convert walk [subroutine!]
-			list         [red-block!]
-			money        [red-money!]
-			head tail    [red-word!]
-			here amount  [byte-ptr!]
-			limit        [byte-ptr!]
-			str          [c-string!]
-			index stop   [integer!]
-			sym step     [integer!]
+			convert           [subroutine!]
+			money             [red-money!]
+			amount limit here [byte-ptr!]
+			str               [c-string!]
+			index stop step   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "money/make-at"]]
 		
@@ -382,26 +420,13 @@ money: context [
 		zero-out money yes
 		set-sign money as integer! sign
 		
-		walk: [
-			head: as red-word! block/rs-head list
-			tail: as red-word! block/rs-tail list
-			until [head: head + 1 index: index + 1 any [head = tail head/symbol = sym]]
-			
-			;@@ TBD: walk over extra list also
-			;@@ TBD: better error message
-			if head = tail [fire[TO_ERROR(note no-load) datatype/push TYPE_MONEY]]
-		]
-		
 		;-- currency code
 		unless null? currency [
-			str: "..."									;-- 3 letters
+			str: "..."								;-- 3 letters
 			copy-memory as byte-ptr! str currency 3
-			sym: symbol/make str
-			
-			list: as red-block! #get system/locale/currencies/base
-			index: 0
-			walk										;@@ assuming it's a non-empty block
-			
+			index: get-index symbol/make str
+			;@@ TBD: better error message
+			if negative? index [fire[TO_ERROR(note no-load) datatype/push TYPE_MONEY]]
 			set-currency money index
 		]
 		
@@ -501,11 +526,8 @@ money: context [
 		
 		;-- currency code
 		index: get-currency money
-		unless zero? index [							;-- generic currency
-			base: as red-block! #get system/locale/currencies/base
-			word: as red-word! block/rs-abs-at base index
-			
-			sym: as red-string! symbol/get word/symbol
+		unless zero? index [						;-- generic currency
+			sym: as red-string! symbol/get get-symbol index
 			string/concatenate buffer sym -1 0 yes no
 			part: part - string/rs-length? sym
 		]
@@ -542,7 +564,7 @@ money: context [
 		;-- fractional part
 		after: as red-integer! #get system/options/money-digits
 		times: after/value
-		if times > 0 [
+		if positive? times [
 			string/concatenate-literal buffer "."
 			if any [all? times > SIZE_SCALE][times: SIZE_SCALE]
 			group?: no
