@@ -399,11 +399,11 @@ money: context [
 	
 	make-at: func [
 		slot     [red-value!]
-		sign     [logic!]								;-- yes: negative
-		currency [byte-ptr!]							;-- can be null if currency code is not present
-		start    [byte-ptr!]							;-- $ sign
-		point    [byte-ptr!]							;-- can be null if fractional part is not present
-		end      [byte-ptr!]							;-- points past the money literal
+		sign     [logic!]							;-- yes: negative
+		currency [byte-ptr!]						;-- can be null if currency code is not present
+		start    [byte-ptr!]						;-- $ sign
+		point    [byte-ptr!]						;-- can be null if fractional part is not present
+		end      [byte-ptr!]						;-- points past the money literal
 		return:  [red-money!]
 		/local
 			convert           [subroutine!]
@@ -481,9 +481,9 @@ money: context [
 	]
 	
 	push: func [
-		sign     [logic!]								;-- yes: negative
-		currency [c-string!]							;-- can be null
-		amount   [c-string!]							;-- always SIZE_BYTES bytes
+		sign     [logic!]							;-- yes: negative
+		currency [c-string!]						;-- can be null
+		amount   [c-string!]						;-- always SIZE_BYTES bytes
 		return:  [red-money!]
 		/local
 			money [red-money!]
@@ -502,8 +502,8 @@ money: context [
 		money   [red-money!]
 		buffer  [red-string!]
 		part    [integer!]
-		all?	[logic!]								;-- yes: display all SIZE_SCALE fractional digits
-		group?  [logic!]								;-- yes: decorate amount with thousand's separators
+		all?	[logic!]							;-- yes: display all SIZE_SCALE fractional digits
+		group?  [logic!]							;-- yes: decorate amount with thousand's separators
 		return: [integer!]
 		/local
 			fill        [subroutine!]
@@ -706,7 +706,7 @@ money: context [
 	][
 		formed: dtoa/form-float flt SIZE_DIGITS yes
 		
-		if (length? formed) > 19 [MONEY_OVERFLOW]				;-- e-notation for exponents larger than 16
+		if (length? formed) > 19 [MONEY_OVERFLOW]	;-- e-notation for exponents larger than 16
 		
 		point: as byte-ptr! formed
 		until [point: point + 1 point/value = #"."]
