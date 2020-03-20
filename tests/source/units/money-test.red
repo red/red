@@ -233,6 +233,37 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 		--assert "$123.45678" == mold/all +$123.45678
 ===end-group===
 
+===start-group=== "currencies"
+	--test-- "currencies-1"  --assert 1 + USD$1 == USD$2 
+	--test-- "currencies-2"  --assert USD$2 + 1 == USD$3
+	--test-- "currencies-3"  --assert USD$4 - USD$4 == USD$0
+	--test-- "currencies-4"  --assert $1 * -1 == -$1
+	--test-- "currencies-5"  --assert -2.0 * $1 == -$2
+	--test-- "currencies-6"  --assert error? try [USD$1 + EUR$1]
+	--test-- "currencies-7"  --assert error? try [EUR$2 - USD$2]
+	--test-- "currencies-8"  --assert USD$1 == $1
+	--test-- "currencies-9"  --assert -USD$2 == -USD$2
+	--test-- "currencies-10" --assert error? try [EUR$123 <> USD$123]
+===end-group===
+
+===start-group=== "arithmetic"
+	--test-- "arithmetic-1"  --assert error? try [$1 * $1]
+	--test-- "arithmetic-2"  --assert $2 * 3 == $6
+	--test-- "arithmetic-3"  --assert $4 * 0.5 == $2
+	--test-- "arithmetic-4"  --assert 4 * $0.25 == $1
+	--test-- "arithmetic-5"  --assert 0.5 * $8 == $4
+	--test-- "arithmetic-6"  --assert $8 / $4 == 2.0
+	--test-- "arithmetic-7"  --assert $8 / 4 == $2
+	--test-- "arithmetic-8"  --assert $4 / 0.5 == $8
+	--test-- "arithmetic-9"  --assert error? try [4 / $2]
+	--test-- "arithmetic-10" --assert error? try [8.0 / $4]
+	--test-- "arithmetic-11" --assert $8 % $3 == $2
+	--test-- "arithmetic-12" --assert $10 % 3  == $1
+	--test-- "arithmetic-13" --assert $4 % 4.0 == $0
+	--test-- "arithmetic-14" --assert error? try [8 % $8]
+	--test-- "arithmetic-15" --assert error? try [3.0 % $2]
+===end-group===
+
 ===start-group=== "add"
 	max-money: $99999999999999999.99999
 	min-money: negate max-money
