@@ -175,6 +175,26 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "to-20" --assert error? try [to money! 123456789012345678.0]
 	--test-- "to-21" --assert $0.12345 == to money! 0.12345678901234567890
 	--test-- "to-22" --assert "EUR$1'234.56789" == to string! EUR$1234.56789
+	--test-- "to-23" --assert USD$123.45678 == to money! "+USD$123,45678"
+	--test-- "to-24" --assert error? try [to money! "CCC$123"]
+	--test-- "to-25" --assert error? try [to money! "123$456"]
+	--test-- "to-26" --assert error? try [to money! "EUR123"]
+	--test-- "to-27"
+		--assert error? try [to money! "$"]
+		--assert error? try [to money! "$."]
+		--assert error? try [to money! "-$."]
+		--assert error? try [to money! "+$."]
+		--assert error? try [to money! "EUR$0."]
+		--assert error? try [to money! "EUR$,"]
+		--assert error? try [to money! "-USD$.0"]
+		--assert error? try [to money! "."]
+		--assert error? try [to money! "+."]
+		--assert error? try [to money! "-."]
+		--assert error? try [to money! ",0"]
+		--assert error? try [to money! "0,"]
+		--assert error? try [to money! "$.0"]
+		--assert error? try [to money! "$0."]
+		--assert true
 ===end-group===
 
 ===start-group=== "make"
@@ -189,6 +209,28 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "make-8"  --assert $123.44444 == make money! [123.32100 12344]
 	--test-- "make-9"  --assert -USD$123 == make money! [USD -123]
 	--test-- "make-10" --assert -EUR$123 == make money! [EUR -123 0]
+	--test-- "make-11" --assert "-EUR$456.78900" == mold/all make money! [EUR -456 78900]
+===end-group===
+
+===start-group=== "form/mold"
+	--test-- "form/mold-1" --assert "" == form/part $123.45678 0
+	--test-- "form/mold-2" --assert "" == mold/part $123.45678 0
+	--test-- "form/mold-3" --assert "$" == form/part $123 1
+	--test-- "form/mold-4" --assert "$123.45678" == form/part $123.45678 12345678
+	--test-- "form/mold-5" --assert "$1'" == form/part +$1234 3
+	--test-- "form/mold-6" --assert "-$1" == mold/part -$1234 3
+	--test-- "form/mold-7" --assert "USD" == form/part +USD$0 3
+	--test-- "form/mold-8" --assert "-EU" == mold/part -EUR$1 3
+	--test-- "form/mold-9"
+		system/options/money-digits: -1
+		--assert "$123" == mold $123.45678
+		--assert "$123.45678" == mold/all $123.45678
+		system/options/money-digits: 1
+		--assert "-$123.4" == mold -$123.45678
+		--assert "-$123.45678" == mold/all -$123.45678
+		system/options/money-digits: 10
+		--assert "$123.45678" == mold +$123.45678
+		--assert "$123.45678" == mold/all +$123.45678
 ===end-group===
 
 ===start-group=== "add"
