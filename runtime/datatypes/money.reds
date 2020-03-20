@@ -861,27 +861,20 @@ money: context [
 		str     [red-string!]
 		return: [red-money!]
 		/local
-			bail make       [subroutine!]
-			end? dot?       [subroutine!]
-			digit? letter?  [subroutine!]
-			tail head here  [byte-ptr!]
-			currency digits [byte-ptr!]
-			start point     [byte-ptr!]
-			char            [byte!]
-			sign            [logic!]
+			bail make        [subroutine!]
+			end? dot? digit? [subroutine!]
+			tail head here   [byte-ptr!]
+			currency digits  [byte-ptr!]
+			start point      [byte-ptr!]
+			char             [byte!]
+			sign             [logic!]
 	][
 		bail: [fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY str]]
 		make: [return make-at stack/push* sign currency start point tail]
 		
-		end?:    [here >= tail]
-		dot?:    [any [here/value  = #"." here/value  = #","]]
-		digit?:  [all [here/value >= #"0" here/value <= #"9"]]
-		letter?: [
-			any [
-				all [here/value >= #"a" here/value <= #"z"]
-				all [here/value >= #"A" here/value <= #"Z"]
-			]
-		]
+		end?:   [here >= tail]
+		dot?:   [any [here/value  = #"." here/value  = #","]]
+		digit?: [all [here/value >= #"0" here/value <= #"9"]]
 		
 		tail: string/rs-tail str
 		head: string/rs-head str
@@ -901,13 +894,12 @@ money: context [
 		
 		if end? [here: currency]
 		either here = currency [currency: null][
-			if currency + 3 <> here [bail]
-			loop 3 [here: here - 1 unless letter? [bail]]
-			here: here + 3
+			if currency + 3 <> here [bail]			;-- invalid currency code won't pass symbol lookup in make-at, no need to check it here
 		]
 		
 		start: here - as integer! here/value <> #"$"
 		here:  start + 1
+		if dot? [bail]								;-- forbid leading decimal separator
 		
 		;-- leading zeroes
 		until [here: here + 1 any [here = tail here/value <> #"0"]]
@@ -917,7 +909,7 @@ money: context [
 		;-- integral part with optional thousands separators
 		until [
 			if here/value = #"'" [here: here + 1 continue]
-			unless digit? [bail]								;-- forbid leading decimal separator
+			unless digit? [bail]
 			here: here + 1
 			any [end? dot?]
 		]
