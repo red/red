@@ -1317,6 +1317,7 @@ money: context [
 			result     [red-value!]
 			int        [red-integer!]
 			flt        [red-float!]
+			currency   [integer!]
 			left-type  [integer!]
 			right-type [integer!]
 	][
@@ -1333,17 +1334,15 @@ money: context [
 			fire [TO_ERROR(script invalid-type) datatype/push left-type]
 		]
 		
-		;@@ TBD: take currencies into account
-	
 		switch left-type [
 			TYPE_MONEY [0]
 			TYPE_INTEGER [
 				int: as red-integer! left
-				left:    from-integer int/value
+				left: from-integer int/value
 			]
 			TYPE_FLOAT [
 				flt: as red-float! left
-				left:  from-float flt/value
+				left: from-float flt/value
 			]
 			default [
 				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(left)]
@@ -1365,10 +1364,17 @@ money: context [
 			]
 		]
 		
+		unless same-currencies? left right [fire [TO_ERROR(script wrong-denom) left right]]
+		currency: get-currency right				;-- preserve specific currency
+		if zero? currency [currency: get-currency left]
+		
 		result: as red-value! do-math-op left right op
-		if all [op = OP_DIV left-type = TYPE_MONEY right-type = TYPE_MONEY][
+		either all [op = OP_DIV left-type = TYPE_MONEY right-type = TYPE_MONEY][
 			result: as red-value! float/box to-float as red-money! result
+		][
+			set-currency as red-money! result currency
 		]
+		
 		SET_RETURN(result)							;-- some of the operations swap their argument slots
 	]
 		
