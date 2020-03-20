@@ -500,18 +500,24 @@ money: context [
 	
 	push: func [
 		sign     [logic!]							;-- yes: negative
-		currency [c-string!]						;-- can be null
+		currency [c-string!]						;-- null if generic currency, otherwise 3-letter string
 		amount   [c-string!]						;-- always SIZE_BYTES bytes
 		return:  [red-money!]
 		/local
 			money [red-money!]
+			index [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "money/push"]]
 		
-		money: as red-money! set-type stack/push* TYPE_MONEY
-		set-amount money as byte-ptr! amount
-		;@@ TBD: take currency into account
+		money: as red-money! stack/push*
+		money/header: TYPE_MONEY
+		
 		set-sign money as integer! sign
+		set-amount money as byte-ptr! amount
+		
+		;@@ TBD: assuming currency code is valid
+		index: either null? currency [0][get-index symbol/make currency]
+		set-currency money index
 		
 		money
 	]
@@ -1170,7 +1176,7 @@ money: context [
 		shift-right product SIZE_SBYTES SIZE_SCALE
 		product: product + SIZE_BUFFER - SIZE_BYTES
 		
-		if zero-amount? product [MONEY_OVERFLOW]			;-- got zero product from non-zero factors
+		if zero-amount? product [MONEY_OVERFLOW]	;-- got zero product from non-zero factors
 		
 		set-amount multiplicand product
 		set-sign multiplicand sign
