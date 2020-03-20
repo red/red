@@ -384,6 +384,12 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "find-6" --assert last? find [a b c d $0.00001] $0.00001
 ===end-group===
 
+===start-group=== "as-money"
+	--test-- "as-money-1" --assert "USD$123.00000" == mold/all as-money 'USD 123
+	--test-- "as-money-2" --assert "-EUR$123.45678" == mold/all as-money 'EUR -123.45678
+	--test-- "as-money-3" --assert "USD$0.00000" == mold/all as-money 'USD 0
+===end-group===
+
 ===start-group=== "generated"
 	--test-- "generated-1-+" --assert -$46256738.73641 + -$382909867.62517 == -$429166606.36158
 	--test-- "generated-2-+" --assert -$861608569.91149 + -$385303837.42661 == -$1246912407.33810
