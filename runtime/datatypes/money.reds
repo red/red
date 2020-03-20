@@ -582,9 +582,9 @@ money: context [
 		;-- fractional part
 		after: as red-integer! #get system/options/money-digits
 		times: after/value
+		if any [all? times > SIZE_SCALE][times: SIZE_SCALE]
 		if positive? times [
 			string/concatenate-literal buffer "."
-			if any [all? times > SIZE_SCALE][times: SIZE_SCALE]
 			group?: no
 			fill
 		]
