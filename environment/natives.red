@@ -664,7 +664,7 @@ as-pair: make native! [[
 as-money: make native! [[
 		"Combine currency and amount into a monetary value"
 		currency [word!]
-		amount   [money! integer! float!]
+		amount   [integer! float!]
 		return:  [money!]
 	]
 	#get-definition NAT_AS_MONEY

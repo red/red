@@ -2013,12 +2013,15 @@ natives: context [
 			mny      [red-money!]
 			flt		 [red-float!]
 			int		 [red-integer!]
+			index    [integer!]
 	][
 		#typecheck as-money
 		argument: stack/arguments
 		currency: as red-word! argument
-		;@@ TBD: take currency into account
-		amount: stack/arguments + 1
+		amount:   stack/arguments + 1
+		
+		index: money/get-index symbol/resolve currency/symbol
+		if negative? index [fire [TO_ERROR(script bad-denom) word/push currency]]
 		
 		switch TYPE_OF(amount) [
 			TYPE_INTEGER [
@@ -2029,13 +2032,10 @@ natives: context [
 				flt: as red-float! amount
 				mny: money/from-float flt/value
 			]
-			TYPE_MONEY [
-				mny: as red-money! amount
-			]
-			default [assert false]					;-- somehow, somewhere, something went terribly wrong
+			default [assert false]
 		]
 		
-		set-type as red-value! mny TYPE_MONEY		;-- preserves sign bit
+		money/set-currency mny index
 		SET_RETURN(mny)
 	]
 	
