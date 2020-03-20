@@ -2739,6 +2739,10 @@ Red [
 		--assert error? try [parse [][copy x4318]]
 		--assert error? try [parse [][set x4318]]
 		--assert zero? x4318
+	
+	--test-- "#4198"
+		--assert [a] = parse [][collect keep pick ('a)]
+		--assert [[a b]] = parse [][collect keep pick ([a b])]
 
 ===end-group===
     
