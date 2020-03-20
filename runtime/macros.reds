@@ -403,6 +403,14 @@ Red/System [
 	]
 ]
 
+#define ANY_SERIES_PARSE?(type) [			;-- any-series! types that can be processed by Parse
+	all [
+		ANY_SERIES?(type)
+		type <> TYPE_IMAGE
+		type <> TYPE_VECTOR
+	]
+]
+
 #define ANY_BLOCK_STRICT?(type)	[
 	any [
 		type = TYPE_BLOCK
