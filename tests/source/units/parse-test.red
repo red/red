@@ -2721,7 +2721,7 @@ Red [
 
 	--test-- "#3951"
 		res: none
-		do "res: expand-directives/clean [[] #macro word! func [s e]['OK] WTF]()"
+		do "res: expand-directives/clean [[] #macro word! func [s e]['OK] WTF #reset]()"
 		--assert res = [[] OK]
 
 	--test-- "#3427"
@@ -2740,6 +2740,23 @@ Red [
 		--assert error? try [parse [][set x4318]]
 		--assert zero? x4318
 
+	--test-- "#4197"
+		x4197: make string! 0
+		--assert error? try [parse [][collect into x4197 []]]
+		x4197: make binary! 0
+		--assert error? try [parse #{}[collect into x4197 []]]
+		x4197: make vector! 0
+		--assert error? try [parse "" [collect into x4197 []]]
+		x4197: make block! 3
+		parse quote (a b c) [collect into x4197 keep pick to end]
+		--assert x4197 = [a b c]
+		x4197: make paren! 3
+		parse <abc> [collect into x4197 [keep to end [fail] | keep pick to end]]
+		--assert x4197 = quote (<abc> #"a" #"b" #"c")
+		x4197: make tag! 3
+		parse %abc [collect into X4197 [keep to end [fail] | keep pick to end]]
+		--assert x4197 = <abcabc>
+	
 ===end-group===
     
 ~~~end-file~~~
