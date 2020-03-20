@@ -767,9 +767,11 @@ money: context [
 		/local
 			bail              [subroutine!]
 			money fraction    [red-money!]
+			wrd               [red-word!]
 			int               [red-integer!]
 			flt               [red-float!]
 			head tail here    [red-value!]
+			currency          [integer!]
 			state type length [integer!]
 	][
 		bail: [fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY blk]]
@@ -781,6 +783,7 @@ money: context [
 		tail: block/rs-tail blk
 		here: head
 		
+		currency: 0									;-- assuming generic currency by default
 		state: S_START
 		while [state <> S_END][
 			type: TYPE_OF(here)
@@ -794,7 +797,9 @@ money: context [
 					]
 				]
 				S_CURRENCY [
-					;@@ TBD: take currency into account
+					wrd: as red-word! here
+					currency: get-index symbol/resolve wrd/symbol
+					if negative? currency [bail]
 					here: here + 1
 					if here = tail [bail]
 					state: S_INTEGRAL
@@ -831,7 +836,7 @@ money: context [
 			]
 		]
 		
-		money
+		set-currency money currency
 	]
 	
 	from-string: func [
