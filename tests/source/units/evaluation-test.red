@@ -471,7 +471,43 @@ Red [
 		map/a: ()
 		set/any [k v] map
 		--assert all [k == to set-word! 'a unset? :v]
-
+	
+	--test-- "set-24"
+		a: 1
+		b: 2
+		e: try [set/any [a 1 b] reduce [3 4 ()]]
+		--assert all [
+			error? e
+			e/id == 'invalid-arg
+			e/arg1 == 1					;-- 1 is an integer, not a word
+			a == 1 b == 2
+		]
+	
+	--test-- "set-25"
+		a: 1
+		b: 2
+		e: try [set [a b 1] reduce [3 () 4]]
+		--assert all [
+			error? e
+			e/id == 'need-value
+			e/arg1 == 'b				;-- b needs a value
+			a == 1 b == 2
+		]
+	
+	--test-- "set-26"
+		a: none
+		b: none
+		c: none
+		set [a b c][1 2]
+		--assert all [a == 1 b == 2 c == none]
+	
+	--test-- "set-27"
+		a: none
+		b: none
+		c: none
+		set [a b][1 2 3]
+		--assert all [a == 1 b == 2 c == none]
+	
 ===end-group===
 
 ~~~end-file~~~
