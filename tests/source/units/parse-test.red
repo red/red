@@ -2754,7 +2754,7 @@ Red [
 		parse <abc> [collect into x4197 [keep to end [fail] | keep pick to end]]
 		--assert x4197 = quote (<abc> #"a" #"b" #"c")
 		x4197: make tag! 3
-		parse %abc [collect into X4197 [keep to end [fail] | keep pick to end]]
+		parse %abc [collect into x4197 [keep to end [fail] | keep pick to end]]
 		--assert x4197 = <abcabc>
 	
 ===end-group===
