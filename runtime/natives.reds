@@ -2952,7 +2952,6 @@ natives: context [
 			v		[red-value!]
 			blk		[red-block!]
 			i		[integer!]
-			sz      [integer!]
 			type	[integer!]
 			block?	[logic!]
 	][
@@ -2961,14 +2960,20 @@ natives: context [
 		if block? [blk: as red-block! value]
 		
 		i: 1
-		if all [block? not only?][							;-- pre-check of unset values
-			sz: either type = TYPE_MAP [size << 1][size]	;-- cover all key/value pairs
-			while [i <= sz][
-				v: _series/pick as red-series! blk i null
-				if all [not any? TYPE_OF(v) = TYPE_UNSET][
-					w: as red-word! _series/pick as red-series! words i null
+		if all [block? not only?][							;-- pre-check of unset values and non-words
+			while [i <= size][
+				v: _series/pick as red-series! blk i null	;-- NONE if accessed over the tail
+				w: as red-word! _series/pick as red-series! words i null
+				
+				type: TYPE_OF(w)
+				unless ANY_WORD?(type) [					;-- cannot set non-word
+					fire [TO_ERROR(script invalid-arg) w]
+				]
+				
+				if all [not any? TYPE_OF(v) = TYPE_UNSET][	;-- requires /any refinement
 					fire [TO_ERROR(script need-value) w]
 				]
+				
 				i: i + 1
 			]
 		]
@@ -2978,15 +2983,6 @@ natives: context [
 			v: either all [block? not only?][_series/pick as red-series! blk i null][value]
 			unless all [some? TYPE_OF(v) = TYPE_NONE][
 				w: as red-word! _series/pick as red-series! words i null
-				type: TYPE_OF(w)
-				unless any [
-					type = TYPE_WORD
-					type = TYPE_GET_WORD
-					type = TYPE_SET_WORD
-					type = TYPE_LIT_WORD
-				][
-					fire [TO_ERROR(script invalid-arg) w]
-				]
 				stack/keep								;-- avoid object event handler overwritting stack slots
 				_context/set w v						;-- can trigger object event handler
 			]
