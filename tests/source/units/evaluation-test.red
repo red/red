@@ -386,7 +386,7 @@ Red [
 	--test-- "set-12"
 		a: 1
 		b: 2
-		--assert all [
+		--assert to logic! all [
 			error? try [set [a b] ()]
 			a == 1 b == 2
 		]
@@ -400,7 +400,7 @@ Red [
 	--test-- "set-14"
 		a: 1
 		b: 2
-		--assert all [
+		--assert to logic! all [
 			error? try [set [a b] reduce [3 ()]]
 			a == 1 b == 2
 		]
@@ -409,13 +409,13 @@ Red [
 		a: 1
 		b: 2
 		set/any [a b] reduce [3 ()]
-		--assert all [a == 3 unset? :b]
+		--assert to logic! all [a == 3 unset? :b]
 
 	--test-- "set-16"
 		obj:  object [a: 1 b: 2]
 		obj2: object [a: 3 b: 4]
 		unset in obj2 'b
-		--assert all [
+		--assert to logic! all [
 			error? try [set obj obj2]
 			"make object! [a: 1 b: 2]" = mold/flat obj
 		]
@@ -429,7 +429,7 @@ Red [
 	
 	--test-- "set-18"
 		obj: object [a: 1 b: 2]
-		--assert all [
+		--assert to logic! all [
 			error? try [set obj ()]
 			"make object! [a: 1 b: 2]" = mold/flat obj
 		]
@@ -442,7 +442,7 @@ Red [
 	--test-- "set-20"
 		obj: object [a: 1 b: 2]
 		blk: reduce [3 ()]
-		--assert all [
+		--assert to logic! all [
 			error? try [set obj blk]
 			"make object! [a: 1 b: 2]" = mold/flat obj
 		]
@@ -459,7 +459,7 @@ Red [
 		v: 2
 		map: #(a: 3)
 		map/a: ()
-		--assert all [
+		--assert to logic! all [
 			error? try [set [k v] map]
 			k == 1 v == 2
 		]
@@ -470,28 +470,32 @@ Red [
 		map: #(a: 3)
 		map/a: ()
 		set/any [k v] map
-		--assert all [k == to set-word! 'a unset? :v]
+		--assert to logic! all [k == to set-word! 'a unset? :v]
 	
 	--test-- "set-24"
-		a: 1
-		b: 2
-		e: try [set/any [a 1 b] reduce [3 4 ()]]
-		--assert all [
-			error? e
-			e/id == 'invalid-arg
-			e/arg1 == 1					;-- 1 is an integer, not a word
-			a == 1 b == 2
+		do [								;-- compiler detects malformed set block
+			a: 1
+			b: 2
+			e: try [set/any [a 1 b] reduce [3 4 ()]]
+			--assert to logic! all [
+				error? e
+				e/id == 'invalid-arg
+				e/arg1 == 1					;-- 1 is an integer, not a word
+				a == 1 b == 2
+			]
 		]
 	
 	--test-- "set-25"
-		a: 1
-		b: 2
-		e: try [set [a b 1] reduce [3 () 4]]
-		--assert all [
-			error? e
-			e/id == 'need-value
-			e/arg1 == 'b				;-- b needs a value
-			a == 1 b == 2
+		do [								;-- compiler detects malformed set block
+			a: 1
+			b: 2
+			e: try [set [a b 1] reduce [3 () 4]]
+			--assert to logic! all [
+				error? e
+				e/id == 'need-value
+				e/arg1 == 'b				;-- b needs a value
+				a == 1 b == 2
+			]
 		]
 	
 	--test-- "set-26"
@@ -499,15 +503,19 @@ Red [
 		b: none
 		c: none
 		set [a b c][1 2]
-		--assert all [a == 1 b == 2 c == none]
+		--assert to logic! all [a == 1 b == 2 c == none]
 	
 	--test-- "set-27"
 		a: none
 		b: none
-		c: none
-		set [a b][1 2 3]
-		--assert all [a == 1 b == 2 c == none]
+		c: 3
+		set [a b][1 2 4]
+		--assert to logic! all [a == 1 b == 2 c == 3]
 	
+	--test-- "set-28"						;-- compiler detects malformed set block
+		--assert do [error? try [set [a/b] 1]]
+		--assert do [error? try [set [a/b: :c/d] [1 2]]]
+
 ===end-group===
 
 ~~~end-file~~~
