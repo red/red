@@ -2952,6 +2952,7 @@ natives: context [
 			v		[red-value!]
 			blk		[red-block!]
 			i		[integer!]
+			sz      [integer!]
 			type	[integer!]
 			block?	[logic!]
 	][
@@ -2960,8 +2961,9 @@ natives: context [
 		if block? [blk: as red-block! value]
 		
 		i: 1
-		if all [block? not only?][						;-- pre-check of unset values
-			while [i <= size][
+		if all [block? not only?][							;-- pre-check of unset values
+			sz: either type = TYPE_MAP [size << 1][size]	;-- cover all key/value pairs
+			while [i <= sz][
 				v: _series/pick as red-series! blk i null
 				if all [not any? TYPE_OF(v) = TYPE_UNSET][
 					w: as red-word! _series/pick as red-series! words i null
