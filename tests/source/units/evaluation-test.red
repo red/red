@@ -382,7 +382,76 @@ Red [
 		--assert obj2 = set/some obj obj2
 		--assert "make object! [a: 3 b: 7]" = mold/flat obj
 		--assert "make object! [z: 0 a: none b: 7]" = mold/flat obj2
-		
+	
+	--test-- "set-12"
+		a: 1
+		b: 2
+		--assert all [
+			error? try [set [a b] ()]
+			a == 1 b == 2
+		]
+	
+	--test-- "set-13"
+		a: 1
+		b: 2
+		set/any [a b] ()
+		--assert all [unset? :a unset? :b]
+	
+	--test-- "set-14"
+		a: 1
+		b: 2
+		--assert all [
+			error? try [set [a b] reduce [3 ()]]
+			a == 1 b == 2
+		]
+	
+	--test-- "set-15"
+		a: 1
+		b: 2
+		set/any [a b] reduce [3 ()]
+		--assert all [a == 3 unset? :b]
+
+	--test-- "set-16"
+		obj:  object [a: 1 b: 2]
+		obj2: object [a: 3 b: 4]
+		unset in obj2 'b
+		--assert all [
+			error? try [set obj obj2]
+			"make object! [a: 1 b: 2]" = mold/flat obj
+		]
+	
+	--test-- "set-17"
+		obj:  object [a: 1 b: 2]
+		obj2: object [a: 3 b: 4]
+		unset in obj2 'b
+		set/any obj obj2
+		--assert "make object! [a: 3 b: unset]" = mold/flat obj
+	
+	--test-- "set-18"
+		obj: object [a: 1 b: 2]
+		--assert all [
+			error? try [set obj ()]
+			"make object! [a: 1 b: 2]" = mold/flat obj
+		]
+	
+	--test-- "set-19"
+		obj: object [a: 1 b: 2]
+		set/any obj ()
+		--assert "make object! [a: unset b: unset]" = mold/flat obj
+	
+	--test-- "set-20"
+		obj: object [a: 1 b: 2]
+		blk: reduce [3 ()]
+		--assert all [
+			error? try [set obj blk]
+			"make object! [a: 1 b: 2]" = mold/flat obj
+		]
+	
+	--test-- "set-21"
+		obj: object [a: 1 b: 2]
+		blk: reduce [3 ()]
+		set/any obj blk
+		--assert "make object! [a: 3 b: unset]" = mold/flat obj
 
 ===end-group===
 
