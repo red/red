@@ -131,17 +131,18 @@ object: context [
 	set-many: func [
 		obj	  [red-object!]
 		value [red-value!]
+		any?  [logic!]
 		only? [logic!]
 		some? [logic!]
 		/local
 			ctx		[red-context!]
-			blk		[red-block!]
-			obj2	[red-object!]
 			ctx2	[red-context!]
+			obj2	[red-object!]
 			word	[red-word!]
 			values	[red-value!]
 			values2	[red-value!]
 			tail	[red-value!]
+			tail2   [red-value!]
 			new		[red-value!]
 			old		[red-value!]
 			int		[red-integer!]
@@ -160,6 +161,7 @@ object: context [
 		on-set?: obj/on-set <> null
 		s: as series! ctx/symbols/value
 		word: as red-word! s/offset
+		tail2: s/tail
 		
 		if on-set? [
 			s: as series! obj/on-set/value
@@ -170,11 +172,31 @@ object: context [
 		]
 
 		either all [not only? any [type = TYPE_BLOCK type = TYPE_OBJECT]][
+			values2: either type = TYPE_BLOCK [				;-- first value slot
+				block/rs-head as red-block! value
+			][
+				get-values as red-object! value
+			]
+			
+			unless only? [									;-- pre-check of unset values
+				i: 0
+				while [word < tail2][
+					if all [not any? TYPE_OF(values2) = TYPE_UNSET][
+						fire [TO_ERROR(script need-value) word]
+					]
+					i: i + 1
+					word: word + 1
+					values2: values2 + 1
+				]
+			]
+		
+			word: word - i									;-- reset pointers after iteration
+			values2: values2 - i
+			
 			either type = TYPE_BLOCK [
-				blk: as red-block! value
 				i: 0
 				while [values < tail][
-					new: _series/pick as red-series! blk i + 1 null
+					new: _series/pick as red-series! value i + 1 null
 					unless all [some? TYPE_OF(new) = TYPE_NONE][
 						either on-set? [
 							if all [i <> idx-s i <> idx-d][	;-- do not overwrite event handlers
@@ -193,8 +215,6 @@ object: context [
 			][
 				obj2: as red-object! value
 				ctx2: GET_CTX(obj2)
-				values2: get-values obj2
-				
 				while [values < tail][
 					i: _context/find-word ctx2 word/symbol yes
 					if i > -1 [
