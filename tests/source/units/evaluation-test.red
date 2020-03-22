@@ -452,6 +452,25 @@ Red [
 		blk: reduce [3 ()]
 		set/any obj blk
 		--assert "make object! [a: 3 b: unset]" = mold/flat obj
+	
+	
+	--test-- "set-22"
+		k: 1
+		v: 2
+		map: #(a: 3)
+		map/a: ()
+		--assert all [
+			error? try [set [k v] map]
+			k == 1 v == 2
+		]
+	
+	--test-- "set-23"
+		k: 1
+		v: 2
+		map: #(a: 3)
+		map/a: ()
+		set/any [k v] map
+		--assert all [k == to set-word! 'a unset? :v]
 
 ===end-group===
 
