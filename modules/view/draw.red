@@ -224,6 +224,16 @@ Red/System [
 				any [TYPE_OF(pos) = type1 TYPE_OF(pos) = type2]
 			][cmd: pos]
 		]
+		
+		#define DRAW_FETCH_NUMBER [
+			cmd: cmd + 1
+			if any [
+				cmd >= tail
+				all [TYPE_OF(cmd) <> TYPE_INTEGER TYPE_OF(cmd) <> TYPE_FLOAT TYPE_OF(cmd) <> TYPE_PERCENT]
+			][
+				throw-draw-error cmds cmd catch?
+			]
+		]
 
 		#define DRAW_FETCH_SOME_PAIR [
 			until [cmd: cmd + 1 any [TYPE_OF(cmd) <> TYPE_PAIR cmd = tail]]
@@ -924,7 +934,7 @@ Red/System [
 							]
 							sym = scale [
 								DRAW_FETCH_OPT_TRANSFORM
-								loop 2 [DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)]
+								loop 2 [DRAW_FETCH_NUMBER]						;-- scale-x, scale-y
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
 									OS-matrix-push DC :state
@@ -966,9 +976,9 @@ Red/System [
 							sym = transform [
 								DRAW_FETCH_OPT_TRANSFORM
 								DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
-								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
+								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)		;-- angle
 								value: cmd + 1
-								loop 2 [DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)]
+								loop 2 [DRAW_FETCH_NUMBER]						;-- scale-x, scale-y
 								DRAW_FETCH_VALUE(TYPE_PAIR)
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
