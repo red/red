@@ -2964,7 +2964,6 @@ natives: context [
 			while [i <= size][
 				v: _series/pick as red-series! blk i null	;-- NONE if accessed over the tail
 				w: as red-word! _series/pick as red-series! words i null
-				
 				type: TYPE_OF(w)
 				unless ANY_WORD?(type) [					;-- cannot set non-word
 					fire [TO_ERROR(script invalid-arg) w]
@@ -2983,6 +2982,8 @@ natives: context [
 			v: either all [block? not only?][_series/pick as red-series! blk i null][value]
 			unless all [some? TYPE_OF(v) = TYPE_NONE][
 				w: as red-word! _series/pick as red-series! words i null
+				type: TYPE_OF(w)
+				unless ANY_WORD?(type) [fire [TO_ERROR(script invalid-arg) w]]
 				stack/keep								;-- avoid object event handler overwritting stack slots
 				_context/set w v						;-- can trigger object event handler
 			]
