@@ -2528,7 +2528,10 @@ natives: context [
 		]
 		either any [
 			all [ANY_BLOCK_STRICT?(type) ANY_BLOCK_STRICT?(type2)]
-			all [ANY_STRING?(type) ANY_STRING?(type2)]
+			all [
+				any [type  = TYPE_BINARY ANY_STRING?(type)]
+				any [type2 = TYPE_BINARY ANY_STRING?(type2)]
+			]
 		][
 			copy-cell spec proto
 			set-type proto type

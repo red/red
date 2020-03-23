@@ -844,8 +844,8 @@ sign?: make native! [[
 
 as: make native! [[
 		"Coerce a series into a compatible datatype without copying it"
-		type	[datatype! block! paren! any-path! any-string!] "The datatype or example value"
-		spec	[block! paren! any-path! any-string!] "The series to coerce"
+		type	[datatype! block! paren! binary! any-path! any-string!] "The datatype or example value"
+		spec	[block! paren! binary! any-path! any-string!] "The series to coerce"
 	]
 	#get-definition NAT_AS
 ]
