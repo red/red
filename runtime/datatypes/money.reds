@@ -14,7 +14,7 @@ money: context [
 	verbose: 0
 	
 	;-- Base --
-	
+		
 	#enum sizes! [
 		SIZE_BYTES: 11								;-- total number of bytes used to store amount
 		SIZE_SCALE: 05								;-- total number of digits (nibbles) used to store scale (fractional part)
@@ -114,6 +114,20 @@ money: context [
 	
 	;-- Currency --
 	
+	get-currency-from: func [
+		money   [red-money!]
+		return: [red-value!]						;-- word or none
+		/local
+			index [integer!]
+	][
+		index: get-currency money
+		if zero? index [return none/push]			;-- generic currency
+		
+		block/rs-abs-at
+			as red-block! #get system/locale/currencies/base
+			index
+	]
+	
 	get-currency: func [
 		money   [red-money!]
 		return: [integer!]
@@ -163,7 +177,7 @@ money: context [
 		;@@ TBD: walk over extra list also
 		either here = tail [-1][index]
 	]
-	
+		
 	get-symbol: func [
 		index   [integer!]
 		return: [integer!]
@@ -171,7 +185,8 @@ money: context [
 			base [red-block!]
 			word [red-word!]
 	][
-		assert positive? index
+		assert all [index > 0 index <= FFh]
+		
 		base: as red-block! #get system/locale/currencies/base
 		word: as red-word! block/rs-abs-at base index
 		
@@ -198,6 +213,31 @@ money: context [
 	]
 	
 	;-- Amount --
+	
+	get-amount-from: func [
+		money   [red-money!]
+		return: [red-value!]
+	][
+		as red-value! set-currency					;-- same value but without currency
+			as red-money! stack/push as red-value! money
+			0
+	]
+	
+	get-integral-from: func [
+		money   [red-money!]
+		return: [red-value!]
+	][
+		--NOT_IMPLEMENTED--
+		as red-value! money
+	]
+	
+	get-fractional-from: func [
+		money   [red-money!]
+		return: [red-value!]
+	][
+		--NOT_IMPLEMENTED--
+		as red-value! money
+	]
 	
 	get-amount: func [
 		money   [red-money!]
@@ -596,6 +636,33 @@ money: context [
 		]
 		
 		part - 2									;-- compensate for $ and . characters
+	]
+	
+	;-- Deconstruction --
+	
+	accessor!: alias function! [money [red-money!] return: [red-value!]]
+	
+	accessors: [
+		:get-currency-from
+		:get-amount-from
+		:get-integral-from
+		:get-fractional-from
+	]
+	
+	resolve-accessor: func [
+		word    [red-word!]
+		return: [integer!]
+		/local
+			sym [integer!]
+	][
+		sym: symbol/resolve word/symbol
+		case [
+			sym = words/currency   [1]
+			sym = words/amount     [2]
+			sym = words/integral   [3]
+			sym = words/fractional [4]
+			true [0]
+		]
 	]
 	
 	;-- Conversion --
@@ -1572,6 +1639,43 @@ money: context [
 		digit: get-digit get-amount money SIZE_INTEGRAL	;-- check if least significant bit is set
 		as logic! digit and 1
 	]
+		
+	eval-path: func [
+		money   [red-money!]
+		element	[red-value!]
+		value   [red-value!]
+		path    [red-value!]
+		case?   [logic!]
+		return:	[red-value!]
+		/local
+			access [accessor!]
+			int    [red-integer!]
+			index  [integer!]
+	][
+		index: switch TYPE_OF(element) [
+			TYPE_WORD [resolve-accessor as red-word! element]
+			TYPE_INTEGER [
+				int: as red-integer! element
+				int/value
+			]
+			default [0]
+		]
+		
+		unless all [index > 0 index < 5][fire [TO_ERROR(script invalid-path) path element]]
+		
+		access: as accessor! accessors/index
+		access money
+	]
+	
+	pick: func [
+		money   [red-money!]
+		index   [integer!]
+		boxed   [red-value!]
+		return: [red-value!]
+	][
+		--NOT_IMPLEMENTED--
+		boxed
+	]
 	
 	init: does [
 		datatype/register [
@@ -1585,7 +1689,7 @@ money: context [
 			:to
 			:form
 			:mold
-			null			;eval-path
+			:eval-path
 			null			;set-path
 			:compare
 			;-- Scalar actions --
@@ -1620,7 +1724,7 @@ money: context [
 			null			;length?
 			null			;move
 			null			;next
-			null			;pick
+			:pick
 			null			;poke
 			null			;put
 			null			;remove
