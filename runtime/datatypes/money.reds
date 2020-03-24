@@ -35,6 +35,8 @@ money: context [
 	SIGN_MASK:   4000h								;-- used to get/set sign bit in the header
 	SIGN_OFFSET: 14
 	
+	KEEP_FRACTIONAL: FFFF0F00h						;-- used to keep/skip fractional part (little-endian order)
+	
 	MAX_FRACTIONAL: as integer! (pow 10.0 as float! SIZE_SCALE) - 1.0
 	INT32_MAX_DIGITS: 10
 	INT32_MIN_AMOUNT: #{00000002147483648FFFFF}		;-- 0xF > 0x9, used to subvert comparison
@@ -227,7 +229,11 @@ money: context [
 		money   [red-money!]
 		return: [red-value!]
 	][
-		--NOT_IMPLEMENTED--
+		money: as red-money! stack/push as red-value! money
+		money: absolute-money money					;-- discard sign
+		money: set-currency money 0					;-- discard currency
+		money/amount3: money/amount3 and not KEEP_FRACTIONAL
+		
 		as red-value! money
 	]
 	
@@ -235,7 +241,13 @@ money: context [
 		money   [red-money!]
 		return: [red-value!]
 	][
-		--NOT_IMPLEMENTED--
+		money: as red-money! stack/push as red-value! money
+		money: absolute-money money					;-- discard sign
+		money: set-currency money 0					;-- discard currency
+		money/amount1: 0
+		money/amount2: 0
+		money/amount3: money/amount3 and KEEP_FRACTIONAL
+		
 		as red-value! money
 	]
 	
@@ -279,13 +291,11 @@ money: context [
 	
 	zero-out: func [
 		money   [red-money!]
-		all?    [logic!]							;-- no: keep currency index
 		return: [red-money!]
 	][
-		money/amount1: either all? [0][money/amount1 and FF000000h]
+		money/amount1: 0
 		money/amount2: 0
 		money/amount3: 0
-		
 		money
 	]
 	
@@ -475,7 +485,7 @@ money: context [
 		money: as red-money! slot
 		money/header: TYPE_MONEY
 		
-		zero-out money yes
+		zero-out money
 		set-sign money as integer! sign
 		
 		;-- currency code
@@ -723,7 +733,7 @@ money: context [
 			extra index start [integer!]
 			power digit       [integer!]
 	][
-		money: zero-out as red-money! stack/push* yes
+		money: zero-out as red-money! stack/push*
 		money/header: TYPE_MONEY
 		
 		if zero? int [return money]
@@ -845,7 +855,7 @@ money: context [
 			index: index + 1
 		]
 		
-		money: zero-out as red-money! stack/push* yes
+		money: zero-out as red-money! stack/push*
 		money/header: TYPE_MONEY
 		
 		copy-memory (get-amount money) + SIZE_BYTES - length head length
@@ -1661,8 +1671,7 @@ money: context [
 			default [0]
 		]
 		
-		unless all [index > 0 index < 5][fire [TO_ERROR(script invalid-path) path element]]
-		
+		unless all [index > 0 index <= size? accessors][fire [TO_ERROR(script invalid-path) path element]]
 		access: as accessor! accessors/index
 		access money
 	]
@@ -1672,9 +1681,18 @@ money: context [
 		index   [integer!]
 		boxed   [red-value!]
 		return: [red-value!]
+		/local
+			access [accessor!]
 	][
-		--NOT_IMPLEMENTED--
-		boxed
+		index: switch TYPE_OF(boxed) [
+			TYPE_WORD    [resolve-accessor as red-word! boxed]
+			TYPE_INTEGER [index]
+			default      [0]
+		]
+		
+		unless all [index > 0 index <= size? accessors][fire [TO_ERROR(script out-of-range) boxed]]
+		access: as accessor! accessors/index
+		access money
 	]
 	
 	init: does [
