@@ -940,6 +940,22 @@ money: context [
 		set-currency money currency
 	]
 	
+	from-word: func [
+		word    [red-word!]
+		return: [red-money!]
+		/local
+			money [red-money!]
+			index [integer!]
+	][
+		money: zero-out as red-money! stack/push*
+		money/header: TYPE_MONEY
+		
+		index: get-index symbol/resolve word/symbol
+		if negative? index [fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY word]]
+		
+		set-currency money index
+	]
+	
 	from-string: func [
 		str     [red-string!]
 		return: [red-money!]
@@ -1464,9 +1480,10 @@ money: context [
 		#if debug? = yes [if verbose > 0 [print-line "money/make"]]
 	
 		switch TYPE_OF(spec) [
+			TYPE_WORD   [from-word as red-word! spec]
 			TYPE_BLOCK  [from-block as red-block! spec]
 			TYPE_BINARY [from-binary as red-binary! spec]
-			default [to proto spec type]
+			default     [to proto spec type]
 		]
 	]
 
