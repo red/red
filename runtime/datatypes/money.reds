@@ -1466,7 +1466,7 @@ money: context [
 			set-currency as red-money! result currency
 		]
 		
-		SET_RETURN(result)							;-- some of the operations swap their argument slots
+		either any [op = OP_ADD op = OP_SUB][SET_RETURN(result)][result]	;-- swapped arguments
 	]
 		
 	;-- Actions --
