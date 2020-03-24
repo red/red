@@ -35,8 +35,6 @@ money: context [
 	SIGN_MASK:   4000h								;-- used to get/set sign bit in the header
 	SIGN_OFFSET: 14
 	
-	KEEP_FRACTIONAL: FFFF0F00h						;-- used to keep/skip fractional part (little-endian order)
-	
 	MAX_FRACTIONAL: as integer! (pow 10.0 as float! SIZE_SCALE) - 1.0
 	INT32_MAX_DIGITS: 10
 	INT32_MIN_AMOUNT: #{00000002147483648FFFFF}		;-- 0xF > 0x9, used to subvert comparison
@@ -223,32 +221,6 @@ money: context [
 		as red-value! set-currency					;-- same value but without currency
 			as red-money! stack/push as red-value! money
 			0
-	]
-	
-	get-integral-from: func [
-		money   [red-money!]
-		return: [red-value!]
-	][
-		money: as red-money! stack/push as red-value! money
-		money: absolute-money money					;-- discard sign
-		money: set-currency money 0					;-- discard currency
-		money/amount3: money/amount3 and not KEEP_FRACTIONAL
-		
-		as red-value! money
-	]
-	
-	get-fractional-from: func [
-		money   [red-money!]
-		return: [red-value!]
-	][
-		money: as red-money! stack/push as red-value! money
-		money: absolute-money money					;-- discard sign
-		money: set-currency money 0					;-- discard currency
-		money/amount1: 0
-		money/amount2: 0
-		money/amount3: money/amount3 and KEEP_FRACTIONAL
-		
-		as red-value! money
 	]
 	
 	get-amount: func [
