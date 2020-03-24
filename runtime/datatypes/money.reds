@@ -652,12 +652,7 @@ money: context [
 	
 	accessor!: alias function! [money [red-money!] return: [red-value!]]
 	
-	accessors: [
-		:get-currency-from
-		:get-amount-from
-		:get-integral-from
-		:get-fractional-from
-	]
+	accessors: [:get-currency-from :get-amount-from]
 	
 	resolve-accessor: func [
 		word    [red-word!]
@@ -667,10 +662,8 @@ money: context [
 	][
 		sym: symbol/resolve word/symbol
 		case [
-			sym = words/currency   [1]
-			sym = words/amount     [2]
-			sym = words/integral   [3]
-			sym = words/fractional [4]
+			sym = words/code   [1]
+			sym = words/amount [2]
 			true [0]
 		]
 	]
@@ -1466,7 +1459,7 @@ money: context [
 			set-currency as red-money! result currency
 		]
 		
-		either any [op = OP_ADD op = OP_SUB][SET_RETURN(result)][result]	;-- swapped arguments
+		SET_RETURN(result)							;-- swapped arguments
 	]
 		
 	;-- Actions --

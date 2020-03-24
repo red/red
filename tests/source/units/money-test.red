@@ -406,29 +406,21 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 
 ===start-group=== "accessors"
 	money: -USD$123.45678
-	--test-- "accessors-1"  --assert 'USD == pick money 1
-	--test-- "accessors-2"  --assert "-$123.45678" == mold/all pick money 2
-	--test-- "accessors-3"  --assert "$123.00000" == mold/all pick money 3
-	--test-- "accessors-4"  --assert "$0.45678" == mold/all pick money 4
-	--test-- "accessors-5"  --assert 'USD == pick money 'currency
-	--test-- "accessors-6"  --assert "-$123.45678" == mold/all pick money 'amount
-	--test-- "accessors-7"  --assert "$123.00000" == mold/all pick money 'integral
-	--test-- "accessors-8"  --assert "$0.45678" == mold/all pick money 'fractional
-	--test-- "accessors-9"  --assert 'USD == money/1
-	--test-- "accessors-10" --assert "-$123.45678" == mold/all money/2
-	--test-- "accessors-11" --assert "$123.00000" == mold/all money/3
-	--test-- "accessors-12" --assert "$0.45678" == mold/all money/4
-	--test-- "accessors-13" --assert 'USD == money/currency
-	--test-- "accessors-14" --assert "-$123.45678" == mold/all money/amount
-	--test-- "accessors-15" --assert "$123.00000" == mold/all money/integral
-	--test-- "accessors-16" --assert "$0.45678" == mold/all money/fractional
-	--test-- "accessors-17"
+	--test-- "accessors-1" --assert 'USD == pick money 1
+	--test-- "accessors-2" --assert "-$123.45678" == mold/all pick money 2
+	--test-- "accessors-3" --assert 'USD == pick money 'code
+	--test-- "accessors-4" --assert "-$123.45678" == mold/all pick money 'amount
+	--test-- "accessors-5" --assert 'USD == money/1
+	--test-- "accessors-6" --assert "-$123.45678" == mold/all money/2
+	--test-- "accessors-7" --assert 'USD == money/code
+	--test-- "accessors-8" --assert "-$123.45678" == mold/all money/amount
+	--test-- "accessors-9"
 		money: -$123.45678
-		--assert none == pick money 'currency
+		--assert none == pick money 'code
 		--assert none == pick money 1
-		--assert none == money/currency
+		--assert none == money/code
 		--assert none == money/1
-	--test-- "accessors-18"
+	--test-- "accessors-10"
 		--assert error? try [pick money 0]
 		--assert error? try [pick money -1]
 		--assert error? try [pick money 5]

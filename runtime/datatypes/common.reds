@@ -578,10 +578,8 @@ words: context [
 	second:			-1
 	timezone:		-1
 	
-	currency:		-1
+	code:			-1
 	amount:			-1
-	integral:		-1
-	fractional:		-1
 	
 	user:			-1
 	host:			-1
@@ -825,10 +823,8 @@ words: context [
 		second:			symbol/make "second"
 		timezone:		symbol/make "timezone"
 		
-		currency:		symbol/make "currency"
+		code:			symbol/make "code"
 		amount:			symbol/make "amount"
-		integral:		symbol/make "integral"
-		fractional:		symbol/make "fractional"
 		
 		user:			symbol/make "user"
 		host:			symbol/make "host"
