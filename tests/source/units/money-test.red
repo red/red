@@ -384,6 +384,20 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "find-6" --assert last? find [a b c d $0.00001] $0.00001
 ===end-group===
 
+===start-group=== "money?"
+	--test-- "money?-1" --assert money? $123.45678
+	--test-- "money?-2" --assert not money? 123.45678
+	--test-- "money?-3" --assert money? -USD$123.45678
+	--test-- "money?-4" --assert not money? -123
+===end-group===
+
+===start-group=== "transcode money"
+	--test-- "transcode-money-1" --assert money? load "$123"
+	--test-- "transcode-money-2" --assert money? first load "$123 $456"
+	--test-- "transcode-money-3" --assert money? last load "$123 -USD$456"
+	--test-- "transcode-money-4" --assert money! == transcode/prescan "+EUR$123.456 1 2 3"
+===end-group===
+
 ===start-group=== "as-money"
 	--test-- "as-money-1" --assert "USD$123.00000" == mold/all as-money 'USD 123
 	--test-- "as-money-2" --assert "-EUR$123.45678" == mold/all as-money 'EUR -123.45678
