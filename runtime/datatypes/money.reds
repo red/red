@@ -1666,7 +1666,7 @@ money: context [
 		digit: get-digit get-amount money SIZE_INTEGRAL	;-- check if least significant bit is set
 		as logic! digit and 1
 	]
-		
+	
 	eval-path: func [
 		money   [red-money!]
 		element	[red-value!]
@@ -1680,12 +1680,9 @@ money: context [
 			index  [integer!]
 	][
 		index: switch TYPE_OF(element) [
-			TYPE_WORD [resolve-accessor as red-word! element]
-			TYPE_INTEGER [
-				int: as red-integer! element
-				int/value
-			]
-			default [0]
+			TYPE_WORD    [resolve-accessor as red-word! element]
+			TYPE_INTEGER [int: as red-integer! element int/value]
+			default      [0]
 		]
 		
 		unless all [index > 0 index <= size? accessors][fire [TO_ERROR(script invalid-path) path element]]
