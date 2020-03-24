@@ -210,6 +210,9 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "make-9"  --assert -USD$123 == make money! [USD -123]
 	--test-- "make-10" --assert -EUR$123 == make money! [EUR -123 0]
 	--test-- "make-11" --assert "-EUR$456.78900" == mold/all make money! [EUR -456 78900]
+	--test-- "make-12" --assert "USD$0.00000" == mold/all make money! 'usd
+	--test-- "make-13" --assert "EUR$0.00000" == mold/all make money! 'EUR
+	--test-- "make-14" --assert error? try [make money! 'foo]
 ===end-group===
 
 ===start-group=== "form/mold"
