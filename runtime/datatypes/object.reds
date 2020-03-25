@@ -1115,7 +1115,7 @@ object: context [
 		
 		string/concatenate-literal buffer "make object! ["
 		part: serialize obj buffer no all? flat? arg part - 14 yes indent + 1 yes
-		if indent > 0 [part: do-indent buffer indent part]
+		if all [not flat? indent > 0][part: do-indent buffer indent part]
 		string/append-char GET_BUFFER(buffer) as-integer #"]"
 		part - 1
 	]
