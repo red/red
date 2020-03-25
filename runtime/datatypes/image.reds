@@ -232,6 +232,7 @@ image: context [
 		/local
 			offset	[integer!]
 			sz		[integer!]
+			bin-sz	[integer!]
 			s		[series!]
 			p		[byte-ptr!]
 			stride	[integer!]
@@ -256,11 +257,16 @@ image: context [
 
 		type: TYPE_OF(bin)
 		either type = TYPE_BINARY [
+			bin-sz: binary/rs-length? bin
 			s: GET_BUFFER(bin)
 			p: as byte-ptr! s/offset
 			either method = EXTRACT_ARGB [
-				copy-memory as byte-ptr! data p sz * 4
+				sz: sz * 4
+				if bin-sz < sz [sz: bin-sz]
+				copy-memory as byte-ptr! data p sz
 			][
+				if method = EXTRACT_RGB [bin-sz: bin-sz / 3]	;-- number of pixels
+				if bin-sz < sz [end: data + bin-sz]
 				while [data < end][
 					pixel: data/value
 					either method = EXTRACT_ALPHA [
