@@ -863,7 +863,7 @@ binary: context [
 		if mold? [
 			string/concatenate-literal buffer "#{"
 			part: part - 2
-			if size > 32 [
+			if all [not flat? size > 32][
 				string/append-char GET_BUFFER(buffer) as-integer lf
 				part: part - 1
 			]
@@ -874,7 +874,7 @@ binary: context [
 			string/concatenate-literal buffer string/byte-to-hex as-integer head/value
 			bytes: bytes + 1
 			part: part - 2
-			if all [bytes % 32 = 0 bytes <> size][
+			if all [not flat? bytes % 32 = 0 bytes <> size][
 				string/append-char GET_BUFFER(buffer) as-integer lf
 				part: part - 1
 			]
@@ -883,7 +883,7 @@ binary: context [
 		]
 		
 		if mold? [
-			if size > 32 [
+			if all [not flat? size > 32][
 				string/append-char GET_BUFFER(buffer) as-integer lf
 				part: part - 1
 			]
