@@ -829,7 +829,7 @@ image: context [
 
 		img: as red-image! stack/arguments
 		offset: img/head + 1
-		if IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) > offset  [
+		if IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) >= offset [
 			img/head: offset
 		]
 		img
@@ -850,16 +850,18 @@ image: context [
 	tail?: func [
 		return:	  [red-value!]
 		/local
-			img	  [red-image!]
-			state [red-logic!]
+			img	   [red-image!]
+			state  [red-logic!]
+			offset [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "image/tail?"]]
 
-		img:   as red-image! stack/arguments
-		state: as red-logic! img
+		img:    as red-image! stack/arguments
+		state:  as red-logic! img
+		offset: img/head + 1
 
 		state/header: TYPE_LOGIC
-		state/value:  IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) <= (img/head + 1)
+		state/value:  not IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) >= offset
 		as red-value! state
 	]
 
