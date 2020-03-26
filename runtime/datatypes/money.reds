@@ -465,7 +465,7 @@ money: context [
 			str: "..."								;-- 3 letters
 			copy-memory as byte-ptr! str currency 3
 			index: get-index symbol/make str
-			if negative? index [return null]
+			if negative? index [return null]		;-- throw it back to lexer for proper error reporting
 			set-currency money index
 		]
 		
@@ -516,7 +516,7 @@ money: context [
 		return:  [red-money!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "money/make-in"]]
-		make-at ALLOC_TAIL(parent) sign currency start point end
+		make-at ALLOC_TAIL(parent) sign currency start point end	;@@ can return null
 	]
 	
 	push: func [
@@ -926,6 +926,7 @@ money: context [
 		/local
 			bail make        [subroutine!]
 			end? dot? digit? [subroutine!]
+			money            [red-money!]
 			tail head here   [byte-ptr!]
 			currency digits  [byte-ptr!]
 			start point      [byte-ptr!]
@@ -933,7 +934,11 @@ money: context [
 			sign             [logic!]
 	][
 		bail: [fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY str]]
-		make: [return make-at stack/push* sign currency start point tail]
+		make: [
+			money: make-at stack/push* sign currency start point tail
+			if null? money [bail]					;-- invalid currency code
+			return money
+		]
 		
 		end?:   [here >= tail]
 		dot?:   [any [here/value  = #"." here/value  = #","]]
