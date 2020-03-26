@@ -16,7 +16,7 @@ Red/System [
 		line-width:		symbol/make "line-width"
 		box:			symbol/make "box"
 		triangle:		symbol/make "triangle"
-		pen:			symbol/make "pen"
+		pen:			symbol/make-opt "pen"
 		fill-pen:		symbol/make "fill-pen"
 		_polygon:		symbol/make "polygon"
 		circle:			symbol/make "circle"

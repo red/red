@@ -51,7 +51,7 @@ symbol: context [
 		return:	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "symbol/make-alt-utf8"]]
-		_hashtable/put-symbol table s len
+		_hashtable/put-symbol table s len no
 	]
 
 	make: func [
@@ -59,7 +59,15 @@ symbol: context [
 		return:	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "symbol/make"]]
-		_hashtable/put-symbol table as byte-ptr! s system/words/length? s
+		_hashtable/put-symbol table as byte-ptr! s system/words/length? s no
+	]
+
+	make-opt: func [
+		s		[c-string!]
+		return: [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "symbol/make-opt"]]
+		_hashtable/put-symbol table as byte-ptr! s system/words/length? s yes
 	]
 	
 	get: func [
@@ -98,12 +106,6 @@ symbol: context [
 		s: GET_BUFFER(symbols)
 		sym: as red-symbol! s/offset + id - 1
 		sym/alias
-	]
-
-	push: func [
-
-	][
-
 	]
 	
 	;-- Actions -- 

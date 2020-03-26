@@ -691,7 +691,7 @@ lexer: context [
 		
 		clean-up: does [
 			clear stk
-			nl? :no
+			nl?: no
 		]
 	]
 	

@@ -409,7 +409,7 @@ C_FL_ILLEGAL	: all the rest					;-- 0
 C_FL_SIGN		: +, -							;-- 1
 C_FL_DIGIT		: 0-9							;-- 2
 C_FL_EXP		: e, E							;-- 3
-C_FL_DOT		: .								;-- 4
+C_FL_DOT		: .,							;-- 4
 
 S_FL_START										;-- 0
 S_FL_NUM										;-- 1
@@ -423,9 +423,9 @@ T_FL_ERROR										;-- 7
 
 S_FL_START->"+"|"-"->S_FL_START
 
-S_FL_START->"."->S_FL_DEC
+S_FL_START->"."|","->S_FL_DEC
     \->digit->S_FL_NUM->digit->S_FL_NUM
-                  \->"."->S_FL_DEC
+                  \->"."|","->S_FL_DEC
                    \->"e"|"E"->S_FL_EXP
                    
 S_FL_DEC->digit->S_FL_DEC
