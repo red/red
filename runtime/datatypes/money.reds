@@ -444,7 +444,7 @@ money: context [
 		start    [byte-ptr!]						;-- $ sign
 		point    [byte-ptr!]						;-- can be null if fractional part is not present
 		end      [byte-ptr!]						;-- points past the money literal
-		return:  [red-money!]
+		return:  [red-money!]						;-- null if currency code is invalid
 		/local
 			convert           [subroutine!]
 			money             [red-money!]
@@ -465,8 +465,7 @@ money: context [
 			str: "..."								;-- 3 letters
 			copy-memory as byte-ptr! str currency 3
 			index: get-index symbol/make str
-			;@@ TBD: better error message
-			if negative? index [fire[TO_ERROR(note no-load) datatype/push TYPE_MONEY]]
+			if negative? index [return null]
 			set-currency money index
 		]
 		
