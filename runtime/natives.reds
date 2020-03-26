@@ -2004,6 +2004,41 @@ natives: context [
 		pair/header: TYPE_PAIR
 	]
 	
+	as-money*: func [
+		check? [logic!]
+		/local
+			argument [red-value!]
+			amount   [red-value!]
+			currency [red-word!]
+			mny      [red-money!]
+			flt		 [red-float!]
+			int		 [red-integer!]
+			index    [integer!]
+	][
+		#typecheck as-money
+		argument: stack/arguments
+		currency: as red-word! argument
+		amount:   stack/arguments + 1
+		
+		index: money/get-index symbol/resolve currency/symbol
+		if negative? index [fire [TO_ERROR(script bad-denom) word/push currency]]
+		
+		switch TYPE_OF(amount) [
+			TYPE_INTEGER [
+				int: as red-integer! amount
+				mny: money/from-integer int/value
+			]
+			TYPE_FLOAT [
+				flt: as red-float! amount
+				mny: money/from-float flt/value
+			]
+			default [assert false]
+		]
+		
+		money/set-currency mny index
+		SET_RETURN(mny)
+	]
+	
 	break*: func [check? [logic!] returned [integer!]][
 		#typecheck [break returned]
 		stack/throw-break returned <> -1 no
@@ -3408,6 +3443,7 @@ natives: context [
 			:uppercase*
 			:lowercase*
 			:as-pair*
+			:as-money*
 			:break*
 			:continue*
 			:exit*

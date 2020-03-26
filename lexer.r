@@ -690,10 +690,7 @@ lexer: context [
 		reset: does [clear stk]
 		
 		clean-up: does [
-			unless empty? stk [
-				clear next stk		;-- keep root block in stk
-				clear first stk		;-- clear root block
-			]
+			clear stk
 			nl?: no
 		]
 	]

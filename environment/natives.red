@@ -661,6 +661,15 @@ as-pair: make native! [[
 	#get-definition NAT_AS_PAIR
 ]
 
+as-money: make native! [[
+		"Combine currency and amount into a monetary value"
+		currency [word!]
+		amount   [integer! float!]
+		return:  [money!]
+	]
+	#get-definition NAT_AS_MONEY
+]
+
 break: make native! [[
 		"Breaks out of a loop, while, until, repeat, foreach, etc"
 		/return "Forces the loop function to return a value"

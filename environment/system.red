@@ -158,7 +158,8 @@ system: context [
 				bad-loop-series:	["Loop series changed to invalid value:" :arg1]
 				;bad-decode:		"missing or unsupported encoding marker"
 				;already-used:		["alias word is already in use:" :arg1]
-				;wrong-denom:		[:arg1 "not same denomination as" :arg2]
+				wrong-denom:		[:arg1 "not same denomination as" :arg2]
+				bad-denom:			["invalid denomination:" :arg1]
 				;bad-press:			["invalid compressed data - problem:" :arg1]
 				;dialect:			["incorrect" :arg1 "dialect usage at:" :arg2]
 				invalid-obj-evt:	["invalid object event handler:" :arg1]

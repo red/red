@@ -112,7 +112,7 @@ divide: make action! [[
 multiply: make action! [[
 		"Returns the product of two values"
 		value1	 [number! money! char! pair! tuple! vector! time!] "The multiplicand"
-		value2	 [number! money! char! pair! tuple! vector! time!] "the multiplier"
+		value2	 [number! money! char! pair! tuple! vector! time!] "The multiplier"
 		return:  [number! money! char! pair! tuple! vector! time!] "The product"
 	]
 	#get-definition ACT_MULTIPLY
@@ -377,7 +377,7 @@ next: make action! [[
 
 pick: make action! [[
 		"Returns the series value at a given index"
-		series	 [series! port! bitset! pair! tuple! date! time!]
+		series	 [series! port! bitset! pair! tuple! money! date! time!]
 		index 	 [scalar! any-string! any-word! block! logic! time!]
 		return:  [any-type!]
 	]

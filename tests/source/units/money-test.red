@@ -11,6 +11,8 @@ Red [
 
 ~~~start-file~~~ "money"
 
+system/options/money-digits: 5						;-- enforce molding of the whole fractional part
+
 ===start-group=== "zero?"
 	--test-- "zero-1" --assert zero? -$0
 	--test-- "zero-2" --assert zero? +$0
@@ -167,8 +169,32 @@ Red [
 	--test-- "to-14" --assert "$123.00000" == to string! $123
 	--test-- "to-15" --assert "-$12'345'678'901'234'567.12345" == to string! -$12345678901234567.12345
 	--test-- "to-16" --assert $12'345'678'901'234'567.12345 == to money! <12345678901234567.12345>
-	--test-- "to-17" --assert error? try [to money! "12345679O1234567.12345"]
+	--test-- "to-17" --assert error? try [to money! "123456789O1234567.12345"]
 	--test-- "to-18" --assert -$1 == to money! "-0000000000000000000000000000000001.000000000000000000"
+	--test-- "to-19" --assert $12345678901234568 == to money! 12345678901234567.12345	;-- loosing a wee bit of precision in least significant digit and fractional part (rounding up)
+	--test-- "to-20" --assert error? try [to money! 123456789012345678.0]
+	--test-- "to-21" --assert $0.12345 == to money! 0.12345678901234567890
+	--test-- "to-22" --assert "EUR$1'234.56789" == to string! EUR$1234.56789
+	--test-- "to-23" --assert USD$123.45678 == to money! "+USD$123,45678"
+	--test-- "to-24" --assert error? try [to money! "CCC$123"]
+	--test-- "to-25" --assert error? try [to money! "123$456"]
+	--test-- "to-26" --assert error? try [to money! "EUR123"]
+	--test-- "to-27"
+		--assert error? try [to money! "$"]
+		--assert error? try [to money! "$."]
+		--assert error? try [to money! "-$."]
+		--assert error? try [to money! "+$."]
+		--assert error? try [to money! "EUR$0."]
+		--assert error? try [to money! "EUR$,"]
+		--assert error? try [to money! "-USD$.0"]
+		--assert error? try [to money! "."]
+		--assert error? try [to money! "+."]
+		--assert error? try [to money! "-."]
+		--assert error? try [to money! ",0"]
+		--assert error? try [to money! "0,"]
+		--assert error? try [to money! "$.0"]
+		--assert error? try [to money! "$0."]
+		--assert true
 ===end-group===
 
 ===start-group=== "make"
@@ -181,8 +207,64 @@ Red [
 	--test-- "make-6"  --assert error? try [make money! [0 123456]]
 	--test-- "make-7"  --assert -$123.00456 == make money! [-123 456]
 	--test-- "make-8"  --assert $123.44444 == make money! [123.32100 12344]
-	--test-- "make-9"  --assert -CCC$123 == make money! [CCC -123]
-	--test-- "make-10" --assert -CCC$123 == make money! [CCC -123 0]
+	--test-- "make-9"  --assert -USD$123 == make money! [USD -123]
+	--test-- "make-10" --assert -EUR$123 == make money! [EUR -123 0]
+	--test-- "make-11" --assert "-EUR$456.78900" == mold/all make money! [EUR -456 78900]
+	--test-- "make-12" --assert "USD$0.00000" == mold/all make money! 'usd
+	--test-- "make-13" --assert "EUR$0.00000" == mold/all make money! 'EUR
+	--test-- "make-14" --assert error? try [make money! 'foo]
+===end-group===
+
+===start-group=== "form/mold"
+	--test-- "form/mold-1" --assert "" == form/part $123.45678 0
+	--test-- "form/mold-2" --assert "" == mold/part $123.45678 0
+	--test-- "form/mold-3" --assert "$" == form/part $123 1
+	--test-- "form/mold-4" --assert "$123.45678" == form/part $123.45678 12345678
+	--test-- "form/mold-5" --assert "$1'" == form/part +$1234 3
+	--test-- "form/mold-6" --assert "-$1" == mold/part -$1234 3
+	--test-- "form/mold-7" --assert "USD" == form/part +USD$0 3
+	--test-- "form/mold-8" --assert "-EU" == mold/part -EUR$1 3
+	--test-- "form/mold-9"
+		system/options/money-digits: -1
+		--assert "$123" == mold $123.45678
+		--assert "$123.45678" == mold/all $123.45678
+		system/options/money-digits: 1
+		--assert "-$123.4" == mold -$123.45678
+		--assert "-$123.45678" == mold/all -$123.45678
+		system/options/money-digits: 10
+		--assert "$123.45678" == mold +$123.45678
+		--assert "$123.45678" == mold/all +$123.45678
+===end-group===
+
+===start-group=== "currencies"
+	--test-- "currencies-1"  --assert 1 + USD$1 == USD$2 
+	--test-- "currencies-2"  --assert USD$2 + 1 == USD$3
+	--test-- "currencies-3"  --assert USD$4 - USD$4 == USD$0
+	--test-- "currencies-4"  --assert $1 * -1 == -$1
+	--test-- "currencies-5"  --assert -2.0 * $1 == -$2
+	--test-- "currencies-6"  --assert error? try [USD$1 + EUR$1]
+	--test-- "currencies-7"  --assert error? try [EUR$2 - USD$2]
+	--test-- "currencies-8"  --assert USD$1 == $1
+	--test-- "currencies-9"  --assert -USD$2 == -USD$2
+	--test-- "currencies-10" --assert error? try [EUR$123 <> USD$123]
+===end-group===
+
+===start-group=== "arithmetic"
+	--test-- "arithmetic-1"  --assert error? try [$1 * $1]
+	--test-- "arithmetic-2"  --assert $2 * 3 == $6
+	--test-- "arithmetic-3"  --assert $4 * 0.5 == $2
+	--test-- "arithmetic-4"  --assert 4 * $0.25 == $1
+	--test-- "arithmetic-5"  --assert 0.5 * $8 == $4
+	--test-- "arithmetic-6"  --assert $8 / $4 == 2.0
+	--test-- "arithmetic-7"  --assert $8 / 4 == $2
+	--test-- "arithmetic-8"  --assert $4 / 0.5 == $8
+	--test-- "arithmetic-9"  --assert error? try [4 / $2]
+	--test-- "arithmetic-10" --assert error? try [8.0 / $4]
+	--test-- "arithmetic-11" --assert $8 % $3 == $2
+	--test-- "arithmetic-12" --assert $10 % 3  == $1
+	--test-- "arithmetic-13" --assert $4 % 4.0 == $0
+	--test-- "arithmetic-14" --assert error? try [8 % $8]
+	--test-- "arithmetic-15" --assert error? try [3.0 % $2]
 ===end-group===
 
 ===start-group=== "add"
@@ -305,6 +387,55 @@ Red [
 	--test-- "find-6" --assert last? find [a b c d $0.00001] $0.00001
 ===end-group===
 
+===start-group=== "money?"
+	--test-- "money?-1" --assert money? $123.45678
+	--test-- "money?-2" --assert not money? 123.45678
+	--test-- "money?-3" --assert money? -USD$123.45678
+	--test-- "money?-4" --assert not money? -123
+===end-group===
+
+===start-group=== "transcode money"
+	--test-- "transcode-money-1" --assert money? load "$123"
+	--test-- "transcode-money-2" --assert money? first load "$123 $456"
+	--test-- "transcode-money-3" --assert money? last load "$123 -USD$456"
+	--test-- "transcode-money-4" --assert money! == transcode/prescan "+EUR$123.456 1 2 3"
+===end-group===
+
+===start-group=== "as-money"
+	--test-- "as-money-1" --assert "USD$123.00000" == mold/all as-money 'USD 123
+	--test-- "as-money-2" --assert "-EUR$123.45678" == mold/all as-money 'EUR -123.45678
+	--test-- "as-money-3" --assert "USD$0.00000" == mold/all as-money 'USD 0
+===end-group===
+
+===start-group=== "accessors"
+	money: -USD$123.45678
+	--test-- "accessors-1" --assert 'USD == pick money 1
+	--test-- "accessors-2" --assert "-$123.45678" == mold/all pick money 2
+	--test-- "accessors-3" --assert 'USD == pick money 'code
+	--test-- "accessors-4" --assert "-$123.45678" == mold/all pick money 'amount
+	--test-- "accessors-5" --assert 'USD == money/1
+	--test-- "accessors-6" --assert "-$123.45678" == mold/all money/2
+	--test-- "accessors-7" --assert 'USD == money/code
+	--test-- "accessors-8" --assert "-$123.45678" == mold/all money/amount
+	--test-- "accessors-9"
+		money: -$123.45678
+		--assert none == pick money 'code
+		--assert none == pick money 1
+		--assert none == money/code
+		--assert none == money/1
+	--test-- "accessors-10"
+		--assert error? try [pick money 0]
+		--assert error? try [pick money -1]
+		--assert error? try [pick money 5]
+		--assert error? try [pick money 1.0]
+		--assert error? try [pick money #"^C"]
+		--assert error? try [pick money 'foo]
+		--assert error? try [money/foo]
+		--assert error? try [money/0]
+		--assert error? try [money/-1]
+		--assert error? try [money/5]
+===end-group===
+
 ===start-group=== "generated"
 	--test-- "generated-1-+" --assert -$46256738.73641 + -$382909867.62517 == -$429166606.36158
 	--test-- "generated-2-+" --assert -$861608569.91149 + -$385303837.42661 == -$1246912407.33810
@@ -372,4 +503,7 @@ Red [
 	--test-- "generated-4-<=" --assert $35305992.25093 <= -$609764191.14030 == false
 	--test-- "generated-5-<=" --assert $761650628.29928 <= -$188013192.81943 == false
 ===end-group===
+
+system/options/money-digits: 2						;-- put it back where it was
+
 ~~~end-file~~~
