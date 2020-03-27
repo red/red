@@ -66,16 +66,8 @@ money: context [
 		S_END
 	]
 	
-	#define SWAP_ARGUMENTS(this-argument that-argument) [
-		use [hold][
-			hold: this-argument
-			this-argument: that-argument
-			that-argument: hold
-		]
-	]
-	
-	#define DISPATCH_SIGNS [switch collate-signs this-sign that-sign]
-	
+	#define SWAP_ARGUMENTS [use [hold][hold: value1 value1: value2 value2: hold]]
+	#define DISPATCH_SIGNS [switch collate-signs sign1 sign2]
 	#define MONEY_OVERFLOW [fire [TO_ERROR(script type-limit) datatype/push TYPE_MONEY]]
 	
 	;-- Sign --
@@ -105,11 +97,11 @@ money: context [
 	]
 	
 	collate-signs: func [
-		this-sign [integer!]
-		that-sign [integer!]
-		return:   [integer!]
+		sign1   [integer!]
+		sign2   [integer!]
+		return: [integer!]
 	][
-		this-sign + 1 << 4 or (that-sign + 1)
+		sign1 + 1 << 4 or (sign2 + 1)
 	]
 	
 	;-- Currency --
@@ -195,20 +187,20 @@ money: context [
 	]
 	
 	same-currencies?: func [
-		this-money [red-money!]
-		that-money [red-money!]
-		return:    [logic!]
+		value1  [red-money!]
+		value2  [red-money!]
+		return: [logic!]
 		/local
-			this-currency [integer!]
-			that-currency [integer!]
+			currency1 [integer!]
+			currency2 [integer!]
 	][
-		this-currency: get-currency this-money
-		that-currency: get-currency that-money
+		currency1: get-currency value1
+		currency2: get-currency value2
 	
 		any [
-			zero? this-currency						;-- 0: generic currency
-			zero? that-currency
-			this-currency = that-currency
+			zero? currency1						;-- 0: generic currency
+			zero? currency2
+			currency1 = currency2
 		]
 	]
 	
@@ -254,11 +246,11 @@ money: context [
 	]
 	
 	compare-amounts: func [
-		this-amount [byte-ptr!]
-		that-amount [byte-ptr!]
-		return:     [integer!]
+		amount1 [byte-ptr!]
+		amount2 [byte-ptr!]
+		return: [integer!]
 	][
-		compare-memory this-amount that-amount SIZE_BYTES
+		compare-memory amount1 amount2 SIZE_BYTES
 	]
 	
 	zero-out: func [
@@ -277,19 +269,19 @@ money: context [
 		offset  [integer!]
 		return: [byte-ptr!]
 		/local
-			this-index [integer!]
-			that-index [integer!]
-			half       [byte!]
+			index1 [integer!]
+			index2 [integer!]
+			half   [byte!]
 	][
 		loop offset [
-			this-index: 1
-			that-index: this-index + 1
+			index1: 1
+			index2: index1 + 1
 			loop size [
-				half: either that-index > size [null-byte][amount/that-index >>> 4]
-				amount/this-index: amount/this-index << 4 or half
+				half: either index2 > size [null-byte][amount/index2 >>> 4]
+				amount/index1: amount/index1 << 4 or half
 				
-				this-index: this-index + 1
-				that-index: that-index + 1
+				index1: index1 + 1
+				index2: index2 + 1
 			]
 		]
 		
@@ -302,19 +294,19 @@ money: context [
 		offset  [integer!]
 		return: [byte-ptr!]
 		/local
-			this-index [integer!]
-			that-index [integer!]
-			half       [byte!]
+			index1 [integer!]
+			index2 [integer!]
+			half   [byte!]
 	][
 		loop offset [
-			this-index: size
-			that-index: this-index - 1
+			index1: size
+			index2: index1 - 1
 			loop size [
-				half: either that-index < 1 [null-byte][amount/that-index << 4]
-				amount/this-index: amount/this-index >>> 4 or half
+				half: either index2 < 1 [null-byte][amount/index2 << 4]
+				amount/index1: amount/index1 >>> 4 or half
 				
-				this-index: this-index - 1
-				that-index: that-index - 1
+				index1: index1 - 1
+				index2: index2 - 1
 			]
 		]
 		
@@ -378,60 +370,60 @@ money: context [
 	;-- Slices --
 	
 	compare-slices: func [
-		this-buffer [byte-ptr!] this-high? [logic!] this-count [integer!]
-		that-buffer [byte-ptr!] that-high? [logic!] that-count [integer!]
+		buffer1 [byte-ptr!] high1? [logic!] count1 [integer!]
+		buffer2 [byte-ptr!] high2? [logic!] count2 [integer!]
 		return: [integer!]
 		/local
-			delta index1 index2 end this-digit that-digit [integer!]
+			delta index1 index2 end digit1 digit2 [integer!]
 	][
-		delta: integer/abs this-count - that-count
-		switch integer/sign? this-count - that-count [
-			-1 [index1: 1 - delta index2: 1 end: that-count]
-			00 [index1: 1         index2: 1 end: this-count]
-			+1 [index2: 1 - delta index1: 1 end: this-count]
+		delta: integer/abs count1 - count2
+		switch integer/sign? count1 - count2 [
+			-1 [index1: 1 - delta index2: 1 end: count2]
+			00 [index1: 1         index2: 1 end: count1]
+			+1 [index2: 1 - delta index1: 1 end: count1]
 			default [0]
 		]
 		
-		index1: index1 + as integer! this-high?
-		index2: index2 + as integer! that-high?
+		index1: index1 + as integer! high1?
+		index2: index2 + as integer! high2?
 		
 		until [
-			this-digit: either index1 < 1 [0][get-digit this-buffer index1]
-			that-digit: either index2 < 1 [0][get-digit that-buffer index2]
+			digit1: either index1 < 1 [0][get-digit buffer1 index1]
+			digit2: either index2 < 1 [0][get-digit buffer2 index2]
 		
 			index1: index1 + 1
 			index2: index2 + 1
 			end:    end - 1
 			
-			any [this-digit <> that-digit zero? end]
+			any [digit1 <> digit2 zero? end]
 		]
 		
-		this-digit - that-digit
+		digit1 - digit2
 	]
 	
 	subtract-slice: func [
-		this-buffer [byte-ptr!] this-high? [logic!] this-count [integer!]
-		that-buffer [byte-ptr!] that-high? [logic!] that-count [integer!]
+		buffer1 [byte-ptr!] high1? [logic!] count1 [integer!]
+		buffer2 [byte-ptr!] high2? [logic!] count2 [integer!]
 		/local
-			this-digit that-digit borrow difference [integer!]
+			digit1 digit2 borrow difference [integer!]
 	][
-		this-count: this-count + as integer! this-high?
-		that-count: that-count + as integer! that-high?
+		count1: count1 + as integer! high1?
+		count2: count2 + as integer! high2?
 		borrow: 0
 		until [
-			this-digit: get-digit this-buffer this-count
-			that-digit: either that-count < 1 [0][get-digit that-buffer that-count]
+			digit1: get-digit buffer1 count1
+			digit2: either count2 < 1 [0][get-digit buffer2 count2]
 			
-			difference: this-digit - that-digit - borrow	;-- assumming this-buffer >= that-buffer 
+			difference: digit1 - digit2 - borrow	;-- assumming buffer1 >= buffer2 
 			borrow: as integer! difference < 0
 			if as logic! borrow [difference: difference + 10]
 			
-			set-digit this-buffer this-count difference
+			set-digit buffer1 count1 difference
 			
-			this-count: this-count - 1
-			that-count: that-count - 1
+			count1: count1 - 1
+			count2: count2 - 1
 			
-			zero? this-count
+			zero? count1
 		]
 	]
 	
@@ -825,19 +817,19 @@ money: context [
 		copy-memory (get-amount money) + SIZE_BYTES - length head length
 		money
 	]
-		
+	
 	from-block: func [
 		blk     [red-block!]
 		return: [red-money!]
 		/local
-			bail              [subroutine!]
-			money fraction    [red-money!]
-			wrd               [red-word!]
-			int               [red-integer!]
-			flt               [red-float!]
-			head tail here    [red-value!]
-			currency          [integer!]
-			state type length [integer!]
+			bail           [subroutine!]
+			money fraction [red-money!]
+			wrd            [red-word!]
+			int            [red-integer!]
+			flt            [red-float!]
+			head tail here [red-value!]
+			currency state [integer!]
+			type length    [integer!]
 	][
 		bail: [fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY blk]]
 		
@@ -999,24 +991,24 @@ money: context [
 	;-- Comparison --
 	
 	compare-money: func [
-		this-money [red-money!]
-		that-money [red-money!]
-		return:    [integer!]
+		value1  [red-money!]
+		value2  [red-money!]
+		return: [integer!]
 		/local
-			this-sign that-sign [integer!]
+			sign1 sign2 [integer!]
 	][
-		this-sign: sign? this-money
-		that-sign: sign? that-money
+		sign1: sign? value1
+		sign2: sign? value2
 		
 		DISPATCH_SIGNS [
-			SIGN_-- [SWAP_ARGUMENTS(this-money that-money) 0]
+			SIGN_-- [SWAP_ARGUMENTS]
 			SIGN_++ [0]
-			default [return integer/sign? this-sign - that-sign]
+			default [return integer/sign? sign1 - sign2]
 		]
 		
 		integer/sign? compare-amounts				;-- must return strictly -1, 0 or +1
-			get-amount this-money
-			get-amount that-money
+			get-amount value1
+			get-amount value2
 	]
 	
 	negative-money?: func [
@@ -1066,160 +1058,163 @@ money: context [
 	]
 	
 	add-money: func [								;-- long addition
-		augend  [red-money!]
-		addend  [red-money!]
+		value1  [red-money!]
+		value2  [red-money!]
 		return: [red-money!]
 		/local
-			this-amount that-amount    [byte-ptr!]
-			this-sign that-sign        [integer!]
-			index carry left right sum [integer!]
+			amount1 amount2 [byte-ptr!]
+			sign1 sign2     [integer!]
+			index carry sum [integer!]
+			digit1 digit2   [integer!]
 	][
-		this-sign: sign? augend
-		that-sign: sign? addend
+		sign1: sign? value1
+		sign2: sign? value2
 		
 		DISPATCH_SIGNS [
 			SIGN_00
 			SIGN_-0
-			SIGN_+0 [return augend]
+			SIGN_+0 [return value1]
 			SIGN_0-
-			SIGN_0+ [return addend]		
-			SIGN_+- [return subtract-money augend absolute-money addend]
-			SIGN_-+ [return subtract-money addend absolute-money augend]
+			SIGN_0+ [return value2]		
+			SIGN_+- [return subtract-money value1 absolute-money value2]
+			SIGN_-+ [return subtract-money value2 absolute-money value1]
 			default [0]
 		]
 		
-		this-amount: get-amount augend
-		that-amount: get-amount addend
+		amount1: get-amount value1
+		amount2: get-amount value2
 		
-		if (get-digit this-amount 1) + (get-digit that-amount 1) > 9 [MONEY_OVERFLOW]	;-- if sum of two most significant digits overflows
+		if (get-digit amount1 1) + (get-digit amount2 1) > 9 [MONEY_OVERFLOW]	;-- if sum of two most significant digits overflows
 		
 		index: SIZE_DIGITS
 		carry: 0
 		
 		loop index [
-			left:  get-digit this-amount index
-			right: get-digit that-amount index
+			digit1: get-digit amount1 index
+			digit2: get-digit amount2 index
 			
-			sum:   left + right + carry
+			sum:   digit1 + digit2 + carry
 			carry: sum / 10
 			unless zero? carry [sum: sum + 6 and 0Fh]
 			
-			set-digit this-amount index sum
+			set-digit amount1 index sum
 		
 			index: index - 1
 		]
 		
 		if as logic! carry [MONEY_OVERFLOW]
 		
-		augend
+		value1
 	]
 	
 	subtract-money: func [							;-- long subtraction
-		minuend    [red-money!]
-		subtrahend [red-money!]
-		return:    [red-money!]
+		value1  [red-money!]
+		value2  [red-money!]
+		return: [red-money!]
 		/local
-			this-amount that-amount  [byte-ptr!]
-			this-sign that-sign sign [integer!]
-			index borrow left right  [integer!]
-			difference               [integer!]
-			lesser? flag             [logic!]
+			amount1 amount2  [byte-ptr!]
+			sign1 sign2 sign [integer!]
+			index borrow     [integer!]
+			digit1 digit2    [integer!]
+			difference       [integer!]
+			lesser? flag     [logic!]
 	][
-		this-sign: sign? minuend
-		that-sign: sign? subtrahend
+		sign1: sign? value1
+		sign2: sign? value2
 		
 		DISPATCH_SIGNS [			
 			SIGN_00
 			SIGN_0-
-			SIGN_0+ [return negate-money subtrahend]
+			SIGN_0+ [return negate-money value2]
 			SIGN_-0
-			SIGN_+0 [return minuend]
-			SIGN_-+ [return negate-money add-money absolute-money minuend absolute-money subtrahend]
-			SIGN_+- [return add-money minuend absolute-money subtrahend]
+			SIGN_+0 [return value1]
+			SIGN_-+ [return negate-money add-money absolute-money value1 absolute-money value2]
+			SIGN_+- [return add-money value1 absolute-money value2]
 			default [
-				lesser?: negative? compare-money minuend subtrahend
+				lesser?: negative? compare-money value1 value2
 				sign: as integer! lesser?
 				
-				either positive? this-sign [flag: lesser?][
-					minuend: absolute-money minuend
-					subtrahend: absolute-money subtrahend
+				either positive? sign1 [flag: lesser?][
+					value1: absolute-money value1
+					value2: absolute-money value2
 					flag: not lesser?
 				]
 				
-				if flag [SWAP_ARGUMENTS(minuend subtrahend)]
+				if flag [SWAP_ARGUMENTS]
 			]
 		]
 		
-		this-amount: get-amount minuend
-		that-amount: get-amount subtrahend
+		amount1: get-amount value1
+		amount2: get-amount value2
 		
 		index:  SIZE_DIGITS
 		borrow: 0
 	
 		loop index [
-			left:  get-digit this-amount index
-			right: get-digit that-amount index
+			digit1: get-digit amount1 index
+			digit2: get-digit amount2 index
 			
-			difference: left - right - borrow
+			difference: digit1 - digit2 - borrow
 			borrow: as integer! negative? difference
 			if as logic! borrow [difference: difference + 10]
 			
-			set-digit this-amount index difference
+			set-digit amount1 index difference
 		
 			index: index - 1
 		]
 		
-		set-sign minuend sign
+		set-sign value1 sign
 	]
 	
 	multiply-money: func [							;-- long multiplication
-		multiplicand [red-money!]
-		multiplier   [red-money!]
-		return:      [red-money!]
+		value1  [red-money!]
+		value2  [red-money!]
+		return: [red-money!]
 		/local
-			this-amount that-amount product [byte-ptr!]
-			this-sign that-sign sign        [integer!]
-			this-count that-count           [integer!]
-			delta index1 index2 index3      [integer!]
-			carry left right other result   [integer!]
+			amount1 amount2 product [byte-ptr!]
+			sign1 sign2             [integer!]
+			count1 count2           [integer!]
+			index1 index2 index3    [integer!]
+			digit1 digit2 digit3    [integer!]
+			sign delta carry result [integer!]
 	][
-		this-sign: sign? multiplicand
-		that-sign: sign? multiplier
+		sign1: sign? value1
+		sign2: sign? value2
 		
 		DISPATCH_SIGNS [
 			SIGN_00
 			SIGN_0-
-			SIGN_0+ [return multiplicand]
+			SIGN_0+ [return value1]
 			SIGN_+0
-			SIGN_-0 [return multiplier]
-			default [sign: as integer! this-sign <> that-sign]
+			SIGN_-0 [return value2]
+			default [sign: as integer! sign1 <> sign2]
 		]
 		
-		this-amount: get-amount multiplicand
-		that-amount: get-amount multiplier
+		amount1: get-amount value1
+		amount2: get-amount value2
 		
-		this-count: count-digits this-amount
-		that-count: count-digits that-amount
+		count1: count-digits amount1
+		count2: count-digits amount2
 		
-		if (this-count + that-count) > (SIZE_UNNORM + 1) [MONEY_OVERFLOW]	;-- if after normalization it won't fit into payload
+		if (count1 + count2) > (SIZE_UNNORM + 1) [MONEY_OVERFLOW]	;-- if after normalization it won't fit into payload
 		
 		product: set-memory as byte-ptr! system/stack/allocate SIZE_SSLOTS null-byte SIZE_SBYTES
 		
 		delta:  SIZE_DIGITS - SIZE_BUFFER << 1
 		index1: SIZE_DIGITS
 		
-		loop that-count [
+		loop count2 [
 			carry:  0
 			index2: SIZE_DIGITS
 			
-			loop this-count [
+			loop count1 [
 				index3: index1 + index2 - delta
 			
-				left:  get-digit this-amount index2
-				right: get-digit that-amount index1
-				other: get-digit product     index3
+				digit1:  get-digit amount1 index2
+				digit2: get-digit amount2 index1
+				digit3: get-digit product     index3
 				
-				result: left * right + other + carry
+				result: digit1 * digit2 + digit3 + carry
 				carry:  result /  10
 				result: result // 10
 				
@@ -1240,72 +1235,73 @@ money: context [
 		
 		if zero-amount? product [MONEY_OVERFLOW]	;-- got zero product from non-zero factors
 		
-		set-amount multiplicand product
-		set-sign multiplicand sign
+		set-amount value1 product
+		set-sign value1 sign
 	]
 	
 	divide-money: func [							;-- shift-and-subtract algorithm
-		dividend   [red-money!]
-		divisor    [red-money!]
+		value1     [red-money!]
+		value2     [red-money!]
 		remainder? [logic!]							;-- yes: calculate remainder instead
 		only?      [logic!]							;-- yes: don't approximate fractional part
 		return:    [red-money!]
 		/local
-			shift increment subtract   [subroutine!]
-			greater? greatest?         [subroutine!]
-			this-amount that-amount    [byte-ptr!]
-			this-start that-start      [byte-ptr!]
-			quotient buffer hold       [byte-ptr!]
-			this-sign that-sign sign   [integer!]
-			this-count that-count      [integer!]
-			size overflow digits index [integer!]
-			this-high? that-high?      [logic!]
+			shift increment subtract [subroutine!]
+			greater? greatest?       [subroutine!]
+			amount1 amount2          [byte-ptr!]
+			start1 start2            [byte-ptr!]
+			quotient buffer hold     [byte-ptr!]
+			sign1 sign2 sign         [integer!]
+			count1 count2            [integer!]
+			size overflow            [integer!]
+			digits index             [integer!]
+			high1? high2?            [logic!]
 	][
-		this-sign: sign? dividend
-		that-sign: sign? divisor
+		sign1: sign? value1
+		sign2: sign? value2
 		
 		DISPATCH_SIGNS [
 			SIGN_00
 			SIGN_+0
 			SIGN_-0 [fire [TO_ERROR(math zero-divide)]]
 			SIGN_0-
-			SIGN_0+ [return dividend]
+			SIGN_0+ [return value1]
 			default [
-				sign: as integer! either remainder? [negative? this-sign][this-sign <> that-sign]
+				sign: as integer! either remainder? [negative? sign1][sign1 <> sign2]
 			]
 		]
 		
-		this-amount: get-amount dividend
-		that-amount: get-amount divisor
+		amount1: get-amount value1
+		amount2: get-amount value2
 		
-		this-count: count-digits this-amount
-		that-count: count-digits that-amount
+		count1: count-digits amount1
+		count2: count-digits amount2
 		
-		if this-count + (SIZE_SCALE + 1 - that-count) > SIZE_DIGITS [MONEY_OVERFLOW]	;-- if after normalization it won't fit into payload
+		if count1 + (SIZE_SCALE + 1 - count2) > SIZE_DIGITS [MONEY_OVERFLOW]	;-- if after normalization it won't fit into payload
 		
 		size: SIZE_DIGITS
 		overflow: SIZE_SBYTES << 1 - SIZE_DIGITS
 		
 		unless any [remainder? only?][
 			size: SIZE_SBYTES << 1
-			hold: this-amount
+			hold: amount1
 			
-			this-amount: set-memory as byte-ptr! system/stack/allocate SIZE_SSLOTS null-byte SIZE_SBYTES
-			this-count:  this-count + SIZE_SCALE
+			amount1: set-memory as byte-ptr! system/stack/allocate SIZE_SSLOTS null-byte SIZE_SBYTES
+			count1:  count1 + SIZE_SCALE
 			
-			copy-memory this-amount + SIZE_SBYTES - SIZE_BYTES hold SIZE_BYTES
-			shift-left this-amount SIZE_SBYTES SIZE_SCALE
+			copy-memory amount1 + SIZE_SBYTES - SIZE_BYTES hold SIZE_BYTES
+			shift-left amount1 SIZE_SBYTES SIZE_SCALE
 		]
 		
-		this-high?: as logic! this-count and 1
-		that-high?: as logic! that-count and 1
+		high1?: as logic! count1 and 1
+		high2?: as logic! count2 and 1
 		
-		this-start: this-amount + (size        - this-count >> 1)
-		that-start: that-amount + (SIZE_DIGITS - that-count >> 1)
+		start1: amount1 + (size        - count1 >> 1)
+		start2: amount2 + (SIZE_DIGITS - count2 >> 1)
 		
-		digits: either this-count < that-count [this-count][that-count]
+		digits: either count1 < count2 [count1][count2]
 		
-		index:    size - (integer/abs this-count - that-count) - SIZE_SCALE
+		index:    size - (integer/abs count1 - count2) - SIZE_SCALE
 		quotient: set-memory as byte-ptr! system/stack/allocate SIZE_SSLOTS null-byte SIZE_SBYTES
 		buffer:   quotient
 		
@@ -1317,21 +1313,21 @@ money: context [
 		]
 		subtract: [
 			subtract-slice
-				this-start this-high? digits
-				that-start that-high? that-count
+				start1 high1? digits
+				start2 high2? count2
 		]
 		increment: [
 			set-digit quotient index (get-digit quotient index) + 1
 		]
 		greater?: [
 			compare-slices
-				that-start that-high? that-count
-				this-start this-high? digits
+				start2 high2? count2
+				start1 high1? digits
 		]
 		greatest?: [
 			compare-slices
-				that-start that-high? that-count
-				this-start this-high? this-count
+				start2 high2? count2
+				start1 high1? count1
 		]
 		;@@ TBD: bug with subroutines
 		until [either greater? > 0 [either greatest? > 0 [yes][shift no]][subtract increment no]]
@@ -1340,31 +1336,31 @@ money: context [
 			unless only? [
 				shift-right quotient SIZE_SBYTES SIZE_SCALE
 				quotient: quotient + SIZE_SBYTES - SIZE_BYTES
-				this-amount: hold
+				amount1: hold
 			]
-			if zero-amount? quotient [MONEY_OVERFLOW]				;-- got zero quotient from non-zero dividend
+			if zero-amount? quotient [MONEY_OVERFLOW]				;-- got zero quotient from non-zero value1
 			unless zero? get-digit buffer overflow [MONEY_OVERFLOW] ;-- overflowed into most-significant digit
-			set-amount dividend quotient
+			set-amount value1 quotient
 		]
 		
-		set-sign dividend sign
+		set-sign value1 sign
 	]
 
 	do-math-op: func [
-		left    [red-money!]
-		right   [red-money!]
+		value1  [red-money!]
+		value2  [red-money!]
 		op      [integer!]
 		return: [red-money!]
 	][
 		switch op [
-			OP_ADD [add-money left right]
-			OP_SUB [subtract-money left right]
-			OP_MUL [multiply-money left right]
-			OP_DIV [divide-money left right no no]
-			OP_REM [divide-money left right yes no]
+			OP_ADD [add-money      value1 value2]
+			OP_SUB [subtract-money value1 value2]
+			OP_MUL [multiply-money value1 value2]
+			OP_DIV [divide-money   value1 value2 no  no]
+			OP_REM [divide-money   value1 value2 yes no]
 			default [
-				fire [TO_ERROR (script invalid-type) datatype/push TYPE_OF(left)]
-				left								;-- pass compiler's type checking
+				fire [TO_ERROR (script invalid-type) datatype/push TYPE_OF(value1)]
+				value1								;-- pass compiler's type checking
 			]
 		]
 	]
@@ -1373,63 +1369,62 @@ money: context [
 		op      [integer!]
 		return: [red-value!]
 		/local
-			left right [red-money!]
-			result     [red-value!]
-			int        [red-integer!]
-			flt        [red-float!]
-			currency   [integer!]
-			left-type  [integer!]
-			right-type [integer!]
+			value1 value2 [red-money!]
+			result        [red-value!]
+			int           [red-integer!]
+			flt           [red-float!]
+			currency      [integer!]
+			type1 type2   [integer!]
 	][
-		left:  as red-money! stack/arguments
-		right: left + 1
+		value1: as red-money! stack/arguments
+		value2: value1 + 1
 		
-		left-type:  TYPE_OF(left)
-		right-type: TYPE_OF(right)
+		type1: TYPE_OF(value1)
+		type2: TYPE_OF(value2)
 	
 		if any [
-			all [op = OP_MUL left-type = TYPE_MONEY right-type = TYPE_MONEY]
-			all [any [op = OP_DIV op = OP_REM] left-type <> TYPE_MONEY right-type = TYPE_MONEY]
+			all [op = OP_MUL type1 = TYPE_MONEY type2 = TYPE_MONEY]
+			all [any [op = OP_DIV op = OP_REM] type1 <> TYPE_MONEY type2 = TYPE_MONEY]
 		][
-			fire [TO_ERROR(script invalid-type) datatype/push left-type]
+			fire [TO_ERROR(script invalid-type) datatype/push type1]
 		]
 		
-		switch left-type [
+		switch type1 [
 			TYPE_MONEY [0]
 			TYPE_INTEGER [
-				int: as red-integer! left
-				left: from-integer int/value
+				int: as red-integer! value1
+				value1: from-integer int/value
 			]
 			TYPE_FLOAT [
-				flt: as red-float! left
-				left: from-float flt/value
+				flt: as red-float! value1
+				value1: from-float flt/value
 			]
 			default [
-				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(left)]
+				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(value1)]
 			]
 		]
 	
-		switch right-type [
+		switch type2 [
 			TYPE_MONEY [0]
 			TYPE_INTEGER [
-				int: as red-integer! right
-				right:   from-integer int/value
+				int: as red-integer! value2
+				value2:   from-integer int/value
 			]
 			TYPE_FLOAT [
-				flt: as red-float! right
-				right: from-float flt/value
+				flt: as red-float! value2
+				value2: from-float flt/value
 			]
 			default [
-				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(right)]
+				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(value2)]
 			]
 		]
 		
-		unless same-currencies? left right [fire [TO_ERROR(script wrong-denom) left right]]
-		currency: get-currency right				;-- preserve specific currency
-		if zero? currency [currency: get-currency left]
+		unless same-currencies? value1 value2 [fire [TO_ERROR(script wrong-denom) value1 value2]]
+		currency: get-currency value2				;-- preserve specific currency
+		if zero? currency [currency: get-currency value1]
 		
-		result: as red-value! do-math-op left right op
-		either all [op = OP_DIV left-type = TYPE_MONEY right-type = TYPE_MONEY][
+		result: as red-value! do-math-op value1 value2 op
+		either all [op = OP_DIV type1 = TYPE_MONEY type2 = TYPE_MONEY][
 			result: as red-value! float/box to-float as red-money! result
 		][
 			set-currency as red-money! result currency
