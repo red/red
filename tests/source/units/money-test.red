@@ -179,7 +179,9 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "to-24" --assert error? try [to money! "CCC$123"]
 	--test-- "to-25" --assert error? try [to money! "123$456"]
 	--test-- "to-26" --assert error? try [to money! "EUR123"]
-	--test-- "to-27"
+	--test-- "to-27" --assert #{00 00 00 00 00 00 00 00 00 00 00} == to binary! $0
+	--test-- "to-28" --assert #{00 00 00 00 00 00 01 23 45 67 89} == to binary! -USD$1234.56789
+	--test-- "to-29"
 		--assert error? try [to money! "$"]
 		--assert error? try [to money! "$."]
 		--assert error? try [to money! "-$."]
