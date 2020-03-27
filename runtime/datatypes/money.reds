@@ -235,14 +235,14 @@ money: context [
 		amount  [byte-ptr!]
 		return: [logic!]
 		/local
-			rest [int-ptr!]
+			payload [int-ptr!]
 	][
-		loop 3 [									;-- SIZE_BYTES - (2 * size? integer!)
-			unless null-byte = amount/value [return no]
-			amount: amount + 1
+		payload: as int-ptr! amount - 1
+		all [
+			(payload/1 and not FFh) = 0				;-- little-endian order
+			payload/2 = 0
+			payload/3 = 0
 		]
-		rest: as int-ptr! amount
-		all [rest/1 = 0 rest/2 = 0]
 	]
 	
 	compare-amounts: func [
