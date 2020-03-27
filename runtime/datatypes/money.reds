@@ -126,7 +126,7 @@ money: context [
 		/local
 			place [byte-ptr!]
 	][
-		place: (get-amount money) - 1
+		place: as byte-ptr! :money/amount1
 		as integer! place/value
 	]
 	
@@ -138,7 +138,7 @@ money: context [
 			place [byte-ptr!]
 	][
 		assert all [index >= 0 index <= FFh]
-		place: (get-amount money) - 1
+		place: as byte-ptr! :money/amount1
 		place/value: as byte! index
 		money
 	]
@@ -219,7 +219,7 @@ money: context [
 		money   [red-money!]
 		return: [byte-ptr!]
 	][
-		(as byte-ptr! money) + (size? money) - SIZE_BYTES
+		(as byte-ptr! :money/amount1) + 1
 	]
 	
 	set-amount: func [
