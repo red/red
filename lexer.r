@@ -691,8 +691,8 @@ lexer: context [
 		
 		clean-up: does [
 			unless empty? stk [
-				clear next stk		;-- keep root block in stk
-				clear first stk		;-- clear root block
+				clear next stk							;-- keep root block in stk
+				clear first stk							;-- clear root block
 			]
 			nl?: no
 		]
