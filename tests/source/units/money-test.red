@@ -369,6 +369,67 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "remainder-15" --assert $0.56789 == remainder $0.56789 123.456
 ===end-group===
 
+===start-group=== "rounding"
+	max-money: +$99'999'999'999'999'999.9999
+	min-money: -$99'999'999'999'999'999.9999
+	
+	--test-- "round"								;-- away from zero
+		--assert +$0.0 == round +$0.0
+		--assert -$4.0 == round -$3.5
+		--assert -$3.0 == round -$2.9
+		--assert -$1.0 == round -$1.1
+		--assert +$1.0 == round +$1.1
+		--assert +$3.0 == round +$2.9
+		--assert +$4.0 == round +$3.5
+		--assert error? try [round max-money]
+		--assert error? try [round min-money]
+	
+	--test-- "round/to"
+		--assert true
+
+	--test-- "round/even"
+		--assert true
+
+	--test-- "round/down"							;-- truncation
+		--assert +$0.0 == round/down +$0.0
+		--assert -$3.0 == round/down -$3.5
+		--assert -$2.0 == round/down -$2.9
+		--assert -$1.0 == round/down -$1.1
+		--assert +$1.0 == round/down +$1.1
+		--assert +$2.0 == round/down +$2.9
+		--assert +$3.0 == round/down +$3.5
+		--assert +$99'999'999'999'999'999 == round/down max-money
+		--assert -$99'999'999'999'999'999 == round/down min-money
+	
+	--test-- "round/half-down"	
+		--assert true
+	
+	--test-- "round/floor"							;-- towards negative infinity
+		--assert +$0.0 == round/floor +$0.0
+		--assert -$4.0 == round/floor -$3.5
+		--assert -$3.0 == round/floor -$2.9
+		--assert -$2.0 == round/floor -$1.1
+		--assert +$1.0 == round/floor +$1.1
+		--assert +$2.0 == round/floor +$2.9
+		--assert +$3.0 == round/floor +$3.5
+		--assert +$99'999'999'999'999'999 == round/floor max-money
+		--assert error? try [round/floor min-money]
+	
+	--test-- "round/ceil"							;-- towards positive infinity
+		--assert +$0.0 == round/ceiling +$0.0
+		--assert -$3.0 == round/ceiling -$3.5
+		--assert -$2.0 == round/ceiling -$2.9
+		--assert -$1.0 == round/ceiling -$1.1
+		--assert +$2.0 == round/ceiling +$1.1
+		--assert +$3.0 == round/ceiling +$2.9
+		--assert +$4.0 == round/ceiling +$3.5
+		--assert error? try [round/ceiling max-money]
+		--assert -$99'999'999'999'999'999 == round/ceiling min-money
+
+	--test-- "round/half-ceil"
+		--assert true
+===end-group===
+
 ===start-group=== "sort"
 	--test-- "sort-1"
 		block:  [9 2.0 $4 5.0 $8 7 $3 6.0 2.0 $1 5]
