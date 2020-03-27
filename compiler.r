@@ -1757,7 +1757,7 @@ red: context [
 				money? [
 					emit 'money/push
 					value: to string! next value
-					emit value/4 = #"-"
+					emit pick [true false] value/4 = #"-"
 					emit any [all [value/1 = #"." 'null] copy/part value 3]
 					emit to-nibbles copy skip value 4
 				]
