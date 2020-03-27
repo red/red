@@ -101,6 +101,7 @@ money: context [
 		sign2   [integer!]
 		return: [integer!]
 	][
+		assert all [1 >= integer/abs sign1 1 >= integer/abs sign2]
 		sign1 + 1 << 4 or (sign2 + 1)
 	]
 	
@@ -115,6 +116,7 @@ money: context [
 		index: get-currency money
 		if zero? index [return none/push]			;-- generic currency
 		
+		;@@ TBD: check extra list also
 		block/rs-abs-at
 			as red-block! #get system/locale/currencies/base
 			index
@@ -198,7 +200,7 @@ money: context [
 		currency2: get-currency value2
 	
 		any [
-			zero? currency1						;-- 0: generic currency
+			zero? currency1							;-- 0: generic currency
 			zero? currency2
 			currency1 = currency2
 		]
@@ -239,9 +241,9 @@ money: context [
 	][
 		payload: as int-ptr! amount - 1
 		all [
-			(payload/1 and not FFh) = 0				;-- little-endian order
-			payload/2 = 0
-			payload/3 = 0
+			zero? (payload/1 and not FFh)			;-- little-endian order
+			zero? payload/2
+			zero? payload/3
 		]
 	]
 	
@@ -1210,9 +1212,9 @@ money: context [
 			loop count1 [
 				index3: index1 + index2 - delta
 			
-				digit1:  get-digit amount1 index2
+				digit1: get-digit amount1 index2
 				digit2: get-digit amount2 index1
-				digit3: get-digit product     index3
+				digit3: get-digit product index3
 				
 				result: digit1 * digit2 + digit3 + carry
 				carry:  result /  10
@@ -1408,7 +1410,7 @@ money: context [
 			TYPE_MONEY [0]
 			TYPE_INTEGER [
 				int: as red-integer! value2
-				value2:   from-integer int/value
+				value2: from-integer int/value
 			]
 			TYPE_FLOAT [
 				flt: as red-float! value2
