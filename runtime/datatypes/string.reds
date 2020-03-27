@@ -2073,6 +2073,7 @@ string: context [
 			flags	[integer!]
 			mult	[integer!]
 			offset	[integer!]
+			chk?	[logic!]
 	][
 		step: 1
 		s: GET_BUFFER(str)
@@ -2169,8 +2170,9 @@ string: context [
 				]
 			]
 		]
+		chk?: ownership/check as red-value! str words/_sort null str/head 0
 		_sort/qsort buffer len unit * step op flags cmp
-		ownership/check as red-value! str words/_sort null str/head 0
+		if chk? [ownership/check as red-value! str words/_sorted null str/head 0]
 		str
 	]
 
@@ -2202,6 +2204,7 @@ string: context [
 			type	  [integer!]
 			index	  [integer!]
 			tail?	  [logic!]
+			chk?	  [logic!]
 			action	  [red-word!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/insert"]]
@@ -2246,6 +2249,7 @@ string: context [
 			action: words/_insert
 			str/head
 		]
+		chk?: ownership/check as red-value! str action value index part
 		
 		while [not zero? cnt][							;-- /dup support
 			type: TYPE_OF(value)
@@ -2309,8 +2313,10 @@ string: context [
 			cnt: cnt - 1
 		]
 		if part < 0 [part: 1]							;-- ownership/check needs part >= 0
-		ownership/check as red-value! str action value index part
-		
+		if chk? [
+			action: either append? [words/_appended][words/_inserted]
+			ownership/check as red-value! str action value index part
+		]
 		either append? [str/head: 0][
 			added: added * dup-n
 			str/head: str/head + added
@@ -2338,6 +2344,7 @@ string: context [
 			unit2	[integer!]
 			head1	[byte-ptr!]
 			head2	[byte-ptr!]
+			chk? chk2? [logic!]
 	][
 		s1:    GET_BUFFER(str1)
 		unit1: GET_UNIT(s1)
@@ -2349,12 +2356,14 @@ string: context [
 		head2: (as byte-ptr! s2/offset) + (str2/head << (log-b unit2))
 		if head2 = as byte-ptr! s2/tail [return str1]				;-- early exit if nothing to swap
 
+		chk?:  ownership/check as red-value! str1 words/_swap null str1/head 1
+		chk2?: ownership/check as red-value! str2 words/_swap null str2/head 1
 		char1: get-char head1 unit1
 		char2: get-char head2 unit2
 		poke-char s1 head1 char2
 		poke-char s2 head2 char1
-		ownership/check as red-value! str1 words/_swap null str1/head 1
-		ownership/check as red-value! str2 words/_swap null str2/head 1
+		if chk?  [ownership/check as red-value! str1 words/_swaped null str1/head 1]
+		if chk2? [ownership/check as red-value! str2 words/_swaped null str2/head 1]
 		str1
 	]
 
@@ -2573,6 +2582,7 @@ string: context [
 			s		[series!]
 			unit	[integer!]
 			type	[integer!]
+			chk?	[logic!]
 	][
 		str: as red-string! _series/take as red-series! str part-arg deep? last?
 		s: GET_BUFFER(str)
@@ -2581,6 +2591,7 @@ string: context [
 			not OPTION?(part-arg)
 			1 = _series/get-length as red-series! str yes
 		][
+			chk?: ownership/check as red-value! str words/_take null str/head 0
 			unit: GET_UNIT(s)
 			type: TYPE_OF(str)
 			either type = TYPE_VECTOR [
@@ -2592,6 +2603,7 @@ string: context [
 				char/header: type
 				char/value:  get-char as byte-ptr! s/offset unit
 			]
+			if chk? [ownership/check as red-value! str words/_taken null str/head 0]
 		]
 		as red-value! str
 	]
@@ -2605,16 +2617,19 @@ string: context [
 		all?		[logic!]
 		with-arg	[red-value!]
 		return:		[red-series!]
+		/local
+			chk?	[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/trim"]]
 
+		chk?: ownership/check as red-value! str words/_trim null str/head 0
 		case [
 			any [all? OPTION?(with-arg)] [trim-with str with-arg]
 			auto? [--NOT_IMPLEMENTED--]
 			lines? [trim-lines str]
 			true  [trim-head-tail str head? tail?]
 		]
-		ownership/check as red-value! str words/_trim null str/head 0
+		if chk? [ownership/check as red-value! str words/_trimmed null str/head 0]
 		as red-series! str
 	]
 
