@@ -1075,6 +1075,7 @@ block: context [
 		return:	[red-value!]
 		/local
 			slot  [red-value!]
+			saved [red-block!]
 			s	  [series!]
 			hash? [logic!]
 			hash  [red-hash!]
@@ -1082,12 +1083,13 @@ block: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/put"]]
 
+		saved: blk
 		hash?: TYPE_OF(blk) = TYPE_HASH
 		hash: as red-hash! blk
 		blk: as red-block! find blk field null no case? no no null null no no no no
 		
 		either TYPE_OF(blk) = TYPE_NONE [
-			chk?: ownership/check as red-value! blk words/_put value rs-length? blk 1
+			chk?: ownership/check as red-value! saved words/_put value rs-length? saved 1
 			copy-cell field ALLOC_TAIL(blk)
 			value: copy-cell value ALLOC_TAIL(blk)
 			if hash? [

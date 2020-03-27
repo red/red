@@ -144,7 +144,7 @@ system: context [
 				no-return:			"block did not return a value"
 				throw-usage:		"invalid use of a thrown error value"
 				locked-word:		["protected word - cannot modify:" :arg1]
-				;protected:			"protected value or series - cannot modify"
+				protected:			"protected value or series - cannot modify"
 				;self-protected:	"cannot set/unset self - it is protected"
 				bad-bad:			[:arg1 "error:" :arg2]
 				bad-make-arg:		["cannot MAKE" :arg1 "from:" :arg2]
@@ -325,7 +325,28 @@ system: context [
 				USD UYU UZS	VES VND VUV WST CFA XAF XCD XOF CFP XPF YER ZAR ZMW
 			]
 			;-- User-provided currencies
-			extra: none
+			extra: []
+			
+			on-change*: func [word old new][			
+				set-quiet word old
+				cause-error 'script 'protected []
+			]
+			on-deep-change*: func [owner word target action new index part][		
+				if any [
+					word <> 'extra
+					not find [append appended] action
+					not word? :new
+					find base new
+					3 <> length? form new
+					all [
+						action = 'append
+						any [
+							find extra new
+							255 < ((length? base) + length? extra)	;-- limit index to 8-bit
+						]
+					]
+				][cause-error 'script 'protected []]
+			]
 		]
 	]
 	
