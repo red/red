@@ -1075,18 +1075,21 @@ block: context [
 		return:	[red-value!]
 		/local
 			slot  [red-value!]
+			saved [red-block!]
 			s	  [series!]
 			hash? [logic!]
 			hash  [red-hash!]
-			put?  [logic!]
+			put? chk? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/put"]]
 
+		saved: blk
 		hash?: TYPE_OF(blk) = TYPE_HASH
 		hash: as red-hash! blk
 		blk: as red-block! find blk field null no case? no no null null no no no no
 		
 		either TYPE_OF(blk) = TYPE_NONE [
+			chk?: ownership/check as red-value! saved words/_put value rs-length? saved 1
 			copy-cell field ALLOC_TAIL(blk)
 			value: copy-cell value ALLOC_TAIL(blk)
 			if hash? [
@@ -1096,6 +1099,7 @@ block: context [
 		][
 			s: GET_BUFFER(blk)
 			slot: s/offset + blk/head + 1
+			chk?: ownership/check as red-value! blk words/_put value blk/head + 1 1
 			either slot >= s/tail [
 				put?: yes
 				slot: alloc-tail s
@@ -1107,7 +1111,7 @@ block: context [
 				copy-cell value slot
 				if hash? [_hashtable/put hash/table slot]
 			]
-			ownership/check as red-value! blk words/_put slot blk/head + 1 1
+			ownership/check as red-value! blk words/_put-ed value blk/head + 1 1
 		]
 		value
 	]
@@ -1249,6 +1253,7 @@ block: context [
 			flags	[integer!]
 			offset	[integer!]
 			saved	[logic!]
+			chk?	[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/sort"]]
 
@@ -1328,6 +1333,7 @@ block: context [
 				]
 			]
 		]
+		chk?: ownership/check as red-value! blk words/_sort null blk/head 0
 		saved: collector/active?
 		collector/active?: no							;-- turn off GC
 		either stable? [
@@ -1336,7 +1342,7 @@ block: context [
 			_sort/qsort as byte-ptr! head len step * (size? red-value!) op flags cmp
 		]
 		collector/active?: saved
-		ownership/check as red-value! blk words/_sort null blk/head 0
+		if chk? [ownership/check as red-value! blk words/_sorted null blk/head 0]
 		blk
 	]
 		
@@ -1369,6 +1375,7 @@ block: context [
 			values?	[logic!]
 			tail?	[logic!]
 			hash?	[logic!]
+			chk?	[logic!]
 			action	[red-word!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/insert"]]
@@ -1437,7 +1444,8 @@ block: context [
 			action: words/_insert
 			h
 		]
-		
+		chk?: ownership/check as red-value! blk action value index part
+
 		unless tail? [									;TBD: process head? case separately
 			size: as-integer s/tail + slots - s/offset
 			if size > s/size [s: expand-series s size * 2]
@@ -1490,8 +1498,10 @@ block: context [
 				cell: cell + 1
 			]
 		]
-		ownership/check as red-value! blk action value index part
-		
+		if chk? [
+			action: either append? [words/_appended][words/_inserted]
+			ownership/check as red-value! blk action value index part
+		]
 		either append? [blk/head: 0][
 			blk/head: h + slots
 			s: GET_BUFFER(blk)
@@ -1558,6 +1568,7 @@ block: context [
 			type2	[integer!]
 			hash	[red-hash!]
 			table	[node!]
+			chk? chk2? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/swap"]]
 
@@ -1575,6 +1586,9 @@ block: context [
 		s: GET_BUFFER(blk2)
 		h2: as int-ptr! s/offset + blk2/head
 		if s/tail = as red-value! h2 [return blk1]		;-- early exit if nothing to swap
+
+		chk?:  ownership/check as red-value! blk1 words/_swap null blk1/head 1
+		chk2?: ownership/check as red-value! blk2 words/_swap null blk2/head 1
 
 		i: 0
 		until [
@@ -1599,8 +1613,8 @@ block: context [
 			_hashtable/delete hash/table as red-value! h2
 			_hashtable/put hash/table as red-value! h2
 		]
-		ownership/check as red-value! blk1 words/_swap null blk1/head 1
-		ownership/check as red-value! blk2 words/_swap null blk2/head 1
+		if chk?  [ownership/check as red-value! blk1 words/_swaped null blk1/head 1]
+		if chk2? [ownership/check as red-value! blk2 words/_swaped null blk2/head 1]
 		blk1
 	]
 
@@ -1617,9 +1631,11 @@ block: context [
 			s		[series!]
 			value	[red-value!]
 			cur		[red-value!]
+			chk?	[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/trim"]]
 
+		chk?: ownership/check as red-value! blk words/_trim null blk/head 0
 		s: GET_BUFFER(blk)
 		value: s/offset + blk/head
 		cur: value
@@ -1632,7 +1648,7 @@ block: context [
 			value: value + 1
 		]
 		s/tail: cur
-		ownership/check as red-value! blk words/_trim null blk/head 0
+		if chk? [ownership/check as red-value! blk words/_trimmed null blk/head 0]
 		as red-series! blk
 	]
 

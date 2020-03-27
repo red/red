@@ -106,6 +106,7 @@ _series: context [
 			temp [byte-ptr!]
 			idx	 [byte-ptr!]
 			head [byte-ptr!]
+			chk? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "series/random"]]
 
@@ -116,6 +117,7 @@ _series: context [
 			unit: GET_UNIT(s)
 			head: (as byte-ptr! s/offset) + (ser/head << (log-b unit))
 			size: (as-integer s/tail - s/offset) >> (log-b unit) - ser/head
+			chk?: ownership/check as red-value! ser words/_random null ser/head size
 
 			either only? [
 				either positive? size [
@@ -157,7 +159,7 @@ _series: context [
 					head: head + unit
 					size: size - 1
 				]
-				ownership/check as red-value! ser words/_random null ser/head len
+				if chk? [ownership/check as red-value! ser words/_randomized null ser/head len]
 			]
 		]
 		as red-value! ser
@@ -744,6 +746,7 @@ _series: context [
 			pos	   [byte-ptr!]
 			unit   [integer!]
 			char   [red-char!]
+			chk?   [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "series/poke"]]
 
@@ -763,6 +766,7 @@ _series: context [
 				integer/push index
 			]
 		][
+			chk?: ownership/check as red-value! ser words/_poke data offset 1
 			pos: (as byte-ptr! s/offset) + (offset << (log-b unit))
 			switch TYPE_OF(ser) [
 				TYPE_BLOCK								;@@ any-block?
@@ -789,7 +793,7 @@ _series: context [
 					string/poke-char s pos char/value
 				]
 			]
-			ownership/check as red-value! ser words/_poke data offset 1
+			if chk? [ownership/check as red-value! ser words/_poked data offset 1]
 			stack/set-last data
 		]
 		data
@@ -887,6 +891,7 @@ _series: context [
 			hash?	[logic!]
 			hash	[red-hash!]
 			table	[node!]
+			chk?	[logic!]
 	][
 		s:    GET_BUFFER(ser)
 		unit: GET_UNIT(s)
@@ -922,6 +927,7 @@ _series: context [
 			hash: as red-hash! ser
 			table: hash/table
 		]
+		chk?: ownership/check as red-value! ser words/_reverse null ser/head items
 		if all [positive? part head + part < tail] [tail: head + part]
 		tail: tail - unit								;-- point to last value
 		temp: as byte-ptr! :val
@@ -938,7 +944,7 @@ _series: context [
 			head: head + unit
 			tail: tail - unit
 		]
-		ownership/check as red-value! ser words/_reverse null ser/head items
+		if chk? [ownership/check as red-value! ser words/_reversed null ser/head items]
 		ser
 	]
 
@@ -1066,7 +1072,10 @@ _series: context [
 			unit2	[integer!]
 			head1	[byte-ptr!]
 			head2	[byte-ptr!]
+			chk? chk2? [logic!]
 	][
+		chk?:  ownership/check as red-value! ser1 words/_swap null ser1/head 1
+		chk2?: ownership/check as red-value! ser2 words/_swap null ser2/head 1
 		s1:    GET_BUFFER(ser1)
 		unit1: GET_UNIT(s1)
 		head1: (as byte-ptr! s1/offset) + (ser1/head << (log-b unit1))
@@ -1081,8 +1090,8 @@ _series: context [
 		char2: string/get-char head2 unit2
 		string/poke-char s1 head1 char2
 		string/poke-char s2 head2 char1
-		;ownership/check as red-value! ser1 words/_remove null offset part
-		;ownership/check as red-value! ser2 words/_remove null offset part
+		if chk?  [ownership/check as red-value! ser1 words/_swaped null ser1/head 1]
+		if chk2? [ownership/check as red-value! ser2 words/_swaped null ser2/head 1]
 		ser1
 	]
 
