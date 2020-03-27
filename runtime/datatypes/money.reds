@@ -35,7 +35,9 @@ money: context [
 	SIGN_MASK:   4000h								;-- used to get/set sign bit in the header
 	SIGN_OFFSET: 14
 	
-	MAX_FRACTIONAL: as integer! (pow 10.0 as float! SIZE_SCALE) - 1.0
+	KEEP_FRACTIONAL: FFFF0F00h						;-- used to extract fractional part (little-endian order)
+	MAX_FRACTIONAL:  as integer! (pow 10.0 as float! SIZE_SCALE) - 1.0
+	
 	INT32_MAX_DIGITS: 10
 	INT32_MIN_AMOUNT: #{00000002147483648FFFFF}		;-- 0xF > 0x9, used to subvert comparison
 	INT32_MAX_AMOUNT: #{00000002147483647FFFFF}
@@ -1434,7 +1436,65 @@ money: context [
 		
 		SET_RETURN(result)							;-- swapped arguments
 	]
-		
+	
+	;-- Rounding --
+	
+	fraction?: func [
+		money   [red-money!]
+		return: [logic!]
+	][
+		as logic! money/amount3 and KEEP_FRACTIONAL
+	]
+	
+	truncate: func [
+		money   [red-money!]
+		return: [red-money!]
+	][
+		money/amount3: money/amount3 and not KEEP_FRACTIONAL
+		money
+	]
+	
+	floor: func [
+		money   [red-money!]
+		return: [red-money!]
+		/local
+			delta [red-money!]
+	][
+		switch sign? money [
+			+1 [truncate money]
+			00 [money]
+			-1 [
+				delta: from-integer as integer! fraction? money
+				subtract-money truncate money delta
+			]
+		]
+	]
+	
+	ceil: func [
+		money   [red-money!]
+		return: [red-money!]
+		/local
+			delta [red-money!]
+	][
+		switch sign? money [
+			-1 [truncate money]
+			00 [money]
+			+1 [
+				delta: from-integer as integer! fraction? money
+				add-money truncate money delta
+			]
+		]
+	]
+	
+	away: func [
+		money   [red-money!]
+		return: [red-money!]
+	][
+		truncate set-sign
+			add-money absolute-money money from-float 0.5
+			get-sign money
+	]
+	
 	;-- Actions --
 	
 	make: func [
@@ -1609,8 +1669,16 @@ money: context [
 		return:    [red-money!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "money/round"]]
-		--NOT_IMPLEMENTED--
-		value
+		
+		case [
+			_even?     [--NOT_IMPLEMENTED-- value]
+			down?      [truncate value]
+			half-down? [--NOT_IMPLEMENTED-- value]
+			floor?     [floor value]
+			ceil?      [ceil value]
+			half-ceil? [--NOT_IMPLEMENTED-- value]
+			true       [away value]
+		]
 	]
 	
 	even?: func [
