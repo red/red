@@ -227,13 +227,6 @@ binary: context [
 		]
 	]
 	
-	from-money: func [
-		mn      [red-money!]
-		return: [red-binary!]
-	][
-		money/to-binary mn
-	]
-
 	from-issue: func [
 		issue	[red-word!]
 		bin		[red-binary!]
@@ -1009,9 +1002,6 @@ binary: context [
 				len: -1
 				p: as byte-ptr! unicode/to-utf8 as red-string! spec :len
 				proto: load p len
-			]
-			TYPE_MONEY [
-				proto: from-money as red-money! spec
 			]
 			TYPE_INTEGER [
 				int: as red-integer! spec

@@ -1507,10 +1507,9 @@ money: context [
 		#if debug? = yes [if verbose > 0 [print-line "money/make"]]
 	
 		switch TYPE_OF(spec) [
-			TYPE_WORD   [from-word as red-word! spec]
-			TYPE_BLOCK  [from-block as red-block! spec]
-			TYPE_BINARY [from-binary as red-binary! spec]
-			default     [to proto spec type]
+			TYPE_WORD  [from-word as red-word! spec]
+			TYPE_BLOCK [from-block as red-block! spec]
+			default    [to proto spec type]
 		]
 	]
 
