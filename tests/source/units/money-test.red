@@ -203,12 +203,15 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "make-3"  --assert error? try [make money! [CCC 1 2 3]]
 	--test-- "make-4"  --assert error? try [make money! [0 123456]]
 	--test-- "make-5"  --assert -$123.00456 == make money! [-123 456]
-	--test-- "make-6"  --assert -USD$123 == make money! [USD -123]
-	--test-- "make-7"  --assert -EUR$123 == make money! [EUR -123 0]
-	--test-- "make-8"  --assert "-EUR$456.78900" == mold/all make money! [EUR -456 78900]
-	--test-- "make-9"  --assert "USD$0.00000" == mold/all make money! 'usd
-	--test-- "make-10" --assert "EUR$0.00000" == mold/all make money! 'EUR
-	--test-- "make-11" --assert error? try [make money! 'foo]
+	--test-- "make-6"  --assert -$123.456 == make money! [-123.456]
+	--test-- "make-7"  --assert "-EUR$123.45600" == mold/all make money! [EUR -123.456]
+	--test-- "make-8"  --assert "-USD$123.00000" == mold/all make money! [USD -123]
+	--test-- "make-9"  --assert "-EUR$123.00000" == mold/all make money! [EUR -123 0]
+	--test-- "make-10" --assert "-EUR$456.78900" == mold/all make money! [EUR -456 78900]
+	--test-- "make-11" --assert "USD$0.00000" == mold/all make money! 'usd
+	--test-- "make-12" --assert "EUR$0.00000" == mold/all make money! 'EUR
+	--test-- "make-13" --assert error? try [make money! 'foo]
+	--test-- "make-14" --assert error? try [make money! [123.45 6789]]
 ===end-group===
 
 ===start-group=== "form/mold"

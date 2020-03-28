@@ -814,6 +814,7 @@ money: context [
 			money fraction [red-money!]
 			wrd            [red-word!]
 			int            [red-integer!]
+			flt            [red-float!]
 			head tail here [red-value!]
 			currency state [integer!]
 			type length    [integer!]
@@ -835,6 +836,7 @@ money: context [
 				S_START [
 					switch type [
 						TYPE_WORD    [state: S_CURRENCY]
+						TYPE_FLOAT
 						TYPE_INTEGER [state: S_INTEGRAL]
 						default      [bail]
 					]
@@ -848,12 +850,22 @@ money: context [
 					state: S_INTEGRAL
 				]
 				S_INTEGRAL [
-					either type <> TYPE_INTEGER [bail][
-						int: as red-integer! here
-						money: from-integer int/value
+					switch type [
+						TYPE_INTEGER [
+							int: as red-integer! here
+							money: from-integer int/value
+						]
+						TYPE_FLOAT [
+							flt: as red-float! here
+							money: from-float flt/value
+						]
+						default [bail]
 					]
 					here: here + 1
-					state: either here = tail [S_END][S_FRACTIONAL]
+					state: either here = tail [S_END][
+						if type = TYPE_FLOAT [bail]
+						S_FRACTIONAL
+					]
 				]
 				S_FRACTIONAL [
 					either type <> TYPE_INTEGER [bail][
