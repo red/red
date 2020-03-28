@@ -35,6 +35,7 @@ money: context [
 	SIGN_MASK:   4000h								;-- used to get/set sign bit in the header
 	SIGN_OFFSET: 14
 	
+	HALF_FRACTIONAL: 00000500h						;-- used for tie-breaking in round (little-endian order)
 	KEEP_FRACTIONAL: FFFF0F00h						;-- used to extract fractional part (little-endian order)
 	MAX_FRACTIONAL:  as integer! (pow 10.0 as float! SIZE_SCALE) - 1.0
 	
@@ -783,7 +784,7 @@ money: context [
 		end:   as byte-ptr! formed + length? formed
 		
 		money: make-at stack/push* sign null start point end
-		if all [0.0 <> flt zero? sign? money][MONEY_OVERFLOW]	;-- underflow on too small float value
+		if all [0.0 <> flt zero-money? money][MONEY_OVERFLOW]	;-- underflow on too small float value
 		money
 	]
 	
@@ -1342,7 +1343,7 @@ money: context [
 				quotient: quotient + SIZE_SBYTES - SIZE_BYTES
 				amount1: hold
 			]
-			if zero-amount? quotient [MONEY_OVERFLOW]				;-- got zero quotient from non-zero value1
+			if zero-amount? quotient [MONEY_OVERFLOW]				;-- got zero quotient from non-zero divisor
 			unless zero? get-digit buffer overflow [MONEY_OVERFLOW] ;-- overflowed into most-significant digit
 			set-amount value1 quotient
 		]
@@ -1526,7 +1527,7 @@ money: context [
 		
 		switch TYPE_OF(spec) [
 			TYPE_MONEY [
-				return as red-money! spec
+				as red-money! spec
 			]
 			TYPE_INTEGER [
 				integer: as red-integer! spec
@@ -1666,19 +1667,26 @@ money: context [
 		floor?     [logic!]
 		ceil?      [logic!]
 		half-ceil? [logic!]
-		return:    [red-money!]
+		return:    [red-value!]
+		/local
+			half?  [subroutine!]
+			result [red-money!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "money/round"]]
 		
-		case [
-			_even?     [--NOT_IMPLEMENTED-- value]
+		half?: [value/amount3 and KEEP_FRACTIONAL = HALF_FRACTIONAL]
+		
+		result: case [
+			_even?     [either all [half? even? value][truncate value][away value]]
 			down?      [truncate value]
-			half-down? [--NOT_IMPLEMENTED-- value]
+			half-down? [either half? [truncate value][away value]]
 			floor?     [floor value]
 			ceil?      [ceil value]
-			half-ceil? [--NOT_IMPLEMENTED-- value]
+			half-ceil? [either half? [ceil value][away value]]
 			true       [away value]
 		]
+		
+		SET_RETURN(result)							;-- rounded value might not be in the frame base slot
 	]
 	
 	even?: func [
