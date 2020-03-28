@@ -620,8 +620,6 @@ money: context [
 	
 	accessor!: alias function! [money [red-money!] return: [red-value!]]
 	
-	accessors: [:get-currency-from :get-amount-from]
-	
 	resolve-accessor: func [
 		word    [red-word!]
 		return: [integer!]
@@ -1726,8 +1724,12 @@ money: context [
 			default      [0]
 		]
 		
-		unless all [index > 0 index <= size? accessors][fire [TO_ERROR(script invalid-path) path element]]
-		access: as accessor! accessors/index
+		access: as accessor! switch index [
+			1 [:get-currency-from]
+			2 [:get-amount-from]
+			default [fire [TO_ERROR(script invalid-path) path element]]
+		]
+		
 		access money
 	]
 	
@@ -1745,8 +1747,12 @@ money: context [
 			default      [0]
 		]
 		
-		unless all [index > 0 index <= size? accessors][fire [TO_ERROR(script out-of-range) boxed]]
-		access: as accessor! accessors/index
+		access: as accessor! switch index [
+			1 [:get-currency-from]
+			2 [:get-amount-from]
+			default [fire [TO_ERROR(script out-of-range) boxed]]
+		]
+		
 		access money
 	]
 	
