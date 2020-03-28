@@ -507,16 +507,28 @@ money: context [
 	]
 	
 	make-in: func [
-		parent   [red-block!]
-		sign     [logic!]
-		currency [byte-ptr!]
-		start    [byte-ptr!]
-		point    [byte-ptr!]
-		end      [byte-ptr!]
+		slot     [red-value!]
+		sign     [logic!]							;-- yes: negative
+		currency [c-string!]						;-- null if generic currency, otherwise 3 bytes
+		amount   [byte-ptr!]						;-- always SIZE_BYTES bytes
 		return:  [red-money!]
+		/local
+			money [red-money!]
+			index [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "money/make-in"]]
-		make-at ALLOC_TAIL(parent) sign currency start point end	;@@ can return null
+		
+		money: as red-money! slot
+		money/header: TYPE_MONEY
+		
+		set-sign money as integer! sign
+		set-amount money amount
+		
+		;@@ TBD: assuming currency code is valid
+		index: either null? currency [0][get-index symbol/make currency]
+		set-currency money index
+		
+		money
 	]
 	
 	push: func [
@@ -524,23 +536,9 @@ money: context [
 		currency [c-string!]						;-- null if generic currency, otherwise 3-letter string
 		amount   [c-string!]						;-- always SIZE_BYTES bytes
 		return:  [red-money!]
-		/local
-			money [red-money!]
-			index [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "money/push"]]
-		
-		money: as red-money! stack/push*
-		money/header: TYPE_MONEY
-		
-		set-sign money as integer! sign
-		set-amount money as byte-ptr! amount
-		
-		;@@ TBD: assuming currency code is valid
-		index: either null? currency [0][get-index symbol/make currency]
-		set-currency money index
-		
-		money
+		make-in stack/push* sign currency as byte-ptr! amount
 	]
 	
 	form-money: func [

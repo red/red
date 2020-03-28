@@ -325,6 +325,26 @@ redbin: context [
 		tuple/array3: data/4
 		data + 4
 	]
+	
+	decode-money: func [
+		data	[int-ptr!]
+		parent	[red-block!]
+		nl?		[logic!]
+		return: [int-ptr!]
+		/local
+			slot  [red-money!]
+			cur p [byte-ptr!]
+			neg?  [logic!]
+	][
+		neg?: data/1 and 0Eh <> 0
+		cur: as byte-ptr! data + 1
+		if cur/1 = #"." [cur: null]
+		p: as byte-ptr! data + 2
+		p: p + 1										;-- skip padding byte
+		slot: money/make-in ALLOC_TAIL(parent) neg? as-c-string cur p
+		if nl? [slot/header: slot/header or flag-new-line]
+		data + 5
+	]
 
 	decode-value: func [
 		data	[int-ptr!]
@@ -414,6 +434,7 @@ redbin: context [
 			TYPE_ACTION
 			TYPE_OP			[decode-native data table parent nl?]
 			TYPE_TUPLE		[decode-tuple data parent nl?]
+			TYPE_MONEY		[decode-money data parent nl?]
 			REDBIN_PADDING	[
 				decode-value data + 1 table parent
 			]
