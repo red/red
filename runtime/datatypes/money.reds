@@ -459,9 +459,7 @@ money: context [
 		
 		;-- currency code
 		unless null? currency [
-			str: "..."								;-- 3 letters
-			copy-memory as byte-ptr! str currency 3
-			index: get-index symbol/make str
+			index: get-index symbol/make-alt-utf8 currency 3
 			if negative? index [return null]		;-- throw it back to lexer for proper error reporting
 			set-currency money index
 		]
