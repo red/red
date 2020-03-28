@@ -1445,7 +1445,7 @@ money: context [
 		as logic! money/amount3 and KEEP_FRACTIONAL
 	]
 	
-	truncate: func [
+	truncate-money: func [
 		money   [red-money!]
 		return: [red-money!]
 	][
@@ -1453,43 +1453,43 @@ money: context [
 		money
 	]
 	
-	floor: func [
+	floor-money: func [
 		money   [red-money!]
 		return: [red-money!]
 		/local
 			delta [red-money!]
 	][
 		switch sign? money [
-			+1 [truncate money]
+			+1 [truncate-money money]
 			00 [money]
 			-1 [
 				delta: from-integer as integer! fraction? money
-				subtract-money truncate money delta
+				subtract-money truncate-money money delta
 			]
 		]
 	]
 	
-	ceil: func [
+	ceil-money: func [
 		money   [red-money!]
 		return: [red-money!]
 		/local
 			delta [red-money!]
 	][
 		switch sign? money [
-			-1 [truncate money]
+			-1 [truncate-money money]
 			00 [money]
 			+1 [
 				delta: from-integer as integer! fraction? money
-				add-money truncate money delta
+				add-money truncate-money money delta
 			]
 		]
 	]
 	
-	away: func [
+	away-money: func [
 		money   [red-money!]
 		return: [red-money!]
 	][
-		truncate set-sign
+		truncate-money set-sign
 			add-money absolute-money money from-float 0.5
 			get-sign money
 	]
@@ -1674,13 +1674,13 @@ money: context [
 		half?: [value/amount3 and KEEP_FRACTIONAL = HALF_FRACTIONAL]
 		
 		result: case [
-			_even?     [either all [half? even? value][truncate value][away value]]
-			down?      [truncate value]
-			half-down? [either half? [truncate value][away value]]
-			floor?     [floor value]
-			ceil?      [ceil value]
-			half-ceil? [either half? [ceil value][away value]]
-			true       [away value]
+			_even?     [either all [half? even? value][truncate-money value][away-money value]]
+			down?      [truncate-money value]
+			half-down? [either half? [truncate-money value][away-money value]]
+			floor?     [floor-money value]
+			ceil?      [ceil-money value]
+			half-ceil? [either half? [ceil-money value][away-money value]]
+			true       [away-money value]
 		]
 		
 		SET_RETURN(result)							;-- rounded value might not be in the frame base slot
