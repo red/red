@@ -373,12 +373,21 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	max-money: +$99'999'999'999'999'999.9999
 	min-money: -$99'999'999'999'999'999.9999
 	
-	--test-- "round"								;-- away from zero
-		--assert +$0.0 == round +$0.0
+	--test-- "round"
 		--assert -$4.0 == round -$3.5
 		--assert -$3.0 == round -$2.9
+		--assert -$3.0 == round -$2.5
+		--assert -$2.0 == round -$1.9
 		--assert -$1.0 == round -$1.1
+		--assert -$1.0 == round -$0.5
+		--assert -$0.0 == round -$0.1
+		--assert -$0.0 == round -$0.0
+		--assert +$0.0 == round +$0.0
+		--assert +$0.0 == round +$0.1
+		--assert +$1.0 == round +$0.5
 		--assert +$1.0 == round +$1.1
+		--assert +$2.0 == round +$1.9
+		--assert +$3.0 == round +$2.5
 		--assert +$3.0 == round +$2.9
 		--assert +$4.0 == round +$3.5
 		--assert error? try [round max-money]
@@ -388,46 +397,124 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 		--assert true
 
 	--test-- "round/even"
-		--assert true
+		--assert -$4.0 == round/even -$3.5
+		--assert -$3.0 == round/even -$2.9
+		--assert -$2.0 == round/even -$2.5
+		--assert -$2.0 == round/even -$1.9
+		--assert -$1.0 == round/even -$1.1
+		--assert -$0.0 == round/even -$0.5
+		--assert -$0.0 == round/even -$0.1
+		--assert -$0.0 == round/even -$0.0
+		--assert +$0.0 == round/even +$0.0
+		--assert +$0.0 == round/even +$0.1
+		--assert +$0.0 == round/even +$0.5
+		--assert +$1.0 == round/even +$1.1
+		--assert +$2.0 == round/even +$1.9
+		--assert +$2.0 == round/even +$2.5
+		--assert +$3.0 == round/even +$2.9
+		--assert +$4.0 == round/even +$3.5
+		--assert error? try [round/even max-money]
+		--assert error? try [round/even min-money]
 
-	--test-- "round/down"							;-- truncation
-		--assert +$0.0 == round/down +$0.0
+	--test-- "round/down"
 		--assert -$3.0 == round/down -$3.5
 		--assert -$2.0 == round/down -$2.9
+		--assert -$2.0 == round/down -$2.5
+		--assert -$1.0 == round/down -$1.9
 		--assert -$1.0 == round/down -$1.1
+		--assert -$0.0 == round/down -$0.5
+		--assert -$0.0 == round/down -$0.1
+		--assert -$0.0 == round/down -$0.0
+		--assert +$0.0 == round/down +$0.0
+		--assert +$0.0 == round/down +$0.1
+		--assert +$0.0 == round/down +$0.5
 		--assert +$1.0 == round/down +$1.1
+		--assert +$1.0 == round/down +$1.9
+		--assert +$2.0 == round/down +$2.5
 		--assert +$2.0 == round/down +$2.9
 		--assert +$3.0 == round/down +$3.5
 		--assert +$99'999'999'999'999'999 == round/down max-money
 		--assert -$99'999'999'999'999'999 == round/down min-money
 	
-	--test-- "round/half-down"	
-		--assert true
+	--test-- "round/half-down"
+		--assert -$3.0 == round/half-down -$3.5
+		--assert -$3.0 == round/half-down -$2.9
+		--assert -$2.0 == round/half-down -$2.5
+		--assert -$2.0 == round/half-down -$1.9
+		--assert -$1.0 == round/half-down -$1.1
+		--assert -$0.0 == round/half-down -$0.5
+		--assert -$0.0 == round/half-down -$0.1
+		--assert -$0.0 == round/half-down -$0.0
+		--assert +$0.0 == round/half-down +$0.0
+		--assert +$0.0 == round/half-down +$0.1
+		--assert +$0.0 == round/half-down +$0.5
+		--assert +$1.0 == round/half-down +$1.1
+		--assert +$2.0 == round/half-down +$1.9
+		--assert +$2.0 == round/half-down +$2.5
+		--assert +$3.0 == round/half-down +$2.9
+		--assert +$3.0 == round/half-down +$3.5
+		--assert error? try [round/half-down max-money]
+		--assert error? try [round/half-down min-money]
 	
-	--test-- "round/floor"							;-- towards negative infinity
-		--assert +$0.0 == round/floor +$0.0
+	--test-- "round/floor"
 		--assert -$4.0 == round/floor -$3.5
 		--assert -$3.0 == round/floor -$2.9
+		--assert -$3.0 == round/floor -$2.5
+		--assert -$2.0 == round/floor -$1.9
 		--assert -$2.0 == round/floor -$1.1
+		--assert -$1.0 == round/floor -$0.5
+		--assert -$1.0 == round/floor -$0.1
+		--assert -$0.0 == round/floor -$0.0
+		--assert +$0.0 == round/floor +$0.0
+		--assert +$0.0 == round/floor +$0.1
+		--assert +$0.0 == round/floor +$0.5
 		--assert +$1.0 == round/floor +$1.1
+		--assert +$1.0 == round/floor +$1.9
+		--assert +$2.0 == round/floor +$2.5
 		--assert +$2.0 == round/floor +$2.9
 		--assert +$3.0 == round/floor +$3.5
 		--assert +$99'999'999'999'999'999 == round/floor max-money
 		--assert error? try [round/floor min-money]
 	
-	--test-- "round/ceil"							;-- towards positive infinity
-		--assert +$0.0 == round/ceiling +$0.0
+	--test-- "round/ceiling"
 		--assert -$3.0 == round/ceiling -$3.5
 		--assert -$2.0 == round/ceiling -$2.9
+		--assert -$2.0 == round/ceiling -$2.5
+		--assert -$1.0 == round/ceiling -$1.9
 		--assert -$1.0 == round/ceiling -$1.1
+		--assert -$0.0 == round/ceiling -$0.5
+		--assert -$0.0 == round/ceiling -$0.1
+		--assert -$0.0 == round/ceiling -$0.0
+		--assert +$0.0 == round/ceiling +$0.0
+		--assert +$1.0 == round/ceiling +$0.1
+		--assert +$1.0 == round/ceiling +$0.5
 		--assert +$2.0 == round/ceiling +$1.1
+		--assert +$2.0 == round/ceiling +$1.9
+		--assert +$3.0 == round/ceiling +$2.5
 		--assert +$3.0 == round/ceiling +$2.9
 		--assert +$4.0 == round/ceiling +$3.5
 		--assert error? try [round/ceiling max-money]
 		--assert -$99'999'999'999'999'999 == round/ceiling min-money
 
-	--test-- "round/half-ceil"
-		--assert true
+	--test-- "round/half-ceiling"
+		--assert -$3.0 == round/half-ceiling -$3.5
+		--assert -$3.0 == round/half-ceiling -$2.9
+		--assert -$2.0 == round/half-ceiling -$2.5
+		--assert -$2.0 == round/half-ceiling -$1.9
+		--assert -$1.0 == round/half-ceiling -$1.1
+		--assert -$0.0 == round/half-ceiling -$0.5
+		--assert -$0.0 == round/half-ceiling -$0.1
+		--assert -$0.0 == round/half-ceiling -$0.0
+		--assert +$0.0 == round/half-ceiling +$0.0
+		--assert +$0.0 == round/half-ceiling +$0.1
+		--assert +$1.0 == round/half-ceiling +$0.5
+		--assert +$1.0 == round/half-ceiling +$1.1
+		--assert +$2.0 == round/half-ceiling +$1.9
+		--assert +$3.0 == round/half-ceiling +$2.5
+		--assert +$3.0 == round/half-ceiling +$2.9
+		--assert +$4.0 == round/half-ceiling +$3.5
+		--assert error? try [round/half-ceiling max-money]
+		--assert error? try [round/half-ceiling min-money]
 ===end-group===
 
 ===start-group=== "sort"
