@@ -500,29 +500,40 @@ money: context [
 		
 		money
 	]
-		
-	push: func [
+	
+	make-in: func [
+		slot     [red-value!]
 		sign     [logic!]							;-- yes: negative
 		currency [c-string!]						;-- null if generic currency, otherwise 3 bytes
-		amount   [c-string!]						;-- always SIZE_BYTES bytes
+		amount   [byte-ptr!]						;-- always SIZE_BYTES bytes
 		return:  [red-money!]
 		/local
 			money [red-money!]
 			index [integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "money/push"]]
+		#if debug? = yes [if verbose > 0 [print-line "money/make-in"]]
 		
-		money: as red-money! stack/push*
+		money: as red-money! slot
 		money/header: TYPE_MONEY
 		
 		set-sign money as integer! sign
-		set-amount money as byte-ptr! amount
+		set-amount money amount
 		
 		;@@ TBD: assuming currency code is valid
-		index: either null? currency [0][get-index symbol/make-alt-utf8 as byte-ptr! currency 3]
+		index: either null? currency [0][get-index symbol/make currency]
 		set-currency money index
 		
 		money
+	]
+	
+	push: func [
+		sign     [logic!]							;-- yes: negative
+		currency [c-string!]						;-- null if generic currency, otherwise 3-letter string
+		amount   [c-string!]						;-- always SIZE_BYTES bytes
+		return:  [red-money!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "money/push"]]
+		make-in stack/push* sign currency as byte-ptr! amount
 	]
 	
 	form-money: func [
