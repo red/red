@@ -114,15 +114,10 @@ money: context [
 		money   [red-money!]
 		return: [red-value!]						;-- word or none
 		/local
-			list  [red-series!]
 			index [integer!]
 	][
 		index: get-currency money
-		if zero? index [return none/push]			;-- generic currency
-		
-		;@@ TBD: check extra list also
-		list: as red-series! #get system/locale/currencies/base
-		_series/pick list index as red-value! money
+		either zero? index [none/push][as red-value! get-symbol index]
 	]
 	
 	get-currency: func [
@@ -178,7 +173,7 @@ money: context [
 		
 	get-symbol: func [
 		index   [integer!]
-		return: [integer!]
+		return: [red-word!]
 		/local
 			list [red-series!]
 			word [red-word!]
@@ -189,7 +184,7 @@ money: context [
 		word: as red-word! _series/pick list index as red-value! list
 		
 		;@@ TBD: walk over extra list also
-		symbol/resolve word/symbol
+		word
 	]
 	
 	same-currencies?: func [
@@ -546,7 +541,6 @@ money: context [
 		return: [integer!]
 		/local
 			fill        [subroutine!]
-			sym         [red-string!]
 			after       [red-integer!]
 			amount      [byte-ptr!]
 			sign count  [integer!]
@@ -564,9 +558,8 @@ money: context [
 		;-- currency code
 		index: get-currency money
 		unless zero? index [						;-- generic currency
-			sym: as red-string! symbol/get get-symbol index
-			string/concatenate buffer sym -1 0 yes no
-			part: part - string/rs-length? sym
+			word/form get-symbol index buffer stack/arguments part
+			part: part - 3
 		]
 		
 		string/concatenate-literal buffer "$"
