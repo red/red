@@ -1435,64 +1435,6 @@ money: context [
 		SET_RETURN(result)							;-- swapped arguments
 	]
 	
-	;-- Rounding --
-	
-	fraction?: func [
-		money   [red-money!]
-		return: [logic!]
-	][
-		as logic! money/amount3 and KEEP_FRACTIONAL
-	]
-	
-	truncate-money: func [
-		money   [red-money!]
-		return: [red-money!]
-	][
-		money/amount3: money/amount3 and not KEEP_FRACTIONAL
-		money
-	]
-	
-	floor-money: func [
-		money   [red-money!]
-		return: [red-money!]
-		/local
-			delta [red-money!]
-	][
-		switch sign? money [
-			+1 [truncate-money money]
-			00 [money]
-			-1 [
-				delta: from-integer as integer! fraction? money
-				subtract-money truncate-money money delta
-			]
-		]
-	]
-	
-	ceil-money: func [
-		money   [red-money!]
-		return: [red-money!]
-		/local
-			delta [red-money!]
-	][
-		switch sign? money [
-			-1 [truncate-money money]
-			00 [money]
-			+1 [
-				delta: from-integer as integer! fraction? money
-				add-money truncate-money money delta
-			]
-		]
-	]
-	
-	away-money: func [
-		money   [red-money!]
-		return: [red-money!]
-	][
-		truncate-money set-sign
-			add-money absolute-money money from-float 0.5
-			get-sign money
-	]
-	
 	;-- Actions --
 	
 	make: func [
@@ -1656,33 +1598,65 @@ money: context [
 	
 	round: func [
 		value      [red-money!]
-		scale      [red-float!]
+		_scale     [red-float!]
 		_even?     [logic!]
 		down?      [logic!]
 		half-down? [logic!]
 		floor?     [logic!]
 		ceil?      [logic!]
 		half-ceil? [logic!]
-		return:    [red-value!]
+		return:    [red-money!]
 		/local
-			half?  [subroutine!]
-			result [red-money!]
+			up down           [subroutine!]
+			away ceil floor   [subroutine!]
+			scale lower upper [red-money!]
+			int               [red-integer!]
+			sign type         [integer!]
+			half?             [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "money/round"]]
 		
-		half?: [value/amount3 and KEEP_FRACTIONAL = HALF_FRACTIONAL]
+		sign: sign? value
+		if zero? sign [return value]
 		
-		result: case [
-			_even?     [either all [half? even? value][truncate-money value][away-money value]]
-			down?      [truncate-money value]
-			half-down? [either half? [truncate-money value][away-money value]]
-			floor?     [floor-money value]
-			ceil?      [ceil-money value]
-			half-ceil? [either half? [ceil-money value][away-money value]]
-			true       [away-money value]
+		scale: absolute-money either not OPTION?(_scale) [from-integer 1][
+			type: TYPE_OF(_scale)
+			switch type [
+				TYPE_MONEY   [as red-money! _scale]
+				TYPE_INTEGER [int: as red-integer! _scale from-integer int/value]
+				TYPE_FLOAT   [from-float _scale/value]
+				default [
+					fire [TO_ERROR(script not-related) stack/get-call datatype/push type]
+					value							;-- pass compiler's type checking
+				]
+			]
 		]
 		
-		SET_RETURN(result)							;-- rounded value might not be in the frame base slot
+		if zero-money? scale [fire [TO_ERROR(math overflow)]]
+		value: absolute-money value
+		
+		lower: divide-money as red-money! stack/push as red-value! value scale yes no
+		upper: subtract-money scale lower
+		half?: lower/amount3 and KEEP_FRACTIONAL = HALF_FRACTIONAL
+		
+		up:    [add-money value upper]
+		down:  [subtract-money value lower]
+		away:  [either negative? compare-money lower upper [down][up]]
+		ceil:  [either negative? sign [down][up]]
+		floor: [either negative? sign [up][down]]
+		
+		case [
+			_even?     [either all [half? even? value][down][away]]
+			down?      [down]
+			half-down? [either half? [down][away]]
+			floor?     [floor]
+			ceil?      [ceil]
+			half-ceil? [either half? [ceil][away]]
+			true       [away]
+		]
+		
+		set-sign value as integer! negative? sign
+		value
 	]
 	
 	even?: func [
