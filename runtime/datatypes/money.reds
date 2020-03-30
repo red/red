@@ -163,6 +163,7 @@ money: context [
 		here: as red-word! head
 		
 		index: 1									;-- 1-based indexing
+		sym: symbol/resolve sym
 		until [
 			if sym = symbol/resolve here/symbol [break]
 			index: index + 1
@@ -856,7 +857,7 @@ money: context [
 				]
 				S_CURRENCY [
 					wrd: as red-word! here
-					currency: get-index symbol/resolve wrd/symbol
+					currency: get-index wrd/symbol
 					if negative? currency [bail]
 					here: here + 1
 					if here = tail [bail]
@@ -910,7 +911,7 @@ money: context [
 		money: zero-out as red-money! stack/push*
 		money/header: TYPE_MONEY
 		
-		index: get-index symbol/resolve word/symbol
+		index: get-index word/symbol
 		if negative? index [fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY word]]
 		
 		set-currency money index
