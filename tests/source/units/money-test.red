@@ -391,7 +391,27 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 		--assert error? try [round min-money]
 	
 	--test-- "round/to"
-		--assert true
+		--assert $0     == round/to $0 123
+		--assert $123   == round/to $123.45 -$1.0
+		--assert -$68   == round/to -$67.89 1.0
+		--assert $3.0   == round/to/floor $4.5 3.0
+		--assert -$6.0  == round/to/floor -$4.5 3
+		--assert $6.0   == round/to/ceiling $4.5 -3.0
+		--assert -$3.0  == round/to/ceiling -$4.5 3
+		--assert -$6.0  == round/to -$4.5 3.0
+		--assert +$6.0  == round/to +$4.5 3
+		--assert $4.998 == round/to EUR$5 0.357
+		--assert $3.8   == round/to $3.75 0.1
+		--assert $1.375 == round/to $1.333 -$0.125
+		--assert $1.33  == round/to $1.333 0.01
+		--assert -$3.0  == round/to/floor -USD$2.4 $1.0
+		--assert -$2.0  == round/to/ceiling -$2.4 1.0
+		--assert -$4.0  == round/to/floor -$2.4 2.0
+		--assert -$1.0  == round/to -$0.50 1
+		--assert $0.0   == round/to -$0.49 1
+		--assert error? try [round/to $123 0]
+		--assert error? try [round/to $123 100%]
+		--assert error? try [round/to $123 1:2:3]
 
 	--test-- "round/even"
 		--assert -$4.0 == round/even -$3.5
