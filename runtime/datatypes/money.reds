@@ -114,15 +114,15 @@ money: context [
 		money   [red-money!]
 		return: [red-value!]						;-- word or none
 		/local
+			list  [red-series!]
 			index [integer!]
 	][
 		index: get-currency money
 		if zero? index [return none/push]			;-- generic currency
 		
 		;@@ TBD: check extra list also
-		block/rs-abs-at
-			as red-block! #get system/locale/currencies/base
-			index
+		list: as red-series! #get system/locale/currencies/base
+		_series/pick list index as red-value! money
 	]
 	
 	get-currency: func [
@@ -152,17 +152,17 @@ money: context [
 		sym     [integer!]
 		return: [integer!]							;-- -1: invalid currency code
 		/local
-			list      [red-block!]
+			list      [red-series!]
 			here      [red-word!]
 			head tail [red-value!]
 			index     [integer!]
 	][
-		list: as red-block! #get system/locale/currencies/base
+		list: as red-series! #get system/locale/currencies/base
 		head: block/rs-head list
 		tail: block/rs-tail list
 		here: as red-word! head
 		
-		index: 0
+		index: 1									;-- 1-based indexing
 		until [
 			if sym = symbol/resolve here/symbol [break]
 			index: index + 1
@@ -179,13 +179,13 @@ money: context [
 		index   [integer!]
 		return: [integer!]
 		/local
-			base [red-block!]
+			list [red-series!]
 			word [red-word!]
 	][
 		assert all [index > 0 index <= FFh]
 		
-		base: as red-block! #get system/locale/currencies/base
-		word: as red-word! block/rs-abs-at base index
+		list: as red-series! #get system/locale/currencies/base
+		word: as red-word! _series/pick list index as red-value! list
 		
 		;@@ TBD: walk over extra list also
 		symbol/resolve word/symbol
