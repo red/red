@@ -571,6 +571,7 @@ money: context [
 		]
 		
 		string/concatenate-literal buffer "$"
+		part: part - 1
 		
 		count: count-digits amount
 		index: SIZE_DIGITS - count + 1
@@ -605,11 +606,12 @@ money: context [
 		if any [all? times > SIZE_SCALE][times: SIZE_SCALE]
 		if positive? times [
 			string/concatenate-literal buffer "."
+			part: part - 1
 			group?: no
 			fill
 		]
 		
-		part - 2									;-- compensate for $ and . characters
+		part
 	]
 	
 	;-- Deconstruction --
