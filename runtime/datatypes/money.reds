@@ -117,7 +117,7 @@ money: context [
 			index [integer!]
 	][
 		index: get-currency money
-		either zero? index [none/push][as red-value! get-symbol index]
+		either zero? index [none/push][as red-value! get-currency-code index]
 	]
 	
 	get-currency: func [
@@ -143,7 +143,7 @@ money: context [
 		money
 	]
 	
-	get-index: func [
+	get-currency-index: func [
 		sym     [integer!]
 		return: [integer!]							;-- -1: invalid currency code
 		/local
@@ -171,7 +171,7 @@ money: context [
 		either here = tail [-1][index]
 	]
 		
-	get-symbol: func [
+	get-currency-code: func [
 		index   [integer!]
 		return: [red-word!]
 		/local
@@ -455,7 +455,7 @@ money: context [
 		
 		;-- currency code
 		unless null? currency [
-			index: get-index symbol/make-alt-utf8 currency 3
+			index: get-currency-index symbol/make-alt-utf8 currency 3
 			if negative? index [return null]		;-- throw it back to lexer for proper error reporting
 			set-currency money index
 		]
@@ -516,7 +516,7 @@ money: context [
 		set-amount money amount
 		
 		;@@ TBD: assuming currency code is valid
-		index: either null? currency [0][get-index symbol/make currency]
+		index: either null? currency [0][get-currency-index symbol/make currency]
 		set-currency money index
 		
 		money
@@ -558,7 +558,7 @@ money: context [
 		;-- currency code
 		index: get-currency money
 		unless zero? index [						;-- generic currency
-			word/form get-symbol index buffer stack/arguments part
+			word/form get-currency-code index buffer stack/arguments part
 			part: part - 3
 		]
 		
@@ -848,7 +848,7 @@ money: context [
 				]
 				S_CURRENCY [
 					wrd: as red-word! here
-					currency: get-index wrd/symbol
+					currency: get-currency-index wrd/symbol
 					if negative? currency [bail]
 					here: here + 1
 					if here = tail [bail]
@@ -902,7 +902,7 @@ money: context [
 		money: zero-out as red-money! stack/push*
 		money/header: TYPE_MONEY
 		
-		index: get-index word/symbol
+		index: get-currency-index word/symbol
 		if negative? index [fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY word]]
 		
 		set-currency money index
