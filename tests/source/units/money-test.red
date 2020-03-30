@@ -566,6 +566,29 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "transcode-money-2" --assert money? first load "$123 $456"
 	--test-- "transcode-money-3" --assert money? last load "$123 -USD$456"
 	--test-- "transcode-money-4" --assert money! == transcode/prescan "+EUR$123.456 1 2 3"
+	--test-- "transcode-money-5" --assert "AED$123.45678" == mold/all AED$123.45678
+	--test-- "transcode-money-6" --assert "-ZMW$123.45678" == mold/all -ZMW$123.45678
+	--test-- "transcode-money-7"
+		"RED$0.00000" == mold/all red$0
+		"RED$0.00000" == mold/all RED$0
+		"RED$0.00000" == mold/all Red$0
+		"RED$0.00000" == mold/all transcode/one "red$0"
+		"RED$0.00000" == mold/all transcode/one "RED$0"
+		"RED$0.00000" == mold/all transcode/one "Red$0"
+		"RED$0.00000" == mold/all make money! 'red
+		"RED$0.00000" == mold/all make money! 'RED
+		"RED$0.00000" == mold/all make money! 'Red
+		"RED$0.00000" == mold/all make money! [red 0]
+		"RED$0.00000" == mold/all make money! [RED 0]
+		"RED$0.00000" == mold/all make money! [Red 0]
+		"RED$0.00000" == mold/all make money! "red$0"
+		"RED$0.00000" == mold/all make money! "RED$0"
+		"RED$0.00000" == mold/all make money! "Red$0"
+	;--test-- "transcode-money-"
+		;--assert error! == transcode/prescan "-$.1"
+		;--assert error! == transcode/prescan "+$,2"
+		;--assert error! == transcode/prescan "$3."
+		;--assert error! == transcode/prescan "$4,"
 ===end-group===
 
 ===start-group=== "as-money"
