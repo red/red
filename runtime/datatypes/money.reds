@@ -546,9 +546,7 @@ money: context [
 		return: [integer!]
 		/local
 			fill        [subroutine!]
-			base        [red-block!]
 			sym         [red-string!]
-			word        [red-word!]
 			after       [red-integer!]
 			amount      [byte-ptr!]
 			sign count  [integer!]
