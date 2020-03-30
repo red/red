@@ -409,6 +409,10 @@ time: context [
 			val		[float!]
 			ret		[red-float!]
 	][
+		if TYPE_OF(scale) = TYPE_MONEY [
+			fire [TO_ERROR(script not-related) stack/get-call datatype/push TYPE_MONEY]
+		]
+	
 		float/round as red-value! tm scale _even? down? half-down? floor? ceil? half-ceil?
 		ret: as red-float! tm
 		if ret/header = TYPE_INTEGER [

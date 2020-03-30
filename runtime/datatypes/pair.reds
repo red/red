@@ -330,6 +330,10 @@ pair: context [
 			header	[integer!]
 			val		[red-integer!]
 	][
+		if TYPE_OF(scale) = TYPE_MONEY [
+			fire [TO_ERROR(script not-related) stack/get-call datatype/push TYPE_MONEY]
+		]
+		
 		pair: as red-pair! value
 		header: TYPE_INTEGER
 		val: as red-integer! :header
