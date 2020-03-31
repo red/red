@@ -626,6 +626,44 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 		--assert error? try [money/5]
 ===end-group===
 
+===start-group=== "currency list"
+	list: system/locale/currencies
+	--test-- "custom-1"
+		--assert error? try [append list/base 'foo]
+		--assert error? try [clear list/base]
+		--assert error? try [reverse list/base]
+		--assert error? try [random list/base]
+		--assert error? try [list/base: none]
+		--assert error? try [list/base/1: none]
+		--assert error? try [put list/extra 'usd 'eur]
+	--test-- "custom-2"
+		--assert error? try [append list/extra none]
+		--assert error? try [append list/extra quote :foo]
+		--assert error? try [append list/extra 'foo!]
+		--assert error? try [append list/extra 'usd]
+		--assert error? try [list/extra: none]
+		--assert error? try [list/extra/1: none]
+	--test-- "custom-3"
+		--assert error? try [make money! 'bar]
+		append list/extra 'bar
+		--assert money? make money! 'bar
+		;--assert "BAR$0.00000" == mold/all make money! 'bar
+		--assert error? try [make money! 'qux]
+		append list/extra 'QUX
+		--assert "-QUX$123.45678" == mold/all make money! [QUX -123 45678]
+		;--assert -QUX$123.45 == -QUX$123.45
+		;--assert zero? BAR$67.89 - BAR$67.89
+	--test-- "custom-4"
+		--assert error? try [append list/extra 'bar]
+		--assert error? try [append list/extra 'qux]
+		--assert error? try [clear list/extra]
+		--assert error? try [reverse list/extra]
+		--assert error? try [random list/extra]
+		--assert list/extra/1 = 'bar
+		--assert list/extra/2 = 'qux
+		--assert 2 = length? list/extra
+===end-group===
+
 ===start-group=== "generated"
 	--test-- "generated-1-+" --assert -$46256738.73641 + -$382909867.62517 == -$429166606.36158
 	--test-- "generated-2-+" --assert -$861608569.91149 + -$385303837.42661 == -$1246912407.33810
