@@ -594,7 +594,7 @@ money: context [
 		
 		;-- fractional part
 		after: as red-integer! #get system/options/money-digits
-		times: after/value
+		times: either TYPE_OF(after) = TYPE_INTEGER [after/value][2]	;-- revert to default value
 		if any [all? times > SIZE_SCALE][times: SIZE_SCALE]
 		if positive? times [
 			string/concatenate-literal buffer "."
