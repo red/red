@@ -147,28 +147,45 @@ money: context [
 		sym     [integer!]
 		return: [integer!]							;-- -1: invalid currency code
 		/local
+			walk      [subroutine!]
 			list      [red-series!]
 			here      [red-word!]
 			head tail [red-value!]
 			index     [integer!]
 	][
-		list: as red-series! #get system/locale/currencies/base
-		head: block/rs-head list
-		tail: block/rs-tail list
-		here: as red-word! head
-		
 		index: 1									;-- 1-based indexing
 		sym: symbol/resolve sym
-		until [
-			if sym = symbol/resolve here/symbol [break]
-			index: index + 1
-			here:  here + 1
+		
+		here: declare red-word!
+		tail: declare red-value!
+		
+		walk: [
+			head: block/rs-head list
+			tail: block/rs-tail list
+			here: as red-word! head
 			
-			here = tail
+			if head = tail [return -1]
+			
+			until [
+				if sym = symbol/resolve here/symbol [break]
+				index: index + 1
+				here:  here + 1
+				
+				here = tail
+			]
+			
+			assert all [index >= 1 index <= FFh]
 		]
 		
-		;@@ TBD: walk over extra list also
-		either here = tail [-1][index]
+		list: as red-series! #get system/locale/currencies/base
+		walk
+		
+		if here < tail [return index]
+		
+		list: as red-series! #get system/locale/currencies/extra
+		walk
+		
+		either here < tail [index][-1]
 	]
 		
 	get-currency-code: func [
@@ -176,15 +193,18 @@ money: context [
 		return: [red-word!]
 		/local
 			list [red-series!]
-			word [red-word!]
+			size [integer!]
 	][
 		assert all [index > 0 index <= FFh]
 		
 		list: as red-series! #get system/locale/currencies/base
-		word: as red-word! _series/pick list index as red-value! list
+		size: _series/length? list
+		if index > size [
+			list: as red-series! #get system/locale/currencies/extra
+			index: index - size
+		]
 		
-		;@@ TBD: walk over extra list also
-		word
+		as red-word! _series/pick list index as red-value! list
 	]
 	
 	same-currencies?: func [
@@ -1650,7 +1670,6 @@ money: context [
 		]
 		
 		set-sign value as integer! negative? sign
-		value
 	]
 	
 	even?: func [
