@@ -1640,11 +1640,11 @@ money: context [
 		floor: [either negative? sign [up][down]]
 		
 		case [
-			_even?     [either all [half? even? value][down][away]]
 			down?      [down]
-			half-down? [either half? [down][away]]
 			floor?     [floor]
 			ceil?      [ceil]
+			_even?     [either all [half? even? value][down][away]]
+			half-down? [either half? [down][away]]
 			half-ceil? [either half? [ceil][away]]
 			true       [away]
 		]
