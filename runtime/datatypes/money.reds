@@ -1500,9 +1500,45 @@ money: context [
 		secure? [logic!]
 		only?   [logic!]
 		return: [red-money!]
+		/local
+			roll        [subroutine!]
+			amount      [byte-ptr!]
+			count index [integer!]
+			digit new   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "money/random"]]
-		--NOT_IMPLEMENTED--
+		
+		roll: [
+			while [not zero? count][
+				set-digit amount index _random/rand % 10
+				count: count - 1
+				index: index + 1
+			]
+		]
+		
+		either seed? [
+			_random/srand money/amount1 xor money/amount2 xor money/amount3
+			money/header: TYPE_UNSET
+		][
+			amount: get-amount money
+			count:  count-digits amount
+			
+			amount: amount + (SIZE_DIGITS - count >> 1)
+			index:  1 + (count and 1)
+			
+			while [not zero? count][
+				digit: get-digit amount index
+				new:   _random/rand % (1 + digit)
+				
+				set-digit amount index new
+				
+				count: count - 1
+				index: index + 1
+				
+				unless new = digit [roll break]
+			]
+		]
+		
 		money
 	]
 	
