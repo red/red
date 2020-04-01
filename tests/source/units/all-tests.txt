@@ -30,6 +30,7 @@ strict-equal-test.red
 object-test.red
 integer-test.red
 float-test.red
+money-test.red
 same-test.red
 words-of-test.red
 unset-test.red
