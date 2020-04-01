@@ -187,8 +187,7 @@ context [
 		if nl? [header: header or nl-flag]
 		emit header
 		repend buffer [
-			append copy/part value 3 null					;-- currency code ("..." if none)
-			#{00}											;-- padding
+			either value/1 = #"." [null][to-char to-currency-code copy/part value 3]
 			to binary! to-nibbles copy/part skip value 4 22	;-- nibbles array
 		]
 	]
