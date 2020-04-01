@@ -832,11 +832,12 @@ lexer: context [
 	]
 	
 	load-money: func [s [string!] e [string!] neg? [logic!] /local cur dec pos][
-		if s/4 = #"$" [
+		if all [s/1 <> #"$" s/4 = #"$"][
 			cur: uppercase copy/part s 3
 			s: skip s 3
 		]
 		s: copy/part next s e
+		remove-each c s [c = #"'"]
 		dec: either pos: find s dot [remove pos length? pos][0]
 		insert/dup tail s #"0" 5 - dec 
 		insert/dup s #"0" 22 - length? s
