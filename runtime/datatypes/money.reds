@@ -509,7 +509,7 @@ money: context [
 	make-in: func [
 		slot     [red-value!]
 		sign     [logic!]							;-- yes: negative
-		currency [c-string!]						;-- null if generic currency, otherwise 3 bytes
+		currency [integer!]							;-- 0 if generic currency, otherwise < 255
 		amount   [byte-ptr!]						;-- always SIZE_BYTES bytes
 		return:  [red-money!]
 		/local
@@ -520,20 +520,15 @@ money: context [
 		
 		money: as red-money! slot
 		money/header: TYPE_MONEY
-		
 		set-sign money as integer! sign
-		set-amount money amount
-		
-		;@@ TBD: assuming currency code is valid
-		index: either null? currency [0][get-index symbol/make currency]
-		set-currency money index
-		
+		set-amount money amount	
+		set-currency money currency
 		money
 	]
 	
 	push: func [
 		sign     [logic!]							;-- yes: negative
-		currency [c-string!]						;-- null if generic currency, otherwise 3-letter string
+		currency [integer!]							;-- 0 if generic currency, otherwise < 255
 		amount   [c-string!]						;-- always SIZE_BYTES bytes
 		return:  [red-money!]
 	][

@@ -333,17 +333,14 @@ redbin: context [
 		return: [int-ptr!]
 		/local
 			slot  [red-money!]
-			cur p [byte-ptr!]
+			cur	  [byte-ptr!]
 			neg?  [logic!]
 	][
 		neg?: data/1 and 0Eh <> 0
 		cur: as byte-ptr! data + 1
-		if cur/1 = #"." [cur: null]
-		p: as byte-ptr! data + 2
-		p: p + 1										;-- skip padding byte
-		slot: money/make-in ALLOC_TAIL(parent) neg? as-c-string cur p
+		slot: money/make-in ALLOC_TAIL(parent) neg? as-integer cur/1 cur + 1
 		if nl? [slot/header: slot/header or flag-new-line]
-		data + 5
+		data + 4
 	]
 
 	decode-value: func [

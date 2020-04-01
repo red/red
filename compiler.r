@@ -36,6 +36,7 @@ red: context [
 	rebol-gctx:	   bind? 'rebol
 	expr-stack:	   make block! 8
 	current-call:  none
+	currencies:	   none									;-- extra user-defined currency codes from script's header
 	
 	unless value? 'Red [red: none]						;-- for %preprocessor to load
 	
@@ -249,6 +250,15 @@ red: context [
 				to integer! low - #"0"
 		]
 		out
+	]
+	
+	to-currency-code: func [code [string!] /local pos][
+		code: to word! code
+		case [
+			pos: find extracts/currencies code [index? pos]
+			all [currencies pos: find currencies code][(index? pos) + length? extracts/currencies]
+			'else [0]
+		]
 	]
 	
 	any-function?: func [value [word!]][
@@ -1758,7 +1768,7 @@ red: context [
 					emit 'money/push
 					value: to string! next value
 					emit pick [true false] value/4 = #"-"
-					emit any [all [value/1 = #"." 'null] copy/part value 3]
+					emit to-currency-code copy/part value 3
 					emit to-nibbles copy skip value 4
 				]
 				find [refinement! issue!] type?/word :value [
@@ -4821,8 +4831,19 @@ red: context [
 		src
 	]
 	
+	process-currencies: func [header [block!] /local spec c][
+		if block? spec: select header quote Currencies: [
+			foreach c spec [
+				if any [not word? c 3 <> length? form c][
+					throw-error ["invalid header currencies field:" spec]
+				]
+			]
+			currencies: copy spec
+		]
+	]
+	
 	process-config: func [header [block!] /local spec][
-		if spec: select header first [config:][
+		if spec: select header quote config: [
 			do bind spec job
 			if job/command-line [do bind job/command-line job]		;-- ensures cmd-line options have priority
 		]
@@ -4858,6 +4879,11 @@ red: context [
 		][
 			throw-error "Windows target requires View module (`Needs: View` in the header)"
 		]
+	]
+	
+	process-fields: func [header [block!] src [block!]][
+		process-needs header src
+		process-currencies header
 	]
 	
 	clean-up: does [
@@ -4897,7 +4923,8 @@ red: context [
 		container-obj?:
 		script-path:
 		script-file:
-		main-path: none
+		main-path: 
+		currencies: none
 	]
 
 	compile: func [
@@ -4917,7 +4944,7 @@ red: context [
 			process-config src/1
 			preprocessor/expand/clean src job
 			if job/show = 'expanded [probe next src]
-			process-needs src/1 next src
+			process-fields src/1 next src
 			extracts/init job
 			if job/libRedRT? [libRedRT/init]
 			if file? file [system-dialect/collect-resources src/1 resources file]
