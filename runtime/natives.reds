@@ -2020,7 +2020,7 @@ natives: context [
 		currency: as red-word! argument
 		amount:   stack/arguments + 1
 		
-		index: money/get-index symbol/resolve currency/symbol
+		index: money/get-currency-index currency/symbol
 		if negative? index [fire [TO_ERROR(script bad-denom) word/push currency]]
 		
 		switch TYPE_OF(amount) [

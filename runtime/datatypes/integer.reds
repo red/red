@@ -726,6 +726,10 @@ integer: context [
 			r		[integer!]
 			val		[integer!]
 	][
+		if TYPE_OF(scale) = TYPE_MONEY [
+			fire [TO_ERROR(script not-related) stack/get-call datatype/push TYPE_MONEY]
+		]
+		
 		int: as red-integer! value
 		num: int/value
 		if num = 80000000h [return value]

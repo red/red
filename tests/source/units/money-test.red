@@ -198,21 +198,20 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 ===end-group===
 
 ===start-group=== "make"
-	--test-- "make-1"  --assert $12345678901234567.12345 == make money! #{1234567890123456712345 DEADBEEF}
-	--test-- "make-2"  --assert $0 == make money! #{}
-	--test-- "make-3"  --assert error? try [make money! #{DEADBEEF}]
-	--test-- "make-4"  --assert error? try [make money! []]
-	--test-- "make-5"  --assert error? try [make money! [CCC]]
-	--test-- "make-6"  --assert error? try [make money! [CCC 1 2 3]]
-	--test-- "make-6"  --assert error? try [make money! [0 123456]]
-	--test-- "make-7"  --assert -$123.00456 == make money! [-123 456]
-	--test-- "make-8"  --assert $123.44444 == make money! [123.32100 12344]
-	--test-- "make-9"  --assert -USD$123 == make money! [USD -123]
-	--test-- "make-10" --assert -EUR$123 == make money! [EUR -123 0]
-	--test-- "make-11" --assert "-EUR$456.78900" == mold/all make money! [EUR -456 78900]
-	--test-- "make-12" --assert "USD$0.00000" == mold/all make money! 'usd
-	--test-- "make-13" --assert "EUR$0.00000" == mold/all make money! 'EUR
-	--test-- "make-14" --assert error? try [make money! 'foo]
+	--test-- "make-1"  --assert error? try [make money! []]
+	--test-- "make-2"  --assert error? try [make money! [CCC]]
+	--test-- "make-3"  --assert error? try [make money! [CCC 1 2 3]]
+	--test-- "make-4"  --assert error? try [make money! [0 123456]]
+	--test-- "make-5"  --assert -$123.00456 == make money! [-123 456]
+	--test-- "make-6"  --assert -$123.456 == make money! [-123.456]
+	--test-- "make-7"  --assert "-EUR$123.45600" == mold/all make money! [EUR -123.456]
+	--test-- "make-8"  --assert "-USD$123.00000" == mold/all make money! [USD -123]
+	--test-- "make-9"  --assert "-EUR$123.00000" == mold/all make money! [EUR -123 0]
+	--test-- "make-10" --assert "-EUR$456.78900" == mold/all make money! [EUR -456 78900]
+	--test-- "make-11" --assert "USD$0.00000" == mold/all make money! 'usd
+	--test-- "make-12" --assert "EUR$0.00000" == mold/all make money! 'EUR
+	--test-- "make-13" --assert error? try [make money! 'foo]
+	--test-- "make-14" --assert error? try [make money! [123.45 6789]]
 ===end-group===
 
 ===start-group=== "form/mold"
@@ -367,6 +366,174 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "remainder-15" --assert $0.56789 == remainder $0.56789 123.456
 ===end-group===
 
+===start-group=== "rounding"
+	max-money: +$99'999'999'999'999'999.9999
+	min-money: -$99'999'999'999'999'999.9999
+	
+	--test-- "round"
+		--assert -$4.0 == round -$3.5
+		--assert -$3.0 == round -$2.9
+		--assert -$3.0 == round -$2.5
+		--assert -$2.0 == round -$1.9
+		--assert -$1.0 == round -$1.1
+		--assert -$1.0 == round -$0.5
+		--assert -$0.0 == round -$0.1
+		--assert -$0.0 == round -$0.0
+		--assert +$0.0 == round +$0.0
+		--assert +$0.0 == round +$0.1
+		--assert +$1.0 == round +$0.5
+		--assert +$1.0 == round +$1.1
+		--assert +$2.0 == round +$1.9
+		--assert +$3.0 == round +$2.5
+		--assert +$3.0 == round +$2.9
+		--assert +$4.0 == round +$3.5
+		--assert error? try [round max-money]
+		--assert error? try [round min-money]
+	
+	--test-- "round/to"
+		--assert $0     == round/to $0 123
+		--assert $123   == round/to $123.45 -$1.0
+		--assert -$68   == round/to -$67.89 1.0
+		--assert $3.0   == round/to/floor $4.5 3.0
+		--assert -$6.0  == round/to/floor -$4.5 3
+		--assert $6.0   == round/to/ceiling $4.5 -3.0
+		--assert -$3.0  == round/to/ceiling -$4.5 3
+		--assert -$6.0  == round/to -$4.5 3.0
+		--assert +$6.0  == round/to +$4.5 3
+		--assert $4.998 == round/to EUR$5 0.357
+		--assert $3.8   == round/to $3.75 0.1
+		--assert $1.375 == round/to $1.333 -$0.125
+		--assert $1.33  == round/to $1.333 0.01
+		--assert -$3.0  == round/to/floor -USD$2.4 $1.0
+		--assert -$2.0  == round/to/ceiling -$2.4 1.0
+		--assert -$4.0  == round/to/floor -$2.4 2.0
+		--assert -$1.0  == round/to -$0.50 1
+		--assert $0.0   == round/to -$0.49 1
+		--assert error? try [round/to $123 0]
+		--assert error? try [round/to $123 100%]
+		--assert error? try [round/to $123 1:2:3]
+
+	--test-- "round/even"
+		--assert -$4.0 == round/even -$3.5
+		--assert -$3.0 == round/even -$2.9
+		--assert -$2.0 == round/even -$2.5
+		--assert -$2.0 == round/even -$1.9
+		--assert -$1.0 == round/even -$1.1
+		--assert -$0.0 == round/even -$0.5
+		--assert -$0.0 == round/even -$0.1
+		--assert -$0.0 == round/even -$0.0
+		--assert +$0.0 == round/even +$0.0
+		--assert +$0.0 == round/even +$0.1
+		--assert +$0.0 == round/even +$0.5
+		--assert +$1.0 == round/even +$1.1
+		--assert +$2.0 == round/even +$1.9
+		--assert +$2.0 == round/even +$2.5
+		--assert +$3.0 == round/even +$2.9
+		--assert +$4.0 == round/even +$3.5
+		--assert error? try [round/even max-money]
+		--assert error? try [round/even min-money]
+
+	--test-- "round/down"
+		--assert -$3.0 == round/down -$3.5
+		--assert -$2.0 == round/down -$2.9
+		--assert -$2.0 == round/down -$2.5
+		--assert -$1.0 == round/down -$1.9
+		--assert -$1.0 == round/down -$1.1
+		--assert -$0.0 == round/down -$0.5
+		--assert -$0.0 == round/down -$0.1
+		--assert -$0.0 == round/down -$0.0
+		--assert +$0.0 == round/down +$0.0
+		--assert +$0.0 == round/down +$0.1
+		--assert +$0.0 == round/down +$0.5
+		--assert +$1.0 == round/down +$1.1
+		--assert +$1.0 == round/down +$1.9
+		--assert +$2.0 == round/down +$2.5
+		--assert +$2.0 == round/down +$2.9
+		--assert +$3.0 == round/down +$3.5
+		--assert +$99'999'999'999'999'999 == round/down max-money
+		--assert -$99'999'999'999'999'999 == round/down min-money
+	
+	--test-- "round/half-down"
+		--assert -$3.0 == round/half-down -$3.5
+		--assert -$3.0 == round/half-down -$2.9
+		--assert -$2.0 == round/half-down -$2.5
+		--assert -$2.0 == round/half-down -$1.9
+		--assert -$1.0 == round/half-down -$1.1
+		--assert -$0.0 == round/half-down -$0.5
+		--assert -$0.0 == round/half-down -$0.1
+		--assert -$0.0 == round/half-down -$0.0
+		--assert +$0.0 == round/half-down +$0.0
+		--assert +$0.0 == round/half-down +$0.1
+		--assert +$0.0 == round/half-down +$0.5
+		--assert +$1.0 == round/half-down +$1.1
+		--assert +$2.0 == round/half-down +$1.9
+		--assert +$2.0 == round/half-down +$2.5
+		--assert +$3.0 == round/half-down +$2.9
+		--assert +$3.0 == round/half-down +$3.5
+		--assert error? try [round/half-down max-money]
+		--assert error? try [round/half-down min-money]
+	
+	--test-- "round/floor"
+		--assert -$4.0 == round/floor -$3.5
+		--assert -$3.0 == round/floor -$2.9
+		--assert -$3.0 == round/floor -$2.5
+		--assert -$2.0 == round/floor -$1.9
+		--assert -$2.0 == round/floor -$1.1
+		--assert -$1.0 == round/floor -$0.5
+		--assert -$1.0 == round/floor -$0.1
+		--assert -$0.0 == round/floor -$0.0
+		--assert +$0.0 == round/floor +$0.0
+		--assert +$0.0 == round/floor +$0.1
+		--assert +$0.0 == round/floor +$0.5
+		--assert +$1.0 == round/floor +$1.1
+		--assert +$1.0 == round/floor +$1.9
+		--assert +$2.0 == round/floor +$2.5
+		--assert +$2.0 == round/floor +$2.9
+		--assert +$3.0 == round/floor +$3.5
+		--assert +$99'999'999'999'999'999 == round/floor max-money
+		--assert error? try [round/floor min-money]
+	
+	--test-- "round/ceiling"
+		--assert -$3.0 == round/ceiling -$3.5
+		--assert -$2.0 == round/ceiling -$2.9
+		--assert -$2.0 == round/ceiling -$2.5
+		--assert -$1.0 == round/ceiling -$1.9
+		--assert -$1.0 == round/ceiling -$1.1
+		--assert -$0.0 == round/ceiling -$0.5
+		--assert -$0.0 == round/ceiling -$0.1
+		--assert -$0.0 == round/ceiling -$0.0
+		--assert +$0.0 == round/ceiling +$0.0
+		--assert +$1.0 == round/ceiling +$0.1
+		--assert +$1.0 == round/ceiling +$0.5
+		--assert +$2.0 == round/ceiling +$1.1
+		--assert +$2.0 == round/ceiling +$1.9
+		--assert +$3.0 == round/ceiling +$2.5
+		--assert +$3.0 == round/ceiling +$2.9
+		--assert +$4.0 == round/ceiling +$3.5
+		--assert error? try [round/ceiling max-money]
+		--assert -$99'999'999'999'999'999 == round/ceiling min-money
+
+	--test-- "round/half-ceiling"
+		--assert -$3.0 == round/half-ceiling -$3.5
+		--assert -$3.0 == round/half-ceiling -$2.9
+		--assert -$2.0 == round/half-ceiling -$2.5
+		--assert -$2.0 == round/half-ceiling -$1.9
+		--assert -$1.0 == round/half-ceiling -$1.1
+		--assert -$0.0 == round/half-ceiling -$0.5
+		--assert -$0.0 == round/half-ceiling -$0.1
+		--assert -$0.0 == round/half-ceiling -$0.0
+		--assert +$0.0 == round/half-ceiling +$0.0
+		--assert +$0.0 == round/half-ceiling +$0.1
+		--assert +$1.0 == round/half-ceiling +$0.5
+		--assert +$1.0 == round/half-ceiling +$1.1
+		--assert +$2.0 == round/half-ceiling +$1.9
+		--assert +$3.0 == round/half-ceiling +$2.5
+		--assert +$3.0 == round/half-ceiling +$2.9
+		--assert +$4.0 == round/half-ceiling +$3.5
+		--assert error? try [round/half-ceiling max-money]
+		--assert error? try [round/half-ceiling min-money]
+===end-group===
+
 ===start-group=== "sort"
 	--test-- "sort-1"
 		block:  [9 2.0 $4 5.0 $8 7 $3 6.0 2.0 $1 5]
@@ -399,6 +566,29 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "transcode-money-2" --assert money? first load "$123 $456"
 	--test-- "transcode-money-3" --assert money? last load "$123 -USD$456"
 	--test-- "transcode-money-4" --assert money! == transcode/prescan "+EUR$123.456 1 2 3"
+	--test-- "transcode-money-5" --assert "AED$123.45678" == mold/all AED$123.45678
+	--test-- "transcode-money-6" --assert "-ZMW$123.45678" == mold/all -ZMW$123.45678
+	--test-- "transcode-money-7"
+		"RED$0.00000" == mold/all red$0
+		"RED$0.00000" == mold/all RED$0
+		"RED$0.00000" == mold/all Red$0
+		"RED$0.00000" == mold/all transcode/one "red$0"
+		"RED$0.00000" == mold/all transcode/one "RED$0"
+		"RED$0.00000" == mold/all transcode/one "Red$0"
+		"RED$0.00000" == mold/all make money! 'red
+		"RED$0.00000" == mold/all make money! 'RED
+		"RED$0.00000" == mold/all make money! 'Red
+		"RED$0.00000" == mold/all make money! [red 0]
+		"RED$0.00000" == mold/all make money! [RED 0]
+		"RED$0.00000" == mold/all make money! [Red 0]
+		"RED$0.00000" == mold/all make money! "red$0"
+		"RED$0.00000" == mold/all make money! "RED$0"
+		"RED$0.00000" == mold/all make money! "Red$0"
+	;--test-- "transcode-money-"
+		;--assert error! == transcode/prescan "-$.1"
+		;--assert error! == transcode/prescan "+$,2"
+		;--assert error! == transcode/prescan "$3."
+		;--assert error! == transcode/prescan "$4,"
 ===end-group===
 
 ===start-group=== "as-money"
@@ -434,6 +624,44 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 		--assert error? try [money/0]
 		--assert error? try [money/-1]
 		--assert error? try [money/5]
+===end-group===
+
+===start-group=== "currency list"
+	list: system/locale/currencies
+	--test-- "custom-1"
+		--assert error? try [append list/base 'foo]
+		--assert error? try [clear list/base]
+		--assert error? try [reverse list/base]
+		--assert error? try [random list/base]
+		--assert error? try [list/base: none]
+		--assert error? try [list/base/1: none]
+		--assert error? try [put list/extra 'usd 'eur]
+	--test-- "custom-2"
+		--assert error? try [append list/extra none]
+		--assert error? try [append list/extra quote :foo]
+		--assert error? try [append list/extra 'foo!]
+		--assert error? try [append list/extra 'usd]
+		--assert error? try [list/extra: none]
+		--assert error? try [list/extra/1: none]
+	--test-- "custom-3"
+		--assert error? try [make money! 'bar]
+		append list/extra 'bar
+		--assert money? make money! 'bar
+		;--assert "BAR$0.00000" == mold/all make money! 'bar
+		--assert error? try [make money! 'qux]
+		append list/extra 'QUX
+		--assert "-QUX$123.45678" == mold/all make money! [QUX -123 45678]
+		;--assert -QUX$123.45 == -QUX$123.45
+		;--assert zero? BAR$67.89 - BAR$67.89
+	--test-- "custom-4"
+		--assert error? try [append list/extra 'bar]
+		--assert error? try [append list/extra 'qux]
+		--assert error? try [clear list/extra]
+		--assert error? try [reverse list/extra]
+		--assert error? try [random list/extra]
+		--assert list/extra/1 = 'bar
+		--assert list/extra/2 = 'qux
+		--assert 2 = length? list/extra
 ===end-group===
 
 ===start-group=== "generated"
