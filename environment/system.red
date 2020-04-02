@@ -327,11 +327,11 @@ system: context [
 			;-- User-provided currencies
 			extra: []
 			
-			on-change*: func [word old new][			
-				set-quiet word old
+			on-change*: func [word old new][
+				set-quiet in self word old
 				cause-error 'script 'protected []
 			]
-			on-deep-change*: func [owner word target action new index part][		
+			on-deep-change*: func [owner word target action new index part][
 				if any [
 					word <> 'extra
 					not find [append appended] action
