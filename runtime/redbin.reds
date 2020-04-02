@@ -336,7 +336,7 @@ redbin: context [
 			cur	  [byte-ptr!]
 			neg?  [logic!]
 	][
-		neg?: data/1 and 0Eh <> 0
+		neg?: data/1 and 4000h <> 0
 		cur: as byte-ptr! data + 1
 		slot: money/make-in ALLOC_TAIL(parent) neg? as-integer cur/1 cur + 1
 		if nl? [slot/header: slot/header or flag-new-line]
