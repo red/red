@@ -1510,14 +1510,14 @@ money: context [
 		
 		roll: [
 			while [not zero? count][
-				set-digit amount index _random/rand % 10
+				set-digit amount index dice
 				count: count - 1
 				index: index + 1
 			]
 		]
 		
 		either seed? [
-			_random/srand money/amount1 xor money/amount2 xor money/amount3
+			_random/srand money/amount1 xor money/amount2 xor money/amount3 xor get-sign money
 			money/header: TYPE_UNSET
 		][
 			amount: get-amount money
@@ -1530,12 +1530,14 @@ money: context [
 				digit: get-digit amount index
 				new:   _random/rand % (1 + digit)
 				
+				if all [new = digit (_random/rand % 1000) <> (_random/rand % 1000)][continue]
+				
 				set-digit amount index new
 				
 				count: count - 1
 				index: index + 1
 				
-				unless new = digit [roll break]
+				unless new = digit [roll]
 			]
 		]
 		
