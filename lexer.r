@@ -454,7 +454,7 @@ lexer: context [
 	
 	money-rule: [
 		(neg?: no) opt [#"-" (neg?: yes) | #"+"] 
-		s: opt [3 alpha] #"$" digit any [digit | #"'" digit] opt [[dot | comma] 1 5 digit] e:
+		s: opt [3 alpha] #"$" digit any [digit | #"'" digit] opt [[dot | comma] some digit] e:
 	]
 	
 	block-rule: [#"[" (stack/allocate block! 10) any-value #"]" (value: stack/pop block!)]
@@ -838,7 +838,11 @@ lexer: context [
 		]
 		s: copy/part next s e
 		remove-each c s [c = #"'"]
-		dec: either pos: find s dot [remove pos length? pos][0]
+		dec: either pos: find s dot [
+			remove pos
+			if 5 < length? pos [clear skip pos 5]
+			length? pos
+		][0]
 		insert/dup tail s #"0" 5 - dec 
 		insert/dup s #"0" 22 - length? s
 		insert s pick "-+" neg?
