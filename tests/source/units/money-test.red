@@ -217,6 +217,8 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "make-12" --assert "EUR$0.00000" == mold/all make money! 'EUR
 	--test-- "make-13" --assert error? try [make money! 'foo]
 	--test-- "make-14" --assert error? try [make money! [123.45 6789]]
+	--test-- "make-15"
+		--assert not error? try [foreach c system/locale/currencies/base [make money! c]]
 ===end-group===
 
 ===start-group=== "form/mold"
