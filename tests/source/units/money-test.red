@@ -195,6 +195,11 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 		--assert error? try [to money! "$.0"]
 		--assert error? try [to money! "$0."]
 		--assert true
+	--test-- "to-28"
+		--assert $1 > 1e-6
+		--assert $2 < 1e17
+		--assert 1e-5 > $0
+		--assert 1e17 > $3
 ===end-group===
 
 ===start-group=== "make"
