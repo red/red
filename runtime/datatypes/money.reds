@@ -641,7 +641,7 @@ money: context [
 	
 	;-- Conversion --
 	
-	overflow?: func [
+	integer-overflow?: func [
 		money   [red-money!]
 		return: [logic!]
 		/local
@@ -667,7 +667,7 @@ money: context [
 			sign integer index [integer!]
 			start power digit  [integer!]
 	][
-		if overflow? money [fire [TO_ERROR(script type-limit) datatype/push TYPE_INTEGER]]
+		if integer-overflow? money [fire [TO_ERROR(script type-limit) datatype/push TYPE_INTEGER]]
 	
 		sign: sign? money
 		if zero? sign [return 0]
@@ -759,36 +759,46 @@ money: context [
 		float * as float! sign
 	]
 	
+	float-overflow?: func [
+		flt     [float!]
+		return: [logic!]
+	][
+		(float/abs flt) >= 1e17
+	]
+	
+	float-underflow?: func [
+		flt     [float!]
+		return: [logic!]
+	][
+		flt: float/abs flt
+		all [flt > 0.0 flt < 1e-5]
+	]
+	
 	from-float: func [
 		flt     [float!]
 		return: [red-money!]
 		/local
-			money     [red-money!]
 			formed    [c-string!]
 			start end [byte-ptr!]
 			point     [byte-ptr!]
 			sign      [logic!]
 	][
-		formed: dtoa/form-float flt SIZE_DIGITS yes
+		if any [float-underflow? flt float-overflow? flt][MONEY_OVERFLOW]
 		
-		if (length? formed) > 19 [MONEY_OVERFLOW]	;-- e-notation for exponents larger than 16
+		formed: dtoa/form-float flt SIZE_DIGITS yes
 		
 		point: as byte-ptr! formed
 		until [point: point + 1 point/value = #"."]
 		
-		if point/2 = #"#" [							;-- 1.#NaN, 1.#INF, -1.#INF
+		if point/2 = #"#" [							;-- 1.#NaN
 			fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY float/box flt]
 		]
-		
-		if point/3 = #"e" [MONEY_OVERFLOW]			;-- e-notation for exponents smaller than -7
 		
 		sign:  formed/1 = #"-"
 		start: as byte-ptr! either sign [formed][formed - 1]
 		end:   as byte-ptr! formed + length? formed
 		
-		money: make-at stack/push* sign null start point end
-		if all [0.0 <> flt zero-money? money][MONEY_OVERFLOW]	;-- underflow on too small float value
-		money
+		make-at stack/push* sign null start point end
 	]
 	
 	to-binary: func [
@@ -1510,7 +1520,7 @@ money: context [
 		
 		roll: [
 			while [not zero? count][
-				set-digit amount index dice
+				set-digit amount index _random/rand % 10
 				count: count - 1
 				index: index + 1
 			]
@@ -1600,6 +1610,8 @@ money: context [
 			]
 			TYPE_FLOAT [
 				float: as red-float! value
+				if float-underflow? float/value [return 1]
+				if float-overflow?  float/value [return -1]
 				value: from-float float/value
 			]
 			default [RETURN_COMPARE_OTHER]
