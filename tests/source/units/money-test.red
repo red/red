@@ -539,6 +539,24 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 		--assert error? try [round/half-ceiling min-money]
 ===end-group===
 
+===start-group=== "random"
+	--test-- "random-1"
+		--assert unset? random/seed RED$92.14
+	--test-- "random-2"
+		loop 100 [--assert $0 == random $0]
+	--test-- "random-3"
+		loop 100 [--assert $1 >= random $1]
+	--test-- "random-4"
+		loop 100 [--assert -$1 <= random -$1]
+	--test-- "random-5"
+		a: average collect [loop 1'000 [keep random $1'000]]
+		--assert to logic! all [a - 9 <= $500 a + 9 >= $500]
+	--test-- "random-6"
+		loop 100 [--assert not-equal? random $1 random $1]
+	--test-- "random-7"
+		--assert 'RED = pick random RED$123.456 'code
+===end-group===
+
 ===start-group=== "sort"
 	--test-- "sort-1"
 		block:  [9 2.0 $4 5.0 $8 7 $3 6.0 2.0 $1 5]
