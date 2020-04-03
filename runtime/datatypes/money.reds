@@ -667,7 +667,9 @@ money: context [
 			sign integer index [integer!]
 			start power digit  [integer!]
 	][
-		if integer-overflow? money [fire [TO_ERROR(script type-limit) datatype/push TYPE_INTEGER]]
+		if integer-overflow? money [
+			fire [TO_ERROR(script type-limit) datatype/push TYPE_INTEGER]
+		]
 	
 		sign: sign? money
 		if zero? sign [return 0]
@@ -692,10 +694,11 @@ money: context [
 		int     [integer!]
 		return: [red-money!]
 		/local
-			money             [red-money!]
-			amount            [byte-ptr!]
-			extra index start [integer!]
-			power digit       [integer!]
+			money       [red-money!]
+			amount      [byte-ptr!]
+			extra       [integer!]
+			index start [integer!]
+			power digit [integer!]
 	][
 		money: zero-out as red-money! stack/push*
 		money/header: TYPE_MONEY
@@ -846,7 +849,8 @@ money: context [
 			int            [red-integer!]
 			flt            [red-float!]
 			head tail here [red-value!]
-			currency state [integer!]
+			state          [make-states!]
+			currency       [integer!]
 			type length    [integer!]
 	][
 		bail: [fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY blk]]
@@ -1370,7 +1374,7 @@ money: context [
 	do-math-op: func [
 		value1  [red-money!]
 		value2  [red-money!]
-		op      [integer!]
+		op      [math-op!]
 		return: [red-money!]
 	][
 		switch op [
@@ -1387,7 +1391,7 @@ money: context [
 	]
 
 	do-math: func [
-		op      [integer!]
+		op      [math-op!]
 		return: [red-value!]
 		/local
 			value1 value2 [red-money!]
@@ -1583,7 +1587,7 @@ money: context [
 	compare: func [
 		money   [red-money!]
 		value   [red-money!]
-		op      [integer!]
+		op      [comparison-op!]
 		return: [integer!]
 		/local
 			integer [red-integer!]
