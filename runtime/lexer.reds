@@ -1884,6 +1884,7 @@ lexer: context [
 			]
 			p: p + 1
 		]
+		if 18 < as-integer e - st [do-error]
 		lex/in-pos: e									;-- reset the input position to delimiter byte
 		if load? [
 			if null? money/make-at alloc-slot lex neg? cur st ds e [do-error]
