@@ -1874,6 +1874,7 @@ lexer: context [
 		assert p/1 = #"$"
 		st: p
 		p: p + 1
+		if any [p/1 = #"." p/1 = #","][do-error]
 		ds: null
 		while [p < e][
 			if any [p/1 = #"." p/1 = #","][
