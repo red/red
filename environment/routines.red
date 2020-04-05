@@ -18,7 +18,7 @@ quit-return: routine [
 ]
 
 set-quiet: routine [
-	"Set an object's field to a value without triggering object's events"
+	"Set an object's field to a value without triggering eventual object's events"
 	word  [any-type!]
 	value [any-type!]
 	/local
@@ -31,6 +31,20 @@ set-quiet: routine [
 	w: as red-word! word
 	node: w/ctx
 	_context/set-in w stack/arguments + 1 TO_CTX(node) no
+]
+
+set-slot-quiet: routine [
+	"Set a value in series without triggering eventual owner's events"
+	series	[any-type!]
+	value 	[any-type!]
+	/local
+		blk	 [red-block!]
+		type [integer!]
+][
+	type: TYPE_OF(series)
+	unless ANY_BLOCK_STRICT?(type) [ERR_EXPECT_ARGUMENT(TYPE_BLOCK 0)]
+	blk: as red-block! series
+	unless block/rs-tail? blk [copy-cell value block/rs-head blk]
 ]
 
 ;-- Following definitions are used to create op! corresponding operators
