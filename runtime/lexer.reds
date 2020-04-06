@@ -1860,6 +1860,7 @@ lexer: context [
 		/local
 			do-error    [subroutine!]
 			cur	p st ds [byte-ptr!]
+			quotes		[integer!]
 			neg?        [logic!]
 	][
 		do-error: [throw-error lex s e TYPE_MONEY]
@@ -1876,15 +1877,17 @@ lexer: context [
 		p: p + 1
 		if any [p/1 = #"." p/1 = #","][do-error]
 		ds: null
+		quotes: 0
 		while [p < e][
 			if any [p/1 = #"." p/1 = #","][
 				ds: p
 				if ds + 1 = e [do-error]
 				break
 			]
+			if p/1 = #"'" [quotes: quotes + 1]
 			p: p + 1
 		]
-		if 18 < as-integer p - st [do-error]
+		if 18 + quotes < as-integer p - st [do-error]
 		lex/in-pos: e									;-- reset the input position to delimiter byte
 		if all [load? null? money/make-at alloc-slot lex neg? cur st ds e][do-error]
 	]
