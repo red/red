@@ -73,6 +73,9 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "strict-equal-4" --assert strict-equal? -$0 +$0
 	--test-- "strict-equal-5" --assert strict-equal? -$1 -$1
 	--test-- "strict-equal-6" --assert strict-equal? +$1 +$1
+	--test-- "strict-equal-7" --assert strict-equal? +USD$1 +USD$1
+	--test-- "strict-equal-8" --assert error? try [strict-equal? +$1 +USD$1]
+	--test-- "strict-equal-9" --assert error? try [strict-equal? +EUR$1 +$1]
 ===end-group===
 
 ===start-group=== "same?"
@@ -82,6 +85,9 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "same-4" --assert same? -$0 +$0
 	--test-- "same-5" --assert same? -$1 -$1
 	--test-- "same-6" --assert same? +$1 +$1
+	--test-- "same-7" --assert same? +USD$1 +USD$1
+	--test-- "same-8" --assert error? try [same? +USD$1 +$1]
+	--test-- "same-9" --assert error? try [same? +$1 +USD$1]
 ===end-group===
 
 ===start-group=== "lesser?"
@@ -250,7 +256,7 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "currencies-5"  --assert -2.0 * $1 == -$2
 	--test-- "currencies-6"  --assert error? try [USD$1 + EUR$1]
 	--test-- "currencies-7"  --assert error? try [EUR$2 - USD$2]
-	--test-- "currencies-8"  --assert USD$1 == $1
+	--test-- "currencies-8"  --assert USD$1 == USD$1
 	--test-- "currencies-9"  --assert -USD$2 == -USD$2
 	--test-- "currencies-10" --assert error? try [EUR$123 <> USD$123]
 ===end-group===
@@ -407,11 +413,11 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 		--assert -$3.0  == round/to/ceiling -$4.5 3
 		--assert -$6.0  == round/to -$4.5 3.0
 		--assert +$6.0  == round/to +$4.5 3
-		--assert $4.998 == round/to EUR$5 0.357
+		--assert EUR$4.998 == round/to EUR$5 0.357
 		--assert $3.8   == round/to $3.75 0.1
 		--assert $1.375 == round/to $1.333 -$0.125
 		--assert $1.33  == round/to $1.333 0.01
-		--assert -$3.0  == round/to/floor -USD$2.4 $1.0
+		--assert -USD$3.0  == round/to/floor -USD$2.4 $1.0
 		--assert -$2.0  == round/to/ceiling -$2.4 1.0
 		--assert -$4.0  == round/to/floor -$2.4 2.0
 		--assert -$1.0  == round/to -$0.50 1
