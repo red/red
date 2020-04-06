@@ -346,6 +346,8 @@ system: context [
 						]
 					]
 				][cause-error 'script 'protected []]
+				
+				if action = 'appended [set-slot-quiet back tail extra to word! uppercase form new]
 			]
 		]
 	]
