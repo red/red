@@ -210,6 +210,7 @@ money: context [
 	same-currencies?: func [
 		value1  [red-money!]
 		value2  [red-money!]
+		strict? [logic!]							;-- YES: forbid generic currencies
 		return: [logic!]
 		/local
 			currency1 [integer!]
@@ -217,10 +218,9 @@ money: context [
 	][
 		currency1: get-currency value1
 		currency2: get-currency value2
-	
+		
 		any [
-			zero? currency1							;-- 0: generic currency
-			zero? currency2
+			all [not strict? any [zero? currency1 zero? currency2]]
 			currency1 = currency2
 		]
 	]
@@ -1444,7 +1444,7 @@ money: context [
 			]
 		]
 		
-		unless same-currencies? value1 value2 [fire [TO_ERROR(script wrong-denom) value1 value2]]
+		unless same-currencies? value1 value2 no [fire [TO_ERROR(script wrong-denom) value1 value2]]
 		currency: get-currency value2				;-- preserve specific currency
 		if zero? currency [currency: get-currency value1]
 		
@@ -1592,19 +1592,18 @@ money: context [
 		/local
 			integer [red-integer!]
 			float   [red-float!]
+			strict? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "money/compare"]]
 		
-		if all [
-			TYPE_OF(money) <> TYPE_OF(value)
-			any [op = COMP_FIND op = COMP_SAME op = COMP_STRICT_EQUAL]
-		][
+		strict?: any [op = COMP_SAME op = COMP_STRICT_EQUAL]
+		if all [TYPE_OF(money) <> TYPE_OF(value) any [op = COMP_FIND strict?]][
 			return 1
 		]
 		
 		switch TYPE_OF(value) [
 			TYPE_MONEY [
-				unless same-currencies? money as red-money! value [
+				unless same-currencies? money as red-money! value strict? [
 					fire [TO_ERROR(script wrong-denom) money as red-money! value]
 				]
 			]
