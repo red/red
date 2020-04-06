@@ -876,7 +876,7 @@ split-path: func [
 	reduce [dir pos]
 ]
 
-do-file: func ["Internal Use Only" file [file! url!] /local saved code new-path src][
+do-file: function ["Internal Use Only" file [file! url!]][
 	saved: system/options/path
 	unless src: find/case read file "Red" [
 		cause-error 'syntax 'no-header reduce [file]
@@ -886,6 +886,13 @@ do-file: func ["Internal Use Only" file [file! url!] /local saved code new-path 
 	if file? file [
 		new-path: first split-path clean-path file
 		change-dir new-path
+	]
+	if all [
+		code/1 = 'Red
+		block? header: code/2
+		list: select header 'currencies
+	][
+		foreach c list [append system/locale/currencies/extra c]
 	]
 	set/any 'code try/all code
 	if file? file [change-dir saved]
