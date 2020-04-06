@@ -1884,11 +1884,9 @@ lexer: context [
 			]
 			p: p + 1
 		]
-		if 18 < as-integer e - st [do-error]
+		if 18 < as-integer p - st [do-error]
 		lex/in-pos: e									;-- reset the input position to delimiter byte
-		if load? [
-			if null? money/make-at alloc-slot lex neg? cur st ds e [do-error]
-		]
+		if all [load? null? money/make-at alloc-slot lex neg? cur st ds e][do-error]
 	]
 	
 	load-tag: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
