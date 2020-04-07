@@ -629,12 +629,12 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "transcode-money-8"
 		--assert error! == transcode/scan "$123456789012345678"
 		--assert error! == transcode/scan "$'1"
-		;--assert error! == transcode/scan "$1'"
-		;--assert error! == transcode/scan "$1''2"
+		--assert error! == transcode/scan "$1'"
+		--assert error! == transcode/scan "$1''2"
 		--assert $12345678901234567.12345 == transcode/one "$12345678901234567.1234567890"
-		;--assert $12345678901234567.12345 == transcode/one "$00000000000000000012345678901234567.12345"
+		--assert $12345678901234567.12345 == transcode/one "$00000000000000000012345678901234567.12345"
 		--assert $12345678901234567.12345 == transcode/one "+$12'345'678'901'234'567.1234567890"
-		;--assert -$12345678901234567.12345 == transcode/one "-$0'00'000'000012345678901234567.12345"
+		--assert -$12345678901234567.12345 == transcode/one "-$0'00'000'000012345678901234567.12345"
 	--test-- "transcode-money-"
 		--assert error! == transcode/scan "-$.1"
 		--assert error! == transcode/scan "+$,2"
@@ -702,8 +702,6 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 		--assert error? try [make money! 'qux]
 		append list/extra 'QUX
 		--assert "-QUX$123.45678" == mold/all make money! [QUX -123 45678]
-		;--assert -QUX$123.45 == -QUX$123.45
-		;--assert zero? BAR$67.89 - BAR$67.89
 	--test-- "custom-4"
 		--assert error? try [append list/extra 'bar]
 		--assert error? try [append list/extra 'qux]
