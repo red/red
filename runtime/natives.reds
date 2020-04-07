@@ -1614,13 +1614,13 @@ natives: context [
 		/local
 			arg	  [red-integer!]
 			limit [red-integer!]
-			buf   [red-word!]
 			p	  [c-string!]
 			part  [integer!]
 	][
 		#typecheck [to-hex size]
 		arg: as red-integer! stack/arguments
 		limit: arg + size
+		unless positive? limit/value [fire [TO_ERROR(script invalid-arg) limit]]
 
 		p: string/to-hex arg/value no
 		part: either OPTION?(limit) [8 - limit/value][0]
