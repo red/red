@@ -1067,7 +1067,7 @@ binary: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/form"]]
 		
-		serialize bin buffer no no no arg part no
+		serialize bin buffer no no yes arg part no
 	]
 	
 	mold: func [
