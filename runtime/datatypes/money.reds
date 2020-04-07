@@ -14,7 +14,7 @@ money: context [
 	verbose: 0
 	
 	;-- Base --
-		
+	
 	#enum sizes! [
 		SIZE_BYTES: 11								;-- total number of bytes used to store amount
 		SIZE_SCALE: 05								;-- total number of digits (nibbles) used to store scale (fractional part)
@@ -187,7 +187,7 @@ money: context [
 		
 		either here < tail [index][-1]
 	]
-		
+	
 	get-currency-code: func [
 		index   [integer!]
 		return: [red-word!]
@@ -210,6 +210,7 @@ money: context [
 	same-currencies?: func [
 		value1  [red-money!]
 		value2  [red-money!]
+		strict? [logic!]							;-- YES: forbid generic currencies
 		return: [logic!]
 		/local
 			currency1 [integer!]
@@ -217,10 +218,9 @@ money: context [
 	][
 		currency1: get-currency value1
 		currency2: get-currency value2
-	
+		
 		any [
-			zero? currency1							;-- 0: generic currency
-			zero? currency2
+			all [not strict? any [zero? currency1 zero? currency2]]
 			currency1 = currency2
 		]
 	]
@@ -361,7 +361,7 @@ money: context [
 	][
 		assert positive? index
 		assert all [value >= 0 value <= 9]
-	
+		
 		bit:     index and 1
 		byte:    index >> 1 + bit
 		offset:  either as logic! bit [4][0]
@@ -395,13 +395,13 @@ money: context [
 		buffer2 [byte-ptr!] high2? [logic!] count2 [integer!]
 		return: [integer!]
 		/local
-			delta index1 index2 end digit1 digit2 [integer!]
+			delta index1 index2 count digit1 digit2 [integer!]
 	][
 		delta: integer/abs count1 - count2
 		switch integer/sign? count1 - count2 [
-			-1 [index1: 1 - delta index2: 1 end: count2]
-			00 [index1: 1         index2: 1 end: count1]
-			+1 [index2: 1 - delta index1: 1 end: count1]
+			-1 [index1: 1 - delta index2: 1 count: count2]
+			00 [index1: 1         index2: 1 count: count1]
+			+1 [index2: 1 - delta index1: 1 count: count1]
 			default [0]
 		]
 		
@@ -414,9 +414,9 @@ money: context [
 		
 			index1: index1 + 1
 			index2: index2 + 1
-			end:    end - 1
+			count:  count - 1
 			
-			any [digit1 <> digit2 zero? end]
+			any [digit1 <> digit2 zero? count]
 		]
 		
 		digit1 - digit2
@@ -452,7 +452,7 @@ money: context [
 	
 	make-at: func [
 		slot     [red-value!]
-		sign     [logic!]							;-- yes: negative
+		sign     [logic!]							;-- YES: negative
 		currency [byte-ptr!]						;-- can be null if currency code is not present
 		start    [byte-ptr!]						;-- $ sign
 		point    [byte-ptr!]						;-- can be null if fractional part is not present
@@ -462,7 +462,6 @@ money: context [
 			convert           [subroutine!]
 			money             [red-money!]
 			amount limit here [byte-ptr!]
-			str               [c-string!]
 			index stop step   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "money/make-at"]]
@@ -519,26 +518,27 @@ money: context [
 	
 	make-in: func [
 		slot     [red-value!]
-		sign     [logic!]							;-- yes: negative
+		sign     [logic!]							;-- YES: negative
 		currency [integer!]							;-- 0 if generic currency, otherwise < 255
 		amount   [byte-ptr!]						;-- always SIZE_BYTES bytes
 		return:  [red-money!]
 		/local
 			money [red-money!]
-			index [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "money/make-in"]]
 		
 		money: as red-money! slot
 		money/header: TYPE_MONEY
+		
 		set-sign money as integer! sign
-		set-amount money amount
 		set-currency money currency
+		set-amount money amount
+		
 		money
 	]
 	
 	push: func [
-		sign     [logic!]							;-- yes: negative
+		sign     [logic!]							;-- YES: negative
 		currency [integer!]							;-- 0 if generic currency, otherwise < 255
 		amount   [c-string!]						;-- always SIZE_BYTES bytes
 		return:  [red-money!]
@@ -551,12 +551,12 @@ money: context [
 		money   [red-money!]
 		buffer  [red-string!]
 		part    [integer!]
-		all?	[logic!]							;-- yes: display all SIZE_SCALE fractional digits
-		group?  [logic!]							;-- yes: decorate amount with thousand's separators
+		all?	[logic!]							;-- YES: display all SIZE_SCALE fractional digits
+		group?  [logic!]							;-- YES: decorate amount with thousand's separators
 		return: [integer!]
 		/local
 			fill        [subroutine!]
-			after       [red-integer!]
+			scale       [red-integer!]
 			amount      [byte-ptr!]
 			sign count  [integer!]
 			index times [integer!]
@@ -596,7 +596,7 @@ money: context [
 				
 				index: index + 1
 				part:  part - 1
-			]		
+			]
 		]
 		
 		;-- integral part
@@ -608,8 +608,8 @@ money: context [
 		]
 		
 		;-- fractional part
-		after: as red-integer! #get system/options/money-digits
-		times: either TYPE_OF(after) = TYPE_INTEGER [after/value][2]	;-- revert to default value
+		scale: as red-integer! #get system/options/money-digits
+		times: either TYPE_OF(scale) = TYPE_INTEGER [scale/value][2]	;-- revert to default value
 		if any [all? times > SIZE_SCALE][times: SIZE_SCALE]
 		if positive? times [
 			string/concatenate-literal buffer "."
@@ -641,7 +641,7 @@ money: context [
 	
 	;-- Conversion --
 	
-	overflow?: func [
+	integer-overflow?: func [
 		money   [red-money!]
 		return: [logic!]
 		/local
@@ -667,11 +667,13 @@ money: context [
 			sign integer index [integer!]
 			start power digit  [integer!]
 	][
-		if overflow? money [fire [TO_ERROR(script type-limit) datatype/push TYPE_INTEGER]]
-	
+		if integer-overflow? money [
+			fire [TO_ERROR(script type-limit) datatype/push TYPE_INTEGER]
+		]
+		
 		sign: sign? money
 		if zero? sign [return 0]
-	
+		
 		amount:  get-amount money
 		integer: 0
 		index:   SIZE_INTEGRAL
@@ -692,10 +694,11 @@ money: context [
 		int     [integer!]
 		return: [red-money!]
 		/local
-			money             [red-money!]
-			amount            [byte-ptr!]
-			extra index start [integer!]
-			power digit       [integer!]
+			money       [red-money!]
+			amount      [byte-ptr!]
+			extra       [integer!]
+			index start [integer!]
+			power digit [integer!]
 	][
 		money: zero-out as red-money! stack/push*
 		money/header: TYPE_MONEY
@@ -727,6 +730,21 @@ money: context [
 		money
 	]
 	
+	float-overflow?: func [
+		flt     [float!]
+		return: [logic!]
+	][
+		(float/abs flt) >= 1e17
+	]
+	
+	float-underflow?: func [
+		flt     [float!]
+		return: [logic!]
+	][
+		flt: float/abs flt
+		all [flt > 0.0 flt < 1e-5]
+	]
+	
 	to-float: func [
 		money   [red-money!]
 		return: [float!]
@@ -740,7 +758,7 @@ money: context [
 		sign: sign? money
 		
 		if zero? sign [return 0.0]
-	
+		
 		buffer: string/make-at stack/push* SIZE_DIGITS + 6 Latin1	;-- max number of digits and -CCC$.
 		form-money money buffer 0 yes no							;-- take all fractional digits into account
 		
@@ -763,32 +781,27 @@ money: context [
 		flt     [float!]
 		return: [red-money!]
 		/local
-			money     [red-money!]
 			formed    [c-string!]
 			start end [byte-ptr!]
 			point     [byte-ptr!]
 			sign      [logic!]
 	][
-		formed: dtoa/form-float flt SIZE_DIGITS yes
+		if any [float-underflow? flt float-overflow? flt][MONEY_OVERFLOW]
 		
-		if (length? formed) > 19 [MONEY_OVERFLOW]	;-- e-notation for exponents larger than 16
+		formed: dtoa/form-float flt SIZE_DIGITS yes
 		
 		point: as byte-ptr! formed
 		until [point: point + 1 point/value = #"."]
 		
-		if point/2 = #"#" [							;-- 1.#NaN, 1.#INF, -1.#INF
+		if point/2 = #"#" [							;-- 1.#NaN
 			fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY float/box flt]
 		]
-		
-		if point/3 = #"e" [MONEY_OVERFLOW]			;-- e-notation for exponents smaller than -7
 		
 		sign:  formed/1 = #"-"
 		start: as byte-ptr! either sign [formed][formed - 1]
 		end:   as byte-ptr! formed + length? formed
 		
-		money: make-at stack/push* sign null start point end
-		if all [0.0 <> flt zero-money? money][MONEY_OVERFLOW]	;-- underflow on too small float value
-		money
+		make-at stack/push* sign null start point end
 	]
 	
 	to-binary: func [
@@ -836,7 +849,8 @@ money: context [
 			int            [red-integer!]
 			flt            [red-float!]
 			head tail here [red-value!]
-			currency state [integer!]
+			state          [make-states!]
+			currency       [integer!]
 			type length    [integer!]
 	][
 		bail: [fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY blk]]
@@ -933,12 +947,11 @@ money: context [
 			tail head here   [byte-ptr!]
 			currency digits  [byte-ptr!]
 			start point      [byte-ptr!]
-			char             [byte!]
-			sign             [logic!]
+			sign?            [logic!]
 	][
 		bail: [fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY str]]
 		make: [
-			money: make-at stack/push* sign currency start point tail
+			money: make-at stack/push* sign? currency start point tail
 			if null? money [bail]					;-- invalid currency code
 			return money
 		]
@@ -952,9 +965,9 @@ money: context [
 		here: head
 		
 		;-- sign
-		sign: no
+		sign?: no
 		switch here/value [
-			#"-" [here: here + 1 sign: yes]
+			#"-" [here: here + 1 sign?: yes]
 			#"+" [here: here + 1]
 			default [0]
 		]
@@ -970,16 +983,28 @@ money: context [
 		
 		start: here - as integer! here/value <> #"$"
 		here:  start + 1
-		if dot? [bail]								;-- forbid leading decimal separator
+		if any [dot? here/value = #"'"][bail]		;-- forbid leading separator
 		
 		;-- leading zeroes
-		until [here: here + 1 any [here = tail here/value <> #"0"]]
+		until [
+			here: here + 1
+			if here/value = #"'" [
+				if all [here + 1 < tail here/2 = #"'"][bail]
+				continue
+			]
+			any [here = tail here/value <> #"0"]
+		]
+		
 		if any [here = tail dot?][here: here - 1]
 		digits: here
 		
 		;-- integral part with optional thousands separators
 		until [
-			if here/value = #"'" [here: here + 1 continue]
+			if here/value = #"'" [
+				if all [here + 1 < tail here/2 = #"'"][bail]
+				here: here + 1
+				continue
+			]
 			unless digit? [bail]
 			here: here + 1
 			any [end? dot?]
@@ -1133,7 +1158,7 @@ money: context [
 		sign1: sign? value1
 		sign2: sign? value2
 		
-		DISPATCH_SIGNS [			
+		DISPATCH_SIGNS [
 			SIGN_00
 			SIGN_0-
 			SIGN_0+ [return negate-money value2]
@@ -1160,7 +1185,7 @@ money: context [
 		
 		index:  SIZE_DIGITS
 		borrow: 0
-	
+		
 		loop index [
 			digit1: get-digit amount1 index
 			digit2: get-digit amount2 index
@@ -1253,8 +1278,8 @@ money: context [
 	divide-money: func [							;-- shift-and-subtract algorithm
 		value1     [red-money!]
 		value2     [red-money!]
-		remainder? [logic!]							;-- yes: calculate remainder instead
-		only?      [logic!]							;-- yes: don't approximate fractional part
+		remainder? [logic!]							;-- YES: calculate remainder instead
+		only?      [logic!]							;-- YES: don't approximate fractional part
 		return:    [red-money!]
 		/local
 			shift increment subtract [subroutine!]
@@ -1360,7 +1385,7 @@ money: context [
 	do-math-op: func [
 		value1  [red-money!]
 		value2  [red-money!]
-		op      [integer!]
+		op      [math-op!]
 		return: [red-money!]
 	][
 		switch op [
@@ -1377,7 +1402,7 @@ money: context [
 	]
 
 	do-math: func [
-		op      [integer!]
+		op      [math-op!]
 		return: [red-value!]
 		/local
 			value1 value2 [red-money!]
@@ -1392,7 +1417,7 @@ money: context [
 		
 		type1: TYPE_OF(value1)
 		type2: TYPE_OF(value2)
-	
+		
 		if any [
 			all [op = OP_MUL type1 = TYPE_MONEY type2 = TYPE_MONEY]
 			all [any [op = OP_DIV op = OP_REM] type1 <> TYPE_MONEY type2 = TYPE_MONEY]
@@ -1414,7 +1439,7 @@ money: context [
 				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(value1)]
 			]
 		]
-	
+		
 		switch type2 [
 			TYPE_MONEY [0]
 			TYPE_INTEGER [
@@ -1430,7 +1455,7 @@ money: context [
 			]
 		]
 		
-		unless same-currencies? value1 value2 [fire [TO_ERROR(script wrong-denom) value1 value2]]
+		unless same-currencies? value1 value2 no [fire [TO_ERROR(script wrong-denom) value1 value2]]
 		currency: get-currency value2				;-- preserve specific currency
 		if zero? currency [currency: get-currency value1]
 		
@@ -1500,9 +1525,47 @@ money: context [
 		secure? [logic!]
 		only?   [logic!]
 		return: [red-money!]
+		/local
+			roll        [subroutine!]
+			amount      [byte-ptr!]
+			count index [integer!]
+			digit new   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "money/random"]]
-		--NOT_IMPLEMENTED--
+		
+		roll: [
+			while [not zero? count][
+				set-digit amount index _random/rand % 10
+				count: count - 1
+				index: index + 1
+			]
+		]
+		
+		either seed? [
+			_random/srand money/amount1 xor money/amount2 xor money/amount3 xor get-sign money
+			money/header: TYPE_UNSET
+		][
+			amount: get-amount money
+			count:  count-digits amount
+			
+			amount: amount + (SIZE_DIGITS - count >> 1)
+			index:  1 + (count and 1)
+			
+			while [not zero? count][
+				digit: get-digit amount index
+				new:   _random/rand % (1 + digit)
+				
+				if all [new = digit (_random/rand % 1000) <> (_random/rand % 1000)][continue]
+				
+				set-digit amount index new
+				
+				count: count - 1
+				index: index + 1
+				
+				unless new = digit [roll]
+			]
+		]
+		
 		money
 	]
 	
@@ -1531,28 +1594,27 @@ money: context [
 		#if debug? = yes [if verbose > 0 [print-line "money/mold"]]
 		form-money money buffer part all? no
 	]
-		
+	
 	compare: func [
 		money   [red-money!]
 		value   [red-money!]
-		op      [integer!]
+		op      [comparison-op!]
 		return: [integer!]
 		/local
 			integer [red-integer!]
 			float   [red-float!]
+			strict? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "money/compare"]]
 		
-		if all [
-			TYPE_OF(money) <> TYPE_OF(value)
-			any [op = COMP_FIND op = COMP_SAME op = COMP_STRICT_EQUAL]
-		][
+		strict?: any [op = COMP_SAME op = COMP_STRICT_EQUAL]
+		if all [TYPE_OF(money) <> TYPE_OF(value) any [op = COMP_FIND strict?]][
 			return 1
 		]
 		
 		switch TYPE_OF(value) [
 			TYPE_MONEY [
-				unless same-currencies? money as red-money! value [
+				unless same-currencies? money as red-money! value strict? [
 					fire [TO_ERROR(script wrong-denom) money as red-money! value]
 				]
 			]
@@ -1562,6 +1624,8 @@ money: context [
 			]
 			TYPE_FLOAT [
 				float: as red-float! value
+				if float-underflow? float/value [return 1]
+				if float-overflow?  float/value [return -1]
 				value: from-float float/value
 			]
 			default [RETURN_COMPARE_OTHER]

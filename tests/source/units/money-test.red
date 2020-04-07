@@ -73,6 +73,9 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "strict-equal-4" --assert strict-equal? -$0 +$0
 	--test-- "strict-equal-5" --assert strict-equal? -$1 -$1
 	--test-- "strict-equal-6" --assert strict-equal? +$1 +$1
+	--test-- "strict-equal-7" --assert strict-equal? +USD$1 +USD$1
+	--test-- "strict-equal-8" --assert error? try [strict-equal? +$1 +USD$1]
+	--test-- "strict-equal-9" --assert error? try [strict-equal? +EUR$1 +$1]
 ===end-group===
 
 ===start-group=== "same?"
@@ -82,6 +85,9 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "same-4" --assert same? -$0 +$0
 	--test-- "same-5" --assert same? -$1 -$1
 	--test-- "same-6" --assert same? +$1 +$1
+	--test-- "same-7" --assert same? +USD$1 +USD$1
+	--test-- "same-8" --assert error? try [same? +USD$1 +$1]
+	--test-- "same-9" --assert error? try [same? +$1 +USD$1]
 ===end-group===
 
 ===start-group=== "lesser?"
@@ -179,6 +185,7 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "to-24" --assert error? try [to money! "CCC$123"]
 	--test-- "to-25" --assert error? try [to money! "123$456"]
 	--test-- "to-26" --assert error? try [to money! "EUR123"]
+	--test-- "to-26" --assert error? try [to money! "EUR123"]
 	--test-- "to-27"
 		--assert error? try [to money! "$"]
 		--assert error? try [to money! "$."]
@@ -194,7 +201,22 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 		--assert error? try [to money! "0,"]
 		--assert error? try [to money! "$.0"]
 		--assert error? try [to money! "$0."]
-		--assert true
+		--assert error? try [to money! "$'1"]
+		--assert error? try [to money! "$1'"]
+		--assert error? try [to money! "$1''2"]
+		--assert error? try [to money! "$1'.2"]
+		--assert error? try [to money! "$1',2"]
+		--assert error? try [to money! "$1234.45'678"]
+	--test-- "to-28"								;-- implicit conversion from float to money
+		--assert $1 > 1e-6
+		--assert $2 < 1e17
+		--assert 1e-5 > $0
+		--assert 1e17 > $3
+	--test-- "to-29"
+		--assert $1234 == to money! "$1'2'3'4"
+		--assert $1234 == to money! "$1'234"
+		--assert $1234.56789 == to money! "$1'234.56789"
+		--assert $1234.56789 == to money! "$000'00'0'1234.56789"
 ===end-group===
 
 ===start-group=== "make"
@@ -212,6 +234,8 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "make-12" --assert "EUR$0.00000" == mold/all make money! 'EUR
 	--test-- "make-13" --assert error? try [make money! 'foo]
 	--test-- "make-14" --assert error? try [make money! [123.45 6789]]
+	--test-- "make-15"
+		--assert not error? try [foreach c system/locale/currencies/base [make money! c]]
 ===end-group===
 
 ===start-group=== "form/mold"
@@ -243,7 +267,7 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "currencies-5"  --assert -2.0 * $1 == -$2
 	--test-- "currencies-6"  --assert error? try [USD$1 + EUR$1]
 	--test-- "currencies-7"  --assert error? try [EUR$2 - USD$2]
-	--test-- "currencies-8"  --assert USD$1 == $1
+	--test-- "currencies-8"  --assert USD$1 == USD$1
 	--test-- "currencies-9"  --assert -USD$2 == -USD$2
 	--test-- "currencies-10" --assert error? try [EUR$123 <> USD$123]
 ===end-group===
@@ -400,11 +424,11 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 		--assert -$3.0  == round/to/ceiling -$4.5 3
 		--assert -$6.0  == round/to -$4.5 3.0
 		--assert +$6.0  == round/to +$4.5 3
-		--assert $4.998 == round/to EUR$5 0.357
+		--assert EUR$4.998 == round/to EUR$5 0.357
 		--assert $3.8   == round/to $3.75 0.1
 		--assert $1.375 == round/to $1.333 -$0.125
 		--assert $1.33  == round/to $1.333 0.01
-		--assert -$3.0  == round/to/floor -USD$2.4 $1.0
+		--assert -USD$3.0  == round/to/floor -USD$2.4 $1.0
 		--assert -$2.0  == round/to/ceiling -$2.4 1.0
 		--assert -$4.0  == round/to/floor -$2.4 2.0
 		--assert -$1.0  == round/to -$0.50 1
@@ -534,6 +558,24 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 		--assert error? try [round/half-ceiling min-money]
 ===end-group===
 
+===start-group=== "random"
+	--test-- "random-1"
+		--assert unset? random/seed RED$92.14
+	--test-- "random-2"
+		loop 100 [--assert $0 == random $0]
+	--test-- "random-3"
+		loop 100 [--assert $1 >= random $1]
+	--test-- "random-4"
+		loop 100 [--assert -$1 <= random -$1]
+	--test-- "random-5"
+		a: average collect [loop 1'000 [keep random $1'000]]
+		--assert to logic! all [a - 9 <= $500 a + 9 >= $500]
+	--test-- "random-6"
+		loop 100 [--assert not-equal? random $1 random $1]
+	--test-- "random-7"
+		--assert 'RED = pick random RED$123.456 'code
+===end-group===
+
 ===start-group=== "sort"
 	--test-- "sort-1"
 		block:  [9 2.0 $4 5.0 $8 7 $3 6.0 2.0 $1 5]
@@ -565,30 +607,39 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "transcode-money-1" --assert money? load "$123"
 	--test-- "transcode-money-2" --assert money? first load "$123 $456"
 	--test-- "transcode-money-3" --assert money? last load "$123 -USD$456"
-	--test-- "transcode-money-4" --assert money! == transcode/prescan "+EUR$123.456 1 2 3"
+	--test-- "transcode-money-4" --assert money! == transcode/scan "+EUR$123.456 1 2 3"
 	--test-- "transcode-money-5" --assert "AED$123.45678" == mold/all AED$123.45678
 	--test-- "transcode-money-6" --assert "-ZMW$123.45678" == mold/all -ZMW$123.45678
 	--test-- "transcode-money-7"
-		"RED$0.00000" == mold/all red$0
-		"RED$0.00000" == mold/all RED$0
-		"RED$0.00000" == mold/all Red$0
-		"RED$0.00000" == mold/all transcode/one "red$0"
-		"RED$0.00000" == mold/all transcode/one "RED$0"
-		"RED$0.00000" == mold/all transcode/one "Red$0"
-		"RED$0.00000" == mold/all make money! 'red
-		"RED$0.00000" == mold/all make money! 'RED
-		"RED$0.00000" == mold/all make money! 'Red
-		"RED$0.00000" == mold/all make money! [red 0]
-		"RED$0.00000" == mold/all make money! [RED 0]
-		"RED$0.00000" == mold/all make money! [Red 0]
-		"RED$0.00000" == mold/all make money! "red$0"
-		"RED$0.00000" == mold/all make money! "RED$0"
-		"RED$0.00000" == mold/all make money! "Red$0"
-	;--test-- "transcode-money-"
-		;--assert error! == transcode/prescan "-$.1"
-		;--assert error! == transcode/prescan "+$,2"
-		;--assert error! == transcode/prescan "$3."
-		;--assert error! == transcode/prescan "$4,"
+		--assert "RED$0.00000" == mold/all red$0
+		--assert "RED$0.00000" == mold/all RED$0
+		--assert "RED$0.00000" == mold/all Red$0
+		--assert "RED$0.00000" == mold/all transcode/one "red$0"
+		--assert "RED$0.00000" == mold/all transcode/one "RED$0"
+		--assert "RED$0.00000" == mold/all transcode/one "Red$0"
+		--assert "RED$0.00000" == mold/all make money! 'red
+		--assert "RED$0.00000" == mold/all make money! 'RED
+		--assert "RED$0.00000" == mold/all make money! 'Red
+		--assert "RED$0.00000" == mold/all make money! [red 0]
+		--assert "RED$0.00000" == mold/all make money! [RED 0]
+		--assert "RED$0.00000" == mold/all make money! [Red 0]
+		--assert "RED$0.00000" == mold/all make money! "red$0"
+		--assert "RED$0.00000" == mold/all make money! "RED$0"
+		--assert "RED$0.00000" == mold/all make money! "Red$0"
+	--test-- "transcode-money-8"
+		--assert error! == transcode/scan "$123456789012345678"
+		--assert error! == transcode/scan "$'1"
+		--assert error! == transcode/scan "$1'"
+		--assert error! == transcode/scan "$1''2"
+		--assert $12345678901234567.12345 == transcode/one "$12345678901234567.1234567890"
+		--assert $12345678901234567.12345 == transcode/one "$00000000000000000012345678901234567.12345"
+		--assert $12345678901234567.12345 == transcode/one "+$12'345'678'901'234'567.1234567890"
+		--assert -$12345678901234567.12345 == transcode/one "-$0'00'000'000012345678901234567.12345"
+	--test-- "transcode-money-"
+		--assert error! == transcode/scan "-$.1"
+		--assert error! == transcode/scan "+$,2"
+		--assert error! == transcode/scan "$3."
+		--assert error! == transcode/scan "$4,"
 ===end-group===
 
 ===start-group=== "as-money"
@@ -647,12 +698,10 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 		--assert error? try [make money! 'bar]
 		append list/extra 'bar
 		--assert money? make money! 'bar
-		;--assert "BAR$0.00000" == mold/all make money! 'bar
+		--assert "BAR$0.00000" == mold/all make money! 'bar
 		--assert error? try [make money! 'qux]
 		append list/extra 'QUX
 		--assert "-QUX$123.45678" == mold/all make money! [QUX -123 45678]
-		;--assert -QUX$123.45 == -QUX$123.45
-		;--assert zero? BAR$67.89 - BAR$67.89
 	--test-- "custom-4"
 		--assert error? try [append list/extra 'bar]
 		--assert error? try [append list/extra 'qux]

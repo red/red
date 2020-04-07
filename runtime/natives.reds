@@ -813,6 +813,9 @@ natives: context [
 				][
 					res: true
 				]
+				type = TYPE_MONEY [
+					res: zero? money/compare as red-money! arg1 as red-money! arg2 COMP_SAME
+				]
 				true [
 					res: all [
 						arg1/data1 = arg2/data1
