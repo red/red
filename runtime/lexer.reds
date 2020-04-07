@@ -1874,7 +1874,8 @@ lexer: context [
 		]
 		assert p/1 = #"$"
 		if any [p/2 = #"." p/2 = #"," p/2 = #"'"][do-error]
-		until [p: p + 1 all [p/1 <> #"0" p/1 <> #"'"]]
+		until [p: p + 1 any [p = e all [p/1 <> #"0" p/1 <> #"'"]]]
+		if any [p >= e p/1 = #"."][p: p - 1]			;-- backtrack if $0 or $0.
 		st: p - 1
 		ds: null
 		quotes: 0
