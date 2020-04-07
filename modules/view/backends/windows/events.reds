@@ -833,7 +833,11 @@ process-custom-draw: func [
 					rc/left: rc/left + dpi-scale 16
 				]
 				if TYPE_OF(txt) = TYPE_STRING [
-					flags: get-para-flags base para
+					flags: either TYPE_OF(para) <> TYPE_OBJECT [
+						0001h or 0004h				;-- DT_CENTER, DT_VCENTER if no para settings
+					][
+						get-para-flags base para
+					]
 					DrawText DC unicode/to-utf16 txt -1 rc flags or DT_SINGLELINE
 				]
 				SetBkMode DC old
