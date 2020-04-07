@@ -1873,20 +1873,24 @@ lexer: context [
 			if cur + 3 <> p [do-error]
 		]
 		assert p/1 = #"$"
-		st: p
-		p: p + 1
-		if any [p/1 = #"." p/1 = #","][do-error]
+		if any [p/2 = #"." p/2 = #"," p/2 = #"'"][do-error]
+		until [p: p + 1 all [p/1 <> #"0" p/1 <> #"'"]]
+		st: p - 1
 		ds: null
 		quotes: 0
 		while [p < e][
 			if any [p/1 = #"." p/1 = #","][
 				ds: p
 				if ds + 1 = e [do-error]
-				break
+				break   
 			]
-			if p/1 = #"'" [quotes: quotes + 1]
+			if p/1 = #"'" [
+				if all [p + 1 < e p/2 = #"'"][do-error]
+				quotes: quotes + 1
+			]
 			p: p + 1
 		]
+		if p/0 = #"'" [do-error]
 		if 18 + quotes < as-integer p - st [do-error]
 		lex/in-pos: e									;-- reset the input position to delimiter byte
 		if all [load? null? money/make-at alloc-slot lex neg? cur st ds e][do-error]
