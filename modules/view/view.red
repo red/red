@@ -299,7 +299,10 @@ on-face-deep-change*: function ["Internal use only" owner word target action new
 				not find/skip next state/3 word 8
 			][
 				unless find [cleared removed taken] action [
-					if find [clear remove take] action [
+					if all [
+						find [clear remove take] action
+						word <> 'draw
+					][
 						index: 0
 						target: copy/part target part
 					]

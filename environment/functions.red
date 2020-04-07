@@ -780,7 +780,7 @@ split: function [
 	series [any-string!] dlm [string! char! bitset!] /local s
 ][
 	num: either string? dlm [length? dlm][1]
-	parse series [collect any [copy s [to [dlm | end]] keep (s) num skip [end keep ("") | none] ]]
+	parse series [collect any [copy s [to [dlm | end]] keep (s) num skip [end keep (copy "") | none] ]]
 ]
 
 dirize: func [
@@ -820,7 +820,8 @@ clean-path: func [
 		'else [append what-dir file]
 	]
 	if all [dir not dir? file][append file #"/"]
-	
+	if only [return file]
+
 	out: make file! length? file
 	cnt: 0
 	

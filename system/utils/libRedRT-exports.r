@@ -115,6 +115,7 @@
 	red/word/from
 	red/word/load
 	red/word/push-local
+	red/word/duplicate
 
 	red/get-word/get
 	red/set-word/push-local

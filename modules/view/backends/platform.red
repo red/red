@@ -568,12 +568,13 @@ system/view/platform: context [
 		]
 
 		font: as red-object! values + gui/FACE_OBJ_FONT
-		hFont: either TYPE_OF(font) = TYPE_OBJECT [
+		hFont: null
+		if TYPE_OF(font) = TYPE_OBJECT [
 			state: as red-block! (object/get-values font) + gui/FONT_OBJ_STATE
-			either TYPE_OF(state) <> TYPE_BLOCK [gui/make-font face font][gui/get-font-handle font 0]
-		][
-			null
+			if TYPE_OF(state) <> TYPE_BLOCK [hFont: gui/get-font-handle font 0]
+			if null? hFont [hFont: gui/make-font face font]
 		]
+
 		pair: as red-pair! stack/arguments
 		pair/header: TYPE_PAIR
 		gui/get-text-size face text hFont pair

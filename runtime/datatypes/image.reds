@@ -301,6 +301,7 @@ image: context [
 		format	[integer!]
 		return: [red-value!]
 	][
+		if zero? image/size [fire [TO_ERROR(access bad-media)]]
 		if TYPE_OF(dst) = TYPE_NONE [dst: stack/push*]
 		OS-image/encode image dst format
 	]
@@ -379,6 +380,7 @@ image: context [
 		/local
 			offset	[integer!]
 			sz		[integer!]
+			bin-sz	[integer!]
 			s		[series!]
 			p		[byte-ptr!]
 			stride	[integer!]
@@ -403,11 +405,16 @@ image: context [
 
 		type: TYPE_OF(bin)
 		either type = TYPE_BINARY [
+			bin-sz: binary/rs-length? bin
 			s: GET_BUFFER(bin)
 			p: as byte-ptr! s/offset
 			either method = EXTRACT_ARGB [
-				copy-memory as byte-ptr! data p sz * 4
+				sz: sz * 4
+				if bin-sz < sz [sz: bin-sz]
+				copy-memory as byte-ptr! data p sz
 			][
+				if method = EXTRACT_RGB [bin-sz: bin-sz / 3]	;-- number of pixels
+				if bin-sz < sz [end: data + bin-sz]
 				while [data < end][
 					pixel: data/value
 					either method = EXTRACT_ALPHA [
@@ -926,15 +933,17 @@ image: context [
 				][
 					res: 1
 				][
-					type: 0
-					bmp1: OS-image/lock-bitmap arg1 no
-					bmp2: OS-image/lock-bitmap arg2 no
-					res: compare-memory
-						as byte-ptr! OS-image/get-data bmp1 :type
-						as byte-ptr! OS-image/get-data bmp2 :type
-						IMAGE_WIDTH(arg1/size) * IMAGE_HEIGHT(arg2/size) * 4
-					OS-image/unlock-bitmap arg1 bmp1
-					OS-image/unlock-bitmap arg2 bmp2
+					either zero? arg1/size [res: 0][
+						type: 0
+						bmp1: OS-image/lock-bitmap arg1 no
+						bmp2: OS-image/lock-bitmap arg2 no
+						res: compare-memory
+							as byte-ptr! OS-image/get-data bmp1 :type
+							as byte-ptr! OS-image/get-data bmp2 :type
+							IMAGE_WIDTH(arg1/size) * IMAGE_HEIGHT(arg2/size) * 4
+						OS-image/unlock-bitmap arg1 bmp1
+						OS-image/unlock-bitmap arg2 bmp2
+					]
 				]
 			]
 			default [
@@ -968,7 +977,7 @@ image: context [
 
 		img: as red-image! stack/arguments
 		offset: img/head + 1
-		if IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) > offset  [
+		if IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) >= offset [
 			img/head: offset
 		]
 		img
@@ -989,16 +998,18 @@ image: context [
 	tail?: func [
 		return:	  [red-value!]
 		/local
-			img	  [red-image!]
-			state [red-logic!]
+			img	   [red-image!]
+			state  [red-logic!]
+			offset [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "image/tail?"]]
 
-		img:   as red-image! stack/arguments
-		state: as red-logic! img
+		img:    as red-image! stack/arguments
+		state:  as red-logic! img
+		offset: img/head + 1
 
 		state/header: TYPE_LOGIC
-		state/value:  IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) <= (img/head + 1)
+		state/value:  not IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) >= offset
 		as red-value! state
 	]
 

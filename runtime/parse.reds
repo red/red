@@ -86,9 +86,9 @@ parser: context [
 	#define PARSE_TRACE(event) [
 		#if red-tracing? = yes [
 			if OPTION?(fun) [
-				rule/head: (as-integer cmd - block/rs-head rule) >> 4
-				if negative? rule/head [rule/head: 0]
-				unless fire-event fun words/event match? rule input fun-locs saved? [
+				head: (as-integer cmd - block/rs-head rule) >> 4
+				if negative? head [head: 0]
+				unless fire-event fun words/event match? rule input fun-locs head saved? [
 					return as red-value! logic/push match?
 				]
 			]
@@ -667,6 +667,7 @@ parser: context [
 		rule	[red-block!]
 		input   [red-series!]
 		locals	[integer!]
+		offset	[integer!]
 		saved?	[logic!]
 		return: [logic!]
 		/local
@@ -682,10 +683,11 @@ parser: context [
 		stack/mark-func words/_body	fun/ctx				;@@ find something more adequate
 		stack/push as red-value! event
 		logic/push match?
-		stack/push as red-value! rule
+		rule: as red-block! stack/push as red-value! rule
 		stack/push as red-value! input
 		stack/push as red-value! rules
 		if positive? locals [_function/init-locals 1 + locals]	;-- +1 for /local refinement
+		rule/head: offset
 		
 		catch RED_THROWN_ERROR [_function/call fun global-ctx]	;FIXME: hardcoded origin context
 
@@ -798,6 +800,7 @@ parser: context [
 			cnt		 [integer!]
 			len		 [integer!]
 			offset	 [integer!]
+			head 	 [integer!]
 			cnt-col	 [integer!]
 			saved	 [integer!]
 			before   [integer!]
@@ -1511,7 +1514,7 @@ parser: context [
 						]
 						sym = words/copy [				;-- COPY
 							cmd: cmd + 1
-							if any [cmd = tail TYPE_OF(cmd) <> TYPE_WORD][
+							if any [cmd + 1 >= tail TYPE_OF(cmd) <> TYPE_WORD][
 								PARSE_ERROR [TO_ERROR(script parse-end) words/_copy]
 							]
 							min:   R_NONE
@@ -1824,7 +1827,7 @@ parser: context [
 						]
 						sym = words/set [				;-- SET
 							cmd: cmd + 1
-							if any [cmd = tail TYPE_OF(cmd) <> TYPE_WORD][
+							if any [cmd + 1 >= tail TYPE_OF(cmd) <> TYPE_WORD][
 								PARSE_ERROR [TO_ERROR(script parse-end) words/_set]
 							]
 							min:   R_NONE

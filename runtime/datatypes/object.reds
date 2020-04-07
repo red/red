@@ -524,7 +524,7 @@ object: context [
 			evt1	[integer!]
 			evt2	[integer!]
 			id		[integer!]
-			blank	[byte!]
+			blank	[integer!]
 	][
 		ctx: 	GET_CTX(obj)
 		syms:   as series! ctx/symbols/value
@@ -540,13 +540,13 @@ object: context [
 
 		either flat? [
 			indent?: no
-			blank: space
+			blank: as-integer space
 		][
 			if mold? [
 				string/append-char GET_BUFFER(buffer) as-integer lf
 				part: part - 1
 			]
-			blank: lf
+			blank: as-integer lf
 		]
 		cycles/push obj/ctx
 
@@ -569,7 +569,7 @@ object: context [
 				part: actions/mold value buffer only? all? flat? arg part tabs
 
 				if any [indent? sym + 1 < s-tail][			;-- no final LF when FORMed
-					string/append-char GET_BUFFER(buffer) as-integer blank
+					string/append-char GET_BUFFER(buffer) blank
 					part: part - 1
 				]
 			]
@@ -1115,7 +1115,7 @@ object: context [
 		
 		string/concatenate-literal buffer "make object! ["
 		part: serialize obj buffer no all? flat? arg part - 14 yes indent + 1 yes
-		if indent > 0 [part: do-indent buffer indent part]
+		if all [not flat? indent > 0][part: do-indent buffer indent part]
 		string/append-char GET_BUFFER(buffer) as-integer #"]"
 		part - 1
 	]
@@ -1135,7 +1135,6 @@ object: context [
 			save-ctx [node!]
 			save-idx [integer!]
 			on-set?  [logic!]
-			rebind?	 [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/eval-path"]]
 		
@@ -1143,9 +1142,7 @@ object: context [
 		if TYPE_OF(word) <> TYPE_WORD [fire [TO_ERROR(script invalid-path) path element]]
 
 		ctx: GET_CTX(parent)
-
-		rebind?: word/ctx <> parent/ctx
-		if rebind? [									;-- bind the word to object's context
+		if word/ctx <> parent/ctx [						;-- bind the word to object's context
 			save-idx: word/index
 			save-ctx: word/ctx
 			word/index: _context/find-word ctx word/symbol yes
@@ -1173,10 +1170,6 @@ object: context [
 					fire [TO_ERROR(script no-value) res]
 				]
 			]
-		]
-		if rebind? [
-			word/index: save-idx
-			word/ctx: save-ctx
 		]
 		res
 	]
