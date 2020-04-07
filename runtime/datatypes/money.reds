@@ -983,16 +983,28 @@ money: context [
 		
 		start: here - as integer! here/value <> #"$"
 		here:  start + 1
-		if dot? [bail]								;-- forbid leading decimal separator
+		if any [dot? here/value = #"'"][bail]		;-- forbid leading separator
 		
 		;-- leading zeroes
-		until [here: here + 1 any [here = tail here/value <> #"0"]]
+		until [
+			here: here + 1
+			if here/value = #"'" [
+				if all [here + 1 < tail here/2 = #"'"][bail]
+				continue
+			]
+			any [here = tail here/value <> #"0"]
+		]
+		
 		if any [here = tail dot?][here: here - 1]
 		digits: here
 		
 		;-- integral part with optional thousands separators
 		until [
-			if here/value = #"'" [here: here + 1 continue]
+			if here/value = #"'" [
+				if all [here + 1 < tail here/2 = #"'"][bail]
+				here: here + 1
+				continue
+			]
 			unless digit? [bail]
 			here: here + 1
 			any [end? dot?]
