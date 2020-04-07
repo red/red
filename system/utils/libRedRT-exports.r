@@ -77,6 +77,7 @@
 	red/lit-word/push
 	red/logic/push
 	red/map/push
+	red/money/push
 	red/none/push
 	red/object/push
 	red/op/push
@@ -377,6 +378,7 @@
 	red/natives/decompress*
 	red/natives/recycle*
 	red/natives/transcode*
+	red/natives/as-money*
 ][
 	red/object/path-parent	cell!
 	red/object/field-parent	cell!
