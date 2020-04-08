@@ -1620,10 +1620,12 @@ natives: context [
 		#typecheck [to-hex size]
 		arg: as red-integer! stack/arguments
 		limit: arg + size
-		unless positive? limit/value [fire [TO_ERROR(script invalid-arg) limit]]
-
+		
 		p: string/to-hex arg/value no
-		part: either OPTION?(limit) [8 - limit/value][0]
+		part: either not OPTION?(limit) [0][
+			unless positive? limit/value [fire [TO_ERROR(script invalid-arg) limit]]
+			8 - limit/value
+		]
 		if negative? part [part: 0]
 		issue/make-at stack/arguments p + part
 	]
