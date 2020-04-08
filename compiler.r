@@ -471,7 +471,7 @@ red: context [
 				append/only blk duplicate-symbol name
 			]
 		][
-			if new: select-ssa name [name: new]			;@@ add a check for function! type
+			if all [new: select-ssa name not find-function new new][name: new]
 			either get? [
 				either all [
 					rebol-gctx <> obj
