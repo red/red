@@ -144,7 +144,7 @@ system: context [
 				no-return:			"block did not return a value"
 				throw-usage:		"invalid use of a thrown error value"
 				locked-word:		["protected word - cannot modify:" :arg1]
-				;protected:			"protected value or series - cannot modify"
+				protected:			"protected value or series - cannot modify"
 				;self-protected:	"cannot set/unset self - it is protected"
 				bad-bad:			[:arg1 "error:" :arg2]
 				bad-make-arg:		["cannot MAKE" :arg1 "from:" :arg2]
@@ -158,7 +158,8 @@ system: context [
 				bad-loop-series:	["Loop series changed to invalid value:" :arg1]
 				;bad-decode:		"missing or unsupported encoding marker"
 				;already-used:		["alias word is already in use:" :arg1]
-				;wrong-denom:		[:arg1 "not same denomination as" :arg2]
+				wrong-denom:		[:arg1 "not same denomination as" :arg2]
+				bad-denom:			["invalid denomination:" :arg1]
 				;bad-press:			["invalid compressed data - problem:" :arg1]
 				;dialect:			["incorrect" :arg1 "dialect usage at:" :arg2]
 				invalid-obj-evt:	["invalid object event handler:" :arg1]
@@ -310,6 +311,45 @@ system: context [
 		days: [
 		  "Monday" "Tuesday" "Wednesday" "Thursday" "Friday" "Saturday" "Sunday"
 		]
+		
+		currencies: context [
+			;-- ISO currencies + BTC, ETH, RED
+			base: [
+				AED AFN ALL AMD ANG AOA ARS AUD AWG AZN BAM BBD BDT BTC BGN BHD BIF BMD BND BOB BRL BSD
+				BTN	BWP BYN BZD CAD CDF CHF CKD CLP CNY COP CRC CUC CUP CVE CZK DJF DKK DOP DZD EGP ERN
+				ETB ETH	EUR FJD FKP FOK GBP GEL GGP GHS GIP GMD GNF GTQ GYD HKD HNL HRK HTG HUF IDR ILS
+				IMP INR	IQD IRR ISK JEP JMD JOD JPY KES KGS KHR KID KMF KPW KRW KWD KYD KZT LAK LBP LKR
+				LRD LSL	LYD MAD MDL MGA MKD MMK MNT MOP MRU MUR MVR MWK MXN MYR MZN NAD NGN NIO NOK NPR
+				NZD OMR	PAB PEN PGK PHP PKR PLN PND PRB PYG QAR RED RON RSD RUB RWF SAR SBD SCR SDG SEK
+				SGD SHP SLL	SLS SOS SRD SSP STN SYP SZL THB TJS TMT TND TOP TRY TTD TVD TWD TZS UAH UGX
+				USD UYU UZS	VES VND VUV WST CFA XAF XCD XOF CFP XPF YER ZAR ZMW
+			]
+			;-- User-provided currencies
+			extra: []
+			
+			on-change*: func [word old new][
+				set-quiet in self word old
+				cause-error 'script 'protected []
+			]
+			on-deep-change*: func [owner word target action new index part][
+				if any [
+					word <> 'extra
+					not find [append appended] action
+					not word? :new
+					find base new
+					3 <> length? form new
+					all [
+						action = 'append
+						any [
+							find extra new
+							255 < ((length? base) + length? extra)	;-- limit index to 8-bit
+						]
+					]
+				][cause-error 'script 'protected []]
+				
+				if action = 'appended [set-slot-quiet back tail extra to word! uppercase form new]
+			]
+		]
 	]
 	
 	options: context [
@@ -326,6 +366,7 @@ system: context [
 		quiet: 			false
 		binary-base: 	16
 		decimal-digits: 15
+		money-digits:	2
 		module-paths: 	make block! 1
 		file-types: 	none
 		

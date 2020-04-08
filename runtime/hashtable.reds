@@ -1296,6 +1296,7 @@ _hashtable: context [
 		node	[node!]
 		cstr	[byte-ptr!]
 		len		[integer!]
+		opt?	[logic!]			;-- don't put if found
 		return: [integer!]			;-- return symbol id
 		/local
 			s [series!] h [hashtable!] x [integer!] i [integer!] site [integer!]
@@ -1327,7 +1328,7 @@ _hashtable: context [
 		site: n-buckets
 		mask: n-buckets - 2
 		hash: murmur3-x86-32 to-lower cstr len len
-		strict?: yes
+		strict?: not opt?
 		loop 2 [	;-- first try: case-sensitive comparison, second try: case-insensitive comparison
 			find?: yes
 			i: hash and mask
@@ -1356,7 +1357,7 @@ _hashtable: context [
 				]
 				x: i
 			]
-			either find? [break][xx: x strict?: no]
+			either any [find? opt?][break][xx: x strict?: no]
 		]
 
 		_HT_CAL_FLAG_INDEX((x - 1) ii sh)
@@ -1366,7 +1367,7 @@ _hashtable: context [
 			len2: -1
 		][
 			len2: keys/x + 1
-			either strict? [return len2][
+			either any [strict? opt?][return len2][
 				k: as red-symbol! alloc-tail blk-node
 				_HT_CAL_FLAG_INDEX((xx - 1) ii sh)
 				keys/xx: idx

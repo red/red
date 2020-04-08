@@ -451,7 +451,13 @@ lexer: context [
 		decimal-number-rule opt [#"%" e: (type: issue!)]
 		sticky-word-rule
 	]
-		
+	
+	money-rule: [
+		(neg?: no) opt [#"-" (neg?: yes) | #"+"] 
+		s: opt [3 alpha] #"$" digit any [digit | #"'" digit] opt [[dot | comma] some digit]
+		e: (type: money!)
+	]
+	
 	block-rule: [#"[" (stack/allocate block! 10) any-value #"]" (value: stack/pop block!)]
 	
 	paren-rule: [#"(" (stack/allocate paren! 10) any-value	#")" (value: stack/pop paren!)]
@@ -622,6 +628,7 @@ lexer: context [
 			| decimal-rule	  (stack/push load-decimal	 copy/part s e)
 			| tag-rule		  (stack/push to tag!		 copy/part s e)
 			| rawstr-rule	  (stack/push value) 
+			| money-rule	  (stack/push load-money s e neg?)
 			| word-rule		  (stack/push to type value)
 			| lit-word-rule	  (stack/push to type value)
 			| get-word-rule	  (stack/push to type value)
@@ -682,6 +689,14 @@ lexer: context [
 		top: does [last stk]
 		
 		reset: does [clear stk]
+		
+		clean-up: does [
+			unless empty? stk [
+				clear next stk							;-- keep root block in stk
+				clear first stk							;-- clear root block
+			]
+			nl?: no
+		]
 	]
 	
 	throw-error: func [/with msg [string! block!]][
@@ -703,6 +718,7 @@ lexer: context [
 			"^/*** line: " line
 			"^/*** at: " mold copy/part pos 40
 		]
+		stack/clean-up
 		either encap? [quit][halt]
 	]
 
@@ -816,6 +832,26 @@ lexer: context [
 		d1 + (w - 1 * 7 + (either wd < 5 [1][8]) - wd)
 	]
 	
+	load-money: func [s [string!] e [string!] neg? [logic!] /local cur dec pos][
+		if all [s/1 <> #"$" s/4 = #"$"][
+			cur: uppercase copy/part s 3
+			s: skip s 3
+		]
+		s: copy/part next s e
+		remove-each c s [c = #"'"]
+		dec: either pos: find s dot [
+			remove pos
+			if 5 < length? pos [clear skip pos 5]
+			length? pos
+		][0]
+		insert/dup tail s #"0" 5 - dec
+		if 22 < length? s [throw-error]
+		insert/dup s #"0" 22 - length? s
+		insert s pick "-+" neg?
+		insert s any [cur "..."]
+		append join make issue! 1 + length? s #"$" s
+	]
+	
 	load-tuple: func [s [string!] /local new byte p e][
 		new: join make issue! 1 + length? s #"~"
 		byte: [p: 1 3 digit e: (append new skip to-hex load copy/part p e 6)]
@@ -904,7 +940,8 @@ lexer: context [
 	process: func [src [string! binary!] /local blk][
 		old-line: line: 1
 		count?: yes
-		blk: stack/allocate block! 100				;-- root block		
+		stack/clean-up
+		blk: stack/allocate block! 100				;-- root block
 		src: identify-header src
 		
 		unless parse/all/case src program [throw-error]

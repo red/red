@@ -198,11 +198,12 @@ ownership: context [
 	]
 	
 	check: func [
-		value  [red-value!]								;-- series or object where a change occurs
-		action [red-word!]								;-- series: type of change, object: field
-		new	   [red-value!]								;-- newly inserted value or null
-		index  [integer!]								;-- start position of the change
-		part   [integer!]								;-- nb of values affected
+		value   [red-value!]							;-- series or object where a change occurs
+		action  [red-word!]								;-- series: type of change, object: field
+		new	    [red-value!]							;-- newly inserted value or null
+		index   [integer!]								;-- start position of the change
+		part    [integer!]								;-- nb of values affected
+		return: [logic!]								;-- TRUE: value is owned
 		/local
 			node   [node!]
 			slot   [red-value!]
@@ -227,10 +228,11 @@ ownership: context [
 		]
 		slot: _hashtable/get-value table as-integer node
 		
-		unless null? slot [
+		either null? slot [false][
 			owner:  as red-object! slot + 1
 			word:	as red-word! slot + 2
-			object/fire-on-deep owner word value action new index part 
+			object/fire-on-deep owner word value action new index part
+			true
 		]
 	]
 	

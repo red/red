@@ -226,7 +226,7 @@ binary: context [
 			int: int >> 8
 		]
 	]
-
+	
 	from-issue: func [
 		issue	[red-word!]
 		bin		[red-binary!]

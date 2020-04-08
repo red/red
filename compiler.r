@@ -36,6 +36,7 @@ red: context [
 	rebol-gctx:	   bind? 'rebol
 	expr-stack:	   make block! 8
 	current-call:  none
+	currencies:	   none									;-- extra user-defined currency codes from script's header
 	
 	unless value? 'Red [red: none]						;-- for %preprocessor to load
 	
@@ -241,6 +242,25 @@ red: context [
 		clear next mark									;-- remove code at "upper" level
 	]
 	
+	to-nibbles: func [src [string!] /local out][
+		out: make string! 11
+		foreach [high low] src [
+			append out to char! add
+				shift/left (to integer! high - #"0") 4
+				to integer! low - #"0"
+		]
+		out
+	]
+	
+	to-currency-code: func [code [string!] /local pos][
+		code: to word! code
+		case [
+			pos: find extracts/currencies code [index? pos]
+			all [currencies pos: find currencies code][(index? pos) + length? extracts/currencies]
+			'else [0]
+		]
+	]
+	
 	any-function?: func [value [word!]][
 		find [native! action! op! function! routine!] value
 	]
@@ -281,6 +301,7 @@ red: context [
 	unicode-char?:  func [value][value/1 = #"'"]
 	float-special?: func [value][value/1 = #"."]
 	tuple-value?:	func [value][value/1 = #"~"]
+	money-value?:	func [value][value/1 = #"$"]
 	percent-value?: func [value][#"%" = last value]
 	
 	date-special?:  func [value][all [block? value value/1 = #!date!]]
@@ -450,7 +471,7 @@ red: context [
 				append/only blk duplicate-symbol name
 			]
 		][
-			if new: select-ssa name [name: new]			;@@ add a check for function! type
+			if all [new: select-ssa name not find-function new new][name: new]
 			either get? [
 				either all [
 					rebol-gctx <> obj
@@ -1679,7 +1700,7 @@ red: context [
 
 	comp-literal: func [
 		/inactive /with val
-		/local value char? special? percent? map? tuple? dt-special? name w make-block type idx zone
+		/local value char? special? percent? map? tuple? money? dt-special? name w make-block type idx zone
 	][
 		make-block: [
 			value: to block! value
@@ -1701,6 +1722,7 @@ red: context [
 					special?: float-special? value
 					percent?: percent-value? value
 					tuple?:	  tuple-value? value
+					money?:	  money-value? value
 				]
 			]
 			scalar? :value
@@ -1741,6 +1763,13 @@ red: context [
 					emit to integer! copy/part skip bin -4 -4
 					emit to integer! copy/part skip bin -8 -4
 					insert-lf -5
+				]
+				money? [
+					emit 'money/push
+					value: to string! next value
+					emit pick [true false] value/4 = #"-"
+					emit to-currency-code copy/part value 3
+					emit to-nibbles copy skip value 4
 				]
 				find [refinement! issue!] type?/word :value [
 					add-symbol w: to word! form value
@@ -4802,8 +4831,19 @@ red: context [
 		src
 	]
 	
+	process-currencies: func [header [block!] /local spec c][
+		if block? spec: select header quote Currencies: [
+			foreach c spec [
+				if any [not word? c 3 <> length? form c][
+					throw-error ["invalid header currencies field:" spec]
+				]
+			]
+			currencies: copy spec
+		]
+	]
+	
 	process-config: func [header [block!] /local spec][
-		if spec: select header first [config:][
+		if spec: select header quote config: [
 			do bind spec job
 			if job/command-line [do bind job/command-line job]		;-- ensures cmd-line options have priority
 		]
@@ -4839,6 +4879,11 @@ red: context [
 		][
 			throw-error "Windows target requires View module (`Needs: View` in the header)"
 		]
+	]
+	
+	process-fields: func [header [block!] src [block!]][
+		process-needs header src
+		process-currencies header
 	]
 	
 	clean-up: does [
@@ -4878,7 +4923,8 @@ red: context [
 		container-obj?:
 		script-path:
 		script-file:
-		main-path: none
+		main-path: 
+		currencies: none
 	]
 
 	compile: func [
@@ -4898,7 +4944,7 @@ red: context [
 			process-config src/1
 			preprocessor/expand/clean src job
 			if job/show = 'expanded [probe next src]
-			process-needs src/1 next src
+			process-fields src/1 next src
 			extracts/init job
 			if job/libRedRT? [libRedRT/init]
 			if file? file [system-dialect/collect-resources src/1 resources file]

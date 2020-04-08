@@ -116,7 +116,7 @@ lexer: context [
 	
 	float-classes: #{
 		0000000000000000000000000000000000000000000000000000000000000000
-		0000000000000000000000010001040002020202020202020202000000000000
+		0000000000000000000000010401040002020202020202020202000000000000
 		0000000000030000000000000000000000000000000000000000000000000000
 		00000000000300
 	}
@@ -1858,29 +1858,43 @@ lexer: context [
 	
 	load-money: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local
-			do-error  [subroutine!]
-			cur	p	  [byte-ptr!]
-			neg? dec? [logic!]
+			do-error    [subroutine!]
+			cur	p st ds [byte-ptr!]
+			quotes		[integer!]
+			neg?        [logic!]
 	][
 		do-error: [throw-error lex s e TYPE_MONEY]
 		p: s
 		neg?: p/1 = #"-"
 		if flags and C_FLAG_SIGN <> 0 [p: p + 1]		;-- skip sign when present
 		cur: p
-		while [cur/1 <> #"$"][cur: cur + 1]				;-- cur is always < e
+		while [p/1 <> #"$"][p: p + 1]					;-- cur is always < e
 		either p = cur [cur: null][
-			if p + 3 <> cur [do-error]
-			p: cur
+			if cur + 3 <> p [do-error]
 		]
 		assert p/1 = #"$"
-		p: p + 1
-		dec?: no
+		if any [p/2 = #"." p/2 = #"," p/2 = #"'"][do-error]
+		until [p: p + 1 any [p = e all [p/1 <> #"0" p/1 <> #"'"]]]
+		if any [p >= e p/1 = #"."][p: p - 1]			;-- backtrack if $0 or $0.
+		st: p - 1
+		ds: null
+		quotes: 0
 		while [p < e][
-			if p/1 = #"." [if dec? [do-error] dec?: yes]
+			if any [p/1 = #"." p/1 = #","][
+				ds: p
+				if ds + 1 = e [do-error]
+				break   
+			]
+			if p/1 = #"'" [
+				if all [p + 1 < e p/2 = #"'"][do-error]
+				quotes: quotes + 1
+			]
 			p: p + 1
 		]
-		lex/in-pos: e 									;-- reset the input position to delimiter byte
-		;if load? [money/make-at alloc-slot lex cur s e neg?]
+		if p/0 = #"'" [do-error]
+		if 18 + quotes < as-integer p - st [do-error]
+		lex/in-pos: e									;-- reset the input position to delimiter byte
+		if all [load? null? money/make-at alloc-slot lex neg? cur st ds e][do-error]
 	]
 	
 	load-tag: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][

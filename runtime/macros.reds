@@ -60,10 +60,9 @@ Red/System [
 	TYPE_HANDLE											;-- 2E		46
 	TYPE_DATE											;-- 2F		47
 	TYPE_PORT											;-- 30		48
-	TYPE_IMAGE											;-- 31		49		;-- needs to be last
-	TYPE_EVENT
-	
-	TYPE_MONEY
+	TYPE_MONEY											;-- 31		49
+	TYPE_IMAGE											;-- 32		50		;-- needs to be last
+	TYPE_EVENT											
 	TYPE_CLOSURE
 	TYPE_SLICE
 	TYPE_TOTAL_COUNT									;-- keep tabs on number of datatypes.
@@ -220,6 +219,7 @@ Red/System [
 	NAT_UPPERCASE
 	NAT_LOWERCASE
 	NAT_AS_PAIR
+	NAT_AS_MONEY
 	NAT_BREAK
 	NAT_CONTINUE
 	NAT_EXIT

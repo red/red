@@ -30,7 +30,8 @@ int-array!: alias struct! [ptr [int-ptr!]]
 ;	17:		owner							;-- indicate that an object is an owner
 ;	16:		native! op						;-- operator is made from a native! function
 ;	15:		extern flag						;-- routine code is external to Red (from FFI)
-;	14-8:	<reserved>
+;   14:     sign bit						;-- sign of money
+;	13-8:	<reserved>
 ;	7-0:	datatype ID						;-- datatype number
 
 cell!: alias struct! [

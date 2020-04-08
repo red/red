@@ -104,6 +104,7 @@ red: context [
 	#include %datatypes/handle.reds
 	#include %datatypes/date.reds
 	#include %datatypes/port.reds
+	#include %datatypes/money.reds
 	#if OS = 'Windows [#include %datatypes/image.reds]	;-- temporary
 	#if OS = 'macOS   [#include %datatypes/image.reds]	;-- temporary
 
@@ -200,6 +201,7 @@ red: context [
 		handle/init
 		date/init
 		port/init
+		money/init
 		#if OS = 'Windows [image/init]					;-- temporary
 		#if OS = 'macOS   [image/init]					;-- temporary
 		
@@ -276,6 +278,7 @@ red: context [
 			handle/verbose:		verbosity
 			date/verbose:		verbosity
 			port/verbose:		verbosity
+			money/verbose:		verbosity
 			#if OS = 'Windows [image/verbose: verbosity]
 			#if OS = 'macOS   [image/verbose: verbosity]
 

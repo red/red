@@ -813,6 +813,9 @@ natives: context [
 				][
 					res: true
 				]
+				type = TYPE_MONEY [
+					res: zero? money/compare as red-money! arg1 as red-money! arg2 COMP_SAME
+				]
 				true [
 					res: all [
 						arg1/data1 = arg2/data1
@@ -1488,7 +1491,10 @@ natives: context [
 	][
 		#typecheck -negative?-							;-- `negative?` would be replaced by lexer
 		res: as red-logic! stack/arguments
-		switch TYPE_OF(res) [							;@@ Add money! pair!
+		switch TYPE_OF(res) [							;@@ Add pair!
+			TYPE_MONEY [
+				res/value: money/negative-money? as red-money! res				
+			]
 			TYPE_INTEGER [
 				num: as red-integer! res
 				res/value: negative? num/value
@@ -1513,7 +1519,10 @@ natives: context [
 	][
 		#typecheck -positive?-							;-- `positive?` would be replaced by lexer
 		res: as red-logic! stack/arguments
-		switch TYPE_OF(res) [							;@@ Add money! pair!
+		switch TYPE_OF(res) [							;@@ Add pair!
+			TYPE_MONEY [
+				res/value: money/positive-money? as red-money! res
+			]
 			TYPE_INTEGER [
 				num: as red-integer! res
 				res/value: positive? num/value
@@ -1540,7 +1549,10 @@ natives: context [
 		#typecheck sign?
 		res: stack/arguments
 		ret: 0
-		switch TYPE_OF(res) [							;@@ Add money! pair! 
+		switch TYPE_OF(res) [							;@@ Add pair! 
+			TYPE_MONEY [
+				ret: money/sign? as red-money! stack/arguments
+			]
 			TYPE_INTEGER [
 				i: as red-integer! stack/arguments
 				ret: case [
@@ -1750,6 +1762,9 @@ natives: context [
 		i: as red-integer! stack/arguments
 		ret: as red-logic! i
 		ret/value: switch TYPE_OF(i) [
+			TYPE_MONEY [
+				money/zero-money? as red-money! i
+			]
 			TYPE_INTEGER
 			TYPE_CHAR [
 				i/value = 0
@@ -1990,6 +2005,41 @@ natives: context [
 			default		[assert false]
 		]
 		pair/header: TYPE_PAIR
+	]
+	
+	as-money*: func [
+		check? [logic!]
+		/local
+			argument [red-value!]
+			amount   [red-value!]
+			currency [red-word!]
+			mny      [red-money!]
+			flt		 [red-float!]
+			int		 [red-integer!]
+			index    [integer!]
+	][
+		#typecheck as-money
+		argument: stack/arguments
+		currency: as red-word! argument
+		amount:   stack/arguments + 1
+		
+		index: money/get-currency-index currency/symbol
+		if negative? index [fire [TO_ERROR(script bad-denom) word/push currency]]
+		
+		switch TYPE_OF(amount) [
+			TYPE_INTEGER [
+				int: as red-integer! amount
+				mny: money/from-integer int/value
+			]
+			TYPE_FLOAT [
+				flt: as red-float! amount
+				mny: money/from-float flt/value
+			]
+			default [assert false]
+		]
+		
+		money/set-currency mny index
+		SET_RETURN(mny)
 	]
 	
 	break*: func [check? [logic!] returned [integer!]][
@@ -3396,6 +3446,7 @@ natives: context [
 			:uppercase*
 			:lowercase*
 			:as-pair*
+			:as-money*
 			:break*
 			:continue*
 			:exit*

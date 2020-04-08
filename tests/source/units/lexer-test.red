@@ -557,6 +557,8 @@ Red [
 	--test-- "tro-116" --assert error? try [transcode/one "1'"]
 	--test-- "tro-117" --assert error? try [transcode/one "1''2"]
 
+	--test-- "tro-118" --assert error? try [transcode/one "+$.1"]
+
 ===end-group===
 ===start-group=== "transcode/next"
 

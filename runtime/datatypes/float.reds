@@ -288,6 +288,7 @@ float: context [
 
 		switch type2 [
 			TYPE_TUPLE [return as red-float! tuple/do-math type]
+			TYPE_MONEY [return as red-float! money/do-math type]
 			TYPE_PAIR  [
 				if type1 <> TYPE_TIME [
 					if any [type = OP_SUB type = OP_DIV][
@@ -411,7 +412,14 @@ float: context [
 		fl/value: value
 		fl
 	]
-
+	
+	from-money: func [
+		mn      [red-money!]
+		return: [float!]
+	][
+		money/to-float mn
+	]
+	
 	from-binary: func [
 		bin		[red-binary!]
 		return: [float!]
@@ -538,6 +546,9 @@ float: context [
 			TYPE_CHAR [
 				int: as red-integer! spec
 				proto/value: as-float int/value
+			]
+			TYPE_MONEY [
+				proto/value: from-money as red-money! spec
 			]
 			TYPE_TIME [
 				tm: as red-time! spec
@@ -719,6 +730,11 @@ float: context [
 		left: value1/value
 
 		switch TYPE_OF(value2) [
+			TYPE_MONEY [
+				if money/float-underflow? left [return -1]
+				if money/float-overflow?  left [return 1]
+				return money/compare money/from-float left as red-money! value2 op
+			]
 			TYPE_CHAR
 			TYPE_INTEGER [
 				int: as red-integer! value2
@@ -856,6 +872,10 @@ float: context [
 			e		[integer!]
 			v		[logic!]
 	][
+		if TYPE_OF(scale) = TYPE_MONEY [
+			fire [TO_ERROR(script not-related) stack/get-call datatype/push TYPE_MONEY]
+		]
+		
 		e: 0
 		f: as red-float! value
 		dec: f/value
