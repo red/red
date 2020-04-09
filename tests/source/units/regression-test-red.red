@@ -2845,6 +2845,14 @@ comment {
 		]
 }
 
+	--test-- "#4056"
+		i4056: either unset? :image! [[1 2]][make image! 2x2]
+		--assert tail? tail i4056
+		--assert tail? next next next tail i4056
+		--assert not tail? i4056
+		--assert tail? next next next next i4056
+		--assert tail? next back next tail i4056
+
 ===end-group===
 
 ~~~end-file~~~

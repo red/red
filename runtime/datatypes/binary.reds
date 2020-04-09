@@ -1113,6 +1113,7 @@ binary: context [
 			data	  [byte-ptr!]
 			s		  [series!]
 			s2		  [series!]
+			type      [integer!]
 			int-value [integer!]
 			dup-n	  [integer!]
 			cnt		  [integer!]
@@ -1155,8 +1156,9 @@ binary: context [
 			(as-integer s/tail - s/offset) >> (log-b GET_UNIT(s)) = bin/head
 			append?
 		]
-
-		either TYPE_OF(value) = TYPE_BLOCK [		;@@ replace it with: typeset/any-block?
+		
+		type: TYPE_OF(value)
+		either ANY_LIST?(type) [
 			src: as red-block! value
 			s2: GET_BUFFER(src)
 			cell:  s2/offset + src/head

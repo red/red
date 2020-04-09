@@ -528,10 +528,12 @@ OS-image: context [
 		len		[integer!]
 		return: [node!]
 		/local
-			hMem [integer!]
-			p	 [byte-ptr!]
-			s	 [integer!]
-			bmp  [integer!]
+			hMem	[integer!]
+			p		[byte-ptr!]
+			s		[integer!]
+			bmp		[integer!]
+			sthis	[this!]
+			stream	[IStream]
 	][
 		hMem: GlobalAlloc GMEM_MOVEABLE len
 		p: GlobalLock hMem
@@ -542,6 +544,9 @@ OS-image: context [
 		bmp: 0
 		CreateStreamOnHGlobal hMem true :s
 		GdipCreateBitmapFromStream s :bmp
+		sthis: as this! s
+		stream: as IStream sthis/vtbl
+		stream/Release sthis				;-- the hMem will also be released
 		as node! bmp
 	]
 

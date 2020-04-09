@@ -92,18 +92,20 @@ integer: context [
 		return: [integer!]
 		/local
 			s	   [series!]
+			hd     [byte-ptr!]
 			p	   [byte-ptr!]
 			len	   [integer!]
 			i	   [integer!]
 			factor [integer!]
 	][
 		s: GET_BUFFER(bin)
-		len: (as-integer s/tail - s/offset) + bin/head
+		hd: binary/rs-head bin
+		len: binary/rs-length? bin
 		if len > 4 [len: 4]								;-- take first 32 bits only
 
 		i: 0
 		factor: 0
-		p: (as byte-ptr! s/offset) + bin/head + len - 1
+		p: hd + len - 1
 
 		loop len [
 			i: i + ((as-integer p/value) << factor)

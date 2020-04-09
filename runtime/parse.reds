@@ -1546,7 +1546,7 @@ parser: context [
 						]
 						sym = words/copy [				;-- COPY
 							cmd: cmd + 1
-							if any [cmd = tail TYPE_OF(cmd) <> TYPE_WORD][
+							if any [cmd + 1 >= tail TYPE_OF(cmd) <> TYPE_WORD][
 								PARSE_ERROR [TO_ERROR(script parse-end) words/_copy]
 							]
 							min:   R_NONE
@@ -1859,7 +1859,7 @@ parser: context [
 						]
 						sym = words/set [				;-- SET
 							cmd: cmd + 1
-							if any [cmd = tail TYPE_OF(cmd) <> TYPE_WORD][
+							if any [cmd + 1 >= tail TYPE_OF(cmd) <> TYPE_WORD][
 								PARSE_ERROR [TO_ERROR(script parse-end) words/_set]
 							]
 							min:   R_NONE

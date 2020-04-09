@@ -429,7 +429,7 @@ Red/System [
 	]
 ]
 
-#define ANY_LIST(type)	[
+#define ANY_LIST?(type)	[
 	any [
 		type = TYPE_BLOCK
 		type = TYPE_PAREN
