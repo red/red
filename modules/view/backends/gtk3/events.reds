@@ -636,6 +636,7 @@ get-event-picked: func [
 			event: as GdkEventScroll! g_object_get_qdata as handle! evt/msg red-event-id
 			float/push 0.0 - event/delta_y
 		]
+		EVT_SCROLL [integer/push evt/flags >>> 4]
 		EVT_MENU [word/push* evt/flags and FFFFh]
 		default	 [integer/push evt/flags and FFFFh]
 	]

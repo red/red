@@ -19,6 +19,10 @@ Red/System [
 	g_signal_connect_data instance signal as-integer handler data null 1
 ]
 
+#define g_signal_handlers_disconnect_by_data(instance data) [
+	g_signal_handlers_disconnect_matched instance 16 0 0 null null data
+]
+
 #define G_ASCII_DTOSTR_BUF_SIZE	39
 
 #define G_TYPE_MAKE_FUNDAMENTAL(x) [x << 2]
@@ -261,6 +265,13 @@ GdkEventScroll!: alias struct! [
 	GDK_TOUCHPAD_GESTURE_MASK:     16777216
 	GDK_TABLET_PAD_MASK:           33554432
 	;;GDK_ALL_EVENTS_MASK:           fffffffeh
+]
+
+GtkAllocation!: alias struct! [
+	x			[integer!]
+	y			[integer!]
+	w			[integer!]
+	h			[integer!]
 ]
 
 GtkTextIter!: alias struct! [
@@ -604,6 +615,16 @@ GPtrArray!: alias struct! [
 			data		[int-ptr!]
 			notify		[int-ptr!]
 			flags		[integer!]
+			return:		[integer!]
+		]
+		g_signal_handlers_disconnect_matched: "g_signal_handlers_disconnect_matched" [
+			instance	[int-ptr!]
+			mask		[integer!]
+			signal_id	[integer!]
+			detail		[integer!]
+			closure		[int-ptr!]
+			handler		[int-ptr!]
+			data		[int-ptr!]
 			return:		[integer!]
 		]
 		g_signal_emit_by_name: "g_signal_emit_by_name" [
@@ -1495,11 +1516,11 @@ GPtrArray!: alias struct! [
 		]
 		gtk_widget_size_allocate: "gtk_widget_size_allocate" [
 			widget		[handle!]
-			alloc		[handle!]
+			alloc		[GtkAllocation!]
 		]
 		gtk_widget_get_allocation: "gtk_widget_get_allocation" [
 			widget		[handle!]
-			alloc		[handle!]
+			alloc		[GtkAllocation!]
 		]
 		gtk_widget_get_allocated_width: "gtk_widget_get_allocated_width" [
 			widget		[handle!]
@@ -1701,6 +1722,10 @@ GPtrArray!: alias struct! [
 			hadj		[handle!]
 			vadj		[handle!]
 			return:		[handle!]
+		]
+		gtk_scrolled_window_set_vadjustment: "gtk_scrolled_window_set_vadjustment" [
+			win			[handle!]
+			adj			[handle!]
 		]
 		gtk_layout_put: "gtk_layout_put" [
 			layout		[handle!]
@@ -2462,6 +2487,91 @@ GPtrArray!: alias struct! [
 
 		gtk_settings_get_default: "gtk_settings_get_default" [
 			return: 	[handle!]
+		]
+		gtk_scrolled_window_set_max_content_height: "gtk_scrolled_window_set_max_content_height" [
+			scrolled	[handle!]
+			height		[integer!]
+		]
+		gtk_scrolled_window_get_policy: "gtk_scrolled_window_get_policy" [
+			win			[handle!]
+			hs			[int-ptr!]
+			vs			[int-ptr!]
+		]
+		gtk_adjustment_configure: "gtk_adjustment_configure" [
+			adjustment	[handle!]
+			value		[float!]
+			lower		[float!]
+			uppper		[float!]
+			step		[float!]
+			page		[float!]
+			page-size	[float!]
+		]
+		gtk_scrollable_get_vadjustment: "gtk_scrollable_get_vadjustment" [
+			scrollable	[handle!]
+			return:		[handle!]
+		]
+		gtk_scrollable_get_hadjustment: "gtk_scrollable_get_hadjustment" [
+			scrollable	[handle!]
+			return:		[handle!]
+		]
+		gtk_scrollbar_new: "gtk_scrollbar_new" [
+			orientation	[integer!]
+			adjust		[handle!]
+			return:		[handle!]
+		]
+		gtk_adjustment_new: "gtk_adjustment_new" [
+			value		[float!]
+			lower		[float!]
+			uppper		[float!]
+			step		[float!]
+			page		[float!]
+			page-size	[float!]
+			return:		[handle!]
+		]
+		gtk_adjustment_set_upper: "gtk_adjustment_set_upper" [
+			adjustment	[handle!]
+			upper		[float!]
+		]
+		gtk_adjustment_set_value: "gtk_adjustment_set_value" [
+			adjustment	[handle!]
+			value		[float!]
+		]
+		gtk_adjustment_set_page_size: "gtk_adjustment_set_page_size" [
+			adjustment	[handle!]
+			value		[float!]
+		]
+		gtk_adjustment_get_value: "gtk_adjustment_get_value" [
+			adjustment	[handle!]
+			return:		[float!]
+		]
+		gtk_adjustment_get_lower: "gtk_adjustment_get_lower" [
+			adjustment	[handle!]
+			return:		[float!]
+		]
+		gtk_adjustment_get_page_size: "gtk_adjustment_get_page_size" [
+			adjustment	[handle!]
+			return:		[float!]
+		]
+		gtk_adjustment_get_upper: "gtk_adjustment_get_upper" [
+			adjustment	[handle!]
+			return:		[float!]
+		]
+		gtk_adjustment_get_page_increment: "gtk_adjustment_get_page_increment" [
+			adjustment	[handle!]
+			return:		[float!]
+		]
+		gtk_adjustment_get_step_increment: "gtk_adjustment_get_step_increment" [
+			adjustment	[handle!]
+			return:		[float!]
+		]
+		gtk_adjustment_get_minimum_increment: "gtk_adjustment_get_minimum_increment" [
+			adjustment	[handle!]
+			return:		[float!]
+		]
+		gtk_scrolled_window_set_policy: "gtk_scrolled_window_set_policy" [
+			scrolled	[handle!]
+			hpolicy		[integer!]
+			vpolicy		[integer!]
 		]
 
 	;; LIBCAIRO-file cdecl [

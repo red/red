@@ -1126,7 +1126,9 @@ OS-draw-arc: func [
 		angle-begin: atan2 (sin angle-begin) * rad-x (cos angle-begin) * rad-y
 		angle-end:   atan2 (sin angle-end)  * rad-x (cos angle-end) * rad-y
 
-		if PI < fabs angle-end - angle-begin [
+		rad: angle-end - angle-begin
+		if rad < 0.0 [rad: 0.0 - rad]
+		if PI < rad [
 			either angle-end > angle-begin [
 				angle-end: angle-end - (PI * 2.0)
 			][

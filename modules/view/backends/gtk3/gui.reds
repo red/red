@@ -67,6 +67,18 @@ get-face-values: func [
 	values
 ]
 
+get-node-values: func [
+	node		[node!]
+	return:		[red-value!]
+	/local
+		ctx		[red-context!]
+		s		[series!]
+][
+	ctx: TO_CTX(node)
+	s: as series! ctx/values/value
+	s/offset
+]
+
 get-node-facet: func [
 	node		[node!]
 	facet		[integer!]
@@ -908,6 +920,11 @@ change-size: func [
 		pl		[handle!]
 		x		[integer!]
 		y		[integer!]
+		fy		[float!]
+		min		[float!]
+		max		[float!]
+		page	[float!]
+		adj		[handle!]
 ][
 	either type = window [
 		gtk_window_set_default_size widget size/x size/y
@@ -919,11 +936,25 @@ change-size: func [
 		sym: symbol/resolve ntype/symbol
 		layout: get-face-layout widget values sym
 		if layout <> widget [
-			gtk_widget_set_size_request layout size/x size/y
+			y: size/y
+			if type = rich-text [
+				adj: gtk_scrollable_get_vadjustment widget
+				min: gtk_adjustment_get_lower adj
+				max: gtk_adjustment_get_upper adj
+				page: gtk_adjustment_get_page_size adj
+			]
+			gtk_widget_set_size_request layout size/x y
 			gtk_widget_queue_resize layout
 		]
-		gtk_widget_set_size_request widget size/x size/y
-		gtk_widget_queue_resize widget
+		either type = rich-text [
+			fy: as float! size/y
+			fy: max - min / page * fy
+			y: as-integer fy
+			gtk_layout_set_size widget size/x y
+		][
+			gtk_widget_set_size_request widget size/x size/y
+			gtk_widget_queue_resize widget
+		]
 
 		if type = panel [
 			label: GET-CAPTION(widget)
@@ -1372,49 +1403,90 @@ update-scroller: func [
 	/local
 		parent		[red-object!]
 		vertical?	[red-logic!]
+		bar			[handle!]
 		int			[red-integer!]
 		values		[red-value!]
 		widget		[handle!]
-		nTrackPos	[integer!]
-		nPos		[integer!]
-		nPage		[integer!]
-		nMax		[integer!]
-		nMin		[integer!]
-		fMask		[integer!]
-		cbSize		[integer!]
+		container	[handle!]
+		pos			[float!]
+		page		[float!]
+		max			[float!]
+		min			[float!]
+		n			[float!]
+		range		[float!]
+		new-pos		[float!]
+		vs			[integer!]
+		hs			[integer!]
+		w			[integer!]
+		h			[integer!]
+		flags		[integer!]
 ][
-	;values: object/get-values scroller
-	;parent: as red-object! values + SCROLLER_OBJ_PARENT
-	;vertical?: as red-logic! values + SCROLLER_OBJ_VERTICAL?
-	;int: as red-integer! block/rs-head as red-block! (object/get-values parent) + FACE_OBJ_STATE
-	;widget: as handle! int/value
+	values: object/get-values scroller
+	parent: as red-object! values + SCROLLER_OBJ_PARENT
+	vertical?: as red-logic! values + SCROLLER_OBJ_VERTICAL?
+	int: as red-integer! block/rs-head as red-block! (object/get-values parent) + FACE_OBJ_STATE
+	widget: as handle! int/value
+	container: get-face-layout widget null rich-text
 
-	;int: as red-integer! values + flag
+	int: as red-integer! values + flag
+	if flag = SCROLLER_OBJ_VISIBLE? [
+		hs: 0 vs: 0
+		gtk_scrolled_window_get_policy container :hs :vs
+		either int/value = 0 [flags: 2][flags: 1]
+		either vertical?/value [vs: flags][hs: flags]
+		gtk_scrolled_window_set_policy container hs vs
+		exit
+	]
 
-	;if flag = SCROLLER_OBJ_VISIBLE? [
-	;	ShowScrollBar widget as-integer vertical?/value as logic! int/value
-	;	exit
-	;]
+	either vertical?/value [
+		bar: gtk_scrollable_get_vadjustment widget
+	][
+		bar: gtk_scrollable_get_hadjustment widget
+	]
 
-	;fMask: switch flag [
-	;	SCROLLER_OBJ_POS [nPos: int/value SIF_POS]
-	;	SCROLLER_OBJ_PAGE
-	;	SCROLLER_OBJ_MAX [
-	;		int: as red-integer! values + SCROLLER_OBJ_PAGE
-	;		nPage: int/value
-	;		int: as red-integer! values + SCROLLER_OBJ_MAX
-	;		nMin: 1
-	;		nMax: int/value
-	;	 	SIF_RANGE or SIF_PAGE
-	;	]
-	;	default [0]
-	;]
+	SET-CONTAINER(bar scroller/ctx)
 
-	;if fMask <> 0 [
-	;	fMask: fMask or SIF_DISABLENOSCROLL
-	;	cbSize: size? tagSCROLLINFO
-	;	SetScrollInfo widget as-integer vertical?/value as tagSCROLLINFO :cbSize yes
-	;]
+	w: 0 h: 0
+	gtk_widget_get_size_request container :w :h
+
+	int: as red-integer! values + SCROLLER_OBJ_POS
+	pos: as float! int/value
+	int: as red-integer! values + SCROLLER_OBJ_PAGE
+	page: as float! int/value
+	int: as red-integer! values + SCROLLER_OBJ_MIN
+	min: as float! int/value
+	int: as red-integer! values + SCROLLER_OBJ_MAX
+	max: as float! int/value
+
+	if max - min <= page [exit]
+
+	switch flag [
+		SCROLLER_OBJ_POS [
+			pos: pos - min
+			range: max - min - page + 1.0
+			if pos > range [pos: range]
+			if pos < 0.0 [pos: 0.0]
+			either range <= 0.0 [new-pos: 1.0][
+				new-pos: pos / range
+			]
+			min: gtk_adjustment_get_lower bar
+			max: gtk_adjustment_get_upper bar
+			page: gtk_adjustment_get_page_size bar
+			range: max - min - page
+			new-pos: new-pos * range + min
+			gtk_adjustment_set_value bar new-pos
+		]
+		SCROLLER_OBJ_PAGE
+		SCROLLER_OBJ_MAX [
+			n: as float! h
+			if all [page > 0.0 max - min > page][
+				n: max - min + 1.0 / page * n
+				h: as-integer n + 0.5
+				gtk_layout_set_size widget w h
+			]
+		]
+		default [0]
+	]
 ]
 
 
@@ -1544,6 +1616,7 @@ OS-make-view: func [
 		buffer		[handle!]
 		container	[handle!]
 		hMenu		[handle!]
+		vadjust		[handle!]
 		value		[integer!]
 		fvalue		[float!]
 		vertical?	[logic!]
@@ -1617,6 +1690,13 @@ OS-make-view: func [
 			gtk_layout_set_size widget size/x size/y
 			container: gtk_scrolled_window_new null null
 			gtk_container_add container widget
+			if bits and FACET_FLAGS_SCROLLABLE <> 0 [
+				gtk_scrolled_window_set_policy container 1 1
+				vadjust: gtk_scrollable_get_vadjustment widget
+				g_signal_handlers_disconnect_by_data(vadjust widget)	;-- remove default event handler
+				gtk_adjustment_configure vadjust 0.0 0.0 1.0 0.0 0.0 1.0
+				gobj_signal_connect(vadjust "value_changed" :vbar-value-changed widget)
+			]
 		]
 		sym = window [
 			widget: gtk_window_new 0

@@ -62,6 +62,46 @@ button-clicked: func [
 	make-event widget 0 EVT_CLICK
 ]
 
+vbar-value-changed: func [
+	[cdecl]
+	adj			[handle!]
+	widget		[handle!]
+	/local
+		sc		[node!]
+		pos		[integer!]
+		values	[red-value!]
+		min		[red-integer!]
+		max		[red-integer!]
+		page	[red-integer!]
+		range	[integer!]
+		lower	[float!]
+		upper	[float!]
+		v		[float!]
+		pg		[float!]
+][
+	sc: GET-CONTAINER(adj)
+	if sc <> null [
+		values: get-node-values sc
+
+		min:	as red-integer! values + SCROLLER_OBJ_MIN
+		max:	as red-integer! values + SCROLLER_OBJ_MAX
+		page:	as red-integer! values + SCROLLER_OBJ_PAGE
+		range:	max/value - page/value - min/value + 1
+
+		v: gtk_adjustment_get_value adj
+		lower: gtk_adjustment_get_lower adj
+		upper: gtk_adjustment_get_upper adj
+		pg: gtk_adjustment_get_page_size adj
+		pg: upper - lower - pg
+
+		v: v / pg * (as float! range)
+		v: v + as float! min/value
+		pos: as-integer v		
+		pos: pos << 4
+		make-event widget 2 or pos EVT_SCROLL
+	]
+]
+
 button-toggled: func [
 	[cdecl]
 	evbox		[handle!]
