@@ -1750,7 +1750,7 @@ OS-make-view: func [
 			gtk_box_pack_start winbox container yes yes 0
 			gtk_window_move widget offset/x offset/y
 
-			gtk_widget_set_size_request widget size/x size/y		;-- fix the initial size of the window
+			gtk_widget_set_size_request container size/x size/y		;-- fix the initial size of the window
 			gtk_window_set_resizable widget (bits and FACET_FLAGS_RESIZE <> 0)
 		]
 		sym = camera [
