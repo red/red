@@ -184,10 +184,16 @@ get-face-layout: func [
 	values		[red-value!]
 	sym			[integer!]
 	return:		[handle!]
+	/local
+		h		[handle!]
 ][
 	case [
+		sym = rich-text [
+			h: GET-CONTAINER(widget)
+			if null? h [h: widget]
+			h
+		]
 		any [
-			sym = rich-text
 			sym = text
 			sym = area
 			sym = text-list
@@ -935,21 +941,21 @@ change-size: func [
 		ntype: as red-word! values + FACE_OBJ_TYPE
 		sym: symbol/resolve ntype/symbol
 		layout: get-face-layout widget values sym
+		y: size/y
 		if layout <> widget [
-			y: size/y
-			if type = rich-text [
+			if type = rich-text [	;-- is scrollable
 				adj: gtk_scrollable_get_vadjustment widget
 				min: gtk_adjustment_get_lower adj
 				max: gtk_adjustment_get_upper adj
 				page: gtk_adjustment_get_page_size adj
+				fy: as float! y
+				fy: max - min / page * fy
+				y: as-integer fy
 			]
-			gtk_widget_set_size_request layout size/x y
+			gtk_widget_set_size_request layout size/x size/y
 			gtk_widget_queue_resize layout
 		]
 		either type = rich-text [
-			fy: as float! size/y
-			fy: max - min / page * fy
-			y: as-integer fy
 			gtk_layout_set_size widget size/x y
 		][
 			gtk_widget_set_size_request widget size/x size/y
@@ -1462,6 +1468,7 @@ update-scroller: func [
 
 	switch flag [
 		SCROLLER_OBJ_POS [
+			if null <> GET-IN-LOOP(widget) [exit]
 			pos: pos - min
 			range: max - min - page + 1.0
 			if pos > range [pos: range]
@@ -1688,14 +1695,20 @@ OS-make-view: func [
 		sym = rich-text [
 			widget: gtk_layout_new null null
 			gtk_layout_set_size widget size/x size/y
-			container: gtk_scrolled_window_new null null
-			gtk_container_add container widget
 			if bits and FACET_FLAGS_SCROLLABLE <> 0 [
+				container: gtk_scrolled_window_new null null
+				gtk_container_add container widget
 				gtk_scrolled_window_set_policy container 1 1
-				vadjust: gtk_scrollable_get_vadjustment widget
-				g_signal_handlers_disconnect_by_data(vadjust widget)	;-- remove default event handler
-				gtk_adjustment_configure vadjust 0.0 0.0 1.0 0.0 0.0 1.0
-				gobj_signal_connect(vadjust "value_changed" :vbar-value-changed widget)
+				len: 0
+				loop 2 [
+					either zero? len [vadjust: gtk_scrollable_get_vadjustment widget][
+						vadjust: gtk_scrollable_get_hadjustment widget
+					]
+					len: len + 1
+					g_signal_handlers_disconnect_by_data(vadjust widget)	;-- remove default event handler
+					gtk_adjustment_configure vadjust 0.0 0.0 1.0 0.0 0.0 1.0
+					gobj_signal_connect(vadjust "value_changed" :vbar-value-changed widget)
+				]
 			]
 		]
 		sym = window [

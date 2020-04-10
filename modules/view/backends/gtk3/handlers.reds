@@ -78,6 +78,8 @@ vbar-value-changed: func [
 		upper	[float!]
 		v		[float!]
 		pg		[float!]
+		bar		[handle!]
+		dir		[integer!]
 ][
 	sc: GET-CONTAINER(adj)
 	if sc <> null [
@@ -98,7 +100,12 @@ vbar-value-changed: func [
 		v: v + as float! min/value
 		pos: as-integer v		
 		pos: pos << 4
-		make-event widget 2 or pos EVT_SCROLL
+
+		bar: gtk_scrollable_get_hadjustment widget
+		dir: as-integer bar = adj
+		SET-IN-LOOP(widget sc)
+		make-event widget dir << 3 or 2 or pos EVT_SCROLL
+		SET-IN-LOOP(widget null)
 	]
 ]
 
