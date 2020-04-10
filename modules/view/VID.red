@@ -702,7 +702,7 @@ system/view/VID: context [
 					][
 						either all [					;-- grid layout
 							divide?: all [divides divides <= length? list]
-							zero? index: (length? list) // divides
+							zero? index: (length? list) %% divides
 						][
 							do reset
 						][								;-- flow layout

@@ -15,7 +15,7 @@ gen-bitarray: function [list][
 
 	foreach c list [
 		pos: (to-integer c) / 8 + 1
-		bit: 1 << ((to-integer c) // 8)
+		bit: 1 << ((to-integer c) %% 8)
 		out/:pos: out/:pos or bit
 	]
 	print ["--gen-bitarray-- for" mold list]

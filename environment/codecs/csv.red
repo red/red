@@ -177,7 +177,7 @@ context [
 		delimiter	[char! string!]	"Delimiter to use in CSV string"
 		size		[integer!]		"Size of record"
 	][
-		unless zero? (length? data) // size [
+		unless zero? (length? data) %% size [
 			return make error! non-aligned
 		]
 		collect/into [

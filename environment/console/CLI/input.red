@@ -354,10 +354,10 @@ unless system/console [
 			bytes: emit-red-string prompt columns no
 			hide-input?: hide?
 
-			psize: bytes // columns
+			psize: bytes %% columns
 			offset: bytes + (emit-red-string line columns - psize yes)	;-- output until reach cursor posistion
 
-			psize: offset // columns
+			psize: offset %% columns
 			bytes: offset + (emit-red-string line columns - psize no)	;-- continue until reach tail
 
 			either output? [
@@ -366,7 +366,7 @@ unless system/console [
 				#if OS <> 'Windows [
 					if all [
 						bytes > columns
-						positive? (bytes // columns)
+						positive? (bytes %% columns)
 					][
 						psize: bytes / columns
 						emit-string-int "^[[" psize  #"B"

@@ -37,7 +37,7 @@ REBOL [
 		--assert not crashed?
 
 	--test-- "#1598"
-		--compile-and-run-this-red {3x4 // 1.1}
+		--compile-and-run-this-red {3x4 %% 1.1}
 		--assert not crashed?
 
 	--test-- "#1679"

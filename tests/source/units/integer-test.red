@@ -1939,452 +1939,452 @@ Red [
 
 ===start-group=== "modulo"
 
-	--test-- "0 // 1"
+	--test-- "0 %% 1"
 		i: 0
 		j: 1
-		--assert strict-equal? 0 0 // 1
+		--assert strict-equal? 0 0 %% 1
 		--assert strict-equal? 0 modulo 0 1
-		--assert strict-equal? 0 i // j
+		--assert strict-equal? 0 i %% j
 		--assert strict-equal? 0 modulo i j
 
-	--test-- "0 // -1"
+	--test-- "0 %% -1"
 		i: 0
 		j: -1
-		--assert strict-equal? 0 0 // -1
+		--assert strict-equal? 0 0 %% -1
 		--assert strict-equal? 0 modulo 0 -1
-		--assert strict-equal? 0 i // j
+		--assert strict-equal? 0 i %% j
 		--assert strict-equal? 0 modulo i j
 
-	--test-- "0 // -2147483648"
+	--test-- "0 %% -2147483648"
 		i: 0
 		j: -2147483648
-		--assert error? try [ 0 // -2147483648 ]
+		--assert error? try [ 0 %% -2147483648 ]
 		--assert error? try [ modulo 0 -2147483648 ]
-		--assert error? try [ i // j ]
+		--assert error? try [ i %% j ]
 		--assert error? try [ modulo i j ]
 
-	--test-- "0 // 2147483647"
+	--test-- "0 %% 2147483647"
 		i: 0
 		j: 2147483647
-		--assert strict-equal? 0 0 // 2147483647
+		--assert strict-equal? 0 0 %% 2147483647
 		--assert strict-equal? 0 modulo 0 2147483647
-		--assert strict-equal? 0 i // j
+		--assert strict-equal? 0 i %% j
 		--assert strict-equal? 0 modulo i j
 
-	--test-- "0 // -7"
+	--test-- "0 %% -7"
 		i: 0
 		j: -7
-		--assert strict-equal? 0 0 // -7
+		--assert strict-equal? 0 0 %% -7
 		--assert strict-equal? 0 modulo 0 -7
-		--assert strict-equal? 0 i // j
+		--assert strict-equal? 0 i %% j
 		--assert strict-equal? 0 modulo i j
 
-	--test-- "0 // -8"
+	--test-- "0 %% -8"
 		i: 0
 		j: -8
-		--assert strict-equal? 0 0 // -8
+		--assert strict-equal? 0 0 %% -8
 		--assert strict-equal? 0 modulo 0 -8
-		--assert strict-equal? 0 i // j
+		--assert strict-equal? 0 i %% j
 		--assert strict-equal? 0 modulo i j
 
-	--test-- "0 // -10"
+	--test-- "0 %% -10"
 		i: 0
 		j: -10
-		--assert strict-equal? 0 0 // -10
+		--assert strict-equal? 0 0 %% -10
 		--assert strict-equal? 0 modulo 0 -10
-		--assert strict-equal? 0 i // j
+		--assert strict-equal? 0 i %% j
 		--assert strict-equal? 0 modulo i j
 
-	--test-- "1 // 0"
+	--test-- "1 %% 0"
 		i: 1
 		j: 0
-		--assert error? try [1 // 0]
+		--assert error? try [1 %% 0]
 		--assert error? try [modulo 1 0]
-		--assert error? try [i // j]
+		--assert error? try [i %% j]
 		--assert error? try [modulo i j]
 
-	--test-- "1 // -1"
+	--test-- "1 %% -1"
 		i: 1
 		j: -1
-		--assert strict-equal? 0 1 // -1
+		--assert strict-equal? 0 1 %% -1
 		--assert strict-equal? 0 modulo 1 -1
-		--assert strict-equal? 0 i // j
+		--assert strict-equal? 0 i %% j
 		--assert strict-equal? 0 modulo i j
 
-	--test-- "1 // -2147483648"
+	--test-- "1 %% -2147483648"
 		i: 1
 		j: -2147483648
-		;--assert strict-equal? 1 1 // -2147483648
+		;--assert strict-equal? 1 1 %% -2147483648
 		;--assert strict-equal? 1 modulo 1 -2147483648
-		;--assert strict-equal? 1 i // j
+		;--assert strict-equal? 1 i %% j
 		;--assert strict-equal? 1 modulo i j
 
-	--test-- "1 // 2147483647"
+	--test-- "1 %% 2147483647"
 		i: 1
 		j: 2147483647
-		;--assert strict-equal? 1 1 // 2147483647
+		;--assert strict-equal? 1 1 %% 2147483647
 		;--assert strict-equal? 1 modulo 1 2147483647
-		;--assert strict-equal? 1 i // j
+		;--assert strict-equal? 1 i %% j
 		;--assert strict-equal? 1 modulo i j
 
-	--test-- "1 // -7"
+	--test-- "1 %% -7"
 		i: 1
 		j: -7
-		--assert strict-equal? 1 1 // -7
+		--assert strict-equal? 1 1 %% -7
 		--assert strict-equal? 1 modulo 1 -7
-		--assert strict-equal? 1 i // j
+		--assert strict-equal? 1 i %% j
 		--assert strict-equal? 1 modulo i j
 
-	--test-- "1 // -8"
+	--test-- "1 %% -8"
 		i: 1
 		j: -8
-		--assert strict-equal? 1 1 // -8
+		--assert strict-equal? 1 1 %% -8
 		--assert strict-equal? 1 modulo 1 -8
-		--assert strict-equal? 1 i // j
+		--assert strict-equal? 1 i %% j
 		--assert strict-equal? 1 modulo i j
 
-	--test-- "1 // -10"
+	--test-- "1 %% -10"
 		i: 1
 		j: -10
-		--assert strict-equal? 1 1 // -10
+		--assert strict-equal? 1 1 %% -10
 		--assert strict-equal? 1 modulo 1 -10
-		--assert strict-equal? 1 i // j
+		--assert strict-equal? 1 i %% j
 		--assert strict-equal? 1 modulo i j
 
-	--test-- "-1 // 0"
+	--test-- "-1 %% 0"
 		i: -1
 		j: 0
-		--assert error? try [-1 // 0]
+		--assert error? try [-1 %% 0]
 		--assert error? try [modulo -1 0]
-		--assert error? try [i // j]
+		--assert error? try [i %% j]
 		--assert error? try [modulo i j]
 
-	--test-- "-1 // 1"
+	--test-- "-1 %% 1"
 		i: -1
 		j: 1
-		--assert strict-equal? 0 -1 // 1
+		--assert strict-equal? 0 -1 %% 1
 		--assert strict-equal? 0 modulo -1 1
-		--assert strict-equal? 0 i // j
+		--assert strict-equal? 0 i %% j
 		--assert strict-equal? 0 modulo i j
 
-	--test-- "-1 // -2147483648"
+	--test-- "-1 %% -2147483648"
 		i: -1
 		j: -2147483648
-		;--assert strict-equal? 2147483647 -1 // -2147483648
+		;--assert strict-equal? 2147483647 -1 %% -2147483648
 		;--assert strict-equal? 2147483647 modulo -1 -2147483648
-		;--assert strict-equal? 2147483647 i // j
+		;--assert strict-equal? 2147483647 i %% j
 		;--assert strict-equal? 2147483647 modulo i j
 
-	--test-- "-1 // 2147483647"
+	--test-- "-1 %% 2147483647"
 		i: -1
 		j: 2147483647
-		;--assert strict-equal? 2147483646 -1 // 2147483647
+		;--assert strict-equal? 2147483646 -1 %% 2147483647
 		;--assert strict-equal? 2147483646 modulo -1 2147483647
-		;--assert strict-equal? 2147483646 i // j
+		;--assert strict-equal? 2147483646 i %% j
 		;--assert strict-equal? 2147483646 modulo i j
 
-	--test-- "-1 // -7"
+	--test-- "-1 %% -7"
 		i: -1
 		j: -7
-		--assert strict-equal? 6 -1 // -7
+		--assert strict-equal? 6 -1 %% -7
 		--assert strict-equal? 6 modulo -1 -7
-		--assert strict-equal? 6 i // j
+		--assert strict-equal? 6 i %% j
 		--assert strict-equal? 6 modulo i j
 
-	--test-- "-1 // -8"
+	--test-- "-1 %% -8"
 		i: -1
 		j: -8
-		--assert strict-equal? 7 -1 // -8
+		--assert strict-equal? 7 -1 %% -8
 		--assert strict-equal? 7 modulo -1 -8
-		--assert strict-equal? 7 i // j
+		--assert strict-equal? 7 i %% j
 		--assert strict-equal? 7 modulo i j
 
-	--test-- "-1 // -10"
+	--test-- "-1 %% -10"
 		i: -1
 		j: -10
-		--assert strict-equal? 9 -1 // -10
+		--assert strict-equal? 9 -1 %% -10
 		--assert strict-equal? 9 modulo -1 -10
-		--assert strict-equal? 9 i // j
+		--assert strict-equal? 9 i %% j
 		--assert strict-equal? 9 modulo i j
 
-	--test-- "-2147483648 // 0"
+	--test-- "-2147483648 %% 0"
 		i: -2147483648
 		j: 0
-		--assert error? try [-2147483648 // 0]
+		--assert error? try [-2147483648 %% 0]
 		--assert error? try [modulo -2147483648 0]
-		--assert error? try [i // j]
+		--assert error? try [i %% j]
 		--assert error? try [modulo i j]
 
-	--test-- "-2147483648 // 1"
+	--test-- "-2147483648 %% 1"
 		i: -2147483648
 		j: 1
-		;--assert strict-equal? 0 -2147483648 // 1
+		;--assert strict-equal? 0 -2147483648 %% 1
 		;--assert strict-equal? 0 modulo -2147483648 1
-		;--assert strict-equal? 0 i // j
+		;--assert strict-equal? 0 i %% j
 		;--assert strict-equal? 0 modulo i j
 
-	--test-- "-2147483648 // -1"
+	--test-- "-2147483648 %% -1"
 		i: -2147483648
 		j: -1
-		--assert error? try [-2147483648 // -1]
+		--assert error? try [-2147483648 %% -1]
 		--assert error? try [modulo -2147483648 -1]
-		--assert error? try [i // j]
+		--assert error? try [i %% j]
 		--assert error? try [modulo i j]
 
-	--test-- "-2147483648 // 2147483647"
+	--test-- "-2147483648 %% 2147483647"
 		i: -2147483648
 		j: 2147483647
-		;--assert strict-equal? 2147483646 -2147483648 // 2147483647
+		;--assert strict-equal? 2147483646 -2147483648 %% 2147483647
 		;--assert strict-equal? 2147483646 modulo -2147483648 2147483647
-		;--assert strict-equal? 2147483646 i // j
+		;--assert strict-equal? 2147483646 i %% j
 		;--assert strict-equal? 2147483646 modulo i j
 
-	--test-- "-2147483648 // -7"
+	--test-- "-2147483648 %% -7"
 		i: -2147483648
 		j: -7
-		;--assert strict-equal? 5 -2147483648 // -7
+		;--assert strict-equal? 5 -2147483648 %% -7
 		;--assert strict-equal? 5 modulo -2147483648 -7
-		;--assert strict-equal? 5 i // j
+		;--assert strict-equal? 5 i %% j
 		;--assert strict-equal? 5 modulo i j
 
-	--test-- "-2147483648 // -8"
+	--test-- "-2147483648 %% -8"
 		i: -2147483648
 		j: -8
-		;--assert strict-equal? 0 -2147483648 // -8
+		;--assert strict-equal? 0 -2147483648 %% -8
 		;--assert strict-equal? 0 modulo -2147483648 -8
-		;--assert strict-equal? 0 i // j
+		;--assert strict-equal? 0 i %% j
 		;--assert strict-equal? 0 modulo i j
 
-	--test-- "-2147483648 // -10"
+	--test-- "-2147483648 %% -10"
 		i: -2147483648
 		j: -10
-		;--assert strict-equal? 2 -2147483648 // -10
+		;--assert strict-equal? 2 -2147483648 %% -10
 		;--assert strict-equal? 2 modulo -2147483648 -10
-		;--assert strict-equal? 2 i // j
+		;--assert strict-equal? 2 i %% j
 		;--assert strict-equal? 2 modulo i j
 
-	--test-- "2147483647 // 0"
+	--test-- "2147483647 %% 0"
 		i: 2147483647
 		j: 0
-		--assert error? try [2147483647 // 0]
+		--assert error? try [2147483647 %% 0]
 		--assert error? try [modulo 2147483647 0]
-		--assert error? try [i // j]
+		--assert error? try [i %% j]
 		--assert error? try [modulo i j]
 
-	--test-- "2147483647 // 1"
+	--test-- "2147483647 %% 1"
 		i: 2147483647
 		j: 1
-		;--assert strict-equal? 0 2147483647 // 1
+		;--assert strict-equal? 0 2147483647 %% 1
 		;--assert strict-equal? 0 modulo 2147483647 1
-		;--assert strict-equal? 0 i // j
+		;--assert strict-equal? 0 i %% j
 		;--assert strict-equal? 0 modulo i j
 
-	--test-- "2147483647 // -1"
+	--test-- "2147483647 %% -1"
 		i: 2147483647
 		j: -1
-		;--assert strict-equal? 0 2147483647 // -1
+		;--assert strict-equal? 0 2147483647 %% -1
 		;--assert strict-equal? 0 modulo 2147483647 -1
-		;--assert strict-equal? 0 i // j
+		;--assert strict-equal? 0 i %% j
 		;--assert strict-equal? 0 modulo i j
 
-	--test-- "2147483647 // -2147483648"
+	--test-- "2147483647 %% -2147483648"
 		i: 2147483647
 		j: -2147483648
-		;--assert strict-equal? 2147483647 2147483647 // -2147483648
+		;--assert strict-equal? 2147483647 2147483647 %% -2147483648
 		;--assert strict-equal? 2147483647 modulo 2147483647 -2147483648
-		;--assert strict-equal? 2147483647 i // j
+		;--assert strict-equal? 2147483647 i %% j
 		;--assert strict-equal? 2147483647 modulo i j
 
-	--test-- "2147483647 // -7"
+	--test-- "2147483647 %% -7"
 		i: 2147483647
 		j: -7
-		;--assert strict-equal? 1 2147483647 // -7
+		;--assert strict-equal? 1 2147483647 %% -7
 		;--assert strict-equal? 1 modulo 2147483647 -7
-		;--assert strict-equal? 1 i // j
+		;--assert strict-equal? 1 i %% j
 		;--assert strict-equal? 1 modulo i j
 
-	--test-- "2147483647 // -8"
+	--test-- "2147483647 %% -8"
 		i: 2147483647
 		j: -8
-		;--assert strict-equal? 7 2147483647 // -8
+		;--assert strict-equal? 7 2147483647 %% -8
 		;--assert strict-equal? 7 modulo 2147483647 -8
-		;--assert strict-equal? 7 i // j
+		;--assert strict-equal? 7 i %% j
 		;--assert strict-equal? 7 modulo i j
 
-	--test-- "2147483647 // -10"
+	--test-- "2147483647 %% -10"
 		i: 2147483647
 		j: -10
-		;--assert strict-equal? 7 2147483647 // -10
+		;--assert strict-equal? 7 2147483647 %% -10
 		;--assert strict-equal? 7 modulo 2147483647 -10
-		;--assert strict-equal? 7 i // j
+		;--assert strict-equal? 7 i %% j
 		;--assert strict-equal? 7 modulo i j
 
-	--test-- "-7 // 0"
+	--test-- "-7 %% 0"
 		i: -7
 		j: 0
-		--assert error? try [-7 // 0]
+		--assert error? try [-7 %% 0]
 		--assert error? try [modulo -7 0]
-		--assert error? try [i // j]
+		--assert error? try [i %% j]
 		--assert error? try [modulo i j]
 
-	--test-- "-7 // 1"
+	--test-- "-7 %% 1"
 		i: -7
 		j: 1
-		--assert strict-equal? 0 -7 // 1
+		--assert strict-equal? 0 -7 %% 1
 		--assert strict-equal? 0 modulo -7 1
-		--assert strict-equal? 0 i // j
+		--assert strict-equal? 0 i %% j
 		--assert strict-equal? 0 modulo i j
 
-	--test-- "-7 // -1"
+	--test-- "-7 %% -1"
 		i: -7
 		j: -1
-		--assert strict-equal? 0 -7 // -1
+		--assert strict-equal? 0 -7 %% -1
 		--assert strict-equal? 0 modulo -7 -1
-		--assert strict-equal? 0 i // j
+		--assert strict-equal? 0 i %% j
 		--assert strict-equal? 0 modulo i j
 
-	--test-- "-7 // -2147483648"
+	--test-- "-7 %% -2147483648"
 		i: -7
 		j: -2147483648
-		;--assert strict-equal? 2147483641 -7 // -2147483648
+		;--assert strict-equal? 2147483641 -7 %% -2147483648
 		;--assert strict-equal? 2147483641 modulo -7 -2147483648
-		;--assert strict-equal? 2147483641 i // j
+		;--assert strict-equal? 2147483641 i %% j
 		;--assert strict-equal? 2147483641 modulo i j
 
-	--test-- "-7 // 2147483647"
+	--test-- "-7 %% 2147483647"
 		i: -7
 		j: 2147483647
-		;--assert strict-equal? 2147483640 -7 // 2147483647
+		;--assert strict-equal? 2147483640 -7 %% 2147483647
 		;--assert strict-equal? 2147483640 modulo -7 2147483647
-		;--assert strict-equal? 2147483640 i // j
+		;--assert strict-equal? 2147483640 i %% j
 		;--assert strict-equal? 2147483640 modulo i j
 
-	--test-- "-7 // -8"
+	--test-- "-7 %% -8"
 		i: -7
 		j: -8
-		--assert strict-equal? 1 -7 // -8
+		--assert strict-equal? 1 -7 %% -8
 		--assert strict-equal? 1 modulo -7 -8
-		--assert strict-equal? 1 i // j
+		--assert strict-equal? 1 i %% j
 		--assert strict-equal? 1 modulo i j
 
-	--test-- "-7 // -10"
+	--test-- "-7 %% -10"
 		i: -7
 		j: -10
-		--assert strict-equal? 3 -7 // -10
+		--assert strict-equal? 3 -7 %% -10
 		--assert strict-equal? 3 modulo -7 -10
-		--assert strict-equal? 3 i // j
+		--assert strict-equal? 3 i %% j
 		--assert strict-equal? 3 modulo i j
 
-	--test-- "-8 // 0"
+	--test-- "-8 %% 0"
 		i: -8
 		j: 0
-		--assert error? try [-8 // 0]
+		--assert error? try [-8 %% 0]
 		--assert error? try [modulo -8 0]
-		--assert error? try [i // j]
+		--assert error? try [i %% j]
 		--assert error? try [modulo i j]
 
-	--test-- "-8 // 1"
+	--test-- "-8 %% 1"
 		i: -8
 		j: 1
-		--assert strict-equal? 0 -8 // 1
+		--assert strict-equal? 0 -8 %% 1
 		--assert strict-equal? 0 modulo -8 1
-		--assert strict-equal? 0 i // j
+		--assert strict-equal? 0 i %% j
 		--assert strict-equal? 0 modulo i j
 
-	--test-- "-8 // -1"
+	--test-- "-8 %% -1"
 		i: -8
 		j: -1
-		--assert strict-equal? 0 -8 // -1
+		--assert strict-equal? 0 -8 %% -1
 		--assert strict-equal? 0 modulo -8 -1
-		--assert strict-equal? 0 i // j
+		--assert strict-equal? 0 i %% j
 		--assert strict-equal? 0 modulo i j
 
-	--test-- "-8 // -2147483648"
+	--test-- "-8 %% -2147483648"
 		i: -8
 		j: -2147483648
-		;--assert strict-equal? 2147483640 -8 // -2147483648
+		;--assert strict-equal? 2147483640 -8 %% -2147483648
 		;--assert strict-equal? 2147483640 modulo -8 -2147483648
-		;--assert strict-equal? 2147483640 i // j
+		;--assert strict-equal? 2147483640 i %% j
 		;--assert strict-equal? 2147483640 modulo i j
 
-	--test-- "-8 // 2147483647"
+	--test-- "-8 %% 2147483647"
 		i: -8
 		j: 2147483647
-		;--assert strict-equal? 2147483639 -8 // 2147483647
+		;--assert strict-equal? 2147483639 -8 %% 2147483647
 		;--assert strict-equal? 2147483639 modulo -8 2147483647
-		;--assert strict-equal? 2147483639 i // j
+		;--assert strict-equal? 2147483639 i %% j
 		;--assert strict-equal? 2147483639 modulo i j
 
-	--test-- "-8 // -7"
+	--test-- "-8 %% -7"
 		i: -8
 		j: -7
-		--assert strict-equal? 6 -8 // -7
+		--assert strict-equal? 6 -8 %% -7
 		--assert strict-equal? 6 modulo -8 -7
-		--assert strict-equal? 6 i // j
+		--assert strict-equal? 6 i %% j
 		--assert strict-equal? 6 modulo i j
 
-	--test-- "-8 // -10"
+	--test-- "-8 %% -10"
 		i: -8
 		j: -10
-		--assert strict-equal? 2 -8 // -10
+		--assert strict-equal? 2 -8 %% -10
 		--assert strict-equal? 2 modulo -8 -10
-		--assert strict-equal? 2 i // j
+		--assert strict-equal? 2 i %% j
 		--assert strict-equal? 2 modulo i j
 
-	--test-- "-10 // 0"
+	--test-- "-10 %% 0"
 		i: -10
 		j: 0
-		--assert error? try [-10 // 0]
+		--assert error? try [-10 %% 0]
 		--assert error? try [modulo -10 0]
-		--assert error? try [i // j]
+		--assert error? try [i %% j]
 		--assert error? try [modulo i j]
 
-	--test-- "-10 // 1"
+	--test-- "-10 %% 1"
 		i: -10
 		j: 1
-		--assert strict-equal? 0 -10 // 1
+		--assert strict-equal? 0 -10 %% 1
 		--assert strict-equal? 0 modulo -10 1
-		--assert strict-equal? 0 i // j
+		--assert strict-equal? 0 i %% j
 		--assert strict-equal? 0 modulo i j
 
-	--test-- "-10 // -1"
+	--test-- "-10 %% -1"
 		i: -10
 		j: -1
-		--assert strict-equal? 0 -10 // -1
+		--assert strict-equal? 0 -10 %% -1
 		--assert strict-equal? 0 modulo -10 -1
-		--assert strict-equal? 0 i // j
+		--assert strict-equal? 0 i %% j
 		--assert strict-equal? 0 modulo i j
 
-	--test-- "-10 // -2147483648"
+	--test-- "-10 %% -2147483648"
 		i: -10
 		j: -2147483648
-		;--assert strict-equal? 2147483638 -10 // -2147483648
+		;--assert strict-equal? 2147483638 -10 %% -2147483648
 		;--assert strict-equal? 2147483638 modulo -10 -2147483648
-		;--assert strict-equal? 2147483638 i // j
+		;--assert strict-equal? 2147483638 i %% j
 		;--assert strict-equal? 2147483638 modulo i j
 
-	--test-- "-10 // 2147483647"
+	--test-- "-10 %% 2147483647"
 		i: -10
 		j: 2147483647
-		;--assert strict-equal? 2147483637 -10 // 2147483647
+		;--assert strict-equal? 2147483637 -10 %% 2147483647
 		;--assert strict-equal? 2147483637 modulo -10 2147483647
-		;--assert strict-equal? 2147483637 i // j
+		;--assert strict-equal? 2147483637 i %% j
 		;--assert strict-equal? 2147483637 modulo i j
 
-	--test-- "-10 // -7"
+	--test-- "-10 %% -7"
 		i: -10
 		j: -7
-		--assert strict-equal? 4 -10 // -7
+		--assert strict-equal? 4 -10 %% -7
 		--assert strict-equal? 4 modulo -10 -7
-		--assert strict-equal? 4 i // j
+		--assert strict-equal? 4 i %% j
 		--assert strict-equal? 4 modulo i j
 
-	--test-- "-10 // -8"
+	--test-- "-10 %% -8"
 		i: -10
 		j: -8
-		--assert strict-equal? 6 -10 // -8
+		--assert strict-equal? 6 -10 %% -8
 		--assert strict-equal? 6 modulo -10 -8
-		--assert strict-equal? 6 i // j
+		--assert strict-equal? 6 i %% j
 		--assert strict-equal? 6 modulo i j
 
 ===end-group===

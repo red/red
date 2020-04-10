@@ -1637,7 +1637,7 @@ Red [
 		unset [a1416 b1416]
 
 	--test-- "#1417"
-		--assert not error? try [-5 // 3]
+		--assert not error? try [-5 %% 3]
 
 	--test-- "#1418"
 		--assert not strict-equal? 0.0 0
@@ -1766,8 +1766,8 @@ Red [
 		unset 'ctx1509
 
 	--test-- "#1515"
-		--assert not error? try [1.222090944E+33 // -2147483648.0] ; expected 0
-		--assert equal? 0.0 1.222090944E+33 // -2147483648.0 
+		--assert not error? try [1.222090944E+33 %% -2147483648.0] ; expected 0
+		--assert equal? 0.0 1.222090944E+33 %% -2147483648.0 
 		; FIXME: this is still unfixed:
 		;--assert equal? 0.0 1.222090944E+33 % -2147483648.0 
 
@@ -2782,7 +2782,7 @@ b}
 		--assert equal? [2:00:00] difference [1:00] [2:00 1:00]
 
 	--test-- "#2253"
-		--assert not error? try [3151391351465.995 // 1.0]
+		--assert not error? try [3151391351465.995 %% 1.0]
 		unset 'true?
 
 	--test-- "#3603"

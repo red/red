@@ -43,6 +43,7 @@ libRedRT: context [
 		data: load get-path defs-file
 		foreach part [1 7 8][
 			replace/all data/:part %"" to word! "%"
+			replace/all data/:part %"%" to word! "%%"
 			replace/all data/:part ">>>" to word! ">>>"
 		]
 		data
@@ -313,6 +314,7 @@ libRedRT: context [
 			red/shadow-funcs
 		]
 		replace/all tmpl "% " {%"" }
+		replace/all tmpl {%%"" } {%"%" }
 		replace/all tmpl ">>>" {">>>"}
 		replace/all tmpl "red/red-" "red-"
 

@@ -217,13 +217,14 @@ lexer: context [
 			)
 		]
 		opt [#":" (type: set-path!)]
-		e: [path-end | ws-no-count | end | (pos: path throw-error)] :e ;-- detect invalid tail characters				
+		e: [path-end | ws-no-count | end | (pos: path throw-error)] :e ;-- detect invalid tail characters
 		(value: stack/pop type)
 	]
 	
 	word-rule: 	[
 		(type: word!)
-		#"%" [ws-no-count | pos: file-end :pos | end] (value: "%")	;-- special case for remainder op!
+		s: #"%" opt #"%" [ws-no-count | pos: file-end :pos | end] 
+		(value: pick ["%%" "%"] s/2 = #"%")			;-- special case for remainder/modulo op!
 		| path: s: begin-symbol-rule [
 			url-rule
 			| path-rule 							;-- path matched
