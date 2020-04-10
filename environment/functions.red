@@ -1048,6 +1048,13 @@ sqrt: func [
 	]
 ]
 
+divide-strict: function [
+	"Returns the integer quotient of two integers"
+	a [integer!] b [integer!] return: [integer!]
+][
+	either float? r: a / b [to-integer r][r]
+]
+
 to-UTC-date: func [
 	"Returns the date with UTC zone"
 	date [date!]

@@ -16,6 +16,7 @@ Red [
 #load set-word! "-"		make op! :subtract
 #load set-word! "*"		make op! :multiply
 #load set-word! "/"		make op! :divide
+#load set-word! "//"	make op! :divide-strict
 #load set-word! "%%"	make op! :modulo
 #load set-word! "%"		make op! :remainder
 #load set-word! "="		make op! :equal?
