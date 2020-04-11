@@ -230,6 +230,7 @@ base-draw: func [
 		type	[red-word!]
 		font	[red-object!]
 		color	[red-tuple!]
+		bool	[red-logic!]
 		sym		[integer!]
 		pos		[red-pair! value]
 		DC		[draw-ctx! value]
@@ -244,7 +245,12 @@ base-draw: func [
 	type: as red-word! values + FACE_OBJ_TYPE
 	font: as red-object! values + FACE_OBJ_FONT
 	color: as red-tuple! values + FACE_OBJ_COLOR
+	bool: as red-logic! values + FACE_OBJ_ENABLED?
 	sym: symbol/resolve type/symbol
+	if all [
+		sym = base
+		not bool/value
+	][return EVT_DISPATCH]
 
 	either all [
 		TYPE_OF(color) = TYPE_TUPLE
