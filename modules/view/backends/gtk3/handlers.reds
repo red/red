@@ -465,17 +465,23 @@ window-size-allocate: func [
 	widget		[handle!]
 	/local
 		sz		[red-pair!]
+		cont	[handle!]
+		w		[integer!]
+		h		[integer!]
 ][
 	sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE
 	if null? GET-STARTRESIZE(widget) [
 		SET-STARTRESIZE(widget widget)
 	]
+	cont: GET-CONTAINER(widget)
+	w: gtk_widget_get_allocated_width cont
+	h: gtk_widget_get_allocated_height cont
 	if any [
-		sz/x <> rect/width
-		sz/y <> rect/height
+		sz/x <> w
+		sz/y <> h
 	][
-		sz/x: rect/width
-		sz/y: rect/height
+		sz/x: w
+		sz/y: h
 		either null? GET-RESIZING(widget) [
 			make-event widget 0 EVT_SIZE
 		][

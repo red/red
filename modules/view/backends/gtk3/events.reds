@@ -996,14 +996,18 @@ connect-widget-events: func [
 	sym			[integer!]
 	/local
 		evbox	[handle!]
+		cont	[handle!]
 		buffer	[handle!]
 ][
 	evbox: get-face-evbox widget values sym
+	cont: GET-CONTAINER(widget)
 	;-- register red mouse, key event functions
-	if sym <> window [
+	either sym = window [
+		connect-notify-events cont widget
+		connect-common-events cont widget
+	][
 		connect-common-events evbox widget
 	]
-	connect-notify-events evbox widget
 	connect-focus-events evbox widget sym
 
 	gobj_signal_connect(evbox "realize" :widget-realize widget)
