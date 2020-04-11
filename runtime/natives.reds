@@ -2595,24 +2595,25 @@ natives: context [
 			file/to-local-path as red-file! src url no
 		][url: src]
 
-		#switch OS [
-			Windows [
+		#case [
+			OS = 'Windows [
 				platform/ShellExecute 0 #u16 "open" unicode/to-utf16 url 0 0 1
-				unset/push-last
 			]
-			macOS [
-				use [s [c-string!] cmd [byte-ptr!] len [integer!]][
+			any [OS = 'Linux OS = 'macOS][
+				use [tool [c-string!] n [integer!] s [c-string!] cmd [byte-ptr!] len [integer!]][
+					#either OS = 'macOS [tool: "open " n: 5][tool: "xdg-open " n: 9]
 					len: -1
 					s: unicode/to-utf8 url :len
-					cmd: allocate 6 + len
-					copy-memory cmd as byte-ptr! "open " 5
-					copy-memory cmd + 5 as byte-ptr! s len + 1
+					cmd: allocate len + n + 1
+					copy-memory cmd as byte-ptr! tool n
+					copy-memory cmd + n as byte-ptr! s len + 1
 					ext-process/OS-call as-c-string cmd no no no yes null null null
 					free cmd
 				]
 			]
-			#default [fire [TO_ERROR(internal not-here) words/_browse]]
+			true [fire [TO_ERROR(internal not-here) words/_browse]]
 		]
+		unset/push-last
 	]
 
 	compress*: func [
