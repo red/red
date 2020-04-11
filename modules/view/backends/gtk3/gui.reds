@@ -24,6 +24,7 @@ Red/System [
 #include %tab-panel.reds
 #include %text-list.reds
 
+force-redraw?:		no
 settings:			as handle! 0
 pango-context:		as handle! 0
 default-font-name:	as c-string! 0
@@ -1999,6 +2000,7 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_DRAW  <> 0 [
 		gtk_widget_queue_draw widget
+		force-redraw?: yes
 		; 0
 	]
 	if flags and FACET_FLAG_COLOR <> 0 [

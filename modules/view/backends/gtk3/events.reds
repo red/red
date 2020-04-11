@@ -779,6 +779,10 @@ do-events: func [
 			break
 		]
 		if null? GET-IN-LOOP(win) [break]
+		if force-redraw? [
+			gdk_window_process_all_updates
+			force-redraw?: no
+		]
 		no-wait?
 	]
 	msg?

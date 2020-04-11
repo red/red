@@ -703,6 +703,8 @@ GPtrArray!: alias struct! [
 		]
 	;; ]
 	;; LIBGDK-file cdecl [
+		gdk_flush: "gdk_flush" []
+		gdk_window_process_all_updates: "gdk_window_process_all_updates" []
 		gdk_screen_width: "gdk_screen_width" [
 			return:		[integer!]
 		]
