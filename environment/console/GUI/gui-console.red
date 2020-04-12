@@ -222,7 +222,6 @@ gui-console-ctx: context [
 		console/init
 		load-cfg
 		win/visible?: yes
-		#if config/OS = 'Linux [terminal/update-cfg font none]
 
 		svs: system/view/screens/1
 		svs/pane: next svs/pane				;-- proctect itself from unview/all
