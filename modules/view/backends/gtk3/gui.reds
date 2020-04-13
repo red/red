@@ -1738,12 +1738,16 @@ OS-make-view: func [
 
 			winbox: gtk_box_new GTK_ORIENTATION_VERTICAL 0
 			gtk_container_add widget winbox
+			hMenu: null
 			if menu-bar? menu window [
 				hMenu: gtk_menu_bar_new
 				gtk_widget_show hMenu
 				build-menu menu hMenu widget
 				gtk_box_pack_start winbox hMenu no yes 0
+				SET-CONTAINER-W(widget size/x)
+				SET-CONTAINER-H(widget size/y)
 			]
+			SET-HMENU(widget hMenu)
 			gtk_widget_show winbox
 			container: gtk_layout_new null null
 			gtk_layout_set_size container size/x size/y

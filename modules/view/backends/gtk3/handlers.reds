@@ -457,7 +457,16 @@ window-configure-event: func [
 	event		[GdkEventConfigure!]
 	widget		[handle!]
 	return:		[integer!]
+	/local
+		x		[integer!]
+		y		[integer!]
+		offset	[red-pair!]
 ][
+	x: 0 y: 0
+	gtk_window_get_position widget :x :y
+	offset: (as red-pair! get-face-values widget) + FACE_OBJ_OFFSET
+	offset/x: x
+	offset/y: y
 	unless null? GET-STARTRESIZE(widget) [
 		SET-RESIZING(widget widget)
 	]
@@ -479,15 +488,21 @@ window-size-allocate: func [
 	if null? GET-STARTRESIZE(widget) [
 		SET-STARTRESIZE(widget widget)
 	]
-	cont: GET-CONTAINER(widget)
-	w: gtk_widget_get_allocated_width cont
-	h: gtk_widget_get_allocated_height cont
+
+	unless null? GET-HMENU(widget) [
+		cont: GET-CONTAINER(widget)
+		w: gtk_widget_get_allocated_width cont
+		h: gtk_widget_get_allocated_height cont
+		SET-CONTAINER-W(widget w)
+		SET-CONTAINER-H(widget h)
+	]
+
 	if any [
-		sz/x <> w
-		sz/y <> h
+		sz/x <> rect/width
+		sz/y <> rect/height
 	][
-		sz/x: w
-		sz/y: h
+		sz/x: rect/width
+		sz/y: rect/height
 		either null? GET-RESIZING(widget) [
 			make-event widget 0 EVT_SIZE
 		][

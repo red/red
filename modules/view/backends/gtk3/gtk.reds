@@ -3275,6 +3275,9 @@ caption-id:			g_quark_from_string "caption-id"
 in-loop-id:			g_quark_from_string "in-loop-id"
 first-radio-id:		g_quark_from_string "first-radio-id"
 resend-event-id:	g_quark_from_string "resend-event-id"
+hmenu-id:			g_quark_from_string "hmenu-id"
+container-w:		g_quark_from_string "container-w"
+container-h:		g_quark_from_string "container-h"
 
 #define SET-CONTAINER(s d)		[g_object_set_qdata s container-id d]
 #define GET-CONTAINER(s)		[g_object_get_qdata s container-id]
@@ -3294,3 +3297,9 @@ resend-event-id:	g_quark_from_string "resend-event-id"
 #define GET-FIRST-RADIO(s)		[g_object_get_qdata s first-radio-id]
 #define SET-RESEND-EVENT(s d)	[g_object_set_qdata s resend-event-id d]
 #define GET-RESEND-EVENT(s)		[g_object_get_qdata s resend-event-id]
+#define SET-HMENU(s d)			[g_object_set_qdata s hmenu-id d]
+#define GET-HMENU(s)			[g_object_get_qdata s hmenu-id]
+#define SET-CONTAINER-W(s d)	[g_object_set_qdata s container-w as int-ptr! d]
+#define GET-CONTAINER-W(s)		[as integer! g_object_get_qdata s container-w]
+#define SET-CONTAINER-H(s d)	[g_object_set_qdata s container-h as int-ptr! d]
+#define GET-CONTAINER-H(s)		[as integer! g_object_get_qdata s container-h]

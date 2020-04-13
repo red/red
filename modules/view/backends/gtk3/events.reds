@@ -496,8 +496,15 @@ get-event-offset: func [
 			offset/header: TYPE_PAIR
 
 			widget: as handle! evt/msg
-			sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE
-			as red-value! sz
+			either null? GET-HMENU(widget) [
+				sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE
+				offset/x: sz/x
+				offset/y: sz/y
+			][
+				offset/x: GET-CONTAINER-W(widget)
+				offset/y: GET-CONTAINER-H(widget)
+			]
+			as red-value! offset
 		]
 		any [
 			evt/type = EVT_ZOOM
