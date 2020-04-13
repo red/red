@@ -1388,7 +1388,7 @@ OS-draw-grad-pen-old: func [
 		grad/colors-pos: as float32-ptr! pc + MAX_COLORS
 		grad/on?: on
 	]
-	grad/spread: mode
+	grad/spread: _pad
 	grad/type: type
 	grad/count: 0
 
