@@ -1086,14 +1086,14 @@ change-data: func [
 	case [
 		all [
 			type = progress
-			TYPE_OF(data) = TYPE_PERCENT
+			any [TYPE_OF(data) = TYPE_PERCENT TYPE_OF(data) = TYPE_FLOAT]
 		][
 			f: as red-float! data
 			gtk_progress_bar_set_fraction widget f/value
 		]
 		all [
 			type = slider
-			TYPE_OF(data) = TYPE_PERCENT
+			any [TYPE_OF(data) = TYPE_PERCENT TYPE_OF(data) = TYPE_FLOAT]
 		][
 			f: as red-float! data
 			gtk_range_set_value widget f/value * 100.0
