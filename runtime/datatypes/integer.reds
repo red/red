@@ -174,52 +174,60 @@ integer: context [
 		left	[integer!]
 		right	[integer!]
 		type	[math-op!]
+		slot	[red-integer!]
 		return:	[integer!]
 		/local
+			fl	[red-float!]
 			res [integer!]
 	][
 		switch type [
 			OP_ADD [
 				res: left + right
 				if system/cpu/overflow? [fire [TO_ERROR(math overflow)]]
-				res
 			]
 			OP_SUB [
 				res: left - right
 				if system/cpu/overflow? [fire [TO_ERROR(math overflow)]]
-				res
 			]
 			OP_MUL [
 				res: left * right
 				if system/cpu/overflow? [fire [TO_ERROR(math overflow)]]
-				res
 			]
-			OP_AND [left and right]
-			OP_OR  [left or right]
-			OP_XOR [left xor right]
+			OP_AND [res: left and right]
+			OP_OR  [res: left or right]
+			OP_XOR [res: left xor right]
 			OP_REM [
 				either zero? right [
 					fire [TO_ERROR(math zero-divide)]
-					0								;-- pass the compiler's type-checking
+					0									;-- pass the compiler's type-checking
 				][
 					if all [left = -2147483648 right = -1][
 						fire [TO_ERROR(math overflow)]
 					]
-					left % right
+					res: left % right
 				]
 			]
 			OP_DIV [
 				either zero? right [
 					fire [TO_ERROR(math zero-divide)]
-					0								;-- pass the compiler's type-checking
+					0									;-- pass the compiler's type-checking
 				][
 					if all [left = -2147483648 right = -1][
 						fire [TO_ERROR(math overflow)]
 					]
-					left / right
+					either any [null? slot left % right = 0][
+						res: left / right
+					][
+						fl: as red-float! slot			;-- promote to float
+						fl/header: TYPE_FLOAT
+						fl/value: (as-float left) / as-float right
+						return 0						;-- place-holder value
+					]
 				]
 			]
 		]
+		if slot <> null [slot/value: res]
+		res
 	]
 
 	do-math: func [
@@ -245,7 +253,7 @@ integer: context [
 
 		switch TYPE_OF(right) [
 			TYPE_INTEGER TYPE_CHAR [
-				left/value: do-math-op left/value right/value op
+				do-math-op left/value right/value op left
 			]
 			TYPE_MONEY [
 				left: as red-integer! money/do-math op

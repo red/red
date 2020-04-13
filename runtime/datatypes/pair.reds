@@ -64,8 +64,8 @@ pair: context [
 				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(right)]
 			]
 		]
-		left/x: integer/do-math-op left/x x op
-		left/y: integer/do-math-op left/y y op
+		left/x: integer/do-math-op left/x x op null
+		left/y: integer/do-math-op left/y y op null
 		left
 	]
 	
