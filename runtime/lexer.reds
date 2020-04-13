@@ -1936,10 +1936,13 @@ lexer: context [
 	
 	load-hex: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local
-			int		[red-integer!]
-			i index [integer!]
-			cb		[byte!]
+			do-error [subroutine!]
+			int		 [red-integer!]
+			saved	 [byte-ptr!]
+			i index  [integer!]
+			cb		 [byte!]
 	][
+		do-error: [throw-error lex saved e TYPE_INTEGER]
 		i: 0
 		cb: null-byte
 		if e/1 <> #"h" [e: e - 1]						;-- when coming from number states
@@ -1947,7 +1950,10 @@ lexer: context [
 		if all [any [s/1 < #"0" s/1 > #"9"] s + 1 >= e][
 			throw-error lex s e TYPE_WORD
 		]
+		saved: s
+		if any [s/1 = #"-" s/1 = #"+"][do-error]
 		while [s < e][
+			if s/1 = #"'" [do-error]
 			index: 1 + as-integer s/1					;-- converts the 2 hex chars using a lookup table
 			cb: hexa-table/index						;-- decode one nibble at a time
 			assert cb <> #"^(FF)"
