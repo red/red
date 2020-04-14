@@ -1017,6 +1017,8 @@ change-text: func [
 		cstr	[c-string!]
 		str		[red-string!]
 		buffer	[handle!]
+		start	[GtkTextIter! value]
+		end		[GtkTextIter! value]
 ][
 	;; DEBUG: print ["change-text: " get-symbol-name type lf]
 
@@ -1038,7 +1040,9 @@ change-text: func [
 		case [
 			type = area [
 				buffer: gtk_text_view_get_buffer widget
-			 	gtk_text_buffer_set_text buffer cstr -1
+				gtk_text_buffer_set_text buffer cstr -1
+				gtk_text_buffer_get_bounds buffer as handle! start as handle! end
+				update-textview-tag buffer as handle! start as handle! end
 			]
 			type = text [
 				gtk_label_set_text widget cstr

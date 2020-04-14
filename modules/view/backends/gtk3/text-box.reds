@@ -38,26 +38,6 @@ utf8-to-bytes: func [
 	as integer! end - text
 ]
 
-color-u8-to-u16: func [
-	color		[integer!]
-	r			[int-ptr!]
-	g			[int-ptr!]
-	b			[int-ptr!]
-	a			[int-ptr!]
-	/local
-		t		[integer!]
-][
-	t: color >>> 24 and FFh
-	t: FFh - t
-	a/value: t << 8 + t
-	t: color >> 16 and FFh
-	b/value: t << 8 + t
-	t: color >> 8 and FFh
-	g/value: t << 8 + t
-	t: color and FFh
-	r/value: t << 8 + t
-]
-
 OS-text-box-color: func [
 	dc			[handle!]
 	layout		[handle!]
