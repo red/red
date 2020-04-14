@@ -1505,7 +1505,10 @@ process: func [
 			menu-ctx: null
 			make-event msg flags EVT_LEFT_DOWN
 		]
-		WM_LBUTTONUP	[make-event msg flags EVT_LEFT_UP]
+		WM_LBUTTONUP	[
+			if GetCapture <> null [ReleaseCapture]		;-- issue #4384
+			make-event msg flags EVT_LEFT_UP
+		]
 		WM_RBUTTONDOWN	[
 			if GetCapture <> null [return EVT_DISPATCH]
 			lParam: msg/lParam
