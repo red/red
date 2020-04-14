@@ -2074,6 +2074,25 @@ GPtrArray!: alias struct! [
 			iter		[handle!]
 			return:		[integer!]
 		]
+		gtk_text_buffer_get_start_iter: "gtk_text_buffer_get_start_iter" [
+			buffer		[handle!]
+			iter		[handle!]
+		]
+		gtk_text_buffer_get_end_iter: "gtk_text_buffer_get_end_iter" [
+			buffer		[handle!]
+			iter		[handle!]
+		]
+		gtk_text_buffer_apply_tag: "gtk_text_buffer_apply_tag" [
+			buffer		[handle!]
+			tag			[handle!]
+			start		[handle!]
+			end			[handle!]
+		]
+		gtk_text_buffer_remove_all_tags: "gtk_text_buffer_remove_all_tags" [
+			buffer		[handle!]
+			start		[handle!]
+			end			[handle!]
+		]
 		gtk_combo_box_text_new: "gtk_combo_box_text_new" [
 			return:		[handle!]
 		]
