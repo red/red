@@ -788,6 +788,7 @@ area-changed: func [
 ][
 	; Weirdly, GtkTextIter introduced since I did not simplest solution to get the full content of a GtkTextBuffer!
 	gtk_text_buffer_get_bounds buffer as handle! start as handle! end
+	update-textview-tag buffer as handle! start as handle! end
 	text: gtk_text_buffer_get_text buffer as handle! start as handle! end no
 	face: get-face-obj widget
 	unless null? face [

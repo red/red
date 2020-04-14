@@ -52,6 +52,13 @@ tagRECT: alias struct! [
 	height	[integer!]
 ]
 
+GdkRGBA!: alias struct! [
+	red		[float!]
+	green	[float!]
+	blue	[float!]
+	alpha	[float!]
+]
+
 GdkEventAny!: alias struct! [
 	type		[integer!]
 	window		[int-ptr!]
@@ -2074,6 +2081,44 @@ GPtrArray!: alias struct! [
 			iter		[handle!]
 			return:		[integer!]
 		]
+		gtk_text_buffer_get_start_iter: "gtk_text_buffer_get_start_iter" [
+			buffer		[handle!]
+			iter		[handle!]
+		]
+		gtk_text_buffer_get_end_iter: "gtk_text_buffer_get_end_iter" [
+			buffer		[handle!]
+			iter		[handle!]
+		]
+		gtk_text_buffer_apply_tag: "gtk_text_buffer_apply_tag" [
+			buffer		[handle!]
+			tag			[handle!]
+			start		[handle!]
+			end			[handle!]
+		]
+		gtk_text_buffer_apply_tag_by_name: "gtk_text_buffer_apply_tag_by_name" [
+			buffer		[handle!]
+			name		[c-string!]
+			start		[handle!]
+			end			[handle!]
+		]
+		gtk_text_tag_table_lookup: "gtk_text_tag_table_lookup" [
+			buffer		[handle!]
+			name		[c-string!]
+			return:		[handle!]
+		]
+		gtk_text_tag_table_remove: "gtk_text_tag_table_remove" [
+			table		[handle!]
+			tag			[handle!]
+		]
+		gtk_text_buffer_get_tag_table: "gtk_text_buffer_get_tag_table" [
+			buffer		[handle!]
+			return:		[handle!]
+		]
+		gtk_text_buffer_remove_all_tags: "gtk_text_buffer_remove_all_tags" [
+			buffer		[handle!]
+			start		[handle!]
+			end			[handle!]
+		]
 		gtk_combo_box_text_new: "gtk_combo_box_text_new" [
 			return:		[handle!]
 		]
@@ -3303,3 +3348,45 @@ container-h:		g_quark_from_string "container-h"
 #define GET-CONTAINER-W(s)		[as integer! g_object_get_qdata s container-w]
 #define SET-CONTAINER-H(s d)	[g_object_set_qdata s container-h as int-ptr! d]
 #define GET-CONTAINER-H(s)		[as integer! g_object_get_qdata s container-h]
+
+to-gdk-color: func [
+	color		[integer!]
+	gcolor		[GdkRGBA!]
+	/local
+		t		[integer!]
+		a		[float!]
+][
+	t: color >>> 24 and FFh
+	t: FFh - t
+	a: as float! t
+	gcolor/alpha: a / 255.0
+	t: color >> 16 and FFh
+	a: as float! t
+	gcolor/blue: a / 255.0
+	t: color >> 8 and FFh
+	a: as float! t
+	gcolor/green: a / 255.0
+	t: color and FFh
+	a: as float! t
+	gcolor/red: a / 255.0
+]
+
+color-u8-to-u16: func [
+	color		[integer!]
+	r			[int-ptr!]
+	g			[int-ptr!]
+	b			[int-ptr!]
+	a			[int-ptr!]
+	/local
+		t		[integer!]
+][
+	t: color >>> 24 and FFh
+	t: FFh - t
+	a/value: t << 8 + t
+	t: color >> 16 and FFh
+	b/value: t << 8 + t
+	t: color >> 8 and FFh
+	g/value: t << 8 + t
+	t: color and FFh
+	r/value: t << 8 + t
+]

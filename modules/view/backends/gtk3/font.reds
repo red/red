@@ -286,6 +286,93 @@ set-textview-para: func [
 		either wrap? [GTK_WRAP_WORD][GTK_WRAP_NONE]
 ]
 
+update-textview-tag: func [
+	buffer		[handle!]
+	start		[handle!]
+	end			[handle!]
+	/local
+		table	[handle!]
+		tag		[handle!]
+][
+	table: gtk_text_buffer_get_tag_table buffer
+	tag: gtk_text_tag_table_lookup table "weight"
+	unless null? tag [
+		gtk_text_buffer_apply_tag buffer tag start end
+	]
+	tag: gtk_text_tag_table_lookup table "italic"
+	unless null? tag [
+		gtk_text_buffer_apply_tag buffer tag start end
+	]
+	tag: gtk_text_tag_table_lookup table "underline"
+	unless null? tag [
+		gtk_text_buffer_apply_tag buffer tag start end
+	]
+	tag: gtk_text_tag_table_lookup table "strike"
+	unless null? tag [
+		gtk_text_buffer_apply_tag buffer tag start end
+	]
+]
+
+set-textview-tag: func [
+	widget		[handle!]
+	font		[red-object!]
+	/local
+		buffer	[handle!]
+		start	[GtkTextIter! value]
+		end		[GtkTextIter! value]
+		tag		[handle!]
+		values	[red-value!]
+		style	[red-word!]
+		len		[integer!]
+		blk		[red-block!]
+		sym		[integer!]
+][
+	unless all [
+		not null? font
+		TYPE_OF(font) = TYPE_OBJECT
+	][exit]
+	buffer: gtk_text_view_get_buffer widget
+	gtk_text_buffer_get_bounds buffer as handle! start as handle! end
+	gtk_text_buffer_remove_all_tags buffer as handle! start as handle! end
+
+	values: object/get-values font
+	style: as red-word! values + FONT_OBJ_STYLE
+	len: switch TYPE_OF(style) [
+		TYPE_BLOCK [
+			blk: as red-block! style
+			style: as red-word! block/rs-head blk
+			len: block/rs-length? blk
+		]
+		TYPE_WORD  [1]
+		default	   [0]
+	]
+	unless zero? len [
+		loop len [
+			sym: symbol/resolve style/symbol
+			case [
+				sym = _bold [
+					tag: gtk_text_buffer_create_tag [buffer "weight" "weight" PANGO_WEIGHT_BOLD null]
+					gtk_text_buffer_apply_tag buffer tag as handle! start as handle! end
+				]
+				sym = _italic [
+					tag: gtk_text_buffer_create_tag [buffer "italic" "style" PANGO_STYLE_ITALIC null]
+					gtk_text_buffer_apply_tag buffer tag as handle! start as handle! end
+				]
+				sym = _underline [
+					tag: gtk_text_buffer_create_tag [buffer "underline" "underline" PANGO_UNDERLINE_SINGLE null]
+					gtk_text_buffer_apply_tag buffer tag as handle! start as handle! end
+				]
+				sym = _strike [
+					tag: gtk_text_buffer_create_tag [buffer "strike" "strikethrough" true null]
+					gtk_text_buffer_apply_tag buffer tag as handle! start as handle! end
+				]
+				true			 [0]
+			]
+			style: style + 1
+		]
+	]
+]
+
 set-text-list-font: func [
 	widget		[handle!]
 	hsym		[integer!]
@@ -889,6 +976,7 @@ set-font: func [
 		]
 		sym = area [
 			set-textview-para widget hsym vsym wrap?
+			set-textview-tag widget font
 			apply-css-styles widget css
 		]
 		sym = text-list [
