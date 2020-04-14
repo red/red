@@ -177,14 +177,8 @@ money: context [
 			assert all [index >= 1 index <= FFh]
 		]
 		
-		list: as red-series! #get system/locale/currencies/base
+		list: as red-series! #get system/locale/currencies/list
 		walk
-		
-		if here < tail [return index]
-		
-		list: as red-series! #get system/locale/currencies/extra
-		walk
-		
 		either here < tail [index][-1]
 	]
 	
@@ -193,17 +187,10 @@ money: context [
 		return: [red-word!]
 		/local
 			list [red-series!]
-			size [integer!]
 	][
 		assert all [index > 0 index <= FFh]
 		
-		list: as red-series! #get system/locale/currencies/base
-		size: _series/length? list
-		if index > size [
-			list: as red-series! #get system/locale/currencies/extra
-			index: index - size
-		]
-		
+		list: as red-series! #get system/locale/currencies/list
 		as red-word! _series/pick list index as red-value! list
 	]
 	

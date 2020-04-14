@@ -892,7 +892,7 @@ do-file: function ["Internal Use Only" file [file! url!]][
 		block? header: code/2
 		list: select header 'currencies
 	][
-		foreach c list [append system/locale/currencies/extra c]
+		foreach c list [append system/locale/currencies/list c]
 	]
 	set/any 'code try/all code
 	if file? file [change-dir saved]

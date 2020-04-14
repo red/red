@@ -235,7 +235,7 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "make-13" --assert error? try [make money! 'foo]
 	--test-- "make-14" --assert error? try [make money! [123.45 6789]]
 	--test-- "make-15"
-		--assert not error? try [foreach c system/locale/currencies/base [make money! c]]
+		--assert not error? try [foreach c system/locale/currencies/list [make money! c]]
 ===end-group===
 
 ===start-group=== "form/mold"
@@ -678,39 +678,37 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 ===end-group===
 
 ===start-group=== "currency list"
-	list: system/locale/currencies
+	cur: system/locale/currencies
 	--test-- "custom-1"
-		--assert error? try [append list/base 'foo]
-		--assert error? try [clear list/base]
-		--assert error? try [reverse list/base]
-		--assert error? try [random list/base]
-		--assert error? try [list/base: none]
-		--assert error? try [list/base/1: none]
-		--assert error? try [put list/extra 'usd 'eur]
+		--assert error? try [clear cur/list]
+		--assert error? try [reverse cur/list]
+		--assert error? try [random cur/list]
+		--assert error? try [cur/list: none]
+		--assert error? try [cur/list/1: none]
+		--assert error? try [put cur/list 'usd 'eur]
 	--test-- "custom-2"
-		--assert error? try [append list/extra none]
-		--assert error? try [append list/extra quote :foo]
-		--assert error? try [append list/extra 'foo!]
-		--assert error? try [append list/extra 'usd]
-		--assert error? try [list/extra: none]
-		--assert error? try [list/extra/1: none]
+		--assert error? try [append cur/list none]
+		--assert error? try [append cur/list quote :foo]
+		--assert error? try [append cur/list 'foo!]
+		--assert error? try [append cur/list 'usd]
+		--assert error? try [cur/list: none]
+		--assert error? try [cur/list/1: none]
 	--test-- "custom-3"
 		--assert error? try [make money! 'bar]
-		append list/extra 'bar
+		append cur/list 'bar
 		--assert money? make money! 'bar
 		--assert "BAR$0.00000" == mold/all make money! 'bar
 		--assert error? try [make money! 'qux]
-		append list/extra 'QUX
+		append cur/list 'QUX
 		--assert "-QUX$123.45678" == mold/all make money! [QUX -123 45678]
 	--test-- "custom-4"
-		--assert error? try [append list/extra 'bar]
-		--assert error? try [append list/extra 'qux]
-		--assert error? try [clear list/extra]
-		--assert error? try [reverse list/extra]
-		--assert error? try [random list/extra]
-		--assert list/extra/1 = 'bar
-		--assert list/extra/2 = 'qux
-		--assert 2 = length? list/extra
+		--assert error? try [append cur/list 'bar]
+		--assert error? try [append cur/list 'qux]
+		--assert error? try [clear cur/list]
+		--assert error? try [reverse cur/list]
+		--assert error? try [random cur/list]
+		--assert (pick tail cur/list -2) = 'bar
+		--assert (pick tail cur/list -1) = 'qux
 ===end-group===
 
 ===start-group=== "generated"

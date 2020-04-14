@@ -314,7 +314,7 @@ system: context [
 		
 		currencies: context [
 			;-- ISO currencies + BTC, ETH, RED
-			base: [
+			list: [
 				AED AFN ALL AMD ANG AOA ARS AUD AWG AZN BAM BBD BDT BTC BGN BHD BIF BMD BND BOB BRL BSD
 				BTN	BWP BYN BZD CAD CDF CHF CKD CLP CNY COP CRC CUC CUP CVE CZK DJF DKK DOP DZD EGP ERN
 				ETB ETH	EUR FJD FKP FOK GBP GEL GGP GHS GIP GMD GNF GTQ GYD HKD HNL HRK HTG HUF IDR ILS
@@ -324,30 +324,20 @@ system: context [
 				SGD SHP SLL	SLS SOS SRD SSP STN SYP SZL THB TJS TMT TND TOP TRY TTD TVD TWD TZS UAH UGX
 				USD UYU UZS	VES VND VUV WST CFA XAF XCD XOF CFP XPF YER ZAR ZMW
 			]
-			;-- User-provided currencies
-			extra: []
-			
 			on-change*: func [word old new][
 				set-quiet in self word old
 				cause-error 'script 'protected []
 			]
 			on-deep-change*: func [owner word target action new index part][
 				if any [
-					word <> 'extra
+					word <> 'list
 					not find [append appended] action
 					not word? :new
-					find base new
+					all [action = 'append any [find list new 255 < length? list]] ;-- limit index to 8-bit
 					3 <> length? form new
-					all [
-						action = 'append
-						any [
-							find extra new
-							255 < ((length? base) + length? extra)	;-- limit index to 8-bit
-						]
-					]
 				][cause-error 'script 'protected []]
 				
-				if action = 'appended [set-slot-quiet back tail extra to word! uppercase form new]
+				if action = 'appended [set-slot-quiet back tail list to word! uppercase form new]
 			]
 		]
 	]
