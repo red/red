@@ -1447,6 +1447,7 @@ process: func [
 		y	   [integer!]
 		track  [tagTRACKMOUSEEVENT value]
 		flags  [integer!]
+		word   [red-word!]
 ][
 	flags: decode-down-flags msg/wParam
 	switch msg/msg [
@@ -1507,7 +1508,10 @@ process: func [
 			make-event msg flags EVT_LEFT_DOWN
 		]
 		WM_LBUTTONUP	[
-			if GetCapture <> null [ReleaseCapture]		;-- issue #4384
+			if all [msg/hWnd <> null msg/hWnd = GetCapture][
+				word: (as red-word! get-face-values msg/hWnd) + FACE_OBJ_TYPE
+				if base = symbol/resolve word/symbol [ReleaseCapture]	;-- issue #4384
+			]
 			make-event msg flags EVT_LEFT_UP
 		]
 		WM_RBUTTONDOWN	[
