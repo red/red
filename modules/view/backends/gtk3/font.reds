@@ -281,6 +281,31 @@ set-textview-para: func [
 		either wrap? [GTK_WRAP_WORD][GTK_WRAP_NONE]
 ]
 
+set-text-list-font: func [
+	widget		[handle!]
+	hsym		[integer!]
+	vsym		[integer!]
+	wrap?		[logic!]
+	font		[red-object!]
+	hfont		[handle!]
+	/local
+		list	[GList!]
+		child	[GList!]
+		label	[handle!]
+][
+	list: gtk_container_get_children widget
+	child: list
+	while [not null? child][
+		label: gtk_bin_get_child child/data
+		set-label-para label hsym vsym wrap?
+		set-label-attrs label font hFont
+		child: child/next
+	]
+	unless null? list [
+		g_list_free list
+	]
+]
+
 ;-- create pango attributes
 ;-- `angle` need to be set on label
 ;-- `anti-alias` need to be set by cairo
@@ -850,6 +875,9 @@ set-font: func [
 		sym = area [
 			set-textview-para widget hsym vsym wrap?
 			apply-css-styles widget css
+		]
+		sym = text-list [
+			set-text-list-font widget hsym vsym wrap? font hFont
 		]
 		true [
 			apply-css-styles widget css
