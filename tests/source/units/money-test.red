@@ -590,6 +590,10 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 		block:  [-1 -$8 2 3.0 -4.0 $7 2 $5 -$6 9]
 		result: [-$8 -$6 -4.0 -1 2 2 3.0 $5 $7 9]
 		--assert result == sort block
+	--test-- "sort-3"
+		block:  [USD$1 -EUR$2 $3 USD$4 -USD$5 $6 EUR$7 EUR$8 -$9]
+		result: [-$9 $3 $6 -EUR$2 EUR$7 EUR$8 -USD$5 USD$1 USD$4]
+		--assert result == sort block
 ===end-group===
 
 ===start-group=== "find"
