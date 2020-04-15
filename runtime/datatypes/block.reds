@@ -1261,7 +1261,7 @@ block: context [
 		flags: 0
 		s: GET_BUFFER(blk)
 		head: s/offset + blk/head
-		if head = s/tail [return blk]					;-- early exit if nothing to reverse
+		if head = s/tail [return blk]					;-- early exit if nothing to sort
 		len: rs-length? blk
 
 		if OPTION?(part) [
