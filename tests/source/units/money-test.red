@@ -79,15 +79,20 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 ===end-group===
 
 ===start-group=== "same?"
-	--test-- "same-1" --assert same? $12345678901234567.12345 $12345678901234567.12345
-	--test-- "same-2" --assert not same? $123.456 123.456
-	--test-- "same-3" --assert not same? $123 123
-	--test-- "same-4" --assert same? -$0 +$0
-	--test-- "same-5" --assert same? -$1 -$1
-	--test-- "same-6" --assert same? +$1 +$1
-	--test-- "same-7" --assert same? +USD$1 +USD$1
-	--test-- "same-8" --assert error? try [same? +USD$1 +$1]
-	--test-- "same-9" --assert error? try [same? +$1 +USD$1]
+	--test-- "same-1"  --assert same? $12345678901234567.12345 $12345678901234567.12345
+	--test-- "same-2"  --assert not same? $123.456 123.456
+	--test-- "same-3"  --assert not same? $123 123
+	--test-- "same-4"  --assert same? -$0 +$0
+	--test-- "same-5"  --assert same? -$1 -$1
+	--test-- "same-6"  --assert same? +$1 +$1
+	--test-- "same-7"  --assert same? +USD$1 +USD$1
+	--test-- "same-8"  --assert not same? +USD$1 +$1
+	--test-- "same-9"  --assert not same? +$1 +USD$1
+	--test-- "same-10" --assert same? -$0 +$0
+	--test-- "same-11" --assert not same? $0 USD$0
+	--test-- "same-12" --assert same? USD$0 USD$0
+	--test-- "same-13" --assert not same? USD$0 EUR$0
+	--test-- "same-14" --assert same? +USD$0 -USD$0
 ===end-group===
 
 ===start-group=== "lesser?"
