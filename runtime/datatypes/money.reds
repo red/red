@@ -1034,6 +1034,35 @@ money: context [
 			get-amount value2
 	]
 	
+	sort-money: func [
+		value1  [red-money!]
+		value2  [red-money!]
+		return: [integer!]
+		/local
+			code1 code2 [red-value!]
+			type1 type2 [integer!]
+			flag        [integer!]
+	][
+		code1: get-currency-from value1
+		code2: get-currency-from value2
+		
+		type1: TYPE_OF(code1)
+		type2: TYPE_OF(code2)
+	
+		flag: either type1 = type2 [
+			either type1 = TYPE_NONE [0][
+				word/compare						;-- lexicographical order
+					as red-word! code1
+					as red-word! code2
+					COMP_LESSER
+			]
+		][
+			either type1 = TYPE_NONE [-1][+1]
+		]
+		
+		either zero? flag [compare-money value1 value2][flag]
+	]
+	
 	negative-money?: func [
 		money   [red-money!]
 		return: [logic!]
@@ -1604,6 +1633,10 @@ money: context [
 		switch TYPE_OF(value) [
 			TYPE_MONEY [
 				switch op [
+					COMP_SORT
+					COMP_CASE_SORT [
+						return sort-money money value
+					]
 					COMP_SAME [
 						return as integer! not all [	;-- 0 if the same
 							same-currencies? money value yes
