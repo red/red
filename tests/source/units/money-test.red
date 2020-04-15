@@ -352,7 +352,7 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "multiply-12" --assert error? try [multiply max-money 1.1]
 	--test-- "multiply-13" --assert $999999999999.99999 == multiply -$33333333333333333.33333 -0.00003
 	--test-- "multiply-14" --assert min-money == multiply $33333333333333333.33333 -3
-	--test-- "multiply-15" --assert error? try [multiply $1 $1 ]
+	--test-- "multiply-15" --assert error? try [multiply $1 $1]
 ===end-group===
 
 ===start-group=== "divide"
@@ -644,7 +644,7 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 		--assert $12345678901234567.12345 == transcode/one "$00000000000000000012345678901234567.12345"
 		--assert $12345678901234567.12345 == transcode/one "+$12'345'678'901'234'567.1234567890"
 		--assert -$12345678901234567.12345 == transcode/one "-$0'00'000'000012345678901234567.12345"
-	--test-- "transcode-money-"
+	--test-- "transcode-money-9"
 		--assert error! == transcode/scan "-$.1"
 		--assert error! == transcode/scan "+$,2"
 		--assert error! == transcode/scan "$3."
