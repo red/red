@@ -1418,6 +1418,7 @@ money: context [
 				int: as red-integer! value1
 				value1: from-integer int/value
 			]
+			TYPE_PERCENT
 			TYPE_FLOAT [
 				flt: as red-float! value1
 				value1: from-float flt/value
@@ -1433,6 +1434,7 @@ money: context [
 				int: as red-integer! value2
 				value2: from-integer int/value
 			]
+			TYPE_PERCENT
 			TYPE_FLOAT [
 				flt: as red-float! value2
 				value2: from-float flt/value
