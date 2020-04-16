@@ -1000,7 +1000,7 @@ money: context [
 		if any [here > tail all [dot? here + 1 = tail]][bail]	;-- forbid trailing decimal separator
 		
 		point: here
-		if SIZE_INTEGRAL < as integer! point - digits [bail]
+		if SIZE_INTEGRAL <= as integer! point - digits [bail]
 		if here = tail [point: null make]
 		here: here + 1
 		
