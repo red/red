@@ -1006,7 +1006,7 @@ money: context [
 		
 		;-- fractional part
 		until [unless digit? [bail] here: here + 1 end?]
-		if here <> tail [bail]
+		if any [here <> tail SIZE_SCALE + 1 < as integer! here - point][bail]
 		
 		make
 	]
