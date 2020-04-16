@@ -1858,10 +1858,10 @@ lexer: context [
 	
 	load-money: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local
-			do-error    [subroutine!]
-			cur	p st ds [byte-ptr!]
-			quotes		[integer!]
-			neg?        [logic!]
+			do-error	  [subroutine!]
+			cur	p q st ds [byte-ptr!]
+			quotes		  [integer!]
+			neg?		  [logic!]
 	][
 		do-error: [throw-error lex s e TYPE_MONEY]
 		p: s
@@ -1869,9 +1869,8 @@ lexer: context [
 		if flags and C_FLAG_SIGN <> 0 [p: p + 1]		;-- skip sign when present
 		cur: p
 		while [p/1 <> #"$"][p: p + 1]					;-- cur is always < e
-		either p = cur [cur: null][
-			if cur + 3 <> p [do-error]
-		]
+		either p = cur [cur: null][if cur + 3 <> p [do-error]]
+		
 		assert p/1 = #"$"
 		if any [p/2 = #"." p/2 = #"," p/2 = #"'"][do-error]
 		until [p: p + 1 any [p = e all [p/1 <> #"0" p/1 <> #"'"]]]
@@ -1883,6 +1882,11 @@ lexer: context [
 			if any [p/1 = #"." p/1 = #","][
 				ds: p
 				if ds + 1 = e [do-error]
+				q: p + 1
+				while [q < e][
+					if q/1 = #"'" [do-error]			;-- check that no ' is present in decimals
+					q: q + 1
+				]
 				break   
 			]
 			if p/1 = #"'" [
