@@ -302,6 +302,24 @@ popup-button-action: func [
 	objc_msgSend [self sel_getUid "setTitle:" str]
 ]
 
+handle-speical-key: func [
+	self	[integer!]
+	event	[integer!]
+	return: [logic!]
+	/local
+		key		[integer!]
+		flags	[integer!]
+][
+	key: objc_msgSend [event sel_getUid "keyCode"]
+	either key = 72h [		;-- insert key
+		flags: check-extra-keys event
+		key: translate-key key
+		special-key: -1
+		make-event self key or flags EVT_KEY
+		no
+	][yes]
+]
+
 on-key-down: func [
 	[cdecl]
 	self	[integer!]
@@ -856,12 +874,16 @@ win-send-event: func [
 			find?: yes
 			responder: objc_msgSend [self sel_getUid "firstResponder"]
 			object_getInstanceVariable responder IVAR_RED_DATA :type
-			if type <> base [
+			either type <> base [
 				unless red-face? responder [
 					responder: objc_getAssociatedObject self RedFieldEditorKey
 					unless red-face? responder [find?: no]
 				]
 				if find? [on-key-down responder event]
+			][
+				if find? [	;-- handle some special keys on rich-text base face
+					send?: handle-speical-key responder event
+				]
 			]
 		]
 		true [0]
