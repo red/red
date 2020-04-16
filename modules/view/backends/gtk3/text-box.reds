@@ -401,8 +401,14 @@ OS-text-box-layout: func [
 	]
 	len: -1
 	str: unicode/to-utf8 text :len
-	pango_layout_set_width layout PANGO_SCALE * size/x
-	pango_layout_set_height layout PANGO_SCALE * size/y
+	if TYPE_OF(size) = TYPE_PAIR [
+		if size/x <> 0 [
+			pango_layout_set_width layout PANGO_SCALE * size/x
+		]
+		if size/y <> 0 [
+			pango_layout_set_height layout PANGO_SCALE * size/y
+		]
+	]
 	pango_layout_set_wrap layout PANGO_WRAP_WORD_CHAR			;-- TBD: apply para
 	pango_layout_set_text layout str -1
 
