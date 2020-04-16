@@ -558,6 +558,10 @@ Red [
 	--test-- "tro-117" --assert error? try [transcode/one "1''2"]
 
 	--test-- "tro-118" --assert error? try [transcode/one "+$.1"]
+	--test-- "tro-119" --assert error? try [transcode/one "-10h"]
+	--test-- "tro-120" --assert error? try [transcode/one "1'0000h"]
+	--test-- "tro-121" --assert error? try [transcode/one "$1234.'56'7'8''9'"]
+	--test-- "tro-122" --assert error? try [transcode/one "$10'000.'''0''0'"]
 
 ===end-group===
 ===start-group=== "transcode/next"
