@@ -90,6 +90,10 @@ create-simple-css: func [
 	g_string_append_printf [css { font-family: "%s";} name]
 	g_string_append_printf [css { font-size: %dpt;} size]
 
+	b: 0
+	g: 0
+	r: 0
+	a: 1.0
 	if all [
 		not null? color
 		TYPE_OF(color) = TYPE_TUPLE
@@ -109,6 +113,10 @@ create-simple-css: func [
 		]
 		g_string_append_printf [css { background-color: rgba(%d, %d, %d, %.3f);} r g b a]
 	]
+	g_string_append css "}"
+	g_string_append css " * selection {"
+	g_string_append_printf [css { color: rgba(%d, %d, %d, %.3f);} r g b a]
+	g_string_append_printf [css { background-color: rgba(%d, %d, %d, %.3f);} 255 - r 255 - g 255 - b a]
 	g_string_append css "}"
 	css
 ]
@@ -533,6 +541,10 @@ create-css: func [
 		]
 	]
 
+	b: 0
+	g: 0
+	r: 0
+	a: 1.0
 	unless null? face [
 		color: as red-tuple! (object/get-values face) + FACE_OBJ_COLOR
 		if all [
@@ -555,6 +567,10 @@ create-css: func [
 		]
 	]
 
+	g_string_append css "}"
+	g_string_append css " * selection {"
+	g_string_append_printf [css { color: rgba(%d, %d, %d, %.3f);} r g b a]
+	g_string_append_printf [css { background-color: rgba(%d, %d, %d, %.3f);} 255 - r 255 - g 255 - b a]
 	g_string_append css "}"
 	css
 ]
