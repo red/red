@@ -180,18 +180,20 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "to-14" --assert "$123.00000" == to string! $123
 	--test-- "to-15" --assert "-$12'345'678'901'234'567.12345" == to string! -$12345678901234567.12345
 	--test-- "to-16" --assert $12'345'678'901'234'567.12345 == to money! <12345678901234567.12345>
-	--test-- "to-17" --assert error? try [to money! "123456789O1234567.12345"]
-	--test-- "to-18" --assert -$1 == to money! "-0000000000000000000000000000000001.000000000000000000"
-	--test-- "to-19" --assert $12345678901234568 == to money! 12345678901234567.12345	;-- loosing a wee bit of precision in least significant digit and fractional part (rounding up)
-	--test-- "to-20" --assert error? try [to money! 123456789012345678.0]
-	--test-- "to-21" --assert $0.12345 == to money! 0.12345678901234567890
-	--test-- "to-22" --assert "EUR$1'234.56789" == to string! EUR$1234.56789
-	--test-- "to-23" --assert USD$123.45678 == to money! "+USD$123,45678"
-	--test-- "to-24" --assert error? try [to money! "CCC$123"]
-	--test-- "to-25" --assert error? try [to money! "123$456"]
-	--test-- "to-26" --assert error? try [to money! "EUR123"]
-	--test-- "to-26" --assert error? try [to money! "EUR123"]
-	--test-- "to-27"
+	--test-- "to-17" --assert error? try [to money! "123456789O123456.12345"]
+	--test-- "to-18" --assert error? try [to money! "123456789O12345.123456"]
+	--test-- "to-19" --assert error? try [to money! "$123456789O'12345'6.12345"]
+	--test-- "to-20" --assert error? try [to money! "$123456789O'12345.123456"]
+	--test-- "to-21" --assert $12345678901234568 == to money! 12345678901234567.12345	;-- loosing a wee bit of precision in least significant digit and fractional part (rounding up)
+	--test-- "to-21" --assert error? try [to money! 123456789012345678.0]
+	--test-- "to-22" --assert $0.12345 == to money! 0.12345678901234567890
+	--test-- "to-23" --assert "EUR$1'234.56789" == to string! EUR$1234.56789
+	--test-- "to-24" --assert USD$123.45678 == to money! "+USD$123,45678"
+	--test-- "to-25" --assert error? try [to money! "CCC$123"]
+	--test-- "to-26" --assert error? try [to money! "123$456"]
+	--test-- "to-27" --assert error? try [to money! "EUR123"]
+	--test-- "to-28" --assert error? try [to money! "EUR123"]
+	--test-- "to-29"
 		--assert error? try [to money! "$"]
 		--assert error? try [to money! "$."]
 		--assert error? try [to money! "-$."]
@@ -212,12 +214,12 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 		--assert error? try [to money! "$1'.2"]
 		--assert error? try [to money! "$1',2"]
 		--assert error? try [to money! "$1234.45'678"]
-	--test-- "to-28"								;-- implicit conversion from float to money
+	--test-- "to-30"								;-- implicit conversion from float to money
 		--assert $1 > 1e-6
 		--assert $2 < 1e17
 		--assert 1e-5 > $0
 		--assert 1e17 > $3
-	--test-- "to-29"
+	--test-- "to-31"
 		--assert $1234 == to money! "$1'2'3'4"
 		--assert $1234 == to money! "$1'234"
 		--assert $1234.56789 == to money! "$1'234.56789"
