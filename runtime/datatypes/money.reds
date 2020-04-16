@@ -934,6 +934,7 @@ money: context [
 			tail head here   [byte-ptr!]
 			currency digits  [byte-ptr!]
 			start point      [byte-ptr!]
+			delta            [integer!]
 			sign?            [logic!]
 	][
 		bail: [fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY str]]
@@ -984,12 +985,14 @@ money: context [
 		
 		if any [here = tail dot?][here: here - 1]
 		digits: here
+		delta:  0
 		
 		;-- integral part with optional thousands separators
 		until [
 			if here/value = #"'" [
 				if all [here + 1 < tail here/2 = #"'"][bail]
 				here: here + 1
+				delta: delta + 1
 				continue
 			]
 			unless digit? [bail]
@@ -1000,7 +1003,7 @@ money: context [
 		if any [here > tail all [dot? here + 1 = tail]][bail]	;-- forbid trailing decimal separator
 		
 		point: here
-		if SIZE_INTEGRAL <= as integer! point - digits [bail]
+		if (as integer! point - digits) - delta > SIZE_INTEGRAL [bail]
 		if here = tail [point: null make]
 		here: here + 1
 		
