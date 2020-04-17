@@ -90,10 +90,7 @@ create-simple-css: func [
 	g_string_append_printf [css { font-family: "%s";} name]
 	g_string_append_printf [css { font-size: %dpt;} size]
 
-	b: 0
-	g: 0
-	r: 0
-	a: 1.0
+	b: 255 g: 255 r: 255 a: 1.0
 	if all [
 		not null? color
 		TYPE_OF(color) = TYPE_TUPLE
@@ -116,7 +113,7 @@ create-simple-css: func [
 	g_string_append css "}"
 	g_string_append css " * selection {"
 	g_string_append_printf [css { color: rgba(%d, %d, %d, %.3f);} r g b a]
-	g_string_append_printf [css { background-color: rgba(%d, %d, %d, %.3f);} 255 - r 255 - g 255 - b a]
+	g_string_append_printf [css { background-color: rgba(%d, %d, %d, %.3f);} 0 0 0 1.0]
 	g_string_append css "}"
 	css
 ]
@@ -466,6 +463,10 @@ create-css: func [
 		g		[integer!]
 		b		[integer!]
 		a		[float!]
+		br		[integer!]
+		bg		[integer!]
+		bb		[integer!]
+		ba		[float!]
 		style	[red-word!]
 		blk		[red-block!]
 		sym		[integer!]
@@ -488,6 +489,7 @@ create-css: func [
 	]
 	g_string_append_printf [css { font-size: %dpt;} size]
 
+	b: 0 g: 0 r: 0 a: 1.0
 	color: as red-tuple! values + FONT_OBJ_COLOR
 	if TYPE_OF(color) = TYPE_TUPLE [
 		alpha?: 0
@@ -541,10 +543,7 @@ create-css: func [
 		]
 	]
 
-	b: 0
-	g: 0
-	r: 0
-	a: 1.0
+	bb: 255 bg: 255 br: 255 ba: 1.0
 	unless null? face [
 		color: as red-tuple! (object/get-values face) + FACE_OBJ_COLOR
 		if all [
@@ -556,21 +555,21 @@ create-css: func [
 		][
 			alpha?: 0
 			rgb: get-color-int color :alpha?
-			b: rgb >> 16 and FFh
-			g: rgb >> 8 and FFh
-			r: rgb and FFh
-			a: 1.0
+			bb: rgb >> 16 and FFh
+			bg: rgb >> 8 and FFh
+			br: rgb and FFh
+			ba: 1.0
 			if alpha? = 1 [
-				a: (as float! 255 - (rgb >>> 24)) / 255.0
+				ba: (as float! 255 - (rgb >>> 24)) / 255.0
 			]
-			g_string_append_printf [css { background-color: rgba(%d, %d, %d, %.3f);} r g b a]
+			g_string_append_printf [css { background-color: rgba(%d, %d, %d, %.3f);} br bg bb ba]
 		]
 	]
 
 	g_string_append css "}"
 	g_string_append css " * selection {"
-	g_string_append_printf [css { color: rgba(%d, %d, %d, %.3f);} r g b a]
-	g_string_append_printf [css { background-color: rgba(%d, %d, %d, %.3f);} 255 - r 255 - g 255 - b a]
+	g_string_append_printf [css { color: rgba(%d, %d, %d, %.3f);} br bg bb ba]
+	g_string_append_printf [css { background-color: rgba(%d, %d, %d, %.3f);} r g b a]
 	g_string_append css "}"
 	css
 ]
