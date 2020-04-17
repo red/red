@@ -61,6 +61,7 @@ handle!:		make datatype! #get-definition TYPE_HANDLE
 date!:			make datatype! #get-definition TYPE_DATE
 port!:			make datatype! #get-definition TYPE_PORT
 money!:			make datatype! #get-definition TYPE_MONEY
+ref!:			make datatype! #get-definition TYPE_REF
 
 #if find config/modules 'view [
 	event!: make datatype! #get-definition TYPE_EVENT
