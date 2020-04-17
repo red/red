@@ -773,57 +773,24 @@ money: context [
 			point     [byte-ptr!]
 			sign      [logic!]
 	][
-		if any [float-underflow? flt float-overflow? flt][MONEY_OVERFLOW]
-		
 		formed: dtoa/form-float flt SIZE_DIGITS yes
 		
 		point: as byte-ptr! formed
 		until [point: point + 1 point/value = #"."]
 		
-		if point/2 = #"#" [							;-- 1.#NaN
-			fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY float/box flt]
-		]
-		
 		sign:  formed/1 = #"-"
 		start: as byte-ptr! either sign [formed][formed - 1]
 		end:   as byte-ptr! formed + length? formed
 		
-		make-at stack/push* sign null start point end
-	]
-	
-	to-binary: func [
-		money   [red-money!]
-		return: [red-binary!]
-	][
-		binary/load-in get-amount money SIZE_BYTES null
-	]
-	
-	from-binary: func [
-		bin     [red-binary!]
-		return: [red-money!]
-		/local
-			money  [red-money!]
-			head   [byte-ptr!]
-			length [integer!]
-			index  [integer!]
-	][
-		length: binary/rs-length? bin
-		if length > SIZE_BYTES [length: SIZE_BYTES]	;-- take only first SIZE_BYTES bytes into account
-		
-		head: binary/rs-head bin
-		index: 1
-		loop length << 1 [
-			if 9 < get-digit head index [
-				fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY bin]
-			]
-			index: index + 1
+		if any [
+			point/2 = #"#"							;-- 1.#NaN
+			SIZE_INTEGRAL < as integer! point - start - 1
+			SIZE_SCALE    < as integer! end   - point - 1
+		][
+			fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY float/box flt]
 		]
 		
-		money: zero-out as red-money! stack/push*
-		money/header: TYPE_MONEY
-		
-		copy-memory (get-amount money) + SIZE_BYTES - length head length
-		money
+		make-at stack/push* sign null start point end
 	]
 	
 	from-block: func [
