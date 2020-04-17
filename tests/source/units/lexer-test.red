@@ -563,6 +563,11 @@ Red [
 	--test-- "tro-121" --assert error? try [transcode/one "$1234.'56'7'8''9'"]
 	--test-- "tro-122" --assert error? try [transcode/one "$10'000.'''0''0'"]
 
+	--test-- "tro-123" --assert -123x456 = transcode/one "-123x456"
+	--test-- "tro-124" --assert 123x-456 = transcode/one "123x-456"
+	--test-- "tro-125" --assert  123x456 = transcode/one "+123x456"
+	--test-- "tro-126" --assert  123x456 = transcode/one "123x+456"
+
 ===end-group===
 ===start-group=== "transcode/next"
 
