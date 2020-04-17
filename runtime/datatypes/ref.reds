@@ -13,18 +13,40 @@ Red/System [
 ref: context [
 	verbose: 0
 	
+	mold: func [
+		ref     [red-ref!]
+		buffer  [red-string!]
+		only?   [logic!]
+		all?    [logic!]
+		flat?   [logic!]
+		arg     [red-value!]
+		part    [integer!]
+		indent  [integer!]
+		return: [integer!]
+		/local
+			size [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "ref/mold"]]
+		
+		size: string/rs-length? buffer
+		part: file/mold as red-file! ref buffer only? all? flat? arg part indent
+		string/overwrite-char GET_BUFFER(buffer) size as integer! #"@"
+		
+		part
+	]
+	
 	init: does [
 		datatype/register [
 			TYPE_REF
 			TYPE_STRING
 			"ref!"
 			;-- General actions --
-			null			;make
+			INHERIT_ACTION	;make
 			null			;random
 			null			;reflect
 			null			;to
 			null			;form
-			null			;mold
+			:mold
 			null			;eval-path
 			null			;set-path
 			null			;compare
