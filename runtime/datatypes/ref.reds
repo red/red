@@ -45,31 +45,31 @@ ref: context [
 			null			;xor~
 			;-- Series actions --
 			null			;append
-			null			;at
-			null			;back
-			null			;change
-			null			;clear
-			null			;copy
-			null			;find
-			null			;head
-			null			;head?
-			null			;index?
-			null			;insert
-			null			;length?
-			null			;move
-			null			;next
-			null			;pick
-			null			;poke
+			INHERIT_ACTION	;at
+			INHERIT_ACTION	;back
+			INHERIT_ACTION	;change
+			INHERIT_ACTION	;clear
+			INHERIT_ACTION	;copy
+			INHERIT_ACTION	;find
+			INHERIT_ACTION	;head
+			INHERIT_ACTION	;head?
+			INHERIT_ACTION	;index?
+			INHERIT_ACTION	;insert
+			INHERIT_ACTION	;length?
+			INHERIT_ACTION	;move
+			INHERIT_ACTION	;next
+			INHERIT_ACTION	;pick
+			INHERIT_ACTION	;poke
 			null			;put
-			null			;remove
-			null			;reverse
-			null			;select
+			INHERIT_ACTION	;remove
+			INHERIT_ACTION	;reverse
+			INHERIT_ACTION	;select
 			null			;sort
-			null			;skip
-			null			;swap
-			null			;tail
-			null			;tail?
-			null			;take
+			INHERIT_ACTION	;skip
+			INHERIT_ACTION	;swap
+			INHERIT_ACTION	;tail
+			INHERIT_ACTION	;tail?
+			INHERIT_ACTION	;take
 			null			;trim
 			;-- I/O actions --
 			null			;create
