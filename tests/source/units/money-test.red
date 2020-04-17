@@ -184,10 +184,10 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "to-18" --assert error? try [to money! "123456789O12345.123456"]
 	--test-- "to-19" --assert error? try [to money! "$123456789O'12345'6.12345"]
 	--test-- "to-20" --assert error? try [to money! "$123456789O'12345.123456"]
-	--test-- "to-21" --assert $12345678901234567.12345 == to money! "$000'000'1234567890'1234567.12345000000"
+	--test-- "to-21" --assert $12345678901234567.12345 == to money! "$000'000'1234567890'1234567.12345"
 	--test-- "to-22" --assert $12345678901234568 == to money! 12345678901234567.12345	;-- loosing a wee bit of precision in least significant digit and fractional part (rounding up)
 	--test-- "to-23" --assert error? try [to money! 123456789012345678.0]
-	--test-- "to-24" --assert $0.12345 == to money! 0.12345678901234567890
+	--test-- "to-24" --assert error? try [to money! 0.123456]
 	--test-- "to-25" --assert "EUR$1'234.56789" == to string! EUR$1234.56789
 	--test-- "to-26" --assert USD$123.45678 == to money! "+USD$123,45678"
 	--test-- "to-27" --assert error? try [to money! "CCC$123"]
@@ -640,12 +640,13 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 		--assert "RED$0.00000" == mold/all make money! "Red$0"
 	--test-- "transcode-money-8"
 		--assert error! == transcode/scan "$123456789012345678"
+		--assert error! == transcode/scan "$12345678901234567.123456"
 		--assert error! == transcode/scan "$'1"
 		--assert error! == transcode/scan "$1'"
 		--assert error! == transcode/scan "$1''2"
-		--assert $12345678901234567.12345 == transcode/one "$12345678901234567.1234567890"
+		--assert $12345678901234567.12345 == transcode/one "$12345678901234567.12345"
 		--assert $12345678901234567.12345 == transcode/one "$00000000000000000012345678901234567.12345"
-		--assert $12345678901234567.12345 == transcode/one "+$12'345'678'901'234'567.1234567890"
+		--assert $12345678901234567.12345 == transcode/one "+$12'345'678'901'234'567.12345"
 		--assert -$12345678901234567.12345 == transcode/one "-$0'00'000'000012345678901234567.12345"
 	--test-- "transcode-money-9"
 		--assert error! == transcode/scan "-$.1"
@@ -666,10 +667,10 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 		--assert error! == transcode/scan "$1''2"
 		--assert error! == transcode/scan "$1'.2"
 		--assert error! == transcode/scan "$1',2"
-		;--assert error! == transcode/scan "$1.2'3"
-		;--assert error! == transcode/scan "$1.'23"
-		;--assert error! == transcode/scan "$1.23'"
-		;--assert error! == transcode/scan "$1.2''3"
+		--assert error! == transcode/scan "$1.2'3"
+		--assert error! == transcode/scan "$1.'23"
+		--assert error! == transcode/scan "$1.23'"
+		--assert error! == transcode/scan "$1.2''3"
 ===end-group===
 
 ===start-group=== "as-money"
@@ -760,7 +761,7 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "generated-4-*" --assert $198848883.24832 * -168188266.06878 == -$33444048883248214.40293
 	--test-- "generated-5-*" --assert -$77543792.35093 * -259182608.34141 == $20098002362198714.77197
 	
-	--test-- "generated-1-/" --assert $230432974.28192 / -$789641370.898869 == -0.29181
+	--test-- "generated-1-/" --assert $230432974.28192 / -$789641370.89886 == -0.29181
 	--test-- "generated-2-/" --assert -$63871490.79883 / -$527109821.57248 == 0.12117
 	--test-- "generated-3-/" --assert $759773312.95598 / $133309383.93869 == 5.69932
 	--test-- "generated-4-/" --assert -$854685410.78952 / $195492505.65259 == -4.37195
@@ -788,19 +789,19 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "generated-2->" --assert -$771057614.48435 > $365815091.11719 == false
 	--test-- "generated-3->" --assert -$147504274.80205 > -$878620700.38849 == true
 	--test-- "generated-4->" --assert -$813063470.09402 > $920014728.28909 == false
-	--test-- "generated-5->" --assert -$876986659.07465 > -134834604.40059736 == false
+	--test-- "generated-5->" --assert -$876986659.07465 > -134834604.40059 == false
 	
 	--test-- "generated-1-<" --assert -$544867101.84479 < -$46940005.40624 == true
 	--test-- "generated-2-<" --assert $479498603.13883 < $562156187.63218 == true
 	--test-- "generated-3-<" --assert $411283579.38084 < $365425110.49910 == false
 	--test-- "generated-4-<" --assert -$756771806.51424 < -$554513646.08225 == true
-	--test-- "generated-5-<" --assert $0.00000 < 222266816.63760078 == true
+	--test-- "generated-5-<" --assert $0.00000 < 222266816.63760 == true
 	
 	--test-- "generated-1->=" --assert -$880521171.67064 >= -$964203733.93417 == true
 	--test-- "generated-2->=" --assert $645425207.28214 >= -$474653873.81363 == true
-	--test-- "generated-3->=" --assert $205025497.91942 >= $724002546.0366099 == false
-	--test-- "generated-4->=" --assert $582886748.75296 >= 920936930.4221668 == false
-	--test-- "generated-5->=" --assert -$885142156.80077 >= 828554261.8616188 == false
+	--test-- "generated-3->=" --assert $205025497.91942 >= $724002546.03660 == false
+	--test-- "generated-4->=" --assert $582886748.75296 >= 920936930.42216 == false
+	--test-- "generated-5->=" --assert -$885142156.80077 >= 828554261.86161 == false
 	
 	--test-- "generated-1-<=" --assert $116818469.07214 <= -$928374897.65526 == false
 	--test-- "generated-2-<=" --assert $431016918.93814 <= $581463247.34271 == true
