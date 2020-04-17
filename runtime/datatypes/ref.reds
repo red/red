@@ -11,6 +11,8 @@ Red/System [
 ]
 
 ref: context [
+	verbose: 0
+	
 	init: does [
 		datatype/register [
 			TYPE_REF
