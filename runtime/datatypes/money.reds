@@ -784,8 +784,9 @@ money: context [
 		
 		if any [
 			point/2 = #"#"							;-- 1.#NaN
-			SIZE_INTEGRAL < as integer! point - start - 1
-			SIZE_SCALE    < as integer! end   - point - 1
+			float-underflow? flt
+			float-overflow?  flt
+			SIZE_SCALE < as integer! end - point - 1
 		][
 			fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY float/box flt]
 		]
