@@ -216,6 +216,8 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 		--assert error? try [to money! "$1',2"]
 		--assert error? try [to money! "$1234.45'678"]
 	--test-- "to-32"								;-- implicit conversion from float to money
+		--assert error? try [to money! 1e17]
+		--assert error? try [to money! 1e-6]
 		--assert $1 > 1e-6
 		--assert $2 < 1e17
 		--assert 1e-5 > $0
