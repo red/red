@@ -405,6 +405,10 @@ face!: object [				;-- keep in sync with facet! enum
 				set-quiet in self word old				;-- force the old value
 				exit
 			]
+			if all [
+				any [word = 'size word = 'offset]
+				old = new
+			][exit]
 			if word = 'pane [
 				if all [type = 'window object? :new new/type = 'window][
 					cause-error 'script 'bad-window []
