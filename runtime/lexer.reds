@@ -1926,13 +1926,19 @@ lexer: context [
 		]
 	]
 	
-	load-email: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
-		/local
-			p [byte-ptr!]
-	][
+	load-email: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
 		if load? [
 			flags: flags and not C_FLAG_CARET			;-- clears caret flag
 			lex/type: TYPE_EMAIL
+			load-string lex s - 1 e flags load?			;-- compensate for lack of starting delimiter
+			lex/in-pos: e 								;-- reset the input position to delimiter byte
+		]
+	]
+	
+	load-ref: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
+		if load? [
+			flags: flags and not C_FLAG_CARET			;-- clears caret flag
+			lex/type: TYPE_REF
 			load-string lex s - 1 e flags load?			;-- compensate for lack of starting delimiter
 			lex/in-pos: e 								;-- reset the input position to delimiter byte
 		]
@@ -2056,7 +2062,7 @@ lexer: context [
 				#if debug? = yes [if verbose > 0 [?? state]]
 			]
 			s: start + offset
-			assert state <= T_RAWSTRING
+			assert state <= T_REF
 			assert s <= p
 			
 			lex/in-pos: p
@@ -2326,6 +2332,7 @@ lexer: context [
 			null				:load-email				;-- T_EMAIL
 			null				:load-hex				;-- T_HEX
 			null				:load-rawstring			;-- T_RAWSTRING
+			null				:load-ref				;-- T_REF
 		]
 	]
 

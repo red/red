@@ -55,6 +55,7 @@ S_WORDSET
 S_PERCENT
 S_URL
 S_EMAIL
+S_REF
 S_PATH
 S_PATH_NUM
 S_PATH_W1ST
@@ -348,6 +349,9 @@ S_START->not(delimit6)->S_WORD->not(delimit5)->S_WORD
                                   \->"/"->T_PATH
                                    \->"$"->S_MONEY_1ST
                                     \->","|"#"|"%"->T_ERROR
+
+S_START->"@"->S_REF->delimit10->S_REF
+               \->not(delimit10)->T_REF
 
 
 S_PATH->ws|";"|"["|"]"|"{"|"/"|"%"->T_ERROR
