@@ -12,6 +12,13 @@ Red/System [
 
 ref: context [
 	verbose: 0
+		
+	push: func [
+		ref [red-ref!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "ref/push"]]
+		copy-cell as red-value! ref stack/push*
+	]
 	
 	mold: func [
 		ref     [red-ref!]
