@@ -1897,6 +1897,7 @@ lexer: context [
 		]
 		if p/0 = #"'" [do-error]
 		if 18 + quotes < as-integer p - st [do-error]
+		if all [not null? ds 6 < as-integer e - ds][do-error]
 		lex/in-pos: e									;-- reset the input position to delimiter byte
 		if all [load? null? money/make-at alloc-slot lex neg? cur st ds e][do-error]
 	]

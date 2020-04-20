@@ -773,57 +773,25 @@ money: context [
 			point     [byte-ptr!]
 			sign      [logic!]
 	][
-		if any [float-underflow? flt float-overflow? flt][MONEY_OVERFLOW]
-		
 		formed: dtoa/form-float flt SIZE_DIGITS yes
 		
 		point: as byte-ptr! formed
 		until [point: point + 1 point/value = #"."]
 		
-		if point/2 = #"#" [							;-- 1.#NaN
-			fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY float/box flt]
-		]
-		
 		sign:  formed/1 = #"-"
 		start: as byte-ptr! either sign [formed][formed - 1]
 		end:   as byte-ptr! formed + length? formed
 		
-		make-at stack/push* sign null start point end
-	]
-	
-	to-binary: func [
-		money   [red-money!]
-		return: [red-binary!]
-	][
-		binary/load-in get-amount money SIZE_BYTES null
-	]
-	
-	from-binary: func [
-		bin     [red-binary!]
-		return: [red-money!]
-		/local
-			money  [red-money!]
-			head   [byte-ptr!]
-			length [integer!]
-			index  [integer!]
-	][
-		length: binary/rs-length? bin
-		if length > SIZE_BYTES [length: SIZE_BYTES]	;-- take only first SIZE_BYTES bytes into account
-		
-		head: binary/rs-head bin
-		index: 1
-		loop length << 1 [
-			if 9 < get-digit head index [
-				fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY bin]
-			]
-			index: index + 1
+		if any [
+			point/2 = #"#"							;-- 1.#NaN
+			float-underflow? flt
+			float-overflow?  flt
+			SIZE_SCALE < as integer! end - point - 1
+		][
+			fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY float/box flt]
 		]
 		
-		money: zero-out as red-money! stack/push*
-		money/header: TYPE_MONEY
-		
-		copy-memory (get-amount money) + SIZE_BYTES - length head length
-		money
+		make-at stack/push* sign null start point end
 	]
 	
 	from-block: func [
@@ -934,6 +902,7 @@ money: context [
 			tail head here   [byte-ptr!]
 			currency digits  [byte-ptr!]
 			start point      [byte-ptr!]
+			delta            [integer!]
 			sign?            [logic!]
 	][
 		bail: [fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_MONEY str]]
@@ -984,12 +953,14 @@ money: context [
 		
 		if any [here = tail dot?][here: here - 1]
 		digits: here
+		delta:  0
 		
 		;-- integral part with optional thousands separators
 		until [
 			if here/value = #"'" [
 				if all [here + 1 < tail here/2 = #"'"][bail]
 				here: here + 1
+				delta: delta + 1
 				continue
 			]
 			unless digit? [bail]
@@ -1000,13 +971,13 @@ money: context [
 		if any [here > tail all [dot? here + 1 = tail]][bail]	;-- forbid trailing decimal separator
 		
 		point: here
-		if SIZE_INTEGRAL < as integer! point - digits [bail]
+		if (as integer! point - digits) - delta > SIZE_INTEGRAL [bail]
 		if here = tail [point: null make]
 		here: here + 1
 		
 		;-- fractional part
 		until [unless digit? [bail] here: here + 1 end?]
-		if here <> tail [bail]
+		if any [here <> tail SIZE_SCALE < as integer! here - point - 1][bail]
 		
 		make
 	]
@@ -1032,6 +1003,35 @@ money: context [
 		integer/sign? compare-amounts				;-- must return strictly -1, 0 or +1
 			get-amount value1
 			get-amount value2
+	]
+	
+	sort-money: func [
+		value1  [red-money!]
+		value2  [red-money!]
+		return: [integer!]
+		/local
+			code1 code2 [red-value!]
+			type1 type2 [integer!]
+			flag        [integer!]
+	][
+		code1: get-currency-from value1
+		code2: get-currency-from value2
+		
+		type1: TYPE_OF(code1)
+		type2: TYPE_OF(code2)
+	
+		flag: either type1 = type2 [
+			either type1 = TYPE_NONE [0][
+				word/compare						;-- lexicographical order
+					as red-word! code1
+					as red-word! code2
+					COMP_LESSER
+			]
+		][
+			either type1 = TYPE_NONE [-1][+1]
+		]
+		
+		either zero? flag [compare-money value1 value2][flag]
 	]
 	
 	negative-money?: func [
@@ -1418,6 +1418,7 @@ money: context [
 				int: as red-integer! value1
 				value1: from-integer int/value
 			]
+			TYPE_PERCENT
 			TYPE_FLOAT [
 				flt: as red-float! value1
 				value1: from-float flt/value
@@ -1433,6 +1434,7 @@ money: context [
 				int: as red-integer! value2
 				value2: from-integer int/value
 			]
+			TYPE_PERCENT
 			TYPE_FLOAT [
 				flt: as red-float! value2
 				value2: from-float flt/value
@@ -1594,15 +1596,29 @@ money: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "money/compare"]]
 		
-		strict?: any [op = COMP_SAME op = COMP_STRICT_EQUAL]
+		strict?: op = COMP_STRICT_EQUAL
 		if all [TYPE_OF(money) <> TYPE_OF(value) any [op = COMP_FIND strict?]][
 			return 1
 		]
 		
 		switch TYPE_OF(value) [
 			TYPE_MONEY [
-				unless same-currencies? money as red-money! value strict? [
-					fire [TO_ERROR(script wrong-denom) money as red-money! value]
+				switch op [
+					COMP_SORT
+					COMP_CASE_SORT [
+						return sort-money money value
+					]
+					COMP_SAME [
+						return as integer! not all [	;-- 0 if the same
+							same-currencies? money value yes
+							zero? compare-money money value
+						]
+					]
+					default [
+						unless same-currencies? money value strict? [
+							fire [TO_ERROR(script wrong-denom) money value]
+						]
+					]
 				]
 			]
 			TYPE_INTEGER [
