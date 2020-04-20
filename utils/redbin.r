@@ -216,16 +216,17 @@ context [
 		index - 1
 	]
 
-	emit-string: func [str [any-string!] /root /local type unit header][
-		type: select [
-			string! TYPE_STRING
-			file!	TYPE_FILE
-			tag!	TYPE_TAG
-			url!	TYPE_URL
-			ref!	TYPE_REF
-			email!	TYPE_EMAIL
-			binary! TYPE_BINARY
-		] type?/word str
+	emit-string: func [str [any-string!] /root /ref /local type unit header][
+		type: either ref ['TYPE_REF][
+			select [
+				string! TYPE_STRING
+				file!	TYPE_FILE
+				tag!	TYPE_TAG
+				url!	TYPE_URL
+				email!	TYPE_EMAIL
+				binary! TYPE_BINARY
+			] type?/word str
+		]
 
 		either type = 'TYPE_BINARY [unit: 1][set [str unit] decode-UTF8 str]
 		header: extracts/definitions/:type or shift/left unit 8
@@ -358,6 +359,10 @@ context [
 							]
 							money-value? :item [
 								emit-money item
+								no
+							]
+							ref-value? :item [
+								emit-string/ref to string! next item
 								no
 							]
 							'else [
