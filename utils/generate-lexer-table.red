@@ -146,6 +146,11 @@ context [
 	
 	foreach [s t] states [append type-table either t = '- [0][(index? find types t) - 1]]
 
+
+	;-- Generate the skip-table content
+	skip-table: make binary! 50	
+	foreach [s t] states [append skip-table pick #{0100} s = 'S_START]
+
 	;-- Template --
 	
 	template: compose/deep [Red/System [
@@ -155,6 +160,8 @@ context [
 	#enum lex-states! [
 		(extract states 2)
 	]
+	
+	skip-table: (skip-table)
 	
 	type-table: (type-table)
 		
