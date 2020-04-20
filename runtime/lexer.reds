@@ -100,13 +100,13 @@ lexer: context [
 
 	line-table: #{
 		0001000000000000000000000000000000000000000000000000000000000000
-		0000000000000000
+		00000000000000
 	}
 	
 	skip-table: #{
 		0100000000000000000000000000000000000000000000000000000000000000
 		0000000000000000000000000000000000000000000000000000000000000000
-		0000000000000000000000000000000000000000000000000000000000
+		00000000000000000000000000000000000000000000000000000000000000
 	}
 
 	path-ending: #{
@@ -1939,7 +1939,7 @@ lexer: context [
 		if load? [
 			flags: flags and not C_FLAG_CARET			;-- clears caret flag
 			lex/type: TYPE_REF
-			load-string lex s - 1 e flags load?			;-- compensate for lack of starting delimiter
+			load-string lex s e flags load?
 			lex/in-pos: e 								;-- reset the input position to delimiter byte
 		]
 	]
