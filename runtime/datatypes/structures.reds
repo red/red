@@ -128,6 +128,13 @@ red-email!: alias struct! [
 	cache	[node!]									;-- UTF-8 cached version of the string (experimental)
 ]
 
+red-ref!: alias struct! [
+	header 	[integer!]								;-- cell header
+	head	[integer!]								;-- string's head index (zero-based)
+	node	[node!]									;-- series node pointer
+	cache	[node!]									;-- UTF-8 cached version of the string (experimental)
+]
+
 red-binary!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- string's head index (zero-based)

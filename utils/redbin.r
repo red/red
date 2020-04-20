@@ -222,6 +222,7 @@ context [
 			file!	TYPE_FILE
 			tag!	TYPE_TAG
 			url!	TYPE_URL
+			ref!	TYPE_REF
 			email!	TYPE_EMAIL
 			binary! TYPE_BINARY
 		] type?/word str

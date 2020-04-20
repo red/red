@@ -61,7 +61,8 @@ Red/System [
 	TYPE_DATE											;-- 2F		47
 	TYPE_PORT											;-- 30		48
 	TYPE_MONEY											;-- 31		49
-	TYPE_IMAGE											;-- 32		50		;-- needs to be last
+	TYPE_REF											;-- 32		50
+	TYPE_IMAGE											;-- 33		51		;-- needs to be last
 	TYPE_EVENT											
 	TYPE_CLOSURE
 	TYPE_SLICE
