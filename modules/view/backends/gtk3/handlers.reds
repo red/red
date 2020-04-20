@@ -509,6 +509,7 @@ window-size-allocate: func [
 			make-event widget 0 EVT_SIZING
 		]
 	]
+	window-ready?: yes
 ]
 
 widget-realize: func [

@@ -24,6 +24,7 @@ Red/System [
 #include %tab-panel.reds
 #include %text-list.reds
 
+window-ready?:		no
 force-redraw?:		no
 settings:			as handle! 0
 pango-context:		as handle! 0
@@ -322,24 +323,6 @@ set-widget-child-offset: func [
 			set-widget-offset cparent layout pos/x pos/y
 		]
 	]
-]
-
-show-widget: func [
-	widget		[handle!]
-	/local
-		values	[red-value!]
-		type	[red-word!]
-		sym		[integer!]
-		layout	[handle!]
-][
-	values: get-face-values widget
-	type: as red-word! values + FACE_OBJ_TYPE
-	sym: symbol/resolve type/symbol
-	layout: get-face-layout widget values sym
-	if layout <> widget [
-		gtk_widget_show layout
-	]
-	gtk_widget_show widget
 ]
 
 get-child-from-xy: func [
@@ -982,15 +965,11 @@ change-visible: func [
 	show?		[logic!]
 	type		[integer!]
 	/local
-		values	[red-value!]
-		ntype	[red-word!]
-		sym		[integer!]
 		layout	[handle!]
 ][
-	values: get-face-values widget
-	ntype: as red-word! values + FACE_OBJ_TYPE
-	sym: symbol/resolve ntype/symbol
-	layout: get-face-layout widget values sym
+	if all [show? type = window][OS-show-window as-integer widget exit]
+
+	layout: get-face-layout widget null type
 	if layout <> widget [
 		gtk_widget_set_visible layout show?
 	]
@@ -1590,8 +1569,19 @@ OS-refresh-window: func [
 
 OS-show-window: func [
 	widget		[integer!]
+	/local
+		n		[integer!]
 ][
-	show-widget as handle! widget
+	gtk_widget_show as handle! widget
+	n: 0
+	window-ready?: no
+	until [		;-- process some events to make the window ready
+		do-events yes
+		n: n + 1
+		any [window-ready? n = 30000]
+	]
+	?? n
+	window-ready?: no
 	set-selected-focus as handle! widget
 ]
 
