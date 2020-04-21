@@ -12,7 +12,7 @@ Red/System [
 
 ref: context [
 	verbose: 0
-		
+	
 	push: func [
 		ref [red-ref!]
 	][
@@ -30,16 +30,11 @@ ref: context [
 		part    [integer!]
 		indent  [integer!]
 		return: [integer!]
-		/local
-			size [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "ref/mold"]]
 		
-		size: string/rs-length? buffer
-		part: file/mold as red-file! ref buffer only? all? flat? arg part indent
-		string/overwrite-char GET_BUFFER(buffer) size as integer! #"@"
-		
-		part
+		string/concatenate-literal buffer "@"
+		url/mold as red-url! ref buffer only? all? flat? arg part - 1 indent
 	]
 	
 	init: does [
