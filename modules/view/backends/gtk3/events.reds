@@ -1068,6 +1068,7 @@ connect-widget-events: func [
 		]
 		sym = rich-text [
 			gobj_signal_connect(widget "draw" :base-draw widget)
+			gobj_signal_connect(widget "unrealize" :widget-unrealize widget)
 		]
 		sym = window [
 			gobj_signal_connect(widget "delete-event" :window-delete-event widget)
