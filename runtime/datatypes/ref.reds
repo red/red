@@ -50,13 +50,13 @@ ref: context [
 			;-- General actions --
 			INHERIT_ACTION	;make
 			null			;random
-			null			;reflect
-			null			;to
-			null			;form
+			INHERIT_ACTION	;reflect
+			INHERIT_ACTION	;to
+			INHERIT_ACTION	;form
 			:mold
 			null			;eval-path
 			null			;set-path
-			null			;compare
+			INHERIT_ACTION	;compare
 			;-- Scalar actions --
 			null			;absolute
 			null			;add
