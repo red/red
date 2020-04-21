@@ -146,7 +146,7 @@ url: context [
 			p: p + unit
 		]
 
-		return part - ((as-integer tail - head) >> (log-b unit)) - 1
+		return part - ((as-integer tail - head) >> (log-b unit))
 	]
 	
 	to: func [
