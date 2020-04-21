@@ -33,8 +33,8 @@ ref: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "ref/mold"]]
 		
-		string/concatenate-literal buffer "@"
-		url/mold as red-url! ref buffer only? all? flat? arg part - 1 indent
+		string/append-char GET_BUFFER(buffer) as integer! #"@"
+		string/form as red-string! ref buffer arg part - 1
 	]
 	
 	init: does [
