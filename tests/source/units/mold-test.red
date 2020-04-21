@@ -167,7 +167,20 @@ Red [
 		b: {"a{}bc"}
 		--assert b = mold a
 
-===end-group=== 
+===end-group===
+
+===start-group=== "ref"
+	
+	--test-- "mold-ref-1"
+		--assert "@abc" = mold @abc
+		--assert "@DEF" = mold @DEF
+
+	--test-- "mold-ref-2"
+		--assert "" = mold/part @abc 0
+		--assert "@" = mold/part @abc 1
+		--assert "@abc" = mold/part @abc 100
+
+===end-group===
 
 ===start-group=== "mold-all"
 	
