@@ -1039,7 +1039,7 @@ lexer: context [
 	]
 	
 	scan-comment: func [lex [state!] s e [byte-ptr!] flags [integer!]][
-		if lex/fun-ptr <> null [fire-event lex EVT_SCAN T_CMT - --EXIT_STATES-- null s e]
+		if lex/fun-ptr <> null [fire-event lex EVT_SCAN --EXIT_STATES-- - T_CMT null s e]
 	]
 
 	scan-construct: func [lex [state!] s e [byte-ptr!] flags [integer!]
