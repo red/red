@@ -180,7 +180,31 @@ Red [
 		    %//docs/notes
 		]
 		forall out [--assert file? out/1]
-
+	
+	--test-- "tr-19.1"
+		out: transcode {
+			@
+			@.
+			@.:
+			@.:;comment
+			@/-&!|*~`\
+			@reference
+			@23F323NC3
+			@αναφορά
+		}
+		
+		--assert out == [
+			@
+			@.
+			@.:
+			@.:
+			@/-&!|*~`\
+			@reference
+			@23F323NC3
+			@αναφορά
+		]
+		forall out [--assert ref? out/1]
+	
 	--test-- "tr-20"
 		--assert (reduce [true false none none]) == transcode {#[true] #[false] #[none] #[none!]}
 
