@@ -252,25 +252,18 @@ base-draw: func [
 		not bool/value
 	][return EVT_DISPATCH]
 
-	either all [
+	if all [
 		TYPE_OF(color) = TYPE_TUPLE
 		not all [
 			TUPLE_SIZE?(color) = 4
 			color/array1 and FF000000h = FF000000h
 		]
 	][
-		free-font font
-		make-font face font
-		set-css widget face values
 		gtk_render_background
 				gtk_widget_get_style_context widget
 				cr
 				0.0 0.0
 				as float! size/x as float! size/y
-	][
-		free-font font
-		make-font null font
-		set-css widget face values
 	]
 
 	if TYPE_OF(img) = TYPE_IMAGE [
