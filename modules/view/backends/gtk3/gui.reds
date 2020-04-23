@@ -939,12 +939,11 @@ change-size: func [
 			gtk_widget_set_size_request layout size/x size/y
 			gtk_widget_queue_resize layout
 		]
-		either type = rich-text [
+		if type = rich-text [
 			gtk_layout_set_size widget size/x y
-		][
-			gtk_widget_set_size_request widget size/x size/y
-			gtk_widget_queue_resize widget
 		]
+		gtk_widget_set_size_request widget size/x size/y
+		gtk_widget_queue_resize widget
 
 		if type = panel [
 			label: GET-CAPTION(widget)
