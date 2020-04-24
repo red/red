@@ -1906,7 +1906,7 @@ OS-make-view: func [
 	]
 
 	change-selection widget selected sym
-	if sym <> base [change-font widget face values]
+	change-font widget face values
 	change-enabled widget enabled?/value sym
 
 	parse-common-opts widget face as red-block! values + FACE_OBJ_OPTIONS sym
@@ -2010,9 +2010,7 @@ OS-update-view: func [
 		change-rate widget values + FACE_OBJ_RATE
 	]
 	if flags and FACET_FLAG_FONT <> 0 [
-		if type <> base [
-			change-font widget face values
-		]
+		change-font widget face values
 	]
 	if flags and FACET_FLAG_PARA <> 0 [
 		change-para widget face values
