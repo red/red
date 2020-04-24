@@ -1064,6 +1064,7 @@ apply-css-styles: func [
 
 css-provider: func [
 	path		[c-string!]
+	data		[c-string!]
 	priority	[integer!]
 	/local
 		prov	[handle!]
@@ -1071,7 +1072,8 @@ css-provider: func [
 		screen	[handle!]
 ][
 	prov: gtk_css_provider_new
-	gtk_css_provider_load_from_path prov path null
+	if path <> null [gtk_css_provider_load_from_path prov path null]
+	if data <> null [gtk_css_provider_load_from_data prov data -1 null]
 	disp: gdk_display_get_default
 	screen: gdk_display_get_default_screen disp
 	gtk_style_context_add_provider_for_screen screen prov priority
@@ -1092,7 +1094,7 @@ red-gtk-styles: func [
 		str: as c-string! strarr/1
 		if 0 = g_strcmp0 str "RED_GTK_STYLES" [
 			str: as c-string! strarr/2
-			css-provider str GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
+			css-provider str null GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
 			found: yes
 		]
 		env: env + 1

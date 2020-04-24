@@ -765,6 +765,7 @@ system/view/platform: context [
 				text:			[3x3   0x0]
 				field:			[3x3   0x0]
 				group-box:		[0x8  4x18]
+				tab-panel:		[1x1  39x0]
 				drop-list:		[54x54 0x0]
 			]
 		]]
@@ -803,7 +804,8 @@ system/view/platform: context [
 					field:		35
 					drop-down:	35
 					drop-list:	33
-					progress:	14
+					progress:	4
+					slider:		34
 				]
 			]
 		]

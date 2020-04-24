@@ -624,6 +624,22 @@ get-os-version: func [
 	ver/array1: micro << 16 or (minor << 8) or major
 ]
 
+set-red-css: func [
+	/local
+		css [c-string!]
+][
+	;-- set progress minimum size
+	css: {
+		.fsk_progress_face_h trough {
+			min-width: 1px;
+		}
+		.fsk_progress_face_v trough {
+			min-height: 1px;
+		}
+	}
+	css-provider null css GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
+]
+
 init: func [][
 	get-os-version
 	gtk_disable_setlocale
@@ -633,6 +649,7 @@ init: func [][
 	screen-size-y: gdk_screen_height
 
 	set-defaults
+	set-red-css
 
 	#if type = 'exe [red-gtk-styles]
 	collector/register as int-ptr! :on-gc-mark
@@ -1577,9 +1594,8 @@ OS-show-window: func [
 	until [		;-- process some events to make the window ready
 		do-events yes
 		n: n + 1
-		any [window-ready? n = 30000]
+		any [window-ready? n = 10000]
 	]
-	?? n
 	window-ready?: no
 	set-selected-focus as handle! widget
 ]
@@ -1623,6 +1639,7 @@ OS-make-view: func [
 		vertical?	[logic!]
 		rfvalue		[red-float!]
 		attrs		[handle!]
+		ctx			[handle!]
 		newF?		[logic!]
 		handle		[handle!]
 		fradio		[handle!]
@@ -1788,9 +1805,13 @@ OS-make-view: func [
 		]
 		sym = progress [
 			widget: gtk_progress_bar_new
-			if size/y > size/x [
+			ctx: gtk_widget_get_style_context widget
+			either size/y > size/x [
 				gtk_orientable_set_orientation widget 1
 				gtk_progress_bar_set_inverted widget yes
+				gtk_style_context_add_class ctx "fsk_progress_face_v"
+			][
+				gtk_style_context_add_class ctx "fsk_progress_face_h"
 			]
 			fvalue: get-fraction-value as red-float! data
 			gtk_progress_bar_set_fraction widget fvalue
