@@ -1580,6 +1580,7 @@ OS-refresh-window: func [
 ][
 	if widget <> 0 [								;-- view engine should make sure a valid handle, but it not
 		gtk_widget_queue_draw as handle! widget
+		set-selected-focus as handle! widget
 	]
 ]
 
