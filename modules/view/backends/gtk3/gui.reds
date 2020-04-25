@@ -1857,7 +1857,7 @@ OS-make-view: func [
 			init-combo-box widget data caption sym = drop-list
 			;; TODO: improve it but better than nothing from now otherwise it is uggly!
 			if sym = drop-down [
-				value: size/x / (font-size? font)
+				value: size/x - 54 / (font-size? font)	;-- width - button width / char size
 				if value > 2 [value - 2]
 				gtk_entry_set_width_chars gtk_bin_get_child widget value
 			]
