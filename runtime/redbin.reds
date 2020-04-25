@@ -453,6 +453,7 @@ redbin: context [
 	decode: func [
 		data	[byte-ptr!]
 		parent	[red-block!]
+		codec?  [logic!]							;-- YES: called by Redbin codec
 		return: [red-value!]
 		/local
 			p			[byte-ptr!]
@@ -507,8 +508,10 @@ redbin: context [
 		;----------------
 		;-- decode values
 		;----------------
-		s: GET_BUFFER(parent)
-		root-offset: (as-integer s/tail - s/offset) >> 4
+		unless codec? [
+			s: GET_BUFFER(parent)
+			root-offset: (as-integer s/tail - s/offset) >> 4
+		]
 		
 		end: p + len
 		#if debug? = yes [if verbose > 0 [i: 0]]
@@ -523,7 +526,7 @@ redbin: context [
 			#if debug? = yes [if verbose > 0 [if not-set? [i: i + 1] print lf]]
 		]
 		
-		root-base: (block/rs-head parent) + root-offset
+		unless codec? [root-base: (block/rs-head parent) + root-offset]
 		root-base
 	]
 	
@@ -531,7 +534,7 @@ redbin: context [
 		state: collector/active?
 		collector/active?: no
 		if keep? [saved: root-base]
-		ret: decode payload root
+		ret: decode payload root no
 		if keep? [root-base: saved]
 		collector/active?: state
 		ret
