@@ -266,6 +266,8 @@ lexer: context [
 	
 	issue-rule: [#"#" (type: issue!) s: symbol-rule]
 	
+	ref-rule: [#"@" s: symbol-rule]
+	
 	refinement-rule: [slash (type: refinement!) s: symbol-rule]
 	
 	slash-rule: [s: [slash opt slash] e:]
@@ -533,7 +535,7 @@ lexer: context [
 	
 	email-rule: [
 		(stop: [not-email-char])
-		s: opt [some UTF8-filtered-char] #"@" (type: email!)
+		s: some UTF8-filtered-char #"@" (type: email!)
 		any UTF8-filtered-char e: (value: dehex copy/part s e)
 	]
 
@@ -641,6 +643,7 @@ lexer: context [
 			| string-rule	  (stack/push load-string s e)
 			| map-rule		  (stack/push value)
 			| issue-rule	  (stack/push to issue!		 copy/part s e)
+			| ref-rule		  (stack/push load-ref		 copy/part s e)
 		]
 	]
 	
@@ -830,6 +833,10 @@ lexer: context [
 		d1: make date! reduce [1 1 d/year]
 		wd: d1/weekday
 		d1 + (w - 1 * 7 + (either wd < 5 [1][8]) - wd)
+	]
+	
+	load-ref: func [s [string!]][
+		append join make issue! 1 + length? s #"@" s
 	]
 	
 	load-money: func [s [string!] e [string!] neg? [logic!] /local cur dec pos][

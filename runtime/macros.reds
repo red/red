@@ -404,6 +404,7 @@ Red/System [
 		type = TYPE_IMAGE
 		type = TYPE_TAG
 		type = TYPE_EMAIL
+		type = TYPE_REF
 	]
 ]
 
@@ -454,6 +455,7 @@ Red/System [
 		type = TYPE_URL
 		type = TYPE_TAG
 		type = TYPE_EMAIL
+		type = TYPE_REF
 	]
 ]
 
@@ -471,7 +473,8 @@ Red/System [
 	TYPE_FILE
 	TYPE_URL
 	TYPE_TAG
-	TYPE_EMAIL	
+	TYPE_EMAIL
+	TYPE_REF
 ]
 
 #define TYPE_ANY_BLOCK [					;-- To be used in SWITCH cases

@@ -302,6 +302,7 @@ red: context [
 	float-special?: func [value][value/1 = #"."]
 	tuple-value?:	func [value][value/1 = #"~"]
 	money-value?:	func [value][value/1 = #"$"]
+	ref-value?:		func [value][value/1 = #"@"]
 	percent-value?: func [value][#"%" = last value]
 	
 	date-special?:  func [value][all [block? value value/1 = #!date!]]
@@ -1700,7 +1701,7 @@ red: context [
 
 	comp-literal: func [
 		/inactive /with val
-		/local value char? special? percent? map? tuple? money? dt-special? name w make-block type idx zone
+		/local value char? special? percent? map? tuple? money? ref? dt-special? name w make-block type idx zone
 	][
 		make-block: [
 			value: to block! value
@@ -1723,6 +1724,7 @@ red: context [
 					percent?: percent-value? value
 					tuple?:	  tuple-value? value
 					money?:	  money-value? value
+					ref?:	  ref-value? value
 				]
 			]
 			scalar? :value
@@ -1770,6 +1772,12 @@ red: context [
 					emit pick [true false] value/4 = #"-"
 					emit to-currency-code copy/part value 3
 					emit to-nibbles copy skip value 4
+				]
+				ref? [
+					idx: redbin/emit-string/root/ref to string! next value
+					emit 'ref/push
+					emit compose [as red-string! get-root (idx)]
+					insert-lf -5
 				]
 				find [refinement! issue!] type?/word :value [
 					add-symbol w: to word! form value
