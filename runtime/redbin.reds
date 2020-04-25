@@ -530,6 +530,38 @@ redbin: context [
 		root-base
 	]
 	
+	encode: func [
+		value   [red-value!]
+		where   [red-value!]
+		return: [red-binary!]
+		/local
+			payload [red-binary!]
+			type    [integer!]
+	][
+		payload: binary/make-at stack/push* 4
+		type: TYPE_OF(value)
+		
+		switch type [
+			TYPE_UNSET
+			TYPE_NONE [
+				binary/rs-append payload as byte-ptr! :type 4
+			]
+			TYPE_DATATYPE
+			TYPE_LOGIC [
+				binary/rs-append payload as byte-ptr! :type 4
+				binary/rs-append payload as byte-ptr! :value/data1 4
+			]
+			TYPE_INTEGER
+			TYPE_CHAR [
+				binary/rs-append payload as byte-ptr! :type 4
+				binary/rs-append payload as byte-ptr! :value/data2 4
+			]
+			default [--NOT_IMPLEMENTED--]
+		]
+		
+		payload
+	]
+	
 	boot-load: func [payload [byte-ptr!] keep? [logic!] return: [red-value!] /local saved ret state][
 		state: collector/active?
 		collector/active?: no
