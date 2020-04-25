@@ -461,7 +461,7 @@ load: function [
 save: function [
 	"Saves a value, block, or other data to a file, URL, binary, or string"
 	where [file! url! string! binary! none!] "Where to save"
-	value   "Value(s) to save"
+	value [any-type!] "Value(s) to save"
 	/header "Provide a Red header block (or output non-code datatypes)"
 		header-data [block! object!]
 	/all    "TBD: Save in serialized format"
@@ -472,8 +472,8 @@ save: function [
 	dst: either any [file? where url? where][where][none]
 	either system/words/all [as  word? format] [				;-- Be aware of [all as] word shadowing
 		either codec: select system/codecs format [
-			data: do [codec/encode value dst]
-			if same? data dst [exit]	;-- if encode returns dst back, means it already save value to dst
+			data: do [codec/encode :value dst]
+			if same? data dst [exit]	;-- if encode returns dst back, means it already save :value to dst
 		][cause-error 'script 'invalid-refine-arg [/as format]] ;-- throw error if format is not supported
 	][
 		if length [header: true header-data: any [header-data copy []]]
@@ -485,7 +485,7 @@ save: function [
 			find-encoder?: no
 			foreach [name codec] system/codecs [
 				if (find codec/suffixes suffix) [		;@@ temporary required until dyn-stack implemented
-					data: do [codec/encode value dst]
+					data: do [codec/encode :value dst]
 					if same? data dst [exit]
 					find-encoder?: yes
 				]
