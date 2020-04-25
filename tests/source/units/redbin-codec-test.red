@@ -29,6 +29,10 @@ Red [
 		--test-- "one-logic"
 			--assert true == test/one true
 			--assert false == test/one false
+			loop 10 [
+				value: random true
+				--assert value == test/one value
+			]
 		
 		--test-- "one-integer"
 			--assert 0 == test/one 0
@@ -37,6 +41,10 @@ Red [
 			--assert 1337 == test/one 1337
 			--assert (1 << 31) == test/one 1 << 31
 			--assert (complement 1 << 31) == test/one complement 1 << 31
+			loop 10 [
+				value: random 1 << 31
+				--assert value == test/one value
+			]
 		
 		--test-- "one-char"
 			--assert #"a" == test/one #"a"
@@ -44,7 +52,32 @@ Red [
 			--assert null == test/one null
 			--assert #"^D" == test/one #"^(4)"
 			--assert #"💾" == test/one #"💾"
+			loop 10 [
+				value: random #"Z"
+				--assert value == test/one value
+			]
 		
+		--test-- "one-float"
+			--assert 0.0 == test/one 0.0
+			--assert 0.1 == test/one 0.1
+			--assert -1.0 == test/one -1.0
+			--assert "1.#NaN" == mold test/one 1.#NaN
+			--assert 1.#INF == test/one 1.#INF
+			--assert -1.#INF == test/one -1.#INF
+			loop 10 [
+				value: random 1'000'000'000'000
+				--assert value == test/one value
+			]
+		
+		--test-- "one-percent"
+			--assert 0% == test/one 0%
+			--assert 1% == test/one 1%
+			--assert -1% == test/one -1%
+			--assert 100% == test/one 100%
+			loop 10 [
+				value: random 10000000000000000%
+				--assert value == test/one value
+			]
 	===end-group===
 
 ~~~end-file~~~
