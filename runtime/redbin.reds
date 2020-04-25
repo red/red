@@ -530,6 +530,8 @@ redbin: context [
 		root-base
 	]
 	
+	#define REDBIN_EMIT [binary/rs-append payload as byte-ptr!]
+	
 	header: #{
 		52454442494E								;-- REDBIN magic
 		01											;-- version
@@ -537,6 +539,20 @@ redbin: context [
 		00000000									;-- placeholder for length
 		00000000									;-- placeholder for size
 	}
+	
+	pad: func [
+		buffer [red-binary!]
+		size   [integer!]
+		/local
+			length  [integer!]
+			residue [integer!]
+	][
+		length:  binary/rs-length? buffer
+		residue: length // size
+		unless zero? residue [						;@@ TBD: optimize
+			loop size - residue [binary/rs-append buffer null 1]
+		]
+	]
 	
 	encode: func [
 		value   [red-value!]
@@ -547,25 +563,34 @@ redbin: context [
 			info [int-ptr!]
 			head [byte-ptr!]
 			type length size [integer!]
+			flt [red-float!]
 	][
-		payload: binary/make-at stack/push* 4
+		payload: binary/make-at stack/push* 4		;@@ TBD: heuristics for pre-allocation
 		length:  0
 		type: TYPE_OF(value)
 		
+		;@@ TBD: properly emit header with all the flags
 		switch type [
 			TYPE_UNSET
 			TYPE_NONE [
-				binary/rs-append payload as byte-ptr! :type 4
+				REDBIN_EMIT :type 4
 			]
 			TYPE_DATATYPE
 			TYPE_LOGIC [
-				binary/rs-append payload as byte-ptr! :type 4
-				binary/rs-append payload as byte-ptr! :value/data1 4
+				REDBIN_EMIT :type 4
+				REDBIN_EMIT :value/data1 4
 			]
 			TYPE_INTEGER
 			TYPE_CHAR [
-				binary/rs-append payload as byte-ptr! :type 4
-				binary/rs-append payload as byte-ptr! :value/data2 4
+				REDBIN_EMIT :type 4
+				REDBIN_EMIT :value/data2 4
+			]
+			TYPE_PERCENT
+			TYPE_FLOAT [
+				pad payload 8
+				REDBIN_EMIT :type 4
+				REDBIN_EMIT :value/data3 4			;-- order of fields is important
+				REDBIN_EMIT :value/data2 4
 			]
 			default [--NOT_IMPLEMENTED--]
 		]
