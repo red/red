@@ -30,6 +30,7 @@ settings:			as handle! 0
 pango-context:		as handle! 0
 default-font-name:	as c-string! 0
 default-font-size:	0
+default-font-width: 7		;-- pixel width
 gtk-font-name:		"Sans"
 gtk-font-size:		10
 
@@ -515,6 +516,7 @@ set-defaults: func [
 	default-font-name/len: null-byte
 	default-font-size: size
 	set-default-font default-font-name default-font-size
+	default-font-width: font-width? null null
 ]
 
 find-active-window: func [
@@ -897,6 +899,7 @@ change-font: func [
 		font	[red-object!]
 ][
 	font: as red-object! values + FACE_OBJ_FONT
+	if TYPE_OF(font) <> TYPE_OBJECT [exit]
 	free-font font
 	make-font face font
 	set-font widget face values
@@ -1386,21 +1389,23 @@ remove-entry: func [
 	gtk_container_remove container widget
 ]
 
-font-size?: func [
+font-width?: func [
+	face		[red-object!]
 	font		[red-object!]
 	return:		[integer!]
 	/local
-		values	[red-value!]
-		size	[red-integer!]
+		txt		[red-string! value]
+		sz		[tagSIZE]
+		attrs	[handle!]
+		w		[float32!]
 ][
-	if TYPE_OF(font) <> TYPE_OBJECT [return default-font-size]
-	values: object/get-values font
-	size:	as red-integer!	values + FONT_OBJ_SIZE
-	if any [
-		TYPE_OF(size) <> TYPE_INTEGER
-		size/value <= 0
-	][return default-font-size]
-	size/value
+	string/load-at "abcde12xxx" 10 as red-value! :txt UTF-8
+	attrs: null
+	if font <> null [attrs: get-attrs face font]
+	sz: get-text-size face txt attrs null
+	probe sz/width
+	w: (as float32! sz/width) / as float32! 10.0
+	as-integer w
 ]
 
 update-scroller: func [
@@ -1789,8 +1794,8 @@ OS-make-view: func [
 		]
 		sym = text [
 			widget: gtk_label_new caption
-			;; gtk_label_set_width_chars widget ???
-			container: gtk_event_box_new null null
+			gtk_label_set_line_wrap widget yes
+			container: gtk_event_box_new
 			gtk_container_add container widget
 		]
 		sym = field [
@@ -1799,7 +1804,7 @@ OS-make-view: func [
 			unless null? caption [
 				gtk_entry_buffer_set_text buffer caption -1
 			]
-			gtk_entry_set_width_chars widget size/x / font-size? font
+			gtk_entry_set_width_chars widget size/x / font-width? null font
 			set-hint-text widget as red-block! values + FACE_OBJ_OPTIONS
 			if bits and FACET_FLAGS_PASSWORD <> 0 [gtk_entry_set_visibility widget no]
 			gtk_entry_set_has_frame widget (bits and FACET_FLAGS_NO_BORDER = 0)
@@ -1856,10 +1861,10 @@ OS-make-view: func [
 		][
 			widget: either sym = drop-list [gtk_combo_box_text_new][gtk_combo_box_text_new_with_entry]
 			init-combo-box widget data caption sym = drop-list
-			;; TODO: improve it but better than nothing from now otherwise it is uggly!
 			if sym = drop-down [
-				value: size/x - 54 / (font-size? font)	;-- width - button width / char size
-				if value > 2 [value - 2]
+				if size/x > 64 [value: size/x - 64]
+				if value < 24 [value: 24]
+				value: value / (font-width? null font)	;-- width / char width
 				gtk_entry_set_width_chars gtk_bin_get_child widget value
 			]
 			gtk_combo_box_set_active widget 0

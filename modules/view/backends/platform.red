@@ -766,7 +766,16 @@ system/view/platform: context [
 				field:			[3x3   0x0]
 				group-box:		[0x8  4x18]
 				tab-panel:		[1x1  39x0]
-				drop-list:		[54x54 0x0]
+				drop-list:		[0x40 0x0]
+				drop-down:		[0x54 0x0]
+			]
+		]]
+		extend system/view/metrics/fixed-heights [#switch config/OS [
+			macOS	[
+				progress:	21
+			]
+			Linux [
+				progress:	4
 			]
 		]]
 		#switch config/OS [
@@ -802,8 +811,8 @@ system/view/platform: context [
 					radio:		19
 					text:		17
 					field:		35
-					drop-down:	35
-					drop-list:	33
+					drop-down:	34
+					drop-list:	34
 					progress:	4
 					slider:		34
 				]
