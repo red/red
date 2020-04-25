@@ -530,15 +530,26 @@ redbin: context [
 		root-base
 	]
 	
+	header: #{
+		52454442494E								;-- REDBIN magic
+		01											;-- version
+		00											;-- placeholder for flags
+		00000000									;-- placeholder for length
+		00000000									;-- placeholder for size
+	}
+	
 	encode: func [
 		value   [red-value!]
 		where   [red-value!]
 		return: [red-binary!]
 		/local
 			payload [red-binary!]
-			type    [integer!]
+			info [int-ptr!]
+			head [byte-ptr!]
+			type length size [integer!]
 	][
 		payload: binary/make-at stack/push* 4
+		length:  0
 		type: TYPE_OF(value)
 		
 		switch type [
@@ -558,6 +569,17 @@ redbin: context [
 			]
 			default [--NOT_IMPLEMENTED--]
 		]
+		
+		length: length + 1
+		size:   binary/rs-length? payload
+		
+		binary/rs-insert payload 0 header 16		;-- size of the header
+		head: binary/rs-head payload
+		
+		head/8: null-byte							;-- store flags
+		info: as int-ptr! head + 8					;-- skip to length entry
+		info/1: length
+		info/2: size
 		
 		payload
 	]
