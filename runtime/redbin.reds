@@ -611,6 +611,13 @@ redbin: context [
 				REDBIN_EMIT :value/data3 4			;-- order of fields is important
 				REDBIN_EMIT :value/data2 4
 			]
+			TYPE_MONEY [
+				flags: type or ((money/get-sign as red-money! value) << 14)
+				REDBIN_EMIT :flags 4
+				REDBIN_EMIT :value/data1 4
+				REDBIN_EMIT :value/data2 4
+				REDBIN_EMIT :value/data3 4
+			]
 			default [--NOT_IMPLEMENTED--]
 		]
 		
