@@ -559,11 +559,11 @@ redbin: context [
 		where   [red-value!]
 		return: [red-binary!]
 		/local
-			payload [red-binary!]
-			info [int-ptr!]
-			head [byte-ptr!]
-			type length size [integer!]
-			flt [red-float!]
+			payload     [red-binary!]
+			info        [int-ptr!]
+			head        [byte-ptr!]
+			type length [integer!]
+			size flags  [integer!]
 	][
 		payload: binary/make-at stack/push* 4		;@@ TBD: heuristics for pre-allocation
 		length:  0
@@ -578,7 +578,7 @@ redbin: context [
 			TYPE_DATATYPE
 			TYPE_LOGIC [
 				REDBIN_EMIT :type 4
-				REDBIN_EMIT :value/data1 4
+				REDBIN_EMIT :value/data1 4			;@@ coerce LOGIC! to 0 or 1?
 			]
 			TYPE_INTEGER
 			TYPE_CHAR [
@@ -595,13 +595,13 @@ redbin: context [
 			default [--NOT_IMPLEMENTED--]
 		]
 		
-		length: length + 1
+		length: length + 1							;@@ TBD: calculate length
 		size:   binary/rs-length? payload
 		
 		binary/rs-insert payload 0 header 16		;-- size of the header
 		head: binary/rs-head payload
 		
-		head/8: null-byte							;-- store flags
+		head/8: null-byte							;@@ TBD: store flags
 		info: as int-ptr! head + 8					;-- skip to length entry
 		info/1: length
 		info/2: size
