@@ -89,7 +89,15 @@ Red [
 				value: random 10000x10000
 				--assert value == test/one value
 			]
-			
+		
+		--test-- "one-tuple"
+			--assert 0.0.0 == test/one 0.0.0
+			--assert 1.2.3.4.5.6.7.8.9 == test/one 1.2.3.4.5.6.7.8.9
+			loop 10 [
+				value: random to tuple! copy/part 64#{////////////////} 2 + random 11
+				--assert value == test/one value
+			]
+		
 	===end-group===
 
 ~~~end-file~~~
