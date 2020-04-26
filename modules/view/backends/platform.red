@@ -732,11 +732,6 @@ system/view/platform: context [
 				drop-down:		[0x3   2x3 regular 0x3 2x3 small 0x3 1x3 mini 0x2 1x3]
 				drop-list:		[0x3   2x3 regular 0x3 2x3 small 0x3 1x3 mini 0x2 1x3]
 			]
-			Linux [
-				button:			[1x1   1x1]
-				tab-panel:		[0x2   0x1]
-				group-box:		[0x0   0x1]
-			]
 		]]
 		extend system/view/metrics/paddings [#switch config/OS [
 			Windows [
@@ -765,7 +760,7 @@ system/view/platform: context [
 				text:			[3x3   0x0]
 				field:			[3x3   0x0]
 				group-box:		[0x8  4x18]
-				tab-panel:		[1x1  39x0]
+				tab-panel:		[0x0  39x0]
 				drop-list:		[0x40 0x0]
 				drop-down:		[0x54 0x0]
 			]

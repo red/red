@@ -1272,6 +1272,19 @@ GPtrArray!: alias struct! [
 		gtk_events_pending: "gtk_events_pending" [
 			return:		[logic!]
 		]
+		gtk_dialog_new: "gtk_dialog_new" [return: [handle!]]
+		gtk_dialog_get_content_area: "gtk_dialog_get_content_area" [
+			dialog		[handle!]
+			return:		[handle!]
+		]
+		;gtk_window_group_add_window: "gtk_window_group_add_window" [
+		;	group		[handle!]
+		;	window		[handle!]
+		;]
+		;gtk_window_get_group: "gtk_window_get_group" [
+		;	window		[handle!]
+		;	return:		[handle!]
+		;]
 		gtk_window_new: "gtk_window_new" [
 			type		[integer!]
 			return:		[handle!]
@@ -1326,6 +1339,10 @@ GPtrArray!: alias struct! [
 			window		[handle!]
 		]
 		gtk_window_is_active: "gtk_window_is_active" [
+			window		[handle!]
+			return:		[logic!]
+		]
+		gtk_window_get_modal: "gtk_window_get_modal" [
 			window		[handle!]
 			return:		[logic!]
 		]

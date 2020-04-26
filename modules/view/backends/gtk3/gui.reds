@@ -1403,7 +1403,6 @@ font-width?: func [
 	attrs: null
 	if font <> null [attrs: get-attrs face font]
 	sz: get-text-size face txt attrs null
-	probe sz/width
 	w: (as float32! sz/width) / as float32! 10.0
 	as-integer w
 ]
@@ -1593,8 +1592,12 @@ OS-show-window: func [
 	widget		[integer!]
 	/local
 		n		[integer!]
+		win		[handle!]
 ][
-	gtk_widget_show as handle! widget
+	win: as handle! widget
+	if gtk_window_get_modal win [gtk_window_set_transient_for win find-active-window]
+
+	gtk_widget_show win
 	n: 0
 	window-ready?: no
 	until [		;-- process some events to make the window ready
@@ -1603,7 +1606,7 @@ OS-show-window: func [
 		any [window-ready? n = 10000]
 	]
 	window-ready?: no
-	set-selected-focus as handle! widget
+	set-selected-focus win
 ]
 
 OS-make-view: func [
@@ -1729,10 +1732,17 @@ OS-make-view: func [
 			]
 		]
 		sym = window [
-			widget: gtk_window_new 0
-			
-			if bits and FACET_FLAGS_MODAL <> 0 [
+			;; FIXME TBD parent should not always be zero, view engine should set it.
+			;either all [parent <> 0 bits and FACET_FLAGS_MODAL <> 0] [
+			either bits and FACET_FLAGS_MODAL <> 0 [
+				widget: gtk_dialog_new
 				gtk_window_set_modal widget yes
+				winbox: gtk_dialog_get_content_area widget
+			][
+				widget: gtk_window_new 0
+				winbox: gtk_box_new GTK_ORIENTATION_VERTICAL 0
+				gtk_container_add widget winbox
+				gtk_widget_show winbox
 			]
 			if any [
 				bits and FACET_FLAGS_NO_TITLE <> 0
@@ -1752,8 +1762,6 @@ OS-make-view: func [
 			
 			unless null? caption [gtk_window_set_title widget caption]
 
-			winbox: gtk_box_new GTK_ORIENTATION_VERTICAL 0
-			gtk_container_add widget winbox
 			hMenu: null
 			if menu-bar? menu window [
 				hMenu: gtk_menu_bar_new
@@ -1764,7 +1772,7 @@ OS-make-view: func [
 				SET-CONTAINER-H(widget size/y)
 			]
 			SET-HMENU(widget hMenu)
-			gtk_widget_show winbox
+
 			container: gtk_layout_new null null
 			gtk_layout_set_size container size/x size/y
 			gtk_widget_show container
