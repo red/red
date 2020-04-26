@@ -597,6 +597,13 @@ redbin: context [
 				REDBIN_EMIT :value/data2 4
 				REDBIN_EMIT :value/data3 4
 			]
+			TYPE_TUPLE [
+				flags: type or (TUPLE_SIZE?(value) << 8)
+				REDBIN_EMIT :flags 4
+				REDBIN_EMIT :value/data1 4
+				REDBIN_EMIT :value/data2 4
+				REDBIN_EMIT :value/data3 4
+			]
 			default [--NOT_IMPLEMENTED--]
 		]
 		
