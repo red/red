@@ -106,6 +106,14 @@ Red [
 				--assert value == test/one value
 			]
 		
+		--test-- "one-date"
+			--assert 1/1/1 == test/one 1/1/1
+			--assert 9-Sep-99 == test/one 9/9/99
+			loop 10 [
+				value: random now
+				--assert value == test/one value
+			]
+		
 	===end-group===
 
 ~~~end-file~~~
