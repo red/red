@@ -592,6 +592,11 @@ redbin: context [
 				REDBIN_EMIT :value/data3 4			;-- order of fields is important
 				REDBIN_EMIT :value/data2 4
 			]
+			TYPE_PAIR [
+				REDBIN_EMIT :type 4
+				REDBIN_EMIT :value/data2 4
+				REDBIN_EMIT :value/data3 4
+			]
 			default [--NOT_IMPLEMENTED--]
 		]
 		
