@@ -119,6 +119,17 @@ Red [
 				--assert value == test/one value
 			]
 		
+		--test-- "one-money"
+			--assert $0 == test/one $0
+			--assert $1 == test/one $1
+			--assert -$1 == test/one -$1
+			--assert -USD$1234.56789 == test/one -USD$1234.56789
+			loop 10 [
+				value: as-money pick system/locale/currencies/list random 170 random 1'000
+				value: value * random/only [-1 +1]
+				--assert value == test/one value
+			]
+		
 	===end-group===
 
 ~~~end-file~~~
