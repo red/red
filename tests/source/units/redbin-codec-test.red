@@ -98,6 +98,14 @@ Red [
 				--assert value == test/one value
 			]
 		
+		--test-- "one-time"
+			--assert 0:0 == test/one 0:0
+			--assert 1:2:3.456 == test/one 1:2:3.456
+			loop 10 [
+				value: random now/time/precise
+				--assert value == test/one value
+			]
+		
 	===end-group===
 
 ~~~end-file~~~
