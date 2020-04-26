@@ -586,6 +586,7 @@ redbin: context [
 				REDBIN_EMIT :value/data2 4
 			]
 			TYPE_PERCENT
+			TYPE_TIME
 			TYPE_FLOAT [
 				pad payload 8
 				REDBIN_EMIT :type 4
