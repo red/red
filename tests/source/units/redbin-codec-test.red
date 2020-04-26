@@ -78,6 +78,18 @@ Red [
 				value: random 10000000000000000%
 				--assert value == test/one value
 			]
+		
+		--test-- "one-pair"
+			--assert 0x0 == test/one 0x0
+			--assert 0x1 == test/one 0x1
+			--assert 1x0 == test/one 1x0
+			--assert 1x1 == test/one 1x1
+			--assert -1x-2 == test/one -1x-2
+			loop 10 [
+				value: random 10000x10000
+				--assert value == test/one value
+			]
+			
 	===end-group===
 
 ~~~end-file~~~
