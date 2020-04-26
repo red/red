@@ -42,7 +42,8 @@ Red [
 			--assert (1 << 31) == test/one 1 << 31
 			--assert (complement 1 << 31) == test/one complement 1 << 31
 			loop 10 [
-				value: random 1 << 31
+				value: random 1 << 30
+				value: value * random/only [-1 +1]
 				--assert value == test/one value
 			]
 		
@@ -66,6 +67,7 @@ Red [
 			--assert -1.#INF == test/one -1.#INF
 			loop 10 [
 				value: random 1'000'000'000'000
+				value: value * random/only [-1 +1]
 				--assert value == test/one value
 			]
 		
@@ -76,6 +78,7 @@ Red [
 			--assert 100% == test/one 100%
 			loop 10 [
 				value: random 10000000000000000%
+				value: value * random/only [-1 +1]
 				--assert value == test/one value
 			]
 		
@@ -87,6 +90,7 @@ Red [
 			--assert -1x-2 == test/one -1x-2
 			loop 10 [
 				value: random 10000x10000
+				value: value * random/only [-1 +1]
 				--assert value == test/one value
 			]
 		
@@ -103,6 +107,7 @@ Red [
 			--assert 1:2:3.456 == test/one 1:2:3.456
 			loop 10 [
 				value: random now/time/precise
+				value: value * random/only [-1 +1]
 				--assert value == test/one value
 			]
 		
