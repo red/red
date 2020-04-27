@@ -36,6 +36,7 @@ Red/System [
 #define flag-owner			00010000h		;-- object is an owner (carried by object's context value)
 #define flag-native-op		00010000h		;-- operator is made from a native! function
 #define flag-extern-code	00008000h		;-- routine's body is from FFI
+#define flag-word-dirty		00002000h		;-- word flag indicating if value has been modified
 
 #define flag-new-line		40000000h		;-- if set, indicates that a new-line preceeds the value
 #define flag-nl-mask		BFFFFFFFh		;-- mask for new-line flag

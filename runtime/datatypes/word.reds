@@ -217,12 +217,20 @@ word: context [
 		node	[node!]
 		index	[integer!]
 		/local
-			ctx	   [red-context!]
-			value  [red-value!]
-			values [series!]
+			ctx		 [red-context!]
+			value	 [red-value!]
+			w		 [red-word!]
+			obj		 [red-object!]
+			values s [series!]
 	][
 		value: stack/get-top
 		ctx: TO_CTX(node)
+		s: as series! ctx/self/value
+		obj: as red-object! s/offset + 1
+		if TYPE_OF(obj) = TYPE_OBJECT [
+			w: _hashtable/get-ctx-word ctx index
+			w/header: w/header or flag-word-dirty
+		]
 		values: as series! ctx/values/value
 		copy-cell value values/offset + index
 	]

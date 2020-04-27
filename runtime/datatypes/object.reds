@@ -121,6 +121,24 @@ object: context [
 		(as-integer s/tail - s/offset) >> 4
 	]
 	
+	clear-words-flags: func [
+		ctx [red-context!]
+		/local
+			s	 [series!]
+			syms [red-value!]
+			tail [red-value!]
+			mask [integer!]
+	][
+		s: _hashtable/get-ctx-words ctx
+		syms: s/offset
+		tail: s/tail
+		mask: not flag-word-dirty
+		while [syms < tail][
+			syms/header: syms/header and mask
+			syms: syms + 1
+		]
+	]
+	
 	set-many: func [
 		obj	  [red-object!]
 		value [red-value!]
@@ -982,10 +1000,11 @@ object: context [
 				blk: as red-block! spec
 				new?: _context/collect-set-words ctx blk
 				self: save-self-object obj
-				_context/bind blk ctx self yes	;-- bind spec block
-				if p-obj? [duplicate proto/ctx obj/ctx no]		;-- clone and rebind proto's series
+				_context/bind blk ctx self yes			;-- bind spec block
+				if p-obj? [duplicate proto/ctx obj/ctx no] ;-- clone and rebind proto's series
 				interpreter/eval blk no
 				
+				clear-words-flags ctx
 				obj/class: either any [new? not p-obj?][get-new-id][proto/class]
 				obj/on-set: on-set-defined? ctx
 				if on-deep? obj [ownership/set-owner as red-value! obj obj null]
@@ -1019,6 +1038,20 @@ object: context [
 		ctx: GET_CTX(obj)
 		
 		case [
+			field = words/changed [
+				blk/header: TYPE_UNSET
+				blk/node: alloc-cells 2
+				blk/header: TYPE_BLOCK
+				s: _hashtable/get-ctx-words ctx
+				syms: s/offset
+				tail: s/tail
+				s: GET_BUFFER(blk)
+				
+				while [syms < tail][
+					if syms/header and flag-word-dirty <> 0 [copy-cell as cell! syms ALLOC_TAIL(blk)]
+					syms: syms + 1
+				]
+			]
 			field = words/class [
 				return as red-block! integer/box obj/class
 			]
@@ -1055,7 +1088,7 @@ object: context [
 				
 				while [syms < tail][
 					word: as red-word! block/rs-append blk syms
-					word/header: TYPE_SET_WORD
+					word/header: TYPE_SET_WORD or flag-new-line
 					word/ctx: obj/ctx
 					
 					value: block/rs-append blk vals
@@ -1075,6 +1108,7 @@ object: context [
 				--NOT_IMPLEMENTED--						;@@ raise error
 			]
 		]
+		assert all [blk/header and get-type-mask = TYPE_BLOCK blk/node <> null]
 		as red-block! stack/set-last as red-value! blk
 	]
 	
@@ -1402,6 +1436,10 @@ object: context [
 	][
 		sym: symbol/resolve field/symbol
 		case [
+			sym = words/changed [
+				if TYPE_OF(value) <> TYPE_NONE [fire [TO_ERROR(script invalid-arg) value]]
+				clear-words-flags GET_CTX(obj)
+			]
 			sym = words/owner [
 				ownership/set-owner as red-value! obj obj null
 			]

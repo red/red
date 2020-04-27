@@ -223,6 +223,7 @@ _context: context [
 			slot	[red-value!]
 			old		[red-value!]
 			saved	[red-value!]
+			w		[red-word!]
 			s		[series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/set-in"]]
@@ -240,11 +241,13 @@ _context: context [
 			values: as series! ctx/values/value
 			slot: values/offset + word/index
 			
-			if event? [
-				s: as series! ctx/self/value
-				obj: as red-object! s/offset + 1
-				
-				if all [TYPE_OF(obj) = TYPE_OBJECT obj/on-set <> null][
+			s: as series! ctx/self/value
+			obj: as red-object! s/offset + 1
+			
+			if TYPE_OF(obj) = TYPE_OBJECT [
+				w: _hashtable/get-ctx-word ctx word/index
+				w/header: w/header or flag-word-dirty
+				if all [event? obj/on-set <> null][
 					saved: stack/top
 					old: stack/push slot
 					word: as red-word! word
