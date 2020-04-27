@@ -1222,6 +1222,26 @@ string: context [
 		]
 	]
 
+	utf8-to-str: func [
+		src		[c-string!]
+		len		[integer!]
+		return: [red-string!]
+		/local
+			remain	[integer!]
+			str		[red-string!]
+	][
+		remain: 0
+		str: rs-make-at stack/push* len
+		unicode/load-utf8-stream src len str :remain
+		if remain > 0 [
+			fire [
+				TO_ERROR(access invalid-utf8)
+				binary/load as byte-ptr! src + (len - remain) remain
+			]
+		]
+		str
+	]
+
 	;-- Actions -- 
 	
 	make: func [
@@ -1263,7 +1283,9 @@ string: context [
 		type	[integer!]
 		return:	[red-string!]
 		/local
-			buffer [red-string!]
+			buffer	[red-string!]
+			node	[node!]
+			remain	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/to"]]
 		
@@ -1275,10 +1297,9 @@ string: context [
 					null no null
 			]
 			TYPE_BINARY [
-				buffer: load
+				buffer: utf8-to-str
 					as-c-string binary/rs-head as red-binary! spec
 					binary/rs-length? as red-binary! spec
-					UTF-8
 			]
 			TYPE_ANY_LIST [
 				buffer: make-at proto 16 1
