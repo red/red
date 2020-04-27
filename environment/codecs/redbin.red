@@ -17,7 +17,7 @@ put system/codecs 'redbin context [
 	suffixes:  [%.redbin]
 	
 	encode: routine [data [any-type!] where [any-type!]][
-		stack/set-last as red-value! redbin/encode data where
+		stack/set-last as red-value! redbin/encode data
 	]
 	
 	decode: routine [payload [binary!] /local blk [red-block!]][

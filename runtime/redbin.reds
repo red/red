@@ -557,7 +557,6 @@ redbin: context [
 	
 	encode: func [
 		value   [red-value!]
-		where   [red-value!]
 		return: [red-binary!]
 		/local
 			payload     [red-binary!]
