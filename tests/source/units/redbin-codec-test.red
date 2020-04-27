@@ -130,6 +130,18 @@ Red [
 				--assert value == test/one value
 			]
 		
+		--test-- "one-bitset"
+			--assert strict-equal? charset 1 test/one charset 1
+			--assert strict-equal? charset #{CAFE} test/one charset #{CAFE}
+			--assert strict-equal? charset #{C0FFEE} test/one charset #{C0FFEE}
+			--assert strict-equal? charset #{BADFACE} test/one charset #{BADFACE}
+			--assert strict-equal? charset #{DEADBEEF} test/one charset #{DEADBEEF}
+			--assert strict-equal? charset [#"a" - #"z"] test/one charset [#"a" - #"z"]
+			loop 10 [
+				value: charset to binary! random to tuple! copy/part 64#{////////////////} 2 + random 11
+				--assert value == test/one value
+			]
+		
 	===end-group===
 
 ~~~end-file~~~
