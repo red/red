@@ -551,7 +551,8 @@ redbin: context [
 		root-base
 	]
 	
-	#define REDBIN_EMIT [binary/rs-append payload as byte-ptr!]
+	#define REDBIN_EMIT  [REDBIN_EMIT* as byte-ptr!]
+	#define REDBIN_EMIT* [binary/rs-append payload]
 	
 	header: #{
 		52454442494E								;-- REDBIN magic
@@ -586,6 +587,7 @@ redbin: context [
 			head        [byte-ptr!]
 			type length [integer!]
 			size flags  [integer!]
+			len         [integer!]
 	][
 		payload: binary/make-at stack/push* 4		;@@ TBD: heuristics for pre-allocation
 		length:  0
@@ -610,7 +612,7 @@ redbin: context [
 			TYPE_PERCENT
 			TYPE_TIME
 			TYPE_FLOAT [
-				pad payload 8
+				pad payload 8						;-- pad to 64-bit boundary
 				REDBIN_EMIT :type 4
 				REDBIN_EMIT :value/data3 4			;-- order of fields is important
 				REDBIN_EMIT :value/data2 4
@@ -640,7 +642,14 @@ redbin: context [
 				REDBIN_EMIT :value/data2 4
 				REDBIN_EMIT :value/data3 4
 			]
-			default [--NOT_IMPLEMENTED--]
+			TYPE_BITSET [
+				len: bitset/length? as red-bitset! value
+				REDBIN_EMIT :type 4
+				REDBIN_EMIT :len  4
+				REDBIN_EMIT* bitset/rs-head as red-bitset! value len >> 3
+				pad payload 4						;-- pad to 32-bit boundary
+			]
+			default [--NOT_IMPLEMENTED--]			;@@ TBD: proper error message
 		]
 		
 		length: length + 1							;@@ TBD: calculate length
