@@ -368,6 +368,7 @@ redbin: context [
 			TYPE_FILE
 			TYPE_URL
 			TYPE_TAG
+			TYPE_REF
 			TYPE_EMAIL
 			TYPE_BINARY		[decode-string data parent nl?]
 			TYPE_INTEGER	[

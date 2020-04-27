@@ -13,6 +13,13 @@ Red/System [
 ref: context [
 	verbose: 0
 	
+	push: func [
+		ref [red-ref!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "ref/push"]]
+		copy-cell as red-value! ref stack/push*
+	]
+	
 	mold: func [
 		ref     [red-ref!]
 		buffer  [red-string!]
@@ -23,16 +30,11 @@ ref: context [
 		part    [integer!]
 		indent  [integer!]
 		return: [integer!]
-		/local
-			size [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "ref/mold"]]
 		
-		size: string/rs-length? buffer
-		part: file/mold as red-file! ref buffer only? all? flat? arg part indent
-		string/overwrite-char GET_BUFFER(buffer) size as integer! #"@"
-		
-		part
+		string/append-char GET_BUFFER(buffer) as integer! #"@"
+		string/form as red-string! ref buffer arg part - 1
 	]
 	
 	init: does [
@@ -43,13 +45,13 @@ ref: context [
 			;-- General actions --
 			INHERIT_ACTION	;make
 			null			;random
-			null			;reflect
-			null			;to
-			null			;form
+			INHERIT_ACTION	;reflect
+			INHERIT_ACTION	;to
+			INHERIT_ACTION	;form
 			:mold
 			null			;eval-path
 			null			;set-path
-			null			;compare
+			INHERIT_ACTION	;compare
 			;-- Scalar actions --
 			null			;absolute
 			null			;add
