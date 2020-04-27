@@ -547,11 +547,13 @@ redbin: context [
 		/local
 			length  [integer!]
 			residue [integer!]
+			zero    [integer!]
 	][
 		length:  binary/rs-length? buffer
 		residue: length // size
+		zero:    0
 		unless zero? residue [						;@@ TBD: optimize
-			loop size - residue [binary/rs-append buffer null 1]
+			loop size - residue [binary/rs-append buffer as byte-ptr! :zero 1]
 		]
 	]
 	
