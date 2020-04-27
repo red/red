@@ -362,7 +362,37 @@ redbin: context [
 		
 		as int-ptr! (as integer! bits + size) + 3 and not 3	;-- align at upper 32-bit boundary
 	]
-
+	
+	decode-vector: func [
+		data    [int-ptr!]
+		parent  [red-block!]
+		nl?     [logic!]
+		return: [int-ptr!]
+		/local
+			slot   [red-value!]
+			vec    [red-vector!]
+			buf    [series!]
+			values [byte-ptr!]
+			unit   [integer!]
+			size   [integer!]
+	][
+		unit: data/1 >>> 8 and FFh
+		size: data/3 << log-b unit					;-- in bytes
+		
+		slot: ALLOC_TAIL(parent)
+		if nl? [slot/header: slot/header or flag-new-line]
+		
+		vec: vector/make-at slot data/3 data/4 unit
+		buf: GET_BUFFER(vec)
+		vec/head: data/2
+		buf/tail: as red-value! (as byte-ptr! buf/offset) + size
+		
+		values: as byte-ptr! data + 4
+		copy-memory as byte-ptr! buf/offset values size
+		
+		as int-ptr! (as integer! values + size) + 3 and not 3	;-- align at upper 32-bit boundary
+	]
+	
 	decode-value: func [
 		data	[int-ptr!]
 		table	[int-ptr!]
@@ -407,19 +437,19 @@ redbin: context [
 				cell: as cell! typeset/make-in parent data/2 data/3 data/4
 				data + 4
 			]
-			TYPE_FLOAT	[
+			TYPE_FLOAT		[
 				cell: as cell! float/make-in parent data/2 data/3
 				data + 3
 			]
-			TYPE_PERCENT [
+			TYPE_PERCENT 	[
 				cell: as cell! percent/make-in parent data/2 data/3
 				data + 3
 			]
-			TYPE_TIME	[
+			TYPE_TIME		[
 				cell: as cell! time/make-in parent data/2 data/3
 				data + 3
 			]
-			TYPE_DATE	[
+			TYPE_DATE		[
 				cell: as cell! date/make-in parent data/2 data/3 data/4
 				data + 4
 			]
@@ -454,6 +484,7 @@ redbin: context [
 			TYPE_TUPLE		[decode-tuple data parent nl?]
 			TYPE_MONEY		[decode-money data parent nl?]
 			TYPE_BITSET     [decode-bitset data parent nl?]
+			TYPE_VECTOR     [decode-vector data parent nl?]
 			REDBIN_PADDING	[
 				decode-value data + 1 table parent
 			]
@@ -461,7 +492,6 @@ redbin: context [
 			TYPE_POINT
 			TYPE_OBJECT
 			TYPE_ERROR
-			TYPE_VECTOR
 			REDBIN_REFERENCE [
 				--NOT_IMPLEMENTED--
 				data
@@ -579,19 +609,21 @@ redbin: context [
 	]
 	
 	encode: func [
-		value   [red-value!]
+		data    [red-value!]
 		return: [red-binary!]
 		/local
 			payload     [red-binary!]
+			buf         [series!]
 			info        [int-ptr!]
 			head        [byte-ptr!]
 			type length [integer!]
 			size flags  [integer!]
-			len         [integer!]
+			len unit    [integer!]
+			ser [red-series!]
 	][
 		payload: binary/make-at stack/push* 4		;@@ TBD: heuristics for pre-allocation
 		length:  0
-		type: TYPE_OF(value)
+		type: TYPE_OF(data)
 		
 		;@@ TBD: properly emit header with all the flags
 		switch type [
@@ -602,51 +634,65 @@ redbin: context [
 			TYPE_DATATYPE
 			TYPE_LOGIC [
 				REDBIN_EMIT :type 4
-				REDBIN_EMIT :value/data1 4			;@@ coerce LOGIC! to 0 or 1?
+				REDBIN_EMIT :data/data1 4			;@@ coerce LOGIC! to 0 or 1?
 			]
 			TYPE_INTEGER
 			TYPE_CHAR [
 				REDBIN_EMIT :type 4
-				REDBIN_EMIT :value/data2 4
+				REDBIN_EMIT :data/data2 4
 			]
 			TYPE_PERCENT
 			TYPE_TIME
 			TYPE_FLOAT [
 				pad payload 8						;-- pad to 64-bit boundary
 				REDBIN_EMIT :type 4
-				REDBIN_EMIT :value/data3 4			;-- order of fields is important
-				REDBIN_EMIT :value/data2 4
+				REDBIN_EMIT :data/data3 4			;-- order of fields is important
+				REDBIN_EMIT :data/data2 4
 			]
 			TYPE_PAIR [
 				REDBIN_EMIT :type 4
-				REDBIN_EMIT :value/data2 4
-				REDBIN_EMIT :value/data3 4
+				REDBIN_EMIT :data/data2 4
+				REDBIN_EMIT :data/data3 4
 			]
 			TYPE_TUPLE [
-				flags: type or (TUPLE_SIZE?(value) << 8)
+				flags: type or (TUPLE_SIZE?(data) << 8)
 				REDBIN_EMIT :flags 4
-				REDBIN_EMIT :value/data1 4
-				REDBIN_EMIT :value/data2 4
-				REDBIN_EMIT :value/data3 4
+				REDBIN_EMIT :data/data1 4
+				REDBIN_EMIT :data/data2 4
+				REDBIN_EMIT :data/data3 4
 			]
 			TYPE_DATE [
 				REDBIN_EMIT :type 4
-				REDBIN_EMIT :value/data1 4
-				REDBIN_EMIT :value/data3 4			;-- order of fields is important
-				REDBIN_EMIT :value/data2 4
+				REDBIN_EMIT :data/data1 4
+				REDBIN_EMIT :data/data3 4			;-- order of fields is important
+				REDBIN_EMIT :data/data2 4
 			]
 			TYPE_MONEY [
-				flags: type or ((money/get-sign as red-money! value) << 14)
+				flags: type or ((money/get-sign as red-money! data) << 14)
 				REDBIN_EMIT :flags 4
-				REDBIN_EMIT :value/data1 4
-				REDBIN_EMIT :value/data2 4
-				REDBIN_EMIT :value/data3 4
+				REDBIN_EMIT :data/data1 4
+				REDBIN_EMIT :data/data2 4
+				REDBIN_EMIT :data/data3 4
 			]
 			TYPE_BITSET [
-				len: bitset/length? as red-bitset! value
+				len: bitset/length? as red-bitset! data
 				REDBIN_EMIT :type 4
 				REDBIN_EMIT :len  4
-				REDBIN_EMIT* bitset/rs-head as red-bitset! value len >> 3
+				REDBIN_EMIT* bitset/rs-head as red-bitset! data len >> 3
+				pad payload 4						;-- pad to 32-bit boundary
+			]
+			TYPE_VECTOR [
+				ser:  as red-series! data
+				len:  _series/get-length ser yes
+				buf:  GET_BUFFER(ser)
+				unit: GET_UNIT(buf)
+				flags: type or (unit << 8)
+				
+				REDBIN_EMIT  :flags 4				;-- header
+				REDBIN_EMIT  :data/data1 4			;-- head
+				REDBIN_EMIT  :len 4					;-- size (in elements)
+				REDBIN_EMIT  :data/data3 4			;-- type
+				REDBIN_EMIT* as byte-ptr! buf/offset len << log-b unit
 				pad payload 4						;-- pad to 32-bit boundary
 			]
 			default [--NOT_IMPLEMENTED--]			;@@ TBD: proper error message
