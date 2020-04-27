@@ -342,6 +342,26 @@ redbin: context [
 		if nl? [slot/header: slot/header or flag-new-line]
 		data + 4
 	]
+	
+	decode-bitset: func [
+		data    [int-ptr!]
+		parent  [red-block!]
+		nl?     [logic!]
+		return: [int-ptr!]
+		/local
+			slot [red-value!]
+			bits [byte-ptr!]
+			size [integer!]
+	][
+		size: data/2 >> 3							;-- in bytes
+		bits: as byte-ptr! data + 2
+		slot: as red-value! binary/load-in bits size parent
+		
+		set-type slot TYPE_BITSET
+		if nl? [slot/header: slot/header or flag-new-line]
+		
+		as int-ptr! (as integer! bits + size) + 3 and not 3	;-- align at upper 32-bit boundary
+	]
 
 	decode-value: func [
 		data	[int-ptr!]
@@ -433,11 +453,11 @@ redbin: context [
 			TYPE_OP			[decode-native data table parent nl?]
 			TYPE_TUPLE		[decode-tuple data parent nl?]
 			TYPE_MONEY		[decode-money data parent nl?]
+			TYPE_BITSET     [decode-bitset data parent nl?]
 			REDBIN_PADDING	[
 				decode-value data + 1 table parent
 			]
 			TYPE_FUNCTION
-			TYPE_BITSET
 			TYPE_POINT
 			TYPE_OBJECT
 			TYPE_ERROR
