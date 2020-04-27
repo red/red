@@ -142,6 +142,38 @@ Red [
 				--assert value == test/one value
 			]
 		
+		--test-- "one-vector"
+			;--assert strict-equal? make vector! [] test/one make vector! []
+			--assert strict-equal? make vector! [1] test/one make vector! [1]
+			--assert strict-equal? make vector! [#"a"] test/one make vector! [#"a"]
+			--assert strict-equal? make vector! [1.0] test/one make vector! [1.0]
+			--assert strict-equal? make vector! [1%] test/one make vector! [1%]
+			--assert strict-equal?
+				next make vector! [1 2 3]
+				test/one next make vector! [1 2 3]
+			--assert strict-equal?
+				skip make vector! [1% 2% 3% 4% 5%] 3
+				test/one skip make vector! [1% 2% 3% 4% 5%] 3
+			--assert strict-equal?
+				make vector! [#"a" #"b" #"c"]
+				head test/one tail make vector! [#"a" #"b" #"c"]
+			
+			loop 50 [
+				value: attempt [
+					skip make vector! reduce [
+						type: random/only [integer! float! percent! char!]
+						random/only [8 16 32 64]
+						collect [loop random 10 [keep to get type random 100]]
+					] (random 4) - 1
+				]
+				
+				if vector? value [					;-- some unit sizes and types are incompatible
+					--assert value == test/one value
+					--assert (index? value) == (index? test/one value)
+				]
+			]
+			
+			
 	===end-group===
 
 ~~~end-file~~~
