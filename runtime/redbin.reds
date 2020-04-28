@@ -414,12 +414,7 @@ redbin: context [
 			TYPE_LIT_WORD
 			TYPE_GET_WORD
 			TYPE_REFINEMENT [decode-word data table parent nl?]
-			TYPE_STRING
-			TYPE_FILE
-			TYPE_URL
-			TYPE_TAG
-			TYPE_REF
-			TYPE_EMAIL
+			TYPE_ANY_STRING
 			TYPE_BINARY		[decode-string data parent nl?]
 			TYPE_INTEGER	[
 				cell: as cell! integer/make-in parent data/2
