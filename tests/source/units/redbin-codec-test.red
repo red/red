@@ -185,7 +185,35 @@ Red [
 					--assert (index? value) == (index? test/one value)
 				]
 			]
+		
+		--test-- "one-binary"
+			bytes: [#{} #{F0} #{CAFE} #{C0FFEE} #{BADFACE} #{DEADBEEF}]
+			forall bytes [--assert bytes/1 == head test/one skip bytes/1 (random 4) - 1]
 			
+			loop 10 [
+				value: skip
+					to binary! random to tuple! copy/part 64#{////////////////} 2 + random 11
+					(random 4) - 1
+				
+				--assert value == test/one value
+				--assert (index? value) == (index? test/one value)
+			]
+		
+		--test-- "one-any-string"
+			strings: ["string" <tag> email@address url:// %file
+			;@reference
+			]
+			forall strings [--assert strings/1 == head test/one skip strings/1 (random 4) - 1]
+		
+			loop 10 [
+				value: charset to binary! random to tuple! copy/part 64#{////////////////} 2 + random 11
+				value: to
+					get random/only [string! tag! email! ref! url! file!]
+					rejoin collect [repeat i length? value [if value/:i [keep to char! i]]]
+					
+				--assert value == test/one value
+			]
+		
 	===end-group===
 
 ~~~end-file~~~
