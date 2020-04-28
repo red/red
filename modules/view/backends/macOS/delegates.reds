@@ -1026,7 +1026,25 @@ win-will-close: func [
 	self	[integer!]
 	cmd		[integer!]
 	notif	[integer!]
+	/local
+		i	[integer!]
+		n	[integer!]
+		p	[int-ptr!]
+		pp	[int-ptr!]
 ][
+	p: as int-ptr! vector/rs-head active-wins
+	n: vector/rs-length? active-wins
+	i: 0
+	while [i < n][
+		pp: p + 1
+		if pp/value = self [		;-- active its parent window
+			objc_msgSend [p/value sel_getUid "makeKeyAndOrderFront:" p/value]
+			string/remove-part as red-string! active-wins i 2
+			break
+		]
+		p: p + 2
+		i: i + 2
+	]
 	0
 ]
 
