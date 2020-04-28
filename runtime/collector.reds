@@ -178,11 +178,7 @@ collector: context [
 					keep as node! series/extra
 					if series/node <> null [keep series/node]
 				]
-				TYPE_STRING
-				TYPE_URL 
-				TYPE_FILE
-				TYPE_TAG 
-				TYPE_EMAIL [
+				TYPE_ANY_STRING [
 					#if debug? = yes [if verbose > 1 [print as-c-string string/rs-head as red-string! value]]
 					series: as red-series! value
 					keep series/node
