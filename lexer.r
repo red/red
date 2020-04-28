@@ -101,6 +101,7 @@ lexer: context [
 	not-file-char:	charset {[](){}"@:;}
 	not-url-char:	charset {[](){}";}
 	not-email-char:	union not-file-char union ws-ASCII charset "<^/"
+	not-ref-char:   exclude not-email-char charset "@:"
 	not-str-char:	#"^""
 	not-mstr-char:	#"}"
 	not-tag-1st:	complement union ws-ASCII charset "=><[](){};^""
@@ -266,7 +267,7 @@ lexer: context [
 	
 	issue-rule: [#"#" (type: issue!) s: symbol-rule]
 	
-	ref-rule: [#"@" s: symbol-rule]
+	ref-rule: [(stop: [not-ref-char]) #"@" s: any UTF8-filtered-char e:]
 	
 	refinement-rule: [slash (type: refinement!) s: symbol-rule]
 	
