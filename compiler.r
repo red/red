@@ -1774,7 +1774,7 @@ red: context [
 					emit to-nibbles copy skip value 4
 				]
 				ref? [
-					idx: redbin/emit-string/root/ref to string! next value
+					idx: redbin/emit-string/root next value	;-- issue! is an any-string! in Rebol2
 					emit 'ref/push
 					emit compose [as red-string! get-root (idx)]
 					insert-lf -5

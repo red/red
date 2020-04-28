@@ -215,9 +215,9 @@ context [
 		]
 		index - 1
 	]
-
-	emit-string: func [str [any-string!] /root /ref /local type unit header][
-		type: either ref ['TYPE_REF][
+	
+	emit-string: func [str [any-string!] /root /local type unit header][
+		type: either issue? str ['TYPE_REF][				;-- internal encoding of ref! datatype
 			select [
 				string! TYPE_STRING
 				file!	TYPE_FILE
@@ -227,7 +227,8 @@ context [
 				binary! TYPE_BINARY
 			] type?/word str
 		]
-
+		
+		str: to string! str
 		either type = 'TYPE_BINARY [unit: 1][set [str unit] decode-UTF8 str]
 		header: extracts/definitions/:type or shift/left unit 8
 		if nl? [header: header or nl-flag]
@@ -235,7 +236,7 @@ context [
 		emit header
 		emit (index? str) - 1								 ;-- head
 		emit (length? str) / unit
-		append buffer to string! str
+		append buffer str
 		pad buffer 4
 
 		if root [
@@ -362,7 +363,7 @@ context [
 								no
 							]
 							ref-value? :item [
-								emit-string/ref to string! next item
+								emit-string next item
 								no
 							]
 							'else [
