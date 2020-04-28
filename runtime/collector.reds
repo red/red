@@ -155,10 +155,7 @@ collector: context [
 				]
 				TYPE_BLOCK
 				TYPE_PAREN
-				TYPE_PATH
-				TYPE_LIT_PATH
-				TYPE_GET_PATH
-				TYPE_SET_PATH [
+				TYPE_ANY_PATH [
 					series: as red-series! value
 					if series/node <> null [			;-- can happen in routine
 						#if debug? = yes [if verbose > 1 [print ["len: " block/rs-length? as red-block! series]]]
@@ -178,11 +175,7 @@ collector: context [
 					keep as node! series/extra
 					if series/node <> null [keep series/node]
 				]
-				TYPE_STRING
-				TYPE_URL 
-				TYPE_FILE
-				TYPE_TAG 
-				TYPE_EMAIL [
+				TYPE_ANY_STRING [
 					#if debug? = yes [if verbose > 1 [print as-c-string string/rs-head as red-string! value]]
 					series: as red-series! value
 					keep series/node
