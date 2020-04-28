@@ -10,6 +10,8 @@ Red [
 #include  %../../../quick-test/quick-test.red
 
 ~~~start-file~~~ "Redbin codec"
+	random/seed C0DECh								;-- seed for tests that use random
+	
 	test: function [value [any-type!] /one][
 		data: load/as save/as none :value 'redbin 'redbin
 		either one [first data][data]
@@ -29,6 +31,7 @@ Red [
 		--test-- "one-logic"
 			--assert true == test/one true
 			--assert false == test/one false
+			
 			loop 10 [
 				value: random true
 				--assert value == test/one value
@@ -41,6 +44,7 @@ Red [
 			--assert 1337 == test/one 1337
 			--assert (1 << 31) == test/one 1 << 31
 			--assert (complement 1 << 31) == test/one complement 1 << 31
+			
 			loop 10 [
 				value: random 1 << 30
 				value: value * random/only [-1 +1]
@@ -53,6 +57,7 @@ Red [
 			--assert null == test/one null
 			--assert #"^D" == test/one #"^(4)"
 			--assert #"💾" == test/one #"💾"
+			
 			loop 10 [
 				value: random #"Z"
 				--assert value == test/one value
@@ -65,6 +70,7 @@ Red [
 			--assert "1.#NaN" == mold test/one 1.#NaN
 			--assert 1.#INF == test/one 1.#INF
 			--assert -1.#INF == test/one -1.#INF
+			
 			loop 10 [
 				value: random 1'000'000'000'000
 				value: value * random/only [-1 +1]
@@ -76,6 +82,7 @@ Red [
 			--assert 1% == test/one 1%
 			--assert -1% == test/one -1%
 			--assert 100% == test/one 100%
+			
 			loop 10 [
 				value: random 10000000000000000%
 				value: value * random/only [-1 +1]
@@ -88,6 +95,7 @@ Red [
 			--assert 1x0 == test/one 1x0
 			--assert 1x1 == test/one 1x1
 			--assert -1x-2 == test/one -1x-2
+			
 			loop 10 [
 				value: random 10000x10000
 				value: value * random/only [-1 +1]
@@ -97,6 +105,7 @@ Red [
 		--test-- "one-tuple"
 			--assert 0.0.0 == test/one 0.0.0
 			--assert 1.2.3.4.5.6.7.8.9 == test/one 1.2.3.4.5.6.7.8.9
+			
 			loop 10 [
 				value: random to tuple! copy/part 64#{////////////////} 2 + random 11
 				--assert value == test/one value
@@ -105,6 +114,7 @@ Red [
 		--test-- "one-time"
 			--assert 0:0 == test/one 0:0
 			--assert 1:2:3.456 == test/one 1:2:3.456
+			
 			loop 10 [
 				value: random now/time/precise
 				value: value * random/only [-1 +1]
@@ -114,6 +124,7 @@ Red [
 		--test-- "one-date"
 			--assert 1/1/1 == test/one 1/1/1
 			--assert 9-Sep-99 == test/one 9/9/99
+			
 			loop 10 [
 				value: random now
 				--assert value == test/one value
@@ -124,6 +135,7 @@ Red [
 			--assert $1 == test/one $1
 			--assert -$1 == test/one -$1
 			--assert -USD$1234.56789 == test/one -USD$1234.56789
+			
 			loop 10 [
 				value: as-money pick system/locale/currencies/list random 170 random 1'000
 				value: value * random/only [-1 +1]
@@ -137,6 +149,7 @@ Red [
 			--assert strict-equal? charset #{BADFACE} test/one charset #{BADFACE}
 			--assert strict-equal? charset #{DEADBEEF} test/one charset #{DEADBEEF}
 			--assert strict-equal? charset [#"a" - #"z"] test/one charset [#"a" - #"z"]
+			
 			loop 10 [
 				value: charset to binary! random to tuple! copy/part 64#{////////////////} 2 + random 11
 				--assert value == test/one value
@@ -158,7 +171,7 @@ Red [
 				make vector! [#"a" #"b" #"c"]
 				head test/one tail make vector! [#"a" #"b" #"c"]
 			
-			loop 50 [
+			loop 100 [
 				value: attempt [
 					skip make vector! reduce [
 						type: random/only [integer! float! percent! char!]
