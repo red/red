@@ -20,7 +20,7 @@ change-para: func [
 ][
 	para: as red-object! values + FACE_OBJ_PARA
 	if TYPE_OF(para) <> TYPE_OBJECT [return no]
-	set-font widget face values
+	change-font widget face values
 	yes
 ]
 

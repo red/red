@@ -1,9 +1,9 @@
 Red/System [
-	Title:	"GTK3 fonts management"
-	Author: "Qingtian Xie, Thiago Dourado de Andrade, RCqls, bitbegin"
+	Title:	"GTK3 font"
+	Author: "bitbegin"
 	File: 	%font.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2019 Red Foundation. All rights reserved."
+	Rights: "Copyright (C) 2020 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -11,29 +11,17 @@ Red/System [
 ]
 
 default-attrs: as handle! 0
-default-css: as GString! 0
+default-css: g_string_sized_new 64
 
-set-default-font: func [
-	name		[c-string!]
-	size		[integer!]
-	/local
-		attr	[PangoAttribute!]
-][
+init-default-handle: does [
 	unless null? default-attrs [
 		pango_attr_list_unref default-attrs
 	]
-	default-attrs: create-simple-attrs name size null
-
-	unless null? default-css [
-		g_string_free default-css true
-	]
-	default-css: create-simple-css name size null
+	default-attrs: create-default-attrs
+	create-default-css default-css
 ]
 
-create-simple-attrs: func [
-	name		[c-string!]
-	size		[integer!]
-	color		[red-tuple!]
+create-default-attrs: func [
 	return:		[handle!]
 	/local
 		list	[handle!]
@@ -46,38 +34,26 @@ create-simple-attrs: func [
 		a		[integer!]
 ][
 	list: pango_attr_list_new
-	attr: pango_attr_family_new name
+	attr: pango_attr_family_new default-font-name
 	pango_attr_list_insert list attr
-	attr: pango_attr_size_new PANGO_SCALE * size
+	attr: pango_attr_size_new PANGO_SCALE * default-font-size
 	pango_attr_list_insert list attr
 
-	if all [
-		not null? color
-		TYPE_OF(color) = TYPE_TUPLE
-		not all [
-			TUPLE_SIZE?(color) = 4
-			color/array1 and FF000000h = FF000000h
-		]
-	][
-		alpha?: 0
-		rgb: get-color-int color :alpha?
-		r: 0 g: 0 b: 0 a: 0
-		color-u8-to-u16 rgb :r :g :b :a
-		attr: pango_attr_background_new r g b
-		pango_attr_list_insert list attr
-		attr: pango_attr_background_alpha_new a
-		pango_attr_list_insert list attr
-	]
+	alpha?: 0
+	rgb: default-font-color
+	alpha?: 1
+	r: 0 g: 0 b: 0 a: 0
+	color-u8-to-u16 rgb :r :g :b :a
+	attr: pango_attr_foreground_new r g b
+	pango_attr_list_insert list attr
+	attr: pango_attr_foreground_alpha_new a
+	pango_attr_list_insert list attr
 	list
 ]
 
-create-simple-css: func [
-	name		[c-string!]
-	size		[integer!]
-	color		[red-tuple!]
-	return:		[GString!]
+create-default-css: func [
+	css			[GString!]
 	/local
-		css		[GString!]
 		rgb		[integer!]
 		alpha?	[integer!]
 		r		[integer!]
@@ -85,67 +61,12 @@ create-simple-css: func [
 		b		[integer!]
 		a		[float!]
 ][
-	css: g_string_sized_new 64
+	g_string_set_size css 0
 	g_string_append css "* {"
-	g_string_append_printf [css { font-family: "%s";} name]
-	g_string_append_printf [css { font-size: %dpt;} size]
-
-	b: 255 g: 255 r: 255 a: 1.0
-	if all [
-		not null? color
-		TYPE_OF(color) = TYPE_TUPLE
-		not all [
-			TUPLE_SIZE?(color) = 4
-			color/array1 and FF000000h = FF000000h
-		]
-	][
-		alpha?: 0
-		rgb: get-color-int color :alpha?
-		b: rgb >> 16 and FFh
-		g: rgb >> 8 and FFh
-		r: rgb and FFh
-		a: 1.0
-		if alpha? = 1 [
-			a: (as float! 255 - (rgb >>> 24)) / 255.0
-		]
-		g_string_append_printf [css { background-color: rgba(%d, %d, %d, %.3f);} r g b a]
-	]
-	g_string_append css "}"
-	g_string_append css " * selection {"
-	g_string_append_printf [css { color: rgba(%d, %d, %d, %.3f);} r g b a]
-	g_string_append_printf [css { background-color: rgba(%d, %d, %d, %.3f);} 0 0 0 1.0]
-	g_string_append css "}"
-	css
-]
-
-create-trans-css: func [
-	return:		[GString!]
-	/local
-		css		[GString!]
-][
-	css: g_string_sized_new 64
-	g_string_append css "* {"
-	g_string_append css { background-color: transparent;}
-	g_string_append css "}"
-	css
-]
-
-create-background-css: func [
-	color		[red-tuple!]
-	return:		[GString!]
-	/local
-		css		[GString!]
-		rgb		[integer!]
-		alpha?	[integer!]
-		r		[integer!]
-		g		[integer!]
-		b		[integer!]
-		a		[float!]
-][
-	css: g_string_sized_new 64
-	g_string_append css "* {"
-	alpha?: 0
-	rgb: get-color-int color :alpha?
+	g_string_append_printf [css { font-family: "%s";} default-font-name]
+	g_string_append_printf [css { font-size: %dpt;} default-font-size]
+	rgb: default-font-color
+	alpha?: 1
 	b: rgb >> 16 and FFh
 	g: rgb >> 8 and FFh
 	r: rgb and FFh
@@ -153,189 +74,78 @@ create-background-css: func [
 	if alpha? = 1 [
 		a: (as float! 255 - (rgb >>> 24)) / 255.0
 	]
+	g_string_append_printf [css { color: rgba(%d, %d, %d, %.3f);} r g b a]
+	g_string_append css "}"
+	g_string_append css " * selection {"
 	g_string_append_printf [css { background-color: rgba(%d, %d, %d, %.3f);} r g b a]
 	g_string_append css "}"
-	css
 ]
 
-set-label-attrs: func [
-	label		[handle!]
+;-- create css styles
+;-- TBD: support `angle`
+;-- `anti-alias` need to be set by cairo
+create-css: func [
+	face		[red-object!]
 	font		[red-object!]
-	hfont		[handle!]
+	css			[GString!]
 	/local
 		values	[red-value!]
-		int		[red-integer!]
-		angle	[integer!]
-][
-	if all [
-		not null? font
-		TYPE_OF(font) = TYPE_OBJECT
-	][
-		values: object/get-values font
-
-		int: as red-integer! values + FONT_OBJ_ANGLE
-		angle: either TYPE_OF(int) = TYPE_INTEGER [int/value][0]
-		gtk_label_set_angle label as float! angle
-	]
-
-	gtk_label_set_attributes label hfont
-]
-
-
-set-label-para: func [
-	label		[handle!]
-	hsym		[integer!]
-	vsym		[integer!]
-	wrap?		[logic!]
-	/local
-		f		[float32!]
-][
-	case [
-		hsym = _para/left [
-			f: as float32! 0.0
-		]
-		hsym = _para/right [
-			f: as float32! 1.0
-		]
-		true [
-			f: as float32! 0.5
-		]
-	]
-	gtk_label_set_xalign label f
-	case [
-		vsym = _para/top [
-			f: as float32! 0.0
-		]
-		vsym = _para/bottom [
-			f: as float32! 1.0
-		]
-		true [
-			f: as float32! 0.5
-		]
-	]
-	gtk_label_set_yalign label f
-	gtk_label_set_line_wrap label wrap?
-]
-
-set-entry-para: func [
-	entry		[handle!]
-	hsym		[integer!]
-	vsym		[integer!]
-	wrap?		[logic!]
-	/local
-		layout	[handle!]
-][
-	layout: gtk_entry_get_layout entry
-	case [
-		hsym = _para/left [
-			pango_layout_set_alignment layout PANGO_ALIGN_LEFT
-		]
-		hsym = _para/right [
-			pango_layout_set_alignment layout PANGO_ALIGN_RIGHT
-		]
-		true [
-			pango_layout_set_alignment layout PANGO_ALIGN_CENTER
-		]
-	]
-	case [
-		vsym = _para/top [
-			gtk_widget_set_halign entry GTK_ALIGN_START
-		]
-		vsym = _para/bottom [
-			gtk_widget_set_halign entry GTK_ALIGN_END
-		]
-		true [
-			gtk_widget_set_halign entry GTK_ALIGN_CENTER
-		]
-	]
-	if wrap? [
-		pango_layout_set_wrap layout PANGO_WRAP_WORD
-	]
-]
-
-set-textview-para: func [
-	widget		[handle!]
-	hsym		[integer!]
-	vsym		[integer!]
-	wrap?		[logic!]
-][
-	case [
-		hsym = _para/left [
-			gtk_text_view_set_justification widget GTK_JUSTIFY_LEFT
-		]
-		hsym = _para/right [
-			gtk_text_view_set_justification widget GTK_JUSTIFY_RIGHT
-		]
-		true [
-			gtk_text_view_set_justification widget GTK_JUSTIFY_CENTER
-		]
-	]
-	case [
-		vsym = _para/top [
-			gtk_widget_set_halign widget GTK_ALIGN_START
-		]
-		vsym = _para/bottom [
-			gtk_widget_set_halign widget GTK_ALIGN_END
-		]
-		true [
-			gtk_widget_set_halign widget GTK_ALIGN_CENTER
-		]
-	]
-
-	gtk_text_view_set_wrap_mode widget
-		either wrap? [GTK_WRAP_WORD][GTK_WRAP_NONE]
-]
-
-update-textview-tag: func [
-	buffer		[handle!]
-	start		[handle!]
-	end			[handle!]
-	/local
-		table	[handle!]
-		tag		[handle!]
-][
-	table: gtk_text_buffer_get_tag_table buffer
-	tag: gtk_text_tag_table_lookup table "weight"
-	unless null? tag [
-		gtk_text_buffer_apply_tag buffer tag start end
-	]
-	tag: gtk_text_tag_table_lookup table "italic"
-	unless null? tag [
-		gtk_text_buffer_apply_tag buffer tag start end
-	]
-	tag: gtk_text_tag_table_lookup table "underline"
-	unless null? tag [
-		gtk_text_buffer_apply_tag buffer tag start end
-	]
-	tag: gtk_text_tag_table_lookup table "strike"
-	unless null? tag [
-		gtk_text_buffer_apply_tag buffer tag start end
-	]
-]
-
-set-textview-tag: func [
-	widget		[handle!]
-	font		[red-object!]
-	/local
-		buffer	[handle!]
-		start	[GtkTextIter! value]
-		end		[GtkTextIter! value]
-		tag		[handle!]
-		values	[red-value!]
-		style	[red-word!]
+		str		[red-string!]
+		name	[c-string!]
 		len		[integer!]
+		int		[red-integer!]
+		size	[integer!]
+		color	[red-tuple!]
+		rgb		[integer!]
+		alpha?	[integer!]
+		r		[integer!]
+		g		[integer!]
+		b		[integer!]
+		a		[float!]
+		style	[red-word!]
 		blk		[red-block!]
 		sym		[integer!]
 ][
-	unless all [
-		not null? font
-		TYPE_OF(font) = TYPE_OBJECT
-	][exit]
-	buffer: gtk_text_view_get_buffer widget
-	gtk_text_buffer_get_bounds buffer as handle! start as handle! end
-	gtk_text_buffer_remove_all_tags buffer as handle! start as handle! end
+	g_string_set_size css 0
+	g_string_append css "* {"
 
 	values: object/get-values font
+	str: as red-string! values + FONT_OBJ_NAME
+	name: either TYPE_OF(str) = TYPE_STRING [
+		len: -1
+		unicode/to-utf8 str :len
+	][default-font-name]
+	g_string_append_printf [css { font-family: "%s";} name]
+
+	int: as red-integer! values + FONT_OBJ_SIZE
+	size: either TYPE_OF(int) <> TYPE_INTEGER [default-font-size][
+		int/value
+	]
+	g_string_append_printf [css { font-size: %dpt;} size]
+
+	color: as red-tuple! values + FONT_OBJ_COLOR
+	alpha?: 0
+	either TYPE_OF(color) = TYPE_TUPLE [
+		rgb: get-color-int color :alpha?
+	][
+		rgb: default-font-color
+		alpha?: 1
+	]
+	b: rgb >> 16 and FFh
+	g: rgb >> 8 and FFh
+	r: rgb and FFh
+	a: 1.0
+	if alpha? = 1 [
+		a: (as float! 255 - (rgb >>> 24)) / 255.0
+	]
+	g_string_append_printf [css { color: rgba(%d, %d, %d, %.3f);} r g b a]
+
+	;-- ? GTK3 warnings
+	;int: as red-integer! values + FONT_OBJ_ANGLE
+	;if TYPE_OF(int) = TYPE_INTEGER [
+	;	g_string_append_printf [css { font-style: oblique %ddeg;} int/value]
+	;]
+
 	style: as red-word! values + FONT_OBJ_STYLE
 	len: switch TYPE_OF(style) [
 		TYPE_BLOCK [
@@ -346,56 +156,33 @@ set-textview-tag: func [
 		TYPE_WORD  [1]
 		default	   [0]
 	]
+
 	unless zero? len [
 		loop len [
 			sym: symbol/resolve style/symbol
 			case [
 				sym = _bold [
-					tag: gtk_text_buffer_create_tag [buffer "weight" "weight" PANGO_WEIGHT_BOLD null]
-					gtk_text_buffer_apply_tag buffer tag as handle! start as handle! end
+					g_string_append css " font-weight: bold;"
 				]
 				sym = _italic [
-					tag: gtk_text_buffer_create_tag [buffer "italic" "style" PANGO_STYLE_ITALIC null]
-					gtk_text_buffer_apply_tag buffer tag as handle! start as handle! end
+					g_string_append css " font-style: italic;"
 				]
 				sym = _underline [
-					tag: gtk_text_buffer_create_tag [buffer "underline" "underline" PANGO_UNDERLINE_SINGLE null]
-					gtk_text_buffer_apply_tag buffer tag as handle! start as handle! end
+					g_string_append css " text-decoration: underline;"
 				]
 				sym = _strike [
-					tag: gtk_text_buffer_create_tag [buffer "strike" "strikethrough" true null]
-					gtk_text_buffer_apply_tag buffer tag as handle! start as handle! end
+					g_string_append css " text-decoration: line-through;"
 				]
 				true			 [0]
 			]
 			style: style + 1
 		]
 	]
-]
 
-set-text-list-font: func [
-	widget		[handle!]
-	hsym		[integer!]
-	vsym		[integer!]
-	wrap?		[logic!]
-	font		[red-object!]
-	hfont		[handle!]
-	/local
-		list	[GList!]
-		child	[GList!]
-		label	[handle!]
-][
-	list: gtk_container_get_children widget
-	child: list
-	while [not null? child][
-		label: gtk_bin_get_child child/data
-		set-label-para label hsym vsym wrap?
-		set-label-attrs label font hFont
-		child: child/next
-	]
-	unless null? list [
-		g_list_free list
-	]
+	g_string_append css "}"
+	g_string_append css " * selection {"
+	g_string_append_printf [css { background-color: rgba(%d, %d, %d, %.3f);} r g b a]
+	g_string_append css "}"
 ]
 
 ;-- create pango attributes
@@ -521,28 +308,30 @@ free-pango-attrs: func [
 	pango_attr_list_unref attrs
 ]
 
-make-attrs: func [
+make-font: func [
 	face		[red-object!]
 	font		[red-object!]
 	return:		[handle!]
 	/local
-		list	[handle!]
+		attrs	[handle!]
 		values	[red-value!]
 		blk		[red-block!]
 		int		[red-integer!]
 ][
-	list: create-pango-attrs face font
+	if TYPE_OF(font) <> TYPE_OBJECT [
+		return null
+	]
+	attrs: create-pango-attrs face font
 	values: object/get-values font
 	blk: as red-block! values + FONT_OBJ_STATE
 	either TYPE_OF(blk) <> TYPE_BLOCK [
-		block/make-at blk 3
-		handle/make-in blk as-integer list
-		none/make-in blk
+		block/make-at blk 2
+		handle/make-in blk as-integer attrs
 		none/make-in blk
 	][
 		int: as red-integer! block/rs-head blk
 		int/header: TYPE_HANDLE
-		int/value: as-integer list
+		int/value: as-integer attrs
 	]
 
 	blk: as red-block! values + FONT_OBJ_PARENT
@@ -550,179 +339,127 @@ make-attrs: func [
 		blk: block/make-at as red-block! values + FONT_OBJ_PARENT 4
 		block/rs-append blk as red-value! face
 	]
-	list
+	attrs
 ]
 
-;-- create css styles
-;-- TBD: support `angle`
-;-- `anti-alias` need to be set by cairo
-create-css: func [
-	face		[red-object!]
+
+get-font-handle: func [
 	font		[red-object!]
-	return:		[GString!]
+	idx			[integer!]
+	return:		[handle!]
 	/local
-		css		[GString!]
-		values	[red-value!]
-		str		[red-string!]
-		name	[c-string!]
-		len		[integer!]
-		int		[red-integer!]
-		size	[integer!]
+		state	[red-block!]
+		handle	[red-handle!]
+][
+	state: as red-block! (object/get-values font) + FONT_OBJ_STATE
+	if TYPE_OF(state) = TYPE_BLOCK [
+		handle: (as red-handle! block/rs-head state) + idx
+		if TYPE_OF(handle) = TYPE_HANDLE [
+			return as handle! handle/value
+		]
+	]
+	null
+]
+
+get-font: func [
+	face	[red-object!]
+	font	[red-object!]
+	return: [handle!]
+	/local
+		hFont [handle!]
+][
+	if TYPE_OF(font) <> TYPE_OBJECT [return null]
+	hFont: get-font-handle font 0
+	if null? hFont [hFont: make-font face font]
+	hFont
+]
+
+free-font: func [
+	font [red-object!]
+	/local
+		state [red-block!]
+		hFont [handle!]
+][
+	hFont: get-font-handle font 0
+	if hFont <> null [
+		pango_attr_list_unref hFont
+		state: as red-block! (object/get-values font) + FONT_OBJ_STATE
+		state/header: TYPE_NONE
+	]
+]
+
+update-font: func [
+	font [red-object!]
+	flag [integer!]
+][
+	switch flag [
+		FONT_OBJ_NAME
+		FONT_OBJ_SIZE
+		FONT_OBJ_STYLE
+		FONT_OBJ_ANGLE
+		FONT_OBJ_ANTI-ALIAS? [
+			free-font font
+			make-font null font
+		]
+		default [0]
+	]
+]
+
+change-font: func [
+	widget		[handle!]
+	face		[red-object!]
+	values		[red-value!]
+	/local
+		font	[red-object!]
 		color	[red-tuple!]
-		rgb		[integer!]
-		alpha?	[integer!]
-		r		[integer!]
-		g		[integer!]
-		b		[integer!]
-		a		[float!]
-		br		[integer!]
-		bg		[integer!]
-		bb		[integer!]
-		ba		[float!]
-		style	[red-word!]
-		blk		[red-block!]
+		para	[red-object!]
+		type	[red-word!]
 		sym		[integer!]
-][
-	css: g_string_sized_new 64
-	g_string_append css "* {"
-
-	values: object/get-values font
-
-	str: as red-string! values + FONT_OBJ_NAME
-	name: either TYPE_OF(str) = TYPE_STRING [
-		len: -1
-		unicode/to-utf8 str :len
-	][default-font-name]
-	g_string_append_printf [css { font-family: "%s";} name]
-
-	int: as red-integer! values + FONT_OBJ_SIZE
-	size: either TYPE_OF(int) <> TYPE_INTEGER [default-font-size][
-		int/value
-	]
-	g_string_append_printf [css { font-size: %dpt;} size]
-
-	b: 0 g: 0 r: 0 a: 1.0
-	color: as red-tuple! values + FONT_OBJ_COLOR
-	if TYPE_OF(color) = TYPE_TUPLE [
-		alpha?: 0
-		rgb: get-color-int color :alpha?
-		b: rgb >> 16 and FFh
-		g: rgb >> 8 and FFh
-		r: rgb and FFh
-		a: 1.0
-		if alpha? = 1 [
-			a: (as float! 255 - (rgb >>> 24)) / 255.0
-		]
-		g_string_append_printf [css { color: rgba(%d, %d, %d, %.3f);} r g b a]
-	]
-
-	;-- ? GTK3 warnings
-	;int: as red-integer! values + FONT_OBJ_ANGLE
-	;if TYPE_OF(int) = TYPE_INTEGER [
-	;	g_string_append_printf [css { font-style: oblique %ddeg;} int/value]
-	;]
-
-	style: as red-word! values + FONT_OBJ_STYLE
-	len: switch TYPE_OF(style) [
-		TYPE_BLOCK [
-			blk: as red-block! style
-			style: as red-word! block/rs-head blk
-			len: block/rs-length? blk
-		]
-		TYPE_WORD  [1]
-		default	   [0]
-	]
-
-	unless zero? len [
-		loop len [
-			sym: symbol/resolve style/symbol
-			case [
-				sym = _bold [
-					g_string_append css " font-weight: bold;"
-				]
-				sym = _italic [
-					g_string_append css " font-style: italic;"
-				]
-				sym = _underline [
-					g_string_append css " text-decoration: underline;"
-				]
-				sym = _strike [
-					g_string_append css " text-decoration: line-through;"
-				]
-				true			 [0]
-			]
-			style: style + 1
-		]
-	]
-
-	bb: 255 bg: 255 br: 255 ba: 1.0
-	unless null? face [
-		color: as red-tuple! (object/get-values face) + FACE_OBJ_COLOR
-		if all [
-			TYPE_OF(color) = TYPE_TUPLE
-			not all [
-				TUPLE_SIZE?(color) = 4
-				color/array1 and FF000000h = FF000000h
-			]
-		][
-			alpha?: 0
-			rgb: get-color-int color :alpha?
-			bb: rgb >> 16 and FFh
-			bg: rgb >> 8 and FFh
-			br: rgb and FFh
-			ba: 1.0
-			if alpha? = 1 [
-				ba: (as float! 255 - (rgb >>> 24)) / 255.0
-			]
-			g_string_append_printf [css { background-color: rgba(%d, %d, %d, %.3f);} br bg bb ba]
-		]
-	]
-
-	g_string_append css "}"
-	g_string_append css " * selection {"
-	g_string_append_printf [css { color: rgba(%d, %d, %d, %.3f);} br bg bb ba]
-	g_string_append_printf [css { background-color: rgba(%d, %d, %d, %.3f);} r g b a]
-	g_string_append css "}"
-	css
-]
-
-free-css: func [
-	css			[GString!]
-][
-	g_string_free css true
-]
-
-make-css: func [
-	face		[red-object!]
-	font		[red-object!]
-	return:		[GString!]
-	/local
+		prov	[handle!]
 		css		[GString!]
-		values	[red-value!]
-		blk		[red-block!]
-		int		[red-integer!]
+		layout	[handle!]
+		style	[handle!]
 ][
-	css: create-css face font
-	values: object/get-values font
+	font: as red-object! values + FACE_OBJ_FONT
+	color: as red-tuple! values + FACE_OBJ_COLOR
+	para: as red-object! values + FACE_OBJ_PARA
+	type: as red-word! values + FACE_OBJ_TYPE
+	sym: symbol/resolve type/symbol
 
-	blk: as red-block! values + FONT_OBJ_STATE
-	either TYPE_OF(blk) <> TYPE_BLOCK [
-		block/make-at blk 3
-		none/make-in blk
-		handle/make-in blk as-integer css
-		none/make-in blk
+	prov: GET-RED-FONT(widget)
+	either null? prov [
+		prov: create-provider widget
+		SET-RED-FONT(widget prov)
+		css: g_string_sized_new 128
+		SET-FONT-STR(widget css)
 	][
-		int: (as red-integer! block/rs-head blk) + 1
-		int/header: TYPE_HANDLE
-		int/value: as-integer css
+		css: GET-FONT-STR(widget)
 	]
+	either TYPE_OF(font) = TYPE_OBJECT [
+		create-css face font css
+	][
+		css: default-css						;-- we can exit here, and use theme css style
+	]
+	layout: get-face-layout widget values sym
+	if layout <> widget [
+		style: gtk_widget_get_style_context layout
+		gtk_style_context_add_provider style prov GTK_STYLE_PROVIDER_PRIORITY_USER
+	]
+	gtk_css_provider_load_from_data prov css/str -1 null
+]
 
-	blk: as red-block! values + FONT_OBJ_PARENT
-	if all [face <> null TYPE_OF(blk) <> TYPE_BLOCK][
-		blk: block/make-at as red-block! values + FONT_OBJ_PARENT 4
-		block/rs-append blk as red-value! face
-	]
-	css
+free-font-provider: func [
+	widget		[handle!]
+	/local
+		prov	[handle!]
+		css		[GString!]
+][
+	prov: GET-RED-FONT(widget)
+	free-provider prov
+	SET-RED-FONT(widget null)
+	css: GET-FONT-STR(widget)
+	g_string_free css true
+	SET-FONT-STR(widget 0)
 ]
 
 create-pango-font: func [
@@ -808,297 +545,10 @@ free-pango-font: func [
 	pango_font_description_free hFont
 ]
 
-make-font: func [
-	face		[red-object!]
-	font		[red-object!]
-	return:		[handle!]
+update-textview-tag: func [
+	buffer		[handle!]
+	start		[handle!]
+	end			[handle!]
 ][
-	if TYPE_OF(font) <> TYPE_OBJECT [
-		return null
-	]
-	make-css face font
-	make-attrs face font
-]
-
-get-font-handle: func [
-	font		[red-object!]
-	idx			[integer!]
-	return:		[handle!]
-	/local
-		state	[red-block!]
-		handle	[red-handle!]
-][
-	state: as red-block! (object/get-values font) + FONT_OBJ_STATE
-	if TYPE_OF(state) = TYPE_BLOCK [
-		handle: (as red-handle! block/rs-head state) + idx
-		if TYPE_OF(handle) = TYPE_HANDLE [
-			return as handle! handle/value
-		]
-	]
-	null
-]
-
-get-attrs: func [
-	face		[red-object!]
-	font		[red-object!]
-	return:		[handle!]
-	/local
-		hFont	[handle!]
-][
-	if TYPE_OF(font) <> TYPE_OBJECT [return null]
-	hFont: get-font-handle font 0
-	if null? hFont [hFont: make-attrs face font]
-	hFont
-]
-
-get-css: func [
-	face		[red-object!]
-	font		[red-object!]
-	return:		[GString!]
-	/local
-		css		[GString!]
-][
-	if TYPE_OF(font) <> TYPE_OBJECT [return null]
-	css: as GString! get-font-handle font 1
-	if null? css [css: make-css face font]
-	css
-]
-
-free-font: func [
-	font		[red-object!]
-	/local
-		state	[red-block!]
-		hFont	[handle!]
-		css		[GString!]
-][
-	if TYPE_OF(font) <> TYPE_OBJECT [exit]
-	hFont: get-font-handle font 0
-	unless null? hFont [
-		pango_attr_list_unref hFont
-	]
-	css: as GString! get-font-handle font 1
-	unless null? css [
-		g_string_free css true
-	]
-	state: as red-block! (object/get-values font) + FONT_OBJ_STATE
-	state/header: TYPE_NONE
-]
-
-set-font: func [
-	widget		[handle!]
-	face		[red-object!]
-	values		[red-value!]
-	/local
-		font	[red-object!]
-		color	[red-tuple!]
-		para	[red-object!]
-		hFont	[handle!]
-		newF?	[logic!]
-		css		[GString!]
-		newC?	[logic!]
-		type	[red-word!]
-		sym		[integer!]
-		layout	[handle!]
-		pvalues	[red-value!]
-		wrap?	[logic!]
-		hsym	[integer!]
-		vsym	[integer!]
-		label	[handle!]
-][
-	font: as red-object! values + FACE_OBJ_FONT
-	color: as red-tuple! values + FACE_OBJ_COLOR
-	para: as red-object! values + FACE_OBJ_PARA
-
-
-	hFont: get-attrs face font
-	newF?: false
-	if null? hFont [
-		newF?: true
-		hFont: create-simple-attrs default-font-name default-font-size color
-	]
-	css: get-css face font
-	newC?: false
-	if null? css [
-		newC?: true
-		css: create-simple-css default-font-name default-font-size color
-	]
-	type: as red-word! values + FACE_OBJ_TYPE
-	sym: symbol/resolve type/symbol
-	layout: get-face-layout widget values sym
-	if all [
-		sym = text
-		layout <> widget
-		TYPE_OF(color) = TYPE_TUPLE
-	][
-		apply-css-styles layout create-background-css color
-	]
-	either TYPE_OF(para) = TYPE_OBJECT [
-		pvalues: object/get-values para
-		wrap?: get-para-wrap pvalues
-		hsym: get-para-hsym pvalues
-		vsym: get-para-vsym pvalues
-	][
-		wrap?: no
-		hsym: _para/left
-		vsym: _para/middle
-	]
-	case [
-		sym = text [
-			set-label-para widget hsym vsym wrap?
-			set-label-attrs widget font hFont
-		]
-		any [
-			sym = button
-			sym = check
-			sym = radio
-		][
-			label: gtk_bin_get_child widget
-			;-- some button maybe have empty label
-			either g_type_check_instance_is_a label gtk_label_get_type [
-				set-label-para label hsym vsym wrap?
-				set-label-attrs label font hFont
-			][
-				apply-css-styles widget css
-			]
-		]
-		sym = field [
-			set-entry-para widget hsym vsym wrap?
-			gtk_entry_set_attributes widget hFont
-		]
-		sym = group-box [
-			label: gtk_frame_get_label_widget widget
-			either null? label [
-				apply-css-styles widget css
-			][
-				set-label-para label hsym vsym wrap?
-				set-label-attrs label font hFont
-			]
-		]
-		sym = area [
-			set-textview-para widget hsym vsym wrap?
-			set-textview-tag widget font
-			apply-css-styles widget css
-		]
-		sym = text-list [
-			set-text-list-font widget hsym vsym wrap? font hFont
-		]
-		true [
-			apply-css-styles widget css
-		]
-	]
-	if newF? [
-		free-pango-attrs hFont
-	]
-	if newC? [
-		free-css css
-	]
-]
-
-set-css: func [
-	widget		[handle!]
-	face		[red-object!]
-	values		[red-value!]
-	/local
-		font	[red-object!]
-		color	[red-tuple!]
-		css		[GString!]
-		newC?	[logic!]
-		handle	[red-handle!]
-		type	[red-word!]
-		sym		[integer!]
-		label	[handle!]
-][
-	font: as red-object! values + FACE_OBJ_FONT
-	color: as red-tuple! values + FACE_OBJ_COLOR
-	css: get-css face font
-	newC?: false
-	if null? css [
-		newC?: true
-		css: create-simple-css default-font-name default-font-size color
-	]
-	apply-css-styles widget css
-	if newC? [
-		free-css css
-	]
-]
-
-update-font: func [
-	font		[red-object!]
-	flag		[integer!]
-][
-	switch flag [
-		FONT_OBJ_NAME
-		FONT_OBJ_SIZE
-		FONT_OBJ_STYLE
-		FONT_OBJ_ANGLE
-		FONT_OBJ_ANTI-ALIAS? [
-			free-font font
-			make-font null font
-		]
-		default [0]
-	]
-]
-
-make-styles-provider: func [
-	widget		[handle!]
-	/local
-		style	[handle!]
-		prov	[handle!]
-][
-	prov:	gtk_css_provider_new
-	style:	gtk_widget_get_style_context widget
-
-	gtk_style_context_add_provider style prov GTK_STYLE_PROVIDER_PRIORITY_USER
-	g_object_set_qdata widget gtk-style-id prov
-]
-
-apply-css-styles: func [
-	widget		[handle!]
-	css			[GString!]
-	/local
-		prov	[handle!]
-][
-	prov: g_object_get_qdata widget gtk-style-id
-	gtk_css_provider_load_from_data prov css/str -1 null
-]
-
-css-provider: func [
-	path		[c-string!]
-	data		[c-string!]
-	priority	[integer!]
-	/local
-		prov	[handle!]
-		disp	[handle!]
-		screen	[handle!]
-][
-	prov: gtk_css_provider_new
-	if path <> null [gtk_css_provider_load_from_path prov path null]
-	if data <> null [gtk_css_provider_load_from_data prov data -1 null]
-	disp: gdk_display_get_default
-	screen: gdk_display_get_default_screen disp
-	gtk_style_context_add_provider_for_screen screen prov priority
-	g_object_unref prov
-]
-
-red-gtk-styles: func [
-	/local
-		env		[str-array!]
-		strarr	[handle!]
-		str		[c-string!]
-		found	[logic!]
-][
-	env: system/env-vars
-	found: no
-	until [
-		strarr: g_strsplit env/item "=" 2
-		str: as c-string! strarr/1
-		if 0 = g_strcmp0 str "RED_GTK_STYLES" [
-			str: as c-string! strarr/2
-			css-provider str null GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
-			found: yes
-		]
-		env: env + 1
-		g_strfreev strarr
-		any [found env/item = null]
-	]
+	0
 ]

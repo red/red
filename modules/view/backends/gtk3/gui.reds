@@ -14,6 +14,8 @@ Red/System [
 #include %gtk.reds
 #include %events.reds
 
+#include %css.reds
+#include %color.reds
 #include %font.reds
 #include %para.reds
 #include %draw.reds
@@ -30,6 +32,7 @@ settings:			as handle! 0
 pango-context:		as handle! 0
 default-font-name:	as c-string! 0
 default-font-size:	0
+default-font-color: 0
 default-font-width: 7		;-- pixel width
 gtk-font-name:		"Sans"
 gtk-font-size:		10
@@ -398,6 +401,8 @@ free-handles: func [
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
 
+	free-color-provider widget
+	free-font-provider widget
 	rate: values + FACE_OBJ_RATE
 	if TYPE_OF(rate) <> TYPE_NONE [change-rate widget none-value]
 
@@ -515,7 +520,8 @@ set-defaults: func [
 	len: len + 1
 	default-font-name/len: null-byte
 	default-font-size: size
-	set-default-font default-font-name default-font-size
+	default-font-color: 0					;-- default black
+	init-default-handle
 	default-font-width: font-width? null null
 ]
 
@@ -626,22 +632,6 @@ get-os-version: func [
 	ver/array1: micro << 16 or (minor << 8) or major
 ]
 
-set-red-css: func [
-	/local
-		css [c-string!]
-][
-	;-- set progress minimum size
-	css: {
-		.fsk_progress_face_h trough {
-			min-width: 1px;
-		}
-		.fsk_progress_face_v trough {
-			min-height: 1px;
-		}
-	}
-	css-provider null css GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
-]
-
 init: func [][
 	get-os-version
 	gtk_disable_setlocale
@@ -651,9 +641,8 @@ init: func [][
 	screen-size-y: gdk_screen_height
 
 	set-defaults
-	set-red-css
 
-	#if type = 'exe [red-gtk-styles]
+	#if type = 'exe [set-env-theme]
 	collector/register as int-ptr! :on-gc-mark
 ]
 
@@ -795,26 +784,6 @@ change-image: func [
 	]
 ]
 
-change-color: func [
-	widget		[handle!]
-	color		[red-tuple!]
-	type		[integer!]
-	/local
-		t		[integer!]
-		face	[red-object!]
-		values	[red-value!]
-		font	[red-object!]
-][
-	t: TYPE_OF(color)
-	if all [t <> TYPE_NONE t <> TYPE_TUPLE][exit]
-	face: get-face-obj widget
-	values: object/get-values face
-	font: as red-object! values + FACE_OBJ_FONT
-	free-font font
-	make-font face font
-	set-font widget face values
-]
-
 change-pane: func [
 	parent		[handle!]
 	pane		[red-block!]
@@ -889,20 +858,6 @@ change-pane: func [
 		]
 		gtk_widget_grab_focus focus
 	]
-]
-
-change-font: func [
-	widget		[handle!]
-	face		[red-object!]
-	values		[red-value!]
-	/local
-		font	[red-object!]
-][
-	font: as red-object! values + FACE_OBJ_FONT
-	if TYPE_OF(font) <> TYPE_OBJECT [exit]
-	free-font font
-	make-font face font
-	set-font widget face values
 ]
 
 change-offset: func [
@@ -1401,7 +1356,7 @@ font-width?: func [
 ][
 	string/load-at "abcde12xxx" 10 as red-value! :txt UTF-8
 	attrs: null
-	if font <> null [attrs: get-attrs face font]
+	if font <> null [attrs: get-font face font]
 	sz: get-text-size face txt attrs null
 	w: (as float32! sz/width) / as float32! 10.0
 	as-integer w
@@ -1649,7 +1604,6 @@ OS-make-view: func [
 		rfvalue		[red-float!]
 		attrs		[handle!]
 		ctx			[handle!]
-		newF?		[logic!]
 		handle		[handle!]
 		fradio		[handle!]
 		x			[integer!]
@@ -1820,12 +1774,9 @@ OS-make-view: func [
 		sym = progress [
 			widget: gtk_progress_bar_new
 			ctx: gtk_widget_get_style_context widget
-			either size/y > size/x [
+			if size/y > size/x [
 				gtk_orientable_set_orientation widget 1
 				gtk_progress_bar_set_inverted widget yes
-				gtk_style_context_add_class ctx "fsk_progress_face_v"
-			][
-				gtk_style_context_add_class ctx "fsk_progress_face_h"
 			]
 			fvalue: get-fraction-value as red-float! data
 			gtk_progress_bar_set_fraction widget fvalue
@@ -1885,37 +1836,25 @@ OS-make-view: func [
 
 	unless null? container [
 		SET-CONTAINER(widget container)
-		if sym = text [
-			make-styles-provider container
-		]
 	]
 	;-- store the face value in the extra space of the window struct
 	assert TYPE_OF(face) = TYPE_OBJECT
 	store-face-to-obj widget face
-	make-styles-provider widget
 
 	if all [
 		sym = panel
 		not null? caption
 	][
-		attrs: get-attrs face font
-		newF?: false
-		if null? attrs [
-			newF?: true
-			attrs: create-simple-attrs default-font-name default-font-size color
-		]
+		attrs: get-font face font
 		buffer: gtk_label_new caption
 		gtk_widget_show buffer
-		set-label-attrs buffer font attrs
+		;set-label-attrs buffer font attrs
 		handle: gtk_label_get_layout buffer
 		x: 0 y: 0
 		pango_layout_get_pixel_size handle :x :y
 		x: either size/x > x [size/x - x / 2][0]
 		y: either size/y > y [size/y - y / 2][0]
 		gtk_layout_put widget buffer x y
-		if newF? [
-			free-pango-attrs attrs
-		]
 		SET-CAPTION(widget buffer)
 	]
 
@@ -1941,6 +1880,8 @@ OS-make-view: func [
 	]
 
 	change-selection widget selected sym
+	init-min-size widget values sym
+	change-color widget color sym
 	change-font widget face values
 	change-enabled widget enabled?/value sym
 

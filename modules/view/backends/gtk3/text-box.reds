@@ -375,9 +375,9 @@ OS-text-box-layout: func [
 		font: as red-object! (object/get-values parent) + FACE_OBJ_FONT
 	]
 	attrs: either TYPE_OF(font) = TYPE_OBJECT [
-		create-pango-attrs null font
+		get-font null font
 	][
-		create-simple-attrs default-font-name default-font-size null
+		default-attrs
 	]
 	len: -1
 	str: unicode/to-utf8 text :len
@@ -404,6 +404,5 @@ OS-text-box-layout: func [
 		parse-text-styles target as handle! lc styles 7FFFFFFFh catch?
 	]
 	pango_layout_set_attributes layout attrs
-	free-pango-attrs attrs
 	layout
 ]

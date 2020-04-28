@@ -228,6 +228,8 @@ write %build/bin/sources.r set-cache [
 					%comdlgs.reds
 					%draw.reds
 					%events.reds
+					%css.reds
+					%color.reds
 					%font.reds
 					%gtk.reds
 					%gui.reds

@@ -945,28 +945,33 @@ GPtrArray!: alias struct! [
 			return:		[GString!]
 		]
 		g_string_append: "g_string_append" [
-			str		[GString!]
-			text	[c-string!]
-			return: [GString!]
+			str			[GString!]
+			text		[c-string!]
+			return:		[GString!]
 		]
 		g_string_assign: "g_string_assign" [
-			str		[GString!]
-			text	[c-string!]
-			return: [GString!]
+			str			[GString!]
+			text		[c-string!]
+			return:		[GString!]
 		]
 		g_string_append_len: "g_string_append_len" [
-			str		[GString!]
-			text	[c-string!]
-			len 	[integer!]
-			return: [GString!]
+			str			[GString!]
+			text		[c-string!]
+			len			[integer!]
+			return:		[GString!]
 		]
 		g_string_append_printf: "g_string_append_printf" [
 			[variadic]
 		]
 		g_string_free: "g_string_free" [
-			str		[GString!]
-			free	[logic!]
-			return:	[c-string!]
+			str			[GString!]
+			free		[logic!]
+			return:		[c-string!]
+		]
+		g_string_set_size: "g_string_set_size" [
+			str			[GString!]
+			len			[integer!]
+			return:		[GString!]
 		]
 	;; ]
 	;; LIBGIO-file cdecl [
@@ -3333,7 +3338,10 @@ red-face-id1:		g_quark_from_string "red-face-id1"
 red-face-id2:		g_quark_from_string "red-face-id2"
 red-face-id3:		g_quark_from_string "red-face-id3"
 red-face-id4:		g_quark_from_string "red-face-id4"
-gtk-style-id: 		g_quark_from_string "gtk-style-id"
+red-color-id:		g_quark_from_string "red-color-id"
+red-color-str:		g_quark_from_string "red-color-str"
+red-font-id:		g_quark_from_string "red-font-id"
+red-font-str:		g_quark_from_string "red-font-str"
 container-id:		g_quark_from_string "container-id"
 red-timer-id:		g_quark_from_string "red-timer-id"
 menu-key-id:		g_quark_from_string "menu-key-id"
@@ -3349,6 +3357,14 @@ hmenu-id:			g_quark_from_string "hmenu-id"
 container-w:		g_quark_from_string "container-w"
 container-h:		g_quark_from_string "container-h"
 
+#define SET-RED-COLOR(s d)		[g_object_set_qdata s red-color-id d]
+#define GET-RED-COLOR(s)		[g_object_get_qdata s red-color-id]
+#define SET-COLOR-STR(s d)		[g_object_set_qdata s red-color-str as handle! d]
+#define GET-COLOR-STR(s)		[as GString! g_object_get_qdata s red-color-str]
+#define SET-RED-FONT(s d)		[g_object_set_qdata s red-font-id d]
+#define GET-RED-FONT(s)			[g_object_get_qdata s red-font-id]
+#define SET-FONT-STR(s d)		[g_object_set_qdata s red-font-str as handle! d]
+#define GET-FONT-STR(s)			[as GString! g_object_get_qdata s red-font-str]
 #define SET-CONTAINER(s d)		[g_object_set_qdata s container-id d]
 #define GET-CONTAINER(s)		[g_object_get_qdata s container-id]
 #define SET-CURSOR(s d)			[g_object_set_qdata s cursor-id d]
@@ -3374,44 +3390,4 @@ container-h:		g_quark_from_string "container-h"
 #define SET-CONTAINER-H(s d)	[g_object_set_qdata s container-h as int-ptr! d]
 #define GET-CONTAINER-H(s)		[as integer! g_object_get_qdata s container-h]
 
-to-gdk-color: func [
-	color		[integer!]
-	gcolor		[GdkRGBA!]
-	/local
-		t		[integer!]
-		a		[float!]
-][
-	t: color >>> 24 and FFh
-	t: FFh - t
-	a: as float! t
-	gcolor/alpha: a / 255.0
-	t: color >> 16 and FFh
-	a: as float! t
-	gcolor/blue: a / 255.0
-	t: color >> 8 and FFh
-	a: as float! t
-	gcolor/green: a / 255.0
-	t: color and FFh
-	a: as float! t
-	gcolor/red: a / 255.0
-]
 
-color-u8-to-u16: func [
-	color		[integer!]
-	r			[int-ptr!]
-	g			[int-ptr!]
-	b			[int-ptr!]
-	a			[int-ptr!]
-	/local
-		t		[integer!]
-][
-	t: color >>> 24 and FFh
-	t: FFh - t
-	a/value: t << 8 + t
-	t: color >> 16 and FFh
-	b/value: t << 8 + t
-	t: color >> 8 and FFh
-	g/value: t << 8 + t
-	t: color and FFh
-	r/value: t << 8 + t
-]
