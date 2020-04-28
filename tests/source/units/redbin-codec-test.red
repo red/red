@@ -143,7 +143,7 @@ Red [
 			]
 		
 		--test-- "one-vector"
-			;--assert strict-equal? make vector! [] test/one make vector! []
+			--assert strict-equal? make vector! [] test/one make vector! []
 			--assert strict-equal? make vector! [1] test/one make vector! [1]
 			--assert strict-equal? make vector! [#"a"] test/one make vector! [#"a"]
 			--assert strict-equal? make vector! [1.0] test/one make vector! [1.0]
@@ -167,12 +167,11 @@ Red [
 					] (random 4) - 1
 				]
 				
-				if vector? value [					;-- some unit sizes and types are incompatible
+				if value [							;-- some unit sizes and types are incompatible
 					--assert value == test/one value
 					--assert (index? value) == (index? test/one value)
 				]
 			]
-			
 			
 	===end-group===
 

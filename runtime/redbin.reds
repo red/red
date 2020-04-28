@@ -686,13 +686,15 @@ redbin: context [
 				len:  _series/get-length ser yes
 				buf:  GET_BUFFER(ser)
 				unit: GET_UNIT(buf)
-				flags: type or (unit << 8)
 				
-				REDBIN_EMIT  :flags 4				;-- header
-				REDBIN_EMIT  :data/data1 4			;-- head
-				REDBIN_EMIT  :len 4					;-- size (in elements)
-				REDBIN_EMIT  :data/data3 4			;-- type
-				REDBIN_EMIT* as byte-ptr! buf/offset len << log-b unit
+				flags: type or (unit << 8)
+				REDBIN_EMIT :flags 4
+				REDBIN_EMIT :data/data1 4
+				REDBIN_EMIT :len 4
+				REDBIN_EMIT :data/data3 4
+				unless zero? len [
+					REDBIN_EMIT* as byte-ptr! buf/offset len << log-b unit
+				]
 				pad payload 4						;-- pad to 32-bit boundary
 			]
 			default [--NOT_IMPLEMENTED--]			;@@ TBD: proper error message
