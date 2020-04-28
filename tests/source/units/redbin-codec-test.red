@@ -200,18 +200,17 @@ Red [
 			]
 		
 		--test-- "one-any-string"
-			strings: ["string" <tag> email@address url:// %file
-			;@reference
-			]
+			strings: ["string" <tag> email@address url:// %file @reference]
 			forall strings [--assert strings/1 == head test/one skip strings/1 (random 4) - 1]
 		
 			loop 10 [
-				value: charset to binary! random to tuple! copy/part 64#{////////////////} 2 + random 11
-				value: to
+				value: skip to
 					get random/only [string! tag! email! ref! url! file!]
-					rejoin collect [repeat i length? value [if value/:i [keep to char! i]]]
+					rejoin collect [loop random 100 [keep to char! random 10'000]]
+					(random 4) - 1
 					
 				--assert value == test/one value
+				--assert (index? value) == (index? test/one value)
 			]
 		
 	===end-group===
