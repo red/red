@@ -142,6 +142,13 @@ Red [
 				--assert value == test/one value
 			]
 		
+		--test-- "one-typeset"
+			--assert strict-equal? make typeset! [] test/one make typeset! []
+			--assert series! == test/one series!
+			--assert any-string! == test/one any-string!
+			--assert immediate! == test/one immediate!
+			--assert scalar! == test/one scalar!
+		
 		--test-- "one-bitset"
 			--assert strict-equal? charset 1 test/one charset 1
 			--assert strict-equal? charset #{CAFE} test/one charset #{CAFE}
