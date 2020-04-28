@@ -669,6 +669,12 @@ redbin: context [
 				REDBIN_EMIT :data/data2 4
 				REDBIN_EMIT :data/data3 4
 			]
+			TYPE_TYPESET [
+				REDBIN_EMIT :type 4
+				REDBIN_EMIT :data/data1 4
+				REDBIN_EMIT :data/data2 4
+				REDBIN_EMIT :data/data3 4
+			]
 			TYPE_BITSET [
 				len: bitset/length? as red-bitset! data
 				REDBIN_EMIT :type 4
