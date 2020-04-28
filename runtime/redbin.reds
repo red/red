@@ -681,7 +681,9 @@ redbin: context [
 				REDBIN_EMIT* bitset/rs-head as red-bitset! data len >> 3
 				pad payload 4						;-- pad to 32-bit boundary
 			]
-			TYPE_VECTOR [
+			TYPE_ANY_STRING
+			TYPE_VECTOR
+			TYPE_BINARY [
 				ser:  as red-series! data
 				len:  _series/get-length ser yes
 				buf:  GET_BUFFER(ser)
@@ -691,7 +693,7 @@ redbin: context [
 				REDBIN_EMIT :flags 4
 				REDBIN_EMIT :data/data1 4
 				REDBIN_EMIT :len 4
-				REDBIN_EMIT :data/data3 4
+				if type = TYPE_VECTOR [REDBIN_EMIT :data/data3 4]
 				unless zero? len [
 					REDBIN_EMIT* as byte-ptr! buf/offset len << log-b unit
 				]
