@@ -347,6 +347,9 @@ get-text-size: func [
 	pair		[red-pair!]
 	return:		[tagSIZE]
 	/local
+		values	[red-value!]
+		font	[red-object!]
+		new?	[logic!]
 		text	[c-string!]
 		len		[integer!]
 		width	[integer!]
@@ -359,7 +362,22 @@ get-text-size: func [
 ][
 	if null? pango-context [pango-context: gdk_pango_context_get]
 	size: declare tagSIZE
-	if null? hFont [hFont: default-attrs]
+	new?: no
+	if null? hFont [
+		either null? face [hFont: default-attrs][
+			values: object/get-values face
+			font: as red-object! values + FACE_OBJ_FONT
+			either all [
+				font <> null
+				TYPE_OF(font) = TYPE_OBJECT
+			][
+				hFont: create-pango-attrs face font
+				new?: yes
+			][
+				hFont: default-attrs
+			]
+		]
+	]
 
 	len: -1
 	text: unicode/to-utf8 str :len
@@ -370,6 +388,7 @@ get-text-size: func [
 	width: 0 height: 0
 	pango_layout_get_pixel_size pl :width :height
 	g_object_unref pl
+	if new? [pango_attr_list_unref hFont]
 
 	size/width: width
 	size/height: height
@@ -1351,13 +1370,10 @@ font-width?: func [
 	/local
 		txt		[red-string! value]
 		sz		[tagSIZE]
-		attrs	[handle!]
 		w		[float32!]
 ][
 	string/load-at "abcde12xxx" 10 as red-value! :txt UTF-8
-	attrs: null
-	if font <> null [attrs: get-font face font]
-	sz: get-text-size face txt attrs null
+	sz: get-text-size face txt null null
 	w: (as float32! sz/width) / as float32! 10.0
 	as-integer w
 ]
@@ -1845,7 +1861,7 @@ OS-make-view: func [
 		sym = panel
 		not null? caption
 	][
-		attrs: get-font face font
+		;attrs: get-font face font
 		buffer: gtk_label_new caption
 		gtk_widget_show buffer
 		;set-label-attrs buffer font attrs
@@ -1923,10 +1939,7 @@ OS-update-view: func [
 	if all [
 		type = rich-text
 		update-rich-text state as red-block! values + FACE_OBJ_EXT3
-	][
-		;; DEBUG: print ["update-view rich-text" lf]
-		exit
-	]
+	][exit]
 
 	s: GET_BUFFER(state)
 	int: as red-integer! s/offset

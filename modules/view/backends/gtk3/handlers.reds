@@ -140,6 +140,7 @@ render-text: func [
 		color	[red-tuple!]
 		font	[red-object!]
 		attrs	[handle!]
+		new?	[logic!]
 		para	[red-object!]
 		pvalues	[red-value!]
 		hsym	[integer!]
@@ -160,7 +161,16 @@ render-text: func [
 
 	color: as red-tuple! values + FACE_OBJ_COLOR
 	font: as red-object! values + FACE_OBJ_FONT
-	attrs: get-font face font
+	either all [
+		font <> null
+		TYPE_OF(font) = TYPE_OBJECT
+	][
+		attrs: create-pango-attrs face font
+		new?: yes
+	][
+		new?: no
+		attrs: default-attrs
+	]
 
 	para: as red-object! values + FACE_OBJ_PARA
 	either TYPE_OF(para) = TYPE_OBJECT [
@@ -202,6 +212,9 @@ render-text: func [
 	pango_cairo_show_layout cr layout
 	cairo_stroke cr
 	cairo_restore cr
+	if new? [
+		pango_attr_list_unref attrs
+	]
 	g_object_unref layout
 ]
 

@@ -342,7 +342,6 @@ make-font: func [
 	attrs
 ]
 
-
 get-font-handle: func [
 	font		[red-object!]
 	idx			[integer!]
@@ -362,23 +361,23 @@ get-font-handle: func [
 ]
 
 get-font: func [
-	face	[red-object!]
-	font	[red-object!]
-	return: [handle!]
+	face		[red-object!]
+	font		[red-object!]
+	return:		[handle!]
 	/local
-		hFont [handle!]
+		hFont	[handle!]
 ][
-	if TYPE_OF(font) <> TYPE_OBJECT [return null]
+	if TYPE_OF(font) <> TYPE_OBJECT [return default-attrs]
 	hFont: get-font-handle font 0
 	if null? hFont [hFont: make-font face font]
 	hFont
 ]
 
 free-font: func [
-	font [red-object!]
+	font		[red-object!]
 	/local
-		state [red-block!]
-		hFont [handle!]
+		state	[red-block!]
+		hFont	[handle!]
 ][
 	hFont: get-font-handle font 0
 	if hFont <> null [
@@ -389,8 +388,8 @@ free-font: func [
 ]
 
 update-font: func [
-	font [red-object!]
-	flag [integer!]
+	font		[red-object!]
+	flag		[integer!]
 ][
 	switch flag [
 		FONT_OBJ_NAME
@@ -432,6 +431,11 @@ change-font: func [
 		SET-RED-FONT(widget prov)
 		css: g_string_sized_new 128
 		SET-FONT-STR(widget css)
+		layout: get-face-layout widget values sym
+		if layout <> widget [
+			style: gtk_widget_get_style_context layout
+			gtk_style_context_add_provider style prov GTK_STYLE_PROVIDER_PRIORITY_USER
+		]
 	][
 		css: GET-FONT-STR(widget)
 	]
@@ -440,12 +444,72 @@ change-font: func [
 	][
 		css: default-css						;-- we can exit here, and use theme css style
 	]
-	layout: get-face-layout widget values sym
-	if layout <> widget [
-		style: gtk_widget_get_style_context layout
-		gtk_style_context_add_provider style prov GTK_STYLE_PROVIDER_PRIORITY_USER
-	]
 	gtk_css_provider_load_from_data prov css/str -1 null
+
+	;-- special styles
+	case [
+		sym = text [
+			set-text-attrs widget face font
+		]
+		true [0]
+	]
+]
+
+set-text-attrs: func [
+	label		[handle!]
+	face		[red-object!]
+	font		[red-object!]
+	/local
+		values	[red-value!]
+		int		[red-integer!]
+		angle	[integer!]
+		style	[red-word!]
+		len		[integer!]
+		blk		[red-block!]
+		sym		[integer!]
+][
+	unless all [
+		font <> null
+		TYPE_OF(font) = TYPE_OBJECT
+	][exit]
+	values: object/get-values font
+
+	int: as red-integer! values + FONT_OBJ_ANGLE
+	angle: either TYPE_OF(int) = TYPE_INTEGER [int/value][0]
+	gtk_label_set_angle label as float! angle
+
+	style: as red-word! values + FONT_OBJ_STYLE
+	len: switch TYPE_OF(style) [
+		TYPE_BLOCK [
+			blk: as red-block! style
+			style: as red-word! block/rs-head blk
+			len: block/rs-length? blk
+		]
+		TYPE_WORD  [1]
+		default	   [0]
+	]
+	gtk_label_set_use_underline label no
+	unless zero? len [
+		loop len [
+			sym: symbol/resolve style/symbol
+			case [
+				sym = _bold [
+					0
+				]
+				sym = _italic [
+					0
+				]
+				sym = _underline [
+					gtk_label_set_use_underline label yes
+				]
+				sym = _strike [
+					0
+				]
+				true [0]
+			]
+			style: style + 1
+		]
+	]
 ]
 
 free-font-provider: func [

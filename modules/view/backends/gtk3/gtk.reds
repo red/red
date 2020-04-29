@@ -1927,6 +1927,10 @@ GPtrArray!: alias struct! [
 			widget		[handle!]
 			angle		[float!]
 		]
+		gtk_label_set_use_underline: "gtk_label_set_use_underline" [
+			widget		[handle!]
+			setting		[logic!]
+		]
 		gtk_label_set_attributes: "gtk_label_set_attributes" [
 			widget		[handle!]
 			list		[handle!]
@@ -1945,6 +1949,10 @@ GPtrArray!: alias struct! [
 		]
 		gtk_event_box_new: "gtk_event_box_new" [
 			return: 	[handle!]
+		]
+		gtk_event_box_set_above_child: "gtk_event_box_set_above_child" [
+			evbox		[handle!]
+			settings	[logic!]
 		]
 		gtk_entry_new: "gtk_entry_new" [
 			return:		[handle!]
@@ -2294,6 +2302,10 @@ GPtrArray!: alias struct! [
 			return: 	[handle!]
 		]
 		pango_layout_get_context: "pango_layout_get_context" [
+			layout		[handle!]
+			return: 	[handle!]
+		]
+		pango_layout_get_attributes: "pango_layout_get_attributes" [
 			layout		[handle!]
 			return: 	[handle!]
 		]

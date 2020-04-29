@@ -330,6 +330,7 @@ OS-text-box-layout: func [
 		parent	[red-object!]
 		cached?	[logic!]
 		attrs	[handle!]
+		new?	[logic!]
 		int		[red-integer!]
 		layout	[handle!]
 		para	[handle!]
@@ -374,10 +375,15 @@ OS-text-box-layout: func [
 	][
 		font: as red-object! (object/get-values parent) + FACE_OBJ_FONT
 	]
-	attrs: either TYPE_OF(font) = TYPE_OBJECT [
-		get-font null font
+	either all [
+		font <> null
+		TYPE_OF(font) = TYPE_OBJECT
 	][
-		default-attrs
+		attrs: create-pango-attrs box font
+		new?: yes
+	][
+		new?: no
+		attrs: default-attrs
 	]
 	len: -1
 	str: unicode/to-utf8 text :len
@@ -404,5 +410,8 @@ OS-text-box-layout: func [
 		parse-text-styles target as handle! lc styles 7FFFFFFFh catch?
 	]
 	pango_layout_set_attributes layout attrs
+	if new? [
+		pango_attr_list_unref attrs
+	]
 	layout
 ]
