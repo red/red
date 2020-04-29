@@ -618,22 +618,21 @@ redbin: context [
 		as byte-ptr! (as integer! address) + skip and not delta
 	]
 	
-	encode: func [
+	emit-value: func [
 		data    [red-value!]
-		return: [red-binary!]
+		payload [red-binary!]
+		return: [integer!]
 		/local
-			payload     [red-binary!]
-			buf         [series!]
-			info        [int-ptr!]
 			head        [byte-ptr!]
 			type length [integer!]
 			size flags  [integer!]
 			len unit    [integer!]
 			ser [red-series!]
+			ofs [red-value!]
+			buf [series!]
 	][
-		payload: binary/make-at stack/push* 4		;@@ TBD: heuristics for pre-allocation
-		length:  0
-		type: TYPE_OF(data)
+		type:   TYPE_OF(data)
+		length: 1
 		
 		;@@ TBD: properly emit header with all the flags
 		switch type [
@@ -715,19 +714,53 @@ redbin: context [
 				]
 				pad payload 4						;-- pad to 32-bit boundary
 			]
+			TYPE_PAREN
+			TYPE_BLOCK [
+				ser: as red-series! data
+				len: _series/get-length ser yes
+				buf: GET_BUFFER(ser)
+				ofs: buf/offset
+				
+				REDBIN_EMIT :type 4
+				REDBIN_EMIT :data/data1 4
+				REDBIN_EMIT :len 4
+				length: length + len
+				loop len [
+					emit-value ofs payload
+					ofs: ofs + 1
+				]
+			]
 			default [--NOT_IMPLEMENTED--]			;@@ TBD: proper error message
 		]
 		
-		length: length + 1							;@@ TBD: calculate length
-		size:   binary/rs-length? payload
+		length
+	]
+	
+	encode: func [
+		data    [red-value!]
+		return: [red-binary!]
+		/local
+			payload [red-binary!]
+			here    [int-ptr!]
+			head    [byte-ptr!]
+			length  [integer!]
+			size    [integer!]
+	][
+		;-- payload
+		payload: binary/make-at stack/push* 4		;@@ TBD: heuristics for pre-allocation
+		length:  emit-value data payload
+		size:    binary/rs-length? payload
 		
+		;-- Redbin header
 		binary/rs-insert payload 0 header 16		;-- size of the header
 		head: binary/rs-head payload
+		head/8: null-byte							;@@ TBD: store ST flag if present
+		here: as int-ptr! head + 8					;-- skip to length entry
+		here/1: length
+		here/2: size
 		
-		head/8: null-byte							;@@ TBD: store flags
-		info: as int-ptr! head + 8					;-- skip to length entry
-		info/1: length
-		info/2: size
+		;-- Symbol table
+		;@@ TBD
 		
 		payload
 	]
