@@ -1481,8 +1481,11 @@ OS-make-view: func [
 			rc/bottom: rc/bottom - rc/top
 			focused: null 
 			if bits and FACET_FLAGS_MODAL <> 0 [
-				parent: as-integer find-last-window
-				if parent <> 0 [focused: get-selected-handle as handle! parent]
+				parent: as-integer GetActiveWindow
+				if parent <> 0 [
+					focused: get-selected-handle as handle! parent
+					if null? focused [focused: as handle! parent]
+				]
 			]
 		]
 		true [											;-- search in user-defined classes

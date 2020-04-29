@@ -1149,6 +1149,9 @@ XFORM!: alias struct! [
 			nVirtKey	[integer!]
 			return:		[integer!]
 		]
+		GetActiveWindow: "GetActiveWindow" [
+			return:		[handle!]
+		]
 		SetActiveWindow: "SetActiveWindow" [
 			hWnd		[handle!]
 			return:		[handle!]
