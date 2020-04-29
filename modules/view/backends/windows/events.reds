@@ -1390,7 +1390,8 @@ WndProc: func [
 					flags: get-flags as red-block! values + FACE_OBJ_FLAGS
 					if flags and FACET_FLAGS_MODAL <> 0 [
 						;SetActiveWindow GetWindow hWnd GW_OWNER
-						SetFocus as handle! GetWindowLong hWnd wc-offset - 20
+						p-int: as handle! GetWindowLong hWnd wc-offset - 20
+						if p-int <> null [SetFocus p-int]
 					]
 					clean-up
 				][
