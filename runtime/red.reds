@@ -217,7 +217,7 @@ red: context [
 		arg-stk:	block/make-fixed root 2 * 2000
 		call-stk:	block/make-fixed root 20 * 2000
 		symbols: 	block/make-in root 4000
-		global-ctx: _context/create 4000 no no null
+		global-ctx: _context/create 4000 no no null CONTEXT_GLOBAL
 
 		case-folding/init
 		symbol/table: _hashtable/init 4000 symbols HASH_TABLE_SYMBOL HASH_SYMBOL_BLOCK

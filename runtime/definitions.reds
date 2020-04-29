@@ -58,9 +58,7 @@ Red/System [
 #define handle!				[pointer! [integer!]]
 
 
-;=== Unicode support definitions ===
-
-#enum encoding! [
+#enum encoding! [							;-- various string encodings
 	UTF-16LE:	-1
 	UTF-8:		 0
 	Latin1:		 1
@@ -69,9 +67,13 @@ Red/System [
 	UCS-4:		 4
 ]
 
-;== Image definitions ===
+#enum context-type! [
+	CONTEXT_GLOBAL							;-- global context value is 0 (no need to set it then)
+	CONTEXT_FUNCTION						;-- do not change those values! (used in %utils/redbin.r)
+	CONTEXT_OBJECT
+]
 
-#enum extract-type! [
+#enum extract-type! [						;-- image! buffer encodings
 	EXTRACT_ALPHA
 	EXTRACT_RGB
 	EXTRACT_ARGB

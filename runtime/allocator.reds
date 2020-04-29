@@ -32,7 +32,8 @@ int-array!: alias struct! [ptr [int-ptr!]]
 ;	15:		extern flag						;-- routine code is external to Red (from FFI)
 ;	14:		sign bit						;-- sign of money
 ;	13:		dirty?							;-- word flag indicating if value has been modified
-;	12-8:	<reserved>
+;	12-11:	context type					;-- context-type! value (context! cells only)
+;	10-8:	<reserved>
 ;	7-0:	datatype ID						;-- datatype number
 
 cell!: alias struct! [

@@ -864,7 +864,7 @@ object: context [
 			s [series!]
 	][
 		obj/header: TYPE_UNSET
-		obj/ctx:	_context/create slots no yes null
+		obj/ctx:	_context/create slots no yes null CONTEXT_OBJECT
 		obj/class:	0
 		obj/on-set: null
 		obj/header: TYPE_OBJECT
@@ -1327,7 +1327,7 @@ object: context [
 		
 		copy-cell as cell! obj as cell! new
 		new/header: TYPE_UNSET
-		new/ctx: _context/create slots no yes ctx
+		new/ctx: _context/create slots no yes ctx CONTEXT_OBJECT
 		new/class: obj/class
 		new/header: TYPE_OBJECT
 

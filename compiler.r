@@ -2035,7 +2035,7 @@ red: context [
 		]
 
 		ctx: add-context spec
-		blk-idx: redbin/emit-context/root ctx spec no yes
+		blk-idx: redbin/emit-context/root ctx spec no yes 'object
 		
 		redirect-to literals [							;-- store spec and body blocks
 			emit compose [
@@ -2095,7 +2095,7 @@ red: context [
 
 		unless all [empty? locals-stack not iterator-pending?][	;-- in a function or iteration block
 			emit compose [
-				(to set-word! ctx) _context/clone-words get-root (blk-idx) ;-- rebuild context
+				(to set-word! ctx) _context/clone-words get-root (blk-idx) CONTEXT_OBJECT ;-- rebuild context
 			]
 			insert-lf -3
 		]
@@ -2870,7 +2870,7 @@ red: context [
 		
 		push-locals symbols								;-- store spec and body blocks
 		ctx: push-context copy symbols
-		ctx-idx: redbin/emit-context/root ctx symbols yes no
+		ctx-idx: redbin/emit-context/root ctx symbols yes no 'function
 		spec-idx: redbin/emit-block spec
 		redirect-to literals [
 			emit compose [

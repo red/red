@@ -421,11 +421,12 @@ context [
 	]
 	
 	emit-context: func [
-		name [word!] spec [block!] stack? [logic!] self? [logic!] /root
+		name [word!] spec [block!] stack? [logic!] self? [logic!] type [word!] /root
 		/local header
 	][
 		repend contexts [name copy spec index]			;-- COPY to avoid late word decorations
-		header: extracts/definitions/TYPE_CONTEXT or shift/left 1 8 ;-- header
+		type: shift/left (select [function 1 object 2] type) 11
+		header: extracts/definitions/TYPE_CONTEXT or type or shift/left 1 8 ;-- header
 		if stack? [header: header or shift/left 1 29]
 		if self?  [header: header or shift/left 1 28]
 		
