@@ -714,6 +714,8 @@ redbin: context [
 				]
 				pad payload 4						;-- pad to 32-bit boundary
 			]
+			TYPE_MAP
+			TYPE_ANY_PATH
 			TYPE_PAREN
 			TYPE_BLOCK [
 				ser: as red-series! data
@@ -722,7 +724,7 @@ redbin: context [
 				ofs: buf/offset
 				
 				REDBIN_EMIT :type 4
-				REDBIN_EMIT :data/data1 4
+				unless type = TYPE_MAP [REDBIN_EMIT :data/data1 4]
 				REDBIN_EMIT :len 4
 				length: length + len
 				loop len [
