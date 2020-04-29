@@ -453,7 +453,7 @@ cycles: context [
 					TYPE_PATH
 					TYPE_GET_PATH 
 					TYPE_LIT_PATH
-					TYPE_GET_PATH [s: "..."				   size: 3 ]
+					TYPE_SET_PATH [s: "..."				   size: 3 ]
 					default		  [assert false]
 				]
 			][
