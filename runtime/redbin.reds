@@ -360,7 +360,7 @@ redbin: context [
 		set-type slot TYPE_BITSET
 		if nl? [slot/header: slot/header or flag-new-line]
 		
-		as int-ptr! (as integer! bits + size) + 3 and not 3	;-- align at upper 32-bit boundary
+		as int-ptr! align bits + size 32 yes		;-- align at upper 32-bit boundary
 	]
 	
 	decode-vector: func [
@@ -390,7 +390,7 @@ redbin: context [
 		values: as byte-ptr! data + 4
 		copy-memory as byte-ptr! buf/offset values size
 		
-		as int-ptr! (as integer! values + size) + 3 and not 3	;-- align at upper 32-bit boundary
+		as int-ptr! align values + size 32 yes		;-- align at upper 32-bit boundary
 	]
 	
 	decode-value: func [
@@ -523,6 +523,7 @@ redbin: context [
 			p/1 = #"R" p/2 = #"E" p/3 = #"D"
 			p/4 = #"B" p/5 = #"I" p/6 = #"N"
 		][
+			;@@ TBD: proper error message for runtime codec
 			print-line "Error: Not a Redbin file!"
 			halt
 		]
@@ -601,6 +602,20 @@ redbin: context [
 		unless zero? residue [						;@@ TBD: optimize
 			loop size - residue [binary/rs-append buffer as byte-ptr! :zero 1]
 		]
+	]
+	
+	align: func [
+		address [byte-ptr!]
+		bits    [integer!]
+		upper?  [logic!]
+		return: [byte-ptr!]
+		/local
+			delta [integer!]
+			skip  [integer!]
+	][
+		delta: (bits >> 3) - 1
+		skip: either upper? [delta][0]
+		as byte-ptr! (as integer! address) + skip and not delta
 	]
 	
 	encode: func [
