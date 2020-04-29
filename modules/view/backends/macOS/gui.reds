@@ -51,6 +51,7 @@ caret-x:		as float32! 0.0
 caret-y:		as float32! 0.0
 
 win-array:		declare red-vector!
+active-wins:	declare red-vector!			;-- last actives windows
 
 red-face?: func [
 	handle	[integer!]
@@ -298,6 +299,7 @@ get-metrics: func [][
 on-gc-mark: does [
 	collector/keep flags-blk/node
 	collector/keep win-array/node
+	collector/keep active-wins/node
 ]
 
 init: func [
@@ -316,6 +318,7 @@ init: func [
 		p-int	 [int-ptr!]
 ][
 	vector/make-at as red-value! win-array 8 TYPE_INTEGER 4
+	vector/make-at as red-value! active-wins 8 TYPE_INTEGER 4
 	init-selectors
 	register-classes
 	nsview-id: objc_getClass "NSView"
@@ -1879,7 +1882,13 @@ OS-make-view: func [
 			class: "RedButton"
 			flags: NSRadioButton
 		]
-		sym = window [class: "RedWindow"]
+		sym = window [
+			class: "RedWindow"
+			if bits and FACET_FLAGS_MODAL <> 0 [
+				obj: objc_msgSend [NSApp sel_getUid "mainWindow"]
+				if obj <> 0 [vector/rs-append-int active-wins obj]
+			]
+		]
 		sym = tab-panel [
 			class: "RedTabView"
 		]
@@ -2011,6 +2020,7 @@ OS-make-view: func [
 				AppMainMenu: objc_msgSend [NSApp sel_getUid "mainMenu"]
 				build-menu menu AppMainMenu obj
 			]
+			if bits and FACET_FLAGS_MODAL <> 0 [vector/rs-append-int active-wins obj]
 		]
 		sym = slider [
 			len: either size/x > size/y [size/x][size/y]

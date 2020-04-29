@@ -32,7 +32,7 @@ flags-blk/head:		0
 flags-blk/node:		alloc-cells 4
 flags-blk/header:	TYPE_BLOCK
 
-last-mouse-pt: 0
+last-mouse-pt: -1
 
 char-keys: [
 	1000C400h C0FF0080h E0FFFF7Fh 0000F7FFh 00000000h 3F000000h 1F000080h 00FC7F38h
@@ -833,7 +833,11 @@ process-custom-draw: func [
 					rc/left: rc/left + dpi-scale 16
 				]
 				if TYPE_OF(txt) = TYPE_STRING [
-					flags: get-para-flags base para
+					flags: either TYPE_OF(para) <> TYPE_OBJECT [
+						0001h or 0004h				;-- DT_CENTER, DT_VCENTER if no para settings
+					][
+						get-para-flags base para
+					]
 					DrawText DC unicode/to-utf16 txt -1 rc flags or DT_SINGLELINE
 				]
 				SetBkMode DC old
@@ -1386,7 +1390,8 @@ WndProc: func [
 					flags: get-flags as red-block! values + FACE_OBJ_FLAGS
 					if flags and FACET_FLAGS_MODAL <> 0 [
 						;SetActiveWindow GetWindow hWnd GW_OWNER
-						SetFocus as handle! GetWindowLong hWnd wc-offset - 20
+						p-int: as handle! GetWindowLong hWnd wc-offset - 20
+						if p-int <> null [SetFocus p-int]
 					]
 					clean-up
 				][
@@ -1447,6 +1452,7 @@ process: func [
 		y	   [integer!]
 		track  [tagTRACKMOUSEEVENT value]
 		flags  [integer!]
+		word   [red-word!]
 ][
 	flags: decode-down-flags msg/wParam
 	switch msg/msg [
@@ -1489,6 +1495,7 @@ process: func [
 			EVT_DISPATCH
 		]
 		WM_MOUSELEAVE [
+			last-mouse-pt: -1
 			make-event msg EVT_FLAG_AWAY or key-flags EVT_OVER
 			if msg/hWnd = hover-saved [hover-saved: null]
 			EVT_DISPATCH
@@ -1505,7 +1512,13 @@ process: func [
 			menu-ctx: null
 			make-event msg flags EVT_LEFT_DOWN
 		]
-		WM_LBUTTONUP	[make-event msg flags EVT_LEFT_UP]
+		WM_LBUTTONUP	[
+			if all [msg/hWnd <> null msg/hWnd = GetCapture][
+				word: (as red-word! get-face-values msg/hWnd) + FACE_OBJ_TYPE
+				if base = symbol/resolve word/symbol [ReleaseCapture]	;-- issue #4384
+			]
+			make-event msg flags EVT_LEFT_UP
+		]
 		WM_RBUTTONDOWN	[
 			if GetCapture <> null [return EVT_DISPATCH]
 			lParam: msg/lParam

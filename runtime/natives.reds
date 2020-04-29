@@ -1624,16 +1624,18 @@ natives: context [
 		/local
 			arg	  [red-integer!]
 			limit [red-integer!]
-			buf   [red-word!]
 			p	  [c-string!]
 			part  [integer!]
 	][
 		#typecheck [to-hex size]
 		arg: as red-integer! stack/arguments
 		limit: arg + size
-
+		
 		p: string/to-hex arg/value no
-		part: either OPTION?(limit) [8 - limit/value][0]
+		part: either not OPTION?(limit) [0][
+			unless positive? limit/value [fire [TO_ERROR(script invalid-arg) limit]]
+			8 - limit/value
+		]
 		if negative? part [part: 0]
 		issue/make-at stack/arguments p + part
 	]
