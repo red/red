@@ -62,16 +62,18 @@ set-app-theme: func [
 	path		[c-string!]
 	string?		[logic!]
 	/local
+		succ	[logic!]
 		prov	[handle!]
 		disp	[handle!]
 		screen	[handle!]
 ][
 	prov: gtk_css_provider_new
-	either string? [
+	succ: either string? [
 		gtk_css_provider_load_from_data prov path -1 null
 	][
 		gtk_css_provider_load_from_path prov path null
 	]
+	unless succ [exit]
 	disp: gdk_display_get_default
 	screen: gdk_display_get_default_screen disp
 	gtk_style_context_add_provider_for_screen screen prov GTK_STYLE_PROVIDER_PRIORITY_APPLICATION

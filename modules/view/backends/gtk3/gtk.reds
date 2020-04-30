@@ -2239,16 +2239,18 @@ GPtrArray!: alias struct! [
 			data		[c-string!]
 			length		[integer!]
 			error		[handle!]
+			return:		[logic!]
 		]
 		gtk_css_provider_load_from_file: "gtk_css_provider_load_from_file" [
 			provider	[handle!]
-			url		[c-string!]
+			url			[c-string!]
 			error		[handle!]
 		]
 		gtk_css_provider_load_from_path: "gtk_css_provider_load_from_path" [
 			provider	[handle!]
 			path		[c-string!]
 			error		[handle!]
+			return:		[logic!]
 		]
 		gtk_css_provider_to_string: "gtk_css_provider_to_string" [
 			provider	[handle!]
