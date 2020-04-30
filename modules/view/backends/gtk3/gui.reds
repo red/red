@@ -912,7 +912,6 @@ change-size: func [
 		adj		[handle!]
 ][
 	either type = window [
-		gtk_window_set_default_size widget size/x size/y
 		gtk_window_resize widget size/x size/y
 		gtk_widget_queue_draw widget
 	][
@@ -1625,6 +1624,7 @@ OS-make-view: func [
 		fradio		[handle!]
 		x			[integer!]
 		y			[integer!]
+		gm			[GdkGeometry! value]
 ][
 	stack/mark-native words/_body
 
@@ -1750,8 +1750,11 @@ OS-make-view: func [
 			gtk_box_pack_start winbox container yes yes 0
 			gtk_window_move widget offset/x offset/y
 
-			gtk_widget_set_size_request container size/x size/y		;-- fix the initial size of the window
+			gtk_window_set_default_size widget size/x size/y
 			gtk_window_set_resizable widget (bits and FACET_FLAGS_RESIZE <> 0)
+			gm/min_width: 1
+			gm/min_height: 1
+			gtk_window_set_geometry_hints widget null :gm 2		;-- 2: MIN_SIZE
 		]
 		sym = camera [
 			widget: gtk_layout_new null null

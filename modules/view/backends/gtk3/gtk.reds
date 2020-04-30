@@ -158,6 +158,20 @@ GdkEventScroll!: alias struct! [
 	is_stop		[integer!]
 ]
 
+GdkGeometry!: alias struct! [
+	min_width	[integer!]
+	min_height	[integer!]
+	max_width	[integer!]
+	max_height	[integer!]
+	base_width	[integer!]
+	base_height	[integer!]
+	width_inc	[integer!]
+	height_inc	[integer!]
+	min_aspect	[float!]
+	max_aspect	[float!]
+	win_gravity	[integer!]
+]
+
 #enum GdkScrollDirection! [
 	GDK_SCROLL_UP
 	GDK_SCROLL_DOWN
@@ -1299,6 +1313,12 @@ GPtrArray!: alias struct! [
 		]
 		gtk_window_activate_focus: "gtk_window_activate_focus" [
 			window		[handle!]
+		]
+		gtk_window_set_geometry_hints: "gtk_window_set_geometry_hints" [
+			window		[handle!]
+			widget		[handle!]
+			geometry	[GdkGeometry!]
+			mask		[integer!]
 		]
 		gtk_window_set_title: "gtk_window_set_title" [
 			window		[handle!]
