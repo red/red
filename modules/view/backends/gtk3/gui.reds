@@ -662,6 +662,7 @@ init: func [][
 	set-defaults
 
 	#if type = 'exe [set-env-theme]
+	set-app-theme "* {min-width: 1px; min-height: 1px;}" yes
 	collector/register as int-ptr! :on-gc-mark
 ]
 
@@ -1896,7 +1897,6 @@ OS-make-view: func [
 	]
 
 	change-selection widget selected sym
-	init-min-size widget values sym
 	change-color widget color sym
 	change-font widget face values
 	change-enabled widget enabled?/value sym

@@ -60,13 +60,18 @@ init-min-size: func [
 
 set-app-theme: func [
 	path		[c-string!]
+	string?		[logic!]
 	/local
 		prov	[handle!]
 		disp	[handle!]
 		screen	[handle!]
 ][
 	prov: gtk_css_provider_new
-	gtk_css_provider_load_from_path prov path null
+	either string? [
+		gtk_css_provider_load_from_data prov path -1 null
+	][
+		gtk_css_provider_load_from_path prov path null
+	]
 	disp: gdk_display_get_default
 	screen: gdk_display_get_default_screen disp
 	gtk_style_context_add_provider_for_screen screen prov GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
@@ -87,7 +92,7 @@ set-env-theme: func [
 		str: as c-string! strarr/1
 		if 0 = g_strcmp0 str "RED_GTK_STYLES" [
 			str: as c-string! strarr/2
-			set-app-theme str
+			set-app-theme str no
 			found: yes
 		]
 		env: env + 1
