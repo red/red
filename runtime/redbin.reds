@@ -623,13 +623,12 @@ redbin: context [
 		payload [red-binary!]
 		symbols [red-binary!]
 		strings [red-binary!]
-		index   [int-ptr!]
 		return: [integer!]
 		/local
 			type length [integer!]
 			size flags  [integer!]
 			len unit    [integer!]
-			end id flag [integer!]
+			end id [integer!]
 			ser [red-series!]
 			ofs [red-value!]
 			buf [series!]
@@ -637,6 +636,7 @@ redbin: context [
 			str [c-string!]
 			start here [int-ptr!]
 			base [byte-ptr!]
+			flag [logic!]
 	][
 		length: 1									;-- at least 1 value is encoded
 		
@@ -737,7 +737,7 @@ redbin: context [
 				REDBIN_EMIT :len 4
 				length: length + len
 				loop len [
-					emit-value ofs payload symbols strings index
+					emit-value ofs payload symbols strings
 					ofs: ofs + 1
 				]
 			]
@@ -745,32 +745,35 @@ redbin: context [
 				sym: as red-symbol! symbol/get data/data2
 				str: as c-string! (as series! sym/cache/value) + 1
 				
-				REDBIN_EMIT :type 4
-				
 				start: as int-ptr! binary/rs-head symbols
 				base:  binary/rs-head strings
 				end:  (binary/rs-length? symbols) >> 2
 				id:   0
-				flag: 1
+				flag: no
 				
 				while [id < end][
 					here: start + id
-					flag: compare-memory as byte-ptr! str base + here/value length? str
-					if zero? flag [break]
+					flag: not as logic! compare-memory
+						as byte-ptr! str
+						base + here/value
+						length? str
+					
+					if flag [break]
 					id: id + 1
 				]
 				
-				either zero? flag [REDBIN_EMIT :id 4][
+				unless flag [
 					len: binary/rs-length? strings
 					binary/rs-append symbols as byte-ptr! :len 4
 					
-					len: (length? str) + 1				;-- include null byte
-					binary/rs-append strings as byte-ptr! str len
-					pad strings 8						;-- pad to 64-bit boundary
+					binary/rs-append strings as byte-ptr! str (length? str) + 1
+					pad strings 8					;-- pad to 64-bit boundary
 					
-					REDBIN_EMIT index 4
-					index/value: index/value + 1
+					id: (binary/rs-length? symbols) >> 2 - 1
 				]
+				
+				REDBIN_EMIT :type 4
+				REDBIN_EMIT :id 4
 			]
 			default [--NOT_IMPLEMENTED--]			;@@ TBD: proper error message
 		]
@@ -782,17 +785,10 @@ redbin: context [
 		data    [red-value!]
 		return: [red-binary!]
 		/local
-			payload [red-binary!]
-			symbols [red-binary!]
-			strings [red-binary!]
-			here    [int-ptr!]
-			head    [byte-ptr!]
-			length  [integer!]
-			size    [integer!]
-			index   [integer!]
-			sym-len [integer!]
-			str-len [integer!]
-			sym-size [integer!]
+			payload  symbols strings [red-binary!]
+			here [int-ptr!]
+			head [byte-ptr!]
+			length size sym-len str-len sym-size [integer!]
 	][
 		;-- payload
 		payload: binary/make-at stack/push* 4		;@@ TBD: heuristics for pre-allocation
@@ -800,13 +796,12 @@ redbin: context [
 		strings: binary/make-at stack/push* 4
 		; contexts
 		
-		index:  0
-		length: emit-value data payload symbols strings :index
+		length: emit-value data payload symbols strings
 		size:   binary/rs-length? payload
 		
 		;-- Symbol table
-		unless zero? index [
-			sym-len: binary/rs-length? symbols
+		sym-len: binary/rs-length? symbols
+		unless zero? sym-len [
 			str-len: binary/rs-length? strings
 			sym-size: sym-len >> 2
 			
@@ -820,7 +815,7 @@ redbin: context [
 		;-- Redbin header
 		binary/rs-insert payload 0 header 16		;-- size of the header
 		head: binary/rs-head payload
-		head/8: either zero? index [null-byte][#"^(04)"]
+		head/8: either zero? sym-len [null-byte][#"^(04)"]
 		here: as int-ptr! head + 8					;-- skip to length entry
 		here/1: length
 		here/2: size
