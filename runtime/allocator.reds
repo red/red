@@ -910,6 +910,7 @@ alloc-series-buffer: func [
 	sz: SERIES_BUFFER_PADDING + size + size? series-buffer!
 	flag-big: 0
 	either (as byte-ptr! sz) >= (as byte-ptr! memory/s-max) [ ;-- alloc a big frame if too big for series frames
+		collector/do-cycle					;-- launch a GC pass
 		series: as series-buffer! alloc-big sz
 		flag-big: flag-series-big
 	][
