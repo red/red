@@ -10,8 +10,6 @@ Red/System [
 	}
 ]
 
-default-backdrop-color: 00FFFFFFh			;-- default white
-
 to-gdk-color: func [
 	color		[integer!]
 	gcolor		[GdkRGBA!]

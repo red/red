@@ -11,14 +11,12 @@ Red/System [
 ]
 
 default-attrs: as handle! 0
-default-css: g_string_sized_new 64
 
 init-default-handle: does [
 	unless null? default-attrs [
 		pango_attr_list_unref default-attrs
 	]
 	default-attrs: create-default-attrs
-	create-default-css default-css
 ]
 
 create-default-attrs: func [
@@ -51,38 +49,7 @@ create-default-attrs: func [
 	list
 ]
 
-create-default-css: func [
-	css			[GString!]
-	/local
-		rgb		[integer!]
-		alpha?	[integer!]
-		r		[integer!]
-		g		[integer!]
-		b		[integer!]
-		a		[float!]
-][
-	g_string_set_size css 0
-	g_string_append css "* {"
-	g_string_append_printf [css { font-family: "%s";} default-font-name]
-	g_string_append_printf [css { font-size: %dpt;} default-font-size]
-	rgb: default-font-color
-	alpha?: 1
-	b: rgb >> 16 and FFh
-	g: rgb >> 8 and FFh
-	r: rgb and FFh
-	a: 1.0
-	if alpha? = 1 [
-		a: (as float! 255 - (rgb >>> 24)) / 255.0
-	]
-	g_string_append_printf [css { color: rgba(%d, %d, %d, %.3f);} r g b a]
-	g_string_append css "}"
-	g_string_append css " * selection {"
-	g_string_append_printf [css { background-color: rgba(%d, %d, %d, %.3f);} r g b a]
-	g_string_append css "}"
-]
-
 ;-- create css styles
-;-- TBD: support `angle`
 ;-- `anti-alias` need to be set by cairo
 create-css: func [
 	face		[red-object!]
@@ -439,11 +406,15 @@ change-font: func [
 	][
 		css: GET-FONT-STR(widget)
 	]
-	either TYPE_OF(font) = TYPE_OBJECT [
-		create-css face font css
+	if any [
+		null? font
+		TYPE_OF(font) <> TYPE_OBJECT
 	][
-		css: default-css						;-- we can exit here, and use theme css style
+		g_string_set_size css 0
+		gtk_css_provider_load_from_data prov css/str -1 null
+		exit
 	]
+	create-css face font css
 	gtk_css_provider_load_from_data prov css/str -1 null
 
 	;-- special styles
@@ -468,10 +439,6 @@ set-text-attrs: func [
 		blk		[red-block!]
 		sym		[integer!]
 ][
-	unless all [
-		font <> null
-		TYPE_OF(font) = TYPE_OBJECT
-	][exit]
 	values: object/get-values font
 
 	int: as red-integer! values + FONT_OBJ_ANGLE

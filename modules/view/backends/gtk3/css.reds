@@ -37,27 +37,6 @@ free-provider: func [
 	g_object_unref prov
 ]
 
-init-min-size: func [
-	widget		[handle!]
-	values		[red-value!]
-	sym			[integer!]
-	/local
-		layout	[handle!]
-		prov	[handle!]
-		style	[handle!]
-		css		[c-string!]
-][
-	layout: get-face-layout widget values sym
-	prov: create-provider widget
-	if layout <> widget [
-		style: gtk_widget_get_style_context layout
-		gtk_style_context_add_provider style prov GTK_STYLE_PROVIDER_PRIORITY_USER
-	]
-	css: "* {min-width: 1px; min-height: 1px;}"
-	gtk_css_provider_load_from_data prov css -1 null
-	g_object_unref prov
-]
-
 set-app-theme: func [
 	path		[c-string!]
 	string?		[logic!]
