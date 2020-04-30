@@ -1076,6 +1076,7 @@ system-dialect: make-profilable context [
 				]
 			]	
 			unless literal? value [return value]	;-- shield the following literal conversions
+			if object? value [value: cast value]	;-- recursively process nested type-casting
 			
 			switch ctype/1 [
 				byte! [
