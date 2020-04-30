@@ -978,7 +978,9 @@ string: context [
 		if size <= 0 [exit]
 
 		size1: (as-integer s1/tail - s1/offset) + size
-		if s1/size < size1 [s1: expand-series s1 size1 * 2]
+		if (as byte-ptr! s1/size) < (as byte-ptr! size1) [	;-- force to use unsigned comparison
+			s1: expand-series s1 size1 * 2
+		]
 
 		if mode = MODE_INSERT [
 			move-memory									;-- make space

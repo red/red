@@ -909,8 +909,7 @@ alloc-series-buffer: func [
 	;-- extra space between two adjacent series-buffer!s (ensure s1/tail <> s2)
 	sz: SERIES_BUFFER_PADDING + size + size? series-buffer!
 	flag-big: 0
-	
-	either sz >= memory/s-max [				;-- alloc a big frame if too big for series frames
+	either (as byte-ptr! sz) >= (as byte-ptr! memory/s-max) [ ;-- alloc a big frame if too big for series frames
 		series: as series-buffer! alloc-big sz
 		flag-big: flag-series-big
 	][
