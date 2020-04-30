@@ -626,20 +626,23 @@ redbin: context [
 		index   [int-ptr!]
 		return: [integer!]
 		/local
-			head        [byte-ptr!]
 			type length [integer!]
 			size flags  [integer!]
 			len unit    [integer!]
+			end id flag [integer!]
 			ser [red-series!]
 			ofs [red-value!]
 			buf [series!]
 			sym [red-symbol!]
 			str [c-string!]
+			start here [int-ptr!]
+			base [byte-ptr!]
 	][
-		type:   TYPE_OF(data)
-		length: 1
+		length: 1									;-- at least 1 value is encoded
 		
 		;@@ TBD: properly emit header with all the flags
+		type: TYPE_OF(data)
+		
 		switch type [
 			TYPE_UNSET
 			TYPE_NONE [
@@ -742,16 +745,32 @@ redbin: context [
 				sym: as red-symbol! symbol/get data/data2
 				str: as c-string! (as series! sym/cache/value) + 1
 				
-				len: binary/rs-length? strings
-				binary/rs-append symbols as byte-ptr! :len 4
-				
-				len: (length? str) + 1				;-- include null byte
-				binary/rs-append strings as byte-ptr! str len
-				pad strings 8						;-- pad to 64-bit boundary
-				
 				REDBIN_EMIT :type 4
-				REDBIN_EMIT index 4
-				index/value: index/value + 1
+				
+				start: as int-ptr! binary/rs-head symbols
+				base:  binary/rs-head strings
+				end:  (binary/rs-length? symbols) >> 2
+				id:   0
+				flag: 1
+				
+				while [id < end][
+					here: start + id
+					flag: compare-memory as byte-ptr! str base + here/value length? str
+					if zero? flag [break]
+					id: id + 1
+				]
+				
+				either zero? flag [REDBIN_EMIT :id 4][
+					len: binary/rs-length? strings
+					binary/rs-append symbols as byte-ptr! :len 4
+					
+					len: (length? str) + 1				;-- include null byte
+					binary/rs-append strings as byte-ptr! str len
+					pad strings 8						;-- pad to 64-bit boundary
+					
+					REDBIN_EMIT index 4
+					index/value: index/value + 1
+				]
 			]
 			default [--NOT_IMPLEMENTED--]			;@@ TBD: proper error message
 		]
@@ -796,7 +815,6 @@ redbin: context [
 
 			binary/rs-insert payload 0 as byte-ptr! :str-len 4			;-- size of the strings buffer
 			binary/rs-insert payload 0 as byte-ptr! :sym-size 4			;-- number of symbol records
-			
 		]
 		
 		;-- Redbin header
@@ -806,7 +824,7 @@ redbin: context [
 		here: as int-ptr! head + 8					;-- skip to length entry
 		here/1: length
 		here/2: size
-			
+		
 		payload
 	]
 	
