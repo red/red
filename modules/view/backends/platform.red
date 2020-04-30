@@ -754,7 +754,7 @@ system/view/platform: context [
 				drop-list:		[14x26 0x0 regular 14x26 0x0 small 11x22 0x0 mini 11x22 0x0]
 			]
 			Linux [
-				button:			[16x16 0x0]
+				button:			[17x17 3x3]
 				check:			[20x8  2x2]
 				radio:			[20x8  2x2]
 				text:			[3x3   0x0]
