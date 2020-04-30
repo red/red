@@ -364,8 +364,9 @@ update-font: func [
 		FONT_OBJ_STYLE
 		FONT_OBJ_ANGLE
 		FONT_OBJ_ANTI-ALIAS? [
-			free-font font
-			make-font null font
+			;--	 no need update font, as we create font handle every change
+			;free-font font
+			;make-font null font
 		]
 		default [0]
 	]

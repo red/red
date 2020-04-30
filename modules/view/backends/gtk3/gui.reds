@@ -1619,7 +1619,6 @@ OS-make-view: func [
 		vertical?	[logic!]
 		rfvalue		[red-float!]
 		attrs		[handle!]
-		ctx			[handle!]
 		handle		[handle!]
 		fradio		[handle!]
 		x			[integer!]
@@ -1793,7 +1792,6 @@ OS-make-view: func [
 		]
 		sym = progress [
 			widget: gtk_progress_bar_new
-			ctx: gtk_widget_get_style_context widget
 			if size/y > size/x [
 				gtk_orientable_set_orientation widget 1
 				gtk_progress_bar_set_inverted widget yes
