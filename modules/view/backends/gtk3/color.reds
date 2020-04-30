@@ -84,13 +84,13 @@ change-color: func [
 	][
 		css: GET-COLOR-STR(widget)
 	]
-	alpha?: 0
-	either TYPE_OF(color) = TYPE_TUPLE [
-		rgb: get-color-int color :alpha?
-	][
-		rgb: default-backdrop-color
-		alpha?: 1
+	if TYPE_OF(color) <> TYPE_TUPLE [
+		g_string_set_size css 0
+		gtk_css_provider_load_from_data prov css/str -1 null
+		exit
 	]
+	alpha?: 0
+	rgb: get-color-int color :alpha?
 	b: rgb >> 16 and FFh
 	g: rgb >> 8 and FFh
 	r: rgb and FFh
