@@ -1955,6 +1955,10 @@ GPtrArray!: alias struct! [
 			widget		[handle!]
 			list		[handle!]
 		]
+		gtk_label_get_attributes: "gtk_label_get_attributes" [
+			widget		[handle!]
+			return:		[handle!]
+		]
 		gtk_label_set_max_width_chars: "gtk_label_set_max_width_chars" [
 			widget		[handle!]
 			nchars		[integer!]

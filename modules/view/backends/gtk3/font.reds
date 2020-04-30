@@ -377,18 +377,15 @@ change-font: func [
 	values		[red-value!]
 	/local
 		font	[red-object!]
-		color	[red-tuple!]
-		para	[red-object!]
 		type	[red-word!]
 		sym		[integer!]
 		prov	[handle!]
 		css		[GString!]
 		layout	[handle!]
 		style	[handle!]
+		label	[handle!]
 ][
 	font: as red-object! values + FACE_OBJ_FONT
-	color: as red-tuple! values + FACE_OBJ_COLOR
-	para: as red-object! values + FACE_OBJ_PARA
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
 
@@ -420,13 +417,24 @@ change-font: func [
 	;-- special styles
 	case [
 		sym = text [
-			set-text-attrs widget face font
+			set-label-attrs widget face font
+		]
+		any [
+			sym = button
+			sym = check
+			sym = radio
+		][
+			label: gtk_bin_get_child widget
+			;-- some button maybe have empty label
+			if g_type_check_instance_is_a label gtk_label_get_type [
+				set-label-attrs label face font
+			]
 		]
 		true [0]
 	]
 ]
 
-set-text-attrs: func [
+set-label-attrs: func [
 	label		[handle!]
 	face		[red-object!]
 	font		[red-object!]
@@ -434,10 +442,12 @@ set-text-attrs: func [
 		values	[red-value!]
 		int		[red-integer!]
 		angle	[integer!]
+		attrs	[handle!]
 		style	[red-word!]
 		len		[integer!]
 		blk		[red-block!]
 		sym		[integer!]
+		attr	[PangoAttribute!]
 ][
 	values: object/get-values font
 
@@ -445,6 +455,7 @@ set-text-attrs: func [
 	angle: either TYPE_OF(int) = TYPE_INTEGER [int/value][0]
 	gtk_label_set_angle label as float! angle
 
+	attrs: pango_attr_list_new
 	style: as red-word! values + FONT_OBJ_STYLE
 	len: switch TYPE_OF(style) [
 		TYPE_BLOCK [
@@ -455,7 +466,7 @@ set-text-attrs: func [
 		TYPE_WORD  [1]
 		default	   [0]
 	]
-	gtk_label_set_use_underline label no
+
 	unless zero? len [
 		loop len [
 			sym: symbol/resolve style/symbol
@@ -467,7 +478,8 @@ set-text-attrs: func [
 					0
 				]
 				sym = _underline [
-					gtk_label_set_use_underline label yes
+					attr: pango_attr_underline_new PANGO_UNDERLINE_SINGLE
+					pango_attr_list_insert attrs attr
 				]
 				sym = _strike [
 					0
@@ -477,6 +489,7 @@ set-text-attrs: func [
 			style: style + 1
 		]
 	]
+	gtk_label_set_attributes label attrs
 ]
 
 free-font-provider: func [
