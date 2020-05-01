@@ -468,6 +468,13 @@ Red/System [
 	]
 ]
 
+#define TYPE_ANY_WORD [
+	TYPE_WORD
+	TYPE_GET_WORD
+	TYPE_SET_WORD
+	TYPE_LIT_WORD
+]
+
 #define TYPE_ANY_STRING [					;-- To be used in SWITCH cases
 	TYPE_STRING
 	TYPE_FILE
