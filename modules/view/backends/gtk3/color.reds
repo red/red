@@ -65,7 +65,6 @@ change-color: func [
 		g		[integer!]
 		b		[integer!]
 		a		[float!]
-		layout	[handle!]
 		style	[handle!]
 ][
 	prov: GET-RED-COLOR(widget)
@@ -74,11 +73,6 @@ change-color: func [
 		SET-RED-COLOR(widget prov)
 		css: g_string_sized_new 64
 		SET-COLOR-STR(widget css)
-		layout: get-face-layout widget get-face-values widget type
-		if layout <> widget [
-			style: gtk_widget_get_style_context layout
-			gtk_style_context_add_provider style prov GTK_STYLE_PROVIDER_PRIORITY_USER
-		]
 	][
 		css: GET-COLOR-STR(widget)
 	]

@@ -379,7 +379,6 @@ change-font: func [
 		font	[red-object!]
 		prov	[handle!]
 		css		[GString!]
-		layout	[handle!]
 		style	[handle!]
 		label	[handle!]
 ][
@@ -391,11 +390,6 @@ change-font: func [
 		SET-RED-FONT(widget prov)
 		css: g_string_sized_new 128
 		SET-FONT-STR(widget css)
-		layout: get-face-layout widget values sym
-		if layout <> widget [
-			style: gtk_widget_get_style_context layout
-			gtk_style_context_add_provider style prov GTK_STYLE_PROVIDER_PRIORITY_USER
-		]
 	][
 		css: GET-FONT-STR(widget)
 	]
