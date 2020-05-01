@@ -2026,6 +2026,10 @@ GPtrArray!: alias struct! [
 			entry		[handle!]
 			list		[handle!]
 		]
+		gtk_entry_set_alignment: "gtk_entry_set_alignment" [
+			entry		[handle!]
+			xalign		[float32!]
+		]
 		gtk_editable_select_region: "gtk_editable_select_region" [
 			entry		[handle!]
 			start		[integer!]

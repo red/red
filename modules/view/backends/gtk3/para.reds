@@ -50,6 +50,9 @@ change-para: func [
 				set-label-para label hsym vsym wrap?
 			]
 		]
+		sym = field [
+			set-entry-para widget hsym vsym wrap?
+		]
 		true [0]
 	]
 	yes
@@ -88,6 +91,28 @@ set-label-para: func [
 	]
 	gtk_label_set_yalign label f
 	gtk_label_set_line_wrap label wrap?
+]
+
+set-entry-para: func [
+	entry		[handle!]
+	hsym		[integer!]
+	vsym		[integer!]
+	wrap?		[logic!]
+	/local
+		f		[float32!]
+][
+	case [
+		hsym = _para/left [
+			f: as float32! 0.0
+		]
+		hsym = _para/right [
+			f: as float32! 1.0
+		]
+		true [
+			f: as float32! 0.5
+		]
+	]
+	gtk_entry_set_alignment entry f
 ]
 
 update-para: func [
