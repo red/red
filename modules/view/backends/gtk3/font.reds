@@ -288,7 +288,7 @@ make-font: func [
 	if TYPE_OF(font) <> TYPE_OBJECT [
 		return null
 	]
-	attrs: create-pango-attrs face font
+	attrs: as handle! 1									;-- placeholder handle, just to fill font/state
 	values: object/get-values font
 	blk: as red-block! values + FONT_OBJ_STATE
 	either TYPE_OF(blk) <> TYPE_BLOCK [
@@ -334,7 +334,7 @@ get-font: func [
 	/local
 		hFont	[handle!]
 ][
-	if TYPE_OF(font) <> TYPE_OBJECT [return default-attrs]
+	if TYPE_OF(font) <> TYPE_OBJECT [return null]
 	hFont: get-font-handle font 0
 	if null? hFont [hFont: make-font face font]
 	hFont
@@ -348,7 +348,6 @@ free-font: func [
 ][
 	hFont: get-font-handle font 0
 	if hFont <> null [
-		pango_attr_list_unref hFont
 		state: as red-block! (object/get-values font) + FONT_OBJ_STATE
 		state/header: TYPE_NONE
 	]
@@ -364,9 +363,8 @@ update-font: func [
 		FONT_OBJ_STYLE
 		FONT_OBJ_ANGLE
 		FONT_OBJ_ANTI-ALIAS? [
-			;--	 no need update font, as we create font handle every change
-			;free-font font
-			;make-font null font
+			;-- to make sure the font/state will be always exist
+			get-font null font
 		]
 		default [0]
 	]
