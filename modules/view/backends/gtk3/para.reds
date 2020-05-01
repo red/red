@@ -24,7 +24,6 @@ change-para: func [
 		vsym	[integer!]
 ][
 	para: as red-object! values + FACE_OBJ_PARA
-	if TYPE_OF(para) <> TYPE_OBJECT [return no]
 	either TYPE_OF(para) = TYPE_OBJECT [
 		pvalues: object/get-values para
 		wrap?: get-para-wrap pvalues

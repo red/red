@@ -363,19 +363,17 @@ get-text-size: func [
 	if null? pango-context [pango-context: gdk_pango_context_get]
 	size: declare tagSIZE
 	new?: no
-	if null? hFont [
-		either null? face [hFont: default-attrs][
-			values: object/get-values face
-			font: as red-object! values + FACE_OBJ_FONT
-			either all [
-				font <> null
-				TYPE_OF(font) = TYPE_OBJECT
-			][
-				hFont: create-pango-attrs face font
-				new?: yes
-			][
-				hFont: default-attrs
-			]
+	either null? face [hFont: default-attrs][
+		values: object/get-values face
+		font: as red-object! values + FACE_OBJ_FONT
+		either all [
+			font <> null
+			TYPE_OF(font) = TYPE_OBJECT
+		][
+			hFont: create-pango-attrs face font
+			new?: yes
+		][
+			hFont: default-attrs
 		]
 	]
 
