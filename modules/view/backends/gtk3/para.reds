@@ -14,14 +14,69 @@ change-para: func [
 	widget		[handle!]
 	face		[red-object!]
 	values		[red-value!]
+	type		[integer!]
 	return:		[logic!]
 	/local
 		para	[red-object!]
+		pvalues	[red-value!]
+		wrap?	[logic!]
+		hsym	[integer!]
+		vsym	[integer!]
 ][
 	para: as red-object! values + FACE_OBJ_PARA
 	if TYPE_OF(para) <> TYPE_OBJECT [return no]
-	change-font widget face values
+	either TYPE_OF(para) = TYPE_OBJECT [
+		pvalues: object/get-values para
+		wrap?: get-para-wrap pvalues
+		hsym: get-para-hsym pvalues
+		vsym: get-para-vsym pvalues
+	][
+		wrap?: no
+		hsym: _para/left
+		vsym: _para/middle
+	]
+	case [
+		type = text [
+			set-label-para widget hsym vsym wrap?
+		]
+		true [0]
+	]
 	yes
+]
+
+set-label-para: func [
+	label		[handle!]
+	hsym		[integer!]
+	vsym		[integer!]
+	wrap?		[logic!]
+	/local
+		f		[float32!]
+][
+	case [
+		hsym = _para/left [
+			f: as float32! 0.0
+		]
+		hsym = _para/right [
+			f: as float32! 1.0
+		]
+		true [
+			f: as float32! 0.5
+		]
+	]
+	gtk_label_set_xalign label f
+	case [
+		vsym = _para/top [
+			f: as float32! 0.0
+		]
+		vsym = _para/bottom [
+			f: as float32! 1.0
+		]
+		true [
+			f: as float32! 0.5
+		]
+	]
+	gtk_label_set_yalign label f
+	gtk_label_set_line_wrap label wrap?
 ]
 
 update-para: func [

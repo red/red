@@ -376,10 +376,9 @@ change-font: func [
 	widget		[handle!]
 	face		[red-object!]
 	values		[red-value!]
+	sym			[integer!]
 	/local
 		font	[red-object!]
-		type	[red-word!]
-		sym		[integer!]
 		prov	[handle!]
 		css		[GString!]
 		layout	[handle!]
@@ -387,8 +386,6 @@ change-font: func [
 		label	[handle!]
 ][
 	font: as red-object! values + FACE_OBJ_FONT
-	type: as red-word! values + FACE_OBJ_TYPE
-	sym: symbol/resolve type/symbol
 
 	prov: GET-RED-FONT(widget)
 	either null? prov [
