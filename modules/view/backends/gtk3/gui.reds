@@ -660,7 +660,7 @@ init: func [][
 	set-defaults
 
 	#if type = 'exe [set-env-theme]
-	;set-app-theme "button {min-width: 1px; min-height: 1px;}" yes
+	set-app-theme "box, button.text-button {min-width: 1px; min-height: 1px;}" yes
 	collector/register as int-ptr! :on-gc-mark
 ]
 
