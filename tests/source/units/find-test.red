@@ -328,11 +328,19 @@ Red [
 		--assert "78" = find/last/tail "123456378" "3"
 ===end-group===
 
-===start-group=== "find datatype!"
-	--test-- "find datatype! -1"
-		--assert [1] = find [a 1] integer!
-	--test-- "find datatype! -2"
-		--assert none = find [a] integer!
+===start-group=== "find datatype! / typeset!"
+	--test-- "find-dt-1" --assert [1] = find [a 1] integer!
+	--test-- "find-dt-2" --assert none = find [a] integer!
+	--test-- "find-dt-3" --assert [3% 4.5.6 #c] = find [1 "a" 2.0 #"b" 3% 4.5.6 #c] percent!
+	--test-- "find-dt-4" --assert ['b 4.5.6 c:] = find ["a" 2.0 'b 4.5.6 c: ] any-word!
+	--test-- "find-dt-5" --assert ["b"] = find [a "b"] series!
+
+	--test-- "find-dt-6"  --assert (make hash! [1]) = find make hash! [a 1] integer!
+	--test-- "find-dt-7"  --assert none = find make hash! [a] integer!
+	--test-- "find-dt-8"  --assert (make hash! [3% 4.5.6 #c]) = make hash! find [1 "a" 2.0 #"b" 3% 4.5.6 #c] percent!
+	--test-- "find-dt-9"  --assert (make hash! ['b 4.5.6 c:]) = make hash! find ["a" 2.0 'b 4.5.6 c: ] any-word!
+	--test-- "find-dt-10" --assert (make hash! ["b"]) = find make hash! [a "b"] series!
+
 ===end-group===
 
 ===start-group=== "find/reverse/match"
