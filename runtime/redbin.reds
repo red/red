@@ -627,13 +627,13 @@ redbin: context [
 		/local
 			type length [integer!]
 			size flags  [integer!]
-			len unit    [integer!]
+			len len2 unit [integer!]
 			end id [integer!]
 			ser [red-series!]
 			ofs [red-value!]
 			buf [series!]
 			sym [red-symbol!]
-			str [c-string!]
+			str str2 [c-string!]
 			start here [int-ptr!]
 			base [byte-ptr!]
 			flag [logic!]
@@ -753,10 +753,17 @@ redbin: context [
 				
 				while [id < end][
 					here: start + id
-					flag: not as logic! compare-memory
-						as byte-ptr! str
-						base + here/value
-						length? str
+					len:  length? str
+					str2: as c-string! base + here/value
+					len2: length? str2
+					
+					flag: all [
+						len = len2
+						not as logic! compare-memory
+							as byte-ptr! str
+							as byte-ptr! str2
+							len
+					]
 					
 					if flag [break]
 					id: id + 1
