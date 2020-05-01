@@ -619,17 +619,18 @@ redbin: context [
 	]
 	
 	emit-value: func [
-		data    [red-value!]
-		payload [red-binary!]
-		symbols [red-binary!]
-		table   [red-binary!]
-		strings [red-binary!]
-		return: [integer!]
+		data     [red-value!]
+		payload  [red-binary!]
+		symbols  [red-binary!]
+		table    [red-binary!]
+		strings  [red-binary!]
+		contexts [red-binary!]
+		return:  [integer!]
 		/local
 			type length [integer!]
 			size flags  [integer!]
 			len unit    [integer!]
-			end id [integer!]
+			end id ctx  [integer!]
 			ser [red-series!]
 			ofs [red-value!]
 			buf [series!]
@@ -737,14 +738,17 @@ redbin: context [
 				REDBIN_EMIT :len 4
 				length: length + len
 				loop len [
-					emit-value ofs payload symbols table strings
+					emit-value ofs payload symbols table strings contexts
 					ofs: ofs + 1
 				]
 			]
+			TYPE_ANY_WORD
+			TYPE_REFINEMENT
 			TYPE_ISSUE [
 				start: as int-ptr! binary/rs-head symbols
 				end:   (binary/rs-length? symbols) >> 2
 				flag:  no
+				ctx:   -1
 				id:    0
 				
 				while [id < end][					;-- reuse symbol records when possible
@@ -768,6 +772,11 @@ redbin: context [
 				
 				REDBIN_EMIT :type 4
 				REDBIN_EMIT :id 4
+				unless type = TYPE_ISSUE [
+					REDBIN_EMIT :ctx 4
+					REDBIN_EMIT :data/data3 4
+				]
+				
 			]
 			default [--NOT_IMPLEMENTED--]			;@@ TBD: proper error message
 		]
@@ -791,7 +800,7 @@ redbin: context [
 		strings:  binary/make-at stack/push* 4
 		contexts: binary/make-at stack/push* 4
 		
-		length: emit-value data payload symbols table strings
+		length: emit-value data payload symbols table strings contexts
 		size:   binary/rs-length? payload
 		
 		;-- Symbol table
