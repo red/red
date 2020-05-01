@@ -868,7 +868,7 @@ block: context [
 		s: GET_BUFFER(blk)
 		beg: s/offset + blk/head
 
-		if any [							;-- early exit if blk is empty or at tail
+		if any [										;-- early exit if blk is empty or at tail
 			s/offset = s/tail
 			all [not reverse? beg >= s/tail]
 		][
@@ -907,7 +907,7 @@ block: context [
 		]
 
 		type: TYPE_OF(value)
-		if type = TYPE_OBJECT [hash?: no]				;-- use block search
+		if any [type = TYPE_OBJECT type = TYPE_DATATYPE type = TYPE_TYPESET][hash?: no]	;-- use block search
 		any-blk?: either all [same? hash?][no][ANY_BLOCK_STRICT?(type)]
 		op: either case? [COMP_STRICT_EQUAL][COMP_FIND] ;-- warning: /case <> STRICT...
 		if same? [op: COMP_SAME]
