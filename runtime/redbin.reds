@@ -758,13 +758,12 @@ redbin: context [
 					sym: as red-symbol! symbol/get data/data2
 					str: as c-string! (as series! sym/cache/value) + 1
 					len: binary/rs-length? strings
+					id:  end
 					
 					binary/rs-append table   as byte-ptr! :len 4
 					binary/rs-append symbols as byte-ptr! :data/data2 4
 					binary/rs-append strings as byte-ptr! str (length? str) + 1
 					pad strings 8					;-- pad to 64-bit boundary
-					
-					id: (binary/rs-length? symbols) >> 2 - 1
 				]
 				
 				REDBIN_EMIT :type 4
