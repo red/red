@@ -14,7 +14,7 @@ change-para: func [
 	widget		[handle!]
 	face		[red-object!]
 	values		[red-value!]
-	type		[integer!]
+	sym			[integer!]
 	return:		[logic!]
 	/local
 		para	[red-object!]
@@ -22,6 +22,7 @@ change-para: func [
 		wrap?	[logic!]
 		hsym	[integer!]
 		vsym	[integer!]
+		label	[handle!]
 ][
 	para: as red-object! values + FACE_OBJ_PARA
 	either TYPE_OF(para) = TYPE_OBJECT [
@@ -35,8 +36,19 @@ change-para: func [
 		vsym: _para/middle
 	]
 	case [
-		type = text [
+		sym = text [
 			set-label-para widget hsym vsym wrap?
+		]
+		any [
+			sym = button
+			sym = check
+			sym = radio
+		][
+			label: gtk_bin_get_child widget
+			;-- some button maybe have empty label
+			if g_type_check_instance_is_a label gtk_label_get_type [
+				set-label-para label hsym vsym wrap?
+			]
 		]
 		true [0]
 	]
