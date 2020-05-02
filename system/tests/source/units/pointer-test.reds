@@ -358,4 +358,33 @@ pointer-local-foo
 
 ===end-group===
 
+===start-group=== "Issues"
+
+	--test-- "#4103"
+	    s4103!: alias struct! [
+	        header [integer!] 
+	        data1 [integer!] 
+	        data2 [integer!] 
+	        data3 [integer!]
+	    ] 
+		p: as s4103! 00100000h
+		--assert (as s4103! 00100010h) = (p + 1)
+		--assert (as byte-ptr! 00100000h) = as byte-ptr! (as-integer p)
+		;--assert (as byte-ptr! 00100010h) = as byte-ptr! (as-integer (p + 1))
+		p: p + 1
+		i4103: as-integer p	
+		--assert 00100010h = i4103
+		b4103: as byte-ptr! i4103
+		--assert (as byte-ptr! 00100010h) = b4103
+		
+		;--assert #"A" = as-byte as-integer #"A"
+		;--assert 66 = as-integer as-byte 66
+
+	--test-- "#4414"
+		head: as byte-ptr! DEADBEEFh
+		--assert head = as byte-ptr! head ; ignore compiler's warning
+		--assert head = as byte-ptr! as int-ptr! head
+
+===end-group===
+
 ~~~end-file~~~
