@@ -1808,8 +1808,6 @@ OS-make-view: func [
 		]
 		sym = group-box [
 			widget: gtk_frame_new caption
-			gtk_frame_set_shadow_type widget 3
-			gtk_frame_set_label_align widget 0.5 0.5		; Todo: does not seem to work
 			buffer: gtk_layout_new null null
 			gtk_widget_show buffer
 			gtk_container_add widget buffer
