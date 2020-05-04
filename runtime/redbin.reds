@@ -628,14 +628,12 @@ redbin: context [
 		return:  [integer!]
 		/local
 			type length [integer!]
-			size flags  [integer!]
+			flags  [integer!]
 			len unit    [integer!]
 			end id ctx  [integer!]
 			ser [red-series!]
 			ofs [red-value!]
 			buf [series!]
-			sym [red-symbol!]
-			str [c-string!]
 			start here [int-ptr!]
 			flag [logic!]
 	][
@@ -708,21 +706,7 @@ redbin: context [
 			TYPE_ANY_STRING
 			TYPE_VECTOR
 			TYPE_BINARY [
-				ser:  as red-series! data
-				len:  _series/get-length ser yes
-				buf:  GET_BUFFER(ser)
-				ofs:  buf/offset
-				unit: GET_UNIT(buf)
-				
-				flags: type or (unit << 8)
-				REDBIN_EMIT :flags 4
-				REDBIN_EMIT :data/data1 4
-				REDBIN_EMIT :len 4
-				if type = TYPE_VECTOR [REDBIN_EMIT :data/data3 4]
-				unless zero? len [
-					REDBIN_EMIT* as byte-ptr! ofs len << log-b unit
-				]
-				pad payload 4						;-- pad to 32-bit boundary
+				encode-string data type payload
 			]
 			TYPE_MAP
 			TYPE_ANY_PATH
@@ -759,15 +743,8 @@ redbin: context [
 				]
 				
 				unless flag [
-					sym: as red-symbol! symbol/get data/data2
-					str: as c-string! (as series! sym/cache/value) + 1
-					len: binary/rs-length? strings
-					id:  end
-					
-					binary/rs-append table   as byte-ptr! :len 4
-					binary/rs-append symbols as byte-ptr! :data/data2 4
-					binary/rs-append strings as byte-ptr! str (length? str) + 1
-					pad strings 8					;-- pad to 64-bit boundary
+					encode-symbol data table symbols strings
+					id: end
 				]
 				
 				REDBIN_EMIT :type 4
@@ -776,12 +753,62 @@ redbin: context [
 					REDBIN_EMIT :ctx 4
 					REDBIN_EMIT :data/data3 4
 				]
-				
 			]
 			default [--NOT_IMPLEMENTED--]			;@@ TBD: proper error message
 		]
 		
 		length
+	]
+	
+	encode-string: func [
+		data    [red-value!]
+		type    [integer!]
+		payload [red-binary!]
+		/local
+			series  [red-series!]
+			_offset [red-value!]
+			buffer  [series!]
+			length  [integer!]
+			unit    [integer!]
+			flags   [integer!]
+	][
+		series:  as red-series! data
+		buffer:  GET_BUFFER(series)
+		unit:    GET_UNIT(buffer)
+		length:  _series/get-length series yes
+		_offset: buffer/offset
+		
+		flags: type or (unit << 8)
+		REDBIN_EMIT :flags 4
+		REDBIN_EMIT :data/data1 4
+		REDBIN_EMIT :length 4
+		if type = TYPE_VECTOR [REDBIN_EMIT :data/data3 4]
+		unless zero? length [
+			REDBIN_EMIT* as byte-ptr! _offset length << log-b unit
+		]
+		
+		pad payload 4						;-- pad to 32-bit boundary
+	]
+	
+	encode-symbol: func [
+		data    [red-value!]
+		table   [red-binary!]
+		symbols [red-binary!]
+		strings [red-binary!]
+		/local
+			_symbol [red-symbol!]
+			string  [c-string!]
+			length  [integer!]
+	][
+		_symbol: as red-symbol! symbol/get data/data2
+		string:  as c-string! (as series! _symbol/cache/value) + 1
+		length:  binary/rs-length? strings
+		
+		binary/rs-append table   as byte-ptr! :length 4
+		binary/rs-append symbols as byte-ptr! :data/data2 4
+		binary/rs-append strings as byte-ptr! string (length? string) + 1
+		
+		pad strings 8					;-- pad to 64-bit boundary
 	]
 	
 	encode: func [
@@ -803,7 +830,7 @@ redbin: context [
 		length: emit-value data payload symbols table strings contexts
 		size:   binary/rs-length? payload
 		
-		;-- Symbol table
+		;-- symbol table
 		sym-len: binary/rs-length? table
 		unless zero? sym-len [
 			str-len: binary/rs-length? strings
