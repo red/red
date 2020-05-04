@@ -188,7 +188,7 @@ Red [
 				
 				if value [							;-- some unit sizes and types are incompatible
 					--assert value == test value
-					--assert (index? value) == (index? test value)
+					--assert (index? value) == index? test value
 				]
 			]
 		
@@ -202,11 +202,11 @@ Red [
 					(random 4) - 1
 				
 				--assert value == test value
-				--assert (index? value) == (index? test value)
+				--assert (index? value) == index? test value
 			]
 		
 		--test-- "any-string"
-			strings: ["string" <tag> email@address url:// %file @reference]
+			strings: [{} "string" <tag> email@address url:// %file @reference]
 			forall strings [--assert strings/1 == head test skip strings/1 (random 4) - 1]
 		
 			loop 10 [
@@ -216,7 +216,26 @@ Red [
 					(random 4) - 1
 					
 				--assert value == test value
-				--assert (index? value) == (index? test value)
+				--assert (index? value) == index? test value
+			]
+		
+		--test-- "block and paren"
+			blocks: [[] [1] [1 2 3] ["a" [#{BC} [[[[[[1.2.3]]]]] [[[$4.56]] [78x90]]]]]]
+			forall blocks [--assert blocks/1 == head test skip blocks/1 (random 4) - 1]
+			
+			loop 10 [
+				value: collect [
+					loop random 100 [
+						keep to
+							get random/only [integer! float! pair! money!]
+							random 1'000
+					]
+				]
+				value: skip value (random 4) - 1
+				if random true [value: to paren! value]
+				
+				--assert value == test value
+				--assert (index? value) == index? test value
 			]
 		
 	===end-group===
