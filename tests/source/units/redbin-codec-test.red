@@ -238,6 +238,20 @@ Red [
 				--assert (index? value) == index? test value
 			]
 		
+		--test-- "map"
+			maps: [#() #(a b) #("abcd" #(<de> [f g]))]
+			forall maps [--assert maps/1 == test maps/1]
+			
+			loop 10 [
+				value to map! collect [
+					loop (random 50) << 1 [
+						keep rejoin collect [loop random 100 [keep to char! random 10'000]]
+					]
+				]
+				
+				--assert value == test value
+			]
+		
 		--test-- "all-word"
 			values: [a 'b :c d: /e #f]
 			forall values [--assert values/1 == test values/1]
