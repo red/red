@@ -3097,10 +3097,11 @@ natives: context [
 					result: map/set-many blk as red-hash! series size
 				]
 				TYPE_IMAGE [
-					#either OS = 'Windows [
-						image/set-many blk as red-image! series size
-					][
-						--NOT_IMPLEMENTED--
+					#case [
+						any [OS = 'Windows OS = 'macOS] [
+							image/set-many blk as red-image! series size
+						]
+						true [--NOT_IMPLEMENTED--]
 					]
 				]
 				default [
