@@ -40,6 +40,7 @@ Red [
 	--test-- "to-string!-issue!"		--assert "FF00" = to string! #FF00
 	--test-- "to-string!-binary!-1"		--assert "" = to string! #{}
 	--test-- "to-string!-binary!-2"		--assert "abc" = to string! #{616263}
+	--test-- "to-string!-binary!-3"		--assert error? try [to-string #{62C3}]
 	--test-- "to-string!-block!-1"		--assert "" = to string! []
 	--test-- "to-string!-block-2!"		--assert "12" = to string! [1 2]
 	--test-- "to-string!-block!-3"		--assert "123" = to string! [1 2 3]
