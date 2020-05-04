@@ -135,7 +135,9 @@ create-css: func [
 					g_string_append css " font-style: italic;"
 				]
 				sym = _underline [
-					g_string_append css " text-decoration: underline;"
+					;-- TBD: only one text-decoration style can be used
+					;g_string_append css " text-decoration: underline;"
+					0
 				]
 				sym = _strike [
 					g_string_append css " text-decoration: line-through;"
@@ -477,7 +479,8 @@ set-label-attrs: func [
 					pango_attr_list_insert attrs attr
 				]
 				sym = _strike [
-					0
+					attr: pango_attr_strikethrough_new true
+					pango_attr_list_insert attrs attr
 				]
 				true [0]
 			]
