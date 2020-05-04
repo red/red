@@ -66,6 +66,7 @@ change-color: func [
 		b		[integer!]
 		a		[float!]
 		style	[handle!]
+		node	[c-string!]
 ][
 	prov: GET-RED-COLOR(widget)
 	either null? prov [
@@ -90,12 +91,18 @@ change-color: func [
 	if alpha? = 1 [
 		a: (as float! 255 - (rgb >>> 24)) / 255.0
 	]
+	node: case [
+		type = area [
+			"text"
+		]
+		true [
+			"*"
+		]
+	]
 	g_string_set_size css 0
-	g_string_append css "* {"
+	g_string_set_size css 0
+	g_string_append_printf [css "%s {" node]
 	g_string_append_printf [css { background-color: rgba(%d, %d, %d, %.3f);} r g b a]
-	g_string_append css "}"
-	g_string_append css " * selection {"
-	g_string_append_printf [css { color: rgba(%d, %d, %d, %.3f);} r g b a]
 	g_string_append css "}"
 	gtk_css_provider_load_from_data prov css/str -1 null
 ]

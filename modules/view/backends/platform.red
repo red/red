@@ -814,7 +814,6 @@ system/view/platform: context [
 			
 			]
 			Linux [
-				colors/area: white
 			]
 		]
 

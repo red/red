@@ -54,8 +54,10 @@ create-default-attrs: func [
 create-css: func [
 	face		[red-object!]
 	font		[red-object!]
+	type		[integer!]
 	css			[GString!]
 	/local
+		node	[c-string!]
 		values	[red-value!]
 		str		[red-string!]
 		name	[c-string!]
@@ -73,8 +75,16 @@ create-css: func [
 		blk		[red-block!]
 		sym		[integer!]
 ][
+	node: case [
+		type = area [
+			"text"
+		]
+		true [
+			"*"
+		]
+	]
 	g_string_set_size css 0
-	g_string_append css "* {"
+	g_string_append_printf [css "%s {" node]
 
 	values: object/get-values font
 	str: as red-string! values + FONT_OBJ_NAME
@@ -148,9 +158,6 @@ create-css: func [
 		]
 	]
 
-	g_string_append css "}"
-	g_string_append css " * selection {"
-	g_string_append_printf [css { background-color: rgba(%d, %d, %d, %.3f);} r g b a]
 	g_string_append css "}"
 ]
 
@@ -409,7 +416,7 @@ change-font: func [
 		gtk_css_provider_load_from_data prov css/str -1 null
 		exit
 	]
-	create-css face font css
+	create-css face font sym css
 	gtk_css_provider_load_from_data prov css/str -1 null
 
 	;-- special styles
