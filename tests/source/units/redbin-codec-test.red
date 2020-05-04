@@ -219,7 +219,7 @@ Red [
 				--assert (index? value) == index? test value
 			]
 		
-		--test-- "block and paren"
+		--test-- "any-list"
 			blocks: [[] [1] [1 2 3] ["a" [#{BC} [[[[[[1.2.3]]]]] [[[$4.56]] [78x90]]]]]]
 			forall blocks [--assert blocks/1 == head test skip blocks/1 (random 4) - 1]
 			
@@ -237,13 +237,13 @@ Red [
 				--assert value == test value
 				--assert (index? value) == index? test value
 			]
-			
-		--test-- "issue"
-			issues: [#foo #FOO #foobar #ζήτημα]
-			forall issues [--assert issues/1 == test issues/1]
+		
+		--test-- "all-word"
+			values: [a 'b :c d: /e #f]
+			forall values [--assert values/1 == test values/1]
 			
 			loop 10 [
-				value: to issue! rejoin collect [
+				type? value: to get random/only to block! all-word! rejoin collect [
 					loop random 100 [keep to char! random 10'000]
 				]				
 				--assert value == test value
