@@ -237,6 +237,17 @@ Red [
 				--assert value == test value
 				--assert (index? value) == index? test value
 			]
+			
+		--test-- "issue"
+			issues: [#foo #FOO #foobar #ζήτημα]
+			forall issues [--assert issues/1 == test issues/1]
+			
+			loop 10 [
+				value: to issue! rejoin collect [
+					loop random 100 [keep to char! random 10'000]
+				]				
+				--assert value == test value
+			]
 		
 	===end-group===
 
