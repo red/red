@@ -33,7 +33,7 @@ pango-context:		as handle! 0
 default-font-name:	as c-string! 0
 default-font-size:	0
 default-font-color: 0
-default-font-width: 7		;-- pixel width
+default-font-width: as float32! 7.5		;-- pixel width
 gtk-font-name:		"Sans"
 gtk-font-size:		10
 
@@ -1365,13 +1365,12 @@ remove-entry: func [
 font-width?: func [
 	face		[red-object!]
 	font		[red-object!]
-	return:		[integer!]
+	return:		[float32!]
 	/local
 		txt		[c-string!]
 		attrs	[handle!]
 		free?	[logic!]
 		sz		[tagSIZE]
-		w		[float32!]
 ][
 	txt: "abcde12xxx"
 	free?: no
@@ -1386,8 +1385,7 @@ font-width?: func [
 	]
 	sz: pango-size? txt attrs
 	if free? [pango_attr_list_unref attrs]
-	w: (as float32! sz/width) / as float32! 10.0
-	as-integer w
+	(as float32! sz/width) / as float32! 10.0
 ]
 
 update-scroller: func [
@@ -1628,6 +1626,7 @@ OS-make-view: func [
 		vadjust		[handle!]
 		value		[integer!]
 		fvalue		[float!]
+		f32			[float32!]
 		vertical?	[logic!]
 		rfvalue		[red-float!]
 		attrs		[handle!]
@@ -1797,7 +1796,8 @@ OS-make-view: func [
 			unless null? caption [
 				gtk_entry_buffer_set_text buffer caption -1
 			]
-			gtk_entry_set_width_chars widget size/x / font-width? null font
+			f32: (as float32! size/x - 18) / font-width? face font
+			gtk_entry_set_width_chars widget as-integer f32
 			set-hint-text widget as red-block! values + FACE_OBJ_OPTIONS
 			if bits and FACET_FLAGS_PASSWORD <> 0 [gtk_entry_set_visibility widget no]
 			gtk_entry_set_has_frame widget (bits and FACET_FLAGS_NO_BORDER = 0)
@@ -1851,8 +1851,8 @@ OS-make-view: func [
 			if sym = drop-down [
 				if size/x > 64 [value: size/x - 64]
 				if value < 24 [value: 24]
-				value: value / (font-width? null font)	;-- width / char width
-				gtk_entry_set_width_chars gtk_bin_get_child widget value
+				f32: (as float32! value) / (font-width? face font)	;-- width / char width
+				gtk_entry_set_width_chars gtk_bin_get_child widget as-integer f32
 			]
 			gtk_combo_box_set_active widget 0
 		]

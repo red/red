@@ -747,7 +747,7 @@ system/view/platform: context [
 				check:			[20x8  2x2]
 				radio:			[20x8  2x2]
 				text:			[3x3   0x0]
-				field:			[3x3   0x0]
+				field:			[9x9   1x1]
 				group-box:		[0x8  4x18]
 				tab-panel:		[0x0  39x0]
 				drop-list:		[0x40 0x0]
@@ -794,7 +794,7 @@ system/view/platform: context [
 					check:		20
 					radio:		19
 					text:		17
-					field:		35
+					field:		30
 					drop-down:	34
 					drop-list:	34
 					progress:	4
