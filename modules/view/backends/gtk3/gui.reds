@@ -343,13 +343,13 @@ get-child-from-xy: func [
 get-text-size: func [
 	face		[red-object!]
 	str			[red-string!]
-	hFont		[handle!]
 	pair		[red-pair!]
 	return:		[tagSIZE]
 	/local
 		values	[red-value!]
 		font	[red-object!]
-		new?	[logic!]
+		state	[red-block!]
+		hFont	[handle!]
 		text	[c-string!]
 		len		[integer!]
 		width	[integer!]
@@ -362,20 +362,15 @@ get-text-size: func [
 ][
 	if null? pango-context [pango-context: gdk_pango_context_get]
 	size: declare tagSIZE
-	new?: no
-	either null? face [hFont: default-attrs][
-		values: object/get-values face
-		font: as red-object! values + FACE_OBJ_FONT
-		either all [
-			font <> null
-			TYPE_OF(font) = TYPE_OBJECT
-		][
-			hFont: create-pango-attrs face font
-			new?: yes
-		][
-			hFont: default-attrs
-		]
+	values: object/get-values face
+	font: as red-object! values + FACE_OBJ_FONT
+	hFont: null
+	if TYPE_OF(font) = TYPE_OBJECT [
+		state: as red-block! values + FONT_OBJ_STATE
+		if TYPE_OF(state) <> TYPE_BLOCK [hFont: get-font-handle font 0]
+		if null? hFont [hFont: make-font face font]
 	]
+	if null? hFont [hFont: default-attrs]
 
 	len: -1
 	text: unicode/to-utf8 str :len
@@ -386,7 +381,6 @@ get-text-size: func [
 	width: 0 height: 0
 	pango_layout_get_pixel_size pl :width :height
 	g_object_unref pl
-	if new? [pango_attr_list_unref hFont]
 
 	size/width: width
 	size/height: height
@@ -1371,7 +1365,7 @@ font-width?: func [
 		w		[float32!]
 ][
 	string/load-at "abcde12xxx" 10 as red-value! :txt UTF-8
-	sz: get-text-size face txt null null
+	sz: get-text-size face txt null
 	w: (as float32! sz/width) / as float32! 10.0
 	as-integer w
 ]

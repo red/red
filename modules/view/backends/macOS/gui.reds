@@ -150,10 +150,13 @@ get-child-from-xy: func [
 get-text-size: func [
 	face 	[red-object!]		; TODO: implement face-dependent measurement for Mac
 	str		[red-string!]
-	hFont	[handle!]
 	pair	[red-pair!]
 	return: [tagSIZE]
 	/local
+		values	[red-value!]
+		font	[red-object!]
+		state	[red-block!]
+		hFont	[handle!]
 		attrs	[integer!]
 		cf-str	[integer!]
 		attr	[integer!]
@@ -162,6 +165,15 @@ get-text-size: func [
 		rc		[NSRect!]
 		size	[tagSIZE]
 ][
+	values: object/get-values face
+	font: as red-object! values + FACE_OBJ_FONT
+	hFont: null
+	if TYPE_OF(font) = TYPE_OBJECT [
+		state: as red-block! values + FONT_OBJ_STATE
+		if TYPE_OF(state) <> TYPE_BLOCK [hFont: get-font-handle font 0]
+		if null? hFont [hFont: make-font face font]
+	]
+
 	size: declare tagSIZE
 	if null? hFont [hFont: as handle! default-font]
 

@@ -551,9 +551,6 @@ system/view/platform: context [
 			values [red-value!]
 			text   [red-string!]
 			pair   [red-pair!]
-			font   [red-object!]
-			state  [red-block!]
-			hFont  [int-ptr!]							;-- handle!
 	][
 		;@@ check if object is a face?
 		values: object/get-values face
@@ -567,17 +564,9 @@ system/view/platform: context [
 			exit
 		]
 
-		font: as red-object! values + gui/FACE_OBJ_FONT
-		hFont: null
-		if TYPE_OF(font) = TYPE_OBJECT [
-			state: as red-block! (object/get-values font) + gui/FONT_OBJ_STATE
-			if TYPE_OF(state) <> TYPE_BLOCK [hFont: gui/get-font-handle font 0]
-			if null? hFont [hFont: gui/make-font face font]
-		]
-
 		pair: as red-pair! stack/arguments
 		pair/header: TYPE_PAIR
-		gui/get-text-size face text hFont pair
+		gui/get-text-size face text pair
 	]
 	
 	on-change-facet: routine [
