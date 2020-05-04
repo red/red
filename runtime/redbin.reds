@@ -712,19 +712,7 @@ redbin: context [
 			TYPE_ANY_PATH
 			TYPE_PAREN
 			TYPE_BLOCK [
-				ser: as red-series! data
-				len: _series/get-length ser yes
-				buf: GET_BUFFER(ser)
-				ofs: buf/offset
-				
-				REDBIN_EMIT :type 4
-				unless type = TYPE_MAP [REDBIN_EMIT :data/data1 4]
-				REDBIN_EMIT :len 4
-				length: length + len
-				loop len [
-					emit-value ofs payload symbols table strings contexts
-					ofs: ofs + 1
-				]
+				length: length + encode-block data type payload symbols table strings contexts
 			]
 			TYPE_ANY_WORD
 			TYPE_REFINEMENT
@@ -788,6 +776,37 @@ redbin: context [
 		]
 		
 		pad payload 4						;-- pad to 32-bit boundary
+	]
+	
+	encode-block: func [
+		data     [red-value!]
+		type     [integer!]
+		payload  [red-binary!]
+		symbols  [red-binary!]
+		table    [red-binary!]
+		strings  [red-binary!]
+		contexts [red-binary!]
+		return:  [integer!]
+		/local
+			series  [red-series!]
+			_offset [red-value!]
+			buffer  [series!]
+			length  [integer!]
+	][
+		series:  as red-series! data
+		buffer:  GET_BUFFER(series)
+		length:  _series/get-length series yes
+		_offset: buffer/offset
+		
+		REDBIN_EMIT :type 4
+		unless type = TYPE_MAP [REDBIN_EMIT :data/data1 4]
+		REDBIN_EMIT :length 4
+		loop length [
+			emit-value _offset payload symbols table strings contexts
+			_offset: _offset + 1
+		]
+		
+		length
 	]
 	
 	encode-symbol: func [
