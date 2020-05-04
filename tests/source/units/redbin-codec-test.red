@@ -252,6 +252,10 @@ Red [
 				--assert value == test value
 			]
 		
+		--test-- "any-path"
+			paths: [a/b :c/(d) 'e/f/(g/:h)/:i]
+			forall paths [--assert paths/1 == test paths/1]
+		
 		--test-- "all-word"
 			values: [a 'b :c d: /e #f]
 			forall values [--assert values/1 == test values/1]
