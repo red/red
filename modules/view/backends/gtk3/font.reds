@@ -407,7 +407,7 @@ change-font: func [
 	;-- special styles
 	case [
 		sym = text [
-			set-label-attrs widget face font
+			set-label-attrs widget font
 		]
 		any [
 			sym = button
@@ -417,8 +417,14 @@ change-font: func [
 			label: gtk_bin_get_child widget
 			;-- some button maybe have empty label
 			if g_type_check_instance_is_a label gtk_label_get_type [
-				set-label-attrs label face font
+				set-label-attrs label font
 			]
+		]
+		sym = area [
+			set-textview-tag widget font
+		]
+		sym = text-list [
+			set-text-list-font widget font
 		]
 		true [0]
 	]
@@ -426,7 +432,6 @@ change-font: func [
 
 set-label-attrs: func [
 	label		[handle!]
-	face		[red-object!]
 	font		[red-object!]
 	/local
 		values	[red-value!]
@@ -583,6 +588,90 @@ update-textview-tag: func [
 	buffer		[handle!]
 	start		[handle!]
 	end			[handle!]
+	/local
+		table	[handle!]
+		tag		[handle!]
 ][
-	0
+	table: gtk_text_buffer_get_tag_table buffer
+	tag: gtk_text_tag_table_lookup table "underline"
+	unless null? tag [
+		gtk_text_buffer_apply_tag buffer tag start end
+	]
+]
+
+set-textview-tag: func [
+	widget		[handle!]
+	font		[red-object!]
+	/local
+		buffer	[handle!]
+		start	[GtkTextIter! value]
+		end		[GtkTextIter! value]
+		tag		[handle!]
+		values	[red-value!]
+		style	[red-word!]
+		len		[integer!]
+		blk		[red-block!]
+		sym		[integer!]
+][
+	unless all [
+		not null? font
+		TYPE_OF(font) = TYPE_OBJECT
+	][exit]
+	buffer: gtk_text_view_get_buffer widget
+	gtk_text_buffer_get_bounds buffer as handle! start as handle! end
+	gtk_text_buffer_remove_all_tags buffer as handle! start as handle! end
+
+	values: object/get-values font
+	style: as red-word! values + FONT_OBJ_STYLE
+	len: switch TYPE_OF(style) [
+		TYPE_BLOCK [
+			blk: as red-block! style
+			style: as red-word! block/rs-head blk
+			len: block/rs-length? blk
+		]
+		TYPE_WORD  [1]
+		default	   [0]
+	]
+	unless zero? len [
+		loop len [
+			sym: symbol/resolve style/symbol
+			case [
+				sym = _bold [
+					0
+				]
+				sym = _italic [
+					0
+				]
+				sym = _underline [
+					tag: gtk_text_buffer_create_tag [buffer "underline" "underline" PANGO_UNDERLINE_SINGLE null]
+					gtk_text_buffer_apply_tag buffer tag as handle! start as handle! end
+				]
+				sym = _strike [
+					0
+				]
+				true			 [0]
+			]
+			style: style + 1
+		]
+	]
+]
+
+set-text-list-font: func [
+	widget		[handle!]
+	font		[red-object!]
+	/local
+		list	[GList!]
+		child	[GList!]
+		label	[handle!]
+][
+	list: gtk_container_get_children widget
+	child: list
+	while [not null? child][
+		label: gtk_bin_get_child child/data
+		set-label-attrs label font
+		child: child/next
+	]
+	unless null? list [
+		g_list_free list
+	]
 ]

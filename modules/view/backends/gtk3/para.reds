@@ -53,6 +53,12 @@ change-para: func [
 		sym = field [
 			set-entry-para widget hsym vsym wrap?
 		]
+		sym = area [
+			set-textview-para widget hsym vsym wrap?
+		]
+		sym = text-list [
+			set-text-list-para widget hsym vsym wrap?
+		]
 		true [0]
 	]
 	yes
@@ -113,6 +119,50 @@ set-entry-para: func [
 		]
 	]
 	gtk_entry_set_alignment entry f
+]
+
+set-textview-para: func [
+	widget		[handle!]
+	hsym		[integer!]
+	vsym		[integer!]
+	wrap?		[logic!]
+][
+	case [
+		hsym = _para/left [
+			gtk_text_view_set_justification widget GTK_JUSTIFY_LEFT
+		]
+		hsym = _para/right [
+			gtk_text_view_set_justification widget GTK_JUSTIFY_RIGHT
+		]
+		true [
+			gtk_text_view_set_justification widget GTK_JUSTIFY_CENTER
+		]
+	]
+
+	gtk_text_view_set_wrap_mode widget
+		either wrap? [GTK_WRAP_WORD][GTK_WRAP_NONE]
+]
+
+set-text-list-para: func [
+	widget		[handle!]
+	hsym		[integer!]
+	vsym		[integer!]
+	wrap?		[logic!]
+	/local
+		list	[GList!]
+		child	[GList!]
+		label	[handle!]
+][
+	list: gtk_container_get_children widget
+	child: list
+	while [not null? child][
+		label: gtk_bin_get_child child/data
+		set-label-para label hsym vsym wrap?
+		child: child/next
+	]
+	unless null? list [
+		g_list_free list
+	]
 ]
 
 update-para: func [
