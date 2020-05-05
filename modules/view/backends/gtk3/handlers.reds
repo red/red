@@ -444,7 +444,6 @@ window-delete-event: func [
 	return:		[integer!]
 ][
 	make-event widget 0 EVT_CLOSE
-	EVT_DISPATCH
 ]
 
 window-configure-event: func [

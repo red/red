@@ -755,15 +755,12 @@ make-event: func [
 	stack/adjust-post-try
 	if system/thrown <> 0 [system/thrown: 0]
 	type: TYPE_OF(res)
-	if  ANY_WORD?(type) [
+	if ANY_WORD?(type) [
 		sym: symbol/resolve res/symbol
-		case [
-			sym = done [state: EVT_NO_DISPATCH]			;-- prevent other high-level events
-			sym = stop [state: EVT_NO_DISPATCH]			;-- prevent all other events
-			true 	   [0]								;-- ignore others
+		if any [sym = _continue sym = done][
+			state: EVT_NO_DISPATCH
 		]
 	]
-
 	state
 ]
 
