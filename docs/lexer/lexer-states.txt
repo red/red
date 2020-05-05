@@ -17,6 +17,7 @@ S_HERDOC_ST
 S_HDPER_C0
 S_HDPER_CL
 S_SLASH
+S_SLASH_N
 S_SHARP
 S_BINARY
 S_LINE_CMT2
@@ -62,26 +63,27 @@ S_PATH_W1ST
 S_PATH_WORD
 S_PATH_SHARP
 S_PATH_SIGN
---EXIT_STATES--
 T_EOF
 T_ERROR
 T_BLK_OP
 T_BLK_CL
 T_PAR_OP
 T_PAR_CL
-T_STRING
 T_MSTR_OP
 T_MSTR_CL
-T_WORD
-T_FILE
-T_REFINE
-T_BINARY
-T_CHAR
 T_MAP_OP
+T_PATH
 T_CONS_MK
+T_CMT
+T_STRING
+T_WORD
 T_ISSUE
-T_PERCENT
 T_INTEGER
+T_REFINE
+T_CHAR
+T_FILE
+T_BINARY
+T_PERCENT
 T_FLOAT
 T_FLOAT_SP
 T_TUPLE
@@ -92,10 +94,9 @@ T_MONEY
 T_TAG
 T_URL
 T_EMAIL
-T_PATH
 T_HEX
-T_CMT
 T_RAWSTRING
+T_REF
 
 
 C_BLANK     : space, tab, cr
@@ -142,7 +143,7 @@ C_EOF       : NUL
 ws: space | tab | cr | lf
 dbl-quote: "
 
-delimit1:  [ | ] | ( | ) | { | } | " | : | ws | ; | @
+delimit1:  ws | [ | ] | ( | ) | { | } | " | ; | @
 delimit2:  [ | ] | ( | ) | { | } | " | : | ws | ; | <
 delimit3:  [ | ] | ( | ) | { | } | " | % | ws | ; | < | # | /
 delimit5:  [ | ] | ( | ) | { | } | " | % | ws | ; | < | # | @ | / | \ | ^ | , | : | $
