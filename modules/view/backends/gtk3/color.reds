@@ -68,19 +68,19 @@ change-color: func [
 		style	[handle!]
 		node	[c-string!]
 ][
+	if TYPE_OF(color) <> TYPE_TUPLE [
+		free-color-provider widget
+		exit
+	]
 	prov: GET-RED-COLOR(widget)
-	either null? prov [
+	if null? prov [
 		prov: create-provider widget
 		SET-RED-COLOR(widget prov)
+	]
+	css: GET-COLOR-STR(widget)
+	if null? css [
 		css: g_string_sized_new 64
 		SET-COLOR-STR(widget css)
-	][
-		css: GET-COLOR-STR(widget)
-	]
-	if TYPE_OF(color) <> TYPE_TUPLE [
-		g_string_set_size css 0
-		gtk_css_provider_load_from_data prov css/str -1 null
-		exit
 	]
 	alpha?: 0
 	rgb: get-color-int color :alpha?
@@ -114,9 +114,14 @@ free-color-provider: func [
 		css		[GString!]
 ][
 	prov: GET-RED-COLOR(widget)
-	free-provider prov
-	SET-RED-COLOR(widget null)
+	unless null? prov [
+		remove-provider widget prov
+		g_object_unref prov
+		SET-RED-COLOR(widget null)
+	]
 	css: GET-COLOR-STR(widget)
-	g_string_free css true
-	SET-COLOR-STR(widget 0)
+	unless null? css [
+		g_string_free css true
+		SET-COLOR-STR(widget 0)
+	]
 ]

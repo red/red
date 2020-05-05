@@ -24,6 +24,16 @@ create-provider: func [
 	prov
 ]
 
+remove-provider: func [
+	widget		[handle!]
+	prov		[handle!]
+	/local
+		style	[handle!]
+][
+	style:	gtk_widget_get_style_context widget
+	gtk_style_context_remove_provider style prov
+]
+
 apply-provider: func [
 	prov		[handle!]
 	css			[c-string!]

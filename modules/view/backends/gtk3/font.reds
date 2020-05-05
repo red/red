@@ -398,24 +398,47 @@ change-font: func [
 		label	[handle!]
 ][
 	font: as red-object! values + FACE_OBJ_FONT
-
-	prov: GET-RED-FONT(widget)
-	either null? prov [
-		prov: create-provider widget
-		SET-RED-FONT(widget prov)
-		css: g_string_sized_new 128
-		SET-FONT-STR(widget css)
-	][
-		css: GET-FONT-STR(widget)
-	]
 	if any [
 		null? font
 		TYPE_OF(font) <> TYPE_OBJECT
 	][
-		g_string_set_size css 0
-		gtk_css_provider_load_from_data prov css/str -1 null
+		free-font-provider widget
+		;-- clear attrs
+		case [
+			sym = text [
+				gtk_label_set_attributes widget null
+			]
+			any [
+				sym = button
+				sym = check
+				sym = radio
+			][
+				label: gtk_bin_get_child widget
+				if g_type_check_instance_is_a label gtk_label_get_type [
+					gtk_label_set_attributes label null
+				]
+			]
+			sym = area [
+				clear-textview-tag widget
+			]
+			sym = text-list [
+				set-text-list-font widget null
+			]
+			true [0]
+		]
 		exit
 	]
+	prov: GET-RED-FONT(widget)
+	if null? prov [
+		prov: create-provider widget
+		SET-RED-FONT(widget prov)
+	]
+	css: GET-FONT-STR(widget)
+	if null? css [
+		css: g_string_sized_new 128
+		SET-FONT-STR(widget css)
+	]
+
 	create-css face font sym css
 	gtk_css_provider_load_from_data prov css/str -1 null
 
@@ -510,11 +533,16 @@ free-font-provider: func [
 		css		[GString!]
 ][
 	prov: GET-RED-FONT(widget)
-	free-provider prov
-	SET-RED-FONT(widget null)
+	unless null? prov [
+		remove-provider widget prov
+		g_object_unref prov
+		SET-RED-FONT(widget null)
+	]
 	css: GET-FONT-STR(widget)
-	g_string_free css true
-	SET-FONT-STR(widget 0)
+	unless null? css [
+		g_string_free css true
+		SET-FONT-STR(widget 0)
+	]
 ]
 
 create-pango-font: func [
@@ -629,10 +657,6 @@ set-textview-tag: func [
 		blk		[red-block!]
 		sym		[integer!]
 ][
-	unless all [
-		not null? font
-		TYPE_OF(font) = TYPE_OBJECT
-	][exit]
 	buffer: gtk_text_view_get_buffer widget
 	gtk_text_buffer_get_bounds buffer as handle! start as handle! end
 	gtk_text_buffer_remove_all_tags buffer as handle! start as handle! end
@@ -672,6 +696,18 @@ set-textview-tag: func [
 	]
 ]
 
+clear-textview-tag: func [
+	widget		[handle!]
+	/local
+		buffer	[handle!]
+		start	[GtkTextIter! value]
+		end		[GtkTextIter! value]
+][
+	buffer: gtk_text_view_get_buffer widget
+	gtk_text_buffer_get_bounds buffer as handle! start as handle! end
+	gtk_text_buffer_remove_all_tags buffer as handle! start as handle! end
+]
+
 set-text-list-font: func [
 	widget		[handle!]
 	font		[red-object!]
@@ -684,7 +720,11 @@ set-text-list-font: func [
 	child: list
 	while [not null? child][
 		label: gtk_bin_get_child child/data
-		set-label-attrs label font
+		either null? font [
+			gtk_label_set_attributes label null
+		][
+			set-label-attrs label font
+		]
 		child: child/next
 	]
 	unless null? list [

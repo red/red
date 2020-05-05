@@ -2289,6 +2289,10 @@ GPtrArray!: alias struct! [
 			provider	[handle!]
 			priority	[integer!]
 		]
+		gtk_style_context_remove_provider: "gtk_style_context_remove_provider" [
+			context		[handle!]
+			provider	[handle!]
+		]
 		gtk_style_context_add_provider_for_screen: "gtk_style_context_add_provider_for_screen" [
 			screen		[handle!]
 			provider	[handle!]
