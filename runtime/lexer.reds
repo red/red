@@ -974,6 +974,7 @@ lexer: context [
 			lex/mstr-flags: 0
 			lex/entry: S_START
 		][
+			lex/mstr-flags: lex/mstr-flags or flags
 			if e + 1 = lex/in-end [throw-error lex s e TYPE_STRING]
 		]
 		lex/in-pos: e + 1								;-- skip }
