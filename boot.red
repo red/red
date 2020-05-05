@@ -18,18 +18,18 @@ Red [
 	#include %environment/routines.red
 	#include %environment/scalars.red
 	#include %environment/colors.red
+	
+	#register-intrinsics
 	#include %environment/functions.red
 	#include %environment/system.red
-	#include %environment/lexer.red
 	#include %environment/operators.red
-
-	#register-intrinsics
 
 	#include %environment/codecs/png.red
 	#include %environment/codecs/jpeg.red
 	#include %environment/codecs/bmp.red
 	#include %environment/codecs/gif.red
 	#include %environment/codecs/json.red
+	#include %environment/codecs/csv.red
 
 	#include %environment/reactivity.red				;-- requires SET intrinsic
 	#include %environment/networking.red

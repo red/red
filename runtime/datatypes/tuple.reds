@@ -219,7 +219,7 @@ tuple: context [
 					v: either n <= size2 [as-integer tp2/n][0]
 				]
 				v1: either n <= size1 [as-integer tp1/n][0]
-				v1: integer/do-math-op v1 v type
+				v1: integer/do-math-op v1 v type null
 				either v1 > 255 [v1: 255][if negative? v1 [v1: 0]]
 				tp1/n: as byte! v1
 				n = size
@@ -505,6 +505,22 @@ tuple: context [
 		#if debug? = yes [if verbose > 0 [print-line "tuple/xor~"]]
 		as red-value! do-math OP_XOR
 	]
+	
+	complement: func [
+		tp      [red-tuple!]
+		return: [red-value!]
+		/local
+			array [byte-ptr!]
+			size  [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "tuple/complement"]]
+		
+		array: GET_TUPLE_ARRAY(tp)
+		size:  TUPLE_SIZE?(tp)
+		
+		loop size [array/value: not array/value array: array + 1]
+		as red-value! tp
+	]
 
 	length?: func [
 		tp		[red-tuple!]
@@ -670,7 +686,7 @@ tuple: context [
 			null			;odd?
 			;-- Bitwise actions --
 			:and~
-			null			;complement
+			:complement
 			:or~
 			:xor~
 			;-- Series actions --

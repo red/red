@@ -111,6 +111,71 @@ img: make image! 2x2
 		--assert 255.255.255.0 = img/1
 ===end-group===
 
+===start-group=== "image copy"
+	create-test-image: function [size [pair!]][
+		bin: make binary! size/x * size/y * 3
+		if any [
+			size/x >= 16
+			size/y >= 16
+		][return none]
+		j: 1
+		loop size/y [
+			i: 1
+			loop size/x [
+				t: j * 16 + i
+				append/dup bin t 3
+				i: i + 1
+			]
+			j: j + 1
+		]
+		make image! reduce [size bin]
+	]
+	img: create-test-image 6x8
+
+	--test-- "image copy 1"
+		img2: copy img
+		--assert img = img2
+
+	--test-- "image copy 2"
+		img2: copy/part img 6x8
+		--assert img = img2
+
+	--test-- "image copy 3"
+		img2: copy/part img 48
+		--assert img = img2
+
+	--test-- "image copy 4"
+		img2: copy/part img 0x0
+		img3: make image! 0x0
+		--assert img2 = img3
+
+	--test-- "image copy 5"
+		img2: copy/part img 1x1
+		img3: make image! [1x1 #{111111}]
+		--assert img2 = img3
+
+	--test-- "image copy 6"
+		img2: copy/part img 1x9
+		img3: make image! [1x8 #{111111212121313131414141515151616161717171818181}]
+		--assert img2 = img3
+
+	--test-- "image copy 7"
+		img2: copy/part img 7x1
+		img3: make image! [6x1 #{111111121212131313141414151515161616}]
+		--assert img2 = img3
+
+	--test-- "image copy 8"
+		img2: copy/part img 7
+		img3: make image! [6x1 #{111111121212131313141414151515161616}]
+		--assert img2 = img3
+
+	--test-- "image copy 9"
+		img2: copy/part img 13
+		img3: create-test-image 6x2
+		--assert img2 = img3
+
+===end-group===
+
 ===start-group=== "image issues"
 	--test-- "image issue 3651"
 		img: make image! 2x2
@@ -123,6 +188,59 @@ img: make image! 2x2
 			--assert clr = pick clrs idx
 			idx: idx + 1
 		]
+===end-group===
+
+===start-group=== "image issues 3769"
+	--test-- "#3769 case 1"
+		img: make image! 4x4
+		img2: make image! 2x2
+		img3: copy/part img 2x2
+		--assert img2 = img3
+
+	--test-- "#3769 case 2"
+		img: make image! 4x4
+		img2: make image! 1x1
+		img3: copy/part img 1
+		--assert img2 = img3
+
+	--test-- "#3769 case 3"
+		img: make image! 4x4
+		img2: make image! 1x1
+		loop 2 [img3: copy/part img 1]
+		--assert img2 = img3
+
+	--test-- "#3769 case 4"
+		img: make image! 0x0
+		img2: copy img
+		--assert img = img2
+
+	--test-- "#3769 (#1555 regression)"
+		save %test.png make image! 10x10
+		img: load %test.png
+		save %test.png img
+		delete %test.png
+		--assert true
+
+	--test-- "#4421 case 1"
+		i: make image! [1x1 #{111111}]
+		foreach [x y] i [
+			--assert x = 17.17.17.0
+			--assert none? y
+		]
+
+	--test-- "#4421 case 2"
+		n: 0
+		foreach [x y] 'a/b/c [
+			either zero? n [
+				--assert x = 'a
+				--assert y = 'b
+			][
+				--assert x = 'c
+				--assert none? y
+			]
+			n: 1
+		]
+	
 ===end-group===
 
 ]]

@@ -299,7 +299,10 @@ on-face-deep-change*: function ["Internal use only" owner word target action new
 				not find/skip next state/3 word 8
 			][
 				unless find [cleared removed taken] action [
-					if find [clear remove take] action [
+					if all [
+						find [clear remove take] action
+						word <> 'draw
+					][
 						index: 0
 						target: copy/part target part
 					]
@@ -435,11 +438,11 @@ face!: object [				;-- keep in sync with facet! enum
 			if find [field text] type [
 				if word = 'text [
 					set-quiet 'data any [
-						all [not empty? new attempt/safer [load new]]
+						all [not empty? new find scalar! scan new attempt/safer [load new]]
 						all [options options/default]
 					]
 				]
-				if 'data = word [
+				if word = 'data [
 					either data [
 						if string? text [modify text 'owned none]
 						set-quiet 'text form data		;@@ use form/into (avoids rebinding)
@@ -656,7 +659,7 @@ system/view: context [
 		
 		set/any 'result do-actor face event event/type
 		
-		if all [face/parent :result <> 'done][
+		if all [face/parent not find [done continue] :result][
 			set/any 'result system/view/awake/with event face/parent ;-- event bubbling
 			if :result = 'stop [return 'stop]
 		]
@@ -684,11 +687,17 @@ do-events: function [
 	return: [logic! word!] "Returned value from last event"
 	/local result
 ][
-	if win: last head system/view/screens/1/pane [
+	if all [win: last head system/view/screens/1/pane win/state][
 		unless win/state/4 [win/state/4: not no-wait]		;-- mark the window from which the event loop starts
 		set/any 'result system/view/platform/do-event-loop no-wait
 		:result
 	]
+]
+
+stop-events: function [
+	"Stop the last opened event loop"
+][
+	system/view/platform/exit-event-loop
 ]
 
 do-safe: func ["Internal Use Only" code [block!] /local result][
@@ -1025,9 +1034,9 @@ foreach-face: function [
 	exec: [either block? :body [do body][body face]]
 	
 	foreach face face/pane [
-		unless post? [either spec [all [do spec do exec]][do exec]]
+		unless post? [either spec [all [do spec try exec]][try exec]]
 		if block? face/pane [foreach-face/with/sub face :body spec post?]
-		if post? [either spec [all [do spec do exec]][do exec]]
+		if post? [either spec [all [do spec try exec]][try exec]]
 	]
 ]
 

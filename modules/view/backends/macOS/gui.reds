@@ -51,6 +51,7 @@ caret-x:		as float32! 0.0
 caret-y:		as float32! 0.0
 
 win-array:		declare red-vector!
+active-wins:	declare red-vector!			;-- last actives windows
 
 red-face?: func [
 	handle	[integer!]
@@ -93,14 +94,11 @@ get-face-obj: func [
 	view	[integer!]
 	return: [red-object!]
 	/local
-		face [red-object!]
 		ivar [integer!]
 ][
-	face: declare red-object!
 	ivar: class_getInstanceVariable object_getClass view IVAR_RED_FACE
 	assert ivar <> 0
-	as red-object! copy-cell as cell! view + ivar_getOffset ivar as cell! face
-	face
+	as red-object! view + ivar_getOffset ivar
 ]
 
 get-face-flags: func [
@@ -301,6 +299,7 @@ get-metrics: func [][
 on-gc-mark: does [
 	collector/keep flags-blk/node
 	collector/keep win-array/node
+	collector/keep active-wins/node
 ]
 
 init: func [
@@ -319,6 +318,7 @@ init: func [
 		p-int	 [int-ptr!]
 ][
 	vector/make-at as red-value! win-array 8 TYPE_INTEGER 4
+	vector/make-at as red-value! active-wins 8 TYPE_INTEGER 4
 	init-selectors
 	register-classes
 	nsview-id: objc_getClass "NSView"
@@ -411,7 +411,7 @@ get-flags: func [
 	]
 	flags: 0
 
-	until [
+	loop len [
 		sym: symbol/resolve word/symbol
 		case [
 			sym = all-over	 [flags: flags or FACET_FLAGS_ALL_OVER]
@@ -428,8 +428,6 @@ get-flags: func [
 			true			 [fire [TO_ERROR(script invalid-arg) word]]
 		]
 		word: word + 1
-		len: len - 1
-		zero? len
 	]
 	flags
 ]
@@ -688,7 +686,7 @@ update-z-order: func [
 		parr nb
 	]
 	free as byte-ptr! parr
-	if type = window [parent: objc_msgSend [parent sel_getUid "contentView"]]
+	if any [type = window type = group-box] [parent: objc_msgSend [parent sel_getUid "contentView"]]
 	objc_msgSend [parent sel_getUid "setSubviews:" arr]
 ]
 
@@ -989,6 +987,9 @@ change-data: func [
 		type = rich-text [
 			objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
 		]
+		all [type = calendar TYPE_OF(data) = TYPE_DATE][
+			objc_msgSend [hWnd sel_getUid "setDateValue:" to-NSDate as red-date! data]
+		]
 		true [0]										;-- default, do nothing
 	]
 ]
@@ -1177,6 +1178,107 @@ init-combo-box: func [
 			if zero? len [objc_msgSend [combo sel_getUid "setStringValue:" NSString("")]]
 		]
 	]
+]
+
+cap-year: func [year [integer!] return: [integer!]][
+	if year < 1601 [year: 1601]
+	if year > 9999 [year: 9999]
+	return year
+]
+
+to-NSDate: func [
+	date 	[red-date!]
+	return: [integer!]
+	/local
+		components [integer!]
+		calendar   [integer!]
+		NSDate 	   [integer!]
+][	
+	components: objc_msgSend [
+		objc_msgSend [objc_getClass "NSDateComponents" sel_getUid "alloc"]
+		sel_getUid "init"
+	]
+	
+	objc_msgSend [components sel_getUid "setDay:" DATE_GET_DAY(date/date)]
+	objc_msgSend [components sel_getUid "setMonth:" DATE_GET_MONTH(date/date)]
+	objc_msgSend [components sel_getUid "setYear:" cap-year DATE_GET_YEAR(date/date)]
+	
+	calendar: objc_msgSend [
+		objc_msgSend [objc_getClass "NSCalendar" sel_getUid "alloc"]
+		sel_getUid "initWithCalendarIdentifier:"
+		NSString("gregorian")
+	]
+	
+	NSDate: objc_msgSend [calendar sel_getUid "dateFromComponents:" components]
+	objc_msgSend [components sel_getUid "release"]
+	objc_msgSend [calendar sel_getUid "release"]
+	
+	return NSDate
+]
+
+sync-calendar: func [
+	handle [integer!]
+	/local
+		slot 	   [red-value!]
+		calendar   [integer!]
+		components [integer!]
+		day 	   [integer!]
+		month 	   [integer!]
+		year	   [integer!]
+][
+	calendar: objc_msgSend [
+		objc_msgSend [objc_getClass "NSCalendar" sel_getUid "alloc"]
+		sel_getUid "initWithCalendarIdentifier:"
+		NSString("gregorian")
+	]
+	
+	components: objc_msgSend [
+		calendar sel_getUid "components:fromDate:"
+		NSCalendarUnitDay or NSCalendarUnitMonth or NSCalendarUnitYear
+		objc_msgSend [handle sel_getUid "dateValue"]
+	]
+	
+	day:   objc_msgSend [components sel_getUid "day"]
+	month: objc_msgSend [components sel_getUid "month"]
+	year:  objc_msgSend [components sel_getUid "year"]
+	
+	slot: (get-face-values handle) + FACE_OBJ_DATA
+	date/make-at slot year month day 0.0 0 0 no no
+	
+	objc_msgSend [calendar sel_getUid "release"]
+]
+
+init-calendar: func [
+	calendar [integer!]
+	data	 [red-value!]
+	/local
+		slot [red-value!]
+][
+	objc_msgSend [calendar sel_getUid "setDatePickerMode:" NSDatePickerModeSingle]
+	objc_msgSend [calendar sel_getUid "setDatePickerStyle:" NSDatePickerStyleClockAndCalendar]
+	objc_msgSend [calendar sel_getUid "setDatePickerElements:" NSDatePickerElementFlagYearMonthDay]
+	
+	objc_msgSend [calendar sel_getUid "setTarget:" calendar]
+	objc_msgSend [calendar sel_getUid "setAction:" sel_getUid "calendar-change:"]
+	objc_msgSend [calendar sel_getUid "sendActionOn:" NSLeftMouseDown]
+	
+	slot: declare red-value!
+	date/make-at slot 1601 01 01 0.0 0 0 no no
+	objc_msgSend [calendar sel_getUid "setMinDate:" to-NSDate as red-date! slot]
+	date/make-at slot 9999 12 31 0.0 0 0 no no
+	objc_msgSend [calendar sel_getUid "setMaxDate:" to-NSDate as red-date! slot]
+	
+	objc_msgSend [
+		calendar
+		sel_getUid "setDateValue:"
+		either TYPE_OF(data) = TYPE_DATE [
+			to-NSDate as red-date! data
+		][
+			objc_msgSend [objc_getClass "NSDate" sel_getUid "date"]
+		]
+	]
+	
+	unless TYPE_OF(data) = TYPE_DATE [sync-calendar calendar]
 ]
 
 init-window: func [
@@ -1648,10 +1750,15 @@ parse-common-opts: func [
 					][
 						sym: symbol/resolve w/symbol
 						cur: case [
-							sym = _I-beam	["IBeamCursor"]
-							sym = _hand		["pointingHandCursor"]
-							sym = _cross	["crosshairCursor"]
-							true			["arrowCursor"]
+							sym = _I-beam	 ["IBeamCursor"]
+							sym = _hand		 ["pointingHandCursor"]
+							sym = _cross	 ["crosshairCursor"]
+							sym = _resize-ns ["resizeUpDownCursor"]
+							any [
+								sym = _resize-ew
+								sym = _resize-we
+							]				 ["resizeLeftRightCursor"]
+							true			 ["arrowCursor"]
 						]
 						hcur: objc_msgSend [objc_getClass "NSCursor" sel_getUid cur]
 					]
@@ -1775,7 +1882,13 @@ OS-make-view: func [
 			class: "RedButton"
 			flags: NSRadioButton
 		]
-		sym = window [class: "RedWindow"]
+		sym = window [
+			class: "RedWindow"
+			if bits and FACET_FLAGS_MODAL <> 0 [
+				obj: objc_msgSend [NSApp sel_getUid "mainWindow"]
+				if obj <> 0 [vector/rs-append-int active-wins obj]
+			]
+		]
 		sym = tab-panel [
 			class: "RedTabView"
 		]
@@ -1798,6 +1911,7 @@ OS-make-view: func [
 			class: "RedBox"
 		]
 		sym = camera [class: "RedCamera"]
+		sym = calendar [class: "RedCalendar"]
 		true [											;-- search in user-defined classes
 			p: find-class type
 			either null? p [
@@ -1821,7 +1935,7 @@ OS-make-view: func [
 		len: -1
 		CFString((unicode/to-utf8 str :len))
 	][
-		0
+		CFString("")
 	]
 	rc: make-rect offset/x offset/y size/x size/y
 	case [
@@ -1906,6 +2020,7 @@ OS-make-view: func [
 				AppMainMenu: objc_msgSend [NSApp sel_getUid "mainMenu"]
 				build-menu menu AppMainMenu obj
 			]
+			if bits and FACET_FLAGS_MODAL <> 0 [vector/rs-append-int active-wins obj]
 		]
 		sym = slider [
 			len: either size/x > size/y [size/x][size/y]
@@ -1944,6 +2059,9 @@ OS-make-view: func [
 		]
 		sym = camera [
 			init-camera obj rc data
+		]
+		sym = calendar [
+			init-calendar obj as red-value! data
 		]
 		true [											;-- search in user-defined classes
 			if p <> null [
@@ -2188,21 +2306,31 @@ OS-to-image: func [
 	return: [red-image!]
 	/local
 		view	[integer!]
+		cview	[integer!]
 		data	[integer!]
-		rc		[NSRect!]
+		rect	[RECT_STRUCT value]
+		rc		[NSRect! value]
+		rc2		[NSRect! value]
+		h		[float32!]
 		sz		[red-pair!]
 		bmp		[integer!]
+		bmp2	[integer!]
+		bmp3	[integer!]
 		img		[integer!]
 		ret		[red-image!]
 		type	[integer!]
 		word	[red-word!]
+		rep		[integer!]
+		id		[integer!]
 ][
 	word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
 	type: symbol/resolve word/symbol
 	case [
 		type = screen [
-			bmp: CGWindowListCreateImage 0 0 7F800000h 7F800000h 1 0 0		;-- INF
+			rect/left: 0 rect/top: 0 rect/right: 7F800000h rect/bottom: 7F800000h
+			bmp: CGWindowListCreateImage as NSRect! rect 1 0 0		;-- INF
 			ret: image/init-image as red-image! stack/push* OS-image/load-cgimage as int-ptr! bmp
+			objc_msgSend [bmp sel_getUid "retain"]
 		]
 		type = camera [
 			view: as-integer face-handle? face
@@ -2216,16 +2344,49 @@ OS-to-image: func [
 			view: as-integer face-handle? face
 			either zero? view [ret: as red-image! none-value][
 				sz: as red-pair! (object/get-values face) + FACE_OBJ_SIZE
-				rc: make-rect 0 0 sz/x sz/y
-				data: objc_msgSend [view sel_getUid "dataWithPDFInsideRect:" rc/x rc/y rc/w rc/h]
-				img: objc_msgSend [
-					objc_msgSend [objc_getClass "NSImage" sel_alloc]
-					sel_getUid "initWithData:" data
+				either type = window [
+					rc: objc_msgSend_rect [view sel_getUid "frame"]
+					cview: objc_msgSend [view sel_getUid "contentView"]
+					rc2: objc_msgSend_rect [cview sel_getUid "frame"]
+					h: rc/h - rc2/h
+					rc/y: rc/y - h
+					rc/h: h
+					id: objc_msgSend [view sel_getUid "windowNumber"]
+					;-- title
+					bmp: CGWindowListCreateImage rc 8 id 1 or 8
+
+					;-- content
+					rep: objc_msgSend [cview sel_getUid "bitmapImageRepForCachingDisplayInRect:" rc2/x rc2/y rc2/w rc2/h]
+					objc_msgSend [cview sel_getUid "cacheDisplayInRect:toBitmapImageRep:" rc2/x rc2/y rc2/w rc2/h rep]
+					img: objc_msgSend [
+						objc_msgSend [objc_getClass "NSImage" sel_alloc]
+						sel_getUid "initWithSize:" as float! rc2/w as float! rc2/h
+					]
+					objc_msgSend [img sel_getUid "addRepresentation:" rep]
+					bmp2: objc_msgSend [img sel_getUid "CGImageForProposedRect:context:hints:" 0 0 0]
+
+					;-- combine
+					bmp3: OS-image/combine-image bmp bmp2 0
+
+					ret: image/init-image as red-image! stack/push* OS-image/load-cgimage as int-ptr! bmp3
+					;CGImageRelease bmp
+					;CGImageRelease bmp2
+					objc_msgSend [img sel_release]
+					objc_msgSend [bmp3 sel_getUid "retain"]
+				][
+					rc: objc_msgSend_rect [view sel_getUid "bounds"]
+					rep: objc_msgSend [view sel_getUid "bitmapImageRepForCachingDisplayInRect:" rc/x rc/y rc/w rc/h]
+					objc_msgSend [view sel_getUid "cacheDisplayInRect:toBitmapImageRep:" rc/x rc/y rc/w rc/h rep]
+					img: objc_msgSend [
+						objc_msgSend [objc_getClass "NSImage" sel_alloc]
+						sel_getUid "initWithSize:" as float! rc/w as float! rc/h
+					]
+					objc_msgSend [img sel_getUid "addRepresentation:" rep]
+					bmp: objc_msgSend [img sel_getUid "CGImageForProposedRect:context:hints:" 0 0 0]
+					ret: image/init-image as red-image! stack/push* OS-image/load-cgimage as int-ptr! bmp
+					objc_msgSend [bmp sel_getUid "retain"]
+					objc_msgSend [img sel_release]
 				]
-				bmp: objc_msgSend [img sel_getUid "CGImageForProposedRect:context:hints:" 0 0 0]
-				ret: image/init-image as red-image! stack/push* OS-image/load-cgimage as int-ptr! bmp
-				objc_msgSend [bmp sel_getUid "retain"]
-				objc_msgSend [img sel_release]
 			]
 		]
 	]

@@ -1,5 +1,6 @@
 [![Join the chat at https://gitter.im/red/red](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/red/red?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Windows build](https://bs.red-lang.org/windows.svg)](https://ci.appveyor.com/project/red/red/branch/master)
+[![Windows build 2](https://github.com/red/red/workflows/Windows/badge.svg)](https://github.com/red/red/actions?query=workflow%3AWindows)
 [![macOS build](https://bs.red-lang.org/macos.svg)](https://travis-ci.org/red/red)
 [![Linux build](https://bs.red-lang.org/linux.svg)](https://travis-ci.org/red/red)
 [![ARMel build](https://bs.red-lang.org/armel.svg)](https://travis-ci.org/red/red)
@@ -102,6 +103,10 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
     --config [...]                 : Provides compilation settings as a block
                                      of `name: value` pairs.
 
+    --no-compress                  : Omit Redbin format compression.
+
+    --catch                        : Stay in the REPL after the script finishes.
+
     --cli                          : Run the command-line REPL instead of the
                                      graphical console.
 
@@ -111,6 +116,9 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
     --red-only                     : Stop just after Red-level compilation.
                                      Use higher verbose level to see compiler
                                      output. (internal debugging purpose)
+
+    --show-func-map                : Output an address/name map of Red/System 
+                                     functions, for debugging purposes.
                                      
 
 `[command]`

@@ -25,7 +25,6 @@ write %build/bin/sources.r set-cache [
 		;%css-colors.red
 		%datatypes.red
 		%functions.red
-		%lexer.red
 		%natives.red
 		%networking.red
 		%operators.red
@@ -38,12 +37,8 @@ write %build/bin/sources.r set-cache [
 			%gif.red
 			%jpeg.red
 			%png.red
+			%csv.red
 			%json.red
-			%json/ [
-				%common.red
-				%load-json.red
-				%to-json.red
-			]
 		]
 		%console/ [
 			%auto-complete.red
@@ -55,6 +50,7 @@ write %build/bin/sources.r set-cache [
 				%POSIX.reds
 				%wcwidth.reds
 				%win32.reds
+				%settings.red
 			]
 			%GUI/ [
 				%old/ [
@@ -79,13 +75,17 @@ write %build/bin/sources.r set-cache [
 		%case-folding.reds
 		%clipboard.reds
 		%collector.reds
+		%compress.reds
 		%crush.reds
 		%crypto.reds
 		%debug-tools.reds
 		%definitions.reds
+		%deflate.reds
+		%dtoa.reds
 		%hashtable.reds
-		%inflate.reds
 		%interpreter.reds
+		%lexer.reds
+		%lexer-transitions.reds
 		%macros.reds
 		%natives.reds
 		%ownership.reds
@@ -97,6 +97,7 @@ write %build/bin/sources.r set-cache [
 		%simple-io.reds
 		%sort.reds
 		%stack.reds
+		%threads.reds
 		%tokenizer.reds
 		%tools.reds
 		%unicode.reds
@@ -110,6 +111,7 @@ write %build/bin/sources.r set-cache [
 			%common.reds
 			%context.reds
 			%datatype.reds
+			%date.reds
 			%email.reds
 			%error.reds
 			%event.reds
@@ -118,6 +120,7 @@ write %build/bin/sources.r set-cache [
 			%function.reds
 			%get-path.reds
 			%get-word.reds
+			%handle.reds
 			%hash.reds
 			%image.reds
 			%integer.reds
@@ -126,6 +129,7 @@ write %build/bin/sources.r set-cache [
 			%lit-word.reds
 			%logic.reds
 			%map.reds
+			%money.reds
 			%native.reds
 			%none.reds
 			%op.reds
@@ -136,6 +140,7 @@ write %build/bin/sources.r set-cache [
 			%percent.reds
 			%point.reds
 			%port.reds
+			%ref.reds
 			%refinement.reds
 			%routine.reds
 			%series.reds
@@ -152,8 +157,6 @@ write %build/bin/sources.r set-cache [
 			%url.reds
 			%vector.reds
 			%word.reds
-			%handle.reds
-			%date.reds
 		]
 		%platform/ [
 			%android.reds
@@ -186,6 +189,7 @@ write %build/bin/sources.r set-cache [
 					%base.reds
 					%button.reds
 					%camera.reds
+					%calendar.reds
 					%classes.reds
 					%comdlgs.reds
 					%direct2d.reds

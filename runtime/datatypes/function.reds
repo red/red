@@ -249,6 +249,7 @@ _function: context [
 				RED_THROWN_BREAK
 				RED_THROWN_CONTINUE
 				RED_THROWN_THROW	[re-throw]			;-- let exception pass through
+				RED_THROWN_EXIT
 				RED_THROWN_RETURN	[stack/unwind-last]
 				default [0]								;-- else, do nothing
 			]
@@ -659,7 +660,7 @@ _function: context [
 		collect-deep list ignore body
 		
 		if 0 < block/rs-length? list [
-			unless local-ref? spec [
+			if -1 = count-locals spec/node spec/head yes [
 				block/rs-append spec as red-value! refinements/local
 			]
 			block/rs-append-block spec list
@@ -803,18 +804,11 @@ _function: context [
 		]
 		check-duplicates spec
 	]
-	
-	local-ref?: func [
-		spec	[red-block!]
-		return: [logic!]
-	][
-		0 <> count-locals spec/node spec/head
-	]
-
 
 	count-locals: func [
 		node	[node!]
 		offset	[integer!]
+		local?	[logic!]								;-- TRUE: return -1 to signify lack of /local refinement
 		return: [integer!]
 		/local
 			value  [red-value!]
@@ -845,7 +839,7 @@ _function: context [
 			]
 			value: value + 1
 		]
-		cnt
+		either all [local? not count?][-1][cnt]
 	]
 	
 	init-locals: func [
@@ -880,7 +874,7 @@ _function: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_function/push"]]
 
-		f-ctx: either null? ctx [_context/make spec yes no][ctx]
+		f-ctx: either null? ctx [_context/make spec yes no CONTEXT_FUNCTION][ctx]
 		fun: as red-function! stack/push*
 		fun/header:  TYPE_UNSET
 		fun/spec:	 spec/node

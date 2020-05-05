@@ -32,6 +32,8 @@ flags-blk/head:		0
 flags-blk/node:		alloc-cells 4
 flags-blk/header:	TYPE_BLOCK
 
+last-mouse-pt: -1
+
 char-keys: [
 	1000C400h C0FF0080h E0FFFF7Fh 0000F7FFh 00000000h 3F000000h 1F000080h 00FC7F38h
 ]
@@ -101,6 +103,24 @@ get-event-offset: func [
 ][
 	msg: as tagMSG evt/msg
 	case [
+		evt/type = EVT_WHEEL [
+			offset: as red-pair! stack/push*
+			offset/header: TYPE_PAIR
+			value: msg/lParam
+			x: WIN32_LOWORD(value)
+			y: WIN32_HIWORD(value)
+			;-- if need to support `multiple monitors`, change the sign of offset/x and offset/y
+			if x and 8000h <> 0 [
+				x: 0 - (x or FFFF0000h)
+			]
+			if y and 8000h <> 0 [
+				y: 0 - (y or FFFF0000h)
+			]
+			pt: screen-to-client msg/hWnd x y
+			offset/x: pt/x * 100 / dpi-factor
+			offset/y: pt/y * 100 / dpi-factor
+			as red-value! offset
+		]
 		any [
 			evt/type <= EVT_OVER
 			evt/type = EVT_MOVING
@@ -115,12 +135,11 @@ get-event-offset: func [
 			either evt/flags and EVT_FLAG_AWAY <> 0 [
 				msg: as tagMSG evt/msg
 				pt: declare tagPOINT
-				pt/x: WIN32_LOWORD(value)
-				pt/y: WIN32_HIWORD(value)
-				ClientToScreen get-child-from-xy msg/hWnd pt/x pt/y pt
+				pt/x: 0 pt/y: 0
+				GetCursorPos pt
 				x: pt/x
 				y: pt/y
-				pt: get-window-pos msg/hWnd
+				pt/x: 0 pt/y: 0
 				ClientToScreen msg/hWnd pt
 				offset/x: x - pt/x * 100 / dpi-factor
 				offset/y: y - pt/y * 100 / dpi-factor
@@ -140,8 +159,8 @@ get-event-offset: func [
 
 			value: GetMessagePos
 			pt: screen-to-client msg/hWnd WIN32_LOWORD(value) WIN32_HIWORD(value)
-			offset/x: pt/x
-			offset/y: pt/y
+			offset/x: pt/x * 100 / dpi-factor
+			offset/y: pt/y * 100 / dpi-factor
 			as red-value! offset
 		]
 		any [
@@ -157,15 +176,15 @@ get-event-offset: func [
 			offset/header: TYPE_PAIR
 			value: gi/ptsLocation						;-- coordinates of center point		
 
-			offset/x: WIN32_LOWORD(value)
-			offset/y: WIN32_HIWORD(value)
+			offset/x: WIN32_LOWORD(value) * 100 / dpi-factor
+			offset/y: WIN32_HIWORD(value) * 100 / dpi-factor
 			as red-value! offset
 		]
 		evt/type = EVT_MENU [
 			offset: as red-pair! stack/push*
 			offset/header: TYPE_PAIR
-			offset/x: menu-x
-			offset/y: menu-y
+			offset/x: menu-x * 100 / dpi-factor
+			offset/y: menu-y * 100 / dpi-factor
 			as red-value! offset
 		]
 		true [as red-value! none-value]
@@ -301,13 +320,13 @@ get-event-picked: func [
 		]
 		EVT_MENU   [
 			idx: evt/flags and FFFFh
-			either idx = 65535 [none/push][word/push* idx]
+			either idx = FFFFh [none/push][word/push* idx]
 		]
 		EVT_SCROLL [
 			integer/push get-track-pos msg/hWnd msg/msg = WM_VSCROLL
 		]
 		EVT_WHEEL [
-			idx: WIN32_LOWORD(evt/flags)
+			idx: WIN32_HIWORD(msg/wParam)
 			float/push (as float! idx) / 120.0	;-- WHEEL_DELTA: 120
 		]
 		EVT_LEFT_DOWN
@@ -398,15 +417,15 @@ check-extra-keys: func [
 		key [integer!]
 ][
 	key: 0
-	if (GetAsyncKeyState VK_CONTROL)  and 8000h <> 0 [key: EVT_FLAG_CTRL_DOWN]
-	if (GetAsyncKeyState VK_SHIFT)    and 8000h <> 0 [key: key or EVT_FLAG_SHIFT_DOWN]
-	if (GetAsyncKeyState VK_MENU)     and 8000h <> 0 [key: key or EVT_FLAG_MENU_DOWN]	;-- ALT key
+	if (GetKeyState VK_CONTROL)  and 8000h <> 0 [key: EVT_FLAG_CTRL_DOWN]
+	if (GetKeyState VK_SHIFT)    and 8000h <> 0 [key: key or EVT_FLAG_SHIFT_DOWN]
+	if (GetKeyState VK_MENU)     and 8000h <> 0 [key: key or EVT_FLAG_MENU_DOWN]	;-- ALT key
 	
 	unless only? [
-		if (GetAsyncKeyState 01h) and 8000h <> 0 [key: key or EVT_FLAG_DOWN] 	   ;-- VK_LBUTTON
-		if (GetAsyncKeyState 02h) and 8000h <> 0 [key: key or EVT_FLAG_ALT_DOWN]   ;-- VK_RBUTTON
-		if (GetAsyncKeyState 04h) and 8000h <> 0 [key: key or EVT_FLAG_MID_DOWN]   ;-- VK_MBUTTON
-		if (GetAsyncKeyState 05h) and 8000h <> 0 [key: key or EVT_FLAG_AUX_DOWN]   ;-- VK_XBUTTON1
+		if (GetKeyState 01h) and 8000h <> 0 [key: key or EVT_FLAG_DOWN] 	   ;-- VK_LBUTTON
+		if (GetKeyState 02h) and 8000h <> 0 [key: key or EVT_FLAG_ALT_DOWN]   ;-- VK_RBUTTON
+		if (GetKeyState 04h) and 8000h <> 0 [key: key or EVT_FLAG_MID_DOWN]   ;-- VK_MBUTTON
+		if (GetKeyState 05h) and 8000h <> 0 [key: key or EVT_FLAG_AUX_DOWN]   ;-- VK_XBUTTON1
 	]
 	key
 ]
@@ -520,10 +539,7 @@ make-event: func [
 		EVT_MIDDLE_UP
 		EVT_DBL_CLICK
 		EVT_WHEEL [
-			key: flags >>> 16
-			if flags and 08h <> 0 [key: key or EVT_FLAG_CTRL_DOWN]	;-- MK_CONTROL
-			if flags and 04h <> 0 [key: key or EVT_FLAG_SHIFT_DOWN]	;-- MK_SHIFT
-			gui-evt/flags: key
+			gui-evt/flags: flags
 		]
 		EVT_CLICK [
 			gui-evt/flags: check-extra-keys yes
@@ -734,7 +750,7 @@ paint-background: func [
 	values: get-face-values hWnd
 	color: as red-tuple! values + FACE_OBJ_COLOR
 
-	either win8+? [
+	either any [win8+? color/array1 and FF000000h = 0][
 		;-- use plain old GDI fill when it's possible
 		either TYPE_OF(color) = TYPE_TUPLE [
 			hBrush: CreateSolidBrush color/array1 and 00FFFFFFh
@@ -776,10 +792,11 @@ process-custom-draw: func [
 		type	[red-word!]
 		txt		[red-string!]
 		font	[red-object!]
+		para    [red-object!]
 		color	[red-tuple!]
+		flags	[integer!]
 		sym		[integer!]
 		old		[integer!]
-		flags	[integer!]
 		DC		[handle!]
 		rc		[RECT_STRUCT]
 ][
@@ -799,6 +816,7 @@ process-custom-draw: func [
 		][
 			;@@ TBD draw image
 			font: as red-object! values + FACE_OBJ_FONT
+			para: as red-object! values + FACE_OBJ_PARA
 			if TYPE_OF(font) = TYPE_OBJECT [
 				txt: as red-string! values + FACE_OBJ_TEXT
 				values: object/get-values font
@@ -811,14 +829,16 @@ process-custom-draw: func [
 					SetTextColor DC color/array1 and 00FFFFFFh
 				]
 				rc: as RECT_STRUCT (as int-ptr! item) + 5
-				flags: DT_VCENTER or DT_SINGLELINE
-				either sym = button [
-					flags: flags or DT_CENTER
-				][
+				unless sym = button [
 					rc/left: rc/left + dpi-scale 16
 				]
 				if TYPE_OF(txt) = TYPE_STRING [
-					DrawText DC unicode/to-utf16 txt -1 rc flags
+					flags: either TYPE_OF(para) <> TYPE_OBJECT [
+						0001h or 0004h				;-- DT_CENTER, DT_VCENTER if no para settings
+					][
+						get-para-flags base para
+					]
+					DrawText DC unicode/to-utf16 txt -1 rc flags or DT_SINGLELINE
 				]
 				SetBkMode DC old
 				return CDRF_SKIPDEFAULT
@@ -1002,6 +1022,7 @@ update-window: func [
 ]
 
 TimerProc: func [
+	[stdcall]
 	hWnd   [handle!]
 	msg	   [integer!]
 	id	   [int-ptr!]
@@ -1012,6 +1033,7 @@ TimerProc: func [
 ]
 
 WndProc: func [
+	[stdcall]
 	hWnd	[handle!]
 	msg		[integer!]
 	wParam	[integer!]
@@ -1209,6 +1231,7 @@ WndProc: func [
 			switch nmhdr/code [
 				TCN_SELCHANGING [return process-tab-select nmhdr/hWndFrom]
 				TCN_SELCHANGE	[process-tab-change nmhdr/hWndFrom]
+				MCN_SELCHANGE	[process-calendar-change nmhdr/hWndFrom]
 				NM_CUSTOMDRAW	[
 					res: process-custom-draw wParam lParam
 					if res <> 0 [return res]
@@ -1363,7 +1386,15 @@ WndProc: func [
 		]
 		WM_CLOSE [
 			if type = window [
-				either -1 = GetWindowLong hWnd wc-offset - 4 [clean-up][
+				either -1 = GetWindowLong hWnd wc-offset - 4 [
+					flags: get-flags as red-block! values + FACE_OBJ_FLAGS
+					if flags and FACET_FLAGS_MODAL <> 0 [
+						;SetActiveWindow GetWindow hWnd GW_OWNER
+						p-int: as handle! GetWindowLong hWnd wc-offset - 20
+						if p-int <> null [SetFocus p-int]
+					]
+					clean-up
+				][
 					SetFocus hWnd									;-- force focus on the closing window,
 					current-msg/hWnd: hWnd							;-- prevents late unfocus event generation.
 					res: make-event current-msg 0 EVT_CLOSE
@@ -1420,10 +1451,16 @@ process: func [
 		x	   [integer!]
 		y	   [integer!]
 		track  [tagTRACKMOUSEEVENT value]
+		flags  [integer!]
+		word   [red-word!]
 ][
+	flags: decode-down-flags msg/wParam
 	switch msg/msg [
 		WM_MOUSEMOVE [
 			lParam: msg/lParam
+			if last-mouse-pt = lParam [return EVT_NO_DISPATCH]
+			last-mouse-pt: lParam
+
 			x: WIN32_LOWORD(lParam)
 			y: WIN32_HIWORD(lParam)
 			if any [
@@ -1450,28 +1487,38 @@ process: func [
 					TrackMouseEvent :track
 					msg/hWnd: new
 				]
-				key-flags: decode-down-flags msg/wParam
-				make-event msg key-flags EVT_OVER
+				make-event msg flags EVT_OVER
+				key-flags: flags
 			]
 			hover-saved: new
 			msg/hWnd: saved
 			EVT_DISPATCH
 		]
 		WM_MOUSELEAVE [
+			last-mouse-pt: -1
 			make-event msg EVT_FLAG_AWAY or key-flags EVT_OVER
 			if msg/hWnd = hover-saved [hover-saved: null]
 			EVT_DISPATCH
 		]
-		WM_MOUSEWHELL [
-			make-event msg msg/wParam EVT_WHEEL
+		WM_MOUSEWHEEL [
+			flags: 0
+			if msg/wParam and 08h <> 0 [flags: flags or EVT_FLAG_CTRL_DOWN]		;-- MK_CONTROL
+			if msg/wParam and 04h <> 0 [flags: flags or EVT_FLAG_SHIFT_DOWN]	;-- MK_SHIFT
+			make-event msg flags EVT_WHEEL
 		]
 		WM_LBUTTONDOWN	[
 			if GetCapture <> null [return EVT_DISPATCH]
 			menu-origin: null							;-- reset if user clicks on menu bar
 			menu-ctx: null
-			make-event msg 0 EVT_LEFT_DOWN
+			make-event msg flags EVT_LEFT_DOWN
 		]
-		WM_LBUTTONUP	[make-event msg 0 EVT_LEFT_UP]
+		WM_LBUTTONUP	[
+			if all [msg/hWnd <> null msg/hWnd = GetCapture][
+				word: (as red-word! get-face-values msg/hWnd) + FACE_OBJ_TYPE
+				if base = symbol/resolve word/symbol [ReleaseCapture]	;-- issue #4384
+			]
+			make-event msg flags EVT_LEFT_UP
+		]
 		WM_RBUTTONDOWN	[
 			if GetCapture <> null [return EVT_DISPATCH]
 			lParam: msg/lParam
@@ -1483,13 +1530,13 @@ process: func [
 			ClientToScreen msg/hWnd pt
 			menu-origin: null
 			menu-ctx: null
-			res: make-event msg 0 EVT_RIGHT_DOWN
+			res: make-event msg flags EVT_RIGHT_DOWN
 			if show-context-menu msg pt/x pt/y [res: EVT_NO_DISPATCH]
 			res
 		]
-		WM_RBUTTONUP	[make-event msg 0 EVT_RIGHT_UP]
-		WM_MBUTTONDOWN	[make-event msg 0 EVT_MIDDLE_DOWN]
-		WM_MBUTTONUP	[make-event msg 0 EVT_MIDDLE_UP]
+		WM_RBUTTONUP	[make-event msg flags EVT_RIGHT_UP]
+		WM_MBUTTONDOWN	[make-event msg flags EVT_MIDDLE_DOWN]
+		WM_MBUTTONUP	[make-event msg flags EVT_MIDDLE_UP]
 		WM_KEYDOWN		[
 			res: make-event msg 0 EVT_KEY_DOWN
 			if res <> EVT_NO_DISPATCH [
@@ -1513,7 +1560,7 @@ process: func [
 			menu-origin: null							;-- reset if user clicks on menu bar
 			menu-ctx: null
 			make-event msg 0 EVT_LEFT_DOWN
-			make-event msg 0 EVT_DBL_CLICK
+			make-event msg flags EVT_DBL_CLICK
 			EVT_DISPATCH
 		]
 		;WM_DESTROY []

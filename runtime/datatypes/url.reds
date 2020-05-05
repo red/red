@@ -89,7 +89,7 @@ url: context [
 		#if debug? = yes [if verbose > 0 [print-line "url/make"]]
 		
 		type2: TYPE_OF(spec)
-		either all [type = TYPE_URL ANY_LIST(type2)][ ;-- file! inherits from url!
+		either all [type = TYPE_URL ANY_LIST?(type2)][ ;-- file! inherits from url!
 			to proto spec type
 		][
 			as red-url! string/make as red-string! proto spec type
@@ -146,7 +146,7 @@ url: context [
 			p: p + unit
 		]
 
-		return part - ((as-integer tail - head) >> (log-b unit)) - 1
+		return part - ((as-integer tail - head) >> (log-b unit))
 	]
 	
 	to: func [
@@ -166,7 +166,7 @@ url: context [
 		#if debug? = yes [if verbose > 0 [print-line "url/to"]]
 
 		type2: TYPE_OF(spec)
-		either all [type = TYPE_URL ANY_LIST(type2)][ ;-- file! inherits from url!
+		either all [type = TYPE_URL ANY_LIST?(type2)][ ;-- file! inherits from url!
 			buffer: string/make-at proto 16 1
 			buffer/header: TYPE_URL
 			

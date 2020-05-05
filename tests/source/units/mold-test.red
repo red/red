@@ -13,117 +13,117 @@ Red [
 
 ===start-group=== "string-basic"
 
-	--test-- "mold-string-baseic-1"
+	--test-- "mold-string-basic-1"
 		a: ""				;-- literal: ""
 		b: {""}
 		--assert b = mold a
 
-	--test-- "mold-string-baseic-2"
+	--test-- "mold-string-basic-2"
 		a: {}				;-- literal: ""
 		b: {""}
 		--assert b = mold a
 
-	--test-- "mold-string-baseic-3"
+	--test-- "mold-string-basic-3"
 		a: "{}"				;-- literal: "{}"
 		b: {"{}"}
 		--assert b = mold a
 
-	--test-- "mold-string-baseic-4"
+	--test-- "mold-string-basic-4"
 		a: {""}				;-- literal: {""}
 		b: {{""}}
 		--assert b = mold a
 
-	--test-- "mold-string-baseic-5"
+	--test-- "mold-string-basic-5"
 		a: "{"				;-- literal: "{"
 		b: {"^{"}
 		--assert b = mold a
 
-	--test-- "mold-string-baseic-6"
+	--test-- "mold-string-basic-6"
 		a: "}"				;-- literal: "}"
 		b: {"^}"}
 		--assert b = mold a
 
-	--test-- "mold-string-baseic-7"
+	--test-- "mold-string-basic-7"
 		a: {"}				;-- literal: {"}
 		b: {{"}}
 		--assert b = mold a
 
-	--test-- "mold-string-baseic-8"
+	--test-- "mold-string-basic-8"
 		a: {""}				;-- literal: {""}
 		b: {{""}}
 		--assert b = mold a
 
-	--test-- "mold-string-baseic-9"
+	--test-- "mold-string-basic-9"
 		a: "}{"				;-- literal: "}{"
 		b: {"^}^{"}
 		--assert b = mold a
 
-	--test-- "mold-string-baseic-10"
+	--test-- "mold-string-basic-10"
 		a: "^""				;-- literal: {"}
 		b: {{"}}
 		--assert b = mold a
 
-	--test-- "mold-string-baseic-11"
+	--test-- "mold-string-basic-11"
 		a: "^"{"			;-- literal: {"^{}
 		b: {^{"^^^{^}}
 		--assert b = mold a
 
-	--test-- "mold-string-baseic-12"
+	--test-- "mold-string-basic-12"
 		a: "^"{}"			;-- literal: {"{}}
 		b: {{"{}}}
 		--assert b = mold a
 
-	--test-- "mold-string-baseic-13"
+	--test-- "mold-string-basic-13"
 		a: "^"}{"			;-- literal: {"^}^{}
 		b: {{"^^}^^{}}
 		--assert b = mold a
 
-	--test-- "mold-string-baseic-14"
+	--test-- "mold-string-basic-14"
 		a: {^{}				;-- literal: "{"
 		b: {"^{"}
 		--assert b = mold a
 
-	--test-- "mold-string-baseic-15"
+	--test-- "mold-string-basic-15"
 		a: {^{"}			;-- literal: {^{"}
 		b: {^{^^^{"^}}
 		--assert b = mold a
 
-	--test-- "mold-string-baseic-16"
+	--test-- "mold-string-basic-16"
 		a: "{{{"			;-- literal: "{{{"
 		b: {"^{^{^{"}
 		--assert b = mold a
 
-	--test-- "mold-string-baseic-17"
+	--test-- "mold-string-basic-17"
 		a: "}}}"			;-- literal: "}}}"
 		b: {"^}^}^}"}
 		--assert b = mold a
 
-	--test-- "mold-string-baseic-18"
+	--test-- "mold-string-basic-18"
 		a: "{{{}}}}"		;-- literal: "{{{}}}}"
 		b: {"{{{}}}^}"}
 		--assert b = mold a
 
-	--test-- "mold-string-baseic-19"
+	--test-- "mold-string-basic-19"
 		a: "}{}"			;-- literal: "}{}"
 		b: {"^}{}"}
 		--assert b = mold a
 
-	--test-- "mold-string-baseic-20"
+	--test-- "mold-string-basic-20"
 		a: "}{{}"			;-- literal: "}{{}"
 		b: {"^}^{^{^}"}
 		--assert b = mold a
 
-	--test-- "mold-string-baseic-21"
+	--test-- "mold-string-basic-21"
 		a: "}{{}}"			;-- literal: "}{{}}"
 		b: {"^}{{}}"}
 		--assert b = mold a
 
-	--test-- "mold-string-baseic-22"
+	--test-- "mold-string-basic-22"
 		a: "{}{"			;-- literal: "{}{"
 		b: {"{}^{"}
 		--assert b = mold a
 
-	--test-- "mold-string-baseic-23"
+	--test-- "mold-string-basic-23"
 		a: "{}{}{"			;-- literal: "{}{"
 		b: {"{}{}^{"}
 		--assert b = mold a
@@ -167,7 +167,20 @@ Red [
 		b: {"a{}bc"}
 		--assert b = mold a
 
-===end-group=== 
+===end-group===
+
+===start-group=== "ref"
+	
+	--test-- "mold-ref-1"
+		--assert "@abc" = mold @abc
+		--assert "@DEF" = mold @DEF
+
+	--test-- "mold-ref-2"
+		--assert "" = mold/part @abc 0
+		--assert "@" = mold/part @abc 1
+		--assert "@abc" = mold/part @abc 100
+
+===end-group===
 
 ===start-group=== "mold-all"
 	

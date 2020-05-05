@@ -26,6 +26,8 @@ Red [
 	--test-- "replace-11"	--assert %file.ext = replace %file.sub.ext ".sub." #"."
 	--test-- "replace-12"	--assert "abra-abra" = replace "abracadabra" "cad" #"-"
 	--test-- "replace-13"	--assert "abra-c-adabra" = replace "abracadabra" #"c" "-c-"
+	--test-- "replace-14"	--assert "x23" = replace "123" 1 "x"
+	--test-- "replace-15"	--assert "xbc" = replace "abc" quote a: "x"
 
 ===end-group===
 

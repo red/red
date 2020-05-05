@@ -142,6 +142,16 @@ Red/System [
 #define TCM_SETCURFOCUS		1330h
 #define TCM_INSERTITEMW		133Eh
 
+#define MCS_NOTODAY			10h
+#define MCS_SHORTDAYSOFWEEK 80h
+#define MCS_NOSELCHANGEONNAV 0100h
+
+#define MCN_SELCHANGE		FFFFFD13h
+
+#define MCM_GETCURSEL       1001h
+#define MCM_SETCURSEL		1002h
+#define MCM_SETCOLOR		100Ah
+
 #define TCIF_TEXT			0001h
 
 #define MIIM_STATE			0001h
@@ -305,7 +315,7 @@ Red/System [
 #define WM_RBUTTONUP		0205h
 #define WM_MBUTTONDOWN		0207h
 #define WM_MBUTTONUP		0208h
-#define	WM_MOUSEWHELL		020Ah
+#define	WM_MOUSEWHEEL		020Ah
 #define WM_ENTERMENULOOP	0211h
 #define WM_SIZING			0214h
 #define WM_MOVING			0216h
@@ -495,11 +505,13 @@ Red/System [
 #define TextRenderingHintClearTypeGridFit	5
 
 #define SRCCOPY					00CC0020h
+#define CAPTUREBLT				40000000h
 
 #define ILC_COLOR24				18h
 #define ILC_COLOR32				20h
 
 #define BCM_SETIMAGELIST		1602h
+#define BCM_GETIMAGELIST		1603h
 #define BCM_SETTEXTMARGIN		1604h
 
 #define ICC_LISTVIEW_CLASSES	00000001h				;-- listview, header
@@ -698,6 +710,7 @@ tagMINMAXINFO: alias struct! [
 ]
 
 wndproc-cb!: alias function! [
+	[stdcall]
 	hWnd	[handle!]
 	msg		[integer!]
 	wParam	[integer!]
@@ -706,6 +719,7 @@ wndproc-cb!: alias function! [
 ]
 
 timer-cb!: alias function! [
+	[stdcall]
 	hWnd	[handle!]
 	msg		[integer!]
 	idEvent	[int-ptr!]
@@ -1050,6 +1064,10 @@ XFORM!: alias struct! [
 		]
 	]
 	"User32.dll" stdcall [
+		GetCursorPos: "GetCursorPos" [
+			pt			[tagPOINT]
+			return:		[logic!]
+		]
 		TrackMouseEvent: "TrackMouseEvent" [
 			EventTrack	[tagTRACKMOUSEEVENT]
 			return:		[logic!]
@@ -1130,6 +1148,9 @@ XFORM!: alias struct! [
 		GetKeyState: "GetKeyState" [
 			nVirtKey	[integer!]
 			return:		[integer!]
+		]
+		GetActiveWindow: "GetActiveWindow" [
+			return:		[handle!]
 		]
 		SetActiveWindow: "SetActiveWindow" [
 			hWnd		[handle!]
@@ -1438,6 +1459,9 @@ XFORM!: alias struct! [
 			hWnd		[handle!]
 			lpRect		[RECT_STRUCT]
 			return:		[integer!]
+		]
+		GetDesktopWindow: "GetDesktopWindow" [
+			return:		[handle!]
 		]
 		FillRect: "FillRect" [
 			hDC			[handle!]
@@ -2335,6 +2359,11 @@ XFORM!: alias struct! [
 		GdipSetStringFormatLineAlign: "GdipSetStringFormatLineAlign" [
 			format		[integer!]
 			align		[integer!]
+			return:		[integer!]
+		]
+		GdipSetStringFormatTrimming: "GdipSetStringFormatTrimming" [
+			format		[integer!]
+			trimming	[integer!]
 			return:		[integer!]
 		]
 		GdipCreateFontFromDC: "GdipCreateFontFromDC" [

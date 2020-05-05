@@ -16,7 +16,7 @@ Red/System [
 ;;		-28  : Cursor handle
 ;;		-24  : Direct2D target interface
 ;;			   base-layered: caret's owner handle
-;;		-20  : evolved-base-layered: child handle
+;;		-20  : evolved-base-layered: child handle, window: previous focused handle
 ;;		-16  : base-layered: owner handle, window: border width and height
 ;;		-12  : base-layered: clipped? flag, caret? flag, d2d? flag, ime? flag
 ;;		 -8  : base: pos X/Y in pixel
@@ -46,6 +46,7 @@ Red/System [
 #include %tab-panel.reds
 #include %text-list.reds
 #include %button.reds
+#include %calendar.reds
 #include %draw-d2d.reds
 #include %draw.reds
 #include %comdlgs.reds
@@ -294,6 +295,9 @@ get-text-size: func [
 	;-- possibly null if hwnd wasn't stored in `state` yet (upon face creation)
 	;  in this case hwnd=0 is of the screen, while `para` can still be applied from the face/ctx
 	hwnd: face-handle? face
+	if null? hwnd [
+		hwnd: GetDesktopWindow
+	]
 	values: object/get-values face
 	dc: GetWindowDC hwnd
 
@@ -525,6 +529,8 @@ update-selection: func [
 		sel/header: TYPE_NONE
 	][
 		sel/header: TYPE_PAIR
+		assert begin <= end
+		adjust-selection values :begin :end -1
 		sel/x: begin + 1								;-- one-based positionq
 		sel/y: end										;-- points past the last selected, so no need + 1
 	]
@@ -621,10 +627,6 @@ free-faces: func [
 				dc: GetWindowLong handle wc-offset - 4
 				if dc <> 0 [DeleteDC as handle! dc]			;-- delete cached dc
 			]
-			flags: get-flags as red-block! values + FACE_OBJ_FLAGS
-			;if flags and FACET_FLAGS_MODAL <> 0 [
-			;	SetActiveWindow GetWindow handle GW_OWNER
-			;]
 			dc: GetWindowLong handle wc-offset - 24
 			if dc <> 0 [
 				either (GetWindowLong handle wc-offset - 12) and BASE_FACE_IME <> 0 [
@@ -898,43 +900,36 @@ window-border-info?: func [
 
 init-window: func [										;-- post-creation settings
 	handle  [handle!]
-	bits	[integer!]
-	/local
-		x		[integer!]
-		y		[integer!]
-		cx		[integer!]
-		cy		[integer!]
-		owner	[handle!]
-		modes	[integer!]
 ][
 	SetWindowLong handle wc-offset - 4 0
 	SetWindowLong handle wc-offset - 16 0
 	SetWindowLong handle wc-offset - 24 0
-
-	modes: SWP_NOZORDER
-
-	if bits and FACET_FLAGS_MODAL <> 0 [
-		modes: 0
-		owner: find-last-window
-		if owner <> null [SetWindowLong handle GWL_HWNDPARENT as-integer owner]
-	]
 ]
 
-set-selected-focus: func [
-	hWnd [handle!]
+get-selected-handle: func [
+	hWnd	[handle!]
+	return: [handle!]
 	/local
 		face   [red-object!]
 		values [red-value!]
 		handle [handle!]
 ][
 	values: get-face-values hWnd
+	handle: null
 	if values <> null [
 		face: as red-object! values + FACE_OBJ_SELECTED
 		if TYPE_OF(face) = TYPE_OBJECT [
 			handle: face-handle? face
-			unless null? handle [SetFocus handle]
 		]
 	]
+	handle
+]
+
+set-selected-focus: func [
+	hWnd [handle!]
+][
+	hWnd: get-selected-handle hWnd
+	unless null? hWnd [SetFocus hWnd]
 ]
 
 set-logic-state: func [
@@ -977,7 +972,7 @@ get-flags: func [
 	]
 	flags: 0
 	
-	until [
+	loop len [
 		sym: symbol/resolve word/symbol
 		case [
 			sym = all-over	 [flags: flags or FACET_FLAGS_ALL_OVER]
@@ -994,8 +989,6 @@ get-flags: func [
 			true			 [fire [TO_ERROR(script invalid-arg) word]]
 		]
 		word: word + 1
-		len: len - 1
-		zero? len
 	]
 	flags
 ]
@@ -1247,10 +1240,15 @@ parse-common-opts: func [
 					][
 						sym: symbol/resolve w/symbol
 						sym: case [
-							sym = _I-beam	[IDC_IBEAM]
-							sym = _hand		[32649]			;-- IDC_HAND
-							sym = _cross	[32515]
-							true			[IDC_ARROW]
+							sym = _I-beam		[IDC_IBEAM]
+							sym = _hand			[32649]			;-- IDC_HAND
+							sym = _cross		[32515]
+							sym = _resize-ns	[32645]
+							any [
+								sym = _resize-ew
+								sym = _resize-we
+							]					[32644]
+							true				[IDC_ARROW]
 						]
 						sym: as-integer LoadCursor null sym
 					]
@@ -1280,8 +1278,7 @@ OS-show-window: func [
 	]
 
 	SetForegroundWindow as handle! hWnd
-	face: (as red-object! get-face-values as handle! hWnd) + FACE_OBJ_SELECTED
-	if TYPE_OF(face) = TYPE_OBJECT [SetFocus get-face-handle face]
+	set-selected-focus as handle! hWnd
 ]
 
 OS-make-view: func [
@@ -1312,6 +1309,7 @@ OS-make-view: func [
 		value	  [integer!]
 		handle	  [handle!]
 		hWnd	  [handle!]
+		focused   [handle!]
 		p		  [ext-class!]
 		id		  [integer!]
 		vertical? [logic!]
@@ -1338,7 +1336,7 @@ OS-make-view: func [
 	selected: as red-integer!	values + FACE_OBJ_SELECTED
 	para:	  as red-object!	values + FACE_OBJ_PARA
 	rate:	  					values + FACE_OBJ_RATE
-	options:   as red-block!	values + FACE_OBJ_OPTIONS
+	options:  as red-block!		values + FACE_OBJ_OPTIONS
 	
 	bits: 	  get-flags as red-block! values + FACE_OBJ_FLAGS
 
@@ -1447,6 +1445,10 @@ OS-make-view: func [
 		sym = camera [
 			class: #u16 "RedCamera"
 		]
+		sym = calendar [
+			class: #u16 "RedCalendar"
+			flags: flags or MCS_NOSELCHANGEONNAV or MCS_NOTODAY or MCS_SHORTDAYSOFWEEK
+		]
 		sym = window [
 			class: #u16 "RedWindow"
 			flags: WS_CAPTION or WS_CLIPCHILDREN
@@ -1477,6 +1479,14 @@ OS-make-view: func [
 			AdjustWindowRectEx rc flags menu-bar? menu window ws-flags
 			rc/right: rc/right - rc/left
 			rc/bottom: rc/bottom - rc/top
+			focused: null 
+			if bits and FACET_FLAGS_MODAL <> 0 [
+				parent: as-integer GetActiveWindow
+				if parent <> 0 [
+					focused: get-selected-handle as handle! parent
+					if null? focused [focused: as handle! parent]
+				]
+			]
 		]
 		true [											;-- search in user-defined classes
 			p: find-class type
@@ -1545,10 +1555,7 @@ OS-make-view: func [
 		sym = camera	[init-camera handle data selected false]
 		sym = text-list [init-text-list handle data selected]
 		sym = base		[init-base-face handle parent values alpha?]
-		sym = tab-panel [
-			selected/header: TYPE_NONE					;-- no selection allowed before tabs are created
-			set-tabs handle values
-		]
+		sym = tab-panel [set-tabs handle values]
 		sym = group-box [
 			flags: flags or WS_GROUP or BS_GROUPBOX
 			hWnd: CreateWindowEx
@@ -1612,7 +1619,7 @@ OS-make-view: func [
 			set-hint-text handle options
 			if TYPE_OF(selected) <> TYPE_NONE [change-selection handle selected values]
 		]
-		sym = area	 [
+		sym = area [
 			set-area-options handle options
 			change-text handle values sym
 			if TYPE_OF(selected) <> TYPE_NONE [change-selection handle selected values]
@@ -1621,15 +1628,18 @@ OS-make-view: func [
 			init-base-face handle parent values alpha?
 			SetWindowLong handle wc-offset - 12 BASE_FACE_D2D or BASE_FACE_IME
 		]
+		sym = calendar [
+			init-calendar handle as red-value! data
+			update-calendar-color handle as red-value! values + FACE_OBJ_COLOR
+		]
 		sym = window [
-			init-window handle bits
+			init-window handle
+			SetWindowLong handle wc-offset - 20 as-integer focused
 			#if sub-system = 'gui [
 				with clipboard [
 					if null? main-hWnd [main-hWnd: handle]
 				]
 			]
-			offset/x: off-x - rc/left * 100 / dpi-factor
-			offset/y: off-y - rc/top * 100 / dpi-factor
 			SetWindowLong
 				handle
 				wc-offset - 8
@@ -1701,6 +1711,7 @@ change-size: func [
 		]
 		type = area		 [update-scrollbars hWnd null]
 		type = tab-panel [update-tab-contents hWnd FACE_OBJ_SIZE]
+		type = text		 [InvalidateRect hWnd null 1]	;-- issue #4388
 		true	  		 [0]
 	]
 ]
@@ -1820,18 +1831,79 @@ extend-area-limit: func [
 	]
 ]
 
+adjust-selection: func [
+	values	[red-value!]
+	bgn		[int-ptr!]
+	end		[int-ptr!]
+	inc		[integer!]									;-- +1 to increase, -1 to decrease
+	/local
+		quote	[integer!]
+		nl		[integer!]
+		unit	[integer!]
+		unit-b	[integer!]
+		cp		[integer!]
+		size	[integer!]
+		str		[red-string!]
+		s		[series!]
+		head	[byte-ptr!]
+		tail	[byte-ptr!]
+		p		[byte-ptr!]
+		p-bgn	[byte-ptr!]
+		p-end	[byte-ptr!]
+][
+	assert bgn/value <= end/value
+
+	str: as red-string! values + FACE_OBJ_TEXT
+	if TYPE_OF(str) <> TYPE_STRING [exit]
+	s: GET_BUFFER(str)
+	unit: GET_UNIT(s)
+	unit-b: log-b unit
+	head: (as byte-ptr! s/offset) + (str/head << unit-b)
+	tail: as byte-ptr! s/tail
+
+	either inc > 0 [
+		p-bgn: head + (bgn/1 << unit-b)
+		p-end: head + (end/1 << unit-b)
+		quote: 0  nl: 0
+		string/sniff-chars head  p-bgn unit :quote :nl
+		bgn/1: bgn/1 + nl
+		string/sniff-chars p-bgn p-end unit :quote :nl
+		end/1: end/1 + nl
+	][
+		p: head
+		while [p < tail] [
+			cp: string/get-char p unit
+			if cp = as-integer #"^/" [
+				size: (as-integer p - head) >> unit-b
+				case [
+					size >= end/1	[break]
+					size >= bgn/1	[end/1: end/1 - 1]
+					true	[bgn/1: bgn/1 - 1  end/1: end/1 - 1]
+				]
+			]
+			p: p + unit
+		]
+	]
+]
+
 select-text: func [
 	hWnd   [handle!]
 	values [red-value!]
 	/local
-		sel	   [red-pair!]
-		begin  [integer!]
-		end	   [integer!]
+		sel		[red-pair!]
+		begin	[integer!]
+		end		[integer!]
 ][
 	sel: as red-pair! values + FACE_OBJ_SELECTED
 	either TYPE_OF(sel) = TYPE_PAIR [
-		begin: sel/x - 1
-		end: sel/y										;-- should point past the last selected char
+		either sel/x <= sel/y [
+			begin: sel/x - 1
+			end: sel/y									;-- should point past the last selected char
+		][
+			begin: sel/y - 1
+			end: sel/x
+		]
+		adjust-selection values :begin :end 1
 	][
 		begin: 0
 		end:   0
@@ -1930,6 +2002,7 @@ change-image: func [
 	type	[integer!]
 ][
 	if type = base [update-base hWnd null null values]
+	if type = button [init-button hWnd values]
 ]
 
 change-selection: func [
@@ -2052,6 +2125,9 @@ change-data: func [
 		]
 		type = tab-panel [
 			set-tabs hWnd get-face-values hWnd
+		]
+		all [type = calendar TYPE_OF(data) = TYPE_DATE][
+			change-calendar hWnd as red-date! data
 		]
 		type = text-list [
 			if TYPE_OF(data) = TYPE_BLOCK [
@@ -2275,6 +2351,7 @@ OS-update-view: func [
 		int		[red-integer!]
 		int2	[red-integer!]
 		bool	[red-logic!]
+		color	[red-tuple!]
 		s		[series!]
 		hWnd	[handle!]
 		flags	[integer!]
@@ -2340,10 +2417,14 @@ OS-update-view: func [
 		]
 	]
 	if flags and FACET_FLAG_COLOR <> 0 [
-		either type = base [
-			update-base hWnd GetParent hWnd null values
-		][
-			InvalidateRect hWnd null 1
+		case [
+			type = base [
+				update-base hWnd GetParent hWnd null values
+			]
+			type = calendar [
+				update-calendar-color hWnd as red-value! values + FACE_OBJ_COLOR
+			]
+			true [InvalidateRect hWnd null 1]
 		]
 	]
 	if flags and FACET_FLAG_PANE <> 0 [
@@ -2503,7 +2584,7 @@ OS-to-image: func [
 	SelectObject mdc bmp
 
 	either screen? [
-		BitBlt mdc 0 0 width height hScreen rc/left rc/top SRCCOPY
+		BitBlt mdc 0 0 width height hScreen rc/left rc/top SRCCOPY or CAPTUREBLT
 	][
 		either win8+? [
 			PrintWindow hWnd mdc 2

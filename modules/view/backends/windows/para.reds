@@ -109,9 +109,9 @@ get-para-flags: func [
 
 	values: object/get-values para
 	align:  as red-word! values + PARA_OBJ_ALIGN
-	h-sym:  symbol/resolve align/symbol
+	h-sym:  either TYPE_OF(align) = TYPE_WORD [symbol/resolve align/symbol][-1]
 	align:  as red-word! values + PARA_OBJ_V-ALIGN
-	v-sym:  symbol/resolve align/symbol
+	v-sym:  either TYPE_OF(align) = TYPE_WORD [symbol/resolve align/symbol][-1]
 	bool:   as red-logic! values + PARA_OBJ_WRAP?
 	
 	wrap?:	any [

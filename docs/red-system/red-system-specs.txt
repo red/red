@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 25/06/2019
-	Revision: 54
+	Date: 05/09/2019
+	Revision: 56
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -773,6 +773,11 @@ Also, additions and subtractions between pointer addresses are allowed. The resu
  offset: p - q							;-- would store 6 in offset
                             			;-- type of offset is pointer! [integer!]
 
+\note pointer/pointer math <> pointer/integer math
+Unlike in C language, pointer/pointer arithmetics always treat the operands as byte pointers, while pointer/integer arithmetics scales the integer operand to the size of the pointed type.
+
+/note
+
 +++Pointer path notation
 
 It is possible to use path notation to simulate an array with indexed access. Both reading and writing are possible. Indexes are <b>one-based</b>.
@@ -813,28 +818,30 @@ A pointer can also point to a one-dimensional array of values literally specifie
  <variable>: [<items>]
 
  <variable> : a pointer of same type as the array items.
- <items>    : is a non-empty list of integer!, byte!, float!, logic! literal values.
+ <items>    : is a non-empty list of integer!, byte!, float!, logic!, c-string! literal values.
  
-The array is statically allocated and can be accessed using pointer path notation or pointer arithmetic. The size of the array (in number of elements) is stored in a 32-bit slot, just preceding the beginning of the array (at index 0). Mixing the different allowed types in the same array is permitted (enumerations can also be used). In such case, the size of each array's slot is either 32-bit, or 64-bit if a float64! value is present.
+The array is statically allocated and can be accessed using pointer path notation or pointer arithmetic. Mixing the different allowed types in the same array is permitted (enumerations can also be used). In such case, the size of each array's slot is either 32-bit, or 64-bit if a float64! value is present.
+
+The size of a literal array can be retrieved using <b>size?</b> keyword.
 
 Examples:
 
  list: [123 456 789]
- probe list/0							;-- outputs 3
+ probe size? list						;-- outputs 3
  probe list/2							;-- outputs 456
 
  s: [#"h" #"e" #"l" #"l" #"o"]
  sz: as int-ptr! s
- probe sz/0								;-- outputs 5
+ probe size? s							;-- outputs 5
  probe s/5								;-- outputs o
 
  a: ["hello" "Red" "world"]
- probe a/0								;-- outputs 3
+ probe size? a							;-- outputs 3
  probe as-c-string a/2					;-- outputs Red
 
  c: [456 "hello" "Red" "world" #"e" true]
- probe c/0								;-- outputs 6
- probe c/1
+ probe size? c							;-- outputs 6
+ probe c/1								;-- outputs 456
  probe as-c-string c/3					;-- outputs Red
  probe as-byte c/5						;-- outputs e
  probe as-logic c/6						;-- outputs true
@@ -849,7 +856,7 @@ Examples:
  
 <u>Notes</u>: 
 
-* In the second example, this literal array is not equivalent to its c-string! counterpart "hello", as the literal array does not add a NUL value at tail of the sequence.
+* In the second example, this literal array is not equivalent to its c-string! counterpart "hello", as the literal array does not add a NUL character at tail of the sequence.
 
 * In the last example, pay attention to the different pointer indexes used, depending on the size (32-bit or 64-bit) of referenced value.
 
@@ -1046,8 +1053,8 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 <td class="allow">as integer!</td>
 <td class="allow">as integer!</td>
 <td class="allow">as integer!</td>
-<td class="allow">to integer!</td>
-<td class="allow">to integer!</td>
+<td class="allow">to integer!&sup3;</td>
+<td class="allow">to integer!&sup3;</td>
 <td class="allow">as integer!</td>
 </tr><tr>
 
@@ -1101,7 +1108,7 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 
 <th>float!</th>
 <td class="deny">ERROR</td>
-<td class="allow">as float!</td>
+<td class="allow">to float!</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
@@ -1113,7 +1120,7 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 
 <th>float32!</th>
 <td class="deny">ERROR</td>
-<td class="allow">as float32!</td>
+<td class="allow">to float32!</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
@@ -1140,6 +1147,7 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 
 &sup1; Casting allowed, but integer values higher than 255 will be truncated, so beware!<br>
 &sup2; A data modification can occur.<br>
+&sup3; Rounded towards zero.<br>
 
 --- Size?
 
@@ -2823,7 +2831,7 @@ ARM target returns the value of the PC (r15) register.
 
 /note
 
----cpu
+---cpu/&lt;reg&gt;
 
 Set or retrieve any of the CPU's registers value.
 
@@ -3122,11 +3130,78 @@ where:
  
 The written value has to be consistent with the port's pointer type, otherwise a compilation error occurs.
 
-
 \note Hardware vs memory-mapped I/O
 On some platforms (like ARM), such I/O operations are simply memory-mapped I/O.
 
 /note
+
+
+---atomic/fence
+
+Generate a read/write data <a href="https://en.wikipedia.org/wiki/Memory_barrier">memory barrier</a>, using the sequentially consistent (`seq_cst`) <a href="https://en.wikipedia.org/wiki/Memory_ordering">memory order</a>.
+
+<b>Syntax</b>
+
+ system/atomic/fence
+
+---atomic/load
+
+Performs a thread-safe atomic read from a given memory location.
+
+<b>Syntax</b>
+
+ system/atomic/load <ptr>
+
+ return: integer! value read from <ptr> memory location.
+ 
+where:
+ <ptr> : memory location to load from (pointer! [integer!])
+
+---atomic/store
+
+Performs a thread-safe atomic write to a given memory location.
+
+<b>Syntax</b>
+
+ system/atomic/store <ptr> <value>
+
+where:
+ <ptr>   : memory location to write to (pointer! [integer!])
+ <value> : integer value to store (integer!)
+
+---atomic/cas
+
+Performs a thread-safe atomic compare &#x26; swap to a given memory location.
+
+<b>Syntax</b>
+
+ system/atomic/cas <ptr> <old> <new>
+
+ return: TRUE on success, otherwise FALSE (logic!)
+
+where:
+ <ptr> : memory location to read/write to (pointer! [integer!])
+ <old> : integer value to compare to (integer!)
+ <new> : integer value to write if comparison succeeded (integer!)
+
+The compare &#x26; swap semantics are described <a href="https://en.wikipedia.org/wiki/Compare-and-swap">here</a>. The memory location is read and the value is compared to the <b>old</b> value. If equal, the <b>new</b> value is written and it returns `true`, otherwise it aborts and returns `false`.
+
+---atomic/&lt;math-op&gt;
+
+Performs a thread-safe atomic math or bitwise operation to a given memory location.
+
+<b>Syntax</b>
+
+ system/atomic/<op> <ptr> <value>
+ system/atomic/<op>/old <ptr> <value>
+
+ return: the new value, or the old value if /old refinement is present.
+
+where:
+ <op>    : add, sub, or, xor, and
+ <ptr>   : memory location to write to (pointer! [integer!])
+ <value> : operand value (integer!)
+
 
 ---image/base
 
@@ -3216,6 +3291,18 @@ Example:
 will output:
  foo! alias detected
 
+---words
+
+Access an indentifier from global context when it is also defined locally.
+
+<b>Syntax</b>
+
+ system/words/<name>					;-- calling a function, reading a variable
+ system/words/<name>:					;-- setting a variable
+
+ <name> : identifer or access path
+
+See also "Namespaces" section.
 
 ===Compiler directives
 
@@ -3266,9 +3353,9 @@ Red/System is able to load external shared libraries at the time a Red/System ex
  <ID>            : identifier of the function in the shared library
  <VAR>           : identifier of the variable in the shared library
  <argument>      : function's argument indentifier
- <datatype>      : integer! | byte! | pointer! [integer! | byte!] |
+ <datatype>      : integer! | byte! | pointer! [integer! | byte! | float! | float32! | logic!] |
                    float! | float32! | c-string! | struct! [<members>] |
-                   function! [<spec>]
+                   function! [<spec>] | <alias>
 
 <u>Notes</u>:
 
@@ -4015,7 +4102,7 @@ will output:
  
 ---Logic!
 
-*Add logic! support for OR, XOR, AND operators (if it provides any advantage over ANY/ALL).
+*<strike>Add logic! support for OR, XOR, AND operators (if it provides any advantage over ANY/ALL).</strike>
  
 ---Integer!
 
@@ -4079,6 +4166,16 @@ will output:
 
 
 ===Document History
+
+*<b>05/09/2019 - revision 56</b>
+
+*>Fixes issues #3301, #3303, #3305.
+
+
+*<b>27/08/2019 - revision 55</b>
+
+*>Adds system/atomic/* intrinsics description.
+
 
 *<b>25/06/2019 - revision 54</b>
 

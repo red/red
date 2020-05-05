@@ -749,6 +749,7 @@ interpreter: context [
 			ctx	  [node!]
 	][
 		name: as red-word! either null? slot [pc - 1][slot]
+
 		if TYPE_OF(name) <> TYPE_WORD [name: words/_anon]
 		saved: stack/push value							;-- prevent word's value slot to be corrupted #2199
 		
@@ -1079,7 +1080,7 @@ interpreter: context [
 			while [value < tail][
 				#if debug? = yes [if verbose > 0 [log "root loop..."]]
 				value: eval-expression value tail no no no
-				if value + 1 < tail [stack/reset]
+				if value + 1 <= tail [stack/reset]
 			]
 		]
 		either chain? [stack/unwind-last][stack/unwind]

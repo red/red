@@ -129,6 +129,7 @@ make-super-class: func [
 ]
 
 FaceWndProc: func [
+	[stdcall]
 	hWnd	[handle!]
 	msg		[integer!]
 	wParam	[integer!]
@@ -145,6 +146,7 @@ FaceWndProc: func [
 ]
 
 AreaWndProc: func [
+	[stdcall]
 	hWnd	[handle!]
 	msg		[integer!]
 	wParam	[integer!]
@@ -232,6 +234,7 @@ register-classes: func [
 	make-super-class #u16 "RedSlider"	#u16 "msctls_trackbar32" 0 yes
 	make-super-class #u16 "RedScroller"	#u16 "SCROLLBAR"		 0 yes
 	make-super-class #u16 "RedTabpanel"	#u16 "SysTabControl32"	 0 yes
+	make-super-class #u16 "RedCalendar" #u16 "SysMonthCal32"     0 yes
 
 	OldFaceWndProc: make-super-class
 		#u16 "RedFace"
@@ -264,5 +267,6 @@ unregister-classes: func [
 	UnregisterClass #u16 "RedPanel"			hInstance
 	UnregisterClass #u16 "RedFace"			hInstance
 	UnregisterClass #u16 "RedArea"			hInstance
+	UnregisterClass #u16 "RedCalendar"      hInstance
 	;@@ unregister custom classes too!
 ]

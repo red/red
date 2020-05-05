@@ -106,3 +106,105 @@ EXPORT hugef32 returnHugef32(hugef32 h, int a, int b) {
 	t.six = h.six;
 	return t;
 }
+
+/* Regression test on issue #3999 */
+
+typedef struct {
+    float x;
+    float y;
+    float w;
+    float h;
+} MyRect;
+
+static int* callback_func;
+
+EXPORT void set_callback(int* ptr) {
+    callback_func = ptr;
+}
+
+EXPORT float test_callback() {
+    MyRect (*p)() = (MyRect (*)())callback_func;
+    MyRect rc = p();
+    return rc.x;
+}
+
+/* variant with doubles */
+
+typedef struct {
+    double x;
+    double y;
+    double w;
+    double h;
+} MyRectB;
+
+EXPORT double test_callbackB() {
+    MyRectB (*p)() = (MyRectB (*)())callback_func;
+    MyRectB rc = p();
+    return rc.x;
+}
+
+/* variant with 5 float fields */
+
+typedef struct {
+    float x;
+    float y;
+    float w;
+    float h;
+    float g;
+} MyRectC;
+
+EXPORT float test_callbackC() {
+    MyRectC (*p)() = (MyRectC (*)())callback_func;
+    MyRectC rc = p();
+    return rc.x;
+}
+
+/* variant with 1 float field */
+
+typedef struct {
+    float x;
+} MyRectD;
+
+EXPORT float test_callbackD() {
+    MyRectD (*p)() = (MyRectD (*)())callback_func;
+    MyRectD rc = p();
+    return rc.x;
+}
+
+/* variant with 2 float fields */
+
+typedef struct {
+    float x;
+    float y;
+} MyRectE;
+
+EXPORT float test_callbackE() {
+    MyRectE (*p)() = (MyRectE (*)())callback_func;
+    MyRectE rc = p();
+    return rc.x;
+}
+
+/* variant with 1 double field */
+
+typedef struct {
+    double x;
+} MyRectF;
+
+EXPORT double test_callbackF() {
+    MyRectF (*p)() = (MyRectF (*)())callback_func;
+    MyRectF rc = p();
+    return rc.x;
+}
+
+/* variant with 2 double fields */
+
+typedef struct {
+    double x;
+    double y;
+} MyRectG;
+
+EXPORT double test_callbackG() {
+    MyRectG (*p)() = (MyRectG (*)())callback_func;
+    MyRectG rc = p();
+    return rc.x;
+}

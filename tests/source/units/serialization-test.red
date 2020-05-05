@@ -179,6 +179,10 @@ ser-formed: {1 none true false c red Red a/b 'a/b :a/b a/b: 1 + 2 a  a c d b e f
 		--assert  #FFFFFFFE = to-hex -2
 	--test-- "to-hex-3"
 		--assert  #0F = to-hex/size 15 2
+	--test-- "to-hex-4"
+		--assert #F = to-hex/size 15 1
+		--assert error? try [to-hex/size 15 0]
+		--assert error? try [to-hex/size 15 -1]
 ===end-group===
 
 ~~~end-file~~~

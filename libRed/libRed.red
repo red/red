@@ -251,7 +251,7 @@ Red [
 		if last-error <> null [return last-error]
 		
 		TRAP_ERRORS(name [
-			#call [system/lexer/transcode str none no]
+			lexer/scan-alt stack/arguments str -1 no yes yes no null null null
 			stack/unwind-last
 		])
 	]
@@ -1107,7 +1107,7 @@ Red [
 		
 		TRAP_ERRORS(names/redRemove [
 			stack/push as red-value! series
-			actions/remove* -1
+			actions/remove* -1 -1
 			stack/unwind-last
 		])
 	]

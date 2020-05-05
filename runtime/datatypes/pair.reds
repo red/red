@@ -64,8 +64,8 @@ pair: context [
 				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(right)]
 			]
 		]
-		left/x: integer/do-math-op left/x x op
-		left/y: integer/do-math-op left/y y op
+		left/x: integer/do-math-op left/x x op null
+		left/y: integer/do-math-op left/y y op null
 		left
 	]
 	
@@ -80,7 +80,7 @@ pair: context [
 		#if debug? = yes [if verbose > 0 [print-line "pair/make-at"]]
 		
 		pair: as red-pair! slot
-		pair/header: TYPE_PAIR
+		set-type slot TYPE_PAIR
 		pair/x: x
 		pair/y: y
 		pair
@@ -306,11 +306,9 @@ pair: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "pair/compare"]]
 
-		if TYPE_OF(right) <> TYPE_PAIR [
-			return either any [op = COMP_FIND op = COMP_STRICT_EQUAL][1][RETURN_COMPARE_OTHER]
-		]
-		diff: left/y - right/y
-		if zero? diff [diff: left/x - right/x]
+		if TYPE_OF(right) <> TYPE_PAIR [RETURN_COMPARE_OTHER]
+		diff: left/x - right/x
+		if zero? diff [diff: left/y - right/y]
 		SIGN_COMPARE_RESULT(diff 0)
 	]
 
@@ -332,6 +330,10 @@ pair: context [
 			header	[integer!]
 			val		[red-integer!]
 	][
+		if TYPE_OF(scale) = TYPE_MONEY [
+			fire [TO_ERROR(script not-related) stack/get-call datatype/push TYPE_MONEY]
+		]
+		
 		pair: as red-pair! value
 		header: TYPE_INTEGER
 		val: as red-integer! :header

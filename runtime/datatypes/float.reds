@@ -124,8 +124,7 @@ float: context [
 				sprintf [s "%.7g" f]
 			]
 			type = FORM_TIME [									;-- microsecond precision
-				either f < 10.0 [s0: "%.7g"][s0: "%.8g"]
-				sprintf [s s0 f]
+				s: dtoa/form-float f 6 no
 			]
 			type = FORM_PERCENT [
 				sprintf [s "%.13g" f]
@@ -187,7 +186,7 @@ float: context [
 						tried?: yes
 						s: case [
 							type = FORM_FLOAT_32 ["%.5g"]
-							type = FORM_TIME	 ["%.6g"]
+							type = FORM_TIME	 ["%.5g"]
 							true				 ["%.14g"]
 						]
 						sprintf [s0 s f]
@@ -289,6 +288,7 @@ float: context [
 
 		switch type2 [
 			TYPE_TUPLE [return as red-float! tuple/do-math type]
+			TYPE_MONEY [return as red-float! money/do-math type]
 			TYPE_PAIR  [
 				if type1 <> TYPE_TIME [
 					if any [type = OP_SUB type = OP_DIV][
@@ -412,7 +412,14 @@ float: context [
 		fl/value: value
 		fl
 	]
-
+	
+	from-money: func [
+		mn      [red-money!]
+		return: [float!]
+	][
+		money/to-float mn
+	]
+	
 	from-binary: func [
 		bin		[red-binary!]
 		return: [float!]
@@ -500,12 +507,14 @@ float: context [
 		return: [red-float!]
 		/local
 			s	[float!]
+			sp	[int-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "float/random"]]
 
 		either seed? [
 			s: f/value
-			_random/srand as-integer s
+			sp: as int-ptr! :s
+			_random/srand sp/1 xor sp/2
 			f/header: TYPE_UNSET
 		][
 			s: (as-float _random/rand) / 2147483647.0
@@ -537,6 +546,9 @@ float: context [
 			TYPE_CHAR [
 				int: as red-integer! spec
 				proto/value: as-float int/value
+			]
+			TYPE_MONEY [
+				proto/value: from-money as red-money! spec
 			]
 			TYPE_TIME [
 				tm: as red-time! spec
@@ -600,10 +612,14 @@ float: context [
 		part 	[integer!]
 		indent	[integer!]		
 		return: [integer!]
+		/local
+			s	[c-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "float/mold"]]
 
-		form fl buffer arg part
+		s: dtoa/form-float fl/value 0 yes
+		string/concatenate-literal buffer s
+		part - length? s							;@@ optimize by removing length?
 	]
 
 	NaN?: func [
@@ -714,6 +730,11 @@ float: context [
 		left: value1/value
 
 		switch TYPE_OF(value2) [
+			TYPE_MONEY [
+				if money/float-underflow? left [return -1]
+				if money/float-overflow?  left [return 1]
+				return money/compare money/from-float left as red-money! value2 op
+			]
 			TYPE_CHAR
 			TYPE_INTEGER [
 				int: as red-integer! value2
@@ -851,22 +872,21 @@ float: context [
 			e		[integer!]
 			v		[logic!]
 	][
+		if TYPE_OF(scale) = TYPE_MONEY [
+			fire [TO_ERROR(script not-related) stack/get-call datatype/push TYPE_MONEY]
+		]
+		
 		e: 0
 		f: as red-float! value
 		dec: f/value
 		sc: either TYPE_OF(f) = TYPE_PERCENT [0.01][1.0]
 		if OPTION?(scale) [
-			if TYPE_OF(scale) = TYPE_INTEGER [
-				int: as red-integer! value
-				either dec < 0.0 [
-					int/value: as-integer dec - 0.5
-				][
-					int/value: as-integer dec + 0.5
-				]
-				int/header: TYPE_INTEGER
-				return integer/round value as red-integer! scale _even? down? half-down? floor? ceil? half-ceil?
+			either TYPE_OF(scale) = TYPE_INTEGER [
+				int: as red-integer! scale
+				sc: abs as float! int/value
+			][
+				sc: abs scale/value
 			]
-			sc: abs scale/value
 			if TYPE_OF(f) = TYPE_PERCENT [sc: sc / 100.0]
 			if sc = 0.0 [fire [TO_ERROR(math overflow)]]
 		]
@@ -905,6 +925,20 @@ float: context [
 			dec
 		][
 			ldexp dec / sc e
+		]
+		if OPTION?(scale) [
+			either TYPE_OF(scale) = TYPE_INTEGER [
+				dec: f/value
+				int: as red-integer! value
+				int/header: TYPE_INTEGER
+				int/value: as integer! dec
+			][
+				value/header: either TYPE_OF(scale) = TYPE_PERCENT [
+					TYPE_FLOAT
+				][
+					TYPE_OF(scale)
+				]
+			]
 		]
 		value
 	]

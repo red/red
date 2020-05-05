@@ -119,5 +119,8 @@ Red [
 		template: [type: 'base size: 100x100]
 		init: [unless face/image [face/image: make image! face/size]]
 	]
-
+	calendar: [
+		default-actor: on-change
+		template: [type: 'calendar size: 139x148]
+	]
 )

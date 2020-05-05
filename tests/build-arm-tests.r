@@ -74,7 +74,8 @@ foreach file [
     	to-local-file test-file	
     ]
     clear output
-    call/output cmd output
+    compilation-status: call/output cmd output
+    if compilation-status <> 0 [ quit/return compilation-status ]
     print output
 ]
 

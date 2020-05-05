@@ -40,4 +40,22 @@ REBOL [
     	--compile-and-run-this/error {Red[] do [#"^^(010FFF)" * #"^^(11)" ]}
     	--assert-red-printed? "*** Math Error: math or number overflow"
   
+	--test-- "stack-trace-1"
+		--compile-and-run-this/error {Red[]
+			do {
+				system/state/trace: 1
+				a: object [af: does [b/bf]]
+				b: object [bf: does [cf]]
+				c: object [set 'system/words/cf does [df] cf: none]
+				d: object [set 'df does [ff]]
+				ff: does [
+					gf: does [do make error! "error"]
+					gf
+				]
+				a/af
+			}
+		}
+		--assert-red-printed? "*** Stack: af bf cf df ff gf"
+		
+		
 ~~~end-file~~~ 

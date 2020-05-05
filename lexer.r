@@ -22,6 +22,7 @@ lexer: context [
 	pos:	none									;-- source input position (error reporting)
 	mark:	none									;-- use for keeping input cursor at same position
 	path:	none									;-- path input position (error reporting)
+	in-path?: no									;-- flag for path items
 	s:		none									;-- mark start position of new value
 	e:		none									;-- mark end position of new value
 	series: none									;-- temporary hold last stack series
@@ -100,6 +101,7 @@ lexer: context [
 	not-file-char:	charset {[](){}"@:;}
 	not-url-char:	charset {[](){}";}
 	not-email-char:	union not-file-char union ws-ASCII charset "<^/"
+	not-ref-char:   exclude not-email-char charset "@:"
 	not-str-char:	#"^""
 	not-mstr-char:	#"}"
 	not-tag-1st:	complement union ws-ASCII charset "=><[](){};^""
@@ -107,8 +109,8 @@ lexer: context [
 	tag-char:		charset "<>"
 	caret-char:		charset [#"^(40)" - #"^(5F)"]
 	non-printable-char: charset [#"^(00)" - #"^(1F)"]
-	pair-end:		charset {^{"[]();:}
-	integer-end:	charset {^{"[]();:xX}
+	pair-end:		charset {^{"[]();:/}
+	integer-end:	charset {^{"[]();:xX</}
 	path-end:		charset {^{"[]();}
 	file-end:		charset {^{[]();}
 	date-sep:		charset "/-"
@@ -189,6 +191,8 @@ lexer: context [
 		opt symbol-rule
 	]
 	
+	by-value: [paren! string! integer! pair! char! decimal! issue!]
+	
 	path-rule: [
 		pos: slash :pos (							;-- path detection barrier
 			stack/allocate block! 4
@@ -196,19 +200,21 @@ lexer: context [
 		)
 		some [
 			slash
-			s: [
-				integer-number-rule
+			s: [(in-path?: yes)
+				integer-rule
 				| begin-symbol-rule			(type: word!)
 				| paren-rule 				(type: paren!)
 				| #":" s: begin-symbol-rule	(type: get-word!)
-				;@@ add more datatypes here
+				| line-string 				(value: load-string s e)
+				| char-rule 				(value: decode-UTF8-char value)
 			] (
-				stack/push either type = paren! [	;-- append path element
+				stack/push either find by-value to word! type [ ;-- append path element
 					value
 				][
 					to type copy/part s e
 				]
 				type: path!
+				in-path?: no
 			)
 		]
 		opt [#":" (type: set-path!)]
@@ -260,6 +266,8 @@ lexer: context [
 	]
 	
 	issue-rule: [#"#" (type: issue!) s: symbol-rule]
+	
+	ref-rule: [(stop: [not-ref-char]) #"@" s: any UTF8-filtered-char e:]
 	
 	refinement-rule: [slash (type: refinement!) s: symbol-rule]
 	
@@ -422,11 +430,12 @@ lexer: context [
 				mark: [pair-end | ws-no-count | end | (type: pair! throw-error)] :mark
 				(value2/2: load-number copy/part s e value: value2)
 			]
-			opt [#":" [time-rule | (throw-error)]]
+			e: opt [#":" [time-rule | (unless in-path? [throw-error]) :e]]
 	]
 
 	decimal-special: [
-		s: "-0.0" pos: [integer-end | ws-no-count | end ] :pos | (neg?: no) opt [#"-" (neg?: yes)] "1.#" s: [
+		s: "-0.0" pos: [integer-end | ws-no-count | end ] :pos 
+		| (neg?: no) opt [#"-" (neg?: yes)] opt #"+" "1.#" s: [
 			[[#"N" | #"n"] [#"a" | #"A"] [#"N" | #"n"]]
 			| [[#"I" | #"i"] [#"N" | #"n"] [#"F" | #"f"]]
 		]
@@ -445,7 +454,13 @@ lexer: context [
 		decimal-number-rule opt [#"%" e: (type: issue!)]
 		sticky-word-rule
 	]
-		
+	
+	money-rule: [
+		(neg?: no) opt [#"-" (neg?: yes) | #"+"] 
+		s: opt [3 alpha] #"$" digit any [digit | #"'" digit] opt [[dot | comma] some digit]
+		e: (type: money!)
+	]
+	
 	block-rule: [#"[" (stack/allocate block! 10) any-value #"]" (value: stack/pop block!)]
 	
 	paren-rule: [#"(" (stack/allocate paren! 10) any-value	#")" (value: stack/pop paren!)]
@@ -521,7 +536,7 @@ lexer: context [
 	
 	email-rule: [
 		(stop: [not-email-char])
-		s: opt [some UTF8-filtered-char] #"@" (type: email!)
+		s: some UTF8-filtered-char #"@" (type: email!)
 		any UTF8-filtered-char e: (value: dehex copy/part s e)
 	]
 
@@ -561,6 +576,12 @@ lexer: context [
 			| line-string e: (value: encode-file s e)
 			| s: any UTF8-filtered-char e: (value: copy/part s e)
 		]
+	]
+	
+	rawstr-rule: [
+		pos: (type: string! cnt: 0 value: none) some [#"%" (cnt: cnt + 1)] #"{" s:
+		some [e: #"}" cnt #"%" (value: copy/part s e) break | skip]
+		(unless value [throw-error])
 	]
 
 	url-rule: [
@@ -609,6 +630,8 @@ lexer: context [
 			| integer-rule	  (stack/push value)
 			| decimal-rule	  (stack/push load-decimal	 copy/part s e)
 			| tag-rule		  (stack/push to tag!		 copy/part s e)
+			| rawstr-rule	  (stack/push value) 
+			| money-rule	  (stack/push load-money s e neg?)
 			| word-rule		  (stack/push to type value)
 			| lit-word-rule	  (stack/push to type value)
 			| get-word-rule	  (stack/push to type value)
@@ -621,6 +644,7 @@ lexer: context [
 			| string-rule	  (stack/push load-string s e)
 			| map-rule		  (stack/push value)
 			| issue-rule	  (stack/push to issue!		 copy/part s e)
+			| ref-rule		  (stack/push load-ref		 copy/part s e)
 		]
 	]
 	
@@ -669,6 +693,14 @@ lexer: context [
 		top: does [last stk]
 		
 		reset: does [clear stk]
+		
+		clean-up: does [
+			unless empty? stk [
+				clear next stk							;-- keep root block in stk
+				clear first stk							;-- clear root block
+			]
+			nl?: no
+		]
 	]
 	
 	throw-error: func [/with msg [string! block!]][
@@ -690,6 +722,7 @@ lexer: context [
 			"^/*** line: " line
 			"^/*** at: " mold copy/part pos 40
 		]
+		stack/clean-up
 		either encap? [quit][halt]
 	]
 
@@ -803,6 +836,30 @@ lexer: context [
 		d1 + (w - 1 * 7 + (either wd < 5 [1][8]) - wd)
 	]
 	
+	load-ref: func [s [string!]][
+		append join make issue! 1 + length? s #"@" s
+	]
+	
+	load-money: func [s [string!] e [string!] neg? [logic!] /local cur dec pos][
+		if all [s/1 <> #"$" s/4 = #"$"][
+			cur: uppercase copy/part s 3
+			s: skip s 3
+		]
+		s: copy/part next s e
+		remove-each c s [c = #"'"]
+		dec: either pos: find s dot [
+			remove pos
+			if 5 < length? pos [clear skip pos 5]
+			length? pos
+		][0]
+		insert/dup tail s #"0" 5 - dec
+		if 22 < length? s [throw-error]
+		insert/dup s #"0" 22 - length? s
+		insert s pick "-+" neg?
+		insert s any [cur "..."]
+		append join make issue! 1 + length? s #"$" s
+	]
+	
 	load-tuple: func [s [string!] /local new byte p e][
 		new: join make issue! 1 + length? s #"~"
 		byte: [p: 1 3 digit e: (append new skip to-hex load copy/part p e 6)]
@@ -821,7 +878,12 @@ lexer: context [
 				]
 			]
 		][
-			unless find [integer! decimal!] type?/word s: to integer! s [throw-error]
+			if any [
+				not find [integer! decimal!] type?/word s: to integer! s
+				all [rs? type <> type? s]
+			][
+				throw-error
+			]
 		]
 		s
 	]
@@ -886,7 +948,8 @@ lexer: context [
 	process: func [src [string! binary!] /local blk][
 		old-line: line: 1
 		count?: yes
-		blk: stack/allocate block! 100				;-- root block		
+		stack/clean-up
+		blk: stack/allocate block! 100				;-- root block
 		src: identify-header src
 		
 		unless parse/all/case src program [throw-error]

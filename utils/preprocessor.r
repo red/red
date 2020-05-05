@@ -99,11 +99,13 @@ preprocessor: context [
 		do-safe/with bind to block! code exec cmd
 	]
 	
-	count-args: func [spec [block!] /local total][
-		total: 0
+	count-args: func [spec [block!] /block /local total pos][
+		total: either block [copy []][0]
 		parse spec [
 			any [
-				[word! | lit-word! | get-word!] (total: total + 1)
+				pos: [word! | lit-word! | get-word!] (
+					either block [append total type? pos/1] [total: total + 1]
+				)
 				| refinement! (return total)
 				| skip
 			]
@@ -111,8 +113,12 @@ preprocessor: context [
 		total
 	]
 	
-	func-arity?: func [spec [block!] /with path [path!] /local arity pos][
-		arity: count-args spec
+	arg-mode?: func [spec [block!] idx [integer!]][
+		pick count-args/block spec idx
+	]
+	
+	func-arity?: func [spec [block!] /with path [path!] /block /local arity pos][
+		arity: either block [count-args/block spec] [count-args spec]
 		if path [
 			foreach word next path	[
 				unless pos: find/tail spec to refinement! word [
@@ -122,39 +128,89 @@ preprocessor: context [
 					]
 					do-quit
 				]
-				arity: arity + count-args pos
+				either block
+					[append arity count-args/block pos]
+					[arity: arity + count-args pos]
 			]
 		]
 		arity
 	]
-	
-	fetch-next: func [code [block! paren!] /local base arity value path][
-		base: code
-		arity: 1
-		
-		while [arity > 0][
-			arity: arity + either all [
-				not tail? next code
-				word? value: code/2
-				op? get/any value
-			][
-				code: next code
-				1
-			][
-				either all [
-					find [word! path!] type?/word value: code/1
-					value: either word? value [value][first path: value]
-					any-function? get/any value
-				][
-					either path [
-						func-arity?/with spec-of get value path
-					][
-						func-arity? spec-of get value
-					]
-				][0]
+
+	value-path?: func [path [path!] /local value i item selectable] [
+		selectable: make typeset! [
+			block! paren! path! lit-path! set-path! get-path!
+			object! port! error! map!
+		]
+		repeat i length? path [
+			set/any 'value either i = 1 [get/any first path][
+				set/any 'item pick path i
+				case [
+					get-word? :item [set/any 'item get/any to word! item]
+					paren?    :item [set/any 'item do item]
+				]
+				either integer? :item [pick value item][select value :item]
 			]
+			unless find selectable type? get/any 'value [
+				path: copy/part path i
+				break
+			]
+		]
+		reduce [path get/any 'value]
+	]
+
+	fetch-next: func [code [block! paren!] /local i left item item2 value fn-spec path f-arity at-op? op-mode][
+		left: reduce [yes]
+		
+		while [all [not tail? left not tail? code]] [
+			either not left/1 [							;-- skip quoted argument
+				remove left
+			][
+				item: first code
+				f-arity: any [
+					all [									;-- a ...
+						word? :item
+						any-function? set/any 'value get/any :item
+						func-arity?/block fn-spec: spec-of get/any :item
+					]
+					all [									;-- a/b ...
+						path? :item
+						set/any [path value] value-path? :item
+						any-function? get/any 'value
+						func-arity?/block/with
+							fn-spec: spec-of :value
+							at :item length? :path
+					]
+				]
+
+				if at-op?: all [							;-- a * b
+					1 < length? code
+					word? item2: second code
+					op? get/any :item2
+				] [
+					op-mode: arg-mode? spec-of get/any :item2 1
+					if all [f-arity  op-mode = word!] [		;-- check if function's lit/get-arg takes priority
+						at-op?: word! = arg-mode? fn-spec 1
+					]
+				]
+
+				case [
+					at-op? [								;-- a * b
+						code: next code						;-- skip `a *` part
+						left/1: word! = arg-mode? spec-of get/any :item2 2
+					]
+
+					f-arity [								;-- a ... / a/b ...
+						if op? get/any 'value [return skip code 2]	;-- starting with op is an error
+						remove left
+						repeat i length? f-arity [insert at left i word! = f-arity/:i]
+					]
+
+					not find [set-word! set-path!] type?/word item [	;-- not a: or a/b:
+						remove left
+					]
+				]
+			];;either not left/1 [][
 			code: next code
-			arity: arity - 1
 		]
 		code
 	]
@@ -269,14 +325,14 @@ preprocessor: context [
 	]
 
 	expand: func [
-		code [block!] job [object! none!]
+		code [block! paren!] job [object! none!]
 		/clean
 		/local rule e pos cond value then else cases body keep? expr src saved file
 	][	
 		either clean [reset job][exec/config: job]
 
 		#process off
-		parse code rule: [
+		rule: [
 			any [
 				s: macros
 				| 'routine 2 skip						;-- avoid overlapping with R/S preprocessor
@@ -370,6 +426,9 @@ preprocessor: context [
 			]
 		]
 		#process on
+		
+		unless Rebol [rule/1: 'while]					;-- avoid no-forward premature exit in Red (#3771)
+		parse code rule
 		code
 	]
 	

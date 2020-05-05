@@ -302,6 +302,24 @@ popup-button-action: func [
 	objc_msgSend [self sel_getUid "setTitle:" str]
 ]
 
+handle-speical-key: func [
+	self	[integer!]
+	event	[integer!]
+	return: [logic!]
+	/local
+		key		[integer!]
+		flags	[integer!]
+][
+	key: objc_msgSend [event sel_getUid "keyCode"]
+	either key = 72h [		;-- insert key
+		flags: check-extra-keys event
+		key: translate-key key
+		special-key: -1
+		make-event self key or flags EVT_KEY
+		no
+	][yes]
+]
+
 on-key-down: func [
 	[cdecl]
 	self	[integer!]
@@ -321,7 +339,10 @@ on-key-down: func [
 		either special-key = -1 [						;-- special key
 			make-event self key or flags EVT_KEY
 		][
-			if any [key = 8 key = 9][								;-- backspace
+			if any [
+				key = 8 key = 9							;-- backspace
+				key = 13								;-- number enter
+			][
 				make-event self key or flags EVT_KEY
 				exit
 			]
@@ -515,6 +536,7 @@ scroll-wheel: func [
 	cmd		[integer!]
 	event	[integer!]
 ][
+	objc_setAssociatedObject self RedNSEventKey event OBJC_ASSOCIATION_ASSIGN
 	make-event self event EVT_WHEEL
 ]
 
@@ -551,6 +573,16 @@ slider-change: func [
 			0 <> objc_getAssociatedObject self RedAllOverFlagKey
 		]
 	][make-event self EVT_FLAG_DOWN EVT_OVER]
+	make-event self 0 EVT_CHANGE
+]
+
+calendar-change: func [
+	[cdecl]
+	self   [integer!]
+	cmd	   [integer!]
+	sender [integer!]
+][	
+	sync-calendar self
 	make-event self 0 EVT_CHANGE
 ]
 
@@ -842,12 +874,16 @@ win-send-event: func [
 			find?: yes
 			responder: objc_msgSend [self sel_getUid "firstResponder"]
 			object_getInstanceVariable responder IVAR_RED_DATA :type
-			if type <> base [
+			either type <> base [
 				unless red-face? responder [
 					responder: objc_getAssociatedObject self RedFieldEditorKey
 					unless red-face? responder [find?: no]
 				]
 				if find? [on-key-down responder event]
+			][
+				if find? [	;-- handle some special keys on rich-text base face
+					send?: handle-speical-key responder event
+				]
 			]
 		]
 		true [0]
@@ -990,7 +1026,25 @@ win-will-close: func [
 	self	[integer!]
 	cmd		[integer!]
 	notif	[integer!]
+	/local
+		i	[integer!]
+		n	[integer!]
+		p	[int-ptr!]
+		pp	[int-ptr!]
 ][
+	p: as int-ptr! vector/rs-head active-wins
+	n: vector/rs-length? active-wins
+	i: 0
+	while [i < n][
+		pp: p + 1
+		if pp/value = self [		;-- active its parent window
+			objc_msgSend [p/value sel_getUid "makeKeyAndOrderFront:" p/value]
+			string/remove-part as red-string! active-wins i 2
+			break
+		]
+		p: p + 2
+		i: i + 2
+	]
 	0
 ]
 
@@ -1518,7 +1572,9 @@ return-field-editor: func [
 	obj		[integer!]
 	return: [integer!]
 ][
-	objc_setAssociatedObject sender RedFieldEditorKey obj OBJC_ASSOCIATION_ASSIGN
+	if obj <> 0 [
+		objc_setAssociatedObject obj RedFieldEditorKey 0 OBJC_ASSOCIATION_ASSIGN
+	]
 	0
 ]
 

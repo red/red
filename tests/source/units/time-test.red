@@ -201,7 +201,7 @@ Red [
 
 	--test-- "time-func-args-2"
 		; quick empirical min/max values
-		--assert 1 = tf 170144881:00:05.620492334958379e19 0:00:09.99999e-16
+		--assert 1 = tf 170144881:00:05.620492334958379 0:00:09.99999
 
 ===end-group===
 
@@ -214,16 +214,16 @@ Red [
 	][
 		switch tfi [
 			1 [1:1:1]
-			2 [170144881:00:05.620492334958379e19]
-			3 [0:00:09.99999e-16]
+			2 [170144881:00:05.620492334958379]
+			3 [0:00:09.99999]
 		]
 	]
 	--test-- "time return 1"
 		--assert 1:1:1 = tf1 1
 	--test-- "time return 2"
-		--assert 170144881:00:05.620492334958379e19 = tf1 2
+		--assert 170144881:00:05.620492334958379 = tf1 2
 	--test-- "time return 3"
-		--assert 0:00:09.99999e-16 = tf1 3
+		--assert 0:00:09.99999 = tf1 3
 
 ===end-group===
 
@@ -365,8 +365,20 @@ Red [
 ===end-group===
 
 ===start-group=== "round"
+	--test-- "round 1"
+		--assert 0:00:01 = round/to 0:0:1.4 1
 
-	round/to  0:0:1.4  1
+	--test-- "round 2"
+		--assert 0:00:01 = round/to 0:0:1.4 0:0:1
+
+	--test-- "round 3"
+		--assert 12:35:23 = round/to 12:34:56 0:1:1
+		--assert 12:35:23 = round/to 12:34:56 to integer! 0:1:1
+		--assert 12:35:23 = round/to 12:34:56 to float! 0:1:1
+
+	--test-- "round 4"
+		--assert 12:34:56.1 = round/to 12:34:56 0.3
+		--assert 12:34:56.1 = round/to 12:34:56 30%
 
 ===end-group===
 

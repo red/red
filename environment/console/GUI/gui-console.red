@@ -40,6 +40,7 @@ Red [
 #include %tips.red
 
 gui-console-ctx: context [
+	cfg-dir:	none
 	cfg-path:	none
 	cfg:		none
 	font:		make font! [name: "Consolas" size: 11 color: 0.0.0]
@@ -51,8 +52,13 @@ gui-console-ctx: context [
 		flags:   [scrollable all-over]
 		options: [cursor: I-beam]
 		menu: [
-			"Copy^-Ctrl+C"		copy
-			"Paste^-Shift+Ins"	paste
+			#either config/OS = 'macOS [
+				"Copy^-Command+C"	copy
+				"Paste^-Command+V"	paste
+			][
+				"Copy^-Ctrl+C"		copy
+				"Paste^-Shift+Ins"	paste
+			]
 			---
 			"Select All"		select-all
 		]
@@ -173,7 +179,9 @@ gui-console-ctx: context [
 			]
 			on-close: func [face [object!] event [event!]][
 				save-cfg
+				system/view/platform/exit-event-loop
 				clear head system/view/screens/1/pane
+				quit
 			]
 			on-resizing: function [face [object!] event [event!]][
 				new-sz: event/offset
@@ -228,9 +236,14 @@ gui-console-ctx: context [
 	plugins: #include %plugins.red
 ]
 
+_save-cfg: function [][
+	gui-console-ctx/save-cfg
+]
+
 ask: function [
 	"Prompt the user for input"
 	question [string!]
+	/hide
 	return:  [string!]
 ][
 	gui-console-ctx/show-caret
@@ -245,6 +258,7 @@ ask: function [
 	vt/ask?: yes
 	vt/reset-top/force
 	vt/clear-stack
+	vt/set-flag hide
 	either vt/paste/resume [
 		vt/do-ask-loop/no-wait
 	][

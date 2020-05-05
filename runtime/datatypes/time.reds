@@ -76,16 +76,9 @@ time: context [
 			t [red-time!]
 	][
 		t: as red-time! cell
-		t/header: TYPE_TIME
-		t/time:   time
+		set-type cell TYPE_TIME
+		t/time: time
 		t
-	]
-	
-	box: func [
-		time	[float!]								;-- in nanoseconds
-		return: [red-time!]
-	][
-		make-at time stack/arguments
 	]
 	
 	push: func [
@@ -308,6 +301,7 @@ time: context [
 				]
 				default [assert false]
 			]
+			object/check-owner as red-value! t
 			value
 		][
 			value: push-field t field
@@ -409,9 +403,25 @@ time: context [
 		ceil?		[logic!]
 		half-ceil?	[logic!]
 		return:		[red-value!]
+		/local
+			type	[integer!]
+			int		[red-integer!]
+			val		[float!]
+			ret		[red-float!]
 	][
+		if TYPE_OF(scale) = TYPE_MONEY [
+			fire [TO_ERROR(script not-related) stack/get-call datatype/push TYPE_MONEY]
+		]
+	
 		float/round as red-value! tm scale _even? down? half-down? floor? ceil? half-ceil?
-		as red-value! tm
+		ret: as red-float! tm
+		if ret/header = TYPE_INTEGER [
+			int: as red-integer! ret
+			val: as float! int/value
+			ret/value: val
+		]
+		ret/header: TYPE_TIME
+		as red-value! ret
 	]
 	
 	pick: func [

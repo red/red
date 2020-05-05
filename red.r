@@ -473,7 +473,7 @@ redc: context [
 			][
 				files2: pick [
 					[%core.red %highlight.red %settings.red %tips.red]
-					[%input.red %wcwidth.reds %win32.reds %POSIX.reds]
+					[%input.red %wcwidth.reds %win32.reds %POSIX.reds %settings.red]
 				] gui?
 				if gui? [write/binary td/app.ico read-binary-cache console/app.ico]
 			]
@@ -629,7 +629,7 @@ redc: context [
 				]
 				cmd: copy "-r libRed/libRed.red"
 				if all [not tail? next args args/2 = "stdcall"][
-					insert at cmd 3 " --config [export-ABI: 'stdcall]"
+					insert at cmd 3 { --config "[export-ABI: 'stdcall]"}
 				]
 				parse-options cmd
 			]
@@ -712,6 +712,7 @@ redc: context [
 				| "--no-runtime"				(opts/runtime?: no)		;@@ overridable by config!
 				| "--cli"						(gui?: no)
 				| "--no-compress"				(opts/redbin-compress?: no)
+				| "--show-func-map"				(opts/show-func-map?: yes)
 				| "--catch"								;-- just pass-thru
 				| "--" break							;-- stop options processing
 			]

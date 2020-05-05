@@ -86,13 +86,13 @@ system: context [
 			syntax: object [
 				code:				200
 				type:				"Syntax Error"
-				invalid:			["invalid" :arg1 "at" :arg2]
-				missing:			["missing" :arg1 "at" :arg2]
+				invalid:			[:arg1 "invalid" :arg2 "at" :arg3]
+				missing:			[:arg1 "missing" :arg2 "at"  :arg3]
 				no-header:			["script is missing a Red header:" :arg1]
 				no-rs-header:		["script is missing a Red/System header:" :arg1]
 				bad-header:			["script header is not valid:" :arg1]
-				malconstruct:		["invalid construction spec:" :arg1]
-				bad-char:			["invalid character in:" :arg1]
+				malconstruct:		[:arg1 "invalid construction spec at" :arg2]
+				bad-char:			[:arg1 "invalid character at" :arg2]
 			]
 			script: object [
 				code:				300
@@ -144,7 +144,7 @@ system: context [
 				no-return:			"block did not return a value"
 				throw-usage:		"invalid use of a thrown error value"
 				locked-word:		["protected word - cannot modify:" :arg1]
-				;protected:			"protected value or series - cannot modify"
+				protected:			"protected value or series - cannot modify"
 				;self-protected:	"cannot set/unset self - it is protected"
 				bad-bad:			[:arg1 "error:" :arg2]
 				bad-make-arg:		["cannot MAKE" :arg1 "from:" :arg2]
@@ -158,9 +158,11 @@ system: context [
 				bad-loop-series:	["Loop series changed to invalid value:" :arg1]
 				;bad-decode:		"missing or unsupported encoding marker"
 				;already-used:		["alias word is already in use:" :arg1]
-				;wrong-denom:		[:arg1 "not same denomination as" :arg2]
+				wrong-denom:		[:arg1 "not same denomination as" :arg2]
+				bad-denom:			["invalid denomination:" :arg1]
 				;bad-press:			["invalid compressed data - problem:" :arg1]
 				;dialect:			["incorrect" :arg1 "dialect usage at:" :arg2]
+				invalid-obj-evt:	["invalid object event handler:" :arg1]
 				parse-rule:			["PARSE - invalid rule or usage of rule:" :arg1]
 				parse-end:			["PARSE - unexpected end of rule after:" :arg1]
 				;parse-variable:	["PARSE - expected a variable, not:" :arg1]
@@ -189,6 +191,7 @@ system: context [
 				react-bad-obj:		"REACT - target can only contain object values"
 				react-gctx:			["REACT - word" :arg1 "is not a reactor's field"]
 				lib-invalid-arg:	["LIBRED - invalid argument for" :arg1]
+				buffer-not-enough:	["Buffer size too small, should be:" :arg1]
 			]
 			math: object [
 				code:				400
@@ -232,7 +235,7 @@ system: context [
 				;security-level:	["attempt to lower security to" :arg1]
 				;security-error:	["invalid" :arg1 "security policy:" :arg2]
 				;no-codec:			["cannot decode or encode (no codec):" :arg1]
-				;bad-media:			["bad media data (corrupt image, sound, video)"]
+				bad-media:			["bad media data (corrupt image, sound, video)"]
 				;no-extension:		["cannot open extension:" :arg1]
 				;bad-extension:		["invalid extension format:" :arg1]
 				;extension-init:	["extension cannot be initialized (check version):" :arg1]
@@ -308,6 +311,35 @@ system: context [
 		days: [
 		  "Monday" "Tuesday" "Wednesday" "Thursday" "Friday" "Saturday" "Sunday"
 		]
+		
+		currencies: context [
+			;-- ISO currencies + BTC, ETH, RED
+			list: [
+				AED AFN ALL AMD ANG AOA ARS AUD AWG AZN BAM BBD BDT BTC BGN BHD BIF BMD BND BOB BRL BSD
+				BTN	BWP BYN BZD CAD CDF CHF CKD CLP CNY COP CRC CUC CUP CVE CZK DJF DKK DOP DZD EGP ERN
+				ETB ETH	EUR FJD FKP FOK GBP GEL GGP GHS GIP GMD GNF GTQ GYD HKD HNL HRK HTG HUF IDR ILS
+				IMP INR	IQD IRR ISK JEP JMD JOD JPY KES KGS KHR KID KMF KPW KRW KWD KYD KZT LAK LBP LKR
+				LRD LSL	LYD MAD MDL MGA MKD MMK MNT MOP MRU MUR MVR MWK MXN MYR MZN NAD NGN NIO NOK NPR
+				NZD OMR	PAB PEN PGK PHP PKR PLN PND PRB PYG QAR RED RON RSD RUB RWF SAR SBD SCR SDG SEK
+				SGD SHP SLL	SLS SOS SRD SSP STN SYP SZL THB TJS TMT TND TOP TRY TTD TVD TWD TZS UAH UGX
+				USD UYU UZS	VES VND VUV WST CFA XAF XCD XOF CFP XPF YER ZAR ZMW
+			]
+			on-change*: func [word old new][
+				set-quiet in self word old
+				cause-error 'script 'protected []
+			]
+			on-deep-change*: func [owner word target action new index part][
+				if any [
+					word <> 'list
+					not find [append appended] action
+					not word? :new
+					all [action = 'append any [find list new 255 < length? list]] ;-- limit index to 8-bit
+					3 <> length? form new
+				][cause-error 'script 'protected []]
+				
+				if action = 'appended [set-slot-quiet back tail list to word! uppercase form new]
+			]
+		]
 	]
 	
 	options: context [
@@ -324,6 +356,7 @@ system: context [
 		quiet: 			false
 		binary-base: 	16
 		decimal-digits: 15
+		money-digits:	2
 		module-paths: 	make block! 1
 		file-types: 	none
 		
@@ -399,7 +432,16 @@ system: context [
 		]
 	]
 	
-	lexer:		none
+	lexer: context [
+		pre-load: none
+		
+		exit-states: [
+			eof error! block! block! paren! paren! string! string! map! path! any-type!
+			comment string! word! issue! integer! refinement! char! file! binary! percent!
+			float! float! tuple! date! pair! time! money! tag! url! email! hex rawstring
+		]
+	]
+	
 	console:	none
 	view:		none
 	reactivity: none

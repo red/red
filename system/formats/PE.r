@@ -677,7 +677,7 @@ context [
 		code-refs: make block! 1000
 		data-refs: make block! 100
 		foreach [name spec] job/symbols [
-			either all [spec/1 = 'global block? spec/4][
+			either all [find [global native] spec/1 block? spec/4][
 				foreach ref spec/4 [append data-refs ref]
 			][
 				foreach ref spec/3 [append code-refs ref]
@@ -703,6 +703,7 @@ context [
 		fh/opt-headers-size: opt-header-size
 		fh/flags:			 to integer! defs/c-flags/executable-image
 									  or defs/c-flags/machine-32bit
+									  or defs/c-flags/large-address-aware
 		
 		unless find job/sections 'reloc	[
 			fh/flags: fh/flags or to integer! defs/c-flags/relocs-stripped
@@ -1162,7 +1163,9 @@ context [
 			(section-addr?/memory job 'data) - base-address
 			length? job/sections/data/2
 
-		foreach [name spec] job/sections [		
+		if job/show-func-map? [linker/show-funcs-map job entry-point-address? job]
+
+		foreach [name spec] job/sections [
 			pad: pad-size? spec/2
 			append job/buffer spec/2
 			insert/dup tail job/buffer null pad
