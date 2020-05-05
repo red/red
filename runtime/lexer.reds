@@ -1446,15 +1446,9 @@ lexer: context [
 		]
 	]
 
-	load-file: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
-		/local
-			p [byte-ptr!]
-	][
+	load-file: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
 		flags: flags and not C_FLAG_CARET				;-- clears caret flag
-		either s/2 = #"^"" [s: s + 1][					;-- skip "
-			p: s until [p: p + 1 any [p/1 = #"%" p = e]] ;-- check if any %xx 
-			if p < e [flags: flags or C_FLAG_ESC_HEX or C_FLAG_CARET]
-		]
+		if s/2 = #"^"" [s: s + 1]						;-- skip "
 		lex/type: TYPE_FILE
 		either load? [
 			load-string lex s e flags yes

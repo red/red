@@ -130,44 +130,17 @@ Red [
 
 	--test-- "tr-19"
 		out: transcode {
-			%examples.r
-			%big-image.jpg
-			%graphics/amiga.jpg
-			%/c/plug-in/video.r
-			%//sound/goldfinger.mp3
-			%"this file.txt"
-			%"cool movie clip.mpg"
-			%this%20file.txt
-			%cool%20movie%20clip.mpg
-			%dir/file.txt
-			%docs/intro.txt
-			%docs/new/notes.txt
-			%"new mail/inbox.mbx"
-			%.
-			%./
-			%./file.txt
-			%..
-			%../
-			%../script.r
-			%../../plans/schedule.r
-			%/C/docs/file.txt
-			%"/c/program files/qualcomm/eudora mail/out.mbx"
-			%//docs/notes
-		}
-		--assert out == [
 		    %examples.r 
 		    %big-image.jpg 
 		    %graphics/amiga.jpg 
 		    %/c/plug-in/video.r 
 		    %//sound/goldfinger.mp3 
-		    %this%20file.txt 
-		    %cool%20movie%20clip.mpg 
-		    %this%20file.txt 
-		    %cool%20movie%20clip.mpg 
+		    %"this file.txt"
+		    %"cool movie clip.mpg"
 		    %dir/file.txt 
 		    %docs/intro.txt 
 		    %docs/new/notes.txt 
-		    %new%20mail/inbox.mbx 
+		    %"new mail/inbox.mbx"
 		    %. 
 		    %./ 
 		    %./file.txt 
@@ -176,7 +149,30 @@ Red [
 		    %../script.r 
 		    %../../plans/schedule.r 
 		    %/C/docs/file.txt 
-		    %/c/program%20files/qualcomm/eudora%20mail/out.mbx 
+		    %"/c/program files/qualcomm/eudora mail/out.mbx"
+		    %//docs/notes
+		}
+		--assert out == [
+		    %examples.r 
+		    %big-image.jpg 
+		    %graphics/amiga.jpg 
+		    %/c/plug-in/video.r 
+		    %//sound/goldfinger.mp3 
+		    %"this file.txt"
+		    %"cool movie clip.mpg"
+		    %dir/file.txt 
+		    %docs/intro.txt 
+		    %docs/new/notes.txt 
+		    %"new mail/inbox.mbx"
+		    %. 
+		    %./ 
+		    %./file.txt 
+		    %.. 
+		    %../ 
+		    %../script.r 
+		    %../../plans/schedule.r 
+		    %/C/docs/file.txt 
+		    %"/c/program files/qualcomm/eudora mail/out.mbx"
 		    %//docs/notes
 		]
 		forall out [--assert file? out/1]
@@ -433,8 +429,7 @@ Red [
 	--test-- "tro-23" --assert #{000041} == transcode/one {64#{AABB}}
 	--test-- "tro-24" --assert "Hello World!" == to-string transcode/one {64#{SGVsbG8gV29ybGQh}}
 	--test-- "tro-25" --assert %hello.red == transcode/one {%hello.red}
-	--test-- "tro-26" --assert %hello%20world.red == transcode/one {%"hello world.red"}
-	--test-- "tro-27" --assert %hello%20world.red == transcode/one {%hello%20world.red}
+	--test-- "tro-26" --assert {%"hello world.red"} == mold transcode/one {%"hello world.red"}
 	--test-- "tro-28" --assert <img src="mypic.jpg"> == transcode/one {<img src="mypic.jpg">}
 
 	--test-- "tro-29" --assert #{00} == transcode/one "#{00} "

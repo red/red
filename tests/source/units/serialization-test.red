@@ -127,10 +127,10 @@ ser-formed: {1 none true false c red Red a/b 'a/b :a/b a/b: 1 + 2 a  a c d b e f
 		--assert "%目录1" = mold %目录1
 		
 	--test-- "mold-file2"
-		--assert "%^^(76EE)^^(5F55)1" = mold/all %目录1
+		--assert "%^(76EE)^(5F55)1" = mold/all %目录1
 
 	--test-- "mold-file3"
-		--assert "%a%20b" = mold %a%20b
+		--assert {%"a b"} = mold %"a b"
 
 ===end-group===
 
