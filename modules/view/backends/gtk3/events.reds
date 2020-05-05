@@ -708,8 +708,14 @@ make-event: func [
 		; ]
 		; EVT_KEY_UP [0
 		; ]
-		; EVT_KEY [0
-		; ]
+		EVT_KEY [
+			key: flags and FFFFh
+			if all [
+				flags and EVT_FLAG_CTRL_DOWN <> 0
+				97 <= key key <= 122
+			][key: key - 96]
+			gui-evt/flags: flags and FFFF0000h or key
+		]
 		; EVT_SELECT [0
 		; ]
 		; EVT_CHANGE [0
