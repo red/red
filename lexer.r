@@ -101,7 +101,7 @@ lexer: context [
 	not-file-char:	charset {[](){}"@:;}
 	not-url-char:	charset {[](){}";}
 	not-email-char:	union not-file-char union ws-ASCII charset "<^/"
-	not-ref-char:   exclude not-email-char charset "@:"
+	not-ref-char:   union ws-ASCII charset {#$@'",;=\^^^/<>[](){}}
 	not-str-char:	#"^""
 	not-mstr-char:	#"}"
 	not-tag-1st:	complement union ws-ASCII charset "=><[](){};^""
