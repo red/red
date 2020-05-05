@@ -65,7 +65,7 @@ context [
 		/extern quote-char double-quote quotable-chars
 	][
 		quot?: false
-		value: either string? value [copy value][form value]
+		value: form value
 		len: length? value
 		replace/all value quote-char double-quote
 		unless equal? len length? value [quot?: true]
