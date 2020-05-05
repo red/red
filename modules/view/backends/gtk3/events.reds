@@ -330,7 +330,7 @@ keycode-ascii: [
 	RED_VK_UNKNOWN		;-- GDK_KEY_percent
 	RED_VK_UNKNOWN		;-- GDK_KEY_ampersand
 	RED_VK_UNKNOWN		;-- GDK_KEY_apostrophe
-	RED_VK_UNKNOWN		;-- GDK_KEY_quoteright
+	;RED_VK_UNKNOWN		;-- GDK_KEY_quoteright
 	RED_VK_UNKNOWN		;-- GDK_KEY_parenleft
 	RED_VK_UNKNOWN		;-- GDK_KEY_parenright
 	RED_VK_UNKNOWN		;-- GDK_KEY_asterisk
