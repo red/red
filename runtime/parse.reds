@@ -801,7 +801,6 @@ parser: context [
 			state	 [states!]
 			pos		 [byte-ptr!]						;-- required by BS_TEST_BIT_ALT()
 			type	 [integer!]
-			type2	 [integer!]
 			dt-type	 [integer!]
 			sym		 [integer!]
 			min		 [integer!]
@@ -1358,12 +1357,15 @@ parser: context [
 					]
 				]
 				ST_MATCH [
-					type:  TYPE_OF(input)
-					type2: TYPE_OF(value)
+					type: TYPE_OF(input)
 					either end? [
 						match?: all [
 							ANY_STRING?(type)
-							ANY_STRING?(type2)
+							any [
+								TYPE_OF(value) = TYPE_STRING
+								TYPE_OF(value) = TYPE_FILE
+								TYPE_OF(value) = TYPE_URL
+							]
 							zero? string/rs-length? as red-string! value
 						]
 					][
