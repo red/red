@@ -88,34 +88,31 @@ create-css: func [
 
 	values: object/get-values font
 	str: as red-string! values + FONT_OBJ_NAME
-	name: either TYPE_OF(str) = TYPE_STRING [
+	if TYPE_OF(str) = TYPE_STRING [
 		len: -1
-		unicode/to-utf8 str :len
-	][default-font-name]
-	g_string_append_printf [css { font-family: "%s";} name]
+		name: unicode/to-utf8 str :len
+		g_string_append_printf [css { font-family: "%s";} name]
+	]
 
 	int: as red-integer! values + FONT_OBJ_SIZE
-	size: either TYPE_OF(int) <> TYPE_INTEGER [default-font-size][
-		int/value
+	if TYPE_OF(int) = TYPE_INTEGER [
+		size: int/value
+		g_string_append_printf [css { font-size: %dpt;} size]
 	]
-	g_string_append_printf [css { font-size: %dpt;} size]
 
 	color: as red-tuple! values + FONT_OBJ_COLOR
-	alpha?: 0
-	either TYPE_OF(color) = TYPE_TUPLE [
+	if TYPE_OF(color) = TYPE_TUPLE [
+		alpha?: 0
 		rgb: get-color-int color :alpha?
-	][
-		rgb: default-font-color
-		alpha?: 1
+		b: rgb >> 16 and FFh
+		g: rgb >> 8 and FFh
+		r: rgb and FFh
+		a: 1.0
+		if alpha? = 1 [
+			a: (as float! 255 - (rgb >>> 24)) / 255.0
+		]
+		g_string_append_printf [css { color: rgba(%d, %d, %d, %.3f);} r g b a]
 	]
-	b: rgb >> 16 and FFh
-	g: rgb >> 8 and FFh
-	r: rgb and FFh
-	a: 1.0
-	if alpha? = 1 [
-		a: (as float! 255 - (rgb >>> 24)) / 255.0
-	]
-	g_string_append_printf [css { color: rgba(%d, %d, %d, %.3f);} r g b a]
 
 	;-- ? GTK3 warnings
 	;int: as red-integer! values + FONT_OBJ_ANGLE
@@ -193,19 +190,19 @@ create-pango-attrs: func [
 	values: object/get-values font
 
 	str: as red-string! values + FONT_OBJ_NAME
-	name: either TYPE_OF(str) = TYPE_STRING [
+	if TYPE_OF(str) = TYPE_STRING [
 		len: -1
-		unicode/to-utf8 str :len
-	][default-font-name]
-	attr: pango_attr_family_new name
-	pango_attr_list_insert list attr
+		name: unicode/to-utf8 str :len
+		attr: pango_attr_family_new name
+		pango_attr_list_insert list attr
+	]
 
 	int: as red-integer! values + FONT_OBJ_SIZE
-	size: either TYPE_OF(int) <> TYPE_INTEGER [default-font-size][
-		int/value
+	if TYPE_OF(int) = TYPE_INTEGER [
+		size: int/value
+		attr: pango_attr_size_new PANGO_SCALE * size
+		pango_attr_list_insert list attr
 	]
-	attr: pango_attr_size_new PANGO_SCALE * size
-	pango_attr_list_insert list attr
 
 	color: as red-tuple! values + FONT_OBJ_COLOR
 	if TYPE_OF(color) = TYPE_TUPLE [
