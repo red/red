@@ -134,7 +134,7 @@ forxy: func ["loop thru a 2D area" 'p s c /local i] [
 	any [pair? s  s: s/size]
 	i: 0
 	loop s/x * s/y [
-		set p 1x1 + as-pair i % s/x i / s/x
+		set p 1x1 + as-pair i % s/x to integer! i / s/x
 		do c
 		i: i + 1
 	]
@@ -325,7 +325,7 @@ bright: func [
 	if 4 = length? c [c/4: none]
 	unless black = c [
 		hi: max c/1 max c/2 c/3
-		repeat i 3 [c/:i: c/:i * 255 / hi]
+		repeat i 3 [c/:i: to integer! c/:i * 255 / hi]
 	]
 	c
 ]
@@ -682,7 +682,7 @@ four-ways: func [code [block!] /local ws ss i j d code' rule s full] [
 	repeat i 4 [
 		code': copy/deep code
 		unless 1 = i [
-			repeat j d: (length? ws) / 4 [
+			repeat j d: to integer! (length? ws) / 4 [
 				replace/all/deep code' ws/:j ws/(i - 1 * d + j)
 			]
 		]
@@ -780,7 +780,7 @@ test-images-equal?: func [
 	unless img-black?/tol diff tolrel tolabs [
 		s: form reduce [
 			"expected images to be equal, but found"
-			(length? trim diff/rgb) / 3 "different pixels"
+			to integer! (length? trim diff/rgb) / 3 "different pixels"
 		]
 		maybe-display-shortly [a b diff] s
 		return no

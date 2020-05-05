@@ -1239,6 +1239,7 @@ string: context [
 			str		[red-string!]
 	][
 		remain: 0
+		if zero? len [len: 1]
 		str: rs-make-at stack/push* len
 		unicode/load-utf8-stream src len str :remain
 		if remain > 0 [
