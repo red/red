@@ -32,7 +32,7 @@ flags-blk/head:		0
 flags-blk/node:		alloc-cells 4
 flags-blk/header:	TYPE_BLOCK
 
-last-mouse-pt: 0
+last-mouse-pt: -1
 
 char-keys: [
 	1000C400h C0FF0080h E0FFFF7Fh 0000F7FFh 00000000h 3F000000h 1F000080h 00FC7F38h
@@ -623,6 +623,8 @@ process-command-event: func [
 		int	   [red-integer!]
 		idx	   [integer!]
 		res	   [integer!]
+		sym    [integer!]
+		state  [integer!]
 		saved  [handle!]
 		child  [handle!]
 		evt	   [integer!]
@@ -640,18 +642,44 @@ process-command-event: func [
 	switch WIN32_HIWORD(wParam) [
 		BN_CLICKED [
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
-			current-msg/hWnd: child						;-- force child handle
-			evt: either type/symbol <> check [EVT_CLICK][
-				get-logic-state current-msg
-				EVT_CHANGE
+			sym: symbol/resolve type/symbol
+			current-msg/hWnd: child							;-- force child handle
+			
+			evt: case [
+				sym = button [EVT_CLICK]
+				sym = check [
+					if 0 <> (FACET_FLAGS_TRISTATE and get-flags as red-block! get-facet current-msg FACE_OBJ_FLAGS)[
+						state: as integer! SendMessage child BM_GETCHECK 0 0
+						state: switch state [				;-- force [ ] -> [-] -> [v] transition
+							BST_UNCHECKED     [BST_CHECKED]
+							BST_INDETERMINATE [BST_UNCHECKED]
+							BST_CHECKED       [BST_INDETERMINATE]
+							default [0]
+						]
+						SendMessage child BM_SETCHECK state 0
+					]
+					get-logic-state current-msg
+					EVT_CHANGE
+				]
+				all [
+					sym = radio								;-- ignore double-click (fixes #4246)
+					BST_CHECKED <> (BST_CHECKED and as integer! SendMessage child BM_GETSTATE 0 0)
+				][
+					get-logic-state current-msg
+					EVT_CLICK								;-- gets converted to CHANGE by high-level event handler
+				]
+				true [0]
 			]
-			make-event current-msg 0 evt				;-- should be *after* get-facet call (Windows closing on click case)
+			
+			unless zero? evt [make-event current-msg 0 evt]	;-- should be *after* get-facet call (Windows closing on click case)
 		]
 		BN_UNPUSHED [
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
 			if type/symbol = radio [
-				current-msg/hWnd: child					;-- force child handle
-				make-event current-msg 0 EVT_CHANGE
+				current-msg/hWnd: child						;-- force child handle
+				unless as logic! SendMessage child BM_GETSTATE 0 0 [
+					make-event current-msg 0 EVT_CHANGE		;-- ignore double-click (fixes #4246)
+				]
 			]
 		]
 		EN_CHANGE [											;-- sent also by CreateWindow
@@ -721,7 +749,10 @@ process-command-event: func [
 		CBN_EDITCHANGE [
 			current-msg/hWnd: child						;-- force Combobox handle
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
-			unless type/symbol = text-list [
+			unless any[
+				type/symbol = text-list
+				type/symbol = radio						;-- ignore radio button (fixes #4246)
+			][
 				make-event current-msg -1 EVT_CHANGE
 			]
 		]
@@ -833,7 +864,11 @@ process-custom-draw: func [
 					rc/left: rc/left + dpi-scale 16
 				]
 				if TYPE_OF(txt) = TYPE_STRING [
-					flags: get-para-flags base para
+					flags: either TYPE_OF(para) <> TYPE_OBJECT [
+						0001h or 0004h				;-- DT_CENTER, DT_VCENTER if no para settings
+					][
+						get-para-flags base para
+					]
 					DrawText DC unicode/to-utf16 txt -1 rc flags or DT_SINGLELINE
 				]
 				SetBkMode DC old
@@ -1386,7 +1421,8 @@ WndProc: func [
 					flags: get-flags as red-block! values + FACE_OBJ_FLAGS
 					if flags and FACET_FLAGS_MODAL <> 0 [
 						;SetActiveWindow GetWindow hWnd GW_OWNER
-						SetFocus as handle! GetWindowLong hWnd wc-offset - 20
+						p-int: as handle! GetWindowLong hWnd wc-offset - 20
+						if p-int <> null [SetFocus p-int]
 					]
 					clean-up
 				][
@@ -1447,6 +1483,7 @@ process: func [
 		y	   [integer!]
 		track  [tagTRACKMOUSEEVENT value]
 		flags  [integer!]
+		word   [red-word!]
 ][
 	flags: decode-down-flags msg/wParam
 	switch msg/msg [
@@ -1489,6 +1526,7 @@ process: func [
 			EVT_DISPATCH
 		]
 		WM_MOUSELEAVE [
+			last-mouse-pt: -1
 			make-event msg EVT_FLAG_AWAY or key-flags EVT_OVER
 			if msg/hWnd = hover-saved [hover-saved: null]
 			EVT_DISPATCH
@@ -1505,7 +1543,13 @@ process: func [
 			menu-ctx: null
 			make-event msg flags EVT_LEFT_DOWN
 		]
-		WM_LBUTTONUP	[make-event msg flags EVT_LEFT_UP]
+		WM_LBUTTONUP	[
+			if all [msg/hWnd <> null msg/hWnd = GetCapture][
+				word: (as red-word! get-face-values msg/hWnd) + FACE_OBJ_TYPE
+				if base = symbol/resolve word/symbol [ReleaseCapture]	;-- issue #4384
+			]
+			make-event msg flags EVT_LEFT_UP
+		]
 		WM_RBUTTONDOWN	[
 			if GetCapture <> null [return EVT_DISPATCH]
 			lParam: msg/lParam

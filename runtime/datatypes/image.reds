@@ -46,6 +46,9 @@ image: context [
 		/local
 			pixel [integer!]
 	][
+		if IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) = offset [
+			return as red-tuple! none-value
+		]
 		pixel: OS-image/get-pixel img/node offset
 		tuple/rs-make [
 			pixel and 00FF0000h >> 16
@@ -60,11 +63,15 @@ image: context [
 		img		[red-image!]
 		size	[integer!]
 		/local
-			i [integer!]
+			i	[integer!]
+			h	[integer!]
 	][
-		i: 1
-		while [i <= size][
-			_context/set (as red-word! _series/pick as red-series! words i null) as red-value! rs-pick img i
+		h: img/head
+		i: 0
+		while [i < size][
+			_context/set 
+				as red-word! _series/pick as red-series! words i + 1 null
+				as red-value! rs-pick img i + h
 			i: i + 1
 		]
 	]

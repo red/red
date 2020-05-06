@@ -236,6 +236,7 @@ Red/System [
 #define BS_CHECKBOX			00000002h
 #define BS_AUTOCHECKBOX		00000003h
 #define BS_RADIOBUTTON		00000004h
+#define BS_AUTO3STATE		00000006h
 #define BS_GROUPBOX			00000007h
 #define BS_AUTORADIOBUTTON	00000009h
 
@@ -342,6 +343,8 @@ Red/System [
 
 #define BM_GETCHECK			F0h
 #define BM_SETCHECK			F1h
+#define BM_GETSTATE			F2h
+#define BM_SETSTATE			F3h
 #define BM_SETSTYLE			F4h
 #define BM_SETIMAGE			F7h
 
@@ -351,6 +354,8 @@ Red/System [
 #define BST_UNCHECKED		0
 #define BST_CHECKED			1
 #define BST_INDETERMINATE	2
+#define BST_PUSHED			4
+#define BST_FOCUS			8
 
 #define VK_SHIFT			10h
 #define VK_CONTROL			11h
@@ -1148,6 +1153,9 @@ XFORM!: alias struct! [
 		GetKeyState: "GetKeyState" [
 			nVirtKey	[integer!]
 			return:		[integer!]
+		]
+		GetActiveWindow: "GetActiveWindow" [
+			return:		[handle!]
 		]
 		SetActiveWindow: "SetActiveWindow" [
 			hWnd		[handle!]

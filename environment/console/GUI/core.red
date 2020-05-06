@@ -140,9 +140,7 @@ object [
 				]
 				not s: find str lf
 			]
-			either all [empty? str lf = first back str][add-line copy ""][
-				either all [lf? not prin?][add-line copy str][vprin str]
-			]
+			either all [lf? not prin?][add-line copy str][vprin str]
 		][
 			either all [lf? not prin?][add-line copy str][
 				if first-prin? [add-line make string! 8]

@@ -117,8 +117,8 @@ red: context [
 	#include %actions.reds
 	#include %natives.reds
 	#include %parse.reds
-	#include %random.reds
 	#include %crypto.reds
+	#include %random.reds
 	#include %stack.reds
 	#include %interpreter.reds
 	#include %tokenizer.reds

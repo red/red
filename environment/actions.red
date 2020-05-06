@@ -25,7 +25,7 @@ random: make action! [[
 		"Returns a random value of the same datatype; or shuffles series"
 		value	"Maximum value of result (modified when series)"
 		/seed   "Restart or randomize"
-		/secure "TBD: Returns a cryptographically secure random number"
+		/secure "Returns a cryptographically secure random number"
 		/only	"Pick a random value from a series"
 		return:	[any-type!]
 	]
@@ -197,8 +197,8 @@ and~: make action! [[
 
 complement: make action! [[
 		"Returns the opposite (complementing) value of the input value"
-		value	[logic! integer! bitset! typeset! binary!]
-		return: [logic! integer! bitset! typeset! binary!]
+		value	[logic! integer! tuple! bitset! typeset! binary!]
+		return: [logic! integer! tuple! bitset! typeset! binary!]
 	]
 	#get-definition ACT_COMPLEMENT
 ]
@@ -458,7 +458,7 @@ sort: make action! [[
 			comparator [integer! block! any-function!]
 		/part "Sort only part of a series"
 			length [number! series!]
-		/all "Compare all fields"
+		/all "Compare all fields (used with /skip)"
 		/reverse "Reverse sort order"
 		/stable "Stable sorting"
 		return:  [series!]

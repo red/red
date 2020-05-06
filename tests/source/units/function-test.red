@@ -812,7 +812,9 @@ if system/state/interpreted? [                      ;-- not yet supported by com
 	--test-- "fsv16"
         --assert error? try [do [func [a return: b][]]]
 
-
+	--test-- "#3595"
+		--assert function? func [return: [block!] "string"][]
+		--assert error? try [do [func [return: [block!] "string" word][]]]
 ===end-group===
 
 ~~~end-file~~~

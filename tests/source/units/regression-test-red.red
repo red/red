@@ -2849,6 +2849,16 @@ comment {
 		--assert tail? next next next next i4056
 		--assert tail? next back next tail i4056
 
+	--test-- "#4205 - seed random with precise time!"
+		anded4205: to integer! #{FFFFFFFF}
+		loop 10 [
+			random/seed now/time/precise
+			anded4205: anded4205 and last-random4205: random 10000
+			wait 0.001
+		]
+		all-equal?4205: anded4205 = last-random4205
+		--assert not all-equal?4205
+		unset [anded4205 last-random4205 all-equal?4205]
 ===end-group===
 
 ~~~end-file~~~

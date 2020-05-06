@@ -51,6 +51,7 @@ caret-x:		as float32! 0.0
 caret-y:		as float32! 0.0
 
 win-array:		declare red-vector!
+active-wins:	declare red-vector!			;-- last actives windows
 
 red-face?: func [
 	handle	[integer!]
@@ -310,6 +311,7 @@ get-metrics: func [][
 on-gc-mark: does [
 	collector/keep flags-blk/node
 	collector/keep win-array/node
+	collector/keep active-wins/node
 ]
 
 init: func [
@@ -328,6 +330,7 @@ init: func [
 		p-int	 [int-ptr!]
 ][
 	vector/make-at as red-value! win-array 8 TYPE_INTEGER 4
+	vector/make-at as red-value! active-wins 8 TYPE_INTEGER 4
 	init-selectors
 	register-classes
 	nsview-id: objc_getClass "NSView"
@@ -381,20 +384,49 @@ init: func [
 ]
 
 set-logic-state: func [
-	hWnd   [integer!]
+	handle [integer!]
 	state  [red-logic!]
 	check? [logic!]
 	/local
-		value [integer!]
+		values [red-block!]
+		flags  [integer!]
+		type   [integer!]
+		value  [integer!]
+		tri?   [logic!]
 ][
-	value: either TYPE_OF(state) <> TYPE_LOGIC [
-		state/header: TYPE_LOGIC
-		state/value: check?
-		either check? [-1][0]
-	][
-		as-integer state/value							;-- returns 0/1, matches the messages
+	if check? [
+		values: as red-block! get-face-values handle
+		flags: get-flags as red-block! values + FACE_OBJ_FLAGS
+		tri?: flags and FACET_FLAGS_TRISTATE <> 0
 	]
-	objc_msgSend [hWnd sel_getUid "setState:"  value]
+	
+	type: TYPE_OF(state)
+	value: either all [check? tri? type = TYPE_NONE][NSMixedState][
+		as integer! switch type [
+			TYPE_NONE  [false]
+			TYPE_LOGIC [state/value]					;-- returns 0/1, matches the state flag
+			default	   [true]
+		]
+	]
+
+	objc_msgSend [handle sel_getUid "setState:" value]
+]
+
+get-logic-state: func [
+	handle [integer!]
+	/local
+		bool  [red-logic!]
+		state [integer!]
+][
+	bool: as red-logic! (get-face-values handle) + FACE_OBJ_DATA
+	state: objc_msgSend [handle sel_getUid "state"]
+	
+	either state = NSMixedState [
+		bool/header: TYPE_NONE
+	][
+		bool/header: TYPE_LOGIC
+		bool/value: state = NSOnState
+	]
 ]
 
 get-flags: func [
@@ -432,6 +464,7 @@ get-flags: func [
 			sym = no-buttons [flags: flags or FACET_FLAGS_NO_BTNS]
 			sym = modal		 [flags: flags or FACET_FLAGS_MODAL]
 			sym = popup		 [flags: flags or FACET_FLAGS_POPUP]
+			sym = tri-state  [flags: flags or FACET_FLAGS_TRISTATE]
 			sym = scrollable [flags: flags or FACET_FLAGS_SCROLLABLE]
 			sym = password	 [flags: flags or FACET_FLAGS_PASSWORD]
 			true			 [fire [TO_ERROR(script invalid-arg) word]]
@@ -1268,7 +1301,7 @@ init-calendar: func [
 	objc_msgSend [calendar sel_getUid "setDatePickerElements:" NSDatePickerElementFlagYearMonthDay]
 	
 	objc_msgSend [calendar sel_getUid "setTarget:" calendar]
-	objc_msgSend [calendar sel_getUid "setAction:" sel_getUid "calendar-change:"]
+	objc_msgSend [calendar sel_getUid "setAction:" sel_getUid "calendar-change"]
 	objc_msgSend [calendar sel_getUid "sendActionOn:" NSLeftMouseDown]
 	
 	slot: declare red-value!
@@ -1891,7 +1924,13 @@ OS-make-view: func [
 			class: "RedButton"
 			flags: NSRadioButton
 		]
-		sym = window [class: "RedWindow"]
+		sym = window [
+			class: "RedWindow"
+			if bits and FACET_FLAGS_MODAL <> 0 [
+				obj: objc_msgSend [NSApp sel_getUid "mainWindow"]
+				if obj <> 0 [vector/rs-append-int active-wins obj]
+			]
+		]
 		sym = tab-panel [
 			class: "RedTabView"
 		]
@@ -1989,12 +2028,13 @@ OS-make-view: func [
 		]
 		any [sym = button sym = check sym = radio][
 			if sym <> button [
+				if all [sym = check bits and FACET_FLAGS_TRISTATE <> 0][
+					objc_msgSend [obj sel_getUid "setAllowsMixedState:" yes]
+				]
 				objc_msgSend [obj sel_getUid "setButtonType:" flags]
-				set-logic-state obj as red-logic! data no
+				set-logic-state obj as red-logic! data sym = check
 			]
-			if TYPE_OF(img) = TYPE_IMAGE [
-				change-image obj img sym
-			]
+			if TYPE_OF(img) = TYPE_IMAGE [change-image obj img sym]
 			if caption <> 0 [objc_msgSend [obj sel_getUid "setTitle:" caption]]
 			;objc_msgSend [obj sel_getUid "setTarget:" obj]
 			;objc_msgSend [obj sel_getUid "setAction:" sel_getUid "button-click:"]
@@ -2023,6 +2063,7 @@ OS-make-view: func [
 				AppMainMenu: objc_msgSend [NSApp sel_getUid "mainMenu"]
 				build-menu menu AppMainMenu obj
 			]
+			if bits and FACET_FLAGS_MODAL <> 0 [vector/rs-append-int active-wins obj]
 		]
 		sym = slider [
 			len: either size/x > size/y [size/x][size/y]
