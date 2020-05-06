@@ -231,8 +231,8 @@ Red [
 							random 1'000
 					]
 				]
+				value: to get random/only to block! any-list!
 				value: skip value (random 4) - 1
-				if random true [value: to paren! value]
 				
 				--assert value == test value
 				--assert (index? value) == index? test value
