@@ -351,8 +351,6 @@ integer: context [
 		secure? [logic!]
 		only?   [logic!]
 		return: [red-value!]
-		/local
-			n	 [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/random"]]
 
@@ -361,8 +359,7 @@ integer: context [
 			int/header: TYPE_UNSET
 		][
 			unless zero? int/value [
-				n: _random/rand % int/value + 1
-				int/value: either negative? int/value [0 - n][n]
+				int/value: _random/int-uniform-distr secure? int/value
 			]
 		]
 		as red-value! int

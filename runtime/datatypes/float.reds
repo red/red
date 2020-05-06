@@ -509,8 +509,13 @@ float: context [
 			_random/srand sp/1 xor sp/2
 			f/header: TYPE_UNSET
 		][
-			s: (as-float _random/rand) / 2147483647.0
-			f/value: s * f/value
+			either secure? [
+				f/value: ((as-float _random/rand-secure) / 2147483647.0 + (as-float _random/rand-secure))
+					/ (2147483648.0 / f/value)
+			] [
+				s: (as-float _random/rand) / 2147483647.0
+				f/value: s * f/value
+			]
 		]
 		f
 	]

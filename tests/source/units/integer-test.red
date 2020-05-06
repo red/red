@@ -87,8 +87,36 @@ Red [
 
 ===start-group=== "random"
 	--test-- "random1" --assert 1 = random 1
-	--test-- "random2" --assert 2 = random/only next [1 2]
-	--test-- "random3" --assert not negative? random 1
+	--test-- "random2" --assert not negative? random 1
+
+	--test-- "random3"
+		anded: to integer! #{FFFFFFFF}
+		loop 10 [
+			anded: anded and last-random: random 7FFFFFFFh
+		]
+		all-equal?: anded = last-random
+		--assert not all-equal?
+
+	--test-- "random4"
+		anded: to integer! #{FFFFFFFF}
+		loop 10 [
+			anded: anded and last-random: random/secure 7FFFFFFFh
+		]
+		all-equal?: anded = last-random
+		--assert not all-equal?
+
+	--test-- "random5"
+		b: copy []
+		random/seed 1  loop 10 [append b random 10000]
+		random/seed 1  loop 10 [append b random 10000]
+		--assert (copy/part b 10) = (at b 11)
+
+	--test-- "random6"
+		b: copy []
+		random/seed 1  loop 10 [append b random/secure 10000]
+		random/seed 1  loop 10 [append b random/secure 10000]
+		--assert (copy/part b 10) <> (at b 11)
+
 ===end-group===
 
 ===start-group=== "round"

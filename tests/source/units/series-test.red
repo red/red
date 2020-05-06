@@ -1836,10 +1836,28 @@ Red [
 ===end-group===
 
 ===start-group=== "random"
+
 	--test-- "ser-random-1"
 		res: random/only #{AA}
 		--assert integer? res
 		--assert 170 = res
+
+	--test-- "ser-random-2"
+		--assert 2 = random/only next [1 2]
+
+	--test-- "ser-random-3"
+		s: "1234567890"
+		r: random copy s
+		--assert s <> r
+		summed: 0 foreach c r [summed: summed + c]
+		--assert summed = 525
+
+	--test-- "ser-random-4"
+		s: "1234567890"
+		r: random/secure copy s
+		--assert s <> r
+		summed: 0 foreach c r [summed: summed + c]
+		--assert summed = 525
 
 ===end-group===
 
