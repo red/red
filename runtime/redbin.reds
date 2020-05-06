@@ -357,10 +357,10 @@ redbin: context [
 	][
 		size: data/2 >> 3							;-- in bytes
 		bits: as byte-ptr! data + 2
-		slot: as red-value! binary/load-in bits size parent
 		
-		set-type slot TYPE_BITSET
+		slot: as red-value! binary/load-in bits size parent
 		if nl? [slot/header: slot/header or flag-new-line]
+		set-type slot TYPE_BITSET
 		
 		as int-ptr! align bits + size 32 yes		;-- align at upper 32-bit boundary
 	]
@@ -393,6 +393,36 @@ redbin: context [
 		copy-memory as byte-ptr! buf/offset values size
 		
 		as int-ptr! align values + size 32 yes		;-- align at upper 32-bit boundary
+	]
+	
+	decode-image: func [
+		data    [int-ptr!]
+		parent  [red-block!]
+		nl?     [logic!]
+		return: [int-ptr!]
+		/local
+			slot   [red-image!]
+			rgb    [byte-ptr!]
+			alpha  [byte-ptr!]
+			width  [integer!]
+			height [integer!]
+			length [integer!]
+	][
+		width:  IMAGE_WIDTH(data/3)
+		height: IMAGE_HEIGHT(data/3)
+		length: width * height
+		
+		rgb:   as byte-ptr! data + 3
+		alpha: rgb + (length * 3)
+		
+		slot: as red-image! ALLOC_TAIL(parent)
+		slot/node: OS-image/make-image width height rgb alpha null
+		slot/head: data/2
+		slot/size: data/3
+		slot/header: TYPE_IMAGE						;-- implicit reset of all header flags
+		if nl? [slot/header: slot/header or flag-new-line]
+		
+		as int-ptr! align alpha + length 32 yes		;-- align at upper 32-bit boundary
 	]
 	
 	decode-value: func [
@@ -474,6 +504,7 @@ redbin: context [
 			TYPE_MONEY		[decode-money data parent nl?]
 			TYPE_BITSET     [decode-bitset data parent nl?]
 			TYPE_VECTOR     [decode-vector data parent nl?]
+			TYPE_IMAGE		[decode-image data parent nl?]
 			REDBIN_PADDING	[
 				decode-value data + 1 table parent
 			]
@@ -608,7 +639,7 @@ redbin: context [
 			skip  [integer!]
 	][
 		delta: (bits >> 3) - 1
-		skip: either upper? [delta][0]
+		skip:  either upper? [delta][0]
 		as byte-ptr! (as integer! address) + skip and not delta
 	]
 	
@@ -702,6 +733,9 @@ redbin: context [
 			TYPE_BINARY [
 				encode-string data type payload
 			]
+			TYPE_IMAGE [
+				encode-image data payload
+			]
 			TYPE_MAP
 			TYPE_ANY_BLOCK [
 				length: length + encode-block data type payload symbols table strings contexts
@@ -767,7 +801,7 @@ redbin: context [
 			REDBIN_EMIT* as byte-ptr! _offset length << log-b unit
 		]
 		
-		pad payload 4						;-- pad to 32-bit boundary
+		pad payload 4								;-- pad to 32-bit boundary
 	]
 	
 	encode-block: func [
@@ -819,7 +853,28 @@ redbin: context [
 		binary/rs-append symbols as byte-ptr! :data/data2 4
 		binary/rs-append strings as byte-ptr! string (length? string) + 1
 		
-		pad strings 8					;-- pad to 64-bit boundary
+		pad strings 8								;-- pad to 64-bit boundary
+	]
+	
+	encode-image: func [
+		data    [red-value!]
+		payload [red-binary!]
+		/local
+			type  [integer!]
+			rgb   [red-binary!]
+			alpha [red-binary!]
+	][	
+		type:  TYPE_IMAGE
+		rgb:   image/extract-data as red-image! data EXTRACT_RGB
+		alpha: image/extract-data as red-image! data EXTRACT_ALPHA 
+		
+		REDBIN_EMIT  :type 4
+		REDBIN_EMIT  :data/data1 4
+		REDBIN_EMIT  :data/data3 4
+		REDBIN_EMIT* binary/rs-head rgb   binary/rs-length? rgb
+		REDBIN_EMIT* binary/rs-head alpha binary/rs-length? alpha
+		
+		pad payload 4								;-- pad to 32-bit boundary
 	]
 	
 	encode: func [
