@@ -10,7 +10,7 @@ Red/System [
 	}
 ]
 
-#enum datatypes! [										;-- Order must not be changed!
+#enum datatypes! [										;-- Order must not be changed! (Synced with Redbin types)
 	TYPE_VALUE											;-- 00		00
 	TYPE_DATATYPE										;-- 01		01
 	TYPE_UNSET											;-- 02		02
@@ -288,17 +288,17 @@ Red/System [
 
 #enum exceptions! [
 	RED_NO_EXCEPTION
-	OS_ERROR_VMEM:					2147483637
-	OS_ERROR_VMEM_RELEASE_FAILED:	2147483638
-	OS_ERROR_VMEM_OUT_OF_MEMORY:	2147483639
-	OS_ERROR_VMEM_ALL:				2147483640
-	RED_INT_OVERFLOW:				2147483641
-	RED_THROWN_THROW:				2147483642
-	RED_THROWN_EXIT:				2147483643
-	RED_THROWN_RETURN:				2147483644
-	RED_THROWN_CONTINUE:			2147483645
-	RED_THROWN_BREAK:				2147483646
-	RED_THROWN_ERROR:				2147483647
+	OS_ERROR_VMEM:					7FFFFFF5h
+	OS_ERROR_VMEM_RELEASE_FAILED:	7FFFFFF6h
+	OS_ERROR_VMEM_OUT_OF_MEMORY:	7FFFFFF7h
+	OS_ERROR_VMEM_ALL:				7FFFFFF8h
+	RED_INT_OVERFLOW:				7FFFFFF9h
+	RED_THROWN_THROW:				7FFFFFFAh
+	RED_THROWN_EXIT:				7FFFFFFBh
+	RED_THROWN_RETURN:				7FFFFFFCh
+	RED_THROWN_CONTINUE:			7FFFFFFDh
+	RED_THROWN_BREAK:				7FFFFFFEh
+	RED_THROWN_ERROR:				7FFFFFFFh
 ]
 
 #enum object-classes! [
@@ -318,23 +318,26 @@ Red/System [
 	#define ------------| 	comment
 ]
 
-#define TYPE_OF(value)		(value/header and get-type-mask)
-#define TUPLE_SIZE?(value)	(value/header >> 19 and 15)
-#define GET_TUPLE_ARRAY(tp) [(as byte-ptr! tp) + 4]
-#define SET_TUPLE_SIZE(t n) [t/header: t/header and FF87FFFFh or (n << 19)]
-#define GET_BUFFER(series)  (as series! series/node/value)
-#define GET_UNIT(series)	(series/flags and get-unit-mask)
-#define ALLOC_TAIL(series)	[alloc-at-tail series]
-#define FLAG_SET?(flag)		(flags and flag <> 0)
-#define OPTION?(ref-ptr)	(ref-ptr > stack/arguments)	;-- a bit inelegant, but saves a lot of code
-#define ON_STACK?(ctx)		(ctx/header and flag-series-stk <> 0)
-#define EQUAL_SYMBOLS?(a b) ((symbol/resolve a) = (symbol/resolve b))
-#define EQUAL_WORDS?(a b) 	((symbol/resolve a/symbol) = (symbol/resolve b/symbol))
-#define TO_CTX(node)		(as red-context! ((as series! node/value) + 1))
-#define GET_CTX(obj)		(as red-context! ((as series! obj/ctx/value) + 1))
-#define FLAG_NOT?(s)		(s/flags and flag-bitset-not <> 0)
-#define SET_RETURN(value)	[stack/set-last as red-value! value]
-#define TO_ERROR(cat id)	[#in system/catalog/errors cat #in system/catalog/errors/cat id]
+#define TYPE_OF(value)			(value/header and get-type-mask)
+#define TUPLE_SIZE?(value)		(value/header >> 19 and 15)
+#define GET_TUPLE_ARRAY(tp) 	[(as byte-ptr! tp) + 4]
+#define SET_TUPLE_SIZE(t n) 	[t/header: t/header and 1F87FFFFh or (n << 19)]
+#define GET_BUFFER(series)  	(as series! series/node/value)
+#define GET_UNIT(series)		(series/flags and get-unit-mask)
+#define ALLOC_TAIL(series)		[alloc-at-tail series]
+#define FLAG_SET?(flag)			(flags and flag <> 0)
+#define OPTION?(ref-ptr)		(ref-ptr > stack/arguments)	;-- a bit inelegant, but saves a lot of code
+#define ON_STACK?(ctx)			(ctx/header and flag-series-stk <> 0)
+#define EQUAL_SYMBOLS?(a b) 	((symbol/resolve a) = (symbol/resolve b))
+#define EQUAL_WORDS?(a b) 		((symbol/resolve a/symbol) = (symbol/resolve b/symbol))
+#define TO_CTX(node)			(as red-context! ((as series! node/value) + 1))
+#define GET_CTX(obj)			(as red-context! ((as series! obj/ctx/value) + 1))
+#define GET_CTX_TYPE(cell)		(cell/header >> 11 and 03h)
+#define GET_CTX_TYPE_ALT(header)(header >> 11 and 03h)
+#define SET_CTX_TYPE(cell type)	[cell/header: cell/header and FFFFE7FFh or (type << 11)]
+#define FLAG_NOT?(s)			(s/flags and flag-bitset-not <> 0)
+#define SET_RETURN(value)		[stack/set-last as red-value! value]
+#define TO_ERROR(cat id)		[#in system/catalog/errors cat #in system/catalog/errors/cat id]
 
 #define PLATFORM_TO_CSTR(cstr str len) [	;-- len in bytes
 	len: -1

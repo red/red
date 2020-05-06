@@ -129,6 +129,7 @@ redbin: context [
 			values	[int-ptr!]
 			sym		[int-ptr!]
 			header	[integer!]
+			type	[context-type!]
 			values? [logic!]
 			stack?	[logic!]
 			self?	[logic!]
@@ -139,14 +140,15 @@ redbin: context [
 			i		[integer!]
 	][
 		header:  data/1
-		values?: header and REDBIN_VALUES_MASK <> 0 
-		stack?:	 header and REDBIN_STACK_MASK  <> 0 
-		self?:	 header and REDBIN_SELF_MASK   <> 0 
+		values?: header and REDBIN_VALUES_MASK <> 0
+		stack?:	 header and REDBIN_STACK_MASK  <> 0
+		self?:	 header and REDBIN_SELF_MASK   <> 0
+		type:	 GET_CTX_TYPE_ALT(header)
 		slots:	 data/2
 
 		if values? [values: data + 2 + slots]
 		
-		new: _context/create slots stack? self? null
+		new: _context/create slots stack? self? null type
 		obj: as red-object! ALLOC_TAIL(parent)			;-- use an object to store the ctx node
 		obj/header: TYPE_OBJECT
 		obj/ctx:	new

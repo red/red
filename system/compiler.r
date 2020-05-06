@@ -578,8 +578,8 @@ system-dialect: make-profilable context [
 			to logic! find/skip emitter/datatypes value 3
 		]
 		
-		unbox: func [value][
-			either object? value [value/data][value]
+		unbox: func [value /deep][
+			either object? value [either deep [unbox value/data][value/data]][value]
 		]
 		
 		clear-docstrings: func [spec [block!]][
@@ -1076,6 +1076,7 @@ system-dialect: make-profilable context [
 				]
 			]	
 			unless literal? value [return value]	;-- shield the following literal conversions
+			if object? value [value: cast value]	;-- recursively process nested type-casting
 			
 			switch ctype/1 [
 				byte! [
@@ -3317,7 +3318,7 @@ system-dialect: make-profilable context [
 					]
 					forall list [						;-- push function's arguments on stack
 						expr: list/1
-						if block? unbox expr [comp-expression expr yes]	;-- nested call
+						if block? unbox/deep expr [comp-expression expr yes]	;-- nested call
 						if object? expr [cast expr]
 						if type <> 'inline [
 							either all [types not tag? expr block? types/1 'value = last types/1][
@@ -3501,7 +3502,7 @@ system-dialect: make-profilable context [
 						to logic! find [string! paren!] type?/word expr
 					]
 				]
-			]			
+			]
 			if object? expr [							;-- unbox type-casting object
 				if all [variable expr/action = 'null][
 					casting: cast-null variable

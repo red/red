@@ -16,10 +16,14 @@ REBOL [
 ]
 
 context [
-	scalars: none
+	scalars: pos: none
 	definitions: make block! 100
-	data: load-cache %runtime/macros.reds
-	
+	hexa: charset "0123456789ABCDEF"
+
+	data: copy read-cache %runtime/macros.reds
+	parse/case data [any [pos: 2 8 hexa e: #"h" (pos: remove/part pos e) :pos | skip]] ;-- remove unloadable literals
+	data: load data
+
 	currencies: load-cache %environment/system.red
 	extras: make block! 1
 	

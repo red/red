@@ -223,6 +223,7 @@ _context: context [
 			slot	[red-value!]
 			old		[red-value!]
 			saved	[red-value!]
+			w		[red-word!]
 			s		[series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/set-in"]]
@@ -240,18 +241,24 @@ _context: context [
 			values: as series! ctx/values/value
 			slot: values/offset + word/index
 			
-			if event? [
-				s: as series! ctx/self/value
-				obj: as red-object! s/offset + 1
+			if GET_CTX_TYPE(ctx) = CONTEXT_OBJECT [
+				w: _hashtable/get-ctx-word ctx word/index
+				w/header: w/header or flag-word-dirty
 				
-				if all [TYPE_OF(obj) = TYPE_OBJECT obj/on-set <> null][
-					saved: stack/top
-					old: stack/push slot
-					word: as red-word! word
-					copy-cell value slot
-					object/fire-on-set obj word old value
-					stack/top: saved
-					return slot
+				if event? [
+					s: as series! ctx/self/value
+					obj: as red-object! s/offset + 1
+					assert TYPE_OF(obj) = TYPE_OBJECT
+					
+					if obj/on-set <> null [
+						saved: stack/top
+						old: stack/push slot
+						word: as red-word! word
+						copy-cell value slot
+						object/fire-on-set obj word old value
+						stack/top: saved
+						return slot
+					]
 				]
 			]
 			copy-cell value slot
@@ -320,6 +327,7 @@ _context: context [
 	
 	clone-words: func [		;-- clone a context. only copy words, without values
 		slot	[red-block!]
+		type	[context-type!]
 		return: [node!]
 		/local
 			obj		[red-object!]
@@ -343,6 +351,7 @@ _context: context [
 			ctx/header and flag-series-stk <> 0
 			ctx/header and flag-self-mask  <> 0
 			ctx
+			type
 
 		sym: as red-word! _hashtable/get-ctx-word TO_CTX(new) 0
 		loop slots [
@@ -359,6 +368,7 @@ _context: context [
 		stack?	[logic!]							;-- TRUE: alloc values on stack, FALSE: alloc them from heap
 		self?	[logic!]
 		proto	[red-context!]						;-- if proto <> null, copy all the words in the proto context
+		type	[context-type!]
 		return:	[node!]
 		/local
 			cell [red-context!]
@@ -386,7 +396,7 @@ _context: context [
 			cell/values: vals
 			cell/header: TYPE_CONTEXT
 		]
-
+		SET_CTX_TYPE(cell type)
 		if self? [cell/header: cell/header or flag-self-mask]
 		node
 	]
@@ -395,6 +405,7 @@ _context: context [
 		spec	[red-block!]
 		stack?	[logic!]
 		self?	[logic!]
+		kind	[context-type!]
 		return:	[node!]
 		/local
 			new		[node!]
@@ -406,7 +417,7 @@ _context: context [
 			type	[integer!]
 			i		[integer!]
 	][
-		new: create block/rs-length? spec stack? self? null
+		new: create block/rs-length? spec stack? self? null kind
 		ctx: TO_CTX(new)
 		s: GET_BUFFER(spec)
 		cell: s/offset

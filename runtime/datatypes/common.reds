@@ -55,7 +55,7 @@ alloc-tail: func [
 		cell [red-value!]
 ][
 	if (as byte-ptr! s/tail) = ((as byte-ptr! s + 1) + s/size) [
-		s: expand-series s 0
+		s: expand-series s 0							;-- expand-series refreshes node pointer if needed
 	]
 	
 	cell: s/tail
@@ -453,7 +453,7 @@ cycles: context [
 					TYPE_PATH
 					TYPE_GET_PATH 
 					TYPE_LIT_PATH
-					TYPE_GET_PATH [s: "..."				   size: 3 ]
+					TYPE_SET_PATH [s: "..."				   size: 3 ]
 					default		  [assert false]
 				]
 			][
@@ -586,6 +586,8 @@ words: context [
 	
 	system:			-1
 	system-global:	-1
+	
+	changed:		-1
 
 	_body:			as red-word! 0
 	_windows:		as red-word! 0
@@ -972,6 +974,7 @@ words: context [
 		errors/user:	 word/load "user"
 		errors/internal: word/load "internal"
 		
+		changed:		_changed/symbol
 	]
 ]
 

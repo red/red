@@ -505,6 +505,22 @@ tuple: context [
 		#if debug? = yes [if verbose > 0 [print-line "tuple/xor~"]]
 		as red-value! do-math OP_XOR
 	]
+	
+	complement: func [
+		tp      [red-tuple!]
+		return: [red-value!]
+		/local
+			array [byte-ptr!]
+			size  [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "tuple/complement"]]
+		
+		array: GET_TUPLE_ARRAY(tp)
+		size:  TUPLE_SIZE?(tp)
+		
+		loop size [array/value: not array/value array: array + 1]
+		as red-value! tp
+	]
 
 	length?: func [
 		tp		[red-tuple!]
@@ -670,7 +686,7 @@ tuple: context [
 			null			;odd?
 			;-- Bitwise actions --
 			:and~
-			null			;complement
+			:complement
 			:or~
 			:xor~
 			;-- Series actions --

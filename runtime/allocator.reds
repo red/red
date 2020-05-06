@@ -30,8 +30,10 @@ int-array!: alias struct! [ptr [int-ptr!]]
 ;	17:		owner							;-- indicate that an object is an owner
 ;	16:		native! op						;-- operator is made from a native! function
 ;	15:		extern flag						;-- routine code is external to Red (from FFI)
-;   14:     sign bit						;-- sign of money
-;	13-8:	<reserved>
+;	14:		sign bit						;-- sign of money
+;	13:		dirty?							;-- word flag indicating if value has been modified
+;	12-11:	context type					;-- context-type! value (context! cells only)
+;	10-8:	<reserved>
 ;	7-0:	datatype ID						;-- datatype number
 
 cell!: alias struct! [
@@ -907,8 +909,8 @@ alloc-series-buffer: func [
 	;-- extra space between two adjacent series-buffer!s (ensure s1/tail <> s2)
 	sz: SERIES_BUFFER_PADDING + size + size? series-buffer!
 	flag-big: 0
-	
-	either sz >= memory/s-max [				;-- alloc a big frame if too big for series frames
+	either (as byte-ptr! sz) >= (as byte-ptr! memory/s-max) [ ;-- alloc a big frame if too big for series frames
+		collector/do-cycle					;-- launch a GC pass
 		series: as series-buffer! alloc-big sz
 		flag-big: flag-series-big
 	][

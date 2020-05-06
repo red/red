@@ -401,6 +401,7 @@ string: context [
 			p	[node!]
 			str	[red-string!]
 	][
+		if zero? size [size: 1]
 		str: as red-string! slot
 		str/header: TYPE_UNSET
 		str/node:  alloc-series size 1 0
@@ -978,7 +979,9 @@ string: context [
 		if size <= 0 [exit]
 
 		size1: (as-integer s1/tail - s1/offset) + size
-		if s1/size < size1 [s1: expand-series s1 size1 * 2]
+		if (as byte-ptr! s1/size) < (as byte-ptr! size1) [	;-- force to use unsigned comparison
+			s1: expand-series s1 size1 * 2
+		]
 
 		if mode = MODE_INSERT [
 			move-memory									;-- make space
@@ -1228,6 +1231,26 @@ string: context [
 		]
 	]
 
+	utf8-to-str: func [
+		src		[c-string!]
+		len		[integer!]
+		return: [red-string!]
+		/local
+			remain	[integer!]
+			str		[red-string!]
+	][
+		remain: 0
+		str: rs-make-at stack/push* len
+		unicode/load-utf8-stream src len str :remain
+		if remain > 0 [
+			fire [
+				TO_ERROR(access invalid-utf8)
+				binary/load as byte-ptr! src + (len - remain) remain
+			]
+		]
+		str
+	]
+
 	;-- Actions -- 
 	
 	make: func [
@@ -1272,7 +1295,9 @@ string: context [
 		type	[integer!]
 		return:	[red-string!]
 		/local
-			buffer [red-string!]
+			buffer	[red-string!]
+			node	[node!]
+			remain	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/to"]]
 		
@@ -1284,10 +1309,9 @@ string: context [
 					null no null
 			]
 			TYPE_BINARY [
-				buffer: load
+				buffer: utf8-to-str
 					as-c-string binary/rs-head as red-binary! spec
 					binary/rs-length? as red-binary! spec
-					UTF-8
 			]
 			TYPE_ANY_LIST [
 				buffer: make-at proto 16 1

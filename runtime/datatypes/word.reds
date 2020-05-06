@@ -204,10 +204,15 @@ word: context [
 		/local
 			ctx	   [red-context!]
 			value  [red-value!]
+			w	   [red-word!]
 			values [series!]
 	][
 		value: stack/get-top
 		ctx: TO_CTX(node)
+		if GET_CTX_TYPE(ctx) = CONTEXT_OBJECT [
+			w: _hashtable/get-ctx-word ctx index
+			w/header: w/header or flag-word-dirty
+		]
 		values: as series! ctx/values/value
 		stack/push values/offset + index
 		copy-cell value values/offset + index
@@ -219,10 +224,15 @@ word: context [
 		/local
 			ctx	   [red-context!]
 			value  [red-value!]
+			w	   [red-word!]
 			values [series!]
 	][
 		value: stack/get-top
 		ctx: TO_CTX(node)
+		if GET_CTX_TYPE(ctx) = CONTEXT_OBJECT [
+			w: _hashtable/get-ctx-word ctx index
+			w/header: w/header or flag-word-dirty
+		]
 		values: as series! ctx/values/value
 		copy-cell value values/offset + index
 	]
@@ -234,12 +244,17 @@ word: context [
 		/local
 			ctx	   [red-context!]
 			value  [red-value!]
+			w	   [red-word!]
 			values [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/set-in"]]
 		
 		value: stack/arguments
 		ctx: TO_CTX(node)
+		if GET_CTX_TYPE(ctx) = CONTEXT_OBJECT [
+			w: _hashtable/get-ctx-word ctx index
+			w/header: w/header or flag-word-dirty
+		]		
 		values: as series! ctx/values/value
 		copy-cell value values/offset + index
 		value

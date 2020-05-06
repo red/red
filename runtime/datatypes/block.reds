@@ -840,12 +840,15 @@ block: context [
 			int		[red-integer!]
 			b		[red-block!]
 			dt		[red-datatype!]
+			pos		[byte-ptr!]
 			values	[integer!]
 			step	[integer!]
 			n		[integer!]
 			part?	[logic!]
 			op		[integer!]
 			type	[integer!]
+			stype	[integer!]
+			ts?		[logic!]
 			found?	[logic!]
 			hash?	[logic!]
 			table	[node!]
@@ -865,7 +868,7 @@ block: context [
 		s: GET_BUFFER(blk)
 		beg: s/offset + blk/head
 
-		if any [							;-- early exit if blk is empty or at tail
+		if any [										;-- early exit if blk is empty or at tail
 			s/offset = s/tail
 			all [not reverse? beg >= s/tail]
 		][
@@ -904,7 +907,7 @@ block: context [
 		]
 
 		type: TYPE_OF(value)
-		if type = TYPE_OBJECT [hash?: no]				;-- use block search
+		if any [type = TYPE_OBJECT type = TYPE_DATATYPE type = TYPE_TYPESET][hash?: no]	;-- use block search
 		any-blk?: either all [same? hash?][no][ANY_BLOCK_STRICT?(type)]
 		op: either case? [COMP_STRICT_EQUAL][COMP_FIND] ;-- warning: /case <> STRICT...
 		if same? [op: COMP_SAME]
@@ -951,20 +954,24 @@ block: context [
 				dt: as red-datatype! value
 				dt/value
 			][-1]											;-- disable "type searching" mode
-			
+			ts?: TYPE_OF(value) = TYPE_TYPESET
+
 			until [
 				either zero? values [
-					found?: either positive? type [
-						dt: as red-datatype! slot 
-						any [
-							TYPE_OF(slot) = type			;-- simple type comparison
-							all [
-								TYPE_OF(slot) = TYPE_DATATYPE
-								dt/value = type				;-- attempt matching a datatype! value
+					stype: TYPE_OF(slot)
+					found?: case [
+						positive? type [
+							dt: as red-datatype! slot
+							any [
+								stype = type				;-- simple type comparison
+								all [
+									stype = TYPE_DATATYPE
+									dt/value = type			;-- attempt matching a datatype! value
+								]
 							]
 						]
-					][
-						actions/compare slot value op		;-- atomic comparison
+						ts?  [BS_TEST_BIT_ALT(value stype)]	;-- attempt matching a typeset! value
+						true [actions/compare slot value op];-- atomic comparison
 					]
 					if match? [slot: slot + 1]				;-- /match option returns tail of match
 				][

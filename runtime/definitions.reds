@@ -36,6 +36,7 @@ Red/System [
 #define flag-owner			00010000h		;-- object is an owner (carried by object's context value)
 #define flag-native-op		00010000h		;-- operator is made from a native! function
 #define flag-extern-code	00008000h		;-- routine's body is from FFI
+#define flag-word-dirty		00002000h		;-- word flag indicating if value has been modified
 
 #define flag-new-line		40000000h		;-- if set, indicates that a new-line preceeds the value
 #define flag-nl-mask		BFFFFFFFh		;-- mask for new-line flag
@@ -57,9 +58,7 @@ Red/System [
 #define handle!				[pointer! [integer!]]
 
 
-;=== Unicode support definitions ===
-
-#enum encoding! [
+#enum encoding! [							;-- various string encodings
 	UTF-16LE:	-1
 	UTF-8:		 0
 	Latin1:		 1
@@ -68,9 +67,13 @@ Red/System [
 	UCS-4:		 4
 ]
 
-;== Image definitions ===
+#enum context-type! [
+	CONTEXT_GLOBAL							;-- global context value is 0 (no need to set it then)
+	CONTEXT_FUNCTION						;-- do not change those values! (used in %utils/redbin.r)
+	CONTEXT_OBJECT
+]
 
-#enum extract-type! [
+#enum extract-type! [						;-- image! buffer encodings
 	EXTRACT_ALPHA
 	EXTRACT_RGB
 	EXTRACT_ARGB

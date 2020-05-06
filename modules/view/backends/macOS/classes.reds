@@ -35,6 +35,7 @@ add-base-handler: func [class [integer!]][
 	class_replaceMethod class sel_getUid "rightMouseDown:" as-integer :mouse-events-base "v@:@"
 	class_replaceMethod class sel_getUid "rightMouseUp:" as-integer :mouse-events-base "v@:@"
 
+	class_addMethod class sel_getUid "keyDown:" as-integer :key-down-base "v@:@"
 	class_addMethod class sel_getUid "insertText:" as-integer :insert-text "v@:@"
 	class_addMethod class sel_getUid "hasMarkedText" as-integer :has-marked-text "B@:"
 	class_addMethod class sel_getUid "markedRange" as-integer :marked-range "{_NSRange=ii}@:"

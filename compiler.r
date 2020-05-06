@@ -70,6 +70,7 @@ red: context [
 	s-counter:	   0									;-- series suffix counter
 	depth:		   0									;-- expression nesting level counter
 	max-depth:	   0
+	root-slots:	   0									;-- extra root block slots counter
 	booting?:	   none									;-- YES: compiling boot script
 	nl: 		   newline
 	set 'float!	   'float								;-- type names not defined in Rebol
@@ -855,6 +856,7 @@ red: context [
 			repend sym-table [
 				to set-word! sym 'word/load mold any [original name]
 			]
+			root-slots: root-slots + 1
 			new-line skip tail sym-table -3 on
 		]
 	]
@@ -1774,7 +1776,7 @@ red: context [
 					emit to-nibbles copy skip value 4
 				]
 				ref? [
-					idx: redbin/emit-string/root/ref to string! next value
+					idx: redbin/emit-string/root next value	;-- issue! is an any-string! in Rebol2
 					emit 'ref/push
 					emit compose [as red-string! get-root (idx)]
 					insert-lf -5
@@ -2035,7 +2037,7 @@ red: context [
 		]
 
 		ctx: add-context spec
-		blk-idx: redbin/emit-context/root ctx spec no yes
+		blk-idx: redbin/emit-context/root ctx spec no yes 'object
 		
 		redirect-to literals [							;-- store spec and body blocks
 			emit compose [
@@ -2095,7 +2097,7 @@ red: context [
 
 		unless all [empty? locals-stack not iterator-pending?][	;-- in a function or iteration block
 			emit compose [
-				(to set-word! ctx) _context/clone-words get-root (blk-idx) ;-- rebuild context
+				(to set-word! ctx) _context/clone-words get-root (blk-idx) CONTEXT_OBJECT ;-- rebuild context
 			]
 			insert-lf -3
 		]
@@ -2870,7 +2872,7 @@ red: context [
 		
 		push-locals symbols								;-- store spec and body blocks
 		ctx: push-context copy symbols
-		ctx-idx: redbin/emit-context/root ctx symbols yes no
+		ctx-idx: redbin/emit-context/root ctx symbols yes no 'function
 		spec-idx: redbin/emit-block spec
 		redirect-to literals [
 			emit compose [
@@ -4720,8 +4722,8 @@ red: context [
 		unless empty? sys-global [
 			process-calls/global sys-global				;-- lazy #call processing
 		]
-		slots: redbin/index + 3000
-		if job/dev-mode? [slots: slots + 100'000]		;-- Cannot know how many slot will be needed by the app
+		slots: redbin/index + 3000 + root-slots
+		if job/dev-mode? [slots: slots + 100'000]		;-- Cannot know how many slots will be needed by the app
 		change/only find out <root-size> slots
 		
 		pos: third last out
@@ -4806,7 +4808,7 @@ red: context [
 			process-calls/global sys-global				;-- lazy #call processing
 		]
 
-		change/only find out <root-size> redbin/index + 3000
+		change/only find out <root-size> redbin/index + 3000 + root-slots
 		change/only find last out <script> script		;-- inject compilation result in template
 		output: out
 		if verbose > 2 [?? output]
@@ -4927,6 +4929,7 @@ red: context [
 		s-counter: 0
 		depth:	   0
 		max-depth: 0
+		root-slots:	  0
 		redbin/index: 0									;-- required here by libRedRT
 		container-obj?:
 		script-path:

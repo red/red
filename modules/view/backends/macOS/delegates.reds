@@ -302,6 +302,24 @@ popup-button-action: func [
 	objc_msgSend [self sel_getUid "setTitle:" str]
 ]
 
+handle-speical-key: func [
+	self	[integer!]
+	event	[integer!]
+	return: [logic!]
+	/local
+		key		[integer!]
+		flags	[integer!]
+][
+	key: objc_msgSend [event sel_getUid "keyCode"]
+	either key = 72h [		;-- insert key
+		flags: check-extra-keys event
+		key: translate-key key
+		special-key: -1
+		make-event self key or flags EVT_KEY
+		no
+	][yes]
+]
+
 on-key-down: func [
 	[cdecl]
 	self	[integer!]
@@ -336,6 +354,21 @@ on-key-down: func [
 				key: objc_msgSend [key sel_getUid "characterAtIndex:" 0]
 				make-event self key or flags EVT_KEY
 			]
+		]
+	]
+]
+
+key-down-base: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	event	[integer!]
+][
+	either zero? objc_getAssociatedObject self RedRichTextKey [
+		on-key-down self event
+	][
+		objc_msgSend [
+			objc_msgSend [self sel_getUid "inputContext"] sel_getUid "handleEvent:" event
 		]
 	]
 ]
@@ -846,17 +879,10 @@ win-send-event: func [
 					responder: objc_getAssociatedObject self RedFieldEditorKey
 					unless red-face? responder [find?: no]
 				]
-				if find? [
-					on-key-down responder event
-					send?: no
-				]
+				if find? [on-key-down responder event]
 			][
-				on-key-down responder event
-				send?: no
-				unless zero? objc_getAssociatedObject self RedRichTextKey [
-					objc_msgSend [
-						objc_msgSend [self sel_getUid "inputContext"] sel_getUid "handleEvent:" event
-					]
+				if find? [	;-- handle some special keys on rich-text base face
+					send?: handle-speical-key responder event
 				]
 			]
 		]
@@ -1000,7 +1026,25 @@ win-will-close: func [
 	self	[integer!]
 	cmd		[integer!]
 	notif	[integer!]
+	/local
+		i	[integer!]
+		n	[integer!]
+		p	[int-ptr!]
+		pp	[int-ptr!]
 ][
+	p: as int-ptr! vector/rs-head active-wins
+	n: vector/rs-length? active-wins
+	i: 0
+	while [i < n][
+		pp: p + 1
+		if pp/value = self [		;-- active its parent window
+			objc_msgSend [p/value sel_getUid "makeKeyAndOrderFront:" p/value]
+			string/remove-part as red-string! active-wins i 2
+			break
+		]
+		p: p + 2
+		i: i + 2
+	]
 	0
 ]
 
