@@ -409,10 +409,7 @@ redbin: context [
 		
 		cell: null
 		data: switch type [
-			TYPE_WORD
-			TYPE_SET_WORD
-			TYPE_LIT_WORD
-			TYPE_GET_WORD
+			TYPE_ANY_WORD
 			TYPE_REFINEMENT [decode-word data table parent nl?]
 			TYPE_ANY_STRING
 			TYPE_BINARY		[decode-string data parent nl?]
@@ -420,12 +417,7 @@ redbin: context [
 				cell: as cell! integer/make-in parent data/2
 				data + 2
 			]
-			TYPE_PATH
-			TYPE_LIT_PATH
-			TYPE_SET_PATH
-			TYPE_GET_PATH
-			TYPE_BLOCK
-			TYPE_PAREN		[decode-block data table parent nl?]
+			TYPE_ANY_BLOCK  [decode-block data table parent nl?]
 			TYPE_CONTEXT	[decode-context data table parent]
 			TYPE_ISSUE		[decode-issue data table parent nl?]
 			TYPE_TYPESET	[
@@ -709,9 +701,7 @@ redbin: context [
 				encode-string data type payload
 			]
 			TYPE_MAP
-			TYPE_ANY_PATH
-			TYPE_PAREN
-			TYPE_BLOCK [
+			TYPE_ANY_BLOCK [
 				length: length + encode-block data type payload symbols table strings contexts
 			]
 			TYPE_ANY_WORD
