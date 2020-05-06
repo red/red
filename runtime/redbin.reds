@@ -480,7 +480,7 @@ redbin: context [
 				cell: as cell! datatype/make-in parent data/2
 				data + 2
 			]
-			TYPE_PAIR	[
+			TYPE_PAIR		[
 				cell: as cell! pair/make-in parent data/2 data/3
 				data + 3
 			]
@@ -643,7 +643,7 @@ redbin: context [
 		as byte-ptr! (as integer! address) + skip and not delta
 	]
 	
-	emit-value: func [
+	encode-value: func [
 		data     [red-value!]
 		payload  [red-binary!]
 		symbols  [red-binary!]
@@ -652,15 +652,9 @@ redbin: context [
 		contexts [red-binary!]
 		return:  [integer!]
 		/local
-			type length [integer!]
-			flags  [integer!]
-			len unit    [integer!]
-			end id ctx  [integer!]
-			ser [red-series!]
-			ofs [red-value!]
-			buf [series!]
-			start here [int-ptr!]
-			flag [logic!]
+			type length flags [integer!]
+			len end id ctx    [integer!]
+			start here        [int-ptr!]
 	][
 		length: 1									;-- at least 1 value is encoded
 		
@@ -745,26 +739,21 @@ redbin: context [
 			TYPE_ISSUE [
 				start: as int-ptr! binary/rs-head symbols
 				end:   (binary/rs-length? symbols) >> 2
-				flag:  no
 				ctx:   -1
 				id:    0
 				
 				while [id < end][					;-- reuse symbol records when possible
 					here: start + id
-					flag: here/value = data/data2 
-					if flag [break]
+					if here/value = data/data2 [break]
 					id: id + 1
 				]
 				
-				unless flag [
-					encode-symbol data table symbols strings
-					id: end
-				]
+				if id = end [encode-symbol data table symbols strings]
 				
 				REDBIN_EMIT :type 4
 				REDBIN_EMIT :id 4
 				unless type = TYPE_ISSUE [
-					REDBIN_EMIT :ctx 4
+					REDBIN_EMIT :ctx 4				;@@ TBD: encode context record
 					REDBIN_EMIT :data/data3 4
 				]
 			]
@@ -776,7 +765,7 @@ redbin: context [
 	
 	encode-string: func [
 		data    [red-value!]
-		type    [integer!]
+		type    [datatypes!]
 		payload [red-binary!]
 		/local
 			series  [red-series!]
@@ -806,7 +795,7 @@ redbin: context [
 	
 	encode-block: func [
 		data     [red-value!]
-		type     [integer!]
+		type     [datatypes!]
 		payload  [red-binary!]
 		symbols  [red-binary!]
 		table    [red-binary!]
@@ -828,7 +817,7 @@ redbin: context [
 		unless type = TYPE_MAP [REDBIN_EMIT :data/data1 4]
 		REDBIN_EMIT :length 4
 		loop length [
-			emit-value _offset payload symbols table strings contexts
+			encode-value _offset payload symbols table strings contexts
 			_offset: _offset + 1
 		]
 		
@@ -893,7 +882,7 @@ redbin: context [
 		strings:  binary/make-at stack/push* 4
 		contexts: binary/make-at stack/push* 4
 		
-		length: emit-value data payload symbols table strings contexts
+		length: encode-value data payload symbols table strings contexts
 		size:   binary/rs-length? payload
 		
 		;-- symbol table
