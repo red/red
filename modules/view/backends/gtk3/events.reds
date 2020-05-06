@@ -429,6 +429,33 @@ keycode-ascii: [
 	;-- 80h
 ]
 
+special-key-to-flags: func [
+	key		[integer!]
+	return:	[integer!]
+][
+	case [
+		key = RED_VK_LCONTROL [
+			EVT_FLAG_CTRL_DOWN
+		]
+		key = RED_VK_RCONTROL [
+			EVT_FLAG_CTRL_DOWN
+		]
+		key = RED_VK_LSHIFT [
+			EVT_FLAG_SHIFT_DOWN
+		]
+		key = RED_VK_RSHIFT [
+			EVT_FLAG_SHIFT_DOWN
+		]
+		key = RED_VK_LMENU [
+			EVT_FLAG_MENU_DOWN
+		]
+		key = RED_VK_RMENU [
+			EVT_FLAG_MENU_DOWN
+		]
+		true [0]
+	]
+]
+
 make-at: func [
 	widget	[handle!]
 	face	[red-object!]

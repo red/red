@@ -672,6 +672,10 @@ key-press-event: func [
 	key: translate-key event-key/keyval
 	flags: check-extra-keys event-key/state
 	special-key: either char-key? as-byte key [0][-1]		;-- special key or not
+	if all [key >= 80h special-key = -1][
+		flags: flags or special-key-to-flags key
+		key: 0
+	]
 	res: make-event widget key or flags EVT_KEY_DOWN
 	if res <> EVT_NO_DISPATCH [
 		key2: gdk_keyval_to_unicode event-key/keyval
