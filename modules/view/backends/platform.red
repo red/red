@@ -554,9 +554,6 @@ system/view/platform: context [
 			values [red-value!]
 			text   [red-string!]
 			pair   [red-pair!]
-			font   [red-object!]
-			state  [red-block!]
-			hFont  [int-ptr!]							;-- handle!
 	][
 		;@@ check if object is a face?
 		values: object/get-values face
@@ -570,16 +567,9 @@ system/view/platform: context [
 			exit
 		]
 
-		font: as red-object! values + gui/FACE_OBJ_FONT
-		hFont: either TYPE_OF(font) = TYPE_OBJECT [
-			state: as red-block! (object/get-values font) + gui/FONT_OBJ_STATE
-			either TYPE_OF(state) <> TYPE_BLOCK [gui/make-font face font][gui/get-font-handle font 0]
-		][
-			null
-		]
 		pair: as red-pair! stack/arguments
 		pair/header: TYPE_PAIR
-		gui/get-text-size face text hFont pair
+		gui/get-text-size face text pair
 	]
 	
 	on-change-facet: routine [
@@ -734,12 +724,6 @@ system/view/platform: context [
 				drop-down:		[0x3   2x3 regular 0x3 2x3 small 0x3 1x3 mini 0x2 1x3]
 				drop-list:		[0x3   2x3 regular 0x3 2x3 small 0x3 1x3 mini 0x2 1x3]
 			]
-			Linux [
-				button:			[1x1   1x1]
-				toggle:			[1x1   1x1]
-				tab-panel:		[0x2   0x1]
-				group-box:		[0x0   0x1]
-			]
 		]]
 		extend system/view/metrics/paddings [#switch config/OS [
 			Windows [
@@ -762,14 +746,24 @@ system/view/platform: context [
 				drop-list:		[14x26 0x0 regular 14x26 0x0 small 11x22 0x0 mini 11x22 0x0]
 			]
 			Linux [
-				button:			[11x11 0x0]
-				toggle:			[11x11 0x0]
-				check:			[20x0  3x1]
-				radio:			[20x0  1x1]
+				button:			[17x17 3x3]
+        toggle:			[17x17 3x3]
+				check:			[20x8  2x2]
+				radio:			[20x8  2x2]
 				text:			[3x3   0x0]
-				field:			[3x3   0x0]
+				field:			[9x9   1x1]
 				group-box:		[0x8  4x18]
-				drop-list:		[54x54 0x0]
+				tab-panel:		[0x0  39x0]
+				drop-list:		[0x40 0x0]
+				drop-down:		[0x54 0x0]
+			]
+		]]
+		extend system/view/metrics/fixed-heights [#switch config/OS [
+			macOS	[
+				progress:	21
+			]
+			Linux [
+				progress:	4
 			]
 		]]
 		#switch config/OS [
@@ -805,10 +799,11 @@ system/view/platform: context [
 					check:		20
 					radio:		19
 					text:		17
-					field:		35
-					drop-down:	35
-					drop-list:	33
-					progress:	14
+					field:		30
+					drop-down:	34
+					drop-list:	34
+					progress:	4
+					slider:		34
 				]
 			]
 		]
@@ -824,7 +819,6 @@ system/view/platform: context [
 			
 			]
 			Linux [
-				colors/area: white
 			]
 		]
 
@@ -847,7 +841,8 @@ system/view/platform: context [
 					]
 				]
 				macOS [["Menlo" "Arial" "Times"]]
-				Linux [["Droid Sans Mono" "DejaVu Sans" "DejaVu Serif"]]
+				;-- use "Monospace" on Linux, we let the system use the default one
+				Linux [["Monospace" "DejaVu Sans" "DejaVu Serif"]]
 			]
 		
 		set [font-fixed font-sans-serif font-serif] reduce fonts

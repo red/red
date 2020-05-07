@@ -14,6 +14,16 @@ clipboard: context [
 #switch OS [
 	Windows [
 
+		tagMSG: alias struct! [							;-- used to work around #4284
+			hWnd	[handle!]
+			msg		[integer!]
+			wParam	[integer!]
+			lParam	[integer!]
+			time	[integer!]
+			x		[integer!]							;@@ POINT struct
+			y		[integer!]	
+		]
+
 		#import [
 			"User32.dll" stdcall [
 				OpenClipboard: "OpenClipboard" [
@@ -45,6 +55,14 @@ clipboard: context [
 				RegisterClipboardFormat: "RegisterClipboardFormatA" [
 					lpszFormat	[c-string!]
 					return:		[integer!]
+				]
+				PeekMessage: "PeekMessageW" [			;-- used to work around #4284
+					msg			[tagMSG]
+					hWnd		[handle!]
+					msgMin		[integer!]
+					msgMax		[integer!]
+					removeMsg	[integer!]
+					return: 	[integer!]
 				]
 			]
 			"kernel32.dll" stdcall [
@@ -169,6 +187,7 @@ clipboard: context [
 				i		[integer!]
 				len		[integer!]
 				hdr		[BITMAPV5HEADER!]
+				msg		[tagMSG value]
 		][
 			val: none-value
 			p: null
@@ -180,6 +199,7 @@ clipboard: context [
 				unless ok [Sleep 1]
 				ok: OpenClipboard main-hWnd
 				if ok [break]
+				PeekMessage :msg null 0 0 0				;-- magic workaround for #4284
 			]
 			unless ok [return as red-value! false-value]
 
@@ -321,6 +341,7 @@ clipboard: context [
 				df		[DROPFILES!]
 				bmdata	[BitmapData!]
 				hdr		[BITMAPV5HEADER!]
+				msg		[tagMSG value]
 		][
 			hMem: [0 0]  hMem/1: 0  hMem/2: 0
 			fmts: [0 0]  fmts/1: 0  fmts/2: 0
@@ -449,6 +470,7 @@ clipboard: context [
 				unless ok [Sleep 1]
 				ok: OpenClipboard main-hWnd
 				if ok [break]
+				PeekMessage :msg null 0 0 0				;-- magic workaround for #4284
 			]
 			unless ok [									;-- clean up after a (rare) failure
 				unless hMem/1 = 0 [

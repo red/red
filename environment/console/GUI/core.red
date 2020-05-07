@@ -122,10 +122,10 @@ object [
 		calc-top
 	]
 
-	vprint: func [str [string!] lf? [logic!] /local s cnt][
+	vprint: func [str [string!] lf? [logic!] /local s cnt first-prin?][
 		unless console/state [exit]
 
-		if all [not lf? newline?][newline?: no add-line make string! 8]
+		if all [not lf? newline?][newline?: no first-prin?: yes]
 		if lf? [newline?: yes]
 		s: find str lf
 		either s [
@@ -140,13 +140,12 @@ object [
 				]
 				not s: find str lf
 			]
-			either str/1 = lf [
-				add-line ""
-			][
-				either all [lf? not prin?][add-line copy str][vprin str]
-			]
-		][
 			either all [lf? not prin?][add-line copy str][vprin str]
+		][
+			either all [lf? not prin?][add-line copy str][
+				if first-prin? [add-line make string! 8]
+				vprin str
+			]
 		]
 		prin?: not lf?
 		if system/console/running? [
@@ -272,13 +271,6 @@ object [
 			if cfg/background [change theme/background cfg/background]
 		]
 		if font/color [change theme/foreground font/color]
-		#if config/OS = 'Linux [
-			; since in Linux/GTK, no on-resizing when the window is first drawn
-			if cfg [
-				gui-console-ctx/console/size: cfg/win-size
-				resize gui-console-ctx/console/size
-			]
-		]
 		adjust-console-size gui-console-ctx/console/size
 		update-theme
 	]

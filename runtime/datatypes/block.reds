@@ -1113,22 +1113,33 @@ block: context [
 		return:  [integer!]
 		/local
 			offset	[integer!]
+			count	[integer!]
 			res		[integer!]
 			temp	[red-value!]
 			action-compare
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/compare-value"]]
 
-		offset: flags >>> 1
-		value1: value1 + offset
-		value2: value2 + offset
+		either flags and sort-all-mask = sort-all-mask [
+			count: flags >>> 2
+		][
+			count: 1
+			offset: flags >>> 2
+			value1: value1 + offset
+			value2: value2 + offset
+		]
 		if flags and sort-reverse-mask = sort-reverse-mask [
 			temp: value1 value1: value2 value2: temp
 		]
-		action-compare: DISPATCH_COMPARE(value1)
+		loop count [
+			action-compare: DISPATCH_COMPARE(value1)
+			res: action-compare value1 value2 op
+			if res = -2 [res: TYPE_OF(value1) - TYPE_OF(value2)]
 
-		res: action-compare value1 value2 op
-		if res = -2 [res: TYPE_OF(value1) - TYPE_OF(value2)]
+			unless zero? res [break]
+			value1: value1 + 1
+			value2: value2 + 1
+		]
 		res
 	]
 
@@ -1249,13 +1260,11 @@ block: context [
 		flags: 0
 		s: GET_BUFFER(blk)
 		head: s/offset + blk/head
-		if head = s/tail [return blk]					;-- early exit if nothing to reverse
 		len: rs-length? blk
 
 		if OPTION?(part) [
 			len2: either TYPE_OF(part) = TYPE_INTEGER [
 				int: as red-integer! part
-				if int/value <= 0 [return blk]			;-- early exit if part <= 0
 				int/value
 			][
 				blk2: as red-block! part
@@ -1277,8 +1286,9 @@ block: context [
 				]
 			]
 		]
+		if zero? len [return blk]						;-- early exit if nothing to sort
 
-		if OPTION?(skip) [
+		either OPTION?(skip) [
 			assert TYPE_OF(skip) = TYPE_INTEGER
 			step: skip/value
 			if any [
@@ -1289,13 +1299,15 @@ block: context [
 				ERR_INVALID_REFINEMENT_ARG(refinements/_skip skip)
 			]
 			if step > 1 [len: len / step]
+		][
+			if all? [fire [TO_ERROR(script bad-refines)]]
 		]
 
 		if reverse? [flags: flags or sort-reverse-mask]
 		op: either case? [COMP_CASE_SORT][COMP_SORT]
 		cmp: as-integer :compare-value
 
-		if OPTION?(comparator) [
+		either OPTION?(comparator) [
 			switch TYPE_OF(comparator) [
 				TYPE_FUNCTION [
 					if all [all? OPTION?(skip)] [
@@ -1306,6 +1318,9 @@ block: context [
 					op: as-integer comparator
 				]
 				TYPE_INTEGER [
+					if any [all? not OPTION?(skip)] [
+						fire [TO_ERROR(script bad-refines)]
+					]
 					int: as red-integer! comparator
 					offset: int/value
 					if any [offset < 1 offset > step][
@@ -1314,11 +1329,16 @@ block: context [
 							comparator
 						]
 					]
-					flags: offset - 1 << 1 or flags
+					flags: offset - 1 << 2 or flags
 				]
 				default [
 					ERR_INVALID_REFINEMENT_ARG(refinements/compare comparator)
 				]
+			]
+		][
+			if all? [
+				flags: flags or sort-all-mask
+				flags: step << 2 or flags
 			]
 		]
 		saved: collector/active?
@@ -1374,7 +1394,20 @@ block: context [
 			table: hash/table
 		]
 
-		if OPTION?(part-arg) [
+		values?: all [
+			not only?									;-- /only support
+			any [
+				TYPE_OF(value) = TYPE_BLOCK				;@@ replace it with: typeset/any-block?
+				TYPE_OF(value) = TYPE_PATH				;@@ replace it with: typeset/any-block?
+				TYPE_OF(value) = TYPE_GET_PATH			;@@ replace it with: typeset/any-block?
+				TYPE_OF(value) = TYPE_SET_PATH			;@@ replace it with: typeset/any-block?
+				TYPE_OF(value) = TYPE_LIT_PATH			;@@ replace it with: typeset/any-block?
+				TYPE_OF(value) = TYPE_PAREN				;@@ replace it with: typeset/any-block?
+				TYPE_OF(value) = TYPE_HASH				;@@ replace it with: typeset/any-block?	
+			]
+		]
+
+		if all [OPTION?(part-arg) values?][
 			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
 				int: as red-integer! part-arg
 				int/value
@@ -1390,24 +1423,13 @@ block: context [
 				b/head - src/head
 			]
 		]
+
 		if OPTION?(dup-arg) [
 			int: as red-integer! dup-arg
 			cnt: int/value
 			if negative? cnt [return as red-value! blk]
 		]
 		
-		values?: all [
-			not only?									;-- /only support
-			any [
-				TYPE_OF(value) = TYPE_BLOCK				;@@ replace it with: typeset/any-block?
-				TYPE_OF(value) = TYPE_PATH				;@@ replace it with: typeset/any-block?
-				TYPE_OF(value) = TYPE_GET_PATH			;@@ replace it with: typeset/any-block?
-				TYPE_OF(value) = TYPE_SET_PATH			;@@ replace it with: typeset/any-block?
-				TYPE_OF(value) = TYPE_LIT_PATH			;@@ replace it with: typeset/any-block?
-				TYPE_OF(value) = TYPE_PAREN				;@@ replace it with: typeset/any-block?
-				TYPE_OF(value) = TYPE_HASH				;@@ replace it with: typeset/any-block?	
-			]
-		]
 		size: either values? [
 			src: as red-block! value
 			rs-length? src

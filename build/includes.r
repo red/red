@@ -120,6 +120,7 @@ write %build/bin/sources.r set-cache [
 			%get-word.reds
 			%hash.reds
 			%image.reds
+			%image-utils.reds
 			%integer.reds
 			%issue.reds
 			%lit-path.reds
@@ -151,6 +152,7 @@ write %build/bin/sources.r set-cache [
 			%unset.reds
 			%url.reds
 			%vector.reds
+			%vector2d.reds
 			%word.reds
 			%handle.reds
 			%date.reds
@@ -226,6 +228,8 @@ write %build/bin/sources.r set-cache [
 					%comdlgs.reds
 					%draw.reds
 					%events.reds
+					%css.reds
+					%color.reds
 					%font.reds
 					%gtk.reds
 					%gui.reds

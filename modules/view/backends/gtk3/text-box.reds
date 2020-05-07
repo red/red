@@ -38,26 +38,6 @@ utf8-to-bytes: func [
 	as integer! end - text
 ]
 
-color-u8-to-u16: func [
-	color		[integer!]
-	r			[int-ptr!]
-	g			[int-ptr!]
-	b			[int-ptr!]
-	a			[int-ptr!]
-	/local
-		t		[integer!]
-][
-	t: color >>> 24 and FFh
-	t: FFh - t
-	a/value: t << 8 + t
-	t: color >> 16 and FFh
-	b/value: t << 8 + t
-	t: color >> 8 and FFh
-	g/value: t << 8 + t
-	t: color and FFh
-	r/value: t << 8 + t
-]
-
 OS-text-box-color: func [
 	dc			[handle!]
 	layout		[handle!]
@@ -350,6 +330,7 @@ OS-text-box-layout: func [
 		parent	[red-object!]
 		cached?	[logic!]
 		attrs	[handle!]
+		new?	[logic!]
 		int		[red-integer!]
 		layout	[handle!]
 		para	[handle!]
@@ -394,15 +375,26 @@ OS-text-box-layout: func [
 	][
 		font: as red-object! (object/get-values parent) + FACE_OBJ_FONT
 	]
-	attrs: either TYPE_OF(font) = TYPE_OBJECT [
-		create-pango-attrs null font
+	either all [
+		font <> null
+		TYPE_OF(font) = TYPE_OBJECT
 	][
-		create-simple-attrs default-font-name default-font-size null
+		attrs: create-pango-attrs box font
+		new?: yes
+	][
+		new?: no
+		attrs: default-attrs
 	]
 	len: -1
 	str: unicode/to-utf8 text :len
-	pango_layout_set_width layout PANGO_SCALE * size/x
-	pango_layout_set_height layout PANGO_SCALE * size/y
+	if TYPE_OF(size) = TYPE_PAIR [
+		if size/x <> 0 [
+			pango_layout_set_width layout PANGO_SCALE * size/x
+		]
+		if size/y <> 0 [
+			pango_layout_set_height layout PANGO_SCALE * size/y
+		]
+	]
 	pango_layout_set_wrap layout PANGO_WRAP_WORD_CHAR			;-- TBD: apply para
 	pango_layout_set_text layout str -1
 
@@ -418,6 +410,8 @@ OS-text-box-layout: func [
 		parse-text-styles target as handle! lc styles 7FFFFFFFh catch?
 	]
 	pango_layout_set_attributes layout attrs
-	free-pango-attrs attrs
+	if new? [
+		pango_attr_list_unref attrs
+	]
 	layout
 ]

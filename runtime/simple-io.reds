@@ -1945,8 +1945,8 @@ simple-io: context [
 				either lines? [
 					bin: as red-binary! lines-to-block buf len
 				][
-					bin/header: TYPE_UNSET
 					bin/node: unicode/load-utf8 as c-string! buf len
+					bin/head: 0
 					bin/_pad: 0
 					bin/header: TYPE_STRING
 				]

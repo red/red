@@ -3,7 +3,7 @@ Red/System [
 	Author: "Vladimir Vasilyev"
 	File: 	%calendar.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2019 Red Foundation. All rights reserved."
+	Rights: "Copyright (C) 2019-2020 Red Foundation. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -40,10 +40,11 @@ with [platform][
 		month: WIN32_HIWORD(time/year-month)
 		day:   WIN32_HIWORD(time/week-day)
 		
-		current-msg/hWnd: handle
-		
-		slot: get-facet current-msg FACE_OBJ_DATA
-		date/make-at slot year month day 0.0 0 0 no no
+		unless null? current-msg [
+            current-msg/hWnd: handle
+            slot: get-facet current-msg FACE_OBJ_DATA
+            date/make-at slot year month day 0.0 0 0 no no
+        ]
 	]
 	
 	init-calendar: func [

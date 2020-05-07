@@ -62,6 +62,53 @@ button-clicked: func [
 	make-event widget 0 EVT_CLICK
 ]
 
+vbar-value-changed: func [
+	[cdecl]
+	adj			[handle!]
+	widget		[handle!]
+	/local
+		sc		[node!]
+		pos		[integer!]
+		values	[red-value!]
+		min		[red-integer!]
+		max		[red-integer!]
+		page	[red-integer!]
+		range	[integer!]
+		lower	[float!]
+		upper	[float!]
+		v		[float!]
+		pg		[float!]
+		bar		[handle!]
+		dir		[integer!]
+][
+	sc: GET-CONTAINER(adj)
+	if sc <> null [
+		values: get-node-values sc
+
+		min:	as red-integer! values + SCROLLER_OBJ_MIN
+		max:	as red-integer! values + SCROLLER_OBJ_MAX
+		page:	as red-integer! values + SCROLLER_OBJ_PAGE
+		range:	max/value - page/value - min/value + 1
+
+		v: gtk_adjustment_get_value adj
+		lower: gtk_adjustment_get_lower adj
+		upper: gtk_adjustment_get_upper adj
+		pg: gtk_adjustment_get_page_size adj
+		pg: upper - lower - pg
+
+		v: v / pg * (as float! range)
+		v: v + as float! min/value
+		pos: as-integer v		
+		pos: pos << 4
+
+		bar: gtk_scrollable_get_hadjustment widget
+		dir: as-integer bar = adj
+		SET-IN-LOOP(widget sc)
+		make-event widget dir << 3 or 2 or pos EVT_SCROLL
+		SET-IN-LOOP(widget null)
+	]
+]
+
 button-toggled: func [
 	[cdecl]
 	evbox  [handle!]
@@ -135,11 +182,15 @@ render-text: func [
 
 	color: as red-tuple! values + FACE_OBJ_COLOR
 	font: as red-object! values + FACE_OBJ_FONT
-	attrs: get-attrs face font
-	new?: false
-	if null? attrs [
-		new?: true
-		attrs: create-simple-attrs default-font-name default-font-size color
+	either all [
+		font <> null
+		TYPE_OF(font) = TYPE_OBJECT
+	][
+		attrs: create-pango-attrs face font
+		new?: yes
+	][
+		new?: no
+		attrs: default-attrs
 	]
 
 	para: as red-object! values + FACE_OBJ_PARA
@@ -182,11 +233,10 @@ render-text: func [
 	pango_cairo_show_layout cr layout
 	cairo_stroke cr
 	cairo_restore cr
-	g_object_unref layout
-
 	if new? [
-		free-pango-attrs attrs
+		pango_attr_list_unref attrs
 	]
+	g_object_unref layout
 ]
 
 base-draw: func [
@@ -204,6 +254,7 @@ base-draw: func [
 		type	[red-word!]
 		font	[red-object!]
 		color	[red-tuple!]
+		bool	[red-logic!]
 		sym		[integer!]
 		pos		[red-pair! value]
 		DC		[draw-ctx! value]
@@ -218,33 +269,28 @@ base-draw: func [
 	type: as red-word! values + FACE_OBJ_TYPE
 	font: as red-object! values + FACE_OBJ_FONT
 	color: as red-tuple! values + FACE_OBJ_COLOR
+	bool: as red-logic! values + FACE_OBJ_ENABLED?
 	sym: symbol/resolve type/symbol
+	if all [
+		sym = base
+		not bool/value
+	][return EVT_DISPATCH]
 
-	either all [
+	if all [
 		TYPE_OF(color) = TYPE_TUPLE
 		not all [
 			TUPLE_SIZE?(color) = 4
 			color/array1 and FF000000h = FF000000h
 		]
 	][
-		free-font font
-		make-font face font
-		set-css widget face values
 		gtk_render_background
 				gtk_widget_get_style_context widget
 				cr
 				0.0 0.0
 				as float! size/x as float! size/y
-	][
-		free-font font
-		make-font null font
-		set-css widget face values
 	]
 
 	if TYPE_OF(img) = TYPE_IMAGE [
-		;; DEBUG: print ["base-draw, GDK-draw-image: " 0 "x" 0 "x" size/x "x" size/y lf]
-		;; ONLY WORK for Mandelbrot and raytracer:
-		;; GDK-draw-image cr OS-image/to-argb-pixbuf img 0 0 size/x size/y
 		GDK-draw-image cr OS-image/to-pixbuf img 0 0 size/x size/y
 	]
 
@@ -419,7 +465,6 @@ window-delete-event: func [
 	return:		[integer!]
 ][
 	make-event widget 0 EVT_CLOSE
-	EVT_DISPATCH
 ]
 
 window-configure-event: func [
@@ -428,7 +473,16 @@ window-configure-event: func [
 	event		[GdkEventConfigure!]
 	widget		[handle!]
 	return:		[integer!]
+	/local
+		x		[integer!]
+		y		[integer!]
+		offset	[red-pair!]
 ][
+	x: 0 y: 0
+	gtk_window_get_position widget :x :y
+	offset: (as red-pair! get-face-values widget) + FACE_OBJ_OFFSET
+	offset/x: x
+	offset/y: y
 	unless null? GET-STARTRESIZE(widget) [
 		SET-RESIZING(widget widget)
 	]
@@ -442,11 +496,23 @@ window-size-allocate: func [
 	widget		[handle!]
 	/local
 		sz		[red-pair!]
+		cont	[handle!]
+		w		[integer!]
+		h		[integer!]
 ][
 	sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE
 	if null? GET-STARTRESIZE(widget) [
 		SET-STARTRESIZE(widget widget)
 	]
+
+	unless null? GET-HMENU(widget) [
+		cont: GET-CONTAINER(widget)
+		w: gtk_widget_get_allocated_width cont
+		h: gtk_widget_get_allocated_height cont
+		SET-CONTAINER-W(widget w)
+		SET-CONTAINER-H(widget h)
+	]
+
 	if any [
 		sz/x <> rect/width
 		sz/y <> rect/height
@@ -459,6 +525,7 @@ window-size-allocate: func [
 			make-event widget 0 EVT_SIZING
 		]
 	]
+	window-ready?: yes
 ]
 
 widget-realize: func [
@@ -605,6 +672,10 @@ key-press-event: func [
 	key: translate-key event-key/keyval
 	flags: check-extra-keys event-key/state
 	special-key: either char-key? as-byte key [0][-1]		;-- special key or not
+	if all [key >= 80h special-key = -1][
+		flags: flags or special-key-to-flags key
+		key: 0
+	]
 	res: make-event widget key or flags EVT_KEY_DOWN
 	if res <> EVT_NO_DISPATCH [
 		key2: gdk_keyval_to_unicode event-key/keyval
@@ -683,13 +754,13 @@ focus-in-event: func [
 		int		[red-integer!]
 		sym		[integer!]
 ][
-	if evbox <> gtk_get_event_widget event [return EVT_DISPATCH]
 	face: get-face-obj widget
 	values: object/get-values face
 	type: as red-word! values + FACE_OBJ_TYPE
 	int: as red-integer! values + FACE_OBJ_SELECTED
 	sym: symbol/resolve type/symbol
 	if sym = window [
+		if evbox <> gtk_get_event_widget event [return EVT_DISPATCH]
 		unless null? GET-RESIZING(widget) [
 			make-event widget 0 EVT_SIZING
 			make-event widget 0 EVT_SIZE
@@ -715,7 +786,6 @@ focus-out-event: func [
 		type	[red-word!]
 		sym		[integer!]
 ][
-	if evbox <> gtk_get_event_widget event [return EVT_DISPATCH]
 	face: get-face-obj widget
 	values: object/get-values face
 	type: as red-word! values + FACE_OBJ_TYPE
@@ -739,6 +809,7 @@ area-changed: func [
 ][
 	; Weirdly, GtkTextIter introduced since I did not simplest solution to get the full content of a GtkTextBuffer!
 	gtk_text_buffer_get_bounds buffer as handle! start as handle! end
+	update-textview-tag buffer as handle! start as handle! end
 	text: gtk_text_buffer_get_text buffer as handle! start as handle! end no
 	face: get-face-obj widget
 	unless null? face [

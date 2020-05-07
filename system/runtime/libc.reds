@@ -135,15 +135,11 @@ Red/System [
 			value		[float!]
 			return:		[float!]
 		]
-		log-2:		"log" [
+		log-e:		"log" [
 			value		[float!]
 			return:		[float!]
 		]
 		sqrt:		"sqrt" [
-			value		[float!]
-			return:		[float!]
-		]
-		fabs:		"fabs" [
 			value		[float!]
 			return:		[float!]
 		]

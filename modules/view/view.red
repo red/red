@@ -299,7 +299,10 @@ on-face-deep-change*: function ["Internal use only" owner word target action new
 				not find/skip next state/3 word 8
 			][
 				unless find [cleared removed taken] action [
-					if find [clear remove take] action [
+					if all [
+						find [clear remove take] action
+						word <> 'draw
+					][
 						index: 0
 						target: copy/part target part
 					]
@@ -402,6 +405,10 @@ face!: object [				;-- keep in sync with facet! enum
 				set-quiet in self word old				;-- force the old value
 				exit
 			]
+			if all [
+				any [word = 'size word = 'offset]
+				old = new
+			][exit]
 			if word = 'pane [
 				if all [type = 'window object? :new new/type = 'window][
 					cause-error 'script 'bad-window []
@@ -570,6 +577,7 @@ system/view: context [
 		paddings:		make map! 32
 		margins:		make map! 32
 		def-heights:	make map! 32
+		fixed-heights:	make map! 32
 		misc:			make map! 32
 		colors:			make map! 10
 	]

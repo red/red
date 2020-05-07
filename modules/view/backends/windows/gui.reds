@@ -278,12 +278,14 @@ get-gesture-info: func [
 get-text-size: func [
 	face 	[red-object!]
 	str		[red-string!]
-	hFont	[handle!]
 	pair	[red-pair!]
 	return: [tagSIZE]
 	/local
 		saved 	[handle!]
 		values 	[red-value!]
+		font	[red-object!]
+		state	[red-block!]
+		hFont	[handle!]
 		hwnd 	[handle!]
 		dc 		[handle!]
 		size 	[tagSIZE]
@@ -300,7 +302,13 @@ get-text-size: func [
 	]
 	values: object/get-values face
 	dc: GetWindowDC hwnd
-
+	font: as red-object! values + FACE_OBJ_FONT
+	hFont: null
+	if TYPE_OF(font) = TYPE_OBJECT [
+		state: as red-block! values + FONT_OBJ_STATE
+		if TYPE_OF(state) <> TYPE_BLOCK [hFont: get-font-handle font 0]
+		if null? hFont [hFont: make-font face font]
+	]
 	if null? hFont [hFont: default-font]
 	saved: SelectObject hwnd hFont
 	GetClientRect hWnd rc
@@ -937,15 +945,27 @@ set-logic-state: func [
 	state  [red-logic!]
 	check? [logic!]
 	/local
-		value [integer!]
-][
-	value: either TYPE_OF(state) <> TYPE_LOGIC [
-		state/header: TYPE_LOGIC
-		state/value: check?
-		either check? [BST_INDETERMINATE][false]
-	][
-		as-integer state/value							;-- returns 0/1, matches the messages
+		values [red-block!]
+		flags  [integer!]
+		type   [integer!]
+		value  [integer!]
+		tri?   [logic!]
+][	
+	if check? [
+		values: as red-block! object/get-values get-face-obj hWnd
+		flags: get-flags as red-block! values + FACE_OBJ_FLAGS
+		tri?: flags and FACET_FLAGS_TRISTATE <> 0
 	]
+	
+	type: TYPE_OF(state)
+	value: either all [check? tri? type = TYPE_NONE][BST_INDETERMINATE][
+		as integer! switch type [
+			TYPE_NONE  [false]
+			TYPE_LOGIC [state/value]					;-- returns 0/1, matches the state flag
+			default	   [true]
+		]
+	]
+
 	SendMessage hWnd BM_SETCHECK value 0
 ]
 
@@ -984,6 +1004,7 @@ get-flags: func [
 			sym = no-buttons [flags: flags or FACET_FLAGS_NO_BTNS]
 			sym = modal		 [flags: flags or FACET_FLAGS_MODAL]
 			sym = popup		 [flags: flags or FACET_FLAGS_POPUP]
+			sym = tri-state  [flags: flags or FACET_FLAGS_TRISTATE]
 			sym = scrollable [flags: flags or FACET_FLAGS_SCROLLABLE]
 			sym = password	 [flags: flags or FACET_FLAGS_PASSWORD]
 			true			 [fire [TO_ERROR(script invalid-arg) word]]
@@ -994,25 +1015,19 @@ get-flags: func [
 ]
 
 get-logic-state: func [
-	msg		[tagMSG]
-	return: [logic!]									;-- TRUE if state has changed
+	msg [tagMSG]
 	/local
 		bool  [red-logic!]
 		state [integer!]
-		otype [integer!]
-		obool [logic!]
 ][
 	bool: as red-logic! get-facet msg FACE_OBJ_DATA
 	state: as-integer SendMessage msg/hWnd BM_GETCHECK 0 0
 
 	either state = BST_INDETERMINATE [
-		otype: TYPE_OF(bool)
-		bool/header: TYPE_NONE							;-- NONE indicates undeterminate
-		bool/header <> otype
+		bool/header: TYPE_NONE
 	][
-		obool: bool/value
+		bool/header: TYPE_LOGIC
 		bool/value: state = BST_CHECKED
-		bool/value <> obool
 	]
 ]
 
@@ -1304,6 +1319,7 @@ OS-make-view: func [
 		ws-flags  [integer!]
 		bits	  [integer!]
 		sym		  [integer!]
+		state	  [integer!]
 		class	  [c-string!]
 		caption   [c-string!]
 		value	  [integer!]
@@ -1366,7 +1382,8 @@ OS-make-view: func [
 		]
 		sym = check [
 			class: #u16 "RedButton"
-			flags: flags or WS_TABSTOP or BS_AUTOCHECKBOX
+			state: either bits and FACET_FLAGS_TRISTATE <> 0 [BS_AUTO3STATE][BS_AUTOCHECKBOX]
+			flags: flags or WS_TABSTOP or state
 		]
 		sym = radio [
 			class: #u16 "RedButton"
@@ -1481,8 +1498,11 @@ OS-make-view: func [
 			rc/bottom: rc/bottom - rc/top
 			focused: null 
 			if bits and FACET_FLAGS_MODAL <> 0 [
-				parent: as-integer find-last-window
-				if parent <> 0 [focused: get-selected-handle as handle! parent]
+				parent: as-integer GetActiveWindow
+				if parent <> 0 [
+					focused: get-selected-handle as handle! parent
+					if null? focused [focused: as handle! parent]
+				]
 			]
 		]
 		true [											;-- search in user-defined classes
@@ -1604,7 +1624,7 @@ OS-make-view: func [
 			value: get-position-value as red-float! data 100
 			SendMessage handle PBM_SETPOS value 0
 		]
-		sym = check [set-logic-state handle as red-logic! data no]
+		sym = check [set-logic-state handle as red-logic! data yes]
 		sym = radio [set-logic-state handle as red-logic! data no]
 		any [
 			sym = drop-down
@@ -1637,8 +1657,6 @@ OS-make-view: func [
 					if null? main-hWnd [main-hWnd: handle]
 				]
 			]
-			offset/x: off-x - rc/left * 100 / dpi-factor
-			offset/y: off-y - rc/top * 100 / dpi-factor
 			SetWindowLong
 				handle
 				wc-offset - 8
@@ -1710,6 +1728,7 @@ change-size: func [
 		]
 		type = area		 [update-scrollbars hWnd null]
 		type = tab-panel [update-tab-contents hWnd FACE_OBJ_SIZE]
+		type = text		 [InvalidateRect hWnd null 1]	;-- issue #4388
 		true	  		 [0]
 	]
 ]

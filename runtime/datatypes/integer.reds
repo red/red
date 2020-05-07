@@ -78,18 +78,20 @@ integer: context [
 		return: [integer!]
 		/local
 			s	   [series!]
+			hd     [byte-ptr!]
 			p	   [byte-ptr!]
 			len	   [integer!]
 			i	   [integer!]
 			factor [integer!]
 	][
 		s: GET_BUFFER(bin)
-		len: (as-integer s/tail - s/offset) + bin/head
+		hd: binary/rs-head bin
+		len: binary/rs-length? bin
 		if len > 4 [len: 4]								;-- take first 32 bits only
 
 		i: 0
 		factor: 0
-		p: (as byte-ptr! s/offset) + bin/head + len - 1
+		p: hd + len - 1
 
 		loop len [
 			i: i + ((as-integer p/value) << factor)
@@ -349,8 +351,6 @@ integer: context [
 		secure? [logic!]
 		only?   [logic!]
 		return: [red-value!]
-		/local
-			n	 [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/random"]]
 
@@ -359,8 +359,7 @@ integer: context [
 			int/header: TYPE_UNSET
 		][
 			unless zero? int/value [
-				n: _random/rand % int/value + 1
-				int/value: either negative? int/value [0 - n][n]
+				int/value: _random/int-uniform-distr secure? int/value
 			]
 		]
 		as red-value! int

@@ -43,7 +43,7 @@ gui-console-ctx: context [
 	cfg-dir:	none
 	cfg-path:	none
 	cfg:		none
-	font:		make font! [name: "Consolas" size: 11 color: 0.0.0]
+	font:		make font! [name: system/view/fonts/fixed size: 11 color: 0.0.0]
 	caret-clr:	0.0.0.1
 	scroller:	make scroller! []
 
@@ -222,7 +222,6 @@ gui-console-ctx: context [
 		console/init
 		load-cfg
 		win/visible?: yes
-		#if config/OS = 'Linux [terminal/update-cfg font none]
 
 		svs: system/view/screens/1
 		svs/pane: next svs/pane				;-- proctect itself from unview/all

@@ -14,14 +14,155 @@ change-para: func [
 	widget		[handle!]
 	face		[red-object!]
 	values		[red-value!]
+	sym			[integer!]
 	return:		[logic!]
 	/local
 		para	[red-object!]
+		pvalues	[red-value!]
+		wrap?	[logic!]
+		hsym	[integer!]
+		vsym	[integer!]
+		label	[handle!]
 ][
 	para: as red-object! values + FACE_OBJ_PARA
-	if TYPE_OF(para) <> TYPE_OBJECT [return no]
-	set-font widget face values
+	either TYPE_OF(para) = TYPE_OBJECT [
+		pvalues: object/get-values para
+		wrap?: get-para-wrap pvalues
+		hsym: get-para-hsym pvalues
+		vsym: get-para-vsym pvalues
+	][
+		wrap?: no
+		hsym: _para/left
+		vsym: _para/middle
+	]
+	case [
+		sym = text [
+			set-label-para widget hsym vsym wrap?
+		]
+		any [
+			sym = button
+			sym = check
+			sym = radio
+		][
+			label: gtk_bin_get_child widget
+			;-- some button maybe have empty label
+			if g_type_check_instance_is_a label gtk_label_get_type [
+				set-label-para label hsym vsym wrap?
+			]
+		]
+		sym = field [
+			set-entry-para widget hsym vsym wrap?
+		]
+		sym = area [
+			set-textview-para widget hsym vsym wrap?
+		]
+		sym = text-list [
+			set-text-list-para widget hsym vsym wrap?
+		]
+		true [0]
+	]
 	yes
+]
+
+set-label-para: func [
+	label		[handle!]
+	hsym		[integer!]
+	vsym		[integer!]
+	wrap?		[logic!]
+	/local
+		f		[float32!]
+][
+	case [
+		hsym = _para/left [
+			f: as float32! 0.0
+		]
+		hsym = _para/right [
+			f: as float32! 1.0
+		]
+		true [
+			f: as float32! 0.5
+		]
+	]
+	gtk_label_set_xalign label f
+	case [
+		vsym = _para/top [
+			f: as float32! 0.0
+		]
+		vsym = _para/bottom [
+			f: as float32! 1.0
+		]
+		true [
+			f: as float32! 0.5
+		]
+	]
+	gtk_label_set_yalign label f
+	gtk_label_set_line_wrap label wrap?
+]
+
+set-entry-para: func [
+	entry		[handle!]
+	hsym		[integer!]
+	vsym		[integer!]
+	wrap?		[logic!]
+	/local
+		f		[float32!]
+][
+	case [
+		hsym = _para/left [
+			f: as float32! 0.0
+		]
+		hsym = _para/right [
+			f: as float32! 1.0
+		]
+		true [
+			f: as float32! 0.5
+		]
+	]
+	gtk_entry_set_alignment entry f
+]
+
+set-textview-para: func [
+	widget		[handle!]
+	hsym		[integer!]
+	vsym		[integer!]
+	wrap?		[logic!]
+][
+	case [
+		hsym = _para/left [
+			gtk_text_view_set_justification widget GTK_JUSTIFY_LEFT
+		]
+		hsym = _para/right [
+			gtk_text_view_set_justification widget GTK_JUSTIFY_RIGHT
+		]
+		true [
+			gtk_text_view_set_justification widget GTK_JUSTIFY_CENTER
+		]
+	]
+
+	gtk_text_view_set_wrap_mode widget
+		either wrap? [GTK_WRAP_WORD][GTK_WRAP_NONE]
+]
+
+set-text-list-para: func [
+	widget		[handle!]
+	hsym		[integer!]
+	vsym		[integer!]
+	wrap?		[logic!]
+	/local
+		list	[GList!]
+		child	[GList!]
+		label	[handle!]
+][
+	list: gtk_container_get_children widget
+	child: list
+	while [not null? child][
+		label: gtk_bin_get_child child/data
+		set-label-para label hsym vsym wrap?
+		child: child/next
+	]
+	unless null? list [
+		g_list_free list
+	]
 ]
 
 update-para: func [

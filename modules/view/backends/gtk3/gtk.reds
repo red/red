@@ -19,6 +19,10 @@ Red/System [
 	g_signal_connect_data instance signal as-integer handler data null 1
 ]
 
+#define g_signal_handlers_disconnect_by_data(instance data) [
+	g_signal_handlers_disconnect_matched instance 16 0 0 null null data
+]
+
 #define G_ASCII_DTOSTR_BUF_SIZE	39
 
 #define G_TYPE_MAKE_FUNDAMENTAL(x) [x << 2]
@@ -46,6 +50,13 @@ tagRECT: alias struct! [
 	y		[integer!]
 	width	[integer!]
 	height	[integer!]
+]
+
+GdkRGBA!: alias struct! [
+	red		[float!]
+	green	[float!]
+	blue	[float!]
+	alpha	[float!]
 ]
 
 GdkEventAny!: alias struct! [
@@ -145,6 +156,20 @@ GdkEventScroll!: alias struct! [
 	delta_x		[float!]
 	delta_y		[float!]
 	is_stop		[integer!]
+]
+
+GdkGeometry!: alias struct! [
+	min_width	[integer!]
+	min_height	[integer!]
+	max_width	[integer!]
+	max_height	[integer!]
+	base_width	[integer!]
+	base_height	[integer!]
+	width_inc	[integer!]
+	height_inc	[integer!]
+	min_aspect	[float!]
+	max_aspect	[float!]
+	win_gravity	[integer!]
 ]
 
 #enum GdkScrollDirection! [
@@ -261,6 +286,13 @@ GdkEventScroll!: alias struct! [
 	GDK_TOUCHPAD_GESTURE_MASK:     16777216
 	GDK_TABLET_PAD_MASK:           33554432
 	;;GDK_ALL_EVENTS_MASK:           fffffffeh
+]
+
+GtkAllocation!: alias struct! [
+	x			[integer!]
+	y			[integer!]
+	w			[integer!]
+	h			[integer!]
 ]
 
 GtkTextIter!: alias struct! [
@@ -606,6 +638,16 @@ GPtrArray!: alias struct! [
 			flags		[integer!]
 			return:		[integer!]
 		]
+		g_signal_handlers_disconnect_matched: "g_signal_handlers_disconnect_matched" [
+			instance	[int-ptr!]
+			mask		[integer!]
+			signal_id	[integer!]
+			detail		[integer!]
+			closure		[int-ptr!]
+			handler		[int-ptr!]
+			data		[int-ptr!]
+			return:		[integer!]
+		]
 		g_signal_emit_by_name: "g_signal_emit_by_name" [
 			[variadic]
 		]
@@ -690,6 +732,8 @@ GPtrArray!: alias struct! [
 		]
 	;; ]
 	;; LIBGDK-file cdecl [
+		gdk_flush: "gdk_flush" []
+		gdk_window_process_all_updates: "gdk_window_process_all_updates" []
 		gdk_screen_width: "gdk_screen_width" [
 			return:		[integer!]
 		]
@@ -923,28 +967,33 @@ GPtrArray!: alias struct! [
 			return:		[GString!]
 		]
 		g_string_append: "g_string_append" [
-			str		[GString!]
-			text	[c-string!]
-			return: [GString!]
+			str			[GString!]
+			text		[c-string!]
+			return:		[GString!]
 		]
 		g_string_assign: "g_string_assign" [
-			str		[GString!]
-			text	[c-string!]
-			return: [GString!]
+			str			[GString!]
+			text		[c-string!]
+			return:		[GString!]
 		]
 		g_string_append_len: "g_string_append_len" [
-			str		[GString!]
-			text	[c-string!]
-			len 	[integer!]
-			return: [GString!]
+			str			[GString!]
+			text		[c-string!]
+			len			[integer!]
+			return:		[GString!]
 		]
 		g_string_append_printf: "g_string_append_printf" [
 			[variadic]
 		]
 		g_string_free: "g_string_free" [
-			str		[GString!]
-			free	[logic!]
-			return:	[c-string!]
+			str			[GString!]
+			free		[logic!]
+			return:		[c-string!]
+		]
+		g_string_set_size: "g_string_set_size" [
+			str			[GString!]
+			len			[integer!]
+			return:		[GString!]
 		]
 	;; ]
 	;; LIBGIO-file cdecl [
@@ -1250,6 +1299,19 @@ GPtrArray!: alias struct! [
 		gtk_events_pending: "gtk_events_pending" [
 			return:		[logic!]
 		]
+		gtk_dialog_new: "gtk_dialog_new" [return: [handle!]]
+		gtk_dialog_get_content_area: "gtk_dialog_get_content_area" [
+			dialog		[handle!]
+			return:		[handle!]
+		]
+		;gtk_window_group_add_window: "gtk_window_group_add_window" [
+		;	group		[handle!]
+		;	window		[handle!]
+		;]
+		;gtk_window_get_group: "gtk_window_get_group" [
+		;	window		[handle!]
+		;	return:		[handle!]
+		;]
 		gtk_window_new: "gtk_window_new" [
 			type		[integer!]
 			return:		[handle!]
@@ -1259,6 +1321,12 @@ GPtrArray!: alias struct! [
 		]
 		gtk_window_activate_focus: "gtk_window_activate_focus" [
 			window		[handle!]
+		]
+		gtk_window_set_geometry_hints: "gtk_window_set_geometry_hints" [
+			window		[handle!]
+			widget		[handle!]
+			geometry	[GdkGeometry!]
+			mask		[integer!]
 		]
 		gtk_window_set_title: "gtk_window_set_title" [
 			window		[handle!]
@@ -1286,6 +1354,10 @@ GPtrArray!: alias struct! [
 			window		[handle!]
 			mode		[logic!]
 		]
+		gtk_window_set_type_hint: "gtk_window_set_type_hint" [
+			window		[handle!]
+			mode		[integer!]
+		]
 		gtk_window_move: "gtk_window_move" [
 			window		[handle!]
 			x			[integer!]
@@ -1300,6 +1372,10 @@ GPtrArray!: alias struct! [
 			window		[handle!]
 		]
 		gtk_window_is_active: "gtk_window_is_active" [
+			window		[handle!]
+			return:		[logic!]
+		]
+		gtk_window_get_modal: "gtk_window_get_modal" [
 			window		[handle!]
 			return:		[logic!]
 		]
@@ -1499,11 +1575,11 @@ GPtrArray!: alias struct! [
 		]
 		gtk_widget_size_allocate: "gtk_widget_size_allocate" [
 			widget		[handle!]
-			alloc		[handle!]
+			alloc		[GtkAllocation!]
 		]
 		gtk_widget_get_allocation: "gtk_widget_get_allocation" [
 			widget		[handle!]
-			alloc		[handle!]
+			alloc		[GtkAllocation!]
 		]
 		gtk_widget_get_allocated_width: "gtk_widget_get_allocated_width" [
 			widget		[handle!]
@@ -1706,6 +1782,10 @@ GPtrArray!: alias struct! [
 			vadj		[handle!]
 			return:		[handle!]
 		]
+		gtk_scrolled_window_set_vadjustment: "gtk_scrolled_window_set_vadjustment" [
+			win			[handle!]
+			adj			[handle!]
+		]
 		gtk_layout_put: "gtk_layout_put" [
 			layout		[handle!]
 			widget		[handle!]
@@ -1879,16 +1959,36 @@ GPtrArray!: alias struct! [
 			widget		[handle!]
 			angle		[float!]
 		]
+		gtk_label_set_use_underline: "gtk_label_set_use_underline" [
+			widget		[handle!]
+			setting		[logic!]
+		]
 		gtk_label_set_attributes: "gtk_label_set_attributes" [
 			widget		[handle!]
 			list		[handle!]
 		]
+		gtk_label_get_attributes: "gtk_label_get_attributes" [
+			widget		[handle!]
+			return:		[handle!]
+		]
+		gtk_label_set_max_width_chars: "gtk_label_set_max_width_chars" [
+			widget		[handle!]
+			nchars		[integer!]
+		]
+		;gtk_label_set_width_chars: "gtk_label_set_width_chars" [
+		;	widget		[handle!]
+		;	nchars		[integer!]
+		;]
 		gtk_label_get_layout: "gtk_label_get_layout" [
 			label		[handle!]
 			return:		[handle!]
 		]
 		gtk_event_box_new: "gtk_event_box_new" [
 			return: 	[handle!]
+		]
+		gtk_event_box_set_above_child: "gtk_event_box_set_above_child" [
+			evbox		[handle!]
+			settings	[logic!]
 		]
 		gtk_entry_new: "gtk_entry_new" [
 			return:		[handle!]
@@ -1937,6 +2037,10 @@ GPtrArray!: alias struct! [
 		gtk_entry_set_attributes: "gtk_entry_set_attributes" [
 			entry		[handle!]
 			list		[handle!]
+		]
+		gtk_entry_set_alignment: "gtk_entry_set_alignment" [
+			entry		[handle!]
+			xalign		[float32!]
 		]
 		gtk_editable_select_region: "gtk_editable_select_region" [
 			entry		[handle!]
@@ -2055,6 +2159,44 @@ GPtrArray!: alias struct! [
 			iter		[handle!]
 			return:		[integer!]
 		]
+		gtk_text_buffer_get_start_iter: "gtk_text_buffer_get_start_iter" [
+			buffer		[handle!]
+			iter		[handle!]
+		]
+		gtk_text_buffer_get_end_iter: "gtk_text_buffer_get_end_iter" [
+			buffer		[handle!]
+			iter		[handle!]
+		]
+		gtk_text_buffer_apply_tag: "gtk_text_buffer_apply_tag" [
+			buffer		[handle!]
+			tag			[handle!]
+			start		[handle!]
+			end			[handle!]
+		]
+		gtk_text_buffer_apply_tag_by_name: "gtk_text_buffer_apply_tag_by_name" [
+			buffer		[handle!]
+			name		[c-string!]
+			start		[handle!]
+			end			[handle!]
+		]
+		gtk_text_tag_table_lookup: "gtk_text_tag_table_lookup" [
+			buffer		[handle!]
+			name		[c-string!]
+			return:		[handle!]
+		]
+		gtk_text_tag_table_remove: "gtk_text_tag_table_remove" [
+			table		[handle!]
+			tag			[handle!]
+		]
+		gtk_text_buffer_get_tag_table: "gtk_text_buffer_get_tag_table" [
+			buffer		[handle!]
+			return:		[handle!]
+		]
+		gtk_text_buffer_remove_all_tags: "gtk_text_buffer_remove_all_tags" [
+			buffer		[handle!]
+			start		[handle!]
+			end			[handle!]
+		]
 		gtk_combo_box_text_new: "gtk_combo_box_text_new" [
 			return:		[handle!]
 		]
@@ -2137,16 +2279,18 @@ GPtrArray!: alias struct! [
 			data		[c-string!]
 			length		[integer!]
 			error		[handle!]
+			return:		[logic!]
 		]
 		gtk_css_provider_load_from_file: "gtk_css_provider_load_from_file" [
 			provider	[handle!]
-			url		[c-string!]
+			url			[c-string!]
 			error		[handle!]
 		]
 		gtk_css_provider_load_from_path: "gtk_css_provider_load_from_path" [
 			provider	[handle!]
 			path		[c-string!]
 			error		[handle!]
+			return:		[logic!]
 		]
 		gtk_css_provider_to_string: "gtk_css_provider_to_string" [
 			provider	[handle!]
@@ -2156,6 +2300,10 @@ GPtrArray!: alias struct! [
 			context		[handle!]
 			provider	[handle!]
 			priority	[integer!]
+		]
+		gtk_style_context_remove_provider: "gtk_style_context_remove_provider" [
+			context		[handle!]
+			provider	[handle!]
 		]
 		gtk_style_context_add_provider_for_screen: "gtk_style_context_add_provider_for_screen" [
 			screen		[handle!]
@@ -2200,6 +2348,10 @@ GPtrArray!: alias struct! [
 			return: 	[handle!]
 		]
 		pango_layout_get_context: "pango_layout_get_context" [
+			layout		[handle!]
+			return: 	[handle!]
+		]
+		pango_layout_get_attributes: "pango_layout_get_attributes" [
 			layout		[handle!]
 			return: 	[handle!]
 		]
@@ -2470,6 +2622,91 @@ GPtrArray!: alias struct! [
 
 		gtk_settings_get_default: "gtk_settings_get_default" [
 			return: 	[handle!]
+		]
+		gtk_scrolled_window_set_max_content_height: "gtk_scrolled_window_set_max_content_height" [
+			scrolled	[handle!]
+			height		[integer!]
+		]
+		gtk_scrolled_window_get_policy: "gtk_scrolled_window_get_policy" [
+			win			[handle!]
+			hs			[int-ptr!]
+			vs			[int-ptr!]
+		]
+		gtk_adjustment_configure: "gtk_adjustment_configure" [
+			adjustment	[handle!]
+			value		[float!]
+			lower		[float!]
+			uppper		[float!]
+			step		[float!]
+			page		[float!]
+			page-size	[float!]
+		]
+		gtk_scrollable_get_vadjustment: "gtk_scrollable_get_vadjustment" [
+			scrollable	[handle!]
+			return:		[handle!]
+		]
+		gtk_scrollable_get_hadjustment: "gtk_scrollable_get_hadjustment" [
+			scrollable	[handle!]
+			return:		[handle!]
+		]
+		gtk_scrollbar_new: "gtk_scrollbar_new" [
+			orientation	[integer!]
+			adjust		[handle!]
+			return:		[handle!]
+		]
+		gtk_adjustment_new: "gtk_adjustment_new" [
+			value		[float!]
+			lower		[float!]
+			uppper		[float!]
+			step		[float!]
+			page		[float!]
+			page-size	[float!]
+			return:		[handle!]
+		]
+		gtk_adjustment_set_upper: "gtk_adjustment_set_upper" [
+			adjustment	[handle!]
+			upper		[float!]
+		]
+		gtk_adjustment_set_value: "gtk_adjustment_set_value" [
+			adjustment	[handle!]
+			value		[float!]
+		]
+		gtk_adjustment_set_page_size: "gtk_adjustment_set_page_size" [
+			adjustment	[handle!]
+			value		[float!]
+		]
+		gtk_adjustment_get_value: "gtk_adjustment_get_value" [
+			adjustment	[handle!]
+			return:		[float!]
+		]
+		gtk_adjustment_get_lower: "gtk_adjustment_get_lower" [
+			adjustment	[handle!]
+			return:		[float!]
+		]
+		gtk_adjustment_get_page_size: "gtk_adjustment_get_page_size" [
+			adjustment	[handle!]
+			return:		[float!]
+		]
+		gtk_adjustment_get_upper: "gtk_adjustment_get_upper" [
+			adjustment	[handle!]
+			return:		[float!]
+		]
+		gtk_adjustment_get_page_increment: "gtk_adjustment_get_page_increment" [
+			adjustment	[handle!]
+			return:		[float!]
+		]
+		gtk_adjustment_get_step_increment: "gtk_adjustment_get_step_increment" [
+			adjustment	[handle!]
+			return:		[float!]
+		]
+		gtk_adjustment_get_minimum_increment: "gtk_adjustment_get_minimum_increment" [
+			adjustment	[handle!]
+			return:		[float!]
+		]
+		gtk_scrolled_window_set_policy: "gtk_scrolled_window_set_policy" [
+			scrolled	[handle!]
+			hpolicy		[integer!]
+			vpolicy		[integer!]
 		]
 
 	;; LIBCAIRO-file cdecl [
@@ -2942,7 +3179,10 @@ GPtrArray!: alias struct! [
 			win 		[handle!]
 			cursor		[handle!]
 		]
-
+		gdk_window_set_decorations: "gdk_window_set_decorations" [
+			window		[handle!]
+			flags		[integer!]
+		]
 		;; Useless since already called inside pango_cairo_create_context
 		; pango_cairo_font_map_get_default: "pango_cairo_font_map_get_default" [
 		; 	return: 	[handle!]
@@ -3156,7 +3396,10 @@ red-face-id1:		g_quark_from_string "red-face-id1"
 red-face-id2:		g_quark_from_string "red-face-id2"
 red-face-id3:		g_quark_from_string "red-face-id3"
 red-face-id4:		g_quark_from_string "red-face-id4"
-gtk-style-id: 		g_quark_from_string "gtk-style-id"
+red-color-id:		g_quark_from_string "red-color-id"
+red-color-str:		g_quark_from_string "red-color-str"
+red-font-id:		g_quark_from_string "red-font-id"
+red-font-str:		g_quark_from_string "red-font-str"
 container-id:		g_quark_from_string "container-id"
 red-timer-id:		g_quark_from_string "red-timer-id"
 menu-key-id:		g_quark_from_string "menu-key-id"
@@ -3168,7 +3411,18 @@ caption-id:			g_quark_from_string "caption-id"
 in-loop-id:			g_quark_from_string "in-loop-id"
 first-radio-id:		g_quark_from_string "first-radio-id"
 resend-event-id:	g_quark_from_string "resend-event-id"
+hmenu-id:			g_quark_from_string "hmenu-id"
+container-w:		g_quark_from_string "container-w"
+container-h:		g_quark_from_string "container-h"
 
+#define SET-RED-COLOR(s d)		[g_object_set_qdata s red-color-id d]
+#define GET-RED-COLOR(s)		[g_object_get_qdata s red-color-id]
+#define SET-COLOR-STR(s d)		[g_object_set_qdata s red-color-str as handle! d]
+#define GET-COLOR-STR(s)		[as GString! g_object_get_qdata s red-color-str]
+#define SET-RED-FONT(s d)		[g_object_set_qdata s red-font-id d]
+#define GET-RED-FONT(s)			[g_object_get_qdata s red-font-id]
+#define SET-FONT-STR(s d)		[g_object_set_qdata s red-font-str as handle! d]
+#define GET-FONT-STR(s)			[as GString! g_object_get_qdata s red-font-str]
 #define SET-CONTAINER(s d)		[g_object_set_qdata s container-id d]
 #define GET-CONTAINER(s)		[g_object_get_qdata s container-id]
 #define SET-CURSOR(s d)			[g_object_set_qdata s cursor-id d]
@@ -3187,3 +3441,11 @@ resend-event-id:	g_quark_from_string "resend-event-id"
 #define GET-FIRST-RADIO(s)		[g_object_get_qdata s first-radio-id]
 #define SET-RESEND-EVENT(s d)	[g_object_set_qdata s resend-event-id d]
 #define GET-RESEND-EVENT(s)		[g_object_get_qdata s resend-event-id]
+#define SET-HMENU(s d)			[g_object_set_qdata s hmenu-id d]
+#define GET-HMENU(s)			[g_object_get_qdata s hmenu-id]
+#define SET-CONTAINER-W(s d)	[g_object_set_qdata s container-w as int-ptr! d]
+#define GET-CONTAINER-W(s)		[as integer! g_object_get_qdata s container-w]
+#define SET-CONTAINER-H(s d)	[g_object_set_qdata s container-h as int-ptr! d]
+#define GET-CONTAINER-H(s)		[as integer! g_object_get_qdata s container-h]
+
+

@@ -332,7 +332,7 @@ keycode-ascii: [
 	RED_VK_UNKNOWN		;-- GDK_KEY_percent
 	RED_VK_UNKNOWN		;-- GDK_KEY_ampersand
 	RED_VK_UNKNOWN		;-- GDK_KEY_apostrophe
-	RED_VK_UNKNOWN		;-- GDK_KEY_quoteright
+	;RED_VK_UNKNOWN		;-- GDK_KEY_quoteright
 	RED_VK_UNKNOWN		;-- GDK_KEY_parenleft
 	RED_VK_UNKNOWN		;-- GDK_KEY_parenright
 	RED_VK_UNKNOWN		;-- GDK_KEY_asterisk
@@ -429,6 +429,33 @@ keycode-ascii: [
 	;-- 80h
 ]
 
+special-key-to-flags: func [
+	key		[integer!]
+	return:	[integer!]
+][
+	case [
+		key = RED_VK_LCONTROL [
+			EVT_FLAG_CTRL_DOWN
+		]
+		key = RED_VK_RCONTROL [
+			EVT_FLAG_CTRL_DOWN
+		]
+		key = RED_VK_LSHIFT [
+			EVT_FLAG_SHIFT_DOWN
+		]
+		key = RED_VK_RSHIFT [
+			EVT_FLAG_SHIFT_DOWN
+		]
+		key = RED_VK_LMENU [
+			EVT_FLAG_MENU_DOWN
+		]
+		key = RED_VK_RMENU [
+			EVT_FLAG_MENU_DOWN
+		]
+		true [0]
+	]
+]
+
 make-at: func [
 	widget	[handle!]
 	face	[red-object!]
@@ -498,8 +525,15 @@ get-event-offset: func [
 			offset/header: TYPE_PAIR
 
 			widget: as handle! evt/msg
-			sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE
-			as red-value! sz
+			either null? GET-HMENU(widget) [
+				sz: (as red-pair! get-face-values widget) + FACE_OBJ_SIZE
+				offset/x: sz/x
+				offset/y: sz/y
+			][
+				offset/x: GET-CONTAINER-W(widget)
+				offset/y: GET-CONTAINER-H(widget)
+			]
+			as red-value! offset
 		]
 		any [
 			evt/type = EVT_ZOOM
@@ -638,6 +672,7 @@ get-event-picked: func [
 			event: as GdkEventScroll! g_object_get_qdata as handle! evt/msg red-event-id
 			float/push 0.0 - event/delta_y
 		]
+		EVT_SCROLL [integer/push evt/flags >>> 4]
 		EVT_MENU [word/push* evt/flags and FFFFh]
 		default	 [integer/push evt/flags and FFFFh]
 	]
@@ -702,8 +737,14 @@ make-event: func [
 		; ]
 		; EVT_KEY_UP [0
 		; ]
-		; EVT_KEY [0
-		; ]
+		EVT_KEY [
+			key: flags and FFFFh
+			if all [
+				flags and EVT_FLAG_CTRL_DOWN <> 0
+				97 <= key key <= 122
+			][key: key - 96]
+			gui-evt/flags: flags and FFFF0000h or key
+		]
 		; EVT_SELECT [0
 		; ]
 		; EVT_CHANGE [0
@@ -749,15 +790,12 @@ make-event: func [
 	stack/adjust-post-try
 	if system/thrown <> 0 [system/thrown: 0]
 	type: TYPE_OF(res)
-	if  ANY_WORD?(type) [
+	if ANY_WORD?(type) [
 		sym: symbol/resolve res/symbol
-		case [
-			sym = done [state: EVT_NO_DISPATCH]			;-- prevent other high-level events
-			sym = stop [state: EVT_NO_DISPATCH]			;-- prevent all other events
-			true 	   [0]								;-- ignore others
+		if any [sym = _continue sym = done][
+			state: EVT_NO_DISPATCH
 		]
 	]
-
 	state
 ]
 
@@ -780,6 +818,10 @@ do-events: func [
 			break
 		]
 		if null? GET-IN-LOOP(win) [break]
+		if force-redraw? [
+			gdk_window_process_all_updates
+			force-redraw?: no
+		]
 		no-wait?
 	]
 	msg?
@@ -894,6 +936,10 @@ translate-key: func [
 		pos: keycode - FF00h + 1
 		return keycode-special/pos
 	]
+	;-- simple fix #4267
+	if keycode = FE20h [
+		return RED_VK_TAB
+	]
 	RED_VK_UNKNOWN
 ]
 
@@ -989,14 +1035,18 @@ connect-widget-events: func [
 	sym			[integer!]
 	/local
 		evbox	[handle!]
+		cont	[handle!]
 		buffer	[handle!]
 ][
 	evbox: get-face-evbox widget values sym
+	cont: GET-CONTAINER(widget)
 	;-- register red mouse, key event functions
-	if sym <> window [
+	either sym = window [
+		connect-notify-events cont widget
+		connect-common-events cont widget
+	][
 		connect-common-events evbox widget
 	]
-	connect-notify-events evbox widget
 	connect-focus-events evbox widget sym
 
 	gobj_signal_connect(evbox "realize" :widget-realize widget)

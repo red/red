@@ -14,6 +14,8 @@ Red/System [
 #include %gtk.reds
 #include %events.reds
 
+#include %css.reds
+#include %color.reds
 #include %font.reds
 #include %para.reds
 #include %draw.reds
@@ -24,10 +26,14 @@ Red/System [
 #include %tab-panel.reds
 #include %text-list.reds
 
+window-ready?:		no
+force-redraw?:		no
 settings:			as handle! 0
 pango-context:		as handle! 0
 default-font-name:	as c-string! 0
 default-font-size:	0
+default-font-color: 0
+default-font-width: as float32! 7.5		;-- pixel width
 gtk-font-name:		"Sans"
 gtk-font-size:		10
 
@@ -65,6 +71,18 @@ get-face-values: func [
 		]
 	]
 	values
+]
+
+get-node-values: func [
+	node		[node!]
+	return:		[red-value!]
+	/local
+		ctx		[red-context!]
+		s		[series!]
+][
+	ctx: TO_CTX(node)
+	s: as series! ctx/values/value
+	s/offset
 ]
 
 get-node-facet: func [
@@ -172,10 +190,16 @@ get-face-layout: func [
 	values		[red-value!]
 	sym			[integer!]
 	return:		[handle!]
+	/local
+		h		[handle!]
 ][
 	case [
+		sym = rich-text [
+			h: GET-CONTAINER(widget)
+			if null? h [h: widget]
+			h
+		]
 		any [
-			sym = rich-text
 			sym = text
 			sym = area
 			sym = text-list
@@ -305,24 +329,6 @@ set-widget-child-offset: func [
 	]
 ]
 
-show-widget: func [
-	widget		[handle!]
-	/local
-		values	[red-value!]
-		type	[red-word!]
-		sym		[integer!]
-		layout	[handle!]
-][
-	values: get-face-values widget
-	type: as red-word! values + FACE_OBJ_TYPE
-	sym: symbol/resolve type/symbol
-	layout: get-face-layout widget values sym
-	if layout <> widget [
-		gtk_widget_show layout
-	]
-	gtk_widget_show widget
-]
-
 get-child-from-xy: func [
 	parent		[handle!]
 	x			[integer!]
@@ -337,41 +343,59 @@ get-child-from-xy: func [
 get-text-size: func [
 	face		[red-object!]
 	str			[red-string!]
-	hFont		[handle!]
 	pair		[red-pair!]
 	return:		[tagSIZE]
 	/local
+		values	[red-value!]
+		font	[red-object!]
+		state	[red-block!]
+		hFont	[handle!]
 		text	[c-string!]
 		len		[integer!]
-		width	[integer!]
-		height	[integer!]
-		pl		[handle!]
 		size	[tagSIZE]
-		df		[c-string!]
-		pc		[handle!]
-		widget	[handle!]
 ][
-	if null? pango-context [pango-context: gdk_pango_context_get]
-	size: declare tagSIZE
+	values: object/get-values face
+	font: as red-object! values + FACE_OBJ_FONT
+	hFont: null
+	if TYPE_OF(font) = TYPE_OBJECT [
+		state: as red-block! values + FONT_OBJ_STATE
+		if TYPE_OF(state) <> TYPE_BLOCK [hFont: get-font-handle font 0]
+		if null? hFont [hFont: make-font face font]
+	]
 	if null? hFont [hFont: default-attrs]
 
 	len: -1
 	text: unicode/to-utf8 str :len
 
-	pl: pango_layout_new pango-context
-	pango_layout_set_text pl text -1
-	pango_layout_set_attributes pl hFont
-	width: 0 height: 0
-	pango_layout_get_pixel_size pl :width :height
-	g_object_unref pl
-
-	size/width: width
-	size/height: height
+	size: pango-size? text hFont
 
 	if pair <> null [
 		pair/x: size/width
 		pair/y: size/height
 	]
+	size
+]
+
+pango-size?: func [
+	text		[c-string!]
+	attrs		[handle!]
+	return:		[tagSIZE]
+	/local
+		pl		[handle!]
+		width	[integer!]
+		height	[integer!]
+		size	[tagSIZE]
+][
+	if null? pango-context [pango-context: gdk_pango_context_get]
+	pl: pango_layout_new pango-context
+	pango_layout_set_text pl text -1
+	pango_layout_set_attributes pl attrs
+	width: 0 height: 0
+	pango_layout_get_pixel_size pl :width :height
+	g_object_unref pl
+	size: declare tagSIZE
+	size/width: width
+	size/height: height
 	size
 ]
 
@@ -395,6 +419,8 @@ free-handles: func [
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
 
+	free-color-provider widget
+	free-font-provider widget
 	rate: values + FACE_OBJ_RATE
 	if TYPE_OF(rate) <> TYPE_NONE [change-rate widget none-value]
 
@@ -512,7 +538,9 @@ set-defaults: func [
 	len: len + 1
 	default-font-name/len: null-byte
 	default-font-size: size
-	set-default-font default-font-name default-font-size
+	default-font-color: 0					;-- default black
+	init-default-handle
+	default-font-width: font-width? null null
 ]
 
 find-active-window: func [
@@ -632,7 +660,8 @@ init: func [][
 
 	set-defaults
 
-	#if type = 'exe [red-gtk-styles]
+	#if type = 'exe [set-env-theme]
+	set-app-theme "box, button.text-button {min-width: 1px; min-height: 1px;}" yes
 	collector/register as int-ptr! :on-gc-mark
 ]
 
@@ -774,26 +803,6 @@ change-image: func [
 	]
 ]
 
-change-color: func [
-	widget		[handle!]
-	color		[red-tuple!]
-	type		[integer!]
-	/local
-		t		[integer!]
-		face	[red-object!]
-		values	[red-value!]
-		font	[red-object!]
-][
-	t: TYPE_OF(color)
-	if all [t <> TYPE_NONE t <> TYPE_TUPLE][exit]
-	face: get-face-obj widget
-	values: object/get-values face
-	font: as red-object! values + FACE_OBJ_FONT
-	free-font font
-	make-font face font
-	set-font widget face values
-]
-
 change-pane: func [
 	parent		[handle!]
 	pane		[red-block!]
@@ -870,19 +879,6 @@ change-pane: func [
 	]
 ]
 
-change-font: func [
-	widget		[handle!]
-	face		[red-object!]
-	values		[red-value!]
-	/local
-		font	[red-object!]
-][
-	font: as red-object! values + FACE_OBJ_FONT
-	free-font font
-	make-font face font
-	set-font widget face values
-]
-
 change-offset: func [
 	widget		[handle!]
 	values		[red-value!]
@@ -908,9 +904,13 @@ change-size: func [
 		pl		[handle!]
 		x		[integer!]
 		y		[integer!]
+		fy		[float!]
+		min		[float!]
+		max		[float!]
+		page	[float!]
+		adj		[handle!]
 ][
 	either type = window [
-		gtk_window_set_default_size widget size/x size/y
 		gtk_window_resize widget size/x size/y
 		gtk_widget_queue_draw widget
 	][
@@ -918,9 +918,22 @@ change-size: func [
 		ntype: as red-word! values + FACE_OBJ_TYPE
 		sym: symbol/resolve ntype/symbol
 		layout: get-face-layout widget values sym
+		y: size/y
 		if layout <> widget [
+			if type = rich-text [	;-- is scrollable
+				adj: gtk_scrollable_get_vadjustment widget
+				min: gtk_adjustment_get_lower adj
+				max: gtk_adjustment_get_upper adj
+				page: gtk_adjustment_get_page_size adj
+				fy: as float! y
+				fy: max - min / page * fy
+				y: as-integer fy
+			]
 			gtk_widget_set_size_request layout size/x size/y
 			gtk_widget_queue_resize layout
+		]
+		if type = rich-text [
+			gtk_layout_set_size widget size/x y
 		]
 		gtk_widget_set_size_request widget size/x size/y
 		gtk_widget_queue_resize widget
@@ -944,15 +957,11 @@ change-visible: func [
 	show?		[logic!]
 	type		[integer!]
 	/local
-		values	[red-value!]
-		ntype	[red-word!]
-		sym		[integer!]
 		layout	[handle!]
 ][
-	values: get-face-values widget
-	ntype: as red-word! values + FACE_OBJ_TYPE
-	sym: symbol/resolve ntype/symbol
-	layout: get-face-layout widget values sym
+	if all [show? type = window][OS-show-window as-integer widget exit]
+
+	layout: get-face-layout widget null type
 	if layout <> widget [
 		gtk_widget_set_visible layout show?
 	]
@@ -979,6 +988,8 @@ change-text: func [
 		cstr	[c-string!]
 		str		[red-string!]
 		buffer	[handle!]
+		start	[GtkTextIter! value]
+		end		[GtkTextIter! value]
 ][
 	;; DEBUG: print ["change-text: " get-symbol-name type lf]
 
@@ -1000,7 +1011,9 @@ change-text: func [
 		case [
 			type = area [
 				buffer: gtk_text_view_get_buffer widget
-			 	gtk_text_buffer_set_text buffer cstr -1
+				gtk_text_buffer_set_text buffer cstr -1
+				gtk_text_buffer_get_bounds buffer as handle! start as handle! end
+				update-textview-tag buffer as handle! start as handle! end
 			]
 			type = text [
 				gtk_label_set_text widget cstr
@@ -1046,14 +1059,14 @@ change-data: func [
 	case [
 		all [
 			type = progress
-			TYPE_OF(data) = TYPE_PERCENT
+			any [TYPE_OF(data) = TYPE_PERCENT TYPE_OF(data) = TYPE_FLOAT]
 		][
 			f: as red-float! data
 			gtk_progress_bar_set_fraction widget f/value
 		]
 		all [
 			type = slider
-			TYPE_OF(data) = TYPE_PERCENT
+			any [TYPE_OF(data) = TYPE_PERCENT TYPE_OF(data) = TYPE_FLOAT]
 		][
 			f: as red-float! data
 			gtk_range_set_value widget f/value * 100.0
@@ -1367,18 +1380,30 @@ remove-entry: func [
 	gtk_container_remove container widget
 ]
 
-font-size?: func [
+font-width?: func [
+	face		[red-object!]
 	font		[red-object!]
-	return:		[integer!]
+	return:		[float32!]
 	/local
-		values	[red-value!]
-		size	[red-integer!]
+		txt		[c-string!]
+		attrs	[handle!]
+		free?	[logic!]
+		sz		[tagSIZE]
 ][
-	if TYPE_OF(font) <> TYPE_OBJECT [return default-font-size]
-	values: object/get-values font
-	size:	as red-integer!	values + FONT_OBJ_SIZE
-	if TYPE_OF(size) <> TYPE_INTEGER [return default-font-size]
-	size/value
+	txt: "abcde12xxx"
+	free?: no
+	either all [
+		font <> null
+		TYPE_OF(font) = TYPE_OBJECT
+	][
+		attrs: create-pango-attrs face font
+		free?: yes
+	][
+		attrs: default-attrs
+	]
+	sz: pango-size? txt attrs
+	if free? [pango_attr_list_unref attrs]
+	(as float32! sz/width) / as float32! 10.0
 ]
 
 update-scroller: func [
@@ -1387,49 +1412,91 @@ update-scroller: func [
 	/local
 		parent		[red-object!]
 		vertical?	[red-logic!]
+		bar			[handle!]
 		int			[red-integer!]
 		values		[red-value!]
 		widget		[handle!]
-		nTrackPos	[integer!]
-		nPos		[integer!]
-		nPage		[integer!]
-		nMax		[integer!]
-		nMin		[integer!]
-		fMask		[integer!]
-		cbSize		[integer!]
+		container	[handle!]
+		pos			[float!]
+		page		[float!]
+		max			[float!]
+		min			[float!]
+		n			[float!]
+		range		[float!]
+		new-pos		[float!]
+		vs			[integer!]
+		hs			[integer!]
+		w			[integer!]
+		h			[integer!]
+		flags		[integer!]
 ][
-	;values: object/get-values scroller
-	;parent: as red-object! values + SCROLLER_OBJ_PARENT
-	;vertical?: as red-logic! values + SCROLLER_OBJ_VERTICAL?
-	;int: as red-integer! block/rs-head as red-block! (object/get-values parent) + FACE_OBJ_STATE
-	;widget: as handle! int/value
+	values: object/get-values scroller
+	parent: as red-object! values + SCROLLER_OBJ_PARENT
+	vertical?: as red-logic! values + SCROLLER_OBJ_VERTICAL?
+	int: as red-integer! block/rs-head as red-block! (object/get-values parent) + FACE_OBJ_STATE
+	widget: as handle! int/value
+	container: get-face-layout widget null rich-text
 
-	;int: as red-integer! values + flag
+	int: as red-integer! values + flag
+	if flag = SCROLLER_OBJ_VISIBLE? [
+		hs: 0 vs: 0
+		gtk_scrolled_window_get_policy container :hs :vs
+		either int/value = 0 [flags: 2][flags: 1]
+		either vertical?/value [vs: flags][hs: flags]
+		gtk_scrolled_window_set_policy container hs vs
+		exit
+	]
 
-	;if flag = SCROLLER_OBJ_VISIBLE? [
-	;	ShowScrollBar widget as-integer vertical?/value as logic! int/value
-	;	exit
-	;]
+	either vertical?/value [
+		bar: gtk_scrollable_get_vadjustment widget
+	][
+		bar: gtk_scrollable_get_hadjustment widget
+	]
 
-	;fMask: switch flag [
-	;	SCROLLER_OBJ_POS [nPos: int/value SIF_POS]
-	;	SCROLLER_OBJ_PAGE
-	;	SCROLLER_OBJ_MAX [
-	;		int: as red-integer! values + SCROLLER_OBJ_PAGE
-	;		nPage: int/value
-	;		int: as red-integer! values + SCROLLER_OBJ_MAX
-	;		nMin: 1
-	;		nMax: int/value
-	;	 	SIF_RANGE or SIF_PAGE
-	;	]
-	;	default [0]
-	;]
+	SET-CONTAINER(bar scroller/ctx)
 
-	;if fMask <> 0 [
-	;	fMask: fMask or SIF_DISABLENOSCROLL
-	;	cbSize: size? tagSCROLLINFO
-	;	SetScrollInfo widget as-integer vertical?/value as tagSCROLLINFO :cbSize yes
-	;]
+	w: 0 h: 0
+	gtk_widget_get_size_request container :w :h
+
+	int: as red-integer! values + SCROLLER_OBJ_POS
+	pos: as float! int/value
+	int: as red-integer! values + SCROLLER_OBJ_PAGE
+	page: as float! int/value
+	int: as red-integer! values + SCROLLER_OBJ_MIN
+	min: as float! int/value
+	int: as red-integer! values + SCROLLER_OBJ_MAX
+	max: as float! int/value
+
+	if max - min <= page [exit]
+
+	switch flag [
+		SCROLLER_OBJ_POS [
+			if null <> GET-IN-LOOP(widget) [exit]
+			pos: pos - min
+			range: max - min - page + 1.0
+			if pos > range [pos: range]
+			if pos < 0.0 [pos: 0.0]
+			either range <= 0.0 [new-pos: 1.0][
+				new-pos: pos / range
+			]
+			min: gtk_adjustment_get_lower bar
+			max: gtk_adjustment_get_upper bar
+			page: gtk_adjustment_get_page_size bar
+			range: max - min - page
+			new-pos: new-pos * range + min
+			gtk_adjustment_set_value bar new-pos
+		]
+		SCROLLER_OBJ_PAGE
+		SCROLLER_OBJ_MAX [
+			n: as float! h
+			if all [page > 0.0 max - min > page][
+				n: max - min + 1.0 / page * n
+				h: as-integer n + 0.5
+				gtk_layout_set_size widget w h
+			]
+		]
+		default [0]
+	]
 ]
 
 
@@ -1516,14 +1583,29 @@ OS-refresh-window: func [
 ][
 	if widget <> 0 [								;-- view engine should make sure a valid handle, but it not
 		gtk_widget_queue_draw as handle! widget
+		set-selected-focus as handle! widget
 	]
 ]
 
 OS-show-window: func [
 	widget		[integer!]
+	/local
+		n		[integer!]
+		win		[handle!]
 ][
-	show-widget as handle! widget
-	set-selected-focus as handle! widget
+	win: as handle! widget
+	if gtk_window_get_modal win [gtk_window_set_transient_for win find-active-window]
+
+	gtk_widget_show win
+	n: 0
+	window-ready?: no
+	until [		;-- process some events to make the window ready
+		do-events yes
+		n: n + 1
+		any [window-ready? n = 10000]
+	]
+	window-ready?: no
+	set-selected-focus win
 ]
 
 OS-make-view: func [
@@ -1559,16 +1641,18 @@ OS-make-view: func [
 		buffer		[handle!]
 		container	[handle!]
 		hMenu		[handle!]
+		vadjust		[handle!]
 		value		[integer!]
 		fvalue		[float!]
+		f32			[float32!]
 		vertical?	[logic!]
 		rfvalue		[red-float!]
 		attrs		[handle!]
-		newF?		[logic!]
 		handle		[handle!]
 		fradio		[handle!]
 		x			[integer!]
 		y			[integer!]
+		gm			[GdkGeometry! value]
 ][
 	stack/mark-native words/_body
 
@@ -1635,43 +1719,75 @@ OS-make-view: func [
 		sym = rich-text [
 			widget: gtk_layout_new null null
 			gtk_layout_set_size widget size/x size/y
-			container: gtk_scrolled_window_new null null
-			gtk_container_add container widget
+			if bits and FACET_FLAGS_SCROLLABLE <> 0 [
+				container: gtk_scrolled_window_new null null
+				gtk_container_add container widget
+				gtk_scrolled_window_set_policy container 1 1
+				len: 0
+				loop 2 [
+					either zero? len [vadjust: gtk_scrollable_get_vadjustment widget][
+						vadjust: gtk_scrollable_get_hadjustment widget
+					]
+					len: len + 1
+					g_signal_handlers_disconnect_by_data(vadjust widget)	;-- remove default event handler
+					gtk_adjustment_configure vadjust 0.0 0.0 1.0 0.0 0.0 1.0
+					gobj_signal_connect(vadjust "value_changed" :vbar-value-changed widget)
+				]
+			]
 		]
 		sym = window [
-			widget: gtk_window_new 0
-
-			if bits and FACET_FLAGS_MODAL <> 0 [
+			;; FIXME TBD parent should not always be zero, view engine should set it.
+			;either all [parent <> 0 bits and FACET_FLAGS_MODAL <> 0] [
+			either bits and FACET_FLAGS_MODAL <> 0 [
+				widget: gtk_dialog_new
 				gtk_window_set_modal widget yes
+				winbox: gtk_dialog_get_content_area widget
+			][
+				widget: gtk_window_new 0
+				winbox: gtk_box_new GTK_ORIENTATION_VERTICAL 0
+				gtk_container_add widget winbox
+				gtk_widget_show winbox
 			]
+			if any [
+				bits and FACET_FLAGS_NO_TITLE <> 0
+				bits and FACET_FLAGS_NO_BORDER <> 0
+			][
+				gtk_window_set_decorated widget no
+			]
+			if any [
+				bits and FACET_FLAGS_NO_MIN <> 0
+				bits and FACET_FLAGS_NO_BTNS <> 0
+			][
+				gtk_window_set_type_hint widget 5					;-- WINDOW_TYPE_HINT_UTILITY
+			]
+			if bits and FACET_FLAGS_NO_BTNS <> 0 [
+				gtk_window_set_deletable widget no					;-- hide Close button
+			]
+			
 			unless null? caption [gtk_window_set_title widget caption]
 
-			winbox: gtk_box_new GTK_ORIENTATION_VERTICAL  0
-			gtk_container_add widget winbox
+			hMenu: null
 			if menu-bar? menu window [
 				hMenu: gtk_menu_bar_new
 				gtk_widget_show hMenu
 				build-menu menu hMenu widget
 				gtk_box_pack_start winbox hMenu no yes 0
+				SET-CONTAINER-W(widget size/x)
+				SET-CONTAINER-H(widget size/y)
 			]
-			gtk_widget_show winbox
+			SET-HMENU(widget hMenu)
+
 			container: gtk_layout_new null null
 			gtk_layout_set_size container size/x size/y
 			gtk_widget_show container
 			gtk_box_pack_start winbox container yes yes 0
 			gtk_window_move widget offset/x offset/y
 
-			;; The following line really matters to fix the initial size of the window
-			gtk_widget_set_size_request widget size/x size/y
+			gtk_window_set_default_size widget size/x size/y
 			gtk_window_set_resizable widget (bits and FACET_FLAGS_RESIZE <> 0)
-			either any [
-				bits and FACET_FLAGS_NO_TITLE <> 0
-				bits and FACET_FLAGS_NO_BORDER <> 0
-			][
-				gtk_window_set_decorated widget no
-			][
-				gtk_window_set_decorated widget yes
-			]
+			gm/min_width: 1
+			gm/min_height: 1
+			gtk_window_set_geometry_hints widget null :gm 2		;-- 2: MIN_SIZE
 		]
 		sym = camera [
 			widget: gtk_layout_new null null
@@ -1693,8 +1809,8 @@ OS-make-view: func [
 		]
 		sym = text [
 			widget: gtk_label_new caption
-			;; gtk_label_set_width_chars widget ???
-			container: gtk_event_box_new null null
+			gtk_label_set_line_wrap widget yes
+			container: gtk_event_box_new
 			gtk_container_add container widget
 		]
 		sym = field [
@@ -1703,7 +1819,8 @@ OS-make-view: func [
 			unless null? caption [
 				gtk_entry_buffer_set_text buffer caption -1
 			]
-			gtk_entry_set_width_chars widget size/x / font-size? font
+			f32: (as float32! size/x - 18) / font-width? face font
+			gtk_entry_set_width_chars widget as-integer f32
 			set-hint-text widget as red-block! values + FACE_OBJ_OPTIONS
 			if bits and FACET_FLAGS_PASSWORD <> 0 [gtk_entry_set_visibility widget no]
 			gtk_entry_set_has_frame widget (bits and FACET_FLAGS_NO_BORDER = 0)
@@ -1728,8 +1845,6 @@ OS-make-view: func [
 		]
 		sym = group-box [
 			widget: gtk_frame_new caption
-			gtk_frame_set_shadow_type widget 3
-			gtk_frame_set_label_align widget 0.5 0.5		; Todo: does not seem to work
 			buffer: gtk_layout_new null null
 			gtk_widget_show buffer
 			gtk_container_add widget buffer
@@ -1756,11 +1871,11 @@ OS-make-view: func [
 		][
 			widget: either sym = drop-list [gtk_combo_box_text_new][gtk_combo_box_text_new_with_entry]
 			init-combo-box widget data caption sym = drop-list
-			;; TODO: improve it but better than nothing from now otherwise it is uggly!
 			if sym = drop-down [
-				value: size/x / (font-size? font)
-				if value > 2 [value - 2]
-				gtk_entry_set_width_chars gtk_bin_get_child widget value
+				if size/x > 64 [value: size/x - 64]
+				if value < 24 [value: 24]
+				f32: (as float32! value) / (font-width? face font)	;-- width / char width
+				gtk_entry_set_width_chars gtk_bin_get_child widget as-integer f32
 			]
 			gtk_combo_box_set_active widget 0
 		]
@@ -1772,37 +1887,25 @@ OS-make-view: func [
 
 	unless null? container [
 		SET-CONTAINER(widget container)
-		if sym = text [
-			make-styles-provider container
-		]
 	]
 	;-- store the face value in the extra space of the window struct
 	assert TYPE_OF(face) = TYPE_OBJECT
 	store-face-to-obj widget face
-	make-styles-provider widget
 
 	if all [
 		sym = panel
 		not null? caption
 	][
-		attrs: get-attrs face font
-		newF?: false
-		if null? attrs [
-			newF?: true
-			attrs: create-simple-attrs default-font-name default-font-size color
-		]
+		;attrs: get-font face font
 		buffer: gtk_label_new caption
 		gtk_widget_show buffer
-		set-label-attrs buffer font attrs
+		;set-label-attrs buffer font attrs
 		handle: gtk_label_get_layout buffer
 		x: 0 y: 0
 		pango_layout_get_pixel_size handle :x :y
 		x: either size/x > x [size/x - x / 2][0]
 		y: either size/y > y [size/y - y / 2][0]
 		gtk_layout_put widget buffer x y
-		if newF? [
-			free-pango-attrs attrs
-		]
 		SET-CAPTION(widget buffer)
 	]
 
@@ -1833,7 +1936,9 @@ OS-make-view: func [
 	]
 
 	change-selection widget selected sym
-	if sym <> base [change-font widget face values]
+	change-color widget color sym
+	change-font widget face values sym
+	change-para widget face values sym
 	change-enabled widget enabled?/value sym
 
 	parse-common-opts widget face as red-block! values + FACE_OBJ_OPTIONS sym
@@ -1921,11 +2026,11 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_DRAW  <> 0 [
 		gtk_widget_queue_draw widget
+		force-redraw?: yes
+		; 0
 	]
 	if flags and FACET_FLAG_COLOR <> 0 [
-		if type <> base [
-			change-color widget as red-tuple! values + FACE_OBJ_COLOR type
-		]
+		change-color widget as red-tuple! values + FACE_OBJ_COLOR type
 	]
 	if all [flags and FACET_FLAG_PANE <> 0 type <> tab-panel][
 		change-pane widget as red-block! values + FACE_OBJ_PANE type
@@ -1934,12 +2039,10 @@ OS-update-view: func [
 		change-rate widget values + FACE_OBJ_RATE
 	]
 	if flags and FACET_FLAG_FONT <> 0 [
-		if type <> base [
-			change-font widget face values
-		]
+		change-font widget face values type
 	]
 	if flags and FACET_FLAG_PARA <> 0 [
-		change-para widget face values
+		change-para widget face values type
 	]
 	;if flags and FACET_FLAG_MENU <> 0 [
 	;	menu: as red-block! values + FACE_OBJ_MENU
@@ -2139,36 +2242,6 @@ OS-do-draw: func [
 	cairo_destroy cr
 	cairo_surface_destroy surf
 	;; USELESS NOW???: OS-image/post-transf OS-image/POST-ARGB-TO-ABGR
-	OS-image/unlock-bitmap image bitmap
-]
-
-OS-do-draw-OLD: func [
-	image		[red-image!]
-	cmds		[red-block!]
-	/local
-		cr		[handle!]
-		surf	[handle!]
-		w		[integer!]
-		h		[integer!]
-		bitmap	[integer!]
-		data	[int-ptr!]
-		stride	[integer!]
-		pixbuf	[int-ptr!]
-		buf		[byte-ptr!]
-][
-	;; DEBUG: print ["OS-do-draw " image lf]
-	w: IMAGE_WIDTH(image/size)
-	h: IMAGE_HEIGHT(image/size)
-	stride: 0
-	bitmap: OS-image/lock-bitmap image yes
-	data: OS-image/get-data bitmap :stride
-	;stride: cairo_format_stride_for_width CAIRO_FORMAT_ARGB32 w
-	surf: cairo_image_surface_create_for_data as byte-ptr! data CAIRO_FORMAT_ARGB32 w h stride
-	cr: cairo_create surf
-	do-draw cr null cmds no yes yes yes
-	cairo_destroy cr
-	cairo_surface_destroy surf
-	OS-image/buffer-argb-to-abgr data w h
 	OS-image/unlock-bitmap image bitmap
 ]
 
