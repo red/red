@@ -141,19 +141,21 @@ C_EOF       : NUL
 ws: space | tab | cr | lf
 dbl-quote: "
 
-delimit1:  ws | [ | ] | ( | ) | { | } | " | ; | @
+delimit1:  ws | [ | ] | ( | ) | { | } | " | ; | @ | EOF
 delimit2:  [ | ] | ( | ) | { | } | " | : | ws | ; | <
 delimit3:  [ | ] | ( | ) | { | } | " | % | ws | ; | < | # | /
 delimit5:  [ | ] | ( | ) | { | } | " | % | ws | ; | < | # | @ | / | \ | ^ | , | : | $
 delimit6:  [ | ] | ( | ) | { | } | " | % | ws | ; | < | # | @ | / | \ | ^ | , | 0-9
-delimit7:  [ | ] | ( | ) | { | } | " | ws | ; | < | \
-delimit8:  [ | ] | ( | ) | { | } | : | ws | ; | @
-delimit9:  ] | ) | } | " | : | < | > | ,
+delimit7:  ws | [ | ] | ( | ) | } | ; | " | \ | EOF
+delimit8:  ws | [ | ] | ( | ) | } | ; | @ | EOF
+delimit81: ws | [ | ] | ( | ) | } | ; | @ | : | EOF
+delimit9:  ws | ] | ) | } | : | < | > | ,
 delimit10: [ | ] | ( | ) | { | } | " | ws | ; | <
 delimit11: [ | ] | ( | ) | { | } | " | : | ws | ; | < | /
 delimit12: [ | ] | ( | ) | { | } | " | % | ws | ; | < | # | @ | / | \ | ^ | , | : | 0-9 | ' | $
 delimit13: [ | ] | ( | ) | { | } | " | % | ws | ; | < | # | @ | ^
 delimit14: # | ' | < | % | ^
+delimit15: ws | [ | ] | ( | ) | { | " | ; | < | EOF
 
 hexa: C_ZERO | C_DIGIT | C_ALPHAX
 alphaU: A, B, C, D, F
@@ -167,23 +169,29 @@ S_START->"["->T_BLK_OP
 S_START->"]"->T_BLK_CL
 S_START->"("->T_PAR_OP
 S_START->")"->T_PAR_CL
+S_START->"{"->T_MSTR_OP
+S_START->"{"->T_MSTR_OP
+S_START->"}"->T_ERROR
 
 S_START->dbl-quote->S_LINE_STR->not("^"|dbl-quote)->S_LINE_STR
                      \->"^"->S_SKIP_STR->*->S_LINE_STR
                       \->dbl-quote->T_STRING
 
-S_START->"{"->T_MSTR_OP
-
-S_M_STRING->not("^"|"}")->S_M_STRING
-               \->"^"->S_SKIP_MSTR->*->S_M_STRING
-                \->"{"->T_MSTR_OP
-                 \->"}"->T_MSTR_CL
+S_M_STRING->not("^"|"{"|"}")->S_M_STRING
+               \->"^"->S_SKIP_MSTR->not(EOF)->S_M_STRING
+                \            \->EOF->T_ERROR
+                 \->"{"->T_MSTR_OP
+                  \->"}"->T_MSTR_CL
 
 S_START->"/"->S_SLASH->not(delimit1)->S_SLASH
                \->delimit1->T_REFINE
+                \ 
+                 \->"/"->S_SLASH_N->"/"->S_SLASH_N
+                          \->delimit1->T_WORD
+                           \->not(delimit1|"/")->S_WORD
 
-S_START->"%"->S_FILE_1ST->not(delimit8)->S_FILE->not(delimit1)->S_FILE
-               \                          \->delimit1->T_FILE
+S_START->"%"->S_FILE_1ST->not(delimit8)->S_FILE->not(delimit81)->S_FILE
+               \                          \->delimit81->T_FILE
                 \
                  \->dbl-quote->S_FILE_STR->not(dbl-quote)->S_FILE_STR
                   \             \->dbl-quote->T_FILE
@@ -193,31 +201,38 @@ S_START->"%"->S_FILE_1ST->not(delimit8)->S_FILE->not(delimit1)->S_FILE
                       \       \->delimit7->T_WORD
                        \       \->else->T_ERROR
                         \
-                         \->"{"->S_HERDOC_ST->"}"->S_HDPER_C0->"%"->S_HDPER_CL->"%"->S_HDPER_CL
-                          \       \                 \                \->else->T_RAWSTRING
-                           \       \                 \->else->S_HERDOC_ST
-                            \       \->else->S_HERDOC_ST
-                             \->delimit8->T_WORD
+                         \->"{"->S_HERDOC_ST->"}"->S_HDPER_C0->"%"|"}"->S_HDPER_CL->"%"->S_HDPER_CL
+                          \       \                 \                    \
+                           \       \                 \                    \->delimit15->T_RAWSTRING
+                            \       \                 \                    \->else->T_ERROR
+                             \       \                 \->else->S_HERDOC_ST
+                              \       \->else->S_HERDOC_ST
+                               \
+                                \->":"->S_PERCENT
+                                 \->delimit8->T_WORD
 
 
-S_START->"#"->S_SHARP->"{"->S_BINARY->hexa|ws->S_BINARY
-               \             \->";"->S_LINE_CMT2->not(lf)->S_LINE_CMT2
-                \             \        \->lf->S_BINARY
-                 \             \
-                  \             \->"}"->T_BINARY
-                   \
-                    \->dbl-quote->S_CHAR->not("^"|dbl-quote)->S_CHAR
-                     \             \->"^"->S_SKIP_CHAR->*->S_CHAR
-                      \             \->dbl-quote->T_CHAR
-                       \
-                        \->"("->T_MAP_OP
+S_START->"#"->S_SHARP->"{"->S_BINARY->hexa|ws|"/"|"="|"+"->S_BINARY
+               \             \->";"->S_LINE_CMT2->not(lf|EOF)->S_LINE_CMT2
+                \             \       \->lf->S_BINARY
+                 \             \       \->EOF->T_ERROR
+                  \             \
+                   \             \->"}"->T_BINARY
+                    \
+                     \->dbl-quote->S_CHAR->not("^"|dbl-quote|EOF)->S_CHAR
+                      \             \->"^"->S_SKIP_CHAR->*->S_CHAR
+                       \             \->dbl-quote->T_CHAR
+                        \             \->EOF->T_ERROR
                          \
-                          \->"["->S_CONSTRUCT->not("]")->S_CONSTRUCT
-                           \        \->"]"->T_CONS_MK
-                            \
-                             \->not(delimit9)->S_ISSUE->not(delimit1)->S_ISSUE
-                              \                 \->delimit1->T_ISSUE
-                               \->delimit9->T_ERROR
+                          \->"("->T_MAP_OP
+                           \
+                            \->"["->S_CONSTRUCT->not("]"|EOF)->S_CONSTRUCT
+                             \        \->"]"->T_CONS_MK
+                              \        \->EOF->T_ERROR
+                               \
+                                \->not(delimit9)->S_ISSUE->not(delimit1)->S_ISSUE
+                                 \                 \->delimit1->T_ISSUE
+                                  \->delimit9->T_ERROR
 
 
 S_START->digit->S_NUMBER->digit|"'"->S_NUMBER
