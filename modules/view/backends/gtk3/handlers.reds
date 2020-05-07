@@ -468,14 +468,8 @@ im-commit: func [
 		cp		[integer!]
 ][
 	cp: as integer! str/1
-	special-key: 0
-	make-event widget cp EVT_KEY_DOWN
+	print-line ["commit: " cp]
 	make-event widget cp EVT_KEY
-	make-event widget cp EVT_KEY_UP
-	cp: 6539h
-	make-event widget cp EVT_KEY_DOWN
-	make-event widget cp EVT_KEY
-	make-event widget cp EVT_KEY_UP
 ]
 
 im-preedit-start: func [
@@ -485,6 +479,7 @@ im-preedit-start: func [
 	/local
 		str		[c-string!]
 ][
+	print-line "start"
 	str: GET-IM-STRING(ctx)
 	unless null? str [
 		g_free as handle! str
@@ -507,6 +502,7 @@ im-preedit-changed: func [
 	;print-line gtk_im_context_get_surrounding ctx :text :index
 	;print-line as c-string! text
 	;print-line index
+	print-line "changed"
 	pstr: 0
 	gtk_im_context_get_preedit_string ctx :pstr null null
 	str: as c-string! pstr
@@ -531,6 +527,7 @@ im-preedit-end: func [
 		cnt		[integer!]
 		cp		[integer!]
 ][
+	print-line "end"
 	SET-IM-START(ctx 0)
 	str: GET-IM-STRING(ctx)
 	if null? str [exit]
@@ -540,9 +537,7 @@ im-preedit-end: func [
 		cnt: unicode/utf8-char-size? as-integer cstr/1
 		cp: unicode/decode-utf8-char cstr :cnt
 		print-line [widget " " as int-ptr! cp]
-		make-event widget cp EVT_KEY_DOWN
 		make-event widget cp EVT_KEY
-		make-event widget cp EVT_KEY_UP
 		cstr: cstr + cnt
 	]
 	g_free as handle! str
@@ -787,29 +782,30 @@ key-press-event: func [
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
 
-	if sym = rich-text [
-		unless any [
-			all [
-				event-key/state and GDK_SHIFT_MASK <> 0
-				event-key/keyval = 20h
-			]
-			all [
-				event-key/keyval >= GDK_KEY_KP_Space
-				event-key/keyval <= GDK_KEY_KP_Divide
-			]
-		][
-			im: GET-IM-CONTEXT(widget)
-			done?: gtk_im_context_filter_keypress im event-key
-			if done? [return EVT_NO_DISPATCH]
-		]
-	]
-
 	key: translate-key event-key/keyval
 	flags: check-extra-keys event-key/state
 	special-key: either char-key? as-byte key [0][-1]		;-- special key or not
 	if all [key >= 80h special-key = -1][
+		if all [
+			flags = 0
+			sym = rich-text
+		][
+			im: GET-IM-CONTEXT(widget)
+			done?: gtk_im_context_filter_keypress im event-key
+			print-line ["done?: " done?]
+			if done? [return EVT_NO_DISPATCH]
+		]
 		flags: flags or special-key-to-flags key
 		key: 0
+	]
+	if all [
+		special-key = 0
+		sym = rich-text
+	][
+		im: GET-IM-CONTEXT(widget)
+		done?: gtk_im_context_filter_keypress im event-key
+		print-line ["done?: " done?]
+		if done? [return EVT_NO_DISPATCH]
 	]
 	res: make-event widget key or flags EVT_KEY_DOWN
 	if res <> EVT_NO_DISPATCH [
@@ -856,26 +852,29 @@ key-release-event: func [
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
 
-	if sym = rich-text [
-		unless any [
-			all [
-				event-key/state and GDK_SHIFT_MASK <> 0
-				event-key/keyval = 20h
-			]
-			all [
-				event-key/keyval >= GDK_KEY_KP_Space
-				event-key/keyval <= GDK_KEY_KP_Divide
-			]
+	key: translate-key event-key/keyval
+	flags: check-extra-keys event-key/state
+	special-key: either char-key? as-byte key [0][-1]		;-- special key or not
+	if all [key >= 80h special-key = -1][
+		if all [
+			flags = 0
+			sym = rich-text
 		][
 			im: GET-IM-CONTEXT(widget)
 			done?: gtk_im_context_filter_keypress im event-key
 			if done? [return EVT_NO_DISPATCH]
 		]
+		flags: flags or special-key-to-flags key
+		key: 0
 	]
-
-	key: translate-key event-key/keyval
-	flags: check-extra-keys event-key/state
-	special-key: either char-key? as-byte key [0][-1]		;-- special key or not
+	if all [
+		special-key = 0
+		sym = rich-text
+	][
+		im: GET-IM-CONTEXT(widget)
+		done?: gtk_im_context_filter_keypress im event-key
+		if done? [return EVT_NO_DISPATCH]
+	]
 	make-event widget key or flags EVT_KEY_UP
 ]
 
