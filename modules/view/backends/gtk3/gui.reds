@@ -1722,7 +1722,7 @@ OS-make-view: func [
 			gobj_signal_connect(handle "preedit-start" :im-preedit-start widget)
 			gobj_signal_connect(handle "preedit-end" :im-preedit-end widget)
 			gobj_signal_connect(handle "preedit-changed" :im-preedit-changed widget)
-			;gobj_signal_connect(handle "retrieve-surrounding" :im-retrieve-surrounding widget)
+			gobj_signal_connect(handle "retrieve-surrounding" :im-retrieve-surrounding widget)
 			if bits and FACET_FLAGS_SCROLLABLE <> 0 [
 				container: gtk_scrolled_window_new null null
 				gtk_container_add container widget

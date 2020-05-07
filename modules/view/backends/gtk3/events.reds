@@ -653,6 +653,8 @@ get-event-picked: func [
 		res		[red-value!]
 		int		[red-integer!]
 		event	[GdkEventScroll!]
+		str		[c-string!]
+		size	[integer!]
 ][
 	as red-value! switch evt/type [
 		EVT_ZOOM
@@ -671,6 +673,11 @@ get-event-picked: func [
 		EVT_WHEEL [
 			event: as GdkEventScroll! g_object_get_qdata as handle! evt/msg red-event-id
 			float/push 0.0 - event/delta_y
+		]
+		EVT_IME [
+			str: as c-string! evt/flags
+			size: length? str
+			string/load str size UTF-8
 		]
 		EVT_SCROLL [integer/push evt/flags >>> 4]
 		EVT_MENU [word/push* evt/flags and FFFFh]

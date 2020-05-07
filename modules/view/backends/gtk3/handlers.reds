@@ -505,6 +505,7 @@ im-preedit-changed: func [
 	print-line "changed"
 	pstr: 0
 	gtk_im_context_get_preedit_string ctx :pstr null null
+	make-event widget pstr EVT_IME
 	str: as c-string! pstr
 	either str/1 <> null-byte [
 		str: GET-IM-STRING(ctx)
@@ -549,7 +550,7 @@ im-retrieve-surrounding: func [
 	ctx			[handle!]
 	widget		[handle!]
 ][
-	;print 4
+	print-line "retrieve"
 	true
 ]
 
