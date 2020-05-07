@@ -281,15 +281,17 @@ natives: context [
 	foreach*: func [
 		check? [logic!]
 		/local
-			value [red-value!]
-			body  [red-block!]
-			size  [integer!]
+			value  [red-value!]
+			series [red-value!]
+			body   [red-block!]
+			size   [integer!]
 	][
 		#typecheck foreach
 		value: stack/arguments
+		series: stack/arguments + 1
 		body: as red-block! stack/arguments + 2
 		
-		stack/push stack/arguments + 1					;-- copy arguments to stack top in reverse order
+		stack/push series								;-- copy arguments to stack top in reverse order
 		stack/push value								;-- (required by foreach-next)
 		
 		stack/mark-loop words/_body
@@ -310,6 +312,8 @@ natives: context [
 				]
 			]
 		][
+			if TYPE_OF(series) = TYPE_MAP [fire [TO_ERROR(script invalid-arg) value]]
+			
 			while [foreach-next][						;-- foreach <word!>
 				stack/reset
 				catch RED_THROWN_BREAK	[interpreter/eval body no]
@@ -1614,16 +1618,18 @@ natives: context [
 		/local
 			arg	  [red-integer!]
 			limit [red-integer!]
-			buf   [red-word!]
 			p	  [c-string!]
 			part  [integer!]
 	][
 		#typecheck [to-hex size]
 		arg: as red-integer! stack/arguments
 		limit: arg + size
-
+		
 		p: string/to-hex arg/value no
-		part: either OPTION?(limit) [8 - limit/value][0]
+		part: either not OPTION?(limit) [0][
+			unless positive? limit/value [fire [TO_ERROR(script invalid-arg) limit]]
+			8 - limit/value
+		]
 		if negative? part [part: 0]
 		issue/make-at stack/arguments p + part
 	]
@@ -1798,7 +1804,7 @@ natives: context [
 	][
 		#typecheck log-2
 		f: argument-as-float
-		f/value: (log-2 f/value) / 0.6931471805599453
+		f/value: (log-e f/value) / 0.6931471805599453
 	]
 
 	log-10*: func [
@@ -1818,7 +1824,7 @@ natives: context [
 	][
 		#typecheck log-e
 		f: argument-as-float
-		f/value: log-2 f/value
+		f/value: log-e f/value
 	]
 
 	exp*: func [
@@ -2956,7 +2962,7 @@ natives: context [
 	][
 		i: 1
 		type: TYPE_OF(value)
-		block?: any [type = TYPE_BLOCK type = TYPE_PAREN type = TYPE_HASH type = TYPE_MAP]
+		block?: any [type = TYPE_BLOCK type = TYPE_PAREN type = TYPE_HASH type = TYPE_MAP type = TYPE_PATH]
 		if block? [blk: as red-block! value]
 		
 		while [i <= size][
@@ -3095,10 +3101,11 @@ natives: context [
 					result: map/set-many blk as red-hash! series size
 				]
 				TYPE_IMAGE [
-					#either OS = 'Windows [
-						image/set-many blk as red-image! series size
-					][
-						--NOT_IMPLEMENTED--
+					#case [
+						any [OS = 'Windows OS = 'macOS] [
+							image/set-many blk as red-image! series size
+						]
+						true [--NOT_IMPLEMENTED--]
 					]
 				]
 				default [

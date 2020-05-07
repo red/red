@@ -390,6 +390,7 @@ Red [
 		--assert ["a" "b" "c"] = split "a-b-c" "-"
 		--assert ["a" "c"] = split "a-b-c" "-b-"
 		--assert ["a-b-c"] = split "a-b-c" "x"
+		--assert false = do compose [same? (second split "a," ",") (second split "b," ",")] ;PR #4381 missing copy in split function
 ===end-group===
 
 ===start-group=== "dirize tests"

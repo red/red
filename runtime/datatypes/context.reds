@@ -46,6 +46,25 @@ _context: context [
 		-1												;-- search failed
 	]
 	
+	get-any: func [
+		symbol  [integer!]
+		node	[node!]
+		return:	[red-value!]
+		/local
+			ctx	   [red-context!]
+			values [series!]
+			index  [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "_context/get-any"]]
+
+		ctx: TO_CTX(node)
+		if ON_STACK?(ctx) [ctx: TO_CTX(global-ctx)]
+		values: as series! ctx/values/value
+		index: find-word ctx symbol yes
+		assert index <> -1
+		values/offset + index
+	]
+	
 	set-global: func [
 		symbol	[integer!]
 		value	[red-value!]

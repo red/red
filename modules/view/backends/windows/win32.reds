@@ -1155,6 +1155,9 @@ XFORM!: alias struct! [
 			nVirtKey	[integer!]
 			return:		[integer!]
 		]
+		GetActiveWindow: "GetActiveWindow" [
+			return:		[handle!]
+		]
 		SetActiveWindow: "SetActiveWindow" [
 			hWnd		[handle!]
 			return:		[handle!]
@@ -2362,6 +2365,11 @@ XFORM!: alias struct! [
 		GdipSetStringFormatLineAlign: "GdipSetStringFormatLineAlign" [
 			format		[integer!]
 			align		[integer!]
+			return:		[integer!]
+		]
+		GdipSetStringFormatTrimming: "GdipSetStringFormatTrimming" [
+			format		[integer!]
+			trimming	[integer!]
 			return:		[integer!]
 		]
 		GdipCreateFontFromDC: "GdipCreateFontFromDC" [

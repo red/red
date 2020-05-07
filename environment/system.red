@@ -234,7 +234,7 @@ system: context [
 				;security-level:	["attempt to lower security to" :arg1]
 				;security-error:	["invalid" :arg1 "security policy:" :arg2]
 				;no-codec:			["cannot decode or encode (no codec):" :arg1]
-				;bad-media:			["bad media data (corrupt image, sound, video)"]
+				bad-media:			["bad media data (corrupt image, sound, video)"]
 				;no-extension:		["cannot open extension:" :arg1]
 				;bad-extension:		["invalid extension format:" :arg1]
 				;extension-init:	["extension cannot be initialized (check version):" :arg1]

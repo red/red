@@ -294,7 +294,7 @@ Red/System [
 	RED_THROWN_RETURN:				2147483644
 	RED_THROWN_CONTINUE:			2147483645
 	RED_THROWN_BREAK:				2147483646
-	RED_THROWN_ERROR:				2147483647
+	RED_THROWN_ERROR:				2147483647		;-- 7FFFFFFFh
 ]
 
 #enum object-classes! [
@@ -426,7 +426,7 @@ Red/System [
 	]
 ]
 
-#define ANY_LIST(type)	[
+#define ANY_LIST?(type)	[
 	any [
 		type = TYPE_BLOCK
 		type = TYPE_PAREN

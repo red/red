@@ -195,12 +195,10 @@ pair: context [
 			pair/header: TYPE_UNSET
 		][
 			unless zero? pair/x [
-				n: _random/rand % pair/x + 1
-				pair/x: either negative? pair/x [0 - n][n]
+				pair/x: _random/int-uniform-distr secure? pair/x
 			]
 			unless zero? pair/y [
-				n: _random/rand % pair/y + 1
-				pair/y: either negative? pair/y [0 - n][n]
+				pair/y: _random/int-uniform-distr secure? pair/y
 			]
 		]
 		as red-value! pair

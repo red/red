@@ -409,8 +409,8 @@ get-event-picked: func [
 			]
 		]
 		EVT_MENU [
-			idx: evt/flags and FFFFh
-			either idx = FFFFh [none/push][word/push* idx]
+			idx: evt/flags
+			either idx = -1 [none/push][word/push* idx]
 		]
 		EVT_SCROLL [integer/push evt/flags >>> 4]
 		EVT_WHEEL [
@@ -626,9 +626,11 @@ do-events: func [
     ]
 
     unless no-wait? [
-	    loop-started?: yes
-	    objc_msgSend [NSApp sel_getUid "activateIgnoringOtherApps:" 1]
-	    objc_msgSend [NSApp sel_getUid "finishLaunching"]
+	    unless loop-started? [
+		    objc_msgSend [NSApp sel_getUid "activateIgnoringOtherApps:" 1]
+			objc_msgSend [NSApp sel_getUid "finishLaunching"]
+		    loop-started?: yes
+	    ]
 	    timeout: objc_msgSend [objc_getClass "NSDate" sel_getUid "distantFuture"]
     ]
 	until [

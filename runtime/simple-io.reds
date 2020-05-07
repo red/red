@@ -41,6 +41,22 @@ simple-io: context [
 		str
 	]
 
+	load-utf8: func [
+		data	[byte-ptr!]
+		size	[integer!]
+		return: [red-string!]
+		/local
+			str	[red-string!]
+	][
+		str: as red-string! stack/push*
+		str/header: TYPE_UNSET
+		str/head: 0
+		str/node: unicode/load-utf8-buffer as-c-string data size null null yes
+		str/cache: null
+		str/header: TYPE_STRING					;-- implicit reset of all header flags
+		str
+	]
+
 	#either OS = 'Windows [
 		stat!: alias struct! [val [integer!]]
 
@@ -857,15 +873,7 @@ simple-io: context [
 		val: as red-value! either binary? [
 			binary/load buffer size
 		][
-			either lines? [lines-to-block buffer size][
-				str: as red-string! stack/push*
-				str/header: TYPE_UNSET
-				str/head: 0
-				str/node: unicode/load-utf8-buffer as-c-string buffer size null null yes
-				str/cache: null							;-- @@ cache small strings?
-				str/header: TYPE_STRING					;-- implicit reset of all header flags
-				str
-			]
+			either lines? [lines-to-block buffer size][load-utf8 buffer size]
 		]
 		free buffer
 		val
@@ -1559,7 +1567,7 @@ simple-io: context [
 						either lines? [
 							lines-to-block as byte-ptr! buf-ptr len
 						][
-							string/load as c-string! buf-ptr len UTF-8
+							load-utf8 as byte-ptr! buf-ptr len
 						]
 					]
 					SafeArrayUnaccessData array
@@ -1945,8 +1953,8 @@ simple-io: context [
 				either lines? [
 					bin: as red-binary! lines-to-block buf len
 				][
-					bin/header: TYPE_UNSET
 					bin/node: unicode/load-utf8 as c-string! buf len
+					bin/head: 0
 					bin/_pad: 0
 					bin/header: TYPE_STRING
 				]

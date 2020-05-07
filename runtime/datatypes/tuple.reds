@@ -108,7 +108,7 @@ tuple: context [
 		size: either a = -1 [a: 0 3][4]
 		tp: as red-tuple! slot
 		tp/header: TYPE_TUPLE or (size << 19)
-		tp/array1: (r << 24) or (g << 16 and 00FF0000h) or (b << 8 and FF00h) or (a and FFh)
+		tp/array1: (a << 24) or (b << 16 and 00FF0000h) or (g << 8 and FF00h) or (r and FFh)
 		tp/array2: 0
 		tp/array3: 0
 		tp
@@ -264,7 +264,7 @@ tuple: context [
 			n: 0
 			until [
 				n: n + 1
-				array/n: as-byte _random/rand % ((as-integer array/n) + 1)
+				array/n: as-byte (-1 + _random/int-uniform-distr secure? (1 + as-integer array/n))
 				n = size
 			]
 		]
@@ -505,6 +505,22 @@ tuple: context [
 		#if debug? = yes [if verbose > 0 [print-line "tuple/xor~"]]
 		as red-value! do-math OP_XOR
 	]
+	
+	complement: func [
+		tp      [red-tuple!]
+		return: [red-value!]
+		/local
+			array [byte-ptr!]
+			size  [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "tuple/complement"]]
+		
+		array: GET_TUPLE_ARRAY(tp)
+		size:  TUPLE_SIZE?(tp)
+		
+		loop size [array/value: not array/value array: array + 1]
+		as red-value! tp
+	]
 
 	length?: func [
 		tp		[red-tuple!]
@@ -670,7 +686,7 @@ tuple: context [
 			null			;odd?
 			;-- Bitwise actions --
 			:and~
-			null			;complement
+			:complement
 			:or~
 			:xor~
 			;-- Series actions --

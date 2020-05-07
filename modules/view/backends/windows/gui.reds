@@ -1494,8 +1494,11 @@ OS-make-view: func [
 			rc/bottom: rc/bottom - rc/top
 			focused: null 
 			if bits and FACET_FLAGS_MODAL <> 0 [
-				parent: as-integer find-last-window
-				if parent <> 0 [focused: get-selected-handle as handle! parent]
+				parent: as-integer GetActiveWindow
+				if parent <> 0 [
+					focused: get-selected-handle as handle! parent
+					if null? focused [focused: as handle! parent]
+				]
 			]
 		]
 		true [											;-- search in user-defined classes
@@ -1731,6 +1734,7 @@ change-size: func [
 		]
 		type = area		 [update-scrollbars hWnd null]
 		type = tab-panel [update-tab-contents hWnd FACE_OBJ_SIZE]
+		type = text		 [InvalidateRect hWnd null 1]	;-- issue #4388
 		true	  		 [0]
 	]
 ]
