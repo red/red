@@ -205,6 +205,17 @@ Red [
 				--assert (index? value) == index? test value
 			]
 		
+		--test-- "image"
+			loop 10 [
+				value: skip make image! reduce [
+					random 500x500
+					random 255.255.255
+				] (random 4) - 1
+				
+				--assert value == test value
+				--assert (index? value) == index? test value
+			]
+			
 		--test-- "any-string"
 			strings: [{} "string" <tag> email@address url:// %file @reference]
 			forall strings [--assert strings/1 == head test skip strings/1 (random 4) - 1]
