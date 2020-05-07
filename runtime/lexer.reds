@@ -167,6 +167,8 @@ lexer: context [
 		"January" "February" "March" "April" "May" "June" "July"
 		"August" "September" "October" "November" "December"
 	]
+	
+	days-max: #{1F1D1F1E1F1E1F1F1E1F1E1F}
 
 	lex-classes: [
 		(C_EOF or C_FLAG_EOF)							;-- 00		NUL
@@ -1779,7 +1781,8 @@ lexer: context [
 			if all [p < e any [p/1 = #"/" p/1 = #"T"]][grab-time-TZ]
 		]
 		if any [
-			day > 31 month > 12 year > 9999 year < -9999
+			day < 1 month < 1 month > 12 year > 9999 year < -9999
+			day > as-integer days-max/month
 			tz-h > 15 tz-h < -15						;-- out of range TZ
 			hour > 23 min > 59 sec >= 60.0
 			all [day = 29 month = 2 not date/leap-year? year]
