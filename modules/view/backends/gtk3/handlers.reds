@@ -459,6 +459,25 @@ base-event-after: func [
 	]
 ]
 
+im-commit: func [
+	[cdecl]
+	ctx			[handle!]
+	str			[c-string!]
+	widget		[handle!]
+	/local
+		cp		[integer!]
+][
+	cp: as integer! str/1
+	special-key: 0
+	make-event widget cp EVT_KEY_DOWN
+	make-event widget cp EVT_KEY
+	make-event widget cp EVT_KEY_UP
+	cp: 6539h
+	make-event widget cp EVT_KEY_DOWN
+	make-event widget cp EVT_KEY
+	make-event widget cp EVT_KEY_UP
+]
+
 im-preedit-start: func [
 	[cdecl]
 	ctx			[handle!]
@@ -471,6 +490,7 @@ im-preedit-start: func [
 		g_free as handle! str
 		SET-IM-STRING(ctx 0)
 	]
+	SET-IM-START(ctx 1)
 ]
 
 im-preedit-changed: func [
@@ -480,16 +500,24 @@ im-preedit-changed: func [
 	/local
 		str		[c-string!]
 		pstr	[integer!]
+		text	[integer!]
+		index	[integer!]
 ][
+	;text: 0 index: 0
+	;print-line gtk_im_context_get_surrounding ctx :text :index
+	;print-line as c-string! text
+	;print-line index
 	pstr: 0
 	gtk_im_context_get_preedit_string ctx :pstr null null
 	str: as c-string! pstr
-	if str/1 <> null-byte [
+	either str/1 <> null-byte [
 		str: GET-IM-STRING(ctx)
 		unless null? str [
 			g_free as handle! str
 		]
 		SET-IM-STRING(ctx pstr)
+	][
+		g_free as handle! str
 	]
 ]
 
@@ -503,17 +531,31 @@ im-preedit-end: func [
 		cnt		[integer!]
 		cp		[integer!]
 ][
+	SET-IM-START(ctx 0)
 	str: GET-IM-STRING(ctx)
 	if null? str [exit]
 	cstr: str
+	special-key: 0
 	while [cstr/1 <> null-byte][
 		cnt: unicode/utf8-char-size? as-integer cstr/1
 		cp: unicode/decode-utf8-char cstr :cnt
+		print-line [widget " " as int-ptr! cp]
+		make-event widget cp EVT_KEY_DOWN
 		make-event widget cp EVT_KEY
+		make-event widget cp EVT_KEY_UP
 		cstr: cstr + cnt
 	]
 	g_free as handle! str
 	SET-IM-STRING(ctx 0)
+]
+
+im-retrieve-surrounding: func [
+	[cdecl]
+	ctx			[handle!]
+	widget		[handle!]
+][
+	;print 4
+	true
 ]
 
 window-delete-event: func [

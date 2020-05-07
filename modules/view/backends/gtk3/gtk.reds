@@ -3490,6 +3490,7 @@ container-w:		g_quark_from_string "container-w"
 container-h:		g_quark_from_string "container-h"
 im-context-id:		g_quark_from_string "im-context-id"
 im-string-id:		g_quark_from_string "im-string-id"
+im-start-id:		g_quark_from_string "im-start-id"
 
 #define SET-RED-COLOR(s d)		[g_object_set_qdata s red-color-id d]
 #define GET-RED-COLOR(s)		[g_object_get_qdata s red-color-id]
@@ -3527,5 +3528,7 @@ im-string-id:		g_quark_from_string "im-string-id"
 #define GET-IM-CONTEXT(s)		[g_object_get_qdata s im-context-id]
 #define SET-IM-STRING(s d)		[g_object_set_qdata s im-string-id as int-ptr! d]
 #define GET-IM-STRING(s)		[as c-string! g_object_get_qdata s im-string-id]
+#define SET-IM-START(s d)		[g_object_set_qdata s im-start-id as int-ptr! d]
+#define GET-IM-START(s)			[as logic! g_object_get_qdata s im-start-id]
 
 
