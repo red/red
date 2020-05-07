@@ -30,6 +30,7 @@ redbin: context [
 	buffer:		 as byte-ptr! 0
 	root-base:	 as red-value! 0
 	root-offset: 0
+	codec?:      no
 	
 	preprocess-symbols: func [
 		base 	[int-ptr!]
@@ -238,6 +239,7 @@ redbin: context [
 		data: data + 4
 		
 		if set? [
+			if codec? [parent: root]					;-- redirect slot allocation to root level
 			offset: block/rs-length? parent
 			data: decode-value data table parent
 			_context/set new block/rs-abs-at root offset
@@ -257,7 +259,7 @@ redbin: context [
 	][
 		header: data/1
 		unit: header >>> 8 and FFh
-		size: data/3 << (log-b unit)					;-- optimized data/3 * unit
+		size: data/3 << log-b unit						;-- optimized data/3 * unit
 
 		str: as red-string! ALLOC_TAIL(parent)
 		if nl? [str/header: str/header or flag-new-line]
@@ -276,7 +278,7 @@ redbin: context [
 		
 		data: as int-ptr! ((as byte-ptr! data) + size)
 		either (as-integer data) and 3 = 0 [data][
-			as int-ptr! ((as-integer data) + 4 and -4) ;-- align to upper 32-bit boundary
+			as int-ptr! ((as-integer data) + 4 and -4) 	;-- align to upper 32-bit boundary
 		]
 	]
 
@@ -737,30 +739,56 @@ redbin: context [
 			TYPE_ANY_WORD
 			TYPE_REFINEMENT
 			TYPE_ISSUE [
-				start: as int-ptr! binary/rs-head symbols
-				end:   (binary/rs-length? symbols) >> 2
-				ctx:   -1
-				id:    0
-				
-				while [id < end][					;-- reuse symbol records when possible
-					here: start + id
-					if here/value = data/data2 [break]
-					id: id + 1
-				]
-				
-				if id = end [encode-symbol data table symbols strings]
-				
-				REDBIN_EMIT :type 4
-				REDBIN_EMIT :id 4
-				unless type = TYPE_ISSUE [
-					REDBIN_EMIT :ctx 4				;@@ TBD: encode context record
-					REDBIN_EMIT :data/data3 4
-				]
+				encode-word data type payload symbols table strings contexts
 			]
 			default [--NOT_IMPLEMENTED--]			;@@ TBD: proper error message
 		]
 		
 		length
+	]
+	
+	encode-word: func [
+		data     [red-value!]
+		type     [datatypes!]
+		payload  [red-binary!]
+		symbols  [red-binary!]
+		table    [red-binary!]
+		strings  [red-binary!]
+		contexts [red-binary!]
+		/local
+			value      [red-value!]
+			start here [int-ptr!]
+			end ctx id [integer!]
+			set?       [logic!]
+	][
+		value: either type = TYPE_ISSUE [null][word/get-any as red-word! data]
+		set?:  no
+		
+		start: as int-ptr! binary/rs-head symbols
+		end:   (binary/rs-length? symbols) >> 2
+		ctx:   -1
+		id:    0
+		
+		while [id < end][					;-- reuse symbol records when possible
+			here: start + id
+			if here/value = data/data2 [break]
+			id: id + 1
+		]
+		
+		if id = end [encode-symbol data table symbols strings]
+		
+		if all [type <> TYPE_ISSUE TYPE_OF(value) <> TYPE_UNSET][
+			type: type or REDBIN_SET_MASK
+			set?: yes
+		]
+		
+		REDBIN_EMIT :type 4
+		REDBIN_EMIT :id 4
+		unless type = TYPE_ISSUE [
+			REDBIN_EMIT :ctx 4				;@@ TBD: encode context record
+			REDBIN_EMIT :data/data3 4
+			if set? [encode-value value payload symbols table strings contexts]
+		]
 	]
 	
 	encode-string: func [
@@ -873,6 +901,8 @@ redbin: context [
 			head [byte-ptr!]
 			length size sym-len str-len sym-size [integer!]
 	][
+		codec?: yes
+	
 		;-- payload
 		payload:  binary/make-at stack/push* 4		;@@ TBD: heuristics for pre-allocation
 		symbols:  binary/make-at stack/push* 4
@@ -908,6 +938,7 @@ redbin: context [
 	]
 	
 	boot-load: func [payload [byte-ptr!] keep? [logic!] return: [red-value!] /local saved ret state][
+		codec?: no
 		state: collector/active?
 		collector/active?: no
 		if keep? [saved: root-base]
