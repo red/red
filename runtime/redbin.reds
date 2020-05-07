@@ -410,19 +410,19 @@ redbin: context [
 	][
 		width:  IMAGE_WIDTH(data/3)
 		height: IMAGE_HEIGHT(data/3)
-		length: width * height
+		length: width * height						;-- in pixels
 		
 		rgb:   as byte-ptr! data + 3
 		alpha: rgb + (length * 3)
 		
 		slot: as red-image! ALLOC_TAIL(parent)
-		slot/node: OS-image/make-image width height rgb alpha null
+		slot/node: OS-image/make-image width height rgb alpha null	;-- null if image is empty
 		slot/head: data/2
 		slot/size: data/3
 		slot/header: TYPE_IMAGE						;-- implicit reset of all header flags
 		if nl? [slot/header: slot/header or flag-new-line]
 		
-		as int-ptr! align alpha + length 32 yes		;-- align at upper 32-bit boundary
+		as int-ptr! rgb + (length * 4)
 	]
 	
 	decode-value: func [
@@ -862,8 +862,6 @@ redbin: context [
 		REDBIN_EMIT  :data/data3 4
 		REDBIN_EMIT* binary/rs-head rgb   binary/rs-length? rgb
 		REDBIN_EMIT* binary/rs-head alpha binary/rs-length? alpha
-		
-		pad payload 4								;-- pad to 32-bit boundary
 	]
 	
 	encode: func [
