@@ -674,6 +674,7 @@ lexer: context [
 			]
 			s: s + 1
 		]
+		if b1 > 0 [return s]
 		if load? [ser/tail: as cell! p]
 		null
 	]
