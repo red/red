@@ -49,10 +49,9 @@ Red/System [
 #define NSRoundedBezelStyle			1
 #define NSRegularSquareBezelStyle	2
 
-#define NSToggleButton				2
+#define NSPushOnPushOffButton		1
 #define NSSwitchButton				3
 #define NSRadioButton				4
-#define NSMomentaryPushInButton		7
 
 #define NSNoBorder					0
 #define NSLineBorder				1

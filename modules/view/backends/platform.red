@@ -228,6 +228,7 @@ system/view/platform: context [
 			screen:			symbol/make "screen"
 			window:			symbol/make "window"
 			button:			symbol/make "button"
+			toggle:			symbol/make "toggle"
 			check:			symbol/make "check"
 			radio:			symbol/make "radio"
 			field:			symbol/make "field"
@@ -718,12 +719,14 @@ system/view/platform: context [
 		extend system/view/metrics/margins [#switch config/OS [
 			Windows [
 				button:			[1x1   1x1]				;-- LeftxRight TopxBottom
+				toggle:			[1x1   1x1]
 				tab-panel:		[0x2   0x1]
 				group-box:		[0x0   0x1]
 				calendar:		[1x0   0x0]
 			]
 			macOS [
 				button:			[2x2   2x3 regular 6x6 4x7 small 5x5 4x6 mini 1x1 0x1]
+				toggle:			[2x2   2x3 regular 6x6 4x7 small 5x5 4x6 mini 1x1 0x1]
 				regular:		[6x6   4x7]
 				small:			[5x5   4x6]
 				mini:			[1x1   0x1]
@@ -740,12 +743,14 @@ system/view/platform: context [
 				group-box:		[3x3  10x3]
 				tab-panel:		[1x3  25x0]
 				button:			[8x8   0x0]
+				toggle:			[8x8   0x0]
 				drop-down:		[0x7   0x0]
 				drop-list:		[0x7   0x0]
 				calendar:		[21x0 1x0]
 			]
 			macOS [
 				button:			[11x11 0x0 regular 14x14 0x0 small 11x11 0x0 mini 11x11 0x0]
+				toggle:			[11x11 0x0 regular 14x14 0x0 small 11x11 0x0 mini 11x11 0x0]
 				check:			[20x0  3x1]
 				radio:			[20x0  1x1]
 				text:			[3x3   0x0]
@@ -759,6 +764,7 @@ system/view/platform: context [
 				if version/1 <= 6 [						;-- for Win7 & XP
 					extend system/view/metrics/def-heights [
 						button:		23
+						toggle:		23
 						text:		24
 						field:		24
 						check:		24

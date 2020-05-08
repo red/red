@@ -449,7 +449,12 @@ button-click: func [
 	
 	event: case [
 		type = button [EVT_CLICK]
-		type = check  [get-logic-state self EVT_CHANGE]
+		any [
+			type = toggle
+			type = check
+		][
+			get-logic-state self EVT_CHANGE
+		]
 		all [
 			type = radio
 			NSOffState = objc_msgSend [self sel_getUid "state"] ;-- ignore double-click (fixes #4246)
