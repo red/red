@@ -228,6 +228,7 @@ system/view/platform: context [
 			screen:			symbol/make "screen"
 			window:			symbol/make "window"
 			button:			symbol/make "button"
+			toggle:			symbol/make "toggle"
 			check:			symbol/make "check"
 			radio:			symbol/make "radio"
 			field:			symbol/make "field"
@@ -746,6 +747,7 @@ system/view/platform: context [
 			]
 			Linux [
 				button:			[17x17 3x3]
+        toggle:			[17x17 3x3]
 				check:			[20x8  2x2]
 				radio:			[20x8  2x2]
 				text:			[3x3   0x0]
@@ -793,6 +795,7 @@ system/view/platform: context [
  			Linux	[
 				 extend system/view/metrics/def-heights [
 					button:		29
+					toggle:		29
 					check:		20
 					radio:		19
 					text:		17

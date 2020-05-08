@@ -792,7 +792,7 @@ change-image: func [
 		; 	snap-camera widget
 		; 	until [TYPE_OF(image) = TYPE_IMAGE]			;-- wait
 		; ]
-		any [type = button type = check type = radio][
+		any [type = button type = toggle type = check type = radio][
 			if TYPE_OF(image) = TYPE_IMAGE [
 				img: gtk_image_new_from_pixbuf OS-image/to-pixbuf image
 				gtk_button_set_image widget img
@@ -1022,7 +1022,7 @@ change-text: func [
 				buffer: gtk_entry_get_buffer widget
 				gtk_entry_buffer_set_text buffer cstr -1
 			]
-			any [type = button type = radio type = check] [
+			any [type = button type = toggle type = radio type = check][
 				gtk_button_set_label widget cstr
 			]
 			type = window [
@@ -1056,8 +1056,6 @@ change-data: func [
 	selected: as red-integer! values + FACE_OBJ_SELECTED
 	type: word/symbol
 
-	;;DEBUG: print ["change-data: " get-symbol-name type lf]
-
 	case [
 		all [
 			type = progress
@@ -1073,7 +1071,10 @@ change-data: func [
 			f: as red-float! data
 			gtk_range_set_value widget f/value * 100.0
 		]
-		type = check [
+		any [
+			type = check
+			type = toggle
+		][
 			set-logic-state widget as red-logic! data yes
 		]
 		type = radio [
@@ -1113,8 +1114,6 @@ change-selection: func [
 		bound	[GtkTextIter! value]
 		buffer	[handle!]
 ][
-	;; DEBUG: print ["change-selection: " widget " (" get-symbol-name type ")" lf]
-
 	if type <> window [
 		idx: either TYPE_OF(int) = TYPE_INTEGER [int/value - 1][-1]
 	]
@@ -1701,6 +1700,12 @@ OS-make-view: func [
 			]
 			set-logic-state widget as red-logic! data no
 		]
+		sym = toggle [
+			widget: gtk_toggle_button_new_with_label caption
+			if TYPE_OF(img) = TYPE_IMAGE [
+				change-image widget img sym
+			]
+		]
 		sym = button [
 			widget: gtk_button_new_with_label caption
 			if TYPE_OF(img) = TYPE_IMAGE [
@@ -1926,7 +1931,7 @@ OS-make-view: func [
 		]
 	]
 	
-	if sym = check [
+	if any [sym = check sym = toggle][
 		set-logic-state widget as red-logic! data yes
 	]
 
@@ -1962,7 +1967,6 @@ OS-update-view: func [
 		flags-flags	[integer!]
 		type	[integer!]
 ][
-	;; DEBUG: print ["OS-update-view" lf]
 	ctx: GET_CTX(face)
 	s: as series! ctx/values/value
 	values: s/offset
@@ -1974,7 +1978,9 @@ OS-update-view: func [
 	if all [
 		type = rich-text
 		update-rich-text state as red-block! values + FACE_OBJ_EXT3
-	][exit]
+	][
+		exit
+	]
 
 	s: GET_BUFFER(state)
 	int: as red-integer! s/offset
@@ -2013,7 +2019,6 @@ OS-update-view: func [
 		flags-flags: get-flags as red-block! values + FACE_OBJ_FLAGS
 		if type = field [
 			if flags-flags and FACET_FLAGS_PASSWORD <> 0 [
-				;; DEBUG: print ["password flag activated for field" lf]
 				gtk_entry_set_visibility widget no
 			]
 			gtk_entry_set_has_frame widget (flags-flags and FACET_FLAGS_NO_BORDER = 0)

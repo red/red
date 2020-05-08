@@ -1885,6 +1885,10 @@ GPtrArray!: alias struct! [
 			label		[c-string!]
 			return:		[handle!]
 		]
+		gtk_toggle_button_new_with_label: "gtk_toggle_button_new_with_label" [
+			label		[c-string!]
+			return:		[handle!]
+		]
 		gtk_toggle_button_get_active: "gtk_toggle_button_get_active" [
 			button		[handle!]
 			return:		[logic!]
