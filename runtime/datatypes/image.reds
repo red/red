@@ -393,8 +393,8 @@ image: context [
 			pair	[red-pair!]
 			blk		[red-block!]
 			bin		[red-binary!]
-			rgb		[byte-ptr!]
-			alpha	[byte-ptr!]
+			rgb		[red-binary!]
+			alpha	[red-binary!]
 			color	[red-tuple!]
 			x		[integer!]
 			y		[integer!]
@@ -432,7 +432,7 @@ image: context [
 				unless block/rs-next blk [
 					bin: as red-binary! block/rs-head blk
 					switch TYPE_OF(bin) [
-						TYPE_BINARY [rgb: binary/rs-head bin]
+						TYPE_BINARY [rgb: bin]
 						TYPE_TUPLE	[color: as red-tuple! bin]
 						default		[fire [TO_ERROR(script invalid-arg) bin]]
 					]
@@ -440,7 +440,7 @@ image: context [
 				unless block/rs-next blk [
 					bin: as red-binary! block/rs-head blk
 					check-arg-type as red-value! bin TYPE_BINARY
-					alpha: binary/rs-head bin
+					alpha: bin
 				]
 			]
 			default [return to proto spec type]
