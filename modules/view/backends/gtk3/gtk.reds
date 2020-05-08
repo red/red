@@ -2771,6 +2771,9 @@ GPtrArray!: alias struct! [
 			n_chars		[integer!]
 			return:		[logic!]
 		]
+		gtk_im_context_simple_new: "gtk_im_context_simple_new" [
+			return:		[handle!]
+		]
 		gtk_im_multicontext_new: "gtk_im_multicontext_new" [
 			return:		[handle!]
 		]

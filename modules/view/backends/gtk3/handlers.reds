@@ -527,21 +527,30 @@ im-preedit-end: func [
 		cstr	[c-string!]
 		cnt		[integer!]
 		cp		[integer!]
+		pstr	[integer!]
+		text	[integer!]
+		index	[integer!]
 ][
 	print-line "end"
 	SET-IM-START(ctx 0)
 	str: GET-IM-STRING(ctx)
 	if null? str [exit]
+	text: 0 index: 0
+	;print-line gtk_im_context_get_surrounding ctx :text :index
+	;print-line as c-string! text
+	;print-line index
+	pstr: 0
+	gtk_im_context_get_preedit_string ctx :pstr null :index
+	print-line index
 	cstr: str
 	special-key: 0
 	while [cstr/1 <> null-byte][
 		cnt: unicode/utf8-char-size? as-integer cstr/1
 		cp: unicode/decode-utf8-char cstr :cnt
-		print-line [widget " " as int-ptr! cp]
 		make-event widget cp EVT_KEY
 		cstr: cstr + cnt
 	]
-	g_free as handle! str
+	;g_free as handle! str
 	SET-IM-STRING(ctx 0)
 ]
 
@@ -551,6 +560,17 @@ im-retrieve-surrounding: func [
 	widget		[handle!]
 ][
 	print-line "retrieve"
+	true
+]
+
+im-delete-surrounding: func [
+	[cdecl]
+	ctx			[handle!]
+	offset		[integer!]
+	chars		[integer!]
+	widget		[handle!]
+][
+	print-line ["delet: " offset "x" chars]
 	true
 ]
 
