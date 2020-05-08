@@ -225,15 +225,21 @@ redbin: context [
 			new/ctx: global-ctx
 			w: _context/add-global-word sym/1 yes no
 			new/index: w/index
-		][
-			obj: as red-object! block/rs-abs-at root offset + root-offset
-			assert TYPE_OF(obj) = TYPE_OBJECT
-			ctx: obj/ctx
-			new/ctx: ctx
-			either data/4 = -1 [
-				new/index: _context/find-word TO_CTX(ctx) sym/1 yes
+		][	
+			either codec? [								;@@ TBD: decode context and bind word to it
+				new/ctx: global-ctx
+				w: _context/add-global-word sym/1 yes no
+				new/index: w/index
 			][
-				new/index: data/4
+				obj: as red-object! block/rs-abs-at root offset + root-offset
+				assert TYPE_OF(obj) = TYPE_OBJECT
+				ctx: obj/ctx
+				new/ctx: ctx
+				either data/4 = -1 [
+					new/index: _context/find-word TO_CTX(ctx) sym/1 yes
+				][
+					new/index: data/4
+				]
 			]
 		]
 		data: data + 4
@@ -646,13 +652,12 @@ redbin: context [
 	]
 	
 	encode-value: func [
-		data     [red-value!]
-		payload  [red-binary!]
-		symbols  [red-binary!]
-		table    [red-binary!]
-		strings  [red-binary!]
-		contexts [red-binary!]
-		return:  [integer!]
+		data    [red-value!]
+		payload [red-binary!]
+		symbols [red-binary!]
+		table   [red-binary!]
+		strings [red-binary!]
+		return: [integer!]
 		/local
 			type length flags [integer!]
 			len end id ctx    [integer!]
@@ -734,12 +739,12 @@ redbin: context [
 			]
 			TYPE_MAP
 			TYPE_ANY_BLOCK [
-				length: length + encode-block data type payload symbols table strings contexts
+				length: length + encode-block data type payload symbols table strings
 			]
 			TYPE_ANY_WORD
 			TYPE_REFINEMENT
 			TYPE_ISSUE [
-				encode-word data type payload symbols table strings contexts
+				encode-word data type payload symbols table strings
 			]
 			default [--NOT_IMPLEMENTED--]			;@@ TBD: proper error message
 		]
@@ -748,13 +753,12 @@ redbin: context [
 	]
 	
 	encode-word: func [
-		data     [red-value!]
-		type     [datatypes!]
-		payload  [red-binary!]
-		symbols  [red-binary!]
-		table    [red-binary!]
-		strings  [red-binary!]
-		contexts [red-binary!]
+		data    [red-value!]
+		type    [datatypes!]
+		payload [red-binary!]
+		symbols [red-binary!]
+		table   [red-binary!]
+		strings [red-binary!]
 		/local
 			value  [red-value!]
 			id ctx [integer!]
@@ -768,17 +772,67 @@ redbin: context [
 			set?: yes
 		]
 		
-		id: encode-symbol data table symbols strings
+		ctx: encode-context as node! data/data1 payload symbols table strings
+		id:  encode-symbol data table symbols strings
 		
 		REDBIN_EMIT :type 4
 		REDBIN_EMIT :id 4
 		unless type = TYPE_ISSUE [
-			; ctx: encode-context as node! data/data1 payload symbols table strings contexts
-			ctx: -1
-			REDBIN_EMIT :ctx 4				;@@ TBD: encode context record
+			REDBIN_EMIT :ctx 4
 			REDBIN_EMIT :data/data3 4
-			if set? [encode-value value payload symbols table strings contexts]
+			if set? [encode-value value payload symbols table strings]
 		]
+	]
+	
+	encode-context: func [
+		node    [node!]
+		payload [red-binary!]
+		symbols [red-binary!]
+		table   [red-binary!]
+		strings [red-binary!]
+		return: [integer!]
+		/local
+			context [red-context!]
+			value [red-value!]
+			values words [series!]
+			header length offset [integer!]
+			kind id [integer!]
+			stack? self? values? [logic!]
+	][
+		if node = global-ctx [return -1]
+		
+		context: TO_CTX(node)
+		kind:    GET_CTX_TYPE(context)
+		stack?:  ON_STACK?(context)
+		self?:   context/header and flag-self-mask <> 0
+		;values?:
+		
+		header: TYPE_CONTEXT or (kind << 11)
+		if stack? [header: header or REDBIN_STACK_MASK]
+		if self?  [header: header or REDBIN_SELF_MASK]
+		
+		values: as series! context/values/value
+		words:  _hashtable/get-ctx-words context
+		length: (as integer! values/tail - values/offset) >> 4
+		offset: binary/rs-length? payload
+		
+		REDBIN_EMIT :header 4
+		REDBIN_EMIT :length 4
+		
+		value: as red-value! words + 1
+		loop length [
+			id: encode-symbol value table symbols strings
+			REDBIN_EMIT :id 4
+			value: value + 1
+		]
+		
+		value: as red-value! values + 1
+		loop length [
+			encode-value value payload symbols table strings
+			value: value + 1
+		]
+		
+		offset
 	]
 	
 	encode-string: func [
@@ -812,14 +866,13 @@ redbin: context [
 	]
 	
 	encode-block: func [
-		data     [red-value!]
-		type     [datatypes!]
-		payload  [red-binary!]
-		symbols  [red-binary!]
-		table    [red-binary!]
-		strings  [red-binary!]
-		contexts [red-binary!]
-		return:  [integer!]
+		data    [red-value!]
+		type    [datatypes!]
+		payload [red-binary!]
+		symbols [red-binary!]
+		table   [red-binary!]
+		strings [red-binary!]
+		return: [integer!]
 		/local
 			series  [red-series!]
 			_offset [red-value!]
@@ -835,7 +888,7 @@ redbin: context [
 		unless type = TYPE_MAP [REDBIN_EMIT :data/data1 4]
 		REDBIN_EMIT :length 4
 		loop length [
-			encode-value _offset payload symbols table strings contexts
+			encode-value _offset payload symbols table strings
 			_offset: _offset + 1
 		]
 		
@@ -903,7 +956,7 @@ redbin: context [
 		data    [red-value!]
 		return: [red-binary!]
 		/local
-			payload table symbols strings contexts [red-binary!]
+			payload table symbols strings[red-binary!]
 			here [int-ptr!]
 			head [byte-ptr!]
 			length size sym-len str-len sym-size [integer!]
@@ -915,9 +968,8 @@ redbin: context [
 		symbols:  binary/make-at stack/push* 4
 		table:    binary/make-at stack/push* 4
 		strings:  binary/make-at stack/push* 4
-		contexts: binary/make-at stack/push* 4
 		
-		length: encode-value data payload symbols table strings contexts
+		length: encode-value data payload symbols table strings
 		size:   binary/rs-length? payload
 		
 		;-- symbol table
