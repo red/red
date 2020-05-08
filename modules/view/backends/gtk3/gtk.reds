@@ -995,6 +995,16 @@ GPtrArray!: alias struct! [
 			len			[integer!]
 			return:		[GString!]
 		]
+		g_utf8_pointer_to_offset: "g_utf8_pointer_to_offset" [
+			str			[c-string!]
+			pos			[c-string!]
+			return:		[integer!]
+		]
+		g_utf8_offset_to_pointer: "g_utf8_offset_to_pointer" [
+			str			[c-string!]
+			offset		[integer!]
+			return:		[c-string!]
+		]
 	;; ]
 	;; LIBGIO-file cdecl [
 		g_application_register: "g_application_register" [
@@ -2350,6 +2360,10 @@ GPtrArray!: alias struct! [
 		pango_layout_get_attributes: "pango_layout_get_attributes" [
 			layout		[handle!]
 			return: 	[handle!]
+		]
+		pango_layout_get_text: "pango_layout_get_text" [
+			layout		[handle!]
+			return:		[c-string!]
 		]
 		pango_layout_set_text: "pango_layout_set_text" [
 			layout		[handle!]

@@ -248,8 +248,6 @@ OS-text-box-metrics: func [
 		int		[red-integer!]
 		rstate	[red-integer!]
 		layout	[handle!]
-		x		[float!]
-		y		[float!]
 		width	[integer!]
 		height	[integer!]
 		pos		[red-pair!]
@@ -259,30 +257,30 @@ OS-text-box-metrics: func [
 		idx		[integer!]
 		trail	[integer!]
 		ok?		[logic!]
-		;; DEBUG: fd		[handle!]
+		text	[c-string!]
+		text2	[c-string!]
 ][
-	;; DEBUG: print ["OS-text-box-metrics: " get-symbol-name type lf]
 	rstate: as red-integer! block/rs-head state
 	layout: as handle! rstate/value
-	;; DEBUG: print ["layout: " layout lf]
-	;; DEBUG: fd: pango_layout_get_font_description layout print ["OS-text-box-metrics layout: " layout " " pango_font_description_get_family fd " " pango_font_description_get_size fd lf]
 	if null? layout [return as red-value! none-value]
 	as red-value! switch type [
 		TBOX_METRICS_OFFSET?
-		TBOX_METRICS_OFFSET_LOWER [ ; caret-to-offset
+		TBOX_METRICS_OFFSET_LOWER [					;-- caret-to-offset
 			int: as red-integer! arg0
-			pango_layout_index_to_pos layout int/value - 1 :rect
-			;; DEBUG: print ["TBOX_METRICS_OFFSET? " rect/x / PANGO_SCALE "x" rect/y / PANGO_SCALE "x" rect/width / PANGO_SCALE "x" rect/height / PANGO_SCALE lf]
+			text: pango_layout_get_text layout
+			text2: g_utf8_offset_to_pointer text int/value - 1
+			idx: as integer! text2 - text
+			pango_layout_index_to_pos layout idx :rect
 			pair/push rect/x / PANGO_SCALE  rect/y / PANGO_SCALE
 		]
 		TBOX_METRICS_INDEX?
-		TBOX_METRICS_CHAR_INDEX? [ ; offset-to-caret
+		TBOX_METRICS_CHAR_INDEX? [					;-- offset-to-caret
 			pos: as red-pair! arg0
 			idx: -1 trail: -1
-			;; DEBUG: print ["TBOX_METRICS_INDEX? pos: " pos/x "x" pos/y lf]
 			ok?: pango_layout_xy_to_index layout (pos/x * PANGO_SCALE) (pos/y * PANGO_SCALE) :idx :trail
-			;; DEBUG: print ["TBOX_METRICS_INDEX? " pos/x "x" pos/y  " " ok? " index: " idx + 1   lf]
-			if all[type = TBOX_METRICS_INDEX? 0 <> trail] [idx: idx + 1]
+			text: pango_layout_get_text layout
+			idx: g_utf8_pointer_to_offset text text + idx
+			if all [type = TBOX_METRICS_INDEX? 0 <> trail][idx: idx + 1]
 			integer/push idx + 1
 		]
 		TBOX_METRICS_SIZE [
@@ -293,20 +291,16 @@ OS-text-box-metrics: func [
 			; width: (pango_layout_get_width layout) / PANGO_SCALE
 			height: (pango_layout_get_line_count layout) * lrect/height
 			width: lrect/width
-			;; DEBUG: print ["TBOX_METRICS_SIZE: " width "x" height " " pango_layout_get_line_count layout lf]
-			;print ["text: " layout/text lf]
 			pair/push width height
 		]
 		TBOX_METRICS_LINE_COUNT [
 			idx: pango_layout_get_line_count layout
-			;; DEBUG: print ["TBOX_METRICS_LINE_COUNT: " idx lf]
 			integer/push idx
 		]
 		TBOX_METRICS_LINE_HEIGHT [
 			int: as red-integer! arg0
 			pango_layout_index_to_pos layout int/value :rect
 			height: rect/height / PANGO_SCALE
-			;; DEBUG: print ["TBOX_METRICS_LINE_HEIGHT " height  " (" rect/x "x" rect/y "x" rect/width "x" rect/height ")" lf]
 			integer/push height
 		]
 		default [
