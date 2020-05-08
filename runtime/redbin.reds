@@ -756,35 +756,25 @@ redbin: context [
 		strings  [red-binary!]
 		contexts [red-binary!]
 		/local
-			value      [red-value!]
-			start here [int-ptr!]
-			end ctx id [integer!]
-			set?       [logic!]
+			value  [red-value!]
+			id ctx [integer!]
+			set?   [logic!]
 	][
 		value: either type = TYPE_ISSUE [null][word/get-any as red-word! data]
 		set?:  no
-		
-		start: as int-ptr! binary/rs-head symbols
-		end:   (binary/rs-length? symbols) >> 2
-		ctx:   -1
-		id:    0
-		
-		while [id < end][					;-- reuse symbol records when possible
-			here: start + id
-			if here/value = data/data2 [break]
-			id: id + 1
-		]
-		
-		if id = end [encode-symbol data table symbols strings]
 		
 		if all [type <> TYPE_ISSUE TYPE_OF(value) <> TYPE_UNSET][
 			type: type or REDBIN_SET_MASK
 			set?: yes
 		]
 		
+		id: encode-symbol data table symbols strings
+		
 		REDBIN_EMIT :type 4
 		REDBIN_EMIT :id 4
 		unless type = TYPE_ISSUE [
+			; ctx: encode-context as node! data/data1 payload symbols table strings contexts
+			ctx: -1
 			REDBIN_EMIT :ctx 4				;@@ TBD: encode context record
 			REDBIN_EMIT :data/data3 4
 			if set? [encode-value value payload symbols table strings contexts]
@@ -857,20 +847,37 @@ redbin: context [
 		table   [red-binary!]
 		symbols [red-binary!]
 		strings [red-binary!]
+		return: [integer!]
 		/local
 			_symbol [red-symbol!]
+			start here [int-ptr!]
 			string  [c-string!]
 			length  [integer!]
+			end id  [integer!]
 	][
-		_symbol: as red-symbol! symbol/get data/data2
-		string:  as c-string! (as series! _symbol/cache/value) + 1
-		length:  binary/rs-length? strings
+		start: as int-ptr! binary/rs-head symbols
+		end:   (binary/rs-length? symbols) >> 2
+		id:    0
 		
-		binary/rs-append table   as byte-ptr! :length 4
-		binary/rs-append symbols as byte-ptr! :data/data2 4
-		binary/rs-append strings as byte-ptr! string (length? string) + 1
+		while [id < end][							;-- reuse symbol records when possible
+			here: start + id
+			if here/value = data/data2 [break]
+			id: id + 1
+		]
 		
-		pad strings 8								;-- pad to 64-bit boundary
+		if id = end [
+			_symbol: as red-symbol! symbol/get data/data2
+			string:  as c-string! (as series! _symbol/cache/value) + 1
+			length:  binary/rs-length? strings
+			
+			binary/rs-append table   as byte-ptr! :length 4
+			binary/rs-append symbols as byte-ptr! :data/data2 4
+			binary/rs-append strings as byte-ptr! string (length? string) + 1
+			
+			pad strings 8							;-- pad to 64-bit boundary
+		]
+		
+		id
 	]
 	
 	encode-image: func [
