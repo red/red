@@ -740,7 +740,7 @@ _function: context [
 		]
 	]
 	
-	validate: func [									;-- temporary mimalist spec checking
+	validate: func [									;-- temporary minimalist spec checking
 		spec [red-block!]
 		/local
 			value  [red-value!]
