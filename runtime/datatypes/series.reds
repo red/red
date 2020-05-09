@@ -1155,7 +1155,7 @@ _series: context [
 		if offset > len [part: 0 offset: len]
 		if offset + part > len [part: len - offset]
 
-		new/header: TYPE_UNSET
+		if ser <> new [new/header: TYPE_UNSET]
 		part:	part << (log-b unit)
 		node:	alloc-bytes part
 		s: GET_BUFFER(ser)

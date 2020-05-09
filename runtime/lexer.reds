@@ -570,6 +570,7 @@ lexer: context [
 			len	stype t [integer!]
 			do-error [subroutine!]
 			point?	 [logic!]
+			head	 [red-value!]
 	][
 		do-error: [
 			lex/closing: type
@@ -592,9 +593,10 @@ lexer: context [
 		]
 		
 		len: (as-integer lex/tail - lex/head) >> 4
-		lex/tail: lex/head
+		head: lex/head
 		lex/head: as cell! p - p/x
-		store-any-block as cell! p lex/tail len type	;-- p slot gets overwritten here
+		store-any-block as cell! p head len type	;-- p slot gets overwritten here
+		lex/tail: head
 		lex/scanned: type
 		
 		p: as red-point! lex/head - 1					;-- get parent series
@@ -2276,12 +2278,26 @@ lexer: context [
 			zero? count
 		]
 	]
-	
+
+	on-gc-mark: func [/local s [state!] lex [state!]][
+		if root-state <> null [
+			s: root-state
+			until [
+				lex: s
+				s: s/next
+				null? s
+			]
+			collector/mark-values stash lex/tail
+		]
+	]
+
 	init: func [][
 		stash: as cell! allocate stash-size * size? cell!
 		utf8-buffer: allocate utf8-buf-size
 		utf8-buf-tail: utf8-buffer
-		
+
+		collector/register as int-ptr! :on-gc-mark
+
 		;-- switch following tables to zero-based indexing
 		lex-classes: lex-classes + 1
 		transitions: transitions + 1
