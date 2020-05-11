@@ -1550,7 +1550,7 @@ process: func [
 			make-event msg flags EVT_LEFT_DOWN
 		]
 		WM_LBUTTONUP	[
-			if all [msg/hWnd <> null msg/hWnd = GetCapture][
+			if all [msg/hWnd <> null msg/hWnd = GetCapture not no-face? msg/hWnd][
 				word: (as red-word! get-face-values msg/hWnd) + FACE_OBJ_TYPE
 				if base = symbol/resolve word/symbol [ReleaseCapture]	;-- issue #4384
 			]
