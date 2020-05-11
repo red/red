@@ -173,6 +173,8 @@ redbin: context [
 			;-- create the words entries in the symbol table of the context
 			_context/find-or-store ctx sym/1 yes new :i
 			
+			;@@ TBD: decode values into appropriate slots if VALUES? flag is set
+			
 			data: data + 1
 			slots: slots - 1
 		]
@@ -261,7 +263,12 @@ redbin: context [
 		parent	[red-block!]
 		nl?		[logic!]
 		return: [int-ptr!]
-		/local str header unit size s
+		/local
+			str    [red-string!]
+			header [integer!]
+			unit   [integer!]
+			size   [integer!]
+			s      [series!]
 	][
 		header: data/1
 		unit: header >>> 8 and FFh
@@ -342,9 +349,9 @@ redbin: context [
 		nl?		[logic!]
 		return: [int-ptr!]
 		/local
-			slot  [red-money!]
-			cur	  [byte-ptr!]
-			neg?  [logic!]
+			slot [red-money!]
+			cur	 [byte-ptr!]
+			neg? [logic!]
 	][
 		neg?: data/1 and 4000h <> 0
 		cur: as byte-ptr! data + 1
@@ -430,7 +437,7 @@ redbin: context [
 		slot/header: TYPE_IMAGE						;-- implicit reset of all header flags
 		if nl? [slot/header: slot/header or flag-new-line]
 		
-		as int-ptr! rgb + (length * 4)
+		as int-ptr! rgb + (length << 2)
 	]
 	
 	decode-value: func [
@@ -660,8 +667,7 @@ redbin: context [
 		return: [integer!]
 		/local
 			type length flags [integer!]
-			len end id ctx    [integer!]
-			start here        [int-ptr!]
+			len [integer!]
 	][
 		length: 1									;-- at least 1 value is encoded
 		
@@ -792,11 +798,11 @@ redbin: context [
 		strings [red-binary!]
 		return: [integer!]
 		/local
-			context [red-context!]
-			value [red-value!]
-			values words [series!]
+			context              [red-context!]
+			value                [red-value!]
+			values words         [series!]
 			header length offset [integer!]
-			kind id [integer!]
+			kind id              [integer!]
 			stack? self? values? [logic!]
 	][
 		if node = global-ctx [return -1]
@@ -805,11 +811,12 @@ redbin: context [
 		kind:    GET_CTX_TYPE(context)
 		stack?:  ON_STACK?(context)
 		self?:   context/header and flag-self-mask <> 0
-		;values?:
+		values?: yes								;@@ TBD: set to NO if all values are unset?
 		
 		header: TYPE_CONTEXT or (kind << 11)
-		if stack? [header: header or REDBIN_STACK_MASK]
-		if self?  [header: header or REDBIN_SELF_MASK]
+		if stack?  [header: header or REDBIN_STACK_MASK]
+		if self?   [header: header or REDBIN_SELF_MASK]
+		if values? [header: header or REDBIN_VALUES_MASK]
 		
 		values: as series! context/values/value
 		words:  _hashtable/get-ctx-words context
@@ -826,10 +833,12 @@ redbin: context [
 			value: value + 1
 		]
 		
-		value: as red-value! values + 1
-		loop length [
-			encode-value value payload symbols table strings
-			value: value + 1
+		if values? [
+			value: as red-value! values + 1
+			loop length [
+				encode-value value payload symbols table strings
+				value: value + 1
+			]
 		]
 		
 		offset
@@ -852,11 +861,12 @@ redbin: context [
 		unit:    GET_UNIT(buffer)
 		length:  _series/get-length series yes
 		_offset: buffer/offset
+		flags:   type or (unit << 8)
 		
-		flags: type or (unit << 8)
 		REDBIN_EMIT :flags 4
 		REDBIN_EMIT :data/data1 4
 		REDBIN_EMIT :length 4
+		
 		if type = TYPE_VECTOR [REDBIN_EMIT :data/data3 4]
 		unless zero? length [
 			REDBIN_EMIT* as byte-ptr! _offset length << log-b unit
