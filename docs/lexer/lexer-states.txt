@@ -1,6 +1,8 @@
 
 === Lexical Scanner FSM ===
 
+--- FSM states ---
+
 S_START
 S_LINE_CMT
 S_LINE_STR
@@ -96,6 +98,7 @@ T_HEX
 T_RAWSTRING
 T_REF
 
+--- Lexical classes ---
 
 C_BLANK     : space, tab, cr
 C_LINE      : lf
@@ -138,11 +141,12 @@ C_ILLEGAL   : 0xC0-0xC1, 0xF5-0xFF
 C_EOF       : NUL
 
 
+--- Character groups ---
+
 ws: space | tab | cr | lf
 dbl-quote: "
 
 delimit1:  ws | [ | ] | ( | ) | { | } | " | ; | @ | EOF
-delimit2:  [ | ] | ( | ) | { | } | " | : | ws | ; | <
 delimit3:  ws | [ | ] | ( | ) | { | } | " | ; | < | # | : | / | EOF
 delimit5:  ws | [ | ] | ( | ) | { | } | " | % | ; | < | # | @ | / | \ | ^ | , | : | $
 delimit6:  [ | ] | ( | ) | { | } | " | % | ws | ; | < | # | @ | / | \ | ^ | , | 0-9
@@ -159,10 +163,15 @@ delimit14: # | ' | < | % | ^
 delimit15: ws | [ | ] | ( | ) | { | " | ; | < | EOF
 delimit17: ws | [ | ] | ( | ) | { | } | " | : | ; | EOF
 delimit18: ws | [ | ] | ( | ) | { | } | " | ; | < | \ | EOF
+delimit19: ws | [ | ] | ( | ) | { | } | " | ; | < | \ | / | EOF
+delimit20: ws | [ | ] | ( | ) | { | } | : | ; | < | > | = | , | @ | / | EOF
 
 hexa: C_ZERO | C_DIGIT | C_ALPHAX
 alphaU: A, B, C, D, F
 word1st: C_X | T | h | e | E | C_ALPHAL | C_ALPHAU | < | > | = | . | + | - | C_BIN | C_WORD
+
+
+--- FSM transitions ---
 
 S_START->ws->S_START
          
@@ -361,33 +370,37 @@ S_START->"'"|":"->S_WORD_1ST->"%"->S_PERCENT
                        \->word1st->S_WORD
                         \->else->T_ERROR
 
-S_START->not(delimit6)->S_WORD->not(delimit5)->S_WORD
-                         \->delimit18->T_WORD
-                          \
-                           \->":"->S_WORDSET->not(delimit7)->S_URL->not(delimit7)->S_URL
-                            \       \->delimit7->T_WORD       \->delimit7->T_URL
-                             \
-                              \->"@"->S_EMAIL->not(delimit7|"@"|"/"|">"|","|"^"|"$"|":"|"'"|"#")->S_EMAIL
-                               \       \->delimit7->T_EMAIL
-                                \       \->"@"|">"|","|"^"|"$"|":"|"'"|"#"->T_ERROR
-                                 \
-                                  \->"/"->T_PATH
-                                   \->"$"->S_MONEY_1ST
-                                    \->","|"#"|"%"->T_ERROR
+S_START->not(delimit6)->S_WORD->delimit18->T_WORD
+                         \->":"->S_WORDSET->else->S_URL->else->S_URL
+                          \       \                \->delimit18->T_URL
+                           \       \                \->"'"|">"|"$"|"^"->T_ERROR
+                            \       \->delimit18->T_WORD
+                             \       \->"<"->T_ERROR
+                              \
+                               \->"@"->S_EMAIL->else->S_EMAIL
+                                \       \->delimit19->T_EMAIL
+                                 \       \->"@"|">"|"="|","|"^"|"$"|":"|"'"|"#"->T_ERROR
+                                  \
+                                   \->"/"->T_PATH
+                                    \->"$"->S_MONEY_1ST
+                                     \->","|"#"|"%"->T_ERROR
+                                      \->else->S_WORD
 
-S_START->"@"->S_REF->delimit10->S_REF
-               \->not(delimit10)->T_REF
+S_START->"@"->S_REF->delimit10->T_REF
+               \->"#"|"'"|"\"|">"|"="|","|"@"|"$"|"^"->T_ERROR
+                \->else->S_REF
 
 
-S_PATH->ws|";"|"["|"]"|"{"|"/"|"%"->T_ERROR
+S_PATH->ws|";"|"["|"]"|"{"|"}"|"/"|"\"|"%"|","|"$"|"^"|EOF->T_ERROR
 S_PATH->"("->T_PAR_OP
 S_PATH->")"->T_PAR_CL
 S_PATH->dbl-quote->S_LINE_STR
 
 S_PATH->"#"->S_PATH_SHARP->dbl-quote->S_CHAR
-              \->not(delimit9)->S_ISSUE->not(delimit1)->S_ISSUE
-               \                 \->delimit1->T_ISSUE
-                \->delimit9->T_ERROR
+              \->delimit20->T_ERROR
+               \->else->S_ISSUE->delimit1->T_ISSUE
+                         \->else->S_ISSUE
+
 
 S_PATH->digit->S_PATH_NUM->digit|"'"->S_PATH_NUM
                  \->delimit10->T_INTEGER
@@ -408,6 +421,7 @@ S_PATH->"+"|"-"->S_PATH_SIGN->digit->S_PATH_NUM
                      \->else->S_WORD
                         
 S_PATH->"$"->S_MONEY_1ST
+S_PATH->"@"->S_REF
 
 S_PATH->"'"|":"->S_PATH_W1ST->not(delimit6)->S_PATH_WORD
 
