@@ -127,7 +127,8 @@ redbin: context [
 			ctx		[red-context!]
 			slot	[red-word!]
 			obj		[red-object!]
-			values	[int-ptr!]
+			values  [red-block!]
+			value	[int-ptr!]
 			sym		[int-ptr!]
 			header	[integer!]
 			type	[context-type!]
@@ -140,14 +141,14 @@ redbin: context [
 			s		[series!]
 			i		[integer!]
 	][
-		header:  data/1
+		header: data/1
+		slots:  data/2
+		value:  data + 2 + slots
+		
 		values?: header and REDBIN_VALUES_MASK <> 0
 		stack?:	 header and REDBIN_STACK_MASK  <> 0
 		self?:	 header and REDBIN_SELF_MASK   <> 0
 		type:	 GET_CTX_TYPE_ALT(header)
-		slots:	 data/2
-
-		if values? [values: data + 2 + slots]
 		
 		new: _context/create slots stack? self? null type
 		obj: as red-object! ALLOC_TAIL(parent)			;-- use an object to store the ctx node
@@ -162,23 +163,32 @@ redbin: context [
 		ctx: TO_CTX(new)
 		unless stack? [
 			s: as series! ctx/values/value
-			s/tail: s/offset + slots
+			either values? [
+				values: block/push-only* slots
+				values/node: ctx/values
+				s/tail: s/offset						;-- trick decoder into allocating in context's table
+			][
+				s/tail: s/offset + slots				;-- pre-filled with unset values
+			]
 		]
 
 		data: data + 2
 		i: 0
 
-		while [slots > 0][
+		loop slots [
 			sym: table + data/1
 			;-- create the words entries in the symbol table of the context
 			_context/find-or-store ctx sym/1 yes new :i
-			
-			;@@ TBD: decode values into appropriate slots if VALUES? flag is set
-			
+			if all [not stack? values?][value: decode-value value table values]
 			data: data + 1
-			slots: slots - 1
 		]
-		data
+		
+		if values? [
+			s/tail: s/offset + slots
+			stack/pop 1									;-- drop unwanted block
+		]
+		
+		value
 	]
 	
 	decode-issue: func [
