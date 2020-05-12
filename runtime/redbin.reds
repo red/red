@@ -14,6 +14,7 @@ Red/System [
 #define REDBIN_COMPRESSED_MASK		02h
 #define REDBIN_SYMBOL_TABLE_MASK	04h
 
+#define REDBIN_NEWLINE_MASK			80000000h
 #define REDBIN_VALUES_MASK			40000000h
 #define REDBIN_STACK_MASK			20000000h
 #define REDBIN_SELF_MASK			10000000h
@@ -461,7 +462,7 @@ redbin: context [
 			nl?	 [logic!]
 	][
 		type: data/1 and FFh
-		nl?:  data/1 and 80000000h <> 0
+		nl?:  data/1 and REDBIN_NEWLINE_MASK <> 0
 		#if debug? = yes [if verbose > 0 [print [#"<" type #">"]]]
 		
 		cell: null
