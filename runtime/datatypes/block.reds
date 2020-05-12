@@ -394,19 +394,14 @@ block: context [
 		size 	[integer!]								;-- number of cells to pre-allocate
 		return:	[red-block!]
 		/local
-			blk [red-block!]
+			blk  [red-block!]
+			type [integer!]
 	][
 		blk: either null? parent [
 			_root
 		][
-			assert any [
-				TYPE_OF(parent) = TYPE_BLOCK			;@@ replace with ANY_BLOCK
-				TYPE_OF(parent) = TYPE_PAREN
-				TYPE_OF(parent) = TYPE_PATH
-				TYPE_OF(parent) = TYPE_LIT_PATH
-				TYPE_OF(parent) = TYPE_SET_PATH
-				TYPE_OF(parent) = TYPE_GET_PATH
-			]
+			type: TYPE_OF(parent)
+			assert ANY_BLOCK_STRICT?(type)
 			as red-block! ALLOC_TAIL(parent)
 		]
 		preallocate blk size yes
@@ -417,21 +412,16 @@ block: context [
 		size 	[integer!]								;-- number of cells to pre-allocate
 		return:	[red-block!]
 		/local
-			blk [red-block!]
+			blk  [red-block!]
+			type [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/make-in"]]
 		
 		blk: either null? parent [
 			_root
 		][
-			assert any [
-				TYPE_OF(parent) = TYPE_BLOCK			;@@ replace with ANY_BLOCK
-				TYPE_OF(parent) = TYPE_PAREN
-				TYPE_OF(parent) = TYPE_PATH
-				TYPE_OF(parent) = TYPE_LIT_PATH
-				TYPE_OF(parent) = TYPE_SET_PATH
-				TYPE_OF(parent) = TYPE_GET_PATH
-			]
+			type: TYPE_OF(parent)
+			assert ANY_BLOCK_STRICT?(type)
 			as red-block! ALLOC_TAIL(parent)
 		]
 		make-at blk size
