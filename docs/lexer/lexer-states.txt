@@ -149,7 +149,7 @@ dbl-quote: "
 delimit1:  ws | [ | ] | ( | ) | { | } | " | ; | @ | EOF
 delimit3:  ws | [ | ] | ( | ) | { | } | " | ; | < | # | : | / | EOF
 delimit5:  ws | [ | ] | ( | ) | { | } | " | % | ; | < | # | @ | / | \ | ^ | , | : | $
-delimit6:  [ | ] | ( | ) | { | } | " | % | ws | ; | < | # | @ | / | \ | ^ | , | 0-9
+delimit6:  ws | [ | ] | ( | ) | { | } | " | % | ; | < | # | @ | / | \ | ^ | , | 0-9
 delimit7:  ws | [ | ] | ( | ) | } | ; | " | \ | EOF
 delimit8:  ws | [ | ] | ( | ) | } | ; | @ | EOF
 delimit81: ws | [ | ] | ( | ) | } | ; | @ | : | EOF
@@ -165,11 +165,15 @@ delimit17: ws | [ | ] | ( | ) | { | } | " | : | ; | EOF
 delimit18: ws | [ | ] | ( | ) | { | } | " | ; | < | \ | EOF
 delimit19: ws | [ | ] | ( | ) | { | } | " | ; | < | \ | / | EOF
 delimit20: ws | [ | ] | ( | ) | { | } | : | ; | < | > | = | , | @ | / | EOF
+delimit21: ws | [ | ] | { | } | ; | / | \ | % | , | $ | ^ | EOF
+delimit22: ws | [ | ] | ( | ) | { | } | " | ; | \ | EOF
+delimit23: ws | [ | ] | ( | ) | { | } | " | ' | : | % | ; | < | # | @ | / | \ | ^ | , | $ | 0-9 | EOF
+delimit24: ws | [ | ] | ( | ) | { | } | " | : | ; | / | \ | EOF
 
 hexa: C_ZERO | C_DIGIT | C_ALPHAX
 alphaU: A, B, C, D, F
 word1st: C_X | T | h | e | E | C_ALPHAL | C_ALPHAU | < | > | = | . | + | - | C_BIN | C_WORD
-
+path-word: 0-9 | ' | C_X | T | h | e | E | C_ALPHAL | C_ALPHAU | < | > | = | . | + | - | ^ | C_BIN | C_WORD
 
 --- FSM transitions ---
 
@@ -391,7 +395,7 @@ S_START->"@"->S_REF->delimit10->T_REF
                 \->else->S_REF
 
 
-S_PATH->ws|";"|"["|"]"|"{"|"}"|"/"|"\"|"%"|","|"$"|"^"|EOF->T_ERROR
+S_PATH->delimit21->T_ERROR
 S_PATH->"("->T_PAR_OP
 S_PATH->")"->T_PAR_CL
 S_PATH->dbl-quote->S_LINE_STR
@@ -403,40 +407,31 @@ S_PATH->"#"->S_PATH_SHARP->dbl-quote->S_CHAR
 
 
 S_PATH->digit->S_PATH_NUM->digit|"'"->S_PATH_NUM
-                 \->delimit10->T_INTEGER
+                 \->delimit11->T_INTEGER
                   \->"%"->T_PERCENT
                    \->"."->S_DOTNUM
-                    \->"x"|"X"->S_PAIR_1ST->digit->S_PAIR->digit|"."|"e"|"E"->S_PAIR
-                     \           \->else->T_ERROR    \->delimit10->T_PAIR
-                      \                               \->else->T_ERROR
-                       \
-                        \->"e"|"E"->S_DECEXP
-                         \->else->T_ERROR
+                    \->"x"|"X"->S_PAIR_1ST
+                     \->"e"|"E"->S_DECEXP
+                      \->else->T_ERROR
                          
 S_PATH->"<"->S_LESSER
 
 S_PATH->"+"|"-"->S_PATH_SIGN->digit->S_PATH_NUM
-                   \->"$"->S_MONEY
-                    \->delimit14->T_ERROR
-                     \->else->S_WORD
+                   \->"$"->S_MONEY_1ST
+                    \->delimit22->T_WORD
+                     \->delimit14->T_ERROR
+                      \->else->S_WORD
                         
 S_PATH->"$"->S_MONEY_1ST
 S_PATH->"@"->S_REF
 
-S_PATH->"'"|":"->S_PATH_W1ST->not(delimit6)->S_PATH_WORD
+S_PATH->"'"|":"->S_PATH_W1ST->not(delimit23)->S_PATH_WORD
+                  \->else->T_ERROR
 
-S_PATH->not(delimit6)->S_PATH_WORD->not(delimit5)->S_PATH_WORD
-                         \->delimit7->T_WORD
-                          \
-                           \->":"->T_WORD
-                            \
-                             \->"@"->S_EMAIL->not(delimit7|"@"|"/"|">"|","|"^"|"$"|":"|"'"|"#")->S_EMAIL
-                              \       \->delimit7->T_EMAIL
-                               \       \->"@"|">"|","|"^"|"$"|":"|"'"|"#"->T_ERROR
-                                \
-                                 \->"/"->T_WORD
-                                  \->"$"->S_MONEY
-                                   \->","|"#"|"%"->T_ERROR
+S_PATH->not(delimit6)->S_PATH_WORD->path-word->S_PATH_WORD
+                         \->delimit24->T_WORD
+                          \->"@"->S_EMAIL
+                           \->","|"#"|"%"|"$"->T_ERROR
 
 
 === Binary16 classes ===
