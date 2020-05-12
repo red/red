@@ -278,6 +278,18 @@ Red [
 				--assert value == test value
 			]
 		
+		--test-- "action"
+			take/last block: split help-string action! newline
+			actions: collect [forall block [keep get load take/part block/1 find block/1 "=>"]]
+			
+			forall actions [--assert :actions/1 == test :actions/1]
+
+		--test-- "natives"
+			take/last block: split help-string native! newline
+			natives: collect [forall block [keep get load take/part block/1 find block/1 "=>"]]
+			
+			forall natives [--assert :natives/1 == test :natives/1]
+		
 	===end-group===
 
 ~~~end-file~~~
