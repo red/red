@@ -2279,24 +2279,10 @@ lexer: context [
 		]
 	]
 
-	on-gc-mark: func [/local s [state!] lex [state!]][
-		if root-state <> null [
-			s: root-state
-			until [
-				lex: s
-				s: s/next
-				null? s
-			]
-			collector/mark-values stash lex/tail
-		]
-	]
-
 	init: func [][
 		stash: as cell! allocate stash-size * size? cell!
 		utf8-buffer: allocate utf8-buf-size
 		utf8-buf-tail: utf8-buffer
-
-		collector/register as int-ptr! :on-gc-mark
 
 		;-- switch following tables to zero-based indexing
 		lex-classes: lex-classes + 1
