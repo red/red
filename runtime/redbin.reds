@@ -263,14 +263,21 @@ redbin: context [
 		data: data + 4
 		
 		if set? [
-			if codec? [parent: root]					;-- redirect slot allocation to root level
-			offset: block/rs-length? parent
-			data: decode-value data table parent
-			_context/set new block/rs-abs-at root offset
-			s: GET_BUFFER(parent)
-			offset: offset - 1
-			s/tail: s/offset + offset					;-- drop unwanted values in parent
+			either codec? [
+				parent: block/push-only* 1				;-- redirect slot allocation
+				data: decode-value data table parent
+				_context/set new block/rs-head parent
+				stack/pop 1								;-- drop unwanted block
+			][
+				offset: block/rs-length? parent
+				data: decode-value data table parent
+				_context/set new block/rs-abs-at root offset
+				s: GET_BUFFER(parent)
+				offset: offset - 1
+				s/tail: s/offset + offset				;-- drop unwanted values in parent
+			]
 		]
+		
 		data
 	]
 	
