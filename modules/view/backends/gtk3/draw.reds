@@ -12,10 +12,54 @@ Red/System [
 
 #include %text-box.reds
 
-draw-state!: alias struct! [mat [handle!]]
+draw-state!: alias struct! [
+	pen-join		[integer!]
+	pen-cap			[integer!]
+	pen-width		[float!]
+	pen-style		[integer!]
+	pen-color		[integer!]					;-- 00bbggrr format
+	brush-color		[integer!]					;-- 00bbggrr format
+	font-color		[integer!]
+	grad-pen		[gradient! value]
+	grad-brush		[gradient! value]
+	pen?			[logic!]
+	brush?			[logic!]
+	on-image?		[logic!]
+]
 
 #define MAX_COLORS				256		;-- max number of colors for gradient
 
+#enum cairo_operator_t! [
+	CAIRO_OPERATOR_CLEAR
+	CAIRO_OPERATOR_SOURCE
+	CAIRO_OPERATOR_OVER
+	CAIRO_OPERATOR_IN
+	CAIRO_OPERATOR_OUT
+	CAIRO_OPERATOR_ATOP
+	CAIRO_OPERATOR_DEST
+	CAIRO_OPERATOR_DEST_OVER
+	CAIRO_OPERATOR_DEST_IN
+	CAIRO_OPERATOR_DEST_OUT
+	CAIRO_OPERATOR_DEST_ATOP
+	CAIRO_OPERATOR_XOR
+	CAIRO_OPERATOR_ADD
+	CAIRO_OPERATOR_SATURATE
+	CAIRO_OPERATOR_MULTIPLY
+	CAIRO_OPERATOR_SCREEN
+	CAIRO_OPERATOR_OVERLAY
+	CAIRO_OPERATOR_DARKEN
+	CAIRO_OPERATOR_LIGHTEN
+	CAIRO_OPERATOR_COLOR_DODGE
+	CAIRO_OPERATOR_COLOR_BURN
+	CAIRO_OPERATOR_HARD_LIGHT
+	CAIRO_OPERATOR_SOFT_LIGHT
+	CAIRO_OPERATOR_DIFFERENCE
+	CAIRO_OPERATOR_EXCLUSION
+	CAIRO_OPERATOR_HSL_HUE
+	CAIRO_OPERATOR_HSL_SATURATION
+	CAIRO_OPERATOR_HSL_COLOR
+	CAIRO_OPERATOR_HSL_LUMINOSITY
+]
 
 free-pango-cairo-font: func [
 	dc		[draw-ctx!]
@@ -91,6 +135,7 @@ draw-begin: func [
 	ctx/font-opts:		null
 
 	cairo_set_line_width cr 1.0
+	cairo_set_operator cr CAIRO_OPERATOR_OVER
 	set-source-color cr 0
 	ctx
 ]
@@ -1747,6 +1792,7 @@ OS-matrix-push: func [
 	state		[draw-state!]
 ][
 	cairo_save dc/cr
+	copy-memory as byte-ptr! state (as byte-ptr! dc) + 4 size? draw-state!
 ]
 
 OS-matrix-pop: func [
@@ -1754,6 +1800,7 @@ OS-matrix-pop: func [
 	state		[draw-state!]
 ][
 	cairo_restore dc/cr
+	copy-memory (as byte-ptr! dc) + 4 as byte-ptr! state size? draw-state!
 ]
 
 OS-matrix-reset: func [
@@ -1862,6 +1909,14 @@ OS-set-clip: func [
 		cairo_rectangle cr
 			as float! x1 as float! y1
 			as float! x2 - x1 as float! y2 - y1
+	]
+	cairo_set_operator cr case [
+		mode = replace	 [CAIRO_OPERATOR_SOURCE]
+		mode = intersect [CAIRO_OPERATOR_OVER]
+		mode = union	 [CAIRO_OPERATOR_ADD]
+		mode = _xor		 [CAIRO_OPERATOR_XOR]
+		mode = exclude	 [CAIRO_OPERATOR_EXCLUSION]
+		true			 [CAIRO_OPERATOR_OVER]
 	]
 	cairo_clip cr
 ]

@@ -2894,6 +2894,10 @@ GPtrArray!: alias struct! [
 			x			[float!]
 			y			[float!]
 		]
+		cairo_set_operator: "cairo_set_operator" [
+			cr			[handle!]
+			mode		[integer!]
+		]
 		cairo_set_font_face: "cairo_set_font_face" [
 			cr			[handle!]
 			font_face	[handle!]
