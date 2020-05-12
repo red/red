@@ -75,10 +75,12 @@ redbin: context [
 				as red-value! op/make null as red-block! _context/get-global sym/1 TYPE_OP
 				as red-value! cell
 		][
+			if codec? [parent: block/push-only* 1]	;-- redirect slot allocation
+			
 			spec: as red-block! block/rs-tail parent
 			data: decode-block data table parent off
 
-			cell/header: type								;-- implicit reset of all header flags
+			cell/header: type						;-- implicit reset of all header flags
 			if nl? [cell/header: cell/header or flag-new-line]
 			cell/spec:	 spec/node
 			cell/args:	 null
@@ -87,7 +89,10 @@ redbin: context [
 			][
 				cell/code: natives/table/index
 			]
+			
+			if codec? [stack/pop 1]					;-- drop an unwanted block
 		]
+		
 		data
 	]
 	
@@ -746,6 +751,11 @@ redbin: context [
 				REDBIN_EMIT* bitset/rs-head as red-bitset! data len >> 3
 				pad payload 4						;-- pad to 32-bit boundary
 			]
+			TYPE_NATIVE
+			TYPE_ACTION [
+				;@@ TBD: properly calculate number of records
+				encode-native data type payload symbols table strings
+			]
 			TYPE_ANY_STRING
 			TYPE_VECTOR
 			TYPE_BINARY [
@@ -756,7 +766,7 @@ redbin: context [
 			]
 			TYPE_MAP
 			TYPE_ANY_BLOCK [
-				length: length + encode-block data type payload symbols table strings
+				length: length + encode-block data type no payload symbols table strings
 			]
 			TYPE_ANY_WORD
 			TYPE_REFINEMENT
@@ -767,6 +777,28 @@ redbin: context [
 		]
 		
 		length
+	]
+	
+	encode-native: func [
+		data    [red-value!]
+		type    [datatypes!]
+		payload [red-binary!]
+		symbols [red-binary!]
+		table   [red-binary!]
+		strings [red-binary!]
+		/local
+			here  [int-ptr!]
+			index [integer!]
+	][
+		here: either type = TYPE_NATIVE [natives/table][actions/table]
+		index: 0
+		
+		until [index: index + 1 data/data3 = here/index]
+		
+		REDBIN_EMIT :type 4
+		REDBIN_EMIT :index 4
+		
+		encode-block data TYPE_BLOCK yes payload symbols table strings
 	]
 	
 	encode-word: func [
@@ -889,6 +921,7 @@ redbin: context [
 	encode-block: func [
 		data    [red-value!]
 		type    [datatypes!]
+		abs?    [logic!]
 		payload [red-binary!]
 		symbols [red-binary!]
 		table   [red-binary!]
@@ -899,14 +932,16 @@ redbin: context [
 			_offset [red-value!]
 			buffer  [series!]
 			length  [integer!]
+			zero    [integer!]
 	][
 		series:  as red-series! data
 		buffer:  GET_BUFFER(series)
 		length:  _series/get-length series yes
 		_offset: buffer/offset
+		zero:    0
 		
 		REDBIN_EMIT :type 4
-		unless type = TYPE_MAP [REDBIN_EMIT :data/data1 4]
+		unless type = TYPE_MAP [REDBIN_EMIT either abs? [:zero][:data/data1] 4]
 		REDBIN_EMIT :length 4
 		loop length [
 			encode-value _offset payload symbols table strings
