@@ -115,10 +115,7 @@ redbin: context [
 
 		blk: block/make-at as red-block! ALLOC_TAIL(parent) sz
 		data: data + 2
-		while [size > 0][
-			data: decode-value data table blk
-			size: size - 1
-		]
+		loop size [data: decode-value data table blk]
 		cell: as cell! map/make-at as red-value! blk blk sz
 		if nl? [cell/header: cell/header or flag-new-line]
 		data
@@ -131,7 +128,6 @@ redbin: context [
 		return: [int-ptr!]
 		/local
 			ctx		[red-context!]
-			slot	[red-word!]
 			obj		[red-object!]
 			values  [red-block!]
 			value	[int-ptr!]
@@ -143,7 +139,6 @@ redbin: context [
 			self?	[logic!]
 			slots	[integer!]
 			new		[node!]
-			symbols	[node!]
 			s		[series!]
 			i		[integer!]
 	][
@@ -312,10 +307,7 @@ redbin: context [
 		s/flags: s/flags and flag-unit-mask or unit
 		s/tail: as cell! (as byte-ptr! s/offset) + size
 		
-		data: as int-ptr! ((as byte-ptr! data) + size)
-		either (as-integer data) and 3 = 0 [data][
-			as int-ptr! ((as-integer data) + 4 and -4) 	;-- align to upper 32-bit boundary
-		]
+		as int-ptr! align (as byte-ptr! data) + size 32	;-- align at upper 32-bit boundary
 	]
 
 	decode-block: func [
@@ -340,10 +332,8 @@ redbin: context [
 		if nl? [blk/header: blk/header or flag-new-line]
 		data: data + 3
 		
-		while [size > 0][
-			data: decode-value data table blk
-			size: size - 1
-		]
+		loop size [data: decode-value data table blk]
+		
 		data
 	]
 
@@ -400,7 +390,7 @@ redbin: context [
 		if nl? [slot/header: slot/header or flag-new-line]
 		set-type slot TYPE_BITSET
 		
-		as int-ptr! align bits + size 32 yes		;-- align at upper 32-bit boundary
+		as int-ptr! align bits + size 32			;-- align at upper 32-bit boundary
 	]
 	
 	decode-vector: func [
@@ -409,12 +399,12 @@ redbin: context [
 		nl?     [logic!]
 		return: [int-ptr!]
 		/local
-			slot   [red-value!]
-			vec    [red-vector!]
-			buf    [series!]
-			values [byte-ptr!]
-			unit   [integer!]
-			size   [integer!]
+			slot    [red-value!]
+			_vector [red-vector!]
+			buffer  [series!]
+			values  [byte-ptr!]
+			unit    [integer!]
+			size    [integer!]
 	][
 		unit: data/1 >>> 8 and FFh
 		size: data/3 << log-b unit					;-- in bytes
@@ -422,15 +412,15 @@ redbin: context [
 		slot: ALLOC_TAIL(parent)
 		if nl? [slot/header: slot/header or flag-new-line]
 		
-		vec: vector/make-at slot data/3 data/4 unit
-		buf: GET_BUFFER(vec)
-		vec/head: data/2
-		buf/tail: as red-value! (as byte-ptr! buf/offset) + size
+		_vector: vector/make-at slot data/3 data/4 unit
+		buffer: GET_BUFFER(_vector)
+		_vector/head: data/2
+		buffer/tail: as red-value! (as byte-ptr! buffer/offset) + size
 		
 		values: as byte-ptr! data + 4
-		copy-memory as byte-ptr! buf/offset values size
+		copy-memory as byte-ptr! buffer/offset values size
 		
-		as int-ptr! align values + size 32 yes		;-- align at upper 32-bit boundary
+		as int-ptr! align values + size 32			;-- align at upper 32-bit boundary
 	]
 	
 	decode-image: func [
@@ -640,6 +630,7 @@ redbin: context [
 		root-base
 	]
 	
+	;@@ TBD: temporal definitions
 	#define REDBIN_EMIT  [REDBIN_EMIT* as byte-ptr!]
 	#define REDBIN_EMIT* [binary/rs-append payload]
 	
@@ -670,15 +661,12 @@ redbin: context [
 	align: func [
 		address [byte-ptr!]
 		bits    [integer!]
-		upper?  [logic!]
 		return: [byte-ptr!]
 		/local
 			delta [integer!]
-			skip  [integer!]
 	][
 		delta: (bits >> 3) - 1
-		skip:  either upper? [delta][0]
-		as byte-ptr! (as integer! address) + skip and not delta
+		as byte-ptr! (as integer! address) + delta and not delta
 	]
 	
 	encode-value: func [
