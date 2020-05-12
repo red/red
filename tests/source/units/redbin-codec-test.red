@@ -10,11 +10,8 @@ Red [
 #include  %../../../quick-test/quick-test.red
 
 ~~~start-file~~~ "Redbin codec"
-	random/seed C0DECh								;-- seed for tests that use random
-	
-	test: function [value [any-type!]][
-		load/as save/as none :value 'redbin 'redbin
-	]
+	random/seed C0DECh								;-- seed for randomized tests
+	test: func [value [any-type!]][load/as save/as none :value 'redbin 'redbin]
 	
 	===start-group=== "values"
 		--test-- "unset"
@@ -284,7 +281,7 @@ Red [
 			
 			forall actions [--assert :actions/1 == test :actions/1]
 
-		--test-- "natives"
+		--test-- "native"
 			take/last block: split help-string native! newline
 			natives: collect [forall block [keep get load take/part block/1 find block/1 "=>"]]
 			
