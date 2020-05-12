@@ -862,17 +862,23 @@ redbin: context [
 		kind:    GET_CTX_TYPE(context)
 		stack?:  ON_STACK?(context)
 		self?:   context/header and flag-self-mask <> 0
-		values?: yes								;@@ TBD: set to NO if all values are unset?
+		values?: no
 		
 		header: TYPE_CONTEXT or (kind << 11)
-		if stack?  [header: header or REDBIN_STACK_MASK]
-		if self?   [header: header or REDBIN_SELF_MASK]
-		if values? [header: header or REDBIN_VALUES_MASK]
+		if stack? [header: header or REDBIN_STACK_MASK]
+		if self?  [header: header or REDBIN_SELF_MASK]
 		
 		values: as series! context/values/value
 		words:  _hashtable/get-ctx-words context
 		length: (as integer! values/tail - values/offset) >> 4
 		offset: binary/rs-length? payload
+		
+		value: as red-value! values + 1
+		loop length [
+			values?: TYPE_OF(value) <> TYPE_UNSET
+			if values? [header: header or REDBIN_VALUES_MASK break]
+			value: value + 1
+		]
 		
 		REDBIN_EMIT :header 4
 		REDBIN_EMIT :length 4
