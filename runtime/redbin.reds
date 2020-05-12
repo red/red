@@ -823,10 +823,11 @@ redbin: context [
 		value: either type = TYPE_ISSUE [null][word/get-any as red-word! data]
 		set?:  no
 		
-		if all [type <> TYPE_ISSUE TYPE_OF(value) <> TYPE_UNSET][
-			type: type or REDBIN_SET_MASK
-			set?: yes
-		]
+		;@@ TBD: either keep it or leave it
+		;if all [type <> TYPE_ISSUE TYPE_OF(value) <> TYPE_UNSET][
+		;	type: type or REDBIN_SET_MASK
+		;	set?: yes
+		;]
 		
 		ctx: encode-context as node! data/data1 payload symbols table strings
 		id:  encode-symbol data table symbols strings
