@@ -993,7 +993,7 @@ string: context [
 			(as byte-ptr! s1/offset) + (offset << (log-b unit1)) + h1
 		]
 		either all [keep? diff?][
-			assert s1 <> s1
+			assert s1 <> s2
 			p2: (as byte-ptr! s2/offset) + h2
 			limit: p2 + (size2 << (log-b unit2))
 			while [p2 < limit][
