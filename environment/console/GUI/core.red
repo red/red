@@ -154,7 +154,7 @@ object [
 		()				;-- return unset!
 	]
 
-	reset-buffer: func [blk [block!] /advance /local src][
+	reset-buffer: func [blk [block! vector!] /advance /local src][
 		src: blk
 		blk: head blk
 		move/part src blk max-lines
