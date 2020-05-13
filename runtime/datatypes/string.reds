@@ -1626,16 +1626,33 @@ string: context [
 		flags	[integer!]
 		return: [integer!]
 		/local
-			c1	[integer!]
-			c2	[integer!]
+			c1		[integer!]
+			c2		[integer!]
+			count	[integer!]
+			res		[integer!]
+			rev		[integer!]
 	][
-		c1: as-integer p1/1
-		c2: as-integer p2/1
-		if op = COMP_EQUAL [
-			if all [65 <= c1 c1 <= 90][c1: c1 + 32]
-			if all [65 <= c2 c2 <= 90][c2: c2 + 32]
+		rev: either flags and sort-reverse-mask = sort-reverse-mask [-1][1]
+		either flags and sort-all-mask = sort-all-mask [
+			count: flags >> 2
+		][
+			count: flags >> 2
+			p1: p1 + count
+			p2: p2 + count
+			count: 1
 		]
-		either zero? flags [c1 - c2][c2 - c1]
+		loop count [
+			c1: as-integer p1/1
+			c2: as-integer p2/1
+			if op = COMP_EQUAL [
+				if all [65 <= c1 c1 <= 90][c1: c1 + 32]
+				if all [65 <= c2 c2 <= 90][c2: c2 + 32]
+			]
+			res: c1 - c2 * rev
+			unless zero? res [break]
+			p1: p1 + 1 p2: p2 + 1
+		]
+		res
 	]
 
 	compare-UCS2: func [
@@ -1645,16 +1662,33 @@ string: context [
 		flags	[integer!]
 		return: [integer!]
 		/local
-			c1	[integer!]
-			c2	[integer!]
+			c1		[integer!]
+			c2		[integer!]
+			count	[integer!]
+			res		[integer!]
+			rev		[integer!]
 	][
-		c1: (as-integer p1/2) << 8 + p1/1
-		c2: (as-integer p2/2) << 8 + p2/1
-		if op = COMP_EQUAL [
-			c1: case-folding/change-char c1 yes	;-- uppercase c1
-			c2: case-folding/change-char c2 yes	;-- uppercase c2
+		rev: either flags and sort-reverse-mask = sort-reverse-mask [-1][1]
+		either flags and sort-all-mask = sort-all-mask [
+			count: flags >> 2
+		][
+			count: flags >> 2 << 1
+			p1: p1 + count
+			p2: p2 + count
+			count: 1
 		]
-		either zero? flags [c1 - c2][c2 - c1]
+		loop count [
+			c1: (as-integer p1/2) << 8 + p1/1
+			c2: (as-integer p2/2) << 8 + p2/1
+			if op = COMP_EQUAL [
+				c1: case-folding/change-char c1 yes	;-- uppercase c1
+				c2: case-folding/change-char c2 yes	;-- uppercase c2
+			]
+			res: c1 - c2 * rev
+			unless zero? res [break]
+			p1: p1 + 2 p2: p2 + 2
+		]
+		res
 	]
 
 	compare-UCS4: func [
@@ -1664,19 +1698,36 @@ string: context [
 		flags	[integer!]
 		return: [integer!]
 		/local
-			c1	[integer!]
-			c2	[integer!]
-			p4  [int-ptr!]
+			c1		[integer!]
+			c2		[integer!]
+			count	[integer!]
+			res		[integer!]
+			rev		[integer!]
+			p4  	[int-ptr!]
 	][
-		p4: as int-ptr! p1
-		c1: p4/1
-		p4: as int-ptr! p2
-		c2: p4/1
-		if op = COMP_EQUAL [
-			c1: case-folding/change-char c1 yes	;-- uppercase c1
-			c2: case-folding/change-char c2 yes	;-- uppercase c2
+		rev: either flags and sort-reverse-mask = sort-reverse-mask [-1][1]
+		either flags and sort-all-mask = sort-all-mask [
+			count: flags >> 2
+		][
+			count: flags and -4							;-- flags >> 2 * 4
+			p1: p1 + count
+			p2: p2 + count
+			count: 1
 		]
-		either zero? flags [c1 - c2][c2 - c1]
+		loop count [
+			p4: as int-ptr! p1
+			c1: p4/1
+			p4: as int-ptr! p2
+			c2: p4/1
+			if op = COMP_EQUAL [
+				c1: case-folding/change-char c1 yes	;-- uppercase c1
+				c2: case-folding/change-char c2 yes	;-- uppercase c2
+			]
+			res: c1 - c2 * rev
+			unless zero? res [break]
+			p1: p1 + 4 p2: p2 + 4
+		]
+		res
 	]
 
 	compare-float32: func [
@@ -1686,19 +1737,32 @@ string: context [
 		flags	[integer!]
 		return: [integer!]
 		/local
-			pf	[pointer! [float32!]]
-			f1	[float32!]
-			f2	[float32!]
+			pf		[pointer! [float32!]]
+			f1		[float32!]
+			f2		[float32!]
+			count	[integer!]
+			res		[integer!]
+			rev		[integer!]
 	][
-		pf: as pointer! [float32!] p1
-		f1: pf/1
-		pf: as pointer! [float32!] p2
-		f2: pf/1
-		either zero? flags [
-			SIGN_COMPARE_RESULT(f1 f2)
+		rev: either flags and sort-reverse-mask = sort-reverse-mask [-1][1]
+		either flags and sort-all-mask = sort-all-mask [
+			count: flags >> 2
 		][
-			SIGN_COMPARE_RESULT(f2 f1)
+			count: flags and -4							;-- flags >> 2 * 4
+			p1: p1 + count
+			p2: p2 + count
+			count: 1
 		]
+		loop count [
+			pf: as pointer! [float32!] p1
+			f1: pf/1
+			pf: as pointer! [float32!] p2
+			f2: pf/1
+			res: (SIGN_COMPARE_RESULT(f1 f2)) * rev
+			unless zero? res [break]
+			p1: p1 + 4 p2: p2 + 4
+		]
+		res
 	]
 
 	compare-float: func [
@@ -1708,19 +1772,32 @@ string: context [
 		flags	[integer!]
 		return: [integer!]
 		/local
-			pf	[pointer! [float!]]
-			f1	[float!]
-			f2	[float!]
+			pf		[pointer! [float!]]
+			f1		[float!]
+			f2		[float!]
+			count	[integer!]
+			res		[integer!]
+			rev		[integer!]
 	][
-		pf: as pointer! [float!] p1
-		f1: pf/1
-		pf: as pointer! [float!] p2
-		f2: pf/1
-		either zero? flags [
-			SIGN_COMPARE_RESULT(f1 f2)
+		rev: either flags and sort-reverse-mask = sort-reverse-mask [-1][1]
+		either flags and sort-all-mask = sort-all-mask [
+			count: flags >> 2
 		][
-			SIGN_COMPARE_RESULT(f2 f1)
+			count: flags and -4 << 1					;-- flags >> 2 * 8
+			p1: p1 + count
+			p2: p2 + count
+			count: 1
 		]
+		loop count [
+			pf: as pointer! [float!] p1
+			f1: pf/1
+			pf: as pointer! [float!] p2
+			f2: pf/1
+			res: (SIGN_COMPARE_RESULT(f1 f2)) * rev
+			unless zero? res [break]
+			p1: p1 + 8 p2: p2 + 8
+		]
+		res
 	]
 
 	find: func [
@@ -2131,8 +2208,9 @@ string: context [
 				]
 			]
 		]
+		if zero? len [return str]						;-- early exit if nothing to sort
 
-		if OPTION?(skip) [
+		either OPTION?(skip) [
 			assert TYPE_OF(skip) = TYPE_INTEGER
 			step: skip/value
 			if any [
@@ -2143,6 +2221,8 @@ string: context [
 				ERR_INVALID_REFINEMENT_ARG(refinements/_skip skip)
 			]
 			if step > 1 [len: len / step]
+		][
+			if all? [fire [TO_ERROR(script bad-refines)]]
 		]
 
 		cmp: either all [
@@ -2167,7 +2247,7 @@ string: context [
 		]
 		flags: either reverse? [SORT_REVERSE][SORT_NORMAL]
 
-		if OPTION?(comparator) [
+		either OPTION?(comparator) [
 			switch TYPE_OF(comparator) [
 				TYPE_FUNCTION [
 					flags: unit << 2 or flags
@@ -2179,6 +2259,9 @@ string: context [
 					op: as-integer comparator
 				]
 				TYPE_INTEGER [
+					if any [all? not OPTION?(skip)] [
+						fire [TO_ERROR(script bad-refines)]
+					]
 					int: as red-integer! comparator
 					offset: int/value
 					if any [offset < 1 offset > step][
@@ -2187,11 +2270,16 @@ string: context [
 							comparator
 						]
 					]
-					flags: offset - 1 << 1 or flags
+					flags: offset - 1 << 2 or flags
 				]
 				default [
 					ERR_INVALID_REFINEMENT_ARG(refinements/compare comparator)
 				]
+			]
+		][
+			if all [all? OPTION?(skip)] [
+				flags: flags or sort-all-mask
+				flags: step << 2 or flags
 			]
 		]
 		chk?: ownership/check as red-value! str words/_sort null str/head 0

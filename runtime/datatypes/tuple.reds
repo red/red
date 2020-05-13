@@ -108,7 +108,7 @@ tuple: context [
 		size: either a = -1 [a: 0 3][4]
 		tp: as red-tuple! slot
 		tp/header: TYPE_TUPLE or (size << 19)
-		tp/array1: (r << 24) or (g << 16 and 00FF0000h) or (b << 8 and FF00h) or (a and FFh)
+		tp/array1: (a << 24) or (b << 16 and 00FF0000h) or (g << 8 and FF00h) or (r and FFh)
 		tp/array2: 0
 		tp/array3: 0
 		tp
@@ -264,7 +264,7 @@ tuple: context [
 			n: 0
 			until [
 				n: n + 1
-				array/n: as-byte _random/rand % ((as-integer array/n) + 1)
+				array/n: as-byte (-1 + _random/int-uniform-distr secure? (1 + as-integer array/n))
 				n = size
 			]
 		]

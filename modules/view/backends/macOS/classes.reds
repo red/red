@@ -147,7 +147,7 @@ add-camera-handler: func [class [integer!]][
 ]
 
 add-calendar-handler: func [class [integer!]][
-	class_addMethod class sel_getUid "calendar-change:" as-integer :calendar-change "v@:@"
+	class_addMethod class sel_getUid "calendar-change" as-integer :calendar-change "v@"
 ]
 
 add-tabview-handler: func [class [integer!]][

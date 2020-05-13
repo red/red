@@ -52,7 +52,7 @@ capitalize: function [
 		]
 	][
 		all [
-			face/type = 'button
+			find [button toggle radio check] face/type
 			face/text
 			not empty? face/text
 		]
@@ -94,7 +94,7 @@ adjust-buttons: function [
 		]
 	][
 		all [
-			face/type = 'button
+			find [button toggle] face/type
 			face/size
 			face/size/y <= 42							;-- 37 + 5
 			not empty? face/text

@@ -914,7 +914,7 @@ block: context [
 
 		either any [
 			match?
-			any-blk?									;@@ we don't hash block!
+			all [only? any-blk?]						;@@ we don't hash block!
 			not hash?
 		][
 			values: either only? [0][					;-- values > 0 => series comparison mode
@@ -1014,16 +1014,33 @@ block: context [
 				result/header: TYPE_NONE					;-- change the stack 1st argument to none.
 			]
 		][
-			key: _hashtable/get table value hash/head step op last? reverse?
-			either any [
-				key = null
-				all [part? key > part]
-			][
-				result/header: TYPE_NONE
-			][
-				blk: as red-block! result
-				if tail? [key: key + 1]
-				blk/head: (as-integer key - s/offset) >> 4	;-- just change the head position on stack
+			if any-blk? [
+				b: as red-block! value
+				value: rs-head b
+			]
+			forever [		;@@ TBD: support /last refinement
+				key: _hashtable/get table value hash/head step op last? reverse?
+				either any [
+					key = null
+					all [part? key > part]
+				][
+					result/header: TYPE_NONE
+					any-blk?: no
+				][
+					blk: as red-block! result
+					if tail? [key: key + 1]
+					blk/head: (as-integer key - s/offset) >> 4	;-- just change the head position on stack
+				]
+				unless any-blk? [break]
+
+				hash/head: blk/head
+				if tail? [hash/head: hash/head - 1]
+				slot: find as red-block! hash as red-value! b part no case? same? any? with-arg skip no no no yes
+				if slot/header <> TYPE_NONE [
+					if tail? [blk/head: hash/head + rs-length? b]
+					break
+				]
+				hash/head: hash/head + 1
 			]
 		]
 		result
@@ -1131,22 +1148,33 @@ block: context [
 		return:  [integer!]
 		/local
 			offset	[integer!]
+			count	[integer!]
 			res		[integer!]
 			temp	[red-value!]
 			action-compare
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/compare-value"]]
 
-		offset: flags >>> 1
-		value1: value1 + offset
-		value2: value2 + offset
+		either flags and sort-all-mask = sort-all-mask [
+			count: flags >>> 2
+		][
+			count: 1
+			offset: flags >>> 2
+			value1: value1 + offset
+			value2: value2 + offset
+		]
 		if flags and sort-reverse-mask = sort-reverse-mask [
 			temp: value1 value1: value2 value2: temp
 		]
-		action-compare: DISPATCH_COMPARE(value1)
+		loop count [
+			action-compare: DISPATCH_COMPARE(value1)
+			res: action-compare value1 value2 op
+			if res = -2 [res: TYPE_OF(value1) - TYPE_OF(value2)]
 
-		res: action-compare value1 value2 op
-		if res = -2 [res: TYPE_OF(value1) - TYPE_OF(value2)]
+			unless zero? res [break]
+			value1: value1 + 1
+			value2: value2 + 1
+		]
 		res
 	]
 
@@ -1274,7 +1302,6 @@ block: context [
 		if OPTION?(part) [
 			len2: either TYPE_OF(part) = TYPE_INTEGER [
 				int: as red-integer! part
-				if int/value <= 0 [return blk]			;-- early exit if part <= 0
 				int/value
 			][
 				blk2: as red-block! part
@@ -1296,8 +1323,9 @@ block: context [
 				]
 			]
 		]
+		if zero? len [return blk]						;-- early exit if nothing to sort
 
-		if OPTION?(skip) [
+		either OPTION?(skip) [
 			assert TYPE_OF(skip) = TYPE_INTEGER
 			step: skip/value
 			if any [
@@ -1308,13 +1336,15 @@ block: context [
 				ERR_INVALID_REFINEMENT_ARG(refinements/_skip skip)
 			]
 			if step > 1 [len: len / step]
+		][
+			if all? [fire [TO_ERROR(script bad-refines)]]
 		]
 
 		if reverse? [flags: flags or sort-reverse-mask]
 		op: either case? [COMP_CASE_SORT][COMP_SORT]
 		cmp: as-integer :compare-value
 
-		if OPTION?(comparator) [
+		either OPTION?(comparator) [
 			switch TYPE_OF(comparator) [
 				TYPE_FUNCTION [
 					if all [all? OPTION?(skip)] [
@@ -1325,6 +1355,9 @@ block: context [
 					op: as-integer comparator
 				]
 				TYPE_INTEGER [
+					if any [all? not OPTION?(skip)] [
+						fire [TO_ERROR(script bad-refines)]
+					]
 					int: as red-integer! comparator
 					offset: int/value
 					if any [offset < 1 offset > step][
@@ -1333,11 +1366,16 @@ block: context [
 							comparator
 						]
 					]
-					flags: offset - 1 << 1 or flags
+					flags: offset - 1 << 2 or flags
 				]
 				default [
 					ERR_INVALID_REFINEMENT_ARG(refinements/compare comparator)
 				]
+			]
+		][
+			if all? [
+				flags: flags or sort-all-mask
+				flags: step << 2 or flags
 			]
 		]
 		chk?: ownership/check as red-value! blk words/_sort null blk/head 0
