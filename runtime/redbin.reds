@@ -536,10 +536,14 @@ redbin: context [
 			REDBIN_PADDING	[
 				decode-value data + 1 table parent
 			]
-			TYPE_FUNCTION
-			TYPE_POINT
+			TYPE_PORT
 			TYPE_OBJECT
 			TYPE_ERROR
+			TYPE_FUNCTION
+			TYPE_ROUTINE
+			TYPE_HANDLE
+			TYPE_EVENT
+			TYPE_POINT
 			REDBIN_REFERENCE [
 				--NOT_IMPLEMENTED--
 				data
@@ -650,6 +654,7 @@ redbin: context [
 			residue [integer!]
 			zero    [integer!]
 	][
+		size:    size >> 3
 		length:  binary/rs-length? buffer
 		residue: length // size
 		zero:    0
@@ -665,7 +670,7 @@ redbin: context [
 		/local
 			delta [integer!]
 	][
-		delta: (bits >> 3) - 1
+		delta: bits >> 3 - 1
 		as byte-ptr! (as integer! address) + delta and not delta
 	]
 	
@@ -678,7 +683,6 @@ redbin: context [
 		return: [integer!]
 		/local
 			type length flags [integer!]
-			len [integer!]
 	][
 		length: 1									;-- at least 1 value is encoded
 		
@@ -703,7 +707,7 @@ redbin: context [
 			TYPE_PERCENT
 			TYPE_TIME
 			TYPE_FLOAT [
-				pad payload 8						;-- pad to 64-bit boundary
+				pad payload 64						;-- pad to 64-bit boundary
 				REDBIN_EMIT :type 4
 				REDBIN_EMIT :data/data3 4			;-- order of fields is important
 				REDBIN_EMIT :data/data2 4
@@ -739,39 +743,57 @@ redbin: context [
 				REDBIN_EMIT :data/data2 4
 				REDBIN_EMIT :data/data3 4
 			]
-			TYPE_BITSET [
-				len: bitset/length? as red-bitset! data
-				REDBIN_EMIT :type 4
-				REDBIN_EMIT :len  4
-				REDBIN_EMIT* bitset/rs-head as red-bitset! data len >> 3
-				pad payload 4						;-- pad to 32-bit boundary
-			]
 			TYPE_NATIVE
 			TYPE_ACTION [
 				;@@ TBD: properly calculate number of records
 				encode-native data type payload symbols table strings
-			]
-			TYPE_ANY_STRING
-			TYPE_VECTOR
-			TYPE_BINARY [
-				encode-string data type payload
-			]
-			TYPE_IMAGE [
-				encode-image data payload
-			]
-			TYPE_MAP
-			TYPE_ANY_BLOCK [
-				length: length + encode-block data type no payload symbols table strings
 			]
 			TYPE_ANY_WORD
 			TYPE_REFINEMENT
 			TYPE_ISSUE [
 				encode-word data type payload symbols table strings
 			]
-			default [--NOT_IMPLEMENTED--]			;@@ TBD: proper error message
+			default [								;-- indirect values
+				switch type [
+					TYPE_BITSET [
+						encode-bitset data payload
+					]
+					TYPE_ANY_STRING
+					TYPE_VECTOR
+					TYPE_BINARY [
+						encode-string data type payload
+					]
+					TYPE_IMAGE [
+						encode-image data payload
+					]
+					TYPE_MAP
+					TYPE_ANY_BLOCK [
+						encode-block data type no payload symbols table strings
+					]
+					default [--NOT_IMPLEMENTED--]	;@@ TBD: proper error message
+				]
+			]
 		]
 		
 		length
+	]
+	
+	encode-bitset: func [
+		data    [red-value!]
+		payload [red-binary!]
+		/local
+			bits   [red-bitset!]
+			length [integer!]
+			type   [integer!]
+	][
+		bits:   as red-bitset! data
+		length: bitset/length? bits
+		type:   TYPE_BITSET
+		
+		REDBIN_EMIT :type 4
+		REDBIN_EMIT :length  4
+		REDBIN_EMIT* bitset/rs-head bits length >> 3
+		pad payload 32				;-- pad to 32-bit boundary
 	]
 	
 	encode-native: func [
@@ -804,28 +826,17 @@ redbin: context [
 		table   [red-binary!]
 		strings [red-binary!]
 		/local
-			value  [red-value!]
-			id ctx [integer!]
-			set?   [logic!]
+			symbol  [integer!]
+			context [integer!]
 	][
-		value: either type = TYPE_ISSUE [null][word/get-any as red-word! data]
-		set?:  no
-		
-		;@@ TBD: either keep it or leave it
-		;if all [type <> TYPE_ISSUE TYPE_OF(value) <> TYPE_UNSET][
-		;	type: type or REDBIN_SET_MASK
-		;	set?: yes
-		;]
-		
-		ctx: encode-context as node! data/data1 payload symbols table strings
-		id:  encode-symbol data table symbols strings
+		symbol:  encode-symbol data table symbols strings
+		context: encode-context as node! data/data1 payload symbols table strings
 		
 		REDBIN_EMIT :type 4
-		REDBIN_EMIT :id 4
+		REDBIN_EMIT :symbol 4
 		unless type = TYPE_ISSUE [
-			REDBIN_EMIT :ctx 4
+			REDBIN_EMIT :context 4
 			REDBIN_EMIT :data/data3 4
-			if set? [encode-value value payload symbols table strings]
 		]
 	]
 	
@@ -859,7 +870,7 @@ redbin: context [
 		values: as series! context/values/value
 		words:  _hashtable/get-ctx-words context
 		length: (as integer! values/tail - values/offset) >> 4
-		offset: binary/rs-length? payload
+		offset: binary/rs-length? payload			;@@ TBD: reference to function/object instead
 		
 		value: as red-value! values + 1
 		loop length [
@@ -917,7 +928,7 @@ redbin: context [
 			REDBIN_EMIT* as byte-ptr! _offset length << log-b unit
 		]
 		
-		pad payload 4								;-- pad to 32-bit boundary
+		pad payload 32								;-- pad to 32-bit boundary
 	]
 	
 	encode-block: func [
@@ -985,7 +996,7 @@ redbin: context [
 			binary/rs-append symbols as byte-ptr! :data/data2 4
 			binary/rs-append strings as byte-ptr! string (length? string) + 1
 			
-			pad strings 8							;-- pad to 64-bit boundary
+			pad strings 64							;-- pad to 64-bit boundary
 		]
 		
 		id
@@ -1022,10 +1033,10 @@ redbin: context [
 		codec?: yes
 	
 		;-- payload
-		payload:  binary/make-at stack/push* 4		;@@ TBD: heuristics for pre-allocation
-		symbols:  binary/make-at stack/push* 4
-		table:    binary/make-at stack/push* 4
-		strings:  binary/make-at stack/push* 4
+		payload: binary/make-at stack/push* 4		;@@ TBD: heuristics for pre-allocation
+		symbols: binary/make-at stack/push* 4
+		table:   binary/make-at stack/push* 4
+		strings: binary/make-at stack/push* 4
 		
 		length: encode-value data payload symbols table strings
 		size:   binary/rs-length? payload
