@@ -111,6 +111,7 @@ get-face-obj: func [
 	/local
 		face [red-object!]
 ][
+	if null? hWnd [return null]
 	face: declare red-object!
 	face/header: GetWindowLong hWnd wc-offset
 	face/ctx:	 as node! GetWindowLong hWnd wc-offset + 4
