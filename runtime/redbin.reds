@@ -674,6 +674,36 @@ redbin: context [
 		as byte-ptr! (as integer! address) + delta and not delta
 	]
 	
+	emit: func [
+		buffer [red-binary!]
+		data   [byte-ptr!]
+		size   [integer!]
+	][
+		binary/rs-append buffer data size
+	]
+	
+	store: func [
+		buffer [red-binary!]
+		data   [integer!]
+	][
+		emit buffer as byte-ptr! :data size? data
+	]
+	
+	record: func [
+		[variadic]
+		count [integer!]
+		list  [int-ptr!]
+		/local
+			payload [red-binary!]
+	][
+		payload: as red-binary! list/1
+		list: list + 1
+		loop count - 1 [
+			store payload list/1
+			list: list + 1
+		]
+	]
+	
 	encode-value: func [
 		data    [red-value!]
 		payload [red-binary!]
@@ -692,60 +722,41 @@ redbin: context [
 		switch type [
 			TYPE_UNSET
 			TYPE_NONE [
-				REDBIN_EMIT :type 4
+				store payload type
 			]
 			TYPE_DATATYPE
 			TYPE_LOGIC [
-				REDBIN_EMIT :type 4
-				REDBIN_EMIT :data/data1 4			;@@ coerce LOGIC! to 0 or 1?
+				record [payload type data/data1]
 			]
 			TYPE_INTEGER
 			TYPE_CHAR [
-				REDBIN_EMIT :type 4
-				REDBIN_EMIT :data/data2 4
+				record [payload type data/data2]
 			]
 			TYPE_PERCENT
 			TYPE_TIME
 			TYPE_FLOAT [
-				pad payload 64						;-- pad to 64-bit boundary
-				REDBIN_EMIT :type 4
-				REDBIN_EMIT :data/data3 4			;-- order of fields is important
-				REDBIN_EMIT :data/data2 4
+				pad payload 64
+				record [payload data/data3 data/data2]
 			]
 			TYPE_PAIR [
-				REDBIN_EMIT :type 4
-				REDBIN_EMIT :data/data2 4
-				REDBIN_EMIT :data/data3 4
+				record [payload type data/data2 data/data3]
+			]
+			TYPE_TYPESET [
+				record [payload type data/data1 data/data2 data/data3]
+			]
+			TYPE_DATE [
+				record [payload type data/data1 data/data3 data/data2]
 			]
 			TYPE_TUPLE [
 				flags: type or (TUPLE_SIZE?(data) << 8)
-				REDBIN_EMIT :flags 4
-				REDBIN_EMIT :data/data1 4
-				REDBIN_EMIT :data/data2 4
-				REDBIN_EMIT :data/data3 4
-			]
-			TYPE_DATE [
-				REDBIN_EMIT :type 4
-				REDBIN_EMIT :data/data1 4
-				REDBIN_EMIT :data/data3 4			;-- order of fields is important
-				REDBIN_EMIT :data/data2 4
+				record [payload flags data/data1 data/data2 data/data3]
 			]
 			TYPE_MONEY [
 				flags: type or ((money/get-sign as red-money! data) << 14)
-				REDBIN_EMIT :flags 4
-				REDBIN_EMIT :data/data1 4
-				REDBIN_EMIT :data/data2 4
-				REDBIN_EMIT :data/data3 4
-			]
-			TYPE_TYPESET [
-				REDBIN_EMIT :type 4
-				REDBIN_EMIT :data/data1 4
-				REDBIN_EMIT :data/data2 4
-				REDBIN_EMIT :data/data3 4
+				record [payload flags data/data1 data/data2 data/data3]
 			]
 			TYPE_NATIVE
 			TYPE_ACTION [
-				;@@ TBD: properly calculate number of records
 				encode-native data type payload symbols table strings
 			]
 			TYPE_ANY_WORD
@@ -755,20 +766,20 @@ redbin: context [
 			]
 			default [								;-- indirect values
 				switch type [
-					TYPE_BITSET [
-						encode-bitset data payload
-					]
 					TYPE_ANY_STRING
 					TYPE_VECTOR
 					TYPE_BINARY [
 						encode-string data type payload
 					]
+					TYPE_ANY_BLOCK 
+					TYPE_MAP [
+						encode-block data type no payload symbols table strings
+					]
+					TYPE_BITSET [
+						encode-bitset data payload
+					]
 					TYPE_IMAGE [
 						encode-image data payload
-					]
-					TYPE_MAP
-					TYPE_ANY_BLOCK [
-						encode-block data type no payload symbols table strings
 					]
 					default [--NOT_IMPLEMENTED--]	;@@ TBD: proper error message
 				]
@@ -790,10 +801,9 @@ redbin: context [
 		length: bitset/length? bits
 		type:   TYPE_BITSET
 		
-		REDBIN_EMIT :type 4
-		REDBIN_EMIT :length  4
-		REDBIN_EMIT* bitset/rs-head bits length >> 3
-		pad payload 32				;-- pad to 32-bit boundary
+		record [payload type length]
+		emit payload bitset/rs-head bits length >> 3
+		pad payload 32
 	]
 	
 	encode-native: func [
@@ -809,12 +819,9 @@ redbin: context [
 	][
 		here: either type = TYPE_NATIVE [natives/table][actions/table]
 		index: 0
-		
 		until [index: index + 1 data/data3 = here/index]
 		
-		REDBIN_EMIT :type 4
-		REDBIN_EMIT :index 4
-		
+		record [payload type index]
 		encode-block data TYPE_BLOCK yes payload symbols table strings
 	]
 	
@@ -832,12 +839,8 @@ redbin: context [
 		symbol:  encode-symbol data table symbols strings
 		context: encode-context as node! data/data1 payload symbols table strings
 		
-		REDBIN_EMIT :type 4
-		REDBIN_EMIT :symbol 4
-		unless type = TYPE_ISSUE [
-			REDBIN_EMIT :context 4
-			REDBIN_EMIT :data/data3 4
-		]
+		record [payload type symbol]
+		unless type = TYPE_ISSUE [record [payload context data/data3]]
 	]
 	
 	encode-context: func [
@@ -852,7 +855,7 @@ redbin: context [
 			value                [red-value!]
 			values words         [series!]
 			header length offset [integer!]
-			kind id              [integer!]
+			kind                 [integer!]
 			stack? self? values? [logic!]
 	][
 		if node = global-ctx [return -1]
@@ -879,13 +882,11 @@ redbin: context [
 			value: value + 1
 		]
 		
-		REDBIN_EMIT :header 4
-		REDBIN_EMIT :length 4
+		record [payload header length]
 		
 		value: as red-value! words + 1
 		loop length [
-			id: encode-symbol value table symbols strings
-			REDBIN_EMIT :id 4
+			store payload encode-symbol value table symbols strings
 			value: value + 1
 		]
 		
@@ -906,8 +907,8 @@ redbin: context [
 		payload [red-binary!]
 		/local
 			series  [red-series!]
-			_offset [red-value!]
 			buffer  [series!]
+			_offset [byte-ptr!]
 			length  [integer!]
 			unit    [integer!]
 			flags   [integer!]
@@ -916,19 +917,17 @@ redbin: context [
 		buffer:  GET_BUFFER(series)
 		unit:    GET_UNIT(buffer)
 		length:  _series/get-length series yes
-		_offset: buffer/offset
+		_offset: as byte-ptr! buffer/offset
 		flags:   type or (unit << 8)
 		
-		REDBIN_EMIT :flags 4
-		REDBIN_EMIT :data/data1 4
-		REDBIN_EMIT :length 4
+		record [payload flags data/data1 length]
 		
-		if type = TYPE_VECTOR [REDBIN_EMIT :data/data3 4]
+		if type = TYPE_VECTOR [store payload data/data3]
 		unless zero? length [
-			REDBIN_EMIT* as byte-ptr! _offset length << log-b unit
+			emit payload _offset length << log-b unit
 		]
 		
-		pad payload 32								;-- pad to 32-bit boundary
+		pad payload 32
 	]
 	
 	encode-block: func [
@@ -945,17 +944,15 @@ redbin: context [
 			_offset [red-value!]
 			buffer  [series!]
 			length  [integer!]
-			zero    [integer!]
 	][
 		series:  as red-series! data
 		buffer:  GET_BUFFER(series)
 		length:  _series/get-length series yes
 		_offset: buffer/offset
-		zero:    0
 		
-		REDBIN_EMIT :type 4
-		unless type = TYPE_MAP [REDBIN_EMIT either abs? [:zero][:data/data1] 4]
-		REDBIN_EMIT :length 4
+		store payload type
+		unless type = TYPE_MAP [store payload either abs? [0][data/data1]]
+		store payload length
 		loop length [
 			encode-value _offset payload symbols table strings
 			_offset: _offset + 1
@@ -992,11 +989,11 @@ redbin: context [
 			string:  as c-string! (as series! _symbol/cache/value) + 1
 			length:  binary/rs-length? strings
 			
-			binary/rs-append table   as byte-ptr! :length 4
-			binary/rs-append symbols as byte-ptr! :data/data2 4
-			binary/rs-append strings as byte-ptr! string (length? string) + 1
+			store table length
+			store symbols data/data2
+			emit strings as byte-ptr! string (length? string) + 1
 			
-			pad strings 64							;-- pad to 64-bit boundary
+			pad strings 64
 		]
 		
 		id
@@ -1014,11 +1011,9 @@ redbin: context [
 		rgb:   image/extract-data as red-image! data EXTRACT_RGB
 		alpha: image/extract-data as red-image! data EXTRACT_ALPHA 
 		
-		REDBIN_EMIT  :type 4
-		REDBIN_EMIT  :data/data1 4
-		REDBIN_EMIT  :data/data3 4
-		REDBIN_EMIT* binary/rs-head rgb   binary/rs-length? rgb
-		REDBIN_EMIT* binary/rs-head alpha binary/rs-length? alpha
+		record [payload type data/data1 data/data3]
+		emit payload binary/rs-head rgb   binary/rs-length? rgb
+		emit payload binary/rs-head alpha binary/rs-length? alpha
 	]
 	
 	encode: func [
