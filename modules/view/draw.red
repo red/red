@@ -939,14 +939,15 @@ Red/System [
 							sym = scale [
 								DRAW_FETCH_OPT_TRANSFORM
 								loop 2 [DRAW_FETCH_NUMBER]						;-- scale-x, scale-y
+								DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
 									OS-matrix-push DC :state
-									OS-matrix-scale DC sym as red-integer! start as red-integer! cmd - 1
+									OS-matrix-scale DC sym as red-integer! start as red-pair! cmd - 1
 									parse-draw DC as red-block! cmd catch?
 									OS-matrix-pop DC :state
 								][
-									OS-matrix-scale DC sym as red-integer! start as red-integer! cmd
+									OS-matrix-scale DC sym as red-integer! start as red-pair! cmd
 								]
 							]
 							sym = translate [
@@ -967,14 +968,15 @@ Red/System [
 								DRAW_FETCH_OPT_TRANSFORM
 								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
 								DRAW_FETCH_OPT_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
+								DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
 									OS-matrix-push DC :state
-									OS-matrix-skew DC sym as red-integer! start as red-integer! cmd - 1
+									OS-matrix-skew DC sym as red-integer! start as red-pair! cmd - 1
 									parse-draw DC as red-block! cmd catch?
 									OS-matrix-pop DC :state
 								][
-									OS-matrix-skew DC sym as red-integer! start as red-integer! cmd
+									OS-matrix-skew DC sym as red-integer! start as red-pair! cmd
 								]
 							]
 							sym = transform [
