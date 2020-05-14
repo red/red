@@ -437,7 +437,7 @@ red: context [
 			]
 			emit decorate-symbol/no-alias name
 		][
-			if new: select-ssa name [name: new]			;@@ add a check for function! type
+			if all [new: select-ssa name not find-function new new][name: new]
 			emit case [									;-- global word
 				all [
 					literal

@@ -344,16 +344,17 @@ select-key*: func [										;-- called by compiler for SWITCH
 	]
 ]
 
-load-value: func [
+load-single-value: func [
 	str		[red-string!]
+	slot	[red-value!]
 	return: [red-value!]
 	/local
 		blk	  [red-block!]
 		value [red-value!]
 ][
-	lexer/scan-alt stack/arguments str -1 yes yes yes yes null null as red-series! str
+	lexer/scan-alt slot str -1 yes yes yes yes null null as red-series! str
 
-	blk: as red-block! stack/arguments
+	blk: as red-block! slot
 	assert TYPE_OF(blk) = TYPE_BLOCK
 
 	either zero? block/rs-length? blk [
@@ -363,6 +364,10 @@ load-value: func [
 		value: block/rs-head blk
 	]
 	value
+]
+
+load-value: func [str [red-string!] return: [red-value!]][
+	load-single-value str stack/arguments
 ]
 
 form-value: func [

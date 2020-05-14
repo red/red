@@ -623,6 +623,8 @@ process-command-event: func [
 		int	   [red-integer!]
 		idx	   [integer!]
 		res	   [integer!]
+		sym    [integer!]
+		state  [integer!]
 		saved  [handle!]
 		child  [handle!]
 		evt	   [integer!]
@@ -640,18 +642,48 @@ process-command-event: func [
 	switch WIN32_HIWORD(wParam) [
 		BN_CLICKED [
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
-			current-msg/hWnd: child						;-- force child handle
-			evt: either type/symbol <> check [EVT_CLICK][
-				get-logic-state current-msg
-				EVT_CHANGE
+			sym: symbol/resolve type/symbol
+			current-msg/hWnd: child							;-- force child handle
+			
+			evt: case [
+				sym = button [EVT_CLICK]
+				sym = toggle [
+					get-logic-state current-msg
+					EVT_CHANGE
+				]
+				sym = check [
+					if 0 <> (FACET_FLAGS_TRISTATE and get-flags as red-block! get-facet current-msg FACE_OBJ_FLAGS)[
+						state: as integer! SendMessage child BM_GETCHECK 0 0
+						state: switch state [				;-- force [ ] -> [-] -> [v] transition
+							BST_UNCHECKED     [BST_CHECKED]
+							BST_INDETERMINATE [BST_UNCHECKED]
+							BST_CHECKED       [BST_INDETERMINATE]
+							default [0]
+						]
+						SendMessage child BM_SETCHECK state 0
+					]
+					get-logic-state current-msg
+					EVT_CHANGE
+				]
+				all [
+					sym = radio								;-- ignore double-click (fixes #4246)
+					BST_CHECKED <> (BST_CHECKED and as integer! SendMessage child BM_GETSTATE 0 0)
+				][
+					get-logic-state current-msg
+					EVT_CLICK								;-- gets converted to CHANGE by high-level event handler
+				]
+				true [0]
 			]
-			make-event current-msg 0 evt				;-- should be *after* get-facet call (Windows closing on click case)
+			
+			unless zero? evt [make-event current-msg 0 evt]	;-- should be *after* get-facet call (Windows closing on click case)
 		]
 		BN_UNPUSHED [
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
 			if type/symbol = radio [
-				current-msg/hWnd: child					;-- force child handle
-				make-event current-msg 0 EVT_CHANGE
+				current-msg/hWnd: child						;-- force child handle
+				unless as logic! SendMessage child BM_GETSTATE 0 0 [
+					make-event current-msg 0 EVT_CHANGE		;-- ignore double-click (fixes #4246)
+				]
 			]
 		]
 		EN_CHANGE [											;-- sent also by CreateWindow
@@ -721,7 +753,10 @@ process-command-event: func [
 		CBN_EDITCHANGE [
 			current-msg/hWnd: child						;-- force Combobox handle
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
-			unless type/symbol = text-list [
+			unless any[
+				type/symbol = text-list
+				type/symbol = radio						;-- ignore radio button (fixes #4246)
+			][
 				make-event current-msg -1 EVT_CHANGE
 			]
 		]
@@ -804,11 +839,13 @@ process-custom-draw: func [
 	values: get-face-values item/hWndFrom
 	type:	as red-word! values + FACE_OBJ_TYPE
 	DC:		item/hdc
-	sym: symbol/resolve type/symbol
+	sym:    symbol/resolve type/symbol
+	
 	if any [
 		sym = check
 		sym = radio
 		sym = button
+		sym = toggle
 	][
 		if all [
 			item/dwDrawStage = CDDS_PREPAINT
@@ -830,7 +867,7 @@ process-custom-draw: func [
 				]
 				rc: as RECT_STRUCT (as int-ptr! item) + 5
 				unless sym = button [
-					rc/left: rc/left + dpi-scale 16
+					rc/left: rc/left + dpi-scale 16			;-- compensate for invisible check box
 				]
 				if TYPE_OF(txt) = TYPE_STRING [
 					flags: either TYPE_OF(para) <> TYPE_OBJECT [
@@ -1321,7 +1358,7 @@ WndProc: func [
 			]
 		]
 		WM_CTLCOLOREDIT
-		WM_CTLCOLORSTATIC 
+		WM_CTLCOLORSTATIC
 		WM_CTLCOLORLISTBOX [
 			if null? current-msg [init-current-msg]
 			current-msg/hWnd: as handle! lParam			;-- force child handle
@@ -1513,7 +1550,7 @@ process: func [
 			make-event msg flags EVT_LEFT_DOWN
 		]
 		WM_LBUTTONUP	[
-			if all [msg/hWnd <> null msg/hWnd = GetCapture][
+			if all [msg/hWnd <> null msg/hWnd = GetCapture not no-face? msg/hWnd][
 				word: (as red-word! get-face-values msg/hWnd) + FACE_OBJ_TYPE
 				if base = symbol/resolve word/symbol [ReleaseCapture]	;-- issue #4384
 			]

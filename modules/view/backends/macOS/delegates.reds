@@ -155,7 +155,6 @@ button-mouse-down: func [
 				make-event self 0 EVT_LEFT_UP
 				if inside? [
 					inside?: false
-					objc_msgSend [self sel_getUid "setNextState"]
 					button-click self
 				]
 			]
@@ -434,36 +433,40 @@ on-flags-changed: func [
 ]
 
 button-click: func [
-	self	[integer!]
+	[cdecl]
+	self [integer!]
 	/local
 		w		[red-word!]
 		values	[red-value!]
-		bool	[red-logic!]
 		type 	[integer!]
-		state	[integer!]
-		change? [logic!]
-][
-	make-event self 0 EVT_CLICK
+		event	[integer!]
+][	
 	values: get-face-values self
 	w: as red-word! values + FACE_OBJ_TYPE
 	type: symbol/resolve w/symbol
-	if any [
-		type = check
-		type = radio
-	][
-		bool: as red-logic! values + FACE_OBJ_DATA
-		state: objc_msgSend [self sel_getUid "state"]
-		change?: either state = -1 [
-			type: TYPE_OF(bool)
-			bool/header: TYPE_NONE							;-- NONE indicates undeterminate
-			bool/header <> type
+	
+	if type <> radio [objc_msgSend [self sel_getUid "setNextState"]]
+	
+	event: case [
+		type = button [EVT_CLICK]
+		any [
+			type = toggle
+			type = check
 		][
-			change?: bool/value								;-- save the old value
-			bool/value: as logic! state
-			bool/value <> change?
+			get-logic-state self EVT_CHANGE
 		]
-		if change? [make-event self 0 EVT_CHANGE]
+		all [
+			type = radio
+			NSOffState = objc_msgSend [self sel_getUid "state"] ;-- ignore double-click (fixes #4246)
+		][
+			objc_msgSend [self sel_getUid "setNextState"]		;-- gets converted to CHANGE by high-level event handler
+			get-logic-state self
+			EVT_CLICK
+		]
+		true [0]
 	]
+	
+	unless zero? event [make-event self 0 event]
 ]
 
 empty-func: func [
@@ -579,8 +582,6 @@ slider-change: func [
 calendar-change: func [
 	[cdecl]
 	self   [integer!]
-	cmd	   [integer!]
-	sender [integer!]
 ][	
 	sync-calendar self
 	make-event self 0 EVT_CHANGE

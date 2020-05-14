@@ -88,7 +88,46 @@ _random: context [
 		state: state >> 18 xor state
 		state
 	]
-	
+
+	rand-secure: func [
+		return:	[integer!]
+		/local
+			i	 [integer!]
+	] [
+		i: 0
+		crypto/urandom (as byte-ptr! :i) 4
+		i and 7FFFFFFFh									;-- range 0-2147483647 inclusive
+	]
+
+	int-uniform-distr: func [
+		secure?	[logic!]
+		max		[integer!]
+		return:	[integer!]
+		/local
+			limit	 [integer!]
+			rnd		 [integer!]
+			neg?	 [logic!]
+	] [
+		if max = 0 [return 0]
+		either max < 0 [
+			max: 0 - max
+			neg?: true
+		] [
+			neg?: false
+		]
+		limit: 2147483647 / max * max
+		until [
+			rnd: either secure? [rand-secure] [rand]
+			limit > rnd
+		]
+		rnd: rnd % max + 1
+		either neg? [
+			0 - rnd
+		] [
+			rnd
+		]
+	]
+
 	init: does [
 		table: as int-ptr! allocate MT_RANDOM_STATE_SIZE * size? integer!
 		srand 19650218

@@ -59,3 +59,5 @@ stress-test.red
 regression-test-red.red
 recycle-test.red
 clipboard-test.red
+csv-test.red
+json-test.red

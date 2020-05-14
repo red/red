@@ -226,7 +226,7 @@ system: context [
 				;read-only:			["read-only - write not allowed:" :arg1]
 				;no-buffer:			["port has no data buffer:" :arg1]
 				;timeout:			["port action timed out:" :arg1]
-				;no-create:			["cannot create:" :arg1]
+				no-create:			["cannot create:" :arg1]
 				;no-delete:			["cannot delete:" :arg1]
 				;no-rename:			["cannot rename:" :arg1]
 				;bad-file-path:		["bad file path:" :arg1]

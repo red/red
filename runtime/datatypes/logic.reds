@@ -170,7 +170,7 @@ logic: context [
 			_random/srand as-integer logic/value
 			logic/header: TYPE_UNSET
 		][
-			logic/value: _random/rand % 2 <> 0
+			logic/value: (either secure? [_random/rand-secure] [_random/rand]) > 3FFFFFFFh
 		]
 		logic
 	]

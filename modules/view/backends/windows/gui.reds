@@ -111,6 +111,7 @@ get-face-obj: func [
 	/local
 		face [red-object!]
 ][
+	if null? hWnd [return null]
 	face: declare red-object!
 	face/header: GetWindowLong hWnd wc-offset
 	face/ctx:	 as node! GetWindowLong hWnd wc-offset + 4
@@ -937,15 +938,27 @@ set-logic-state: func [
 	state  [red-logic!]
 	check? [logic!]
 	/local
-		value [integer!]
-][
-	value: either TYPE_OF(state) <> TYPE_LOGIC [
-		state/header: TYPE_LOGIC
-		state/value: check?
-		either check? [BST_INDETERMINATE][false]
-	][
-		as-integer state/value							;-- returns 0/1, matches the messages
+		values [red-block!]
+		flags  [integer!]
+		type   [integer!]
+		value  [integer!]
+		tri?   [logic!]
+][	
+	if check? [
+		values: as red-block! object/get-values get-face-obj hWnd
+		flags: get-flags as red-block! values + FACE_OBJ_FLAGS
+		tri?: flags and FACET_FLAGS_TRISTATE <> 0
 	]
+	
+	type: TYPE_OF(state)
+	value: either all [check? tri? type = TYPE_NONE][BST_INDETERMINATE][
+		as integer! switch type [
+			TYPE_NONE  [false]
+			TYPE_LOGIC [state/value]					;-- returns 0/1, matches the state flag
+			default	   [true]
+		]
+	]
+
 	SendMessage hWnd BM_SETCHECK value 0
 ]
 
@@ -984,6 +997,7 @@ get-flags: func [
 			sym = no-buttons [flags: flags or FACET_FLAGS_NO_BTNS]
 			sym = modal		 [flags: flags or FACET_FLAGS_MODAL]
 			sym = popup		 [flags: flags or FACET_FLAGS_POPUP]
+			sym = tri-state  [flags: flags or FACET_FLAGS_TRISTATE]
 			sym = scrollable [flags: flags or FACET_FLAGS_SCROLLABLE]
 			sym = password	 [flags: flags or FACET_FLAGS_PASSWORD]
 			true			 [fire [TO_ERROR(script invalid-arg) word]]
@@ -994,25 +1008,19 @@ get-flags: func [
 ]
 
 get-logic-state: func [
-	msg		[tagMSG]
-	return: [logic!]									;-- TRUE if state has changed
+	msg [tagMSG]
 	/local
 		bool  [red-logic!]
 		state [integer!]
-		otype [integer!]
-		obool [logic!]
 ][
 	bool: as red-logic! get-facet msg FACE_OBJ_DATA
 	state: as-integer SendMessage msg/hWnd BM_GETCHECK 0 0
 
 	either state = BST_INDETERMINATE [
-		otype: TYPE_OF(bool)
-		bool/header: TYPE_NONE							;-- NONE indicates undeterminate
-		bool/header <> otype
+		bool/header: TYPE_NONE
 	][
-		obool: bool/value
+		bool/header: TYPE_LOGIC
 		bool/value: state = BST_CHECKED
-		bool/value <> obool
 	]
 ]
 
@@ -1304,6 +1312,7 @@ OS-make-view: func [
 		ws-flags  [integer!]
 		bits	  [integer!]
 		sym		  [integer!]
+		state	  [integer!]
 		class	  [c-string!]
 		caption   [c-string!]
 		value	  [integer!]
@@ -1364,9 +1373,14 @@ OS-make-view: func [
 			class: #u16 "RedButton"
 			;flags: flags or BS_PUSHBUTTON
 		]
+		sym = toggle [
+			class: #u16 "RedButton"
+			flags: flags or BS_AUTOCHECKBOX or BS_PUSHLIKE
+		]
 		sym = check [
 			class: #u16 "RedButton"
-			flags: flags or WS_TABSTOP or BS_AUTOCHECKBOX
+			state: either bits and FACET_FLAGS_TRISTATE <> 0 [BS_AUTO3STATE][BS_AUTOCHECKBOX]
+			flags: flags or WS_TABSTOP or state
 		]
 		sym = radio [
 			class: #u16 "RedButton"
@@ -1551,11 +1565,16 @@ OS-make-view: func [
 
 	;-- extra initialization
 	case [
-		sym = button	[init-button handle values]
 		sym = camera	[init-camera handle data selected false]
 		sym = text-list [init-text-list handle data selected]
 		sym = base		[init-base-face handle parent values alpha?]
 		sym = tab-panel [set-tabs handle values]
+		any [
+			sym = button
+			sym = toggle
+		][
+			init-button handle values
+		]
 		sym = group-box [
 			flags: flags or WS_GROUP or BS_GROUPBOX
 			hWnd: CreateWindowEx
@@ -1607,8 +1626,13 @@ OS-make-view: func [
 			value: get-position-value as red-float! data 100
 			SendMessage handle PBM_SETPOS value 0
 		]
-		sym = check [set-logic-state handle as red-logic! data no]
-		sym = radio [set-logic-state handle as red-logic! data no]
+		any [
+			sym = toggle
+			sym = check
+			sym = radio
+		][
+			set-logic-state handle as red-logic! data sym = check
+		]
 		any [
 			sym = drop-down
 			sym = drop-list
@@ -2002,7 +2026,7 @@ change-image: func [
 	type	[integer!]
 ][
 	if type = base [update-base hWnd null null values]
-	if type = button [init-button hWnd values]
+	if any [type = button type = toggle][init-button hWnd values]
 ]
 
 change-selection: func [
@@ -2113,8 +2137,11 @@ change-data: func [
 			f: as red-float! data
 			SendMessage hWnd PBM_SETPOS as-integer f/value * 100.0 0
 		]
-		type = check [
-			set-logic-state hWnd as red-logic! data yes
+		any [
+			type = check
+			type = toggle
+		][
+			set-logic-state hWnd as red-logic! data type = check
 		]
 		type = radio [
 			set-logic-state hWnd as red-logic! data no

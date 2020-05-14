@@ -517,8 +517,13 @@ float: context [
 			_random/srand sp/1 xor sp/2
 			f/header: TYPE_UNSET
 		][
-			s: (as-float _random/rand) / 2147483647.0
-			f/value: s * f/value
+			either secure? [
+				f/value: ((as-float _random/rand-secure) / 2147483647.0 + (as-float _random/rand-secure))
+					/ (2147483648.0 / f/value)
+			] [
+				s: (as-float _random/rand) / 2147483647.0
+				f/value: s * f/value
+			]
 		]
 		f
 	]
@@ -532,6 +537,7 @@ float: context [
 			int	 [red-integer!]
 			tm	 [red-time!]
 			str  [red-string!]
+			res	 [red-float!]
 			p	 [byte-ptr!]
 			err	 [integer!]
 			unit [integer!]
@@ -557,14 +563,27 @@ float: context [
 			TYPE_ANY_STRING [
 				err: 0
 				str: as red-string! spec
-				s: GET_BUFFER(str)
-				unit: GET_UNIT(s)
-				p: (as byte-ptr! s/offset) + (str/head << log-b unit)
-				len: (as-integer s/tail - p) >> log-b unit
-				
-				either len > 0 [
-					proto/value: tokenizer/scan-float p len unit :err
-				][err: -1]
+				either type = TYPE_PERCENT [
+					res: as red-float! load-single-value str stack/push*
+					switch TYPE_OF(res) [
+						TYPE_PERCENT
+						TYPE_FLOAT	 [proto/value: res/value]
+						TYPE_INTEGER [
+							int: as red-integer! res
+							proto/value: as-float int/value
+						]
+						default 	 [err: -1]
+					 ]
+				][
+					s: GET_BUFFER(str)
+					unit: GET_UNIT(s)
+					p: (as byte-ptr! s/offset) + (str/head << log-b unit)
+					len: (as-integer s/tail - p) >> log-b unit
+
+					either len > 0 [
+						proto/value: tokenizer/scan-float p len unit :err
+					][err: -1]
+				]
 				if err <> 0 [fire [TO_ERROR(script bad-to-arg) datatype/push type spec]]
 			]
 			TYPE_BINARY [

@@ -1408,6 +1408,19 @@ Red [
 		--assert "12abcd3ef4gh" = sort/part a 6
 		--assert "34efgh" = sort/part skip a 6 tail a
 
+    --test-- "sort-str-5"                              ;-- invalid refinements combos
+        --assert not error? try [sort/skip/part "abc" 2 0]  ;-- zero part is OK with any skip
+        --assert error? try [sort/all/compare "abc" 1]      ;-- either /all or /compare
+        --assert error? try [sort/compare "abc" 1]          ;-- needs /skip
+        --assert error? try [sort/all "abc" 1]              ;-- needs /skip
+
+    --test-- "sort-str-6"
+        s: does [copy "313312"]
+        --assert "123133" = sort/skip s 2
+        --assert "123133" = sort/skip/compare s 2 1
+        --assert "311233" = sort/skip/compare s 2 2
+        --assert "123133" = sort/skip/all s 2
+
 	--test-- "sort-blk-1"
 		a: [bc 799 ab2 42 bb1 321.3 "Mo" "Curly" "Larry" -24 0 321.8] 
 		--assert ["Curly" "Larry" "Mo" -24 0 42 321.3 321.8 799 ab2 bb1 bc] = sort a
@@ -1447,6 +1460,33 @@ Red [
 		--assert [3 2 1] = sort/compare [1 3 2] func [a b] [a > b]
 		--assert [1 2 3 4 5 6] = sort/compare [1 2 3 4 5 6] func [a b] [a < b]
 		--assert [6 5 4 3 2 1] = sort/compare [1 2 3 4 5 6] func [a b] [a > b]
+
+    --test-- "sort-blk-6"                               ;-- invalid refinements combos
+        --assert not error? try [sort/skip/part [a b c] 2 0]    ;-- zero part is OK with any skip
+        --assert error? try [sort/all/compare [a b c] 1]        ;-- either /all or /compare
+        --assert error? try [sort/compare [a b c] 1]            ;-- needs /skip
+        --assert error? try [sort/all [a b c] 1]                ;-- needs /skip
+
+    --test-- "sort-blk-7"
+        s: does [copy [3 1 3 3 1 2]]
+        --assert [1 2 3 1 3 3] = sort/skip s 2
+        --assert [1 2 3 1 3 3] = sort/skip/compare s 2 1
+        --assert [3 1 1 2 3 3] = sort/skip/compare s 2 2
+        --assert [1 2 3 1 3 3] = sort/skip/all s 2
+
+    --test-- "sort-vec-1"
+        s: does  [make vector! [3 1 3 3 1 2]]
+        --assert (make vector! [1 2 3 1 3 3]) = sort/skip s 2
+        --assert (make vector! [1 2 3 1 3 3]) = sort/skip/compare s 2 1
+        --assert (make vector! [3 1 1 2 3 3]) = sort/skip/compare s 2 2
+        --assert (make vector! [1 2 3 1 3 3]) = sort/skip/all s 2
+
+    --test-- "sort-bin-1"
+        s: does  [make binary! [3 1 3 3 1 2]]
+        --assert (make binary! [1 2 3 1 3 3]) = sort/skip s 2
+        --assert (make binary! [1 2 3 1 3 3]) = sort/skip/compare s 2 1
+        --assert (make binary! [3 1 1 2 3 3]) = sort/skip/compare s 2 2
+        --assert (make binary! [1 2 3 1 3 3]) = sort/skip/all s 2
 		
 ===end-group===
 
@@ -1836,10 +1876,28 @@ Red [
 ===end-group===
 
 ===start-group=== "random"
+
 	--test-- "ser-random-1"
 		res: random/only #{AA}
 		--assert integer? res
 		--assert 170 = res
+
+	--test-- "ser-random-2"
+		--assert 2 = random/only next [1 2]
+
+	--test-- "ser-random-3"
+		s: "1234567890"
+		r: random copy s
+		--assert s <> r
+		summed: 0 foreach c r [summed: summed + c]
+		--assert summed = 525
+
+	--test-- "ser-random-4"
+		s: "1234567890"
+		r: random/secure copy s
+		--assert s <> r
+		summed: 0 foreach c r [summed: summed + c]
+		--assert summed = 525
 
 ===end-group===
 
