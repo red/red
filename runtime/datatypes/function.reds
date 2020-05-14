@@ -740,13 +740,14 @@ _function: context [
 		]
 	]
 	
-	validate: func [									;-- temporary mimalist spec checking
+	validate: func [									;-- temporary minimalist spec checking
 		spec [red-block!]
 		/local
 			value  [red-value!]
 			end	   [red-value!]
 			next   [red-value!]
 			next2  [red-value!]
+			next3  [red-value!]
 			w      [red-word!]
 	][
 		value: block/rs-head spec
@@ -772,27 +773,36 @@ _function: context [
 						value: value + 1
 					]
 				]
-				TYPE_SET_WORD [								 ;-- only return: is allowed as a set-word!
+				TYPE_SET_WORD [							;-- only return: is allowed as a set-word!
+					next:  value + 1
+					next2: next  + 1
+					next3: next2 + 1
 					w: as red-word! value
-					if words/return* <> symbol/resolve w/symbol [
-						fire [TO_ERROR(script bad-func-def)	w]
-					]
-					next: value + 1
-					next2: next + 1
-					unless all [
+														;-- value   next        next2       next3
+					unless all [						;-- return: [...] <opt> "..." <opt> /... <end>
+						words/return* = symbol/resolve w/symbol
 						next < end
-						TYPE_OF(next) = TYPE_BLOCK			 ;-- return: must have a type spec
+						TYPE_OF(next) = TYPE_BLOCK
 						any [
-							next2 = end						 ;-- return: with type spec is enough
-							TYPE_OF(next2) = TYPE_REFINEMENT ;-- This allows a return: spec before each refinement
-							all [							 ;-- docstring is allowed if at the tail
-								TYPE_OF(next2) = TYPE_STRING
-								next2 + 1 = end
+							next2 = end
+							all [
+								next2 < end
+								any [
+									TYPE_OF(next2) = TYPE_REFINEMENT
+									all [
+										TYPE_OF(next2) = TYPE_STRING
+										any [
+											next3 = end
+											all [next3 < end TYPE_OF(next3) = TYPE_REFINEMENT]
+										]
+									]
+								]
 							]
 						]
 					][
-						fire [TO_ERROR(script bad-func-def) value]
+						fire [TO_ERROR(script bad-func-def)	value]
 					]
+					
 					value: next
 				]
 				TYPE_LIT_WORD
