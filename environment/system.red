@@ -66,6 +66,7 @@ system: context [
 			pair!	[x y]
 			;point!	[x y z]
 			time!	[hour minute second]
+			money!  [code amount]
 		]
 		
 		errors: context [
