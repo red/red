@@ -141,6 +141,17 @@ Red [
 	
 ===end-group===
 
+===start-group=== "to-percent!"
+
+	--test-- "to-percent-1" --assert 100%   = to percent! "100%"
+	--test-- "to-percent-2" --assert 10000% = to percent! "100"
+	--test-- "to-percent-3" --assert 10000% = to percent! "100.0"
+	--test-- "to-percent-4" --assert 100%   = to percent! "1.0"
+	--test-- "to-percent-5" --assert 10%    = to percent! "0.1"
+	--test-- "to-percent-6" --assert 1%     = to percent! "0.01"
+
+===end-group===
+
 ===start-group=== "implicit to float!"
 
 	--test-- "implicit-to-float!-1"		--assert 2147483648.0 == 2147483648
