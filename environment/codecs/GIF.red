@@ -1,7 +1,7 @@
 Red [
-	Title:   "BMP codec"
+	Title:   "GIF codec"
 	Author:  "Qingtian Xie"
-	File:	 %bmp.red
+	File:	 %GIF.red
 	Tabs:	 4
 	Rights:  "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
@@ -10,15 +10,15 @@ Red [
 	}
 ]
 
-put system/codecs 'bmp context [
+put system/codecs 'gif context [
 	title: ""
-	name: 'BMP
-	mime-type: [image/bmp]
-	suffixes: [%.bmp]
+	name: 'GIF
+	mime-type: [image/gif]
+	suffixes: [%.gif]
 	
 	encode: routine [img [image!] where [any-type!]][
 		#if not find [Android Linux FreeBSD Syllabe] OS [
-			stack/set-last as cell! image/encode img where IMAGE_BMP
+			stack/set-last as cell! image/encode img where IMAGE_GIF
 		]
 	]
 

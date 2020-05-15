@@ -33,12 +33,12 @@ write %build/bin/sources.r set-cache [
 		%scalars.red
 		%system.red
 		%codecs/ [
-			%bmp.red
-			%gif.red
-			%jpeg.red
-			%png.red
-			%csv.red
-			%json.red
+			%BMP.red
+			%GIF.red
+			%JPEG.red
+			%PNG.red
+			%CSV.red
+			%JSON.red
 		]
 		%console/ [
 			%auto-complete.red

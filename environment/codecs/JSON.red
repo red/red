@@ -1,7 +1,7 @@
 Red [
     Title:   "JSON codec"
     Author:  "Gabriele Santilli"
-    File:    %json.red
+    File:    %JSON.red
     Purpose: "Adds JSON as a valid data type to use with LOAD/AS and SAVE/AS"
 	Rights:  "Copyright (C) 2019 Red Foundation. All rights reserved."
 	License: {
