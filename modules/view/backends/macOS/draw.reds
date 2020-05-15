@@ -60,6 +60,7 @@ draw-begin: func [
 	]
 
 	ctx/raw:			CGCtx
+	ctx/ctx-matrix:		CGContextGetCTM CGCtx
 	ctx/matrix/a:		F32_1
 	ctx/matrix/b:		F32_0
 	ctx/matrix/c:		F32_0
@@ -1477,22 +1478,23 @@ OS-matrix-pop: func [dc [draw-ctx!] state [draw-state!]][
 ]
 
 OS-matrix-reset: func [
-	dc [draw-ctx!]
-	pen [integer!]
+	dc		[draw-ctx!]
+	pen		[integer!]
 	/local
-		m [CGAffineTransform! value]
+		ctx	[handle!]
+		m	[CGAffineTransform! value]
 ][
-	either dc/on-image? [
-		m: CGAffineTransformMake F32_1 F32_0 F32_0 as float32! -1.0 F32_0 dc/rect-y
-	][
-		m: CGAffineTransformMake F32_1 F32_0 F32_0 F32_1 as float32! 0.5 as float32! 0.5
-	]
-	CGContextSetCTM dc/raw m
+	ctx: dc/raw
+	;-- identify
+	m: CGContextGetCTM ctx
+	m: CGAffineTransformInvert m
+	CGContextConcatCTM ctx m
+	CGContextConcatCTM ctx dc/ctx-matrix
 ]
 
 OS-matrix-invert: func [
-	dc	[draw-ctx!]
-	pen	[integer!]
+	dc		[draw-ctx!]
+	pen		[integer!]
 	/local
 		ctx	[handle!]
 		m	[CGAffineTransform! value]
@@ -1500,7 +1502,8 @@ OS-matrix-invert: func [
 	ctx: dc/raw
 	m: CGContextGetCTM ctx
 	m: CGAffineTransformInvert m
-	CGContextSetCTM ctx m
+	CGContextConcatCTM ctx m			;-- identify
+	CGContextConcatCTM ctx m			;-- invert
 ]
 
 OS-matrix-set: func [
