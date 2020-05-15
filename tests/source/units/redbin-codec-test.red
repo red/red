@@ -149,7 +149,7 @@ Red [
 			--assert strict-equal? charset 1 test charset 1
 			--assert strict-equal? charset #{CAFE} test charset #{CAFE}
 			--assert strict-equal? charset #{C0FFEE} test charset #{C0FFEE}
-			--assert strict-equal? charset #{BADFACE} test charset #{BADFACE}
+			--assert strict-equal? charset #{BADFACE5} test charset #{BADFACE5}
 			--assert strict-equal? charset #{DEADBEEF} test charset #{DEADBEEF}
 			--assert strict-equal? charset [#"a" - #"z"] test charset [#"a" - #"z"]
 			
