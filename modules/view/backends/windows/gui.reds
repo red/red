@@ -1371,6 +1371,7 @@ OS-make-view: func [
 	case [
 		sym = button [
 			class: #u16 "RedButton"
+			flags: flags or 00002000h		;-- BS_MULTILINE
 			;flags: flags or BS_PUSHBUTTON
 		]
 		sym = toggle [
