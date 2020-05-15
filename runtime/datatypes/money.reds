@@ -1343,17 +1343,17 @@ money: context [
 			set-digit quotient index (get-digit quotient index) + 1
 		]
 		greater?: [
-			compare-slices
+			positive? compare-slices
 				start2 high2? count2
 				start1 high1? digits
 		]
 		greatest?: [
-			compare-slices
+			positive? compare-slices
 				start2 high2? count2
 				start1 high1? count1
 		]
-		;@@ TBD: bug with subroutines
-		until [either greater? > 0 [either greatest? > 0 [yes][shift no]][subtract increment no]]
+		
+		forever [either greater? [either greatest? [break][shift]][subtract increment]]
 		
 		unless remainder? [
 			unless only? [

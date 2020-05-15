@@ -247,7 +247,7 @@ on-face-deep-change*: function ["Internal use only" owner word target action new
 						if owner/type <> 'screen [
 							if all [
 								find [tab-panel window panel] owner/type
-								not find [cleared removed taken move] action 
+								find [inserted appended poked changed moved] action 
 							][
 								faces: skip head target index	;-- zero-based absolute index
 								loop part [
