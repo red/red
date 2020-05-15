@@ -469,7 +469,7 @@ image: context [
 			]
 			TYPE_OBJECT [
 				#either modules contains 'View [
-					spec: stack/push spec						;-- store spec to avoid corrution (#2460)
+					spec: stack/push spec						;-- store spec to avoid corruption (#2460)
 					#call [face? spec]
 					ret: as red-logic! stack/arguments
 					if ret/value [return exec/gui/OS-to-image as red-object! spec]
