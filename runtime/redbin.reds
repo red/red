@@ -636,10 +636,6 @@ redbin: context [
 		root-base
 	]
 	
-	;@@ TBD: temporal definitions
-	#define REDBIN_EMIT  [REDBIN_EMIT* as byte-ptr!]
-	#define REDBIN_EMIT* [binary/rs-append payload]
-	
 	header: #{
 		52454442494E								;-- REDBIN magic
 		01											;-- version
