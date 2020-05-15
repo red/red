@@ -1378,8 +1378,11 @@ OS-matrix-scale: func [
 	dc		[draw-ctx!]
 	pen		[integer!]
 	sx		[red-integer!]
-	sy		[red-integer!]
+	center	[red-pair!]
+	/local
+		sy	[red-integer!]
 ][
+	sy: sx + 1
 	either pen = -1 [
 		CGContextScaleCTM dc/raw get-float32 sx get-float32 sy
 	][
@@ -1412,10 +1415,12 @@ OS-matrix-skew: func [
 	dc		[draw-ctx!]
 	pen		[integer!]
 	sx		[red-integer!]
-	sy		[red-integer!]
+	center	[red-pair!]
 	/local
+		sy	[red-integer!]
 		m	[CGAffineTransform! value]
 ][
+	sy: sx + 1
 	m/a: as float32! 1.0
 	m/b: as float32! either sx = sy [0.0][tan degree-to-radians get-float sy TYPE_TANGENT]
 	m/c: as float32! tan degree-to-radians get-float sx TYPE_TANGENT
@@ -1443,7 +1448,7 @@ OS-matrix-transform: func [
 	center?: rotate <> center
 
 	_OS-matrix-translate dc/raw translate/x translate/y
-	OS-matrix-scale dc pen scale scale + 1
+	OS-matrix-scale dc pen scale center
 	OS-matrix-rotate dc pen rotate center
 ]
 
