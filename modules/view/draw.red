@@ -724,6 +724,9 @@ Red/System [
 				brush?		[logic!]
 				a-pen?		[logic!]
 				a-brush?	[logic!]
+				ncmds		[red-block!]
+				ncmd		[red-value!]
+				ntail		[red-value!]
 		][
 			cmd:  block/rs-head cmds
 			tail: block/rs-tail cmds
@@ -1015,7 +1018,19 @@ Red/System [
 							sym = matrix [
 								DRAW_FETCH_OPT_TRANSFORM
 								DRAW_FETCH_VALUE(TYPE_BLOCK)
-								OS-matrix-set DC sym as red-block! start
+								ncmds: as red-block! start
+								ncmd:  block/rs-head ncmds
+								ntail: block/rs-tail ncmds
+								if ncmd + 6 <> ntail [
+									throw-draw-error ncmds ncmd catch?
+								]
+								loop 6 [
+									if any [ncmd >= ntail all [TYPE_OF(ncmd) <> TYPE_INTEGER TYPE_OF(ncmd) <> TYPE_FLOAT]][
+										throw-draw-error ncmds ncmd catch?
+									]
+									ncmd: ncmd + 1
+								]
+								OS-matrix-set DC sym ncmds
 							]
 							sym = reset-matrix  [
 								DRAW_FETCH_OPT_TRANSFORM
