@@ -81,7 +81,6 @@ redbin: context [
 			data: decode-block data table parent off
 
 			cell/header: type						;-- implicit reset of all header flags
-			if nl? [cell/header: cell/header or flag-new-line]
 			cell/spec:	 spec/node
 			cell/args:	 null
 			either type = TYPE_ACTION [
@@ -93,6 +92,7 @@ redbin: context [
 			if codec? [stack/pop 1]					;-- drop an unwanted block
 		]
 		
+		if nl? [cell/header: cell/header or flag-new-line]
 		data
 	]
 	
@@ -410,9 +410,9 @@ redbin: context [
 		size: data/3 << log-b unit					;-- in bytes
 		
 		slot: ALLOC_TAIL(parent)
-		if nl? [slot/header: slot/header or flag-new-line]
 		
 		_vector: vector/make-at slot data/3 data/4 unit
+		if nl? [slot/header: slot/header or flag-new-line]
 		buffer: GET_BUFFER(_vector)
 		_vector/head: data/2
 		buffer/tail: as red-value! (as byte-ptr! buffer/offset) + size
