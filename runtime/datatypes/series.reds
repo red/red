@@ -1107,6 +1107,7 @@ _series: context [
 		/local
 			int		[red-integer!]
 			ser2	[red-series!]
+			pair	[red-pair!]
 			offset	[integer!]
 			s		[series!]
 			buffer	[series!]
@@ -1132,18 +1133,28 @@ _series: context [
 		if OPTION?(types) [--NOT_IMPLEMENTED--]
 
 		if OPTION?(part-arg) [
-			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
-				int: as red-integer! part-arg
-				int/value
-			][
-				ser2: as red-series! part-arg
-				unless all [
-					TYPE_OF(ser2) = type				;-- handles ANY-STRING!
-					ser2/node = ser/node
-				][
-					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
+			part: switch TYPE_OF(part-arg) [
+				TYPE_INTEGER [
+					int: as red-integer! part-arg
+					int/value
 				]
-				ser2/head - ser/head
+				TYPE_PAIR [
+					pair: as red-pair! part-arg
+					offset: offset + pair/x - 1
+					if negative? pair/x [offset: offset + 1] ;-- merges indexes 0 and 1
+					if offset < 0 [offset: 0]
+					either pair/y < pair/x [0][pair/y - pair/x]
+				]
+				default [
+					ser2: as red-series! part-arg
+					unless all [
+						TYPE_OF(ser2) = type				;-- handles ANY-STRING!
+						ser2/node = ser/node
+					][
+						ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
+					]
+					ser2/head - ser/head
+				]
 			]
 			if negative? part [
 				part: 0 - part
