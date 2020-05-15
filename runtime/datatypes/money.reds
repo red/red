@@ -454,7 +454,7 @@ money: context [
 		#if debug? = yes [if verbose > 0 [print-line "money/make-at"]]
 		
 		money: as red-money! slot
-		money/header: TYPE_MONEY
+		set-type as cell! money TYPE_MONEY
 		
 		zero-out money
 		set-sign money as integer! sign
