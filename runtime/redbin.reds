@@ -710,76 +710,47 @@ redbin: context [
 		strings [red-binary!]
 		return: [integer!]
 		/local
-			type length flags [integer!]
-	][
-		length: 1									;-- at least 1 value is encoded
-		
-		;@@ TBD: properly emit header with all the flags
+			type length header [integer!]
+	][		
 		type: TYPE_OF(data)
+		length: 1									;-- at least 1 value is encoded
+		header: type or either zero? (data/header and flag-new-line) [0][REDBIN_NEWLINE_MASK]
+		header: header or switch type [
+			TYPE_TUPLE [TUPLE_SIZE?(data) << 8]
+			TYPE_MONEY [(money/get-sign as red-money! data) << 14]
+			default    [0]
+		]
 		
 		switch type [
 			TYPE_UNSET
-			TYPE_NONE [
-				store payload type
-			]
+			TYPE_NONE		[store payload header]
 			TYPE_DATATYPE
-			TYPE_LOGIC [
-				record [payload type data/data1]
-			]
+			TYPE_LOGIC 		[record [payload header data/data1]]
 			TYPE_INTEGER
-			TYPE_CHAR [
-				record [payload type data/data2]
-			]
+			TYPE_CHAR 		[record [payload header data/data2]]
 			TYPE_PERCENT
 			TYPE_TIME
-			TYPE_FLOAT [
-				pad payload 64
-				record [payload type data/data3 data/data2]
-			]
-			TYPE_PAIR [
-				record [payload type data/data2 data/data3]
-			]
-			TYPE_TYPESET [
-				record [payload type data/data1 data/data2 data/data3]
-			]
-			TYPE_DATE [
-				record [payload type data/data1 data/data3 data/data2]
-			]
-			TYPE_TUPLE [
-				flags: type or (TUPLE_SIZE?(data) << 8)
-				record [payload flags data/data1 data/data2 data/data3]
-			]
-			TYPE_MONEY [
-				flags: type or ((money/get-sign as red-money! data) << 14)
-				record [payload flags data/data1 data/data2 data/data3]
-			]
+			TYPE_FLOAT 		[pad payload 64 record [payload header data/data3 data/data2]]
+			TYPE_PAIR 		[record [payload header data/data2 data/data3]]
+			TYPE_TYPESET 	[record [payload header data/data1 data/data2 data/data3]]
+			TYPE_DATE 		[record [payload header data/data1 data/data3 data/data2]]
+			TYPE_TUPLE
+			TYPE_MONEY		[record [payload header data/data1 data/data2 data/data3]]
 			TYPE_NATIVE
-			TYPE_ACTION [
-				encode-native data type payload symbols table strings
-			]
+			TYPE_ACTION 	[encode-native data header payload symbols table strings]
 			TYPE_ANY_WORD
 			TYPE_REFINEMENT
-			TYPE_ISSUE [
-				encode-word data type payload symbols table strings
-			]
+			TYPE_ISSUE		[encode-word data header payload symbols table strings]
 			default [								;-- indirect values
 				switch type [
 					TYPE_ANY_STRING
 					TYPE_VECTOR
-					TYPE_BINARY [
-						encode-string data type payload
-					]
+					TYPE_BINARY		[encode-string data header payload]
 					TYPE_ANY_BLOCK
-					TYPE_MAP [
-						encode-block data type no payload symbols table strings
-					]
-					TYPE_BITSET [
-						encode-bitset data payload
-					]
-					TYPE_IMAGE [
-						encode-image data payload
-					]
-					default [--NOT_IMPLEMENTED--]	;@@ TBD: proper error message
+					TYPE_MAP		[encode-block data header no payload symbols table strings]
+					TYPE_BITSET		[encode-bitset data header payload]
+					TYPE_IMAGE		[encode-image data header payload]
+					default	[--NOT_IMPLEMENTED--]	;@@ TBD: proper error message
 				]
 			]
 		]
@@ -789,24 +760,23 @@ redbin: context [
 	
 	encode-bitset: func [
 		data    [red-value!]
+		header  [integer!]
 		payload [red-binary!]
 		/local
 			bits   [red-bitset!]
 			length [integer!]
-			type   [integer!]
 	][
 		bits:   as red-bitset! data
 		length: bitset/length? bits
-		type:   TYPE_BITSET
 		
-		record [payload type length]
+		record [payload header length]
 		emit payload bitset/rs-head bits length >> 3
 		pad payload 32
 	]
 	
 	encode-native: func [
 		data    [red-value!]
-		type    [datatypes!]
+		header  [integer!]
 		payload [red-binary!]
 		symbols [red-binary!]
 		table   [red-binary!]
@@ -815,17 +785,17 @@ redbin: context [
 			here  [int-ptr!]
 			index [integer!]
 	][
-		here: either type = TYPE_NATIVE [natives/table][actions/table]
+		here: either TYPE_OF(data) = TYPE_NATIVE [natives/table][actions/table]
 		index: 0
 		until [index: index + 1 data/data3 = here/index]
 		
-		record [payload type index]
-		encode-block data TYPE_BLOCK yes payload symbols table strings
+		record [payload header index]
+		encode-block data TYPE_BLOCK yes payload symbols table strings	;-- structure overlap
 	]
 	
 	encode-word: func [
 		data    [red-value!]
-		type    [datatypes!]
+		header  [integer!]
 		payload [red-binary!]
 		symbols [red-binary!]
 		table   [red-binary!]
@@ -837,8 +807,8 @@ redbin: context [
 		symbol:  encode-symbol data table symbols strings
 		context: encode-context as node! data/data1 payload symbols table strings
 		
-		record [payload type symbol]
-		unless type = TYPE_ISSUE [record [payload context data/data3]]
+		record [payload header symbol]
+		unless TYPE_OF(data) = TYPE_ISSUE [record [payload context data/data3]]
 	]
 	
 	encode-context: func [
@@ -902,7 +872,7 @@ redbin: context [
 	
 	encode-string: func [
 		data    [red-value!]
-		type    [datatypes!]
+		header  [integer!]
 		payload [red-binary!]
 		/local
 			series  [red-series!]
@@ -910,34 +880,28 @@ redbin: context [
 			_offset [byte-ptr!]
 			length  [integer!]
 			unit    [integer!]
-			flags   [integer!]
 	][
 		series:  as red-series! data
 		buffer:  GET_BUFFER(series)
 		unit:    GET_UNIT(buffer)
 		length:  _series/get-length series yes
 		_offset: as byte-ptr! buffer/offset
-		flags:   type or (unit << 8)
+		header:  header or (unit << 8)
 		
-		record [payload flags data/data1 length]
-		
-		if type = TYPE_VECTOR [store payload data/data3]
-		unless zero? length [
-			emit payload _offset length << log-b unit
-		]
-		
+		record [payload header data/data1 length]
+		if TYPE_OF(data) = TYPE_VECTOR [store payload data/data3]
+		unless zero? length [emit payload _offset length << log-b unit]
 		pad payload 32
 	]
 	
 	encode-block: func [
 		data    [red-value!]
-		type    [datatypes!]
+		header  [integer!]
 		abs?    [logic!]
 		payload [red-binary!]
 		symbols [red-binary!]
 		table   [red-binary!]
 		strings [red-binary!]
-		return: [integer!]
 		/local
 			series  [red-series!]
 			_offset [red-value!]
@@ -949,15 +913,13 @@ redbin: context [
 		length:  _series/get-length series yes
 		_offset: buffer/offset
 		
-		store payload type
-		unless type = TYPE_MAP [store payload either abs? [0][data/data1]]
+		store payload header
+		unless header and get-type-mask = TYPE_MAP [store payload either abs? [0][data/data1]]
 		store payload length
 		loop length [
 			encode-value _offset payload symbols table strings
 			_offset: _offset + 1
 		]
-		
-		length
 	]
 	
 	encode-symbol: func [
@@ -1000,17 +962,16 @@ redbin: context [
 	
 	encode-image: func [
 		data    [red-value!]
+		header  [integer!]
 		payload [red-binary!]
 		/local
-			type  [integer!]
 			rgb   [red-binary!]
 			alpha [red-binary!]
 	][	
-		type:  TYPE_IMAGE
 		rgb:   image/extract-data as red-image! data EXTRACT_RGB
 		alpha: image/extract-data as red-image! data EXTRACT_ALPHA 
 		
-		record [payload type data/data1 data/data3]
+		record [payload header data/data1 data/data3]
 		emit payload binary/rs-head rgb   binary/rs-length? rgb
 		emit payload binary/rs-head alpha binary/rs-length? alpha
 	]
