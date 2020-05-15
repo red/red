@@ -270,9 +270,9 @@ Red [
 			forall values [--assert values/1 == test values/1]
 			
 			loop 10 [
-				value: to get random/only to block! all-word! rejoin collect [
-					loop random 100 [keep #"a" - 1 + random 26]	;-- [a - z] characters
-				]				
+				string: rejoin collect [loop random 100 [keep to char! random 10'000]]
+				value: to get random/only to block! all-word! string
+				
 				--assert value == test value
 			]
 		
