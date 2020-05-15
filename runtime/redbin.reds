@@ -430,27 +430,29 @@ redbin: context [
 		return: [int-ptr!]
 		/local
 			slot   [red-image!]
-			rgb    [byte-ptr!]
-			alpha  [byte-ptr!]
+			rgb    [red-binary!]
+			alpha  [red-binary!]
 			width  [integer!]
 			height [integer!]
 			length [integer!]
 	][
+		;@@ TBD: image decoding/encoding
+	
 		width:  IMAGE_WIDTH(data/3)
 		height: IMAGE_HEIGHT(data/3)
 		length: width * height						;-- in pixels
 		
-		rgb:   as byte-ptr! data + 3
-		alpha: rgb + (length * 3)
+		;rgb:   binary/load as byte-ptr! data + 3 length * 3
+		;alpha: binary/load as byte-ptr! data + 3 + (length * 3) length
 		
-		slot: as red-image! ALLOC_TAIL(parent)
-		slot/node: OS-image/make-image width height rgb alpha null	;-- null if image is empty
-		slot/head: data/2
-		slot/size: data/3
-		slot/header: TYPE_IMAGE						;-- implicit reset of all header flags
-		if nl? [slot/header: slot/header or flag-new-line]
+		;slot: as red-image! ALLOC_TAIL(parent)
+		;slot/node: OS-image/make-image width height rgb alpha null	;-- null if image is empty
+		;slot/head: data/2
+		;slot/size: data/3
+		;slot/header: TYPE_IMAGE						;-- implicit reset of all header flags
+		;if nl? [slot/header: slot/header or flag-new-line]
 		
-		as int-ptr! rgb + (length << 2)
+		data + 3 + (length << 2)
 	]
 	
 	decode-value: func [
