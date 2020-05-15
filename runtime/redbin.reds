@@ -771,7 +771,7 @@ redbin: context [
 					TYPE_BINARY [
 						encode-string data type payload
 					]
-					TYPE_ANY_BLOCK 
+					TYPE_ANY_BLOCK
 					TYPE_MAP [
 						encode-block data type no payload symbols table strings
 					]
@@ -851,12 +851,13 @@ redbin: context [
 		strings [red-binary!]
 		return: [integer!]
 		/local
-			context              [red-context!]
-			value                [red-value!]
-			values words         [series!]
-			header length offset [integer!]
-			kind                 [integer!]
-			stack? self? values? [logic!]
+			context       [red-context!]
+			value         [red-value!]
+			values words  [series!]
+			header length [integer!]
+			offset kind   [integer!]
+			stack? self?  [logic!]
+			values?       [logic!]
 	][
 		if node = global-ctx [return -1]
 		
