@@ -736,7 +736,7 @@ redbin: context [
 			TYPE_TIME
 			TYPE_FLOAT [
 				pad payload 64
-				record [payload data/data3 data/data2]
+				record [payload type data/data3 data/data2]
 			]
 			TYPE_PAIR [
 				record [payload type data/data2 data/data3]
