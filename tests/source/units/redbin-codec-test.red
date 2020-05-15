@@ -290,4 +290,38 @@ Red [
 		
 	===end-group===
 
+	===start-group=== "Header flags"
+		--test-- "newline"			
+			block: [
+				#a
+				b /c
+				:d e: 'f
+				
+				1
+				2.0 3x4
+				5.6 7% 8.9.10.11		;@@ 5.6 -> $5.6
+				
+				"foo"
+				<bar> baz@qux
+				%foo @bar baz://qux
+				
+				[
+					a/b
+					:c/d/e 'f/g/(
+						i
+					)
+					j/k/l: (
+						#(
+							foo: bar
+						)
+						#[none] #"n"
+						#[true]
+						#[false]
+					)
+				]
+			]
+			
+			--assert (mold block) = mold test block
+	===end-group===
+
 ~~~end-file~~~
