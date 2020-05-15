@@ -190,7 +190,7 @@ Red [
 			]
 		
 		--test-- "binary"
-			bytes: [#{} #{F0} #{CAFE} #{C0FFEE} #{BADFACE} #{DEADBEEF}]
+			bytes: [#{} #{F0} #{CAFE} #{C0FFEE} #{BADFACE5} #{DEADBEEF}]
 			forall bytes [--assert bytes/1 == head test skip bytes/1 (random 4) - 1]
 			
 			loop 10 [
@@ -269,8 +269,8 @@ Red [
 			forall values [--assert values/1 == test values/1]
 			
 			loop 10 [
-				type? value: to get random/only to block! all-word! rejoin collect [
-					loop random 100 [keep to char! random 10'000]
+				value: to get random/only to block! all-word! rejoin collect [
+					loop random 100 [keep #"a" - 1 + random 26]	;-- [a - z] characters
 				]				
 				--assert value == test value
 			]
