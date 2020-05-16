@@ -111,6 +111,7 @@ get-face-obj: func [
 	/local
 		face [red-object!]
 ][
+	if null? hWnd [return null]
 	face: declare red-object!
 	face/header: GetWindowLong hWnd wc-offset
 	face/ctx:	 as node! GetWindowLong hWnd wc-offset + 4
@@ -1378,7 +1379,12 @@ OS-make-view: func [
 	case [
 		sym = button [
 			class: #u16 "RedButton"
+			flags: flags or 00002000h		;-- BS_MULTILINE
 			;flags: flags or BS_PUSHBUTTON
+		]
+		sym = toggle [
+			class: #u16 "RedButton"
+			flags: flags or BS_AUTOCHECKBOX or BS_PUSHLIKE
 		]
 		sym = check [
 			class: #u16 "RedButton"
@@ -1568,11 +1574,16 @@ OS-make-view: func [
 
 	;-- extra initialization
 	case [
-		sym = button	[init-button handle values]
 		sym = camera	[init-camera handle data selected false]
 		sym = text-list [init-text-list handle data selected]
 		sym = base		[init-base-face handle parent values alpha?]
 		sym = tab-panel [set-tabs handle values]
+		any [
+			sym = button
+			sym = toggle
+		][
+			init-button handle values
+		]
 		sym = group-box [
 			flags: flags or WS_GROUP or BS_GROUPBOX
 			hWnd: CreateWindowEx
@@ -1624,8 +1635,13 @@ OS-make-view: func [
 			value: get-position-value as red-float! data 100
 			SendMessage handle PBM_SETPOS value 0
 		]
-		sym = check [set-logic-state handle as red-logic! data yes]
-		sym = radio [set-logic-state handle as red-logic! data no]
+		any [
+			sym = toggle
+			sym = check
+			sym = radio
+		][
+			set-logic-state handle as red-logic! data sym = check
+		]
 		any [
 			sym = drop-down
 			sym = drop-list
@@ -2019,7 +2035,7 @@ change-image: func [
 	type	[integer!]
 ][
 	if type = base [update-base hWnd null null values]
-	if type = button [init-button hWnd values]
+	if any [type = button type = toggle][init-button hWnd values]
 ]
 
 change-selection: func [
@@ -2130,8 +2146,11 @@ change-data: func [
 			f: as red-float! data
 			SendMessage hWnd PBM_SETPOS as-integer f/value * 100.0 0
 		]
-		type = check [
-			set-logic-state hWnd as red-logic! data yes
+		any [
+			type = check
+			type = toggle
+		][
+			set-logic-state hWnd as red-logic! data type = check
 		]
 		type = radio [
 			set-logic-state hWnd as red-logic! data no

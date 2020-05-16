@@ -150,7 +150,8 @@ Red/System [
 
 	draw-ctx!: alias struct! [
 		raw				[int-ptr!]					;-- OS drawing object: CGContext
-		matrix			[CGAffineTransform! value]
+		matrix          [CGAffineTransform! value]
+		ctx-matrix      [CGAffineTransform! value]
 		pen-join		[integer!]
 		pen-cap			[integer!]
 		pen-width		[float32!]

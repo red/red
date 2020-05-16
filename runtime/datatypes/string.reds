@@ -401,6 +401,7 @@ string: context [
 			p	[node!]
 			str	[red-string!]
 	][
+		if zero? size [size: 1]
 		str: as red-string! slot
 		str/header: TYPE_UNSET
 		str/node:  alloc-series size 1 0

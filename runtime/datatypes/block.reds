@@ -904,7 +904,7 @@ block: context [
 
 		either any [
 			match?
-			any-blk?									;@@ we don't hash block!
+			all [only? any-blk?]						;@@ we don't hash block!
 			not hash?
 		][
 			values: either only? [0][					;-- values > 0 => series comparison mode
@@ -1000,16 +1000,43 @@ block: context [
 				result/header: TYPE_NONE					;-- change the stack 1st argument to none.
 			]
 		][
-			key: _hashtable/get table value hash/head step op last? reverse?
-			either any [
-				key = null
-				all [part? key > part]
-			][
-				result/header: TYPE_NONE
-			][
-				blk: as red-block! result
-				if tail? [key: key + 1]
-				blk/head: (as-integer key - s/offset) >> 4	;-- just change the head position on stack
+			if any-blk? [
+				b: as red-block! value
+				value: rs-head b
+				if last? [
+					reverse?: yes
+					hash/head: hash/head + rs-length? blk
+				]
+			]
+			forever [
+				key: _hashtable/get table value hash/head step op last? reverse?
+				either any [
+					key = null
+					all [part? key > part]
+				][
+					result/header: TYPE_NONE
+					any-blk?: no
+				][
+					blk: as red-block! result
+					if tail? [key: key + 1]
+					blk/head: (as-integer key - s/offset) >> 4	;-- just change the head position on stack
+				]
+				unless any-blk? [break]
+
+				n: blk/head
+				if tail? [n: n - 1]
+				if all [reverse? (n + rs-length? b) > hash/head][
+					hash/head: n
+					continue
+				]
+
+				hash/head: n
+				slot: find as red-block! hash as red-value! b part no case? same? any? with-arg skip no no no yes
+				if slot/header <> TYPE_NONE [
+					if tail? [blk/head: hash/head + rs-length? b]
+					break
+				]
+				unless reverse? [hash/head: hash/head + 1]
 			]
 		]
 		result

@@ -647,6 +647,10 @@ process-command-event: func [
 			
 			evt: case [
 				sym = button [EVT_CLICK]
+				sym = toggle [
+					get-logic-state current-msg
+					EVT_CHANGE
+				]
 				sym = check [
 					if 0 <> (FACET_FLAGS_TRISTATE and get-flags as red-block! get-facet current-msg FACE_OBJ_FLAGS)[
 						state: as integer! SendMessage child BM_GETCHECK 0 0
@@ -835,11 +839,13 @@ process-custom-draw: func [
 	values: get-face-values item/hWndFrom
 	type:	as red-word! values + FACE_OBJ_TYPE
 	DC:		item/hdc
-	sym: symbol/resolve type/symbol
+	sym:    symbol/resolve type/symbol
+	
 	if any [
 		sym = check
 		sym = radio
 		sym = button
+		sym = toggle
 	][
 		if all [
 			item/dwDrawStage = CDDS_PREPAINT
@@ -861,7 +867,7 @@ process-custom-draw: func [
 				]
 				rc: as RECT_STRUCT (as int-ptr! item) + 5
 				unless sym = button [
-					rc/left: rc/left + dpi-scale 16
+					rc/left: rc/left + dpi-scale 16			;-- compensate for invisible check box
 				]
 				if TYPE_OF(txt) = TYPE_STRING [
 					flags: either TYPE_OF(para) <> TYPE_OBJECT [
@@ -1352,7 +1358,7 @@ WndProc: func [
 			]
 		]
 		WM_CTLCOLOREDIT
-		WM_CTLCOLORSTATIC 
+		WM_CTLCOLORSTATIC
 		WM_CTLCOLORLISTBOX [
 			if null? current-msg [init-current-msg]
 			current-msg/hWnd: as handle! lParam			;-- force child handle
@@ -1544,7 +1550,7 @@ process: func [
 			make-event msg flags EVT_LEFT_DOWN
 		]
 		WM_LBUTTONUP	[
-			if all [msg/hWnd <> null msg/hWnd = GetCapture][
+			if all [msg/hWnd <> null msg/hWnd = GetCapture not no-face? msg/hWnd][
 				word: (as red-word! get-face-values msg/hWnd) + FACE_OBJ_TYPE
 				if base = symbol/resolve word/symbol [ReleaseCapture]	;-- issue #4384
 			]

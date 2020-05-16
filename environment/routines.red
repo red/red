@@ -57,7 +57,9 @@ set-current-dir: routine ["Sets the platform’s current process directory" path
 ]
 
 create-dir: routine ["Create the given directory" path [file!]][			;@@ temporary, user should use `make-dir`
-	simple-io/make-dir file/to-OS-path path
+	unless simple-io/make-dir file/to-OS-path path [
+		fire [TO_ERROR(access no-create) path]
+	]
 ]
 
 exists?: routine ["Returns TRUE if the file exists" path [file!] return: [logic!]][

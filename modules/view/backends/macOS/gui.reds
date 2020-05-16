@@ -578,7 +578,7 @@ change-size: func [
 		h		[float32!]
 ][
 	rc: make-rect size/x size/y 0 0
-	if all [type = button size/y > 32][
+	if all [any [type = button type = toggle] size/y > 32][
 		objc_msgSend [hWnd sel_getUid "setBezelStyle:" NSRegularSquareBezelStyle]
 	]
 	either type = window [
@@ -608,7 +608,7 @@ change-image: func [
 		id		 [integer!]
 ][
 	case [
-		any [type = button type = check type = radio][
+		any [type = button type = toggle type = check type = radio][
 			if TYPE_OF(image) <> TYPE_IMAGE [
 				objc_msgSend [hWnd sel_getUid "setImage:" 0]
 				exit
@@ -791,7 +791,7 @@ change-font: func [
 			sel_getUid "initWithString:attributes:" title attrs
 		]
 		case [
-			any [type = button type = check type = radio][
+			any [type = button type = toggle type = check type = radio][
 				objc_msgSend [hWnd sel_getUid "setAttributedTitle:" str]
 			]
 			any [type = field type = text][
@@ -832,7 +832,7 @@ change-visible: func [
 	type  [integer!]
 ][
 	case [
-		any [type = button type = check type = radio][
+		any [type = button type = toggle type = check type = radio][
 			objc_msgSend [hWnd sel_getUid "setEnabled:" show?]
 			objc_msgSend [hWnd sel_getUid "setTransparent:" not show?]
 		]
@@ -917,7 +917,7 @@ change-text: func [
 				any [type = field type = text][
 					objc_msgSend [hWnd sel_getUid "setStringValue:" txt]
 				]
-				any [type = button type = radio type = check type = window type = group-box][
+				any [type = button type = toggle type = radio type = check type = window type = group-box][
 					objc_msgSend [hWnd sel_getUid "setTitle:" txt]
 				]
 				true [0]
@@ -970,11 +970,12 @@ change-data: func [
 			len: either size/x > size/y [size/x][size/y]
 			objc_msgSend [hWnd sel_getUid "setDoubleValue:" f/value * (as-float len)]
 		]
-		type = check [
-			set-logic-state hWnd as red-logic! data yes
-		]
-		type = radio [
-			set-logic-state hWnd as red-logic! data no
+		any [
+			type = check
+			type = toggle
+			type = radio
+		][
+			set-logic-state hWnd as red-logic! data type = check
 		]
 		type = tab-panel [
 			set-tabs hWnd values
@@ -1832,7 +1833,7 @@ parse-common-opts: func [
 		]
 	]
 
-	if type = button [
+	if any [type = button type = toggle][
 		len: either btn? [NSRegularSquareBezelStyle][NSRoundedBezelStyle]
 		objc_msgSend [hWnd sel_getUid "setBezelStyle:" len]
 	]
@@ -1906,7 +1907,9 @@ OS-make-view: func [
 		any [
 			sym = text-list
 			sym = area
-		][class: "RedScrollView"]
+		][
+			class: "RedScrollView"
+		]
 		sym = text [class: "RedTextField"]
 		sym = field [
 			class: either bits and FACET_FLAGS_PASSWORD = 0 ["RedTextField"][
@@ -1915,6 +1918,10 @@ OS-make-view: func [
 		]
 		sym = button [
 			class: "RedButton"
+		]
+		sym = toggle [
+			class: "RedButton"
+			flags: NSPushOnPushOffButton
 		]
 		sym = check [
 			class: "RedButton"
@@ -2026,7 +2033,12 @@ OS-make-view: func [
 			make-text-list face obj rc menu bits and FACET_FLAGS_NO_BORDER = 0
 			integer/make-at values + FACE_OBJ_SELECTED 0
 		]
-		any [sym = button sym = check sym = radio][
+		any [
+			sym = button
+			sym = toggle
+			sym = check
+			sym = radio
+		][
 			if sym <> button [
 				if all [sym = check bits and FACET_FLAGS_TRISTATE <> 0][
 					objc_msgSend [obj sel_getUid "setAllowsMixedState:" yes]
