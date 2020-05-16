@@ -203,16 +203,15 @@ Red [
 			]
 		
 		--test-- "image"
-			;@@ TBD: tests for image endcoding/decoding
-			;loop 10 [
-			;	value: skip make image! reduce [
-			;		random 500x500
-			;		random 255.255.255
-			;	] (random 4) - 1
-			;	
-			;	--assert value == test value
-			;	--assert (index? value) == index? test value
-			;]
+			loop 10 [
+				value: skip make image! reduce [
+					random 500x500
+					random 255.255.255
+				] (random 4) - 1
+				
+				--assert value == test value
+				--assert (index? value) == index? test value
+			]
 			
 		--test-- "any-string"
 			strings: [{} "string" <tag> email@address url:// %file @reference]
