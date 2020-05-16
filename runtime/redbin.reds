@@ -729,12 +729,12 @@ redbin: context [
 			TYPE_LOGIC 		[record [payload header data/data1]]
 			TYPE_INTEGER
 			TYPE_CHAR 		[record [payload header data/data2]]
+			TYPE_PAIR 		[record [payload header data/data2 data/data3]]
 			TYPE_PERCENT
 			TYPE_TIME
 			TYPE_FLOAT 		[pad payload 64 record [payload header data/data3 data/data2]]
-			TYPE_PAIR 		[record [payload header data/data2 data/data3]]
-			TYPE_TYPESET 	[record [payload header data/data1 data/data2 data/data3]]
 			TYPE_DATE 		[record [payload header data/data1 data/data3 data/data2]]
+			TYPE_TYPESET
 			TYPE_TUPLE
 			TYPE_MONEY		[record [payload header data/data1 data/data2 data/data3]]
 			TYPE_ANY_WORD
@@ -742,15 +742,15 @@ redbin: context [
 			TYPE_ISSUE		[encode-word data header payload symbols table strings]
 			default [								;-- indirect values
 				switch type [
-					TYPE_NATIVE
-					TYPE_ACTION 	[encode-native data header payload symbols table strings]
 					TYPE_ANY_STRING
 					TYPE_VECTOR
 					TYPE_BINARY		[encode-string data header payload]
+					TYPE_BITSET		[encode-bitset data header payload]
+					TYPE_IMAGE		[encode-image  data header payload]
 					TYPE_ANY_BLOCK
 					TYPE_MAP		[encode-block data header no payload symbols table strings]
-					TYPE_BITSET		[encode-bitset data header payload]
-					TYPE_IMAGE		[encode-image data header payload]
+					TYPE_NATIVE
+					TYPE_ACTION 	[encode-native data header payload symbols table strings]
 					default	[--NOT_IMPLEMENTED--]	;@@ TBD: proper error message
 				]
 			]
@@ -930,11 +930,11 @@ redbin: context [
 		strings [red-binary!]
 		return: [integer!]
 		/local
-			_symbol [red-symbol!]
+			_symbol    [red-symbol!]
 			start here [int-ptr!]
-			string  [c-string!]
-			length  [integer!]
-			end id  [integer!]
+			string     [c-string!]
+			length     [integer!]
+			end id     [integer!]
 	][
 		start: as int-ptr! binary/rs-head symbols
 		end:   (binary/rs-length? symbols) >> 2
@@ -977,7 +977,7 @@ redbin: context [
 		data    [red-value!]
 		return: [red-binary!]
 		/local
-			payload table symbols strings[red-binary!]
+			payload table symbols strings [red-binary!]
 			here [int-ptr!]
 			head [byte-ptr!]
 			length size sym-len str-len sym-size [integer!]
