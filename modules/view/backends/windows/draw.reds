@@ -3341,7 +3341,7 @@ OS-matrix-rotate: func [
 	][
 		;-- rotate figure
 		g: ctx/graphics
-		either angle <> as red-integer! center [
+		either TYPE_OF(center) = TYPE_PAIR [
 			either ctx/other/matrix-order = GDIPLUS_MATRIX_APPEND [
 				cx: as float32! 0 - center/x
 				cy: as float32! 0 - center/y
@@ -3386,7 +3386,7 @@ OS-matrix-scale: func [
 	][
 		;-- scale figure
 		g: ctx/graphics
-		either sy <> as red-integer! center [
+		either TYPE_OF(center) = TYPE_PAIR [
 			either ctx/other/matrix-order = GDIPLUS_MATRIX_APPEND [
 				cx: as float32! 0 - center/x
 				cy: as float32! 0 - center/y

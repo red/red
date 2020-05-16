@@ -1363,11 +1363,11 @@ OS-matrix-rotate: func [
 	ctx: dc/raw
 	rad: (as float32! PI) / (as float32! 180.0) * get-float32 angle
 	either pen = -1 [
-		if angle <> as red-integer! center [
+		if TYPE_OF(center) = TYPE_PAIR [
 			_OS-matrix-translate ctx center/x center/y
 		]
 		CGContextRotateCTM ctx rad
-		if angle <> as red-integer! center [
+		if TYPE_OF(center) = TYPE_PAIR [
 			_OS-matrix-translate ctx 0 - center/x 0 - center/y
 		]
 	][
@@ -1385,11 +1385,11 @@ OS-matrix-scale: func [
 ][
 	sy: sx + 1
 	either pen = -1 [
-		if sx <> as red-integer! center [
+		if TYPE_OF(center) = TYPE_PAIR [
 			_OS-matrix-translate dc/raw center/x center/y
 		]
 		CGContextScaleCTM dc/raw get-float32 sx get-float32 sy
-		if sx <> as red-integer! center [
+		if TYPE_OF(center) = TYPE_PAIR [
 			_OS-matrix-translate dc/raw 0 - center/x 0 - center/y
 		]
 	][

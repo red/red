@@ -357,7 +357,7 @@ OS-matrix-scale: func [
 	ctx			[draw-ctx!]
 	pen-fill	[integer!]
 	sx			[red-integer!]
-	sy			[red-integer!]
+	center		[red-pair!]
 ][
 
 ]
@@ -375,7 +375,7 @@ OS-matrix-skew: func [
 	ctx		    [draw-ctx!]
 	pen-fill    [integer!]
 	sx			[red-integer!]
-	sy			[red-integer!]
+	center		[red-pair!]
 ][
 
 ]
