@@ -16,6 +16,11 @@ Red/System [
 #define F32_0				[as float32! 0.0]
 #define F32_1				[as float32! 1.0]
 
+#enum MATRIX-ORDER! [
+	MATRIX-APPEND
+	MATRIX-PREPEND
+]
+
 max-colors: 256												;-- max number of colors for gradient
 max-edges: 1000												;-- max number of edges for a polygon
 edges: as CGPoint! allocate max-edges * (size? CGPoint!)	;-- polygone edges buffer
@@ -44,29 +49,23 @@ draw-begin: func [
 		rc		[NSRect!]
 		nscolor [integer!]
 		saved	[int-ptr!]
-		m		[CGAffineTransform!]
+		m		[CGAffineTransform! value]
 ][
 	unless pattern? [
 		CGContextSaveGState CGCtx
 
-		either on-graphic? [							;-- draw on image!, flip the CTM
+		if on-graphic? [							;-- draw on image!, flip the CTM
 			rc: as NSRect! img
 			ctx/rect-y: rc/y
-			CGContextTranslateCTM CGCtx as float32! 0.0 rc/y
-			CGContextScaleCTM CGCtx as float32! 1.0 as float32! -1.0
-		][
-			CGContextTranslateCTM CGCtx as float32! 0.5 as float32! 0.5
 		]
 	]
 
+	matrix-identity		ctx/pen-matrix
 	ctx/raw:			CGCtx
-	ctx/reset-matrix:	CGContextGetCTM CGCtx
-	ctx/pen-matrix/a:	F32_1
-	ctx/pen-matrix/b:	F32_0
-	ctx/pen-matrix/c:	F32_0
-	ctx/pen-matrix/d:	F32_1
-	ctx/pen-matrix/tx:	F32_0
-	ctx/pen-matrix/ty:	F32_0
+	ctx/device-matrix:	CGContextGetCTM CGCtx
+	matrix-identity m
+	CGContextSetCTM CGCtx m
+	ctx/matrix-order:	MATRIX-PREPEND
 	ctx/pen-width:		as float32! 1.0
 	ctx/pen-style:		0
 	ctx/pen-color:		0						;-- default: black
@@ -81,6 +80,7 @@ draw-begin: func [
 	ctx/last-pt-x:		as float32! 0.0
 	ctx/last-pt-y:		as float32! 0.0
 	ctx/on-image?:		on-graphic?
+	ctx/pattern?:		pattern?
 
 	ctx/font-attrs: objc_msgSend [				;-- default font attributes
 		objc_msgSend [objc_getClass "NSDictionary" sel_getUid "alloc"]
@@ -103,10 +103,137 @@ draw-end: func [
 ][
 	if dc/font-attrs <> 0 [objc_msgSend [dc/font-attrs sel_release]]
 	CGColorSpaceRelease dc/colorspace
+	CGContextSetCTM dc/raw dc/device-matrix
 	unless pattern? [
 		CGContextRestoreGState CGCtx
 		OS-draw-anti-alias dc yes
 	]
+]
+
+matrix-identity: func [
+	matrix	[CGAffineTransform!]
+][
+	matrix/a:	F32_1
+	matrix/b:	F32_0
+	matrix/c:	F32_0
+	matrix/d:	F32_1
+	matrix/tx:	F32_0
+	matrix/ty:	F32_0
+]
+
+cg-matrix-translate: func [
+	ctx		[handle!]
+	x		[float32!]
+	y		[float32!]
+	order	[MATRIX-ORDER!]
+	/local
+		m	[CGAffineTransform! value]
+		c	[CGAffineTransform! value]
+][
+	if order = MATRIX-PREPEND [
+		CGContextTranslateCTM ctx x y
+		exit
+	]
+	m: CGAffineTransformMakeTranslation x y
+	c: CGContextGetCTM ctx
+	c: CGAffineTransformConcat c m
+	CGContextSetCTM ctx c
+]
+
+cg-matrix-scale: func [
+	ctx		[handle!]
+	x		[float32!]
+	y		[float32!]
+	order	[MATRIX-ORDER!]
+	/local
+		m	[CGAffineTransform! value]
+		c	[CGAffineTransform! value]
+][
+	if order = MATRIX-PREPEND [
+		CGContextScaleCTM ctx x y
+		exit
+	]
+	m: CGAffineTransformMakeScale x y
+	c: CGContextGetCTM ctx
+	c: CGAffineTransformConcat c m
+	CGContextSetCTM ctx c
+]
+
+cg-matrix-rotate: func [
+	ctx		[handle!]
+	r		[float32!]
+	order	[MATRIX-ORDER!]
+	/local
+		m	[CGAffineTransform! value]
+		c	[CGAffineTransform! value]
+][
+	if order = MATRIX-PREPEND [
+		CGContextRotateCTM ctx r
+		exit
+	]
+	m: CGAffineTransformMakeRotation r
+	c: CGContextGetCTM ctx
+	c: CGAffineTransformConcat c m
+	CGContextSetCTM ctx c
+]
+
+cg-matrix-concat: func [
+	ctx		[handle!]
+	m		[CGAffineTransform! value]
+	order	[MATRIX-ORDER!]
+	/local
+		c	[CGAffineTransform! value]
+][
+	if order = MATRIX-PREPEND [
+		CGContextConcatCTM ctx m
+		exit
+	]
+	c: CGContextGetCTM ctx
+	c: CGAffineTransformConcat c m
+	CGContextSetCTM ctx c
+]
+
+ctx-matrix-adapt: func [
+	dc		[draw-ctx!]
+	/local
+		m	[CGAffineTransform! value]
+		c	[CGAffineTransform! value]
+][
+	if dc/pattern? [exit]
+	c: CGContextGetCTM dc/raw
+	either dc/on-image? [
+		m: CGAffineTransformMakeScale as float32! 1.0 as float32! -1.0
+		c: CGAffineTransformConcat c m
+		m: CGAffineTransformMakeTranslation as float32! 0.0 dc/rect-y
+		c: CGAffineTransformConcat c m
+	][
+		m: CGAffineTransformMakeTranslation as float32! 0.5 as float32! 0.5
+		c: CGAffineTransformConcat c m
+	]
+	c: CGAffineTransformConcat c dc/device-matrix
+	CGContextSetCTM dc/raw c
+]
+
+ctx-matrix-unadapt: func [
+	dc		[draw-ctx!]
+	/local
+		m	[CGAffineTransform! value]
+		c	[CGAffineTransform! value]
+][
+	if dc/pattern? [exit]
+	c: CGContextGetCTM dc/raw
+	m: CGAffineTransformInvert dc/device-matrix
+	c: CGAffineTransformConcat c m
+	either dc/on-image? [
+		m: CGAffineTransformMakeTranslation as float32! 0.0 (as float32! 0.0) - dc/rect-y
+		c: CGAffineTransformConcat c m
+		m: CGAffineTransformMakeScale as float32! -1.0 as float32! 1.0
+		c: CGAffineTransformConcat c m
+	][
+		m: CGAffineTransformMakeTranslation as float32! -0.5 as float32! -0.5
+		c: CGAffineTransformConcat c m
+	]
+	CGContextSetCTM dc/raw c
 ]
 
 OS-draw-anti-alias: func [
@@ -139,9 +266,11 @@ OS-draw-line: func [
 		pt: pt + 1
 		pair: pair + 1
 	]
+	ctx-matrix-adapt dc
 	CGContextBeginPath ctx
 	CGContextAddLines ctx edges nb
 	CGContextStrokePath ctx
+	ctx-matrix-unadapt dc
 ]
 
 CG-set-color: func [
@@ -388,6 +517,7 @@ OS-draw-box: func [
 	xm: x1 + (x2 - x1 / as float32! 2.0)
 	ym: y1 + (y2 - y1 / as float32! 2.0)
 
+	ctx-matrix-adapt dc
 	either radius <> null [
 		width: lower/x - upper/x
 		height: lower/y - upper/y
@@ -405,6 +535,7 @@ OS-draw-box: func [
 	]
 	if dc/grad-pos? [check-gradient-box dc x1 y1 x2 y2]
 	do-draw-path dc
+	ctx-matrix-unadapt dc
 ]
 
 do-draw-path: func [
@@ -451,11 +582,13 @@ OS-draw-triangle: func [
 	]
 	point/x: edges/x									;-- close the triangle
 	point/y: edges/y
+	ctx-matrix-adapt dc
 	CGContextBeginPath ctx
 	CGContextAddLines ctx edges 4
 	if dc/grad-pos? [check-gradient-poly dc edges 3]
 	CGContextClosePath ctx
 	do-draw-path dc
+	ctx-matrix-unadapt dc
 ]
 
 OS-draw-polygon: func [
@@ -473,7 +606,7 @@ OS-draw-polygon: func [
 	point: edges
 	pair:  start
 	nb:	   0
-
+	ctx-matrix-adapt dc
 	while [all [pair <= end nb < max-edges]][
 		point/x: as float32! pair/x
 		point/y: as float32! pair/y
@@ -490,6 +623,7 @@ OS-draw-polygon: func [
 	if dc/grad-pos? [check-gradient-poly dc edges nb]
 	CGContextClosePath ctx
 	do-draw-path dc
+	ctx-matrix-unadapt dc
 ]
 
 OS-draw-spline: func [
@@ -516,7 +650,7 @@ OS-draw-spline: func [
 		num		[integer!]
 ][
 	ctx: dc/raw
-
+	ctx-matrix-adapt dc
 	count: (as-integer end - start) >> 4
 	num: count + 1
 
@@ -576,6 +710,7 @@ OS-draw-spline: func [
 		i: i + 1
 	]
 	do-draw-path dc
+	ctx-matrix-unadapt dc
 ]
 
 do-draw-ellipse: func [
@@ -588,6 +723,7 @@ do-draw-ellipse: func [
 		dx	[float32!]
 		dy	[float32!]
 ][
+	ctx-matrix-adapt dc
 	CGContextAddEllipseInRect dc/raw x y w h
 	if dc/grad-pos? [
 		either dc/grad-type = linear [
@@ -606,6 +742,7 @@ do-draw-ellipse: func [
 		]
 	]
 	do-draw-path dc
+	ctx-matrix-unadapt dc
 ]
 
 OS-draw-circle: func [
@@ -758,6 +895,7 @@ OS-draw-text: func [
 		ctx [handle!]
 ][
 	ctx: dc/raw
+	ctx-matrix-adapt dc
 	either TYPE_OF(text) = TYPE_STRING [
 		draw-text-at ctx text dc/font-attrs pos/x pos/y
 	][
@@ -765,6 +903,7 @@ OS-draw-text: func [
 	]
 	CG-set-color ctx dc/pen-color no				;-- drawing text will change pen color, so reset it
 	CG-set-color ctx dc/brush-color yes				;-- drawing text will change brush color, so reset it
+	ctx-matrix-unadapt dc
 	true
 ]
 
@@ -872,6 +1011,7 @@ OS-draw-arc: func [
 
 	closed?: angle < end
 
+	ctx-matrix-adapt dc
 	CGContextBeginPath ctx
 	if closed? [CGContextMoveToPoint ctx cx cy]
 	either any [sweep >= 360 sweep <= -360][
@@ -902,6 +1042,7 @@ OS-draw-arc: func [
 	][
 		CGContextStrokePath ctx
 	]
+	ctx-matrix-unadapt dc
 ]
 
 OS-draw-curve: func [
@@ -933,10 +1074,12 @@ OS-draw-curve: func [
 		cp2y: as float32! p3/y
 	]
 
+	ctx-matrix-adapt dc
 	CGContextBeginPath ctx
 	CGContextMoveToPoint ctx as float32! start/x as float32! start/y
 	CGContextAddCurveToPoint ctx cp1x cp1y cp2x cp2y as float32! end/x as float32! end/y
 	CGContextStrokePath ctx
+	ctx-matrix-unadapt dc
 ]
 
 OS-draw-line-join: func [
@@ -1043,6 +1186,7 @@ OS-draw-image: func [
 		dst		[red-image! value]
 		handle	[integer!]
 ][
+	ctx-matrix-adapt dc
 	either any [
 		start + 2 = end
 		start + 3 = end
@@ -1095,6 +1239,7 @@ OS-draw-image: func [
 			CGImageRelease handle
 		]
 	]
+	ctx-matrix-unadapt dc
 ]
 
 fill-gradient-region: func [
@@ -1359,16 +1504,25 @@ OS-matrix-rotate: func [
 		ctx [handle!]
 		pt	[CGPoint!]
 		rad [float32!]
+		cx	[float32!]
+		cy	[float32!]
 ][
 	ctx: dc/raw
 	rad: (as float32! PI) / (as float32! 180.0) * get-float32 angle
 	either pen = -1 [
-		if TYPE_OF(center) = TYPE_PAIR [
-			_OS-matrix-translate ctx center/x center/y
-		]
-		CGContextRotateCTM ctx rad
-		if TYPE_OF(center) = TYPE_PAIR [
-			_OS-matrix-translate ctx 0 - center/x 0 - center/y
+		either TYPE_OF(center) = TYPE_PAIR [
+			either dc/matrix-order = MATRIX-APPEND [
+				cx: as float32! 0 - center/x
+				cy: as float32! 0 - center/y
+			][
+				cx: as float32! center/x
+				cy: as float32! center/y
+			]
+			cg-matrix-translate ctx cx cy dc/matrix-order
+			cg-matrix-rotate ctx rad dc/matrix-order
+			cg-matrix-translate ctx (as float32! 0.0) - cx (as float32! 0.0) - cy dc/matrix-order
+		][
+			cg-matrix-rotate ctx rad dc/matrix-order
 		]
 	][
 		dc/pen-matrix: CGAffineTransformRotate dc/pen-matrix rad
@@ -1381,28 +1535,31 @@ OS-matrix-scale: func [
 	sx		[red-integer!]
 	center	[red-pair!]
 	/local
+		ctx [handle!]
 		sy	[red-integer!]
+		cx	[float32!]
+		cy	[float32!]
 ][
+	ctx: dc/raw
 	sy: sx + 1
 	either pen = -1 [
-		if TYPE_OF(center) = TYPE_PAIR [
-			_OS-matrix-translate dc/raw center/x center/y
-		]
-		CGContextScaleCTM dc/raw get-float32 sx get-float32 sy
-		if TYPE_OF(center) = TYPE_PAIR [
-			_OS-matrix-translate dc/raw 0 - center/x 0 - center/y
+		either TYPE_OF(center) = TYPE_PAIR [
+			either dc/matrix-order = MATRIX-APPEND [
+				cx: as float32! 0 - center/x
+				cy: as float32! 0 - center/y
+			][
+				cx: as float32! center/x
+				cy: as float32! center/y
+			]
+			cg-matrix-translate ctx cx cy dc/matrix-order
+			cg-matrix-scale ctx get-float32 sx get-float32 sy dc/matrix-order
+			cg-matrix-translate ctx (as float32! 0.0) - cx (as float32! 0.0) - cy dc/matrix-order
+		][
+			cg-matrix-scale ctx get-float32 sx get-float32 sy dc/matrix-order
 		]
 	][
 		dc/pen-matrix: CGAffineTransformScale dc/pen-matrix get-float32 sx get-float32 sy
 	]
-]
-
-_OS-matrix-translate: func [
-	ctx [handle!]
-	x	[integer!]
-	y	[integer!]
-][
-	CGContextTranslateCTM ctx as float32! x as float32! y
 ]
 
 OS-matrix-translate: func [
@@ -1412,7 +1569,7 @@ OS-matrix-translate: func [
 	y	[integer!]
 ][
 	either pen = -1 [
-		CGContextTranslateCTM dc/raw as float32! x as float32! y
+		cg-matrix-translate dc/raw as float32! x as float32! y dc/matrix-order
 	][
 		dc/pen-matrix: CGAffineTransformTranslate dc/pen-matrix as float32! x as float32! y
 	]
@@ -1424,11 +1581,15 @@ OS-matrix-skew: func [
 	sx		[red-integer!]
 	center	[red-pair!]
 	/local
+		ctx [handle!]
 		sy	[red-integer!]
 		xv	[float!]
 		yv	[float!]
 		m	[CGAffineTransform! value]
+		cx	[float32!]
+		cy	[float32!]
 ][
+	ctx: dc/raw
 	sy: sx + 1
 	xv: get-float sx
 	yv: either all [
@@ -1446,12 +1607,19 @@ OS-matrix-skew: func [
 	m/tx: as float32! 0.0
 	m/ty: as float32! 0.0
 	either pen = -1 [
-		if TYPE_OF(center) = TYPE_PAIR [
-			_OS-matrix-translate dc/raw center/x center/y
-		]
-		CGContextConcatCTM dc/raw m
-		if TYPE_OF(center) = TYPE_PAIR [
-			_OS-matrix-translate dc/raw 0 - center/x 0 - center/y
+		either TYPE_OF(center) = TYPE_PAIR [
+			either dc/matrix-order = MATRIX-APPEND [
+				cx: as float32! 0 - center/x
+				cy: as float32! 0 - center/y
+			][
+				cx: as float32! center/x
+				cy: as float32! center/y
+			]
+			cg-matrix-translate ctx cx cy dc/matrix-order
+			cg-matrix-concat ctx m dc/matrix-order
+			cg-matrix-translate ctx (as float32! 0.0) - cx (as float32! 0.0) - cy dc/matrix-order
+		][
+			cg-matrix-concat ctx m dc/matrix-order
 		]
 	][
 		dc/pen-matrix: CGAffineTransformConcat dc/pen-matrix m
@@ -1466,14 +1634,27 @@ OS-matrix-transform: func [
 	translate	[red-pair!]
 	/local
 		rotate	[red-integer!]
+		rad		[float32!]
 		center? [logic!]
+		ctx		[handle!]
+		cx		[float32!]
+		cy		[float32!]
 ][
 	rotate: as red-integer! either center + 1 = scale [center][center + 1]
+	rad: (as float32! PI) / (as float32! 180.0) * get-float32 rotate
 	center?: rotate <> center
-
-	_OS-matrix-translate dc/raw translate/x translate/y
-	OS-matrix-scale dc pen scale center
-	OS-matrix-rotate dc pen rotate center
+	ctx: dc/raw
+	if center? [
+		cx: as float32! 0 - center/x
+		cy: as float32! 0 - center/y
+		cg-matrix-translate ctx cx cy MATRIX-APPEND
+	]
+	cg-matrix-rotate ctx rad MATRIX-APPEND
+	cg-matrix-scale ctx get-float32 scale get-float32 scale + 1 MATRIX-APPEND
+	cg-matrix-translate ctx as float32! translate/x as float32! translate/y MATRIX-APPEND
+	if center? [
+		cg-matrix-translate ctx (as float32! 0.0) - cx (as float32! 0.0) - cy MATRIX-APPEND
+	]
 ]
 
 OS-matrix-push: func [dc [draw-ctx!] state [draw-state!]][
@@ -1508,7 +1689,8 @@ OS-matrix-reset: func [
 		m	[CGAffineTransform! value]
 ][
 	ctx: dc/raw
-	CGContextSetCTM ctx dc/reset-matrix
+	matrix-identity m
+	CGContextSetCTM ctx m
 ]
 
 OS-matrix-invert: func [
@@ -1539,14 +1721,18 @@ OS-matrix-set: func [
 	m/d: get-float32 val + 3
 	m/tx: get-float32 val + 4
 	m/ty: get-float32 val + 5
-	CGContextConcatCTM dc/raw m
+	cg-matrix-concat dc/raw m dc/matrix-order
 ]
 
 OS-set-matrix-order: func [
 	ctx		[draw-ctx!]
 	order	[integer!]
 ][
-	0
+	case [
+		order = _append [ ctx/matrix-order: MATRIX-APPEND ]
+		order = prepend [ ctx/matrix-order: MATRIX-PREPEND ]
+		true [ ctx/matrix-order: MATRIX-PREPEND ]
+	]
 ]
 
 OS-set-clip: func [

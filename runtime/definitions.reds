@@ -88,7 +88,8 @@ Red/System [
 	draw-ctx!: alias struct! [
 		raw				[int-ptr!]					;-- OS drawing object: CGContext
 		pen-matrix		[CGAffineTransform! value]
-		reset-matrix	[CGAffineTransform! value]
+		device-matrix	[CGAffineTransform! value]
+		matrix-order	[integer!]
 		pen-join		[integer!]
 		pen-cap			[integer!]
 		pen-width		[float32!]
@@ -111,6 +112,7 @@ Red/System [
 		pen?			[logic!]
 		brush?			[logic!]
 		on-image?		[logic!]					;-- drawing on image?
+		pattern?		[logic!]					;-- drawing on pattern (sub call)
 		rect-y			[float32!]
 		pattern-blk		[int-ptr!]
 		pattern-mode	[integer!]

@@ -772,6 +772,10 @@ tagSIZE: alias struct! [
 			sy			[float32!]
 			return:		[CGAffineTransform! value]
 		]
+		CGAffineTransformMakeRotation: "CGAffineTransformMakeRotation" [
+			radius		[float32!]
+			return:		[CGAffineTransform! value]
+		]
 		CGAffineTransformMakeTranslation: "CGAffineTransformMakeTranslation" [
 			x			[float32!]
 			y			[float32!]
