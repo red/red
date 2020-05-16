@@ -430,29 +430,30 @@ redbin: context [
 		return: [int-ptr!]
 		/local
 			slot   [red-image!]
-			rgb    [red-binary!]
-			alpha  [red-binary!]
+			argb   [red-binary!]
+			pixels [byte-ptr!]
 			width  [integer!]
 			height [integer!]
-			length [integer!]
+			size   [integer!]
 	][
-		;@@ TBD: image decoding/encoding
-	
 		width:  IMAGE_WIDTH(data/3)
 		height: IMAGE_HEIGHT(data/3)
-		length: width * height						;-- in pixels
+		size:   width * height << 2					;-- 4 bytes per pixel
 		
-		;rgb:   binary/load as byte-ptr! data + 3 length * 3
-		;alpha: binary/load as byte-ptr! data + 3 + (length * 3) length
+		pixels: as byte-ptr! data + 3
+		argb:   binary/load pixels size
 		
-		;slot: as red-image! ALLOC_TAIL(parent)
-		;slot/node: OS-image/make-image width height rgb alpha null	;-- null if image is empty
-		;slot/head: data/2
-		;slot/size: data/3
-		;slot/header: TYPE_IMAGE						;-- implicit reset of all header flags
-		;if nl? [slot/header: slot/header or flag-new-line]
+		slot: as red-image! ALLOC_TAIL(parent)
+		slot/head: data/2
+		slot/size: data/3
+		slot/node: OS-image/make-image width height null null null
 		
-		data + 3 + (length << 2)
+		slot/header: TYPE_IMAGE
+		if nl? [slot/header: slot/header or flag-new-line]
+		
+		image/set-data slot argb EXTRACT_ARGB
+		
+		as int-ptr! pixels + size
 	]
 	
 	decode-value: func [
@@ -965,15 +966,11 @@ redbin: context [
 		header  [integer!]
 		payload [red-binary!]
 		/local
-			rgb   [red-binary!]
-			alpha [red-binary!]
-	][	
-		rgb:   image/extract-data as red-image! data EXTRACT_RGB
-		alpha: image/extract-data as red-image! data EXTRACT_ALPHA 
-		
+			argb [red-binary!]
+	][
+		argb: image/extract-data as red-image! data EXTRACT_ARGB
 		record [payload header data/data1 data/data3]
-		emit payload binary/rs-head rgb   binary/rs-length? rgb
-		emit payload binary/rs-head alpha binary/rs-length? alpha
+		emit payload binary/rs-head argb binary/rs-length? argb
 	]
 	
 	encode: func [
