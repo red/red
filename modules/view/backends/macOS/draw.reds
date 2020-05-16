@@ -60,13 +60,13 @@ draw-begin: func [
 	]
 
 	ctx/raw:			CGCtx
-	ctx/ctx-matrix:		CGContextGetCTM CGCtx
-	ctx/matrix/a:		F32_1
-	ctx/matrix/b:		F32_0
-	ctx/matrix/c:		F32_0
-	ctx/matrix/d:		F32_1
-	ctx/matrix/tx:		F32_0
-	ctx/matrix/ty:		F32_0
+	ctx/reset-matrix:	CGContextGetCTM CGCtx
+	ctx/pen-matrix/a:	F32_1
+	ctx/pen-matrix/b:	F32_0
+	ctx/pen-matrix/c:	F32_0
+	ctx/pen-matrix/d:	F32_1
+	ctx/pen-matrix/tx:	F32_0
+	ctx/pen-matrix/ty:	F32_0
 	ctx/pen-width:		as float32! 1.0
 	ctx/pen-style:		0
 	ctx/pen-color:		0						;-- default: black
@@ -1111,17 +1111,17 @@ fill-gradient-region: func [
 	either dc/grad-type = linear [
 		pt1/x: dc/grad-x1
 		pt1/y: dc/grad-y1
-		pt1: CGPointApplyAffineTransform pt1 dc/matrix
+		pt1: CGPointApplyAffineTransform pt1 dc/pen-matrix
 		pt2/x: dc/grad-x2
 		pt2/y: dc/grad-y2
-		pt2: CGPointApplyAffineTransform pt2 dc/matrix
+		pt2: CGPointApplyAffineTransform pt2 dc/pen-matrix
 		CGContextDrawLinearGradient
 			ctx
 			dc/grad-pen
 			pt1/x pt1/y pt2/x pt2/y
 			3
 	][
-		CGContextConcatCTM dc/raw dc/matrix
+		CGContextConcatCTM dc/raw dc/pen-matrix
 		CGContextDrawRadialGradient
 			ctx
 			dc/grad-pen
@@ -1163,7 +1163,7 @@ OS-draw-grad-pen-old: func [
 		rotate? [logic!]
 		scale?	[logic!]
 ][
-	dc/matrix: CGAffineTransformMake F32_1 F32_0 F32_0 F32_1 F32_0 F32_0
+	dc/pen-matrix: CGAffineTransformMake F32_1 F32_0 F32_0 F32_1 F32_0 F32_0
 	dc/grad-type: type
 	dc/grad-spread: spread
 	dc/grad-x1: as float32! offset/x			;-- save gradient offset for later use
@@ -1205,10 +1205,10 @@ OS-draw-grad-pen-old: func [
 	]
 	if rotate? [
 		p: (as float32! PI) / (as float32! 180.0)
-		dc/matrix: CGAffineTransformRotate dc/matrix p * angle
+		dc/pen-matrix: CGAffineTransformRotate dc/pen-matrix p * angle
 	]
 	if scale? [
-		dc/matrix: CGAffineTransformScale dc/matrix sx sy
+		dc/pen-matrix: CGAffineTransformScale dc/pen-matrix sx sy
 	]
 
 	color: colors + 4
@@ -1371,7 +1371,7 @@ OS-matrix-rotate: func [
 			_OS-matrix-translate ctx 0 - center/x 0 - center/y
 		]
 	][
-		dc/matrix: CGAffineTransformRotate dc/matrix rad
+		dc/pen-matrix: CGAffineTransformRotate dc/pen-matrix rad
 	]
 ]
 
@@ -1393,7 +1393,7 @@ OS-matrix-scale: func [
 			_OS-matrix-translate dc/raw 0 - center/x 0 - center/y
 		]
 	][
-		dc/matrix: CGAffineTransformScale dc/matrix get-float32 sx get-float32 sy
+		dc/pen-matrix: CGAffineTransformScale dc/pen-matrix get-float32 sx get-float32 sy
 	]
 ]
 
@@ -1414,7 +1414,7 @@ OS-matrix-translate: func [
 	either pen = -1 [
 		CGContextTranslateCTM dc/raw as float32! x as float32! y
 	][
-		dc/matrix: CGAffineTransformTranslate dc/matrix as float32! x as float32! y
+		dc/pen-matrix: CGAffineTransformTranslate dc/pen-matrix as float32! x as float32! y
 	]
 ]
 
@@ -1454,7 +1454,7 @@ OS-matrix-skew: func [
 			_OS-matrix-translate dc/raw 0 - center/x 0 - center/y
 		]
 	][
-		dc/matrix: CGAffineTransformConcat dc/matrix m
+		dc/pen-matrix: CGAffineTransformConcat dc/pen-matrix m
 	]
 ]
 
@@ -1508,7 +1508,7 @@ OS-matrix-reset: func [
 		m	[CGAffineTransform! value]
 ][
 	ctx: dc/raw
-	CGContextSetCTM ctx dc/ctx-matrix
+	CGContextSetCTM ctx dc/reset-matrix
 ]
 
 OS-matrix-invert: func [
