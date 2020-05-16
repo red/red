@@ -1693,13 +1693,15 @@ OS-matrix-scale: func [
 	dc			[draw-ctx!]
 	pen-fill	[integer!]
 	sx			[red-integer!]
-	sy			[red-integer!]
+	center		[red-pair!]
 	/local
+		sy		[red-integer!]
 		grad	[gradient!]
 		matrix	[cairo_matrix_t!]
 		x		[float!]
 		y		[float!]
 ][
+	sy: sx + 1
 	either pen-fill <> -1 [
 		grad: either pen-fill = pen [dc/grad-pen][dc/grad-brush]
 		if grad/on? [
@@ -1741,13 +1743,15 @@ OS-matrix-skew: func [
 	dc			[draw-ctx!]
 	pen-fill	[integer!]
 	sx			[red-integer!]
-	sy			[red-integer!]
+	center		[red-pair!]
 	/local
+		sy		[red-integer!]
 		grad	[gradient!]
 		m		[cairo_matrix_t! value]
 		matrix	[cairo_matrix_t!]
 		res		[cairo_matrix_t! value]
 ][
+	sy: sx + 1
 	m/xx: 1.0
 	m/yx: either sx = sy [0.0][tan degree-to-radians get-float sy TYPE_TANGENT]
 	m/xy: tan degree-to-radians get-float sx TYPE_TANGENT
@@ -1783,7 +1787,7 @@ OS-matrix-transform: func [
 	center?: rotate <> center
 
 	OS-matrix-rotate dc pen-fill rotate center
-	OS-matrix-scale dc pen-fill scale scale + 1
+	OS-matrix-scale dc pen-fill scale center
 	OS-matrix-translate dc pen-fill translate/x translate/y
 ]
 
