@@ -1873,6 +1873,24 @@ Red [
 		--assert empty? copy/part a -4
 		--assert "3456" = copy/part b -4
 		--assert "123456" = copy/part b -10
+
+comment {TO BE COMPLETED!
+  --test-- "copy-4" --assert empty? copy/part "" 1x5
+  --test-- "copy-4" --assert empty? copy/part "" 1x-5
+  --test-- "copy-4" --assert empty? copy/part "" -1x5
+  --test-- "copy-4" --assert empty? copy/part "" -1x-5
+  --test-- "copy-4" --assert empty? copy/part "" -5x-1
+  --test-- "copy-4" --assert empty? copy/part "hello new world" 10x7
+  --test-- "copy-4" --assert empty? copy/part skip "hello new world" 10 -1x-5
+  --test-- "copy-4" --assert "h"      == copy/part "hello" 1x1
+  --test-- "copy-4" --assert "new"    == copy/part "hello new world" 7x10
+  --test-- "copy-4" --assert "worl"   == copy/part skip "hello new world" 10 1x5
+  --test-- "copy-4" --assert " world" == copy/part skip "hello new world" 10 -1x5
+  --test-- "copy-4" --assert " new"   == copy/part skip "hello new world" 10 -5x-1
+
+  --test-- "copy-4" --assert empty? copy/part [] 1x5
+}
+
 ===end-group===
 
 ===start-group=== "random"

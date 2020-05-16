@@ -1,7 +1,7 @@
 Red [
 	Title:   "JPEG codec"
 	Author:  "Qingtian Xie"
-	File:	 %jpeg.red
+	File:	 %JPEG.red
 	Tabs:	 4
 	Rights:  "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
