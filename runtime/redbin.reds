@@ -737,13 +737,13 @@ redbin: context [
 			TYPE_DATE 		[record [payload header data/data1 data/data3 data/data2]]
 			TYPE_TUPLE
 			TYPE_MONEY		[record [payload header data/data1 data/data2 data/data3]]
-			TYPE_NATIVE
-			TYPE_ACTION 	[encode-native data header payload symbols table strings]
 			TYPE_ANY_WORD
 			TYPE_REFINEMENT
 			TYPE_ISSUE		[encode-word data header payload symbols table strings]
 			default [								;-- indirect values
 				switch type [
+					TYPE_NATIVE
+					TYPE_ACTION 	[encode-native data header payload symbols table strings]
 					TYPE_ANY_STRING
 					TYPE_VECTOR
 					TYPE_BINARY		[encode-string data header payload]
