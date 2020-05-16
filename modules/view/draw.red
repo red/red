@@ -228,6 +228,16 @@ Red/System [
 				any [TYPE_OF(pos) = type1 TYPE_OF(pos) = type2]
 			][cmd: pos]
 		]
+		
+		#define DRAW_FETCH_NUMBER [
+			cmd: cmd + 1
+			if any [
+				cmd >= tail
+				all [TYPE_OF(cmd) <> TYPE_INTEGER TYPE_OF(cmd) <> TYPE_FLOAT TYPE_OF(cmd) <> TYPE_PERCENT]
+			][
+				throw-draw-error cmds cmd catch?
+			]
+		]
 
 		#define DRAW_FETCH_SOME_PAIR [
 			until [cmd: cmd + 1 any [TYPE_OF(cmd) <> TYPE_PAIR cmd = tail]]
@@ -714,6 +724,9 @@ Red/System [
 				brush?		[logic!]
 				a-pen?		[logic!]
 				a-brush?	[logic!]
+				ncmds		[red-block!]
+				ncmd		[red-value!]
+				ntail		[red-value!]
 		][
 			cmd:  block/rs-head cmds
 			tail: block/rs-tail cmds
@@ -928,15 +941,16 @@ Red/System [
 							]
 							sym = scale [
 								DRAW_FETCH_OPT_TRANSFORM
-								loop 2 [DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)]
+								loop 2 [DRAW_FETCH_NUMBER]						;-- scale-x, scale-y
+								DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
 									OS-matrix-push DC :state
-									OS-matrix-scale DC sym as red-integer! start as red-integer! cmd - 1
+									OS-matrix-scale DC sym as red-integer! start as red-pair! cmd - 1
 									parse-draw DC as red-block! cmd catch?
 									OS-matrix-pop DC :state
 								][
-									OS-matrix-scale DC sym as red-integer! start as red-integer! cmd
+									OS-matrix-scale DC sym as red-integer! start as red-pair! cmd
 								]
 							]
 							sym = translate [
@@ -957,22 +971,23 @@ Red/System [
 								DRAW_FETCH_OPT_TRANSFORM
 								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
 								DRAW_FETCH_OPT_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
+								DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
 									OS-matrix-push DC :state
-									OS-matrix-skew DC sym as red-integer! start as red-integer! cmd - 1
+									OS-matrix-skew DC sym as red-integer! start as red-pair! cmd - 1
 									parse-draw DC as red-block! cmd catch?
 									OS-matrix-pop DC :state
 								][
-									OS-matrix-skew DC sym as red-integer! start as red-integer! cmd
+									OS-matrix-skew DC sym as red-integer! start as red-pair! cmd
 								]
 							]
 							sym = transform [
 								DRAW_FETCH_OPT_TRANSFORM
 								DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
-								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
+								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)		;-- angle
 								value: cmd + 1
-								loop 2 [DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)]
+								loop 2 [DRAW_FETCH_NUMBER]						;-- scale-x, scale-y
 								DRAW_FETCH_VALUE(TYPE_PAIR)
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
@@ -1003,7 +1018,19 @@ Red/System [
 							sym = matrix [
 								DRAW_FETCH_OPT_TRANSFORM
 								DRAW_FETCH_VALUE(TYPE_BLOCK)
-								OS-matrix-set DC sym as red-block! start
+								ncmds: as red-block! start
+								ncmd:  block/rs-head ncmds
+								ntail: block/rs-tail ncmds
+								if ncmd + 6 <> ntail [
+									throw-draw-error ncmds ncmd catch?
+								]
+								loop 6 [
+									if any [ncmd >= ntail all [TYPE_OF(ncmd) <> TYPE_INTEGER TYPE_OF(ncmd) <> TYPE_FLOAT]][
+										throw-draw-error ncmds ncmd catch?
+									]
+									ncmd: ncmd + 1
+								]
+								OS-matrix-set DC sym ncmds
 							]
 							sym = reset-matrix  [
 								DRAW_FETCH_OPT_TRANSFORM

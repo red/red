@@ -1017,8 +1017,12 @@ block: context [
 			if any-blk? [
 				b: as red-block! value
 				value: rs-head b
+				if last? [
+					reverse?: yes
+					hash/head: hash/head + rs-length? blk
+				]
 			]
-			forever [		;@@ TBD: support /last refinement
+			forever [
 				key: _hashtable/get table value hash/head step op last? reverse?
 				either any [
 					key = null
@@ -1033,14 +1037,20 @@ block: context [
 				]
 				unless any-blk? [break]
 
-				hash/head: blk/head
-				if tail? [hash/head: hash/head - 1]
+				n: blk/head
+				if tail? [n: n - 1]
+				if all [reverse? (n + rs-length? b) > hash/head][
+					hash/head: n
+					continue
+				]
+
+				hash/head: n
 				slot: find as red-block! hash as red-value! b part no case? same? any? with-arg skip no no no yes
 				if slot/header <> TYPE_NONE [
 					if tail? [blk/head: hash/head + rs-length? b]
 					break
 				]
-				hash/head: hash/head + 1
+				unless reverse? [hash/head: hash/head + 1]
 			]
 		]
 		result
