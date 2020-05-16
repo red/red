@@ -709,12 +709,10 @@ redbin: context [
 		symbols [red-binary!]
 		table   [red-binary!]
 		strings [red-binary!]
-		return: [integer!]
 		/local
-			type length header [integer!]
+			type header [integer!]
 	][		
 		type: TYPE_OF(data)
-		length: 1									;-- at least 1 value is encoded
 		header: type or either zero? (data/header and flag-new-line) [0][REDBIN_NEWLINE_MASK]
 		header: header or switch type [
 			TYPE_TUPLE [TUPLE_SIZE?(data) << 8]
@@ -755,8 +753,6 @@ redbin: context [
 				]
 			]
 		]
-		
-		length
 	]
 	
 	encode-bitset: func [
@@ -1011,7 +1007,7 @@ redbin: context [
 		head: binary/rs-head payload
 		head/8: either zero? sym-len [null-byte][#"^(04)"]
 		here: as int-ptr! head + 8					;-- skip to length entry
-		here/1: length
+		here/1: 1									;-- always 1 root record
 		here/2: size
 		
 		payload
