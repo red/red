@@ -702,75 +702,7 @@ redbin: context [
 			list: list + 1
 		]
 	]
-	
-	encode-value: func [
-		data    [red-value!]
-		payload [red-binary!]
-		symbols [red-binary!]
-		table   [red-binary!]
-		strings [red-binary!]
-		/local
-			type header [integer!]
-	][		
-		type: TYPE_OF(data)
-		header: type or either zero? (data/header and flag-new-line) [0][REDBIN_NEWLINE_MASK]
-		header: header or switch type [
-			TYPE_TUPLE [TUPLE_SIZE?(data) << 8]
-			TYPE_MONEY [(money/get-sign as red-money! data) << 14]
-			default    [0]
-		]
 		
-		switch type [
-			TYPE_UNSET
-			TYPE_NONE		[store payload header]
-			TYPE_DATATYPE
-			TYPE_LOGIC 		[record [payload header data/data1]]
-			TYPE_INTEGER
-			TYPE_CHAR 		[record [payload header data/data2]]
-			TYPE_PAIR 		[record [payload header data/data2 data/data3]]
-			TYPE_PERCENT
-			TYPE_TIME
-			TYPE_FLOAT 		[pad payload 64 record [payload header data/data3 data/data2]]
-			TYPE_DATE 		[record [payload header data/data1 data/data3 data/data2]]
-			TYPE_TYPESET
-			TYPE_TUPLE
-			TYPE_MONEY		[record [payload header data/data1 data/data2 data/data3]]
-			default [								;-- indirect values
-				switch type [
-					TYPE_ANY_WORD
-					TYPE_REFINEMENT
-					TYPE_ISSUE		[encode-word data header payload symbols table strings]
-					TYPE_ANY_STRING
-					TYPE_VECTOR
-					TYPE_BINARY		[encode-string data header payload]
-					TYPE_BITSET		[encode-bitset data header payload]
-					TYPE_IMAGE		[encode-image  data header payload]
-					TYPE_ANY_BLOCK
-					TYPE_MAP		[encode-block data header no payload symbols table strings]
-					TYPE_NATIVE
-					TYPE_ACTION 	[encode-native data header payload symbols table strings]
-					default	[--NOT_IMPLEMENTED--]	;@@ TBD: proper error message
-				]
-			]
-		]
-	]
-	
-	encode-bitset: func [
-		data    [red-value!]
-		header  [integer!]
-		payload [red-binary!]
-		/local
-			bits   [red-bitset!]
-			length [integer!]
-	][
-		bits:   as red-bitset! data
-		length: bitset/length? bits
-		
-		record [payload header length]
-		emit payload bitset/rs-head bits length >> 3
-		pad payload 32
-	]
-	
 	encode-native: func [
 		data    [red-value!]
 		header  [integer!]
@@ -806,6 +738,44 @@ redbin: context [
 		
 		record [payload header symbol]
 		unless TYPE_OF(data) = TYPE_ISSUE [record [payload context data/data3]]
+	]
+	
+	encode-symbol: func [
+		data    [red-value!]
+		table   [red-binary!]
+		symbols [red-binary!]
+		strings [red-binary!]
+		return: [integer!]
+		/local
+			_symbol    [red-symbol!]
+			start here [int-ptr!]
+			string     [c-string!]
+			length     [integer!]
+			end id     [integer!]
+	][
+		start: as int-ptr! binary/rs-head symbols
+		end:   (binary/rs-length? symbols) >> 2
+		id:    0
+		
+		while [id < end][							;-- reuse symbol records when possible
+			here: start + id
+			if here/value = data/data2 [break]
+			id: id + 1
+		]
+		
+		if id = end [
+			_symbol: as red-symbol! symbol/get data/data2
+			string:  as c-string! (as series! _symbol/cache/value) + 1
+			length:  binary/rs-length? strings
+			
+			store table length
+			store symbols data/data2
+			emit strings as byte-ptr! string (length? string) + 1
+			
+			pad strings 64
+		]
+		
+		id
 	]
 	
 	encode-context: func [
@@ -919,44 +889,6 @@ redbin: context [
 		]
 	]
 	
-	encode-symbol: func [
-		data    [red-value!]
-		table   [red-binary!]
-		symbols [red-binary!]
-		strings [red-binary!]
-		return: [integer!]
-		/local
-			_symbol    [red-symbol!]
-			start here [int-ptr!]
-			string     [c-string!]
-			length     [integer!]
-			end id     [integer!]
-	][
-		start: as int-ptr! binary/rs-head symbols
-		end:   (binary/rs-length? symbols) >> 2
-		id:    0
-		
-		while [id < end][							;-- reuse symbol records when possible
-			here: start + id
-			if here/value = data/data2 [break]
-			id: id + 1
-		]
-		
-		if id = end [
-			_symbol: as red-symbol! symbol/get data/data2
-			string:  as c-string! (as series! _symbol/cache/value) + 1
-			length:  binary/rs-length? strings
-			
-			store table length
-			store symbols data/data2
-			emit strings as byte-ptr! string (length? string) + 1
-			
-			pad strings 64
-		]
-		
-		id
-	]
-	
 	encode-image: func [
 		data    [red-value!]
 		header  [integer!]
@@ -969,6 +901,74 @@ redbin: context [
 		emit payload binary/rs-head argb binary/rs-length? argb
 	]
 	
+	encode-bitset: func [
+		data    [red-value!]
+		header  [integer!]
+		payload [red-binary!]
+		/local
+			bits   [red-bitset!]
+			length [integer!]
+	][
+		bits:   as red-bitset! data
+		length: bitset/length? bits
+		
+		record [payload header length]
+		emit payload bitset/rs-head bits length >> 3
+		pad payload 32
+	]
+	
+	encode-value: func [
+		data    [red-value!]
+		payload [red-binary!]
+		symbols [red-binary!]
+		table   [red-binary!]
+		strings [red-binary!]
+		/local
+			type header [integer!]
+	][		
+		type: TYPE_OF(data)
+		header: type or either zero? (data/header and flag-new-line) [0][REDBIN_NEWLINE_MASK]
+		header: header or switch type [
+			TYPE_TUPLE [TUPLE_SIZE?(data) << 8]
+			TYPE_MONEY [(money/get-sign as red-money! data) << 14]
+			default    [0]
+		]
+		
+		switch type [
+			TYPE_UNSET
+			TYPE_NONE		[store payload header]
+			TYPE_DATATYPE
+			TYPE_LOGIC 		[record [payload header data/data1]]
+			TYPE_INTEGER
+			TYPE_CHAR 		[record [payload header data/data2]]
+			TYPE_PAIR 		[record [payload header data/data2 data/data3]]
+			TYPE_PERCENT
+			TYPE_TIME
+			TYPE_FLOAT 		[pad payload 64 record [payload header data/data3 data/data2]]
+			TYPE_DATE 		[record [payload header data/data1 data/data3 data/data2]]
+			TYPE_TYPESET
+			TYPE_TUPLE
+			TYPE_MONEY		[record [payload header data/data1 data/data2 data/data3]]
+			default [								;-- indirect values
+				switch type [
+					TYPE_ANY_WORD
+					TYPE_REFINEMENT
+					TYPE_ISSUE		[encode-word data header payload symbols table strings]
+					TYPE_ANY_STRING
+					TYPE_VECTOR
+					TYPE_BINARY		[encode-string data header payload]
+					TYPE_BITSET		[encode-bitset data header payload]
+					TYPE_IMAGE		[encode-image  data header payload]
+					TYPE_ANY_BLOCK
+					TYPE_MAP		[encode-block data header no payload symbols table strings]
+					TYPE_NATIVE
+					TYPE_ACTION 	[encode-native data header payload symbols table strings]
+					default	[--NOT_IMPLEMENTED--]	;@@ TBD: proper error message
+				]
+			]
+		]
+	]
+	
 	encode: func [
 		data    [red-value!]
 		return: [red-binary!]
@@ -979,7 +979,7 @@ redbin: context [
 			length size sym-len str-len sym-size [integer!]
 	][
 		codec?: yes
-	
+		
 		;-- payload
 		payload: binary/make-at stack/push* 4		;@@ TBD: heuristics for pre-allocation
 		symbols: binary/make-at stack/push* 4
@@ -997,7 +997,7 @@ redbin: context [
 			
 			binary/rs-insert payload 0 binary/rs-head strings str-len	;-- strings buffer
 			binary/rs-insert payload 0 binary/rs-head table sym-len		;-- symbol records
-
+			
 			binary/rs-insert payload 0 as byte-ptr! :str-len 4			;-- size of the strings buffer
 			binary/rs-insert payload 0 as byte-ptr! :sym-size 4			;-- number of symbol records
 		]
