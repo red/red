@@ -195,12 +195,14 @@ cg-matrix-concat: func [
 
 ctx-matrix-adapt: func [
 	dc		[draw-ctx!]
+	saved	[CGAffineTransform!]
 	/local
 		m	[CGAffineTransform! value]
 		c	[CGAffineTransform! value]
 ][
 	if dc/pattern? [exit]
 	c: CGContextGetCTM dc/raw
+	copy-memory as byte-ptr! saved as byte-ptr! c size? CGAffineTransform!
 	either dc/on-image? [
 		m: CGAffineTransformMakeScale as float32! 1.0 as float32! -1.0
 		c: CGAffineTransformConcat c m
@@ -216,23 +218,12 @@ ctx-matrix-adapt: func [
 
 ctx-matrix-unadapt: func [
 	dc		[draw-ctx!]
+	saved	[CGAffineTransform!]
 	/local
-		m	[CGAffineTransform! value]
 		c	[CGAffineTransform! value]
 ][
 	if dc/pattern? [exit]
-	c: CGContextGetCTM dc/raw
-	m: CGAffineTransformInvert dc/device-matrix
-	c: CGAffineTransformConcat c m
-	either dc/on-image? [
-		m: CGAffineTransformMakeTranslation as float32! 0.0 (as float32! 0.0) - dc/rect-y
-		c: CGAffineTransformConcat c m
-		m: CGAffineTransformMakeScale as float32! 1.0 as float32! -1.0
-		c: CGAffineTransformConcat c m
-	][
-		m: CGAffineTransformMakeTranslation as float32! -0.5 as float32! -0.5
-		c: CGAffineTransformConcat c m
-	]
+	copy-memory as byte-ptr! c as byte-ptr! saved size? CGAffineTransform!
 	CGContextSetCTM dc/raw c
 ]
 
@@ -253,6 +244,7 @@ OS-draw-line: func [
 		nb		[integer!]
 		pair	[red-pair!]
 		ctx		[handle!]
+		saved	[CGAffineTransform! value]
 ][
 	ctx:	dc/raw
 	pt:		edges
@@ -266,11 +258,11 @@ OS-draw-line: func [
 		pt: pt + 1
 		pair: pair + 1
 	]
-	ctx-matrix-adapt dc
+	ctx-matrix-adapt dc saved
 	CGContextBeginPath ctx
 	CGContextAddLines ctx edges nb
 	CGContextStrokePath ctx
-	ctx-matrix-unadapt dc
+	ctx-matrix-unadapt dc saved
 ]
 
 CG-set-color: func [
@@ -500,6 +492,7 @@ OS-draw-box: func [
 		width	[integer!]
 		height	[integer!]
 		irad	[integer!]
+		saved	[CGAffineTransform! value]
 ][
 	ctx: dc/raw
 	radius: null
@@ -517,7 +510,7 @@ OS-draw-box: func [
 	xm: x1 + (x2 - x1 / as float32! 2.0)
 	ym: y1 + (y2 - y1 / as float32! 2.0)
 
-	ctx-matrix-adapt dc
+	ctx-matrix-adapt dc saved
 	either radius <> null [
 		width: lower/x - upper/x
 		height: lower/y - upper/y
@@ -535,7 +528,7 @@ OS-draw-box: func [
 	]
 	if dc/grad-pos? [check-gradient-box dc x1 y1 x2 y2]
 	do-draw-path dc
-	ctx-matrix-unadapt dc
+	ctx-matrix-unadapt dc saved
 ]
 
 do-draw-path: func [
@@ -568,8 +561,9 @@ OS-draw-triangle: func [
 	dc	  [draw-ctx!]
 	start [red-pair!]
 	/local
-		ctx   [handle!]
-		point [CGPoint!]
+		ctx		[handle!]
+		point	[CGPoint!]
+		saved	[CGAffineTransform! value]
 ][
 	ctx: dc/raw
 	point: edges
@@ -582,13 +576,13 @@ OS-draw-triangle: func [
 	]
 	point/x: edges/x									;-- close the triangle
 	point/y: edges/y
-	ctx-matrix-adapt dc
+	ctx-matrix-adapt dc saved
 	CGContextBeginPath ctx
 	CGContextAddLines ctx edges 4
 	if dc/grad-pos? [check-gradient-poly dc edges 3]
 	CGContextClosePath ctx
 	do-draw-path dc
-	ctx-matrix-unadapt dc
+	ctx-matrix-unadapt dc saved
 ]
 
 OS-draw-polygon: func [
@@ -596,17 +590,18 @@ OS-draw-polygon: func [
 	start [red-pair!]
 	end	  [red-pair!]
 	/local
-		ctx   [handle!]
-		pair  [red-pair!]
-		point [CGPoint!]
-		nb	  [integer!]
-		mode  [integer!]
+		ctx		[handle!]
+		pair	[red-pair!]
+		point	[CGPoint!]
+		nb		[integer!]
+		mode	[integer!]
+		saved	[CGAffineTransform! value]
 ][
 	ctx:   dc/raw
 	point: edges
 	pair:  start
 	nb:	   0
-	ctx-matrix-adapt dc
+
 	while [all [pair <= end nb < max-edges]][
 		point/x: as float32! pair/x
 		point/y: as float32! pair/y
@@ -618,12 +613,13 @@ OS-draw-polygon: func [
 	point/x: as float32! start/x						;-- close the polygon
 	point/y: as float32! start/y
 
+	ctx-matrix-adapt dc saved 
 	CGContextBeginPath ctx
 	CGContextAddLines ctx edges nb + 1
 	if dc/grad-pos? [check-gradient-poly dc edges nb]
 	CGContextClosePath ctx
 	do-draw-path dc
-	ctx-matrix-unadapt dc
+	ctx-matrix-unadapt dc saved
 ]
 
 OS-draw-spline: func [
@@ -648,9 +644,9 @@ OS-draw-spline: func [
 		n		[integer!]
 		count	[integer!]
 		num		[integer!]
+		saved	[CGAffineTransform! value]
 ][
 	ctx: dc/raw
-	ctx-matrix-adapt dc
 	count: (as-integer end - start) >> 4
 	num: count + 1
 
@@ -678,6 +674,8 @@ OS-draw-spline: func [
 		num: num + 2
 		edges
 	]
+
+	ctx-matrix-adapt dc saved
 	CGContextBeginPath ctx
 	CGContextMoveToPoint ctx p/x p/y
 
@@ -710,7 +708,7 @@ OS-draw-spline: func [
 		i: i + 1
 	]
 	do-draw-path dc
-	ctx-matrix-unadapt dc
+	ctx-matrix-unadapt dc saved
 ]
 
 do-draw-ellipse: func [
@@ -720,10 +718,11 @@ do-draw-ellipse: func [
 	w		[float32!]
 	h		[float32!]
 	/local
-		dx	[float32!]
-		dy	[float32!]
+		dx		[float32!]
+		dy		[float32!]
+		saved	[CGAffineTransform! value]
 ][
-	ctx-matrix-adapt dc
+	ctx-matrix-adapt dc saved
 	CGContextAddEllipseInRect dc/raw x y w h
 	if dc/grad-pos? [
 		either dc/grad-type = linear [
@@ -742,7 +741,7 @@ do-draw-ellipse: func [
 		]
 	]
 	do-draw-path dc
-	ctx-matrix-unadapt dc
+	ctx-matrix-unadapt dc saved
 ]
 
 OS-draw-circle: func [
@@ -892,10 +891,11 @@ OS-draw-text: func [
 	catch?	[logic!]
 	return: [logic!]
 	/local
-		ctx [handle!]
+		ctx		[handle!]
+		saved	[CGAffineTransform! value]
 ][
 	ctx: dc/raw
-	ctx-matrix-adapt dc
+	ctx-matrix-adapt dc saved
 	either TYPE_OF(text) = TYPE_STRING [
 		draw-text-at ctx text dc/font-attrs pos/x pos/y
 	][
@@ -903,7 +903,7 @@ OS-draw-text: func [
 	]
 	CG-set-color ctx dc/pen-color no				;-- drawing text will change pen color, so reset it
 	CG-set-color ctx dc/brush-color yes				;-- drawing text will change brush color, so reset it
-	ctx-matrix-unadapt dc
+	ctx-matrix-unadapt dc saved
 	true
 ]
 
@@ -993,6 +993,7 @@ OS-draw-arc: func [
 		sweep		[integer!]
 		i			[integer!]
 		closed?		[logic!]
+		saved		[CGAffineTransform! value]
 ][
 	ctx: dc/raw
 	cx: as float32! center/x
@@ -1011,7 +1012,7 @@ OS-draw-arc: func [
 
 	closed?: angle < end
 
-	ctx-matrix-adapt dc
+	ctx-matrix-adapt dc saved
 	CGContextBeginPath ctx
 	if closed? [CGContextMoveToPoint ctx cx cy]
 	either any [sweep >= 360 sweep <= -360][
@@ -1042,21 +1043,22 @@ OS-draw-arc: func [
 	][
 		CGContextStrokePath ctx
 	]
-	ctx-matrix-unadapt dc
+	ctx-matrix-unadapt dc saved
 ]
 
 OS-draw-curve: func [
-	dc	  [draw-ctx!]
-	start [red-pair!]
-	end	  [red-pair!]
+	dc		[draw-ctx!]
+	start	[red-pair!]
+	end		[red-pair!]
 	/local
-		ctx   [handle!]
-		cp1x  [float32!]
-		cp1y  [float32!]
-		cp2x  [float32!]
-		cp2y  [float32!]
-		p2	  [red-pair!]
-		p3	  [red-pair!]
+		ctx		[handle!]
+		cp1x	[float32!]
+		cp1y	[float32!]
+		cp2x	[float32!]
+		cp2y	[float32!]
+		p2		[red-pair!]
+		p3		[red-pair!]
+		saved	[CGAffineTransform! value]
 ][
 	ctx: dc/raw
 	p2: start + 1
@@ -1074,12 +1076,12 @@ OS-draw-curve: func [
 		cp2y: as float32! p3/y
 	]
 
-	ctx-matrix-adapt dc
+	ctx-matrix-adapt dc saved
 	CGContextBeginPath ctx
 	CGContextMoveToPoint ctx as float32! start/x as float32! start/y
 	CGContextAddCurveToPoint ctx cp1x cp1y cp2x cp2y as float32! end/x as float32! end/y
 	CGContextStrokePath ctx
-	ctx-matrix-unadapt dc
+	ctx-matrix-unadapt dc saved
 ]
 
 OS-draw-line-join: func [
@@ -1132,6 +1134,7 @@ CG-draw-image: func [						;@@ use CALayer to get very good performance?
 		h		[float32!]
 		flip-x	[float32!]
 		flip-y	[float32!]
+		saved	[CGAffineTransform! value]
 ][
 	either width < 0 [
 		w: as float32! 0 - width
@@ -1157,11 +1160,11 @@ CG-draw-image: func [						;@@ use CALayer to get very good performance?
 	CGContextScaleCTM ctx flip-x flip-y
 
 	unless null? dc [
-		ctx-matrix-adapt dc
+		ctx-matrix-adapt dc saved
 	]
 	CGContextDrawImage ctx as float32! 0.0 as float32! 0.0 w h image
 	unless null? dc [
-		ctx-matrix-unadapt dc
+		ctx-matrix-unadapt dc saved
 	]
 
 	;-- flip back
@@ -1758,9 +1761,10 @@ OS-set-clip: func [
 		p2	[integer!]
 		p1	[integer!]
 		rc	[NSRect!]
+		saved	[CGAffineTransform! value]
 ][
 	ctx: dc/raw
-	ctx-matrix-adapt dc
+	ctx-matrix-adapt dc saved
 	either rect? [
 		if upper/x > lower/x [t: upper/x upper/x: lower/x lower/x: t]
 		if upper/y > lower/y [t: upper/y upper/y: lower/y lower/y: t]
@@ -1784,7 +1788,7 @@ OS-set-clip: func [
 		CGPathRelease t
 	]
 	CGContextClip ctx
-	ctx-matrix-unadapt dc
+	ctx-matrix-unadapt dc saved
 ]
 
 ;-- shape sub command --
@@ -1802,14 +1806,15 @@ OS-draw-shape-endpath: func [
 	return:     [logic!]
 	/local
 		path	[integer!]
+		saved	[CGAffineTransform! value]
 ][
 	path: dc/path
 	if close? [CGPathCloseSubpath path]
-	ctx-matrix-adapt dc
+	ctx-matrix-adapt dc saved
 	CGContextAddPath dc/raw path
 	do-draw-path dc
 	CGPathRelease path
-	ctx-matrix-unadapt dc
+	ctx-matrix-unadapt dc saved
 	true
 ]
 
