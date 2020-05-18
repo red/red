@@ -227,7 +227,7 @@ ctx-matrix-unadapt: func [
 	either dc/on-image? [
 		m: CGAffineTransformMakeTranslation as float32! 0.0 (as float32! 0.0) - dc/rect-y
 		c: CGAffineTransformConcat c m
-		m: CGAffineTransformMakeScale as float32! -1.0 as float32! 1.0
+		m: CGAffineTransformMakeScale as float32! 1.0 as float32! -1.0
 		c: CGAffineTransformConcat c m
 	][
 		m: CGAffineTransformMakeTranslation as float32! -0.5 as float32! -0.5
@@ -1118,7 +1118,8 @@ OS-draw-line-cap: func [
 ]
 
 CG-draw-image: func [						;@@ use CALayer to get very good performance?
-	dc			[handle!]
+	dc			[draw-ctx!]
+	ctx			[handle!]
 	image		[integer!]
 	x			[integer!]
 	y			[integer!]
@@ -1152,14 +1153,20 @@ CG-draw-image: func [						;@@ use CALayer to get very good performance?
 	;; drawing an image or PDF by calling Core Graphics functions directly,
 	;; we must flip the CTM.
 	;; http://stackoverflow.com/questions/506622/cgcontextdrawimage-draws-image-upside-down-when-passed-uiimage-cgimage
-	CGContextTranslateCTM dc tx ty
-	CGContextScaleCTM dc flip-x flip-y
+	CGContextTranslateCTM ctx tx ty
+	CGContextScaleCTM ctx flip-x flip-y
 
-	CGContextDrawImage dc as float32! 0.0 as float32! 0.0 w h image
+	unless null? dc [
+		ctx-matrix-adapt dc
+	]
+	CGContextDrawImage ctx as float32! 0.0 as float32! 0.0 w h image
+	unless null? dc [
+		ctx-matrix-unadapt dc
+	]
 
 	;-- flip back
-	CGContextScaleCTM dc flip-x flip-y
-	CGContextTranslateCTM dc (as float32! 0.0) - tx (as float32! 0.0) - ty
+	CGContextScaleCTM ctx flip-x flip-y
+	CGContextTranslateCTM ctx (as float32! 0.0) - tx (as float32! 0.0) - ty
 ]
 
 OS-draw-image: func [
@@ -1186,7 +1193,6 @@ OS-draw-image: func [
 		dst		[red-image! value]
 		handle	[integer!]
 ][
-	ctx-matrix-adapt dc
 	either any [
 		start + 2 = end
 		start + 3 = end
@@ -1195,7 +1201,7 @@ OS-draw-image: func [
 		image/any-resize src dst crop1 start end :x :y :w :h
 		if dst/header = TYPE_NONE [exit]
 		handle: OS-image/to-cgimage dst
-		CG-draw-image dc/raw handle x y w h
+		CG-draw-image dc dc/raw handle x y w h
 		OS-image/delete dst
 	][
 		src.w: IMAGE_WIDTH(src/size)
@@ -1234,12 +1240,11 @@ OS-draw-image: func [
 						as float32! crop.x as float32! crop.y
 						as float32! crop.w as float32! crop.h
 		]
-		CG-draw-image dc/raw handle x y w h
+		CG-draw-image dc dc/raw handle x y w h
 		unless null? crop1 [
 			CGImageRelease handle
 		]
 	]
-	ctx-matrix-unadapt dc
 ]
 
 fill-gradient-region: func [
@@ -1755,6 +1760,7 @@ OS-set-clip: func [
 		rc	[NSRect!]
 ][
 	ctx: dc/raw
+	ctx-matrix-adapt dc
 	either rect? [
 		if upper/x > lower/x [t: upper/x upper/x: lower/x lower/x: t]
 		if upper/y > lower/y [t: upper/y upper/y: lower/y lower/y: t]
@@ -1778,6 +1784,7 @@ OS-set-clip: func [
 		CGPathRelease t
 	]
 	CGContextClip ctx
+	ctx-matrix-unadapt dc
 ]
 
 ;-- shape sub command --
@@ -1798,9 +1805,11 @@ OS-draw-shape-endpath: func [
 ][
 	path: dc/path
 	if close? [CGPathCloseSubpath path]
+	ctx-matrix-adapt dc
 	CGContextAddPath dc/raw path
 	do-draw-path dc
 	CGPathRelease path
+	ctx-matrix-unadapt dc
 	true
 ]
 

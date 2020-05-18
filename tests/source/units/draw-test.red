@@ -50,9 +50,9 @@ do [if all [system/view value? 'image! datatype? get 'image!] [
 	; FIXME: #3649
 	unless system/platform = 'macOS [
 	--test-- "dwim5" --assert i' = draw i/size [reset-matrix matrix [0 1 -1 0 4 0] image i]
-	--test-- "dwim6" --assert i = draw i/size [reset-matrix matrix [0 -1 1 0 0 4] image i']
 	]
 	
+	--test-- "dwim6" --assert i = draw i/size [reset-matrix matrix [0 -1 1 0 0 4] image i']
 	--test-- "dwim7" --assert i'' = draw i/size [clip 1x1 4x4 image i']
 	--test-- "dwim8" --assert i'' = draw i/size [clip 1x1 4x4 matrix [0 1 -1 0 4 0] image i]
 	--test-- "dwim9" --assert i'' = draw i/size [matrix [0 1 -1 0 4 0] clip 1x0 4x3 image i]

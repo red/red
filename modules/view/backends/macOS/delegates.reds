@@ -1540,7 +1540,7 @@ draw-rect: func [
 		paint-background ctx clr/array1 x y width height
 	]
 	if TYPE_OF(img) = TYPE_IMAGE [
-		CG-draw-image ctx OS-image/to-cgimage img 0 0 size/x size/y
+		CG-draw-image null ctx OS-image/to-cgimage img 0 0 size/x size/y
 	]
 	case [
 		sym = base [render-text ctx vals as NSSize! (as int-ptr! self) + 8]
