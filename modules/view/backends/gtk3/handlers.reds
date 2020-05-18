@@ -291,7 +291,7 @@ base-draw: func [
 	]
 
 	if TYPE_OF(img) = TYPE_IMAGE [
-		GDK-draw-image cr OS-image/to-pixbuf img 0 0 size/x size/y
+		GDK-draw-image null cr OS-image/to-pixbuf img 0 0 size/x size/y
 	]
 
 	case [
@@ -304,7 +304,7 @@ base-draw: func [
 	]
 
 	either TYPE_OF(draw) = TYPE_BLOCK [
-		do-draw cr null draw no yes yes yes
+		do-draw cr null draw no yes no yes
 	][
 		system/thrown: 0
 		drawDC: declare draw-ctx!								;@@ should declare it on stack

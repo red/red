@@ -61,6 +61,11 @@ draw-state!: alias struct! [
 	CAIRO_OPERATOR_HSL_LUMINOSITY
 ]
 
+#enum MATRIX-ORDER! [
+	MATRIX-APPEND
+	MATRIX-PREPEND
+]
+
 free-pango-cairo-font: func [
 	dc		[draw-ctx!]
 ][
@@ -114,6 +119,11 @@ draw-begin: func [
 	ctx/font-color:		0
 	ctx/pen?:			yes
 	ctx/brush?:			no
+	ctx/matrix-order:	MATRIX-PREPEND
+	ctx/pattern?:		pattern?
+
+	cairo_get_matrix cr as cairo_matrix_t! ctx/device-matrix
+	cairo_identity_matrix cr
 
 	grad: ctx/grad-pen
 	grad/on?: off
@@ -157,6 +167,100 @@ draw-end: func [
 		free-gradient dc/grad-brush
 		dc/grad-brush/on?: off
 	]
+]
+
+cairo-matrix-translate: func [
+	cr		[handle!]
+	x		[float!]
+	y		[float!]
+	order	[MATRIX-ORDER!]
+	/local
+		m	[cairo_matrix_t! value]
+		c	[cairo_matrix_t! value]
+][
+	if order = MATRIX-PREPEND [
+		cairo_translate cr x y
+		exit
+	]
+	cairo_matrix_init_translate m x y
+	cairo_get_matrix cr c
+	cairo_matrix_multiply c c m
+	cairo_set_matrix cr c
+]
+
+cairo-matrix-scale: func [
+	cr		[handle!]
+	x		[float!]
+	y		[float!]
+	order	[MATRIX-ORDER!]
+	/local
+		m	[cairo_matrix_t! value]
+		c	[cairo_matrix_t! value]
+][
+	if order = MATRIX-PREPEND [
+		cairo_scale cr x y
+		exit
+	]
+	cairo_matrix_init_scale m x y
+	cairo_get_matrix cr c
+	cairo_matrix_multiply c c m
+	cairo_set_matrix cr c
+]
+
+cairo-matrix-rotate: func [
+	cr		[handle!]
+	r		[float!]
+	order	[MATRIX-ORDER!]
+	/local
+		m	[cairo_matrix_t! value]
+		c	[cairo_matrix_t! value]
+][
+	if order = MATRIX-PREPEND [
+		cairo_rotate cr r
+		exit
+	]
+	cairo_matrix_init_rotate m r
+	cairo_get_matrix cr c
+	cairo_matrix_multiply c c m
+	cairo_set_matrix cr c
+]
+
+cairo-matrix-concat: func [
+	cr		[handle!]
+	m		[cairo_matrix_t!]
+	order	[MATRIX-ORDER!]
+	/local
+		c	[cairo_matrix_t! value]
+][
+	if order = MATRIX-PREPEND [
+		cairo_transform cr m
+		exit
+	]
+	cairo_get_matrix cr c
+	cairo_matrix_multiply c c m
+	cairo_set_matrix cr c
+]
+
+ctx-matrix-adapt: func [
+	dc		[draw-ctx!]
+	saved	[cairo_matrix_t!]
+	/local
+		m	[cairo_matrix_t! value]
+		c	[cairo_matrix_t! value]
+][
+	if dc/pattern? [exit]
+	cairo_get_matrix dc/cr saved
+	cairo_get_matrix dc/cr c
+	cairo_matrix_multiply c c dc/device-matrix
+	cairo_set_matrix dc/cr c
+]
+
+ctx-matrix-unadapt: func [
+	dc		[draw-ctx!]
+	saved	[cairo_matrix_t!]
+][
+	if dc/pattern? [exit]
+	cairo_set_matrix dc/cr saved
 ]
 
 free-gradient: func [
@@ -684,8 +788,10 @@ OS-draw-line: func [
 	/local
 		iter	[red-pair!]
 		cr		[handle!]
+		saved	[cairo_matrix_t! value]
 ][
 	cr: dc/cr
+	ctx-matrix-adapt dc saved
 	cairo_move_to cr as-float point/x as-float point/y
 	iter: point + 1
 
@@ -695,6 +801,7 @@ OS-draw-line: func [
 	]
 	check-grad-line dc/grad-pen point end
 	do-draw-pen dc
+	ctx-matrix-unadapt dc saved
 ]
 
 OS-draw-pen: func [
@@ -764,6 +871,7 @@ OS-draw-box: func [
 		h		[float!]
 		tf		[float!]
 		degrees [float!]
+		saved	[cairo_matrix_t! value]
 ][
 	cr: dc/cr
 	radius: null
@@ -780,6 +888,7 @@ OS-draw-box: func [
 	w: as-float lower/x - upper/x
 	h: as-float lower/y - upper/y
 
+	ctx-matrix-adapt dc saved
 	either radius <> null [
 		tf: either w > h [h][w]
 		tf: tf / 2.0
@@ -799,12 +908,16 @@ OS-draw-box: func [
 	check-grad-box dc/grad-pen upper lower
 	check-grad-box dc/grad-brush upper lower
 	do-draw-path dc
+	ctx-matrix-unadapt dc saved
 ]
 
 OS-draw-triangle: func [
 	dc			[draw-ctx!]
 	start		[red-pair!]
+	/local
+		saved	[cairo_matrix_t! value]
 ][
+	ctx-matrix-adapt dc saved
 	loop 3 [
 		cairo_line_to dc/cr as-float start/x as-float start/y
 		start: start + 1
@@ -813,13 +926,17 @@ OS-draw-triangle: func [
 	check-grad-line dc/grad-pen start start + 1
 	check-grad-brush-lines dc/grad-brush start start + 2
 	do-draw-path dc
+	ctx-matrix-unadapt dc saved
 ]
 
 OS-draw-polygon: func [
 	dc			[draw-ctx!]
 	start		[red-pair!]
 	end			[red-pair!]
+	/local
+		saved	[cairo_matrix_t! value]
 ][
+	ctx-matrix-adapt dc saved
 	until [
 		cairo_line_to dc/cr as-float start/x as-float start/y
 		start: start + 1
@@ -829,6 +946,7 @@ OS-draw-polygon: func [
 	check-grad-line dc/grad-pen start start + 1
 	check-grad-brush-lines dc/grad-brush start end
 	do-draw-path dc
+	ctx-matrix-unadapt dc saved
 ]
 
 spline-delta: 1.0 / 25.0
@@ -874,6 +992,7 @@ OS-draw-spline: func [
 		cr		[handle!]
 		point	[red-pair!]
 		stop	[red-pair!]
+		saved	[cairo_matrix_t! value]
 ][
 	if (as-integer end - start) >> 4 = 1 [		;-- two points input
 		OS-draw-line dc start end				;-- draw a line
@@ -881,7 +1000,7 @@ OS-draw-spline: func [
 	]
 
 	cr: dc/cr
-
+	ctx-matrix-adapt dc saved
 	either closed? [
 		do-spline-step cr
 			end
@@ -931,6 +1050,7 @@ OS-draw-spline: func [
 	check-grad-line dc/grad-pen start start + 1
 	check-grad-brush-lines dc/grad-brush start end
 	do-draw-path dc
+	ctx-matrix-unadapt dc saved
 ]
 
 OS-draw-circle: func [
@@ -944,9 +1064,10 @@ OS-draw-circle: func [
 		w		[float!]
 		h		[float!]
 		f		[red-float!]
+		saved	[cairo_matrix_t! value]
 ][
 	cr: dc/cr
-
+	ctx-matrix-adapt dc saved
 	either TYPE_OF(radius) = TYPE_INTEGER [
 		either center + 1 = radius [					;-- center, radius
 			rad-x: radius/value
@@ -984,6 +1105,7 @@ OS-draw-circle: func [
 	check-grad-circle dc/grad-pen as float! center/x as float! center/y as float! rad-x as float! rad-y
 	check-grad-circle dc/grad-brush as float! center/x as float! center/y as float! rad-x as float! rad-y
 	do-draw-path dc
+	ctx-matrix-unadapt dc saved
 ]
 
 OS-draw-ellipse: func [
@@ -996,6 +1118,7 @@ OS-draw-ellipse: func [
 		rad-y	[integer!]
 		cx		[integer!]
 		cy		[integer!]
+		saved	[cairo_matrix_t! value]
 ][
 	cr: dc/cr
 	rad-x: diameter/x / 2
@@ -1003,6 +1126,7 @@ OS-draw-ellipse: func [
 	cx: upper/x + rad-x
 	cy: upper/y + rad-y
 
+	ctx-matrix-adapt dc saved
 	cairo_save cr
 	cairo_translate cr as-float cx
 					   as-float cy
@@ -1013,6 +1137,7 @@ OS-draw-ellipse: func [
 	check-grad-circle dc/grad-pen as float! cx as float! cy as float! rad-x as float! rad-y
 	check-grad-circle dc/grad-brush as float! cx as float! cy as float! rad-x as float! rad-y
 	do-draw-path dc
+	ctx-matrix-unadapt dc saved
 ]
 
 OS-draw-font: func [
@@ -1122,12 +1247,16 @@ OS-draw-text: func [
 	text		[red-string!]
 	catch?		[logic!]
 	return:		[logic!]
+	/local
+		saved	[cairo_matrix_t! value]
 ][
+	ctx-matrix-adapt dc saved
 	either TYPE_OF(text) = TYPE_STRING [
 		draw-text-at dc/cr text dc/font-attrs dc/font-opts pos/x pos/y
 	][
 		draw-text-box dc/cr pos as red-object! text catch?
 	]
+	ctx-matrix-unadapt dc saved
 	true
 ]
 
@@ -1150,6 +1279,7 @@ OS-draw-arc: func [
 		sweep		[integer!]
 		i			[integer!]
 		closed?		[logic!]
+		saved		[cairo_matrix_t! value]
 ][
 	cr: dc/cr
 	cx: as float! center/x
@@ -1184,6 +1314,7 @@ OS-draw-arc: func [
 
 	closed?: angle < end
 
+	ctx-matrix-adapt dc saved
 	cairo_save cr
 	either closed? [
 		cairo_move_to cr cx cy
@@ -1208,6 +1339,7 @@ OS-draw-arc: func [
 	][
 		do-draw-pen dc
 	]
+	ctx-matrix-unadapt dc saved
 ]
 
 OS-draw-curve: func [
@@ -1218,9 +1350,11 @@ OS-draw-curve: func [
 		cr		[handle!]
 		p2		[red-pair!]
 		p3		[red-pair!]
+		saved	[cairo_matrix_t! value]
 ][
 	cr: dc/cr
 
+	ctx-matrix-adapt dc saved
 	if (as-integer end - start) >> 4 = 3    ; four input points
 	[
 		cairo_move_to cr as-float start/x
@@ -1238,6 +1372,7 @@ OS-draw-curve: func [
 					   as-float p3/y
 	check-grad-line dc/grad-pen start start + 2
 	do-draw-pen dc
+	ctx-matrix-unadapt dc saved
 ]
 
 OS-draw-line-join: func [
@@ -1270,6 +1405,7 @@ OS-draw-line-cap: func [
 ]
 
 GDK-draw-image: func [
+	dc			[draw-ctx!]
 	cr			[handle!]
 	image		[handle!]
 	x			[integer!]
@@ -1280,6 +1416,7 @@ GDK-draw-image: func [
 		img		[handle!]
 		absw	[integer!]
 		absh	[integer!]
+		saved	[cairo_matrix_t! value]
 ][
 	if any [
 		width = 0
@@ -1300,8 +1437,14 @@ GDK-draw-image: func [
 	if height < 0 [
 		cairo_scale cr 1.0 -1.0
 	]
+	unless null? dc [
+		ctx-matrix-adapt dc saved
+	]
 	gdk_cairo_set_source_pixbuf cr img 0.0 0.0
 	cairo_paint cr
+	unless null? dc [
+		ctx-matrix-unadapt dc saved
+	]
 	cairo_restore cr
 	g_object_unref img
 ]
@@ -1338,7 +1481,7 @@ OS-draw-image: func [
 		image/any-resize src dst crop1 start end :x :y :w :h
 		if dst/header = TYPE_NONE [exit]
 		pixbuf: OS-image/to-pixbuf dst
-		GDK-draw-image dc/cr pixbuf x y w h
+		GDK-draw-image dc dc/cr pixbuf x y w h
 		OS-image/delete dst
 	][
 		src.w: IMAGE_WIDTH(src/size)
@@ -1375,7 +1518,7 @@ OS-draw-image: func [
 		unless null? crop1 [
 			pixbuf: gdk_pixbuf_new_subpixbuf pixbuf crop.x crop.y crop.w crop.h
 		]
-		GDK-draw-image dc/cr pixbuf x y w h
+		GDK-draw-image dc dc/cr pixbuf x y w h
 		unless null? crop1 [
 			g_object_unref pixbuf
 		]
@@ -1666,18 +1809,25 @@ OS-matrix-rotate: func [
 		rad		[float!]
 		grad	[gradient!]
 		matrix	[cairo_matrix_t!]
+		cx		[float!]
+		cy		[float!]
 ][
 	cr: dc/cr
 	rad: PI / 180.0 * get-float angle
 	either pen-fill = -1 [
-		if angle <> as red-integer! center [
-			cairo_translate cr as float! center/x
-						as float! center/y
-		]
-		cairo_rotate cr rad
-		if angle <> as red-integer! center [
-			cairo_translate cr as float! (0 - center/x)
-						as float! (0 - center/y)
+		either TYPE_OF(center) = TYPE_PAIR [
+			either dc/matrix-order = MATRIX-APPEND [
+				cx: as float! 0 - center/x
+				cy: as float! 0 - center/y
+			][
+				cx: as float! center/x
+				cy: as float! center/y
+			]
+			cairo-matrix-translate cr cx cy dc/matrix-order
+			cairo-matrix-rotate cr rad dc/matrix-order
+			cairo-matrix-translate cr 0.0 - cx 0.0 - cy dc/matrix-order
+		][
+			cairo-matrix-rotate cr rad dc/matrix-order
 		]
 	][
 		grad: either pen-fill = pen [dc/grad-pen][dc/grad-brush]
@@ -1700,6 +1850,8 @@ OS-matrix-scale: func [
 		matrix	[cairo_matrix_t!]
 		x		[float!]
 		y		[float!]
+		cx		[float!]
+		cy		[float!]
 ][
 	sy: sx + 1
 	either pen-fill <> -1 [
@@ -1714,7 +1866,20 @@ OS-matrix-scale: func [
 			cairo_matrix_scale matrix x y
 		]
 	][
-		cairo_scale dc/cr get-float sx get-float sy
+		either TYPE_OF(center) = TYPE_PAIR [
+			either dc/matrix-order = MATRIX-APPEND [
+				cx: as float! 0 - center/x
+				cy: as float! 0 - center/y
+			][
+				cx: as float! center/x
+				cy: as float! center/y
+			]
+			cairo-matrix-translate dc/cr cx cy dc/matrix-order
+			cairo-matrix-scale dc/cr get-float sx get-float sy dc/matrix-order
+			cairo-matrix-translate dc/cr 0.0 - cx 0.0 - cy dc/matrix-order
+		][
+			cairo-matrix-scale dc/cr get-float sx get-float sy dc/matrix-order
+		]
 	]
 ]
 
@@ -1735,7 +1900,7 @@ OS-matrix-translate: func [
 			cairo_matrix_translate matrix 0.0 - as-float x 0.0 - as-float y
 		]
 	][
-		cairo_translate dc/cr as-float x as-float y
+		cairo-matrix-translate dc/cr as-float x as-float y dc/matrix-order
 	]
 ]
 
@@ -1746,14 +1911,27 @@ OS-matrix-skew: func [
 	center		[red-pair!]
 	/local
 		sy		[red-integer!]
+		xv		[float!]
+		yv		[float!]
+		cx		[float!]
+		cy		[float!]
 		grad	[gradient!]
 		m		[cairo_matrix_t! value]
 		matrix	[cairo_matrix_t!]
 		res		[cairo_matrix_t! value]
 ][
 	sy: sx + 1
+	xv: get-float sx
+	yv: either all [
+		sy <= center
+		TYPE_OF(sy) = TYPE_PAIR
+	][
+		get-float sy
+	][
+		0.0
+	]
 	m/xx: 1.0
-	m/yx: either sx = sy [0.0][tan degree-to-radians get-float sy TYPE_TANGENT]
+	m/yx: either yv = 0.0 [0.0][tan degree-to-radians yv TYPE_TANGENT]
 	m/xy: tan degree-to-radians get-float sx TYPE_TANGENT
 	m/yy: 1.0
 	m/x0: 0.0
@@ -1769,7 +1947,20 @@ OS-matrix-skew: func [
 			copy-memory as byte-ptr! matrix as byte-ptr! res size? cairo_matrix_t!
 		]
 	][
-		cairo_transform dc/cr m
+		either TYPE_OF(center) = TYPE_PAIR [
+			either dc/matrix-order = MATRIX-APPEND [
+				cx: as float! 0 - center/x
+				cy: as float! 0 - center/y
+			][
+				cx: as float! center/x
+				cy: as float! center/y
+			]
+			cairo-matrix-translate dc/cr cx cy dc/matrix-order
+			cairo-matrix-concat dc/cr m dc/matrix-order
+			cairo-matrix-translate dc/cr 0.0 - cx 0.0 - cy dc/matrix-order
+		][
+			cairo-matrix-concat dc/cr m dc/matrix-order
+		]
 	]
 ]
 
@@ -1780,15 +1971,28 @@ OS-matrix-transform: func [
 	scale		[red-integer!]
 	translate	[red-pair!]
 	/local
+		cr		[handle!]
 		rotate	[red-integer!]
 		center?	[logic!]
+		rad		[float!]
+		cx		[float!]
+		cy		[float!]
 ][
 	rotate: as red-integer! either center + 1 = scale [center][center + 1]
 	center?: rotate <> center
-
-	OS-matrix-rotate dc pen-fill rotate center
-	OS-matrix-scale dc pen-fill scale center
-	OS-matrix-translate dc pen-fill translate/x translate/y
+	rad: PI / 180.0 * get-float rotate
+	cr: dc/cr
+	if center? [
+		cx: as float! 0 - center/x
+		cy: as float! 0 - center/y
+		cairo-matrix-translate cr cx cy MATRIX-APPEND
+	]
+	cairo-matrix-rotate cr rad MATRIX-APPEND
+	cairo-matrix-scale cr get-float scale get-float scale + 1 MATRIX-APPEND
+	cairo-matrix-translate cr as float! translate/x as float! translate/y MATRIX-APPEND
+	if center? [
+		cairo-matrix-translate cr 0.0 - cx 0.0 - cy MATRIX-APPEND
+	]
 ]
 
 OS-matrix-push: func [
@@ -1876,7 +2080,7 @@ OS-matrix-set: func [
 			copy-memory as byte-ptr! matrix as byte-ptr! res size? cairo_matrix_t!
 		]
 	][
-		cairo_transform dc/cr m
+		cairo-matrix-concat dc/cr m dc/matrix-order
 	]
 ]
 
@@ -1884,7 +2088,11 @@ OS-set-matrix-order: func [
 	ctx			[draw-ctx!]
 	order		[integer!]
 ][
-	0
+	case [
+		order = _append [ ctx/matrix-order: MATRIX-APPEND ]
+		order = prepend [ ctx/matrix-order: MATRIX-PREPEND ]
+		true [ ctx/matrix-order: MATRIX-PREPEND ]
+	]
 ]
 
 OS-set-clip: func [

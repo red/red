@@ -112,6 +112,9 @@ Red/System [
 
 	draw-ctx!: alias struct! [
 		cr				[handle!]
+		matrix-order	[integer!]
+		device-matrix	[tagMATRIX value]
+		pattern?		[logic!]
 		pen-join		[integer!]
 		pen-cap			[integer!]
 		pen-width		[float!]
