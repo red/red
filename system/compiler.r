@@ -188,6 +188,7 @@ system-dialect: make-profilable context [
 			| 'c-string!
 			| 'pointer! into [pointer-syntax]
 			| 'struct!  into [struct-syntax] opt 'value
+			| 'bytes! integer!
 		]
 
 		type-spec: [
@@ -724,6 +725,7 @@ system-dialect: make-profilable context [
 					enum-type? name
 					type: [integer!]
 				]
+				name <> 'bytes!
 				not type: find-aliased name
 				any [
 					all [silent return none]
@@ -741,6 +743,7 @@ system-dialect: make-profilable context [
 				local?: all [locals select locals name]
 				select-globals name
 			]
+
 			if all [not type pos: select functions decorate-fun name][
 				if mark: find pos: pos/4 /local [
 					pos: copy/part pos mark			;-- remove locals
@@ -812,7 +815,10 @@ system-dialect: make-profilable context [
 						check-path-index path 'string
 						[byte!]
 					]
-
+					bytes! [ 
+						check-path-index path  'bytes
+						[byte!]
+					]
 				] path-error
 			][
 				resolve-path-type/parent next path second type
@@ -1472,6 +1478,10 @@ system-dialect: make-profilable context [
 					type
 					type/1 = 'integer!
 					enum-type? expected/1				;-- TODO: add also a value check for enums
+				]
+				all [
+					type
+					type/1 = 'bytes!
 				]
 			][
 				if expected = type [type: 'null]		;-- make null error msg explicit
