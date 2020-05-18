@@ -60,6 +60,7 @@ draw-begin: func [
 	]
 
 	ctx/raw:			CGCtx
+	ctx/ctx-matrix:		CGContextGetCTM CGCtx
 	ctx/matrix/a:		F32_1
 	ctx/matrix/b:		F32_0
 	ctx/matrix/c:		F32_0
@@ -1384,7 +1385,13 @@ OS-matrix-scale: func [
 ][
 	sy: sx + 1
 	either pen = -1 [
+		if sx <> as red-integer! center [
+			_OS-matrix-translate dc/raw center/x center/y
+		]
 		CGContextScaleCTM dc/raw get-float32 sx get-float32 sy
+		if sx <> as red-integer! center [
+			_OS-matrix-translate dc/raw 0 - center/x 0 - center/y
+		]
 	][
 		dc/matrix: CGAffineTransformScale dc/matrix get-float32 sx get-float32 sy
 	]
@@ -1418,17 +1425,34 @@ OS-matrix-skew: func [
 	center	[red-pair!]
 	/local
 		sy	[red-integer!]
+		xv	[float!]
+		yv	[float!]
 		m	[CGAffineTransform! value]
 ][
 	sy: sx + 1
+	xv: get-float sx
+	yv: either all [
+		sy <= center
+		TYPE_OF(sy) = TYPE_PAIR
+	][
+		get-float sy
+	][
+		0.0
+	]
 	m/a: as float32! 1.0
-	m/b: as float32! either sx = sy [0.0][tan degree-to-radians get-float sy TYPE_TANGENT]
-	m/c: as float32! tan degree-to-radians get-float sx TYPE_TANGENT
+	m/b: as float32! either yv = 0.0 [0.0][tan degree-to-radians yv TYPE_TANGENT]
+	m/c: as float32! tan degree-to-radians xv TYPE_TANGENT
 	m/d: as float32! 1.0
 	m/tx: as float32! 0.0
 	m/ty: as float32! 0.0
 	either pen = -1 [
+		if TYPE_OF(center) = TYPE_PAIR [
+			_OS-matrix-translate dc/raw center/x center/y
+		]
 		CGContextConcatCTM dc/raw m
+		if TYPE_OF(center) = TYPE_PAIR [
+			_OS-matrix-translate dc/raw 0 - center/x 0 - center/y
+		]
 	][
 		dc/matrix: CGAffineTransformConcat dc/matrix m
 	]
@@ -1477,22 +1501,19 @@ OS-matrix-pop: func [dc [draw-ctx!] state [draw-state!]][
 ]
 
 OS-matrix-reset: func [
-	dc [draw-ctx!]
-	pen [integer!]
+	dc		[draw-ctx!]
+	pen		[integer!]
 	/local
-		m [CGAffineTransform! value]
+		ctx	[handle!]
+		m	[CGAffineTransform! value]
 ][
-	either dc/on-image? [
-		m: CGAffineTransformMake F32_1 F32_0 F32_0 as float32! -1.0 F32_0 dc/rect-y
-	][
-		m: CGAffineTransformMake F32_1 F32_0 F32_0 F32_1 as float32! 0.5 as float32! 0.5
-	]
-	CGContextSetCTM dc/raw m
+	ctx: dc/raw
+	CGContextSetCTM ctx dc/ctx-matrix
 ]
 
 OS-matrix-invert: func [
-	dc	[draw-ctx!]
-	pen	[integer!]
+	dc		[draw-ctx!]
+	pen		[integer!]
 	/local
 		ctx	[handle!]
 		m	[CGAffineTransform! value]
