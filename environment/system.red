@@ -35,18 +35,9 @@ system: context [
 		]
 		__make-sys-object
 	]
-
-	platform: func ["Return a word identifying the operating system"][
-		#system [
-			#switch OS [
-				Windows  [SET_RETURN(words/_windows)]
-				Syllable [SET_RETURN(words/_syllable)]
-				macOS	 [SET_RETURN(words/_macOS)]
-				#default [SET_RETURN(words/_linux)]
-			]
-		]
-	]
-
+#debug
+	platform: #do keep [to-lit-word config/OS]
+	
 	catalog: context [
 		datatypes:
 		actions:
