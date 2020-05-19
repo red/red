@@ -1544,7 +1544,6 @@ process: func [
 			make-event msg flags EVT_WHEEL
 		]
 		WM_LBUTTONDOWN	[
-			if GetCapture <> null [return EVT_DISPATCH]
 			menu-origin: null							;-- reset if user clicks on menu bar
 			menu-ctx: null
 			make-event msg flags EVT_LEFT_DOWN
