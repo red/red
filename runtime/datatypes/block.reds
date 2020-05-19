@@ -554,7 +554,11 @@ block: context [
 
 		if size1 <> size2 [										;-- shortcut exit for different sizes
 			if any [
-				op = COMP_STRICT_EQUAL_WORD op = COMP_EQUAL op = COMP_FIND op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL
+				op = COMP_FIND
+				op = COMP_EQUAL
+				op = COMP_NOT_EQUAL
+				op = COMP_STRICT_EQUAL
+				op = COMP_STRICT_EQUAL_WORD
 			][return 1]
 		]
 
