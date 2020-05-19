@@ -281,7 +281,6 @@ do-draw-path: func [
 ][
 	cr: dc/cr
 	if dc/brush? [
-		cairo_save cr
 		either all [
 			dc/grad-brush/on?
 			dc/grad-brush/pattern-on?
@@ -291,7 +290,6 @@ do-draw-path: func [
 			set-source-color cr dc/brush-color
 		]
 		cairo_fill_preserve cr
-		cairo_restore cr
 	]
 	do-draw-pen dc
 ]
@@ -303,7 +301,6 @@ do-draw-pen: func [
 ][
 	cr: dc/cr
 	either dc/pen? [
-		cairo_save cr
 		if all [
 			dc/grad-pen/on?
 			dc/grad-pen/pattern-on?
@@ -311,7 +308,6 @@ do-draw-pen: func [
 			cairo_set_source cr dc/grad-pen/pattern
 		]
 		cairo_stroke cr
-		cairo_restore cr
 	][
 		cairo_new_path cr
 	]
