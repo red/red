@@ -2104,9 +2104,11 @@ OS-set-clip: func [
 		x2		[integer!]
 		y1		[integer!]
 		y2		[integer!]
+		saved	[cairo_matrix_t! value]
+		path	[handle!]
 ][
 	cr: dc/cr
-	if rect? [
+	either rect? [
 		if upper/x > lower/x [t: upper/x upper/x: lower/x lower/x: t]
 		if upper/y > lower/y [t: upper/y upper/y: lower/y lower/y: t]
 
@@ -2114,9 +2116,15 @@ OS-set-clip: func [
 		y1: upper/y
 		x2: lower/x
 		y2: lower/y
+		ctx-matrix-adapt dc saved
 		cairo_rectangle cr
 			as float! x1 as float! y1
 			as float! x2 - x1 as float! y2 - y1
+	][
+		path: cairo_copy_path dc/cr
+		cairo_new_path dc/cr
+		ctx-matrix-adapt dc saved
+		cairo_append_path dc/cr path
 	]
 	cairo_set_operator cr case [
 		mode = replace	 [CAIRO_OPERATOR_SOURCE]
@@ -2127,6 +2135,7 @@ OS-set-clip: func [
 		true			 [CAIRO_OPERATOR_OVER]
 	]
 	cairo_clip cr
+	ctx-matrix-unadapt dc saved
 ]
 
 ;-- shape sub command --
@@ -2141,9 +2150,17 @@ OS-draw-shape-endpath: func [
 	dc			[draw-ctx!]
 	close?		[logic!]
 	return:		[logic!]
+	/local
+		saved	[cairo_matrix_t! value]
+		path	[handle!]
 ][
 	if close? [cairo_close_path dc/cr]
+	path: cairo_copy_path dc/cr
+	cairo_new_path dc/cr
+	ctx-matrix-adapt dc saved
+	cairo_append_path dc/cr path
 	do-draw-path dc
+	ctx-matrix-unadapt dc saved
 	true
 ]
 

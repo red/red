@@ -2810,6 +2810,14 @@ GPtrArray!: alias struct! [
 			w			[float!]
 			h			[float!]
 		]
+		cairo_copy_path: "cairo_copy_path" [
+			cr			[handle!]
+			return:		[handle!]
+		]
+		cairo_append_path: "cairo_append_path" [
+			cr			[handle!]
+			path		[handle!]
+		]
 		cairo_new_path: "cairo_new_path" [
 			cr			[handle!]
 		]
