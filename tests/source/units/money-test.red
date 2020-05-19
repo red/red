@@ -284,6 +284,10 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "currencies-12" --assert USD$3 <= $3
 	--test-- "currencies-13" --assert error? try [USD$1 > EUR$1]
 	--test-- "currencies-14" --assert error? try [USD$0 >= EUR$0]
+	--test-- "currencies-15"
+		block: [EUR$1]
+		--assert error? try [block < [USD$1]]
+		--assert "[...]" <> mold block
 ===end-group===
 
 ===start-group=== "arithmetic"
