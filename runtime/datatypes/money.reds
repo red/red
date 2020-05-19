@@ -1611,6 +1611,7 @@ money: context [
 					COMP_GREATER
 					COMP_GREATER_EQUAL [
 						unless same-currencies? money value no [
+							cycles/reset
 							fire [TO_ERROR(script wrong-denom) money value]
 						]
 					]
