@@ -2991,6 +2991,10 @@ GPtrArray!: alias struct! [
 		cairo_pattern_destroy: "cairo_pattern_destroy" [
 			pattern		[handle!]
 		]
+		cairo_pattern_create_for_surface: "cairo_pattern_create_for_surface" [
+			surface		[handle!]
+			return:		[handle!]
+		]
 		cairo_rotate: "cairo_rotate" [
 			cr			[handle!]
 			angle 		[float!]

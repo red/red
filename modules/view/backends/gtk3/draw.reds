@@ -271,7 +271,9 @@ free-gradient: func [
 		cairo_pattern_destroy grad/pattern
 		grad/pattern-on?: off
 	]
-	free as byte-ptr! grad/colors
+	if grad/type <> bitmap [
+		free as byte-ptr! grad/colors
+	]
 ]
 
 do-draw-path: func [
@@ -528,7 +530,7 @@ check-grad-points: func [
 			]
 			pattern: cairo_pattern_create_radial x1 y1 r1 x2 y2 r2
 		]
-		true [0]
+		true [exit]
 	]
 	unless null? pattern [
 		update-pattern grad pattern x1 y1
@@ -607,7 +609,7 @@ check-grad-brush-lines: func [
 			]
 			pattern: cairo_pattern_create_radial x1 y1 r1 x2 y2 r2
 		]
-		true [0]
+		true [exit]
 	]
 	unless null? pattern [
 		update-pattern grad pattern x1 y1
@@ -2463,13 +2465,73 @@ OS-draw-shape-close: func [
 ]
 
 OS-draw-brush-bitmap: func [
-	ctx			[draw-ctx!]
+	dc			[draw-ctx!]
 	img			[red-image!]
 	crop-1		[red-pair!]
 	crop-2		[red-pair!]
 	mode		[red-word!]
 	brush?		[logic!]
-][]
+	/local
+		x		[integer!]
+		y		[integer!]
+		width	[integer!]
+		height	[integer!]
+		wrap	[integer!]
+		surf	[handle!]
+		cr		[handle!]
+		pixbuf	[handle!]
+		pattern	[handle!]
+		grad	[gradient!]
+][
+	width:  OS-image/width? img/node
+	height: OS-image/height? img/node
+	either crop-1 = null [
+		x: 0
+		y: 0
+	][
+		x: crop-1/x
+		y: crop-1/y
+	]
+	either crop-2 = null [
+		width:  width - x
+		height: height - y
+	][
+		width:  either ( x + crop-2/x ) > width [ width - x ][ crop-2/x ]
+		height: either ( y + crop-2/y ) > height [ height - y ][ crop-2/y ]
+	]
+	wrap: CAIRO_EXTEND_REPEAT
+	unless mode = null [
+		wrap: symbol/resolve mode/symbol
+		case [
+			wrap = flip-x [ wrap: CAIRO_EXTEND_REFLECT ]
+			wrap = flip-y [ wrap: CAIRO_EXTEND_REFLECT ]
+			wrap = flip-xy [ wrap: CAIRO_EXTEND_REFLECT ]
+			wrap = clamp [ wrap: CAIRO_EXTEND_PAD ]
+			true [ wrap: CAIRO_EXTEND_NONE ]
+		]
+	]
+	surf: cairo_image_surface_create CAIRO_FORMAT_ARGB32 width height
+	cr: cairo_create surf
+	pixbuf: OS-image/to-pixbuf img
+	cairo_translate cr as-float 0 - x as-float 0 - y
+	gdk_cairo_set_source_pixbuf cr pixbuf 0.0 0.0
+	cairo_paint cr
+	cairo_destroy cr
+	pattern: cairo_pattern_create_for_surface surf
+
+	grad: either brush? [
+		dc/brush?: yes
+		dc/grad-brush
+	][
+		dc/pen?: yes
+		dc/grad-pen
+	]
+	cairo_pattern_set_extend pattern wrap
+	grad/on?: on
+	grad/type: bitmap
+	grad/pattern: pattern
+	grad/pattern-on?: on
+]
 
 OS-draw-brush-pattern: func [
 	dc			[draw-ctx!]
