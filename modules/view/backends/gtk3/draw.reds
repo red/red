@@ -918,6 +918,7 @@ OS-draw-triangle: func [
 		saved	[cairo_matrix_t! value]
 ][
 	ctx-matrix-adapt dc saved
+	cairo_new_sub_path dc/cr
 	loop 3 [
 		cairo_line_to dc/cr as-float start/x as-float start/y
 		start: start + 1
@@ -937,6 +938,7 @@ OS-draw-polygon: func [
 		saved	[cairo_matrix_t! value]
 ][
 	ctx-matrix-adapt dc saved
+	cairo_new_sub_path dc/cr
 	until [
 		cairo_line_to dc/cr as-float start/x as-float start/y
 		start: start + 1
@@ -1095,6 +1097,7 @@ OS-draw-circle: func [
 		]
 	]
 
+	cairo_new_sub_path cr
 	cairo_save cr
 	cairo_translate cr as-float center/x
 						as-float center/y
@@ -1127,6 +1130,7 @@ OS-draw-ellipse: func [
 	cy: upper/y + rad-y
 
 	ctx-matrix-adapt dc saved
+	cairo_new_sub_path cr
 	cairo_save cr
 	cairo_translate cr as-float cx
 					   as-float cy
