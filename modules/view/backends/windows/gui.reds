@@ -2305,6 +2305,7 @@ update-z-order: func [
 		nb	 [integer!]
 		sub? [logic!]
 ][
+	if TYPE_OF(pane) <> TYPE_BLOCK [exit]
 	s: GET_BUFFER(pane)
 	
 	face: as red-object! s/offset + pane/head
