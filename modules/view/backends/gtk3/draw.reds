@@ -303,11 +303,13 @@ do-draw-pen: func [
 ][
 	cr: dc/cr
 	either dc/pen? [
-		if all [
+		either all [
 			dc/grad-pen/on?
 			dc/grad-pen/pattern-on?
 		][
 			cairo_set_source cr dc/grad-pen/pattern
+		][
+			set-source-color cr dc/pen-color
 		]
 		cairo_stroke cr
 	][
