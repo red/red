@@ -1144,7 +1144,7 @@ lexer: context [
 		/local
 			o? neg? [logic!]
 			p		[byte-ptr!]
-			len i	[integer!]
+			len i c [integer!]
 			cell	[cell!]
 			promote [subroutine!]
 	][
@@ -1161,18 +1161,20 @@ lexer: context [
 			i: as-integer (p/1 - #"0")
 		][
 			len: as-integer e - p
-			if len > 10 [promote]
 			i: 0
 			o?: no
 			either flags and C_FLAG_QUOTE = 0 [			;-- no quote, faster path
+				if len > 10 [promote]
 				loop len [
 					i: 10 * i + as-integer (p/1 - #"0")
 					o?: o? or system/cpu/overflow?
 					p: p + 1
 				]
 			][											;-- process with quote(s)
+				c: 0
 				loop len [
 					either p/1 <> #"'" [
+						c: c + 1
 						i: 10 * i + as-integer (p/1 - #"0")
 						o?: o? or system/cpu/overflow?
 					][
@@ -1180,6 +1182,7 @@ lexer: context [
 					]
 					p: p + 1
 				]
+				if c > 10 [promote]
 			]
 			assert p = e
 			if any [o? i < 0][
