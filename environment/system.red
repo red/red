@@ -35,7 +35,7 @@ system: context [
 		]
 		__make-sys-object
 	]
-#debug
+
 	platform: #do keep [to-lit-word config/OS]
 	
 	catalog: context [
