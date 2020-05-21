@@ -28,16 +28,8 @@ datatype: context [
 		]
 	]
 
-	;-------------------------------------
-	;-- Load actions table with a new datatype set of function pointers
-	;--
-	;-- Input: block of values with type ID in first place followed by
-	;-- actions pointers.
-	;--
-	;-- Returns: -
-	;-------------------------------------
-	register: func [
-		[variadic]
+	register: func [									;-- Load actions table with a new datatype set of function pointers
+		[variadic]										;-- Input: block of values with type ID in first place followed by actions pointers.
 		count		[integer!]
 		list		[int-ptr!]
 		/local
@@ -48,7 +40,7 @@ datatype: context [
 			name	[names!]
 	][
 		type: list/value
-		assert type < TYPE_TOTAL_COUNT								;-- hard limit of action table
+		assert type < TYPE_TOTAL_COUNT					;-- hard limit of action table
 		if type > top-id [top-id: type]					;@@ unreliable, needs automatic type IDs
 		list: list + 1
 		
