@@ -202,7 +202,7 @@ Red [
 		forall out [--assert ref? out/1]
 	
 	--test-- "tr-20"
-		--assert (reduce [true false none none]) == transcode {#[true] #[false] #[none] #[none!]}
+		--assert (reduce [true false none none!]) == transcode {#[true] #[false] #[none] #[none!]}
 
 	--test-- "tr-21"
 		out: transcode {
