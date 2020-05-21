@@ -2470,9 +2470,11 @@ OS-draw-shape-close: func [
 	;cairo_close_path dc/cr
 ]
 
-OS-draw-brush-bitmap: func [
+_OS-draw-brush-bitmap: func [
 	dc			[draw-ctx!]
-	img			[red-image!]
+	width		[integer!]
+	height		[integer!]
+	pixbuf		[handle!]
 	crop-1		[red-pair!]
 	crop-2		[red-pair!]
 	mode		[red-word!]
@@ -2480,17 +2482,12 @@ OS-draw-brush-bitmap: func [
 	/local
 		x		[integer!]
 		y		[integer!]
-		width	[integer!]
-		height	[integer!]
 		wrap	[integer!]
 		surf	[handle!]
 		cr		[handle!]
-		pixbuf	[handle!]
 		pattern	[handle!]
 		grad	[gradient!]
 ][
-	width:  OS-image/width? img/node
-	height: OS-image/height? img/node
 	either crop-1 = null [
 		x: 0
 		y: 0
@@ -2518,7 +2515,6 @@ OS-draw-brush-bitmap: func [
 	]
 	surf: cairo_image_surface_create CAIRO_FORMAT_ARGB32 width height
 	cr: cairo_create surf
-	pixbuf: OS-image/to-pixbuf img
 	cairo_translate cr as-float 0 - x as-float 0 - y
 	gdk_cairo_set_source_pixbuf cr pixbuf 0.0 0.0
 	cairo_paint cr
@@ -2537,6 +2533,24 @@ OS-draw-brush-bitmap: func [
 	grad/type: bitmap
 	grad/pattern: pattern
 	grad/pattern-on?: on
+]
+
+OS-draw-brush-bitmap: func [
+	dc			[draw-ctx!]
+	img			[red-image!]
+	crop-1		[red-pair!]
+	crop-2		[red-pair!]
+	mode		[red-word!]
+	brush?		[logic!]
+	/local
+		width	[integer!]
+		height	[integer!]
+		pixbuf	[handle!]
+][
+	width:  OS-image/width? img/node
+	height: OS-image/height? img/node
+	pixbuf: OS-image/to-pixbuf img
+	_OS-draw-brush-bitmap dc width height pixbuf crop-1 crop-2 mode brush?
 ]
 
 OS-draw-brush-pattern: func [
