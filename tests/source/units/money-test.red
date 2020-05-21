@@ -74,8 +74,8 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "strict-equal-5" --assert strict-equal? -$1 -$1
 	--test-- "strict-equal-6" --assert strict-equal? +$1 +$1
 	--test-- "strict-equal-7" --assert strict-equal? +USD$1 +USD$1
-	--test-- "strict-equal-8" --assert error? try [strict-equal? +$1 +USD$1]
-	--test-- "strict-equal-9" --assert error? try [strict-equal? +EUR$1 +$1]
+	--test-- "strict-equal-8" --assert not strict-equal? +$1 +USD$1
+	--test-- "strict-equal-9" --assert not strict-equal? +EUR$1 +$1
 ===end-group===
 
 ===start-group=== "same?"
@@ -279,7 +279,15 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "currencies-7"  --assert error? try [EUR$2 - USD$2]
 	--test-- "currencies-8"  --assert USD$1 == USD$1
 	--test-- "currencies-9"  --assert -USD$2 == -USD$2
-	--test-- "currencies-10" --assert error? try [EUR$123 <> USD$123]
+	--test-- "currencies-10" --assert EUR$123 <> USD$123
+	--test-- "currencies-11" --assert $1 < EUR$2
+	--test-- "currencies-12" --assert USD$3 <= $3
+	--test-- "currencies-13" --assert error? try [USD$1 > EUR$1]
+	--test-- "currencies-14" --assert error? try [USD$0 >= EUR$0]
+	--test-- "currencies-15"
+		block: [EUR$1]
+		--assert error? try [block < [USD$1]]
+		--assert "[...]" <> mold block
 ===end-group===
 
 ===start-group=== "arithmetic"
@@ -608,6 +616,9 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "find-4" --assert none == find [$1] 1
 	--test-- "find-5" --assert 3 = index? find [a b $1 c d] $1
 	--test-- "find-6" --assert last? find [a b c d $0.00001] $0.00001
+	--test-- "find-7" --assert head? find [USD$1 EUR$1] USD$1
+	--test-- "find-8" --assert head? find [USD$1 EUR$1] $1
+	--test-- "find-9" --assert none == find [$1 $2] EUR$2
 ===end-group===
 
 ===start-group=== "money?"

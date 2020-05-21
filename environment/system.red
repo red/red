@@ -11,13 +11,20 @@ Red [
 ]
 
 system: context [
-	version: #version
+	version: #do keep [form load-cache %version.r]
 	build: context [
-		date: to-local-date #build-date
-		git: do #git
-		config: context #build-config
+		date: #do keep [
+			use [date][
+				date: now
+				date: date - date/zone
+				date/zone: none
+				date
+			]
+		]
+		git: #do keep [load-cache %build/git.r]
+		config: context #do keep [reduce [load find mold config to-char 91]]
 	]
-		
+	
 	words: #system [
 		__make-sys-object: func [
 			/local
@@ -36,17 +43,8 @@ system: context [
 		__make-sys-object
 	]
 
-	platform: func ["Return a word identifying the operating system"][
-		#system [
-			#switch OS [
-				Windows  [SET_RETURN(words/_windows)]
-				Syllable [SET_RETURN(words/_syllable)]
-				macOS	 [SET_RETURN(words/_macOS)]
-				#default [SET_RETURN(words/_linux)]
-			]
-		]
-	]
-
+	platform: #do keep [to-lit-word config/OS]
+	
 	catalog: context [
 		datatypes:
 		actions:

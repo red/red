@@ -4284,36 +4284,6 @@ red: context [
 				]
 				true
 			]
-			#load [										;-- temporary directive
-				change/part/only pc to do pc/2 pc/3 3
-				comp-expression							;-- continue expression fetching
-				true
-			]
-			#version [
-				change pc form load-cache %version.r
-				comp-expression
-				true
-			]
-			#git [
-				change/only pc load-cache %build/git.r
-				comp-expression
-				true
-			]
-			#build-date [								;-- UTC date
-				change pc use [date][
-					date: now
-					date: date - date/zone
-					date/zone: none
-					date
-				]
-				comp-expression
-				true
-			]
-			#build-config [
-				change/only pc load find mold job #"["
-				comp-expression
-				true
-			]
 			#register-intrinsics [						;-- internal boot-level directive
 				if booting? [
 					pc: next pc

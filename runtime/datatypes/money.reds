@@ -1596,10 +1596,8 @@ money: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "money/compare"]]
 		
-		strict?: op = COMP_STRICT_EQUAL
-		if all [TYPE_OF(money) <> TYPE_OF(value) any [op = COMP_FIND strict?]][
-			return 1
-		]
+		strict?: any [op = COMP_STRICT_EQUAL op = COMP_SAME op = COMP_FIND]
+		if all [TYPE_OF(money) <> TYPE_OF(value) strict?][return 1]
 		
 		switch TYPE_OF(value) [
 			TYPE_MONEY [
@@ -1608,16 +1606,18 @@ money: context [
 					COMP_CASE_SORT [
 						return sort-money money value
 					]
-					COMP_SAME [
-						return as integer! not all [	;-- 0 if the same
-							same-currencies? money value yes
-							zero? compare-money money value
+					COMP_LESSER
+					COMP_LESSER_EQUAL
+					COMP_GREATER
+					COMP_GREATER_EQUAL [
+						unless same-currencies? money value no [
+							cycles/reset
+							fire [TO_ERROR(script wrong-denom) money value]
 						]
 					]
 					default [
-						unless same-currencies? money value strict? [
-							fire [TO_ERROR(script wrong-denom) money value]
-						]
+						if op = COMP_FIND [strict?: not zero? get-currency value]
+						unless same-currencies? money value strict? [return 1]
 					]
 				]
 			]

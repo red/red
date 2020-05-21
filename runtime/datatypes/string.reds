@@ -930,6 +930,7 @@ string: context [
 			h1	  [integer!]
 			h2	  [integer!]
 			diff? [logic!]
+			same? [logic!]
 	][
 		if TYPE_OF(str1) = TYPE_SYMBOL [symbol/make-red-string as red-symbol! str1]
 		if TYPE_OF(str2) = TYPE_SYMBOL [symbol/make-red-string as red-symbol! str2]
@@ -980,14 +981,16 @@ string: context [
 
 		size1: (as-integer s1/tail - s1/offset) + size
 		if (as byte-ptr! s1/size) < (as byte-ptr! size1) [	;-- force to use unsigned comparison
+			same?: s1 = s2
 			s1: expand-series s1 size1 * 2
+			if same? [s2: s1]
 		]
 
 		if mode = MODE_INSERT [
 			move-memory									;-- make space
 				(as byte-ptr! s1/offset) + h1 + offset + size
 				(as byte-ptr! s1/offset) + h1 + offset
-				(as-integer s1/tail - s1/offset) - h1
+				(as-integer s1/tail - s1/offset) - h1 - offset
 		]
 
 		tail: as byte-ptr! s1/tail
@@ -997,6 +1000,7 @@ string: context [
 			(as byte-ptr! s1/offset) + (offset << (log-b unit1)) + h1
 		]
 		either all [keep? diff?][
+			assert s1 <> s2
 			p2: (as byte-ptr! s2/offset) + h2
 			limit: p2 + (size2 << (log-b unit2))
 			while [p2 < limit][
@@ -1014,7 +1018,11 @@ string: context [
 				p2: p2 + unit2
 			]
 		][
-			copy-memory	p (as byte-ptr! s2/offset) + h2 size
+			either s1 = s2 [
+				move-memory p (as byte-ptr! s2/offset) + h2 size
+			][
+				copy-memory p (as byte-ptr! s2/offset) + h2 size
+			]
 			p: p + size
 		]
 		if mode = MODE_INSERT [p: tail + size] 
@@ -2754,12 +2762,12 @@ string: context [
 		/local
 			s			[series!]
 			added		[integer!]
+			len			[integer!]
 			type		[integer!]
 			char		[red-char!]
 			form-buf	[red-string!]
 			form-slot	[red-value!]
 	][
-		s: GET_BUFFER(str)
 		form-slot: stack/push*				;-- reserve space for FORMing incompatible values
 		form-slot/header: TYPE_UNSET
 		added: 0
@@ -2768,10 +2776,11 @@ string: context [
 			type: TYPE_OF(cell)
 			either type = TYPE_CHAR [
 				char: as red-char! cell
+				s: GET_BUFFER(str)
 				either part? [				;-- /part will insert extra elements
-					s: insert-char s str/head + added char/value
+					insert-char s str/head + added char/value
 				][
-					s: overwrite-char s str/head + added char/value
+					overwrite-char s str/head + added char/value
 				]
 				added: added + 1
 			][
@@ -2788,12 +2797,13 @@ string: context [
 					form-buf: rs-make-at form-slot 16
 					actions/form cell form-buf null 0
 				]
+				len: rs-length? form-buf			;-- form-buf can be changed by overwrite/concatenate
 				either part? [
 					concatenate str form-buf -1 added yes yes
 				][
 					overwrite str form-buf -1 added yes
 				]
-				added: added + rs-length? form-buf
+				added: added + len
 			]
 			cell: cell + 1
 		]
@@ -2846,6 +2856,7 @@ string: context [
 		len: _series/get-length ser1 no
 		if op = OP_UNION [len: len + _series/get-length ser2 no]
 		new: as red-series! rs-make-at stack/push* len
+		if zero? len [return new]			;-- early exit if nothing to do
 		s2: GET_BUFFER(new)
 		n: 2
 

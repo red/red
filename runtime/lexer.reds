@@ -570,6 +570,7 @@ lexer: context [
 			len	stype t [integer!]
 			do-error [subroutine!]
 			point?	 [logic!]
+			head	 [red-value!]
 	][
 		do-error: [
 			lex/closing: type
@@ -592,9 +593,10 @@ lexer: context [
 		]
 		
 		len: (as-integer lex/tail - lex/head) >> 4
-		lex/tail: lex/head
+		head: lex/head
 		lex/head: as cell! p - p/x
-		store-any-block as cell! p lex/tail len type	;-- p slot gets overwritten here
+		store-any-block as cell! p head len type	;-- p slot gets overwritten here
+		lex/tail: head
 		lex/scanned: type
 		
 		p: as red-point! lex/head - 1					;-- get parent series
@@ -1142,7 +1144,7 @@ lexer: context [
 		/local
 			o? neg? [logic!]
 			p		[byte-ptr!]
-			len i	[integer!]
+			len i c [integer!]
 			cell	[cell!]
 			promote [subroutine!]
 	][
@@ -1159,18 +1161,20 @@ lexer: context [
 			i: as-integer (p/1 - #"0")
 		][
 			len: as-integer e - p
-			if len > 10 [promote]
 			i: 0
 			o?: no
 			either flags and C_FLAG_QUOTE = 0 [			;-- no quote, faster path
+				if len > 10 [promote]
 				loop len [
 					i: 10 * i + as-integer (p/1 - #"0")
 					o?: o? or system/cpu/overflow?
 					p: p + 1
 				]
 			][											;-- process with quote(s)
+				c: 0
 				loop len [
 					either p/1 <> #"'" [
+						c: c + 1
 						i: 10 * i + as-integer (p/1 - #"0")
 						o?: o? or system/cpu/overflow?
 					][
@@ -1178,6 +1182,7 @@ lexer: context [
 					]
 					p: p + 1
 				]
+				if c > 10 [promote]
 			]
 			assert p = e
 			if any [o? i < 0][
@@ -2276,12 +2281,12 @@ lexer: context [
 			zero? count
 		]
 	]
-	
+
 	init: func [][
 		stash: as cell! allocate stash-size * size? cell!
 		utf8-buffer: allocate utf8-buf-size
 		utf8-buf-tail: utf8-buffer
-		
+
 		;-- switch following tables to zero-based indexing
 		lex-classes: lex-classes + 1
 		transitions: transitions + 1

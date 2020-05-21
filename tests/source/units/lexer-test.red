@@ -403,7 +403,7 @@ Red [
 ===end-group===
 ===start-group=== "transcode/one"
 	--test-- "tro-1"  --assert 8		== transcode/one "8"
-	--test-- "tro-1.1"  --assert 8		== transcode/one "8 "
+	--test-- "tro-1.1" --assert 8		== transcode/one "8 "
 	--test-- "tro-2"  --assert 123 		== transcode/one "123"
 	--test-- "tro-2.1" --assert -123 	== transcode/one "-123"
 	--test-- "tro-2.2" --assert 123 	== transcode/one "+123"
@@ -592,6 +592,21 @@ Red [
 
 	--test-- "tro-129" --assert 29/02/2020 = transcode/one "29/02/2020"
 	--test-- "tro-130" --assert error? try [transcode/one "30/02/2020"]
+
+	--test-- "tro-131"  --assert 100000000	== transcode/one "100'000'000"
+	--test-- "tro-132"  --assert 100000000	== transcode/one "1'00'000'000"
+	--test-- "tro-133"  --assert 1000000000	== transcode/one "1'000'000'000"
+	--test-- "tro-134"  --assert 1000000000	== transcode/one "1000000000"
+
+	--test-- "tro-135"  --assert 100000000	== transcode/one "+100'000'000"
+	--test-- "tro-136"  --assert 100000000	== transcode/one "+1'00'000'000"
+	--test-- "tro-137"  --assert 1000000000	== transcode/one "+1'000'000'000"
+	--test-- "tro-138"  --assert 1000000000	== transcode/one "+1000000000"
+
+	--test-- "tro-139"  --assert -100000000	== transcode/one "-100'000'000"
+	--test-- "tro-140"  --assert -100000000	== transcode/one "-1'00'000'000"
+	--test-- "tro-141"  --assert -1000000000 == transcode/one "-1'000'000'000"
+	--test-- "tro-142"  --assert -1000000000 == transcode/one "-1000000000"
 
 ===end-group===
 ===start-group=== "transcode/next"
