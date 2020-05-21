@@ -2926,6 +2926,11 @@ GPtrArray!: alias struct! [
 			cr			[handle!]
 			antialias	[integer!]
 		]
+		cairo_pattern_get_surface: "cairo_pattern_get_surface" [
+			pattern		[handle!]
+			surf		[int-ptr!]
+			return:		[integer!]
+		]
 		cairo_pattern_get_type: "cairo_pattern_get_type" [
 			pattern		[handle!]
 			return:		[integer!]

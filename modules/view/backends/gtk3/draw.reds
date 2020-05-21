@@ -2520,6 +2520,7 @@ _OS-draw-brush-bitmap: func [
 	cairo_paint cr
 	cairo_destroy cr
 	pattern: cairo_pattern_create_for_surface surf
+	cairo_surface_destroy surf
 
 	grad: either brush? [
 		dc/brush?: yes
@@ -2562,18 +2563,14 @@ OS-draw-brush-pattern: func [
 	block		[red-block!]
 	brush?		[logic!]
 	/local
-		cr		[handle!]
 		x		[integer!]
 		y		[integer!]
-		w		[integer!]
-		h		[integer!]
-		wrap	[integer!]
-		pattern	[handle!]
-		matrix	[cairo_matrix_t! value]
+		width	[integer!]
+		height	[integer!]
+		surf	[handle!]
+		cr		[handle!]
+		pixbuf	[handle!]
 ][
-	cr: dc/cr
-	w: size/x
-	h: size/y
 	either crop-1 = null [
 		x: 0
 		y: 0
@@ -2581,33 +2578,21 @@ OS-draw-brush-pattern: func [
 		x: crop-1/x
 		y: crop-1/y
 	]
+	width: size/x
+	height: size/y
 	either crop-2 = null [
-		w: w - x
-		h: h - y
+		width:  width - x
+		height: height - y
 	][
-		w: either ( x + crop-2/x ) > w [ w - x ][ crop-2/x ]
-		h: either ( y + crop-2/y ) > h [ h - y ][ crop-2/y ]
+		width:  either ( x + crop-2/x ) > width [ width - x ][ crop-2/x ]
+		height: either ( y + crop-2/y ) > height [ height - y ][ crop-2/y ]
 	]
-	wrap: tile
-	unless mode = null [wrap: symbol/resolve mode/symbol]
-	case [
-		any [wrap = flip-x wrap = flip-y] [w: w * 2]
-		wrap = flip-xy [w: w * 2 h: h * 2]
-		true []
-	]
-	;cairo_push_group cr
-	;do-draw cr null block no no yes yes
-	;if wrap = flip-x [
-	;	cairo_scale cr -1.0 1.0
-	;	do-draw cr null block no no yes yes
-	;]
-	;if wrap = flip-y [
-	;	cairo_matrix_init matrix 1.0 0.0 0.0 -1.0 as float! w as float! h
-	;	cairo_transform cr matrix
-	;	do-draw cr null block no no yes yes
-	;]
-	;pattern: cairo_pop_group cr
-	;pattern: cairo_pattern_create_mesh 
-	;-- TBD: wrap mode
-	;cairo_pattern_set_extend pattern CAIRO_EXTEND_PAD;CAIRO_EXTEND_REPEAT
+	surf: cairo_image_surface_create CAIRO_FORMAT_ARGB32 width height
+	cr: cairo_create surf
+	do-draw cr null block no no yes yes
+	pixbuf: gdk_pixbuf_get_from_surface surf x y width height
+	_OS-draw-brush-bitmap dc width height pixbuf null null mode brush?
+	g_object_unref pixbuf
+	cairo_destroy cr
+	cairo_surface_destroy surf
 ]
