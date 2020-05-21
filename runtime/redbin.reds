@@ -959,10 +959,10 @@ redbin: context [
 					TYPE_BINARY		[encode-string data header payload]
 					TYPE_BITSET		[encode-bitset data header payload]
 					TYPE_IMAGE		[encode-image  data header payload]
-					TYPE_ANY_BLOCK
-					TYPE_MAP		[encode-block data header no payload symbols table strings]
 					TYPE_NATIVE
 					TYPE_ACTION 	[encode-native data header payload symbols table strings]
+					TYPE_ANY_BLOCK
+					TYPE_MAP		[encode-block data header no payload symbols table strings]
 					default	[--NOT_IMPLEMENTED--]	;@@ TBD: proper error message
 				]
 			]
@@ -986,7 +986,7 @@ redbin: context [
 		table:   binary/make-at stack/push* 4
 		strings: binary/make-at stack/push* 4
 		
-		length: encode-value data payload symbols table strings
+		encode-value data payload symbols table strings
 		size:   binary/rs-length? payload
 		
 		;-- symbol table
