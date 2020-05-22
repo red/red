@@ -569,7 +569,7 @@ OS-image: context [
 				x: 0
 				while [x < width][
 					pos: width * y + x + 1
-					either null? alpha [a: 255][a: 255 - as-integer alpha/1 alpha: alpha + 1]
+					either null? alpha [a: 255][a: as-integer alpha/1 alpha: alpha + 1]
 					either null? rgb [r: 255 g: 255 b: 255][
 						r: as-integer rgb/1
 						g: as-integer rgb/2
@@ -583,7 +583,7 @@ OS-image: context [
 			]
 		][
 			r: color/array1
-			a: either TUPLE_SIZE?(color) = 3 [255][255 - (r >>> 24)]
+			a: either TUPLE_SIZE?(color) = 3 [255][r >>> 24]
 			r: r >> 16 and FFh or (r and FF00h) or (r and FFh << 16) or (a << 24)
 			while [y < height][
 				x: 0

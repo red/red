@@ -21,19 +21,19 @@ img: make image! 2x2
 	--test-- "image range(integer index) 2"
 		--assert error? try [img/0: 1.2.3]
 	--test-- "image range(integer index) 3"
-		--assert img/1 = 255.255.255
+		--assert img/1 = 255.255.255.255
 	--test-- "image range(integer index) 4"
 		--assert 1.2.3 = img/1: 1.2.3
 	--test-- "image range(integer index) 5"
-		--assert img/2 = 255.255.255
+		--assert img/2 = 255.255.255.255
 	--test-- "image range(integer index) 6"
 		--assert 1.2.3 = img/2: 1.2.3
 	--test-- "image range(integer index) 7"
-		--assert img/3 = 255.255.255
+		--assert img/3 = 255.255.255.255
 	--test-- "image range(integer index) 8"
 		--assert 1.2.3 = img/3: 1.2.3
 	--test-- "image range(integer index) 9"
-		--assert img/4 = 255.255.255
+		--assert img/4 = 255.255.255.255
 	--test-- "image range(integer index) 10"
 		--assert 1.2.3 = img/4: 1.2.3
 	--test-- "image range(integer index) 11"
@@ -57,19 +57,19 @@ img: make image! 2x2
 	--test-- "image range(pair index) 6"
 		--assert error? try [img/(1x0): 1.2.3]
 	--test-- "image range(pair index) 7"
-		--assert img/(1x1) = 255.255.255
+		--assert img/(1x1) = 255.255.255.255
 	--test-- "image range(pair index) 8"
 		--assert 1.2.3 = img/(1x1): 1.2.3
 	--test-- "image range(pair index) 9"
-		--assert img/(1x2) = 255.255.255
+		--assert img/(1x2) = 255.255.255.255
 	--test-- "image range(pair index) 10"
 		--assert 1.2.3 = img/(1x2): 1.2.3
 	--test-- "image range(pair index) 11"
-		--assert img/(2x1) = 255.255.255
+		--assert img/(2x1) = 255.255.255.255
 	--test-- "image range(pair index) 12"
 		--assert 1.2.3 = img/(2x1): 1.2.3
 	--test-- "image range(pair index) 13"
-		--assert img/(2x2) = 255.255.255
+		--assert img/(2x2) = 255.255.255.255
 	--test-- "image range(pair index) 14"
 		--assert 1.2.3 = img/(2x2): 1.2.3
 	--test-- "image range(pair index) 15"
@@ -94,7 +94,7 @@ img: make image! 2x2
 	--test-- "image pixel 3-tuple assignment 1"
 		--assert 255.255.255 = img/1: 255.255.255
 	--test-- "image pixel 3-tuple assignment 2"
-		--assert 255.255.255.0 = img/1
+		--assert 255.255.255.255 = img/1
 	--test-- "image pixel 4-tuple assignment"
 		--assert 255.255.255.255 = img/2: 255.255.255.255
 	--test-- "image pixel 5-tuple assignment 1"
@@ -108,7 +108,7 @@ img: make image! 2x2
 	--test-- "image pixel junk assignment 3"
 		--assert error? try [img/1: 3.14]
 	--test-- "image pixel unaffected by junk assignments?"
-		--assert 255.255.255.0 = img/1
+		--assert 255.255.255.255 = img/1
 ===end-group===
 
 ===start-group=== "image copy"
@@ -179,7 +179,7 @@ img: make image! 2x2
 ===start-group=== "image issues"
 	--test-- "image issue 3651"
 		img: make image! 2x2
-		clrs: [255.0.0.0 0.255.0.0 0.0.255.0 255.255.255.0]
+		clrs: [255.0.0.0 0.255.0.0 0.0.255.0 255.255.255.255]
 		img/1: clrs/1
 		img/2: clrs/2
 		img/3: clrs/3

@@ -54,7 +54,7 @@ image: context [
 			pixel and 00FF0000h >> 16
 			pixel and FF00h >> 8
 			pixel and FFh
-			255 - (pixel >>> 24)
+			pixel >>> 24
 		]
 	]
 
@@ -364,7 +364,7 @@ image: context [
 			while [i <= sz][
 				pixel: data/i
 				either type = EXTRACT_ALPHA [
-					p/1: as-byte 255 - (pixel >>> 24)
+					p/1: as-byte pixel >>> 24
 					p: p + 1
 				][
 					p/1: as-byte pixel and 00FF0000h >> 16
@@ -425,7 +425,7 @@ image: context [
 				while [data < end][
 					pixel: data/value
 					either method = EXTRACT_ALPHA [
-						pixel: pixel and 00FFFFFFh or ((255 - as-integer p/1) << 24)
+						pixel: pixel and 00FFFFFFh or ((as-integer p/1) << 24)
 						p: p + 1
 					][
 						pixel: pixel and FF000000h
@@ -455,8 +455,6 @@ image: context [
 				]
 			]
 			either method = EXTRACT_ARGB [
-				mask: 255 - (color >>> 24) << 24
-				color: color >> 16 and FFh or (color and FF00h) or (color and FFh << 16) or mask
 				until [
 					data/value: color
 					data: data + 1
@@ -469,7 +467,7 @@ image: context [
 					color >> 16 or (color and FF00h) or (color and FFh << 16)
 				][
 					mask: 00FFFFFFh
-					255 - color << 24
+					color << 24
 				]
 				while [data < end][
 					data/value: data/value and mask or color
@@ -724,7 +722,7 @@ image: context [
 			count: 0
 			while [data < end][
 				pixel: data/value
-				string/concatenate-literal buffer string/byte-to-hex 255 - (pixel >>> 24)
+				string/concatenate-literal buffer string/byte-to-hex pixel >>> 24
 				unless flat? [
 					count: count + 1
 					if count % 10 = 0 [string/append-char GET_BUFFER(buffer) as-integer lf]
@@ -827,7 +825,7 @@ image: context [
 			r: as-integer p/1
 			g: as-integer p/2
 			b: as-integer p/3
-			a: either TUPLE_SIZE?(color) > 3 [255 - as-integer p/4][255]
+			a: either TUPLE_SIZE?(color) > 3 [as-integer p/4][255]
 			OS-image/set-pixel img/node offset a << 24 or (r << 16) or (g << 8) or b
 		]
 		ownership/check as red-value! img words/_poke data offset 1
