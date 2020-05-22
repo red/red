@@ -2470,16 +2470,17 @@ OS-draw-shape-close: func [
 	;cairo_close_path dc/cr
 ]
 
-_OS-draw-brush-bitmap: func [
+OS-draw-brush-bitmap: func [
 	dc			[draw-ctx!]
-	width		[integer!]
-	height		[integer!]
-	pixbuf		[handle!]
+	img			[red-image!]
 	crop-1		[red-pair!]
 	crop-2		[red-pair!]
 	mode		[red-word!]
 	brush?		[logic!]
 	/local
+		width	[integer!]
+		height	[integer!]
+		pixbuf	[handle!]
 		x		[integer!]
 		y		[integer!]
 		wrap	[integer!]
@@ -2488,6 +2489,9 @@ _OS-draw-brush-bitmap: func [
 		pattern	[handle!]
 		grad	[gradient!]
 ][
+	width:  OS-image/width? img/node
+	height: OS-image/height? img/node
+	pixbuf: OS-image/to-pixbuf img
 	either crop-1 = null [
 		x: 0
 		y: 0
@@ -2536,24 +2540,6 @@ _OS-draw-brush-bitmap: func [
 	grad/pattern-on?: on
 ]
 
-OS-draw-brush-bitmap: func [
-	dc			[draw-ctx!]
-	img			[red-image!]
-	crop-1		[red-pair!]
-	crop-2		[red-pair!]
-	mode		[red-word!]
-	brush?		[logic!]
-	/local
-		width	[integer!]
-		height	[integer!]
-		pixbuf	[handle!]
-][
-	width:  OS-image/width? img/node
-	height: OS-image/height? img/node
-	pixbuf: OS-image/to-pixbuf img
-	_OS-draw-brush-bitmap dc width height pixbuf crop-1 crop-2 mode brush?
-]
-
 OS-draw-brush-pattern: func [
 	dc			[draw-ctx!]
 	size		[red-pair!]
@@ -2563,14 +2549,21 @@ OS-draw-brush-pattern: func [
 	block		[red-block!]
 	brush?		[logic!]
 	/local
+		surf	[handle!]
+		cr		[handle!]
 		x		[integer!]
 		y		[integer!]
 		width	[integer!]
 		height	[integer!]
-		surf	[handle!]
-		cr		[handle!]
-		pixbuf	[handle!]
+		wrap	[integer!]
+		pattern	[handle!]
+		grad	[gradient!]
 ][
+	surf: cairo_image_surface_create CAIRO_FORMAT_ARGB32 size/x size/y
+	cr: cairo_create surf
+	do-draw cr null block no no yes yes
+	cairo_destroy cr
+
 	either crop-1 = null [
 		x: 0
 		y: 0
@@ -2587,12 +2580,31 @@ OS-draw-brush-pattern: func [
 		width:  either ( x + crop-2/x ) > width [ width - x ][ crop-2/x ]
 		height: either ( y + crop-2/y ) > height [ height - y ][ crop-2/y ]
 	]
-	surf: cairo_image_surface_create CAIRO_FORMAT_ARGB32 width height
-	cr: cairo_create surf
-	do-draw cr null block no no yes yes
-	pixbuf: gdk_pixbuf_get_from_surface surf x y width height
-	_OS-draw-brush-bitmap dc width height pixbuf null null mode brush?
-	g_object_unref pixbuf
-	cairo_destroy cr
+	wrap: CAIRO_EXTEND_REPEAT
+	unless mode = null [
+		wrap: symbol/resolve mode/symbol
+		case [
+			wrap = flip-x [ wrap: CAIRO_EXTEND_REFLECT ]
+			wrap = flip-y [ wrap: CAIRO_EXTEND_REFLECT ]
+			wrap = flip-xy [ wrap: CAIRO_EXTEND_REFLECT ]
+			wrap = clamp [ wrap: CAIRO_EXTEND_PAD ]
+			true [ wrap: CAIRO_EXTEND_NONE ]
+		]
+	]
+	pattern: cairo_pattern_create_for_surface surf
+
+	grad: either brush? [
+		dc/brush?: yes
+		dc/grad-brush
+	][
+		dc/pen?: yes
+		dc/grad-pen
+	]
+	cairo_pattern_set_extend pattern wrap
+	grad/on?: on
+	grad/type: bitmap
+	grad/pattern: pattern
+	grad/pattern-on?: on
+
 	cairo_surface_destroy surf
 ]
