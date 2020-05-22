@@ -954,7 +954,7 @@ block: context [
 
 			reverse?: any [reverse? last?]					;-- reduce both flags to one
 			
-			type: either type = TYPE_DATATYPE [
+			type: either all [not only? type = TYPE_DATATYPE][
 				dt: as red-datatype! value
 				dt/value
 			][-1]											;-- disable "type searching" mode
