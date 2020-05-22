@@ -450,12 +450,7 @@ lexer: context [
 				stack/push block/rs-abs-at blk (0 - type) - 1 ;-- 1-based access
 			]
 		][
-			either event = EVT_SCAN [
-				name: name-table + type
-				stack/push as red-value! name/word
-			][
-				either zero? type [none/push][datatype/push type]
-			]
+			either zero? type [none/push][datatype/push type]
 		]
 		either all [lex/in-series <> null TYPE_OF(lex/in-series) <> TYPE_BINARY][
 			x: unicode/count-chars lex/input s

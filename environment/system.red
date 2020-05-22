@@ -434,10 +434,10 @@ system: context [
 	lexer: context [
 		pre-load: none
 		
-		exit-states: [
-			eof error! block! block! paren! paren! string! string! map! path! any-type!
-			comment string! word! issue! integer! refinement! char! file! binary! percent!
-			float! float! tuple! date! pair! time! money! tag! url! email! hex rawstring
+		exit-states: reduce [
+			'eof error! block! block! paren! paren! string! string! map! path! datatype!
+			'comment string! word! issue! integer! refinement! char! file! binary! percent!
+			float! float! tuple! date! pair! time! money! tag! url! email! 'hex 'rawstring
 		]
 	]
 	

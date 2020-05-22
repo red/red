@@ -771,19 +771,19 @@ Red [
 		--assert (compose [a: 1 (to-path 'b) []]) == transcode/trace "a: 1 b/ []" :lex-logger
 		--assert logs = [
 			prescan word! datatype! 1 1x3
-			scan set-word! word! 1 1x3
+			scan set-word! datatype! 1 1x3
 			load set-word! datatype! 1 a:
 			prescan integer! datatype! 1 4x5
-			scan integer! word! 1 4x5
+			scan integer! datatype! 1 4x5
 			load integer! datatype! 1 1
-			prescan path! word! 1 6x7
+			prescan path! datatype! 1 6x7
 			open path! datatype! 1 6x6
 			load word! datatype! 1 b
 			prescan error! datatype! 1 8x8
 			error error! datatype! 1 8x8
-			prescan block! word! 1 9x9
+			prescan block! datatype! 1 9x9
 			open block! datatype! 1 9x9
-			prescan block! word! 1 10x10
+			prescan block! datatype! 1 10x10
 			close block! datatype! 1 10x10
 		]
 
@@ -792,18 +792,18 @@ Red [
 		--assert (compose [a: 1 (to-path 'b) x]) == transcode/trace "a: 1 b/ x" :lex-logger
 		--assert logs = [
 			prescan word! datatype! 1 1x3
-			scan set-word! word! 1 1x3
+			scan set-word! datatype! 1 1x3
 			load set-word! datatype! 1 a:
 			prescan integer! datatype! 1 4x5
-			scan integer! word! 1 4x5
+			scan integer! datatype! 1 4x5
 			load integer! datatype! 1 1
-			prescan path! word! 1 6x7
+			prescan path! datatype! 1 6x7
 			open path! datatype! 1 6x6
 			load word! datatype! 1 b
 			prescan error! datatype! 1 8x8
 			error error! datatype! 1 8x8
 			prescan word! datatype! 1 9x10
-			scan word! word! 1 9x10
+			scan word! datatype! 1 9x10
 			load word! datatype! 1 x
 		]
 
@@ -812,25 +812,25 @@ Red [
 		--assert none == transcode/trace "a: 1 #(r: 2) [ x" :lex-logger
 		--assert logs = [
 		    prescan word! datatype! 1 1x3
-			scan set-word! word! 1 1x3
+			scan set-word! datatype! 1 1x3
 			load set-word! datatype! 1 a:
 			prescan integer! datatype! 1 4x5
-			scan integer! word! 1 4x5
+			scan integer! datatype! 1 4x5
 			load integer! datatype! 1 1
-			prescan map! word! 1 6x7
+			prescan map! datatype! 1 6x7
 			open map! datatype! 1 7x7
 			prescan word! datatype! 1 8x10
-			scan set-word! word! 1 8x10
+			scan set-word! datatype! 1 8x10
 			load set-word! datatype! 1 r:
 			prescan integer! datatype! 1 11x12
-			scan integer! word! 1 11x12
+			scan integer! datatype! 1 11x12
 			load integer! datatype! 1 2
-			prescan paren! word! 1 12x12
+			prescan paren! datatype! 1 12x12
 			close map! datatype! 1 12x12
-			prescan block! word! 1 14x14
+			prescan block! datatype! 1 14x14
 			open block! datatype! 1 14x14
 			prescan word! datatype! 1 16x17
-			scan word! word! 1 16x17
+			scan word! datatype! 1 16x17
 			load word! datatype! 1 x
 			error error! datatype! 1 14x17
 		]
@@ -840,16 +840,16 @@ Red [
 		--assert [a: 1 x] == transcode/trace "a: 1 ) x" :lex-logger
 		--assert logs = [
 		    prescan word! datatype! 1 1x3
-			scan set-word! word! 1 1x3
+			scan set-word! datatype! 1 1x3
 			load set-word! datatype! 1 a:
 			prescan integer! datatype! 1 4x5
-			scan integer! word! 1 4x5
+			scan integer! datatype! 1 4x5
 			load integer! datatype! 1 1
-			prescan paren! word! 1 6x6
+			prescan paren! datatype! 1 6x6
 			close paren! datatype! 1 6x6
 			error error! datatype! 1 6x6
 			prescan word! datatype! 1 8x9
-			scan word! word! 1 8x9
+			scan word! datatype! 1 8x9
 			load word! datatype! 1 x
 		]
 
@@ -858,18 +858,18 @@ Red [
 		--assert [hello 3.14 pi world] == transcode/trace "hello ^/\ 3.14 pi world" :lex-logger	
 		--assert logs = [
 		    prescan word! datatype! 1 1x6
-			scan word! word! 1 1x6
+			scan word! datatype! 1 1x6
 			load word! datatype! 1 hello
 			prescan error! datatype! 2 8x8
 			error error! datatype! 2 8x8
 			prescan float! datatype! 2 10x14
-			scan float! word! 2 10x14
+			scan float! datatype! 2 10x14
 			load float! datatype! 2 3.14
 			prescan word! datatype! 2 15x17
-			scan word! word! 2 15x17
+			scan word! datatype! 2 15x17
 			load word! datatype! 2 pi
 			prescan word! datatype! 2 18x23
-			scan word! word! 2 18x23
+			scan word! datatype! 2 18x23
 			load word! datatype! 2 world
 		]
 
@@ -878,17 +878,17 @@ Red [
 		--assert [123 "abc" 123456789123.0 test] == transcode/trace "123 {abc} 123456789123 test" :lex-logger
 		--assert logs = [
 		    prescan integer! datatype! 1 1x4
-			scan integer! word! 1 1x4
+			scan integer! datatype! 1 1x4
 			load integer! datatype! 1 123
-			prescan string! word! 1 5x5
+			prescan string! datatype! 1 5x5
 			open string! datatype! 1 5x5
 			prescan string! datatype! 1 6x9
 			close string! datatype! 1 6x9
 			prescan integer! datatype! 1 11x23
-			scan float! word! 1 11x23
+			scan float! datatype! 1 11x23
 			load float! datatype! 1 123456789123.0
 			prescan word! datatype! 1 24x28
-			scan word! word! 1 24x28
+			scan word! datatype! 1 24x28
 			load word! datatype! 1 test
 		]
 
@@ -897,12 +897,12 @@ Red [
 		--assert [a: 1] == transcode/trace "a: 1 ]" :lex-logger
 		--assert logs = [
 			prescan word! datatype! 1 1x3
-			scan set-word! word! 1 1x3
+			scan set-word! datatype! 1 1x3
 			load set-word! datatype! 1 a:
 			prescan integer! datatype! 1 4x5
-			scan integer! word! 1 4x5
+			scan integer! datatype! 1 4x5
 			load integer! datatype! 1 1
-			prescan block! word! 1 6x6
+			prescan block! datatype! 1 6x6
 			close block! datatype! 1 6x6
 			error error! datatype! 1 6x6
 		]
@@ -932,30 +932,30 @@ Red [
 		--assert [hello "test" pi world] = transcode/trace "hello ^/123 ^/[^/3x4 {test} 3.14 pi]^/ world" :lex-filter
 		--assert logs = [
 			prescan word! datatype! 1 1x6
-			scan word! word! 1 1x6
+			scan word! datatype! 1 1x6
 			load word! datatype! 1 hello
 			prescan integer! datatype! 2 8x11
-			scan integer! word! 2 8x11
+			scan integer! datatype! 2 8x11
 			load integer! datatype! 2 123
-			prescan block! word! 3 13x13
+			prescan block! datatype! 3 13x13
 			open block! datatype! 3 13x13
 			prescan pair! datatype! 4 15x18
-			scan pair! word! 4 15x18
+			scan pair! datatype! 4 15x18
 			load pair! datatype! 4 3x4
-			prescan string! word! 4 19x19
+			prescan string! datatype! 4 19x19
 			open string! datatype! 4 19x19
 			prescan string! datatype! 4 20x24
 			close string! datatype! 4 20x24
 			prescan float! datatype! 4 26x30
-			scan float! word! 4 26x30
+			scan float! datatype! 4 26x30
 			load float! datatype! 4 3.14
 			prescan word! datatype! 4 31x33
-			scan word! word! 4 31x33
+			scan word! datatype! 4 31x33
 			load word! datatype! 4 pi
-			prescan block! word! 4 33x33
+			prescan block! datatype! 4 33x33
 			close block! datatype! 4 33x33
 			prescan word! datatype! 5 36x41
-			scan word! word! 5 36x41
+			scan word! datatype! 5 36x41
 			load word! datatype! 5 world
 		]
 
@@ -982,10 +982,10 @@ Red [
 		--assert [123 abc] == transcode/trace "123 abc" :lex-filter10
 		--assert logs = [
 			prescan integer! datatype! 1 1x4
-			scan integer! word! 1 1x4
+			scan integer! datatype! 1 1x4
 			load integer! datatype! 1 123
 			prescan word! datatype! 1 5x8
-			scan word! word! 1 5x8
+			scan word! datatype! 1 5x8
 			load word! datatype! 1 abc
 		]
 
@@ -1022,10 +1022,10 @@ Red [
 		--assert [123 abc] == transcode/trace "123 abc" :lex-filter11A
 		--assert logs = [
 			prescan integer! datatype! 1 1x4
-			scan integer! word! 1 1x4
+			scan integer! datatype! 1 1x4
 			load integer! datatype! 1 123
 			prescan word! datatype! 1 5x8
-			scan word! word! 1 5x8
+			scan word! datatype! 1 5x8
 			load word! datatype! 1 abc
 		]
 
@@ -1096,23 +1096,23 @@ Red [
 		--assert none? transcode/trace "a: [b/c/ d/e" :lex-filter14
 		--assert logs = [
 		    prescan word! datatype! 1 1x3
-		    scan set-word! word! 1 1x3
+		    scan set-word! datatype! 1 1x3
 		    load set-word! datatype! 1 a:
-		    prescan block! word! 1 4x4
+		    prescan block! datatype! 1 4x4
 		    open block! datatype! 1 4x4
-		    prescan path! word! 1 5x6
+		    prescan path! datatype! 1 5x6
 		    open path! datatype! 1 5x5
 		    load word! datatype! 1 b
 		    prescan word! datatype! 1 7x8
-		    scan word! word! 1 7x8
+		    scan word! datatype! 1 7x8
 		    load word! datatype! 1 c
 		    prescan error! datatype! 1 9x9
 		    error error! datatype! 1 9x9
-		    prescan path! word! 1 10x11
+		    prescan path! datatype! 1 10x11
 		    open path! datatype! 1 10x10
 		    load word! datatype! 1 d
 		    prescan word! datatype! 1 12x13
-		    scan word! word! 1 12x13
+		    scan word! datatype! 1 12x13
 		    load word! datatype! 1 e
 		    close path! datatype! 1 12x13
 		    error error! datatype! 1 4x13
