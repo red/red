@@ -912,7 +912,7 @@ block: context [
 
 		type: TYPE_OF(value)
 		if any [type = TYPE_OBJECT type = TYPE_DATATYPE type = TYPE_TYPESET][hash?: no]	;-- use block search
-		any-blk?: either all [same? hash?][no][ANY_BLOCK_STRICT?(type)]
+		any-blk?: either all [same? hash?][no][ANY_BLOCK?(type)]
 		op: either case? [COMP_STRICT_EQUAL][COMP_FIND] ;-- warning: /case <> STRICT...
 		if same? [op: COMP_SAME]
 
@@ -1776,6 +1776,7 @@ block: context [
 			s		[series!]
 			len		[integer!]
 			step	[integer!]
+			head	[integer!]
 			table	[node!]
 			hash	[node!]
 			check?	[logic!]
@@ -1830,10 +1831,12 @@ block: context [
 				hash: either TYPE_OF(blk2) = TYPE_HASH [
 					blk?: no
 					hs: as red-hash! blk2
+					head: hs/head
 					hs/table
 				][
 					if all [blk? hash <> null] [_hashtable/destroy hash]
 					blk?: yes
+					head: 0
 					_hashtable/init rs-length? blk2 blk2 HASH_TABLE_HASH 1
 				]
 			]
@@ -1841,7 +1844,7 @@ block: context [
 			while [value < tail] [			;-- iterate over first series
 				append?: no
 				if check? [
-					find?: null <> _hashtable/get hash value 0 step comp-op no no
+					find?: null <> _hashtable/get hash value head step comp-op no no
 					if invert? [find?: not find?]
 				]
 				if all [

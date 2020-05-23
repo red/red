@@ -724,13 +724,15 @@ show: function [
 	/with				  "Link the face to a parent face"
 		parent [object!]  "Parent face to link to"
 	/force				  "For internal use only!"
+	return: [logic!]	  "true if success"
 ][
+	show?: yes
 	if block? face [
 		foreach f face [
 			if word? f [f: get f]
-			if object? f [show f]
+			if object? f [show?: show f]
 		]
-		exit
+		return show?
 	]
 	if debug-info? face [print ["show:" face/type " with?:" with]]
 	
@@ -800,7 +802,10 @@ show: function [
 	]
 
 	if face/pane [
-		foreach f face/pane [show/with f face]
+		foreach f face/pane [
+			show/with f face
+			unless face/state [return false]			;-- unviewed in child event handler
+		]
 		system/view/platform/refresh-window face/state/1
 	]
 	if all [new? object? face/actors in face/actors 'on-created][
@@ -809,6 +814,7 @@ show: function [
 	if all [new? face/type = 'window face/visible?][
 		system/view/platform/show-window obj
 	]
+	show?
 ]
 
 unview: function [
@@ -850,15 +856,14 @@ view: function [
 	
 	unless spec/text   [spec/text: "Red: untitled"]
 	unless spec/offset [center-face spec]
-	show spec
-	
+	unless show spec [exit]
+
 	either no-wait [
 		do-events/no-wait
-		spec											;-- return root face
+		spec							;-- return root face
 	][
-		do-events ()									;-- return unset! value by default
+		do-events ()					;-- return unset! value by default
 	]
-	
 ]
 
 center-face: function [

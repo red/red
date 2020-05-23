@@ -69,7 +69,7 @@ get-event-window: func [
 	as red-value! either handle = as handle! -1 [		;-- filter out unwanted events
 		none-value
 	][
-		push-face GetAncestor handle 2					;-- GA_ROOT
+		push-face GetAncestor handle 3					;-- GA_ROOTOWNER
 	]
 ]
 
@@ -1544,7 +1544,6 @@ process: func [
 			make-event msg flags EVT_WHEEL
 		]
 		WM_LBUTTONDOWN	[
-			if GetCapture <> null [return EVT_DISPATCH]
 			menu-origin: null							;-- reset if user clicks on menu bar
 			menu-ctx: null
 			make-event msg flags EVT_LEFT_DOWN
