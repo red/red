@@ -15,7 +15,6 @@ Red/System [
 draw-state!: alias struct! [
 	pen-join		[integer!]
 	pen-cap			[integer!]
-	pen-width		[float!]
 	pen-style		[integer!]
 	pen-color		[integer!]					;-- 00bbggrr format
 	brush-color		[integer!]					;-- 00bbggrr format
@@ -110,7 +109,6 @@ draw-begin: func [
 		grad	[gradient!]
 ][
 	ctx/cr:				cr
-	ctx/pen-width:		1.0
 	ctx/pen-style:		0
 	ctx/pen-color:		0						;-- default: black
 	ctx/pen-join:		miter
@@ -792,9 +790,8 @@ OS-draw-line: func [
 ][
 	cr: dc/cr
 	ctx-matrix-adapt dc saved
-	cairo_move_to cr as-float point/x as-float point/y
-	iter: point + 1
-
+	cairo_new_sub_path cr
+	iter: point
 	while [iter <= end][
 		cairo_line_to cr as-float iter/x as-float iter/y
 		iter: iter + 1
@@ -818,10 +815,9 @@ OS-draw-pen: func [
 		dc/grad-pen/pattern-on?: off
 		dc/grad-pen/on?: off
 	]
-	if all [not off? dc/pen-color <> color][
+	unless off? [
 		dc/pen-color: color
 		dc/font-color: color
-		set-source-color dc/cr color
 	]
 ]
 
@@ -839,7 +835,7 @@ OS-draw-fill-pen: func [
 		dc/grad-brush/pattern-on?: off
 		dc/grad-brush/on?: off
 	]
-	if dc/brush-color <> color [
+	unless off? [
 		dc/brush-color: color
 	]
 ]
@@ -852,7 +848,6 @@ OS-draw-line-width: func [
 ][
 	w: get-float as red-integer! width
 	if w <= 0.0 [w: 1.0]
-	dc/pen-width: w
 	cairo_set_line_width dc/cr w
 ]
 
@@ -966,23 +961,23 @@ do-spline-step: func [
 		x		[float!]
 		y		[float!]
 ][
-		t: 0.0
-		loop 25 [
-			t: t + spline-delta
-			t2: t * t
-			t3: t2 * t
+	t: 0.0
+	loop 25 [
+		t: t + spline-delta
+		t2: t * t
+		t3: t2 * t
 
-			x:
-			   2.0 * (as-float p1/x) + ((as-float p2/x) - (as-float p0/x) * t) +
-			   ((2.0 * (as-float p0/x) - (5.0 * (as-float p1/x)) + (4.0 * (as-float p2/x)) - (as-float p3/x)) * t2) +
-			   (3.0 * ((as-float p1/x) - (as-float p2/x)) + (as-float p3/x) - (as-float p0/x) * t3) * 0.5
-			y:
-			   2.0 * (as-float p1/y) + ((as-float p2/y) - (as-float p0/y) * t) +
-			   ((2.0 * (as-float p0/y) - (5.0 * (as-float p1/y)) + (4.0 * (as-float p2/y)) - (as-float p3/y)) * t2) +
-			   (3.0 * ((as-float p1/y) - (as-float p2/y)) + (as-float p3/y) - (as-float p0/y) * t3) * 0.5
+		x:
+			2.0 * (as-float p1/x) + ((as-float p2/x) - (as-float p0/x) * t) +
+			((2.0 * (as-float p0/x) - (5.0 * (as-float p1/x)) + (4.0 * (as-float p2/x)) - (as-float p3/x)) * t2) +
+			(3.0 * ((as-float p1/x) - (as-float p2/x)) + (as-float p3/x) - (as-float p0/x) * t3) * 0.5
+		y:
+			2.0 * (as-float p1/y) + ((as-float p2/y) - (as-float p0/y) * t) +
+			((2.0 * (as-float p0/y) - (5.0 * (as-float p1/y)) + (4.0 * (as-float p2/y)) - (as-float p3/y)) * t2) +
+			(3.0 * ((as-float p1/y) - (as-float p2/y)) + (as-float p3/y) - (as-float p0/y) * t3) * 0.5
 
-			cairo_line_to ctx x y
-		]
+		cairo_line_to ctx x y
+	]
 ]
 
 OS-draw-spline: func [
@@ -2467,7 +2462,7 @@ OS-draw-shape-arc: func [
 OS-draw-shape-close: func [
 	dc			[draw-ctx!]
 ][
-	;cairo_close_path dc/cr
+	cairo_close_path dc/cr
 ]
 
 OS-draw-brush-bitmap: func [

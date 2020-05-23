@@ -117,7 +117,6 @@ Red/System [
 		pattern?		[logic!]
 		pen-join		[integer!]
 		pen-cap			[integer!]
-		pen-width		[float!]
 		pen-style		[integer!]
 		pen-color		[integer!]					;-- 00bbggrr format
 		brush-color		[integer!]					;-- 00bbggrr format
