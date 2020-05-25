@@ -911,9 +911,13 @@ block: context [
 		]
 
 		type: TYPE_OF(value)
-		if all [not same? type = TYPE_OBJECT][hash?: no] ;-- use block search
+		if any [
+			type = TYPE_DATATYPE
+			type = TYPE_TYPESET
+			all [not same? type = TYPE_OBJECT]
+		][hash?: no]									;-- use block search
 		any-blk?: ANY_BLOCK?(type)
-		op: either case? [COMP_STRICT_EQUAL][COMP_FIND]  ;-- warning: /case <> STRICT...
+		op: either case? [COMP_STRICT_EQUAL][COMP_FIND]	;-- warning: /case <> STRICT...
 		if same? [op: COMP_SAME]
 
 		either any [
