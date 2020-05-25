@@ -1083,7 +1083,9 @@ connect-widget-events: func [
 		sym = slider [
 			gobj_signal_connect(widget "value-changed" :range-value-changed widget)
 		]
-		sym = text [0]
+		sym = text [
+			connect-notify-events evbox widget
+		]
 		sym = field [
 			gobj_signal_connect(widget "changed" :field-changed widget)
 		]
