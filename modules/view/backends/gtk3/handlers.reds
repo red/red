@@ -604,10 +604,8 @@ text-list-selected-rows-changed: func [
 	idx: either null? sel [-1][gtk_list_box_row_get_index sel]
 	if idx >= 0 [
 		face: get-face-obj widget
-		res: make-event widget idx + 1 EVT_SELECT
 		set-selected widget face/ctx idx + 1
-		text: gtk_label_get_text gtk_bin_get_child sel
-		set-text widget face/ctx text
+		res: make-event widget idx + 1 EVT_SELECT
 		if res = EVT_DISPATCH [
 			make-event widget idx + 1 EVT_CHANGE
 		]

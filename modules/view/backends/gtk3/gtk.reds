@@ -1846,6 +1846,13 @@ GPtrArray!: alias struct! [
 			row			[handle!]
 			return:		[integer!]
 		]
+		gtk_list_box_unselect_all: "gtk_list_box_unselect_all" [
+			listbox		[handle!]
+		]
+		gtk_list_box_set_selection_mode: "gtk_list_box_set_selection_mode" [
+			listbox		[handle!]
+			mode		[integer!]
+		]
 		gtk_scrolled_window_new: "gtk_scrolled_window_new" [
 			hadj		[handle!]
 			vadj		[handle!]

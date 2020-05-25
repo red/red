@@ -16,9 +16,13 @@ select-text-list: func [
 	/local
 		item	[handle!]
 ][
-	item: gtk_list_box_get_row_at_index widget int
-	unless null? item [
-		gtk_list_box_select_row widget item
+	either int < 0 [
+		gtk_list_box_unselect_all widget
+	][
+		item: gtk_list_box_get_row_at_index widget int
+		unless null? item [
+			gtk_list_box_select_row widget item
+		]
 	]
 ]
 
@@ -33,6 +37,7 @@ init-text-list: func [
 		len		[integer!]
 		label	[handle!]
 		type	[integer!]
+		idx		[integer!]
 ][
 	if any [
 		TYPE_OF(data) = TYPE_BLOCK
@@ -56,11 +61,7 @@ init-text-list: func [
 		]
 	]
 
-	either TYPE_OF(selected) <> TYPE_INTEGER [
-		selected/header: TYPE_INTEGER
-		selected/value: -1
-	][
-		select-text-list widget selected/value
-	]
+	idx: either TYPE_OF(selected) = TYPE_INTEGER [selected/value - 1][-1]
+	select-text-list widget idx
 ]
 

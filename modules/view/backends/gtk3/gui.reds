@@ -1087,10 +1087,9 @@ change-data: func [
 			type = text-list
 			TYPE_OF(data) = TYPE_BLOCK
 		][
-			;;DEBUG: print ["text-list updated" lf]
+			gtk_list_box_unselect_all widget
 			gtk_container_foreach widget as-integer :remove-entry widget
 			init-text-list widget as red-block! data selected
-			gtk_widget_show widget
 		]
 		any [type = drop-list type = drop-down][
 			init-combo-box widget as red-block! data null type = drop-list
@@ -1858,6 +1857,7 @@ OS-make-view: func [
 		]
 		sym = text-list [
 			widget: gtk_list_box_new
+			gtk_list_box_set_selection_mode widget 1
 			init-text-list widget data selected
 			container: gtk_scrolled_window_new null null
 			if bits and FACET_FLAGS_NO_BORDER = 0 [
