@@ -1226,8 +1226,9 @@ object: context [
 
 		if TYPE_OF(obj2) <> TYPE_OBJECT [RETURN_COMPARE_OTHER]
 
-		if op = COMP_SAME [return either obj1/ctx = obj2/ctx [0][-1]]
-		if obj1/ctx = obj2/ctx [return 0]
+		either obj1/ctx = obj2/ctx [return 0][
+			if op = COMP_SAME [return -1]
+		]
 
 		if cycles/find? obj1/ctx [
 			return either cycles/find? obj2/ctx [0][-1]
