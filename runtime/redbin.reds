@@ -456,6 +456,46 @@ redbin: context [
 		as int-ptr! pixels + size
 	]
 	
+	origin: declare red-block!
+	
+	decode-reference: func [
+		data    [int-ptr!]
+		parent  [red-block!]
+		return: [int-ptr!]
+		/local
+			value  [red-value!]
+			offset [integer!]
+	][
+		value:  as red-value! origin
+		offset: data/4
+		
+		loop data/3 [
+			value: switch TYPE_OF(value) [
+				TYPE_ANY_BLOCK
+				TYPE_MAP [
+					block/rs-abs-at as red-block! value 0
+				]
+				TYPE_OBJECT
+				TYPE_ERROR [
+					--NOT_IMPLEMENTED--				;@@ TBD: support for any-object!
+					value
+				]
+				default [
+					assert false
+					value
+				]
+			]
+			
+			value:  value + offset
+			offset: offset + 1
+		]
+		
+		value: copy-cell value ALLOC_TAIL(parent)
+		value/data1: data/2							;@@ TBD: value other than any-block! or map!
+		
+		data + data/3 + 3
+	]
+	
 	decode-value: func [
 		data	[int-ptr!]
 		table	[int-ptr!]
@@ -536,9 +576,6 @@ redbin: context [
 			TYPE_BITSET     [decode-bitset data parent nl?]
 			TYPE_VECTOR     [decode-vector data parent nl?]
 			TYPE_IMAGE		[decode-image data parent nl?]
-			REDBIN_PADDING	[
-				decode-value data + 1 table parent
-			]
 			TYPE_PORT
 			TYPE_OBJECT
 			TYPE_ERROR
@@ -546,9 +583,18 @@ redbin: context [
 			TYPE_ROUTINE
 			TYPE_HANDLE
 			TYPE_EVENT
-			TYPE_POINT
-			REDBIN_REFERENCE [
+			TYPE_POINT [
 				--NOT_IMPLEMENTED--
+				data
+			]
+			REDBIN_PADDING [
+				decode-value data + 1 table parent
+			]
+			REDBIN_REFERENCE [
+				decode-reference data parent
+			]
+			default [
+				assert false
 				data
 			]
 		]
@@ -623,6 +669,7 @@ redbin: context [
 		end: p + len
 		#if debug? = yes [if verbose > 0 [i: 0]]
 		
+		origin: parent
 		while [p < end][
 			#if debug? = yes [
 				p4: as int-ptr! p
