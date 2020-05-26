@@ -437,7 +437,7 @@ system: context [
 		exit-states: reduce [
 			'eof error! block! block! paren! paren! string! string! map! path! datatype!
 			'comment string! word! issue! integer! refinement! char! file! binary! percent!
-			float! float! tuple! date! pair! time! money! tag! url! email! 'hex 'rawstring
+			float! float! tuple! date! pair! time! money! tag! url! email! 'hex 'rawstring ref!
 		]
 	]
 	
