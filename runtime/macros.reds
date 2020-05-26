@@ -471,6 +471,14 @@ Red/System [
 	]
 ]
 
+#define ALL_WORD?(type) [
+	any [
+		ANY_WORD?(type)
+		type = TYPE_REFINEMENT
+		type = TYPE_ISSUE
+	]
+]
+
 #define TYPE_ANY_WORD [
 	TYPE_WORD
 	TYPE_GET_WORD
