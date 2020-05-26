@@ -213,6 +213,7 @@
 	red/natives/forall-next
 	red/natives/forall-end
 	red/natives/forall-end-adjust
+	red/natives/coerce-counter*
 
 	red/actions/make*
 	red/actions/random*

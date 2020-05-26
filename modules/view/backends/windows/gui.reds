@@ -1890,6 +1890,8 @@ adjust-selection: func [
 		p-bgn: head + (bgn/1 << unit-b)
 		p-end: head + (end/1 << unit-b)
 		quote: 0  nl: 0
+		if p-bgn < head [p-bgn: head]
+		if p-end > tail [p-end: tail]
 		string/sniff-chars head  p-bgn unit :quote :nl
 		bgn/1: bgn/1 + nl
 		string/sniff-chars p-bgn p-end unit :quote :nl
@@ -2305,6 +2307,7 @@ update-z-order: func [
 		nb	 [integer!]
 		sub? [logic!]
 ][
+	if TYPE_OF(pane) <> TYPE_BLOCK [exit]
 	s: GET_BUFFER(pane)
 	
 	face: as red-object! s/offset + pane/head

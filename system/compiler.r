@@ -1183,10 +1183,10 @@ system-dialect: make-profilable context [
 		preprocess-array: func [list [block!] /local p s v][
 			parse list [
 				some [
-					['true | 'false] (p/1: do p/1)
-					| p: 'null (p/1: 0)
-					| p: word! (check-enum-symbol/strict p) :p
-					| p: paren! :p into [any [
+					p: ['true | 'false] (p/1: do p/1)
+					| 'null (p/1: 0)
+					| word! (check-enum-symbol/strict p) :p
+					| paren! :p into [any [
 						array-expr-keywords | s: word! (check-enum-symbol/strict s) | skip
 					]] :p (change p do p/1)
 					| string! | char! | integer! | decimal! | get-word!

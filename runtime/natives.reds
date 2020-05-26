@@ -197,6 +197,7 @@ natives: context [
 			saved [int-ptr!]
 	][
 		#typecheck loop
+		coerce-counter*
 		count: integer/get*
 		unless positive? count [RETURN_NONE]			;-- if counter <= 0, no loops
 		body: as red-block! stack/arguments + 1
@@ -232,6 +233,7 @@ natives: context [
 		count: as red-integer! stack/arguments + 1
 		body:  as red-block!   stack/arguments + 2
 		
+		coerce-counter as red-value! count
 		i: integer/get as red-value! count
 		unless positive? i [RETURN_NONE]				;-- if counter <= 0, no loops
 		
@@ -3375,6 +3377,24 @@ natives: context [
 		int: as red-integer! cell
 		int/value: value								;-- overlapping /value field for integer! and char!
 	]
+	
+	coerce-counter: func [
+		slot 	[red-value!]
+		/local
+			int [red-integer!]
+			fl	[red-float!]
+			i	[integer!]
+	][
+		if TYPE_OF(slot) = TYPE_FLOAT [
+			fl: as red-float! slot
+			i: as-integer fl/value
+			int: as red-integer! slot
+			int/header: TYPE_INTEGER
+			int/value: i
+		]
+	]
+	
+	coerce-counter*: func [][coerce-counter stack/arguments]
 	
 	init: does [
 		table: as int-ptr! allocate NATIVES_NB * size? integer!

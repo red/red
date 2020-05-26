@@ -1534,6 +1534,19 @@ Red [
 		--assert [1 2]			= exclude a b
 		--assert [5 6]			= exclude b a
 
+	--test-- "set-op-hash"
+		a: make hash! [5 6 7 8]
+		b: skip a 2
+		--assert (make hash! [7 8])		= unique b
+		--assert (make hash! [5 6 7 8])	= unique a
+		--assert (make hash! [5 6 7 8])	= union a b
+		--assert (make hash! [7 8])		= intersect a b
+		--assert (make hash! [7 8])		= intersect b a
+		--assert (make hash! [5 6])		= difference a b
+		--assert (make hash! [5 6])		= difference b a
+		--assert (make hash! [5 6])		= exclude a b
+		--assert (make hash! [])		= exclude b a
+
 	--test-- "set-op-str"
 		a: "CBAD"
 		b: "EDCCF"

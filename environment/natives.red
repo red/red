@@ -66,7 +66,7 @@ until: make native! [[
 
 loop: make native! [[
 		"Evaluates body a number of times"
-		count [integer!]
+		count [integer! float!]
 		body  [block!]
 	]
 	#get-definition NAT_LOOP
@@ -75,7 +75,7 @@ loop: make native! [[
 repeat: make native! [[
 		"Evaluates body a number of times, tracking iteration count"
 		'word [word!]    "Iteration counter; not local to loop"
-		value [integer!] "Number of times to evaluate body"
+		value [integer! float!] "Number of times to evaluate body"
 		body  [block!]
 	]
 	#get-definition NAT_REPEAT

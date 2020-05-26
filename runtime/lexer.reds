@@ -155,12 +155,10 @@ lexer: context [
 	]
 	
 	cons-syntax: [
-	;--- word --- length -- value ---
-		"true"		4		true
-		"false"		5		false
-		"none!"		5		TYPE_NONE
-		"none"		4		TYPE_NONE
-		;... to be eventually completed
+	;--- word - type ----- value -- length --
+		"true"	TYPE_LOGIC true		4
+		"false"	TYPE_LOGIC false	5
+		"none"	TYPE_NONE  0		4
 	]
 	
 	months: [
@@ -452,12 +450,7 @@ lexer: context [
 				stack/push block/rs-abs-at blk (0 - type) - 1 ;-- 1-based access
 			]
 		][
-			either event = EVT_SCAN [
-				name: name-table + type
-				stack/push as red-value! name/word
-			][
-				either zero? type [none/push][datatype/push type]
-			]
+			either zero? type [none/push][datatype/push type]
 		]
 		either all [lex/in-series <> null TYPE_OF(lex/in-series) <> TYPE_BINARY][
 			x: unicode/count-chars lex/input s
@@ -1044,34 +1037,52 @@ lexer: context [
 		]
 	]
 	
-	scan-comment: func [lex [state!] s e [byte-ptr!] flags [integer!]][
+	scan-comment: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
 		if lex/fun-ptr <> null [fire-event lex EVT_SCAN --EXIT_STATES-- - T_CMT null s e]
 	]
 
-	scan-construct: func [lex [state!] s e [byte-ptr!] flags [integer!]
+	scan-construct: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local
-			dt		[red-datatype!]
-			len		[integer!]
-			p dtypes end [int-ptr!]
+			dt		 [red-datatype!]
+			len type [integer!]
+			p end	 [int-ptr!]
+			name	 [names!]
 	][
 		s: s + 2										;-- skip #[
 		p: cons-syntax
-		dtypes: p + (3 * 2)
 		end: p + size? cons-syntax						;-- point to end of array
-		loop 4 [
-			if zero? platform/strnicmp s as byte-ptr! p/1 p/2 [break]
-			p: p + 3
+		len: as-integer e - s
+		loop 3 [
+			if zero? platform/strnicmp s as byte-ptr! p/1 len [break]
+			p: p + 4
 		]
-		if p = end [throw-error lex s e ERR_MALCONSTRUCT] ;-- no match, error case
-		len: p/2 + 1
-		if s/len <> #"]" [throw-error lex s e ERR_MALCONSTRUCT]
-
-		dt: as red-datatype! alloc-slot lex
-		either p < dtypes [
-			set-type as cell! dt TYPE_LOGIC
-			dt/value: p/3
+		either p < end [
+			len: p/4 + 1
+			if s/len <> #"]" [throw-error lex s e ERR_MALCONSTRUCT]
+			if load? [
+				dt: as red-datatype! alloc-slot lex
+				set-type as cell! dt p/2
+				if p/2 = TYPE_LOGIC [dt/value: p/3]
+			]
 		][
-			set-type as cell! dt p/3
+			type: 1
+			until [
+				name: name-table + type
+				if zero? platform/strnicmp s as byte-ptr! name/buffer len [break]
+				type: type + 1
+				type > datatype/top-id
+			]
+			if any [
+				type > datatype/top-id
+				name/size + 1 < len
+			][
+				throw-error lex s e ERR_MALCONSTRUCT	;-- no match, error case
+			]
+			if load? [
+				dt: as red-datatype! alloc-slot lex
+				set-type as cell! dt TYPE_DATATYPE
+				dt/value: type
+			]
 		]
 		lex/in-pos: e + 1								;-- skip ]
 	]

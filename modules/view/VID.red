@@ -95,15 +95,16 @@ system/view/VID: context [
 	
 	calc-size: function [face [object!]][
 		case [
-			all [
-				block? data: face/data
-				not empty? data 
-				find [text-list drop-list drop-down] face/type
-			][
+			find [text-list drop-list drop-down] face/type [
 				min-sz: 0x0
-				foreach txt data [
-					if any-string? txt [min-sz: max min-sz size-text/with face as string! txt]
-				]
+				either all [
+					block? data: face/data
+					not empty? data
+				][ 
+					foreach txt data [
+						if any-string? txt [min-sz: max min-sz size-text/with face as string! txt]
+					]
+				][min-sz: size-text/with face "X"]
 				if all [face/text face/type <> 'drop-list][
 					min-sz: max min-sz size-text face
 				]
@@ -459,7 +460,7 @@ system/view/VID: context [
 			min-sz: either find containers face/type [sz][
 				(any [pad 0x0]) + any [
 					all [
-						any [face/text series? face/data]
+						any [face/text series? face/data face/font]
 						calc-size face
 					]
 					sz

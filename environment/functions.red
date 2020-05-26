@@ -1102,6 +1102,16 @@ last?: func [
 	1 = length? series
 ]
 
+dt: function [
+	"Returns the time required to evaluate a block"
+	body	[block!]
+	return: [time!]
+][
+	t0: now/time/precise
+	do body
+	now/time/precise - t0
+]
+
 ;------------------------------------------
 ;-				Aliases					  -
 ;------------------------------------------

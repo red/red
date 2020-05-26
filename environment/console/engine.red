@@ -334,10 +334,10 @@ list-dir: function [
 	]
 	list: read normalize-dir dir
 	limit: system/console/size/x - 13
-	max-sz: either n [
-		limit / n - n					;-- account for n extra spaces
+	max-sz: to-integer either n [
+		limit / n - n									;-- account for n extra spaces
 	][
-		n: max 1 limit / 22				;-- account for n extra spaces
+		n: max 1 limit / 22								;-- account for n extra spaces
 		22 - n
 	]
 

@@ -121,7 +121,7 @@ update-list-hbar: func [
 	GetTextExtentPoint32 dc str len csize
 	if hFont <> null [SelectObject dc saved]
 	ReleaseDC dc
-	SendMessage hWnd LB_SETHORIZONTALEXTENT csize/width 0
+	SendMessage hWnd LB_SETHORIZONTALEXTENT csize/width + 4 0
 ]
 
 insert-list-item: func [

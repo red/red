@@ -2374,7 +2374,10 @@ red: context [
 		comp-expression/close-path						;@@ optimize case for literal counter
 		emit-argument-type-check 0 'loop 'stack/arguments
 		
-		emit compose [(set-name) integer/get*]
+		emit compose [
+			natives/coerce-counter*
+			(set-name) integer/get*
+		]
 		insert-lf -2
 		emit compose/deep [
 			either (name) <= 0 [(set-last-none)]
@@ -2460,14 +2463,13 @@ red: context [
 			]
 		][
 			[
+				'natives/coerce-counter*
 				set-lim 'integer/get*
 				'_context/set-integer name lim
 				set-cnt 0
 			]
 		]
-		insert-lf -2
-		insert-lf -5
-		insert-lf -7
+		foreach idx [-2 -5 -7 -8][insert-lf idx]
 		emit-stack-reset
 		
 		emit-open-frame 'repeat

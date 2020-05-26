@@ -652,6 +652,7 @@ shoot-parallel: func [
 		text "waiting for snapshots to complete" rate 5
 		on-time [if started = finished [unview/only face/parent]]
 	]
+	loop 10 [do-events/no-wait]		;-- let the last windows actually close
 	i: 0
 	parse code rule: [any [
 		change [['shoot | 'shoot/whole] block!] (reduce [to-paren compose [pick snaps (i: i + 1)]])
@@ -777,10 +778,12 @@ test-images-equal?: func [
 ] [
 	test-images-of-equal-size? a b
 	diff: imgdiff copy a b
+	tolabs: any [tolabs 2]		;-- allow a bit of error for our draw transparency hacks
 	unless img-black?/tol diff tolrel tolabs [
 		s: form reduce [
 			"expected images to be equal, but found"
 			to integer! (length? trim diff/rgb) / 3 "different pixels"
+			"compared with tol rel=" any [tolrel 0%] "abs=" tolabs
 		]
 		maybe-display-shortly [a b diff] s
 		return no
@@ -836,7 +839,36 @@ test-same-text-size?: func [
 	] [
 		s: form reduce [
 			"expected text to be of equal size on these images, got" sz1 "vs" sz2
-			", compared with tol rel=0 abs=1"
+			", compared with tol rel=8% abs=1"
+		]
+		maybe-display-shortly [im1 im2] s
+		return no
+	]
+	yes
+]
+
+
+test-same-text-origin-and-size?: function [
+	"test if text on 2 images is of equal size and origin"
+	im1 [image!] im2 [image!]
+] [
+	unless all [
+		bs1: text-bounds? im1
+		bs2: text-bounds? im2
+		or1: as-pair  round im1/size/x * bs1/1  round im1/size/y * bs1/2
+		or2: as-pair  round im2/size/x * bs2/1  round im2/size/y * bs2/2
+		sz1: as-pair  round im1/size/x * (bs1/3 - bs1/1)  round im1/size/y * (bs1/4 - bs1/2)
+		sz2: as-pair  round im2/size/x * (bs2/3 - bs2/1)  round im2/size/y * (bs2/4 - bs2/2)
+		origin-error: 3.0 / 96 * system/view/metrics/dpi		;-- 3px of error, scaled - enough?
+		about?/tol or1/x or2/x 0% origin-error
+		about?/tol or1/y or2/y 0% origin-error
+		about?/tol sz1/x sz2/x 8% 1		;-- allow 8% + 1px of error - W10 has different proofing for unrotated text
+		about?/tol sz1/y sz2/y 8% 1
+	] [
+		s: form reduce [
+			"expected text to be of equal origin and size on these images, got"
+			"origin=" or1 "vs" or2 "and size=" sz1 "vs" sz2
+			", compared with tol rel=8% abs=1 (size), rel=0% abs=3px (origin)"
 		]
 		maybe-display-shortly [im1 im2] s
 		return no
@@ -1436,14 +1468,12 @@ test-NOT-equally-spaced?: func [
 	]	;-- four-ways
 
 	;-- not 4-way-scalable this one
-	;@@ TODO: parts 2 and 3
-	--test-- "#3725 part 1"
-		bst-im1: shoot compose/deep [base' "ABC" left top draw [font (copy bst-font1) text 0x0 "ABC"]]	;-- 2 strings
-		bst-im2: shoot compose/deep [base'       left top draw [font (copy bst-font1) text 0x0 "ABC"]]	;-- 1 string
+	--test-- "#3725 part 1"		;-- parts 2 and 3 were dismissed
+		bst-im1: shoot compose/deep [base' "ABC" left top]
+		bst-im2: shoot compose/deep [base'       left top draw [font (copy bst-font1) text 0x0 "ABC"]]
 		bst-im3: shoot compose/deep [base'*      left top draw [font (copy bst-font1) text 0x0 "ABC"]]	;-- with transparency
-		;-- 100 is a huge tolerance, but the real value due to aliasing is about 64-65 -- @@ FIXME -- better way?
-		--assert test-images-equal?/tol bst-im1 bst-im2 0 100		;-- both draw and base strings do align?
-		--assert test-images-equal?/tol bst-im1	bst-im3 0 100		;-- no double scaling?
+		--assert test-same-text-origin-and-size? bst-im1 bst-im2		;-- both draw and base strings do align?
+		--assert test-same-text-origin-and-size? bst-im1 bst-im3		;-- no double scaling?
 
 ===end-group===
 
