@@ -183,7 +183,7 @@ context [
 	
 	emit-money: func [value [issue!] /local bin header][
 		value: to string! next value
-		header: extracts/definitions/TYPE_MONEY or shift/left to-integer value/4 = #"-" 14
+		header: extracts/definitions/TYPE_MONEY or shift/left to-integer value/4 = #"-" 16
 		if nl? [header: header or nl-flag]
 		emit header
 		repend buffer [

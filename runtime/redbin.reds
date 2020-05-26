@@ -20,6 +20,7 @@ Red/System [
 #define REDBIN_SELF_MASK			10000000h
 #define REDBIN_SET_MASK				08000000h
 #define REDBIN_KIND_MASK			06000000h
+#define REDBIN_MONEY_SIGN_MASK		00010000h
 
 redbin: context [
 	verbose: 0
@@ -367,7 +368,7 @@ redbin: context [
 			cur	 [byte-ptr!]
 			neg? [logic!]
 	][
-		neg?: data/1 and 4000h <> 0
+		neg?: data/1 and REDBIN_MONEY_SIGN_MASK <> 0
 		cur: as byte-ptr! data + 1
 		slot: money/make-in ALLOC_TAIL(parent) neg? as-integer cur/1 cur + 1
 		if nl? [slot/header: slot/header or flag-new-line]
@@ -1071,7 +1072,7 @@ redbin: context [
 		header: type or either zero? (data/header and flag-new-line) [0][REDBIN_NEWLINE_MASK]
 		header: header or switch type [
 			TYPE_TUPLE [TUPLE_SIZE?(data) << 8]
-			TYPE_MONEY [(money/get-sign as red-money! data) << 14]
+			TYPE_MONEY [(money/get-sign as red-money! data) << 16]
 			default    [0]
 		]
 		
