@@ -1090,15 +1090,15 @@ redbin: context [
 			TYPE_TYPESET
 			TYPE_TUPLE
 			TYPE_MONEY		[record [payload header data/data1 data/data2 data/data3]]
+			TYPE_ANY_WORD
+			TYPE_REFINEMENT
+			TYPE_ISSUE		[encode-word data header payload symbols table strings]
 			default 		[
 				node: as node! either ALL_WORD?(type) [data/data1][data/data2]
 				ref:  reference/fetch node
 				either not null? ref [encode-reference ref payload][
 					reference/store node
 					switch type [
-						TYPE_ANY_WORD
-						TYPE_REFINEMENT
-						TYPE_ISSUE		[encode-word data header payload symbols table strings]
 						TYPE_ANY_STRING
 						TYPE_VECTOR
 						TYPE_BINARY		[encode-string data header payload]
