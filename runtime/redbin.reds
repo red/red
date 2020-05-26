@@ -742,7 +742,7 @@ redbin: context [
 			/local
 				size index [integer!]
 		][
-			size: integer/abs (as integer! path/top - path/stack) >> 2
+			size: 1 + integer/abs (as integer! path/top - path/stack) >> log-b size? integer!
 			top/1: as integer! node
 			top/2: 0								;@@ TBD
 			top/3: size
@@ -756,7 +756,6 @@ redbin: context [
 			
 			top: top + size
 		]
-		
 		
 		reset: does [top: list]
 	]
