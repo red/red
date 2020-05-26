@@ -31,7 +31,7 @@ change-para: func [
 		hsym: get-para-hsym pvalues
 		vsym: get-para-vsym pvalues
 	][
-		wrap?: no
+		wrap?: yes
 		hsym: _para/left
 		vsym: _para/middle
 	]
