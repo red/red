@@ -464,10 +464,10 @@ redbin: context [
 		return: [int-ptr!]
 		/local
 			value  [red-value!]
-			offset [integer!]
+			offset [int-ptr!]
 	][
 		value:  as red-value! origin
-		offset: data/4
+		offset: data + 4
 		
 		loop data/3 [
 			value: switch TYPE_OF(value) [
@@ -486,7 +486,7 @@ redbin: context [
 				]
 			]
 			
-			value:  value + offset
+			value:  value + offset/value
 			offset: offset + 1
 		]
 		
