@@ -19,6 +19,7 @@ Red/System [
 #define REDBIN_STACK_MASK			20000000h
 #define REDBIN_SELF_MASK			10000000h
 #define REDBIN_SET_MASK				08000000h
+#define REDBIN_KIND_MASK			06000000h
 
 redbin: context [
 	verbose: 0
@@ -149,7 +150,7 @@ redbin: context [
 		values?: header and REDBIN_VALUES_MASK <> 0
 		stack?:	 header and REDBIN_STACK_MASK  <> 0
 		self?:	 header and REDBIN_SELF_MASK   <> 0
-		type:	 GET_CTX_TYPE_ALT(header)
+		type:	 header and REDBIN_KIND_MASK >> 25
 		
 		new: _context/create slots stack? self? null type
 		obj: as red-object! ALLOC_TAIL(parent)			;-- use an object to store the ctx node
@@ -917,7 +918,7 @@ redbin: context [
 		self?:   context/header and flag-self-mask <> 0
 		values?: no
 		
-		header: TYPE_CONTEXT or (kind << 11)
+		header: TYPE_CONTEXT or (kind << 25)
 		if stack? [header: header or REDBIN_STACK_MASK]
 		if self?  [header: header or REDBIN_SELF_MASK]
 		
