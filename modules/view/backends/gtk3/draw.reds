@@ -1579,6 +1579,7 @@ OS-draw-grad-pen-old: func [
 	grad/type: type
 	grad/count: 0
 
+	grad/focal-on?: off
 	case [
 		type = linear [
 			grad/offset-on?: on
@@ -1593,12 +1594,14 @@ OS-draw-grad-pen-old: func [
 			grad/offset/y: offset/y
 			grad/offset2/x: w					;-- smaller radius
 			grad/offset2/y: h					;-- bigger radius
+			grad/focal-on?: on
+			grad/focal/x: offset/x + w
+			grad/focal/y: offset/y + w
 		]
 		true [
 			grad/offset-on?: off
 		]
 	]
-	grad/focal-on?: off
 
 	n: 0
 	rotate?: no
