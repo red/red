@@ -684,6 +684,8 @@ redbin: context [
 		root-base
 	]
 	
+	offset: 0
+	
 	header: #{
 		52454442494E								;-- REDBIN magic
 		01											;-- version
@@ -691,6 +693,73 @@ redbin: context [
 		00000000									;-- placeholder for length
 		00000000									;-- placeholder for size
 	}
+	
+	path: context [
+		size:  1'000
+		stack: as int-ptr! allocate size * size? integer!
+		top:   stack
+		end:   stack + size
+		
+		push: does [
+			if top + 1 = end [reset fire [TO_ERROR(internal too-deep)]]
+			top/value: offset
+			top: top + 1
+			offset: 0
+		]
+		
+		pop: does [
+			top: top - 1
+			assert top >= stack
+			offset: top/value
+		]
+		
+		reset: does [top: stack]
+	]
+	
+	reference: context [
+		size: 3'000
+		list: as int-ptr! allocate size * size? integer!	;-- node, head, size, offsets
+		top:  list
+		end:  list + size
+		
+		fetch: func [
+			node    [node!]
+			return: [int-ptr!]
+			/local
+				here [int-ptr!]
+		][
+			here: list
+			while [here <> top][
+				if node = as node! here/value [return here + 1]
+				here: here + here/3 + 3
+			]
+			
+			null
+		]
+		
+		store: func [
+			node [node!]
+			/local
+				size index [integer!]
+		][
+			size: integer/abs (as integer! path/top - path/stack) >> 2
+			top/1: as integer! node
+			top/2: 0								;@@ TBD
+			top/3: size
+			top: top + 3
+			
+			index: 1
+			loop size [
+				top/index: path/stack/index
+				index: index + 1
+			]
+			
+			top: top + size
+		]
+		
+		
+		reset: does [top: list]
+	]
 	
 	pad: func [
 		buffer [red-binary!]
@@ -917,22 +986,36 @@ redbin: context [
 		table   [red-binary!]
 		strings [red-binary!]
 		/local
-			series  [red-series!]
-			_offset [red-value!]
-			buffer  [series!]
-			length  [integer!]
+			series [red-series!]
+			value  [red-value!]
+			buffer [series!]
+			length [integer!]
+			push?  [logic!]
 	][
 		series:  as red-series! data
 		buffer:  GET_BUFFER(series)
 		length:  _series/get-length series yes
-		_offset: buffer/offset
+		value:   buffer/offset
 		
 		store payload header
 		unless header and get-type-mask = TYPE_MAP [store payload either abs? [0][data/data1]]
 		store payload length
+		
 		loop length [
-			encode-value _offset payload symbols table strings
-			_offset: _offset + 1
+			push?: switch TYPE_OF(value) [
+				TYPE_ANY_BLOCK
+				TYPE_MAP
+				TYPE_OBJECT
+				TYPE_ERROR [yes]
+				default    [no]
+			]
+			
+			if push? [path/push]
+			encode-value value payload symbols table strings
+			if push? [path/pop]
+			
+			offset: offset + 1
+			value:  value + 1
 		]
 	]
 	
@@ -964,6 +1047,14 @@ redbin: context [
 		pad payload 32
 	]
 	
+	encode-reference: func [
+		reference [int-ptr!]
+		payload   [red-binary!]
+	][
+		store payload REDBIN_REFERENCE
+		emit payload as byte-ptr! reference (3 + reference/3) * size? integer!
+	]
+	
 	encode-value: func [
 		data    [red-value!]
 		payload [red-binary!]
@@ -971,7 +1062,10 @@ redbin: context [
 		table   [red-binary!]
 		strings [red-binary!]
 		/local
-			type header [integer!]
+			node   [node!]
+			ref    [int-ptr!]
+			type   [integer!]
+			header [integer!]
 	][		
 		type: TYPE_OF(data)
 		header: type or either zero? (data/header and flag-new-line) [0][REDBIN_NEWLINE_MASK]
@@ -996,21 +1090,26 @@ redbin: context [
 			TYPE_TYPESET
 			TYPE_TUPLE
 			TYPE_MONEY		[record [payload header data/data1 data/data2 data/data3]]
-			default [								;-- indirect values
-				switch type [
-					TYPE_ANY_WORD
-					TYPE_REFINEMENT
-					TYPE_ISSUE		[encode-word data header payload symbols table strings]
-					TYPE_ANY_STRING
-					TYPE_VECTOR
-					TYPE_BINARY		[encode-string data header payload]
-					TYPE_BITSET		[encode-bitset data header payload]
-					TYPE_IMAGE		[encode-image  data header payload]
-					TYPE_NATIVE
-					TYPE_ACTION 	[encode-native data header payload symbols table strings]
-					TYPE_ANY_BLOCK
-					TYPE_MAP		[encode-block data header no payload symbols table strings]
-					default	[--NOT_IMPLEMENTED--]	;@@ TBD: proper error message
+			default 		[
+				node: as node! either ALL_WORD?(type) [data/data1][data/data2]
+				ref:  reference/fetch node
+				either not null? ref [encode-reference ref payload][
+					reference/store node
+					switch type [
+						TYPE_ANY_WORD
+						TYPE_REFINEMENT
+						TYPE_ISSUE		[encode-word data header payload symbols table strings]
+						TYPE_ANY_STRING
+						TYPE_VECTOR
+						TYPE_BINARY		[encode-string data header payload]
+						TYPE_BITSET		[encode-bitset data header payload]
+						TYPE_IMAGE		[encode-image  data header payload]
+						TYPE_NATIVE
+						TYPE_ACTION 	[encode-native data header payload symbols table strings]
+						TYPE_ANY_BLOCK
+						TYPE_MAP		[encode-block data header no payload symbols table strings]
+						default	[--NOT_IMPLEMENTED--]	;@@ TBD: proper error message
+					]
 				]
 			]
 		]
@@ -1026,6 +1125,10 @@ redbin: context [
 			length size sym-len str-len sym-size [integer!]
 	][
 		codec?: yes
+		offset: 0
+		
+		path/reset
+		reference/reset
 		
 		;-- payload
 		payload: binary/make-at stack/push* 4		;@@ TBD: heuristics for pre-allocation
@@ -1056,7 +1159,7 @@ redbin: context [
 		here: as int-ptr! head + 8					;-- skip to length entry
 		here/1: 1									;-- always 1 root record
 		here/2: size
-		
+			
 		payload
 	]
 	
