@@ -24,12 +24,12 @@ Red [
 	#include %environment/system.red
 	#include %environment/operators.red
 
-	#include %environment/codecs/png.red
-	#include %environment/codecs/jpeg.red
-	#include %environment/codecs/bmp.red
-	#include %environment/codecs/gif.red
-	#include %environment/codecs/json.red
-	#include %environment/codecs/csv.red
+	#include %environment/codecs/PNG.red
+	#include %environment/codecs/JPEG.red
+	#include %environment/codecs/BMP.red
+	#include %environment/codecs/GIF.red
+	#include %environment/codecs/JSON.red
+	#include %environment/codecs/CSV.red
 
 	#include %environment/reactivity.red				;-- requires SET intrinsic
 	#include %environment/networking.red
