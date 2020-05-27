@@ -322,5 +322,28 @@ Red [
 			
 			--assert (mold block) = mold test block
 	===end-group===
+	
+	===start-group=== "Cycles & References"
+		--test-- "cycle-1"
+			append/only block: [] block
+			block: test block
+			
+			--assert "[[...]]" = mold block
+			--assert block/1/1 =? block
+		
+		--test-- "reference-1"
+			block: [1 2]
+			paren: as paren! next block
+			block: test reduce [block paren]
+			
+			--assert [[1 2] (2)] = block
+			--assert equal? quote (1 2) head last block
+			append first block 3
+			--assert [[1 2 3] (2 3)] = block
+			reverse last block
+			--assert [[1 3 2] (3 2)] = block
+			--assert same? block/1 head as block! block/2
+		
+	===end-group===
 
 ~~~end-file~~~
