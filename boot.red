@@ -30,6 +30,7 @@ Red [
 	#include %environment/codecs/GIF.red
 	#include %environment/codecs/JSON.red
 	#include %environment/codecs/CSV.red
+	#include %environment/codecs/redbin.red
 
 	#include %environment/reactivity.red				;-- requires SET intrinsic
 	#include %environment/networking.red
