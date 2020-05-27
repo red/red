@@ -21,6 +21,7 @@ Red/System [
 #define REDBIN_SET_MASK				08000000h
 #define REDBIN_KIND_MASK			06000000h
 #define REDBIN_MONEY_SIGN_MASK		00010000h
+#define REDBIN_REFERENCE_MASK		00020000h
 
 redbin: context [
 	verbose: 0
@@ -320,23 +321,35 @@ redbin: context [
 		return: [int-ptr!]
 		/local
 			blk  [red-block!]
+			end  [int-ptr!]
 			size [integer!]
 			sz   [integer!]
 	][
-		size: data/3
-		sz: size
-		if zero? sz [sz: 1]
-		#if debug? = yes [if verbose > 0 [print [#":" size #":"]]]
-		
-		blk: block/make-in parent sz
-		blk/head: data/2
-		blk/header: data/1 and FFh
-		if nl? [blk/header: blk/header or flag-new-line]
-		data: data + 3
-		
-		loop size [data: decode-value data table blk]
-		
-		data
+		either data/1 and REDBIN_REFERENCE_MASK <> 0 [
+			end: decode-reference data + 3 parent
+			blk: (as red-block! block/rs-tail parent) - 1
+			
+			blk/header: data/1 and FFh
+			if nl? [blk/header: blk/header or flag-new-line]
+			blk/head: data/2
+			
+			end
+		][
+			size: data/3
+			sz: size
+			if zero? sz [sz: 1]
+			#if debug? = yes [if verbose > 0 [print [#":" size #":"]]]
+			
+			blk: block/make-in parent sz
+			blk/head: data/2
+			blk/header: data/1 and FFh
+			if nl? [blk/header: blk/header or flag-new-line]
+			data: data + 3
+			
+			loop size [data: decode-value data table blk]
+			
+			data
+		]
 	]
 
 	decode-tuple: func [
@@ -741,7 +754,7 @@ redbin: context [
 		store: func [
 			node [node!]
 			/local
-				size index [integer!]
+				size [integer!]
 		][
 			size: integer/abs (as integer! path/top - path/stack) >> log-b size? integer!
 			top/1: as integer! node
@@ -996,9 +1009,11 @@ redbin: context [
 		unless header and get-type-mask = TYPE_MAP [store payload either abs? [0][data/data1]]
 		store payload length
 		
-		loop length [
-			encode-value value payload symbols table strings
-			value:  value + 1
+		unless header and REDBIN_REFERENCE_MASK <> 0 [
+			loop length [
+				encode-value value payload symbols table strings
+				value:  value + 1
+			]
 		]
 	]
 	
@@ -1079,23 +1094,28 @@ redbin: context [
 			default 		[
 				node: as node! either ALL_WORD?(type) [data/data1][data/data2]
 				ref:  reference/fetch node
-				either not null? ref [encode-reference ref payload][
+				
+				either null? ref [
 					path/push
 					reference/store node
-					switch type [
-						TYPE_ANY_STRING
-						TYPE_VECTOR
-						TYPE_BINARY		[encode-string data header payload]
-						TYPE_BITSET		[encode-bitset data header payload]
-						TYPE_IMAGE		[encode-image  data header payload]
-						TYPE_NATIVE
-						TYPE_ACTION 	[encode-native data header payload symbols table strings]
-						TYPE_ANY_BLOCK
-						TYPE_MAP		[encode-block data header no payload symbols table strings]
-						default	[--NOT_IMPLEMENTED--]	;@@ TBD: proper error message
-					]
-					path/pop
+				][
+					header: header or REDBIN_REFERENCE_MASK
 				]
+				
+				switch type [
+					TYPE_ANY_STRING
+					TYPE_VECTOR
+					TYPE_BINARY		[encode-string data header payload]
+					TYPE_BITSET		[encode-bitset data header payload]
+					TYPE_IMAGE		[encode-image  data header payload]
+					TYPE_NATIVE
+					TYPE_ACTION 	[encode-native data header payload symbols table strings]
+					TYPE_ANY_BLOCK
+					TYPE_MAP		[encode-block data header no payload symbols table strings]
+					default	[--NOT_IMPLEMENTED--]	;@@ TBD: proper error message
+				]
+				
+				either null? ref [path/pop][encode-reference ref payload]
 			]
 		]
 		
