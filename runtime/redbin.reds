@@ -468,8 +468,10 @@ redbin: context [
 			value  [red-value!]
 			offset [int-ptr!]
 	][
+		; 1: header, 2: head, 3: size, 4: offset
+		
 		value:  as red-value! origin
-		offset: data + 4
+		offset: data + 3
 		
 		loop data/3 [
 			value: switch TYPE_OF(value) [
@@ -720,7 +722,7 @@ redbin: context [
 	
 	reference: context [
 		size: 3'000
-		list: as int-ptr! allocate size * size? integer!	;-- node, head, size, offsets
+		list: as int-ptr! allocate size * size? integer!	;-- 1: node, 2: head, 3: size, 4: offsets
 		top:  list
 		end:  list + size
 		
@@ -744,17 +746,13 @@ redbin: context [
 			/local
 				size index [integer!]
 		][
-			size: 1 + integer/abs (as integer! path/top - path/stack) >> log-b size? integer!
+			size: integer/abs (as integer! path/top - path/stack) >> log-b size? integer!
 			top/1: as integer! node
 			top/2: 0								;@@ TBD
 			top/3: size
 			top: top + 3
 			
-			index: 1
-			loop size [
-				top/index: path/stack/index
-				index: index + 1
-			]
+			copy-memory as byte-ptr! top as byte-ptr! path/stack size * size? integer!
 			
 			top: top + size
 		]
@@ -959,22 +957,22 @@ redbin: context [
 		header  [integer!]
 		payload [red-binary!]
 		/local
-			series  [red-series!]
-			buffer  [series!]
-			_offset [byte-ptr!]
-			length  [integer!]
-			unit    [integer!]
+			series [red-series!]
+			buffer [series!]
+			value  [byte-ptr!]
+			length [integer!]
+			unit   [integer!]
 	][
-		series:  as red-series! data
-		buffer:  GET_BUFFER(series)
-		unit:    GET_UNIT(buffer)
-		length:  _series/get-length series yes
-		_offset: as byte-ptr! buffer/offset
-		header:  header or (unit << 8)
+		series: as red-series! data
+		buffer: GET_BUFFER(series)
+		unit:   GET_UNIT(buffer)
+		length: _series/get-length series yes
+		value:  as byte-ptr! buffer/offset
+		header: header or (unit << 8)
 		
 		record [payload header data/data1 length]
 		if TYPE_OF(data) = TYPE_VECTOR [store payload data/data3]
-		unless zero? length [emit payload _offset length << log-b unit]
+		unless zero? length [emit payload value length << log-b unit]
 		pad payload 32
 	]
 	
@@ -993,29 +991,17 @@ redbin: context [
 			length [integer!]
 			push?  [logic!]
 	][
-		series:  as red-series! data
-		buffer:  GET_BUFFER(series)
-		length:  _series/get-length series yes
-		value:   buffer/offset
+		series: as red-series! data
+		buffer: GET_BUFFER(series)
+		length: _series/get-length series yes
+		value:  buffer/offset
 		
 		store payload header
 		unless header and get-type-mask = TYPE_MAP [store payload either abs? [0][data/data1]]
 		store payload length
 		
 		loop length [
-			push?: switch TYPE_OF(value) [
-				TYPE_ANY_BLOCK
-				TYPE_MAP
-				TYPE_OBJECT
-				TYPE_ERROR [yes]
-				default    [no]
-			]
-			
-			if push? [path/push]
 			encode-value value payload symbols table strings
-			if push? [path/pop]
-			
-			offset: offset + 1
 			value:  value + 1
 		]
 	]
@@ -1052,8 +1038,10 @@ redbin: context [
 		reference [int-ptr!]
 		payload   [red-binary!]
 	][
-		store payload REDBIN_REFERENCE
-		emit payload as byte-ptr! reference (3 + reference/3) * size? integer!
+		; 0: node, 1: head, 2: size, 3: offsets
+	
+		record [payload REDBIN_REFERENCE reference/1 reference/2]
+		emit payload as byte-ptr! reference + 2 reference/2 * size? integer!
 	]
 	
 	encode-value: func [
@@ -1067,7 +1055,7 @@ redbin: context [
 			ref    [int-ptr!]
 			type   [integer!]
 			header [integer!]
-	][		
+	][
 		type: TYPE_OF(data)
 		header: type or either zero? (data/header and flag-new-line) [0][REDBIN_NEWLINE_MASK]
 		header: header or switch type [
@@ -1098,6 +1086,7 @@ redbin: context [
 				node: as node! either ALL_WORD?(type) [data/data1][data/data2]
 				ref:  reference/fetch node
 				either not null? ref [encode-reference ref payload][
+					path/push
 					reference/store node
 					switch type [
 						TYPE_ANY_STRING
@@ -1111,9 +1100,12 @@ redbin: context [
 						TYPE_MAP		[encode-block data header no payload symbols table strings]
 						default	[--NOT_IMPLEMENTED--]	;@@ TBD: proper error message
 					]
+					path/pop
 				]
 			]
 		]
+		
+		offset: offset + 1
 	]
 	
 	encode: func [
