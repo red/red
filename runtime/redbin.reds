@@ -468,12 +468,10 @@ redbin: context [
 			value  [red-value!]
 			offset [int-ptr!]
 	][
-		; 1: header, 2: head, 3: size, 4: offset
-		
 		value:  as red-value! origin
-		offset: data + 3
+		offset: data + 2
 		
-		loop data/3 [
+		loop data/2 [
 			value: switch TYPE_OF(value) [
 				TYPE_ANY_BLOCK
 				TYPE_MAP [
@@ -495,9 +493,8 @@ redbin: context [
 		]
 		
 		value: copy-cell value ALLOC_TAIL(parent)
-		value/data1: data/2							;@@ TBD: value other than any-block! or map!
 		
-		data + data/3 + 3
+		data + data/2 + 2
 	]
 	
 	decode-value: func [
@@ -722,7 +719,7 @@ redbin: context [
 	
 	reference: context [
 		size: 3'000
-		list: as int-ptr! allocate size * size? integer!	;-- 1: node, 2: head, 3: size, 4: offsets
+		list: as int-ptr! allocate size * size? integer!	;-- node, size, offsets
 		top:  list
 		end:  list + size
 		
@@ -735,7 +732,7 @@ redbin: context [
 			here: list
 			while [here <> top][
 				if node = as node! here/value [return here + 1]
-				here: here + here/3 + 3
+				here: here + here/2 + 2
 			]
 			
 			null
@@ -748,9 +745,8 @@ redbin: context [
 		][
 			size: integer/abs (as integer! path/top - path/stack) >> log-b size? integer!
 			top/1: as integer! node
-			top/2: 0								;@@ TBD
-			top/3: size
-			top: top + 3
+			top/2: size
+			top: top + 2
 			
 			copy-memory as byte-ptr! top as byte-ptr! path/stack size * size? integer!
 			
@@ -1038,10 +1034,8 @@ redbin: context [
 		reference [int-ptr!]
 		payload   [red-binary!]
 	][
-		; 0: node, 1: head, 2: size, 3: offsets
-	
-		record [payload REDBIN_REFERENCE reference/1 reference/2]
-		emit payload as byte-ptr! reference + 2 reference/2 * size? integer!
+		record [payload REDBIN_REFERENCE reference/1]
+		emit payload as byte-ptr! reference + 1 reference/1 * size? integer!
 	]
 	
 	encode-value: func [
