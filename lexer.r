@@ -607,7 +607,7 @@ lexer: context [
 	comment-rule: [#";" [to #"^/" | to end]]
 	
 	wrong-end: [(
-			ending: either 1 < length? stack/stk [
+			ending: either all [1 < length? stack/stk not empty? stack/stk/1][
 				value: switch type?/word stack/top [
 					block! [#"]"]
 					paren! [#")"]
@@ -931,7 +931,7 @@ lexer: context [
 		replace/all copy/part s back e "%" "%25"
 	]
 	
-	identify-header: func [src /local p ws found?][
+	identify-header: func [src /local p ws found? pos][
 		ws: charset " ^-^M^/"
 		rs?: no
 		pos: src
