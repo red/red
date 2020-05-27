@@ -843,7 +843,7 @@ red: context [
 		reduce [var set-var]
 	]
 	
-	add-symbol: func [name [word!] /with original /local sym id alias][
+	add-symbol: func [name [word!] /only /with original /local sym id alias][
 		unless find/case symbols name [
 			if find symbols name [
 				if find/case/skip aliases name 2 [exit]
@@ -852,7 +852,7 @@ red: context [
 			]
 			sym: decorate-symbol name
 			id: 1 + ((length? symbols) / 2)
-			repend symbols [name reduce [sym id]]
+			unless only [repend symbols [name reduce [sym id]]]
 			repend sym-table [
 				to set-word! sym 'word/load mold any [original name]
 			]
@@ -1778,7 +1778,8 @@ red: context [
 					insert-lf -5
 				]
 				find [refinement! issue!] type?/word :value [
-					add-symbol w: to word! form value
+					w: to word! form value
+					either issue? :value [add-symbol/only w][add-symbol w]
 					type: to word! form type? :value
 					
 					either all [not issue? :value local-word? w][
