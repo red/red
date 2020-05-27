@@ -31,10 +31,7 @@ utf8-to-bytes: func [
 	/local
 		end		[c-string!]
 ][
-	end: text
-	loop len [
-		end: unicode/utf8-next-char end
-	]
+	end: g_utf8_offset_to_pointer text len
 	as integer! end - text
 ]
 
