@@ -871,10 +871,6 @@ red: context [
 		new
 	]
 	
-	get-symbol-id: func [name [word!]][
-		second select symbols name
-	]
-	
 	add-global: func [name [word!]][
 		unless any [
 			local-word? name
