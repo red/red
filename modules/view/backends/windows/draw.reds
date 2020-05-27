@@ -2230,8 +2230,9 @@ OS-draw-brush-pattern: func [
 	/local
 		pat-image	[red-image!]
 		bkg-alpha	[byte!]
-		p-alpha		[byte-ptr!]
+		p-alpha		[red-binary! value]
 		p			[byte-ptr!]
+		len			[integer!]
 ][
 	pat-image: either brush?
 		[ as red-image! ctx/other/pattern-image-fill ]
@@ -2243,14 +2244,11 @@ OS-draw-brush-pattern: func [
 	pat-image/head:   0
 	pat-image/size:   size/y << 16 or size/x
 	bkg-alpha:        as byte! 0
-	p-alpha:          allocate pat-image/size
-	p: p-alpha
-	loop pat-image/size [
-		p/value: as-byte 255
-		p: p + 1
-	]
-	pat-image/node: OS-image/make-image size/x size/y null p-alpha null
-	free p-alpha
+	len:              size/x * size/y
+	string/rs-make-at as cell! :p-alpha len
+	p: binary/rs-head :p-alpha
+	set-memory p #"^(FF)" len
+	pat-image/node: OS-image/make-image size/x size/y null :p-alpha null
 	do-draw null pat-image block no no no no
 	OS-draw-brush-bitmap ctx pat-image crop-1 crop-2 mode brush?
 ]

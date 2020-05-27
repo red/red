@@ -70,11 +70,7 @@ parser: context [
 				int2/header: TYPE_INTEGER
 				int2/value: binary/rs-abs-at as red-binary! input offset
 			]
-			TYPE_STRING 								;TBD: replace with ANY_STRING
-			TYPE_FILE
-			TYPE_URL
-			TYPE_TAG
-			TYPE_EMAIL [
+			TYPE_ANY_STRING [
 				char: as red-char! base
 				char/header: TYPE_CHAR
 				char/value: string/rs-abs-at as red-string! input offset
@@ -196,6 +192,28 @@ parser: context [
 		actions/compare value2 value comp-op
 	]
 	
+	match-datatype?: func [
+		input	[red-binary!]
+		dt		[red-datatype!]
+		dt-type [integer!]
+		return:	[logic!]
+		/local
+			len type size [integer!]
+			s		[series!]
+			buf pos	[byte-ptr!]
+			match?	[logic!]
+	][
+		len: 0
+		s: GET_BUFFER(input)
+		buf: (as byte-ptr! s/offset) + input/head
+		size: as-integer (as byte-ptr! s/tail) - buf
+		type: lexer/scan null buf size yes yes no no :len null null
+		
+		match?: either dt-type = TYPE_TYPESET [BS_TEST_BIT_ALT(dt type)][type = dt/value]
+		if match? [_series/rs-skip as red-series! input len - 1] ;-- -1 to account for later rs-skip
+		match?
+	]
+	
 	advance: func [
 		str		[red-string!]
 		value	[red-value!]							;-- char! or string! value
@@ -207,11 +225,7 @@ parser: context [
 		type: TYPE_OF(value)
 		len: either any [type = TYPE_CHAR type = TYPE_BITSET][1][
 			assert any [
-				type = TYPE_STRING
-				type = TYPE_FILE
-				type = TYPE_URL
-				type = TYPE_TAG
-				type = TYPE_EMAIL
+				ANY_STRING?(type)
 				type = TYPE_BINARY
 			]
 			string/rs-length? as red-string! value
@@ -298,12 +312,8 @@ parser: context [
 		s: GET_BUFFER(input)
 		
 		type: TYPE_OF(input)
-		either any [									;TBD: replace with ANY_STRING + TYPE_BINARY
-			type = TYPE_STRING
-			type = TYPE_FILE
-			type = TYPE_URL
-			type = TYPE_TAG
-			type = TYPE_EMAIL
+		either any [
+			ANY_STRING?(type)
 			type = TYPE_BINARY
 		][
 			unit:  GET_UNIT(s)
@@ -341,11 +351,7 @@ parser: context [
 						p >= ptail
 					]
 				]
-				TYPE_STRING
-				TYPE_FILE
-				TYPE_URL
-				TYPE_TAG
-				TYPE_EMAIL
+				TYPE_ANY_STRING
 				TYPE_BINARY [
 					bin?: type = TYPE_BINARY
 					type: TYPE_OF(token)
@@ -535,12 +541,8 @@ parser: context [
 		type: 	TYPE_OF(input)
 		type2:	TYPE_OF(token)
 		
-		either any [									;TBD: replace with ANY_STRING
-			type = TYPE_STRING
-			type = TYPE_FILE
-			type = TYPE_URL
-			type = TYPE_TAG
-			type = TYPE_EMAIL
+		either any [
+			ANY_STRING?(type)
 			type = TYPE_BINARY
 		][
 			either TYPE_OF(token)= TYPE_BITSET [
@@ -675,10 +677,17 @@ parser: context [
 			len	  [integer!]
 			saved [red-value!]
 			res	  [red-value!]
+			int	  [red-integer!]
+			more  [series!]
+			ctx	  [node!]
 	][
 		PARSE_SAVE_SERIES
 		saved: stack/top
 		stack/top: stack/top + 1						;-- keep last value from paren expression
+
+		more: as series! fun/more/value
+		int: as red-integer! more/offset + 4
+		ctx: either TYPE_OF(int) = TYPE_INTEGER [as node! int/value][global-ctx]
 
 		stack/mark-func words/_body	fun/ctx				;@@ find something more adequate
 		stack/push as red-value! event
@@ -689,7 +698,7 @@ parser: context [
 		if positive? locals [_function/init-locals 1 + locals]	;-- +1 for /local refinement
 		rule/head: offset
 		
-		catch RED_THROWN_ERROR [_function/call fun global-ctx]	;FIXME: hardcoded origin context
+		catch RED_THROWN_ERROR [_function/call fun ctx]
 
 		PARSE_RESTORE_SERIES							;-- restore localy saved series/head first
 		if system/thrown <> 0 [reset saved? re-throw]
@@ -1081,11 +1090,7 @@ parser: context [
 											either into? [
 												switch TYPE_OF(blk) [
 													TYPE_BINARY [binary/insert as red-binary! blk value null yes null no]
-													TYPE_STRING
-													TYPE_FILE
-													TYPE_URL 
-													TYPE_TAG
-													TYPE_EMAIL [string/insert as red-string! blk value null yes null no]
+													TYPE_ANY_STRING [string/insert as red-string! blk value null yes null no]
 													default  [block/insert blk value null yes null no]
 												]
 											][
@@ -1241,25 +1246,22 @@ parser: context [
 						TYPE_TYPESET
 						TYPE_DATATYPE [
 							type: TYPE_OF(input)
-							if any [					;TBD: replace with ANY_STRING?
-								type = TYPE_STRING
-								type = TYPE_FILE
-								type = TYPE_URL
-								type = TYPE_TAG
-								type = TYPE_EMAIL
-								type = TYPE_BINARY
-							][
+							if ANY_STRING?(type) [
 								PARSE_ERROR [TO_ERROR(script parse-unsupported)]
 							]
 							PARSE_CHECK_INPUT_EMPTY?
 							either end? [match?: false][
 								dt: as red-datatype! value
-								value: block/rs-head input
-								match?: either dt-type = TYPE_TYPESET [
-									type: TYPE_OF(value)
-									BS_TEST_BIT_ALT(dt type)
+								match?: either type = TYPE_BINARY [
+									match-datatype? as red-binary! input dt dt-type
 								][
-									TYPE_OF(value) = dt/value
+									value: block/rs-head input
+									type: TYPE_OF(value)
+									either dt-type = TYPE_TYPESET [
+										BS_TEST_BIT_ALT(dt type)
+									][
+										type = dt/value
+									]
 								]
 								PARSE_TRACE(_match)
 							]
@@ -1358,13 +1360,7 @@ parser: context [
 					type: TYPE_OF(input)
 					either end? [
 						match?: all [
-							any [
-								type = TYPE_STRING
-								type = TYPE_FILE
-								type = TYPE_URL
-								type = TYPE_TAG
-								type = TYPE_EMAIL
-							]
+							ANY_STRING?(type)
 							any [
 								TYPE_OF(value) = TYPE_STRING
 								TYPE_OF(value) = TYPE_FILE
@@ -1382,11 +1378,7 @@ parser: context [
 								]
 								all [match? advance as red-string! input value]	;-- consume matched input
 							]
-							TYPE_STRING
-							TYPE_FILE
-							TYPE_URL
-							TYPE_TAG
-							TYPE_EMAIL [
+							TYPE_ANY_STRING [
 								match?: either TYPE_OF(value) = TYPE_BITSET [
 									string/match-bitset? as red-string! input as red-bitset! value
 								][

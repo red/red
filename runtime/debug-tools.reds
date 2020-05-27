@@ -98,13 +98,12 @@ memory-info: func [
 #if debug? = yes [
 
 	dump-globals: func [
-		/local ctx sym-table val-table len s symbol value w sym val syms i
+		/local ctx val-table len s symbol value w sym val syms i
 	][
 		ctx: TO_CTX(global-ctx)
-		sym-table: ctx/symbols
 		val-table: ctx/values
 		
-		s: as series! sym-table/value
+		s: _hashtable/get-ctx-words ctx
 		len: (as-integer s/tail - s/offset) >> 4 + 1
 		symbol: s/offset
 		

@@ -260,12 +260,6 @@ replace code "Hello" "Cheers"
 }
 	--assert not crashed?
 
-	--test-- "#669"
-		--compile-and-run-this-red {
-a: #version 
-print type? a 
-}
-		--assert equal? "string" trim/tail qt/output
 
 ; NOTE: Output of these tests is probably messed by Rebol
 ;		so I leave it commented out for now

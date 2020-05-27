@@ -44,26 +44,26 @@ string: context [
 		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^^"	   #"^(00)" ;-- 5Fh
 	]
 
-	escape-url-chars: [							;-- ESC_NONE: #"^(FF)" ESC_URL: #"^(FE)"
-		#"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" ;-- 07h
-		#"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" ;-- 0Fh
-		#"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" ;-- 17h
-		#"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" ;-- 1Fh
-		#"^(FE)" #"^(FF)" #"^(FE)" #"^(FF)" #"^(FF)" #"^(FE)" #"^(FF)" #"^(FF)" ;-- 27h
-		#"^(FE)" #"^(FE)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" ;-- 2Fh
-		#"^(00)" #"^(01)" #"^(02)" #"^(03)" #"^(04)" #"^(05)" #"^(06)" #"^(07)" ;-- 37h
-		#"^(08)" #"^(09)" #"^(FF)" #"^(FE)" #"^(FE)" #"^(FF)" #"^(FE)" #"^(FF)" ;-- 3Fh
-		#"^(FF)" #"^(0A)" #"^(0B)" #"^(0C)" #"^(0D)" #"^(0E)" #"^(0F)" #"^(FF)" ;-- 47h
-		#"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" ;-- 4Fh
-		#"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" ;-- 57h
-		#"^(FF)" #"^(FF)" #"^(FF)" #"^(FE)" #"^(FF)" #"^(FE)" #"^(FF)" #"^(FF)" ;-- 5Fh
-		#"^(FF)" #"^(0A)" #"^(0B)" #"^(0C)" #"^(0D)" #"^(0E)" #"^(0F)" #"^(FF)" ;-- 67h
-		#"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" ;-- 6Fh
-		#"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" ;-- 77h
-		#"^(FF)" #"^(FF)" #"^(FF)" #"^(FE)" #"^(FF)" #"^(FE)" #"^(FF)" #"^(FF)" ;-- 7Fh
-	]
+	escape-url-chars: #{								;-- ESC_NONE: #"^(FF)" ESC_URL: #"^(FE)"
+		FE FE FE FE FE FE FE FE ;-- 07h
+		FE FE FE FE FE FE FE FE ;-- 0Fh
+		FE FE FE FE FE FE FE FE ;-- 17h
+		FE FE FE FE FE FE FE FE ;-- 1Fh
+		FE FF FE FF FF FE FF FF ;-- 27h
+		FE FE FF FF FF FF FF FF ;-- 2Fh
+		00 01 02 03 04 05 06 07 ;-- 37h
+		08 09 FF FE FE FF FE FF ;-- 3Fh
+		FF 0A 0B 0C 0D 0E 0F FF ;-- 47h
+		FF FF FF FF FF FF FF FF ;-- 4Fh
+		FF FF FF FF FF FF FF FF ;-- 57h
+		FF FF FF FE FF FE FF FF ;-- 5Fh
+		FF 0A 0B 0C 0D 0E 0F FF ;-- 67h
+		FF FF FF FF FF FF FF FF ;-- 6Fh
+		FF FF FF FF FF FF FF FF ;-- 77h
+		FF FF FF FE FF FE FF FF ;-- 7Fh
+	}
 
-	utf8-buffer: [#"^(00)" #"^(00)" #"^(00)" #"^(00)"]
+	utf8-buffer: #{00000000}
 
 	to-float: func [
 		s		[byte-ptr!]
@@ -467,7 +467,7 @@ string: context [
 		switch GET_UNIT(s) [
 			Latin1 [
 				case [
-					cp <= FFh [
+					cp <= 7Fh [
 						node: s/node
 						p: alloc-tail-unit s 1
 						p/1: as-byte cp
@@ -717,6 +717,9 @@ string: context [
 			any [op = COMP_EQUAL op = COMP_FIND op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
 		][return 0]
 
+		if TYPE_OF(str1) = TYPE_SYMBOL [symbol/make-red-string as red-symbol! str1]
+		if TYPE_OF(str2) = TYPE_SYMBOL [symbol/make-red-string as red-symbol! str2]
+
 		s1: GET_BUFFER(str1)
 		s2: GET_BUFFER(str2)
 		unit1: GET_UNIT(s1)
@@ -915,6 +918,8 @@ string: context [
 			s2	  [series!]
 			unit1 [integer!]
 			unit2 [integer!]
+			type1 [integer!]
+			type2 [integer!]
 			size  [integer!]
 			size1 [integer!]
 			size2 [integer!]
@@ -927,7 +932,13 @@ string: context [
 			h1	  [integer!]
 			h2	  [integer!]
 			diff? [logic!]
+			same? [logic!]
 	][
+		type1: TYPE_OF(str1)
+		type2: TYPE_OF(str2)
+		if type1 = TYPE_SYMBOL [symbol/make-red-string as red-symbol! str1]
+		if type2 = TYPE_SYMBOL [symbol/make-red-string as red-symbol! str2]
+
 		s1: GET_BUFFER(str1)
 		s2: GET_BUFFER(str2)
 		unit1: GET_UNIT(s1)
@@ -964,8 +975,8 @@ string: context [
 			true [true]									;@@ catch-all case to make compiler happy
 		]
 		
-		h1: either TYPE_OF(str1) = TYPE_SYMBOL [0][str1/head << (log-b unit1)]	;-- make symbol! used as string! pass safely
-		h2: either TYPE_OF(str2) = TYPE_SYMBOL [0][str2/head << (log-b unit2)]	;-- make symbol! used as string! pass safely
+		h1: either type1 = TYPE_SYMBOL [0][str1/head << (log-b unit1)]	;-- make symbol! used as string! pass safely
+		h2: either type2 = TYPE_SYMBOL [0][str2/head << (log-b unit2)]	;-- make symbol! used as string! pass safely
 		
 		size2: (as-integer s2/tail - s2/offset) - h2 >> (log-b unit2)
 		if all [part >= 0 part < size2][size2: part]
@@ -973,13 +984,17 @@ string: context [
 		if size <= 0 [exit]
 
 		size1: (as-integer s1/tail - s1/offset) + size
-		if s1/size < size1 [s1: expand-series s1 size1 * 2]
+		if (as byte-ptr! s1/size) < (as byte-ptr! size1) [	;-- force to use unsigned comparison
+			same?: s1 = s2
+			s1: expand-series s1 size1 * 2
+			if same? [s2: s1]
+		]
 
 		if mode = MODE_INSERT [
 			move-memory									;-- make space
 				(as byte-ptr! s1/offset) + h1 + offset + size
 				(as byte-ptr! s1/offset) + h1 + offset
-				(as-integer s1/tail - s1/offset) - h1
+				(as-integer s1/tail - s1/offset) - h1 - offset
 		]
 
 		tail: as byte-ptr! s1/tail
@@ -989,6 +1004,7 @@ string: context [
 			(as byte-ptr! s1/offset) + (offset << (log-b unit1)) + h1
 		]
 		either all [keep? diff?][
+			assert s1 <> s2
 			p2: (as byte-ptr! s2/offset) + h2
 			limit: p2 + (size2 << (log-b unit2))
 			while [p2 < limit][
@@ -1006,7 +1022,11 @@ string: context [
 				p2: p2 + unit2
 			]
 		][
-			copy-memory	p (as byte-ptr! s2/offset) + h2 size
+			either s1 = s2 [
+				move-memory p (as byte-ptr! s2/offset) + h2 size
+			][
+				copy-memory p (as byte-ptr! s2/offset) + h2 size
+			]
 			p: p + size
 		]
 		if mode = MODE_INSERT [p: tail + size] 
@@ -1118,18 +1138,18 @@ string: context [
 	
 	make-at: func [
 		slot	[red-value!]
-		size 	[integer!]								;-- number of bytes to pre-allocate
+		size 	[integer!]								;-- number of codepoints to pre-allocate
 		unit	[integer!]
 		return:	[red-string!]
 		/local 
 			str	[red-string!]
 	][
 		str: as red-string! slot
-		str/header: TYPE_UNSET
+		set-type slot TYPE_UNSET
 		str/head:	0
-		str/node:	alloc-bytes size << (unit >> 1)
+		str/node:	alloc-codepoints size unit
 		str/cache:	null
-		str/header: TYPE_STRING
+		set-type slot TYPE_STRING
 		str
 	]
 	
@@ -1271,6 +1291,9 @@ string: context [
 			proto
 		][
 			either type = TYPE_BINARY [
+				if TYPE_OF(spec) = TYPE_MONEY [
+					fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_BINARY spec]
+				]
 				as red-string! binary/to as red-binary! proto spec type
 			][
 				to as red-value! proto spec type
@@ -1409,7 +1432,7 @@ string: context [
 	][
 		idx: cp + 1
 		case [
-			any [cp = 1Eh all [all? cp > 7Fh]][
+			any [cp = 1Eh all [80h <= cp cp <= 9Fh] all [all? cp > 7Fh]][
 				append-char GET_BUFFER(buffer) as-integer #"^^"
 				append-char GET_BUFFER(buffer) as-integer #"("
 				concatenate-literal buffer to-hex cp yes
@@ -2163,6 +2186,7 @@ string: context [
 			flags	[integer!]
 			mult	[integer!]
 			offset	[integer!]
+			chk?	[logic!]
 	][
 		step: 1
 		s: GET_BUFFER(str)
@@ -2270,8 +2294,9 @@ string: context [
 				flags: step << 2 or flags
 			]
 		]
+		chk?: ownership/check as red-value! str words/_sort null str/head 0
 		_sort/qsort buffer len unit * step op flags cmp
-		ownership/check as red-value! str words/_sort null str/head 0
+		if chk? [ownership/check as red-value! str words/_sorted null str/head 0]
 		str
 	]
 
@@ -2303,6 +2328,7 @@ string: context [
 			type	  [integer!]
 			index	  [integer!]
 			tail?	  [logic!]
+			chk?	  [logic!]
 			action	  [red-word!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/insert"]]
@@ -2347,6 +2373,7 @@ string: context [
 			action: words/_insert
 			str/head
 		]
+		chk?: ownership/check as red-value! str action value index part
 		
 		while [not zero? cnt][							;-- /dup support
 			type: TYPE_OF(value)
@@ -2410,8 +2437,10 @@ string: context [
 			cnt: cnt - 1
 		]
 		if part < 0 [part: 1]							;-- ownership/check needs part >= 0
-		ownership/check as red-value! str action value index part
-		
+		if chk? [
+			action: either append? [words/_appended][words/_inserted]
+			ownership/check as red-value! str action value index part
+		]
 		either append? [str/head: 0][
 			added: added * dup-n
 			str/head: str/head + added
@@ -2439,6 +2468,7 @@ string: context [
 			unit2	[integer!]
 			head1	[byte-ptr!]
 			head2	[byte-ptr!]
+			chk? chk2? [logic!]
 	][
 		s1:    GET_BUFFER(str1)
 		unit1: GET_UNIT(s1)
@@ -2450,12 +2480,14 @@ string: context [
 		head2: (as byte-ptr! s2/offset) + (str2/head << (log-b unit2))
 		if head2 = as byte-ptr! s2/tail [return str1]				;-- early exit if nothing to swap
 
+		chk?:  ownership/check as red-value! str1 words/_swap null str1/head 1
+		chk2?: ownership/check as red-value! str2 words/_swap null str2/head 1
 		char1: get-char head1 unit1
 		char2: get-char head2 unit2
 		poke-char s1 head1 char2
 		poke-char s2 head2 char1
-		ownership/check as red-value! str1 words/_swap null str1/head 1
-		ownership/check as red-value! str2 words/_swap null str2/head 1
+		if chk?  [ownership/check as red-value! str1 words/_swaped null str1/head 1]
+		if chk2? [ownership/check as red-value! str2 words/_swaped null str2/head 1]
 		str1
 	]
 
@@ -2674,6 +2706,7 @@ string: context [
 			s		[series!]
 			unit	[integer!]
 			type	[integer!]
+			chk?	[logic!]
 	][
 		str: as red-string! _series/take as red-series! str part-arg deep? last?
 		s: GET_BUFFER(str)
@@ -2682,6 +2715,7 @@ string: context [
 			not OPTION?(part-arg)
 			1 = _series/get-length as red-series! str yes
 		][
+			chk?: ownership/check as red-value! str words/_take null str/head 0
 			unit: GET_UNIT(s)
 			type: TYPE_OF(str)
 			either type = TYPE_VECTOR [
@@ -2693,6 +2727,7 @@ string: context [
 				char/header: type
 				char/value:  get-char as byte-ptr! s/offset unit
 			]
+			if chk? [ownership/check as red-value! str words/_taken null str/head 0]
 		]
 		as red-value! str
 	]
@@ -2706,16 +2741,19 @@ string: context [
 		all?		[logic!]
 		with-arg	[red-value!]
 		return:		[red-series!]
+		/local
+			chk?	[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/trim"]]
 
+		chk?: ownership/check as red-value! str words/_trim null str/head 0
 		case [
 			any [all? OPTION?(with-arg)] [trim-with str with-arg]
 			auto? [--NOT_IMPLEMENTED--]
 			lines? [trim-lines str]
 			true  [trim-head-tail str head? tail?]
 		]
-		ownership/check as red-value! str words/_trim null str/head 0
+		if chk? [ownership/check as red-value! str words/_trimmed null str/head 0]
 		as red-series! str
 	]
 
@@ -2728,12 +2766,12 @@ string: context [
 		/local
 			s			[series!]
 			added		[integer!]
+			len			[integer!]
 			type		[integer!]
 			char		[red-char!]
 			form-buf	[red-string!]
 			form-slot	[red-value!]
 	][
-		s: GET_BUFFER(str)
 		form-slot: stack/push*				;-- reserve space for FORMing incompatible values
 		form-slot/header: TYPE_UNSET
 		added: 0
@@ -2742,10 +2780,11 @@ string: context [
 			type: TYPE_OF(cell)
 			either type = TYPE_CHAR [
 				char: as red-char! cell
+				s: GET_BUFFER(str)
 				either part? [				;-- /part will insert extra elements
-					s: insert-char s str/head + added char/value
+					insert-char s str/head + added char/value
 				][
-					s: overwrite-char s str/head + added char/value
+					overwrite-char s str/head + added char/value
 				]
 				added: added + 1
 			][
@@ -2762,12 +2801,13 @@ string: context [
 					form-buf: rs-make-at form-slot 16
 					actions/form cell form-buf null 0
 				]
+				len: rs-length? form-buf			;-- form-buf can be changed by overwrite/concatenate
 				either part? [
 					concatenate str form-buf -1 added yes yes
 				][
 					overwrite str form-buf -1 added yes
 				]
-				added: added + rs-length? form-buf
+				added: added + len
 			]
 			cell: cell + 1
 		]
@@ -2820,6 +2860,7 @@ string: context [
 		len: _series/get-length ser1 no
 		if op = OP_UNION [len: len + _series/get-length ser2 no]
 		new: as red-series! rs-make-at stack/push* len
+		if zero? len [return new]			;-- early exit if nothing to do
 		s2: GET_BUFFER(new)
 		n: 2
 

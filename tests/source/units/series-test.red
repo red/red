@@ -1534,6 +1534,19 @@ Red [
 		--assert [1 2]			= exclude a b
 		--assert [5 6]			= exclude b a
 
+	--test-- "set-op-hash"
+		a: make hash! [5 6 7 8]
+		b: skip a 2
+		--assert (make hash! [7 8])		= unique b
+		--assert (make hash! [5 6 7 8])	= unique a
+		--assert (make hash! [5 6 7 8])	= union a b
+		--assert (make hash! [7 8])		= intersect a b
+		--assert (make hash! [7 8])		= intersect b a
+		--assert (make hash! [5 6])		= difference a b
+		--assert (make hash! [5 6])		= difference b a
+		--assert (make hash! [5 6])		= exclude a b
+		--assert (make hash! [])		= exclude b a
+
 	--test-- "set-op-str"
 		a: "CBAD"
 		b: "EDCCF"
@@ -1873,6 +1886,39 @@ Red [
 		--assert empty? copy/part a -4
 		--assert "3456" = copy/part b -4
 		--assert "123456" = copy/part b -10
+
+  --test-- "copy-5"  --assert empty? copy/part "" 1x5
+  --test-- "copy-6"  --assert empty? copy/part "" 1x-5
+  --test-- "copy-7"  --assert empty? copy/part "" -1x5
+  --test-- "copy-8"  --assert empty? copy/part "" -1x-5
+  --test-- "copy-9"  --assert empty? copy/part "" -5x-1
+  --test-- "copy-10" --assert empty? copy/part "hello new world" 10x7
+  --test-- "copy-11" --assert empty? copy/part skip "hello new world" 10 -1x-5
+  --test-- "copy-12" --assert empty? copy/part "hello" 0x0     ;-- index 0 <=> index 1
+  --test-- "copy-13" --assert empty? copy/part "hello" 1x1
+  --test-- "copy-14" --assert "h"      == copy/part "hello" 0x1  
+  --test-- "copy-15" --assert "h"      == copy/part "hello" 1x2
+  --test-- "copy-16" --assert "new"    == copy/part "hello new world" 7x10
+  --test-- "copy-17" --assert "worl"   == copy/part skip "hello new world" 10 1x5
+  --test-- "copy-18" --assert " world" == copy/part skip "hello new world" 10 -1x5
+  --test-- "copy-19" --assert " new"   == copy/part skip "hello new world" 10 -5x-1
+
+  --test-- "copy-20" --assert empty? copy/part [] 1x5
+  --test-- "copy-21" --assert empty? copy/part [] 1x-5
+  --test-- "copy-22" --assert empty? copy/part [] -1x5
+  --test-- "copy-23" --assert empty? copy/part [] -1x-5
+  --test-- "copy-24" --assert empty? copy/part [] -5x-1
+  --test-- "copy-25" --assert empty? copy/part [a b c d e f g h i j] 5x4
+  --test-- "copy-26" --assert empty? copy/part skip [a b c d e f g h i j] 5 -1x-5
+  --test-- "copy-27" --assert empty? copy/part [a b c d e] 0x0     ;-- index 0 <=> index 1
+  --test-- "copy-28" --assert empty? copy/part [a b c d e] 1x1
+  --test-- "copy-29" --assert [a]       == copy/part [a b c d e] 0x1
+  --test-- "copy-30" --assert [a]       == copy/part [a b c d e] 1x2
+  --test-- "copy-31" --assert [c d]     == copy/part [a b c d e f g h i j] 3x5
+  --test-- "copy-32" --assert [e f g h] == copy/part skip [a b c d e f g h i j] 4 1x5
+  --test-- "copy-33" --assert [d e f g h i]  == copy/part skip [a b c d e f g h i j] 4 -1x5
+  --test-- "copy-34" --assert [d e f g] == copy/part skip [a b c d e f g h i j] 8 -5x-1
+
 ===end-group===
 
 ===start-group=== "random"

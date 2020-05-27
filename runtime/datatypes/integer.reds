@@ -19,6 +19,13 @@ integer: context [
 	][
 		any [fl/value > 2147483647.0 fl/value < -2147483648.0]
 	]
+	
+	sign?: func [
+		integer [integer!]
+		return: [integer!]
+	][
+		SIGN_COMPARE_RESULT(integer 0)
+	]
 
 	abs: func [
 		value	[integer!]
@@ -71,6 +78,13 @@ integer: context [
 		int/header: TYPE_INTEGER
 		int/value: value
 		int
+	]
+	
+	from-money: func [
+		mn      [red-money!]
+		return: [integer!]
+	][
+		money/to-integer mn
 	]
 	
 	from-binary: func [
@@ -160,52 +174,60 @@ integer: context [
 		left	[integer!]
 		right	[integer!]
 		type	[math-op!]
+		slot	[red-integer!]
 		return:	[integer!]
 		/local
+			fl	[red-float!]
 			res [integer!]
 	][
 		switch type [
 			OP_ADD [
 				res: left + right
 				if system/cpu/overflow? [fire [TO_ERROR(math overflow)]]
-				res
 			]
 			OP_SUB [
 				res: left - right
 				if system/cpu/overflow? [fire [TO_ERROR(math overflow)]]
-				res
 			]
 			OP_MUL [
 				res: left * right
 				if system/cpu/overflow? [fire [TO_ERROR(math overflow)]]
-				res
 			]
-			OP_AND [left and right]
-			OP_OR  [left or right]
-			OP_XOR [left xor right]
+			OP_AND [res: left and right]
+			OP_OR  [res: left or right]
+			OP_XOR [res: left xor right]
 			OP_REM [
 				either zero? right [
 					fire [TO_ERROR(math zero-divide)]
-					0								;-- pass the compiler's type-checking
+					0									;-- pass the compiler's type-checking
 				][
 					if all [left = -2147483648 right = -1][
 						fire [TO_ERROR(math overflow)]
 					]
-					left % right
+					res: left % right
 				]
 			]
 			OP_DIV [
 				either zero? right [
 					fire [TO_ERROR(math zero-divide)]
-					0								;-- pass the compiler's type-checking
+					0									;-- pass the compiler's type-checking
 				][
 					if all [left = -2147483648 right = -1][
 						fire [TO_ERROR(math overflow)]
 					]
-					left / right
+					either any [null? slot left % right = 0][
+						res: left / right
+					][
+						fl: as red-float! slot			;-- promote to float
+						fl/header: TYPE_FLOAT
+						fl/value: (as-float left) / as-float right
+						return 0						;-- place-holder value
+					]
 				]
 			]
 		]
+		if slot <> null [slot/value: res]
+		res
 	]
 
 	do-math: func [
@@ -231,7 +253,10 @@ integer: context [
 
 		switch TYPE_OF(right) [
 			TYPE_INTEGER TYPE_CHAR [
-				left/value: do-math-op left/value right/value op
+				do-math-op left/value right/value op left
+			]
+			TYPE_MONEY [
+				left: as red-integer! money/do-math op
 			]
 			TYPE_FLOAT TYPE_PERCENT TYPE_TIME [float/do-math op]
 			TYPE_PAIR
@@ -287,7 +312,7 @@ integer: context [
 			int [red-integer!]
 	][
 		int: as red-integer! slot
-		int/header: TYPE_INTEGER
+		set-type slot TYPE_INTEGER
 		int/value: value
 		int
 	]
@@ -373,6 +398,7 @@ integer: context [
 		/local
 			int  [red-integer!]
 			fl	 [red-float!]
+			mn   [red-money!]
 			str	 [red-string!]
 			t	 [red-time!]
 			p	 [byte-ptr!]
@@ -398,6 +424,9 @@ integer: context [
 				fl: as red-float! spec
 				if overflow? fl [fire [TO_ERROR(script type-limit) datatype/push TYPE_INTEGER]]
 				int/value: as-integer fl/value
+			]
+			TYPE_MONEY [
+				int/value: from-money as red-money! spec
 			]
 			TYPE_BINARY [
 				int/value: from-binary as red-binary! spec
@@ -490,6 +519,12 @@ integer: context [
 			TYPE_CHAR [
 				char: as red-char! value2				;@@ could be optimized as integer! and char!
 				right: char/value						;@@ structures are overlapping exactly
+			]
+			TYPE_MONEY [
+				return money/compare
+					money/from-integer left
+					as red-money! value2
+					op
 			]
 			TYPE_FLOAT
 			TYPE_TIME
@@ -698,6 +733,10 @@ integer: context [
 			r		[integer!]
 			val		[integer!]
 	][
+		if TYPE_OF(scale) = TYPE_MONEY [
+			fire [TO_ERROR(script not-related) stack/get-call datatype/push TYPE_MONEY]
+		]
+		
 		int: as red-integer! value
 		num: int/value
 		if num = 80000000h [return value]

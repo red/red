@@ -1040,7 +1040,6 @@ simple-io: context [
 		filename	[red-file!]
 		return:		[red-block!]
 		/local
-			info
 			buf		[byte-ptr!]
 			p		[byte-ptr!]
 			name	[byte-ptr!]
@@ -1051,6 +1050,7 @@ simple-io: context [
 			i		[integer!]
 			cp		[byte!]
 			s		[series!]
+			info
 	][
 		len: string/rs-length? as red-string! filename
 		len: filename/head + len - 1
@@ -1433,6 +1433,7 @@ simple-io: context [
 				parr	[integer!]
 				buf		[byte-ptr!]
 				headers [int-ptr!]
+				sym		[red-value!]
 		][
 			res: as red-value! none-value
 			parr: 0
@@ -1456,7 +1457,9 @@ simple-io: context [
 				true [
 					either method = words/post [action: #u16 "POST"][
 						s: GET_BUFFER(symbols)
-						copy-cell s/offset + method - 1 as cell! str1
+						sym: s/offset + method - 1
+						symbol/make-red-string as red-symbol! sym
+						copy-cell sym as cell! str1
 						str1/header: TYPE_STRING
 						str1/head: 0
 						str1/cache: null

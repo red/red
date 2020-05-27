@@ -23,6 +23,80 @@ unicode: context [
 	;	3Fh				; U+003F = question mark
 	;	BFh				; U+00BF = inverted question mark
 	;	DC00h + b1		; U+DCxx where xx = b1 (never a Unicode codepoint)
+	
+	;; DFA algorithm: http://bjoern.hoehrmann.de/utf-8/decoder/dfa/#variations
+	utf8d: #{
+		0000000000000000000000000000000000000000000000000000000000000000
+		0000000000000000000000000000000000000000000000000000000000000000
+		0000000000000000000000000000000000000000000000000000000000000000
+		0000000000000000000000000000000000000000000000000000000000000000
+		0101010101010101010101010101010109090909090909090909090909090909
+		0707070707070707070707070707070707070707070707070707070707070707
+		0808020202020202020202020202020202020202020202020202020202020202
+		0A0303030303030303030303030403030B060606050808080808080808080808
+		000C18243C60540C0C0C30480C0C0C0C0C0C0C0C0C0C0C0C0C000C0C0C0C0C00
+		0C000C0C0C180C0C0C0C0C180C180C0C0C0C0C0C0C0C0C180C0C0C0C0C180C0C
+		0C0C0C0C0C180C0C0C0C0C0C0C0C0C240C240C0C0C240C0C0C0C0C240C240C0C
+		0C240C0C0C0C0C0C0C0C0C0C 
+	}
+	utf8d: utf8d + 1									;-- switch it to 0-base indexing
+
+	fast-decode-utf8-char: func [
+		p		[byte-ptr!]
+		cp		[int-ptr!]
+		return: [byte-ptr!]
+		/local
+			state byte idx type [integer!]
+	][
+		state: 0
+		byte: as-integer p/value
+		type: as-integer utf8d/byte
+		cp/value: FFh >> type and byte
+		idx: 256 + state + type
+		state: as-integer utf8d/idx
+		p: p + 1
+		if zero? state [return p]						;-- fast-path for mono-byte codepoint
+		
+		forever [
+			byte: as-integer p/value
+			type: as-integer utf8d/byte
+			switch state [
+				0		[return p]						;-- ACCEPT
+				12		[cp/value: -1 return p]			;-- REJECT
+				default [
+					cp/value: byte and 3Fh or (cp/value << 6)
+					p: p + 1
+				]
+			]
+			idx: 256 + state + type
+			state: as-integer utf8d/idx
+		]
+		as byte-ptr! 0									;-- never reached, just make compiler happy
+	]
+
+	;-- Count UTF-8 encoded characters between two positions in a binary buffer
+	count-chars: func [s e [byte-ptr!] return: [integer!]
+		/local c len [integer!]
+	][
+		c: len: 0
+		while [s < e][
+			s: fast-decode-utf8-char s :len
+			c: c + 1
+		]
+		c
+	]
+	
+	;-- Skips a given amount of UTF-8 encoded characters in a binary buffer
+	skip-chars: func [s e [byte-ptr!] c [integer!] return: [byte-ptr!]
+		/local len [integer!] p [byte-ptr!]
+	][
+		len: 0
+		while [all [c > 0 s < e]][
+			s: fast-decode-utf8-char s :len
+			c: c - 1
+		]
+		s
+	]
 
 	latin1-idx: [
 		0402h 0403h 201Ah 0453h 201Eh 2026h 2020h 2021h
@@ -184,6 +258,53 @@ unicode: context [
 
 		len/value: as-integer buf - beg
 		str/cache
+	]
+	
+	to-utf8-buffer: func [
+		str		[red-string!]
+		buf		[byte-ptr!]
+		len		[integer!]								;-- len = -1 convert all chars
+		return: [integer!]
+		/local
+			beg p tail [byte-ptr!]
+			unit cp part   [integer!]
+			p4 [int-ptr!]
+			s  [series!]
+	][
+		s:	  GET_BUFFER(str)
+		unit: GET_UNIT(s)
+
+		part: string/rs-length? str
+		if all [len <> -1 len < part][part: len]
+		
+		beg:  buf
+		p:	  string/rs-head str
+		tail: p + (part << (unit >> 1))
+
+		switch unit [
+			Latin1 [
+				while [p < tail][
+					buf: buf + cp-to-utf8 as-integer p/value buf
+					p: p + 1
+				]
+			]
+			UCS-2  [
+				while [p < tail][
+					cp: (as-integer p/2) << 8 + p/1
+					buf: buf + cp-to-utf8 cp buf
+					p: p + 2
+				]
+			]
+			UCS-4  [
+				p4: as int-ptr! p
+				while [p4 < as int-ptr! tail][
+					buf: buf + cp-to-utf8 p4/value buf
+					p4: p4 + 1
+				]
+			]
+		]
+		buf/1: null-byte
+		as-integer buf - beg
 	]
 	
 	Latin1-to-UCS2: func [

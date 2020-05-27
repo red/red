@@ -1392,7 +1392,7 @@ Red [
 		e1116: try [sin1116]
 		--assert true? all [
 			error? e1116
-			not equal? '<anon> e1116/arg3
+			not equal? "<anon>" mold e1116/arg3
 		]
 
 	--test-- "#1119"
@@ -1415,10 +1415,10 @@ Red [
 
 	--test-- "#1136"
 		e1136: try [load {a: func [][set 'b: 1]}]
-		--assert not not all [
+		--assert to logic! all [
 			equal? e1136/type 'syntax
 			equal? e1136/id 'invalid
-			equal? e1136/arg1 lit-word!
+			equal? e1136/arg2 lit-word!
 		]
 
 	comment { probe should be mocked for this test
@@ -1619,12 +1619,12 @@ Red [
 		e1396: try [load {(5+2)}]
 		--assert all [
 			equal? e1396/id 'invalid
-			equal? e1396/arg1 integer!
+			equal? e1396/arg2 integer!
 		]
 		e1396: try [load {[5+2]}]
 		--assert all [
 			equal? e1396/id 'invalid
-			equal? e1396/arg1 integer!
+			equal? e1396/arg2 integer!
 		]
 
 	--test-- "#1416"
@@ -1987,22 +1987,25 @@ Red [
 
 	--test-- "#1750"
 		e1750: try [load "2#{FF}"]
-		--assert all [
+		--assert to-logic all [
+			error? :e1750
 			equal? e1750/type 'syntax
 			equal? e1750/id 'invalid
-			equal? e1750/arg1 binary!
+			equal? e1750/arg2 binary!
 		]
 		e1750: try [load "64#{AA}"]
-		--assert all [
+		--assert to-logic all [
+			error? :e1750
 			equal? e1750/type 'syntax
 			equal? e1750/id 'invalid
-			equal? e1750/arg1 binary!
+			equal? e1750/arg2 binary!
 		]
 		e1750: try [load "4#{0}"]
-		--assert all [
+		--assert to-logic all [
+			error? :e1750
 			equal? e1750/type 'syntax
 			equal? e1750/id 'invalid
-			equal? e1750/arg1 integer!
+			equal? e1750/arg2 binary!
 		]
 		not error? try [load "16#{AA}"]
 		unset 'e1750
@@ -2025,9 +2028,10 @@ Red [
 	; --test-- "#1764"
 		; console behaviour (nonGUI)
 
-	--test-- "#1768"
-		--assert not error? try [load {a: %{test ing.txt}}]
-		--assert equal? [a: % "test ing.txt"] load {a: %{test ing.txt}}
+	;; DEPRECATED: raw string syntax deprecates this test and issue.
+	;--test-- "#1768"
+	;	--assert not error? try [load {a: %{test ing.txt}}]
+	;	--assert equal? [a: % "test ing.txt"] load {a: %{test ing.txt}}
 
 	; --test-- "#1769"
 		; console behaviour
@@ -2717,7 +2721,7 @@ b}
 
 	--test-- "#2195"
 		e2195: try [load "system/options/"]
-		--assert equal? "system/options/" e2195/arg2
+		--assert equal? "system/options/" e2195/arg3
 		unset 'e2195
 
 	--test-- "#2196"

@@ -25,7 +25,6 @@ write %build/bin/sources.r set-cache [
 		;%css-colors.red
 		%datatypes.red
 		%functions.red
-		%lexer.red
 		%natives.red
 		%networking.red
 		%operators.red
@@ -34,12 +33,12 @@ write %build/bin/sources.r set-cache [
 		%scalars.red
 		%system.red
 		%codecs/ [
-			%bmp.red
-			%gif.red
-			%jpeg.red
-			%png.red
-			%csv.red
-			%json.red
+			%BMP.red
+			%GIF.red
+			%JPEG.red
+			%PNG.red
+			%CSV.red
+			%JSON.red
 		]
 		%console/ [
 			%auto-complete.red
@@ -85,6 +84,8 @@ write %build/bin/sources.r set-cache [
 		%dtoa.reds
 		%hashtable.reds
 		%interpreter.reds
+		%lexer.reds
+		%lexer-transitions.reds
 		%macros.reds
 		%natives.reds
 		%ownership.reds
@@ -110,6 +111,7 @@ write %build/bin/sources.r set-cache [
 			%common.reds
 			%context.reds
 			%datatype.reds
+			%date.reds
 			%email.reds
 			%error.reds
 			%event.reds
@@ -118,6 +120,7 @@ write %build/bin/sources.r set-cache [
 			%function.reds
 			%get-path.reds
 			%get-word.reds
+			%handle.reds
 			%hash.reds
 			%image.reds
 			%image-utils.reds
@@ -127,6 +130,7 @@ write %build/bin/sources.r set-cache [
 			%lit-word.reds
 			%logic.reds
 			%map.reds
+			%money.reds
 			%native.reds
 			%none.reds
 			%op.reds
@@ -137,6 +141,7 @@ write %build/bin/sources.r set-cache [
 			%percent.reds
 			%point.reds
 			%port.reds
+			%ref.reds
 			%refinement.reds
 			%routine.reds
 			%series.reds
@@ -154,8 +159,6 @@ write %build/bin/sources.r set-cache [
 			%vector.reds
 			%vector2d.reds
 			%word.reds
-			%handle.reds
-			%date.reds
 		]
 		%platform/ [
 			%android.reds

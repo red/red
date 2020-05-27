@@ -187,7 +187,7 @@ map: context [
 		if blk = null [blk: block/make-at as red-block! slot size]
 		table: _hashtable/init size blk HASH_TABLE_MAP 1
 		map: as red-hash! slot
-		map/header: TYPE_MAP							;-- implicit reset of all header flags
+		set-type slot TYPE_MAP
 		map/table: table
 		map
 	]

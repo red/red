@@ -176,11 +176,13 @@ file: context [
 			s	   [series!]
 			unit   [integer!]
 			cp	   [integer!]
+			idx	   [integer!]
 			p	   [byte-ptr!]
 			p4	   [int-ptr!]
 			head   [byte-ptr!]
 			tail   [byte-ptr!]
 			empty? [logic!]
+			esc?   [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "file/mold"]]
 
@@ -206,15 +208,35 @@ file: context [
 		either empty? [
 			string/concatenate-literal buffer {""}
 		][
-			while [p < tail][
+			while [p < tail][							;-- prescan for special characters
 				cp: switch unit [
 					Latin1 [as-integer p/value]
 					UCS-2  [(as-integer p/2) << 8 + p/1]
 					UCS-4  [p4: as int-ptr! p p4/value]
 				]
-				string/append-escaped-char buffer cp string/ESC_URL all?
+				idx: cp + 1
+				if all [
+					cp < MAX_URL_CHARS
+					string/escape-url-chars/idx = (as byte! string/ESC_URL)
+				][
+					break
+				]
 				p: p + unit
 			]
+			esc?: p < tail
+			p: head
+			if esc? [string/append-char GET_BUFFER(buffer) as-integer #"^""]
+			
+			while [p < tail][							;-- generate the molded version
+				cp: switch unit [
+					Latin1 [as-integer p/value]
+					UCS-2  [(as-integer p/2) << 8 + p/1]
+					UCS-4  [p4: as int-ptr! p p4/value]
+				]
+				string/append-char GET_BUFFER(buffer) cp
+				p: p + unit
+			]
+			if esc? [string/append-char GET_BUFFER(buffer) as-integer #"^""]
 		]
 		part - ((as-integer tail - head) >> (log-b unit)) - 1
 	]

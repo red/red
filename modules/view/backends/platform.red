@@ -220,7 +220,7 @@ system/view/platform: context [
 				left:		symbol/make "left"
 				center:		symbol/make "center"
 				right:		symbol/make "right"
-				top:		symbol/make "top"
+				top:		symbol/make-opt "top"
 				middle:		symbol/make "middle"
 				bottom:		symbol/make "bottom"
 			]

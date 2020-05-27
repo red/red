@@ -88,13 +88,8 @@ object: context [
 		obj		[node!]
 		index	[integer!]
 		return: [red-value!]
-		/local
-			ctx [red-context!]
-			s   [series!]
 	][
-		ctx: TO_CTX(obj)
-		s: as series! ctx/symbols/value
-		s/offset + index
+		as red-value! _hashtable/get-ctx-word TO_CTX(obj) index
 	]
 	
 	get-words: func [
@@ -120,12 +115,28 @@ object: context [
 		obj		[red-object!]
 		return: [integer!]
 		/local
-			ctx [red-context!]
 			s   [series!]
 	][
-		ctx: GET_CTX(obj)
-		s: as series! ctx/symbols/value
+		s: _hashtable/get-ctx-words GET_CTX(obj)
 		(as-integer s/tail - s/offset) >> 4
+	]
+	
+	clear-words-flags: func [
+		ctx [red-context!]
+		/local
+			s	 [series!]
+			syms [red-value!]
+			tail [red-value!]
+			mask [integer!]
+	][
+		s: _hashtable/get-ctx-words ctx
+		syms: s/offset
+		tail: s/tail
+		mask: not flag-word-dirty
+		while [syms < tail][
+			syms/header: syms/header and mask
+			syms: syms + 1
+		]
 	]
 	
 	set-many: func [
@@ -158,7 +169,7 @@ object: context [
 		tail:	s/tail
 		type:	TYPE_OF(value)
 		on-set?: obj/on-set <> null
-		s: as series! ctx/symbols/value
+		s: _hashtable/get-ctx-words ctx
 		word: as red-word! s/offset
 		
 		if on-set? [
@@ -305,7 +316,7 @@ object: context [
 			sym		[integer!]
 			type	[integer!]
 	][
-		s:		 as series! ctx/symbols/value
+		s:		 _hashtable/get-ctx-words ctx
 		head:	 as red-word! s/offset
 		tail:	 as red-word! s/tail
 		word:	 head
@@ -527,7 +538,7 @@ object: context [
 			blank	[integer!]
 	][
 		ctx: 	GET_CTX(obj)
-		syms:   as series! ctx/symbols/value
+		syms:   _hashtable/get-ctx-words ctx
 		values: as series! ctx/values/value
 		
 		sym:	syms/offset
@@ -598,7 +609,7 @@ object: context [
 		from: TO_CTX(src)
 		to:	  TO_CTX(dst)
 
-		s: as series! from/symbols/value
+		s: _hashtable/get-ctx-words from
 		symbol: s/offset
 		tail: s/tail
 		
@@ -611,7 +622,7 @@ object: context [
 		while [symbol < tail][
 			word: as red-word! symbol
 			idx: _context/find-word to word/symbol yes
-			
+			assert idx > -1
 			type: TYPE_OF(value)
 			either ANY_SERIES?(type) [					;-- copy series value in extended object
 				actions/copy
@@ -683,14 +694,14 @@ object: context [
 			type  [integer!]
 			s	  [series!]
 	][
-		s: as series! spec/symbols/value
+		s: _hashtable/get-ctx-words spec
 		syms: s/offset
 		tail: s/tail
 
 		s: as series! spec/values/value
 		vals: s/offset
 		
-		s: as series! ctx/symbols/value
+		s: _hashtable/get-ctx-words ctx
 		base: s/tail - s/offset
 		
 		s: as series! ctx/values/value
@@ -731,7 +742,7 @@ object: context [
 			]
 			value: value + 1
 		]
-		s: as series! ctx/symbols/value					;-- refreshing pointer
+		s: _hashtable/get-ctx-words ctx					;-- refreshing pointer
 		s/tail - s/offset > base						;-- TRUE: new words added
 	]
 	
@@ -783,7 +794,7 @@ object: context [
 		ctx: TO_CTX(node)
 		s: as series! ctx/values/value
 		if s/offset = s/tail [
-			ss: as series! ctx/symbols/value
+			ss: _hashtable/get-ctx-words ctx
 			sz: (as-integer (ss/tail - ss/offset)) >> 4
 			s/tail: s/offset + sz						;-- (late) setting of 'values right tail pointer
 		]
@@ -853,7 +864,7 @@ object: context [
 			s [series!]
 	][
 		obj/header: TYPE_UNSET
-		obj/ctx:	_context/create slots no yes
+		obj/ctx:	_context/create slots no yes null CONTEXT_OBJECT
 		obj/class:	0
 		obj/on-set: null
 		obj/header: TYPE_OBJECT
@@ -883,7 +894,7 @@ object: context [
 		cell: s/offset
 		tail: s/tail
 
-		s: as series! ctx/symbols/value
+		s: _hashtable/get-ctx-words ctx
 		base: s/tail - s/offset
 		
 		while [cell < tail][
@@ -989,10 +1000,11 @@ object: context [
 				blk: as red-block! spec
 				new?: _context/collect-set-words ctx blk
 				self: save-self-object obj
-				_context/bind blk ctx self yes	;-- bind spec block
-				if p-obj? [duplicate proto/ctx obj/ctx no]		;-- clone and rebind proto's series
+				_context/bind blk ctx self yes			;-- bind spec block
+				if p-obj? [duplicate proto/ctx obj/ctx no] ;-- clone and rebind proto's series
 				interpreter/eval blk no
 				
+				clear-words-flags ctx
 				obj/class: either any [new? not p-obj?][get-new-id][proto/class]
 				obj/on-set: on-set-defined? ctx
 				if on-deep? obj [ownership/set-owner as red-value! obj obj null]
@@ -1026,11 +1038,25 @@ object: context [
 		ctx: GET_CTX(obj)
 		
 		case [
+			field = words/changed [
+				blk/header: TYPE_UNSET
+				blk/node: alloc-cells 2
+				blk/header: TYPE_BLOCK
+				s: _hashtable/get-ctx-words ctx
+				syms: s/offset
+				tail: s/tail
+				s: GET_BUFFER(blk)
+				
+				while [syms < tail][
+					if syms/header and flag-word-dirty <> 0 [copy-cell as cell! syms ALLOC_TAIL(blk)]
+					syms: syms + 1
+				]
+			]
 			field = words/class [
 				return as red-block! integer/box obj/class
 			]
 			field = words/words [
-				blk/node: ctx/symbols
+				blk/node: _hashtable/get-ctx-symbols ctx
 				blk: block/clone blk no no
 				
 				word: as red-word! block/rs-head blk
@@ -1046,14 +1072,14 @@ object: context [
 				blk: block/clone blk no no
 			]
 			field = words/body [
-				blk/node: ctx/symbols
+				blk/node: _hashtable/get-ctx-symbols ctx
 				len: block/rs-length? blk
 				if len = 0 [len: 1]
 				blk/header: TYPE_UNSET
 				blk/node: alloc-cells len
 				blk/header: TYPE_BLOCK
 				
-				s: as series! ctx/symbols/value
+				s: _hashtable/get-ctx-words ctx
 				syms: s/offset
 				tail: s/tail
 				
@@ -1062,7 +1088,7 @@ object: context [
 				
 				while [syms < tail][
 					word: as red-word! block/rs-append blk syms
-					word/header: TYPE_SET_WORD
+					word/header: TYPE_SET_WORD or flag-new-line
 					word/ctx: obj/ctx
 					
 					value: block/rs-append blk vals
@@ -1082,6 +1108,7 @@ object: context [
 				--NOT_IMPLEMENTED--						;@@ raise error
 			]
 		]
+		assert all [blk/header and get-type-mask = TYPE_BLOCK blk/node <> null]
 		as red-block! stack/set-last as red-value! blk
 	]
 	
@@ -1199,20 +1226,21 @@ object: context [
 
 		if TYPE_OF(obj2) <> TYPE_OBJECT [RETURN_COMPARE_OTHER]
 
-		if op = COMP_SAME [return either obj1/ctx = obj2/ctx [0][-1]]
-		if obj1/ctx = obj2/ctx [return 0]
+		either obj1/ctx = obj2/ctx [return 0][
+			if op = COMP_SAME [return -1]
+		]
 
 		if cycles/find? obj1/ctx [
 			return either cycles/find? obj2/ctx [0][-1]
 		]
 
 		ctx1: GET_CTX(obj1)
-		s: as series! ctx1/symbols/value
+		s: _hashtable/get-ctx-words ctx1
 		sym1: as red-word! s/offset
 		tail: as red-word! s/tail
 		
 		ctx2: GET_CTX(obj2)
-		s: as series! ctx2/symbols/value
+		s: _hashtable/get-ctx-words ctx2
 
 		diff: (as-integer s/tail - s/offset) - (as-integer tail - sym1)
 		if diff <> 0 [
@@ -1282,6 +1310,8 @@ object: context [
 			size  [integer!]
 			slots [integer!]
 			type  [integer!]
+			sym	  [red-word!]
+			w-ctx [node!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/copy"]]
 		
@@ -1292,28 +1322,30 @@ object: context [
 		]
 
 		ctx:	GET_CTX(obj)
-		src:	as series! ctx/symbols/value
+		src:	_hashtable/get-ctx-words ctx
 		size:   as-integer src/tail - src/offset
 		slots:	size >> 4
 		
 		copy-cell as cell! obj as cell! new
 		new/header: TYPE_UNSET
-		new/ctx: _context/create slots no yes
+		new/ctx: _context/create slots no yes ctx CONTEXT_OBJECT
 		new/class: obj/class
 		new/header: TYPE_OBJECT
-		nctx: GET_CTX(new)
 
+		nctx: GET_CTX(new)
 		copy-cell as red-value! new as red-value! nctx + 1	;-- set back-reference
 
 		node: save-self-object new
 		
 		if size <= 0 [return new]						;-- empty object!
-		
+
 		;-- process SYMBOLS
-		dst: as series! nctx/symbols/value
-		copy-memory as byte-ptr! dst/offset as byte-ptr! src/offset size
-		dst/tail: dst/offset + slots
-		_context/set-context-each dst new/ctx
+		sym: _hashtable/get-ctx-word nctx 0
+		w-ctx: new/ctx
+		loop slots [
+			sym/ctx: w-ctx
+			sym: sym + 1
+		]
 
 		;-- process VALUES
 		src: as series! ctx/values/value
@@ -1405,6 +1437,10 @@ object: context [
 	][
 		sym: symbol/resolve field/symbol
 		case [
+			sym = words/changed [
+				if TYPE_OF(value) <> TYPE_NONE [fire [TO_ERROR(script invalid-arg) value]]
+				clear-words-flags GET_CTX(obj)
+			]
 			sym = words/owner [
 				ownership/set-owner as red-value! obj obj null
 			]

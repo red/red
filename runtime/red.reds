@@ -105,6 +105,8 @@ red: context [
 	#include %datatypes/handle.reds
 	#include %datatypes/date.reds
 	#include %datatypes/port.reds
+	#include %datatypes/money.reds
+	#include %datatypes/ref.reds
 	#if OS = 'Windows [#include %datatypes/image.reds]	;-- temporary
 	#if OS = 'macOS   [#include %datatypes/image.reds]	;-- temporary
 	#if OS = 'Linux   [#include %datatypes/image.reds]	;-- temporary
@@ -121,6 +123,7 @@ red: context [
 	#include %random.reds
 	#include %stack.reds
 	#include %interpreter.reds
+	#include %lexer.reds
 	#include %tokenizer.reds
 	#include %simple-io.reds							;-- temporary file IO support
 	#include %clipboard.reds
@@ -201,6 +204,8 @@ red: context [
 		handle/init
 		date/init
 		port/init
+		money/init
+		ref/init
 		#if OS = 'Windows [image/init]					;-- temporary
 		#if OS = 'macOS   [image/init]					;-- temporary
 		#if OS = 'Linux   [image/init]					;-- temporary
@@ -215,10 +220,10 @@ red: context [
 		arg-stk:	block/make-fixed root 2 * 2000
 		call-stk:	block/make-fixed root 20 * 2000
 		symbols: 	block/make-in root 4000
-		global-ctx: _context/create 4000 no no
+		global-ctx: _context/create 4000 no no null CONTEXT_GLOBAL
 
 		case-folding/init
-		symbol/table: _hashtable/init 4000 symbols HASH_TABLE_SYMBOL 1
+		symbol/table: _hashtable/init 4000 symbols HASH_TABLE_SYMBOL HASH_SYMBOL_BLOCK
 
 		datatype/make-words								;-- build datatype names as word! values
 		words/build										;-- create symbols used internally
@@ -231,6 +236,7 @@ red: context [
 		ext-process/init
 		
 		stack/init
+		lexer/init
 		redbin/boot-load system/boot-data no
 		
 		#if debug? = yes [
@@ -277,6 +283,8 @@ red: context [
 			handle/verbose:		verbosity
 			date/verbose:		verbosity
 			port/verbose:		verbosity
+			money/verbose:		verbosity
+			ref/verbose:		verbosity
 			#if OS = 'Windows [image/verbose: verbosity]
 			#if OS = 'macOS   [image/verbose: verbosity]
 			#if OS = 'Linux   [image/verbose: verbosity]

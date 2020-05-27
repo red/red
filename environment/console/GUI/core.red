@@ -277,7 +277,7 @@ object [
 
 	adjust-console-size: function [size [pair!]][
 		cols: to integer! size/x - 20 - pad-left / char-width		;-- -20 compensates for scrollbar
-		rows: size/y / line-h
+		rows: to-integer size/y / line-h
 		system/console/size: as-pair cols rows
 	]
 
@@ -287,7 +287,7 @@ object [
 		new-size/y: y + line-h
 		box/size: new-size
 		if scroller [
-			page-cnt: y / line-h
+			page-cnt: to-integer y / line-h
 			scroller/page-size: page-cnt
 			scroller/max-size: line-cnt - 1 + page-cnt
 			scroller/position: scroller/position
@@ -510,7 +510,7 @@ object [
 
 		n: top
 		either delta > 0 [						;-- scroll up
-			delta: delta + (scroll-y / line-h + pick nlines n)
+			delta: delta + (to-integer scroll-y / line-h + pick nlines n)
 			scroll-y: 0
 			until [
 				cnt: pick nlines n
@@ -527,7 +527,7 @@ object [
 			if zero? n [n: 1 scroll-y: 0]
 		][										;-- scroll down
 			len: length? lines
-			delta: scroll-y / line-h + delta
+			delta: to-integer scroll-y / line-h + delta
 			scroll-y: 0
 			until [
 				cnt: pick nlines n
@@ -964,7 +964,7 @@ object [
 			if y > end [break]
 		]
 		line-y: y - h
-		screen-cnt: y / line-h
+		screen-cnt: to-integer y / line-h
 		if screen-cnt > page-cnt [screen-cnt: page-cnt]
 		update-caret
 		update-scroller line-cnt - num

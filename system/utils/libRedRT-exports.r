@@ -48,6 +48,8 @@
 	red/stack/set-last
 
 	red/interpreter/eval-path
+	red/lexer/scan
+	red/lexer/scan-alt
 
 	red/none/push-last
 
@@ -76,6 +78,7 @@
 	red/lit-word/push
 	red/logic/push
 	red/map/push
+	red/money/push
 	red/none/push
 	red/object/push
 	red/op/push
@@ -83,6 +86,7 @@
 	red/paren/push
 	red/path/push
 	red/percent/push
+	red/ref/push
 	red/refinement/push
 	red/routine/push
 	red/set-path/push
@@ -121,7 +125,7 @@
 	red/set-word/push-local
 
 	red/_context/get
-	red/_context/clone
+	red/_context/clone-words
 	red/_context/set-integer
 
 	red/object/duplicate
@@ -210,6 +214,7 @@
 	red/natives/forall-next
 	red/natives/forall-end
 	red/natives/forall-end-adjust
+	red/natives/coerce-counter*
 
 	red/actions/make*
 	red/actions/random*
@@ -375,6 +380,8 @@
 	red/natives/compress*
 	red/natives/decompress*
 	red/natives/recycle*
+	red/natives/transcode*
+	red/natives/as-money*
 
 	;-- for view backend
 	red/symbol/resolve

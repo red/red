@@ -283,7 +283,7 @@ system/console: context [
 
 	launch: function [/local result][
 		either script: src: read-argument [
-			parse script [some [[to "Red" pos: 3 skip any ws #"[" to end] | skip]]
+			parse script [some [[pos: "Red" any ws #"[" to end] | skip]]
 		
 			either script: pos [
 				either error? script: try-do [load script][

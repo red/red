@@ -113,7 +113,7 @@ last: func ["Returns the last value in a series" s [series! tuple!]] [pick s len
 		bitset! binary! block! char! email! file! float! get-path! get-word! hash!
 		integer! issue! lit-path! lit-word! logic! map! none! pair! paren! path!
 		percent! refinement! set-path! set-word! string! tag! time! typeset! tuple!
-		unset! url! word! image! date!
+		unset! url! word! image! date! money! ref!
 	]
 	test-list: union to-list [
 		handle! error! action! native! datatype! function! image! object! op! routine! vector!
@@ -300,55 +300,57 @@ charset: func [
 	make bitset! spec
 ]
 
-p-indent: make string! 30								;@@ to be put in a local context
-
-on-parse-event: func [
-	"Standard parse/trace callback used by PARSE-TRACE"
-	event	[word!]   "Trace events: push, pop, fetch, match, iterate, paren, end"
-	match?	[logic!]  "Result of last matching operation"
-	rule	[block!]  "Current rule at current position"
-	input	[series!] "Input series at next position to match"
-	stack	[block!]  "Internal parse rules stack"
-	return: [logic!]  "TRUE: continue parsing, FALSE: stop and exit parsing"
-][
-	switch event [
-		push  [
-			print [p-indent "-->"]
-			append p-indent "  "
-		]
-		pop	  [
-			clear back back tail p-indent
-			print [p-indent "<--"]
-		]
-		fetch [
-			print [
-				p-indent "match:" mold/flat/part rule 50 newline
-				p-indent "input:" mold/flat/part input 50 p-indent
-			]
-		]
-		match [print [p-indent "==>" pick ["matched" "not matched"]  match?]]
-		end   [print ["return:" match?]]
-	]
-	true
-]
-
-parse-trace: func [
-	"Wrapper for parse/trace using the default event processor"
-	input [series!]
-	rules [block!]
-	/case "Uses case-sensitive comparison"
-	/part "Limit to a length or position"
-		limit [integer!]
-	return: [logic! block!]
-][
-	clear p-indent
-	either case [
-		parse/case/trace input rules :on-parse-event
+context [
+	p-indent: make string! 30
+	
+	on-parse-event: func [
+		"Standard parse/trace callback used by PARSE-TRACE"
+		event	[word!]   "Trace events: push, pop, fetch, match, iterate, paren, end"
+		match?	[logic!]  "Result of last matching operation"
+		rule	[block!]  "Current rule at current position"
+		input	[series!] "Input series at next position to match"
+		stack	[block!]  "Internal parse rules stack"
+		return: [logic!]  "TRUE: continue parsing, FALSE: stop and exit parsing"
 	][
-		either part [
-			parse/part/trace input rules limit :on-parse-event
+		switch event [
+			push  [
+				print [p-indent "-->"]
+				append p-indent "  "
+			]
+			pop	  [
+				clear back back tail p-indent
+				print [p-indent "<--"]
+			]
+			fetch [
+				print [
+					p-indent "match:" mold/flat/part rule 50 newline
+					p-indent "input:" mold/flat/part input 50 p-indent
+				]
+			]
+			match [print [p-indent "==>" pick ["matched" "not matched"]  match?]]
+			end   [print ["return:" match?]]
+		]
+		true
+	]
+
+	set 'parse-trace func [
+		"Wrapper for parse/trace using the default event processor"
+		input [series!]
+		rules [block!]
+		/case "Uses case-sensitive comparison"
+		/part "Limit to a length or position"
+			limit [integer!]
+		return: [logic! block!]
+	][
+		clear p-indent
+		either case [
+			parse/case/trace input rules :on-parse-event
 		][
-			parse/trace input rules :on-parse-event
+			either part [
+				parse/part/trace input rules limit :on-parse-event
+			][
+				parse/trace input rules :on-parse-event
+			]
 		]
 	]
 ]
@@ -361,6 +363,20 @@ suffix?: function [
 		path: find/last path #"."
 		not find path #"/"
 	][to file! path]
+]
+
+scan: func [
+	"Returns the guessed type of the first serialized value from the input"
+	buffer  [binary! string!] "Input UTF-8 buffer or string"
+	/next					  "Returns both the type and the input after the value"
+	/fast					  "Fast scanning, returns best guessed type"
+	return: [datatype!]		  "Recognized or guessed type"
+][
+	either fast [
+		either next [transcode/next/prescan buffer][transcode/prescan buffer]
+	][
+		either next [transcode/next/scan buffer][transcode/scan buffer]
+	]
 ]
 
 load: function [
@@ -401,7 +417,7 @@ load: function [
 	]
 	unless out [out: make block! 10]
 	
-	switch/default type?/word source [
+	switch type?/word source [
 		file!	[
 			suffix: suffix? source
 			foreach [name codec] system/codecs [
@@ -409,7 +425,7 @@ load: function [
 					return do [codec/decode source]
 				]
 			]
-			source: read source
+			source: read/binary source
 		]
 		url!	[
 			source: read/info/binary source
@@ -422,17 +438,21 @@ load: function [
 					]
 				]
 			][return none]
-			source: to string! source/3
+			source: source/3
 		]
-		binary! [source: to string! source]				;-- For text: UTF-8 encoding TBD: load image in binary form
-	][source]
-
-	result: case [
-		part  [system/lexer/transcode/part source out trap length]
-		next  [set position system/lexer/transcode/one source out trap]
-		'else [system/lexer/transcode source out trap]
 	]
-	either trap [result][
+	if pre-load: :system/lexer/pre-load [do [pre-load source length]]
+
+	out: case [
+		part  [transcode/part source length]
+		;trap  [system/lexer/transcode to-string source out trap]
+		next  [
+			set position second out: transcode/next source
+			return either :all [reduce [out/1]][out/1]
+		]
+		'else [transcode source]
+	]
+	either trap [out][
 		unless :all [if 1 = length? out [out: out/1]]
 		out
 	]
@@ -508,13 +528,13 @@ save: function [
 cause-error: func [
 	"Causes an immediate error throw, with the provided information"
 	err-type [word!] 
-	err-id [word!] 
-	args [block! string!] 
+	err-id 	 [word!] 
+	args 	 [block! string!] 
 ][
-	args: reduce either block? args [args] [[args]]		; Blockify string args
+	args: reduce either block? args [args] [[args]]		;-- Blockify string args
 	do make error! [
 		type: err-type
-		id: err-id
+		id:   err-id
 		arg1: first args
 		arg2: second args
 		arg3: third args
@@ -539,9 +559,9 @@ pad: func [
 
 mod: func [
 	"Compute a nonnegative remainder of A divided by B"
-	a		[number! char! pair! tuple! vector! time!]
-	b		[number! char! pair! tuple! vector! time!]	"Must be nonzero"
-	return: [number! char! pair! tuple! vector! time!]
+	a		[number! money! char! pair! tuple! vector! time!]
+	b		[number! money! char! pair! tuple! vector! time!]	"Must be nonzero"
+	return: [number! money! char! pair! tuple! vector! time!]
 	/local r
 ][
 	if (r: a % b) < 0 [r: r + b]
@@ -551,9 +571,9 @@ mod: func [
 
 modulo: func [
 	"Wrapper for MOD that handles errors like REMAINDER. Negligible values (compared to A and B) are rounded to zero"
-	a		[number! char! pair! tuple! vector! time!]
-	b		[number! char! pair! tuple! vector! time!]
-	return: [number! char! pair! tuple! vector! time!]
+	a		[number! money! char! pair! tuple! vector! time!]
+	b		[number! money! char! pair! tuple! vector! time!]
+	return: [number! money! char! pair! tuple! vector! time!]
 	/local r
 ][
 	r: mod a absolute b
@@ -856,7 +876,7 @@ split-path: func [
 	reduce [dir pos]
 ]
 
-do-file: func ["Internal Use Only" file [file! url!] /local saved code new-path src][
+do-file: function ["Internal Use Only" file [file! url!]][
 	saved: system/options/path
 	unless src: find/case read file "Red" [
 		cause-error 'syntax 'no-header reduce [file]
@@ -866,6 +886,13 @@ do-file: func ["Internal Use Only" file [file! url!] /local saved code new-path 
 	if file? file [
 		new-path: first split-path clean-path file
 		change-dir new-path
+	]
+	if all [
+		code/1 = 'Red
+		block? header: code/2
+		list: select header 'currencies
+	][
+		foreach c list [append system/locale/currencies/list c]
 	]
 	set/any 'code try/all code
 	if file? file [change-dir saved]
@@ -1073,6 +1100,16 @@ last?: func [
 	series [series!]
 ] [
 	1 = length? series
+]
+
+dt: function [
+	"Returns the time required to evaluate a block"
+	body	[block!]
+	return: [time!]
+][
+	t0: now/time/precise
+	do body
+	now/time/precise - t0
 ]
 
 ;------------------------------------------

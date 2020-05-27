@@ -197,6 +197,7 @@ natives: context [
 			saved [int-ptr!]
 	][
 		#typecheck loop
+		coerce-counter*
 		count: integer/get*
 		unless positive? count [RETURN_NONE]			;-- if counter <= 0, no loops
 		body: as red-block! stack/arguments + 1
@@ -232,6 +233,7 @@ natives: context [
 		count: as red-integer! stack/arguments + 1
 		body:  as red-block!   stack/arguments + 2
 		
+		coerce-counter as red-value! count
 		i: integer/get as red-value! count
 		unless positive? i [RETURN_NONE]				;-- if counter <= 0, no loops
 		
@@ -536,7 +538,6 @@ natives: context [
 			cframe [byte-ptr!]
 			arg	   [red-value!]
 			do-arg [red-value!]
-			str	   [red-string!]
 			slot   [red-value!]
 			blk	   [red-block!]
 			job	   [red-value!]
@@ -560,8 +561,7 @@ natives: context [
 					stack/set-last arg + 1
 				]
 				TYPE_STRING [
-					str: as red-string! arg
-					#call [system/lexer/transcode str none no]
+					lexer/scan-alt arg as red-string! arg -1 no yes yes no null null as red-string! arg
 					DO_EVAL_BLOCK
 				]
 				TYPE_URL 
@@ -818,6 +818,9 @@ natives: context [
 					type = TYPE_UNSET
 				][
 					res: true
+				]
+				type = TYPE_MONEY [
+					res: zero? money/compare as red-money! arg1 as red-money! arg2 COMP_SAME
 				]
 				true [
 					res: all [
@@ -1494,7 +1497,10 @@ natives: context [
 	][
 		#typecheck -negative?-							;-- `negative?` would be replaced by lexer
 		res: as red-logic! stack/arguments
-		switch TYPE_OF(res) [							;@@ Add money! pair!
+		switch TYPE_OF(res) [							;@@ Add pair!
+			TYPE_MONEY [
+				res/value: money/negative-money? as red-money! res				
+			]
 			TYPE_INTEGER [
 				num: as red-integer! res
 				res/value: negative? num/value
@@ -1519,7 +1525,10 @@ natives: context [
 	][
 		#typecheck -positive?-							;-- `positive?` would be replaced by lexer
 		res: as red-logic! stack/arguments
-		switch TYPE_OF(res) [							;@@ Add money! pair!
+		switch TYPE_OF(res) [							;@@ Add pair!
+			TYPE_MONEY [
+				res/value: money/positive-money? as red-money! res
+			]
 			TYPE_INTEGER [
 				num: as red-integer! res
 				res/value: positive? num/value
@@ -1546,7 +1555,10 @@ natives: context [
 		#typecheck sign?
 		res: stack/arguments
 		ret: 0
-		switch TYPE_OF(res) [							;@@ Add money! pair! 
+		switch TYPE_OF(res) [							;@@ Add pair! 
+			TYPE_MONEY [
+				ret: money/sign? as red-money! stack/arguments
+			]
 			TYPE_INTEGER [
 				i: as red-integer! stack/arguments
 				ret: case [
@@ -1758,6 +1770,9 @@ natives: context [
 		i: as red-integer! stack/arguments
 		ret: as red-logic! i
 		ret/value: switch TYPE_OF(i) [
+			TYPE_MONEY [
+				money/zero-money? as red-money! i
+			]
 			TYPE_INTEGER
 			TYPE_CHAR [
 				i/value = 0
@@ -2000,6 +2015,41 @@ natives: context [
 		pair/header: TYPE_PAIR
 	]
 	
+	as-money*: func [
+		check? [logic!]
+		/local
+			argument [red-value!]
+			amount   [red-value!]
+			currency [red-word!]
+			mny      [red-money!]
+			flt		 [red-float!]
+			int		 [red-integer!]
+			index    [integer!]
+	][
+		#typecheck as-money
+		argument: stack/arguments
+		currency: as red-word! argument
+		amount:   stack/arguments + 1
+		
+		index: money/get-currency-index currency/symbol
+		if negative? index [fire [TO_ERROR(script bad-denom) word/push currency]]
+		
+		switch TYPE_OF(amount) [
+			TYPE_INTEGER [
+				int: as red-integer! amount
+				mny: money/from-integer int/value
+			]
+			TYPE_FLOAT [
+				flt: as red-float! amount
+				mny: money/from-float flt/value
+			]
+			default [assert false]
+		]
+		
+		money/set-currency mny index
+		SET_RETURN(mny)
+	]
+	
 	break*: func [check? [logic!] returned [integer!]][
 		#typecheck [break returned]
 		stack/throw-break returned <> -1 no
@@ -2100,21 +2150,6 @@ natives: context [
 			]
 			TYPE_OBJECT [--NOT_IMPLEMENTED--]
 		]
-	]
-	
-	recycle*: func [
-		check? [logic!]
-		on?    [integer!]
-		off?   [integer!]
-	][
-		#typecheck [on? off?]
-		
-		case [
-			on?  > -1 [collector/active?: yes]
-			off? > -1 [collector/active?: no]
-			true	  [collector/do-mark-sweep]
-		]
-		unset/push-last
 	]
 
 	to-local-file*: func [
@@ -2731,6 +2766,106 @@ natives: context [
 		s/tail: as cell! (buf + dstlen)
 		stack/set-last as red-value! dst
 	]
+	
+	
+	recycle*: func [
+		check? [logic!]
+		on?    [integer!]
+		off?   [integer!]
+	][
+		#typecheck [recycle on? off?]
+
+		case [
+			on?  > -1 [collector/active?: yes]
+			off? > -1 [collector/active?: no]
+			true	  [collector/do-mark-sweep]
+		]
+		unset/push-last
+	]
+	
+	transcode*: func [
+		check? [logic!]
+		next   [integer!]
+		one    [integer!]
+		prescan[integer!]
+		scan   [integer!]
+		part   [integer!]
+		into   [integer!]
+		trace  [integer!]
+		/local
+			offset len type [integer!]
+			next? one? all? scan? load? [logic!]
+			slot arg [red-value!]
+			bin	bin2 [red-binary!]
+			int	  [red-integer!]
+			str	  [red-string!]
+			blk	  [red-block!]
+			dt	  [red-datatype!]
+			fun	  [red-function!]
+			s	  [series!]
+	][
+		#typecheck [transcode next one prescan scan part into trace]
+
+		scan?: prescan < 0
+		load?: scan < 0
+		all?:  all [one < 0 load?]
+		next?: next >= 0
+		slot: stack/push*
+		if all [next? any [one < 0 not load?]][
+			blk: block/preallocate as red-block! slot 2 no
+			s: GET_BUFFER(blk)
+			s/tail: s/offset + 2
+			slot: s/offset
+		]
+		offset: 0
+		len: -1
+		bin: as red-binary! stack/arguments
+		type: TYPE_OF(bin)
+		arg: stack/arguments + part
+		fun: either trace < 0 [null][stack/arguments + trace]
+		
+		if OPTION?(arg) [
+			switch TYPE_OF(arg) [
+				TYPE_INTEGER [
+					int: as red-integer! arg
+					len: int/value
+				]
+				TYPE_BINARY [
+					if type <> TYPE_BINARY [fire [TO_ERROR(script not-same-type)]]
+					bin2: as red-binary! arg
+					len: bin2/head - bin/head
+				]
+				TYPE_STRING [
+					if type <> TYPE_STRING [fire [TO_ERROR(script not-same-type)]]
+					str: as red-string! arg
+					len: str/head - bin/head
+				]
+				default [0]
+			]
+			if len < 0 [len: 0]
+		]
+		one?: any [next? not all? not load?]
+		either type = TYPE_BINARY [
+			if len < 0 [len: binary/rs-length? bin]
+			type: lexer/scan slot binary/rs-head bin len one? scan? load? no :offset fun as red-series! bin
+		][
+			str: as red-string! bin
+			if len < 0 [len: string/rs-length? str]
+			type: lexer/scan-alt slot str len one? scan? load? no :offset fun as red-series! str
+		]
+		if any [not scan? not load?][
+			assert type > 0
+			dt: as red-datatype! slot
+			dt/header: TYPE_DATATYPE
+			dt/value: type
+		]
+		if all [next? any [one < 0 not load?]][
+			bin: as red-binary! copy-cell as red-value! bin s/offset + 1
+			bin/head: bin/head + offset
+			slot: as red-value! blk
+		]
+		stack/set-last slot
+	]
 
 	;--- Natives helper functions ---
 	
@@ -3244,6 +3379,24 @@ natives: context [
 		int/value: value								;-- overlapping /value field for integer! and char!
 	]
 	
+	coerce-counter: func [
+		slot 	[red-value!]
+		/local
+			int [red-integer!]
+			fl	[red-float!]
+			i	[integer!]
+	][
+		if TYPE_OF(slot) = TYPE_FLOAT [
+			fl: as red-float! slot
+			i: as-integer fl/value
+			int: as red-integer! slot
+			int/header: TYPE_INTEGER
+			int/value: i
+		]
+	]
+	
+	coerce-counter*: func [][coerce-counter stack/arguments]
+	
 	init: does [
 		table: as int-ptr! allocate NATIVES_NB * size? integer!
 		buffer-blk: block/make-in red/root 32			;-- block buffer for PRIN's reduce/into
@@ -3321,6 +3474,7 @@ natives: context [
 			:uppercase*
 			:lowercase*
 			:as-pair*
+			:as-money*
 			:break*
 			:continue*
 			:exit*
@@ -3350,6 +3504,7 @@ natives: context [
 			:compress*
 			:decompress*
 			:recycle*
+			:transcode*
 		]
 	]
 

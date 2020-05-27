@@ -51,9 +51,8 @@ logic: context [
 			arg	 [red-logic!]
 			type [integer!]
 	][
-		arg: as red-logic! stack/get-top
+		arg: as red-logic! either stack/top = stack/arguments [stack/top][stack/get-top]
 		type: TYPE_OF(arg)
-
 		any [
 			type = TYPE_NONE
 			all [type = TYPE_LOGIC not arg/value]

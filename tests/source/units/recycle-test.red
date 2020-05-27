@@ -263,16 +263,15 @@ Red [
 		rm4-map-2: copy rm4-map-1
 		rm4-map-3: copy rm4-map-1
 		rm4-map-4: copy rm4-map-1
-		rm4-map: make map! compose [a: 1 b: 2 c: 3 d: 4]
-		recycle
-		rm4-mem: stats
-		
 		rm4-map: make map! compose [
 			a: (copy rm4-map-1)
 			b: (copy rm4-map-2)
 			c: (copy rm4-map-3)
 			d: (copy rm4-map-4)
 		]
+
+		rm4-mem: stats
+
 		rm4-map/a: none
 		rm4-map/b: none
 		rm4-map/c: none

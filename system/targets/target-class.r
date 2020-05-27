@@ -32,8 +32,9 @@ target-class: context [
 	emit-integer-operation: emit-float-operation: 
 	emit-throw:	on-init: emit-alt-last: emit-log-b:
 	emit-variable: emit-read-io: emit-io-write: 
-	emit-push-all: emit-pop-all: emit-atomic-load: emit-atomic-store: 
-	emit-atomic-math: emit-atomic-fence: none
+	emit-push-all: emit-pop-all: emit-atomic-load: 
+	emit-atomic-store: emit-atomic-math: emit-atomic-fence:
+	emit-init-sub: emit-return-sub: emit-call-sub: none
 	
 	comparison-op: [= <> < > <= >=]
 	math-op:	   compose [+ - * / // (to-word "%")]
