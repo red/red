@@ -107,21 +107,28 @@ redbin: context [
 		return: [int-ptr!]
 		/local
 			blk  [red-block!]
-			cell [cell!]
+			end  [int-ptr!]
 			size [integer!]
 			sz   [integer!]
 	][
-		size: data/2
-		sz: size
-		if zero? sz [sz: 1]
-		#if debug? = yes [if verbose > 0 [print [#":" size #":"]]]
-
-		blk: block/make-at as red-block! ALLOC_TAIL(parent) sz
-		data: data + 2
-		loop size [data: decode-value data table blk]
-		cell: as cell! map/make-at as red-value! blk blk sz
-		if nl? [cell/header: cell/header or flag-new-line]
-		data
+		either data/1 and REDBIN_REFERENCE_MASK <> 0 [
+			end: decode-reference data + 1 parent
+			blk: (as red-block! block/rs-tail parent) - 1
+			if nl? [blk/header: blk/header or flag-new-line]
+			end
+		][
+			size: data/2
+			sz: size
+			if zero? sz [sz: 1]
+			#if debug? = yes [if verbose > 0 [print [#":" size #":"]]]
+			
+			blk: block/make-at as red-block! ALLOC_TAIL(parent) sz
+			data: data + 2
+			loop size [data: decode-value data table blk]
+			map/make-at as red-value! blk blk sz
+			if nl? [blk/header: blk/header or flag-new-line]
+			data
+		]
 	]
 	
 	decode-context: func [
