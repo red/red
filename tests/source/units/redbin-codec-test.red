@@ -331,6 +331,24 @@ Red [
 			--assert "[[...]]" = mold block
 			--assert block/1/1 =? block
 		
+		--test-- "cycle-2"
+			append/only insert/only block: [we need to go deeper] block block
+			block: test block
+			--assert "[[...] we need to go deeper [...]]" = mold block
+			--assert same? first block last block
+			--assert same? block first block
+			--assert block/1/7/1/7/1/7/1/7/1/7/6 == 'deeper
+			reverse last block
+			--assert block/2 == 'deeper
+			--assert block/7/7/7/1/1/1/2 == 'deeper
+		
+		--test-- "cycle-3"
+			map: #()
+			put map 'map map
+			map: test map
+			--assert "#(map: #(...))" = mold/flat map
+			--assert map/map/map/map =? map
+		
 		--test-- "reference-1"
 			block: [1 2]
 			paren: as paren! next block
