@@ -21,10 +21,12 @@ highlight: context [
 		line	[integer!]
 		token
 		return:	[logic!]
-		/local style
+		/local style ret
 	][
+		ret: no
 		switch event [
-			prescan [
+			prescan [ret: yes]
+			scan [
 				if all [type style: select _theme to-word type][
 					append _dst as-pair token/x token/y - token/x
 					append _dst style
@@ -32,7 +34,7 @@ highlight: context [
 			]
 			error [input: next input]
 		]
-		false
+		ret
 	]
 
 	add-styles: func [
