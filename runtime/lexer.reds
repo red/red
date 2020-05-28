@@ -484,7 +484,7 @@ lexer: context [
 		if root-state <> null [
 			s: root-state
 			until [
-				assert s/buffer < s/tail
+				assert s/buffer <= s/tail
 				collector/mark-values s/buffer s/tail
 				if s/in-series <> null [collector/keep s/in-series/node]
 				s: s/next
