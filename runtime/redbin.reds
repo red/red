@@ -326,7 +326,7 @@ redbin: context [
 			sz   [integer!]
 	][
 		either data/1 and REDBIN_REFERENCE_MASK <> 0 [
-			end: decode-reference data + 3 parent
+			end: decode-reference data + 2 parent
 			blk: (as red-block! block/rs-tail parent) - 1
 			
 			blk/header: data/1 and FFh
@@ -1007,9 +1007,9 @@ redbin: context [
 		
 		store payload header
 		unless header and get-type-mask = TYPE_MAP [store payload either abs? [0][data/data1]]
-		store payload length
 		
 		unless header and REDBIN_REFERENCE_MASK <> 0 [
+			store payload length
 			loop length [
 				encode-value value payload symbols table strings
 				value:  value + 1
@@ -1095,12 +1095,7 @@ redbin: context [
 				node: as node! either ALL_WORD?(type) [data/data1][data/data2]
 				ref:  reference/fetch node
 				
-				either null? ref [
-					path/push
-					reference/store node
-				][
-					header: header or REDBIN_REFERENCE_MASK
-				]
+				either null? ref [path/push reference/store node][header: header or REDBIN_REFERENCE_MASK]
 				
 				switch type [
 					TYPE_ANY_STRING
