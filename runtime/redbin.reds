@@ -286,31 +286,43 @@ redbin: context [
 		return: [int-ptr!]
 		/local
 			str    [red-string!]
+			end    [int-ptr!]
 			header [integer!]
 			unit   [integer!]
 			size   [integer!]
 			s      [series!]
-	][
+	][	
 		header: data/1
-		unit: header >>> 8 and FFh
-		size: data/3 << log-b unit						;-- optimized data/3 * unit
+		either header and REDBIN_REFERENCE_MASK <> 0 [
+			end: decode-reference data + 2 parent
+			str: (as red-string! block/rs-tail parent) - 1
+			
+			str/header: header and FFh
+			if nl? [str/header: str/header or flag-new-line]
+			str/head: data/2
+			
+			end
+		][
+			unit: header >>> 8 and FFh
+			size: data/3 << log-b unit						;-- optimized data/3 * unit
 
-		str: as red-string! ALLOC_TAIL(parent)
-		str/header: TYPE_UNSET
-		str/head: 	data/2
-		str/node: 	alloc-bytes size
-		str/cache:	null
-		str/header: header and FFh						;-- implicit reset of all header flags
-		if nl? [str/header: str/header or flag-new-line]
-		
-		data: data + 3
-		s: GET_BUFFER(str)
-		copy-memory as byte-ptr! s/offset as byte-ptr! data size
-		
-		s/flags: s/flags and flag-unit-mask or unit
-		s/tail: as cell! (as byte-ptr! s/offset) + size
-		
-		as int-ptr! align (as byte-ptr! data) + size 32	;-- align at upper 32-bit boundary
+			str: as red-string! ALLOC_TAIL(parent)
+			str/header: TYPE_UNSET
+			str/head: 	data/2
+			str/node: 	alloc-bytes size
+			str/cache:	null
+			str/header: header and FFh						;-- implicit reset of all header flags
+			if nl? [str/header: str/header or flag-new-line]
+			
+			data: data + 3
+			s: GET_BUFFER(str)
+			copy-memory as byte-ptr! s/offset as byte-ptr! data size
+			
+			s/flags: s/flags and flag-unit-mask or unit
+			s/tail: as cell! (as byte-ptr! s/offset) + size
+			
+			as int-ptr! align (as byte-ptr! data) + size 32	;-- align at upper 32-bit boundary
+		]
 	]
 
 	decode-block: func [
@@ -417,25 +429,38 @@ redbin: context [
 			slot    [red-value!]
 			_vector [red-vector!]
 			buffer  [series!]
+			end     [int-ptr!]
 			values  [byte-ptr!]
+			header  [integer!]
 			unit    [integer!]
 			size    [integer!]
 	][
-		unit: data/1 >>> 8 and FFh
-		size: data/3 << log-b unit					;-- in bytes
-		
-		slot: ALLOC_TAIL(parent)
-		
-		_vector: vector/make-at slot data/3 data/4 unit
-		if nl? [slot/header: slot/header or flag-new-line]
-		buffer: GET_BUFFER(_vector)
-		_vector/head: data/2
-		buffer/tail: as red-value! (as byte-ptr! buffer/offset) + size
-		
-		values: as byte-ptr! data + 4
-		copy-memory as byte-ptr! buffer/offset values size
-		
-		as int-ptr! align values + size 32			;-- align at upper 32-bit boundary
+		header: data/1
+		either header and REDBIN_REFERENCE_MASK <> 0 [
+			end: decode-reference data + 2 parent
+			_vector: (as red-vector! block/rs-tail parent) - 1
+			
+			if nl? [_vector/header: _vector/header or flag-new-line]
+			_vector/head: data/2
+			
+			end
+		][
+			unit: header >>> 8 and FFh
+			size: data/3 << log-b unit					;-- in bytes
+			
+			slot: ALLOC_TAIL(parent)
+			
+			_vector: vector/make-at slot data/3 data/4 unit
+			if nl? [slot/header: slot/header or flag-new-line]
+			buffer: GET_BUFFER(_vector)
+			_vector/head: data/2
+			buffer/tail: as red-value! (as byte-ptr! buffer/offset) + size
+			
+			values: as byte-ptr! data + 4
+			copy-memory as byte-ptr! buffer/offset values size
+			
+			as int-ptr! align values + size 32			;-- align at upper 32-bit boundary
+		]
 	]
 	
 	decode-image: func [
@@ -677,7 +702,7 @@ redbin: context [
 		;----------------
 		unless codec? [
 			s: GET_BUFFER(parent)
-			root-offset: (as-integer s/tail - s/offset) >> 4
+			root-offset: (as-integer s/tail - s/offset) >> log-b size? cell!
 		]
 		
 		end: p + len
@@ -932,7 +957,7 @@ redbin: context [
 		
 		values: as series! context/values/value
 		words:  _hashtable/get-ctx-words context
-		length: (as integer! values/tail - values/offset) >> 4
+		length: (as integer! values/tail - values/offset) >> log-b size? cell!
 		offset: binary/rs-length? payload			;@@ TBD: reference to function/object instead
 		
 		value: as red-value! values + 1
@@ -979,10 +1004,13 @@ redbin: context [
 		value:  as byte-ptr! buffer/offset
 		header: header or (unit << 8)
 		
-		record [payload header data/data1 length]
-		if TYPE_OF(data) = TYPE_VECTOR [store payload data/data3]
-		unless zero? length [emit payload value length << log-b unit]
-		pad payload 32
+		record [payload header data/data1]
+		unless header and REDBIN_REFERENCE_MASK <> 0 [
+			store payload length
+			if TYPE_OF(data) = TYPE_VECTOR [store payload data/data3]
+			unless zero? length [emit payload value length << log-b unit]
+			pad payload 32
+		]
 	]
 	
 	encode-block: func [
@@ -1050,7 +1078,7 @@ redbin: context [
 		payload   [red-binary!]
 	][
 		record [payload REDBIN_REFERENCE reference/1]
-		emit payload as byte-ptr! reference + 1 reference/1 * size? integer!
+		emit payload as byte-ptr! reference + 1 reference/1 << log-b size? integer!
 	]
 	
 	encode-value: func [
