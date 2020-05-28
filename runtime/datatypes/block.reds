@@ -421,7 +421,7 @@ block: context [
 			_root
 		][
 			type: TYPE_OF(parent)
-			assert ANY_BLOCK_STRICT?(type)
+			assert any [ANY_BLOCK_STRICT?(type) type = TYPE_MAP]	;-- MAP! is used by Redbin codec
 			as red-block! ALLOC_TAIL(parent)
 		]
 		make-at blk size

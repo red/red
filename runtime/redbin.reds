@@ -123,9 +123,10 @@ redbin: context [
 			#if debug? = yes [if verbose > 0 [print [#":" size #":"]]]
 			
 			blk: block/make-at as red-block! ALLOC_TAIL(parent) sz
+			map/make-at as red-value! blk blk sz
 			data: data + 2
 			loop size [data: decode-value data table blk]
-			map/make-at as red-value! blk blk sz
+			_hashtable/put-all as node! blk/extra blk/head 2
 			if nl? [blk/header: blk/header or flag-new-line]
 			data
 		]
