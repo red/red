@@ -344,6 +344,41 @@ Red [
 			--assert [[1 3 2] (3 2)] = block
 			--assert same? block/1 head as block! block/2
 		
+		--test-- "reference-2"
+			bin1: #{deadbeef}
+			bin2: skip bin1 3
+			block: test reduce [bin1 bin2]
+			
+			--assert [#{deadbeef} #{ef}] = block
+			--assert block/1 =? head block/2
+			append block/1 #{f00d}
+			--assert block/2 = #{eff00d}
+			reverse block/2
+			--assert [#{deadbe0df0ef} #{0df0ef}] = block
+			
+		--test-- "reference-3"
+			string: "abc"
+			tag: as tag! next string
+			block: test reduce [string tag]
+			
+			--assert ["abc" <bc>] = block
+			--assert <abc> = head last block
+			append first block 'd
+			--assert ["abcd" <bcd>] = block
+			reverse last block
+			--assert ["adcb" <dcb>] = block
+			--assert same? block/1 head as string! block/2
+		
+		--test-- "reference-4"
+			vec1: make vector! [integer! 16 [1 2 3]]
+			vec2: skip vec1 2
+			block: test reduce [vec1 vec2]
+			
+			--assert equal? block reduce [vec1 vec2]
+			--assert block/1 =? head block/2
+			append block/1 4
+			--assert block/2/2 == 4
+		
 	===end-group===
 
 ~~~end-file~~~
