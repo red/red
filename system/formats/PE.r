@@ -819,11 +819,13 @@ context [
 			code	".text"
 			data  	".data"
 			import	".rdata"
+			export	".edata"
 			rsrc	".rsrc"
 			idata	".idata"
+			reloc	".reloc"
 		] name
 		change s: form-struct sh append form name null
-		change spec s	
+		change spec s
 	]
 
 	icon-number?: func [icons [block!] /local data num][
