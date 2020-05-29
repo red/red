@@ -259,11 +259,7 @@ redbin: context [
 				assert TYPE_OF(obj) = TYPE_OBJECT
 				ctx: obj/ctx
 				new/ctx: ctx
-				either data/4 = -1 [
-					new/index: _context/find-word TO_CTX(ctx) new/symbol yes
-				][
-					new/index: data/4
-				]
+				new/index: either data/4 = -1 [_context/find-word TO_CTX(ctx) new/symbol yes][data/4]
 			]
 		]
 		data: data + 4
