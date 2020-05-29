@@ -131,7 +131,7 @@ object [
 		either s [
 			cnt: 0
 			until [
-				add-line copy/part str s
+				add-lines copy/part str s no
 				str: skip s 1
 				cnt: cnt + 1
 				if cnt = 100 [
@@ -140,9 +140,9 @@ object [
 				]
 				not s: find str lf
 			]
-			either all [lf? not prin?][add-line copy str][vprin str]
+			either all [lf? not prin?][add-lines str yes][vprin str]
 		][
-			either all [lf? not prin?][add-line copy str][
+			either all [lf? not prin?][add-lines str yes][
 				if first-prin? [add-line make string! 8]
 				vprin str
 			]
@@ -197,6 +197,20 @@ object [
 			append flags 0
 			full?: max-lines = length? lines
 			calc-top
+		]
+	]
+
+	add-lines: function [str [string!] copy? [logic!]][
+		cols: system/console/size/x
+		either 30 * cols > length? str [
+			if copy? [str: copy str]
+			add-line str
+		][												;-- split very long string
+			until [
+				add-line copy/part str cols				;-- TBD use slice! to avoid copying
+				str: skip str cols
+				empty? str
+			]
 		]
 	]
 

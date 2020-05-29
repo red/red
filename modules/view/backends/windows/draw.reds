@@ -3528,15 +3528,26 @@ OS-matrix-transform: func [
 		;-- transform figure
 		g: ctx/graphics
 		if center? [
-			cx: as float32! 0 - center/x
-			cy: as float32! 0 - center/y
-			GdipTranslateWorldTransform g cx cy GDIPLUS_MATRIX_APPEND
+			either ctx/other/matrix-order = GDIPLUS_MATRIX_APPEND [
+				cx: as float32! 0 - center/x
+				cy: as float32! 0 - center/y
+			][
+				cx: as float32! center/x
+				cy: as float32! center/y
+			]
+			GdipTranslateWorldTransform g cx cy ctx/other/matrix-order
 		]
-		GdipRotateWorldTransform g get-float32 rotate GDIPLUS_MATRIX_APPEND
-		GdipScaleWorldTransform g get-float32 scale get-float32 scale + 1 GDIPLUS_MATRIX_APPEND
-		GdipTranslateWorldTransform g as float32! translate/x as float32! translate/y GDIPLUS_MATRIX_APPEND
+		either ctx/other/matrix-order = GDIPLUS_MATRIX_APPEND [
+			GdipRotateWorldTransform g get-float32 rotate ctx/other/matrix-order
+			GdipScaleWorldTransform g get-float32 scale get-float32 scale + 1 ctx/other/matrix-order
+			GdipTranslateWorldTransform g as float32! translate/x as float32! translate/y ctx/other/matrix-order
+		][
+			GdipTranslateWorldTransform g as float32! translate/x as float32! translate/y ctx/other/matrix-order
+			GdipScaleWorldTransform g get-float32 scale get-float32 scale + 1 ctx/other/matrix-order
+			GdipRotateWorldTransform g get-float32 rotate ctx/other/matrix-order
+		]
 		if center? [
-			GdipTranslateWorldTransform g (as float32! 0.0) - cx (as float32! 0.0) - cy GDIPLUS_MATRIX_APPEND
+			GdipTranslateWorldTransform g (as float32! 0.0) - cx (as float32! 0.0) - cy ctx/other/matrix-order
 		]
 	]
 ]
