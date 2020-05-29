@@ -398,5 +398,15 @@ Red [
 			--assert block/2/2 == 4
 		
 	===end-group===
+	
+	===start-group=== "Symbols"
+		--test-- "symbols-1"
+			a: copy b: save/as none [foo 'bar baz: :qux #foo /bar] 'redbin
+			loop 3 [
+				load/as b 'redbin
+				--assert a == b
+			]
+			
+	===end-group===
 
 ~~~end-file~~~
