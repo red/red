@@ -1985,15 +1985,26 @@ OS-matrix-transform: func [
 	rad: PI / 180.0 * get-float rotate
 	cr: dc/cr
 	if center? [
-		cx: as float! 0 - center/x
-		cy: as float! 0 - center/y
-		cairo-matrix-translate cr cx cy MATRIX-APPEND
+		either dc/matrix-order = MATRIX-APPEND [
+			cx: as float! 0 - center/x
+			cy: as float! 0 - center/y
+		][
+			cx: as float! center/x
+			cy: as float! center/y
+		]
+		cairo-matrix-translate dc/cr cx cy dc/matrix-order
 	]
-	cairo-matrix-rotate cr rad MATRIX-APPEND
-	cairo-matrix-scale cr get-float scale get-float scale + 1 MATRIX-APPEND
-	cairo-matrix-translate cr as float! translate/x as float! translate/y MATRIX-APPEND
+	either dc/matrix-order = MATRIX-APPEND [
+		cairo-matrix-rotate cr rad dc/matrix-order
+		cairo-matrix-scale cr get-float scale get-float scale + 1 dc/matrix-order
+		cairo-matrix-translate cr as float! translate/x as float! translate/y dc/matrix-order
+	][
+		cairo-matrix-translate cr as float! translate/x as float! translate/y dc/matrix-order
+		cairo-matrix-scale cr get-float scale get-float scale + 1 dc/matrix-order
+		cairo-matrix-rotate cr rad dc/matrix-order
+	]
 	if center? [
-		cairo-matrix-translate cr 0.0 - cx 0.0 - cy MATRIX-APPEND
+		cairo-matrix-translate cr 0.0 - cx 0.0 - cy dc/matrix-order
 	]
 ]
 
