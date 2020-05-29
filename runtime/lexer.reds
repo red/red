@@ -1475,10 +1475,10 @@ lexer: context [
 				if e/1 <> #"^"" [throw-error lex s e TYPE_FILE]
 				e: e + 1
 			]
-			lex/in-pos: e 									;-- reset the input position to delimiter byte
 		][
 			scan-string lex s e flags no
 		]
+		lex/in-pos: e 									;-- reset the input position to delimiter byte
 	]
 
 	load-binary: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
