@@ -67,6 +67,8 @@ change-color: func [
 		a		[float!]
 		style	[handle!]
 		node	[c-string!]
+		font	[red-object!]
+		fcolor	[red-tuple!]
 ][
 	if TYPE_OF(color) <> TYPE_TUPLE [
 		free-color-provider widget
@@ -103,6 +105,24 @@ change-color: func [
 	g_string_set_size css 0
 	g_string_append_printf [css "%s {" node]
 	g_string_append_printf [css { background-color: rgba(%d, %d, %d, %.3f);} r g b a]
+	if type = area [
+		font: as red-object! (get-face-values widget) + FACE_OBJ_FONT
+		if TYPE_OF(font) = TYPE_OBJECT [
+			fcolor: as red-tuple! (object/get-values font) + FONT_OBJ_COLOR
+			if TYPE_OF(fcolor) = TYPE_TUPLE [
+				alpha?: 0
+				rgb: get-color-int fcolor :alpha?
+				b: rgb >> 16 and FFh
+				g: rgb >> 8 and FFh
+				r: rgb and FFh
+				a: 1.0
+				if alpha? = 1 [
+					a: (as float! 255 - (rgb >>> 24)) / 255.0
+				]
+				g_string_append_printf [css { caret-color: rgba(%d, %d, %d, %.3f);} r g b a]
+			]
+		]
+	]
 	g_string_append css "}"
 	gtk_css_provider_load_from_data prov css/str -1 null
 ]
