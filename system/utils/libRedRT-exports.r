@@ -401,7 +401,6 @@
 	red/logic/make-in
 	red/string/make-at
 	red/unicode/load-utf8-buffer
-	red/unicode/utf8-next-char
 	red/ownership/bind
 	red/integer/make-at
 	red/string/load
