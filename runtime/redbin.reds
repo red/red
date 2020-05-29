@@ -213,11 +213,11 @@ redbin: context [
 			w	[red-word!]
 			sym	[int-ptr!]
 	][
-		sym: table + data/2
 		w: as red-word! ALLOC_TAIL(parent)
+		sym: table + data/2
+		w/symbol: either codec? [symbol/make (as c-string! table + table/-1) + sym/1][sym/1]
 		w/header: TYPE_ISSUE
 		if nl? [w/header: w/header or flag-new-line]
-		w/symbol: sym/1
 		data + 2
 	]
 	
@@ -237,22 +237,22 @@ redbin: context [
 			set?   [logic!]
 			s	   [series!]
 	][
-		sym: table + data/2								;-- get the decoded symbol
 		new: as red-word! ALLOC_TAIL(parent)
+		sym: table + data/2								;-- get the decoded symbol
+		new/symbol: either codec? [symbol/make (as c-string! table + table/-1) + sym/1][sym/1]
 		new/header: data/1 and FFh
 		if nl? [new/header: new/header or flag-new-line]
-		new/symbol: sym/1
 		set?: data/1 and REDBIN_SET_MASK <> 0
 		
 		offset: data/3
 		either offset = -1 [
 			new/ctx: global-ctx
-			w: _context/add-global-word sym/1 yes no
+			w: _context/add-global-word new/symbol yes no
 			new/index: w/index
 		][	
 			either codec? [								;@@ TBD: decode context and bind word to it
 				new/ctx: global-ctx
-				w: _context/add-global-word sym/1 yes no
+				w: _context/add-global-word new/symbol yes no
 				new/index: w/index
 			][
 				obj: as red-object! block/rs-abs-at root offset + root-offset
@@ -260,7 +260,7 @@ redbin: context [
 				ctx: obj/ctx
 				new/ctx: ctx
 				either data/4 = -1 [
-					new/index: _context/find-word TO_CTX(ctx) sym/1 yes
+					new/index: _context/find-word TO_CTX(ctx) new/symbol yes
 				][
 					new/index: data/4
 				]
@@ -700,7 +700,7 @@ redbin: context [
 		;----------------
 		table: null
 		if sym-table? [
-			preprocess-symbols p4
+			unless codec? [preprocess-symbols p4]
 			table: p4 + 2
 			p: p + 8 + (p4/1 * 4 + p4/2)
 		]
@@ -1197,7 +1197,9 @@ redbin: context [
 		here: as int-ptr! head + 8					;-- skip to length entry
 		here/1: 1									;-- always 1 root record
 		here/2: size
-			
+		
+		stack/pop 4
+		
 		payload
 	]
 	
