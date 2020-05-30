@@ -37,7 +37,7 @@ change-para: func [
 				sym = toggle
 				sym = base
 			][
-				wrap?: no
+				wrap?: yes
 				hsym: _para/middle
 				vsym: _para/middle
 			]
