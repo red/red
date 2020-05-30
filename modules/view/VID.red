@@ -666,7 +666,10 @@ system/view/VID: context [
 				face: make face! copy/deep st
 				if actors [face/actors: copy/deep st/actors: actors]
 				
-				if h: select system/view/metrics/def-heights face/type [face/size/y: h]
+				if all [
+					h: select system/view/metrics/def-heights face/type
+					h > face/size/y
+				][face/size/y: h]
 				unless styling? [face/parent: panel]
 
 				spec: fetch-options face opts style spec local-styles to-logic styling?

@@ -751,7 +751,7 @@ system/view/platform: context [
 			]
 			Linux [
 				button:			[17x17 3x3]
-        toggle:			[17x17 3x3]
+				toggle:			[17x17 3x3]
 				check:			[20x8  2x2]
 				radio:			[20x8  2x2]
 				text:			[3x3   0x0]
