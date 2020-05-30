@@ -36,14 +36,14 @@ either: make native! [[
 ]
 	
 any: make native! [[
-		"Evaluates, returning at the first that is true"
+		"Evaluates, returns the first truthy value; else NONE"
 		conds [block!]
 	]
 	#get-definition NAT_ANY
 ]
 
 all: make native! [[
-		"Evaluates, returning at the first that is not true"
+		"Evaluates, returns the first falsy value; else NONE"
 		conds [block!]
 	]
 	#get-definition NAT_ALL
