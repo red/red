@@ -662,7 +662,7 @@ as-pair: make native! [[
 ]
 
 as-money: make native! [[
-		"Combine currency and amount into a monetary value"
+		"Combine currency code and amount into a monetary value"
 		currency [word!]
 		amount   [integer! float!]
 		return:  [money!]
@@ -799,7 +799,7 @@ new-line?: make native! [[
 ]
 
 context?: make native! [[
-		"Returns the context in which a word is bound"
+		"Returns the context to which a word is bound"
 		word	[any-word!]		"Word to check"
 		return: [object! function! none!]
 	]
