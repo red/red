@@ -98,14 +98,12 @@ natives: context [
 		value: block/rs-head as red-block! stack/arguments
 		tail:  block/rs-tail as red-block! stack/arguments
 		
+		if value = tail [RETURN_NONE]
+		
 		while [value < tail][
 			value: interpreter/eval-next value tail no
-			
-			bool: as red-logic! stack/arguments
-			type: TYPE_OF(bool)
-			unless any [type = TYPE_NONE all [type = TYPE_LOGIC not bool/value]][exit]
+			unless logic/false? [exit]
 		]
-		RETURN_NONE
 	]
 	
 	all*: func [
@@ -118,11 +116,11 @@ natives: context [
 		value: block/rs-head as red-block! stack/arguments
 		tail:  block/rs-tail as red-block! stack/arguments
 		
-		if value = tail [RETURN_NONE]
+		if value = tail [stack/reset logic/box true exit]
 		
 		while [value < tail][
 			value: interpreter/eval-next value tail no
-			if logic/false? [RETURN_NONE]
+			if logic/false? [exit]
 		]
 	]
 	
