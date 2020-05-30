@@ -31,9 +31,22 @@ change-para: func [
 		hsym: get-para-hsym pvalues
 		vsym: get-para-vsym pvalues
 	][
-		wrap?: yes
-		hsym: _para/left
-		vsym: _para/middle
+		case [
+			any [
+				sym = button
+				sym = toggle
+				sym = base
+			][
+				wrap?: no
+				hsym: _para/middle
+				vsym: _para/middle
+			]
+			true [
+				wrap?: yes
+				hsym: _para/left
+				vsym: _para/middle
+			]
+		]
 	]
 	case [
 		sym = text [
