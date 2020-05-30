@@ -1064,7 +1064,6 @@ OS-draw-circle: func [
 		saved	[cairo_matrix_t! value]
 ][
 	cr: dc/cr
-	ctx-matrix-adapt dc saved
 	either TYPE_OF(radius) = TYPE_INTEGER [
 		either center + 1 = radius [					;-- center, radius
 			rad-x: radius/value
@@ -1091,7 +1090,12 @@ OS-draw-circle: func [
 			w: as float! f/value * 2.0
 		]
 	]
+	if any [
+		rad-x = 0
+		rad-y = 0
+	][exit]
 
+	ctx-matrix-adapt dc saved
 	cairo_new_sub_path cr
 	cairo_save cr
 	cairo_translate cr as-float center/x
@@ -1123,6 +1127,10 @@ OS-draw-ellipse: func [
 	rad-y: diameter/y / 2
 	cx: upper/x + rad-x
 	cy: upper/y + rad-y
+	if any [
+		rad-x = 0
+		rad-y = 0
+	][exit]
 
 	ctx-matrix-adapt dc saved
 	cairo_new_sub_path cr
