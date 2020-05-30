@@ -34,16 +34,16 @@ either: make native! [[
 	]
 	#get-definition NAT_EITHER
 ]
-	
+
 any: make native! [[
-		"Evaluates, returns the first truthy value; else NONE"
+		"Evaluates and returns the first truthy value; else NONE"
 		conds [block!]
 	]
 	#get-definition NAT_ANY
 ]
 
 all: make native! [[
-		"Evaluates, returns the first falsy value; else NONE"
+		"Evaluates and returns the last value if all are truthy; else NONE"
 		conds [block!]
 	]
 	#get-definition NAT_ALL
