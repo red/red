@@ -121,6 +121,17 @@ Red [
   		
   	--test-- "any-9"
   		--assert 3 = any [1 = 2 3]
+		
+	--test-- "any-10"
+		--assert none == any []
+	
+	--test-- "any-11"
+		--assert 1 == any [1 no]
+		--assert 1 == any [none 1]
+	
+	--test-- "any-12"
+		--assert false == any [none no]
+		--assert none  == any [no none]
 
 ===end-group===
 
@@ -152,7 +163,18 @@ Red [
   		
   	--test-- "all-9"
   		--assert not all [1 = 2 3]
-
+	
+	--test-- "all-10"
+		--assert true == all []
+	
+	--test-- "all-11"
+		--assert false == all [1 no]
+		--assert none  == all [none 1]
+	
+	--test-- "all-12"
+		--assert 1    == all [on 1]
+		--assert true == all [1 on]
+	
 ===end-group===
 
     
