@@ -27,7 +27,7 @@ unless: make native! [[
 ]
 
 either: make native! [[
-		"If conditional expression is truthy, evaluate true-blk; else evaluate false-blk"
+		"If conditional expression is truthy, evaluate the first branch; else evaluate the alternative"
 		cond  	  [any-type!]
 		true-blk  [block!]
 		false-blk [block!]
@@ -36,7 +36,7 @@ either: make native! [[
 ]
 
 any: make native! [[
-		"Evaluates and returns the first truthy value; else NONE"
+		"Evaluates and returns the first truthy value, if any; else NONE"
 		conds [block!]
 	]
 	#get-definition NAT_ANY
