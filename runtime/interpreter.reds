@@ -827,6 +827,7 @@ interpreter: context [
 		passive?  [logic!]
 		return:   [red-value!]
 		/local
+			saved  [red-value! value]
 			next   [red-word!]
 			value  [red-value!]
 			left   [red-value!]
@@ -846,7 +847,7 @@ interpreter: context [
 			if infix? [
 				stack/mark-interp-native as red-word! pc + 1
 				sub?: yes								;-- force sub? for infix expressions
-				op: value
+				op: copy-cell value saved
 			]
 		]
 		
