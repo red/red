@@ -77,7 +77,7 @@ create-css: func [
 ][
 	node: case [
 		type = area [
-			"text"
+			"*"
 		]
 		true [
 			"*"
