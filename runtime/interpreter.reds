@@ -757,6 +757,7 @@ interpreter: context [
 			TYPE_ACTION 
 			TYPE_NATIVE [
 				#if debug? = yes [if verbose > 0 [log "pushing action/native frame"]]
+				value: saved
 				stack/mark-interp-native name
 				pc: eval-arguments as red-native! value pc end path slot 	;-- fetch args and exec
 				either sub? [stack/unwind][stack/unwind-last]
@@ -769,6 +770,7 @@ interpreter: context [
 			]
 			TYPE_ROUTINE [
 				#if debug? = yes [if verbose > 0 [log "pushing routine frame"]]
+				value: saved
 				stack/mark-interp-native name
 				pc: eval-arguments as red-native! value pc end path slot
 				exec-routine as red-routine! value
