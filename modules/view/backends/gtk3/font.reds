@@ -393,6 +393,7 @@ change-font: func [
 		css		[GString!]
 		style	[handle!]
 		label	[handle!]
+		hFont	[handle!]
 ][
 	font: as red-object! values + FACE_OBJ_FONT
 	if any [
@@ -463,6 +464,10 @@ change-font: func [
 		]
 		true [0]
 	]
+
+	hFont: get-font-handle font 0
+	unless null? hFont [pango_attr_list_unref hFont]
+	make-font face font
 ]
 
 set-label-attrs: func [
