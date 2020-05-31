@@ -201,7 +201,7 @@ update-list: func [
 					]
 				]
 				any [
-					sym = words/_insert/symbol
+					sym = words/_inserted/symbol
 					sym = words/_append/symbol
 					sym = words/_poke/symbol
 					sym = words/_put/symbol
@@ -219,8 +219,8 @@ update-list: func [
 					]
 					loop part [
 						if all [
-							sym <> words/_insert/symbol
-							sym <> words/_append/symbol
+							sym <> words/_inserted/symbol
+							sym <> words/_appended/symbol
 						][
 							remove-list-item hWnd index drop?
 						]
