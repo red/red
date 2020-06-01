@@ -30,8 +30,10 @@ env:
 
 
 matrix:
-#   allow_failures:               # Enable to disregard ARM build failures
-#   - env: OS=arm                 # Enable to disregard ARM build failures
+  allow_failures:               # Enable to disregard ARM build failures
+  - env: OS=armel               # Enable to disregard ARMel build failures
+  - env: OS=armhf               # Enable to disregard ARMhf build failures
+
   include:
 
 
@@ -62,7 +64,7 @@ matrix:
       --entrypoint /red/quick-test/runnable/arm-tests/red/run-all.sh
       balenalib/armv5e-debian:latest
     - >
-      travis_wait 30 docker run -v ${PWD}:/red
+      travis_wait 15 docker run -v ${PWD}:/red
       -e LD_LIBRARY_PATH='$LD_LIBRARY_PATH:/red/quick-test/runnable/arm-tests/system/'
       -w /red/quick-test/runnable/arm-tests/system/
       --entrypoint /red/quick-test/runnable/arm-tests/system/run-all.sh
@@ -81,7 +83,7 @@ matrix:
       --entrypoint /red/quick-test/runnable/arm-tests/red/run-all.sh
       balenalib/raspberry-pi2-debian:latest
     - >
-      travis_wait 30 docker run -v ${PWD}:/red
+      travis_wait 15 docker run -v ${PWD}:/red
       -e LD_LIBRARY_PATH='$LD_LIBRARY_PATH:/red/quick-test/runnable/arm-tests/system/'
       -w /red/quick-test/runnable/arm-tests/system/
       --entrypoint /red/quick-test/runnable/arm-tests/system/run-all.sh
