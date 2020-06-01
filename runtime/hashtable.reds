@@ -265,11 +265,7 @@ _hashtable: context [
 			TYPE_INTEGER [key/data2]
 			TYPE_WORD	[symbol/resolve key/data2]
 			TYPE_SYMBOL [hash-symbol as red-symbol! key]
-			TYPE_STRING
-			TYPE_FILE
-			TYPE_URL
-			TYPE_TAG
-			TYPE_EMAIL [
+			TYPE_ANY_STRING [
 				hash-string as red-string! key case?
 			]
 			TYPE_CHAR [key/data2]
