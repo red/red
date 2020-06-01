@@ -833,7 +833,7 @@ OS-draw-shape-line: func [
 		nb: nb + 1
 	]
 
-	while [all [pair <= end nb < MAX_EDGES]][
+	while [pair <= end][
 		pt/x: pair/x
 		pt/y: pair/y
 		if rel? [
@@ -845,11 +845,18 @@ OS-draw-shape-line: func [
 		nb: nb + 1
 		pt: pt + 1
 		pair: pair + 1
-	]
-	either ctx/other/GDI+? [
-		GdipAddPathLine2I ctx/gp-path ctx/other/edges nb
-	][
-		Polyline ctx/dc ctx/other/edges nb
+		if any [pair > end nb = MAX_EDGES][
+			either ctx/other/GDI+? [
+				GdipAddPathLine2I ctx/gp-path ctx/other/edges nb
+			][
+				Polyline ctx/dc ctx/other/edges nb
+			]
+			if all [pair <= end nb = MAX_EDGES][
+				nb: 0
+				pt: ctx/other/edges
+				pair: pair - 1
+			]
+		]
 	]
 	ctx/other/last-point?: yes
 	ctx/other/prev-shape/type: SHAPE_OTHER
@@ -1164,18 +1171,26 @@ OS-draw-line: func [
 	pair:  point
 	nb:	   0
 
-	while [all [pair <= end nb < MAX_EDGES]][
+	while [pair <= end][
 		pt/x: pair/x
 		pt/y: pair/y
 		nb: nb + 1
 		pt: pt + 1
 		pair: pair + 1
-	]
-	either ctx/other/GDI+? [
-		check-gradient-poly ctx start 2
-		GdipDrawLinesI ctx/graphics ctx/gp-pen start nb
-	][
-		Polyline ctx/dc start nb
+		
+		if any [pair > end nb = MAX_EDGES][
+			either ctx/other/GDI+? [
+				check-gradient-poly ctx start 2
+				GdipDrawLinesI ctx/graphics ctx/gp-pen start nb
+			][
+				Polyline ctx/dc start nb
+			]
+			if all [pair <= end nb = MAX_EDGES][
+				nb: 0
+				pt: start
+				pair: pair - 1
+			]
+		]
 	]
 ]
 
