@@ -2529,7 +2529,7 @@ OS-update-facet: func [
 					change-faces-parent pane null new index part
 				]
 				any [
-					sym = words/_insert/symbol
+					sym = words/_inserted/symbol
 					sym = words/_poke/symbol			;@@ unbind old value
 					sym = words/_put/symbol				;@@ unbind old value
 					sym = words/_moved/symbol

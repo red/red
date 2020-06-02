@@ -392,22 +392,11 @@ Red/System [
 
 #define ANY_SERIES?(type)	[
 	any [
-		type = TYPE_BLOCK
-		type = TYPE_HASH
-		type = TYPE_VECTOR
-		type = TYPE_PAREN
-		type = TYPE_PATH
-		type = TYPE_LIT_PATH
-		type = TYPE_SET_PATH
-		type = TYPE_GET_PATH
-		type = TYPE_STRING
-		type = TYPE_FILE
-		type = TYPE_URL
+		ANY_BLOCK?(type)
+		ANY_STRING?(type)
 		type = TYPE_BINARY
+		type = TYPE_VECTOR
 		type = TYPE_IMAGE
-		type = TYPE_TAG
-		type = TYPE_EMAIL
-		type = TYPE_REF
 	]
 ]
 
@@ -590,25 +579,6 @@ Red/System [
 
 #define RETURN_COMPARE_OTHER [
 	return -2
-]
-
-#define CHECK_COMPARE_OTHER(type) [
-	if all [
-		TYPE_OF(str2) <> type
-		any [
-			all [
-				op <> COMP_EQUAL
-				op <> COMP_NOT_EQUAL
-			]
-			all [
-				TYPE_OF(str2) <> TYPE_STRING		;@@ use ANY_STRING?
-				TYPE_OF(str2) <> TYPE_FILE
-				TYPE_OF(str2) <> TYPE_URL
-				TYPE_OF(str2) <> TYPE_TAG
-				TYPE_OF(str2) <> TYPE_EMAIL
-			]
-		]
-	][RETURN_COMPARE_OTHER]
 ]
 
 #define SIGN_COMPARE_RESULT(a b) [

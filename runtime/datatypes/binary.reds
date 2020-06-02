@@ -1300,13 +1300,7 @@ binary: context [
 					src: GET_TUPLE_ARRAY(cell)
 				]
 				default [
-					either any [
-						type = TYPE_STRING				;@@ replace with ANY_STRING?
-						type = TYPE_FILE 
-						type = TYPE_URL
-						type = TYPE_EMAIL
-						type = TYPE_TAG
-					][
+					either ANY_STRING?(type) [
 						form-buf: as red-string! cell
 					][
 						;TBD: free previous form-buf node and series buffer

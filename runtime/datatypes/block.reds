@@ -328,18 +328,15 @@ block: context [
 			w	  [red-word!]
 			sym	  [integer!]
 			sym2  [integer!]
+			type  [integer!]
 	][
 		value: rs-head blk
 		tail:  rs-tail blk
 		sym:   either case? [word/symbol][symbol/resolve word/symbol]
 		
 		while [value < tail][
-			if any [									;@@ replace with ANY_WORD?
-				TYPE_OF(value) = TYPE_WORD
-				TYPE_OF(value) = TYPE_SET_WORD
-				TYPE_OF(value) = TYPE_GET_WORD
-				TYPE_OF(value) = TYPE_LIT_WORD
-			][
+			type: TYPE_OF(value)
+			if ANY_WORD?(type) [
 				w: as red-word! value
 				sym2: either case? [w/symbol][symbol/resolve w/symbol]
 				if sym = sym2 [
@@ -401,7 +398,7 @@ block: context [
 			_root
 		][
 			type: TYPE_OF(parent)
-			assert ANY_BLOCK_STRICT?(type)
+			assert ANY_BLOCK?(type)
 			as red-block! ALLOC_TAIL(parent)
 		]
 		preallocate blk size yes
@@ -421,7 +418,7 @@ block: context [
 			_root
 		][
 			type: TYPE_OF(parent)
-			assert any [ANY_BLOCK_STRICT?(type) type = TYPE_MAP]	;-- MAP! is used by Redbin codec
+			assert any [ANY_BLOCK?(type) type = TYPE_MAP]
 			as red-block! ALLOC_TAIL(parent)
 		]
 		make-at blk size

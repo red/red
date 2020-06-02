@@ -757,6 +757,7 @@ interpreter: context [
 			TYPE_ACTION 
 			TYPE_NATIVE [
 				#if debug? = yes [if verbose > 0 [log "pushing action/native frame"]]
+				value: saved
 				stack/mark-interp-native name
 				pc: eval-arguments as red-native! value pc end path slot 	;-- fetch args and exec
 				either sub? [stack/unwind][stack/unwind-last]
@@ -769,6 +770,7 @@ interpreter: context [
 			]
 			TYPE_ROUTINE [
 				#if debug? = yes [if verbose > 0 [log "pushing routine frame"]]
+				value: saved
 				stack/mark-interp-native name
 				pc: eval-arguments as red-native! value pc end path slot
 				exec-routine as red-routine! value
@@ -825,6 +827,7 @@ interpreter: context [
 		passive?  [logic!]
 		return:   [red-value!]
 		/local
+			saved  [red-value! value]
 			next   [red-word!]
 			value  [red-value!]
 			left   [red-value!]
@@ -844,7 +847,7 @@ interpreter: context [
 			if infix? [
 				stack/mark-interp-native as red-word! pc + 1
 				sub?: yes								;-- force sub? for infix expressions
-				op: value
+				op: copy-cell value saved
 			]
 		]
 		

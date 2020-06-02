@@ -551,11 +551,7 @@ parser: context [
 			][
 				len: either any [type2 = TYPE_CHAR type2 = TYPE_BITSET][1][
 					unless any [
-						type2 = TYPE_STRING
-						type2 = TYPE_FILE
-						type2 = TYPE_URL
-						type2 = TYPE_TAG
-						type2 = TYPE_EMAIL
+						ANY_STRING?(type2)
 						type2 = TYPE_BINARY
 					][return no]
 					string/rs-length? as red-string! token
