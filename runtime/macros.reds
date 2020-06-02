@@ -401,25 +401,16 @@ Red/System [
 ]
 
 #define ANY_BLOCK_STRICT?(type)	[
-	any [
-		type = TYPE_BLOCK
-		type = TYPE_PAREN
-		type = TYPE_PATH
-		type = TYPE_GET_PATH
-		type = TYPE_SET_PATH
-		type = TYPE_LIT_PATH
+	all [
+		type <> TYPE_HASH
+		ANY_BLOCK?(type)
 	]
 ]
 
 #define ANY_BLOCK?(type)	[
 	any [
-		type = TYPE_BLOCK
-		type = TYPE_PAREN
-		type = TYPE_HASH
-		type = TYPE_PATH
-		type = TYPE_GET_PATH
-		type = TYPE_SET_PATH
-		type = TYPE_LIT_PATH
+		ANY_LIST?(type)
+		ANY_PATH?(type)
 	]
 ]
 
@@ -485,13 +476,8 @@ Red/System [
 ]
 
 #define TYPE_ANY_BLOCK [					;-- To be used in SWITCH cases
-	TYPE_BLOCK
-	TYPE_PAREN
-	TYPE_HASH
-	TYPE_PATH
-	TYPE_GET_PATH
-	TYPE_SET_PATH
-	TYPE_LIT_PATH
+	TYPE_ANY_LIST
+	TYPE_ANY_PATH
 ]
 
 #define TYPE_ANY_LIST [						;-- To be used in SWITCH cases
