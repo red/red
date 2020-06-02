@@ -125,7 +125,6 @@ system/console: context [
 		lit-path!	#"/"
 		get-path!	#"/"
 		set-path!	#"/"
-		tag!		#"<"
 	]
 	delimiter-lex: function [
 		event	[word!]
@@ -139,13 +138,13 @@ system/console: context [
 		[open close error scan]
 		if event = 'open [
 			append delimiters second find delimiter-map type
-			return false
+			return true
 		]
 		if event = 'close [
 			unless match-delimiter second find delimiter-map type [
 				do make error! "not match"
 			]
-			return false
+			return true
 		]
 		if event = 'error [
 			if #"/" = last delimiters [
