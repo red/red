@@ -152,7 +152,7 @@ system/console: context [
 					switch s/1 [
 						#"<" [
 							append s #">"
-							if tag? try [load s][append delimiters #"<"]
+							if tag! = scan s [append delimiters #"<"]
 						]
 						#"%" [
 							c: 1
