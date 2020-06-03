@@ -114,8 +114,6 @@ system/console: context [
 		]
 	]
 
-	pop-delimiter: does [remove back tail delimiters]
-	match-delimiter: function [c][either c = last delimiters [pop-delimiter true][false]]
 	delimiter-map: reduce [
 		block!		#"["
 		paren!		#"("
@@ -126,6 +124,7 @@ system/console: context [
 		get-path!	#"/"
 		set-path!	#"/"
 	]
+	
 	delimiter-lex: function [
 		event	[word!]
 		input	[string! binary!]
@@ -135,58 +134,44 @@ system/console: context [
 		return:	[logic!]
 		/local	s c
 	][
-		[open close error scan]
-		if event = 'open [
-			append delimiters second find delimiter-map type
-			return true
-		]
-		if event = 'close [
-			unless match-delimiter second find delimiter-map type [
-				do make error! "not match"
+		[open close error]
+		switch event [
+			open [
+				append delimiters delimiter-map/:type
+				true
 			]
-			return true
-		]
-		if event = 'error [
-			if #"/" = last delimiters [
-				do make error! "path error"
+			close [
+				if delimiter-map/:type <> last delimiters [throw 'stop]
+				take/last delimiters true
+				true
 			]
-			if find "})]" input/1 [
-				do make error! "unmatch"
-			]
-			if token/y > token/x [
-				s: skip input token/x - token/y
-				s: copy/part s input
-				if s/1 = #"<" [
-					append s #">"
-					if tag? try [load s][
-						append delimiters #"<"
-						input: next input
-						return false
+			error [
+				if any [#"/" = last delimiters find "})]" input/1][throw 'stop]
+				if token/y > token/x [
+					s: copy/part head input token
+					switch s/1 [
+						#"<" [
+							append s #">"
+							if tag? try [load s][append delimiters #"<"]
+						]
+						#"%" [
+							c: 1
+							parse s [some [#"%" (c: c + 1)] #"{" (append delimiters #"{")]
+						]
 					]
 				]
-				if s/1 = #"%" [
-					c: 1
-					while [s/(c + 1) = #"%"][
-						c: c + 1
-					]
-					if s/(c + 1) = #"{" [
-						append delimiters #"{"
-						input: next input
-						return false
-					]
-				]
+				input: next input
+				false
 			]
-			input: next input
-			return false
 		]
-		false
 	]
+	
 	check-delimiters: function [
 		buffer	[string!]
 		return: [logic!]
 	][
 		clear delimiters
-		if error? try [transcode/trace buffer :delimiter-lex][return false]
+		if 'stop = catch [transcode/trace buffer :delimiter-lex][return false]
 		true
 	]
 	
