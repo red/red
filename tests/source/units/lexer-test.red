@@ -778,6 +778,7 @@ Red [
 			load integer! datatype! 1 1
 			prescan path! datatype! 1 6x7
 			open path! datatype! 1 6x6
+			scan word! datatype! 1 6x7
 			load word! datatype! 1 b
 			prescan error! datatype! 1 8x8
 			error error! datatype! 1 8x8
@@ -799,6 +800,7 @@ Red [
 			load integer! datatype! 1 1
 			prescan path! datatype! 1 6x7
 			open path! datatype! 1 6x6
+			scan word! datatype! 1 6x7
 			load word! datatype! 1 b
 			prescan error! datatype! 1 8x8
 			error error! datatype! 1 8x8
@@ -1102,6 +1104,7 @@ Red [
 		    open block! datatype! 1 4x4
 		    prescan path! datatype! 1 5x6
 		    open path! datatype! 1 5x5
+		    scan word! datatype! 1 5x6
 		    load word! datatype! 1 b
 		    prescan word! datatype! 1 7x8
 		    scan word! datatype! 1 7x8
@@ -1110,6 +1113,7 @@ Red [
 		    error error! datatype! 1 9x9
 		    prescan path! datatype! 1 10x11
 		    open path! datatype! 1 10x10
+		    scan word! datatype! 1 10x11
 		    load word! datatype! 1 d
 		    prescan word! datatype! 1 12x13
 		    scan word! datatype! 1 12x13
