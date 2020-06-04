@@ -132,7 +132,7 @@ system/console: context [
 		line	[integer!]
 		token
 		return:	[logic!]
-		/local	s c
+		/local	s
 	][
 		[open close error]
 		switch event [
@@ -142,7 +142,7 @@ system/console: context [
 			]
 			close [
 				if delimiter-map/:type <> last delimiters [throw 'stop]
-				take/last delimiters true
+				take/last delimiters
 				true
 			]
 			error [
@@ -155,8 +155,7 @@ system/console: context [
 							if tag! = scan s [append delimiters #"<"]
 						]
 						#"%" [
-							c: 1
-							parse s [some [#"%" (c: c + 1)] #"{" (append delimiters #"{")]
+							parse s [some #"%" #"{" (append delimiters #"{")]
 						]
 					]
 				]
