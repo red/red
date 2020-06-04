@@ -123,11 +123,52 @@ redbin: context [
 			#if debug? = yes [if verbose > 0 [print [#":" size #":"]]]
 			
 			blk: block/make-at as red-block! ALLOC_TAIL(parent) sz
+			if nl? [blk/header: blk/header or flag-new-line]
 			map/make-at as red-value! blk blk sz
+			
 			data: data + 2
 			loop size [data: decode-value data table blk]
 			_hashtable/put-all as node! blk/extra blk/head 2
-			if nl? [blk/header: blk/header or flag-new-line]
+			
+			data
+		]
+	]
+	
+	decode-hash: func [
+		data	[int-ptr!]
+		table	[int-ptr!]
+		parent	[red-block!]
+		nl?		[logic!]
+		return: [int-ptr!]
+		/local
+			hash [red-hash!]
+			end  [int-ptr!]
+			size [integer!]
+			sz   [integer!]
+	][
+	
+		either data/1 and REDBIN_REFERENCE_MASK <> 0 [
+			end: decode-reference data + 2 parent
+			hash: (as red-hash! block/rs-tail parent) - 1
+			if nl? [hash/header: hash/header or flag-new-line]
+			end
+		][
+			size: data/3
+			sz: size
+			if zero? sz [sz: 1]
+			#if debug? = yes [if verbose > 0 [print [#":" size #":"]]]
+			
+			hash: as red-hash! block/make-at as red-block! ALLOC_TAIL(parent) sz
+			hash/head: data/2
+			hash/table: _hashtable/init sz as red-block! hash HASH_TABLE_HASH 1
+			
+			hash/header: TYPE_HASH
+			if nl? [hash/header: hash/header or flag-new-line]
+			
+			data: data + 3
+			loop size [data: decode-value data table as red-block! hash]
+			_hashtable/put-all hash/table hash/head 1
+			
 			data
 		]
 	]
@@ -563,7 +604,9 @@ redbin: context [
 				cell: as cell! integer/make-in parent data/2
 				data + 2
 			]
-			TYPE_ANY_BLOCK  [decode-block data table parent nl?]
+			TYPE_ANY_PATH
+			TYPE_BLOCK
+			TYPE_PAREN		[decode-block data table parent nl?]
 			TYPE_CONTEXT	[decode-context data table parent]
 			TYPE_ISSUE		[decode-issue data table parent nl?]
 			TYPE_TYPESET	[
@@ -610,6 +653,7 @@ redbin: context [
 				cell: as cell! logic/make-in parent as logic! data/2
 				data + 2
 			]
+			TYPE_HASH		[decode-hash data table parent nl?]
 			TYPE_MAP		[decode-map data table parent nl?]
 			TYPE_NATIVE
 			TYPE_ACTION
@@ -785,7 +829,7 @@ redbin: context [
 			/local
 				size [integer!]
 		][
-			size: integer/abs (as integer! path/top - path/stack) >> log-b size? integer!
+			size: (as integer! path/top - path/stack) >> log-b size? integer!
 			top/1: as integer! node
 			top/2: size
 			top: top + 2
@@ -806,10 +850,13 @@ redbin: context [
 			residue [integer!]
 			zero    [integer!]
 	][
+		assert any [size = 32 size = 64]
+		
 		size:    size >> 3
 		length:  binary/rs-length? buffer
 		residue: length // size
 		zero:    0
+		
 		unless zero? residue [						;@@ TBD: optimize
 			loop size - residue [binary/rs-append buffer as byte-ptr! :zero 1]
 		]
@@ -822,6 +869,8 @@ redbin: context [
 		/local
 			delta [integer!]
 	][
+		assert any [bits = 32 bits = 64]
+		
 		delta: bits >> 3 - 1
 		as byte-ptr! (as integer! address) + delta and not delta
 	]
@@ -850,6 +899,7 @@ redbin: context [
 	][
 		payload: as red-binary! list/1
 		list: list + 1
+		
 		loop count - 1 [
 			store payload list/1
 			list: list + 1
