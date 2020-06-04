@@ -324,16 +324,27 @@ Red [
 	===end-group===
 	
 	===start-group=== "Cycles & References"
+		inline: function [body [any-list!] /local rest][
+			rule:   [any [ahead any-list! into rule | cycle | skip]]
+			marker: [ahead ref! into [end]]
+			
+			cycle: [remove marker mark: refer :rest]
+			refer: quote (change/only/part mark do/next mark 'rest rest)
+			
+			also body parse body rule
+		]
+		
 		--test-- "cycle-1"
-			append/only block: [] block
-			block: test block
+			block: [@ block]
+			block: test inline block
 			
 			--assert "[[...]]" = mold block
 			--assert block/1/1 =? block
 		
 		--test-- "cycle-2"
-			append/only insert/only block: [we need to go deeper] block block
-			block: test block
+			block: [@ block we need to go deeper @ block]
+			block: test inline block
+			
 			--assert "[[...] we need to go deeper [...]]" = mold block
 			--assert same? first block last block
 			--assert same? block first block
@@ -343,11 +354,41 @@ Red [
 			--assert block/7/7/7/1/1/1/2 == 'deeper
 		
 		--test-- "cycle-3"
-			map: #()
-			put map 'map map
-			map: test map
+			map: test put map: #() 'map map
+			
 			--assert "#(map: #(...))" = mold/flat map
 			--assert map/map/map/map =? map
+		
+		--test-- "cycle-4"
+			append/only hash: make hash! [] hash
+			hash: test hash
+			
+			;@@ #4494
+			--assert "make hash! [make hash! make hash! [...]]" = mold hash
+			--assert hash/1/1 =? hash
+		
+		--test-- "cycle-5"
+			append/only path: make path! [] path
+			path: test path
+			
+			--assert "..." = mold path
+			--assert path/1/1 =? path
+		
+		--test-- "cycle-6"
+			ping: [pong @ pong]
+			pong: [ping @ ping]
+
+			inline ping
+			inline pong
+		
+			--assert ping/pong =? pong
+			--assert pong/ping =? ping
+			
+			ping: test ping
+			pong: test pong
+			
+			--assert ping/pong == pong				;-- two different payloads, two non-identical series
+			--assert pong/ping == ping
 		
 		--test-- "reference-1"
 			block: [1 2]
