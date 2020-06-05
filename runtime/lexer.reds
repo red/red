@@ -360,6 +360,7 @@ lexer: context [
 			pos  [red-string!]
 			line [red-string!]
 			po	 [red-point!]
+			slot [red-value!]
 			p	 [byte-ptr!]
 			len	 [integer!]
 			c	 [byte!]
@@ -369,12 +370,15 @@ lexer: context [
 			throw LEX_ERR								;-- bypass errors when scanning only
 		]
 		if null? s [									;-- determine token's start
-			either lex/head = lex/buffer [s: lex/input][
-				po: as red-point! lex/head - 1			;-- take start of the parent series
-				either TYPE_OF(po) <> TYPE_POINT [s: lex/input][s: lex/input + po/z]
-			]
+			slot: lex/head
+			if slot > lex/buffer [slot: lex/head - 1]
+			po: as red-point! slot						;-- take start of the parent series
+			either TYPE_OF(po) <> TYPE_POINT [s: lex/input][s: lex/input + po/z]
 		]
-		if lex/fun-ptr <> null [unless fire-event lex EVT_ERROR TYPE_ERROR null s e [throw LEX_ERR]]
+		if lex/fun-ptr <> null [
+			if lex/entry = S_PATH [close-block lex s e -1 yes]
+			unless fire-event lex EVT_ERROR TYPE_ERROR null s e [throw LEX_ERR]
+		]
 		e: lex/in-end
 		len: 0
 		p: s
@@ -909,11 +913,11 @@ lexer: context [
 	scan-error: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local type index [integer!]
 	][
-		if all [lex/fun-ptr <> null lex/entry = S_PATH][close-block lex s e -1 yes]
 		either lex/prev < --EXIT_STATES-- [
 			index: lex/prev
 			index: as-integer type-table/index
 			if zero? index [index: ERR_BAD_CHAR]		;-- fallback when no specific type detected
+			if ANY_BLOCK_STRICT?(index) [s: null]
 			throw-error lex s e index
 		][
 			throw-error lex s e ERR_BAD_CHAR
