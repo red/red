@@ -998,6 +998,7 @@ lexer: context [
 		lex/type: TYPE_WORD
 		if load? [
 			flags: flags and not C_FLAG_COLON
+			if lex/fun-ptr <> null [fire-event lex EVT_SCAN TYPE_WORD null s e] ;-- cannot cancel LOAD from this event
 			load-word lex s e flags yes
 			if lex/fun-ptr <> null [
 				slot: lex/tail - 1

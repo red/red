@@ -738,8 +738,10 @@ show: function [
 	
 	either all [face/state face/state/1][
 		pending: face/state/3
-		
+
 		if all [pending not empty? pending][
+			pending: copy pending
+			clear face/state/3
 			foreach [owner word target action new index part state] pending [
 				on-face-deep-change* owner word target action new index part state yes
 			]
@@ -749,7 +751,7 @@ show: function [
 	][
 		new?: yes
 		
-		if face/type <> 'screen [
+		either face/type <> 'screen [
 			if all [not force face/type <> 'window][
 				unless parent [cause-error 'script 'not-linked []]
 				if all [object? face/parent face/parent/type <> 'tab-panel][face/parent: none]
@@ -771,7 +773,9 @@ show: function [
 
 			obj: system/view/platform/make-view face p
 			if with [face/parent: parent]
-			
+
+			face/state: reduce [obj 0 none false]
+
 			foreach field [para font][
 				if all [field: face/:field p: in field 'parent][
 					either block? p: get p [
@@ -797,8 +801,7 @@ show: function [
 					append pane face
 				]
 			]
-		]
-		face/state: reduce [obj 0 none false]
+		][face/state: reduce [obj 0 none false]]
 	]
 
 	if face/pane [
