@@ -363,8 +363,7 @@ Red [
 			append/only hash: make hash! [] hash
 			hash: test hash
 			
-			;@@ #4494
-			--assert "make hash! [make hash! make hash! [...]]" = mold hash
+			--assert "make hash! [make hash! [...]]" = mold hash
 			--assert hash/1/1 =? hash
 		
 		--test-- "cycle-5"
