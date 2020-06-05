@@ -696,6 +696,7 @@ Red [
 	--test-- "scan-57" --assert error!	 = scan "#{BADFACE}"
 	--test-- "scan-58" --assert date!	 = scan "29/02/2020"
 	--test-- "scan-59" --assert error!	 = scan "30/02/2020"
+	--test-- "scan-60" --assert none? 	   scan ""
 
 ===end-group===
 ===start-group=== "scan/fast"
@@ -731,6 +732,7 @@ Red [
 	--test-- "scan-53" --assert float! 	 = scan/fast "-123."
 	--test-- "scan-54" --assert float! 	 = scan/fast "123."
 	--test-- "scan-55" --assert float!	 = scan/fast ".5"
+	--test-- "scan-56" --assert none? 	   scan/fast ""
 
 ===end-group===
 ===start-group=== "transcode/trace"

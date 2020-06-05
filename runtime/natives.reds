@@ -2837,6 +2837,8 @@ natives: context [
 			if len < 0 [len: string/rs-length? str]
 			type: lexer/scan-alt slot str len one? scan? load? no :offset fun as red-series! str
 		]
+		if zero? len [stack/set-last none-value exit]
+		
 		if any [not scan? not load?][
 			assert type > 0
 			dt: as red-datatype! slot
