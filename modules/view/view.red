@@ -738,8 +738,10 @@ show: function [
 	
 	either all [face/state face/state/1][
 		pending: face/state/3
-		
+
 		if all [pending not empty? pending][
+			pending: copy pending
+			clear face/state/3
 			foreach [owner word target action new index part state] pending [
 				on-face-deep-change* owner word target action new index part state yes
 			]
