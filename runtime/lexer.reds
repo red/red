@@ -427,6 +427,7 @@ lexer: context [
 			more  [series!]
 			ctx	  [node!]
 			cont? [logic!]
+			ref	  [integer!]
 	][
 		if lex/fun-evts and event = 0 [return true]
 		if all [event = EVT_SCAN type = -2][event: EVT_ERROR type: TYPE_ERROR]
@@ -463,14 +464,15 @@ lexer: context [
 			x: as-integer s - lex/input
 			y: as-integer e - lex/input
 		]
-		ser/head: y										;-- 0-based offset
+		ref: either any [all [type < 0 event = EVT_PRESCAN] event = EVT_OPEN][x][y]
+		ser/head: ref									;-- 0-based offset
 		integer/push lex/line							;-- line number
 		either null? value [pair/push x + 1 y + 1][stack/push value] ;-- token
 
 		if lex/fun-locs > 0 [_function/init-locals 1 + lex/fun-locs] ;-- +1 for /local refinement
 		_function/call lex/fun-ptr ctx
 
-		if ser/head <> y [
+		if ser/head <> ref [
 			lex/in-series/head: ser/head
 			either TYPE_OF(ser) = TYPE_BINARY [
 				lex/in-pos: lex/input + ser/head
@@ -543,19 +545,20 @@ lexer: context [
 		]
 	]
 	
-	open-block: func [lex [state!] type [integer!] pos [byte-ptr!]
+	open-block: func [lex [state!] type [integer!] s [byte-ptr!] e [byte-ptr!]
 		/local 
 			p	[red-point!]
 			len [integer!]
 	][
-		if null? pos [pos: lex/in-pos]
-		if lex/fun-ptr <> null [unless fire-event lex EVT_OPEN type null pos pos [exit]]
+		if null? s [s: lex/in-pos]
+		if null? e [e: s]
+		if lex/fun-ptr <> null [unless fire-event lex EVT_OPEN type null s e [exit]]
 		len: (as-integer lex/tail - lex/head) >> 4
 		p: as red-point! alloc-slot lex
 		set-type as cell! p TYPE_POINT					;-- use the slot for stack info
 		p/x: len
 		p/y: type
-		p/z: as-integer pos - lex/input					;-- opening delimiter offset saved (error handling)
+		p/z: as-integer s - lex/input					;-- opening delimiter offset saved (error handling)
 		lex/head: lex/tail								;-- points just after p
 		lex/entry: S_START
 	]
@@ -928,7 +931,7 @@ lexer: context [
 		/local type [integer!]
 	][
 		type: either s/1 = #"(" [TYPE_PAREN][TYPE_BLOCK]
-		open-block lex type null
+		open-block lex type null null
 		lex/in-pos: e + 1								;-- skip delimiter
 	]
 
@@ -983,7 +986,7 @@ lexer: context [
 	]
 	
 	scan-map-open: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
-		open-block lex TYPE_MAP null
+		open-block lex TYPE_MAP s e
 		lex/in-pos: e + 1								;-- skip (
 	]
 	
@@ -997,7 +1000,7 @@ lexer: context [
 			#":" 	[TYPE_GET_PATH]
 			default [TYPE_PATH]
 		]
-		open-block lex type s							;-- open a new path series
+		open-block lex type s null						;-- open a new path series
 		if type <> TYPE_PATH [s: s + 1]
 		lex/type: TYPE_WORD
 		if load? [

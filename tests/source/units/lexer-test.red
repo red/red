@@ -822,7 +822,7 @@ Red [
 			scan integer! datatype! 1 4x5
 			load integer! datatype! 1 1
 			prescan map! datatype! 1 6x7
-			open map! datatype! 1 7x7
+			open map! datatype! 1 6x7
 			prescan word! datatype! 1 8x10
 			scan set-word! datatype! 1 8x10
 			load set-word! datatype! 1 r:
