@@ -2840,7 +2840,7 @@ natives: context [
 		
 		if any [not scan? not load?][
 			if zero? len [stack/set-last none-value exit]
-			assert type > 0
+			if type <= 0 [type: TYPE_ERROR]
 			dt: as red-datatype! slot
 			dt/header: TYPE_DATATYPE
 			dt/value: type

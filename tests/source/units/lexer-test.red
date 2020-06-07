@@ -1124,6 +1124,15 @@ Red [
 		    error error! datatype! 1 4x13
 		]
 
+	--test-- "tt-15"
+		clear logs
+		--assert [] = transcode/trace "{^/" :lex-logger
+		--assert logs = [
+			   prescan string! datatype! 1 1x1 
+			   open string! datatype! 1 1x1 
+			   prescan error! datatype! 2 2x3 
+			   error error! datatype! 2 2x3
+		]
 
 ===end-group===
 
