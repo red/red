@@ -2145,6 +2145,10 @@ lexer: context [
 			]
 			lex/in-pos >= lex/in-end
 		]
+		if all [lex/entry = S_M_STRING zero? lex/scanned][
+			catch LEX_ERR [throw-error lex start lex/in-end TYPE_STRING]
+			system/thrown: 0
+		]
 		assert lex/in-pos = lex/in-end
 	]
 
