@@ -1134,6 +1134,28 @@ Red [
 			   error error! datatype! 2 2x3
 		]
 
+	--test-- "tt-16"
+		clear logs
+		--assert [i/(j): 3] = transcode/trace {i/(j): 3} :lex-logger
+		--assert logs = [
+		    prescan path! datatype! 1 1x2 
+		    open path! datatype! 1 1x1 
+		    scan word! datatype! 1 1x2 
+		    load word! datatype! 1 i 
+		    prescan paren! datatype! 1 3x3 
+		    open paren! datatype! 1 3x3 
+		    prescan word! datatype! 1 4x5 
+		    scan word! datatype! 1 4x5 
+		    load word! datatype! 1 j 
+		    prescan paren! datatype! 1 5x5 
+		    close paren! datatype! 1 5x5 
+		    close set-path! datatype! 1 5x6 
+		    prescan integer! datatype! 1 8x9 
+		    scan integer! datatype! 1 8x9 
+		    load integer! datatype! 1 3
+		]
+
+
 ===end-group===
 
 ~~~end-file~~~

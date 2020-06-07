@@ -579,7 +579,7 @@ lexer: context [
 		p: as red-point! lex/head - 1
 		point?: all [lex/buffer <= p TYPE_OF(p) = TYPE_POINT]
 		if all [not quiet? lex/fun-ptr <> null][
-			t: either point? [p/y][type]
+			t: either all [point? type <> TYPE_SET_PATH][p/y][type] ;-- let set-path override saved type
 			unless fire-event lex EVT_CLOSE t null s e [return 0]
 		]
 		unless point? [do-error]						;-- postpone error checking after callback call
