@@ -148,9 +148,7 @@ object [
 			]
 		]
 		prin?: not lf?
-		if system/console/running? [
-			system/view/platform/redraw console
-		]
+		system/view/platform/redraw console
 		()				;-- return unset!
 	]
 
