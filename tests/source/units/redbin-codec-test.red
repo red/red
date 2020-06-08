@@ -453,9 +453,29 @@ Red [
 			--assert block = reduce [img1 img2]
 			--assert block/1 =? head block/2
 			--assert image? block/1
-			--assert 4 = index? block/2
-			--assert block/2/size = 123x456
-			--assert block/1/1 = 1.2.3.0
+			--assert 4 == index? block/2
+			--assert block/2/size == 123x456
+			--assert block/1/1 == 1.2.3.0
+		
+		--test-- "reference-7"
+			block1: reduce [:append :append reduce [:append]] 
+			block: test block1
+			
+			--assert block == block1
+			--assert action? :block/1
+			--assert :block/1 =? :block/2
+			--assert :block/2 =? :block/3/1
+			--assert :append == :block/1
+		
+		--test-- "reference-8"
+			block1: test reduce [:bind :bind reduce [:bind]]
+			block: test block1
+			
+			--assert block == block1
+			--assert native? :block/1
+			--assert :block/1 =? :block/2
+			--assert :block/2 =? :block/3/1
+			--assert :bind == :block/1
 		
 	===end-group===
 	
