@@ -579,9 +579,18 @@ redbin: context [
 				TYPE_MAP [
 					block/rs-abs-at as red-block! value 0
 				]
+				TYPE_ACTION
+				TYPE_NATIVE [
+					block/rs-abs-at as red-block! value 0
+				]
+				TYPE_ANY_WORD
+				TYPE_REFINEMENT
+				TYPE_FUNCTION
+				TYPE_ROUTINE
+				TYPE_OP
 				TYPE_OBJECT
 				TYPE_ERROR [
-					--NOT_IMPLEMENTED--				;@@ TBD: support for any-object!
+					--NOT_IMPLEMENTED--				;@@ TBD: support for any-word!, any-object!, any-function!
 					value
 				]
 				default [
@@ -936,12 +945,14 @@ redbin: context [
 			here  [int-ptr!]
 			index [integer!]
 	][
-		here: either TYPE_OF(data) = TYPE_NATIVE [natives/table][actions/table]
-		index: 0
-		until [index: index + 1 data/data3 = here/index]
-		
-		record [payload header index]
-		encode-block data TYPE_BLOCK yes payload symbols table strings	;-- structure overlap
+		unless header and REDBIN_REFERENCE_MASK <> 0 [
+			here: either TYPE_OF(data) = TYPE_NATIVE [natives/table][actions/table]
+			index: 0
+			until [index: index + 1 data/data3 = here/index]
+			
+			record [payload header index]
+			encode-block data TYPE_BLOCK yes payload symbols table strings	;-- structure overlap
+		]
 	]
 	
 	encode-word: func [
