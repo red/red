@@ -1130,8 +1130,8 @@ Red [
 		--assert logs = [
 			   prescan string! datatype! 1 1x1 
 			   open string! datatype! 1 1x1 
-			   prescan error! datatype! 2 2x3 
-			   error error! datatype! 2 2x3
+			   prescan error! datatype! 2 1x3 
+			   error error! datatype! 2 1x3
 		]
 
 	--test-- "tt-16"

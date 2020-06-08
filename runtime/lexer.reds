@@ -431,6 +431,7 @@ lexer: context [
 	][
 		if lex/fun-evts and event = 0 [return true]
 		if all [event = EVT_SCAN type = -2][event: EVT_ERROR type: TYPE_ERROR]
+		if all [event = EVT_PRESCAN type = TYPE_ERROR lex/entry = S_M_STRING][s: lex/mstr-s]
 
 		more: as series! lex/fun-ptr/more/value
 		int: as red-integer! more/offset + 4
@@ -921,6 +922,7 @@ lexer: context [
 			index: as-integer type-table/index
 			if zero? index [index: ERR_BAD_CHAR]		;-- fallback when no specific type detected
 			if ANY_BLOCK_STRICT?(index) [s: null]
+			if lex/entry = S_M_STRING [s: lex/mstr-s]
 			throw-error lex s e index
 		][
 			throw-error lex s e ERR_BAD_CHAR
@@ -2146,7 +2148,7 @@ lexer: context [
 			lex/in-pos >= lex/in-end
 		]
 		if all [lex/entry = S_M_STRING zero? lex/scanned][
-			catch LEX_ERR [throw-error lex start lex/in-end TYPE_STRING]
+			catch LEX_ERR [throw-error lex lex/mstr-s lex/in-end TYPE_STRING]
 			system/thrown: 0
 		]
 		assert lex/in-pos = lex/in-end
