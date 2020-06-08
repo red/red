@@ -436,6 +436,26 @@ Red [
 			--assert block/1 =? head block/2
 			append block/1 4
 			--assert block/2/2 == 4
+			
+		--test-- "reference-5"
+			bit: charset "abc"
+			block: test reduce [bit bit]
+			
+			--assert equal? block reduce [bit bit]
+			--assert block/1 =? block/2
+			--assert bitset? block/1
+		
+		--test-- "reference-6"
+			img1: make image! [123x456 1.2.3]
+			img2: at img1 4
+			block: test reduce [img1 img2]
+			
+			--assert block = reduce [img1 img2]
+			--assert block/1 =? head block/2
+			--assert image? block/1
+			--assert 4 = index? block/2
+			--assert block/2/size = 123x456
+			--assert block/1/1 = 1.2.3.0
 		
 	===end-group===
 	
