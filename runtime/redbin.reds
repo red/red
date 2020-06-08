@@ -524,29 +524,40 @@ redbin: context [
 		/local
 			slot   [red-image!]
 			argb   [red-binary!]
+			end    [int-ptr!]
 			pixels [byte-ptr!]
 			width  [integer!]
 			height [integer!]
 			size   [integer!]
 	][
-		width:  IMAGE_WIDTH(data/3)
-		height: IMAGE_HEIGHT(data/3)
-		size:   width * height << 2					;-- 4 bytes per pixel
-		
-		pixels: as byte-ptr! data + 3
-		argb:   binary/load pixels size
-		
-		slot: as red-image! ALLOC_TAIL(parent)
-		slot/head: data/2
-		slot/size: data/3
-		slot/node: OS-image/make-image width height null null null
-		
-		slot/header: TYPE_IMAGE
-		if nl? [slot/header: slot/header or flag-new-line]
-		
-		image/set-data slot argb EXTRACT_ARGB
-		
-		as int-ptr! pixels + size
+		either data/1 and REDBIN_REFERENCE_MASK <> 0 [
+			end: decode-reference data + 2 parent
+			slot: (as red-image! block/rs-tail parent) - 1
+			
+			if nl? [slot/header: slot/header or flag-new-line]
+			slot/head: data/2
+			
+			end
+		][
+			width:  IMAGE_WIDTH(data/3)
+			height: IMAGE_HEIGHT(data/3)
+			size:   width * height << 2					;-- 4 bytes per pixel
+			
+			pixels: as byte-ptr! data + 3
+			argb:   binary/load pixels size
+			
+			slot: as red-image! ALLOC_TAIL(parent)
+			slot/head: data/2
+			slot/size: data/3
+			slot/node: OS-image/make-image width height null null null
+			
+			slot/header: TYPE_IMAGE
+			if nl? [slot/header: slot/header or flag-new-line]
+			
+			image/set-data slot argb EXTRACT_ARGB
+			
+			as int-ptr! pixels + size
+		]
 	]
 	
 	origin: declare red-block!
@@ -1114,9 +1125,13 @@ redbin: context [
 		/local
 			argb [red-binary!]
 	][
-		argb: image/extract-data as red-image! data EXTRACT_ARGB
-		record [payload header data/data1 data/data3]
-		emit payload binary/rs-head argb binary/rs-length? argb
+		record [payload header data/data1]
+		
+		unless header and REDBIN_REFERENCE_MASK <> 0 [
+			argb: image/extract-data as red-image! data EXTRACT_ARGB
+			store payload data/data3
+			emit payload binary/rs-head argb binary/rs-length? argb
+		]
 	]
 	
 	encode-bitset: func [
