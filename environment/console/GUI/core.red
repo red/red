@@ -703,11 +703,7 @@ object [
 		p-idx: index? str
 		candidates: red-complete-ctx/complete-input skip str pos yes
 		case [
-			empty? candidates [
-				insert skip str pos char
-				pos: pos + 1
-				clear redo-stack
-			]
+			empty? candidates [0]		;-- TBD: beep
 			1 = length? candidates [
 				clear head str
 				pos: (index? candidates/1) - p-idx
