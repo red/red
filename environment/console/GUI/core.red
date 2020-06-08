@@ -28,6 +28,7 @@ object [
 
 	top:		1								;-- index of the first visible line in the line buffer
 	line:		none							;-- current editing line
+	line-pos:	0								;-- current editing line's position in lines
 	pos:		0								;-- insert position of the current editing line
 
 	scroll-y:	0								;-- in pixels
@@ -839,6 +840,11 @@ object [
 
 	press-key: func [event [event!] /local char ctrl? shift?][
 		unless ask? [exit]
+		if line-pos <> length? lines [
+			poke lines line-pos copy head line
+			add-line head line
+			line-pos: length? lines
+		]
 		if ime-open? [
 			remove/part skip line ime-pos pos - ime-pos
 			pos: ime-pos

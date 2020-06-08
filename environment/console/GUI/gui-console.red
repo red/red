@@ -250,6 +250,7 @@ ask: function [
 	vt/line: line
 	vt/pos: 0
 	vt/add-line head line
+	vt/line-pos: length? vt/lines
 	vt/ask?: yes
 	vt/reset-top/force
 	vt/clear-stack
