@@ -452,17 +452,25 @@ redbin: context [
 		return: [int-ptr!]
 		/local
 			slot [red-value!]
+			end  [int-ptr!]
 			bits [byte-ptr!]
 			size [integer!]
 	][
-		size: data/2 >> 3							;-- in bytes
-		bits: as byte-ptr! data + 2
-		
-		slot: as red-value! binary/load-in bits size parent
-		if nl? [slot/header: slot/header or flag-new-line]
-		set-type slot TYPE_BITSET
-		
-		as int-ptr! align bits + size 32			;-- align at upper 32-bit boundary
+		either data/1 and REDBIN_REFERENCE_MASK <> 0 [
+			end: decode-reference data + 1 parent
+			slot: (block/rs-tail parent) - 1
+			if nl? [slot/header: slot/header or flag-new-line]
+			end
+		][
+			size: data/2 >> 3							;-- in bytes
+			bits: as byte-ptr! data + 2
+			
+			slot: as red-value! binary/load-in bits size parent
+			if nl? [slot/header: slot/header or flag-new-line]
+			set-type slot TYPE_BITSET
+			
+			as int-ptr! align bits + size 32			;-- align at upper 32-bit boundary
+		]
 	]
 	
 	decode-vector: func [
@@ -1122,9 +1130,13 @@ redbin: context [
 		bits:   as red-bitset! data
 		length: bitset/length? bits
 		
-		record [payload header length]
-		emit payload bitset/rs-head bits length >> 3
-		pad payload 32
+		store payload header
+		
+		unless header and REDBIN_REFERENCE_MASK <> 0 [
+			store payload length
+			emit payload bitset/rs-head bits length >> 3
+			pad payload 32
+		]
 	]
 	
 	encode-reference: func [
