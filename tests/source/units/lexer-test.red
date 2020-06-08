@@ -1155,6 +1155,15 @@ Red [
 		    load integer! datatype! 1 3
 		]
 
+	--test-- "tt-17"
+		clear logs
+		--assert [] = transcode/trace {#"^^(00) a"} :lex-logger
+		--assert logs = [
+		    prescan char! datatype! 1 1x10 
+		    error error! datatype! 1 8x10 
+		    scan char! datatype! 1 1x11 
+		    error error! datatype! 1 8x10
+		]
 
 ===end-group===
 

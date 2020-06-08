@@ -2124,7 +2124,8 @@ lexer: context [
 					do-load: as loader! loaders/index
 					if :do-load <> null [
 						catch LEX_ERR [do-load lex s p flags yes]
-						if events? [
+						if all [events? system/thrown <> LEX_ERR][
+							assert all [lex/tail > lex/head lex/tail > lex/buffer]
 							slot: lex/tail - 1
 							unless fire-event lex EVT_LOAD TYPE_OF(slot) slot s lex/in-pos [lex/tail: slot]
 						]
