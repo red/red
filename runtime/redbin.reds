@@ -18,10 +18,13 @@ Red/System [
 #define REDBIN_VALUES_MASK			40000000h
 #define REDBIN_STACK_MASK			20000000h
 #define REDBIN_SELF_MASK			10000000h
+
 #define REDBIN_SET_MASK				08000000h
 #define REDBIN_KIND_MASK			06000000h
-#define REDBIN_MONEY_SIGN_MASK		00010000h
+#define REDBIN_OWNER_MASK			01000000h
+
 #define REDBIN_REFERENCE_MASK		00020000h
+#define REDBIN_MONEY_SIGN_MASK		00010000h
 
 redbin: context [
 	verbose: 0
@@ -177,6 +180,7 @@ redbin: context [
 		data	[int-ptr!]
 		table	[int-ptr!]
 		parent	[red-block!]
+		node    [int-ptr!]
 		return: [int-ptr!]
 		/local
 			ctx		[red-context!]
@@ -204,15 +208,19 @@ redbin: context [
 		type:	 header and REDBIN_KIND_MASK >> 25
 		
 		new: _context/create slots stack? self? null type
-		obj: as red-object! ALLOC_TAIL(parent)			;-- use an object to store the ctx node
-		obj/header: TYPE_OBJECT
-		obj/ctx:	new
-		obj/class:	-1
-		obj/on-set: null
+		unless null? node [node/value: as integer! new]
 		
-		s: as series! new/value
-		copy-cell as red-value! obj s/offset + 1		;-- set back-reference
-		
+		unless codec? [									;@@ TBD: find something more adequate
+			obj: as red-object! ALLOC_TAIL(parent)		;-- use an object to store the ctx node
+			obj/header: TYPE_OBJECT
+			obj/ctx:	new
+			obj/class:	-1
+			obj/on-set: null
+			
+			s: as series! new/value
+			copy-cell as red-value! obj s/offset + 1	;-- set back-reference
+		]
+			
 		ctx: TO_CTX(new)
 		unless stack? [
 			s: as series! ctx/values/value
@@ -322,6 +330,51 @@ redbin: context [
 		]
 		
 		data
+	]
+	
+	decode-object: func [
+		data	[int-ptr!]
+		table	[int-ptr!]
+		parent	[red-block!]
+		nl?		[logic!]
+		return: [int-ptr!]
+		/local
+			object  [red-object!]
+			series  [series!]
+			end     [int-ptr!]
+			context [int-ptr!]
+			node    [integer!]
+			skip    [integer!]
+			owner?  [logic!]
+	][
+		owner?:  data/1 and REDBIN_OWNER_MASK <> 0
+		context: data + 2
+		if owner? [
+			skip: (size? cell!) << 1
+			context: context + skip
+		]
+		
+		object: as red-object! ALLOC_TAIL(parent)
+		node: 0
+		end:  decode-context context table parent :node
+		
+		object/header: TYPE_UNSET
+		object/ctx:    as node! node
+		object/class:  data/2
+		object/on-set: either owner? [alloc-cells 2][null]
+		
+		if owner? [
+			series: as series! object/on-set/value
+			copy-memory as byte-ptr! series/offset as byte-ptr! data + 2 skip
+		]
+		
+		object/header: TYPE_OBJECT
+		if nl? [object/header: object/header or flag-new-line]
+		
+		series: as series! object/ctx/value
+		copy-cell as red-value! object series/offset + 1
+		
+		end
 	]
 	
 	decode-string: func [
@@ -635,7 +688,7 @@ redbin: context [
 			TYPE_ANY_PATH
 			TYPE_BLOCK
 			TYPE_PAREN		[decode-block data table parent nl?]
-			TYPE_CONTEXT	[decode-context data table parent]
+			TYPE_CONTEXT	[decode-context data table parent null]
 			TYPE_ISSUE		[decode-issue data table parent nl?]
 			TYPE_TYPESET	[
 				cell: as cell! typeset/make-in parent data/2 data/3 data/4
@@ -691,9 +744,9 @@ redbin: context [
 			TYPE_BITSET     [decode-bitset data parent nl?]
 			TYPE_VECTOR     [decode-vector data parent nl?]
 			TYPE_IMAGE		[decode-image data parent nl?]
-			TYPE_PORT
-			TYPE_OBJECT
+			TYPE_OBJECT		[decode-object data table parent nl?]
 			TYPE_ERROR
+			TYPE_PORT
 			TYPE_FUNCTION
 			TYPE_ROUTINE
 			TYPE_HANDLE
@@ -973,6 +1026,33 @@ redbin: context [
 		unless TYPE_OF(data) = TYPE_ISSUE [record [payload context data/data3]]
 	]
 	
+	encode-object: func [
+		data    [red-value!]
+		header  [integer!]
+		payload [red-binary!]
+		symbols [red-binary!]
+		table   [red-binary!]
+		strings [red-binary!]
+		/local
+			object [red-object!]
+			buffer [series!]
+			owner? [logic!]
+	][
+		object: as red-object! data
+		owner?: not null? object/on-set
+		
+		if owner? [header: header or REDBIN_OWNER_MASK]
+		
+		record [payload header object/class]
+		
+		if owner? [
+			buffer: as series! object/on-set/value
+			emit payload as byte-ptr! buffer/offset (size? cell!) << 1
+		]
+		
+		encode-context object/ctx payload symbols table strings
+	]
+	
 	encode-symbol: func [
 		data    [red-value!]
 		table   [red-binary!]
@@ -1227,7 +1307,9 @@ redbin: context [
 					TYPE_ACTION 	[encode-native data header payload symbols table strings]
 					TYPE_ANY_BLOCK
 					TYPE_MAP		[encode-block data header no payload symbols table strings]
-					default	[--NOT_IMPLEMENTED--]	;@@ TBD: proper error message
+					TYPE_OBJECT
+					TYPE_ERROR      [encode-object data header payload symbols table strings]
+					default			[--NOT_IMPLEMENTED--]
 				]
 				
 				either null? ref [path/pop][encode-reference ref payload]
