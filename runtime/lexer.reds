@@ -2099,7 +2099,7 @@ lexer: context [
 		
 			index: state - --EXIT_STATES--
 			do-scan: as scanner! scanners/index
-			if all [pscan? state <= T_STRING][
+			if all [pscan? state <= T_STRING][			;-- Prescan only, early exit
 				catch LEX_ERR [do-scan lex s p flags no]
 				err?: system/thrown = LEX_ERR
 				system/thrown: 0
@@ -2118,8 +2118,10 @@ lexer: context [
 						if :do-scan = null [do-scan: as scanner! loaders/index]
 						catch LEX_ERR [do-scan lex s p flags no]
 						if events? [
-							idx: either zero? lex/scanned [0 - index][lex/scanned]
-							load?: fire-event lex EVT_SCAN idx null s lex/in-pos
+							load?: either system/thrown = LEX_ERR [no][
+								idx: either zero? lex/scanned [0 - index][lex/scanned]
+								fire-event lex EVT_SCAN idx null s lex/in-pos
+							]
 						]
 					]
 				]
