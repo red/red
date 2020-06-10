@@ -197,6 +197,7 @@ redbin: context [
 			new		[node!]
 			s		[series!]
 			i		[integer!]
+			id      [integer!]
 	][
 		header: data/1
 		slots:  data/2
@@ -238,8 +239,9 @@ redbin: context [
 
 		loop slots [
 			sym: table + data/1
+			id:  either codec? [symbol/make (as c-string! table + table/-1) + sym/1][sym/1]
 			;-- create the words entries in the symbol table of the context
-			_context/find-or-store ctx sym/1 yes new :i
+			_context/find-or-store ctx id yes new :i
 			if all [not stack? values?][value: decode-value value table values]
 			data: data + 1
 		]
