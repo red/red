@@ -783,7 +783,7 @@ Red [
 			scan word! datatype! 1 6x7
 			load word! datatype! 1 b
 			prescan error! datatype! 1 8x8
-			error error! datatype! 1 6x8
+			error path! datatype! 1 6x8
 			prescan block! datatype! 1 9x9
 			open block! datatype! 1 9x9
 			prescan block! datatype! 1 10x10
@@ -805,7 +805,7 @@ Red [
 			scan word! datatype! 1 6x7
 			load word! datatype! 1 b
 			prescan error! datatype! 1 8x8
-			error error! datatype! 1 6x8
+			error path! datatype! 1 6x8
 			prescan word! datatype! 1 9x10
 			scan word! datatype! 1 9x10
 			load word! datatype! 1 x
@@ -836,7 +836,7 @@ Red [
 			prescan word! datatype! 1 16x17
 			scan word! datatype! 1 16x17
 			load word! datatype! 1 x
-			error error! datatype! 1 14x17
+			error block! datatype! 1 14x17
 		]
 
 	--test-- "tt-4"
@@ -851,7 +851,7 @@ Red [
 			load integer! datatype! 1 1
 			prescan paren! datatype! 1 6x6
 			close paren! datatype! 1 6x6
-			error error! datatype! 1 6x6
+			error paren! datatype! 1 6x6
 			prescan word! datatype! 1 8x9
 			scan word! datatype! 1 8x9
 			load word! datatype! 1 x
@@ -910,7 +910,7 @@ Red [
 			load integer! datatype! 1 1
 			prescan block! datatype! 1 6x6
 			close block! datatype! 1 6x6
-			error error! datatype! 1 6x6
+			error block! datatype! 1 6x6
 		]
 
 	--test-- "tt-8"	
@@ -1046,7 +1046,7 @@ Red [
 			load set-word! datatype! 1 r:
 			load integer! datatype! 1 2
 			load word! datatype! 1 x
-			error error! datatype! 1 14x17
+			error block! datatype! 1 14x17
 		]
 
 	--test-- "tt-13"
@@ -1117,7 +1117,7 @@ Red [
 		    scan word! datatype! 1 7x8
 		    load word! datatype! 1 c
 		    prescan error! datatype! 1 9x9
-		    error error! datatype! 1 5x9
+		    error path! datatype! 1 5x9
 		    prescan path! datatype! 1 10x11
 		    open path! datatype! 1 10x10
 		    scan word! datatype! 1 10x11
@@ -1126,7 +1126,7 @@ Red [
 		    scan word! datatype! 1 12x13
 		    load word! datatype! 1 e
 		    close path! datatype! 1 12x13
-		    error error! datatype! 1 4x13
+		    error block! datatype! 1 4x13
 		]
 
 	--test-- "tt-15"
@@ -1136,7 +1136,7 @@ Red [
 			   prescan string! datatype! 1 1x1 
 			   open string! datatype! 1 1x1 
 			   prescan error! datatype! 2 1x3 
-			   error error! datatype! 2 1x3
+			   error string! datatype! 2 1x3
 		]
 
 	--test-- "tt-16"
@@ -1165,7 +1165,7 @@ Red [
 		--assert [] = transcode/trace {#"^^(00) a"} :lex-logger
 		--assert logs = [
 		    prescan char! datatype! 1 1x10 
-		    error error! datatype! 1 8x10 
+		    error char! datatype! 1 8x10 
 		]
 
 ===end-group===

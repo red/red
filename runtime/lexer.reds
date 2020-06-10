@@ -362,7 +362,7 @@ lexer: context [
 			po	 [red-point!]
 			slot [red-value!]
 			p	 [byte-ptr!]
-			len	 [integer!]
+			len	closing t [integer!]
 			c	 [byte!]
 	][
 		unless lex/load? [
@@ -376,8 +376,16 @@ lexer: context [
 			either TYPE_OF(po) <> TYPE_POINT [s: lex/input][s: lex/input + po/z]
 		]
 		if lex/fun-ptr <> null [
+			t: either type > 0 [type][
+				case [
+					lex/closing > 0 [lex/closing]
+					lex/scanned > 0	[lex/scanned]
+					lex/type > 0	[lex/type]
+					true			[TYPE_ERROR]
+				]
+			]
 			if lex/entry = S_PATH [close-block lex s e -1 yes]
-			unless fire-event lex EVT_ERROR TYPE_ERROR null s e [throw LEX_ERR]
+			unless fire-event lex EVT_ERROR t null s e [throw LEX_ERR]
 		]
 		e: lex/in-end
 		len: 0
@@ -392,8 +400,10 @@ lexer: context [
 		string/concatenate-literal line integer/form-signed lex/line
 		string/append-char GET_BUFFER(line) as-integer #")"
 		
+		closing: lex/closing
+		lex/closing: 0
 		lex/tail: lex/buffer							;-- clear accumulated values
-		if lex/closing = TYPE_PATH [type: ERR_BAD_CHAR]	;-- forces a better error report
+		if closing = TYPE_PATH [type: ERR_BAD_CHAR]		;-- forces a better error report
 
 		switch type [
 			ERR_BAD_CHAR 	 [fire [TO_ERROR(syntax bad-char) line pos]]
@@ -403,7 +413,7 @@ lexer: context [
 				c: either type = ERR_CLOSING [#"_"][	;-- force a closing character
 					either lex/in-pos < lex/in-end [lex/in-pos/1][lex/in-pos/0] ;-- guess opening/closing
 				]
-				type: switch lex/closing [
+				type: switch closing [
 					TYPE_BLOCK [as-integer either c = #"]" [#"["][#"]"]]
 					TYPE_MAP
 					TYPE_PAREN [as-integer either c = #")" [#"("][#")"]]
@@ -2210,6 +2220,7 @@ lexer: context [
 		lex/entry:		S_START
 		lex/type:		-1
 		lex/scanned: 	0
+		lex/closing:	0
 		lex/mstr-nest:	0
 		lex/mstr-flags: 0
 		lex/fun-ptr:	fun
