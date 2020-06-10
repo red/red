@@ -973,9 +973,14 @@ lexer: context [
 
 		either zero? lex/mstr-nest [
 			either load? [
-				load-string lex lex/mstr-s e lex/mstr-flags or flags yes
+				if lex/fun-ptr <> null [load?: fire-event lex EVT_SCAN TYPE_STRING null s e]
+				if load? [
+					load-string lex lex/mstr-s e lex/mstr-flags or flags yes
+					if lex/fun-ptr <> null [fire-event lex EVT_LOAD TYPE_STRING lex/tail - 1 s e]
+				]
 			][
 				scan-string lex lex/mstr-s e lex/mstr-flags or flags no
+				if lex/fun-ptr <> null [fire-event lex EVT_SCAN TYPE_STRING null s e]
 			]
 			lex/mstr-s: null
 			lex/mstr-flags: 0

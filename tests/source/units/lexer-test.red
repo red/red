@@ -888,6 +888,8 @@ Red [
 			open string! datatype! 1 5x5
 			prescan string! datatype! 1 6x9
 			close string! datatype! 1 6x9
+			scan string! datatype! 1 6x9 
+    		load string! datatype! 1 "abc" 
 			prescan integer! datatype! 1 11x23
 			scan float! datatype! 1 11x23
 			load float! datatype! 1 123456789123.0
@@ -950,6 +952,8 @@ Red [
 			open string! datatype! 4 19x19
 			prescan string! datatype! 4 20x24
 			close string! datatype! 4 20x24
+			scan string! datatype! 4 20x24 
+    		load string! datatype! 4 "test"
 			prescan float! datatype! 4 26x30
 			scan float! datatype! 4 26x30
 			load float! datatype! 4 3.14
@@ -1074,6 +1078,7 @@ Red [
 			load pair! datatype! 4 3x4
 			open string! datatype! 4 19x19
 			close string! datatype! 4 20x24
+			load string! datatype! 4 "test" 
 			load float! datatype! 4 3.14
 			load word! datatype! 4 pi
 			close block! datatype! 4 33x33
