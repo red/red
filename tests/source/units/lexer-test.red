@@ -40,7 +40,7 @@ Red [
 		nl: reduce [no no no no no no yes yes yes]
 		forall out [--assert nl/1 = new-line? out nl: next nl]
 
-	--test-- "tr-15" --assert [#"@" #" " #"^/"] == transcode {#"^^@" #"^^(20)" #"^^(line)" }
+	--test-- "tr-15" --assert [#"^@" #" " #"^/" #"^@"] == transcode {#"^^@" #"^^(20)" #"^^(line)" #""}
 	--test-- "tr-16"
 		out: transcode {
 			#{33AA}
@@ -608,6 +608,8 @@ Red [
 	--test-- "tro-141"  --assert -1000000000 == transcode/one "-1'000'000'000"
 	--test-- "tro-142"  --assert -1000000000 == transcode/one "-1000000000"
 
+	--test-- "tro-143"  --assert #"^@" == transcode/one {#""}
+
 ===end-group===
 ===start-group=== "transcode/next"
 
@@ -697,6 +699,7 @@ Red [
 	--test-- "scan-58" --assert date!	 = scan "29/02/2020"
 	--test-- "scan-59" --assert error!	 = scan "30/02/2020"
 	--test-- "scan-60" --assert none? 	   scan ""
+	--test-- "scan-61" --assert char!	 = scan {#""}
 
 ===end-group===
 ===start-group=== "scan/fast"

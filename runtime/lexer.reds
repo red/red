@@ -142,7 +142,7 @@ lexer: context [
 	}
 	
 	;-- Bit-array for /-~^{}"
-	char-special: #{0000000004A00000000000400000006800000000000000000000000000000000}
+	char-special: #{0000000004A00000010000400000006800000000000000000000000000000000}
 	
 	escape-names: [
 		"null"	4	00h
@@ -906,6 +906,7 @@ lexer: context [
 				if all [#"^(40)" < s/1 s/1 < #"^(5F)"][c: as-integer s/1 - #"@"]
 			][											;-- escaped special char
 				c: switch s/1 [
+					#"@"  [00h]
 					#"/"  [0Ah]
 					#"-"  [09h]
 					#"^"" [22h]
@@ -1247,16 +1248,18 @@ lexer: context [
 		assert all [s/1 = #"#" s/2 = #"^""]
 		do-error: [throw-error lex s e TYPE_CHAR]
 		len: as-integer e - s
-		if any [len = 2 e/1 <> #"^""][do-error]			;-- #""
-		c: -1
+		either len = 2 [c: 0][							;-- #"" is a shortcut for #"^@"
+			if e/1 <> #"^"" [do-error]
+			c: -1
 			
-		s: either s/3 = #"^^" [
-			if len = 3 [do-error]						;-- #"^"
-			scan-escaped-char s + 3 e :c
-		][												;-- simple char
-			unicode/fast-decode-utf8-char s + 2 :c
+			s: either s/3 = #"^^" [
+				if len = 3 [do-error]					;-- #"^"
+				scan-escaped-char s + 3 e :c
+			][											;-- simple char
+				unicode/fast-decode-utf8-char s + 2 :c
+			]
+			if any [c > 0010FFFFh c = -1 s < e][do-error]
 		]
-		if any [c > 0010FFFFh c = -1 s < e][do-error]
 		if load? [
 			char: as red-char! alloc-slot lex
 			set-type as cell! char TYPE_CHAR
