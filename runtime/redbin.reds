@@ -357,12 +357,9 @@ redbin: context [
 		]
 		
 		object: as red-object! ALLOC_TAIL(parent)
-		node: 0
-		end:  decode-context context table parent :node
 		
 		object/header: TYPE_UNSET
-		object/ctx:    as node! node
-		object/class:  data/2
+		object/class:  data/2						;@@ TBD: potential conflict of concurrent class IDs
 		object/on-set: either owner? [alloc-cells 2][null]
 		
 		if owner? [
@@ -372,6 +369,8 @@ redbin: context [
 		
 		object/header: TYPE_OBJECT
 		if nl? [object/header: object/header or flag-new-line]
+		
+		end: decode-context context table parent :object/ctx
 		
 		series: as series! object/ctx/value
 		copy-cell as red-value! object series/offset + 1
@@ -622,8 +621,11 @@ redbin: context [
 		parent  [red-block!]
 		return: [int-ptr!]
 		/local
-			value  [red-value!]
-			offset [int-ptr!]
+			value   [red-value!]
+			object  [red-object!]
+			context [red-context!]
+			buffer  [series!]
+			offset  [int-ptr!]
 	][
 		value:  as red-value! origin
 		offset: data + 2
@@ -638,13 +640,18 @@ redbin: context [
 				TYPE_NATIVE [
 					block/rs-abs-at as red-block! value 0
 				]
+				TYPE_OBJECT
+				TYPE_ERROR [
+					object:  as red-object! value
+					context: GET_CTX(object)
+					buffer:  as series! context/values/value
+					buffer/offset
+				]
 				TYPE_ANY_WORD
 				TYPE_REFINEMENT
 				TYPE_FUNCTION
-				TYPE_ROUTINE
-				TYPE_OP
-				TYPE_OBJECT
-				TYPE_ERROR [
+				TYPE_ROUTINE 
+				TYPE_OP [
 					--NOT_IMPLEMENTED--				;@@ TBD: support for any-word!, any-object!, any-function!
 					value
 				]
@@ -1040,19 +1047,21 @@ redbin: context [
 			buffer [series!]
 			owner? [logic!]
 	][
-		object: as red-object! data
-		owner?: not null? object/on-set
+		unless header and REDBIN_REFERENCE_MASK <> 0 [
+			object: as red-object! data
+			owner?: not null? object/on-set
+			
+			if owner? [header: header or REDBIN_OWNER_MASK]
+			
+			record [payload header object/class]
 		
-		if owner? [header: header or REDBIN_OWNER_MASK]
-		
-		record [payload header object/class]
-		
-		if owner? [
-			buffer: as series! object/on-set/value
-			emit payload as byte-ptr! buffer/offset (size? cell!) << 1
+			if owner? [
+				buffer: as series! object/on-set/value
+				emit payload as byte-ptr! buffer/offset (size? cell!) << 1
+			]
+			
+			encode-context object/ctx payload symbols table strings
 		]
-		
-		encode-context object/ctx payload symbols table strings
 	]
 	
 	encode-symbol: func [
