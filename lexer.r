@@ -163,7 +163,8 @@ lexer: context [
 	]
 	
 	newline-char: [
-		#"^/"
+		#"^/"										;-- LF
+		| #"^M"										;-- CR
 		| #{C285}									;-- U+0085 (Newline)
 		| #{E280} [
 			#{A8}									;-- U+2028 (Line separator)
