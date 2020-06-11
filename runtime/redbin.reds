@@ -364,10 +364,11 @@ redbin: context [
 		
 		if owner? [
 			series: as series! object/on-set/value
+			series/tail: series/offset + 2
 			copy-memory as byte-ptr! series/offset as byte-ptr! data + 2 skip
 		]
 		
-		object/header: TYPE_OBJECT
+		object/header: data/1 and FFh
 		if nl? [object/header: object/header or flag-new-line]
 		
 		end: decode-context context table parent :object/ctx
@@ -403,14 +404,14 @@ redbin: context [
 			end
 		][
 			unit: header >>> 8 and FFh
-			size: data/3 << log-b unit						;-- optimized data/3 * unit
+			size: data/3 << log-b unit				;-- optimized data/3 * unit
 
 			str: as red-string! ALLOC_TAIL(parent)
 			str/header: TYPE_UNSET
 			str/head: 	data/2
 			str/node: 	alloc-bytes size
 			str/cache:	null
-			str/header: header and FFh						;-- implicit reset of all header flags
+			str/header: header and FFh				;-- implicit reset of all header flags
 			if nl? [str/header: str/header or flag-new-line]
 			
 			data: data + 3
@@ -652,7 +653,7 @@ redbin: context [
 				TYPE_FUNCTION
 				TYPE_ROUTINE 
 				TYPE_OP [
-					--NOT_IMPLEMENTED--				;@@ TBD: support for any-word!, any-object!, any-function!
+					--NOT_IMPLEMENTED--				;@@ TBD: support for any-word!,  any-function!
 					value
 				]
 				default [
@@ -753,8 +754,8 @@ redbin: context [
 			TYPE_BITSET     [decode-bitset data parent nl?]
 			TYPE_VECTOR     [decode-vector data parent nl?]
 			TYPE_IMAGE		[decode-image data parent nl?]
-			TYPE_OBJECT		[decode-object data table parent nl?]
 			TYPE_ERROR
+			TYPE_OBJECT		[decode-object data table parent nl?]
 			TYPE_PORT
 			TYPE_FUNCTION
 			TYPE_ROUTINE
@@ -1271,10 +1272,11 @@ redbin: context [
 		table   [red-binary!]
 		strings [red-binary!]
 		/local
-			node   [node!]
-			ref    [int-ptr!]
-			type   [integer!]
-			header [integer!]
+			node    [node!]
+			ref     [int-ptr!]
+			type    [integer!]
+			header  [integer!]
+			first?  [logic!]
 	][
 		type: TYPE_OF(data)
 		header: type or either zero? (data/header and flag-new-line) [0][REDBIN_NEWLINE_MASK]
@@ -1303,7 +1305,13 @@ redbin: context [
 			TYPE_REFINEMENT
 			TYPE_ISSUE		[encode-word data header payload symbols table strings]
 			default 		[
-				node: as node! either ALL_WORD?(type) [data/data1][data/data2]
+				first?: any [
+					ALL_WORD?(type)
+					type = TYPE_OBJECT
+					type = TYPE_ERROR
+				]
+			
+				node: as node! either first? [data/data1][data/data2]
 				ref:  reference/fetch node
 				
 				either null? ref [path/push reference/store node][header: header or REDBIN_REFERENCE_MASK]
