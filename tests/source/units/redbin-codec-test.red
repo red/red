@@ -389,6 +389,14 @@ Red [
 			--assert ping/pong == pong				;-- two different payloads, two non-identical series
 			--assert pong/ping == ping
 		
+		--test-- "cycle-7"
+			put foo: object [foo: none] 'foo foo
+			foo: test foo
+			
+			--assert object? foo
+			--assert object? foo/foo
+			--assert foo =? foo/foo/foo
+		
 		--test-- "reference-1"
 			block: [1 2]
 			paren: as paren! next block
