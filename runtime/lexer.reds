@@ -903,7 +903,11 @@ lexer: context [
 			pos: c >>> 3 + 1
 			bit: as-byte 1 << (c and 7)
 			either char-special/pos and bit = null-byte [ ;-- "regular" escaped char
-				if all [#"^(40)" < s/1 s/1 < #"^(5F)"][c: as-integer s/1 - #"@"]
+				case [
+					all [61h <= c c <= 7Ah][c: c - 60h]
+					all [40h <  c c <= 5Fh][c: c - 40h] ;-- ^@ is handled by faster path
+					true [0]							;-- pass-thru
+				]
 			][											;-- escaped special char
 				c: switch s/1 [
 					#"@"  [00h]
