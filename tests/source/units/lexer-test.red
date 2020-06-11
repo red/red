@@ -609,6 +609,9 @@ Red [
 	--test-- "tro-142"  --assert -1000000000 == transcode/one "-1000000000"
 
 	--test-- "tro-143"  --assert #"^@" == transcode/one {#""}
+	--test-- "tro-144"  --assert error? try [transcode/one {"hello^/world"}]
+	--test-- "tro-145"  --assert error? try [transcode/one {"hello^Mworld"}]
+	--test-- "tro-146"  --assert "hello^-world" == transcode/one {"hello^-world"}
 
 ===end-group===
 ===start-group=== "transcode/next"
@@ -700,6 +703,9 @@ Red [
 	--test-- "scan-59" --assert error!	 = scan "30/02/2020"
 	--test-- "scan-60" --assert none? 	   scan ""
 	--test-- "scan-61" --assert char!	 = scan {#""}
+	--test-- "scan-62" --assert error!	 = scan {"hello^/world"}
+	--test-- "scan-63" --assert error!	 = scan {"hello^Mworld"}
+	--test-- "scan-64" --assert string!	 = scan {"hello^-world"}
 
 ===end-group===
 ===start-group=== "scan/fast"

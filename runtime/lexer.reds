@@ -175,7 +175,7 @@ lexer: context [
 		C_LINE 											;-- 0A		LF
 		C_BIN											;-- 0B
 		C_BIN											;-- 0C
-		C_BLANK											;-- 0D		CR
+		C_LINE											;-- 0D		CR
 		C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN	;-- 0E-15
 		C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN	;-- 16-1D
 		C_BIN C_BIN										;-- 1E-1F
