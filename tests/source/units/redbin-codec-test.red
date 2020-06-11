@@ -287,6 +287,24 @@ Red [
 			
 			forall natives [--assert :natives/1 == test :natives/1]
 		
+		--test-- "object"
+			objects: reduce [
+				object []
+				object [foo: 'bar]
+				object [foo: object [bar: object []]]
+				object [foo: object [] bar: object []]
+			]
+			
+			forall objects [--assert objects/1 == test objects/1]
+		
+		--test-- "error"
+			errors: reduce [
+				try [1 / 0]
+			]
+			
+			;@@ TBD
+			; forall errors [--assert :errors/1 == test :errors/1]
+		
 	===end-group===
 
 	===start-group=== "Header flags"
