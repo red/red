@@ -399,6 +399,7 @@ Red [
 	--test-- "tr-39" --assert ["a^^b"] == transcode "%{a^^b}%"
 	--test-- "tr-40" --assert ["}"] == transcode "%{}}%"
 	--test-- "tr-41" --assert ["Nice^^World}% rawstring! "] == transcode "%%{Nice^^World}% rawstring! }%%"
+	--test-- "tr-42" --assert [a /c^d /e^] == transcode "a^b/c^^d/e^^^f"
 
 ===end-group===
 ===start-group=== "transcode/one"

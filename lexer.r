@@ -96,7 +96,7 @@ lexer: context [
 	
 	UTF8-char: [pos: UTF8-1 | UTF8-2 | UTF8-3 | UTF8-4]
 	
-	not-word-char:	charset {/\^^,[](){}"#%$@:;}
+	not-word-char:	charset {/\,[](){}"#%$@:;}
 	not-word-1st:	union union not-word-char digit charset {'}
 	not-file-char:	charset {[](){}"@:;}
 	not-url-char:	charset {[](){}";}
@@ -107,7 +107,8 @@ lexer: context [
 	not-tag-1st:	complement union ws-ASCII charset "=><[](){};^""
 	not-tag-char:	complement charset ">"
 	tag-char:		charset "<>"
-	caret-char:		charset [#"^(40)" - #"^(5F)"]
+	caret-Uchar:	charset [#"^(40)" - #"^(5F)"]
+	caret-Lchar:	charset [#"^(61)" - #"^(7A)"]
 	non-printable-char: charset [#"^(00)" - #"^(1F)"]
 	pair-end:		charset {^{"[]();:/}
 	integer-end:	charset {^{"[]();:xX</}
@@ -492,7 +493,8 @@ lexer: context [
 				| #"}"	(value: #"}")
 				| #"^""	(value: #"^"")
 			]
-			| pos: caret-char (value: pos/1 - 64)
+			| pos: caret-Uchar (value: pos/1 - 64)
+			| pos: caret-Lchar (value: pos/1 - 96)
 		]
 	]
 	
