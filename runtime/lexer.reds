@@ -76,10 +76,11 @@ lexer: context [
 		C_PLUS											;-- 32
 		C_MINUS											;-- 33
 		C_CARET											;-- 34
-		C_BIN											;-- 35
-		C_WORD											;-- 36
-		C_ILLEGAL										;-- 37
-		C_EOF											;-- 38
+		C_C0											;-- 35
+		C_BIN											;-- 36
+		C_WORD											;-- 37
+		C_ILLEGAL										;-- 38
+		C_EOF											;-- 39
 	]
 		
 	#enum bin16-char-classes! [
@@ -170,15 +171,15 @@ lexer: context [
 
 	lex-classes: [
 		(C_EOF or C_FLAG_EOF)							;-- 00		NUL
-		C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN	;-- 01-08
+		C_C0 C_C0 C_C0 C_C0 C_C0 C_C0 C_C0 C_C0			;-- 01-08
 		C_BLANK											;-- 09		TAB
 		C_LINE 											;-- 0A		LF
-		C_BIN											;-- 0B
-		C_BIN											;-- 0C
+		C_C0											;-- 0B
+		C_C0											;-- 0C
 		C_LINE											;-- 0D		CR
-		C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN	;-- 0E-15
-		C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN C_BIN	;-- 16-1D
-		C_BIN C_BIN										;-- 1E-1F
+		C_C0 C_C0 C_C0 C_C0 C_C0 C_C0 C_C0 C_C0			;-- 0E-15
+		C_C0 C_C0 C_C0 C_C0 C_C0 C_C0 C_C0 C_C0			;-- 16-1D
+		C_C0 C_C0										;-- 1E-1F
 		C_BLANK											;-- 20
 		C_WORD											;-- 21		!
 		C_DBL_QUOTE										;-- 22		"
