@@ -393,6 +393,15 @@ Red [
 			put foo: object [foo: none] 'foo foo
 			foo: test foo
 			
+			--assert "make object! [foo: make object! [...]]" = mold/flat foo
+			--assert object? foo
+			--assert object? foo/foo
+			--assert foo =? foo/foo/foo
+		
+		--test-- "cycle-8"
+			foo: test object [foo: self]
+			
+			--assert "make object! [foo: make object! [...]]" = mold/flat foo
 			--assert object? foo
 			--assert object? foo/foo
 			--assert foo =? foo/foo/foo
