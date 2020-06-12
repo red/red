@@ -131,7 +131,6 @@ system/console: context [
 		line	[integer!]
 		token
 		return:	[logic!]
-		/local	s c
 	][
 		[open close error]
 		switch event [
@@ -140,27 +139,56 @@ system/console: context [
 				true
 			]
 			close [
-				if delimiter-map/:type <> last delimiters [throw 'stop]
-				take/last delimiters true
+				if delimiter-map/:type <> last delimiters [				;-- unmatched ")" "]"
+					throw 'stop
+				]
+				take/last delimiters
 				true
 			]
 			error [
-				if any [#"/" = last delimiters find "})]" input/1][throw 'stop]
-				if token/y > token/x [
-					s: copy/part head input token
-					switch s/1 [
-						#"<" [
-							append s #">"
-							if tag! = scan s [append delimiters #"<"]
-						]
-						#"%" [
-							c: 1
-							parse s [some [#"%" (c: c + 1)] #"{" (append delimiters #"{")]
+				if type = error! [										;-- unmatched "}"
+					throw 'stop
+				]
+				if all [												;-- block! paren! map! have open-event, so just match delimiters
+					any [
+						type = block!
+						type = paren!
+						type = map!
+					]
+					delimiter-map/:type = last delimiters
+				][
+					throw 'break
+				]
+				back2: back back tail delimiters
+				if all [												;-- paren! in path
+					#"/" = back2/1
+					type = paren!
+				][
+					remove back2
+					throw 'break
+				]
+				if type = tag! [										;-- tag! haven't open-event
+					append delimiters #"<"
+					throw 'break
+				]
+				if all [												;-- binary! haven't open-event
+					type = binary!
+					input/1 <> #"}"
+				][
+					append delimiters #"{"
+					throw 'break
+				]
+				if type = string! [
+					either input/(token/x - token/y) = #"%" [			;-- raw-string! haven't open-event
+						append delimiters #"{"
+						throw 'break
+					][
+						if delimiter-map/:type = last delimiters [		;-- other string! if have open-event, do match
+							throw 'break
 						]
 					]
 				]
-				input: next input
-				false
+				throw 'stop
 			]
 		]
 	]
