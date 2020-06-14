@@ -1443,7 +1443,8 @@ _hashtable: context [
 				]
 			][								;-- may need to expand indexes
 				if size + head + offset << 2 > s/size [
-					s: expand-series-filled s s/size << 1 #"^(FF)"
+					s: as series! h/indexes/value
+					s: expand-series-filled s size + head + offset << 2 #"^(FF)"
 					indexes: as int-ptr! s/offset
 					s/tail: as cell! (as byte-ptr! s/offset) + s/size
 				]
