@@ -1311,7 +1311,9 @@ redbin: context [
 				node: as node! either first? [data/data1][data/data2]
 				ref:  reference/fetch node
 				
-				either null? ref [path/push reference/store node][header: header or REDBIN_REFERENCE_MASK]
+				unless all [ALL_WORD?(type) node = global-ctx][
+					either null? ref [path/push reference/store node][header: header or REDBIN_REFERENCE_MASK]
+				]
 				
 				switch type [
 					TYPE_ANY_STRING
@@ -1331,7 +1333,9 @@ redbin: context [
 					default			[--NOT_IMPLEMENTED--]
 				]
 				
-				either null? ref [path/pop][encode-reference ref payload]
+				unless all [ALL_WORD?(type) node = global-ctx][
+					either null? ref [path/pop][encode-reference ref payload]
+				]
 			]
 		]
 		
