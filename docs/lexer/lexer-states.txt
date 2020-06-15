@@ -196,10 +196,10 @@ S_START->dbl-quote->S_LINE_STR->not("^"|dbl-quote)->S_LINE_STR
                       \->dbl-quote->T_STRING
 
 S_M_STRING->not("^"|"{"|"}")->S_M_STRING
-               \->"^"->S_SKIP_MSTR->not(EOF)->S_M_STRING
-                \            \->EOF->T_ERROR
-                 \->"{"->T_MSTR_OP
-                  \->"}"->T_MSTR_CL
+ \->"^"->S_SKIP_MSTR->not(EOF)->S_M_STRING
+  \       \->EOF->T_ERROR
+   \->"{"->T_MSTR_OP
+    \->"}"->T_MSTR_CL
 
 S_START->"/"->S_SLASH_1ST->not(delimit1)->S_SLASH->not(delimit1)->S_SLASH
                \                           \->delimit1|"/"->T_REFINE
@@ -217,17 +217,18 @@ S_START->"%"->S_FILE_1ST->not(delimit5)->S_FILE->not(delimit6)->S_FILE
                     \->"%"->S_HDPER_ST->"%"->S_HDPER_ST
                      \       \->"{"->S_HERDOC_ST
                       \       \->delimit4->T_WORD
-                       \       \->else->T_ERROR
-                        \
-                         \->"{"->S_HERDOC_ST->"}"->S_HDPER_C0->"%"|"}"->S_HDPER_CL->"%"->S_HDPER_CL
-                          \       \                 \                    \
-                           \       \                 \                    \->delimit14->T_RAWSTRING
-                            \       \                 \                    \->else->T_ERROR
-                             \       \                 \->else->S_HERDOC_ST
-                              \       \->else->S_HERDOC_ST
-                               \
-                                \->":"->S_PERCENT
-                                 \->delimit5->T_WORD
+                       \       \->EOF->T_ERROR
+                        \       \->else->S_FILE
+                         \
+                          \->"{"->S_HERDOC_ST->"}"->S_HDPER_C0->"%"|"}"->S_HDPER_CL->"%"->S_HDPER_CL
+                           \       \                 \                    \
+                            \       \                 \                    \->delimit14->T_RAWSTRING
+                             \       \                 \                    \->else->T_ERROR
+                              \       \                 \->else->S_HERDOC_ST
+                               \       \->else->S_HERDOC_ST
+                                \
+                                 \->":"->S_PERCENT
+                                  \->delimit5->T_WORD
 
 
 S_START->"#"->S_SHARP->"{"->S_BINARY->hexa|ws|"/"|"="|"+"->S_BINARY

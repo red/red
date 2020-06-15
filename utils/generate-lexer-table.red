@@ -22,7 +22,7 @@ context [
 		S_FILE_1ST			TYPE_FILE			;-- 6
 		S_FILE				TYPE_FILE			;-- 7
 		S_FILE_STR			TYPE_FILE			;-- 8
-		S_HDPER_ST			TYPE_STRING			;--	9
+		S_HDPER_ST			TYPE_FILE			;--	9
 		S_HERDOC_ST			TYPE_STRING			;--	10
 		S_HDPER_C0			TYPE_STRING			;--	11
 		S_HDPER_CL			TYPE_STRING			;--	12
