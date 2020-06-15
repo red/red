@@ -28,6 +28,7 @@ object [
 
 	top:		1								;-- index of the first visible line in the line buffer
 	line:		none							;-- current editing line
+	line-pos:	0								;-- current editing line's position in lines
 	pos:		0								;-- insert position of the current editing line
 
 	scroll-y:	0								;-- in pixels
@@ -148,9 +149,7 @@ object [
 			]
 		]
 		prin?: not lf?
-		if system/console/running? [
-			system/view/platform/redraw console
-		]
+		system/view/platform/redraw console
 		()				;-- return unset!
 	]
 
@@ -705,11 +704,7 @@ object [
 		p-idx: index? str
 		candidates: red-complete-ctx/complete-input skip str pos yes
 		case [
-			empty? candidates [
-				insert skip str pos char
-				pos: pos + 1
-				clear redo-stack
-			]
+			empty? candidates [0]		;-- TBD: beep
 			1 = length? candidates [
 				clear head str
 				pos: (index? candidates/1) - p-idx
@@ -724,6 +719,7 @@ object [
 				pos: (index? candidates/1) - p-idx
 				append str head candidates/1
 				add-line head line
+				line-pos: length? lines
 			]
 		]
 		clear selects
@@ -828,6 +824,7 @@ object [
 		line-y:		0
 		line-cnt:	0
 		screen-cnt: 0
+		line-pos:	1
 		clear lines
 		clear nlines
 		clear heights
@@ -845,6 +842,11 @@ object [
 
 	press-key: func [event [event!] /local char ctrl? shift?][
 		unless ask? [exit]
+		if line-pos <> length? lines [
+			poke lines line-pos copy head line
+			add-line head line
+			line-pos: length? lines
+		]
 		if ime-open? [
 			remove/part skip line ime-pos pos - ime-pos
 			pos: ime-pos

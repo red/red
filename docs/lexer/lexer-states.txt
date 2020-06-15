@@ -16,6 +16,7 @@ S_HDPER_ST
 S_HERDOC_ST
 S_HDPER_C0
 S_HDPER_CL
+S_SLASH_1ST
 S_SLASH
 S_SLASH_N
 S_SHARP
@@ -135,11 +136,11 @@ C_MONEY     : $
 C_PLUS      : +
 C_MINUS     : -
 C_CARET     : ^
-C_BIN       : 0x01-0x08, 0x11, 0x12, 0x14-0x1F
+C_C0       	: 0x01-0x08, 0x0B-0x0C, 0x0E-0x1F
+C_BIN       : 0x7F-0xBF
 C_WORD      : all the rest
 C_ILLEGAL   : 0xC0-0xC1, 0xF5-0xFF
 C_EOF       : NUL
-
 
 --- Character groups ---
 
@@ -200,9 +201,9 @@ S_M_STRING->not("^"|"{"|"}")->S_M_STRING
                  \->"{"->T_MSTR_OP
                   \->"}"->T_MSTR_CL
 
-S_START->"/"->S_SLASH->not(delimit1)->S_SLASH
-               \->delimit1->T_REFINE
-                \ 
+S_START->"/"->S_SLASH_1ST->not(delimit1)->S_SLASH->not(delimit1)->S_SLASH
+               \                           \->delimit1|"/"->T_REFINE
+                \->delimit1->T_WORD
                  \->"/"->S_SLASH_N->"/"->S_SLASH_N
                           \->delimit1->T_WORD
                            \->not(delimit1|"/")->S_WORD
@@ -370,7 +371,7 @@ S_START->"'"|":"->S_WORD_1ST->"%"->S_PERCENT
                    \                \->":"->T_ERROR
                     \                \->delimit3->T_WORD
                      \                \->else->T_ERROR
-                      \->"/"->S_SLASH
+                      \->"/"->S_SLASH_1ST
                        \->word1st->S_WORD
                         \->else->T_ERROR
 
