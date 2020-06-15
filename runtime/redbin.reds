@@ -1301,9 +1301,6 @@ redbin: context [
 			TYPE_TYPESET
 			TYPE_TUPLE
 			TYPE_MONEY		[record [payload header data/data1 data/data2 data/data3]]
-			TYPE_ANY_WORD
-			TYPE_REFINEMENT
-			TYPE_ISSUE		[encode-word data header payload symbols table strings]
 			default 		[
 				first?: any [
 					ALL_WORD?(type)
@@ -1322,6 +1319,9 @@ redbin: context [
 					TYPE_BINARY		[encode-string data header payload]
 					TYPE_BITSET		[encode-bitset data header payload]
 					TYPE_IMAGE		[encode-image  data header payload]
+					TYPE_ANY_WORD
+					TYPE_REFINEMENT	[encode-word data header payload symbols table strings]
+					TYPE_ISSUE		[record [payload header encode-symbol data table symbols strings]]
 					TYPE_NATIVE
 					TYPE_ACTION 	[encode-native data header payload symbols table strings]
 					TYPE_ANY_BLOCK
