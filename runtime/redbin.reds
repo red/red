@@ -625,6 +625,7 @@ redbin: context [
 			value   [red-value!]
 			object  [red-object!]
 			context [red-context!]
+			node    [node!]
 			buffer  [series!]
 			offset  [int-ptr!]
 	][
@@ -649,7 +650,12 @@ redbin: context [
 					buffer/offset
 				]
 				TYPE_ANY_WORD
-				TYPE_REFINEMENT
+				TYPE_REFINEMENT [
+					node: as node! value/data1
+					context: TO_CTX(node)
+					buffer: as series! context/values/value
+					buffer/offset
+				]
 				TYPE_FUNCTION
 				TYPE_ROUTINE 
 				TYPE_OP [
