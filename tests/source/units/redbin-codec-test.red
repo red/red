@@ -306,6 +306,43 @@ Red [
 			; forall errors [--assert :errors/1 == test :errors/1]
 		
 	===end-group===
+	
+	===start-group=== "Binding"
+		--test-- "binding-1"
+			ctx: context [bar: 1]
+			foo: bind quote :bar ctx
+			
+			foo: test foo
+			--assert get-word? foo
+			--assert ":bar" = mold foo
+			--assert 1 == get foo
+			--assert ctx == context? foo
+		
+		--test-- "binding-2"
+			ctx: context [bar: 1]
+			foo: test bind [bar] ctx
+			
+			--assert block? foo
+			--assert "[bar]" = mold foo
+			--assert foo/1 = 'bar
+			--assert 1 == get foo/1
+			--assert ctx == context? foo/1
+		
+		--test-- "binding-3"
+			ctx: context [foo: 1 bar: 2]
+			foo: test bind [foo: 'bar] ctx
+			
+			--assert block? foo
+			--assert "[foo: 'bar]" = mold foo
+			--assert foo/1 == quote foo:
+			--assert foo/2 == quote 'bar
+			--assert 1 = get foo/1
+			--assert 2 = get foo/2
+			--assert ctx == context? foo/1
+			--assert ctx == context? foo/2
+			--assert equal? context? foo/1 context? foo/2
+		
+	===end-group===
 
 	===start-group=== "Header flags"
 		--test-- "newline"			
