@@ -282,26 +282,59 @@ redbin: context [
 			new	   [red-word!]
 			w	   [red-word!]
 			obj	   [red-object!]
+			blk    [red-block!]
 			sym	   [int-ptr!]
+			end    [int-ptr!]
+			type   [integer!]
 			offset [integer!]
 			ctx	   [node!]
 			set?   [logic!]
+			ref?   [logic!]
 			s	   [series!]
 	][
-		new: as red-word! ALLOC_TAIL(parent)
-		sym: table + data/2								;-- get the decoded symbol
+		ref?: data/1 and REDBIN_REFERENCE_MASK <> 0
+		new: as red-word! either ref? [
+			end: decode-reference data + 3 parent
+			(block/rs-tail parent) - 1
+		][
+			ALLOC_TAIL(parent)
+		]
+		
+		sym: table + data/2							;-- get the decoded symbol
 		new/symbol: either codec? [symbol/make (as c-string! table + table/-1) + sym/1][sym/1]
 		new/header: data/1 and FFh
 		if nl? [new/header: new/header or flag-new-line]
 		set?: data/1 and REDBIN_SET_MASK <> 0
 		
-		offset: data/3
-		either offset = -1 [
-			new/ctx: global-ctx
-			w: _context/add-global-word new/symbol yes no
-			new/index: w/index
-		][	
-			either codec? [								;@@ TBD: decode context and bind word to it
+		either codec? [								;@@ TBD: incompatible encodings
+			new/index: data/3
+			data: data + 3
+			
+			either set? [
+				new/ctx: global-ctx
+				w: _context/add-global-word new/symbol yes no
+				new/index: w/index
+			][
+				unless ref? [
+					blk:  block/push-only* 1
+					type: data/1 and FFh
+					
+					assert any [type = TYPE_OBJECT type = TYPE_FUNCTION]
+					
+					either type = TYPE_OBJECT [
+						data: decode-object data table blk no
+						obj:  as red-object! block/rs-head blk
+						new/ctx: obj/ctx
+					][
+						assert false				;@@ TBD: function
+					]
+					
+					stack/pop 1
+				]
+			]
+		][
+			offset: data/3
+			either offset = -1 [
 				new/ctx: global-ctx
 				w: _context/add-global-word new/symbol yes no
 				new/index: w/index
@@ -312,15 +345,17 @@ redbin: context [
 				new/ctx: ctx
 				new/index: either data/4 = -1 [_context/find-word TO_CTX(ctx) new/symbol yes][data/4]
 			]
+			data: data + 4
 		]
-		data: data + 4
 		
 		if set? [
 			either codec? [
-				parent: block/push-only* 1				;-- redirect slot allocation
-				data: decode-value data table parent
-				_context/set new block/rs-head parent
-				stack/pop 1								;-- drop unwanted block
+				0
+				;@@ TBD: temporarily disabled
+				;parent: block/push-only* 1				;-- redirect slot allocation
+				;data: decode-value data table parent
+				;_context/set new block/rs-head parent
+				;stack/pop 1								;-- drop unwanted block
 			][
 				offset: block/rs-length? parent
 				data: decode-value data table parent
@@ -331,7 +366,7 @@ redbin: context [
 			]
 		]
 		
-		data
+		either ref? [end][data]
 	]
 	
 	decode-object: func [
@@ -1002,7 +1037,7 @@ redbin: context [
 			list: list + 1
 		]
 	]
-		
+	
 	encode-native: func [
 		data    [red-value!]
 		header  [integer!]
@@ -1032,14 +1067,39 @@ redbin: context [
 		table   [red-binary!]
 		strings [red-binary!]
 		/local
-			symbol  [integer!]
-			context [integer!]
+			value   [red-value!]
+			node    [node!]
+			series  [series!]
+			type    [integer!]
 	][
-		symbol:  encode-symbol data table symbols strings
-		context: encode-context as node! data/data1 payload symbols table strings
+		node: as node! data/data1
 		
-		record [payload header symbol]
-		unless TYPE_OF(data) = TYPE_ISSUE [record [payload context data/data3]]
+		if node = global-ctx [
+			header: header or REDBIN_SET_MASK
+			value:  _context/get-any data/data2 node
+		]
+		
+		record [payload header encode-symbol data table symbols strings]
+		store payload data/data3				;@@ TBD: redundant for global context
+		
+		unless header and REDBIN_REFERENCE_MASK <> 0 [
+			either node = global-ctx [
+				;@@ TBD: encode-value value payload symbols table strings
+				0
+			][
+				series: as series! node/value
+				value:  series/offset + 1
+				type:   TYPE_OF(value)
+			
+				assert any [type = TYPE_OBJECT type = TYPE_FUNCTION]
+				
+				either type = TYPE_OBJECT [
+					encode-object value type payload symbols table strings
+				][
+					assert false					;@@ TBD: function!
+				]
+			]
+		]
 	]
 	
 	encode-object: func [
@@ -1115,18 +1175,15 @@ redbin: context [
 		symbols [red-binary!]
 		table   [red-binary!]
 		strings [red-binary!]
-		return: [integer!]
 		/local
 			context       [red-context!]
 			value         [red-value!]
 			values words  [series!]
 			header length [integer!]
-			offset kind   [integer!]
+			kind          [integer!]
 			stack? self?  [logic!]
 			values?       [logic!]
 	][
-		if node = global-ctx [return -1]
-		
 		context: TO_CTX(node)
 		kind:    GET_CTX_TYPE(context)
 		stack?:  ON_STACK?(context)
@@ -1140,7 +1197,6 @@ redbin: context [
 		values: as series! context/values/value
 		words:  _hashtable/get-ctx-words context
 		length: (as integer! values/tail - values/offset) >> log-b size? cell!
-		offset: binary/rs-length? payload			;@@ TBD: reference to function/object instead
 		
 		value: as red-value! values + 1
 		loop length [
@@ -1164,8 +1220,6 @@ redbin: context [
 				value: value + 1
 			]
 		]
-		
-		offset
 	]
 	
 	encode-string: func [
