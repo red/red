@@ -1051,8 +1051,8 @@ _hashtable: context [
 		]
 		if type = HASH_TABLE_HASH [
 			s: as series! h/indexes/value
-			if s/size >> 2 = idx [
-				s: expand-series-filled s s/size << 1 #"^(FF)"
+			if idx << 2 >= s/size [
+				s: expand-series-filled s idx << 3 #"^(FF)"
 				s/tail: as cell! (as byte-ptr! s/offset) + s/size
 			]
 			indexes: as int-ptr! s/offset
@@ -1444,7 +1444,7 @@ _hashtable: context [
 			][								;-- may need to expand indexes
 				s: as series! h/indexes/value
 				if size + head + offset << 2 > s/size [
-					s: expand-series-filled s size + head + offset << 2 #"^(FF)"
+					s: expand-series-filled s size + head + offset << 3 #"^(FF)"
 					indexes: as int-ptr! s/offset
 					s/tail: as cell! (as byte-ptr! s/offset) + s/size
 				]
