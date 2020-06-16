@@ -1179,6 +1179,84 @@ Red [
 		    error char! datatype! 1 8x10 
 		]
 
+	--test-- "tt-18"
+		clear logs
+		--assert none? transcode/trace {[(] a} :lex-logger
+		--assert logs = [
+		    prescan block! datatype! 1 1x1 
+		    open block! datatype! 1 1x1 
+		    prescan paren! datatype! 1 2x2 
+		    open paren! datatype! 1 2x2 
+		    prescan block! datatype! 1 3x3 
+		    close block! datatype! 1 3x3 
+		    error paren! datatype! 1 3x3 
+		    prescan word! datatype! 1 5x6 
+		    scan word! datatype! 1 5x6 
+		    load word! datatype! 1 a 
+		    error paren! datatype! 1 2x6
+		]
+
+	--test-- "tt-19"
+		clear logs
+		--assert none? transcode/trace {[(]} :lex-logger
+		--assert logs = [
+		    prescan block! datatype! 1 1x1 
+		    open block! datatype! 1 1x1 
+		    prescan paren! datatype! 1 2x2 
+		    open paren! datatype! 1 2x2 
+		    prescan block! datatype! 1 3x3 
+		    close block! datatype! 1 3x3 
+		    error paren! datatype! 1 3x3 
+		    error paren! datatype! 1 2x4
+		]
+
+	--test-- "tt-20"
+		clear logs
+		--assert [()] = transcode/trace {(])} :lex-logger
+		--assert logs = [
+		    prescan paren! datatype! 1 1x1 
+		    open paren! datatype! 1 1x1 
+		    prescan block! datatype! 1 2x2 
+		    close block! datatype! 1 2x2 
+		    error paren! datatype! 1 2x2 
+		    prescan paren! datatype! 1 3x3 
+		    close paren! datatype! 1 3x3
+		]
+
+	--test-- "tt-21"
+		clear logs
+		--assert none? transcode/trace {[(]} :lex-logger
+		--assert logs = [
+		    prescan block! datatype! 1 1x1 
+		    open block! datatype! 1 1x1 
+		    prescan paren! datatype! 1 2x2 
+		    open paren! datatype! 1 2x2 
+		    prescan block! datatype! 1 3x3 
+		    close block! datatype! 1 3x3 
+		    error paren! datatype! 1 3x3 
+		    error paren! datatype! 1 2x4
+		]
+
+	--test-- "tt-22"
+		clear logs
+		--assert [[()]] = transcode/trace {[(]])]} :lex-logger
+		--assert logs = [
+		    prescan block! datatype! 1 1x1 
+		    open block! datatype! 1 1x1 
+		    prescan paren! datatype! 1 2x2 
+		    open paren! datatype! 1 2x2 
+		    prescan block! datatype! 1 3x3 
+		    close block! datatype! 1 3x3 
+		    error paren! datatype! 1 3x3 
+		    prescan block! datatype! 1 4x4 
+		    close block! datatype! 1 4x4 
+		    error paren! datatype! 1 4x4 
+		    prescan paren! datatype! 1 5x5 
+		    close paren! datatype! 1 5x5 
+		    prescan block! datatype! 1 6x6 
+		    close block! datatype! 1 6x6
+		]
+		
 ===end-group===
 
 ~~~end-file~~~

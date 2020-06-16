@@ -601,7 +601,10 @@ lexer: context [
 				type <> TYPE_SET_PATH					;-- let set-path override saved type
 				not all [stype = TYPE_MAP type = TYPE_PAREN];-- paren can close a map
 				stype <> type							;-- saved type <> closing type => error
-			][throw LEX_ERR]							;-- let the lexer root handle this error
+			][
+				if point? [type: p/y]
+				do-error
+			]
 		]
 		
 		len: (as-integer lex/tail - lex/head) >> 4
