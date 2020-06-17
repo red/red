@@ -569,40 +569,44 @@ redbin: context [
 		nl?     [logic!]
 		return: [int-ptr!]
 		/local
-			slot    [red-value!]
-			_vector [red-vector!]
-			buffer  [series!]
-			end     [int-ptr!]
-			values  [byte-ptr!]
-			header  [integer!]
-			unit    [integer!]
-			size    [integer!]
+			slot   [red-value!]
+			vec    [red-vector!]
+			buffer [series!]
+			end    [int-ptr!]
+			values [byte-ptr!]
+			unit   [integer!]
+			size   [integer!]
 	][
-		header: data/1
-		either header and REDBIN_REFERENCE_MASK <> 0 [
+		either data/1 and REDBIN_REFERENCE_MASK <> 0 [
 			end: decode-reference data + 2 parent
-			_vector: (as red-vector! block/rs-tail parent) - 1
+			vec: (as red-vector! block/rs-tail parent) - 1
 			
-			if nl? [_vector/header: _vector/header or flag-new-line]
-			_vector/head: data/2
+			if nl? [vec/header: vec/header or flag-new-line]
+			vec/head: data/2
 			
 			end
 		][
-			unit: header >>> 8 and FFh
-			size: data/3 << log-b unit					;-- in bytes
+			unit: data/1 >>> 8 and FFh
+			size: data/3 << log-b unit				;-- in bytes
 			
 			slot: ALLOC_TAIL(parent)
+			vec: as red-vector! slot
+			vec/header: TYPE_UNSET
+			vec/head: 	data/2
+			vec/node: 	alloc-bytes size
+			vec/type:	data/4
 			
-			_vector: vector/make-at slot data/3 data/4 unit
-			if nl? [slot/header: slot/header or flag-new-line]
-			buffer: GET_BUFFER(_vector)
-			_vector/head: data/2
+			buffer: GET_BUFFER(vec)
+			buffer/flags: buffer/flags and flag-unit-mask or unit
 			buffer/tail: as red-value! (as byte-ptr! buffer/offset) + size
 			
 			values: as byte-ptr! data + 4
 			copy-memory as byte-ptr! buffer/offset values size
 			
-			as int-ptr! align values + size 32			;-- align at upper 32-bit boundary
+			vec/header: TYPE_VECTOR
+			if nl? [vec/header: vec/header or flag-new-line]
+			
+			as int-ptr! align values + size 32		;-- align at upper 32-bit boundary
 		]
 	]
 	
