@@ -540,7 +540,7 @@ reactor!: context [
 		][
 			set-quiet in self word :old					;-- force the old value
 			sr/--measure-- [skipped ++ 1]
-			sr/--debug-print--/full ["-- react: protected --" word "VALUE" :old "IN" self]
+			sr/--debug-print-- ["-- react: protected --" word "VALUE" :old "IN" self]
 			exit
 		]
 		unless all [series? :old series? :new same? head :old head :new][
