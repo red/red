@@ -61,8 +61,9 @@ system/reactivity: context [
 			]
 		]
 
-		++: make op! func ['word value] [set word add get word value]
-		peak:        func ['word value] [set word max get word value]
+		incr: func ['word value] [set word add get word value]
+		peak: func ['word value] [set word max get word value]
+		++: make op! :incr								;@@ workaround for #4526
 
 		register: func ['counter value] [set counter max get counter value]
 	]
@@ -432,8 +433,8 @@ system/reactivity: context [
 		/later							"Run the reaction on next change instead of now"
 		/with							"Specifies an optional face object (internal use)"
 			ctx		[object! set-word! none!] "Optional context for VID faces or target set-word"
-		/local item
 		return:		[block! function! none!] "The reactive relation or NONE if no relation was processed"
+		/local item
 	][
 		case [
 			link [
