@@ -291,7 +291,7 @@ on-face-deep-change*: function ["Internal use only" owner word target action new
 					system/view/platform/on-change-facet owner word target action new index part
 				]
 			]
-			system/reactivity/check/only owner word
+			system/reactivity/check owner word
 		][
 			if any [								;-- drop multiple changes on same facet
 				none? state/3
@@ -351,7 +351,7 @@ update-font-faces: function ["Internal Use Only" parent [block! none!]][
 	if block? parent [
 		foreach f parent [
 			if f/state [
-				system/reactivity/check/only f 'font
+				system/reactivity/check f 'font
 				f/state/2: f/state/2 or 00080000h		;-- (1 << ((index? in f 'font) - 1))
 				if block? f/draw [						;-- force a redraw in case the font in draw block
 					f/state/2: f/state/2 or 00400000h	;-- (1 << ((index? in f 'draw) - 1))
@@ -388,6 +388,7 @@ face!: object [				;-- keep in sync with facet! enum
 	draw:		none
 	
 	on-change*: function [word old new][
+		[]
 		if debug-info? self [
 			print [
 				"-- on-change event --" lf
@@ -400,9 +401,11 @@ face!: object [				;-- keep in sync with facet! enum
 		if all [word <> 'state word <> 'extra][
 			all [
 				not empty? srs: system/reactivity/source
-				srs/1 = self
+				srs/1 =? self
 				srs/2 = word
-				set-quiet in self word old				;-- force the old value
+				set-quiet in self word :old				;-- force the old value
+				system/reactivity/--measure-- [skipped ++ 1]
+				system/reactivity/--debug-print--/full ["-- react: protected --" word "VALUE" :old "IN" self]
 				exit
 			]
 			if word = 'pane [
@@ -455,7 +458,7 @@ face!: object [				;-- keep in sync with facet! enum
 				]
 			]
 
-			system/reactivity/check/only self any [saved word]
+			system/reactivity/check self any [saved word]
 
 			either state [
 				;if word = 'type [cause-error 'script 'locked-word [type]]
@@ -538,7 +541,7 @@ para!: object [
 			block? parent
 		][
 			foreach f parent [
-				system/reactivity/check/only f 'para
+				system/reactivity/check f 'para
 				system/view/platform/update-para f (index? in self word) - 1 ;-- sets f/state flag too
 				if all [f/state f/state/1][show f]
 			]
@@ -1173,18 +1176,18 @@ insert-event-func [
 			drop-list	['selected]
 		][none]
 		
-		if facet [system/reactivity/check/only face facet]
+		if facet [system/reactivity/check face facet]
 	]
 	if event/face/type = 'window [
 		switch event/type [
-			move moving 	[system/reactivity/check/only event/face 'offset]
-			resize resizing [system/reactivity/check/only event/face 'size]
+			move moving 	[system/reactivity/check event/face 'offset]
+			resize resizing [system/reactivity/check event/face 'size]
 		]
 	]
 	if event/type = 'select [
 		face: event/face
 		if find [field area] face/type [
-			system/reactivity/check/only face 'selected
+			system/reactivity/check face 'selected
 		]
 	]
 	none
@@ -1201,6 +1204,7 @@ insert-event-func [
 			all [not empty? face/text attempt/safer [load face/text]]
 			all [face/options face/options/default]
 		]
-		system/reactivity/check/only face 'data
+		system/reactivity/check face 'data
 	]
+	none
 ]
