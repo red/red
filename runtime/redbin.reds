@@ -176,6 +176,225 @@ redbin: context [
 		]
 	]
 	
+	;@@ TBD: remove the cheathseet
+	comment {
+		word:    header (set?: N ref?: Y) symbol index [reference]
+				 header (set?: N ref?: N) symbol index [object]
+				 header (set?: Y ref?: N) symbol index -- bound to global context
+		object:  header class |on-set| |arity| [context]
+		context: header size symbols* values*
+	}
+	
+	decode-word*: func [
+		data    [int-ptr!]
+		table   [int-ptr!]
+		parent  [red-block!]
+		nl?     [logic!]
+		return: [int-ptr!]
+		/local
+			tag          [subroutine!]
+			word new     [red-word!]
+			sym end tail [int-ptr!]
+			type next    [integer!]
+			set? ref?    [logic!]
+	][
+		tag: [		
+			word/header: type
+			if nl? [word/header: word/header or flag-new-line]
+		]
+		
+		type: data/1 and FFh
+		set?: data/1 and REDBIN_SET_MASK <> 0
+		ref?: data/1 and REDBIN_REFERENCE_MASK <> 0
+		tail: data + 3
+		
+		either ref? [
+			end:  decode-reference tail parent
+			word: (as red-word! block/rs-tail parent) - 1
+			assert any [
+				TYPE_OF(word) = TYPE_OBJECT
+				all [
+					TYPE_OF(word) <> TYPE_ISSUE
+					ANY_WORD?(type)
+					;@@ TBD: function!
+				]
+			]
+		][
+			word: as red-word! ALLOC_TAIL(parent)
+		]
+		
+		sym: table + data/2
+		word/header: TYPE_UNSET
+		word/symbol: symbol/make (as c-string! table + table/-1) + sym/1
+		word/index:  data/3
+		
+		unless ref? [
+			either set? [
+				new: _context/add-global-word word/symbol yes no
+				word/index: new/index
+				word/ctx: global-ctx
+				tag
+				end: tail
+			][
+				next: 0
+				word/ctx: preprocess-binding tail :next
+				tag
+				end: fill-context as int-ptr! next table word/ctx
+			]
+		]
+		
+		tag
+		end
+	]
+	
+	decode-object: func [
+		data    [int-ptr!]
+		table   [int-ptr!]
+		parent  [red-block!]
+		nl?     [logic!]
+		return: [int-ptr!]
+		/local
+			object [red-value!]
+			series [series!]
+			node   [node!]
+			next   [integer!]
+	][
+		next: 0
+		node: preprocess-binding data :next
+		series: as series! node/value
+		
+		object: copy-cell series/offset + 1 ALLOC_TAIL(parent)
+		if nl? [object/header: object/header or flag-new-line]
+		
+		fill-context as int-ptr! next table node
+	]
+	
+	fill-context: func [
+		data    [int-ptr!]
+		table   [int-ptr!]
+		node    [node!]
+		return: [int-ptr!]
+		/local
+			values    [red-block!]
+			context   [red-context!]
+			series    [series!]
+			value sym [int-ptr!]
+			id new    [integer!]
+			slots     [integer!]
+			values?   [logic!]
+			stack?    [logic!]
+	][
+		assert data/1 and FFh = TYPE_CONTEXT
+		
+		values?: data/1 and REDBIN_VALUES_MASK <> 0
+		stack?:	 data/1 and REDBIN_STACK_MASK  <> 0
+		
+		series:  as series! node/value
+		context: as red-context! series/offset
+		
+		assert node = context/self
+		
+		values: block/push-only* data/2
+		values/node: context/values
+		
+		series: as series! context/values/value
+		if values? [series/tail: series/offset]
+		
+		slots: data/2
+		data:  data + 2
+		value: data + slots
+		new:   0
+		
+		loop slots [
+			sym: table + data/1
+			id:  symbol/make (as c-string! table + table/-1) + sym/1
+			
+			_context/find-or-store context id yes context/self :new
+			if all [not stack? values?][value: decode-value value table values]
+			
+			data: data + 1
+		]
+		
+		stack/pop 1
+		series/tail: series/offset + slots
+		
+		value
+	]
+	
+	preprocess-binding: func [
+		data    [int-ptr!]
+		tail    [int-ptr!]
+		return: [node!]
+		/local
+			context        [red-context!]
+			object         [red-object!]
+			series         [series!]
+			node values    [node!]
+			here           [int-ptr!]
+			type kind skip [integer!]
+			values? stack? [logic!]
+			self? owner?   [logic!]
+	][
+		here: data
+		type: data/1 and FFh
+		
+		assert any [type = TYPE_OBJECT type = TYPE_FUNCTION]
+			
+		either type = TYPE_OBJECT [
+			data: data + 2
+			skip: (size? cell!) << 1
+			owner?: data/1 and REDBIN_OWNER_MASK <> 0 
+			if owner? [data: data + skip]
+		][
+			assert false							;@@ TBD: function!
+		]
+		
+		assert data/1 and FFh = TYPE_CONTEXT
+		tail/value: as integer! data
+		
+		values?: data/1 and REDBIN_VALUES_MASK <> 0
+		stack?:	 data/1 and REDBIN_STACK_MASK  <> 0
+		self?:	 data/1 and REDBIN_SELF_MASK   <> 0
+		kind:	 data/1 and REDBIN_KIND_MASK   >> 25
+		
+		node:   alloc-cells 2
+		series: as series! node/value
+		values: either stack? [null][alloc-unset-cells either zero? data/2 [1][data/2]]
+		
+		context: as red-context! alloc-tail series
+		context/header: TYPE_UNSET
+		context/symbols: _hashtable/init data/2 null HASH_TABLE_SYMBOL HASH_SYMBOL_CONTEXT
+		context/values: values
+		context/self: node
+		
+		context/header: TYPE_CONTEXT
+		SET_CTX_TYPE(context kind)
+		if self?  [context/header: context/header or flag-self-mask]
+		if stack? [context/header: context/header or flag-series-stk]
+		
+		data: here
+		
+		either type = TYPE_OBJECT [
+			object: as red-object! alloc-tail series
+			object/header: TYPE_UNSET
+			object/ctx: node
+			object/class: data/2					;@@ TBD: potential conflict of concurrent class IDs
+			object/on-set: either owner? [alloc-cells 2][null]
+			
+			if owner? [
+				series: as series! object/on-set/value
+				series/tail: series/offset + 2
+				copy-memory as byte-ptr! series/offset as byte-ptr! data + 2 skip
+			]
+			
+			object/header: TYPE_OBJECT
+		][
+			assert false							;@@ TBD: function!
+		]
+		
+		node
+	]
+	
 	decode-context: func [
 		data	[int-ptr!]
 		table	[int-ptr!]
@@ -282,136 +501,46 @@ redbin: context [
 			new	   [red-word!]
 			w	   [red-word!]
 			obj	   [red-object!]
-			blk    [red-block!]
 			sym	   [int-ptr!]
-			end    [int-ptr!]
-			type   [integer!]
 			offset [integer!]
 			ctx	   [node!]
 			set?   [logic!]
-			ref?   [logic!]
 			s	   [series!]
 	][
-		ref?: data/1 and REDBIN_REFERENCE_MASK <> 0
-		new: as red-word! either ref? [
-			end: decode-reference data + 3 parent
-			(block/rs-tail parent) - 1
-		][
-			ALLOC_TAIL(parent)
-		]
-		
-		sym: table + data/2							;-- get the decoded symbol
-		new/symbol: either codec? [symbol/make (as c-string! table + table/-1) + sym/1][sym/1]
+		sym: table + data/2								;-- get the decoded symbol
+		new: as red-word! ALLOC_TAIL(parent)
 		new/header: data/1 and FFh
 		if nl? [new/header: new/header or flag-new-line]
+		new/symbol: sym/1
 		set?: data/1 and REDBIN_SET_MASK <> 0
 		
-		either codec? [								;@@ TBD: incompatible encodings
-			new/index: data/3
-			data: data + 3
-			
-			either set? [
-				new/ctx: global-ctx
-				w: _context/add-global-word new/symbol yes no
-				new/index: w/index
-			][
-				unless ref? [
-					blk:  block/push-only* 1
-					type: data/1 and FFh
-					
-					assert any [type = TYPE_OBJECT type = TYPE_FUNCTION]
-					
-					either type = TYPE_OBJECT [
-						data: decode-object data table blk no
-						obj:  as red-object! block/rs-head blk
-						new/ctx: obj/ctx
-					][
-						assert false				;@@ TBD: function
-					]
-					
-					stack/pop 1
-				]
-			]
+		offset: data/3
+		either offset = -1 [
+			new/ctx: global-ctx
+			w: _context/add-global-word sym/1 yes no
+			new/index: w/index
 		][
-			offset: data/3
-			either offset = -1 [
-				new/ctx: global-ctx
-				w: _context/add-global-word new/symbol yes no
-				new/index: w/index
+			obj: as red-object! block/rs-abs-at root offset + root-offset
+			assert TYPE_OF(obj) = TYPE_OBJECT
+			ctx: obj/ctx
+			new/ctx: ctx
+			either data/4 = -1 [
+				new/index: _context/find-word TO_CTX(ctx) sym/1 yes
 			][
-				obj: as red-object! block/rs-abs-at root offset + root-offset
-				assert TYPE_OF(obj) = TYPE_OBJECT
-				ctx: obj/ctx
-				new/ctx: ctx
-				new/index: either data/4 = -1 [_context/find-word TO_CTX(ctx) new/symbol yes][data/4]
+				new/index: data/4
 			]
-			data: data + 4
 		]
+		data: data + 4
 		
 		if set? [
-			either codec? [
-				0
-				;@@ TBD: temporarily disabled
-				;parent: block/push-only* 1				;-- redirect slot allocation
-				;data: decode-value data table parent
-				;_context/set new block/rs-head parent
-				;stack/pop 1								;-- drop unwanted block
-			][
-				offset: block/rs-length? parent
-				data: decode-value data table parent
-				_context/set new block/rs-abs-at root offset
-				s: GET_BUFFER(parent)
-				offset: offset - 1
-				s/tail: s/offset + offset				;-- drop unwanted values in parent
-			]
+			offset: block/rs-length? parent
+			data: decode-value data table parent
+			_context/set new block/rs-abs-at root offset
+			s: GET_BUFFER(parent)
+			offset: offset - 1
+			s/tail: s/offset + offset					;-- drop unwanted values in parent
 		]
-		
-		either ref? [end][data]
-	]
-	
-	decode-object: func [
-		data	[int-ptr!]
-		table	[int-ptr!]
-		parent	[red-block!]
-		nl?		[logic!]
-		return: [int-ptr!]
-		/local
-			object  [red-object!]
-			series  [series!]
-			end     [int-ptr!]
-			context [int-ptr!]
-			node    [integer!]
-			skip    [integer!]
-			owner?  [logic!]
-	][
-		owner?:  data/1 and REDBIN_OWNER_MASK <> 0
-		context: data + 2
-		if owner? [
-			skip: (size? cell!) << 1
-			context: context + skip
-		]
-		
-		object: as red-object! ALLOC_TAIL(parent)
-		
-		object/header: TYPE_UNSET
-		object/class:  data/2						;@@ TBD: potential conflict of concurrent class IDs
-		object/on-set: either owner? [alloc-cells 2][null]
-		
-		if owner? [
-			series: as series! object/on-set/value
-			series/tail: series/offset + 2
-			copy-memory as byte-ptr! series/offset as byte-ptr! data + 2 skip
-		]
-		
-		object/header: data/1 and FFh
-		if nl? [object/header: object/header or flag-new-line]
-		
-		end: decode-context context table parent :object/ctx
-		
-		series: as series! object/ctx/value
-		copy-cell as red-value! object series/offset + 1
-		
-		end
+		data
 	]
 	
 	decode-string: func [
@@ -698,7 +827,7 @@ redbin: context [
 				TYPE_FUNCTION
 				TYPE_ROUTINE 
 				TYPE_OP [
-					--NOT_IMPLEMENTED--				;@@ TBD: support for any-word!,  any-function!
+					--NOT_IMPLEMENTED--				;@@ TBD: support for any-function!
 					value
 				]
 				default [
@@ -711,7 +840,7 @@ redbin: context [
 			offset: offset + 1
 		]
 		
-		value: copy-cell value ALLOC_TAIL(parent)
+		copy-cell value ALLOC_TAIL(parent)
 		
 		data + data/2 + 2
 	]
@@ -733,7 +862,10 @@ redbin: context [
 		cell: null
 		data: switch type [
 			TYPE_ANY_WORD
-			TYPE_REFINEMENT [decode-word data table parent nl?]
+			TYPE_REFINEMENT [
+				;@@ TBD: incompatible encodings
+				either codec? [decode-word* data table parent nl?][decode-word data table parent nl?]
+			]
 			TYPE_ANY_STRING
 			TYPE_BINARY		[decode-string data parent nl?]
 			TYPE_INTEGER	[
@@ -1084,7 +1216,7 @@ redbin: context [
 		]
 		
 		record [payload header encode-symbol data table symbols strings]
-		store payload data/data3				;@@ TBD: redundant for global context
+		store payload data/data3					;@@ TBD: redundant for global context
 		
 		unless header and REDBIN_REFERENCE_MASK <> 0 [
 			either node = global-ctx [
@@ -1342,7 +1474,7 @@ redbin: context [
 			header  [integer!]
 			first?  [logic!]
 	][
-		type: TYPE_OF(data)
+		type:   TYPE_OF(data)
 		header: type or either zero? (data/header and flag-new-line) [0][REDBIN_NEWLINE_MASK]
 		header: header or switch type [
 			TYPE_TUPLE [TUPLE_SIZE?(data) << 8]
@@ -1365,18 +1497,18 @@ redbin: context [
 			TYPE_TYPESET
 			TYPE_TUPLE
 			TYPE_MONEY		[record [payload header data/data1 data/data2 data/data3]]
-			default 		[
-				first?: any [
-					ALL_WORD?(type)
-					type = TYPE_OBJECT
-					type = TYPE_ERROR
-				]
-			
-				node: as node! either first? [data/data1][data/data2]
-				ref:  reference/fetch node
+			TYPE_ISSUE		[record [payload header encode-symbol data table symbols strings]]
+			default			[
+				first?: any [ALL_WORD?(type) type = TYPE_OBJECT type = TYPE_ERROR]
+				node:   as node! either first? [data/data1][data/data2]
+				ref:    reference/fetch node
 				
 				unless all [ALL_WORD?(type) node = global-ctx][
-					either null? ref [path/push reference/store node][header: header or REDBIN_REFERENCE_MASK]
+					either null? ref [
+						path/push reference/store node
+					][
+						header: header or REDBIN_REFERENCE_MASK
+					]
 				]
 				
 				switch type [
@@ -1387,7 +1519,6 @@ redbin: context [
 					TYPE_IMAGE		[encode-image  data header payload]
 					TYPE_ANY_WORD
 					TYPE_REFINEMENT	[encode-word data header payload symbols table strings]
-					TYPE_ISSUE		[record [payload header encode-symbol data table symbols strings]]
 					TYPE_NATIVE
 					TYPE_ACTION 	[encode-native data header payload symbols table strings]
 					TYPE_ANY_BLOCK
