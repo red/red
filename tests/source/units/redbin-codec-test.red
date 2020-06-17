@@ -310,9 +310,8 @@ Red [
 	===start-group=== "Binding"
 		--test-- "binding-1"
 			ctx: context [bar: 1]
-			foo: bind quote :bar ctx
+			foo: test bind quote :bar ctx
 			
-			foo: test foo
 			--assert get-word? foo
 			--assert ":bar" = mold foo
 			--assert 1 == get foo
@@ -460,6 +459,30 @@ Red [
 			--assert object? foo
 			--assert object? foo/foo
 			--assert foo =? foo/foo/foo
+		
+		--test-- "cycle-9"
+			foo: test object [foo: 'foo]
+			
+			--assert object? foo
+			--assert "make object! [foo: 'foo]" = mold/flat foo
+			--assert 'foo = get foo/foo
+			--assert 'foo = get get foo/foo
+			--assert foo = context? get get get foo/foo
+		
+		--test-- "cycle-10"
+			foo: test bind 'bar context [bar: 'bar]
+			ctx: context? foo
+		
+			--assert word? foo
+			--assert "bar" = mold foo
+			--assert 'bar == get foo
+			
+			;@@ TBD: crash on GET
+			--assert 'bar == get get foo
+			
+			--assert object? ctx
+			--assert 'bar == ctx/bar
+			--assert equal? context? foo context? get ctx/bar
 		
 		--test-- "reference-1"
 			block: [1 2]
