@@ -247,6 +247,7 @@ OS-draw-text-d2d: func [
 		rt		[ID2D1HwndRenderTarget]
 		layout	[this!]
 		fmt		[this!]
+		flags	[integer!]
 ][
 	this: as this! ctx/dc
 	rt: as ID2D1HwndRenderTarget this/vtbl
@@ -258,5 +259,7 @@ OS-draw-text-d2d: func [
 		create-text-layout text fmt 0 0
 	]
 	txt-box-draw-background ctx/brushes pos layout
-	rt/DrawTextLayout this as float32! pos/x as float32! pos/y layout ctx/pen 4 ;-- D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT
+	flags: 0
+	if win8+? [flags: 4]	;-- D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT
+	rt/DrawTextLayout this as float32! pos/x as float32! pos/y layout ctx/pen flags 
 ]
