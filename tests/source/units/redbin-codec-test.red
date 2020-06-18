@@ -300,10 +300,12 @@ Red [
 		--test-- "error"
 			errors: reduce [
 				try [1 / 0]
+				try [transcode "$FOO"]
+				make error! "User-defined"
+				make error! 303
 			]
 			
-			;@@ TBD
-			; forall errors [--assert :errors/1 == test :errors/1]
+			forall errors [--assert :errors/1 = test :errors/1]
 		
 	===end-group===
 	
@@ -477,7 +479,6 @@ Red [
 			--assert "bar" = mold foo
 			--assert 'bar == get foo
 			
-			;@@ TBD: crash on GET
 			--assert 'bar == get get foo
 			
 			--assert object? ctx
