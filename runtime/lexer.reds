@@ -1867,8 +1867,9 @@ lexer: context [
 	load-time: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local
 			err hour min len [integer!]
-			p mark [byte-ptr!]
-			tm [float!]
+			p mark	 [byte-ptr!]
+			tm		 [float!]
+			neg?	 [logic!]
 			do-error [subroutine!]
 	][
 		p: s
@@ -1876,6 +1877,7 @@ lexer: context [
 		tm: 0.0
 		do-error: [throw-error lex s e TYPE_TIME]
 
+		if p/1 = #"+" [p: p + 1]						;-- leading minus is taken care by grab-integer
 		p: grab-integer p e flags :hour :err
 		if any [err <> 0 p/1 <> #":"][do-error]
 		p: p + 1
@@ -1896,9 +1898,12 @@ lexer: context [
 			tm: dtoa/to-float p e :err
 			if any [err <> 0 tm < 0.0][do-error]
 		]
-		tm: (3600.0 * as-float hour) + (60.0 * as-float min) + tm
-		if hour < 0 [tm: 0.0 - tm]
-		if load? [time/make-at tm alloc-slot lex]
+		if load? [
+			neg?: either hour < 0 [hour: 0 - hour yes][no]
+			tm: (3600.0 * as-float hour) + (60.0 * as-float min) + tm
+			if neg? [tm: 0.0 - tm]
+			time/make-at tm (alloc-slot lex) neg?
+		]
 	]
 	
 	load-money: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]

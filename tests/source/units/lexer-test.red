@@ -615,6 +615,9 @@ Red [
 	--test-- "tro-145"  --assert error? try [transcode/one {"hello^Mworld"}]
 	--test-- "tro-146"  --assert "hello^-world" == transcode/one {"hello^-world"}
 
+	--test-- "tro-147"  --assert -12:02:00 == transcode/one "-12:2"
+	--test-- "tro-148"  --assert  12:02:00 == transcode/one "+12:2"
+
 ===end-group===
 ===start-group=== "transcode/next"
 
@@ -1256,7 +1259,7 @@ Red [
 		    prescan block! datatype! 1 6x6 
 		    close block! datatype! 1 6x6
 		]
-		
+
 ===end-group===
 
 ~~~end-file~~~
