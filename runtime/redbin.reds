@@ -342,7 +342,7 @@ redbin: context [
 			
 		either type = TYPE_OBJECT [
 			data: data + 2
-			skip: (size? cell!) << 1
+			skip: (size? integer!) << 1
 			owner?: data/1 and REDBIN_OWNER_MASK <> 0 
 			if owner? [data: data + skip]
 		][
@@ -382,9 +382,13 @@ redbin: context [
 			object/on-set: either owner? [alloc-cells 2][null]
 			
 			if owner? [
+				data: data + 2
+				
 				series: as series! object/on-set/value
 				series/tail: series/offset + 2
-				copy-memory as byte-ptr! series/offset as byte-ptr! data + 2 skip
+				
+				integer/make-at series/offset data/1
+				integer/make-at series/offset + 1 data/2
 			]
 			
 			object/header: TYPE_OBJECT
@@ -1273,6 +1277,8 @@ redbin: context [
 		strings [red-binary!]
 		/local
 			object [red-object!]
+			change [red-integer!]
+			deep   [red-integer!]
 			buffer [series!]
 			owner? [logic!]
 	][
@@ -1286,7 +1292,10 @@ redbin: context [
 		
 			if owner? [
 				buffer: as series! object/on-set/value
-				emit payload as byte-ptr! buffer/offset (size? cell!) << 1
+				change: as red-integer! buffer/offset
+				deep:   as red-integer! buffer/offset + 1
+				
+				record [payload change/value deep/value]
 			]
 			
 			encode-context object/ctx payload symbols table strings
