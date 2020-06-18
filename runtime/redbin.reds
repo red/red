@@ -1279,6 +1279,7 @@ redbin: context [
 			object [red-object!]
 			change [red-integer!]
 			deep   [red-integer!]
+			ctx    [red-value!]
 			buffer [series!]
 			owner? [logic!]
 	][
@@ -1298,7 +1299,8 @@ redbin: context [
 				record [payload change/value deep/value]
 			]
 			
-			encode-context object/ctx payload symbols table strings
+			ctx: as red-value! TO_CTX(object/ctx)
+			encode-context ctx payload symbols table strings
 		]
 	]
 	
@@ -1341,13 +1343,13 @@ redbin: context [
 	]
 	
 	encode-context: func [
-		node    [node!]
+		data    [red-value!]
 		payload [red-binary!]
 		symbols [red-binary!]
 		table   [red-binary!]
 		strings [red-binary!]
 		/local
-			context       [red-context!]
+			ctx           [red-context!]
 			value         [red-value!]
 			values words  [series!]
 			header length [integer!]
@@ -1355,18 +1357,18 @@ redbin: context [
 			stack? self?  [logic!]
 			values?       [logic!]
 	][
-		context: TO_CTX(node)
-		kind:    GET_CTX_TYPE(context)
-		stack?:  ON_STACK?(context)
-		self?:   context/header and flag-self-mask <> 0
+		ctx:     as red-context! data
+		kind:    GET_CTX_TYPE(ctx)
+		stack?:  ON_STACK?(ctx)
+		self?:   ctx/header and flag-self-mask <> 0
 		values?: no
 		
-		header: TYPE_CONTEXT or (kind << 25)
+		header:   TYPE_CONTEXT or (kind << 25)
 		if stack? [header: header or REDBIN_STACK_MASK]
 		if self?  [header: header or REDBIN_SELF_MASK]
 		
-		values: as series! context/values/value
-		words:  _hashtable/get-ctx-words context
+		values: as series! ctx/values/value
+		words:  _hashtable/get-ctx-words ctx
 		length: (as integer! values/tail - values/offset) >> log-b size? cell!
 		
 		value: as red-value! values + 1
