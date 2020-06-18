@@ -399,7 +399,6 @@ redbin: context [
 		data	[int-ptr!]
 		table	[int-ptr!]
 		parent	[red-block!]
-		node    [int-ptr!]
 		return: [int-ptr!]
 		/local
 			ctx		[red-context!]
@@ -428,18 +427,15 @@ redbin: context [
 		type:	 header and REDBIN_KIND_MASK >> 25
 		
 		new: _context/create slots stack? self? null type
-		unless null? node [node/value: as integer! new]
 		
-		unless codec? [									;@@ TBD: find something more adequate
-			obj: as red-object! ALLOC_TAIL(parent)		;-- use an object to store the ctx node
-			obj/header: TYPE_OBJECT
-			obj/ctx:	new
-			obj/class:	-1
-			obj/on-set: null
-			
-			s: as series! new/value
-			copy-cell as red-value! obj s/offset + 1	;-- set back-reference
-		]
+		obj: as red-object! ALLOC_TAIL(parent)		;-- use an object to store the ctx node
+		obj/header: TYPE_OBJECT
+		obj/ctx:	new
+		obj/class:	-1
+		obj/on-set: null
+		
+		s: as series! new/value
+		copy-cell as red-value! obj s/offset + 1	;-- set back-reference
 			
 		ctx: TO_CTX(new)
 		unless stack? [
@@ -875,7 +871,7 @@ redbin: context [
 			TYPE_ANY_PATH
 			TYPE_BLOCK
 			TYPE_PAREN		[decode-block data table parent nl?]
-			TYPE_CONTEXT	[decode-context data table parent null]
+			TYPE_CONTEXT	[decode-context data table parent]
 			TYPE_ISSUE		[decode-issue data table parent nl?]
 			TYPE_TYPESET	[
 				cell: as cell! typeset/make-in parent data/2 data/3 data/4
