@@ -220,7 +220,7 @@ OS-text-box-metrics: func [
 			text: as red-string! int + 2
 			x: as float32! 0.0 y: as float32! 0.0
 			int: as red-integer! arg0
-			hr: either TYPE_OF(text) <> TYPE_STRING [0][adjust-index text int/value - 1]
+			hr: either TYPE_OF(text) <> TYPE_STRING [0][adjust-index text int/value - 1 1]
 			hit: as DWRITE_HIT_TEST_METRICS :left
 			dl/HitTestTextPosition this hr no :x :y hit
 			if y < as float32! 0.0 [y: as float32! 0.0]
@@ -239,6 +239,8 @@ OS-text-box-metrics: func [
 			inside?: 0
 			hit: as DWRITE_HIT_TEST_METRICS :left
 			dl/HitTestPoint this x y :trailing? :inside? hit
+			text: as red-string! int + 2
+			if TYPE_OF(text) = TYPE_STRING [left: adjust-index text left -1]
 			if all [type = TBOX_METRICS_INDEX? 0 <> trailing?][left: left + 1]
 			integer/push left + 1
 		]
@@ -437,6 +439,7 @@ txt-box-draw-background: func [
 adjust-index: func [
 	str		[red-string!]
 	idx		[integer!]
+	adjust	[integer!]
 	return: [integer!]
 	/local
 		s		[series!]
@@ -455,7 +458,7 @@ adjust-index: func [
 		i: 0
 		while [head < tail][
 			c: string/get-char head unit
-			if c >= 00010000h [idx: idx + 1]
+			if c >= 00010000h [idx: idx + adjust]
 			head: head + unit
 		]
 	]

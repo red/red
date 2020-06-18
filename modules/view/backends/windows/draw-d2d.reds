@@ -258,5 +258,5 @@ OS-draw-text-d2d: func [
 		create-text-layout text fmt 0 0
 	]
 	txt-box-draw-background ctx/brushes pos layout
-	rt/DrawTextLayout this as float32! pos/x as float32! pos/y layout ctx/pen 0
+	rt/DrawTextLayout this as float32! pos/x as float32! pos/y layout ctx/pen 4 ;-- D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT
 ]
