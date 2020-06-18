@@ -1012,6 +1012,7 @@ lexer: context [
 	]
 	
 	scan-map-open: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
+		if s/1 <> #"#" [throw-error lex s e TYPE_MAP]
 		open-block lex TYPE_MAP s e
 		lex/in-pos: e + 1								;-- skip (
 	]

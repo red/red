@@ -401,6 +401,7 @@ Red [
 	--test-- "tr-41" --assert ["Nice^^World}% rawstring! "] == transcode "%%{Nice^^World}% rawstring! }%%"
 	--test-- "tr-42" --assert [a /c^d /e^] == transcode "a^b/c^^d/e^^^f"
 	--test-- "tr-43" --assert [/a /b] == transcode "/a/b"
+	--test-- "tr-44" --assert error? try [transcode "[12#(a: 3)]"]
 
 ===end-group===
 ===start-group=== "transcode/one"
