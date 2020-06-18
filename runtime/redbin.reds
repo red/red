@@ -779,6 +779,37 @@ redbin: context [
 		]
 	]
 	
+	decode-error: func [
+		data    [int-ptr!]
+		table   [int-ptr!]
+		parent  [red-block!]
+		nl?     [logic!]
+		return: [int-ptr!]
+		/local
+			err     [red-object!]
+			context [red-context!]
+			offset  [red-value!]
+			series  [series!]
+	][
+		err: error/make null as red-value! integer/box data/2 TYPE_ERROR
+		err: as red-object! copy-cell as red-value! err ALLOC_TAIL(parent)
+		if nl? [err/header: err/header or flag-new-line]
+		
+		context: GET_CTX(err)
+		series: as series! context/values/value
+		series/tail: series/offset + 3
+		
+		parent: block/push-only* 6
+		parent/node: context/values 
+		
+		data: data + 2
+		loop 6 [data: decode-value data table parent]
+		
+		series/tail: series/offset + 9
+		stack/pop 1
+		data
+	]
+	
 	origin: declare red-block!
 	
 	decode-reference: func [
@@ -806,8 +837,7 @@ redbin: context [
 				TYPE_NATIVE [
 					block/rs-abs-at as red-block! value 0
 				]
-				TYPE_OBJECT
-				TYPE_ERROR [
+				TYPE_OBJECT [
 					object:  as red-object! value
 					context: GET_CTX(object)
 					buffer:  as series! context/values/value
@@ -927,7 +957,7 @@ redbin: context [
 			TYPE_BITSET     [decode-bitset data parent nl?]
 			TYPE_VECTOR     [decode-vector data parent nl?]
 			TYPE_IMAGE		[decode-image data parent nl?]
-			TYPE_ERROR
+			TYPE_ERROR		[decode-error data table parent nl?]
 			TYPE_OBJECT		[decode-object data table parent nl?]
 			TYPE_PORT
 			TYPE_FUNCTION
@@ -1449,6 +1479,33 @@ redbin: context [
 		]
 	]
 	
+	encode-error: func [
+		data    [red-value!]
+		header  [integer!]
+		payload [red-binary!]
+		symbols [red-binary!]
+		table   [red-binary!]
+		strings [red-binary!]
+		/local
+			err   [red-object!]
+			base  [red-value!]
+			code  [red-integer!]
+			index [integer!]
+	][
+		err:  as red-object! data
+		base: object/get-values err
+		code: as red-integer! base + error/field-code
+		
+		record [payload header code/value]
+		
+		index: error/field-arg1
+		until [
+			encode-value base + index payload symbols table strings
+			index: index + 1
+			index > error/field-stack
+		]
+	]
+	
 	encode-reference: func [
 		reference [int-ptr!]
 		payload   [red-binary!]
@@ -1494,8 +1551,9 @@ redbin: context [
 			TYPE_TUPLE
 			TYPE_MONEY		[record [payload header data/data1 data/data2 data/data3]]
 			TYPE_ISSUE		[record [payload header encode-symbol data table symbols strings]]
+			TYPE_ERROR		[encode-error data header payload symbols table strings]
 			default			[
-				first?: any [ALL_WORD?(type) type = TYPE_OBJECT type = TYPE_ERROR]
+				first?: any [ALL_WORD?(type) type = TYPE_OBJECT]
 				node:   as node! either first? [data/data1][data/data2]
 				ref:    reference/fetch node
 				
@@ -1519,8 +1577,7 @@ redbin: context [
 					TYPE_ACTION 	[encode-native data header payload symbols table strings]
 					TYPE_ANY_BLOCK
 					TYPE_MAP		[encode-block data header no payload symbols table strings]
-					TYPE_OBJECT
-					TYPE_ERROR      [encode-object data header payload symbols table strings]
+					TYPE_OBJECT		[encode-object data header payload symbols table strings]
 					default			[--NOT_IMPLEMENTED--]
 				]
 				
