@@ -492,8 +492,8 @@ make-event: func [
 		]
 		EVT_KEY_DOWN [
 			key: msg/wParam and FFFFh
-			if key = VK_PROCESSKEY [			;-- IME-friendly exit
-				if ime-open? [special-key: -1]
+			if key = VK_PROCESSKEY [					;-- IME-friendly exit
+				special-key: -1
 				return EVT_DISPATCH
 			]
 			special-key: either any [
