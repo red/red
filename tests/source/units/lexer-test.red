@@ -619,6 +619,11 @@ Red [
 	--test-- "tro-147"  --assert -12:02:00 == transcode/one "-12:2"
 	--test-- "tro-148"  --assert  12:02:00 == transcode/one "+12:2"
 
+	--test-- "tro-149"  --assert  error? try [transcode/one {12#""}]
+	--test-- "tro-150"  --assert  error? try [transcode/one {16#"1"}]
+	--test-- "tro-151"  --assert  error? try [transcode/one {16#"12"}]
+
+
 ===end-group===
 ===start-group=== "transcode/next"
 
@@ -1180,7 +1185,7 @@ Red [
 		--assert [] = transcode/trace {#"^^(00) a"} :lex-logger
 		--assert logs = [
 		    prescan char! datatype! 1 1x10 
-		    error char! datatype! 1 8x10 
+		    error char! datatype! 1 1x10 
 		]
 
 	--test-- "tt-18"

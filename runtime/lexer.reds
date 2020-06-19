@@ -1252,22 +1252,23 @@ lexer: context [
 		/local
 			char	 [red-char!]
 			len	c 	 [integer!]
+			p		 [byte-ptr!]
 			do-error [subroutine!]
 	][
-		assert all [s/1 = #"#" s/2 = #"^""]
 		do-error: [throw-error lex s e TYPE_CHAR]
+		unless all [s/1 = #"#" s/2 = #"^""][do-error]
 		len: as-integer e - s
 		either len = 2 [c: 0][							;-- #"" is a shortcut for #"^@"
 			if e/1 <> #"^"" [do-error]
 			c: -1
 			
-			s: either s/3 = #"^^" [
+			p: either s/3 = #"^^" [
 				if len = 3 [do-error]					;-- #"^"
 				scan-escaped-char s + 3 e :c
 			][											;-- simple char
 				unicode/fast-decode-utf8-char s + 2 :c
 			]
-			if any [c > 0010FFFFh c = -1 s < e][do-error]
+			if any [c > 0010FFFFh c = -1 p < e][do-error]
 		]
 		if load? [
 			char: as red-char! alloc-slot lex
