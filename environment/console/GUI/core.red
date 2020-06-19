@@ -136,7 +136,7 @@ object [
 				str: skip s 1
 				s: find str lf
 			]
-			while [not s][
+			while [s][
 				add-lines copy/part str s no
 				str: skip s 1
 				cnt: cnt + 1
