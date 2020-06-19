@@ -259,7 +259,6 @@ OS-draw-text-d2d: func [
 		create-text-layout text fmt 0 0
 	]
 	txt-box-draw-background ctx/brushes pos layout
-	flags: 0
-	if win8+? [flags: 4]	;-- D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT
+	flags: either win8+? [4][0]		;-- 4: D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT
 	rt/DrawTextLayout this as float32! pos/x as float32! pos/y layout ctx/pen flags 
 ]
