@@ -717,6 +717,7 @@ Red [
 	--test-- "scan-62" --assert error!	 = scan {"hello^/world"}
 	--test-- "scan-63" --assert error!	 = scan {"hello^Mworld"}
 	--test-- "scan-64" --assert string!	 = scan {"hello^-world"}
+	--test-- "scan-65" --assert error!	 = scan "a/ "
 
 ===end-group===
 ===start-group=== "scan/fast"
@@ -753,6 +754,7 @@ Red [
 	--test-- "scan-54" --assert float! 	 = scan/fast "123."
 	--test-- "scan-55" --assert float!	 = scan/fast ".5"
 	--test-- "scan-56" --assert none? 	   scan/fast ""
+	--test-- "scan-57" --assert error!	 = scan/fast "a/ "
 
 ===end-group===
 ===start-group=== "transcode/trace"

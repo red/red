@@ -2141,6 +2141,7 @@ lexer: context [
 				load?: any [not one? ld?]
 				either state < T_STRING [
 					catch LEX_ERR [do-scan lex s p flags ld?]
+					if all [system/thrown = LEX_ERR not load?][system/thrown: 0 exit]
 				][
 					if any [not ld? all [events? lex/fun-evts and EVT_SCAN <> 0]][
 						if :do-scan = null [do-scan: as scanner! loaders/index]
