@@ -98,11 +98,18 @@ system/reactivity: context [
 								"make object!" "object"
 					]
 				]
-				if 1 < overshoot: (length? s: form blk) / limit [	;-- trim longest parts equally
+				if (length? s: form blk) > limit [					;-- trim longest parts equally
+					long: 0  count: 0
 					foreach x next blk [							;-- don't trim the prefix
-						if 15 < n: length? x [
-							clear skip x to integer! n / overshoot
+						if 15 < len: length? x [					;-- don't trim short values
+							long: long + len
+							count: count + 1
 						]
+					]
+					short: (len: length? s) - long
+					ratio: max 0 limit - short / (len - short)
+					foreach x next blk [
+						clear skip x max 15 to integer! ratio * length? x
 					]
 					clear skip s: form blk limit
 				]
@@ -117,7 +124,7 @@ system/reactivity: context [
 	]
 
 	relations-of: func [reactor [object!]] [select body-of :reactor/on-change* 'relations]
-	reactors-for:  func [reaction [block! function!]] [select/same/only/skip index :reaction IDX-PERIOD]
+	reactors-for: func [reaction [block! function!]] [select/same/only/skip index :reaction IDX-PERIOD]
 
 	unique-objects: function [] [						;-- used by debug funcs only
 		unique collect [foreach [_ list] index [keep list]]
