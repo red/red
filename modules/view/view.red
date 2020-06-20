@@ -388,7 +388,7 @@ face!: object [				;-- keep in sync with facet! enum
 	draw:		none
 	
 	on-change*: function [word old new][
-		[]
+		relations: []									;-- used by reactivity
 		if debug-info? self [
 			print [
 				"-- on-change event --" lf

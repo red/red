@@ -10,6 +10,10 @@ Red [
 	}
 ]
 
+#local [
+#macro REL-PERIOD: func [][3]
+#macro IDX-PERIOD: func [][2]
+
 system/reactivity: context [
 	;-- index format: [reaction [reactors..] ...]        -- required by react/unlink 'all, dump-reactions, clear-reactions, stop-reactor
 	index:       make hash! 1000						;-- hash speeds up unlinking noticeably
@@ -61,9 +65,8 @@ system/reactivity: context [
 			]
 		]
 
-		incr: func ['word value] [set word add get word value]
+		incr: func ['word]       [set word 1 + get word]
 		peak: func ['word value] [set word max get word value]
-		++: make op! :incr								;@@ workaround for #4526
 
 		register: func ['counter value] [set counter max get counter value]
 	]
@@ -108,7 +111,13 @@ system/reactivity: context [
 		]
 	]
 
-	relations-of: func [reactor [object!]] [first body-of :reactor/on-change*]
+	remove-part: function [where [series!] part [integer!]] [	;-- O(1) anywhere
+		change where end: skip tail where 0 - part
+		clear end
+	]
+
+	relations-of: func [reactor [object!]] [select body-of :reactor/on-change* 'relations]
+	reactors-for:  func [reaction [block! function!]] [select/same/only/skip index :reaction IDX-PERIOD]
 
 	unique-objects: function [] [						;-- used by debug funcs only
 		unique collect [foreach [_ list] index [keep list]]
@@ -116,7 +125,7 @@ system/reactivity: context [
 	
 	relations-count: function [] [
 		sum: 0
-		foreach obj unique-objects [sum: (length? relations-of obj) / 3 + sum]
+		foreach obj unique-objects [sum: (length? relations-of obj) / REL-PERIOD + sum]
 		sum
 	]
 
@@ -129,9 +138,9 @@ system/reactivity: context [
 		--measure-- [time/count in-add]
 		new-rel: head reduce/into [:word :reaction targets] clear []
 		relations: relations-of obj
-		unless find/same/skip relations new-rel 3 [
+		unless find/same/skip relations new-rel REL-PERIOD [
 			append relations new-rel
-			unless objs: select/only/same/skip index :reaction 2 [
+			unless objs: reactors-for :reaction [
 				reduce/into [:reaction objs: make block! 10] tail index
 			]
 			unless find/same objs obj [append objs obj]
@@ -141,9 +150,9 @@ system/reactivity: context [
 				]
 			]
 			--measure-- [
-				peak max-relations (length? relations) / 3
+				peak max-relations (length? relations) / REL-PERIOD
 				peak max-reactors   length? objs
-				peak max-index     (length? index) / 2
+				peak max-index     (length? index) / IDX-PERIOD
 			]
 			--debug-print-- ["-- react: added --" :reaction "FOR" word "IN" obj]
 		]
@@ -153,7 +162,7 @@ system/reactivity: context [
 	eval: function [code [block!] /safe /local result saved][
 		--measure-- [
 			time/count in-eval
-			fired ++ 1
+			incr fired
 		]
 		--debug-print--/full ["-- react: firing --" either function? first code [body-of first code][code]]
 		either safe [
@@ -186,20 +195,20 @@ system/reactivity: context [
 		--debug-print--/full/no-gui ["-- react: checking --" field "IN" reactor]
 		--measure-- [time/count in-check]
 		pos: relations-of reactor
-		unless pos: find/skip pos field 3 [exit]
+		unless pos: find/skip pos field REL-PERIOD [exit]
 		if initial?: tail? source [reduce/into [reactor field] source]
 		until [
 			set [word reaction target] pos
 			case [
 				pending? reactor :reaction [			;-- don't allow cycles
-					--measure-- [skipped ++ 1]
+					--measure-- [incr skipped]
 					--debug-print--/no-gui ["-- react: skipped --" :reaction "FOR" field "IN" reactor]
 					'idle
 				]
 				not tail? queue [						;-- entered while another reaction is running
 					reduce/into [reactor :reaction target no] tail queue
 					--measure-- [
-						queued ++ 1
+						incr queued
 						peak max-queue (length? queue) / 4
 					]
 					--debug-print--/no-gui ["-- react: queued --" :reaction "FOR" field "IN" reactor]
@@ -226,7 +235,7 @@ system/reactivity: context [
 					--measure-- [time/count in-check]
 				]
 			]
-			none? pos: find/skip skip pos 3 field 3
+			none? pos: find/skip skip pos REL-PERIOD field REL-PERIOD
 		]
 		if initial? [clear source]
 		--measure-- [peak longest-flush time/save]
@@ -239,15 +248,12 @@ system/reactivity: context [
 	][
 		--measure-- [time/count in-remove]
 		relations: relations-of obj
-		reactions: unique extract/into next relations 3 clear []	;-- same reaction may be repeated many times for different words
+		reactions: unique extract/into next relations REL-PERIOD clear []	;-- same reaction may be repeated many times for different words
 		foreach reaction reactions [
 			--debug-print-- ["-- react: removed --" :reaction "FROM" obj]
-			pos: find/same/only/skip index :reaction 2
+			pos: find/same/only/skip index :reaction IDX-PERIOD
 			remove find/same pos/2 obj
-			if tail? pos/2 [
-				change pos end: skip tail pos -2
-				clear end
-			]
+			if tail? pos/2 [remove-part pos IDX-PERIOD]
 		]
 		clear relations
 		--measure-- [time/save]
@@ -372,13 +378,13 @@ system/reactivity: context [
 		pos: relations-of reactor
 		either target [
 			pos: at pos 3
-			if pos: find/skip pos field 3 [reaction: :pos/-1]	;-- looks for a set-word
+			if pos: find/skip pos field REL-PERIOD [reaction: :pos/-1]	;-- looks for a set-word
 		][
-			if pos: find/skip pos field 3 [reaction: :pos/2]
+			if pos: find/skip pos field REL-PERIOD [reaction: :pos/2]
 		]
 		all [				;-- have to verify that on-change* block wasn't just copied into this object from other reactor
 			:reaction
-			objs: select/same/only/skip index :reaction 2
+			objs: reactors-for :reaction
 			find/same objs reactor
 			return :reaction
 		]
@@ -406,10 +412,9 @@ system/reactivity: context [
 
 	unlink-reaction: function [reactor [object!] reaction [function! block!]] [
 		pos: next relations-of reactor
-		while [pos: find/same/only/skip pos :reaction 3][
+		while [pos: find/same/only/skip pos :reaction REL-PERIOD][
 			--debug-print-- ["-- react: removed --" :reaction "FOR" pos/-1 "IN" reactor]
-			change  back found?: pos  end: skip tail pos -3
-			clear end
+			remove-part back found?: pos REL-PERIOD
 		]
 		found?
 	]
@@ -470,12 +475,11 @@ system/reactivity: context [
 				case [
 					object? src [
 						if found?: unlink-reaction src :reaction [
-							objs: select/only/same/skip index :reaction 2
-							remove find/same objs src
+							remove find/same reactors-for :reaction src
 						]
 					]
 					block? src [
-						objs: select/only/same/skip index :reaction 2
+						objs: reactors-for :reaction
 						foreach obj src [
 							if unlink-reaction obj :reaction [
 								remove find/same objs obj
@@ -484,13 +488,12 @@ system/reactivity: context [
 						]
 					]
 					src = 'all [
-						if pos: find/only/same/skip index :reaction 2 [
+						if pos: find/only/same/skip index :reaction IDX-PERIOD [
 							foreach obj pos/2 [
 								if unlink-reaction obj :reaction [found?: yes]
 							]
 							clear pos/2					;-- dissociate from all objects
-							change pos end: skip tail pos -2
-							clear end
+							remove-part pos IDX-PERIOD
 						]
 					]
 					'else [cause-error 'script 'invalid-arg [src]]
@@ -518,8 +521,9 @@ system/reactivity: context [
 			]
 		]
 		either found? [:reaction][none]					;-- returns NONE if no relation was processed
-	]
-]
+	];; set 'react
+
+];; system/reactivity
 
 reactor!: context [
 	on-change*: function [word old [any-type!] new [any-type!]] [
@@ -528,18 +532,18 @@ reactor!: context [
 		;;  src-word function [func obj1 obj2...]   	 -- used by react/link (evaluates target), one relation for every reactor in both list and func's body
 		;;  src-word [reaction] none                	 -- used by react (evaluates reaction)
 		;;  src-word [reaction] set-word/object     	 -- used by react/with (evaluates reaction, assigns to a set-word only)
-		[]												;-- relations placeholder (hash is ~10x times slower)
+		relations: []									;-- relations placeholder (hash is ~10x times slower)
 
 		sr: system/reactivity		
 		sr/--debug-print--/full ["-- react: on-change --" word "FROM" type? :old "TO" type? :new]
-		sr/--measure-- [events ++ 1]
+		sr/--measure-- [incr events]
 		if all [
 			not empty? srs: sr/source
 			srs/1 =? self
 			srs/2 = word
 		][
 			set-quiet in self word :old					;-- force the old value
-			sr/--measure-- [skipped ++ 1]
+			sr/--measure-- [incr skipped]
 			sr/--debug-print-- ["-- react: protected --" word "VALUE" :old "IN" self]
 			exit
 		]
@@ -560,3 +564,4 @@ deep-reactor!: make reactor! [
 reactor:	  function [spec [block!]][make reactor!      spec]
 deep-reactor: function [spec [block!]][make deep-reactor! spec]
 
+];; #local
