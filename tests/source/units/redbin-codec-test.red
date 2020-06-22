@@ -573,6 +573,17 @@ Red [
 			--assert :block/2 =? :block/3/1
 			--assert :bind == :block/1
 		
+		--test-- "reference-9"
+			obj: object [foo: [1 2 3]]
+			block1: reduce [obj next obj/foo]
+			block: test block1
+			
+			--assert block == block1
+			--assert object? block/1
+			--assert block/1/foo =? head block/2
+			reverse block/2
+			--assert block/1/foo == [1 3 2]
+		
 	===end-group===
 	
 	===start-group=== "Symbols"
