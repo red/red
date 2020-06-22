@@ -174,11 +174,17 @@ redbin: context [
 	
 	;@@ TBD: remove the cheathseet
 	comment {
-		word:    header (set?: N ref?: Y) symbol index [reference]
-				 header (set?: N ref?: N) symbol index [object]
-				 header (set?: Y ref?: N) symbol index -- bound to global context
-		object:  header class |on-set| |arity| [context]
-		context: header size symbols* values*
+		word:     header (set?: N ref?: Y) symbol index [reference]
+				  header (set?: N ref?: N) symbol index [object]
+				  header (set?: Y ref?: N) symbol index -- bound to global context
+		
+		object:   header (own?: Y) class on-set arity [context]
+		          header (own?: N) class [context]
+		          header (ref?: Y) [reference]
+		
+		function: header [spec] [body] [context]
+		
+		context:  header size symbols* values*
 	}
 	
 	decode-word*: func [
@@ -235,7 +241,7 @@ redbin: context [
 			word/ctx: global-ctx
 		][
 			next: 0
-			word/ctx: preprocess-binding tail :next
+			word/ctx: preprocess-binding tail table :next
 		]
 		
 		tag
@@ -270,11 +276,37 @@ redbin: context [
 			data
 		][
 			next: 0
-			node: preprocess-binding data :next
+			node: preprocess-binding data table :next
 			series: as series! node/value
 			
 			object: copy-cell series/offset + 1 ALLOC_TAIL(parent)
 			if nl? [object/header: object/header or flag-new-line]
+			
+			fill-context as int-ptr! next table node
+		]
+	]
+	
+	decode-function: func [
+		data    [int-ptr!]
+		table   [int-ptr!]
+		parent  [red-block!]
+		nl?     [logic!]
+		return: [int-ptr!]
+		/local
+			fun    [red-value!]
+			series [series!]
+			node   [node!]
+			next   [integer!]
+	][
+		either data/1 and REDBIN_REFERENCE_MASK <> 0 [
+			assert false							;@@ TBD
+		][
+			next: 0
+			node: preprocess-binding data table :next
+			series: as series! node/value
+			
+			fun: copy-cell series/offset + 1 ALLOC_TAIL(parent)
+			if nl? [fun/header: fun/header or flag-new-line]
 			
 			fill-context as int-ptr! next table node
 		]
@@ -294,22 +326,26 @@ redbin: context [
 			slots     [integer!]
 			values?   [logic!]
 			stack?    [logic!]
+			filled?   [logic!]
 	][
 		assert data/1 and FFh = TYPE_CONTEXT
 		
 		values?: data/1 and REDBIN_VALUES_MASK <> 0
 		stack?:	 data/1 and REDBIN_STACK_MASK  <> 0
+		filled?: all [not stack? values?]
 		
 		series:  as series! node/value
 		context: as red-context! series/offset
 		
 		assert node = context/self
 		
-		values: block/push-only* data/2
-		values/node: context/values
-		
-		series: as series! context/values/value
-		if values? [series/tail: series/offset]
+		if filled? [
+			values: block/push-only* data/2
+			values/node: context/values
+			
+			series: as series! context/values/value
+			series/tail: series/offset
+		]
 		
 		slots: data/2
 		data:  data + 2
@@ -321,27 +357,31 @@ redbin: context [
 			id:  symbol/make (as c-string! table + table/-1) + sym/1
 			
 			_context/find-or-store context id yes context/self :new
-			if all [not stack? values?][value: decode-value value table values]
+			if filled? [value: decode-value value table values]
 			
 			data: data + 1
 		]
 		
 		stack/pop 1
-		series/tail: series/offset + slots
+		if filled? [series/tail: series/offset + slots]
 		
 		value
 	]
 	
 	preprocess-binding: func [
 		data    [int-ptr!]
+		table   [int-ptr!]
 		tail    [int-ptr!]
 		return: [node!]
 		/local
 			context        [red-context!]
 			object         [red-object!]
+			fun            [red-function!]
+			proto spec     [red-block!]
+			body           [red-value!]
 			series         [series!]
 			node values    [node!]
-			here           [int-ptr!]
+			here info      [int-ptr!]
 			type kind skip [integer!]
 			values? stack? [logic!]
 			self? owner?   [logic!]
@@ -350,19 +390,26 @@ redbin: context [
 		type: data/1 and FFh
 		
 		assert any [type = TYPE_OBJECT type = TYPE_FUNCTION]
-			
+		
+		;-- locate context record
 		either type = TYPE_OBJECT [
 			data: data + 2
 			skip: (size? integer!) << 1
 			owner?: data/1 and REDBIN_OWNER_MASK <> 0 
 			if owner? [data: data + skip]
 		][
-			assert false							;@@ TBD: function!
+			proto: block/push-only* 2
+			series: as series! proto/node/value
+			series/tail: series/offset
+			
+			data: decode-block data + 1 table proto no
+			data: decode-block data table proto no
 		]
 		
 		assert data/1 and FFh = TYPE_CONTEXT
 		tail/value: as integer! data
 		
+		;-- decode context slot
 		values?: data/1 and REDBIN_VALUES_MASK <> 0
 		stack?:	 data/1 and REDBIN_STACK_MASK  <> 0
 		self?:	 data/1 and REDBIN_SELF_MASK   <> 0
@@ -385,6 +432,7 @@ redbin: context [
 		
 		data: here
 		
+		;-- decode back-reference slot
 		either type = TYPE_OBJECT [
 			object: as red-object! alloc-tail series
 			object/header: TYPE_UNSET
@@ -404,7 +452,24 @@ redbin: context [
 			
 			object/header: TYPE_OBJECT
 		][
-			assert false							;@@ TBD: function!
+			spec: as red-block! block/rs-head proto
+			body: (block/rs-tail proto) - 1
+			
+			assert TYPE_OF(spec) = TYPE_BLOCK
+			assert TYPE_OF(body) = TYPE_BLOCK
+			
+			fun: as red-function! alloc-tail series
+			fun/header: TYPE_UNSET
+			fun/ctx: node
+			fun/spec: spec/node
+			fun/more: alloc-unset-cells 5
+			
+			series: as series! fun/more/value
+			copy-cell body series/offset
+			
+			fun/header: TYPE_FUNCTION
+			
+			stack/pop 1								;-- drop proto block
 		]
 		
 		node
@@ -973,8 +1038,8 @@ redbin: context [
 			TYPE_IMAGE		[decode-image data parent nl?]
 			TYPE_ERROR		[decode-error data table parent nl?]
 			TYPE_OBJECT		[decode-object data table parent nl?]
+			TYPE_FUNCTION	[decode-function data table parent nl?]
 			TYPE_PORT
-			TYPE_FUNCTION
 			TYPE_ROUTINE
 			TYPE_HANDLE
 			TYPE_EVENT
@@ -1243,10 +1308,10 @@ redbin: context [
 		table   [red-binary!]
 		strings [red-binary!]
 		/local
-			value   [red-value!]
-			node    [node!]
-			series  [series!]
-			type    [integer!]
+			value  [red-value!]
+			node   [node!]
+			series [series!]
+			type   [integer!]
 	][
 		node: as node! data/data1
 		
@@ -1263,6 +1328,9 @@ redbin: context [
 				;@@ TBD: encode-value value payload symbols table strings
 				0
 			][
+				;@@ #4537
+				if null? node [assert false]
+			
 				series: as series! node/value
 				value:  series/offset + 1
 				type:   TYPE_OF(value)
@@ -1272,7 +1340,7 @@ redbin: context [
 				either type = TYPE_OBJECT [
 					encode-object value type payload symbols table strings
 				][
-					assert false					;@@ TBD: function!
+					encode-function value type payload symbols table strings
 				]
 			]
 		]
@@ -1378,30 +1446,34 @@ redbin: context [
 		if stack? [header: header or REDBIN_STACK_MASK]
 		if self?  [header: header or REDBIN_SELF_MASK]
 		
-		values: as series! ctx/values/value
 		words:  _hashtable/get-ctx-words ctx
-		length: (as integer! values/tail - values/offset) >> log-b size? cell!
+		length: (as integer! words/tail - words/offset) >> log-b size? cell!
 		
-		value: as red-value! values + 1
-		loop length [
-			values?: TYPE_OF(value) <> TYPE_UNSET
-			if values? [header: header or REDBIN_VALUES_MASK break]
-			value: value + 1
+		unless stack? [
+			values: as series! ctx/values/value
+			value:  values/offset
+			loop length [							;-- pre-scan for presence of values
+				values?: TYPE_OF(value) <> TYPE_UNSET
+				if values? [header: header or REDBIN_VALUES_MASK break]
+				value: value + 1
+			]
 		]
 		
 		record [payload header length]
 		
-		value: as red-value! words + 1
+		value: words/offset
 		loop length [
 			store payload encode-symbol value table symbols strings
 			value: value + 1
 		]
 		
-		if values? [
-			value: as red-value! values + 1
-			loop length [
-				encode-value value payload symbols table strings
-				value: value + 1
+		unless stack? [
+			if values? [
+				value: values/offset
+				loop length [
+					encode-value value payload symbols table strings
+					value: value + 1
+				]
 			]
 		]
 	]
@@ -1528,6 +1600,34 @@ redbin: context [
 		]
 	]
 	
+	encode-function: func [
+		data    [red-value!]
+		header  [integer!]
+		payload [red-binary!]
+		symbols [red-binary!]
+		table   [red-binary!]
+		strings [red-binary!]
+		/local
+			fun      [red-function!]
+			ctx body [red-value!]
+			series   [series!]
+	][
+		either header and REDBIN_REFERENCE_MASK <> 0 [
+			assert false							;@@ TBD
+		][
+			fun: as red-function! data
+			ctx: as red-value! GET_CTX(fun)
+			series: as series! fun/more/value
+			body: series/offset
+			assert TYPE_OF(body) = TYPE_BLOCK
+			
+			store payload header
+			encode-block data TYPE_BLOCK yes payload symbols table strings	;-- structure overlap
+			encode-block body TYPE_BLOCK no payload symbols table strings
+			encode-context ctx payload symbols table strings
+		]
+	]
+	
 	encode-reference: func [
 		reference [int-ptr!]
 		payload   [red-binary!]
@@ -1578,8 +1678,11 @@ redbin: context [
 			TYPE_POINT
 			TYPE_HANDLE
 			TYPE_EVENT		[--NOT_IMPLEMENTED--]
+			
+			TYPE_FUNCTION	[encode-function data header payload symbols table strings]
+			
 			default			[
-				first?: any [ALL_WORD?(type) type = TYPE_OBJECT]
+				first?: any [ALL_WORD?(type) type = TYPE_OBJECT type = TYPE_FUNCTION]
 				
 				node: as node! either first? [data/data1][data/data2]
 				ref:  reference/fetch node
@@ -1600,7 +1703,7 @@ redbin: context [
 					TYPE_VECTOR
 					TYPE_BINARY		[encode-string data header payload]
 					TYPE_BITSET		[encode-bitset data header payload]
-					TYPE_IMAGE		[encode-image  data header payload]
+					TYPE_IMAGE		[encode-image data header payload]
 					TYPE_ANY_WORD
 					TYPE_REFINEMENT	[encode-word data header payload symbols table strings]
 					TYPE_NATIVE
@@ -1608,7 +1711,9 @@ redbin: context [
 					TYPE_ANY_BLOCK
 					TYPE_MAP		[encode-block data header no payload symbols table strings]
 					TYPE_OBJECT		[encode-object data header payload symbols table strings]
-					default			[--NOT_IMPLEMENTED--]
+					TYPE_ROUTINE
+					TYPE_OP			[--NOT_IMPLEMENTED--]
+					default			[assert false]
 				]
 				
 				unless global? [either null? ref [path/pop][encode-reference ref payload]]
