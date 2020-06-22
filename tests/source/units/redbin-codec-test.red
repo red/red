@@ -584,6 +584,17 @@ Red [
 			reverse block/2
 			--assert block/1/foo == [1 3 2]
 		
+		--test-- "reference-10"
+			obj: object [foo: 1]
+			block: test reduce [in obj 'foo obj]
+			
+			--assert "[foo make object! [foo: 1]]" = mold/flat block
+			--assert word? block/1
+			--assert object? block/2
+			--assert block/1 == 'foo
+			--assert block/2 == obj
+			--assert block/2 =? context? block/1
+			
 	===end-group===
 	
 	===start-group=== "Symbols"
