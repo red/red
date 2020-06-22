@@ -1268,6 +1268,24 @@ Red [
 		    close block! datatype! 1 6x6
 		]
 
+	--test-- "tt-23"
+		clear logs
+		--assert [] = transcode/trace "#([]22)" :lex-logger
+		--assert logs = [
+			prescan map! datatype! 1 1x2 
+		    open map! datatype! 1 1x2 
+		    prescan block! datatype! 1 3x3 
+		    open block! datatype! 1 3x3 
+		    prescan block! datatype! 1 4x4 
+		    close block! datatype! 1 4x4 
+		    prescan integer! datatype! 1 5x7 
+		    scan integer! datatype! 1 5x7 
+		    load integer! datatype! 1 22 
+		    prescan paren! datatype! 1 7x7 
+		    close map! datatype! 1 7x7 
+		    error map! datatype! 1 7x7
+		]
+		
 ===end-group===
 
 ~~~end-file~~~

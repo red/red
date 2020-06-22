@@ -24,6 +24,20 @@ map: context [
 		size: as int-ptr! s/offset
 		size/value
 	]
+	
+	valid-key?: func [type [integer!] return: [logic!]][
+		switch type [
+			TYPE_WORD
+			TYPE_GET_WORD
+			TYPE_SET_WORD
+			TYPE_LIT_WORD
+			TYPE_BINARY
+			TYPE_ANY_STRING
+			TYPE_INTEGER TYPE_CHAR TYPE_FLOAT TYPE_DATE
+			TYPE_PERCENT TYPE_TUPLE TYPE_PAIR TYPE_TIME [yes]
+			default										[no]
+		]		
+	]
 
 	preprocess-key: func [
 		key		[red-value!]

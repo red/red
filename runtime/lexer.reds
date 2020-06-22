@@ -964,14 +964,22 @@ lexer: context [
 	scan-paren-close: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local
 			blk	 [red-block!]
+			value tail [red-value!]
 	][
-		catch LEX_ERR [
-			if TYPE_MAP = close-block lex s e TYPE_PAREN no [
-				lex/scanned: TYPE_MAP
-				if lex/load? [
-					blk: as red-block! lex/tail - 1
-					map/make-at as cell! blk blk block/rs-length? blk
+		if TYPE_MAP = close-block lex s e TYPE_PAREN no [
+			lex/scanned: TYPE_MAP
+			if lex/load? [
+				blk: as red-block! lex/tail - 1
+				value: block/rs-head blk
+				tail:  block/rs-tail blk
+				while [value < tail][
+					unless map/valid-key? TYPE_OF(value) [
+						lex/tail: as red-value! blk		;-- remove the temp body from loaded values
+						throw-error lex s e TYPE_MAP
+					]
+					value: value + 2
 				]
+				map/make-at as cell! blk blk block/rs-length? blk
 			]
 		]
 		lex/in-pos: e + 1								;-- skip )
