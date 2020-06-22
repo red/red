@@ -192,6 +192,7 @@ redbin: context [
 			word new     [red-word!]
 			sym end tail [int-ptr!]
 			type next    [integer!]
+			type2        [integer!]
 			set? ref?    [logic!]
 	][
 		tag: [		
@@ -207,12 +208,14 @@ redbin: context [
 		either ref? [
 			end:  decode-reference tail parent
 			word: (as red-word! block/rs-tail parent) - 1
+			
+			type2: TYPE_OF(word)
 			assert any [
-				TYPE_OF(word) = TYPE_OBJECT
+				type2 = TYPE_OBJECT
+				type2 = TYPE_FUNCTION
 				all [
-					TYPE_OF(word) <> TYPE_ISSUE
-					ANY_WORD?(type)
-					;@@ TBD: function!
+					type2 <> TYPE_ISSUE
+					ANY_WORD?(type2)
 				]
 			]
 		][
@@ -224,23 +227,19 @@ redbin: context [
 		word/symbol: symbol/make (as c-string! table + table/-1) + sym/1
 		word/index:  data/3
 		
-		unless ref? [
-			either set? [
-				new: _context/add-global-word word/symbol yes no
-				word/index: new/index
-				word/ctx: global-ctx
-				tag
-				end: tail
-			][
-				next: 0
-				word/ctx: preprocess-binding tail :next
-				tag
-				end: fill-context as int-ptr! next table word/ctx
-			]
+		if ref? [tag return end]
+		
+		either set? [
+			new: _context/add-global-word word/symbol yes no
+			word/index: new/index
+			word/ctx: global-ctx
+		][
+			next: 0
+			word/ctx: preprocess-binding tail :next
 		]
 		
 		tag
-		end
+		either set? [tail][fill-context as int-ptr! next table word/ctx]
 	]
 	
 	decode-object: func [
