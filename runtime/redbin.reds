@@ -89,11 +89,7 @@ redbin: context [
 			cell/header: type						;-- implicit reset of all header flags
 			cell/spec:	 spec/node
 			cell/args:	 null
-			either type = TYPE_ACTION [
-				cell/code: actions/table/index
-			][
-				cell/code: natives/table/index
-			]
+			cell/code: either type = TYPE_ACTION [actions/table/index][natives/table/index]
 			
 			if codec? [stack/pop 1]					;-- drop an unwanted block
 		]
@@ -790,21 +786,20 @@ redbin: context [
 		nl?     [logic!]
 		return: [int-ptr!]
 		/local
-			err     [red-object!]
-			context [red-context!]
-			offset  [red-value!]
-			series  [series!]
+			err    [red-object!]
+			ctx    [red-context!]
+			series [series!]
 	][
 		err: error/make null as red-value! integer/box data/2 TYPE_ERROR
 		err: as red-object! copy-cell as red-value! err ALLOC_TAIL(parent)
 		if nl? [err/header: err/header or flag-new-line]
 		
-		context: GET_CTX(err)
-		series: as series! context/values/value
+		ctx: GET_CTX(err)
+		series: as series! ctx/values/value
 		series/tail: series/offset + 3
 		
 		parent: block/push-only* 6
-		parent/node: context/values 
+		parent/node: ctx/values 
 		
 		data: data + 2
 		loop 6 [data: decode-value data table parent]
@@ -821,12 +816,12 @@ redbin: context [
 		parent  [red-block!]
 		return: [int-ptr!]
 		/local
-			value   [red-value!]
-			object  [red-object!]
-			context [red-context!]
-			node    [node!]
-			buffer  [series!]
-			offset  [int-ptr!]
+			value  [red-value!]
+			object [red-object!]
+			ctx    [red-context!]
+			node   [node!]
+			buffer [series!]
+			offset [int-ptr!]
 	][
 		value:  as red-value! origin
 		offset: data + 2
@@ -842,16 +837,16 @@ redbin: context [
 					block/rs-abs-at as red-block! value 0
 				]
 				TYPE_OBJECT [
-					object:  as red-object! value
-					context: GET_CTX(object)
-					buffer:  as series! context/values/value
+					object: as red-object! value
+					ctx: GET_CTX(object)
+					buffer: as series! ctx/values/value
 					buffer/offset
 				]
 				TYPE_ANY_WORD
 				TYPE_REFINEMENT [
 					node: as node! value/data1
-					context: TO_CTX(node)
-					buffer: as series! context/values/value
+					ctx: TO_CTX(node)
+					buffer: as series! ctx/values/value
 					buffer/offset
 				]
 				TYPE_FUNCTION
@@ -1537,6 +1532,7 @@ redbin: context [
 			type    [integer!]
 			header  [integer!]
 			first?  [logic!]
+			global? [logic!]
 	][
 		type:   TYPE_OF(data)
 		header: type or either zero? (data/header and flag-new-line) [0][REDBIN_NEWLINE_MASK]
@@ -1563,14 +1559,21 @@ redbin: context [
 			TYPE_MONEY		[record [payload header data/data1 data/data2 data/data3]]
 			TYPE_ISSUE		[record [payload header encode-symbol data table symbols strings]]
 			TYPE_ERROR		[encode-error data header payload symbols table strings]
+			TYPE_POINT
+			TYPE_HANDLE
+			TYPE_EVENT		[--NOT_IMPLEMENTED--]
 			default			[
 				first?: any [ALL_WORD?(type) type = TYPE_OBJECT]
-				node:   as node! either first? [data/data1][data/data2]
-				ref:    reference/fetch node
 				
-				unless all [ALL_WORD?(type) node = global-ctx][
+				node: as node! either first? [data/data1][data/data2]
+				ref:  reference/fetch node
+				
+				global?: all [first? node = global-ctx]
+				
+				unless global? [
 					either null? ref [
-						path/push reference/store node
+						path/push
+						reference/store node
 					][
 						header: header or REDBIN_REFERENCE_MASK
 					]
@@ -1592,9 +1595,7 @@ redbin: context [
 					default			[--NOT_IMPLEMENTED--]
 				]
 				
-				unless all [ALL_WORD?(type) node = global-ctx][
-					either null? ref [path/pop][encode-reference ref payload]
-				]
+				unless global? [either null? ref [path/pop][encode-reference ref payload]]
 			]
 		]
 		
