@@ -307,6 +307,15 @@ Red [
 			
 			forall errors [--assert :errors/1 = test :errors/1]
 		
+		--test-- "function"
+			functions: reduce [
+				does []
+				does [6 * 7]
+			]
+			
+			;-- functions are always compared by identity
+			forall functions [--assert equal? mold :functions/1 mold test :functions/1]
+		
 	===end-group===
 	
 	===start-group=== "Binding"
