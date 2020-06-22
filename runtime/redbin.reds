@@ -250,19 +250,35 @@ redbin: context [
 		nl?     [logic!]
 		return: [int-ptr!]
 		/local
+			last   [red-object!]
 			object [red-value!]
 			series [series!]
 			node   [node!]
 			next   [integer!]
+			type   [integer!]
 	][
-		next: 0
-		node: preprocess-binding data :next
-		series: as series! node/value
-		
-		object: copy-cell series/offset + 1 ALLOC_TAIL(parent)
-		if nl? [object/header: object/header or flag-new-line]
-		
-		fill-context as int-ptr! next table node
+		either data/1 and REDBIN_REFERENCE_MASK <> 0 [
+			data: decode-reference data + 1 parent
+			last: (as red-object! block/rs-tail parent) - 1
+			
+			type: TYPE_OF(last)
+			assert any [type = TYPE_OBJECT ANY_WORD?(type)]
+			
+			series: as series! last/ctx/value
+			object: copy-cell series/offset + 1 as red-value! last
+			if nl? [object/header: object/header or flag-new-line]
+			
+			data
+		][
+			next: 0
+			node: preprocess-binding data :next
+			series: as series! node/value
+			
+			object: copy-cell series/offset + 1 ALLOC_TAIL(parent)
+			if nl? [object/header: object/header or flag-new-line]
+			
+			fill-context as int-ptr! next table node
+		]
 	]
 	
 	fill-context: func [
@@ -1278,14 +1294,15 @@ redbin: context [
 			buffer [series!]
 			owner? [logic!]
 	][
-		unless header and REDBIN_REFERENCE_MASK <> 0 [
-			object: as red-object! data
-			owner?: not null? object/on-set
-			
-			if owner? [header: header or REDBIN_OWNER_MASK]
-			
-			record [payload header object/class]
+		object: as red-object! data
+		owner?: not null? object/on-set
 		
+		if owner? [header: header or REDBIN_OWNER_MASK]
+		
+		store payload header
+	
+		unless header and REDBIN_REFERENCE_MASK <> 0 [
+			store payload object/class
 			if owner? [
 				buffer: as series! object/on-set/value
 				change: as red-integer! buffer/offset
