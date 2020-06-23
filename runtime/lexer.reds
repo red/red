@@ -1102,6 +1102,7 @@ lexer: context [
 		either p < end [
 			len: p/4 + 1
 			if s/len <> #"]" [throw-error lex s e ERR_MALCONSTRUCT]
+			lex/scanned: p/2
 			if load? [
 				dt: as red-datatype! alloc-slot lex
 				set-type as cell! dt p/2
@@ -1121,6 +1122,7 @@ lexer: context [
 			][
 				throw-error lex s e ERR_MALCONSTRUCT	;-- no match, error case
 			]
+			lex/scanned: type
 			if load? [
 				dt: as red-datatype! alloc-slot lex
 				set-type as cell! dt TYPE_DATATYPE
