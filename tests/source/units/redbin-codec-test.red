@@ -311,9 +311,12 @@ Red [
 			functions: reduce [
 				does []
 				does [6 * 7]
+				has [foo bar baz][]
+				func ["dosctring" foo [] bar [] /local qux return: []][]
+				; func [foo][foo]
 			]
 			
-			;-- functions are always compared by identity
+			;@@ TBD: #4540
 			forall functions [--assert equal? mold :functions/1 mold test :functions/1]
 		
 	===end-group===
