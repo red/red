@@ -1315,6 +1315,9 @@ redbin: context [
 	][
 		node: as node! data/data1
 		
+		;@@ TBD: #4537
+		if null? node [node: global-ctx]
+		
 		if node = global-ctx [
 			header: header or REDBIN_SET_MASK
 			value:  _context/get-any data/data2 node
@@ -1328,9 +1331,6 @@ redbin: context [
 				;@@ TBD: encode-value value payload symbols table strings
 				0
 			][
-				;@@ #4537
-				if null? node [assert false]
-			
 				series: as series! node/value
 				value:  series/offset + 1
 				type:   TYPE_OF(value)
