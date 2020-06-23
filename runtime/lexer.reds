@@ -176,7 +176,7 @@ lexer: context [
 		C_LINE 											;-- 0A		LF
 		C_C0											;-- 0B
 		C_C0											;-- 0C
-		C_LINE											;-- 0D		CR
+		C_BLANK											;-- 0D		CR
 		C_C0 C_C0 C_C0 C_C0 C_C0 C_C0 C_C0 C_C0			;-- 0E-15
 		C_C0 C_C0 C_C0 C_C0 C_C0 C_C0 C_C0 C_C0			;-- 16-1D
 		C_C0 C_C0										;-- 1E-1F

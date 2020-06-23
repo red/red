@@ -613,7 +613,7 @@ Red [
 
 	--test-- "tro-143"  --assert #"^@" == transcode/one {#""}
 	--test-- "tro-144"  --assert error? try [transcode/one {"hello^/world"}]
-	--test-- "tro-145"  --assert error? try [transcode/one {"hello^Mworld"}]
+	--test-- "tro-145"  --assert "hello^Mworld" == transcode/one {"hello^Mworld"}
 	--test-- "tro-146"  --assert "hello^-world" == transcode/one {"hello^-world"}
 
 	--test-- "tro-147"  --assert -12:02:00 == transcode/one "-12:2"
@@ -715,7 +715,7 @@ Red [
 	--test-- "scan-60" --assert none? 	   scan ""
 	--test-- "scan-61" --assert char!	 = scan {#""}
 	--test-- "scan-62" --assert error!	 = scan {"hello^/world"}
-	--test-- "scan-63" --assert error!	 = scan {"hello^Mworld"}
+	--test-- "scan-63" --assert string!	 = scan {"hello^Mworld"}
 	--test-- "scan-64" --assert string!	 = scan {"hello^-world"}
 	--test-- "scan-65" --assert error!	 = scan "a/ "
 
@@ -1285,7 +1285,7 @@ Red [
 		    close map! datatype! 1 7x7 
 		    error map! datatype! 1 7x7
 		]
-		
+
 ===end-group===
 
 ~~~end-file~~~
