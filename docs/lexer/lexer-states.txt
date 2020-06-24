@@ -377,9 +377,9 @@ S_START->"'"|":"->S_WORD_1ST->"%"->S_PERCENT
                         \->else->T_ERROR
 
 S_START->s-word->S_WORD->delimit16->T_WORD
-                  \->":"->S_WORDSET->else->S_URL->else->S_URL
-                   \       \                \->delimit16->T_URL
-                    \       \                \->"'"|">"|"$"|"^"->T_ERROR
+                  \->":"->S_WORDSET->else->S_URL->delimit16->T_URL
+                   \       \                \->">"|"^"->T_ERROR
+                    \       \                \->else->S_URL
                      \       \->delimit16->T_WORD
                       \       \->"<"->T_ERROR
                        \
