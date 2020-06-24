@@ -194,12 +194,14 @@ redbin: context [
 		nl?     [logic!]
 		return: [int-ptr!]
 		/local
-			tag          [subroutine!]
-			word new     [red-word!]
-			sym end tail [int-ptr!]
-			type next    [integer!]
-			type2        [integer!]
-			set? ref?    [logic!]
+			tag       [subroutine!]
+			word new  [red-word!]
+			backref   [red-value!]
+			series    [series!]
+			sym tail  [int-ptr!]
+			type next [integer!]
+			type2     [integer!]
+			set? ref? [logic!]
 	][
 		tag: [		
 			word/header: type
@@ -212,17 +214,14 @@ redbin: context [
 		tail: data + 3
 		
 		either ref? [
-			end:  decode-reference tail parent
+			tail: decode-reference tail parent
 			word: (as red-word! block/rs-tail parent) - 1
 			
 			type2: TYPE_OF(word)
 			assert any [
 				type2 = TYPE_OBJECT
 				type2 = TYPE_FUNCTION
-				all [
-					type2 <> TYPE_ISSUE
-					ANY_WORD?(type2)
-				]
+				ANY_WORD?(type2)
 			]
 		][
 			word: as red-word! ALLOC_TAIL(parent)
@@ -233,7 +232,7 @@ redbin: context [
 		word/symbol: symbol/make (as c-string! table + table/-1) + sym/1
 		word/index:  data/3
 		
-		if ref? [tag return end]
+		if ref? [tag return tail]
 		
 		either set? [
 			new: _context/add-global-word word/symbol yes no
@@ -245,7 +244,15 @@ redbin: context [
 		]
 		
 		tag
-		either set? [tail][fill-context as int-ptr! next table word/ctx]
+		data: either set? [tail][fill-context as int-ptr! next table word/ctx]
+		
+		series:  as series! word/ctx/value
+		backref: series/offset + 1
+		
+		type: backref/header and FFh
+		assert any [type = TYPE_OBJECT type = TYPE_FUNCTION]
+		
+		either type = TYPE_OBJECT [data][fill-spec-body data table as red-function! backref]
 	]
 	
 	decode-object: func [
@@ -293,21 +300,12 @@ redbin: context [
 		nl?     [logic!]
 		return: [int-ptr!]
 		/local
-			process [subroutine!]
-			fun     [red-function!]
-			here    [red-block!]
-			series  [series!]
-			node    [node!]
-			size    [int-ptr!]
-			next    [integer!]
+			fun    [red-function!]
+			series [series!]
+			node   [node!]
+			size   [int-ptr!]
+			next   [integer!]
 	][
-		process: [
-			assert data/1 and FFh = TYPE_BLOCK
-			size: data + 2
-			data: size + 1
-			loop size/1 [data: decode-value data table here]
-		]
-	
 		either data/1 and REDBIN_REFERENCE_MASK <> 0 [
 			assert false							;@@ TBD
 		][
@@ -319,15 +317,35 @@ redbin: context [
 			fun: as red-function! copy-cell series/offset + 1 ALLOC_TAIL(parent)
 			if nl? [fun/header: fun/header or flag-new-line]
 			
-			here: as red-block! stack/push*
-			here/node:   fun/spec
-			here/header: TYPE_BLOCK
-			process
-			stack/pop 1
-			
-			here: as red-block! (as series! fun/more/value) + 1
-			process
+			fill-spec-body data table fun
 		]
+	]
+	
+	fill-spec-body: func [
+		data    [int-ptr!]
+		table   [int-ptr!]
+		fun     [red-function!]
+		return: [int-ptr!]
+		/local
+			process [subroutine!]
+			here    [red-block!]
+			size    [int-ptr!]
+	][
+		process: [
+			assert data/1 and FFh = TYPE_BLOCK
+			size: data + 2
+			data: size + 1
+			loop size/1 [data: decode-value data table here]
+		]
+	
+		here: as red-block! stack/push*
+		here/node:   fun/spec
+		here/header: TYPE_BLOCK
+		process
+		stack/pop 1
+		
+		here: as red-block! (as series! fun/more/value) + 1
+		process
 		
 		data
 	]
