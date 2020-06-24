@@ -293,14 +293,13 @@ redbin: context [
 		nl?     [logic!]
 		return: [int-ptr!]
 		/local
-			process    [subroutine!]
-			fun        [red-function!]
-			proto here [red-block!]
-			spec body  [red-block!]
-			series     [series!]
-			node       [node!]
-			size       [int-ptr!]
-			next       [integer!]
+			process [subroutine!]
+			fun     [red-function!]
+			here    [red-block!]
+			series  [series!]
+			node    [node!]
+			size    [int-ptr!]
+			next    [integer!]
 	][
 		process: [
 			assert data/1 and FFh = TYPE_BLOCK
@@ -316,31 +315,18 @@ redbin: context [
 			node: preprocess-binding data table :next
 			data: fill-context as int-ptr! next table node
 			
-			proto: block/push-only* 2
-			
-			size: data + 2
-			spec: block/make-in proto either zero? size/1 [1][size/1]
-			body: block/make-in proto 32			;@@ TBD: figure out how to get pre-allocation size
-			
-			fun: as red-function! ALLOC_TAIL(parent)
-			fun/header: TYPE_UNSET
-			fun/ctx:    node
-			fun/spec:   spec/node
-			fun/more:   alloc-unset-cells 5
-			
-			fun/header: TYPE_FUNCTION
+			series: as series! node/value
+			fun: as red-function! copy-cell series/offset + 1 ALLOC_TAIL(parent)
 			if nl? [fun/header: fun/header or flag-new-line]
 			
-			series: as series! node/value
-			copy-cell as red-value! fun series/offset + 1
-			
-			here: spec process
-			here: body process
-			
-			series: as series! fun/more/value
-			copy-cell as red-value! body alloc-tail series
-			
+			here: as red-block! stack/push*
+			here/node:   fun/spec
+			here/header: TYPE_BLOCK
+			process
 			stack/pop 1
+			
+			here: as red-block! (as series! fun/more/value) + 1
+			process
 		]
 		
 		data
@@ -410,14 +396,16 @@ redbin: context [
 		tail    [int-ptr!]
 		return: [node!]
 		/local
-			context        [red-context!]
-			object         [red-object!]
-			series         [series!]
-			node values    [node!]
-			here           [int-ptr!]
-			type kind skip [integer!]
-			values? stack? [logic!]
-			self? owner?   [logic!]
+			context         [red-context!]
+			object          [red-object!]
+			fun             [red-function!]
+			proto spec body [red-block!]
+			series          [series!]
+			node values     [node!]
+			here            [int-ptr!]
+			type kind skip  [integer!]
+			values? stack?  [logic!]
+			self? owner?    [logic!]
 	][
 		here: data
 		type: data/1 and FFh
@@ -464,8 +452,8 @@ redbin: context [
 		either type = TYPE_OBJECT [
 			object: as red-object! alloc-tail series
 			object/header: TYPE_UNSET
-			object/ctx: node
-			object/class: data/2					;@@ TBD: potential conflict of concurrent class IDs
+			object/ctx:    node
+			object/class:  data/2					;@@ TBD: potential conflict of concurrent class IDs
 			object/on-set: either owner? [alloc-cells 2][null]
 			
 			if owner? [
@@ -480,7 +468,22 @@ redbin: context [
 			
 			object/header: TYPE_OBJECT
 		][
-			alloc-tail series
+			proto: block/push-only* 2
+			spec:  block/make-in proto 32 			;@@ TBD: pre-allocation size
+			body:  block/make-in proto 32 			;@@ TBD
+			
+			fun: as red-function! alloc-tail series
+			fun/header: TYPE_UNSET
+			fun/ctx:    node
+			fun/spec:   spec/node
+			fun/more:   alloc-unset-cells 5
+			
+			series: as series! fun/more/value
+			copy-cell as red-value! body alloc-tail series
+			
+			stack/pop 1
+			
+			fun/header: TYPE_FUNCTION
 		]
 		
 		node
