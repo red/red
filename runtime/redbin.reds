@@ -175,14 +175,14 @@ redbin: context [
 	;@@ TBD: remove the cheathseet
 	comment {
 		word:     header (set?: N ref?: Y) symbol index [reference]
-				  header (set?: N ref?: N) symbol index [object]
+				  header (set?: N ref?: N) symbol index [object/function]
 				  header (set?: Y ref?: N) symbol index -- bound to global context
 		
 		object:   header (own?: Y) class on-set arity [context]
 		          header (own?: N) class [context]
 		          header (ref?: Y) [reference]
 		
-		function: header [spec] [body] [context]
+		function: header [context] [spec] [body] 
 		
 		context:  header size symbols* values*
 	}
@@ -286,30 +286,64 @@ redbin: context [
 		]
 	]
 	
-	decode-function: func [
+ 	decode-function: func [
 		data    [int-ptr!]
 		table   [int-ptr!]
 		parent  [red-block!]
 		nl?     [logic!]
 		return: [int-ptr!]
 		/local
-			fun    [red-value!]
-			series [series!]
-			node   [node!]
-			next   [integer!]
+			process    [subroutine!]
+			fun        [red-function!]
+			proto here [red-block!]
+			spec body  [red-block!]
+			series     [series!]
+			node       [node!]
+			size       [int-ptr!]
+			next       [integer!]
 	][
+		process: [
+			assert data/1 and FFh = TYPE_BLOCK
+			size: data + 2
+			data: size + 1
+			loop size/1 [data: decode-value data table here]
+		]
+	
 		either data/1 and REDBIN_REFERENCE_MASK <> 0 [
 			assert false							;@@ TBD
 		][
 			next: 0
 			node: preprocess-binding data table :next
-			series: as series! node/value
+			data: fill-context as int-ptr! next table node
 			
-			fun: copy-cell series/offset + 1 ALLOC_TAIL(parent)
+			proto: block/push-only* 2
+			
+			size: data + 2
+			spec: block/make-in proto either zero? size/1 [1][size/1]
+			body: block/make-in proto 32			;@@ TBD: figure out how to get pre-allocation size
+			
+			fun: as red-function! ALLOC_TAIL(parent)
+			fun/header: TYPE_UNSET
+			fun/ctx:    node
+			fun/spec:   spec/node
+			fun/more:   alloc-unset-cells 5
+			
+			fun/header: TYPE_FUNCTION
 			if nl? [fun/header: fun/header or flag-new-line]
 			
-			fill-context as int-ptr! next table node
+			series: as series! node/value
+			copy-cell as red-value! fun series/offset + 1
+			
+			here: spec process
+			here: body process
+			
+			series: as series! fun/more/value
+			copy-cell as red-value! body alloc-tail series
+			
+			stack/pop 1
 		]
+		
+		data
 	]
 	
 	fill-context: func [
@@ -362,8 +396,10 @@ redbin: context [
 			data: data + 1
 		]
 		
-		stack/pop 1
-		if filled? [series/tail: series/offset + slots]
+		if filled? [
+			stack/pop 1
+			series/tail: series/offset + slots
+		]
 		
 		value
 	]
@@ -376,12 +412,9 @@ redbin: context [
 		/local
 			context        [red-context!]
 			object         [red-object!]
-			fun            [red-function!]
-			proto spec     [red-block!]
-			body           [red-value!]
 			series         [series!]
 			node values    [node!]
-			here info      [int-ptr!]
+			here           [int-ptr!]
 			type kind skip [integer!]
 			values? stack? [logic!]
 			self? owner?   [logic!]
@@ -392,18 +425,13 @@ redbin: context [
 		assert any [type = TYPE_OBJECT type = TYPE_FUNCTION]
 		
 		;-- locate context record
-		either type = TYPE_OBJECT [
+		data: either type = TYPE_OBJECT [
 			data: data + 2
 			skip: (size? integer!) << 1
 			owner?: data/1 and REDBIN_OWNER_MASK <> 0 
-			if owner? [data: data + skip]
+			either owner? [data + skip][data]
 		][
-			proto: block/push-only* 2
-			series: as series! proto/node/value
-			series/tail: series/offset
-			
-			data: decode-block data + 1 table proto no
-			data: decode-block data table proto no
+			data + 1
 		]
 		
 		assert data/1 and FFh = TYPE_CONTEXT
@@ -452,24 +480,7 @@ redbin: context [
 			
 			object/header: TYPE_OBJECT
 		][
-			spec: as red-block! block/rs-head proto
-			body: (block/rs-tail proto) - 1
-			
-			assert TYPE_OF(spec) = TYPE_BLOCK
-			assert TYPE_OF(body) = TYPE_BLOCK
-			
-			fun: as red-function! alloc-tail series
-			fun/header: TYPE_UNSET
-			fun/ctx: node
-			fun/spec: spec/node
-			fun/more: alloc-unset-cells 5
-			
-			series: as series! fun/more/value
-			copy-cell body series/offset
-			
-			fun/header: TYPE_FUNCTION
-			
-			stack/pop 1								;-- drop proto block
+			alloc-tail series
 		]
 		
 		node
@@ -1622,9 +1633,9 @@ redbin: context [
 			assert TYPE_OF(body) = TYPE_BLOCK
 			
 			store payload header
+			encode-context ctx payload symbols table strings
 			encode-block data TYPE_BLOCK yes payload symbols table strings	;-- structure overlap
 			encode-block body TYPE_BLOCK no payload symbols table strings
-			encode-context ctx payload symbols table strings
 		]
 	]
 	
@@ -1678,10 +1689,8 @@ redbin: context [
 			TYPE_POINT
 			TYPE_HANDLE
 			TYPE_EVENT		[--NOT_IMPLEMENTED--]
-			
-			TYPE_FUNCTION	[encode-function data header payload symbols table strings]
-			
 			default			[
+				;@@ TBD: multiple nodes in function
 				first?: any [ALL_WORD?(type) type = TYPE_OBJECT type = TYPE_FUNCTION]
 				
 				node: as node! either first? [data/data1][data/data2]
@@ -1711,6 +1720,7 @@ redbin: context [
 					TYPE_ANY_BLOCK
 					TYPE_MAP		[encode-block data header no payload symbols table strings]
 					TYPE_OBJECT		[encode-object data header payload symbols table strings]
+					TYPE_FUNCTION	[encode-function data header payload symbols table strings]
 					TYPE_ROUTINE
 					TYPE_OP			[--NOT_IMPLEMENTED--]
 					default			[assert false]
