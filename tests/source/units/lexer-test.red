@@ -623,6 +623,10 @@ Red [
 	--test-- "tro-150"  --assert  error? try [transcode/one {16#"1"}]
 	--test-- "tro-151"  --assert  error? try [transcode/one {16#"12"}]
 
+	--test-- "tro-152"  --assert /v: == transcode/one "/v:"
+	--test-- "tro-153"  --assert refinement! == type? transcode/one "/v:"
+	--test-- "tro-154"  --assert /value: == transcode/one "/value:"
+	--test-- "tro-155"  --assert refinement! == type? transcode/one "/value:"
 
 ===end-group===
 ===start-group=== "transcode/next"
@@ -723,6 +727,8 @@ Red [
 	--test-- "scan-68" --assert none!	 = scan "#[none]"
 	--test-- "scan-69" --assert integer! = scan "#[integer!]"
 	--test-- "scan-70" --assert error!	 = scan "#[int!]"
+	--test-- "scan-71"  --assert refinement! = scan "/v:"
+	--test-- "scan-72"  --assert refinement! = scan "/value:"
 
 ===end-group===
 ===start-group=== "scan/fast"
@@ -765,6 +771,8 @@ Red [
 	--test-- "scan-f60" --assert none!	  = scan/fast "#[none]"
 	--test-- "scan-f61" --assert integer! = scan/fast "#[integer!]"
 	--test-- "scan-f62" --assert error!	  = scan/fast "#[int!]"
+	--test-- "scan-f63" --assert refinement! = scan/fast "/v:"
+	--test-- "scan-f64" --assert refinement! = scan/fast "/value:"
 
 ===end-group===
 ===start-group=== "transcode/trace"

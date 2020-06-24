@@ -271,7 +271,7 @@ lexer: context [
 	
 	ref-rule: [(stop: [not-ref-char]) #"@" s: any UTF8-filtered-char e:]
 	
-	refinement-rule: [slash (type: refinement!) s: symbol-rule]
+	refinement-rule: [slash (type: refinement!) s: some [symbol-rule | #":"] e:]
 	
 	slash-rule: [s: [slash opt slash] e:]
 	

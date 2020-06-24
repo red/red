@@ -1455,7 +1455,7 @@ lexer: context [
 	][
 		type: either lex/type > 0 [lex/type][lex/scanned]
 		
-		if flags and C_FLAG_COLON <> 0 [
+		if all [lex/type < 0 flags and C_FLAG_COLON <> 0][
 			case [
 				s/1 = #":" [type: TYPE_GET_WORD]
 				e/0 = #":" [type: TYPE_SET_WORD]
