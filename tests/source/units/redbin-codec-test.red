@@ -312,8 +312,7 @@ Red [
 				does []
 				does [6 * 7]
 				has [foo bar baz][]
-				func ["dosctring" foo [] bar [] /local qux return: []][]
-				; func [foo][foo]
+				func ["dosctring" foo [] bar [] /local qux return: []] reduce [func [a b c][d e f]]
 			]
 			
 			;@@ TBD: #4540
@@ -354,6 +353,13 @@ Red [
 			--assert ctx == context? foo/1
 			--assert ctx == context? foo/2
 			--assert equal? context? foo/1 context? foo/2
+		
+		--test-- "binding-4"
+			word: test bind 'foo has [foo][bar]
+		
+			--assert word? word
+			--assert 'foo = word
+			--assert equal? mold has [foo][bar] mold context? word
 		
 	===end-group===
 
