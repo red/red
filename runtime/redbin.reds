@@ -182,7 +182,7 @@ redbin: context [
 		          header (own?: N) class [context]
 		          header (ref?: Y) [reference]
 		
-		function: header [context] [spec] [body] 
+		function: header spec-size body-size [context] [spec] [body] 
 		
 		context:  header size symbols* values*
 	}
@@ -437,7 +437,7 @@ redbin: context [
 			owner?: data/1 and REDBIN_OWNER_MASK <> 0 
 			either owner? [data + skip][data]
 		][
-			data + 1
+			data + 3
 		]
 		
 		assert data/1 and FFh = TYPE_CONTEXT
@@ -487,8 +487,8 @@ redbin: context [
 			object/header: TYPE_OBJECT
 		][
 			proto: block/push-only* 2
-			spec:  block/make-in proto 32 			;@@ TBD: pre-allocation size
-			body:  block/make-in proto 32 			;@@ TBD
+			spec:  block/make-in proto either zero? data/2 [1][data/2]
+			body:  block/make-in proto either zero? data/3 [1][data/3]
 			
 			fun: as red-function! alloc-tail series
 			fun/header: TYPE_UNSET
@@ -1654,6 +1654,9 @@ redbin: context [
 			assert TYPE_OF(body) = TYPE_BLOCK
 			
 			store payload header
+			store payload block/rs-length? as red-block! data
+			store payload block/rs-length? as red-block! body
+			
 			encode-context ctx payload symbols table strings
 			encode-block data TYPE_BLOCK yes payload symbols table strings	;-- structure overlap
 			encode-block body TYPE_BLOCK no payload symbols table strings
