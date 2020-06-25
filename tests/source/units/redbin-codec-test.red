@@ -308,15 +308,31 @@ Red [
 			forall errors [--assert :errors/1 = test :errors/1]
 		
 		--test-- "function"
-			functions: reduce [
-				does []
-				does [6 * 7]
-				has [foo bar baz][]
-				func ["dosctring" foo [] bar [] /local qux return: []] reduce [func [a b c][d e f]]
+			equal-func?: func [x [function!] y [function!]][
+				all [
+					strict-equal? mold    :x mold    :y
+					strict-equal? spec-of :x spec-of :y
+					strict-equal? body-of :x body-of :y
+				]
 			]
 			
-			;@@ TBD: #4540
-			forall functions [--assert equal? mold :functions/1 mold test :functions/1]
+			take/last block: split help-string function! newline
+			functions: collect [forall block [keep get load take/part block/1 find block/1 "=>"]]
+			
+			;@@ TBD: unblock
+			forall functions [
+				if find [
+					051 ; e
+					111 ; e
+					245 ; e
+					;;;;;;;
+					58 59 62 63 71 72
+					114 128 129 197
+					221 222 223 225 226 239
+				] index? functions [continue]
+				
+				--assert equal-func? :functions/1 test :functions/1
+			]
 		
 	===end-group===
 	
