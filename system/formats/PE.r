@@ -771,7 +771,7 @@ context [
 		oh/minor-sub-version:	0
 		oh/win32-ver-value:		0						;-- reserved, must be zero
 		oh/image-size:			image-size? job
-		oh/headers-size:		code-page * file-align
+		oh/headers-size:		ep-file-page * file-align
 		oh/checksum:			either job/type = 'drv [123456][0]	;-- for drivers and DLL only (dummy default)
 		oh/sub-system:			select defs/sub-system job/sub-system
 		oh/dll-flags:			flags
