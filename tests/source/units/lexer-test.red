@@ -403,6 +403,11 @@ Red [
 	--test-- "tr-43" --assert [/a /b] == transcode "/a/b"
 	--test-- "tr-44" --assert error? try [transcode "[12#(a: 3)]"]
 
+	--test-- "tr-45"
+		--assert [#"a" - #"z"] = out: transcode {#"a"-#"z"}
+		types: [char! word! char!]
+		repeat i 3 [--assert types/:i = type?/word out/:i]
+
 ===end-group===
 ===start-group=== "transcode/one"
 	--test-- "tro-1"  --assert 8		== transcode/one "8"
