@@ -155,11 +155,13 @@ delimit4:  ws | [ | ] | ( | ) | } | ; | " | \ | EOF
 delimit1:  ws | [ | ] | ( | ) | { | } | " | ; | @ | EOF
 delimit6:  ws | [ | ] | ( | ) | { | } | ; | @ | : | EOF
 delimit8:  ws | [ | ] | ( | ) | { | } | " | ; | < | EOF
-delimit12: ws | [ | ] | ( | ) | { | } | ; | " | \ | EOF
-delimit15: ws | [ | ] | ( | ) | { | } | " | : | ; | EOF
+delimit23: ws | [ | ] | ( | ) | { | } | " | ; | @ | # | EOF
+delimit12: ws | [ | ] | ( | ) | { | } | " | ; | \ | # | EOF
+delimit15: ws | [ | ] | ( | ) | { | } | " | : | ; | # | EOF
 delimit20: ws | [ | ] | ( | ) | { | } | " | ; | \ | EOF
 delimit9:  ws | [ | ] | ( | ) | { | } | " | ; | < | / | EOF
-delimit16: ws | [ | ] | ( | ) | { | } | " | ; | < | \ | EOF
+delimit22: ws | [ | ] | ( | ) | { | } | " | ; | < | \ | EOF
+delimit16: ws | [ | ] | ( | ) | { | } | " | ; | < | \ | # | EOF
 delimit10: ws | [ | ] | ( | ) | { | } | " | ; | < | / | : | EOF
 delimit17: ws | [ | ] | ( | ) | { | } | " | ; | < | \ | / | EOF
 delimit19: ws | [ | ] | { | } | ; | / | \ | % | , | $ | ^ | EOF
@@ -203,10 +205,10 @@ S_M_STRING->not("^"|"{"|"}")->S_M_STRING
 
 S_START->"/"->S_SLASH_1ST->not(delimit1)->S_SLASH->not(delimit1)->S_SLASH
                \                           \->delimit1|"/"->T_REFINE
-                \->delimit1->T_WORD
+                \->delimit23->T_WORD
                  \->"/"->S_SLASH_N->"/"->S_SLASH_N
-                          \->delimit1->T_WORD
-                           \->not(delimit1|"/")->S_WORD
+                          \->delimit23->T_WORD
+                           \->not(delimit23|"/")->S_WORD
 
 S_START->"%"->S_FILE_1ST->not(delimit5)->S_FILE->not(delimit6)->S_FILE
                \                          \->delimit6->T_FILE
@@ -321,8 +323,8 @@ S_START->"."->S_DOTWORD->digit->S_DOTDEC->digit|"e"|"E"|"+"|"-"->S_DOTDEC
                      \->":"->S_WORDSET
                       \->"@"->S_EMAIL
                        \->"/"->T_PATH
-                        \->","|"#"|"%"|"$"->T_ERROR 
-                         \->not(delimit12|":"|"@"|"/"|","|"#"|"%"|"$")->S_WORD
+                        \->","|"%"|"$"->T_ERROR 
+                         \->not(delimit12|":"|"@"|"/"|","|"%"|"$")->S_WORD
 
 
 S_START->"<"->S_LESSER
@@ -344,7 +346,7 @@ S_START->"<"->S_LESSER
 S_START->"+"|"-"->S_SIGN->digit->S_NUMBER
                    \->"$"->S_MONEY
                     \"."->S_DOTWORD
-                     \->"#"|"'"|"<"|"%"|"^"->T_ERROR
+                     \->"'"|"<"|"%"|"^"->T_ERROR
                       \->delimit12->T_WORD
                        \->else->S_WORD
 
@@ -365,7 +367,7 @@ S_START->alphaU|"E"->S_HEX->alphaU|digit|"E"->S_HEX
                           \->"/"->T_PATH
                            \->"$"->S_MONEY
                             \->"h"->S_HEX_END
-                             \->","|"#"|"%"->T_ERROR
+                             \->","|"%"->T_ERROR
                               \->else->S_WORD
 
 S_START->"'"|":"->S_WORD_1ST->"%"->S_PERCENT
@@ -377,7 +379,7 @@ S_START->"'"|":"->S_WORD_1ST->"%"->S_PERCENT
                         \->else->T_ERROR
 
 S_START->s-word->S_WORD->delimit16->T_WORD
-                  \->":"->S_WORDSET->else->S_URL->delimit16->T_URL
+                  \->":"->S_WORDSET->else->S_URL->delimit22->T_URL
                    \       \                \->">"|"^"->T_ERROR
                     \       \                \->else->S_URL
                      \       \->delimit16->T_WORD
@@ -389,7 +391,7 @@ S_START->s-word->S_WORD->delimit16->T_WORD
                            \
                             \->"/"->T_PATH
                              \->"$"->S_MONEY_1ST
-                              \->","|"#"|"%"->T_ERROR
+                              \->","|"%"->T_ERROR
                                \->else->S_WORD
 
 S_START->"@"->S_REF->delimit8->T_REF
