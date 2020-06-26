@@ -249,7 +249,7 @@ lexer: context [
 	
 	lit-word-rule: [
 		#"'" (type: word!) [
-			#"/" (type: lit-word! value: "/")
+			s: some #"/" e: (type: lit-word! value: copy/part s e)
 			| s: begin-symbol-rule [
 				path-rule (type: lit-path!)				;-- path matched
 				| (
@@ -273,7 +273,10 @@ lexer: context [
 	
 	refinement-rule: [slash (type: refinement!) s: some [symbol-rule | #":"] e:]
 	
-	slash-rule: [s: [slash opt slash] e:]
+	slash-rule: [
+		[[#":" (type: get-word!) | #"'" (type: lit-word!)] | none (type: word!)]
+		s: some slash e: opt [#":" (if find ":'" s/-1 [throw-error]	type: set-word!)]
+	]
 	
 	hexa-rule: [2 8 hexa e: #"h" pos: [integer-end | ws-no-count | end ] :pos (type: integer!)]
 
@@ -634,7 +637,7 @@ lexer: context [
 			| lit-word-rule	  (stack/push to type value)
 			| get-word-rule	  (stack/push to type value)
 			| refinement-rule (stack/push to refinement! copy/part s e)
-			| slash-rule	  (stack/push to word!		 copy/part s e)
+			| slash-rule	  (stack/push to type		 copy/part s e)
 			| file-rule		  (stack/push load-file value)
 			| char-rule		  (stack/push decode-UTF8-char value)
 			| block-rule	  (stack/push value)
