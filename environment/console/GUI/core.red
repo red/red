@@ -131,7 +131,12 @@ object [
 		s: find str lf
 		either s [
 			cnt: 0
-			until [
+			unless all [lf? not prin?][
+				vprin copy/part str s
+				str: skip s 1
+				s: find str lf
+			]
+			while [s][
 				add-lines copy/part str s no
 				str: skip s 1
 				cnt: cnt + 1
@@ -139,9 +144,9 @@ object [
 					refresh
 					cnt: 0
 				]
-				not s: find str lf
+				s: find str lf
 			]
-			either all [lf? not prin?][add-lines str yes][vprin str]
+			add-lines str yes
 		][
 			either all [lf? not prin?][add-lines str yes][
 				if first-prin? [add-line make string! 8]

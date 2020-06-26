@@ -771,7 +771,7 @@ context [
 		oh/minor-sub-version:	0
 		oh/win32-ver-value:		0						;-- reserved, must be zero
 		oh/image-size:			image-size? job
-		oh/headers-size:		code-page * file-align
+		oh/headers-size:		ep-file-page * file-align
 		oh/checksum:			either job/type = 'drv [123456][0]	;-- for drivers and DLL only (dummy default)
 		oh/sub-system:			select defs/sub-system job/sub-system
 		oh/dll-flags:			flags
@@ -1019,16 +1019,11 @@ context [
 		change buf to-bin16 length? buf
 	]
 
-	build-res-file-info: func [info [block!] type [word!] /local f ver][
-		either all [
-			ver: select info 'version
-			issue? ver
-		][
-			ver: 0.0.0.0 or to tuple! debase/base next ver 16
-		][
-			ver: 0.0.0.0
+	build-res-file-info: func [info [block!] type [word!] /local f ver v][
+		ver: 0.0.0.0
+		if all [v: select info 'version issue? v][
+			ver: ver or to tuple! debase/base next v 16
 		]
-		
 		f: make-struct vs-fixed-fileinfo none
 		f/signature:			to-integer #{FEEF04BD}
 		f/struct-version:		to-integer #{00010000}
@@ -1036,11 +1031,8 @@ context [
 		f/file-version-ls: 		ver/4 or shift/left ver/3 16
 		f/product-version-ms:	ver/2 or shift/left ver/1 16
 		f/product-version-ls:	ver/4 or shift/left ver/3 16
-		f/OS: 					to-integer #{00040004}	;-- VOS_NT_WINDOWS32
-		f/type:					switch/default type [
-									dll	[2]
-									drv [3]
-								][1]					;-- exe
+		f/OS: 					to-integer #{00000004}	;-- VOS__WINDOWS32
+		f/type:					switch/default type [dll [2] drv [3]][1] ;-- exe
 		form-struct f
 	]
 

@@ -72,6 +72,7 @@ OS-text-box-background: func [
 		rt/CreateSolidColorBrush this to-dx-color color null null :brush
 		put-brush dc + 1 color brush
 	]
+	
 	vector/rs-append-int cache pos
 	vector/rs-append-int cache len
 	vector/rs-append-int cache brush
@@ -220,7 +221,7 @@ OS-text-box-metrics: func [
 			text: as red-string! int + 2
 			x: as float32! 0.0 y: as float32! 0.0
 			int: as red-integer! arg0
-			hr: either TYPE_OF(text) <> TYPE_STRING [0][adjust-index text int/value - 1]
+			hr: either TYPE_OF(text) <> TYPE_STRING [0][adjust-index text 0 int/value - 1 1]
 			hit: as DWRITE_HIT_TEST_METRICS :left
 			dl/HitTestTextPosition this hr no :x :y hit
 			if y < as float32! 0.0 [y: as float32! 0.0]
@@ -239,6 +240,8 @@ OS-text-box-metrics: func [
 			inside?: 0
 			hit: as DWRITE_HIT_TEST_METRICS :left
 			dl/HitTestPoint this x y :trailing? :inside? hit
+			text: as red-string! int + 2
+			if TYPE_OF(text) = TYPE_STRING [left: adjust-index text 0 left -1]
 			if all [type = TBOX_METRICS_INDEX? 0 <> trailing?][left: left + 1]
 			integer/push left + 1
 		]
@@ -359,7 +362,7 @@ OS-text-box-layout: func [
 		TYPE_OF(styles) = TYPE_BLOCK
 		1 < block/rs-length? styles
 	][
-		parse-text-styles target as handle! layout styles 7FFFFFFFh catch?
+		parse-text-styles target as handle! layout styles str catch?
 	]
 	layout
 ]
@@ -436,7 +439,9 @@ txt-box-draw-background: func [
 
 adjust-index: func [
 	str		[red-string!]
+	offset	[integer!]
 	idx		[integer!]
+	adjust	[integer!]
 	return: [integer!]
 	/local
 		s		[series!]
@@ -450,12 +455,12 @@ adjust-index: func [
 	s: GET_BUFFER(str)
 	unit: GET_UNIT(s)
 	if unit = UCS-4 [
-		head: (as byte-ptr! s/offset) + (str/head << 2)
-		tail: head + (idx * 4)
+		head: (as byte-ptr! s/offset) + (str/head + offset << 2)
+		tail: head + (idx + offset * 4)
 		i: 0
 		while [head < tail][
 			c: string/get-char head unit
-			if c >= 00010000h [idx: idx + 1]
+			if c >= 00010000h [idx: idx + adjust]
 			head: head + unit
 		]
 	]

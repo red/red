@@ -1573,9 +1573,7 @@ return-field-editor: func [
 	obj		[integer!]
 	return: [integer!]
 ][
-	if obj <> 0 [
-		objc_setAssociatedObject obj RedFieldEditorKey 0 OBJC_ASSOCIATION_ASSIGN
-	]
+	objc_setAssociatedObject sender RedFieldEditorKey obj OBJC_ASSOCIATION_ASSIGN
 	0
 ]
 
