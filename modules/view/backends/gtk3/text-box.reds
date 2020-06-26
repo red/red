@@ -398,7 +398,7 @@ OS-text-box-layout: func [
 		lc/layout: layout
 		lc/text: str
 		lc/attrs: attrs
-		parse-text-styles target as handle! lc styles 7FFFFFFFh catch?
+		parse-text-styles target as handle! lc styles text catch?
 	]
 	pango_layout_set_attributes layout attrs
 	if new? [
