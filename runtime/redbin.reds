@@ -305,9 +305,20 @@ redbin: context [
 			node   [node!]
 			size   [int-ptr!]
 			next   [integer!]
+			type   [integer!]
 	][
 		either data/1 and REDBIN_REFERENCE_MASK <> 0 [
-			assert false							;@@ TBD
+			data: decode-reference data + 1 parent
+			fun: (as red-function! block/rs-tail parent) - 1
+			
+			type: TYPE_OF(fun)
+			assert any [type = TYPE_FUNCTION ANY_WORD?(type)]
+			
+			series: as series! fun/ctx/value
+			fun: as red-function! copy-cell series/offset + 1 as red-value! fun
+			if nl? [fun/header: fun/header or flag-new-line]
+			
+			data
 		][
 			next: 0
 			node: preprocess-binding data table :next
@@ -1645,9 +1656,8 @@ redbin: context [
 			series   [series!]
 			size     [integer!]
 	][
-		either header and REDBIN_REFERENCE_MASK <> 0 [
-			assert false							;@@ TBD
-		][
+		store payload header
+		unless header and REDBIN_REFERENCE_MASK <> 0 [
 			fun: as red-function! data
 			ctx: as red-value! GET_CTX(fun)
 			series: as series! fun/more/value
@@ -1657,9 +1667,11 @@ redbin: context [
 			size: block/rs-length? as red-block! body
 			series: as series! fun/spec/value
 			
-			store payload header
-			store payload (as integer! series/tail - series/offset) >> size? integer!
-			store payload size
+			record [
+				payload
+				(as integer! series/tail - series/offset) >> size? integer!
+				size
+			]
 			
 			encode-context ctx payload symbols table strings
 			encode-block data TYPE_BLOCK yes payload symbols table strings	;-- structure overlap
