@@ -628,7 +628,27 @@ Red [
 			--assert block/1 == 'foo
 			--assert block/2 == obj
 			--assert block/2 =? context? block/1
+		
+		--test-- "reference-11"
+			foo: does [bar]
+			block: test reduce [:foo :foo]
 			
+			--assert 2 = length? block
+			--assert function? :block/1
+			--assert function? :block/2
+			--assert equal-func? :foo :block/1
+			--assert :block/1 =? :block/2
+		
+		--test-- "reference-12"
+			foo: has [bar][]
+			block: test reduce [bind 'bar :foo :foo]
+			
+			--assert 2 = length? block
+			--assert 'bar = block/1
+			--assert function? :block/2
+			--assert equal-func? :foo :block/2
+			--assert equal-func? context? block/1 :block/2
+		
 	===end-group===
 	
 	===start-group=== "Symbols"
