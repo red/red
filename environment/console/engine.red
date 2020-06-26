@@ -33,7 +33,6 @@ system/console: context [
 	result:		"=="
 	history:	make block! 200
 	size:		0x0
-	running?:	no
 	catch?:		no										;-- YES: force script to fallback into the console
 	delimiters:	[]										;-- multiline delimiters for [squared curly parens]
 	ws:			charset " ^/^M^-"
@@ -114,81 +113,68 @@ system/console: context [
 		]
 	]
 
+	delimiter-map: reduce [
+		block!		#"["
+		paren!		#"("
+		string!		#"{"
+		map!		#"("
+		path!		#"/"
+		lit-path!	#"/"
+		get-path!	#"/"
+		set-path!	#"/"
+	]
+	
+	delimiter-lex: function [
+		event	[word!]
+		input	[string! binary!]
+		type	[datatype! word! none!]
+		line	[integer!]
+		token
+		return:	[logic!]
+		/local	s c
+	][
+		[open close error]
+		switch event [
+			open [
+				append delimiters delimiter-map/:type
+				true
+			]
+			close [
+				if delimiter-map/:type <> last delimiters [throw 'stop]
+				take/last delimiters true
+				true
+			]
+			error [
+				if any [#"/" = last delimiters find "})]" input/1][throw 'stop]
+				if token/y > token/x [
+					s: copy/part head input token
+					switch s/1 [
+						#"<" [
+							append s #">"
+							if tag! = scan s [append delimiters #"<"]
+						]
+						#"%" [
+							c: 1
+							parse s [some [#"%" (c: c + 1)] #"{" (append delimiters #"{")]
+						]
+					]
+				]
+				input: next input
+				false
+			]
+		]
+	]
+	
 	check-delimiters: function [
 		buffer	[string!]
-		/extern delimiters
 		return: [logic!]
 	][
-		escaped: [#"^^" skip]
-		block-rule: [
-			(append delimiters #"[")
-			any [
-				#"[" block-rule
-				| #"{" curly-rule
-				| #"(" paren-rule
-				| pos: #";" :pos remove [skip [thru lf | to end]]
-				| dbl-quote dbl-quote-rule
-				| #"}" (either #"{" = last delimiters [remove back tail delimiters][return false])
-				| #")" (either #"(" = last delimiters [remove back tail delimiters][return false])
-				| #"]" (remove back tail delimiters) break
-				| skip
-			]
-		]
-
-		curly-rule: [
-			(append delimiters #"{")
-			any [
-				escaped
-				| #"{" curly-rule
-				| #"}" (remove back tail delimiters) break
-				| skip
-			]
-		]
-
-		paren-rule: [
-			(append delimiters #"(")
-			any [
-				#"[" block-rule
-				| #"{" curly-rule
-				| #"(" paren-rule
-				| pos: #";" :pos remove [skip [thru lf | to end]]
-				| dbl-quote dbl-quote-rule
-				| #"]" (either #"[" = last delimiters [remove back tail delimiters][return false])
-				| #"}" (either #"{" = last delimiters [remove back tail delimiters][return false])
-				| #")" (remove back tail delimiters) break
-				| skip
-			]
-		]
-
-		dbl-quote-rule: [
-			any [
-				[lf | end] (return false)
-				| escaped
-				| dbl-quote break
-				| skip end (return false)
-				| skip
-			]
-		]
-		
-		parse buffer [
-			any [
-				escaped
-				| pos: #";" if (#"{" <> last delimiters) :pos remove [skip [thru lf | to end]]
-				| #"[" if (#"{" <> last delimiters) block-rule
-				| #"]" if (#"{" <> last delimiters) (either #"[" = last delimiters [remove back tail delimiters][return false])
-				| #"(" if (#"{" <> last delimiters) paren-rule
-				| #")" if (#"{" <> last delimiters) (either #"(" = last delimiters [remove back tail delimiters][return false])
-				| dbl-quote if (#"{" <> last delimiters) dbl-quote-rule
-				| #"{" curly-rule
-				| #"}" (either #"{" = last delimiters [remove back tail delimiters][return false])
-				| skip
-			]
-		]
+		clear delimiters
+		if 'stop = catch [transcode/trace buffer :delimiter-lex][return false]
 		true
 	]
 	
 	try-do: func [code /local result return: [any-type!]][
-		running?: yes
 		set/any 'result try/all [
 			either 'halt-request = set/any 'result catch/name code 'console [
 				print "(halted)"						;-- return an unset value
@@ -196,7 +182,6 @@ system/console: context [
 				:result
 			]
 		]
-		running?: no
 		:result
 	]
 
@@ -246,10 +231,9 @@ system/console: context [
 				print "(escape)"
 			][
 				cue: none
-				res: check-delimiters line
 				append buffer line
 				append buffer lf						;-- needed for multiline modes
-				either res [
+				either check-delimiters buffer [
 					either empty? delimiters [
 						do-command						;-- no delimiters error
 						mode: 'mono
@@ -334,10 +318,10 @@ list-dir: function [
 	]
 	list: read normalize-dir dir
 	limit: system/console/size/x - 13
-	max-sz: either n [
-		limit / n - n					;-- account for n extra spaces
+	max-sz: to-integer either n [
+		limit / n - n									;-- account for n extra spaces
 	][
-		n: max 1 limit / 22				;-- account for n extra spaces
+		n: max 1 limit / 22								;-- account for n extra spaces
 		22 - n
 	]
 

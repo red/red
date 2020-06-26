@@ -1408,9 +1408,9 @@ OS-make-view: func [
 		]
 		sym = field [
 			class: #u16 "RedField"
-			flags: flags or WS_TABSTOP
+			flags: flags or WS_TABSTOP or ES_AUTOHSCROLL
 			if bits and FACET_FLAGS_PASSWORD <> 0 [flags: flags or ES_PASSWORD]
-			unless para? [flags: flags or ES_LEFT or ES_AUTOHSCROLL or ES_NOHIDESEL]
+			unless para? [flags: flags or ES_LEFT or ES_NOHIDESEL]
 			if bits and FACET_FLAGS_NO_BORDER = 0 [ws-flags: ws-flags or WS_EX_CLIENTEDGE]
 		]
 		sym = area [
@@ -2537,7 +2537,7 @@ OS-update-facet: func [
 					change-faces-parent pane null new index part
 				]
 				any [
-					sym = words/_insert/symbol
+					sym = words/_inserted/symbol
 					sym = words/_poke/symbol			;@@ unbind old value
 					sym = words/_put/symbol				;@@ unbind old value
 					sym = words/_moved/symbol

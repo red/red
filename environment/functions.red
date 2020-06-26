@@ -370,7 +370,7 @@ scan: func [
 	buffer  [binary! string!] "Input UTF-8 buffer or string"
 	/next					  "Returns both the type and the input after the value"
 	/fast					  "Fast scanning, returns best guessed type"
-	return: [datatype!]		  "Recognized or guessed type"
+	return: [datatype! none!] "Recognized or guessed type, or NONE on empty input"
 ][
 	either fast [
 		either next [transcode/next/prescan buffer][transcode/prescan buffer]

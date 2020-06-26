@@ -96,7 +96,7 @@ lexer: context [
 	
 	UTF8-char: [pos: UTF8-1 | UTF8-2 | UTF8-3 | UTF8-4]
 	
-	not-word-char:	charset {/\^^,[](){}"#%$@:;}
+	not-word-char:	charset {/\,[](){}"#%$@:;}
 	not-word-1st:	union union not-word-char digit charset {'}
 	not-file-char:	charset {[](){}"@:;}
 	not-url-char:	charset {[](){}";}
@@ -107,7 +107,8 @@ lexer: context [
 	not-tag-1st:	complement union ws-ASCII charset "=><[](){};^""
 	not-tag-char:	complement charset ">"
 	tag-char:		charset "<>"
-	caret-char:		charset [#"^(40)" - #"^(5F)"]
+	caret-Uchar:	charset [#"^(40)" - #"^(5F)"]
+	caret-Lchar:	charset [#"^(61)" - #"^(7A)"]
 	non-printable-char: charset [#"^(00)" - #"^(1F)"]
 	pair-end:		charset {^{"[]();:/}
 	integer-end:	charset {^{"[]();:xX</}
@@ -162,7 +163,8 @@ lexer: context [
 	]
 	
 	newline-char: [
-		#"^/"
+		#"^/"										;-- LF
+		| #"^M"										;-- CR
 		| #{C285}									;-- U+0085 (Newline)
 		| #{E280} [
 			#{A8}									;-- U+2028 (Line separator)
@@ -269,7 +271,7 @@ lexer: context [
 	
 	ref-rule: [(stop: [not-ref-char]) #"@" s: any UTF8-filtered-char e:]
 	
-	refinement-rule: [slash (type: refinement!) s: symbol-rule]
+	refinement-rule: [slash (type: refinement!) s: some [symbol-rule | #":"] e:]
 	
 	slash-rule: [s: [slash opt slash] e:]
 	
@@ -279,12 +281,7 @@ lexer: context [
 		mark: [integer-end | ws-no-count | end | (pos: s throw-error)] :mark
 	]
 
-	tuple-value-rule: [
-		(type: tuple!)
-		byte dot byte 1 12 [dot byte] e:
-	]
-
-	tuple-rule: [tuple-value-rule sticky-word-rule]
+	tuple-rule: [(type: tuple!) byte dot byte 1 12 [dot byte] e: sticky-word-rule]
 	
 	time-rule: [
 		s: positive-integer-rule [
@@ -492,7 +489,8 @@ lexer: context [
 				| #"}"	(value: #"}")
 				| #"^""	(value: #"^"")
 			]
-			| pos: caret-char (value: pos/1 - 64)
+			| pos: caret-Uchar (value: pos/1 - 64)
+			| pos: caret-Lchar (value: pos/1 - 96)
 		]
 	]
 	
@@ -607,7 +605,7 @@ lexer: context [
 	comment-rule: [#";" [to #"^/" | to end]]
 	
 	wrong-end: [(
-			ending: either 1 < length? stack/stk [
+			ending: either all [1 < length? stack/stk not empty? stack/stk/1][
 				value: switch type?/word stack/top [
 					block! [#"]"]
 					paren! [#")"]
@@ -931,7 +929,7 @@ lexer: context [
 		replace/all copy/part s back e "%" "%25"
 	]
 	
-	identify-header: func [src /local p ws found?][
+	identify-header: func [src /local p ws found? pos][
 		ws: charset " ^-^M^/"
 		rs?: no
 		pos: src

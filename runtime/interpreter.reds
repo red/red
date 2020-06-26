@@ -437,6 +437,7 @@ interpreter: context [
 		end	  	[red-value!]
 		path	[red-path!]
 		ref-pos [red-value!]
+		origin	[red-native!]
 		return: [red-value!]
 		/local
 			fun	  	  [red-function!]
@@ -497,6 +498,7 @@ interpreter: context [
 				blk/extra:	0
 			][
 				native/args: args
+				origin/args: args
 			]
 		]
 		
@@ -740,25 +742,26 @@ interpreter: context [
 		parent	[red-value!]
 		return: [red-value!]
 		/local
+			caller origin [red-native!]
 			name  [red-word!]
 			obj   [red-object!]
 			fun	  [red-function!]
 			int	  [red-integer!]
-			saved [red-value!]
 			s	  [series!]
 			ctx	  [node!]
 	][
 		name: as red-word! either null? slot [pc - 1][slot]
 
 		if TYPE_OF(name) <> TYPE_WORD [name: words/_anon]
-		saved: stack/push value							;-- prevent word's value slot to be corrupted #2199
+		caller: as red-native! stack/push value			;-- prevent word's value slot to be corrupted #2199
+		origin: as red-native! value
 		
 		switch TYPE_OF(value) [
 			TYPE_ACTION 
 			TYPE_NATIVE [
 				#if debug? = yes [if verbose > 0 [log "pushing action/native frame"]]
 				stack/mark-interp-native name
-				pc: eval-arguments as red-native! value pc end path slot 	;-- fetch args and exec
+				pc: eval-arguments caller pc end path slot origin ;-- fetch args and exec
 				either sub? [stack/unwind][stack/unwind-last]
 				#if debug? = yes [
 					if verbose > 0 [
@@ -770,8 +773,8 @@ interpreter: context [
 			TYPE_ROUTINE [
 				#if debug? = yes [if verbose > 0 [log "pushing routine frame"]]
 				stack/mark-interp-native name
-				pc: eval-arguments as red-native! value pc end path slot
-				exec-routine as red-routine! value
+				pc: eval-arguments caller pc end path slot origin
+				exec-routine as red-routine! caller
 				either sub? [stack/unwind][stack/unwind-last]
 				#if debug? = yes [
 					if verbose > 0 [
@@ -799,9 +802,8 @@ interpreter: context [
 					]
 				]
 				stack/mark-interp-func name
-				pc: eval-arguments as red-native! value pc end path slot
-				value: saved
-				_function/call as red-function! value ctx
+				pc: eval-arguments origin pc end path slot origin
+				_function/call as red-function! caller ctx
 				either sub? [stack/unwind][stack/unwind-last]
 				#if debug? = yes [
 					if verbose > 0 [
@@ -825,6 +827,7 @@ interpreter: context [
 		passive?  [logic!]
 		return:   [red-value!]
 		/local
+			saved  [red-value! value]
 			next   [red-word!]
 			value  [red-value!]
 			left   [red-value!]
@@ -844,7 +847,7 @@ interpreter: context [
 			if infix? [
 				stack/mark-interp-native as red-word! pc + 1
 				sub?: yes								;-- force sub? for infix expressions
-				op: value
+				op: copy-cell value saved
 			]
 		]
 		

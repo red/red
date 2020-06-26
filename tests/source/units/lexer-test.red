@@ -40,7 +40,7 @@ Red [
 		nl: reduce [no no no no no no yes yes yes]
 		forall out [--assert nl/1 = new-line? out nl: next nl]
 
-	--test-- "tr-15" --assert [#"@" #" " #"^/"] == transcode {#"^^@" #"^^(20)" #"^^(line)" }
+	--test-- "tr-15" --assert [#"^@" #" " #"^/" #"^@"] == transcode {#"^^@" #"^^(20)" #"^^(line)" #""}
 	--test-- "tr-16"
 		out: transcode {
 			#{33AA}
@@ -399,6 +399,14 @@ Red [
 	--test-- "tr-39" --assert ["a^^b"] == transcode "%{a^^b}%"
 	--test-- "tr-40" --assert ["}"] == transcode "%{}}%"
 	--test-- "tr-41" --assert ["Nice^^World}% rawstring! "] == transcode "%%{Nice^^World}% rawstring! }%%"
+	--test-- "tr-42" --assert [a /c^d /e^] == transcode "a^b/c^^d/e^^^f"
+	--test-- "tr-43" --assert [/a /b] == transcode "/a/b"
+	--test-- "tr-44" --assert error? try [transcode "[12#(a: 3)]"]
+
+	--test-- "tr-45"
+		--assert [#"a" - #"z"] = out: transcode {#"a"-#"z"}
+		types: [char! word! char!]
+		repeat i 3 [--assert types/:i = type?/word out/:i]
 
 ===end-group===
 ===start-group=== "transcode/one"
@@ -608,6 +616,23 @@ Red [
 	--test-- "tro-141"  --assert -1000000000 == transcode/one "-1'000'000'000"
 	--test-- "tro-142"  --assert -1000000000 == transcode/one "-1000000000"
 
+	--test-- "tro-143"  --assert #"^@" == transcode/one {#""}
+	--test-- "tro-144"  --assert error? try [transcode/one {"hello^/world"}]
+	--test-- "tro-145"  --assert "hello^Mworld" == transcode/one {"hello^Mworld"}
+	--test-- "tro-146"  --assert "hello^-world" == transcode/one {"hello^-world"}
+
+	--test-- "tro-147"  --assert -12:02:00 == transcode/one "-12:2"
+	--test-- "tro-148"  --assert  12:02:00 == transcode/one "+12:2"
+
+	--test-- "tro-149"  --assert  error? try [transcode/one {12#""}]
+	--test-- "tro-150"  --assert  error? try [transcode/one {16#"1"}]
+	--test-- "tro-151"  --assert  error? try [transcode/one {16#"12"}]
+
+	--test-- "tro-152"  --assert /v: == transcode/one "/v:"
+	--test-- "tro-153"  --assert refinement! == type? transcode/one "/v:"
+	--test-- "tro-154"  --assert /value: == transcode/one "/value:"
+	--test-- "tro-155"  --assert refinement! == type? transcode/one "/value:"
+
 ===end-group===
 ===start-group=== "transcode/next"
 
@@ -696,6 +721,19 @@ Red [
 	--test-- "scan-57" --assert error!	 = scan "#{BADFACE}"
 	--test-- "scan-58" --assert date!	 = scan "29/02/2020"
 	--test-- "scan-59" --assert error!	 = scan "30/02/2020"
+	--test-- "scan-60" --assert none? 	   scan ""
+	--test-- "scan-61" --assert char!	 = scan {#""}
+	--test-- "scan-62" --assert error!	 = scan {"hello^/world"}
+	--test-- "scan-63" --assert string!	 = scan {"hello^Mworld"}
+	--test-- "scan-64" --assert string!	 = scan {"hello^-world"}
+	--test-- "scan-65" --assert error!	 = scan "a/ "
+	--test-- "scan-66" --assert logic!	 = scan "#[true]"
+	--test-- "scan-67" --assert logic!	 = scan "#[false]"
+	--test-- "scan-68" --assert none!	 = scan "#[none]"
+	--test-- "scan-69" --assert integer! = scan "#[integer!]"
+	--test-- "scan-70" --assert error!	 = scan "#[int!]"
+	--test-- "scan-71"  --assert refinement! = scan "/v:"
+	--test-- "scan-72"  --assert refinement! = scan "/value:"
 
 ===end-group===
 ===start-group=== "scan/fast"
@@ -714,23 +752,32 @@ Red [
 	--test-- "scan-f12" --assert string! = scan/fast "{}"
 	--test-- "scan-f13" --assert string! = scan/fast {""}
 
-	--test-- "scan-39" --assert error!   = scan/fast "[a"
-	--test-- "scan-40" --assert error!   = scan/fast "(a"
-	--test-- "scan-41" --assert block!   = scan/fast "[a]"
-	--test-- "scan-42" --assert paren!   = scan/fast "(a)"
-	--test-- "scan-43" --assert block!   = scan/fast "[a 123]"
-	--test-- "scan-44" --assert paren!   = scan/fast "(a 123)"
-	--test-- "scan-45" --assert integer! = scan/fast "123"
-	--test-- "scan-46" --assert integer! = scan/fast "-123"
-	--test-- "scan-47" --assert float! 	 = scan/fast "1.0"
-	--test-- "scan-48" --assert float! 	 = scan/fast "123.0"
-	--test-- "scan-49" --assert float! 	 = scan/fast "+1.0"
-	--test-- "scan-50" --assert float! 	 = scan/fast "-1.0"
-	--test-- "scan-51" --assert float! 	 = scan/fast "-123.0"
-	--test-- "scan-52" --assert float! 	 = scan/fast "+123.0"
-	--test-- "scan-53" --assert float! 	 = scan/fast "-123."
-	--test-- "scan-54" --assert float! 	 = scan/fast "123."
-	--test-- "scan-55" --assert float!	 = scan/fast ".5"
+	--test-- "scan-f39" --assert error!   = scan/fast "[a"
+	--test-- "scan-f40" --assert error!   = scan/fast "(a"
+	--test-- "scan-f41" --assert block!   = scan/fast "[a]"
+	--test-- "scan-f42" --assert paren!   = scan/fast "(a)"
+	--test-- "scan-f43" --assert block!   = scan/fast "[a 123]"
+	--test-- "scan-f44" --assert paren!   = scan/fast "(a 123)"
+	--test-- "scan-f45" --assert integer! = scan/fast "123"
+	--test-- "scan-f46" --assert integer! = scan/fast "-123"
+	--test-- "scan-f47" --assert float!   = scan/fast "1.0"
+	--test-- "scan-f48" --assert float!	  = scan/fast "123.0"
+	--test-- "scan-f49" --assert float!	  = scan/fast "+1.0"
+	--test-- "scan-f50" --assert float!   = scan/fast "-1.0"
+	--test-- "scan-f51" --assert float!   = scan/fast "-123.0"
+	--test-- "scan-f52" --assert float!   = scan/fast "+123.0"
+	--test-- "scan-f53" --assert float!   = scan/fast "-123."
+	--test-- "scan-f54" --assert float!   = scan/fast "123."
+	--test-- "scan-f55" --assert float!	  = scan/fast ".5"
+	--test-- "scan-f56" --assert none? 	    scan/fast ""
+	--test-- "scan-f57" --assert error!	  = scan/fast "a/ "
+	--test-- "scan-f58" --assert logic!	  = scan/fast "#[true]"
+	--test-- "scan-f59" --assert logic!	  = scan/fast "#[false]"
+	--test-- "scan-f60" --assert none!	  = scan/fast "#[none]"
+	--test-- "scan-f61" --assert integer! = scan/fast "#[integer!]"
+	--test-- "scan-f62" --assert error!	  = scan/fast "#[int!]"
+	--test-- "scan-f63" --assert refinement! = scan/fast "/v:"
+	--test-- "scan-f64" --assert refinement! = scan/fast "/value:"
 
 ===end-group===
 ===start-group=== "transcode/trace"
@@ -778,9 +825,10 @@ Red [
 			load integer! datatype! 1 1
 			prescan path! datatype! 1 6x7
 			open path! datatype! 1 6x6
+			scan word! datatype! 1 6x7
 			load word! datatype! 1 b
 			prescan error! datatype! 1 8x8
-			error error! datatype! 1 8x8
+			error path! datatype! 1 6x8
 			prescan block! datatype! 1 9x9
 			open block! datatype! 1 9x9
 			prescan block! datatype! 1 10x10
@@ -799,9 +847,10 @@ Red [
 			load integer! datatype! 1 1
 			prescan path! datatype! 1 6x7
 			open path! datatype! 1 6x6
+			scan word! datatype! 1 6x7
 			load word! datatype! 1 b
 			prescan error! datatype! 1 8x8
-			error error! datatype! 1 8x8
+			error path! datatype! 1 6x8
 			prescan word! datatype! 1 9x10
 			scan word! datatype! 1 9x10
 			load word! datatype! 1 x
@@ -818,7 +867,7 @@ Red [
 			scan integer! datatype! 1 4x5
 			load integer! datatype! 1 1
 			prescan map! datatype! 1 6x7
-			open map! datatype! 1 7x7
+			open map! datatype! 1 6x7
 			prescan word! datatype! 1 8x10
 			scan set-word! datatype! 1 8x10
 			load set-word! datatype! 1 r:
@@ -832,7 +881,7 @@ Red [
 			prescan word! datatype! 1 16x17
 			scan word! datatype! 1 16x17
 			load word! datatype! 1 x
-			error error! datatype! 1 14x17
+			error block! datatype! 1 14x17
 		]
 
 	--test-- "tt-4"
@@ -847,7 +896,7 @@ Red [
 			load integer! datatype! 1 1
 			prescan paren! datatype! 1 6x6
 			close paren! datatype! 1 6x6
-			error error! datatype! 1 6x6
+			error paren! datatype! 1 6x6
 			prescan word! datatype! 1 8x9
 			scan word! datatype! 1 8x9
 			load word! datatype! 1 x
@@ -884,6 +933,8 @@ Red [
 			open string! datatype! 1 5x5
 			prescan string! datatype! 1 6x9
 			close string! datatype! 1 6x9
+			scan string! datatype! 1 6x9 
+    		load string! datatype! 1 "abc" 
 			prescan integer! datatype! 1 11x23
 			scan float! datatype! 1 11x23
 			load float! datatype! 1 123456789123.0
@@ -904,7 +955,7 @@ Red [
 			load integer! datatype! 1 1
 			prescan block! datatype! 1 6x6
 			close block! datatype! 1 6x6
-			error error! datatype! 1 6x6
+			error block! datatype! 1 6x6
 		]
 
 	--test-- "tt-8"	
@@ -946,6 +997,8 @@ Red [
 			open string! datatype! 4 19x19
 			prescan string! datatype! 4 20x24
 			close string! datatype! 4 20x24
+			scan string! datatype! 4 20x24 
+    		load string! datatype! 4 "test"
 			prescan float! datatype! 4 26x30
 			scan float! datatype! 4 26x30
 			load float! datatype! 4 3.14
@@ -1038,7 +1091,7 @@ Red [
 			load set-word! datatype! 1 r:
 			load integer! datatype! 1 2
 			load word! datatype! 1 x
-			error error! datatype! 1 14x17
+			error block! datatype! 1 14x17
 		]
 
 	--test-- "tt-13"
@@ -1070,6 +1123,7 @@ Red [
 			load pair! datatype! 4 3x4
 			open string! datatype! 4 19x19
 			close string! datatype! 4 20x24
+			load string! datatype! 4 "test" 
 			load float! datatype! 4 3.14
 			load word! datatype! 4 pi
 			close block! datatype! 4 33x33
@@ -1102,22 +1156,158 @@ Red [
 		    open block! datatype! 1 4x4
 		    prescan path! datatype! 1 5x6
 		    open path! datatype! 1 5x5
+		    scan word! datatype! 1 5x6
 		    load word! datatype! 1 b
 		    prescan word! datatype! 1 7x8
 		    scan word! datatype! 1 7x8
 		    load word! datatype! 1 c
 		    prescan error! datatype! 1 9x9
-		    error error! datatype! 1 9x9
+		    error path! datatype! 1 5x9
 		    prescan path! datatype! 1 10x11
 		    open path! datatype! 1 10x10
+		    scan word! datatype! 1 10x11
 		    load word! datatype! 1 d
 		    prescan word! datatype! 1 12x13
 		    scan word! datatype! 1 12x13
 		    load word! datatype! 1 e
 		    close path! datatype! 1 12x13
-		    error error! datatype! 1 4x13
+		    error block! datatype! 1 4x13
 		]
 
+	--test-- "tt-15"
+		clear logs
+		--assert [] = transcode/trace "{^/" :lex-logger
+		--assert logs = [
+			   prescan string! datatype! 1 1x1 
+			   open string! datatype! 1 1x1 
+			   prescan error! datatype! 2 1x3 
+			   error string! datatype! 2 1x3
+		]
+
+	--test-- "tt-16"
+		clear logs
+		--assert [i/(j): 3] = transcode/trace {i/(j): 3} :lex-logger
+		--assert logs = [
+		    prescan path! datatype! 1 1x2 
+		    open path! datatype! 1 1x1 
+		    scan word! datatype! 1 1x2 
+		    load word! datatype! 1 i 
+		    prescan paren! datatype! 1 3x3 
+		    open paren! datatype! 1 3x3 
+		    prescan word! datatype! 1 4x5 
+		    scan word! datatype! 1 4x5 
+		    load word! datatype! 1 j 
+		    prescan paren! datatype! 1 5x5 
+		    close paren! datatype! 1 5x5 
+		    close set-path! datatype! 1 5x6 
+		    prescan integer! datatype! 1 8x9 
+		    scan integer! datatype! 1 8x9 
+		    load integer! datatype! 1 3
+		]
+
+	--test-- "tt-17"
+		clear logs
+		--assert [] = transcode/trace {#"^^(00) a"} :lex-logger
+		--assert logs = [
+		    prescan char! datatype! 1 1x10 
+		    error char! datatype! 1 1x10 
+		]
+
+	--test-- "tt-18"
+		clear logs
+		--assert none? transcode/trace {[(] a} :lex-logger
+		--assert logs = [
+		    prescan block! datatype! 1 1x1 
+		    open block! datatype! 1 1x1 
+		    prescan paren! datatype! 1 2x2 
+		    open paren! datatype! 1 2x2 
+		    prescan block! datatype! 1 3x3 
+		    close block! datatype! 1 3x3 
+		    error paren! datatype! 1 3x3 
+		    prescan word! datatype! 1 5x6 
+		    scan word! datatype! 1 5x6 
+		    load word! datatype! 1 a 
+		    error paren! datatype! 1 2x6
+		]
+
+	--test-- "tt-19"
+		clear logs
+		--assert none? transcode/trace {[(]} :lex-logger
+		--assert logs = [
+		    prescan block! datatype! 1 1x1 
+		    open block! datatype! 1 1x1 
+		    prescan paren! datatype! 1 2x2 
+		    open paren! datatype! 1 2x2 
+		    prescan block! datatype! 1 3x3 
+		    close block! datatype! 1 3x3 
+		    error paren! datatype! 1 3x3 
+		    error paren! datatype! 1 2x4
+		]
+
+	--test-- "tt-20"
+		clear logs
+		--assert [()] = transcode/trace {(])} :lex-logger
+		--assert logs = [
+		    prescan paren! datatype! 1 1x1 
+		    open paren! datatype! 1 1x1 
+		    prescan block! datatype! 1 2x2 
+		    close block! datatype! 1 2x2 
+		    error paren! datatype! 1 2x2 
+		    prescan paren! datatype! 1 3x3 
+		    close paren! datatype! 1 3x3
+		]
+
+	--test-- "tt-21"
+		clear logs
+		--assert none? transcode/trace {[(]} :lex-logger
+		--assert logs = [
+		    prescan block! datatype! 1 1x1 
+		    open block! datatype! 1 1x1 
+		    prescan paren! datatype! 1 2x2 
+		    open paren! datatype! 1 2x2 
+		    prescan block! datatype! 1 3x3 
+		    close block! datatype! 1 3x3 
+		    error paren! datatype! 1 3x3 
+		    error paren! datatype! 1 2x4
+		]
+
+	--test-- "tt-22"
+		clear logs
+		--assert [[()]] = transcode/trace {[(]])]} :lex-logger
+		--assert logs = [
+		    prescan block! datatype! 1 1x1 
+		    open block! datatype! 1 1x1 
+		    prescan paren! datatype! 1 2x2 
+		    open paren! datatype! 1 2x2 
+		    prescan block! datatype! 1 3x3 
+		    close block! datatype! 1 3x3 
+		    error paren! datatype! 1 3x3 
+		    prescan block! datatype! 1 4x4 
+		    close block! datatype! 1 4x4 
+		    error paren! datatype! 1 4x4 
+		    prescan paren! datatype! 1 5x5 
+		    close paren! datatype! 1 5x5 
+		    prescan block! datatype! 1 6x6 
+		    close block! datatype! 1 6x6
+		]
+
+	--test-- "tt-23"
+		clear logs
+		--assert [] = transcode/trace "#([]22)" :lex-logger
+		--assert logs = [
+			prescan map! datatype! 1 1x2 
+		    open map! datatype! 1 1x2 
+		    prescan block! datatype! 1 3x3 
+		    open block! datatype! 1 3x3 
+		    prescan block! datatype! 1 4x4 
+		    close block! datatype! 1 4x4 
+		    prescan integer! datatype! 1 5x7 
+		    scan integer! datatype! 1 5x7 
+		    load integer! datatype! 1 22 
+		    prescan paren! datatype! 1 7x7 
+		    close map! datatype! 1 7x7 
+		    error map! datatype! 1 7x7
+		]
 
 ===end-group===
 

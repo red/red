@@ -28,6 +28,7 @@ object [
 
 	top:		1								;-- index of the first visible line in the line buffer
 	line:		none							;-- current editing line
+	line-pos:	0								;-- current editing line's position in lines
 	pos:		0								;-- insert position of the current editing line
 
 	scroll-y:	0								;-- in pixels
@@ -130,27 +131,30 @@ object [
 		s: find str lf
 		either s [
 			cnt: 0
-			until [
-				add-line copy/part str s
+			unless all [lf? not prin?][
+				vprin copy/part str s
+				str: skip s 1
+				s: find str lf
+			]
+			while [s][
+				add-lines copy/part str s no
 				str: skip s 1
 				cnt: cnt + 1
 				if cnt = 100 [
 					refresh
 					cnt: 0
 				]
-				not s: find str lf
+				s: find str lf
 			]
-			either all [lf? not prin?][add-line copy str][vprin str]
+			add-lines str yes
 		][
-			either all [lf? not prin?][add-line copy str][
+			either all [lf? not prin?][add-lines str yes][
 				if first-prin? [add-line make string! 8]
 				vprin str
 			]
 		]
 		prin?: not lf?
-		if system/console/running? [
-			system/view/platform/redraw console
-		]
+		system/view/platform/redraw console
 		()				;-- return unset!
 	]
 
@@ -197,6 +201,20 @@ object [
 			append flags 0
 			full?: max-lines = length? lines
 			calc-top
+		]
+	]
+
+	add-lines: function [str [string!] copy? [logic!]][
+		cols: system/console/size/x
+		either 30 * cols > length? str [
+			if copy? [str: copy str]
+			add-line str
+		][												;-- split very long string
+			until [
+				add-line copy/part str cols				;-- TBD use slice! to avoid copying
+				str: skip str cols
+				empty? str
+			]
 		]
 	]
 
@@ -691,11 +709,7 @@ object [
 		p-idx: index? str
 		candidates: red-complete-ctx/complete-input skip str pos yes
 		case [
-			empty? candidates [
-				insert skip str pos char
-				pos: pos + 1
-				clear redo-stack
-			]
+			empty? candidates [0]		;-- TBD: beep
 			1 = length? candidates [
 				clear head str
 				pos: (index? candidates/1) - p-idx
@@ -710,6 +724,7 @@ object [
 				pos: (index? candidates/1) - p-idx
 				append str head candidates/1
 				add-line head line
+				line-pos: length? lines
 			]
 		]
 		clear selects
@@ -814,6 +829,7 @@ object [
 		line-y:		0
 		line-cnt:	0
 		screen-cnt: 0
+		line-pos:	1
 		clear lines
 		clear nlines
 		clear heights
@@ -831,6 +847,11 @@ object [
 
 	press-key: func [event [event!] /local char ctrl? shift?][
 		unless ask? [exit]
+		if line-pos <> length? lines [
+			poke lines line-pos copy head line
+			add-line head line
+			line-pos: length? lines
+		]
 		if ime-open? [
 			remove/part skip line ime-pos pos - ime-pos
 			pos: ime-pos

@@ -26,7 +26,7 @@ highlight: context [
 		[scan error]
 		switch event [
 			scan [
-				if all [type style: select _theme type][
+				if all [type style: select _theme to-word type][
 					append _dst as-pair token/x token/y - token/x
 					append _dst style
 				]
@@ -40,11 +40,9 @@ highlight: context [
 		src		[string!]
 		dst		[block! none!]
 		theme	[map!]
-		return: [block!]
 	][
 		_dst: dst
 		_theme: theme
 		transcode/trace src :lex
-		dst
 	]
 ]

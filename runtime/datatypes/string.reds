@@ -894,14 +894,9 @@ string: context [
 				][no]
 			]
 			default  [
-				either all [								;@@ ANY_STRING - TAG
-					type <> TYPE_STRING
-					type <> TYPE_FILE
-					type <> TYPE_URL
-					type <> TYPE_EMAIL
-				][no][
+				either ANY_STRING?(type) [				;-- TYPE_TAG excluded
 					zero? equal? str as red-string! value op yes
-				]
+				][no]
 			]
 		]
 	]
@@ -1608,22 +1603,21 @@ string: context [
 		str2	[red-string!]							;-- second operand (any-string!)
 		op		[integer!]								;-- type of comparison
 		return:	[integer!]
+		/local
+			type1 type2 [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/compare"]]
 		
+		type1: TYPE_OF(str1)
+		type2: TYPE_OF(str2)
+		
 		if all [
-			TYPE_OF(str2) <> TYPE_OF(str1)
+			type1 <> type2
 			any [
+				not ANY_STRING?(type2)
 				all [
 					op <> COMP_EQUAL
 					op <> COMP_NOT_EQUAL
-				]
-				all [
-					TYPE_OF(str2) <> TYPE_STRING		;@@ use ANY_STRING?
-					TYPE_OF(str2) <> TYPE_FILE
-					TYPE_OF(str2) <> TYPE_URL
-					TYPE_OF(str2) <> TYPE_TAG
-					TYPE_OF(str2) <> TYPE_EMAIL
 				]
 			]
 		][RETURN_COMPARE_OTHER]
@@ -1930,13 +1924,7 @@ string: context [
 			]
 		]
 
-		case?: either any [ 							;-- inverted case? meaning
-			type = TYPE_STRING							;@@ use ANY_STRING?
-			type = TYPE_FILE
-			type = TYPE_URL
-			type = TYPE_TAG
-			type = TYPE_EMAIL
-		][not case?][no]
+		case?: either ANY_STRING?(type) [not case?][no]
 		if same? [case?: no]
 		reverse?: any [reverse? last?]					;-- reduce both flags to one
 		step: step << (unit >> 1)
@@ -1961,11 +1949,7 @@ string: context [
 				bs?:   yes
 				case?: no
 			]
-			TYPE_STRING
-			TYPE_FILE
-			TYPE_URL
-			TYPE_TAG
-			TYPE_EMAIL
+			TYPE_ANY_STRING
 			TYPE_BINARY
 			TYPE_WORD [
 				either TYPE_OF(value) = TYPE_WORD [
@@ -2120,11 +2104,7 @@ string: context [
 		
 		if TYPE_OF(result) <> TYPE_NONE [
 			offset: switch TYPE_OF(value) [
-				TYPE_STRING
-				TYPE_FILE
-				TYPE_URL
-				TYPE_TAG
-				TYPE_EMAIL
+				TYPE_ANY_STRING
 				TYPE_WORD
 				TYPE_BINARY [
 					either TYPE_OF(value) = TYPE_WORD [
@@ -2407,11 +2387,9 @@ string: context [
 					]
 					added: added + 1
 				][
-					either any [
-						type = TYPE_STRING				;@@ replace with ANY_STRING?
-						type = TYPE_FILE 
-						type = TYPE_URL
-						type = TYPE_EMAIL
+					either all [
+						ANY_STRING?(type)
+						type <> TYPE_TAG				;-- preserve angle brackets
 					][
 						form-buf: as red-string! cell
 					][
@@ -2788,12 +2766,9 @@ string: context [
 				]
 				added: added + 1
 			][
-				either any [
-					type = TYPE_STRING				;@@ replace with ANY_STRING?
-					type = TYPE_FILE 
-					type = TYPE_URL
-					type = TYPE_TAG
-					type = TYPE_EMAIL
+				either all [
+					ANY_STRING?(type)
+					type <> TYPE_TAG				;-- preserve angle brackets
 				][
 					form-buf: as red-string! cell
 				][
