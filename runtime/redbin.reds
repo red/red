@@ -1643,6 +1643,7 @@ redbin: context [
 			fun      [red-function!]
 			ctx body [red-value!]
 			series   [series!]
+			size     [integer!]
 	][
 		either header and REDBIN_REFERENCE_MASK <> 0 [
 			assert false							;@@ TBD
@@ -1653,9 +1654,12 @@ redbin: context [
 			body: series/offset
 			assert TYPE_OF(body) = TYPE_BLOCK
 			
+			size: block/rs-length? as red-block! body
+			series: as series! fun/spec/value
+			
 			store payload header
-			store payload block/rs-length? as red-block! data
-			store payload block/rs-length? as red-block! body
+			store payload (as integer! series/tail - series/offset) >> size? integer!
+			store payload size
 			
 			encode-context ctx payload symbols table strings
 			encode-block data TYPE_BLOCK yes payload symbols table strings	;-- structure overlap
