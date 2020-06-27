@@ -340,11 +340,13 @@ object [
 
 	zoom: func [event /local ft sz][
 		box/line-spacing: none
-		ft: box/font
-		sz: ft/size
-		either event/picked > 0 [sz: sz + 1][sz: sz - 1]
-		if sz = 5 [exit]		;-- mininum size
-		ft/size: sz
+		either object? event [ft: event][
+			ft: box/font
+			sz: ft/size
+			either event/picked > 0 [sz: sz + 1][sz: sz - 1]
+			if sz = 5 [exit]		;-- mininum size
+			ft/size: sz
+		]
 		update-cfg ft none
 	]
 
