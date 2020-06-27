@@ -370,10 +370,13 @@ lexer: context [
 			lex/scanned: TYPE_ERROR
 			throw LEX_ERR								;-- bypass errors when scanning only
 		]
+		slot: lex/head
+		if slot > lex/buffer [slot: lex/head - 1]
+		po: as red-point! slot						;-- take start of the parent series
 		if null? s [									;-- determine token's start
-			slot: lex/head
-			if slot > lex/buffer [slot: lex/head - 1]
-			po: as red-point! slot						;-- take start of the parent series
+			;slot: lex/head
+			;if slot > lex/buffer [slot: lex/head - 1]
+			;po: as red-point! slot						;-- take start of the parent series
 			either TYPE_OF(po) <> TYPE_POINT [s: lex/input][s: lex/input + po/z]
 		]
 		if lex/fun-ptr <> null [
@@ -385,8 +388,12 @@ lexer: context [
 					true			[TYPE_ERROR]
 				]
 			]
-			if lex/entry = S_PATH [close-block lex s e -1 yes]
-			unless fire-event lex EVT_ERROR t null s e [throw LEX_ERR]
+			;if lex/entry = S_PATH [close-block lex s e -1 yes]
+			unless fire-event lex EVT_ERROR t null s e [
+probe lex/closing
+				if any [lex/closing > 0 lex/entry = S_PATH][pop-block lex po t no]
+				throw LEX_ERR
+			]
 		]
 		e: lex/in-end
 		len: 0
@@ -405,6 +412,7 @@ lexer: context [
 		lex/closing: 0
 		lex/tail: lex/buffer							;-- clear accumulated values
 		if closing = TYPE_PATH [type: ERR_BAD_CHAR]		;-- forces a better error report
+		if closing > 0 [probe "late" pop-block lex po closing no]
 
 		switch type [
 			ERR_BAD_CHAR 	 [fire [TO_ERROR(syntax bad-char) line pos]]
@@ -575,42 +583,16 @@ lexer: context [
 		lex/entry: S_START
 	]
 
-	close-block: func [lex [state!] s e [byte-ptr!] type [integer!] quiet? [logic!]
+	pop-block: func [lex [state!] p [red-point!] type [integer!] store? [logic!]
 		return: [integer!]
-		/local	
-			p [red-point!]
-			len	stype t [integer!]
-			do-error [subroutine!]
-			point?	 [logic!]
-			head	 [red-value!]
+		/local
+			len	 [integer!]
+			head [red-value!]
 	][
-		do-error: [
-			lex/closing: type
-			throw-error lex s e ERR_MISSING
-		]
-		p: as red-point! lex/head - 1
-		point?: all [lex/buffer <= p TYPE_OF(p) = TYPE_POINT]
-		if all [not quiet? lex/fun-ptr <> null][
-			t: either all [point? any [type <= 0 all [type = TYPE_PAREN p/y <> type]]][p/y][type]
-			unless fire-event lex EVT_CLOSE t null s e [return 0]
-		]
-		unless point? [do-error]						;-- postpone error checking after callback call
-		stype: p/y
-		either type = -1 [type: stype][					;-- no closing type provided, use saved one
-			if all [
-				type <> TYPE_SET_PATH					;-- let set-path override saved type
-				not all [stype = TYPE_MAP type = TYPE_PAREN];-- paren can close a map
-				stype <> type							;-- saved type <> closing type => error
-			][
-				if point? [type: p/y]
-				do-error
-			]
-		]
-		
 		len: (as-integer lex/tail - lex/head) >> 4
 		head: lex/head
 		lex/head: as cell! p - p/x
-		store-any-block as cell! p head len type	;-- p slot gets overwritten here
+		if store? [store-any-block as cell! p head len type] ;-- p slot gets overwritten here
 		lex/tail: head
 		lex/scanned: type
 		
@@ -624,6 +606,39 @@ lexer: context [
 		][
 			lex/entry: S_START
 		]
+	]
+	
+	close-block: func [lex [state!] s e [byte-ptr!] type [integer!] quiet? [logic!]
+		return: [integer!]
+		/local	
+			p [red-point!]
+			stype t  [integer!]
+			do-error [subroutine!]
+			point?	 [logic!]
+	][
+		do-error: [
+			lex/closing: type
+			throw-error lex s e ERR_MISSING
+		]
+		p: as red-point! lex/head - 1
+		point?: all [lex/buffer <= p TYPE_OF(p) = TYPE_POINT]
+		unless point? [do-error]						;-- postpone error checking after callback call
+		stype: p/y
+		either type = -1 [type: stype][					;-- no closing type provided, use saved one
+			if all [
+				type <> TYPE_SET_PATH					;-- let set-path override saved type
+				not all [stype = TYPE_MAP type = TYPE_PAREN];-- paren can close a map
+				stype <> type							;-- saved type <> closing type => error
+			][
+				if point? [type: p/y]
+				do-error
+			]
+		]
+		if all [not quiet? lex/fun-ptr <> null][
+			t: either all [point? any [type <= 0 all [type = TYPE_PAREN p/y <> type]]][p/y][type]
+			unless fire-event lex EVT_CLOSE t null s e [return 0]
+		]
+		pop-block lex p type yes
 		stype
 	]
 	
