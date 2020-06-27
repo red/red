@@ -2641,7 +2641,7 @@ OS-to-image: func [
 		img: image/init-image as red-image! stack/push* as int-ptr! bitmap
 	]
 
-    if screen? [DeleteDC mdc]				;-- we delete it in Draw when print window
+    DeleteDC mdc
     DeleteObject bmp
     unless screen? [ReleaseDC hWnd dc]
 	img
