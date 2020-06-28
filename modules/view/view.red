@@ -270,7 +270,7 @@ on-face-deep-change*: function ["Internal use only" owner word target action new
 									faces: next faces
 								]
 							]
-							unless forced? [show owner]
+							;unless forced? [show owner]
 							system/view/platform/on-change-facet owner word target action new index part
 						]
 					]
