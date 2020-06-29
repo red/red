@@ -649,6 +649,32 @@ Red [
 			--assert equal-func? :foo :block/2
 			--assert equal-func? context? block/1 :block/2
 		
+		--test-- "reference-13"
+			foo: does [1 2 [3 4]]
+			block: test reduce [:foo next body-of :foo tail last body-of :foo]
+			
+			--assert 3 = length? block
+			--assert "[func [][1 2 [3 4]] [2 [3 4]] []]" = mold/flat block
+			--assert function? :block/1
+			--assert equal-func? :foo :block/1
+			--assert block? block/2
+			--assert block? block/3
+			--assert same? body-of :block/1 head block/2
+			--assert same? last body-of :block/1 head block/3
+		
+		--test-- "reference-14"
+			foo: func [bar [integer! none!]][]
+			block: test reduce [:foo next spec-of :foo tail last spec-of :foo]
+			
+			--assert 3 = length? block
+			--assert "[func [bar [integer! none!]][] [[integer! none!]] []]" = mold/flat block
+			--assert function? :block/1
+			--assert equal-func? :foo :block/1
+			--assert block? block/2
+			--assert block? block/3
+			--assert same? spec-of :block/1 head block/2
+			--assert same? last spec-of :block/1 head block/3
+		
 	===end-group===
 	
 	===start-group=== "Symbols"
