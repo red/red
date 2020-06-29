@@ -10,6 +10,22 @@ Red/System [
 	}
 ]
 
+frame-buffer!: alias struct! [
+	start		[byte-ptr!]
+	length		[integer!]
+]
+
+v4l2-config!: alias struct! [
+	name		[c-string!]
+	fd			[integer!]
+	format		[integer!]
+	width		[integer!]
+	height		[integer!]
+	imgsize		[integer!]
+	buffers		[frame-buffer!]
+	bufcount	[integer!]
+]
+
 v4l2: context [
 	#define QUEUE_NUM		4
 
@@ -186,22 +202,6 @@ v4l2: context [
 		length		[integer!]
 		reserved2	[integer!]
 		req_fd		[integer!]
-	]
-
-	frame-buffer!: alias struct! [
-		start		[byte-ptr!]
-		length		[integer!]
-	]
-
-	v4l2-config!: alias struct! [
-		name		[c-string!]
-		fd			[integer!]
-		format		[integer!]
-		width		[integer!]
-		height		[integer!]
-		imgsize		[integer!]
-		buffers		[frame-buffer!]
-		bufcount	[integer!]
 	]
 
 	open: func [
