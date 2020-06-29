@@ -51,6 +51,11 @@ v4l2: context [
 				offset		[integer!]
 				return:		[byte-ptr!]
 			]
+			_munmap: "munmap" [
+				address		[byte-ptr!]
+				size		[integer!]
+				return:		[integer!]
+			]
 		]
 	]
 
@@ -213,6 +218,7 @@ v4l2: context [
 			buf		[v4l2_buffer value]
 			fbuf	[frame-buffer!]
 	][
+		config/fd: -1
 		fd: _open config/name O_RDWR
 		if fd = -1 [return -1]
 		set-memory as byte-ptr! cap null-byte size? v4l2_capability
@@ -326,10 +332,30 @@ v4l2: context [
 			]
 			fbuf/length: buf/length
 			fbuf/start: _mmap null buf/length 3 1 fd buf/m
+			fbuf: fbuf + 1
 			i: i + 1
 		]
-
+		config/fd: fd
 		0
+	]
+
+	close: func [
+		config		[v4l2-config!]
+		/local
+			fbuf	[frame-buffer!]
+	][
+		if config/fd <> -1 [
+			fbuf: config/buffers
+			loop config/bufcount [
+				if fbuf/start <> as byte-ptr! -1 [
+					_munmap fbuf/start fbuf/length
+				]
+				fbuf: fbuf + 1
+			]
+			free as byte-ptr! config/buffers
+			_close config/fd
+			config/fd: -1
+		]
 	]
 
 ]
