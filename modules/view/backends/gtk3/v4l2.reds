@@ -67,6 +67,9 @@ v4l2: context [
 	#define VIDIOC_S_FMT					C0CC5605h
 	#define VIDIOC_REQBUFS					C0145608h
 	#define VIDIOC_QUERYBUF					C0445609h
+	#define VIDIOC_QBUF						C044560Fh
+	#define VIDIOC_STREAMON					40045612h
+	#define VIDIOC_DQBUF					C0445611h
 
 
 	#define V4L2_CAP_VIDEO_CAPTURE			00000001h
@@ -335,6 +338,20 @@ v4l2: context [
 			fbuf: fbuf + 1
 			i: i + 1
 		]
+
+		;-- add buffers to queue
+		fbuf: config/buffers
+		i: 0
+		loop rbuf/count [
+			buf/index: i
+			_ioctl fd VIDIOC_QBUF as int-ptr! :buf
+			i: i + 1
+		]
+
+		;-- open stream
+		i: V4L2_BUF_TYPE_VIDEO_CAPTURE
+		_ioctl fd VIDIOC_STREAMON :i
+
 		config/fd: fd
 		0
 	]
