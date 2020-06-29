@@ -182,7 +182,8 @@ redbin: context [
 		          header (own?: N) class [context]
 		          header (ref?: Y) [reference]
 		
-		function: header spec-size body-size [context] [spec] [body] 
+		function: header spec-size body-size [context] [spec] [body]
+		          header [reference]
 		
 		context:  header size symbols* values*
 	}
@@ -942,37 +943,69 @@ redbin: context [
 			value  [red-value!]
 			object [red-object!]
 			ctx    [red-context!]
+			blk    [red-block!]
 			node   [node!]
-			buffer [series!]
+			series [series!]
 			offset [int-ptr!]
+			count  [integer!]
+			type   [integer!]
+			spec?  [logic!]
 	][
 		value:  as red-value! origin
 		offset: data + 2
+		count:  data/2
+		spec?:  no
 		
-		loop data/2 [
-			value: switch TYPE_OF(value) [
+		while [count > 0][
+			type:  TYPE_OF(value)
+			value: switch type [
 				TYPE_ANY_BLOCK
 				TYPE_MAP [
-					block/rs-abs-at as red-block! value 0
-				]
-				TYPE_ACTION
-				TYPE_NATIVE [
 					block/rs-abs-at as red-block! value 0
 				]
 				TYPE_OBJECT [
 					object: as red-object! value
 					ctx: GET_CTX(object)
-					buffer: as series! ctx/values/value
-					buffer/offset
+					series: as series! ctx/values/value
+					series/offset
 				]
 				TYPE_ANY_WORD
 				TYPE_REFINEMENT [
 					node: as node! value/data1
 					ctx: TO_CTX(node)
-					buffer: as series! ctx/values/value
-					buffer/offset
+					series: as series! ctx/values/value
+					series/offset
 				]
-				TYPE_FUNCTION
+				TYPE_ACTION
+				TYPE_NATIVE [
+					block/rs-abs-at as red-block! value 0
+				]
+				TYPE_FUNCTION [
+					assert any [offset/value = 0 offset/value = 1]
+					either as logic! offset/value [
+						node:   as node! value/data3
+						series: as series! node/value
+						value:  series/offset
+						assert TYPE_OF(value) = TYPE_BLOCK
+						value
+					][					
+						offset: offset + 1
+						count:  count  - 1
+						node:   as node! value/data2
+						spec?:  zero? count
+						
+						either spec? [
+							blk: as red-block! stack/push*
+							blk/node: node
+							blk/head: 0
+							blk/header: TYPE_BLOCK
+							as red-value! blk
+						][
+							series: as series! node/value
+							series/offset + offset/value
+						]
+					]
+				]
 				TYPE_ROUTINE 
 				TYPE_OP [
 					--NOT_IMPLEMENTED--				;@@ TBD: support for any-function!
@@ -984,11 +1017,13 @@ redbin: context [
 				]
 			]
 			
-			value:  value + offset/value
+			unless type = TYPE_FUNCTION [value: value + offset/value]
 			offset: offset + 1
+			count:  count  - 1
 		]
 		
 		copy-cell value ALLOC_TAIL(parent)
+		if spec? [stack/pop 1]
 		
 		data + data/2 + 2
 	]
@@ -1673,10 +1708,43 @@ redbin: context [
 				size
 			]
 			
-			encode-context ctx payload symbols table strings
-			encode-block data TYPE_BLOCK yes payload symbols table strings	;-- structure overlap
-			encode-block body TYPE_BLOCK no payload symbols table strings
+			encode-context   ctx  payload symbols table strings
+			encode-spec-body data body payload symbols table strings
 		]
+	]
+	
+	encode-spec-body: func [
+		spec    [red-value!]
+		body    [red-value!]
+		payload [red-binary!]
+		symbols [red-binary!]
+		table   [red-binary!]
+		strings [red-binary!]
+		/local
+			mark [subroutine!]
+			node [node!]
+			data [red-value!]
+			old  [integer!]
+	][
+		mark: [
+			node: as node! data/data2
+			path/push
+			reference/store node
+			encode-block data TYPE_BLOCK not as logic! offset payload symbols table strings
+			path/pop
+		]
+		
+		old: offset
+		
+		offset: 0
+		data: spec
+		mark
+		
+		offset: 1
+		data: body
+		mark
+		
+		offset: old
 	]
 	
 	encode-reference: func [
@@ -1730,12 +1798,9 @@ redbin: context [
 			TYPE_HANDLE
 			TYPE_EVENT		[--NOT_IMPLEMENTED--]
 			default			[
-				;@@ TBD: multiple nodes in function
-				first?: any [ALL_WORD?(type) type = TYPE_OBJECT type = TYPE_FUNCTION]
-				
-				node: as node! either first? [data/data1][data/data2]
-				ref:  reference/fetch node
-				
+				first?:  any [ALL_WORD?(type) type = TYPE_OBJECT type = TYPE_FUNCTION]
+				node:    as node! either first? [data/data1][data/data2]
+				ref:     reference/fetch node
 				global?: all [first? node = global-ctx]
 				
 				unless global? [
