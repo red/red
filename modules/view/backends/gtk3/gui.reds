@@ -25,6 +25,7 @@ Red/System [
 #include %comdlgs.reds
 #include %tab-panel.reds
 #include %text-list.reds
+#include %camera.reds
 
 window-ready?:		no
 force-redraw?:		no
