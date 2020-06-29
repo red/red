@@ -466,18 +466,17 @@ Red [
 		--test-- "cycle-6"
 			ping: [pong @ pong]
 			pong: [ping @ ping]
-
+			
 			inline ping
 			inline pong
-		
+			
 			--assert ping/pong =? pong
 			--assert pong/ping =? ping
 			
-			ping: test ping
-			pong: test pong
+			set [ping pong] test reduce [ping pong]
 			
-			--assert ping/pong == pong				;-- two different payloads, two non-identical series
-			--assert pong/ping == ping
+			--assert ping/pong/ping/pong =? pong
+			--assert pong/ping/pong/ping =? ping
 		
 		--test-- "cycle-7"
 			put foo: object [foo: none] 'foo foo
