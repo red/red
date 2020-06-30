@@ -45,14 +45,15 @@ context [
 	]
 	
 	defs: [
+		PE-signature "PE^@^@"
 		image [
 			exe-base-address	#{00400000}
 			dll-base-address	#{10000000}
 			drv-base-address	#{00010000}
 			
 			MSDOS-header #{
-				4D5A800001000000 04001000FFFF0000
-				4001000000000000 4000000000000000
+				4D5A900003000000 04000000FFFF0000
+				B800000000000000 4000000000000000
 				0000000000000000 0000000000000000
 				0000000000000000 0000000080000000
 				0E1FBA0E00B409CD 21B8014CCD215468
@@ -154,8 +155,8 @@ context [
 			BSS					#{C0000080}	;-- [read write uninitialized]
 			data				#{C0000040}	;-- [read write initialized]
 			export				#{40000040}	;-- [read initialized]
-			import				#{C0000040}	;-- [read write initialized]
-			idata				#{C0000040}	;-- [read write initialized]
+			import				#{40000040}	;-- [read write initialized]
+			idata				#{40000040}	;-- [read write initialized]
 			reloc				#{42000040} ;-- [read discardable initialized]
 			except				#{40000040}	;-- [read initialized]
 			rsrc				#{40000040}	;-- [read initialized]
@@ -419,9 +420,10 @@ context [
 	
 	precalc-entry-point: func [job [object!] /local ptr][
 		ptr: (length? defs/image/MSDOS-header)
+			+ (length? defs/PE-signature)
 			+ (length? form-struct file-header)
 			+ (opt-header-size)
-			+ (sect-header-size * divide length? job/sections 2)
+			+ (sect-header-size * (1 + divide length? job/sections 2)) ;-- account for extra import section
 			
 		ep-mem-page:  round/ceiling ptr / memory-align
 		ep-file-page: round/ceiling ptr / file-align
@@ -693,7 +695,7 @@ context [
 	]
 
 	build-header: func [job [object!] /local fh][
-		if find [exe dll drv] job/type [append job/buffer "PE^@^@"]	;-- image signature
+		if find [exe dll drv] job/type [append job/buffer defs/PE-signature]
 
 		fh: make-struct file-header none
 		fh/machine: 		 to integer! select defs/machine job/target
@@ -721,7 +723,7 @@ context [
 		foreach [name spec] sections [
 			flag: select defs/s-type name
 			unless zero? to integer! flag and #{00000040} [
-				n: n + (length? spec/2) + (pad-size? spec/2)
+				n: n + round/to/ceiling (length? spec/2) file-align
 			]
 		]
 		n
@@ -754,7 +756,7 @@ context [
 		oh/magic:				to integer! #{010B}		;-- PE32 magic number
 		oh/major-link-version:  linker/version/1
 		oh/minor-link-version:	linker/version/2
-		oh/code-size:			length? job/sections/code/2
+		oh/code-size:			round/to/ceiling (length? job/sections/code/2) file-align
 		oh/initdata-size:		initdata-size? job/sections
 		oh/uninitdata-size:		0			
 		oh/entry-point-addr:	ep						;-- entry point is set to beginning of CODE
