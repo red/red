@@ -44,4 +44,13 @@ camera: context [
 		v4l2/close config
 		free as byte-ptr! cfg
 	]
+
+	start: func [
+		cfg			[integer!]
+		/local
+			config	[v4l2-config!]
+	][
+		config: as v4l2-config! cfg
+		v4l2/start config
+	]
 ]

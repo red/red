@@ -10,6 +10,30 @@ Red/System [
 	}
 ]
 
+pthread_mutex_t: alias struct! [
+	__sig 		[integer!]
+	opaque1     [integer!]	;opaque size =40
+	opaque2		[integer!]
+	opaque3     [integer!]
+	opaque4		[integer!]
+	opaque5     [integer!]
+	opaque6		[integer!]
+	opaque7     [integer!]
+	opaque8		[integer!]
+	opaque9     [integer!]
+	opaque10	[integer!]
+]
+
+pthread_cond_t: alias struct! [
+	__sig       [integer!]
+	opaque1     [integer!]	;opaque size =24
+	opaque2		[integer!]
+	opaque3     [integer!]
+	opaque4		[integer!]
+	opaque5     [integer!]
+	opaque6		[integer!]
+]
+
 v4l2-config!: alias struct! [
 	name		[c-string!]
 	fd			[integer!]
@@ -18,8 +42,11 @@ v4l2-config!: alias struct! [
 	height		[integer!]
 	imgsize		[integer!]
 	buffer		[byte-ptr!]
+	bused		[integer!]
 	running?	[logic!]
 	thread		[integer!]
+	mutex		[pthread_mutex_t value]
+	cond		[pthread_cond_t value]
 ]
 
 v4l2: context [
@@ -67,6 +94,8 @@ v4l2: context [
 				size		[integer!]
 				return:		[integer!]
 			]
+		]
+		"libpthread.so.0" cdecl [
 			pthread_create: "pthread_create" [
 				thread		[int-ptr!]
 				attr		[int-ptr!]
@@ -77,6 +106,37 @@ v4l2: context [
 			pthread_join: "pthread_join" [
 				thread		[integer!]
 				retval		[int-ptr!]
+				return:		[integer!]
+			]
+			pthread_mutex_init: "pthread_mutex_init" [
+				mutex		[int-ptr!]
+				attr		[int-ptr!]
+				return:		[integer!]
+			]
+			pthread_cond_init: "pthread_cond_init" [
+				cond		[int-ptr!]
+				attr		[int-ptr!]
+				return:		[integer!]
+			]
+			pthread_mutex_destroy: "pthread_mutex_destroy" [
+				mutex		[int-ptr!]
+				return:		[integer!]
+			]
+			pthread_cond_destroy: "pthread_cond_destroy" [
+				cond		[int-ptr!]
+				return:		[integer!]
+			]
+			pthread_mutex_lock: "pthread_mutex_lock" [
+				mutex		[int-ptr!]
+				return:		[integer!]
+			]
+			pthread_mutex_unlock: "pthread_mutex_unlock" [
+				mutex		[int-ptr!]
+				return:		[integer!]
+			]
+			pthread_cond_wait: "pthread_cond_wait" [
+				cond		[int-ptr!]
+				mutex		[int-ptr!]
 				return:		[integer!]
 			]
 		]
@@ -334,12 +394,16 @@ v4l2: context [
 		buf/memory: V4L2_MEMORY_USERPTR
 		buf/index: 0
 		buf/m: as integer! config/buffer
+		buf/length: config/imgsize
 		hr: _ioctl fd VIDIOC_QBUF as int-ptr! :buf
 		if hr = -1 [
 			free config/buffer
 			_close fd
 			return -10
 		]
+		i: V4L2_BUF_TYPE_VIDEO_CAPTURE
+		_ioctl fd VIDIOC_STREAMON :i
+		config/running?: no
 
 		config/fd: fd
 		0
@@ -358,15 +422,31 @@ v4l2: context [
 	thread-cb: func [
 		[cdecl]
 		arg			[int-ptr!]
-		return:		[int-ptr!]
+		return:		[integer!]
 		/local
 			config	[v4l2-config!]
+			buf		[v4l2_buffer value]
+			hr		[integer!]
 	][
 		config: as v4l2-config! arg
 		while [config/running?][
-			0
+			pthread_mutex_lock :config/mutex
+			set-memory as byte-ptr! buf null-byte size? v4l2_buffer
+			buf/type: V4L2_BUF_TYPE_VIDEO_CAPTURE
+			buf/memory: V4L2_MEMORY_USERPTR
+			hr: _ioctl config/fd VIDIOC_DQBUF as int-ptr! :buf
+			if hr < 0 [
+				pthread_mutex_unlock :config/mutex
+				return -1
+			]
+			pthread_cond_wait :config/cond :config/mutex
+			pthread_mutex_unlock :config/mutex
+			hr: _ioctl config/fd VIDIOC_QBUF as int-ptr! :buf
+			if hr < 0 [
+				return -1
+			]
 		]
-		null
+		0
 	]
 
 	start: func [
@@ -376,6 +456,15 @@ v4l2: context [
 			hr		[integer!]
 	][
 		if config/running? [return false]
+		hr: pthread_mutex_init :config/mutex null
+		if hr < 0 [
+			return false
+		]
+		hr: pthread_cond_init :config/cond null
+		if hr < 0 [
+			pthread_mutex_destroy :config/mutex
+			return false
+		]
 		hr: pthread_create :config/thread null as int-ptr! :thread-cb as int-ptr! config
 		if hr <> 0 [return false]
 		config/running?: yes
