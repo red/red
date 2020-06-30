@@ -730,6 +730,12 @@ GPtrArray!: alias struct! [
 			value		[handle!]
 			return:		[integer!]
 		]
+		g_memory_input_stream_new_from_data: "g_memory_input_stream_new_from_data" [
+			data		[byte-ptr!]
+			len			[integer!]
+			destroy		[int-ptr!]
+			return:		[handle!]
+		]
 	;; ]
 	;; LIBGDK-file cdecl [
 		gdk_flush: "gdk_flush" []
@@ -3160,6 +3166,12 @@ GPtrArray!: alias struct! [
 			y 				[integer!]
 			width 		[integer!]
 			height 		[integer!]
+			return:		[handle!]
+		]
+		gdk_pixbuf_new_from_stream: "gdk_pixbuf_new_from_stream" [
+			stream		[handle!]
+			cancel		[handle!]
+			error		[handle!]
 			return:		[handle!]
 		]
 		gdk_pixbuf_copy: "gdk_pixbuf_copy" [

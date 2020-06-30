@@ -332,6 +332,8 @@ camera-draw: func [
 		cfg		[integer!]
 		data	[integer!]
 		dlen	[integer!]
+		input	[handle!]
+		pixbuf	[handle!]
 ][
 	cfg: as integer! GET-CAMERA-CFG(widget)
 	if all [
@@ -343,7 +345,11 @@ camera-draw: func [
 		camera-dev/get-data cfg :data :dlen
 		if dlen <> 0 [
 			;-- now precess data
-			print-line "have image"
+			input: g_memory_input_stream_new_from_data as byte-ptr! data dlen null
+			pixbuf: gdk_pixbuf_new_from_stream input null null
+			gdk_cairo_set_source_pixbuf cr pixbuf 0.0 0.0
+			cairo_paint cr
+			g_object_unref pixbuf
 			camera-dev/signal cfg
 		]
 		camera-dev/unlock cfg
