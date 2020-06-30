@@ -50,6 +50,7 @@ v4l2-config!: alias struct! [
 	mutex		[pthread_mutex_t value]
 	cond		[pthread_cond_t value]
 	cb			[int-ptr!]
+	widget		[int-ptr!]
 ]
 
 v4l2: context [
@@ -485,9 +486,17 @@ v4l2: context [
 		pthread_mutex_unlock :config/mutex
 	]
 
+	attach: func [
+		config		[v4l2-config!]
+		widget		[int-ptr!]
+		cb			[int-ptr!]
+	][
+		config/widget: widget
+		config/cb: cb
+	]
+
 	start: func [
 		config		[v4l2-config!]
-		cb			[int-ptr!]
 		return:		[logic!]
 		/local
 			hr		[integer!]
@@ -502,7 +511,6 @@ v4l2: context [
 			pthread_mutex_destroy :config/mutex
 			return false
 		]
-		config/cb: cb
 		hr: pthread_create :config/thread null as int-ptr! :thread-cb as int-ptr! config
 		if hr <> 0 [return false]
 		config/running?: yes

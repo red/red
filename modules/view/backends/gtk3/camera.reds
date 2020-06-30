@@ -45,14 +45,24 @@ camera: context [
 		free as byte-ptr! cfg
 	]
 
-	start: func [
+	attach: func [
 		cfg			[integer!]
+		widget		[int-ptr!]
 		cb			[int-ptr!]
 		/local
 			config	[v4l2-config!]
 	][
 		config: as v4l2-config! cfg
-		v4l2/start config cb
+		v4l2/attach config widget cb
+	]
+
+	start: func [
+		cfg			[integer!]
+		/local
+			config	[v4l2-config!]
+	][
+		config: as v4l2-config! cfg
+		v4l2/start config
 	]
 
 	get-data: func [
