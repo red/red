@@ -112,6 +112,10 @@ v4l2: context [
 				retval		[int-ptr!]
 				return:		[integer!]
 			]
+			pthread_cancel: "pthread_cancel" [
+				thread		[integer!]
+				return:		[integer!]
+			]
 			pthread_mutex_init: "pthread_mutex_init" [
 				mutex		[int-ptr!]
 				attr		[int-ptr!]
@@ -154,7 +158,7 @@ v4l2: context [
 		]
 	]
 
-	#define O_RDWR		2
+	#define _O_RDWR		2
 
 	#define VIDIOC_QUERYCAP					80685600h
 	#define VIDIOC_ENUM_FMT					C0405602h
@@ -301,7 +305,7 @@ v4l2: context [
 			buf		[v4l2_buffer value]
 	][
 		config/fd: -1
-		fd: _open config/name O_RDWR
+		fd: _open config/name _O_RDWR
 		if fd = -1 [return -1]
 		set-memory as byte-ptr! cap null-byte size? v4l2_capability
 		hr: _ioctl fd VIDIOC_QUERYCAP as int-ptr! :cap
@@ -416,6 +420,7 @@ v4l2: context [
 		i: V4L2_BUF_TYPE_VIDEO_CAPTURE
 		_ioctl fd VIDIOC_STREAMON :i
 		config/running?: no
+		config/bused: 0
 
 		config/fd: fd
 		0
@@ -425,6 +430,7 @@ v4l2: context [
 		config		[v4l2-config!]
 	][
 		if config/fd <> -1 [
+			stop config
 			free config/buffer
 			_close config/fd
 			config/fd: -1
@@ -458,6 +464,7 @@ v4l2: context [
 				pcb arg
 			]
 			pthread_cond_wait :config/cond :config/mutex
+			config/bused: 0
 			pthread_mutex_unlock :config/mutex
 			hr: _ioctl config/fd VIDIOC_QBUF as int-ptr! :buf
 			if hr < 0 [
@@ -517,4 +524,11 @@ v4l2: context [
 		true
 	]
 
+	stop: func [
+		config		[v4l2-config!]
+	][
+		pthread_cancel config/thread
+		pthread_cond_destroy :config/cond
+		pthread_mutex_destroy :config/mutex
+	]
 ]

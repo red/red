@@ -322,6 +322,44 @@ base-draw: func [
 	EVT_DISPATCH
 ]
 
+camera-draw: func [
+	[cdecl]
+	evbox		[handle!]
+	cr			[handle!]
+	widget		[handle!]
+	return:		[integer!]
+	/local
+		cfg		[integer!]
+		data	[integer!]
+		dlen	[integer!]
+][
+	cfg: as integer! GET-CAMERA-CFG(widget)
+	if all [
+		cfg <> 0
+		0 = camera-dev/trylock cfg
+	][
+		data: 0
+		dlen: 0
+		camera-dev/get-data cfg :data :dlen
+		if dlen <> 0 [
+			;-- now precess data
+			print-line "have image"
+			camera-dev/signal cfg
+		]
+		camera-dev/unlock cfg
+	]
+	EVT_DISPATCH
+]
+
+camera-cb: func [
+	cfg			[integer!]
+	/local
+		widget	[handle!]
+][
+	widget: camera-dev/get-widget cfg
+	gtk_widget_queue_draw widget
+]
+
 transparent-base?: func [
 	color	[red-tuple!]
 	return: [logic!]

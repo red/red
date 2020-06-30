@@ -87,6 +87,15 @@ camera-dev: context [
 		config/widget
 	]
 
+	signal: func [
+		cfg			[integer!]
+		/local
+			config	[v4l2-config!]
+	][
+		config: as v4l2-config! cfg
+		v4l2/signal config
+	]
+
 	trylock: func [
 		cfg			[integer!]
 		return:		[integer!]

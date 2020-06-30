@@ -3456,6 +3456,7 @@ resend-event-id:	g_quark_from_string "resend-event-id"
 hmenu-id:			g_quark_from_string "hmenu-id"
 container-w:		g_quark_from_string "container-w"
 container-h:		g_quark_from_string "container-h"
+camera-cfg:			g_quark_from_string "camera-cfg"
 
 #define SET-RED-COLOR(s d)		[g_object_set_qdata s red-color-id d]
 #define GET-RED-COLOR(s)		[g_object_get_qdata s red-color-id]
@@ -3489,5 +3490,6 @@ container-h:		g_quark_from_string "container-h"
 #define GET-CONTAINER-W(s)		[as integer! g_object_get_qdata s container-w]
 #define SET-CONTAINER-H(s d)	[g_object_set_qdata s container-h as int-ptr! d]
 #define GET-CONTAINER-H(s)		[as integer! g_object_get_qdata s container-h]
-
+#define SET-CAMERA-CFG(s d)		[g_object_set_qdata s camera-cfg as int-ptr! d]
+#define GET-CAMERA-CFG(s)		[g_object_get_qdata s camera-cfg]
 

@@ -1092,6 +1092,9 @@ connect-widget-events: func [
 		sym = progress [
 			0
 		]
+		sym = camera [
+			gobj_signal_connect(widget "draw" :camera-draw widget)
+		]
 		sym = calendar [
 			gobj_signal_connect(widget "day-selected" :calendar-changed widget)
 		]

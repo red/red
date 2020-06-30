@@ -415,6 +415,7 @@ free-handles: func [
 		handle	[handle!]
 		timer	[handle!]
 		sec		[float!]
+		cfg		[integer!]
 ][
 	values: get-face-values widget
 	type: as red-word! values + FACE_OBJ_TYPE
@@ -449,6 +450,12 @@ free-handles: func [
 		]
 		g_timer_stop timer
 		g_timer_destroy timer
+	]
+	if sym = camera [
+		cfg: as integer! GET-CAMERA-CFG(widget)
+		if cfg <> 0 [
+			camera-dev/close cfg
+		]
 	]
 
 	state: values + FACE_OBJ_STATE
@@ -1792,6 +1799,12 @@ OS-make-view: func [
 		sym = camera [
 			widget: gtk_layout_new null null
 			gtk_layout_set_size widget size/x size/y
+			x: 0
+			if camera-dev/open "/dev/video0" size/x size/y :x [
+				SET-CAMERA-CFG(widget x)
+				camera-dev/attach x widget as int-ptr! :camera-cb
+				camera-dev/start x
+			]
 		]
 		sym = calendar [
 			widget: gtk_calendar_new
