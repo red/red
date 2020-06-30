@@ -10,11 +10,6 @@ Red/System [
 	}
 ]
 
-frame-buffer!: alias struct! [
-	start		[byte-ptr!]
-	length		[integer!]
-]
-
 v4l2-config!: alias struct! [
 	name		[c-string!]
 	fd			[integer!]
@@ -22,14 +17,12 @@ v4l2-config!: alias struct! [
 	width		[integer!]
 	height		[integer!]
 	imgsize		[integer!]
-	buffers		[frame-buffer!]
-	bufcount	[integer!]
+	buffer		[byte-ptr!]
 	running?	[logic!]
 	thread		[integer!]
 ]
 
 v4l2: context [
-	#define QUEUE_NUM		4
 
 	#import [
 		LIBC-file cdecl [
@@ -111,6 +104,7 @@ v4l2: context [
 	#define V4L2_PIX_FMT_YUYV				56595559h
 
 	#define V4L2_MEMORY_MMAP				1
+	#define V4L2_MEMORY_USERPTR				2
 
 	filters: [
 		V4L2_PIX_FMT_MJPEG
@@ -233,7 +227,6 @@ v4l2: context [
 			pfmt	[v4l2_pix_format]
 			rbuf	[v4l2_requestbuffers value]
 			buf		[v4l2_buffer value]
-			fbuf	[frame-buffer!]
 	][
 		config/fd: -1
 		fd: _open config/name O_RDWR
@@ -323,48 +316,30 @@ v4l2: context [
 		config/imgsize: pfmt/imgsize
 		free as byte-ptr! fmt
 
-		;-- use mmap buffers
+		;-- set buffer count
 		set-memory as byte-ptr! rbuf null-byte size? v4l2_requestbuffers
-		rbuf/count: QUEUE_NUM
+		rbuf/count: 1
 		rbuf/type: V4L2_BUF_TYPE_VIDEO_CAPTURE
-		rbuf/memory: V4L2_MEMORY_MMAP
+		rbuf/memory: V4L2_MEMORY_USERPTR
 		hr: _ioctl fd VIDIOC_REQBUFS as int-ptr! :rbuf
 		if hr = -1 [
 			_close fd
 			return -9
 		]
 
-		config/bufcount: rbuf/count
-		fbuf: as frame-buffer! allocate rbuf/count * size? frame-buffer!
-		config/buffers: fbuf
-		i: 0
-		loop rbuf/count [
-			buf/type: V4L2_BUF_TYPE_VIDEO_CAPTURE
-			buf/memory: V4L2_MEMORY_MMAP
-			buf/index: i
-			hr: _ioctl fd VIDIOC_QUERYBUF as int-ptr! :buf
-			if hr = -1 [
-				_close fd
-				return -10
-			]
-			fbuf/length: buf/length
-			fbuf/start: _mmap null buf/length 3 1 fd buf/m
-			fbuf: fbuf + 1
-			i: i + 1
+		;-- use allocate buffer
+		config/buffer: allocate config/imgsize
+		set-memory as byte-ptr! buf null-byte size? v4l2_buffer
+		buf/type: V4L2_BUF_TYPE_VIDEO_CAPTURE
+		buf/memory: V4L2_MEMORY_USERPTR
+		buf/index: 0
+		buf/m: as integer! config/buffer
+		hr: _ioctl fd VIDIOC_QBUF as int-ptr! :buf
+		if hr = -1 [
+			free config/buffer
+			_close fd
+			return -10
 		]
-
-		;-- add buffers to queue
-		fbuf: config/buffers
-		i: 0
-		loop rbuf/count [
-			buf/index: i
-			_ioctl fd VIDIOC_QBUF as int-ptr! :buf
-			i: i + 1
-		]
-
-		;-- open stream
-		i: V4L2_BUF_TYPE_VIDEO_CAPTURE
-		_ioctl fd VIDIOC_STREAMON :i
 
 		config/fd: fd
 		0
@@ -372,18 +347,9 @@ v4l2: context [
 
 	close: func [
 		config		[v4l2-config!]
-		/local
-			fbuf	[frame-buffer!]
 	][
 		if config/fd <> -1 [
-			fbuf: config/buffers
-			loop config/bufcount [
-				if fbuf/start <> as byte-ptr! -1 [
-					_munmap fbuf/start fbuf/length
-				]
-				fbuf: fbuf + 1
-			]
-			free as byte-ptr! config/buffers
+			free config/buffer
 			_close config/fd
 			config/fd: -1
 		]
@@ -398,8 +364,9 @@ v4l2: context [
 	][
 		config: as v4l2-config! arg
 		while [config/running?][
-
+			0
 		]
+		null
 	]
 
 	start: func [
