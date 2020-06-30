@@ -23,6 +23,9 @@ Red/System [
 #define REDBIN_KIND_MASK			06000000h
 #define REDBIN_OWNER_MASK			01000000h
 
+#define REDBIN_NATIVE_MASK			00800000h
+#define REDBIN_BODY_MASK			00400000h
+
 #define REDBIN_REFERENCE_MASK		00020000h
 #define REDBIN_MONEY_SIGN_MASK		00010000h
 
@@ -75,7 +78,7 @@ redbin: context [
 		cell:  as red-native! ALLOC_TAIL(parent)
 		data:  data + 2
 		
-		either type = TYPE_OP [
+		either type = TYPE_OP [						;@@ TBD: branch is never taken during runtime booting
 			sym: table + index
 			copy-cell
 				as red-value! op/make null as red-block! _context/get-global sym/1 TYPE_OP
@@ -96,6 +99,43 @@ redbin: context [
 		
 		if nl? [cell/header: cell/header or flag-new-line]
 		data
+	]
+	
+	decode-op: func [
+		data	[int-ptr!]
+		table	[int-ptr!]
+		parent	[red-block!]
+		nl?		[logic!]
+		return: [int-ptr!]
+		/local
+			op      [red-op!]
+			spec    [red-block!]
+			native? [logic!]
+			body?   [logic!]
+	][
+		native?: data/1 and REDBIN_NATIVE_MASK <> 0
+		body?:   data/1 and REDBIN_BODY_MASK   <> 0
+		
+		op: as red-op! ALLOC_TAIL(parent)
+		op/header: TYPE_UNSET
+		
+		parent: block/push-only* 1
+		spec: as red-block! block/rs-tail parent
+		
+		data: decode-block data + 1 table parent nl?
+		
+		op/args:   null
+		op/spec:   spec/node
+		op/code:   data/1
+		op/header: TYPE_OP
+		
+		if nl?     [op/header: op/header or flag-new-line]
+		if native? [op/header: op/header or flag-native-op]
+		if body?   [op/header: op/header or body-flag]
+		
+		stack/pop 1
+		
+		data + 1
 	]
 	
 	decode-map: func [
@@ -204,7 +244,7 @@ redbin: context [
 			type2     [integer!]
 			set? ref? [logic!]
 	][
-		tag: [		
+		tag: [
 			word/header: type
 			if nl? [word/header: word/header or flag-new-line]
 		]
@@ -986,6 +1026,7 @@ redbin: context [
 						node:   as node! value/data3
 						series: as series! node/value
 						value:  series/offset
+						
 						assert TYPE_OF(value) = TYPE_BLOCK
 						value
 					][					
@@ -1107,8 +1148,8 @@ redbin: context [
 			TYPE_HASH		[decode-hash data table parent nl?]
 			TYPE_MAP		[decode-map data table parent nl?]
 			TYPE_NATIVE
-			TYPE_ACTION
-			TYPE_OP			[decode-native data table parent nl?]
+			TYPE_ACTION		[decode-native data table parent nl?]
+			TYPE_OP			[decode-op data table parent nl?]
 			TYPE_TUPLE		[decode-tuple data parent nl?]
 			TYPE_MONEY		[decode-money data parent nl?]
 			TYPE_BITSET     [decode-bitset data parent nl?]
@@ -1722,14 +1763,12 @@ redbin: context [
 		strings [red-binary!]
 		/local
 			mark [subroutine!]
-			node [node!]
 			data [red-value!]
 			old  [integer!]
 	][
 		mark: [
-			node: as node! data/data2
 			path/push
-			reference/store node
+			reference/store as node! data/data2
 			encode-block data TYPE_BLOCK not as logic! offset payload symbols table strings
 			path/pop
 		]
@@ -1745,6 +1784,33 @@ redbin: context [
 		mark
 		
 		offset: old
+	]
+	
+	encode-op: func [
+		data    [red-value!]
+		header  [integer!]
+		payload [red-binary!]
+		symbols [red-binary!]
+		table   [red-binary!]
+		strings [red-binary!]
+		/local
+			native? body? [logic!]
+	][
+		;@@ TBD: #4563 op! prototype
+		native?: data/header and flag-native-op <> 0	;-- native, action
+		body?:   data/header and body-flag      <> 0	;-- function, routine
+		
+		if native? [header: header or REDBIN_NATIVE_MASK]
+		if body?   [header: header or REDBIN_BODY_MASK]
+		
+		store payload header
+		encode-block data TYPE_BLOCK yes payload symbols table strings	;-- structure overlap
+		
+		either body? [
+			assert false							;@@ TBD
+		][
+			store payload data/data3
+		]
 	]
 	
 	encode-reference: func [
@@ -1826,8 +1892,8 @@ redbin: context [
 					TYPE_MAP		[encode-block data header no payload symbols table strings]
 					TYPE_OBJECT		[encode-object data header payload symbols table strings]
 					TYPE_FUNCTION	[encode-function data header payload symbols table strings]
-					TYPE_ROUTINE
-					TYPE_OP			[--NOT_IMPLEMENTED--]
+					TYPE_OP			[encode-op data header payload symbols table strings]
+					TYPE_ROUTINE	[--NOT_IMPLEMENTED--]
 					default			[assert false]
 				]
 				
