@@ -334,6 +334,13 @@ Red [
 				--assert equal-func? :functions/1 test :functions/1
 			]
 		
+		--test-- "op"
+			take/last block: split help-string op! newline
+			ops: collect [forall block [keep load take/part block/1 find block/1 "=>"]]
+			ops: exclude ops [>> >>> << is //]	;@@ TBD: derived from routines and functions
+			
+			forall ops [--assert equal? get ops/1 test get ops/1]
+		
 	===end-group===
 	
 	===start-group=== "Binding"
