@@ -155,8 +155,8 @@ context [
 			BSS					#{C0000080}	;-- [read write uninitialized]
 			data				#{C0000040}	;-- [read write initialized]
 			export				#{40000040}	;-- [read initialized]
-			import				#{40000040}	;-- [read write initialized]
-			idata				#{40000040}	;-- [read write initialized]
+			import				#{40000040}	;-- [read initialized]
+			idata				#{40000040}	;-- [read initialized]
 			reloc				#{42000040} ;-- [read discardable initialized]
 			except				#{40000040}	;-- [read initialized]
 			rsrc				#{40000040}	;-- [read initialized]
@@ -418,12 +418,13 @@ context [
 		]
 	]
 	
-	precalc-entry-point: func [job [object!] /local ptr][
+	precalc-entry-point: func [job [object!] /local ptr extra][
+		extra: pick 1x0 to-logic find job/sections 'import  ;-- +1 for IAT section not yet added
 		ptr: (length? defs/image/MSDOS-header)
 			+ (length? defs/PE-signature)
 			+ (length? form-struct file-header)
 			+ (opt-header-size)
-			+ (sect-header-size * (1 + divide length? job/sections 2)) ;-- account for extra import section
+			+ (sect-header-size * (extra + divide length? job/sections 2))
 			
 		ep-mem-page:  round/ceiling ptr / memory-align
 		ep-file-page: round/ceiling ptr / file-align
