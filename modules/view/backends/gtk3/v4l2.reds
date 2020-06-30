@@ -24,6 +24,8 @@ v4l2-config!: alias struct! [
 	imgsize		[integer!]
 	buffers		[frame-buffer!]
 	bufcount	[integer!]
+	running?	[logic!]
+	thread		[integer!]
 ]
 
 v4l2: context [
@@ -70,6 +72,18 @@ v4l2: context [
 			_munmap: "munmap" [
 				address		[byte-ptr!]
 				size		[integer!]
+				return:		[integer!]
+			]
+			pthread_create: "pthread_create" [
+				thread		[int-ptr!]
+				attr		[int-ptr!]
+				start		[int-ptr!]
+				arglist		[int-ptr!]
+				return:		[integer!]
+			]
+			pthread_join: "pthread_join" [
+				thread		[integer!]
+				retval		[int-ptr!]
 				return:		[integer!]
 			]
 		]
@@ -373,6 +387,32 @@ v4l2: context [
 			_close config/fd
 			config/fd: -1
 		]
+	]
+
+	thread-cb: func [
+		[cdecl]
+		arg			[int-ptr!]
+		return:		[int-ptr!]
+		/local
+			config	[v4l2-config!]
+	][
+		config: as v4l2-config! arg
+		while [config/running?][
+
+		]
+	]
+
+	start: func [
+		config		[v4l2-config!]
+		return:		[logic!]
+		/local
+			hr		[integer!]
+	][
+		if config/running? [return false]
+		hr: pthread_create :config/thread null as int-ptr! :thread-cb as int-ptr! config
+		if hr <> 0 [return false]
+		config/running?: yes
+		true
 	]
 
 ]
