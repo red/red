@@ -754,8 +754,8 @@ context [
 		oh: make-struct optional-header none
 
 		oh/magic:				to integer! #{010B}		;-- PE32 magic number
-		oh/major-link-version:  linker/version/1
-		oh/minor-link-version:	linker/version/2
+		oh/major-link-version:  14
+		oh/minor-link-version:	0
 		oh/code-size:			round/to/ceiling (length? job/sections/code/2) file-align
 		oh/initdata-size:		initdata-size? job/sections
 		oh/uninitdata-size:		0			
