@@ -10,7 +10,7 @@ Red/System [
 	}
 ]
 
-camera: context [
+camera-dev: context [
 	#include %v4l2.reds
 
 	open: func [
@@ -75,6 +75,16 @@ camera: context [
 		config: as v4l2-config! cfg
 		data/1: as integer! config/buffer
 		dlen/1: config/bused
+	]
+
+	get-widget: func [
+		cfg			[integer!]
+		return:		[int-ptr!]
+		/local
+			config	[v4l2-config!]
+	][
+		config: as v4l2-config! cfg
+		config/widget
 	]
 
 	trylock: func [
