@@ -133,6 +133,10 @@ v4l2: context [
 				mutex		[int-ptr!]
 				return:		[integer!]
 			]
+			pthread_mutex_trylock: "pthread_mutex_trylock" [
+				mutex		[int-ptr!]
+				return:		[integer!]
+			]
 			pthread_mutex_unlock: "pthread_mutex_unlock" [
 				mutex		[int-ptr!]
 				return:		[integer!]
@@ -140,6 +144,10 @@ v4l2: context [
 			pthread_cond_wait: "pthread_cond_wait" [
 				cond		[int-ptr!]
 				mutex		[int-ptr!]
+				return:		[integer!]
+			]
+			pthread_cond_signal: "pthread_cond_signal" [
+				cond		[int-ptr!]
 				return:		[integer!]
 			]
 		]
@@ -456,6 +464,25 @@ v4l2: context [
 			]
 		]
 		0
+	]
+
+	signal: func [
+		config		[v4l2-config!]
+	][
+		pthread_cond_signal :config/cond
+	]
+
+	trylock: func [
+		config		[v4l2-config!]
+		return:		[integer!]
+	][
+		pthread_mutex_trylock :config/mutex
+	]
+
+	unlock: func [
+		config		[v4l2-config!]
+	][
+		pthread_mutex_unlock :config/mutex
 	]
 
 	start: func [

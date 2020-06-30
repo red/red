@@ -66,4 +66,23 @@ camera: context [
 		data/1: as integer! config/buffer
 		dlen/1: config/bused
 	]
+
+	trylock: func [
+		cfg			[integer!]
+		return:		[integer!]
+		/local
+			config	[v4l2-config!]
+	][
+		config: as v4l2-config! cfg
+		v4l2/trylock config
+	]
+
+	unlock: func [
+		cfg			[integer!]
+		/local
+			config	[v4l2-config!]
+	][
+		config: as v4l2-config! cfg
+		v4l2/unlock config
+	]
 ]
