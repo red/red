@@ -34,6 +34,8 @@ pthread_cond_t: alias struct! [
 	opaque6		[integer!]
 ]
 
+QBUF-CALLBACK!: alias function! [cfg [integer!]]
+
 v4l2-config!: alias struct! [
 	name		[c-string!]
 	fd			[integer!]
@@ -47,6 +49,7 @@ v4l2-config!: alias struct! [
 	thread		[integer!]
 	mutex		[pthread_mutex_t value]
 	cond		[pthread_cond_t value]
+	cb			[int-ptr!]
 ]
 
 v4l2: context [
@@ -421,12 +424,13 @@ v4l2: context [
 
 	thread-cb: func [
 		[cdecl]
-		arg			[int-ptr!]
+		arg			[integer!]
 		return:		[integer!]
 		/local
 			config	[v4l2-config!]
 			buf		[v4l2_buffer value]
 			hr		[integer!]
+			pcb		[QBUF-CALLBACK!]
 	][
 		config: as v4l2-config! arg
 		while [config/running?][
@@ -438,6 +442,11 @@ v4l2: context [
 			if hr < 0 [
 				pthread_mutex_unlock :config/mutex
 				return -1
+			]
+			config/bused: buf/used
+			unless null? config/cb [
+				pcb: as QBUF-CALLBACK! config/cb
+				pcb arg
 			]
 			pthread_cond_wait :config/cond :config/mutex
 			pthread_mutex_unlock :config/mutex
@@ -451,6 +460,7 @@ v4l2: context [
 
 	start: func [
 		config		[v4l2-config!]
+		cb			[int-ptr!]
 		return:		[logic!]
 		/local
 			hr		[integer!]
@@ -465,6 +475,7 @@ v4l2: context [
 			pthread_mutex_destroy :config/mutex
 			return false
 		]
+		config/cb: cb
 		hr: pthread_create :config/thread null as int-ptr! :thread-cb as int-ptr! config
 		if hr <> 0 [return false]
 		config/running?: yes

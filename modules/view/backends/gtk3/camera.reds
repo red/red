@@ -47,10 +47,23 @@ camera: context [
 
 	start: func [
 		cfg			[integer!]
+		cb			[int-ptr!]
 		/local
 			config	[v4l2-config!]
 	][
 		config: as v4l2-config! cfg
-		v4l2/start config
+		v4l2/start config cb
+	]
+
+	get-data: func [
+		cfg			[integer!]
+		data		[int-ptr!]
+		dlen		[int-ptr!]
+		/local
+			config	[v4l2-config!]
+	][
+		config: as v4l2-config! cfg
+		data/1: as integer! config/buffer
+		dlen/1: config/bused
 	]
 ]
