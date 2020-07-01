@@ -1,7 +1,7 @@
 Red/System [
 	Title:	"camera device"
 	Author: "bitbegin"
-	File: 	%camera.reds
+	File: 	%camera-dev.reds
 	Tabs: 	4
 	Rights: "Copyright (C) 2020 Red Foundation. All rights reserved."
 	License: {
