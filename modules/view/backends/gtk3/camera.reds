@@ -114,4 +114,10 @@ camera-dev: context [
 		config: as v4l2-config! cfg
 		v4l2/unlock config
 	]
+
+	collect: func [
+		cb			[int-ptr!]
+	][
+		v4l2/collect cb
+	]
 ]

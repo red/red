@@ -34,8 +34,6 @@ pthread_cond_t: alias struct! [
 	opaque6		[integer!]
 ]
 
-QBUF-CALLBACK!: alias function! [cfg [integer!]]
-
 v4l2-config!: alias struct! [
 	name		[c-string!]
 	fd			[integer!]
@@ -156,7 +154,84 @@ v4l2: context [
 				return:		[integer!]
 			]
 		]
+		"libudev.so.1" cdecl [
+			udev_new: "udev_new" [
+				return:		[int-ptr!]
+			]
+			udev_unref: "udev_unref" [
+				udev		[int-ptr!]
+				return:		[int-ptr!]
+			]
+			udev_monitor_new_from_netlink: "udev_monitor_new_from_netlink" [
+				udev		[int-ptr!]
+				name		[c-string!]
+				return:		[int-ptr!]
+			]
+			udev_monitor_unref: "udev_monitor_unref" [
+				monitor		[int-ptr!]
+				return:		[int-ptr!]
+			]
+			udev_monitor_filter_add_match_subsystem_devtype: "udev_monitor_filter_add_match_subsystem_devtype" [
+				monitor		[int-ptr!]
+				subsys		[c-string!]
+				devtype		[c-string!]
+				return:		[integer!]
+			]
+			udev_monitor_enable_receiving: "udev_monitor_enable_receiving" [
+				monitor		[int-ptr!]
+				return:		[integer!]
+			]
+			udev_monitor_receive_device: "udev_monitor_receive_device" [
+				monitor		[int-ptr!]
+				return:		[int-ptr!]
+			]
+			udev_device_unref: "udev_device_unref" [
+				dev			[int-ptr!]
+				return:		[int-ptr!]
+			]
+			udev_enumerate_new: "udev_enumerate_new" [
+				udev		[int-ptr!]
+				return:		[int-ptr!]
+			]
+			udev_enumerate_add_match_subsystem: "udev_enumerate_add_match_subsystem" [
+				enum		[int-ptr!]
+				sub			[c-string!]
+				return:		[integer!]
+			]
+			udev_enumerate_scan_devices: "udev_enumerate_scan_devices" [
+				enum		[int-ptr!]
+				return:		[integer!]
+			]
+			udev_enumerate_get_list_entry: "udev_enumerate_get_list_entry" [
+				enum		[int-ptr!]
+				return:		[int-ptr!]
+			]
+			udev_enumerate_unref: "udev_enumerate_unref" [
+				enum		[int-ptr!]
+				return:		[int-ptr!]
+			]
+			udev_list_entry_get_next: "udev_list_entry_get_next" [
+				list		[int-ptr!]
+				return:		[int-ptr!]
+			]
+			udev_list_entry_get_name: "udev_list_entry_get_name" [
+				list		[int-ptr!]
+				return:		[c-string!]
+			]
+			udev_device_new_from_syspath: "udev_device_new_from_syspath" [
+				udev		[int-ptr!]
+				syspath		[c-string!]
+				return:		[int-ptr!]
+			]
+			udev_device_get_devnode: "udev_device_get_devnode" [
+				dev			[int-ptr!]
+				return:		[c-string!]
+			]
+		]
 	]
+
+	QBUF-CALLBACK!: alias function! [cfg [integer!]]
+	COLLECT-CALLBACK!: alias function! [node [c-string!] name [c-string!]]
 
 	#define _O_RDWR		2
 
@@ -309,7 +384,7 @@ v4l2: context [
 		if fd = -1 [return -1]
 		set-memory as byte-ptr! cap null-byte size? v4l2_capability
 		hr: _ioctl fd VIDIOC_QUERYCAP as int-ptr! :cap
-		if hr = -1 [
+		if hr <> 0 [
 			_close fd
 			return -2
 		]
@@ -328,7 +403,7 @@ v4l2: context [
 
 		fdesc/index: 0
 		fdesc/type: V4L2_BUF_TYPE_VIDEO_CAPTURE
-		while [-1 <> _ioctl fd VIDIOC_ENUM_FMT as int-ptr! :fdesc][
+		while [0 = _ioctl fd VIDIOC_ENUM_FMT as int-ptr! :fdesc][
 			either config/format = 0 [
 				config/format: fdesc/format
 			][
@@ -362,7 +437,7 @@ v4l2: context [
 		;-- use VIDIOC_G_FMT to init v4l2_format
 		fmt/1: V4L2_BUF_TYPE_VIDEO_CAPTURE
 		hr: _ioctl fd VIDIOC_G_FMT fmt
-		if hr = -1 [
+		if hr <> 0 [
 			free as byte-ptr! fmt
 			_close fd
 			return -6
@@ -374,7 +449,7 @@ v4l2: context [
 		pfmt/width: config/width
 		pfmt/height: config/height
 		hr: _ioctl fd VIDIOC_S_FMT fmt
-		if hr = -1 [
+		if hr <> 0 [
 			free as byte-ptr! fmt
 			_close fd
 			return -7
@@ -382,7 +457,7 @@ v4l2: context [
 
 		;-- check the v4l2_format result
 		hr: _ioctl fd VIDIOC_G_FMT fmt
-		if hr = -1 [
+		if hr <> 0 [
 			free as byte-ptr! fmt
 			_close fd
 			return -8
@@ -398,7 +473,7 @@ v4l2: context [
 		rbuf/type: V4L2_BUF_TYPE_VIDEO_CAPTURE
 		rbuf/memory: V4L2_MEMORY_USERPTR
 		hr: _ioctl fd VIDIOC_REQBUFS as int-ptr! :rbuf
-		if hr = -1 [
+		if hr <> 0 [
 			_close fd
 			return -9
 		]
@@ -412,7 +487,7 @@ v4l2: context [
 		buf/m: as integer! config/buffer
 		buf/length: config/imgsize
 		hr: _ioctl fd VIDIOC_QBUF as int-ptr! :buf
-		if hr = -1 [
+		if hr <> 0 [
 			free config/buffer
 			_close fd
 			return -10
@@ -455,7 +530,7 @@ v4l2: context [
 			buf/memory: V4L2_MEMORY_USERPTR
 			hr: _ioctl config/fd VIDIOC_DQBUF as int-ptr! :buf
 			if any [
-				hr < 0
+				hr <> 0
 				not config/running?
 			][
 				pthread_mutex_unlock :config/mutex
@@ -470,7 +545,7 @@ v4l2: context [
 			config/bused: 0
 			pthread_mutex_unlock :config/mutex
 			hr: _ioctl config/fd VIDIOC_QBUF as int-ptr! :buf
-			if hr < 0 [
+			if hr <> 0 [
 				return -1
 			]
 		]
@@ -537,5 +612,52 @@ v4l2: context [
 		pthread_join config/thread :val
 		pthread_cond_destroy :config/cond
 		pthread_mutex_destroy :config/mutex
+	]
+
+
+	;-- use udev to collect devices
+	collect: func [
+		cb			[int-ptr!]
+		return:		[integer!]
+		/local
+			udev	[int-ptr!]
+			enum	[int-ptr!]
+			devs	[int-ptr!]
+			list	[int-ptr!]
+			path	[c-string!]
+			dev		[int-ptr!]
+			node	[c-string!]
+			fd		[integer!]
+			hr		[integer!]
+			cap		[v4l2_capability value]
+			pcb		[COLLECT-CALLBACK!]
+	][
+		udev: udev_new
+		enum: udev_enumerate_new udev
+		udev_enumerate_add_match_subsystem enum "video4linux"
+		udev_enumerate_scan_devices enum
+		devs: udev_enumerate_get_list_entry enum
+		list: devs
+		while [list <> null][
+			path: udev_list_entry_get_name list
+			dev: udev_device_new_from_syspath udev path
+			node: udev_device_get_devnode dev
+			fd: _open node _O_RDWR
+			if fd <> -1 [
+				set-memory as byte-ptr! cap null-byte size? v4l2_capability
+				hr: _ioctl fd VIDIOC_QUERYCAP as int-ptr! :cap
+				if hr = 0 [
+					pcb: as COLLECT-CALLBACK! cb
+					pcb node as c-string! :cap/card1
+				]
+				_close fd
+			]
+			udev_device_unref dev
+			list: udev_list_entry_get_next list
+		]
+
+		udev_enumerate_unref enum
+		udev_unref udev
+		0
 	]
 ]
