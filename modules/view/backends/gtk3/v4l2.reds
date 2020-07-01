@@ -454,7 +454,10 @@ v4l2: context [
 			buf/type: V4L2_BUF_TYPE_VIDEO_CAPTURE
 			buf/memory: V4L2_MEMORY_USERPTR
 			hr: _ioctl config/fd VIDIOC_DQBUF as int-ptr! :buf
-			if hr < 0 [
+			if any [
+				hr < 0
+				not config/running?
+			][
 				pthread_mutex_unlock :config/mutex
 				return -1
 			]
@@ -526,8 +529,12 @@ v4l2: context [
 
 	stop: func [
 		config		[v4l2-config!]
+		/local
+			val		[integer!]
 	][
-		pthread_cancel config/thread
+		config/running?: no
+		val: 0
+		pthread_join config/thread :val
 		pthread_cond_destroy :config/cond
 		pthread_mutex_destroy :config/mutex
 	]
