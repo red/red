@@ -1170,7 +1170,7 @@ context [
 	]
 	
 	on-file-written: func [job [object!] file [file!] /local file-sum chk-sum offset buffer res][
-		if job/type = 'drv [
+		either redc/load-lib? [
 			file-sum: make struct! int-ptr! [0]
 			chk-sum:  make struct! int-ptr! [0]
 
@@ -1197,6 +1197,10 @@ context [
 			pointer/value: chk-sum/n
 			change/part at buffer offset form-struct pointer 4
 			write/binary file buffer
+		][
+			if job/type = 'drv [
+				make error! "Rebol/View or a Rebol kernel with /Library component is required!"
+			]
 		]
 	]
 ]
