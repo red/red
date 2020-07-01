@@ -2215,7 +2215,10 @@ OS-to-image: func [
 				win: gtk_widget_get_window widget
 				either not null? win [
 					;; DEBUG: print ["win: " win " size: " size/x "x" size/y " offset: " offset/x "x" offset/y lf]
-					pixbuf: either type = window [
+					pixbuf: either any [
+						type = window
+						type = camera
+					][
 						gdk_pixbuf_get_from_window win 0 0 size/x size/y
 					][
 						gdk_pixbuf_get_from_window win offset/x offset/y size/x size/y
