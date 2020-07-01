@@ -11,7 +11,32 @@ Red [
 
 ~~~start-file~~~ "Redbin codec"
 	random/seed C0DECh								;-- seed for randomized tests
+	
 	test: func [value [any-type!]][load/as save/as none :value 'redbin 'redbin]
+	
+	;@@ TBD: #4540
+	equal-func?: func [x [function!] y [function!]][
+		all [
+			strict-equal? mold    :x mold    :y
+			strict-equal? spec-of :x spec-of :y
+			strict-equal? body-of :x body-of :y
+		]
+	]
+	
+	inline: function [body [any-list!] /local rest][
+		rule:   [any [ahead any-list! into rule | cycle | skip]]
+		marker: [ahead ref! into [end]]
+		
+		cycle: [remove marker mark: refer :rest]
+		refer: quote (change/only/part mark do/next mark 'rest rest)
+		
+		also body parse body rule
+	]
+	
+	scan: function [datatype [datatype!]][
+		take/last block: split help-string datatype newline
+		collect [forall block [keep get load take/part block/1 find block/1 "=>"]]
+	]
 	
 	===start-group=== "values"
 		--test-- "unset"
@@ -276,15 +301,11 @@ Red [
 			]
 		
 		--test-- "action"
-			take/last block: split help-string action! newline
-			actions: collect [forall block [keep get load take/part block/1 find block/1 "=>"]]
-			
+			actions: scan action!
 			forall actions [--assert :actions/1 == test :actions/1]
 
 		--test-- "native"
-			take/last block: split help-string native! newline
-			natives: collect [forall block [keep get load take/part block/1 find block/1 "=>"]]
-			
+			natives: scan native!
 			forall natives [--assert :natives/1 == test :natives/1]
 		
 		--test-- "object"
@@ -308,17 +329,7 @@ Red [
 			forall errors [--assert :errors/1 = test :errors/1]
 		
 		--test-- "function"
-			equal-func?: func [x [function!] y [function!]][
-				all [
-					strict-equal? mold    :x mold    :y
-					strict-equal? spec-of :x spec-of :y
-					strict-equal? body-of :x body-of :y
-				]
-			]
-			
-			take/last block: split help-string function! newline
-			functions: collect [forall block [keep get load take/part block/1 find block/1 "=>"]]
-			
+			functions: scan function!
 			;@@ TBD: unblock
 			forall functions [
 				if find [
@@ -326,7 +337,7 @@ Red [
 					111 ; e
 					245 ; e
 					;;;;;;;
-					58 59 62 63 71 72
+					058 059 062 063 071 072
 					114 128 129 197
 					221 222 223 225 226 239
 				] index? functions [continue]
@@ -335,11 +346,9 @@ Red [
 			]
 		
 		--test-- "op"
-			take/last block: split help-string op! newline
-			ops: collect [forall block [keep load take/part block/1 find block/1 "=>"]]
-			ops: exclude ops [>> >>> << is //]	;@@ TBD: derived from routines and functions
-			
-			forall ops [--assert equal? get ops/1 test get ops/1]
+			ops: scan op!
+			ops: exclude ops reduce [:>> :>>> get quote << :is ://]	;@@ TBD: derived from routines and functions
+			forall ops [--assert equal? :ops/1 test :ops/1]
 		
 	===end-group===
 	
@@ -382,7 +391,7 @@ Red [
 		
 			--assert word? word
 			--assert 'foo = word
-			--assert equal? mold has [foo][bar] mold context? word
+			--assert equal-func? has [foo][bar] context? word
 		
 	===end-group===
 
@@ -421,16 +430,6 @@ Red [
 	===end-group===
 	
 	===start-group=== "Cycles & References"
-		inline: function [body [any-list!] /local rest][
-			rule:   [any [ahead any-list! into rule | cycle | skip]]
-			marker: [ahead ref! into [end]]
-			
-			cycle: [remove marker mark: refer :rest]
-			refer: quote (change/only/part mark do/next mark 'rest rest)
-			
-			also body parse body rule
-		]
-		
 		--test-- "cycle-1"
 			block: [@ block]
 			block: test inline block
