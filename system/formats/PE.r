@@ -393,6 +393,11 @@ context [
 	opt-header-size:	length? form-struct optional-header
 	ep-mem-page: 		none
 	ep-file-page:		none
+	
+	sys32-dir: all [
+		system/version/4 = 3				;-- only when running the toolchain on Windows
+		join to-rebol-file get-env "%windir%" "/SysWOW64/"
+	]
 
 	get-timestamp: has [n t][
 		n: now
@@ -471,6 +476,67 @@ context [
 
 		linker/resolve-symbol-refs job cbuf dbuf code data pointer
 	]
+	
+	get-hint: func [
+		lib [string!]
+		fun [string!]
+		/local cache list buf idx table sec-nb edata sh delta ptrs ords base str-ptr
+	][
+		unless sys32-dir [return 0]							;-- can't extract hints on non-Windows platforms
+		cache: []											;-- ["lib" ["fun" hint...]...]
+
+		unless list: select cache lib [
+			any [
+				attempt [buf: read/binary lib]				;-- read relatively from current folder
+				attempt [buf: read/binary sys32-dir/:lib]	;-- read from system32 folder
+				return 0									;-- not found, then give up
+			]
+			idx: 1 + to-integer buf/61						;-- PE offset at 3Ch (one-based access)
+			buf: at buf idx
+			if defs/PE-signature <> copy/part buf 4 [return 0] ;-- check PE signature
+			append cache lib
+
+			table: make-struct file-header none
+			decode-struct table skip buf 4					;-- decode file header
+			sec-nb: table/sections-nb
+
+			table: make-struct optional-header none
+			decode-struct table buf: skip buf 4 + 20		;-- decode optional header
+			buf: skip buf 96								;-- skip optional header
+			edata: to-integer reverse copy/part buf 4		;-- export table offset
+
+			buf: skip buf 8 * table/data-dir-nb
+			sh: make-struct section-header none
+			loop sec-nb [
+				decode-struct sh buf						;-- decode section header
+				if sh/virtual-address + sh/virtual-size > edata [
+					delta: sh/virtual-address - sh/raw-data-ptr ;-- delta factor between RVA and file offsets
+					break
+				]
+				buf: skip buf 40
+			]
+			edata: edata - delta
+
+			table: make-struct export-directory none
+			decode-struct table skip head buf edata			;-- decode export table
+
+			list: make block! 2 * table/nb-name-ptr
+			ptrs: skip head buf table/name-ptr-rva - delta
+			ords: skip head buf table/ordinals-rva - delta
+
+			loop table/nb-name-ptr [
+				str-ptr: skip head buf (to-integer reverse copy/part ptrs 4) - delta
+				repend list [
+					to-string copy/part str-ptr find str-ptr null
+					to-integer reverse copy/part ords 2
+				]
+				ptrs: skip ptrs 4
+				ords: skip ords 2
+			]
+			append/only cache make hash! sort/skip/compare list 2 [2]
+		]
+		select list fun
+	]
 
 	resolve-import-refs: func [job [object!] /local code code-base][
 		code: job/sections/code/2
@@ -518,7 +584,7 @@ context [
 			foreach [def reloc] list [
 				append last ILTs ilt: make-struct ILT-struct none
 				ilt/rva: length? hints
-				repend hints [#{0000} form def null]	;-- Ordinal is zero, not used
+				repend hints [to-bin16 get-hint name def form def null]	;-- Ordinal is zero, not used
 				if even? length? def [append hints null]
 				len: len + 1
 			]

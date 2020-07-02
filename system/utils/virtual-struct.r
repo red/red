@@ -52,6 +52,23 @@ virtual-struct!: context [
 			struct! = get type
 		]
 	]
+	
+	set 'decode-struct func [
+		obj [object!]
+		buf [binary!]
+		/local v n
+	][
+		foreach [name spec] obj/__vs-spec [
+			switch spec/1 [
+				char char!	 [v: to-char buf/1 n: 1]
+				short		 [v: to-integer reverse copy/part buf 2 n: 2]
+				int	integer! [v: to-integer reverse copy/part buf 4 n: 4]
+				decimal!	 [v: reverse copy/part buf 8 n: 8]
+			]
+			buf: skip buf n
+			set in obj name v
+		]
+	]
 
 	set 'make-struct func [
 		"Returns a new virtual struct! value built from a spec block."
