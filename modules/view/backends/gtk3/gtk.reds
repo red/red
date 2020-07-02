@@ -52,6 +52,30 @@ tagRECT: alias struct! [
 	height	[integer!]
 ]
 
+GdkWindowAttr!: alias struct! [
+	title				[c-string!]
+	event_mask			[integer!]
+	x					[integer!]
+	y					[integer!]
+	width				[integer!]
+	height				[integer!]
+	wclass				[integer!]
+	visual				[int-ptr!]
+	window_type			[integer!]
+	cursor				[int-ptr!]
+	wmclass_name		[c-string!]
+	wmclass_class		[c-string!]
+	override_redirect	[integer!]
+	type_hint			[integer!]
+]
+
+GdkRectangle!: alias struct! [
+	x		[integer!]
+	y		[integer!]
+	width	[integer!]
+	height	[integer!]
+]
+
 GdkRGBA!: alias struct! [
 	red		[float!]
 	green	[float!]
@@ -2747,7 +2771,7 @@ GPtrArray!: alias struct! [
 		]
 		gtk_im_context_set_cursor_location: "gtk_im_context_set_cursor_location" [
 			ctx			[handle!]
-			area		[int-ptr!]
+			area		[GdkRectangle!]
 		]
 		gtk_im_context_set_use_preedit: "gtk_im_context_set_use_preedit" [
 			ctx			[handle!]

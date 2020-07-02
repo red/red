@@ -466,10 +466,14 @@ im-commit: func [
 	widget		[handle!]
 	/local
 		cp		[integer!]
+		cnt		[integer!]
 ][
-	cp: as integer! str/1
-	print-line ["commit: " cp]
-	make-event widget cp EVT_KEY
+	while [str/1 <> null-byte][
+		cnt: unicode/utf8-char-size? as-integer str/1
+		cp: unicode/decode-utf8-char str :cnt
+		make-event widget cp EVT_KEY
+		str: str + cnt
+	]
 ]
 
 im-preedit-start: func [
@@ -505,6 +509,7 @@ im-preedit-changed: func [
 	print-line "changed"
 	pstr: 0
 	gtk_im_context_get_preedit_string ctx :pstr null null
+	probe ["length: " length? as c-string! pstr]
 	make-event widget pstr EVT_IME
 	str: as c-string! pstr
 	either str/1 <> null-byte [
@@ -663,8 +668,10 @@ widget-realize: func [
 		gdk_window_set_cursor win cursor
 	]
 	im: GET-IM-CONTEXT(widget)
+	probe ["im: " im " " widget]
 	unless null? im [
-		win: gtk_widget_get_window widget
+		win: gtk_layout_get_bin_window widget
+		?? win
 		gtk_im_context_set_client_window im win
 	]
 ]
@@ -788,32 +795,39 @@ key-press-event: func [
 		im		[handle!]
 		done?	[logic!]
 ][
-	either null? GET-RESEND-EVENT(evbox) [
-		win: gtk_get_event_widget as handle! event-key
-		unless g_type_check_instance_is_a win gtk_window_get_type [
-			return EVT_DISPATCH
-		]
-		if evbox <> gtk_window_get_focus win [return EVT_NO_DISPATCH]
-	][
-		SET-RESEND-EVENT(evbox null)
-	]
-
+	probe ["key pressed " evbox " " widget]
 	face: get-face-obj widget
 	values: object/get-values face
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
 
+	if sym <> rich-text [
+		either null? GET-RESEND-EVENT(evbox) [
+			win: gtk_get_event_widget as handle! event-key
+			unless g_type_check_instance_is_a win gtk_window_get_type [
+				return EVT_DISPATCH
+			]
+			if evbox <> gtk_window_get_focus win [return EVT_NO_DISPATCH]
+		][
+			SET-RESEND-EVENT(evbox null)
+		]
+	]
+
+	if sym = rich-text [
+		im: GET-IM-CONTEXT(widget)
+		done?: gtk_im_context_filter_keypress im event-key
+?? done?
+	]
+
 	key: translate-key event-key/keyval
 	flags: check-extra-keys event-key/state
 	special-key: either char-key? as-byte key [0][-1]		;-- special key or not
+probe [key " " flags " " special-key]
 	if all [key >= 80h special-key = -1][
 		if all [
 			flags = 0
 			sym = rich-text
 		][
-			im: GET-IM-CONTEXT(widget)
-			done?: gtk_im_context_filter_keypress im event-key
-			print-line ["done?: " done?]
 			if done? [return EVT_NO_DISPATCH]
 		]
 		flags: flags or special-key-to-flags key
@@ -823,9 +837,6 @@ key-press-event: func [
 		special-key = 0
 		sym = rich-text
 	][
-		im: GET-IM-CONTEXT(widget)
-		done?: gtk_im_context_filter_keypress im event-key
-		print-line ["done?: " done?]
 		if done? [return EVT_NO_DISPATCH]
 	]
 	res: make-event widget key or flags EVT_KEY_DOWN
@@ -928,6 +939,7 @@ focus-in-event: func [
 		int		[red-integer!]
 		sym		[integer!]
 		im		[handle!]
+		area	[GdkRectangle! value]
 ][
 	face: get-face-obj widget
 	values: object/get-values face
@@ -946,7 +958,11 @@ focus-in-event: func [
 	]
 	if sym = rich-text [
 		im: GET-IM-CONTEXT(widget)
+		probe ["set-focus: " im]
 		gtk_im_context_focus_in im
+		area/x: 100 area/y: 0
+		area/width: 0 area/height: 0
+		;gtk_im_context_set_cursor_location im :area
 	]
 	change-selection widget int sym
 	make-event widget 0 EVT_FOCUS
@@ -975,6 +991,7 @@ focus-out-event: func [
 	]
 	if sym = rich-text [
 		im: GET-IM-CONTEXT(widget)
+		probe ["unfocus: " im]
 		gtk_im_context_focus_out im
 	]
 	make-event widget 0 EVT_UNFOCUS

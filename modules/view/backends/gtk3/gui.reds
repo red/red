@@ -1719,8 +1719,8 @@ OS-make-view: func [
 			gtk_im_context_set_use_preedit handle true
 			gtk_im_context_reset handle
 			gobj_signal_connect(handle "commit" :im-commit widget)
-			gobj_signal_connect(handle "preedit-start" :im-preedit-start widget)
-			gobj_signal_connect(handle "preedit-end" :im-preedit-end widget)
+			;gobj_signal_connect(handle "preedit-start" :im-preedit-start widget)
+			;gobj_signal_connect(handle "preedit-end" :im-preedit-end widget)
 			gobj_signal_connect(handle "preedit-changed" :im-preedit-changed widget)
 			gobj_signal_connect(handle "retrieve-surrounding" :im-retrieve-surrounding widget)
 			gobj_signal_connect(handle "delete-surrounding" :im-delete-surrounding widget)
