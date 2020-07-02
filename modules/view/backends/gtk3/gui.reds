@@ -25,7 +25,7 @@ Red/System [
 #include %comdlgs.reds
 #include %tab-panel.reds
 #include %text-list.reds
-#include %camera-dev.reds
+#include %camera.reds
 
 window-ready?:		no
 force-redraw?:		no
@@ -1799,12 +1799,7 @@ OS-make-view: func [
 		sym = camera [
 			widget: gtk_layout_new null null
 			gtk_layout_set_size widget size/x size/y
-			x: 0
-			if camera-dev/open "/dev/video0" size/x size/y :x [
-				SET-CAMERA-CFG(widget x)
-				camera-dev/attach x widget as int-ptr! :camera-cb
-				camera-dev/start x
-			]
+			init-camera widget data selected size
 		]
 		sym = calendar [
 			widget: gtk_calendar_new

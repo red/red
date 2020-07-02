@@ -620,6 +620,7 @@ v4l2: context [
 		cb			[int-ptr!]
 		return:		[integer!]
 		/local
+			ret		[integer!]
 			udev	[int-ptr!]
 			enum	[int-ptr!]
 			devs	[int-ptr!]
@@ -632,6 +633,7 @@ v4l2: context [
 			cap		[v4l2_capability value]
 			pcb		[COLLECT-CALLBACK!]
 	][
+		ret: 0
 		udev: udev_new
 		enum: udev_enumerate_new udev
 		udev_enumerate_add_match_subsystem enum "video4linux"
@@ -649,6 +651,7 @@ v4l2: context [
 				if hr = 0 [
 					pcb: as COLLECT-CALLBACK! cb
 					pcb node as c-string! :cap/card1
+					ret: ret + 1
 				]
 				_close fd
 			]
@@ -658,6 +661,6 @@ v4l2: context [
 
 		udev_enumerate_unref enum
 		udev_unref udev
-		0
+		ret
 	]
 ]

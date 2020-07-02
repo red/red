@@ -117,6 +117,7 @@ camera-dev: context [
 
 	collect: func [
 		cb			[int-ptr!]
+		return:		[integer!]
 	][
 		v4l2/collect cb
 	]
