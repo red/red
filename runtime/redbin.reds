@@ -68,8 +68,6 @@ redbin: context [
 		/local
 			cell  [red-native!]
 			spec  [red-block!]
-			s	  [series!]
-			sym	  [int-ptr!]
 			type  [integer!]
 			index [integer!]
 	][
@@ -78,24 +76,17 @@ redbin: context [
 		cell:  as red-native! ALLOC_TAIL(parent)
 		data:  data + 2
 		
-		either type = TYPE_OP [						;@@ TBD: branch is never taken during runtime booting
-			sym: table + index
-			copy-cell
-				as red-value! op/make null as red-block! _context/get-global sym/1 TYPE_OP
-				as red-value! cell
-		][
-			if codec? [parent: block/push-only* 1]	;-- redirect slot allocation
-			
-			spec: as red-block! block/rs-tail parent
-			data: decode-block data table parent off
+		if codec? [parent: block/push-only* 1]	;-- redirect slot allocation
+		
+		spec: as red-block! block/rs-tail parent
+		data: decode-block data table parent off
 
-			cell/header: type						;-- implicit reset of all header flags
-			cell/spec:	 spec/node
-			cell/args:	 null
-			cell/code: either type = TYPE_ACTION [actions/table/index][natives/table/index]
-			
-			if codec? [stack/pop 1]					;-- drop an unwanted block
-		]
+		cell/header: type						;-- implicit reset of all header flags
+		cell/spec:	 spec/node
+		cell/args:	 null
+		cell/code: either type = TYPE_ACTION [actions/table/index][natives/table/index]
+		
+		if codec? [stack/pop 1]					;-- drop an unwanted block
 		
 		if nl? [cell/header: cell/header or flag-new-line]
 		data
