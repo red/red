@@ -28,7 +28,7 @@ context [
 		D22B72E7CAC21E9B7C3EFC3F23437BB958040000
 	}
 	if all [
-		system/version/4 = 3
+		system/version/4 = 3							;-- only when running the toolchain on Windows
 		find system/components 'Library 
 	][
 		path: to-rebol-file get-env "SystemRoot"		;-- workaround issues on 64-bit editions
@@ -41,11 +41,11 @@ context [
 			HeaderSum	[struct! [n [integer!]]]
 			CheckSum	[struct! [n [integer!]]]
 			return:		[integer!]
-		] Imagehlplib "MapFileAndCheckSumA" 
+		] Imagehlplib "MapFileAndCheckSumA"
 	]
 	
 	defs: [
-		PE-signature "PE^@^@"
+		PE-signature #{50450000}						;-- "PE^@^@"
 		image [
 			exe-base-address	#{00400000}
 			dll-base-address	#{10000000}
