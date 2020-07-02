@@ -1146,14 +1146,9 @@ change-selection: func [
 				gtk_text_buffer_select_range buffer as handle! ins as handle! bound
 			]
 		]
-	; 	type = camera [
-	; 		either TYPE_OF(int) = TYPE_NONE [
-	; 			toggle-preview widget false
-	; 		][
-	; 			select-camera widget idx
-	; 			toggle-preview widget true
-	; 		]
-	; 	]
+		type = camera [
+			select-camera widget idx
+		]
 		type = text-list [
 			select-text-list widget idx
 		]

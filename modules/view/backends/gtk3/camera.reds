@@ -51,7 +51,7 @@ collect-camera: func [
 	camera-dev/collect as int-ptr! :collect-cb
 ]
 
-select-camera: func [
+select-camera*: func [
 	widget		[handle!]
 	data		[red-block!]
 	sel			[integer!]
@@ -60,6 +60,14 @@ select-camera: func [
 	/local
 		cfg		[integer!]
 		cnt		[integer!]
+		str		[red-string!]
+		s		[series!]
+		unit	[integer!]
+		head	[byte-ptr!]
+		tail	[byte-ptr!]
+		p		[byte-ptr!]
+		len		[integer!]
+		node	[byte-ptr!]
 ][
 	cfg: as integer! GET-CAMERA-CFG(widget)
 	if cfg <> 0 [
@@ -72,13 +80,33 @@ select-camera: func [
 		sel >= 0
 		sel < cnt
 	][exit]
+	str: as red-string! block/rs-abs-at data sel
+	if TYPE_OF(str) <> TYPE_STRING [exit]
+	s:    GET_BUFFER(str)
+	unit: GET_UNIT(s)
+	if unit <> Latin1 [exit]
+	head: as byte-ptr! s/offset
+	tail: as byte-ptr! s/tail
+	p: head
+	while [p < tail][
+		if p/1 = #":" [break]
+		p: p + 1
+	]
+	len: as integer! p - head
+	node: allocate len + 1
+	copy-memory node head len
+	p: node + len
+	p/1: null-byte
+
 	cfg: 0
-	if camera-dev/open "/dev/video0" width height :cfg [
+	if camera-dev/open as c-string! node width height :cfg [
 		SET-CAMERA-CFG(widget cfg)
 		camera-dev/attach cfg widget as int-ptr! :camera-cb
 		camera-dev/start cfg
 	]
+	free node
 ]
+
 
 init-camera: func [
 	widget		[handle!]
@@ -90,7 +118,20 @@ init-camera: func [
 ][
 	cnt: collect-camera data
 	if TYPE_OF(sel) = TYPE_INTEGER [
-		select-camera widget data sel/value - 1 size/x size/y
+		select-camera* widget data sel/value - 1 size/x size/y
 	]
 ]
 
+select-camera: func [
+	widget		[handle!]
+	sel			[integer!]
+	/local
+		values	[red-value!]
+		data	[red-block!]
+		size	[red-pair!]
+][
+	values: get-face-values widget
+	data: as red-block! values + FACE_OBJ_DATA
+	size: as red-pair! values + FACE_OBJ_SIZE
+	select-camera* widget data sel size/x size/y
+]
