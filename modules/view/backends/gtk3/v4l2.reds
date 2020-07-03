@@ -260,7 +260,7 @@ v4l2: context [
 
 	filters: [
 		V4L2_PIX_FMT_MJPEG
-		V4L2_PIX_FMT_YUYV
+		;V4L2_PIX_FMT_YUYV
 	]
 
 	v4l2_capability: alias struct! [
