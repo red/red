@@ -680,6 +680,10 @@ Red [
 			--assert same? spec-of :block/1 head block/2
 			--assert same? last spec-of :block/1 head block/3
 		
+		--test-- "reference-15"
+			block: body-of :mod
+			--assert block == test block
+		
 	===end-group===
 	
 	===start-group=== "Symbols"
