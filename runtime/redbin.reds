@@ -100,33 +100,55 @@ redbin: context [
 		return: [int-ptr!]
 		/local
 			op      [red-op!]
+			extra   [red-function!]
 			spec    [red-block!]
+			series  [series!]
+			node    [node!]
+			next    [integer!]
 			native? [logic!]
 			body?   [logic!]
 	][
 		native?: data/1 and REDBIN_NATIVE_MASK <> 0
 		body?:   data/1 and REDBIN_BODY_MASK   <> 0
+		data:    data + 1
 		
 		op: as red-op! ALLOC_TAIL(parent)
 		op/header: TYPE_UNSET
 		
 		parent: block/push-only* 1
-		spec: as red-block! block/rs-tail parent
 		
-		data: decode-block data + 1 table parent nl?
+		node: either body? [
+			assert data/1 and FFh = TYPE_FUNCTION	;@@ TBD: routine
+			next: 0
+			node: preprocess-binding data table :next
+			data: fill-context as int-ptr! next table node
+			
+			series: as series! node/value
+			extra:  as red-function! series/offset + 1
+			assert TYPE_OF(extra) = TYPE_FUNCTION
+			
+			series: as series! extra/more/value
+			copy-cell as red-value! extra series/offset + 3
+			
+			extra/spec
+		][
+			data: decode-block data table parent nl?
+			spec: as red-block! block/rs-head parent
+			spec/node
+		]
 		
 		op/args:   null
-		op/spec:   spec/node
-		op/code:   data/1
+		op/spec:   node
+		op/code:   either body? [as integer! extra/more][data/1]
 		op/header: TYPE_OP
 		
 		if nl?     [op/header: op/header or flag-new-line]
 		if native? [op/header: op/header or flag-native-op]
 		if body?   [op/header: op/header or body-flag]
 		
+		if body? [data: fill-spec-body data table extra]
 		stack/pop 1
-		
-		data + 1
+		either body? [data][data + 1]
 	]
 	
 	decode-map: func [
@@ -216,6 +238,9 @@ redbin: context [
 		function: header spec-size body-size [context] [spec] [body]
 		          header [reference]
 		
+		op:       header (body?: N) spec id
+		          header (body?: Y) [function]
+		
 		context:  header size symbols* values*
 	}
 	
@@ -228,8 +253,10 @@ redbin: context [
 		/local
 			tag       [subroutine!]
 			word new  [red-word!]
+			op        [red-op!]
 			backref   [red-value!]
 			series    [series!]
+			node      [node!]
 			sym tail  [int-ptr!]
 			type next [integer!]
 			type2     [integer!]
@@ -250,10 +277,22 @@ redbin: context [
 			word: (as red-word! block/rs-tail parent) - 1
 			
 			type2: TYPE_OF(word)
-			assert any [
+			assert any [							;-- copy over context node from these slots
 				type2 = TYPE_OBJECT
 				type2 = TYPE_FUNCTION
+				type2 = TYPE_OP
 				ANY_WORD?(type2)
+			]
+			
+			if type2 = TYPE_OP [					;-- locate function! slot
+				op: as red-op! word
+				assert op/header and flag-native-op =  0
+				assert op/header and body-flag      <> 0
+				
+				node: as node! op/code
+				series: as series! node/value
+				copy-cell as red-value! series/offset + 3 as red-value! word
+				assert TYPE_OF(word) = TYPE_FUNCTION
 			]
 		][
 			word: as red-word! ALLOC_TAIL(parent)
@@ -1178,7 +1217,7 @@ redbin: context [
 		if all [nl? cell <> null][cell/header: cell/header or flag-new-line]
 		data
 	]
-
+	
 	decode: func [
 		data	[byte-ptr!]
 		parent	[red-block!]
@@ -1217,9 +1256,9 @@ redbin: context [
 		p: p + 1
 		
 		if compressed? [p: crush/decompress p null]
-
+		
 		p4: as int-ptr! p
-
+		
 		count: p4/1						;-- read records number
 		len: p4/2						;-- read records size in bytes
 		p4: p4 + 2						;-- skip both fields
@@ -1234,7 +1273,7 @@ redbin: context [
 			table: p4 + 2
 			p: p + 8 + (p4/1 * 4 + p4/2)
 		]
-
+		
 		;----------------
 		;-- decode values
 		;----------------
@@ -1485,7 +1524,7 @@ redbin: context [
 		if owner? [header: header or REDBIN_OWNER_MASK]
 		
 		store payload header
-	
+		
 		unless header and REDBIN_REFERENCE_MASK <> 0 [
 			store payload object/class
 			if owner? [
@@ -1793,9 +1832,14 @@ redbin: context [
 		table   [red-binary!]
 		strings [red-binary!]
 		/local
-			native? body? [logic!]
+			value   [red-value!]
+			series  [series!]
+			node    [node!]
+			type    [integer!]
+			native? [logic!]
+			body?   [logic!]
 	][
-		;@@ TBD: #4563 op! prototype
+		;@@ TBD: #4563
 		native?: data/header and flag-native-op <> 0	;-- native, action
 		body?:   data/header and body-flag      <> 0	;-- function, routine
 		
@@ -1803,11 +1847,23 @@ redbin: context [
 		if body?   [header: header or REDBIN_BODY_MASK]
 		
 		store payload header
-		encode-block data TYPE_BLOCK yes payload symbols table strings	;-- structure overlap
 		
 		either body? [
-			assert false							;@@ TBD
+			node:   as node! data/data3
+			series: as series! node/value
+			value:  series/offset + 3
+			type:   TYPE_OF(value)
+			
+			assert any [type = TYPE_FUNCTION type = TYPE_ROUTINE]
+			either type = TYPE_FUNCTION [
+				encode-value value payload symbols table strings			;-- track nodes
+				offset: offset - 1					;-- compensate
+			][
+				assert false						;@@ TBD: routine
+			]
 		][
+			;@@ TBD track spec node
+			encode-block data TYPE_BLOCK yes payload symbols table strings	;-- structure overlap
 			store payload data/data3
 		]
 	]
@@ -1859,6 +1915,7 @@ redbin: context [
 			TYPE_MONEY		[record [payload header data/data1 data/data2 data/data3]]
 			TYPE_ISSUE		[record [payload header encode-symbol data table symbols strings]]
 			TYPE_ERROR		[encode-error data header payload symbols table strings]
+			TYPE_OP			[encode-op data header payload symbols table strings]
 			TYPE_POINT
 			TYPE_HANDLE
 			TYPE_EVENT		[--NOT_IMPLEMENTED--]
@@ -1891,7 +1948,6 @@ redbin: context [
 					TYPE_MAP		[encode-block data header no payload symbols table strings]
 					TYPE_OBJECT		[encode-object data header payload symbols table strings]
 					TYPE_FUNCTION	[encode-function data header payload symbols table strings]
-					TYPE_OP			[encode-op data header payload symbols table strings]
 					TYPE_ROUTINE	[--NOT_IMPLEMENTED--]
 					default			[assert false]
 				]
