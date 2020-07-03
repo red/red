@@ -248,6 +248,7 @@ v4l2: context [
 
 	#define V4L2_CAP_VIDEO_CAPTURE			00000001h
 	#define V4L2_CAP_STREAMING				04000000h
+	#define V4L2_CAP_META_CAPTURE			00800000h
 
 	#define V4L2_BUF_TYPE_VIDEO_CAPTURE		1
 
@@ -648,7 +649,12 @@ v4l2: context [
 			if fd <> -1 [
 				set-memory as byte-ptr! cap null-byte size? v4l2_capability
 				hr: _ioctl fd VIDIOC_QUERYCAP as int-ptr! :cap
-				if hr = 0 [
+				if all [
+					hr = 0
+					cap/cap and V4L2_CAP_VIDEO_CAPTURE <> 0
+					cap/cap and V4L2_CAP_STREAMING <> 0
+					cap/dev-caps and V4L2_CAP_META_CAPTURE = 0
+				][
 					pcb: as COLLECT-CALLBACK! cb
 					pcb node as c-string! :cap/card1
 					ret: ret + 1
