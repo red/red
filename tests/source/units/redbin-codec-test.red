@@ -23,6 +23,8 @@ Red [
 		]
 	]
 	
+	op: func [spec body][make op! func spec body]
+	
 	inline: function [body [any-list!] /local rest][
 		rule:   [any [ahead any-list! into rule | cycle | skip]]
 		marker: [ahead ref! into [end]]
@@ -330,25 +332,36 @@ Red [
 		
 		--test-- "function"
 			functions: scan function!
-			;@@ TBD: unblock
-			forall functions [
-				if find [
-					051 ; e
-					111 ; e
-					245 ; e
-					;;;;;;;
-					058 059 062 063 071 072
-					114 128 129 197
-					221 222 223 225 226 239
-				] index? functions [continue]
-				
-				--assert equal-func? :functions/1 test :functions/1
+			functions: exclude functions reduce [	;@@ TBD: unblock
+				:expand-directives :layout
+				:help-string :what :fetch-help
 			]
+			
+			forall functions [--assert equal-func? :functions/1 test :functions/1]
 		
 		--test-- "op"
 			ops: scan op!
 			ops: exclude ops reduce [:>> :>>> get quote << :is ://]	;@@ TBD: derived from routines and functions
 			forall ops [--assert equal? :ops/1 test :ops/1]
+			
+			ops: reduce [							;@@ TBD: #4540
+				() []
+				03 [03]
+				pi [pi]
+				[2] [x 0 reduce [y]]
+			]
+			
+			foreach [result body] ops [
+				operator: test op [x y] body
+				--assert :result = (1 operator 2)
+			]
+			
+			///: test ://
+			--assert 8 /// 3 == 2
+			--assert error? try [1 /// 0]
+			--assert strict-equal? spec-of :/// spec-of ://
+			
+			unset [operator ///]					;-- hide from scanner
 		
 	===end-group===
 	
