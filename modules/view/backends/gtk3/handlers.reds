@@ -334,8 +334,11 @@ camera-draw: func [
 		dlen	[integer!]
 		input	[handle!]
 		pixbuf	[handle!]
+		last	[handle!]
 ][
 	cfg: as integer! GET-CAMERA-CFG(widget)
+	last: GET-CAMERA-IMG(widget)
+	pixbuf: null
 	if all [
 		cfg <> 0
 		0 = camera-dev/trylock cfg
@@ -349,10 +352,20 @@ camera-draw: func [
 			pixbuf: gdk_pixbuf_new_from_stream input null null
 			gdk_cairo_set_source_pixbuf cr pixbuf 0.0 0.0
 			cairo_paint cr
-			g_object_unref pixbuf
 			camera-dev/signal cfg
 		]
 		camera-dev/unlock cfg
+	]
+	either null? pixbuf [
+		unless null? last [
+			gdk_cairo_set_source_pixbuf cr last 0.0 0.0
+			cairo_paint cr
+		]
+	][
+		unless null? last [
+			g_object_unref last
+		]
+		SET-CAMERA-IMG(widget pixbuf)
 	]
 	EVT_DISPATCH
 ]

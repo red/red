@@ -416,6 +416,7 @@ free-handles: func [
 		timer	[handle!]
 		sec		[float!]
 		cfg		[integer!]
+		last	[handle!]
 ][
 	values: get-face-values widget
 	type: as red-word! values + FACE_OBJ_TYPE
@@ -455,6 +456,10 @@ free-handles: func [
 		cfg: as integer! GET-CAMERA-CFG(widget)
 		if cfg <> 0 [
 			camera-dev/close cfg
+		]
+		last: GET-CAMERA-IMG(widget)
+		unless null? last [
+			g_object_unref last
 		]
 	]
 

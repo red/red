@@ -3469,6 +3469,7 @@ hmenu-id:			g_quark_from_string "hmenu-id"
 container-w:		g_quark_from_string "container-w"
 container-h:		g_quark_from_string "container-h"
 camera-cfg:			g_quark_from_string "camera-cfg"
+camera-pixbuf:		g_quark_from_string "camera-pixbuf"
 
 #define SET-RED-COLOR(s d)		[g_object_set_qdata s red-color-id d]
 #define GET-RED-COLOR(s)		[g_object_get_qdata s red-color-id]
@@ -3504,4 +3505,5 @@ camera-cfg:			g_quark_from_string "camera-cfg"
 #define GET-CONTAINER-H(s)		[as integer! g_object_get_qdata s container-h]
 #define SET-CAMERA-CFG(s d)		[g_object_set_qdata s camera-cfg as int-ptr! d]
 #define GET-CAMERA-CFG(s)		[g_object_get_qdata s camera-cfg]
-
+#define SET-CAMERA-IMG(s d)		[g_object_set_qdata s camera-pixbuf d]
+#define GET-CAMERA-IMG(s)		[g_object_get_qdata s camera-pixbuf]
