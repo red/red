@@ -971,21 +971,47 @@ redbin: context [
 		parent  [red-block!]
 		return: [int-ptr!]
 		/local
-			value  [red-value!]
-			object [red-object!]
-			ctx    [red-context!]
-			blk    [red-block!]
-			node   [node!]
-			series [series!]
-			offset [int-ptr!]
-			count  [integer!]
-			type   [integer!]
-			spec?  [logic!]
+			resolve [subroutine!]
+			value   [red-value!]
+			object  [red-object!]
+			ctx     [red-context!]
+			blk     [red-block! value]
+			node    [node!]
+			series  [series!]
+			offset  [int-ptr!]
+			count   [integer!]
+			type    [integer!]
 	][
 		value:  as red-value! origin
 		offset: data + 2
 		count:  data/2
-		spec?:  no
+		
+		resolve: [
+			assert any [offset/value = 0 offset/value = 1]
+			either as logic! offset/value [
+				node:   as node! value/data3
+				series: as series! node/value
+				value:  series/offset
+				
+				assert TYPE_OF(value) = TYPE_BLOCK
+				value
+			][
+				offset: offset + 1
+				count:  count  - 1
+				node:   as node! value/data2
+				
+				either zero? count [
+					blk: as red-block! stack/push*
+					blk/node: node
+					blk/head: 0
+					blk/header: TYPE_BLOCK
+					as red-value! blk
+				][
+					series: as series! node/value
+					series/offset + offset/value
+				]
+			]
+		]
 		
 		while [count > 0][
 			type:  TYPE_OF(value)
@@ -1004,42 +1030,25 @@ redbin: context [
 				TYPE_REFINEMENT [
 					node: as node! value/data1
 					ctx: TO_CTX(node)
-					series: as series! ctx/values/value
-					series/offset
+					either ON_STACK?(ctx) [
+						value: as red-value! ctx + 1
+						type:  TYPE_OF(value)
+						assert type = TYPE_FUNCTION
+						resolve
+					][
+						series: as series! ctx/values/value
+						series/offset
+					]
 				]
 				TYPE_ACTION
 				TYPE_NATIVE [
 					block/rs-abs-at as red-block! value 0
 				]
 				TYPE_FUNCTION [
-					assert any [offset/value = 0 offset/value = 1]
-					either as logic! offset/value [
-						node:   as node! value/data3
-						series: as series! node/value
-						value:  series/offset
-						
-						assert TYPE_OF(value) = TYPE_BLOCK
-						value
-					][					
-						offset: offset + 1
-						count:  count  - 1
-						node:   as node! value/data2
-						spec?:  zero? count
-						
-						either spec? [
-							blk: as red-block! stack/push*
-							blk/node: node
-							blk/head: 0
-							blk/header: TYPE_BLOCK
-							as red-value! blk
-						][
-							series: as series! node/value
-							series/offset + offset/value
-						]
-					]
+					resolve
 				]
-				TYPE_ROUTINE 
-				TYPE_OP [
+				TYPE_OP
+				TYPE_ROUTINE [
 					--NOT_IMPLEMENTED--				;@@ TBD: support for any-function!
 					value
 				]
@@ -1055,8 +1064,6 @@ redbin: context [
 		]
 		
 		copy-cell value ALLOC_TAIL(parent)
-		if spec? [stack/pop 1]
-		
 		data + data/2 + 2
 	]
 	
