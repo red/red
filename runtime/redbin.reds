@@ -579,8 +579,8 @@ redbin: context [
 			fun/more:   alloc-unset-cells 5
 			
 			series: as series! fun/more/value
-			copy-cell as red-value! body alloc-tail series
-			
+			series/tail: series/offset + 5
+			copy-cell as red-value! body series/offset
 			stack/pop 1
 			
 			fun/header: TYPE_FUNCTION
