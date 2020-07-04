@@ -230,11 +230,11 @@ write %build/bin/sources.r set-cache [
 				%gtk3/ [
 					%camera.reds
 					%camera-dev.reds
+					%color.reds
 					%comdlgs.reds
+					%css.reds
 					%draw.reds
 					%events.reds
-					%css.reds
-					%color.reds
 					%font.reds
 					%gtk.reds
 					%gui.reds
