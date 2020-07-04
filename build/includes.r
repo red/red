@@ -228,6 +228,8 @@ write %build/bin/sources.r set-cache [
 					%text-box.reds
 				]
 				%gtk3/ [
+					%camera.reds
+					%camera-dev.reds
 					%comdlgs.reds
 					%draw.reds
 					%events.reds
@@ -243,6 +245,7 @@ write %build/bin/sources.r set-cache [
 					%tab-panel.reds
 					%text-box.reds
 					%text-list.reds
+					%v4l2.reds
 				]
 				%test/ [
 					%draw.reds
