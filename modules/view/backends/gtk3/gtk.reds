@@ -3553,9 +3553,7 @@ im-start-id:		g_quark_from_string "im-start-id"
 #define GET-CONTAINER-H(s)		[as integer! g_object_get_qdata s container-h]
 #define SET-IM-CONTEXT(s d)		[g_object_set_qdata s im-context-id d]
 #define GET-IM-CONTEXT(s)		[g_object_get_qdata s im-context-id]
-#define SET-IM-STRING(s d)		[g_object_set_qdata s im-string-id as int-ptr! d]
-#define GET-IM-STRING(s)		[as c-string! g_object_get_qdata s im-string-id]
-#define SET-IM-START(s d)		[g_object_set_qdata s im-start-id as int-ptr! d]
-#define GET-IM-START(s)			[as logic! g_object_get_qdata s im-start-id]
-
-
+;#define SET-IM-STRING(s d)		[g_object_set_qdata s im-string-id as int-ptr! d]
+;#define GET-IM-STRING(s)		[as c-string! g_object_get_qdata s im-string-id]
+;#define SET-IM-START(s d)		[g_object_set_qdata s im-start-id as int-ptr! d]
+;#define GET-IM-START(s)			[as logic! g_object_get_qdata s im-start-id]

@@ -573,6 +573,7 @@ get-event-key: func [
 			res: null
 			code: evt/flags
 			code: code and FFFFh
+			if all [evt/type = EVT_KEY unicode-cp >= 00010000h][code: unicode-cp]
 			if special-key = -1 [
 				res: as red-value! switch code [
 					RED_VK_PRIOR	[_page-up]
