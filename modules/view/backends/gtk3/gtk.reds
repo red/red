@@ -52,6 +52,30 @@ tagRECT: alias struct! [
 	height	[integer!]
 ]
 
+GdkWindowAttr!: alias struct! [
+	title				[c-string!]
+	event_mask			[integer!]
+	x					[integer!]
+	y					[integer!]
+	width				[integer!]
+	height				[integer!]
+	wclass				[integer!]
+	visual				[int-ptr!]
+	window_type			[integer!]
+	cursor				[int-ptr!]
+	wmclass_name		[c-string!]
+	wmclass_class		[c-string!]
+	override_redirect	[integer!]
+	type_hint			[integer!]
+]
+
+GdkRectangle!: alias struct! [
+	x		[integer!]
+	y		[integer!]
+	width	[integer!]
+	height	[integer!]
+]
+
 GdkRGBA!: alias struct! [
 	red		[float!]
 	green	[float!]
@@ -582,10 +606,13 @@ GPtrArray!: alias struct! [
 ]
 
 #define GTK_STYLE_PROVIDER_PRIORITY_FALLBACK		1
-#define GTK_STYLE_PROVIDER_PRIORITY_THEME				200
+#define GTK_STYLE_PROVIDER_PRIORITY_THEME			200
 #define GTK_STYLE_PROVIDER_PRIORITY_SETTINGS		400
-#define GTK_STYLE_PROVIDER_PRIORITY_APPLICATION	600
-#define GTK_STYLE_PROVIDER_PRIORITY_USER				800
+#define GTK_STYLE_PROVIDER_PRIORITY_APPLICATION		600
+#define GTK_STYLE_PROVIDER_PRIORITY_USER			800
+
+#define GDK_KEY_KP_Space							FF80h
+#define GDK_KEY_KP_Divide							FFAFh
 
 #either OS = 'Windows [
 	;#define LIBGOBJECT-file "libgobject-2.0-0.dll"
@@ -2735,6 +2762,70 @@ GPtrArray!: alias struct! [
 			hpolicy		[integer!]
 			vpolicy		[integer!]
 		]
+		gtk_im_context_set_client_window: "gtk_im_context_set_client_window" [
+			ctx			[handle!]
+			win			[handle!]
+		]
+		gtk_im_context_get_preedit_string: "gtk_im_context_get_preedit_string" [
+			ctx			[handle!]
+			str			[int-ptr!]
+			attrs		[int-ptr!]
+			pos			[int-ptr!]
+		]
+		gtk_im_context_filter_keypress: "gtk_im_context_filter_keypress" [
+			ctx			[handle!]
+			event		[GdkEventKey!]
+			return:		[logic!]
+		]
+		gtk_im_context_focus_in: "gtk_im_context_focus_in" [
+			ctx			[handle!]
+		]
+		gtk_im_context_focus_out: "gtk_im_context_focus_out" [
+			ctx			[handle!]
+		]
+		gtk_im_context_reset: "gtk_im_context_reset" [
+			ctx			[handle!]
+		]
+		gtk_im_context_set_cursor_location: "gtk_im_context_set_cursor_location" [
+			ctx			[handle!]
+			area		[GdkRectangle!]
+		]
+		gtk_im_context_set_use_preedit: "gtk_im_context_set_use_preedit" [
+			ctx			[handle!]
+			preedit?	[logic!]
+		]
+		gtk_im_context_set_surrounding: "gtk_im_context_set_surrounding" [
+			ctx			[handle!]
+			text		[c-string!]
+			len			[integer!]
+			index		[integer!]
+		]
+		gtk_im_context_get_surrounding: "gtk_im_context_get_surrounding" [
+			ctx			[handle!]
+			text		[int-ptr!]
+			index		[int-ptr!]
+			return:		[logic!]
+		]
+		gtk_im_context_delete_surrounding: "gtk_im_context_delete_surrounding" [
+			ctx			[handle!]
+			offset		[integer!]
+			n_chars		[integer!]
+			return:		[logic!]
+		]
+		gtk_im_context_simple_new: "gtk_im_context_simple_new" [
+			return:		[handle!]
+		]
+		gtk_im_multicontext_new: "gtk_im_multicontext_new" [
+			return:		[handle!]
+		]
+		gtk_im_multicontext_get_context_id: "gtk_im_multicontext_get_context_id" [
+			ctx			[handle!]
+			return:		[c-string!]
+		]
+		gtk_im_multicontext_set_context_id: "gtk_im_multicontext_set_context_id" [
+			ctx			[handle!]
+			id			[c-string!]
+		]
 
 	;; LIBCAIRO-file cdecl [
 		cairo_create: "cairo_create" [
@@ -3468,8 +3559,12 @@ resend-event-id:	g_quark_from_string "resend-event-id"
 hmenu-id:			g_quark_from_string "hmenu-id"
 container-w:		g_quark_from_string "container-w"
 container-h:		g_quark_from_string "container-h"
+caret-id:			g_quark_from_string "caret-id"
+im-context-id:		g_quark_from_string "im-context-id"
 camera-cfg:			g_quark_from_string "camera-cfg"
 camera-pixbuf:		g_quark_from_string "camera-pixbuf"
+;im-string-id:		g_quark_from_string "im-string-id"
+;im-start-id:		g_quark_from_string "im-start-id"
 
 #define SET-RED-COLOR(s d)		[g_object_set_qdata s red-color-id d]
 #define GET-RED-COLOR(s)		[g_object_get_qdata s red-color-id]
@@ -3507,3 +3602,11 @@ camera-pixbuf:		g_quark_from_string "camera-pixbuf"
 #define GET-CAMERA-CFG(s)		[g_object_get_qdata s camera-cfg]
 #define SET-CAMERA-IMG(s d)		[g_object_set_qdata s camera-pixbuf d]
 #define GET-CAMERA-IMG(s)		[g_object_get_qdata s camera-pixbuf]
+#define SET-CARET-OWNER(s d)	[g_object_set_qdata s caret-id d]
+#define GET-CARET-OWNER(s)		[g_object_get_qdata s caret-id]
+#define SET-IM-CONTEXT(s d)		[g_object_set_qdata s im-context-id d]
+#define GET-IM-CONTEXT(s)		[g_object_get_qdata s im-context-id]
+;#define SET-IM-STRING(s d)		[g_object_set_qdata s im-string-id as int-ptr! d]
+;#define GET-IM-STRING(s)		[as c-string! g_object_get_qdata s im-string-id]
+;#define SET-IM-START(s d)		[g_object_set_qdata s im-start-id as int-ptr! d]
+;#define GET-IM-START(s)			[as logic! g_object_get_qdata s im-start-id]

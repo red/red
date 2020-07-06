@@ -27,6 +27,9 @@ Red/System [
 #include %text-list.reds
 #include %camera.reds
 
+unicode-cp:			0
+im-preedit?:		no
+im-need-reset?:		no
 window-ready?:		no
 force-redraw?:		no
 settings:			as handle! 0
@@ -188,7 +191,6 @@ get-face-evbox: func [
 
 get-face-layout: func [
 	widget		[handle!]
-	values		[red-value!]
 	sym			[integer!]
 	return:		[handle!]
 	/local
@@ -257,7 +259,7 @@ set-widget-child: func [
 	cvalues: get-face-values widget
 	ctype: as red-word! cvalues + FACE_OBJ_TYPE
 	csym: symbol/resolve ctype/symbol
-	clayout: get-face-layout widget cvalues csym
+	clayout: get-face-layout widget csym
 	case [
 		sym = window [
 			playout: GET-CONTAINER(parent)
@@ -286,6 +288,13 @@ set-widget-child: func [
 	]
 ]
 
+update-caret: func [
+	ctx		[handle!]
+	area	[GdkRectangle!]
+][
+	gtk_im_context_set_cursor_location ctx area
+]
+
 set-widget-offset: func [
 	parent		[handle!]
 	widget		[handle!]
@@ -304,11 +313,13 @@ set-widget-child-offset: func [
 	pos			[red-pair!]
 	type		[integer!]
 	/local
+		im-ctx	[handle!]
 		layout	[handle!]
 		values	[red-value!]
 		ntype	[red-word!]
 		sym		[integer!]
 		cparent	[handle!]
+		alloc	[GtkAllocation! value]
 ][
 	either type = window [
 		gtk_window_move widget pos/x pos/y
@@ -316,7 +327,7 @@ set-widget-child-offset: func [
 		values: get-face-values widget
 		ntype: as red-word! values + FACE_OBJ_TYPE
 		sym: symbol/resolve ntype/symbol
-		layout: get-face-layout widget values sym
+		layout: get-face-layout widget sym
 		if layout <> widget [
 			set-widget-offset layout widget 0 0
 		]
@@ -326,6 +337,17 @@ set-widget-child-offset: func [
 			sym: symbol/resolve ntype/symbol
 			cparent: get-face-child-layout parent sym
 			set-widget-offset cparent layout pos/x pos/y
+		]
+		if type = base [
+			layout: GET-CARET-OWNER(widget)
+			if layout <> null [
+				im-ctx: GET-IM-CONTEXT(layout)
+				if im-ctx <> null [
+					gtk_widget_get_allocation widget :alloc
+					alloc/w: 0
+					update-caret im-ctx as GdkRectangle! :alloc
+				]
+			]
 		]
 	]
 ]
@@ -930,7 +952,7 @@ change-size: func [
 		values: get-face-values widget
 		ntype: as red-word! values + FACE_OBJ_TYPE
 		sym: symbol/resolve ntype/symbol
-		layout: get-face-layout widget values sym
+		layout: get-face-layout widget sym
 		y: size/y
 		if layout <> widget [
 			if type = rich-text [	;-- is scrollable
@@ -974,7 +996,7 @@ change-visible: func [
 ][
 	if all [show? type = window][OS-show-window as-integer widget exit]
 
-	layout: get-face-layout widget null type
+	layout: get-face-layout widget type
 	if layout <> widget [
 		gtk_widget_set_visible layout show?
 	]
@@ -1442,7 +1464,7 @@ update-scroller: func [
 	vertical?: as red-logic! values + SCROLLER_OBJ_VERTICAL?
 	int: as red-integer! block/rs-head as red-block! (object/get-values parent) + FACE_OBJ_STATE
 	widget: as handle! int/value
-	container: get-face-layout widget null rich-text
+	container: get-face-layout widget rich-text
 
 	int: as red-integer! values + flag
 	if flag = SCROLLER_OBJ_VISIBLE? [
@@ -1537,6 +1559,7 @@ parse-common-opts: func [
 		hcur	[handle!]
 		pixbuf	[handle!]
 		display	[handle!]
+		owner	[handle!]
 		x		[integer!]
 		y		[integer!]
 ][
@@ -1568,6 +1591,10 @@ parse-common-opts: func [
 						hcur: gdk_cursor_new_from_name display cur
 					]
 					SET-CURSOR(widget hcur)
+				]
+				sym = caret [
+					owner: get-face-handle as red-object! word + 1
+					SET-CARET-OWNER(widget owner)
 				]
 				true [0]
 			]
@@ -1726,6 +1753,15 @@ OS-make-view: func [
 		sym = rich-text [
 			widget: gtk_layout_new null null
 			gtk_layout_set_size widget size/x size/y
+			handle: gtk_im_multicontext_new
+			SET-IM-CONTEXT(widget handle)
+			gobj_signal_connect(handle "commit" :im-commit widget)
+			gobj_signal_connect(handle "preedit-start" :im-preedit-start widget)
+			;gobj_signal_connect(handle "preedit-end" :im-preedit-end widget)
+			gobj_signal_connect(handle "preedit-changed" :im-preedit-changed widget)
+			;--@@ only a few languages may use it, such as Thai. I'll implement it later.
+			;gobj_signal_connect(handle "retrieve-surrounding" :im-retrieve-surrounding widget)
+			;gobj_signal_connect(handle "delete-surrounding" :im-delete-surrounding widget)
 			if bits and FACET_FLAGS_SCROLLABLE <> 0 [
 				container: gtk_scrolled_window_new null null
 				gtk_container_add container widget
