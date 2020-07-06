@@ -1027,14 +1027,18 @@ redbin: context [
 		
 		resolve: [
 			assert any [offset/value = 0 offset/value = 1]
-			either as logic! offset/value [
+			either as logic! offset/value [			;-- body
+				assert type = TYPE_FUNCTION
+				
 				node:   as node! value/data3
 				series: as series! node/value
 				value:  series/offset
 				
 				assert TYPE_OF(value) = TYPE_BLOCK
 				value
-			][
+			][										;-- spec
+				assert any [type = TYPE_FUNCTION type = TYPE_OP]
+				
 				offset: offset + 1
 				count:  count  - 1
 				node:   as node! value/data2
@@ -1082,10 +1086,10 @@ redbin: context [
 				TYPE_NATIVE [
 					block/rs-abs-at as red-block! value 0
 				]
-				TYPE_FUNCTION [
+				TYPE_FUNCTION
+				TYPE_OP [
 					resolve
 				]
-				TYPE_OP
 				TYPE_ROUTINE [
 					--NOT_IMPLEMENTED--				;@@ TBD: support for any-function!
 					value
@@ -1096,7 +1100,7 @@ redbin: context [
 				]
 			]
 			
-			unless type = TYPE_FUNCTION [value: value + offset/value]
+			unless any [type = TYPE_FUNCTION type = TYPE_OP][value: value + offset/value]
 			offset: offset + 1
 			count:  count  - 1
 		]
