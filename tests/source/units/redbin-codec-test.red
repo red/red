@@ -697,6 +697,11 @@ Red [
 			block: body-of :mod
 			--assert block == test block
 		
+		--test-- "reference-16"
+			foo: make op! func [x y][a b]
+			foo: test reduce [:foo spec-of :foo]
+			--assert :foo/2 =? spec-of :foo/1
+		
 	===end-group===
 	
 	===start-group=== "Symbols"
