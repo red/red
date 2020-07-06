@@ -1040,7 +1040,6 @@ redbin: context [
 				node:   as node! value/data2
 				
 				either zero? count [
-					blk: as red-block! stack/push*
 					blk/node: node
 					blk/head: 0
 					blk/header: TYPE_BLOCK
