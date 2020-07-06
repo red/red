@@ -3515,9 +3515,10 @@ resend-event-id:	g_quark_from_string "resend-event-id"
 hmenu-id:			g_quark_from_string "hmenu-id"
 container-w:		g_quark_from_string "container-w"
 container-h:		g_quark_from_string "container-h"
+caret-id:			g_quark_from_string "caret-id"
 im-context-id:		g_quark_from_string "im-context-id"
-im-string-id:		g_quark_from_string "im-string-id"
-im-start-id:		g_quark_from_string "im-start-id"
+;im-string-id:		g_quark_from_string "im-string-id"
+;im-start-id:		g_quark_from_string "im-start-id"
 
 #define SET-RED-COLOR(s d)		[g_object_set_qdata s red-color-id d]
 #define GET-RED-COLOR(s)		[g_object_get_qdata s red-color-id]
@@ -3551,6 +3552,8 @@ im-start-id:		g_quark_from_string "im-start-id"
 #define GET-CONTAINER-W(s)		[as integer! g_object_get_qdata s container-w]
 #define SET-CONTAINER-H(s d)	[g_object_set_qdata s container-h as int-ptr! d]
 #define GET-CONTAINER-H(s)		[as integer! g_object_get_qdata s container-h]
+#define SET-CARET-OWNER(s d)	[g_object_set_qdata s caret-id d]
+#define GET-CARET-OWNER(s)		[g_object_get_qdata s caret-id]
 #define SET-IM-CONTEXT(s d)		[g_object_set_qdata s im-context-id d]
 #define GET-IM-CONTEXT(s)		[g_object_get_qdata s im-context-id]
 ;#define SET-IM-STRING(s d)		[g_object_set_qdata s im-string-id as int-ptr! d]

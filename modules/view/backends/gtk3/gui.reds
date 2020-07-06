@@ -287,6 +287,13 @@ set-widget-child: func [
 	]
 ]
 
+update-caret: func [
+	ctx		[handle!]
+	area	[GdkRectangle!]
+][
+	gtk_im_context_set_cursor_location ctx area
+]
+
 set-widget-offset: func [
 	parent		[handle!]
 	widget		[handle!]
@@ -305,11 +312,13 @@ set-widget-child-offset: func [
 	pos			[red-pair!]
 	type		[integer!]
 	/local
+		im-ctx	[handle!]
 		layout	[handle!]
 		values	[red-value!]
 		ntype	[red-word!]
 		sym		[integer!]
 		cparent	[handle!]
+		alloc	[GtkAllocation! value]
 ][
 	either type = window [
 		gtk_window_move widget pos/x pos/y
@@ -327,6 +336,17 @@ set-widget-child-offset: func [
 			sym: symbol/resolve ntype/symbol
 			cparent: get-face-child-layout parent sym
 			set-widget-offset cparent layout pos/x pos/y
+		]
+		if type = base [
+			layout: GET-CARET-OWNER(widget)
+			if layout <> null [
+				im-ctx: GET-IM-CONTEXT(layout)
+				if im-ctx <> null [
+					gtk_widget_get_allocation widget :alloc
+					alloc/w: 0
+					update-caret im-ctx as GdkRectangle! :alloc
+				]
+			]
 		]
 	]
 ]
@@ -1533,6 +1553,7 @@ parse-common-opts: func [
 		hcur	[handle!]
 		pixbuf	[handle!]
 		display	[handle!]
+		owner	[handle!]
 		x		[integer!]
 		y		[integer!]
 ][
@@ -1564,6 +1585,10 @@ parse-common-opts: func [
 						hcur: gdk_cursor_new_from_name display cur
 					]
 					SET-CURSOR(widget hcur)
+				]
+				sym = caret [
+					owner: get-face-handle as red-object! word + 1
+					SET-CARET-OWNER(widget owner)
 				]
 				true [0]
 			]

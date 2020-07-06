@@ -468,7 +468,7 @@ im-commit: func [
 		cp		[integer!]
 		cnt		[integer!]
 ][
-	probe ["commit " length? str]
+	;probe ["commit " length? str]
 	im-preedit?: no
 	special-key: 0
 	while [str/1 <> null-byte][
@@ -485,7 +485,7 @@ im-preedit-start: func [
 	ctx			[handle!]
 	widget		[handle!]
 ][
-	print-line "preedit start"
+	;print-line "preedit start"
 	im-preedit?: yes
 ]
 
@@ -495,19 +495,13 @@ im-preedit-changed: func [
 	widget		[handle!]
 	/local
 		pstr	[integer!]
-		area	[GdkRectangle! value]
-		alloc	[GtkAllocation! value]
 ][
-	print-line "preedit changed"
+	;print-line "preedit changed"
 	if im-preedit? [
 		pstr: 0
 		gtk_im_context_get_preedit_string ctx :pstr null null
 		make-event widget pstr EVT_IME
 		g_free as handle! pstr
-
-		area/x: 50 area/y: 50
-		area/width: 0 area/height: 0
-		gtk_im_context_set_cursor_location ctx :area
 	]
 ]
 
@@ -621,7 +615,7 @@ widget-realize: func [
 	]
 	im: GET-IM-CONTEXT(widget)
 	unless null? im [
-		win: gtk_layout_get_bin_window widget
+		win: gtk_widget_get_window widget
 		gtk_im_context_set_client_window im win
 	]
 ]
@@ -752,7 +746,7 @@ key-press-event: func [
 		im		[handle!]
 		done?	[logic!]
 ][
-	probe ["key pressed " evbox " " widget]
+	;probe ["key pressed " evbox " " widget]
 	face: get-face-obj widget
 	values: object/get-values face
 	type: as red-word! values + FACE_OBJ_TYPE
@@ -788,7 +782,6 @@ key-press-event: func [
 	key: translate-key event-key/keyval
 	flags: check-extra-keys event-key/state
 	special-key: either char-key? as-byte key [0][-1]		;-- special key or not
-probe [key " " flags " " special-key]
 	if all [key >= 80h special-key = -1][
 		flags: flags or special-key-to-flags key
 		key: 0
@@ -906,7 +899,7 @@ focus-in-event: func [
 	]
 	if sym = rich-text [
 		im: GET-IM-CONTEXT(widget)
-		probe ["set-focus: " im]
+		;probe ["set-focus: " im]
 		gtk_im_context_focus_in im
 	]
 	change-selection widget int sym
@@ -936,7 +929,7 @@ focus-out-event: func [
 	]
 	if sym = rich-text [
 		im: GET-IM-CONTEXT(widget)
-		probe ["unfocus: " im]
+		;probe ["unfocus: " im]
 		gtk_im_context_focus_out im
 	]
 	make-event widget 0 EVT_UNFOCUS
