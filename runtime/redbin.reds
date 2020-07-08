@@ -1858,7 +1858,7 @@ redbin: context [
 		table   [red-binary!]
 		strings [red-binary!]
 		/local
-			value   [red-value!]
+			slot    [red-value!]
 			series  [series!]
 			node    [node!]
 			type    [integer!]
@@ -1877,21 +1877,27 @@ redbin: context [
 		either body? [
 			node:   as node! data/data3
 			series: as series! node/value
-			value:  series/offset + 3
-			type:   TYPE_OF(value)
+			slot:   series/offset + 3
+			type:   TYPE_OF(slot)
 			
 			assert any [type = TYPE_FUNCTION type = TYPE_ROUTINE]
 			either type = TYPE_FUNCTION [
-				encode-value value payload symbols table strings	;-- track nodes
-				offset: offset - 1					;-- compensate for extra recursion
+				encode-value slot payload symbols table strings
 			][
 				assert false						;@@ TBD: routine
 			]
 		][
-			;@@ TBD track spec node
-			encode-block data TYPE_BLOCK yes payload symbols table strings	;-- structure overlap
+			slot: stack/push*
+			slot/data1:  0
+			slot/data2:  data/data2
+			slot/header: TYPE_BLOCK
+			
+			encode-value slot payload symbols table strings
+			stack/pop 1
 			store payload data/data3
 		]
+		
+		offset: offset - 1							;-- compensate for extra recursion
 	]
 	
 	encode-reference: func [
