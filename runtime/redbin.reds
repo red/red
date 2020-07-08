@@ -146,7 +146,11 @@ redbin: context [
 		if native? [op/header: op/header or flag-native-op]
 		if body?   [op/header: op/header or body-flag]
 		
-		if body? [data: fill-spec-body data table extra]
+		if body? [
+			data: fill-spec-body data table extra
+			op/spec: extra/spec						;-- refresh node pointer (case with referenced buffers)
+		]
+		
 		stack/pop 1
 		either body? [data][data + 1]
 	]
@@ -1875,8 +1879,8 @@ redbin: context [
 			
 			assert any [type = TYPE_FUNCTION type = TYPE_ROUTINE]
 			either type = TYPE_FUNCTION [
-				encode-value value payload symbols table strings			;-- track nodes
-				offset: offset - 1					;-- compensate
+				encode-value value payload symbols table strings	;-- track nodes
+				offset: offset - 1					;-- compensate for extra recursion
 			][
 				assert false						;@@ TBD: routine
 			]
