@@ -74,21 +74,24 @@ redbin: context [
 		type:  data/1 and FFh
 		index: data/2
 		cell:  as red-native! ALLOC_TAIL(parent)
-		data:  data + 2
 		
 		if codec? [parent: block/push-only* 1]	;-- redirect slot allocation
-		
 		spec: as red-block! block/rs-tail parent
-		data: decode-block data table parent off
-
+		
+		data: either data/1 and REDBIN_REFERENCE_MASK <> 0 [
+			decode-reference data + 2 parent
+		][
+			decode-block data + 2 table parent off
+		]
+		
 		cell/header: type						;-- implicit reset of all header flags
 		cell/spec:	 spec/node
 		cell/args:	 null
-		cell/code: either type = TYPE_ACTION [actions/table/index][natives/table/index]
-		
-		if codec? [stack/pop 1]					;-- drop an unwanted block
+		cell/code:   either type = TYPE_ACTION [actions/table/index][natives/table/index]
 		
 		if nl? [cell/header: cell/header or flag-new-line]
+		
+		if codec? [stack/pop 1]					;-- drop an unwanted block
 		data
 	]
 	
@@ -1473,12 +1476,12 @@ redbin: context [
 			here  [int-ptr!]
 			index [integer!]
 	][
+		here: either TYPE_OF(data) = TYPE_NATIVE [natives/table][actions/table]
+		index: 0
+		until [index: index + 1 data/data3 = here/index]
+		
+		record [payload header index]
 		unless header and REDBIN_REFERENCE_MASK <> 0 [
-			here: either TYPE_OF(data) = TYPE_NATIVE [natives/table][actions/table]
-			index: 0
-			until [index: index + 1 data/data3 = here/index]
-			
-			record [payload header index]
 			encode-block data TYPE_BLOCK yes payload symbols table strings	;-- structure overlap
 		]
 	]
