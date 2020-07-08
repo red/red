@@ -410,25 +410,44 @@ redbin: context [
 		return: [int-ptr!]
 		/local
 			process [subroutine!]
-			here    [red-block!]
+			slot    [red-block!]
+			cell    [red-block!]
+			parent  [red-block!]
+			series  [series!]
 			size    [int-ptr!]
+			ref?    [logic!]
 	][
+		parent: block/push-only* 1
+		series: GET_BUFFER(parent)
+		cell:   as red-block! series/offset
+		ref?:   no
+		
 		process: [
 			assert data/1 and FFh = TYPE_BLOCK
-			size: data + 2
-			data: size + 1
-			loop size/1 [data: decode-value data table here]
+			ref?:  data/1 and REDBIN_REFERENCE_MASK <> 0
+			either ref? [
+				data: decode-reference data + 2 parent
+				assert TYPE_OF(cell) = TYPE_BLOCK
+				series/tail: series/tail - 1
+			][
+				size: data + 2
+				data: size + 1
+				loop size/1 [data: decode-value data table slot]
+			]
 		]
-	
-		here: as red-block! stack/push*
-		here/node:   fun/spec
-		here/header: TYPE_BLOCK
-		process
-		stack/pop 1
 		
-		here: as red-block! (as series! fun/more/value) + 1
+		slot: as red-block! stack/push*
+		slot/head: 0
+		slot/node: fun/spec
+		slot/header: TYPE_BLOCK
 		process
+		if ref? [fun/spec: cell/node]				;-- refresh node pointer to a referenced buffer
 		
+		slot: as red-block! (as series! fun/more/value) + 1
+		process
+		if ref? [slot/node: cell/node]
+		
+		stack/pop 2
 		data
 	]
 	
@@ -1803,26 +1822,23 @@ redbin: context [
 		table   [red-binary!]
 		strings [red-binary!]
 		/local
-			mark [subroutine!]
 			data [red-value!]
+			slot [red-value! value]
 			old  [integer!]
 	][
-		mark: [
-			path/push
-			reference/store as node! data/data2
-			encode-block data TYPE_BLOCK not as logic! offset payload symbols table strings
-			path/pop
-		]
-		
 		old: offset
 		
-		offset: 0
-		data: spec
-		mark
+		slot/data1: 0
+		slot/data2: spec/data2
+		slot/header: TYPE_BLOCK
+		
+		offset: 0									;-- form artifical paths to spec and body blocks
+		data: slot
+		encode-value data payload symbols table strings
 		
 		offset: 1
 		data: body
-		mark
+		encode-value data payload symbols table strings
 		
 		offset: old
 	]
