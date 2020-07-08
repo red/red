@@ -16,7 +16,7 @@ Red [
 	
 	;@@ TBD: #4540
 	equal-func?: func [x [function!] y [function!]][
-		all [
+		to logic! all [
 			strict-equal? mold    :x mold    :y
 			strict-equal? spec-of :x spec-of :y
 			strict-equal? body-of :x body-of :y
@@ -698,10 +698,35 @@ Red [
 			--assert block == test block
 		
 		--test-- "reference-16"
+			foo: func [x y][a b]
+			foo: test reduce [:foo spec-of :foo]
+			--assert :foo/2 =? spec-of :foo/1
+
+			foo: func [x y][a b]
+			foo: test reduce [:foo body-of :foo]
+			--assert :foo/2 =? body-of :foo/1
+
 			foo: make op! func [x y][a b]
 			foo: test reduce [:foo spec-of :foo]
 			--assert :foo/2 =? spec-of :foo/1
+			
+			;@@ TODO: action, native and op derived from them
 		
+		--test-- "reference-17"
+			foo: func [x y][a b]
+			foo: test reduce [spec-of :foo :foo]
+			--assert :foo/1 =? spec-of :foo/2
+			
+			foo: func [x y][a b]
+			foo: test reduce [body-of :foo :foo]
+			--assert :foo/1 =? body-of :foo/2
+			
+			foo: make op! func [x y][]
+			foo: test reduce [spec-of :foo :foo]
+			--assert :foo/1 =? spec-of :foo/2
+			
+			;@@ TODO: action, native and op derived from them
+			
 	===end-group===
 	
 	===start-group=== "Symbols"
