@@ -26,6 +26,7 @@ Red/System [
 #define REDBIN_NATIVE_MASK			00800000h
 #define REDBIN_BODY_MASK			00400000h
 
+#define REDBIN_COMPLEMENT_MASK		00040000h
 #define REDBIN_REFERENCE_MASK		00020000h
 #define REDBIN_MONEY_SIGN_MASK		00010000h
 
@@ -886,23 +887,31 @@ redbin: context [
 		nl?     [logic!]
 		return: [int-ptr!]
 		/local
-			slot [red-value!]
-			end  [int-ptr!]
-			bits [byte-ptr!]
-			size [integer!]
+			slot   [red-bitset!]
+			series [series!]
+			end    [int-ptr!]
+			bits   [byte-ptr!]
+			size   [integer!]
+			not?   [logic!]
 	][
 		either data/1 and REDBIN_REFERENCE_MASK <> 0 [
 			end: decode-reference data + 1 parent
-			slot: (block/rs-tail parent) - 1
+			slot: as red-bitset! (block/rs-tail parent) - 1
 			if nl? [slot/header: slot/header or flag-new-line]
 			end
 		][
 			size: data/2 >> 3							;-- in bytes
+			not?: data/1 and REDBIN_COMPLEMENT_MASK <> 0
 			bits: as byte-ptr! data + 2
 			
-			slot: as red-value! binary/load-in bits size parent
+			slot: as red-bitset! binary/load-in bits size parent
 			if nl? [slot/header: slot/header or flag-new-line]
-			set-type slot TYPE_BITSET
+			set-type as red-value! slot TYPE_BITSET
+			
+			if not? [
+				series: GET_BUFFER(slot)
+				series/flags: series/flags or (1 << 19)
+			]
 			
 			as int-ptr! align bits + size 32			;-- align at upper 32-bit boundary
 		]
@@ -1745,11 +1754,14 @@ redbin: context [
 		payload [red-binary!]
 		/local
 			bits   [red-bitset!]
+			series [series!]
 			length [integer!]
 	][
 		bits:   as red-bitset! data
 		length: bitset/length? bits
+		series: GET_BUFFER(bits)
 		
+		if FLAG_NOT?(series) [header: header or REDBIN_COMPLEMENT_MASK]
 		store payload header
 		
 		unless header and REDBIN_REFERENCE_MASK <> 0 [
