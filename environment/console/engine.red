@@ -139,51 +139,38 @@ system/console: context [
 				true
 			]
 			close [
-				if delimiter-map/:type <> last delimiters [				;-- unmatched ")" "]"
-					throw 'stop
-				]
+				if delimiter-map/:type <> last delimiters [throw 'stop]	;-- unmatched ")" "]"
 				take/last delimiters
 				true
 			]
 			error [
-				if type = error! [										;-- unmatched "}"
-					throw 'stop
-				]
-				if all [												;-- block! paren! map! have open-event, so just match delimiters
-					any [
-						type = block!
-						type = paren!
-						type = map!
-					]
+				if type = error! [throw 'stop]			;-- unmatched "}"
+				if all [								;-- block! paren! map! have open-event, so just match delimiters
+					find [block! paren! map!] to-word type
 					delimiter-map/:type = last delimiters
 				][
 					throw 'break
 				]
 				back2: back back tail delimiters
-				if all [												;-- paren! in path
-					#"/" = back2/1
-					type = paren!
-				][
+				
+				if all [type = paren! #"/" = back2/1][	;-- paren! in path
 					remove back2
 					throw 'break
 				]
-				if type = tag! [										;-- tag! haven't open-event
+				if type = tag! [						;-- tag! haven't open-event
 					append delimiters #"<"
 					throw 'break
 				]
-				if all [												;-- binary! haven't open-event
-					type = binary!
-					input/1 <> #"}"
-				][
+				if all [type = binary! input/1 <> #"}"][ ;-- binary! haven't open-event
 					append delimiters #"{"
 					throw 'break
 				]
 				if type = string! [
-					either input/(token/x - token/y) = #"%" [			;-- raw-string! haven't open-event
+					either input/(token/x - token/y) = #"%" [ ;-- raw-string! haven't open-event
 						append delimiters #"{"
 						throw 'break
 					][
-						if delimiter-map/:type = last delimiters [		;-- other string! if have open-event, do match
+						if delimiter-map/:type = last delimiters [ ;-- other string! if have open-event, do match
 							throw 'break
 						]
 					]
@@ -198,8 +185,7 @@ system/console: context [
 		return: [logic!]
 	][
 		clear delimiters
-		if 'stop = catch [transcode/trace buffer :delimiter-lex][return false]
-		true
+		'stop <> catch [transcode/trace buffer :delimiter-lex] ;-- catches 'stop and 'break
 	]
 	
 	try-do: func [code /local result return: [any-type!]][
@@ -233,7 +219,7 @@ system/console: context [
 						result: either float? :result [form/part :result limit][
 							mold/part :result limit
 						]
-						if limit <= length? result [ ;-- optimized for width = 72
+						if limit <= length? result [	;-- optimized for width = 72
 							clear back tail result
 							append result "..."
 						]
