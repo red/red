@@ -710,7 +710,12 @@ Red [
 			foo: test reduce [:foo spec-of :foo]
 			--assert :foo/2 =? spec-of :foo/1
 			
-			;@@ TODO: action, native and op derived from them
+			foo: test reduce [:as-pair spec-of :as-pair]
+			--assert :foo/2 =? spec-of :foo/1
+			
+			foo: make op! :as-pair
+			foo: test reduce [:foo spec-of :foo]
+			--assert :foo/2 =? spec-of :foo/1
 		
 		--test-- "reference-17"
 			foo: func [x y][a b]
@@ -725,7 +730,12 @@ Red [
 			foo: test reduce [spec-of :foo :foo]
 			--assert :foo/1 =? spec-of :foo/2
 			
-			;@@ TODO: action, native and op derived from them
+			foo: test reduce [spec-of :as-pair :as-pair]
+			--assert :foo/1 =? spec-of :foo/2
+			
+			foo: make op! :as-pair
+			foo: test reduce [spec-of :foo :foo]
+			--assert :foo/1 =? spec-of :foo/2
 			
 	===end-group===
 	
