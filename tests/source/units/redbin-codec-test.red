@@ -179,6 +179,7 @@ Red [
 			--assert strict-equal? charset #{BADFACE5} test charset #{BADFACE5}
 			--assert strict-equal? charset #{DEADBEEF} test charset #{DEADBEEF}
 			--assert strict-equal? charset [#"a" - #"z"] test charset [#"a" - #"z"]
+			--assert strict-equal? charset [not #{ABCD}] test charset [not #{ABCD}]
 			
 			loop 10 [
 				value: charset to binary! random to tuple! copy/part 64#{////////////////} 2 + random 11
