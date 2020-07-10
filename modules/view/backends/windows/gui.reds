@@ -178,14 +178,13 @@ get-widget-handle: func [
 		hWnd: GetParent hWnd							;-- for composed widgets (try 1)
 		if no-face? hWnd [
 			hWnd: WindowFromPoint msg/x msg/y			;-- try 2
+			id: 0
+			GetWindowThreadProcessId hWnd :id
+			if any [
+				id <> process-id
+				hWnd = GetConsoleWindow					;-- see #1290
+			] [ return as handle! -1 ]
 			if no-face? hWnd [
-				id: 0
-				GetWindowThreadProcessId hWnd :id
-				if any [
-					id <> process-id
-					hWnd = GetConsoleWindow				;-- see #1290
-				] [ return as handle! -1 ]
-
 				p: as int-ptr! GetWindowLong hWnd 0		;-- try 3
 				either null? p [
 					hWnd: as handle! -1					;-- not found
@@ -2641,7 +2640,7 @@ OS-to-image: func [
 		img: image/init-image as red-image! stack/push* as int-ptr! bitmap
 	]
 
-    if screen? [DeleteDC mdc]				;-- we delete it in Draw when print window
+    DeleteDC mdc
     DeleteObject bmp
     unless screen? [ReleaseDC hWnd dc]
 	img

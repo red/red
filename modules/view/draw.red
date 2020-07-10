@@ -1158,6 +1158,7 @@ Red/System [
 						if idx + len > max-len [len: max-len - idx]
 						#if OS = 'Windows [
 							len: adjust-index text idx len 1
+							idx: adjust-index text 0 idx 1
 						]
 					]
 					TYPE_STRING [										;-- font name
