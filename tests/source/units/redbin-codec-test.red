@@ -25,7 +25,8 @@ qt-verbose: on
 		]
 	]
 	
-	;@@ #4526 op: func [spec body][make op! func spec body]
+	;@@ #4526
+	;op: func [spec body][make op! func spec body]
 	
 	inline: function [body [any-list!] /local rest][
 		rule:   [any [ahead any-list! into rule | cycle | skip]]
@@ -84,7 +85,8 @@ qt-verbose: on
 			--assert #"a" == test #"a"
 			--assert #"A" == test #"A"
 			--assert null == test null
-			;@@ #4565 --assert #"^D" == test #"^(4)"
+			;@@ #4565 
+			;-assert #"^D" == test #"^(4)"
 			--assert #"💾" == test #"💾"
 			
 			loop 10 [
@@ -346,31 +348,34 @@ qt-verbose: on
 		;	
 		;	forall functions [--assert equal-func? :functions/1 test :functions/1]
 		
-		;@@ ???
-		;--test-- "op"
-		;	ops: scan op!
-		;	ops: exclude ops reduce [:>> :>>> get quote << :is ://]	;@@ TBD: derived from routines and functions
-		;	forall ops [--assert equal? :ops/1 test :ops/1]
-		;	
-		;	ops: reduce [							;@@ TBD: #4540
-		;		() []
-		;		03 [03]
-		;		pi [pi]
-		;		[2] [x 0 reduce [y]]
-		;	]
-		;	
-		;	;@@ #4526
-		;	;foreach [result body] ops [
-		;	;	operator: test op [x y] body
-		;	;	--assert :result = (1 operator 2)
-		;	;]
-		;	
-		;	///: test ://
-		;	--assert 8 /// 3 == 2
-		;	--assert error? try [1 /// 0]
-		;	--assert strict-equal? spec-of :/// spec-of ://
-		;	
-		;	unset [operator ///]					;-- hide from scanner
+		--test-- "op"
+			ops: scan op!
+			;@@ #4562, #4570
+			ops: exclude ops reduce [:>> :>>> get load "<<" :is ://]	;@@ TBD: derived from routines and functions
+			forall ops [--assert equal? :ops/1 test :ops/1]
+			
+			ops: reduce [							;@@ TBD: #4540
+				() []
+				03 [03]
+				pi [pi]
+				[2] [x 0 reduce [y]]
+			]
+			
+			;@@ #4526
+			;foreach [result body] ops [
+			;	operator: test op [x y] body
+			;	--assert :result = (1 operator 2)
+			;]
+			
+			;@@ #2867, #4571, #4572
+			do [
+				///: test ://
+				--assert 8 /// 3 == 2
+				--assert error? try [1 /// 0]
+				--assert strict-equal? spec-of :/// spec-of ://
+			]
+			
+			unset [operator ///]					;-- hide from scanner
 		
 	===end-group===
 	
