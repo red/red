@@ -394,20 +394,20 @@ qt-verbose: on
 			--assert 1 == get foo/1
 			--assert ctx == context? foo/1
 		
-		;@@ ???
-		;--test-- "binding-3"
-		;	ctx: context [foo: 1 bar: 2]
-		;	foo: test bind [foo: 'bar] ctx
-		;	
-		;	--assert block? foo
-		;	--assert "[foo: 'bar]" = mold foo
-		;	--assert foo/1 == quote foo:
-		;	--assert foo/2 == quote 'bar
-		;	--assert 1 = get foo/1
-		;	--assert 2 = get foo/2
-		;	--assert ctx == context? foo/1
-		;	--assert ctx == context? foo/2
-		;	--assert equal? context? foo/1 context? foo/2
+		;@@ #734
+		--test-- "binding-3"
+			ctx: context [foo: 1 bar: 2]
+			foo: test bind [foo: 'bar] ctx
+			
+			--assert block? foo
+			--assert "[foo: 'bar]" = mold foo
+			--assert foo/1 == quote foo:
+			--assert foo/2 == to lit-word! 'bar
+			--assert 1 = get foo/1
+			--assert 2 = get foo/2
+			--assert ctx == context? foo/1
+			--assert ctx == context? foo/2
+			--assert equal? context? foo/1 context? foo/2
 		
 		--test-- "binding-4"
 			word: test bind 'foo has [foo][bar]
