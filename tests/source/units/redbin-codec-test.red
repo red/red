@@ -507,15 +507,15 @@ qt-verbose: on
 			--assert ping/pong/ping/pong =? pong
 			--assert pong/ping/pong/ping =? ping
 		
-		;@@ ???
-		;--test-- "cycle-7"
-		;	put foo: object [foo: none] 'foo foo
-		;	foo: test foo
-		;	
-		;	--assert "make object! [foo: make object! [...]]" = mold/flat foo
-		;	--assert object? foo
-		;	--assert object? foo/foo
-		;	--assert foo =? foo/foo/foo
+		;@@ #4569
+		--test-- "cycle-7"
+			put foo: object [foo: none] 'foo :foo
+			foo: test foo
+			
+			--assert "make object! [foo: make object! [...]]" = mold/flat foo
+			--assert object? foo
+			--assert object? foo/foo
+			--assert foo =? foo/foo/foo
 		
 		--test-- "cycle-8"
 			foo: test object [foo: self]
