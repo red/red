@@ -19,16 +19,16 @@ Red/System [
 #define REDBIN_STACK_MASK			20000000h
 #define REDBIN_SELF_MASK			10000000h
 
-#define REDBIN_SET_MASK				08000000h
-#define REDBIN_KIND_MASK			06000000h
+#define REDBIN_KIND_MASK			0C000000h
+#define REDBIN_SET_MASK				02000000h
 #define REDBIN_OWNER_MASK			01000000h
 
 #define REDBIN_NATIVE_MASK			00800000h
 #define REDBIN_BODY_MASK			00400000h
+#define REDBIN_COMPLEMENT_MASK		00200000h
+#define REDBIN_MONEY_SIGN_MASK		00100000h
 
-#define REDBIN_COMPLEMENT_MASK		00040000h
-#define REDBIN_REFERENCE_MASK		00020000h
-#define REDBIN_MONEY_SIGN_MASK		00010000h
+#define REDBIN_REFERENCE_MASK		00080000h
 
 redbin: context [
 	verbose: 0
@@ -556,7 +556,7 @@ redbin: context [
 		values?: data/1 and REDBIN_VALUES_MASK <> 0
 		stack?:	 data/1 and REDBIN_STACK_MASK  <> 0
 		self?:	 data/1 and REDBIN_SELF_MASK   <> 0
-		kind:	 data/1 and REDBIN_KIND_MASK   >> 25
+		kind:	 data/1 and REDBIN_KIND_MASK   >> 26
 		
 		node:   alloc-cells 2
 		series: as series! node/value
@@ -645,7 +645,7 @@ redbin: context [
 		values?: header and REDBIN_VALUES_MASK <> 0
 		stack?:	 header and REDBIN_STACK_MASK  <> 0
 		self?:	 header and REDBIN_SELF_MASK   <> 0
-		type:	 header and REDBIN_KIND_MASK >> 25
+		type:	 header and REDBIN_KIND_MASK >> 26
 		
 		new: _context/create slots stack? self? null type
 		
@@ -1637,7 +1637,7 @@ redbin: context [
 		self?:   ctx/header and flag-self-mask <> 0
 		values?: no
 		
-		header:   TYPE_CONTEXT or (kind << 25)
+		header:   TYPE_CONTEXT or (kind << 26)
 		if stack? [header: header or REDBIN_STACK_MASK]
 		if self?  [header: header or REDBIN_SELF_MASK]
 		
@@ -1938,7 +1938,7 @@ redbin: context [
 		header: type or either zero? (data/header and flag-new-line) [0][REDBIN_NEWLINE_MASK]
 		header: header or switch type [
 			TYPE_TUPLE [TUPLE_SIZE?(data) << 8]
-			TYPE_MONEY [(money/get-sign as red-money! data) << 16]
+			TYPE_MONEY [(money/get-sign as red-money! data) << 20]
 			default    [0]
 		]
 		

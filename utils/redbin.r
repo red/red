@@ -183,7 +183,7 @@ context [
 	
 	emit-money: func [value [issue!] /local bin header][
 		value: to string! next value
-		header: extracts/definitions/TYPE_MONEY or shift/left to-integer value/4 = #"-" 16
+		header: extracts/definitions/TYPE_MONEY or shift/left to-integer value/4 = #"-" 20
 		if nl? [header: header or nl-flag]
 		emit header
 		repend buffer [
@@ -277,7 +277,7 @@ context [
 		] type?/word :word
 		
 		header: extracts/definitions/:type
-		if set? [header: header or shift/left 1 27]
+		if set? [header: header or shift/left 1 25]
 		if nl? [header: header or nl-flag]
 		emit header
 		emit-symbol word
@@ -425,7 +425,7 @@ context [
 		/local header
 	][
 		repend contexts [name copy spec index]			;-- COPY to avoid late word decorations
-		type: shift/left (select [function 1 object 2] type) 25
+		type: shift/left (select [function 1 object 2] type) 26
 		header: extracts/definitions/TYPE_CONTEXT or type
 		if stack? [header: header or shift/left 1 29]
 		if self?  [header: header or shift/left 1 28]
