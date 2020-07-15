@@ -908,7 +908,7 @@ redbin: context [
 			if nl? [slot/header: slot/header or flag-new-line]
 			end
 		][
-			size: data/2 >> 3							;-- in bytes
+			size: data/2
 			not?: data/1 and REDBIN_COMPLEMENT_MASK <> 0
 			bits: as byte-ptr! data + 2
 			
@@ -1766,7 +1766,7 @@ redbin: context [
 			length [integer!]
 	][
 		bits:   as red-bitset! data
-		length: bitset/length? bits
+		length: (bitset/length? bits) >> 3			;-- in bytes
 		series: GET_BUFFER(bits)
 		
 		if FLAG_NOT?(series) [header: header or REDBIN_COMPLEMENT_MASK]
@@ -1774,7 +1774,7 @@ redbin: context [
 		
 		unless header and REDBIN_REFERENCE_MASK <> 0 [
 			store payload length
-			emit payload bitset/rs-head bits length >> 3
+			emit payload bitset/rs-head bits length
 			pad payload 32
 		]
 	]
