@@ -752,6 +752,18 @@ qt-verbose: on
 		;	;foo: make op! :as-pair
 		;	;foo: test reduce [spec-of :foo :foo]
 		;	;--assert :foo/1 =? spec-of :foo/2
+		
+		--test-- "reference-18"
+			foo: func [x y][a b]
+			bar: make op! :foo
+			block: test reduce [:bar :foo]
+			
+			--assert op? :block/1
+			--assert function? :block/2
+			--assert equal? spec-of :bar spec-of :block/1
+			--assert equal-func? :foo :block/2
+			
+			unset 'bar								;-- hide from scanner
 			
 	===end-group===
 	
