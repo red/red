@@ -233,7 +233,7 @@ redbin: context [
 		]
 	]
 	
-	;@@ TBD: remove the cheathseet
+	;@@ TBD: remove the cheatsheet
 	comment {
 		word:     header (set?: N ref?: Y) symbol index [reference]
 				  header (set?: N ref?: N) symbol index [object/function]
@@ -380,6 +380,7 @@ redbin: context [
 		return: [int-ptr!]
 		/local
 			fun    [red-function!]
+			source [red-value!]
 			series [series!]
 			node   [node!]
 			size   [int-ptr!]
@@ -391,10 +392,17 @@ redbin: context [
 			fun: (as red-function! block/rs-tail parent) - 1
 			
 			type: TYPE_OF(fun)
-			assert any [type = TYPE_FUNCTION ANY_WORD?(type)]
+			assert any [type = TYPE_FUNCTION type = TYPE_OP ANY_WORD?(type)]
+			either type = TYPE_OP [
+				series: as series! fun/more/value
+				source: series/offset + 3
+				assert TYPE_OF(source) = TYPE_FUNCTION
+			][
+				series: as series! fun/ctx/value
+				source: series/offset + 1
+			]
 			
-			series: as series! fun/ctx/value
-			fun: as red-function! copy-cell series/offset + 1 as red-value! fun
+			fun: as red-function! copy-cell source as red-value! fun
 			if nl? [fun/header: fun/header or flag-new-line]
 			
 			data
@@ -2025,7 +2033,7 @@ redbin: context [
 		strings: binary/make-at stack/push* 4
 		
 		encode-value data payload symbols table strings
-		size:   binary/rs-length? payload
+		size: binary/rs-length? payload
 		
 		;-- symbol table
 		sym-len: binary/rs-length? table
