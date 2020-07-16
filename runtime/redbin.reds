@@ -78,12 +78,7 @@ redbin: context [
 		
 		if codec? [parent: block/push-only* 1]	;-- redirect slot allocation
 		spec: as red-block! block/rs-tail parent
-		
-		data: either data/1 and REDBIN_REFERENCE_MASK <> 0 [
-			decode-reference data + 2 parent
-		][
-			decode-block data + 2 table parent off
-		]
+		data: decode-block data + 2 table parent off
 		
 		cell/header: type						;-- implicit reset of all header flags
 		cell/spec:	 spec/node
@@ -91,8 +86,8 @@ redbin: context [
 		cell/code:   either type = TYPE_ACTION [actions/table/index][natives/table/index]
 		
 		if nl? [cell/header: cell/header or flag-new-line]
-		
 		if codec? [stack/pop 1]					;-- drop an unwanted block
+		
 		data
 	]
 	
@@ -1490,6 +1485,7 @@ redbin: context [
 		table   [red-binary!]
 		strings [red-binary!]
 		/local
+			slot  [red-block! value]
 			here  [int-ptr!]
 			index [integer!]
 	][
@@ -1498,9 +1494,13 @@ redbin: context [
 		until [index: index + 1 data/data3 = here/index]
 		
 		record [payload header index]
-		unless header and REDBIN_REFERENCE_MASK <> 0 [
-			encode-block data TYPE_BLOCK yes payload symbols table strings	;-- structure overlap
-		]
+		
+		slot/head: 0
+		slot/node: as node! data/data2
+		slot/header: TYPE_BLOCK
+		
+		encode-value as red-value! slot payload symbols table strings
+		offset: offset - 1
 	]
 	
 	encode-word: func [
@@ -1968,6 +1968,8 @@ redbin: context [
 			TYPE_ISSUE		[record [payload header encode-symbol data table symbols strings]]
 			TYPE_ERROR		[encode-error data header payload symbols table strings]
 			TYPE_OP			[encode-op data header payload symbols table strings]
+			TYPE_NATIVE
+			TYPE_ACTION 	[encode-native data header payload symbols table strings]
 			TYPE_POINT
 			TYPE_HANDLE
 			TYPE_EVENT		[--NOT_IMPLEMENTED--]
@@ -1994,8 +1996,6 @@ redbin: context [
 					TYPE_IMAGE		[encode-image data header payload]
 					TYPE_ANY_WORD
 					TYPE_REFINEMENT	[encode-word data header payload symbols table strings]
-					TYPE_NATIVE
-					TYPE_ACTION 	[encode-native data header payload symbols table strings]
 					TYPE_ANY_BLOCK
 					TYPE_MAP		[encode-block data header no payload symbols table strings]
 					TYPE_OBJECT		[encode-object data header payload symbols table strings]
