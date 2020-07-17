@@ -26,7 +26,7 @@ qt-verbose: on
 	]
 	
 	;@@ #4526
-	;op: func [spec body][make op! func spec body]
+	op: func [spec body][do [make op! func spec body]]
 	
 	inline: function [body [any-list!] /local rest][
 		rule:   [any [ahead any-list! into rule | cycle | skip]]
@@ -38,11 +38,11 @@ qt-verbose: on
 		also body parse body rule
 	]
 	
-	scan: func [datatype [datatype!] /local value][
+	scan: func [datatype [datatype!] /only /local value][
 		collect [
 			foreach word words-of system/words [
 				set/any 'value get/any word 
-				if datatype = type? :value [keep/only :value]
+				if datatype = type? :value [keep/only either only [word][:value]]
 			]
 		]
 	]
@@ -338,15 +338,17 @@ qt-verbose: on
 			
 			forall errors [--assert :errors/1 = test :errors/1]
 		
-		;@@ #4568
-		;--test-- "function"
-		;	functions: scan function!
-		;	functions: exclude functions reduce [	;@@ TBD: unblock
-		;		:expand-directives :layout
-		;		:help-string :what :fetch-help
-		;	]
-		;	
-		;	forall functions [--assert equal-func? :functions/1 test :functions/1]
+		do [										;@@ #4568
+		--test-- "function"
+			functions: scan/only function!
+			functions: exclude functions [			;@@ TBD: unblock
+				:expand-directives :layout
+				:help-string :what :fetch-help
+				:scan
+			]
+			
+			forall functions [--assert equal-func? get :functions/1 test get :functions/1]
+		]
 		
 		--test-- "op"
 			ops: scan op!
@@ -354,18 +356,19 @@ qt-verbose: on
 			ops: exclude ops reduce [:>> :>>> get load "<<" :is ://]	;@@ TBD: derived from routines and functions
 			forall ops [--assert equal? :ops/1 test :ops/1]
 			
-			ops: reduce [							;@@ TBD: #4540
+			ops: reduce [							;@@ #4540
 				() []
 				03 [03]
 				pi [pi]
 				[2] [x 0 reduce [y]]
 			]
 			
-			;@@ #4526
-			;foreach [result body] ops [
-			;	operator: test op [x y] body
-			;	--assert :result = (1 operator 2)
-			;]
+			do [									;@@ #4526
+			foreach [result body] ops [
+				operator: test op [x y] body
+				--assert :result = (1 operator 2)
+			]
+			]
 			
 			;@@ #2867, #4571, #4572
 			do [
@@ -662,96 +665,103 @@ qt-verbose: on
 			--assert block/1 == 'foo
 			--assert block/2 == obj
 			--assert block/2 =? context? block/1
-		;@@ #2207
-		;--test-- "reference-11"
-		;	foo: does [bar]
-		;	block: test reduce [:foo :foo]
-		;	
-		;	--assert 2 = length? block
-		;	--assert function? :block/1
-		;	--assert function? :block/2
-		;	--assert equal-func? :foo :block/1
-		;	--assert :block/1 =? :block/2
-		;
-		;--test-- "reference-12"
-		;	foo: has [bar][]
-		;	block: test reduce [bind 'bar :foo :foo]
-		;	
-		;	--assert 2 = length? block
-		;	--assert 'bar = block/1
-		;	--assert function? :block/2
-		;	--assert equal-func? :foo :block/2
-		;	--assert equal-func? context? block/1 :block/2
-		;
-		;--test-- "reference-13"
-		;	foo: does [1 2 [3 4]]
-		;	block: test reduce [:foo next body-of :foo tail last body-of :foo]
-		;	
-		;	--assert 3 = length? block
-		;	--assert "[func [][1 2 [3 4]] [2 [3 4]] []]" = mold/flat block
-		;	--assert function? :block/1
-		;	--assert equal-func? :foo :block/1
-		;	--assert block? block/2
-		;	--assert block? block/3
-		;	--assert same? body-of :block/1 head block/2
-		;	--assert same? last body-of :block/1 head block/3
-		;
-		;--test-- "reference-14"
-		;	foo: func [bar [integer! none!]][]
-		;	block: test reduce [:foo next spec-of :foo tail last spec-of :foo]
-		;	
-		;	--assert 3 = length? block
-		;	--assert "[func [bar [integer! none!]][] [[integer! none!]] []]" = mold/flat block
-		;	--assert function? :block/1
-		;	--assert equal-func? :foo :block/1
-		;	--assert block? block/2
-		;	--assert block? block/3
-		;	--assert same? spec-of :block/1 head block/2
-		;	--assert same? last spec-of :block/1 head block/3
+		
+		do [										;@@ #2207
+		--test-- "reference-11"
+			foo: does [bar]
+			block: test reduce [:foo :foo]
+			
+			--assert 2 = length? block
+			--assert function? :block/1
+			--assert function? :block/2
+			--assert equal-func? :foo :block/1
+			--assert :block/1 =? :block/2
+		
+		--test-- "reference-12"
+			foo: has [bar][]
+			block: test reduce [bind 'bar :foo :foo]
+			
+			--assert 2 = length? block
+			--assert 'bar = block/1
+			--assert function? :block/2
+			--assert equal-func? :foo :block/2
+			--assert equal-func? context? block/1 :block/2
+		
+		--test-- "reference-13"
+			foo: does [1 2 [3 4]]
+			block: test reduce [:foo next body-of :foo tail last body-of :foo]
+			
+			--assert 3 = length? block
+			--assert "[func [][1 2 [3 4]] [2 [3 4]] []]" = mold/flat block
+			--assert function? :block/1
+			--assert equal-func? :foo :block/1
+			--assert block? block/2
+			--assert block? block/3
+			--assert same? body-of :block/1 head block/2
+			--assert same? last body-of :block/1 head block/3
+		
+		--test-- "reference-14"
+			foo: func [bar [integer! none!]][]
+			block: test reduce [:foo next spec-of :foo tail last spec-of :foo]
+			
+			--assert 3 = length? block
+			--assert "[func [bar [integer! none!]][] [[integer! none!]] []]" = mold/flat block
+			--assert function? :block/1
+			--assert equal-func? :foo :block/1
+			--assert block? block/2
+			--assert block? block/3
+			--assert same? spec-of :block/1 head block/2
+			--assert same? last spec-of :block/1 head block/3
+		]
 		
 		--test-- "reference-15"
 			block: body-of :mod
 			--assert block == test block
-		;@@ #2207
-		;--test-- "reference-16"
-		;	foo: func [x y][a b]
-		;	foo: test reduce [:foo spec-of :foo]
-		;	--assert :foo/2 =? spec-of :foo/1
-		;
-		;	foo: func [x y][a b]
-		;	foo: test reduce [:foo body-of :foo]
-		;	--assert :foo/2 =? body-of :foo/1
-		;	;@@ #4526
-		;	;foo: make op! func [x y][a b]
-		;	;foo: test reduce [:foo spec-of :foo]
-		;	;--assert :foo/2 =? spec-of :foo/1
-		;	
-		;	foo: test reduce [:as-pair spec-of :as-pair]
-		;	--assert :foo/2 =? spec-of :foo/1
-		;	;@@ #4526
-		;	;foo: make op! :as-pair
-		;	;foo: test reduce [:foo spec-of :foo]
-		;	;--assert :foo/2 =? spec-of :foo/1
-		;
-		;--test-- "reference-17"
-		;	foo: func [x y][a b]
-		;	foo: test reduce [spec-of :foo :foo]
-		;	--assert :foo/1 =? spec-of :foo/2
-		;	
-		;	foo: func [x y][a b]
-		;	foo: test reduce [body-of :foo :foo]
-		;	--assert :foo/1 =? body-of :foo/2
-		;	;@@ #4526
-		;	;foo: make op! func [x y][]
-		;	;foo: test reduce [spec-of :foo :foo]
-		;	;--assert :foo/1 =? spec-of :foo/2
-		;	
-		;	foo: test reduce [spec-of :as-pair :as-pair]
-		;	--assert :foo/1 =? spec-of :foo/2
-		;	;@@ #4526
-		;	;foo: make op! :as-pair
-		;	;foo: test reduce [spec-of :foo :foo]
-		;	;--assert :foo/1 =? spec-of :foo/2
+
+		do [										;@@ #2207
+		--test-- "reference-16"
+			foo: func [x y][a b]
+			foo: test reduce [:foo spec-of :foo]
+			--assert :foo/2 =? spec-of :foo/1
+		
+			foo: func [x y][a b]
+			foo: test reduce [:foo body-of :foo]
+			--assert :foo/2 =? body-of :foo/1
+			
+			;@@ #4526
+			foo: make op! func [x y][a b]
+			foo: test reduce [:foo spec-of :foo]
+			--assert :foo/2 =? spec-of :foo/1
+			
+			foo: test reduce [:as-pair spec-of :as-pair]
+			--assert :foo/2 =? spec-of :foo/1
+			
+			;@@ #4526
+			foo: make op! :as-pair
+			foo: test reduce [:foo spec-of :foo]
+			--assert :foo/2 =? spec-of :foo/1
+		
+		--test-- "reference-17"
+			foo: func [x y][a b]
+			foo: test reduce [spec-of :foo :foo]
+			--assert :foo/1 =? spec-of :foo/2
+			
+			foo: func [x y][a b]
+			foo: test reduce [body-of :foo :foo]
+			--assert :foo/1 =? body-of :foo/2
+			
+			;@@ #4526
+			foo: make op! func [x y][]
+			foo: test reduce [spec-of :foo :foo]
+			--assert :foo/1 =? spec-of :foo/2
+			
+			foo: test reduce [spec-of :as-pair :as-pair]
+			--assert :foo/1 =? spec-of :foo/2
+			
+			;@@ #4526
+			foo: make op! :as-pair
+			foo: test reduce [spec-of :foo :foo]
+			--assert :foo/1 =? spec-of :foo/2
 		
 		--test-- "reference-18"
 			foo: func [x y][a b]
@@ -764,7 +774,8 @@ qt-verbose: on
 			--assert equal-func? :foo :block/2
 			
 			unset 'bar								;-- hide from scanner
-			
+		]
+		
 	===end-group===
 	
 	===start-group=== "Symbols"
