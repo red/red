@@ -402,8 +402,9 @@ Red [
 	--test-- "tr-42" --assert [a /c^d /e^] == transcode "a^b/c^^d/e^^^f"
 	--test-- "tr-43" --assert [/a /b] == transcode "/a/b"
 	--test-- "tr-44" --assert error? try [transcode "[12#(a: 3)]"]
-	--test-- "tr-45" --assert [#"a" - #"z"] == out: transcode {#"a"-#"z"}
-	--test-- "tr-46" --assert [/ #a // #a /// #a hello #a + #a - #a] == out: transcode {/#a //#a ///#a hello#a +#a -#a}
+	--test-- "tr-45" --assert [#"a" - #"z"] == transcode {#"a"-#"z"}
+	--test-- "tr-46" --assert [/ #a // #a /// #a hello #a + #a - #a] == transcode {/#a //#a ///#a hello#a +#a -#a}
+	--test-- "tr-47" --assert [(#abc:)] == transcode "(#abc:)"
 
 ===end-group===
 ===start-group=== "transcode/one"
@@ -630,8 +631,9 @@ Red [
 	--test-- "tro-154"  --assert /value: == transcode/one "/value:"
 	--test-- "tro-155"  --assert refinement! == type? transcode/one "/value:"
 
-	--test-- "tro-156"  --assert  -00:01:00 == transcode/one "-0:1"
-	--test-- "tro-157"  --assert  -01:00:00 == transcode/one "-1:0"
+	--test-- "tro-156"  --assert -00:01:00 == transcode/one "-0:1"
+	--test-- "tro-157"  --assert -01:00:00 == transcode/one "-1:0"
+	--test-- "tro-158"  --assert #abc: == transcode/one "#abc:"
 
 ===end-group===
 ===start-group=== "transcode/next"

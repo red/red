@@ -1156,6 +1156,7 @@ lexer: context [
 	
 	scan-issue: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
 		if s + 1 = e [throw-error lex s e TYPE_ISSUE]
+		lex/type: TYPE_ISSUE
 	]
 	
 	scan-string: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
@@ -2154,7 +2155,7 @@ lexer: context [
 					catch LEX_ERR [do-scan lex s p flags ld?]
 					if all [system/thrown = LEX_ERR not load?][system/thrown: 0 exit]
 				][
-					if any [not ld? all [events? lex/fun-evts and EVT_SCAN <> 0]][
+					if any [not ld? :do-scan <> null all [events? lex/fun-evts and EVT_SCAN <> 0]][
 						if :do-scan = null [do-scan: as scanner! loaders/index]
 						catch LEX_ERR [do-scan lex s p flags no]
 						if events? [
