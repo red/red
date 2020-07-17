@@ -630,6 +630,9 @@ Red [
 	--test-- "tro-154"  --assert /value: == transcode/one "/value:"
 	--test-- "tro-155"  --assert refinement! == type? transcode/one "/value:"
 
+	--test-- "tro-156"  --assert  -00:01:00 == transcode/one "-0:1"
+	--test-- "tro-157"  --assert  -01:00:00 == transcode/one "-1:0"
+
 ===end-group===
 ===start-group=== "transcode/next"
 

@@ -1889,6 +1889,7 @@ lexer: context [
 		tm: 0.0
 		do-error: [throw-error lex s e TYPE_TIME]
 
+		neg?: p/1 = #"-"
 		if p/1 = #"+" [p: p + 1]						;-- leading minus is taken care by grab-integer
 		p: grab-integer p e flags :hour :err
 		if any [err <> 0 p/1 <> #":"][do-error]
@@ -1911,7 +1912,7 @@ lexer: context [
 			if any [err <> 0 tm < 0.0][do-error]
 		]
 		if load? [
-			neg?: either hour < 0 [hour: 0 - hour yes][no]
+			if any [neg? hour < 0][hour: 0 - hour neg?: yes]
 			tm: (3600.0 * as-float hour) + (60.0 * as-float min) + tm
 			if neg? [tm: 0.0 - tm]
 			time/make-at tm (alloc-slot lex) neg?
