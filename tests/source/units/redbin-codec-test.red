@@ -9,7 +9,6 @@ Red [
 ]
 
 #include  %../../../quick-test/quick-test.red
-qt-verbose: on
 
 ~~~start-file~~~ "Redbin codec"
 	random/seed C0DECh								;-- seed for randomized tests
