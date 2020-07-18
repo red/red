@@ -1163,7 +1163,7 @@ _hashtable: context [
 		type: h/type
 		hash?: type = HASH_TABLE_HASH
 		key-type: TYPE_OF(key)
-		set-header?: all [type = HASH_TABLE_MAP word/any-word? key-type]
+		set-header?: all [type = HASH_TABLE_MAP ANY_WORD?(key-type)]
 		if set-header? [
 			saved-type: key-type
 			key-type: TYPE_SET_WORD
