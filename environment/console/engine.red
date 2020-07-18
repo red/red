@@ -33,7 +33,6 @@ system/console: context [
 	result:		"=="
 	history:	make block! 200
 	size:		0x0
-	running?:	no
 	catch?:		no										;-- YES: force script to fallback into the console
 	delimiters:	[]										;-- multiline delimiters for [squared curly parens]
 	ws:			charset " ^/^M^-"
@@ -114,81 +113,82 @@ system/console: context [
 		]
 	]
 
+	delimiter-map: reduce [
+		block!		#"["
+		paren!		#"("
+		string!		#"{"
+		map!		#"("
+		path!		#"/"
+		lit-path!	#"/"
+		get-path!	#"/"
+		set-path!	#"/"
+	]
+	
+	delimiter-lex: function [
+		event	[word!]
+		input	[string! binary!]
+		type	[datatype! word! none!]
+		line	[integer!]
+		token
+		return:	[logic!]
+	][
+		[open close error]
+		switch event [
+			open [
+				append delimiters delimiter-map/:type
+				true
+			]
+			close [
+				if delimiter-map/:type <> last delimiters [throw 'stop]	;-- unmatched ")" "]"
+				take/last delimiters
+				true
+			]
+			error [
+				if type = error! [throw 'stop]			;-- unmatched "}"
+				if all [								;-- block! paren! map! have open-event, so just match delimiters
+					find [block! paren! map!] to-word type
+					delimiter-map/:type = last delimiters
+				][
+					throw 'break
+				]
+				back2: back back tail delimiters
+				
+				if all [type = paren! #"/" = back2/1][	;-- paren! in path
+					remove back2
+					throw 'break
+				]
+				if type = tag! [						;-- tag! haven't open-event
+					append delimiters #"<"
+					throw 'break
+				]
+				if all [type = binary! input/1 <> #"}"][ ;-- binary! haven't open-event
+					append delimiters #"{"
+					throw 'break
+				]
+				if type = string! [
+					either input/(token/x - token/y) = #"%" [ ;-- raw-string! haven't open-event
+						append delimiters #"{"
+						throw 'break
+					][
+						if delimiter-map/:type = last delimiters [ ;-- other string! if have open-event, do match
+							throw 'break
+						]
+					]
+				]
+				throw 'stop
+			]
+		]
+	]
+	
 	check-delimiters: function [
 		buffer	[string!]
-		/extern delimiters
 		return: [logic!]
 	][
-		escaped: [#"^^" skip]
-		block-rule: [
-			(append delimiters #"[")
-			any [
-				#"[" block-rule
-				| #"{" curly-rule
-				| #"(" paren-rule
-				| pos: #";" :pos remove [skip [thru lf | to end]]
-				| dbl-quote dbl-quote-rule
-				| #"}" (either #"{" = last delimiters [remove back tail delimiters][return false])
-				| #")" (either #"(" = last delimiters [remove back tail delimiters][return false])
-				| #"]" (remove back tail delimiters) break
-				| skip
-			]
-		]
-
-		curly-rule: [
-			(append delimiters #"{")
-			any [
-				escaped
-				| #"{" curly-rule
-				| #"}" (remove back tail delimiters) break
-				| skip
-			]
-		]
-
-		paren-rule: [
-			(append delimiters #"(")
-			any [
-				#"[" block-rule
-				| #"{" curly-rule
-				| #"(" paren-rule
-				| pos: #";" :pos remove [skip [thru lf | to end]]
-				| dbl-quote dbl-quote-rule
-				| #"]" (either #"[" = last delimiters [remove back tail delimiters][return false])
-				| #"}" (either #"{" = last delimiters [remove back tail delimiters][return false])
-				| #")" (remove back tail delimiters) break
-				| skip
-			]
-		]
-
-		dbl-quote-rule: [
-			any [
-				[lf | end] (return false)
-				| escaped
-				| dbl-quote break
-				| skip end (return false)
-				| skip
-			]
-		]
-		
-		parse buffer [
-			any [
-				escaped
-				| pos: #";" if (#"{" <> last delimiters) :pos remove [skip [thru lf | to end]]
-				| #"[" if (#"{" <> last delimiters) block-rule
-				| #"]" if (#"{" <> last delimiters) (either #"[" = last delimiters [remove back tail delimiters][return false])
-				| #"(" if (#"{" <> last delimiters) paren-rule
-				| #")" if (#"{" <> last delimiters) (either #"(" = last delimiters [remove back tail delimiters][return false])
-				| dbl-quote if (#"{" <> last delimiters) dbl-quote-rule
-				| #"{" curly-rule
-				| #"}" (either #"{" = last delimiters [remove back tail delimiters][return false])
-				| skip
-			]
-		]
-		true
+		clear delimiters
+		'stop <> catch [transcode/trace buffer :delimiter-lex] ;-- catches 'stop and 'break
 	]
 	
 	try-do: func [code /local result return: [any-type!]][
-		running?: yes
 		set/any 'result try/all [
 			either 'halt-request = set/any 'result catch/name code 'console [
 				print "(halted)"						;-- return an unset value
@@ -196,7 +196,6 @@ system/console: context [
 				:result
 			]
 		]
-		running?: no
 		:result
 	]
 
@@ -220,7 +219,7 @@ system/console: context [
 						result: either float? :result [form/part :result limit][
 							mold/part :result limit
 						]
-						if limit <= length? result [ ;-- optimized for width = 72
+						if limit <= length? result [	;-- optimized for width = 72
 							clear back tail result
 							append result "..."
 						]
@@ -246,10 +245,9 @@ system/console: context [
 				print "(escape)"
 			][
 				cue: none
-				res: check-delimiters line
 				append buffer line
 				append buffer lf						;-- needed for multiline modes
-				either res [
+				either check-delimiters buffer [
 					either empty? delimiters [
 						do-command						;-- no delimiters error
 						mode: 'mono

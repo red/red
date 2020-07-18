@@ -96,7 +96,7 @@ lexer: context [
 	
 	UTF8-char: [pos: UTF8-1 | UTF8-2 | UTF8-3 | UTF8-4]
 	
-	not-word-char:	charset {/\^^,[](){}"#%$@:;}
+	not-word-char:	charset {/\,[](){}"#%$@:;}
 	not-word-1st:	union union not-word-char digit charset {'}
 	not-file-char:	charset {[](){}"@:;}
 	not-url-char:	charset {[](){}";}
@@ -107,7 +107,8 @@ lexer: context [
 	not-tag-1st:	complement union ws-ASCII charset "=><[](){};^""
 	not-tag-char:	complement charset ">"
 	tag-char:		charset "<>"
-	caret-char:		charset [#"^(40)" - #"^(5F)"]
+	caret-Uchar:	charset [#"^(40)" - #"^(5F)"]
+	caret-Lchar:	charset [#"^(61)" - #"^(7A)"]
 	non-printable-char: charset [#"^(00)" - #"^(1F)"]
 	pair-end:		charset {^{"[]();:/}
 	integer-end:	charset {^{"[]();:xX</}
@@ -162,7 +163,8 @@ lexer: context [
 	]
 	
 	newline-char: [
-		#"^/"
+		#"^/"										;-- LF
+		| #"^M"										;-- CR
 		| #{C285}									;-- U+0085 (Newline)
 		| #{E280} [
 			#{A8}									;-- U+2028 (Line separator)
@@ -247,7 +249,7 @@ lexer: context [
 	
 	lit-word-rule: [
 		#"'" (type: word!) [
-			#"/" (type: lit-word! value: "/")
+			s: some #"/" e: (type: lit-word! value: copy/part s e)
 			| s: begin-symbol-rule [
 				path-rule (type: lit-path!)				;-- path matched
 				| (
@@ -265,13 +267,16 @@ lexer: context [
 		)
 	]
 	
-	issue-rule: [#"#" (type: issue!) s: symbol-rule]
+	issue-rule: [#"#" (type: issue!) s: any [symbol-rule | #":"] e:]
 	
 	ref-rule: [(stop: [not-ref-char]) #"@" s: any UTF8-filtered-char e:]
 	
-	refinement-rule: [slash (type: refinement!) s: symbol-rule]
+	refinement-rule: [slash (type: refinement!) s: some [symbol-rule | #":"] e:]
 	
-	slash-rule: [s: [slash opt slash] e:]
+	slash-rule: [
+		[[#":" (type: get-word!) | #"'" (type: lit-word!)] | none (type: word!)]
+		s: some slash e: opt [#":" (if find ":'" s/-1 [throw-error]	type: set-word!)]
+	]
 	
 	hexa-rule: [2 8 hexa e: #"h" pos: [integer-end | ws-no-count | end ] :pos (type: integer!)]
 
@@ -279,12 +284,7 @@ lexer: context [
 		mark: [integer-end | ws-no-count | end | (pos: s throw-error)] :mark
 	]
 
-	tuple-value-rule: [
-		(type: tuple!)
-		byte dot byte 1 12 [dot byte] e:
-	]
-
-	tuple-rule: [tuple-value-rule sticky-word-rule]
+	tuple-rule: [(type: tuple!) byte dot byte 1 12 [dot byte] e: sticky-word-rule]
 	
 	time-rule: [
 		s: positive-integer-rule [
@@ -492,7 +492,8 @@ lexer: context [
 				| #"}"	(value: #"}")
 				| #"^""	(value: #"^"")
 			]
-			| pos: caret-char (value: pos/1 - 64)
+			| pos: caret-Uchar (value: pos/1 - 64)
+			| pos: caret-Lchar (value: pos/1 - 96)
 		]
 	]
 	
@@ -636,7 +637,7 @@ lexer: context [
 			| lit-word-rule	  (stack/push to type value)
 			| get-word-rule	  (stack/push to type value)
 			| refinement-rule (stack/push to refinement! copy/part s e)
-			| slash-rule	  (stack/push to word!		 copy/part s e)
+			| slash-rule	  (stack/push to type		 copy/part s e)
 			| file-rule		  (stack/push load-file value)
 			| char-rule		  (stack/push decode-UTF8-char value)
 			| block-rule	  (stack/push value)

@@ -2863,6 +2863,28 @@ comment {
 		all-equal?4205: anded4205 = last-random4205
 		--assert not all-equal?4205
 		unset [anded4205 last-random4205 all-equal?4205]
+
+
+	--test-- "#4505"
+		do [
+			saved: :find
+			find find: [1000] 1000
+			--assert find = [1000]
+			find: :saved
+
+		  	test: func [a b] [append a b]
+		  	test test: [10 20 30] 40
+		  	--assert true 			;-- just check it does not crash
+
+			recycle/off
+			b: reduce [o: object []]
+			s0: stats
+			loop 1000000 [pick b 1]
+			--assert stats < (s0 * 2)  ;-- catches memory leaking
+			recycle/on
+			recycle
+		]
+
 ===end-group===
 
 ~~~end-file~~~

@@ -48,13 +48,10 @@ object: context [
 		return:	 [integer!]								;-- -1 if not found, else index
 		/local
 			word [red-word!]
+			type [integer!]
 	][
-		assert any [									;@@ replace with ANY_WORD?
-			TYPE_OF(value) = TYPE_WORD
-			TYPE_OF(value) = TYPE_LIT_WORD
-			TYPE_OF(value) = TYPE_GET_WORD
-			TYPE_OF(value) = TYPE_SET_WORD
-		]
+		type: TYPE_OF(value)
+		assert ANY_WORD?(type)
 		word: as red-word! value
 		 _context/find-word GET_CTX(obj) word/symbol yes
 	]
@@ -68,13 +65,10 @@ object: context [
 			ctx	   [red-context!]
 			values [series!]
 			id	   [integer!]
+			type   [integer!]
 	][
-		assert any [									;@@ replace with ANY_WORD?
-			TYPE_OF(value) = TYPE_WORD
-			TYPE_OF(value) = TYPE_LIT_WORD
-			TYPE_OF(value) = TYPE_GET_WORD
-			TYPE_OF(value) = TYPE_SET_WORD
-		]
+		type: TYPE_OF(value)
+		assert ANY_WORD?(type)
 		word: as red-word! value
 		ctx: GET_CTX(obj)
 		id: _context/find-word ctx word/symbol yes	
@@ -1361,15 +1355,8 @@ object: context [
 				switch TYPE_OF(value) [
 					TYPE_BLOCK
 					TYPE_PAREN
-					TYPE_PATH				;-- any-path!
-					TYPE_LIT_PATH
-					TYPE_SET_PATH
-					TYPE_GET_PATH
-					TYPE_STRING				;-- any-string!
-					TYPE_FILE
-					TYPE_URL
-					TYPE_TAG
-					TYPE_EMAIL [
+					TYPE_ANY_PATH
+					TYPE_ANY_STRING [
 						actions/copy 
 							as red-series! value
 							value						;-- overwrite the value
@@ -1414,12 +1401,7 @@ object: context [
 		#if debug? = yes [if verbose > 0 [print-line "object/select"]]
 		
 		type: TYPE_OF(value)
-		unless any [									;@@ replace with ANY_WORD?
-			type = TYPE_WORD
-			type = TYPE_LIT_WORD
-			type = TYPE_GET_WORD
-			type = TYPE_SET_WORD
-		][
+		unless ANY_WORD?(type) [
 			fire [TO_ERROR(script invalid-type) datatype/push type]
 		]
 		rs-select obj value

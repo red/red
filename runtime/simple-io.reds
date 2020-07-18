@@ -1956,10 +1956,7 @@ simple-io: context [
 				either lines? [
 					bin: as red-binary! lines-to-block buf len
 				][
-					bin/node: unicode/load-utf8 as c-string! buf len
-					bin/head: 0
-					bin/_pad: 0
-					bin/header: TYPE_STRING
+					bin: as red-binary! load-utf8 buf len
 				]
 			]
 

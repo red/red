@@ -623,6 +623,8 @@ _series: context [
 
 			src: (as byte-ptr! s/offset) + (head << unit)
 			tail: as byte-ptr! s/tail
+			if src = (as byte-ptr! cell) [ser/head: head + items return ser]
+
 			either part? [
 				size: size - part
 				move-memory

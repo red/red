@@ -613,6 +613,9 @@ Red [
 		--assert parse blk: [1 2 3][b: some integer! change only b (reduce [1 + 2])]
 		--assert blk = [[3]]
 
+	--test-- "blk-chg17 issue #4432"
+		b: ["long long long string" "long long long string" [1]]
+		--assert parse copy "." [change skip (b)]
 
 ===end-group===
 

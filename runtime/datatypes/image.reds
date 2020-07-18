@@ -934,11 +934,12 @@ image: context [
 			COMP_NOT_EQUAL
 			COMP_SORT
 			COMP_CASE_SORT [
-				either any [
-					arg1/size <> arg2/size
-					all [arg1/size = arg2/size arg1/head <> arg2/head]
-				][
-					res: 1
+				;-- 1. compare size first
+				;-- 2. if the same size, compare contents
+				bmp1: IMAGE_WIDTH(arg1/size) * IMAGE_HEIGHT(arg1/size)
+				bmp2: IMAGE_WIDTH(arg2/size) * IMAGE_HEIGHT(arg2/size)
+				either bmp1 <> bmp2 [
+					res: SIGN_COMPARE_RESULT(bmp1 bmp2)
 				][
 					either zero? arg1/size [res: 0][
 						type: 0
