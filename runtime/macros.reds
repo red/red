@@ -390,39 +390,6 @@ Red/System [
 	]
 ]
 
-#define ANY_SERIES?(type)	[
-	any [
-		ANY_BLOCK?(type)
-		ANY_STRING?(type)
-		type = TYPE_BINARY
-		type = TYPE_VECTOR
-		type = TYPE_IMAGE
-	]
-]
-
-#define ANY_BLOCK_STRICT?(type)	[
-	any [
-		type = TYPE_BLOCK
-		type = TYPE_PAREN
-		type = TYPE_PATH
-		type = TYPE_GET_PATH
-		type = TYPE_SET_PATH
-		type = TYPE_LIT_PATH
-	]
-]
-
-#define ANY_BLOCK?(type)	[
-	any [
-		type = TYPE_BLOCK
-		type = TYPE_PAREN
-		type = TYPE_HASH
-		type = TYPE_PATH
-		type = TYPE_GET_PATH
-		type = TYPE_SET_PATH
-		type = TYPE_LIT_PATH
-	]
-]
-
 #define ANY_LIST?(type)	[
 	any [
 		type = TYPE_BLOCK
@@ -440,6 +407,21 @@ Red/System [
 	]
 ]
 
+#define ANY_BLOCK_STRICT?(type)	[
+	any [
+		ANY_PATH?(type)
+		type = TYPE_BLOCK
+		type = TYPE_PAREN
+	]
+]
+
+#define ANY_BLOCK?(type)	[
+	any [
+		ANY_PATH?(type)
+		ANY_LIST?(type)
+	]
+]
+
 #define ANY_STRING?(type)	[
 	any [
 		type = TYPE_STRING
@@ -448,6 +430,16 @@ Red/System [
 		type = TYPE_TAG
 		type = TYPE_EMAIL
 		type = TYPE_REF
+	]
+]
+
+#define ANY_SERIES?(type)	[
+	any [
+		ANY_BLOCK?(type)
+		ANY_STRING?(type)
+		type = TYPE_BINARY
+		type = TYPE_VECTOR
+		type = TYPE_IMAGE
 	]
 ]
 
@@ -462,10 +454,7 @@ Red/System [
 
 #define ALL_WORD?(type) [
 	any [
-		type = TYPE_WORD
-		type = TYPE_SET_WORD
-		type = TYPE_GET_WORD
-		type = TYPE_LIT_WORD
+		ANY_WORD?(type)
 		type = TYPE_REFINEMENT
 		type = TYPE_ISSUE
 	]
@@ -493,16 +482,6 @@ Red/System [
 	TYPE_REF
 ]
 
-#define TYPE_ANY_BLOCK [					;-- To be used in SWITCH cases
-	TYPE_BLOCK
-	TYPE_PAREN
-	TYPE_HASH
-	TYPE_PATH
-	TYPE_GET_PATH
-	TYPE_SET_PATH
-	TYPE_LIT_PATH
-]
-
 #define TYPE_ANY_LIST [						;-- To be used in SWITCH cases
 	TYPE_BLOCK
 	TYPE_HASH
@@ -514,6 +493,11 @@ Red/System [
 	TYPE_GET_PATH
 	TYPE_SET_PATH
 	TYPE_LIT_PATH
+]
+
+#define TYPE_ANY_BLOCK [					;-- To be used in SWITCH cases
+	TYPE_ANY_LIST
+	TYPE_ANY_PATH
 ]
 
 #define BS_SET_BIT(array bit)  [
