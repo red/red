@@ -233,7 +233,7 @@ system: context [
 				;security:			["security violation:" :arg1 " (refer to SECURE function)"]
 				;security-level:	["attempt to lower security to" :arg1]
 				;security-error:	["invalid" :arg1 "security policy:" :arg2]
-				;no-codec:			["cannot decode or encode (no codec):" :arg1]
+				no-codec:			["cannot decode or encode (no codec):" :arg1]
 				bad-media:			["bad media data (corrupt image, sound, video)"]
 				;no-extension:		["cannot open extension:" :arg1]
 				;bad-extension:		["invalid extension format:" :arg1]

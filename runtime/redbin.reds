@@ -401,11 +401,15 @@ redbin: context [
 			p/1 = #"R" p/2 = #"E" p/3 = #"D"
 			p/4 = #"B" p/5 = #"I" p/6 = #"N"
 		][
-			;@@ TBD: proper error message for runtime codec
-			print-line "Error: Not a Redbin file!"
-			halt
+			either codec? [
+				reset
+				fire [TO_ERROR(script invalid-data) stack/arguments]
+			][
+				print-line "Error: Not a Redbin file!"
+				halt
+			]
 		]
-		p: p + 7						;-- skip magic (6 bytes) + version (1 byte)
+		p: p + 7									;-- skip magic (6 bytes) + version (1 byte)
 		compact?:	 (as-integer p/1) and REDBIN_COMPACT_MASK <> 0
 		compressed?: (as-integer p/1) and REDBIN_COMPRESSED_MASK <> 0
 		sym-table?:  (as-integer p/1) and REDBIN_SYMBOL_TABLE_MASK <> 0
@@ -511,9 +515,14 @@ redbin: context [
 			TYPE_OP			[encode-op data header payload symbols table strings]
 			TYPE_NATIVE
 			TYPE_ACTION 	[encode-native data header payload symbols table strings]
+			TYPE_PORT
 			TYPE_POINT
 			TYPE_HANDLE
-			TYPE_EVENT		[--NOT_IMPLEMENTED--]
+			TYPE_EVENT
+			TYPE_ROUTINE 	[
+				reset
+				fire [TO_ERROR(access no-codec) datatype/push type]
+			]
 			default			[
 				first?:  any [ALL_WORD?(type) type = TYPE_OBJECT type = TYPE_FUNCTION]
 				node:    as node! either first? [data/data1][data/data2]
@@ -541,7 +550,6 @@ redbin: context [
 					TYPE_MAP		[encode-block data header no payload symbols table strings]
 					TYPE_OBJECT		[encode-object data header payload symbols table strings]
 					TYPE_FUNCTION	[encode-function data header payload symbols table strings]
-					TYPE_ROUTINE	[--NOT_IMPLEMENTED--]
 					default			[assert false]
 				]
 				
@@ -646,7 +654,8 @@ redbin: context [
 			TYPE_HANDLE
 			TYPE_EVENT
 			TYPE_POINT [
-				--NOT_IMPLEMENTED--
+				reset
+				fire [TO_ERROR(access no-codec) datatype/push type]
 				data
 			]
 			REDBIN_PADDING [
@@ -1189,7 +1198,8 @@ redbin: context [
 			either type = TYPE_FUNCTION [
 				encode-value slot payload symbols table strings
 			][
-				assert false						;@@ TBD: routine
+				reset
+				fire [TO_ERROR(access no-codec) datatype/push type]
 			]
 		][
 			slot: stack/push*
