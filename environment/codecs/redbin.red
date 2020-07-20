@@ -21,12 +21,9 @@ put system/codecs 'redbin context [
 	]
 	
 	decode: routine [payload [binary!] /local blk [red-block!]][
-		blk: block/push-only* 0						;@@ TBD: heuristics for pre-allocation
+		blk: block/push-only* 0
 		redbin/decode binary/rs-head payload blk yes
-		if (block/rs-length? blk) = 1 [
-			blk: as red-block! block/rs-head blk
-		]
-		
+		if (block/rs-length? blk) = 1 [blk: as red-block! block/rs-head blk]
 		SET_RETURN(blk)
 	]
 ]

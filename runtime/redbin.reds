@@ -19,7 +19,7 @@ redbin: context [
 	#define REDBIN_COMPRESSED_MASK		02h
 	#define REDBIN_SYMBOL_TABLE_MASK	04h
 	
-	;-- record header flags
+	;-- Record header flags
 	
 	#define REDBIN_NEWLINE_MASK			80000000h
 	#define REDBIN_VALUES_MASK			40000000h
@@ -37,14 +37,14 @@ redbin: context [
 
 	#define REDBIN_REFERENCE_MASK		00080000h
 	
-	;-- special record types
+	;-- Special record types
 	
 	#enum redbin-value-type! [
 		REDBIN_PADDING: 	0
 		REDBIN_REFERENCE: 	255
 	]
 	
-	;-- top-level declarations
+	;-- Top-level declarations
 	
 	origin:      declare red-block!
 	buffer:		 as byte-ptr! 0
@@ -54,15 +54,12 @@ redbin: context [
 	offset:      0
 	codec?:      no
 	
-	
-	magic:   "REDBIN"
-	version: #"^(02)"
-	header:  #{
+	header: #{
 		52454442494E								;-- REDBIN magic
 		02											;-- version
 		00											;-- placeholder for flags
-		00000000									;-- placeholder for length
-		00000000									;-- placeholder for size
+		00000000									;-- placeholder for length (bytes)
+		00000000									;-- placeholder for size (number of root records)
 	}
 		
 	;-- Support --
@@ -90,17 +87,17 @@ redbin: context [
 		/local
 			length  [integer!]
 			residue [integer!]
-			zero    [integer!]
+			zero    [float!]
 	][
 		assert any [size = 32 size = 64]
 		
 		size:    size >> 3
 		length:  binary/rs-length? buffer
 		residue: length // size
-		zero:    0
-			
-		unless zero? residue [						;@@ TBD: optimize
-			loop size - residue [binary/rs-append buffer as byte-ptr! :zero 1]
+		zero:    0.0								;-- 8 zero bytes
+		
+		unless zero? residue [
+			binary/rs-append buffer as byte-ptr! :zero size - residue
 		]
 	]
 	
@@ -150,9 +147,10 @@ redbin: context [
 	
 	;-- Reference sub-system --
 	
-	;@@ TBD: rewrite with vector!
+	reset: does [path/reset reference/reset]
+	
 	path: context [
-		size:  1'000
+		size:  3'000										;-- arbitrary
 		stack: as int-ptr! allocate size * size? integer!	;-- offsets
 		top:   stack
 		end:   stack + size
@@ -173,9 +171,8 @@ redbin: context [
 		reset: does [top: stack]
 	]
 	
-	;@@ TBD: rewrite with vector!
 	reference: context [
-		size: 3'000
+		size: 7'000											;-- arbitrary
 		list: as int-ptr! allocate size * size? integer!	;-- node, size, offsets
 		top:  list
 		end:  list + size
@@ -205,9 +202,7 @@ redbin: context [
 			top/1: as integer! node
 			top/2: size
 			top: top + 2
-			
 			copy-memory as byte-ptr! top as byte-ptr! path/stack size * size? integer!
-			
 			top: top + size
 		]
 		
@@ -308,8 +303,8 @@ redbin: context [
 					resolve
 				]
 				default [
-					assert false					;@@ TBD: error message?
-					value
+					assert false
+					value							;-- pass compiler's type checking
 				]
 			]
 			
@@ -327,20 +322,23 @@ redbin: context [
 	encode: func [
 		data    [red-value!]
 		return: [red-binary!]
-		/local										;@@ TBD: prettify
-			payload table symbols strings [red-binary!]
-			here [int-ptr!]
-			head [byte-ptr!]
-			length size sym-len str-len sym-size [integer!]
+		/local
+			payload table   [red-binary!]
+			symbols strings [red-binary!]
+			here            [int-ptr!]
+			head            [byte-ptr!]
+			length size     [integer!]
+			table-length    [integer!]
+			buffer-length   [integer!]
+			table-size      [integer!]
 	][
 		codec?: yes
 		offset: 0
 		
-		path/reset
-		reference/reset
+		reset
 		
 		;-- payload
-		payload: binary/make-at stack/push* 4		;@@ TBD: heuristics for pre-allocation
+		payload: binary/make-at stack/push* size? cell!
 		symbols: binary/make-at stack/push* 4
 		table:   binary/make-at stack/push* 4
 		strings: binary/make-at stack/push* 4
@@ -349,22 +347,22 @@ redbin: context [
 		size: binary/rs-length? payload
 		
 		;-- symbol table
-		sym-len: binary/rs-length? table
-		unless zero? sym-len [
-			str-len: binary/rs-length? strings
-			sym-size: sym-len >> 2
+		table-length: binary/rs-length? table
+		unless zero? table-length [
+			buffer-length: binary/rs-length? strings
+			table-size: table-length >> 2
 			
-			binary/rs-insert payload 0 binary/rs-head strings str-len	;-- strings buffer
-			binary/rs-insert payload 0 binary/rs-head table sym-len		;-- symbol records
+			binary/rs-insert payload 0 binary/rs-head strings buffer-length	;-- strings buffer
+			binary/rs-insert payload 0 binary/rs-head table table-length	;-- offsets table
 			
-			binary/rs-insert payload 0 as byte-ptr! :str-len 4			;-- size of the strings buffer
-			binary/rs-insert payload 0 as byte-ptr! :sym-size 4			;-- number of symbol records
+			binary/rs-insert payload 0 as byte-ptr! :buffer-length 4		;-- size of the strings buffer
+			binary/rs-insert payload 0 as byte-ptr! :table-size 4			;-- number of symbol records
 		]
 		
 		;-- Redbin header
 		binary/rs-insert payload 0 header 16		;-- size of the header
 		head: binary/rs-head payload
-		head/8: either zero? sym-len [null-byte][#"^(04)"]
+		head/8: either zero? table-length [null-byte][#"^(04)"]
 		here: as int-ptr! head + 8					;-- skip to length entry
 		here/1: 1									;-- always 1 root record
 		here/2: size
@@ -397,7 +395,7 @@ redbin: context [
 		;-- decode header
 		;----------------
 		p: data
-		unless all [					;-- magic="REDBIN"
+		unless all [								;-- magic="REDBIN"
 			p/1 = #"R" p/2 = #"E" p/3 = #"D"
 			p/4 = #"B" p/5 = #"I" p/6 = #"N"
 		][
@@ -419,9 +417,9 @@ redbin: context [
 		
 		p4: as int-ptr! p
 		
-		count: p4/1						;-- read records number
-		len: p4/2						;-- read records size in bytes
-		p4: p4 + 2						;-- skip both fields
+		count: p4/1									;-- read records number
+		len: p4/2									;-- read records size in bytes
+		p4: p4 + 2									;-- skip both fields
 		p: as byte-ptr! p4
 		
 		;----------------
@@ -445,7 +443,7 @@ redbin: context [
 		end: p + len
 		#if debug? = yes [if verbose > 0 [i: 0]]
 		
-		origin: parent
+		origin: parent								;-- track root block for references
 		while [p < end][
 			#if debug? = yes [
 				p4: as int-ptr! p
