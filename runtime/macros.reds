@@ -460,6 +460,30 @@ Red/System [
 	]
 ]
 
+#define ALL_WORD?(type) [
+	any [
+		type = TYPE_WORD
+		type = TYPE_SET_WORD
+		type = TYPE_GET_WORD
+		type = TYPE_LIT_WORD
+		type = TYPE_REFINEMENT
+		type = TYPE_ISSUE
+	]
+]
+
+#define TYPE_ANY_WORD [
+	TYPE_WORD
+	TYPE_SET_WORD
+	TYPE_GET_WORD
+	TYPE_LIT_WORD
+]
+
+#define TYPE_ALL_WORD [
+	TYPE_ANY_WORD
+	TYPE_ISSUE
+	TYPE_REFINEMENT
+]
+
 #define TYPE_ANY_STRING [					;-- To be used in SWITCH cases
 	TYPE_STRING
 	TYPE_FILE
