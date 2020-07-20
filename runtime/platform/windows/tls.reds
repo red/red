@@ -783,6 +783,8 @@ tls: context [
 		sbin/pBuffers: :buffer1
 		sbin/cBuffers: 4
 
+probe ["data/security2: " data/security]	;@@ DecryptMessage return error if remove this line ???
+
 		status: platform/SSPI/DecryptMessage
 			as SecHandle! :data/security
 			sbin
@@ -818,7 +820,8 @@ tls: context [
 				return false
 			]
 			00090317h [		;-- SEC_I_CONTEXT_EXPIRED
-				
+				data/iocp/event: IO_EVT_CLOSE
+				len: 0
 			]
 			default [probe ["error in tls/decode: " as int-ptr! status]]
 		]

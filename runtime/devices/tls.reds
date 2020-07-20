@@ -132,12 +132,9 @@ TLS-device: context [
 			either data/event = IO_EVT_NONE [		;-- we can reuse this one
 				as sockdata! data
 			][										;-- needs to create a new one
-				new: as sockdata! alloc0 size? sockdata!
-				new/iocp/event-handler: as iocp-event-handler! :event-handler
-				new/iocp/device: data/device
-				new/iocp/accept-sock: PENDING_IO_FLAG ;-- use it as a flag to indicate pending data
-				copy-cell as cell! red-port as cell! :new/port
-				new
+				;TBD clone a tls data
+				assert 1 = 0		;-- in our current simple test, should never reach this branch
+				as sockdata! data
 			]
 		][
 			as sockdata! state/value
