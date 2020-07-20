@@ -21,6 +21,7 @@ put system/codecs 'redbin context [
 	]
 	
 	decode: routine [payload [binary!] /local blk [red-block!]][
+		if 16 >= binary/rs-length? payload [fire [TO_ERROR(script invalid-data) payload]]
 		blk: block/push-only* 0
 		redbin/decode binary/rs-head payload blk yes
 		if (block/rs-length? blk) = 1 [blk: as red-block! block/rs-head blk]
