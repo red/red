@@ -60,11 +60,6 @@ Red [
 		--test-- "logic"
 			--assert true == test true
 			--assert false == test false
-			
-			loop 10 [
-				value: random true
-				--assert value == test value
-			]
 		
 		--test-- "integer"
 			--assert 0 == test 0
@@ -775,6 +770,14 @@ Red [
 			unset 'bar								;-- hide from scanner
 		]
 		
+	===end-group===
+	
+	===start-group=== "Codec errors"
+		--test-- "errors-1" --assert error? try [load/as #{} 'redbin]
+		--test-- "errors-2" --assert error? try [load/as to binary! "REDBIN" 'redbin]
+		--test-- "errors-3" --assert error? try [test :>>]
+		--test-- "errors-4" --assert error? try [test :as-ipv4]
+	
 	===end-group===
 	
 	===start-group=== "Symbols"
