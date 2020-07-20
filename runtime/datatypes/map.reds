@@ -24,18 +24,33 @@ map: context [
 		size: as int-ptr! s/offset
 		size/value
 	]
+	
+	valid-key?: func [type [integer!] return: [logic!]][
+		switch type [
+			TYPE_WORD
+			TYPE_GET_WORD
+			TYPE_SET_WORD
+			TYPE_LIT_WORD
+			TYPE_BINARY
+			TYPE_ANY_STRING
+			TYPE_INTEGER TYPE_CHAR TYPE_FLOAT TYPE_DATE
+			TYPE_PERCENT TYPE_TUPLE TYPE_PAIR TYPE_TIME [yes]
+			default										[no]
+		]		
+	]
 
 	preprocess-key: func [
 		key		[red-value!]
 	][
 		switch TYPE_OF(key) [
-			TYPE_ANY_WORD [key/header: TYPE_SET_WORD]		;-- convert any-word! to set-word!
+			TYPE_WORD
+			TYPE_GET_WORD
+			TYPE_SET_WORD
+			TYPE_LIT_WORD [key/header: TYPE_SET_WORD]		;-- convert any-word! to set-word!
 			TYPE_BINARY
 			TYPE_ANY_STRING [_series/copy as red-series! key as red-series! key null yes null]
-			TYPE_INTEGER TYPE_FLOAT TYPE_PERCENT
-			TYPE_TUPLE TYPE_PAIR
-			TYPE_DATE TYPE_TIME
-			TYPE_CHAR TYPE_MONEY [0]
+			TYPE_INTEGER TYPE_CHAR TYPE_FLOAT TYPE_DATE
+			TYPE_PERCENT TYPE_TUPLE TYPE_PAIR TYPE_TIME [0]
 			default		[fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(key)]]
 		]
 	]

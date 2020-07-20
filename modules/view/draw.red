@@ -1087,7 +1087,7 @@ Red/System [
 			dc			[handle!]
 			layout		[handle!]			;-- text layout (opaque handle)
 			cmds		[red-block!]
-			max-len		[integer!]
+			text		[red-string!]
 			catch?		[logic!]
 			/local
 				cmd		[red-value!]
@@ -1104,10 +1104,12 @@ Red/System [
 				alpha?	[integer!]
 				idx		[integer!]
 				len		[integer!]
+				max-len	[integer!]
 		][
 			alpha?: 0 idx: 0 len: 0
 			cmd:  block/rs-head cmds
 			tail: block/rs-tail cmds
+			max-len: string/rs-length? text
 
 			while [cmd < tail][
 				switch TYPE_OF(cmd) [
@@ -1154,6 +1156,10 @@ Red/System [
 						idx: range/x - 1
 						len: range/y
 						if idx + len > max-len [len: max-len - idx]
+						#if OS = 'Windows [
+							len: adjust-index text idx len 1
+							idx: adjust-index text 0 idx 1
+						]
 					]
 					TYPE_STRING [										;-- font name
 						OS-text-box-font-name dc layout idx len as red-string! cmd

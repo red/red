@@ -1585,7 +1585,7 @@ update-combo-box: func [
 					]
 				]
 				any [
-					sym = words/_insert/symbol
+					sym = words/_inserted/symbol
 					sym = words/_poke/symbol
 					sym = words/_put/symbol
 					sym = words/_reverse/symbol
@@ -1601,7 +1601,7 @@ update-combo-box: func [
 						new
 					]
 					loop part [
-						if sym <> words/_insert/symbol [
+						if sym <> words/_inserted/symbol [
 							objc_msgSend [hWnd sel_getUid "removeItemAtIndex:" index]
 						]
 						insert-list-item hWnd str index list?

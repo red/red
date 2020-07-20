@@ -25,6 +25,7 @@ modal-loop-type: 0										;-- remanence of last EVT_MOVE or EVT_SIZE
 zoom-distance:	 0
 special-key: 	-1										;-- <> -1 if a non-displayable key is pressed
 key-flags:		 0										;-- last key-flags, needed in mouseleave event
+utf16-char:		 0
 
 flags-blk: declare red-block!							;-- static block value for event/flags
 flags-blk/header:	TYPE_UNSET
@@ -248,7 +249,11 @@ get-event-key: func [
 			][
 				char: as red-char! stack/push*
 				char/header: TYPE_CHAR
-				char/value: evt/flags and FFFFh
+				either all [evt/type = EVT_KEY utf16-char >= 00010000h][
+					char/value: evt/flags
+				][
+					char/value: evt/flags and FFFFh
+				]
 				as red-value! char
 			]
 		]
@@ -487,8 +492,8 @@ make-event: func [
 		]
 		EVT_KEY_DOWN [
 			key: msg/wParam and FFFFh
-			if key = VK_PROCESSKEY [			;-- IME-friendly exit
-				if ime-open? [special-key: -1]
+			if key = VK_PROCESSKEY [					;-- IME-friendly exit
+				special-key: -1
 				return EVT_DISPATCH
 			]
 			special-key: either any [
@@ -503,8 +508,20 @@ make-event: func [
 			gui-evt/flags: key or check-extra-keys no
 		]
 		EVT_KEY [
-			char: msg/wParam
 			key: check-extra-keys no
+			char: msg/wParam
+			case [
+				all [char >= D800h char <= DBFFh][		;-- surrogate pair
+					utf16-char: char
+					return EVT_DISPATCH
+				]
+				all [char >= DC00h char <= DFFFh][
+					utf16-char: 00010000h + (utf16-char and 03FFh << 10) + (char and 03FFh)
+					char: utf16-char
+					key: 0
+				]
+				true [utf16-char: 0]
+			]
 			if all [
 				key and EVT_FLAG_CTRL_DOWN <> 0
 				96 < char char < 123					;-- #"a" <= char <= #"z"

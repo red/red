@@ -833,7 +833,7 @@ OS-draw-shape-line: func [
 		nb: nb + 1
 	]
 
-	while [all [pair <= end nb < MAX_EDGES]][
+	while [pair <= end][
 		pt/x: pair/x
 		pt/y: pair/y
 		if rel? [
@@ -845,11 +845,18 @@ OS-draw-shape-line: func [
 		nb: nb + 1
 		pt: pt + 1
 		pair: pair + 1
-	]
-	either ctx/other/GDI+? [
-		GdipAddPathLine2I ctx/gp-path ctx/other/edges nb
-	][
-		Polyline ctx/dc ctx/other/edges nb
+		if any [pair > end nb = MAX_EDGES][
+			either ctx/other/GDI+? [
+				GdipAddPathLine2I ctx/gp-path ctx/other/edges nb
+			][
+				Polyline ctx/dc ctx/other/edges nb
+			]
+			if all [pair <= end nb = MAX_EDGES][
+				nb: 0
+				pt: ctx/other/edges
+				pair: pair - 1
+			]
+		]
 	]
 	ctx/other/last-point?: yes
 	ctx/other/prev-shape/type: SHAPE_OTHER
@@ -1164,18 +1171,26 @@ OS-draw-line: func [
 	pair:  point
 	nb:	   0
 
-	while [all [pair <= end nb < MAX_EDGES]][
+	while [pair <= end][
 		pt/x: pair/x
 		pt/y: pair/y
 		nb: nb + 1
 		pt: pt + 1
 		pair: pair + 1
-	]
-	either ctx/other/GDI+? [
-		check-gradient-poly ctx start 2
-		GdipDrawLinesI ctx/graphics ctx/gp-pen start nb
-	][
-		Polyline ctx/dc start nb
+		
+		if any [pair > end nb = MAX_EDGES][
+			either ctx/other/GDI+? [
+				check-gradient-poly ctx start 2
+				GdipDrawLinesI ctx/graphics ctx/gp-pen start nb
+			][
+				Polyline ctx/dc start nb
+			]
+			if all [pair <= end nb = MAX_EDGES][
+				nb: 0
+				pt: start
+				pair: pair - 1
+			]
+		]
 	]
 ]
 
@@ -3528,15 +3543,26 @@ OS-matrix-transform: func [
 		;-- transform figure
 		g: ctx/graphics
 		if center? [
-			cx: as float32! 0 - center/x
-			cy: as float32! 0 - center/y
-			GdipTranslateWorldTransform g cx cy GDIPLUS_MATRIX_APPEND
+			either ctx/other/matrix-order = GDIPLUS_MATRIX_APPEND [
+				cx: as float32! 0 - center/x
+				cy: as float32! 0 - center/y
+			][
+				cx: as float32! center/x
+				cy: as float32! center/y
+			]
+			GdipTranslateWorldTransform g cx cy ctx/other/matrix-order
 		]
-		GdipRotateWorldTransform g get-float32 rotate GDIPLUS_MATRIX_APPEND
-		GdipScaleWorldTransform g get-float32 scale get-float32 scale + 1 GDIPLUS_MATRIX_APPEND
-		GdipTranslateWorldTransform g as float32! translate/x as float32! translate/y GDIPLUS_MATRIX_APPEND
+		either ctx/other/matrix-order = GDIPLUS_MATRIX_APPEND [
+			GdipRotateWorldTransform g get-float32 rotate ctx/other/matrix-order
+			GdipScaleWorldTransform g get-float32 scale get-float32 scale + 1 ctx/other/matrix-order
+			GdipTranslateWorldTransform g as float32! translate/x as float32! translate/y ctx/other/matrix-order
+		][
+			GdipTranslateWorldTransform g as float32! translate/x as float32! translate/y ctx/other/matrix-order
+			GdipScaleWorldTransform g get-float32 scale get-float32 scale + 1 ctx/other/matrix-order
+			GdipRotateWorldTransform g get-float32 rotate ctx/other/matrix-order
+		]
 		if center? [
-			GdipTranslateWorldTransform g (as float32! 0.0) - cx (as float32! 0.0) - cy GDIPLUS_MATRIX_APPEND
+			GdipTranslateWorldTransform g (as float32! 0.0) - cx (as float32! 0.0) - cy ctx/other/matrix-order
 		]
 	]
 ]

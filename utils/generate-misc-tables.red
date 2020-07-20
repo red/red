@@ -14,7 +14,7 @@ gen-bitarray: function [list][
 	append/dup out: make binary! 32 null 32
 
 	foreach c list [
-		pos: (to-integer c) / 8 + 1
+		pos: to-integer (to-integer c) / 8 + 1
 		bit: 1 << ((to-integer c) // 8)
 		out/:pos: out/:pos or bit
 	]
@@ -93,7 +93,7 @@ gen-float-classes-table: function [][
 	probe out
 ]
 
-gen-bitarray {/-~^^{}"}
+gen-bitarray {@/-~^^{}"}
 gen-bin16-table
 gen-hexa-table
 gen-float-classes-table

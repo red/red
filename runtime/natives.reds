@@ -1192,6 +1192,7 @@ natives: context [
 			int	   [red-integer!]
 			res	   [red-value!]
 			cframe [byte-ptr!]
+			type   [integer!]
 	][
 		#typecheck [parse case? part trace]
 		op: either as logic! case? + 1 [COMP_STRICT_EQUAL][COMP_EQUAL]
@@ -1214,13 +1215,8 @@ natives: context [
 				limit/head
 			]
 			if part <= 0 [
-				logic/box zero? either any [
-					TYPE_OF(input) = TYPE_STRING		;@@ replace with ANY_STRING?
-					TYPE_OF(input) = TYPE_FILE
-					TYPE_OF(input) = TYPE_URL
-					TYPE_OF(input) = TYPE_TAG
-					TYPE_OF(input) = TYPE_EMAIL
-				][
+				type: TYPE_OF(input)
+				logic/box zero? either ANY_STRING?(type) [
 					string/rs-length? as red-string! input
 				][
 					block/rs-length? as red-block! input
@@ -2425,13 +2421,7 @@ natives: context [
 		value: name + 1
 
 		type: TYPE_OF(name)
-		unless any [						;-- any-word!
-			type = TYPE_STRING				;@@ replace with ANY_STRING?
-			type = TYPE_FILE 
-			type = TYPE_URL
-			type = TYPE_TAG
-			type = TYPE_EMAIL
-		][
+		unless ANY_STRING?(type) [
 			w: as red-word! name
 			s: GET_BUFFER(symbols)
 			name: as red-string! s/offset + w/symbol - 1
@@ -2460,12 +2450,7 @@ natives: context [
 		#typecheck get-env
 		name: as red-string! stack/arguments
 		type: TYPE_OF(name)
-		unless any [						;-- any-word!
-			type = TYPE_STRING				;@@ replace with ANY_STRING?
-			type = TYPE_FILE 
-			type = TYPE_URL
-			type = TYPE_EMAIL
-		][
+		unless ANY_STRING?(type) [
 			w: as red-word! name
 			s: GET_BUFFER(symbols)
 			name: word/as-string as red-word! name
@@ -2852,8 +2837,10 @@ natives: context [
 			if len < 0 [len: string/rs-length? str]
 			type: lexer/scan-alt slot str len one? scan? load? no :offset fun as red-series! str
 		]
+		
 		if any [not scan? not load?][
-			assert type > 0
+			if zero? len [stack/set-last none-value exit]
+			if type <= 0 [type: TYPE_ERROR]
 			dt: as red-datatype! slot
 			dt/header: TYPE_DATATYPE
 			dt/value: type
@@ -3063,15 +3050,9 @@ natives: context [
 			return IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) > img/head
 		]
 		s: GET_BUFFER(series)
-		either any [									;@@ replace with any-block?
-			type = TYPE_BLOCK
+		either any [
+			ANY_BLOCK?(type)
 			type = TYPE_MAP
-			type = TYPE_HASH
-			type = TYPE_PAREN
-			type = TYPE_PATH
-			type = TYPE_GET_PATH
-			type = TYPE_SET_PATH
-			type = TYPE_LIT_PATH
 		][
 			s/offset + series/head < s/tail
 		][
@@ -3148,29 +3129,17 @@ natives: context [
 			series	[red-series!]
 			pos		[red-series!]
 			part	[red-value!]
+			type    [integer!]
 	][
 		arg: stack/arguments
 		bool: as red-logic! arg
 		series: as red-series! arg - 2
 		part: either size = 1 [null][arg - 3]
+		type: TYPE_OF(series)
 		
-		assert any [									;@@ replace with any-block?/any-string? check
-			TYPE_OF(series) = TYPE_BLOCK
-			TYPE_OF(series) = TYPE_HASH
-			TYPE_OF(series) = TYPE_PAREN
-			TYPE_OF(series) = TYPE_PATH
-			TYPE_OF(series) = TYPE_GET_PATH
-			TYPE_OF(series) = TYPE_SET_PATH
-			TYPE_OF(series) = TYPE_LIT_PATH
-			TYPE_OF(series) = TYPE_STRING
-			TYPE_OF(series) = TYPE_FILE
-			TYPE_OF(series) = TYPE_URL
-			TYPE_OF(series) = TYPE_TAG
-			TYPE_OF(series) = TYPE_EMAIL
-			TYPE_OF(series) = TYPE_VECTOR
-			TYPE_OF(series) = TYPE_BINARY
-			TYPE_OF(series) = TYPE_MAP
-			TYPE_OF(series) = TYPE_IMAGE
+		assert any [
+			ANY_SERIES?(type)
+			type = TYPE_MAP
 		]
 
 		unless any [
@@ -3197,34 +3166,16 @@ natives: context [
 		series: as red-series! stack/arguments - 2
 
 		type: TYPE_OF(series)
-		assert any [									;@@ replace with any-block?/any-string? check
-			type = TYPE_BLOCK
-			type = TYPE_HASH
-			type = TYPE_PAREN
-			type = TYPE_PATH
-			type = TYPE_GET_PATH
-			type = TYPE_SET_PATH
-			type = TYPE_LIT_PATH
-			type = TYPE_STRING
-			type = TYPE_FILE
-			type = TYPE_URL
-			type = TYPE_TAG
-			type = TYPE_EMAIL
-			type = TYPE_VECTOR
-			type = TYPE_BINARY
+		assert any [
+			ANY_SERIES?(type)
 			type = TYPE_MAP
-			type = TYPE_IMAGE
 		]
 		assert TYPE_OF(blk) = TYPE_BLOCK
 
 		result: all [loop? series  size > 0]
 		if result [
 			switch type [
-				TYPE_STRING
-				TYPE_FILE
-				TYPE_URL
-				TYPE_TAG
-				TYPE_EMAIL
+				TYPE_ANY_STRING
 				TYPE_VECTOR
 				TYPE_BINARY [
 					set-many-string blk as red-string! series size
@@ -3257,28 +3208,16 @@ natives: context [
 		/local
 			series [red-series!]
 			word   [red-word!]
+			type   [integer!]
 			result [logic!]
 	][
 		word:   as red-word!   stack/arguments - 1
 		series: as red-series! stack/arguments - 2
-
-		assert any [									;@@ replace with any-block?/any-string? check
-			TYPE_OF(series) = TYPE_BLOCK
-			TYPE_OF(series) = TYPE_HASH
-			TYPE_OF(series) = TYPE_PAREN
-			TYPE_OF(series) = TYPE_PATH
-			TYPE_OF(series) = TYPE_GET_PATH
-			TYPE_OF(series) = TYPE_SET_PATH
-			TYPE_OF(series) = TYPE_LIT_PATH
-			TYPE_OF(series) = TYPE_STRING
-			TYPE_OF(series) = TYPE_FILE
-			TYPE_OF(series) = TYPE_URL
-			TYPE_OF(series) = TYPE_TAG
-			TYPE_OF(series) = TYPE_EMAIL
-			TYPE_OF(series) = TYPE_VECTOR
-			TYPE_OF(series) = TYPE_BINARY
-			TYPE_OF(series) = TYPE_MAP
-			TYPE_OF(series) = TYPE_IMAGE
+		type:   TYPE_OF(series)
+		
+		assert any [
+			ANY_SERIES?(type)
+			type = TYPE_MAP
 		]
 		assert TYPE_OF(word) = TYPE_WORD
 		
@@ -3318,25 +3257,15 @@ natives: context [
 		/local
 			series [red-series!]
 			word   [red-word!]
+			type   [integer!]
 	][
 		word: 	as red-word!   stack/arguments - 1
 		series: as red-series! stack/arguments - 2
+		type:   TYPE_OF(series)
 		
-		assert any [									;@@ replace with any-block?/any-string? check
-			TYPE_OF(series) = TYPE_BLOCK
-			TYPE_OF(series) = TYPE_HASH
-			TYPE_OF(series) = TYPE_PAREN
-			TYPE_OF(series) = TYPE_PATH
-			TYPE_OF(series) = TYPE_GET_PATH
-			TYPE_OF(series) = TYPE_SET_PATH
-			TYPE_OF(series) = TYPE_LIT_PATH
-			TYPE_OF(series) = TYPE_STRING
-			TYPE_OF(series) = TYPE_FILE
-			TYPE_OF(series) = TYPE_URL
-			TYPE_OF(series) = TYPE_TAG
-			TYPE_OF(series) = TYPE_EMAIL
-			TYPE_OF(series) = TYPE_VECTOR
-			TYPE_OF(series) = TYPE_BINARY
+		assert any [
+			ANY_SERIES?(type)
+			type = TYPE_MAP
 		]
 		assert TYPE_OF(word) = TYPE_WORD
 

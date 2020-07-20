@@ -169,6 +169,14 @@ Red [
 
 ===end-group===
 
+===start-group=== "mold-hash"
+	
+	--test-- "mold-hash-1"
+		append/only h: make hash! [] h
+		--assert "make hash! [make hash! [...]]" = mold h
+
+===end-group===
+
 ===start-group=== "ref"
 	
 	--test-- "mold-ref-1"

@@ -68,6 +68,8 @@ Red [
 			rb4-b: copy rb4-bb
 			recycle
 		]
+		rb4-b: none
+		recycle
 		
 		rb4-mem2: stats
 		--assert rb4-mem2 <= rb4-mem
@@ -564,9 +566,10 @@ Red [
 		
 		loop 500 [
 			rv2-vec: make vector! 500000
-			rv2-vec: none
-			recycle
+			recycle 
 		]
+		rv2-vec: none
+		recycle
 		
 		rv2-mem2: stats
 		--assert rv2-mem2 <= rv2-mem
@@ -594,15 +597,16 @@ Red [
 		recycle
 		rv4-mem: stats
 
-		
 		loop 500 [
 			;rv4-vec: make vector! rv4-size  ;; currently causes out of memory
 			rv4-vec: none
 			recycle
 		]
+		rv4-vec: none
+		recycle
 		
 		rv4-mem2: stats
-		--assert rv4-mem2 <= rv4-mem		
+		--assert rv4-mem2 <= rv4-mem
 		
 ===end-group===
 
