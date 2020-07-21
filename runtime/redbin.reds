@@ -545,7 +545,7 @@ redbin: context [
 					TYPE_ANY_WORD
 					TYPE_REFINEMENT	[encode-word data header payload symbols table strings]
 					TYPE_ANY_BLOCK
-					TYPE_MAP		[encode-block data header no payload symbols table strings]
+					TYPE_MAP		[encode-block data header payload symbols table strings]
 					TYPE_OBJECT		[encode-object data header payload symbols table strings]
 					TYPE_FUNCTION	[encode-function data header payload symbols table strings]
 					default			[assert false]
@@ -1684,7 +1684,6 @@ redbin: context [
 	encode-block: func [
 		data    [red-value!]
 		header  [integer!]
-		abs?    [logic!]
 		payload [red-binary!]
 		symbols [red-binary!]
 		table   [red-binary!]
@@ -1702,7 +1701,7 @@ redbin: context [
 		value:  buffer/offset
 		
 		store payload header
-		unless header and get-type-mask = TYPE_MAP [store payload either abs? [0][data/data1]]
+		unless header and get-type-mask = TYPE_MAP [store payload data/data1]
 		
 		unless header and REDBIN_REFERENCE_MASK <> 0 [
 			store payload length
