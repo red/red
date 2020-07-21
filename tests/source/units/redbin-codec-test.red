@@ -786,6 +786,17 @@ Red [
 				load/as b 'redbin
 				--assert a == b
 			]
+		
+		--test-- "symbols-2"
+			symbols: save/as none [foo :foo 'foo foo: /foo #foo] 'redbin
+			table:   skip symbols 16				;-- skip header
+			buffer:  skip table 4					;-- skip # of entries
+			string:  skip buffer 8					;-- skip buffer size and single entry
+			
+			--assert 4 == symbols/8										;-- symbol table is present
+			--assert 1 == to integer! reverse copy/part table 4			;-- single entry
+			--assert 8 == to integer! reverse copy/part buffer 4		;-- buffer 8 bytes in size
+			--assert "foo^@^@^@^@^@" == to string! copy/part string 8	;-- NUL padding is present
 			
 	===end-group===
 
