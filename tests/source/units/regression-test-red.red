@@ -2853,6 +2853,27 @@ comment {
 		--assert tail? next next next next i4056
 		--assert tail? next back next tail i4056
 
+    --test-- "#4203"
+        script-result: do {
+            Red []
+
+            ; without this line there's no string corruption (any unicode char does the trick):
+            ; ☺
+
+            ; at least one argument in spec must be 2 or more chars long
+            spec: [yz [float!] x]
+
+            probe collect [
+                =arg=: [
+                    set name word!
+                    opt [set types block!]
+                    (keep probe reduce [name  probe make typeset! types])
+                ]
+                parse spec [any [=arg=]]
+            ]}
+        compose-result: compose [yz (make typeset! [float!]) x (make typeset! [float!])]
+        --assert equal? script-result compose-result
+
 	--test-- "#4205 - seed random with precise time!"
 		anded4205: to integer! #{FFFFFFFF}
 		loop 10 [
