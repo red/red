@@ -2801,6 +2801,10 @@ b}
 			unset [spec3362-1 spec3362-2]
 		]
 
+	--test-- "3669"
+		--assert not equal? <a> <a^>
+		--assert equal?     <a> load {<a^>}
+
 	--test-- "#3739"
 		reactor3739: func [spec] [make deep-reactor! spec]
 		s3739: reactor3739 [started: no]
