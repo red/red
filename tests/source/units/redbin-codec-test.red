@@ -341,6 +341,16 @@ Red [
 			]
 			
 			forall functions [--assert equal-func? get :functions/1 test get :functions/1]
+			
+			collect*: test :collect
+			block: collect* [repeat i 10 [keep i]]
+			--assert block == collect [repeat i 10 [keep i]]
+			
+			load-json*: test :load-json
+			map: load-json* {{"a": [1, 2, {"b": "c"}]}}
+			--assert map == load-json {{"a": [1, 2, {"b": "c"}]}}
+			
+			unset [collect* load-json*]
 		]
 		
 		--test-- "op"
@@ -710,7 +720,7 @@ Red [
 		--test-- "reference-15"
 			block: body-of :mod
 			--assert block == test block
-
+		
 		do [										;@@ #2207
 		--test-- "reference-16"
 			foo: func [x y][a b]
@@ -768,7 +778,7 @@ Red [
 			
 			unset 'bar								;-- hide from scanner
 		]
-		
+	
 	===end-group===
 	
 	===start-group=== "Codec errors"
