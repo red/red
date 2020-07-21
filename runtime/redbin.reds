@@ -1547,7 +1547,7 @@ redbin: context [
 		data + 2
 	]
 	
-	decode-word: func [
+	decode-word: func [								;-- Redbin v.1
 		data	[int-ptr!]
 		table	[int-ptr!]
 		parent	[red-block!]
@@ -1563,7 +1563,7 @@ redbin: context [
 			set?   [logic!]
 			s	   [series!]
 	][
-		sym: table + data/2								;-- get the decoded symbol
+		sym: table + data/2							;-- get the decoded symbol
 		new: as red-word! ALLOC_TAIL(parent)
 		new/header: data/1 and FFh
 		if nl? [new/header: new/header or flag-new-line]
@@ -1594,12 +1594,12 @@ redbin: context [
 			_context/set new block/rs-abs-at root offset
 			s: GET_BUFFER(parent)
 			offset: offset - 1
-			s/tail: s/offset + offset					;-- drop unwanted values in parent
+			s/tail: s/offset + offset				;-- drop unwanted values in parent
 		]
 		data
 	]
 	
-	decode-word*: func [
+	decode-word*: func [							;-- Redbin v.2
 		data    [int-ptr!]
 		table   [int-ptr!]
 		parent  [red-block!]
