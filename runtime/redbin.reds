@@ -156,7 +156,7 @@ redbin: context [
 		end:   stack + size
 		
 		push: does [
-			if top + 1 >= end [reset fire [TO_ERROR(internal too-deep)]]
+			if top + 1 >= end [reset fire [TO_ERROR(internal limit-hit) integer/push size]]
 			top/value: offset
 			top: top + 1
 			offset: 0
@@ -198,7 +198,7 @@ redbin: context [
 				size [integer!]
 		][
 			size: (as integer! path/top - path/stack) >> log-b size? integer!
-			if top + size + 2 >= end [reset fire [TO_ERROR(internal too-deep)]]
+			if top + size + 2 >= end [reset fire [TO_ERROR(internal limit-hit) integer/push size]]
 			top/1: as integer! node
 			top/2: size
 			top: top + 2
@@ -519,7 +519,7 @@ redbin: context [
 			TYPE_EVENT
 			TYPE_ROUTINE 	[
 				reset
-				fire [TO_ERROR(access no-codec) datatype/push type]
+				fire [TO_ERROR(access no-codec) data]
 			]
 			default			[
 				first?:  any [ALL_WORD?(type) type = TYPE_OBJECT type = TYPE_FUNCTION]
@@ -1197,7 +1197,7 @@ redbin: context [
 				encode-value slot payload symbols table strings
 			][
 				reset
-				fire [TO_ERROR(access no-codec) datatype/push type]
+				fire [TO_ERROR(access no-codec) data]
 			]
 		][
 			slot: stack/push*
