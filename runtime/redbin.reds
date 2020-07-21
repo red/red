@@ -150,8 +150,8 @@ redbin: context [
 	reset: does [path/reset reference/reset]
 	
 	path: context [
-		size:  3'000										;-- arbitrary
-		stack: as int-ptr! allocate size * size? integer!	;-- offsets
+		size:  1'000										;-- arbitrary
+		stack: as int-ptr! allocate size * size? integer!	;-- offset
 		top:   stack
 		end:   stack + size
 		
@@ -172,8 +172,8 @@ redbin: context [
 	]
 	
 	reference: context [
-		size: 7'000											;-- arbitrary
-		list: as int-ptr! allocate size * size? integer!	;-- node, size, offsets
+		size: 10'000										;-- arbitrary
+		list: as int-ptr! allocate size * size? integer!	;-- node, size, offset * size
 		top:  list
 		end:  list + size
 		
