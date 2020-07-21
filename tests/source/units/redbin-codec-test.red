@@ -336,8 +336,8 @@ Red [
 		--test-- "function"
 			functions: scan/only function!
 			functions: exclude functions [			;@@ TBD: unblock
-				:expand-directives :layout
-				:help-string :what :fetch-help
+				:expand-directives
+				:layout
 				:scan
 			]
 			
