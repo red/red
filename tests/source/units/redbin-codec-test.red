@@ -335,10 +335,9 @@ Red [
 		do [										;@@ #4568
 		--test-- "function"
 			functions: scan/only function!
-			functions: exclude functions [			;@@ TBD: unblock
-				:expand-directives
-				:layout
-				:scan
+			functions: exclude functions [
+				:expand-directives					;-- routine
+				:scan								;-- routine
 			]
 			
 			forall functions [--assert equal-func? get :functions/1 test get :functions/1]
@@ -347,7 +346,7 @@ Red [
 		--test-- "op"
 			ops: scan op!
 			;@@ #4562, #4570
-			ops: exclude ops reduce [:>> :>>> get load "<<" :is ://]	;@@ TBD: derived from routines and functions
+			ops: exclude ops reduce [:>> :>>> get load "<<" :is ://]
 			forall ops [--assert equal? :ops/1 test :ops/1]
 			
 			ops: reduce [							;@@ #4540
