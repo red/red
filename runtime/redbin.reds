@@ -1475,8 +1475,12 @@ redbin: context [
 				series: as series! node/value
 				value:  series/offset + 1
 				type:   TYPE_OF(value)
-			
-				assert any [type = TYPE_OBJECT type = TYPE_FUNCTION]
+				
+				;@@ TBD: #4552
+				unless any [type = TYPE_OBJECT type = TYPE_FUNCTION][
+					reset
+					fire [TO_ERROR(access no-codec) data]
+				]
 				
 				either type = TYPE_OBJECT [
 					encode-object value type payload symbols table strings
