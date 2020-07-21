@@ -343,7 +343,7 @@ tls: context [
 		if SecIsValidHandle(data/credential) [
 			platform/SSPI/FreeCredentialsHandle data/credential
 		]
-		platform/SSPI/DeleteSecurityContext data/security
+		platform/SSPI/DeleteSecurityContext :data/security
 	]
 
 	find-certificate: func [
@@ -593,9 +593,9 @@ tls: context [
 							outbuf-1/pvBuffer
 							outbuf-1/cbBuffer
 							as iocp-data! data [
-							platform/SSPI/FreeContextBuffer outbuf-1/pvBuffer
-							release-context data
-						]
+								probe "handshake send error"
+								release-context data
+							]
 					]
 
 					if ret = SEC_OK [
@@ -619,8 +619,9 @@ tls: context [
 						][
 							data/iocp/event: IO_EVT_ACCEPT
 						]
-
 						io/pin-memory data/send-buf
+
+						OS-Sleep 100
 						return true
 					]
 
@@ -783,8 +784,6 @@ tls: context [
 		sbin/pBuffers: :buffer1
 		sbin/cBuffers: 4
 
-probe ["data/security2: " data/security]	;@@ DecryptMessage return error if remove this line ???
-
 		status: platform/SSPI/DecryptMessage
 			as SecHandle! :data/security
 			sbin
@@ -797,7 +796,7 @@ probe ["data/security2: " data/security]	;@@ DecryptMessage return error if remo
 				loop 3 [
 					buf: buf + 1
 					if buf/BufferType = 1 [
-						copy-memory (as byte-ptr! s/offset) + len buf/pvBuffer buf/cbBuffer
+						move-memory (as byte-ptr! s/offset) + len buf/pvBuffer buf/cbBuffer
 						len: len + buf/cbBuffer
 					]
 				]

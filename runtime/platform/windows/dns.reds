@@ -70,7 +70,6 @@ dns: context [
 		if n > 0 [
 			datalen: len
 			dns-addr/sin_addr: server/1
-dump4 buffer
 			socket/usend fd as sockaddr_in6! dns-addr size? sockaddr_in! buffer len as iocp-data! dns-data
 
 			dns-data/addr-sz: size? sockaddr_in!
@@ -138,13 +137,6 @@ dump4 buffer
 				socket/usend as-integer data/device as sockaddr_in6! dns-addr size? sockaddr_in! as byte-ptr! data/addrinfo datalen as iocp-data! data
 			]
 			return no
-		]
-		server: pp/value
-		until [
-		addr: as addrinfo! server
-dump4 addr
-		server: as int-ptr! server/1
-		null? server
 		]
 		no
 	]

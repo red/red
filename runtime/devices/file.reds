@@ -113,7 +113,6 @@ probe ["read data: " data/transferred]
 			fd		[integer!]
 			data	[file-data!]
 	][
-		dump4 pathname
 		fd: simple-io/open-file pathname flags yes
 		data: create-file-data port fd
 		data/event: IO_EVT_CONNECT

@@ -111,7 +111,6 @@ probe dns-data/type
 		?? res
 		res: ns_msg_getflag msg 9	;-- ns_msg_getflag
 		?? res
-dump4 :msg
 		n: msg/counts >>> 16
 		?? n
 

@@ -13,7 +13,7 @@ total: 0.0
 
 print "Secure TCP client"
 
-client: open tls://192.168.87.128:8123
+client: open tls://192.168.1.10:8123
 
 start: now/precise
 mbps: "?"
@@ -28,6 +28,7 @@ client/awake: func [event /local port] [
         read [
 	        probe length? port/data
 	        probe to-string port/data
+	        insert port b
         ]
         wrote [copy port]
     ]

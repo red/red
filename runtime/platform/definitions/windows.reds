@@ -547,6 +547,12 @@ AcceptSecurityContext!: alias function! [
 	return:				[integer!]
 ]
 
+CompleteAuthToken!: alias function! [
+	phContext			[SecHandle!]
+	pToken				[SecBufferDesc!]
+	return:				[integer!]
+]
+
 InitializeSecurityContextW!: alias function! [
 	phCredential		[SecHandle!]
 	phContext			[SecHandle!]
@@ -586,6 +592,12 @@ QueryContextAttributesW!: alias function! [
 	return:				[integer!]
 ]
 
+QuerySecurityContextToken!: alias function! [
+	phContext			[SecHandle!]
+	Token				[ptr-ptr!]
+	return:				[integer!]
+]
+
 DecryptMessage!: alias function! [
 	phContext			[SecHandle!]
 	pMessage			[SecBufferDesc!]
@@ -611,7 +623,7 @@ SecurityFunctionTableW: alias struct! [
 	Reserved2					[int-ptr!]
 	InitializeSecurityContextW	[InitializeSecurityContextW!]
 	AcceptSecurityContext		[AcceptSecurityContext!]
-	CompleteAuthToken			[int-ptr!]
+	CompleteAuthToken			[CompleteAuthToken!]
 	DeleteSecurityContext		[DeleteSecurityContext!]
 	ApplyControlToken			[ApplyControlToken!]
 	QueryContextAttributesW		[QueryContextAttributesW!]
@@ -627,7 +639,7 @@ SecurityFunctionTableW: alias struct! [
 	ImportSecurityContextW		[int-ptr!]
 	AddCredentialsW 			[int-ptr!]
 	Reserved8					[int-ptr!]
-	QuerySecurityContextToken	[int-ptr!]
+	QuerySecurityContextToken	[QuerySecurityContextToken!]
 	EncryptMessage				[EncryptMessage!]
 	DecryptMessage				[DecryptMessage!]
 	SetContextAttributesW		[int-ptr!]	;-- available in OSes after win2k
