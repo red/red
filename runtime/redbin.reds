@@ -654,7 +654,7 @@ redbin: context [
 			TYPE_POINT [
 				reset
 				fire [TO_ERROR(access no-codec) datatype/push type]
-				data
+				data								;-- pass compiler's type checking
 			]
 			REDBIN_PADDING [
 				decode-value data + 1 table parent
@@ -664,7 +664,7 @@ redbin: context [
 			]
 			default [
 				assert false
-				data
+				data								;-- pass compiler's type checking
 			]
 		]
 		if all [nl? cell <> null][cell/header: cell/header or flag-new-line]
@@ -2084,7 +2084,6 @@ redbin: context [
 		return: [int-ptr!]
 		/local
 			slot   [red-bitset!]
-			series [series!]
 			end    [int-ptr!]
 			bits   [byte-ptr!]
 			size   [integer!]
@@ -2103,11 +2102,7 @@ redbin: context [
 			slot: as red-bitset! binary/load-in bits size parent
 			if nl? [slot/header: slot/header or flag-new-line]
 			set-type as red-value! slot TYPE_BITSET
-			
-			if not? [
-				series: GET_BUFFER(slot)
-				series/flags: series/flags or (1 << 19)
-			]
+			if not? [set-flag slot/node flag-bitset-not]
 			
 			as int-ptr! align bits + size 32		;-- align at upper 32-bit boundary
 		]
