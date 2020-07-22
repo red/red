@@ -30,6 +30,7 @@ map: context [
 			TYPE_ALL_WORD
 			TYPE_BINARY
 			TYPE_ANY_STRING
+			TYPE_MONEY
 			TYPE_INTEGER TYPE_CHAR TYPE_FLOAT TYPE_DATE
 			TYPE_PERCENT TYPE_TUPLE TYPE_PAIR TYPE_TIME [yes]
 			default										[no]
@@ -40,12 +41,10 @@ map: context [
 		key		[red-value!]
 	][
 		switch TYPE_OF(key) [
-			TYPE_WORD
-			TYPE_GET_WORD
-			TYPE_SET_WORD
-			TYPE_LIT_WORD [key/header: TYPE_SET_WORD]		;-- convert any-word! to set-word!
+			TYPE_ANY_WORD [key/header: TYPE_SET_WORD]		;-- convert any-word! to set-word!
 			TYPE_BINARY
 			TYPE_ANY_STRING [_series/copy as red-series! key as red-series! key null yes null]
+			TYPE_MONEY
 			TYPE_INTEGER TYPE_CHAR TYPE_FLOAT TYPE_DATE TYPE_PERCENT
 			TYPE_TUPLE TYPE_PAIR TYPE_TIME TYPE_ISSUE TYPE_REFINEMENT [0]
 			default		[fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(key)]]
@@ -718,14 +717,7 @@ map: context [
 		w: as red-word! block/rs-head blk
 		while [all [i < size k < tail]][
 			type: TYPE_OF(w)
-			unless any [
-				type = TYPE_WORD
-				type = TYPE_GET_WORD
-				type = TYPE_SET_WORD
-				type = TYPE_LIT_WORD
-			][
-				fire [TO_ERROR(script invalid-arg) w]
-			]
+			unless ANY_WORD?(type) [fire [TO_ERROR(script invalid-arg) w]]
 			v: k + 1
 			either all [i % 2 = 0 v/header = MAP_KEY_DELETED][
 				k: k + 2

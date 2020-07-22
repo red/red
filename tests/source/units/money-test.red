@@ -692,6 +692,15 @@ system/options/money-digits: 5						;-- enforce molding of the whole fractional 
 	--test-- "as-money-3" --assert "USD$0.00000" == mold/all as-money 'USD 0
 ===end-group===
 
+===start-group=== "hashing"
+	--test-- "hashing-1"
+		hash: make hash! [-$123.45 +$123.45 -USD$123.45 +USD$123.45]
+		--assert "make hash! [-$123.45000 $123.45000 -USD$123.45000 USD$123.45000]" == mold/flat hash
+		--assert -USD$123.45 == first find hash -USD$123.45
+		--assert $123.45 == first find hash $123.45
+		--assert USD$123.45 == select hash -USD$123.45
+===end-group===
+
 ===start-group=== "accessors"
 	money: -USD$123.45678
 	--test-- "accessors-1" --assert 'USD == pick money 1
