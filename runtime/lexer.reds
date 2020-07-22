@@ -1156,6 +1156,7 @@ lexer: context [
 	
 	scan-issue: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
 		if s + 1 = e [throw-error lex s e TYPE_ISSUE]
+		lex/type: TYPE_ISSUE
 	]
 	
 	scan-string: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
@@ -1889,6 +1890,7 @@ lexer: context [
 		tm: 0.0
 		do-error: [throw-error lex s e TYPE_TIME]
 
+		neg?: p/1 = #"-"
 		if p/1 = #"+" [p: p + 1]						;-- leading minus is taken care by grab-integer
 		p: grab-integer p e flags :hour :err
 		if any [err <> 0 p/1 <> #":"][do-error]
@@ -1911,7 +1913,7 @@ lexer: context [
 			if any [err <> 0 tm < 0.0][do-error]
 		]
 		if load? [
-			neg?: either hour < 0 [hour: 0 - hour yes][no]
+			if any [neg? hour < 0][hour: 0 - hour neg?: yes]
 			tm: (3600.0 * as-float hour) + (60.0 * as-float min) + tm
 			if neg? [tm: 0.0 - tm]
 			time/make-at tm (alloc-slot lex) neg?
@@ -2153,7 +2155,7 @@ lexer: context [
 					catch LEX_ERR [do-scan lex s p flags ld?]
 					if all [system/thrown = LEX_ERR not load?][system/thrown: 0 exit]
 				][
-					if any [not ld? all [events? lex/fun-evts and EVT_SCAN <> 0]][
+					if any [not ld? :do-scan <> null all [events? lex/fun-evts and EVT_SCAN <> 0]][
 						if :do-scan = null [do-scan: as scanner! loaders/index]
 						catch LEX_ERR [do-scan lex s p flags no]
 						if events? [

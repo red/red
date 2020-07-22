@@ -267,7 +267,7 @@ lexer: context [
 		)
 	]
 	
-	issue-rule: [#"#" (type: issue!) s: symbol-rule]
+	issue-rule: [#"#" (type: issue!) s: any [symbol-rule | #":"] e:]
 	
 	ref-rule: [(stop: [not-ref-char]) #"@" s: any UTF8-filtered-char e:]
 	

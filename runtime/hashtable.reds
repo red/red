@@ -406,11 +406,16 @@ _hashtable: context [
 		key		[red-value!]
 		case?	[logic!]
 		return: [integer!]
-		/local sym [red-string!] s [series!]
+		/local
+			value  [red-value!]
+			sym    [red-string!]
+			sign   [integer!]
+			result [integer!]
+			s      [series!]
 	][
 		switch TYPE_OF(key) [
 			TYPE_INTEGER [key/data2]
-			TYPE_WORD	[symbol/resolve key/data2]
+			TYPE_ALL_WORD [symbol/resolve key/data2]
 			TYPE_SYMBOL [hash-symbol as red-symbol! key]
 			TYPE_ANY_STRING [
 				hash-string as red-string! key case?
@@ -422,11 +427,15 @@ _hashtable: context [
 			TYPE_TIME [
 				murmur3-x86-32 (as byte-ptr! key) + 8 8
 			]
-			TYPE_SET_WORD
-			TYPE_LIT_WORD
-			TYPE_GET_WORD
-			TYPE_REFINEMENT
-			TYPE_ISSUE [symbol/resolve key/data2]
+			TYPE_MONEY [
+				value: copy-cell key stack/push*
+				sign: money/get-sign as red-money! value
+				value/header: TYPE_MONEY			;-- implicit reset of all header flags
+				money/set-sign as red-money! value sign
+				result: murmur3-x86-32 as byte-ptr! value size? cell!
+				stack/pop 1
+				result
+			]
 			TYPE_BINARY [
 				sym: as red-string! key
 				s: GET_BUFFER(sym)
@@ -1163,7 +1172,7 @@ _hashtable: context [
 		type: h/type
 		hash?: type = HASH_TABLE_HASH
 		key-type: TYPE_OF(key)
-		set-header?: all [type = HASH_TABLE_MAP word/any-word? key-type]
+		set-header?: all [type = HASH_TABLE_MAP ANY_WORD?(key-type)]
 		if set-header? [
 			saved-type: key-type
 			key-type: TYPE_SET_WORD
