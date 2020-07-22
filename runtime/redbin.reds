@@ -1477,11 +1477,12 @@ redbin: context [
 				type:   TYPE_OF(value)
 				
 				;@@ TBD: #4552
-				unless any [type = TYPE_OBJECT type = TYPE_FUNCTION][
+				if TYPE_OF(series/offset) = TYPE_OBJECT [
 					reset
 					fire [TO_ERROR(access no-codec) data]
 				]
 				
+				assert any [type = TYPE_OBJECT type = TYPE_FUNCTION]
 				either type = TYPE_OBJECT [
 					encode-object value type payload symbols table strings
 				][
