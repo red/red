@@ -156,7 +156,7 @@ redbin: context [
 		end:   stack + size
 		
 		push: does [
-			if top + 1 >= end [reset fire [TO_ERROR(internal limit-hit) integer/push size]]
+			if top + 1 >= end [reset fire [TO_ERROR(internal limit-hit) integer/push path/size]]
 			top/value: offset
 			top: top + 1
 			offset: 0
@@ -172,7 +172,7 @@ redbin: context [
 	]
 	
 	reference: context [
-		size: 10'000										;-- arbitrary
+		size: 20'000										;-- arbitrary
 		list: as int-ptr! allocate size * size? integer!	;-- node, size, offset * size
 		top:  list
 		end:  list + size
@@ -198,7 +198,7 @@ redbin: context [
 				size [integer!]
 		][
 			size: (as integer! path/top - path/stack) >> log-b size? integer!
-			if top + size + 2 >= end [reset fire [TO_ERROR(internal limit-hit) integer/push size]]
+			if top + size + 2 >= end [reset fire [TO_ERROR(internal limit-hit) integer/push reference/size]]
 			top/1: as integer! node
 			top/2: size
 			top: top + 2
