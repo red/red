@@ -2853,20 +2853,6 @@ comment {
 		--assert tail? next next next next i4056
 		--assert tail? next back next tail i4056
 
-	--test-- "#4119"
-		word-money-4119:  try [load {$non}]
-		block-money-4119: try [load {[$non]}]
-		--assert to-logic find to-string word-money-4119 "(line 1) invalid money at $non"
-		--assert to-logic find to-string block-money-4119 "(line 1) invalid money at $non]"
-		word-slash-4119:  try [load {\non}]
-		block-slash-4119: try [load {[\non]}]
-		--assert to-logic find to-string word-slash-4119 "(line 1) invalid character at \non"
-		--assert to-logic find to-string block-slash-4119 "(line 1) invalid character at \non]"
-		unset [
-			word-money-4119 block-money-4119 
-			word-slash-4119 block-slash-4119
-		]
-
 	--test-- "#4205 - seed random with precise time!"
 		anded4205: to integer! #{FFFFFFFF}
 		loop 10 [
