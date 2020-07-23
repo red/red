@@ -734,8 +734,10 @@ Red [
 	--test-- "scan-68" --assert none!	 = scan "#[none]"
 	--test-- "scan-69" --assert integer! = scan "#[integer!]"
 	--test-- "scan-70" --assert error!	 = scan "#[int!]"
-	--test-- "scan-71"  --assert refinement! = scan "/v:"
-	--test-- "scan-72"  --assert refinement! = scan "/value:"
+	--test-- "scan-71" --assert refinement! = scan "/v:"
+	--test-- "scan-72" --assert refinement! = scan "/value:"
+	--test-- "scan-73" --assert error!   = scan "$non"
+	--test-- "scan-74" --assert error!   = scan "\non"
 
 ===end-group===
 ===start-group=== "scan/fast"
