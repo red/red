@@ -2862,7 +2862,7 @@ comment {
             collect [
                 =arg=: [
                     set name word!
-                    opt [set types block!]
+                    set types block!
                     (keep reduce [name make typeset! types])
                 ]
                 parse spec [any [=arg=]]
