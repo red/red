@@ -1207,11 +1207,9 @@ OS-draw-pen: func [
 	ctx/alpha-pen?: alpha?
 	ctx/other/GDI+?: any [alpha? ctx/other/anti-alias? ctx/alpha-brush?]
 
-	if any [ctx/pen-color <> color ctx/pen? = off? ctx/other/gradient-pen?][
-		ctx/pen?: not off?
-		ctx/pen-color: color
-		either ctx/other/GDI+? [update-gdiplus-pen ctx][update-pen ctx]
-	]
+	ctx/pen?: not off?
+	ctx/pen-color: color
+	either ctx/other/GDI+? [update-gdiplus-pen ctx][update-pen ctx]
 
 	unless ctx/font-color? [
 		if ctx/other/GDI+? [update-gdiplus-font-color ctx color]
@@ -1232,11 +1230,9 @@ OS-draw-fill-pen: func [
 	ctx/alpha-brush?: alpha?
 	ctx/other/GDI+?: any [alpha? ctx/other/anti-alias? ctx/alpha-pen?]
 
-	if any [ctx/brush-color <> color ctx/brush? = off? ctx/other/gradient-fill?][
-		ctx/brush?: not off?
-		ctx/brush-color: color
-		either ctx/other/GDI+? [update-gdiplus-brush ctx][update-brush ctx]
-	]
+	ctx/brush?: not off?
+	ctx/brush-color: color
+	either ctx/other/GDI+? [update-gdiplus-brush ctx][update-brush ctx]
 ]
 
 OS-draw-line-width: func [
