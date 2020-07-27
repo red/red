@@ -622,9 +622,9 @@ Red [
 	--test-- "tro-147"  --assert -12:02:00 == transcode/one "-12:2"
 	--test-- "tro-148"  --assert  12:02:00 == transcode/one "+12:2"
 
-	--test-- "tro-149"  --assert  error? try [transcode/one {12#""}]
-	--test-- "tro-150"  --assert  error? try [transcode/one {16#"1"}]
-	--test-- "tro-151"  --assert  error? try [transcode/one {16#"12"}]
+	--test-- "tro-149"  --assert error? try [transcode/one {12#""}]
+	--test-- "tro-150"  --assert error? try [transcode/one {16#"1"}]
+	--test-- "tro-151"  --assert error? try [transcode/one {16#"12"}]
 
 	--test-- "tro-152"  --assert /v: == transcode/one "/v:"
 	--test-- "tro-153"  --assert refinement! == type? transcode/one "/v:"
@@ -634,6 +634,8 @@ Red [
 	--test-- "tro-156"  --assert -00:01:00 == transcode/one "-0:1"
 	--test-- "tro-157"  --assert -01:00:00 == transcode/one "-1:0"
 	--test-- "tro-158"  --assert #abc: == transcode/one "#abc:"
+	--test-- "tro-159"  --assert error? try [transcode/one ":x:"]
+	--test-- "tro-160"  --assert error? try [transcode/one ":x::"]
 
 ===end-group===
 ===start-group=== "transcode/next"
@@ -738,6 +740,8 @@ Red [
 	--test-- "scan-72" --assert refinement! = scan "/value:"
 	--test-- "scan-73" --assert error!   = scan "$non"
 	--test-- "scan-74" --assert error!   = scan "\non"
+	--test-- "scan-75" --assert error!   = scan ":x:"
+	--test-- "scan-76" --assert error!   = scan ":x::"
 
 ===end-group===
 ===start-group=== "scan/fast"
