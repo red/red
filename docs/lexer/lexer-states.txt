@@ -203,12 +203,13 @@ S_M_STRING->not("^"|"{"|"}")->S_M_STRING
    \->"{"->T_MSTR_OP
     \->"}"->T_MSTR_CL
 
-S_START->"/"->S_SLASH_1ST->not(delimit1)->S_SLASH->not(delimit1)->S_SLASH
+S_START->"/"->S_SLASH_1ST->not(delimit1)->S_SLASH->not(delimit1|":"|"/")->S_SLASH
                \                           \->delimit1|"/"->T_REFINE
-                \->delimit23->T_WORD
-                 \->"/"->S_SLASH_N->"/"->S_SLASH_N
-                          \->delimit23->T_WORD
-                           \->not(delimit23|"/")->S_WORD
+                \                           \->":"->T_ERROR
+                 \->delimit23->T_WORD
+                  \->"/"->S_SLASH_N->"/"->S_SLASH_N
+                           \->delimit23->T_WORD
+                            \->not(delimit23|"/")->S_WORD
 
 S_START->"%"->S_FILE_1ST->not(delimit5)->S_FILE->not(delimit6)->S_FILE
                \                          \->delimit6->T_FILE
@@ -251,9 +252,10 @@ S_START->"#"->S_SHARP->"{"->S_BINARY->hexa|ws|"/"|"="|"+"->S_BINARY
                              \        \->"]"->T_CONS_MK
                               \        \->EOF->T_ERROR
                                \
-                                \->not(delimit7)->S_ISSUE->not(delimit1)->S_ISSUE
+                                \->not(delimit7)->S_ISSUE->not(delimit1|"/"|":")->S_ISSUE
                                  \                 \->delimit1->T_ISSUE
-                                  \->delimit7->T_ERROR
+                                  \                 \->"/"|":"->T_ERROR
+                                   \->delimit7->T_ERROR
 
 
 S_START->digit->S_NUMBER->digit|"'"->S_NUMBER
