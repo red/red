@@ -1141,8 +1141,8 @@ lexer: context [
 		type: TYPE_WORD
 		if flags and C_FLAG_COLON <> 0 [
 			case [
-				s/1 = #":" [type: TYPE_GET_WORD]
-				e/0 = #":" [type: TYPE_SET_WORD]
+				all [s/1 = #":" e/0 <> #":"][type: TYPE_GET_WORD]
+				all [s/1 <> #":" e/0 = #":"][type: TYPE_SET_WORD]
 				all [e/1 = #":" lex/entry = S_PATH][0]	;-- do nothing if in a path
 				true	   [throw-error lex s e type]
 			]
@@ -1977,8 +1977,13 @@ lexer: context [
 	
 	load-url: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local
-			p [byte-ptr!]
+			p	 [byte-ptr!]
+			type [integer!]
 	][
+		if any [s/1 = #":" s/1 = #"'"][
+			type: either s/1 = #":" [TYPE_GET_WORD][TYPE_LIT_WORD]
+			throw-error lex s e type
+		]
 		flags: flags and not C_FLAG_CARET				;-- clears caret flag
 		p: s while [all [p/1 <> #"%" p < e]][p: p + 1] 	;-- check if any %xx 
 		if p < e [flags: flags or C_FLAG_ESC_HEX or C_FLAG_CARET]
