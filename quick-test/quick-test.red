@@ -7,6 +7,9 @@ Red [
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
+;; runnable dir for test scripts
+runnable-dir: to-file rejoin [what-dir "quick-test/runnable/"]
+
 ;; counters
 #either any [
 	not in system 'state
