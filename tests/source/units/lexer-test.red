@@ -759,6 +759,9 @@ Red [
 	--test-- "scan-f11" --assert map!    = scan/fast "#()"
 	--test-- "scan-f12" --assert string! = scan/fast "{}"
 	--test-- "scan-f13" --assert string! = scan/fast {""}
+	--test-- "scan-f14" --assert word!   = scan/fast "'a"
+	--test-- "scan-f15" --assert word!   = scan/fast ":a"
+	--test-- "scan-f16" --assert word!   = scan/fast "a:"
 
 	--test-- "scan-f39" --assert error!   = scan/fast "[a"
 	--test-- "scan-f40" --assert error!   = scan/fast "(a"
@@ -786,6 +789,10 @@ Red [
 	--test-- "scan-f62" --assert error!	  = scan/fast "#[int!]"
 	--test-- "scan-f63" --assert error!   = scan/fast "/v:"
 	--test-- "scan-f64" --assert error!   = scan/fast "/value:"
+	--test-- "scan-f65" --assert path!    = scan/fast "a/b"
+	--test-- "scan-f66" --assert lit-path! = scan/fast "'a/b"
+	--test-- "scan-f67" --assert set-path! = scan/fast "a/b:"
+	--test-- "scan-f68" --assert get-path! = scan/fast ":a/b"
 
 ===end-group===
 ===start-group=== "transcode/trace"
