@@ -1289,7 +1289,7 @@ DNS_MESSAGE_BUFFER: alias struct! [
 	]
 	"ncrypt.dll" stdcall [
 		NCryptOpenStorageProvider: "NCryptOpenStorageProvider" [
-			phProvider			[ptr-ptr!]
+			phProvider			[int-ptr!]
 			pszProviderName		[c-string!]
 			dwFlag				[integer!]
 			return:				[integer!]

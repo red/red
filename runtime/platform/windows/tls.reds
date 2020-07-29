@@ -157,7 +157,7 @@ tls: context [
 			pub-buf		[byte-ptr!]
 			priv-buf	[byte-ptr!]
 			key-blob	[BCRYPT_ECCKEY_BLOB]
-			provider	[ptr-value!]
+			provider	[int-ptr!]
 			nc-buf		[BCryptBuffer! value]
 			nc-desc		[BCryptBufferDesc! value]
 			prov-info	[CRYPT_KEY_PROV_INFO value]
@@ -188,6 +188,7 @@ tls: context [
 			copy-memory as byte-ptr! (key-blob + 1) pub-buf pub-size
 			copy-memory (as byte-ptr! key-blob + 1) + pub-size priv-buf priv-size
 
+			provider: null
 			either zero? NCryptOpenStorageProvider
 				provider
 				#u16 "Microsoft Software Key Storage Provider"
@@ -204,7 +205,7 @@ tls: context [
 				prov-info/pwszProvName: #u16 "Microsoft Software Key Storage Provider"
 
 				if zero? NCryptImportKey
-					provider/value
+					provider
 					null
 					type-str
 					as int-ptr! :nc-desc
@@ -215,7 +216,7 @@ tls: context [
 					NCryptFreeObject h-key/value
 				]
 
-				NCryptFreeObject provider/value
+				NCryptFreeObject provider
 				unless CertSetCertificateContextProperty ctx 2 0 as byte-ptr! :prov-info [
 					probe "CertSetCertificateContextProperty failed"
 				]
