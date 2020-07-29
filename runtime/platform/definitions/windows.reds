@@ -455,7 +455,7 @@ BCryptBufferDesc!: alias struct! [
 
 CERT_CONTEXT: alias struct! [
 	dwCertEncodingType	[integer!]
-	pbCertEncoded		[byte!]
+	pbCertEncoded		[byte-ptr!]
 	cbCertEncoded		[integer!]
 	pCertInfo			[CERT_INFO!]
 	hCertStore			[int-ptr!]
@@ -1299,9 +1299,9 @@ DNS_MESSAGE_BUFFER: alias struct! [
 			hImportKey			[int-ptr!]
 			pszBlobType			[c-string!]
 			ParameterList		[int-ptr!]
-			phKey				[ptr-ptr!]
+			phKey				[int-ptr!]
 			pbData				[byte-ptr!]
-			cbData				[int-ptr!]
+			cbData				[integer!]
 			dwFlag				[integer!]
 			return:				[integer!]
 		]

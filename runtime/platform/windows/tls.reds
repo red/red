@@ -136,19 +136,20 @@ tls: context [
 	]
 
 	link-rsa-key: func [
-		ctx		[CERT_CONTEXT]
-		blob	[byte-ptr!]
-		size	[integer!]
-	][
-		;TBD
-	]
-
-	link-private-key: func [
 		ctx			[CERT_CONTEXT]
 		blob		[byte-ptr!]
-		type		[integer!]
+		size		[integer!]
+		return:		[integer!]
+	][
+		1
+	]
+
+	link-ecc-key: func [
+		ctx			[CERT_CONTEXT]
+		blob		[byte-ptr!]
+		size		[integer!]
+		return:		[integer!]
 		/local
-			status		[integer!]
 			pub-blob	[CRYPT_BIT_BLOB]
 			key-info	[CRYPT_ECC_PRIVATE_KEY_INFO]
 			pub-size	[integer!]
@@ -157,18 +158,16 @@ tls: context [
 			pub-buf		[byte-ptr!]
 			priv-buf	[byte-ptr!]
 			key-blob	[BCRYPT_ECCKEY_BLOB]
-			provider	[int-ptr!]
+			provider	[integer!]
+			prov-name	[c-string!]
+			type-str	[c-string!]
+			cont-name	[c-string!]
 			nc-buf		[BCryptBuffer! value]
 			nc-desc		[BCryptBufferDesc! value]
+			h-key		[integer!]
+			status		[integer!]
 			prov-info	[CRYPT_KEY_PROV_INFO value]
-			h-key		[ptr-value!]
-			type-str	[c-string!]
 	][
-		either type = 43 [
-			type-str: #u16 "RSAPRIVATEBLOB"
-		][
-			type-str: #u16 "ECCPRIVATEBLOB"
-		]
 		pub-blob: ctx/pCertInfo/SubjectPublicKeyInfo/PublicKey
 		key-info: as CRYPT_ECC_PRIVATE_KEY_INFO blob
 		pub-size: pub-blob/cbData - 1
@@ -177,53 +176,71 @@ tls: context [
 		pub-buf: pub-blob/pbData + 1
 		priv-buf: key-info/PrivateKey/pbData
 		key-blob: as BCRYPT_ECCKEY_BLOB allocate blob-size
+		;-- print-line ["size: " size " priv: " priv-size " pub: " pub-size]
 
-		if key-blob <> null [
-			key-blob/dwMagic: switch priv-size [
-				ECC_256_MAGIC_NUMBER [BCRYPT_ECDSA_PRIVATE_P256_MAGIC]
-				ECC_384_MAGIC_NUMBER [BCRYPT_ECDSA_PRIVATE_P384_MAGIC]
-				default [BCRYPT_ECDSA_PRIVATE_P521_MAGIC]
+		if null? key-blob [return 1]
+
+		key-blob/dwMagic: switch priv-size [
+			ECC_256_MAGIC_NUMBER [BCRYPT_ECDSA_PRIVATE_P256_MAGIC]
+			ECC_384_MAGIC_NUMBER [BCRYPT_ECDSA_PRIVATE_P384_MAGIC]
+			default [BCRYPT_ECDSA_PRIVATE_P521_MAGIC]
+		]
+		key-blob/cbKey: priv-size
+		copy-memory as byte-ptr! (key-blob + 1) pub-buf pub-size
+		copy-memory (as byte-ptr! key-blob + 1) + pub-size priv-buf priv-size
+
+		provider: 0
+		prov-name: #u16 "Microsoft Software Key Storage Provider"
+		if 0 <> NCryptOpenStorageProvider :provider prov-name 0 [
+			free as byte-ptr! key-blob
+			return 2
+		]
+
+		type-str: #u16 "ECCPRIVATEBLOB"
+		cont-name: #u16 "RedAliasKey"
+		nc-buf/cbBuffer: 12 * 2				;-- bytes of the pvBuffer
+		nc-buf/BufferType: 45				;-- NCRYPTBUFFER_PKCS_KEY_NAME
+		nc-buf/pvBuffer: as byte-ptr! cont-name
+		nc-desc/ulVersion: 0
+		nc-desc/cBuffers: 1
+		nc-desc/pBuffers: nc-buf
+
+		h-key: 0
+		status: NCryptImportKey
+			as int-ptr! provider
+			null
+			type-str
+			as int-ptr! :nc-desc
+			:h-key
+			as byte-ptr! key-blob
+			blob-size
+			80h								;-- NCRYPT_OVERWRITE_KEY_FLAG
+		NCryptFreeObject as int-ptr! provider
+		if status = 0 [
+			NCryptFreeObject as int-ptr! h-key
+			zero-memory as byte-ptr! :prov-info size? CRYPT_KEY_PROV_INFO
+			prov-info/pwszContainerName: cont-name
+			prov-info/pwszProvName: prov-name
+			unless CertSetCertificateContextProperty ctx 2 0 as byte-ptr! :prov-info [
+				status: 3
 			]
-			key-blob/cbKey: priv-size
-			copy-memory as byte-ptr! (key-blob + 1) pub-buf pub-size
-			copy-memory (as byte-ptr! key-blob + 1) + pub-size priv-buf priv-size
+		]
 
-			provider: null
-			either zero? NCryptOpenStorageProvider
-				provider
-				#u16 "Microsoft Software Key Storage Provider"
-				0 [
-				nc-buf/cbBuffer: 11 * 2	;-- bytes of the pvBuffer
-				nc-buf/BufferType: 45	;-- NCRYPTBUFFER_PKCS_KEY_NAME
-				nc-buf/pvBuffer: as byte-ptr! #u16 "RedAliasKey"
-				nc-desc/ulVersion: 0
-				nc-desc/cBuffers: 1
-				nc-desc/pBuffers: nc-buf
+		free as byte-ptr! key-blob
+		status
+	]
 
-				zero-memory as byte-ptr! :prov-info size? CRYPT_KEY_PROV_INFO
-				prov-info/pwszContainerName: #u16 "RedAliasKey"
-				prov-info/pwszProvName: #u16 "Microsoft Software Key Storage Provider"
-
-				if zero? NCryptImportKey
-					provider
-					null
-					type-str
-					as int-ptr! :nc-desc
-					h-key
-					as byte-ptr! key-blob
-					:blob-size
-					80h	[	;-- NCRYPT_OVERWRITE_KEY_FLAG
-					NCryptFreeObject h-key/value
-				]
-
-				NCryptFreeObject provider
-				unless CertSetCertificateContextProperty ctx 2 0 as byte-ptr! :prov-info [
-					probe "CertSetCertificateContextProperty failed"
-				]
-				free as byte-ptr! key-blob
-			][
-				probe "NCryptOpenStorageProvider failed"
-			]
+	link-private-key: func [
+		ctx			[CERT_CONTEXT]
+		blob		[byte-ptr!]
+		blen		[integer!]
+		type		[integer!]
+		return:		[integer!]
+	][
+		either type = PKCS_RSA_PRIVATE_KEY [
+			link-rsa-key ctx blob blen
+		][
+			link-ecc-key ctx blob blen
 		]
 	]
 
@@ -244,6 +261,7 @@ tls: context [
 			pkey	[byte-ptr!]
 			klen	[integer!]
 			type	[integer!]
+			ret		[integer!]
 	][
 		len: -1
 		str: unicode/to-utf8 cert :len
@@ -265,7 +283,8 @@ tls: context [
 			klen: 0 type: 0
 			pkey: decode-key key :klen :type
 			unless null? pkey [
-				link-private-key ctx pkey type
+				ret: link-private-key ctx pkey klen type
+				;-- print-line ["link-private-key: " as int-ptr! ret]
 				free pkey
 			]
 		]
