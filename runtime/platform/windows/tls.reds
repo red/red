@@ -541,7 +541,7 @@ tls: context [
 
 		if null? data/security [
 			create data
-			either client? [cert: null][cert: find-certificate no]
+			either client? [cert: null][cert: data/cert-ctx]
 			create-credentials as SecHandle! :data/credential cert client?
 		]
 
