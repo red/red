@@ -23,6 +23,15 @@ Red/System [
 #define BCRYPT_ECDSA_PRIVATE_P384_MAGIC 34534345h  ;-- ECS4
 #define BCRYPT_ECDSA_PRIVATE_P521_MAGIC 36534345h  ;-- ECS6
 
+#define CERT_STORE_PROV_MEMORY			02h
+#define CRYPT_STRING_BASE64HEADER		00h
+#define X509_ASN_ENCODING				01h
+#define PKCS_7_ASN_ENCODING				00010000h
+#define PKCS_RSA_PRIVATE_KEY			43
+#define X509_ECC_PRIVATE_KEY			82
+#define CERT_STORE_ADD_NEW				1
+
+
 #define SecIsValidHandle(x)	[
 	all [x/dwLower <> (as int-ptr! -1) x/dwUpper <> (as int-ptr! -1)]
 ]
@@ -35,6 +44,8 @@ tls-data!: alias struct! [
 	credential	[SecHandle! value]		;-- credential handle
 	security	[int-ptr!]				;-- security context handle lower
 	security2	[int-ptr!]				;-- security context handle upper
+	cert-store	[int-ptr!]
+	cert-ctx	[CERT_CONTEXT]
 	;-- SecPkgContext_StreamSizes
 	ctx-max-msg	[integer!]
 	ctx-header	[integer!]
@@ -62,72 +73,66 @@ tls: context [
 		ASC_REQ_EXTENDED_ERROR or
 		ASC_REQ_STREAM
 
-	cert-to-bin: func [
-		cert		[byte-ptr!]
+
+	pem-to-binary: func [
+		str			[c-string!]
 		len			[integer!]
-		ret-len		[int-ptr!]
-		return:		[byte-ptr!]
+		blen		[int-ptr!]
+		return:		[byte-ptr!]						;-- after used, please free it
 		/local
-			result	[byte-ptr!]
+			etype	[integer!]
+			buff	[byte-ptr!]
 	][
-		either CryptStringToBinaryA cert len 7 null ret-len null null [
-			result: allocate ret-len/value
-			CryptStringToBinaryA cert len 7 result ret-len null null
-			result
-		][
-			probe "cert-to-bin failed"
-			null
+		etype: CRYPT_STRING_BASE64HEADER
+		blen/value: 0
+		unless CryptStringToBinaryA str len etype null blen null null [
+			return null
 		]
+		buff: allocate blen/value
+		unless CryptStringToBinaryA str len etype buff blen null null [
+			free buff
+			return null
+		]
+		buff
 	]
 
-	decode-cert: func [
-		private-key	[byte-ptr!]
-		key-len		[integer!]
-		blob-size	[int-ptr!]
-		cert-type	[int-ptr!]
+	decode-key: func [
+		key			[red-string!]
+		klen		[int-ptr!]
+		type		[int-ptr!]
 		return:		[byte-ptr!]
 		/local
-			result		[byte-ptr!]
-			key-type	[integer!]
-			blob-sz		[integer!]
+			len		[integer!]
+			str		[c-string!]
+			blen	[integer!]
+			buff	[byte-ptr!]
+			etype	[integer!]
+			blob	[byte-ptr!]
 	][
-		result: null
-		key-type: 43		;-- PKCS_RSA_PRIVATE_KEY
-		blob-sz: 0
+		len: -1
+		str: unicode/to-utf8 key :len
 
-		unless CryptDecodeObjectEx
-				00010001h
-				as c-string! key-type
-				private-key
-				key-len
-				0 null null
-				:blob-sz [
-			key-type: 82	;-- X509_ECC_PRIVATE_KEY
-			unless CryptDecodeObjectEx
-					00010001h
-					as c-string! key-type
-					private-key
-					key-len
-					0 null null
-					:blob-sz [
-				key-type: 0
+		blen: 0
+		buff: pem-to-binary str len :blen
+		if null? buff [return null]
+
+		klen/value: 0
+		etype: X509_ASN_ENCODING or PKCS_7_ASN_ENCODING
+		type/value: PKCS_RSA_PRIVATE_KEY
+		unless CryptDecodeObjectEx etype type/value buff blen 0 null null klen [
+			type/value: X509_ECC_PRIVATE_KEY
+			unless CryptDecodeObjectEx etype type/value buff blen 0 null null klen [
+				free buff
+				return null
 			]
 		]
-
-		if key-type <> 0 [
-			result: allocate blob-size/value
-			CryptDecodeObjectEx
-				00010001h
-				as c-string! key-type
-				private-key
-				key-len
-				0 null
-				result
-				:blob-sz
-			blob-size/value: blob-sz
-			cert-type/value: key-type
+		blob: allocate klen/value
+		unless CryptDecodeObjectEx etype type/value buff blen 0 null blob klen [
+			free buff
+			return null
 		]
-		result
+		free buff
+		blob
 	]
 
 	link-rsa-key: func [
@@ -222,59 +227,89 @@ tls: context [
 	]
 
 	load-cert: func [
-		cert		[c-string!]
-		pkey		[c-string!]
+		store		[int-ptr!]
+		cert		[red-string!]
+		key			[red-string!]
+		pwd			[red-string!]
 		return:		[CERT_CONTEXT]
 		/local
-			cert-bin	[byte-ptr!]
-			pkey-bin	[byte-ptr!]
-			decoded		[byte-ptr!]
-			file		[integer!]
-			size		[integer!]
-			len			[integer!]
-			buffer		[byte-ptr!]
-			key-type	[integer!]
-			ctx			[CERT_CONTEXT]
+			len		[integer!]
+			str		[c-string!]
+			blen	[integer!]
+			buff	[byte-ptr!]
+			etype	[integer!]
+			pctx	[integer!]
+			ctx		[CERT_CONTEXT]
+			pkey	[byte-ptr!]
+			klen	[integer!]
+			type	[integer!]
 	][
-		file: simple-io/open-file cert simple-io/RIO_READ no
-		if file < 0 [
-			probe ["cannot read file: " cert]
+		len: -1
+		str: unicode/to-utf8 cert :len
+
+		blen: 0
+		buff: pem-to-binary str len :blen
+		if null? buff [return null]
+
+		etype: X509_ASN_ENCODING or PKCS_7_ASN_ENCODING
+		pctx: 0
+		CertAddEncodedCertificateToStore store etype buff blen CERT_STORE_ADD_NEW :pctx
+		if pctx = 0 [
+			free buff
 			return null
 		]
-		size: simple-io/file-size? file
-		buffer: allocate size
-		len: simple-io/read-data file buffer size
-		simple-io/close-file file
-
-		cert-bin: cert-to-bin buffer len :size
-		ctx: CertCreateCertificateContext 00010001h cert-bin size
-		if null? ctx [
-			probe "CertCreateCertificateContext failed"
-			return null
+		free buff
+		ctx: as CERT_CONTEXT pctx
+		unless null? key [
+			klen: 0 type: 0
+			pkey: decode-key key :klen :type
+			unless null? pkey [
+				link-private-key ctx pkey type
+				free pkey
+			]
 		]
-
-		free buffer
-		free cert-bin
-		file: simple-io/open-file pkey simple-io/RIO_READ no
-		if file < 0 [
-			probe ["cannot read file: " pkey]
-			return ctx
-		]
-		size: simple-io/file-size? file
-		buffer: allocate size
-		len: simple-io/read-data file buffer size
-		simple-io/close-file file
-
-		key-type: 0
-		pkey-bin: cert-to-bin buffer len :size
-		decoded: decode-cert pkey-bin size :len :key-type
-		if decoded <> null [
-			link-private-key ctx decoded key-type
-		]
-		free buffer
-		free pkey-bin
-		free decoded
 		ctx
+	]
+
+	init-server-cert: func [
+		data		[tls-data!]
+		/local
+			values	[red-value!]
+			extra	[red-block!]
+			cert	[red-string!]
+			chain	[red-string!]
+			key		[red-string!]
+			pwd		[red-string!]
+			store	[int-ptr!]
+			ctx		[CERT_CONTEXT]
+	][
+		values: object/get-values data/port
+		extra: as red-block! values + port/field-extra
+		if TYPE_OF(extra) <> TYPE_BLOCK [exit]
+		cert: as red-string! block/select-word extra word/load "cert" no
+		if TYPE_OF(cert) <> TYPE_STRING [exit]
+		chain: as red-string! block/select-word extra word/load "chain-cert" no
+		key: as red-string! block/select-word extra word/load "key" no
+		pwd: as red-string! block/select-word extra word/load "password" no
+		store: CertOpenStore CERT_STORE_PROV_MEMORY 0 null 0 null
+		data/cert-store: store
+		data/cert-ctx: load-cert store cert key pwd
+		if TYPE_OF(cert) = TYPE_STRING [
+			ctx: load-cert store chain null null
+			CertFreeCertificateContext ctx
+		]
+	]
+
+	init-client-cert: func [
+		data		[tls-data!]
+		/local
+			values	[red-value!]
+			extra	[red-block!]
+	][
+		values: object/get-values data/port
+		extra: as red-block! values + port/field-extra
+		if TYPE_OF(extra) <> TYPE_BLOCK [exit]
+		print-line "extra not empty"
 	]
 
 	create-credentials: func [
@@ -369,7 +404,7 @@ tls: context [
 
 		eku/rgpszUsageIdentifier: as c-string! :auth
 		store: CertOpenStore
-			as c-string! 10			;-- CERT_STORE_PROV_SYSTEM
+			10						;-- CERT_STORE_PROV_SYSTEM
 			0
 			null
 			flags
@@ -466,6 +501,15 @@ tls: context [
 	][
 		state: data/iocp/state
 		client?: state and IO_STATE_CLIENT <> 0
+
+		if state and IO_STATE_TLS_INIT = 0 [
+			state: state or IO_STATE_TLS_INIT
+			either client? [
+				init-client-cert data
+			][
+				init-server-cert data
+			]
+		]
 
 		;-- allocate 2 SecBuffer! on stack for buffer
 		inbuf-1: as SecBuffer! system/stack/allocate (size? SecBuffer!) >> 1

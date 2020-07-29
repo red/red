@@ -1223,7 +1223,7 @@ DNS_MESSAGE_BUFFER: alias struct! [
 	]
 	"crypt32.dll" stdcall [
 		CertOpenStore: "CertOpenStore" [
-			lpszStoreProvider	[c-string!]
+			lpszStoreProvider	[integer!]
 			dwEncodingType		[integer!]
 			hCryptProv			[int-ptr!]
 			dwFlags				[integer!]
@@ -1245,6 +1245,19 @@ DNS_MESSAGE_BUFFER: alias struct! [
 			cbCertEncode		[integer!]
 			return:				[CERT_CONTEXT]
 		]
+		CertFreeCertificateContext: "CertFreeCertificateContext" [
+			ctx					[CERT_CONTEXT]
+			return:				[logic!]
+		]
+		CertAddEncodedCertificateToStore: "CertAddEncodedCertificateToStore" [
+			store				[int-ptr!]
+			type				[integer!]
+			encoded				[byte-ptr!]
+			len					[integer!]
+			disposition			[integer!]
+			ctx					[int-ptr!]
+			return:				[logic!]
+		]
 		CertSetCertificateContextProperty: "CertSetCertificateContextProperty" [
 			ctx					[CERT_CONTEXT]
 			propID				[integer!]
@@ -1253,7 +1266,7 @@ DNS_MESSAGE_BUFFER: alias struct! [
 			return:				[logic!]
 		]
 		CryptStringToBinaryA: "CryptStringToBinaryA" [
-			pszString			[byte-ptr!]
+			pszString			[c-string!]
 			cchString			[integer!]
 			dwFlags				[integer!]
 			pbBinary			[byte-ptr!]
@@ -1264,7 +1277,7 @@ DNS_MESSAGE_BUFFER: alias struct! [
 		]
 		CryptDecodeObjectEx: "CryptDecodeObjectEx" [
 			dwCertEncodingType	[integer!]
-			lpszStructType		[c-string!]
+			lpszStructType		[integer!]
 			pbEncoded			[byte-ptr!]
 			cbEncoded			[integer!]
 			dwFlags				[integer!]

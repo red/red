@@ -14,6 +14,7 @@ Red/System [
 #define IO_STATE_CLIENT			2000h
 #define IO_STATE_READING		4000h
 #define IO_STATE_WRITING		8000h
+#define IO_STATE_TLS_INIT		00010000h
 
 iocp-event-handler!: alias function! [
 	data		[int-ptr!]
