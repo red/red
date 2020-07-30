@@ -1301,8 +1301,11 @@ parser: context [
 							if all [upper? int2/value < 0][
 								PARSE_ERROR [TO_ERROR(script out-of-range) int2]
 							]
-							state: either all [zero? int/value not upper?][
-								cmd: cmd + 1			;-- skip over sub-rule
+							state: either all [
+								zero? int/value
+								any [not upper? zero? int2/value]
+							][
+								cmd: cmd + 1 + as integer! upper?		;-- skip over sub-rule
 								ST_CHECK_PENDING
 							][
 								min:  int/value
