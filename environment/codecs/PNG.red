@@ -1,7 +1,7 @@
 Red [
 	Title:   "PNG codec"
 	Author:  "Qingtian Xie"
-	File:	 %png.red
+	File:	 %PNG.red
 	Tabs:	 4
 	Rights:  "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {

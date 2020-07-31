@@ -1928,7 +1928,7 @@ set-text-format: func [
 		format	[IDWriteTextFormat]
 ][
 	flags: either TYPE_OF(para) = TYPE_OBJECT [
-		get-para-flags base para
+		get-para-flags rich-text para
 	][
 		0
 	]

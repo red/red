@@ -871,9 +871,17 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-alloc-stack: does [
+	emit-alloc-stack: func [zeroed? [logic!]][
 		emit-i32 #{e04dd100}						;-- SUB sp, r0, LSL #2
 		;emit-i32 #{e3cdd003}						;-- BIC sp, sp #3 ; align to lower 32-bit bound
+		if zeroed? [
+			emit-i32 #{e1a03000}					;-- MOV r3, r0		; count
+			emit-i32 #{e1a02000}					;-- MOV r2, sp		; dst
+			emit-i32 #{e3a01000}					;-- MOV r1, 0		; zero
+			emit-i32 #{e4821004}					;--	.loop:	STR r1, [r2!], #4
+			emit-i32 #{e2555001}					;-- 		SUBS r5, r5, 1
+			emit-i32 #{1afffffc}					;-- 		BNE .loop
+		]
 	]
 
 	emit-free-stack: does [
@@ -1501,7 +1509,7 @@ make-profilable make target-class [
 	]
 	
 	emit-store: func [
-		name [word!] value [char! logic! integer! word! string! paren! tag! get-word! decimal! issue!]
+		name [word!] value [char! logic! integer! word! string! binary! paren! tag! get-word! decimal! issue!]
 		spec [block! none!]
 		/by-value slots [integer!]
 		/local store-qword store-word store-byte type opcode
@@ -1587,7 +1595,7 @@ make-profilable make target-class [
 				]
 				do store-word
 			]
-			string! paren! [
+			string! paren! binary! [
 				if all [spec not PIC?][emit-load-literal-ptr spec/2]
 				do store-word
 			]
@@ -1829,6 +1837,12 @@ make-profilable make target-class [
 		emit-i32 #{e8bd0001}						;-- POP {r0}
 		emit-i32 #{e2500001}		 				;-- SUBS r0, r0, #1	; update Z flag
 	]
+	
+	patch-sub-call: func [buffer [binary!] ptr [integer!] offset [integer!]][
+		change 
+			at buffer ptr
+			reverse to-bin24 shift negate offset + 8 2
+	]	
 	
 	patch-jump-back: func [buffer [binary!] offset [integer!]][
 		change 
@@ -2576,6 +2590,23 @@ make-profilable make target-class [
 			]
 		]
 	]
+
+	emit-init-sub: does [
+		if verbose >= 3 [print ">>>emitting INIT subroutine"]
+		emit-i32 #{e92d4000}						;-- PUSH {lr}
+	]
+	
+	emit-return-sub: does [
+		if verbose >= 3 [print ">>>emitting RET from subroutine"]
+		emit-i32 #{e8bd4000}						;-- POP {lr}
+		emit-i32 #{e1a0f00e}						;-- MOV pc, lr
+	]
+
+	emit-call-sub: func [name [word!] spec [block!]][
+		if verbose >= 3 [print [">>>emitting CALL subroutine" name]]
+		emit-reloc-addr spec/3
+		emit-i32 #{eb000000}						;-- BL <disp>
+	]
 	
 	emit-AAPCS-header: func [
 		args [block!] fspec [block!] attribs [block! none!]
@@ -2775,7 +2806,7 @@ make-profilable make target-class [
 		]
 	]
 
-	patch-call: func [code-buf rel-ptr dst-ptr] [
+	patch-call: func [code-buf rel-ptr dst-ptr][
 		;; @@ to-bin24
 		change
 			at code-buf rel-ptr

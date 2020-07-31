@@ -86,15 +86,20 @@ matrix2d: context [
 		m		[D2D_MATRIX_3X2_F]
 		x		[float32!]
 		y		[float32!]
+		cx		[float32!]
+		cy		[float32!]
 		r		[D2D_MATRIX_3X2_F]
 		pre?	[logic!]
 		/local
 			t	[D2D_MATRIX_3X2_F value]
+			t2	[D2D_MATRIX_3X2_F value]
 	][
 		identity t
 		t/_11: x
 		t/_22: y
+		if any [cx <> F32_0 cy <> F32_0][translate m cx cy t2 pre? m: t2]
 		mul m t r pre?
+		if any [cx <> F32_0 cy <> F32_0][translate r cx cy r pre?]
 	]
 
 	rotate: func [

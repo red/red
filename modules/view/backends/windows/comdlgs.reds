@@ -21,6 +21,7 @@ file-filter-to-str: func [
 		val [red-value!]
 		end [red-value!]
 		str [red-string!]
+		typ [integer!]
 ][
 	s: GET_BUFFER(filter)
 	val: s/offset + filter/head
@@ -29,6 +30,10 @@ file-filter-to-str: func [
 
 	str: string/make-at stack/push* 16 UCS-2
 	while [val < end][
+		typ: TYPE_OF(val)
+		unless any [typ = TYPE_STRING typ = TYPE_FILE][
+			fire [TO_ERROR(script invalid-arg) val]
+		]
 		string/concatenate str as red-string! val -1 0 yes no
 		string/append-char GET_BUFFER(str) 0
 		val: val + 1

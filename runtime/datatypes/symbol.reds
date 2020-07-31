@@ -21,48 +21,16 @@ symbol: context [
 		assert TYPE_OF(word) = TYPE_WORD
 		(resolve word/symbol) = resolve words/any-type!
 	]
-	
-	search: func [
-		str			 [red-slice!]
-		return:		 [integer!]
-		/local
-			s		 [series!]
-			id		 [integer!]
-			aliased? [logic!]
-			key		 [red-value!]
-	][
-		aliased?: no
 
-		key: _hashtable/get table as red-value! str 0 1 COMP_STRICT_EQUAL no no
-		if key = null [
-			key: _hashtable/get table as red-value! str 0 1 COMP_EQUAL no no	
-			aliased?: yes
-		]
-
-		id: either key = null [0][
-			s: GET_BUFFER(symbols)
-			(as-integer key - s/offset) >> 4 + 1
-		]
-		if aliased? [id: 0 - id]
-		id
-	]
-	
-	internalize: func [
-		src		 [c-string!]
-		return:  [node!]
+	make-red-string: func [
+		sym		[red-symbol!]
 		/local
-			node [node!]
-			dst  [c-string!]
-			s	 [series!]
-			len	 [integer!]
+			s	[series!]
 	][
-		len: 1 + length? src
-		node: alloc-bytes len 							;@@ TBD: mark this buffer as protected!
-		s: as series! node/value
-		dst: as c-string! s/offset
-		
-		copy-memory as byte-ptr! dst as byte-ptr! src len
-		node
+		if sym/node = null [
+			s: as series! sym/cache/value
+			sym/node: unicode/load-utf8 as c-string! s/offset as-integer s/tail - s/offset
+		]
 	]
 
 	make-alt: func [
@@ -70,61 +38,36 @@ symbol: context [
 		len		[integer!]		;-- -1: use the whole string
 		return:	[integer!]
 		/local
-			sym	[red-symbol!]
-			id	[integer!]
-			val [red-slice! value]
+			s	[c-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "symbol/make-alt"]]
-
-		;-- make a slice, then search in the hashtable
-		val/header: TYPE_SLICE
-		val/head:	str/head
-		val/node:	str/node
-		val/length: len
-		id: search val
-
-		if positive? id [return id]
-
-		sym: as red-symbol! ALLOC_TAIL(symbols)
-		sym/header: TYPE_UNSET
-		either len < 0 [
-			sym/node: str/node
-		][
-			sym/node: copy-part str/node str/head len
-		]
-		sym/cache:  unicode/str-to-utf8 str :len no
-		sym/alias:  either zero? id [-1][0 - id]		;-- -1: no alias, abs(id)>0: alias id
-		sym/header: TYPE_SYMBOL							;-- implicit reset of all header flags
-		_hashtable/put table as red-value! sym
-		block/rs-length? symbols
+		s: unicode/to-utf8 str :len
+		make-alt-utf8 as byte-ptr! s len
 	]
-	
+
+	make-alt-utf8: func [
+		s 		[byte-ptr!]
+		len		[integer!]
+		return:	[integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "symbol/make-alt-utf8"]]
+		_hashtable/put-symbol table s len no
+	]
+
 	make: func [
 		s 		[c-string!]								;-- input c-string!
 		return:	[integer!]
-		/local
-			str  [red-slice! value]
-			sym  [red-symbol!]
-			id   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "symbol/make"]]
+		_hashtable/put-symbol table as byte-ptr! s system/words/length? s no
+	]
 
-		str/node:	unicode/load-utf8 s system/words/length? s
-		str/header: TYPE_SLICE
-		str/head:	0
-		str/length: -1
-		id: search str
-
-		if positive? id [return id]
-		
-		sym: as red-symbol! ALLOC_TAIL(symbols)	
-		sym/header: TYPE_UNSET
-		sym/node:   str/node
-		sym/cache:  internalize s
-		sym/alias:  either zero? id [-1][0 - id]		;-- -1: no alias, abs(id)>0: alias id
-		sym/header: TYPE_SYMBOL							;-- implicit reset of all header flags
-		_hashtable/put table as red-value! sym
-		block/rs-length? symbols
+	make-opt: func [
+		s		[c-string!]
+		return: [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "symbol/make-opt"]]
+		_hashtable/put-symbol table as byte-ptr! s system/words/length? s yes
 	]
 	
 	get: func [
@@ -132,9 +75,12 @@ symbol: context [
 		return:	[red-symbol!]
 		/local
 			s	[series!]
+			sym [red-symbol!]
 	][
 		s: GET_BUFFER(symbols)
-		as red-symbol! s/offset + id - 1
+		sym: as red-symbol! s/offset + id - 1
+		make-red-string sym
+		sym
 	]
 	
 	resolve: func [
@@ -160,12 +106,6 @@ symbol: context [
 		s: GET_BUFFER(symbols)
 		sym: as red-symbol! s/offset + id - 1
 		sym/alias
-	]
-
-	push: func [
-
-	][
-
 	]
 	
 	;-- Actions -- 

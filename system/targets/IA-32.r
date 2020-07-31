@@ -239,10 +239,16 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-alloc-stack: does [
+	emit-alloc-stack: func [zeroed? [logic!]][
+		if zeroed? [emit #{89C1}]					;-- MOV ecx, eax
 		emit #{C1E002}								;-- SHL eax, 2
 		emit #{29C4}								;-- SUB esp, eax
 		emit #{83E4FC}								;-- AND esp, -4		; align to lower bound
+		if zeroed? [
+			emit #{89E7}							;-- MOV edi, esp
+			emit #{31C0}							;-- XOR eax, eax
+			emit #{F3AB}							;-- REP STOSD
+		]
 	]
 	
 	emit-free-stack: does [
@@ -919,7 +925,7 @@ make-profilable make target-class [
 	]
 	
 	emit-store: func [
-		name [word!] value [char! logic! integer! word! string! paren! tag! get-word! decimal! issue!]
+		name [word!] value [char! logic! integer! word! string! binary! paren! tag! get-word! decimal! issue!]
 		spec [block! none!]
 		/by-value slots [integer!]
 		/local store-dword type offset
@@ -1011,7 +1017,8 @@ make-profilable make target-class [
 				]
 			]
 			string!
-			paren! [
+			paren!
+			binary! [
 				either PIC? [
 					emit-variable name
 						#{A3}						;-- MOV [name], eax		; global
@@ -1291,6 +1298,10 @@ make-profilable make target-class [
 	emit-end-loop: does [
 		emit #{58} 									;-- POP eax
 		emit #{83E801}								;-- SUB eax, 1
+	]
+
+	patch-sub-call: func [buffer [binary!] ptr [integer!] offset [integer!]][
+		change at buffer ptr to-bin32 negate offset + 5 - 1
 	]
 	
 	patch-jump-back: func [buffer [binary!] offset [integer!]][
@@ -2033,6 +2044,17 @@ make-profilable make target-class [
 				compiler/throw-error "unsupported operation on floats"
 			]
 		]
+	]
+	
+	emit-return-sub: does [
+		if verbose >= 3 [print ">>>emitting RET from subroutine"]
+		emit #{C3}									;-- RET
+	]
+	
+	emit-call-sub: func [name [word!] spec [block!]][
+		if verbose >= 3 [print [">>>emitting CALL subroutine" name]]
+		emit #{E8}									;-- CALL NEAR disp
+		emit-reloc-addr spec						;-- 32-bit relative displacement
 	]
 	
 	emit-cdecl-pop: func [spec [block!] args [block!] /local size slots][

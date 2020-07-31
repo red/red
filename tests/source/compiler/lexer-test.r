@@ -247,6 +247,23 @@ do %../../../lexer.r
 		}}
 		--assert "#{3D}" = mold second lexer/process src
 
+	--test-- "lexer-41"
+		src: {Red []
+			%{abc}%
+			%{}%
+			%%{}%%
+			%{a^^b}%
+			%{^}}%
+			%%{Nice^^World^}% rawstring! }%%
+		}
+		--assert [
+			"abc"
+			""
+			""
+			"a^^b"
+			"}"
+			"Nice^^World}% rawstring! "
+		] = next lexer/process src
 
 ===end-group===
 	

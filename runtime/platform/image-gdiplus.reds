@@ -520,8 +520,8 @@ OS-image: context [
 	make-image: func [
 		width	[integer!]
 		height	[integer!]
-		rgb		[byte-ptr!]
-		alpha	[byte-ptr!]
+		rgb-bin	[red-binary!]
+		alpha-bin [red-binary!]
 		color	[red-tuple!]
 		return: [int-ptr!]
 		/local
@@ -533,6 +533,10 @@ OS-image: context [
 			scan0	[int-ptr!]
 			bitmap	[integer!]
 			end		[int-ptr!]
+			rgb		[byte-ptr!]
+			alpha	[byte-ptr!]
+			len		[integer!]
+			len2	[integer!]
 	][
 		if any [zero? width zero? height][return null]
 		bitmap: 0
@@ -544,14 +548,29 @@ OS-image: context [
 		end: scan0 + (width * height)
 
 		either null? color [
+			either rgb-bin <> null [
+				len: binary/rs-length? rgb-bin
+				len: len / 3 * 3
+				rgb: binary/rs-head rgb-bin
+			][len: 0]
+			either alpha-bin <> null [
+				len2: binary/rs-length? alpha-bin
+				alpha: binary/rs-head alpha-bin
+			][len2: 0]
+
 			while [scan0 < end][
-				either null? alpha [a: 255][a: 255 - as-integer alpha/1 alpha: alpha + 1]
-				either null? rgb [r: 255 g: 255 b: 255][
+				either len2 > 0 [
+					a: 255 - as-integer alpha/1
+					alpha: alpha + 1
+					len2: len2 - 1
+				][a: 255]
+				either len > 0 [
 					r: as-integer rgb/1
 					g: as-integer rgb/2
 					b: as-integer rgb/3
 					rgb: rgb + 3
-				]
+					len: len - 3
+				][r: 255 g: 255 b: 255]
 				scan0/value: r << 16 or (g << 8) or b or (a << 24)
 				scan0: scan0 + 1
 			]
@@ -574,10 +593,12 @@ OS-image: context [
 		len		[integer!]
 		return: [node!]
 		/local
-			hMem [integer!]
-			p	 [byte-ptr!]
-			s	 [integer!]
-			bmp  [integer!]
+			hMem	[integer!]
+			p		[byte-ptr!]
+			s		[integer!]
+			bmp		[integer!]
+			sthis	[this!]
+			stream	[IStream]
 	][
 		hMem: GlobalAlloc GMEM_MOVEABLE len
 		p: GlobalLock hMem
@@ -588,6 +609,9 @@ OS-image: context [
 		bmp: 0
 		CreateStreamOnHGlobal hMem true :s
 		GdipCreateBitmapFromStream s :bmp
+		sthis: as this! s
+		stream: as IStream sthis/vtbl
+		stream/Release sthis				;-- the hMem will also be released
 		as node! bmp
 	]
 

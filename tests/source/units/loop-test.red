@@ -41,6 +41,16 @@ Red [
     br6-i: 0
     repeat br6-counter -1 [br6-i: br6-i + 1]
   --assert 0 = br6-i
+
+  --test-- "br7"
+    br7-i: 0
+    repeat br7-counter 3.5 [br7-i: br7-i + 1]
+  --assert 3 = br7-i
+
+  --test-- "br8"
+    br8-i: 0
+    repeat br8-counter 10 / 4 [br8-i: br8-i + 1]
+  --assert 2 = br8-i
   
 ===end-group===
 
@@ -82,6 +92,16 @@ Red [
     j: 0
     loop -1 [j: j + 1]
   --assert j = 0
+
+  --test-- "b16"
+    j: 0
+    loop 3.8 [j: j + 1]
+  --assert j = 3
+
+ --test-- "b17"
+    j: 0
+    loop 10 / 4 [j: j + 1]
+  --assert j = 2
   
 ===end-group===
 

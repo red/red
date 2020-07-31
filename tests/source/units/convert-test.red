@@ -40,6 +40,7 @@ Red [
 	--test-- "to-string!-issue!"		--assert "FF00" = to string! #FF00
 	--test-- "to-string!-binary!-1"		--assert "" = to string! #{}
 	--test-- "to-string!-binary!-2"		--assert "abc" = to string! #{616263}
+	--test-- "to-string!-binary!-3"		--assert error? try [to-string #{62C3}]
 	--test-- "to-string!-block!-1"		--assert "" = to string! []
 	--test-- "to-string!-block-2!"		--assert "12" = to string! [1 2]
 	--test-- "to-string!-block!-3"		--assert "123" = to string! [1 2 3]
@@ -92,6 +93,13 @@ Red [
 	--test-- "to-integer!-21"		--assert 32400 == to integer! 09:00
 	--test-- "to-integer!-22"		--assert 86399 == to integer! 23:59:59
 	--test-- "to-integer!-23"		--assert 86400 == to integer! 23:59:59.999999
+	--test-- "to-integer!-24"		--assert 0 == to integer! #{}
+	--test-- "to-integer!-25"		--assert 255 == to integer! #{FF}
+	--test-- "to-integer!-26"		--assert -559038737 == to integer! #{DEADBEEF BADCAFEE}
+	--test-- "to-integer!-27"							;-- #4325
+		--assert 0 == to integer! next #{}
+		--assert 255 == to integer! next #{00FF}
+		--assert -559038737 == to integer! skip #{BADCAFEE DEADBEEF} 4
 	
 ===end-group===
 
@@ -131,6 +139,17 @@ Red [
 			86399.999999 = to float! 23:59:59.999999
 		]
 	
+===end-group===
+
+===start-group=== "to-percent!"
+
+	--test-- "to-percent-1" --assert 100%   = to percent! "100%"
+	--test-- "to-percent-2" --assert 10000% = to percent! "100"
+	--test-- "to-percent-3" --assert 10000% = to percent! "100.0"
+	--test-- "to-percent-4" --assert 100%   = to percent! "1.0"
+	--test-- "to-percent-5" --assert 10%    = to percent! "0.1"
+	--test-- "to-percent-6" --assert 1%     = to percent! "0.01"
+
 ===end-group===
 
 ===start-group=== "implicit to float!"
@@ -456,6 +475,9 @@ Red [
 		--assert #{00} = to binary! make bitset! #{00}
 	--test-- "issue #3636"
 		--assert 97 = pick to binary! append/dup a: "" "a" 1100000 1
+	--test-- "issue #4272"
+		--assert #{DEADBEEF} = to binary! quote (222 173 190 239)
+		--assert #{BADCAFEE} = to binary! make hash! [186 220 175 238]
 ===end-group===
 ===start-group=== "to-block!"
 	--test-- "to-block!-char!"
@@ -704,15 +726,15 @@ Red [
 	--test-- "to-email!-word!"
 		--assert equal? head remove back tail word@ 
 						to email! 'word
-	--test-- "to-email!-refinement!"
-		--assert equal? head remove back tail /refinement@
-						to email! /refinement
-	--test-- "to-email!-path!"
-		--assert equal? head remove back tail path/foo@ 
-						to email! first [path/foo]
-	--test-- "to-email!-url!"
-		--assert equal? head remove back tail http://red-lang.org@ 
-						to email! http://red-lang.org
+	;--test-- "to-email!-refinement!"
+	;	--assert equal? head remove back tail /refinement@
+	;					to email! /refinement
+	;--test-- "to-email!-path!"
+	;	--assert equal? head remove back tail path/foo@ 
+	;					to email! first [path/foo]
+	;--test-- "to-email!-url!"
+	;	--assert equal? head remove back tail http://red-lang.org@ 
+	;					to email! http://red-lang.org
 	--test-- "to-email!-file!"
 		tef-email: append %/file/ #"@"
 		--assert equal? head remove back tail tef-email
@@ -723,7 +745,7 @@ Red [
 	--test-- "to-email!-binary!-1"
 		--assert 0 = length? to email! #{}
 	--test-- "to-email!-binary!-2"
-		teb2-mail: load append #{616263} @	
+		teb2-mail: load append #{616263} #"@"
 		--assert equal? head remove back tail teb2-mail
 						to email! #{616263}
 	--test-- "to-email!-block!-1"
@@ -739,7 +761,7 @@ Red [
 						to email! ["a" "b"]
 	--test-- "to-email!-block-5"
 		--assert equal? testing@red-lang.org 
-						to email! [testing @ red-lang.org]
+						to email! [testing #"@" red-lang.org]
 	--test-- "to-email!-tuple!"
 		--assert equal? to email! "1.1.1" to email! 1.1.1
 	--test-- "to-email!-paren!-1"
@@ -758,9 +780,9 @@ Red [
    						to email! 16-Jun-2014/14:34:59+2:00
    	--test-- "to-email!-email!"
    		--assert equal? foo@boo to email! foo@boo
-   	--test-- "to-email!-bitset!"
-   		--assert equal? head remove back tail make%20bitset!%20#%7B00%7D@
-   						to email! make bitset! #{00}
+   	;--test-- "to-email!-bitset!"
+   	;	--assert equal? head remove back tail make%20bitset!%20%23%7B00%7D@
+   	;					to email! make bitset! #{00}
 ===end-group===
 ===start-group=== "to-bitset!"
 	--test-- "to-bitset!-char!"

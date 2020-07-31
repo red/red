@@ -2018,7 +2018,7 @@ OS-draw-grad-pen-old: func [
 		copy-memory as byte-ptr! :m as byte-ptr! :t size? D2D_MATRIX_3X2_F
 	]
 	if scale? [
-		matrix2d/scale :m sx sy :t ctx/pre-order?
+		matrix2d/scale :m sx sy F32_0 F32_0 :t ctx/pre-order?
 		copy-memory as byte-ptr! :m as byte-ptr! :t size? D2D_MATRIX_3X2_F
 	]
 	ibrush/SetTransform bthis :m
@@ -2251,7 +2251,7 @@ OS-matrix-rotate: func [
 		cy		[float32!]
 ][
 	rad: get-float32 angle
-	either angle <> as red-integer! center [
+	either TYPE_OF(center) = TYPE_PAIR [
 		cx: as float32! center/x
 		cy: as float32! center/y
 	][
@@ -2275,7 +2275,7 @@ OS-matrix-scale: func [
 	ctx			[draw-ctx!]
 	pen-fill	[integer!]
 	sx			[red-integer!]
-	sy			[red-integer!]
+	center		[red-pair!]
 	/local
 		this	[this!]
 		dc		[ID2D1DeviceContext]
@@ -2283,17 +2283,27 @@ OS-matrix-scale: func [
 		t		[D2D_MATRIX_3X2_F value]
 		bthis	[this!]
 		brush	[ID2D1Brush]
+		sy		[red-integer!]
+		cx		[float32!]
+		cy		[float32!]
 ][
+	sy: sx + 1
+	either TYPE_OF(center) = TYPE_PAIR [
+		cx: as float32! center/x
+		cy: as float32! center/y
+	][
+		cx: F32_0 cy: F32_0
+	]
 	either pen-fill = -1 [
 		this: as this! ctx/dc
 		dc: as ID2D1DeviceContext this/vtbl
 		dc/GetTransform this :m
-		matrix2d/scale :m get-float32 sx get-float32 sy :t ctx/pre-order?
+		matrix2d/scale :m get-float32 sx get-float32 sy cx cy :t ctx/pre-order?
 		dc/SetTransform this :t
 	][
 		BEGIN_MATRIX_BRUSH
 		brush/GetTransform bthis :m
-		matrix2d/scale :m get-float32 sx get-float32 sy :t ctx/pre-order?
+		matrix2d/scale :m get-float32 sx get-float32 sy cx cy :t ctx/pre-order?
 		brush/SetTransform bthis :t
 	]
 ]
@@ -2329,7 +2339,7 @@ OS-matrix-skew: func [
 	ctx			[draw-ctx!]
 	pen-fill	[integer!]
 	sx			[red-integer!]
-	sy			[red-integer!]
+	center		[red-pair!]
 	/local
 		this	[this!]
 		dc		[ID2D1DeviceContext]
@@ -2337,21 +2347,31 @@ OS-matrix-skew: func [
 		t		[D2D_MATRIX_3X2_F value]
 		x		[float32!]
 		y		[float32!]
+		cx		[float32!]
+		cy		[float32!]
 		bthis	[this!]
 		brush	[ID2D1Brush]
+		sy		[red-integer!]
 ][
+	sy: sx + 1
 	x: get-float32 sx
 	y: get-float32 sy
+	either TYPE_OF(center) = TYPE_PAIR [
+		cx: as float32! center/x
+		cy: as float32! center/y
+	][
+		cx: F32_0 cy: F32_0
+	]
 	either pen-fill = -1 [
 		this: as this! ctx/dc
 		dc: as ID2D1DeviceContext this/vtbl
 		dc/GetTransform this :m
-		matrix2d/skew :m x y F32_0 F32_0 :t ctx/pre-order?
+		matrix2d/skew :m x y cx cy :t ctx/pre-order?
 		dc/SetTransform this :t
 	][
 		BEGIN_MATRIX_BRUSH
 		brush/GetTransform bthis :m
-		matrix2d/skew :m x y F32_0 F32_0 :t ctx/pre-order?
+		matrix2d/skew :m x y cx cy :t ctx/pre-order?
 		brush/SetTransform bthis :t
 	]
 ]
@@ -2367,7 +2387,7 @@ OS-matrix-transform: func [
 ][
 	rotate: as red-integer! either center + 1 = scale [center][center + 1]
 	OS-matrix-rotate ctx pen-fill rotate center
-	OS-matrix-scale ctx pen-fill scale scale + 1
+	OS-matrix-scale ctx pen-fill scale center
 	OS-matrix-translate ctx pen-fill translate/x translate/y
 ]
 

@@ -168,7 +168,7 @@ gui-console-ctx: context [
 						if ft: request-font/font/mono font [
 							font: ft
 							console/font: font
-							terminal/update-cfg font cfg
+							terminal/zoom font
 						]
 					]
 					settings		[show-cfg-dialog]
@@ -250,6 +250,7 @@ ask: function [
 	vt/line: line
 	vt/pos: 0
 	vt/add-line head line
+	vt/line-pos: length? vt/lines
 	vt/ask?: yes
 	vt/reset-top/force
 	vt/clear-stack

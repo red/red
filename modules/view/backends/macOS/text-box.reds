@@ -384,7 +384,7 @@ OS-text-box-layout: func [
 		TYPE_OF(styles) = TYPE_BLOCK
 		1 < block/rs-length? styles
 	][
-		parse-text-styles as handle! nsfont as handle! ts styles w catch?
+		parse-text-styles as handle! nsfont as handle! ts styles as red-string! values + FACE_OBJ_TEXT catch?
 	]
 
 	objc_msgSend [ts sel_getUid "endEditing"]
