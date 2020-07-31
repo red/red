@@ -2909,6 +2909,7 @@ comment {
 		]
 
 		foo
+		unset 'foo
 	
 ===end-group===
 
