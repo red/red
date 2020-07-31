@@ -412,6 +412,15 @@ CERT_INFO!: alias struct! [
 	rgExtension			[int-ptr!]
 ]
 
+BCRYPT_RSAKEY_BLOB: alias struct! [
+	magic		[integer!]
+	bitlen		[integer!]
+	cbPubExp	[integer!]
+	cbMod		[integer!]
+	cbPrime1	[integer!]
+	cbPrime2	[integer!]
+]
+
 BCRYPT_ECCKEY_BLOB: alias struct! [
 	dwMagic		[integer!]
 	cbKey		[integer!]

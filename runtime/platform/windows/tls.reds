@@ -30,7 +30,7 @@ Red/System [
 #define PKCS_RSA_PRIVATE_KEY			43
 #define X509_ECC_PRIVATE_KEY			82
 #define CERT_STORE_ADD_NEW				1
-
+#define CNG_RSA_PRIVATE_KEY_BLOB		83
 
 #define SecIsValidHandle(x)	[
 	all [x/dwLower <> (as int-ptr! -1) x/dwUpper <> (as int-ptr! -1)]
@@ -118,7 +118,7 @@ tls: context [
 
 		klen/value: 0
 		etype: X509_ASN_ENCODING or PKCS_7_ASN_ENCODING
-		type/value: PKCS_RSA_PRIVATE_KEY
+		type/value: CNG_RSA_PRIVATE_KEY_BLOB
 		unless CryptDecodeObjectEx etype type/value buff blen 0 null null klen [
 			type/value: X509_ECC_PRIVATE_KEY
 			unless CryptDecodeObjectEx etype type/value buff blen 0 null null klen [
@@ -140,8 +140,53 @@ tls: context [
 		blob		[byte-ptr!]
 		size		[integer!]
 		return:		[integer!]
+		/local
+			provider	[integer!]
+			prov-name	[c-string!]
+			type-str	[c-string!]
+			cont-name	[c-string!]
+			nc-buf		[BCryptBuffer! value]
+			nc-desc		[BCryptBufferDesc! value]
+			h-key		[integer!]
+			status		[integer!]
+			prov-info	[CRYPT_KEY_PROV_INFO value]
 	][
-		1
+		provider: 0
+		prov-name: #u16 "Microsoft Software Key Storage Provider"
+		if 0 <> NCryptOpenStorageProvider :provider prov-name 0 [
+			return 2
+		]
+		type-str: #u16 "RSAPRIVATEBLOB"
+		cont-name: #u16 "RedRSAKey"
+		nc-buf/cbBuffer: 12 * 2				;-- bytes of the pvBuffer
+		nc-buf/BufferType: 45				;-- NCRYPTBUFFER_PKCS_KEY_NAME
+		nc-buf/pvBuffer: as byte-ptr! cont-name
+		nc-desc/ulVersion: 0
+		nc-desc/cBuffers: 1
+		nc-desc/pBuffers: nc-buf
+
+		h-key: 0
+		status: NCryptImportKey
+			as int-ptr! provider
+			null
+			type-str
+			as int-ptr! :nc-desc
+			:h-key
+			blob
+			size
+			80h								;-- NCRYPT_OVERWRITE_KEY_FLAG
+		NCryptFreeObject as int-ptr! provider
+		if status = 0 [
+			NCryptFreeObject as int-ptr! h-key
+			zero-memory as byte-ptr! :prov-info size? CRYPT_KEY_PROV_INFO
+			prov-info/pwszContainerName: cont-name
+			prov-info/pwszProvName: prov-name
+			unless CertSetCertificateContextProperty ctx 2 0 as byte-ptr! :prov-info [
+				status: 3
+			]
+		]
+
+		status
 	]
 
 	link-ecc-key: func [
@@ -197,7 +242,7 @@ tls: context [
 		]
 
 		type-str: #u16 "ECCPRIVATEBLOB"
-		cont-name: #u16 "RedAliasKey"
+		cont-name: #u16 "RedECCKey"
 		nc-buf/cbBuffer: 12 * 2				;-- bytes of the pvBuffer
 		nc-buf/BufferType: 45				;-- NCRYPTBUFFER_PKCS_KEY_NAME
 		nc-buf/pvBuffer: as byte-ptr! cont-name
@@ -237,10 +282,10 @@ tls: context [
 		type		[integer!]
 		return:		[integer!]
 	][
-		either type = PKCS_RSA_PRIVATE_KEY [
-			link-rsa-key ctx blob blen
-		][
+		either type = X509_ECC_PRIVATE_KEY [
 			link-ecc-key ctx blob blen
+		][
+			link-rsa-key ctx blob blen
 		]
 	]
 
