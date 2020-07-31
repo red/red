@@ -31,14 +31,13 @@ refinement: context [
 		str 	[c-string!]
 		return:	[red-word!]
 		/local
-			ref [red-refinement!]
+			ref [red-word!]
 	][
 		assert red/boot?
-		ref: as red-refinement! ALLOC_TAIL(root) 
-		ref/header: TYPE_REFINEMENT					;-- implicit reset of all header flags
-		ref/symbol: symbol/make str
-		ref/ctx: null
-		as red-word! ref
+		ref: word/load str
+		ref/header: TYPE_REFINEMENT						;-- implicit reset of all header flags
+		assert ref/ctx = global-ctx						;-- reasonable default (see #4537)							
+		ref
 	]
 	
 	push: func [
