@@ -2903,7 +2903,7 @@ comment {
 	--test-- "#4537"
 		local: "global"
 		--assert "global" == get first spec-of has [foo][]
-		--assert "global" == get first spec-of function [][foo:]
+		--assert "global" == get first spec-of function [][[foo:]]
 		unset 'local
 	
 ===end-group===
