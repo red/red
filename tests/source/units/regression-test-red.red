@@ -2899,7 +2899,17 @@ comment {
 			recycle/on
 			recycle
 		]
+	
+	--test-- "#4517"
+		foo: has [block][
+			block: [:get/path]
+			--assert get-path? block/1
+			--assert word? block/1/1
+			--assert "[:get/path]" == mold block
+		]
 
+		foo
+	
 ===end-group===
 
 ~~~end-file~~~
