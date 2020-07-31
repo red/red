@@ -158,7 +158,7 @@ tls: context [
 		]
 		type-str: #u16 "RSAPRIVATEBLOB"
 		cont-name: #u16 "RedRSAKey"
-		nc-buf/cbBuffer: 12 * 2				;-- bytes of the pvBuffer
+		nc-buf/cbBuffer: 10 * 2				;-- bytes of the pvBuffer
 		nc-buf/BufferType: 45				;-- NCRYPTBUFFER_PKCS_KEY_NAME
 		nc-buf/pvBuffer: as byte-ptr! cont-name
 		nc-desc/ulVersion: 0
@@ -243,7 +243,7 @@ tls: context [
 
 		type-str: #u16 "ECCPRIVATEBLOB"
 		cont-name: #u16 "RedECCKey"
-		nc-buf/cbBuffer: 12 * 2				;-- bytes of the pvBuffer
+		nc-buf/cbBuffer: 10 * 2				;-- bytes of the pvBuffer
 		nc-buf/BufferType: 45				;-- NCRYPTBUFFER_PKCS_KEY_NAME
 		nc-buf/pvBuffer: as byte-ptr! cont-name
 		nc-desc/ulVersion: 0
