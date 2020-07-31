@@ -415,7 +415,7 @@ tls: context [
 		if status <> 0 [
 			flags: status
 			status: GetLastError
-			probe ["status error: " as int-ptr! status " " as int-ptr! status]
+			probe ["status error: " as int-ptr! flags " " as int-ptr! status]
 			either status = 8009030Dh [		;-- SEC_E_UNKNOWN_CREDENTIALS
 				status: -1					;-- needs administrator rights
 			][
