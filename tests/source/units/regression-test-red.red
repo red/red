@@ -2900,9 +2900,10 @@ comment {
 			recycle
 		]
 	
-	--test-- "#4563"
+	--test-- "#4563" do [							;@@ #4526
 		--assert error? try [make op! :>>]
 		--assert error? try [make op! make op! func [x y][]]
+	]
 	
 ===end-group===
 
