@@ -44,8 +44,7 @@ tls-data!: alias struct! [
 	credential	[SecHandle! value]		;-- credential handle
 	security	[int-ptr!]				;-- security context handle lower
 	security2	[int-ptr!]				;-- security context handle upper
-	cert-store	[int-ptr!]
-	cert-ctx	[CERT_CONTEXT]
+	cert-ctx	[CERT_CONTEXT]			;-- saved cert ctx for now, it need a key for server mode
 	;-- SecPkgContext_StreamSizes
 	ctx-max-msg	[integer!]
 	ctx-header	[integer!]
@@ -290,7 +289,6 @@ tls: context [
 	]
 
 	load-cert: func [
-		store		[int-ptr!]
 		cert		[red-string!]
 		key			[red-string!]
 		pwd			[red-string!]
@@ -301,7 +299,6 @@ tls: context [
 			blen	[integer!]
 			buff	[byte-ptr!]
 			etype	[integer!]
-			pctx	[integer!]
 			ctx		[CERT_CONTEXT]
 			pkey	[byte-ptr!]
 			klen	[integer!]
@@ -316,14 +313,12 @@ tls: context [
 		if null? buff [return null]
 
 		etype: X509_ASN_ENCODING or PKCS_7_ASN_ENCODING
-		pctx: 0
-		CertAddEncodedCertificateToStore store etype buff blen CERT_STORE_ADD_NEW :pctx
-		if pctx = 0 [
+		ctx: CertCreateCertificateContext etype buff blen
+		if null? ctx [
 			free buff
 			return null
 		]
 		free buff
-		ctx: as CERT_CONTEXT pctx
 		unless null? key [
 			klen: 0 type: 0
 			pkey: decode-key key :klen :type
@@ -336,66 +331,55 @@ tls: context [
 		ctx
 	]
 
-	init-server-cert: func [
+	create-cert-ctx: func [
 		data		[tls-data!]
+		return:		[CERT_CONTEXT]
 		/local
 			values	[red-value!]
 			extra	[red-block!]
 			cert	[red-string!]
-			chain	[red-string!]
 			key		[red-string!]
 			pwd		[red-string!]
-			store	[int-ptr!]
-			ctx		[CERT_CONTEXT]
 	][
 		values: object/get-values data/port
 		extra: as red-block! values + port/field-extra
-		if TYPE_OF(extra) <> TYPE_BLOCK [exit]
+		if TYPE_OF(extra) <> TYPE_BLOCK [return null]
 		cert: as red-string! block/select-word extra word/load "cert" no
-		if TYPE_OF(cert) <> TYPE_STRING [exit]
-		chain: as red-string! block/select-word extra word/load "chain-cert" no
+		if TYPE_OF(cert) <> TYPE_STRING [return null]
 		key: as red-string! block/select-word extra word/load "key" no
 		pwd: as red-string! block/select-word extra word/load "password" no
-		store: CertOpenStore CERT_STORE_PROV_MEMORY 0 null 0 null
-		data/cert-store: store
-		data/cert-ctx: load-cert store cert key pwd
-		if TYPE_OF(cert) = TYPE_STRING [
-			ctx: load-cert store chain null null
-			CertFreeCertificateContext ctx
+		data/cert-ctx: load-cert cert key pwd
+		if null? data/cert-ctx [
+			return null
 		]
-	]
-
-	init-client-cert: func [
-		data		[tls-data!]
-		/local
-			values	[red-value!]
-			extra	[red-block!]
-	][
-		values: object/get-values data/port
-		extra: as red-block! values + port/field-extra
-		if TYPE_OF(extra) <> TYPE_BLOCK [exit]
-		print-line "extra not empty"
+		data/cert-ctx
 	]
 
 	create-credentials: func [
-		hcred		[SecHandle!]		;-- OUT: Security handle in hcred
-		cert-ctx	[CERT_CONTEXT]
+		data		[tls-data!]
 		client?		[logic!]			;-- Is it client side?
 		return:		[integer!]			;-- return status code
 		/local
+			ctx		[integer!]
 			scred	[SCHANNEL_CRED value]
 			status	[integer!]
 			expiry	[tagFILETIME value]
 			flags	[integer!]
-			ptr		[ptr-value!]
 	][
+		ctx: 0
+		if null? data/cert-ctx [
+			data/cert-ctx: create-cert-ctx data
+		]
+		unless null? data/cert-ctx [
+			ctx: as integer! data/cert-ctx
+		]
+
 		zero-memory as byte-ptr! :scred size? SCHANNEL_CRED
 		scred/dwVersion: 4		;-- SCHANNEL_CRED_VERSION
 
-		if cert-ctx <> null [
-			ptr/value: as int-ptr! cert-ctx
-			scred/cCreds: 1
-			scred/paCred: as int-ptr! :ptr
+		if ctx <> 0 [
+			scred/cCreds: 1				;-- TODO: free ctxs, CertFreeCertificateContext
+			scred/paCred: :ctx
 		]
 		
 		scred/dwFlags: SCH_USE_STRONG_CRYPTO
@@ -409,7 +393,7 @@ tls: context [
 			as int-ptr! :scred
 			null
 			null
-			hcred
+			as SecHandle! :data/credential
 			:expiry
 
 		if status <> 0 [
@@ -567,15 +551,6 @@ tls: context [
 		state: data/iocp/state
 		client?: state and IO_STATE_CLIENT <> 0
 
-		if state and IO_STATE_TLS_INIT = 0 [
-			state: state or IO_STATE_TLS_INIT
-			either client? [
-				init-client-cert data
-			][
-				init-server-cert data
-			]
-		]
-
 		;-- allocate 2 SecBuffer! on stack for buffer
 		inbuf-1: as SecBuffer! system/stack/allocate (size? SecBuffer!) >> 1
 		inbuf-2: inbuf-1 + 1
@@ -586,8 +561,7 @@ tls: context [
 
 		if null? data/security [
 			create data
-			either client? [cert: null][cert: data/cert-ctx]
-			create-credentials as SecHandle! :data/credential cert client?
+			create-credentials data client?
 		]
 
 		s: as series! data/send-buf/value
@@ -756,9 +730,9 @@ tls: context [
 					return false
 				]
 				SEC_E_INCOMPLETE_CREDENTIALS [
-					cert-client: get-credential data yes
-					if null? cert-client [return false]
-					create-credentials as SecHandle! :data/credential cert-client client? 
+					;cert-client: get-credential data yes
+					;if null? cert-client [return false]
+					create-credentials data client?
 				]
 				default [
 					probe ["InitializeSecurityContext Error " ret]
