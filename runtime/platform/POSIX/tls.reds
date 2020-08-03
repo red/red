@@ -61,6 +61,97 @@ tls: context [
 		cert
 	]
 
+	load-cert: func [
+		ctx			[int-ptr!]
+		cert		[red-string!]
+		return:		[integer!]
+		/local
+			len		[integer!]
+			str		[c-string!]
+			bio		[int-ptr!]
+			x509	[int-ptr!]
+	][
+		len: -1
+		str: unicode/to-utf8 cert :len
+
+		bio: BIO_new_mem_buf str len
+		if null? bio [return 1]
+		x509: PEM_read_bio_X509 bio null null null
+		BIO_free bio
+		if null? x509 [
+			return 2
+		]
+		if 1 <> SSL_CTX_use_certificate ctx x509 [
+			X509_free x509
+			return 3
+		]
+		X509_free x509
+		0
+	]
+
+	link-private-key: func [
+		ctx			[int-ptr!]
+		key			[red-string!]
+		pwd			[red-string!]
+		return:		[integer!]
+		/local
+			len		[integer!]
+			str		[c-string!]
+			bio		[int-ptr!]
+			rsa		[int-ptr!]
+	][
+		len: -1
+		str: unicode/to-utf8 key :len
+
+		bio: BIO_new_mem_buf str len
+		if null? bio [return 1]
+		rsa: PEM_read_bio_RSAPrivateKey bio null null null
+		BIO_free bio
+		if null? rsa [
+			return 2
+		]
+		if 1 <> SSL_CTX_use_RSAPrivateKey ctx rsa [
+			RSA_free rsa
+			return 3
+		]
+		if 1 <> SSL_CTX_check_private_key ctx [
+			return 4
+		]
+		RSA_free rsa
+		0
+	]
+
+	create-cert-ctx: func [
+		data		[tls-data!]
+		ctx			[int-ptr!]
+		return:		[integer!]
+		/local
+			values	[red-value!]
+			extra	[red-block!]
+			cert	[red-string!]
+			chain	[red-string!]
+			key		[red-string!]
+			pwd		[red-string!]
+			ret		[integer!]
+	][
+		values: object/get-values data/port
+		extra: as red-block! values + port/field-extra
+		if TYPE_OF(extra) <> TYPE_BLOCK [return 1]
+		cert: as red-string! block/select-word extra word/load "cert" no
+		if TYPE_OF(cert) <> TYPE_STRING [return 2]
+		chain: as red-string! block/select-word extra word/load "chain-cert" no
+		key: as red-string! block/select-word extra word/load "key" no
+		pwd: as red-string! block/select-word extra word/load "password" no
+		if 0 <> load-cert ctx cert [
+			return 3
+		]
+		link-private-key ctx key pwd
+		;if TYPE_OF(chain) = TYPE_STRING [
+		;	load-cert ctx chain
+		;]
+		return 0
+	]
+
 	create: func [
 		td		[tls-data!]
 		client? [logic!]
@@ -74,28 +165,15 @@ tls: context [
 	][
 		if null? td/ssl [
 			either client? [
-				if null? client-ctx [client-ctx: SSL_CTX_new TLS_client_method]
+				if null? client-ctx [client-ctx: SSL_CTX_new TLSv1_2_client_method]
 				ctx: client-ctx
 			][
 				if null? server-ctx [
-					server-ctx: SSL_CTX_new TLS_server_method
-					;probe SSL_CTX_use_certificate_chain_file server-ctx "certificate.crt"
-					;if zero? SSL_CTX_use_PrivateKey_file server-ctx "private.key" 1 [ ;-- X509_FILETYPE_PEM
-					pk: create-private-key
-					cert: create-certificate pk
-					SSL_CTX_use_certificate server-ctx cert
-					SSL_CTX_use_PrivateKey server-ctx pk
-						while [
-							err: ERR_get_error
-							err <> 0
-						][
-							probe ERR_error_string err null
-						]
-					;]
-					SSL_CTX_check_private_key server-ctx
+					server-ctx: SSL_CTX_new TLSv1_2_server_method
 				]
 				ctx: server-ctx
 			]
+			create-cert-ctx td ctx
 			ssl: SSL_new ctx
 
 			td/ssl: ssl
