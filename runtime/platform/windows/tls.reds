@@ -31,7 +31,10 @@ Red/System [
 #define X509_ECC_PRIVATE_KEY			82
 #define CERT_STORE_ADD_NEW				1
 #define CNG_RSA_PRIVATE_KEY_BLOB		83
+#define CERT_STORE_ADD_REPLACE_EXISTING	3
 #define CERT_STORE_ADD_ALWAYS			4
+#define CERT_SYSTEM_STORE_LOCAL_MACHINE	[2 << 16]
+#define CERT_SYSTEM_STORE_CURRENT_USER	[1 << 16]
 
 #define SecIsValidHandle(x)	[
 	all [x/dwLower <> (as int-ptr! -1) x/dwUpper <> (as int-ptr! -1)]
@@ -311,14 +314,14 @@ tls: context [
 			flags	[integer!]
 			store	[int-ptr!]
 	][
-		either client? [
-			flags: 0001C000h		;-- CERT_STORE_OPEN_EXISTING_FLAG or CERT_STORE_READONLY_FLAG or CERT_SYSTEM_STORE_CURRENT_USER
-		][
-			flags: 0002C000h		;-- CERT_STORE_OPEN_EXISTING_FLAG or CERT_STORE_READONLY_FLAG or CERT_SYSTEM_STORE_LOCAL_MACHINE
-		]
+		;either client? [
+			flags: CERT_SYSTEM_STORE_CURRENT_USER
+		;][
+		;	flags: CERT_SYSTEM_STORE_LOCAL_MACHINE				;-- this need Administrator rights
+		;]
 		store: CertOpenStore 10 0 null flags #u16 "My"
 		if null? store [return false]
-		unless CertAddCertificateContextToStore store cert CERT_STORE_ADD_ALWAYS null [
+		unless CertAddCertificateContextToStore store cert CERT_STORE_ADD_REPLACE_EXISTING null [
 			return false
 		]
 		CertCloseStore store 0
@@ -366,7 +369,7 @@ tls: context [
 		if TYPE_OF(extra) <> TYPE_BLOCK [return null]
 		cert: as red-string! block/select-word extra word/load "cert" no
 		if TYPE_OF(cert) <> TYPE_STRING [return null]
-		chain: as red-string! block/select-word extra word/load "chain" no
+		chain: as red-string! block/select-word extra word/load "chain-cert" no
 		key: as red-string! block/select-word extra word/load "key" no
 		pwd: as red-string! block/select-word extra word/load "password" no
 		ctx: load-cert cert
