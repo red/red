@@ -317,7 +317,13 @@
 
 	--test-- "issue #3950"
 		--assert (make bitset! [not #{000000000000000040}]) = do mold complement charset "A"
-
+	
+	--test-- "issue #4389"
+		bitset: attempt [make bitset! 0]
+		--assert bitset? bitset
+		--assert zero? length? bitset
+		--assert equal? mold bitset "make bitset! #{}"
+	
 ===end-group===
 
 ~~~end-file~~~
