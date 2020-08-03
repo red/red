@@ -1239,6 +1239,18 @@ DNS_MESSAGE_BUFFER: alias struct! [
 			pvPara				[c-string!]
 			return:				[int-ptr!]
 		]
+		CertCloseStore: "CertCloseStore" [
+			store				[int-ptr!]
+			flags				[integer!]
+			return:				[logic!]
+		]
+		CertAddCertificateContextToStore: "CertAddCertificateContextToStore" [
+			store				[int-ptr!]
+			ctx					[CERT_CONTEXT]
+			dwAddDisposition	[integer!]
+			ppStoreContext		[int-ptr!]
+			return:				[logic!]
+		]
 		CertFindCertificateInStore: "CertFindCertificateInStore" [
 			hCertStore			[int-ptr!]
 			dwCertEncodingType	[integer!]

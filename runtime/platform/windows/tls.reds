@@ -31,6 +31,7 @@ Red/System [
 #define X509_ECC_PRIVATE_KEY			82
 #define CERT_STORE_ADD_NEW				1
 #define CNG_RSA_PRIVATE_KEY_BLOB		83
+#define CERT_STORE_ADD_ALWAYS			4
 
 #define SecIsValidHandle(x)	[
 	all [x/dwLower <> (as int-ptr! -1) x/dwUpper <> (as int-ptr! -1)]
@@ -274,24 +275,8 @@ tls: context [
 		status
 	]
 
-	link-private-key: func [
-		ctx			[CERT_CONTEXT]
-		blob		[byte-ptr!]
-		blen		[integer!]
-		type		[integer!]
-		return:		[integer!]
-	][
-		either type = X509_ECC_PRIVATE_KEY [
-			link-ecc-key ctx blob blen
-		][
-			link-rsa-key ctx blob blen
-		]
-	]
-
 	load-cert: func [
 		cert		[red-string!]
-		key			[red-string!]
-		pwd			[red-string!]
 		return:		[CERT_CONTEXT]
 		/local
 			len		[integer!]
@@ -300,10 +285,6 @@ tls: context [
 			buff	[byte-ptr!]
 			etype	[integer!]
 			ctx		[CERT_CONTEXT]
-			pkey	[byte-ptr!]
-			klen	[integer!]
-			type	[integer!]
-			ret		[integer!]
 	][
 		len: -1
 		str: unicode/to-utf8 cert :len
@@ -319,40 +300,89 @@ tls: context [
 			return null
 		]
 		free buff
-		unless null? key [
-			klen: 0 type: 0
-			pkey: decode-key key :klen :type
-			unless null? pkey [
-				ret: link-private-key ctx pkey klen type
-				;-- print-line ["link-private-key: " as int-ptr! ret]
-				free pkey
-			]
-		]
 		ctx
+	]
+
+	save-cert: func [
+		cert		[CERT_CONTEXT]
+		client?		[logic!]
+		return:		[logic!]
+		/local
+			flags	[integer!]
+			store	[int-ptr!]
+	][
+		either client? [
+			flags: 0001C000h		;-- CERT_STORE_OPEN_EXISTING_FLAG or CERT_STORE_READONLY_FLAG or CERT_SYSTEM_STORE_CURRENT_USER
+		][
+			flags: 0002C000h		;-- CERT_STORE_OPEN_EXISTING_FLAG or CERT_STORE_READONLY_FLAG or CERT_SYSTEM_STORE_LOCAL_MACHINE
+		]
+		store: CertOpenStore 10 0 null flags #u16 "My"
+		if null? store [return false]
+		unless CertAddCertificateContextToStore store cert CERT_STORE_ADD_ALWAYS null [
+			return false
+		]
+		CertCloseStore store 0
+	]
+
+	link-private-key: func [
+		ctx			[CERT_CONTEXT]
+		key			[red-string!]
+		pwd			[red-string!]
+		/local
+			klen	[integer!]
+			type	[integer!]
+			pkey	[byte-ptr!]
+			ret		[integer!]
+	][
+		klen: 0 type: 0
+		pkey: decode-key key :klen :type
+		unless null? pkey [
+			ret: either type = X509_ECC_PRIVATE_KEY [
+				link-ecc-key ctx pkey klen
+			][
+				link-rsa-key ctx pkey klen
+			]
+			;-- print-line ["link-private-key: " as int-ptr! ret]
+			free pkey
+		]
 	]
 
 	create-cert-ctx: func [
 		data		[tls-data!]
+		client?		[logic!]
 		return:		[CERT_CONTEXT]
 		/local
 			values	[red-value!]
 			extra	[red-block!]
 			cert	[red-string!]
+			chain	[red-string!]
 			key		[red-string!]
 			pwd		[red-string!]
+			ctx		[CERT_CONTEXT]
+			ctx2	[CERT_CONTEXT]
 	][
 		values: object/get-values data/port
 		extra: as red-block! values + port/field-extra
 		if TYPE_OF(extra) <> TYPE_BLOCK [return null]
 		cert: as red-string! block/select-word extra word/load "cert" no
 		if TYPE_OF(cert) <> TYPE_STRING [return null]
+		chain: as red-string! block/select-word extra word/load "chain" no
 		key: as red-string! block/select-word extra word/load "key" no
 		pwd: as red-string! block/select-word extra word/load "password" no
-		data/cert-ctx: load-cert cert key pwd
-		if null? data/cert-ctx [
+		ctx: load-cert cert
+		if null? ctx [
 			return null
 		]
-		data/cert-ctx
+		link-private-key ctx key pwd
+		save-cert ctx client?
+		if TYPE_OF(chain) = TYPE_STRING [
+			ctx2: load-cert chain
+			unless null? ctx2 [
+				save-cert ctx2 client?
+				CertFreeCertificateContext ctx2
+			]
+		]
+		ctx
 	]
 
 	create-credentials: func [
@@ -368,7 +398,7 @@ tls: context [
 	][
 		ctx: 0
 		if null? data/cert-ctx [
-			data/cert-ctx: create-cert-ctx data
+			data/cert-ctx: create-cert-ctx data client?
 		]
 		unless null? data/cert-ctx [
 			ctx: as integer! data/cert-ctx
