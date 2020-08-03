@@ -568,7 +568,7 @@ bitset: context [
 				]
 				int: as red-integer! spec
 				size: int/value
-				if size <= 0 [
+				if size < 0 [
 					fire [
 						TO_ERROR(script out-of-range)
 						int
