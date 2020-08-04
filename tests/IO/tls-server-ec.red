@@ -103,7 +103,9 @@ server/extra: compose [
     chain-cert: (chain)
     key: (key)
     ;password: "mypass"
-    protocol: [tls1.2 tls1.1]
+    ;-- temporary
+    min-protocol: 0300h             ;-- min protocol sslv3,
+    max-protocol: 0303h             ;-- max protocol tls1.2
 ]
 
 server/awake: func [event] [

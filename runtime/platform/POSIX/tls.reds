@@ -111,26 +111,27 @@ tls: context [
 			len		[integer!]
 			str		[c-string!]
 			bio		[int-ptr!]
-			rsa		[int-ptr!]
+			pkey	[int-ptr!]
 	][
 		len: -1
 		str: unicode/to-utf8 key :len
 
 		bio: BIO_new_mem_buf str len
 		if null? bio [return 1]
-		rsa: PEM_read_bio_RSAPrivateKey bio null null null
+		pkey: PEM_read_bio_PrivateKey bio null null null
 		BIO_free bio
-		if null? rsa [
+		if null? pkey [
 			return 2
 		]
-		if 1 <> SSL_CTX_use_RSAPrivateKey ctx rsa [
-			RSA_free rsa
+		if 1 <> SSL_CTX_use_PrivateKey ctx pkey [
+			EVP_PKEY_free pkey
 			return 3
 		]
 		if 1 <> SSL_CTX_check_private_key ctx [
+			EVP_PKEY_free pkey
 			return 4
 		]
-		RSA_free rsa
+		EVP_PKEY_free pkey
 		0
 	]
 

@@ -831,6 +831,13 @@ errno: as int-ptr! 0
 			u		[byte-ptr!]
 			return:	[int-ptr!]
 		]
+		PEM_read_bio_PrivateKey: "PEM_read_bio_PrivateKey" [
+			bp		[int-ptr!]
+			key		[int-ptr!]
+			cb		[int-ptr!]
+			u		[byte-ptr!]
+			return:	[int-ptr!]
+		]
 		BIO_free: "BIO_free" [
 			bio		[int-ptr!]
 		]
@@ -840,6 +847,12 @@ errno: as int-ptr! 0
 			pkey	[int-ptr!]
 			key		[int-ptr!]
 			return: [integer!]
+		]
+		d2i_AutoPrivateKey: "d2i_AutoPrivateKey" [
+			pkey	[int-ptr!]
+			pp		[int-ptr!]
+			len		[integer!]
+			return:	[int-ptr!]
 		]
 		RSA_new: "RSA_new" [return: [int-ptr!]]
 		RSA_free: "RSA_free" [rsa [int-ptr!]]
