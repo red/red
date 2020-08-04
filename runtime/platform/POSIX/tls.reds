@@ -16,6 +16,8 @@ Red/System [
 #define SSL_ERROR_WANT_X509_LOOKUP	4
 #define SSL_CTRL_SET_MIN_PROTO_VERSION          123
 #define SSL_CTRL_SET_MAX_PROTO_VERSION          124
+#define SSL_CTRL_EXTRA_CHAIN_CERT               14
+#define SSL_CTRL_CHAIN_CERT                     89
 
 tls: context [
 
@@ -66,6 +68,7 @@ tls: context [
 	load-cert: func [
 		ctx			[int-ptr!]
 		cert		[red-string!]
+		chain?		[logic!]
 		return:		[integer!]
 		/local
 			len		[integer!]
@@ -83,10 +86,18 @@ tls: context [
 		if null? x509 [
 			return 2
 		]
-		if 1 <> SSL_CTX_use_certificate ctx x509 [
-			X509_free x509
-			return 3
+		either chain? [
+			if 1 <> SSL_CTX_ctrl ctx SSL_CTRL_CHAIN_CERT 1 x509 [
+				X509_free x509
+				return 3
+			]
+		][
+			if 1 <> SSL_CTX_use_certificate ctx x509 [
+				X509_free x509
+				return 4
+			]
 		]
+
 		X509_free x509
 		0
 	]
@@ -153,13 +164,13 @@ tls: context [
 		chain: as red-string! block/select-word extra word/load "chain-cert" no
 		key: as red-string! block/select-word extra word/load "key" no
 		pwd: as red-string! block/select-word extra word/load "password" no
-		if 0 <> load-cert ctx cert [
+		if 0 <> load-cert ctx cert no [
 			return 3
 		]
 		link-private-key ctx key pwd
-		;if TYPE_OF(chain) = TYPE_STRING [
-		;	load-cert ctx chain
-		;]
+		if TYPE_OF(chain) = TYPE_STRING [
+			load-cert ctx chain yes
+		]
 		return 0
 	]
 
