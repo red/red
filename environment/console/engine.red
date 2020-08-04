@@ -131,7 +131,6 @@ system/console: context [
 		line	[integer!]
 		token
 		return:	[logic!]
-		/local	s c
 	][
 		[open close error]
 		switch event [
@@ -140,27 +139,43 @@ system/console: context [
 				true
 			]
 			close [
-				if delimiter-map/:type <> last delimiters [throw 'stop]
-				take/last delimiters true
+				if delimiter-map/:type <> last delimiters [throw 'stop]	;-- unmatched ")" "]"
+				take/last delimiters
 				true
 			]
 			error [
-				if any [#"/" = last delimiters find "})]" input/1][throw 'stop]
-				if token/y > token/x [
-					s: copy/part head input token
-					switch s/1 [
-						#"<" [
-							append s #">"
-							if tag! = scan s [append delimiters #"<"]
-						]
-						#"%" [
-							c: 1
-							parse s [some [#"%" (c: c + 1)] #"{" (append delimiters #"{")]
+				if type = error! [throw 'stop]			;-- unmatched "}"
+				if all [								;-- block! paren! map! have open-event, so just match delimiters
+					find [block! paren! map!] to-word type
+					delimiter-map/:type = last delimiters
+				][
+					throw 'break
+				]
+				back2: back back tail delimiters
+				
+				if all [type = paren! #"/" = back2/1][	;-- paren! in path
+					remove back2
+					throw 'break
+				]
+				if type = tag! [						;-- tag! haven't open-event
+					append delimiters #"<"
+					throw 'break
+				]
+				if all [type = binary! input/1 <> #"}"][ ;-- binary! haven't open-event
+					append delimiters #"{"
+					throw 'break
+				]
+				if type = string! [
+					either input/(token/x - token/y) = #"%" [ ;-- raw-string! haven't open-event
+						append delimiters #"{"
+						throw 'break
+					][
+						if delimiter-map/:type = last delimiters [ ;-- other string! if have open-event, do match
+							throw 'break
 						]
 					]
 				]
-				input: next input
-				false
+				throw 'stop
 			]
 		]
 	]
@@ -170,8 +185,7 @@ system/console: context [
 		return: [logic!]
 	][
 		clear delimiters
-		if 'stop = catch [transcode/trace buffer :delimiter-lex][return false]
-		true
+		'stop <> catch [transcode/trace buffer :delimiter-lex] ;-- catches 'stop and 'break
 	]
 	
 	try-do: func [code /local result return: [any-type!]][
@@ -205,7 +219,7 @@ system/console: context [
 						result: either float? :result [form/part :result limit][
 							mold/part :result limit
 						]
-						if limit <= length? result [ ;-- optimized for width = 72
+						if limit <= length? result [	;-- optimized for width = 72
 							clear back tail result
 							append result "..."
 						]

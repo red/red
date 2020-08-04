@@ -340,16 +340,18 @@ object [
 
 	zoom: func [event /local ft sz][
 		box/line-spacing: none
-		ft: box/font
-		sz: ft/size
-		either event/picked > 0 [sz: sz + 1][sz: sz - 1]
-		if sz = 5 [exit]		;-- mininum size
-		ft/size: sz
+		either object? event [ft: event][
+			ft: box/font
+			sz: ft/size
+			either event/picked > 0 [sz: sz + 1][sz: sz - 1]
+			if sz = 5 [exit]		;-- mininum size
+			ft/size: sz
+		]
 		update-cfg ft none
 	]
 
 	update-caret: func [/local len n s h lh offset][
-		unless line [exit]
+		unless all [line mouse-up?][exit]
 		n: top
 		h: 0
 		len: length? skip lines top
@@ -409,6 +411,8 @@ object [
 
 		offset-to-line event/offset
 		mouse-to-caret event/offset
+		caret/rate: none
+		caret/enabled?: no
 	]
 
 	mouse-up: func [event [event!]][
@@ -416,7 +420,10 @@ object [
 		if empty? lines [exit]
 		mouse-up?: yes
 		if 2 = length? selects [clear selects]
+		caret/enabled?: yes
+		mouse-to-caret event/offset
 		system/view/platform/redraw console
+		caret/rate: 2
 	]
 
 	mouse-move: func [offset /local y][
@@ -449,7 +456,6 @@ object [
 	select-to-offset: func [offset][
 		clear skip selects 2
 		offset-to-line offset
-		mouse-to-caret offset
 		system/view/platform/redraw console
 	]
 

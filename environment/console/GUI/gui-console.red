@@ -168,7 +168,7 @@ gui-console-ctx: context [
 						if ft: request-font/font/mono font [
 							font: ft
 							console/font: font
-							terminal/update-cfg font cfg
+							terminal/zoom font
 						]
 					]
 					settings		[show-cfg-dialog]

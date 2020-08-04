@@ -456,11 +456,14 @@ adjust-index: func [
 	unit: GET_UNIT(s)
 	if unit = UCS-4 [
 		head: (as byte-ptr! s/offset) + (str/head + offset << 2)
-		tail: head + (idx + offset * 4)
+		tail: head + (idx * 4)
 		i: 0
 		while [head < tail][
 			c: string/get-char head unit
-			if c >= 00010000h [idx: idx + adjust]
+			if c >= 00010000h [
+				idx: idx + adjust
+				if adjust < 0 [tail: tail - unit]
+			]
 			head: head + unit
 		]
 	]

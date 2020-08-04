@@ -28,7 +28,7 @@ context [
 		D22B72E7CAC21E9B7C3EFC3F23437BB958040000
 	}
 	if all [
-		system/version/4 = 3
+		system/version/4 = 3							;-- only when running the toolchain on Windows
 		find system/components 'Library 
 	][
 		path: to-rebol-file get-env "SystemRoot"		;-- workaround issues on 64-bit editions
@@ -41,18 +41,19 @@ context [
 			HeaderSum	[struct! [n [integer!]]]
 			CheckSum	[struct! [n [integer!]]]
 			return:		[integer!]
-		] Imagehlplib "MapFileAndCheckSumA" 
+		] Imagehlplib "MapFileAndCheckSumA"
 	]
 	
 	defs: [
+		PE-signature #{50450000}						;-- "PE^@^@"
 		image [
 			exe-base-address	#{00400000}
 			dll-base-address	#{10000000}
 			drv-base-address	#{00010000}
 			
 			MSDOS-header #{
-				4D5A800001000000 04001000FFFF0000
-				4001000000000000 4000000000000000
+				4D5A900003000000 04000000FFFF0000
+				B800000000000000 4000000000000000
 				0000000000000000 0000000000000000
 				0000000000000000 0000000080000000
 				0E1FBA0E00B409CD 21B8014CCD215468
@@ -154,8 +155,8 @@ context [
 			BSS					#{C0000080}	;-- [read write uninitialized]
 			data				#{C0000040}	;-- [read write initialized]
 			export				#{40000040}	;-- [read initialized]
-			import				#{C0000040}	;-- [read write initialized]
-			idata				#{C0000040}	;-- [read write initialized]
+			import				#{40000040}	;-- [read initialized]
+			idata				#{40000040}	;-- [read initialized]
 			reloc				#{42000040} ;-- [read discardable initialized]
 			except				#{40000040}	;-- [read initialized]
 			rsrc				#{40000040}	;-- [read initialized]
@@ -417,11 +418,13 @@ context [
 		]
 	]
 	
-	precalc-entry-point: func [job [object!] /local ptr][
+	precalc-entry-point: func [job [object!] /local ptr extra][
+		extra: pick 1x0 to-logic find job/sections 'import  ;-- +1 for IAT section not yet added
 		ptr: (length? defs/image/MSDOS-header)
+			+ (length? defs/PE-signature)
 			+ (length? form-struct file-header)
 			+ (opt-header-size)
-			+ (sect-header-size * divide length? job/sections 2)
+			+ (sect-header-size * (extra + divide length? job/sections 2))
 			
 		ep-mem-page:  round/ceiling ptr / memory-align
 		ep-file-page: round/ceiling ptr / file-align
@@ -693,7 +696,7 @@ context [
 	]
 
 	build-header: func [job [object!] /local fh][
-		if find [exe dll drv] job/type [append job/buffer "PE^@^@"]	;-- image signature
+		if find [exe dll drv] job/type [append job/buffer defs/PE-signature]
 
 		fh: make-struct file-header none
 		fh/machine: 		 to integer! select defs/machine job/target
@@ -721,7 +724,7 @@ context [
 		foreach [name spec] sections [
 			flag: select defs/s-type name
 			unless zero? to integer! flag and #{00000040} [
-				n: n + (length? spec/2) + (pad-size? spec/2)
+				n: n + round/to/ceiling (length? spec/2) file-align
 			]
 		]
 		n
@@ -752,9 +755,9 @@ context [
 		oh: make-struct optional-header none
 
 		oh/magic:				to integer! #{010B}		;-- PE32 magic number
-		oh/major-link-version:  linker/version/1
-		oh/minor-link-version:	linker/version/2
-		oh/code-size:			length? job/sections/code/2
+		oh/major-link-version:  14						;-- required to be > 3.5 by Windows to load the PE file!
+		oh/minor-link-version:	0						;-- API from WinTrust and DbgHlp libraries won't work otherwise!
+		oh/code-size:			round/to/ceiling (length? job/sections/code/2) file-align
 		oh/initdata-size:		initdata-size? job/sections
 		oh/uninitdata-size:		0			
 		oh/entry-point-addr:	ep						;-- entry point is set to beginning of CODE
@@ -1167,7 +1170,7 @@ context [
 	]
 	
 	on-file-written: func [job [object!] file [file!] /local file-sum chk-sum offset buffer res][
-		if job/type = 'drv [
+		either redc/load-lib? [
 			file-sum: make struct! int-ptr! [0]
 			chk-sum:  make struct! int-ptr! [0]
 
@@ -1194,6 +1197,10 @@ context [
 			pointer/value: chk-sum/n
 			change/part at buffer offset form-struct pointer 4
 			write/binary file buffer
+		][
+			if job/type = 'drv [
+				make error! "Rebol/View or a Rebol kernel with /Library component is required!"
+			]
 		]
 	]
 ]

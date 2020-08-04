@@ -2638,6 +2638,17 @@ b}
 	; --test-- "#2133"
 		; OPEN
 
+	--test-- "#2134"
+		--assert "0:09:00" = form 00:09:00
+		--assert "0:01:00" = form 00:00:01 * 60
+		t2134: 0:00:00 loop 60 [t2134: t2134 + 1]
+		--assert "0:01:00" = form t2134
+		--assert "0:00:00"        = form 0:00:01 / 10000000
+		--assert "0:00:00.000001" = form 0:00:01 / 1000000
+		--assert "0:00:00.00001"  = form 0:00:01 / 100000
+		--assert "0:00:00.0001"   = form 0:00:01 / 10000
+		--assert "0:00:00.001"    = form 0:00:01 / 1000
+
 	--test-- "#2136"
 		blk2136: copy []
 		insert/dup blk2136 0 3
@@ -2800,6 +2811,10 @@ b}
 			--assert unset? context [exit]
 			unset [spec3362-1 spec3362-2]
 		]
+
+	--test-- "3669"
+		--assert not equal? <a> <a^>
+		--assert equal?     <a> load {<a^>}
 
 	--test-- "#3739"
 		reactor3739: func [spec] [make deep-reactor! spec]
