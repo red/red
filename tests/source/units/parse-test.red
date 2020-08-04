@@ -564,7 +564,40 @@ Red [
 	--test-- "blk-ins5"	
 		--assert parse blk: [] [insert only [a b]]
 		--assert blk = [[a b]]
-
+	
+	--test-- "blk-ins6"
+		series: [a b c]
+		letter: 'x
+		--assert parse series [insert letter 'a 'b 'c]
+		--assert series == [x a b c]
+	
+	--test-- "blk-ins7"
+		series:  [a b c]
+		letters: [x y z]
+		--assert parse series ['a 'b insert letters insert only letters 'c]
+		--assert series == [a b x y z [x y z] c]
+	
+	--test-- "blk-ins8"
+		series:  [a b c]
+		letters: [x y z]
+		--assert parse series [mark: 'a insert mark letters insert only mark letters 'b 'c]
+		--assert series == [[x y z] x y z a b c]
+	
+	--test-- "blk-ins9"
+		series: [a b c]
+		letter: 'x
+		--assert parse series [mark: insert (letter) 'a 'b insert only mark (letter) 'c]
+		--assert series == [x x a b c]
+	
+	--test-- "blk-ins10"
+		series:  [a b c]
+		letters: [x y z]
+		--assert parse series [
+			to end mark: [fail]
+			| insert only mark letters insert mark letters 'a 'b 'c 'x 'y 'z block!
+		]
+		--assert series == [a b c x y z [x y z]]
+		
 	--test-- "blk-chg1"
 		--assert parse blk: [1][change integer! 'a]
 		--assert blk = [a]
@@ -1467,6 +1500,35 @@ Red [
 		--assert parse str: "test" [some [skip p: insert #"_"] :p remove skip]
 		--assert str = "t_e_s_t"
 
+	--test-- "str-ins5"
+		series: "abc"
+		--assert parse series ["a" mark: "b" insert mark space insert space "c"]
+		--assert series == "a b c"
+
+	--test-- "str-ins6"
+		series: "abc"
+		--assert parse series [
+			mark: "abc" insert only mark space mark: [fail]
+			| insert only mark space [space "abc" space]
+		]
+		--assert series == " abc "
+	
+	--test-- "str-ins7"
+		series: "abc"
+		--assert parse series [
+			insert space
+			insert only space "a"
+			insert (space)
+			insert only (space) "b"
+			mark: insert only mark space
+			mark: insert only mark (space) "c"
+			mark: [fail] |
+			insert mark space
+			insert only mark space
+			[2 space "a" 2 space "b" 2 space "c" 2 space]
+		]
+		--assert series == "  a  b  c  "
+	
 	--test-- "str-chg1"
 		--assert parse str: "1" [change skip #"a"]
 		--assert str = "a"
@@ -2724,7 +2786,7 @@ Red [
 
 	--test-- "#3951"
 		res: none
-		do "res: expand-directives/clean [[] #macro word! func [s e]['OK] WTF]()"
+		do "res: expand-directives/clean [[] #macro word! func [s e]['OK] WTF #reset]()"
 		--assert res = [[] OK]
 
 	--test-- "#3427"
