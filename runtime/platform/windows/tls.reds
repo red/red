@@ -36,6 +36,20 @@ Red/System [
 #define CERT_SYSTEM_STORE_LOCAL_MACHINE	[2 << 16]
 #define CERT_SYSTEM_STORE_CURRENT_USER	[1 << 16]
 
+#define SP_PROT_SSL3_SERVER				00000010h
+#define SP_PROT_SSL3_CLIENT				00000020h
+#define SP_PROT_TLS1_SERVER				00000040h
+#define SP_PROT_TLS1_CLIENT				00000080h
+#define SP_PROT_TLS1_1_SERVER			00000100h
+#define SP_PROT_TLS1_1_CLIENT			00000200h
+#define SP_PROT_TLS1_2_SERVER			00000400h
+#define SP_PROT_TLS1_2_CLIENT			00000800h
+#define SP_PROT_TLS1_3_SERVER			00001000h
+#define SP_PROT_TLS1_3_CLIENT			00002000h
+
+#define SP_PROT_DEFAULT_SERVER			[SP_PROT_TLS1_2_SERVER or SP_PROT_TLS1_3_SERVER]
+#define SP_PROT_DEFAULT_CLINET			[SP_PROT_TLS1_2_CLIENT or SP_PROT_TLS1_3_CLIENT]
+
 #define SecIsValidHandle(x)	[
 	all [x/dwLower <> (as int-ptr! -1) x/dwUpper <> (as int-ptr! -1)]
 ]
@@ -388,6 +402,94 @@ tls: context [
 		ctx
 	]
 
+	default-protocol: func [
+		client?		[logic!]
+		return:		[integer!]
+	][
+		either client? [
+			SP_PROT_DEFAULT_CLINET
+		][
+			SP_PROT_DEFAULT_SERVER
+		]
+	]
+
+	proto2flag: func [
+		client?		[logic!]
+		proto		[integer!]
+		return:		[integer!]
+	][
+		case [
+			proto = 0300h [
+				either client? [SP_PROT_SSL3_CLIENT][SP_PROT_SSL3_SERVER]
+			]
+			proto = 0301h [
+				either client? [SP_PROT_TLS1_CLIENT][SP_PROT_TLS1_SERVER]
+			]
+			proto = 0302h [
+				either client? [SP_PROT_TLS1_1_CLIENT][SP_PROT_TLS1_1_SERVER]
+			]
+			proto = 0303h [
+				either client? [SP_PROT_TLS1_2_CLIENT][SP_PROT_TLS1_2_SERVER]
+			]
+			proto = 0304h [
+				either client? [SP_PROT_TLS1_3_CLIENT][SP_PROT_TLS1_3_SERVER]
+			]
+		]
+	]
+
+	protocol-flags: func [
+		data		[tls-data!]
+		client?		[logic!]
+		return:		[integer!]
+		/local
+			values	[red-value!]
+			extra	[red-block!]
+			minp	[red-integer!]
+			maxp	[red-integer!]
+			min		[integer!]
+			max		[integer!]
+			flags	[integer!]
+	][
+		values: object/get-values data/port
+		extra: as red-block! values + port/field-extra
+		if TYPE_OF(extra) <> TYPE_BLOCK [
+			return default-protocol client?
+		]
+		minp: as red-integer! block/select-word extra word/load "min-protocol" no
+		maxp: as red-integer! block/select-word extra word/load "max-protocol" no
+		if any [
+			all [
+				TYPE_OF(minp) <> TYPE_INTEGER
+				TYPE_OF(maxp) <> TYPE_INTEGER
+			]
+			all [
+				TYPE_OF(minp) = TYPE_INTEGER
+				minp/value > 0304h
+			]
+			all [
+				TYPE_OF(maxp) = TYPE_INTEGER
+				maxp/value < 0300h
+			]
+			all [
+				TYPE_OF(minp) = TYPE_INTEGER
+				TYPE_OF(maxp) = TYPE_INTEGER
+				minp/value > maxp/value
+			]
+		][
+			return default-protocol client?
+		]
+		min: either TYPE_OF(minp) <> TYPE_INTEGER [0300h][minp/value]
+		max: either TYPE_OF(maxp) <> TYPE_INTEGER [0304h][maxp/value]
+		flags: 0
+		until [
+			flags: flags or proto2flag client? min
+			min: min + 1
+			min > max
+		]
+		flags
+	]
+
+
 	create-credentials: func [
 		data		[tls-data!]
 		client?		[logic!]			;-- Is it client side?
@@ -416,6 +518,8 @@ tls: context [
 		]
 		
 		scred/dwFlags: SCH_USE_STRONG_CRYPTO
+		scred/grbitEnabledProtocols: protocol-flags data client?
+		print-line ["protos: " as int-ptr! scred/grbitEnabledProtocols]
 
 		either client? [flags: 2][flags: 1]		;-- Credential use flags
 		status: platform/SSPI/AcquireCredentialsHandleW
