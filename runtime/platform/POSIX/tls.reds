@@ -14,6 +14,8 @@ Red/System [
 #define SSL_ERROR_WANT_READ		2
 #define SSL_ERROR_WANT_WRITE	3
 #define SSL_ERROR_WANT_X509_LOOKUP	4
+#define SSL_CTRL_SET_MIN_PROTO_VERSION          123
+#define SSL_CTRL_SET_MAX_PROTO_VERSION          124
 
 tls: context [
 
@@ -127,6 +129,7 @@ tls: context [
 		return:		[integer!]
 		/local
 			values	[red-value!]
+			proto	[red-integer!]
 			extra	[red-block!]
 			cert	[red-string!]
 			chain	[red-string!]
@@ -137,6 +140,14 @@ tls: context [
 		values: object/get-values data/port
 		extra: as red-block! values + port/field-extra
 		if TYPE_OF(extra) <> TYPE_BLOCK [return 1]
+		proto: as red-integer! block/select-word extra word/load "min-protocol" no
+		if TYPE_OF(proto) = TYPE_INTEGER [
+			SSL_CTX_ctrl ctx SSL_CTRL_SET_MIN_PROTO_VERSION proto/value null
+		]
+		proto: as red-integer! block/select-word extra word/load "max-protocol" no
+		if TYPE_OF(proto) = TYPE_INTEGER [
+			SSL_CTX_ctrl ctx SSL_CTRL_SET_MAX_PROTO_VERSION proto/value null
+		]
 		cert: as red-string! block/select-word extra word/load "cert" no
 		if TYPE_OF(cert) <> TYPE_STRING [return 2]
 		chain: as red-string! block/select-word extra word/load "chain-cert" no
@@ -165,11 +176,11 @@ tls: context [
 	][
 		if null? td/ssl [
 			either client? [
-				if null? client-ctx [client-ctx: SSL_CTX_new TLSv1_2_client_method]
+				if null? client-ctx [client-ctx: SSL_CTX_new TLS_client_method]
 				ctx: client-ctx
 			][
 				if null? server-ctx [
-					server-ctx: SSL_CTX_new TLSv1_2_server_method
+					server-ctx: SSL_CTX_new TLS_server_method
 				]
 				ctx: server-ctx
 			]

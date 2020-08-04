@@ -801,6 +801,13 @@ errno: as int-ptr! 0
 			rsa		[int-ptr!]
 			return: [integer!]
 		]
+		SSL_CTX_ctrl: "SSL_CTX_ctrl" [
+			ctx		[int-ptr!]
+			cmd		[integer!]
+			larg	[integer!]
+			parg	[int-ptr!]
+			return:	[integer!]
+		]
 		SSL_CTX_check_private_key: "SSL_CTX_check_private_key" [
 			ctx		[int-ptr!]
 			return: [integer!]
