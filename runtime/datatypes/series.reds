@@ -878,6 +878,7 @@ _series: context [
 	reverse: func [
 		ser	 	 [red-series!]
 		part-arg [red-value!]
+		skip-arg [red-value!]
 		return:	 [red-series!]
 		/local
 			s		[series!]

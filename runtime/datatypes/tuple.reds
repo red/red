@@ -619,6 +619,7 @@ tuple: context [
 	reverse: func [
 		tuple	 [red-tuple!]
 		part-arg [red-value!]
+		skip-arg [red-value!]
 		return:	 [red-value!]
 		/local
 			int  [red-integer!]
