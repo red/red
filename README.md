@@ -72,7 +72,7 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
     -dlib, --dynamic-lib           : Generate a shared library from the source
                                      file.
 
-    -e, --encap                    : Compile in encap mode, so code is interpreted 
+    -e, --encap                    : Compile in encap mode, so code is interpreted
                                      at runtime. Avoids compiler issues. Required
                                      for some dynamic code.
 
@@ -117,13 +117,13 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
                                      Use higher verbose level to see compiler
                                      output. (internal debugging purpose)
 
-    --show-func-map                : Output an address/name map of Red/System 
+    --show-func-map                : Output an address/name map of Red/System
                                      functions, for debugging purposes.
-                                     
+
 
 `[command]`
 
-    build libRed [stdcall]         : Builds libRed library and unpacks the 
+    build libRed [stdcall]         : Builds libRed library and unpacks the
                                      libRed/ folder locally.
 
     clear [<path>]                 : Delete all temporary files from current
@@ -135,6 +135,7 @@ Cross-compilation targets:
     Windows      : Windows, x86, GUI applications
     WindowsXP    : Windows, x86, GUI applications, no touch API
     Linux        : GNU/Linux, x86
+    Linux-musl   : GNU/Linux, x86, musl libc
     Linux-ARM    : GNU/Linux, ARMv5, armel (soft-float)
     RPi          : GNU/Linux, ARMv7, armhf (hard-float)
     Darwin       : macOS Intel, console-only applications
@@ -151,8 +152,8 @@ Running the Red REPL
 
 1. Just run the `red` binary with no option to access the [REPL](http://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop).
 
-        ---== Red 0.6.3 ==-- 
-        Type HELP for starting information. 
+        ---== Red 0.6.3 ==--
+        Type HELP for starting information.
 
         >>
 
@@ -167,7 +168,7 @@ Running the Red REPL
         >> inc 123
         == 124
 
-  
+
 Notes:
 
 - On Windows, the REPL runs by default in GUI mode. To run it in the command line, invoke the red binary as `red --cli`.

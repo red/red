@@ -97,7 +97,7 @@ Linux [									; Linux default target
 	dynamic-linker: "/lib/ld-linux.so.2"
 	stack-align-16?: yes
 ]
-Linux-musl-x86 [									
+Linux-musl [
 	OS:			'Linux
 	format: 	'ELF
 	type:		'exe
