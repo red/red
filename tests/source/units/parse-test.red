@@ -597,7 +597,13 @@ Red [
 			| insert only mark letters insert mark letters 'a 'b 'c 'x 'y 'z block!
 		]
 		--assert series == [a b c x y z [x y z]]
-		
+	
+	--test-- "blk-ins 11"
+		series: [b]
+		digit:  2
+		--assert parse series [insert digit 'b]
+		--assert series == [2 b]
+	
 	--test-- "blk-chg1"
 		--assert parse blk: [1][change integer! 'a]
 		--assert blk = [a]
