@@ -883,11 +883,12 @@ _series: context [
 		/local
 			s		[series!]
 			part	[integer!]
+			skip	[integer!]
 			items	[integer!]
 			unit	[integer!]
+			size	[integer!]
 			head	[byte-ptr!]
 			tail	[byte-ptr!]
-			val		[red-value! value]
 			temp	[byte-ptr!]
 			int		[red-integer!]
 			ser2	[red-series!]
@@ -925,6 +926,18 @@ _series: context [
 			items: get-length ser no
 		]
 		
+		if OPTION?(skip-arg) [
+			assert TYPE_OF(skip-arg) = TYPE_INTEGER
+			int:  as red-integer! skip-arg
+			skip: int/value
+			
+			if skip = items [return ser]					;-- early exit if nothing to reverse
+			if skip <= 0 [fire [TO_ERROR(script out-of-range) skip-arg]]
+			if any [skip > items items % skip <> 0][ERR_INVALID_REFINEMENT_ARG(refinements/_skip skip-arg)]
+			
+			unit: unit * skip
+		]
+		
 		hash?: TYPE_OF(ser) = TYPE_HASH
 		if hash? [
 			hash: as red-hash! ser
@@ -933,7 +946,9 @@ _series: context [
 		chk?: ownership/check as red-value! ser words/_reverse null ser/head items
 		if all [positive? part head + part < tail] [tail: head + part]
 		tail: tail - unit								;-- point to last value
-		temp: as byte-ptr! :val
+		size: unit >> log-b size? integer!				;-- number of stack slots to allocate
+		if zero? size [size: 1]
+		temp: as byte-ptr! system/stack/allocate size
 		while [head < tail][							;-- TODO: optimise it according to unit
 			copy-memory temp head unit
 			copy-memory head tail unit
