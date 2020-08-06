@@ -1142,6 +1142,10 @@ Red [
 		series: make hash! [#"a" #"b" #"c" #"d"]
 		reverse/skip series 2
 		--assert series == make hash! [#"c" #"d" #"a" #"b"]
+		--assert #"d" == series/(#"c")
+		--assert #"a" == select series #"d"
+		--assert #"b" == last series
+		--assert head? find series #"c"
 	
 	--test-- "reverse/skip-7"
 		--assert [d e f a b c] == reverse/skip [a b c d e f] 3
@@ -1159,6 +1163,11 @@ Red [
 	--test-- "reverse/skip-10"
 		series: <abcdefgh>
 		--assert <abefcdgh> == head reverse/part/skip skip series 2 skip series 6 2
+	
+	--test-- "reverse/skip-11"
+		--assert strict-equal?
+			reverse <abc>
+			reverse/skip <abc> 1
 ===end-group===
 
 ===start-group=== "take"
