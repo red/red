@@ -2063,8 +2063,8 @@ make-profilable make target-class [
 		switch b [
 			ref [
 				emit-variable args/2
-					#{e5d03000}						;-- LDRB r3, [r0]			; global
-					#{e7d03009}						;-- LDRB r3, [r0, sb]		; PIC
+					#{e5d33000}						;-- LDRB r3, [r3]			; global
+					#{e7d33009}						;-- LDRB r3, [r3, sb]		; PIC
 					#{e5db3000}						;-- LDRB r3, [fp, #[-]n]	; local
 			]
 			reg [emit-i32 #{e1a03001}]				;-- MOV r3, r1
