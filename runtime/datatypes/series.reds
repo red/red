@@ -886,8 +886,11 @@ _series: context [
 			skip	[integer!]
 			items	[integer!]
 			unit	[integer!]
+			one     [integer!]
 			head	[byte-ptr!]
+			head2	[byte-ptr!]
 			tail	[byte-ptr!]
+			tail2	[byte-ptr!]
 			temp	[byte-ptr!]
 			val     [red-value! value]
 			int		[red-integer!]
@@ -896,12 +899,15 @@ _series: context [
 			hash	[red-hash!]
 			table	[node!]
 			skip?	[logic!]
+			big?    [logic!]
 			chk?	[logic!]
 	][
 		s:    GET_BUFFER(ser)
 		unit: GET_UNIT(s)
+		one:  unit
 		head: (as byte-ptr! s/offset) + (ser/head << (log-b unit))
 		tail: as byte-ptr! s/tail
+		skip: 1
 		part: 0
 		
 		if head = tail [return ser]						;-- early exit if nothing to reverse
@@ -946,23 +952,33 @@ _series: context [
 			table: hash/table
 		]
 		chk?: ownership/check as red-value! ser words/_reverse null ser/head items
-		if all [positive? part head + part < tail] [tail: head + part]
-		tail: tail - unit								;-- point to last value
-		temp: either all [skip? skip <> 1][allocate unit][as byte-ptr! :val]
+		big?: all [skip? skip <> 1]
+		if all [positive? part head + part < tail][tail: head + part]
+		tail: tail - unit								;-- point to last value or multi-value record
+		temp: either big? [allocate unit][as byte-ptr! :val]
 		while [head < tail][							;-- TODO: optimise it according to unit
 			copy-memory temp head unit
 			copy-memory head tail unit
 			copy-memory tail temp unit
 			if hash? [
-				_hashtable/delete table as red-value! head
-				_hashtable/delete table as red-value! tail
-				_hashtable/put table as red-value! head
-				_hashtable/put table as red-value! tail
+				assert skip > 0
+				assert one = size? cell!
+				head2: head
+				tail2: tail
+				loop skip [								;-- rehash elements in record one-by-one
+					_hashtable/delete table as red-value! head2
+					_hashtable/delete table as red-value! tail2
+					_hashtable/put table as red-value! head2
+					_hashtable/put table as red-value! tail2
+					
+					head2: head2 + one					;-- both from start to end
+					tail2: tail2 + one
+				]
 			]
 			head: head + unit
 			tail: tail - unit
 		]
-		if skip? [free temp]
+		if big? [free temp]
 		if chk? [ownership/check as red-value! ser words/_reversed null ser/head items]
 		ser
 	]
