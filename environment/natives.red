@@ -635,7 +635,7 @@ try: make native! [[
 
 uppercase: make native! [[
 		"Converts string of characters to uppercase"
-		string		[any-string! char!]
+		string		[any-string! char!] "If any-string!, will be modified in place"
 		/part "Limits to a given length or position"
 			limit	[number! any-string!]
 		return: 	[any-string! char!]
@@ -645,7 +645,7 @@ uppercase: make native! [[
 
 lowercase: make native! [[
 		"Converts string of characters to lowercase"
-		string		[any-string! char!]
+		string		[any-string! char!] "If any-string!, will be modified in place"
 		/part "Limits to a given length or position"
 			limit	[number! any-string!]
 		return:		[any-string! char!]
