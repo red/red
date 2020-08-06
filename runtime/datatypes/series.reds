@@ -935,7 +935,7 @@ _series: context [
 		
 		skip?: OPTION?(skip-arg)
 		if skip? [
-			assert TYPE_OF(skip-arg) = TYPE_INTEGER
+			unless TYPE_OF(skip-arg) = TYPE_INTEGER [ERR_INVALID_REFINEMENT_ARG(refinements/_skip skip-arg)]
 			int:  as red-integer! skip-arg
 			skip: int/value								;-- 1/2 of series length max
 			
