@@ -1516,7 +1516,6 @@ make-profilable make target-class [
 	][
 		if verbose >= 3 [print [">>>storing" mold name mold value]]
 		if value = <last> [value: 'last]			;-- force word! code path in switch block
-		if logic? value [value: to integer! value]	;-- TRUE -> 1, FALSE -> 0
 
 		store-qword: [
 			emit-variable-64 name
@@ -1542,6 +1541,10 @@ make-profilable make target-class [
 				do store-byte
 			]
 			integer! [
+				do store-word
+			]
+			logic! [
+				emit-load-imm32 to integer! value	;-- MOV r0, #0|#1
 				do store-word
 			]
 			issue!

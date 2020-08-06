@@ -69,6 +69,8 @@ win-state:		0
 hIMCtx:			as handle! 0
 ime-open?:		no
 ime-font:		as tagLOGFONT allocate 92
+base-down-hwnd: as handle! 0
+request-file?:	no
 
 dpi-factor:		100
 log-pixels-x:	0

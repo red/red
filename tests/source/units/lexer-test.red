@@ -404,7 +404,7 @@ Red [
 	--test-- "tr-44" --assert error? try [transcode "[12#(a: 3)]"]
 	--test-- "tr-45" --assert [#"a" - #"z"] == transcode {#"a"-#"z"}
 	--test-- "tr-46" --assert [/ #a // #a /// #a hello #a + #a - #a] == transcode {/#a //#a ///#a hello#a +#a -#a}
-	--test-- "tr-47" --assert [(#abc:)] == transcode "(#abc:)"
+	--test-- "tr-47" --assert error? try [transcode "(#abc:)"]
 
 ===end-group===
 ===start-group=== "transcode/one"
@@ -622,18 +622,20 @@ Red [
 	--test-- "tro-147"  --assert -12:02:00 == transcode/one "-12:2"
 	--test-- "tro-148"  --assert  12:02:00 == transcode/one "+12:2"
 
-	--test-- "tro-149"  --assert  error? try [transcode/one {12#""}]
-	--test-- "tro-150"  --assert  error? try [transcode/one {16#"1"}]
-	--test-- "tro-151"  --assert  error? try [transcode/one {16#"12"}]
+	--test-- "tro-149"  --assert error? try [transcode/one {12#""}]
+	--test-- "tro-150"  --assert error? try [transcode/one {16#"1"}]
+	--test-- "tro-151"  --assert error? try [transcode/one {16#"12"}]
 
-	--test-- "tro-152"  --assert /v: == transcode/one "/v:"
-	--test-- "tro-153"  --assert refinement! == type? transcode/one "/v:"
-	--test-- "tro-154"  --assert /value: == transcode/one "/value:"
-	--test-- "tro-155"  --assert refinement! == type? transcode/one "/value:"
+	--test-- "tro-152"  --assert error? try [transcode/one "/v:"]
+	--test-- "tro-153"  --assert error? try [transcode/one "/v:"]
+	--test-- "tro-154"  --assert error? try [transcode/one "/value:"]
+	--test-- "tro-155"  --assert error? try [type? transcode/one "/value:"]
 
 	--test-- "tro-156"  --assert -00:01:00 == transcode/one "-0:1"
 	--test-- "tro-157"  --assert -01:00:00 == transcode/one "-1:0"
-	--test-- "tro-158"  --assert #abc: == transcode/one "#abc:"
+	--test-- "tro-158"  --assert error? try [transcode/one "#abc:"]
+	--test-- "tro-159"  --assert error? try [transcode/one ":x:"]
+	--test-- "tro-160"  --assert error? try [transcode/one ":x::"]
 
 ===end-group===
 ===start-group=== "transcode/next"
@@ -734,8 +736,12 @@ Red [
 	--test-- "scan-68" --assert none!	 = scan "#[none]"
 	--test-- "scan-69" --assert integer! = scan "#[integer!]"
 	--test-- "scan-70" --assert error!	 = scan "#[int!]"
-	--test-- "scan-71"  --assert refinement! = scan "/v:"
-	--test-- "scan-72"  --assert refinement! = scan "/value:"
+	--test-- "scan-71" --assert error!   = scan "/v:"
+	--test-- "scan-72" --assert error!   = scan "/value:"
+	--test-- "scan-73" --assert error!   = scan "$non"
+	--test-- "scan-74" --assert error!   = scan "\non"
+	--test-- "scan-75" --assert error!   = scan ":x:"
+	--test-- "scan-76" --assert error!   = scan ":x::"
 
 ===end-group===
 ===start-group=== "scan/fast"
@@ -753,6 +759,9 @@ Red [
 	--test-- "scan-f11" --assert map!    = scan/fast "#()"
 	--test-- "scan-f12" --assert string! = scan/fast "{}"
 	--test-- "scan-f13" --assert string! = scan/fast {""}
+	--test-- "scan-f14" --assert word!   = scan/fast "'a"
+	--test-- "scan-f15" --assert word!   = scan/fast ":a"
+	--test-- "scan-f16" --assert word!   = scan/fast "a:"
 
 	--test-- "scan-f39" --assert error!   = scan/fast "[a"
 	--test-- "scan-f40" --assert error!   = scan/fast "(a"
@@ -778,8 +787,12 @@ Red [
 	--test-- "scan-f60" --assert none!	  = scan/fast "#[none]"
 	--test-- "scan-f61" --assert integer! = scan/fast "#[integer!]"
 	--test-- "scan-f62" --assert error!	  = scan/fast "#[int!]"
-	--test-- "scan-f63" --assert refinement! = scan/fast "/v:"
-	--test-- "scan-f64" --assert refinement! = scan/fast "/value:"
+	--test-- "scan-f63" --assert error!   = scan/fast "/v:"
+	--test-- "scan-f64" --assert error!   = scan/fast "/value:"
+	--test-- "scan-f65" --assert path!    = scan/fast "a/b"
+	--test-- "scan-f66" --assert lit-path! = scan/fast "'a/b"
+	--test-- "scan-f67" --assert set-path! = scan/fast "a/b:"
+	--test-- "scan-f68" --assert get-path! = scan/fast ":a/b"
 
 ===end-group===
 ===start-group=== "transcode/trace"
