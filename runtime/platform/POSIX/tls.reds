@@ -18,6 +18,8 @@ Red/System [
 #define SSL_CTRL_SET_MAX_PROTO_VERSION          124
 #define SSL_CTRL_EXTRA_CHAIN_CERT               14
 #define SSL_CTRL_CHAIN_CERT                     89
+#define SSL_CTRL_SET_TLSEXT_HOSTNAME            55
+#define TLSEXT_NAMETYPE_host_name				0
 
 tls: context [
 
@@ -175,6 +177,24 @@ tls: context [
 		return 0
 	]
 
+	get-domain: func [
+		data		[tls-data!]
+		return:		[c-string!]
+		/local
+			values	[red-value!]
+			extra	[red-block!]
+			domain	[red-string!]
+			len		[integer!]
+	][
+		values: object/get-values data/port
+		extra: as red-block! values + port/field-extra
+		if TYPE_OF(extra) <> TYPE_BLOCK [return null]
+		domain: as red-string! block/select-word extra word/load "domain" no
+		if TYPE_OF(domain) <> TYPE_STRING [return null]
+		len: -1
+		unicode/to-utf8 domain :len
+	]
+
 	create: func [
 		td		[tls-data!]
 		client? [logic!]
@@ -207,6 +227,7 @@ tls: context [
 				probe "SSL_set_fd error"
 			]
 			either client? [
+				SSL_ctrl ssl SSL_CTRL_SET_TLSEXT_HOSTNAME TLSEXT_NAMETYPE_host_name as int-ptr! get-domain td
 				SSL_set_connect_state ssl
 			][
 				SSL_set_accept_state ssl

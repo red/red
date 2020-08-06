@@ -402,6 +402,22 @@ tls: context [
 		ctx
 	]
 
+	get-domain: func [
+		data		[tls-data!]
+		return:		[c-string!]
+		/local
+			values	[red-value!]
+			extra	[red-block!]
+			domain	[red-string!]
+	][
+		values: object/get-values data/port
+		extra: as red-block! values + port/field-extra
+		if TYPE_OF(extra) <> TYPE_BLOCK [return null]
+		domain: as red-string! block/select-word extra word/load "domain" no
+		if TYPE_OF(domain) <> TYPE_STRING [return null]
+		unicode/to-utf16 domain
+	]
+
 	default-protocol: func [
 		client?		[logic!]
 		return:		[integer!]
@@ -763,7 +779,7 @@ tls: context [
 				ret: platform/SSPI/InitializeSecurityContextW
 					data/credential
 					sec-handle
-					null
+					get-domain data
 					sspi-flags-client
 					0
 					10h			;-- SECURITY_NATIVE_DREP

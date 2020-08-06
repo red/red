@@ -956,6 +956,13 @@ errno: as int-ptr! 0
 		SSL_set_accept_state: "SSL_set_accept_state" [
 			ssl		[int-ptr!]
 		]
+		SSL_ctrl: "SSL_ctrl" [
+			ssl		[int-ptr!]
+			cmd		[integer!]
+			larg	[integer!]
+			parg	[int-ptr!]
+			return:	[integer!]
+		]
 		SSL_do_handshake: "SSL_do_handshake" [
 			ssl		[int-ptr!]
 			return: [integer!]
