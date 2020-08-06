@@ -1120,6 +1120,7 @@ Red [
 	--test-- "reverse/skip-1"
 		--assert error? try [reverse/skip [0]   0]
 		--assert error? try [reverse/skip [-1] -1]
+		--assert error? try [reverse/skip ["1"] "1"]
 	
 	--test-- "reverse/skip-2"
 		--assert error? try [reverse/skip [1 2 3] 2]
