@@ -41,6 +41,7 @@ map-test.red
 pair-test.red
 date-test.red
 time-test.red
+tuple-test.red
 convert-test.red
 checksum-test.red
 reactivity-test.red
