@@ -2899,7 +2899,9 @@ comment {
 			recycle/on
 			recycle
 		]
-
+	
+	--test-- "#4522"
+		--assert error? try [find/skip [1] [1] ()]
 ===end-group===
 
 ~~~end-file~~~
