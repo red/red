@@ -71,13 +71,13 @@ unless system/console [
 		]
 
 		console?:	yes
-		buffer:		declare byte-ptr!
+		buf-size:	128
+		buffer:		allocate buf-size
 		pbuffer:	declare byte-ptr!
 		input-line: declare red-string!
 		prompt:		declare	red-string!
 		history:	declare red-block!
 		saved-line:	as red-string! 0
-		buf-size:	128
 		columns:	-1
 		rows:		-1
 		output?:	yes
