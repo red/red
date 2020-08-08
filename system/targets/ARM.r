@@ -2165,7 +2165,7 @@ make-profilable make target-class [
 	
 	emit-math-op: func [
 		name [word!] a [word!] b [word!] args [block!]
-		/local mod? scale c type arg2 op-poly load?
+		/local mod? scale c type arg2 op-poly load? spec
 	][
 		;-- r0 = a, r1 = b
 		if find mod-rem-op name [					;-- work around unaccepted '// and '%
@@ -2272,26 +2272,27 @@ make-profilable make target-class [
 					]
 				]
 				if compiler/job/debug? [
+					spec: emitter/symbols/***-on-div-error
 					foreach opcode [
 						#{e3510000}			; CMP r1, #0			; if divisor = 0
 						#{03a0000d}			; MOVEQ r0, #13			; integer divide by zero error code
 						#{0a000006}			; BEQ .error
 						#{e3710001}			; CMP r1, #-1
-						#{1a000006}			; BNE .start
+						#{1a000007}			; BNE .start
 						#{e3a06001}			; MOV r6, #1
 						#{e1a06f86}			; LSL r6, #31
 						#{e1560000}			; CMP r6, r0
-						#{1a000002}			; BNE .start
+						#{1a000003}			; BNE .start
 						#{e3a0000e}			; MOV r0, #14			; integer overflow error code
 										; .error
 						#{092d4000}			; PUSHEQ {lr}			; push calling address for error location
 						#{092d0001}			; PUSHEQ {r0}
+						[emit-reloc-addr spec/3]					; link it with runtime error handler
 						#{0a000000}			; BEQ ***-on-div-error	; call runtime error handler
+										; .start
 					][
-						emit-i32 opcode
+						either block? opcode [do opcode][emit-i32 opcode]
 					]
- 					;-- link it with runtime error handler
-					append emitter/symbols/***-on-div-error/3 emitter/tail-ptr - insn-size
 				]
 				either compiler/job/cpu-version < 7.0 [
 					call-divide mod?
