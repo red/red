@@ -440,6 +440,7 @@ lexer: context [
 			cont? [logic!]
 			ref	  [integer!]
 	][
+		assert lex/in-series <> null
 		if lex/fun-evts and event = 0 [return true]
 		if all [event = EVT_SCAN type = -2][event: EVT_ERROR type: TYPE_ERROR]
 		if all [event = EVT_PRESCAN type = TYPE_ERROR lex/entry = S_M_STRING][s: lex/mstr-s]
@@ -469,7 +470,7 @@ lexer: context [
 		][
 			either zero? type [none/push][datatype/push type]
 		]
-		either all [lex/in-series <> null TYPE_OF(lex/in-series) <> TYPE_BINARY][
+		either TYPE_OF(lex/in-series) <> TYPE_BINARY [
 			x: unicode/count-chars lex/input s
 			y: x + unicode/count-chars s e
 		][
@@ -477,6 +478,7 @@ lexer: context [
 			y: as-integer e - lex/input
 		]
 		ref: either any [all [type < 0 event = EVT_PRESCAN] event = EVT_OPEN][x][y]
+		ref: ref + lex/in-series/head					;-- accounts for series original offset
 		ser/head: ref									;-- 0-based offset
 		integer/push lex/line							;-- line number
 		either null? value [pair/push x + 1 y + 1][stack/push value] ;-- token
@@ -484,12 +486,12 @@ lexer: context [
 		if lex/fun-locs > 0 [_function/init-locals 1 + lex/fun-locs] ;-- +1 for /local refinement
 		_function/call lex/fun-ptr ctx
 
-		if ser/head <> ref [
-			lex/in-series/head: ser/head
-			either TYPE_OF(ser) = TYPE_BINARY [
-				lex/in-pos: lex/input + ser/head
+		if ser/head <> ref [							;-- check if callback changed input offset
+			ref: ser/head - lex/in-series/head
+			either TYPE_OF(ser) = TYPE_BINARY [			;-- update input offset in lexer state accordingly
+				lex/in-pos: lex/input + ref
 			][
-				lex/in-pos: unicode/skip-chars lex/input lex/in-end ser/head
+				lex/in-pos: unicode/skip-chars lex/input lex/in-end ref
 			]
 		]
 		cont?: logic/top-true?
@@ -2229,6 +2231,8 @@ lexer: context [
 			lex	  	 [state! value]
 			clean-up [subroutine!]
 	][
+		assert any [fun = null ser <> null]				;-- ser needs to be set if fun is set
+		
 		either null? root-state [
 			root-state: lex
 			lex/back: null

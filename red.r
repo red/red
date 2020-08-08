@@ -113,6 +113,7 @@ redc: context [
 				fail "Can't read /proc/cpuinfo"
 			]
 			any [
+				exists? libc: %/lib/ld-musl-i386.so.1			; musl, e.g. Alpine Linux
 				exists? libc: %libc.so.6
 				exists? libc: %/lib32/libc.so.6
 				exists? libc: %/lib/i386-linux-gnu/libc.so.6	; post 11.04 Ubuntu
