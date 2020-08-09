@@ -1709,6 +1709,42 @@ Immediately quits the function and returns a value.
  	]
  	"ok"								;-- return "ok" if a <> 0
  ]
+ 
+---Subroutines
+
+Subroutines are reusable code parts in a function's body that can be called from within the function where they are defined only.
+
+<b>Syntax</b>
+
+ <name>: [<body>]
+
+ <name> : subroutine's name (local variable).
+ <body> : subroutine's code (regular R/S code).
+
+A subroutine name is a local variable that needs to be defined as of type <b>subroutine!</b>, else a compilation error will occur. Once defined, a subroutine can be called by invoking its name from anywhere in the function code (but after its own definition). A subroutine returns its last value to the caller.
+
+Example:
+
+ foo: func [
+ 	a [integer!]
+ 	return: [integer!]
+ 	/local
+ 		do-error [subroutine!]
+ ][
+ 	do-error: [print "Wrong number!" return err]
+ 	switch a [
+ 		0  [err: 10 do-error]
+ 		5  [err: 20 do-error]
+ 		10 [err: 30 do-error]
+ 	]
+ 	print "Correct!"
+ ]
+
+\note 
+
+The <b>subroutine!</b> type is currently a pseudo-type, not a first-class type, so it cannot be passed as argument or returned from a function. 
+
+/note
 
 ===Scoping
 
