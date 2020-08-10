@@ -257,7 +257,6 @@ base-draw: func [
 		bool	[red-logic!]
 		sym		[integer!]
 		pos		[red-pair! value]
-		DC		[draw-ctx! value]
 		drawDC	[draw-ctx!]
 		css		[GString!]
 ][

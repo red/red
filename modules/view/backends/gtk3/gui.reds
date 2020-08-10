@@ -1831,6 +1831,8 @@ OS-make-view: func [
 			gm/min_width: 1
 			gm/min_height: 1
 			gtk_window_set_geometry_hints widget null :gm 2		;-- 2: MIN_SIZE
+
+			store-face-to-obj container face
 		]
 		sym = camera [
 			widget: gtk_layout_new null null

@@ -1088,6 +1088,8 @@ connect-widget-events: func [
 			gobj_signal_connect(widget "focus-in-event" :focus-in-event widget)
 			gobj_signal_connect(widget "focus-out-event" :focus-out-event widget)
 			gobj_signal_connect(widget "configure-event" :window-configure-event widget)
+			evbox: GET-CONTAINER(widget)
+			gobj_signal_connect(evbox "draw" :base-draw evbox)
 		]
 		sym = slider [
 			gobj_signal_connect(widget "value-changed" :range-value-changed widget)
