@@ -797,6 +797,9 @@ Red [
 		--assert [x b x c] = find/last/part [a x b x c] 'x 3
 		--assert [x b x c] = find/last/part skip [x x x a x b x c] 3 'x 3
 	
+	--test-- "series-find-108"
+		--assert none? find/last/part "abc" #"^(01)" 20 + 1
+	
 ===end-group===
 
 ===start-group=== "remove"
