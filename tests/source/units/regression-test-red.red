@@ -2899,7 +2899,12 @@ comment {
 			recycle/on
 			recycle
 		]
-
+	
+	--test-- "#4567"
+		objects: [foo]
+		--assert 'foo == objects/1
+		unset 'objects
+	
 ===end-group===
 
 ~~~end-file~~~
