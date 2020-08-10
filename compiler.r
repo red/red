@@ -1461,7 +1461,7 @@ red: context [
 		]
 		pos: tail output
 		
-		if all [not last? obj-stack path/1 = last obj-stack][remove path]		;-- remove temp object prefix inserted by object-access? (mind #4567!)
+		if all [1 <> length? obj-stack path/1 = last obj-stack][remove path]		;-- remove temp object prefix inserted by object-access? (mind #4567!)
 		
 		if set? [
 			emit [object/path-parent/header: TYPE_NONE]
