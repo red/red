@@ -865,6 +865,27 @@ Currently literal arrays allow write access, but there is no bound checking as i
 
 /note
 
++++Binary arrays
+
+Binary arrays are a type of literal array made out of bytes only.
+
+<b>Syntax</b>
+
+ <variable>: #{...hex bytes...}
+
+ <variable> : a pointer of [pointer! [byte!] type. 
+
+The array is statically allocated and can be accessed using pointer path notation or pointer arithmetic. The size in bytes of a binary array can be retrieved using <b>size?</b> keyword.
+
+Examples:
+
+ table: #{0042FA0100CAFE00AA}
+ probe size? table						;-- outputs 9
+ probe table/2							;-- outputs "B"
+ probe as integer! table/2				;-- outputs 66
+
+<u>Note</u>: whitespaces and comments are accepted inside binary arrays.
+
 +++Null value
 
 A special <b>null</b> value is available to use for pointer! and other pointer-like (pass-by-reference) types (struct!, c-string!) and pseudo-type function!. <b>Null</b> does not have a specific type, but can be used to replace any other pointer-like value. So, <b>null</b> cannot be used as initializing value for a global variable or a local variable that does not have an explicit type specification.
