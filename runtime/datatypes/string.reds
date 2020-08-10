@@ -1908,7 +1908,7 @@ string: context [
 			last? [
 				step: 0 - step
 				end: either part? [buffer - limit + unit][buffer]
-				buffer: (as byte-ptr! s/tail) - unit
+				buffer: (as byte-ptr! either part? [buffer + limit][s/tail]) - unit
 			]
 			reverse? [
 				step: 0 - step
