@@ -893,7 +893,7 @@ lexer: context [
 						while [all [p/1 <> #")" p < e]][
 							index: 1 + as-integer p/1	;-- converts the 2 hex chars using a lookup table
 							cb: hexa-table/index		;-- decode one nibble at a time
-							if cb = #"^(FF)" [cp/value: -1 return p]
+							if cb = #"^(FF)" [cp/value: -1 return s]
 							c: c << 4 + as-integer cb
 							p: p + 1
 						]
