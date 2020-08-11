@@ -1887,13 +1887,9 @@ string: context [
 			if step < 1 [fire [TO_ERROR(script out-of-range) skip]]
 		]
 		if OPTION?(part) [
-			limit: either TYPE_OF(part) = TYPE_INTEGER [
+			sz: either TYPE_OF(part) = TYPE_INTEGER [
 				int: as red-integer! part
-				if int/value <= 0 [						;-- early exit if part <= 0
-					result/header: TYPE_NONE
-					return result
-				]
-				int/value << (unit >> 1)
+				int/value
 			][
 				str2: as red-string! part
 				unless all [
@@ -1902,10 +1898,15 @@ string: context [
 				][
 					ERR_INVALID_REFINEMENT_ARG(refinements/_part part)
 				]
-				str2/head - str/head << (unit >> 1)
+				str2/head - str/head
 			]
+			if sz <= 0 [								;-- early exit if part <= 0
+				result/header: TYPE_NONE
+				return result
+			]
+			if sz > len [sz: len]
 			part?: yes
-			if limit > len [limit: len]
+			limit: sz << (unit >> 1)
 		]
 		case [
 			last? [
