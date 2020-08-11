@@ -1845,6 +1845,7 @@ string: context [
 			step	[integer!]
 			sz		[integer!]
 			sz2		[integer!]
+			len     [integer!]
 			sbits	[series!]
 			pbits	[byte-ptr!]
 			pos		[byte-ptr!]								;-- required by BS_TEST_BIT
@@ -1862,6 +1863,7 @@ string: context [
 		unit: GET_UNIT(s)
 		buffer: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
 		end: as byte-ptr! s/tail
+		len: rs-length? str
 
 		if any [							;-- early exit if string is empty or at tail
 			s/offset = s/tail
@@ -1903,6 +1905,7 @@ string: context [
 				str2/head - str/head << (unit >> 1)
 			]
 			part?: yes
+			if limit > len [limit: len]
 		]
 		case [
 			last? [
