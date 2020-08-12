@@ -413,8 +413,9 @@ redc: context [
 	]
 
 	run-console: func [
-		gui?	[logic!]
-		debug?	[logic!]
+		console? [logic!]
+		gui?	 [logic!]
+		debug?	 [logic!]
 		/with file [string!]
 		/local 
 			opts result script filename exe console console-root files files2
@@ -501,12 +502,14 @@ redc: context [
 			]
 		]
 		exe: safe-to-local-file exe
-
-		either all [Windows? gui?] [
-			gui-sys-call exe any [all [file form-args file] ""]
-		][
-			if with [repend exe [" " form-args file]]
-			sys-call exe								;-- replace the buggy CALL native
+		
+		if console? [ 
+			either all [Windows? gui?][
+				gui-sys-call exe any [all [file form-args file] ""]
+			][
+				if with [repend exe [" " form-args file]]
+				sys-call exe								;-- replace the buggy CALL native
+			]
 		]
 		quit/return 0
 	]
@@ -667,7 +670,7 @@ redc: context [
 	parse-options: func [
 		args [string! none!]
 		/local src opts output target verbose filename config config-name base-path type
-		mode target? gui? cmd spec cmds ws ssp
+		mode target? gui? console? cmd spec cmds ws ssp
 	][
 		unless args [
 			if encap? [fetch-cmdline]					;-- Fetch real command-line in UTF8 format
@@ -681,6 +684,7 @@ redc: context [
 			libRedRT-update?: no
 		]
 		gui?: Windows?									;-- use GUI console by default on Windows
+		console?: yes									;-- launch console after compilation
 
 		unless empty? args [
 			if cmd: select [
@@ -711,6 +715,7 @@ redc: context [
 				| "--red-only"					(opts/red-only?: yes)
 				| "--dev"						(opts/dev-mode?: yes)
 				| "--no-runtime"				(opts/runtime?: no)		;@@ overridable by config!
+				| "--no-console"				(console?: no)
 				| "--cli"						(gui?: no)
 				| "--no-compress"				(opts/redbin-compress?: no)
 				| "--show-func-map"				(opts/show-func-map?: yes)
@@ -792,7 +797,7 @@ redc: context [
 		unless src [
 			either encap? [
 				if load-lib? [build-compress-lib]
-				run-console gui? opts/debug?
+				run-console console? gui? opts/debug?
 			][
 				return reduce [none none]
 			]
@@ -800,7 +805,7 @@ redc: context [
 
 		if all [encap? none? output none? type][
 			if load-lib? [build-compress-lib]
-			run-console/with gui? opts/debug? filename
+			run-console/with console? gui? opts/debug? filename
 		]
 
 		if slash <> first src [							;-- if relative path
