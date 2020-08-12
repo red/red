@@ -1903,6 +1903,7 @@ lexer: context [
 		p: grab-integer p e flags :min :err
 		if any [err <> 0 min < 0][do-error]
 		p: p + 1
+		if all [p = e p/0 = #":"][do-error]
 	
 		if p < e [
 			if any [all [p/0 <> #"." p/0 <> #":"] flags and C_FLAG_EXP <> 0][do-error]

@@ -636,6 +636,7 @@ Red [
 	--test-- "tro-158"  --assert error? try [transcode/one "#abc:"]
 	--test-- "tro-159"  --assert error? try [transcode/one ":x:"]
 	--test-- "tro-160"  --assert error? try [transcode/one ":x::"]
+	--test-- "tro-161"  --assert error? try [transcode/one "1:2:"]
 
 ===end-group===
 ===start-group=== "transcode/next"
@@ -745,6 +746,7 @@ Red [
 
 	--test-- "scan-77" --assert [#[none] ""] == scan/next " "
 	--test-- "scan-78" --assert none? scan/next ""
+	--test-- "scan-79" --assert error!   = scan "1:2:"
 
 ===end-group===
 ===start-group=== "scan/fast"
