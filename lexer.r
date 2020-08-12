@@ -817,7 +817,7 @@ lexer: context [
 	]
 	
 	decode-hexa: func [s [string!]][
-		to integer! debase/base s 16
+		to integer! to issue! s
 	]
 	
 	as-time: func [h [integer!] m [integer!] s [integer! decimal!] neg? [logic!] /local t][
