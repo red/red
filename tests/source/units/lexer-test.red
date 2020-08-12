@@ -743,6 +743,9 @@ Red [
 	--test-- "scan-75" --assert error!   = scan ":x:"
 	--test-- "scan-76" --assert error!   = scan ":x::"
 
+	--test-- "scan-77" --assert [#[none] ""] == scan/next " "
+	--test-- "scan-78" --assert none? scan/next ""
+
 ===end-group===
 ===start-group=== "scan/fast"
 

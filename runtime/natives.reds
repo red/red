@@ -2840,10 +2840,12 @@ natives: context [
 		
 		if any [not scan? not load?][
 			if zero? len [stack/set-last none-value exit]
-			if type <= 0 [type: TYPE_ERROR]
-			dt: as red-datatype! slot
-			dt/header: TYPE_DATATYPE
-			dt/value: type
+			either zero? type [slot/header: TYPE_NONE][
+				if type < 0 [type: TYPE_ERROR]
+				dt: as red-datatype! slot
+				dt/header: TYPE_DATATYPE
+				dt/value: type
+			]
 		]
 		if all [next? any [one < 0 not load?]][
 			bin: as red-binary! copy-cell as red-value! bin s/offset + 1
