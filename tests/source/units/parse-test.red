@@ -2804,6 +2804,8 @@ Red [
 	--test-- "#4101"
 		--assert parse [a/b] ['a/b]
 		--assert error? try [parse [a/b] [a/b]]
+		
+		--assert error? try [parse [c d][insert a/b 2 word!]]
 
 	--test-- "#4318"
 		x4318: 0
