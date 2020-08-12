@@ -2342,7 +2342,7 @@ lexer: context [
 
 		if null? len [len: :ignore]
 		catch RED_THROWN_ERROR [type: scan dst base size one? scan? load? wrap? len fun as red-series! str]
-		utf8-buf-tail: base
+		utf8-buf-tail: utf8-buffer + used				;-- move back to original tail
 		if extra <> null [free extra]
 		if system/thrown <> 0 [re-throw]				;-- clean place to rethrow errors
 		type
