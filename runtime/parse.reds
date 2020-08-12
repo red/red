@@ -1643,6 +1643,7 @@ parser: context [
 							]
 							
 							switch TYPE_OF(cmd) [
+								TYPE_PATH [PARSE_ERROR [TO_ERROR(script parse-rule) cmd]]
 								TYPE_PAREN [
 									s-top: stack/top
 									value: eval cmd no saved?
