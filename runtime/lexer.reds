@@ -988,7 +988,7 @@ lexer: context [
 	]
 
 	scan-mstring-open: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
-		if lex/fun-ptr <> null [fire-event lex EVT_OPEN TYPE_STRING null s e]
+		if all [zero? lex/mstr-nest lex/fun-ptr <> null][fire-event lex EVT_OPEN TYPE_STRING null s e]
 		if zero? lex/mstr-nest [lex/mstr-s: s]
 		lex/mstr-nest: lex/mstr-nest + 1
 		lex/mstr-flags: lex/mstr-flags or flags
@@ -997,12 +997,12 @@ lexer: context [
 	]
 	
 	scan-mstring-close: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
-		if lex/fun-ptr <> null [fire-event lex EVT_CLOSE TYPE_STRING null s e]
 		lex/mstr-nest: lex/mstr-nest - 1
+		if all [zero? lex/mstr-nest lex/fun-ptr <> null][fire-event lex EVT_CLOSE TYPE_STRING null lex/mstr-s e]
 
 		either zero? lex/mstr-nest [
 			either load? [
-				if lex/fun-ptr <> null [load?: fire-event lex EVT_SCAN TYPE_STRING null s e]
+				if lex/fun-ptr <> null [load?: fire-event lex EVT_SCAN TYPE_STRING null lex/mstr-s e]
 				if load? [
 					load-string lex lex/mstr-s e lex/mstr-flags or flags yes
 					if lex/fun-ptr <> null [fire-event lex EVT_LOAD TYPE_STRING lex/tail - 1 s e]
@@ -2154,8 +2154,10 @@ lexer: context [
 				if err? [exit]
 			]
 			scan?: either not events? [not pscan?][
-				idx: either zero? lex/scanned [0 - index][lex/scanned]
-				fire-event lex EVT_PRESCAN idx null s lex/in-pos
+				either lex/entry = S_M_STRING [yes][
+					idx: either zero? lex/scanned [0 - index][lex/scanned]
+					fire-event lex EVT_PRESCAN idx null s lex/in-pos
+				]
 			]
 			if scan? [									;-- Scanning stage --
 				load?: any [not one? ld?]
