@@ -2081,10 +2081,15 @@ lexer: context [
 				match?
 			]
 			q: q - cnt - 1
-		]	
-		if load? [
+		]
+		either load? [
 			flags: flags and not C_FLAG_CARET			;-- clears caret flag
 			load-string lex p q flags load?	
+		][
+			if lex/fun-ptr <> null [
+				fire-event lex EVT_OPEN  TYPE_STRING null s s + cnt
+				fire-event lex EVT_CLOSE TYPE_STRING null s e - 1
+			]
 		]
 		lex/in-pos: q + cnt + 1							;-- reset the input position to delimiter byte
 	]
