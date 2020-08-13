@@ -1394,6 +1394,20 @@ Red [
 		    load integer! datatype! 1 123 ""
 		]
 
+	--test-- "tt-29"
+		clear logs
+		--assert [a/b] == transcode/trace "a/b/" :lex-logger
+		--assert logs = [
+		    prescan path! datatype! 1 1x2
+		    open path! datatype! 1 1x1
+		    scan word! datatype! 1 1x2
+		    load word! datatype! 1 a
+		    prescan word! datatype! 1 3x4
+		    scan word! datatype! 1 3x4
+		    load word! datatype! 1 b
+		    error path! datatype! 1 1x4
+		]
+
 ===end-group===
 
 ~~~end-file~~~

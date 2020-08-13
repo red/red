@@ -2197,7 +2197,8 @@ lexer: context [
 				system/thrown: 0
 			]
 			if all [lex/entry = S_PATH state <> T_PATH state <> T_ERROR][ ;-- manual checking for path end
-				check-path-end lex s lex/in-pos flags load? ;-- lex/in-pos could have changed
+				catch LEX_ERR [check-path-end lex s lex/in-pos flags load?] ;-- lex/in-pos could have changed
+				system/thrown: 0
 			]
 			if all [any [one? pscan?] lex/scanned > 0 lex/entry <> S_PATH lex/entry <> S_M_STRING state <> T_PATH][
 				slot: lex/tail - 1
