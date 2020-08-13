@@ -466,34 +466,40 @@ lexer: context [
 	paren-rule: [#"(" (stack/allocate paren! 10) any-value	#")" (value: stack/pop paren!)]
 	
 	escaped-char: [
-		"^^(" [
-			[										;-- special case first
-				"null" 	 (value: #"^(00)")
-				| "back" (value: #"^(08)")
-				| "tab"  (value: #"^(09)")
-				| "line" (value: #"^(0A)")
-				| "page" (value: #"^(0C)")
-				| "esc"  (value: #"^(1B)")
-				| "del"	 (value: #"^~")
+		pos: ["^^(" | #"^^"] :pos [						;-- quick look-ahead check
+			"^^(" [
+				[										;-- special case first
+					"null" 	 (value: #"^(00)")
+					| "back" (value: #"^(08)")
+					| "tab"  (value: #"^(09)")
+					| "line" (value: #"^(0A)")
+					| "page" (value: #"^(0C)")
+					| "esc"  (value: #"^(1B)")
+					| "del"	 (value: #"^~")
+				]
+				| pos: [1 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
+					if e/1 <> #")" [throw-error]		;-- more than 6 hexadecimal digits
+					value: either rs? [
+						to-char to-integer to-issue copy/part pos e
+					][
+						encode-UTF8-char pos e
+					]
+				)
+				| (throw-error)							;-- invalid syntax
+			] #")"
+			| #"^^" [
+				[
+					#"/" 	(value: #"^/")
+					| #"-"	(value: #"^-")
+					| #"~" 	(value: #"^(del)")
+					| #"^^" (value: #"^^")				;-- caret escaping case
+					| #"{"	(value: #"{")
+					| #"}"	(value: #"}")
+					| #"^""	(value: #"^"")
+				]
+				| pos: caret-Uchar (value: pos/1 - 64)
+				| pos: caret-Lchar (value: pos/1 - 96)
 			]
-			| pos: [2 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
-					either rs? [
-						value: to-char to-integer debase/base copy/part pos e 16
-					][value: encode-UTF8-char pos e]
-			)
-		] #")"
-		| #"^^" [
-			[
-				#"/" 	(value: #"^/")
-				| #"-"	(value: #"^-")
-				| #"~" 	(value: #"^(del)")
-				| #"^^" (value: #"^^")				;-- caret escaping case
-				| #"{"	(value: #"{")
-				| #"}"	(value: #"}")
-				| #"^""	(value: #"^"")
-			]
-			| pos: caret-Uchar (value: pos/1 - 64)
-			| pos: caret-Lchar (value: pos/1 - 96)
 		]
 	]
 	
