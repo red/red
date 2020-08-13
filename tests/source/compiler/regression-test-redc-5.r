@@ -103,11 +103,17 @@ test
 		--assert not crashed?
 	
 	--test-- "#2671"
+		--compile-this {Red [] #"^^(0000001)"}
+		--assert syntax-error "Invalid char! value"
+
 		--compile-this {Red [] "^^(0000001)"}
-		--assert syntax-error?
+		--assert syntax-error "Invalid string! value"
+		
+		--compile-this {Red [] #"^^(skibadee-skibadanger)"}
+		--assert syntax-error "Invalid char! value"
 		
 		--compile-this {Red [] "^^(skibadee-skibadanger)"}
-		--assert syntax-error?
+		--assert syntax-error "Invalid string! value"
 	
 ===end-group===
 
