@@ -1145,8 +1145,16 @@ lexer: context [
 			case [
 				all [s/1 = #":" e/0 <> #":"][type: TYPE_GET_WORD]
 				all [s/1 <> #":" e/0 = #":"][type: TYPE_SET_WORD]
-				all [e/1 = #":" lex/entry = S_PATH][0]	;-- do nothing if in a path
-				true	   [throw-error lex s e type]
+				all [e/1 = #":" lex/entry = S_PATH][
+					if e + 1 < lex/in-end [
+						cp: as-integer e/2
+						index: lex-classes/cp and FFh + 1	;-- query the class of ending character
+						unless as-logic path-ending/index [	;-- lookup if the character class is ending path
+							throw-error lex s e type
+						]
+					]
+				]
+				true [throw-error lex s e type]
 			]
 		]
 		if s/1 = #"'" [

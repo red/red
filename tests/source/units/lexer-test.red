@@ -1408,6 +1408,21 @@ Red [
 		    error path! datatype! 1 1x4
 		]
 
+	--test-- "tt-30"
+		clear logs
+		--assert (reduce [to-path 'a 'c]) == transcode/trace "a/b:c" :lex-logger
+		--assert logs = [
+		    prescan path! datatype! 1 1x2 
+		    open path! datatype! 1 1x1 
+		    scan word! datatype! 1 1x2 
+		    load word! datatype! 1 a 
+		    prescan word! datatype! 1 3x4 
+		    error word! datatype! 1 3x4 
+		    prescan word! datatype! 1 5x6 
+		    scan word! datatype! 1 5x6 
+		    load word! datatype! 1 c
+		]
+
 ===end-group===
 
 ~~~end-file~~~
