@@ -758,6 +758,12 @@ errno: as int-ptr! 0
 			method	[int-ptr!]
 			return: [int-ptr!]
 		]
+		TLSv1_2_client_method: "TLSv1_2_client_method" [
+			return: [int-ptr!]
+		]
+		TLSv1_2_server_method: "TLSv1_2_server_method" [
+			return: [int-ptr!]
+		]
 		TLS_client_method: "TLS_client_method" [
 			return: [int-ptr!]
 		]
@@ -790,9 +796,50 @@ errno: as int-ptr! 0
 			x		[int-ptr!]
 			return: [integer!]
 		]
+		SSL_CTX_use_RSAPrivateKey: "SSL_CTX_use_RSAPrivateKey" [
+			ctx		[int-ptr!]
+			rsa		[int-ptr!]
+			return: [integer!]
+		]
+		SSL_CTX_ctrl: "SSL_CTX_ctrl" [
+			ctx		[int-ptr!]
+			cmd		[integer!]
+			larg	[integer!]
+			parg	[int-ptr!]
+			return:	[integer!]
+		]
 		SSL_CTX_check_private_key: "SSL_CTX_check_private_key" [
 			ctx		[int-ptr!]
 			return: [integer!]
+		]
+		BIO_new_mem_buf: "BIO_new_mem_buf" [
+			buf		[c-string!]
+			len		[integer!]
+			return:	[int-ptr!]
+		]
+		PEM_read_bio_X509: "PEM_read_bio_X509" [
+			bp		[int-ptr!]
+			X509	[int-ptr!]
+			cb		[int-ptr!]
+			u		[byte-ptr!]
+			return:	[int-ptr!]
+		]
+		PEM_read_bio_RSAPrivateKey: "PEM_read_bio_RSAPrivateKey" [
+			bp		[int-ptr!]
+			rsa		[int-ptr!]
+			cb		[int-ptr!]
+			u		[byte-ptr!]
+			return:	[int-ptr!]
+		]
+		PEM_read_bio_PrivateKey: "PEM_read_bio_PrivateKey" [
+			bp		[int-ptr!]
+			key		[int-ptr!]
+			cb		[int-ptr!]
+			u		[byte-ptr!]
+			return:	[int-ptr!]
+		]
+		BIO_free: "BIO_free" [
+			bio		[int-ptr!]
 		]
 		EVP_PKEY_new: "EVP_PKEY_new" [return: [int-ptr!]]
 		EVP_PKEY_free: "EVP_PKEY_free" [key [int-ptr!]]
@@ -800,6 +847,12 @@ errno: as int-ptr! 0
 			pkey	[int-ptr!]
 			key		[int-ptr!]
 			return: [integer!]
+		]
+		d2i_AutoPrivateKey: "d2i_AutoPrivateKey" [
+			pkey	[int-ptr!]
+			pp		[int-ptr!]
+			len		[integer!]
+			return:	[int-ptr!]
 		]
 		RSA_new: "RSA_new" [return: [int-ptr!]]
 		RSA_free: "RSA_free" [rsa [int-ptr!]]
@@ -902,6 +955,13 @@ errno: as int-ptr! 0
 		]
 		SSL_set_accept_state: "SSL_set_accept_state" [
 			ssl		[int-ptr!]
+		]
+		SSL_ctrl: "SSL_ctrl" [
+			ssl		[int-ptr!]
+			cmd		[integer!]
+			larg	[integer!]
+			parg	[int-ptr!]
+			return:	[integer!]
 		]
 		SSL_do_handshake: "SSL_do_handshake" [
 			ssl		[int-ptr!]

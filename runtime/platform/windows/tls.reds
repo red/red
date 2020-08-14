@@ -23,6 +23,33 @@ Red/System [
 #define BCRYPT_ECDSA_PRIVATE_P384_MAGIC 34534345h  ;-- ECS4
 #define BCRYPT_ECDSA_PRIVATE_P521_MAGIC 36534345h  ;-- ECS6
 
+#define CERT_STORE_PROV_MEMORY			02h
+#define CRYPT_STRING_BASE64HEADER		00h
+#define X509_ASN_ENCODING				01h
+#define PKCS_7_ASN_ENCODING				00010000h
+#define PKCS_RSA_PRIVATE_KEY			43
+#define X509_ECC_PRIVATE_KEY			82
+#define CERT_STORE_ADD_NEW				1
+#define CNG_RSA_PRIVATE_KEY_BLOB		83
+#define CERT_STORE_ADD_REPLACE_EXISTING	3
+#define CERT_STORE_ADD_ALWAYS			4
+#define CERT_SYSTEM_STORE_LOCAL_MACHINE	[2 << 16]
+#define CERT_SYSTEM_STORE_CURRENT_USER	[1 << 16]
+
+#define SP_PROT_SSL3_SERVER				00000010h
+#define SP_PROT_SSL3_CLIENT				00000020h
+#define SP_PROT_TLS1_SERVER				00000040h
+#define SP_PROT_TLS1_CLIENT				00000080h
+#define SP_PROT_TLS1_1_SERVER			00000100h
+#define SP_PROT_TLS1_1_CLIENT			00000200h
+#define SP_PROT_TLS1_2_SERVER			00000400h
+#define SP_PROT_TLS1_2_CLIENT			00000800h
+#define SP_PROT_TLS1_3_SERVER			00001000h
+#define SP_PROT_TLS1_3_CLIENT			00002000h
+
+#define SP_PROT_DEFAULT_SERVER			[SP_PROT_TLS1_2_SERVER or SP_PROT_TLS1_3_SERVER]
+#define SP_PROT_DEFAULT_CLINET			[SP_PROT_TLS1_2_CLIENT or SP_PROT_TLS1_3_CLIENT]
+
 #define SecIsValidHandle(x)	[
 	all [x/dwLower <> (as int-ptr! -1) x/dwUpper <> (as int-ptr! -1)]
 ]
@@ -35,6 +62,7 @@ tls-data!: alias struct! [
 	credential	[SecHandle! value]		;-- credential handle
 	security	[int-ptr!]				;-- security context handle lower
 	security2	[int-ptr!]				;-- security context handle upper
+	cert-ctx	[CERT_CONTEXT]			;-- saved cert ctx for now, it need a key for server mode
 	;-- SecPkgContext_StreamSizes
 	ctx-max-msg	[integer!]
 	ctx-header	[integer!]
@@ -62,88 +90,128 @@ tls: context [
 		ASC_REQ_EXTENDED_ERROR or
 		ASC_REQ_STREAM
 
-	cert-to-bin: func [
-		cert		[byte-ptr!]
+
+	pem-to-binary: func [
+		str			[c-string!]
 		len			[integer!]
-		ret-len		[int-ptr!]
-		return:		[byte-ptr!]
+		blen		[int-ptr!]
+		return:		[byte-ptr!]						;-- after used, please free it
 		/local
-			result	[byte-ptr!]
+			etype	[integer!]
+			buff	[byte-ptr!]
 	][
-		either CryptStringToBinaryA cert len 7 null ret-len null null [
-			result: allocate ret-len/value
-			CryptStringToBinaryA cert len 7 result ret-len null null
-			result
-		][
-			probe "cert-to-bin failed"
-			null
+		etype: CRYPT_STRING_BASE64HEADER
+		blen/value: 0
+		unless CryptStringToBinaryA str len etype null blen null null [
+			return null
 		]
+		buff: allocate blen/value
+		unless CryptStringToBinaryA str len etype buff blen null null [
+			free buff
+			return null
+		]
+		buff
 	]
 
-	decode-cert: func [
-		private-key	[byte-ptr!]
-		key-len		[integer!]
-		blob-size	[int-ptr!]
-		cert-type	[int-ptr!]
+	decode-key: func [
+		key			[red-string!]
+		klen		[int-ptr!]
+		type		[int-ptr!]
 		return:		[byte-ptr!]
 		/local
-			result		[byte-ptr!]
-			key-type	[integer!]
-			blob-sz		[integer!]
+			len		[integer!]
+			str		[c-string!]
+			blen	[integer!]
+			buff	[byte-ptr!]
+			etype	[integer!]
+			blob	[byte-ptr!]
 	][
-		result: null
-		key-type: 43		;-- PKCS_RSA_PRIVATE_KEY
-		blob-sz: 0
+		len: -1
+		str: unicode/to-utf8 key :len
 
-		unless CryptDecodeObjectEx
-				00010001h
-				as c-string! key-type
-				private-key
-				key-len
-				0 null null
-				:blob-sz [
-			key-type: 82	;-- X509_ECC_PRIVATE_KEY
-			unless CryptDecodeObjectEx
-					00010001h
-					as c-string! key-type
-					private-key
-					key-len
-					0 null null
-					:blob-sz [
-				key-type: 0
+		blen: 0
+		buff: pem-to-binary str len :blen
+		if null? buff [return null]
+
+		klen/value: 0
+		etype: X509_ASN_ENCODING or PKCS_7_ASN_ENCODING
+		type/value: CNG_RSA_PRIVATE_KEY_BLOB
+		unless CryptDecodeObjectEx etype type/value buff blen 0 null null klen [
+			type/value: X509_ECC_PRIVATE_KEY
+			unless CryptDecodeObjectEx etype type/value buff blen 0 null null klen [
+				free buff
+				return null
 			]
 		]
-
-		if key-type <> 0 [
-			result: allocate blob-size/value
-			CryptDecodeObjectEx
-				00010001h
-				as c-string! key-type
-				private-key
-				key-len
-				0 null
-				result
-				:blob-sz
-			blob-size/value: blob-sz
-			cert-type/value: key-type
+		blob: allocate klen/value
+		unless CryptDecodeObjectEx etype type/value buff blen 0 null blob klen [
+			free buff
+			return null
 		]
-		result
+		free buff
+		blob
 	]
 
 	link-rsa-key: func [
-		ctx		[CERT_CONTEXT]
-		blob	[byte-ptr!]
-		size	[integer!]
-	][
-		;TBD
-	]
-
-	link-private-key: func [
 		ctx			[CERT_CONTEXT]
 		blob		[byte-ptr!]
-		type		[integer!]
+		size		[integer!]
+		return:		[integer!]
 		/local
+			provider	[integer!]
+			prov-name	[c-string!]
+			type-str	[c-string!]
+			cont-name	[c-string!]
+			nc-buf		[BCryptBuffer! value]
+			nc-desc		[BCryptBufferDesc! value]
+			h-key		[integer!]
 			status		[integer!]
+			prov-info	[CRYPT_KEY_PROV_INFO value]
+	][
+		provider: 0
+		prov-name: #u16 "Microsoft Software Key Storage Provider"
+		if 0 <> NCryptOpenStorageProvider :provider prov-name 0 [
+			return 2
+		]
+		type-str: #u16 "RSAPRIVATEBLOB"
+		cont-name: #u16 "RedRSAKey"
+		nc-buf/cbBuffer: 10 * 2				;-- bytes of the pvBuffer
+		nc-buf/BufferType: 45				;-- NCRYPTBUFFER_PKCS_KEY_NAME
+		nc-buf/pvBuffer: as byte-ptr! cont-name
+		nc-desc/ulVersion: 0
+		nc-desc/cBuffers: 1
+		nc-desc/pBuffers: nc-buf
+
+		h-key: 0
+		status: NCryptImportKey
+			as int-ptr! provider
+			null
+			type-str
+			as int-ptr! :nc-desc
+			:h-key
+			blob
+			size
+			80h								;-- NCRYPT_OVERWRITE_KEY_FLAG
+		NCryptFreeObject as int-ptr! provider
+		if status = 0 [
+			NCryptFreeObject as int-ptr! h-key
+			zero-memory as byte-ptr! :prov-info size? CRYPT_KEY_PROV_INFO
+			prov-info/pwszContainerName: cont-name
+			prov-info/pwszProvName: prov-name
+			unless CertSetCertificateContextProperty ctx 2 0 as byte-ptr! :prov-info [
+				status: 3
+			]
+		]
+
+		status
+	]
+
+	link-ecc-key: func [
+		ctx			[CERT_CONTEXT]
+		blob		[byte-ptr!]
+		size		[integer!]
+		return:		[integer!]
+		/local
 			pub-blob	[CRYPT_BIT_BLOB]
 			key-info	[CRYPT_ECC_PRIVATE_KEY_INFO]
 			pub-size	[integer!]
@@ -152,18 +220,16 @@ tls: context [
 			pub-buf		[byte-ptr!]
 			priv-buf	[byte-ptr!]
 			key-blob	[BCRYPT_ECCKEY_BLOB]
-			provider	[ptr-value!]
+			provider	[integer!]
+			prov-name	[c-string!]
+			type-str	[c-string!]
+			cont-name	[c-string!]
 			nc-buf		[BCryptBuffer! value]
 			nc-desc		[BCryptBufferDesc! value]
+			h-key		[integer!]
+			status		[integer!]
 			prov-info	[CRYPT_KEY_PROV_INFO value]
-			h-key		[ptr-value!]
-			type-str	[c-string!]
 	][
-		either type = 43 [
-			type-str: #u16 "RSAPRIVATEBLOB"
-		][
-			type-str: #u16 "ECCPRIVATEBLOB"
-		]
 		pub-blob: ctx/pCertInfo/SubjectPublicKeyInfo/PublicKey
 		key-info: as CRYPT_ECC_PRIVATE_KEY_INFO blob
 		pub-size: pub-blob/cbData - 1
@@ -172,133 +238,304 @@ tls: context [
 		pub-buf: pub-blob/pbData + 1
 		priv-buf: key-info/PrivateKey/pbData
 		key-blob: as BCRYPT_ECCKEY_BLOB allocate blob-size
+		;-- print-line ["size: " size " priv: " priv-size " pub: " pub-size]
 
-		if key-blob <> null [
-			key-blob/dwMagic: switch priv-size [
-				ECC_256_MAGIC_NUMBER [BCRYPT_ECDSA_PRIVATE_P256_MAGIC]
-				ECC_384_MAGIC_NUMBER [BCRYPT_ECDSA_PRIVATE_P384_MAGIC]
-				default [BCRYPT_ECDSA_PRIVATE_P521_MAGIC]
-			]
-			key-blob/cbKey: priv-size
-			copy-memory as byte-ptr! (key-blob + 1) pub-buf pub-size
-			copy-memory (as byte-ptr! key-blob + 1) + pub-size priv-buf priv-size
+		if null? key-blob [return 1]
 
-			either zero? NCryptOpenStorageProvider
-				provider
-				#u16 "Microsoft Software Key Storage Provider"
-				0 [
-				nc-buf/cbBuffer: 11 * 2	;-- bytes of the pvBuffer
-				nc-buf/BufferType: 45	;-- NCRYPTBUFFER_PKCS_KEY_NAME
-				nc-buf/pvBuffer: as byte-ptr! #u16 "RedAliasKey"
-				nc-desc/ulVersion: 0
-				nc-desc/cBuffers: 1
-				nc-desc/pBuffers: nc-buf
+		key-blob/dwMagic: switch priv-size [
+			ECC_256_MAGIC_NUMBER [BCRYPT_ECDSA_PRIVATE_P256_MAGIC]
+			ECC_384_MAGIC_NUMBER [BCRYPT_ECDSA_PRIVATE_P384_MAGIC]
+			default [BCRYPT_ECDSA_PRIVATE_P521_MAGIC]
+		]
+		key-blob/cbKey: priv-size
+		copy-memory as byte-ptr! (key-blob + 1) pub-buf pub-size
+		copy-memory (as byte-ptr! key-blob + 1) + pub-size priv-buf priv-size
 
-				zero-memory as byte-ptr! :prov-info size? CRYPT_KEY_PROV_INFO
-				prov-info/pwszContainerName: #u16 "RedAliasKey"
-				prov-info/pwszProvName: #u16 "Microsoft Software Key Storage Provider"
+		provider: 0
+		prov-name: #u16 "Microsoft Software Key Storage Provider"
+		if 0 <> NCryptOpenStorageProvider :provider prov-name 0 [
+			free as byte-ptr! key-blob
+			return 2
+		]
 
-				if zero? NCryptImportKey
-					provider/value
-					null
-					type-str
-					as int-ptr! :nc-desc
-					h-key
-					as byte-ptr! key-blob
-					:blob-size
-					80h	[	;-- NCRYPT_OVERWRITE_KEY_FLAG
-					NCryptFreeObject h-key/value
-				]
+		type-str: #u16 "ECCPRIVATEBLOB"
+		cont-name: #u16 "RedECCKey"
+		nc-buf/cbBuffer: 10 * 2				;-- bytes of the pvBuffer
+		nc-buf/BufferType: 45				;-- NCRYPTBUFFER_PKCS_KEY_NAME
+		nc-buf/pvBuffer: as byte-ptr! cont-name
+		nc-desc/ulVersion: 0
+		nc-desc/cBuffers: 1
+		nc-desc/pBuffers: nc-buf
 
-				NCryptFreeObject provider/value
-				unless CertSetCertificateContextProperty ctx 2 0 as byte-ptr! :prov-info [
-					probe "CertSetCertificateContextProperty failed"
-				]
-				free as byte-ptr! key-blob
-			][
-				probe "NCryptOpenStorageProvider failed"
+		h-key: 0
+		status: NCryptImportKey
+			as int-ptr! provider
+			null
+			type-str
+			as int-ptr! :nc-desc
+			:h-key
+			as byte-ptr! key-blob
+			blob-size
+			80h								;-- NCRYPT_OVERWRITE_KEY_FLAG
+		NCryptFreeObject as int-ptr! provider
+		if status = 0 [
+			NCryptFreeObject as int-ptr! h-key
+			zero-memory as byte-ptr! :prov-info size? CRYPT_KEY_PROV_INFO
+			prov-info/pwszContainerName: cont-name
+			prov-info/pwszProvName: prov-name
+			unless CertSetCertificateContextProperty ctx 2 0 as byte-ptr! :prov-info [
+				status: 3
 			]
 		]
+
+		free as byte-ptr! key-blob
+		status
 	]
 
 	load-cert: func [
-		cert		[c-string!]
-		pkey		[c-string!]
+		cert		[red-string!]
 		return:		[CERT_CONTEXT]
 		/local
-			cert-bin	[byte-ptr!]
-			pkey-bin	[byte-ptr!]
-			decoded		[byte-ptr!]
-			file		[integer!]
-			size		[integer!]
-			len			[integer!]
-			buffer		[byte-ptr!]
-			key-type	[integer!]
-			ctx			[CERT_CONTEXT]
+			len		[integer!]
+			str		[c-string!]
+			blen	[integer!]
+			buff	[byte-ptr!]
+			etype	[integer!]
+			ctx		[CERT_CONTEXT]
 	][
-		file: simple-io/open-file cert simple-io/RIO_READ no
-		if file < 0 [
-			probe ["cannot read file: " cert]
-			return null
-		]
-		size: simple-io/file-size? file
-		buffer: allocate size
-		len: simple-io/read-data file buffer size
-		simple-io/close-file file
+		len: -1
+		str: unicode/to-utf8 cert :len
 
-		cert-bin: cert-to-bin buffer len :size
-		ctx: CertCreateCertificateContext 00010001h cert-bin size
+		blen: 0
+		buff: pem-to-binary str len :blen
+		if null? buff [return null]
+
+		etype: X509_ASN_ENCODING or PKCS_7_ASN_ENCODING
+		ctx: CertCreateCertificateContext etype buff blen
 		if null? ctx [
-			probe "CertCreateCertificateContext failed"
+			free buff
 			return null
 		]
-
-		free buffer
-		free cert-bin
-		file: simple-io/open-file pkey simple-io/RIO_READ no
-		if file < 0 [
-			probe ["cannot read file: " pkey]
-			return ctx
-		]
-		size: simple-io/file-size? file
-		buffer: allocate size
-		len: simple-io/read-data file buffer size
-		simple-io/close-file file
-
-		key-type: 0
-		pkey-bin: cert-to-bin buffer len :size
-		decoded: decode-cert pkey-bin size :len :key-type
-		if decoded <> null [
-			link-private-key ctx decoded key-type
-		]
-		free buffer
-		free pkey-bin
-		free decoded
+		free buff
 		ctx
 	]
 
+	save-cert: func [
+		cert		[CERT_CONTEXT]
+		client?		[logic!]
+		return:		[logic!]
+		/local
+			flags	[integer!]
+			store	[int-ptr!]
+	][
+		;either client? [
+			flags: CERT_SYSTEM_STORE_CURRENT_USER
+		;][
+		;	flags: CERT_SYSTEM_STORE_LOCAL_MACHINE				;-- this need Administrator rights
+		;]
+		store: CertOpenStore 10 0 null flags #u16 "My"
+		if null? store [return false]
+		unless CertAddCertificateContextToStore store cert CERT_STORE_ADD_REPLACE_EXISTING null [
+			return false
+		]
+		CertCloseStore store 0
+	]
+
+	link-private-key: func [
+		ctx			[CERT_CONTEXT]
+		key			[red-string!]
+		pwd			[red-string!]
+		/local
+			klen	[integer!]
+			type	[integer!]
+			pkey	[byte-ptr!]
+			ret		[integer!]
+	][
+		klen: 0 type: 0
+		pkey: decode-key key :klen :type
+		unless null? pkey [
+			ret: either type = X509_ECC_PRIVATE_KEY [
+				link-ecc-key ctx pkey klen
+			][
+				link-rsa-key ctx pkey klen
+			]
+			;-- print-line ["link-private-key: " as int-ptr! ret]
+			free pkey
+		]
+	]
+
+	create-cert-ctx: func [
+		data		[tls-data!]
+		client?		[logic!]
+		return:		[CERT_CONTEXT]
+		/local
+			values	[red-value!]
+			extra	[red-block!]
+			cert	[red-string!]
+			chain	[red-string!]
+			key		[red-string!]
+			pwd		[red-string!]
+			ctx		[CERT_CONTEXT]
+			ctx2	[CERT_CONTEXT]
+	][
+		values: object/get-values data/port
+		extra: as red-block! values + port/field-extra
+		if TYPE_OF(extra) <> TYPE_BLOCK [return null]
+		cert: as red-string! block/select-word extra word/load "cert" no
+		if TYPE_OF(cert) <> TYPE_STRING [return null]
+		chain: as red-string! block/select-word extra word/load "chain-cert" no
+		key: as red-string! block/select-word extra word/load "key" no
+		pwd: as red-string! block/select-word extra word/load "password" no
+		ctx: load-cert cert
+		if null? ctx [
+			return null
+		]
+		link-private-key ctx key pwd
+		save-cert ctx client?
+		if TYPE_OF(chain) = TYPE_STRING [
+			ctx2: load-cert chain
+			unless null? ctx2 [
+				save-cert ctx2 client?
+				CertFreeCertificateContext ctx2
+			]
+		]
+		ctx
+	]
+
+	get-domain: func [
+		data		[tls-data!]
+		return:		[c-string!]
+		/local
+			values	[red-value!]
+			extra	[red-block!]
+			domain	[red-string!]
+	][
+		values: object/get-values data/port
+		extra: as red-block! values + port/field-extra
+		if TYPE_OF(extra) <> TYPE_BLOCK [return null]
+		domain: as red-string! block/select-word extra word/load "domain" no
+		if TYPE_OF(domain) <> TYPE_STRING [return null]
+		unicode/to-utf16 domain
+	]
+
+	default-protocol: func [
+		client?		[logic!]
+		return:		[integer!]
+	][
+		either client? [
+			SP_PROT_DEFAULT_CLINET
+		][
+			SP_PROT_DEFAULT_SERVER
+		]
+	]
+
+	proto2flag: func [
+		client?		[logic!]
+		proto		[integer!]
+		return:		[integer!]
+	][
+		case [
+			proto = 0300h [
+				either client? [SP_PROT_SSL3_CLIENT][SP_PROT_SSL3_SERVER]
+			]
+			proto = 0301h [
+				either client? [SP_PROT_TLS1_CLIENT][SP_PROT_TLS1_SERVER]
+			]
+			proto = 0302h [
+				either client? [SP_PROT_TLS1_1_CLIENT][SP_PROT_TLS1_1_SERVER]
+			]
+			proto = 0303h [
+				either client? [SP_PROT_TLS1_2_CLIENT][SP_PROT_TLS1_2_SERVER]
+			]
+			proto = 0304h [
+				either client? [SP_PROT_TLS1_3_CLIENT][SP_PROT_TLS1_3_SERVER]
+			]
+		]
+	]
+
+	protocol-flags: func [
+		data		[tls-data!]
+		client?		[logic!]
+		return:		[integer!]
+		/local
+			values	[red-value!]
+			extra	[red-block!]
+			minp	[red-integer!]
+			maxp	[red-integer!]
+			min		[integer!]
+			max		[integer!]
+			flags	[integer!]
+	][
+		values: object/get-values data/port
+		extra: as red-block! values + port/field-extra
+		if TYPE_OF(extra) <> TYPE_BLOCK [
+			return default-protocol client?
+		]
+		minp: as red-integer! block/select-word extra word/load "min-protocol" no
+		maxp: as red-integer! block/select-word extra word/load "max-protocol" no
+		if any [
+			all [
+				TYPE_OF(minp) <> TYPE_INTEGER
+				TYPE_OF(maxp) <> TYPE_INTEGER
+			]
+			all [
+				TYPE_OF(minp) = TYPE_INTEGER
+				minp/value > 0304h
+			]
+			all [
+				TYPE_OF(maxp) = TYPE_INTEGER
+				maxp/value < 0300h
+			]
+			all [
+				TYPE_OF(minp) = TYPE_INTEGER
+				TYPE_OF(maxp) = TYPE_INTEGER
+				minp/value > maxp/value
+			]
+		][
+			return default-protocol client?
+		]
+		min: either TYPE_OF(minp) <> TYPE_INTEGER [0300h][minp/value]
+		max: either TYPE_OF(maxp) <> TYPE_INTEGER [0304h][maxp/value]
+		flags: 0
+		until [
+			flags: flags or proto2flag client? min
+			min: min + 1
+			min > max
+		]
+		flags
+	]
+
+
 	create-credentials: func [
-		hcred		[SecHandle!]		;-- OUT: Security handle in hcred
-		cert-ctx	[CERT_CONTEXT]
+		data		[tls-data!]
 		client?		[logic!]			;-- Is it client side?
 		return:		[integer!]			;-- return status code
 		/local
+			ctx		[integer!]
 			scred	[SCHANNEL_CRED value]
 			status	[integer!]
 			expiry	[tagFILETIME value]
 			flags	[integer!]
-			ptr		[ptr-value!]
 	][
+		ctx: 0
+		if null? data/cert-ctx [
+			data/cert-ctx: create-cert-ctx data client?
+		]
+		unless null? data/cert-ctx [
+			ctx: as integer! data/cert-ctx
+		]
+
 		zero-memory as byte-ptr! :scred size? SCHANNEL_CRED
 		scred/dwVersion: 4		;-- SCHANNEL_CRED_VERSION
 
-		if cert-ctx <> null [
-			ptr/value: as int-ptr! cert-ctx
-			scred/cCreds: 1
-			scred/paCred: as int-ptr! :ptr
+		if ctx <> 0 [
+			scred/cCreds: 1				;-- TODO: free ctxs, CertFreeCertificateContext
+			scred/paCred: :ctx
 		]
 		
 		scred/dwFlags: SCH_USE_STRONG_CRYPTO
+		scred/grbitEnabledProtocols: protocol-flags data client?
+		print-line ["protos: " as int-ptr! scred/grbitEnabledProtocols]
 
 		either client? [flags: 2][flags: 1]		;-- Credential use flags
 		status: platform/SSPI/AcquireCredentialsHandleW
@@ -309,13 +546,13 @@ tls: context [
 			as int-ptr! :scred
 			null
 			null
-			hcred
+			as SecHandle! :data/credential
 			:expiry
 
 		if status <> 0 [
 			flags: status
 			status: GetLastError
-			probe ["status error: " as int-ptr! status " " as int-ptr! status]
+			probe ["status error: " as int-ptr! flags " " as int-ptr! status]
 			either status = 8009030Dh [		;-- SEC_E_UNKNOWN_CREDENTIALS
 				status: -1					;-- needs administrator rights
 			][
@@ -369,7 +606,7 @@ tls: context [
 
 		eku/rgpszUsageIdentifier: as c-string! :auth
 		store: CertOpenStore
-			as c-string! 10			;-- CERT_STORE_PROV_SYSTEM
+			10						;-- CERT_STORE_PROV_SYSTEM
 			0
 			null
 			flags
@@ -477,8 +714,7 @@ tls: context [
 
 		if null? data/security [
 			create data
-			either client? [cert: null][cert: find-certificate no]
-			create-credentials as SecHandle! :data/credential cert client?
+			create-credentials data client?
 		]
 
 		s: as series! data/send-buf/value
@@ -543,7 +779,7 @@ tls: context [
 				ret: platform/SSPI/InitializeSecurityContextW
 					data/credential
 					sec-handle
-					null
+					get-domain data
 					sspi-flags-client
 					0
 					10h			;-- SECURITY_NATIVE_DREP
@@ -647,9 +883,9 @@ tls: context [
 					return false
 				]
 				SEC_E_INCOMPLETE_CREDENTIALS [
-					cert-client: get-credential data yes
-					if null? cert-client [return false]
-					create-credentials as SecHandle! :data/credential cert-client client? 
+					;cert-client: get-credential data yes
+					;if null? cert-client [return false]
+					create-credentials data client?
 				]
 				default [
 					probe ["InitializeSecurityContext Error " ret]

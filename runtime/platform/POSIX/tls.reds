@@ -14,6 +14,12 @@ Red/System [
 #define SSL_ERROR_WANT_READ		2
 #define SSL_ERROR_WANT_WRITE	3
 #define SSL_ERROR_WANT_X509_LOOKUP	4
+#define SSL_CTRL_SET_MIN_PROTO_VERSION          123
+#define SSL_CTRL_SET_MAX_PROTO_VERSION          124
+#define SSL_CTRL_EXTRA_CHAIN_CERT               14
+#define SSL_CTRL_CHAIN_CERT                     89
+#define SSL_CTRL_SET_TLSEXT_HOSTNAME            55
+#define TLSEXT_NAMETYPE_host_name				0
 
 tls: context [
 
@@ -61,6 +67,134 @@ tls: context [
 		cert
 	]
 
+	load-cert: func [
+		ctx			[int-ptr!]
+		cert		[red-string!]
+		chain?		[logic!]
+		return:		[integer!]
+		/local
+			len		[integer!]
+			str		[c-string!]
+			bio		[int-ptr!]
+			x509	[int-ptr!]
+	][
+		len: -1
+		str: unicode/to-utf8 cert :len
+
+		bio: BIO_new_mem_buf str len
+		if null? bio [return 1]
+		x509: PEM_read_bio_X509 bio null null null
+		BIO_free bio
+		if null? x509 [
+			return 2
+		]
+		either chain? [
+			if 1 <> SSL_CTX_ctrl ctx SSL_CTRL_CHAIN_CERT 1 x509 [
+				X509_free x509
+				return 3
+			]
+		][
+			if 1 <> SSL_CTX_use_certificate ctx x509 [
+				X509_free x509
+				return 4
+			]
+		]
+
+		X509_free x509
+		0
+	]
+
+	link-private-key: func [
+		ctx			[int-ptr!]
+		key			[red-string!]
+		pwd			[red-string!]
+		return:		[integer!]
+		/local
+			len		[integer!]
+			str		[c-string!]
+			bio		[int-ptr!]
+			pkey	[int-ptr!]
+	][
+		len: -1
+		str: unicode/to-utf8 key :len
+
+		bio: BIO_new_mem_buf str len
+		if null? bio [return 1]
+		pkey: PEM_read_bio_PrivateKey bio null null null
+		BIO_free bio
+		if null? pkey [
+			return 2
+		]
+		if 1 <> SSL_CTX_use_PrivateKey ctx pkey [
+			EVP_PKEY_free pkey
+			return 3
+		]
+		if 1 <> SSL_CTX_check_private_key ctx [
+			EVP_PKEY_free pkey
+			return 4
+		]
+		EVP_PKEY_free pkey
+		0
+	]
+
+	create-cert-ctx: func [
+		data		[tls-data!]
+		ctx			[int-ptr!]
+		return:		[integer!]
+		/local
+			values	[red-value!]
+			proto	[red-integer!]
+			extra	[red-block!]
+			cert	[red-string!]
+			chain	[red-string!]
+			key		[red-string!]
+			pwd		[red-string!]
+			ret		[integer!]
+	][
+		values: object/get-values data/port
+		extra: as red-block! values + port/field-extra
+		if TYPE_OF(extra) <> TYPE_BLOCK [return 1]
+		proto: as red-integer! block/select-word extra word/load "min-protocol" no
+		if TYPE_OF(proto) = TYPE_INTEGER [
+			SSL_CTX_ctrl ctx SSL_CTRL_SET_MIN_PROTO_VERSION proto/value null
+		]
+		proto: as red-integer! block/select-word extra word/load "max-protocol" no
+		if TYPE_OF(proto) = TYPE_INTEGER [
+			SSL_CTX_ctrl ctx SSL_CTRL_SET_MAX_PROTO_VERSION proto/value null
+		]
+		cert: as red-string! block/select-word extra word/load "cert" no
+		if TYPE_OF(cert) <> TYPE_STRING [return 2]
+		chain: as red-string! block/select-word extra word/load "chain-cert" no
+		key: as red-string! block/select-word extra word/load "key" no
+		pwd: as red-string! block/select-word extra word/load "password" no
+		if 0 <> load-cert ctx cert no [
+			return 3
+		]
+		link-private-key ctx key pwd
+		if TYPE_OF(chain) = TYPE_STRING [
+			load-cert ctx chain yes
+		]
+		return 0
+	]
+
+	get-domain: func [
+		data		[tls-data!]
+		return:		[c-string!]
+		/local
+			values	[red-value!]
+			extra	[red-block!]
+			domain	[red-string!]
+			len		[integer!]
+	][
+		values: object/get-values data/port
+		extra: as red-block! values + port/field-extra
+		if TYPE_OF(extra) <> TYPE_BLOCK [return null]
+		domain: as red-string! block/select-word extra word/load "domain" no
+		if TYPE_OF(domain) <> TYPE_STRING [return null]
+		len: -1
+		unicode/to-utf8 domain :len
+	]
+
 	create: func [
 		td		[tls-data!]
 		client? [logic!]
@@ -79,23 +213,10 @@ tls: context [
 			][
 				if null? server-ctx [
 					server-ctx: SSL_CTX_new TLS_server_method
-					;probe SSL_CTX_use_certificate_chain_file server-ctx "certificate.crt"
-					;if zero? SSL_CTX_use_PrivateKey_file server-ctx "private.key" 1 [ ;-- X509_FILETYPE_PEM
-					pk: create-private-key
-					cert: create-certificate pk
-					SSL_CTX_use_certificate server-ctx cert
-					SSL_CTX_use_PrivateKey server-ctx pk
-						while [
-							err: ERR_get_error
-							err <> 0
-						][
-							probe ERR_error_string err null
-						]
-					;]
-					SSL_CTX_check_private_key server-ctx
 				]
 				ctx: server-ctx
 			]
+			create-cert-ctx td ctx
 			ssl: SSL_new ctx
 
 			td/ssl: ssl
@@ -106,6 +227,7 @@ tls: context [
 				probe "SSL_set_fd error"
 			]
 			either client? [
+				SSL_ctrl ssl SSL_CTRL_SET_TLSEXT_HOSTNAME TLSEXT_NAMETYPE_host_name as int-ptr! get-domain td
 				SSL_set_connect_state ssl
 			][
 				SSL_set_accept_state ssl
