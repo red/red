@@ -376,6 +376,7 @@ on-key-down: func [
 ]
 
 ConsoleWndProc: func [
+	[stdcall]
 	hWnd	[handle!]
 	msg		[integer!]
 	wParam	[integer!]
