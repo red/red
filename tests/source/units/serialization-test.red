@@ -91,6 +91,35 @@ ser-formed: {1 none true false c red Red a/b 'a/b :a/b a/b: 1 + 2 a  a c d b e f
  
 ===end-group===
 
+===start-group=== "binary"
+	--test-- "binary-1"  --assert "#{}" = mold #{}
+	--test-- "binary-2"  --assert empty? form #{}
+	--test-- "binary-3"  --assert "#{ABCD}" = mold #{abcd}
+	--test-- "binary-4"  --assert "ABCD" = form #{abcd}
+	--test-- "binary-5"  --assert "" = mold/part #{deadbeef} -1
+	--test-- "binary-6"  --assert "" = mold/part #{deadbeef} 0
+	--test-- "binary-7"  --assert "#" = mold/part #{deadbeef} 1
+	--test-- "binary-8"  --assert "#{DEADBEEF}" = mold/part #{deadbeef} 11
+	--test-- "binary-9"  --assert "#{DEADBEEF}" = mold/part #{deadbeef} 100
+	--test-- "binary-10" --assert "" = form/part #{deadbeef} -1
+	--test-- "binary-11" --assert "" = form/part #{deadbeef} 0
+	--test-- "binary-12" --assert "D" = form/part #{deadbeef} 1
+	--test-- "binary-13" --assert "DEADBEEF" = form/part #{deadbeef} 8
+	--test-- "binary-14" --assert "DEADBEEF" = form/part #{deadbeef} 100
+	--test-- "binary-15"
+		--assert equal?
+			rejoin ["#{" newline append/dup "" "DEADBEEF" 8 newline "DEADBEEF" newline "}"]
+			mold append/dup #{} #{deadbeef} 9
+	--test-- "binary-16"
+		--assert equal?
+			rejoin ["#{" append/dup "" "DEADBEEF" 10 "}"]
+			mold/flat append/dup #{} #{deadbeef} 10
+	--test-- "binary-17"
+		--assert equal?
+			append/dup "" "DEADBEEF" 10
+			form append/dup #{} #{deadbeef} 10
+===end-group===
+
 ===start-group=== "logic"
 	
 	--test-- "mold-logic1"
