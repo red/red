@@ -466,40 +466,38 @@ lexer: context [
 	paren-rule: [#"(" (stack/allocate paren! 10) any-value	#")" (value: stack/pop paren!)]
 	
 	escaped-char: [
-		pos: ["^^(" | #"^^"] :pos [						;-- quick look-ahead check
-			"^^(" [
-				[										;-- special case first
-					"null" 	 (value: #"^(00)")
-					| "back" (value: #"^(08)")
-					| "tab"  (value: #"^(09)")
-					| "line" (value: #"^(0A)")
-					| "page" (value: #"^(0C)")
-					| "esc"  (value: #"^(1B)")
-					| "del"	 (value: #"^~")
-				]
-				| pos: [1 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
-					if e/1 <> #")" [throw-error]		;-- more than 6 hexadecimal digits
-					value: either rs? [
-						to-char to-integer to-issue copy/part pos e
-					][
-						encode-UTF8-char pos e
-					]
-				)
-				| (throw-error)							;-- invalid syntax
-			] #")"
-			| #"^^" [
-				[
-					#"/" 	(value: #"^/")
-					| #"-"	(value: #"^-")
-					| #"~" 	(value: #"^(del)")
-					| #"^^" (value: #"^^")				;-- caret escaping case
-					| #"{"	(value: #"{")
-					| #"}"	(value: #"}")
-					| #"^""	(value: #"^"")
-				]
-				| pos: caret-Uchar (value: pos/1 - 64)
-				| pos: caret-Lchar (value: pos/1 - 96)
+		"^^(" [
+			[										;-- special case first
+				"null" 	 (value: #"^(00)")
+				| "back" (value: #"^(08)")
+				| "tab"  (value: #"^(09)")
+				| "line" (value: #"^(0A)")
+				| "page" (value: #"^(0C)")
+				| "esc"  (value: #"^(1B)")
+				| "del"	 (value: #"^~")
 			]
+			| pos: [1 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
+				if e/1 <> #")" [throw-error]		;-- more than 6 hexadecimal digits
+				value: either rs? [
+					to-char to-integer to-issue copy/part pos e
+				][
+					encode-UTF8-char pos e
+				]
+			)
+			| (throw-error)							;-- invalid syntax
+		] #")"
+		| #"^^" [
+			[
+				#"/" 	(value: #"^/")
+				| #"-"	(value: #"^-")
+				| #"~" 	(value: #"^(del)")
+				| #"^^" (value: #"^^")				;-- caret escaping case
+				| #"{"	(value: #"{")
+				| #"}"	(value: #"}")
+				| #"^""	(value: #"^"")
+			]
+			| pos: caret-Uchar (value: pos/1 - 64)
+			| pos: caret-Lchar (value: pos/1 - 96)
 		]
 	]
 	
