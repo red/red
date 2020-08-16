@@ -17,7 +17,7 @@ Red/System [
 #define OS_POLLIN 		1
 
 #case [
-	any [OS = 'macOS OS = 'FreeBSD] [
+	any [OS = 'macOS OS = 'FreeBSD OS = 'NetBSD] [
 		#define TIOCGWINSZ		40087468h
 		#define TERM_TCSADRAIN	1
 		#define TERM_VTIME		18
@@ -32,7 +32,7 @@ Red/System [
 		#define TERM_CS8		0300h
 		#define TERM_ISIG		80h
 		#define TERM_ICANON		0100h
-		#define TERM_ECHO		08h	
+		#define TERM_ECHO		08h
 		#define TERM_IEXTEN		4000h
 
 		termios!: alias struct! [
@@ -446,7 +446,7 @@ init-console: func [
 		so	 [sigaction! value]
 ][
 	relative-y: 0
-	
+
 	if console? [
 		sigemptyset (as-integer :so) + 4
 		so/sigaction: as-integer :on-resize
@@ -460,7 +460,7 @@ init-console: func [
 		term: declare termios!
 		tcgetattr stdin saved-term					;@@ check returned value
 
-		copy-memory 
+		copy-memory
 			as byte-ptr! term
 			as byte-ptr! saved-term
 			size? term
@@ -474,7 +474,7 @@ init-console: func [
 			TERM_ECHO or TERM_ICANON or TERM_IEXTEN or TERM_ISIG
 		)
 		#case [
-			any [OS = 'macOS OS = 'FreeBSD] [
+			any [OS = 'macOS OS = 'FreeBSD OS = 'NetBSD] [
 				cc: (as byte-ptr! term) + (4 * size? integer!)
 			]
 			true [cc: (as byte-ptr! term) + (4 * size? integer!) + 1]

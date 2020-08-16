@@ -340,7 +340,7 @@ terminal: context [
 				]
 				cursor: cursor % max + 1
 				node: lines + cursor - 1
-				
+
 				either full? [head: cursor % max + 1][node/nlines: 0]
 			]
 			p = tail
@@ -1482,6 +1482,7 @@ terminal: context [
 			Android  []
 			macOS    []
 			FreeBSD  []
+			NetBSD   []
 			Syllable []
 			#default []									;-- Linux
 		]

@@ -51,17 +51,17 @@ alloc-at-tail: func [
 alloc-tail: func [
 	s		 [series!]
 	return:  [cell!]
-	/local 
+	/local
 		cell [red-value!]
 ][
 	if (as byte-ptr! s/tail) = ((as byte-ptr! s + 1) + s/size) [
 		s: expand-series s 0							;-- expand-series refreshes node pointer if needed
 	]
-	
+
 	cell: s/tail
 	;-- ensure that cell is within series upper boundary
 	assert (as byte-ptr! cell) < ((as byte-ptr! s + 1) + s/size)
-	
+
 	s/tail: cell + 1									;-- move tail to next cell
 	cell
 ]
@@ -70,7 +70,7 @@ alloc-tail-unit: func [
 	s		 [series!]
 	unit 	 [integer!]
 	return:  [byte-ptr!]
-	/local 
+	/local
 		p	 [byte-ptr!]
 		size [integer!]
 ][
@@ -78,11 +78,11 @@ alloc-tail-unit: func [
 		size: either unit > s/size [unit << 1][0]
 		s: expand-series s size
 	]
-	
+
 	p: as byte-ptr! s/tail
 	;-- ensure that cell is within series upper boundary
 	assert p < ((as byte-ptr! s + 1) + s/size)
-	
+
 	s/tail: as cell! p + unit							;-- move tail to next unit slot
 	p
 ]
@@ -158,7 +158,7 @@ report: func [
 	arg1  [red-value!]
 	arg2  [red-value!]
 	arg3  [red-value!]
-][	
+][
 	stack/mark-native words/_body
 	stack/set-last as red-value! error/create type id arg1 arg2 arg3
 	natives/print* no
@@ -179,7 +179,7 @@ fire: func [
 	arg1: null
 	arg2: null
 	arg3: null
-	
+
 	count: count - 2
 	unless zero? count [
 		arg1: as red-value! list/3
@@ -311,7 +311,7 @@ select-key*: func [										;-- called by compiler for SWITCH
 	key: as red-value! stack/arguments
 	blk: as red-block! key + 1
 	assert TYPE_OF(blk) = TYPE_BLOCK
-	
+
 	unless TYPE_OF(key) = TYPE_BLOCK [
 		s: GET_BUFFER(blk)
 		value: s/offset + blk/head
@@ -407,9 +407,9 @@ cycles: context [
 		assert top - n >= stack
 		top: top - n
 	]
-	
+
 	reset: does [top: stack]
-	
+
 	find?: func [
 		node	[node!]
 		return: [logic!]
@@ -426,7 +426,7 @@ cycles: context [
 		]
 		no
 	]
-	
+
 	detect?: func [
 		value	[red-value!]
 		buffer	[red-string!]
@@ -450,13 +450,13 @@ cycles: context [
 		either find? node [
 			either mold? [
 				switch TYPE_OF(value) [
-					TYPE_BLOCK	  
+					TYPE_BLOCK
 					TYPE_HASH	  [s: "[...]"			   size: 5 ]
 					TYPE_PAREN	  [s: "(...)"			   size: 5 ]
 					TYPE_MAP	  [s: "#(...)"			   size: 6 ]
 					TYPE_OBJECT	  [s: "make object! [...]" size: 18]
 					TYPE_PATH
-					TYPE_GET_PATH 
+					TYPE_GET_PATH
 					TYPE_LIT_PATH
 					TYPE_SET_PATH [s: "..."				   size: 3 ]
 					default		  [assert false]
@@ -495,12 +495,13 @@ words: context [
 	values:			-1
 	owner:			-1
 	owned:			-1
-	
+
 	windows:		-1
 	syllable:		-1
 	macOS:			-1
 	linux:			-1
-	
+	netbsd:			-1
+
 	any*:			-1
 	break*:			-1
 	copy:			-1
@@ -532,14 +533,14 @@ words: context [
 	after:			-1
 	x:				-1
 	y:				-1
-	
+
 	_true:			-1
 	_false:			-1
 	_yes:			-1
 	_no:			-1
 	_on:			-1
 	_off:			-1
-	
+
 	type:			-1
 	face:			-1
 	window:			-1
@@ -566,7 +567,7 @@ words: context [
 	rgb:			-1
 	alpha:			-1
 	argb:			-1
-	
+
 	date:			-1
 	year:			-1
 	month:			-1
@@ -582,16 +583,16 @@ words: context [
 	minute:			-1
 	second:			-1
 	timezone:		-1
-	
+
 	code:			-1
 	amount:			-1
-	
+
 	user:			-1
 	host:			-1
-	
+
 	system:			-1
 	system-global:	-1
-	
+
 	changed:		-1
 
 	_body:			as red-word! 0
@@ -599,7 +600,8 @@ words: context [
 	_syllable:		as red-word! 0
 	_macOS:			as red-word! 0
 	_linux:			as red-word! 0
-	
+	_netbsd:		as red-word! 0
+
 	_push:			as red-word! 0
 	_pop:			as red-word! 0
 	_fetch:			as red-word! 0
@@ -612,7 +614,7 @@ words: context [
 	_add:			as red-word! 0
 	_subtract:		as red-word! 0
 	_divide:		as red-word! 0
-	
+
 	_to:			as red-word! 0
 	_thru:			as red-word! 0
 	_not:			as red-word! 0
@@ -633,7 +635,7 @@ words: context [
 	_collect: 		as red-word! 0
 	_set: 			as red-word! 0
 	_case:			as red-word! 0
-	
+
 	;-- navigating actions
 	_at:			as red-word! 0
 	_back:			as red-word! 0
@@ -648,7 +650,7 @@ words: context [
 	_skip:			as red-word! 0
 	_tail:			as red-word! 0
 	_tail?:			as red-word! 0
-	
+
 	;-- modifying actions
 	_change:		as red-word! 0
 	_changed:		as red-word! 0
@@ -683,20 +685,20 @@ words: context [
 	_uppercase:		as red-word! 0
 	_lowercase:		as red-word! 0
 	_checksum:		as red-word! 0
-	
+
 	_on-parse-event: as red-word! 0
 	_on-change*:	 as red-word! 0
 	_on-deep-change*: as red-word! 0
-	
+
 	_type:			as red-word! 0
 	_id:			as red-word! 0
 	_try:			as red-word! 0
 	_catch:			as red-word! 0
 	_name:			as red-word! 0
-	
+
 	_multiply:		as red-word! 0
 	_browse:		as red-word! 0
-	
+
 	;-- I/O actions
 	_open:			as red-word! 0
 	_create:		as red-word! 0
@@ -708,14 +710,14 @@ words: context [
 	_rename:		as red-word! 0
 	_update:		as red-word! 0
 	_write:			as red-word! 0
-	
+
 	;-- lexer events
 	_prescan:		as red-word! 0
 	_scan:			as red-word! 0
 	_load:			as red-word! 0
 	_error:			as red-word! 0
 	_comment:		as red-word! 0
-	
+
 	errors: context [
 		_throw:		as red-word! 0
 		note:		as red-word! 0
@@ -745,12 +747,13 @@ words: context [
 		syllable:		symbol/make "Syllable"
 		macOS:			symbol/make "macOS"
 		linux:			symbol/make "Linux"
-		
+		netbsd:			symbol/make "NetBSD"
+
 		repeat:			symbol/make "repeat"
 		foreach:		symbol/make "foreach"
 		map-each:		symbol/make "map-each"
 		remove-each:	symbol/make "remove-each"
-		
+
 		any*:			symbol/make "any"
 		break*:			symbol/make "break"
 		copy:			symbol/make "copy"
@@ -783,7 +786,7 @@ words: context [
 
 		x:				symbol/make "x"
 		y:				symbol/make "y"
-		
+
 		self:			symbol/make "self"
 		values:			symbol/make "values"
 		owner:			symbol/make "owner"
@@ -795,7 +798,7 @@ words: context [
 		_no:			symbol/make "no"
 		_on:			symbol/make "on"
 		_off:			symbol/make "off"
-		
+
 		type:			symbol/make "type"
 		face:			symbol/make "face"
 		window:			symbol/make "window"
@@ -822,7 +825,7 @@ words: context [
 		rgb:			symbol/make "rgb"
 		alpha:			symbol/make "alpha"
 		argb:			symbol/make "argb"
-		
+
 		date:			symbol/make "date"
 		year:			symbol/make "year"
 		month:			symbol/make "month"
@@ -838,13 +841,13 @@ words: context [
 		minute:			symbol/make "minute"
 		second:			symbol/make "second"
 		timezone:		symbol/make "timezone"
-		
+
 		code:			symbol/make "code"
 		amount:			symbol/make "amount"
-		
+
 		user:			symbol/make "user"
 		host:			symbol/make "host"
-		
+
 		system:			symbol/make "system"
 		system-global:	symbol/make "system-global"
 
@@ -852,7 +855,8 @@ words: context [
 		_syllable:		_context/add-global syllable
 		_macOS:			_context/add-global macOS
 		_linux:			_context/add-global linux
-		
+		_netbsd:		_context/add-global netbsd
+
 		_to:			_context/add-global to
 		_thru:			_context/add-global thru
 		_not:			_context/add-global not*
@@ -873,7 +877,7 @@ words: context [
 		_collect: 		_context/add-global collect
 		_set: 			_context/add-global set
 		_case:			_context/add-global case*
-		
+
 		;-- navigating actions
 		_at:			word/load "at"
 		_back:			word/load "back"
@@ -888,7 +892,7 @@ words: context [
 		_select:		word/load "select"
 		_tail:			word/load "tail"
 		_tail?:			word/load "tail?"
-		
+
 		;-- modifying actions
 		_change:		word/load "change"
 		_changed:		word/load "changed"
@@ -900,7 +904,7 @@ words: context [
 		_move:			word/load "move"
 		_moved:			word/load "moved"
 		_poke:			word/load "poke"
-		_poked:			word/load "poked"		
+		_poked:			word/load "poked"
 		_put:			word/load "put"
 		_put-ed:		word/load "put-ed"
 		;_remove:		word/load "remove"
@@ -923,7 +927,7 @@ words: context [
 		_uppercase:		word/load "uppercase"
 		_lowercase:		word/load "lowercase"
 		_checksum:		word/load "checksum"
-		
+
 		_push:			word/load "push"
 		_pop:			word/load "pop"
 		_fetch:			word/load "fetch"
@@ -937,20 +941,20 @@ words: context [
 		_add:			word/load "add"
 		_subtract:		word/load "subtract"
 		_divide:		word/load "divide"
-		
+
 		_on-parse-event:  word/load "on-parse-event"
 		_on-change*:	  word/load "on-change*"
 		_on-deep-change*: word/load "on-deep-change*"
-		
+
 		_type:			word/load "type"
 		_id:			word/load "id"
 		_try:			word/load "try"
 		_catch:			word/load "catch"
 		_name:			word/load "name"
-		
+
 		_multiply:		word/load "multiply"
 		_browse:		word/load "browse"
-		
+
 		;-- I/O actions
 		_open:			word/load "open"
 		_create:		word/load "create"
@@ -962,14 +966,14 @@ words: context [
 		_rename:		word/load "rename"
 		_update:		word/load "update"
 		_write:			word/load "write"
-		
+
 		;-- lexer events
 		_prescan:		word/load "prescan"
 		_scan:			word/load "scan"
 		_load:			word/load "load"
 		_error:			word/load "error"
 		_comment:		word/load "comment"
-		
+
 		errors/throw:	 word/load "throw"
 		errors/note:	 word/load "note"
 		errors/syntax:	 word/load "syntax"
@@ -978,7 +982,7 @@ words: context [
 		errors/access:	 word/load "access"
 		errors/user:	 word/load "user"
 		errors/internal: word/load "internal"
-		
+
 		changed:		_changed/symbol
 	]
 ]
@@ -1005,7 +1009,7 @@ refinements: context [
 
 issues: context [
 	ooo:	as red-word! 0
-	
+
 	build: does [
 		ooo: issue/load "ooo"
 	]

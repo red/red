@@ -281,6 +281,40 @@ simple-io: context [
 					;d_name		[byte! [256]]
 				]
 			]
+			OS = 'NetBSD [								;--TODO: copied from FreeBSD, review
+				;-- http://fxr.watson.org/fxr/source/sys/stat.h?v=FREEBSD10
+				stat!: alias struct! [
+					st_dev		[integer!]
+					st_ino		[integer!]
+					st_modelink	[integer!]				;-- st_mode & st_link are both 16bit fields
+					st_uid		[integer!]
+					st_gid		[integer!]
+					st_rdev		[integer!]
+					st_atime	[timespec! value]		;-- struct timespec inlined
+					st_mtime	[timespec! value]		;-- struct timespec inlined
+					st_ctime	[timespec! value]		;-- struct timespec inlined
+					st_size		[integer!]
+					st_size_h	[integer!]
+					st_blocks_l	[integer!]
+					st_blocks_h	[integer!]
+					st_blksize	[integer!]
+					st_flags	[integer!]
+					st_gen		[integer!]
+					st_lspare	[integer!]
+					btm_sec     [integer!]
+					btm_msec    [integer!]				;-- struct timespec inlined
+					pad0		[integer!]
+					pad1		[integer!]
+				]
+				dirent!: alias struct! [				;@@ the same as macOS
+					d_ino		[integer!]
+					d_reclen	[byte!]
+					_d_reclen_	[byte!]
+					d_type		[byte!]
+					d_namlen	[byte!]
+					;d_name		[byte! [256]]
+				]
+			]
 			OS = 'macOS [
 				stat!: alias struct! [
 					st_dev		[integer!]
@@ -485,7 +519,7 @@ simple-io: context [
 		]
 
 		#case [
-			any [OS = 'macOS OS = 'FreeBSD OS = 'Android] [
+			any [OS = 'macOS OS = 'FreeBSD OS = 'NetBSD OS = 'Android] [
 				#import [
 					LIBC-file cdecl [
 						;-- https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/10.6/man2/stat.2.html?useVersion=10.6
@@ -695,7 +729,7 @@ simple-io: context [
 			OS = 'Windows [
 				GetFileSize file null
 			]
-			any [OS = 'macOS OS = 'FreeBSD OS = 'Android] [
+			any [OS = 'macOS OS = 'FreeBSD OS = 'NetBSD OS = 'Android] [
 				_stat file s
 				s/st_size
 			]
@@ -1030,7 +1064,7 @@ simple-io: context [
 		][
 			fd: open-file file/to-OS-path filename RIO_READ yes
 			if fd < 0 [	return none/push ]
-			#either any [OS = 'macOS OS = 'FreeBSD OS = 'Android] [
+			#either any [OS = 'macOS OS = 'FreeBSD OS = 'NetBSD OS = 'Android] [
 				_stat   fd s
 			][	_stat 3 fd s]
 			tm: gmtime as int-ptr! s/st_mtime

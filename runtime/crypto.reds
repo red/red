@@ -379,7 +379,7 @@ crypto: context [
 	]
 
 	#case [
-		any [OS = 'FreeBSD OS = 'macOS] [
+		any [OS = 'FreeBSD OS = 'macOS OS = 'NetBSD] [
 			#import [
 			LIBC-file cdecl [
 				get-errno-ptr: "__error" [
@@ -679,6 +679,9 @@ crypto: context [
 			]
 			FreeBSD [
 				#define LIBCRYPTO-file "libcrypto.so.8"
+			]
+			NetBSD [
+				#define LIBCRYPTO-file "libcrypto.so"
 			]
 			#default [
 				#switch config-name [

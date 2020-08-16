@@ -178,6 +178,15 @@ FreeBSD [
 	target: 'IA-32
 ]
 ;-------------------------
+NetBSD [
+	OS:				'NetBSD
+	format: 		'ELF
+	type:			'exe
+	dynamic-linker:  "/usr/libexec/ld.elf_so"
+	syscall: 		'BSD
+	target: 		'IA-32
+]
+;-------------------------
 Darwin [
 	OS:			'macOS
 	format: 	'Mach-O

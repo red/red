@@ -67,6 +67,43 @@ system: declare struct! [							;-- trimmed down temporary system definition
 		#export [environ __progname]
 	]
 
+	NetBSD [
+		#import [ LIBC-file cdecl [
+			***__atexit: "atexit" [fun [pointer! [byte!]]]
+			***__exit: "exit" [code [integer!]]]
+		]
+
+		;; The dynamic linker passes a routine for calling destructors in linked libraries
+		;; in the edx cpu register. We use the pointer! [byte!] type since function pointer
+		;; variables can't be passed to a function.
+		***__rtld_cleanup: as pointer! [byte!] system/cpu/edx
+
+		;; Clear the frame pointer. The SVR4 ELF/i386 ABI suggests this, to
+		;; mark the outermost frame.
+		system/stack/frame: as pointer! [integer!] 0
+
+		;; Extract arguments from the call stack (which was setup by the kernel).
+		***__argc: pop
+		***__argv: system/stack/top
+
+		;; Align the stack to a 128-bit boundary, to prevent misaligned access penalities.
+		system/stack/top: as pointer! [integer!] (FFFFFFF0h and as integer! ***__argv)
+
+		;; Register the clean up routine.
+		***__atexit ***__rtld_cleanup
+
+		;; We need to take care of exiting the program ourselves, there's nowhere to
+		;; return to.
+		***__redprog: as function! [] :***_start
+		***__redprog
+		***__exit 0
+
+		;; The FreeBSD libc expects these symbols to be present. They're usually provided by %crt1.o.
+		environ: as struct! [item [c-string!]] 0
+		__progname: as c-string! 0
+		#export [environ __progname]
+	]
+
 	Syllable [
 		#import [LIBC-file cdecl [
 			libc-start: "__libc_start_main" [
@@ -105,9 +142,9 @@ system: declare struct! [							;-- trimmed down temporary system definition
 
 		;; Finally, call into libc's startup routine.
 		***__stack_end: system/stack/top
-		libc-start :***_start ***__argv ***__envp null null ***__stack_end		
+		libc-start :***_start ***__argv ***__envp null null ***__stack_end
 	]
-	
+
 	Android [
 		#import [LIBC-file cdecl [
 			libc-init: "__libc_init" [
@@ -117,7 +154,7 @@ system: declare struct! [							;-- trimmed down temporary system definition
 				structors		[pointer! [integer!]]
 			]
 		]]
-		
+
 		;; Clear the frame pointer. The SVR4 ELF/i386 ABI suggests this, to
 		;; mark the outermost frame.
 		system/stack/frame: as pointer! [integer!] 0
@@ -126,7 +163,7 @@ system: declare struct! [							;-- trimmed down temporary system definition
 		;; kernel).
 		***__argc: pop
 		***__argv: system/stack/top
-		
+
 		system/stack/top: system/stack/top - 4			;-- simulate a structors struct on stack
 		push 0											;-- fini
 		push 0											;-- init
@@ -135,11 +172,11 @@ system: declare struct! [							;-- trimmed down temporary system definition
 		;; Before pushing arguments for `libc-start`, align the stack to a
 		;; 128-bit boundary, to prevent misaligned access penalities.
 		;system/stack/top: as pointer! [integer!] (FFFFFFF0h and as integer! ***__argv)
-		
+
 		;; Finally, call into Bionic's startup routine.
 		libc-init ***__argv - 1 null :***_start ***__argv - 16
 	]
-	
+
 	#default [										;-- for SVR4 fully conforming UNIX platforms
 		#import [LIBC-file cdecl [
 			libc-start: "__libc_start_main" [
