@@ -754,7 +754,6 @@ float: context [
 				if money/float-overflow?  left [return 1]
 				return money/compare money/from-float left as red-money! value2 op
 			]
-			TYPE_CHAR
 			TYPE_INTEGER [
 				int: as red-integer! value2
 				right: as-float int/value
