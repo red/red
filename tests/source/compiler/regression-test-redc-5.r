@@ -202,8 +202,15 @@ test
 	--test-- "#3891"
 		--compile-and-run-this-red {probe load "a<=>"}
 		--assert not crashed?
-
-
+	
+	--test-- "#4526"
+		--compile-and-run-this {
+			Red []
+			do bind [probe 1 ** 2] context [**: make op! func [x y][x + y]]
+		}
+		--assert compiled?
+		--assert qt/output = "3"
+		
 ===end-group===
 
 ~~~end-file~~~ 
