@@ -209,7 +209,7 @@ test
 			do bind [probe 1 ** 2] context [**: make op! func [x y][x + y]]
 		}
 		--assert compiled?
-		--assert qt/output = "3"
+		--assert 3 = load qt/output
 		
 ===end-group===
 
