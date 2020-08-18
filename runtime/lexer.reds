@@ -440,6 +440,7 @@ lexer: context [
 			cont? [logic!]
 			ref	  [integer!]
 	][
+		assert lex/in-series <> null
 		if lex/fun-evts and event = 0 [return true]
 		if all [event = EVT_SCAN type = -2][event: EVT_ERROR type: TYPE_ERROR]
 		if all [event = EVT_PRESCAN type = TYPE_ERROR lex/entry = S_M_STRING][s: lex/mstr-s]
@@ -469,7 +470,7 @@ lexer: context [
 		][
 			either zero? type [none/push][datatype/push type]
 		]
-		either all [lex/in-series <> null TYPE_OF(lex/in-series) <> TYPE_BINARY][
+		either TYPE_OF(lex/in-series) <> TYPE_BINARY [
 			x: unicode/count-chars lex/input s
 			y: x + unicode/count-chars s e
 		][
@@ -477,6 +478,7 @@ lexer: context [
 			y: as-integer e - lex/input
 		]
 		ref: either any [all [type < 0 event = EVT_PRESCAN] event = EVT_OPEN][x][y]
+		ref: ref + lex/in-series/head					;-- accounts for series original offset
 		ser/head: ref									;-- 0-based offset
 		integer/push lex/line							;-- line number
 		either null? value [pair/push x + 1 y + 1][stack/push value] ;-- token
@@ -484,12 +486,12 @@ lexer: context [
 		if lex/fun-locs > 0 [_function/init-locals 1 + lex/fun-locs] ;-- +1 for /local refinement
 		_function/call lex/fun-ptr ctx
 
-		if ser/head <> ref [
-			lex/in-series/head: ser/head
-			either TYPE_OF(ser) = TYPE_BINARY [
-				lex/in-pos: lex/input + ser/head
+		if ser/head <> ref [							;-- check if callback changed input offset
+			ref: ser/head - lex/in-series/head
+			either TYPE_OF(ser) = TYPE_BINARY [			;-- update input offset in lexer state accordingly
+				lex/in-pos: lex/input + ref
 			][
-				lex/in-pos: unicode/skip-chars lex/input lex/in-end ser/head
+				lex/in-pos: unicode/skip-chars lex/input lex/in-end ref
 			]
 		]
 		cont?: logic/top-true?
@@ -891,7 +893,7 @@ lexer: context [
 						while [all [p/1 <> #")" p < e]][
 							index: 1 + as-integer p/1	;-- converts the 2 hex chars using a lookup table
 							cb: hexa-table/index		;-- decode one nibble at a time
-							if cb = #"^(FF)" [cp/value: -1 return p]
+							if cb = #"^(FF)" [cp/value: -1 return s]
 							c: c << 4 + as-integer cb
 							p: p + 1
 						]
@@ -986,7 +988,7 @@ lexer: context [
 	]
 
 	scan-mstring-open: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
-		if lex/fun-ptr <> null [fire-event lex EVT_OPEN TYPE_STRING null s e]
+		if all [zero? lex/mstr-nest lex/fun-ptr <> null][fire-event lex EVT_OPEN TYPE_STRING null s e]
 		if zero? lex/mstr-nest [lex/mstr-s: s]
 		lex/mstr-nest: lex/mstr-nest + 1
 		lex/mstr-flags: lex/mstr-flags or flags
@@ -995,12 +997,12 @@ lexer: context [
 	]
 	
 	scan-mstring-close: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
-		if lex/fun-ptr <> null [fire-event lex EVT_CLOSE TYPE_STRING null s e]
 		lex/mstr-nest: lex/mstr-nest - 1
+		if all [zero? lex/mstr-nest lex/fun-ptr <> null][fire-event lex EVT_CLOSE TYPE_STRING null lex/mstr-s e]
 
 		either zero? lex/mstr-nest [
 			either load? [
-				if lex/fun-ptr <> null [load?: fire-event lex EVT_SCAN TYPE_STRING null s e]
+				if lex/fun-ptr <> null [load?: fire-event lex EVT_SCAN TYPE_STRING null lex/mstr-s e]
 				if load? [
 					load-string lex lex/mstr-s e lex/mstr-flags or flags yes
 					if lex/fun-ptr <> null [fire-event lex EVT_LOAD TYPE_STRING lex/tail - 1 s e]
@@ -1141,10 +1143,18 @@ lexer: context [
 		type: TYPE_WORD
 		if flags and C_FLAG_COLON <> 0 [
 			case [
-				s/1 = #":" [type: TYPE_GET_WORD]
-				e/0 = #":" [type: TYPE_SET_WORD]
-				all [e/1 = #":" lex/entry = S_PATH][0]	;-- do nothing if in a path
-				true	   [throw-error lex s e type]
+				all [s/1 = #":" e/0 <> #":"][type: TYPE_GET_WORD]
+				all [s/1 <> #":" e/0 = #":"][type: TYPE_SET_WORD]
+				all [e/1 = #":" lex/entry = S_PATH][
+					if e + 1 < lex/in-end [
+						cp: as-integer e/2
+						index: lex-classes/cp and FFh + 1	;-- query the class of ending character
+						unless as-logic path-ending/index [	;-- lookup if the character class is ending path
+							throw-error lex s e type
+						]
+					]
+				]
+				true [throw-error lex s e type]
 			]
 		]
 		if s/1 = #"'" [
@@ -1901,6 +1911,7 @@ lexer: context [
 		p: grab-integer p e flags :min :err
 		if any [err <> 0 min < 0][do-error]
 		p: p + 1
+		if all [p = e p/0 = #":"][do-error]
 	
 		if p < e [
 			if any [all [p/0 <> #"." p/0 <> #":"] flags and C_FLAG_EXP <> 0][do-error]
@@ -1977,8 +1988,13 @@ lexer: context [
 	
 	load-url: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local
-			p [byte-ptr!]
+			p	 [byte-ptr!]
+			type [integer!]
 	][
+		if any [s/1 = #":" s/1 = #"'"][
+			type: either s/1 = #":" [TYPE_GET_WORD][TYPE_LIT_WORD]
+			throw-error lex s e type
+		]
 		flags: flags and not C_FLAG_CARET				;-- clears caret flag
 		p: s while [all [p/1 <> #"%" p < e]][p: p + 1] 	;-- check if any %xx 
 		if p < e [flags: flags or C_FLAG_ESC_HEX or C_FLAG_CARET]
@@ -2073,10 +2089,15 @@ lexer: context [
 				match?
 			]
 			q: q - cnt - 1
-		]	
-		if load? [
+		]
+		either load? [
 			flags: flags and not C_FLAG_CARET			;-- clears caret flag
 			load-string lex p q flags load?	
+		][
+			if lex/fun-ptr <> null [
+				fire-event lex EVT_OPEN  TYPE_STRING null s s + cnt
+				fire-event lex EVT_CLOSE TYPE_STRING null s e - 1
+			]
 		]
 		lex/in-pos: q + cnt + 1							;-- reset the input position to delimiter byte
 	]
@@ -2101,12 +2122,12 @@ lexer: context [
 			term?: no
 			state: lex/entry
 			prev: state
-			p: lex/in-pos
-			start: p
+			p: lex/in-pos								;-- current input position
+			start: p									;-- token starting position (including whitespaces)
 			mark: line
-			offset: 0
+			offset: 0									;-- leading whitespaces counter
 			
-			loop as-integer lex/in-end - p [
+			loop as-integer lex/in-end - p [			;-- prescanning loop
 				#if debug? = yes [if verbose > 0 [probe ["=== " p/1 " ==="]]]
 				cp: as-integer p/value
 				flags: lex-classes/cp and FFFFFF00h or flags
@@ -2115,49 +2136,51 @@ lexer: context [
 				prev: state
 				state: as-integer transitions/index
 				#if debug? = yes [if verbose > 0 [?? state]]
-				offset: offset + as-integer skip-table/state
+				offset: offset + as-integer skip-table/state ;-- leading whitespaces skipping
 				if state > --EXIT_STATES-- [term?: yes break]
-				line: line + as-integer line-table/class
+				line: line + as-integer line-table/class	 ;-- lines counting
 				p: p + 1
 			]
-			unless term? [
+			unless term? [								;-- if EOF reached, manually force the transition
 				prev: state
 				index: state * (size? character-classes!) + C_EOF
 				state: as-integer transitions/index
 				#if debug? = yes [if verbose > 0 [?? state]]
 			]
-			s: start + offset
+			s: start + offset							;-- real token position start
 			assert state <= T_REF
 			assert s <= p
 			
 			lex/in-pos: p
-			lex/line:   line
-			lex/nline:  line - mark
-			lex/prev:	prev
-			lex/type:	-1
-			lex/scanned: as-integer type-table/state
+			lex/line:   line							;-- global line number
+			lex/nline:  line - mark						;-- token's lines span
+			lex/prev:	prev							;-- save previous state
+			lex/type:	-1								;-- type determined by scanners
+			lex/scanned: as-integer type-table/state	;-- type determined by state/types correspondence table
 		
-			index: state - --EXIT_STATES--
+			index: state - --EXIT_STATES--				;-- scanners jump table entry calculation
 			do-scan: as scanner! scanners/index
 			if all [pscan? state <= T_STRING][			;-- Prescan only, early exit
-				catch LEX_ERR [do-scan lex s p flags no]
+				catch LEX_ERR [do-scan lex s p flags no];-- invoke scanners for delimiters and special constructs
 				err?: system/thrown = LEX_ERR
 				system/thrown: 0
 				if err? [exit]
 			]
 			scan?: either not events? [not pscan?][
-				idx: either zero? lex/scanned [0 - index][lex/scanned]
-				fire-event lex EVT_PRESCAN idx null s lex/in-pos
+				either lex/entry = S_M_STRING [yes][
+					idx: either zero? lex/scanned [0 - index][lex/scanned]
+					fire-event lex EVT_PRESCAN idx null s lex/in-pos
+				]
 			]
 			if scan? [									;-- Scanning stage --
 				load?: any [not one? ld?]
-				either state < T_STRING [
+				either state < T_STRING [				;-- invoke scanners for delimiters and special constructs
 					catch LEX_ERR [do-scan lex s p flags ld?]
 					if all [system/thrown = LEX_ERR not load?][system/thrown: 0 exit]
 				][
 					if any [not ld? :do-scan <> null all [events? lex/fun-evts and EVT_SCAN <> 0]][
-						if :do-scan = null [do-scan: as scanner! loaders/index]
-						catch LEX_ERR [do-scan lex s p flags no]
+						if :do-scan = null [do-scan: as scanner! loaders/index] ;-- use loaders if scanners not defined
+						catch LEX_ERR [do-scan lex s p flags no] ;-- invoke scanner/loader with load?:no flag!
 						if events? [
 							load?: either system/thrown = LEX_ERR [no][
 								idx: either zero? lex/scanned [0 - index][lex/scanned]
@@ -2171,7 +2194,7 @@ lexer: context [
 				if load? [								;-- Loading stage --
 					do-load: as loader! loaders/index
 					if :do-load <> null [
-						catch LEX_ERR [do-load lex s p flags yes]
+						catch LEX_ERR [do-load lex s p flags yes] ;-- invoke loader with load?:yes flag
 						if all [events? system/thrown <> LEX_ERR][
 							assert all [lex/tail > lex/head lex/tail > lex/buffer]
 							slot: lex/tail - 1
@@ -2180,10 +2203,10 @@ lexer: context [
 					]
 				]
 				system/thrown: 0
-
-				if all [lex/entry = S_PATH state <> T_PATH state <> T_ERROR][
-					check-path-end lex s lex/in-pos flags load? ;-- lex/in-pos could have changed
-				]
+			]
+			if all [lex/entry = S_PATH state <> T_PATH state <> T_ERROR][ ;-- manual checking for path end
+				catch LEX_ERR [check-path-end lex s lex/in-pos flags load?] ;-- lex/in-pos could have changed
+				system/thrown: 0
 			]
 			if all [any [one? pscan?] lex/scanned > 0 lex/entry <> S_PATH lex/entry <> S_M_STRING state <> T_PATH][
 				slot: lex/tail - 1
@@ -2196,7 +2219,7 @@ lexer: context [
 			]
 			lex/in-pos >= lex/in-end
 		]
-		if all [lex/entry = S_M_STRING zero? lex/scanned][
+		if all [lex/entry = S_M_STRING zero? lex/scanned][ ;-- {...} string not closed
 			catch LEX_ERR [throw-error lex lex/mstr-s lex/in-end TYPE_STRING]
 			system/thrown: 0
 		]
@@ -2225,6 +2248,8 @@ lexer: context [
 			lex	  	 [state! value]
 			clean-up [subroutine!]
 	][
+		assert any [fun = null ser <> null]				;-- ser needs to be set if fun is set
+		
 		either null? root-state [
 			root-state: lex
 			lex/back: null
@@ -2271,17 +2296,21 @@ lexer: context [
 		slots: (as-integer lex/tail - lex/buffer) >> 4
 		if slots > 0 [
 			p: as red-point! either lex/buffer < lex/head [lex/head - 1][lex/buffer]
-			if TYPE_OF(p) = TYPE_POINT [
-				lex/closing: p/y
-				catch RED_THROWN_ERROR [throw-error lex lex/input + p/z lex/in-end ERR_CLOSING]
-				either system/thrown <= LEX_ERR [
-					dst/header: TYPE_NONE
-					system/thrown: 0
-					clean-up
-					return lex/scanned
-				][
-					clean-up
-					re-throw
+			either all [not scan? lex/entry = S_PATH lex/scanned <> TYPE_ERROR][
+				lex/scanned: p/y						;-- any-path prescanning case
+			][
+				if TYPE_OF(p) = TYPE_POINT [			;-- unclosed any-block series case
+					lex/closing: p/y
+					catch RED_THROWN_ERROR [throw-error lex lex/input + p/z lex/in-end ERR_CLOSING]
+					either system/thrown <= LEX_ERR [
+						dst/header: TYPE_NONE
+						system/thrown: 0
+						clean-up
+						return lex/scanned
+					][
+						clean-up
+						re-throw
+					]
 				]
 			]
 		]
@@ -2330,7 +2359,7 @@ lexer: context [
 
 		if null? len [len: :ignore]
 		catch RED_THROWN_ERROR [type: scan dst base size one? scan? load? wrap? len fun as red-series! str]
-		utf8-buf-tail: base
+		utf8-buf-tail: utf8-buffer + used				;-- move back to original tail
 		if extra <> null [free extra]
 		if system/thrown <> 0 [re-throw]				;-- clean place to rethrow errors
 		type

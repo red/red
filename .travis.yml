@@ -30,9 +30,9 @@ env:
 
 
 matrix:
-  allow_failures:               # Enable to disregard ARM build failures
-  - env: OS=armel               # Enable to disregard ARMel build failures
-  - env: OS=armhf               # Enable to disregard ARMhf build failures
+#  allow_failures:               # Enable to disregard ARM build failures
+#  - env: OS=armel               # Enable to disregard ARMel build failures
+#  - env: OS=armhf               # Enable to disregard ARMhf build failures
 
   include:
 

@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 05/09/2019
-	Revision: 56
+	Date: 14/08/2020
+	Revision: 57
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -128,7 +128,7 @@ Variables can hold any value of the available datatypes. This can be the real va
  bar: "hello"
 
 \note Multiple assignments
-Multiple assignments, like a: b: 123, are not currently supported in Red/System. Such a feature will be added in the future at some point, probably on the rewrite of Red/System in Red.
+Multiple assignments, like <b>a: b: 123</b>, are currently partially supported in Red/System through "assignment grouping". It is acting like a macro expansion where the pattern <b>a: b: 123</b> would be expanded to <b>a: 123 b: 123</b>. It will duplicate whatever value is assigned to each variable, so special care is needed when using it.
 
 /note
 
@@ -865,6 +865,27 @@ Currently literal arrays allow write access, but there is no bound checking as i
 
 /note
 
++++Binary arrays
+
+Binary arrays are a type of literal array made out of bytes only.
+
+<b>Syntax</b>
+
+ <variable>: #{...hex bytes...}
+
+ <variable> : a pointer of [pointer! [byte!] type. 
+
+The array is statically allocated and can be accessed using pointer path notation or pointer arithmetic. The size in bytes of a binary array can be retrieved using <b>size?</b> keyword.
+
+Examples:
+
+ table: #{0042FA0100CAFE00AA}
+ probe size? table						;-- outputs 9
+ probe table/2							;-- outputs "B"
+ probe as integer! table/2				;-- outputs 66
+
+<u>Note</u>: whitespaces and comments are accepted inside binary arrays.
+
 +++Null value
 
 A special <b>null</b> value is available to use for pointer! and other pointer-like (pass-by-reference) types (struct!, c-string!) and pseudo-type function!. <b>Null</b> does not have a specific type, but can be used to replace any other pointer-like value. So, <b>null</b> cannot be used as initializing value for a global variable or a local variable that does not have an explicit type specification.
@@ -1331,7 +1352,22 @@ Until this change has been decided, it may be wise to use the <b>func</b> keywor
  	c: 100
  	a * c / b
  ]
- 
+
+Grouping of arguments or local variables by type is also possible.
+
+<b>Example</b>
+
+ percent?: func [
+ 	a b [integer!]
+ 	return: [integer!]
+ 	/local
+ 		c d [integer!]
+ ][
+ 	c: 20
+ 	d: c + 80
+ 	a * d / b
+ ]
+
 \note Arguments passing
 
 In the current implementation, pointer!, integer!, byte!, float!, float32! and logic! arguments are passed by value, while c-string! and struct! arguments are passed by reference. Adding the `value` keyword after a struct! type specification, allows it to be passed by value (works also for returned value).
@@ -1709,6 +1745,42 @@ Immediately quits the function and returns a value.
  	]
  	"ok"								;-- return "ok" if a <> 0
  ]
+ 
+---Subroutines
+
+Subroutines are reusable code parts in a function's body that can be called from within the function where they are defined only.
+
+<b>Syntax</b>
+
+ <name>: [<body>]
+
+ <name> : subroutine's name (local variable).
+ <body> : subroutine's code (regular R/S code).
+
+A subroutine name is a local variable that needs to be defined as of type <b>subroutine!</b>, else a compilation error will occur. Once defined, a subroutine can be called by invoking its name from anywhere in the function code (but after its own definition). A subroutine returns its last value to the caller.
+
+Example:
+
+ foo: func [
+ 	a [integer!]
+ 	return: [integer!]
+ 	/local
+ 		do-error [subroutine!]
+ ][
+ 	do-error: [print "Wrong number!" return err]
+ 	switch a [
+ 		0  [err: 10 do-error]
+ 		5  [err: 20 do-error]
+ 		10 [err: 30 do-error]
+ 	]
+ 	print "Correct!"
+ ]
+
+\note 
+
+The <b>subroutine!</b> type is currently a pseudo-type, not a first-class type, so it cannot be passed as argument or returned from a function. 
+
+/note
 
 ===Scoping
 
@@ -2766,9 +2838,12 @@ Reserves a storage space on stack (in stack slots unit) and returns a pointer th
 <b>Syntax</b>
 
  <ptr>: system/stack/allocate <slots>
+ <ptr>: system/stack/allocate/zero <slots>
 
  <ptr>  : variable of type: pointer! [integer!]
  <slots>: expression returning an integer
+ 
+The <b>/zero</b> option forces the allocated stack region to be zero-filled.
 
 \note Stack slots unit
 Stack slots unit are system-dependent, on IA-32 and ARM, a slot is equal to 4 bytes.
@@ -3037,6 +3112,38 @@ where:
  <exception> : is one of the above exception name
  <value>     : an integer! value
 
+
+---fpu/status
+
+Retrieve the FPU exception bits status.
+
+<b>Syntax</b>
+
+ system/fpu/status
+
+ return: a value of type integer!.
+ 
+The resulting status bits layout depends on the architecture:
+
+<b>IA-32:</b>
+ P|U|O|Z|D|I
+
+    P: Precision
+    U: Underflow
+    O: Overflow
+    Z: Zero Divide
+    D: Denormalized operand
+    I: Invalid Operation
+
+<b>ARM:</b>
+ ID|0|IX|UF|OF|DZ|IO
+
+	ID: Input Denormal
+	IX: Inexact (Precision)
+	UF: Underflow
+	OF: Overflow
+	DZ: Division by Zero
+	IO: Invalid Operation
 
 ---fpu/control-word
 
@@ -4166,6 +4273,19 @@ will output:
 
 
 ===Document History
+
+*<b>14/08/2020 - revision 57</b>
+
+*>Adds subroutines description.
+
+*>Adds binary! arrays description.
+
+*>Adds multiple assignments and variable grouping mentions.
+
+*>Adds system/stack/allocate/zero description.
+
+*>Adds system/fpu/status description.
+
 
 *<b>05/09/2019 - revision 56</b>
 
