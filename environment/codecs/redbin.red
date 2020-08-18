@@ -20,11 +20,29 @@ put system/codecs 'redbin context [
 		stack/set-last as red-value! redbin/encode data
 	]
 	
-	decode: routine [payload [binary!] /local blk [red-block!]][
-		if 16 >= binary/rs-length? payload [fire [TO_ERROR(script invalid-data) payload]]
+	decode: routine [
+		payload [any-type!]
+		/local
+			blk [red-block!]
+			bin [red-binary!]
+	][
+		switch TYPE_OF(payload) [
+			TYPE_URL
+			TYPE_FILE [
+				payload: actions/read* -1 -1 1 -1 -1 -1
+			]
+			TYPE_BINARY [0]
+			default [fire [TO_ERROR(script invalid-data) payload]]
+		]
+		
+		bin: as red-binary! payload
+		assert TYPE_OF(bin) = TYPE_BINARY
+		if 16 >= binary/rs-length? bin [fire [TO_ERROR(script invalid-data) payload]]
+		
 		blk: block/push-only* 0
-		redbin/decode binary/rs-head payload blk yes
-		if (block/rs-length? blk) = 1 [blk: as red-block! block/rs-head blk]
+		redbin/decode binary/rs-head bin blk yes
+		if 1 = block/rs-length? blk [blk: as red-block! block/rs-head blk]
+		
 		SET_RETURN(blk)
 	]
 ]
