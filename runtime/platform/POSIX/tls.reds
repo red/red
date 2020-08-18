@@ -216,9 +216,18 @@ tls: context [
 				]
 				ctx: server-ctx
 			]
-			create-cert-ctx td ctx
-			ssl: SSL_new ctx
+			if all [
+				0 <> create-cert-ctx td ctx
+				not client?
+			][	;-- create an internal cert if no cert specified
+				pk: create-private-key
+				cert: create-certificate pk
+				SSL_CTX_use_certificate server-ctx cert
+				SSL_CTX_use_PrivateKey server-ctx pk
+				;SSL_CTX_check_private_key server-ctx
+			]
 
+			ssl: SSL_new ctx
 			td/ssl: ssl
 			if null? ssl [probe "SSL_new failed" exit]
 
