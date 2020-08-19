@@ -95,6 +95,29 @@ array: context [
 		p/value: val
 	]
 
+	find-ptr: func [
+		node	[node!]
+		val		[int-ptr!]
+		return: [integer!]		;-- return offset if found, -1 if not found
+		/local
+			s	[series!]
+			p	[ptr-ptr!]
+			pp	[ptr-ptr!]
+			e	[ptr-ptr!]
+	][
+		s: as series! node/value
+		p: as ptr-ptr! s/offset
+		e: as ptr-ptr! s/tail
+		pp: p
+		while [p < e][
+			if p/value = val [
+				return as-integer p - pp
+			]
+			p: p + 1
+		]
+		-1
+	]
+
 	pick-ptr: func [
 		node		[node!]
 		idx			[integer!]		;-- 1-based index
@@ -1390,7 +1413,7 @@ _hashtable: context [
 		size	[integer!]
 		change? [logic!]					;-- deleted or inserted items
 		/local s [series!] h [hashtable!] indexes chain p e keys index flags [int-ptr!]
-			i c-idx idx part ii sh n [integer!]
+			i c-idx idx part ii sh n [integer!] nodes [node!]
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -1405,17 +1428,23 @@ _hashtable: context [
 		indexes: as int-ptr! s/offset
 
 		n: size
+		nodes: alloc-bytes 4 * size? int-ptr!
 		while [n > 0][
 			index: indexes + head
 			i: index/value
-			either keys/i < 0 [					;-- chain mode
+			either keys/i < 0 [				;-- chain mode
 				chain: array/pick-ptr h/chains 0 - keys/i
-				s: as series! chain/value
-				p: as int-ptr! s/offset
-				e: as int-ptr! s/tail
-				while [p < e][
-					if p/value >= ii [p/value: p/value + offset]
-					p: p + 1
+				if -1 = array/find-ptr nodes chain [
+					array/append-ptr nodes chain
+					s: as series! chain/value
+					p: as int-ptr! s/offset
+					e: as int-ptr! s/tail
+					while [p < e][
+						if p/value >= ii [
+							p/value: p/value + offset
+						]
+						p: p + 1
+					]
 				]
 			][
 				keys/i: keys/i + offset
@@ -1423,6 +1452,7 @@ _hashtable: context [
 			head: head + 1
 			n: n - 1
 		]
+		array/clear nodes
 
 		if change? [
 			head: ii						;-- restore head
