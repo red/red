@@ -586,6 +586,7 @@ clipboard: context [
 			as logic! res
 		]
 	]
+#if modules contains 'View [
 	Linux [
 		;; Depends on GTK
 		#import [
@@ -667,6 +668,7 @@ clipboard: context [
 			true
 		]
 	]
+]
 	#default [
 		read: func [
 			return:		[red-value!]

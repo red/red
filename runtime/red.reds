@@ -52,7 +52,7 @@ red: context [
 		Windows  [#include %platform/image-gdiplus.reds]
 		Syllable []
 		macOS	 [#include %platform/image-quartz.reds]
-		Linux	 [#include %platform/image-gdk.reds]
+		Linux	 [#if modules contains 'View [#include %platform/image-gdk.reds]]
 		FreeBSD  []
 		#default []
 	]
@@ -109,7 +109,9 @@ red: context [
 	#include %datatypes/ref.reds
 	#if OS = 'Windows [#include %datatypes/image.reds]	;-- temporary
 	#if OS = 'macOS   [#include %datatypes/image.reds]	;-- temporary
-	#if OS = 'Linux   [#include %datatypes/image.reds]	;-- temporary
+	#if OS = 'Linux   [
+		#if modules contains 'View [#include %datatypes/image.reds]
+	]
 
 	;-- Debugging helpers --
 	
@@ -208,7 +210,7 @@ red: context [
 		ref/init
 		#if OS = 'Windows [image/init]					;-- temporary
 		#if OS = 'macOS   [image/init]					;-- temporary
-		#if OS = 'Linux   [image/init]					;-- temporary
+		#if OS = 'Linux   [#if modules contains 'View [image/init]]	;-- temporary
 		
 		actions/init
 		
@@ -287,7 +289,6 @@ red: context [
 			ref/verbose:		verbosity
 			#if OS = 'Windows [image/verbose: verbosity]
 			#if OS = 'macOS   [image/verbose: verbosity]
-			#if OS = 'Linux   [image/verbose: verbosity]
 
 			actions/verbose:	verbosity
 			natives/verbose:	verbosity
