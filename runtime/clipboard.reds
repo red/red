@@ -586,6 +586,87 @@ clipboard: context [
 			as logic! res
 		]
 	]
+	Linux [
+		;; Depends on GTK
+		#import [
+			"libgtk-3.so.0" cdecl [
+				gdk_atom_intern_static_string: "gdk_atom_intern_static_string" [
+					name 		[c-string!]
+					return:		[handle!]
+				]
+				gtk_clipboard_get: "gtk_clipboard_get" [
+					atom 		[handle!]
+					return: 	[handle!]
+				]
+				gtk_clipboard_set_text: "gtk_clipboard_set_text" [
+					clipboard 	[handle!]
+					text 		[c-string!]
+					len 		[integer!]
+				]
+				gtk_clipboard_set_image: "gtk_clipboard_set_image" [
+					clipboard 	[handle!]
+					img 		[handle!]
+				]
+				gtk_clipboard_wait_for_text: "gtk_clipboard_wait_for_text" [
+					clipboard 	[handle!]
+					return: 	[c-string!]
+				]
+				gtk_clipboard_wait_for_image: "gtk_clipboard_wait_for_image" [
+					clipboard 	[handle!]
+					return: 	[handle!]
+				]
+			]
+		]
+
+		to-red-string: func [
+			cstr	[c-string!]
+			slot	[red-value!]
+			return:	[red-string!]
+			/local
+				str		[red-string!]
+				size	[integer!]
+		][
+			size: length? cstr
+			if null? slot [slot: stack/push*]
+			str: string/make-at slot size Latin1
+			unicode/load-utf8-stream cstr size str null
+			str
+		]
+
+		read: func [
+			return:		[red-value!]
+			/local
+				clipboard 	[handle!]
+				str 		[c-string!]
+		][
+			clipboard: gtk_clipboard_get gdk_atom_intern_static_string "CLIPBOARD"
+			str: gtk_clipboard_wait_for_text clipboard
+			as red-value! to-red-string str null
+		]
+
+		write: func [
+			data		[red-value!]
+			return:		[logic!]
+			/local
+				clipboard 	[handle!]
+				text		[red-string!]
+				str 		[c-string!]
+				strlen 		[integer!]
+		][
+			clipboard: gtk_clipboard_get gdk_atom_intern_static_string "CLIPBOARD"
+			switch TYPE_OF(data) [
+				TYPE_STRING [ 
+					text: as red-string! data
+					strlen: -1
+					str: unicode/to-utf8 text :strlen
+					gtk_clipboard_set_text clipboard str strlen
+				]
+				TYPE_IMAGE	[0]
+				default		[0]
+			]
+			true
+		]
+	]
 	#default [
 		read: func [
 			return:		[red-value!]
@@ -599,5 +680,5 @@ clipboard: context [
 		][
 			true
 		]
-	]											;-- Linux...
+	]
 ]]

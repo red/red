@@ -244,7 +244,7 @@ collector: context [
 						mark-block-node as node! native/code
 					]
 				]
-				#if OS = 'macOS [
+				#if any[OS = 'macOS OS = 'Linux][
 				TYPE_IMAGE [
 					image: as red-image! value
 					keep image/node
