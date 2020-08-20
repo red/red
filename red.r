@@ -535,7 +535,7 @@ redc: context [
 		]
 		
 		script: switch/default opts/OS [	;-- empty script for the lib
-			Windows macOS Linux [ [[Needs: View]] ]
+			Windows macOS Linux [if opts/target <> 'ARM [ [[Needs: View]] ]]
 		][ [[]] ]
 		
 		result: red/compile script opts
