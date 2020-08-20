@@ -170,6 +170,7 @@ write %build/bin/sources.r set-cache [
 			%win32.reds
 			%COM.reds
 			%image-gdiplus.reds
+			%image-gdk.reds
 			%image-quartz.reds
 			%win32-ansi.reds
 			%win32-print.reds
@@ -225,6 +226,26 @@ write %build/bin/sources.r set-cache [
 					%selectors.reds
 					%tab-panel.reds
 					%text-box.reds
+				]
+				%gtk3/ [
+					%camera.reds
+					%camera-dev.reds
+					%color.reds
+					%comdlgs.reds
+					%css.reds
+					%draw.reds
+					%events.reds
+					%font.reds
+					%gtk.reds
+					%gui.reds
+					%handlers.reds
+					%menu.reds
+					%para.reds
+					%rules.red
+					%tab-panel.reds
+					%text-box.reds
+					%text-list.reds
+					%v4l2.reds
 				]
 				%test/ [
 					%draw.reds
