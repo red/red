@@ -2724,7 +2724,7 @@ Red [
 
 	--test-- "#3951"
 		res: none
-		do "res: expand-directives/clean [[] #macro word! func [s e]['OK] WTF]()"
+		do "res: expand-directives/clean [[] #macro word! func [s e]['OK] WTF #reset]()"
 		--assert res = [[] OK]
 
 	--test-- "#3427"

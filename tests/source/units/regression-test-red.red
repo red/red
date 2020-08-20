@@ -2885,7 +2885,7 @@ comment {
 				parse spec [any [=arg=]]
 			]}
 		compose-result: compose [yz (make typeset! [float!])]
-		--assert equal? do read test-file compose-result
+		--assert equal? do test-file compose-result
 		unset 'test-file
 
 	--test-- "#4205 - seed random with precise time!"
