@@ -209,69 +209,73 @@ repend: func [
 
 replace: function [
 	"Replaces values in a series, in place"
-	series [series!] "The series to be modified"
-	pattern "Specific value or parse rule pattern to match"
-	value "New value, replaces pattern in the series"
-	/all "Replace all occurrences, not just the first"
-	/deep "Replace pattern in all sub-lists as well"
-	/case "Case-sensitive replacement"
-	/local p rule s e many? len pos do-parse do-find
+    series [any-block! any-string! binary! vector!] "The series to be modified"	;-- series! barring image!
+    pattern "Specific value or parse rule pattern to match"
+    value 	"New value, replaces pattern in the series" 
+    /all 	"Replace all occurrences, not just the first"
+    /deep 	"Replace pattern in all sub-lists as well"
+    /case 	"Case-sensitive replacement"
 ][
-	do-parse: pick [parse/case parse] case
-	if system/words/all [deep any-list? series] [
-		pattern: to block! either word? pattern [to lit-word! pattern] [pattern]
-		do compose [
-			(do-parse) series rule: [
-				some [
-					s: pattern e: (
-						s: change/part s value e
-						unless all [return series]
-					) :s
-					| ahead any-list! into rule | skip
-				]
-			]
+	every: :system/words/all
+	
+	parse?: any [
+		every [deep any-list? series]
+		every [
+			any [binary? series any-string? series]
+			any [block? :pattern bitset? :pattern]
 		]
-		return series
 	]
-	if system/words/all [
-		any [not any-string? :pattern tag? :pattern]
+	form?: every [
 		any-string? series
-		not block? :pattern
+		any [not any-string? :pattern tag? :pattern]	;-- search for a literal tag, including angle brackets
+		not block?  :pattern
 		not bitset? :pattern
-	] [
-		pattern: form pattern
 	]
-	either system/words/all [any-string? :series block? :pattern] [
-		p: [to pattern change pattern (value)]
-		do compose [(do-parse) series either all [[some p]] [p]]
-	] [
+	quote?: every [
+		not form?
+		parse?
+		not block?  :pattern
+		not bitset? :pattern
+	]
+	
+	pattern: system/words/case [
+		form?  [form :pattern]
+		quote? [reduce ['quote :pattern]]
+		'else  [:pattern]
+	]
+	
+	also series either parse? [
+		rule: [
+			any [
+				change pattern (value) if (not all) break
+				| if (deep) ahead any-list! into rule
+				| skip
+			]
+		]
+		
+		parse series [case case rule]					;-- parse cannot process vector! and image!
+	][
 		many?: any [
-			system/words/all [series? :pattern any-string? series]
-			binary? series
-			system/words/all [any-list? series any-list? :pattern]
-		]
-		len: either many? [length? pattern] [1]
-		do-find: pick [find/case find] case
-		either all [
-			pos: series
-			either many? [
-				while [pos: do compose [(do-find) pos pattern]] [
-					remove/part pos len
-					pos: insert pos value
-				]
-			] [
-				while [pos: do compose [(do-find) pos :pattern]] [
-					pos: insert remove pos value
-				]
+			every [
+				any [binary? series any-string? series]
+				series? :pattern
 			]
-		] [
-			if pos: do compose [(do-find) series :pattern] [
-				remove/part pos len
-				insert pos value
+			every [
+				any-list? series
+				any-list? :pattern
+			]
+		]
+		size: either many? [length? :pattern][1]
+		seek: reduce [pick [find/case find] case 'series quote :pattern]
+		
+		until [
+			not every [
+				series: do seek
+				change/part series value size
+				all
 			]
 		]
 	]
-	series
 ]
 
 math: function [
