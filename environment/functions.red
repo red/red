@@ -216,22 +216,20 @@ replace: function [
     /deep 	"Replace pattern in all sub-lists as well"
     /case 	"Case-sensitive replacement"
 ][
-	every: :system/words/all
-	
 	parse?: any [
-		every [deep any-list? series]
-		every [
+		system/words/all [deep any-list? series]
+		system/words/all [
 			any [binary? series any-string? series]
 			any [block? :pattern bitset? :pattern]
 		]
 	]
-	form?: every [
+	form?: system/words/all [
 		any-string? series
 		any [not any-string? :pattern tag? :pattern]	;-- search for a literal tag, including angle brackets
 		not block?  :pattern
 		not bitset? :pattern
 	]
-	quote?: every [
+	quote?: system/words/all [
 		not form?
 		parse?
 		not block?  :pattern
@@ -245,7 +243,10 @@ replace: function [
 	]
 	
 	also series either parse? [
-		deep?: every [deep not binary? series]			;-- don't match by any-list! datatype in binary!
+		deep?: system/words/all [						;-- don't match by any-list! datatype in binary!
+			deep
+			not binary? series
+		]
 		rule:  [
 			any [
 				change pattern (value) if (not all) break
@@ -257,11 +258,11 @@ replace: function [
 		parse series [case case rule]					;-- parse cannot process vector! and image!
 	][
 		many?: any [
-			every [
+			system/words/all [
 				any [binary? series any-string? series]
 				series? :pattern
 			]
-			every [
+			system/words/all [
 				any-list? series
 				any-list? :pattern
 			]
@@ -269,8 +270,8 @@ replace: function [
 		size: either many? [length? :pattern][1]
 		seek: reduce [pick [find/case find] case 'series quote :pattern]
 		
-		until [
-			not every [
+		until [											;-- find does not support image!
+			not system/words/all [
 				series: do seek
 				change/part series value size
 				all
