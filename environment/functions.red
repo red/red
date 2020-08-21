@@ -211,10 +211,10 @@ replace: function [
 	"Replaces values in a series, in place"
     series [any-block! any-string! binary! vector!] "The series to be modified"	;-- series! barring image!
     pattern "Specific value or parse rule pattern to match"
-    value 	"New value, replaces pattern in the series" 
-    /all 	"Replace all occurrences, not just the first"
-    /deep 	"Replace pattern in all sub-lists as well"
-    /case 	"Case-sensitive replacement"
+    value "New value, replaces pattern in the series" 
+    /all  "Replace all occurrences, not just the first"
+    /deep "Replace pattern in all sub-lists as well"
+    /case "Case-sensitive replacement"
 ][
 	parse?: any [
 		system/words/all [deep any-list? series]
