@@ -273,7 +273,7 @@ replace: function [
 		until [											;-- find does not support image!
 			not system/words/all [
 				series: do seek
-				change/part series value size
+				series: change/part series value size
 				all
 			]
 		]
