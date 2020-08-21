@@ -245,10 +245,11 @@ replace: function [
 	]
 	
 	also series either parse? [
-		rule: [
+		deep?: every [deep not binary? series]			;-- don't match by any-list! datatype in binary!
+		rule:  [
 			any [
 				change pattern (value) if (not all) break
-				| if (deep) ahead any-list! into rule
+				| if (deep?) ahead any-list! into rule
 				| skip
 			]
 		]
