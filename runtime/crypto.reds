@@ -379,10 +379,18 @@ crypto: context [
 	]
 
 	#case [
-		any [OS = 'FreeBSD OS = 'macOS OS = 'NetBSD] [
+		any [OS = 'FreeBSD OS = 'macOS] [
 			#import [
 			LIBC-file cdecl [
 				get-errno-ptr: "__error" [
+					return: [int-ptr!]
+				]
+			]]
+		]
+		OS = 'NetBSD [
+			#import [
+			LIBC-file cdecl [
+				get-errno-ptr: "__errno" [
 					return: [int-ptr!]
 				]
 			]]
