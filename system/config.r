@@ -182,9 +182,10 @@ NetBSD [
 	OS:				'NetBSD
 	format: 		'ELF
 	type:			'exe
-	dynamic-linker:  "/usr/libexec/ld.elf_so"
+	dynamic-linker: "/usr/libexec/ld.elf_so"
 	syscall: 		'BSD
 	target: 		'IA-32
+	PIC?:			 yes
 ]
 ;-------------------------
 Darwin [

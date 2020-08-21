@@ -259,12 +259,14 @@ context [
 		;; Standard metadata:		[type		flags				align]
 		segment "rx"				[load		[r x]				page] [
 			struct "ehdr"
-			segment "phdr"			[phdr	  	[r]					byte]
+			segment "phdr"			[phdr	  	[r]					word]
 			segment "interp"		[interp	  	[r]					byte] [
 				section ".interp"	[progbits 	[alloc]				byte]
 			]
 			segment "note"			[note		[r]					word] [
 				section ".note.netbsd.ident"
+									[note 		[alloc]				word]
+				section ".note.netbsd.pax"
 									[note 		[alloc]				word]
 			]
 			section ".hash"			[hash	  	[alloc]				word]
@@ -326,7 +328,10 @@ context [
 		]
 
 		if job/OS <> 'NetBSD [
-			remove-elements structure [".note.netbsd.ident"]
+			remove-elements structure [
+				".note.netbsd.ident"
+				".note.netbsd.pax"
+			]
 		]
 
 		if empty? dynamic-linker [
@@ -378,7 +383,6 @@ context [
 			remove segments
 		]
 
-
 		sections: collect-structure-names structure 'section
 
 		commands: compose/deep [
@@ -404,7 +408,9 @@ context [
 
 			".interp"		data (to-c-string dynamic-linker)
 			".note.netbsd.ident"
-							data (#{0700000004000000010000004E6574425344000000E9A435})		;-- TODO: remove hard-coded value, use generic substitution approach
+							data (#{0700000004000000010000004E6574425344000000E9A435})	;-- https://www.netbsd.org/docs/kernel/elf-notes.html
+			".note.netbsd.pax"
+							data (#{0400000004000000030000005061580000000000})
 			".dynstr"		data (to-elf-strtab compose [(libraries) (imports) (extract exports 2) (defs/rpath) (soname)])
 			".text"			data (job/sections/code/2)
 			".stabstr"		data (to-elf-strtab join ["%_"] extract natives 2)
@@ -1154,7 +1160,7 @@ context [
 						unless zero? pad: (4 - (size // 4)) // 4 [ ;; @@ Make alignment target-specific.
 							repend commands [name 'pad pad]
 						]
-						total: total + size + pad
+						total: total + size
 					)
 				]
 			]
