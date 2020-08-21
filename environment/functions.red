@@ -249,7 +249,7 @@ replace: function [
 		]
 		rule:  [
 			any [
-				change pattern (value) if (not all) break
+				change pattern (value) [if (all) | break]
 				| if (deep?) ahead any-list! into rule
 				| skip
 			]
