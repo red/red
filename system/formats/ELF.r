@@ -259,7 +259,7 @@ context [
 		;; Standard metadata:		[type		flags				align]
 		segment "rx"				[load		[r x]				page] [
 			struct "ehdr"
-			segment "phdr"			[phdr	  	[r]					word]
+			segment "phdr"			[phdr	  	[r]					byte]
 			segment "interp"		[interp	  	[r]					byte] [
 				section ".interp"	[progbits 	[alloc]				byte]
 			]
@@ -406,6 +406,7 @@ context [
 			".stab"			size [stab-entry		2 + ((length? natives) / 2)]
 			"shdr"			size [section-header	length? sections]
 
+			"interp"		size (length? to-c-string dynamic-linker)					;-- NetBD has strict checks to make sure interp header and section sizes are the same
 			".interp"		data (to-c-string dynamic-linker)
 			".note.netbsd.ident"
 							data (#{0700000004000000010000004E6574425344000000E9A435})	;-- https://www.netbsd.org/docs/kernel/elf-notes.html
@@ -1160,7 +1161,7 @@ context [
 						unless zero? pad: (4 - (size // 4)) // 4 [ ;; @@ Make alignment target-specific.
 							repend commands [name 'pad pad]
 						]
-						total: total + size
+						total: total + size + pad
 					)
 				]
 			]
