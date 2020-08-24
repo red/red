@@ -2806,9 +2806,9 @@ b}
 		--assert 'baz = do [block/1/('foo)/bar]
 	
 	--test-- "#3156"
-		foo: context [bar: does ['qux]]
-		qux: foo/bar
-		--assert qux == 'qux
+		ctx: context [foo: does ['bar]]
+		bar: ctx/foo
+		--assert 'bar == probe bar
 
 	--test-- "#3603"
 		bu3603: reduce [()]
