@@ -636,6 +636,7 @@ Red [
 	--test-- "tro-158"  --assert error? try [transcode/one "#abc:"]
 	--test-- "tro-159"  --assert error? try [transcode/one ":x:"]
 	--test-- "tro-160"  --assert error? try [transcode/one ":x::"]
+	--test-- "tro-161"  --assert error? try [transcode/one "1:2:"]
 
 ===end-group===
 ===start-group=== "transcode/next"
@@ -742,6 +743,10 @@ Red [
 	--test-- "scan-74" --assert error!   = scan "\non"
 	--test-- "scan-75" --assert error!   = scan ":x:"
 	--test-- "scan-76" --assert error!   = scan ":x::"
+
+	--test-- "scan-77" --assert [#[none] ""] == scan/next " "
+	--test-- "scan-78" --assert none? scan/next ""
+	--test-- "scan-79" --assert error!   = scan "1:2:"
 
 ===end-group===
 ===start-group=== "scan/fast"
@@ -946,9 +951,8 @@ Red [
 			load integer! datatype! 1 123
 			prescan string! datatype! 1 5x5
 			open string! datatype! 1 5x5
-			prescan string! datatype! 1 6x9
-			close string! datatype! 1 6x9
-			scan string! datatype! 1 6x9 
+			close string! datatype! 1 5x9
+			scan string! datatype! 1 5x9 
     		load string! datatype! 1 "abc" 
 			prescan integer! datatype! 1 11x23
 			scan float! datatype! 1 11x23
@@ -1010,9 +1014,8 @@ Red [
 			load pair! datatype! 4 3x4
 			prescan string! datatype! 4 19x19
 			open string! datatype! 4 19x19
-			prescan string! datatype! 4 20x24
-			close string! datatype! 4 20x24
-			scan string! datatype! 4 20x24 
+			close string! datatype! 4 19x24
+			scan string! datatype! 4 19x24 
     		load string! datatype! 4 "test"
 			prescan float! datatype! 4 26x30
 			scan float! datatype! 4 26x30
@@ -1137,7 +1140,7 @@ Red [
 			open block! datatype! 3 13x13
 			load pair! datatype! 4 3x4
 			open string! datatype! 4 19x19
-			close string! datatype! 4 20x24
+			close string! datatype! 4 19x24
 			load string! datatype! 4 "test" 
 			load float! datatype! 4 3.14
 			load word! datatype! 4 pi
@@ -1194,8 +1197,7 @@ Red [
 		--assert [] = transcode/trace "{^/" :lex-logger
 		--assert logs = [
 			   prescan string! datatype! 1 1x1 
-			   open string! datatype! 1 1x1 
-			   prescan error! datatype! 2 1x3 
+			   open string! datatype! 1 1x1
 			   error string! datatype! 2 1x3
 		]
 
@@ -1390,6 +1392,35 @@ Red [
 		    prescan integer! datatype! 1 12x15 "" 
 		    scan integer! datatype! 1 12x15 "" 
 		    load integer! datatype! 1 123 ""
+		]
+
+	--test-- "tt-29"
+		clear logs
+		--assert [a/b] == transcode/trace "a/b/" :lex-logger
+		--assert logs = [
+		    prescan path! datatype! 1 1x2
+		    open path! datatype! 1 1x1
+		    scan word! datatype! 1 1x2
+		    load word! datatype! 1 a
+		    prescan word! datatype! 1 3x4
+		    scan word! datatype! 1 3x4
+		    load word! datatype! 1 b
+		    error path! datatype! 1 1x4
+		]
+
+	--test-- "tt-30"
+		clear logs
+		--assert (reduce [to-path 'a 'c]) == transcode/trace "a/b:c" :lex-logger
+		--assert logs = [
+		    prescan path! datatype! 1 1x2 
+		    open path! datatype! 1 1x1 
+		    scan word! datatype! 1 1x2 
+		    load word! datatype! 1 a 
+		    prescan word! datatype! 1 3x4 
+		    error word! datatype! 1 3x4 
+		    prescan word! datatype! 1 5x6 
+		    scan word! datatype! 1 5x6 
+		    load word! datatype! 1 c
 		]
 
 ===end-group===

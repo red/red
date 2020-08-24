@@ -893,7 +893,7 @@ lexer: context [
 						while [all [p/1 <> #")" p < e]][
 							index: 1 + as-integer p/1	;-- converts the 2 hex chars using a lookup table
 							cb: hexa-table/index		;-- decode one nibble at a time
-							if cb = #"^(FF)" [cp/value: -1 return p]
+							if cb = #"^(FF)" [cp/value: -1 return s]
 							c: c << 4 + as-integer cb
 							p: p + 1
 						]
@@ -988,7 +988,7 @@ lexer: context [
 	]
 
 	scan-mstring-open: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
-		if lex/fun-ptr <> null [fire-event lex EVT_OPEN TYPE_STRING null s e]
+		if all [zero? lex/mstr-nest lex/fun-ptr <> null][fire-event lex EVT_OPEN TYPE_STRING null s e]
 		if zero? lex/mstr-nest [lex/mstr-s: s]
 		lex/mstr-nest: lex/mstr-nest + 1
 		lex/mstr-flags: lex/mstr-flags or flags
@@ -997,12 +997,12 @@ lexer: context [
 	]
 	
 	scan-mstring-close: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
-		if lex/fun-ptr <> null [fire-event lex EVT_CLOSE TYPE_STRING null s e]
 		lex/mstr-nest: lex/mstr-nest - 1
+		if all [zero? lex/mstr-nest lex/fun-ptr <> null][fire-event lex EVT_CLOSE TYPE_STRING null lex/mstr-s e]
 
 		either zero? lex/mstr-nest [
 			either load? [
-				if lex/fun-ptr <> null [load?: fire-event lex EVT_SCAN TYPE_STRING null s e]
+				if lex/fun-ptr <> null [load?: fire-event lex EVT_SCAN TYPE_STRING null lex/mstr-s e]
 				if load? [
 					load-string lex lex/mstr-s e lex/mstr-flags or flags yes
 					if lex/fun-ptr <> null [fire-event lex EVT_LOAD TYPE_STRING lex/tail - 1 s e]
@@ -1145,8 +1145,16 @@ lexer: context [
 			case [
 				all [s/1 = #":" e/0 <> #":"][type: TYPE_GET_WORD]
 				all [s/1 <> #":" e/0 = #":"][type: TYPE_SET_WORD]
-				all [e/1 = #":" lex/entry = S_PATH][0]	;-- do nothing if in a path
-				true	   [throw-error lex s e type]
+				all [e/1 = #":" lex/entry = S_PATH][
+					if e + 1 < lex/in-end [
+						cp: as-integer e/2
+						index: lex-classes/cp and FFh + 1	;-- query the class of ending character
+						unless as-logic path-ending/index [	;-- lookup if the character class is ending path
+							throw-error lex s e type
+						]
+					]
+				]
+				true [throw-error lex s e type]
 			]
 		]
 		if s/1 = #"'" [
@@ -1903,6 +1911,7 @@ lexer: context [
 		p: grab-integer p e flags :min :err
 		if any [err <> 0 min < 0][do-error]
 		p: p + 1
+		if all [p = e p/0 = #":"][do-error]
 	
 		if p < e [
 			if any [all [p/0 <> #"." p/0 <> #":"] flags and C_FLAG_EXP <> 0][do-error]
@@ -2080,10 +2089,15 @@ lexer: context [
 				match?
 			]
 			q: q - cnt - 1
-		]	
-		if load? [
+		]
+		either load? [
 			flags: flags and not C_FLAG_CARET			;-- clears caret flag
 			load-string lex p q flags load?	
+		][
+			if lex/fun-ptr <> null [
+				fire-event lex EVT_OPEN  TYPE_STRING null s s + cnt
+				fire-event lex EVT_CLOSE TYPE_STRING null s e - 1
+			]
 		]
 		lex/in-pos: q + cnt + 1							;-- reset the input position to delimiter byte
 	]
@@ -2153,8 +2167,10 @@ lexer: context [
 				if err? [exit]
 			]
 			scan?: either not events? [not pscan?][
-				idx: either zero? lex/scanned [0 - index][lex/scanned]
-				fire-event lex EVT_PRESCAN idx null s lex/in-pos
+				either lex/entry = S_M_STRING [yes][
+					idx: either zero? lex/scanned [0 - index][lex/scanned]
+					fire-event lex EVT_PRESCAN idx null s lex/in-pos
+				]
 			]
 			if scan? [									;-- Scanning stage --
 				load?: any [not one? ld?]
@@ -2189,7 +2205,8 @@ lexer: context [
 				system/thrown: 0
 			]
 			if all [lex/entry = S_PATH state <> T_PATH state <> T_ERROR][ ;-- manual checking for path end
-				check-path-end lex s lex/in-pos flags load? ;-- lex/in-pos could have changed
+				catch LEX_ERR [check-path-end lex s lex/in-pos flags load?] ;-- lex/in-pos could have changed
+				system/thrown: 0
 			]
 			if all [any [one? pscan?] lex/scanned > 0 lex/entry <> S_PATH lex/entry <> S_M_STRING state <> T_PATH][
 				slot: lex/tail - 1
@@ -2342,7 +2359,7 @@ lexer: context [
 
 		if null? len [len: :ignore]
 		catch RED_THROWN_ERROR [type: scan dst base size one? scan? load? wrap? len fun as red-series! str]
-		utf8-buf-tail: base
+		utf8-buf-tail: utf8-buffer + used				;-- move back to original tail
 		if extra <> null [free extra]
 		if system/thrown <> 0 [re-throw]				;-- clean place to rethrow errors
 		type

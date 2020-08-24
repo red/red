@@ -99,6 +99,14 @@ Linux [									; Linux default target
 	dynamic-linker: "/lib/ld-linux.so.2"
 	stack-align-16?: yes
 ]
+Linux-GTK [								; Linux GUI target
+	OS:			'Linux
+	format: 	'ELF
+	type:		'exe
+	dynamic-linker: "/lib/ld-linux.so.2"
+	stack-align-16?: yes
+	sub-system: 'GUI
+]
 Linux-musl [
 	OS:			'Linux
 	format: 	'ELF
@@ -162,6 +170,17 @@ RPi [
 	cpu-version: 7.0
 	base-address: 32768					; 8000h
 	dynamic-linker: "/lib/ld-linux-armhf.so.3"
+]
+RPi-GTK [
+	OS:			'Linux
+	format:		'ELF
+	target:		'ARM
+	ABI:		'hard-float
+	type:		'exe
+	cpu-version: 7.0
+	base-address: 32768					; 8000h
+	dynamic-linker: "/lib/ld-linux-armhf.so.3"
+	sub-system: 'GUI
 ]
 ;-------------------------
 Syllable [

@@ -26,5 +26,8 @@ put system/codecs 'gif context [
 		#if not find [Android Linux FreeBSD NetBSD Syllabe] OS [
 			stack/set-last as cell! image/decode data
 		]
+		#if OS = 'Linux [#if modules contains 'View [
+			stack/set-last as cell! image/decode data
+		]]
 	]
 ]
