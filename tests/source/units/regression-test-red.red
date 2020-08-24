@@ -2795,6 +2795,20 @@ b}
 	--test-- "#2253"
 		--assert not error? try [3151391351465.995 // 1.0]
 		unset 'true?
+	
+	--test-- "#3098"
+		block: reduce ['foo func [/bar][pick [baz qux] bar]]
+		--assert 'qux = do [block/('foo)]				;-- wrapper makes sure that it's not a sub-expression
+		--assert 'baz = do [block/('foo)/bar]
+		
+		block: reduce [block]
+		--assert 'qux = do [block/1/('foo)]
+		--assert 'baz = do [block/1/('foo)/bar]
+	
+	--test-- "#3156"
+		foo: context [bar: does ['qux]]
+		qux: foo/bar
+		--assert qux == 'qux
 
 	--test-- "#3603"
 		bu3603: reduce [()]
@@ -2880,15 +2894,18 @@ comment {
 		unset [anded4205 last-random4205 all-equal?4205]
 	
 	--test-- "#4305"
-		block: reduce ['foo does [100]]
+		block: reduce ['foo func [/bar][pick [baz qux] bar]]
 		id:    func [value][value]
+		--assert 'qux == block/('foo)
+		--assert 'qux == id block/('foo)
+		--assert 'qux == bar: block/('foo)
+		--assert 'qux == bar
 		
-		--assert 100 == block/('foo)
-		--assert strict-equal? 100 block/('foo)
-		--assert 100 == id block/('foo)
-		--assert strict-equal? 100 id block/('foo)
-		--assert 100 == bar: block/('foo)
-		--assert 100 == bar
+		block: reduce [block]
+		--assert 'baz == block/1/('foo)/bar
+		--assert 'baz == id block/1/('foo)/bar
+		--assert 'baz == baz: block/1/('foo)/bar
+		--assert 'baz == baz
 		
 	--test-- "#4505"
 		do [
