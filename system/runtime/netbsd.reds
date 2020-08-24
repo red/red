@@ -49,10 +49,7 @@ siginfo!: alias struct! [
 	;... remaining fields skipped
 ]
 
-;; TODO: Adjust for NetBSD
-;; sources:
-;;  http://fxr.watson.org/fxr/source/sys/ucontext.h?v=FREEBSD10#L54
-;;  http://fxr.watson.org/fxr/source/x86/include/ucontext.h?v=FREEBSD10;im=10#L92,162
+;; Copied from FreeBSD
 
 #define UCTX_DEFINITION [
 	_ucontext!: alias struct! [

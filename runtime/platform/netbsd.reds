@@ -47,7 +47,7 @@ platform: context [
 			flags		[integer!]
 			fd			[integer!]
 			offset_l	[integer!]
-			offset_h    [integer!]              ;-- off_t is 64 bit on FreeBSD
+			offset_h    [integer!]              ;-- off_t is 64 bit on FreeBSD, works for NetBSD as well
 			return:		[byte-ptr!]
 		]
 		munmap: SYSCALL_MUNMAP [
