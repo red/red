@@ -1980,7 +1980,7 @@ Red [
 
 	--test-- "#1746"
 		; should check for crash
-		s1746: make object! [m: func [][] b: func [arg] [compose/deep [(arg)]]]
+		s1746: make object! [m: func [][] b: func [arg][compose/deep [(arg)]]]
 		s2: make s1746 []
 		--assert equal? [1] s1746/b 1
 		unset [s1746 s2]
@@ -2878,8 +2878,18 @@ comment {
 		all-equal?4205: anded4205 = last-random4205
 		--assert not all-equal?4205
 		unset [anded4205 last-random4205 all-equal?4205]
-
-
+	
+	--test-- "#4305"
+		block: reduce ['foo does [100]]
+		id:    func [value][value]
+		
+		--assert 100 == block/('foo)
+		--assert strict-equal? 100 block/('foo)
+		--assert 100 == id block/('foo)
+		--assert strict-equal? 100 id block/('foo)
+		--assert 100 == bar: block/('foo)
+		--assert 100 == bar
+		
 	--test-- "#4505"
 		do [
 			saved: :find
