@@ -19,7 +19,6 @@ TLS-device: context [
 			p		[red-object!]
 			msg		[red-object!]
 			td		[tls-data!]
-			data2	[iocp-data!]
 			type	[integer!]
 			bin		[red-binary!]
 			s		[series!]
@@ -55,32 +54,17 @@ TLS-device: context [
 				]
 			]
 			IO_EVT_ACCEPT	[
-				either data/state and IO_STATE_TLS_DONE = 0 [
-					;-- swap accepted socket and the server socket
-					;-- we'll do the negotiate through the accepted socket
-					fd: data/accept-sock
-					data/accept-sock: as-integer data/device
-					data/device: as int-ptr! fd
-					iocp/bind g-iocp as int-ptr! fd
-					tls/negotiate as tls-data! data
-					exit
+				#either OS = 'Windows [
+					td: as tls-data! create-tls-data p data/accept-sock	;-- tls-data of the server port
+					socket/acceptex data/accept-sock as iocp-data! td
 				][
-					data2: create-tcp-data p data/accept-sock
-					#either OS = 'Windows [
-						socket/acceptex data/accept-sock data2
-					][
-						data2/state: EPOLLIN
-					]
-
-					msg: create-red-port p
-					copy-cell as cell! msg as cell! p
-					io/set-iocp-data msg data
-
-					td: as tls-data! data2
-					p: as red-object! :td/port
-
-					data/event: IO_EVT_NONE
+					td: as tls-data! io/get-iocp-data p		;-- tls-data of the server port
 				]
+				msg: create-red-port p
+				copy-cell as cell! msg as cell! p		;-- copy client port to client tls-data/port
+				io/set-iocp-data msg data				;-- link client tls-data to the client port
+				p: as red-object! :td/port				;-- get server port
+				data/event: IO_EVT_NONE
 			]
 			default [data/event: IO_EVT_NONE]
 		]
@@ -101,7 +85,7 @@ TLS-device: context [
 		proto
 	]
 
-	create-tcp-data: func [
+	create-tls-data: func [
 		port	[red-object!]
 		sock	[integer!]
 		return: [iocp-data!]
@@ -159,7 +143,7 @@ TLS-device: context [
 
 		n: -1
 		addr: unicode/to-utf8 host :n
-		data: create-tcp-data port fd
+		data: create-tls-data port fd
 		#if OS = 'Windows [data/state: IO_STATE_CLIENT]
 		socket/connect fd addr num/value AF_INET data
 	]
@@ -175,7 +159,7 @@ TLS-device: context [
 
 		fd: socket/create AF_INET SOCK_STREAM IPPROTO_TCP
 		socket/bind fd num/value AF_INET
-		socket/listen fd 1024 create-tcp-data port fd
+		socket/listen fd 1024 create-tls-data port fd
 		iocp/bind g-iocp as int-ptr! fd
 	]
 

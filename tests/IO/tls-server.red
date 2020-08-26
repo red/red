@@ -38,7 +38,7 @@ new-client: func [port /local data] [
     copy port
 ]
 
-server: open tls://:8123
+server: open tls://:58123
 
 server/awake: func [event] [
     if event/type = 'accept [new-client event/port]

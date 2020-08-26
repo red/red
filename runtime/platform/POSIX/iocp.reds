@@ -346,11 +346,15 @@ iocp: context [
 							tls/create as tls-data! data yes
 						]
 						if data/event = IO_EVT_ACCEPT [
+							data: as iocp-data! copy-memory 
+									allocate size? tls-data!	;-- dst
+									as byte-ptr! data			;-- src
+									size? tls-data!
 							fd: socket/accept as-integer data/device
 							data/accept-sock: as-integer data/device
 							data/device: as int-ptr! fd
 							data/state: 0
-							tls/create td no
+							tls/create as tls-data! data no
 						]
 					]
 					unless tls/negotiate as tls-data! data [

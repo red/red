@@ -141,6 +141,7 @@ iocp: context [
 			cnt		[integer!]
 			err		[integer!]
 			i		[integer!]
+			fd		[integer!]
 			e		[OVERLAPPED_ENTRY!]
 			data	[iocp-data!]
 			evt		[integer!]
@@ -188,7 +189,7 @@ iocp: context [
 					]
 				]
 				IOCP_TYPE_TLS [
-					either data/state and IO_STATE_TLS_DONE <> 0 [
+					either data/state and IO_STATE_TLS_DONE <> 0 [	;-- handshake done
 						switch evt [
 							IO_EVT_READ [
 								unless tls/decode as tls-data! data [
@@ -202,10 +203,15 @@ iocp: context [
 							default [0]
 						]
 					][
-						if all [
-							evt <> IO_EVT_ACCEPT
-							not tls/negotiate as tls-data! data
-						][
+						if evt = IO_EVT_ACCEPT [
+							;-- swap accepted socket and the server socket
+							;-- we'll do the negotiate through the accepted socket
+							fd: data/accept-sock
+							data/accept-sock: as-integer data/device
+							data/device: as int-ptr! fd
+							bind g-iocp as int-ptr! fd
+						]
+						unless tls/negotiate as tls-data! data [
 							i: i + 1
 							continue
 						]
