@@ -3194,6 +3194,9 @@ natives: context [
 						any [OS = 'Windows OS = 'macOS] [
 							image/set-many blk as red-image! series size
 						]
+						OS = 'Linux [#if modules contains 'View [
+							image/set-many blk as red-image! series size
+						]]
 						true [--NOT_IMPLEMENTED--]
 					]
 				]

@@ -36,7 +36,10 @@ Red [
 	#include %utils/preprocessor.r
 
 	;-- temporary code --
-	#if not find [Windows macOS Linux] config/OS [
+	#if any [
+		not find [Windows macOS Linux] config/OS
+		all [config/OS = 'Linux not find config/modules 'view]
+	][
 		unset [event! image!]
 		image?: func ["Returns true if the value is this type" value [any-type!]][false]
 	]
