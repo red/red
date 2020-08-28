@@ -291,6 +291,8 @@ iocp: context [
 			0
 		]
 
+probe ["events: " cnt " " p/n-ports]
+
 		i: 0
 		while [i < cnt][
 			e: p/events + i
@@ -413,6 +415,7 @@ iocp: context [
 			]
 			i: i + 1
 		]
+probe ["wait done: " p/n-ports]
 		p/n-ports
 	]
 
