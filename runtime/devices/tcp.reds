@@ -41,6 +41,7 @@ tcp-device: context [
 						data/event: IO_EVT_NONE
 					]
 				]
+				if zero? data/transferred [type: IO_EVT_CLOSE]
 			]
 			IO_EVT_WRITE	[
 				io/unpin-memory tcp/send-buf
