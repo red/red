@@ -24,6 +24,7 @@ iocp!: alias struct! [
 	port	[int-ptr!]
 	events	[OVERLAPPED_ENTRY!]
 	evt-cnt [integer!]
+	n-ports [integer!]						;-- number of port!
 ]
 
 #define IOCP_DATA_FIELDS [
@@ -126,7 +127,9 @@ iocp: context [
 			port [int-ptr!]
 	][
 		port: CreateIoCompletionPort handle p/port null 0
-		if port <> p/port [
+		either port = p/port [
+			p/n-ports: p/n-ports + 1
+		][
 			probe "iocp bind error"
 		]
 	]
@@ -209,7 +212,7 @@ iocp: context [
 							fd: data/accept-sock
 							data/accept-sock: as-integer data/device
 							data/device: as int-ptr! fd
-							bind g-iocp as int-ptr! fd
+							bind p as int-ptr! fd
 						]
 						unless tls/negotiate as tls-data! data [
 							i: i + 1
@@ -223,6 +226,6 @@ iocp: context [
 			if evt > 0 [data/event-handler as int-ptr! data]
 			i: i + 1
 		]
-		1
+		p/n-ports
 	]
 ]

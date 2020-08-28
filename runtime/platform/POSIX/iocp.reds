@@ -33,6 +33,7 @@ iocp!: alias struct! [
 	pair-2		[integer!]
 	ready-socks	[deque!]				;-- a queue for ready socket
 	posted?		[logic!]
+	n-ports		[integer!]
 ]
 
 pending-data!: alias struct! [
@@ -169,6 +170,7 @@ iocp: context [
 		p		[iocp!]
 		handle	[int-ptr!]
 	][
+		p/n-ports: p/n-ports + 1
 	]
 
 	read-io: func [
@@ -411,7 +413,7 @@ iocp: context [
 			]
 			i: i + 1
 		]
-		1
+		p/n-ports
 	]
 
 	create-pending: func [

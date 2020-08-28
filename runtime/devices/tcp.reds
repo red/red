@@ -53,9 +53,9 @@ tcp-device: context [
 				]
 			]
 			IO_EVT_ACCEPT	[ 
+				iocp/bind g-iocp as int-ptr! data/accept-sock
 				#either OS = 'Windows [
 					msg: create-red-port p data/accept-sock
-					iocp/bind g-iocp as int-ptr! data/accept-sock
 					socket/acceptex as-integer data/device data
 				][
 					msg: create-red-port p socket/accept as-integer data/device
@@ -224,13 +224,9 @@ tcp-device: context [
 	close: func [
 		red-port	[red-object!]
 		return:		[red-value!]
-		/local
-			data	[iocp-data!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tcp/close"]]
-
-		data: io/get-iocp-data red-port
-		if data <> null [socket/close as-integer data/device]
+		io/close-port red-port
 		as red-value! red-port
 	]
 

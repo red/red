@@ -128,6 +128,23 @@ io: context [
 			as-integer data
 	]
 
+	close-port: func [
+		red-port	[red-object!]
+		return:		[iocp-data!]
+		/local
+			state	[red-handle!]
+			data	[iocp-data!]
+	][
+		data: get-iocp-data red-port
+		if data <> null [
+			socket/close as-integer data/device
+			g-iocp/n-ports: g-iocp/n-ports - 1
+			state: as red-handle! (object/get-values red-port) + port/field-state
+			state/header: TYPE_NONE
+		]
+		data
+	]
+
 	do-events: func [
 		time	[integer!]		;-- milliseconds, -1: infinite time
 	][
