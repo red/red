@@ -181,13 +181,9 @@ socket: context [
 		data/read-buflen: length
 		n: iocp/read-io data
 
-		case [
-			n > 0 [
-				data/event: IO_EVT_READ
-				data/transferred: n
-				iocp/post data/io-port data
-			]
-			n < 0 [
+		if n < 0 [
+			probe ["errno .................. " errno/value]
+			either errno/value = EAGAIN [
 				data/read-buf: buffer
 				data/read-buflen: length
 				case [
@@ -201,12 +197,12 @@ socket: context [
 					]
 					true [data/state: state or IO_STATE_READING]
 				]
-			]
-			zero? n [
-				data/transferred: 0
-				data/event: IO_EVT_CLOSE
-				iocp/post data/io-port data
-			]
+			][n: 0]
+		]
+		if n >= 0 [
+			data/event: IO_EVT_READ
+			data/transferred: n
+			iocp/post data/io-port data
 		]
 		n
 	]

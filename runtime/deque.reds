@@ -57,6 +57,7 @@ deque: context [
 		idx: queue/offset + queue/size and (queue/capacity - 1) + 1
 		queue/data/idx: as-integer value
 		queue/size: queue/size + 1
+		probe ["queue/push: " queue/size]
 	]
 
 	pop: func [
@@ -99,6 +100,7 @@ deque: context [
 		idx: queue/offset + 1
 		queue/offset: idx and (queue/capacity - 1)
 		queue/size: queue/size - 1
+		probe ["queue/take: " queue/size]
 		as RED_DEQUE_VALUE_T queue/data/idx
 	]
 

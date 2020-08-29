@@ -157,6 +157,7 @@ iocp: context [
 		data	[iocp-data!]
 		return:	[logic!]
 	][
+		probe ["iocp/post: " data/event]
 		deque/push p/ready-socks as int-ptr! data
 		unless p/posted? [
 			p/posted?: yes
@@ -577,7 +578,8 @@ probe ["wait done: " p/n-ports]
 		ev/udata: as int-ptr! data
 		ev/events: evts
 		if 0 <> epoll_ctl epfd op sock :ev [
-			probe ["epoll_ctl error! fd: " sock " op: " op]
+			probe ["epoll_ctl error! fd: " sock " op: " op " evts: " evts]
+			;assert 0 = 1
 		]
 	]
 
