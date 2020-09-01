@@ -41,7 +41,7 @@ if none? system/view [
 	print "1st Done"
 
 	
-	repeat n 10 [
+	repeat n 120 [
 		?? n
 		open client
 		wait client

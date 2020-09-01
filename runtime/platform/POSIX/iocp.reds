@@ -579,7 +579,7 @@ probe ["wait done: " p/n-ports]
 		ev/events: evts
 		if 0 <> epoll_ctl epfd op sock :ev [
 			probe ["epoll_ctl error! fd: " sock " op: " op " evts: " evts]
-			;assert 0 = 1
+			assert 0 = 1
 		]
 	]
 
