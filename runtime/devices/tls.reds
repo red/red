@@ -224,10 +224,19 @@ TLS-device: context [
 			data	[sockdata!]
 			bin		[red-binary!]
 			n		[integer!]
+			s		[series!]
 	][
+		bin: as red-binary! value
 		switch TYPE_OF(value) [
 			TYPE_BINARY [
-				bin: as red-binary! value
+				io/pin-memory bin/node
+			]
+			TYPE_STRING [
+				n: -1
+				bin/node: unicode/str-to-utf8 as red-string! value :n no
+				bin/head: 0
+				s: GET_BUFFER(bin)
+				s/tail: as cell! (as byte-ptr! s/tail) + n
 				io/pin-memory bin/node
 			]
 			default [return as red-value! port]
