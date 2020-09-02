@@ -25,6 +25,8 @@ Red/System [
 	;-- IO_EVT...
 ]
 
+#define IODebug(msg) [#if debug? = yes [io/debug msg]]
+
 #include %platform/io.reds
 
 g-iocp: as iocp! 0			;-- global I/O completion port
@@ -32,6 +34,8 @@ g-iocp: as iocp! 0			;-- global I/O completion port
 ports-block: as red-block! 0
 
 io: context [
+
+	verbose: 2
 
 	get-event-type: func [
 		evt		[red-event!]
@@ -136,7 +140,7 @@ io: context [
 			data	[iocp-data!]
 	][
 		data: get-iocp-data red-port
-		probe ["close port: " data " " g-iocp/n-ports]
+		IODebug(["close port: " data " " g-iocp/n-ports])
 		if data <> null [
 			#if OS <> 'Windows [
 				if data/state <> 0 [iocp/remove data/io-port as-integer data/device data/state data]
@@ -146,7 +150,7 @@ io: context [
 			state: as red-handle! (object/get-values red-port) + port/field-state
 			state/header: TYPE_NONE
 		]
-		probe "close port done"
+		IODebug("close port done")
 		data
 	]
 
@@ -177,7 +181,30 @@ io: context [
 		s/flags: s/flags and (not flag-series-fixed)
 	]
 
+	log-file: "                                        "
+
+	debug: func [
+		[typed]	count [integer!] list [typed-value!]
+		/local saved [integer!] file [integer!]
+	][
+		#if debug? = yes [if verbose > 1 [
+			#if OS = 'Windows [platform/dos-console?: no]
+			file: simple-io/open-file log-file simple-io/RIO_APPEND no
+			saved: stdout
+			stdout: file
+		]]
+		_print count list yes
+		prin-byte lf
+		#if debug? = yes [if verbose > 1 [	
+			simple-io/close-file file
+			stdout: saved
+		]]
+	]
+
 	init: does [
+		#if debug? = yes [if verbose > 1 [
+			sprintf [log-file "red-log-%g.log" platform/get-time yes no]
+		]]
 		g-iocp: iocp/create
 		ports-block: block/make-in root 16
 	]

@@ -131,7 +131,7 @@ tcp-device: context [
 		/local
 			fd	[integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "tcp client"]]
+		#if debug? = yes [if verbose > 0 [io/debug "tcp client"]]
 
 		fd: socket/create AF_INET SOCK_STREAM IPPROTO_TCP
 		iocp/bind g-iocp as int-ptr! fd
@@ -147,7 +147,7 @@ tcp-device: context [
 			fd	[integer!]
 			acp [integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "tcp server"]]
+		#if debug? = yes [if verbose > 0 [io/debug "tcp server"]]
 
 		fd: socket/create AF_INET SOCK_STREAM IPPROTO_TCP
 		socket/bind fd num/value AF_INET
@@ -197,7 +197,7 @@ tcp-device: context [
 			addr	[c-string!]
 			addrbuf [sockaddr_in6! value]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "tcp/open"]]
+		#if debug? = yes [if verbose > 0 [io/debug "tcp/open"]]
 
 		values: object/get-values red-port
 		state: as red-handle! values + port/field-state
@@ -226,7 +226,7 @@ tcp-device: context [
 		red-port	[red-object!]
 		return:		[red-value!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "tcp/close"]]
+		#if debug? = yes [if verbose > 0 [io/debug "tcp/close"]]
 		io/close-port red-port
 		as red-value! red-port
 	]

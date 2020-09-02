@@ -141,7 +141,7 @@ iocp: context [
 	close: func [
 		p [iocp!]
 	][
-		#if debug? = yes [print-line "iocp/close"]
+		#if debug? = yes [io/debug "iocp/close"]
 
 		LibC.close p/pair-1
 		LibC.close p/pair-2
@@ -263,7 +263,7 @@ iocp: context [
 			tm		[timespec!]
 			]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "iocp/wait"]]
+		#if debug? = yes [if verbose > 0 [io/debug "iocp/wait"]]
 
 		err: 0
 		if null? p/events [
@@ -416,7 +416,7 @@ probe ["events: " cnt " " p/n-ports]
 			]
 			i: i + 1
 		]
-probe ["wait done: " p/n-ports]
+IODebug(["wait done: " p/n-ports])
 		p/n-ports
 	]
 

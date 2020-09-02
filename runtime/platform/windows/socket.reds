@@ -135,7 +135,7 @@ socket: context [
 			wsbuf	[WSABUF! value]
 			err		[integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "socket/write"]]
+		#if debug? = yes [if verbose > 0 [io/debug "socket/write"]]
 
 		wsbuf/len: length
 		wsbuf/buf: buffer
@@ -175,7 +175,7 @@ socket: context [
 		/local
 			wsbuf	[WSABUF! value]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "socket/write"]]
+		#if debug? = yes [if verbose > 0 [io/debug "socket/write"]]
 
 		wsbuf/len: length
 		wsbuf/buf: buffer
@@ -212,8 +212,7 @@ socket: context [
 	close: func [
 		sock	[integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "socket/close"]]
-
+		#if debug? = yes [if verbose > 0 [io/debug "socket/close"]]
 		closesocket sock
 	]
 ]

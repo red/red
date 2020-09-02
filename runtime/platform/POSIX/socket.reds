@@ -242,8 +242,8 @@ socket: context [
 		sock	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "socket/close"]]
-print-line "socket/close"
+io/debug "socket/close"
 		LibC.close sock
-print-line "socket/close done"
+io/debug "socket/close done"
 	]
 ]
