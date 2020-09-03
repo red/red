@@ -404,7 +404,8 @@ lexer: context [
 		closing: lex/closing
 		lex/closing: 0
 		lex/tail: lex/buffer							;-- clear accumulated values
-		if closing = TYPE_PATH [type: ERR_BAD_CHAR]		;-- forces a better error report
+
+		if ANY_PATH?(closing) [type: ERR_BAD_CHAR]		;-- forces a better error report
 
 		switch type [
 			ERR_BAD_CHAR 	 [fire [TO_ERROR(syntax bad-char) line pos]]
@@ -600,7 +601,10 @@ lexer: context [
 		stype: p/y
 		either type = -1 [type: stype][					;-- no closing type provided, use saved one
 			if all [
-				type <> TYPE_SET_PATH					;-- let set-path override saved type
+				any [
+					type <> TYPE_SET_PATH 
+					all [type = TYPE_SET_PATH stype = TYPE_LIT_PATH]
+				]
 				not all [stype = TYPE_MAP type = TYPE_PAREN];-- paren can close a map
 				stype <> type							;-- saved type <> closing type => error
 			][

@@ -637,6 +637,7 @@ Red [
 	--test-- "tro-159"  --assert error? try [transcode/one ":x:"]
 	--test-- "tro-160"  --assert error? try [transcode/one ":x::"]
 	--test-- "tro-161"  --assert error? try [transcode/one "1:2:"]
+	--test-- "tro-162"  --assert error? try [transcode/one "'a/b:"]
 
 ===end-group===
 ===start-group=== "transcode/next"
