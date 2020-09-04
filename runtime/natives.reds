@@ -1404,6 +1404,46 @@ natives: context [
 		buffer
 	]
 
+	enhex*: func [
+		check?  [logic!]
+		return: [red-string!]
+		/local
+			str		[red-string!]
+			slen	[integer!]
+			data	[byte-ptr!]
+			buffer	[red-string!]
+			s		[series!]
+			node	[node!]
+			len		[integer!]
+			pcode	[byte-ptr!]
+			p		[byte-ptr!]
+	][
+		#typecheck enhex
+		str: as red-string! stack/arguments
+		slen: -1
+		data: as byte-ptr! unicode/to-utf8 str :slen
+		if slen = 0 [return str]
+
+		stack/keep										;-- keep last value
+		buffer: string/rs-make-at stack/push* slen * 2
+		s: GET_BUFFER(buffer)
+
+		len: 0
+		loop slen [
+			pcode: string/encode-uri-char data :len
+			loop len [
+				node: s/node
+				p: alloc-tail-unit s 1
+				p/1: pcode/1
+				s: as series! node/value
+				pcode: pcode + 1
+			]
+			data: data + 1
+		]
+		stack/set-last as red-value! buffer
+		buffer
+	]
+
 	debase*: func [
 		check?   [logic!]
 		base-arg [integer!]
@@ -3383,6 +3423,7 @@ natives: context [
 			:exclude*
 			:complement?*
 			:dehex*
+			:enhex*
 			:negative?*
 			:positive?*
 			:max*

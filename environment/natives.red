@@ -435,6 +435,14 @@ dehex: make native! [[
 	#get-definition NAT_DEHEX
 ]
 
+enhex: make native! [[
+		"Encode URL-style hex encoded (%xx) strings"
+		value [string! file! tag! email! ref!]
+		return:	[string!] "Always return a string"
+	]
+	#get-definition NAT_ENHEX
+]
+
 negative?: make native! [[
 		"Returns TRUE if the number is negative"
 		number [number! money! time!]

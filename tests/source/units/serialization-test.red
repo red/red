@@ -172,6 +172,25 @@ ser-formed: {1 none true false c red Red a/b 'a/b :a/b a/b: 1 + 2 a  a c d b e f
 		--assert  "a%ceb2b" = dehex "a%ceb2b"
 ===end-group===
 
+===start-group=== "enhex"
+	--test-- "enhex-1"
+		--assert  "a%20b" = enhex "a b"
+	--test-- "enhex-2"
+		--assert  "a%252%E7%9B%AEb" = enhex "a%2目b"
+	--test-- "enhex-3"
+		--assert  "a%00b" = enhex "a^@b"
+	--test-- "enhex-4"
+		--assert  "a%25~b" = enhex "a%~b"
+	--test-- "enhex-5"
+		--assert  "a%CE%B2c" = enhex "aβc"
+	--test-- "enhex-6"
+		--assert  "a%e4%b9%b1%e7%a0%81b" = enhex "a乱码b"
+	--test-- "enhex-7"
+		--assert  "a%25ceb2b" = enhex "a%ceb2b"
+	--test-- "enhex-8"
+		--assert  "https%3A%2F%2Fwww.red-lang.org%2F" = enhex "https://www.red-lang.org/"
+===end-group===
+
 ===start-group=== "to-hex"
 	--test-- "to-hex-1"
 		--assert  #00000000 = to-hex 0
