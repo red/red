@@ -247,7 +247,7 @@ on-face-deep-change*: function ["Internal use only" owner word target action new
 						if owner/type <> 'screen [
 							if all [
 								find [tab-panel window panel] owner/type
-								not find [cleared removed taken move] action 
+								find [inserted appended poked changed moved] action 
 							][
 								faces: skip head target index	;-- zero-based absolute index
 								loop part [
@@ -270,7 +270,7 @@ on-face-deep-change*: function ["Internal use only" owner word target action new
 									faces: next faces
 								]
 							]
-							unless forced? [show owner]
+							;unless forced? [show owner]
 							system/view/platform/on-change-facet owner word target action new index part
 						]
 					]
@@ -299,7 +299,10 @@ on-face-deep-change*: function ["Internal use only" owner word target action new
 				not find/skip next state/3 word 8
 			][
 				unless find [cleared removed taken] action [
-					if find [clear remove take] action [
+					if all [
+						find [clear remove take] action
+						word <> 'draw
+					][
 						index: 0
 						target: copy/part target part
 					]
@@ -402,6 +405,10 @@ face!: object [				;-- keep in sync with facet! enum
 				set-quiet in self word old				;-- force the old value
 				exit
 			]
+			if all [
+				any [word = 'size word = 'offset]
+				old = new
+			][exit]
 			if word = 'pane [
 				if all [type = 'window object? :new new/type = 'window][
 					cause-error 'script 'bad-window []
@@ -435,11 +442,11 @@ face!: object [				;-- keep in sync with facet! enum
 			if find [field text] type [
 				if word = 'text [
 					set-quiet 'data any [
-						all [not empty? new attempt/safer [load new]]
+						all [not empty? new find scalar! scan new attempt/safer [load new]]
 						all [options options/default]
 					]
 				]
-				if 'data = word [
+				if word = 'data [
 					either data [
 						if string? text [modify text 'owned none]
 						set-quiet 'text form data		;@@ use form/into (avoids rebinding)
@@ -570,6 +577,7 @@ system/view: context [
 		paddings:		make map! 32
 		margins:		make map! 32
 		def-heights:	make map! 32
+		fixed-heights:	make map! 32
 		misc:			make map! 32
 		colors:			make map! 10
 	]
@@ -656,7 +664,7 @@ system/view: context [
 		
 		set/any 'result do-actor face event event/type
 		
-		if all [face/parent :result <> 'done][
+		if all [face/parent not find [done continue] :result][
 			set/any 'result system/view/awake/with event face/parent ;-- event bubbling
 			if :result = 'stop [return 'stop]
 		]
@@ -684,11 +692,17 @@ do-events: function [
 	return: [logic! word!] "Returned value from last event"
 	/local result
 ][
-	if win: last head system/view/screens/1/pane [
+	if all [win: last head system/view/screens/1/pane win/state][
 		unless win/state/4 [win/state/4: not no-wait]		;-- mark the window from which the event loop starts
 		set/any 'result system/view/platform/do-event-loop no-wait
 		:result
 	]
+]
+
+stop-events: function [
+	"Stop the last opened event loop"
+][
+	system/view/platform/exit-event-loop
 ]
 
 do-safe: func ["Internal Use Only" code [block!] /local result][
@@ -715,20 +729,24 @@ show: function [
 	/with				  "Link the face to a parent face"
 		parent [object!]  "Parent face to link to"
 	/force				  "For internal use only!"
+	return: [logic!]	  "true if success"
 ][
+	show?: yes
 	if block? face [
 		foreach f face [
 			if word? f [f: get f]
-			if object? f [show f]
+			if object? f [show?: show f]
 		]
-		exit
+		return show?
 	]
 	if debug-info? face [print ["show:" face/type " with?:" with]]
 	
 	either all [face/state face/state/1][
 		pending: face/state/3
-		
+
 		if all [pending not empty? pending][
+			pending: copy pending
+			clear face/state/3
 			foreach [owner word target action new index part state] pending [
 				on-face-deep-change* owner word target action new index part state yes
 			]
@@ -738,7 +756,7 @@ show: function [
 	][
 		new?: yes
 		
-		if face/type <> 'screen [
+		either face/type <> 'screen [
 			if all [not force face/type <> 'window][
 				unless parent [cause-error 'script 'not-linked []]
 				if all [object? face/parent face/parent/type <> 'tab-panel][face/parent: none]
@@ -760,7 +778,9 @@ show: function [
 
 			obj: system/view/platform/make-view face p
 			if with [face/parent: parent]
-			
+
+			face/state: reduce [obj 0 none false]
+
 			foreach field [para font][
 				if all [field: face/:field p: in field 'parent][
 					either block? p: get p [
@@ -772,7 +792,7 @@ show: function [
 			]
 			
 			switch face/type [
-				#if config/OS = 'Windows [				;@@ remove this system specific code
+				#if config/OS <> 'macOS [				;@@ remove this system specific code
 					tab-panel [link-tabs-to-parent face]
 				]
 				window	  [
@@ -786,12 +806,14 @@ show: function [
 					append pane face
 				]
 			]
-		]
-		face/state: reduce [obj 0 none false]
+		][face/state: reduce [obj 0 none false]]
 	]
 
 	if face/pane [
-		foreach f face/pane [show/with f face]
+		foreach f face/pane [
+			show/with f face
+			unless face/state [return false]			;-- unviewed in child event handler
+		]
 		system/view/platform/refresh-window face/state/1
 	]
 	if all [new? object? face/actors in face/actors 'on-created][
@@ -800,6 +822,7 @@ show: function [
 	if all [new? face/type = 'window face/visible?][
 		system/view/platform/show-window obj
 	]
+	show?
 ]
 
 unview: function [
@@ -841,15 +864,14 @@ view: function [
 	
 	unless spec/text   [spec/text: "Red: untitled"]
 	unless spec/offset [center-face spec]
-	show spec
-	
+	unless show spec [exit]
+
 	either no-wait [
 		do-events/no-wait
-		spec											;-- return root face
+		spec							;-- return root face
 	][
-		do-events ()									;-- return unset! value by default
+		do-events ()					;-- return unset! value by default
 	]
-	
 ]
 
 center-face: function [

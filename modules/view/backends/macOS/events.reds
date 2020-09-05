@@ -409,8 +409,8 @@ get-event-picked: func [
 			]
 		]
 		EVT_MENU [
-			idx: evt/flags and FFFFh
-			either idx = FFFFh [none/push][word/push* idx]
+			idx: evt/flags
+			either idx = -1 [none/push][word/push* idx]
 		]
 		EVT_SCROLL [integer/push evt/flags >>> 4]
 		EVT_WHEEL [
@@ -486,8 +486,13 @@ make-event: func [
 	]
 
 	state: EVT_DISPATCH
-
-	#call [system/view/awake gui-evt]
+	stack/mark-try-all words/_anon
+	catch CATCH_ALL_EXCEPTIONS [
+		#call [system/view/awake gui-evt]
+		stack/unwind
+	]
+	stack/adjust-post-try
+	if system/thrown <> 0 [system/thrown: 0]
 
 	res: as red-word! stack/arguments
 	if TYPE_OF(res) = TYPE_WORD [
@@ -604,13 +609,30 @@ do-events: func [
 		event	[int-ptr!]
 ][
 	msg?: no
-	timeout: either no-wait? [0][
-		loop-started?: yes
-		objc_msgSend [NSApp sel_getUid "activateIgnoringOtherApps:" 1]
-		objc_msgSend [NSApp sel_getUid "finishLaunching"]
-		objc_msgSend [objc_getClass "NSDate" sel_getUid "distantFuture"]	
-	]
+	timeout: 0
 
+	loop 10 [ ;; FIXME Consume some leftover events. Find a better solution !!!
+		pool: objc_msgSend [objc_getClass "NSAutoreleasePool" sel_getUid "alloc"]
+		objc_msgSend [pool sel_getUid "init"]
+
+		event: as int-ptr! objc_msgSend [
+			NSApp sel_getUid "nextEventMatchingMask:untilDate:inMode:dequeue:"
+			NSAnyEventMask
+			timeout
+			NSDefaultRunLoopMode
+			true
+		]
+	    objc_msgSend [pool sel_getUid "drain"]
+    ]
+
+    unless no-wait? [
+	    unless loop-started? [
+		    objc_msgSend [NSApp sel_getUid "activateIgnoringOtherApps:" 1]
+			objc_msgSend [NSApp sel_getUid "finishLaunching"]
+		    loop-started?: yes
+	    ]
+	    timeout: objc_msgSend [objc_getClass "NSDate" sel_getUid "distantFuture"]
+    ]
 	until [
 		pool: objc_msgSend [objc_getClass "NSAutoreleasePool" sel_getUid "alloc"]
 		objc_msgSend [pool sel_getUid "init"]

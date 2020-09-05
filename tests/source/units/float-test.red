@@ -415,6 +415,10 @@ Red [
 		]
 		--assert 3.14 = fabs -3.14
 
+	--test-- "issue #4250"
+		--assert error?     try [to float! "12e"]
+		--assert not error? try [to float! "12e4"]
+
 ===end-group===
 
 ===start-group=== "almost equal"
@@ -2798,7 +2802,7 @@ Red [
 	--test-- "float-divide 37"
 		i: 2.2250738585072014e-308
 		j: 1.1
-		base: to-float #either config/target = 'ARM [#{000E8BA2E8BA2E8B}][#{000E8BA2E8BA2E8C}] ;;FIXME: workaround #3993
+		base: to-float #either config/target = 'ARM [#{000E8BA2E8BA2E8B}][#{000E8BA2E8BA2E8C}] ;;FIXME: workaround #4041
 		--assert strict-equal? base 2.2250738585072014e-308 / 1.1
 		--assert strict-equal? base divide 2.2250738585072014e-308 1.1
 		--assert strict-equal? base i / j
@@ -2807,7 +2811,7 @@ Red [
 	--test-- "float-divide 38"
 		i: 2.2250738585072014e-308
 		j: -1.1
-		base: to-float #either config/target = 'ARM [#{800E8BA2E8BA2E8B}][#{800E8BA2E8BA2E8C}] ;;FIXME: workaround #3993
+		base: to-float #either config/target = 'ARM [#{800E8BA2E8BA2E8B}][#{800E8BA2E8BA2E8C}] ;;FIXME: workaround #4041
 		--assert strict-equal? base 2.2250738585072014e-308 / -1.1
 		--assert strict-equal? base divide 2.2250738585072014e-308 -1.1
 		--assert strict-equal? base i / j

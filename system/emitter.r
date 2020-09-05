@@ -48,6 +48,7 @@ emitter: make-profilable context [
 		c-string!	4	-				;-- 32-bit, 8 for 64-bit
 		struct!		4	-				;-- 32-bit, 8 for 64-bit ; struct! passed by reference
 		function!	4	-				;-- 32-bit, 8 for 64-bit
+		subroutine!	4	-				;-- 32-bit, 8 for 64-bit
 	]
 	
 	datatype-ID: [
@@ -269,7 +270,7 @@ emitter: make-profilable context [
 				ptr: tail data-buf
 				value: compiler/unbox value
 				if integer? value [value: to decimal! value]
-				unless decimal? value [value: 0.0]
+				unless find [decimal! issue!] type?/word value [value: 0.0]
 				append ptr either type = 'float32! [
 					IEEE-754/to-binary32/rev value	;-- stored in little-endian
 				][
@@ -329,40 +330,45 @@ emitter: make-profilable context [
 				store-global 0 'integer! none
 			]
 			array! [
-				type: first compiler/get-type value/1
-				if find [float! float64!] type [pad-data-buf 4] ;-- optional 32-bit padding to ensure /0 points to the length slot
-				store-global length? value 'integer! none	;-- stores array size first
-				ptr: tail data-buf							;-- ensures array pointer skips size info
-				f64?: no
-				foreach item value [						;-- mixed types, use 32/64-bit for each slot
-					unless word? item [
-						t: first compiler/get-type item 
-						if all [not f64? find [float! float64!] t][f64?: yes]
-						if type <> t [type: 'integer!]
-					]
-				]
-				either find value string! [
-					list: collect [
-						foreach item value [				 ;-- store array
-							either decimal? item [
-								store-global item 'float! none
-							][
-								either string? item [
-									keep item
-									keep store-global 0 'integer! none
-								][
-									store-global item 'integer! none
-								]
-								if f64? [store-global to integer! #{CAFEBABE} 'integer! none]
-							]
+				either binary? value [
+					pad-data-buf target/ptr-size
+					append ptr value
+					pad-data-buf target/ptr-size
+				][
+					type: first compiler/get-type value/1
+					if find [float! float64!] type [pad-data-buf 8] ;-- optional 32-bit padding to ensure /0 points to the length slot
+					ptr: tail data-buf					;-- ensures array pointer skips size info
+					f64?: no
+					foreach item value [				;-- mixed types, use 32/64-bit for each slot
+						unless word? item [
+							t: first compiler/get-type item 
+							if all [not f64? find [float! float64!] t][f64?: yes]
+							if type <> t [type: 'integer!]
 						]
 					]
-					foreach [str ref] list [				 ;-- store strings
-						store-value/ref none str [c-string!] reduce [ref + 1]
-					]
-				][
-					foreach item value [
-						store-global item any [all [get-word? item 'get-word!] type] none
+					either find value string! [
+						list: collect [
+							foreach item value [			;-- store array
+								either decimal? item [
+									store-global item 'float! none
+								][
+									either string? item [
+										keep item
+										keep store-global 0 'integer! none
+									][
+										store-global item 'integer! none
+									]
+									if f64? [store-global to integer! #{CAFEBABE} 'integer! none]
+								]
+							]
+						]
+						foreach [str ref] list [			;-- store strings
+							store-value/ref none str [c-string!] reduce [ref + 1]
+						]
+					][
+						foreach item value [
+							store-global item any [all [get-word? item 'get-word!] type] none
+						]
 					]
 				]
 			]
@@ -417,10 +423,13 @@ emitter: make-profilable context [
 				saved: name
 				name: none								;-- anonymous data storing
 			]
-			if all [paren? value not word? value/1][
+			if any [all [paren? value not word? value/1] binary? value][
 				type: [array!]
 			]
-			if any [all [not new-global? not local?] string? value paren? value][
+			if any [
+				all [not new-global? not local?]
+				find [string! paren! binary!] type?/word value
+			][
 				if string? value [type: [c-string!]]	;-- force c-string! in case of type casting
 				spec: store-value/ref name value type refs  ;-- store it with hardcoded pointer address
 			]
@@ -676,19 +685,12 @@ emitter: make-profilable context [
 	]
 	
 	get-size: func [type [block! word!] value][
-		either word? type [
-			datatypes/:type
-		][
-			either 'array! = first head type [
-				second head type
-			][
-				switch/default type/1 [
-					c-string! [reduce ['+ 1 reduce ['length? value]]]
-					struct!   [member-offset? type/2 none]
-				][
-					select datatypes type/1
-				]
-			]
+		case [
+			word? type 					[datatypes/:type]
+			'array! = first head type	[second head type]
+			type/1 = 'c-string!			[reduce ['+ 1 reduce ['length? value]]]
+			type/1 = 'struct!			[member-offset? type/2 none]
+			'else						[select datatypes type/1]
 		]
 	]
 	
@@ -711,15 +713,36 @@ emitter: make-profilable context [
 		round/ceiling (member-offset? spec none) / target/stack-width
 	]
 	
-	arguments-size?: func [locals [block!] /push /local size name type width offset struct-ptr?][
-		size: pick [4 0] to logic! struct-ptr?: all [
-			ret: select locals compiler/return-def
+	struct-ptr?: func [spec [block!] /local ret][
+		all [
+			ret: select spec compiler/return-def
 			'value = last ret
-			2 < struct-slots? ret
+			any [
+				all [
+					target/target = 'ARM
+					all [block? spec/1 find spec/1 'cdecl]
+					any [
+						all [
+							compiler/job/ABI = 'soft-float
+							1 < struct-slots? ret
+						]
+						all [
+							compiler/job/ABI = 'hard-float
+							2 < struct-slots? ret
+							not first target/homogeneous-floats? spec
+						]
+					]
+				]
+				2 < struct-slots? ret
+			]
 		]
+	]
+	
+	arguments-size?: func [locals [block!] /push /local size name type width offset ret-ptr?][
+		size: pick 4x0 ret-ptr?: to logic! struct-ptr? locals
 		if push [
 			clear stack
-			if struct-ptr? [repend stack [<ret-ptr> target/args-offset]]
+			if ret-ptr? [repend stack [<ret-ptr> target/args-offset]]
 		]
 		width: target/stack-width
 		offset: target/args-offset
@@ -762,6 +785,13 @@ emitter: make-profilable context [
 		foreach ptr exits [target/patch-jump-point code-buf ptr end]
 	]
 	
+	resolve-subrc-points: func [subs [block!]][
+		foreach [name spec] subs [
+			foreach ptr spec/3 [target/patch-sub-call code-buf ptr ptr - spec/1]
+		]
+		clear subs
+	]
+
 	calc-locals-offsets: func [spec [block!] /local total var sz extra][
 		total: negate extra: target/locals-offset
 		while [not tail? spec: next spec][

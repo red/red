@@ -170,6 +170,12 @@ res_state!: alias struct! [	;-- size: 512 bytes
 			num			[integer!]
 			return:		[integer!]
 		]
+		strnicmp: "strncasecmp" [
+			s1			[byte-ptr!]
+			s2			[byte-ptr!]
+			len			[integer!]
+			return:		[integer!]
+		]
 		strstr: "strstr" [
 			str			[c-string!]
 			substr		[c-string!]

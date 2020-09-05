@@ -104,8 +104,8 @@ op: context [
 			TYPE_ACTION
 			TYPE_NATIVE
 			TYPE_OP [
-				if type = TYPE_NATIVE [flag: flag-native-op]
-				native: as red-native! spec				
+				flag: flag-native-op
+				native: as red-native! spec
 				unless binary? native/spec [fire [TO_ERROR(script bad-op-spec)]]
 				code: native/code
 				native/spec

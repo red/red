@@ -1,7 +1,7 @@
 Red [
 	Title:   "GIF codec"
 	Author:  "Qingtian Xie"
-	File:	 %gif.red
+	File:	 %GIF.red
 	Tabs:	 4
 	Rights:  "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
@@ -26,5 +26,8 @@ put system/codecs 'gif context [
 		#if not find [Android Linux FreeBSD Syllabe] OS [
 			stack/set-last as cell! image/decode data
 		]
+		#if OS = 'Linux [#if modules contains 'View [
+			stack/set-last as cell! image/decode data
+		]]
 	]
 ]

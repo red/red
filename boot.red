@@ -18,19 +18,18 @@ Red [
 	#include %environment/routines.red
 	#include %environment/scalars.red
 	#include %environment/colors.red
+	
+	#register-intrinsics
 	#include %environment/functions.red
 	#include %environment/system.red
-	#include %environment/lexer.red
 	#include %environment/operators.red
 
-	#register-intrinsics
-
-	#include %environment/codecs/png.red
-	#include %environment/codecs/jpeg.red
-	#include %environment/codecs/bmp.red
-	#include %environment/codecs/gif.red
-	;#include %environment/codecs/json.red
-	;#include %environment/codecs/csv.red
+	#include %environment/codecs/PNG.red
+	#include %environment/codecs/JPEG.red
+	#include %environment/codecs/BMP.red
+	#include %environment/codecs/GIF.red
+	#include %environment/codecs/JSON.red
+	#include %environment/codecs/CSV.red
 
 	#include %environment/reactivity.red				;-- requires SET intrinsic
 	#include %environment/networking.red
@@ -39,7 +38,10 @@ Red [
 	#include %environment/schemes/native-schemes.red
 
 	;-- temporary code --
-	#if not find [Windows macOS] config/OS [
+	#if any [
+		not find [Windows macOS Linux] config/OS
+		all [config/OS = 'Linux not find config/modules 'view]
+	][
 		unset [image!]
 		image?: func ["Returns true if the value is this type" value [any-type!]][false]
 	]

@@ -84,6 +84,16 @@ Red [
 		b: next a: "123"
 		insert/part c: "" a b
 	--assert "1" = c
+
+	--test-- "insert-21 issue #4335"
+		h: make hash! 40
+		loop 1000 [insert h "ok"]
+	--assert 1000 = length? h
+
+	--test-- "insert-22 issue #4335"
+		t: make hash! []
+		repeat i 3 [insert/part t s: "abc" at s i]
+		--assert "abc" = t/2
 ===end-group===
 
 ===start-group=== "insert/dup"
@@ -305,6 +315,11 @@ Red [
 
 	--test-- "iri5 - issue #3705"
 	--assert 5000 = length? head insert/dup #{} #{20} 5000
+
+	--test-- "iri6 - issue #4335"
+	t: make hash! []
+	repeat i 3 [insert/part t s: "abc" at s i]
+	forall t [--assert t/1 = "abc"]
 
 ===end-group===
 

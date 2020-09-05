@@ -51,9 +51,8 @@ logic: context [
 			arg	 [red-logic!]
 			type [integer!]
 	][
-		arg: as red-logic! stack/get-top
+		arg: as red-logic! either stack/top = stack/arguments [stack/top][stack/get-top]
 		type: TYPE_OF(arg)
-
 		any [
 			type = TYPE_NONE
 			all [type = TYPE_LOGIC not arg/value]
@@ -171,7 +170,7 @@ logic: context [
 			_random/srand as-integer logic/value
 			logic/header: TYPE_UNSET
 		][
-			logic/value: _random/rand % 2 <> 0
+			logic/value: (either secure? [_random/rand-secure] [_random/rand]) > 3FFFFFFFh
 		]
 		logic
 	]

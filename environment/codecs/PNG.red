@@ -1,7 +1,7 @@
 Red [
-	Title:   "BMP codec"
+	Title:   "PNG codec"
 	Author:  "Qingtian Xie"
-	File:	 %bmp.red
+	File:	 %PNG.red
 	Tabs:	 4
 	Rights:  "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
@@ -10,21 +10,27 @@ Red [
 	}
 ]
 
-put system/codecs 'bmp context [
+put system/codecs 'png context [
 	title: ""
-	name: 'BMP
-	mime-type: [image/bmp]
-	suffixes: [%.bmp]
+	name: 'PNG
+	mime-type: [image/png]
+	suffixes: [%.png]
 	
 	encode: routine [img [image!] where [any-type!]][
 		#if not find [Android Linux FreeBSD Syllabe] OS [
-			stack/set-last as cell! image/encode img where IMAGE_BMP
+			stack/set-last as cell! image/encode img where IMAGE_PNG
 		]
+		#if OS = 'Linux [#if modules contains 'View [
+			stack/set-last as cell! image/encode img where IMAGE_PNG
+		]]
 	]
 
 	decode: routine [data [any-type!]][
 		#if not find [Android Linux FreeBSD Syllabe] OS [
 			stack/set-last as cell! image/decode data
 		]
+		#if OS = 'Linux [#if modules contains 'View [
+			stack/set-last as cell! image/decode data
+		]]
 	]
 ]

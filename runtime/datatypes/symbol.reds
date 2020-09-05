@@ -19,105 +19,55 @@ symbol: context [
 		return: [logic!]
 	][
 		assert TYPE_OF(word) = TYPE_WORD
-		(symbol/resolve word/symbol) = symbol/resolve words/any-type!
+		(resolve word/symbol) = resolve words/any-type!
 	]
-	
-	search: func [
-		str 	  [red-string!]
-		return:	  [integer!]
-		/local
-			s		 [series!]
-			id		 [integer!]
-			aliased? [logic!]
-			key		 [red-value!]
-	][
-		aliased?: no
 
-		key: _hashtable/get table as red-value! str 0 1 COMP_STRICT_EQUAL no no
-		if key = null [
-			key: _hashtable/get table as red-value! str 0 1 COMP_EQUAL no no	
-			aliased?: yes
-		]
-
-		id: either key = null [0][
-			s: GET_BUFFER(symbols)
-			(as-integer key - s/offset) >> 4 + 1
-		]
-		if aliased? [id: 0 - id]
-		id
-	]
-	
-	internalize: func [
-		src		 [c-string!]
-		return:  [node!]
+	make-red-string: func [
+		sym		[red-symbol!]
 		/local
-			node [node!]
-			dst  [c-string!]
-			s	 [series!]
-			len	 [integer!]
+			s	[series!]
 	][
-		len: 1 + length? src
-		node: alloc-bytes len 							;@@ TBD: mark this buffer as protected!
-		s: as series! node/value
-		dst: as c-string! s/offset
-		
-		copy-memory as byte-ptr! dst as byte-ptr! src len
-		node
+		if sym/node = null [
+			s: as series! sym/cache/value
+			sym/node: unicode/load-utf8 as c-string! s/offset as-integer s/tail - s/offset
+		]
 	]
-	
+
 	make-alt: func [
 		str 	[red-string!]
+		len		[integer!]		;-- -1: use the whole string
 		return:	[integer!]
 		/local
-			sym	[red-symbol!]
-			id	[integer!]
-			len [integer!]
-			h	[integer!]
+			s	[c-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "symbol/make-alt"]]
-
-		len: -1											;-- convert all chars
-		h: str/header
-		str/header: TYPE_SYMBOL							;-- make hashtable happy
-		id: search str
-		str/header: h
-		if positive? id [return id]
-
-		sym: as red-symbol! ALLOC_TAIL(symbols)
-		sym/header: TYPE_UNSET
-		sym/node:   str/node
-		sym/cache:  unicode/str-to-utf8 str :len no
-		sym/alias:  either zero? id [-1][0 - id]		;-- -1: no alias, abs(id)>0: alias id
-		sym/header: TYPE_SYMBOL							;-- implicit reset of all header flags
-		_hashtable/put table as red-value! sym
-		block/rs-length? symbols
+		s: unicode/to-utf8 str :len
+		make-alt-utf8 as byte-ptr! s len
 	]
-	
+
+	make-alt-utf8: func [
+		s 		[byte-ptr!]
+		len		[integer!]
+		return:	[integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "symbol/make-alt-utf8"]]
+		_hashtable/put-symbol table s len no
+	]
+
 	make: func [
 		s 		[c-string!]								;-- input c-string!
 		return:	[integer!]
-		/local
-			str  [red-string! value]
-			sym  [red-symbol!]
-			id   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "symbol/make"]]
-		
-		str/node:	unicode/load-utf8 s system/words/length? s
-		str/header: TYPE_SYMBOL							;-- make hashtable happy
-		str/head:	0
-		id: search str
+		_hashtable/put-symbol table as byte-ptr! s system/words/length? s no
+	]
 
-		if positive? id [return id]
-		
-		sym: as red-symbol! ALLOC_TAIL(symbols)	
-		sym/header: TYPE_UNSET
-		sym/node:   str/node
-		sym/cache:  internalize s
-		sym/alias:  either zero? id [-1][0 - id]		;-- -1: no alias, abs(id)>0: alias id
-		sym/header: TYPE_SYMBOL							;-- implicit reset of all header flags
-		_hashtable/put table as red-value! sym
-		block/rs-length? symbols
+	make-opt: func [
+		s		[c-string!]
+		return: [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "symbol/make-opt"]]
+		_hashtable/put-symbol table as byte-ptr! s system/words/length? s yes
 	]
 	
 	get: func [
@@ -125,11 +75,26 @@ symbol: context [
 		return:	[red-symbol!]
 		/local
 			s	[series!]
+			sym [red-symbol!]
 	][
 		s: GET_BUFFER(symbols)
-		as red-symbol! s/offset + id - 1
+		sym: as red-symbol! s/offset + id - 1
+		make-red-string sym
+		sym
 	]
 	
+	get-c-string: func [
+		id		[integer!]
+		return:	[c-string!]
+		/local
+			sym	[red-symbol!]
+			s	[series!]
+	][
+		sym: get id
+		s: as series! sym/node/value
+		as c-string! s/offset
+	]
+
 	resolve: func [
 		id		[integer!]
 		return:	[integer!]
@@ -139,6 +104,7 @@ symbol: context [
 	][
 		s: GET_BUFFER(symbols)
 		sym: as red-symbol! s/offset + id - 1
+		assert sym < s/tail
 		either positive? sym/alias [sym/alias][id]
 	]
 
@@ -152,12 +118,6 @@ symbol: context [
 		s: GET_BUFFER(symbols)
 		sym: as red-symbol! s/offset + id - 1
 		sym/alias
-	]
-
-	push: func [
-
-	][
-
 	]
 	
 	;-- Actions -- 

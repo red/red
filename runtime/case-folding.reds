@@ -68,7 +68,7 @@ case-folding: context [
 		s/tail: as cell! ((as byte-ptr! s/offset) + sz)
 	]
 
-	folding-case: func [
+	change-char: func [
 		cp		[integer!]
 		upper?	[logic!]
 		return: [integer!]
@@ -101,7 +101,7 @@ case-folding: context [
 		cp
 	]
 
-	change-case: func [
+	change: func [
 		arg		[red-value!]
 		part	[integer!]
 		upper?	[logic!]
@@ -124,7 +124,7 @@ case-folding: context [
 	][
 		either TYPE_OF(arg) = TYPE_CHAR [
 			char: as red-char! arg
-			char/value: folding-case char/value upper?
+			char/value: change-char char/value upper?
 		][
 			str: as red-string! arg
 			s: GET_BUFFER(str)
@@ -156,7 +156,7 @@ case-folding: context [
 					UCS-2  [(as-integer p/2) << 8 + p/1]
 					UCS-4  [p4: as int-ptr! p p4/value]
 				]
-				s: string/poke-char s p folding-case cp upper?
+				s: string/poke-char s p change-char cp upper?
 				unit2: GET_UNIT(s)
 				if unit2 > unit [
 					unit: unit2

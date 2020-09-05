@@ -89,7 +89,7 @@ linker: context [
 		spec: find job/symbols '***-exec-image
 		set-integer-at job spec/2/2 + 4  base-address	;-- + 4 => skip the struct pointer slot
 		set-integer-at job spec/2/2 + 8  code-offset
-		set-integer-at job spec/2/2 + 12  code-size
+		set-integer-at job spec/2/2 + 12 code-size
 		set-integer-at job spec/2/2 + 16 data-offset
 		set-integer-at job spec/2/2 + 20 data-size
 	]

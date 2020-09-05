@@ -484,7 +484,7 @@ vector: context [
 			]
 			while [i < len][
 				v1: get-value-int as int-ptr! p unit
-				v1: integer/do-math-op v1 v2 op
+				v1: integer/do-math-op v1 v2 op null
 				switch unit [
 					1 [p/value: as-byte v1]
 					2 [p/1: as-byte v1 p/2: as-byte v1 >> 8]
@@ -574,7 +574,7 @@ vector: context [
 			while [i < len1][
 				v1: get-value-int as int-ptr! p1 unit1
 				v2: get-value-int as int-ptr! p2 unit2
-				v1: integer/do-math-op v1 v2 type
+				v1: integer/do-math-op v1 v2 type null
 				switch unit [
 					1 [p/value: as-byte v1]
 					2 [p/1: as-byte v1 p/2: as-byte v1 >> 8]
@@ -589,31 +589,6 @@ vector: context [
 		left/node: node
 		left/head: 0
 		as red-value! left
-	]
-	
-	clone: func [
-		vec		[red-vector!]							;-- clone the vector in-place
-		return: [red-vector!]
-		/local
-			new    [node!]
-			s	   [series!]
-			target [series!]
-			size   [integer!]
-	][
-		s: GET_BUFFER(vec)
-		size: s/size									;-- @@ head position ignored
-		new: alloc-bytes size
-		
-		unless zero? size [
-			target: as series! new/value
-			copy-memory
-				as byte-ptr! target/offset
-				as byte-ptr! s/offset
-				size
-			target/tail: as cell! ((as byte-ptr! target/offset) + size)
-		]
-		vec/node: new
-		vec
 	]
 	
 	push: func [

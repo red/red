@@ -23,6 +23,7 @@ redc: context [
 	win-version:	none								;-- Windows version extracted from "ver" command
 	SSE3?:			yes
 
+	Linux?:    system/version/4 = 4
 	Windows?:  system/version/4 = 3
 	macOS?:    system/version/4 = 2
 	load-lib?: any [encap? find system/components 'Library]
@@ -113,6 +114,7 @@ redc: context [
 				fail "Can't read /proc/cpuinfo"
 			]
 			any [
+				exists? libc: %/lib/ld-musl-i386.so.1			; musl, e.g. Alpine Linux
 				exists? libc: %libc.so.6
 				exists? libc: %/lib32/libc.so.6
 				exists? libc: %/lib/i386-linux-gnu/libc.so.6	; post 11.04 Ubuntu
@@ -459,7 +461,7 @@ redc: context [
 			]
 
 			source: copy read-cache console/:con-ui
-			if all [any [Windows? macOS?] not gui?][insert find/tail source #"[" "Needs: 'View^/"]
+			if all [any [Windows? macOS? Linux?] not gui?][insert find/tail source #"[" "Needs: 'View^/"]
 
 			files: [%auto-complete.red %engine.red %help.red]
 			foreach f files [write temp-dir/:f read-cache console-root/:f]
@@ -533,7 +535,7 @@ redc: context [
 		]
 		
 		script: switch/default opts/OS [	;-- empty script for the lib
-			Windows macOS [ [[Needs: View]] ]
+			Windows macOS Linux [ [[Needs: View]] ]
 		][ [[]] ]
 		
 		result: red/compile script opts
@@ -629,7 +631,7 @@ redc: context [
 				]
 				cmd: copy "-r libRed/libRed.red"
 				if all [not tail? next args args/2 = "stdcall"][
-					insert at cmd 3 " --config [export-ABI: 'stdcall]"
+					insert at cmd 3 { --config "[export-ABI: 'stdcall]"}
 				]
 				parse-options cmd
 			]

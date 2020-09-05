@@ -84,7 +84,8 @@ foreach file all-tests [
     	to-local-file test-file	
     ]
     clear output
-    call/output cmd output
+    status: call/output cmd output
+    if status <> 0 [ quit/return status ]
     print output
 ]
 

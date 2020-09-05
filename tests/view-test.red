@@ -585,11 +585,21 @@ win/pane: reduce [
 	]
 	
 	check-face: make face! [
-		type: 'check text: "check box" offset: 300x170 size: 90x24
+		type: 'check text: "2 states" offset: 300x150 size: 80x24
 		data: on
 		actors: object [
 			on-change: func [face [object!] event [event!]][
-				probe face/data
+				print ["2-state checkbox:" face/data]
+			]
+		]
+	]
+	make face! [
+		type: 'check text: "3 states" offset: 300x170 size: 80x24
+		data: none
+		flags: 'tri-state
+		actors: object [
+			on-change: function [face [object!] event [event!]][
+				print ["3-state checkbox:" face/data]
 			]
 		]
 	]
@@ -756,8 +766,13 @@ win/pane: reduce [
 		]
 	]
 	make face! [
-		type: 'button offset: 570x440 size: 38x38
+		type: 'toggle offset: 570x440 size: 38x38
 		image: smiley
+		actors: object [
+			on-change: func [face [object!] event [event!]][
+				print [face/type pick "☻☺" face/data]
+			]
+		]
 	]
 	make face! [										;-- clip view for canvas
 		type: 'panel offset: 10x460 size: 300x200
@@ -866,6 +881,36 @@ win/pane: reduce [
 			]
 			on-rotate: func [face [object!] event [event!]][
 				probe "rotating"
+			]
+		]
+	]
+	calendar: make face! [
+		type: 'calendar offset: 750x450 size: 300x300 color: rebolor
+		actors: object [
+			on-change: func [face [object!] event [event!]][
+				print ["Selected date:" face/data]
+			]
+		]
+	]
+	make face! [
+		type: 'button offset: 750x750 size: 90x30 text: "Previous month"
+		actors: object [
+			on-click: func [face [object!] event [event!]][
+				if date? calendar/data [
+					calendar/data/month: calendar/data/month - 1
+					show calendar
+				]
+			]
+		]
+	]
+	make face! [
+		type: 'button offset: 960x750 size: 90x30 text: "Next week"
+		actors: object [
+			on-click: func [face [object!] event [event!]][
+				if date? calendar/data [
+					calendar/data: calendar/data + 7
+					show calendar
+				]
 			]
 		]
 	]

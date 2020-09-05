@@ -691,6 +691,12 @@ DNS_MESSAGE_BUFFER: alias struct! [
 			str		[c-string!]
 			return:	[c-string!]
 		]
+		strnicmp: "_strnicmp" [
+			s1			[byte-ptr!]
+			s2			[byte-ptr!]
+			len			[integer!]
+			return:		[integer!]
+		]
 	]
 	"kernel32.dll" stdcall [
 		CreateEventA: "CreateEventA" [

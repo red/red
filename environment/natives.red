@@ -66,7 +66,7 @@ until: make native! [[
 
 loop: make native! [[
 		"Evaluates body a number of times"
-		count [integer!]
+		count [integer! float!]
 		body  [block!]
 	]
 	#get-definition NAT_LOOP
@@ -75,7 +75,7 @@ loop: make native! [[
 repeat: make native! [[
 		"Evaluates body a number of times, tracking iteration count"
 		'word [word!]    "Iteration counter; not local to loop"
-		value [integer!] "Number of times to evaluate body"
+		value [integer! float!] "Number of times to evaluate body"
 		body  [block!]
 	]
 	#get-definition NAT_REPEAT
@@ -198,7 +198,7 @@ compose: make native! [[
 
 get: make native! [[
 		"Returns the value a word refers to"
-		word	[word! path! object!]
+		word	[any-word! refinement! path! object!]
 		/any  "If word has no value, return UNSET rather than causing an error"
 		/case "Use case-sensitive comparison (path only)"
 		return: [any-type!]
@@ -437,14 +437,16 @@ dehex: make native! [[
 
 negative?: make native! [[
 		"Returns TRUE if the number is negative"
-		number [number! time!]
+		number [number! money! time!]
+		return: [logic!]
 	]
 	#get-definition NAT_NEGATIVE?
 ]
 
 positive?: make native! [[
 		"Returns TRUE if the number is positive"
-		number [number! time!]
+		number [number! money! time!]
+		return: [logic!]
 	]
 	#get-definition NAT_POSITIVE?
 ]
@@ -559,7 +561,7 @@ NaN?: make native! [[
 
 zero?: make native! [[
 		"Returns TRUE if the value is zero"
-		value	[number! pair! time! char! tuple!]
+		value	[number! money! pair! time! char! tuple!]
 		return: [logic!]
 	]
 	#get-definition NAT_ZERO?
@@ -657,6 +659,15 @@ as-pair: make native! [[
 		y [integer! float!]
 	]
 	#get-definition NAT_AS_PAIR
+]
+
+as-money: make native! [[
+		"Combine currency and amount into a monetary value"
+		currency [word!]
+		amount   [integer! float!]
+		return:  [money!]
+	]
+	#get-definition NAT_AS_MONEY
 ]
 
 break: make native! [[
@@ -837,7 +848,8 @@ now: make native! [[
 
 sign?: make native! [[
 		"Returns sign of N as 1, 0, or -1 (to use as a multiplier)"
-		number [number! time!]
+		number [number! money! time!]
+		return: [integer!]
 	]
 	#get-definition NAT_SIGN?
 ]
@@ -880,20 +892,55 @@ browse: make native! [[
 	#get-definition NAT_BROWSE
 ]
 
+compress: make native! [[
+		"compresses data. return GZIP format (RFC 1952) by default"
+		data		[any-string! binary!]
+		/zlib		"Return ZLIB format (RFC 1950)"
+		/deflate	"Return DEFLATE format (RFC 1951)"
+	]
+	#get-definition NAT_COMPRESS
+]
+
 decompress: make native! [[
 		"Decompresses data. Data in GZIP format (RFC 1952) by default"
 		data		[binary!]
 		/zlib		"Data in ZLIB format (RFC 1950)"
-		size		[integer!] "Uncompressed data size"
+		size		[integer!] "Uncompressed data size. Use 0 if don't know"
 		/deflate	"Data in DEFLATE format (RFC 1951)"
-		size		[integer!] "Uncompressed data size"
+		size		[integer!] "Uncompressed data size. Use 0 if don't know"
 	]
 	#get-definition NAT_DECOMPRESS
 ]
 
 recycle: make native! [[
-		/on
-		/off
+		"Recycles unused memory"
+		/on		"Turns on garbage collector"
+		/off	"Turns off garbage collector"
 	]
 	#get-definition NAT_RECYCLE
+]
+
+transcode: make native! [[
+		"Translates UTF-8 binary source to values. Returns one or several values in a block"
+		src	 [binary! string!]	"UTF-8 input buffer; string argument will be UTF-8 encoded"
+		/next			"Translate next complete value (blocks as single value)"
+		/one			"Translate next complete value, returns the value only"
+		/prescan		"Prescans only, do not load values. Returns guessed type."
+		/scan			"Scans only, do not load values. Returns recognized type."
+		/part			"Translates only part of the input buffer"
+			length [integer! binary!] "Length in bytes or tail position"
+		/into			"Optionally provides an output block"
+			dst	[block! none!]
+		/trace
+			callback [function! [
+				event	[word!]
+				input	[binary! string!]
+				type	[word! datatype!]
+				line	[integer!]
+				token
+				return: [logic!]
+			]]
+		return: [block!]
+	]
+	#get-definition NAT_TRANSCODE
 ]

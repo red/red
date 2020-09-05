@@ -24,23 +24,29 @@ map: context [
 		size: as int-ptr! s/offset
 		size/value
 	]
+	
+	valid-key?: func [type [integer!] return: [logic!]][
+		switch type [
+			TYPE_ALL_WORD
+			TYPE_BINARY
+			TYPE_ANY_STRING
+			TYPE_MONEY
+			TYPE_INTEGER TYPE_CHAR TYPE_FLOAT TYPE_DATE
+			TYPE_PERCENT TYPE_TUPLE TYPE_PAIR TYPE_TIME [yes]
+			default										[no]
+		]		
+	]
 
 	preprocess-key: func [
 		key		[red-value!]
 	][
 		switch TYPE_OF(key) [
-			TYPE_WORD
-			TYPE_GET_WORD
-			TYPE_SET_WORD
-			TYPE_LIT_WORD [key/header: TYPE_SET_WORD]		;-- convert any-word! to set-word!
+			TYPE_ANY_WORD [key/header: TYPE_SET_WORD]		;-- convert any-word! to set-word!
 			TYPE_BINARY
-			TYPE_STRING
-			TYPE_FILE
-			TYPE_URL
-			TYPE_TAG
-			TYPE_EMAIL	 [_series/copy as red-series! key as red-series! key null yes null]
-			TYPE_INTEGER TYPE_CHAR TYPE_FLOAT TYPE_DATE
-			TYPE_PERCENT TYPE_TUPLE TYPE_PAIR TYPE_TIME [0]
+			TYPE_ANY_STRING [_series/copy as red-series! key as red-series! key null yes null]
+			TYPE_MONEY
+			TYPE_INTEGER TYPE_CHAR TYPE_FLOAT TYPE_DATE TYPE_PERCENT
+			TYPE_TUPLE TYPE_PAIR TYPE_TIME TYPE_ISSUE TYPE_REFINEMENT [0]
 			default		[fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(key)]]
 		]
 	]
@@ -187,7 +193,7 @@ map: context [
 		if blk = null [blk: block/make-at as red-block! slot size]
 		table: _hashtable/init size blk HASH_TABLE_MAP 1
 		map: as red-hash! slot
-		map/header: TYPE_MAP							;-- implicit reset of all header flags
+		set-type slot TYPE_MAP
 		map/table: table
 		map
 	]
@@ -711,14 +717,7 @@ map: context [
 		w: as red-word! block/rs-head blk
 		while [all [i < size k < tail]][
 			type: TYPE_OF(w)
-			unless any [
-				type = TYPE_WORD
-				type = TYPE_GET_WORD
-				type = TYPE_SET_WORD
-				type = TYPE_LIT_WORD
-			][
-				fire [TO_ERROR(script invalid-arg) w]
-			]
+			unless ANY_WORD?(type) [fire [TO_ERROR(script invalid-arg) w]]
 			v: k + 1
 			either all [i % 2 = 0 v/header = MAP_KEY_DELETED][
 				k: k + 2

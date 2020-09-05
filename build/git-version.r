@@ -32,7 +32,7 @@ context [
 					tag: (to issue! temp/1)
 					ahead: (to integer! temp/2)
 					date: to-local-date to date! (
-						to integer! git {log -1 --pretty=format:"%at"}
+						to integer! git {log -1 --pretty=format:"%ct"}
 					)
 					commit: (to issue! git "rev-parse HEAD")
 					message: (git "log -1 --pretty=%B")

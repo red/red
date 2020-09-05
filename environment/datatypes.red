@@ -60,6 +60,8 @@ email!:			make datatype! #get-definition TYPE_EMAIL
 handle!:		make datatype! #get-definition TYPE_HANDLE
 date!:			make datatype! #get-definition TYPE_DATE
 port!:			make datatype! #get-definition TYPE_PORT
+money!:			make datatype! #get-definition TYPE_MONEY
+ref!:			make datatype! #get-definition TYPE_REF
 event!:			make datatype! #get-definition TYPE_EVENT
 
 none:  			make none! 0

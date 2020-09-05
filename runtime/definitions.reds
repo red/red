@@ -36,6 +36,7 @@ Red/System [
 #define flag-owner			00010000h		;-- object is an owner (carried by object's context value)
 #define flag-native-op		00010000h		;-- operator is made from a native! function
 #define flag-extern-code	00008000h		;-- routine's body is from FFI
+#define flag-word-dirty		00002000h		;-- word flag indicating if value has been modified
 
 #define flag-new-line		40000000h		;-- if set, indicates that a new-line preceeds the value
 #define flag-nl-mask		BFFFFFFFh		;-- mask for new-line flag
@@ -60,25 +61,93 @@ Red/System [
 
 #include %platform/definitions.reds
 
-;=== Unicode support definitions ===
-
-#enum encoding! [
+#enum encoding! [							;-- various string encodings
 	UTF-16LE:	-1
 	UTF-8:		 0
 	Latin1:		 1
+	UCS-1:		 1
 	UCS-2:		 2
 	UCS-4:		 4
 ]
 
-;== Image definitions ===
+#enum context-type! [
+	CONTEXT_GLOBAL							;-- global context value is 0 (no need to set it then)
+	CONTEXT_FUNCTION						;-- do not change those values! (used in %utils/redbin.r)
+	CONTEXT_OBJECT
+]
 
-#enum extract-type! [
+#enum extract-type! [						;-- image! buffer encodings
 	EXTRACT_ALPHA
 	EXTRACT_RGB
 	EXTRACT_ARGB
 ]
 
 ;== Draw Context definitions ==
+
+#if OS = 'Linux [
+
+	tagPOINT: alias struct! [
+		x		[integer!]
+		y		[integer!]
+	]
+
+	tagMATRIX: alias struct! [
+		xx		[float!]
+		yx		[float!]
+		xy		[float!]
+		yy		[float!]
+		x0		[float!]
+		y0		[float!]
+	]
+
+	gradient!: alias struct! [
+		on?				[logic!]
+		spread			[integer!]
+		type			[integer!]								;-- gradient on fly (just before drawing figure)
+		matrix-on?		[logic!]
+		matrix			[tagMATRIX value]
+		colors			[int-ptr!]								;-- always on
+		colors-pos		[float32-ptr!]							;-- always on
+		count			[integer!]								;-- gradient stops count
+		zero-base?		[logic!]
+		offset-on?		[logic!]
+		offset			[tagPOINT value]						;-- figure coordinates
+		offset2			[tagPOINT value]
+		focal-on?		[logic!]
+		focal			[tagPOINT value]
+		pattern-on?		[logic!]
+		pattern			[int-ptr!]
+	]
+
+	draw-ctx!: alias struct! [
+		cr				[handle!]
+		matrix-order	[integer!]
+		device-matrix	[tagMATRIX value]
+		pattern?		[logic!]
+		pen-join		[integer!]
+		pen-cap			[integer!]
+		pen-style		[integer!]
+		pen-color		[integer!]					;-- 00bbggrr format
+		brush-color		[integer!]					;-- 00bbggrr format
+		font-color		[integer!]
+		grad-pen		[gradient! value]
+		grad-brush		[gradient! value]
+		pen?			[logic!]
+		brush?			[logic!]
+		on-image?		[logic!]
+		control-x		[float32!]
+		control-y		[float32!]
+		shape-curve?	[logic!]
+		font-attrs		[handle!]					;-- pango attrs for fonts
+		font-opts		[handle!]					;-- cairo opts for fonts
+	]
+
+	layout-ctx!: alias struct! [
+		layout			[handle!]					;-- Only for rich-text
+		text			[c-string!]
+		attrs			[handle!]
+	]
+]
 
 #if OS = 'macOS [
 	CGAffineTransform!: alias struct! [
@@ -93,6 +162,7 @@ Red/System [
 	draw-ctx!: alias struct! [
 		raw				[int-ptr!]					;-- OS drawing object: CGContext
 		matrix          [CGAffineTransform! value]
+		ctx-matrix      [CGAffineTransform! value]
 		pen-join		[integer!]
 		pen-cap			[integer!]
 		pen-width		[float32!]
@@ -227,4 +297,25 @@ Red/System [
 	IMAGE_GIF
 	IMAGE_JPEG
 	IMAGE_TIFF
+]
+
+;=== Misc definitions ===
+
+lexer-dt-array!: alias struct! [
+	year		[integer!]
+	month		[integer!]
+	day			[integer!]
+	hour		[integer!]
+	min			[integer!]
+	sec			[integer!]
+	nsec		[integer!]
+	tz-h		[integer!]
+	tz-m		[integer!]
+	week		[integer!]
+	wday		[integer!]
+	yday		[integer!]
+	month-begin	[integer!]
+	month-end	[integer!]
+	sep2		[integer!]
+	TZ-sign		[integer!]
 ]

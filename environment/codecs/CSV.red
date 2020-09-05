@@ -33,6 +33,8 @@ context [
 	ignore-empty?: false ; If line ends with delimiter, do not add empty string
 	strict?: true		; Throw error on non-aligned records
 	quote-char: #"^""
+	double-quote: {""}
+	quotable-chars: charset { ",^/}
 
 	; -- internal values
 	parsed?: none		; Keep state of parse result (for debugging purposes)
@@ -43,32 +45,31 @@ context [
 		"Join values as a string and put delimiter between them"
 		data		[block!]		"Series to join"
 		delimiter	[char! string!]	"Delimiter to put between values"
-		/only "Do not add newline"
 	][
 		collect/into [
-			foreach value data [
-				keep rejoin [escape-value value delimiter delimiter]
+			while [not tail? next data][
+				keep escape-value first data delimiter
+				keep delimiter
+				data: next data
 			]
-		] output: make string! 1000
-		take/part/last output length? form delimiter
-		unless only [append output newline]
-		output
+			keep escape-value first data delimiter
+			keep newline
+		] clear ""
 	]
+
 
 	escape-value: function [
 		"Escape quotes and when required, enclose value in quotes"
 		value		[any-type!]		"Value to escape (is formed)"
 		delimiter	[char! string!]	"Delimiter character to be escaped"
+		/extern quote-char double-quote quotable-chars
 	][
+		quot?: false
 		value: form value
-		double-quote: rejoin [quote-char quote-char]
-		parse value [
-			some [
-				change quote-char double-quote (quot?: true)
-			|	[space | quote-char | delimiter | newline](quot?: true)
-			|	skip
-			]
-		]
+		len: length? value
+		replace/all value quote-char double-quote
+		unless equal? len length? value [quot?: true]
+		if find value quotable-chars [quot?: true]
 		if quot? [
 			insert value quote-char
 			append value quote-char
@@ -153,10 +154,9 @@ context [
 		data		[block!] "Block of maps/objects"
 		delimiter	[char! string!]	"Delimiter to use in CSV string"
 	][
-		; this is block of maps/objects
 		columns: get-columns data
-		output: to-csv-line columns delimiter
-		append output collect/into [
+		collect/into [
+			keep to-csv-line columns delimiter
 			foreach value data [
 				; construct block
 				line: collect [
@@ -167,7 +167,6 @@ context [
 				keep to-csv-line line delimiter
 			]		
 		] make string! 1000
-		output
 	]
 
 	encode-flat: function [
@@ -192,20 +191,11 @@ context [
 		data		[block!] "Block of blocks, each block is one record"
 		delimiter	[char! string!] "Delimiter to use in CSV string"
 	][
-	;	if align [
-	;		foreach line data [
-	;			if longest < length? line [longest: length? line]
-	;		]
-	;	]
 		length: length? first data
 		collect/into [
 			foreach line data [
 				if length <> length? line [return make error! non-aligned]
 				csv-line: to-csv-line line delimiter
-	;			if align [
-	;				; insert delimiters before last character (newline)
-	;				insert/dup back tail csv-line delimiter longest - length? line
-	;			]
 				keep csv-line
 			]
 		] make string! 1000
@@ -221,7 +211,6 @@ context [
 		/as-columns	"Returns named columns; default names if /header is not used"
 		/as-records	"Returns records instead of rows; implies /header"
 		/flat		"Returns a flat block; you need to know the number of fields"
-;		/align	"Align all records to have same length as longest record"
 		/trim		"Ignore spaces between quotes and delimiter"
 		/quote
 			qt-char [char!] "Use different character for quotes than double quote (^")"
@@ -309,7 +298,7 @@ context [
 					repeat index length [
 						value/(header/:index): line/:index
 					]
-					append output value
+					append output copy value
 				][
 					either flat [
 						append output copy line
@@ -350,13 +339,6 @@ context [
 		]
 
 		; -- adjust output when needed
-;		if align [
-;			foreach line output [
-;				if longest > length? line [
-;					append/dup line none longest - length? line
-;				]
-;			]
-;		]
 		if as-columns [
 			; TODO: do not use first, but longest line
 			key-index: 0
@@ -383,12 +365,14 @@ context [
 		/quote
 			qt-char [char!] "Use different character for quotes than double quote (^")"
 		/extern
-			quote-char
+			quote-char double-quote quotable-chars
 	][
 		; Initialization
 		longest: 0
-		unless with [delimiter: comma]
+		delimiter: any [delimiter comma]
 		quote-char: any [qt-char #"^""]
+		double-quote: rejoin [quote-char quote-char]
+		quotable-chars: charset rejoin [space newline quote-char delimiter]
 		if any [map? data object? data][return encode-map data delimiter]
 		if skip [return encode-flat data delimiter size]
 		keyval?: any [map? first data object? first data]

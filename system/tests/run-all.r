@@ -55,9 +55,11 @@ print ["This test started at" start-time]
   --run-script-quiet %source/compiler/compiles-ok-test.r
   --run-script-quiet %source/compiler/dylib-test.r
   --run-test-file-quiet %source/compiler/define-test.reds
+  --run-script-quiet %source/compiler/regression-test-rsc.r
 ===end-group===
 
 ===start-group=== "Datatype tests"
+  --run-test-file-quiet %source/units/array-test.reds 
   --run-test-file-quiet %source/units/logic-test.reds       
   --run-test-file-quiet %source/units/byte-test.reds
   --run-test-file-quiet %source/units/c-string-test.reds

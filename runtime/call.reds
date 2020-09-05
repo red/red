@@ -21,9 +21,9 @@ Red/System [
 	}
 ]
 
-#define READ-BUFFER-SIZE 4096
-
 ext-process: context [
+
+	#enum buffer-size! [READ_BUFFER_SIZE: 4096]
 
 	p-buffer!: alias struct! [							;-- Data buffer struct, pointer and bytes count
 		count  [integer!]
@@ -138,7 +138,7 @@ ext-process: context [
 			data [p-buffer!]
 			/local len size total
 		][
-			size: READ-BUFFER-SIZE						;-- get initial buffer size
+			size: READ_BUFFER_SIZE						;-- get initial buffer size
 			total: 0
 			until [
 				len: 0
@@ -253,7 +253,7 @@ ext-process: context [
 					out-write: open-file-to-write out-buf sa
 				][
 					out-buf/count: 0
-					out-buf/buffer: allocate READ-BUFFER-SIZE
+					out-buf/buffer: allocate READ_BUFFER_SIZE
 					
 					unless CreatePipe :out-read :out-write sa 0 [	;-- Create a pipe for child's output
 						__red-call-print-error [ error-pipe "stdout" ]
@@ -275,7 +275,7 @@ ext-process: context [
 					err-write: open-file-to-write err-buf sa
 				][
 					err-buf/count: 0
-					err-buf/buffer: allocate READ-BUFFER-SIZE
+					err-buf/buffer: allocate READ_BUFFER_SIZE
 					unless CreatePipe :err-read :err-write sa 0 [	;-- Create a pipe for child's error
 						__red-call-print-error [ error-pipe "stderr" ]
 						return -1
@@ -297,7 +297,6 @@ ext-process: context [
 				s-inf/dwFlags: STARTF_USESTDHANDLES
 			]
 			unless console? [
-				if in-buf  = null [ s-inf/hStdInput:  0 ]
 				inherit: true
 				s-inf/dwFlags: STARTF_USESTDHANDLES
 			]
@@ -375,6 +374,9 @@ ext-process: context [
 
 		init: does [
 			shell-name: getenv "SHELL"
+			if null? shell-name [	;-- if $SHELL is not defined
+				shell-name: "/bin/bash"
+			]
 			init-global
 		]
 
@@ -417,7 +419,7 @@ ext-process: context [
 			]
 			if out? [									;- Create buffer for output
 				out-len: 0
-				out-size: READ-BUFFER-SIZE
+				out-size: READ_BUFFER_SIZE
 				fd-out: declare f-desc!
 				if (LibC.pipe as int-ptr! fd-out) = -1 [		;-- Create a pipe for child's output
 					__red-call-print-error [ error-pipe "stdout" ]
@@ -426,7 +428,7 @@ ext-process: context [
 			]
 			if err? [									;- Create buffer for error
 				err-len: 0
-				err-size: READ-BUFFER-SIZE
+				err-size: READ_BUFFER_SIZE
 				fd-err: declare f-desc!
 				if (LibC.pipe as int-ptr! fd-err) = -1 [		;-- Create a pipe for child's error
 					__red-call-print-error [ error-pipe "stderr" ]
@@ -540,7 +542,7 @@ ext-process: context [
 				if out? [								;- Create buffer for output
 					waitend?: true
 					out-buf/count: 0
-					out-buf/buffer: allocate READ-BUFFER-SIZE
+					out-buf/buffer: allocate READ_BUFFER_SIZE
 					fds: pfds + nfds
 					fds/fd: fd-out/reading
 					set-flags-fd fds/fd
@@ -551,7 +553,7 @@ ext-process: context [
 				if err? [								;- Create buffer for error
 					waitend?: true
 					err-buf/count: 0
-					err-buf/buffer: allocate READ-BUFFER-SIZE
+					err-buf/buffer: allocate READ_BUFFER_SIZE
 					fds: pfds + nfds
 					fds/fd: fd-err/reading
 					set-flags-fd fds/fd
@@ -624,7 +626,7 @@ ext-process: context [
 									]
 									offset/value: offset/value + nbytes
 									if offset/value >= size/value [
-										size/value: size/value + READ-BUFFER-SIZE
+										size/value: size/value + READ_BUFFER_SIZE
 										pbuf/buffer: realloc pbuf/buffer size/value 
 										if null? pbuf/buffer [n: -1 break]
 									]

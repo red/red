@@ -142,6 +142,16 @@ Red/System [
 #define TCM_SETCURFOCUS		1330h
 #define TCM_INSERTITEMW		133Eh
 
+#define MCS_NOTODAY			10h
+#define MCS_SHORTDAYSOFWEEK 80h
+#define MCS_NOSELCHANGEONNAV 0100h
+
+#define MCN_SELCHANGE		FFFFFD13h
+
+#define MCM_GETCURSEL       1001h
+#define MCM_SETCURSEL		1002h
+#define MCM_SETCOLOR		100Ah
+
 #define TCIF_TEXT			0001h
 
 #define MIIM_STATE			0001h
@@ -226,8 +236,10 @@ Red/System [
 #define BS_CHECKBOX			00000002h
 #define BS_AUTOCHECKBOX		00000003h
 #define BS_RADIOBUTTON		00000004h
+#define BS_AUTO3STATE		00000006h
 #define BS_GROUPBOX			00000007h
 #define BS_AUTORADIOBUTTON	00000009h
+#define BS_PUSHLIKE			00001000h
 
 #define EM_GETSEL			000000B0h
 #define EM_SETSEL			000000B1h
@@ -305,7 +317,7 @@ Red/System [
 #define WM_RBUTTONUP		0205h
 #define WM_MBUTTONDOWN		0207h
 #define WM_MBUTTONUP		0208h
-#define	WM_MOUSEWHELL		020Ah
+#define	WM_MOUSEWHEEL		020Ah
 #define WM_ENTERMENULOOP	0211h
 #define WM_SIZING			0214h
 #define WM_MOVING			0216h
@@ -332,6 +344,8 @@ Red/System [
 
 #define BM_GETCHECK			F0h
 #define BM_SETCHECK			F1h
+#define BM_GETSTATE			F2h
+#define BM_SETSTATE			F3h
 #define BM_SETSTYLE			F4h
 #define BM_SETIMAGE			F7h
 
@@ -341,6 +355,8 @@ Red/System [
 #define BST_UNCHECKED		0
 #define BST_CHECKED			1
 #define BST_INDETERMINATE	2
+#define BST_PUSHED			4
+#define BST_FOCUS			8
 
 #define VK_SHIFT			10h
 #define VK_CONTROL			11h
@@ -495,6 +511,7 @@ Red/System [
 #define TextRenderingHintClearTypeGridFit	5
 
 #define SRCCOPY					00CC0020h
+#define CAPTUREBLT				40000000h
 
 #define ILC_COLOR24				18h
 #define ILC_COLOR32				20h
@@ -699,6 +716,7 @@ tagMINMAXINFO: alias struct! [
 ]
 
 wndproc-cb!: alias function! [
+	[stdcall]
 	hWnd	[handle!]
 	msg		[integer!]
 	wParam	[integer!]
@@ -707,6 +725,7 @@ wndproc-cb!: alias function! [
 ]
 
 timer-cb!: alias function! [
+	[stdcall]
 	hWnd	[handle!]
 	msg		[integer!]
 	idEvent	[int-ptr!]
@@ -1135,6 +1154,9 @@ XFORM!: alias struct! [
 		GetKeyState: "GetKeyState" [
 			nVirtKey	[integer!]
 			return:		[integer!]
+		]
+		GetActiveWindow: "GetActiveWindow" [
+			return:		[handle!]
 		]
 		SetActiveWindow: "SetActiveWindow" [
 			hWnd		[handle!]
@@ -2343,6 +2365,11 @@ XFORM!: alias struct! [
 		GdipSetStringFormatLineAlign: "GdipSetStringFormatLineAlign" [
 			format		[integer!]
 			align		[integer!]
+			return:		[integer!]
+		]
+		GdipSetStringFormatTrimming: "GdipSetStringFormatTrimming" [
+			format		[integer!]
+			trimming	[integer!]
 			return:		[integer!]
 		]
 		GdipCreateFontFromDC: "GdipCreateFontFromDC" [

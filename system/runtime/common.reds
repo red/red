@@ -64,7 +64,7 @@ ptr-ptr!: alias struct! [value [int-ptr!]]
 #define write-io32	  [system/io/write as int-ptr!]
 
 
-#define type-logic!		1					;-- type ID list for 'typeinfo attribut
+#define type-logic!		1					;-- type ID list for 'typed' attribute
 #define type-integer!	2
 #define type-byte!	    3
 #define type-float32!	4

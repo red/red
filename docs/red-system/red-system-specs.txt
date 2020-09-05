@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 27/08/2019
-	Revision: 55
+	Date: 14/08/2020
+	Revision: 57
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -128,7 +128,7 @@ Variables can hold any value of the available datatypes. This can be the real va
  bar: "hello"
 
 \note Multiple assignments
-Multiple assignments, like a: b: 123, are not currently supported in Red/System. Such a feature will be added in the future at some point, probably on the rewrite of Red/System in Red.
+Multiple assignments, like <b>a: b: 123</b>, are currently partially supported in Red/System through "assignment grouping". It is acting like a macro expansion where the pattern <b>a: b: 123</b> would be expanded to <b>a: 123 b: 123</b>. It will duplicate whatever value is assigned to each variable, so special care is needed when using it.
 
 /note
 
@@ -773,6 +773,11 @@ Also, additions and subtractions between pointer addresses are allowed. The resu
  offset: p - q							;-- would store 6 in offset
                             			;-- type of offset is pointer! [integer!]
 
+\note pointer/pointer math <> pointer/integer math
+Unlike in C language, pointer/pointer arithmetics always treat the operands as byte pointers, while pointer/integer arithmetics scales the integer operand to the size of the pointed type.
+
+/note
+
 +++Pointer path notation
 
 It is possible to use path notation to simulate an array with indexed access. Both reading and writing are possible. Indexes are <b>one-based</b>.
@@ -815,26 +820,28 @@ A pointer can also point to a one-dimensional array of values literally specifie
  <variable> : a pointer of same type as the array items.
  <items>    : is a non-empty list of integer!, byte!, float!, logic!, c-string! literal values.
  
-The array is statically allocated and can be accessed using pointer path notation or pointer arithmetic. The size of the array (in number of elements) is stored in a 32-bit slot, just preceding the beginning of the array (at index 0). Mixing the different allowed types in the same array is permitted (enumerations can also be used). In such case, the size of each array's slot is either 32-bit, or 64-bit if a float64! value is present.
+The array is statically allocated and can be accessed using pointer path notation or pointer arithmetic. Mixing the different allowed types in the same array is permitted (enumerations can also be used). In such case, the size of each array's slot is either 32-bit, or 64-bit if a float64! value is present.
+
+The size of a literal array can be retrieved using <b>size?</b> keyword.
 
 Examples:
 
  list: [123 456 789]
- probe list/0							;-- outputs 3
+ probe size? list						;-- outputs 3
  probe list/2							;-- outputs 456
 
  s: [#"h" #"e" #"l" #"l" #"o"]
  sz: as int-ptr! s
- probe sz/0								;-- outputs 5
+ probe size? s							;-- outputs 5
  probe s/5								;-- outputs o
 
  a: ["hello" "Red" "world"]
- probe a/0								;-- outputs 3
+ probe size? a							;-- outputs 3
  probe as-c-string a/2					;-- outputs Red
 
  c: [456 "hello" "Red" "world" #"e" true]
- probe c/0								;-- outputs 6
- probe c/1
+ probe size? c							;-- outputs 6
+ probe c/1								;-- outputs 456
  probe as-c-string c/3					;-- outputs Red
  probe as-byte c/5						;-- outputs e
  probe as-logic c/6						;-- outputs true
@@ -849,7 +856,7 @@ Examples:
  
 <u>Notes</u>: 
 
-* In the second example, this literal array is not equivalent to its c-string! counterpart "hello", as the literal array does not add a NUL value at tail of the sequence.
+* In the second example, this literal array is not equivalent to its c-string! counterpart "hello", as the literal array does not add a NUL character at tail of the sequence.
 
 * In the last example, pay attention to the different pointer indexes used, depending on the size (32-bit or 64-bit) of referenced value.
 
@@ -857,6 +864,27 @@ Examples:
 Currently literal arrays allow write access, but there is no bound checking as it is planned to be a feature of a future <b>array!</b> first-class datatype.
 
 /note
+
++++Binary arrays
+
+Binary arrays are a type of literal array made out of bytes only.
+
+<b>Syntax</b>
+
+ <variable>: #{...hex bytes...}
+
+ <variable> : a pointer of [pointer! [byte!] type. 
+
+The array is statically allocated and can be accessed using pointer path notation or pointer arithmetic. The size in bytes of a binary array can be retrieved using <b>size?</b> keyword.
+
+Examples:
+
+ table: #{0042FA0100CAFE00AA}
+ probe size? table						;-- outputs 9
+ probe table/2							;-- outputs "B"
+ probe as integer! table/2				;-- outputs 66
+
+<u>Note</u>: whitespaces and comments are accepted inside binary arrays.
 
 +++Null value
 
@@ -1046,8 +1074,8 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 <td class="allow">as integer!</td>
 <td class="allow">as integer!</td>
 <td class="allow">as integer!</td>
-<td class="allow">to integer!</td>
-<td class="allow">to integer!</td>
+<td class="allow">to integer!&sup3;</td>
+<td class="allow">to integer!&sup3;</td>
 <td class="allow">as integer!</td>
 </tr><tr>
 
@@ -1101,7 +1129,7 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 
 <th>float!</th>
 <td class="deny">ERROR</td>
-<td class="allow">as float!</td>
+<td class="allow">to float!</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
@@ -1113,7 +1141,7 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 
 <th>float32!</th>
 <td class="deny">ERROR</td>
-<td class="allow">as float32!</td>
+<td class="allow">to float32!</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
@@ -1140,6 +1168,7 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 
 &sup1; Casting allowed, but integer values higher than 255 will be truncated, so beware!<br>
 &sup2; A data modification can occur.<br>
+&sup3; Rounded towards zero.<br>
 
 --- Size?
 
@@ -1323,7 +1352,22 @@ Until this change has been decided, it may be wise to use the <b>func</b> keywor
  	c: 100
  	a * c / b
  ]
- 
+
+Grouping of arguments or local variables by type is also possible.
+
+<b>Example</b>
+
+ percent?: func [
+ 	a b [integer!]
+ 	return: [integer!]
+ 	/local
+ 		c d [integer!]
+ ][
+ 	c: 20
+ 	d: c + 80
+ 	a * d / b
+ ]
+
 \note Arguments passing
 
 In the current implementation, pointer!, integer!, byte!, float!, float32! and logic! arguments are passed by value, while c-string! and struct! arguments are passed by reference. Adding the `value` keyword after a struct! type specification, allows it to be passed by value (works also for returned value).
@@ -1701,6 +1745,42 @@ Immediately quits the function and returns a value.
  	]
  	"ok"								;-- return "ok" if a <> 0
  ]
+ 
+---Subroutines
+
+Subroutines are reusable code parts in a function's body that can be called from within the function where they are defined only.
+
+<b>Syntax</b>
+
+ <name>: [<body>]
+
+ <name> : subroutine's name (local variable).
+ <body> : subroutine's code (regular R/S code).
+
+A subroutine name is a local variable that needs to be defined as of type <b>subroutine!</b>, else a compilation error will occur. Once defined, a subroutine can be called by invoking its name from anywhere in the function code (but after its own definition). A subroutine returns its last value to the caller.
+
+Example:
+
+ foo: func [
+ 	a [integer!]
+ 	return: [integer!]
+ 	/local
+ 		do-error [subroutine!]
+ ][
+ 	do-error: [print "Wrong number!" return err]
+ 	switch a [
+ 		0  [err: 10 do-error]
+ 		5  [err: 20 do-error]
+ 		10 [err: 30 do-error]
+ 	]
+ 	print "Correct!"
+ ]
+
+\note 
+
+The <b>subroutine!</b> type is currently a pseudo-type, not a first-class type, so it cannot be passed as argument or returned from a function. 
+
+/note
 
 ===Scoping
 
@@ -2139,7 +2219,7 @@ An alternative way to write it (allowed because all code paths return a value of
  ]
  
  prin ["a is " msg lf]
- 
+
 ---loop
 
 Loop over a block of code, decrementing a counter down to zero. LOOP does not return any value, so it cannot be used in an expression.
@@ -2758,9 +2838,12 @@ Reserves a storage space on stack (in stack slots unit) and returns a pointer th
 <b>Syntax</b>
 
  <ptr>: system/stack/allocate <slots>
+ <ptr>: system/stack/allocate/zero <slots>
 
  <ptr>  : variable of type: pointer! [integer!]
  <slots>: expression returning an integer
+ 
+The <b>/zero</b> option forces the allocated stack region to be zero-filled.
 
 \note Stack slots unit
 Stack slots unit are system-dependent, on IA-32 and ARM, a slot is equal to 4 bytes.
@@ -3030,6 +3113,38 @@ where:
  <value>     : an integer! value
 
 
+---fpu/status
+
+Retrieve the FPU exception bits status.
+
+<b>Syntax</b>
+
+ system/fpu/status
+
+ return: a value of type integer!.
+ 
+The resulting status bits layout depends on the architecture:
+
+<b>IA-32:</b>
+ P|U|O|Z|D|I
+
+    P: Precision
+    U: Underflow
+    O: Overflow
+    Z: Zero Divide
+    D: Denormalized operand
+    I: Invalid Operation
+
+<b>ARM:</b>
+ ID|0|IX|UF|OF|DZ|IO
+
+	ID: Input Denormal
+	IX: Inexact (Precision)
+	UF: Underflow
+	OF: Overflow
+	DZ: Division by Zero
+	IO: Invalid Operation
+
 ---fpu/control-word
 
 Set or retrieve the full FPU control register.
@@ -3283,6 +3398,18 @@ Example:
 will output:
  foo! alias detected
 
+---words
+
+Access an indentifier from global context when it is also defined locally.
+
+<b>Syntax</b>
+
+ system/words/<name>					;-- calling a function, reading a variable
+ system/words/<name>:					;-- setting a variable
+
+ <name> : identifer or access path
+
+See also "Namespaces" section.
 
 ===Compiler directives
 
@@ -3333,9 +3460,9 @@ Red/System is able to load external shared libraries at the time a Red/System ex
  <ID>            : identifier of the function in the shared library
  <VAR>           : identifier of the variable in the shared library
  <argument>      : function's argument indentifier
- <datatype>      : integer! | byte! | pointer! [integer! | byte!] |
+ <datatype>      : integer! | byte! | pointer! [integer! | byte! | float! | float32! | logic!] |
                    float! | float32! | c-string! | struct! [<members>] |
-                   function! [<spec>]
+                   function! [<spec>] | <alias>
 
 <u>Notes</u>:
 
@@ -4082,7 +4209,7 @@ will output:
  
 ---Logic!
 
-*Add logic! support for OR, XOR, AND operators (if it provides any advantage over ANY/ALL).
+*<strike>Add logic! support for OR, XOR, AND operators (if it provides any advantage over ANY/ALL).</strike>
  
 ---Integer!
 
@@ -4146,6 +4273,24 @@ will output:
 
 
 ===Document History
+
+*<b>14/08/2020 - revision 57</b>
+
+*>Adds subroutines description.
+
+*>Adds binary! arrays description.
+
+*>Adds multiple assignments and variable grouping mentions.
+
+*>Adds system/stack/allocate/zero description.
+
+*>Adds system/fpu/status description.
+
+
+*<b>05/09/2019 - revision 56</b>
+
+*>Fixes issues #3301, #3303, #3305.
+
 
 *<b>27/08/2019 - revision 55</b>
 

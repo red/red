@@ -39,70 +39,56 @@ cmpfunc!: alias function! [
 _sort: context [
 
 	#define SORT_SWAPINIT(a width) [
-		swaptype: either any [
-			(as-integer a) % (size? integer!) <> 0
-			width % (size? integer!) > 0
-		][
-			2
-		][
-			either width = size? integer! [0][1]
-		]
+		swaptype: either width % (size? integer!) = 0 [0][1]
 	]
 
-	#define SORT_SWAP(a b) [
-		either zero? swaptype [
-			i: as int-ptr! a
-			j: as int-ptr! b
-			t: i/1
-			i/1: j/1
-			j/1: t
-		][
-			swapfunc a b width swaptype
-		]
-	]
+	#define SORT_SWAP(a b) [swapfunc a b width swaptype]
 
 	#define SORT_SWAP_N(a b n) [
-		cnt: n
-		while [cnt <> 0][
+		loop n [
 			SORT_SWAP(a b)
 			a: a + width
 			b: b + width
-			cnt: cnt - 1
 		]
 	]
+
+	#define SORT_ARGS_EXT_DEF [
+		width	[integer!]
+		op		[integer!]
+		flags	[integer!]
+		cmpfunc [integer!]
+	]
+	
+	#define SORT_ARGS_EXT [width op flags cmpfunc]
 
 	swapfunc: func [
 		a		 [byte-ptr!]
 		b		 [byte-ptr!]
 		n		 [integer!]
 		swaptype [integer!]
-		/local cnt i j ii jj t1 t2
+		/local cnt [integer!] i [byte-ptr!] j [byte-ptr!]
+			ii [int-ptr!] jj [int-ptr!] t1 [byte!] t2 [integer!]
 	][
-		either swaptype > 1 [
-			cnt: n
-			i: a
-			j: b
-			until [
-				t1: i/1
-				i/1: j/1
-				j/1: t1
-				i: i + 1
-				j: j + 1
-				cnt: cnt - 1
-				zero? cnt
-			]
-		][
-			cnt: n / 4
+		either zero? swaptype [
+			cnt: n >> 2
 			ii: as int-ptr! a
 			jj: as int-ptr! b
-			until [
+			loop cnt [
 				t2: ii/1
 				ii/1: jj/1
 				jj/1: t2
 				ii: ii + 1
 				jj: jj + 1
-				cnt: cnt - 1
-				zero? cnt
+			]
+		][
+			i: a
+			j: b
+			loop n [
+				t1: i/1
+				i/1: j/1
+				j/1: t1
+				i: i + 1
+				j: j + 1
 			]
 		]
 	]
@@ -137,15 +123,18 @@ _sort: context [
 		flags	[integer!]
 		cmpfunc [integer!]
 		/local
-			cmp a b c d m n end i j t r part result swaptype swapped?
+			a [byte-ptr!] b [byte-ptr!] c [byte-ptr!] d [byte-ptr!] m [byte-ptr!]
+			n [byte-ptr!] end [byte-ptr!] i [byte-ptr!] j [byte-ptr!] r [integer!]
+			part [integer!] result [integer!] swaptype [integer!] swapped? [logic!]
+			cmp
 	][
 		cmp: as cmpfunc! cmpfunc
+		SORT_SWAPINIT(base width)
 		until [
-			SORT_SWAPINIT(base width)
 			swapped?: false
 			end: base + (num * width)
 
-			if num < 8 [								;-- Insertion sort on smallest arrays
+			if num < 7 [								;-- Insertion sort on smallest arrays
 				m: base + width
 				while [m < end][
 					n: m
@@ -163,22 +152,24 @@ _sort: context [
 				exit
 			]
 			m: base + (num / 2 * width)
-			a: base
-			b: base + (num - 1 * width)
-			if num > 40 [
-				part: num / 8 * width
-				a: med3 a a + part a + (2 * part) op flags cmpfunc
-				m: med3 m - part m m + part op flags cmpfunc
-				b: med3 b - (2 * part) b - part b op flags cmpfunc
+			if num > 7 [
+				a: base
+				b: base + (num - 1 * width)
+				if num > 40 [
+					part: num >> 3 * width
+					a: med3 a a + part a + (2 * part) op flags cmpfunc
+					m: med3 m - part m m + part op flags cmpfunc
+					b: med3 b - (2 * part) b - part b op flags cmpfunc
+				]
+				m: med3 a m b op flags cmpfunc
 			]
-			m: med3 a m b op flags cmpfunc
-
 			SORT_SWAP(base m)
 			a: base + width
 			b: a
+
 			c: base + ((num - 1) * width)
 			d: c
-			until [
+			forever [
 				while [b <= c][
 					result: cmp b base op flags
 					if result > 0 [break]
@@ -199,28 +190,28 @@ _sort: context [
 					]
 					c: c - width
 				]
-				if b <= c [
-					SORT_SWAP(b c)
-					swapped?: true
-					b: b + width
-					c: c - width
-				]
-				b > c
+				if b > c [break]
+				SORT_SWAP(b c)
+				swapped?: true
+				b: b + width
+				c: c - width
 			]
-			unless swapped? [
+			unless swapped? [			;-- switch to insertion sort 
 				m: base + width
 				while [m < end][
 					n: m
-					until [
-						if positive? cmp (n - width) n op flags [
-							SORT_SWAP((n - width) n)
+					while [
+						all [
+							n > base
+							positive? cmp (n - width) n op flags
 						]
+					][
+						SORT_SWAP((n - width) n)
 						n: n - width
-						n <= base
 					]
 					m: m + width
 				]
-				exit			
+				exit
 			]
 			r: as-integer either (a - base) < (b - a) [a - base][b - a]
 			if r > 0 [swapfunc base b - r r swaptype]
@@ -240,15 +231,6 @@ _sort: context [
 			r <= width
 		]
 	]
-
-	#define GRAIL_ARGS_EXT_DEF [
-		width	[integer!]
-		op		[integer!]
-		flags	[integer!]
-		cmpfunc [integer!]
-	]
-	
-	#define GRAIL_ARGS_EXT [width op flags cmpfunc]
 
 	grail-rotate: func [
 		base	[byte-ptr!]
@@ -277,7 +259,7 @@ _sort: context [
 		base	[byte-ptr!]
 		num		[integer!]
 		key		[byte-ptr!]
-		GRAIL_ARGS_EXT_DEF
+		SORT_ARGS_EXT_DEF
 		return: [integer!]
 		/local
 			cmp a b c
@@ -296,7 +278,7 @@ _sort: context [
 		base	[byte-ptr!]
 		num		[integer!]
 		key		[byte-ptr!]
-		GRAIL_ARGS_EXT_DEF
+		SORT_ARGS_EXT_DEF
 		return: [integer!]
 		/local
 			cmp a b c
@@ -315,13 +297,13 @@ _sort: context [
 		base	[byte-ptr!]
 		n1		[integer!]
 		n2		[integer!]
-		GRAIL_ARGS_EXT_DEF
+		SORT_ARGS_EXT_DEF
 		/local cmp h
 	][
 		cmp: as cmpfunc! cmpfunc
 		either n1 < n2 [
 			while [n1 <> 0][
-				h: grail-search-left base + (n1 * width) n2 base GRAIL_ARGS_EXT
+				h: grail-search-left base + (n1 * width) n2 base SORT_ARGS_EXT
 				if h <> 0 [
 					grail-rotate base n1 h width
 					base: base + (h * width)
@@ -340,7 +322,7 @@ _sort: context [
 			]
 		][
 			while [n2 <> 0][
-				h: grail-search-right base n1 base + (n1 + n2 - 1 * width) GRAIL_ARGS_EXT
+				h: grail-search-right base n1 base + (n1 + n2 - 1 * width) SORT_ARGS_EXT
 				if h <> n1 [
 					grail-rotate base + (h * width) n1 - h n2 width
 					n1: h
@@ -362,32 +344,32 @@ _sort: context [
 		base	[byte-ptr!]
 		n1		[integer!]
 		n2		[integer!]
-		GRAIL_ARGS_EXT_DEF
+		SORT_ARGS_EXT_DEF
 		/local
 			cmp K k1 k2 m1 m2 ak
 	][
 		cmp: as cmpfunc! cmpfunc
 		if any [n1 < 3 n2 < 3][
-			grail-merge-nobuf base n1 n2 GRAIL_ARGS_EXT
+			grail-merge-nobuf base n1 n2 SORT_ARGS_EXT
 			exit
 		]
 		K: either n1 < n2 [n1 + (n2 / 2)][n1 / 2]
 		ak: base + (K * width)
-		k1: grail-search-left base n1 ak GRAIL_ARGS_EXT
+		k1: grail-search-left base n1 ak SORT_ARGS_EXT
 		k2: k1
 		if all [
 			k2 < n1
 			zero? cmp base + (k2 * width) ak op flags
 		][
-			k2: k1 + grail-search-right base + (k1 * width) n1 - k1 ak GRAIL_ARGS_EXT
+			k2: k1 + grail-search-right base + (k1 * width) n1 - k1 ak SORT_ARGS_EXT
 		]
-		m1: grail-search-left base + (n1 * width) n2 ak GRAIL_ARGS_EXT
+		m1: grail-search-left base + (n1 * width) n2 ak SORT_ARGS_EXT
 		m2: m1
 		if all [
 			m2 < n2
 			zero? cmp base + (n1 + m2 * width) ak op flags
 		][
-			m2: m1 + grail-search-right base + (n1 + m1 * width) n2 - m1 ak GRAIL_ARGS_EXT
+			m2: m1 + grail-search-right base + (n1 + m1 * width) n2 - m1 ak SORT_ARGS_EXT
 		]
 		either k1 = k2 [
 			grail-rotate base + (k2 * width) n1 - k2 m2 width
@@ -395,8 +377,8 @@ _sort: context [
 			grail-rotate base + (k1 * width) n1 - k1 m1 width
 			if m2 <> m1 [grail-rotate base + (k2 + m1 * width) n1 - k2 m2 - m1 width]
 		]
-		grail-classic-merge base + (k2 + m2 * width) n1 - k2 n2 - m2 GRAIL_ARGS_EXT
-		grail-classic-merge base k1 m1 GRAIL_ARGS_EXT
+		grail-classic-merge base + (k2 + m2 * width) n1 - k2 n2 - m2 SORT_ARGS_EXT
+		grail-classic-merge base k1 m1 SORT_ARGS_EXT
 	]
 
 	mergesort: func [
@@ -425,11 +407,11 @@ _sort: context [
 			p0: 0
 			p1: num - (2 * h)
 			while [p0 <= p1][
-				grail-classic-merge base + (p0 * width) h h GRAIL_ARGS_EXT
+				grail-classic-merge base + (p0 * width) h h SORT_ARGS_EXT
 				p0: p0 + (2 * h)
 			]
 			rest: num - p0
-			if rest > h [grail-classic-merge base + (p0 * width) h rest - h GRAIL_ARGS_EXT]
+			if rest > h [grail-classic-merge base + (p0 * width) h rest - h SORT_ARGS_EXT]
 			h: h * 2
 		]
 	]

@@ -18,7 +18,7 @@ quit-return: routine [
 ]
 
 set-quiet: routine [
-	"Set an object's field to a value without triggering object's events"
+	"Set an object's field to a value without triggering eventual object's events"
 	word  [any-type!]
 	value [any-type!]
 	/local
@@ -31,6 +31,20 @@ set-quiet: routine [
 	w: as red-word! word
 	node: w/ctx
 	_context/set-in w stack/arguments + 1 TO_CTX(node) no
+]
+
+set-slot-quiet: routine [
+	"Set a value in series without triggering eventual owner's events"
+	series	[any-type!]
+	value 	[any-type!]
+	/local
+		blk	 [red-block!]
+		type [integer!]
+][
+	type: TYPE_OF(series)
+	unless ANY_BLOCK_STRICT?(type) [ERR_EXPECT_ARGUMENT(TYPE_BLOCK 0)]
+	blk: as red-block! series
+	unless block/rs-tail? blk [copy-cell value block/rs-head blk]
 ]
 
 ;-- Following definitions are used to create op! corresponding operators
@@ -57,7 +71,9 @@ set-current-dir: routine ["Sets the platform’s current process directory" path
 ]
 
 create-dir: routine ["Create the given directory" path [file!]][			;@@ temporary, user should use `make-dir`
-	simple-io/make-dir file/to-OS-path path
+	unless simple-io/make-dir file/to-OS-path path [
+		fire [TO_ERROR(access no-create) path]
+	]
 ]
 
 exists?: routine ["Returns TRUE if the file exists" path [file!] return: [logic!]][
@@ -114,14 +130,42 @@ as-ipv4: routine [
 
 as-rgba: :as-ipv4
 
+count-chars: routine [
+	"Count UTF-8 encoded characters between two positions in a binary series"
+	start   [binary!]
+	pos	    [binary!]
+	return: [integer!]
+	/local
+		p tail [byte-ptr!]
+		c len  [integer!]
+		s	   [series!]
+][
+	s: GET_BUFFER(start)
+	p:    (as byte-ptr! s/offset) + start/head
+	tail: (as byte-ptr! s/offset) + pos/head
+	c: len: 0
+	while [p < tail][
+		p: unicode/fast-decode-utf8-char p :len
+		c: c + 1
+	]
+	c
+]
+
 ;-- Temporary definition --
 
-read-clipboard: routine ["Return the contents of the system clipboard"][
+read-clipboard: routine [
+	"Return the contents of the system clipboard"
+	return: [any-type!] "false on failure, none if empty, otherwise: string!, block! of files!, or an image!"
+][
 	stack/set-last clipboard/read
 ]
 
-write-clipboard: routine ["Write content to the system clipboard" data [string!]][
-	logic/box clipboard/write as red-value! data
+write-clipboard: routine [
+	"Write content to the system clipboard"
+	data [any-type!] "string!, block! of files!, an image! or none!"
+	return: [logic!] "indicates success"
+][
+	clipboard/write as red-value! data
 ]
 
 write-stdout: routine ["Write data to STDOUT" data [any-type!]][			;-- internal use only

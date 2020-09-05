@@ -1,0 +1,481 @@
+
+=== Lexical Scanner FSM ===
+
+--- FSM states ---
+
+S_START
+S_LINE_CMT
+S_LINE_STR
+S_SKIP_STR
+S_M_STRING
+S_SKIP_MSTR
+S_FILE_1ST
+S_FILE
+S_FILE_STR
+S_HDPER_ST
+S_HERDOC_ST
+S_HDPER_C0
+S_HDPER_CL
+S_SLASH_1ST
+S_SLASH
+S_SLASH_N
+S_SHARP
+S_BINARY
+S_LINE_CMT2
+S_CHAR
+S_SKIP_CHAR
+S_CONSTRUCT
+S_ISSUE
+S_NUMBER
+S_DOTNUM
+S_DECIMAL
+S_DECEXP
+S_DECX
+S_DEC_SPECIAL
+S_TUPLE
+S_DATE
+S_TIME_1ST
+S_TIME
+S_PAIR_1ST
+S_PAIR
+S_MONEY_1ST
+S_MONEY
+S_MONEY_DEC
+S_HEX
+S_HEX_END
+S_HEX_END2
+S_LESSER
+S_TAG
+S_TAG_STR
+S_TAG_STR2
+S_SIGN
+S_DOTWORD
+S_DOTDEC
+S_WORD_1ST
+S_WORD
+S_WORDSET
+S_PERCENT
+S_URL
+S_EMAIL
+S_REF
+S_PATH
+S_PATH_NUM
+S_PATH_W1ST
+S_PATH_WORD
+S_PATH_SHARP
+S_PATH_SIGN
+T_EOF
+T_ERROR
+T_BLK_OP
+T_BLK_CL
+T_PAR_OP
+T_PAR_CL
+T_MSTR_OP
+T_MSTR_CL
+T_MAP_OP
+T_PATH
+T_CONS_MK
+T_CMT
+T_STRING
+T_WORD
+T_ISSUE
+T_INTEGER
+T_REFINE
+T_CHAR
+T_FILE
+T_BINARY
+T_PERCENT
+T_FLOAT
+T_FLOAT_SP
+T_TUPLE
+T_DATE
+T_PAIR
+T_TIME
+T_MONEY
+T_TAG
+T_URL
+T_EMAIL
+T_HEX
+T_RAWSTRING
+T_REF
+
+--- Lexical classes ---
+
+C_BLANK     : space, tab, cr
+C_LINE      : lf
+C_DIGIT     : 1-9
+C_ZERO      : 0
+C_BLOCK_OP  : [
+C_BLOCK_CL  : ]
+C_PAREN_OP  : [
+C_PAREN_CL  : ]
+C_STRING_OP : {
+C_STRING_CL : }
+C_DBL_QUOTE : "
+C_SHARP     : #
+C_QUOTE     : '
+C_COLON     : :
+C_X         : x, X
+C_T         : T
+C_H         : h
+C_E_LOW     : e
+C_E_UP      : E
+C_ALPHAL    : a-d,f
+C_ALPHAU    : A-D,F
+C_SLASH     : /
+C_BSLASH    : \
+C_LESSER    : <
+C_GREATER   : >
+C_EQUAL     : =
+C_PERCENT   : %
+C_COMMA     : ,
+C_SEMICOL   : ;
+C_AT        : @
+C_DOT       : .
+C_MONEY     : $
+C_PLUS      : +
+C_MINUS     : -
+C_CARET     : ^
+C_C0       	: 0x01-0x08, 0x0B-0x0C, 0x0E-0x1F
+C_BIN       : 0x7F-0xBF
+C_WORD      : all the rest
+C_ILLEGAL   : 0xC0-0xC1, 0xF5-0xFF
+C_EOF       : NUL
+
+--- Character groups ---
+
+ws: space | tab | cr | lf
+dbl-quote: "
+
+delimit0:   # | ' | < | % | ^
+delimit7:  ws | ] | ) | } | : | < | > | ,
+delimit5:  ws | [ | ] | ( | ) | } | ; | @ | EOF
+delimit14: ws | [ | ] | ( | ) | { | " | ; | < | EOF
+delimit4:  ws | [ | ] | ( | ) | } | ; | " | \ | EOF
+delimit1:  ws | [ | ] | ( | ) | { | } | " | ; | @ | EOF
+delimit6:  ws | [ | ] | ( | ) | { | } | ; | @ | : | EOF
+delimit8:  ws | [ | ] | ( | ) | { | } | " | ; | < | EOF
+delimit23: ws | [ | ] | ( | ) | { | } | " | ; | @ | # | EOF
+delimit12: ws | [ | ] | ( | ) | { | } | " | ; | \ | # | EOF
+delimit15: ws | [ | ] | ( | ) | { | } | " | : | ; | # | EOF
+delimit20: ws | [ | ] | ( | ) | { | } | " | ; | \ | EOF
+delimit9:  ws | [ | ] | ( | ) | { | } | " | ; | < | / | EOF
+delimit22: ws | [ | ] | ( | ) | { | } | " | ; | < | \ | EOF
+delimit16: ws | [ | ] | ( | ) | { | } | " | ; | < | \ | # | EOF
+delimit10: ws | [ | ] | ( | ) | { | } | " | ; | < | / | : | EOF
+delimit17: ws | [ | ] | ( | ) | { | } | " | ; | < | \ | / | EOF
+delimit19: ws | [ | ] | { | } | ; | / | \ | % | , | $ | ^ | EOF
+delimit21: ws | [ | ] | ( | ) | { | } | " | : | ; | / | \ | EOF
+delimit2:  ws | [ | ] | ( | ) | { | } | " | ; | < | # | : | / | EOF
+delimit11: ws | [ | ] | ( | ) | { | } | " | ; | < | / | \ | 0-9 | EOF
+delimit18: ws | [ | ] | ( | ) | { | } | : | ; | < | > | = | , | @ | / | EOF
+delimit3:  ws | [ | ] | ( | ) | { | } | " | % | ; | < | # | @ | / | \ | ^ | , | : | $ | EOF
+
+hexa:      C_ZERO | C_DIGIT | C_ALPHAX
+alphaU:    A, B, C, D, F
+s-word:    C_X | T | h | e | C_ALPHAL | > | = | C_BIN | C_WORD
+word1st:   C_X | T | h | e | E | C_ALPHAL | C_ALPHAU | < | > | = | . | + | - | C_BIN | C_WORD
+p-word1st: C_X | T | h | e | E | C_ALPHAL | C_ALPHAU | > | = | . | C_BIN | C_WORD
+p-word:    0-9 | ' | C_X | T | h | e | E | C_ALPHAL | C_ALPHAU | < | > | = | . | + | - | ^ | C_BIN | C_WORD
+
+--- FSM transitions ---
+
+S_START->ws->S_START
+         
+S_START->";"->S_LINE_CMT->not(lf)->S_LINE_CMT
+               \->lf->T_CMT
+
+S_START->"["->T_BLK_OP
+S_START->"]"->T_BLK_CL
+S_START->"("->T_PAR_OP
+S_START->")"->T_PAR_CL
+S_START->"{"->T_MSTR_OP
+S_START->"{"->T_MSTR_OP
+S_START->"}"->T_ERROR
+
+S_START->dbl-quote->S_LINE_STR->not("^"|dbl-quote)->S_LINE_STR
+                     \->"^"->S_SKIP_STR->*->S_LINE_STR
+                      \->dbl-quote->T_STRING
+
+S_M_STRING->not("^"|"{"|"}")->S_M_STRING
+ \->"^"->S_SKIP_MSTR->not(EOF)->S_M_STRING
+  \       \->EOF->T_ERROR
+   \->"{"->T_MSTR_OP
+    \->"}"->T_MSTR_CL
+
+S_START->"/"->S_SLASH_1ST->not(delimit1)->S_SLASH->not(delimit1|":"|"/")->S_SLASH
+               \                           \->delimit1|"/"->T_REFINE
+                \                           \->":"->T_ERROR
+                 \->delimit23->T_WORD
+                  \->"/"->S_SLASH_N->"/"->S_SLASH_N
+                           \->delimit23->T_WORD
+                            \->not(delimit23|"/")->S_WORD
+
+S_START->"%"->S_FILE_1ST->not(delimit5)->S_FILE->not(delimit6)->S_FILE
+               \                          \->delimit6->T_FILE
+                \
+                 \->dbl-quote->S_FILE_STR->not(dbl-quote)->S_FILE_STR
+                  \             \->dbl-quote->T_FILE
+                   \
+                    \->"%"->S_HDPER_ST->"%"->S_HDPER_ST
+                     \       \->"{"->S_HERDOC_ST
+                      \       \->delimit4->T_WORD
+                       \       \->EOF->T_ERROR
+                        \       \->else->S_FILE
+                         \
+                          \->"{"->S_HERDOC_ST->"}"->S_HDPER_C0->"%"|"}"->S_HDPER_CL->"%"->S_HDPER_CL
+                           \       \                 \                    \
+                            \       \                 \                    \->delimit14->T_RAWSTRING
+                             \       \                 \                    \->else->T_ERROR
+                              \       \                 \->else->S_HERDOC_ST
+                               \       \->else->S_HERDOC_ST
+                                \
+                                 \->":"->S_PERCENT
+                                  \->delimit5->T_WORD
+
+
+S_START->"#"->S_SHARP->"{"->S_BINARY->hexa|ws|"/"|"="|"+"->S_BINARY
+               \             \->";"->S_LINE_CMT2->not(lf|EOF)->S_LINE_CMT2
+                \             \       \->lf->S_BINARY
+                 \             \       \->EOF->T_ERROR
+                  \             \
+                   \             \->"}"->T_BINARY
+                    \
+                     \->dbl-quote->S_CHAR->not("^"|dbl-quote|EOF)->S_CHAR
+                      \             \->"^"->S_SKIP_CHAR->*->S_CHAR
+                       \             \->dbl-quote->T_CHAR
+                        \             \->EOF->T_ERROR
+                         \
+                          \->"("->T_MAP_OP
+                           \
+                            \->"["->S_CONSTRUCT->not("]"|EOF)->S_CONSTRUCT
+                             \        \->"]"->T_CONS_MK
+                              \        \->EOF->T_ERROR
+                               \
+                                \->not(delimit7)->S_ISSUE->not(delimit1|"/"|":")->S_ISSUE
+                                 \                 \->delimit1->T_ISSUE
+                                  \                 \->"/"|":"->T_ERROR
+                                   \->delimit7->T_ERROR
+
+
+S_START->digit->S_NUMBER->digit|"'"->S_NUMBER
+                 \->delimit8->T_INTEGER
+                  \->"."|","->S_DOTNUM->digit->S_DECIMAL->digit->S_DECIMAL
+                   \           \                \->"e"|"E"->S_DECEXP->digit|"+"|"-"->S_DECEXP
+                    \           \                \           \->delimit10->T_FLOAT
+                     \           \                \           \->else->T_ERROR
+                      \           \                \
+                       \           \                \->"."->S_TUPLE->digit|"."->S_TUPLE
+                        \           \                \       \->delimit10->T_TUPLE
+                         \           \                \       \->else->T_ERROR
+                          \           \                \
+                           \           \                \->"%"->T_PERCENT
+                            \           \                \->"x"|"X"->S_PAIR_1ST
+                             \           \                \->delimit10->T_FLOAT
+                              \           \                \->else->T_ERROR
+                               \           \
+                                \           \->"#"->S_DEC_SPECIAL->not(delimit11)->S_DEC_SPECIAL
+                                 \           \       \->delimit11->T_FLOAT_SP
+                                  \           \
+                                   \           \->"%"->T_PERCENT
+                                    \           \->"x"|"X"->S_PAIR_1ST
+                                     \           \->"e"|"E"->S_DECEXP
+                                      \           \->delimit9->T_FLOAT
+                                       \           \->else->T_ERROR
+                                        \
+                                         \->"/"|"T"|"-"->S_DATE->not(delimit8|"%"|"@"|"^")->S_DATE
+                                          \               \->delimit8->T_DATE
+                                           \               \->"%"|"@"|"^"->T_ERROR
+                                            \
+                                             \->":"->S_TIME_1ST->digit->S_TIME->digit|":"|"."->S_TIME
+                                              \       \->else->T_ERROR   \->delimit9->T_TIME
+                                               \                          \->else->T_ERROR
+                                                \
+                                                 \->"x"|"X"->S_PAIR_1ST->digit|sign->S_PAIR->digit|"."|"e"|"E"->S_PAIR
+                                                  \            \->"@"->S_EMAIL        \->"@"->S_EMAIL
+                                                   \            \->else->T_ERROR       \->delimit10->T_PAIR
+                                                    \                                   \->else->T_ERROR
+                                                     \
+                                                      \->"%"->T_PERCENT
+                                                       \->"#"->S_SHARP
+                                                        \->"@"->S_EMAIL
+                                                         \->"e"->S_DECEXP
+                                                          \->"E"->S_DECX->digit->S_DECX
+                                                           \       \->"+"|"-"->S_DECEXP
+                                                            \       \->alphaU|"E"->S_HEX
+                                                             \       \->"h"->S_HEX_END2
+                                                              \       \->"%"->T_PERCENT
+                                                               \       \->"@"->S_EMAIL
+                                                                \       \->"."->S_TUPLE
+                                                                 \       \->delimit10->T_FLOAT
+                                                                  \       \->else->T_ERROR
+                                                                   \
+                                                                    \->alphaU->S_HEX
+                                                                     \->"h"->S_HEX_END2
+                                                                      \->else->T_ERROR
+
+
+S_START->"."->S_DOTWORD->digit->S_DOTDEC->digit|"e"|"E"|"+"|"-"->S_DOTDEC
+               \                 \->"%"->T_PERCENT
+                \                 \->"x"|"X"->S_PAIR_1ST
+                 \                 \->delimit10->T_FLOAT
+                  \                 \->else->T_ERROR
+                   \ 
+                    \->delimit12->T_WORD
+                     \->":"->S_WORDSET
+                      \->"@"->S_EMAIL
+                       \->"/"->T_PATH
+                        \->","|"%"|"$"->T_ERROR 
+                         \->not(delimit12|":"|"@"|"/"|","|"%"|"$")->S_WORD
+
+
+S_START->"<"->S_LESSER
+               \->delimit15->T_WORD
+                \->"<"->S_LESSER
+                 \->">"|"="->S_WORD
+                  \->else->S_TAG
+                            \->dbl-quote->S_TAG_STR->not(dbl-quote)->S_TAG_STR
+                             \              \->dbl-quote->S_TAG
+                              \
+                               \->"'"->S_TAG_STR2->not("'")->S_TAG_STR2
+                                \       \->"'"->S_TAG
+                                 \
+                                  \->">"->T_TAG
+                                   \->EOF->T_ERROR
+                                    \->else->S_TAG
+
+
+S_START->"+"|"-"->S_SIGN->digit->S_NUMBER
+                   \->"$"->S_MONEY
+                    \"."->S_DOTWORD
+                     \->"'"|"<"|"%"|"^"->T_ERROR
+                      \->delimit12->T_WORD
+                       \->else->S_WORD
+
+
+S_START->"$"->S_MONEY_1ST->digit->S_MONEY->digit|"'"->S_MONEY
+               \->else->T_ERROR    \->"."|","->S_MONEY_DEC->digit|"'"->S_MONEY_DEC
+                                    \       \->delimit2->T_MONEY
+                                     \       \->else->T_ERROR
+                                      \
+                                       \->delimit2->T_MONEY
+                                        \->else->T_ERROR
+
+
+S_START->alphaU|"E"->S_HEX->alphaU|digit|"E"->S_HEX
+                       \->delimit12->T_WORD
+                        \->":"->S_WORDSET
+                         \->"@"->S_EMAIL
+                          \->"/"->T_PATH
+                           \->"$"->S_MONEY
+                            \->"h"->S_HEX_END
+                             \->","|"%"->T_ERROR
+                              \->else->S_WORD
+
+S_START->"'"|":"->S_WORD_1ST->"%"->S_PERCENT
+                   \                \->":"->T_ERROR
+                    \                \->delimit3->T_WORD
+                     \                \->else->T_ERROR
+                      \->"/"->S_SLASH_1ST
+                       \->word1st->S_WORD
+                        \->else->T_ERROR
+
+S_START->s-word->S_WORD->delimit16->T_WORD
+                  \->":"->S_WORDSET->else->S_URL->delimit22->T_URL
+                   \       \                \->">"|"^"->T_ERROR
+                    \       \                \->else->S_URL
+                     \       \->delimit16->T_WORD
+                      \       \->"<"->T_ERROR
+                       \
+                        \->"@"->S_EMAIL->else->S_EMAIL
+                         \       \->delimit17->T_EMAIL
+                          \       \->"@"|">"|"="|","|"^"|"$"|":"|"'"|"#"->T_ERROR
+                           \
+                            \->"/"->T_PATH
+                             \->"$"->S_MONEY_1ST
+                              \->","|"%"->T_ERROR
+                               \->else->S_WORD
+
+S_START->"@"->S_REF->delimit8->T_REF
+               \->"#"|"'"|"\"|">"|"="|","|"@"|"$"|"^"->T_ERROR
+                \->else->S_REF
+
+
+S_PATH->delimit19->T_ERROR
+S_PATH->"("->T_PAR_OP
+S_PATH->")"->T_PAR_CL
+S_PATH->dbl-quote->S_LINE_STR
+
+S_PATH->"#"->S_PATH_SHARP->dbl-quote->S_CHAR
+              \->delimit18->T_ERROR
+               \->else->S_ISSUE->delimit1->T_ISSUE
+                         \->else->S_ISSUE
+
+
+S_PATH->digit->S_PATH_NUM->digit|"'"->S_PATH_NUM
+                 \->delimit9->T_INTEGER
+                  \->"%"->T_PERCENT
+                   \->"."->S_DOTNUM
+                    \->"x"|"X"->S_PAIR_1ST
+                     \->"e"|"E"->S_DECEXP
+                      \->else->T_ERROR
+                         
+S_PATH->"<"->S_LESSER
+
+S_PATH->"+"|"-"->S_PATH_SIGN->digit->S_PATH_NUM
+                   \->"$"->S_MONEY_1ST
+                    \->delimit20->T_WORD
+                     \->delimit0->T_ERROR
+                      \->else->S_WORD
+                        
+S_PATH->"$"->S_MONEY_1ST
+S_PATH->"@"->S_REF
+
+S_PATH->"'"|":"->S_PATH_W1ST->word1st->S_PATH_WORD
+                  \->else->T_ERROR
+
+S_PATH->p-word1st->S_PATH_WORD->p-word->S_PATH_WORD
+                    \->delimit21->T_WORD
+                     \->"@"->S_EMAIL
+                      \->","|"#"|"%"|"$"->T_ERROR
+
+
+=== Binary16 classes ===
+
+C_BIN_ILLEGAL : all the rest					;-- 0
+C_BIN_BLANK	  : space, tab, cr, lf				;-- 1
+C_BIN_HEXA	  : 0-9, a-f, A-F					;-- 2
+C_BIN_CMT	  : ;								;-- 3
+
+=== Float FSM ===
+
+C_FL_ILLEGAL	: all the rest					;-- 0
+C_FL_SIGN		: +, -							;-- 1
+C_FL_DIGIT		: 0-9							;-- 2
+C_FL_EXP		: e, E							;-- 3
+C_FL_DOT		: .,							;-- 4
+
+S_FL_START										;-- 0
+S_FL_NUM										;-- 1
+S_FL_DEC										;-- 2
+S_FL_EXP										;-- 3
+S_FL_EXPS										;-- 4
+S_FL_EXPD										;-- 5
+T_FL_FLOAT										;-- 6
+T_FL_ERROR										;-- 7
+
+
+S_FL_START->"+"|"-"->S_FL_START
+
+S_FL_START->"."|","->S_FL_DEC
+    \->digit->S_FL_NUM->digit->S_FL_NUM
+                  \->"."|","->S_FL_DEC
+                   \->"e"|"E"->S_FL_EXP
+                   
+S_FL_DEC->digit->S_FL_DEC
+    \->"e"|"E"->S_FL_EXP
+    
+S_FL_EXP->"+"|"-"->S_FL_EXPS->digit->S_FL_EXPD
+	\->digit->S_FL_EXPD
+
+S_FL_EXPD->digit->S_FL_EXPD

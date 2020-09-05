@@ -33,9 +33,8 @@ system/console: context [
 	result:		"=="
 	history:	make block! 200
 	size:		0x0
-	running?:	no
 	catch?:		no										;-- YES: force script to fallback into the console
-	count:		[0 0 0]									;-- multiline counters for [squared curly parens]
+	delimiters:	[]										;-- multiline delimiters for [squared curly parens]
 	ws:			charset " ^/^M^-"
 
 	gui?:	#system [logic/box #either gui-console? = yes [yes][no]]
@@ -114,37 +113,82 @@ system/console: context [
 		]
 	]
 
-	count-delimiters: function [
-		buffer	[string!]
-		/extern count
-		return: [block!]
+	delimiter-map: reduce [
+		block!		#"["
+		paren!		#"("
+		string!		#"{"
+		map!		#"("
+		path!		#"/"
+		lit-path!	#"/"
+		get-path!	#"/"
+		set-path!	#"/"
+	]
+	
+	delimiter-lex: function [
+		event	[word!]
+		input	[string! binary!]
+		type	[datatype! word! none!]
+		line	[integer!]
+		token
+		return:	[logic!]
 	][
-		escaped: [#"^^" skip]
-		
-		parse buffer [
-			any [
-				escaped
-				| pos: #";" if (zero? count/2) :pos remove [skip [thru lf | to end]]
-				| #"[" (if zero? count/2 [count/1: count/1 + 1])
-				| #"]" (if zero? count/2 [count/1: count/1 - 1])
-				| #"(" (if zero? count/2 [count/3: count/3 + 1])
-				| #")" (if zero? count/2 [count/3: count/3 - 1])
-				| dbl-quote if (zero? count/2) any [escaped | dbl-quote break | skip]
-				| #"{" (count/2: count/2 + 1) any [
-					escaped
-					| #"{" (count/2: count/2 + 1)
-					| #"}" (count/2: count/2 - 1) break
-					| skip
+		[open close error]
+		switch event [
+			open [
+				append delimiters delimiter-map/:type
+				true
+			]
+			close [
+				if delimiter-map/:type <> last delimiters [throw 'stop]	;-- unmatched ")" "]"
+				take/last delimiters
+				true
+			]
+			error [
+				if type = error! [throw 'stop]			;-- unmatched "}"
+				if all [								;-- block! paren! map! have open-event, so just match delimiters
+					find [block! paren! map!] to-word type
+					delimiter-map/:type = last delimiters
+				][
+					throw 'break
 				]
-				| #"}" (count/2: count/2 - 1)
-				| skip
+				back2: back back tail delimiters
+				
+				if all [type = paren! #"/" = back2/1][	;-- paren! in path
+					remove back2
+					throw 'break
+				]
+				if type = tag! [						;-- tag! haven't open-event
+					append delimiters #"<"
+					throw 'break
+				]
+				if all [type = binary! input/1 <> #"}"][ ;-- binary! haven't open-event
+					append delimiters #"{"
+					throw 'break
+				]
+				if type = string! [
+					either input/(token/x - token/y) = #"%" [ ;-- raw-string! haven't open-event
+						append delimiters #"{"
+						throw 'break
+					][
+						if delimiter-map/:type = last delimiters [ ;-- other string! if have open-event, do match
+							throw 'break
+						]
+					]
+				]
+				throw 'stop
 			]
 		]
-		count
+	]
+	
+	check-delimiters: function [
+		buffer	[string!]
+		return: [logic!]
+	][
+		clear delimiters
+		'stop <> catch [transcode/trace buffer :delimiter-lex] ;-- catches 'stop and 'break
 	]
 	
 	try-do: func [code /local result return: [any-type!]][
-		running?: yes
 		set/any 'result try/all [
 			either 'halt-request = set/any 'result catch/name code 'console [
 				print "(halted)"						;-- return an unset value
@@ -152,7 +196,6 @@ system/console: context [
 				:result
 			]
 		]
-		running?: no
 		:result
 	]
 
@@ -160,21 +203,6 @@ system/console: context [
 	buffer: make string! 10000
 	cue:    none
 	mode:   'mono
-	
-	switch-mode: func [cnt][
-		mode: case [
-			cnt/1 > 0 ['block]
-			cnt/2 > 0 ['string]
-			cnt/3 > 0 ['paren]
-			'else 	  [do-command 'mono]
-		]
-		cue: switch mode [
-			block  ["[    "]
-			string ["{    "]
-			paren  ["(    "]
-			mono   [none]
-		]
-	]
 
 	do-command: function [/local result err][
 		if error? code: try [load/all buffer][print code]
@@ -188,7 +216,10 @@ system/console: context [
 				not unset? :result [
 					if error? set/any 'err try [		;-- catch eventual MOLD errors
 						limit: size/x - 13
-						if limit <= length? result: mold/part :result limit [ ;-- optimized for width = 72
+						result: either float? :result [form/part :result limit][
+							mold/part :result limit
+						]
+						if limit <= length? result [	;-- optimized for width = 72
 							clear back tail result
 							append result "..."
 						]
@@ -204,7 +235,7 @@ system/console: context [
 	]
 	
 	eval-command: function [line [string!] /extern cue mode][
-		if mode = 'mono [change/dup count 0 3]			;-- reset delimiter counters to zero
+		if mode = 'mono [clear delimiters]				;-- reset delimiter stack
 		
 		if any [not tail? line mode <> 'mono][
 			either all [not empty? line escape = last line][
@@ -213,15 +244,20 @@ system/console: context [
 				mode: 'mono								;-- force exit from multiline mode
 				print "(escape)"
 			][
-				cnt: count-delimiters line
+				cue: none
 				append buffer line
 				append buffer lf						;-- needed for multiline modes
-
-				switch mode [
-					block  [if cnt/1 <= 0 [switch-mode cnt]]
-					string [if cnt/2 <= 0 [switch-mode cnt]]
-					paren  [if cnt/3 <= 0 [switch-mode cnt]]
-					mono   [either any [cnt/1 > 0 cnt/2 > 0 cnt/3 > 0][switch-mode cnt][do-command]]
+				either check-delimiters buffer [
+					either empty? delimiters [
+						do-command						;-- no delimiters error
+						mode: 'mono
+					][
+						mode: 'other
+						cue: rejoin [last delimiters "    "]
+					]
+				][
+					do-command							;-- lexer will throw error
+					mode: 'mono
 				]
 			]
 		]
@@ -245,7 +281,7 @@ system/console: context [
 
 	launch: function [/local result][
 		either script: src: read-argument [
-			parse script [some [[to "Red" pos: 3 skip any ws #"[" to end] | skip]]
+			parse script [some [[pos: "Red" any ws #"[" to end] | skip]]
 		
 			either script: pos [
 				either error? script: try-do [load script][
@@ -296,10 +332,10 @@ list-dir: function [
 	]
 	list: read normalize-dir dir
 	limit: system/console/size/x - 13
-	max-sz: either n [
-		limit / n - n					;-- account for n extra spaces
+	max-sz: to-integer either n [
+		limit / n - n									;-- account for n extra spaces
 	][
-		n: max 1 limit / 22				;-- account for n extra spaces
+		n: max 1 limit / 22								;-- account for n extra spaces
 		22 - n
 	]
 
