@@ -15,7 +15,10 @@ open-url: func [face event /local client port][
 		        insert port "GET / HTTP/1.1^M^/Hostname:www.baidu.com^M^/Connection:close^M^/^M^/"
 	        ]
 	        read [
-		        widget-area/text: to-string port/data
+		        append widget-area/text to-string port/data
+		        ;@@ TBD use Content-Length in the response header
+		        copy port
+		        ;@@ close port
 	        ]
 	        wrote [copy port]
 	    ]
@@ -25,5 +28,5 @@ open-url: func [face event /local client port][
 view [
 	text middle 30 "IP: " widget-url: field 330 "183.232.231.174:80"
 	button "Open" :open-url return
-	widget-area: area 440x400
+	widget-area: area "" 440x400
 ]
