@@ -15,7 +15,7 @@ string: context [
 	
 	#define BRACES_THRESHOLD	50						;-- max string length for using " delimiter
 	#define MAX_ESC_CHARS		5Fh	
-	#define MAX_URL_CHARS 		FFh
+	#define MAX_URL_CHARS 		7Fh
 
 	#enum modification-type! [
 		MODE_APPEND
@@ -61,14 +61,6 @@ string: context [
 		FF FF FF FF FF FF FF FF ;-- 6Fh
 		FF FF FF FF FF FF FF FF ;-- 77h
 		FF FF FF FF FF FF FF FF ;-- 7Fh
-		FF FF FF FF FF FF FF FF ;-- 8Fh
-		FF FF FF FF FF FF FF FF ;-- 9Fh
-		FF FF FF FF FF FF FF FF ;-- AFh
-		FF FF FF FF FF FF FF FF ;-- BFh
-		FF FF FF FF FF FF FF FF ;-- CFh
-		FF FF FF FF FF FF FF FF ;-- DFh
-		FF FF FF FF FF FF FF FF ;-- EFh
-		FF FF FF FF FF FF FF FF ;-- FFh
 	}
 
 	url-encode-tbl: #{
@@ -88,22 +80,6 @@ string: context [
 		FF FF FF FF FF FF FF FF ;-- 6Fh
 		FF FF FF FF FF FF FF FF ;-- 77h
 		FF FF FF 00 00 00 FF 00 ;-- 7Fh
-		00 00 00 00 00 00 00 00 ;-- 87h
-		00 00 00 00 00 00 00 00 ;-- 8Fh
-		00 00 00 00 00 00 00 00 ;-- 97h
-		00 00 00 00 00 00 00 00 ;-- 9Fh
-		00 00 00 00 00 00 00 00 ;-- A7h
-		00 00 00 00 00 00 00 00 ;-- AFh
-		00 00 00 00 00 00 00 00 ;-- B7h
-		00 00 00 00 00 00 00 00 ;-- BFh
-		00 00 00 00 00 00 00 00 ;-- C7h
-		00 00 00 00 00 00 00 00 ;-- CFh
-		00 00 00 00 00 00 00 00 ;-- D7h
-		00 00 00 00 00 00 00 00 ;-- DFh
-		00 00 00 00 00 00 00 00 ;-- E7h
-		00 00 00 00 00 00 00 00 ;-- EFh
-		00 00 00 00 00 00 00 00 ;-- F7h
-		00 00 00 00 00 00 00 00 ;-- FFh
 	}
 
 	;-- encodeURI
@@ -124,22 +100,6 @@ string: context [
 		FF FF FF FF FF FF FF FF ;-- 6Fh
 		FF FF FF FF FF FF FF FF ;-- 77h
 		FF FF FF 00 00 00 FF 00 ;-- 7Fh
-		00 00 00 00 00 00 00 00 ;-- 87h
-		00 00 00 00 00 00 00 00 ;-- 8Fh
-		00 00 00 00 00 00 00 00 ;-- 97h
-		00 00 00 00 00 00 00 00 ;-- 9Fh
-		00 00 00 00 00 00 00 00 ;-- A7h
-		00 00 00 00 00 00 00 00 ;-- AFh
-		00 00 00 00 00 00 00 00 ;-- B7h
-		00 00 00 00 00 00 00 00 ;-- BFh
-		00 00 00 00 00 00 00 00 ;-- C7h
-		00 00 00 00 00 00 00 00 ;-- CFh
-		00 00 00 00 00 00 00 00 ;-- D7h
-		00 00 00 00 00 00 00 00 ;-- DFh
-		00 00 00 00 00 00 00 00 ;-- E7h
-		00 00 00 00 00 00 00 00 ;-- EFh
-		00 00 00 00 00 00 00 00 ;-- F7h
-		00 00 00 00 00 00 FF 00 ;-- FFh
 	}
 
 	utf8-buffer: #{00000000}
@@ -220,9 +180,12 @@ string: context [
 		rp			[byte-ptr!]
 		return:		[logic!]
 		/local
+			ch		[integer!]
 			v1		[integer!]
 			v2		[integer!]
 	][
+		ch: as integer! p/1
+		if ch > MAX_URL_CHARS [return false]
 		if p/1 <> #"%" [return false]
 		v1: 1 + as-integer p/2
 		v2: 1 + as-integer p/3
@@ -249,6 +212,10 @@ string: context [
 			buffer	[byte-ptr!]
 			ch		[byte!]
 			i		[integer!]
+			size	[integer!]
+			p		[byte-ptr!]
+			ch2		[byte!]
+			utf8?	[logic!]
 	][
 		slen: -1
 		data: as byte-ptr! unicode/to-utf8 str :slen
@@ -258,16 +225,36 @@ string: context [
 		end: data + slen
 		buffer: allocate slen
 		i: 1
-		ch: #"^@"
+		ch: #"^@" ch2: #"^@"
 		while [data < end][
-			either decode-url-char data :ch [
+			utf8?: false
+			if decode-url-char data :ch [
+				size: unicode/utf8-char-size? as-integer ch
+				p: data + 3
+				utf8?: true
+				loop size - 1 [
+					unless decode-url-char p :ch2 [
+						utf8?: false
+						break
+					]
+					p: p + 3
+				]
+			]
+			either utf8? [
 				buffer/i: ch
 				data: data + 3
+				i: i + 1
+				loop size - 1 [
+					decode-url-char data :ch
+					buffer/i: ch
+					data: data + 3
+					i: i + 1
+				]
 			][
 				buffer/i: data/1
 				data: data + 1
+				i: i + 1
 			]
-			i: i + 1
 		]
 		dlen/1: i - 1
 		buffer
@@ -290,8 +277,12 @@ string: context [
 		ss: "%00"
 		tbl: either type = ESC_URI [uri-encode-tbl][url-encode-tbl]
 		ch: as integer! pch/1
-		index: ch + 1
-		code: as integer! tbl/index
+		either ch > MAX_URL_CHARS [
+			code: 0
+		][
+			index: ch + 1
+			code: as integer! tbl/index
+		]
 		either code = FFh [
 			pcode: pch
 			psize/1: 1
