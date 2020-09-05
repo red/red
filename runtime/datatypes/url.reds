@@ -109,6 +109,8 @@ url: context [
 		/local
 			int	   [red-integer!]
 			limit  [integer!]
+			len    [integer!]
+			buf    [byte-ptr!]
 			enc    [red-string!]
 			s	   [series!]
 			unit   [integer!]
@@ -124,8 +126,14 @@ url: context [
 			int: as red-integer! arg
 			int/value
 		][0]
-		enc: as red-string! stack/push*
-		string/encode-url url enc
+		len: 0
+		buf: string/encode-url url :len string/ESC_URI
+		either null? buf [
+			enc: as red-string! url
+		][
+			enc: string/load as c-string! buf len UTF-8
+			free buf
+		]
 
 		s: GET_BUFFER(enc)
 		unit: GET_UNIT(s)

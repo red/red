@@ -25,6 +25,7 @@ string: context [
 
 	#enum escape-type! [
 		ESC_CHAR: FDh
+		ESC_URI:  FEh
 		ESC_URL:  FFh
 	]
 
@@ -70,25 +71,76 @@ string: context [
 		FF FF FF FF FF FF FF FF ;-- FFh
 	}
 
-	#define _____		"^@^@^@"
-	url-encode-tbl: [
-		"%00" "%01" "%02" "%03" "%04" "%05" "%06" "%07" "%08" "%09" "%0A" "%0B" "%0C" "%0D" "%0E" "%0F"
-		"%10" "%11" "%12" "%13" "%14" "%15" "%16" "%17" "%18" "%19" "%1A" "%1B" "%1C" "%1D" "%1E" "%1F"
-		"%20" "%21" "%22" "%23" "%24" "%25" "%26" "%27" "%28" "%29" "%2A" "%2B" "%2C" _____ _____ "%2F"
-		_____ _____ _____ _____ _____ _____ _____ _____ _____ _____ "%3A" "%3B" "%3C" "%3D" "%3E" "%3F"
-		"%40" _____ _____ _____ _____ _____ _____ _____ _____ _____ _____ _____ _____ _____ _____ _____
-		_____ _____ _____ _____ _____ _____ _____ _____ _____ _____ _____ "%5B" "%5C" "%5D" "%5E" _____
-		"%60" _____ _____ _____ _____ _____ _____ _____ _____ _____ _____ _____ _____ _____ _____ _____
-		_____ _____ _____ _____ _____ _____ _____ _____ _____ _____ _____ "%7B" "%7C" "%7D" _____ "%7F"
-		"%80" "%81" "%82" "%83" "%84" "%85" "%86" "%87" "%88" "%89" "%8A" "%8B" "%8C" "%8D" "%8E" "%8F"
-		"%90" "%91" "%92" "%93" "%94" "%95" "%96" "%97" "%98" "%99" "%9A" "%9B" "%9C" "%9D" "%9E" "%9F"
-		"%A0" "%A1" "%A2" "%A3" "%A4" "%A5" "%A6" "%A7" "%A8" "%A9" "%AA" "%AB" "%AC" "%AD" "%AE" "%AF"
-		"%B0" "%B1" "%B2" "%B3" "%B4" "%B5" "%B6" "%B7" "%B8" "%B9" "%BA" "%BB" "%BC" "%BD" "%BE" "%BF"
-		"%C0" "%C1" "%C2" "%C3" "%C4" "%C5" "%C6" "%C7" "%C8" "%C9" "%CA" "%CB" "%CC" "%CD" "%CE" "%CF"
-		"%D0" "%D1" "%D2" "%D3" "%D4" "%D5" "%D6" "%D7" "%D8" "%D9" "%DA" "%DB" "%DC" "%DD" "%DE" "%DF"
-		"%E0" "%E1" "%E2" "%E3" "%E4" "%E5" "%E6" "%E7" "%E8" "%E9" "%EA" "%EB" "%EC" "%ED" "%EE" "%EF"
-		"%F0" "%F1" "%F2" "%F3" "%F4" "%F5" "%F6" "%F7" "%F8" "%F9" "%FA" "%FB" "%FC" "%FD" "%FE" "%FF"
-	]
+	url-encode-tbl: #{
+		00 00 00 00 00 00 00 00 ;-- 07h
+		00 00 00 00 00 00 00 00 ;-- 0Fh
+		00 00 00 00 00 00 00 00 ;-- 17h
+		00 00 00 00 00 00 00 00 ;-- 1Fh
+		00 00 00 00 00 00 00 00 ;-- 27h
+		00 00 00 00 00 FF FF 00 ;-- 2Fh
+		FF FF FF FF FF FF FF FF ;-- 37h
+		FF FF 00 00 00 00 00 00 ;-- 3Fh
+		00 FF FF FF FF FF FF FF ;-- 47h
+		FF FF FF FF FF FF FF FF ;-- 4Fh
+		FF FF FF FF FF FF FF FF ;-- 57h
+		FF FF FF 00 00 00 00 FF ;-- 5Fh
+		00 FF FF FF FF FF FF FF ;-- 67h
+		FF FF FF FF FF FF FF FF ;-- 6Fh
+		FF FF FF FF FF FF FF FF ;-- 77h
+		FF FF FF 00 00 00 FF 00 ;-- 7Fh
+		00 00 00 00 00 00 00 00 ;-- 87h
+		00 00 00 00 00 00 00 00 ;-- 8Fh
+		00 00 00 00 00 00 00 00 ;-- 97h
+		00 00 00 00 00 00 00 00 ;-- 9Fh
+		00 00 00 00 00 00 00 00 ;-- A7h
+		00 00 00 00 00 00 00 00 ;-- AFh
+		00 00 00 00 00 00 00 00 ;-- B7h
+		00 00 00 00 00 00 00 00 ;-- BFh
+		00 00 00 00 00 00 00 00 ;-- C7h
+		00 00 00 00 00 00 00 00 ;-- CFh
+		00 00 00 00 00 00 00 00 ;-- D7h
+		00 00 00 00 00 00 00 00 ;-- DFh
+		00 00 00 00 00 00 00 00 ;-- E7h
+		00 00 00 00 00 00 00 00 ;-- EFh
+		00 00 00 00 00 00 00 00 ;-- F7h
+		00 00 00 00 00 00 00 00 ;-- FFh
+	}
+
+	;-- encodeURI
+	uri-encode-tbl: #{
+		00 00 00 00 00 00 00 00 ;-- 07h
+		00 00 00 00 00 00 00 00 ;-- 0Fh
+		00 00 00 00 00 00 00 00 ;-- 17h
+		00 00 00 00 00 00 00 00 ;-- 1Fh
+		00 FF 00 FF FF 00 FF FF ;-- 27h
+		FF FF FF FF FF FF FF FF ;-- 2Fh
+		FF FF FF FF FF FF FF FF ;-- 37h
+		FF FF FF FF 00 FF 00 FF ;-- 3Fh
+		FF FF FF FF FF FF FF FF ;-- 47h
+		FF FF FF FF FF FF FF FF ;-- 4Fh
+		FF FF FF FF FF FF FF FF ;-- 57h
+		FF FF FF 00 00 00 00 FF ;-- 5Fh
+		00 FF FF FF FF FF FF FF ;-- 67h
+		FF FF FF FF FF FF FF FF ;-- 6Fh
+		FF FF FF FF FF FF FF FF ;-- 77h
+		FF FF FF 00 00 00 FF 00 ;-- 7Fh
+		00 00 00 00 00 00 00 00 ;-- 87h
+		00 00 00 00 00 00 00 00 ;-- 8Fh
+		00 00 00 00 00 00 00 00 ;-- 97h
+		00 00 00 00 00 00 00 00 ;-- 9Fh
+		00 00 00 00 00 00 00 00 ;-- A7h
+		00 00 00 00 00 00 00 00 ;-- AFh
+		00 00 00 00 00 00 00 00 ;-- B7h
+		00 00 00 00 00 00 00 00 ;-- BFh
+		00 00 00 00 00 00 00 00 ;-- C7h
+		00 00 00 00 00 00 00 00 ;-- CFh
+		00 00 00 00 00 00 00 00 ;-- D7h
+		00 00 00 00 00 00 00 00 ;-- DFh
+		00 00 00 00 00 00 00 00 ;-- E7h
+		00 00 00 00 00 00 00 00 ;-- EFh
+		00 00 00 00 00 00 00 00 ;-- F7h
+		00 00 00 00 00 00 FF 00 ;-- FFh
+	}
 
 	utf8-buffer: #{00000000}
 
@@ -188,7 +240,8 @@ string: context [
 
 	decode-url: func [
 		str			[red-string!]
-		dst			[red-string!]
+		dlen		[int-ptr!]
+		return:		[byte-ptr!]
 		/local
 			slen	[integer!]
 			data	[byte-ptr!]
@@ -200,8 +253,7 @@ string: context [
 		slen: -1
 		data: as byte-ptr! unicode/to-utf8 str :slen
 		if slen = 0 [									;-- empty string case
-			rs-reset dst
-			exit
+			return null
 		]
 		end: data + slen
 		buffer: allocate slen
@@ -217,28 +269,37 @@ string: context [
 			]
 			i: i + 1
 		]
-		load-at as c-string! buffer i - 1 as red-value! dst UTF-8
-		free buffer
+		dlen/1: i - 1
+		buffer
 	]
 
 	encode-url-char: func [
+		type		[integer!]
 		pch			[byte-ptr!]
 		psize		[int-ptr!]
 		return:		[byte-ptr!]
 		/local
+			ss		[c-string!]
+			tbl		[byte-ptr!]
+			ch		[integer!]
 			index	[integer!]
-			p		[int-ptr!]
 			code	[integer!]
 			pcode	[byte-ptr!]
+			str		[c-string!]
 	][
-		index: (as integer! pch/1) + 1
-		p: as int-ptr! url-encode-tbl/index
-		code: p/1
-		either code = 0 [
+		ss: "%00"
+		tbl: either type = ESC_URI [uri-encode-tbl][url-encode-tbl]
+		ch: as integer! pch/1
+		index: ch + 1
+		code: as integer! tbl/index
+		either code = FFh [
 			pcode: pch
 			psize/1: 1
 		][
-			pcode: as byte-ptr! p
+			str: byte-to-hex ch
+			ss/2: str/1
+			ss/3: str/2
+			pcode: as byte-ptr! ss
 			psize/1: 3
 		]
 		pcode
@@ -246,7 +307,9 @@ string: context [
 
 	encode-url: func [
 		str			[red-string!]
-		dst			[red-string!]
+		dlen		[int-ptr!]
+		type		[integer!]
+		return:		[byte-ptr!]
 		/local
 			slen	[integer!]
 			data	[byte-ptr!]
@@ -259,15 +322,14 @@ string: context [
 		slen: -1
 		data: as byte-ptr! unicode/to-utf8 str :slen
 		if slen = 0 [									;-- empty string case
-			rs-reset dst
-			exit
+			return null
 		]
 		end: data + slen
 		buffer: allocate slen * 3
 		i: 1
 		size: 0
 		while [data < end][
-			p: encode-url-char data :size
+			p: encode-url-char type data :size
 			loop size [
 				buffer/i: p/1
 				i: i + 1
@@ -275,8 +337,8 @@ string: context [
 			]
 			data: data + 1
 		]
-		load-at as c-string! buffer i - 1 as red-value! dst UTF-8
-		free buffer
+		dlen/1: i - 1
+		buffer
 	]
 
 	rs-load: func [

@@ -1363,13 +1363,21 @@ natives: context [
 		return: [red-string!]
 		/local
 			str	[red-string!]
+			buf	[byte-ptr!]
+			len	[integer!]
 			ret	[red-string!]
 	][
 		#typecheck dehex
 		str: as red-string! stack/arguments
+
+		len: 0
+		buf: string/decode-url str :len
+		if null? buf [
+			return str
+		]
 		stack/keep										;-- keep last value
-		ret: as red-string! stack/push*
-		string/decode-url str ret
+		ret: string/load as c-string! buf len UTF-8
+		free buf
 		stack/set-last as red-value! ret
 		ret
 	]
@@ -1379,13 +1387,21 @@ natives: context [
 		return: [red-string!]
 		/local
 			str	[red-string!]
+			buf	[byte-ptr!]
+			len	[integer!]
 			ret	[red-string!]
 	][
 		#typecheck enhex
 		str: as red-string! stack/arguments
+
+		len: 0
+		buf: string/encode-url str :len string/ESC_URL
+		if null? buf [
+			return str
+		]
 		stack/keep										;-- keep last value
-		ret: as red-string! stack/push*
-		string/encode-url str ret
+		ret: string/load as c-string! buf len UTF-8
+		free buf
 		stack/set-last as red-value! ret
 		ret
 	]
