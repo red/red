@@ -170,6 +170,8 @@ ser-formed: {1 none true false c red Red a/b 'a/b :a/b a/b: 1 + 2 a  a c d b e f
 		--assert  "a乱码b" = dehex "a%e4%b9%b1%e7%a0%81b"
 	--test-- "dehex-7"
 		--assert  "a%ceb2b" = dehex "a%ceb2b"
+	--test-- "dehex-8"
+		--assert  "a^(80)b" = dehex "a%C2%80b"
 ===end-group===
 
 ===start-group=== "enhex"
@@ -189,6 +191,8 @@ ser-formed: {1 none true false c red Red a/b 'a/b :a/b a/b: 1 + 2 a  a c d b e f
 		--assert  "a%25ceb2b" = enhex "a%ceb2b"
 	--test-- "enhex-8"
 		--assert  "https%3A%2F%2Fwww.red-lang.org%2F" = enhex "https://www.red-lang.org/"
+	--test-- "enhex-8"
+		--assert  "a%C2%80b" = enhex "a^(80)b"
 ===end-group===
 
 ===start-group=== "to-hex"
