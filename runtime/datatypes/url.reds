@@ -109,13 +109,14 @@ url: context [
 		/local
 			int	   [red-integer!]
 			limit  [integer!]
+			enc    [red-string!]
 			s	   [series!]
 			unit   [integer!]
-			cp	   [integer!]
 			p	   [byte-ptr!]
-			p4	   [int-ptr!]
 			head   [byte-ptr!]
 			tail   [byte-ptr!]
+			cp     [integer!]
+			p4     [int-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "url/mold"]]
 
@@ -123,10 +124,12 @@ url: context [
 			int: as red-integer! arg
 			int/value
 		][0]
+		enc: as red-string! stack/push*
+		string/encode-url url enc
 
-		s: GET_BUFFER(url)
+		s: GET_BUFFER(enc)
 		unit: GET_UNIT(s)
-		p: (as byte-ptr! s/offset) + (url/head << (log-b unit))
+		p: (as byte-ptr! s/offset) + (enc/head << (log-b unit))
 		head: p
 
 		tail: either zero? limit [						;@@ rework that part
@@ -142,7 +145,7 @@ url: context [
 				UCS-2  [(as-integer p/2) << 8 + p/1]
 				UCS-4  [p4: as int-ptr! p p4/value]
 			]
-			string/append-escaped-char buffer cp string/ESC_URL all?
+			string/append-char GET_BUFFER(buffer) cp
 			p: p + unit
 		]
 

@@ -1362,86 +1362,32 @@ natives: context [
 		check?  [logic!]
 		return: [red-string!]
 		/local
-			str		[red-string!]
-			buffer	[red-string!]
-			s		[series!]
-			p		[byte-ptr!]
-			p4		[int-ptr!]
-			tail	[byte-ptr!]
-			unit	[integer!]
-			cp		[integer!]
-			len		[integer!]
+			str	[red-string!]
+			ret	[red-string!]
 	][
 		#typecheck dehex
 		str: as red-string! stack/arguments
-		s: GET_BUFFER(str)
-		unit: GET_UNIT(s)
-		p: (as byte-ptr! s/offset) + (str/head << (log-b unit))
-		tail: as byte-ptr! s/tail
-		if p = tail [return str]						;-- empty string case
-
-		len: string/rs-length? str
 		stack/keep										;-- keep last value
-		buffer: string/rs-make-at stack/push* len * unit
-
-		while [p < tail][
-			cp: switch unit [
-				Latin1 [as-integer p/value]
-				UCS-2  [(as-integer p/2) << 8 + p/1]
-				UCS-4  [p4: as int-ptr! p p4/value]
-			]
-
-			p: p + unit
-			if all [
-				cp = as-integer #"%"
-				p + unit < tail							;-- must be %xx
-			][
-				p: string/decode-utf8-hex p unit :cp false
-			]
-			string/append-char GET_BUFFER(buffer) cp unit
-		]
-		stack/set-last as red-value! buffer
-		buffer
+		ret: as red-string! stack/push*
+		string/decode-url str ret
+		stack/set-last as red-value! ret
+		ret
 	]
 
 	enhex*: func [
 		check?  [logic!]
 		return: [red-string!]
 		/local
-			str		[red-string!]
-			slen	[integer!]
-			data	[byte-ptr!]
-			buffer	[red-string!]
-			s		[series!]
-			node	[node!]
-			len		[integer!]
-			pcode	[byte-ptr!]
-			p		[byte-ptr!]
+			str	[red-string!]
+			ret	[red-string!]
 	][
 		#typecheck enhex
 		str: as red-string! stack/arguments
-		slen: -1
-		data: as byte-ptr! unicode/to-utf8 str :slen
-		if slen = 0 [return str]
-
 		stack/keep										;-- keep last value
-		buffer: string/rs-make-at stack/push* slen * 2
-		s: GET_BUFFER(buffer)
-
-		len: 0
-		loop slen [
-			pcode: string/encode-uri-char data :len
-			loop len [
-				node: s/node
-				p: alloc-tail-unit s 1
-				p/1: pcode/1
-				s: as series! node/value
-				pcode: pcode + 1
-			]
-			data: data + 1
-		]
-		stack/set-last as red-value! buffer
-		buffer
+		ret: as red-string! stack/push*
+		string/encode-url str ret
+		stack/set-last as red-value! ret
+		ret
 	]
 
 	debase*: func [

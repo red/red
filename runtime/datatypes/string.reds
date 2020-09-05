@@ -15,7 +15,7 @@ string: context [
 	
 	#define BRACES_THRESHOLD	50						;-- max string length for using " delimiter
 	#define MAX_ESC_CHARS		5Fh	
-	#define MAX_URL_CHARS 		7Fh
+	#define MAX_URL_CHARS 		FFh
 
 	#enum modification-type! [
 		MODE_APPEND
@@ -25,10 +25,9 @@ string: context [
 
 	#enum escape-type! [
 		ESC_CHAR: FDh
-		ESC_URL:  FEh
-		ESC_NONE: FFh
+		ESC_URL:  FFh
 	]
-		
+
 	escape-chars: [
 		#"^(40)" #"^(41)" #"^(42)" #"^(43)" #"^(44)" #"^(45)" #"^(46)" #"^(47)" ;-- 07h
 		#"^(48)" #"-"     #"/"     #"^(4B)" #"^(4C)" #"^(4D)" #"^(4E)" #"^(4F)" ;-- 0Fh
@@ -44,23 +43,31 @@ string: context [
 		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^^"	   #"^(00)" ;-- 5Fh
 	]
 
-	escape-url-chars: #{								;-- ESC_NONE: #"^(FF)" ESC_URL: #"^(FE)"
-		FE FE FE FE FE FE FE FE ;-- 07h
-		FE FE FE FE FE FE FE FE ;-- 0Fh
-		FE FE FE FE FE FE FE FE ;-- 17h
-		FE FE FE FE FE FE FE FE ;-- 1Fh
-		FE FF FE FF FF FE FF FF ;-- 27h
-		FE FE FF FF FF FF FF FF ;-- 2Fh
+	escape-url-chars: #{								;-- ESC_URL: #"^(FF)"
+		FF FF FF FF FF FF FF FF ;-- 07h
+		FF FF FF FF FF FF FF FF ;-- 0Fh
+		FF FF FF FF FF FF FF FF ;-- 17h
+		FF FF FF FF FF FF FF FF ;-- 1Fh
+		FF FF FF FF FF FF FF FF ;-- 27h
+		FF FF FF FF FF FF FF FF ;-- 2Fh
 		00 01 02 03 04 05 06 07 ;-- 37h
-		08 09 FF FE FE FF FE FF ;-- 3Fh
+		08 09 FF FF FF FF FF FF ;-- 3Fh
 		FF 0A 0B 0C 0D 0E 0F FF ;-- 47h
 		FF FF FF FF FF FF FF FF ;-- 4Fh
 		FF FF FF FF FF FF FF FF ;-- 57h
-		FF FF FF FE FF FE FF FF ;-- 5Fh
+		FF FF FF FF FF FF FF FF ;-- 5Fh
 		FF 0A 0B 0C 0D 0E 0F FF ;-- 67h
 		FF FF FF FF FF FF FF FF ;-- 6Fh
 		FF FF FF FF FF FF FF FF ;-- 77h
-		FF FF FF FE FF FE FF FF ;-- 7Fh
+		FF FF FF FF FF FF FF FF ;-- 7Fh
+		FF FF FF FF FF FF FF FF ;-- 8Fh
+		FF FF FF FF FF FF FF FF ;-- 9Fh
+		FF FF FF FF FF FF FF FF ;-- AFh
+		FF FF FF FF FF FF FF FF ;-- BFh
+		FF FF FF FF FF FF FF FF ;-- CFh
+		FF FF FF FF FF FF FF FF ;-- DFh
+		FF FF FF FF FF FF FF FF ;-- EFh
+		FF FF FF FF FF FF FF FF ;-- FFh
 	}
 
 	#define _____		"^@^@^@"
@@ -156,64 +163,65 @@ string: context [
 		]
 	]
 
-	decode-utf8-hex: func [
+	decode-url-char: func [
 		p			[byte-ptr!]
-		unit		[integer!]
-		cp			[int-ptr!]
-		trailing?	[logic!]
-		return: 	[byte-ptr!]
+		rp			[byte-ptr!]
+		return:		[logic!]
 		/local
-			i		[integer!]
 			v1		[integer!]
 			v2		[integer!]
-			size	[integer!]
-			src		[byte-ptr!]
-			buffer	[byte-ptr!]
 	][
-		v1: (get-char p unit) + 1						;-- adjust for 1-base
-		v2: (get-char p + unit unit) + 1				;-- adjust for 1-base
-		if any [
-			v1 > MAX_URL_CHARS
-			v2 > MAX_URL_CHARS
-		][return p]
-
+		if p/1 <> #"%" [return false]
+		v1: 1 + as-integer p/2
+		v2: 1 + as-integer p/3
 		v1: as-integer escape-url-chars/v1
 		v2: as-integer escape-url-chars/v2
 		if any [
-			v1 = ESC_NONE
-			v2 = ESC_NONE
 			v1 = ESC_URL
 			v2 = ESC_URL
-		][return p]
+		][return false]
 
 		v1: v1 << 4 + v2
-		src: p + (unit << 1)
-
-		if trailing? [cp/value: v1 return src]
-
-		either v1 <= 7Fh [
-			cp/value: v1
-			p: src
-		][
-			i: 1
-			buffer: utf8-buffer
-			size: unicode/utf8-char-size? v1
-			v2: size
-			while [buffer/i: as byte! v1 v2 > 1][
-				if (as-integer #"%") <> get-char src unit [return p]
-				src: decode-utf8-hex src + unit unit :v1 true
-				i: i + 1
-				v2: v2 - 1
-			]
-			if positive? size [
-				v1: unicode/decode-utf8-char as c-string! buffer :size
-			]
-			if positive? size [cp/value: v1 p: src]
-		]
-		p
+		rp/1: as byte! v1
+		return true
 	]
 
-	encode-uri-char: func [
+	decode-url: func [
+		str			[red-string!]
+		dst			[red-string!]
+		/local
+			slen	[integer!]
+			data	[byte-ptr!]
+			end		[byte-ptr!]
+			buffer	[byte-ptr!]
+			ch		[byte!]
+			i		[integer!]
+	][
+		slen: -1
+		data: as byte-ptr! unicode/to-utf8 str :slen
+		if slen = 0 [									;-- empty string case
+			rs-reset dst
+			exit
+		]
+		end: data + slen
+		buffer: allocate slen
+		i: 1
+		ch: #"^@"
+		while [data < end][
+			either decode-url-char data :ch [
+				buffer/i: ch
+				data: data + 3
+			][
+				buffer/i: data/1
+				data: data + 1
+			]
+			i: i + 1
+		]
+		load-at as c-string! buffer i - 1 as red-value! dst UTF-8
+		free buffer
+	]
+
+	encode-url-char: func [
 		pch			[byte-ptr!]
 		psize		[int-ptr!]
 		return:		[byte-ptr!]
@@ -234,6 +242,41 @@ string: context [
 			psize/1: 3
 		]
 		pcode
+	]
+
+	encode-url: func [
+		str			[red-string!]
+		dst			[red-string!]
+		/local
+			slen	[integer!]
+			data	[byte-ptr!]
+			end		[byte-ptr!]
+			buffer	[byte-ptr!]
+			i		[integer!]
+			size	[integer!]
+			p		[byte-ptr!]
+	][
+		slen: -1
+		data: as byte-ptr! unicode/to-utf8 str :slen
+		if slen = 0 [									;-- empty string case
+			rs-reset dst
+			exit
+		]
+		end: data + slen
+		buffer: allocate slen * 3
+		i: 1
+		size: 0
+		while [data < end][
+			p: encode-url-char data :size
+			loop size [
+				buffer/i: p/1
+				i: i + 1
+				p: p + 1
+			]
+			data: data + 1
+		]
+		load-at as c-string! buffer i - 1 as red-value! dst UTF-8
+		free buffer
 	]
 
 	rs-load: func [
@@ -1482,14 +1525,6 @@ string: context [
 			]
 			all [type = ESC_CHAR cp = 7Fh][
 				concatenate-literal buffer "^^~"
-			]
-			all [
-				type = ESC_URL
-				cp < MAX_URL_CHARS
-				escape-url-chars/idx = (as byte! ESC_URL)
-			][
-				append-char GET_BUFFER(buffer) as-integer #"%"
-				concatenate-literal buffer byte-to-hex cp
 			]
 			true [
 				append-char GET_BUFFER(buffer) cp
