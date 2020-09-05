@@ -13,35 +13,16 @@ Red/System [
 url: context [
 	verbose: 0
 
-	rs-load: func [
-		src		 [c-string!]							;-- UTF-8 source string buffer
-		size	 [integer!]
-		return:  [red-string!]
-	][
-		load-in src size root
-	]
-
-	load-in: func [
-		src		 [c-string!]							;-- UTF-8 source string buffer
-		size	 [integer!]
-		blk		 [red-block!]
-		return:  [red-string!]
-		/local
-			cell [red-string!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "url/load"]]
-
-		cell: string/load-in src size blk UTF-8
-		cell/header: TYPE_URL							;-- implicit reset of all header flags
-		cell
-	]
-
 	load: func [
 		src		 [c-string!]							;-- UTF-8 source string buffer
 		size	 [integer!]
 		return:  [red-string!]
+		/local
+			str  [red-string!]
 	][
-		load-in src size null
+		#if debug? = yes [if verbose > 0 [print-line "url/load"]]
+		str: string/load src size UTF-8
+		string/decode str TYPE_URL
 	]
 
 	push: func [
@@ -92,7 +73,7 @@ url: context [
 		either all [type = TYPE_URL ANY_LIST?(type2)][ ;-- file! inherits from url!
 			to proto spec type
 		][
-			as red-url! string/make as red-string! proto spec type
+			as red-url! string/decode string/make as red-string! proto spec type type
 		]
 	]
 
@@ -179,7 +160,6 @@ url: context [
 		type2: TYPE_OF(spec)
 		either all [type = TYPE_URL ANY_LIST?(type2)][ ;-- file! inherits from url!
 			buffer: string/make-at proto 16 1
-			buffer/header: TYPE_URL
 			
 			blk: as red-block! spec
 			s: GET_BUFFER(blk)
@@ -191,17 +171,17 @@ url: context [
 			actions/form value buffer null 0
 			value: value + 1
 			string/concatenate-literal buffer "://"
-			if value = tail [return buffer]
+			if value = tail [return string/decode buffer type]
 			
 			actions/form value buffer null 0
 			value: value + 1
-			if value = tail [return buffer]
+			if value = tail [return string/decode buffer type]
 			
 			if TYPE_OF(value) = TYPE_INTEGER [
 				string/concatenate-literal buffer ":"
 				actions/form value buffer null 0
 				value: value + 1
-				if value = tail [return buffer]
+				if value = tail [return string/decode buffer type]
 			]
 			string/append-char GET_BUFFER(buffer) as-integer #"/"
 			until [
@@ -213,9 +193,9 @@ url: context [
 				]
 				value = tail
 			]
-			buffer
+			string/decode buffer type
 		][
-			string/to proto spec type
+			string/decode string/to proto spec type type
 		]
 	]
 

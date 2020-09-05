@@ -437,7 +437,7 @@ dehex: make native! [[
 
 enhex: make native! [[
 		"Encode URL-style hex encoded (%xx) strings"
-		value [string! file! tag! email! ref!]
+		value [any-string!]
 		return:	[string!] "Always return a string"
 	]
 	#get-definition NAT_ENHEX

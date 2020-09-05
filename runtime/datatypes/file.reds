@@ -12,18 +12,17 @@ Red/System [
 
 file: context [
 	verbose: 0
-	
+
 	load: func [
 		src		 [c-string!]							;-- source string buffer
 		size	 [integer!]
 		encoding [integer!]
 		return:  [red-file!]
 		/local
-			file [red-file!]
+			str  [red-string!]
 	][
-		file: as red-file! string/load src size encoding
-		set-type as red-value! file TYPE_FILE
-		file
+		str: string/load src size encoding
+		string/decode str TYPE_FILE
 	]
 
 	push: func [
@@ -215,9 +214,9 @@ file: context [
 					UCS-4  [p4: as int-ptr! p p4/value]
 				]
 				idx: cp + 1
-				if all [
-					cp < MAX_URL_CHARS
-					string/escape-url-chars/idx = (as byte! string/ESC_URL)
+				if any [
+					cp > MAX_URL_CHARS
+					string/uri-encode-tbl/idx = #"^(FF)"
 				][
 					break
 				]

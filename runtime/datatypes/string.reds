@@ -260,6 +260,28 @@ string: context [
 		buffer
 	]
 
+	decode: func [
+		str			[red-string!]
+		type		[integer!]
+		return:		[red-string!]
+		/local
+			buf		[byte-ptr!]
+			len		[integer!]
+			ret		[red-string!]
+	][
+		len: 0
+		buf: decode-url str :len
+		if null? buf [
+			ret: rs-make-at stack/push* 1
+			ret/header: type
+			return ret
+		]
+		ret: load as c-string! buf len UTF-8
+		free buf
+		ret/header: type							;-- implicit reset of all header flags
+		ret
+	]
+
 	encode-url-char: func [
 		type		[integer!]
 		pch			[byte-ptr!]
