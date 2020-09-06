@@ -63,7 +63,8 @@ tcp-device: context [
 				]
 			]
 			IO_EVT_LOOKUP [
-				0 ;tcp-client p addr num
+				io/close-port p
+				
 			]
 			default [data/event: IO_EVT_NONE]
 		]
@@ -166,7 +167,7 @@ tcp-device: context [
 			info	[addrinfo!]
 			buf		[red-binary!]
 	][
-		data: as sockdata! create-tcp-data red-port 0
+		data: io/create-socket-data red-port 0 as int-ptr! :event-handler size? dns-data!
 		data/iocp/type: IOCP_TYPE_DNS
 
 		buf: as red-binary! (object/get-values red-port) + port/field-data
@@ -225,9 +226,12 @@ tcp-device: context [
 	close: func [
 		red-port	[red-object!]
 		return:		[red-value!]
+		/local
+			data	[iocp-data!]
 	][
 		#if debug? = yes [if verbose > 0 [io/debug "tcp/close"]]
-		io/close-port red-port
+		data: io/close-port red-port
+		free as byte-ptr! data
 		as red-value! red-port
 	]
 

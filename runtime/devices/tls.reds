@@ -207,8 +207,8 @@ TLS-device: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tls/close"]]
 
-		data: io/get-iocp-data red-port
-		if data <> null [socket/close as-integer data/device]
+		data: io/close-port red-port
+		free as byte-ptr! data
 		as red-value! red-port
 	]
 

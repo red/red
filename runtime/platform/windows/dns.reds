@@ -59,7 +59,7 @@ dns: context [
 		iocp/bind g-iocp as int-ptr! fd
 
 		n: server-list/1				;-- server-list: IP4_ARRAY
-?? n
+
 		server: server-list + 1
 		port: htons port
 		dns-addr: as sockaddr_in! :dns-data/addr
@@ -82,6 +82,7 @@ dns: context [
 		/local
 			s		[series!]
 	][
+		IODebug("dns/recv")
 		io/pin-memory dns-data/send-buf
 		s: as series! dns-data/send-buf/value
 		socket/urecv

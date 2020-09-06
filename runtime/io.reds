@@ -35,8 +35,6 @@ ports-block: as red-block! 0
 
 io: context [
 
-	verbose: 2
-
 	get-event-type: func [
 		evt		[red-event!]
 		return: [red-value!]
@@ -181,6 +179,7 @@ io: context [
 		s/flags: s/flags and (not flag-series-fixed)
 	]
 
+	verbose: 0
 	log-file: "                                        "
 
 	debug: func [

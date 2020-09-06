@@ -11,8 +11,8 @@ Red/System [
 ]
 
 #if dev-mode? = yes [
-	#include %../../../../runtime/platform/COM.reds
-	#include %../../../../runtime/platform/image-gdiplus.reds
+	#include %../../../../runtime/platform/definitions/COM.reds
+	#include %../../../../runtime/platform/windows/image-gdiplus.reds
 ]
 
 #define NM_CUSTOMDRAW			-12
