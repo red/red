@@ -79,14 +79,13 @@ socket: context [
 
 	accept: func [
 		sock		[integer!]
+		addr		[int-ptr!]
+		addr-sz		[int-ptr!]
 		return:		[integer!]
 		/local
-			n		[integer!]
-			saddr	[sockaddr_in! value]
 			acpt	[integer!]
 	][
-		n: size? sockaddr_in!
-		acpt: libC.accept sock as byte-ptr! :saddr :n
+		acpt: libC.accept sock as byte-ptr! addr addr-sz
 		if acpt = -1 [return 0]
 		socket/set-nonblocking acpt
 		acpt
@@ -182,7 +181,6 @@ socket: context [
 		n: iocp/read-io data
 
 		if n < 0 [
-			probe ["errno .................. " errno/value]
 			either errno/value = EAGAIN [
 				data/read-buf: buffer
 				data/read-buflen: length

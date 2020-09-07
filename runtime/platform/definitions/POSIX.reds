@@ -446,9 +446,19 @@ res_state!: alias struct! [	;-- size: 512 bytes
 			optlen		[int-ptr!]
 			return:		[integer!]
 		]
-		htons: "htons" [
-			hostshort	[integer!]
+		getpeername: "getpeername" [
+			s			[integer!]
+			name		[sockaddr_in6!]
+			len			[int-ptr!]
 			return:		[integer!]
+		]
+		htons: "htons" [
+			hostshort	[uint16!]
+			return:		[uint16!]
+		]
+		ntohs: "ntohs" [
+			netshort	[uint16!]
+			return:		[uint16!]
 		]
 		inet_addr: "inet_addr" [
 			cp			[c-string!]

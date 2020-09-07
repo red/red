@@ -96,12 +96,13 @@ io: context [
 			data	[sockdata!]
 	][
 		data: as sockdata! alloc0 size
-		data/iocp/event-handler: as iocp-event-handler! handler
-		data/iocp/device: as handle! sock
+		data/event-handler: as iocp-event-handler! handler
+		data/device: as handle! sock
+		data/addr-sz: size? sockaddr_in6!
 		copy-cell as cell! red-port as cell! :data/port
-		#if OS <> 'Windows [
-			data/iocp/io-port: g-iocp
-		]
+
+		#if OS <> 'Windows [data/io-port: g-iocp]
+
 		;-- store low-level data into red port
 		handle/make-at
 			(object/get-values red-port) + port/field-state

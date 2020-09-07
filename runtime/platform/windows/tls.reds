@@ -55,10 +55,12 @@ Red/System [
 ]
 
 tls-data!: alias struct! [
-	iocp		[iocp-data! value]
+	IOCP_DATA_FIELDS
 	port		[red-object! value]		;-- red port! cell
 	send-buf	[node!]					;-- send buffer
 	buf-len		[integer!]
+	addr		[sockaddr_in6! value]	;-- IPv4 or IPv6 address
+	addr-sz		[integer!]
 	credential	[SecHandle! value]		;-- credential handle
 	security	[int-ptr!]				;-- security context handle lower
 	security2	[int-ptr!]				;-- security context handle upper
@@ -701,7 +703,7 @@ tls: context [
 			cert		[CERT_CONTEXT]
 			ctx-size	[SecPkgContext_StreamSizes value]
 	][
-		state: data/iocp/state
+		state: data/state
 		client?: state and IO_STATE_CLIENT <> 0
 
 		;-- allocate 2 SecBuffer! on stack for buffer
@@ -721,8 +723,8 @@ tls: context [
 		pbuffer: as byte-ptr! s/offset
 		outbuffer: pbuffer + (MAX_SSL_MSG_LENGTH * 2)
 
-		switch data/iocp/event [
-			IO_EVT_READ [buflen: data/iocp/transferred]
+		switch data/event [
+			IO_EVT_READ [buflen: data/transferred]
 			IO_EVT_ACCEPT [
 				state: state or IO_STATE_READING
 			]
@@ -730,9 +732,9 @@ tls: context [
 		]
 
 		if state and IO_STATE_READING <> 0 [
-			data/iocp/state: state and (not IO_STATE_READING)
+			data/state: state and (not IO_STATE_READING)
 			socket/recv
-						as-integer data/iocp/device
+						as-integer data/device
 						pbuffer + buflen
 						MAX_SSL_MSG_LENGTH * 2 - buflen
 						as iocp-data! data 
@@ -823,9 +825,9 @@ tls: context [
 						outbuf-1/cbBuffer > 0
 						outbuf-1/pvBuffer <> null
 					][
-						data/iocp/state: state or IO_STATE_READING
+						data/state: state or IO_STATE_READING
 						if 0 > socket/send
-							as-integer data/iocp/device
+							as-integer data/device
 							outbuf-1/pvBuffer
 							outbuf-1/cbBuffer
 							as iocp-data! data [
@@ -835,7 +837,7 @@ tls: context [
 					]
 
 					if ret = SEC_OK [
-						data/iocp/state: state or IO_STATE_TLS_DONE
+						data/state: state or IO_STATE_TLS_DONE
 						platform/SSPI/QueryContextAttributesW
 							sec-handle
 							4			;-- SECPKG_ATTR_STREAM_SIZES
@@ -851,9 +853,9 @@ tls: context [
 						]
 
 						either client? [
-							data/iocp/event: IO_EVT_CONNECT
+							data/event: IO_EVT_CONNECT
 						][
-							data/iocp/event: IO_EVT_ACCEPT
+							data/event: IO_EVT_ACCEPT
 						]
 						io/pin-memory data/send-buf
 
@@ -875,11 +877,11 @@ tls: context [
 				]
 				SEC_E_INCOMPLETE_MESSAGE [
 					socket/recv
-						as-integer data/iocp/device
+						as-integer data/device
 						pbuffer + buflen
 						MAX_SSL_MSG_LENGTH * 2 - buflen
 						as iocp-data! data
-					data/iocp/state: state and (not IO_STATE_READING)
+					data/state: state and (not IO_STATE_READING)
 					return false
 				]
 				SEC_E_INCOMPLETE_CREDENTIALS [
@@ -974,7 +976,7 @@ tls: context [
 		length: encode outbuf buffer length data
 		wsbuf/len: length
 		wsbuf/buf: outbuf
-		data/iocp/event: IO_EVT_WRITE
+		data/event: IO_EVT_WRITE
 
 		unless zero? WSASend sock :wsbuf 1 null 0 as OVERLAPPED! data null [	;-- error
 			err: GetLastError
@@ -1009,7 +1011,7 @@ tls: context [
 		pbuffer: as byte-ptr! s/offset
 
 		buffer1/BufferType: 1		;-- SECBUFFER_DATA
-		buffer1/cbBuffer: data/iocp/transferred
+		buffer1/cbBuffer: data/transferred
 		buffer1/pvBuffer: as byte-ptr! s/offset
  
 		buffer2/BufferType: 0
@@ -1045,22 +1047,22 @@ tls: context [
 				]
 			]
 			SEC_E_INCOMPLETE_MESSAGE [		;-- needs more data
-				len2: data/buf-len + data/iocp/transferred
+				len2: data/buf-len + data/transferred
 				data/buf-len: len2
 				socket/recv
-					as-integer data/iocp/device
+					as-integer data/device
 					pbuffer + len2
 					s/size - len2
 					as iocp-data! data
 				return false
 			]
 			00090317h [		;-- SEC_I_CONTEXT_EXPIRED
-				data/iocp/event: IO_EVT_CLOSE
+				data/event: IO_EVT_CLOSE
 				len: 0
 			]
 			default [probe ["error in tls/decode: " as int-ptr! status]]
 		]
-		data/iocp/transferred: len
+		data/transferred: len
 		true
 	]
 ]

@@ -57,19 +57,58 @@ tcp-device: context [
 				iocp/bind g-iocp as int-ptr! data/accept-sock
 				#either OS = 'Windows [
 					msg: create-red-port p data/accept-sock
-					socket/acceptex as-integer data/device data
 				][
-					msg: create-red-port p socket/accept as-integer data/device
+					msg: create-red-port p socket/accept as-integer tcp/device :tcp/addr :tcp/addr-sz
+				]
+				fill-client-info msg tcp
+				#if OS = 'Windows [
+					socket/acceptex as-integer tcp/device :tcp/addr :tcp/addr-sz data
 				]
 			]
 			IO_EVT_LOOKUP [
 				io/close-port p
-				
 			]
 			default [data/event: IO_EVT_NONE]
 		]
 
 		io/call-awake p msg type
+	]
+
+	fill-client-info: func [
+		red-port	[red-object!]
+		data		[sockdata!]
+		/local
+			addr	[sockaddr_in!]
+			spec	[red-object!]
+			vals	[red-value!]
+			host	[red-tuple!]
+		#if OS = 'Windows [
+			paddr	[ptr-value!]
+			paddr2	[ptr-value!]
+			n		[integer!]
+			n2		[integer!]
+			GetAcceptExSockAddrs [GetAcceptExSockAddrs!]
+		]
+	][
+		;@@ TBD IPv6
+		#either OS = 'Windows [
+			GetAcceptExSockAddrs: as GetAcceptExSockAddrs! GetAcceptExSockaddrs-func
+			n: 0 n2: 0
+			GetAcceptExSockAddrs as byte-ptr! :data/addr 0 0 44 :paddr2 :n2 :paddr :n
+			addr: as sockaddr_in! paddr/value
+		][
+			addr: as sockaddr_in! :data/addr
+		]
+		spec: (as red-object! object/get-values red-port) + port/field-spec
+		object/copy spec spec null no null
+		vals: object/get-values spec
+		host: as red-tuple! vals + 2
+		host/header: TYPE_TUPLE or (4 << 19)
+		host/array1: addr/sin_addr
+
+		integer/make-at vals + 3 FFFFh and (ntohs addr/sin_family >>> 16)
+		vals: vals + 8		;-- ref
+		vals/header: TYPE_NONE
 	]
 
 	create-red-port: func [
@@ -114,9 +153,9 @@ tcp-device: context [
 				as sockdata! data
 			][										;-- needs to create a new one
 				new: as sockdata! alloc0 size? sockdata!
-				new/iocp/event-handler: as iocp-event-handler! :event-handler
-				new/iocp/device: data/device
-				new/iocp/accept-sock: PENDING_IO_FLAG ;-- use it as a flag to indicate pending data
+				new/event-handler: as iocp-event-handler! :event-handler
+				new/device: data/device
+				new/accept-sock: PENDING_IO_FLAG ;-- use it as a flag to indicate pending data
 				copy-cell as cell! red-port as cell! :new/port
 				new
 			]
@@ -146,13 +185,15 @@ tcp-device: context [
 		num		[red-integer!]
 		/local
 			fd	[integer!]
-			acp [integer!]
+			sd	[sockdata!]
 	][
 		#if debug? = yes [if verbose > 0 [io/debug "tcp server"]]
 
 		fd: socket/create AF_INET SOCK_STREAM IPPROTO_TCP
 		socket/bind fd num/value AF_INET
-		socket/listen fd 1024 create-tcp-data port fd
+		sd: as sockdata! create-tcp-data port fd
+		socket/listen fd 1024 as iocp-data! sd
+		#if OS = 'Windows [socket/acceptex fd :sd/addr :sd/addr-sz as iocp-data! sd]
 		iocp/bind g-iocp as int-ptr! fd
 	]
 
@@ -168,7 +209,7 @@ tcp-device: context [
 			buf		[red-binary!]
 	][
 		data: io/create-socket-data red-port 0 as int-ptr! :event-handler size? dns-data!
-		data/iocp/type: IOCP_TYPE_DNS
+		data/type: IOCP_TYPE_DNS
 
 		buf: as red-binary! (object/get-values red-port) + port/field-data
 		if TYPE_OF(buf) <> TYPE_BINARY [
@@ -269,7 +310,7 @@ tcp-device: context [
 		data/send-buf: bin/node
 
 		socket/send
-			as-integer data/iocp/device
+			as-integer data/device
 			binary/rs-head bin
 			binary/rs-length? bin
 			as iocp-data! data

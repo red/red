@@ -41,7 +41,6 @@ iocp!: alias struct! [
 	state			[integer!]
 	transferred		[integer!]				;-- number of bytes transferred
 	accept-sock		[integer!]
-	accept-addr		[byte-ptr!]	
 ]
 
 iocp-data!: alias struct! [
@@ -49,10 +48,13 @@ iocp-data!: alias struct! [
 ]
 
 sockdata!: alias struct! [
-	iocp		[iocp-data! value]
+	IOCP_DATA_FIELDS
 	port		[red-object! value]		;-- red port! cell
 	flags		[integer!]
 	send-buf	[node!]					;-- send buffer
+	addr		[sockaddr_in6! value]	;-- IPv4 or IPv6 address
+	addr2		[sockaddr_in! value]	;-- 16 bytes
+	addr-sz		[integer!]
 	addrinfo	[int-ptr!]
 ]
 

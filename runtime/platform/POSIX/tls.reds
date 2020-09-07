@@ -231,7 +231,7 @@ tls: context [
 			td/ssl: ssl
 			if null? ssl [probe "SSL_new failed" exit]
 
-			fd: as-integer td/iocp/device
+			fd: as-integer td/device
 			if zero? SSL_set_fd ssl fd [
 				probe "SSL_set_fd error"
 			]
@@ -250,14 +250,14 @@ tls: context [
 		/local
 			state [integer!]
 	][
-		state: td/iocp/state
+		state: td/state
 		either zero? state [
-			iocp/add td/iocp/io-port as-integer td/iocp/device evt or EPOLLET as iocp-data! td
+			iocp/add td/io-port as-integer td/device evt or EPOLLET as iocp-data! td
 		][
-			iocp/modify td/iocp/io-port as-integer td/iocp/device evt or EPOLLET as iocp-data! td
+			iocp/modify td/io-port as-integer td/device evt or EPOLLET as iocp-data! td
 			evt: state or evt
 		]
-		td/iocp/state: evt
+		td/state: evt
 	]
 
 	negotiate: func [
@@ -269,7 +269,7 @@ tls: context [
 	][
 		ssl: td/ssl
 		ret: SSL_do_handshake ssl
-		either ret = 1 [td/iocp/state: IO_STATE_TLS_DONE yes][
+		either ret = 1 [td/state: IO_STATE_TLS_DONE yes][
 			ret: SSL_get_error ssl ret
 			switch ret [
 				SSL_ERROR_WANT_READ [

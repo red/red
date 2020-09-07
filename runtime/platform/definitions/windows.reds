@@ -1175,6 +1175,12 @@ DNS_MESSAGE_BUFFER: alias struct! [
 			optlen		[int-ptr!]
 			return:		[integer!]
 		]
+		getpeername: "getpeername" [
+			s			[integer!]
+			name		[sockaddr_in6!]
+			len			[int-ptr!]
+			return:		[integer!]
+		]
 		ntohs: "ntohs" [
 			netshort	[uint16!]
 			return:		[uint16!]
@@ -1387,9 +1393,9 @@ GetAcceptExSockaddrs!: alias function! [
 	dwReceiveDataLength		[integer!]
 	dwLocalAddressLength	[integer!]
 	dwRemoteAddressLength	[integer!]
-	LocalSockaddr			[int-ptr!]
+	LocalSockaddr			[ptr-ptr!]
 	LocalSockaddrLength		[int-ptr!]
-	RemoteSockaddr			[int-ptr!]
+	RemoteSockaddr			[ptr-ptr!]
 	RemoteSockaddrLength	[int-ptr!]
 ]
 

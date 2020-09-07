@@ -54,33 +54,29 @@ socket: context [
 	listen: func [
 		sock	[integer!]
 		backlog	[integer!]
-		data	[iocp-data!]
 		return:	[integer!]
 		/local
 			ret	[integer!]
 	][
 		ret: WS2.listen sock backlog
-		if zero? ret [acceptex sock data]
 		ret
 	]
 
 	acceptex: func [
 		sock	 [integer!]
+		addr	 [int-ptr!]
+		addr-sz	 [int-ptr!]
 		data	 [iocp-data!]
 		/local
 			n		 [integer!]
 			AcceptEx [AcceptEx!]
 	][
-		if null? data/accept-addr [		;-- make address buffer
-			data/accept-addr: alloc0 256
-		]
-
 		n: 0
 		data/event: IO_EVT_ACCEPT
 		data/accept-sock: create AF_INET SOCK_STREAM IPPROTO_TCP
 
 		AcceptEx: as AcceptEx! AcceptEx-func
-		AcceptEx sock data/accept-sock data/accept-addr 0 128 128 :n as int-ptr! data
+		AcceptEx sock data/accept-sock as byte-ptr! addr 0 0 44 addr-sz as int-ptr! data
 	]
 
 	connect: func [
@@ -103,7 +99,7 @@ socket: context [
 		saddr/sa_data1: 0
 		saddr/sa_data2: 0
 		ConnectEx: as ConnectEx! ConnectEx-func
-		ret: ConnectEx sock as int-ptr! :saddr size? saddr null 0 :n as int-ptr! data	
+		ConnectEx sock as int-ptr! :saddr size? saddr null 0 :n as int-ptr! data	
 	]
 
 	uconnect: func [
@@ -196,9 +192,10 @@ socket: context [
 	][
 		wsbuf/len: length
 		wsbuf/buf: buffer
-		data/iocp/event: IO_EVT_READ
+		data/event: IO_EVT_READ
 
-		WSARecvFrom sock :wsbuf 1 null :data/flags addr addr-sz as OVERLAPPED! data null
+		probe WSARecvFrom sock :wsbuf 1 null :data/flags addr addr-sz as OVERLAPPED! data null
+		probe GetLastError
 	]
 
 	set-option: func [

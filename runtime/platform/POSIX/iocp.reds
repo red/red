@@ -64,7 +64,7 @@ iocp-data!: alias struct! [
 ]
 
 sockdata!: alias struct! [
-	iocp		[iocp-data! value]
+	IOCP_DATA_FIELDS
 	port		[red-object! value]		;-- red port! cell
 	send-buf	[node!]					;-- send buffer
 	addr		[sockaddr_in6! value]	;-- IPv4 or IPv6 address
@@ -73,9 +73,11 @@ sockdata!: alias struct! [
 ]
 
 tls-data!: alias struct! [
-	iocp		[iocp-data! value]
+	IOCP_DATA_FIELDS
 	port		[red-object! value]		;-- red port! cell
 	send-buf	[node!]					;-- send buffer
+	addr		[sockaddr_in6! value]	;-- IPv4 or IPv6 address
+	addr-sz		[integer!]
 	ssl			[int-ptr!]
 ]
 
@@ -348,21 +350,21 @@ probe ["events: " cnt " " p/n-ports]
 					td: as tls-data! data
 					if null? td/ssl [
 						if data/event = IO_EVT_CONNECT [
-							tls/create as tls-data! data yes
+							tls/create td yes
 						]
 						if data/event = IO_EVT_ACCEPT [
-							data: as iocp-data! copy-memory 
+							td: as tls-data! copy-memory 
 									allocate size? tls-data!	;-- dst
 									as byte-ptr! data			;-- src
 									size? tls-data!
-							fd: socket/accept as-integer data/device
-							data/accept-sock: as-integer data/device
-							data/device: as int-ptr! fd
-							data/state: 0
-							tls/create as tls-data! data no
+							fd: socket/accept as-integer td/device :td/addr :td/addr-sz 
+							td/accept-sock: as-integer td/device
+							td/device: as int-ptr! fd
+							td/state: 0
+							tls/create td no
 						]
 					]
-					unless tls/negotiate as tls-data! data [
+					unless tls/negotiate td [
 						i: i + 1
 						continue
 					]

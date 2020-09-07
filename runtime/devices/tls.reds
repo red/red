@@ -55,8 +55,8 @@ TLS-device: context [
 			]
 			IO_EVT_ACCEPT	[
 				#either OS = 'Windows [
-					td: as tls-data! create-tls-data p data/accept-sock	;-- tls-data of the server port
-					socket/acceptex data/accept-sock as iocp-data! td
+					td: create-tls-data p data/accept-sock	;-- tls-data of the server port
+					socket/acceptex data/accept-sock :td/addr :td/addr-sz as iocp-data! td
 				][
 					td: as tls-data! io/get-iocp-data p		;-- tls-data of the server port
 				]
@@ -88,11 +88,11 @@ TLS-device: context [
 	create-tls-data: func [
 		port	[red-object!]
 		sock	[integer!]
-		return: [iocp-data!]
+		return: [tls-data!]
 		/local
-			data [iocp-data!]
+			data [tls-data!]
 	][
-		data: as iocp-data! io/create-socket-data port sock as int-ptr! :event-handler size? tls-data!
+		data: as tls-data! io/create-socket-data port sock as int-ptr! :event-handler size? tls-data!
 		data/type: IOCP_TYPE_TLS
 		data
 	]
@@ -133,7 +133,7 @@ TLS-device: context [
 			fd		[integer!]
 			n		[integer!]
 			addr	[c-string!]
-			data	[iocp-data!]
+			data	[tls-data!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tls client"]]
 
@@ -145,7 +145,7 @@ TLS-device: context [
 		addr: unicode/to-utf8 host :n
 		data: create-tls-data port fd
 		#if OS = 'Windows [data/state: IO_STATE_CLIENT]
-		socket/connect fd addr num/value AF_INET data
+		socket/connect fd addr num/value AF_INET as iocp-data! data
 	]
 
 	tcp-server: func [
@@ -153,13 +153,15 @@ TLS-device: context [
 		num		[red-integer!]
 		/local
 			fd	[integer!]
-			acp [integer!]
+			td	[tls-data!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tls server"]]
 
 		fd: socket/create AF_INET SOCK_STREAM IPPROTO_TCP
 		socket/bind fd num/value AF_INET
-		socket/listen fd 1024 create-tls-data port fd
+		td: create-tls-data port fd
+		socket/listen fd 1024 as iocp-data! td
+		#if OS = 'Windows [socket/acceptex fd :td/addr :td/addr-sz as iocp-data! td]
 		iocp/bind g-iocp as int-ptr! fd
 	]
 
@@ -247,14 +249,14 @@ TLS-device: context [
 		#either OS = 'Windows [
 			data/send-buf: alloc-bytes 96 + binary/rs-length? bin
 			tls/send
-				as-integer data/iocp/device
+				as-integer data/device
 				binary/rs-head bin
 				binary/rs-length? bin
 				as tls-data! data
 		][
 			data/send-buf: bin/node
 			socket/send
-				as-integer data/iocp/device
+				as-integer data/device
 				binary/rs-head bin
 				binary/rs-length? bin
 				as iocp-data! data
