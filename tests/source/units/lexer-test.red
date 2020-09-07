@@ -1,7 +1,7 @@
 Red [
 	Title:   "Red lexer test script"
 	Author:  "Nenad Rakocevic"
-	File: 	 %lexer-test.reds
+	File: 	 %lexer-test.red
 	Tabs:	 4
 	Rights:  "Copyright (C) 2020 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"

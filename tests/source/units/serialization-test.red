@@ -1,7 +1,7 @@
 Red [
 	Title:   "Red serialization (MOLD/FORM) test script"
 	Author:  "Nenad Rakocevic & Peter W A Wood"
-	File: 	 %serialization-test.reds
+	File: 	 %serialization-test.red
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2015 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
