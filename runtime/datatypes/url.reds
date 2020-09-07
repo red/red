@@ -66,6 +66,7 @@ url: context [
 		return:	[red-url!]
 		/local
 			type2 [integer!]
+			str	  [red-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "url/make"]]
 		
@@ -73,7 +74,11 @@ url: context [
 		either all [type = TYPE_URL ANY_LIST?(type2)][ ;-- file! inherits from url!
 			to proto spec type
 		][
-			as red-url! string/decode string/make as red-string! proto spec type type
+			str: string/make as red-string! proto spec type
+			unless type = TYPE_FILE [
+				str: string/decode str type
+			]
+			as red-url! str
 		]
 	]
 
@@ -195,7 +200,11 @@ url: context [
 			]
 			string/decode buffer type
 		][
-			string/decode string/to proto spec type type
+			buffer: string/to proto spec type
+			unless type = TYPE_FILE [
+				buffer: string/decode buffer type
+			]
+			buffer
 		]
 	]
 

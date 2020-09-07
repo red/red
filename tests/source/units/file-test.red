@@ -17,25 +17,25 @@ Red [
 		--assert %"d:/folder 1/中文" = load {%"d:/folder 1/中文"}
 	
 	--test-- "file-2"
-		--assert %"d:/folder 1/中文" =  load {%"d:/folder%201/中文"}
+		--assert %"d:/folder%201/中文" =  load {%"d:/folder%201/中文"}
 
 	--test-- "file-3"
 		--assert %"d:/folder 1/中文" = make file! "d:/folder 1/中文"
 
 	--test-- "file-4"
-		--assert %"d:/folder 1/中文" = make file! "d:/folder%201/中文"
+		--assert %"d:/folder%201/中文" = make file! "d:/folder%201/中文"
 
 	--test-- "file-5"
-		--assert %"d:/folder 1/中文" = make file! "d:/folder%201/%E4%B8%AD%E6%96%87"
+		--assert %"d:/folder%201/%E4%B8%AD%E6%96%87" = make file! "d:/folder%201/%E4%B8%AD%E6%96%87"
 
 	--test-- "file-6"
 		--assert %"d:/folder 1/中文" = to file! "d:/folder 1/中文"
 
 	--test-- "file-7"
-		--assert %"d:/folder 1/中文" = to file! "d:/folder%201/中文"
+		--assert %"d:/folder%201/中文" = to file! "d:/folder%201/中文"
 
 	--test-- "file-8"
-		--assert %"d:/folder 1/中文" = to file! "d:/folder%201/%E4%B8%AD%E6%96%87"
+		--assert %"d:/folder%201/%E4%B8%AD%E6%96%87" = to file! "d:/folder%201/%E4%B8%AD%E6%96%87"
 
 	--test-- "file-9"
 		--assert %"d:/folder 1/中文" = make file! d:/folder%201/%E4%B8%AD%E6%96%87
@@ -59,7 +59,7 @@ Red [
 		--assert d:/folder%201/%E4%B8%AD%E6%96%87 = to url! %"d:/folder 1/中文"
 
 	--test-- "url-16"
-		--assert %"/d/folder 1/中文" = %"/d/folder%201/%E4%B8%AD%E6%96%87"
+		--assert %"/d/folder 1/中文" = %/d/folder%201/%E4%B8%AD%E6%96%87
 
 ===end-group===
 

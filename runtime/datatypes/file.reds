@@ -18,11 +18,10 @@ file: context [
 		size	 [integer!]
 		encoding [integer!]
 		return:  [red-file!]
-		/local
-			str  [red-string!]
 	][
-		str: string/load src size encoding
-		string/decode str TYPE_FILE
+		string/load src size encoding
+		;-- you need decode yourself
+		;string/decode str TYPE_FILE
 	]
 
 	push: func [
