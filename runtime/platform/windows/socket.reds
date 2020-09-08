@@ -102,6 +102,22 @@ socket: context [
 		ConnectEx sock as int-ptr! :saddr size? saddr null 0 :n as int-ptr! data	
 	]
 
+	connect2: func [
+		sock		[integer!]
+		saddr		[sockaddr_in!]
+		addr-sz		[integer!]
+		data		[iocp-data!]
+		/local
+			n		[integer!]
+			ret		[integer!]
+			ConnectEx [ConnectEx!]
+	][
+		data/event: IO_EVT_CONNECT
+		n: 0
+		ConnectEx: as ConnectEx! ConnectEx-func
+		ConnectEx sock as int-ptr! saddr addr-sz null 0 :n as int-ptr! data	
+	]
+
 	uconnect: func [
 		sock		[integer!]
 		addr		[c-string!]
@@ -194,6 +210,7 @@ socket: context [
 		wsbuf/buf: buffer
 		data/event: IO_EVT_READ
 
+		zero-memory as byte-ptr! data size? OVERLAPPED!
 		probe WSARecvFrom sock :wsbuf 1 null :data/flags addr addr-sz as OVERLAPPED! data null
 		probe GetLastError
 	]

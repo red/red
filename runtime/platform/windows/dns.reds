@@ -17,7 +17,7 @@ Red/System [
 dns: context [
 	server-list: as int-ptr! 0
 	server-idx: 0
-	xid: 0
+	xid: E9E3h
 	datalen: 0
 
 	getaddrinfo: func [
@@ -48,10 +48,10 @@ dns: context [
 		len: 0
 		domain: either domain = AF_INET [DnsTypeA][DnsTypeAAAA]
 		system/atomic/add :xid 1
-		dnsWriteQuestionToBuffer_UTF8 null :len addr domain xid false
+		dnsWriteQuestionToBuffer_UTF8 null :len addr domain xid yes
 		if len > 0 [
 			buffer: allocate len
-			dnsWriteQuestionToBuffer_UTF8 buffer :len addr domain xid false
+			dnsWriteQuestionToBuffer_UTF8 buffer :len addr domain xid yes
 			dns-data/addrinfo: as int-ptr! buffer
 		]
 
@@ -70,6 +70,8 @@ dns: context [
 		if n > 0 [
 			datalen: len
 			dns-addr/sin_addr: server/1
+?? len
+dump4 buffer
 			socket/usend fd as sockaddr_in6! dns-addr size? sockaddr_in! buffer len as iocp-data! dns-data
 
 			dns-data/addr-sz: size? sockaddr_in!
@@ -100,7 +102,7 @@ dns: context [
 		/local
 			s		[series!]
 			header	[DNS_HEADER]
-			addr	[addrinfo!]
+			rr		[DNS_RECORD!]
 			pp		[ptr-value!]
 			res		[integer!]
 			w1		[integer!]
@@ -124,7 +126,6 @@ dns: context [
 		header/NameServerCount: w2 << 16 or w1	
 		
 		res: DnsExtractRecordsFromMessage_UTF8 as DNS_MESSAGE_BUFFER header data/transferred :pp
-?? res
 		if res <> 0 [
 			server-idx: server-idx + 1
 			if server-idx < server-list/1 [
@@ -139,6 +140,23 @@ dns: context [
 			]
 			return no
 		]
-		no
+
+		server: pp/value
+		until [
+			rr: as DNS_RECORD! server
+			switch rr/wType and FFFFh [
+				1	[		;-- IPv4 address
+					0 ;data/addr/sin_addr: rr/A
+				]
+				28	[		;-- IPv6 address
+					0
+				]
+				default [0]
+			]
+			server: as int-ptr! server/1
+			null? server
+		]
+		DnsFree as byte-ptr! pp/value 1
+		yes
 	]
 ]

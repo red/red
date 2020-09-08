@@ -675,6 +675,19 @@ DNS_MESSAGE_BUFFER: alias struct! [
     MessageBody		[integer!]
 ]
 
+DNS_RECORD!: alias struct! [
+	pNext		[DNS_RECORD!]
+	pName		[c-string!]
+	wType		[int16!]
+	;wDataLength [int16!]
+	Flags		[integer!]
+	dwTtl		[integer!]
+	dwReserved	[integer!]
+
+	;// Record Data
+	A			[integer!]
+]
+
 #import [
 	LIBC-file cdecl [
 		_setmode: "_setmode" [
@@ -1211,6 +1224,10 @@ DNS_MESSAGE_BUFFER: alias struct! [
 			ppRecord		[ptr-ptr!]
 			return:			[integer!]
 		]
+		;DnsRecordListFree: "DnsRecordListFree" [
+		;	p				[DNS_RECORD!]
+		;	t				[integer!]
+		;]
 		DnsFree: "DnsFree" [
 			pData			[byte-ptr!]
 			type			[integer!]

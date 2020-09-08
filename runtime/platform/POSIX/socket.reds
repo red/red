@@ -114,6 +114,21 @@ socket: context [
 		]
 	]
 
+	connect2: func [
+		sock		[integer!]
+		saddr		[sockaddr_in!]
+		addr-sz		[integer!]
+		data		[iocp-data!]
+	][
+		data/event: IO_EVT_CONNECT
+		either zero? LibC.connect sock as int-ptr! saddr addr-sz [
+			iocp/post data/io-port data
+		][
+			data/state: EPOLLOUT
+			iocp/add data/io-port sock EPOLLOUT or EPOLLET data
+		]
+	]
+
 	send: func [
 		sock		[integer!]
 		buffer		[byte-ptr!]

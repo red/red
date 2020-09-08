@@ -51,6 +51,8 @@ dns: context [
 probe dns-data/type
 		dns-data/addrinfo: as int-ptr! buffer
 		fd: socket/create AF_INET SOCK_DGRAM IPPROTO_UDP
+		iocp/bind dns-data/io-port as int-ptr! fd
+
 		r: as res_state! state
 
 		dns-data/addr-sz: size? sockaddr_in!
@@ -123,6 +125,7 @@ probe dns-data/type
 			switch type/value and FFFFh [
 				1	[		;-- IPv4 address
 					rdata: as int-ptr! record + 1040
+					dump4 rdata/value
 				]
 				28	[		;-- IPv6 address
 					0

@@ -200,6 +200,7 @@ tcp-device: context [
 	resolve-name: func [
 		red-port	[red-object!]
 		name		[c-string!]
+		num			[integer!]
 		/local
 			data	[sockdata!]
 			hints	[addrinfo! value]
@@ -210,6 +211,7 @@ tcp-device: context [
 	][
 		data: io/create-socket-data red-port 0 as int-ptr! :event-handler size? dns-data!
 		data/type: IOCP_TYPE_DNS
+		data/accept-sock: num
 
 		buf: as red-binary! (object/get-values red-port) + port/field-data
 		if TYPE_OF(buf) <> TYPE_BINARY [
@@ -258,7 +260,7 @@ tcp-device: context [
 			either 1 = inet_pton AF_INET addr :addrbuf [
 				tcp-client red-port addr num/value
 			][
-				resolve-name red-port addr
+				resolve-name red-port addr num/value
 			]
 		]
 		as red-value! red-port
