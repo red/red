@@ -218,7 +218,7 @@ tcp-device: context [
 			info	[addrinfo!]
 			buf		[red-binary!]
 	][
-		data: io/create-socket-data red-port 0 as int-ptr! :event-handler size? sockdata!
+		data: io/create-socket-data red-port 0 as int-ptr! :event-handler size? dns-data!
 		data/type: IOCP_TYPE_DNS
 		data/accept-sock: num
 

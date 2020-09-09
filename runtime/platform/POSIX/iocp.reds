@@ -313,10 +313,12 @@ probe ["events: " cnt " " p/n-ports]
 					if data/type = IOCP_TYPE_DNS [
 						either data/event = IO_EVT_WRITE [
 							dns/recv as dns-data! data
+							continue
 						][
-							dns/parse-data as dns-data! data
+							either dns/parse-data as dns-data! data [
+								data/event: IO_EVT_LOOKUP
+							][continue]
 						]
-						continue
 					]
 
 					#if debug? = yes [probe ["pluse event: " data/event]]
@@ -380,10 +382,11 @@ probe ["events: " cnt " " p/n-ports]
 						data/transferred: n
 						data/event: IO_EVT_READ
 						either data/type = IOCP_TYPE_DNS [
-							dns/parse-data as dns-data! data
-						][
-							data/event-handler as int-ptr! data
-						]
+							if dns/parse-data as dns-data! data [
+								data/type: IOCP_TYPE_TCP
+								data/event: IO_EVT_LOOKUP
+							]
+						][data/event-handler as int-ptr! data]
 					][
 						0 ;TBD
 					]

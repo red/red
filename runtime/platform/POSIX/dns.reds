@@ -44,11 +44,11 @@ dns: context [
 		domain: either domain = AF_INET [1][28]
 		buffer: allocate DNS_PACKET_SZ
 		len: res_nmkquery state 0 addr 1 domain null 0 null buffer DNS_PACKET_SZ
-?? len
+
 		if len <= 0 [
 			probe "Could not create DNS query!"
 		]
-probe dns-data/type
+
 		dns-data/addrinfo: as int-ptr! buffer
 		fd: socket/create AF_INET SOCK_DGRAM IPPROTO_UDP
 		iocp/bind dns-data/io-port as int-ptr! fd
@@ -59,17 +59,8 @@ probe dns-data/type
 		dns-addr: as sockaddr_in! :dns-data/addr
 		copy-memory as byte-ptr! dns-addr as byte-ptr! :r/nsaddr1 size? sockaddr_in!
 
-probe dns-addr/sin_addr
-
-probe dns-data/type
-
 		dns-data/device: as int-ptr! fd
-		if len = socket/send fd buffer len as iocp-data! dns-data [
-			0
-			;if zero? recv dns-data [
-			;	parse-data dns-data
-			;]
-		]
+		socket/send fd buffer len as iocp-data! dns-data
 	]
 
 	recv: func [
@@ -92,7 +83,7 @@ probe dns-data/type
 		return: [logic!]
 		/local
 			s		[series!]
-			pp		[ptr-value!]
+			pp		[ptr-ptr!]
 			res		[integer!]
 			server	[int-ptr!]
 			dns-addr [sockaddr_in!]
@@ -110,11 +101,8 @@ probe dns-data/type
 		s: as series! data/send-buf/value
 
 		res: ns_initparse as byte-ptr! s/offset data/transferred :msg
-		?? res
 		res: ns_msg_getflag msg 9	;-- ns_msg_getflag
-		?? res
 		n: msg/counts >>> 16
-		?? n
 
 		record: as byte-ptr! system/stack/allocate 262
 		i: 0
@@ -124,8 +112,11 @@ probe dns-data/type
 			type: as int-ptr! record + 1026
 			switch type/value and FFFFh [
 				1	[		;-- IPv4 address
-					rdata: as int-ptr! record + 1040
-					dump4 rdata/value
+					pp: as ptr-ptr! record + 1040
+					rdata: pp/value
+					dns-addr: as sockaddr_in! :data/addr
+					dns-addr/sin_addr: rdata/value
+					return yes
 				]
 				28	[		;-- IPv6 address
 					0
