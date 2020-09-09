@@ -17,7 +17,7 @@ Red/System [
 dns: context [
 	server-list: as int-ptr! 0
 	server-idx: 0
-	xid: E9E3h
+	xid: 0
 	datalen: 0
 
 	getaddrinfo: func [
@@ -70,8 +70,6 @@ dns: context [
 		if n > 0 [
 			datalen: len
 			dns-addr/sin_addr: server/1
-?? len
-dump4 buffer
 			socket/usend fd as sockaddr_in6! dns-addr size? sockaddr_in! buffer len as iocp-data! dns-data
 
 			dns-data/addr-sz: size? sockaddr_in!

@@ -210,7 +210,8 @@ TLS-device: context [
 		#if debug? = yes [if verbose > 0 [print-line "tls/close"]]
 
 		data: io/close-port red-port
-		free as byte-ptr! data
+		tls/free as tls-data! data
+		#if OS = 'Windows [free as byte-ptr! data]
 		as red-value! red-port
 	]
 

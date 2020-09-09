@@ -1065,4 +1065,10 @@ tls: context [
 		data/transferred: len
 		true
 	]
+
+	free: func [
+		td		[tls-data!]
+	][
+		
+	]
 ]

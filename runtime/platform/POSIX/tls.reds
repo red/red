@@ -283,4 +283,10 @@ tls: context [
 			no
 		]
 	]
+
+	free: func [
+		td		[tls-data!]
+	][
+		SSL_free td/ssl
+	]
 ]
