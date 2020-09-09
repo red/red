@@ -379,7 +379,7 @@ block: context [
 		either fixed? [
 			blk/node: alloc-fixed-series size 16 0
 		][
-			blk/node: alloc-unset-cells size 16 0
+			blk/node: alloc-unset-cells size
 		]
 		blk/extra:  0
 		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
