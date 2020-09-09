@@ -354,6 +354,29 @@ string: context [
 		buffer
 	]
 
+	encode: func [
+		str			[red-string!]
+		datatype	[integer!]
+		type		[integer!]
+		return:		[red-string!]
+		/local
+			buf		[byte-ptr!]
+			len		[integer!]
+			ret		[red-string!]
+	][
+		len: 0
+		buf: encode-url str :len type
+		if null? buf [
+			ret: rs-make-at stack/push* 1
+			ret/header: datatype
+			return ret
+		]
+		ret: load as c-string! buf len UTF-8
+		free buf
+		ret/header: datatype							;-- implicit reset of all header flags
+		ret
+	]
+
 	rs-load: func [
 		src		 [c-string!]							;-- source string buffer
 		size	 [integer!]
