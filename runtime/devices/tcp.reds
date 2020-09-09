@@ -22,6 +22,8 @@ tcp-device: context [
 			type	[integer!]
 			bin		[red-binary!]
 			s		[series!]
+			saddr	[sockaddr_in!]
+			num		[integer!]
 	][
 		tcp: as sockdata! data
 		p: as red-object! :tcp/port
@@ -66,7 +68,14 @@ tcp-device: context [
 				]
 			]
 			IO_EVT_LOOKUP [
+				saddr: as sockaddr_in! :tcp/addr
+				num: htons tcp/accept-sock	;-- port number saved in accept-sock
+				saddr/sin_family: num << 16 or AF_INET
+				saddr/sa_data1: 0
+				saddr/sa_data2: 0
 				io/close-port p
+				tcp-client p saddr size? sockaddr_in!
+				exit
 			]
 			default [data/event: IO_EVT_NONE]
 		]
@@ -166,8 +175,8 @@ tcp-device: context [
 
 	tcp-client: func [
 		port	[red-object!]
-		host	[c-string!]
-		num		[integer!]
+		saddr	[sockaddr_in!]
+		addr-sz	[integer!]
 		/local
 			fd	[integer!]
 	][
@@ -177,7 +186,7 @@ tcp-device: context [
 		iocp/bind g-iocp as int-ptr! fd
 		socket/bind fd 0 AF_INET
 
-		socket/connect fd host num AF_INET create-tcp-data port fd
+		socket/connect2 fd saddr addr-sz create-tcp-data port fd
 	]
 
 	tcp-server: func [
@@ -209,7 +218,7 @@ tcp-device: context [
 			info	[addrinfo!]
 			buf		[red-binary!]
 	][
-		data: io/create-socket-data red-port 0 as int-ptr! :event-handler size? dns-data!
+		data: io/create-socket-data red-port 0 as int-ptr! :event-handler size? sockdata!
 		data/type: IOCP_TYPE_DNS
 		data/accept-sock: num
 
@@ -258,7 +267,8 @@ tcp-device: context [
 			n: -1
 			addr: unicode/to-utf8 host :n
 			either 1 = inet_pton AF_INET addr :addrbuf [
-				tcp-client red-port addr num/value
+				make-sockaddr as sockaddr_in! :addrbuf addr num/value AF_INET
+				tcp-client red-port as sockaddr_in! :addrbuf size? sockaddr_in!
 			][
 				resolve-name red-port addr num/value
 			]

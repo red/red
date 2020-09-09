@@ -20,6 +20,19 @@ SOCK_READBUF_SZ: 8192			;-- 8KB
 	IOCP_TYPE_TLS:		10h
 ]
 
+make-sockaddr: func [
+	saddr	[sockaddr_in!]
+	addr	[c-string!]
+	port	[integer!]
+	type	[integer!]
+][
+	port: htons port
+	saddr/sin_family: port << 16 or type
+	saddr/sin_addr: inet_addr addr
+	saddr/sa_data1: 0
+	saddr/sa_data2: 0
+]
+
 #either OS = 'Windows [
 	#include %windows/iocp.reds
 	#include %windows/dns.reds

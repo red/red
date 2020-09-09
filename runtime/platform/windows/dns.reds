@@ -146,7 +146,8 @@ dump4 buffer
 			rr: as DNS_RECORD! server
 			switch rr/wType and FFFFh [
 				1	[		;-- IPv4 address
-					0 ;data/addr/sin_addr: rr/A
+					dns-addr: as sockaddr_in! :data/addr
+					dns-addr/sin_addr: rr/A
 				]
 				28	[		;-- IPv6 address
 					0
