@@ -42,6 +42,7 @@ TLS-device: context [
 						data/event: IO_EVT_NONE
 					]
 				]
+				if zero? data/transferred [type: IO_EVT_CLOSE]
 			]
 			IO_EVT_WRITE	[
 				io/unpin-memory td/send-buf
@@ -60,7 +61,7 @@ TLS-device: context [
 				][
 					td: as tls-data! io/get-iocp-data p		;-- tls-data of the server port
 				]
-				msg: create-red-port p
+				msg: io/make-port p
 				copy-cell as cell! msg as cell! p		;-- copy client port to client tls-data/port
 				io/set-iocp-data msg data				;-- link client tls-data to the client port
 				p: as red-object! :td/port				;-- get server port
@@ -70,19 +71,6 @@ TLS-device: context [
 		]
 
 		io/call-awake p msg type
-	]
-
-	create-red-port: func [
-		proto		[red-object!]
-		return:		[red-object!]
-		/local
-			data	[iocp-data!]
-	][
-		proto: port/make none-value object/get-values proto TYPE_NONE
-
-		;; @@ add it to a block, so GC can mark it. Improve it later!!!
-		block/rs-append ports-block as red-value! proto
-		proto
 	]
 
 	create-tls-data: func [

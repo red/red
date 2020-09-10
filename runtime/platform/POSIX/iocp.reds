@@ -359,7 +359,8 @@ probe ["events: " cnt " " p/n-ports]
 									allocate size? tls-data!	;-- dst
 									as byte-ptr! data			;-- src
 									size? tls-data!
-							fd: socket/accept as-integer td/device :td/addr :td/addr-sz 
+							fd: socket/accept as-integer td/device :td/addr :td/addr-sz
+							bind p as int-ptr! fd
 							td/accept-sock: as-integer td/device
 							td/device: as int-ptr! fd
 							td/state: 0
@@ -417,6 +418,9 @@ probe ["events: " cnt " " p/n-ports]
 				]
 				if data/event > IO_EVT_WRITE [
 					data/event-handler as int-ptr! data
+				]
+				if data/device = IO_INVALID_DEVICE [
+					free as byte-ptr! data
 				]
 			]
 			i: i + 1

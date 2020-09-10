@@ -278,7 +278,7 @@ tls: context [
 				SSL_ERROR_WANT_WRITE [
 					update-td td EPOLLOUT
 				]
-				default [probe "error when do handshake"]
+				default [probe ["error when do handshake: " ret]]
 			]
 			no
 		]

@@ -55,7 +55,7 @@ tcp-device: context [
 					]
 				]
 			]
-			IO_EVT_ACCEPT	[ 
+			IO_EVT_ACCEPT	[
 				iocp/bind g-iocp as int-ptr! data/accept-sock
 				#either OS = 'Windows [
 					msg: create-red-port p data/accept-sock
@@ -109,7 +109,6 @@ tcp-device: context [
 			addr: as sockaddr_in! :data/addr
 		]
 		spec: (as red-object! object/get-values red-port) + port/field-spec
-		object/copy spec spec null no null
 		vals: object/get-values spec
 		host: as red-tuple! vals + 2
 		host/header: TYPE_TUPLE or (4 << 19)
@@ -125,11 +124,7 @@ tcp-device: context [
 		sock		[integer!]
 		return:		[red-object!]
 	][
-		proto: port/make none-value object/get-values proto TYPE_NONE
-
-		;; @@ add it to a block, so GC can mark it. Improve it later!!!
-		block/rs-append ports-block as red-value! proto
-		
+		proto: io/make-port proto
 		create-tcp-data proto sock
 		proto
 	]
@@ -284,7 +279,7 @@ tcp-device: context [
 	][
 		#if debug? = yes [if verbose > 0 [io/debug "tcp/close"]]
 		data: io/close-port red-port
-		free as byte-ptr! data
+		#if OS = 'Windows [free as byte-ptr! data]
 		as red-value! red-port
 	]
 

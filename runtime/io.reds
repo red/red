@@ -10,6 +10,8 @@ Red/System [
 	}
 ]
 
+#define IO_INVALID_DEVICE		[as int-ptr! -1]
+
 #enum io-event-type! [
 	IO_EVT_NONE:		0
 	IO_EVT_ERROR:		1
@@ -131,6 +133,12 @@ io: context [
 			as-integer data
 	]
 
+	free-iocp-data: func [
+		data		[iocp-data!]
+	][
+		
+	]
+
 	close-port: func [
 		red-port	[red-object!]
 		return:		[iocp-data!]
@@ -145,12 +153,48 @@ io: context [
 				if data/state <> 0 [iocp/remove data/io-port as-integer data/device data/state data]
 			]
 			socket/close as-integer data/device
+			data/device: IO_INVALID_DEVICE
 			g-iocp/n-ports: g-iocp/n-ports - 1
 			state: as red-handle! (object/get-values red-port) + port/field-state
 			state/header: TYPE_NONE
 		]
 		IODebug("close port done")
 		data
+	]
+
+	make-port: func [
+		proto		[red-object!]
+		return:		[red-object!]
+		/local
+			s		[series!]
+			value	[red-value!]
+			tail	[red-value!]
+			p		[red-value!]
+			state	[red-value!]
+			spec	[red-object!]
+	][
+		s: GET_BUFFER(ports-block)
+		value: s/offset + ports-block/head
+		tail:  s/tail
+
+		p: null
+		while [value < tail][
+			state: (object/get-values as red-object! value) + port/field-state
+			if state/header = TYPE_NONE [
+				p: value
+				break
+			]
+			value: value + 1
+		]
+		either p <> null [proto: as red-object! p][
+			proto: port/make none-value object/get-values proto TYPE_NONE
+			;-- copy spec
+			spec: (as red-object! object/get-values proto) + port/field-spec
+			object/copy spec spec null no null
+			;; @@ add it to a block, so GC can mark it. Improve it later!!!
+			block/rs-append ports-block as red-value! proto
+		]
+		proto
 	]
 
 	do-events: func [

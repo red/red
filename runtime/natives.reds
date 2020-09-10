@@ -2178,15 +2178,15 @@ natives: context [
 		switch TYPE_OF(val) [
 			TYPE_INTEGER [
 				int: as red-integer! val
-				time: int/value * #either OS = 'Windows [1000][1000000]
+				time: int/value * 1000
 			]
 			TYPE_FLOAT [
-				ftime: val/value * #either OS = 'Windows [1000.0][1000000.0]
+				ftime: val/value * 1000.0
 				if ftime < 1.0 [ftime: 1.0]
 				time: as-integer ftime
 			]
 			TYPE_TIME [
-				time: as-integer (val/value * #either OS = 'Windows [1E3][1E6])
+				time: as-integer val/value * 1E3
 			]
 			TYPE_PORT TYPE_BLOCK [time: -1]
 			default [fire [TO_ERROR(script invalid-arg) val]]
