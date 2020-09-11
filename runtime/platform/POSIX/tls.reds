@@ -200,13 +200,13 @@ tls: context [
 			either client? [
 				if null? client-ctx [
 					client-ctx: SSL_CTX_new TLS_client_method
-					SSL_CTX_set_mode client-ctx 5
+					SSL_CTX_set_mode(client-ctx 5)
 				]
 				ctx: client-ctx
 			][
 				if null? server-ctx [
 					server-ctx: SSL_CTX_new TLS_server_method
-					SSL_CTX_set_mode server-ctx 5
+					SSL_CTX_set_mode(server-ctx 5)
 				]
 				ctx: server-ctx
 			]

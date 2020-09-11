@@ -780,6 +780,8 @@ errno: as int-ptr! 0
 #define TLSEXT_NAMETYPE_host_name				0
 #define SSL_MODE_ENABLE_PARTIAL_WRITE 			1
 
+#define SSL_CTX_set_mode(ctx mode) [SSL_CTX_ctrl ctx 33 mode null]
+
 #import [
 	LIBSSL-file cdecl [
 		SSL_CTX_new: "SSL_CTX_new" [
@@ -788,11 +790,6 @@ errno: as int-ptr! 0
 		]
 		SSL_CTX_free: "SSL_CTX_free" [
 			ctx		[int-ptr!]
-		]
-		SSL_CTX_set_mode: "SSL_CTX_set_mode" [
-			ctx		[int-ptr!]
-			mode	[integer!]
-			return: [integer!]
 		]
 		TLSv1_2_client_method: "TLSv1_2_client_method" [
 			return: [int-ptr!]

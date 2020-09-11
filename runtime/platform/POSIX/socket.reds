@@ -136,6 +136,7 @@ socket: context [
 		data		[iocp-data!]
 		return:		[integer!]
 		/local
+			cnt		[integer!]
 			n		[integer!]
 			io-port	[iocp!]
 			state	[integer!]
@@ -150,34 +151,46 @@ socket: context [
 
 		data/write-buf: buffer
 		data/write-buflen: length
-		n: iocp/write-io data
 
 		io-port: data/io-port
-		case [
-			n = length [
-				data/event: IO_EVT_WRITE
-				iocp/post io-port data
-			]
-			n >= 0 [
-				case [
-					zero? state [
-						data/state: IO_STATE_PENDING_WRITE
-						iocp/add io-port sock EPOLLOUT or EPOLLET data
-					]
-					state and EPOLLOUT = 0 [
-						data/state: state or IO_STATE_PENDING_WRITE
-						iocp/modify io-port sock EPOLLIN or EPOLLOUT or EPOLLET data
-					]
-					true [data/state: state or IO_STATE_WRITING]
+		cnt: 0
+		forever [
+			n: iocp/write-io data
+			case [
+				n = length [
+					data/event: IO_EVT_WRITE
+					data/state: state and (not IO_STATE_WRITING)
+					iocp/post io-port data
+					cnt: cnt + n
+					break
 				]
-				data/write-buf: buffer + n
-				data/write-buflen: length - n
-			]
-			true [	;-- error
-				data/event: IO_EVT_CLOSE
+				n > 0 [
+					case [
+						zero? state [
+							data/state: IO_STATE_PENDING_WRITE
+							iocp/add io-port sock EPOLLOUT or EPOLLET data
+						]
+						state and EPOLLOUT = 0 [
+							data/state: state or IO_STATE_PENDING_WRITE
+							iocp/modify io-port sock EPOLLIN or EPOLLOUT or EPOLLET data
+						]
+						true [data/state: state or IO_STATE_WRITING]
+					]
+					state: data/state
+					data/write-buf: buffer + n
+					length: length - n
+					data/write-buflen: length
+					cnt: cnt + n
+				]
+				zero? n [break]
+				true [	;-- error
+					data/event: IO_EVT_CLOSE
+					data/state: EPOLLOUT
+					break
+				]
 			]
 		]
-		n
+		cnt
 	]
 
 	recv: func [
