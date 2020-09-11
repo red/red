@@ -774,6 +774,9 @@ errno: as int-ptr! 0
 			method	[int-ptr!]
 			return: [int-ptr!]
 		]
+		SSL_CTX_free: "SSL_CTX_free" [
+			ctx		[int-ptr!]
+		]
 		TLSv1_2_client_method: "TLSv1_2_client_method" [
 			return: [int-ptr!]
 		]
@@ -1004,6 +1007,7 @@ errno: as int-ptr! 0
 			num		[integer!]
 			return:	[integer!]
 		]
+		ERR_clear_error: "ERR_clear_error" []
 		ERR_get_error: "ERR_get_error" [return: [integer!]]
 		ERR_error_string: "ERR_error_string" [
 			e		[integer!]

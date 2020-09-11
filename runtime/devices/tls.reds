@@ -199,6 +199,8 @@ TLS-device: context [
 
 		data: io/close-port red-port
 		tls/free as tls-data! data
+		socket/close as-integer data/device
+		data/device: IO_INVALID_DEVICE
 		#if OS = 'Windows [free as byte-ptr! data]
 		as red-value! red-port
 	]

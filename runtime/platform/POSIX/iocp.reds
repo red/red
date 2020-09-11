@@ -365,9 +365,10 @@ probe ["events: " cnt " " p/n-ports]
 							td/device: as int-ptr! fd
 							td/state: 0
 							tls/create td no
+							data: as iocp-data! td
 						]
 					]
-					unless tls/negotiate td [
+					if 1 <> tls/negotiate td [
 						i: i + 1
 						continue
 					]
@@ -586,9 +587,10 @@ IODebug(["wait done: " p/n-ports])
 	][
 		ev/udata: as int-ptr! data
 		ev/events: evts
+		probe ["epoll_ctl fd: " sock " op: " op " evts: " evts]
 		if 0 <> epoll_ctl epfd op sock :ev [
-			probe ["epoll_ctl error! fd: " sock " op: " op " evts: " evts]
-			assert 0 = 1
+			probe ["epoll_ctl error! fd: " sock " op: " op " evts: " evts " err: " errno/value]
+			;assert 0 = 1
 		]
 	]
 

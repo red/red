@@ -206,6 +206,7 @@ tls: context [
 			pk		[int-ptr!]
 			cert	[int-ptr!]
 	][
+		ERR_clear_error
 		if null? td/ssl [
 			either client? [
 				if null? client-ctx [client-ctx: SSL_CTX_new TLS_client_method]
@@ -262,14 +263,15 @@ tls: context [
 
 	negotiate: func [
 		td		[tls-data!]
-		return: [logic!]
+		return: [integer!]		;-- 0: continue, 1: success, -1: error
 		/local
 			ssl [int-ptr!]
 			ret [integer!]
+			p	[red-object!]
 	][
 		ssl: td/ssl
 		ret: SSL_do_handshake ssl
-		either ret = 1 [td/state: IO_STATE_TLS_DONE yes][
+		either ret = 1 [td/state: IO_STATE_TLS_DONE 1][
 			ret: SSL_get_error ssl ret
 			switch ret [
 				SSL_ERROR_WANT_READ [
@@ -278,9 +280,24 @@ tls: context [
 				SSL_ERROR_WANT_WRITE [
 					update-td td EPOLLOUT
 				]
-				default [probe ["error when do handshake: " ret]]
+				default [
+					probe ["error when do handshake: " ret]
+					ret: ERR_get_error
+					probe ["code: " ret " msg: " ERR_error_string ret null]
+					SSL_free ssl
+					if td/state <> 0 [
+						iocp/remove td/io-port as-integer td/device td/state as iocp-data! td
+					]
+					socket/close as-integer td/device
+					td/device: IO_INVALID_DEVICE
+					td/io-port/n-ports: td/io-port/n-ports - 1
+					if server-ctx <> null [SSL_CTX_free server-ctx server-ctx: null]
+					if client-ctx <> null [SSL_CTX_free client-ctx client-ctx: null]
+					ERR_clear_error
+					return -1
+				]
 			]
-			no
+			0
 		]
 	]
 

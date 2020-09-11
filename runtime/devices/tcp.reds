@@ -279,6 +279,8 @@ tcp-device: context [
 	][
 		#if debug? = yes [if verbose > 0 [io/debug "tcp/close"]]
 		data: io/close-port red-port
+		socket/close as-integer data/device
+		data/device: IO_INVALID_DEVICE
 		#if OS = 'Windows [free as byte-ptr! data]
 		as red-value! red-port
 	]

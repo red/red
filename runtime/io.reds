@@ -152,8 +152,6 @@ io: context [
 			#if OS <> 'Windows [
 				if data/state <> 0 [iocp/remove data/io-port as-integer data/device data/state data]
 			]
-			socket/close as-integer data/device
-			data/device: IO_INVALID_DEVICE
 			g-iocp/n-ports: g-iocp/n-ports - 1
 			state: as red-handle! (object/get-values red-port) + port/field-state
 			state/header: TYPE_NONE

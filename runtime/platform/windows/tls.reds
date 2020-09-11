@@ -678,7 +678,7 @@ tls: context [
 
 	negotiate: func [
 		data		[tls-data!]
-		return:		[logic!]
+		return:		[integer!]		;-- 0: continue, 1: success, -1: error
 		/local
 			_indesc		[SecBufferDesc! value]
 			indesc		[SecBufferDesc!]
@@ -738,7 +738,7 @@ tls: context [
 						pbuffer + buflen
 						MAX_SSL_MSG_LENGTH * 2 - buflen
 						as iocp-data! data 
-			return false
+			return 0
 		]
 
 		indesc: as SecBufferDesc! :_indesc
@@ -860,7 +860,7 @@ tls: context [
 						io/pin-memory data/send-buf
 
 						OS-Sleep 100
-						return true
+						return 1
 					]
 
 					either all [
@@ -873,7 +873,7 @@ tls: context [
 						buflen: extra-buf/cbBuffer
 						data/buf-len: buflen
 						continue		;-- start all over again
-					][return false]
+					][return 0]
 				]
 				SEC_E_INCOMPLETE_MESSAGE [
 					socket/recv
@@ -882,20 +882,20 @@ tls: context [
 						MAX_SSL_MSG_LENGTH * 2 - buflen
 						as iocp-data! data
 					data/state: state and (not IO_STATE_READING)
-					return false
+					return 0
 				]
 				SEC_E_INCOMPLETE_CREDENTIALS [
 					;cert-client: get-credential data yes
-					;if null? cert-client [return false]
+					;if null? cert-client [return 0]
 					create-credentials data client?
 				]
 				default [
 					probe ["InitializeSecurityContext Error " ret]
-					return false
+					return -1
 				]
 			]
 		]
-		false
+		0
 	]
 
 	encode: func [

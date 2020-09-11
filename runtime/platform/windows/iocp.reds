@@ -218,7 +218,7 @@ iocp: context [
 							data/device: as int-ptr! fd
 							bind p as int-ptr! fd
 						]
-						unless tls/negotiate as tls-data! data [
+						if zero? tls/negotiate as tls-data! data [
 							i: i + 1
 							continue
 						]
