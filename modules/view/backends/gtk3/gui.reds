@@ -197,7 +197,10 @@ get-face-layout: func [
 		h		[handle!]
 ][
 	case [
-		sym = rich-text [
+		any [
+			sym = rich-text
+			sym = base
+		][
 			h: GET-CONTAINER(widget)
 			if null? h [h: widget]
 			h
@@ -955,7 +958,10 @@ change-size: func [
 		layout: get-face-layout widget sym
 		y: size/y
 		if layout <> widget [
-			if type = rich-text [	;-- is scrollable
+			if any [
+				type = rich-text
+				type = base
+			][	;-- is scrollable
 				adj: gtk_scrollable_get_vadjustment widget
 				min: gtk_adjustment_get_lower adj
 				max: gtk_adjustment_get_upper adj
@@ -1444,6 +1450,9 @@ update-scroller: func [
 		bar			[handle!]
 		int			[red-integer!]
 		values		[red-value!]
+		pvalues		[red-value!]
+		ntype		[red-word!]
+		sym			[integer!]
 		widget		[handle!]
 		container	[handle!]
 		pos			[float!]
@@ -1464,7 +1473,10 @@ update-scroller: func [
 	vertical?: as red-logic! values + SCROLLER_OBJ_VERTICAL?
 	int: as red-integer! block/rs-head as red-block! (object/get-values parent) + FACE_OBJ_STATE
 	widget: as handle! int/value
-	container: get-face-layout widget rich-text
+	pvalues: get-face-values widget
+	ntype: as red-word! pvalues + FACE_OBJ_TYPE
+	sym: symbol/resolve ntype/symbol
+	container: get-face-layout widget sym
 
 	int: as red-integer! values + flag
 	if flag = SCROLLER_OBJ_VISIBLE? [
@@ -1687,6 +1699,7 @@ OS-make-view: func [
 		x			[integer!]
 		y			[integer!]
 		gm			[GdkGeometry! value]
+		add-scroll	[subroutine!]
 ][
 	stack/mark-native words/_body
 
@@ -1718,6 +1731,23 @@ OS-make-view: func [
 	]
 
 	container: null
+	add-scroll: [
+		if bits and FACET_FLAGS_SCROLLABLE <> 0 [
+			container: gtk_scrolled_window_new null null
+			gtk_container_add container widget
+			gtk_scrolled_window_set_policy container 1 1
+			len: 0
+			loop 2 [
+				either zero? len [vadjust: gtk_scrollable_get_vadjustment widget][
+					vadjust: gtk_scrollable_get_hadjustment widget
+				]
+				len: len + 1
+				g_signal_handlers_disconnect_by_data(vadjust widget)	;-- remove default event handler
+				gtk_adjustment_configure vadjust 0.0 0.0 1.0 0.0 0.0 1.0
+				gobj_signal_connect(vadjust "value_changed" :vbar-value-changed widget)
+			]
+		]
+	]
 
 	case [
 		sym = check [
@@ -1749,6 +1779,7 @@ OS-make-view: func [
 		sym = base [
 			widget: gtk_layout_new null null
 			gtk_layout_set_size widget size/x size/y
+			add-scroll
 		]
 		sym = rich-text [
 			widget: gtk_layout_new null null
@@ -1762,21 +1793,7 @@ OS-make-view: func [
 			;--@@ only a few languages may use it, such as Thai. I'll implement it later.
 			;gobj_signal_connect(handle "retrieve-surrounding" :im-retrieve-surrounding widget)
 			;gobj_signal_connect(handle "delete-surrounding" :im-delete-surrounding widget)
-			if bits and FACET_FLAGS_SCROLLABLE <> 0 [
-				container: gtk_scrolled_window_new null null
-				gtk_container_add container widget
-				gtk_scrolled_window_set_policy container 1 1
-				len: 0
-				loop 2 [
-					either zero? len [vadjust: gtk_scrollable_get_vadjustment widget][
-						vadjust: gtk_scrollable_get_hadjustment widget
-					]
-					len: len + 1
-					g_signal_handlers_disconnect_by_data(vadjust widget)	;-- remove default event handler
-					gtk_adjustment_configure vadjust 0.0 0.0 1.0 0.0 0.0 1.0
-					gobj_signal_connect(vadjust "value_changed" :vbar-value-changed widget)
-				]
-			]
+			add-scroll
 		]
 		sym = window [
 			;; FIXME TBD parent should not always be zero, view engine should set it.
