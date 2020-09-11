@@ -2708,6 +2708,10 @@ GPtrArray!: alias struct! [
 			adjust		[handle!]
 			return:		[handle!]
 		]
+		gtk_range_get_adjustment: "gtk_range_get_adjustment" [
+			range		[handle!]
+			return:		[handle!]
+		]
 		gtk_adjustment_new: "gtk_adjustment_new" [
 			value		[float!]
 			lower		[float!]
