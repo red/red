@@ -109,6 +109,21 @@ vbar-value-changed: func [
 	]
 ]
 
+scroller-value-changed: func [
+	[cdecl]
+	adj			[handle!]
+	widget		[handle!]
+	/local
+		values	[red-value!]
+		pos		[integer!]
+][
+	values: get-face-values widget
+	pos: as-integer gtk_adjustment_get_value adj
+	pos: pos << 4
+
+	make-event widget 2 or pos EVT_SCROLL
+]
+
 button-toggled: func [
 	[cdecl]
 	evbox  [handle!]
