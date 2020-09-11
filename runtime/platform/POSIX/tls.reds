@@ -10,17 +10,6 @@ Red/System [
 	}
 ]
 
-#define SSL_ERROR_SSL			1
-#define SSL_ERROR_WANT_READ		2
-#define SSL_ERROR_WANT_WRITE	3
-#define SSL_ERROR_WANT_X509_LOOKUP	4
-#define SSL_CTRL_SET_MIN_PROTO_VERSION          123
-#define SSL_CTRL_SET_MAX_PROTO_VERSION          124
-#define SSL_CTRL_EXTRA_CHAIN_CERT               14
-#define SSL_CTRL_CHAIN_CERT                     89
-#define SSL_CTRL_SET_TLSEXT_HOSTNAME            55
-#define TLSEXT_NAMETYPE_host_name				0
-
 tls: context [
 
 	server-ctx: as int-ptr! 0
@@ -209,11 +198,15 @@ tls: context [
 		ERR_clear_error
 		if null? td/ssl [
 			either client? [
-				if null? client-ctx [client-ctx: SSL_CTX_new TLS_client_method]
+				if null? client-ctx [
+					client-ctx: SSL_CTX_new TLS_client_method
+					SSL_CTX_set_mode client-ctx 5
+				]
 				ctx: client-ctx
 			][
 				if null? server-ctx [
 					server-ctx: SSL_CTX_new TLS_server_method
+					SSL_CTX_set_mode server-ctx 5
 				]
 				ctx: server-ctx
 			]
@@ -255,8 +248,7 @@ tls: context [
 		either zero? state [
 			iocp/add td/io-port as-integer td/device evt or EPOLLET as iocp-data! td
 		][
-			iocp/modify td/io-port as-integer td/device evt or EPOLLET as iocp-data! td
-			evt: state or evt
+			if state <> evt [iocp/modify td/io-port as-integer td/device evt or EPOLLET as iocp-data! td]
 		]
 		td/state: evt
 	]
@@ -304,6 +296,7 @@ tls: context [
 	free: func [
 		td		[tls-data!]
 	][
+		SSL_shutdown td/ssl
 		SSL_free td/ssl
 	]
 ]

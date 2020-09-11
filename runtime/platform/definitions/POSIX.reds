@@ -768,6 +768,18 @@ errno: as int-ptr! 0
 	#define LIBSSL-file "libssl.so.1.1"
 ]
 
+#define SSL_ERROR_SSL			1
+#define SSL_ERROR_WANT_READ		2
+#define SSL_ERROR_WANT_WRITE	3
+#define SSL_ERROR_WANT_X509_LOOKUP	4
+#define SSL_CTRL_SET_MIN_PROTO_VERSION          123
+#define SSL_CTRL_SET_MAX_PROTO_VERSION          124
+#define SSL_CTRL_EXTRA_CHAIN_CERT               14
+#define SSL_CTRL_CHAIN_CERT                     89
+#define SSL_CTRL_SET_TLSEXT_HOSTNAME            55
+#define TLSEXT_NAMETYPE_host_name				0
+#define SSL_MODE_ENABLE_PARTIAL_WRITE 			1
+
 #import [
 	LIBSSL-file cdecl [
 		SSL_CTX_new: "SSL_CTX_new" [
@@ -776,6 +788,11 @@ errno: as int-ptr! 0
 		]
 		SSL_CTX_free: "SSL_CTX_free" [
 			ctx		[int-ptr!]
+		]
+		SSL_CTX_set_mode: "SSL_CTX_set_mode" [
+			ctx		[int-ptr!]
+			mode	[integer!]
+			return: [integer!]
 		]
 		TLSv1_2_client_method: "TLSv1_2_client_method" [
 			return: [int-ptr!]

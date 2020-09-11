@@ -153,24 +153,29 @@ socket: context [
 		n: iocp/write-io data
 
 		io-port: data/io-port
-		either n = length [
-			data/event: IO_EVT_WRITE
-			iocp/post io-port data
-		][
-			case [
-				zero? state [
-					data/state: IO_STATE_PENDING_WRITE
-					iocp/add io-port sock EPOLLOUT or EPOLLET data
-				]
-				state and EPOLLOUT = 0 [
-					data/state: state or IO_STATE_PENDING_WRITE
-					iocp/modify io-port sock EPOLLIN or EPOLLOUT or EPOLLET data
-				]
-				true [data/state: state or IO_STATE_WRITING]
+		case [
+			n = length [
+				data/event: IO_EVT_WRITE
+				iocp/post io-port data
 			]
-			if n < 0 [n: 0]
-			data/write-buf: buffer + n
-			data/write-buflen: length - n
+			n >= 0 [
+				case [
+					zero? state [
+						data/state: IO_STATE_PENDING_WRITE
+						iocp/add io-port sock EPOLLOUT or EPOLLET data
+					]
+					state and EPOLLOUT = 0 [
+						data/state: state or IO_STATE_PENDING_WRITE
+						iocp/modify io-port sock EPOLLIN or EPOLLOUT or EPOLLET data
+					]
+					true [data/state: state or IO_STATE_WRITING]
+				]
+				data/write-buf: buffer + n
+				data/write-buflen: length - n
+			]
+			true [	;-- error
+				data/event: IO_EVT_CLOSE
+			]
 		]
 		n
 	]
@@ -195,8 +200,8 @@ socket: context [
 		data/read-buflen: length
 		n: iocp/read-io data
 
-		if n < 0 [
-			either errno/value = EAGAIN [
+		case [
+			n = -1 [		;-- want read
 				data/read-buf: buffer
 				data/read-buflen: length
 				case [
@@ -210,12 +215,13 @@ socket: context [
 					]
 					true [data/state: state or IO_STATE_READING]
 				]
-			][n: 0]
-		]
-		if n >= 0 [
-			data/event: IO_EVT_READ
-			data/transferred: n
-			iocp/post data/io-port data
+			]
+			n >= 0 [
+				data/event: IO_EVT_READ
+				data/transferred: n
+				iocp/post data/io-port data
+			]
+			true [0]
 		]
 		n
 	]

@@ -180,16 +180,29 @@ iocp: context [
 		data	[iocp-data!]
 		return: [integer!]
 		/local
+			n	[integer!]
 			tls [tls-data!]
 			udp [udp-data!]
 	][
 		switch data/type [
 			IOCP_TYPE_TCP [
-				LibC.recv as-integer data/device data/read-buf data/read-buflen 0
+				n: LibC.recv as-integer data/device data/read-buf data/read-buflen 0
+				if n < 0 [
+					n: either errno/value = EAGAIN [-1][0]
+				]
+				n
 			]
 			IOCP_TYPE_TLS [
 				tls: as tls-data! data
-				SSL_read tls/ssl data/read-buf data/read-buflen
+				n: SSL_read tls/ssl data/read-buf data/read-buflen
+				if n <= 0 [
+					n: SSL_get_error tls/ssl n
+					n: either any [
+						n = SSL_ERROR_WANT_READ
+						n = SSL_ERROR_WANT_WRITE
+					][-1][0]
+				]
+				n
 			]
 			IOCP_TYPE_UDP IOCP_TYPE_DNS [
 				udp: as udp-data! data
@@ -208,16 +221,37 @@ iocp: context [
 		data	[iocp-data!]
 		return: [integer!]
 		/local
+			n	[integer!]
 			tls [tls-data!]
 			udp [udp-data!]
 	][
+		if zero? data/write-buflen [return 0]
+
 		switch data/type [
 			IOCP_TYPE_TCP [
-				LibC.send as-integer data/device data/write-buf data/write-buflen 0
+				n: LibC.send as-integer data/device data/write-buf data/write-buflen 0
+				if n < 0 [
+					n: either errno/value = EAGAIN [0][
+						switch errno/value [
+							EACCES	[probe "TCP send: No permission"]
+							default [0]
+						]
+						-1
+					] 
+				]
+				n
 			]
 			IOCP_TYPE_TLS [
 				tls: as tls-data! data
-				SSL_write tls/ssl data/write-buf data/write-buflen
+				n: SSL_write tls/ssl data/write-buf data/write-buflen
+				if n <= 0 [
+					n: SSL_get_error tls/ssl n
+					n: either any [
+						n = SSL_ERROR_WANT_WRITE
+						n = SSL_ERROR_WANT_READ
+					][0][-1]
+				]
+				n
 			]
 			IOCP_TYPE_UDP IOCP_TYPE_DNS [
 				udp: as udp-data! data

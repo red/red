@@ -269,7 +269,7 @@ TLS-device: context [
 	][
 		buf: as red-binary! (object/get-values red-port) + port/field-data
 		if TYPE_OF(buf) <> TYPE_BINARY [
-			binary/make-at as cell! buf SOCK_READBUF_SZ
+			binary/make-at as cell! buf TLS_READBUF_SZ
 		]
 		buf/head: 0
 		io/pin-memory buf/node

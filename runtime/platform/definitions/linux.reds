@@ -34,6 +34,8 @@ Red/System [
 #define	ENOENT				2			;-- No such file or directory
 #define	EINTR				4			;-- Interrupted system call
 #define	EAGAIN				11			;-- Try again
+#define ENOMEM				12
+#define EACCES				13			;-- No permission
 #define	ENOSYS				38			;-- Function not implemented
 
 #define EPOLL_CTL_ADD	1
