@@ -217,7 +217,7 @@ iocp: context [
 		]
 	]
 
-	write-io: func [
+	_write-io: func [
 		data	[iocp-data!]
 		return: [integer!]
 		/local
@@ -264,6 +264,61 @@ iocp: context [
 					udp/addr-sz
 			]
 		]
+	]
+
+	write-io: func [
+		data	[iocp-data!]		;-- write until finish or error
+		return: [integer!]			;-- >= 0 success the bytes has been written, -1 error
+		/local
+			cnt		[integer!]
+			n		[integer!]
+			io-port	[iocp!]
+			sock	[integer!]
+			state	[integer!]
+			length	[integer!]
+	][
+		io-port: data/io-port
+		sock: as-integer data/device
+		state: data/state
+		length: data/write-buflen
+		cnt: 0
+		forever [
+			n: _write-io data
+			case [
+				n = length [
+					data/event: IO_EVT_WRITE
+					data/state: state and (not IO_STATE_WRITING)
+					iocp/post io-port data
+					cnt: cnt + n
+					break
+				]
+				n > 0 [
+					case [
+						zero? state [
+							data/state: IO_STATE_PENDING_WRITE
+							iocp/add io-port sock EPOLLOUT or EPOLLET data
+						]
+						state and EPOLLOUT = 0 [
+							data/state: state or IO_STATE_PENDING_WRITE
+							iocp/modify io-port sock EPOLLIN or EPOLLOUT or EPOLLET data
+						]
+						true [data/state: state or IO_STATE_WRITING]
+					]
+					state: data/state
+					data/write-buf: data/write-buf + n
+					length: length - n
+					data/write-buflen: length
+					cnt: cnt + n
+				]
+				zero? n [break]
+				true [	;-- error
+					data/event: IO_EVT_CLOSE
+					data/state: EPOLLOUT
+					break
+				]
+			]
+		]
+		cnt
 	]
 
 #either OS = 'macOS [
@@ -432,17 +487,7 @@ probe ["events: " cnt " " p/n-ports]
 					state and IO_STATE_WRITING <> 0
 				][
 					either null? data/pending-write [
-						datalen: data/write-buflen
-						n: write-io data
-						either n = datalen [
-							data/state: state and (not IO_STATE_WRITING)
-							data/write-buf: null
-							data/event: IO_EVT_WRITE
-							data/event-handler as int-ptr! data
-						][	;-- remaining data to be sent
-							data/write-buf: data/write-buf + n
-							data/write-buflen: datalen - n
-						]
+						write-io data
 					][
 						0 ;; TBD
 					]
