@@ -152,9 +152,9 @@ button-toggled: func [
 		if toggled? [
 			gtk_toggle_button_set_inconsistent button not mixed?			;-- flip on each toggle
 			unless mixed? [													;--		 N		 Y
-				g_signal_handler_block button check-handler					;-- [ ] <-> [v] <-> [-]
+				g_signal_handlers_block_by_func(evbox :button-toggled button)
 				gtk_toggle_button_set_active button no						;--  |--- emulate ---^
-				g_signal_handler_unblock button check-handler
+				g_signal_handlers_unblock_by_func(evbox :button-toggled button)
 				bool/header: TYPE_NONE
 			]
 		]
