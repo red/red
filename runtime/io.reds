@@ -195,6 +195,42 @@ io: context [
 		proto
 	]
 
+	fill-client-info: func [
+		red-port	[red-object!]
+		data		[sockdata!]
+		/local
+			addr	[sockaddr_in!]
+			spec	[red-object!]
+			vals	[red-value!]
+			host	[red-tuple!]
+		#if OS = 'Windows [
+			paddr	[ptr-value!]
+			paddr2	[ptr-value!]
+			n		[integer!]
+			n2		[integer!]
+			GetAcceptExSockAddrs [GetAcceptExSockAddrs!]
+		]
+	][
+		;@@ TBD IPv6
+		#either OS = 'Windows [
+			GetAcceptExSockAddrs: as GetAcceptExSockAddrs! GetAcceptExSockaddrs-func
+			n: 0 n2: 0
+			GetAcceptExSockAddrs as byte-ptr! :data/addr 0 0 44 :paddr2 :n2 :paddr :n
+			addr: as sockaddr_in! paddr/value
+		][
+			addr: as sockaddr_in! :data/addr
+		]
+		spec: (as red-object! object/get-values red-port) + port/field-spec
+		vals: object/get-values spec
+		host: as red-tuple! vals + 2
+		host/header: TYPE_TUPLE or (4 << 19)
+		host/array1: addr/sin_addr
+
+		integer/make-at vals + 3 FFFFh and (ntohs addr/sin_family >>> 16)
+		vals: vals + 8		;-- ref
+		vals/header: TYPE_NONE
+	]
+
 	do-events: func [
 		time	[integer!]		;-- milliseconds, -1: infinite time
 	][

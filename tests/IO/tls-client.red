@@ -14,11 +14,12 @@ total: 0.0
 print "Secure TCP client"
 
 client: open tls://127.0.0.1:8123
+;client: open tls://192.168.1.15:8123
 
 client/extra: [
     domain: "red-lang.org"
     ;-- temporary
-    min-protocol: 0300h             ;-- min protocol sslv3,
+    min-protocol: 0302h             ;-- min protocol sslv3,
     max-protocol: 0303h             ;-- max protocol tls1.2
 ]
 

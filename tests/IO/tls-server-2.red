@@ -88,8 +88,6 @@ kOXkDJTRdJrs5wMGiwvE5qH3L6FFbi+czciJzXnbn5dyAMWfBkgc6g==
 -----END RSA PRIVATE KEY-----
 }
 
-do [
-
 debug: :print
 ;debug: :comment
 
@@ -113,9 +111,8 @@ new-event: func [event] [
     switch event/type [
         read  [process-data event/port]
         wrote [copy event/port]
-        close [close event/port return true]
+        close [probe "client port closed"]
     ]
-    false
 ]
 
 new-client: func [port /local data] [
@@ -124,39 +121,20 @@ new-client: func [port /local data] [
     copy port
 ]
 
-server: open tls://:8123
-
-comment {
-server/extra: [
-    cert: load %cert.pem
-    ;chain-cert: load %chain.pem
-    key: load %key.pem
-    ;password: "mypass"
-    protocol: [tls1.2 tls1.1]
-]
-}
-
+server: open tls://:58123
 server/extra: compose [
     cert: (cert)
     chain-cert: (chain)
     key: (key)
-    ;password: "mypass"
-    ;-- temporary
-    min-protocol: 0302h             ;-- min protocol sslv3,
-    max-protocol: 0303h             ;-- max protocol tls1.2
 ]
 
 server/awake: func [event] [
     if event/type = 'accept [new-client event/port]
-    false
 ]
 
 print "Secure TCP server: waiting for client to connect"
 if none? system/view [
 	wait server
-	print "done"
-	close server
-]
-
+    probe "server exit"
 ]
 

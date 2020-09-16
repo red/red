@@ -250,6 +250,7 @@ tls: context [
 		][
 			if state <> evt [iocp/modify td/io-port as-integer td/device evt or EPOLLET as iocp-data! td]
 		]
+		probe ["update-td: " state " " evt]
 		td/state: evt
 	]
 
@@ -263,7 +264,7 @@ tls: context [
 	][
 		ssl: td/ssl
 		ret: SSL_do_handshake ssl
-		either ret = 1 [td/state: IO_STATE_TLS_DONE 1][
+		either ret = 1 [td/state: td/state or IO_STATE_TLS_DONE 1][
 			ret: SSL_get_error ssl ret
 			switch ret [
 				SSL_ERROR_WANT_READ [
@@ -273,9 +274,7 @@ tls: context [
 					update-td td EPOLLOUT
 				]
 				default [
-					probe ["error when do handshake: " ret]
-					ret: ERR_get_error
-					probe ["code: " ret " msg: " ERR_error_string ret null]
+					check-errors ret
 					SSL_free ssl
 					if td/state <> 0 [
 						iocp/remove td/io-port as-integer td/device td/state as iocp-data! td
@@ -293,10 +292,60 @@ tls: context [
 		]
 	]
 
-	free: func [
+	check-errors: func [code [integer!]][
+		IODebug(["check errors" code])
+		until [				;-- clear the error stack in openssl
+			code: ERR_get_error
+			if code <> 0 [ERR_error_string code null]
+			zero? code
+		]
+		IODebug("check errors finish")
+	]
+
+	free-handle: func [
 		td		[tls-data!]
+		/local
+			ssl [int-ptr!]
+			ret state sock [integer!]
 	][
-		SSL_shutdown td/ssl
-		SSL_free td/ssl
+		ssl: td/ssl
+		IODebug(["native tls free handle" td/state td/device])
+		if td/state and IO_STATE_ERROR = 0 [
+			ret: SSL_get_shutdown ssl
+			?? ret
+			if ret = 0 [	;-- no shutdown yet
+				ERR_clear_error
+				ret: SSL_shutdown ssl	;@@ this API will crash silently if fd was closed
+				?? ret
+				if ret < 0 [
+					ret: SSL_get_error ssl ret
+					check-errors -1
+					if ret = SSL_ERROR_WANT_WRITE [
+						state: td/state
+						sock: as-integer td/device
+						case [
+							state and (EPOLLIN or EPOLLOUT) = 0 [
+								td/state: state or IO_STATE_PENDING_WRITE
+								iocp/add td/io-port sock EPOLLOUT or EPOLLET as iocp-data! td
+							]
+							state and EPOLLOUT = 0 [
+								td/state: state or IO_STATE_PENDING_WRITE
+								iocp/modify td/io-port sock EPOLLIN or EPOLLOUT or EPOLLET as iocp-data! td
+							]
+							true [td/state: state or IO_STATE_WRITING]
+						]
+						td/state: IO_STATE_CLOSING or td/state
+						exit
+					]
+				]
+			]
+		]
+
+		;-- the close_notify was sent
+		;-- we don't care about the reply from the peer
+		SSL_free ssl
+		socket/close as-integer td/device
+		td/device: IO_INVALID_DEVICE
+		IODebug("native tls free handle done")
 	]
 ]

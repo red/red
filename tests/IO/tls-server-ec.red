@@ -104,7 +104,7 @@ server/extra: compose [
     key: (key)
     ;password: "mypass"
     ;-- temporary
-    min-protocol: 0300h             ;-- min protocol sslv3,
+    min-protocol: 0302h             ;-- min protocol sslv3,
     max-protocol: 0303h             ;-- max protocol tls1.2
 ]
 

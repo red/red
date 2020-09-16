@@ -54,23 +54,6 @@ Red/System [
 	all [x/dwLower <> (as int-ptr! -1) x/dwUpper <> (as int-ptr! -1)]
 ]
 
-tls-data!: alias struct! [
-	IOCP_DATA_FIELDS
-	port		[red-object! value]		;-- red port! cell
-	send-buf	[node!]					;-- send buffer
-	buf-len		[integer!]
-	addr		[sockaddr_in6! value]	;-- IPv4 or IPv6 address
-	addr-sz		[integer!]
-	credential	[SecHandle! value]		;-- credential handle
-	security	[int-ptr!]				;-- security context handle lower
-	security2	[int-ptr!]				;-- security context handle upper
-	cert-ctx	[CERT_CONTEXT]			;-- saved cert ctx for now, it need a key for server mode
-	;-- SecPkgContext_StreamSizes
-	ctx-max-msg	[integer!]
-	ctx-header	[integer!]
-	ctx-trailer	[integer!]
-]
-
 tls: context [
 	verbose: 0
 
@@ -424,11 +407,7 @@ tls: context [
 		client?		[logic!]
 		return:		[integer!]
 	][
-		either client? [
-			SP_PROT_DEFAULT_CLINET
-		][
-			SP_PROT_DEFAULT_SERVER
-		]
+		0		;-- depends on the settings in registry
 	]
 
 	proto2flag: func [
@@ -537,7 +516,7 @@ tls: context [
 		
 		scred/dwFlags: SCH_USE_STRONG_CRYPTO
 		scred/grbitEnabledProtocols: protocol-flags data client?
-		print-line ["protos: " as int-ptr! scred/grbitEnabledProtocols]
+		;print-line ["protos: " as int-ptr! scred/grbitEnabledProtocols]
 
 		either client? [flags: 2][flags: 1]		;-- Credential use flags
 		status: platform/SSPI/AcquireCredentialsHandleW
@@ -1066,9 +1045,12 @@ tls: context [
 		true
 	]
 
-	free: func [
+	free-handle: func [
 		td		[tls-data!]
 	][
-		
+		;TBD free TLS resource
+		socket/close as-integer td/device
+		td/device: IO_INVALID_DEVICE
+		free as byte-ptr! td
 	]
 ]

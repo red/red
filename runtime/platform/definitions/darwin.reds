@@ -10,7 +10,8 @@ Red/System [
 	}
 ]
 
-
+#define	ENOMEM				12			;-- Cannot allocate memory
+#define	EACCES				13			;-- Permission denied
 #define	EAGAIN				35			;-- Try again
 
 #define MMAP_PROT_RW		03h				;-- PROT_READ | PROT_WRITE

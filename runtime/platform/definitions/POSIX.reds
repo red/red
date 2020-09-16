@@ -772,6 +772,7 @@ errno: as int-ptr! 0
 #define SSL_ERROR_WANT_READ		2
 #define SSL_ERROR_WANT_WRITE	3
 #define SSL_ERROR_WANT_X509_LOOKUP	4
+#define SSL_ERROR_ZERO_RETURN	6
 #define SSL_CTRL_SET_MIN_PROTO_VERSION          123
 #define SSL_CTRL_SET_MAX_PROTO_VERSION          124
 #define SSL_CTRL_EXTRA_CHAIN_CERT               14
@@ -843,6 +844,10 @@ errno: as int-ptr! 0
 		]
 		SSL_CTX_check_private_key: "SSL_CTX_check_private_key" [
 			ctx		[int-ptr!]
+			return: [integer!]
+		]
+		SSL_get_shutdown: "SSL_get_shutdown" [
+			ssl		[int-ptr!]
 			return: [integer!]
 		]
 		BIO_new_mem_buf: "BIO_new_mem_buf" [

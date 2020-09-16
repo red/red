@@ -138,8 +138,7 @@ socket: context [
 		/local
 			state	[integer!]
 	][
-		;#if debug? = yes [if verbose > 0 [print-line "socket/send"]]
-
+		IODebug("socket/send")
 		state: data/state
 		if state and IO_STATE_PENDING_WRITE = IO_STATE_PENDING_WRITE [
 			iocp/add-pending data buffer length IO_EVT_WRITE
@@ -170,13 +169,13 @@ socket: context [
 		data/read-buf: buffer
 		data/read-buflen: length
 		n: iocp/read-io data
-
+probe ["socket/recv " n " state: " state]
 		case [
 			n = -1 [		;-- want read
 				data/read-buf: buffer
 				data/read-buflen: length
 				case [
-					zero? state [
+					zero? (state and 0Fh) [
 						data/state: IO_STATE_PENDING_READ
 						iocp/add data/io-port sock EPOLLIN or EPOLLET data
 					]
@@ -231,9 +230,8 @@ socket: context [
 	close: func [
 		sock	[integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "socket/close"]]
-io/debug "socket/close"
+		IODebug("socket/close")
 		LibC.close sock
-io/debug "socket/close done"
+		IODebug("socket/close done")
 	]
 ]

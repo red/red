@@ -13,6 +13,8 @@ Red/System [
 	}
 ]
 
+#define IO_STATE_CLOSING		0100h
+#define IO_STATE_ERROR			0200h
 #define IO_STATE_TLS_DONE		1000h
 #define IO_STATE_CLIENT			2000h
 #define IO_STATE_READING		4000h
@@ -181,7 +183,7 @@ iocp: context [
 		return: [integer!]
 		/local
 			n	[integer!]
-			tls [tls-data!]
+			td [tls-data!]
 			udp [udp-data!]
 	][
 		switch data/type [
@@ -193,14 +195,23 @@ iocp: context [
 				n
 			]
 			IOCP_TYPE_TLS [
-				tls: as tls-data! data
-				n: SSL_read tls/ssl data/read-buf data/read-buflen
+				td: as tls-data! data
+				IODebug(["SSL_read" td/ssl data/read-buf data/read-buflen])
+				n: SSL_read td/ssl data/read-buf data/read-buflen
+				?? n
 				if n <= 0 [
-					n: SSL_get_error tls/ssl n
-					n: either any [
-						n = SSL_ERROR_WANT_READ
-						n = SSL_ERROR_WANT_WRITE
-					][-1][0]
+					n: SSL_get_error td/ssl n
+					?? n
+					tls/check-errors n
+					n: switch n [
+						SSL_ERROR_WANT_READ
+						SSL_ERROR_WANT_WRITE [-1]
+						;SSL_ERROR_ZERO_RETURN [0]
+						default [
+							td/state: td/state or IO_STATE_ERROR
+							0
+						]
+					]
 				]
 				n
 			]
@@ -222,7 +233,7 @@ iocp: context [
 		return: [integer!]
 		/local
 			n	[integer!]
-			tls [tls-data!]
+			td	[tls-data!]
 			udp [udp-data!]
 	][
 		if zero? data/write-buflen [return 0]
@@ -242,14 +253,21 @@ iocp: context [
 				n
 			]
 			IOCP_TYPE_TLS [
-				tls: as tls-data! data
-				n: SSL_write tls/ssl data/write-buf data/write-buflen
+				td: as tls-data! data
+				IODebug(["SSL_write" td/ssl data/write-buf data/write-buflen])
+				n: SSL_write td/ssl data/write-buf data/write-buflen
+				?? n
 				if n <= 0 [
-					n: SSL_get_error tls/ssl n
+					n: SSL_get_error td/ssl n
+					?? n
 					n: either any [
 						n = SSL_ERROR_WANT_WRITE
 						n = SSL_ERROR_WANT_READ
-					][0][-1]
+					][0][
+						tls/check-errors n
+						td/state: td/state or IO_STATE_ERROR
+						-1
+					]
 				]
 				n
 			]
@@ -277,11 +295,13 @@ iocp: context [
 			state	[integer!]
 			length	[integer!]
 	][
+		IODebug("iocp/write-io")
 		io-port: data/io-port
 		sock: as-integer data/device
 		state: data/state
 		length: data/write-buflen
 		cnt: 0
+		probe [sock " " as int-ptr! state " " length]
 		forever [
 			n: _write-io data
 			case [
@@ -294,7 +314,7 @@ iocp: context [
 				]
 				n > 0 [
 					case [
-						zero? state [
+						zero? (state and 0Fh) [
 							data/state: IO_STATE_PENDING_WRITE
 							iocp/add io-port sock EPOLLOUT or EPOLLET data
 						]
@@ -313,7 +333,6 @@ iocp: context [
 				zero? n [break]
 				true [	;-- error
 					data/event: IO_EVT_CLOSE
-					data/state: EPOLLOUT
 					break
 				]
 			]
@@ -468,16 +487,20 @@ probe ["events: " cnt " " p/n-ports]
 					state and IO_STATE_READING <> 0
 				][
 					either null? data/pending-read [
+						probe ["read-io in wait fd: " data/device]
 						n: read-io data
-						data/state: state and (not IO_STATE_READING)
-						data/transferred: n
-						data/event: IO_EVT_READ
-						either data/type = IOCP_TYPE_DNS [
-							if dns/parse-data as dns-data! data [
-								data/type: IOCP_TYPE_TCP
-								data/event: IO_EVT_LOOKUP
-							]
-						][data/event-handler as int-ptr! data]
+						probe ["read-io in wait: " n]
+						if n >= 0 [
+							data/state: state and (not IO_STATE_READING)
+							data/transferred: n
+							data/event: IO_EVT_READ
+							either data/type = IOCP_TYPE_DNS [
+								if dns/parse-data as dns-data! data [
+									data/type: IOCP_TYPE_TCP
+									data/event: IO_EVT_LOOKUP
+								]
+							][data/event-handler as int-ptr! data]
+						]
 					][
 						0 ;TBD
 					]
@@ -486,6 +509,15 @@ probe ["events: " cnt " " p/n-ports]
 					IOCP_WRITE_ACTION?
 					state and IO_STATE_WRITING <> 0
 				][
+					if all [
+						data/type = IOCP_TYPE_TLS
+						state and IO_STATE_CLOSING <> 0
+					][
+						tls/free-handle as tls-data! data
+						i: i + 1
+						continue
+					]
+
 					either null? data/pending-write [
 						write-io data
 					][

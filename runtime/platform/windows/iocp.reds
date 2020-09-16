@@ -58,6 +58,24 @@ sockdata!: alias struct! [
 	addrinfo	[int-ptr!]
 ]
 
+tls-data!: alias struct! [
+	IOCP_DATA_FIELDS
+	port		[red-object! value]		;-- red port! cell
+	send-buf	[node!]					;-- send buffer
+	buf-len		[integer!]
+	addr		[sockaddr_in6! value]	;-- IPv4 or IPv6 address
+	addr2		[sockaddr_in! value]	;-- 16 bytes
+	addr-sz		[integer!]
+	credential	[SecHandle! value]		;-- credential handle
+	security	[int-ptr!]				;-- security context handle lower
+	security2	[int-ptr!]				;-- security context handle upper
+	cert-ctx	[CERT_CONTEXT]			;-- saved cert ctx for now, it need a key for server mode
+	;-- SecPkgContext_StreamSizes
+	ctx-max-msg	[integer!]
+	ctx-header	[integer!]
+	ctx-trailer	[integer!]
+]
+
 udp-data!: alias struct! [
 	iocp		[iocp-data! value]
 	port		[red-object! value]		;-- red port! cell

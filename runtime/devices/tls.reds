@@ -11,7 +11,7 @@ Red/System [
 ]
 
 TLS-device: context [
-	verbose: 1
+	verbose: 2
 
 	event-handler: func [
 		data		[iocp-data!]
@@ -57,20 +57,26 @@ TLS-device: context [
 			IO_EVT_ACCEPT	[
 				#either OS = 'Windows [
 					td: create-tls-data p data/accept-sock	;-- tls-data of the server port
-					socket/acceptex data/accept-sock :td/addr :td/addr-sz as iocp-data! td
 				][
 					td: as tls-data! io/get-iocp-data p		;-- tls-data of the server port
 				]
 				msg: io/make-port p
 				copy-cell as cell! msg as cell! p		;-- copy client port to client tls-data/port
 				io/set-iocp-data msg data				;-- link client tls-data to the client port
+
+				io/fill-client-info msg as sockdata! data
+
 				p: as red-object! :td/port				;-- get server port
 				data/event: IO_EVT_NONE
+				#if OS = 'Windows [
+					socket/acceptex as-integer td/device :td/addr :td/addr-sz as iocp-data! td
+				]
 			]
 			default [data/event: IO_EVT_NONE]
 		]
 
 		io/call-awake p msg type
+		if type = IO_EVT_CLOSE [close p]
 	]
 
 	create-tls-data: func [
@@ -146,6 +152,7 @@ TLS-device: context [
 		#if debug? = yes [if verbose > 0 [print-line "tls server"]]
 
 		fd: socket/create AF_INET SOCK_STREAM IPPROTO_TCP
+probe ["server listen fd: " fd]
 		socket/bind fd num/value AF_INET
 		td: create-tls-data port fd
 		socket/listen fd 1024 as iocp-data! td
@@ -198,10 +205,10 @@ TLS-device: context [
 		#if debug? = yes [if verbose > 0 [print-line "tls/close"]]
 
 		data: io/close-port red-port
-		tls/free as tls-data! data
-		socket/close as-integer data/device
-		data/device: IO_INVALID_DEVICE
-		#if OS = 'Windows [free as byte-ptr! data]
+		if data <> null [
+			tls/free-handle as tls-data! data
+		]
+		IODebug("tls/close done")
 		as red-value! red-port
 	]
 
@@ -219,6 +226,7 @@ TLS-device: context [
 			n		[integer!]
 			s		[series!]
 	][
+		IODebug("TLS/insert")
 		bin: as red-binary! value
 		switch TYPE_OF(value) [
 			TYPE_BINARY [
@@ -252,6 +260,7 @@ TLS-device: context [
 				binary/rs-length? bin
 				as iocp-data! data
 		]
+		IODebug("TLS/insert done")
 		as red-value! port
 	]
 
