@@ -1066,7 +1066,9 @@ change-text: func [
 		case [
 			type = area [
 				buffer: gtk_text_view_get_buffer widget
+				g_signal_handlers_block_by_func(buffer :area-changed widget)
 				gtk_text_buffer_set_text buffer cstr -1
+				g_signal_handlers_unblock_by_func(buffer :area-changed widget)
 				gtk_text_buffer_get_bounds buffer as handle! start as handle! end
 				update-textview-tag buffer as handle! start as handle! end
 			]
