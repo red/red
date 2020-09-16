@@ -1293,7 +1293,7 @@ set-logic-state: func [
 	if check? [
 		flags: get-flags as red-block! (get-face-values widget) + FACE_OBJ_FLAGS
 		tri?:  flags and FACET_FLAGS_TRISTATE <> 0
-		g_signal_handler_block widget check-handler			;-- suppress signal handler
+		g_signal_handlers_block_by_func(widget :button-toggled widget)
 	]
 		
 	type: TYPE_OF(state)
@@ -1312,7 +1312,7 @@ set-logic-state: func [
 	]
 	
 	if check? [
-		g_signal_handler_unblock widget check-handler		;-- resume signal handling
+		g_signal_handlers_unblock_by_func(widget :button-toggled widget)
 	]
 ]
 
