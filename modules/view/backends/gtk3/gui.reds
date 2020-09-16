@@ -1183,17 +1183,21 @@ change-selection: func [
 		flt		[float!]
 ][
 	if type <> window [
-		idx: either TYPE_OF(int) = TYPE_INTEGER [int/value - 1][-1]
+		idx: either TYPE_OF(int) = TYPE_INTEGER [either int/value >= 0 [int/value - 1][-1]][-1]
 	]
 	case [
 		any [type = field type = area][
 			sel: as red-pair! int
-			either TYPE_OF(sel) = TYPE_NONE [
-				idx: 0
-				sz:  0
-			][
-				idx: sel/x - 1
-				sz: sel/y - idx						;-- should point past the last selected char
+			switch TYPE_OF(sel) [
+				TYPE_PAIR [
+					idx: sel/x - 1
+					sz: sel/y - idx						;-- should point past the last selected char
+				]
+				TYPE_NONE [
+					idx: 0
+					sz:  0
+				]
+				default [0]
 			]
 			either type = field [
 				gtk_editable_select_region widget idx idx + sz
