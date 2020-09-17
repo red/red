@@ -325,6 +325,7 @@
 	red/natives/exclude*
 	red/natives/complement?*
 	red/natives/dehex*
+	red/natives/enhex*
 	red/natives/negative?*
 	red/natives/positive?*
 	red/natives/max*
