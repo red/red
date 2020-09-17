@@ -15,10 +15,11 @@ Red/System [
 
 #enum iocp-type! [
 	IOCP_TYPE_TCP:		0
-	IOCP_TYPE_UDP:		1
-	IOCP_TYPE_DNS:		2
-	IOCP_TYPE_FILE:		3
-	IOCP_TYPE_TLS:		10h
+	IOCP_TYPE_TLS:		1
+	
+	IOCP_TYPE_UDP:		2
+	IOCP_TYPE_DNS:		3
+	IOCP_TYPE_FILE:		4
 ]
 
 make-sockaddr: func [

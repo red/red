@@ -91,6 +91,30 @@ socket: context [
 		acpt
 	]
 
+	check-connect: func [
+		data		[sockdata!]
+		return:		[integer!]		;-- 0: connected, 1: continue, -1: error
+		/local
+			val		[integer!]
+			len		[integer!]
+	][
+		val: 0 len: size? val
+		either zero? getsockopt as-integer data/device SOL_SOCKET SO_ERROR as byte-ptr! :val :len [
+			?? val
+			switch val [
+				0 [data/state: data/state or IO_STATE_CONNECTED 0]
+				EINPROGRESS	EAGAIN EALREADY [1]
+				default [
+					data/event = IO_EVT_CLOSE
+					-1
+				]
+			]
+		][
+			data/event = IO_EVT_CLOSE
+			-1
+		]
+	]
+
 	connect: func [
 		sock		[integer!]
 		addr		[c-string!]
@@ -99,6 +123,7 @@ socket: context [
 		data		[iocp-data!]
 		/local
 			saddr	[sockaddr_in! value]
+			ret		[integer!]
 	][
 		data/event: IO_EVT_CONNECT
 		port: htons port
@@ -107,10 +132,23 @@ socket: context [
 		saddr/sa_data1: 0
 		saddr/sa_data2: 0
 		either zero? LibC.connect sock as int-ptr! :saddr size? saddr [
+			data/state: IO_STATE_CONNECTED
 			iocp/post data/io-port data
 		][
-			data/state: EPOLLOUT
-			iocp/add data/io-port sock EPOLLOUT or EPOLLET data
+			ret: errno/value
+			IODebug(["socket/connect fd code" sock ret])
+			switch ret [
+				EINPROGRESS	
+				EAGAIN
+				EALREADY [
+					data/state: EPOLLOUT
+					iocp/add data/io-port sock EPOLLOUT or EPOLLET data
+				]
+				default [
+					?? ret
+					probe "connect error..................."
+				]
+			]
 		]
 	]
 

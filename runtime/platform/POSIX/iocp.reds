@@ -13,8 +13,9 @@ Red/System [
 	}
 ]
 
-#define IO_STATE_CLOSING		0100h
-#define IO_STATE_ERROR			0200h
+#define IO_STATE_ERROR			0100h
+#define IO_STATE_CLOSING		0200h
+#define IO_STATE_CONNECTED		0400h
 #define IO_STATE_TLS_DONE		1000h
 #define IO_STATE_CLIENT			2000h
 #define IO_STATE_READING		4000h
@@ -454,8 +455,18 @@ probe ["events: " cnt " " p/n-ports]
 				]
 			]
 				if all [
+					data/event = IO_EVT_CONNECT
+					state and IO_STATE_CONNECTED = 0
+				][
+					if 1 = socket/check-connect as sockdata! data [
+						i: i + 1 continue
+					]
+				]
+
+				if all [
 					data/type = IOCP_TYPE_TLS
 					state and IO_STATE_TLS_DONE = 0
+					data/event <> IO_EVT_CLOSE
 				][
 					td: as tls-data! data
 					if null? td/ssl [

@@ -71,7 +71,6 @@ Red/System [
 #define S_IWGRP		16
 #define S_IROTH		4
 
-#define SOL_SOCKET	1
 #define	DT_DIR		#"^(04)"
 
 #define BFFM_SETEXPANDED 1130

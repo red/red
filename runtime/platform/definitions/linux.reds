@@ -30,6 +30,9 @@ Red/System [
 #define SYSCALL_MUNMAP		91
 #define SYSCALL_MMAP		SYSCALL_MMAP2
 
+#define SOL_SOCKET	1
+#define SO_ERROR 4
+
 #define	EPERM				1			;-- Operation not permitted
 #define	ENOENT				2			;-- No such file or directory
 #define	EINTR				4			;-- Interrupted system call
@@ -37,6 +40,8 @@ Red/System [
 #define ENOMEM				12
 #define EACCES				13			;-- No permission
 #define	ENOSYS				38			;-- Function not implemented
+#define EALREADY			114			;-- Operation already in progress
+#define EINPROGRESS			115			;-- Operation now in progress
 
 #define EPOLL_CTL_ADD	1
 #define EPOLL_CTL_DEL	2
