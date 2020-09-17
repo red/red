@@ -1524,15 +1524,29 @@ lexer: context [
 		]
 	]
 
-	load-file: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
-		flags: flags and not C_FLAG_CARET				;-- clears caret flag
+	load-file: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
+		/local
+			str	 [red-string!]
+			vl	 [red-string! value]
+			buf	 [byte-ptr!]
+			len	 [integer!]
+	][
+		flags: flags and not C_FLAG_CARET				;-- as the lexer can't decode utf8 url, so we don't use it anymore
 		if s/2 = #"^"" [s: s + 1]						;-- skip "
 		lex/type: TYPE_FILE
 		either load? [
 			load-string lex s e flags yes
-			if s/1 = #"^"" [
+			either s/1 = #"^"" [
 				if e/1 <> #"^"" [throw-error lex s e TYPE_FILE]
 				e: e + 1
+			][
+				str: as red-string! lex/tail - 1
+				len: 0
+				buf: string/decode-url str :len
+				string/load-at as c-string! buf len as red-value! :vl UTF-8
+				free buf
+				str/node: vl/node
+				str/cache: null
 			]
 		][
 			scan-string lex s e flags no
@@ -1988,19 +2002,27 @@ lexer: context [
 	
 	load-url: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local
-			p	 [byte-ptr!]
 			type [integer!]
+			str	 [red-string!]
+			vl	 [red-string! value]
+			buf	 [byte-ptr!]
+			len	 [integer!]
 	][
 		if any [s/1 = #":" s/1 = #"'"][
 			type: either s/1 = #":" [TYPE_GET_WORD][TYPE_LIT_WORD]
 			throw-error lex s e type
 		]
-		flags: flags and not C_FLAG_CARET				;-- clears caret flag
-		p: s while [all [p/1 <> #"%" p < e]][p: p + 1] 	;-- check if any %xx 
-		if p < e [flags: flags or C_FLAG_ESC_HEX or C_FLAG_CARET]
+		flags: flags and not C_FLAG_CARET				;-- as the lexer can't decode utf8 url, so we don't use it anymore
 		lex/type: TYPE_URL
 		either load? [
 			load-string lex s - 1 e flags yes			;-- compensate for lack of starting delimiter
+			str: as red-string! lex/tail - 1
+			len: 0
+			buf: string/decode-url str :len
+			string/load-at as c-string! buf len as red-value! :vl UTF-8
+			free buf
+			str/node: vl/node
+			str/cache: null
 			lex/in-pos: e 								;-- reset the input position to delimiter byte
 		][
 			scan-string lex s - 1 e flags no
