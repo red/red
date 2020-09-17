@@ -17,7 +17,7 @@ Red [
 		--assert https://www.red-lang.org/ = load "https://www.red-lang.org/"
 
 	--test-- "url-2"
-		--assert https://www.red-lang.org/%E4%B8%AD%E6%96%87 = https://www.red-lang.org/中%20文
+		--assert https://www.red-lang.org/%E4%B8%AD%20%E6%96%87 = https://www.red-lang.org/中%20文
 
 	--test-- "url-3"
 		--assert https://www.red-lang.org/%E4%B8%AD%20%E6%96%87 = make url! "https://www.red-lang.org/中 文"
@@ -56,7 +56,7 @@ Red [
 		--assert https://www.red-lang.org/%E4%B8%AD%20%E6%96%87 = load mold https://www.red-lang.org/中%20文
 
 	--test-- "url-15"
-		--assert {https%3A%2F%2Fwww.red-lang.org%2F%C3%A4%C2%B8%C2%AD%20%C3%A6%C2%96%C2%87} = enhex https://www.red-lang.org/%E4%B8%AD%20%E6%96%87
+		--assert {https%3A%2F%2Fwww.red-lang.org%2F%E4%B8%AD%20%E6%96%87} = enhex https://www.red-lang.org/%E4%B8%AD%20%E6%96%87
 
 	--test-- "url-16"
 		--assert "https://www.red-lang.org/中 文" = dehex https://www.red-lang.org/%E4%B8%AD%20%E6%96%87
