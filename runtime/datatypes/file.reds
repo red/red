@@ -213,9 +213,9 @@ file: context [
 					UCS-4  [p4: as int-ptr! p p4/value]
 				]
 				idx: cp + 1
-				if any [
-					cp > MAX_URL_CHARS
-					string/uri-encode-tbl/idx = #"^(FF)"
+				if all [
+					cp < MAX_URL_CHARS
+					string/uri-encode-tbl/idx = #"^(00)"
 				][
 					break
 				]
