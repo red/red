@@ -75,6 +75,10 @@ Red/System [
 
 #define BFFM_SETEXPANDED 1130
 
+#define SIGPIPE 13
+#define SIG_IGN [as int-ptr! 1]
+
+
 ; Wordexp types
 wordexp-type!: alias struct! [
 	we_wordc  [integer!]
@@ -157,6 +161,11 @@ res_state!: alias struct! [	;-- size: 512 bytes
 
 #import [
 	LIBC-file cdecl [
+		signal: "signal" [
+			signum		[integer!]
+			handler		[int-ptr!]
+			return:		[int-ptr!]
+		]
 		inet_pton: "inet_pton" [
 			Family				[integer!]
 			pszAddrString		[c-string!]

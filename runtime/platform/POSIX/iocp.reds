@@ -117,6 +117,7 @@ iocp: context [
 			p	[iocp!]
 			ptr [iocp-data!]
 	][
+		signal SIGPIPE SIG_IGN
 		errno: get-errno-ptr
 		p: as iocp! alloc0 size? iocp!
 		p/maxn: 65536
