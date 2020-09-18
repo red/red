@@ -47,18 +47,24 @@ Red [
 		--assert %"d:/folder 1/中文" = make file! ["d:" "/folder 1/中文"]
 
 	--test-- "url-12"
-		--assert %"d:/folder 1/中文" = to file! ["d:" "/folder 1/中文"]
-	
+		--assert %"d:/folder 1/中%20文" = make file! ["d:" "/folder 1/中%20文"]
+
 	--test-- "url-13"
-		--assert "d:/folder 1/中文" = to string! %"d:/folder 1/中文"
-	
+		--assert %"d:/folder 1/中文" = to file! ["d:" "/folder 1/中文"]
+
 	--test-- "url-14"
-		--assert "d:/folder 1/中文" = to file! d:/folder%201/%E4%B8%AD%E6%96%87
+		--assert %"d:/folder 1/中%20文" = to file! ["d:" "/folder 1/中%20文"]
 
 	--test-- "url-15"
+		--assert "d:/folder 1/中文" = to string! %"d:/folder 1/中文"
+	
+	--test-- "url-16"
+		--assert "d:/folder 1/中文" = to file! d:/folder%201/%E4%B8%AD%E6%96%87
+
+	--test-- "url-17"
 		--assert d:/folder%201/%E4%B8%AD%E6%96%87 = to url! %"d:/folder 1/中文"
 
-	--test-- "url-16"
+	--test-- "url-18"
 		--assert %"/d/folder 1/中文" = %/d/folder%201/%E4%B8%AD%E6%96%87
 
 ===end-group===

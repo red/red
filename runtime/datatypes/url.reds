@@ -66,19 +66,14 @@ url: context [
 		return:	[red-url!]
 		/local
 			type2 [integer!]
-			str	  [red-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "url/make"]]
 		
 		type2: TYPE_OF(spec)
-		either all [type = TYPE_URL ANY_LIST?(type2)][ ;-- file! inherits from url!
+		as red-url! either all [type = TYPE_URL ANY_LIST?(type2)][ ;-- file! inherits from url!
 			to proto spec type
 		][
-			str: string/make as red-string! proto spec type
-			unless type = TYPE_FILE [
-				str: string/decode str type
-			]
-			as red-url! str
+			string/make as red-string! proto spec type
 		]
 	]
 
@@ -155,7 +150,8 @@ url: context [
 		type2: TYPE_OF(spec)
 		either all [type = TYPE_URL ANY_LIST?(type2)][ ;-- file! inherits from url!
 			buffer: string/make-at proto 16 1
-			
+			buffer/header: TYPE_URL
+
 			blk: as red-block! spec
 			s: GET_BUFFER(blk)
 			value: s/offset + blk/head
@@ -166,17 +162,17 @@ url: context [
 			actions/form value buffer null 0
 			value: value + 1
 			string/concatenate-literal buffer "://"
-			if value = tail [return string/decode buffer type]
+			if value = tail [return buffer]
 			
 			actions/form value buffer null 0
 			value: value + 1
-			if value = tail [return string/decode buffer type]
+			if value = tail [return buffer]
 			
 			if TYPE_OF(value) = TYPE_INTEGER [
 				string/concatenate-literal buffer ":"
 				actions/form value buffer null 0
 				value: value + 1
-				if value = tail [return string/decode buffer type]
+				if value = tail [return buffer]
 			]
 			string/append-char GET_BUFFER(buffer) as-integer #"/"
 			until [
@@ -188,13 +184,9 @@ url: context [
 				]
 				value = tail
 			]
-			string/decode buffer type
-		][
-			buffer: string/to proto spec type
-			unless type = TYPE_FILE [
-				buffer: string/decode buffer type
-			]
 			buffer
+		][
+			string/to proto spec type
 		]
 	]
 
