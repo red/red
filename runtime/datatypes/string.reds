@@ -203,83 +203,70 @@ string: context [
 
 	decode-url: func [
 		str			[red-string!]
-		dlen		[int-ptr!]
-		return:		[byte-ptr!]
+		url			[red-string!]
 		/local
 			slen	[integer!]
 			data	[byte-ptr!]
 			end		[byte-ptr!]
-			buffer	[byte-ptr!]
+			s		[series!]
 			ch		[byte!]
-			i		[integer!]
 			size	[integer!]
 			p		[byte-ptr!]
 			ch2		[byte!]
-			utf8?	[logic!]
+			enc?	[logic!]
+			code	[integer!]
+			pc		[byte-ptr!]
+			u		[integer!]
 	][
 		slen: -1
 		data: as byte-ptr! unicode/to-utf8 str :slen
-		if slen = 0 [									;-- empty string case
-			return null
-		]
+		if slen = 0 [exit]
 		end: data + slen
-		buffer: allocate slen
-		i: 1
+		s: GET_BUFFER(url)
+
 		ch: #"^@" ch2: #"^@"
 		while [data < end][
-			utf8?: false
+			enc?: false
 			if decode-url-char data :ch [
 				size: unicode/utf8-char-size? as-integer ch
 				p: data + 3
-				utf8?: true
-				loop size - 1 [
-					unless decode-url-char p :ch2 [
-						utf8?: false
-						break
+				enc?: true
+				if size <> 0 [
+					loop size - 1 [
+						unless decode-url-char p :ch2 [
+							enc?: false
+							break
+						]
+						p: p + 3
 					]
-					p: p + 3
 				]
 			]
-			either utf8? [
-				buffer/i: ch
-				data: data + 3
-				i: i + 1
-				loop size - 1 [
-					decode-url-char data :ch
-					buffer/i: ch
+			either enc? [
+				either size = 0 [
+					s: append-char s as integer! ch
 					data: data + 3
-					i: i + 1
+				][
+					code: 0
+					p: as byte-ptr! :code
+					p/1: ch
+					p: p + 1
+					data: data + 3
+					loop size - 1 [
+						decode-url-char data :ch
+						p/1: ch
+						p: p + 1
+						data: data + 3
+					]
+					u: unicode/decode-utf8-char as c-string! :code :size
+					s: append-char s u
 				]
 			][
-				buffer/i: data/1
-				data: data + 1
-				i: i + 1
+				size: as integer! end - data
+				u: unicode/decode-utf8-char as c-string! data :size
+				s: append-char s u
+				data: data + size
 			]
 		]
-		dlen/1: i - 1
-		buffer
-	]
-
-	decode: func [
-		str			[red-string!]
-		type		[integer!]
-		return:		[red-string!]
-		/local
-			buf		[byte-ptr!]
-			len		[integer!]
-			ret		[red-string!]
-	][
-		len: 0
-		buf: decode-url str :len
-		if null? buf [
-			ret: rs-make-at stack/push* 1
-			ret/header: type
-			return ret
-		]
-		ret: load as c-string! buf len UTF-8
-		free buf
-		ret/header: type							;-- implicit reset of all header flags
-		ret
 	]
 
 	encode-url-char: func [
@@ -320,61 +307,36 @@ string: context [
 
 	encode-url: func [
 		str			[red-string!]
-		dlen		[int-ptr!]
+		url			[red-string!]
 		type		[integer!]
-		return:		[byte-ptr!]
 		/local
 			slen	[integer!]
 			data	[byte-ptr!]
 			end		[byte-ptr!]
-			buffer	[byte-ptr!]
-			i		[integer!]
+			s		[series!]
 			size	[integer!]
+			node	[node!]
+			dst		[byte-ptr!]
 			p		[byte-ptr!]
 	][
 		slen: -1
 		data: as byte-ptr! unicode/to-utf8 str :slen
-		if slen = 0 [									;-- empty string case
-			return null
-		]
+		if slen = 0 [exit]
 		end: data + slen
-		buffer: allocate slen * 3
-		i: 1
+		s: GET_BUFFER(url)
+
 		size: 0
 		while [data < end][
 			p: encode-url-char type data :size
 			loop size [
-				buffer/i: p/1
-				i: i + 1
+				node: s/node
+				dst: alloc-tail-unit s 1
+				dst/1: p/1
+				s: as series! node/value
 				p: p + 1
 			]
 			data: data + 1
 		]
-		dlen/1: i - 1
-		buffer
-	]
-
-	encode: func [
-		str			[red-string!]
-		datatype	[integer!]
-		type		[integer!]
-		return:		[red-string!]
-		/local
-			buf		[byte-ptr!]
-			len		[integer!]
-			ret		[red-string!]
-	][
-		len: 0
-		buf: encode-url str :len type
-		if null? buf [
-			ret: rs-make-at stack/push* 1
-			ret/header: datatype
-			return ret
-		]
-		ret: load as c-string! buf len UTF-8
-		free buf
-		ret/header: datatype							;-- implicit reset of all header flags
-		ret
 	]
 
 	rs-load: func [

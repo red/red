@@ -1364,10 +1364,14 @@ natives: context [
 		/local
 			str	[red-string!]
 			ret	[red-string!]
+			len	[integer!]
 	][
 		#typecheck dehex
 		str: as red-string! stack/arguments
-		ret: string/decode str TYPE_STRING
+		ret: as red-string! stack/push*
+		len: string/rs-length? str
+		string/make-at as red-value! ret len Latin1
+		string/decode-url str ret
 		stack/set-last as red-value! ret
 		ret
 	]
@@ -1378,10 +1382,14 @@ natives: context [
 		/local
 			str	[red-string!]
 			ret	[red-string!]
+			len	[integer!]
 	][
 		#typecheck enhex
 		str: as red-string! stack/arguments
-		ret: string/encode str TYPE_STRING string/ESC_URL
+		ret: as red-string! stack/push*
+		len: string/rs-length? str
+		string/make-at as red-value! ret len Latin1
+		string/encode-url str ret string/ESC_URL
 		stack/set-last as red-value! ret
 		ret
 	]

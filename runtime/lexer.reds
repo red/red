@@ -1528,7 +1528,6 @@ lexer: context [
 		/local
 			str	 [red-string!]
 			vl	 [red-string! value]
-			buf	 [byte-ptr!]
 			len	 [integer!]
 	][
 		flags: flags and not C_FLAG_CARET				;-- as the lexer can't decode utf8 url, so we don't use it anymore
@@ -1541,10 +1540,9 @@ lexer: context [
 				e: e + 1
 			][
 				str: as red-string! lex/tail - 1
-				len: 0
-				buf: string/decode-url str :len
-				string/load-at as c-string! buf len as red-value! :vl UTF-8
-				free buf
+				len: string/rs-length? str
+				string/make-at as red-value! :vl len Latin1
+				string/decode-url str :vl
 				str/node: vl/node
 				str/cache: null
 			]
@@ -2005,7 +2003,6 @@ lexer: context [
 			type [integer!]
 			str	 [red-string!]
 			vl	 [red-string! value]
-			buf	 [byte-ptr!]
 			len	 [integer!]
 	][
 		if any [s/1 = #":" s/1 = #"'"][
@@ -2017,10 +2014,9 @@ lexer: context [
 		either load? [
 			load-string lex s - 1 e flags yes			;-- compensate for lack of starting delimiter
 			str: as red-string! lex/tail - 1
-			len: 0
-			buf: string/decode-url str :len
-			string/load-at as c-string! buf len as red-value! :vl UTF-8
-			free buf
+			len: string/rs-length? str
+			string/make-at as red-value! :vl len Latin1
+			string/decode-url str :vl
 			str/node: vl/node
 			str/cache: null
 			lex/in-pos: e 								;-- reset the input position to delimiter byte

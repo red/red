@@ -20,8 +20,8 @@ file: context [
 		return:  [red-file!]
 	][
 		string/load src size encoding
-		;-- you need decode yourself
-		;string/decode str TYPE_FILE
+		;-- two literals, one need decode, other no need
+		;string/decode-url str ret
 	]
 
 	push: func [

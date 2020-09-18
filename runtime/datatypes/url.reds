@@ -19,10 +19,17 @@ url: context [
 		return:  [red-string!]
 		/local
 			str  [red-string!]
+			ret  [red-string!]
+			len  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "url/load"]]
 		str: string/load src size UTF-8
-		string/decode str TYPE_URL
+		ret: as red-string! stack/push*
+		len: string/rs-length? str
+		string/make-at as red-value! ret len Latin1
+		string/decode-url str ret
+		stack/set-last as red-value! ret
+		ret
 	]
 
 	push: func [
@@ -91,6 +98,7 @@ url: context [
 			int	   [red-integer!]
 			limit  [integer!]
 			enc    [red-string!]
+			len    [integer!]
 			s	   [series!]
 			unit   [integer!]
 			p	   [byte-ptr!]
@@ -105,7 +113,10 @@ url: context [
 			int: as red-integer! arg
 			int/value
 		][0]
-		enc: string/encode url TYPE_STRING string/ESC_URI
+		enc: as red-string! stack/push*
+		len: string/rs-length? as red-string! url
+		string/make-at as red-value! enc len Latin1
+		string/encode-url url enc string/ESC_URI
 		s: GET_BUFFER(enc)
 		unit: GET_UNIT(s)
 		p: (as byte-ptr! s/offset) + (enc/head << (log-b unit))
