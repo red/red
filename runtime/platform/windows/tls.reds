@@ -373,6 +373,7 @@ tls: context [
 		pwd: as red-string! block/select-word extra word/load "password" no
 		ctx: load-cert cert
 		if null? ctx [
+			IODebug("create-cert-ctx failed!!!")
 			return null
 		]
 		link-private-key ctx key pwd
@@ -498,11 +499,9 @@ tls: context [
 			expiry	[tagFILETIME value]
 			flags	[integer!]
 	][
-		ctx: 0
-		if null? data/cert-ctx [
+		ctx: as integer! data/cert-ctx
+		if zero? ctx [
 			data/cert-ctx: create-cert-ctx data client?
-		]
-		unless null? data/cert-ctx [
 			ctx: as integer! data/cert-ctx
 		]
 

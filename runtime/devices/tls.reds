@@ -138,7 +138,7 @@ TLS-device: context [
 		n: -1
 		addr: unicode/to-utf8 host :n
 		data: create-tls-data port fd
-		#if OS = 'Windows [data/state: IO_STATE_CLIENT]
+		data/state: IO_STATE_CLIENT
 		socket/connect fd addr num/value AF_INET as iocp-data! data
 	]
 

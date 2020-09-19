@@ -105,12 +105,13 @@ socket: context [
 				0 [data/state: data/state or IO_STATE_CONNECTED 0]
 				EINPROGRESS	EAGAIN EALREADY [1]
 				default [
-					data/event = IO_EVT_CLOSE
+					IODebug("check-connect error")
+					data/event: IO_EVT_CLOSE
 					-1
 				]
 			]
 		][
-			data/event = IO_EVT_CLOSE
+			data/event: IO_EVT_CLOSE
 			-1
 		]
 	]
@@ -213,7 +214,7 @@ probe ["socket/recv " n " state: " state]
 				data/read-buf: buffer
 				data/read-buflen: length
 				case [
-					zero? (state and 0Fh) [
+					zero? (state and IO_STATE_RW) [
 						data/state: IO_STATE_PENDING_READ
 						iocp/add data/io-port sock EPOLLIN or EPOLLET data
 					]

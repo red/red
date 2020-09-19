@@ -195,30 +195,28 @@ tls: context [
 			pk		[int-ptr!]
 			cert	[int-ptr!]
 	][
+		IODebug("tls/create")
 		ERR_clear_error
 		if null? td/ssl [
 			either client? [
 				if null? client-ctx [
 					client-ctx: SSL_CTX_new TLS_client_method
+					create-cert-ctx td client-ctx
 					SSL_CTX_set_mode(client-ctx 5)
 				]
 				ctx: client-ctx
 			][
 				if null? server-ctx [
 					server-ctx: SSL_CTX_new TLS_server_method
+					if 0 <> create-cert-ctx td server-ctx [ ;-- create an internal cert if no cert specified
+						pk: create-private-key
+						cert: create-certificate pk
+						SSL_CTX_use_certificate server-ctx cert
+						SSL_CTX_use_PrivateKey server-ctx pk
+					]
 					SSL_CTX_set_mode(server-ctx 5)
 				]
 				ctx: server-ctx
-			]
-			if all [
-				0 <> create-cert-ctx td ctx
-				not client?
-			][	;-- create an internal cert if no cert specified
-				pk: create-private-key
-				cert: create-certificate pk
-				SSL_CTX_use_certificate server-ctx cert
-				SSL_CTX_use_PrivateKey server-ctx pk
-				;SSL_CTX_check_private_key server-ctx
 			]
 
 			ssl: SSL_new ctx
@@ -245,7 +243,7 @@ tls: context [
 			state [integer!]
 	][
 		state: td/state
-		either zero? state [
+		either state or IO_STATE_RW = 0 [
 			iocp/add td/io-port as-integer td/device evt or EPOLLET as iocp-data! td
 		][
 			if state <> evt [iocp/modify td/io-port as-integer td/device evt or EPOLLET as iocp-data! td]
@@ -262,10 +260,12 @@ tls: context [
 			ret [integer!]
 			p	[red-object!]
 	][
+		IODebug("tls/negotiate")
 		ssl: td/ssl
 		ret: SSL_do_handshake ssl
 		either ret = 1 [td/state: td/state or IO_STATE_TLS_DONE 1][
 			ret: SSL_get_error ssl ret
+			probe ["errno: " errno/value]
 			switch ret [
 				SSL_ERROR_WANT_READ [
 					update-td td EPOLLIN
@@ -275,15 +275,21 @@ tls: context [
 				]
 				default [
 					check-errors ret
-					SSL_free ssl
-					if td/state <> 0 [
-						iocp/remove td/io-port as-integer td/device td/state as iocp-data! td
+					either td/state and IO_STATE_CLIENT = 0 [
+						td/event: IO_EVT_CLOSE
+					][
+						SSL_free ssl
+						if td/state <> 0 [
+							iocp/remove td/io-port as-integer td/device td/state as iocp-data! td
+						]
+						socket/close as-integer td/device
+						td/device: IO_INVALID_DEVICE
+						td/io-port/n-ports: td/io-port/n-ports - 1
 					]
-					socket/close as-integer td/device
-					td/device: IO_INVALID_DEVICE
-					td/io-port/n-ports: td/io-port/n-ports - 1
-					if server-ctx <> null [SSL_CTX_free server-ctx server-ctx: null]
-					if client-ctx <> null [SSL_CTX_free client-ctx client-ctx: null]
+					if ret = SSL_ERROR_SYSCALL [
+						if server-ctx <> null [SSL_CTX_free server-ctx server-ctx: null]
+						if client-ctx <> null [SSL_CTX_free client-ctx client-ctx: null]
+					]
 					ERR_clear_error
 					return -1
 				]
@@ -310,7 +316,7 @@ tls: context [
 	][
 		ssl: td/ssl
 		IODebug(["native tls free handle" td/state td/device])
-		if td/state and IO_STATE_ERROR = 0 [
+		if all [ssl <> null td/state and IO_STATE_ERROR = 0][
 			ret: SSL_get_shutdown ssl
 			?? ret
 			if ret = 0 [	;-- no shutdown yet
@@ -324,7 +330,7 @@ tls: context [
 						state: td/state
 						sock: as-integer td/device
 						case [
-							state and (EPOLLIN or EPOLLOUT) = 0 [
+							state and IO_STATE_RW = 0 [
 								td/state: state or IO_STATE_PENDING_WRITE
 								iocp/add td/io-port sock EPOLLOUT or EPOLLET as iocp-data! td
 							]
@@ -343,7 +349,7 @@ tls: context [
 
 		;-- the close_notify was sent
 		;-- we don't care about the reply from the peer
-		SSL_free ssl
+		if ssl <> null [SSL_free ssl]
 		socket/close as-integer td/device
 		td/device: IO_INVALID_DEVICE
 		IODebug("native tls free handle done")

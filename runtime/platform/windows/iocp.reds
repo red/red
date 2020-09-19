@@ -10,11 +10,6 @@ Red/System [
 	}
 ]
 
-#define IO_STATE_TLS_DONE		1000h
-#define IO_STATE_CLIENT			2000h
-#define IO_STATE_READING		4000h
-#define IO_STATE_WRITING		8000h
-
 iocp-event-handler!: alias function! [
 	data		[int-ptr!]
 ]
@@ -167,6 +162,7 @@ iocp: context [
 			fd		[integer!]
 			e		[OVERLAPPED_ENTRY!]
 			data	[iocp-data!]
+			td		[tls-data!]
 			evt		[integer!]
 	][
 		if null? p/events [
@@ -228,7 +224,8 @@ iocp: context [
 							default [0]
 						]
 					][
-						if evt = IO_EVT_ACCEPT [
+						td: as tls-data! data
+						if all [evt = IO_EVT_ACCEPT null? td/cert-ctx][
 							;-- swap accepted socket and the server socket
 							;-- we'll do the negotiate through the accepted socket
 							fd: data/accept-sock
@@ -236,7 +233,7 @@ iocp: context [
 							data/device: as int-ptr! fd
 							bind p as int-ptr! fd
 						]
-						if zero? tls/negotiate as tls-data! data [
+						if zero? tls/negotiate td [
 							i: i + 1
 							continue
 						]

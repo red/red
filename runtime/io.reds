@@ -133,12 +133,6 @@ io: context [
 			as-integer data
 	]
 
-	free-iocp-data: func [
-		data		[iocp-data!]
-	][
-		
-	]
-
 	close-port: func [
 		red-port	[red-object!]
 		return:		[iocp-data!]

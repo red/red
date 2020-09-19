@@ -13,16 +13,6 @@ Red/System [
 	}
 ]
 
-#define IO_STATE_ERROR			0100h
-#define IO_STATE_CLOSING		0200h
-#define IO_STATE_CONNECTED		0400h
-#define IO_STATE_TLS_DONE		1000h
-#define IO_STATE_CLIENT			2000h
-#define IO_STATE_READING		4000h
-#define IO_STATE_WRITING		8000h
-#define IO_STATE_PENDING_READ	4001h		;-- READING or EPOLLIN
-#define IO_STATE_PENDING_WRITE	8004h		;-- WRITING or EPOLLOUT
-
 iocp-event-handler!: alias function! [
 	data		[int-ptr!]
 ]
@@ -316,7 +306,7 @@ iocp: context [
 				]
 				n > 0 [
 					case [
-						zero? (state and 0Fh) [
+						zero? (state and IO_STATE_RW) [
 							data/state: IO_STATE_PENDING_WRITE
 							iocp/add io-port sock EPOLLOUT or EPOLLET data
 						]
@@ -459,6 +449,7 @@ probe ["events: " cnt " " p/n-ports]
 					data/event = IO_EVT_CONNECT
 					state and IO_STATE_CONNECTED = 0
 				][
+					IODebug("check-connect")
 					if 1 = socket/check-connect as sockdata! data [
 						i: i + 1 continue
 					]
@@ -488,7 +479,7 @@ probe ["events: " cnt " " p/n-ports]
 							data: as iocp-data! td
 						]
 					]
-					if 1 <> tls/negotiate td [
+					if zero? tls/negotiate td [
 						i: i + 1
 						continue
 					]
