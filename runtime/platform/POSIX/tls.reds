@@ -243,7 +243,7 @@ tls: context [
 			state [integer!]
 	][
 		state: td/state
-		either state or IO_STATE_RW = 0 [
+		either state and IO_STATE_RW = 0 [
 			iocp/add td/io-port as-integer td/device evt or EPOLLET as iocp-data! td
 		][
 			if state <> evt [iocp/modify td/io-port as-integer td/device evt or EPOLLET as iocp-data! td]
