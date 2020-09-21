@@ -23,6 +23,7 @@ redc: context [
 	win-version:	none								;-- Windows version extracted from "ver" command
 	SSE3?:			yes
 
+	Linux?:    system/version/4 = 4
 	Windows?:  system/version/4 = 3
 	macOS?:    system/version/4 = 2
 	load-lib?: any [encap? find system/components 'Library]
@@ -415,6 +416,7 @@ redc: context [
 	run-console: func [
 		gui?	[logic!]
 		debug?	[logic!]
+		view?	[logic!]
 		/with file [string!]
 		/local 
 			opts result script filename exe console console-root files files2
@@ -460,7 +462,11 @@ redc: context [
 			]
 
 			source: copy read-cache console/:con-ui
-			if all [any [Windows? macOS?] not gui?][insert find/tail source #"[" "Needs: 'View^/"]
+			if all [
+				view?
+				any [Windows? macOS? Linux?]
+				not gui?
+			][insert find/tail source #"[" "Needs: 'View^/"]
 
 			files: [%auto-complete.red %engine.red %help.red]
 			foreach f files [write temp-dir/:f read-cache console-root/:f]
@@ -532,10 +538,11 @@ redc: context [
 			not encap?
 			opts/build-prefix: head insert copy path %../
 		]
-		
-		script: switch/default opts/OS [	;-- empty script for the lib
-			Windows macOS [ [[Needs: View]] ]
-		][ [[]] ]
+
+		script: either all [
+			opts/GUI-engine
+			find [Windows macOS Linux] opts/OS
+		][ [[Needs: View]] ][ [[]] ]
 		
 		result: red/compile script opts
 		print [
@@ -667,7 +674,7 @@ redc: context [
 	parse-options: func [
 		args [string! none!]
 		/local src opts output target verbose filename config config-name base-path type
-		mode target? gui? cmd spec cmds ws ssp
+		mode target? gui? cmd spec cmds ws ssp view?
 	][
 		unless args [
 			if encap? [fetch-cmdline]					;-- Fetch real command-line in UTF8 format
@@ -681,6 +688,7 @@ redc: context [
 			libRedRT-update?: no
 		]
 		gui?: Windows?									;-- use GUI console by default on Windows
+		view?: yes										;-- include view module by default
 
 		unless empty? args [
 			if cmd: select [
@@ -712,6 +720,7 @@ redc: context [
 				| "--dev"						(opts/dev-mode?: yes)
 				| "--no-runtime"				(opts/runtime?: no)		;@@ overridable by config!
 				| "--cli"						(gui?: no)
+				| "--no-view"					(opts/GUI-engine: none view?: no)
 				| "--no-compress"				(opts/redbin-compress?: no)
 				| "--show-func-map"				(opts/show-func-map?: yes)
 				| "--catch"								;-- just pass-thru
@@ -792,7 +801,7 @@ redc: context [
 		unless src [
 			either encap? [
 				if load-lib? [build-compress-lib]
-				run-console gui? opts/debug?
+				run-console gui? opts/debug? view?
 			][
 				return reduce [none none]
 			]
@@ -800,7 +809,7 @@ redc: context [
 
 		if all [encap? none? output none? type][
 			if load-lib? [build-compress-lib]
-			run-console/with gui? opts/debug? filename
+			run-console/with gui? opts/debug? view? filename
 		]
 
 		if slash <> first src [							;-- if relative path

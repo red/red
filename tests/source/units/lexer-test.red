@@ -1,7 +1,7 @@
 Red [
 	Title:   "Red lexer test script"
 	Author:  "Nenad Rakocevic"
-	File: 	 %lexer-test.reds
+	File: 	 %lexer-test.red
 	Tabs:	 4
 	Rights:  "Copyright (C) 2020 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
@@ -637,6 +637,7 @@ Red [
 	--test-- "tro-159"  --assert error? try [transcode/one ":x:"]
 	--test-- "tro-160"  --assert error? try [transcode/one ":x::"]
 	--test-- "tro-161"  --assert error? try [transcode/one "1:2:"]
+	--test-- "tro-162"  --assert error? try [transcode/one "'a/b:"]
 
 ===end-group===
 ===start-group=== "transcode/next"
@@ -1421,6 +1422,22 @@ Red [
 		    prescan word! datatype! 1 5x6 
 		    scan word! datatype! 1 5x6 
 		    load word! datatype! 1 c
+		]
+
+	--test-- "tt-31"
+		clear logs
+		--assert [] == transcode/trace ";-- comment" :lex-logger
+		--assert logs = [
+			prescan comment word! 1 1x12 
+			scan comment word! 1 1x12
+		]
+
+	--test-- "tt-32"
+		clear logs
+		--assert [] == transcode/trace %%{"dd^}%% :lex-logger
+		--assert logs = [
+			prescan error! datatype! 1 1x5
+			error string! datatype! 1 1x5
 		]
 
 ===end-group===
