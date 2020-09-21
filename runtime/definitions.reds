@@ -54,7 +54,7 @@ Red/System [
 #define node!				int-ptr!
 #define default-offset		-1				;-- for offset value in alloc-series calls
 
-#define series!				series-buffer!
+#define series!				series-buffer! 
 #define handle!				[pointer! [integer!]]
 
 
@@ -212,7 +212,7 @@ Red/System [
 	#define FILE_ATTRIBUTE_NORMAL	00000080h
 	#define FILE_ATTRIBUTE_DIRECTORY  00000010h
 	#define FILE_FLAG_SEQUENTIAL_SCAN 08000000h
-
+ 
 	#define STD_INPUT_HANDLE		-10
 	#define STD_OUTPUT_HANDLE		-11
 	#define STD_ERROR_HANDLE		-12
@@ -259,7 +259,7 @@ Red/System [
 		rgbReserved7 [integer!]
 		rgbReserved8 [integer!]
 	]
-
+ 
 	POINT_2F: alias struct! [
 		x		[float32!]
 		y		[float32!]
@@ -273,7 +273,7 @@ Red/System [
 
 	tagPOINT: alias struct! [
 		x		[integer!]
-		y		[integer!]
+		y		[integer!] 
 	]
 
 	gradient!: alias struct! [
@@ -373,7 +373,7 @@ Red/System [
 	#define S_IROTH		4
 
 	#define	DT_DIR		#"^(04)"
-
+ 
 	#case [
 		any [OS = 'FreeBSD OS = 'macOS OS = 'NetBSD] [
 			#define O_CREAT		0200h
@@ -382,7 +382,7 @@ Red/System [
 			#define O_APPEND	8
 			#define	O_NONBLOCK	4
 			#define	O_CLOEXEC	01000000h
-
+   
 			#define DIRENT_NAME_OFFSET 8
 		]
 		true [
@@ -394,7 +394,7 @@ Red/System [
 			#define	O_CLOEXEC	524288
 		]
 	]
-
+	
 	#define BFFM_SETEXPANDED		1130
 ]
 

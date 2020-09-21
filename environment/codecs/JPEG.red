@@ -14,8 +14,8 @@ put system/codecs 'jpeg context [
 	title: ""
 	name: 'JPEG
 	mime-type: [image/jpeg]
-	suffixes: [%.jpg %.jpeg %.jpe %.jfif]
-
+	suffixes: [%.jpg %.jpeg %.jpe %.jfif]	
+	
 	encode: routine [img [image!] where [any-type!]][
 		#if not find [Android Linux FreeBSD NetBSD Syllabe] OS [
 			stack/set-last as cell! image/encode img where IMAGE_JPEG

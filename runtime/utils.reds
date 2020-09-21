@@ -77,7 +77,7 @@ Red/System [
 		str: string/rs-make-at ALLOC_TAIL(root) size
 		s: GET_BUFFER(str)
 		args: system/args-list
-
+  
 		until [
 			src: args/item
 
@@ -99,7 +99,7 @@ Red/System [
 				any [src/1 = null-byte zero? size]
 			]
 			s: string/append-char s quote
-
+			
 			args: args + 1
 			end?: null? args/item
 			unless end? [s: string/append-char s as-integer #" "] ;-- add a space as separation

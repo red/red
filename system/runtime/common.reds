@@ -21,7 +21,7 @@ Red/System [
 #define unless		  [if not]
 #define	raise-error	  ***-on-quit
 #define probe		  print-line
-
+ 
 #define as-byte		  [as byte!]
 #define as-logic	  [as logic!]
 #define as-integer	  [as integer!]
@@ -30,7 +30,7 @@ Red/System [
 #define as-c-string	  [as c-string!]
 #define keep-float	  [as float! keep]
 #define keep-float32  [as float32! keep]
-
+ 
 #define null-byte	  #"^(00)"
 #define yes			  true
 #define no			  false
@@ -93,19 +93,19 @@ str-array!: alias struct! [
 ]
 
 typed-value!: alias struct! [
-	type	 [integer!]
+	type	 [integer!] 
 	value	 [integer!]
 	_padding [integer!]						;-- extra space for 64-bit values
 ]
 
 typed-float32!: alias struct! [
-	type	 [integer!]
+	type	 [integer!] 
 	value	 [float32!]
-	_padding [integer!]						;-- extra space for 64-bit values
+	_padding [integer!]						;-- extra space for 64-bit values 
 ]
 
 typed-float!: alias struct! [
-	type	 [integer!]
+	type	 [integer!] 
 	value	 [float!]
 ]
 
@@ -167,12 +167,12 @@ re-throw: func [/local id [integer!]][
 	#if debug? = yes [#include %debug.reds]	;-- loads optionally debug functions
 
 	;-- Run-time error handling --
-
+ 
 	__set-stack-on-crash: func [
 		return: [int-ptr!]
 		/local address frame top
 	][
-		top: system/stack/frame				;-- skip the set-stack-on-crash stack frame
+		top: system/stack/frame				;-- skip the set-stack-on-crash stack frame 
 		frame: as int-ptr! top/value
 		top: top + 1
 		address: as int-ptr! top/value
@@ -183,7 +183,7 @@ re-throw: func [/local id [integer!]][
 		system/debug/top: top
 		address
 	]
-
+ 
 	#if target = 'ARM [
 		***-on-div-error: func [			;-- special error handler wrapper for _div_ intrinsic
 			code [integer!]
@@ -198,7 +198,7 @@ re-throw: func [/local id [integer!]][
 	***-on-quit: func [						;-- global exit handler
 		status  [integer!]
 		address [integer!]
-		/local
+		/local 
 			msg [c-string!]
 	][
 		unless zero? status [
@@ -265,7 +265,7 @@ re-throw: func [/local id [integer!]][
 		]
 		quit status
 	]
-
+ 
 	***-uncaught-exception: does [
 		either system/thrown = 0BADCAFEh [	;-- RED_THROWN_ERROR exception value (label not defined if R/S used standalone)
 			***-on-quit 0 0					;-- Red error, normal exit

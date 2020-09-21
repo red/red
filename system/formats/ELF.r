@@ -39,12 +39,12 @@ context [
 
 		em-386			3			;; intel 80386
 		em-arm			40			;; ARM
-
+  
 		ef-arm-abi		83886080	;; ABI version: 05000000h
 		ef-arm-hard		1024		;; Hard floating point required (400h)
 		ef-arm-soft		512			;; Soft floating point required (200h)
 		ef-arm-ep		2			;; Has entry points (02h)
-
+  
 		pt-load			1			;; loadable segment
 		pt-dynamic		2			;; dynamic linking information
 		pt-interp		3			;; dynamic linker ("interpreter") path name
@@ -307,15 +307,15 @@ context [
 			any [job/base-address defs/base-address]
 		]
 		dynamic-linker: any [job/dynamic-linker ""]
-
+ 
 		soname: append form last split-path job/build-basename ".so"
-
+  
 		;-- (hack) Move libRedRT in first position to avoid "system" symbol
 		;-- to be bound to libC instead! (TBD: find a cleaner way)
 		if pos: find list: job/sections/import/3 "libRedRT.so" [
 			insert list take/part pos 2
 		]
-
+  
 		set [libraries imports] collect-import-names job
 		exports: collect-exports job
 		natives: collect-natives job
@@ -359,14 +359,14 @@ context [
 
 		data-size: size-of job/sections/data/2
 		if job/debug? [
-			data-size: data-size
+			data-size: data-size 
 				+ (linker/get-debug-lines-size job)
 				+  linker/get-debug-funcs-size job
 		]
 		if zero? data-size [
 			remove-elements structure [".data"]
 		]
-
+  
 		dynamic-size: calc-dynamic-size job/type job/target job/symbols
 
 		segments: collect-structure-names structure 'segment
@@ -491,7 +491,7 @@ context [
 
 		set-data ".data.rel.ro"
 			[build-relro imports]
-
+  
 		set-data ".dynamic" [
 			build-dynamic
 				job/type
@@ -542,7 +542,7 @@ context [
 				get-data ".text"
 				relro-offset
 		]
-
+  
 		linker/set-image-info
 			job
 			any [job/base-address defs/base-address]
@@ -724,7 +724,7 @@ context [
 			'ARM	defs/r-arm-abs32
 		] target-arch
 		result: make block! (length? relocs) + len: length? symbols
-
+  
 		repeat i len [ 									;-- 1..n, 0 is undef
 			entry: make-struct elf-relocation none
 			entry/offset:		rel-address-of/index relro-address (i - 1)
@@ -733,12 +733,12 @@ context [
 			entry/info-addend:	shift/logical i 8
 			append result entry
 		]
-
+  
 		rel-type: select reduce [
 			'IA-32	defs/r-386-rel
 			'ARM	defs/r-arm-rel
 		] target-arch
-
+  
 		foreach ptr relocs [
 			entry: make-struct elf-relocation none
 			entry/offset:		data-address + ptr
@@ -749,7 +749,7 @@ context [
 		]
 		result
 	]
-
+ 
 	build-reldata: func [
 		target-arch [word!]
 		relocs [block!]
@@ -757,7 +757,7 @@ context [
 		/local rel-type result entry len
 	][
 		result: make block! (length? relocs) / 2
-
+  
 		foreach [name spec] relocs [
 			entry: make-struct elf-relocation none
 			entry/offset: spec/2
@@ -802,7 +802,7 @@ context [
 
 		if job-type = 'dll [
 			repend entries ['soname strtab-index-of dynstr soname]
-
+   
 			if spec: select symbols '***-dll-entry-point [
 				repend entries ['init text-address + spec/2 - 1]
 			]
@@ -810,7 +810,7 @@ context [
 				repend entries ['fini text-address + spec/2 - 1]
 			]
 		]
-
+  
 		;; Static _DYNAMIC entries:
 		append entries reduce [
 			'hash	hash-address
@@ -928,16 +928,16 @@ context [
 	]
 
 	;; -- Job helpers --
-
+ 
 	collect-data-reloc: func [job [object!] /local list syms][
 		list: make block! 100
 		syms: job/symbols
-
+  
 		while [not tail? syms][
 			syms: skip syms 2
 			if all [
 				not tail? syms
-				syms/1 = <data>
+				syms/1 = <data> 
 				block? syms/2/4
 			][
 				append list either syms/2/4/1 - 1 = syms/-1/2 [
@@ -1113,7 +1113,7 @@ context [
 			reduce ['type meta/1 'flags meta/2 'align meta/3]
 			any [select commands reduce [name 'meta] []]
 	]
-
+ 
 	calc-dynamic-size: func [
 		job-type	[word!]
 		target		[word!]
