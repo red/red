@@ -352,6 +352,26 @@ set-widget-child-offset: func [
 	]
 ]
 
+set-scroller-pos: func [
+	widget		[handle!]
+	values		[red-value!]
+	/local
+		pos		[red-float!]
+		sel		[red-float!]
+		adj		[handle!]
+		dividend [integer!]
+][
+	pos: as red-float! values + FACE_OBJ_DATA
+	sel: as red-float! values + FACE_OBJ_SELECTED
+
+	if TYPE_OF(pos) <> TYPE_FLOAT [pos/header: TYPE_FLOAT]
+	adj: gtk_range_get_adjustment widget
+	pos/value: gtk_adjustment_get_value adj
+	
+	if TYPE_OF(sel) <> TYPE_PERCENT [sel/header: TYPE_PERCENT]
+	sel/value: (gtk_adjustment_get_page_size adj) / 100.0
+]
+
 get-child-from-xy: func [
 	parent		[handle!]
 	x			[integer!]
@@ -1046,7 +1066,9 @@ change-text: func [
 		case [
 			type = area [
 				buffer: gtk_text_view_get_buffer widget
+				g_signal_handlers_block_by_func(buffer :area-changed widget)
 				gtk_text_buffer_set_text buffer cstr -1
+				g_signal_handlers_unblock_by_func(buffer :area-changed widget)
 				gtk_text_buffer_get_bounds buffer as handle! start as handle! end
 				update-textview-tag buffer as handle! start as handle! end
 			]
@@ -1085,6 +1107,8 @@ change-data: func [
 		caption		[c-string!]
 		type		[integer!]
 		len			[integer!]
+		flt			[float!]
+		adj			[handle!]
 ][
 	data: as red-value! values + FACE_OBJ_DATA
 	word: as red-word! values + FACE_OBJ_TYPE
@@ -1105,6 +1129,15 @@ change-data: func [
 		][
 			f: as red-float! data
 			gtk_range_set_value widget f/value * 100.0
+		]
+		all [type = scroller TYPE_OF(data) = TYPE_FLOAT][
+			f: as red-float! data
+			flt: f/value
+			if flt < 0.0 [flt: 0.0]
+			if flt > 1.0 [flt: 1.0]
+			flt: flt * 100.0
+			adj: gtk_range_get_adjustment widget
+			gtk_adjustment_set_value adj flt
 		]
 		any [
 			type = check
@@ -1147,19 +1180,26 @@ change-selection: func [
 		ins		[GtkTextIter! value]
 		bound	[GtkTextIter! value]
 		buffer	[handle!]
+		adj		[handle!]
+		f		[red-float!]
+		flt		[float!]
 ][
 	if type <> window [
-		idx: either TYPE_OF(int) = TYPE_INTEGER [int/value - 1][-1]
+		idx: either TYPE_OF(int) = TYPE_INTEGER [either int/value >= 0 [int/value - 1][-1]][-1]
 	]
 	case [
 		any [type = field type = area][
 			sel: as red-pair! int
-			either TYPE_OF(sel) = TYPE_NONE [
-				idx: 0
-				sz:  0
-			][
-				idx: sel/x - 1
-				sz: sel/y - idx						;-- should point past the last selected char
+			switch TYPE_OF(sel) [
+				TYPE_PAIR [
+					idx: sel/x - 1
+					sz: sel/y - idx						;-- should point past the last selected char
+				]
+				TYPE_NONE [
+					idx: 0
+					sz:  0
+				]
+				default [0]
 			]
 			either type = field [
 				gtk_editable_select_region widget idx idx + sz
@@ -1172,6 +1212,15 @@ change-selection: func [
 				gtk_text_iter_set_offset as handle! bound idx + sz
 				gtk_text_buffer_select_range buffer as handle! ins as handle! bound
 			]
+		]
+		type = scroller [
+			adj: gtk_range_get_adjustment widget
+			f: as red-float! int
+			flt: f/value
+			if flt < 0.0 [flt: 0.0]
+			if flt > 1.0 [flt: 1.0]
+			flt: flt * 100.0
+			gtk_adjustment_set_page_size adj flt
 		]
 		type = camera [
 			select-camera widget idx
@@ -1244,7 +1293,7 @@ set-logic-state: func [
 	if check? [
 		flags: get-flags as red-block! (get-face-values widget) + FACE_OBJ_FLAGS
 		tri?:  flags and FACET_FLAGS_TRISTATE <> 0
-		g_signal_handler_block widget check-handler			;-- suppress signal handler
+		g_signal_handlers_block_by_func(widget :button-toggled widget)
 	]
 		
 	type: TYPE_OF(state)
@@ -1263,7 +1312,7 @@ set-logic-state: func [
 	]
 	
 	if check? [
-		g_signal_handler_unblock widget check-handler		;-- resume signal handling
+		g_signal_handlers_unblock_by_func(widget :button-toggled widget)
 	]
 ]
 
@@ -1777,6 +1826,13 @@ OS-make-view: func [
 					gobj_signal_connect(vadjust "value_changed" :vbar-value-changed widget)
 				]
 			]
+		]
+		sym = scroller [
+			vadjust: gtk_adjustment_new 0.0 0.0 100.0 1.0 10.0 10.0
+			len: either size/y > size/x [1][0]
+			widget: gtk_scrollbar_new len vadjust
+			gobj_signal_connect(vadjust "value_changed" :scroller-value-changed widget)
+			set-scroller-pos widget values
 		]
 		sym = window [
 			;; FIXME TBD parent should not always be zero, view engine should set it.

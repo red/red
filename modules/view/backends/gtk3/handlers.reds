@@ -109,6 +109,21 @@ vbar-value-changed: func [
 	]
 ]
 
+scroller-value-changed: func [
+	[cdecl]
+	adj			[handle!]
+	widget		[handle!]
+	/local
+		values	[red-value!]
+		pos		[integer!]
+][
+	values: get-face-values widget
+	pos: as-integer gtk_adjustment_get_value adj
+	pos: pos << 4
+
+	make-event widget 2 or pos EVT_SCROLL
+]
+
 button-toggled: func [
 	[cdecl]
 	evbox  [handle!]
@@ -137,9 +152,9 @@ button-toggled: func [
 		if toggled? [
 			gtk_toggle_button_set_inconsistent button not mixed?			;-- flip on each toggle
 			unless mixed? [													;--		 N		 Y
-				g_signal_handler_block button check-handler					;-- [ ] <-> [v] <-> [-]
+				g_signal_handlers_block_by_func(evbox :button-toggled button)
 				gtk_toggle_button_set_active button no						;--  |--- emulate ---^
-				g_signal_handler_unblock button check-handler
+				g_signal_handlers_unblock_by_func(evbox :button-toggled button)
 				bool/header: TYPE_NONE
 			]
 		]

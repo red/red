@@ -2899,7 +2899,16 @@ comment {
 			recycle/on
 			recycle
 		]
-
+	
+	--test-- "#4627"		
+		--assert to logic! find 
+			form try [transcode "]"]
+			"(line 1) missing [ at ]"
+		
+		--assert to logic! find 
+			form try [null < []]
+			%{#"^@" with []}%
+		
 ===end-group===
 
 ~~~end-file~~~

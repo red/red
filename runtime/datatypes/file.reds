@@ -104,8 +104,8 @@ file: context [
 		;-- prescan for: /c/dir, convert it to c:/ on Windows
 		c: string/get-char p unit
 		either c = as-integer #"/" [
+			p: p + unit
 			#if OS = 'Windows [
-				p: p + unit
 				if p < end [
 					c: string/get-char p unit
 					p: p + unit
