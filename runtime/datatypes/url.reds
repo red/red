@@ -116,7 +116,7 @@ url: context [
 		enc: as red-string! stack/push*
 		len: string/rs-length? as red-string! url
 		string/make-at as red-value! enc len Latin1
-		string/encode-url url enc string/ESC_URI
+		string/encode-url url enc string/ESC_URL
 		s: GET_BUFFER(enc)
 		unit: GET_UNIT(s)
 		p: (as byte-ptr! s/offset) + (enc/head << (log-b unit))

@@ -25,8 +25,8 @@ string: context [
 
 	#enum escape-type! [
 		ESC_CHAR: FDh
-		ESC_URI:  FEh
-		ESC_URL:  FFh
+		ESC_URI:  FEh		;-- RFC 3986
+		ESC_URL:  FFh		;-- similar encodeURI
 	]
 
 	escape-chars: [
@@ -63,7 +63,8 @@ string: context [
 		FF FF FF FF FF FF FF FF ;-- 7Fh
 	}
 
-	url-encode-tbl: #{
+	;-- RFC3986
+	uri-encode-tbl: #{
 		00 00 00 00 00 00 00 00 ;-- 07h
 		00 00 00 00 00 00 00 00 ;-- 0Fh
 		00 00 00 00 00 00 00 00 ;-- 17h
@@ -82,8 +83,8 @@ string: context [
 		FF FF FF 00 00 00 FF 00 ;-- 7Fh
 	}
 
-	;-- encodeURI
-	uri-encode-tbl: #{
+	;-- similar encodeURI
+	url-encode-tbl: #{
 		00 00 00 00 00 00 00 00 ;-- 07h
 		00 00 00 00 00 00 00 00 ;-- 0Fh
 		00 00 00 00 00 00 00 00 ;-- 17h

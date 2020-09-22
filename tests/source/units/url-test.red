@@ -62,7 +62,7 @@ Red [
 		--assert https://www.red-lang.org/%E4%B8%AD%20%E6%96%87 = load mold https://www.red-lang.org/中%20文
 
 	--test-- "url-17"
-		--assert {https%3A%2F%2Fwww.red-lang.org%2F%E4%B8%AD%20%E6%96%87} = enhex https://www.red-lang.org/%E4%B8%AD%20%E6%96%87
+		--assert {https://www.red-lang.org/%E4%B8%AD%20%E6%96%87} = enhex https://www.red-lang.org/%E4%B8%AD%20%E6%96%87
 
 	--test-- "url-18"
 		--assert "https://www.red-lang.org/中 文" = dehex https://www.red-lang.org/%E4%B8%AD%20%E6%96%87

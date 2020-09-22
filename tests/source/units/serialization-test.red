@@ -190,9 +190,15 @@ ser-formed: {1 none true false c red Red a/b 'a/b :a/b a/b: 1 + 2 a  a c d b e f
 	--test-- "enhex-7"
 		--assert  "a%25ceb2b" = enhex "a%ceb2b"
 	--test-- "enhex-8"
-		--assert  "https%3A%2F%2Fwww.red-lang.org%2F" = enhex "https://www.red-lang.org/"
-	--test-- "enhex-8"
 		--assert  "a%C2%80b" = enhex "a^(80)b"
+	--test-- "enhex-9"
+		--assert  "https%3A%2F%2Fwww.red-lang.org%2F" = enhex "https://www.red-lang.org/"
+	--test-- "enhex-10"
+		--assert  "https://www.red-lang.org/%E4%B8%AD%20%E6%96%87" = enhex https://www.red-lang.org/中%20文
+		--assert  (mold https://www.red-lang.org/中%20文) = enhex https://www.red-lang.org/中%20文
+	--test-- "enhex-11"
+		--assert  "/d/%E4%B8%AD%20%E6%96%87" = enhex %/d/中%20文
+
 ===end-group===
 
 ===start-group=== "to-hex"
