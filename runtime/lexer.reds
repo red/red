@@ -1634,15 +1634,15 @@ lexer: context [
 			fl	 [red-float!]
 			p	 [byte-ptr!]
 			f	 [float!]
-			neg? [logic!]
+			sig? [logic!]
 	][
 		p: s
-		neg?: either p/1 = #"-" [p: p + 1 yes][no]
+		sig?: either any [p/1 = #"-" p/1 = #"+"] [p: p + 1 yes][no]
 		if any [p/1 <> #"1" p/2 <> #"." p/3 <> #"#"][throw-error lex s e TYPE_FLOAT]
 		p: p + 3
 		either zero? platform/strnicmp p as byte-ptr! "NAN" 3 [f: 1.#NAN][
 			either zero? platform/strnicmp p as byte-ptr! "INF" 3 [
-				f: either neg? [-1.#INF][1.#INF]
+				f: either all [sig? s/1 = #"-"] [-1.#INF][1.#INF]
 			][
 				throw-error lex s e TYPE_FLOAT
 			]
