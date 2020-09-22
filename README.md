@@ -112,6 +112,9 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
 								 
 	--no-console                   : Do not launch the REPL after console compilation. 
 
+    --no-view                      : Do not include VIEW module in the CLI console
+                                     and the libRedRT.
+
     --no-runtime                   : Do not include runtime during Red/System
                                      source compilation.
 
@@ -136,10 +139,12 @@ Cross-compilation targets:
     MSDOS        : Windows, x86, console (+ GUI) applications
     Windows      : Windows, x86, GUI applications
     WindowsXP    : Windows, x86, GUI applications, no touch API
-    Linux        : GNU/Linux, x86
+    Linux        : GNU/Linux, x86, console (+ GUI) applications
+    Linux-GTK    : GNU/Linux, x86, GUI only applications
     Linux-musl   : GNU/Linux, x86, musl libc
     Linux-ARM    : GNU/Linux, ARMv5, armel (soft-float)
     RPi          : GNU/Linux, ARMv7, armhf (hard-float)
+    RPi-GTK      : GNU/Linux, ARMv7, armhf (hard-float), GUI only applications
     Darwin       : macOS Intel, console-only applications
     macOS        : macOS Intel, applications bundles
     Syllable     : Syllable OS, x86

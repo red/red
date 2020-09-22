@@ -476,11 +476,15 @@ lexer: context [
 				| "esc"  (value: #"^(1B)")
 				| "del"	 (value: #"^~")
 			]
-			| pos: [2 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
-					either rs? [
-						value: to-char to-integer debase/base copy/part pos e 16
-					][value: encode-UTF8-char pos e]
+			| pos: [1 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
+				if e/1 <> #")" [throw-error]		;-- more than 6 hexadecimal digits
+				value: either rs? [
+					to-char to-integer to-issue copy/part pos e
+				][
+					encode-UTF8-char pos e
+				]
 			)
+			| (throw-error)							;-- invalid syntax
 		] #")"
 		| #"^^" [
 			[

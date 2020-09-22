@@ -22,7 +22,7 @@
 	--test-- "basic-7"	--assert "make bitset! #{F0}" = mold charset [0 1 2 3]
 	--test-- "basic-8"	--assert error? try [make bitset! [-1]]
 
-	--test-- "basic-8"	
+	--test-- "basic-8.1"	
 		--assert "make bitset! #{FF800000FFFF8000048900007FFFFFE0}"
 			 = mold charset [#"a" - #"z" 0 - 8 32 - 48 "HELLO"]
 
@@ -108,7 +108,16 @@
 		--assert 16 = length? bs
 		--assert bs/8 = true
 		--assert bs/9 = false
-
+	
+	--test-- "basic-18"
+		--assert error? try [make bitset!  1.#NaN]
+		--assert error? try [make bitset!  1.#INF]
+		--assert error? try [make bitset! -1.#INF]
+		--assert error? try [make bitset! -1.0]
+		--assert equal? make bitset! 0 make bitset! 0.0
+		--assert equal? make bitset! 1 make bitset! 1.0
+		--assert equal? make bitset! 2 make bitset! 2.999
+	
 ===end-group===
 
 ===start-group=== "modify"

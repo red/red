@@ -1066,6 +1066,13 @@ to-local-date: func [
 	date
 ]
 
+transcode-trace: func [
+	"Shortcut function for transcoding while tracing all lexer events"
+	src [binary! string!]
+][
+	transcode/trace src :system/lexer/tracer
+]
+
 ;--- Temporary definition, use at your own risks! ---
 rejoin: function [
 	"Reduces and joins a block of values."
