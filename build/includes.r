@@ -164,6 +164,7 @@ write %build/bin/sources.r set-cache [
 			%android.reds
 			%darwin.reds
 			%freebsd.reds
+			%netbsd.reds
 			%linux.reds
 			%POSIX.reds
 			%syllable.reds
@@ -292,6 +293,7 @@ write %build/bin/sources.r set-cache [
 			%darwin.reds
 			%debug.reds
 			%freebsd.reds
+			%netbsd.reds
 			%libc.reds
 			%lib-names.reds
 			%lib-natives.reds

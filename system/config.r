@@ -10,7 +10,9 @@ REBOL [
 ;;-------------------------------------------
 ;;     Compilation Target Options
 ;;-------------------------------------------
-;;	OS:				'Windows | 'Linux | 'macOS | 'Syllable	;-- operating system name
+;;	OS:				'Windows | 'Linux | 'macOS
+;;					| 'Syllable	| 'FreeBSD
+;;					| 'NetBSD | 'Android 		;-- operating system name
 ;;	format:			'PE  | 'ELF | 'Mach-o		;-- file format
 ;;	type:			'exe | 'dll | 'drv			;-- file type
 ;;	target:			'IA-32 | 'ARM				;-- CPU or VM target
@@ -195,6 +197,16 @@ FreeBSD [
 	dynamic-linker: "/usr/libexec/ld-elf.so.1"
 	syscall: 'BSD
 	target: 'IA-32
+]
+;-------------------------
+NetBSD [
+	OS:				'NetBSD
+	format: 		'ELF
+	type:			'exe
+	dynamic-linker: "/usr/libexec/ld.elf_so"
+	syscall: 		'BSD
+	target: 		'IA-32
+	PIC?:			 yes
 ]
 ;-------------------------
 Darwin [

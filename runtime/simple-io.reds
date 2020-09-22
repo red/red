@@ -247,7 +247,7 @@ simple-io: context [
 		]
 
 		#case [
-			OS = 'FreeBSD [
+			any [OS = 'FreeBSD OS = 'NetBSD][
 				;-- http://fxr.watson.org/fxr/source/sys/stat.h?v=FREEBSD10
 				stat!: alias struct! [
 					st_dev		[integer!]
@@ -485,7 +485,7 @@ simple-io: context [
 		]
 
 		#case [
-			any [OS = 'macOS OS = 'FreeBSD OS = 'Android] [
+			any [OS = 'macOS OS = 'FreeBSD OS = 'NetBSD OS = 'Android] [
 				#import [
 					LIBC-file cdecl [
 						;-- https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/10.6/man2/stat.2.html?useVersion=10.6
@@ -695,7 +695,7 @@ simple-io: context [
 			OS = 'Windows [
 				GetFileSize file null
 			]
-			any [OS = 'macOS OS = 'FreeBSD OS = 'Android] [
+			any [OS = 'macOS OS = 'FreeBSD OS = 'NetBSD OS = 'Android] [
 				_stat file s
 				s/st_size
 			]
@@ -1030,7 +1030,7 @@ simple-io: context [
 		][
 			fd: open-file file/to-OS-path filename RIO_READ yes
 			if fd < 0 [	return none/push ]
-			#either any [OS = 'macOS OS = 'FreeBSD OS = 'Android] [
+			#either any [OS = 'macOS OS = 'FreeBSD OS = 'NetBSD OS = 'Android] [
 				_stat   fd s
 			][	_stat 3 fd s]
 			tm: gmtime as int-ptr! s/st_mtime

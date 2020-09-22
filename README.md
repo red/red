@@ -147,6 +147,7 @@ Cross-compilation targets:
     macOS        : macOS Intel, applications bundles
     Syllable     : Syllable OS, x86
     FreeBSD      : FreeBSD, x86
+    NetBSD       : NetBSD, x86
     Android      : Android, ARMv5
     Android-x86  : Android, x86
 
