@@ -468,7 +468,11 @@ simple-io: context [
 					;...optional padding skipped
 				]
 
-				#define DIRENT_NAME_OFFSET 11
+				#either dynamic-linker = "/lib/ld-musl-i386.so.1" [
+					#define DIRENT_NAME_OFFSET 19
+				][
+					#define DIRENT_NAME_OFFSET 11
+				]
 				dirent!: alias struct! [
 					d_ino			[integer!]
 					d_off			[integer!]
@@ -680,7 +684,7 @@ simple-io: context [
 		if file = -1 [return -1]
 		file
 	]
-	
+
 	file-size?: func [
 		file	 [integer!]
 		return:	 [integer!]
@@ -976,13 +980,13 @@ simple-io: context [
 			]
 		]
 	]
-	
+
 	delete: func [
 		filename [red-file!]
 		return:  [logic!]
 		/local
 			name [c-string!]
-			res  [integer!]	
+			res  [integer!]
 	][
 		name: file/to-OS-path filename
 		#either OS = 'Windows [
@@ -1006,7 +1010,7 @@ simple-io: context [
 	][
 		name: file/to-OS-path filename
 		;o: object/copy #get system/standard/file-info
-		
+
 		#either OS = 'Windows [
 			if any [
 				1 <> GetFileAttributesExW name 0 filedata
@@ -1286,7 +1290,7 @@ simple-io: context [
 	#either OS = 'Windows [
 		IID_IWinHttpRequest:			[06F29373h 4B545C5Ah F16E25B0h 0EBF8ABFh]
 		IID_IStream:					[0000000Ch 00000000h 0000000Ch 46000000h]
-		
+
 		IWinHttpRequest: alias struct! [
 			QueryInterface			[QueryInterface!]
 			AddRef					[AddRef!]
@@ -1552,7 +1556,7 @@ simple-io: context [
 				hr: http/ResponseBody IH/ptr :body
 			]
 
-			if hr >= 0 [				
+			if hr >= 0 [
 				array: body/data3
 				if all [
 					VT_ARRAY or VT_UI1 = body/data1
@@ -1813,7 +1817,7 @@ simple-io: context [
 				]
 				s: s + 1
 			]
-			len				
+			len
 		]
 
 		request-http: func [
@@ -1878,7 +1882,7 @@ simple-io: context [
 			curl_easy_setopt curl CURLOPT_URL as-integer unicode/to-utf8 as red-string! url :len
 			curl_easy_setopt curl CURLOPT_NOPROGRESS 1
 			curl_easy_setopt curl CURLOPT_FOLLOWLOCATION 1
-			
+
 			curl_easy_setopt curl CURLOPT_WRITEFUNCTION as-integer :get-http-response
 			curl_easy_setopt curl CURLOPT_WRITEDATA as-integer bin
 
