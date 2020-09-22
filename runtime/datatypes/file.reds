@@ -13,15 +13,19 @@ Red/System [
 file: context [
 	verbose: 0
 
+	;-- two literals, one need decode, another no need
+	;-- this's no decode version
 	load: func [
 		src		 [c-string!]							;-- source string buffer
 		size	 [integer!]
 		encoding [integer!]
 		return:  [red-file!]
+		/local
+			file [red-file!]
 	][
-		string/load src size encoding
-		;-- two literals, one need decode, other no need
-		;string/decode-url str ret
+		file: as red-file! string/load src size encoding
+		set-type as red-value! file TYPE_FILE
+		file
 	]
 
 	push: func [
