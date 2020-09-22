@@ -95,51 +95,43 @@ url: context [
 		indent	[integer!]
 		return: [integer!]
 		/local
-			int	   [red-integer!]
-			limit  [integer!]
-			enc    [red-string!]
-			len    [integer!]
-			s	   [series!]
-			unit   [integer!]
-			p	   [byte-ptr!]
-			head   [byte-ptr!]
-			tail   [byte-ptr!]
-			cp     [integer!]
-			p4     [int-ptr!]
+			int		[red-integer!]
+			limit?	[logic!]
+			slen	[integer!]
+			data	[byte-ptr!]
+			end		[byte-ptr!]
+			size	[integer!]
+			p		[byte-ptr!]
+			num		[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "url/mold"]]
 
-		limit: either OPTION?(arg) [
-			int: as red-integer! arg
-			int/value
-		][0]
-		enc: as red-string! stack/push*
-		len: string/rs-length? as red-string! url
-		string/make-at as red-value! enc len Latin1
-		string/encode-url url enc string/ESC_URL
-		s: GET_BUFFER(enc)
-		unit: GET_UNIT(s)
-		p: (as byte-ptr! s/offset) + (enc/head << (log-b unit))
-		head: p
+		limit?: OPTION?(arg)
 
-		tail: either zero? limit [						;@@ rework that part
-			as byte-ptr! s/tail
-		][
-			either negative? part [p][p + (part << (log-b unit))]
-		]
-		if tail > as byte-ptr! s/tail [tail: as byte-ptr! s/tail]
+		slen: -1
+		data: as byte-ptr! unicode/to-utf8 url :slen
+		if slen = 0 [return 0]
+		end: data + slen
 
-		while [p < tail][
-			cp: switch unit [
-				Latin1 [as-integer p/value]
-				UCS-2  [(as-integer p/2) << 8 + p/1]
-				UCS-4  [p4: as int-ptr! p p4/value]
+		num: 0
+		size: 0
+		while [data < end][
+			p: string/encode-url-char string/ESC_URL data :size
+			loop size [
+				string/append-char GET_BUFFER(buffer) as-integer p/1
+				num: num + 1
+				if all [
+					limit?
+					num >= part
+				][
+					return 0
+				]
+				p: p + 1
 			]
-			string/append-char GET_BUFFER(buffer) cp
-			p: p + unit
+			data: data + 1
 		]
 
-		return part - ((as-integer tail - head) >> (log-b unit))
+		0
 	]
 	
 	to: func [

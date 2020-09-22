@@ -1389,7 +1389,6 @@ natives: context [
 		ret: as red-string! stack/push*
 		len: string/rs-length? str
 		string/make-at as red-value! ret len Latin1
-		type: TYPE_OF(str)
 		either TYPE_OF(str) = TYPE_STRING [
 			string/encode-url str ret string/ESC_URI
 		][

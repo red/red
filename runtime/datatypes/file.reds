@@ -219,7 +219,7 @@ file: context [
 				idx: cp + 1
 				if all [
 					cp < MAX_URL_CHARS
-					string/uri-encode-tbl/idx = #"^(00)"
+					string/url-encode-tbl/idx = #"^(00)"
 				][
 					break
 				]
