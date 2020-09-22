@@ -1845,6 +1845,7 @@ string: context [
 			step	[integer!]
 			sz		[integer!]
 			sz2		[integer!]
+			len     [integer!]
 			sbits	[series!]
 			pbits	[byte-ptr!]
 			pos		[byte-ptr!]								;-- required by BS_TEST_BIT
@@ -1862,6 +1863,7 @@ string: context [
 		unit: GET_UNIT(s)
 		buffer: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
 		end: as byte-ptr! s/tail
+		len: rs-length? str
 
 		if any [							;-- early exit if string is empty or at tail
 			s/offset = s/tail
@@ -1885,13 +1887,9 @@ string: context [
 			if step < 1 [fire [TO_ERROR(script out-of-range) skip]]
 		]
 		if OPTION?(part) [
-			limit: either TYPE_OF(part) = TYPE_INTEGER [
+			sz: either TYPE_OF(part) = TYPE_INTEGER [
 				int: as red-integer! part
-				if int/value <= 0 [						;-- early exit if part <= 0
-					result/header: TYPE_NONE
-					return result
-				]
-				int/value << (unit >> 1)
+				int/value
 			][
 				str2: as red-string! part
 				unless all [
@@ -1900,15 +1898,21 @@ string: context [
 				][
 					ERR_INVALID_REFINEMENT_ARG(refinements/_part part)
 				]
-				str2/head - str/head << (unit >> 1)
+				str2/head - str/head
 			]
+			if sz <= 0 [								;-- early exit if part <= 0
+				result/header: TYPE_NONE
+				return result
+			]
+			if sz > len [sz: len]
 			part?: yes
+			limit: sz << (unit >> 1)
 		]
 		case [
 			last? [
 				step: 0 - step
-				end: either part? [buffer - limit + unit][buffer]
-				buffer: (as byte-ptr! s/tail) - unit
+				end: buffer
+				buffer: (as byte-ptr! either part? [buffer + limit][s/tail]) - unit
 			]
 			reverse? [
 				step: 0 - step

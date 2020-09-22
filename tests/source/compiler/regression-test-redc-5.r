@@ -101,7 +101,20 @@ test
 	--test-- "#2538"
 		--compile-and-run-this-red {probe system/console/size}
 		--assert not crashed?
+	
+	--test-- "#2671"
+		--compile-this {Red [] #"^^(0000001)"}
+		--assert syntax-error "Invalid char! value"
 
+		--compile-this {Red [] "^^(0000001)"}
+		--assert syntax-error "Invalid string! value"
+		
+		--compile-this {Red [] #"^^(skibadee-skibadanger)"}
+		--assert syntax-error "Invalid char! value"
+		
+		--compile-this {Red [] "^^(skibadee-skibadanger)"}
+		--assert syntax-error "Invalid string! value"
+	
 ===end-group===
 
 ; ===start-group=== "Red regressions #3001 - #3500"
