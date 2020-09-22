@@ -22,6 +22,7 @@ system/view/VID: context [
 			#switch config/OS [
 				Windows [#include %backends/windows/rules.red]
 				macOS	[#include %backends/macOS/rules.red]
+				Linux	[#include %backends/gtk3/rules.red]
 			]
 		]
 		
@@ -36,6 +37,8 @@ system/view/VID: context [
 				adjust-buttons
 				capitalize
 				Cancel-OK
+			]
+			Linux [
 			]
 		]
 		user: []
@@ -663,7 +666,10 @@ system/view/VID: context [
 				face: make face! copy/deep st
 				if actors [face/actors: copy/deep st/actors: actors]
 				
-				if h: select system/view/metrics/def-heights face/type [face/size/y: h]
+				if all [
+					h: select system/view/metrics/def-heights face/type
+					h > face/size/y
+				][face/size/y: h]
 				unless styling? [face/parent: panel]
 
 				spec: fetch-options face opts style spec local-styles to-logic styling?
@@ -729,6 +735,15 @@ system/view/VID: context [
 					if name [set name face]
 					pane-size: max pane-size face/offset + face/size
 					if opts/now? [do-actor face none 'time]
+				]
+				if h: select system/view/metrics/fixed-heights face/type [
+					dir: 'y
+					if all [
+						face/type = 'progress
+						face/size/y > face/size/x
+					][dir: 'x]
+					face/offset/:dir: face/offset/:dir + (face/size/:dir - h / 2)
+					face/size/:dir: h
 				]
 			]
 			spec: next spec

@@ -83,6 +83,18 @@ symbol: context [
 		sym
 	]
 	
+	get-c-string: func [
+		id		[integer!]
+		return:	[c-string!]
+		/local
+			sym	[red-symbol!]
+			s	[series!]
+	][
+		sym: get id
+		s: as series! sym/node/value
+		as c-string! s/offset
+	]
+
 	resolve: func [
 		id		[integer!]
 		return:	[integer!]

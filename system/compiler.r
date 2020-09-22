@@ -2200,8 +2200,8 @@ system-dialect: make-profilable context [
 			][
 				if path? value: pc/2 [value: to word! form value]
 				
-				unless all [word? value resolve-aliased reduce [value]][
-					throw-error ["declaring literal for type" value "not supported"]
+				unless all [word? value resolve-aliased/silent reduce [value]][
+					throw-error ["DECLARE argument type" value "not found or not supported"]
 				]
 				if all [ns-path ns: find-aliased/prefix value][value: ns]
 				offset: 2

@@ -525,6 +525,7 @@ bitset: context [
 			bits [red-bitset!]
 			b2	 [red-bitset!]
 			size [integer!]
+			fl   [red-float!]
 			int	 [red-integer!]
 			blk	 [red-block!]
 			bin  [red-binary!]
@@ -562,16 +563,17 @@ bitset: context [
 				b2: as red-bitset! spec
 				bits/node: copy-series GET_BUFFER(b2)
 			]
+			TYPE_FLOAT
 			TYPE_INTEGER [
 				if cmd = CMD_TO [
 					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_BITSET spec]
 				]
-				int: as red-integer! spec
-				size: int/value
+				size: 0
+				GET_INT_FROM(size spec)
 				if size < 0 [
 					fire [
 						TO_ERROR(script out-of-range)
-						int
+						spec
 					]
 				]
 				size: either zero? (size and 7) [size][size + 8 and -8]	;-- round to byte multiple
