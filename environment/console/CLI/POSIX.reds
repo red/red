@@ -32,7 +32,7 @@ Red/System [
 		#define TERM_CS8		0300h
 		#define TERM_ISIG		80h
 		#define TERM_ICANON		0100h
-		#define TERM_ECHO		08h 
+		#define TERM_ECHO		08h	
 		#define TERM_IEXTEN		4000h
 
 		termios!: alias struct! [

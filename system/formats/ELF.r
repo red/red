@@ -937,7 +937,7 @@ context [
 			syms: skip syms 2
 			if all [
 				not tail? syms
-				syms/1 = <data> 
+				syms/1 = <data>	
 				block? syms/2/4
 			][
 				append list either syms/2/4/1 - 1 = syms/-1/2 [
