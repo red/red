@@ -928,10 +928,6 @@ lexer: context [
 		to file! replace/all dehex s #"\" #"/"
 	]
 	
-	encode-file: func [s [string!] e [string!]][
-		replace/all copy/part s back e "%" "%25"
-	]
-	
 	identify-header: func [src /local p ws found? pos][
 		ws: charset " ^-^M^/"
 		rs?: no
