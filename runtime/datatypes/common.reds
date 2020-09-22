@@ -61,7 +61,7 @@ alloc-tail: func [
 	cell: s/tail
 	;-- ensure that cell is within series upper boundary
 	assert (as byte-ptr! cell) < ((as byte-ptr! s + 1) + s/size)
- 
+	
 	s/tail: cell + 1									;-- move tail to next cell
 	cell
 ]
@@ -78,7 +78,7 @@ alloc-tail-unit: func [
 		size: either unit > s/size [unit << 1][0]
 		s: expand-series s size
 	]
- 
+	
 	p: as byte-ptr! s/tail
 	;-- ensure that cell is within series upper boundary
 	assert p < ((as byte-ptr! s + 1) + s/size)
@@ -179,7 +179,7 @@ fire: func [
 	arg1: null
 	arg2: null
 	arg3: null
- 
+	
 	count: count - 2
 	unless zero? count [
 		arg1: as red-value! list/3
@@ -311,7 +311,7 @@ select-key*: func [										;-- called by compiler for SWITCH
 	key: as red-value! stack/arguments
 	blk: as red-block! key + 1
 	assert TYPE_OF(blk) = TYPE_BLOCK
- 
+	
 	unless TYPE_OF(key) = TYPE_BLOCK [
 		s: GET_BUFFER(blk)
 		value: s/offset + blk/head
@@ -407,9 +407,9 @@ cycles: context [
 		assert top - n >= stack
 		top: top - n
 	]
- 
+	
 	reset: does [top: stack]
- 
+	
 	find?: func [
 		node	[node!]
 		return: [logic!]
@@ -426,7 +426,7 @@ cycles: context [
 		]
 		no
 	]
- 
+	
 	detect?: func [
 		value	[red-value!]
 		buffer	[red-string!]
@@ -450,7 +450,7 @@ cycles: context [
 		either find? node [
 			either mold? [
 				switch TYPE_OF(value) [
-					TYPE_BLOCK   
+					TYPE_BLOCK	  
 					TYPE_HASH	  [s: "[...]"			   size: 5 ]
 					TYPE_PAREN	  [s: "(...)"			   size: 5 ]
 					TYPE_MAP	  [s: "#(...)"			   size: 6 ]
@@ -614,7 +614,7 @@ words: context [
 	_add:			as red-word! 0
 	_subtract:		as red-word! 0
 	_divide:		as red-word! 0
- 
+	
 	_to:			as red-word! 0
 	_thru:			as red-word! 0
 	_not:			as red-word! 0
@@ -635,7 +635,7 @@ words: context [
 	_collect: 		as red-word! 0
 	_set: 			as red-word! 0
 	_case:			as red-word! 0
- 
+	
 	;-- navigating actions
 	_at:			as red-word! 0
 	_back:			as red-word! 0
@@ -650,7 +650,7 @@ words: context [
 	_skip:			as red-word! 0
 	_tail:			as red-word! 0
 	_tail?:			as red-word! 0
- 
+	
 	;-- modifying actions
 	_change:		as red-word! 0
 	_changed:		as red-word! 0
@@ -685,20 +685,20 @@ words: context [
 	_uppercase:		as red-word! 0
 	_lowercase:		as red-word! 0
 	_checksum:		as red-word! 0
- 
+	
 	_on-parse-event: as red-word! 0
 	_on-change*:	 as red-word! 0
 	_on-deep-change*: as red-word! 0
- 
+	
 	_type:			as red-word! 0
 	_id:			as red-word! 0
 	_try:			as red-word! 0
 	_catch:			as red-word! 0
 	_name:			as red-word! 0
- 
+	
 	_multiply:		as red-word! 0
 	_browse:		as red-word! 0
- 
+	
 	;-- I/O actions
 	_open:			as red-word! 0
 	_create:		as red-word! 0
@@ -710,14 +710,14 @@ words: context [
 	_rename:		as red-word! 0
 	_update:		as red-word! 0
 	_write:			as red-word! 0
- 
+	
 	;-- lexer events
 	_prescan:		as red-word! 0
 	_scan:			as red-word! 0
 	_load:			as red-word! 0
 	_error:			as red-word! 0
 	_comment:		as red-word! 0
- 
+	
 	errors: context [
 		_throw:		as red-word! 0
 		note:		as red-word! 0
@@ -786,7 +786,7 @@ words: context [
 
 		x:				symbol/make "x"
 		y:				symbol/make "y"
-  
+		
 		self:			symbol/make "self"
 		values:			symbol/make "values"
 		owner:			symbol/make "owner"
@@ -798,7 +798,7 @@ words: context [
 		_no:			symbol/make "no"
 		_on:			symbol/make "on"
 		_off:			symbol/make "off"
-  
+		
 		type:			symbol/make "type"
 		face:			symbol/make "face"
 		window:			symbol/make "window"
@@ -825,7 +825,7 @@ words: context [
 		rgb:			symbol/make "rgb"
 		alpha:			symbol/make "alpha"
 		argb:			symbol/make "argb"
-  
+		
 		date:			symbol/make "date"
 		year:			symbol/make "year"
 		month:			symbol/make "month"
@@ -841,13 +841,13 @@ words: context [
 		minute:			symbol/make "minute"
 		second:			symbol/make "second"
 		timezone:		symbol/make "timezone"
-  
+		
 		code:			symbol/make "code"
 		amount:			symbol/make "amount"
-  
+		
 		user:			symbol/make "user"
 		host:			symbol/make "host"
-  
+		
 		system:			symbol/make "system"
 		system-global:	symbol/make "system-global"
 
@@ -877,7 +877,7 @@ words: context [
 		_collect: 		_context/add-global collect
 		_set: 			_context/add-global set
 		_case:			_context/add-global case*
-  
+		
 		;-- navigating actions
 		_at:			word/load "at"
 		_back:			word/load "back"

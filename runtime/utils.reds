@@ -77,7 +77,7 @@ Red/System [
 		str: string/rs-make-at ALLOC_TAIL(root) size
 		s: GET_BUFFER(str)
 		args: system/args-list
-  
+		
 		until [
 			src: args/item
 

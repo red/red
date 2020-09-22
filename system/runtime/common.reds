@@ -93,19 +93,19 @@ str-array!: alias struct! [
 ]
 
 typed-value!: alias struct! [
-	type	 [integer!] 
+	type	 [integer!]	
 	value	 [integer!]
 	_padding [integer!]						;-- extra space for 64-bit values
 ]
 
 typed-float32!: alias struct! [
-	type	 [integer!] 
+	type	 [integer!]	
 	value	 [float32!]
 	_padding [integer!]						;-- extra space for 64-bit values 
 ]
 
 typed-float!: alias struct! [
-	type	 [integer!] 
+	type	 [integer!]	
 	value	 [float!]
 ]
 
@@ -167,7 +167,7 @@ re-throw: func [/local id [integer!]][
 	#if debug? = yes [#include %debug.reds]	;-- loads optionally debug functions
 
 	;-- Run-time error handling --
- 
+	
 	__set-stack-on-crash: func [
 		return: [int-ptr!]
 		/local address frame top
@@ -183,7 +183,7 @@ re-throw: func [/local id [integer!]][
 		system/debug/top: top
 		address
 	]
- 
+	
 	#if target = 'ARM [
 		***-on-div-error: func [			;-- special error handler wrapper for _div_ intrinsic
 			code [integer!]
@@ -265,7 +265,7 @@ re-throw: func [/local id [integer!]][
 		]
 		quit status
 	]
- 
+	
 	***-uncaught-exception: does [
 		either system/thrown = 0BADCAFEh [	;-- RED_THROWN_ERROR exception value (label not defined if R/S used standalone)
 			***-on-quit 0 0					;-- Red error, normal exit

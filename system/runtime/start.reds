@@ -105,9 +105,9 @@ system: declare struct! [							;-- trimmed down temporary system definition
 
 		;; Finally, call into libc's startup routine.
 		***__stack_end: system/stack/top
-		libc-start :***_start ***__argv ***__envp null null ***__stack_end  
+		libc-start :***_start ***__argv ***__envp null null ***__stack_end		
 	]
- 
+	
 	OS = 'Android [
 		#import [LIBC-file cdecl [
 			libc-init: "__libc_init" [
@@ -117,7 +117,7 @@ system: declare struct! [							;-- trimmed down temporary system definition
 				structors		[pointer! [integer!]]
 			]
 		]]
-  
+		
 		;; Clear the frame pointer. The SVR4 ELF/i386 ABI suggests this, to
 		;; mark the outermost frame.
 		system/stack/frame: as pointer! [integer!] 0
@@ -126,7 +126,7 @@ system: declare struct! [							;-- trimmed down temporary system definition
 		;; kernel).
 		***__argc: pop
 		***__argv: system/stack/top
-  
+		
 		system/stack/top: system/stack/top - 4			;-- simulate a structors struct on stack
 		push 0											;-- fini
 		push 0											;-- init
@@ -135,7 +135,7 @@ system: declare struct! [							;-- trimmed down temporary system definition
 		;; Before pushing arguments for `libc-start`, align the stack to a
 		;; 128-bit boundary, to prevent misaligned access penalities.
 		;system/stack/top: as pointer! [integer!] (FFFFFFF0h and as integer! ***__argv)
-  
+		
 		;; Finally, call into Bionic's startup routine.
 		libc-init ***__argv - 1 null :***_start ***__argv - 16
 	]
