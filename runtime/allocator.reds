@@ -504,7 +504,7 @@ compact-series-frame: func [
 				tail?: s >= heap
 				not tail?
 			][
-				if s/flags and flag-gc-mark = 0 [free-node s/node]
+				either s/flags and flag-gc-mark <> 0 [break][free-node s/node]
 			]
 			;probe ["live found at: " s]
 		]
@@ -602,7 +602,7 @@ cross-compact-frame: func [
 				tail?: s >= heap
 				not tail?
 			][
-				if s/flags and flag-gc-mark = 0 [free-node s/node]
+				either s/flags and flag-gc-mark <> 0 [break][free-node s/node]
 			]
 		]
 		unless tail? [
@@ -615,8 +615,7 @@ cross-compact-frame: func [
 				ss: s						;-- save previous series pointer
 				s: as series! (as byte-ptr! s + 1) + s/size + SERIES_BUFFER_PADDING
 				tail?: s >= heap
-				any [
-					;@@ test tail? first, otherwise s/flags may crash if s = heap
+				any [	;@@ test tail? first, otherwise s/flags may crash if s = heap
 					tail?	
 					all [cross? size >= free-sz]
 					s/flags and flag-gc-mark = 0
