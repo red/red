@@ -2813,6 +2813,10 @@ Red [
 		--assert error? try [parse [][set x4318]]
 		--assert zero? x4318
 	
+	--test-- "#4198"
+		--assert [a] = parse [][collect keep pick ('a)]
+		--assert [[a b]] = parse [][collect keep pick ([a b])]
+
 	--test-- "#4591"
 		--assert not parse " " [0 0 space]
 		--assert not parse [x] [0 0 'x]
@@ -2821,7 +2825,7 @@ Red [
 		--assert parse [][0 0 [ignore me]]
 		--assert parse [][0   "ignore me"]
 		--assert parse [][0   [ignore me]]
-	
+
 ===end-group===
     
 ~~~end-file~~~

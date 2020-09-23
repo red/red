@@ -1571,7 +1571,7 @@ parser: context [
 								][
 									cmd: cmd + 1
 									value: cmd + 1
-									R_KEEP_PICK
+									either TYPE_OF(value) = TYPE_PAREN [R_KEEP_PAREN][R_KEEP_PICK]
 								][
 									R_KEEP
 								]
