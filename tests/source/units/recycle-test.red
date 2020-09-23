@@ -1,7 +1,7 @@
 Red [
 	Title:   "Red recycle test script"
 	Author:  "Peter W A Wood"
-	File: 	 %recycle-test.reds
+	File: 	 %recycle-test.red
 	Tabs:	 4
 	Rights:  "Copyright (C) 2018 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
@@ -68,6 +68,8 @@ Red [
 			rb4-b: copy rb4-bb
 			recycle
 		]
+		rb4-b: none
+		recycle
 		
 		rb4-mem2: stats
 		--assert rb4-mem2 <= rb4-mem
@@ -263,16 +265,15 @@ Red [
 		rm4-map-2: copy rm4-map-1
 		rm4-map-3: copy rm4-map-1
 		rm4-map-4: copy rm4-map-1
-		rm4-map: make map! compose [a: 1 b: 2 c: 3 d: 4]
-		recycle
-		rm4-mem: stats
-		
 		rm4-map: make map! compose [
 			a: (copy rm4-map-1)
 			b: (copy rm4-map-2)
 			c: (copy rm4-map-3)
 			d: (copy rm4-map-4)
 		]
+
+		rm4-mem: stats
+
 		rm4-map/a: none
 		rm4-map/b: none
 		rm4-map/c: none
@@ -565,9 +566,10 @@ Red [
 		
 		loop 500 [
 			rv2-vec: make vector! 500000
-			rv2-vec: none
-			recycle
+			recycle 
 		]
+		rv2-vec: none
+		recycle
 		
 		rv2-mem2: stats
 		--assert rv2-mem2 <= rv2-mem
@@ -595,15 +597,16 @@ Red [
 		recycle
 		rv4-mem: stats
 
-		
 		loop 500 [
 			;rv4-vec: make vector! rv4-size  ;; currently causes out of memory
 			rv4-vec: none
 			recycle
 		]
+		rv4-vec: none
+		recycle
 		
 		rv4-mem2: stats
-		--assert rv4-mem2 <= rv4-mem		
+		--assert rv4-mem2 <= rv4-mem
 		
 ===end-group===
 

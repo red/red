@@ -1,7 +1,7 @@
 Red [
     Title:   "JSON codec"
     Author:  "Gabriele Santilli"
-    File:    %json.red
+    File:    %JSON.red
     Purpose: "Adds JSON as a valid data type to use with LOAD/AS and SAVE/AS"
 	Rights:  "Copyright (C) 2019 Red Foundation. All rights reserved."
 	License: {
@@ -10,7 +10,20 @@ Red [
 	}
 ]
 
-do [
+put system/codecs 'json context [
+    Title:     "JSON codec"
+    Name:      'JSON
+    Mime-Type: [application/json]
+    Suffixes:  [%.json]
+    encode: func [data [any-type!] where [file! url! none!]] [
+        to-json data
+    ]
+    decode: func [text [string! binary! file!]] [
+        if file? text [text: read text]
+        if binary? text [text: to string! text]
+        load-json text
+    ]
+]
 
 ; -- load-json
 
@@ -404,21 +417,4 @@ context [
         init-state indent ascii
         red-to-json-value result data
     ]
-]
-
-
-put system/codecs 'json context [
-    Title:     "JSON codec"
-    Name:      'JSON
-    Mime-Type: [application/json]
-    Suffixes:  [%.json]
-    encode: func [data [any-type!] where [file! url! none!]] [
-        to-json data
-    ]
-    decode: func [text [string! binary! file!]] [
-        if file? text [text: read text]
-        if binary? text [text: to string! text]
-        load-json text
-    ]
-]
 ]

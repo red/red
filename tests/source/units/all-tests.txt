@@ -4,6 +4,8 @@ conditional-test.red
 series-test.red
 path-test.red
 serialization-test.red
+url-test.red
+file-test.red
 function-test.red
 loop-test.red
 type-test.red
@@ -12,6 +14,7 @@ select-test.red
 binding-test.red
 evaluation-test.red
 load-test.red
+lexer-test.red
 switch-test.red
 case-test.red
 char-test.red
@@ -29,6 +32,7 @@ strict-equal-test.red
 object-test.red
 integer-test.red
 float-test.red
+money-test.red
 same-test.red
 words-of-test.red
 unset-test.red
@@ -57,3 +61,5 @@ stress-test.red
 regression-test-red.red
 recycle-test.red
 clipboard-test.red
+csv-test.red
+json-test.red

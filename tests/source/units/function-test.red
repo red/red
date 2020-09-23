@@ -1,7 +1,7 @@
 Red [
 	Title:   "Red function test script"
 	Author:  "Nenad Rakocevic & Peter W A Wood"
-	File: 	 %function-test.reds
+	File: 	 %function-test.red
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2015 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
@@ -812,7 +812,9 @@ if system/state/interpreted? [                      ;-- not yet supported by com
 	--test-- "fsv16"
         --assert error? try [do [func [a return: b][]]]
 
-
+	--test-- "#3595"
+		--assert function? func [return: [block!] "string"][]
+		--assert error? try [do [func [return: [block!] "string" word][]]]
 ===end-group===
 
 ~~~end-file~~~

@@ -748,42 +748,6 @@ dtoa: context [
 		f - 6755399441055744.0
 	]
 
-	#define DTOA_RETERN_1 [
-		Bfree b
-		s/1: #"^@"
-		decpt/value: k + 1
-		sign/value: as-integer sign?
-		length/value: as-integer s - s0
-		return s0
-	]
-
-	#define DTOA_RETERN [
-		Bfree SS
-		if mhi <> null [
-			if all [mlo <> null mlo <> mhi][
-				Bfree mlo
-			]
-			Bfree mhi
-		]
-		DTOA_RETERN_1
-	]
-
-	#define DTOA_ROUND_OFF [
-		while [
-			s: s - 1
-			s/1 = #"9"
-		][
-			if s = s0 [
-				k: k + 1
-				s/1: #"1"
-				s: s + 1
-				DTOA_RETERN
-			]
-		]
-		s/1: s/1 + 1
-		s: s + 1
-	]
-
 	float-to-ascii: func [
 		f		[float!]
 		ndigits	[integer!]		;-- ndigits <= 0: mode 0 ndigits > 0: mode 4
@@ -793,13 +757,14 @@ dtoa: context [
 		add-0?	[logic!]
 		return: [c-string!]
 		/local
-			mlo [big-int!]
-			mhi [big-int!]
-			SS 	[big-int!]
-			fsave bbits b2 b5 be dig i j j1
-			k k0 ki k_check m2 m5 s2 s5 kf
-			spec_case L denorm x d d2 sign?
-			b b1 delta ds s s0 w0 w1 ww0 ilim
+			b b1 mlo mhi SS delta [big-int!]
+			s s0 [c-string!]
+			DTOA_RETURN_1 DTOA_RETURN DTOA_ROUND_OFF [subroutine!]
+			fsave ds kf [float!]
+			bbits b2 b5 be i j j1 k k0 ki m2 m5 s2 s5 L x w0 w1 ww0 ilim [integer!]
+			sign? spec_case denorm k_check [logic!]
+			d d2 [int64!]
+			dig [byte!]
 	][
 		s0:    "-000000000000000000000000000000"		;-- 32 bits including ending null char
 		s:     s0 + 1
@@ -814,6 +779,42 @@ dtoa: context [
 		w0:    WORD_0(d)
 		w1:    WORD_1(d)
 
+		DTOA_RETURN_1: [
+			Bfree b
+			s/1: #"^@"
+			decpt/value: k + 1
+			sign/value: as-integer sign?
+			length/value: as-integer s - s0
+			return s0
+		]
+
+		DTOA_RETURN: [
+			Bfree SS
+			if mhi <> null [
+				if all [mlo <> null mlo <> mhi][
+					Bfree mlo
+				]
+				Bfree mhi
+			]
+			DTOA_RETURN_1
+		]
+
+		DTOA_ROUND_OFF: [
+			while [
+				s: s - 1
+				s/1 = #"9"
+			][
+				if s = s0 [
+					k: k + 1
+					s/1: #"1"
+					s: s + 1
+					DTOA_RETURN
+				]
+			]
+			s/1: s/1 + 1
+			s: s + 1
+		]
+	
 		either zero? (w0 and DTOA_SIGN_BIT) [
 			sign?: no
 		][
@@ -872,7 +873,7 @@ dtoa: context [
 
 		ds: f - 1.5 * 0.289529654602168 + 0.1760912590558 + ((as-float i) * 0.301029995663981)
 		f: fsave
-		k: as-integer ds
+		k: as-integer floor ds			;@@ Optimize it
 
 		k_check: yes
 		if all [k >= 0 k <= TEN_PMAX] [
@@ -910,7 +911,7 @@ dtoa: context [
 			ds: DTOA_TENS/ki
 			forever [
 				i: 1
-				L: as-integer (f / ds)
+				L: as-integer f / ds
 				f: f - (ds * uint-to-float L)
 				s/1: #"0" + as byte! L
 				s: s + 1
@@ -940,7 +941,7 @@ dtoa: context [
 				i: i + 1
 				f: f * 10.0
 			]
-			DTOA_RETERN_1
+			DTOA_RETURN_1
 		]
 
 		m2: b2
@@ -1026,7 +1027,7 @@ dtoa: context [
 				if j > 0 [dig: dig + 1]
 				s/1: dig
 				s: s + 1
-				DTOA_RETERN
+				DTOA_RETURN
 			]
 
 			if any [
@@ -1054,7 +1055,7 @@ dtoa: context [
 				]
 				s/1: dig
 				s: s + 1
-				DTOA_RETERN
+				DTOA_RETURN
 			]
 
 			if j1 > 0 [
@@ -1065,7 +1066,7 @@ dtoa: context [
 				]
 				s/1: dig + 1
 				s: s + 1
-				DTOA_RETERN
+				DTOA_RETURN
 			]
 
 			s/1: dig
@@ -1098,7 +1099,7 @@ dtoa: context [
 			]
 			s: s + 1
 		]
-		DTOA_RETERN
+		DTOA_RETURN
 	]
 
 	string-to-big: func [
@@ -1224,18 +1225,6 @@ dtoa: context [
 		]
 	]
 
-	#define BIGCOMP_BREAK [
-		Bfree b
-		Bfree d
-		if any [
-			dd > 0
-			all [zero? dd odd <> 0]
-		][
-			f/value: f/value + sulp f/value bc
-		]
-		exit
-	]
-
 	bigcomp: func [
 		rv		[int64!]
 		s0		[byte-ptr!]
@@ -1254,7 +1243,20 @@ dtoa: context [
 			p2	[integer!]
 			p5	[integer!]
 			dd	[integer!]
+			BIGCOMP_BREAK [subroutine!]
 	][
+		BIGCOMP_BREAK: [
+			Bfree b
+			Bfree d
+			if any [
+				dd > 0
+				all [zero? dd odd <> 0]
+			][
+				f/value: f/value + sulp f/value bc
+			]
+			exit
+		]
+
 		f:   as pointer! [float!] rv
 		nd:  bc/nd
 		nd0: bc/nd0
@@ -1309,100 +1311,24 @@ dtoa: context [
 		BIGCOMP_BREAK
 	]
 
-	parse-exponent: func [
-		s		[byte-ptr!]
-		end		[byte-ptr!]
-		return: [integer!]
-		/local
-			c	 [byte!]
-			n	 [integer!]
-			neg? [logic!]
-	][
-		neg?: no
-
-		c: s/1
-		if any [
-			c = #"+"
-			c = #"-"
-		][
-			neg?: c = #"-"
-			s: s + 1
-		]
-
-		n: 0
-		until [
-			c: s/1 - #"0"
-			n: n * 10
-			n: n + c
-			s: s + 1
-			s = end
-		]
-		either neg? [0 - n][n]
-	]
-
-	#define STRTOD_RETURN [return either neg? [0.0 - rv][rv]]
-
-	#define STRTOD_OVERFLOW [
-		d/int2: DTOA_EXP_MASK
-		d/int1: 0
-		STRTOD_RETURN
-	]
-
 	#define STRTOD_UNDERFLOW [return 0.0]
-
-	#define STRTOD_BREAK [
-		Bfree bb
-		Bfree bd
-		Bfree bs
-		Bfree bd0
-		Bfree delta
-		if bc/nd > nd [
-			bigcomp d s0 bc
-		]
-		if bc/scale <> 0 [
-			d0/int2: DTOA_EXP_1 - (2 * 53 * DTOA_EXP_MSK1)
-			d0/int1: 0
-			rv: rv * rv0
-		]
-		STRTOD_RETURN
-	]
-
-	#define STRTOD_DROP_DOWN [
-		if bc/scale <> 0 [
-			L: d/int2 and DTOA_EXP_MASK
-			if L <= (2 * 53 + 1 * DTOA_EXP_MSK1) [
-				if L > (53 + 2 * DTOA_EXP_MSK1) [STRTOD_BREAK]
-				if bc/nd > nd [STRTOD_BREAK]
-				STRTOD_UNDERFLOW
-			]
-		]
-		L: d/int2 and DTOA_EXP_MASK - DTOA_EXP_MSK1
-		d/int2: L or BNDRY_MASK1
-		d/int1: FFFFFFFFh
-		STRTOD_BREAK
-	]
 
 	to-float: func [
 		start	[byte-ptr!]
 		end		[byte-ptr!]
-		ret		[int-ptr!]
+		ret		[int-ptr!]		;-- mandatory
 		return: [float!]
 		/local
-			rv	[float!]
-			rv0 [float!]
-			aadj2 [float!]
-			bbe [integer!]
-			bb	[big-int!]
-			bb1	[big-int!]
-			bd	[big-int!]
-			bd0	[big-int!]
-			bs	[big-int!]
-			delta [big-int!]
-			bc	[cmp-info! value]
-			bb2 bb5 bd2 bd5 bs2 c dsign e e1
-			i j k nd nd0 odd neg? s s0 s1
-			aadj aadj1 adj y z next?
-			L d d0 d2 w0 w1 ndigits fraclen
+			STRTOD_RETURN STRTOD_OVERFLOW STRTOD_BREAK STRTOD_DROP_DOWN [subroutine!]
+			rv rv0 aadj2 aadj aadj1 adj [float!]
+			bb bb1 bd bd0 bs delta [big-int!]
+			bbe bb2 bb5 bd2 bd5 bs2 dsign e e1 w0 w1 ndigits fraclen
+			i j k nd nd0 odd y z L n [integer!]
+			neg? next? e-neg? [logic!]
+			s s0 s1 [byte-ptr!]
+			d d0 d2 [int64!]
+			c  [byte!]
+			bc [cmp-info! value]
 	][
 		bb:        null
 		bb1:       null
@@ -1421,6 +1347,46 @@ dtoa: context [
 		s:         start
 		c:         s/1
 		ret/value: 0
+
+		STRTOD_RETURN: [return either neg? [0.0 - rv][rv]]
+
+		STRTOD_OVERFLOW: [
+			d/int2: DTOA_EXP_MASK
+			d/int1: 0
+			STRTOD_RETURN
+		]
+
+		STRTOD_BREAK: [
+			Bfree bb
+			Bfree bd
+			Bfree bs
+			Bfree bd0
+			Bfree delta
+			if bc/nd > nd [
+				bigcomp d s0 bc
+			]
+			if bc/scale <> 0 [
+				d0/int2: DTOA_EXP_1 - (2 * 53 * DTOA_EXP_MSK1)
+				d0/int1: 0
+				rv: rv * rv0
+			]
+			STRTOD_RETURN
+		]
+
+		STRTOD_DROP_DOWN: [
+			if bc/scale <> 0 [
+				L: d/int2 and DTOA_EXP_MASK
+				if L <= (2 * 53 + 1 * DTOA_EXP_MSK1) [
+					if L > (53 + 2 * DTOA_EXP_MSK1) [STRTOD_BREAK]
+					if bc/nd > nd [STRTOD_BREAK]
+					STRTOD_UNDERFLOW
+				]
+			]
+			L: d/int2 and DTOA_EXP_MASK - DTOA_EXP_MSK1
+			d/int2: L or BNDRY_MASK1
+			d/int1: FFFFFFFFh
+			STRTOD_BREAK
+		]
 
 		if any [
 			c = #"+"
@@ -1442,10 +1408,19 @@ dtoa: context [
 
 		s0: s
 		s1: s
-		while [
+		c: s/1
+		while [true][
+			case [
+				all [c >= #"0" c <= #"9"][s: s + 1]
+				c = #"'" [
+					if s/2 = #"'" [ret/value: 1 return rv]
+					move-memory s s + 1 as-integer end - s
+					end: end - 1
+				]
+				true [break]
+			]
 			c: s/1
-			all [c >= #"0" c <= #"9"]
-		][s: s + 1]
+		]
 		ndigits: as-integer s - s1
 		fraclen: 0
 
@@ -1480,16 +1455,38 @@ dtoa: context [
 		nd0: ndigits - fraclen
 
 		e: 0
-		if any [c = #"e" c = #"E"][
+		if all [
+			any [c = #"e" c = #"E"]
+			s + 1 < end
+		][
 			s: s + 1
-			e: parse-exponent s end
+			e-neg?: no
+
+			c: s/1
+			if any [
+				c = #"+"
+				c = #"-"
+			][
+				e-neg?: c = #"-"
+				s: s + 1
+			]
+
+			n: 0
+			until [
+				c: s/1 - #"0"
+				n: n * 10
+				n: n + c
+				s: s + 1
+				s = end
+			]
+			e: either e-neg? [0 - n][n]
 		]
 
 		e: e - (nd - nd0)
 		if nd0 <= 0 [nd0: nd]
 
 		;-- finish parsing
-		;if ret <> null [ret/value: s]
+		ret/value: as-integer s <> end
 
 		if zero? nd [return either neg? [d/int2: 80000000h rv][0.0]]
 

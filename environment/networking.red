@@ -165,8 +165,7 @@ url-parser: object [
 	; present and was immediately followed by the next component separator or
 	; the end of the reference.
 	set 'encode-url function [url-obj [object!] "What you'd get from decode-url"][
-		;result: make url! 256			; pre-allocate for reasonably sized-urls?
-		result: clear url-buffer://
+		result: make url! 60
 
 		if url-obj/scheme [
 			append result url-obj/scheme

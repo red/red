@@ -240,7 +240,7 @@ make-font-attrs: func [
 		o-para: as red-object! (object/get-values face) + FACE_OBJ_PARA
 		if TYPE_OF(o-para) = TYPE_OBJECT [len: 3 and get-para-flags type o-para]
 	]
-	if all [type = button len = -1][len: NSTextAlignmentCenter]
+	if all [any [type = button type = toggle] len = -1][len: NSTextAlignmentCenter]
 
 	para: 0
 	if len <> -1 [

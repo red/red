@@ -415,6 +415,10 @@ Red [
 		]
 		--assert 3.14 = fabs -3.14
 
+	--test-- "issue #4250"
+		--assert error?     try [to float! "12e"]
+		--assert not error? try [to float! "12e4"]
+
 ===end-group===
 
 ===start-group=== "almost equal"

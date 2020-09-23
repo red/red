@@ -65,7 +65,7 @@ context [
 		/extern quote-char double-quote quotable-chars
 	][
 		quot?: false
-		unless string? value [value: form value]
+		value: form value
 		len: length? value
 		replace/all value quote-char double-quote
 		unless equal? len length? value [quot?: true]
@@ -154,10 +154,9 @@ context [
 		data		[block!] "Block of maps/objects"
 		delimiter	[char! string!]	"Delimiter to use in CSV string"
 	][
-		; this is block of maps/objects
 		columns: get-columns data
-		output: to-csv-line columns delimiter
-		append output collect/into [
+		collect/into [
+			keep to-csv-line columns delimiter
 			foreach value data [
 				; construct block
 				line: collect [
@@ -168,7 +167,6 @@ context [
 				keep to-csv-line line delimiter
 			]		
 		] make string! 1000
-		output
 	]
 
 	encode-flat: function [
