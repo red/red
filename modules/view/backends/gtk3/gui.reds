@@ -1155,9 +1155,11 @@ change-data: func [
 			type = text-list
 			TYPE_OF(data) = TYPE_BLOCK
 		][
+			g_signal_handlers_block_by_func(widget :text-list-selected-rows-changed widget)
 			gtk_list_box_unselect_all widget
 			gtk_container_foreach widget as-integer :remove-entry widget
 			init-text-list widget as red-block! data selected
+			g_signal_handlers_unblock_by_func(widget :text-list-selected-rows-changed widget)
 		]
 		any [type = drop-list type = drop-down][
 			init-combo-box widget as red-block! data null type = drop-list
@@ -1226,7 +1228,9 @@ change-selection: func [
 			select-camera widget idx
 		]
 		type = text-list [
+			g_signal_handlers_block_by_func(widget :text-list-selected-rows-changed widget)
 			select-text-list widget idx
+			g_signal_handlers_unblock_by_func(widget :text-list-selected-rows-changed widget)
 		]
 		any [type = drop-list type = drop-down][
 			gtk_combo_box_set_active widget idx
