@@ -34,7 +34,7 @@ lexer: context [
 		C_FLAG_SIGN:	00200000h
 		C_FLAG_LESSER:	00100000h
 		C_FLAG_GREATER: 00080000h
-		C_FLAG_ESC_HEX: 00000100h						;-- percent-escaped mode
+		C_FLAG_PERCENT: 00040000h
 	]
 	
 	#define FL_UCS4		[(C_WORD or C_FLAG_UCS4)]
@@ -185,7 +185,7 @@ lexer: context [
 		C_DBL_QUOTE										;-- 22		"
 		(C_SHARP or C_FLAG_SHARP)						;-- 23		#
 		C_MONEY											;-- 24		$
-		C_PERCENT										;-- 25		%
+		(C_PERCENT or C_FLAG_PERCENT)					;-- 25		%
 		C_WORD											;-- 26		&
 		(C_QUOTE or C_FLAG_QUOTE)						;-- 27		'
 		C_PAREN_OP										;-- 28		(
@@ -759,6 +759,20 @@ lexer: context [
 		if load? [ser/tail: as red-value! p]
 		null
 	]
+
+	convert-percents: func [lex [state!]
+		/local
+			str [red-string!]
+			vl	[red-string! value]
+			len [integer!]
+	][
+		str: as red-string! lex/tail - 1
+		len: string/rs-length? str
+		string/make-at as red-value! :vl len Latin1
+		string/decode-url str :vl
+		str/node: vl/node
+		str/cache: null
+	]
 	
 	grab-integer: func [s e [byte-ptr!] flags [integer!] dst err [int-ptr!]
 		return: [byte-ptr!]
@@ -1176,7 +1190,6 @@ lexer: context [
 	scan-string: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local
 			len unit cp type [integer!]
-			esc	[byte!]
 	][
 		s: s + 1										;-- skip start delimiter
 		unit: 1 << (flags >>> 30)
@@ -1193,14 +1206,9 @@ lexer: context [
 			]
 		][
 			cp: -1
-			esc: either flags and C_FLAG_ESC_HEX = 0 [#"^^"][#"%"]
 			while [s < e][
-				s: either s/1 = esc [
-					either esc = #"^^" [
-						scan-escaped-char s + 1 e :cp
-					][
-						scan-percent-char s + 1 e :cp
-					]
+				s: either s/1 = #"^^" [
+					scan-escaped-char s + 1 e :cp
 				][
 					unicode/fast-decode-utf8-char s :cp
 				]
@@ -1310,7 +1318,7 @@ lexer: context [
 			ser	   [series!]
 			p pos  [byte-ptr!]
 			p4	   [int-ptr!]
-			esc	c  [byte!]
+			c	   [byte!]
 			w?	   [logic!]
 	][
 		s: s + 1										;-- skip start delimiter
@@ -1354,7 +1362,7 @@ lexer: context [
 		][
 			;-- prescan the string for determining unit and accurate final codepoints count
 			extra: 0									;-- count extra bytes used by escape sequences
-			if all [unit < UCS-4 flags and C_FLAG_ESC_HEX = 0][
+			if unit < UCS-4 [
 				p: s
 				;-- check if any escaped codepoint requires higher unit
 				while [p < e][
@@ -1392,7 +1400,6 @@ lexer: context [
 					][p: p + 1]
 				]
 			]
-			esc: either flags and C_FLAG_ESC_HEX = 0 [#"^^"][#"%"]
 
 			str: string/make-at alloc-slot lex len - extra unit
 			ser: GET_BUFFER(str)
@@ -1400,12 +1407,8 @@ lexer: context [
 				UCS-1 [
 					p: as byte-ptr! ser/offset
 					while [s < e][
-						either s/1 = esc [
-							s: either esc = #"^^" [
-								scan-escaped-char s + 1 e :cp
-							][
-								scan-percent-char s + 1 e :cp
-							]
+						either s/1 = #"^^" [
+							s: scan-escaped-char s + 1 e :cp
 							if cp = -1 [throw-error lex s e type]
 							p/value: as-byte cp
 						][
@@ -1420,12 +1423,8 @@ lexer: context [
 					cp: -1
 					p: as byte-ptr! ser/offset
 					while [s < e][
-						s: either s/1 = esc [
-							either esc = #"^^" [
-								scan-escaped-char s + 1 e :cp
-							][
-								scan-percent-char s + 1 e :cp
-							]
+						s: either s/1 = #"^^" [
+							scan-escaped-char s + 1 e :cp
 						][
 							unicode/fast-decode-utf8-char s :cp
 						]
@@ -1440,12 +1439,8 @@ lexer: context [
 					cp: -1
 					p4: as int-ptr! ser/offset
 					while [s < e][
-						s: either s/1 = esc [
-							either esc = #"^^" [
-								scan-escaped-char s + 1 e :cp
-							][
-								scan-percent-char s + 1 e :cp
-							]
+						s: either s/1 = #"^^" [
+							scan-escaped-char s + 1 e :cp
 						][
 							unicode/fast-decode-utf8-char s :cp
 						]
@@ -1528,12 +1523,7 @@ lexer: context [
 		]
 	]
 
-	load-file: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
-		/local
-			str	 [red-string!]
-			vl	 [red-string! value]
-			len	 [integer!]
-	][
+	load-file: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
 		flags: flags and not C_FLAG_CARET				;-- as the lexer can't decode utf8 url, so we don't use it anymore
 		if s/2 = #"^"" [s: s + 1]						;-- skip "
 		lex/type: TYPE_FILE
@@ -1543,12 +1533,7 @@ lexer: context [
 				if e/1 <> #"^"" [throw-error lex s e TYPE_FILE]
 				e: e + 1
 			][
-				str: as red-string! lex/tail - 1
-				len: string/rs-length? str
-				string/make-at as red-value! :vl len Latin1
-				string/decode-url str :vl
-				str/node: vl/node
-				str/cache: null
+				if flags and C_FLAG_PERCENT <> 0 [convert-percents lex]
 			]
 		][
 			scan-string lex s e flags no
@@ -2005,9 +1990,6 @@ lexer: context [
 	load-url: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local
 			type [integer!]
-			str	 [red-string!]
-			vl	 [red-string! value]
-			len	 [integer!]
 	][
 		if any [s/1 = #":" s/1 = #"'"][
 			type: either s/1 = #":" [TYPE_GET_WORD][TYPE_LIT_WORD]
@@ -2017,12 +1999,7 @@ lexer: context [
 		lex/type: TYPE_URL
 		either load? [
 			load-string lex s - 1 e flags yes			;-- compensate for lack of starting delimiter
-			str: as red-string! lex/tail - 1
-			len: string/rs-length? str
-			string/make-at as red-value! :vl len Latin1
-			string/decode-url str :vl
-			str/node: vl/node
-			str/cache: null
+			if flags and C_FLAG_PERCENT <> 0 [convert-percents lex]
 			lex/in-pos: e 								;-- reset the input position to delimiter byte
 		][
 			scan-string lex s - 1 e flags no
