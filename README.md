@@ -109,6 +109,8 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
 
     --cli                          : Run the command-line REPL instead of the
                                      graphical console.
+								 
+	--no-console                   : Do not launch the REPL after console compilation. 
 
     --no-view                      : Do not include VIEW module in the CLI console
                                      and the libRedRT.
