@@ -2934,6 +2934,12 @@ comment {
 			recycle
 		]
 	
+
+	--test-- "#4609"
+		--assert "[2.3.4.5.6 1.2.3.4.5.6]" = mold [2.3.4.5.6 1.2.3.4.5.6]
+		--assert "2.3.4.5.6" = mold 2.3.4.5.6
+		--assert "1.2.3.4.5.6" = mold 1.2.3.4.5.6
+
 	--test-- "#4627"		
 		--assert to logic! find 
 			form try [transcode "]"]
