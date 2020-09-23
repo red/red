@@ -2796,6 +2796,28 @@ b}
 		--assert not error? try [3151391351465.995 // 1.0]
 		unset 'true?
 	
+
+	--test-- "#2650"
+		--assert     0.0 <> null
+		--assert not 0.0 =  null
+		--assert not 0.0 == null
+		--assert not 0.0 =? null
+		
+		--assert     null <> 0.0
+		--assert not null =  0.0
+		--assert not null == 0.0
+		--assert not null =? 0.0
+		
+		--assert error? try [65.0  < #"A"]
+		--assert error? try [66.0  > #"B"]
+		--assert error? try [-1.0 >= #"c"]
+		--assert error? try [+1.0 <= #"d"]
+		
+		--assert error? try [#"A"  > 65.0]
+		--assert error? try [#"B"  > 66.0]
+		--assert error? try [#"c" <= -1.0]
+		--assert error? try [#"d" >= +1.0]
+
 	--test-- "#2671"
 		--assert equal?
 			"^(0) ^(1) ^(2) ^(3) ^(4) ^(5) ^(6) ^(7) ^(8) ^(9) ^(A) ^(B) ^(C) ^(D) ^(E) ^(F)"
