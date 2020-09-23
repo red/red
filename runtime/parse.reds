@@ -810,6 +810,7 @@ parser: context [
 			saved	 [integer!]
 			before   [integer!]
 			fun-locs [integer!]
+			delta    [integer!]
 			upper?	 [logic!]
 			end?	 [logic!]
 			ended?	 [logic!]
@@ -824,7 +825,6 @@ parser: context [
 			done?	 [logic!]
 			saved?	 [logic!]
 			gc-saved [logic!]
-			word?    [logic!]
 	][
 		match?:	  yes
 		end?:	  no
@@ -1628,49 +1628,44 @@ parser: context [
 								TYPE_OF(w) = TYPE_WORD
 								words/only = symbol/resolve w/symbol
 							]
-							cmd: cmd + max
-							value: cmd + 1
-							if value >= tail [PARSE_ERROR [TO_ERROR(script parse-end) words/_insert]]
+							cmd: cmd + max + 1			;-- jump over optional ONLY
+							if cmd >= tail [PARSE_ERROR [TO_ERROR(script parse-end) words/_insert]]
 							
 							s-top: null
 							saved: input/head
-							word?: TYPE_OF(value) = TYPE_WORD
-							either word? [
-								new: as red-series! _context/get as red-word! value
+							
+							if TYPE_OF(cmd) = TYPE_WORD [
+								new: as red-series! _context/get as red-word! cmd
 								if all [TYPE_OF(new) = TYPE_OF(input) new/node = input/node][
-									cmd: value + 1		;-- INSERT position
-									if cmd >= tail [PARSE_ERROR [TO_ERROR(script parse-rule) words/_insert]]
-									switch TYPE_OF(cmd) [
-										TYPE_PAREN [
-											s-top: stack/top
-											value: eval cmd no saved?
-											PARSE_TRACE(_paren)
-										]
-										TYPE_WORD [
-											value: _context/get as red-word! cmd
-											if TYPE_OF(value) = TYPE_UNSET [
-												PARSE_ERROR [TO_ERROR(script no-value) cmd]
-											]
-										]
-										default	  [value: cmd]
-									]
+									cmd: cmd + 1		;-- INSERT position
 									input/head: new/head
 								]
-							][
-								cmd: value
-								if TYPE_OF(value) = TYPE_PAREN [
-									s-top: stack/top
-									value: eval value no saved?
-									PARSE_TRACE(_paren)
+								if cmd >= tail [
+									PARSE_ERROR [TO_ERROR(script parse-rule) words/_insert]
 								]
 							]
+							
+							switch TYPE_OF(cmd) [
+								TYPE_PATH [PARSE_ERROR [TO_ERROR(script parse-rule) cmd]]
+								TYPE_PAREN [
+									s-top: stack/top
+									value: eval cmd no saved?
+									PARSE_TRACE(_paren)
+								]
+								TYPE_WORD [
+									value: _context/get as red-word! cmd
+									if TYPE_OF(value) = TYPE_UNSET [
+										PARSE_ERROR [TO_ERROR(script no-value) cmd]
+									]
+								]
+								default [value: cmd]
+							]
+							
 							PARSE_SAVE_SERIES
 							before: input/head
-							if all [word? TYPE_OF(value) = TYPE_WORD][
-								value: _context/get as red-word! value
-							]
 							actions/insert input value null as-logic max null no
-							input/head: saved + (input/head - before)
+							delta: either before > saved [0][input/head - before]
+							input/head: saved + delta	;-- position might have shifted after insertion
 							if s-top <> null [stack/top: s-top]
 							PARSE_RESTORE_SERIES
 							state: ST_NEXT_ACTION
