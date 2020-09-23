@@ -466,6 +466,37 @@ update-series: func [
 	]
 ]
 
+has-fixed-series?: func [
+	s		[series!]
+	end		[series!]
+	return: [logic!]
+	/local
+		beg [series!]
+		fixed? [logic!]
+][
+	beg: s
+	fixed?: no
+	until [						;-- search for a fixed series
+		if s/flags and flag-series-fixed <> 0 [ ;-- stop compacting when there is a fixed series
+			fixed?: yes
+		]
+		s: as series! (as byte-ptr! s + 1) + s/size + SERIES_BUFFER_PADDING
+		s >= end
+	]
+	if fixed? [
+		s: beg
+		until [					;-- clear gc mark
+			if s/flags and flag-gc-mark <> 0 [
+				s/flags: s/flags and not flag-gc-mark
+			]
+			s: as series! (as byte-ptr! s + 1) + s/size + SERIES_BUFFER_PADDING
+			s >= end
+		]
+	]
+	fixed?
+]
+
+
 ;-------------------------------------------
 ;-- Compact a series frame by moving down in-use series buffer regions
 ;-------------------------------------------
@@ -493,19 +524,19 @@ compact-series-frame: func [
 
 	;assert heap > s
 	if heap = s [return refs]
+	if has-fixed-series? s heap [return refs]
 
 	until [
 		tail?: no
 		if s/flags and flag-gc-mark = 0 [	;-- check if it starts with a gap
 			if dst = null [dst: as byte-ptr! s]
-			;probe ["search live from: " s]
 			free-node s/node
-			while [							;-- search for a live series
+			forever [						;-- search for a live series
 				s: as series! (as byte-ptr! s + 1) + s/size + SERIES_BUFFER_PADDING
 				tail?: s >= heap
+				if tail? [break]
 				mark?: s/flags and flag-gc-mark <> 0
-				not any [mark? tail?]
-			][
+				if mark? [break]
 				free-node s/node
 			]
 			;probe ["live found at: " s]
@@ -514,13 +545,10 @@ compact-series-frame: func [
 			src: as byte-ptr! s
 			;probe ["search gap from: " s]
 			until [							;-- search for a gap
-				if s/flags and flag-series-fixed <> 0 [ ;-- stop compacting when there is a fixed series
-					return refs
-				]
 				s/flags: s/flags and not flag-gc-mark	;-- clear mark flag
 				s: as series! (as byte-ptr! s + 1) + s/size + SERIES_BUFFER_PADDING
 				tail?: s >= heap
-				any [s/flags and flag-gc-mark = 0 tail?]
+				any [tail? s/flags and flag-gc-mark = 0]
 			]
 			;probe ["gap found at: " s]
 			if dst <> null [
@@ -546,7 +574,7 @@ compact-series-frame: func [
 		]
 		tail?
 	]
-	if dst <> null [						;-- no compaction occurred, all series were in use
+	if dst <> null [
 		frame/heap: as series! dst			;-- set new heap after last moved region
 		#if debug? = yes [markfill as int-ptr! frame/heap as int-ptr! frame/tail]
 	]
@@ -593,6 +621,7 @@ cross-compact-frame: func [
 	s: as series! frame + 1					;-- point to first series buffer
 	heap: frame/heap
 	if heap = s [return refs]
+	if has-fixed-series? s heap [return refs]
 
 	src: null								;-- src will point to start of buffer region to move down
 	dst: null								;-- dst will point to start of free region
@@ -602,12 +631,12 @@ cross-compact-frame: func [
 		if s/flags and flag-gc-mark = 0 [	;-- check if it starts with a gap
 			if dst = null [dst: as byte-ptr! s]
 			free-node s/node
-			while [							;-- search for a live series
+			forever [						;-- search for a live series
 				s: as series! (as byte-ptr! s + 1) + s/size + SERIES_BUFFER_PADDING
 				tail?: s >= heap
+				if tail? [break]
 				mark?: s/flags and flag-gc-mark <> 0
-				not any [mark? tail?]
-			][
+				if mark? [break]
 				free-node s/node
 			]
 		]
@@ -615,10 +644,6 @@ cross-compact-frame: func [
 			size: 0
 			src: as byte-ptr! s
 			until [							;-- search for a gap
-				if s/flags and flag-series-fixed <> 0 [ ;-- stop compacting when there is a fixed series
-					prev/heap: as series! prev-dst
-					return refs
-				]
 				s/flags: s/flags and not flag-gc-mark	;-- clear mark flag
 				size2: size
 				size: SERIES_BUFFER_PADDING + size + s/size + size? series-buffer!
@@ -626,9 +651,9 @@ cross-compact-frame: func [
 				s: as series! (as byte-ptr! s + 1) + s/size + SERIES_BUFFER_PADDING
 				tail?: s >= heap
 				any [
+					tail?
 					all [cross? size >= free-sz]
 					s/flags and flag-gc-mark = 0
-					tail?
 				]
 			]
 
@@ -682,7 +707,7 @@ cross-compact-frame: func [
 	]
 
 	prev/heap: as series! prev-dst
-	if dst <> null [						;-- no compaction occurred, all series were in use
+	if dst <> null [
 		frame/heap: as series! dst			;-- set new heap after last moved region
 		#if debug? = yes [markfill as int-ptr! frame/heap as int-ptr! frame/tail]
 	]
@@ -966,7 +991,7 @@ alloc-series: func [
 	unit	[integer!]						;-- size of atomic elements stored
 	offset	[integer!]						;-- force a given offset for series buffer
 	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
-	/local series node
+	/local series [series-buffer!] node [int-ptr!]
 ][
 ;	#if debug? = yes [print-wide ["allocating series:" size unit offset lf]]
 
