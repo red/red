@@ -12,7 +12,9 @@ Red/System [
 
 file: context [
 	verbose: 0
-	
+
+	;-- two literals, one need decode, another no need
+	;-- this's no decode version
 	load: func [
 		src		 [c-string!]							;-- source string buffer
 		size	 [integer!]
@@ -217,7 +219,7 @@ file: context [
 				idx: cp + 1
 				if all [
 					cp < MAX_URL_CHARS
-					string/escape-url-chars/idx = (as byte! string/ESC_URL)
+					string/url-encode-tbl/idx = #"^(00)"
 				][
 					break
 				]

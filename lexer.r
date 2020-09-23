@@ -578,8 +578,8 @@ lexer: context [
 	file-rule: [
 		pos: #"%" (type: file! stop: [not-file-char | ws-no-count]) [
 			#"{" (throw-error)
-			| line-string e: (value: encode-file s e)
-			| s: any UTF8-filtered-char e: (value: copy/part s e)
+			| line-string e: (value: to file! load-string s e)
+			| s: any UTF8-filtered-char e: (value: to file! dehex copy/part s e)
 		]
 	]
 	
@@ -642,7 +642,7 @@ lexer: context [
 			| get-word-rule	  (stack/push to type value)
 			| refinement-rule (stack/push to refinement! copy/part s e)
 			| slash-rule	  (stack/push to type		 copy/part s e)
-			| file-rule		  (stack/push load-file value)
+			| file-rule		  (stack/push value)
 			| char-rule		  (stack/push decode-UTF8-char value)
 			| block-rule	  (stack/push value)
 			| paren-rule	  (stack/push value)
@@ -930,10 +930,6 @@ lexer: context [
 	load-file: func [s [string!]][
 		parse s [any [#"%" [2 hexa | (pos: skip pos negate 1 + length? s throw-error)] | skip]]
 		to file! replace/all dehex s #"\" #"/"
-	]
-	
-	encode-file: func [s [string!] e [string!]][
-		replace/all copy/part s back e "%" "%25"
 	]
 	
 	identify-header: func [src /local p ws found? pos][
