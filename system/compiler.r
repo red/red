@@ -1765,7 +1765,7 @@ system-dialect: make-profilable context [
 		]
 		
 		process-export: has [defs cc ns entry spec list name sym][
-			if all [job/type = 'exe job/OS <> 'FreeBSD][
+			if all [job/type = 'exe job/OS <> 'FreeBSD job/OS <> 'NetBSD][
 				throw-error "#export directive requires a library compilation mode"
 			]
 			if word? pc/2 [
@@ -3229,7 +3229,7 @@ system-dialect: make-profilable context [
 				any [
 					all [1 < slots job/target = 'ARM]	 ;-- ARM requires it only for struct > 4 bytes
 					all [
-						not find [Windows macOS FreeBSD] job/OS	 ;-- fallback on Linux ABI
+						not find [Windows macOS FreeBSD NetBSD] job/OS	 ;-- fallback on Linux ABI
 						job/target <> 'ARM
 					]
 				]

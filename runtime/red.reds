@@ -23,6 +23,7 @@ red: context [
 		Syllable [#include %platform/syllable.reds]
 		macOS	 [#include %platform/darwin.reds]
 		FreeBSD  [#include %platform/freebsd.reds]
+		NetBSD   [#include %platform/netbsd.reds]
 		#default [#include %platform/linux.reds]
 	]
 	
@@ -54,6 +55,7 @@ red: context [
 		macOS	 [#include %platform/image-quartz.reds]
 		Linux	 [#if modules contains 'View [#include %platform/image-gdk.reds]]
 		FreeBSD  []
+		NetBSD   []
 		#default []
 	]
 	
