@@ -121,7 +121,7 @@ update-list-hbar: func [
 	GetTextExtentPoint32 dc str len csize
 	if hFont <> null [SelectObject dc saved]
 	ReleaseDC dc
-	SendMessage hWnd LB_SETHORIZONTALEXTENT csize/width 0
+	SendMessage hWnd LB_SETHORIZONTALEXTENT csize/width + 4 0
 ]
 
 insert-list-item: func [
@@ -201,7 +201,7 @@ update-list: func [
 					]
 				]
 				any [
-					sym = words/_insert/symbol
+					sym = words/_inserted/symbol
 					sym = words/_append/symbol
 					sym = words/_poke/symbol
 					sym = words/_put/symbol
@@ -219,8 +219,8 @@ update-list: func [
 					]
 					loop part [
 						if all [
-							sym <> words/_insert/symbol
-							sym <> words/_append/symbol
+							sym <> words/_inserted/symbol
+							sym <> words/_appended/symbol
 						][
 							remove-list-item hWnd index drop?
 						]

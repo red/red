@@ -22,6 +22,7 @@ system/view/VID: context [
 			#switch config/OS [
 				Windows [#include %backends/windows/rules.red]
 				macOS	[#include %backends/macOS/rules.red]
+				Linux	[#include %backends/gtk3/rules.red]
 			]
 		]
 		
@@ -36,6 +37,8 @@ system/view/VID: context [
 				adjust-buttons
 				capitalize
 				Cancel-OK
+			]
+			Linux [
 			]
 		]
 		user: []
@@ -95,15 +98,16 @@ system/view/VID: context [
 	
 	calc-size: function [face [object!]][
 		case [
-			all [
-				block? data: face/data
-				not empty? data 
-				find [text-list drop-list drop-down] face/type
-			][
+			find [text-list drop-list drop-down] face/type [
 				min-sz: 0x0
-				foreach txt data [
-					if any-string? txt [min-sz: max min-sz size-text/with face as string! txt]
-				]
+				either all [
+					block? data: face/data
+					not empty? data
+				][ 
+					foreach txt data [
+						if any-string? txt [min-sz: max min-sz size-text/with face as string! txt]
+					]
+				][min-sz: size-text/with face "X"]
 				if all [face/text face/type <> 'drop-list][
 					min-sz: max min-sz size-text face
 				]
@@ -306,6 +310,7 @@ system/view/VID: context [
 				| 'loose	  (add-option opts [drag-on: 'down])
 				| 'all-over   (set-flag opts 'flags 'all-over)
 				| 'password   (set-flag opts 'flags 'password)
+				| 'tri-state  (set-flag opts 'flags 'tri-state)
 				| 'hidden	  (opts/visible?: no)
 				| 'disabled	  (opts/enabled?: no)
 				| 'select	  (opts/selected: fetch-argument integer! spec)
@@ -458,7 +463,7 @@ system/view/VID: context [
 			min-sz: either find containers face/type [sz][
 				(any [pad 0x0]) + any [
 					all [
-						any [face/text series? face/data]
+						any [face/text series? face/data face/font]
 						calc-size face
 					]
 					sz
@@ -661,7 +666,10 @@ system/view/VID: context [
 				face: make face! copy/deep st
 				if actors [face/actors: copy/deep st/actors: actors]
 				
-				if h: select system/view/metrics/def-heights face/type [face/size/y: h]
+				if all [
+					h: select system/view/metrics/def-heights face/type
+					h > face/size/y
+				][face/size/y: h]
 				unless styling? [face/parent: panel]
 
 				spec: fetch-options face opts style spec local-styles to-logic styling?
@@ -727,6 +735,15 @@ system/view/VID: context [
 					if name [set name face]
 					pane-size: max pane-size face/offset + face/size
 					if opts/now? [do-actor face none 'time]
+				]
+				if h: select system/view/metrics/fixed-heights face/type [
+					dir: 'y
+					if all [
+						face/type = 'progress
+						face/size/y > face/size/x
+					][dir: 'x]
+					face/offset/:dir: face/offset/:dir + (face/size/:dir - h / 2)
+					face/size/:dir: h
 				]
 			]
 			spec: next spec

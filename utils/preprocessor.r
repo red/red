@@ -394,7 +394,7 @@ preprocessor: context [
 						if trace? [print ["preproc: eval" mold s/:pos]]
 						expr: do-code s/:pos s/1
 						if all [keep? trace?][print ["preproc: ==" mold expr]]
-						either keep? [s: change/part s expr e][remove/part s e]
+						either keep? [s: change/part s :expr e][remove/part s e]
 					]
 				) :s
 				| s: #local [block! | (syntax-error s next s)] e: (

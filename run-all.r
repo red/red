@@ -40,7 +40,7 @@ if args  [
 		bin-compiler: select args "--binary"
 		if any [
 			bin-compiler = "--batch"
-			bin-complier = "--each"
+			bin-compiler = "--each"
 		][
 			bin-compiler: none								;; use default
 		]

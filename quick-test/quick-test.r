@@ -102,7 +102,8 @@ qt: make object! [
   exe: none                            ;; filepath to executable
   source-file?: true                   ;; true = running  test file
                                        ;; false = runnning test script
-				  
+  compile-flag: copy " "
+
 
   summary-template: ".. - .................................................. / "
   
@@ -201,18 +202,18 @@ qt: make object! [
     ;; red/system or red
     red?: false
     parse read src red?-rule
- 
+
     ;; compose and write compilation script
     either binary-compiler? [
     	if #"/" <> first src [src: tests-dir/:src]     ;; relative path supplied
     	either lib [
-    		cmd: join "" [to-local-file bin-compiler " -o " 
+    		cmd: join "" [to-local-file bin-compiler compile-flag " -o " 
     					  to-local-file runnable-dir/:exe
     					  " -dlib -t " target " "
     					  to-local-file src
     		]
     	][
-    		cmd: join "" [to-local-file bin-compiler " -o " 
+    		cmd: join "" [to-local-file bin-compiler compile-flag " -o " 
     					  to-local-file runnable-dir/:exe " "
     					  to-local-file src	
     		]  		
@@ -224,7 +225,7 @@ qt: make object! [
     	  REBOL []
     	  halt: :quit
     	  echo (comp-echo)
-    	  do/args (reduce base-dir/red.r) (join " -o " [
+    	  do/args (reduce base-dir/red.r) (join "" [compile-flag " -o "
     	  	  	  reduce runnable-dir/:exe " ###lib###***src***" 
     	  ])
     	  echo none

@@ -251,7 +251,7 @@ Red [
 		if last-error <> null [return last-error]
 		
 		TRAP_ERRORS(name [
-			#call [system/lexer/transcode str none no]
+			lexer/scan-alt stack/arguments str -1 no yes yes no null null null
 			stack/unwind-last
 		])
 	]
@@ -532,7 +532,7 @@ Red [
 		
 		rgb: null
 		if format = RGB_BUFFER [rgb: src]
-		img/node: OS-image/make-image width height rgb null null
+		img/node: OS-image/make-image width height binary/load-in rgb width * height null null null
 		
 		if format = RGBA_BUFFER [
 			stride: 0

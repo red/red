@@ -65,9 +65,9 @@ stack: context [										;-- call stack
 	;-- header flags
 	#enum flags! [
 		FLAG_INTERPRET: 80000000h						;-- Called from interpreter
-		FLAG_THROW_ATR:	40000000h						;-- Throw function attribut
-		FLAG_CATCH_ATR:	20000000h						;--	Catch function attribut
-		FLAG_IN_FUNC:	10000000h						;--	Inside of a function body (volative flag)
+		FLAG_THROW_ATR:	40000000h						;-- Throw function attribute
+		FLAG_CATCH_ATR:	20000000h						;--	Catch function attribute
+		FLAG_IN_FUNC:	10000000h						;--	Inside of a function body (volatile flag)
 
 		FRAME_FUNCTION:	01000000h						;-- function! call
 		FRAME_NATIVE:	02000000h						;-- native! or action! call
