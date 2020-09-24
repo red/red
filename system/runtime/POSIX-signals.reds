@@ -15,15 +15,15 @@ Red/System [
 ;;  http://fxr.watson.org/fxr/source/bsd/sys/signal.h?v=xnu-1456.1.26;im=excerpts
 
 #define SIGBUS [                            ;-- Bus access error
-	#switch OS [macOS [10] FreeBSD [10] #default [7]]
+	#switch OS [macOS [10] FreeBSD [10] NetBSD [10] #default [7]]
 ]
 #define SIGILL       4                      ;-- Illegal instruction
 #define SIGFPE       8                      ;-- Floating point error
 #define SIGSEGV     11                      ;-- Segmentation violation
 #define SIGWINCH	28						;-- Console window resizing
 
-#define SA_SIGINFO   [#switch OS [macOS [0040h] FreeBSD [0040h] #default [00000004h]]]
-#define SA_RESTART   [#switch OS [macOS [0002h] FreeBSD [0002h] #default [10000000h]]]
+#define SA_SIGINFO   [#switch OS [macOS [0040h] FreeBSD [0040h] NetBSD [0040h] #default [00000004h]]]
+#define SA_RESTART   [#switch OS [macOS [0002h] FreeBSD [0002h] NetBSD [0002h] #default [10000000h]]]
 
 #define ILL_ILLOPC   1
 #define ILL_ILLOPN   [#switch OS [macOS [4] #default [2]]]
