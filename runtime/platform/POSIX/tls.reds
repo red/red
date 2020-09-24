@@ -289,10 +289,6 @@ tls: context [
 						td/device: IO_INVALID_DEVICE
 						td/io-port/n-ports: td/io-port/n-ports - 1
 					]
-					if ret = SSL_ERROR_SYSCALL [
-						if server-ctx <> null [SSL_CTX_free server-ctx server-ctx: null]
-						if client-ctx <> null [SSL_CTX_free client-ctx client-ctx: null]
-					]
 					return -1
 				]
 			]
