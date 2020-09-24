@@ -177,8 +177,8 @@ context [
 		if nl? [header: header or nl-flag]
 		emit header
 		emit to integer! skip bin -4
-		emit to integer! copy/part skip bin -8 4
-		emit to integer! copy/part head bin 4
+		emit to integer! copy/part skip bin -4 -4
+		emit to integer! copy/part skip bin -8 -4
 	]
 	
 	emit-money: func [value [issue!] /local bin header][

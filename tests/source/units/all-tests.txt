@@ -4,6 +4,8 @@ conditional-test.red
 series-test.red
 path-test.red
 serialization-test.red
+url-test.red
+file-test.red
 function-test.red
 loop-test.red
 type-test.red

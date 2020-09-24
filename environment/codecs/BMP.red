@@ -17,14 +17,20 @@ put system/codecs 'bmp context [
 	suffixes: [%.bmp]
 	
 	encode: routine [img [image!] where [any-type!]][
-		#if not find [Android Linux FreeBSD Syllabe] OS [
+		#if not find [Android Linux FreeBSD NetBSD Syllabe] OS [
 			stack/set-last as cell! image/encode img where IMAGE_BMP
 		]
+		#if OS = 'Linux [#if modules contains 'View [
+			stack/set-last as cell! image/encode img where IMAGE_BMP
+		]]
 	]
 
 	decode: routine [data [any-type!]][
-		#if not find [Android Linux FreeBSD Syllabe] OS [
+		#if not find [Android Linux FreeBSD NetBSD Syllabe] OS [
 			stack/set-last as cell! image/decode data
 		]
+		#if OS = 'Linux [#if modules contains 'View [
+			stack/set-last as cell! image/decode data
+		]]
 	]
 ]
