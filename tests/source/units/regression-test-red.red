@@ -2934,6 +2934,10 @@ comment {
 			recycle
 		]
 	
+	--test-- "#4567"
+		objects: [foo]
+		--assert 'foo == objects/1
+		unset 'objects
 
 	--test-- "#4609"
 		--assert "[2.3.4.5.6 1.2.3.4.5.6]" = mold [2.3.4.5.6 1.2.3.4.5.6]
