@@ -328,6 +328,7 @@ system/view/VID: context [
 					if later?: spec/2 = 'later [spec: next spec]
 					repend reactors [face fetch-argument block! spec later?]
 				)
+				| 'style to end (opt?: no)
 				] to end
 			]
 			unless match? [
