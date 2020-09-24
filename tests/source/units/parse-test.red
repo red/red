@@ -2782,7 +2782,6 @@ Red [
 		parse "bx" [some [not "b" | skip]]
 		--assert true				;-- just check that parse finishes
 
-
 	--test-- "#3357"
 		parse x3357: [][insert ('foo)]
 		--assert x3357 = [foo]
@@ -2813,6 +2812,9 @@ Red [
 		--assert error? try [parse [][set x4318]]
 		--assert zero? x4318
 	
+	--test-- "#4194"
+		--assert not parse reduce [make vector! 0][into []]
+
 	--test-- "#4198"
 		--assert [a] = parse [][collect keep pick ('a)]
 		--assert [[a b]] = parse [][collect keep pick ([a b])]
