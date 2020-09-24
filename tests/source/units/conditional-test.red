@@ -1,7 +1,7 @@
 Red [
 	Title:   "Red conditonal test script"
 	Author:  "Nenad Rakocevic & Peter W A Wood"
-	File: 	 %conditional-test.reds
+	File: 	 %conditional-test.red
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2015 Red Foundation. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"

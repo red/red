@@ -11,7 +11,7 @@ Red [
 ]
 
 if: make native! [[
-		"If conditional expression is TRUE, evaluate block; else return NONE"
+		"If conditional expression is truthy, evaluate block; else return NONE"
 		cond  	 [any-type!]
 		then-blk [block!]
 	]
@@ -19,7 +19,7 @@ if: make native! [[
 ]
 
 unless: make native! [[
-		"If conditional expression is not TRUE, evaluate block; else return NONE"
+		"If conditional expression is falsy, evaluate block; else return NONE"
 		cond  	 [any-type!]
 		then-blk [block!]
 	]
@@ -27,30 +27,30 @@ unless: make native! [[
 ]
 
 either: make native! [[
-		"If conditional expression is true, eval true-block; else eval false-blk"
+		"If conditional expression is truthy, evaluate the first branch; else evaluate the alternative"
 		cond  	  [any-type!]
 		true-blk  [block!]
 		false-blk [block!]
 	]
 	#get-definition NAT_EITHER
 ]
-	
+
 any: make native! [[
-		"Evaluates, returning at the first that is true"
+		"Evaluates and returns the first truthy value, if any; else NONE"
 		conds [block!]
 	]
 	#get-definition NAT_ANY
 ]
 
 all: make native! [[
-		"Evaluates, returning at the first that is not true"
+		"Evaluates and returns the last value if all are truthy; else NONE"
 		conds [block!]
 	]
 	#get-definition NAT_ALL
 ]
 
 while: make native! [[
-		"Evaluates body as long as condition block returns TRUE"
+		"Evaluates body as long as condition block evaluates to truthy value"
 		cond [block!]	"Condition block to evaluate on each iteration"
 		body [block!]	"Block to evaluate on each iteration"
 	]
@@ -58,7 +58,7 @@ while: make native! [[
 ]
 	
 until: make native! [[
-		"Evaluates body until it is TRUE"
+		"Evaluates body until it is truthy"
 		body [block!]
 	]
 	#get-definition NAT_UNTIL
@@ -106,10 +106,10 @@ forall: make native! [[
 ]
 
 remove-each: make native! [[
-		"Removes values for each block that returns true"
+		"Removes values for each block that returns truthy value"
 		'word [word! block!] "Word or block of words to set each time"
 		data [series!] "The series to traverse (modified)"
-		body [block!] "Block to evaluate (return TRUE to remove)"
+		body [block!] "Block to evaluate (return truthy value to remove)"
 	]
 	#get-definition NAT_REMOVE_EACH
 ]
@@ -157,9 +157,9 @@ switch: make native! [[
 ]
 
 case: make native! [[
-		"Evaluates the block following the first true condition"
+		"Evaluates the block following the first truthy condition"
 		cases [block!] "Block of condition-block pairs"
-		/all "Test all conditions, evaluating the block following each true condition"
+		/all "Test all conditions, evaluating the block following each truthy condition"
 	]
 	#get-definition NAT_CASE
 ]
@@ -298,7 +298,7 @@ same?: make native! [[
 ]
 
 not: make native! [[
-		"Returns the boolean complement of a value"
+		"Returns the logical complement of a value (truthy or falsy)"
 		value [any-type!]
 	]
 	#get-definition NAT_NOT
@@ -433,6 +433,14 @@ dehex: make native! [[
 		return:	[string!] "Always return a string"
 	]
 	#get-definition NAT_DEHEX
+]
+
+enhex: make native! [[
+		"Encode URL-style hex encoded (%xx) strings"
+		value [any-string!]
+		return:	[string!] "Always return a string"
+	]
+	#get-definition NAT_ENHEX
 ]
 
 negative?: make native! [[
@@ -635,7 +643,7 @@ try: make native! [[
 
 uppercase: make native! [[
 		"Converts string of characters to uppercase"
-		string		[any-string! char!]
+		string		[any-string! char!] "Value to convert (modified when series)"
 		/part "Limits to a given length or position"
 			limit	[number! any-string!]
 		return: 	[any-string! char!]
@@ -645,7 +653,7 @@ uppercase: make native! [[
 
 lowercase: make native! [[
 		"Converts string of characters to lowercase"
-		string		[any-string! char!]
+		string		[any-string! char!] "Value to convert (modified when series)"
 		/part "Limits to a given length or position"
 			limit	[number! any-string!]
 		return:		[any-string! char!]
@@ -662,7 +670,7 @@ as-pair: make native! [[
 ]
 
 as-money: make native! [[
-		"Combine currency and amount into a monetary value"
+		"Combine currency code and amount into a monetary value"
 		currency [word!]
 		amount   [integer! float!]
 		return:  [money!]
@@ -799,7 +807,7 @@ new-line?: make native! [[
 ]
 
 context?: make native! [[
-		"Returns the context in which a word is bound"
+		"Returns the context to which a word is bound"
 		word	[any-word!]		"Word to check"
 		return: [object! function! none!]
 	]

@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 05/09/2019
-	Revision: 56
+	Date: 14/08/2020
+	Revision: 57
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -128,7 +128,7 @@ Variables can hold any value of the available datatypes. This can be the real va
  bar: "hello"
 
 \note Multiple assignments
-Multiple assignments, like a: b: 123, are not currently supported in Red/System. Such a feature will be added in the future at some point, probably on the rewrite of Red/System in Red.
+Multiple assignments, like <b>a: b: 123</b>, are currently partially supported in Red/System through "assignment grouping". It is acting like a macro expansion where the pattern <b>a: b: 123</b> would be expanded to <b>a: 123 b: 123</b>. It will duplicate whatever value is assigned to each variable, so special care is needed when using it.
 
 /note
 
@@ -1352,7 +1352,22 @@ Until this change has been decided, it may be wise to use the <b>func</b> keywor
  	c: 100
  	a * c / b
  ]
- 
+
+Grouping of arguments or local variables by type is also possible.
+
+<b>Example</b>
+
+ percent?: func [
+ 	a b [integer!]
+ 	return: [integer!]
+ 	/local
+ 		c d [integer!]
+ ][
+ 	c: 20
+ 	d: c + 80
+ 	a * d / b
+ ]
+
 \note Arguments passing
 
 In the current implementation, pointer!, integer!, byte!, float!, float32! and logic! arguments are passed by value, while c-string! and struct! arguments are passed by reference. Adding the `value` keyword after a struct! type specification, allows it to be passed by value (works also for returned value).
@@ -2823,9 +2838,12 @@ Reserves a storage space on stack (in stack slots unit) and returns a pointer th
 <b>Syntax</b>
 
  <ptr>: system/stack/allocate <slots>
+ <ptr>: system/stack/allocate/zero <slots>
 
  <ptr>  : variable of type: pointer! [integer!]
  <slots>: expression returning an integer
+ 
+The <b>/zero</b> option forces the allocated stack region to be zero-filled.
 
 \note Stack slots unit
 Stack slots unit are system-dependent, on IA-32 and ARM, a slot is equal to 4 bytes.
@@ -3094,6 +3112,38 @@ where:
  <exception> : is one of the above exception name
  <value>     : an integer! value
 
+
+---fpu/status
+
+Retrieve the FPU exception bits status.
+
+<b>Syntax</b>
+
+ system/fpu/status
+
+ return: a value of type integer!.
+ 
+The resulting status bits layout depends on the architecture:
+
+<b>IA-32:</b>
+ P|U|O|Z|D|I
+
+    P: Precision
+    U: Underflow
+    O: Overflow
+    Z: Zero Divide
+    D: Denormalized operand
+    I: Invalid Operation
+
+<b>ARM:</b>
+ ID|0|IX|UF|OF|DZ|IO
+
+	ID: Input Denormal
+	IX: Inexact (Precision)
+	UF: Underflow
+	OF: Overflow
+	DZ: Division by Zero
+	IO: Invalid Operation
 
 ---fpu/control-word
 
@@ -4223,6 +4273,19 @@ will output:
 
 
 ===Document History
+
+*<b>14/08/2020 - revision 57</b>
+
+*>Adds subroutines description.
+
+*>Adds binary! arrays description.
+
+*>Adds multiple assignments and variable grouping mentions.
+
+*>Adds system/stack/allocate/zero description.
+
+*>Adds system/fpu/status description.
+
 
 *<b>05/09/2019 - revision 56</b>
 

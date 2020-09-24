@@ -789,7 +789,17 @@ Red [
 		put sf-105 'a 1
 		--assert (make hash! [a 1]) = find sf-105 'a
 
-		
+	--test-- "series-find-106"
+		--assert " b c" = find/last/part "a b c" space 3
+		--assert " b c" = find/last/part skip "xyza b c" 3 space 3
+	
+	--test-- "series-find-107"
+		--assert [x b x c] = find/last/part [a x b x c] 'x 3
+		--assert [x b x c] = find/last/part skip [x x x a x b x c] 3 'x 3
+	
+	--test-- "series-find-108"
+		--assert none? find/last/part "abc" #"^(01)" 100
+	
 ===end-group===
 
 ===start-group=== "remove"

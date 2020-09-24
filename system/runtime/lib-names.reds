@@ -31,6 +31,10 @@ Red/System [
 		#define LIBC-file	"libc.so.7"
 		#define LIBM-file	"libm.so.5"
 	]
+	NetBSD [
+		#define LIBC-file	"libc.so"
+		#define LIBM-file	"libm.so"
+	]
 	#default [											;-- Linux
 		#either dynamic-linker = "/lib/ld-musl-i386.so.1" [
 			#define LIBC-file	"ld-musl-i386.so.1"
