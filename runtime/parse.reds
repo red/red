@@ -1116,6 +1116,7 @@ parser: context [
 								if match? [
 									s-top: null
 									switch TYPE_OF(cmd) [
+										TYPE_PATH [PARSE_ERROR [TO_ERROR(script parse-rule) cmd]]
 										TYPE_PAREN [
 											s-top: stack/top
 											value: eval cmd no saved?
@@ -1525,6 +1526,7 @@ parser: context [
 						sym = words/remove [			;-- REMOVE
 							done?: no
 							value: cmd + 1
+							if TYPE_OF(value) = TYPE_PATH [PARSE_ERROR [TO_ERROR(script parse-rule) cmd]]
 							if all [value < tail TYPE_OF(value) = TYPE_WORD][
 								new: as red-series! _context/get as red-word! value
 								if all [TYPE_OF(new) = TYPE_OF(input) new/node = input/node][
@@ -1689,6 +1691,7 @@ parser: context [
 									if cmd >= tail [PARSE_ERROR [TO_ERROR(script parse-rule) words/_change]]
 									s-top: null
 									switch TYPE_OF(cmd) [
+										TYPE_PATH [PARSE_ERROR [TO_ERROR(script parse-rule) cmd]]
 										TYPE_PAREN [
 											s-top: stack/top
 											value: eval cmd no saved?

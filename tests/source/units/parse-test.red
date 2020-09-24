@@ -2803,7 +2803,9 @@ Red [
 	--test-- "#4101"
 		--assert parse [a/b] ['a/b]
 		--assert error? try [parse [a/b] [a/b]]
-		
+		--assert error? try [parse [a b c][change only 3 word! d/e]]
+		--assert error? try [parse [a b c][mark: 3 word! change mark d/e]]
+		--assert error? try [parse [a/b c d][remove a/b]]
 		--assert error? try [parse [c d][insert a/b 2 word!]]
 
 	--test-- "#4318"
