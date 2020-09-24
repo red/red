@@ -2518,10 +2518,8 @@ OS-update-facet: func [
 	index  [integer!]
 	part   [integer!]
 	/local
-		word [red-word!]
 		pane [red-block!]
 		sym	 [integer!]
-		type [integer!]
 ][
 	sym: symbol/resolve facet/symbol
 	
@@ -2548,31 +2546,6 @@ OS-update-facet: func [
 					update-z-order pane null
 				]
 				true [0]
-			]
-		]
-		sym = facets/data [
-			word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
-			type: symbol/resolve word/symbol
-			sym: action/symbol
-			case [
-				type = text-list [
-					either sym = words/_sort/symbol [
-						OS-update-view face
-					][
-						update-list face value sym new index part no
-					]
-				]
-				any [
-					type = drop-list
-					type = drop-down
-				][
-					if zero? part [exit]
-					update-list face value sym new index part yes
-				]
-				type = tab-panel [
-					update-tabs	face value sym new index part
-				]
-				true [OS-update-view face]
 			]
 		]
 		true [OS-update-view face]

@@ -1149,28 +1149,6 @@ set-content-view: func [
 	objc_msgSend [obj sel_getUid "setContentView:" view]
 ]
 
-insert-list-item: func [
-	hWnd  [integer!]
-	item  [red-string!]
-	pos	  [integer!]
-	list? [logic!]
-	/local
-		len [integer!]
-		sel [integer!]
-][
-	unless TYPE_OF(item) = TYPE_STRING [exit]
-
-	len: objc_msgSend [hWnd sel_getUid "numberOfItems"]
-	sel: either list? [
-		pos: pos + 1
-		sel_getUid "insertItemWithTitle:atIndex:"
-	][
-		sel_getUid "insertItemWithObjectValue:atIndex:"
-	]
-	if pos > len [pos: len]
-	objc_msgSend [hWnd sel to-NSString item pos]
-]
-
 init-combo-box: func [
 	combo		[integer!]
 	data		[red-block!]
@@ -1552,84 +1530,6 @@ make-text-list: func [
 	objc_msgSend [obj sel_getUid "release"]
 	objc_msgSend [column sel_getUid "release"]
 	obj
-]
-
-update-combo-box: func [
-	face  [red-object!]
-	value [red-value!]
-	sym   [integer!]
-	new	  [red-value!]
-	index [integer!]
-	part  [integer!]
-	list? [logic!]										;-- TRUE: drop-list or drop-down widgets
-	/local
-		hWnd [integer!]
-		nstr [integer!]
-		str  [red-string!]
-][
-	hWnd: get-face-handle face
-	switch TYPE_OF(value) [
-		TYPE_BLOCK [
-			case [
-				any [
-					sym = words/_remove/symbol
-					sym = words/_take/symbol
-					sym = words/_clear/symbol
-				][
-					ownership/unbind-each as red-block! value index part
-
-					either all [
-						sym = words/_clear/symbol
-						zero? index
-					][
-						objc_msgSend [hWnd sel_getUid "removeAllItems"]
-						nstr: NSString("")
-						either list? [
-							objc_msgSend [hWnd sel_getUid "setTitle:" nstr]
-						][
-							objc_msgSend [hWnd sel_getUid "setStringValue:" nstr]
-						]
-					][
-						if list? [index: index + 1]
-						loop part [
-							objc_msgSend [hWnd sel_getUid "removeItemAtIndex:" index]
-						]
-					]
-				]
-				any [
-					sym = words/_inserted/symbol
-					sym = words/_poke/symbol
-					sym = words/_put/symbol
-					sym = words/_reverse/symbol
-				][
-					;ownership/unbind-each as red-block! value index part
-
-					str: as red-string! either any [
-						null? new
-						TYPE_OF(new) = TYPE_BLOCK
-					][
-						block/rs-abs-at as red-block! value index
-					][
-						new
-					]
-					loop part [
-						if sym <> words/_inserted/symbol [
-							objc_msgSend [hWnd sel_getUid "removeItemAtIndex:" index]
-						]
-						insert-list-item hWnd str index list?
-						if sym = words/_reverse/symbol [index: index + 1]
-						str: str + 1
-					]
-				]
-				true [0]
-			]
-		]
-		TYPE_STRING [
-			objc_msgSend [hWnd sel_getUid "removeItemAtIndex:" index]
-			insert-list-item hWnd as red-string! value index list?
-		]
-		default [assert false]			;@@ raise a runtime error
-	]
 ]
 
 update-scroller: func [
@@ -2324,36 +2224,8 @@ OS-update-facet: func [
 	new	   [red-value!]
 	index  [integer!]
 	part   [integer!]
-	/local
-		word [red-word!]
-		sym	 [integer!]
-		type [integer!]
-		hWnd [handle!]
 ][
-	sym: symbol/resolve facet/symbol
-
-	case [
-		;sym = facets/pane [0]
-		sym = facets/data [
-			word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
-			type: symbol/resolve word/symbol
-			sym: action/symbol
-			case [
-				any [
-					type = drop-list
-					type = drop-down
-				][
-					if zero? part [exit]
-					update-combo-box face value sym new index part yes
-				]
-				type = tab-panel [
-					update-tabs face value sym new index part
-				]
-				true [OS-update-view face]
-			]
-		]
-		true [OS-update-view face]
-	]
+	OS-update-view face
 ]
 
 OS-to-image: func [

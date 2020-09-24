@@ -2228,42 +2228,8 @@ OS-update-facet: func [
 	new			[red-value!]
 	index		[integer!]
 	part		[integer!]
-	/local
-		word	[red-word!]
-		sym		[integer!]
-		type	[integer!]
-		pane	[red-block!]
-		widget	[handle!]
 ][
-	sym: symbol/resolve facet/symbol
-	;; DEBUG: print ["update-facet " get-symbol-name sym lf]
-
-	case [
-		; sym = facets/pane [
-		; 	sym: action/symbol
-		; 	;; DEBUG: print ["update pane action " get-symbol-name sym lf]
-		; 	pane: as red-block! value
-		; ]
-		sym = facets/data [
-			word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
-			type: symbol/resolve word/symbol
-			sym: action/symbol
-			case [
-				; any [
-				; 	type = drop-list
-				; 	type = drop-down
-				; ][
-				; 	if zero? part [exit]
-				; 	update-combo-box face value sym new index part yes
-				; ]
-				; type = tab-panel [
-				; 	update-tabs face value sym new index part
-				; ]
-				true [OS-update-view face]
-			]
-		]
-		true [OS-update-view face]
-	]
+	OS-update-view face
 ]
 
 OS-to-image: func [
