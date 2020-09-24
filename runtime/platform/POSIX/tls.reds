@@ -275,9 +275,12 @@ tls: context [
 				]
 				default [
 					check-errors ret
-					either td/state and IO_STATE_CLIENT = 0 [
+					ERR_clear_error
+					either td/state and IO_STATE_CLIENT <> 0 [	;-- tls client
 						td/event: IO_EVT_CLOSE
+						td/state: td/state or IO_STATE_ERROR
 					][
+						td/event: IO_EVT_ERROR
 						SSL_free ssl
 						if td/state <> 0 [
 							iocp/remove td/io-port as-integer td/device td/state as iocp-data! td
@@ -290,7 +293,6 @@ tls: context [
 						if server-ctx <> null [SSL_CTX_free server-ctx server-ctx: null]
 						if client-ctx <> null [SSL_CTX_free client-ctx client-ctx: null]
 					]
-					ERR_clear_error
 					return -1
 				]
 			]

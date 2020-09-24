@@ -471,6 +471,11 @@ probe ["events: " cnt " " p/n-ports]
 									as byte-ptr! data			;-- src
 									size? tls-data!
 							fd: socket/accept as-integer td/device :td/addr :td/addr-sz
+							if zero? fd [
+								free as byte-ptr! td
+								i: i + 1
+								continue
+							]
 							bind p as int-ptr! fd
 							td/accept-sock: as-integer td/device
 							td/device: as int-ptr! fd

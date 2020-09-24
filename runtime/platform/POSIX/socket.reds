@@ -86,6 +86,7 @@ socket: context [
 			acpt	[integer!]
 	][
 		acpt: libC.accept sock as byte-ptr! addr addr-sz
+		IODebug(["socket/accept fd:" acpt])
 		if acpt = -1 [return 0]
 		socket/set-nonblocking acpt
 		acpt
