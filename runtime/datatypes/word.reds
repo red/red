@@ -19,6 +19,11 @@ Red/System [
 word: context [
 	verbose: 0
 	
+	duplicate: func [w [red-word!] return: [red-word!]][
+		assert red/boot?
+		as red-word! copy-cell as red-value! w ALLOC_TAIL(root)
+	]
+	
 	load-in: func [
 		str 	[c-string!]
 		blk		[red-block!]
@@ -49,7 +54,7 @@ word: context [
 			cell [red-word!]
 	][
 		cell: as red-word! pos
-		cell/header: TYPE_WORD							;-- implicit reset of all header flags
+		set-type pos TYPE_WORD
 		cell/ctx: 	 global-ctx
 		cell/symbol: id
 		cell/index:  _context/add TO_CTX(global-ctx) cell
@@ -110,10 +115,8 @@ word: context [
 			s	[series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/from"]]
-		
-		ctx: TO_CTX(node)
-		s: as series! ctx/symbols/value
-		as red-word! s/offset + index
+
+		_hashtable/get-ctx-word TO_CTX(node) index
 	]
 	
 	at: func [
@@ -123,7 +126,6 @@ word: context [
 		/local
 			ctx	[red-context!]
 			idx [integer!]
-			s	[series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/at"]]
 
@@ -132,8 +134,7 @@ word: context [
 		either idx < 0 [
 			_context/add-global sym
 		][
-			s: as series! ctx/symbols/value
-			as red-word! s/offset + idx
+			_hashtable/get-ctx-word ctx idx
 		]
 	]
 	
@@ -165,7 +166,7 @@ word: context [
 
 		ctx: TO_CTX(node)
 		if null? ctx/values [
-			s: as series! ctx/symbols/value
+			s: _hashtable/get-ctx-words ctx
 			fire [TO_ERROR(script not-defined) s/offset + index]
 		]
 		
@@ -203,10 +204,15 @@ word: context [
 		/local
 			ctx	   [red-context!]
 			value  [red-value!]
+			w	   [red-word!]
 			values [series!]
 	][
 		value: stack/get-top
 		ctx: TO_CTX(node)
+		if GET_CTX_TYPE(ctx) = CONTEXT_OBJECT [
+			w: _hashtable/get-ctx-word ctx index
+			w/header: w/header or flag-word-dirty
+		]
 		values: as series! ctx/values/value
 		stack/push values/offset + index
 		copy-cell value values/offset + index
@@ -218,10 +224,15 @@ word: context [
 		/local
 			ctx	   [red-context!]
 			value  [red-value!]
+			w	   [red-word!]
 			values [series!]
 	][
 		value: stack/get-top
 		ctx: TO_CTX(node)
+		if GET_CTX_TYPE(ctx) = CONTEXT_OBJECT [
+			w: _hashtable/get-ctx-word ctx index
+			w/header: w/header or flag-word-dirty
+		]
 		values: as series! ctx/values/value
 		copy-cell value values/offset + index
 	]
@@ -233,12 +244,17 @@ word: context [
 		/local
 			ctx	   [red-context!]
 			value  [red-value!]
+			w	   [red-word!]
 			values [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/set-in"]]
 		
 		value: stack/arguments
 		ctx: TO_CTX(node)
+		if GET_CTX_TYPE(ctx) = CONTEXT_OBJECT [
+			w: _hashtable/get-ctx-word ctx index
+			w/header: w/header or flag-word-dirty
+		]		
 		values: as series! ctx/values/value
 		copy-cell value values/offset + index
 		value
@@ -287,9 +303,12 @@ word: context [
 		/local
 			s	[series!]
 			str [red-string!]
+			sym [red-value!]
 	][
 		s: GET_BUFFER(symbols)
-		str: as red-string! stack/push s/offset + w/symbol - 1
+		sym: s/offset + w/symbol - 1
+		symbol/make-red-string as red-symbol! sym
+		str: as red-string! stack/push sym
 		str/header: TYPE_STRING
 		str/head: 0
 		str/cache: null
@@ -303,11 +322,13 @@ word: context [
 			buf	[series!]
 			s   [c-string!]
 			cp  [integer!]
+			n	[integer!]
 			c   [byte!]
 	][
+		n: 0
 		sym: symbol/get w/symbol
-		buf: as series! sym/node/value
-		cp: string/get-char as byte-ptr! buf/offset GET_UNIT(buf)
+		buf: as series! sym/cache/value
+		cp: unicode/decode-utf8-char as c-string! buf/offset :n
 		if cp > 127 [exit]
 		c: as-byte cp
 		

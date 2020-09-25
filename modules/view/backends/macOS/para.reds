@@ -29,6 +29,7 @@ change-para: func [
 		]
 		any [
 			type = button
+			type = toggle
 			type = check
 			type = radio
 			type = field
@@ -113,7 +114,7 @@ get-para-flags: func [
 	bottom: 0008h								;-- DT_BOTTOM
 	
 	unless wrap? [flags: 20h]					;-- DT_SINGLELINE
-	either any [type = base type = button][
+	either any [type = base type = toggle type = button][
 		default: center
 	][
 		default: left

@@ -14,6 +14,16 @@ clipboard: context [
 #switch OS [
 	Windows [
 
+		tagMSG: alias struct! [							;-- used to work around #4284
+			hWnd	[handle!]
+			msg		[integer!]
+			wParam	[integer!]
+			lParam	[integer!]
+			time	[integer!]
+			x		[integer!]							;@@ POINT struct
+			y		[integer!]	
+		]
+
 		#import [
 			"User32.dll" stdcall [
 				OpenClipboard: "OpenClipboard" [
@@ -45,6 +55,14 @@ clipboard: context [
 				RegisterClipboardFormat: "RegisterClipboardFormatA" [
 					lpszFormat	[c-string!]
 					return:		[integer!]
+				]
+				PeekMessage: "PeekMessageW" [			;-- used to work around #4284
+					msg			[tagMSG]
+					hWnd		[handle!]
+					msgMin		[integer!]
+					msgMax		[integer!]
+					removeMsg	[integer!]
+					return: 	[integer!]
 				]
 			]
 			"kernel32.dll" stdcall [
@@ -169,6 +187,7 @@ clipboard: context [
 				i		[integer!]
 				len		[integer!]
 				hdr		[BITMAPV5HEADER!]
+				msg		[tagMSG value]
 		][
 			val: none-value
 			p: null
@@ -180,6 +199,7 @@ clipboard: context [
 				unless ok [Sleep 1]
 				ok: OpenClipboard main-hWnd
 				if ok [break]
+				PeekMessage :msg null 0 0 0				;-- magic workaround for #4284
 			]
 			unless ok [return as red-value! false-value]
 
@@ -321,6 +341,7 @@ clipboard: context [
 				df		[DROPFILES!]
 				bmdata	[BitmapData!]
 				hdr		[BITMAPV5HEADER!]
+				msg		[tagMSG value]
 		][
 			hMem: [0 0]  hMem/1: 0  hMem/2: 0
 			fmts: [0 0]  fmts/1: 0  fmts/2: 0
@@ -449,6 +470,7 @@ clipboard: context [
 				unless ok [Sleep 1]
 				ok: OpenClipboard main-hWnd
 				if ok [break]
+				PeekMessage :msg null 0 0 0				;-- magic workaround for #4284
 			]
 			unless ok [									;-- clean up after a (rare) failure
 				unless hMem/1 = 0 [
@@ -564,6 +586,89 @@ clipboard: context [
 			as logic! res
 		]
 	]
+#if modules contains 'View [
+	Linux [
+		;; Depends on GTK
+		#import [
+			"libgtk-3.so.0" cdecl [
+				gdk_atom_intern_static_string: "gdk_atom_intern_static_string" [
+					name 		[c-string!]
+					return:		[handle!]
+				]
+				gtk_clipboard_get: "gtk_clipboard_get" [
+					atom 		[handle!]
+					return: 	[handle!]
+				]
+				gtk_clipboard_set_text: "gtk_clipboard_set_text" [
+					clipboard 	[handle!]
+					text 		[c-string!]
+					len 		[integer!]
+				]
+				gtk_clipboard_set_image: "gtk_clipboard_set_image" [
+					clipboard 	[handle!]
+					img 		[handle!]
+				]
+				gtk_clipboard_wait_for_text: "gtk_clipboard_wait_for_text" [
+					clipboard 	[handle!]
+					return: 	[c-string!]
+				]
+				gtk_clipboard_wait_for_image: "gtk_clipboard_wait_for_image" [
+					clipboard 	[handle!]
+					return: 	[handle!]
+				]
+			]
+		]
+
+		to-red-string: func [
+			cstr	[c-string!]
+			slot	[red-value!]
+			return:	[red-string!]
+			/local
+				str		[red-string!]
+				size	[integer!]
+		][
+			size: length? cstr
+			if null? slot [slot: stack/push*]
+			str: string/make-at slot size Latin1
+			unicode/load-utf8-stream cstr size str null
+			str
+		]
+
+		read: func [
+			return:		[red-value!]
+			/local
+				clipboard 	[handle!]
+				str 		[c-string!]
+		][
+			clipboard: gtk_clipboard_get gdk_atom_intern_static_string "CLIPBOARD"
+			str: gtk_clipboard_wait_for_text clipboard
+			as red-value! to-red-string str null
+		]
+
+		write: func [
+			data		[red-value!]
+			return:		[logic!]
+			/local
+				clipboard 	[handle!]
+				text		[red-string!]
+				str 		[c-string!]
+				strlen 		[integer!]
+		][
+			clipboard: gtk_clipboard_get gdk_atom_intern_static_string "CLIPBOARD"
+			switch TYPE_OF(data) [
+				TYPE_STRING [ 
+					text: as red-string! data
+					strlen: -1
+					str: unicode/to-utf8 text :strlen
+					gtk_clipboard_set_text clipboard str strlen
+				]
+				TYPE_IMAGE	[0]
+				default		[0]
+			]
+			true
+		]
+	]
+]
 	#default [
 		read: func [
 			return:		[red-value!]
@@ -577,5 +682,5 @@ clipboard: context [
 		][
 			true
 		]
-	]											;-- Linux...
+	]
 ]]

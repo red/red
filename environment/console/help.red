@@ -618,7 +618,7 @@ help-ctx: context [
 					"--------------------------------------------"
 				]
 			][
-				"Looks like this Red binary has been built from source.^/Please download latest build from our website:^/https://www.red-lang.org/download.html^/and try your code on it before submitting an issue."
+				"Looks like this Red binary has been built from source.^/Please download latest build from our website:^/https://www.red-lang.org/p/download.html^/and try your code on it before submitting an issue."
 			]
 		][
 			prin [

@@ -43,12 +43,12 @@ gui-console-ctx: context [
 	cfg-dir:	none
 	cfg-path:	none
 	cfg:		none
-	font:		make font! [name: "Consolas" size: 11 color: 0.0.0]
+	font:		make font! [name: system/view/fonts/fixed size: 11 color: 0.0.0]
 	caret-clr:	0.0.0.1
 	scroller:	make scroller! []
 
 	console:	make face! [
-		type: 'rich-text color: 0.0.128 offset: 0x0 size: 400x400
+		type: 'rich-text color: 0.0.128 offset: 0x0 size: 200x200
 		flags:   [scrollable all-over]
 		options: [cursor: I-beam]
 		menu: [
@@ -168,7 +168,7 @@ gui-console-ctx: context [
 						if ft: request-font/font/mono font [
 							font: ft
 							console/font: font
-							terminal/update-cfg font cfg
+							terminal/zoom font
 						]
 					]
 					settings		[show-cfg-dialog]
@@ -250,6 +250,7 @@ ask: function [
 	vt/line: line
 	vt/pos: 0
 	vt/add-line head line
+	vt/line-pos: length? vt/lines
 	vt/ask?: yes
 	vt/reset-top/force
 	vt/clear-stack

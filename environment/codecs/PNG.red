@@ -1,7 +1,7 @@
 Red [
 	Title:   "PNG codec"
 	Author:  "Qingtian Xie"
-	File:	 %png.red
+	File:	 %PNG.red
 	Tabs:	 4
 	Rights:  "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
@@ -17,14 +17,20 @@ put system/codecs 'png context [
 	suffixes: [%.png]
 	
 	encode: routine [img [image!] where [any-type!]][
-		#if not find [Android Linux FreeBSD Syllabe] OS [
+		#if not find [Android Linux FreeBSD NetBSD Syllabe] OS [
 			stack/set-last as cell! image/encode img where IMAGE_PNG
 		]
+		#if OS = 'Linux [#if modules contains 'View [
+			stack/set-last as cell! image/encode img where IMAGE_PNG
+		]]
 	]
 
 	decode: routine [data [any-type!]][
-		#if not find [Android Linux FreeBSD Syllabe] OS [
+		#if not find [Android Linux FreeBSD NetBSD Syllabe] OS [
 			stack/set-last as cell! image/decode data
 		]
+		#if OS = 'Linux [#if modules contains 'View [
+			stack/set-last as cell! image/decode data
+		]]
 	]
 ]

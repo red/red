@@ -519,7 +519,7 @@ Red [
 		--assert expected = checksum/with data 'sha512 key
 
 												; "Test Using Larger Than Block-Size Key - Hash Key First"
-	data: copy#{
+	data: copy #{
 		54657374205573696E67204C6172676572205468616E20426C6F636B2D53697A
 		65204B6579202D2048617368204B6579204669727374
 	}
@@ -533,7 +533,7 @@ Red [
 
 	--test-- "PRF-6-HMAC-SHA-256"
 												; "Test Using Larger Than Block-Size Key - Hash Key First"
-		data: copy#{
+		data: copy #{
 			54657374205573696E67204C6172676572205468616E20426C6F636B2D53697A
 			65204B6579202D2048617368204B6579204669727374
 		}
@@ -549,7 +549,7 @@ Red [
 
 	--test-- "PRF-6-HMAC-SHA-384"
 												; "Test Using Larger Than Block-Size Key - Hash Key First"
-		data: copy#{
+		data: copy #{
 			54657374205573696E67204C6172676572205468616E20426C6F636B2D53697A
 			65204B6579202D2048617368204B6579204669727374
 		}
@@ -568,7 +568,7 @@ Red [
 
 	--test-- "PRF-6-HMAC-SHA-512"
 												; "Test Using Larger Than Block-Size Key - Hash Key First"
-		data: copy#{
+		data: copy #{
 			54657374205573696E67204C6172676572205468616E20426C6F636B2D53697A
 			65204B6579202D2048617368204B6579204669727374
 		}

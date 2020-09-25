@@ -398,6 +398,46 @@ date: context [
 		left
 	]
 	
+	set-isoweek: func [
+		dt	[red-date!]
+		v	[integer!]
+		/local
+			d  [integer!]
+			wd [integer!]
+			t? [logic!]
+	][
+		wd: 0
+		d: dt/date
+		t?: DATE_GET_TIME_FLAG(d)
+		dt/date: days-to-date v - 1 * 7 + W1-1-of d :wd DATE_GET_ZONE(d) t?
+	]
+	
+	set-weekday: func [
+		dt	[red-date!]
+		v	[integer!]
+		/local
+			days [integer!]
+			d	 [integer!]
+			t?	 [logic!]
+	][
+		d: dt/date
+		days: date-to-days d
+		t?: DATE_GET_TIME_FLAG(d)
+		dt/date: days-to-date days + (v - 1) - (days + 2 % 7) DATE_GET_ZONE(d) t?
+	]
+	
+	set-yearday: func [
+		dt	[red-date!]
+		v	[integer!]
+		/local
+			d  [integer!]
+			t? [logic!]
+	][
+		d: dt/date
+		t?: DATE_GET_TIME_FLAG(d)
+		dt/date: days-to-date v + (Jan-1st-of d) - 1 DATE_GET_ZONE(d) t?
+	]
+	
 	set-month: func [
 		dt	[red-date!]
 		v	[integer!]
@@ -480,7 +520,7 @@ date: context [
 			dt/time: to-utc-time t v
 		]
 	]
-
+	
 	make-at: func [
 		slot	[red-value!]
 		year	[integer!]
@@ -520,8 +560,8 @@ date: context [
 		]
 		dt
 	]
-
-	set-all: func[
+	
+	set-all: func [
 		dt     [red-date!]
 		year   [integer!]
 		month  [integer!]
@@ -530,7 +570,9 @@ date: context [
 		minute [integer!]
 		second [integer!]
 		nsec   [integer!] 
-		/local d t
+		/local 
+			d [integer!]
+			t [float!]
 	][
 		d: 0 t: 0.0
 		d: DATE_SET_YEAR(d year)
@@ -541,9 +583,9 @@ date: context [
 		  + (60.0   * as float! minute)
 		  + (         as float! second)
 		  + (1e-9   * as float! nsec)
-		dt/header: TYPE_DATE
+		set-type as red-value! dt TYPE_DATE				;-- preserve eventual flags in the header
 		dt/date: d
-		dt/time: t
+		dt/time: t										;-- !! not converted to UTC !!
 	]
 	
 	create: func [
@@ -719,12 +761,10 @@ date: context [
 		return: [red-value!]
 		/local
 			d	  [integer!]
-			n	  [integer!]
-			dd	  [integer!]
-			tz	  [integer!]
 			s	  [float!]
 			d1	  [integer!]
 			time? [logic!]
+			rnd	  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "date/random"]]
 
@@ -735,10 +775,21 @@ date: context [
 			dt/header: TYPE_UNSET
 		][
 			time?: DATE_GET_TIME_FLAG(d)
-			dt/date: days-to-date _random/rand % date-to-days d DATE_GET_ZONE(d) time?
+
+			rnd: _random/int-uniform-distr secure? date-to-days d
+			dt/date: days-to-date rnd - 1 DATE_GET_ZONE(d) time?
 			if time? [
-				dt/date: DATE_SET_ZONE(dt/date _random/rand)
-				s: (as-float _random/rand) / 2147483647.0 * 3600.0
+				dt/date: either secure? [
+					DATE_SET_ZONE(dt/date _random/rand-secure)
+				] [
+					DATE_SET_ZONE(dt/date _random/rand)
+				]
+				s: either secure? [
+					((as-float _random/rand-secure) / 2147483647.0 + (as-float _random/rand-secure))
+						/ (2147483648.0 / 3600.0)
+				] [
+					(as-float _random/rand) / 2147483647.0 * 3600.0
+				]
 				s: (floor s) / 3600.0
 				dt/time: s * 24.0 * time/h-factor
 				set-time dt dt/time yes
