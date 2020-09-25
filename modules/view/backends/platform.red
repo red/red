@@ -580,6 +580,7 @@ system/view/platform: context [
 			pair   [red-pair!]
 			screens	[red-block!]
 			screen1	[red-object!]
+			f [int-ptr!]
 	][
 		switch TYPE_OF(value) [
 			TYPE_STRING [text: as red-string! value]
@@ -597,6 +598,10 @@ system/view/platform: context [
 
 		pair: as red-pair! stack/arguments
 		pair/header: TYPE_PAIR
+
+		f: as int-ptr! font
+		dump-hex4 f
+		print ["font type1: " TYPE_OF(font) " ptr: " f " val: " f/value lf]
 		gui/get-text-size screen1 font text pair
 	]
 
