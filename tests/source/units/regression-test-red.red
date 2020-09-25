@@ -2845,7 +2845,12 @@ b}
 			--assert unset? context [exit]
 			unset [spec3362-1 spec3362-2]
 		]
-
+	
+	--test-- "3662"
+		--assert equal?
+			[16  256  4096  65536  1048576 16777216 268435456]
+			[10h 100h 1000h 10000h 100000h 1000000h 10000000h]
+	
 	--test-- "3669"
 		--assert not equal? <a> <a^>
 		--assert equal?     <a> load {<a^>}
