@@ -1139,17 +1139,16 @@ draw-text-d2d: func [
 
 render-text-d2d: func [
 	values	[red-value!]				;-- face! values
+	font	[red-object!]
 	hDC		[handle!]
 	rc		[RECT_STRUCT]
 	return: [logic!]
 	/local
-		font	[red-object!]
 		para	[red-object!]
 		text	[red-string!]
 ][
 	text: as red-string! values + FACE_OBJ_TEXT
 	either TYPE_OF(text) = TYPE_STRING [
-		font: as red-object! values + FACE_OBJ_FONT
 		para: as red-object! values + FACE_OBJ_PARA
 		draw-text-d2d hDC text font para rc
 		true

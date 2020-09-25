@@ -279,13 +279,13 @@ get-gesture-info: func [
 
 get-text-size: func [
 	face 	[red-object!]
+	font	[red-object!]
 	str		[red-string!]
 	pair	[red-pair!]
 	return: [tagSIZE]
 	/local
 		saved 	[handle!]
 		values 	[red-value!]
-		font	[red-object!]
 		state	[red-block!]
 		hFont	[handle!]
 		hwnd 	[handle!]
@@ -293,20 +293,8 @@ get-text-size: func [
 		size 	[tagSIZE]
 		rc 		[RECT_STRUCT value]
 		bbox 	[RECT_STRUCT_FLOAT32 value]
-		screens	[red-block!]
-		screen1	[red-object!]
 ][
 	size: declare tagSIZE
-
-	if null? face [
-		screens: as red-block! #get system/view/screens		;-- screens list
-		if null? screens [fire [TO_ERROR(script face-type) screens]]
-		
-		screen1: as red-object! block/rs-head screens
-		if null? screen1 [fire [TO_ERROR(script face-type) screen1]]
-
-		face: screen1
-	]
 
 	;-- possibly null if hwnd wasn't stored in `state` yet (upon face creation)
 	;  in this case hwnd=0 is of the screen, while `para` can still be applied from the face/ctx
@@ -315,8 +303,7 @@ get-text-size: func [
 		hwnd: GetDesktopWindow
 	]
 	values: object/get-values face
-	dc: GetWindowDC hwnd
-	font: as red-object! values + FACE_OBJ_FONT
+	if null? font [font: as red-object! values + FACE_OBJ_FONT]
 	hFont: null
 	if TYPE_OF(font) = TYPE_OBJECT [
 		state: as red-block! values + FONT_OBJ_STATE
@@ -326,7 +313,8 @@ get-text-size: func [
 	if null? hFont [hFont: default-font]
 	saved: SelectObject hwnd hFont
 	GetClientRect hWnd rc
-	render-text values hwnd dc rc str :bbox
+	dc: GetWindowDC hwnd
+	render-text values font hwnd dc rc str :bbox
 
 	SelectObject hwnd saved
 	ReleaseDC hwnd dc
