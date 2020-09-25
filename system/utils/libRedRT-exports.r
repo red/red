@@ -14,6 +14,7 @@
 	red/eval-path
 	red/select-key*
 	red/alloc-bytes
+	red/alloc-cells
 	red/get-cmdline-args
 
 	red/redbin/boot-load
@@ -324,6 +325,7 @@
 	red/natives/exclude*
 	red/natives/complement?*
 	red/natives/dehex*
+	red/natives/enhex*
 	red/natives/negative?*
 	red/natives/positive?*
 	red/natives/max*
@@ -381,7 +383,45 @@
 	red/natives/recycle*
 	red/natives/transcode*
 	red/natives/as-money*
+
+	;-- for view backend
+	red/symbol/resolve
+	red/object/get-word
+	red/fire
+	red/datatype/register
+	red/block/rs-tail
+	red/stack/push*
+	red/word/push*
+	red/block/rs-clear
+	red/object/rs-find
+	red/block/make-at
+	red/handle/make-in
+	red/unicode/to-utf8
+	red/string/to-hex
+	red/integer/make-in
+	red/logic/make-in
+	red/string/make-at
+	red/unicode/load-utf8-buffer
+	red/ownership/bind
+	red/integer/make-at
+	red/string/load
+	red/set-type
+	red/unicode/load-utf8-stream
+	red/word/make-at
+	red/word/push-in
+	red/block/select-word
+	red/block/find
+	red/_series/remove
+	red/image/init-image
+	red/OS-image/lock-bitmap
+	red/OS-image/get-data
+	red/OS-image/unlock-bitmap
+	red/ownership/check
+	red/report
+	red/_context/set
+	red/string/load-at
 ][
+	red/root				red-block!
 	red/object/path-parent	cell!
 	red/object/field-parent	cell!
 	red/stack/arguments		cell!
@@ -393,4 +433,5 @@
 	red/false-value			cell!
 	red/boot?				logic!
 	red/collector/active?	logic!
+	red/natives/buffer-blk	red-block!
 ]

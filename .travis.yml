@@ -30,33 +30,35 @@ env:
 
 
 matrix:
-  allow_failures:               # Enable to disregard ARM build failures
-  - env: OS=armel               # Enable to disregard ARMel build failures
-  - env: OS=armhf               # Enable to disregard ARMhf build failures
+#  allow_failures:               # Enable to disregard ARM build failures
+#  - env: OS=armel               # Enable to disregard ARMel build failures
+#  - env: OS=armhf               # Enable to disregard ARMhf build failures
 
   include:
 
 
   ### Linux ############################################################
-  - os: linux
-    dist: trusty
-    sudo: required
-    env: OS=linux
+  - env: OS=linux
     script:                                             # Run i386 tests
     - >
       docker run -v ${PWD}:/red -w /red
-      i386/debian:red rebol -qws tests/run-all.r --batch
+      i386/debian:red sh -c "
+        /sbin/start-stop-daemon --start --quiet --background --exec /usr/bin/Xvfb &&
+        sleep 3 &&
+        rebol -qws tests/run-all.r --batch
+      "
     - mv quick-test/quick-test.log quick-test/quick-test-red.log
     - >
       docker run -v ${PWD}:/red -w /red
-      i386/debian:red rebol -qws system/tests/run-all.r --batch
+      i386/debian:red sh -c "
+        /sbin/start-stop-daemon --start --quiet --background --exec /usr/bin/Xvfb &&
+        sleep 3 &&
+        rebol -qws system/tests/run-all.r --batch
+      "
 
 
   ### ARMel ############################################################
-  - os: linux
-    dist: trusty
-    sudo: required
-    env: OS=armel
+  - env: OS=armel
     script:                                          # Run ARMv5el tests
     - >
       docker run -v ${PWD}:/red
@@ -72,10 +74,7 @@ matrix:
 
 
   ### ARMhf ############################################################
-  - os: linux
-    dist: trusty
-    sudo: required
-    env: OS=armhf
+  - env: OS=armhf
     script:                                          # Run ARMv7hf tests
     - >
       docker run -v ${PWD}:/red
@@ -108,8 +107,9 @@ install:
     multiarch/qemu-user-static:register &&
     printf
     'FROM i386/debian:latest\n
+    ENV DISPLAY :0\n
     RUN apt-get update &&
-    apt-get install -y curl libcurl4 &&
+    apt-get install -y curl libcurl4 libgtk-3-0 xvfb &&
     curl -o /bin/rebol https://static.red-lang.org/tmp/rebol &&
     chmod +x /bin/rebol\n
     ' > Dockerfile &&

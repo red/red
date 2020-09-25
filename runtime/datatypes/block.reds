@@ -233,19 +233,28 @@ block: context [
 			head   [red-value!]
 			s	   [series!]
 			size   [integer!]
+			hs	   [red-hash!]
 	][
+		hs: as red-hash! blk
 		s: GET_BUFFER(blk)
 		size: as-integer s/tail + 1 - s/offset
 		if size > s/size [s: expand-series s size * 2]
 		head: s/offset + blk/head
-		
-		move-memory										;-- make space
-			as byte-ptr! head + 1
-			as byte-ptr! head
-			as-integer s/tail - head
-			
+
+		if head <> s/tail [
+			move-memory										;-- make space
+				as byte-ptr! head + 1
+				as byte-ptr! head
+				as-integer s/tail - head
+
+			if TYPE_OF(hs) = TYPE_HASH [
+				_hashtable/refresh hs/table 1 blk/head (as-integer s/tail - head) >> 4 yes
+			]
+		]
+
 		s/tail: s/tail + 1	
-		copy-cell value head
+		value: copy-cell value head
+		if TYPE_OF(hs) = TYPE_HASH [_hashtable/put hs/table value]
 		blk/head: blk/head + 1
 		blk
 	]
@@ -304,6 +313,8 @@ block: context [
 	append-thru: func [
 		/local
 			arg	[red-block!]
+			val [red-value!]
+			hs	[red-hash!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/append-thru"]]
 
@@ -311,9 +322,14 @@ block: context [
 			arg: as red-block! stack/arguments - 1
 			;assert TYPE_OF(arg) = TYPE_BLOCK			;@@ disabled until we have ANY_BLOCK check
 
-			copy-cell
+			val: copy-cell
 				as cell! arg + 1
 				ALLOC_TAIL(arg)
+
+			if TYPE_OF(arg) = TYPE_HASH [
+				hs: as red-hash! arg
+				_hashtable/put hs/table val
+			]
 		]
 	]
 	
@@ -379,7 +395,7 @@ block: context [
 		either fixed? [
 			blk/node: alloc-fixed-series size 16 0
 		][
-			blk/node: alloc-unset-cells size 16 0
+			blk/node: alloc-unset-cells size
 		]
 		blk/extra:  0
 		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags

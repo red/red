@@ -405,6 +405,10 @@ face!: object [				;-- keep in sync with facet! enum
 				set-quiet in self word old				;-- force the old value
 				exit
 			]
+			if all [
+				any [word = 'size word = 'offset]
+				old = new
+			][exit]
 			if word = 'pane [
 				if all [type = 'window object? :new new/type = 'window][
 					cause-error 'script 'bad-window []
@@ -573,6 +577,7 @@ system/view: context [
 		paddings:		make map! 32
 		margins:		make map! 32
 		def-heights:	make map! 32
+		fixed-heights:	make map! 32
 		misc:			make map! 32
 		colors:			make map! 10
 	]
@@ -787,7 +792,7 @@ show: function [
 			]
 			
 			switch face/type [
-				#if config/OS = 'Windows [				;@@ remove this system specific code
+				#if config/OS <> 'macOS [				;@@ remove this system specific code
 					tab-panel [link-tabs-to-parent face]
 				]
 				window	  [

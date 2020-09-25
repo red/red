@@ -69,6 +69,8 @@ win-state:		0
 hIMCtx:			as handle! 0
 ime-open?:		no
 ime-font:		as tagLOGFONT allocate 92
+base-down-hwnd: as handle! 0
+request-file?:	no
 
 dpi-factor:		100
 log-pixels-x:	0
@@ -278,12 +280,14 @@ get-gesture-info: func [
 get-text-size: func [
 	face 	[red-object!]
 	str		[red-string!]
-	hFont	[handle!]
 	pair	[red-pair!]
 	return: [tagSIZE]
 	/local
 		saved 	[handle!]
 		values 	[red-value!]
+		font	[red-object!]
+		state	[red-block!]
+		hFont	[handle!]
 		hwnd 	[handle!]
 		dc 		[handle!]
 		size 	[tagSIZE]
@@ -300,7 +304,13 @@ get-text-size: func [
 	]
 	values: object/get-values face
 	dc: GetWindowDC hwnd
-
+	font: as red-object! values + FACE_OBJ_FONT
+	hFont: null
+	if TYPE_OF(font) = TYPE_OBJECT [
+		state: as red-block! values + FONT_OBJ_STATE
+		if TYPE_OF(state) <> TYPE_BLOCK [hFont: get-font-handle font 0]
+		if null? hFont [hFont: make-font face font]
+	]
 	if null? hFont [hFont: default-font]
 	saved: SelectObject hwnd hFont
 	GetClientRect hWnd rc

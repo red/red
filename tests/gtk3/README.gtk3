@@ -1,0 +1,7 @@
+sudo apt install at-spi2-core #for Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+
+
+sudo apt-get install libgtk-3-bin:i386
+sudo apt-get install librsvg2-common:i386
+sudo apt install libcanberra-gtk-module:i386 libcanberra-gtk3-module:i386
+sudo apt install at-spi2-core:i386
