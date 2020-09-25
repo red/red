@@ -241,6 +241,7 @@ float: context [
 				]
 			]
 			OP_REM [
+				if any [left = -INF left = +INF right = 0.0][return QNaN]	;-- issue #4574
 				either all [0.0 = right not NaN? right][
 					fire [TO_ERROR(math zero-divide)]
 					0.0									;-- pass the compiler's type-checking
