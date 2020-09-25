@@ -886,7 +886,7 @@ block: context [
 		part?: no
 		
 		if OPTION?(skip) [
-			assert TYPE_OF(skip) = TYPE_INTEGER
+			unless TYPE_OF(skip) = TYPE_INTEGER [ERR_INVALID_REFINEMENT_ARG(refinements/_skip skip)]
 			step: skip/value
 			unless positive? step [
 				fire [TO_ERROR(script out-of-range) skip]

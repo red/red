@@ -2939,6 +2939,9 @@ comment {
 			recycle
 		]
 	
+	--test-- "#4522"
+		--assert error? try [find/skip [1] [1] ()]
+
 	--test-- "#4563" do [							;@@ #4526
 		--assert error? try [make op! :>>]
 		--assert error? try [make op! make op! func [x y][]]
