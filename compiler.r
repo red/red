@@ -405,7 +405,7 @@ red: context [
 	]
 	
 	emit-push-word: func [name [any-word!] original [any-word!] /local type ctx obj][
-		type: to word! form type? name
+		type: to word! form type? :name
 		name: to word! :name
 		
 		either all [

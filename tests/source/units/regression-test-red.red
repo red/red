@@ -828,7 +828,14 @@ Red [
 		parse "a" [collect rule727]
 		--assert equal? 1 x727
 		unset 'x727
-
+	
+	--test-- "#734"
+		foo: quote 'bar
+		--assert lit-word? quote 'bar
+		--assert lit-word? foo
+		--assert lit-word? :foo
+		unset 'foo
+		
 	--test-- "#757"
 		--assert not error? try [x757: "^(FF)"]
 		unset 'x757
