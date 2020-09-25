@@ -288,7 +288,9 @@ on-face-deep-change*: function ["Internal use only" owner word target action new
 						index: (index? find/same owner/data target) - 1
 						part: 1
 					]
-					system/view/platform/on-change-facet owner word target action new index part
+					if find [inserted appended clear remove take move poked put-ed reversed] action [
+						system/view/platform/on-change-facet owner word target action new index part
+					]
 				]
 			]
 			system/reactivity/check/only owner word
