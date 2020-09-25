@@ -1563,7 +1563,10 @@ process: func [
 		WM_LBUTTONDOWN	[
 			menu-origin: null							;-- reset if user clicks on menu bar
 			menu-ctx: null
-			make-event msg flags EVT_LEFT_DOWN
+			base-down-hwnd: msg/hWnd
+			res: make-event msg flags EVT_LEFT_DOWN
+			base-down-hwnd: null
+			res
 		]
 		WM_LBUTTONUP	[
 			if all [msg/hWnd <> null msg/hWnd = GetCapture not no-face? msg/hWnd][
