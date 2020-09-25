@@ -1126,6 +1126,61 @@ Red [
 
 ===end-group===
 
+===start-group=== "reverse/skip"
+	--test-- "reverse/skip-1"
+		--assert error? try [reverse/skip [0]   0]
+		--assert error? try [reverse/skip [-1] -1]
+		--assert error? try [reverse/skip ["1"] "1"]
+	
+	--test-- "reverse/skip-2"
+		--assert error? try [reverse/skip [1 2 3] 2]
+		--assert error? try [reverse/skip [1 2 3] 4]
+	
+	--test-- "reverse/skip-3"
+		--assert error? try [reverse/skip/part [a b c d e f] 6 2]
+		--assert error? try [reverse/skip/part [a b c d e f] 3 4]
+	
+	--test-- "reverse/skip-4"
+		--assert [a b c] == reverse/skip [a b c] 3
+		--assert <abc>   == reverse/skip <abc> 3
+		
+	--test-- "reverse/skip-5"
+		series: make vector! [integer! 16 [1 2 3 4]]
+		reverse/skip series 2
+		--assert series == make vector! [integer! 16 [3 4 1 2]]
+	
+	--test-- "reverse/skip-6"
+		series: make hash! [#"a" #"b" #"c" #"d"]
+		reverse/skip series 2
+		--assert series == make hash! [#"c" #"d" #"a" #"b"]
+		--assert #"d" == series/(#"c")
+		--assert #"a" == select series #"d"
+		--assert #"b" == last series
+		--assert head? find series #"c"
+	
+	--test-- "reverse/skip-7"
+		--assert [d e f a b c] == reverse/skip [a b c d e f] 3
+		--assert [e f c d a b] == reverse/skip [a b c d e f] 2
+		--assert [f e d c b a] == reverse/skip [a b c d e f] 1
+	
+	--test-- "reverse/skip-8"
+		--assert "🍇🍏🍑🍒🍉🍊🍌🍎" == reverse/skip "🍉🍊🍌🍎🍇🍏🍑🍒" 4
+		--assert "🍑🍒🍇🍏🍌🍎🍉🍊" == reverse/skip "🍉🍊🍌🍎🍇🍏🍑🍒" 2
+		--assert "🍒🍑🍏🍇🍎🍌🍊🍉" == reverse/skip "🍉🍊🍌🍎🍇🍏🍑🍒" 1
+	
+	--test-- "reverse/skip-9"
+		--assert [c d a b e f g h] == reverse/skip/part [a b c d e f g h] 2 4
+	
+	--test-- "reverse/skip-10"
+		series: <abcdefgh>
+		--assert <abefcdgh> == head reverse/part/skip skip series 2 skip series 6 2
+	
+	--test-- "reverse/skip-11"
+		--assert strict-equal?
+			reverse <abc>
+			reverse/skip <abc> 1
+===end-group===
+
 ===start-group=== "take"
 
 	--test-- "take-blk-1"
