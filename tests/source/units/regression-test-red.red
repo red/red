@@ -2939,6 +2939,11 @@ comment {
 			recycle
 		]
 	
+	--test-- "#4563" do [							;@@ #4526
+		--assert error? try [make op! :>>]
+		--assert error? try [make op! make op! func [x y][]]
+	]
+	
 	--test-- "#4567"
 		objects: [foo]
 		--assert 'foo == objects/1
