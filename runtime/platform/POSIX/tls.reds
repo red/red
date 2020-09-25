@@ -215,6 +215,7 @@ tls: context [
 						SSL_CTX_use_PrivateKey server-ctx pk
 					]
 					SSL_CTX_set_mode(server-ctx 5)
+					SSL_CTX_set_cipher_list server-ctx "ECDHE+AES:@STRENGTH:+AES256"
 				]
 				ctx: server-ctx
 			]

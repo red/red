@@ -794,18 +794,17 @@ errno: as int-ptr! 0
 
 #import [
 	LIBSSL-file cdecl [
+		SSL_CTX_set_cipher_list: "SSL_CTX_set_cipher_list" [
+			ctx		[int-ptr!]
+			str		[c-string!]
+			return: [integer!]
+		]
 		SSL_CTX_new: "SSL_CTX_new" [
 			method	[int-ptr!]
 			return: [int-ptr!]
 		]
 		SSL_CTX_free: "SSL_CTX_free" [
 			ctx		[int-ptr!]
-		]
-		TLSv1_2_client_method: "TLSv1_2_client_method" [
-			return: [int-ptr!]
-		]
-		TLSv1_2_server_method: "TLSv1_2_server_method" [
-			return: [int-ptr!]
 		]
 		TLS_client_method: "TLS_client_method" [
 			return: [int-ptr!]
