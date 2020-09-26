@@ -152,47 +152,6 @@ insert-list-item: func [
 	]
 ]
 
-insert-list-items: func [
-	hWnd  [handle!]
-	item  [red-string!]
-	pos	  [integer!]
-	part  [integer!]
-	face  [red-object!]
-	sym   [integer!]
-	drop? [logic!]
-	/local
-		data [red-block!]
-		val	[red-value!]
-		i	[integer!]
-		n	[integer!]
-		add? [logic!]
-][
-	data: as red-block! (object/get-values face) + FACE_OBJ_DATA
-	val: block/rs-head data
-	i: 0
-	n: 0
-	assert pos < block/rs-length? data
-
-	;-- caculate the index in native widget, e.g.
-	;-- we have data: ["abc" 32 "zyz" 8 "xxx"]   pos: 4
-	;-- the actual insertion index: i: 2
-	while [n < pos][
-		if TYPE_OF(val) = TYPE_STRING [i: i + 1]
-		val: val + 1
-		n: n + 1
-	]
-
-	add?: any [sym = words/_reversed/symbol sym = words/_appended/symbol]
-	loop part [
-		if TYPE_OF(item) = TYPE_STRING [
-			insert-list-item hWnd item i drop?
-			if add? [i: i + 1]
-		]
-		ownership/bind as red-value! item face _data
-		item: item + 1
-	]
-]
-
 remove-list-item: func [
 	hWnd  [handle!]
 	pos	  [integer!]
@@ -210,28 +169,16 @@ remove-list-items: func [
 	hWnd  [handle!]
 	pos	  [integer!]
 	part  [integer!]
-	face  [red-object!]
+	data  [red-block!]
 	drop? [logic!]
 	/local
-		data [red-block!]
 		val	[red-value!]
-		i	[integer!]
-		n	[integer!]
 ][
-	data: as red-block! (object/get-values face) + FACE_OBJ_DATA
 	val: block/rs-head data
-	i: 0
-	n: 0
-	assert pos < block/rs-length? data
-
 	loop part [
-		while [n < pos][
-			if TYPE_OF(val) = TYPE_STRING [i: i + 1]
-			val: val + 1
-			n: n + 1
+		if TYPE_OF(val) = TYPE_STRING [
+			remove-list-item hWnd pos drop?
 		]
-		if TYPE_OF(val) = TYPE_STRING [remove-list-item hWnd i drop?]
-		pos: pos + 1
 	]
 ]
 
@@ -248,6 +195,7 @@ update-list: func [
 		msg  [integer!]
 		str  [red-string!]
 		sel  [red-integer!]
+		add? [logic!]
 ][
 	hWnd: get-face-handle face
 	switch TYPE_OF(value) [
@@ -267,7 +215,7 @@ update-list: func [
 						msg: either drop? [CB_RESETCONTENT][LB_RESETCONTENT]
 						SendMessage hWnd msg 0 0
 					][
-						remove-list-items hWnd index part face drop?
+						remove-list-items hWnd index part as red-block! value drop?
 					]
 				]
 				any [
@@ -291,9 +239,17 @@ update-list: func [
 						sym <> words/_inserted/symbol
 						sym <> words/_appended/symbol
 					][
-						remove-list-items hWnd index part face drop?
+						remove-list-items hWnd index part as red-block! value drop?
 					]
-					insert-list-items hWnd str index part face sym drop?
+					add?: any [sym = words/_reversed/symbol sym = words/_appended/symbol]
+					loop part [
+						if TYPE_OF(str) = TYPE_STRING [
+							insert-list-item hWnd str index drop?
+							if add? [index: index + 1]
+							ownership/bind as red-value! str face _data
+						]
+						str: str + 1
+					]
 				]
 				true [0]
 			]
