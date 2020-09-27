@@ -283,18 +283,22 @@ on-face-deep-change*: function ["Internal use only" owner word target action new
 							all [owner/options owner/options/default]
 						]
 					]
-					if all [find [text-list drop-list drop-down] owner/type string? target][
-						target: head target
-						index: (index? find/same owner/data target) - 1
-						part: 1
-					]
-					if any [
-						string? target
-						all [
-							block? target
-							same? (head owner/data) (head target)
-							not find [insert append cleared removed taken] action
+					either all [word = 'data find [text-list drop-list drop-down] owner/type][
+						if string? target [
+							target: head target
+							index: (index? find/same owner/data target) - 1
+							part: 1
 						]
+						if any [
+							string? target
+							all [
+								block? target
+								same? (head owner/data) (head target)
+								not find [insert append cleared removed taken] action
+							]
+						][
+							system/view/platform/on-change-facet owner word target action new index part
+						]	
 					][
 						system/view/platform/on-change-facet owner word target action new index part
 					]
