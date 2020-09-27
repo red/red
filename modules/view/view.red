@@ -288,21 +288,15 @@ on-face-deep-change*: function ["Internal use only" owner word target action new
 						index: (index? find/same owner/data target) - 1
 						part: 1
 					]
-					if all [
-						block? owner/data
-						block? target
-						same? (head owner/data) (head target)
-						find [inserted appended clear remove take move poked put-ed reversed] action
-					][
-						;-- caculate the index in native widget, e.g.
-						;-- we have data: ["abc" 32 "zyz" 8 "xxx"]   index: 4
-						;-- the actual insertion index: 2
-						i: n: 0
-						while [n < index][
-							if string? pick owner/data n + 1 [i: i + 1]
-							n: n + 1
+					if any [
+						string? target
+						all [
+							block? target
+							same? (head owner/data) (head target)
+							not find [insert append cleared removed taken] action
 						]
-						system/view/platform/on-change-facet owner word target action new i part
+					][
+						system/view/platform/on-change-facet owner word target action new index part
 					]
 				]
 			]

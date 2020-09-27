@@ -1512,7 +1512,7 @@ block: context [
 			action: words/_insert
 			h
 		]
-		chk?: ownership/check as red-value! blk action value index part
+		chk?: ownership/check as red-value! blk action value index slots
 
 		unless tail? [									;TBD: process head? case separately
 			size: as-integer s/tail + slots - s/offset
@@ -1568,7 +1568,7 @@ block: context [
 		]
 		if chk? [
 			action: either append? [words/_appended][words/_inserted]
-			ownership/check as red-value! blk action value index part
+			ownership/check as red-value! blk action value index slots
 		]
 		either append? [blk/head: 0][
 			blk/head: h + slots

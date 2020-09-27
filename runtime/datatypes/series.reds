@@ -430,7 +430,7 @@ _series: context [
 				return as red-value! origin
 			]
 			if dst > tail [dst: tail]					;-- avoid overflows if part is too big
-			ownership/check as red-value! target words/_move null origin/head items
+			ownership/check as red-value! target words/_move as red-value! origin origin/head items
 
 			temp: allocate part							;@@ suboptimal for unit < 16
 			copy-memory	temp src part
@@ -464,7 +464,7 @@ _series: context [
 			][
 				fire [TO_ERROR(script move-bad) datatype/push type1 datatype/push type2]
 			]
-			ownership/check as red-value! target words/_move null origin/head items
+			ownership/check as red-value! target words/_move as red-value! origin origin/head items
 			
 			s2:    GET_BUFFER(target)
 			unit2: GET_UNIT(s2)
