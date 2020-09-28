@@ -63,7 +63,7 @@ red-complete-ctx: context [
 				word: find/last/tail s #"/"
 				words: make block! 4
 				foreach w spec-of w1 [
-					if refinement? w [append words w]
+					if all [refinement? w w <> /local][append words w]
 				]
 			]
 			object? :w1 [

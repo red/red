@@ -2241,7 +2241,9 @@ OS-draw-brush-pattern: func [
 	/local
 		pat-image	[red-image!]
 		bkg-alpha	[byte!]
-		p-alpha		[red-binary! value]
+		p-alpha		[red-value! value]
+		bin			[red-binary!]
+		s			[series!]
 		p			[byte-ptr!]
 		len			[integer!]
 ][
@@ -2256,10 +2258,12 @@ OS-draw-brush-pattern: func [
 	pat-image/size:   size/y << 16 or size/x
 	bkg-alpha:        as byte! 0
 	len:              size/x * size/y
-	string/rs-make-at as cell! :p-alpha len
-	p: binary/rs-head :p-alpha
+	bin: binary/make-at :p-alpha len
+	s: GET_BUFFER(bin)
+	p: as byte-ptr! s/offset
+	s/tail: as cell! (p + len)
 	set-memory p #"^(FF)" len
-	pat-image/node: OS-image/make-image size/x size/y null :p-alpha null
+	pat-image/node: OS-image/make-image size/x size/y null bin null
 	do-draw null pat-image block no no no no
 	OS-draw-brush-bitmap ctx pat-image crop-1 crop-2 mode brush?
 ]

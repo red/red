@@ -483,7 +483,6 @@ compact-series-frame: func [
 		delta [integer!]
 		size  [integer!]
 		tail? [logic!]
-		mark? [logic!]
 ][
 	tail: memory/stk-tail
 	s: as series! frame + 1					;-- point to first series buffer
@@ -503,10 +502,9 @@ compact-series-frame: func [
 			while [							;-- search for a live series
 				s: as series! (as byte-ptr! s + 1) + s/size + SERIES_BUFFER_PADDING
 				tail?: s >= heap
-				mark?: s/flags and flag-gc-mark <> 0
-				not any [mark? tail?]
+				not tail?
 			][
-				free-node s/node
+				either s/flags and flag-gc-mark <> 0 [break][free-node s/node]
 			]
 			;probe ["live found at: " s]
 		]
@@ -517,7 +515,8 @@ compact-series-frame: func [
 				s/flags: s/flags and not flag-gc-mark	;-- clear mark flag
 				s: as series! (as byte-ptr! s + 1) + s/size + SERIES_BUFFER_PADDING
 				tail?: s >= heap
-				any [s/flags and flag-gc-mark = 0 tail?]
+				;@@ test tail? first, otherwise s/flags may crash if s = heap
+				any [tail? s/flags and flag-gc-mark = 0]
 			]
 			;probe ["gap found at: " s]
 			if dst <> null [
@@ -570,7 +569,6 @@ cross-compact-frame: func [
 		size	[integer!]
 		size2	[integer!]
 		tail?	[logic!]
-		mark?	[logic!]
 		cross?	[logic!]
 		update? [logic!]
 ][
@@ -602,10 +600,9 @@ cross-compact-frame: func [
 			while [							;-- search for a live series
 				s: as series! (as byte-ptr! s + 1) + s/size + SERIES_BUFFER_PADDING
 				tail?: s >= heap
-				mark?: s/flags and flag-gc-mark <> 0
-				not any [mark? tail?]
+				not tail?
 			][
-				free-node s/node
+				either s/flags and flag-gc-mark <> 0 [break][free-node s/node]
 			]
 		]
 		unless tail? [
@@ -618,10 +615,10 @@ cross-compact-frame: func [
 				ss: s						;-- save previous series pointer
 				s: as series! (as byte-ptr! s + 1) + s/size + SERIES_BUFFER_PADDING
 				tail?: s >= heap
-				any [
+				any [	;@@ test tail? first, otherwise s/flags may crash if s = heap
+					tail?	
 					all [cross? size >= free-sz]
 					s/flags and flag-gc-mark = 0
-					tail?
 				]
 			]
 

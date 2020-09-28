@@ -209,88 +209,93 @@ repend: func [
 
 replace: function [
 	"Replaces values in a series, in place"
-	series [series!] "The series to be modified"
-	pattern "Specific value or parse rule pattern to match"
-	value "New value, replaces pattern in the series"
-	/all "Replace all occurrences, not just the first"
-	/deep "Replace pattern in all sub-lists as well"
-	/case "Case-sensitive replacement"
-	/local p rule s e many? len pos do-parse do-find
+    series [any-block! any-string! binary! vector!] "The series to be modified"	;-- series! barring image!
+    pattern "Specific value or parse rule pattern to match"
+    value "New value, replaces pattern in the series" 
+    /all  "Replace all occurrences, not just the first"
+    /deep "Replace pattern in all sub-lists as well"
+    /case "Case-sensitive replacement"
 ][
-	do-parse: pick [parse/case parse] case
-	if system/words/all [deep any-list? series] [
-		pattern: to block! either word? pattern [to lit-word! pattern] [pattern]
-		do compose [
-			(do-parse) series rule: [
-				some [
-					s: pattern e: (
-						s: change/part s value e
-						unless all [return series]
-					) :s
-					| ahead any-list! into rule | skip
-				]
-			]
+	parse?: any [
+		system/words/all [deep any-list? series]
+		system/words/all [
+			any [binary? series any-string? series]
+			any [block? :pattern bitset? :pattern]
 		]
-		return series
 	]
-	if system/words/all [
-		any [not any-string? :pattern tag? :pattern]
+	form?: system/words/all [
 		any-string? series
-		not block? :pattern
+		any [not any-string? :pattern tag? :pattern]	;-- search for a literal tag, including angle brackets
+		not block?  :pattern
 		not bitset? :pattern
-	] [
-		pattern: form pattern
 	]
-	either system/words/all [any-string? :series block? :pattern] [
-		p: [to pattern change pattern (value)]
-		do compose [(do-parse) series either all [[some p]] [p]]
-	] [
+	quote?: system/words/all [
+		not form?
+		parse?
+		not block?  :pattern
+		not bitset? :pattern
+	]
+	
+	pattern: system/words/case [
+		form?  [form :pattern]
+		quote? [reduce ['quote :pattern]]
+		'else  [:pattern]
+	]
+	
+	also series either parse? [
+		deep?: system/words/all [						;-- don't match by any-list! datatype in binary!
+			deep
+			not binary? series
+		]
+		rule:  [
+			any [
+				change pattern (value) [if (all) | break]
+				| if (deep?) ahead any-list! into rule
+				| skip
+			]
+		]
+		
+		parse series [case case rule]					;-- parse cannot process vector! and image!
+	][
 		many?: any [
-			system/words/all [series? :pattern any-string? series]
-			binary? series
-			system/words/all [any-list? series any-list? :pattern]
-		]
-		len: either many? [length? pattern] [1]
-		do-find: pick [find/case find] case
-		either all [
-			pos: series
-			either many? [
-				while [pos: do compose [(do-find) pos pattern]] [
-					remove/part pos len
-					pos: insert pos value
-				]
-			] [
-				while [pos: do compose [(do-find) pos :pattern]] [
-					pos: insert remove pos value
-				]
+			system/words/all [
+				any [binary? series any-string? series]
+				series? :pattern
 			]
-		] [
-			if pos: do compose [(do-find) series :pattern] [
-				remove/part pos len
-				insert pos value
+			system/words/all [
+				any-list? series
+				any-list? :pattern
+			]
+		]
+		size: either many? [length? :pattern][1]
+		seek: reduce [pick [find/case find] case 'series quote :pattern]
+		
+		until [											;-- find does not support image!
+			not system/words/all [
+				series: do seek
+				series: change/part series value size
+				all
 			]
 		]
 	]
-	series
 ]
 
 math: function [
-	"Evaluates a block using math precedence rules, returning the last result"
-	body [block!] "Block to evaluate"
-	/safe		  "Returns NONE on error"
+	"Evaluates expression using math precedence rules"
+	datum [block! paren!] "Expression to evaluate"
+	/local match
 ][
-	parse body: copy/deep body rule: [
-		any [
-			pos: ['* (op: 'multiply) | quote / (op: 'divide)] 
-			[ahead sub: paren! (sub/1: math as block! sub/1) | skip] (
-				end: skip pos: back pos 3
-				pos: change/only/part pos as paren! copy/part pos end end
-			) :pos
-			| into rule
-			| skip
-		]
+	order: ['** ['* | quote / | quote % | quote //]]	;@@ compiler's lexer chokes on '/, '% and '//
+	infix: [skip operator [enter | skip]]
+	
+	tally: [any [enter [fail] | recur [fail] | count [fail] | skip]]
+	enter: [ahead paren! into tally]
+	recur: [if (operator = '**) skip operator tally]
+	count: [while ahead change only copy match infix (do match)]
+
+	do also datum: copy/deep datum foreach operator order [
+		parse datum tally
 	]
-	either safe [attempt body][do body]
 ]
 
 charset: func [
@@ -1064,6 +1069,13 @@ to-local-date: func [
 ][
 	date/timezone: now/zone
 	date
+]
+
+transcode-trace: func [
+	"Shortcut function for transcoding while tracing all lexer events"
+	src [binary! string!]
+][
+	transcode/trace src :system/lexer/tracer
 ]
 
 ;--- Temporary definition, use at your own risks! ---
