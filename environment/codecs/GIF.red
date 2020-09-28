@@ -1,7 +1,7 @@
 Red [
-	Title:   "JPEG codec"
+	Title:   "GIF codec"
 	Author:  "Qingtian Xie"
-	File:	 %jpeg.red
+	File:	 %GIF.red
 	Tabs:	 4
 	Rights:  "Copyright (C) 2015-2018 Red Foundation. All rights reserved."
 	License: {
@@ -10,21 +10,24 @@ Red [
 	}
 ]
 
-put system/codecs 'jpeg context [
+put system/codecs 'gif context [
 	title: ""
-	name: 'JPEG
-	mime-type: [image/jpeg]
-	suffixes: [%.jpg %.jpeg %.jpe %.jfif]
+	name: 'GIF
+	mime-type: [image/gif]
+	suffixes: [%.gif]
 	
 	encode: routine [img [image!] where [any-type!]][
-		#if not find [Android Linux FreeBSD Syllabe] OS [
-			stack/set-last as cell! image/encode img where IMAGE_JPEG
+		#if not find [Android Linux FreeBSD NetBSD Syllabe] OS [
+			stack/set-last as cell! image/encode img where IMAGE_GIF
 		]
 	]
 
 	decode: routine [data [any-type!]][
-		#if not find [Android Linux FreeBSD Syllabe] OS [
+		#if not find [Android Linux FreeBSD NetBSD Syllabe] OS [
 			stack/set-last as cell! image/decode data
 		]
+		#if OS = 'Linux [#if modules contains 'View [
+			stack/set-last as cell! image/decode data
+		]]
 	]
 ]
