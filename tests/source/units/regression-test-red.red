@@ -1987,7 +1987,7 @@ Red [
 
 	--test-- "#1746"
 		; should check for crash
-		s1746: make object! [m: func [][] b: func [arg] [compose/deep [(arg)]]]
+		s1746: make object! [m: func [][] b: func [arg][compose/deep [(arg)]]]
 		s2: make s1746 []
 		--assert equal? [1] s1746/b 1
 		unset [s1746 s2]
@@ -2803,6 +2803,19 @@ b}
 		--assert not error? try [3151391351465.995 // 1.0]
 		unset 'true?
 	
+	--test-- "#3098"
+		block: reduce ['foo func [/bar][pick [baz qux] bar]]
+		--assert 'qux = do [block/('foo)]				;-- wrapper makes sure that it's not a sub-expression
+		--assert 'baz = do [block/('foo)/bar]
+		
+		block: reduce [block]
+		--assert 'qux = do [block/1/('foo)]
+		--assert 'baz = do [block/1/('foo)/bar]
+	
+	--test-- "#3156"
+		ctx3156: context [foo3156: does ['bar3156]]
+		bar3156: ctx3156/foo3156
+		--assert 'bar3156 == bar3156
 
 	--test-- "#2650"
 		--assert     0.0 <> null
@@ -2924,8 +2937,21 @@ comment {
 		all-equal?4205: anded4205 = last-random4205
 		--assert not all-equal?4205
 		unset [anded4205 last-random4205 all-equal?4205]
-
-
+	
+	--test-- "#4305"
+		block: reduce ['foo func [/bar][pick [baz qux] bar]]
+		id:    func [value][value]
+		--assert 'qux == block/('foo)
+		--assert 'qux == id block/('foo)
+		--assert 'qux == bar: block/('foo)
+		--assert 'qux == bar
+		
+		block: reduce [block]
+		--assert 'baz == block/1/('foo)/bar
+		--assert 'baz == id block/1/('foo)/bar
+		--assert 'baz == baz: block/1/('foo)/bar
+		--assert 'baz == baz
+		
 	--test-- "#4505"
 		do [
 			saved: :find
