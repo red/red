@@ -878,7 +878,7 @@ _function: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_function/push"]]
 
-		f-ctx: either null? ctx [_context/make spec yes no][ctx]
+		f-ctx: either null? ctx [_context/make spec yes no CONTEXT_FUNCTION][ctx]
 		fun: as red-function! stack/push*
 		fun/header:  TYPE_UNSET
 		fun/spec:	 spec/node

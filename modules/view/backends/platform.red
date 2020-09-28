@@ -220,7 +220,7 @@ system/view/platform: context [
 				left:		symbol/make "left"
 				center:		symbol/make "center"
 				right:		symbol/make "right"
-				top:		symbol/make "top"
+				top:		symbol/make-opt "top"
 				middle:		symbol/make "middle"
 				bottom:		symbol/make "bottom"
 			]
@@ -295,7 +295,7 @@ system/view/platform: context [
 			_resize-we:		symbol/make "resize-we"
 			_resize-ew:		symbol/make "resize-ew"
 
-			on-over:		symbol/make "on-over"
+			_drag-on:		symbol/make "drag-on"
 			_actors:		word/load "actors"
 			_scroller:		word/load "scroller"
 			_window:		word/load "window"
@@ -381,7 +381,7 @@ system/view/platform: context [
 			_right-command:	word/load "right-command"
 			_caps-lock:		word/load "caps-lock"
 			_num-lock:		word/load "num-lock"
-			
+
 			red/boot?: no
 			red/collector/active?: yes
 
@@ -525,6 +525,8 @@ system/view/platform: context [
 					#switch OS [
 						Windows  [#include %windows/gui.reds]
 						macOS    [#include %macOS/gui.reds]
+						; GTK backend (is it in conflict with %GTK/gui.reds)
+						Linux	 [#include %gtk3/gui.reds]
 						#default []					;-- Linux
 					]
 				]
@@ -552,9 +554,6 @@ system/view/platform: context [
 			values [red-value!]
 			text   [red-string!]
 			pair   [red-pair!]
-			font   [red-object!]
-			state  [red-block!]
-			hFont  [int-ptr!]							;-- handle!
 	][
 		;@@ check if object is a face?
 		values: object/get-values face
@@ -568,18 +567,9 @@ system/view/platform: context [
 			exit
 		]
 
-		font: as red-object! values + gui/FACE_OBJ_FONT
-		hFont: null
-		if TYPE_OF(font) = TYPE_OBJECT [
-			state: as red-block! (object/get-values font) + gui/FONT_OBJ_STATE
-			if TYPE_OF(state) <> TYPE_BLOCK [hFont: gui/get-font-handle font 0]
-			if null? hFont [hFont: gui/make-font face font]
-		]
-
 		pair: as red-pair! stack/arguments
 		pair/header: TYPE_PAIR
-		
-		gui/get-text-size face text hFont pair
+		gui/get-text-size face text pair
 	]
 	
 	on-change-facet: routine [
@@ -655,6 +645,7 @@ system/view/platform: context [
 				#switch OS [
 					Windows  [gui/PostQuitMessage 0]
 					macOS    [gui/post-quit-msg]
+					Linux    [gui/post-quit-msg]
 					#default [0]
 				]
 			]
@@ -758,6 +749,26 @@ system/view/platform: context [
 				group-box:		[0x8  4x18]
 				drop-list:		[14x26 0x0 regular 14x26 0x0 small 11x22 0x0 mini 11x22 0x0]
 			]
+			Linux [
+				button:			[17x17 3x3]
+				toggle:			[17x17 3x3]
+				check:			[20x8  2x2]
+				radio:			[20x8  2x2]
+				text:			[3x3   0x0]
+				field:			[9x9   1x1]
+				group-box:		[0x8  4x18]
+				tab-panel:		[0x0  39x0]
+				drop-list:		[0x40 0x0]
+				drop-down:		[0x54 0x0]
+			]
+		]]
+		extend system/view/metrics/fixed-heights [#switch config/OS [
+			macOS	[
+				progress:	21
+			]
+			Linux [
+				progress:	4
+			]
 		]]
 		#switch config/OS [
 			Windows [
@@ -786,6 +797,20 @@ system/view/platform: context [
 					progress:	21
 				]
 			]
+ 			Linux	[
+				 extend system/view/metrics/def-heights [
+					button:		29
+					toggle:		29
+					check:		20
+					radio:		19
+					text:		17
+					field:		30
+					drop-down:	34
+					drop-list:	34
+					progress:	4
+					slider:		34
+				]
+			]
 		]
 		
 		colors: system/view/metrics/colors
@@ -797,6 +822,8 @@ system/view/platform: context [
 			]
 			macOS [
 			
+			]
+			Linux [
 			]
 		]
 
@@ -819,6 +846,8 @@ system/view/platform: context [
 					]
 				]
 				macOS [["Menlo" "Arial" "Times"]]
+				;-- use "Monospace" on Linux, we let the system use the default one
+				Linux [["Monospace" "DejaVu Sans" "DejaVu Serif"]]
 			]
 		
 		set [font-fixed font-sans-serif font-serif] reduce fonts

@@ -106,6 +106,7 @@ _series: context [
 			temp [byte-ptr!]
 			idx	 [byte-ptr!]
 			head [byte-ptr!]
+			chk? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "series/random"]]
 
@@ -116,6 +117,7 @@ _series: context [
 			unit: GET_UNIT(s)
 			head: (as byte-ptr! s/offset) + (ser/head << (log-b unit))
 			size: (as-integer s/tail - s/offset) >> (log-b unit) - ser/head
+			chk?: ownership/check as red-value! ser words/_random null ser/head size
 
 			either only? [
 				either positive? size [
@@ -157,7 +159,7 @@ _series: context [
 					head: head + unit
 					size: size - 1
 				]
-				ownership/check as red-value! ser words/_random null ser/head len
+				if chk? [ownership/check as red-value! ser words/_randomized null ser/head len]
 			]
 		]
 		as red-value! ser
@@ -428,7 +430,7 @@ _series: context [
 				return as red-value! origin
 			]
 			if dst > tail [dst: tail]					;-- avoid overflows if part is too big
-			ownership/check as red-value! target words/_move null origin/head items
+			ownership/check as red-value! target words/_move as red-value! origin origin/head items
 
 			temp: allocate part							;@@ suboptimal for unit < 16
 			copy-memory	temp src part
@@ -462,7 +464,7 @@ _series: context [
 			][
 				fire [TO_ERROR(script move-bad) datatype/push type1 datatype/push type2]
 			]
-			ownership/check as red-value! target words/_move null origin/head items
+			ownership/check as red-value! target words/_move as red-value! origin origin/head items
 			
 			s2:    GET_BUFFER(target)
 			unit2: GET_UNIT(s2)
@@ -621,6 +623,8 @@ _series: context [
 
 			src: (as byte-ptr! s/offset) + (head << unit)
 			tail: as byte-ptr! s/tail
+			if src = (as byte-ptr! cell) [ser/head: head + items return ser]
+
 			either part? [
 				size: size - part
 				move-memory
@@ -744,6 +748,7 @@ _series: context [
 			pos	   [byte-ptr!]
 			unit   [integer!]
 			char   [red-char!]
+			chk?   [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "series/poke"]]
 
@@ -763,6 +768,7 @@ _series: context [
 				integer/push index
 			]
 		][
+			chk?: ownership/check as red-value! ser words/_poke data offset 1
 			pos: (as byte-ptr! s/offset) + (offset << (log-b unit))
 			switch TYPE_OF(ser) [
 				TYPE_BLOCK								;@@ any-block?
@@ -789,7 +795,7 @@ _series: context [
 					string/poke-char s pos char/value
 				]
 			]
-			ownership/check as red-value! ser words/_poke data offset 1
+			if chk? [ownership/check as red-value! ser words/_poked data offset 1]
 			stack/set-last data
 		]
 		data
@@ -872,26 +878,36 @@ _series: context [
 	reverse: func [
 		ser	 	 [red-series!]
 		part-arg [red-value!]
+		skip-arg [red-value!]
 		return:	 [red-series!]
 		/local
 			s		[series!]
 			part	[integer!]
+			skip	[integer!]
 			items	[integer!]
 			unit	[integer!]
+			one     [integer!]
 			head	[byte-ptr!]
+			head2	[byte-ptr!]
 			tail	[byte-ptr!]
-			val		[red-value! value]
+			tail2	[byte-ptr!]
 			temp	[byte-ptr!]
+			val     [red-value! value]
 			int		[red-integer!]
 			ser2	[red-series!]
 			hash?	[logic!]
 			hash	[red-hash!]
 			table	[node!]
+			skip?	[logic!]
+			big?    [logic!]
+			chk?	[logic!]
 	][
 		s:    GET_BUFFER(ser)
 		unit: GET_UNIT(s)
+		one:  unit
 		head: (as byte-ptr! s/offset) + (ser/head << (log-b unit))
 		tail: as byte-ptr! s/tail
+		skip: 1
 		part: 0
 		
 		if head = tail [return ser]						;-- early exit if nothing to reverse
@@ -917,28 +933,53 @@ _series: context [
 			items: get-length ser no
 		]
 		
+		skip?: OPTION?(skip-arg)
+		if skip? [
+			unless TYPE_OF(skip-arg) = TYPE_INTEGER [ERR_INVALID_REFINEMENT_ARG(refinements/_skip skip-arg)]
+			int:  as red-integer! skip-arg
+			skip: int/value								;-- 1/2 of series length max
+			
+			if skip = items [return ser]				;-- early exit if nothing to reverse
+			if skip <= 0 [fire [TO_ERROR(script out-of-range) skip-arg]]
+			if any [skip > items items % skip <> 0][ERR_INVALID_REFINEMENT_ARG(refinements/_skip skip-arg)]
+			
+			unit: unit * skip
+		]
+		
 		hash?: TYPE_OF(ser) = TYPE_HASH
 		if hash? [
 			hash: as red-hash! ser
 			table: hash/table
 		]
-		if all [positive? part head + part < tail] [tail: head + part]
-		tail: tail - unit								;-- point to last value
-		temp: as byte-ptr! :val
+		chk?: ownership/check as red-value! ser words/_reverse null ser/head items
+		big?: all [skip? skip <> 1]
+		if all [positive? part head + part < tail][tail: head + part]
+		tail: tail - unit								;-- point to last value or multi-value record
+		temp: either big? [allocate unit][as byte-ptr! :val]
 		while [head < tail][							;-- TODO: optimise it according to unit
 			copy-memory temp head unit
 			copy-memory head tail unit
 			copy-memory tail temp unit
 			if hash? [
-				_hashtable/delete table as red-value! head
-				_hashtable/delete table as red-value! tail
-				_hashtable/put table as red-value! head
-				_hashtable/put table as red-value! tail
+				assert skip > 0
+				assert one = size? cell!
+				head2: head
+				tail2: tail
+				loop skip [								;-- rehash elements in record one-by-one
+					_hashtable/delete table as red-value! head2
+					_hashtable/delete table as red-value! tail2
+					_hashtable/put table as red-value! head2
+					_hashtable/put table as red-value! tail2
+					
+					head2: head2 + one					;-- both from start to end
+					tail2: tail2 + one
+				]
 			]
 			head: head + unit
 			tail: tail - unit
 		]
-		ownership/check as red-value! ser words/_reverse null ser/head items
+		if big? [free temp]
+		if chk? [ownership/check as red-value! ser words/_reversed null ser/head items]
 		ser
 	]
 
@@ -1066,7 +1107,10 @@ _series: context [
 			unit2	[integer!]
 			head1	[byte-ptr!]
 			head2	[byte-ptr!]
+			chk? chk2? [logic!]
 	][
+		chk?:  ownership/check as red-value! ser1 words/_swap null ser1/head 1
+		chk2?: ownership/check as red-value! ser2 words/_swap null ser2/head 1
 		s1:    GET_BUFFER(ser1)
 		unit1: GET_UNIT(s1)
 		head1: (as byte-ptr! s1/offset) + (ser1/head << (log-b unit1))
@@ -1081,8 +1125,8 @@ _series: context [
 		char2: string/get-char head2 unit2
 		string/poke-char s1 head1 char2
 		string/poke-char s2 head2 char1
-		;ownership/check as red-value! ser1 words/_remove null offset part
-		;ownership/check as red-value! ser2 words/_remove null offset part
+		if chk?  [ownership/check as red-value! ser1 words/_swaped null ser1/head 1]
+		if chk2? [ownership/check as red-value! ser2 words/_swaped null ser2/head 1]
 		ser1
 	]
 
@@ -1098,6 +1142,7 @@ _series: context [
 		/local
 			int		[red-integer!]
 			ser2	[red-series!]
+			pair	[red-pair!]
 			offset	[integer!]
 			s		[series!]
 			buffer	[series!]
@@ -1123,18 +1168,28 @@ _series: context [
 		if OPTION?(types) [--NOT_IMPLEMENTED--]
 
 		if OPTION?(part-arg) [
-			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
-				int: as red-integer! part-arg
-				int/value
-			][
-				ser2: as red-series! part-arg
-				unless all [
-					TYPE_OF(ser2) = type				;-- handles ANY-STRING!
-					ser2/node = ser/node
-				][
-					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
+			part: switch TYPE_OF(part-arg) [
+				TYPE_INTEGER [
+					int: as red-integer! part-arg
+					int/value
 				]
-				ser2/head - ser/head
+				TYPE_PAIR [
+					pair: as red-pair! part-arg
+					offset: offset + pair/x - 1
+					if negative? pair/x [offset: offset + 1] ;-- merges indexes 0 and 1
+					if offset < 0 [offset: 0]
+					either pair/y < pair/x [0][pair/y - pair/x]
+				]
+				default [
+					ser2: as red-series! part-arg
+					unless all [
+						TYPE_OF(ser2) = type				;-- handles ANY-STRING!
+						ser2/node = ser/node
+					][
+						ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
+					]
+					ser2/head - ser/head
+				]
 			]
 			if negative? part [
 				part: 0 - part
@@ -1146,7 +1201,7 @@ _series: context [
 		if offset > len [part: 0 offset: len]
 		if offset + part > len [part: len - offset]
 
-		new/header: TYPE_UNSET
+		if ser <> new [new/header: TYPE_UNSET]
 		part:	part << (log-b unit)
 		node:	alloc-bytes part
 		s: GET_BUFFER(ser)

@@ -219,7 +219,7 @@ tuple: context [
 					v: either n <= size2 [as-integer tp2/n][0]
 				]
 				v1: either n <= size1 [as-integer tp1/n][0]
-				v1: integer/do-math-op v1 v type
+				v1: integer/do-math-op v1 v type null
 				either v1 > 255 [v1: 255][if negative? v1 [v1: 0]]
 				tp1/n: as byte! v1
 				n = size
@@ -619,20 +619,27 @@ tuple: context [
 	reverse: func [
 		tuple	 [red-tuple!]
 		part-arg [red-value!]
+		skip-arg [red-value!]
 		return:	 [red-value!]
 		/local
 			int  [red-integer!]
+			temp [red-value! value]						;-- enough to hold max tuple (payload)
 			part [integer!]
 			tmp  [byte!]
 			size [integer!]
+			skip [integer!]
 			n	 [integer!]
 			tp   [byte-ptr!]
+			head [byte-ptr!]
+			tail [byte-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tuple/reverse"]]
 
-		tp: (as byte-ptr! tuple) + 4
+		tp:   as byte-ptr! :tuple/array1
 		size: TUPLE_SIZE?(tuple)
 		part: size
+		skip: 1
+		
 		if OPTION?(part-arg) [
 			either TYPE_OF(part-arg) = TYPE_INTEGER [
 				int: as red-integer! part-arg
@@ -644,16 +651,43 @@ tuple: context [
 				ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
 			]
 		]
+		
+		if OPTION?(skip-arg) [
+			unless TYPE_OF(skip-arg) = TYPE_INTEGER [ERR_INVALID_REFINEMENT_ARG(refinements/_skip skip-arg)]
+			int:  as red-integer! skip-arg
+			skip: int/value								;-- 1/2 of tuple size max
+			
+			if skip = part [return as red-value! tuple]	;-- early exit if nothing to reverse
+			if skip <= 0 [fire [TO_ERROR(script out-of-range) skip-arg]]
+			if any [skip > part part % skip <> 0][ERR_INVALID_REFINEMENT_ARG(refinements/_skip skip-arg)]
+		]
 
 		if part < size [size: part]
-		n: 1
-		while [n < size] [
-			tmp: tp/n
-			tp/n: tp/size
-			tp/size: tmp
-			n: n + 1
-			size: size - 1
+		
+		either skip = 1 [								;-- faster branch for general case
+			n: skip
+			while [n < size][
+				tmp: tp/n
+				tp/n: tp/size
+				tp/size: tmp
+				n: n + 1
+				size: size - 1
+			]
+		][
+			head: tp
+			tail: head + size - skip
+			tp:   as byte-ptr! :temp
+			
+			while [head < tail][
+				copy-memory tp   head skip
+				copy-memory head tail skip
+				copy-memory tail tp   skip
+				
+				head: head + skip
+				tail: tail - skip
+			]
 		]
+		
 		as red-value! tuple
 	]
 

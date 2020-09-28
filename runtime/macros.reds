@@ -10,7 +10,7 @@ Red/System [
 	}
 ]
 
-#enum datatypes! [										;-- Order must not be changed!
+#enum datatypes! [										;-- Order must not be changed! (Synced with Redbin types)
 	TYPE_VALUE											;-- 00		00
 	TYPE_DATATYPE										;-- 01		01
 	TYPE_UNSET											;-- 02		02
@@ -60,7 +60,9 @@ Red/System [
 	TYPE_HANDLE											;-- 2E		46
 	TYPE_DATE											;-- 2F		47
 	TYPE_PORT											;-- 30		48
-	TYPE_IMAGE											;-- 31		49		;-- needs to be last
+	TYPE_MONEY											;-- 31		49
+	TYPE_REF											;-- 32		50
+	TYPE_IMAGE											;-- 33		51		;-- needs to be last
 	TYPE_EVENT											
 	TYPE_CLOSURE
 	TYPE_SLICE
@@ -193,6 +195,7 @@ Red/System [
 	NAT_EXCLUDE
 	NAT_COMPLEMENT?
 	NAT_DEHEX
+	NAT_ENHEX
 	NAT_NEGATIVE?
 	NAT_POSITIVE?
 	NAT_MAX
@@ -218,6 +221,7 @@ Red/System [
 	NAT_UPPERCASE
 	NAT_LOWERCASE
 	NAT_AS_PAIR
+	NAT_AS_MONEY
 	NAT_BREAK
 	NAT_CONTINUE
 	NAT_EXIT
@@ -247,6 +251,7 @@ Red/System [
 	NAT_COMPRESS
 	NAT_DECOMPRESS
 	NAT_RECYCLE
+	NAT_TRANSCODE
 ]
 
 #enum math-op! [
@@ -284,17 +289,17 @@ Red/System [
 
 #enum exceptions! [
 	RED_NO_EXCEPTION
-	OS_ERROR_VMEM:					2147483637
-	OS_ERROR_VMEM_RELEASE_FAILED:	2147483638
-	OS_ERROR_VMEM_OUT_OF_MEMORY:	2147483639
-	OS_ERROR_VMEM_ALL:				2147483640
-	RED_INT_OVERFLOW:				2147483641
-	RED_THROWN_THROW:				2147483642
-	RED_THROWN_EXIT:				2147483643
-	RED_THROWN_RETURN:				2147483644
-	RED_THROWN_CONTINUE:			2147483645
-	RED_THROWN_BREAK:				2147483646
-	RED_THROWN_ERROR:				2147483647		;-- 7FFFFFFFh
+	OS_ERROR_VMEM:					7FFFFFF5h
+	OS_ERROR_VMEM_RELEASE_FAILED:	7FFFFFF6h
+	OS_ERROR_VMEM_OUT_OF_MEMORY:	7FFFFFF7h
+	OS_ERROR_VMEM_ALL:				7FFFFFF8h
+	RED_INT_OVERFLOW:				7FFFFFF9h
+	RED_THROWN_THROW:				7FFFFFFAh
+	RED_THROWN_EXIT:				7FFFFFFBh
+	RED_THROWN_RETURN:				7FFFFFFCh
+	RED_THROWN_CONTINUE:			7FFFFFFDh
+	RED_THROWN_BREAK:				7FFFFFFEh
+	RED_THROWN_ERROR:				7FFFFFFFh
 ]
 
 #enum object-classes! [
@@ -303,7 +308,7 @@ Red/System [
 	OBJ_CLASS_FACE!
 ]
 
-#define DATATYPES_NB	51							;-- total number of built-in datatypes (including TYPE_VALUE)
+#define DATATYPES_NB	52							;-- total number of built-in datatypes (including TYPE_VALUE)
 #define NATIVES_NB		110							;-- max number of natives (arbitrary set)
 #define ACTIONS_NB		62							;-- number of actions (exact number)
 #define INHERIT_ACTION	-1							;-- placeholder for letting parent's action pass through
@@ -314,23 +319,26 @@ Red/System [
 	#define ------------| 	comment
 ]
 
-#define TYPE_OF(value)		(value/header and get-type-mask)
-#define TUPLE_SIZE?(value)	(value/header >> 19 and 15)
-#define GET_TUPLE_ARRAY(tp) [(as byte-ptr! tp) + 4]
-#define SET_TUPLE_SIZE(t n) [t/header: t/header and FF87FFFFh or (n << 19)]
-#define GET_BUFFER(series)  (as series! series/node/value)
-#define GET_UNIT(series)	(series/flags and get-unit-mask)
-#define ALLOC_TAIL(series)	[alloc-at-tail series]
-#define FLAG_SET?(flag)		(flags and flag <> 0)
-#define OPTION?(ref-ptr)	(ref-ptr > stack/arguments)	;-- a bit inelegant, but saves a lot of code
-#define ON_STACK?(ctx)		(ctx/header and flag-series-stk <> 0)
-#define EQUAL_SYMBOLS?(a b) ((symbol/resolve a) = (symbol/resolve b))
-#define EQUAL_WORDS?(a b) 	((symbol/resolve a/symbol) = (symbol/resolve b/symbol))
-#define TO_CTX(node)		(as red-context! ((as series! node/value) + 1))
-#define GET_CTX(obj)		(as red-context! ((as series! obj/ctx/value) + 1))
-#define FLAG_NOT?(s)		(s/flags and flag-bitset-not <> 0)
-#define SET_RETURN(value)	[stack/set-last as red-value! value]
-#define TO_ERROR(cat id)	[#in system/catalog/errors cat #in system/catalog/errors/cat id]
+#define TYPE_OF(value)			(value/header and get-type-mask)
+#define TUPLE_SIZE?(value)		(value/header >> 19 and 15)
+#define GET_TUPLE_ARRAY(tp) 	[(as byte-ptr! tp) + 4]
+#define SET_TUPLE_SIZE(t n) 	[t/header: t/header and 1F87FFFFh or (n << 19)]
+#define GET_BUFFER(series)  	(as series! series/node/value)
+#define GET_UNIT(series)		(series/flags and get-unit-mask)
+#define ALLOC_TAIL(series)		[alloc-at-tail series]
+#define FLAG_SET?(flag)			(flags and flag <> 0)
+#define OPTION?(ref-ptr)		(ref-ptr > stack/arguments)	;-- a bit inelegant, but saves a lot of code
+#define ON_STACK?(ctx)			(ctx/header and flag-series-stk <> 0)
+#define EQUAL_SYMBOLS?(a b) 	((symbol/resolve a) = (symbol/resolve b))
+#define EQUAL_WORDS?(a b) 		((symbol/resolve a/symbol) = (symbol/resolve b/symbol))
+#define TO_CTX(node)			(as red-context! ((as series! node/value) + 1))
+#define GET_CTX(obj)			(as red-context! ((as series! obj/ctx/value) + 1))
+#define GET_CTX_TYPE(cell)		(cell/header >> 11 and 03h)
+#define GET_CTX_TYPE_ALT(header)(header >> 11 and 03h)
+#define SET_CTX_TYPE(cell type)	[cell/header: cell/header and FFFFE7FFh or (type << 11)]
+#define FLAG_NOT?(s)			(s/flags and flag-bitset-not <> 0)
+#define SET_RETURN(value)		[stack/set-last as red-value! value]
+#define TO_ERROR(cat id)		[#in system/catalog/errors cat #in system/catalog/errors/cat id]
 
 #define PLATFORM_TO_CSTR(cstr str len) [	;-- len in bytes
 	len: -1
@@ -383,49 +391,6 @@ Red/System [
 	]
 ]
 
-#define ANY_SERIES?(type)	[
-	any [
-		type = TYPE_BLOCK
-		type = TYPE_HASH
-		type = TYPE_VECTOR
-		type = TYPE_PAREN
-		type = TYPE_PATH
-		type = TYPE_LIT_PATH
-		type = TYPE_SET_PATH
-		type = TYPE_GET_PATH
-		type = TYPE_STRING
-		type = TYPE_FILE
-		type = TYPE_URL
-		type = TYPE_BINARY
-		type = TYPE_IMAGE
-		type = TYPE_TAG
-		type = TYPE_EMAIL
-	]
-]
-
-#define ANY_BLOCK_STRICT?(type)	[
-	any [
-		type = TYPE_BLOCK
-		type = TYPE_PAREN
-		type = TYPE_PATH
-		type = TYPE_GET_PATH
-		type = TYPE_SET_PATH
-		type = TYPE_LIT_PATH
-	]
-]
-
-#define ANY_BLOCK?(type)	[
-	any [
-		type = TYPE_BLOCK
-		type = TYPE_PAREN
-		type = TYPE_HASH
-		type = TYPE_PATH
-		type = TYPE_GET_PATH
-		type = TYPE_SET_PATH
-		type = TYPE_LIT_PATH
-	]
-]
-
 #define ANY_LIST?(type)	[
 	any [
 		type = TYPE_BLOCK
@@ -443,6 +408,21 @@ Red/System [
 	]
 ]
 
+#define ANY_BLOCK_STRICT?(type)	[
+	any [
+		ANY_PATH?(type)
+		type = TYPE_BLOCK
+		type = TYPE_PAREN
+	]
+]
+
+#define ANY_BLOCK?(type)	[
+	any [
+		ANY_PATH?(type)
+		ANY_LIST?(type)
+	]
+]
+
 #define ANY_STRING?(type)	[
 	any [
 		type = TYPE_STRING
@@ -450,6 +430,17 @@ Red/System [
 		type = TYPE_URL
 		type = TYPE_TAG
 		type = TYPE_EMAIL
+		type = TYPE_REF
+	]
+]
+
+#define ANY_SERIES?(type)	[
+	any [
+		ANY_BLOCK?(type)
+		ANY_STRING?(type)
+		type = TYPE_BINARY
+		type = TYPE_VECTOR
+		type = TYPE_IMAGE
 	]
 ]
 
@@ -462,22 +453,34 @@ Red/System [
 	]
 ]
 
+#define ALL_WORD?(type) [
+	any [
+		ANY_WORD?(type)
+		type = TYPE_REFINEMENT
+		type = TYPE_ISSUE
+	]
+]
+
+#define TYPE_ANY_WORD [
+	TYPE_WORD
+	TYPE_SET_WORD
+	TYPE_GET_WORD
+	TYPE_LIT_WORD
+]
+
+#define TYPE_ALL_WORD [
+	TYPE_ANY_WORD
+	TYPE_ISSUE
+	TYPE_REFINEMENT
+]
+
 #define TYPE_ANY_STRING [					;-- To be used in SWITCH cases
 	TYPE_STRING
 	TYPE_FILE
 	TYPE_URL
 	TYPE_TAG
-	TYPE_EMAIL	
-]
-
-#define TYPE_ANY_BLOCK [					;-- To be used in SWITCH cases
-	TYPE_BLOCK
-	TYPE_PAREN
-	TYPE_HASH
-	TYPE_PATH
-	TYPE_GET_PATH
-	TYPE_SET_PATH
-	TYPE_LIT_PATH
+	TYPE_EMAIL
+	TYPE_REF
 ]
 
 #define TYPE_ANY_LIST [						;-- To be used in SWITCH cases
@@ -491,6 +494,11 @@ Red/System [
 	TYPE_GET_PATH
 	TYPE_SET_PATH
 	TYPE_LIT_PATH
+]
+
+#define TYPE_ANY_BLOCK [					;-- To be used in SWITCH cases
+	TYPE_ANY_LIST
+	TYPE_ANY_PATH
 ]
 
 #define BS_SET_BIT(array bit)  [
@@ -532,12 +540,10 @@ Red/System [
 #define GET_INT_FROM(n spec) [
 	either TYPE_OF(spec) = TYPE_FLOAT [
 		fl: as red-float! spec
-		n: as-integer fl/value
-		#if target = 'IA-32 [
-			if system/fpu/status and FPU_EXCEPTION_INVALID_OP <> 0 [
-				fire [TO_ERROR(internal no-memory)]
-			]
+		if any [fl/value > 2147483647.0 fl/value < -2147483648.0][
+			fire [TO_ERROR(script out-of-range) fl]
 		]
+		n: as-integer fl/value
 	][
 		int: as red-integer! spec
 		n: int/value
@@ -567,25 +573,6 @@ Red/System [
 
 #define RETURN_COMPARE_OTHER [
 	return -2
-]
-
-#define CHECK_COMPARE_OTHER(type) [
-	if all [
-		TYPE_OF(str2) <> type
-		any [
-			all [
-				op <> COMP_EQUAL
-				op <> COMP_NOT_EQUAL
-			]
-			all [
-				TYPE_OF(str2) <> TYPE_STRING		;@@ use ANY_STRING?
-				TYPE_OF(str2) <> TYPE_FILE
-				TYPE_OF(str2) <> TYPE_URL
-				TYPE_OF(str2) <> TYPE_TAG
-				TYPE_OF(str2) <> TYPE_EMAIL
-			]
-		]
-	][RETURN_COMPARE_OTHER]
 ]
 
 #define SIGN_COMPARE_RESULT(a b) [

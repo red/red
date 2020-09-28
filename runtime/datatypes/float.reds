@@ -241,6 +241,7 @@ float: context [
 				]
 			]
 			OP_REM [
+				if any [left = -INF left = +INF right = 0.0][return QNaN]	;-- issue #4574
 				either all [0.0 = right not NaN? right][
 					fire [TO_ERROR(math zero-divide)]
 					0.0									;-- pass the compiler's type-checking
@@ -288,6 +289,7 @@ float: context [
 
 		switch type2 [
 			TYPE_TUPLE [return as red-float! tuple/do-math type]
+			TYPE_MONEY [return as red-float! money/do-math type]
 			TYPE_PAIR  [
 				if type1 <> TYPE_TIME [
 					if any [type = OP_SUB type = OP_DIV][
@@ -411,7 +413,14 @@ float: context [
 		fl/value: value
 		fl
 	]
-
+	
+	from-money: func [
+		mn      [red-money!]
+		return: [float!]
+	][
+		money/to-float mn
+	]
+	
 	from-binary: func [
 		bin		[red-binary!]
 		return: [float!]
@@ -529,6 +538,7 @@ float: context [
 			int	 [red-integer!]
 			tm	 [red-time!]
 			str  [red-string!]
+			res	 [red-float!]
 			p	 [byte-ptr!]
 			err	 [integer!]
 			unit [integer!]
@@ -544,6 +554,9 @@ float: context [
 				int: as red-integer! spec
 				proto/value: as-float int/value
 			]
+			TYPE_MONEY [
+				proto/value: from-money as red-money! spec
+			]
 			TYPE_TIME [
 				tm: as red-time! spec
 				proto/value: tm/time
@@ -551,14 +564,27 @@ float: context [
 			TYPE_ANY_STRING [
 				err: 0
 				str: as red-string! spec
-				s: GET_BUFFER(str)
-				unit: GET_UNIT(s)
-				p: (as byte-ptr! s/offset) + (str/head << log-b unit)
-				len: (as-integer s/tail - p) >> log-b unit
-				
-				either len > 0 [
-					proto/value: tokenizer/scan-float p len unit :err
-				][err: -1]
+				either type = TYPE_PERCENT [
+					res: as red-float! load-single-value str stack/push*
+					switch TYPE_OF(res) [
+						TYPE_PERCENT
+						TYPE_FLOAT	 [proto/value: res/value]
+						TYPE_INTEGER [
+							int: as red-integer! res
+							proto/value: as-float int/value
+						]
+						default 	 [err: -1]
+					 ]
+				][
+					s: GET_BUFFER(str)
+					unit: GET_UNIT(s)
+					p: (as byte-ptr! s/offset) + (str/head << log-b unit)
+					len: (as-integer s/tail - p) >> log-b unit
+
+					either len > 0 [
+						proto/value: tokenizer/scan-float p len unit :err
+					][err: -1]
+				]
 				if err <> 0 [fire [TO_ERROR(script bad-to-arg) datatype/push type spec]]
 			]
 			TYPE_BINARY [
@@ -724,7 +750,11 @@ float: context [
 		left: value1/value
 
 		switch TYPE_OF(value2) [
-			TYPE_CHAR
+			TYPE_MONEY [
+				if money/float-underflow? left [return -1]
+				if money/float-overflow?  left [return 1]
+				return money/compare money/from-float left as red-money! value2 op
+			]
 			TYPE_INTEGER [
 				int: as red-integer! value2
 				right: as-float int/value
@@ -861,6 +891,10 @@ float: context [
 			e		[integer!]
 			v		[logic!]
 	][
+		if TYPE_OF(scale) = TYPE_MONEY [
+			fire [TO_ERROR(script not-related) stack/get-call datatype/push TYPE_MONEY]
+		]
+		
 		e: 0
 		f: as red-float! value
 		dec: f/value

@@ -871,9 +871,17 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-alloc-stack: does [
+	emit-alloc-stack: func [zeroed? [logic!]][
 		emit-i32 #{e04dd100}						;-- SUB sp, r0, LSL #2
 		;emit-i32 #{e3cdd003}						;-- BIC sp, sp #3 ; align to lower 32-bit bound
+		if zeroed? [
+			emit-i32 #{e1a03000}					;-- MOV r3, r0		; count
+			emit-i32 #{e1a02000}					;-- MOV r2, sp		; dst
+			emit-i32 #{e3a01000}					;-- MOV r1, 0		; zero
+			emit-i32 #{e4821004}					;--	.loop:	STR r1, [r2!], #4
+			emit-i32 #{e2555001}					;-- 		SUBS r5, r5, 1
+			emit-i32 #{1afffffc}					;-- 		BNE .loop
+		]
 	]
 
 	emit-free-stack: does [
@@ -1501,14 +1509,13 @@ make-profilable make target-class [
 	]
 	
 	emit-store: func [
-		name [word!] value [char! logic! integer! word! string! paren! tag! get-word! decimal! issue!]
+		name [word!] value [char! logic! integer! word! string! binary! paren! tag! get-word! decimal! issue!]
 		spec [block! none!]
 		/by-value slots [integer!]
 		/local store-qword store-word store-byte type opcode
 	][
 		if verbose >= 3 [print [">>>storing" mold name mold value]]
 		if value = <last> [value: 'last]			;-- force word! code path in switch block
-		if logic? value [value: to integer! value]	;-- TRUE -> 1, FALSE -> 0
 
 		store-qword: [
 			emit-variable-64 name
@@ -1534,6 +1541,10 @@ make-profilable make target-class [
 				do store-byte
 			]
 			integer! [
+				do store-word
+			]
+			logic! [
+				emit-load-imm32 to integer! value	;-- MOV r0, #0|#1
 				do store-word
 			]
 			issue!
@@ -1587,7 +1598,7 @@ make-profilable make target-class [
 				]
 				do store-word
 			]
-			string! paren! [
+			string! paren! binary! [
 				if all [spec not PIC?][emit-load-literal-ptr spec/2]
 				do store-word
 			]
@@ -1830,6 +1841,12 @@ make-profilable make target-class [
 		emit-i32 #{e2500001}		 				;-- SUBS r0, r0, #1	; update Z flag
 	]
 	
+	patch-sub-call: func [buffer [binary!] ptr [integer!] offset [integer!]][
+		change 
+			at buffer ptr
+			reverse to-bin24 shift negate offset + 8 2
+	]	
+	
 	patch-jump-back: func [buffer [binary!] offset [integer!]][
 		change 
 			at buffer offset
@@ -2046,8 +2063,8 @@ make-profilable make target-class [
 		switch b [
 			ref [
 				emit-variable args/2
-					#{e5d03000}						;-- LDRB r3, [r0]			; global
-					#{e7d03009}						;-- LDRB r3, [r0, sb]		; PIC
+					#{e5d33000}						;-- LDRB r3, [r3]			; global
+					#{e7d33009}						;-- LDRB r3, [r3, sb]		; PIC
 					#{e5db3000}						;-- LDRB r3, [fp, #[-]n]	; local
 			]
 			reg [emit-i32 #{e1a03001}]				;-- MOV r3, r1
@@ -2148,7 +2165,7 @@ make-profilable make target-class [
 	
 	emit-math-op: func [
 		name [word!] a [word!] b [word!] args [block!]
-		/local mod? scale c type arg2 op-poly load?
+		/local mod? scale c type arg2 op-poly load? spec opt?
 	][
 		;-- r0 = a, r1 = b
 		if find mod-rem-op name [					;-- work around unaccepted '// and '%
@@ -2246,65 +2263,77 @@ make-profilable make target-class [
 			/ [
 				switch b [
 					imm [
-						emit-i32 #{e92d0002}		;-- PUSH {r1}	; save r1 from corruption
-						emit-load-imm32/reg args/2 1 ;-- MOV r1, #value
+						either opt?: all [
+							not mod?
+							not zero? arg2
+							c: power-of-2? arg2		;-- trivial optimization for b=2^n
+							c > 0
+						][
+							emit-i32 #{e1b00040}	;-- ASRS r0, r0, #log2(b)
+								or to-shift-imm c
+						][
+							emit-i32 #{e92d0002}	;-- PUSH {r1}	; save r1 from corruption
+							emit-load-imm32/reg args/2 1 ;-- MOV r1, #value
+						]
 					]
 					ref [
 						emit-i32 #{e92d0002}		;-- PUSH {r1}	; save r1 from corruption
 						if load? [emit-load/alt args/2]
 					]
 				]
-				if compiler/job/debug? [
+				if all [not opt? compiler/job/debug?][
+					spec: emitter/symbols/***-on-div-error
 					foreach opcode [
 						#{e3510000}			; CMP r1, #0			; if divisor = 0
 						#{03a0000d}			; MOVEQ r0, #13			; integer divide by zero error code
 						#{0a000006}			; BEQ .error
 						#{e3710001}			; CMP r1, #-1
-						#{1a000006}			; BNE .start
+						#{1a000007}			; BNE .start
 						#{e3a06001}			; MOV r6, #1
 						#{e1a06f86}			; LSL r6, #31
 						#{e1560000}			; CMP r6, r0
-						#{1a000002}			; BNE .start
+						#{1a000003}			; BNE .start
 						#{e3a0000e}			; MOV r0, #14			; integer overflow error code
 										; .error
 						#{092d4000}			; PUSHEQ {lr}			; push calling address for error location
 						#{092d0001}			; PUSHEQ {r0}
+						[emit-reloc-addr spec/3]					; link it with runtime error handler
 						#{0a000000}			; BEQ ***-on-div-error	; call runtime error handler
+										; .start
 					][
-						emit-i32 opcode
-					]
- 					;-- link it with runtime error handler
-					append emitter/symbols/***-on-div-error/3 emitter/tail-ptr - insn-size
-				]
-				either compiler/job/cpu-version < 7.0 [
-					call-divide mod?
-				][
-					either mod? [
-						emit-i32 #{e713f110}		;-- SDIV r3, r0, r1
-						emit-i32 #{e0640193}		;-- MLS r4, r3, r1, r0	; r4 = r0 - r3 * r1
-						if mod? <> 'rem [			;-- modulo, not remainder
-						;-- Adjust modulo result to be mathematically correct:
-						;-- 	if modulo < 0 [
-						;--			if divisor < 0  [divisor: negate divisor]
-						;--			modulo: modulo + divisor
-						;--		]
-							emit-i32 #{e3540000}	;-- CMP r4, #0
-							emit-i32 #{aa000002}	;-- BGE .exit
-							emit-i32 #{e3510000}	;-- CMP r1, #0
-							emit-i32 #{42611000}	;-- RSBMI r1, r1, #0
-							emit-i32 #{e0844001}	;-- ADD r4, r4, r1
-						]							;-- .exit:
-						emit-i32 #{e1a00004}		;-- MOV r0, r4	; r0: modulo or remainder
-					][
-						emit-i32 #{e710f110}		;-- SDIV r0, r0, r1
+						either block? opcode [do opcode][emit-i32 opcode]
 					]
 				]
-				
-				if any [							;-- in case r1 was saved on stack
-					all [b = 'imm any [mod? not c]]
-					b = 'ref
-				][
-					emit-i32 #{e8bd0002}			;-- POP {r1}
+				unless opt? [
+					either compiler/job/cpu-version < 7.0 [
+						call-divide mod?
+					][
+						either mod? [
+							emit-i32 #{e713f110}	;-- SDIV r3, r0, r1
+							emit-i32 #{e0640193}	;-- MLS r4, r3, r1, r0	; r4 = r0 - r3 * r1
+							if mod? <> 'rem [		;-- modulo, not remainder
+							;-- Adjust modulo result to be mathematically correct:
+							;-- 	if modulo < 0 [
+							;--			if divisor < 0  [divisor: negate divisor]
+							;--			modulo: modulo + divisor
+							;--		]
+								emit-i32 #{e3540000} ;-- CMP r4, #0
+								emit-i32 #{aa000002} ;-- BGE .exit
+								emit-i32 #{e3510000} ;-- CMP r1, #0
+								emit-i32 #{42611000} ;-- RSBMI r1, r1, #0
+								emit-i32 #{e0844001} ;-- ADD r4, r4, r1
+							]						 ;-- .exit:
+							emit-i32 #{e1a00004}	 ;-- MOV r0, r4	; r0: modulo or remainder
+						][
+							emit-i32 #{e710f110}	 ;-- SDIV r0, r0, r1
+						]
+					]
+					if any [						 ;-- in case r1 was saved on stack
+						all [b = 'imm any [mod? not c]]
+						b = 'ref
+					][
+						emit-i32 #{e8bd0002}		 ;-- POP {r1}
+					]
 				]
 			]
 		]
@@ -2576,6 +2605,23 @@ make-profilable make target-class [
 			]
 		]
 	]
+
+	emit-init-sub: does [
+		if verbose >= 3 [print ">>>emitting INIT subroutine"]
+		emit-i32 #{e92d4000}						;-- PUSH {lr}
+	]
+	
+	emit-return-sub: does [
+		if verbose >= 3 [print ">>>emitting RET from subroutine"]
+		emit-i32 #{e8bd4000}						;-- POP {lr}
+		emit-i32 #{e1a0f00e}						;-- MOV pc, lr
+	]
+
+	emit-call-sub: func [name [word!] spec [block!]][
+		if verbose >= 3 [print [">>>emitting CALL subroutine" name]]
+		emit-reloc-addr spec/3
+		emit-i32 #{eb000000}						;-- BL <disp>
+	]
 	
 	emit-AAPCS-header: func [
 		args [block!] fspec [block!] attribs [block! none!]
@@ -2775,7 +2821,7 @@ make-profilable make target-class [
 		]
 	]
 
-	patch-call: func [code-buf rel-ptr dst-ptr] [
+	patch-call: func [code-buf rel-ptr dst-ptr][
 		;; @@ to-bin24
 		change
 			at code-buf rel-ptr

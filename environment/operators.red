@@ -12,24 +12,24 @@ Red [
 
 ;-- #load temporary directive is used to workaround REBOL LOAD limitations on some words
 
-#load set-word! "+"		make op! :add
-#load set-word! "-"		make op! :subtract
-#load set-word! "*"		make op! :multiply
-#load set-word! "/"		make op! :divide
-#load set-word! "//"	make op! :modulo
-#load set-word! "%"		make op! :remainder
-#load set-word! "="		make op! :equal?
-#load set-word! "<>"	make op! :not-equal?
-#load set-word! "=="	make op! :strict-equal?
-#load set-word! "=?"	make op! :same?
-#load set-word! "<" 	make op! :lesser?
-#load set-word! ">" 	make op! :greater?
-#load set-word! "<="	make op! :lesser-or-equal?
-#load set-word! ">="	make op! :greater-or-equal?
-#load set-word! "<<"	make op! :shift-left
-#load set-word! ">>"	make op! :shift-right
-#load set-word! ">>>"	make op! :shift-logical
-#load set-word! "**"	make op! :power
-and:					make op! :and~
-or:						make op! :or~
-xor:					make op! :xor~
+#do keep [to-set-word "+"]		make op! :add
+#do keep [to-set-word "-"]		make op! :subtract
+#do keep [to-set-word "*"]		make op! :multiply
+#do keep [to-set-word "/"]		make op! :divide
+#do keep [to-set-word "//"]		make op! :modulo
+#do keep [to-set-word "%"]		make op! :remainder
+#do keep [to-set-word "="]		make op! :equal?
+#do keep [to-set-word "<>"]		make op! :not-equal?
+#do keep [to-set-word "=="]		make op! :strict-equal?
+#do keep [to-set-word "=?"]		make op! :same?
+#do keep [to-set-word "<"] 		make op! :lesser?
+#do keep [to-set-word ">"] 		make op! :greater?
+#do keep [to-set-word "<="]		make op! :lesser-or-equal?
+#do keep [to-set-word ">="]		make op! :greater-or-equal?
+#do keep [to-set-word "<<"]		make op! :shift-left
+#do keep [to-set-word ">>"]		make op! :shift-right
+#do keep [to-set-word ">>>"]	make op! :shift-logical
+#do keep [to-set-word "**"]		make op! :power
+and:							make op! :and~
+or:								make op! :or~
+xor:							make op! :xor~

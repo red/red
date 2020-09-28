@@ -11,7 +11,7 @@ Red [
 ]
 
 if: make native! [[
-		"If conditional expression is TRUE, evaluate block; else return NONE"
+		"If conditional expression is truthy, evaluate block; else return NONE"
 		cond  	 [any-type!]
 		then-blk [block!]
 	]
@@ -19,7 +19,7 @@ if: make native! [[
 ]
 
 unless: make native! [[
-		"If conditional expression is not TRUE, evaluate block; else return NONE"
+		"If conditional expression is falsy, evaluate block; else return NONE"
 		cond  	 [any-type!]
 		then-blk [block!]
 	]
@@ -27,30 +27,30 @@ unless: make native! [[
 ]
 
 either: make native! [[
-		"If conditional expression is true, eval true-block; else eval false-blk"
+		"If conditional expression is truthy, evaluate the first branch; else evaluate the alternative"
 		cond  	  [any-type!]
 		true-blk  [block!]
 		false-blk [block!]
 	]
 	#get-definition NAT_EITHER
 ]
-	
+
 any: make native! [[
-		"Evaluates, returning at the first that is true"
+		"Evaluates and returns the first truthy value, if any; else NONE"
 		conds [block!]
 	]
 	#get-definition NAT_ANY
 ]
 
 all: make native! [[
-		"Evaluates, returning at the first that is not true"
+		"Evaluates and returns the last value if all are truthy; else NONE"
 		conds [block!]
 	]
 	#get-definition NAT_ALL
 ]
 
 while: make native! [[
-		"Evaluates body as long as condition block returns TRUE"
+		"Evaluates body as long as condition block evaluates to truthy value"
 		cond [block!]	"Condition block to evaluate on each iteration"
 		body [block!]	"Block to evaluate on each iteration"
 	]
@@ -58,7 +58,7 @@ while: make native! [[
 ]
 	
 until: make native! [[
-		"Evaluates body until it is TRUE"
+		"Evaluates body until it is truthy"
 		body [block!]
 	]
 	#get-definition NAT_UNTIL
@@ -66,7 +66,7 @@ until: make native! [[
 
 loop: make native! [[
 		"Evaluates body a number of times"
-		count [integer!]
+		count [integer! float!]
 		body  [block!]
 	]
 	#get-definition NAT_LOOP
@@ -75,7 +75,7 @@ loop: make native! [[
 repeat: make native! [[
 		"Evaluates body a number of times, tracking iteration count"
 		'word [word!]    "Iteration counter; not local to loop"
-		value [integer!] "Number of times to evaluate body"
+		value [integer! float!] "Number of times to evaluate body"
 		body  [block!]
 	]
 	#get-definition NAT_REPEAT
@@ -106,10 +106,10 @@ forall: make native! [[
 ]
 
 remove-each: make native! [[
-		"Removes values for each block that returns true"
+		"Removes values for each block that returns truthy value"
 		'word [word! block!] "Word or block of words to set each time"
 		data [series!] "The series to traverse (modified)"
-		body [block!] "Block to evaluate (return TRUE to remove)"
+		body [block!] "Block to evaluate (return truthy value to remove)"
 	]
 	#get-definition NAT_REMOVE_EACH
 ]
@@ -157,9 +157,9 @@ switch: make native! [[
 ]
 
 case: make native! [[
-		"Evaluates the block following the first true condition"
+		"Evaluates the block following the first truthy condition"
 		cases [block!] "Block of condition-block pairs"
-		/all "Test all conditions, evaluating the block following each true condition"
+		/all "Test all conditions, evaluating the block following each truthy condition"
 	]
 	#get-definition NAT_CASE
 ]
@@ -298,7 +298,7 @@ same?: make native! [[
 ]
 
 not: make native! [[
-		"Returns the boolean complement of a value"
+		"Returns the logical complement of a value (truthy or falsy)"
 		value [any-type!]
 	]
 	#get-definition NAT_NOT
@@ -435,16 +435,26 @@ dehex: make native! [[
 	#get-definition NAT_DEHEX
 ]
 
+enhex: make native! [[
+		"Encode URL-style hex encoded (%xx) strings"
+		value [any-string!]
+		return:	[string!] "Always return a string"
+	]
+	#get-definition NAT_ENHEX
+]
+
 negative?: make native! [[
 		"Returns TRUE if the number is negative"
-		number [number! time!]
+		number [number! money! time!]
+		return: [logic!]
 	]
 	#get-definition NAT_NEGATIVE?
 ]
 
 positive?: make native! [[
 		"Returns TRUE if the number is positive"
-		number [number! time!]
+		number [number! money! time!]
+		return: [logic!]
 	]
 	#get-definition NAT_POSITIVE?
 ]
@@ -559,7 +569,7 @@ NaN?: make native! [[
 
 zero?: make native! [[
 		"Returns TRUE if the value is zero"
-		value	[number! pair! time! char! tuple!]
+		value	[number! money! pair! time! char! tuple!]
 		return: [logic!]
 	]
 	#get-definition NAT_ZERO?
@@ -633,7 +643,7 @@ try: make native! [[
 
 uppercase: make native! [[
 		"Converts string of characters to uppercase"
-		string		[any-string! char!]
+		string		[any-string! char!] "Value to convert (modified when series)"
 		/part "Limits to a given length or position"
 			limit	[number! any-string!]
 		return: 	[any-string! char!]
@@ -643,7 +653,7 @@ uppercase: make native! [[
 
 lowercase: make native! [[
 		"Converts string of characters to lowercase"
-		string		[any-string! char!]
+		string		[any-string! char!] "Value to convert (modified when series)"
 		/part "Limits to a given length or position"
 			limit	[number! any-string!]
 		return:		[any-string! char!]
@@ -657,6 +667,15 @@ as-pair: make native! [[
 		y [integer! float!]
 	]
 	#get-definition NAT_AS_PAIR
+]
+
+as-money: make native! [[
+		"Combine currency code and amount into a monetary value"
+		currency [word!]
+		amount   [integer! float!]
+		return:  [money!]
+	]
+	#get-definition NAT_AS_MONEY
 ]
 
 break: make native! [[
@@ -788,7 +807,7 @@ new-line?: make native! [[
 ]
 
 context?: make native! [[
-		"Returns the context in which a word is bound"
+		"Returns the context to which a word is bound"
 		word	[any-word!]		"Word to check"
 		return: [object! function! none!]
 	]
@@ -837,7 +856,8 @@ now: make native! [[
 
 sign?: make native! [[
 		"Returns sign of N as 1, 0, or -1 (to use as a multiplier)"
-		number [number! time!]
+		number [number! money! time!]
+		return: [integer!]
 	]
 	#get-definition NAT_SIGN?
 ]
@@ -906,4 +926,29 @@ recycle: make native! [[
 		/off	"Turns off garbage collector"
 	]
 	#get-definition NAT_RECYCLE
+]
+
+transcode: make native! [[
+		"Translates UTF-8 binary source to values. Returns one or several values in a block"
+		src	 [binary! string!]	"UTF-8 input buffer; string argument will be UTF-8 encoded"
+		/next			"Translate next complete value (blocks as single value)"
+		/one			"Translate next complete value, returns the value only"
+		/prescan		"Prescans only, do not load values. Returns guessed type."
+		/scan			"Scans only, do not load values. Returns recognized type."
+		/part			"Translates only part of the input buffer"
+			length [integer! binary!] "Length in bytes or tail position"
+		/into			"Optionally provides an output block"
+			dst	[block! none!]
+		/trace
+			callback [function! [
+				event	[word!]
+				input	[binary! string!]
+				type	[word! datatype!]
+				line	[integer!]
+				token
+				return: [logic!]
+			]]
+		return: [block!]
+	]
+	#get-definition NAT_TRANSCODE
 ]

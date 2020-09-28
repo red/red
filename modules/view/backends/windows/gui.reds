@@ -69,6 +69,8 @@ win-state:		0
 hIMCtx:			as handle! 0
 ime-open?:		no
 ime-font:		as tagLOGFONT allocate 92
+base-down-hwnd: as handle! 0
+request-file?:	no
 
 dpi-factor:		100
 log-pixels-x:	0
@@ -178,14 +180,13 @@ get-widget-handle: func [
 		hWnd: GetParent hWnd							;-- for composed widgets (try 1)
 		if no-face? hWnd [
 			hWnd: WindowFromPoint msg/x msg/y			;-- try 2
+			id: 0
+			GetWindowThreadProcessId hWnd :id
+			if any [
+				id <> process-id
+				hWnd = GetConsoleWindow					;-- see #1290
+			] [ return as handle! -1 ]
 			if no-face? hWnd [
-				id: 0
-				GetWindowThreadProcessId hWnd :id
-				if any [
-					id <> process-id
-					hWnd = GetConsoleWindow				;-- see #1290
-				] [ return as handle! -1 ]
-
 				p: as int-ptr! GetWindowLong hWnd 0		;-- try 3
 				either null? p [
 					hWnd: as handle! -1					;-- not found
@@ -279,12 +280,14 @@ get-gesture-info: func [
 get-text-size: func [
 	face 	[red-object!]
 	str		[red-string!]
-	hFont	[handle!]
 	pair	[red-pair!]
 	return: [tagSIZE]
 	/local
 		saved 	[handle!]
 		values 	[red-value!]
+		font	[red-object!]
+		state	[red-block!]
+		hFont	[handle!]
 		hwnd 	[handle!]
 		dc 		[handle!]
 		size 	[tagSIZE]
@@ -301,7 +304,13 @@ get-text-size: func [
 	]
 	values: object/get-values face
 	dc: GetWindowDC hwnd
-
+	font: as red-object! values + FACE_OBJ_FONT
+	hFont: null
+	if TYPE_OF(font) = TYPE_OBJECT [
+		state: as red-block! values + FONT_OBJ_STATE
+		if TYPE_OF(state) <> TYPE_BLOCK [hFont: get-font-handle font 0]
+		if null? hFont [hFont: make-font face font]
+	]
 	if null? hFont [hFont: default-font]
 	saved: SelectObject hwnd hFont
 	GetClientRect hWnd rc
@@ -1400,9 +1409,9 @@ OS-make-view: func [
 		]
 		sym = field [
 			class: #u16 "RedField"
-			flags: flags or WS_TABSTOP
+			flags: flags or WS_TABSTOP or ES_AUTOHSCROLL
 			if bits and FACET_FLAGS_PASSWORD <> 0 [flags: flags or ES_PASSWORD]
-			unless para? [flags: flags or ES_LEFT or ES_AUTOHSCROLL or ES_NOHIDESEL]
+			unless para? [flags: flags or ES_LEFT or ES_NOHIDESEL]
 			if bits and FACET_FLAGS_NO_BORDER = 0 [ws-flags: ws-flags or WS_EX_CLIENTEDGE]
 		]
 		sym = area [
@@ -1890,6 +1899,8 @@ adjust-selection: func [
 		p-bgn: head + (bgn/1 << unit-b)
 		p-end: head + (end/1 << unit-b)
 		quote: 0  nl: 0
+		if p-bgn < head [p-bgn: head]
+		if p-end > tail [p-end: tail]
 		string/sniff-chars head  p-bgn unit :quote :nl
 		bgn/1: bgn/1 + nl
 		string/sniff-chars p-bgn p-end unit :quote :nl
@@ -2305,6 +2316,7 @@ update-z-order: func [
 		nb	 [integer!]
 		sub? [logic!]
 ][
+	if TYPE_OF(pane) <> TYPE_BLOCK [exit]
 	s: GET_BUFFER(pane)
 	
 	face: as red-object! s/offset + pane/head
@@ -2526,7 +2538,7 @@ OS-update-facet: func [
 					change-faces-parent pane null new index part
 				]
 				any [
-					sym = words/_insert/symbol
+					sym = words/_inserted/symbol
 					sym = words/_poke/symbol			;@@ unbind old value
 					sym = words/_put/symbol				;@@ unbind old value
 					sym = words/_moved/symbol
@@ -2638,7 +2650,7 @@ OS-to-image: func [
 		img: image/init-image as red-image! stack/push* as int-ptr! bitmap
 	]
 
-    if screen? [DeleteDC mdc]				;-- we delete it in Draw when print window
+    DeleteDC mdc
     DeleteObject bmp
     unless screen? [ReleaseDC hWnd dc]
 	img
