@@ -198,7 +198,7 @@ compose: make native! [[
 
 get: make native! [[
 		"Returns the value a word refers to"
-		word	[any-word! refinement! path! object!]
+		word	[any-word! refinement! any-path! object!]
 		/any  "If word has no value, return UNSET rather than causing an error"
 		/case "Use case-sensitive comparison (path only)"
 		return: [any-type!]
@@ -208,7 +208,7 @@ get: make native! [[
 
 set: make native! [[
 		"Sets the value(s) one or more words refer to"
-		word	[any-word! block! object! path!] "Word, object, map path or block of words to set"
+		word	[any-word! block! object! any-path!] "Word, object, map path or block of words to set"
 		value	[any-type!] "Value or block of values to assign to words"
 		/any  "Allow UNSET as a value rather than causing an error"
 		/case "Use case-sensitive comparison (path only)"

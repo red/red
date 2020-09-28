@@ -382,8 +382,34 @@ Red [
 		--assert obj2 = set/some obj obj2
 		--assert "make object! [a: 3 b: 7]" = mold/flat obj
 		--assert "make object! [z: 0 a: none b: 7]" = mold/flat obj2
+	
+	--test-- "set-12"
+		obj: object [a: 0]
 		
-
+		set quote obj/a 1
+		--assert 1 == get quote obj/a
+		
+		set quote 'obj/a 2
+		--assert 2 == get quote 'obj/a
+		
+		set quote :obj/a 3
+		--assert 3 == get quote :obj/a
+		
+		set quote obj/a: 4
+		--assert 4 == get quote obj/a:
+	
+	--test-- "set-13"								;-- extra tests to see how compiler handles GET-PATH!s
+		obj: object [a: 0]
+		
+		set to get-path! 'obj/a 1
+		--assert 1 == get to get-path! 'obj/a
+		
+		set first [:obj/a] 2
+		--assert 2 == get first [:obj/a]
+		
+		set load ":obj/a" 3
+		--assert 3 == get load ":obj/a"
+		
 ===end-group===
 
 ~~~end-file~~~

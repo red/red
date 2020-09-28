@@ -2938,6 +2938,12 @@ comment {
 		--assert not all-equal?4205
 		unset [anded4205 last-random4205 all-equal?4205]
 	
+	--test-- "#4451"
+		path: quote :foo/bar
+		--assert ":foo/bar" = mold path
+		--assert get-path! = type? path
+		--assert word! = type? path/1
+	
 	--test-- "#4305"
 		block: reduce ['foo func [/bar][pick [baz qux] bar]]
 		id:    func [value][value]
