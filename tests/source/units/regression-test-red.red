@@ -2972,6 +2972,17 @@ comment {
 			recycle
 		]
 	
+	--test-- "#4517"
+		foo: has [block][
+			block: [:get/path]
+			--assert get-path? block/1
+			--assert word? block/1/1
+			--assert "[:get/path]" == mold block
+		]
+
+		foo
+		unset 'foo
+	
 	--test-- "#4522"
 		--assert error? try [find/skip [1] [1] ()]
 
@@ -2998,7 +3009,7 @@ comment {
 		--assert to logic! find 
 			form try [null < []]
 			%{#"^@" with []}%
-		
+
 ===end-group===
 
 ~~~end-file~~~
