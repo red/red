@@ -16,7 +16,7 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
     -dlib, --dynamic-lib           : Generate a shared library from the source
                                      file.
 
-    -e, --encap                    : Compile in encap mode, so code is interpreted 
+    -e, --encap                    : Compile in encap mode, so code is interpreted
                                      at runtime. Avoids compiler issues. Required
                                      for some dynamic code.
 
@@ -44,11 +44,17 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
     -V, --version                  : Output Red's executable version in x.y.z
                                      format.
 
+    --catch                        : Stay in the REPL after the script finishes.
+
     --cli                          : Run the command-line REPL instead of the
                                      graphical console.
 
+	--no-console                   : Do not launch the REPL after console compilation. 
+
     --config [...]                 : Provides compilation settings as a block
                                      of `name: value` pairs.
+
+    --no-compress                  : Omit Redbin format compression.
 
     --no-runtime                   : Do not include runtime during Red/System
                                      source compilation.
@@ -57,9 +63,12 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
                                      Use higher verbose level to see compiler
                                      output. (internal debugging purpose)
 
+    --show-func-map                : Output an address/name map of Red/System
+                                     functions, for debugging purposes.
+
 [command]:
 
-    build libRed [stdcall]         : Builds libRed library and unpacks the 
+    build libRed [stdcall]         : Builds libRed library and unpacks the
                                      libRed/ folder locally.
 
     clear [<path>]                 : Delete all temporary files from current
@@ -71,11 +80,13 @@ Cross-compilation targets:
     Windows      : Windows, x86, GUI applications
     WindowsXP    : Windows, x86, GUI applications, no touch API
     Linux        : GNU/Linux, x86
+    Linux-musl   : GNU/Linux, x86, musl libc
     Linux-ARM    : GNU/Linux, ARMv5, armel (soft-float)
     RPi          : GNU/Linux, ARMv7, armhf (hard-float)
     Darwin       : macOS Intel, console or GUI applications
     macOS        : macOS Intel, GUI-only, applications bundles
     Syllable     : Syllable OS, x86
     FreeBSD      : FreeBSD, x86
+    NetBSD       : NetBSD, x86
     Android      : Android, ARMv5
     Android-x86  : Android, x86

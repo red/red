@@ -249,6 +249,7 @@ _function: context [
 				RED_THROWN_BREAK
 				RED_THROWN_CONTINUE
 				RED_THROWN_THROW	[re-throw]			;-- let exception pass through
+				RED_THROWN_EXIT
 				RED_THROWN_RETURN	[stack/unwind-last]
 				default [0]								;-- else, do nothing
 			]
@@ -771,7 +772,7 @@ _function: context [
 						value: value + 1
 					]
 				]
-				TYPE_SET_WORD [							;-- only return: is allowed as a set-word!
+				TYPE_SET_WORD [								 ;-- only return: is allowed as a set-word!
 					w: as red-word! value
 					if words/return* <> symbol/resolve w/symbol [
 						fire [TO_ERROR(script bad-func-def)	w]
@@ -780,10 +781,14 @@ _function: context [
 					next2: next + 1
 					unless all [
 						next < end
-						TYPE_OF(next) = TYPE_BLOCK		;-- return: must have a type spec
-						any [							;-- This allows a return: spec before each refinement
-							next2 = end
-							TYPE_OF(next2) = TYPE_REFINEMENT
+						TYPE_OF(next) = TYPE_BLOCK			 ;-- return: must have a type spec
+						any [
+							next2 = end						 ;-- return: with type spec is enough
+							TYPE_OF(next2) = TYPE_REFINEMENT ;-- This allows a return: spec before each refinement
+							all [							 ;-- docstring is allowed if at the tail
+								TYPE_OF(next2) = TYPE_STRING
+								next2 + 1 = end
+							]
 						]
 					][
 						fire [TO_ERROR(script bad-func-def) value]
@@ -803,7 +808,7 @@ _function: context [
 		]
 		check-duplicates spec
 	]
-
+	
 	count-locals: func [
 		node	[node!]
 		offset	[integer!]
@@ -873,7 +878,7 @@ _function: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_function/push"]]
 
-		f-ctx: either null? ctx [_context/make spec yes no][ctx]
+		f-ctx: either null? ctx [_context/make spec yes no CONTEXT_FUNCTION][ctx]
 		fun: as red-function! stack/push*
 		fun/header:  TYPE_UNSET
 		fun/spec:	 spec/node

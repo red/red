@@ -387,6 +387,14 @@ crypto: context [
 				]
 			]]
 		]
+		OS = 'NetBSD [
+			#import [
+			LIBC-file cdecl [
+				get-errno-ptr: "__errno" [
+					return: [int-ptr!]
+				]
+			]]
+		]
 		true [
 			#import [
 			LIBC-file cdecl [
@@ -679,6 +687,9 @@ crypto: context [
 			]
 			FreeBSD [
 				#define LIBCRYPTO-file "libcrypto.so.8"
+			]
+			NetBSD [
+				#define LIBCRYPTO-file "libcrypto.so"
 			]
 			#default [
 				#switch config-name [

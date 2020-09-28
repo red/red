@@ -3,8 +3,8 @@ Red [
 	Author:  "hiiamboris"
 	File:    %base-self-test.red
 	Purpose: "Define BASE face behavior and detect future regressions"
-	Rights:  "Copyright (C) 2016-2018 Red Foundation. All rights reserved."
-    License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2016-2019 Red Foundation. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 	; Needs:   'View
 ]
 
@@ -66,24 +66,25 @@ bst-font2*: make font! [name: system/view/fonts/fixed size: 11 style: 'bold colo
 bst-styles-backup: copy system/view/VID/styles
 
 ;-- styles with optional font/background transparency
-system/view/VID/styles/text':		[template: [type: 'text  size: 100x25 font: bst-font1  color: bst-colors/bg]]
-system/view/VID/styles/text'*:		[template: [type: 'text  size: 100x25 font: bst-font1  color: bst-colors/bg + 0.0.0.5]]
-system/view/VID/styles/text'**:		[template: [type: 'text  size: 100x25 font: bst-font1* color: bst-colors/bg]]
-system/view/VID/styles/text'***:	[template: [type: 'text  size: 100x25 font: bst-font1* color: bst-colors/bg + 0.0.0.5]]
+extend system/view/VID/styles [
+	text':		[template: [type: 'text  size: 100x25 font: bst-font1  color: bst-colors/bg]]
+	text'*:		[template: [type: 'text  size: 100x25 font: bst-font1  color: bst-colors/bg + 0.0.0.5]]
+	text'**:	[template: [type: 'text  size: 100x25 font: bst-font1* color: bst-colors/bg]]
+	text'***:	[template: [type: 'text  size: 100x25 font: bst-font1* color: bst-colors/bg + 0.0.0.5]]
 
-system/view/VID/styles/base':		[template: [type: 'base  size: 100x100 font: bst-font1  color: bst-colors/bg]]
-system/view/VID/styles/base'*:		[template: [type: 'base  size: 100x100 font: bst-font1  color: bst-colors/bg + 0.0.0.5]]
-system/view/VID/styles/base'**:		[template: [type: 'base  size: 100x100 font: bst-font1* color: bst-colors/bg]]
-system/view/VID/styles/base'***:	[template: [type: 'base  size: 100x100 font: bst-font1* color: bst-colors/bg + 0.0.0.5]]
-system/view/VID/styles/base-:		[template: [type: 'base  size: 50x100  font: bst-font2  color: bst-colors/bg]]
-system/view/VID/styles/base-*:		[template: [type: 'base  size: 50x100  font: bst-font2  color: bst-colors/bg + 0.0.0.5]]
-system/view/VID/styles/base-**:		[template: [type: 'base  size: 50x100  font: bst-font2* color: bst-colors/bg]]
-system/view/VID/styles/base-***:	[template: [type: 'base  size: 50x100  font: bst-font2* color: bst-colors/bg + 0.0.0.5]]
-system/view/VID/styles/base+:		[template: [type: 'base  size: 50x100  font: bst-font1  color: bst-colors/bg]]
-system/view/VID/styles/base+*:		[template: [type: 'base  size: 50x100  font: bst-font1  color: bst-colors/bg + 0.0.0.5]]
-system/view/VID/styles/base+**:		[template: [type: 'base  size: 50x100  font: bst-font1* color: bst-colors/bg]]
-system/view/VID/styles/base+***:	[template: [type: 'base  size: 50x100  font: bst-font1* color: bst-colors/bg + 0.0.0.5]]
-
+	base':		[template: [type: 'base  size: 100x100 font: bst-font1  color: bst-colors/bg]]
+	base'*:		[template: [type: 'base  size: 100x100 font: bst-font1  color: bst-colors/bg + 0.0.0.5]]
+	base'**:	[template: [type: 'base  size: 100x100 font: bst-font1* color: bst-colors/bg]]
+	base'***:	[template: [type: 'base  size: 100x100 font: bst-font1* color: bst-colors/bg + 0.0.0.5]]
+	base-:		[template: [type: 'base  size: 50x100  font: bst-font2  color: bst-colors/bg]]
+	base-*:		[template: [type: 'base  size: 50x100  font: bst-font2  color: bst-colors/bg + 0.0.0.5]]
+	base-**:	[template: [type: 'base  size: 50x100  font: bst-font2* color: bst-colors/bg]]
+	base-***:	[template: [type: 'base  size: 50x100  font: bst-font2* color: bst-colors/bg + 0.0.0.5]]
+	base+:		[template: [type: 'base  size: 50x100  font: bst-font1  color: bst-colors/bg]]
+	base+*:		[template: [type: 'base  size: 50x100  font: bst-font1  color: bst-colors/bg + 0.0.0.5]]
+	base+**:	[template: [type: 'base  size: 50x100  font: bst-font1* color: bst-colors/bg]]
+	base+***:	[template: [type: 'base  size: 50x100  font: bst-font1* color: bst-colors/bg + 0.0.0.5]]
+]
 
 
 
@@ -104,7 +105,7 @@ set/any 'bst-assert-backup get/any 'assert
 ;-- skip the assertions and let quick-test do its thing
 assert: func [c [block!]] []
 
-;-- assertion func used during the development stage
+; -- assertion func used during the development stage
 ; assert: function [contract [block!]][
 ; 	set [cond msg] reduce contract
 ; 	unless cond [
@@ -120,6 +121,7 @@ assert: func [c [block!]] []
 ; ]
 
 
+;-- removes system/words pollution done by base-self-test
 bst-cleanup: does [
 	system/view/VID/styles: bst-styles-backup
 	set/any 'assert get/any 'bst-assert-backup
@@ -132,7 +134,7 @@ forxy: func ["loop thru a 2D area" 'p s c /local i] [
 	any [pair? s  s: s/size]
 	i: 0
 	loop s/x * s/y [
-		set p 1x1 + as-pair i % s/x i / s/x
+		set p 1x1 + as-pair i % s/x to integer! i / s/x
 		do c
 		i: i + 1
 	]
@@ -215,6 +217,21 @@ assert [100.140.130 = diff3 100.100.100 200.240.230 	'diff3]
 assert [100.140.130 = diff3 200.240.230 100.100.100 	'diff3]
 
 
+imgdiff: func [
+	"subtracts image B from image A in place, returns A"
+	a [image!] b [image!]
+] [
+	assert [a/size = b/size]
+	forxy xy a [
+		a/:xy: either all [0 < xy/x  xy/x < 125  0 < xy/y  xy/y < 125]
+			[ diff3 a/:xy b/:xy ]
+			[ 0.0.0 ]		;-- ignore the border
+	]
+	a
+]
+
+assert [(make image! [3x3 0.0.0]) = imgdiff make image! 3x3 make image! 3x3]
+
 ; return format: [tuple! percent! ...]
 ; removes alpha channel so it won't cause trouble
 count-colors: func [
@@ -235,37 +252,6 @@ count-colors: func [
 assert [bst-x: 1.2.3.4 bst-x/4: none 3 = length? bst-x]
 assert [[255.255.255 100%] = count-colors make image! 2x2  'count-colors]
 assert [[255.255.255 75% 0.0.0 25%] = count-colors make image! [2x2 #{FFFFFF FFFFFF 000000 FFFFFF}]  'count-colors]
-
-
-sub-bgnd: func [
-	"subtracts background (1st tuple) from the color set (modifies)"
-	cs [block!] /local x cs' bg
-] [
-	unless empty? cs [
-		bg: cs/1
-		cs': skip cs 2
-		until [
-			;-- W8 bugfix: may return background differing by 5.5.5 or so
-			either about?/tol bg cs'/1 0.0 7 [
-				cs/2: cs/2 + cs'/2
-				remove/part cs' 2
-			][
-				x: any [amnt3? bg cs'/1 0]
-				cs'/1: math3 cs'/1 bg [1.0 * a - (b * x) / (1.0 - x)]
-				cs': skip cs' 2
-			]
-			empty? cs'
-		]
-	]
-	cs
-]
-
-assert [[] = sub-bgnd [] 	'sub-bgnd]
-assert [[255.255.255 100%] = sub-bgnd count-colors make image! 2x2 	'sub-bgnd]
-assert [[255.255.255 75% 0.0.0 25%] = sub-bgnd count-colors make image! [2x2 #{FFFFFF FFFFFF 000000 FFFFFF}]	'sub-bgnd]
-assert [[255.255.0 75% 0.0.255 25%] = sub-bgnd count-colors make image! [2x2 #{FFFF00 FFFF00 808080 FFFF00}]	'sub-bgnd]
-assert [[255.255.0 75% 0.0.192 25%] = sub-bgnd count-colors make image! [2x2 #{FFFF00 FFFF00 404090 FFFF00}]	'sub-bgnd]
-assert [[255.255.0 75% 0.64.192 25%] = sub-bgnd count-colors make image! [2x2 #{FFFF00 FFFF00 407090 FFFF00}]	'sub-bgnd]
 
 
 about?: func [
@@ -300,6 +286,38 @@ assert [not about? 100.100.100 130.70.100 'about?]
 assert [error? try [about? red none] 'about?]
 
 
+sub-bgnd: func [
+	"subtracts background (1st tuple) from the color set (modifies)"
+	cs [block!] /local x cs' bg
+] [
+	unless empty? cs [
+		bg: cs/1
+		cs': skip cs 2
+		while [not tail? cs'][
+			;-- W8 bugfix: may return background differing by 5.5.5 or so
+			either about?/tol bg cs'/1 0.0 7 [
+				cs/2: cs/2 + cs'/2
+				remove/part cs' 2
+			][
+				x: any [amnt3? bg cs'/1 0]
+				cs'/1: math3 cs'/1 bg [1.0 * a - (b * x) / (1.0 - x)]
+				cs': skip cs' 2
+			]
+			empty? cs'
+		]
+	]
+	cs
+]
+
+assert [[] = sub-bgnd [] 	'sub-bgnd]
+assert [[255.255.255 100%] = sub-bgnd count-colors make image! 2x2 	'sub-bgnd]
+assert [[255.255.255 75% 0.0.0 25%] = sub-bgnd count-colors make image! [2x2 #{FFFFFF FFFFFF 000000 FFFFFF}]	'sub-bgnd]
+assert [[255.255.0 75% 0.0.255 25%] = sub-bgnd count-colors make image! [2x2 #{FFFF00 FFFF00 808080 FFFF00}]	'sub-bgnd]
+assert [[255.255.0 75% 0.0.192 25%] = sub-bgnd count-colors make image! [2x2 #{FFFF00 FFFF00 404090 FFFF00}]	'sub-bgnd]
+assert [[255.255.0 75% 0.64.192 25%] = sub-bgnd count-colors make image! [2x2 #{FFFF00 FFFF00 407090 FFFF00}]	'sub-bgnd]
+
+
+
 bright: func [
 	"returns color c of it's maximum brightness"
 	c [tuple!] /local hi i
@@ -307,7 +325,7 @@ bright: func [
 	if 4 = length? c [c/4: none]
 	unless black = c [
 		hi: max c/1 max c/2 c/3
-		repeat i 3 [c/:i: c/:i * 255 / hi]
+		repeat i 3 [c/:i: to integer! c/:i * 255 / hi]
 	]
 	c
 ]
@@ -376,8 +394,29 @@ assert [[255.255.0 75% 0.64.192 25%] = colorset? make image! [2x2 #{FFFF00 FFFF0
 assert [[255.255.0 0.64.192] = colorset?/tuples make image! [2x2 #{FFFF00 FFFF00 407090 FFFF00}]	'colorset?]
 
 
+img-black?: func [
+	"checks if image is black or almost black (applies tolerance to each pixel)"
+	im [image!] /tol tolrel tolabs /local nonzero
+] [
+	assert [im/size/x * im/size/y > 0  'im]				;-- shouldn't be empty (`empty?` is bugged)
+	any [
+		empty? nonzero: trim im/rgb						;-- trivial case - all black
+		all [											;-- or try to apply tolerance
+			any [all [tolrel tolrel > 0] all [tolabs tolabs > 0]]
+			about?/tol to-integer last sort nonzero  0  tolrel tolabs
+		]
+	]
+]
+
+assert [empty? trim #{0000}]
+assert [    img-black? make image! [3x3 0.0.0]]
+assert [not img-black? make image! [3x3 0.0.1]]
+assert [    img-black?/tol make image! [3x3 10.0.0] 0 10]
+assert [not img-black?/tol make image! [3x3 11.0.0] 0 10]
+
+
 text-bounds?: func [
-	"calculates the text boundaries on an image [x y dx dy]"
+	"calculates the text boundaries on an image [x y dx dy]; returns none if no text!"
 	im [image!] "(area covered by the text should be < 50%)"
 	/lines
 		{return per-line boundaries [x y dx dy ...]
@@ -385,7 +424,8 @@ text-bounds?: func [
 	/local xy ts box text-before? text-here?
 ] [
 	ts: colorset?/tuples im
-	assert [2 <= length? ts] 		;-- can be > 2 colors for a cleartype render
+	if 2 > length? ts [return none]
+	; assert [2 <= length? ts] 		;-- can be > 2 colors for a cleartype render
 	box: reduce [im/size/x im/size/y 0 0]
 	text-before?: text-here?: no
 	forxy xy im [
@@ -432,11 +472,12 @@ assert [[0.1 0.1 0.5 0.3  0.1 0.4 0.9 0.6  0.1 0.7 0.9 0.9] =
 
 
 text-center?: func [
-	"locates mean center of non-background (text?) pixels"
+	"locates mean center of non-background (text?) pixels; returns none if no text"
 	im [image!] /local xy xsum ysum n ts
 ][
 	ts: colorset?/tuples im
-	assert [2 <= length? ts]
+	if 2 > length? ts [return none]
+	; assert [2 <= length? ts]
 	xsum: ysum: n: 0
 	forxy xy im [
 		unless about? im/:xy ts/1 [
@@ -464,61 +505,70 @@ assert [[0.5 0.5] = text-center? draw 10x10
 ;  w  c  e
 ;  sw s se]
 text-anchor?: func [
-	"calculates predominant text orientation"
+	"calculates predominant text orientation; none if no text"
 	im [image!] /local x y c
 ] [
-	c: text-center? im
+	unless c: text-center? im [return none]
 	x: either about? 0.5 c/1 [2][pick [1 3] c/1 < 0.5]
 	y: either about? 0.5 c/2 [2][pick [1 3] c/2 < 0.5]
 	pick [nw n ne  w c e  sw s se] y - 1 * 3 + x
 ]
 
 
-assert ['nw = text-anchor? draw 10x10
-		[pen blue box 0x0 2x2] 	'text-anchor?]
-assert ['ne = text-anchor? draw 10x10
-		[pen blue box 7x0 9x2] 	'text-anchor?]
-assert ['sw = text-anchor? draw 10x10
-		[pen blue box 0x7 2x9] 	'text-anchor?]
-assert ['se = text-anchor? draw 10x10
-		[pen blue box 7x7 9x9] 	'text-anchor?]
-assert ['n  = text-anchor? draw 10x10
-		[pen blue box 0x0 9x4] 	'text-anchor?]
-assert ['s  = text-anchor? draw 10x10
-		[pen blue box 0x4 9x9] 	'text-anchor?]
-assert ['w  = text-anchor? draw 10x10
-		[pen blue box 0x0 4x9] 	'text-anchor?]
-assert ['e  = text-anchor? draw 10x10
-		[pen blue box 4x0 9x9] 	'text-anchor?]
-assert ['c  = text-anchor? draw 10x10
-		[pen blue box 0x0 9x9] 	'text-anchor?]
+assert ['nw = text-anchor? draw 10x10 [pen blue box 0x0 2x2] 	'text-anchor?]
+assert ['ne = text-anchor? draw 10x10 [pen blue box 7x0 9x2] 	'text-anchor?]
+assert ['sw = text-anchor? draw 10x10 [pen blue box 0x7 2x9] 	'text-anchor?]
+assert ['se = text-anchor? draw 10x10 [pen blue box 7x7 9x9] 	'text-anchor?]
+assert ['n  = text-anchor? draw 10x10 [pen blue box 0x0 9x4] 	'text-anchor?]
+assert ['s  = text-anchor? draw 10x10 [pen blue box 0x4 9x9] 	'text-anchor?]
+assert ['w  = text-anchor? draw 10x10 [pen blue box 0x0 4x9] 	'text-anchor?]
+assert ['e  = text-anchor? draw 10x10 [pen blue box 4x0 9x9] 	'text-anchor?]
+assert ['c  = text-anchor? draw 10x10 [pen blue box 0x0 9x9] 	'text-anchor?]
 
 
 text-aligned?: func [
-	"checks if all text lines are aligned with al=left or al=right"
-	'al [word!] im [image!] /local _ r ls x dx
+	"checks if all text lines are aligned with al=left or al=right or al=top or al=bottom"
+	'al [word! block!] im [image!] /not "passes if none of the provided alignments are true"
+	/local _ r ls x dx
 ] [
-	assert [find [right left] al]
-	ls: text-bounds?/lines im
+	al: compose [(al)]
 	r: yes
-	foreach [x _ dx _] ls compose [
-		r: r and about?/tol (either 'left = al [[0.08 x]][[0.92 dx]]) 0 0.06
+	not: either not [:system/words/not][:do]
+	foreach al al [
+		assert [find [right left top bottom] al]
+		unless ls: text-bounds?/lines im [return no]
+		either find [left right] al [
+			foreach [x _ dx _] ls compose [
+				r: r and not about?/tol (either 'left = al [[0.08 x]][[0.92 dx]]) 0 0.06
+			]
+		][
+			foreach [_ y _ dy] ls compose [
+				r: r and not about?/tol (either 'top  = al [[0.08 y]][[0.92 dy]]) 0 0.06
+			]
+		]
 	]
 	r
 ]
 
-assert [text-aligned? left draw 10x10
-		[pen blue box 1x0 2x5] 	'text-aligned?]
-assert [not text-aligned? right draw 10x10
-		[pen blue box 1x0 2x5] 	'text-aligned?]
-assert [text-aligned? right draw 10x10
-		[pen blue box 7x0 8x5] 	'text-aligned?]
-assert [not text-aligned? left draw 10x10
-		[pen blue box 7x0 8x5] 	'text-aligned?]
-assert [not text-aligned? left draw 10x10
-		[pen blue box 4x4 6x6] 	'text-aligned?]
-assert [not text-aligned? right draw 10x10
-		[pen blue box 4x4 6x6] 	'text-aligned?]
+assert [	text-aligned? left  draw 10x10 [pen blue box 1x0 2x5] 	'text-aligned?]
+assert [not text-aligned? right draw 10x10 [pen blue box 1x0 2x5] 	'text-aligned?]
+assert [	text-aligned? right draw 10x10 [pen blue box 7x0 8x5] 	'text-aligned?]
+assert [not text-aligned? left  draw 10x10 [pen blue box 7x0 8x5] 	'text-aligned?]
+assert [not text-aligned? left  draw 10x10 [pen blue box 4x4 6x6] 	'text-aligned?]
+assert [not text-aligned? right draw 10x10 [pen blue box 4x4 6x6] 	'text-aligned?]
+assert [text-aligned?/not left  draw 10x10 [pen blue box 7x0 8x5] 	'text-aligned?]
+assert [text-aligned?/not left  draw 10x10 [pen blue box 4x4 6x6] 	'text-aligned?]
+assert [text-aligned?/not right draw 10x10 [pen blue box 4x4 6x6] 	'text-aligned?]
+
+assert [	text-aligned? top    draw 10x10 [pen blue box 0x1 5x2] 	'text-aligned?]
+assert [not text-aligned? bottom draw 10x10 [pen blue box 0x1 5x2] 	'text-aligned?]
+assert [	text-aligned? bottom draw 10x10 [pen blue box 0x7 5x8] 	'text-aligned?]
+assert [not text-aligned? top    draw 10x10 [pen blue box 0x7 5x8] 	'text-aligned?]
+assert [not text-aligned? top    draw 10x10 [pen blue box 4x4 6x6] 	'text-aligned?]
+assert [not text-aligned? bottom draw 10x10 [pen blue box 4x4 6x6] 	'text-aligned?]
+assert [text-aligned?/not [top left]              draw 10x10 [pen blue box 4x4 6x6] 	'text-aligned?]
+assert [text-aligned?/not [right bottom]          draw 10x10 [pen blue box 4x4 6x6] 	'text-aligned?]
+assert [text-aligned?/not [top left right bottom] draw 10x10 [pen blue box 4x4 6x6] 	'text-aligned?]
 
 
 equally-spaced?: func [
@@ -602,6 +652,7 @@ shoot-parallel: func [
 		text "waiting for snapshots to complete" rate 5
 		on-time [if started = finished [unview/only face/parent]]
 	]
+	loop 10 [do-events/no-wait]		;-- let the last windows actually close
 	i: 0
 	parse code rule: [any [
 		change [['shoot | 'shoot/whole] block!] (reduce [to-paren compose [pick snaps (i: i + 1)]])
@@ -632,7 +683,7 @@ four-ways: func [code [block!] /local ws ss i j d code' rule s full] [
 	repeat i 4 [
 		code': copy/deep code
 		unless 1 = i [
-			repeat j d: (length? ws) / 4 [
+			repeat j d: to integer! (length? ws) / 4 [
 				replace/all/deep code' ws/:j ws/(i - 1 * d + j)
 			]
 		]
@@ -664,14 +715,16 @@ four-ways: func [code [block!] /local ws ss i j d code' rule s full] [
 
 
 maybe-display-shortly: func [
-	"when user-mode is on, display an image with a message for review"
-	im [image!] msg [string!]
+	"when user-mode is on, display an image(s) with a message for review"
+	im [image! block!] msg [string!]
 ] [
+	im: compose [(im)]
 	if bst-user-mode [
-		view [
-			below
-			image im rate bst-show-delay on-time [unview] focus on-key-down [unview]
-			area 300x200 wrap msg
+		view compose [
+			across
+			image (:im/1) rate bst-show-delay on-time [unview] focus on-key-down [unview]
+			(collect [foreach im next im [keep 'image keep im]])
+			return area 300x200 wrap msg
 		]
 	]
 ]
@@ -705,6 +758,54 @@ test-color-match?: func [
 ]
 
 
+test-images-of-equal-size?: func [
+	"test if images A and B are of same size"
+	a [image!] b [image!] /local s
+] [
+	unless a/size = b/size [
+		s: form reduce [
+			"expected images to of the same size, got" a/size "&" b/size
+		]
+		maybe-display-shortly [a b] s
+		return no
+	]
+	yes
+]
+
+test-images-equal?: func [
+	"test if images A and B are equal (excluding the border)"
+	a [image!] b [image!] /tol tolrel tolabs /local s diff
+] [
+	test-images-of-equal-size? a b
+	diff: imgdiff copy a b
+	tolabs: any [tolabs 2]		;-- allow a bit of error for our draw transparency hacks
+	unless img-black?/tol diff tolrel tolabs [
+		s: form reduce [
+			"expected images to be equal, but found"
+			to integer! (length? trim diff/rgb) / 3 "different pixels"
+			"compared with tol rel=" any [tolrel 0%] "abs=" tolabs
+		]
+		maybe-display-shortly [a b diff] s
+		return no
+	]
+	yes
+]
+
+test-images-NOT-equal?: func [
+	"test if images A and B are NOT equal (excluding the border)"
+	a [image!] b [image!] /tol tolrel tolabs /local s diff
+] [
+	test-images-of-equal-size? a b
+	diff: imgdiff copy a b
+	if img-black?/tol diff tolrel tolabs [
+		maybe-display-shortly [a b diff] "expected images to be NOT equal, but they are"
+		return no
+	]
+	yes
+]
+
+
+
 test-size-match?: func [
 	"test if image `im` size is equal to `sz` (save for a possible rounding error)"
 	im [image!] sz [pair!] /local s
@@ -724,8 +825,60 @@ test-size-match?: func [
 ]
 
 
+test-same-text-size?: func [
+	"test if text on 2 images is of equal size"
+	im1 [image!] im2 [image!] /local s bs1 bs2 sz1 sz2
+] [
+	unless all [
+		bs1: text-bounds? im1
+		bs2: text-bounds? im2
+		sz1: as-pair  round im1/size/x * (bs1/3 - bs1/1)  round im1/size/y * (bs1/4 - bs1/2)
+		sz2: as-pair  round im2/size/x * (bs2/3 - bs2/1)  round im2/size/y * (bs2/4 - bs2/2)
+		about?/tol sz1/x sz2/x 8% 1	;-- allow 8% + 1px of error - W10 has different proofing for unrotated text
+		about?/tol sz1/y sz2/y 8% 1
+	] [
+		s: form reduce [
+			"expected text to be of equal size on these images, got" sz1 "vs" sz2
+			", compared with tol rel=8% abs=1"
+		]
+		maybe-display-shortly [im1 im2] s
+		return no
+	]
+	yes
+]
+
+
+test-same-text-origin-and-size?: function [
+	"test if text on 2 images is of equal size and origin"
+	im1 [image!] im2 [image!]
+] [
+	unless all [
+		bs1: text-bounds? im1
+		bs2: text-bounds? im2
+		or1: as-pair  round im1/size/x * bs1/1  round im1/size/y * bs1/2
+		or2: as-pair  round im2/size/x * bs2/1  round im2/size/y * bs2/2
+		sz1: as-pair  round im1/size/x * (bs1/3 - bs1/1)  round im1/size/y * (bs1/4 - bs1/2)
+		sz2: as-pair  round im2/size/x * (bs2/3 - bs2/1)  round im2/size/y * (bs2/4 - bs2/2)
+		origin-error: 3.0 / 96 * system/view/metrics/dpi		;-- 3px of error, scaled - enough?
+		about?/tol or1/x or2/x 0% origin-error
+		about?/tol or1/y or2/y 0% origin-error
+		about?/tol sz1/x sz2/x 8% 1		;-- allow 8% + 1px of error - W10 has different proofing for unrotated text
+		about?/tol sz1/y sz2/y 8% 1
+	] [
+		s: form reduce [
+			"expected text to be of equal origin and size on these images, got"
+			"origin=" or1 "vs" or2 "and size=" sz1 "vs" sz2
+			", compared with tol rel=8% abs=1 (size), rel=0% abs=3px (origin)"
+		]
+		maybe-display-shortly [im1 im2] s
+		return no
+	]
+	yes
+]
+
+
 test-match?: func [
-	"wrapper around `about?` func"
+	"wrapper around `about?` func (image is used for error display only)"
 	im [image!] x [number! tuple!] y [number! tuple!] /tol tolrel tolabs /local s
 ] [
 	unless about?/tol x y tolrel tolabs [
@@ -741,7 +894,7 @@ test-match?: func [
 
 
 test-contrast?: func [
-	"test if colors x and y are NOT similar"
+	"test if colors x and y are NOT similar (image is used for error display only)"
 	im [image!] x [tuple!] y [tuple!] /tol tolrel tolabs /local s
 ] [
 	if about?/tol x y tolrel tolabs [
@@ -774,8 +927,8 @@ test-text-anchor?: func [
 
 
 test-text-aligned?: func [
-	"test if image text is right/left aligned"
-	'al [word!] im [image!] /local m
+	"test if image text is right/left/top/bottom aligned"
+	'al [word! block!] im [image!] /local m
 ] [
 	unless text-aligned? :al im [
 		m: form reduce ["expected text to be" al "- aligned, failed"]
@@ -787,10 +940,10 @@ test-text-aligned?: func [
 
 
 test-text-NOT-aligned?: func [
-	"test if image text is NOT right/left aligned"
-	'al [word!] im [image!] /local m
+	"test if image text is NOT right/left/top/bottom aligned"
+	'al [word! block!] im [image!] /local m
 ] [
-	if text-aligned? :al im [
+	unless text-aligned?/not :al im [
 		m: form reduce ["expected text to be NOT" al "- aligned, but it is"]
 		maybe-display-shortly im m
 		return no
@@ -810,7 +963,7 @@ test-equally-spaced?: func [
 		return no
 	]
 	unless equally-spaced? ls [
-		m: form reduce ["expected text lines to be equally spaced, got coordinates:"]
+		m: "expected text lines to be equally spaced, got coordinates:"
 		foreach [x y dx dy] ls [append m form reduce ["^/" x y dx dy]]
 		maybe-display-shortly im m
 		return no
@@ -859,143 +1012,166 @@ test-NOT-equally-spaced?: func [
 
 
 ===start-group=== "testing utilities test"
+	
+	; use asserts during development and these - when finished
 
-	; --test-- "tut-01"
-	; 	--assert [1x1 2x1 1x2 2x2] = collect [forxy xy make image! 2x2 [keep xy]]
+	--test-- "tut-01"
+		--assert [1x1 2x1 1x2 2x2] = collect [forxy xy make image! 2x2 [keep xy]]
 
-	; --test-- "tut-02"
-	; 	--assert 1 = min' 1 2
-	; 	--assert 2 = max' 1 2
-	; 	--assert 1 = min' 1 none
-	; 	--assert 1 = max' 1 none
-	; 	--assert 2 = min' none 2
-	; 	--assert 2 = max' none 2
-	; 	--assert none = min' none none
-	; 	--assert none = max' none none
+	--test-- "tut-02"
+		--assert 1 = min' 1 2
+		--assert 2 = max' 1 2
+		--assert 1 = min' 1 none
+		--assert 1 = max' 1 none
+		--assert 2 = min' none 2
+		--assert 2 = max' none 2
+		--assert none = min' none none
+		--assert none = max' none none
 
-	; --test-- "tut-03"
-	; 	--assert 0.5 = amnt? 254 127
-	; 	--assert 0.0 = amnt? 254 0
-	; 	--assert none = amnt? 0 127
+	--test-- "tut-03"
+		--assert 0.5 = amnt? 254 127
+		--assert 0.0 = amnt? 254 0
+		--assert none = amnt? 0 127
 
-	; --test-- "tut-04"
-	; 	--assert 0.5 = amnt3? 200.100.50 100.50.25
-	; 	--assert 0.5 = amnt3? 200.100.50 100.50.100
-	; 	--assert 0.5 = amnt3? 200.100.50 100.255.255
-	; 	--assert 0.0 = amnt3? 200.100.50 0.255.255
-	; 	--assert 0.0 = amnt3? 200.100.50 255.0.255
-	; 	--assert 0.0 = amnt3? 200.100.50 255.255.0
-	; 	--assert 1.0 = amnt3? 200.100.50 255.255.255
-	; 	--assert 0.0 = amnt3? 0.0.0 100.200.100	
+	--test-- "tut-04"
+		--assert 0.5 = amnt3? 200.100.50 100.50.25
+		--assert 0.5 = amnt3? 200.100.50 100.50.100
+		--assert 0.5 = amnt3? 200.100.50 100.255.255
+		--assert 0.0 = amnt3? 200.100.50 0.255.255
+		--assert 0.0 = amnt3? 200.100.50 255.0.255
+		--assert 0.0 = amnt3? 200.100.50 255.255.0
+		--assert 1.0 = amnt3? 200.100.50 255.255.255
+		--assert 0.0 = amnt3? 0.0.0 100.200.100	
 
-	; --test-- "tut-05"
-	; 	--assert 10.10.10 = math3 10.10.10 20.10.0 [a] 	
-	; 	--assert 20.10.0  = math3 10.10.10 20.10.0 [b] 	
-	; 	--assert 30.20.10 = math3 10.10.10 20.10.0 [a + b] 
-	; 	--assert 0.20.40  = math3 10.10.10 20.10.0 [a * 2 - b * 2] 
-	; 	--assert 100.10.0 = math3 10.1.0 10.10.10 [a * 100.0 + b - b / 10.0]
-
-
-	; --test-- "tut-06"
-	; 	--assert 50.60.70 = diff3 100.100.100 50.40.30
-	; 	--assert 100.140.130 = diff3 100.100.100 200.240.230
-	; 	--assert 100.140.130 = diff3 200.240.230 100.100.100
-
-	; --test-- "tut-07"
-	; 	--assert (bst-x: 1.2.3.4 bst-x/4: none 3 = length? bst-x)
-	; 	--assert [255.255.255 100%] = count-colors make image! 2x2
-	; 	--assert [255.255.255 75% 0.0.0 25%] = count-colors make image! [2x2 #{FFFFFF FFFFFF 000000 FFFFFF}]
-
-	; --test-- "tut-08"
-	; 	--assert [] = sub-bgnd [] 
-	; 	--assert [255.255.255 100%] = sub-bgnd count-colors make image! 2x2 
-	; 	--assert [255.255.255 75% 0.0.0 25%] = sub-bgnd count-colors make image! [2x2 #{FFFFFF FFFFFF 000000 FFFFFF}]
-	; 	--assert [255.255.0 75% 0.0.255 25%] = sub-bgnd count-colors make image! [2x2 #{FFFF00 FFFF00 808080 FFFF00}]
-	; 	--assert [255.255.0 75% 0.0.192 25%] = sub-bgnd count-colors make image! [2x2 #{FFFF00 FFFF00 404090 FFFF00}]
-	; 	--assert [255.255.0 75% 0.64.192 25%] = sub-bgnd count-colors make image! [2x2 #{FFFF00 FFFF00 407090 FFFF00}]
+	--test-- "tut-05"
+		--assert 10.10.10 = math3 10.10.10 20.10.0 [a] 	
+		--assert 20.10.0  = math3 10.10.10 20.10.0 [b] 	
+		--assert 30.20.10 = math3 10.10.10 20.10.0 [a + b] 
+		--assert 0.20.40  = math3 10.10.10 20.10.0 [a * 2 - b * 2] 
+		--assert 100.10.0 = math3 10.1.0 10.10.10 [a * 100.0 + b - b / 10.0]
 
 
-	; --test-- "tut-09"
-	; 	--assert about? 0.05 0.02
-	; 	--assert about? 0.95 0.9
-	; 	--assert not about? 0.2 0.02
-	; 	--assert not about? 0.95 0.8
-	; 	--assert about? 254.254.0 255.254.0
-	; 	--assert about? 254.254.0 255.250.0
-	; 	--assert about? 254.254.0 249.254.0
-	; 	--assert about? 0.0.0 0.0.1
-	; 	--assert about? 0.0.0 0.0.5
-	; 	--assert not about? 254.254.0 230.254.0
-	; 	--assert not about? 100.100.100 130.70.100
-	; 	--assert error? try [about? red none]
+	--test-- "tut-06"
+		--assert 50.60.70 = diff3 100.100.100 50.40.30
+		--assert 100.140.130 = diff3 100.100.100 200.240.230
+		--assert 100.140.130 = diff3 200.240.230 100.100.100
 
-	; --test-- "tut-10"
-	; 	--assert white = bright white 
-	; 	--assert white = bright 10.10.10
-	; 	--assert blue  = bright 0.0.1 
-	; 	--assert black = bright black 
-	; 	--assert yellow = bright 100.100.0
+	--test-- "tut-07"
+		--assert (bst-x: 1.2.3.4 bst-x/4: none 3 = length? bst-x)
+		--assert [255.255.255 100%] = count-colors make image! 2x2
+		--assert [255.255.255 75% 0.0.0 25%] = count-colors make image! [2x2 #{FFFFFF FFFFFF 000000 FFFFFF}]
 
-	; --test-- "tut-11"
-	; 	--assert white brighter-than? gray 	
-	; 	--assert white brighter-than? blue 	
-	; 	--assert white brighter-than? cyan 	
-	; 	--assert not (white brighter-than? white)
-	; 	--assert not (blue brighter-than? white)
-	; 	--assert not (cyan brighter-than? white)
-	; 	--assert 0.1.0 brighter-than? black 	
-	; 	--assert not (black brighter-than? black)
-	; 	--assert not (blue brighter-than? red) 
-	; 	--assert yellow brighter-than? red 	
-
-	; --test-- "tut-12"
-	; 	--assert [0.0.0 70% 100.0.0 30%] = clash [0.0.0 70% 100.0.0 20% 50.0.0 10%] 
-	; 	--assert [0.0.0 70% 100.50.0 30%] = clash [0.0.0 70% 100.50.0 20% 51.23.0 10%]
-
-	; --test-- "tut-13"
-	; 	--assert [255.255.0 75% 0.64.192 25%] = colorset? make image! [2x2 #{FFFF00 FFFF00 407090 FFFF00}]
-	; 	--assert [255.255.0 0.64.192] = colorset?/tuples make image! [2x2 #{FFFF00 FFFF00 407090 FFFF00}]
-
-	; --test-- "tut-14"
-	; 	--assert [0.0 0.0 1.0 1.0] = text-bounds? draw 10x10 [pen blue box 0x0 9x9]
-	; 	--assert [0.0 0.0 1.0 1.0] = text-bounds?/lines draw 10x10 [pen blue box 0x0 9x9]
-	; 	--assert [0.1 0.1 0.9 0.9] = text-bounds? draw 10x10
-	; 			[pen blue line 1x1 4x2 line 1x4 8x5 line 1x7 8x8]
-	; 	--assert [0.1 0.1 0.5 0.3  0.1 0.4 0.9 0.6  0.1 0.7 0.9 0.9] =
-	; 			text-bounds?/lines draw 10x10
-	; 			[pen blue line 1x1 4x2 line 1x4 8x5 line 1x7 8x8]
-
-	; --test-- "tut-15"
-	; 	bst-im: make image! 10x10  bst-im/(2x2): blue
-	; 	--assert [0.15 0.15] = text-center? bst-im
-	; 	--assert [0.1 0.1] = text-center? draw 10x10 [pen blue box 0x0 1x1]
-	; 	--assert [0.5 0.5] = text-center? draw 10x10 [pen blue box 0x0 9x9]
+	--test-- "tut-08"
+		--assert [] = sub-bgnd [] 
+		--assert [255.255.255 100%] = sub-bgnd count-colors make image! 2x2 
+		--assert [255.255.255 75% 0.0.0 25%] = sub-bgnd count-colors make image! [2x2 #{FFFFFF FFFFFF 000000 FFFFFF}]
+		--assert [255.255.0 75% 0.0.255 25%] = sub-bgnd count-colors make image! [2x2 #{FFFF00 FFFF00 808080 FFFF00}]
+		--assert [255.255.0 75% 0.0.192 25%] = sub-bgnd count-colors make image! [2x2 #{FFFF00 FFFF00 404090 FFFF00}]
+		--assert [255.255.0 75% 0.64.192 25%] = sub-bgnd count-colors make image! [2x2 #{FFFF00 FFFF00 407090 FFFF00}]
 
 
-	; --test-- "tut-16"
-	; 	--assert 'nw = text-anchor? draw 10x10 [pen blue box 0x0 2x2]
-	; 	--assert 'ne = text-anchor? draw 10x10 [pen blue box 7x0 9x2]
-	; 	--assert 'sw = text-anchor? draw 10x10 [pen blue box 0x7 2x9]
-	; 	--assert 'se = text-anchor? draw 10x10 [pen blue box 7x7 9x9]
-	; 	--assert 'n  = text-anchor? draw 10x10 [pen blue box 0x0 9x4]
-	; 	--assert 's  = text-anchor? draw 10x10 [pen blue box 0x4 9x9]
-	; 	--assert 'w  = text-anchor? draw 10x10 [pen blue box 0x0 4x9]
-	; 	--assert 'e  = text-anchor? draw 10x10 [pen blue box 4x0 9x9]
-	; 	--assert 'c  = text-anchor? draw 10x10 [pen blue box 0x0 9x9]
+	--test-- "tut-09"
+		--assert about? 0.05 0.02
+		--assert about? 0.95 0.9
+		--assert not about? 0.2 0.02
+		--assert not about? 0.95 0.8
+		--assert about? 254.254.0 255.254.0
+		--assert about? 254.254.0 255.250.0
+		--assert about? 254.254.0 249.254.0
+		--assert about? 0.0.0 0.0.1
+		--assert about? 0.0.0 0.0.5
+		--assert not about? 254.254.0 230.254.0
+		--assert not about? 100.100.100 130.70.100
+		--assert error? try [about? red none]
 
-	; --test-- "tut-17"
-	; 	--assert text-aligned? left draw 10x10 [pen blue box 1x0 2x5]
-	; 	--assert not text-aligned? right draw 10x10 [pen blue box 1x0 2x5]
-	; 	--assert text-aligned? right draw 10x10 [pen blue box 7x0 8x5]
-	; 	--assert not text-aligned? left draw 10x10 [pen blue box 7x0 8x5]
-	; 	--assert not text-aligned? left draw 10x10 [pen blue box 4x4 6x6]
-	; 	--assert not text-aligned? right draw 10x10 [pen blue box 4x4 6x6]
+	--test-- "tut-10"
+		--assert white = bright white 
+		--assert white = bright 10.10.10
+		--assert blue  = bright 0.0.1 
+		--assert black = bright black 
+		--assert yellow = bright 100.100.0
 
-	; --test-- "tut-18"
-	; 	--assert equally-spaced? text-bounds?/lines draw 10x10
-	; 			[pen blue line 1x1 4x2 line 1x4 8x5 line 1x7 8x8]
-	; 	--assert not equally-spaced? text-bounds?/lines draw 10x10
-	; 			[pen blue line 1x0 4x1 line 1x4 8x5 line 1x7 8x8]
+	--test-- "tut-11"
+		--assert white brighter-than? gray 	
+		--assert white brighter-than? blue 	
+		--assert white brighter-than? cyan 	
+		--assert not (white brighter-than? white)
+		--assert not (blue brighter-than? white)
+		--assert not (cyan brighter-than? white)
+		--assert 0.1.0 brighter-than? black 	
+		--assert not (black brighter-than? black)
+		--assert not (blue brighter-than? red) 
+		--assert yellow brighter-than? red 	
+
+	--test-- "tut-12"
+		--assert [0.0.0 70% 100.0.0 30%] = clash [0.0.0 70% 100.0.0 20% 50.0.0 10%] 
+		--assert [0.0.0 70% 100.50.0 30%] = clash [0.0.0 70% 100.50.0 20% 51.23.0 10%]
+
+	--test-- "tut-13"
+		--assert [255.255.0 75% 0.64.192 25%] = colorset? make image! [2x2 #{FFFF00 FFFF00 407090 FFFF00}]
+		--assert [255.255.0 0.64.192] = colorset?/tuples make image! [2x2 #{FFFF00 FFFF00 407090 FFFF00}]
+
+	--test-- "tut-13a"
+		--assert empty? trim #{0000}
+		--assert     img-black? make image! [3x3 0.0.0]
+		--assert not img-black? make image! [3x3 0.0.1]
+		--assert     img-black?/tol make image! [3x3 10.0.0] 0 10
+		--assert not img-black?/tol make image! [3x3 11.0.0] 0 10
+
+	--test-- "tut-14"
+		--assert [0.0 0.0 1.0 1.0] = text-bounds? draw 10x10 [pen blue box 0x0 9x9]
+		--assert [0.0 0.0 1.0 1.0] = text-bounds?/lines draw 10x10 [pen blue box 0x0 9x9]
+		--assert [0.1 0.1 0.9 0.9] = text-bounds? draw 10x10
+				[pen blue line 1x1 4x2 line 1x4 8x5 line 1x7 8x8]
+		--assert [0.1 0.1 0.5 0.3  0.1 0.4 0.9 0.6  0.1 0.7 0.9 0.9] =
+				text-bounds?/lines draw 10x10
+				[pen blue line 1x1 4x2 line 1x4 8x5 line 1x7 8x8]
+
+	--test-- "tut-15"
+		bst-im: make image! 10x10  bst-im/(2x2): blue
+		--assert [0.15 0.15] = text-center? bst-im
+		--assert [0.1 0.1] = text-center? draw 10x10 [pen blue box 0x0 1x1]
+		--assert [0.5 0.5] = text-center? draw 10x10 [pen blue box 0x0 9x9]
+
+
+	--test-- "tut-16"
+		--assert 'nw = text-anchor? draw 10x10 [pen blue box 0x0 2x2]
+		--assert 'ne = text-anchor? draw 10x10 [pen blue box 7x0 9x2]
+		--assert 'sw = text-anchor? draw 10x10 [pen blue box 0x7 2x9]
+		--assert 'se = text-anchor? draw 10x10 [pen blue box 7x7 9x9]
+		--assert 'n  = text-anchor? draw 10x10 [pen blue box 0x0 9x4]
+		--assert 's  = text-anchor? draw 10x10 [pen blue box 0x4 9x9]
+		--assert 'w  = text-anchor? draw 10x10 [pen blue box 0x0 4x9]
+		--assert 'e  = text-anchor? draw 10x10 [pen blue box 4x0 9x9]
+		--assert 'c  = text-anchor? draw 10x10 [pen blue box 0x0 9x9]
+
+	--test-- "tut-17"
+		--assert     text-aligned? left  draw 10x10 [pen blue box 1x0 2x5]
+		--assert not text-aligned? right draw 10x10 [pen blue box 1x0 2x5]
+		--assert     text-aligned? right draw 10x10 [pen blue box 7x0 8x5]
+		--assert not text-aligned? left  draw 10x10 [pen blue box 7x0 8x5]
+		--assert not text-aligned? left  draw 10x10 [pen blue box 4x4 6x6]
+		--assert not text-aligned? right draw 10x10 [pen blue box 4x4 6x6]
+		--assert text-aligned?/not left  draw 10x10 [pen blue box 7x0 8x5]
+		--assert text-aligned?/not left  draw 10x10 [pen blue box 4x4 6x6]
+		--assert text-aligned?/not right draw 10x10 [pen blue box 4x4 6x6]
+
+	--test-- "tut-17a"
+		--assert     text-aligned? top    draw 10x10 [pen blue box 0x1 5x2]
+		--assert not text-aligned? bottom draw 10x10 [pen blue box 0x1 5x2]
+		--assert     text-aligned? bottom draw 10x10 [pen blue box 0x7 5x8]
+		--assert not text-aligned? top    draw 10x10 [pen blue box 0x7 5x8]
+		--assert not text-aligned? top    draw 10x10 [pen blue box 4x4 6x6]
+		--assert not text-aligned? bottom draw 10x10 [pen blue box 4x4 6x6]
+		--assert text-aligned?/not [top left]              draw 10x10 [pen blue box 4x4 6x6]
+		--assert text-aligned?/not [right bottom]          draw 10x10 [pen blue box 4x4 6x6]
+		--assert text-aligned?/not [top left right bottom] draw 10x10 [pen blue box 4x4 6x6]
+
+	--test-- "tut-18"
+		--assert equally-spaced? text-bounds?/lines draw 10x10
+				[pen blue line 1x1 4x2 line 1x4 8x5 line 1x7 8x8]
+		--assert not equally-spaced? text-bounds?/lines draw 10x10
+				[pen blue line 1x0 4x1 line 1x4 8x5 line 1x7 8x8]
 
 ===end-group===
 
@@ -1057,20 +1233,36 @@ test-NOT-equally-spaced?: func [
 		--assert test-color-match? bst-im bst-cs/3 black
 		--assert test-color-match? bst-im bst-cs/5 bst-clr2
 
-	; FIXME: this doesn't work yet on W7...
-	; --test-- "tic-4 overlapping bases"
-	; 	bst-sz: 100x100 * system/view/metrics/dpi / 96.0
-	; 	bst-im: shoot [
-	; 		at 0x0 base 100x100 white
-	; 		at 10x10 base 80x80 255.0.0.128
-	; 	]
-	; 	bst-cs: count-colors bst-im
-	; 	--assert test-size-match? bst-im bst-sz
-	; 	--assert test-dual-chrome?/strict bst-im bst-cs
-	; 	--assert test-match? bst-im bst-cs/2 0.64
-	; 	--assert test-match? bst-im bst-cs/4 0.36
-	; 	--assert test-color-match? bst-im bst-cs/1 255.127.127
-	; 	--assert test-color-match? bst-im bst-cs/3 white
+	--test-- "tic-4 overlapping bases"
+		bst-sz: 100x100 * system/view/metrics/dpi / 96.0
+		bst-im: shoot [
+			at 0x0 base 100x100 white
+			at 10x10 base 80x80 255.0.0.128
+		]
+		bst-cs: count-colors bst-im
+		--assert test-size-match? bst-im bst-sz
+		--assert test-dual-chrome?/strict bst-im bst-cs
+		--assert test-match? bst-im bst-cs/2 0.64
+		--assert test-match? bst-im bst-cs/4 0.36
+		--assert test-color-match? bst-im bst-cs/1 255.127.127
+		--assert test-color-match? bst-im bst-cs/3 white
+
+	four-ways [
+	--test-- "tic-5 to-image of an image"
+	 	bst-sz: 100x100 * bst-sc: system/view/metrics/dpi / 96.0
+		bst-im: draw 100x100 compose [matrix [-1 0 0 1 100 0] font (copy bst-font1) text 0x0 "TEXT"]
+		bst-im1: shoot [image bst-im]
+		bst-im2: shoot [base 100x100 draw [image bst-im]]
+		bst-im3: draw bst-sz compose [scale (bst-sc) (bst-sc) image bst-im]
+		bst-im1': shoot/whole [image bst-im]
+		bst-im2': shoot/whole [base' draw [image bst-im]]
+		;@@ FIXME: this one is sometimes very sharp, sometimes text is in bold - too different from the original; need better comparison algos
+		; bst-im4: draw bst-sz compose/deep [matrix [-1 0 0 1 (bst-sz/x) 0] scale (bst-sc) (bst-sc) font (copy bst-font1) text 0x0 "TEXT"]
+		--assert test-images-equal? bst-im1 bst-im2
+		--assert test-images-equal? bst-im1 bst-im3
+		--assert test-images-equal? bst-im1' bst-im2'
+		; --assert test-images-equal? bst-im2 bst-im4		;@@ FIXME: not working yet
+	]
 
 ===end-group===
 
@@ -1081,7 +1273,6 @@ test-NOT-equally-spaced?: func [
 	--test-- "crc-11 - base, preset colors"
 		; checks if text is 1) indeed rendered 2) colors are as requested
 		bst-cs: colorset? bst-im: shoot [base' "CAT"]
-		; ? bst-im
 		--assert test-dual-chrome? bst-im bst-cs
 		--assert test-color-match? bst-im bst-cs/1 bst-colors/bg
 		--assert test-color-match? bst-im bst-cs/3 bst-colors/fg
@@ -1248,8 +1439,41 @@ test-NOT-equally-spaced?: func [
 		--assert test-equally-spaced? shoot [base- 50x100 "cat auto test" wrap right]
 		--assert test-NOT-equally-spaced? shoot [base- 50x100 "cat auto^/^/test" wrap]
 
+	--test-- "#3225"                           ;-- font (..) applies to `draw` as it may not inherit one from the face
+		;@@ TODO: test if draw inherits the font?
+		bst-im-lt: shoot compose/deep [base' draw [font (copy bst-font1) text 0x0 "CAT"]]
+		bst-im-rt: shoot compose/deep [base' draw [font (copy bst-font1) matrix [-1 0 0 1 100 0] text 0x0 "CAT"]]
+		bst-im-lb: shoot compose/deep [base' draw [font (copy bst-font1) matrix [1 0 0 -1 0 100] text 0x0 "CAT"]]
+		bst-im-rb: shoot compose/deep [base' draw [font (copy bst-font1) matrix [-1 0 0 -1 100 100] text 0x0 "CAT"]]
+		bst-im-tr: shoot compose/deep [base' draw [font (copy bst-font1) translate 20x30 text 0x0 "CAT"]]
+		bst-im-tx: shoot compose/deep [base' draw [font (copy bst-font1) text 20x30 "CAT"]]
+		--assert test-text-aligned? [left  top   ] bst-im-lt
+		--assert test-text-aligned? [right top   ] bst-im-rt
+		--assert test-text-aligned? [left  bottom] bst-im-lb
+		--assert test-text-aligned? [right bottom] bst-im-rb
+		--assert test-text-NOT-aligned? [left top right bottom] bst-im-tr
+		--assert test-same-text-size? bst-im-lt bst-im-rt
+		--assert test-same-text-size? bst-im-lt bst-im-lb
+		--assert test-same-text-size? bst-im-lt bst-im-rb
+		--assert test-same-text-size? bst-im-lt bst-im-tr
+		--assert test-images-equal?   bst-im-tr bst-im-tx
+
+	--test-- "#4116"
+		;-- shoot 2 images with different fonts: the images should be different!
+		bst-im1: shoot compose/deep [base' draw [font (make bst-font1 [size: 20]) text 0x0 "CAT"]]
+		bst-im2: shoot compose/deep [base' draw [font (make bst-font1 [size: 30]) text 0x0 "CAT"]]
+		--assert test-images-NOT-equal? bst-im1 bst-im2
+
 	]	;-- shoot-parallel
 	]	;-- four-ways
+
+	;-- not 4-way-scalable this one
+	--test-- "#3725 part 1"		;-- parts 2 and 3 were dismissed
+		bst-im1: shoot compose/deep [base' "ABC" left top]
+		bst-im2: shoot compose/deep [base'       left top draw [font (copy bst-font1) text 0x0 "ABC"]]
+		bst-im3: shoot compose/deep [base'*      left top draw [font (copy bst-font1) text 0x0 "ABC"]]	;-- with transparency
+		--assert test-same-text-origin-and-size? bst-im1 bst-im2		;-- both draw and base strings do align?
+		--assert test-same-text-origin-and-size? bst-im1 bst-im3		;-- no double scaling?
 
 ===end-group===
 

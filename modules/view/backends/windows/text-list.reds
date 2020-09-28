@@ -121,7 +121,7 @@ update-list-hbar: func [
 	GetTextExtentPoint32 dc str len csize
 	if hFont <> null [SelectObject dc saved]
 	ReleaseDC dc
-	SendMessage hWnd LB_SETHORIZONTALEXTENT csize/width 0
+	SendMessage hWnd LB_SETHORIZONTALEXTENT csize/width + 4 0
 ]
 
 insert-list-item: func [
@@ -165,6 +165,20 @@ remove-list-item: func [
 	;@@ update the selected facet
 ]
 
+remove-list-items: func [
+	hWnd  [handle!]
+	pos	  [integer!]
+	part  [integer!]
+	str	  [red-string!]
+	drop? [logic!]
+][
+	loop part [
+		if TYPE_OF(str) = TYPE_STRING [
+			remove-list-item hWnd pos drop?
+		]
+	]
+]
+
 update-list: func [
 	face  [red-object!]
 	value [red-value!]
@@ -178,17 +192,47 @@ update-list: func [
 		msg  [integer!]
 		str  [red-string!]
 		sel  [red-integer!]
+		blk  [red-block!]
+		data [red-block!]
+		val  [red-value!]
+		i n	 [integer!]
 ][
 	hWnd: get-face-handle face
 	switch TYPE_OF(value) [
 		TYPE_BLOCK [
+			;-- caculate the index in native widget, e.g.
+			;-- we have data: ["abc" 32 "zyz" 8 "xxx"]   index: 4
+			;-- the actual insertion index: 2
+			val: block/rs-head as red-block! (object/get-values face) + FACE_OBJ_DATA
+			i: 0 n: 0
+			while [n < index][
+				if TYPE_OF(val) = TYPE_STRING [i: i + 1]
+				val: val + 1
+				n: n + 1
+			]
+
+			blk: as red-block! value
 			case [
 				any [
 					sym = words/_remove/symbol
 					sym = words/_take/symbol
 					sym = words/_clear/symbol
+					sym = words/_reverse/symbol
+					sym = words/_put/symbol
+					sym = words/_poke/symbol
+					sym = words/_move/symbol
 				][
-					ownership/unbind-each as red-block! value index part
+					data: as red-block! new
+					if all [
+						sym = words/_move/symbol
+						data/node <> blk/node		;-- move to another block
+					][
+						;@@ TBD handle it properly
+						;@@ need to trigger event for origin block in `move` action
+						exit
+					]
+
+					ownership/unbind-each blk index part
 					
 					either all [
 						sym = words/_clear/symbol
@@ -197,41 +241,33 @@ update-list: func [
 						msg: either drop? [CB_RESETCONTENT][LB_RESETCONTENT]
 						SendMessage hWnd msg 0 0
 					][
-						loop part [remove-list-item hWnd index drop?]
+						str: as red-string! block/rs-abs-at blk index
+						remove-list-items hWnd i part str drop?
 					]
 				]
 				any [
-					sym = words/_insert/symbol
-					sym = words/_append/symbol
-					sym = words/_poke/symbol
-					sym = words/_put/symbol
-					sym = words/_reverse/symbol
+					sym = words/_inserted/symbol
+					sym = words/_appended/symbol
+					sym = words/_poked/symbol
+					sym = words/_put-ed/symbol
+					sym = words/_reversed/symbol
+					sym = words/_moved/symbol
 				][
-					ownership/unbind-each as red-block! value index part
-					
 					str: as red-string! either any [
 						null? new
 						TYPE_OF(new) = TYPE_BLOCK
 					][
-						block/rs-abs-at as red-block! value index
+						block/rs-abs-at blk index
 					][
 						new
 					]
+					ownership/unbind-each as red-block! value index part
 					loop part [
-						if all [
-							sym <> words/_insert/symbol
-							sym <> words/_append/symbol
-						][
-							remove-list-item hWnd index drop?
+						if TYPE_OF(str) = TYPE_STRING [
+							insert-list-item hWnd str i drop?
+							i: i + 1
+							ownership/bind as red-value! str face _data
 						]
-						insert-list-item hWnd str index drop?
-						if any [
-							sym = words/_reverse/symbol
-							sym = words/_append/symbol
-						][
-							index: index + 1
-						]
-						ownership/bind as red-value! str face _data
 						str: str + 1
 					]
 				]

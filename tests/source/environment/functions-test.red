@@ -226,7 +226,14 @@ Red [
 		--assert 0.5 = math [1 / 2.0]
 		--assert 2 = math [(1 / 2.0) (2 * 1)]
 		--assert 8 = math [(1 / 2) (power 2 3)]
-		--assert none = math/safe [(1 / 0) (power 2 3)]
+		--assert none = attempt [math [(1 / 0) (power 2 3)]]
+		--assert 7 = math [1 + 2 * 3]
+		--assert 9 = math [(1 + 2) * 3]
+		--assert 100000010 = math [10 + 10 ** 2 ** 3]
+		--assert 10 = math [10 + 10 % 2]
+		--assert 1.6 = math [8 / 5 % 2]
+		--assert 33 = math [1 + 2 ** 3 * 4]
+		--assert 4097 = math [1 + 2 ** (3 * 4)]
 ===end-group===
 
 ===start-group=== "charset tests"
@@ -234,12 +241,11 @@ Red [
 		--assert (make bitset! #{00000000000000000000000020}) = charset "b"
 ===end-group===
 
-===start-group=== "on-parse-event tests"
-	;TODO
-===end-group===
-
 ===start-group=== "parse-trace tests"
-	;TODO
+	--test-- "#4084"
+		--assert parse/trace "aaa" [1 3 skip] func [e m r i s][true]
+		--assert parse/trace [a a a][0 3 word!] func [e m r i s][true]
+	
 ===end-group===
 
 ===start-group=== "suffix? tests"
@@ -391,6 +397,7 @@ Red [
 		--assert ["a" "b" "c"] = split "a-b-c" "-"
 		--assert ["a" "c"] = split "a-b-c" "-b-"
 		--assert ["a-b-c"] = split "a-b-c" "x"
+		--assert false = do compose [same? (second split "a," ",") (second split "b," ",")] ;PR #4381 missing copy in split function
 ===end-group===
 
 ===start-group=== "dirize tests"
@@ -404,8 +411,8 @@ Red [
 	--test-- "clean-path test"
 		--assert %/red-lang.com = clean-path http://red-lang.com
 		--assert (rejoin [what-dir %a]) = clean-path %a
-		--assert %"" = clean-path/only %a
-		--assert %/red-lang.com/ = clean-path/only/dir http://red-lang.com
+		--assert %a = clean-path/only %a
+		--assert http://red-lang.com/ = clean-path/only/dir http://red-lang.com
 ===end-group===
 
 ===start-group=== "split-path tests"

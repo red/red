@@ -88,12 +88,16 @@ float: context [
 		/local
 			s		[c-string!]
 			s0		[c-string!]
+			p0		[c-string!]
+			p		[c-string!]
+			p1		[c-string!]
+			dot?	[logic!]
 			d		[int64!]
 			w0		[integer!]
-			n		[integer!]
 			temp	[float!]
+			tried?	[logic!]
+			pretty? [logic!]
 			percent? [logic!]
-			add-0?	[logic!]
 	][
 		d: as int64! :f
 		w0: d/int2												;@@ Use little endian. Watch out big endian !
@@ -109,35 +113,114 @@ float: context [
 		]
 
 		percent?: any [type = FORM_PERCENT type = FORM_PERCENT_32]
-		add-0?: any [type = FORM_FLOAT_64 type = FORM_FLOAT_32]
-
 		if pretty-print? [
 			temp: abs f
 			if temp < DBL_EPSILON [return either percent? ["0%"]["0.0"]]
 		]
 
-		n: case [
-			any [
-				type = FORM_FLOAT_32
-				type = FORM_PERCENT_32
-				type = FORM_TIME
-			][7]
-			type = FORM_PERCENT [13]
-			true [0]
+		s: "0000000000000000000000000000000"					;-- 32 bytes wide, big enough.
+		case [
+			any [type = FORM_FLOAT_32 type = FORM_PERCENT_32][
+				sprintf [s "%.7g" f]
+			]
+			type = FORM_TIME [									;-- microsecond precision
+				s: dtoa/form-float f 6 no
+			]
+			type = FORM_PERCENT [
+				sprintf [s "%.13g" f]
+			]
+			true [
+				s/17: #"0"
+				s/18: #"0"
+				sprintf [s "%.16g" f]
+			]
 		]
-		s: red-dtoa/form-float f n add-0?
 
-		if percent? [
-			s0: s
+		tried?: no
+		s0: s
+		until [
+			p:    null
+			p1:   null
+			dot?: no
+
 			until [
+				if s/1 = #"." [dot?: yes]
+				if s/1 = #"e" [
+					p: s
+					until [
+						s: s + 1
+						s/1 > #"0"
+					]
+					p1: s
+				]
 				s: s + 1
 				s/1 = #"^@"
 			]
+
+			if pretty-print? [									;-- prettify output if needed
+				pretty?: no
+				either p = null [								;-- No "E" notation
+					w0: as-integer s - s0
+					if w0 > 16 [
+						p0: either s0/1 = #"-" [s0 + 1][s0]
+						if any [
+							p0/1 <> #"0"
+							all [p0/1 = #"0" w0 > 17]
+						][
+							p0: s - 2
+							pretty?: yes
+						]
+					]
+				][
+					if (as-integer p - s0) > 16 [				;-- the number of digits = 16
+						p0: p - 2
+						pretty?: yes
+					]
+				]
+
+				if all [pretty? not tried?][
+					if any [									;-- correct '01' or '99' pattern
+						all [p0/2 = #"1" p0/1 = #"0"]
+						all [p0/2 = #"9" p0/1 = #"9"]
+					][
+						tried?: yes
+						s: case [
+							type = FORM_FLOAT_32 ["%.5g"]
+							type = FORM_TIME	 ["%.5g"]
+							true				 ["%.14g"]
+						]
+						sprintf [s0 s f]
+						s: s0
+					]
+				]
+			]
+			s0 <> s
+		]
+
+		if p1 <> null [											;-- remove #"+" and leading zero
+			p0: p
+			either p/2 = #"-" [p: p + 2][p: p + 1]
+			move-memory as byte-ptr! p as byte-ptr! p1 as-integer s - p1
+			s: p + as-integer s - p1
+			s/1: #"^@"
+			p: p0
+		]
+		either percent? [
 			s/1: #"%"
 			s/2: #"^@"
-			s: s0
+		][
+			if all [not dot? type <> FORM_TIME][				;-- added tailing ".0"
+				either p = null [
+					p: s
+				][
+					move-memory as byte-ptr! p + 2 as byte-ptr! p as-integer s - p
+				]
+				p/1: #"."
+				p/2: #"0"
+				s/3: #"^@"
+			]
 		]
-		s
+		s0
 	]
 
 	do-math-op: func [
@@ -158,6 +241,7 @@ float: context [
 				]
 			]
 			OP_REM [
+				if any [left = -INF left = +INF right = 0.0][return QNaN]	;-- issue #4574
 				either all [0.0 = right not NaN? right][
 					fire [TO_ERROR(math zero-divide)]
 					0.0									;-- pass the compiler's type-checking
@@ -205,6 +289,7 @@ float: context [
 
 		switch type2 [
 			TYPE_TUPLE [return as red-float! tuple/do-math type]
+			TYPE_MONEY [return as red-float! money/do-math type]
 			TYPE_PAIR  [
 				if type1 <> TYPE_TIME [
 					if any [type = OP_SUB type = OP_DIV][
@@ -328,7 +413,14 @@ float: context [
 		fl/value: value
 		fl
 	]
-
+	
+	from-money: func [
+		mn      [red-money!]
+		return: [float!]
+	][
+		money/to-float mn
+	]
+	
 	from-binary: func [
 		bin		[red-binary!]
 		return: [float!]
@@ -416,16 +508,23 @@ float: context [
 		return: [red-float!]
 		/local
 			s	[float!]
+			sp	[int-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "float/random"]]
 
 		either seed? [
 			s: f/value
-			_random/srand as-integer s
+			sp: as int-ptr! :s
+			_random/srand sp/1 xor sp/2
 			f/header: TYPE_UNSET
 		][
-			s: (as-float _random/rand) / 2147483647.0
-			f/value: s * f/value
+			either secure? [
+				f/value: ((as-float _random/rand-secure) / 2147483647.0 + (as-float _random/rand-secure))
+					/ (2147483648.0 / f/value)
+			] [
+				s: (as-float _random/rand) / 2147483647.0
+				f/value: s * f/value
+			]
 		]
 		f
 	]
@@ -439,6 +538,7 @@ float: context [
 			int	 [red-integer!]
 			tm	 [red-time!]
 			str  [red-string!]
+			res	 [red-float!]
 			p	 [byte-ptr!]
 			err	 [integer!]
 			unit [integer!]
@@ -454,6 +554,9 @@ float: context [
 				int: as red-integer! spec
 				proto/value: as-float int/value
 			]
+			TYPE_MONEY [
+				proto/value: from-money as red-money! spec
+			]
 			TYPE_TIME [
 				tm: as red-time! spec
 				proto/value: tm/time
@@ -461,14 +564,27 @@ float: context [
 			TYPE_ANY_STRING [
 				err: 0
 				str: as red-string! spec
-				s: GET_BUFFER(str)
-				unit: GET_UNIT(s)
-				p: (as byte-ptr! s/offset) + (str/head << log-b unit)
-				len: (as-integer s/tail - p) >> log-b unit
-				
-				either len > 0 [
-					proto/value: tokenizer/scan-float p len unit :err
-				][err: -1]
+				either type = TYPE_PERCENT [
+					res: as red-float! load-single-value str stack/push*
+					switch TYPE_OF(res) [
+						TYPE_PERCENT
+						TYPE_FLOAT	 [proto/value: res/value]
+						TYPE_INTEGER [
+							int: as red-integer! res
+							proto/value: as-float int/value
+						]
+						default 	 [err: -1]
+					 ]
+				][
+					s: GET_BUFFER(str)
+					unit: GET_UNIT(s)
+					p: (as byte-ptr! s/offset) + (str/head << log-b unit)
+					len: (as-integer s/tail - p) >> log-b unit
+
+					either len > 0 [
+						proto/value: tokenizer/scan-float p len unit :err
+					][err: -1]
+				]
 				if err <> 0 [fire [TO_ERROR(script bad-to-arg) datatype/push type spec]]
 			]
 			TYPE_BINARY [
@@ -516,10 +632,14 @@ float: context [
 		part 	[integer!]
 		indent	[integer!]		
 		return: [integer!]
+		/local
+			s	[c-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "float/mold"]]
 
-		form fl buffer arg part
+		s: dtoa/form-float fl/value 0 yes
+		string/concatenate-literal buffer s
+		part - length? s							;@@ optimize by removing length?
 	]
 
 	NaN?: func [
@@ -630,7 +750,11 @@ float: context [
 		left: value1/value
 
 		switch TYPE_OF(value2) [
-			TYPE_CHAR
+			TYPE_MONEY [
+				if money/float-underflow? left [return -1]
+				if money/float-overflow?  left [return 1]
+				return money/compare money/from-float left as red-money! value2 op
+			]
 			TYPE_INTEGER [
 				int: as red-integer! value2
 				right: as-float int/value
@@ -767,6 +891,10 @@ float: context [
 			e		[integer!]
 			v		[logic!]
 	][
+		if TYPE_OF(scale) = TYPE_MONEY [
+			fire [TO_ERROR(script not-related) stack/get-call datatype/push TYPE_MONEY]
+		]
+		
 		e: 0
 		f: as red-float! value
 		dec: f/value

@@ -828,7 +828,14 @@ Red [
 		parse "a" [collect rule727]
 		--assert equal? 1 x727
 		unset 'x727
-
+	
+	--test-- "#734"
+		foo: quote 'bar
+		--assert lit-word? quote 'bar
+		--assert lit-word? foo
+		--assert lit-word? :foo
+		unset 'foo
+		
 	--test-- "#757"
 		--assert not error? try [x757: "^(FF)"]
 		unset 'x757
@@ -1392,7 +1399,7 @@ Red [
 		e1116: try [sin1116]
 		--assert true? all [
 			error? e1116
-			not equal? '<anon> e1116/arg3
+			not equal? "<anon>" mold e1116/arg3
 		]
 
 	--test-- "#1119"
@@ -1415,10 +1422,10 @@ Red [
 
 	--test-- "#1136"
 		e1136: try [load {a: func [][set 'b: 1]}]
-		--assert not not all [
+		--assert to logic! all [
 			equal? e1136/type 'syntax
 			equal? e1136/id 'invalid
-			equal? e1136/arg1 lit-word!
+			equal? e1136/arg2 lit-word!
 		]
 
 	comment { probe should be mocked for this test
@@ -1619,12 +1626,12 @@ Red [
 		e1396: try [load {(5+2)}]
 		--assert all [
 			equal? e1396/id 'invalid
-			equal? e1396/arg1 integer!
+			equal? e1396/arg2 integer!
 		]
 		e1396: try [load {[5+2]}]
 		--assert all [
 			equal? e1396/id 'invalid
-			equal? e1396/arg1 integer!
+			equal? e1396/arg2 integer!
 		]
 
 	--test-- "#1416"
@@ -1987,22 +1994,25 @@ Red [
 
 	--test-- "#1750"
 		e1750: try [load "2#{FF}"]
-		--assert all [
+		--assert to-logic all [
+			error? :e1750
 			equal? e1750/type 'syntax
 			equal? e1750/id 'invalid
-			equal? e1750/arg1 binary!
+			equal? e1750/arg2 binary!
 		]
 		e1750: try [load "64#{AA}"]
-		--assert all [
+		--assert to-logic all [
+			error? :e1750
 			equal? e1750/type 'syntax
 			equal? e1750/id 'invalid
-			equal? e1750/arg1 binary!
+			equal? e1750/arg2 binary!
 		]
 		e1750: try [load "4#{0}"]
-		--assert all [
+		--assert to-logic all [
+			error? :e1750
 			equal? e1750/type 'syntax
 			equal? e1750/id 'invalid
-			equal? e1750/arg1 integer!
+			equal? e1750/arg2 binary!
 		]
 		not error? try [load "16#{AA}"]
 		unset 'e1750
@@ -2025,9 +2035,10 @@ Red [
 	; --test-- "#1764"
 		; console behaviour (nonGUI)
 
-	--test-- "#1768"
-		--assert not error? try [load {a: %{test ing.txt}}]
-		--assert equal? [a: % "test ing.txt"] load {a: %{test ing.txt}}
+	;; DEPRECATED: raw string syntax deprecates this test and issue.
+	;--test-- "#1768"
+	;	--assert not error? try [load {a: %{test ing.txt}}]
+	;	--assert equal? [a: % "test ing.txt"] load {a: %{test ing.txt}}
 
 	; --test-- "#1769"
 		; console behaviour
@@ -2634,6 +2645,17 @@ b}
 	; --test-- "#2133"
 		; OPEN
 
+	--test-- "#2134"
+		--assert "0:09:00" = form 00:09:00
+		--assert "0:01:00" = form 00:00:01 * 60
+		t2134: 0:00:00 loop 60 [t2134: t2134 + 1]
+		--assert "0:01:00" = form t2134
+		--assert "0:00:00"        = form 0:00:01 / 10000000
+		--assert "0:00:00.000001" = form 0:00:01 / 1000000
+		--assert "0:00:00.00001"  = form 0:00:01 / 100000
+		--assert "0:00:00.0001"   = form 0:00:01 / 10000
+		--assert "0:00:00.001"    = form 0:00:01 / 1000
+
 	--test-- "#2136"
 		blk2136: copy []
 		insert/dup blk2136 0 3
@@ -2717,7 +2739,7 @@ b}
 
 	--test-- "#2195"
 		e2195: try [load "system/options/"]
-		--assert equal? "system/options/" e2195/arg2
+		--assert equal? "system/options/" e2195/arg3
 		unset 'e2195
 
 	--test-- "#2196"
@@ -2742,6 +2764,28 @@ b}
 		--assert equal? ["1" ""] split "1^/" #"^/"
 		--assert equal? ["1" "2" ""] split "1^/2^/" #"^/"
 
+	--test-- "#2232"
+		--assert 'ok = (a: 'ok 1 :a)
+		--assert 'ok = (a: 'ok 1 + 1 :a)
+		--assert 'ok = (a: 'ok 1 + 1 probe :a)
+		--assert equal? 'ok (a: 'ok 1 + 1 :a)
+		--assert equal? 'ok (a: 'ok 1 + 1 :a)
+
+		n: func [/a][100]
+		res: n - (1 n/a)
+		--assert zero? res
+		--assert n - (1 n/a) = 0
+		--assert (n - (1 n/a)) = 0
+
+		--assert zero? n - (x: 0 n)
+		--assert zero? n - (x: 0 n/a)
+		--assert zero? n - (x: 123 n/a)
+		--assert zero? n - (1 + 2 n/a)
+		--assert equal? [100] reduce [(1 + 2 n/a)]
+
+		--assert equal? [3 100] reduce [1 + 2 n/a]
+		--assert equal? [100 100 123 3] reduce [(123 n/a) (1 + 2 n/a) (n/a 123) (n/a 1 + 2)]
+
 	--test-- "#2234"
 		m2234: #(a 1 b 2)
 		remove/key m2234 'a
@@ -2758,11 +2802,65 @@ b}
 	--test-- "#2253"
 		--assert not error? try [3151391351465.995 // 1.0]
 		unset 'true?
+	
 
+	--test-- "#2650"
+		--assert     0.0 <> null
+		--assert not 0.0 =  null
+		--assert not 0.0 == null
+		--assert not 0.0 =? null
+		
+		--assert     null <> 0.0
+		--assert not null =  0.0
+		--assert not null == 0.0
+		--assert not null =? 0.0
+		
+		--assert error? try [65.0  < #"A"]
+		--assert error? try [66.0  > #"B"]
+		--assert error? try [-1.0 >= #"c"]
+		--assert error? try [+1.0 <= #"d"]
+		
+		--assert error? try [#"A"  > 65.0]
+		--assert error? try [#"B"  > 66.0]
+		--assert error? try [#"c" <= -1.0]
+		--assert error? try [#"d" >= +1.0]
+
+	--test-- "#2671"
+		--assert equal?
+			"^(0) ^(1) ^(2) ^(3) ^(4) ^(5) ^(6) ^(7) ^(8) ^(9) ^(A) ^(B) ^(C) ^(D) ^(E) ^(F)"
+			"^@ ^A ^B ^C ^D ^E ^F ^G ^H ^- ^/ ^K ^L ^M ^N ^O"
+		
+		--assert equal?
+			"^A ^A ^A ^A ^A ^A"
+			"^(1) ^(01) ^(001) ^(0001) ^(00001) ^(000001)"
+		
+		--assert error? try [transcode {"^^(0000001)"}]
+		--assert error? try [transcode {"^^(skibadee-skibadanger)"}]
+		
 	--test-- "#3603"
 		bu3603: reduce [()]
 		rest3603: none
 		--assert bu3603 = back change block3603: [] do/next block3603 'rest3603
+
+	--test-- "#3362"
+		do [											;-- FIXME: compiler doesn't like this
+			spec3362-1: [return 100]
+			spec3362-2: [exit]
+			--assert 100 =  context spec3362-1
+			--assert unset? context spec3362-2
+			--assert 100 =  context [return 100]
+			--assert unset? context [exit]
+			unset [spec3362-1 spec3362-2]
+		]
+	
+	--test-- "3662"
+		--assert equal?
+			[16  256  4096  65536  1048576 16777216 268435456]
+			[10h 100h 1000h 10000h 100000h 1000000h 10000000h]
+	
+	--test-- "3669"
+		--assert not equal? <a> <a^>
+		--assert equal?     <a> load {<a^>}
 
 	--test-- "#3739"
 		reactor3739: func [spec] [make deep-reactor! spec]
@@ -2808,28 +2906,73 @@ comment {
 		]
 }
 
-	--test-- "#2232"
-		--assert 'ok = (a: 'ok 1 :a)
-		--assert 'ok = (a: 'ok 1 + 1 :a)
-		--assert 'ok = (a: 'ok 1 + 1 probe :a)
-		--assert equal? 'ok (a: 'ok 1 + 1 :a)
-		--assert equal? 'ok (a: 'ok 1 + 1 :a)
+	--test-- "#4056"
+		i4056: either unset? :image! [[1 2]][make image! 2x2]
+		--assert tail? tail i4056
+		--assert tail? next next next tail i4056
+		--assert not tail? i4056
+		--assert tail? next next next next i4056
+		--assert tail? next back next tail i4056
 
-		n: func [/a][100]
-		res: n - (1 n/a)
-		--assert zero? res
-		--assert n - (1 n/a) = 0
-		--assert (n - (1 n/a)) = 0
+	--test-- "#4205 - seed random with precise time!"
+		anded4205: to integer! #{FFFFFFFF}
+		loop 10 [
+			random/seed now/time/precise
+			anded4205: anded4205 and last-random4205: random 10000
+			wait 0.001
+		]
+		all-equal?4205: anded4205 = last-random4205
+		--assert not all-equal?4205
+		unset [anded4205 last-random4205 all-equal?4205]
 
-		--assert zero? n - (x: 0 n)
-		--assert zero? n - (x: 0 n/a)
-		--assert zero? n - (x: 123 n/a)
-		--assert zero? n - (1 + 2 n/a)
-		--assert equal? [100] reduce [(1 + 2 n/a)]
 
-		--assert equal? [3 100] reduce [1 + 2 n/a]
-		--assert equal? [100 100 123 3] reduce [(123 n/a) (1 + 2 n/a) (n/a 123) (n/a 1 + 2)]
+	--test-- "#4505"
+		do [
+			saved: :find
+			find find: [1000] 1000
+			--assert find = [1000]
+			find: :saved
 
+		  	test: func [a b] [append a b]
+		  	test test: [10 20 30] 40
+		  	--assert true 			;-- just check it does not crash
+
+			recycle/off
+			b: reduce [o: object []]
+			s0: stats
+			loop 1000000 [pick b 1]
+			--assert stats < (s0 * 2)  ;-- catches memory leaking
+			recycle/on
+			recycle
+		]
+	
+	--test-- "#4522"
+		--assert error? try [find/skip [1] [1] ()]
+
+	--test-- "#4563" do [							;@@ #4526
+		--assert error? try [make op! :>>]
+		--assert error? try [make op! make op! func [x y][]]
+	]
+	
+	--test-- "#4567"
+		objects: [foo]
+		--assert 'foo == objects/1
+		unset 'objects
+
+	--test-- "#4609"
+		--assert "[2.3.4.5.6 1.2.3.4.5.6]" = mold [2.3.4.5.6 1.2.3.4.5.6]
+		--assert "2.3.4.5.6" = mold 2.3.4.5.6
+		--assert "1.2.3.4.5.6" = mold 1.2.3.4.5.6
+
+	--test-- "#4627"		
+		--assert to logic! find 
+			form try [transcode "]"]
+			"(line 1) missing [ at ]"
+		
+		--assert to logic! find 
+			form try [null < []]
+			%{#"^@" with []}%
+		
 ===end-group===
 
 ~~~end-file~~~
