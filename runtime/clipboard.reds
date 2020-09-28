@@ -586,8 +586,8 @@ clipboard: context [
 			as logic! res
 		]
 	]
-#if modules contains 'View [
 	Linux [
+	#either modules contains 'View [
 		;; Depends on GTK
 		#import [
 			"libgtk-3.so.0" cdecl [
@@ -667,8 +667,21 @@ clipboard: context [
 			]
 			true
 		]
+	][
+		read: func [
+			return:		[red-value!]
+		][
+			none-value
+		]
+
+		write: func [
+			data		[red-value!]
+			return:		[logic!]
+		][
+			true
+		]
 	]
-]
+	]
 	#default [
 		read: func [
 			return:		[red-value!]
