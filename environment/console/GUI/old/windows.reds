@@ -376,6 +376,7 @@ on-key-down: func [
 ]
 
 ConsoleWndProc: func [
+	[stdcall]
 	hWnd	[handle!]
 	msg		[integer!]
 	wParam	[integer!]
@@ -471,7 +472,7 @@ ConsoleWndProc: func [
 			unless zero? delta [scroll vt delta]
 			return 0
 		]
-		WM_MOUSEWHELL [
+		WM_MOUSEWHEEL [
 			delta: either WIN32_HIWORD(wParam) > 0 [-3][3]
 			scroll vt delta
 			return 0

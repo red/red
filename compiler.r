@@ -36,6 +36,7 @@ red: context [
 	rebol-gctx:	   bind? 'rebol
 	expr-stack:	   make block! 8
 	current-call:  none
+	currencies:	   none									;-- extra user-defined currency codes from script's header
 	
 	unless value? 'Red [red: none]						;-- for %preprocessor to load
 	
@@ -69,6 +70,7 @@ red: context [
 	s-counter:	   0									;-- series suffix counter
 	depth:		   0									;-- expression nesting level counter
 	max-depth:	   0
+	root-slots:	   0									;-- extra root block slots counter
 	booting?:	   none									;-- YES: compiling boot script
 	nl: 		   newline
 	set 'float!	   'float								;-- type names not defined in Rebol
@@ -103,7 +105,7 @@ red: context [
 	
 	standard-modules: [
 	;-- Name ------ Entry file -------------- OS availability -----
-		View		%modules/view/view.red	  [Windows macOS]
+		View		%modules/view/view.red	  [Windows macOS Linux]
 	]
 
 	func-constructors: [
@@ -241,6 +243,25 @@ red: context [
 		clear next mark									;-- remove code at "upper" level
 	]
 	
+	to-nibbles: func [src [string!] /local out][
+		out: make string! 11
+		foreach [high low] src [
+			append out to char! add
+				shift/left (to integer! high - #"0") 4
+				to integer! low - #"0"
+		]
+		out
+	]
+	
+	to-currency-code: func [code [string!] /local pos][
+		code: to word! code
+		case [
+			pos: find extracts/currencies code [index? pos]
+			all [currencies pos: find currencies code][(index? pos) + length? extracts/currencies]
+			'else [0]
+		]
+	]
+	
 	any-function?: func [value [word!]][
 		find [native! action! op! function! routine!] value
 	]
@@ -281,6 +302,8 @@ red: context [
 	unicode-char?:  func [value][value/1 = #"'"]
 	float-special?: func [value][value/1 = #"."]
 	tuple-value?:	func [value][value/1 = #"~"]
+	money-value?:	func [value][value/1 = #"$"]
+	ref-value?:		func [value][value/1 = #"@"]
 	percent-value?: func [value][#"%" = last value]
 	
 	date-special?:  func [value][all [block? value value/1 = #!date!]]
@@ -382,7 +405,7 @@ red: context [
 	]
 	
 	emit-push-word: func [name [any-word!] original [any-word!] /local type ctx obj][
-		type: to word! form type? name
+		type: to word! form type? :name
 		name: to word! :name
 		
 		either all [
@@ -414,7 +437,7 @@ red: context [
 			]
 			emit decorate-symbol/no-alias name
 		][
-			if new: select-ssa name [name: new]			;@@ add a check for function! type
+			if all [new: select-ssa name not find-function new new][name: new]
 			emit case [									;-- global word
 				all [
 					literal
@@ -447,10 +470,10 @@ red: context [
 				append blk decorate-symbol/no-alias name ;-- local word, point to value slot
 			][
 				append blk [as cell!]
-				append/only blk prefix-exec name		;-- force global word
+				append/only blk duplicate-symbol name
 			]
 		][
-			if new: select-ssa name [name: new]			;@@ add a check for function! type
+			if all [new: select-ssa name not find-function new new][name: new]
 			either get? [
 				either all [
 					rebol-gctx <> obj
@@ -468,7 +491,7 @@ red: context [
 				]
 			][
 				append blk [as cell!]
-				append/only blk prefix-exec name
+				append/only blk duplicate-symbol name
 			]
 			
 		]
@@ -820,7 +843,7 @@ red: context [
 		reduce [var set-var]
 	]
 	
-	add-symbol: func [name [word!] /with original /local sym id alias][
+	add-symbol: func [name [word!] /only /with original /local sym id alias][
 		unless find/case symbols name [
 			if find symbols name [
 				if find/case/skip aliases name 2 [exit]
@@ -829,16 +852,23 @@ red: context [
 			]
 			sym: decorate-symbol name
 			id: 1 + ((length? symbols) / 2)
-			repend symbols [name reduce [sym id]]
+			unless only [repend symbols [name reduce [sym id]]]
 			repend sym-table [
 				to set-word! sym 'word/load mold any [original name]
 			]
+			root-slots: root-slots + 1
 			new-line skip tail sym-table -3 on
 		]
 	]
 	
-	get-symbol-id: func [name [word!]][
-		second select symbols name
+	duplicate-symbol: func [name [word!] /local new][
+		new: decorate-symbol to word! append append mold/flat name #"|" get-counter
+		repend symbols [name select symbols name]
+		repend sym-table [
+			to set-word! new 'word/duplicate decorate-symbol name
+		]
+		new-line skip tail sym-table -3 on
+		new
 	]
 	
 	add-global: func [name [word!]][
@@ -1056,7 +1086,7 @@ red: context [
 				]
 				path: none
 			][
-				bind path/1 'rebol						;-- force binding to global context
+				path/1: bind path/1 'rebol				;-- force binding to global context
 			]
 		]
 		path
@@ -1377,7 +1407,7 @@ red: context [
 		invalid-spec: [throw-error ["invalid argument function to make op!:" mold copy/part at pos 4 2]]
 		
 		name: to word! pos/1
-		if find functions name [exit]					;-- mainly intended for 'make (hardcoded)
+		if find functions name [return none]			;-- mainly intended for 'make (hardcoded)
 
 		switch type: pos/3 [
 			native! [nat?: yes if find intrinsics name [type: 'intrinsic!]]
@@ -1431,7 +1461,7 @@ red: context [
 		]
 		pos: tail output
 		
-		if path/1 = last obj-stack [remove path]		;-- remove temp object prefix inserted by object-access?
+		if all [1 <> length? obj-stack path/1 = last obj-stack][remove path]		;-- remove temp object prefix inserted by object-access? (mind #4567!)
 		
 		if set? [
 			emit [object/path-parent/header: TYPE_NONE]
@@ -1669,7 +1699,7 @@ red: context [
 
 	comp-literal: func [
 		/inactive /with val
-		/local value char? special? percent? map? tuple? dt-special? name w make-block type idx zone
+		/local value char? special? percent? map? tuple? money? ref? dt-special? name w make-block type idx zone
 	][
 		make-block: [
 			value: to block! value
@@ -1691,6 +1721,8 @@ red: context [
 					special?: float-special? value
 					percent?: percent-value? value
 					tuple?:	  tuple-value? value
+					money?:	  money-value? value
+					ref?:	  ref-value? value
 				]
 			]
 			scalar? :value
@@ -1732,8 +1764,22 @@ red: context [
 					emit to integer! copy/part skip bin -8 -4
 					insert-lf -5
 				]
+				money? [
+					emit 'money/push
+					value: to string! next value
+					emit pick [true false] value/4 = #"-"
+					emit to-currency-code copy/part value 3
+					emit to-nibbles copy skip value 4
+				]
+				ref? [
+					idx: redbin/emit-string/root next value	;-- issue! is an any-string! in Rebol2
+					emit 'ref/push
+					emit compose [as red-string! get-root (idx)]
+					insert-lf -5
+				]
 				find [refinement! issue!] type?/word :value [
-					add-symbol w: to word! form value
+					w: to word! form value
+					either issue? :value [add-symbol/only w][add-symbol w]
 					type: to word! form type? :value
 					
 					either all [not issue? :value local-word? w][
@@ -1798,15 +1844,24 @@ red: context [
 					insert-lf -3
 				]
 				path! set-path!	[
-					idx: do make-block
 					case [
 						inactive [
-							either get-word? pc/1/1 [
+							either get-word? pc/1/1 [	;-- R2 doesn't have get-path!
 								emit 'get-path/push
+								pc/1/1: to word! pc/1/1
 							][
 								emit to path! reduce [to word! form type? pc/1 'push]
 								if path? pc/1 [emit [as red-path!]]
 							]
+					type: either get-word? pc/1/1 [
+						change pc/1 to word! pc/1/1
+						'get-path
+					][to word! form type? pc/1]
+					idx: do make-block
+					case [
+						inactive [
+							emit to path! reduce [type 'push]
+							if type = 'path [emit [as red-path!]]
 						]
 						lit-path? pc/1 [
 							emit 'path/push
@@ -1817,6 +1872,7 @@ red: context [
 							if path? pc/1 [emit [as red-path!]]
 						]
 					]
+					idx: do make-block
 					emit reduce ['get-root idx]
 					insert-lf -3
 				]
@@ -1988,7 +2044,7 @@ red: context [
 		]
 
 		ctx: add-context spec
-		blk-idx: redbin/emit-context/root ctx spec no yes
+		blk-idx: redbin/emit-context/root ctx spec no yes 'object
 		
 		redirect-to literals [							;-- store spec and body blocks
 			emit compose [
@@ -2048,7 +2104,7 @@ red: context [
 
 		unless all [empty? locals-stack not iterator-pending?][	;-- in a function or iteration block
 			emit compose [
-				(to set-word! ctx) _context/clone get-root (blk-idx) ;-- rebuild context
+				(to set-word! ctx) _context/clone-words get-root (blk-idx) CONTEXT_OBJECT ;-- rebuild context
 			]
 			insert-lf -3
 		]
@@ -2325,7 +2381,10 @@ red: context [
 		comp-expression/close-path						;@@ optimize case for literal counter
 		emit-argument-type-check 0 'loop 'stack/arguments
 		
-		emit compose [(set-name) integer/get*]
+		emit compose [
+			natives/coerce-counter*
+			(set-name) integer/get*
+		]
 		insert-lf -2
 		emit compose/deep [
 			either (name) <= 0 [(set-last-none)]
@@ -2411,14 +2470,13 @@ red: context [
 			]
 		][
 			[
+				'natives/coerce-counter*
 				set-lim 'integer/get*
 				'_context/set-integer name lim
 				set-cnt 0
 			]
 		]
-		insert-lf -2
-		insert-lf -5
-		insert-lf -7
+		foreach idx [-2 -5 -7 -8][insert-lf idx]
 		emit-stack-reset
 		
 		emit-open-frame 'repeat
@@ -2823,7 +2881,7 @@ red: context [
 		
 		push-locals symbols								;-- store spec and body blocks
 		ctx: push-context copy symbols
-		ctx-idx: redbin/emit-context/root ctx symbols yes no
+		ctx-idx: redbin/emit-context/root ctx symbols yes no 'function
 		spec-idx: redbin/emit-block spec
 		redirect-to literals [
 			emit compose [
@@ -4235,36 +4293,6 @@ red: context [
 				]
 				true
 			]
-			#load [										;-- temporary directive
-				change/part/only pc to do pc/2 pc/3 3
-				comp-expression							;-- continue expression fetching
-				true
-			]
-			#version [
-				change pc form load-cache %version.r
-				comp-expression
-				true
-			]
-			#git [
-				change/only pc load-cache %build/git.r
-				comp-expression
-				true
-			]
-			#build-date [								;-- UTC date
-				change pc use [date][
-					date: now
-					date: date - date/zone
-					date/zone: none
-					date
-				]
-				comp-expression
-				true
-			]
-			#build-config [
-				change/only pc load find mold job #"["
-				comp-expression
-				true
-			]
 			#register-intrinsics [						;-- internal boot-level directive
 				if booting? [
 					pc: next pc
@@ -4673,8 +4701,8 @@ red: context [
 		unless empty? sys-global [
 			process-calls/global sys-global				;-- lazy #call processing
 		]
-		slots: redbin/index + 3000
-		if job/dev-mode? [slots: slots + 100'000]		;-- Cannot know how many slot will be needed by the app
+		slots: redbin/index + 3000 + root-slots
+		if job/dev-mode? [slots: slots + 100'000]		;-- Cannot know how many slots will be needed by the app
 		change/only find out <root-size> slots
 		
 		pos: third last out
@@ -4759,7 +4787,7 @@ red: context [
 			process-calls/global sys-global				;-- lazy #call processing
 		]
 
-		change/only find out <root-size> redbin/index + 3000
+		change/only find out <root-size> redbin/index + 3000 + root-slots
 		change/only find last out <script> script		;-- inject compilation result in template
 		output: out
 		if verbose > 2 [?? output]
@@ -4792,8 +4820,19 @@ red: context [
 		src
 	]
 	
+	process-currencies: func [header [block!] /local spec c][
+		if block? spec: select header quote Currencies: [
+			foreach c spec [
+				if any [not word? c 3 <> length? form c][
+					throw-error ["invalid header currencies field:" spec]
+				]
+			]
+			currencies: copy spec
+		]
+	]
+	
 	process-config: func [header [block!] /local spec][
-		if spec: select header first [config:][
+		if spec: select header quote config: [
 			do bind spec job
 			if job/command-line [do bind job/command-line job]		;-- ensures cmd-line options have priority
 		]
@@ -4831,6 +4870,11 @@ red: context [
 		]
 	]
 	
+	process-fields: func [header [block!] src [block!]][
+		process-needs header src
+		process-currencies header
+	]
+	
 	clean-up: does [
 		clear include-stk
 		clear included-list
@@ -4864,11 +4908,13 @@ red: context [
 		s-counter: 0
 		depth:	   0
 		max-depth: 0
+		root-slots:	  0
 		redbin/index: 0									;-- required here by libRedRT
 		container-obj?:
 		script-path:
 		script-file:
-		main-path: none
+		main-path: 
+		currencies: none
 	]
 
 	compile: func [
@@ -4888,7 +4934,7 @@ red: context [
 			process-config src/1
 			preprocessor/expand/clean src job
 			if job/show = 'expanded [probe next src]
-			process-needs src/1 next src
+			process-fields src/1 next src
 			extracts/init job
 			if job/libRedRT? [libRedRT/init]
 			if file? file [system-dialect/collect-resources src/1 resources file]

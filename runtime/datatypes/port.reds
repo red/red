@@ -552,6 +552,7 @@ port: context [
 	reverse: func [
 		port	[red-object!]
 		part	[red-value!]
+		skip    [red-value!]
 		return: [red-value!]
 		/local
 			actors [red-object!]

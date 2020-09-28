@@ -484,7 +484,7 @@ vector: context [
 			]
 			while [i < len][
 				v1: get-value-int as int-ptr! p unit
-				v1: integer/do-math-op v1 v2 op
+				v1: integer/do-math-op v1 v2 op null
 				switch unit [
 					1 [p/value: as-byte v1]
 					2 [p/1: as-byte v1 p/2: as-byte v1 >> 8]
@@ -574,7 +574,7 @@ vector: context [
 			while [i < len1][
 				v1: get-value-int as int-ptr! p1 unit1
 				v2: get-value-int as int-ptr! p2 unit2
-				v1: integer/do-math-op v1 v2 type
+				v1: integer/do-math-op v1 v2 type null
 				switch unit [
 					1 [p/value: as-byte v1]
 					2 [p/1: as-byte v1 p/2: as-byte v1 >> 8]

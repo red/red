@@ -129,6 +129,7 @@ redbin: context [
 			values	[int-ptr!]
 			sym		[int-ptr!]
 			header	[integer!]
+			type	[context-type!]
 			values? [logic!]
 			stack?	[logic!]
 			self?	[logic!]
@@ -139,14 +140,15 @@ redbin: context [
 			i		[integer!]
 	][
 		header:  data/1
-		values?: header and REDBIN_VALUES_MASK <> 0 
-		stack?:	 header and REDBIN_STACK_MASK  <> 0 
-		self?:	 header and REDBIN_SELF_MASK   <> 0 
+		values?: header and REDBIN_VALUES_MASK <> 0
+		stack?:	 header and REDBIN_STACK_MASK  <> 0
+		self?:	 header and REDBIN_SELF_MASK   <> 0
+		type:	 GET_CTX_TYPE_ALT(header)
 		slots:	 data/2
 
 		if values? [values: data + 2 + slots]
 		
-		new: _context/create slots stack? self?
+		new: _context/create slots stack? self? null type
 		obj: as red-object! ALLOC_TAIL(parent)			;-- use an object to store the ctx node
 		obj/header: TYPE_OBJECT
 		obj/ctx:	new
@@ -162,20 +164,14 @@ redbin: context [
 			s/tail: s/offset + slots
 		]
 
-		symbols: ctx/symbols
 		data: data + 2
 		i: 0
 
 		while [slots > 0][
 			sym: table + data/1
 			;-- create the words entries in the symbol table of the context
-			slot: 		 as red-word! alloc-tail as series! symbols/value
-			slot/header: TYPE_WORD
-			slot/ctx: 	 new
-			slot/symbol: sym/1
-			slot/index:  i
+			_context/find-or-store ctx sym/1 yes new :i
 			
-			i: i + 1
 			data: data + 1
 			slots: slots - 1
 		]
@@ -331,6 +327,23 @@ redbin: context [
 		tuple/array3: data/4
 		data + 4
 	]
+	
+	decode-money: func [
+		data	[int-ptr!]
+		parent	[red-block!]
+		nl?		[logic!]
+		return: [int-ptr!]
+		/local
+			slot  [red-money!]
+			cur	  [byte-ptr!]
+			neg?  [logic!]
+	][
+		neg?: data/1 and 4000h <> 0
+		cur: as byte-ptr! data + 1
+		slot: money/make-in ALLOC_TAIL(parent) neg? as-integer cur/1 cur + 1
+		if nl? [slot/header: slot/header or flag-new-line]
+		data + 4
+	]
 
 	decode-value: func [
 		data	[int-ptr!]
@@ -353,11 +366,7 @@ redbin: context [
 			TYPE_LIT_WORD
 			TYPE_GET_WORD
 			TYPE_REFINEMENT [decode-word data table parent nl?]
-			TYPE_STRING
-			TYPE_FILE
-			TYPE_URL
-			TYPE_TAG
-			TYPE_EMAIL
+			TYPE_ANY_STRING
 			TYPE_BINARY		[decode-string data parent nl?]
 			TYPE_INTEGER	[
 				cell: as cell! integer/make-in parent data/2
@@ -420,6 +429,7 @@ redbin: context [
 			TYPE_ACTION
 			TYPE_OP			[decode-native data table parent nl?]
 			TYPE_TUPLE		[decode-tuple data parent nl?]
+			TYPE_MONEY		[decode-money data parent nl?]
 			REDBIN_PADDING	[
 				decode-value data + 1 table parent
 			]

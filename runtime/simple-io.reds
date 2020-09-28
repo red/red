@@ -41,6 +41,22 @@ simple-io: context [
 		str
 	]
 
+	load-utf8: func [
+		data	[byte-ptr!]
+		size	[integer!]
+		return: [red-string!]
+		/local
+			str	[red-string!]
+	][
+		str: as red-string! stack/push*
+		str/header: TYPE_UNSET
+		str/head: 0
+		str/node: unicode/load-utf8-buffer as-c-string data size null null yes
+		str/cache: null
+		str/header: TYPE_STRING					;-- implicit reset of all header flags
+		str
+	]
+
 	#either OS = 'Windows [
 		stat!: alias struct! [val [integer!]]
 
@@ -231,7 +247,7 @@ simple-io: context [
 		]
 
 		#case [
-			OS = 'FreeBSD [
+			any [OS = 'FreeBSD OS = 'NetBSD][
 				;-- http://fxr.watson.org/fxr/source/sys/stat.h?v=FREEBSD10
 				stat!: alias struct! [
 					st_dev		[integer!]
@@ -452,7 +468,11 @@ simple-io: context [
 					;...optional padding skipped
 				]
 
-				#define DIRENT_NAME_OFFSET 11
+				#either dynamic-linker = "/lib/ld-musl-i386.so.1" [
+					#define DIRENT_NAME_OFFSET 19
+				][
+					#define DIRENT_NAME_OFFSET 11
+				]
 				dirent!: alias struct! [
 					d_ino			[integer!]
 					d_off			[integer!]
@@ -465,7 +485,7 @@ simple-io: context [
 		]
 
 		#case [
-			any [OS = 'macOS OS = 'FreeBSD OS = 'Android] [
+			any [OS = 'macOS OS = 'FreeBSD OS = 'NetBSD OS = 'Android] [
 				#import [
 					LIBC-file cdecl [
 						;-- https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/10.6/man2/stat.2.html?useVersion=10.6
@@ -664,7 +684,7 @@ simple-io: context [
 		if file = -1 [return -1]
 		file
 	]
-	
+
 	file-size?: func [
 		file	 [integer!]
 		return:	 [integer!]
@@ -675,7 +695,7 @@ simple-io: context [
 			OS = 'Windows [
 				GetFileSize file null
 			]
-			any [OS = 'macOS OS = 'FreeBSD OS = 'Android] [
+			any [OS = 'macOS OS = 'FreeBSD OS = 'NetBSD OS = 'Android] [
 				_stat file s
 				s/st_size
 			]
@@ -857,15 +877,7 @@ simple-io: context [
 		val: as red-value! either binary? [
 			binary/load buffer size
 		][
-			either lines? [lines-to-block buffer size][
-				str: as red-string! stack/push*
-				str/header: TYPE_UNSET
-				str/head: 0
-				str/node: unicode/load-utf8-buffer as-c-string buffer size null null yes
-				str/cache: null							;-- @@ cache small strings?
-				str/header: TYPE_STRING					;-- implicit reset of all header flags
-				str
-			]
+			either lines? [lines-to-block buffer size][load-utf8 buffer size]
 		]
 		free buffer
 		val
@@ -968,13 +980,13 @@ simple-io: context [
 			]
 		]
 	]
-	
+
 	delete: func [
 		filename [red-file!]
 		return:  [logic!]
 		/local
 			name [c-string!]
-			res  [integer!]	
+			res  [integer!]
 	][
 		name: file/to-OS-path filename
 		#either OS = 'Windows [
@@ -998,7 +1010,7 @@ simple-io: context [
 	][
 		name: file/to-OS-path filename
 		;o: object/copy #get system/standard/file-info
-		
+
 		#either OS = 'Windows [
 			if any [
 				1 <> GetFileAttributesExW name 0 filedata
@@ -1018,7 +1030,7 @@ simple-io: context [
 		][
 			fd: open-file file/to-OS-path filename RIO_READ yes
 			if fd < 0 [	return none/push ]
-			#either any [OS = 'macOS OS = 'FreeBSD OS = 'Android] [
+			#either any [OS = 'macOS OS = 'FreeBSD OS = 'NetBSD OS = 'Android] [
 				_stat   fd s
 			][	_stat 3 fd s]
 			tm: gmtime as int-ptr! s/st_mtime
@@ -1032,7 +1044,6 @@ simple-io: context [
 		filename	[red-file!]
 		return:		[red-block!]
 		/local
-			info
 			buf		[byte-ptr!]
 			p		[byte-ptr!]
 			name	[byte-ptr!]
@@ -1043,6 +1054,7 @@ simple-io: context [
 			i		[integer!]
 			cp		[byte!]
 			s		[series!]
+			info
 	][
 		len: string/rs-length? as red-string! filename
 		len: filename/head + len - 1
@@ -1278,7 +1290,7 @@ simple-io: context [
 	#either OS = 'Windows [
 		IID_IWinHttpRequest:			[06F29373h 4B545C5Ah F16E25B0h 0EBF8ABFh]
 		IID_IStream:					[0000000Ch 00000000h 0000000Ch 46000000h]
-		
+
 		IWinHttpRequest: alias struct! [
 			QueryInterface			[QueryInterface!]
 			AddRef					[AddRef!]
@@ -1425,6 +1437,7 @@ simple-io: context [
 				parr	[integer!]
 				buf		[byte-ptr!]
 				headers [int-ptr!]
+				sym		[red-value!]
 		][
 			res: as red-value! none-value
 			parr: 0
@@ -1448,7 +1461,9 @@ simple-io: context [
 				true [
 					either method = words/post [action: #u16 "POST"][
 						s: GET_BUFFER(symbols)
-						copy-cell s/offset + method - 1 as cell! str1
+						sym: s/offset + method - 1
+						symbol/make-red-string as red-symbol! sym
+						copy-cell sym as cell! str1
 						str1/header: TYPE_STRING
 						str1/head: 0
 						str1/cache: null
@@ -1541,7 +1556,7 @@ simple-io: context [
 				hr: http/ResponseBody IH/ptr :body
 			]
 
-			if hr >= 0 [				
+			if hr >= 0 [
 				array: body/data3
 				if all [
 					VT_ARRAY or VT_UI1 = body/data1
@@ -1559,7 +1574,7 @@ simple-io: context [
 						either lines? [
 							lines-to-block as byte-ptr! buf-ptr len
 						][
-							string/load as c-string! buf-ptr len UTF-8
+							load-utf8 as byte-ptr! buf-ptr len
 						]
 					]
 					SafeArrayUnaccessData array
@@ -1802,7 +1817,7 @@ simple-io: context [
 				]
 				s: s + 1
 			]
-			len				
+			len
 		]
 
 		request-http: func [
@@ -1867,7 +1882,7 @@ simple-io: context [
 			curl_easy_setopt curl CURLOPT_URL as-integer unicode/to-utf8 as red-string! url :len
 			curl_easy_setopt curl CURLOPT_NOPROGRESS 1
 			curl_easy_setopt curl CURLOPT_FOLLOWLOCATION 1
-			
+
 			curl_easy_setopt curl CURLOPT_WRITEFUNCTION as-integer :get-http-response
 			curl_easy_setopt curl CURLOPT_WRITEDATA as-integer bin
 
@@ -1945,10 +1960,7 @@ simple-io: context [
 				either lines? [
 					bin: as red-binary! lines-to-block buf len
 				][
-					bin/header: TYPE_UNSET
-					bin/node: unicode/load-utf8 as c-string! buf len
-					bin/_pad: 0
-					bin/header: TYPE_STRING
+					bin: as red-binary! load-utf8 buf len
 				]
 			]
 
