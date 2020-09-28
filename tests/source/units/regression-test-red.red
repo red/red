@@ -2884,6 +2884,20 @@ b}
 		--assert bu3603 = back change block3603: [] do/next block3603 'rest3603
 		unset [bu3603 rest3603 block3603]
 
+	--test-- "#3407"
+		--assert "0:00:00.1"      = form 0:00:01 / 10
+		--assert "0:00:00.01"     = form 0:00:01 / 100
+		--assert "0:00:00.001"    = form 0:00:01 / 1000
+		--assert "0:00:00.0001"   = form 0:00:01 / 10000
+		--assert "0:00:00.00001"  = form 0:00:01 / 100000
+		--assert "0:00:00.000001" = form 0:00:01 / 1000000
+		--assert "0:00:00"        = form 0:00:01 / 10000000
+
+	--test-- "#3603"
+		bu3603: reduce [()]
+		rest3603: none
+		--assert bu3603 = back change block3603: [] do/next block3603 'rest3603
+
 	--test-- "#3739"
 		reactor3739: func [spec] [make deep-reactor! spec]
 		s3739: reactor3739 [started: no]
