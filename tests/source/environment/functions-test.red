@@ -226,7 +226,14 @@ Red [
 		--assert 0.5 = math [1 / 2.0]
 		--assert 2 = math [(1 / 2.0) (2 * 1)]
 		--assert 8 = math [(1 / 2) (power 2 3)]
-		--assert none = math/safe [(1 / 0) (power 2 3)]
+		--assert none = attempt [math [(1 / 0) (power 2 3)]]
+		--assert 7 = math [1 + 2 * 3]
+		--assert 9 = math [(1 + 2) * 3]
+		--assert 100000010 = math [10 + 10 ** 2 ** 3]
+		--assert 10 = math [10 + 10 % 2]
+		--assert 1.6 = math [8 / 5 % 2]
+		--assert 33 = math [1 + 2 ** 3 * 4]
+		--assert 4097 = math [1 + 2 ** (3 * 4)]
 ===end-group===
 
 ===start-group=== "charset tests"
@@ -390,6 +397,7 @@ Red [
 		--assert ["a" "b" "c"] = split "a-b-c" "-"
 		--assert ["a" "c"] = split "a-b-c" "-b-"
 		--assert ["a-b-c"] = split "a-b-c" "x"
+		--assert false = do compose [same? (second split "a," ",") (second split "b," ",")] ;PR #4381 missing copy in split function
 ===end-group===
 
 ===start-group=== "dirize tests"
