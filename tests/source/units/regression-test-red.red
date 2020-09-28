@@ -828,7 +828,14 @@ Red [
 		parse "a" [collect rule727]
 		--assert equal? 1 x727
 		unset 'x727
-
+	
+	--test-- "#734"
+		foo: quote 'bar
+		--assert lit-word? quote 'bar
+		--assert lit-word? foo
+		--assert lit-word? :foo
+		unset 'foo
+		
 	--test-- "#757"
 		--assert not error? try [x757: "^(FF)"]
 		unset 'x757
@@ -1980,7 +1987,7 @@ Red [
 
 	--test-- "#1746"
 		; should check for crash
-		s1746: make object! [m: func [][] b: func [arg] [compose/deep [(arg)]]]
+		s1746: make object! [m: func [][] b: func [arg][compose/deep [(arg)]]]
 		s2: make s1746 []
 		--assert equal? [1] s1746/b 1
 		unset [s1746 s2]
@@ -2795,7 +2802,54 @@ b}
 	--test-- "#2253"
 		--assert not error? try [3151391351465.995 // 1.0]
 		unset 'true?
+	
+	--test-- "#3098"
+		block: reduce ['foo func [/bar][pick [baz qux] bar]]
+		--assert 'qux = do [block/('foo)]				;-- wrapper makes sure that it's not a sub-expression
+		--assert 'baz = do [block/('foo)/bar]
+		
+		block: reduce [block]
+		--assert 'qux = do [block/1/('foo)]
+		--assert 'baz = do [block/1/('foo)/bar]
+	
+	--test-- "#3156"
+		ctx3156: context [foo3156: does ['bar3156]]
+		bar3156: ctx3156/foo3156
+		--assert 'bar3156 == bar3156
 
+	--test-- "#2650"
+		--assert     0.0 <> null
+		--assert not 0.0 =  null
+		--assert not 0.0 == null
+		--assert not 0.0 =? null
+		
+		--assert     null <> 0.0
+		--assert not null =  0.0
+		--assert not null == 0.0
+		--assert not null =? 0.0
+		
+		--assert error? try [65.0  < #"A"]
+		--assert error? try [66.0  > #"B"]
+		--assert error? try [-1.0 >= #"c"]
+		--assert error? try [+1.0 <= #"d"]
+		
+		--assert error? try [#"A"  > 65.0]
+		--assert error? try [#"B"  > 66.0]
+		--assert error? try [#"c" <= -1.0]
+		--assert error? try [#"d" >= +1.0]
+
+	--test-- "#2671"
+		--assert equal?
+			"^(0) ^(1) ^(2) ^(3) ^(4) ^(5) ^(6) ^(7) ^(8) ^(9) ^(A) ^(B) ^(C) ^(D) ^(E) ^(F)"
+			"^@ ^A ^B ^C ^D ^E ^F ^G ^H ^- ^/ ^K ^L ^M ^N ^O"
+		
+		--assert equal?
+			"^A ^A ^A ^A ^A ^A"
+			"^(1) ^(01) ^(001) ^(0001) ^(00001) ^(000001)"
+		
+		--assert error? try [transcode {"^^(0000001)"}]
+		--assert error? try [transcode {"^^(skibadee-skibadanger)"}]
+		
 	--test-- "#3603"
 		bu3603: reduce [()]
 		rest3603: none
@@ -2811,7 +2865,12 @@ b}
 			--assert unset? context [exit]
 			unset [spec3362-1 spec3362-2]
 		]
-
+	
+	--test-- "3662"
+		--assert equal?
+			[16  256  4096  65536  1048576 16777216 268435456]
+			[10h 100h 1000h 10000h 100000h 1000000h 10000000h]
+	
 	--test-- "3669"
 		--assert not equal? <a> <a^>
 		--assert equal?     <a> load {<a^>}
@@ -2878,8 +2937,21 @@ comment {
 		all-equal?4205: anded4205 = last-random4205
 		--assert not all-equal?4205
 		unset [anded4205 last-random4205 all-equal?4205]
-
-
+	
+	--test-- "#4305"
+		block: reduce ['foo func [/bar][pick [baz qux] bar]]
+		id:    func [value][value]
+		--assert 'qux == block/('foo)
+		--assert 'qux == id block/('foo)
+		--assert 'qux == bar: block/('foo)
+		--assert 'qux == bar
+		
+		block: reduce [block]
+		--assert 'baz == block/1/('foo)/bar
+		--assert 'baz == id block/1/('foo)/bar
+		--assert 'baz == baz: block/1/('foo)/bar
+		--assert 'baz == baz
+		
 	--test-- "#4505"
 		do [
 			saved: :find
@@ -2911,6 +2983,33 @@ comment {
 		foo
 		unset 'foo
 	
+	--test-- "#4522"
+		--assert error? try [find/skip [1] [1] ()]
+
+	--test-- "#4563" do [							;@@ #4526
+		--assert error? try [make op! :>>]
+		--assert error? try [make op! make op! func [x y][]]
+	]
+	
+	--test-- "#4567"
+		objects: [foo]
+		--assert 'foo == objects/1
+		unset 'objects
+
+	--test-- "#4609"
+		--assert "[2.3.4.5.6 1.2.3.4.5.6]" = mold [2.3.4.5.6 1.2.3.4.5.6]
+		--assert "2.3.4.5.6" = mold 2.3.4.5.6
+		--assert "1.2.3.4.5.6" = mold 1.2.3.4.5.6
+
+	--test-- "#4627"		
+		--assert to logic! find 
+			form try [transcode "]"]
+			"(line 1) missing [ at ]"
+		
+		--assert to logic! find 
+			form try [null < []]
+			%{#"^@" with []}%
+
 ===end-group===
 
 ~~~end-file~~~

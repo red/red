@@ -105,7 +105,7 @@ red: context [
 	
 	standard-modules: [
 	;-- Name ------ Entry file -------------- OS availability -----
-		View		%modules/view/view.red	  [Windows macOS]
+		View		%modules/view/view.red	  [Windows macOS Linux]
 	]
 
 	func-constructors: [
@@ -405,7 +405,7 @@ red: context [
 	]
 	
 	emit-push-word: func [name [any-word!] original [any-word!] /local type ctx obj][
-		type: to word! form type? name
+		type: to word! form type? :name
 		name: to word! :name
 		
 		either all [
@@ -1407,7 +1407,7 @@ red: context [
 		invalid-spec: [throw-error ["invalid argument function to make op!:" mold copy/part at pos 4 2]]
 		
 		name: to word! pos/1
-		if find functions name [exit]					;-- mainly intended for 'make (hardcoded)
+		if find functions name [return none]			;-- mainly intended for 'make (hardcoded)
 
 		switch type: pos/3 [
 			native! [nat?: yes if find intrinsics name [type: 'intrinsic!]]
@@ -1461,7 +1461,7 @@ red: context [
 		]
 		pos: tail output
 		
-		if path/1 = last obj-stack [remove path]		;-- remove temp object prefix inserted by object-access?
+		if all [1 <> length? obj-stack path/1 = last obj-stack][remove path]		;-- remove temp object prefix inserted by object-access? (mind #4567!)
 		
 		if set? [
 			emit [object/path-parent/header: TYPE_NONE]
@@ -1844,15 +1844,15 @@ red: context [
 					insert-lf -3
 				]
 				path! set-path!	[
+					type: either get-word? pc/1/1 [
+						change pc/1 to word! pc/1/1
+						'get-path
+					][to word! form type? pc/1]
 					idx: do make-block
 					case [
 						inactive [
-							either get-word? pc/1/1 [
-								emit 'get-path/push
-							][
-								emit to path! reduce [to word! form type? pc/1 'push]
-								if path? pc/1 [emit [as red-path!]]
-							]
+							emit to path! reduce [type 'push]
+							if type = 'path [emit [as red-path!]]
 						]
 						lit-path? pc/1 [
 							emit 'path/push

@@ -691,7 +691,7 @@ interpreter: context [
 			default	   [0]
 		]
 		if set? [object/path-parent/header: TYPE_NONE]	;-- disables owner checking
-				
+		
 		while [item < tail][
 			#if debug? = yes [if verbose > 0 [print-line ["eval: path parent: " TYPE_OF(parent)]]]
 			
@@ -717,6 +717,7 @@ interpreter: context [
 					TYPE_ROUTINE
 					TYPE_FUNCTION [
 						pc: eval-code parent pc end sub? path item gparent
+						if TYPE_OF(item) = TYPE_PAREN [copy-cell stack/top - 1 stack/top - 2]
 						unless sub? [stack/set-last stack/top]
 						return pc
 					]

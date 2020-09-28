@@ -424,6 +424,7 @@ pair: context [
 	reverse: func [
 		pair	[red-pair!]
 		part	[red-value!]
+		skip    [red-value!]
 		return:	[red-value!]
 		/local
 			tmp [integer!]
