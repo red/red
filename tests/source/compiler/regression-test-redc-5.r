@@ -122,6 +122,14 @@ test
 
 ===start-group=== "Red regressions #3501 - #4000"
 
+	--test-- "#3670"
+		write qt-tmp-file "1 + 2"
+		qt/source-file?: yes
+		qt/compile qt-temp-file
+		qt/run/pgm qt-temp-file
+		--assert probe not compiler-error?
+		--assert probe syntax-error "Invalid Red program"
+
 	--test-- "#3624"
 		--compile-and-run-this-red {probe replace/case/all quote :a/b/A/a/B [a] 'x}
 		--assert qt/output = ":x/b/A/x/B^/"

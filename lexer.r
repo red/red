@@ -937,9 +937,15 @@ lexer: context [
 		rs?: no
 		pos: src
 		until [
-			unless pos: find/tail pos "Red" [throw-error/with "Invalid Red program"]
-			if all [pos find/match pos "/System"][rs?: yes pos: skip pos 7]
-			while [find/match ws pos/1][pos: next pos]
+			pos: any [
+				find/tail pos "Red"						;-- don't set pos to none before throw-error
+				throw-error/with "Invalid Red program"
+			]
+			if find/match pos "/System" [rs?: yes pos: skip pos 7]
+			pos: any [
+				find pos negate ws
+				pos
+			]
 			found?: pos/1 = #"["
 		]	
 		unless found? [throw-error/with "Invalid Red program"]

@@ -882,12 +882,14 @@ split-path: func [
 ]
 
 do-file: function ["Internal Use Only" file [file! url!]][
+	ws: charset " ^-^M^/"
 	saved: system/options/path
-	unless src: find/case read file "Red" [
+	unless parse/case read file [some [[src: "Red" opt "/System" any ws #"["] to end] | skip] [
 		cause-error 'syntax 'no-header reduce [file]
 	]
-	code: expand-directives load/all src
+	code: load/all src									;-- don't expand before we check the header
 	if code/1 = 'Red/System [cause-error 'internal 'red-system []]
+	code: next expand-directives next code				;-- skip the Red[/System] part and [block]
 	if file? file [
 		new-path: first split-path clean-path file
 		change-dir new-path
