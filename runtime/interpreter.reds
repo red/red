@@ -963,7 +963,7 @@ interpreter: context [
 				pc: eval-path value pc end no yes sub? no
 			]
 			TYPE_LIT_PATH [
-				value: stack/push pc
+				value: either sub? [stack/push pc][stack/set-last pc]
 				value/header: TYPE_PATH
 				value/data3: 0							;-- ensures args field is null
 				pc: pc + 1

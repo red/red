@@ -462,10 +462,9 @@ Red [
 		; TODO: example throws strange compiler error
 
 	--test-- "#497"
-		; FIXME: still unsolved
-		;b: [1]
-		;p: 'b/1
-		;--assert equal? 1 do p
+		b: [1]
+		p: 'b/1
+		--assert equal? 1 do p
 
 	--test-- "#498"
 		--assert  equal? {{""}} mold mold {}
@@ -2892,6 +2891,21 @@ b}
 		--assert "0:00:00.00001"  = form 0:00:01 / 100000
 		--assert "0:00:00.000001" = form 0:00:01 / 1000000
 		--assert "0:00:00"        = form 0:00:01 / 10000000
+
+	--test-- "#3603"
+		bu3603: reduce [()]
+		rest3603: none
+		--assert bu3603 = back change block3603: [] do/next block3603 'rest3603
+
+	--test-- "#3561"
+		a: reduce ['b does [1 + 2] 'x 'y]
+		--assert do [3 = a/b]							;-- do[] else compiler will not eval `does [1 + 2]`
+		--assert 3 = do 'a/b
+		--assert 3 = do quote a/b
+		--assert 'a/b = do quote 'a/b
+		--assert 'y = a/x
+		--assert 'y = do 'a/x
+		--assert 'y = do quote a/x
 
 	--test-- "#3603"
 		bu3603: reduce [()]
