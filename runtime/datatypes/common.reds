@@ -55,7 +55,7 @@ alloc-tail: func [
 		cell [red-value!]
 ][
 	if (as byte-ptr! s/tail) = ((as byte-ptr! s + 1) + s/size) [
-		s: expand-series s 0
+		s: expand-series s 0							;-- expand-series refreshes node pointer if needed
 	]
 	
 	cell: s/tail
@@ -344,16 +344,17 @@ select-key*: func [										;-- called by compiler for SWITCH
 	]
 ]
 
-load-value: func [
+load-single-value: func [
 	str		[red-string!]
+	slot	[red-value!]
 	return: [red-value!]
 	/local
 		blk	  [red-block!]
 		value [red-value!]
 ][
-	#call [system/lexer/transcode/one/only str none no]
+	lexer/scan-alt slot str -1 yes yes yes yes null null as red-series! str
 
-	blk: as red-block! stack/arguments
+	blk: as red-block! slot
 	assert TYPE_OF(blk) = TYPE_BLOCK
 
 	either zero? block/rs-length? blk [
@@ -363,6 +364,10 @@ load-value: func [
 		value: block/rs-head blk
 	]
 	value
+]
+
+load-value: func [str [red-string!] return: [red-value!]][
+	load-single-value str stack/arguments
 ]
 
 form-value: func [
@@ -445,15 +450,15 @@ cycles: context [
 		either find? node [
 			either mold? [
 				switch TYPE_OF(value) [
-					TYPE_BLOCK	  [s: "[...]"			   size: 5 ]
+					TYPE_BLOCK	  
+					TYPE_HASH	  [s: "[...]"			   size: 5 ]
 					TYPE_PAREN	  [s: "(...)"			   size: 5 ]
 					TYPE_MAP	  [s: "#(...)"			   size: 6 ]
-					TYPE_HASH	  [s: "make hash! [...]"   size: 16]
 					TYPE_OBJECT	  [s: "make object! [...]" size: 18]
 					TYPE_PATH
 					TYPE_GET_PATH 
 					TYPE_LIT_PATH
-					TYPE_GET_PATH [s: "..."				   size: 3 ]
+					TYPE_SET_PATH [s: "..."				   size: 3 ]
 					default		  [assert false]
 				]
 			][
@@ -495,7 +500,8 @@ words: context [
 	syllable:		-1
 	macOS:			-1
 	linux:			-1
-	
+	netbsd:			-1
+ 
 	any*:			-1
 	break*:			-1
 	copy:			-1
@@ -578,18 +584,24 @@ words: context [
 	second:			-1
 	timezone:		-1
 	
+	code:			-1
+	amount:			-1
+	
 	user:			-1
 	host:			-1
 	
 	system:			-1
 	system-global:	-1
+	
+	changed:		-1
 
 	_body:			as red-word! 0
 	_windows:		as red-word! 0
 	_syllable:		as red-word! 0
 	_macOS:			as red-word! 0
 	_linux:			as red-word! 0
-	
+	_netbsd:		as red-word! 0
+ 
 	_push:			as red-word! 0
 	_pop:			as red-word! 0
 	_fetch:			as red-word! 0
@@ -646,19 +658,28 @@ words: context [
 	_cleared:		as red-word! 0
 	_set-path:		as red-word! 0
 	_append:		as red-word! 0
+	_appended:		as red-word! 0
 	_poke:			as red-word! 0
+	_poked:			as red-word! 0
 	_put:			as red-word! 0
+	_put-ed:		as red-word! 0
 	;_remove:		as red-word! 0
 	_removed:		as red-word! 0
 	_random:		as red-word! 0
+	_randomized:	as red-word! 0
 	_reverse:		as red-word! 0
+	_reversed:		as red-word! 0
 	_sort:			as red-word! 0
+	_sorted:		as red-word! 0
 	_swap:			as red-word! 0
+	_swaped:		as red-word! 0
 	_take:			as red-word! 0
 	_taken:			as red-word! 0
 	_move:			as red-word! 0
 	_moved:			as red-word! 0
 	_trim:			as red-word! 0
+	_trimmed:		as red-word! 0
+	_inserted: 		as red-word! 0
 
 	;-- modifying natives
 	_uppercase:		as red-word! 0
@@ -678,6 +699,7 @@ words: context [
 	_multiply:		as red-word! 0
 	_browse:		as red-word! 0
 	
+	;-- I/O actions
 	_open:			as red-word! 0
 	_create:		as red-word! 0
 	_close:			as red-word! 0
@@ -688,6 +710,13 @@ words: context [
 	_rename:		as red-word! 0
 	_update:		as red-word! 0
 	_write:			as red-word! 0
+	
+	;-- lexer events
+	_prescan:		as red-word! 0
+	_scan:			as red-word! 0
+	_load:			as red-word! 0
+	_error:			as red-word! 0
+	_comment:		as red-word! 0
 	
 	errors: context [
 		_throw:		as red-word! 0
@@ -718,6 +747,7 @@ words: context [
 		syllable:		symbol/make "Syllable"
 		macOS:			symbol/make "macOS"
 		linux:			symbol/make "Linux"
+		netbsd:			symbol/make "NetBSD"
 		
 		repeat:			symbol/make "repeat"
 		foreach:		symbol/make "foreach"
@@ -812,6 +842,9 @@ words: context [
 		second:			symbol/make "second"
 		timezone:		symbol/make "timezone"
 		
+		code:			symbol/make "code"
+		amount:			symbol/make "amount"
+		
 		user:			symbol/make "user"
 		host:			symbol/make "host"
 		
@@ -822,6 +855,7 @@ words: context [
 		_syllable:		_context/add-global syllable
 		_macOS:			_context/add-global macOS
 		_linux:			_context/add-global linux
+		_netbsd:		_context/add-global netbsd
 		
 		_to:			_context/add-global to
 		_thru:			_context/add-global thru
@@ -866,19 +900,28 @@ words: context [
 		_cleared:		word/load "cleared"
 		_set-path:		word/load "set-path"
 		_append:		word/load "append"
+		_appended:		word/load "appended"
 		_move:			word/load "move"
 		_moved:			word/load "moved"
 		_poke:			word/load "poke"
+		_poked:			word/load "poked"		
 		_put:			word/load "put"
+		_put-ed:		word/load "put-ed"
 		;_remove:		word/load "remove"
 		_removed:		word/load "removed"
 		_random:		word/load "random"
+		_randomized:	word/load "randomized"
 		_reverse:		word/load "reverse"
+		_reversed:		word/load "reversed"
 		_sort:			word/load "sort"
+		_sorted:		word/load "sorted"
 		_swap:			word/load "swap"
+		_swaped:		word/load "swaped"
 		_take:			word/load "take"
 		_taken:			word/load "taken"
 		_trim:			word/load "trim"
+		_trimmed:		word/load "trimmed"
+		_inserted: 		word/load "inserted"
 
 		;-- modifying natives
 		_uppercase:		word/load "uppercase"
@@ -924,6 +967,13 @@ words: context [
 		_update:		word/load "update"
 		_write:			word/load "write"
 		
+		;-- lexer events
+		_prescan:		word/load "prescan"
+		_scan:			word/load "scan"
+		_load:			word/load "load"
+		_error:			word/load "error"
+		_comment:		word/load "comment"
+		
 		errors/throw:	 word/load "throw"
 		errors/note:	 word/load "note"
 		errors/syntax:	 word/load "syntax"
@@ -933,6 +983,7 @@ words: context [
 		errors/user:	 word/load "user"
 		errors/internal: word/load "internal"
 		
+		changed:		_changed/symbol
 	]
 ]
 

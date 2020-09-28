@@ -35,6 +35,7 @@ add-base-handler: func [class [integer!]][
 	class_replaceMethod class sel_getUid "rightMouseDown:" as-integer :mouse-events-base "v@:@"
 	class_replaceMethod class sel_getUid "rightMouseUp:" as-integer :mouse-events-base "v@:@"
 
+	class_addMethod class sel_getUid "keyDown:" as-integer :key-down-base "v@:@"
 	class_addMethod class sel_getUid "insertText:" as-integer :insert-text "v@:@"
 	class_addMethod class sel_getUid "hasMarkedText" as-integer :has-marked-text "B@:"
 	class_addMethod class sel_getUid "markedRange" as-integer :marked-range "{_NSRange=ii}@:"
@@ -143,6 +144,10 @@ add-table-view-handler: func [class [integer!]][
 
 add-camera-handler: func [class [integer!]][
 	0
+]
+
+add-calendar-handler: func [class [integer!]][
+	class_addMethod class sel_getUid "calendar-change" as-integer :calendar-change "v@"
 ]
 
 add-tabview-handler: func [class [integer!]][
@@ -326,6 +331,7 @@ register-classes: does [
 	make-super-class "RedPopUpButton"	"NSPopUpButton"			as-integer :add-droplist-handler STORE_FACE_FLAG
 	make-super-class "RedTableView"		"NSTableView"			as-integer :add-table-view-handler STORE_FACE_FLAG
 	make-super-class "RedCamera"		"NSView"				as-integer :add-camera-handler STORE_FACE_FLAG
+	make-super-class "RedCalendar"		"NSDatePicker"			as-integer :add-calendar-handler STORE_FACE_FLAG
 	make-super-class "RedTabView"		"NSTabView"				as-integer :add-tabview-handler STORE_FACE_FLAG
 	make-super-class "RedOpenPanel"		"NSOpenPanel"			as-integer :add-filedialog-handler EXTRA_DATA_FLAG
 	make-super-class "RedSavePanel"		"NSSavePanel"			as-integer :add-filedialog-handler EXTRA_DATA_FLAG

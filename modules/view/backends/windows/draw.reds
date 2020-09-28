@@ -682,11 +682,17 @@ draw-short-curves: func [
 		pt: pt + 1
 		pt/x: ( 2 * ctx/other/path-last-point/x ) - control/x
 		pt/y: ( 2 * ctx/other/path-last-point/y ) - control/y
-		control/x: pt/x
-		control/y: pt/y
+		if nr-points = 1 [
+			control/x: pt/x
+			control/y: pt/y
+		]
 		pt: pt + 1
 		pt/x: either rel? [ ctx/other/path-last-point/x + pair/x ][ pair/x ]
 		pt/y: either rel? [ ctx/other/path-last-point/y + pair/y ][ pair/y ]
+		if nr-points = 2 [
+			control/x: pt/x
+			control/y: pt/y
+		]
 		pt: pt + 1
 		loop nr-points - 1 [ pair: pair + 1 ]
 		if pair <= end [
@@ -748,15 +754,14 @@ OS-draw-shape-endpath: func [
 	result: true
 
 	either ctx/other/GDI+? [
-		count: 0
-		GdipGetPointCount ctx/gp-path :count
-		if count > 0 [
+		if ctx/gp-path <> 0 [
 			check-gradient-shape ctx                          ;-- check for gradient
 			check-texture-shape ctx
 			if close? [ GdipClosePathFigure ctx/gp-path ]
 			GdipDrawPath ctx/graphics ctx/gp-pen ctx/gp-path
 			GdipFillPath ctx/graphics ctx/gp-brush ctx/gp-path
 			GdipDeletePath ctx/gp-path
+			ctx/gp-path: 0
 		]
 	][
 		dc: ctx/dc
@@ -828,7 +833,7 @@ OS-draw-shape-line: func [
 		nb: nb + 1
 	]
 
-	while [all [pair <= end nb < MAX_EDGES]][
+	while [pair <= end][
 		pt/x: pair/x
 		pt/y: pair/y
 		if rel? [
@@ -840,11 +845,18 @@ OS-draw-shape-line: func [
 		nb: nb + 1
 		pt: pt + 1
 		pair: pair + 1
-	]
-	either ctx/other/GDI+? [
-		GdipAddPathLine2I ctx/gp-path ctx/other/edges nb
-	][
-		Polyline ctx/dc ctx/other/edges nb
+		if any [pair > end nb = MAX_EDGES][
+			either ctx/other/GDI+? [
+				GdipAddPathLine2I ctx/gp-path ctx/other/edges nb
+			][
+				Polyline ctx/dc ctx/other/edges nb
+			]
+			if all [pair <= end nb = MAX_EDGES][
+				nb: 0
+				pt: ctx/other/edges
+				pair: pair - 1
+			]
+		]
 	]
 	ctx/other/last-point?: yes
 	ctx/other/prev-shape/type: SHAPE_OTHER
@@ -1159,18 +1171,26 @@ OS-draw-line: func [
 	pair:  point
 	nb:	   0
 
-	while [all [pair <= end nb < MAX_EDGES]][
+	while [pair <= end][
 		pt/x: pair/x
 		pt/y: pair/y
 		nb: nb + 1
 		pt: pt + 1
 		pair: pair + 1
-	]
-	either ctx/other/GDI+? [
-		check-gradient-poly ctx start 2
-		GdipDrawLinesI ctx/graphics ctx/gp-pen start nb
-	][
-		Polyline ctx/dc start nb
+		
+		if any [pair > end nb = MAX_EDGES][
+			either ctx/other/GDI+? [
+				check-gradient-poly ctx start 2
+				GdipDrawLinesI ctx/graphics ctx/gp-pen start nb
+			][
+				Polyline ctx/dc start nb
+			]
+			if all [pair <= end nb = MAX_EDGES][
+				nb: 0
+				pt: start
+				pair: pair - 1
+			]
+		]
 	]
 ]
 
@@ -1187,11 +1207,9 @@ OS-draw-pen: func [
 	ctx/alpha-pen?: alpha?
 	ctx/other/GDI+?: any [alpha? ctx/other/anti-alias? ctx/alpha-brush?]
 
-	if any [ctx/pen-color <> color ctx/pen? = off? ctx/other/gradient-pen?][
-		ctx/pen?: not off?
-		ctx/pen-color: color
-		either ctx/other/GDI+? [update-gdiplus-pen ctx][update-pen ctx]
-	]
+	ctx/pen?: not off?
+	ctx/pen-color: color
+	either ctx/other/GDI+? [update-gdiplus-pen ctx][update-pen ctx]
 
 	unless ctx/font-color? [
 		if ctx/other/GDI+? [update-gdiplus-font-color ctx color]
@@ -1212,11 +1230,9 @@ OS-draw-fill-pen: func [
 	ctx/alpha-brush?: alpha?
 	ctx/other/GDI+?: any [alpha? ctx/other/anti-alias? ctx/alpha-pen?]
 
-	if any [ctx/brush-color <> color ctx/brush? = off? ctx/other/gradient-fill?][
-		ctx/brush?: not off?
-		ctx/brush-color: color
-		either ctx/other/GDI+? [update-gdiplus-brush ctx][update-brush ctx]
-	]
+	ctx/brush?: not off?
+	ctx/brush-color: color
+	either ctx/other/GDI+? [update-gdiplus-brush ctx][update-brush ctx]
 ]
 
 OS-draw-line-width: func [
@@ -1618,22 +1634,25 @@ OS-draw-font: func [
 	state: as red-block! vals + FONT_OBJ_STATE
 	color: as red-tuple! vals + FONT_OBJ_COLOR
 
-	hFont: as handle! either TYPE_OF(state) = TYPE_BLOCK [
-		handle: as red-handle! block/rs-head state
-		handle/value
-	][
-		make-font get-face-obj ctx/hwnd font
+	hFont: null
+	if TYPE_OF(state) = TYPE_BLOCK [
+		handle: as red-handle! (block/rs-head state) + 2
+		if TYPE_OF(handle) = TYPE_HANDLE [hFont: as handle! handle/value]
+	]
+
+	if null? hFont [
+		hFont: OS-make-font get-face-obj ctx/hwnd font no
 	]
 
 	SelectObject ctx/dc hFont
+	update-gdiplus-font ctx
 	ctx/font-color?: either TYPE_OF(color) = TYPE_TUPLE [
 		SetTextColor ctx/dc color/array1
-		if ctx/on-image? [update-gdiplus-font-color ctx color/array1]
+		update-gdiplus-font-color ctx color/array1
 		yes
 	][
 		no
 	]
-	if ctx/on-image? [update-gdiplus-font ctx]
 ]
 
 OS-draw-text: func [
@@ -1903,7 +1922,7 @@ OS-draw-line-cap: func [
 
 OS-draw-image: func [
 	ctx			[draw-ctx!]
-	image		[red-image!]
+	src			[red-image!]
 	start		[red-pair!]
 	end			[red-pair!]
 	key-color	[red-tuple!]
@@ -1911,66 +1930,70 @@ OS-draw-image: func [
 	crop1		[red-pair!]
 	pattern		[red-word!]
 	/local
+		src.w	[integer!]
+		src.h	[integer!]
 		x		[integer!]
 		y		[integer!]
-		width	[integer!]
-		height	[integer!]
-		src-x	[integer!]
-		src-y	[integer!]
 		w		[integer!]
 		h		[integer!]
-		attr	[integer!]
-		color	[integer!]
 		crop2	[red-pair!]
-		pts		[tagPOINT]
+		crop.x	[integer!]
+		crop.y	[integer!]
+		crop.w	[integer!]
+		crop.h	[integer!]
+		dst		[red-image! value]
+		handle	[integer!]
 ][
-	attr: 0
-	if key-color <> null [
-		attr: ctx/image-attr
-		if zero? attr [GdipCreateImageAttributes :attr]
-		color: to-gdiplus-color key-color/array1
-		GdipSetImageAttributesColorKeys attr 0 true color color
-	]
-	either crop1 = null [
-		src-x: 0 src-y: 0
-		w: IMAGE_WIDTH(image/size)
-		h: IMAGE_HEIGHT(image/size)
+	either any [
+		start + 2 = end
+		start + 3 = end
 	][
-		crop2: crop1 + 1
-		src-x: crop1/x
-		src-y: crop1/y
-		w: crop2/x
-		h: crop2/y
-	]
-	either null? start [x: 0 y: 0][x: start/x y: start/y]
-	case [
-		start = end [
-			width:  w
-			height: h
-		]
-		start + 1 = end [					;-- two control points
-			width: end/x - x
-			height: end/y - y
-		]
-		start + 2 = end [					;-- three control points
-			pts: ctx/other/edges
-			loop 3 [
-				pts/x: start/x
-				pts/y: start/y
-				pts: pts + 1
-				start: start + 1
+		x: 0 y: 0 w: 0 h: 0
+		image/any-resize src dst crop1 start end :x :y :w :h
+		if dst/header = TYPE_NONE [exit]
+		GdipDrawImageRectI ctx/graphics as-integer dst/node x y w h
+		OS-image/delete dst
+	][
+		src.w: IMAGE_WIDTH(src/size)
+		src.h: IMAGE_HEIGHT(src/size)
+		either null? start [x: 0 y: 0][x: start/x y: start/y]
+		unless null? crop1 [
+			crop2: crop1 + 1
+			crop.x: crop1/x
+			crop.y: crop1/y
+			crop.w: crop2/x
+			crop.h: crop2/y
+			if crop.x + crop.w > src.w [
+				crop.w: src.w - crop.x
 			]
-			GdipDrawImagePointsRectI
-				ctx/graphics as-integer image/node ctx/other/edges 3
-				0 0 w h GDIPLUS_UNIT_PIXEL attr 0 0
-			exit
+			if crop.y + crop.h > src.h [
+				crop.h: src.h - crop.y
+			]
 		]
-		true [exit]							;@@ TBD four control points
+		case [
+			start = end [
+				either null? crop1 [
+					w: src.w h: src.h
+				][
+					w: crop.w h: crop.h
+				]
+			]
+			start + 1 = end [
+				w: end/x - x
+				h: end/y - y
+			]
+			true [exit]
+		]
+		either null? crop1 [
+			GdipDrawImageRectI ctx/graphics as-integer src/node x y w h
+		][
+			GdipDrawImageRectRectI
+				ctx/graphics as-integer src/node
+				x y w h
+				crop.x crop.y crop.w crop.h
+				GDIPLUS_UNIT_PIXEL 0 0 0
+		]
 	]
-	GdipDrawImageRectRectI
-		ctx/graphics as-integer image/node
-		x y width height src-x src-y w h
-		GDIPLUS_UNIT_PIXEL attr 0 0
 ]
 
 check-texture: func [
@@ -2063,6 +2086,11 @@ check-texture-shape: func [
 		path-data	[PATHDATA]
 		pt2F		[POINT_2F]
 ][
+	if all [
+		ctx/gp-pen-type = BRUSH_TYPE_NORMAL
+		ctx/gp-brush-type = BRUSH_TYPE_NORMAL
+	][exit]
+
 	;-- flatten path to get a polygon aproximation
 	new-path: 0
 	GdipClonePath ctx/gp-path :new-path
@@ -2086,6 +2114,7 @@ check-texture-shape: func [
 	]
 	check-texture-poly ctx points count
 	;-- free allocated resources
+	GdipDeletePath new-path
 	free as byte-ptr! points
 	free as byte-ptr! path-data/points
 	free path-data/types
@@ -2212,8 +2241,11 @@ OS-draw-brush-pattern: func [
 	/local
 		pat-image	[red-image!]
 		bkg-alpha	[byte!]
-		p-alpha		[byte-ptr!]
+		p-alpha		[red-value! value]
+		bin			[red-binary!]
+		s			[series!]
 		p			[byte-ptr!]
+		len			[integer!]
 ][
 	pat-image: either brush?
 		[ as red-image! ctx/other/pattern-image-fill ]
@@ -2225,14 +2257,13 @@ OS-draw-brush-pattern: func [
 	pat-image/head:   0
 	pat-image/size:   size/y << 16 or size/x
 	bkg-alpha:        as byte! 0
-	p-alpha:          allocate pat-image/size
-	p: p-alpha
-	loop pat-image/size [
-		p/value: as-byte 255
-		p: p + 1
-	]
-	pat-image/node: OS-image/make-image size/x size/y null p-alpha null
-	free p-alpha
+	len:              size/x * size/y
+	bin: binary/make-at :p-alpha len
+	s: GET_BUFFER(bin)
+	p: as byte-ptr! s/offset
+	s/tail: as cell! (p + len)
+	set-memory p #"^(FF)" len
+	pat-image/node: OS-image/make-image size/x size/y null bin null
 	do-draw null pat-image block no no no no
 	OS-draw-brush-bitmap ctx pat-image crop-1 crop-2 mode brush?
 ]
@@ -2891,6 +2922,7 @@ _check-gradient-shape: func [
 	]
 	_check-gradient-poly ctx gradient points count
 	;-- free allocated resources
+	GdipDeletePath new-path
 	free as byte-ptr! points
 	free as byte-ptr! gradient/path-data/points
 	free gradient/path-data/types
@@ -3306,6 +3338,8 @@ OS-matrix-rotate: func [
 		gradient	[gradient!]
 		pen?		[logic!]
 		g			[integer!]
+		cx			[float32!]
+		cy			[float32!]
 ][
 	ctx/other/GDI+?: yes
 	either pen-fill <> -1 [
@@ -3320,12 +3354,19 @@ OS-matrix-rotate: func [
 	][
 		;-- rotate figure
 		g: ctx/graphics
-		if angle <> as red-integer! center [
-			GdipTranslateWorldTransform g as float32! center/x as float32! center/y GDIPLUS_MATRIX_PREPEND
-		]
-		GdipRotateWorldTransform g get-float32 angle GDIPLUS_MATRIX_PREPEND
-		if angle <> as red-integer! center [
-			GdipTranslateWorldTransform g as float32! 0 - center/x as float32! 0 - center/y GDIPLUS_MATRIX_PREPEND
+		either angle <> as red-integer! center [
+			either ctx/other/matrix-order = GDIPLUS_MATRIX_APPEND [
+				cx: as float32! 0 - center/x
+				cy: as float32! 0 - center/y
+			][
+				cx: as float32! center/x
+				cy: as float32! center/y
+			]
+			GdipTranslateWorldTransform g cx cy ctx/other/matrix-order
+			GdipRotateWorldTransform g get-float32 angle ctx/other/matrix-order
+			GdipTranslateWorldTransform g (as float32! 0.0) - cx (as float32! 0.0) - cy ctx/other/matrix-order
+		][
+			GdipRotateWorldTransform g get-float32 angle ctx/other/matrix-order
 		]
 	]
 ]
@@ -3334,13 +3375,18 @@ OS-matrix-scale: func [
 	ctx			[draw-ctx!]
 	pen-fill	[integer!]
 	sx			[red-integer!]
-	sy			[red-integer!]
+	center		[red-pair!]
 	/local
+		sy			[red-integer!]
 		gradient	[gradient!]
 		pen?		[logic!]
 		brush		[integer!]
+		g			[integer!]
+		cx			[float32!]
+		cy			[float32!]
 ][
 	ctx/other/GDI+?: yes
+	sy: sx + 1
 	either pen-fill <> -1 [
 		;-- scale pen or fill
 		pen?: either pen-fill = pen [ true ][ false ]
@@ -3352,7 +3398,21 @@ OS-matrix-scale: func [
 		texture-scale as-float sx/value as-float sy/value brush
 	][
 		;-- scale figure
-		GdipScaleWorldTransform ctx/graphics get-float32 sx get-float32 sy ctx/other/matrix-order
+		g: ctx/graphics
+		either sy <> as red-integer! center [
+			either ctx/other/matrix-order = GDIPLUS_MATRIX_APPEND [
+				cx: as float32! 0 - center/x
+				cy: as float32! 0 - center/y
+			][
+				cx: as float32! center/x
+				cy: as float32! center/y
+			]
+			GdipTranslateWorldTransform g cx cy ctx/other/matrix-order
+			GdipScaleWorldTransform g get-float32 sx get-float32 sy ctx/other/matrix-order
+			GdipTranslateWorldTransform g (as float32! 0.0) - cx (as float32! 0.0) - cy ctx/other/matrix-order
+		][
+			GdipScaleWorldTransform g get-float32 sx get-float32 sy ctx/other/matrix-order
+		]
 	]
 ]
 
@@ -3387,32 +3447,63 @@ OS-matrix-translate: func [
 ]
 
 OS-matrix-skew: func [
-	ctx		    [draw-ctx!]
-	pen-fill    [integer!]
+	ctx			[draw-ctx!]
+	pen-fill	[integer!]
 	sx			[red-integer!]
-	sy			[red-integer!]
+	center		[red-pair!]
 	/local
-		m		[integer!]
-		x		[float32!]
-		y		[float32!]
-		u		[float32!]
-		z		[float32!]
-		gradient [gradient!]
+		sy			[red-integer!]
+		xv			[float!]
+		yv			[float!]
+		m			[integer!]
+		x			[float32!]
+		y			[float32!]
+		u			[float32!]
+		z			[float32!]
+		gradient	[gradient!]
+		g			[integer!]
+		cx			[float32!]
+		cy			[float32!]
 ][
+	sy: sx + 1
+	xv: get-float sx
+	yv: either all [
+		sy <= center
+		TYPE_OF(sy) = TYPE_PAIR
+	][
+		get-float sy
+	][
+		0.0
+	]
 	either pen-fill <> -1 [
 		;-- skew pen or fill
 		gradient: either pen-fill = pen [ ctx/other/gradient-pen ][ ctx/other/gradient-fill ]
-		gradient-skew ctx gradient as-float sx/value as-float sy/value
+		gradient-skew ctx gradient xv yv
 	][
 		;-- skew figure
+		g: ctx/graphics
+		if TYPE_OF(center) = TYPE_PAIR [
+			either ctx/other/matrix-order = GDIPLUS_MATRIX_APPEND [
+				cx: as float32! 0 - center/x
+				cy: as float32! 0 - center/y
+			][
+				cx: as float32! center/x
+				cy: as float32! center/y
+			]
+			GdipTranslateWorldTransform g cx cy ctx/other/matrix-order
+		]
 		m: 0
 		u: as float32! 1.0
 		z: as float32! 0.0
-		x: as float32! tan degree-to-radians get-float sx TYPE_TANGENT
-		y: as float32! either sx = sy [0.0][tan degree-to-radians get-float sy TYPE_TANGENT]
+		x: as float32! tan degree-to-radians xv TYPE_TANGENT
+		y: as float32! either yv = 0.0 [0.0][tan degree-to-radians yv TYPE_TANGENT]
+
 		GdipCreateMatrix2 u y x u z z :m
-		GdipMultiplyWorldTransform ctx/graphics m ctx/other/matrix-order
+		GdipMultiplyWorldTransform g m ctx/other/matrix-order
 		GdipDeleteMatrix m
+		if TYPE_OF(center) = TYPE_PAIR [
+			GdipTranslateWorldTransform g (as float32! 0.0) - cx (as float32! 0.0) - cy ctx/other/matrix-order
+		]
 	]
 ]
 
@@ -3424,11 +3515,13 @@ OS-matrix-transform: func [
 	translate	[red-pair!]
 	/local
 		rotate		[red-integer!]
-		m			[integer!]
 		gradient	[gradient!]
 		pen?		[logic!]
 		brush		[integer!]
 		center?		[logic!]
+		g			[integer!]
+		cx			[float32!]
+		cy			[float32!]
 ][
 	rotate: as red-integer! either center + 1 = scale [center][center + 1]
 	center?: rotate <> center
@@ -3448,17 +3541,29 @@ OS-matrix-transform: func [
 		texture-rotate as-float rotate/value brush
 	][
 		;-- transform figure
-		m: 0
-		GdipCreateMatrix :m
-
-		if center? [GdipTranslateMatrix m as float32! center/x as float32! center/y GDIPLUS_MATRIX_PREPEND]
-		GdipTranslateMatrix m as float32! translate/x as float32! translate/y GDIPLUS_MATRIX_PREPEND
-		GdipScaleMatrix m get-float32 scale get-float32 scale + 1 GDIPLUS_MATRIX_PREPEND
-		GdipRotateMatrix m get-float32 rotate GDIPLUS_MATRIX_PREPEND
-		if center? [GdipTranslateMatrix m as float32! 0 - center/x as float32! 0 - center/y GDIPLUS_MATRIX_PREPEND]
-
-		GdipMultiplyWorldTransform ctx/graphics m ctx/other/matrix-order
-		GdipDeleteMatrix m
+		g: ctx/graphics
+		if center? [
+			either ctx/other/matrix-order = GDIPLUS_MATRIX_APPEND [
+				cx: as float32! 0 - center/x
+				cy: as float32! 0 - center/y
+			][
+				cx: as float32! center/x
+				cy: as float32! center/y
+			]
+			GdipTranslateWorldTransform g cx cy ctx/other/matrix-order
+		]
+		either ctx/other/matrix-order = GDIPLUS_MATRIX_APPEND [
+			GdipRotateWorldTransform g get-float32 rotate ctx/other/matrix-order
+			GdipScaleWorldTransform g get-float32 scale get-float32 scale + 1 ctx/other/matrix-order
+			GdipTranslateWorldTransform g as float32! translate/x as float32! translate/y ctx/other/matrix-order
+		][
+			GdipTranslateWorldTransform g as float32! translate/x as float32! translate/y ctx/other/matrix-order
+			GdipScaleWorldTransform g get-float32 scale get-float32 scale + 1 ctx/other/matrix-order
+			GdipRotateWorldTransform g get-float32 rotate ctx/other/matrix-order
+		]
+		if center? [
+			GdipTranslateWorldTransform g (as float32! 0.0) - cx (as float32! 0.0) - cy ctx/other/matrix-order
+		]
 	]
 ]
 

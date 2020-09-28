@@ -44,6 +44,9 @@ Red/System [
 
 #define make-c-string [as c-string! allocate]
 
+ptr-ptr!: alias struct! [value [int-ptr!]]
+#define ptr-value!    [ptr-ptr! value]
+
 #define read-io8	  [system/io/read as byte-ptr!]
 ;#define read-io16	  [system/io/read as int16-ptr!]
 #define read-io32	  [system/io/read as int-ptr!]
@@ -53,7 +56,7 @@ Red/System [
 #define write-io32	  [system/io/write as int-ptr!]
 
 
-#define type-logic!		1					;-- type ID list for 'typeinfo attribut
+#define type-logic!		1					;-- type ID list for 'typed' attribute
 #define type-integer!	2
 #define type-byte!	    3
 #define type-float32!	4
@@ -138,6 +141,7 @@ re-throw: func [/local id [integer!]][
 	macOS	 [#include %darwin.reds]
 	Android	 [#include %android.reds]
 	FreeBSD	 [#include %freebsd.reds]
+	NetBSD	 [#include %netbsd.reds]
 	#default [#include %linux.reds]
 ]
 

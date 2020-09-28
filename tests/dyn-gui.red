@@ -14,7 +14,7 @@ labels: [
 
 set-lang: function [f event][
 	root: f/parent
-	condition: [all [face/text face/type <> 'drop-list]]
+	condition: [all [face/text find [text button] face/type]]
 
 	list: collect [foreach-face/with root [keep face/text] condition]
 	forall list [append clear list/1 labels/(f/selected)/(index? list)]

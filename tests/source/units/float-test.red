@@ -415,6 +415,10 @@ Red [
 		]
 		--assert 3.14 = fabs -3.14
 
+	--test-- "issue #4250"
+		--assert error?     try [to float! "12e"]
+		--assert not error? try [to float! "12e4"]
+
 ===end-group===
 
 ===start-group=== "almost equal"
@@ -443,6 +447,11 @@ Red [
 	--test-- "special-arithmetic-10" --assert "1.#NaN"  = to string! 1.#INF / 1.#INF
 	--test-- "special-arithmetic-11" --assert "1.#NaN"  = to string! 0.0 * 1.#INF
 	--test-- "special-arithmetic-12" --assert "1.#INF"  = to string! 1e308 + 1e308
+	;-- issue #4574
+	--test-- "special-arithmetic-13" --assert "1.#NaN"  = to string! 1.0 % 0.0
+	--test-- "special-arithmetic-14" --assert "1.#NaN"  = to string! 1.#inf % 1.0
+	--test-- "special-arithmetic-15" --assert "1.#NaN"  = to string! -1.#inf % 1.0
+	--test-- "special-arithmetic-16" --assert "1.#NaN"  = to string! 1.#inf % 0.0
 ===end-group===
 
 ===start-group=== "special value equality (NaNs and INF)"

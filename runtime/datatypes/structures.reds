@@ -128,6 +128,13 @@ red-email!: alias struct! [
 	cache	[node!]									;-- UTF-8 cached version of the string (experimental)
 ]
 
+red-ref!: alias struct! [
+	header 	[integer!]								;-- cell header
+	head	[integer!]								;-- string's head index (zero-based)
+	node	[node!]									;-- series node pointer
+	cache	[node!]									;-- UTF-8 cached version of the string (experimental)
+]
+
 red-binary!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- string's head index (zero-based)
@@ -321,7 +328,7 @@ red-date!: alias struct! [
 red-time!: alias struct! [
 	header 	[integer!]								;-- cell header
 	padding	[integer!]								;-- for compatibility with date!
-	time	[float!]								;-- 64-bit float
+	time	[float!]								;-- 64-bit float, in seconds
 ]
 
 red-handle!: alias struct! [
@@ -329,6 +336,13 @@ red-handle!: alias struct! [
 	padding	[integer!]								;-- align value on 64-bit boundary
 	value	[integer!]								;-- 32-bit signed integer value
 	_pad	[integer!]	
+]
+
+red-money!: alias struct! [
+	header 	[integer!]								;-- cell header
+	amount1	[integer!]								;-- 1 byte for currency index
+	amount2	[integer!]								;-- 11 bytes for BCD-encoded amount
+	amount3	[integer!]								;-- (unsigned, packed)
 ]
 
 red-slice!: alias struct! [							;@@ internal use only !!!

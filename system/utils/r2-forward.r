@@ -149,3 +149,12 @@ has: func [
 ][
 	func head insert copy locals /local body
 ]
+
+unless value? 'quote [
+	quote: func [
+		"Returns the value passed to it without evaluation."
+		:value [any-type!]
+	][
+		get/any 'value
+	]
+]
