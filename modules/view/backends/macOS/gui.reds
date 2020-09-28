@@ -51,6 +51,7 @@ caret-x:		as float32! 0.0
 caret-y:		as float32! 0.0
 
 win-array:		declare red-vector!
+active-wins:	declare red-vector!			;-- last actives windows
 
 red-face?: func [
 	handle	[integer!]
@@ -150,10 +151,13 @@ get-child-from-xy: func [
 get-text-size: func [
 	face 	[red-object!]		; TODO: implement face-dependent measurement for Mac
 	str		[red-string!]
-	hFont	[handle!]
 	pair	[red-pair!]
 	return: [tagSIZE]
 	/local
+		values	[red-value!]
+		font	[red-object!]
+		state	[red-block!]
+		hFont	[handle!]
 		attrs	[integer!]
 		cf-str	[integer!]
 		attr	[integer!]
@@ -162,6 +166,15 @@ get-text-size: func [
 		rc		[NSRect!]
 		size	[tagSIZE]
 ][
+	values: object/get-values face
+	font: as red-object! values + FACE_OBJ_FONT
+	hFont: null
+	if TYPE_OF(font) = TYPE_OBJECT [
+		state: as red-block! values + FONT_OBJ_STATE
+		if TYPE_OF(state) <> TYPE_BLOCK [hFont: get-font-handle font 0]
+		if null? hFont [hFont: make-font face font]
+	]
+
 	size: declare tagSIZE
 	if null? hFont [hFont: as handle! default-font]
 
@@ -298,6 +311,7 @@ get-metrics: func [][
 on-gc-mark: does [
 	collector/keep flags-blk/node
 	collector/keep win-array/node
+	collector/keep active-wins/node
 ]
 
 init: func [
@@ -316,6 +330,7 @@ init: func [
 		p-int	 [int-ptr!]
 ][
 	vector/make-at as red-value! win-array 8 TYPE_INTEGER 4
+	vector/make-at as red-value! active-wins 8 TYPE_INTEGER 4
 	init-selectors
 	register-classes
 	nsview-id: objc_getClass "NSView"
@@ -369,20 +384,49 @@ init: func [
 ]
 
 set-logic-state: func [
-	hWnd   [integer!]
+	handle [integer!]
 	state  [red-logic!]
 	check? [logic!]
 	/local
-		value [integer!]
+		values [red-block!]
+		flags  [integer!]
+		type   [integer!]
+		value  [integer!]
+		tri?   [logic!]
 ][
-	value: either TYPE_OF(state) <> TYPE_LOGIC [
-		state/header: TYPE_LOGIC
-		state/value: check?
-		either check? [-1][0]
-	][
-		as-integer state/value							;-- returns 0/1, matches the messages
+	if check? [
+		values: as red-block! get-face-values handle
+		flags: get-flags as red-block! values + FACE_OBJ_FLAGS
+		tri?: flags and FACET_FLAGS_TRISTATE <> 0
 	]
-	objc_msgSend [hWnd sel_getUid "setState:"  value]
+	
+	type: TYPE_OF(state)
+	value: either all [check? tri? type = TYPE_NONE][NSMixedState][
+		as integer! switch type [
+			TYPE_NONE  [false]
+			TYPE_LOGIC [state/value]					;-- returns 0/1, matches the state flag
+			default	   [true]
+		]
+	]
+
+	objc_msgSend [handle sel_getUid "setState:" value]
+]
+
+get-logic-state: func [
+	handle [integer!]
+	/local
+		bool  [red-logic!]
+		state [integer!]
+][
+	bool: as red-logic! (get-face-values handle) + FACE_OBJ_DATA
+	state: objc_msgSend [handle sel_getUid "state"]
+	
+	either state = NSMixedState [
+		bool/header: TYPE_NONE
+	][
+		bool/header: TYPE_LOGIC
+		bool/value: state = NSOnState
+	]
 ]
 
 get-flags: func [
@@ -420,6 +464,7 @@ get-flags: func [
 			sym = no-buttons [flags: flags or FACET_FLAGS_NO_BTNS]
 			sym = modal		 [flags: flags or FACET_FLAGS_MODAL]
 			sym = popup		 [flags: flags or FACET_FLAGS_POPUP]
+			sym = tri-state  [flags: flags or FACET_FLAGS_TRISTATE]
 			sym = scrollable [flags: flags or FACET_FLAGS_SCROLLABLE]
 			sym = password	 [flags: flags or FACET_FLAGS_PASSWORD]
 			true			 [fire [TO_ERROR(script invalid-arg) word]]
@@ -533,7 +578,7 @@ change-size: func [
 		h		[float32!]
 ][
 	rc: make-rect size/x size/y 0 0
-	if all [type = button size/y > 32][
+	if all [any [type = button type = toggle] size/y > 32][
 		objc_msgSend [hWnd sel_getUid "setBezelStyle:" NSRegularSquareBezelStyle]
 	]
 	either type = window [
@@ -563,7 +608,7 @@ change-image: func [
 		id		 [integer!]
 ][
 	case [
-		any [type = button type = check type = radio][
+		any [type = button type = toggle type = check type = radio][
 			if TYPE_OF(image) <> TYPE_IMAGE [
 				objc_msgSend [hWnd sel_getUid "setImage:" 0]
 				exit
@@ -746,7 +791,7 @@ change-font: func [
 			sel_getUid "initWithString:attributes:" title attrs
 		]
 		case [
-			any [type = button type = check type = radio][
+			any [type = button type = toggle type = check type = radio][
 				objc_msgSend [hWnd sel_getUid "setAttributedTitle:" str]
 			]
 			any [type = field type = text][
@@ -787,7 +832,7 @@ change-visible: func [
 	type  [integer!]
 ][
 	case [
-		any [type = button type = check type = radio][
+		any [type = button type = toggle type = check type = radio][
 			objc_msgSend [hWnd sel_getUid "setEnabled:" show?]
 			objc_msgSend [hWnd sel_getUid "setTransparent:" not show?]
 		]
@@ -872,7 +917,7 @@ change-text: func [
 				any [type = field type = text][
 					objc_msgSend [hWnd sel_getUid "setStringValue:" txt]
 				]
-				any [type = button type = radio type = check type = window type = group-box][
+				any [type = button type = toggle type = radio type = check type = window type = group-box][
 					objc_msgSend [hWnd sel_getUid "setTitle:" txt]
 				]
 				true [0]
@@ -925,11 +970,12 @@ change-data: func [
 			len: either size/x > size/y [size/x][size/y]
 			objc_msgSend [hWnd sel_getUid "setDoubleValue:" f/value * (as-float len)]
 		]
-		type = check [
-			set-logic-state hWnd as red-logic! data yes
-		]
-		type = radio [
-			set-logic-state hWnd as red-logic! data no
+		any [
+			type = check
+			type = toggle
+			type = radio
+		][
+			set-logic-state hWnd as red-logic! data type = check
 		]
 		type = tab-panel [
 			set-tabs hWnd values
@@ -1256,7 +1302,7 @@ init-calendar: func [
 	objc_msgSend [calendar sel_getUid "setDatePickerElements:" NSDatePickerElementFlagYearMonthDay]
 	
 	objc_msgSend [calendar sel_getUid "setTarget:" calendar]
-	objc_msgSend [calendar sel_getUid "setAction:" sel_getUid "calendar-change:"]
+	objc_msgSend [calendar sel_getUid "setAction:" sel_getUid "calendar-change"]
 	objc_msgSend [calendar sel_getUid "sendActionOn:" NSLeftMouseDown]
 	
 	slot: declare red-value!
@@ -1551,7 +1597,7 @@ update-combo-box: func [
 					]
 				]
 				any [
-					sym = words/_insert/symbol
+					sym = words/_inserted/symbol
 					sym = words/_poke/symbol
 					sym = words/_put/symbol
 					sym = words/_reverse/symbol
@@ -1567,7 +1613,7 @@ update-combo-box: func [
 						new
 					]
 					loop part [
-						if sym <> words/_insert/symbol [
+						if sym <> words/_inserted/symbol [
 							objc_msgSend [hWnd sel_getUid "removeItemAtIndex:" index]
 						]
 						insert-list-item hWnd str index list?
@@ -1787,7 +1833,7 @@ parse-common-opts: func [
 		]
 	]
 
-	if type = button [
+	if any [type = button type = toggle][
 		len: either btn? [NSRegularSquareBezelStyle][NSRoundedBezelStyle]
 		objc_msgSend [hWnd sel_getUid "setBezelStyle:" len]
 	]
@@ -1861,7 +1907,9 @@ OS-make-view: func [
 		any [
 			sym = text-list
 			sym = area
-		][class: "RedScrollView"]
+		][
+			class: "RedScrollView"
+		]
 		sym = text [class: "RedTextField"]
 		sym = field [
 			class: either bits and FACET_FLAGS_PASSWORD = 0 ["RedTextField"][
@@ -1871,6 +1919,10 @@ OS-make-view: func [
 		sym = button [
 			class: "RedButton"
 		]
+		sym = toggle [
+			class: "RedButton"
+			flags: NSPushOnPushOffButton
+		]
 		sym = check [
 			class: "RedButton"
 			flags: NSSwitchButton
@@ -1879,7 +1931,13 @@ OS-make-view: func [
 			class: "RedButton"
 			flags: NSRadioButton
 		]
-		sym = window [class: "RedWindow"]
+		sym = window [
+			class: "RedWindow"
+			if bits and FACET_FLAGS_MODAL <> 0 [
+				obj: objc_msgSend [NSApp sel_getUid "mainWindow"]
+				if obj <> 0 [vector/rs-append-int active-wins obj]
+			]
+		]
 		sym = tab-panel [
 			class: "RedTabView"
 		]
@@ -1975,14 +2033,20 @@ OS-make-view: func [
 			make-text-list face obj rc menu bits and FACET_FLAGS_NO_BORDER = 0
 			integer/make-at values + FACE_OBJ_SELECTED 0
 		]
-		any [sym = button sym = check sym = radio][
+		any [
+			sym = button
+			sym = toggle
+			sym = check
+			sym = radio
+		][
 			if sym <> button [
+				if all [sym = check bits and FACET_FLAGS_TRISTATE <> 0][
+					objc_msgSend [obj sel_getUid "setAllowsMixedState:" yes]
+				]
 				objc_msgSend [obj sel_getUid "setButtonType:" flags]
-				set-logic-state obj as red-logic! data no
+				set-logic-state obj as red-logic! data sym = check
 			]
-			if TYPE_OF(img) = TYPE_IMAGE [
-				change-image obj img sym
-			]
+			if TYPE_OF(img) = TYPE_IMAGE [change-image obj img sym]
 			if caption <> 0 [objc_msgSend [obj sel_getUid "setTitle:" caption]]
 			;objc_msgSend [obj sel_getUid "setTarget:" obj]
 			;objc_msgSend [obj sel_getUid "setAction:" sel_getUid "button-click:"]
@@ -2011,6 +2075,7 @@ OS-make-view: func [
 				AppMainMenu: objc_msgSend [NSApp sel_getUid "mainMenu"]
 				build-menu menu AppMainMenu obj
 			]
+			if bits and FACET_FLAGS_MODAL <> 0 [vector/rs-append-int active-wins obj]
 		]
 		sym = slider [
 			len: either size/x > size/y [size/x][size/y]

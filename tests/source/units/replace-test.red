@@ -39,6 +39,7 @@ Red [
 	--test-- "replace/deep-4"	--assert [1 2 3 [8]] = replace/deep [1 2 3 [4 5]] [quote 4 quote 5] 8
 	--test-- "replace/deep-5"	--assert [1 2 a 4 5] = replace/deep [1 2 3 4 5] [quote 8 | quote 4 | quote 3] 'a
 	--test-- "replace/deep-6"	--assert [a g h c d] = replace/deep [a b c d] ['b | 'd] [g h]
+	--test-- "replace/deep-7"	--assert [x: 1 2 3] = replace/deep [a: 1 2 3] quote a: quote x:
 
 ===end-group===
 
@@ -53,6 +54,7 @@ Red [
 	--test-- "replace/all-7"	--assert #{640164} = replace/all #{000100} #{00} #{64}
 	--test-- "replace/all-8"	--assert %file.sub.ext = replace/all %file!sub!ext #"!" #"."
 	--test-- "replace/all-9"	--assert <tag body end> = replace/all <tag_body_end> "_" " "
+	--test-- "replace-all-10"	--assert [x: 123] = replace/all [a: 123] quote a: quote x:
 
 ===end-group===
 
@@ -62,6 +64,7 @@ Red [
 	--test-- "replace/deep/all-2"	--assert [1 8 9 3 [4 8 9]] = replace/deep/all [1 2 3 [4 5]] [quote 5 | quote 2] [8 9]
 	--test-- "replace/deep/all-3"	--assert [i j c [i j]] = replace/deep/all [a b c [d e]] ['d 'e | 'a 'b] [i j]
 	--test-- "replace/deep/all-4"	--assert [a [<tag> [<tag>]]] = replace/all/deep [a [b c [d b]]] ['d 'b | 'b 'c] <tag>
+	--test-- "replace/deep/all-5"	--assert [x: 123 [x: 123]] = replace/all/deep [a: 123 [a: 123]] quote a: quote x:
 
 ===end-group===
 

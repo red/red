@@ -32,7 +32,7 @@ char: context [
 			default		[fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(right)]]
 		]
 
-		rv: integer/do-math-op char/value rv op
+		rv: integer/do-math-op char/value rv op null
 		if any [
 			rv > 0010FFFFh
 			negative? rv

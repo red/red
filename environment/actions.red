@@ -25,7 +25,7 @@ random: make action! [[
 		"Returns a random value of the same datatype; or shuffles series"
 		value	"Maximum value of result (modified when series)"
 		/seed   "Restart or randomize"
-		/secure "TBD: Returns a cryptographically secure random number"
+		/secure "Returns a cryptographically secure random number"
 		/only	"Pick a random value from a series"
 		return:	[any-type!]
 	]
@@ -85,43 +85,43 @@ modify: make action! [[
 
 absolute: make action! [[
 		"Returns the non-negative value"
-		value	 [number! char! pair! time!]
-		return:  [number! char! pair! time!]
+		value	 [number! money! char! pair! time!]
+		return:  [number! money! char! pair! time!]
 	]
 	#get-definition ACT_ABSOLUTE
 ]
 
 add: make action! [[
 		"Returns the sum of the two values"
-		value1	 [number! char! pair! tuple! vector! time! date!]
-		value2	 [number! char! pair! tuple! vector! time! date!]
-		return:  [number! char! pair! tuple! vector! time! date!]
+		value1	 [scalar! vector!] "The augend"
+		value2	 [scalar! vector!] "The addend"
+		return:  [scalar! vector!] "The sum"
 	]
 	#get-definition ACT_ADD
 ]
 
 divide: make action! [[
 		"Returns the quotient of two values"
-		value1	 [number! char! pair! tuple! vector! time!] "The dividend (numerator)"
-		value2	 [number! char! pair! tuple! vector! time!] "The divisor (denominator)"
-		return:  [number! char! pair! tuple! vector! time!]
+		value1	 [number! money! char! pair! tuple! vector! time!] "The dividend (numerator)"
+		value2	 [number! money! char! pair! tuple! vector! time!] "The divisor (denominator)"
+		return:  [number! money! char! pair! tuple! vector! time!] "The quotient"
 	]
 	#get-definition ACT_DIVIDE
 ]
 
 multiply: make action! [[
 		"Returns the product of two values"
-		value1	 [number! char! pair! tuple! vector! time!]
-		value2	 [number! char! pair! tuple! vector! time!]
-		return:  [number! char! pair! tuple! vector! time!]
+		value1	 [number! money! char! pair! tuple! vector! time!] "The multiplicand"
+		value2	 [number! money! char! pair! tuple! vector! time!] "The multiplier"
+		return:  [number! money! char! pair! tuple! vector! time!] "The product"
 	]
 	#get-definition ACT_MULTIPLY
 ]
 
 negate: make action! [[
 		"Returns the opposite (additive inverse) value"
-		number 	 [number! bitset! pair! time!]
-		return:  [number! bitset! pair! time!]
+		number 	 [number! money! bitset! pair! time!]
+		return:  [number! money! bitset! pair! time!]
 	]
 	#get-definition ACT_NEGATE
 ]
@@ -137,18 +137,18 @@ power: make action! [[
 
 remainder: make action! [[
 		"Returns what is left over when one value is divided by another"
-		value1 	 [number! char! pair! tuple! vector! time!]
-		value2 	 [number! char! pair! tuple! vector! time!]
-		return:  [number! char! pair! tuple! vector! time!]
+		value1 	 [number! money! char! pair! tuple! vector! time!] "The dividend (numerator)"
+		value2 	 [number! money! char! pair! tuple! vector! time!] "The divisor (denominator)"
+		return:  [number! money! char! pair! tuple! vector! time!] "The remainder"
 	]
 	#get-definition ACT_REMAINDER
 ]
 
 round: make action! [[
 		"Returns the nearest integer. Halves round up (away from zero) by default"
-		n		[number! time! pair!]
+		n		[number! money! time! pair!]
 		/to		"Return the nearest multiple of the scale parameter"
-		scale	[number! time!] "Must be a non-zero value"
+		scale	[number! money! time!] "Must be a non-zero value"
 		/even		"Halves round toward even results"
 		/down		"Round toward zero, ignoring discarded digits. (truncate)"
 		/half-down	"Halves round toward zero"
@@ -161,25 +161,25 @@ round: make action! [[
 
 subtract: make action! [[
 		"Returns the difference between two values"
-		value1	 [number! char! pair! tuple! vector! time! date!]
-		value2	 [number! char! pair! tuple! vector! time! date!]
-		return:  [number! char! pair! tuple! vector! time! date!]
+		value1	 [scalar! vector!] "The minuend"
+		value2	 [scalar! vector!] "The subtrahend"
+		return:  [scalar! vector!] "The difference"
 	]
 	#get-definition ACT_SUBTRACT
 ]
 
 even?: make action! [[
 		"Returns true if the number is evenly divisible by 2"
-		number 	 [number! char! time!]
-		return:  [number! char! time!]
+		number 	 [number! money! char! time!]
+		return:  [logic!]
 	]
 	#get-definition ACT_EVEN?
 ]
 
 odd?: make action! [[
 		"Returns true if the number has a remainder of 1 when divided by 2"
-		number 	 [number! char! time!]
-		return:  [number! char! time!]
+		number 	 [number! money! char! time!]
+		return:  [logic!]
 	]
 	#get-definition ACT_ODD?
 ]
@@ -197,8 +197,8 @@ and~: make action! [[
 
 complement: make action! [[
 		"Returns the opposite (complementing) value of the input value"
-		value	[logic! integer! bitset! typeset! binary!]
-		return: [logic! integer! bitset! typeset! binary!]
+		value	[logic! integer! tuple! bitset! typeset! binary!]
+		return: [logic! integer! tuple! bitset! typeset! binary!]
 	]
 	#get-definition ACT_COMPLEMENT
 ]
@@ -377,7 +377,7 @@ next: make action! [[
 
 pick: make action! [[
 		"Returns the series value at a given index"
-		series	 [series! port! bitset! pair! tuple! date! time!]
+		series	 [series! port! bitset! pair! tuple! money! date! time!]
 		index 	 [scalar! any-string! any-word! block! logic! time!]
 		return:  [any-type!]
 	]
@@ -422,6 +422,8 @@ reverse: make action! [[
 		series	 [series! port! pair! tuple!]
 		/part "Limits to a given length or position"
 			length [number! series!]
+		/skip "Treat the series as fixed size records"
+			size [integer!]
 		return:  [series! port! pair! tuple!]
 	]
 	#get-definition ACT_REVERSE
@@ -458,7 +460,7 @@ sort: make action! [[
 			comparator [integer! block! any-function!]
 		/part "Sort only part of a series"
 			length [number! series!]
-		/all "Compare all fields"
+		/all "Compare all fields (used with /skip)"
 		/reverse "Reverse sort order"
 		/stable "Stable sorting"
 		return:  [series!]

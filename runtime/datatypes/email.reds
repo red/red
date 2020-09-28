@@ -36,7 +36,7 @@ email: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "email/mold"]]
 		
-		url/mold as red-url! email buffer only? all? flat? arg part indent
+		string/form as red-string! email buffer arg part
 	]
 	
 	eval-path: func [
