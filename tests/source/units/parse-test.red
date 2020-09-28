@@ -2789,6 +2789,11 @@ Red [
 		parse x3357b: [][insert ('foo)]
 		--assert x3357b = [foo]
 
+	--test-- "#3951"
+		res: none
+		do "res: expand-directives/clean [[] #macro word! func [s e]['OK] WTF #reset]()"
+		--assert res = [[] OK]
+
 	--test-- "#3427"
 		--assert parse/part %234 ["23" thru [end]] 3
 		--assert parse/part %234 ["23" to [end]] 3
@@ -2818,6 +2823,23 @@ Red [
 	--test-- "#4194"
 		--assert not parse reduce [make vector! 0][into []]
 
+	--test-- "#4197"
+		x4197: make string! 0
+		--assert error? try [parse [][collect into x4197 []]]
+		x4197: make binary! 0
+		--assert error? try [parse #{}[collect into x4197 []]]
+		x4197: make vector! 0
+		--assert error? try [parse "" [collect into x4197 []]]
+		x4197: make block! 3
+		parse quote (a b c) [collect into x4197 keep pick to end]
+		--assert x4197 = [a b c]
+		x4197: make paren! 3
+		parse <abc> [collect into x4197 [keep to end [fail] | keep pick to end]]
+		--assert x4197 = quote (<abc> #"a" #"b" #"c")
+		x4197: make tag! 3
+		parse %abc [collect into x4197 [keep to end [fail] | keep pick to end]]
+		--assert x4197 = <abcabc>
+	
 	--test-- "#4198"
 		--assert [a] = parse [][collect keep pick ('a)]
 		--assert [[a b]] = parse [][collect keep pick ([a b])]

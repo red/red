@@ -399,6 +399,14 @@ Red/System [
 	]
 ]
 
+#define ANY_SERIES_PARSE?(type) [			;-- any-series! types that can be processed by Parse
+	all [
+		ANY_SERIES?(type)
+		type <> TYPE_IMAGE
+		type <> TYPE_VECTOR
+	]
+]
+
 #define ANY_PATH?(type)	[
 	any [
 		type = TYPE_PATH

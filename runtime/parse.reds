@@ -797,6 +797,7 @@ parser: context [
 			state	 [states!]
 			pos		 [byte-ptr!]						;-- required by BS_TEST_BIT_ALT()
 			type	 [integer!]
+			type2    [integer!]
 			dt-type	 [integer!]
 			sym		 [integer!]
 			min		 [integer!]
@@ -1048,8 +1049,8 @@ parser: context [
 									if into? [
 										blk: as red-block! _context/get as red-word! blk
 										type: TYPE_OF(blk)
-										unless ANY_SERIES?(type) [
-											PARSE_ERROR [TO_ERROR(script parse-into-bad)]
+										unless ANY_SERIES_PARSE?(type) [
+											PARSE_ERROR [TO_ERROR(script parse-into-type)]
 										]
 									]
 									value: stack/top	;-- refer last value from paren expression
@@ -1612,7 +1613,7 @@ parser: context [
 							]
 							value: block/rs-head input
 							type: TYPE_OF(value)
-							either all [ANY_SERIES?(type) type <> TYPE_IMAGE type <> TYPE_VECTOR][
+							either ANY_SERIES_PARSE?(type) [
 								input: as red-series! block/rs-append series value
 								min:  R_NONE
 								type: R_INTO
@@ -1773,15 +1774,29 @@ parser: context [
 									][
 										PARSE_ERROR [TO_ERROR(script parse-end) words/_collect]
 									]
-									either into? [get-word/push w][stack/push as red-value! w]
+
+									either not into? [stack/push as red-value! w][
+										value: _context/get w		;-- #4197
+										type:  TYPE_OF(value)
+										type2: TYPE_OF(input)
+										if any [
+											type = TYPE_BINARY
+											all [ANY_STRING?(type) ANY_BLOCK?(type2)]
+										][
+											PARSE_ERROR [TO_ERROR(script parse-into-type)]
+										]
+										
+										get-word/push w
+									]
+									
 									cmd: as red-value! w
 								]
 							]
 							either into? [
 								blk: as red-block! _context/get w
 								type: TYPE_OF(blk)
-								unless ANY_SERIES?(type) [
-									PARSE_ERROR [TO_ERROR(script parse-into-bad)]
+								unless ANY_SERIES_PARSE?(type) [
+									PARSE_ERROR [TO_ERROR(script parse-into-type)]
 								]
 								max: either sym = words/after [-1][blk/head] ;-- save block cursor
 							][
