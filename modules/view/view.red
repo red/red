@@ -940,9 +940,10 @@ make-face: func [
 	unless spec [blk: []]
 	opts: svv/opts-proto
 	css: make block! 2
-	spec: svv/fetch-options/no-skip face opts model blk css no
+	reactors: make block! 4
+	spec: svv/fetch-options/no-skip face opts model blk css reactors no
 	if model/init [do bind model/init 'face]
-	svv/process-reactors
+	svv/process-reactors reactors
 
 	if offset [face/offset: xy]
 	if size [face/size: wh]
