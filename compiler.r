@@ -1844,15 +1844,6 @@ red: context [
 					insert-lf -3
 				]
 				path! set-path!	[
-					case [
-						inactive [
-							either get-word? pc/1/1 [	;-- R2 doesn't have get-path!
-								emit 'get-path/push
-								pc/1/1: to word! pc/1/1
-							][
-								emit to path! reduce [to word! form type? pc/1 'push]
-								if path? pc/1 [emit [as red-path!]]
-							]
 					type: either get-word? pc/1/1 [
 						change pc/1 to word! pc/1/1
 						'get-path
@@ -1872,7 +1863,6 @@ red: context [
 							if path? pc/1 [emit [as red-path!]]
 						]
 					]
-					idx: do make-block
 					emit reduce ['get-root idx]
 					insert-lf -3
 				]
