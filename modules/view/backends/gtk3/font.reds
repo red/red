@@ -354,7 +354,7 @@ free-font: func [
 ][
 	hFont: get-font-handle font 0
 	if hFont <> null [
-		pango_attr_list_unref hFont
+		;pango_attr_list_unref hFont
 		state: as red-block! (object/get-values font) + FONT_OBJ_STATE
 		state/header: TYPE_NONE
 	]
@@ -374,7 +374,7 @@ update-font: func [
 		FONT_OBJ_ANTI-ALIAS? [
 			if TYPE_OF(font) = TYPE_OBJECT [
 				hFont: get-font-handle font 0
-				unless null? hFont [pango_attr_list_unref hFont]
+				;unless null? hFont [pango_attr_list_unref hFont]
 				make-font null font
 			]
 		]
@@ -466,7 +466,7 @@ change-font: func [
 	]
 
 	hFont: get-font-handle font 0
-	unless null? hFont [pango_attr_list_unref hFont]
+	;unless null? hFont [pango_attr_list_unref hFont]
 	make-font face font
 ]
 
