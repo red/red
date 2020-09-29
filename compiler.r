@@ -1853,15 +1853,6 @@ red: context [
 								emit to path! reduce [to word! form type? pc/1 'push]
 								if path? pc/1 [emit [as red-path!]]
 							]
-					type: either get-word? pc/1/1 [
-						change pc/1 to word! pc/1/1
-						'get-path
-					][to word! form type? pc/1]
-					idx: do make-block
-					case [
-						inactive [
-							emit to path! reduce [type 'push]
-							if type = 'path [emit [as red-path!]]
 						]
 						lit-path? pc/1 [
 							emit 'path/push

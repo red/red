@@ -1183,7 +1183,7 @@ lexer: context [
 	]
 	
 	scan-issue: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]][
-		if s + 1 = e [throw-error lex s e TYPE_ISSUE]
+		if any [s + 1 = e s/1 <> #"#"][throw-error lex s e TYPE_ISSUE]
 		lex/type: TYPE_ISSUE
 	]
 	
