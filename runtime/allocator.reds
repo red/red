@@ -351,7 +351,7 @@ alloc-node: func [
 ;-------------------------------------------
 free-node: func [
 	node [int-ptr!]							;-- node to release
-	/local frame offset s [series!] ip [int-ptr!] defun [deallocator!]
+	/local s [series!] ip [int-ptr!] defun [deallocator!] frame offset
 ][
 	if null? node [exit]					;-- node has been reused by a new expanded series buffer
 	s: as series! node/value
