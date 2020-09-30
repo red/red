@@ -932,7 +932,7 @@ lexer: context [
 		to file! replace/all dehex s #"\" #"/"
 	]
 	
-	identify-header: func [src /local p ws found? pos][
+	identify-header: func [src /local p ws found?][
 		ws: charset " ^-^M^/"
 		rs?: no
 		pos: src
