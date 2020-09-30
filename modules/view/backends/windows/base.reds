@@ -130,9 +130,7 @@ render-base: func [
 
 	type: symbol/resolve w/symbol
 	if all [
-		group-box <> type
-		window <> type
-		panel <> type
+		type = base
 		render-text values hWnd hDC :rc null null
 	][
 		res: true
@@ -184,6 +182,19 @@ clip-layered-window: func [
 		flags	[integer!]
 ][
 	flags: GetWindowLong hWnd wc-offset - 12
+	if all [						;-- delete window clip region
+		BASE_FACE_CLIPPED and flags <> 0
+		zero? x
+		zero? y
+		size/width = new-width
+		size/height = new-height
+	][
+		SetWindowRgn hWnd null false
+		child: as handle! GetWindowLong hWnd wc-offset - 20
+		if child <> null [SetWindowRgn child null false]
+		SetWindowLong hWnd wc-offset - 12 flags and FFFFFFFEh
+		exit
+	]
 	if any [
 		not zero? x
 		not zero? y
@@ -200,13 +211,6 @@ clip-layered-window: func [
 			SetWindowRgn child rgn false
 		]
 	]
-	if all [
-		BASE_FACE_CLIPPED and flags <> 0
-		zero? x
-		zero? y
-		size/width = new-width
-		size/height = new-height
-	][SetWindowLong hWnd wc-offset - 12 flags and FFFFFFFEh]
 ]
 
 process-layered-region: func [
@@ -455,7 +459,7 @@ BaseWndProc: func [
 				return 3							;-- do not make it activated when click it
 			]
 		]
-		WM_LBUTTONDOWN	 [SetCapture hWnd return 0]
+		WM_LBUTTONDOWN	 [unless request-file? [SetCapture hWnd return 0] request-file?: no]
 		WM_LBUTTONUP	 [ReleaseCapture return 0]
 		WM_ERASEBKGND	 [return 1]					;-- drawing in WM_PAINT to avoid flicker
 		WM_SIZE  [
@@ -683,12 +687,12 @@ update-base-text: func [
 	GdipCreateStringFormat fflags or 80000000h 0 :format 	;-- 1 << 31 = GDI passthrough
 	GdipSetStringFormatAlign format h-align
 	GdipSetStringFormatLineAlign format v-align
+	GdipSetStringFormatTrimming format 0	;-- TrimmingNone
 
 	rect/x: as float32! 0.0
 	rect/y: as float32! 0.0
 	rect/width: as float32! width
 	rect/height: as float32! height
-
 	either bbox = null [
 		if default-color [clr: GetSysColor COLOR_WINDOWTEXT]
 		gdiclr: to-gdiplus-color-fixed clr
@@ -716,6 +720,17 @@ transparent-base?: func [
 			color/array1 and FF000000h = 0
 		]
 	][false][true]
+]
+
+scale-graphic: func [
+	graphic		[integer!]
+	/local
+		ratio	[float32!]
+][
+	if dpi-factor <> 100 [
+		ratio: (as float32! dpi-factor) / (as float32! 100.0)
+		GdipScaleWorldTransform graphic ratio ratio GDIPLUS_MATRIX_PREPEND
+	]
 ]
 
 update-base: func [
@@ -770,7 +785,6 @@ update-base: func [
 	hBitmap: CreateCompatibleBitmap hScreen width height
 	SelectObject hBackDC hBitmap
 	GdipCreateFromHDC hBackDC :graphic
-
 	if TYPE_OF(color) = TYPE_TUPLE [				;-- update background
 		update-base-background graphic color width height
 	]

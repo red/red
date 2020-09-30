@@ -42,6 +42,10 @@ Red [
 			tabs: none line-spacing: 'default handles: none
 		]
 	]
+	toggle: [
+		default-actor: on-change
+		template: [type: 'toggle size: 60x25]
+	]
 	check: [
 		default-actor: on-change
 		template: [type: 'check size: 80x25]
@@ -65,6 +69,10 @@ Red [
 	camera: [
 		default-actor: on-down
 		template: [type: 'camera size: 250x250]
+	]
+	calendar: [
+		default-actor: on-change
+		template: [type: 'calendar size: 139x148]
 	]
 	text-list: [
 		default-actor: on-change
@@ -119,5 +127,4 @@ Red [
 		template: [type: 'base size: 100x100]
 		init: [unless face/image [face/image: make image! face/size]]
 	]
-
 )

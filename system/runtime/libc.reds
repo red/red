@@ -135,7 +135,7 @@ Red/System [
 			value		[float!]
 			return:		[float!]
 		]
-		log-2:		"log" [
+		log-e:		"log" [
 			value		[float!]
 			return:		[float!]
 		]

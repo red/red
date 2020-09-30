@@ -62,6 +62,7 @@ qt: make object! [
   comp-echo: runnable-dir/comp-echo.txt
   comp-r: runnable-dir/comp.r
   test-src-file: runnable-dir/qt-test-comp.red
+  set 'qt-temp-file set 'qt-tmp-file: runnable-dir/testfile.txt
   
   ;; set log file 
   log-file: join system/script/path "quick-test.log"
@@ -102,7 +103,8 @@ qt: make object! [
   exe: none                            ;; filepath to executable
   source-file?: true                   ;; true = running  test file
                                        ;; false = runnning test script
-				  
+  compile-flag: copy " "
+
 
   summary-template: ".. - .................................................. / "
   
@@ -201,18 +203,18 @@ qt: make object! [
     ;; red/system or red
     red?: false
     parse read src red?-rule
- 
+
     ;; compose and write compilation script
     either binary-compiler? [
     	if #"/" <> first src [src: tests-dir/:src]     ;; relative path supplied
     	either lib [
-    		cmd: join "" [to-local-file bin-compiler " -o " 
+    		cmd: join "" [to-local-file bin-compiler compile-flag " -o " 
     					  to-local-file runnable-dir/:exe
     					  " -dlib -t " target " "
     					  to-local-file src
     		]
     	][
-    		cmd: join "" [to-local-file bin-compiler " -o " 
+    		cmd: join "" [to-local-file bin-compiler compile-flag " -o " 
     					  to-local-file runnable-dir/:exe " "
     					  to-local-file src	
     		]  		
@@ -224,7 +226,7 @@ qt: make object! [
     	  REBOL []
     	  halt: :quit
     	  echo (comp-echo)
-    	  do/args (reduce base-dir/red.r) (join " -o " [
+    	  do/args (reduce base-dir/red.r) (join "" [compile-flag " -o "
     	  	  	  reduce runnable-dir/:exe " ###lib###***src***" 
     	  ])
     	  echo none
@@ -688,7 +690,8 @@ qt: make object! [
   delete-temp-files: does [
   	  if exists? comp-echo [delete comp-echo]
   	  if exists? comp-r [delete comp-r]
-  	  if exists? test-src-file [delete test-src-file]  
+      if exists? test-src-file [delete test-src-file]  
+      if exists? qt-tmp-file [delete qt-tmp-file]  
   ]
   
   seperate-log-file: func [
