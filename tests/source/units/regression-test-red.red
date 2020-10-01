@@ -2810,7 +2810,7 @@ b}
 		forall refs3385 [
 			foreach ref3385 next refs3385 [
 				path3385: as path! reduce ['now refs3385/1 ref3385]
-				--assert types3385/:i3385 = attempt [type? do path3385]
+				--assert types3385/:i3385 = attempt [type? do reduce [path3385]]
 				i3385: i3385 + 1
 			]
 		]
