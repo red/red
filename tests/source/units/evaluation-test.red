@@ -101,6 +101,53 @@ Red [
 
 ===end-group===
 
+===start-group=== "do path"
+
+	--test-- "do-path-1"
+		t: 0
+		f: func [/x] [t: 1 2]
+		--assert 2 == do 'f/x
+		--assert 1 == t
+
+	--test-- "do-path-2"
+		t: 0
+		f: func [/x] [t: 1 2]
+		--assert 2 == do as path! [f x]
+		--assert 1 == t
+
+	--test-- "do-path-3"
+		t: 0
+		f: func [/x] [t: 1 2]
+		g: does ['f/x]
+		--assert 2 == do g
+		--assert 1 == t
+
+
+	--test-- "do-path-4"								;-- path to func inside object
+		t: 0
+		o: make object! [
+			f: func [/x] [t: 1 2]
+		]
+		g: does ['o/f/x]
+		--assert 2 == do g
+		--assert 1 == t
+
+	--test-- "do-path-5"								;-- forbid variadic use: should not take args
+		t: 0
+		f: func [/x y] [t: 1 2]
+		g: does ['f/x]
+		--assert error? try [do g 'arg]
+
+	--test-- "do-path-6"								;-- forbid variadic use: should not take args
+		t: 0
+		o: make object! [
+			f: func [/x y] [t: 1 2]
+		]
+		g: does ['o/f/x]
+		--assert error? try [do g 'arg]
+
+===end-group===
+
 ===start-group=== "reduce"
 
 	--test-- "reduce-1"
