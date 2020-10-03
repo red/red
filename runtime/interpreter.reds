@@ -685,6 +685,7 @@ interpreter: context [
 				if set? [fire [TO_ERROR(script invalid-path-set) path]]
 				if get? [fire [TO_ERROR(script invalid-path-get) path]]
 				pc: eval-code parent pc end yes path item - 1 parent
+				unless sub? [stack/set-last stack/top]
 				return pc
 			]
 			TYPE_UNSET [fire [TO_ERROR(script no-value)	head]]
