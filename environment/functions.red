@@ -820,10 +820,10 @@ clean-path: func [
 	file [file! url! string!]
 	/only "Do not prepend current directory"
 	/dir "Add a trailing / if missing"
-	/local out cnt f not-file?
+	/local out cnt f not-file? prot
 ][
 	not-file?: not file? file
-	
+	if url? file [parse file [copy prot to #"/"]]
 	file: case [
 		any [only not-file?][
 			copy file
@@ -847,7 +847,7 @@ clean-path: func [
 	if all [dir not dir? file][append file #"/"]
 	if only [return file]
 
-	out: make file! length? file
+	out: make type? file length? file
 	cnt: 0
 	
 	parse reverse file [
@@ -862,6 +862,7 @@ clean-path: func [
 			)
 		]
 	]
+	if prot [append out reverse prot]
 	if all [dir? out #"/" <> last file][take/last out]
 	reverse out
 ]
