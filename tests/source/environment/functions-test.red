@@ -409,10 +409,12 @@ Red [
 
 ===start-group=== "clean-path tests"
 	--test-- "clean-path test"
-		--assert %/red-lang.com = clean-path http://red-lang.com
+		--assert http://red-lang.com = clean-path http://red-lang.com
 		--assert (rejoin [what-dir %a]) = clean-path %a
 		--assert %a = clean-path/only %a
 		--assert http://red-lang.com/ = clean-path/only/dir http://red-lang.com
+		--assert http://red-lang.com/bar = clean-path http://red-lang.com/foo/../bar
+		--assert http://red-lang.com/foo/bar = clean-path http://red-lang.com/foo/./bar
 ===end-group===
 
 ===start-group=== "split-path tests"
