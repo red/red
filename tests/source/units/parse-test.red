@@ -2741,26 +2741,74 @@ Red [
 		--assert zero? x4318
 	
 	--test-- "#4200"
-		x4200-word:  'foo
-		x4200-block: []
-		x4200-mark:  x4200-block
+		word:  'foo
+		block: []
+		mark:  block
 		
-		parse x4200-block [x4200-mark: change x4200-mark x4200-word]
-		--assert x4200-block = [foo]									;-- word's value
-		clear x4200-block
+		parse block [mark: change mark word]			;-- word's value
+		--assert block = [foo]		
+		clear block
 		
-		parse x4200-block [x4200-mark: change x4200-mark (x4200-word)]
-		--assert x4200-block = [foo]									;-- result of expression
-		clear x4200-block
+		parse block [mark: change mark (word)]			;-- result of expression
+		--assert block = [foo]
+		clear block
 		
-		parse x4200-block [x4200-mark: change x4200-mark ('foo)]
-		--assert x4200-block = [foo]									;-- result of expression
-		clear x4200-block
+		parse block [mark: change mark ('foo)]			;-- result of expression
+		--assert block = [foo]
+		clear block
 		
-		parse x4200-block [x4200-mark: change x4200-mark #foo]
-		--assert x4200-block = [#foo]									;-- literal value
-		clear x4200-block
-
+		parse block [mark: change mark ([foo])]			;-- result of expression
+		--assert block = [foo]
+		clear block
+		
+		parse block [mark: change only mark ([foo])]	;--result of expression
+		--assert block = [[foo]]
+		clear block
+		
+		parse block [mark: change mark #foo]			;-- literal value
+		--assert block = [#foo]
+		clear block
+		
+		parse block [mark: change mark [#foo]]			;-- literal value
+		--assert block = [#foo]
+		clear block
+		
+		parse block [mark: change only mark [#foo]]		;-- literal value
+		--assert block = [[#foo]]
+		clear block
+		
+		parse block [change none word]					;-- word's value
+		--assert block = [foo]
+		clear block
+		
+		parse block [change none (word)]				;-- result of expression
+		--assert block = [foo]
+		clear block
+		
+		parse block [change none ('foo)]				;-- result of expression
+		--assert block = [foo]
+		clear block
+		
+		parse block [change none ([foo])]				;-- result of expression
+		--assert block = [foo]
+		clear block
+		
+		parse block [change only none ([foo])]			;-- result of expression
+		--assert block = [[foo]]
+		clear block
+		
+		parse block [change none #foo]					;-- literal value
+		--assert block = [#foo]
+		clear block
+		
+		parse block [change none [#foo]]				;-- literal value
+		--assert block = [#foo]
+		clear block
+		
+		parse block [change only none [#foo]]			;-- literal value
+		--assert block = [[#foo]]
+		clear block
+		
 ===end-group===
     
 ~~~end-file~~~
