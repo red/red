@@ -48,6 +48,7 @@ context [
 		pt-load			1			;; loadable segment
 		pt-dynamic		2			;; dynamic linking information
 		pt-interp		3			;; dynamic linker ("interpreter") path name
+		pt-note			4			;; vendor-specific note segment
 		pt-phdr			6			;; program header table
 
 		pf-x			1			;; executable segment
@@ -62,6 +63,7 @@ context [
 		sht-strtab		3			;; string table
 		sht-hash		5			;; symbol hash table
 		sht-dynamic		6			;; dynamic linking
+		sht-note		7			;; vendor note
 		sht-nobits		8			;; program-specific data (w/o file extend)
 		sht-rel			9			;; relocations (w/o addends)
 		sht-dynsym		11			;; symbol table (dynamic linking)
@@ -261,6 +263,12 @@ context [
 			segment "interp"		[interp	  	[r]					byte] [
 				section ".interp"	[progbits 	[alloc]				byte]
 			]
+			segment "note"			[note		[r]					word] [
+				section ".note.netbsd.ident"
+									[note 		[alloc]				word]
+				section ".note.netbsd.pax"
+									[note 		[alloc]				word]
+			]
 			section ".hash"			[hash	  	[alloc]				word]
 			section ".dynstr"		[strtab	  	[alloc]				byte]
 			section ".dynsym"		[dynsym	  	[alloc]				word]
@@ -319,6 +327,13 @@ context [
 			remove-elements structure [".ARM.attributes"]
 		]
 
+		if job/OS <> 'NetBSD [
+			remove-elements structure [
+				".note.netbsd.ident"
+				".note.netbsd.pax"
+			]
+		]
+
 		if empty? dynamic-linker [
 			remove-elements structure [".interp"]
 		]
@@ -355,6 +370,19 @@ context [
 		dynamic-size: calc-dynamic-size job/type job/target job/symbols
 
 		segments: collect-structure-names structure 'segment
+
+		;; ELF standard mandates that PHDR, INTERP
+		;; must me placed before any LOAD segments. NOTE placement is not defined
+		;; but is placed before LOAD as well, by convention:
+		;; http://www.sco.com/developers/gabi/latest/ch5.pheader.html
+		either found? find segments "note" [
+			insert at segments 5 first segments
+			remove segments
+		][
+			insert at segments 4 first segments
+			remove segments
+		]
+
 		sections: collect-structure-names structure 'section
 
 		commands: compose/deep [
@@ -378,7 +406,12 @@ context [
 			".stab"			size [stab-entry		2 + ((length? natives) / 2)]
 			"shdr"			size [section-header	length? sections]
 
+			"interp"		size (length? to-c-string dynamic-linker)					;-- NetBD has strict checks to make sure interp header and section sizes are the same
 			".interp"		data (to-c-string dynamic-linker)
+			".note.netbsd.ident"
+							data (#{0700000004000000010000004E6574425344000000E9A435})	;-- https://www.netbsd.org/docs/kernel/elf-notes.html
+			".note.netbsd.pax"
+							data (#{0400000004000000030000005061580000000000})
 			".dynstr"		data (to-elf-strtab compose [(libraries) (imports) (extract exports 2) (defs/rpath) (soname)])
 			".text"			data (job/sections/code/2)
 			".stabstr"		data (to-elf-strtab join ["%_"] extract natives 2)

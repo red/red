@@ -177,8 +177,8 @@ context [
 		if nl? [header: header or nl-flag]
 		emit header
 		emit to integer! skip bin -4
-		emit to integer! copy/part skip bin -8 4
-		emit to integer! copy/part head bin 4
+		emit to integer! copy/part skip bin -4 -4
+		emit to integer! copy/part skip bin -8 -4
 	]
 	
 	emit-money: func [value [issue!] /local bin header][
@@ -297,6 +297,7 @@ context [
 		
 		type: case [
 			all [path? :blk get-word? blk/1][
+				blk: copy blk							;-- avoid modifying path in-place (see #4517)
 				blk/1: to word! blk/1 					;-- workround for missing get-path! in R2
 				'get-path
 			]

@@ -1221,8 +1221,8 @@ money: context [
 		
 		if (count1 + count2) > (SIZE_UNNORM + 1) [MONEY_OVERFLOW]	;-- if after normalization it won't fit into payload
 		
-		product: set-memory as byte-ptr! system/stack/allocate SIZE_SSLOTS null-byte SIZE_SBYTES
-		
+		product: as byte-ptr! system/stack/allocate SIZE_SSLOTS
+		set-memory product null-byte SIZE_SBYTES
 		delta:  SIZE_DIGITS - SIZE_BUFFER << 1
 		index1: SIZE_DIGITS
 		
@@ -1309,7 +1309,8 @@ money: context [
 			size: SIZE_SBYTES << 1
 			hold: amount1
 			
-			amount1: set-memory as byte-ptr! system/stack/allocate SIZE_SSLOTS null-byte SIZE_SBYTES
+			amount1: as byte-ptr! system/stack/allocate SIZE_SSLOTS
+			amount1: set-memory amount1 null-byte SIZE_SBYTES
 			count1:  count1 + SIZE_SCALE
 			
 			copy-memory amount1 + SIZE_SBYTES - SIZE_BYTES hold SIZE_BYTES
@@ -1325,7 +1326,8 @@ money: context [
 		digits: either count1 < count2 [count1][count2]
 		
 		index:    size - (integer/abs count1 - count2) - SIZE_SCALE
-		quotient: set-memory as byte-ptr! system/stack/allocate SIZE_SSLOTS null-byte SIZE_SBYTES
+		quotient: as byte-ptr! system/stack/allocate SIZE_SSLOTS
+		quotient: set-memory quotient null-byte SIZE_SBYTES
 		buffer:   quotient
 		
 		if any [remainder? only?][quotient: quotient + SIZE_SBYTES - SIZE_BYTES]

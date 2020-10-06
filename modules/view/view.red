@@ -283,12 +283,25 @@ on-face-deep-change*: function ["Internal use only" owner word target action new
 							all [owner/options owner/options/default]
 						]
 					]
-					if all [find [text-list drop-list drop-down] owner/type string? target][
-						target: head target
-						index: (index? find/same owner/data target) - 1
-						part: 1
+					either all [word = 'data find [text-list drop-list drop-down] owner/type][
+						if string? target [
+							target: head target
+							index: (index? find/same owner/data target) - 1
+							part: 1
+						]
+						if any [
+							string? target
+							all [
+								block? target
+								same? (head owner/data) (head target)
+								not find [insert append cleared removed taken] action
+							]
+						][
+							system/view/platform/on-change-facet owner word target action new index part
+						]	
+					][
+						system/view/platform/on-change-facet owner word target action new index part
 					]
-					system/view/platform/on-change-facet owner word target action new index part
 				]
 			]
 			system/reactivity/check/only owner word
@@ -405,6 +418,10 @@ face!: object [				;-- keep in sync with facet! enum
 				set-quiet in self word old				;-- force the old value
 				exit
 			]
+			if all [
+				any [word = 'size word = 'offset]
+				old = new
+			][exit]
 			if word = 'pane [
 				if all [type = 'window object? :new new/type = 'window][
 					cause-error 'script 'bad-window []
@@ -468,6 +485,7 @@ face!: object [				;-- keep in sync with facet! enum
 	]
 	
 	on-deep-change*: function [owner word target action new index part][
+		if unset? :new [new: none]
 		on-face-deep-change* owner word target action new index part state no
 	]
 ]
@@ -573,6 +591,7 @@ system/view: context [
 		paddings:		make map! 32
 		margins:		make map! 32
 		def-heights:	make map! 32
+		fixed-heights:	make map! 32
 		misc:			make map! 32
 		colors:			make map! 10
 	]
@@ -787,7 +806,7 @@ show: function [
 			]
 			
 			switch face/type [
-				#if config/OS = 'Windows [				;@@ remove this system specific code
+				#if config/OS <> 'macOS [				;@@ remove this system specific code
 					tab-panel [link-tabs-to-parent face]
 				]
 				window	  [
@@ -854,7 +873,7 @@ view: function [
 	
 	if block? spec [spec: either tight [layout/tight spec][layout spec]]
 	if spec/type <> 'window [cause-error 'script 'not-window []]
-	if options [set spec make object! opts]
+	if options [set/any spec make object! opts]
 	if flags [spec/flags: either spec/flags [unique union to-block spec/flags to-block flgs][flgs]]
 	
 	unless spec/text   [spec/text: "Red: untitled"]
@@ -921,9 +940,10 @@ make-face: func [
 	unless spec [blk: []]
 	opts: svv/opts-proto
 	css: make block! 2
-	spec: svv/fetch-options/no-skip face opts model blk css no
+	reactors: make block! 4
+	spec: svv/fetch-options/no-skip face opts model blk css reactors no
 	if model/init [do bind model/init 'face]
-	svv/process-reactors
+	svv/process-reactors reactors
 
 	if offset [face/offset: xy]
 	if size [face/size: wh]

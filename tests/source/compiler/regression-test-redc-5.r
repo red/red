@@ -101,13 +101,38 @@ test
 	--test-- "#2538"
 		--compile-and-run-this-red {probe system/console/size}
 		--assert not crashed?
+	
+	--test-- "#2671"
+		--compile-this {Red [] #"^^(0000001)"}
+		--assert syntax-error "Invalid char! value"
 
+		--compile-this {Red [] "^^(0000001)"}
+		--assert syntax-error "Invalid string! value"
+		
+		--compile-this {Red [] #"^^(skibadee-skibadanger)"}
+		--assert syntax-error "Invalid char! value"
+		
+		--compile-this {Red [] "^^(skibadee-skibadanger)"}
+		--assert syntax-error "Invalid string! value"
+	
 ===end-group===
 
 ; ===start-group=== "Red regressions #3001 - #3500"
 ; ===end-group===
 
 ===start-group=== "Red regressions #3501 - #4000"
+
+	--test-- "#3670"
+		write qt-tmp-file "1 + 2"
+		qt/source-file?: yes
+		qt/compile qt-temp-file
+		qt/run/pgm qt-temp-file
+		--assert probe not compiler-error?
+		--assert probe syntax-error "Invalid Red program"
+
+	--test-- "#3624"
+		--compile-and-run-this-red {probe replace/case/all quote :a/b/A/a/B [a] 'x}
+		--assert qt/output = ":x/b/A/x/B^/"
 	
 	;; for this test it doesn't matter if it errors out or outputs a result
 	--test-- "#3714"
@@ -202,8 +227,15 @@ test
 	--test-- "#3891"
 		--compile-and-run-this-red {probe load "a<=>"}
 		--assert not crashed?
-
-
+	
+	--test-- "#4526"
+		--compile-and-run-this {
+			Red []
+			do bind [probe 1 ** 2] context [**: make op! func [x y][x + y]]
+		}
+		--assert compiled?
+		--assert 3 = load qt/output
+		
 ===end-group===
 
 ~~~end-file~~~ 

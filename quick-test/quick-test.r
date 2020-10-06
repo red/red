@@ -62,6 +62,7 @@ qt: make object! [
   comp-echo: runnable-dir/comp-echo.txt
   comp-r: runnable-dir/comp.r
   test-src-file: runnable-dir/qt-test-comp.red
+  set 'qt-temp-file set 'qt-tmp-file: runnable-dir/testfile.txt
   
   ;; set log file 
   log-file: join system/script/path "quick-test.log"
@@ -689,7 +690,8 @@ qt: make object! [
   delete-temp-files: does [
   	  if exists? comp-echo [delete comp-echo]
   	  if exists? comp-r [delete comp-r]
-  	  if exists? test-src-file [delete test-src-file]  
+      if exists? test-src-file [delete test-src-file]  
+      if exists? qt-tmp-file [delete qt-tmp-file]  
   ]
   
   seperate-log-file: func [
