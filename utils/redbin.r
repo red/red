@@ -22,7 +22,7 @@ context [
 	
 	UTF8-char:	lexer/UTF8-char
 	chars: 		make block!  10'000
-	decoded: 	make string! 10'000
+	decoded: 	make binary! 10'000
 	nl-flag:	to-integer #{80000000}					;-- header's new-line flag
 	nl?:		no
 
@@ -177,8 +177,19 @@ context [
 		if nl? [header: header or nl-flag]
 		emit header
 		emit to integer! skip bin -4
-		emit to integer! copy/part skip bin -8 4
-		emit to integer! copy/part head bin 4
+		emit to integer! copy/part skip bin -4 -4
+		emit to integer! copy/part skip bin -8 -4
+	]
+	
+	emit-money: func [value [issue!] /local bin header][
+		value: to string! next value
+		header: extracts/definitions/TYPE_MONEY or shift/left to-integer value/4 = #"-" 14
+		if nl? [header: header or nl-flag]
+		emit header
+		repend buffer [
+			either value/1 = #"." [null][to-char to-currency-code copy/part value 3]
+			to binary! to-nibbles copy/part skip value 4 22	;-- nibbles array
+		]
 	]
 
 	emit-op: func [spec [any-word!]][
@@ -204,17 +215,20 @@ context [
 		]
 		index - 1
 	]
-
+	
 	emit-string: func [str [any-string!] /root /local type unit header][
-		type: select [
-			string! TYPE_STRING
-			file!	TYPE_FILE
-			tag!	TYPE_TAG
-			url!	TYPE_URL
-			email!	TYPE_EMAIL
-			binary! TYPE_BINARY
-		] type?/word str
-
+		type: either issue? str ['TYPE_REF][				;-- internal encoding of ref! datatype
+			select [
+				string! TYPE_STRING
+				file!	TYPE_FILE
+				tag!	TYPE_TAG
+				url!	TYPE_URL
+				email!	TYPE_EMAIL
+				binary! TYPE_BINARY
+			] type?/word str
+		]
+		
+		str: to string! str
 		either type = 'TYPE_BINARY [unit: 1][set [str unit] decode-UTF8 str]
 		header: extracts/definitions/:type or shift/left unit 8
 		if nl? [header: header or nl-flag]
@@ -222,7 +236,7 @@ context [
 		emit header
 		emit (index? str) - 1								 ;-- head
 		emit (length? str) / unit
-		append buffer to string! str
+		append buffer str
 		pad buffer 4
 
 		if root [
@@ -283,6 +297,7 @@ context [
 		
 		type: case [
 			all [path? :blk get-word? blk/1][
+				blk: copy blk							;-- avoid modifying path in-place (see #4517)
 				blk/1: to word! blk/1 					;-- workround for missing get-path! in R2
 				'get-path
 			]
@@ -344,6 +359,14 @@ context [
 								emit-fp-special item
 								no
 							]
+							money-value? :item [
+								emit-money item
+								no
+							]
+							ref-value? :item [
+								emit-string next item
+								no
+							]
 							'else [
 								emit-issue item
 								no
@@ -399,11 +422,12 @@ context [
 	]
 	
 	emit-context: func [
-		name [word!] spec [block!] stack? [logic!] self? [logic!] /root
+		name [word!] spec [block!] stack? [logic!] self? [logic!] type [word!] /root
 		/local header
 	][
 		repend contexts [name copy spec index]			;-- COPY to avoid late word decorations
-		header: extracts/definitions/TYPE_CONTEXT or shift/left 1 8 ;-- header
+		type: shift/left (select [function 1 object 2] type) 11
+		header: extracts/definitions/TYPE_CONTEXT or type or shift/left 1 8 ;-- header
 		if stack? [header: header or shift/left 1 29]
 		if self?  [header: header or shift/left 1 28]
 		

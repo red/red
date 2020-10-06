@@ -221,6 +221,26 @@ img: make image! 2x2
 		delete %test.png
 		--assert true
 
+	--test-- "#4421 case 1"
+		i: make image! [1x1 #{111111}]
+		foreach [x y] i [
+			--assert x = 17.17.17.0
+			--assert none? y
+		]
+
+	--test-- "#4421 case 2"
+		n: 0
+		foreach [x y] 'a/b/c [
+			either zero? n [
+				--assert x = 'a
+				--assert y = 'b
+			][
+				--assert x = 'c
+				--assert none? y
+			]
+			n: 1
+		]
+	
 ===end-group===
 
 ]]

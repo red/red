@@ -124,7 +124,7 @@ update-tabs: func [
 					]
 				]
 				any [
-					sym = words/_insert/symbol
+					sym = words/_inserted/symbol
 					sym = words/_poke/symbol
 					sym = words/_put/symbol
 				][
@@ -134,7 +134,7 @@ update-tabs: func [
 						new
 					]
 					loop part [
-						if sym <> words/_insert/symbol [
+						if sym <> words/_inserted/symbol [
 							;ownership/unbind-each as red-block! value index part
 							0;-- remove tab
 						]

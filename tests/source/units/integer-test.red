@@ -87,8 +87,36 @@ Red [
 
 ===start-group=== "random"
 	--test-- "random1" --assert 1 = random 1
-	--test-- "random2" --assert 2 = random/only next [1 2]
-	--test-- "random3" --assert not negative? random 1
+	--test-- "random2" --assert not negative? random 1
+
+	--test-- "random3"
+		anded: to integer! #{FFFFFFFF}
+		loop 10 [
+			anded: anded and last-random: random 7FFFFFFFh
+		]
+		all-equal?: anded = last-random
+		--assert not all-equal?
+
+	--test-- "random4"
+		anded: to integer! #{FFFFFFFF}
+		loop 10 [
+			anded: anded and last-random: random/secure 7FFFFFFFh
+		]
+		all-equal?: anded = last-random
+		--assert not all-equal?
+
+	--test-- "random5"
+		b: copy []
+		random/seed 1  loop 10 [append b random 10000]
+		random/seed 1  loop 10 [append b random 10000]
+		--assert (copy/part b 10) = (at b 11)
+
+	--test-- "random6"
+		b: copy []
+		random/seed 1  loop 10 [append b random/secure 10000]
+		random/seed 1  loop 10 [append b random/secure 10000]
+		--assert (copy/part b 10) <> (at b 11)
+
 ===end-group===
 
 ===start-group=== "round"
@@ -1110,42 +1138,47 @@ Red [
 	--test-- "1 / -2147483648"
 		i: 1
 		j: -2147483648
-		--assert strict-equal? 0 1 / -2147483648
-		--assert strict-equal? 0 divide 1 -2147483648
-		--assert strict-equal? 0 i / j
-		--assert strict-equal? 0 divide i j
+		r: -4.656612873077393e-10
+		--assert strict-equal? r 1 / -2147483648
+		--assert strict-equal? r divide 1 -2147483648
+		--assert strict-equal? r i / j
+		--assert strict-equal? r divide i j
 
 	--test-- "1 / 2147483647"
 		i: 1
 		j: 2147483647
-		--assert strict-equal? 0 1 / 2147483647
-		--assert strict-equal? 0 divide 1 2147483647
-		--assert strict-equal? 0 i / j
-		--assert strict-equal? 0 divide i j
+		r: 4.656612875245797e-10
+		--assert strict-equal? r 1 / 2147483647
+		--assert strict-equal? r divide 1 2147483647
+		--assert strict-equal? r i / j
+		--assert strict-equal? r divide i j
 
 	--test-- "1 / 65536"
 		i: 1
 		j: 65536
-		--assert strict-equal? 0 1 / 65536
-		--assert strict-equal? 0 divide 1 65536
-		--assert strict-equal? 0 i / j
-		--assert strict-equal? 0 divide i j
+		r: 1.52587890625e-5
+		--assert strict-equal? r 1 / 65536
+		--assert strict-equal? r divide 1 65536
+		--assert strict-equal? r i / j
+		--assert strict-equal? r divide i j
 
 	--test-- "1 / 256"
 		i: 1
 		j: 256
-		--assert strict-equal? 0 1 / 256
-		--assert strict-equal? 0 divide 1 256
-		--assert strict-equal? 0 i / j
-		--assert strict-equal? 0 divide i j
+		r: 0.00390625
+		--assert strict-equal? r 1 / 256
+		--assert strict-equal? r divide 1 256
+		--assert strict-equal? r i / j
+		--assert strict-equal? r divide i j
 
 	--test-- "1 / 16777216"
 		i: 1
 		j: 16777216
-		--assert strict-equal? 0 1 / 16777216
-		--assert strict-equal? 0 divide 1 16777216
-		--assert strict-equal? 0 i / j
-		--assert strict-equal? 0 divide i j
+		r: 5.960464477539063e-8
+		--assert strict-equal? r 1 / 16777216
+		--assert strict-equal? r divide 1 16777216
+		--assert strict-equal? r i / j
+		--assert strict-equal? r divide i j
 
 	--test-- "-1 / 0"
 		i: -1
@@ -1166,42 +1199,47 @@ Red [
 	--test-- "-1 / -2147483648"
 		i: -1
 		j: -2147483648
-		--assert strict-equal? 0 -1 / -2147483648
-		--assert strict-equal? 0 divide -1 -2147483648
-		--assert strict-equal? 0 i / j
-		--assert strict-equal? 0 divide i j
+		r: 4.656612873077393e-10
+		--assert strict-equal? r -1 / -2147483648
+		--assert strict-equal? r divide -1 -2147483648
+		--assert strict-equal? r i / j
+		--assert strict-equal? r divide i j
 
 	--test-- "-1 / 2147483647"
 		i: -1
 		j: 2147483647
-		--assert strict-equal? 0 -1 / 2147483647
-		--assert strict-equal? 0 divide -1 2147483647
-		--assert strict-equal? 0 i / j
-		--assert strict-equal? 0 divide i j
+		r: -4.656612875245797e-10
+		--assert strict-equal? r -1 / 2147483647
+		--assert strict-equal? r divide -1 2147483647
+		--assert strict-equal? r i / j
+		--assert strict-equal? r divide i j
 
 	--test-- "-1 / 65536"
 		i: -1
 		j: 65536
-		--assert strict-equal? 0 -1 / 65536
-		--assert strict-equal? 0 divide -1 65536
-		--assert strict-equal? 0 i / j
-		--assert strict-equal? 0 divide i j
+		r: -1.52587890625e-5
+		--assert strict-equal? r -1 / 65536
+		--assert strict-equal? r divide -1 65536
+		--assert strict-equal? r i / j
+		--assert strict-equal? r divide i j
 
 	--test-- "-1 / 256"
 		i: -1
 		j: 256
-		--assert strict-equal? 0 -1 / 256
-		--assert strict-equal? 0 divide -1 256
-		--assert strict-equal? 0 i / j
-		--assert strict-equal? 0 divide i j
+		r: -0.00390625
+		--assert strict-equal? r -1 / 256
+		--assert strict-equal? r divide -1 256
+		--assert strict-equal? r i / j
+		--assert strict-equal? r divide i j
 
 	--test-- "-1 / 16777216"
 		i: -1
 		j: 16777216
-		--assert strict-equal? 0 -1 / 16777216
-		--assert strict-equal? 0 divide -1 16777216
-		--assert strict-equal? 0 i / j
-		--assert strict-equal? 0 divide i j
+		r: -5.960464477539063e-8
+		--assert strict-equal? r -1 / 16777216
+		--assert strict-equal? r divide -1 16777216
+		--assert strict-equal? r i / j
+		--assert strict-equal? r divide i j
 
 	--test-- "-2147483648 / 0"
 		i: -2147483648
@@ -1230,10 +1268,11 @@ Red [
 	--test-- "-2147483648 / 2147483647"
 		i: -2147483648
 		j: 2147483647
-		--assert strict-equal? -1 -2147483648 / 2147483647
-		--assert strict-equal? -1 divide -2147483648 2147483647
-		--assert strict-equal? -1 i / j
-		--assert strict-equal? -1 divide i j
+		r: -1.000000000465661
+		--assert equal? r -2147483648 / 2147483647
+		--assert equal? r divide -2147483648 2147483647
+		--assert equal? r i / j
+		--assert equal? r divide i j
 
 	--test-- "-2147483648 / 65536"
 		i: -2147483648
@@ -1286,34 +1325,38 @@ Red [
 	--test-- "2147483647 / -2147483648"
 		i: 2147483647
 		j: -2147483648
-		--assert strict-equal? 0 2147483647 / -2147483648
-		--assert strict-equal? 0 divide 2147483647 -2147483648
-		--assert strict-equal? 0 i / j
-		--assert strict-equal? 0 divide i j
+		r: -0.9999999995343387
+		--assert strict-equal? r 2147483647 / -2147483648
+		--assert strict-equal? r divide 2147483647 -2147483648
+		--assert strict-equal? r i / j
+		--assert strict-equal? r divide i j
 
 	--test-- "2147483647 / 65536"
 		i: 2147483647
 		j: 65536
-		--assert strict-equal? 32767 2147483647 / 65536
-		--assert strict-equal? 32767 divide 2147483647 65536
-		--assert strict-equal? 32767 i / j
-		--assert strict-equal? 32767 divide i j
+		r: 32767.99998474121
+		--assert strict-equal? r 2147483647 / 65536
+		--assert strict-equal? r divide 2147483647 65536
+		--assert strict-equal? r i / j
+		--assert strict-equal? r divide i j
 
 	--test-- "2147483647 / 256"
 		i: 2147483647
 		j: 256
-		--assert strict-equal? 8388607 2147483647 / 256
-		--assert strict-equal? 8388607 divide 2147483647 256
-		--assert strict-equal? 8388607 i / j
-		--assert strict-equal? 8388607 divide i j
+		r: 8388607.99609375
+		--assert strict-equal? r 2147483647 / 256
+		--assert strict-equal? r divide 2147483647 256
+		--assert strict-equal? r i / j
+		--assert strict-equal? r divide i j
 
 	--test-- "2147483647 / 16777216"
 		i: 2147483647
 		j: 16777216
-		--assert strict-equal? 127 2147483647 / 16777216
-		--assert strict-equal? 127 divide 2147483647 16777216
-		--assert strict-equal? 127 i / j
-		--assert strict-equal? 127 divide i j
+		r: 127.9999999403954
+		--assert equal? r 2147483647 / 16777216
+		--assert equal? r divide 2147483647 16777216
+		--assert equal? r i / j
+		--assert equal? r divide i j
 
 	--test-- "65536 / 0"
 		i: 65536
@@ -1342,18 +1385,20 @@ Red [
 	--test-- "65536 / -2147483648"
 		i: 65536
 		j: -2147483648
-		--assert strict-equal? 0 65536 / -2147483648
-		--assert strict-equal? 0 divide 65536 -2147483648
-		--assert strict-equal? 0 i / j
-		--assert strict-equal? 0 divide i j
+		r: -3.0517578125e-5
+		--assert strict-equal? r 65536 / -2147483648
+		--assert strict-equal? r divide 65536 -2147483648
+		--assert strict-equal? r i / j
+		--assert strict-equal? r divide i j
 
 	--test-- "65536 / 2147483647"
 		i: 65536
 		j: 2147483647
-		--assert strict-equal? 0 65536 / 2147483647
-		--assert strict-equal? 0 divide 65536 2147483647
-		--assert strict-equal? 0 i / j
-		--assert strict-equal? 0 divide i j
+		r: 3.051757813921086e-5
+		--assert equal? r 65536 / 2147483647
+		--assert equal? r divide 65536 2147483647
+		--assert equal? r i / j
+		--assert equal? r divide i j
 
 	--test-- "65536 / 256"
 		i: 65536
@@ -1366,10 +1411,11 @@ Red [
 	--test-- "65536 / 16777216"
 		i: 65536
 		j: 16777216
-		--assert strict-equal? 0 65536 / 16777216
-		--assert strict-equal? 0 divide 65536 16777216
-		--assert strict-equal? 0 i / j
-		--assert strict-equal? 0 divide i j
+		r: 0.00390625
+		--assert strict-equal? r 65536 / 16777216
+		--assert strict-equal? r divide 65536 16777216
+		--assert strict-equal? r i / j
+		--assert strict-equal? r divide i j
 
 	--test-- "256 / 0"
 		i: 256
@@ -1398,34 +1444,38 @@ Red [
 	--test-- "256 / -2147483648"
 		i: 256
 		j: -2147483648
-		--assert strict-equal? 0 256 / -2147483648
-		--assert strict-equal? 0 divide 256 -2147483648
-		--assert strict-equal? 0 i / j
-		--assert strict-equal? 0 divide i j
+		r: -1.192092895507813e-7
+		--assert equal? r 256 / -2147483648
+		--assert equal? r divide 256 -2147483648
+		--assert equal? r i / j
+		--assert equal? r divide i j
 
 	--test-- "256 / 2147483647"
 		i: 256
 		j: 2147483647
-		--assert strict-equal? 0 256 / 2147483647
-		--assert strict-equal? 0 divide 256 2147483647
-		--assert strict-equal? 0 i / j
-		--assert strict-equal? 0 divide i j
+		r: 1.192092896062924e-7
+		--assert strict-equal? r 256 / 2147483647
+		--assert strict-equal? r divide 256 2147483647
+		--assert strict-equal? r i / j
+		--assert strict-equal? r divide i j
 
 	--test-- "256 / 65536"
 		i: 256
 		j: 65536
-		--assert strict-equal? 0 256 / 65536
-		--assert strict-equal? 0 divide 256 65536
-		--assert strict-equal? 0 i / j
-		--assert strict-equal? 0 divide i j
+		r: 0.00390625
+		--assert strict-equal? r 256 / 65536
+		--assert strict-equal? r divide 256 65536
+		--assert strict-equal? r i / j
+		--assert strict-equal? r divide i j
 
 	--test-- "256 / 16777216"
 		i: 256
 		j: 16777216
-		--assert strict-equal? 0 256 / 16777216
-		--assert strict-equal? 0 divide 256 16777216
-		--assert strict-equal? 0 i / j
-		--assert strict-equal? 0 divide i j
+		r: 1.52587890625e-5
+		--assert strict-equal? r 256 / 16777216
+		--assert strict-equal? r divide 256 16777216
+		--assert strict-equal? r i / j
+		--assert strict-equal? r divide i j
 
 	--test-- "16777216 / 0"
 		i: 16777216
@@ -1454,18 +1504,20 @@ Red [
 	--test-- "16777216 / -2147483648"
 		i: 16777216
 		j: -2147483648
-		--assert strict-equal? 0 16777216 / -2147483648
-		--assert strict-equal? 0 divide 16777216 -2147483648
-		--assert strict-equal? 0 i / j
-		--assert strict-equal? 0 divide i j
+		r: -0.0078125
+		--assert strict-equal? r 16777216 / -2147483648
+		--assert strict-equal? r divide 16777216 -2147483648
+		--assert strict-equal? r i / j
+		--assert strict-equal? r divide i j
 
 	--test-- "16777216 / 2147483647"
 		i: 16777216
 		j: 2147483647
-		--assert strict-equal? 0 16777216 / 2147483647
-		--assert strict-equal? 0 divide 16777216 2147483647
-		--assert strict-equal? 0 i / j
-		--assert strict-equal? 0 divide i j
+		r: 0.007812500003637979
+		--assert strict-equal? r 16777216 / 2147483647
+		--assert strict-equal? r divide 16777216 2147483647
+		--assert strict-equal? r i / j
+		--assert strict-equal? r divide i j
 
 	--test-- "16777216 / 65536"
 		i: 16777216

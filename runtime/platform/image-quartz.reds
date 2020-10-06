@@ -548,8 +548,8 @@ OS-image: context [
 	make-image: func [
 		width	[integer!]
 		height	[integer!]
-		rgb		[byte-ptr!]
-		alpha	[byte-ptr!]
+		rgb-bin	[red-binary!]
+		alpha-bin [red-binary!]
 		color	[red-tuple!]
 		return: [node!]
 		/local
@@ -561,21 +561,40 @@ OS-image: context [
 			y			[integer!]
 			scan0		[int-ptr!]
 			pos			[integer!]
+			rgb		[byte-ptr!]
+			alpha	[byte-ptr!]
+			len		[integer!]
+			len2	[integer!]
 	][
 		scan0: as int-ptr! allocate width * height * 4
 		y: 0
 		either null? color [
+			either rgb-bin <> null [
+				len: binary/rs-length? rgb-bin
+				len: len / 3 * 3
+				rgb: binary/rs-head rgb-bin
+			][len: 0]
+			either alpha-bin <> null [
+				len2: binary/rs-length? alpha-bin
+				alpha: binary/rs-head alpha-bin
+			][len2: 0]
+
 			while [y < height][
 				x: 0
 				while [x < width][
 					pos: width * y + x + 1
-					either null? alpha [a: 255][a: 255 - as-integer alpha/1 alpha: alpha + 1]
-					either null? rgb [r: 255 g: 255 b: 255][
+					either len2 > 0 [
+						a: 255 - as-integer alpha/1
+						alpha: alpha + 1
+						len2: len2 - 1
+					][a: 255]
+					either len > 0 [
 						r: as-integer rgb/1
 						g: as-integer rgb/2
 						b: as-integer rgb/3
 						rgb: rgb + 3
-					]
+						len: len - 3
+					][r: 255 g: 255 b: 255]
 					scan0/pos: r << 16 or (g << 8) or b or (a << 24)
 					x: x + 1
 				]

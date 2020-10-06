@@ -227,6 +227,12 @@ pollfd!: alias struct! [
 			timeout 		[integer!]
 			return: 		[integer!]
 		]
+		strnicmp: "strncasecmp" [
+			s1			[byte-ptr!]
+			s2			[byte-ptr!]
+			len			[integer!]
+			return:		[integer!]
+		]
 	]
 ]
 

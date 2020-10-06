@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Peter W A Wood"
 	File: 	 %overwrite-test.reds
 	Tabs:	 4
-	Rights:  copyright (c) 2011-2015 Peter W A Wood
+	Rights:  "copyright (c) 2011-2015 Peter W A Wood"
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 

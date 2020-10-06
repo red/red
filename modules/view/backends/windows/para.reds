@@ -51,6 +51,7 @@ update-para: func [
 		sym = base [mask: not 002Fh]
 		any [
 			sym = button
+			sym = toggle
 			sym = check
 			sym = radio
 		][
@@ -130,20 +131,21 @@ get-para-flags: func [
 	flags:	  0
 	
 	case [
-		type = base [
+		any [type = base type = rich-text][
 			left:	0000h								;-- DT_LEFT
 			center: 0001h								;-- DT_CENTER
 			right:  0002h								;-- DT_RIGHT
 			top:	0000h								;-- DT_TOP
 			middle: 0004h								;-- DT_VCENTER
 			bottom: 0008h								;-- DT_BOTTOM
-			default: center
-			vdefault: middle
-			
+			either type = rich-text [default: left vdefault: top][
+				default: center vdefault: middle
+			]
 			if wrap? [flags: DT_WORDBREAK]
 		]
 		any [
 			type = button
+			type = toggle
 			type = check
 			type = radio
 		][
@@ -155,7 +157,7 @@ get-para-flags: func [
 			bottom: 00000800h							;-- BS_BOTTOM
 
 			vdefault: middle
-			default: either type = button [center][left]
+			default: either any [type = button type = toggle][center][left]
 		]
 		any [
 			type = field
