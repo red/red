@@ -352,7 +352,7 @@ load-single-value: func [
 		blk	  [red-block!]
 		value [red-value!]
 ][
-	lexer/scan-alt slot str -1 yes yes yes yes null null as red-series! str
+	lexer/scan-alt slot str -1 yes yes yes yes null null null
 
 	blk: as red-block! slot
 	assert TYPE_OF(blk) = TYPE_BLOCK

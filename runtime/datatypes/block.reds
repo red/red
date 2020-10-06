@@ -656,7 +656,7 @@ block: context [
 			TYPE_OBJECT   [object/reflect as red-object! spec words/body]
 			TYPE_MAP	  [map/reflect as red-hash! spec words/body]
 			TYPE_VECTOR   [vector/to-block as red-vector! spec proto]
-			TYPE_STRING   [lexer/scan-alt as red-value! proto as red-string! spec -1 no yes yes no null null as red-series! spec]
+			TYPE_STRING   [lexer/scan-alt as red-value! proto as red-string! spec -1 no yes yes no null null null]
 			TYPE_TYPESET  [typeset/to-block as red-typeset! spec proto]
 			TYPE_ANY_PATH
 			TYPE_ANY_LIST [proto: clone as red-block! spec no no]

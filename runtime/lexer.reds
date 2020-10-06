@@ -540,23 +540,28 @@ lexer: context [
 		slot
 	]
 	
-	store-any-block: func [slot [cell!] src [cell!] items [integer!] type [integer!]
+	store-any-block: func [slot [cell!] src [cell!] items [integer!] type [integer!] blk [red-block!]
 		/local
-			blk [red-block!]
-			s	[series!]
+			s	 [series!]
+			size [integer!]
 	][
-		either zero? items [
-			blk: block/make-at as red-block! slot 1
-			blk/header: blk/header and type-mask or type
+		size: either zero? items [1][items]
+		either null? blk [
+			blk: block/make-at as red-block! slot size
+			blk/head: 0
 		][
-			blk: block/make-at as red-block! slot items
-			blk/header: blk/header and type-mask or type
+			s: GET_BUFFER(blk)
+			if s/size >> 4 - blk/head < size [expand-series GET_BUFFER(blk) size + blk/head << 4]
+		]
+		blk/header: blk/header and type-mask or type
+
+		if items <> 0 [
 			s: GET_BUFFER(blk)
 			copy-memory 
-				as byte-ptr! s/offset
+				as byte-ptr! s/offset + blk/head
 				as byte-ptr! src
 				items << 4
-			s/tail: s/offset + items
+			s/tail: s/offset + blk/head + items
 		]
 	]
 	
@@ -616,7 +621,7 @@ lexer: context [
 		len: (as-integer lex/tail - lex/head) >> 4
 		head: lex/head
 		lex/head: as cell! p - p/x
-		store-any-block as cell! p head len type	;-- p slot gets overwritten here
+		store-any-block as cell! p head len type null	;-- p slot gets overwritten here
 		lex/tail: head
 		lex/scanned: type
 		
@@ -2236,6 +2241,7 @@ lexer: context [
 		len		[int-ptr!]								;-- return the consumed input length
 		fun		[red-function!]							;-- optional callback function
 		ser		[red-series!]							;-- optional input series back-reference
+		out		[red-block!]							;-- /into destination block or null
 		return: [integer!]								;-- scanned type when one? is set, else zero
 		/local
 			blk	  	 [red-block!]
@@ -2315,9 +2321,10 @@ lexer: context [
 		]
 		if load? [
 			either all [one? not wrap? slots > 0][
+				if out <> null [dst: ALLOC_TAIL(out)]
 				copy-cell lex/buffer dst				;-- copy first loaded value only
 			][
-				store-any-block dst lex/buffer slots TYPE_BLOCK
+				store-any-block dst lex/buffer slots TYPE_BLOCK out
 			]
 		]
 		clean-up
@@ -2334,6 +2341,7 @@ lexer: context [
 		wrap?	[logic!]
 		len		[int-ptr!]
 		fun		[red-function!]							;-- optional callback function
+		out		[red-block!]							;-- /into destination block or null
 		return: [integer!]								;-- scanned type when one? is set, else zero
 		/local
 			unit buf-size ignore type used [integer!]
@@ -2357,7 +2365,7 @@ lexer: context [
 		utf8-buf-tail: utf8-buf-tail + size + 1			;-- move at tail for new buffer; +1 for terminal NUL
 
 		if null? len [len: :ignore]
-		catch RED_THROWN_ERROR [type: scan dst base size one? scan? load? wrap? len fun as red-series! str]
+		catch RED_THROWN_ERROR [type: scan dst base size one? scan? load? wrap? len fun as red-series! str out]
 		utf8-buf-tail: utf8-buffer + used				;-- move back to original tail
 		if extra <> null [free extra]
 		if system/thrown <> 0 [re-throw]				;-- clean place to rethrow errors
