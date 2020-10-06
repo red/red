@@ -600,10 +600,7 @@ natives: context [
 		value: stack/arguments
 		
 		switch TYPE_OF(value) [
-			TYPE_PATH
-			TYPE_GET_PATH
-			TYPE_SET_PATH
-			TYPE_LIT_PATH [
+			TYPE_ANY_PATH [
 				interpreter/eval-path value null null no yes no case? <> -1
 			]
 			TYPE_OBJECT [
@@ -644,10 +641,7 @@ natives: context [
 		]
 		
 		switch TYPE_OF(w) [
-			TYPE_PATH
-			TYPE_GET_PATH
-			TYPE_SET_PATH
-			TYPE_LIT_PATH [
+			TYPE_ANY_PATH [
 				value: stack/push stack/arguments
 				copy-cell stack/arguments + 1 stack/arguments
 				interpreter/eval-path value null null yes yes no case? <> -1
