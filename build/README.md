@@ -1,7 +1,7 @@
 Building Red binaries
 ------------------------
 
-_Note: This is **not** required to build or run red from sources. It is for a feature used by the red team. Check the [main readme](/README.md#running-red-from-the-sources) if you want to build red from sources_
+_Note: This is **not** required to build or run red from sources. It is for a feature used by the red team. Check the [main readme](/README.md#running-red-from-the-sources-for-contributors) if you want to build red from sources_
 
 _Prerequisite_
 
