@@ -2031,11 +2031,11 @@ lexer: context [
 	
 	load-hex: func [lex [state!] s e [byte-ptr!] flags [integer!] load? [logic!]
 		/local
-			do-error [subroutine!]
-			int		 [red-integer!]
-			saved	 [byte-ptr!]
-			i index  [integer!]
-			cb		 [byte!]
+			do-error	[subroutine!]
+			int			[red-integer!]
+			saved		[byte-ptr!]
+			i len index [integer!]
+			cb			[byte!]
 	][
 		do-error: [throw-error lex saved e TYPE_INTEGER]
 		i: 0
@@ -2046,7 +2046,8 @@ lexer: context [
 			throw-error lex s e TYPE_WORD
 		]
 		saved: s
-		if any [s/1 = #"-" s/1 = #"+"][do-error]
+		len: as-integer e - s
+		if any [s/1 = #"-" s/1 = #"+" len > 8 len < 2][do-error]
 		while [s < e][
 			if s/1 = #"'" [do-error]
 			index: 1 + as-integer s/1					;-- converts the 2 hex chars using a lookup table
