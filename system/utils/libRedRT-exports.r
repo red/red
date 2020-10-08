@@ -133,6 +133,7 @@
 	red/object/init-push
 	red/object/init-events
 	red/object/loc-fire-on-set*
+	red/object/loc-ctx-fire-on-set*
 	red/object/fire-on-set*
 	red/object/get-values
 
